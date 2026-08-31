@@ -17,6 +17,8 @@ export type ShellCommand =
 	| { type: "effort.set"; effort: Effort }
 	| { type: "usage.refresh" }
 	| { type: "status" }
+	| { type: "repository.commits" }
+	| { type: "repository.issues" }
 	| { type: "help" }
 	| { type: "exit" }
 	| { type: "error"; message: string };
@@ -58,6 +60,8 @@ export const SLASH_COMMANDS: SlashCommand[] = [
 	},
 	{ name: "usage", description: "Codex·Claude 사용량 즉시 갱신" },
 	{ name: "status", description: "현재 Router·인증·세션 상태" },
+	{ name: "commits", description: "Git 작업 트리와 최근 Commit" },
+	{ name: "issues", description: "현재 저장소의 열린 GitHub Issue" },
 	{ name: "help", description: "WWW Shell 명령 안내" },
 	{ name: "exit", description: "세션을 안전하게 종료" },
 ];
@@ -106,6 +110,8 @@ export function parseShellCommand(text: string, current: WwwSettings): ShellComm
 	}
 	if (name === "usage") return { type: "usage.refresh" };
 	if (name === "status") return { type: "status" };
+	if (name === "commits" || name === "commit") return { type: "repository.commits" };
+	if (name === "issues" || name === "issue") return { type: "repository.issues" };
 	if (name === "help") return { type: "help" };
 	if (name === "exit" || name === "quit") return { type: "exit" };
 	return { type: "error", message: `알 수 없는 명령입니다: /${name}` };

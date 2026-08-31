@@ -95,7 +95,12 @@ export class ModelSettingsOverlay implements Component {
 		this.list.invalidate();
 	}
 	render(width: number): string[] {
-		return [colors.accent("모델 설정"), "", ...this.list.render(width)];
+		return [
+			colors.accent("모델 설정"),
+			colors.muted("Enter 선택 · 저장 후 자동 닫힘 · Esc 취소"),
+			"",
+			...this.list.render(width),
+		];
 	}
 	handleInput(data: string): void {
 		this.list.handleInput(data);

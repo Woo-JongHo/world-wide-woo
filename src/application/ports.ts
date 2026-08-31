@@ -7,6 +7,7 @@ import type {
 } from "@earendil-works/pi-ai";
 import type { SessionEvent, SessionEventInput } from "../domain/session-events";
 import type { Provider, WwwSettings } from "../domain/model-settings";
+import type { CommitSummary, IssueState, IssueSummary, RepositorySnapshot } from "../domain/repository";
 
 export interface ModelAuthStatus {
 	configured: boolean;
@@ -80,4 +81,10 @@ export interface RecentSessionSummary {
 export interface RouterSettingsController {
 	update(settings: WwwSettings): Promise<void>;
 	flush(): Promise<void>;
+}
+
+export interface RepositoryInsights {
+	snapshot(): Promise<RepositorySnapshot>;
+	recentCommits(limit?: number): Promise<readonly CommitSummary[]>;
+	issues(state?: IssueState, limit?: number): Promise<readonly IssueSummary[]>;
 }

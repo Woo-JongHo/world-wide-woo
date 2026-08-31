@@ -23,6 +23,8 @@ describe("WWW slash commands", () => {
 		expect(parseShellCommand("/logout anthropic", current)).toEqual({ type: "auth.logout", provider: "anthropic" });
 		expect(parseShellCommand("/effort ultra", current)).toEqual({ type: "effort.set", effort: "ultra" });
 		expect(parseShellCommand("/status", current)).toEqual({ type: "status" });
+		expect(parseShellCommand("/commits", current)).toEqual({ type: "repository.commits" });
+		expect(parseShellCommand("/issues", current)).toEqual({ type: "repository.issues" });
 		expect(parseShellCommand("/exit", current)).toEqual({ type: "exit" });
 	});
 
@@ -40,6 +42,8 @@ describe("WWW slash commands", () => {
 			"effort",
 			"usage",
 			"status",
+			"commits",
+			"issues",
 			"help",
 			"exit",
 		]);

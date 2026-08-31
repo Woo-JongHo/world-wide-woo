@@ -1,0 +1,47 @@
+name: 버그 보고
+about: 재현 가능한 WWW 동작 오류를 보고합니다.
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: 민감한 OAuth 토큰, API 키, credential 파일, raw quota 응답은 첨부하지 마세요.
+  - type: textarea
+    id: observed
+    attributes:
+      label: 실제 동작
+      description: 화면에서 관찰한 동작과 오류 문구를 적어주세요.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 기대 동작
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 재현 절차
+      placeholder: |
+        1. www 실행
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: WWW 버전 또는 commit
+      placeholder: 0.2.0 / c132a7a
+  - type: input
+    id: terminal
+    attributes:
+      label: OS와 터미널
+      placeholder: macOS 26 / Ghostty / 160x42
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 안전하게 정리된 증거
+      description: token과 개인 경로를 제거한 screenshot 또는 로그만 첨부하세요.

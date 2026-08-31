@@ -12,6 +12,7 @@ import {
 import type {
 	AuthController,
 	RecentSessionSummary,
+	RepositoryInsights,
 	RouterSettingsController,
 	UsageMonitor,
 } from "../../application/ports";
@@ -26,6 +27,8 @@ import {
 	TranscriptView,
 	UsageStripView,
 } from "./dashboard-views";
+import { OverlaySheet } from "./overlay-sheet";
+import { IssueListOverlay, RepositoryActivityOverlay } from "./repository-overlays";
 import { LoginProviderOverlay, ModelSettingsOverlay } from "./router-overlays";
 import { RenderScheduler } from "./render-scheduler";
 import { parseShellCommand, SLASH_COMMANDS } from "./slash-commands";
@@ -37,10 +40,11 @@ export interface TuiShellDependencies {
 	usage: UsageMonitor;
 	recentSessions: readonly RecentSessionSummary[];
 	routerSettings: RouterSettingsController;
+	repository: RepositoryInsights;
 }
 
 export function runTuiShell(dependencies: TuiShellDependencies): void {
-	const { runtime, auth, usage, recentSessions, routerSettings } = dependencies;
+	const { runtime, auth, usage, recentSessions, routerSettings, repository } = dependencies;
 	const tui = new TuiAltScreen(new ProcessTerminal(), true);
 	let snapshot = runtime.snapshot;
 	const status = new StatusLine();
@@ -82,6 +86,7 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 		tui.setFocus(editor);
 	};
 	const persistSettings = (next: WwwSettings) => {
+		closeOverlay();
 		void routerSettings.update(next).then(
 			() => status.setNotice("모델 설정을 저장했습니다."),
 			(error) => status.setNotice(`설정 저장 실패: ${error instanceof Error ? error.message : String(error)}`),
@@ -91,7 +96,9 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 		if (overlay) return;
 		const authLabel = snapshot.auth?.configured ? snapshot.auth.source ?? "설정됨" : "필요";
 		const panel = new ModelSettingsOverlay(snapshot.settings, authLabel, persistSettings, closeOverlay);
-		overlay = tui.showOverlay(panel, { width: "70%", minWidth: 42, anchor: "center", margin: 2 });
+		overlay = tui.showOverlay(new OverlaySheet(panel), {
+			width: "60%", minWidth: 42, maxHeight: "55%", anchor: "bottom-center", margin: 2,
+		});
 	};
 	const openAuthFlow = (provider: WwwSettings["provider"]) => {
 		closeOverlay();
@@ -120,13 +127,33 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 			},
 			closeOverlay,
 		);
-		overlay = tui.showOverlay(panel, { width: "70%", minWidth: 46, maxHeight: "80%", anchor: "center", margin: 2 });
+		overlay = tui.showOverlay(new OverlaySheet(panel), {
+			width: "60%", minWidth: 46, maxHeight: "70%", anchor: "bottom-center", margin: 2,
+		});
 		panel.start();
 	};
 	const openAuthentication = () => {
 		if (overlay) return;
 		const selector = new LoginProviderOverlay(openAuthFlow, closeOverlay);
-		overlay = tui.showOverlay(selector, { width: "70%", minWidth: 46, maxHeight: "80%", anchor: "center", margin: 2 });
+		overlay = tui.showOverlay(new OverlaySheet(selector), {
+			width: "60%", minWidth: 46, maxHeight: "55%", anchor: "bottom-center", margin: 2,
+		});
+	};
+	const openCommits = () => {
+		if (overlay) return;
+		const panel = new RepositoryActivityOverlay(repository, () => tui.requestRender(), closeOverlay);
+		overlay = tui.showOverlay(new OverlaySheet(panel), {
+			width: "72%", minWidth: 54, maxHeight: "75%", anchor: "bottom-center", margin: 2,
+		});
+		panel.start();
+	};
+	const openIssues = () => {
+		if (overlay) return;
+		const panel = new IssueListOverlay(repository, () => tui.requestRender(), closeOverlay);
+		overlay = tui.showOverlay(new OverlaySheet(panel), {
+			width: "72%", minWidth: 54, maxHeight: "75%", anchor: "bottom-center", margin: 2,
+		});
+		panel.start();
 	};
 	const handleShellCommand = async (text: string): Promise<void> => {
 		const command = parseShellCommand(text, snapshot.settings);
@@ -153,7 +180,7 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 			status.setNotice("Codex·Claude 사용량을 갱신했습니다.");
 		}
 		if (command.type === "help") {
-			status.setNotice("/model · /effort · /login · /logout · /usage · /status · /exit");
+			status.setNotice("/model · /login · /usage · /commits · /issues · /status · /exit");
 		}
 		if (command.type === "status") {
 			status.setNotice(
@@ -162,6 +189,8 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 				} · 세션 ${snapshot.id.slice(0, 8)}`,
 			);
 		}
+		if (command.type === "repository.commits") return openCommits();
+		if (command.type === "repository.issues") return openIssues();
 		if (command.type === "exit") return shutdown();
 		if (command.type === "error") status.setNotice(command.message);
 		tui.requestRender();

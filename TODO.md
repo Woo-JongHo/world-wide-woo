@@ -19,6 +19,8 @@
 - [x] 동일 모델의 유일한 인증 Router 자동 재조정
 - [x] OMC형 Codex·Claude 2줄 사용량 HUD
 - [x] append-only JSONL 세션과 안전한 종료·재개
+- [x] `/commits` Git 작업 트리·최근 Commit 조회
+- [x] `/issues` 현재 저장소의 열린 GitHub Issue 조회
 
 ## P1 — 출력 계약
 
@@ -30,6 +32,8 @@
 - [ ] 완료된 턴의 `CompletionReport` 생성과 transcript 삽입
 - [ ] 긴 출력 paging·접기·복사·원문 열기
 - [ ] command card golden/PTY snapshot 검증
+- [ ] staged file 선택·Commit preview·명시적 승인
+- [ ] Issue 생성·수정 preview와 GitHub 제출 승인
 
 ## P2 — Agent runtime
 

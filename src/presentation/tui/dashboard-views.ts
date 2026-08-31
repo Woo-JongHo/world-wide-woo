@@ -145,6 +145,8 @@ export class SessionFlowView implements Component {
 			colors.secondary("명령"),
 			"  /usage   사용량 즉시 갱신",
 			"  /status  Router · 세션 상태",
+			"  /commits Git 작업 트리",
+			"  /issues  GitHub Issue",
 			"  /help    전체 Shell 명령",
 			"  /exit    안전하게 종료",
 		];

@@ -20,6 +20,8 @@ if (args.includes("--help") || args.includes("-h")) {
 		"  /model  Router · 모델 설정",
 		"  /login  로그인 · 계정",
 		"  /usage  Codex·Claude 사용량 갱신",
+		"  /commits Git 작업 트리와 최근 Commit",
+		"  /issues  열린 GitHub Issue",
 		"  Ctrl+C  입력 지우기 · 응답 중단 · 종료",
 	].join("\n"));
 } else if (args.includes("--version") || args.includes("-v")) {

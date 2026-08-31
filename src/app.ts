@@ -7,6 +7,7 @@ export async function runApp(options: { sessionId?: string } = {}): Promise<void
 		{ ModelRouter, createModelRegistry },
 		{ SessionEventStore },
 		{ FileSettingsStore },
+		{ GitHubRepositoryInsights },
 		{ UsageService },
 		{ runTuiShell },
 	] = await Promise.all([
@@ -17,28 +18,27 @@ export async function runApp(options: { sessionId?: string } = {}): Promise<void
 		import("./infrastructure/model-router"),
 		import("./infrastructure/session-store"),
 		import("./infrastructure/settings-store"),
+		import("./infrastructure/repository-insights"),
 		import("./infrastructure/usage-service"),
 		import("./presentation/tui/app-shell"),
 	]);
 	const settingsStore = new FileSettingsStore();
-	const storedSettings = await settingsStore.load();
 	const credentials = new FileCredentialStore();
 	const registry = createModelRegistry(credentials);
 	const modelRouter = new ModelRouter(registry);
-	const settings = await reconcileInitialRouter(storedSettings, modelRouter, settingsStore);
+	const settings = await reconcileInitialRouter(await settingsStore.load(), modelRouter, settingsStore);
 	const sessions = new SessionEventStore();
 	const runtime = new SessionRuntime(settings, modelRouter, sessions, options.sessionId);
 	await runtime.initialize({ resume: options.sessionId !== undefined });
-	const recentSessions = await sessions.list();
 
 	runTuiShell({
 		runtime,
 		auth: new AuthService(registry),
 		usage: new UsageService(credentials, registry),
-		recentSessions: recentSessions
-			.filter((session) => session.id !== runtime.id)
+		recentSessions: (await sessions.list()).filter(session => session.id !== runtime.id)
 			.map(({ id, updatedAt }) => ({ id, updatedAt })),
 		routerSettings: new RouterService(settingsStore, runtime),
+		repository: new GitHubRepositoryInsights(process.cwd()),
 	});
 }
 

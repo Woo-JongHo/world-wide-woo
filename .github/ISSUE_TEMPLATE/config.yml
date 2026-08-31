@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 보안 문제
+    url: https://github.com/Woo-JongHo/world-wide-woo/security/advisories/new
+    about: token, credential, 권한 우회 또는 민감 정보 노출은 공개 Issue 대신 비공개 보안 제보를 사용하세요.
