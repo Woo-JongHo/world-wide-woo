@@ -6,7 +6,7 @@ import {
 	type Component,
 } from "@earendil-works/pi-tui";
 import type { SessionSnapshot } from "../../application/session-runtime";
-import type { RecentSessionSummary, UsageSnapshot } from "../../application/ports";
+import type { UsageSnapshot } from "../../application/ports";
 import type { Effort } from "../../domain/model-settings";
 import { todoProgress, type TodoDocument, type TodoItem } from "../../domain/todos";
 import { BashResultCard, GenericToolResultCard } from "./result-cards";
@@ -137,37 +137,10 @@ export class RouterModelView implements Component {
 }
 
 export class WorkspaceTodoView implements Component {
-	constructor(
-		private readonly recentSessions: readonly RecentSessionSummary[],
-		private readonly workspace: () => { name: string; cwd: string; root: string },
-		private readonly todo: () => TodoDocument | null,
-	) {}
+	constructor(private readonly todo: () => TodoDocument | null) {}
 	invalidate(): void {}
 	render(width: number): string[] {
-		const todoRows = this.renderTodo(width);
-		const rows = [
-			...todoRows,
-			"",
-			colors.secondary("프로젝트"),
-			`  ${this.workspace().name}`,
-			`  ${this.workspace().root}/.www`,
-			"",
-			colors.secondary("작업 위치"),
-			`  ${this.workspace().cwd}`,
-			"",
-			colors.secondary("명령"),
-			"  /usage   사용량 즉시 갱신",
-			"  /status  Router · 세션 상태",
-			"  /commits Git 작업 트리",
-			"  /issues  GitHub Issue",
-			"  /help    전체 Shell 명령",
-			"  /exit    안전하게 종료",
-		];
-		if (this.recentSessions.length > 0) {
-			rows.push("", colors.secondary("최근 세션"));
-			for (const session of this.recentSessions.slice(0, 3)) rows.push(`  ${session.id.slice(0, 12)}`);
-		}
-		return rows.flatMap((row) => wrapTextWithAnsi(row, Math.max(1, width)));
+		return this.renderTodo(width).flatMap((row) => wrapTextWithAnsi(row, Math.max(1, width)));
 	}
 
 	private renderTodo(width: number): string[] {

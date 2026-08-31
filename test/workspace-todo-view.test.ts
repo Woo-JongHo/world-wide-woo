@@ -3,9 +3,6 @@ import { visibleWidth } from "@earendil-works/pi-tui";
 import type { TodoDocument } from "../src/domain/todos";
 import { WorkspaceTodoView } from "../src/presentation/tui/dashboard-views";
 
-const workspace = () => ({ name: "www", cwd: "/repo/packages/app", root: "/repo" });
-const recentSessions = [{ id: "recent-session-1234", updatedAt: "2026-08-31T00:00:00.000Z" }];
-
 function todo(items: TodoDocument["items"]): TodoDocument {
 	return {
 		version: 1,
@@ -28,19 +25,19 @@ const mixedTodo = todo([
 describe("WorkspaceTodoView", () => {
 	test("shows no active work for a missing or empty todo", () => {
 		for (const document of [null, todo([])]) {
-			const output = new WorkspaceTodoView(recentSessions, workspace, () => document).render(70).join("\n");
+			const output = new WorkspaceTodoView(() => document).render(70).join("\n");
 			expect(output).toContain("TODO 0/0");
 			expect(output).toContain("진행 중인 작업 없음");
 		}
 	});
 
 	test.each([30, 40, 70, 120])("wraps Korean and ANSI todo content safely within %i columns", (width) => {
-		const output = new WorkspaceTodoView(recentSessions, workspace, () => mixedTodo).render(width);
+		const output = new WorkspaceTodoView(() => mixedTodo).render(width);
 		expect(output.every(line => visibleWidth(line) <= width)).toBe(true);
 	});
 
-	test("uses status markers and preserves workspace, commands, and recent sessions", () => {
-		const output = new WorkspaceTodoView(recentSessions, workspace, () => mixedTodo).render(120).join("\n");
+	test("uses status markers without mixing project metadata or commands into Todo", () => {
+		const output = new WorkspaceTodoView(() => mixedTodo).render(120).join("\n");
 		expect(output).toContain("TODO 1/4");
 		expect(output).toContain("릴리스");
 		expect(output).toContain("[ ] 한국어 pending 작업");
@@ -48,19 +45,17 @@ describe("WorkspaceTodoView", () => {
 		expect(output).toContain("\u001B[31m진행 중인 아주 긴 작업\u001B[0m");
 		expect(output).toContain("[x] 완료 작업");
 		expect(output).toContain("[!] 막힌 작업");
-		expect(output).toContain("프로젝트");
-		expect(output).toContain("/repo/.www");
-		expect(output).toContain("작업 위치");
-		expect(output).toContain("/usage   사용량 즉시 갱신");
-		expect(output).toContain("최근 세션");
-		expect(output).toContain("recent-sessi");
+		expect(output).not.toContain("프로젝트");
+		expect(output).not.toContain("작업 위치");
+		expect(output).not.toContain("/usage");
+		expect(output).not.toContain("최근 세션");
 		expect(output).not.toContain("Map");
 		expect(output).not.toContain("Architecture");
 		expect(output).not.toContain("T-Notes");
 	});
 
 	test("uses the active item rather than an earlier pending item in compact layout", () => {
-		const output = new WorkspaceTodoView(recentSessions, workspace, () => mixedTodo).render(40).join("\n");
+		const output = new WorkspaceTodoView(() => mixedTodo).render(40).join("\n");
 		expect(output).toContain("TODO 1/4");
 		expect(output).toContain("[•]");
 		expect(output).not.toContain("[ ]");

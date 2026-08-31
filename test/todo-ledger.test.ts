@@ -28,7 +28,6 @@ function ledger(
 	sessionId = "session-1",
 	store = new MemoryTodoStore(),
 	events = new MemoryEvents(),
-	isSessionActive: (sessionId: string) => Promise<boolean> = async () => true,
 ) {
 	return {
 		ledger: new TodoLedger(
@@ -36,7 +35,6 @@ function ledger(
 			store,
 			events,
 			() => new Date("2026-08-31T08:00:00.000Z"),
-			isSessionActive,
 		),
 		store,
 		events,
@@ -51,8 +49,7 @@ describe("TodoLedger", () => {
 		expect(created.items.map((item) => item.id)).toEqual(["todo-1", "todo-2"]);
 		await expect(fixture.ledger.create("Replacement", ["three"])).rejects.toThrow("unfinished");
 		const other = ledger("session-2", fixture.store).ledger;
-		await other.initialize();
-		await expect(other.create("Replacement", ["three"])).rejects.toThrow("active session");
+		await expect(other.initialize()).rejects.toThrow("owner mismatch");
 	});
 
 	test("enforces owner and one active item", async () => {
@@ -60,8 +57,7 @@ describe("TodoLedger", () => {
 		await fixture.ledger.initialize();
 		await fixture.ledger.create("Work", ["one", "two"]);
 		const other = ledger("session-2", fixture.store).ledger;
-		await other.initialize();
-		await expect(other.start("todo-1")).rejects.toThrow("active session");
+		await expect(other.initialize()).rejects.toThrow("owner mismatch");
 		await fixture.ledger.start("todo-1");
 		await expect(fixture.ledger.start("todo-2")).rejects.toThrow("already active");
 	});
@@ -94,22 +90,15 @@ describe("TodoLedger", () => {
 		await fixture.ledger.initialize();
 		await fixture.ledger.create("Work", ["one"]);
 		expect(await fixture.ledger.recordEvidence("proof-1")).toBeNull();
-		const other = ledger("session-2", fixture.store).ledger;
-		await other.initialize();
 		await fixture.ledger.start("todo-1");
-		expect(await other.recordEvidence("proof-1")).toBeNull();
 	});
 
-	test("takes over unfinished work only after the previous owner lease is inactive", async () => {
+	test("rejects a Todo document stored under a different session path", async () => {
 		const fixture = ledger();
 		await fixture.ledger.initialize();
 		await fixture.ledger.create("Work", ["one"]);
-		await fixture.ledger.start("todo-1");
-		const next = ledger("session-2", fixture.store, fixture.events, async () => false).ledger;
-		await next.initialize();
-		await next.recordEvidence("proof-1");
-		expect(next.snapshot?.ownerSessionId).toBe("session-2");
-		expect((await next.complete("todo-1")).items[0]?.status).toBe("completed");
+		const next = ledger("session-2", fixture.store, fixture.events).ledger;
+		await expect(next.initialize()).rejects.toThrow("owner mismatch");
 	});
 
 	test("caps evidence and Todo rewrites at eight observations per active item", async () => {
@@ -120,6 +109,26 @@ describe("TodoLedger", () => {
 		for (let index = 0; index < 10; index += 1) await fixture.ledger.recordEvidence(`proof-${index}`);
 		expect(fixture.ledger.snapshot?.items[0]?.evidenceIds).toHaveLength(8);
 		expect(fixture.events.inputs).toHaveLength(10);
+	});
+
+	test("queues work after the active item or interrupts it now without losing order", async () => {
+		const fixture = ledger();
+		await fixture.ledger.initialize();
+		await fixture.ledger.create("Work", ["one", "two"]);
+		await fixture.ledger.start("todo-1");
+		const queued = await fixture.ledger.add("three", "after");
+		expect(queued.items.map(item => [item.id, item.status])).toEqual([
+			["todo-1", "in_progress"],
+			["todo-3", "pending"],
+			["todo-2", "pending"],
+		]);
+		const interrupted = await fixture.ledger.add("urgent", "now");
+		expect(interrupted.items.map(item => [item.id, item.status])).toEqual([
+			["todo-4", "in_progress"],
+			["todo-1", "pending"],
+			["todo-3", "pending"],
+			["todo-2", "pending"],
+		]);
 	});
 
 	test("reloads and emits the durable document after a CAS conflict", async () => {

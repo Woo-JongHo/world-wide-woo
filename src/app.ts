@@ -22,13 +22,12 @@ export async function runApp(options: { sessionId?: string } = {}): Promise<void
 	const modelRouter = new ModelRouter(registry);
 	const settings = await reconcileInitialRouter(await settingsStore.load(), modelRouter, settingsStore);
 	const project = await createProjectSession(process.cwd(), settings, modelRouter, options.sessionId);
-	const { workspace, runtime, todos, recentSessions, releaseSessionLease } = project;
+	const { workspace, runtime, todos, releaseSessionLease } = project;
 
 	runTuiShell({
 		runtime,
 		auth: new AuthService(registry),
 		usage: new UsageService(credentials, registry),
-		recentSessions,
 		routerSettings: new RouterService(settingsStore, runtime, settings),
 		repository: new GitHubRepositoryInsights(process.cwd()),
 		composerDraft: await (await import("./infrastructure/composer-draft-store")).FileComposerDraftController.create(workspace.root, runtime.id, workspace.draftsDirectory),

@@ -1,90 +1,45 @@
 # WWW Epics
 
-## 운영 원칙
+## 지속 규칙
 
-- WWW는 **World Wide Woo**이며 WES Agent TUI의 제품 Shell이다.
-- 화면은 저장 원문이나 모델 Context를 임의로 바꾸지 않는 projection이어야 한다.
-- Agent와 tool executor는 실제 lifecycle event와 evidence가 존재하는 작업만 표시한다.
-- 항목은 실제 동작과 검증이 함께 끝나야 완료한다.
+- Epic은 프로젝트 수명 동안 누적하며 새 Epic은 파일 끝에 추가한다.
+- 기존 Epic을 새 작업으로 덮어쓰거나 번호를 재사용하지 않는다.
+- 완료된 Epic도 삭제하지 않고 상태와 연결된 Story 이력을 보존한다.
+- Epic 상태 변경은 허용하지만 제목·목표의 역사적 의미를 바꾸지 않는다.
+- 세부 실행 단위와 완료 이력은 [`Stories.md`](./Stories.md)에 기록한다.
 
 ## EP-001 — 제품 Shell
 
-- [x] 프로젝트 root의 `.www/project.json`과 local session·draft state
-- [x] 프로젝트별 session 목록과 `.www` 위치 표시
-- [x] 단일 외곽 프레임 안의 왼쪽 1개·오른쪽 상하 2개 viewport
-- [x] 넓은 화면의 영역별 독립 ScrollView와 저높이 compact 전환
-- [x] Claude 계열 팔레트와 ANSI 폭을 보존하는 WWW 그라데이션
-- [x] `🐙` WWW 제품 마크와 World Wide Woo 설명
-- [x] 공식 Editor 기반 한글 IME·paste·history·autocomplete
-- [x] `/model`, `/effort`, `/login`, `/logout`, `/usage`, `/status`, `/help`, `/exit`
-- [x] Provider → Model → 추론 → 확인 계층형 staged atomic Model bottom sheet
-- [x] 현재 작업 경로의 model context 주입과 Session 영역 표시
-- [x] 활성 provider/model/effort의 model context 주입과 직접 답변
-- [x] Conversation role·message body의 pane-edge 좌측 정렬
-- [x] 실제 request·waiting·thinking·responding·cancelling activity indicator
-- [x] Ctrl+C 2단계·Ctrl+D·Esc 우선순위와 프로젝트 Composer draft 복원
-- [x] streaming 중 local/async read·mutation·control Slash concurrency 분리
-- [x] Codex OAuth와 OpenAI API Provider 구분
-- [x] 동일 모델의 유일한 인증 Router 자동 재조정
-- [x] OMC형 Codex·Claude 2줄 사용량 HUD
-- [x] append-only JSONL 세션과 안전한 종료·재개
-- [x] `/commits` Git 작업 트리·최근 Commit 조회
-- [x] `/issues` 현재 저장소의 열린 GitHub Issue 조회
-- [x] 프로젝트 단일 `.www/Todo.md`와 Workspace 실시간 진행률 projection
+- 상태: 완료
+- 목표: 하나의 외곽 프레임에서 대화, Router, 프로젝트 작업 상태를 안전하게 운용한다.
+- Stories: [`ST-001-*`](./Stories.md#ep-001--제품-shell)
 
 ## EP-002 — 출력 계약
 
-- [x] Bash 실행 상태 DTO와 width-safe 결과 카드
-- [x] 실제 read·search·safe Bash tool lifecycle 연결
-- [x] 번호·bullet·검증을 표현하는 완료 요약 카드
-- [x] Gajae native syntax와 message·tool·diff·effort semantic highlight role
-- [x] display-safe generic unknown-tool card와 textual diff card
-- [x] `command.started → command.output → command.completed` 이벤트 projector 연결
-- [ ] stdout/stderr streaming 중 활성 Bash 카드 갱신
-- [x] 명령 취소·실패·exit code·duration의 terminal 상태 보장
-- [ ] 완료된 턴의 `CompletionReport` 생성과 transcript 삽입
-- [ ] 긴 출력 paging·접기·복사·원문 열기
-- [ ] command card golden/PTY snapshot 검증
-- [ ] staged file 선택·Commit preview·명시적 승인
-- [ ] Issue 생성·수정 preview와 GitHub 제출 승인
+- 상태: 진행 중
+- 목표: 모델·Tool·Bash·Diff 출력을 원문 보존과 terminal 폭 안전성을 지키며 표현한다.
+- Stories: [`ST-002-*`](./Stories.md#ep-002--출력-계약)
 
-## EP-003 — Agent runtime
+## EP-003 — Agent Runtime
 
-- [x] bounded model → tool result → follow-up model loop
-- [x] transient Provider retry와 실제 activity 상태
-- [ ] 단일 활성 Turn 상태기계
-- [ ] model → tool call → approval → execution → tool result 반복 루프
-- [x] sandboxed Bash·read·search 최소 tool set
-- [ ] preview·approval을 포함한 edit tool
-- [x] 명령별 cwd·권한·timeout·AbortSignal
-- [x] evidence-linked `todo_write` lifecycle과 owner session 인계
-- [ ] 위험 작업 승인 overlay와 fail-closed 정책
-- [ ] tool-only·thinking-only·부분 응답 보존
-- [x] 중단된 Turn의 cancelled terminal event와 transcript 중단 표지
+- 상태: 진행 중
+- 목표: 모델 요청부터 Tool 실행, 증거, 취소, 완료까지 진실한 Agent lifecycle을 제공한다.
+- Stories: [`ST-003-*`](./Stories.md#ep-003--agent-runtime)
 
 ## EP-004 — WES Context
 
-- [ ] Display Policy와 Context Policy 분리
-- [ ] category별 show/hide/fold/filter
-- [ ] 현재 WES View를 모델 Context로 명시적으로 채택하는 흐름
-- [ ] summary·compaction·raw event provenance
-- [x] Project Todo projection
-- [ ] Decision·Evidence projection
-- [ ] 세션 resume·fork·replay picker
+- 상태: 진행 중
+- 목표: 저장 원문과 화면·모델 Context projection을 분리하고 provenance를 보존한다.
+- Stories: [`ST-004-*`](./Stories.md#ep-004--wes-context)
 
 ## EP-005 — 제품 품질
 
-- [ ] 40·70·120·160열 및 10·13·24·42행 matrix snapshot
-- [ ] truecolor·256색·무색상 terminal 대비 검증
-- [ ] macOS·Linux·Windows smoke test
-- [ ] OAuth refresh/login/logout 경합 테스트
-- [ ] quota API rate-limit·stale cache·offline 상태
-- [ ] session pagination과 장기 메모리 상한
-- [ ] command·output·provider error redaction audit
+- 상태: 예정
+- 목표: terminal 크기, 색상, 운영체제, 인증 경합, 장기 session 안정성을 검증한다.
+- Stories: [`ST-005-*`](./Stories.md#ep-005--제품-품질)
 
 ## EP-006 — 배포
 
-- [ ] GitHub Actions에 typecheck·test·PTY smoke 연결
-- [ ] npm/Bun executable 배포 계약
-- [ ] 버전·changelog 자동화
-- [ ] 설치·로그인·복구 운영 문서
+- 상태: 예정
+- 목표: 검증된 실행 파일과 설치·업데이트·복구 계약을 제공한다.
+- Stories: [`ST-006-*`](./Stories.md#ep-006--배포)

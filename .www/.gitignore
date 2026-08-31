@@ -2,5 +2,6 @@ sessions/
 drafts/
 cache/
 runtime/
+todos/
 Todo.md
 .Todo.md.*.tmp

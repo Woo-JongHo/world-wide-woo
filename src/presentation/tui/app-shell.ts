@@ -12,7 +12,6 @@ import {
 import type {
 	AuthController,
 	ComposerDraftController,
-	RecentSessionSummary,
 	RepositoryInsights,
 	RouterSettingsController,
 	TodoController,
@@ -54,7 +53,6 @@ export interface TuiShellDependencies {
 	runtime: SessionRuntime;
 	auth: AuthController;
 	usage: UsageMonitor;
-	recentSessions: readonly RecentSessionSummary[];
 	routerSettings: RouterSettingsController;
 	repository: RepositoryInsights;
 	composerDraft: ComposerDraftController;
@@ -63,18 +61,14 @@ export interface TuiShellDependencies {
 }
 
 export function runTuiShell(dependencies: TuiShellDependencies): void {
-	const { runtime, auth, usage, recentSessions, routerSettings, repository, composerDraft, releaseSessionLease, todos } = dependencies;
+	const { runtime, auth, usage, routerSettings, repository, composerDraft, releaseSessionLease, todos } = dependencies;
 	const tui = new TuiAltScreen(new ProcessTerminal(), true);
 	let snapshot = runtime.snapshot;
 	let todoSnapshot = todos.snapshot;
 	const status = new StatusLine();
 	const usageStrip = new UsageStripView();
 	const routerModel = new RouterModelView(() => snapshot);
-	const workspaceTodo = new WorkspaceTodoView(recentSessions, () => ({
-		name: snapshot.projectName,
-		cwd: snapshot.cwd,
-		root: snapshot.projectRoot,
-	}), () => todoSnapshot);
+	const workspaceTodo = new WorkspaceTodoView(() => todoSnapshot);
 	const transcript = new TranscriptView(snapshot);
 	const dashboard = createDashboardLayout(
 		() => `🐙 WWW · ${snapshot.settings.provider}/${snapshot.settings.model} · ${
@@ -82,7 +76,7 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 		}${todoSnapshot ? ` · TODO ${todoProgress(todoSnapshot).completed}/${todoSnapshot.items.length}` : ""}`,
 		{ title: "대화 · 작업", color: colors.accent, component: transcript },
 		{ title: "Router · 모델", color: colors.secondary, component: routerModel },
-		{ title: "프로젝트 · TODO", color: colors.warm, component: workspaceTodo },
+		{ title: "TODO · 현재 작업", color: colors.warm, component: workspaceTodo },
 	);
 	const editor = new Editor(tui, editorTheme, { paddingX: 1, autocompleteMaxVisible: 5 });
 	editor.setAutocompleteProvider(new CombinedAutocompleteProvider(SLASH_COMMANDS, process.cwd()));

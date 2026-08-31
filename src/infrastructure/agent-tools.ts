@@ -28,6 +28,7 @@ const todoParameters = Type.Object({
 	operation: Type.Union([
 		Type.Literal("status"),
 		Type.Literal("init"),
+		Type.Literal("add"),
 		Type.Literal("start"),
 		Type.Literal("done"),
 		Type.Literal("block"),
@@ -37,6 +38,8 @@ const todoParameters = Type.Object({
 	storyId: Type.Optional(Type.String({ minLength: 1, maxLength: 64 })),
 	items: Type.Optional(Type.Array(Type.String({ minLength: 1, maxLength: 120 }), { minItems: 1, maxItems: 12 })),
 	itemId: Type.Optional(Type.String({ minLength: 1, maxLength: 64 })),
+	content: Type.Optional(Type.String({ minLength: 1, maxLength: 120 })),
+	placement: Type.Optional(Type.Union([Type.Literal("now"), Type.Literal("after")])),
 });
 
 export function createProjectAgentTools(
@@ -153,6 +156,7 @@ function createTodoTool(todos: TodoController): AgentTool {
 			description: [
 				"Maintain the current project's thin live Todo list.",
 				"Use status to inspect existing work before init when a prior session may have unfinished items.",
+				"Use add with placement now to interrupt safely or after to queue directly behind the active item.",
 				"For implementation work with at least three concrete steps, call init before other tools.",
 				"Call start immediately before one item and done only after observable evidence; completion without evidence fails.",
 				"Do not use for simple answers or invent completed work.",
@@ -175,6 +179,11 @@ function createTodoTool(todos: TodoController): AgentTool {
 					}
 					const storyId = optionalStringArgument(arguments_, "storyId");
 					document = await todos.create(title, arguments_.items, storyId);
+				} else if (operation === "add") {
+					const content = stringArgument(arguments_, "content");
+					const placement = stringArgument(arguments_, "placement");
+					if (placement !== "now" && placement !== "after") throw new Error("Todo placement must be now or after.");
+					document = await todos.add(content, placement);
 				} else {
 					const itemId = stringArgument(arguments_, "itemId");
 					if (operation === "start") document = await todos.start(itemId);
@@ -211,7 +220,7 @@ async function assertNonSensitive(root: string, target: string): Promise<void> {
 		parts.some(part => part === ".git" || part === ".env" || part.startsWith(".env.")) ||
 		parts.some(part => [".npmrc", ".pypirc", "id_rsa", "id_ed25519"].includes(part)) ||
 		parts[0] === ".www" && (
-			["sessions", "drafts", "runtime"].includes(parts[1] ?? "") ||
+			["sessions", "drafts", "runtime", "todos"].includes(parts[1] ?? "") ||
 			(parts[1] ?? "").toLowerCase() === "todo.md"
 		)
 	) {
@@ -241,7 +250,7 @@ async function searchProject(
 				const childRelative = relative(root, child);
 				if (
 					childRelative.startsWith(`.www${sep}`) &&
-					/^(?:\.www\/)?(?:(?:sessions|drafts|runtime)(?:\/|$)|Todo\.md$)/iu.test(childRelative.replaceAll(sep, "/"))
+					/^(?:\.www\/)?(?:(?:sessions|drafts|runtime|todos)(?:\/|$)|Todo\.md$)/iu.test(childRelative.replaceAll(sep, "/"))
 				) continue;
 				await visit(child);
 				if (matches.length >= MAX_SEARCH_RESULTS) return;

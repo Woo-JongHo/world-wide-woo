@@ -12,7 +12,6 @@ export class TodoLedger implements TodoController {
 		private readonly store: TodoStore,
 		private readonly events: SessionRepository,
 		private readonly clock: () => Date = () => new Date(),
-		private readonly isSessionActive: (sessionId: string) => Promise<boolean> = async () => true,
 	) {}
 
 	public get snapshot(): TodoDocument | null {
@@ -21,12 +20,14 @@ export class TodoLedger implements TodoController {
 
 	public async initialize(): Promise<void> {
 		this.current = immutableSnapshot(await this.store.read());
+		if (this.current && this.current.ownerSessionId !== this.sessionId) {
+			throw new Error(`Session Todo owner mismatch: ${this.current.ownerSessionId}`);
+		}
 		this.emit();
 	}
 
 	public async create(title: string, items: readonly string[], storyId?: string): Promise<TodoDocument> {
 		if (this.current && !this.current.items.every((item) => item.status === "completed")) {
-			await this.ensureOwnership();
 			throw new Error(
 				`Cannot replace unfinished todo work; continue ${this.current.items
 					.map(item => `${item.id} [${item.status}] ${item.content}`)
@@ -43,6 +44,31 @@ export class TodoLedger implements TodoController {
 			items: items.map((content, index) => ({ id: `todo-${index + 1}`, content, status: "pending" as const, evidenceIds: [] })),
 		});
 		return this.commit(next);
+	}
+
+	public async add(content: string, placement: "now" | "after"): Promise<TodoDocument> {
+		const document = this.requireCurrent();
+		this.assertOwner(document);
+		if (document.items.length >= 12) throw new Error("Todo item limit reached");
+		if (placement !== "now" && placement !== "after") throw new Error("Todo placement must be now or after");
+		const nextNumber = document.items.reduce((highest, item) => {
+			const match = /^todo-(\d+)$/u.exec(item.id);
+			return Math.max(highest, match ? Number.parseInt(match[1]!, 10) : 0);
+		}, 0) + 1;
+		const item = { id: `todo-${nextNumber}`, content, status: placement === "now" ? "in_progress" as const : "pending" as const, evidenceIds: [] };
+		const activeIndex = document.items.findIndex(candidate => candidate.status === "in_progress");
+		let items = document.items.map(candidate =>
+			placement === "now" && candidate.status === "in_progress"
+				? { ...candidate, status: "pending" as const, evidenceIds: [] }
+				: candidate,
+		);
+		const firstIncomplete = items.findIndex(candidate => candidate.status !== "completed");
+		const insertion = placement === "after"
+			? activeIndex >= 0 ? activeIndex + 1 : items.length
+			: activeIndex >= 0 ? activeIndex : firstIncomplete >= 0 ? firstIncomplete : items.length;
+		const index = insertion;
+		items = [...items.slice(0, index), item, ...items.slice(index)];
+		return this.commit(this.document({ ...document, items }));
 	}
 
 	public async start(itemId: string): Promise<TodoDocument> {
@@ -82,11 +108,8 @@ export class TodoLedger implements TodoController {
 	public async recordEvidence(evidenceId: string): Promise<TodoDocument | null> {
 		if (!this.current) return null;
 		if (typeof evidenceId !== "string" || !isId(evidenceId)) throw new Error("Invalid evidence id");
-		if (this.current.ownerSessionId !== this.sessionId) {
-			if (await this.isSessionActive(this.current.ownerSessionId)) return null;
-			await this.ensureOwnership();
-		}
 		const document = this.requireCurrent();
+		this.assertOwner(document);
 		const active = document.items.find((item) => item.status === "in_progress");
 		if (!active || active.evidenceIds.includes(evidenceId) || active.evidenceIds.length >= MAX_TODO_EVIDENCE) return null;
 		const next = this.document({
@@ -103,7 +126,6 @@ export class TodoLedger implements TodoController {
 
 	private async transition(itemId: string, change: (item: TodoDocument["items"][number], document: TodoDocument) => TodoDocument["items"][number]): Promise<TodoDocument> {
 		if (typeof itemId !== "string" || !isId(itemId)) throw new Error("Invalid todo item id");
-		await this.ensureOwnership();
 		const document = this.requireCurrent();
 		const item = document.items.find((candidate) => candidate.id === itemId);
 		if (!item) throw new Error(`Unknown todo item: ${itemId}`);
@@ -140,15 +162,6 @@ export class TodoLedger implements TodoController {
 
 	private assertOwner(document: TodoDocument): void {
 		if (document.ownerSessionId !== this.sessionId) throw new Error("Only the todo owner may change it");
-	}
-
-	private async ensureOwnership(): Promise<void> {
-		const document = this.requireCurrent();
-		if (document.ownerSessionId === this.sessionId) return;
-		if (await this.isSessionActive(document.ownerSessionId)) {
-			throw new Error(`Todo is owned by active session ${document.ownerSessionId}`);
-		}
-		await this.commit(this.document({ ...document, ownerSessionId: this.sessionId }));
 	}
 
 	private emit(): void {

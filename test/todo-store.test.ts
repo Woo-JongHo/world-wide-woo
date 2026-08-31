@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { access, lstat, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { FileTodoStore } from "../src/infrastructure/todo-store.js";
+import { FileTodoStore, migrateLegacyTodo } from "../src/infrastructure/todo-store.js";
 import { renderTodoMarkdown, type TodoDocument } from "../src/domain/todos.js";
 
 const directories: string[] = [];
@@ -89,5 +89,27 @@ describe("FileTodoStore", () => {
 		child.kill();
 		await child.exited;
 		expect(await store.compareAndSwap(0, todo(1))).toBe("written");
+	});
+
+	test("migrates one legacy project Todo into its owner session directory", async () => {
+		const { directory } = await fixture();
+		const legacy = join(directory, "Todo.md");
+		const todos = join(directory, "todos");
+		await mkdir(todos, { mode: 0o700 });
+		await writeFile(legacy, renderTodoMarkdown(todo(0)));
+		const destination = await migrateLegacyTodo(legacy, todos);
+		expect(destination).toBe(join(todos, "session_1", "Todo.md"));
+		await expect(access(legacy)).rejects.toThrow();
+		expect(await new FileTodoStore(destination!).read()).toEqual(todo(0));
+	});
+
+	test("leaves a legacy Todo in place while its owner session is active", async () => {
+		const { directory } = await fixture();
+		const legacy = join(directory, "Todo.md");
+		const todos = join(directory, "todos");
+		await mkdir(todos, { mode: 0o700 });
+		await writeFile(legacy, renderTodoMarkdown(todo(0)));
+		expect(await migrateLegacyTodo(legacy, todos, async () => false)).toBeNull();
+		expect(await readFile(legacy, "utf8")).toBe(renderTodoMarkdown(todo(0)));
 	});
 });

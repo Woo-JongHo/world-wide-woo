@@ -104,6 +104,40 @@ export class FileTodoStore {
 	}
 }
 
+export async function migrateLegacyTodo(
+	legacyPath: string,
+	todosDirectory: string,
+	canMigrate: (ownerSessionId: string) => Promise<boolean> = async () => true,
+): Promise<string | null> {
+	let info;
+	try {
+		info = await lstat(legacyPath);
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+		throw error;
+	}
+	if (!info.isFile() || info.isSymbolicLink()) throw unsafeFileError(legacyPath);
+	const document = parseTodoMarkdown(await readFile(legacyPath, "utf8"));
+	if (!(await canMigrate(document.ownerSessionId))) return null;
+	const todosInfo = await lstat(todosDirectory);
+	if (!todosInfo.isDirectory() || todosInfo.isSymbolicLink()) throw unsafeFileError(todosDirectory);
+	const sessionDirectory = join(todosDirectory, document.ownerSessionId);
+	await mkdir(sessionDirectory, { recursive: true, mode: 0o700 });
+	const directoryInfo = await lstat(sessionDirectory);
+	if (!directoryInfo.isDirectory() || directoryInfo.isSymbolicLink()) throw unsafeFileError(sessionDirectory);
+	await chmod(sessionDirectory, 0o700);
+	const destination = join(sessionDirectory, "Todo.md");
+	try {
+		await lstat(destination);
+		throw new Error(`Cannot migrate legacy Todo because session Todo already exists: ${destination}`);
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+	}
+	await rename(legacyPath, destination);
+	await chmod(destination, 0o600);
+	return destination;
+}
+
 function unsafeFileError(path: string): Error { return new Error(`Unsafe todo store file: ${path}`); }
 function isUnsafeFile(error: unknown): boolean { return error instanceof Error && error.message.startsWith("Unsafe todo store file:"); }
 function isMalformedTodo(error: unknown): boolean { return error instanceof Error && error.message.startsWith("Invalid todo document:"); }

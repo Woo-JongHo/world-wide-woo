@@ -5,8 +5,8 @@ import { basename, join } from "node:path";
 const WORKSPACE_DIRECTORY = ".www";
 const MANIFEST_FILE = "project.json";
 const WORKSPACE_GITIGNORE_FILE = ".gitignore";
-const LOCAL_DIRECTORIES = ["sessions", "drafts", "runtime"] as const;
-const WORKSPACE_GITIGNORE = "sessions/\ndrafts/\ncache/\nruntime/\nTodo.md\n.Todo.md.*.tmp\n";
+const LOCAL_DIRECTORIES = ["sessions", "drafts", "runtime", "todos"] as const;
+const WORKSPACE_GITIGNORE = "sessions/\ndrafts/\ncache/\nruntime/\ntodos/\nTodo.md\n.Todo.md.*.tmp\n";
 
 type ProjectManifest = {
 	schemaVersion: 1;
@@ -21,7 +21,8 @@ export type ProjectWorkspace = {
 	sessionsDirectory: string;
 	draftsDirectory: string;
 	runtimeDirectory: string;
-	todoPath: string;
+	todosDirectory: string;
+	legacyTodoPath: string;
 	manifestPath: string;
 };
 
@@ -116,7 +117,8 @@ export class FileProjectWorkspace {
 		const sessionsDirectory = join(directory, "sessions");
 		const draftsDirectory = join(directory, "drafts");
 		const runtimeDirectory = join(directory, "runtime");
-		const todoPath = join(directory, "Todo.md");
+		const todosDirectory = join(directory, "todos");
+		const legacyTodoPath = join(directory, "Todo.md");
 		for (const localDirectory of LOCAL_DIRECTORIES) {
 			await ensureDirectory(join(directory, localDirectory));
 		}
@@ -155,7 +157,7 @@ export class FileProjectWorkspace {
 			await atomicWrite(gitignorePath, WORKSPACE_GITIGNORE, 0o600);
 		}
 
-		return { name: manifest.name, root, directory, sessionsDirectory, draftsDirectory, runtimeDirectory, todoPath, manifestPath };
+		return { name: manifest.name, root, directory, sessionsDirectory, draftsDirectory, runtimeDirectory, todosDirectory, legacyTodoPath, manifestPath };
 	}
 
 	static async acquireSessionLease(workspace: ProjectWorkspace, sessionId: string): Promise<SessionLease> {
@@ -202,19 +204,16 @@ export class FileProjectWorkspace {
 		};
 	}
 
-	static async isSessionLeaseActive(workspace: ProjectWorkspace, sessionId: string): Promise<boolean> {
+	static async hasSessionLease(workspace: ProjectWorkspace, sessionId: string): Promise<boolean> {
 		if (!/^[A-Za-z0-9][A-Za-z0-9_-]*$/u.test(sessionId)) return true;
-		const path = join(workspace.runtimeDirectory, `${sessionId}.lock`);
 		try {
-			const info = await lstat(path);
-			if (!info.isFile() || info.isSymbolicLink()) return true;
-			const owner = JSON.parse(await readFile(path, "utf8")) as { pid?: unknown };
-			return typeof owner.pid !== "number" || isProcessAlive(owner.pid);
+			const info = await lstat(join(workspace.runtimeDirectory, `${sessionId}.lock`));
+			return info.isFile() && !info.isSymbolicLink();
 		} catch (error) {
-			if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
-			return true;
+			return (error as NodeJS.ErrnoException).code !== "ENOENT";
 		}
 	}
+
 }
 
 function isProcessAlive(pid: number): boolean {

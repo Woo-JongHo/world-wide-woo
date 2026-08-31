@@ -27,7 +27,8 @@ describe("FileProjectWorkspace", () => {
 		expect(workspace.directory).toBe(join(canonicalRoot, ".www"));
 		expect(workspace.sessionsDirectory).toBe(join(canonicalRoot, ".www", "sessions"));
 		expect(workspace.draftsDirectory).toBe(join(canonicalRoot, ".www", "drafts"));
-		expect(workspace.todoPath).toBe(join(canonicalRoot, ".www", "Todo.md"));
+		expect(workspace.todosDirectory).toBe(join(canonicalRoot, ".www", "todos"));
+		expect(workspace.legacyTodoPath).toBe(join(canonicalRoot, ".www", "Todo.md"));
 	});
 
 	test("uses the real cwd as root outside Git", async () => {
@@ -70,9 +71,9 @@ describe("FileProjectWorkspace", () => {
 		const workspace = await FileProjectWorkspace.open(root);
 
 		expect(await readFile(join(workspace.directory, ".gitignore"), "utf8")).toBe(
-			"sessions/\ndrafts/\ncache/\nruntime/\nTodo.md\n.Todo.md.*.tmp\n",
+			"sessions/\ndrafts/\ncache/\nruntime/\ntodos/\nTodo.md\n.Todo.md.*.tmp\n",
 		);
-		for (const directory of [workspace.directory, workspace.sessionsDirectory, workspace.draftsDirectory, workspace.runtimeDirectory]) {
+		for (const directory of [workspace.directory, workspace.sessionsDirectory, workspace.draftsDirectory, workspace.runtimeDirectory, workspace.todosDirectory]) {
 			expect((await stat(directory)).mode & 0o777).toBe(0o700);
 		}
 		for (const file of [workspace.manifestPath, join(workspace.directory, ".gitignore")]) {
@@ -89,6 +90,7 @@ describe("FileProjectWorkspace", () => {
 		expect(ignore).toContain("custom-local/\n");
 		expect(ignore).toContain("Todo.md\n");
 		expect(ignore).toContain("runtime/\n");
+		expect(ignore).toContain("todos/\n");
 	});
 
 	test("rejects workspace symlinks instead of escaping the project root", async () => {
@@ -104,10 +106,10 @@ describe("FileProjectWorkspace", () => {
 	test("holds one session writer lease and releases it deterministically", async () => {
 		const workspace = await FileProjectWorkspace.open(await temporaryDirectory());
 		const first = await FileProjectWorkspace.acquireSessionLease(workspace, "session-one");
-		expect(await FileProjectWorkspace.isSessionLeaseActive(workspace, "session-one")).toBe(true);
+		expect(await FileProjectWorkspace.hasSessionLease(workspace, "session-one")).toBe(true);
 		await expect(FileProjectWorkspace.acquireSessionLease(workspace, "session-one")).rejects.toThrow("already active");
 		await first.release();
-		expect(await FileProjectWorkspace.isSessionLeaseActive(workspace, "session-one")).toBe(false);
+		expect(await FileProjectWorkspace.hasSessionLease(workspace, "session-one")).toBe(false);
 		const second = await FileProjectWorkspace.acquireSessionLease(workspace, "session-one");
 		await second.release();
 	});
@@ -118,7 +120,6 @@ describe("FileProjectWorkspace", () => {
 			join(workspace.runtimeDirectory, "stale.lock"),
 			`${JSON.stringify({ pid: 2_147_483_647, token: "stale", createdAt: new Date().toISOString() })}\n`,
 		);
-		expect(await FileProjectWorkspace.isSessionLeaseActive(workspace, "stale")).toBe(false);
 		await expect(FileProjectWorkspace.acquireSessionLease(workspace, "stale")).rejects.toThrow("lease is stale");
 	});
 });

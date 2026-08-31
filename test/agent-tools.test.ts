@@ -105,10 +105,15 @@ describe("project agent tools", () => {
 		const { root, tools } = await fixture();
 		await mkdir(join(root, ".www"));
 		await writeFile(join(root, ".www", "Todo.md"), "- [ ] private planning instruction");
+		await mkdir(join(root, ".www", "todos", "session"), { recursive: true });
+		await writeFile(join(root, ".www", "todos", "session", "Todo.md"), "- [ ] session private instruction");
 		const read = await tool(tools, "read").execute({ path: ".www/Todo.md" }, signal());
 		expect(read.isError).toBe(true);
+		const sessionRead = await tool(tools, "read").execute({ path: ".www/todos/session/Todo.md" }, signal());
+		expect(sessionRead.isError).toBe(true);
 		const search = await tool(tools, "search").execute({ pattern: "private planning instruction" }, signal());
 		expect(search.modelContent).toBe("No matches.");
+		expect((await tool(tools, "search").execute({ pattern: "session private instruction" }, signal())).modelContent).toBe("No matches.");
 	});
 
 	test("resolves SSH aliases without evaluating Match exec", async () => {

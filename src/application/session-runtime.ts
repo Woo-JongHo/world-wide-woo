@@ -78,7 +78,8 @@ export function buildSessionSystemPrompt(
 		if (toolNames.includes("todo_write")) {
 			lines.push(
 				"세 단계 이상인 구현 작업은 다른 도구보다 먼저 todo_write init으로 3~7개의 얇고 검증 가능한 항목을 만드세요.",
-				"이전 세션의 작업이 있을 수 있으면 todo_write status로 확인하고, 미완료 목록을 새 init으로 덮어쓰지 말고 이어서 진행하세요.",
+				"현재 세션을 재개했다면 todo_write status로 미완료 목록을 확인하고 새 init으로 덮어쓰지 말고 이어서 진행하세요.",
+				"진행 중 새 작업이 들어오면 사용자가 정한 배치만 사용하세요: add now는 즉시 전환하고 add after는 활성 항목 바로 뒤에 예약합니다.",
 				"한 번에 하나만 start하고, 그 항목의 실제 도구 증거가 생긴 뒤에만 done 하세요. 단순 질문·설명에는 Todo를 만들지 마세요.",
 				"Todo 상태를 최종 답변보다 먼저 갱신하고, 실행하지 않았거나 검증하지 않은 항목을 완료로 표시하지 마세요.",
 			);
