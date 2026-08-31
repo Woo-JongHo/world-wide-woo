@@ -12,6 +12,8 @@ const snapshot: SessionSnapshot = {
 	error: null,
 	auth: { configured: true, source: "OAuth", type: "oauth" },
 	settings: { provider: "openai-codex", model: "gpt-5.4", effort: "ultra" },
+	cwd: "/workspace/project",
+	activity: null,
 };
 
 describe("WWW left welcome", () => {

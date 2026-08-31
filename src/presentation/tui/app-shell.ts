@@ -65,7 +65,7 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 	const status = new StatusLine();
 	const usageStrip = new UsageStripView();
 	const routerModel = new RouterModelView(() => snapshot);
-	const sessionFlow = new SessionFlowView(recentSessions);
+	const sessionFlow = new SessionFlowView(recentSessions, () => snapshot.cwd);
 	const transcript = new TranscriptView(snapshot);
 	const dashboard = createDashboardLayout(
 		() => `🐙 WWW · ${snapshot.settings.provider}/${snapshot.settings.model} · ${
@@ -95,6 +95,7 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 	let settingsMutationInFlight = false;
 	const exitKeys = new ExitKeyPolicy();
 	let unsubscribeRuntime = () => {};
+	let activityTimer: ReturnType<typeof setInterval> | undefined;
 	const transcriptRenders = new RenderScheduler(() => {
 		transcript.update(snapshot);
 		tui.requestRender();
@@ -123,7 +124,10 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 		}
 	};
 	let openAuthFlow!: (provider: WwwSettings["provider"], pending?: WwwSettings) => void;
-	const openModelSettings = (initial: WwwSettings = pendingModelSettings ?? snapshot.settings) => {
+	const openModelSettings = (
+		initial: WwwSettings = pendingModelSettings ?? snapshot.settings,
+		resumeAtConfirmation = false,
+	) => {
 		if (overlay) return;
 		pendingModelSettings = null;
 		const panel = new ModelPickerOverlay(
@@ -151,6 +155,7 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 			},
 			closeOverlay,
 			initial,
+			resumeAtConfirmation,
 		);
 		overlay = tui.showOverlay(new OverlaySheet(panel), {
 			width: "72%", minWidth: 54, maxHeight: "100%", anchor: "bottom-center", margin: 1,
@@ -174,7 +179,7 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 				if (staged && snapshot.phase === "streaming") {
 					pendingModelSettings = null;
 					closeAuthOverlay();
-					openModelSettings(staged);
+					openModelSettings(staged, true);
 					status.setNotice("로그인은 완료됐습니다. 현재 응답이 끝난 뒤 선택한 모델을 적용하세요.");
 					tui.requestRender();
 					return;
@@ -196,7 +201,7 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 					overlayMutationLocked = false;
 					closeAuthOverlay();
 					status.setNotice("로그인 후 모델 설정을 적용하지 못했습니다. 선택 내용을 복원했습니다.");
-					if (staged) openModelSettings(staged);
+					if (staged) openModelSettings(staged, true);
 					tui.requestRender();
 					return;
 				}
@@ -218,7 +223,7 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 				if (!owner || overlay !== owner) return;
 				pendingModelSettings = null;
 				closeAuthOverlay();
-				if (staged) openModelSettings(staged);
+				if (staged) openModelSettings(staged, true);
 			},
 		);
 		owner = tui.showOverlay(new OverlaySheet(panel), {
@@ -310,7 +315,7 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 			status.setNotice(
 				`${snapshot.settings.provider}/${snapshot.settings.model} · 추론 ${snapshot.settings.effort} · ${
 					snapshot.auth?.configured ? `인증 ${snapshot.auth.source ?? "설정됨"}` : "인증 필요"
-				} · 세션 ${snapshot.id.slice(0, 8)}`,
+				} · 세션 ${snapshot.id.slice(0, 8)} · 경로 ${snapshot.cwd}`,
 			);
 		}
 		if (command.type === "repository.commits") return openCommits();
@@ -327,6 +332,7 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 		const draft = editor.getExpandedText() || clearedExitDraft || "";
 		if (clearedExitDraftTimer) clearTimeout(clearedExitDraftTimer);
 		stopUsagePolling();
+		if (activityTimer) clearInterval(activityTimer);
 		unsubscribeRuntime();
 		transcriptRenders.dispose();
 		await settleWithin((async () => {
@@ -394,6 +400,13 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 	unsubscribeRuntime = runtime.subscribe((next) => {
 		const previousPhase = snapshot.phase;
 		snapshot = next;
+		if (next.phase === "streaming" && !activityTimer) {
+			activityTimer = setInterval(() => tui.requestRender(), 80);
+		}
+		if (next.phase !== "streaming" && activityTimer) {
+			clearInterval(activityTimer);
+			activityTimer = undefined;
+		}
 		if (next.phase !== previousPhase) {
 			if (next.phase === "streaming") status.setNotice("모델이 응답 중입니다. 다음 입력은 작성할 수 있고 Esc로 중단합니다.");
 			if (next.phase === "error") status.setNotice("응답에 실패했습니다. 오류를 확인한 뒤 다시 전송하세요.");

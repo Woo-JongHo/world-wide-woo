@@ -8,6 +8,7 @@ import type { WwwSettings } from "../src/domain/model-settings";
 import { ModelRouter } from "../src/infrastructure/model-router";
 import { SessionRuntime } from "../src/application/session-runtime";
 import { SessionEventStore } from "../src/infrastructure/session-store";
+import type { ModelClient } from "../src/application/ports";
 
 const settings: WwwSettings = { provider: "openai", model: "gpt-5.4", effort: "high" };
 
@@ -18,7 +19,7 @@ async function runtimeWithResponse(response: string) {
 	models.setProvider(faux.provider);
 	const directory = await mkdtemp(join(tmpdir(), "www-runtime-"));
 	const store = new SessionEventStore(directory);
-	return { runtime: new SessionRuntime(settings, new ModelRouter(models), store, "session-test"), store };
+	return { runtime: new SessionRuntime(settings, new ModelRouter(models), store, { cwd: "/workspace/project" }, "session-test"), store };
 }
 
 describe("SessionRuntime", () => {
@@ -26,9 +27,11 @@ describe("SessionRuntime", () => {
 		const { runtime, store } = await runtimeWithResponse("진행됐습니다.");
 		const phases: string[] = [];
 		const drafts: string[] = [];
+		const activities: string[] = [];
 		runtime.subscribe((snapshot) => {
 			phases.push(snapshot.phase);
 			if (snapshot.draft) drafts.push(snapshot.draft);
+			if (snapshot.activity) activities.push(snapshot.activity.kind);
 		});
 
 		await runtime.initialize();
@@ -41,6 +44,8 @@ describe("SessionRuntime", () => {
 		]);
 		expect(phases).toContain("streaming");
 		expect(drafts.at(-1)).toBe("진행됐습니다.");
+		expect(activities).toContain("waiting");
+		expect(activities).toContain("responding");
 		const events = await store.readAll("session-test");
 		expect(events.map((event) => event.type)).toEqual([
 			"session.started",
@@ -51,6 +56,43 @@ describe("SessionRuntime", () => {
 			"turn.completed",
 		]);
 		expect(events.find((event) => event.type === "message.assistant.completed")?.body).toBe("진행됐습니다.");
+	});
+
+	test("grounds location questions in the exact active workspace path", async () => {
+		const faux = fauxProvider({
+			provider: "openai",
+			models: [{ id: "gpt-5.4", reasoning: true }],
+			tokensPerSecond: 100_000,
+		});
+		faux.setResponses([fauxAssistantMessage("/workspace/world-wide-woo")]);
+		const models = createModels();
+		models.setProvider(faux.provider);
+		const base = new ModelRouter(models);
+		let systemPrompt = "";
+		const router: ModelClient = {
+			checkAuth: settings => base.checkAuth(settings),
+			stream: (selection, context, signal) => {
+				systemPrompt = context.systemPrompt ?? "";
+				return base.stream(selection, context, signal);
+			},
+		};
+		const store = new SessionEventStore(await mkdtemp(join(tmpdir(), "www-runtime-cwd-")));
+		const runtime = new SessionRuntime(
+			settings,
+			router,
+			store,
+			{ cwd: "/workspace/world-wide-woo" },
+			"cwd-test",
+		);
+		await runtime.initialize();
+		await runtime.submit("지금 경로 위치가 어디야?");
+
+		expect(systemPrompt).toContain('현재 작업 디렉토리는 "/workspace/world-wide-woo"');
+		expect(systemPrompt).toContain("pwd 실행을 사용자에게 요구하지 마세요");
+		expect(systemPrompt).toContain("물리적 위치나 GPS를 명시적으로 물은 경우에만");
+		expect((await store.readAll("cwd-test"))[0]?.metadata).toMatchObject({
+			workspace: { cwd: "/workspace/world-wide-woo" },
+		});
 	});
 
 	test("rejects concurrent submissions without corrupting the transcript", async () => {
@@ -73,7 +115,7 @@ describe("SessionRuntime", () => {
 		models.setProvider(faux.provider);
 		const directory = await mkdtemp(join(tmpdir(), "www-runtime-cancel-"));
 		const store = new SessionEventStore(directory);
-		const runtime = new SessionRuntime(settings, new ModelRouter(models), store, "cancel-test");
+		const runtime = new SessionRuntime(settings, new ModelRouter(models), store, { cwd: "/workspace/project" }, "cancel-test");
 		await runtime.initialize();
 
 		let resolveDraft!: () => void;
@@ -108,7 +150,7 @@ describe("SessionRuntime", () => {
 				throw new Error("must not dispatch");
 			},
 		};
-		const runtime = new SessionRuntime(settings, router, store, "auth-required");
+		const runtime = new SessionRuntime(settings, router, store, { cwd: "/workspace/project" }, "auth-required");
 		await runtime.initialize();
 
 		await expect(runtime.submit("보내지면 안 됨")).rejects.toThrow("Ctrl+O");
@@ -133,7 +175,7 @@ describe("SessionRuntime", () => {
 		const models = createModels();
 		const faux = fauxProvider({ provider: "openai", models: [{ id: "gpt-5.4", reasoning: true }] });
 		models.setProvider(faux.provider);
-		const resumed = new SessionRuntime(settings, new ModelRouter(models), store, "session-test");
+		const resumed = new SessionRuntime(settings, new ModelRouter(models), store, { cwd: "/workspace/project" }, "session-test");
 		await resumed.initialize({ resume: true });
 
 		expect(resumed.snapshot.turns.map(({ role, content }) => ({ role, content }))).toEqual([

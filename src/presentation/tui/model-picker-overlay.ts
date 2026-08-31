@@ -1,5 +1,4 @@
 import {
-	Input,
 	Key,
 	matchesKey,
 	stripTerminalSequences,
@@ -8,33 +7,40 @@ import {
 	type Component,
 } from "@earendil-works/pi-tui";
 import type { ProviderAuthState } from "../../application/ports";
-import { EFFORTS, MODELS, PROVIDERS, type Provider, type WwwSettings } from "../../domain/model-settings";
+import { EFFORTS, MODELS, PROVIDERS, type Effort, type Provider, type WwwSettings } from "../../domain/model-settings";
 import { colors, semantic } from "./theme";
 
-type ModelRow = { provider: Provider; model: string };
+type ModelPickerStep = "provider" | "model" | "effort" | "confirm";
 type AuthStatus = ProviderAuthState | { state: "pending"; provider: Provider };
-const effortColor = {
+
+export type ModelPickerAuthStatus = (provider: Provider) => Promise<ProviderAuthState>;
+export type ModelPickerApply = (settings: WwwSettings) => Promise<void>;
+
+const STEP_LABEL: Record<ModelPickerStep, string> = {
+	provider: "공급자",
+	model: "모델",
+	effort: "추론",
+	confirm: "확인",
+};
+
+const effortColor: Record<Effort, (text: string) => string> = {
 	low: semantic.effortLow,
 	medium: semantic.effortMedium,
 	high: semantic.effortHigh,
 	ultra: semantic.effortUltra,
-} as const;
-
-export type ModelPickerAuthStatus = (provider: Provider) => Promise<ProviderAuthState>;
-export type ModelPickerApply = (settings: WwwSettings) => Promise<void>;
+};
 
 function fit(text: string, width: number): string {
 	const clipped = truncateToWidth(text, Math.max(0, width));
 	return clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)));
 }
 
-/** Searchable, staged model settings editor. Authentication and persistence remain caller-owned. */
+/** Provider → model → effort → confirmation picker. Persistence and authentication stay caller-owned. */
 export class ModelPickerOverlay implements Component {
-	private readonly search = new Input();
 	private readonly auth = new Map<Provider, AuthStatus>();
 	private staged: WwwSettings;
-	private tab: Provider;
-	private selected = 0;
+	private step: ModelPickerStep = "provider";
+	private selected: number;
 	private error: string | null = null;
 	private applying = false;
 	private lookupGeneration = 0;
@@ -47,11 +53,11 @@ export class ModelPickerOverlay implements Component {
 		private readonly onRequireAuth: (settings: WwwSettings) => void,
 		private readonly onClose: () => void,
 		initial: WwwSettings = current,
+		resumeAtConfirmation = false,
 	) {
 		this.staged = { ...initial };
-		this.tab = initial.provider;
-		this.selected = Math.max(0, (MODELS[initial.provider] as readonly string[]).indexOf(initial.model));
-		this.search.focused = true;
+		this.step = resumeAtConfirmation ? "confirm" : "provider";
+		this.selected = Math.max(0, PROVIDERS.indexOf(initial.provider));
 		for (const provider of PROVIDERS) this.auth.set(provider, { state: "pending", provider });
 	}
 
@@ -65,12 +71,12 @@ export class ModelPickerOverlay implements Component {
 					this.auth.set(provider, status);
 					this.requestRender();
 				},
-				error => {
+				() => {
 					if (generation !== this.lookupGeneration) return;
 					this.auth.set(provider, {
 						state: "failed",
 						provider,
-						message: error instanceof Error ? error.message : "인증 상태를 확인하지 못했습니다.",
+						message: "인증 상태를 확인하지 못했습니다.",
 					});
 					this.requestRender();
 				},
@@ -79,33 +85,22 @@ export class ModelPickerOverlay implements Component {
 		this.requestRender();
 	}
 
-	invalidate(): void {
-		this.search.invalidate();
-	}
+	invalidate(): void {}
 
 	render(width: number): string[] {
 		const contentWidth = Math.max(1, width);
-		const rows = this.rows();
-		this.selected = Math.min(this.selected, Math.max(0, rows.length - 1));
-		const tabs = PROVIDERS.map(provider => provider === this.tab ? colors.accent(`[${provider}]`) : colors.muted(provider)).join(" ");
-		const renderedSearch = this.search.render(Math.max(1, contentWidth - 3))[0] ?? "";
 		const result = [
-			fit(colors.accent("모델 선택"), contentWidth),
+			fit(colors.accent("모델 설정"), contentWidth),
+			fit(this.breadcrumb(), contentWidth),
 			fit(`현재: ${this.current.provider} / ${this.current.model} / ${this.current.effort}`, contentWidth),
 			fit(`선택: ${this.staged.provider} / ${this.staged.model} / ${this.staged.effort}`, contentWidth),
-			fit(`${tabs} ${colors.muted(`· ${rows.length}개`)}`, contentWidth),
-			fit(`${colors.accent("검색")} ${renderedSearch}`, contentWidth),
 		];
-		for (const [index, row] of this.visibleRows(rows)) {
-			const cursor = index === this.selected ? colors.accent("›") : " ";
-			const current = row.provider === this.current.provider && row.model === this.current.model ? colors.muted("현재") : "";
-			const selected = row.provider === this.staged.provider && row.model === this.staged.model ? colors.success("선택") : "";
-			result.push(fit(`${cursor} ${row.provider} / ${row.model} ${this.authBadge(row.provider)} ${current} ${selected}`, contentWidth));
-		}
-		if (rows.length === 0) result.push(fit(colors.muted("일치하는 모델이 없습니다."), contentWidth));
-		result.push(fit(`추론: ${effortColor[this.staged.effort](this.staged.effort)} ${colors.muted("(Ctrl+E로 변경)")}`, contentWidth));
+		for (const row of this.rows()) result.push(fit(row, contentWidth));
 		if (this.error) result.push(fit(colors.error(this.error), contentWidth));
-		result.push(fit(colors.muted(this.applying ? "적용하는 중…" : "↑↓ 선택 · Tab 공급자 · Ctrl+E 추론 · Enter 적용 · Esc 취소"), contentWidth));
+		const hint = this.step === "confirm"
+			? "Enter 적용 · ←/Backspace 이전 · Esc 취소"
+			: "↑↓ 선택 · Enter/→ 다음 · ←/Backspace 이전 · Esc 취소";
+		result.push(fit(colors.muted(this.applying ? "적용하는 중…" : hint), contentWidth));
 		return result;
 	}
 
@@ -114,61 +109,115 @@ export class ModelPickerOverlay implements Component {
 		if (matchesKey(data, Key.escape)) return this.onClose();
 		if (matchesKey(data, Key.up)) return this.move(-1);
 		if (matchesKey(data, Key.down)) return this.move(1);
-		if (matchesKey(data, Key.tab)) return this.moveTab(1);
-		if (matchesKey(data, Key.ctrl("e"))) return this.cycleEffort();
-		if (matchesKey(data, Key.enter)) return void this.apply();
-		const before = this.search.getValue();
-		this.search.handleInput(data);
-		if (before !== this.search.getValue()) {
-			this.selected = 0;
-			const [first] = this.rows();
-			if (first) this.select(first);
-			this.error = null;
-			this.requestRender();
+		if (matchesKey(data, Key.left) || matchesKey(data, Key.backspace)) return this.back();
+		if (matchesKey(data, Key.right) || matchesKey(data, Key.enter)) return void this.forward();
+	}
+
+	private breadcrumb(): string {
+		const order: ModelPickerStep[] = ["provider", "model", "effort", "confirm"];
+		return order.map(step => step === this.step ? colors.accent(`[${STEP_LABEL[step]}]`) : colors.muted(STEP_LABEL[step])).join("  ›  ");
+	}
+
+	private rows(): string[] {
+		if (this.step === "provider") {
+			return PROVIDERS.map((provider, index) => this.row(
+				index,
+				provider,
+				this.authBadge(provider),
+				provider === this.current.provider ? "현재" : provider === this.staged.provider ? "선택" : "",
+			));
 		}
+		if (this.step === "model") {
+			return (MODELS[this.staged.provider] as readonly string[]).map((model, index) => this.row(
+				index,
+				model,
+				"",
+				model === this.current.model && this.staged.provider === this.current.provider
+					? "현재"
+					: model === this.staged.model ? "선택" : "",
+			));
+		}
+		if (this.step === "effort") {
+			return EFFORTS.map((effort, index) => this.row(
+				index,
+				effortColor[effort](effort),
+				"",
+				effort === this.current.effort ? "현재" : effort === this.staged.effort ? "선택" : "",
+			));
+		}
+		return [
+			`  공급자  ${this.staged.provider}  ${this.authBadge(this.staged.provider)}`,
+			`  모델    ${this.staged.model}`,
+			`  추론    ${effortColor[this.staged.effort](this.staged.effort)}`,
+			colors.success("  Enter를 누르면 한 번에 적용합니다."),
+		];
 	}
 
-	private visibleRows(rows: readonly ModelRow[]): Array<readonly [number, ModelRow]> {
-		const maximum = 3;
-		const start = Math.max(0, Math.min(this.selected - 1, rows.length - maximum));
-		return rows.slice(start, start + maximum).map((row, offset) => [start + offset, row] as const);
-	}
-
-	private rows(): ModelRow[] {
-		const query = this.search.getValue().trim().toLowerCase();
-		const providers = query ? PROVIDERS : [this.tab];
-		return providers.flatMap(provider => (MODELS[provider] as readonly string[])
-			.filter(model => !query || `${provider} ${model}`.toLowerCase().includes(query))
-			.map(model => ({ provider, model })));
+	private row(index: number, label: string, badge: string, marker: string): string {
+		const cursor = index === this.selected ? colors.accent("›") : " ";
+		const markerText = marker === "현재" ? colors.muted(marker) : marker ? colors.success(marker) : "";
+		return `${cursor} ${label}${badge ? `  ${badge}` : ""}${markerText ? `  ${markerText}` : ""}`;
 	}
 
 	private move(delta: number): void {
-		const rows = this.rows();
-		if (!rows.length) return;
-		this.selected = (this.selected + delta + rows.length) % rows.length;
-		this.select(rows[this.selected]);
-	}
-
-	private moveTab(delta: number): void {
-		const index = PROVIDERS.indexOf(this.tab);
-		this.tab = PROVIDERS[(index + delta + PROVIDERS.length) % PROVIDERS.length];
-		this.selected = 0;
-		const [first] = this.rows();
-		if (first) this.select(first);
+		const length = this.optionCount();
+		if (length === 0 || this.step === "confirm") return;
+		this.selected = (this.selected + delta + length) % length;
 		this.error = null;
 		this.requestRender();
 	}
 
-	private select(row: ModelRow): void {
-		this.staged = { ...this.staged, provider: row.provider, model: row.model };
-		this.error = null;
-		this.requestRender();
+	private optionCount(): number {
+		if (this.step === "provider") return PROVIDERS.length;
+		if (this.step === "model") return MODELS[this.staged.provider].length;
+		if (this.step === "effort") return EFFORTS.length;
+		return 1;
 	}
 
-	private cycleEffort(): void {
-		const index = EFFORTS.indexOf(this.staged.effort);
-		this.staged = { ...this.staged, effort: EFFORTS[(index + 1) % EFFORTS.length] };
+	private forward(): void | Promise<void> {
 		this.error = null;
+		if (this.step === "provider") {
+			const provider = PROVIDERS[this.selected];
+			const models = MODELS[provider];
+			const model = (models as readonly string[]).includes(this.staged.model) ? this.staged.model : models[0];
+			this.staged = { ...this.staged, provider, model };
+			this.step = "model";
+			this.selected = Math.max(0, (models as readonly string[]).indexOf(model));
+			this.requestRender();
+			return;
+		}
+		if (this.step === "model") {
+			this.staged = { ...this.staged, model: MODELS[this.staged.provider][this.selected] };
+			this.step = "effort";
+			this.selected = Math.max(0, EFFORTS.indexOf(this.staged.effort));
+			this.requestRender();
+			return;
+		}
+		if (this.step === "effort") {
+			this.staged = { ...this.staged, effort: EFFORTS[this.selected] };
+			this.step = "confirm";
+			this.selected = 0;
+			this.requestRender();
+			return;
+		}
+		return this.apply();
+	}
+
+	private back(): void {
+		this.error = null;
+		if (this.step === "confirm") {
+			this.step = "effort";
+			this.selected = Math.max(0, EFFORTS.indexOf(this.staged.effort));
+		} else if (this.step === "effort") {
+			this.step = "model";
+			this.selected = Math.max(0, (MODELS[this.staged.provider] as readonly string[]).indexOf(this.staged.model));
+		} else if (this.step === "model") {
+			this.step = "provider";
+			this.selected = Math.max(0, PROVIDERS.indexOf(this.staged.provider));
+		} else {
+			this.onClose();
+			return;
+		}
 		this.requestRender();
 	}
 
@@ -181,8 +230,6 @@ export class ModelPickerOverlay implements Component {
 	}
 
 	private async apply(): Promise<void> {
-		const selected = this.rows()[this.selected];
-		if (selected) this.select(selected);
 		const status = this.auth.get(this.staged.provider);
 		if (!status || status.state === "pending") {
 			this.error = "인증 상태를 확인하는 중입니다.";
@@ -190,22 +237,23 @@ export class ModelPickerOverlay implements Component {
 			return;
 		}
 		if (status.state === "failed") {
-			this.error = "인증 상태를 확인하지 못했습니다. 다시 열어 확인하세요.";
+			this.error = "인증 상태를 확인하지 못했습니다. 모델 화면을 다시 열어 확인하세요.";
 			this.requestRender();
 			return;
 		}
-		if (status?.state === "required") {
+		if (status.state === "required") {
 			this.onRequireAuth({ ...this.staged });
 			return;
 		}
 		this.applying = true;
-		this.error = null;
 		this.requestRender();
 		try {
 			await this.onApply({ ...this.staged });
 			this.onClose();
 		} catch (error) {
-			this.error = error instanceof Error && error.message ? stripTerminalSequences(error.message) : "설정을 적용하지 못했습니다.";
+			this.error = error instanceof Error && error.message
+				? stripTerminalSequences(error.message)
+				: "설정을 적용하지 못했습니다.";
 			this.applying = false;
 			this.requestRender();
 		}

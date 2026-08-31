@@ -28,7 +28,7 @@ export async function runApp(options: { sessionId?: string } = {}): Promise<void
 	const modelRouter = new ModelRouter(registry);
 	const settings = await reconcileInitialRouter(await settingsStore.load(), modelRouter, settingsStore);
 	const sessions = new SessionEventStore();
-	const runtime = new SessionRuntime(settings, modelRouter, sessions, options.sessionId);
+	const runtime = new SessionRuntime(settings, modelRouter, sessions, { cwd: process.cwd() }, options.sessionId);
 	await runtime.initialize({ resume: options.sessionId !== undefined });
 
 	runTuiShell({

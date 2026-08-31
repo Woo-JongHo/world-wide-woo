@@ -12,6 +12,8 @@ function snapshot(overrides: Partial<SessionSnapshot> = {}): SessionSnapshot {
 		error: null,
 		auth: { configured: true, source: "OAuth", type: "oauth" },
 		settings: { provider: "anthropic", model: "claude-opus-4-6", effort: "high" },
+		cwd: "/workspace/project",
+		activity: null,
 		...overrides,
 	};
 }
@@ -35,10 +37,12 @@ describe("TranscriptView Markdown", () => {
 			phase: "streaming",
 			turns: [{ id: "user-1", role: "user", content: "코드를 작성해줘", timestamp: 1 }],
 			draft: PYTHON.slice(0, -3),
+			activity: { kind: "thinking", label: "모델 추론 중" },
 		}));
 		const lines = view.render(40);
 		const output = lines.join("\n");
 		expect(output).toContain("\u001b[38;2;");
+		expect(stripTerminalSequences(output)).toContain("모델 추론 중");
 		expect(stripTerminalSequences(output)).toContain("return [3, 12, 41]");
 		expect(lines.every((line) => visibleWidth(line) <= 100)).toBe(true);
 	});

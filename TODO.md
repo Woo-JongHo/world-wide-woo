@@ -15,7 +15,9 @@
 - [x] `🐙` WWW 제품 마크와 World Wide Woo 설명
 - [x] 공식 Editor 기반 한글 IME·paste·history·autocomplete
 - [x] `/model`, `/effort`, `/login`, `/logout`, `/usage`, `/status`, `/help`, `/exit`
-- [x] 검색·Provider tab·staged atomic apply 기반 Model bottom sheet
+- [x] Provider → Model → 추론 → 확인 계층형 staged atomic Model bottom sheet
+- [x] 현재 작업 경로의 model context 주입과 Session 영역 표시
+- [x] 실제 request·waiting·thinking·responding·cancelling activity indicator
 - [x] Ctrl+C 2단계·Ctrl+D·Esc 우선순위와 프로젝트 Composer draft 복원
 - [x] streaming 중 local/async read·mutation·control Slash concurrency 분리
 - [x] Codex OAuth와 OpenAI API Provider 구분

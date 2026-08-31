@@ -23,6 +23,7 @@ const LANDMARK = [
 	"╯   ╰─╯   ╰─╯   ╰",
 	"╰───────────────╯",
 ];
+const ACTIVITY_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"] as const;
 
 function fit(text: string, width: number): string {
 	if (width <= 0) return "";
@@ -138,10 +139,16 @@ export class RouterModelView implements Component {
 }
 
 export class SessionFlowView implements Component {
-	constructor(private readonly recentSessions: readonly RecentSessionSummary[]) {}
+	constructor(
+		private readonly recentSessions: readonly RecentSessionSummary[],
+		private readonly cwd: () => string,
+	) {}
 	invalidate(): void {}
 	render(width: number): string[] {
 		const rows = [
+			colors.secondary("작업 위치"),
+			`  ${this.cwd()}`,
+			"",
 			colors.secondary("명령"),
 			"  /usage   사용량 즉시 갱신",
 			"  /status  Router · 세션 상태",
@@ -201,7 +208,9 @@ export class TranscriptView implements Component {
 			rows.push("");
 		}
 		if (this.snapshot.phase === "streaming") {
-			rows.push(`  ${semantic.assistantLabel("WWW")}  ${semantic.toolRunning("응답 중")}`);
+			const frame = ACTIVITY_FRAMES[Math.floor(performance.now() / 80) % ACTIVITY_FRAMES.length];
+			const activity = this.snapshot.activity?.label ?? "응답 준비 중";
+			rows.push(`  ${semantic.assistantLabel("WWW")}  ${semantic.toolRunning(`${frame} ${activity}`)}`);
 			rows.push(...indent(this.snapshot.draft ? this.draft.render(contentWidth) : [colors.muted("응답을 준비하는 중…")], "    "), "");
 		}
 		if (this.snapshot.error) {

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { visibleWidth } from "@earendil-works/pi-tui";
+import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
 import type { ProviderAuthState } from "../src/application/ports";
 import type { Provider, WwwSettings } from "../src/domain/model-settings";
 import { ModelPickerOverlay } from "../src/presentation/tui/model-picker-overlay";
@@ -19,6 +19,8 @@ function overlay(options: {
 	onApply?: (settings: WwwSettings) => Promise<void>;
 	onRequireAuth?: (settings: WwwSettings) => void;
 	onClose?: () => void;
+	initial?: WwwSettings;
+	resumeAtConfirmation?: boolean;
 } = {}): ModelPickerOverlay {
 	return new ModelPickerOverlay(
 		current,
@@ -27,24 +29,27 @@ function overlay(options: {
 		options.onApply ?? (async () => undefined),
 		options.onRequireAuth ?? (() => undefined),
 		options.onClose ?? (() => undefined),
+		options.initial,
+		options.resumeAtConfirmation,
 	);
 }
 
-describe("ModelPickerOverlay", () => {
-	test("filters tabs, globally searches, and displays current and staged settings", () => {
+function text(picker: ModelPickerOverlay, width = 80): string {
+	return stripTerminalSequences(picker.render(width).join("\n"));
+}
+
+describe("ModelPickerOverlay hierarchy", () => {
+	test("starts at provider and contains no search field", () => {
 		const picker = overlay();
-		expect(picker.render(80).join("\n")).toContain("현재: openai-codex / gpt-5.6-sol / ultra");
-		picker.handleInput("\t");
-		expect(picker.render(80).join("\n")).toContain("anthropic / claude-opus-4-6");
-		picker.handleInput("\x1b[B");
-		expect(picker.render(80).join("\n")).toContain("선택: anthropic / claude-sonnet-4-6 / ultra");
+		const output = text(picker);
+		expect(output).toContain("[공급자]  ›  모델  ›  추론  ›  확인");
+		expect(output).toContain("› openai-codex");
+		expect(output).not.toContain("검색");
 		picker.handleInput("gemini");
-		const searched = picker.render(80).join("\n");
-		expect(searched).toContain("google / gemini-3.1-pro-preview");
-		expect(searched).not.toContain("anthropic / claude-opus-4-6");
+		expect(text(picker)).toContain("› openai-codex");
 	});
 
-	test("cycles effort and applies the staged settings atomically", async () => {
+	test("walks provider to model to effort and applies only at confirmation", async () => {
 		let applied: WwwSettings | undefined;
 		let closed = false;
 		const picker = overlay({
@@ -53,81 +58,39 @@ describe("ModelPickerOverlay", () => {
 		});
 		picker.start();
 		await Bun.sleep(0);
-		picker.handleInput("\x05");
+
+		picker.handleInput("\x1b[B");
+		picker.handleInput("\r");
+		expect(text(picker)).toContain("공급자  ›  [모델]  ›  추론  ›  확인");
+		expect(text(picker)).toContain("선택: anthropic / claude-opus-4-6 / ultra");
+		picker.handleInput("\x1b[B");
+		picker.handleInput("\r");
+		expect(text(picker)).toContain("공급자  ›  모델  ›  [추론]  ›  확인");
+		picker.handleInput("\x1b[A");
+		picker.handleInput("\x1b[A");
+		picker.handleInput("\r");
+		expect(text(picker)).toContain("공급자  ›  모델  ›  추론  ›  [확인]");
+		expect(applied).toBeUndefined();
 		picker.handleInput("\r");
 		await Bun.sleep(0);
-		expect(applied).toEqual({ ...current, effort: "low" });
+		expect(applied).toEqual({ provider: "anthropic", model: "claude-sonnet-4-6", effort: "medium" });
 		expect(closed).toBe(true);
 	});
 
-	test("keeps the staged header and Enter result aligned after switching provider tabs", async () => {
-		let applied: WwwSettings | undefined;
-		const picker = overlay({ onApply: async settings => { applied = settings; } });
-		picker.start();
-		await Bun.sleep(0);
-		picker.handleInput("\t");
-		expect(picker.render(80).join("\n")).toContain("선택: anthropic / claude-opus-4-6 / ultra");
+	test("moves backward one hierarchy level without losing staged values", () => {
+		const picker = overlay();
+		picker.handleInput("\x1b[B");
 		picker.handleInput("\r");
-		await Bun.sleep(0);
-		expect(applied).toEqual({ provider: "anthropic", model: "claude-opus-4-6", effort: "ultra" });
+		picker.handleInput("\x1b[B");
+		picker.handleInput("\r");
+		picker.handleInput("\x1b[D");
+		expect(text(picker)).toContain("공급자  ›  [모델]  ›  추론  ›  확인");
+		expect(text(picker)).toContain("선택: anthropic / claude-sonnet-4-6 / ultra");
+		picker.handleInput("\x1b[D");
+		expect(text(picker)).toContain("[공급자]  ›  모델  ›  추론  ›  확인");
 	});
 
-	test("opens with the cursor on a non-first current model", async () => {
-		const sonnet: WwwSettings = { provider: "anthropic", model: "claude-sonnet-4-6", effort: "high" };
-		let applied: WwwSettings | undefined;
-		const picker = new ModelPickerOverlay(
-			sonnet,
-			auth(),
-			() => undefined,
-			async settings => { applied = settings; },
-			() => undefined,
-			() => undefined,
-		);
-		picker.start();
-		await Bun.sleep(0);
-		picker.handleInput("\r");
-		await Bun.sleep(0);
-		expect(applied).toEqual(sonnet);
-	});
-
-	test("does not let Esc disguise an in-flight apply as cancellation", async () => {
-		let resolveApply!: () => void;
-		const applying = new Promise<void>((resolve) => {
-			resolveApply = resolve;
-		});
-		let closed = false;
-		const picker = overlay({
-			onApply: () => applying,
-			onClose: () => { closed = true; },
-		});
-		picker.start();
-		await Bun.sleep(0);
-		picker.handleInput("\r");
-		picker.handleInput("\u001b");
-		expect(closed).toBe(false);
-		resolveApply();
-		await Bun.sleep(0);
-		expect(closed).toBe(true);
-	});
-
-	test("keeps the sheet and staged settings visible when apply fails", async () => {
-		let closed = false;
-		const picker = overlay({
-			onApply: async () => { throw new Error("스트리밍 중에는 변경할 수 없습니다."); },
-			onClose: () => { closed = true; },
-		});
-		picker.start();
-		await Bun.sleep(0);
-		picker.handleInput("\x05");
-		picker.handleInput("\r");
-		await Bun.sleep(0);
-		const text = picker.render(80).join("\n");
-		expect(closed).toBe(false);
-		expect(text).toContain("스트리밍 중에는 변경할 수 없습니다.");
-		expect(text).toContain("선택: openai-codex / gpt-5.6-sol / low");
-	});
-
-	test("hands unauthenticated selections to the caller without applying", async () => {
+	test("hands an unauthenticated staged selection to the caller only at confirmation", async () => {
 		let required: WwwSettings | undefined;
 		let applied = false;
 		const picker = overlay({
@@ -137,47 +100,73 @@ describe("ModelPickerOverlay", () => {
 		});
 		picker.start();
 		await Bun.sleep(0);
-		picker.handleInput("\r");
+		for (let step = 0; step < 4; step++) picker.handleInput("\r");
 		expect(required).toEqual(current);
 		expect(applied).toBe(false);
 	});
 
-	test("shows authentication lookup errors without blocking search", async () => {
-		const picker = overlay({ authStatus: async () => { throw new Error("상태 조회 실패"); } });
-		picker.start();
-		await Bun.sleep(0);
-		picker.handleInput("gemini");
-		const text = picker.render(80).join("\n");
-		expect(text).toContain("인증 오류");
-		expect(text).toContain("google / gemini-3.1-pro-preview");
-	});
-
-	test("Esc discards staging without saving and Korean layout fits 40 columns", () => {
+	test("keeps confirmation visible when apply fails", async () => {
 		let closed = false;
-		let applied = false;
 		const picker = overlay({
-			onApply: async () => { applied = true; },
+			onApply: async () => { throw new Error("스트리밍 중에는 변경할 수 없습니다."); },
 			onClose: () => { closed = true; },
 		});
-		picker.handleInput("\x05");
+		picker.start();
+		await Bun.sleep(0);
+		for (let step = 0; step < 4; step++) picker.handleInput("\r");
+		await Bun.sleep(0);
+		expect(closed).toBe(false);
+		expect(text(picker)).toContain("스트리밍 중에는 변경할 수 없습니다.");
+		expect(text(picker)).toContain("[확인]");
+	});
+
+	test("does not let Esc disguise an in-flight apply as cancellation", async () => {
+		let resolveApply!: () => void;
+		const applying = new Promise<void>(resolve => { resolveApply = resolve; });
+		let closed = false;
+		const picker = overlay({ onApply: () => applying, onClose: () => { closed = true; } });
+		picker.start();
+		await Bun.sleep(0);
+		for (let step = 0; step < 4; step++) picker.handleInput("\r");
+		picker.handleInput("\u001b");
+		expect(closed).toBe(false);
+		resolveApply();
+		await Bun.sleep(0);
+		expect(closed).toBe(true);
+	});
+
+	test("shows auth lookup errors and blocks final apply", async () => {
+		let applied = false;
+		const picker = overlay({
+			authStatus: async () => { throw new Error("private provider error"); },
+			onApply: async () => { applied = true; },
+		});
+		picker.start();
+		await Bun.sleep(0);
+		for (let step = 0; step < 4; step++) picker.handleInput("\r");
+		expect(applied).toBe(false);
+		expect(text(picker)).toContain("인증 상태를 확인하지 못했습니다");
+		expect(text(picker)).not.toContain("private provider error");
+	});
+
+	test("restores a staged selection after auth without changing the current header", () => {
+		const initial: WwwSettings = { provider: "google", model: "gemini-3-flash-preview", effort: "low" };
+		const picker = overlay({ initial, resumeAtConfirmation: true });
+		const output = text(picker);
+		expect(output).toContain("현재: openai-codex / gpt-5.6-sol / ultra");
+		expect(output).toContain("선택: google / gemini-3-flash-preview / low");
+		expect(output).toContain("[확인]");
+	});
+
+	test("Esc discards every hierarchy level and all lines fit 40 columns", () => {
+		let closed = false;
+		let applied = false;
+		const picker = overlay({ onApply: async () => { applied = true; }, onClose: () => { closed = true; } });
+		picker.handleInput("\x1b[B");
+		picker.handleInput("\r");
 		picker.handleInput("\u001b");
 		expect(closed).toBe(true);
 		expect(applied).toBe(false);
 		for (const line of picker.render(40)) expect(visibleWidth(line)).toBe(40);
-	});
-
-	test("keeps ordinary e input available to the active search field", () => {
-		const picker = overlay();
-		picker.handleInput("e");
-		expect(picker.render(80).join("\n")).toContain("> e");
-	});
-
-	test("leaves Left and Right available for correcting the search cursor", () => {
-		const picker = overlay();
-		picker.handleInput("gemni");
-		picker.handleInput("\u001b[D");
-		picker.handleInput("\u001b[D");
-		picker.handleInput("i");
-		expect(picker.render(80).join("\n")).toContain("google / gemini-3.1-pro-preview");
 	});
 });
