@@ -70,6 +70,20 @@ describe("BashResultCard", () => {
 		const lines = new BashResultCard(snapshot({ command: "printf 안녕하세요 세계", stdout: "한글 출력입니다" })).render(40);
 		expect(lines.every((line) => visibleWidth(line) === 40)).toBe(true);
 	});
+
+	test("highlights bash while retaining prompts, wrapping, and redaction", () => {
+		const lines = new BashResultCard(snapshot({
+			command: "api_key=supersecret if test \"$api_key\" = ok; then echo \"hello\"; fi\nprintf \"$password\"",
+		})).render(40);
+		const rendered = lines.join("\n");
+		const text = stripTerminalSequences(rendered);
+		expect(rendered).toContain("\u001b[");
+		expect(text).toContain("$ api_key=[REDACTED]");
+		expect(text).toContain("> printf");
+		expect(text).toContain("[REDACTED]");
+		expect(text).not.toContain("supersecret");
+		expect(lines.every((line) => visibleWidth(line) === 40)).toBe(true);
+	});
 });
 
 function generic(overrides: Partial<GenericToolResultSnapshot> = {}): GenericToolResultSnapshot {
@@ -112,6 +126,71 @@ describe("GenericToolResultCard", () => {
 			expect(text).toContain("… 1 earlier lines omitted");
 			expect(lines.every((line) => visibleWidth(line) === width)).toBe(true);
 		}
+	});
+
+	test("pretty prints and highlights JSON input and output without changing its snapshot", () => {
+		const value = generic({
+			input: "{\"path\":\"report.json\",\"query\":{\"value\":1}}",
+			output: "{\"outer\":{\"answer\":42}}",
+		});
+		const before = structuredClone(value);
+		const rendered = new GenericToolResultCard(value).render(100).join("\n");
+		const text = stripTerminalSequences(rendered);
+		expect(rendered).toContain("\u001b[");
+		expect(text).toContain('  "query": {');
+		expect(text).toContain('  "outer": {');
+		expect(value).toEqual(before);
+	});
+
+	test("pretty prints path-grounded YAML but falls back for invalid, multi-document, aliased, and ungrounded YAML", () => {
+		const yaml = new GenericToolResultCard(generic({
+			input: "config.yaml",
+			output: "service:\n  enabled: true\n  ports: [80, 443]",
+		})).render(100).join("\n");
+		expect(yaml).toContain("\u001b[");
+		expect(stripTerminalSequences(yaml)).toContain("ports:");
+
+		for (const output of [
+			"service: [invalid",
+			"---\nfirst: true\n---\nsecond: true",
+			"base: &base\n  enabled: true\ncopy: *base",
+		]) {
+			const text = stripTerminalSequences(new GenericToolResultCard(generic({
+				input: "{\"path\":\"config.yml\"}",
+				output,
+			})).render(100).join("\n"));
+			expect(text).toContain(output.split("\n").at(-1)!);
+		}
+		const ungrounded = stripTerminalSequences(new GenericToolResultCard(generic({
+			input: "{\"query\":\"configuration\"}",
+			output: "service:\n  enabled: true",
+		})).render(100).join("\n"));
+		expect(ungrounded).toContain("  enabled: true");
+	});
+
+	test("pretty prints JSON output for raw read paths and content-based JSON detection", () => {
+		const byPath = stripTerminalSequences(new GenericToolResultCard(generic({
+			input: "report.JSON",
+			output: "{\"outer\":{\"answer\":42}}",
+		})).render(100).join("\n"));
+		const byContent = stripTerminalSequences(new GenericToolResultCard(generic({
+			input: "read result",
+			output: "{\"items\":[1,2]}",
+		})).render(100).join("\n"));
+		expect(byPath).toContain("  \"answer\": 42");
+		expect(byContent).toContain("\"items\": [");
+	});
+
+	test("applies structured output tail limits at narrow widths", () => {
+		const output = JSON.stringify({ lines: Array.from({ length: 20 }, (_, index) => `line-${index}`) });
+		const lines = new GenericToolResultCard(generic({
+			input: "{\"path\":\"report.json\"}",
+			output,
+		}), 3).render(24);
+		const text = stripTerminalSequences(lines.join("\n"));
+		expect(text).toContain("… 21");
+		expect(text).toContain("line-19");
+		expect(lines.every((line) => visibleWidth(line) === 24)).toBe(true);
 	});
 });
 

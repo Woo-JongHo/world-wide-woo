@@ -36,6 +36,7 @@
 - [x] ST-001-22 프로젝트 단일 `.www/Todo.md`와 Workspace 실시간 진행률을 제공한다.
 - [x] ST-001-23 Workspace Pane에는 현재 Todo만 표시하고 project metadata는 `/status`로 분리한다.
 - [x] ST-001-24 `!<command>`로 사용자 명시적 non-interactive terminal 명령을 현재 cwd에서 실행한다.
+- [x] ST-001-25 Todo parent 아래 정확히 한 단계의 detail과 known detail progress를 표시한다.
 
 ## EP-002 — 출력 계약
 
@@ -52,6 +53,7 @@
 - [ ] ST-002-11 command card golden/PTY snapshot을 검증한다.
 - [ ] ST-002-12 staged file 선택·Commit preview·명시적 승인을 제공한다.
 - [ ] ST-002-13 Issue 생성·수정 preview와 GitHub 제출 승인을 제공한다.
+- [x] ST-002-14 Bash 입력 syntax와 JSON·YAML display-only pretty projection을 제공한다.
 
 ## EP-003 — Agent Runtime
 
@@ -110,6 +112,7 @@
 - [x] ST-008-02 Tool card 사이에 시작·완료 중간 과정을 시간 순서대로 표시한다.
 - [x] ST-008-03 사용자와 WWW 메시지 영역을 미세한 배경색으로 구분한다.
 - [x] ST-008-04 숨겨진 chain-of-thought 대신 공개 가능한 activity·evidence만 표시한다.
+- [x] ST-008-05 실제 Tool마다 dynamic 단계·동작·이유를 표시하고 bounded 학습 요약을 남긴다.
 
 ## EP-009 — 01_www Adapt-In
 

@@ -58,10 +58,16 @@ describe("SessionMonitor", () => {
 		monitor.subscribe(() => { throw new Error("broken"); });
 		monitor.subscribe(snapshot => observed.push(snapshot.todo.completed));
 		todoState.emit(todo([
-			{ id: "one", content: "done", status: "completed", evidenceIds: [] },
-			{ id: "two", content: "active task", status: "in_progress", evidenceIds: [] },
+			{ id: "one", content: "done", status: "completed", evidenceIds: [], details: [] },
+			{ id: "two", content: "active task", status: "in_progress", evidenceIds: [], details: [] },
 		]));
-		expect(monitor.snapshot.todo).toEqual({ completed: 1, total: 2, activeContent: "active task" });
+		expect(monitor.snapshot.todo).toEqual({
+			completed: 1,
+			total: 2,
+			detailCompleted: 0,
+			detailTotal: 0,
+			activeContent: "active task",
+		});
 		expect(observed).toEqual([0, 1]);
 	});
 
@@ -71,7 +77,7 @@ describe("SessionMonitor", () => {
 		const monitor = new SessionMonitor(runtimeState as unknown as SessionRuntime, todoState as unknown as TodoController, () => 10);
 		monitor.dispose();
 		runtimeState.emit(session({ phase: "error" }));
-		todoState.emit(todo([{ id: "one", content: "active", status: "in_progress", evidenceIds: [] }]));
+		todoState.emit(todo([{ id: "one", content: "active", status: "in_progress", evidenceIds: [], details: [] }]));
 		expect(monitor.snapshot.phase).toBe("starting");
 		expect(monitor.snapshot.todo.total).toBe(0);
 		expect(runtimeState.listenerCount).toBe(0);

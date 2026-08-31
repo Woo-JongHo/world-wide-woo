@@ -6,7 +6,7 @@ import {
 	type ToolResultMessage,
 } from "@earendil-works/pi-ai";
 import type { WwwSettings } from "../domain/model-settings";
-import { workNarrationLabel, type WorkNarration } from "../domain/narration";
+import { isPublicNarrationText, workNarrationLabel, workNarrationReason, type WorkNarration } from "../domain/narration";
 import type { PlanningSnapshot } from "../domain/planning";
 import type { SessionEvent } from "../domain/session-events";
 import type { CommandResultSnapshot, GenericToolResultSnapshot, ToolResultSnapshot } from "../domain/output";
@@ -79,6 +79,8 @@ export function buildSessionSystemPrompt(
 			"프로젝트 파일·구조·Git·SSH alias처럼 도구로 확인할 수 있는 사실은 추측하지 말고 먼저 도구를 사용하세요.",
 			"bash는 제한된 읽기 전용 argv 실행기입니다. SSH alias는 ssh_config 도구로만 확인하고 ssh 실행이나 네트워크 접속을 시도하지 마세요.",
 			"실제로 완료된 도구 결과만 실행 사실로 설명하세요.",
+			"모든 도구 호출에 optional reason을 한국어의 짧은 공개 가능한 목적 설명으로 작성하세요. credential, 제어 문자열, hidden thinking을 reason에 넣지 마세요.",
+			"도구를 사용한 비단순 최종 답변에는 관찰한 사실, 판단과 이유, 남은 격차, 검증을 공개적으로 요약하세요. 실제로 관찰하지 않은 수치나 사실, hidden thinking은 포함하지 마세요.",
 		);
 		if (toolNames.includes("todo_write")) {
 			lines.push(
@@ -196,26 +198,42 @@ function storedToolSnapshot(event: SessionEvent): ToolResultSnapshot | null {
 	return null;
 }
 
-function storedNarration(event: SessionEvent): WorkNarration {
+function storedNarration(event: SessionEvent, legacyStep: number): WorkNarration {
 	const value = event.metadata.narration;
 	if (!value || typeof value !== "object" || Array.isArray(value)) {
 		throw new Error(`세션 ${event.sessionId}의 ${event.sequence}번 작업 설명을 복원할 수 없습니다.`);
 	}
 	const narration = value as Partial<WorkNarration>;
 	const keys = Object.keys(narration).sort();
+	const legacyKeys = "id,label,timestamp,toolCallId,turnId";
+	const currentKeys = "action,id,label,reason,step,timestamp,toolCallId,turnId";
+	const validBase = typeof narration.id === "string" && !!narration.id &&
+		typeof narration.turnId === "string" && !!narration.turnId &&
+		typeof narration.toolCallId === "string" && !!narration.toolCallId &&
+		typeof narration.timestamp === "string" && !Number.isNaN(Date.parse(narration.timestamp)) &&
+		typeof narration.label === "string" &&
+		event.turnId === narration.turnId &&
+		event.itemId === narration.toolCallId;
 	if (
 		Object.keys(event.metadata).length !== 1 ||
 		!("narration" in event.metadata) ||
-		keys.join(",") !== "id,label,timestamp,toolCallId,turnId" ||
-		typeof narration.id !== "string" || !narration.id ||
-		typeof narration.turnId !== "string" || !narration.turnId ||
-		typeof narration.toolCallId !== "string" || !narration.toolCallId ||
-		typeof narration.timestamp !== "string" || Number.isNaN(Date.parse(narration.timestamp)) ||
-		typeof narration.label !== "string" ||
-		event.turnId !== narration.turnId ||
-		event.itemId !== narration.toolCallId
+		!validBase ||
+		(keys.join(",") !== legacyKeys && (
+			keys.join(",") !== currentKeys ||
+			typeof narration.step !== "number" || !Number.isSafeInteger(narration.step) || narration.step < 1 ||
+			typeof narration.action !== "string" || !narration.action || !isPublicNarrationText(narration.action, 100) ||
+			typeof narration.reason !== "string" || !narration.reason || !isPublicNarrationText(narration.reason, 160)
+		))
 	) {
 		throw new Error(`세션 ${event.sessionId}의 ${event.sequence}번 작업 설명 메타데이터가 올바르지 않습니다.`);
+	}
+	if (keys.join(",") === legacyKeys) {
+		return {
+			...narration,
+			step: legacyStep,
+			action: narration.label,
+			reason: "요청된 도구 실행",
+		} as WorkNarration;
 	}
 	return narration as WorkNarration;
 }
@@ -590,8 +608,12 @@ export class SessionRuntime {
 					this.phase = "ready";
 					return;
 				}
-				const content = messageText(result);
-				this.context.messages.push(result);
+				const toolCalls = result.content.filter((item): item is ToolCall => item.type === "toolCall");
+				const completedResult = toolCalls.length === 0
+					? this.appendLearningSummary(result, turnId)
+					: result;
+				const content = messageText(completedResult);
+				this.context.messages.push(completedResult);
 				if (content.trim()) {
 					this.turns.push({
 						id: assistantItemId,
@@ -610,13 +632,12 @@ export class SessionRuntime {
 					correlationId: turnId,
 					turnId,
 					itemId: assistantItemId,
-					metadata: { message: result },
+					metadata: { message: completedResult },
 				});
 				if (this.error) {
 					await this.recordError(this.error, turnId, assistantItemId);
 					break;
 				}
-				const toolCalls = result.content.filter((item): item is ToolCall => item.type === "toolCall");
 				if (toolCalls.length === 0) {
 					this.phase = "ready";
 					await this.recordTurnCompletion(turnId, "passed");
@@ -839,12 +860,16 @@ export class SessionRuntime {
 			throw new Error(`중복된 도구 호출 ID입니다: ${toolCall.id}`);
 		}
 		const timestamp = new Date().toISOString();
+		const action = workNarrationLabel(toolCall.name, toolCall.arguments);
 		const narration: WorkNarration = {
 			id: crypto.randomUUID(),
 			turnId,
 			toolCallId: toolCall.id,
 			timestamp,
-			label: workNarrationLabel(toolCall.name, toolCall.arguments),
+			label: action,
+			step: this.narrations.length + 1,
+			action,
+			reason: workNarrationReason(toolCall.name, toolCall.arguments),
 		};
 		await this.store.append(this.id, {
 			category: "action",
@@ -860,6 +885,39 @@ export class SessionRuntime {
 		this.narratedToolCallIds.add(toolCall.id);
 		this.narrations.push(narration);
 		this.emit();
+	}
+
+	private appendLearningSummary(result: AssistantMessage, turnId: string): AssistantMessage {
+		const narration = this.narrations.filter(entry => entry.turnId === turnId);
+		if (narration.length < 2) return result;
+		const content = messageText(result);
+		if (["관찰한 사실", "판단과 이유", "남은 격차", "검증"].every(heading => content.includes(heading))) {
+			return result;
+		}
+		const toolById = new Map(this.toolExecutions.map(tool => [tool.id, tool]));
+		const actions = narration.slice(-8).map(entry => `단계 ${entry.step} ${entry.action} (${entry.reason})`).join("; ");
+		const statuses = narration.slice(-8).map(entry => toolById.get(entry.toolCallId)?.status ?? "기록됨");
+		const statusSummary = [...new Set(statuses)].join(", ");
+		const todos = this.todos?.snapshot?.items ?? [];
+		const pending = todos.filter(item => item.status === "pending").length;
+		const blocked = todos.filter(item => item.status === "blocked").length;
+		const details = todos.flatMap(item => item.details);
+		const detailPending = details.filter(detail => detail.status === "pending").length;
+		const detailBlocked = details.filter(detail => detail.status === "blocked").length;
+		const detailSummary = details.length > 0 ? ` 세부 pending ${detailPending}개, blocked ${detailBlocked}개입니다.` : "";
+		const todoSummary = this.todos
+			? `현재 Todo pending ${pending}개, blocked ${blocked}개입니다.${detailSummary}`
+			: "현재 Todo 상태는 연결되지 않았습니다.";
+		const summary = [
+			"관찰한 사실: " + actions,
+			`판단과 이유: 실제 도구 상태는 ${statusSummary}이며, 위 실행 목적을 기준으로 응답을 정리했습니다.`,
+			`남은 격차: ${todoSummary}`,
+			"검증: 이 요약은 해당 턴에서 기록된 도구 실행과 상태만 반영했습니다.",
+		].join("\n");
+		return {
+			...result,
+			content: [...result.content, { type: "text", text: `\n\n${summary}` }],
+		};
 	}
 
 	private async cancelUnexecutedToolCall(toolCall: ToolCall, turnId: string): Promise<ToolResultMessage> {
@@ -923,13 +981,21 @@ export class SessionRuntime {
 		const openTurns = new Set<string>();
 		const toolGroups: Array<{ message: AssistantMessage; callIds: string[] }> = [];
 		const completedToolCalls = new Set<string>();
+		const narratedSteps = new Set<number>();
 		for (const event of events) {
 			if (event.type === "narration.recorded") {
-				const narration = storedNarration(event);
+				const narration = storedNarration(event, this.narrations.length + 1);
 				if (this.narratedToolCallIds.has(narration.toolCallId)) {
 					throw new Error(`세션 ${this.id}에 중복된 도구 호출 작업 설명이 있습니다: ${narration.toolCallId}`);
 				}
+				if (narratedSteps.has(narration.step)) {
+					throw new Error(`세션 ${this.id}에 중복된 작업 설명 단계가 있습니다: ${narration.step}`);
+				}
+				if (narration.step !== this.narrations.length + 1) {
+					throw new Error(`세션 ${this.id}의 작업 설명 단계 순서가 올바르지 않습니다: ${narration.step}`);
+				}
 				this.narratedToolCallIds.add(narration.toolCallId);
+				narratedSteps.add(narration.step);
 				this.narrations.push(narration);
 			}
 			if (event.type === "turn.started" && event.turnId) openTurns.add(event.turnId);

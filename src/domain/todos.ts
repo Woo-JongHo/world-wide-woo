@@ -2,11 +2,19 @@ export const TODO_ITEM_STATUSES = ["pending", "in_progress", "completed", "block
 export const MAX_TODO_EVIDENCE = 8;
 export type TodoItemStatus = (typeof TODO_ITEM_STATUSES)[number];
 
+export interface TodoDetail {
+	readonly id: string;
+	readonly content: string;
+	readonly status: TodoItemStatus;
+	readonly evidenceIds: readonly string[];
+}
+
 export interface TodoItem {
 	readonly id: string;
 	readonly content: string;
 	readonly status: TodoItemStatus;
 	readonly evidenceIds: readonly string[];
+	readonly details: readonly TodoDetail[];
 }
 
 export interface TodoDocument {
@@ -27,6 +35,8 @@ export interface TodoProgress {
 	readonly blocked: number;
 }
 
+export interface TodoDetailProgress extends TodoProgress {}
+
 const idPattern = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
 const isoDatePattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 const ansiPattern = /\u001B\[[0-?]*[ -/]*[@-~]/g;
@@ -38,17 +48,26 @@ const githubTokenPattern = /\b(?:gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0
 const googleApiKeyPattern = /\bAIza[A-Za-z0-9_-]{20,}\b/g;
 
 export function todoProgress(document: TodoDocument): TodoProgress {
+	return progressFor(document.items);
+}
+
+/** Reports progress for details without changing top-level todo progress semantics. */
+export function todoDetailProgress(document: TodoDocument): TodoDetailProgress {
+	return progressFor(document.items.flatMap((item) => item.details));
+}
+
+function progressFor(items: readonly { readonly status: TodoItemStatus }[]): TodoProgress {
 	let completed = 0;
 	let active = 0;
 	let pending = 0;
 	let blocked = 0;
-	for (const item of document.items) {
+	for (const item of items) {
 		if (item.status === "completed") completed += 1;
 		else if (item.status === "in_progress") active += 1;
 		else if (item.status === "blocked") blocked += 1;
 		else pending += 1;
 	}
-	return { total: document.items.length, completed, active, pending, blocked };
+	return { total: items.length, completed, active, pending, blocked };
 }
 
 /** Validates and returns a deeply immutable, display-safe document. */
@@ -62,22 +81,27 @@ export function validateTodoDocument(value: unknown): TodoDocument {
 
 	const ids = new Set<string>();
 	let active = 0;
+	let detailActive = 0;
 	const items = value.items.map((raw) => {
 		if (!isRecord(raw) || typeof raw.id !== "string" || !idPattern.test(raw.id)) fail("invalid todo item id");
 		if (ids.has(raw.id)) fail("duplicate todo item id");
 		ids.add(raw.id);
-		if (typeof raw.content !== "string") fail("invalid todo item content");
-		const content = sanitizeTodoText(raw.content);
-		if (!content || Array.from(content).length > 120) fail("invalid todo item content");
-		if (typeof raw.status !== "string" || !(TODO_ITEM_STATUSES as readonly string[]).includes(raw.status)) fail("invalid todo item status");
+		const { content, status, evidenceIds } = validateTodoEntry(raw, "todo item");
 		if (raw.status === "in_progress") active += 1;
-		if (
-			!Array.isArray(raw.evidenceIds) ||
-			raw.evidenceIds.length > MAX_TODO_EVIDENCE ||
-			new Set(raw.evidenceIds).size !== raw.evidenceIds.length ||
-			raw.evidenceIds.some((id) => typeof id !== "string" || !idPattern.test(id))
-		) fail("invalid evidence ids");
-		return Object.freeze({ id: raw.id, content, status: raw.status as TodoItemStatus, evidenceIds: Object.freeze([...raw.evidenceIds]) });
+		const rawDetails = raw.details === undefined ? [] : raw.details;
+		if (!Array.isArray(rawDetails) || rawDetails.length > 8) fail("invalid detail count");
+		const details = rawDetails.map((detail) => {
+			if (!isRecord(detail) || typeof detail.id !== "string" || !idPattern.test(detail.id)) fail("invalid todo detail id");
+			if (ids.has(detail.id)) fail("duplicate todo item id");
+			ids.add(detail.id);
+			const validated = validateTodoEntry(detail, "todo detail");
+			if (validated.status === "in_progress") detailActive += 1;
+			return Object.freeze({ id: detail.id, ...validated });
+		});
+		if (detailActive > 1) fail("at most one todo detail may be in progress");
+		if (details.some((detail) => detail.status === "in_progress") && status !== "in_progress") fail("active todo detail requires an in-progress parent");
+		if (status === "completed" && details.some((detail) => detail.status !== "completed")) fail("completed todo item requires completed details");
+		return Object.freeze({ id: raw.id, content, status, evidenceIds, details: Object.freeze(details) });
 	});
 	if (active > 1) fail("at most one todo item may be in progress");
 	return Object.freeze({
@@ -96,10 +120,8 @@ export function renderTodoMarkdown(document: TodoDocument): string {
 	const header = JSON.stringify({ version: todo.version, revision: todo.revision, ownerSessionId: todo.ownerSessionId, storyId: todo.storyId, updatedAt: todo.updatedAt });
 	const lines = [`<!-- ${header} -->`, `# ${todo.title}`, ""];
 	for (const item of todo.items) {
-		const prefix = item.status === "in_progress" ? "진행 중: " : item.status === "blocked" ? "막힘: " : "";
-		const checked = item.status === "completed" ? "x" : " ";
-		const metadata = JSON.stringify({ id: item.id, status: item.status, evidenceIds: item.evidenceIds });
-		lines.push(`- [${checked}] ${prefix}${item.content} <!-- ${metadata} -->`);
+		lines.push(renderEntry(item));
+		for (const detail of item.details) lines.push(`  ${renderEntry(detail)}`);
 	}
 	return `${lines.join("\n")}\n`;
 }
@@ -111,7 +133,17 @@ export function parseTodoMarkdown(markdown: string): TodoDocument {
 	const header = parseComment(lines[0]);
 	if (!isRecord(header) || Object.keys(header).length !== 5 || header.version !== 1) fail("invalid todo markdown header");
 	if (!lines[1].startsWith("# ") || lines[1].slice(2).length === 0) fail("invalid todo heading");
-	const items = lines.slice(3).map(parseItemLine);
+	const items: Array<Omit<TodoItem, "details"> & { details: TodoDetail[] }> = [];
+	for (const line of lines.slice(3)) {
+		if (line.startsWith("  - ")) {
+			const parent = items.at(-1);
+			if (!parent) fail("orphan todo detail markdown");
+			parent.details.push(parseItemLine(line.slice(2)));
+		} else {
+			if (/^\s/.test(line)) fail("invalid todo detail indentation");
+			items.push({ ...parseItemLine(line), details: [] });
+		}
+	}
 	return validateTodoDocument({ ...header, title: lines[1].slice(2), items });
 }
 
@@ -145,7 +177,28 @@ function parseItemLine(line: string): TodoItem {
 		if (!content.startsWith("막힘: ")) fail("invalid todo status prefix");
 		content = content.slice("막힘: ".length);
 	}
-	return { id: metadata.id, status, evidenceIds: metadata.evidenceIds as string[], content };
+	return { id: metadata.id, status, evidenceIds: metadata.evidenceIds as string[], content, details: [] };
+}
+
+function renderEntry(item: TodoDetail | TodoItem): string {
+	const prefix = item.status === "in_progress" ? "진행 중: " : item.status === "blocked" ? "막힘: " : "";
+	const checked = item.status === "completed" ? "x" : " ";
+	const metadata = JSON.stringify({ id: item.id, status: item.status, evidenceIds: item.evidenceIds });
+	return `- [${checked}] ${prefix}${item.content} <!-- ${metadata} -->`;
+}
+
+function validateTodoEntry(raw: Record<string, unknown>, label: string): Pick<TodoDetail, "content" | "status" | "evidenceIds"> {
+	if (typeof raw.content !== "string") fail(`invalid ${label} content`);
+	const content = sanitizeTodoText(raw.content);
+	if (!content || Array.from(content).length > 120) fail(`invalid ${label} content`);
+	if (typeof raw.status !== "string" || !(TODO_ITEM_STATUSES as readonly string[]).includes(raw.status)) fail(`invalid ${label} status`);
+	if (
+		!Array.isArray(raw.evidenceIds) ||
+		raw.evidenceIds.length > MAX_TODO_EVIDENCE ||
+		new Set(raw.evidenceIds).size !== raw.evidenceIds.length ||
+		raw.evidenceIds.some((id) => typeof id !== "string" || !idPattern.test(id))
+	) fail("invalid evidence ids");
+	return { content, status: raw.status as TodoItemStatus, evidenceIds: Object.freeze([...raw.evidenceIds]) };
 }
 
 function parseComment(line: string): unknown {

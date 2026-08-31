@@ -3,6 +3,8 @@ import { access, chmod, mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/p
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { createProjectAgentTools } from "../src/infrastructure/agent-tools";
+import type { TodoController } from "../src/application/ports";
+import type { TodoDocument } from "../src/domain/todos";
 
 const roots: string[] = [];
 afterEach(async () => { await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))); });
@@ -144,5 +146,50 @@ describe("project agent tools", () => {
 		const result = await tool(tools, "bash").execute({ command: "git", args: ["status", "--short"] }, signal());
 		expect(result.isError).toBe(false);
 		await expect(access(marker)).rejects.toThrow();
+	});
+
+	test("accepts ignored reasons on every tool and routes one-level Todo detail writes", async () => {
+		const { root } = await fixture();
+		const document: TodoDocument = {
+			version: 1, revision: 1, ownerSessionId: "session-1", storyId: null, title: "Work",
+			items: [{ id: "todo-1", content: "parent", status: "pending", evidenceIds: [], details: [] }],
+			updatedAt: "2026-08-31T08:00:00.000Z",
+		};
+		const calls: unknown[][] = [];
+		const detailed: TodoDocument = {
+			...document,
+			revision: 2,
+			items: [{
+				...document.items[0]!,
+				details: [{ id: "todo-1-detail-1", content: "first", status: "pending", evidenceIds: [] }],
+			}],
+		};
+		const todos: TodoController = {
+			snapshot: document,
+			initialize: async () => {},
+			create: async () => document,
+			add: async () => document,
+			addDetails: async (...args) => { calls.push(args); return detailed; },
+			start: async () => document,
+			complete: async () => document,
+			block: async () => document,
+			reopen: async () => document,
+			recordEvidence: async () => document,
+			subscribe: () => () => {},
+		};
+		const tools = createProjectAgentTools(root, { todos, sshConfigPath: join(root, "ssh-config") });
+		for (const name of ["read", "search", "bash", "ssh_config", "todo_write"]) {
+			const parameters = tool(tools, name).definition.parameters as { properties: Record<string, { maxLength?: number }> };
+			expect(parameters.properties.reason?.maxLength).toBe(160);
+		}
+		const result = await tool(tools, "todo_write").execute({
+			operation: "detail", itemId: "todo-1", details: ["first"], reason: "This is narration only.",
+		}, signal());
+		expect(result.isError).toBe(false);
+		expect(result.modelContent).not.toContain("narration");
+		expect(result.modelContent).toContain("todo-1 [pending] parent · details 0/1");
+		expect(result.modelContent).toContain("todo-1-detail-1 [pending] first");
+		expect(calls).toEqual([["todo-1", ["first"]]]);
+		expect(tool(tools, "todo_write").definition.description).toContain("exactly one nested level");
 	});
 });

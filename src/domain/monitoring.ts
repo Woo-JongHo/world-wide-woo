@@ -35,6 +35,8 @@ export interface MonitoringSnapshot {
 	readonly todo: Readonly<{
 		completed: number;
 		total: number;
+		detailCompleted: number;
+		detailTotal: number;
 		activeContent: string | null;
 	}>;
 }

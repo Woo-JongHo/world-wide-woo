@@ -11,24 +11,29 @@ const MAX_DIRECTORY_ENTRIES = 500;
 const MAX_SEARCH_RESULTS = 200;
 const TIMEOUT_MS = 10_000;
 
-const readParameters = Type.Object({ path: Type.String({ minLength: 1 }) });
+const reason = Type.Optional(Type.String({ maxLength: 160 }));
+const readParameters = Type.Object({ path: Type.String({ minLength: 1 }), reason });
 const searchParameters = Type.Object({
 	pattern: Type.String({ minLength: 1, maxLength: 1_000 }),
 	path: Type.Optional(Type.String({ minLength: 1 })),
 	regex: Type.Optional(Type.Boolean()),
+	reason,
 });
 const bashParameters = Type.Object({
 	command: Type.String({ minLength: 1 }),
 	args: Type.Optional(Type.Array(Type.String({ maxLength: 4_096 }), { maxItems: 32 })),
+	reason,
 });
 const sshConfigParameters = Type.Object({
 	host: Type.String({ minLength: 1, maxLength: 255, pattern: "^[A-Za-z0-9][A-Za-z0-9._-]*$" }),
+	reason,
 });
 const todoParameters = Type.Object({
 	operation: Type.Union([
 		Type.Literal("status"),
 		Type.Literal("init"),
 		Type.Literal("add"),
+		Type.Literal("detail"),
 		Type.Literal("start"),
 		Type.Literal("done"),
 		Type.Literal("block"),
@@ -39,7 +44,9 @@ const todoParameters = Type.Object({
 	items: Type.Optional(Type.Array(Type.String({ minLength: 1, maxLength: 120 }), { minItems: 1, maxItems: 12 })),
 	itemId: Type.Optional(Type.String({ minLength: 1, maxLength: 64 })),
 	content: Type.Optional(Type.String({ minLength: 1, maxLength: 120 })),
+	details: Type.Optional(Type.Array(Type.String({ minLength: 1, maxLength: 120 }), { minItems: 1, maxItems: 8 })),
 	placement: Type.Optional(Type.Union([Type.Literal("now"), Type.Literal("after")])),
+	reason,
 });
 
 export function createProjectAgentTools(
@@ -158,7 +165,9 @@ function createTodoTool(todos: TodoController): AgentTool {
 				"Use status to inspect existing work before init when a prior session may have unfinished items.",
 				"Use add with placement now to interrupt safely or after to queue directly behind the active item.",
 				"For implementation work with at least three concrete steps, call init before other tools.",
-				"Call start immediately before one item and done only after observable evidence; completion without evidence fails.",
+				"Use detail with a parent itemId and one to eight details for exactly one nested level; never add details to details.",
+				"Start the parent first, then one pending detail at a time; finish every detail before done on its parent.",
+				"Call start immediately before one item and done only after observable evidence; flat item completion without evidence fails.",
 				"Do not use for simple answers or invent completed work.",
 			].join(" "),
 			parameters: todoParameters,
@@ -184,6 +193,12 @@ function createTodoTool(todos: TodoController): AgentTool {
 					const placement = stringArgument(arguments_, "placement");
 					if (placement !== "now" && placement !== "after") throw new Error("Todo placement must be now or after.");
 					document = await todos.add(content, placement);
+				} else if (operation === "detail") {
+					const itemId = stringArgument(arguments_, "itemId");
+					if (!Array.isArray(arguments_.details) || !arguments_.details.every(detail => typeof detail === "string")) {
+						throw new Error("Todo detail requires a string details array.");
+					}
+					document = await todos.addDetails(itemId, arguments_.details);
 				} else {
 					const itemId = stringArgument(arguments_, "itemId");
 					if (operation === "start") document = await todos.start(itemId);
@@ -194,7 +209,12 @@ function createTodoTool(todos: TodoController): AgentTool {
 				}
 				const output = [
 					`${document.title} · revision ${document.revision}`,
-					...document.items.map(item => `${item.id} [${item.status}] ${item.content}`),
+					...document.items.flatMap(item => [
+						`${item.id} [${item.status}] ${item.content}${item.details.length > 0
+							? ` · details ${item.details.filter(detail => detail.status === "completed").length}/${item.details.length}`
+							: ""}`,
+						...item.details.map(detail => `  ${detail.id} [${detail.status}] ${detail.content}`),
+					]),
 				].join("\n");
 				return generic("todo_write", operation, output, startedAt);
 			} catch (error) {
