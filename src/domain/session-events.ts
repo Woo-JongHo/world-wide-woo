@@ -31,6 +31,7 @@ export const SESSION_EVENT_TYPES = [
 	"command.started",
 	"command.output",
 	"command.completed",
+	"todo.updated",
 	"evidence.recorded",
 	"warning.recorded",
 ] as const;

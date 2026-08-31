@@ -6,7 +6,7 @@ const WORKSPACE_DIRECTORY = ".www";
 const MANIFEST_FILE = "project.json";
 const WORKSPACE_GITIGNORE_FILE = ".gitignore";
 const LOCAL_DIRECTORIES = ["sessions", "drafts", "runtime"] as const;
-const WORKSPACE_GITIGNORE = "sessions/\ndrafts/\ncache/\nruntime/\n";
+const WORKSPACE_GITIGNORE = "sessions/\ndrafts/\ncache/\nruntime/\nTodo.md\n.Todo.md.*.tmp\n";
 
 type ProjectManifest = {
 	schemaVersion: 1;
@@ -21,6 +21,7 @@ export type ProjectWorkspace = {
 	sessionsDirectory: string;
 	draftsDirectory: string;
 	runtimeDirectory: string;
+	todoPath: string;
 	manifestPath: string;
 };
 
@@ -115,6 +116,7 @@ export class FileProjectWorkspace {
 		const sessionsDirectory = join(directory, "sessions");
 		const draftsDirectory = join(directory, "drafts");
 		const runtimeDirectory = join(directory, "runtime");
+		const todoPath = join(directory, "Todo.md");
 		for (const localDirectory of LOCAL_DIRECTORIES) {
 			await ensureDirectory(join(directory, localDirectory));
 		}
@@ -142,11 +144,18 @@ export class FileProjectWorkspace {
 		}
 
 		const gitignorePath = join(directory, WORKSPACE_GITIGNORE_FILE);
-		if (!(await existsRegularFile(gitignorePath))) {
+		if (await existsRegularFile(gitignorePath)) {
+			const existing = await readFile(gitignorePath, "utf8");
+			const lines = new Set(existing.split(/\r?\n/u).filter(Boolean));
+			const required = WORKSPACE_GITIGNORE.split("\n").filter(Boolean);
+			if (required.some(line => !lines.has(line))) {
+				await atomicWrite(gitignorePath, `${[...lines, ...required.filter(line => !lines.has(line))].join("\n")}\n`, 0o600);
+			}
+		} else {
 			await atomicWrite(gitignorePath, WORKSPACE_GITIGNORE, 0o600);
 		}
 
-		return { name: manifest.name, root, directory, sessionsDirectory, draftsDirectory, runtimeDirectory, manifestPath };
+		return { name: manifest.name, root, directory, sessionsDirectory, draftsDirectory, runtimeDirectory, todoPath, manifestPath };
 	}
 
 	static async acquireSessionLease(workspace: ProjectWorkspace, sessionId: string): Promise<SessionLease> {
@@ -191,6 +200,20 @@ export class FileProjectWorkspace {
 				}
 			},
 		};
+	}
+
+	static async isSessionLeaseActive(workspace: ProjectWorkspace, sessionId: string): Promise<boolean> {
+		if (!/^[A-Za-z0-9][A-Za-z0-9_-]*$/u.test(sessionId)) return true;
+		const path = join(workspace.runtimeDirectory, `${sessionId}.lock`);
+		try {
+			const info = await lstat(path);
+			if (!info.isFile() || info.isSymbolicLink()) return true;
+			const owner = JSON.parse(await readFile(path, "utf8")) as { pid?: unknown };
+			return typeof owner.pid !== "number" || isProcessAlive(owner.pid);
+		} catch (error) {
+			if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
+			return true;
+		}
 	}
 }
 

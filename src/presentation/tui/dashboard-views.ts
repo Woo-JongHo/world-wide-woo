@@ -8,6 +8,7 @@ import {
 import type { SessionSnapshot } from "../../application/session-runtime";
 import type { RecentSessionSummary, UsageSnapshot } from "../../application/ports";
 import type { Effort } from "../../domain/model-settings";
+import { todoProgress, type TodoDocument, type TodoItem } from "../../domain/todos";
 import { BashResultCard, GenericToolResultCard } from "./result-cards";
 import { colors, gradientLines, markdownTheme, semantic } from "./theme";
 
@@ -135,14 +136,18 @@ export class RouterModelView implements Component {
 	}
 }
 
-export class SessionFlowView implements Component {
+export class WorkspaceTodoView implements Component {
 	constructor(
 		private readonly recentSessions: readonly RecentSessionSummary[],
 		private readonly workspace: () => { name: string; cwd: string; root: string },
+		private readonly todo: () => TodoDocument | null,
 	) {}
 	invalidate(): void {}
 	render(width: number): string[] {
+		const todoRows = this.renderTodo(width);
 		const rows = [
+			...todoRows,
+			"",
 			colors.secondary("프로젝트"),
 			`  ${this.workspace().name}`,
 			`  ${this.workspace().root}/.www`,
@@ -164,6 +169,33 @@ export class SessionFlowView implements Component {
 		}
 		return rows.flatMap((row) => wrapTextWithAnsi(row, Math.max(1, width)));
 	}
+
+	private renderTodo(width: number): string[] {
+		const document = this.todo();
+		if (!document || document.items.length === 0) return [
+			colors.secondary("TODO 0/0"),
+			"  진행 중인 작업 없음",
+		];
+
+		const progress = todoProgress(document);
+		const items = width < 42
+			? [document.items.find(item => item.status === "in_progress") ?? document.items.find(item => item.status === "pending")].filter(
+				(item): item is TodoItem => item !== undefined,
+			)
+			: document.items.slice(0, 12);
+		return [
+			colors.secondary(`TODO ${progress.completed}/${progress.total}`),
+			colors.highlight(`  ${document.storyId ? `${document.storyId} · ` : ""}${document.title}`),
+			...items.map(item => `  ${todoMarker(item.status)} ${item.content}`),
+		];
+	}
+}
+
+function todoMarker(status: TodoItem["status"]): string {
+	if (status === "in_progress") return "[•]";
+	if (status === "completed") return "[x]";
+	if (status === "blocked") return "[!]";
+	return "[ ]";
 }
 
 export class TranscriptView implements Component {

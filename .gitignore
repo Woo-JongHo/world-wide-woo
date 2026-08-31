@@ -13,3 +13,5 @@ coverage/
 .www/drafts/
 .www/cache/
 .www/runtime/
+.www/Todo.md
+.www/.Todo.md.*.tmp

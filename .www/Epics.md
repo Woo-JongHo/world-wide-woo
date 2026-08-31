@@ -1,13 +1,13 @@
-# WWW TODO
+# WWW Epics
 
-## 기준
+## 운영 원칙
 
 - WWW는 **World Wide Woo**이며 WES Agent TUI의 제품 Shell이다.
 - 화면은 저장 원문이나 모델 Context를 임의로 바꾸지 않는 projection이어야 한다.
-- 내부 Agent와 tool executor는 Shell·Router·사용량·출력 계약이 검증된 뒤 연결한다.
+- Agent와 tool executor는 실제 lifecycle event와 evidence가 존재하는 작업만 표시한다.
 - 항목은 실제 동작과 검증이 함께 끝나야 완료한다.
 
-## P0 — 제품 Shell
+## EP-001 — 제품 Shell
 
 - [x] 프로젝트 root의 `.www/project.json`과 local session·draft state
 - [x] 프로젝트별 session 목록과 `.www` 위치 표시
@@ -30,8 +30,9 @@
 - [x] append-only JSONL 세션과 안전한 종료·재개
 - [x] `/commits` Git 작업 트리·최근 Commit 조회
 - [x] `/issues` 현재 저장소의 열린 GitHub Issue 조회
+- [x] 프로젝트 단일 `.www/Todo.md`와 Workspace 실시간 진행률 projection
 
-## P1 — 출력 계약
+## EP-002 — 출력 계약
 
 - [x] Bash 실행 상태 DTO와 width-safe 결과 카드
 - [x] 실제 read·search·safe Bash tool lifecycle 연결
@@ -47,7 +48,7 @@
 - [ ] staged file 선택·Commit preview·명시적 승인
 - [ ] Issue 생성·수정 preview와 GitHub 제출 승인
 
-## P2 — Agent runtime
+## EP-003 — Agent runtime
 
 - [x] bounded model → tool result → follow-up model loop
 - [x] transient Provider retry와 실제 activity 상태
@@ -56,20 +57,22 @@
 - [x] sandboxed Bash·read·search 최소 tool set
 - [ ] preview·approval을 포함한 edit tool
 - [x] 명령별 cwd·권한·timeout·AbortSignal
+- [x] evidence-linked `todo_write` lifecycle과 owner session 인계
 - [ ] 위험 작업 승인 overlay와 fail-closed 정책
 - [ ] tool-only·thinking-only·부분 응답 보존
 - [x] 중단된 Turn의 cancelled terminal event와 transcript 중단 표지
 
-## P3 — WES Context
+## EP-004 — WES Context
 
 - [ ] Display Policy와 Context Policy 분리
 - [ ] category별 show/hide/fold/filter
 - [ ] 현재 WES View를 모델 Context로 명시적으로 채택하는 흐름
 - [ ] summary·compaction·raw event provenance
-- [ ] Decision·Evidence·Todo projection
+- [x] Project Todo projection
+- [ ] Decision·Evidence projection
 - [ ] 세션 resume·fork·replay picker
 
-## P4 — 제품 품질
+## EP-005 — 제품 품질
 
 - [ ] 40·70·120·160열 및 10·13·24·42행 matrix snapshot
 - [ ] truecolor·256색·무색상 terminal 대비 검증
@@ -79,7 +82,7 @@
 - [ ] session pagination과 장기 메모리 상한
 - [ ] command·output·provider error redaction audit
 
-## P5 — 배포
+## EP-006 — 배포
 
 - [ ] GitHub Actions에 typecheck·test·PTY smoke 연결
 - [ ] npm/Bun executable 배포 계약

@@ -8,9 +8,10 @@ import {
 import type { WwwSettings } from "../domain/model-settings";
 import type { SessionEvent } from "../domain/session-events";
 import type { CommandResultSnapshot, GenericToolResultSnapshot, ToolResultSnapshot } from "../domain/output";
-import type { AgentTool, ModelAuthStatus, ModelClient, SessionRepository } from "./ports";
+import type { AgentTool, ModelAuthStatus, ModelClient, SessionRepository, TodoController } from "./ports";
 
 export type SessionPhase = "starting" | "ready" | "streaming" | "error";
+const MAX_AGENT_ROUNDS = 24;
 
 export interface WorkspaceContext {
 	cwd: string;
@@ -74,6 +75,14 @@ export function buildSessionSystemPrompt(
 			"bash는 제한된 읽기 전용 argv 실행기입니다. SSH alias는 ssh_config 도구로만 확인하고 ssh 실행이나 네트워크 접속을 시도하지 마세요.",
 			"실제로 완료된 도구 결과만 실행 사실로 설명하세요.",
 		);
+		if (toolNames.includes("todo_write")) {
+			lines.push(
+				"세 단계 이상인 구현 작업은 다른 도구보다 먼저 todo_write init으로 3~7개의 얇고 검증 가능한 항목을 만드세요.",
+				"이전 세션의 작업이 있을 수 있으면 todo_write status로 확인하고, 미완료 목록을 새 init으로 덮어쓰지 말고 이어서 진행하세요.",
+				"한 번에 하나만 start하고, 그 항목의 실제 도구 증거가 생긴 뒤에만 done 하세요. 단순 질문·설명에는 Todo를 만들지 마세요.",
+				"Todo 상태를 최종 답변보다 먼저 갱신하고, 실행하지 않았거나 검증하지 않은 항목을 완료로 표시하지 마세요.",
+			);
+		}
 	}
 	return lines.join("\n");
 }
@@ -194,6 +203,7 @@ export class SessionRuntime {
 		readonly workspace: WorkspaceContext,
 		readonly id: string = crypto.randomUUID(),
 		private readonly tools: readonly AgentTool[] = [],
+		private readonly todos?: TodoController,
 	) {
 		this.selection = { ...settings };
 		this.context = {
@@ -358,7 +368,7 @@ export class SessionRuntime {
 
 		this.abortController = new AbortController();
 		try {
-			for (let round = 0; round < 8; round++) {
+			for (let round = 0; round < MAX_AGENT_ROUNDS; round++) {
 				assistantItemId = crypto.randomUUID();
 				this.draft = "";
 				const result = await this.streamAssistant(turnSettings, turnId, assistantItemId);
@@ -402,7 +412,7 @@ export class SessionRuntime {
 					return;
 				}
 				activeToolRound = { assistant: result, callIds: new Set(toolCalls.map(call => call.id)) };
-				if (round === 7) throw new Error("도구 실행 반복 한도에 도달했습니다.");
+				if (round === MAX_AGENT_ROUNDS - 1) throw new Error("도구 실행 반복 한도에 도달했습니다.");
 				for (const [index, toolCall] of toolCalls.entries()) {
 					const toolResult = await this.executeToolCall(toolCall, turnId);
 					this.context.messages.push(toolResult);
@@ -576,7 +586,7 @@ export class SessionRuntime {
 			turnId,
 			itemId: toolCall.id,
 		});
-		await this.store.append(this.id, {
+		const completedEvent = await this.store.append(this.id, {
 			category: "command",
 			type: "command.completed",
 			status: execution.isError ? "failed" : "passed",
@@ -587,6 +597,22 @@ export class SessionRuntime {
 			itemId: toolCall.id,
 			metadata: { snapshot, message },
 		});
+		if (!execution.isError && toolCall.name !== "todo_write" && this.todos) {
+			try {
+				await this.todos.recordEvidence(completedEvent.id);
+			} catch (error) {
+				await this.store.append(this.id, {
+					category: "warning",
+					type: "warning.recorded",
+					status: "failed",
+					title: "Todo 증거 기록 실패",
+					body: displaySafe(errorMessage(error)),
+					correlationId: turnId,
+					turnId,
+					itemId: toolCall.id,
+				});
+			}
+		}
 		this.emit();
 		return message;
 	}

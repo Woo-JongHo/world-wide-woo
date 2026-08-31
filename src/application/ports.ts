@@ -10,6 +10,7 @@ import type { SessionEvent, SessionEventInput } from "../domain/session-events";
 import type { Provider, WwwSettings } from "../domain/model-settings";
 import type { CommitSummary, IssueState, IssueSummary, RepositorySnapshot } from "../domain/repository";
 import type { ToolResultSnapshot } from "../domain/output";
+import type { TodoDocument } from "../domain/todos";
 
 export interface ModelAuthStatus {
 	configured: boolean;
@@ -31,6 +32,23 @@ export interface AgentToolExecution {
 export interface AgentTool {
 	readonly definition: Tool;
 	execute(arguments_: Record<string, unknown>, signal: AbortSignal): Promise<AgentToolExecution>;
+}
+
+export interface TodoStore {
+	read(): Promise<TodoDocument | null>;
+	compareAndSwap(expectedRevision: number | null, next: TodoDocument): Promise<"written" | "conflict">;
+}
+
+export interface TodoController {
+	readonly snapshot: TodoDocument | null;
+	initialize(): Promise<void>;
+	create(title: string, items: readonly string[], storyId?: string): Promise<TodoDocument>;
+	start(itemId: string): Promise<TodoDocument>;
+	complete(itemId: string): Promise<TodoDocument>;
+	block(itemId: string): Promise<TodoDocument>;
+	reopen(itemId: string): Promise<TodoDocument>;
+	recordEvidence(evidenceId: string): Promise<TodoDocument | null>;
+	subscribe(listener: (snapshot: TodoDocument | null) => void): () => void;
 }
 
 export interface SessionRepository {

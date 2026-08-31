@@ -173,7 +173,7 @@
 - [`TUI_COMPARISON.md`](./TUI_COMPARISON.md): 제품 철학과 채택/비채택 비교
 - [`../decisions/0001-tui-foundation.md`](../decisions/0001-tui-foundation.md): pi-tui 기반 별도 Shell 결정
 - [`../spikes/tui-bakeoff/RESULTS.md`](../spikes/tui-bakeoff/RESULTS.md): Bubble Tea와 Gajae TUI 실측 비교
-- [`../TODO.md`](../TODO.md): 구현 우선순위
+- [`../.www/Epics.md`](../.www/Epics.md): Epic별 구현 우선순위
 
 ## 16. Ghostty 정확한 Host Terminal 코드 지도
 

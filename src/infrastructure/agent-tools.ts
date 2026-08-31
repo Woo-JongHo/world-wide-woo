@@ -2,7 +2,7 @@ import { lstat, realpath, readdir, readFile, stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import { Type } from "typebox";
-import type { AgentTool, AgentToolExecution } from "../application/ports";
+import type { AgentTool, AgentToolExecution, TodoController } from "../application/ports";
 import type { CommandResultSnapshot, GenericToolResultSnapshot } from "../domain/output";
 
 const MAX_FILE_BYTES = 256 * 1024;
@@ -24,15 +24,34 @@ const bashParameters = Type.Object({
 const sshConfigParameters = Type.Object({
 	host: Type.String({ minLength: 1, maxLength: 255, pattern: "^[A-Za-z0-9][A-Za-z0-9._-]*$" }),
 });
+const todoParameters = Type.Object({
+	operation: Type.Union([
+		Type.Literal("status"),
+		Type.Literal("init"),
+		Type.Literal("start"),
+		Type.Literal("done"),
+		Type.Literal("block"),
+		Type.Literal("reopen"),
+	]),
+	title: Type.Optional(Type.String({ minLength: 1, maxLength: 120 })),
+	storyId: Type.Optional(Type.String({ minLength: 1, maxLength: 64 })),
+	items: Type.Optional(Type.Array(Type.String({ minLength: 1, maxLength: 120 }), { minItems: 1, maxItems: 12 })),
+	itemId: Type.Optional(Type.String({ minLength: 1, maxLength: 64 })),
+});
 
-export function createProjectAgentTools(root: string, options: { sshConfigPath?: string } = {}): readonly AgentTool[] {
+export function createProjectAgentTools(
+	root: string,
+	options: { sshConfigPath?: string; todos?: TodoController } = {},
+): readonly AgentTool[] {
 	const projectRoot = resolve(root);
-	return [
+	const tools = [
 		createReadTool(projectRoot),
 		createSearchTool(projectRoot),
 		createBashTool(projectRoot),
 		createSshConfigTool(options.sshConfigPath ?? resolve(homedir(), ".ssh", "config")),
 	];
+	if (options.todos) tools.push(createTodoTool(options.todos));
+	return tools;
 }
 
 function createReadTool(root: string): AgentTool {
@@ -43,7 +62,7 @@ function createReadTool(root: string): AgentTool {
 			try {
 				const path = stringArgument(arguments_, "path");
 				const target = await projectPath(root, path);
-				assertNonSensitive(root, target);
+				await assertNonSensitive(root, target);
 				const info = await stat(target);
 				let output: string;
 				if (info.isFile()) {
@@ -127,6 +146,55 @@ function createSshConfigTool(configPath: string): AgentTool {
 	};
 }
 
+function createTodoTool(todos: TodoController): AgentTool {
+	return {
+		definition: {
+			name: "todo_write",
+			description: [
+				"Maintain the current project's thin live Todo list.",
+				"Use status to inspect existing work before init when a prior session may have unfinished items.",
+				"For implementation work with at least three concrete steps, call init before other tools.",
+				"Call start immediately before one item and done only after observable evidence; completion without evidence fails.",
+				"Do not use for simple answers or invent completed work.",
+			].join(" "),
+			parameters: todoParameters,
+		},
+		execute: async (arguments_, signal) => {
+			const startedAt = Date.now();
+			try {
+				if (signal.aborted) throw signal.reason ?? new Error("Todo update aborted.");
+				const operation = stringArgument(arguments_, "operation");
+				let document;
+				if (operation === "status") {
+					document = todos.snapshot;
+					if (!document) return generic("todo_write", operation, "No active Todo.", startedAt);
+				} else if (operation === "init") {
+					const title = stringArgument(arguments_, "title");
+					if (!Array.isArray(arguments_.items) || !arguments_.items.every(item => typeof item === "string")) {
+						throw new Error("Todo init requires a string items array.");
+					}
+					const storyId = optionalStringArgument(arguments_, "storyId");
+					document = await todos.create(title, arguments_.items, storyId);
+				} else {
+					const itemId = stringArgument(arguments_, "itemId");
+					if (operation === "start") document = await todos.start(itemId);
+					else if (operation === "done") document = await todos.complete(itemId);
+					else if (operation === "block") document = await todos.block(itemId);
+					else if (operation === "reopen") document = await todos.reopen(itemId);
+					else throw new Error(`Unsupported todo operation: ${operation}`);
+				}
+				const output = [
+					`${document.title} · revision ${document.revision}`,
+					...document.items.map(item => `${item.id} [${item.status}] ${item.content}`),
+				].join("\n");
+				return generic("todo_write", operation, output, startedAt);
+			} catch (error) {
+				return genericError("todo_write", arguments_, error, startedAt, signal);
+			}
+		},
+	};
+}
+
 async function projectPath(root: string, path: string): Promise<string> {
 	if (!isAbsolute(path) && path.split(/[\\/]+/).includes("..")) throw new Error("Path must remain inside the project root.");
 	const realRoot = await realpath(root);
@@ -136,13 +204,16 @@ async function projectPath(root: string, path: string): Promise<string> {
 	throw new Error("Path must remain inside the project root.");
 }
 
-function assertNonSensitive(root: string, target: string): void {
-	const path = relative(root, target);
+async function assertNonSensitive(root: string, target: string): Promise<void> {
+	const path = relative(await realpath(root), target);
 	const parts = path.split(sep);
 	if (
 		parts.some(part => part === ".git" || part === ".env" || part.startsWith(".env.")) ||
 		parts.some(part => [".npmrc", ".pypirc", "id_rsa", "id_ed25519"].includes(part)) ||
-		parts[0] === ".www" && ["sessions", "drafts", "runtime"].includes(parts[1] ?? "")
+		parts[0] === ".www" && (
+			["sessions", "drafts", "runtime"].includes(parts[1] ?? "") ||
+			(parts[1] ?? "").toLowerCase() === "todo.md"
+		)
 	) {
 		throw new Error("Sensitive project state cannot be read by the model.");
 	}
@@ -168,7 +239,10 @@ async function searchProject(
 				if (ignoredDirectories.has(entry.name)) continue;
 				const child = resolve(path, entry.name);
 				const childRelative = relative(root, child);
-				if (childRelative.startsWith(`.www${sep}`) && /^(?:\.www\/)?(?:sessions|drafts|runtime)(?:\/|$)/u.test(childRelative.replaceAll(sep, "/"))) continue;
+				if (
+					childRelative.startsWith(`.www${sep}`) &&
+					/^(?:\.www\/)?(?:(?:sessions|drafts|runtime)(?:\/|$)|Todo\.md$)/iu.test(childRelative.replaceAll(sep, "/"))
+				) continue;
 				await visit(child);
 				if (matches.length >= MAX_SEARCH_RESULTS) return;
 			}
@@ -176,7 +250,7 @@ async function searchProject(
 		}
 		if (!info.isFile() || info.size > MAX_FILE_BYTES) return;
 		try {
-			assertNonSensitive(root, path);
+			await assertNonSensitive(root, path);
 			const content = new TextDecoder("utf-8", { fatal: true }).decode(await readFile(path));
 			const name = relative(root, path).replaceAll(sep, "/");
 			for (const [index, line] of content.split("\n").entries()) {

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { mkdtemp } from "node:fs/promises";
+import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createModels } from "@earendil-works/pi-ai";
@@ -10,6 +10,9 @@ import { ModelRouter } from "../src/infrastructure/model-router";
 import { SessionRuntime } from "../src/application/session-runtime";
 import { SessionEventStore } from "../src/infrastructure/session-store";
 import type { AgentTool, ModelClient } from "../src/application/ports";
+import { TodoLedger } from "../src/application/todo-ledger";
+import { createProjectAgentTools } from "../src/infrastructure/agent-tools";
+import { FileTodoStore } from "../src/infrastructure/todo-store";
 
 const settings: WwwSettings = { provider: "openai", model: "gpt-5.4", effort: "high" };
 
@@ -379,6 +382,65 @@ describe("SessionRuntime", () => {
 		expect(runtime.snapshot.tools).toEqual([]);
 		await runtime.submit("계속");
 		expect(runtime.snapshot.turns.at(-1)?.content).toBe("복구 후 계속");
+	});
+
+	test("drives a thin project Todo from model intent through real tool evidence", async () => {
+		const faux = fauxProvider({
+			provider: "openai",
+			models: [{ id: "gpt-5.4", reasoning: true }],
+			tokensPerSecond: 100_000,
+		});
+		faux.setResponses([
+			fauxAssistantMessage([fauxToolCall("todo_write", {
+				operation: "init",
+				title: "Todo 기능",
+				storyId: "ST-001",
+				items: ["파일 확인", "Pane 연결", "검증"],
+			}, { id: "todo-init" })], { stopReason: "toolUse" }),
+			fauxAssistantMessage([fauxToolCall("todo_write", {
+				operation: "start",
+				itemId: "todo-1",
+			}, { id: "todo-start" })], { stopReason: "toolUse" }),
+			fauxAssistantMessage([fauxToolCall("read", {
+				path: "sample.txt",
+			}, { id: "read-evidence" })], { stopReason: "toolUse" }),
+			fauxAssistantMessage([fauxToolCall("todo_write", {
+				operation: "done",
+				itemId: "todo-1",
+			}, { id: "todo-done" })], { stopReason: "toolUse" }),
+			fauxAssistantMessage("첫 항목을 완료했습니다."),
+		]);
+		const models = createModels();
+		models.setProvider(faux.provider);
+		const root = await mkdtemp(join(tmpdir(), "www-runtime-live-todo-"));
+		await writeFile(join(root, "sample.txt"), "evidence\n");
+		const store = new SessionEventStore(join(root, "sessions"));
+		const todos = new TodoLedger("live-todo", new FileTodoStore(join(root, "Todo.md")), store);
+		await todos.initialize();
+		const tools = createProjectAgentTools(root, { todos, sshConfigPath: join(root, "missing-ssh-config") });
+		const runtime = new SessionRuntime(
+			settings,
+			new ModelRouter(models),
+			store,
+			{ cwd: root, root, projectName: "live-todo" },
+			"live-todo",
+			tools,
+			todos,
+		);
+		await runtime.initialize();
+		await runtime.submit("Todo 기능을 구현해");
+
+		expect(todos.snapshot?.items.map(item => [item.id, item.status])).toEqual([
+			["todo-1", "completed"],
+			["todo-2", "pending"],
+			["todo-3", "pending"],
+		]);
+		expect(runtime.snapshot.turns.at(-1)?.content).toBe("첫 항목을 완료했습니다.");
+		const events = await store.readAll("live-todo");
+		const evidence = events.find(event => event.type === "command.completed" && event.itemId === "read-evidence");
+		if (!evidence) throw new Error("Missing read evidence event");
+		expect(todos.snapshot?.items[0]?.evidenceIds).toEqual([evidence.id]);
+		expect(events.filter(event => event.type === "todo.updated")).toHaveLength(4);
 	});
 
 	test("blocks unauthenticated turns before they enter the transcript", async () => {

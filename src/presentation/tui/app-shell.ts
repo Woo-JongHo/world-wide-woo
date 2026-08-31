@@ -15,18 +15,20 @@ import type {
 	RecentSessionSummary,
 	RepositoryInsights,
 	RouterSettingsController,
+	TodoController,
 	UsageMonitor,
 } from "../../application/ports";
 import type { SessionRuntime } from "../../application/session-runtime";
 import { MODELS, type WwwSettings } from "../../domain/model-settings";
+import { todoProgress } from "../../domain/todos";
 import { AuthFlowOverlay } from "./auth-overlay";
 import { createDashboardLayout } from "./dashboard-layout";
 import {
 	RouterModelView,
-	SessionFlowView,
 	StatusLine,
 	TranscriptView,
 	UsageStripView,
+	WorkspaceTodoView,
 } from "./dashboard-views";
 import { OverlaySheet } from "./overlay-sheet";
 import { IssueListOverlay, RepositoryActivityOverlay } from "./repository-overlays";
@@ -57,28 +59,30 @@ export interface TuiShellDependencies {
 	repository: RepositoryInsights;
 	composerDraft: ComposerDraftController;
 	releaseSessionLease: () => Promise<void>;
+	todos: TodoController;
 }
 
 export function runTuiShell(dependencies: TuiShellDependencies): void {
-	const { runtime, auth, usage, recentSessions, routerSettings, repository, composerDraft, releaseSessionLease } = dependencies;
+	const { runtime, auth, usage, recentSessions, routerSettings, repository, composerDraft, releaseSessionLease, todos } = dependencies;
 	const tui = new TuiAltScreen(new ProcessTerminal(), true);
 	let snapshot = runtime.snapshot;
+	let todoSnapshot = todos.snapshot;
 	const status = new StatusLine();
 	const usageStrip = new UsageStripView();
 	const routerModel = new RouterModelView(() => snapshot);
-	const sessionFlow = new SessionFlowView(recentSessions, () => ({
+	const workspaceTodo = new WorkspaceTodoView(recentSessions, () => ({
 		name: snapshot.projectName,
 		cwd: snapshot.cwd,
 		root: snapshot.projectRoot,
-	}));
+	}), () => todoSnapshot);
 	const transcript = new TranscriptView(snapshot);
 	const dashboard = createDashboardLayout(
 		() => `🐙 WWW · ${snapshot.settings.provider}/${snapshot.settings.model} · ${
 			snapshot.phase === "streaming" ? "응답 중" : snapshot.auth?.configured ? "준비됨" : "인증 필요"
-		}`,
+		}${todoSnapshot ? ` · TODO ${todoProgress(todoSnapshot).completed}/${todoSnapshot.items.length}` : ""}`,
 		{ title: "대화 · 작업", color: colors.accent, component: transcript },
 		{ title: "Router · 모델", color: colors.secondary, component: routerModel },
-		{ title: "세션 · 흐름", color: colors.warm, component: sessionFlow },
+		{ title: "프로젝트 · TODO", color: colors.warm, component: workspaceTodo },
 	);
 	const editor = new Editor(tui, editorTheme, { paddingX: 1, autocompleteMaxVisible: 5 });
 	editor.setAutocompleteProvider(new CombinedAutocompleteProvider(SLASH_COMMANDS, process.cwd()));
@@ -100,6 +104,10 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 	let settingsMutationInFlight = false;
 	const exitKeys = new ExitKeyPolicy();
 	let unsubscribeRuntime = () => {};
+	const unsubscribeTodo = todos.subscribe((next) => {
+		todoSnapshot = next;
+		tui.requestRender();
+	});
 	let activityTimer: ReturnType<typeof setInterval> | undefined;
 	const transcriptRenders = new RenderScheduler(() => {
 		transcript.update(snapshot);
@@ -339,6 +347,7 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 		stopUsagePolling();
 		if (activityTimer) clearInterval(activityTimer);
 		unsubscribeRuntime();
+		unsubscribeTodo();
 		transcriptRenders.dispose();
 		await settleWithin((async () => {
 			try {

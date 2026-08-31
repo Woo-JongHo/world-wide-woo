@@ -101,6 +101,16 @@ describe("project agent tools", () => {
 		expect(search.modelContent).toBe("No matches.");
 	});
 
+	test("keeps the project Todo ledger out of model read and search tools", async () => {
+		const { root, tools } = await fixture();
+		await mkdir(join(root, ".www"));
+		await writeFile(join(root, ".www", "Todo.md"), "- [ ] private planning instruction");
+		const read = await tool(tools, "read").execute({ path: ".www/Todo.md" }, signal());
+		expect(read.isError).toBe(true);
+		const search = await tool(tools, "search").execute({ pattern: "private planning instruction" }, signal());
+		expect(search.modelContent).toBe("No matches.");
+	});
+
 	test("resolves SSH aliases without evaluating Match exec", async () => {
 		const root = await mkdtemp(join(tmpdir(), "www-agent-ssh-config-"));
 		roots.push(root);
