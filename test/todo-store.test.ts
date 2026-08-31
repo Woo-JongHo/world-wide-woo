@@ -15,7 +15,7 @@ async function fixture(): Promise<{ directory: string; path: string; store: File
 }
 
 function todo(revision: number, title = "Todo"): TodoDocument {
-	return { version: 1, revision, ownerSessionId: "session_1", storyId: null, title, items: [{ id: "item_1", content: "Work", status: "pending", evidenceIds: [] }], updatedAt: "2026-08-31T07:55:00.000Z" };
+	return { version: 1, revision, ownerSessionId: "session_1", storyId: null, title, items: [{ id: "item_1", content: "Work", status: "pending", evidenceIds: [], details: [] }], updatedAt: "2026-08-31T07:55:00.000Z" };
 }
 
 afterEach(async () => { await Promise.all(directories.splice(0).map((directory) => rm(directory, { recursive: true, force: true }))); });
@@ -29,6 +29,22 @@ describe("FileTodoStore", () => {
 		expect((await lstat(directory)).mode & 0o777).toBe(0o700);
 		expect((await lstat(path)).mode & 0o777).toBe(0o600);
 		expect(await store.compareAndSwap(null, todo(1))).toBe("conflict");
+	});
+
+	test("atomically persists and reads a parent with one detail", async () => {
+		const { store } = await fixture();
+		const document: TodoDocument = {
+			...todo(0),
+			items: [{
+				id: "item_1",
+				content: "Work",
+				status: "in_progress",
+				evidenceIds: [],
+				details: [{ id: "detail_1", content: "Confirm output", status: "completed", evidenceIds: ["evt_1"] }],
+			}],
+		};
+		expect(await store.compareAndSwap(null, document)).toBe("written");
+		expect(await store.read()).toEqual(document);
 	});
 
 	test("rejects stale revisions and malformed existing files without overwriting", async () => {

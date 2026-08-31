@@ -1,5 +1,5 @@
 import type { MonitoringSnapshot, MonitoringTool } from "../domain/monitoring";
-import { todoProgress, type TodoDocument } from "../domain/todos";
+import { todoDetailProgress, todoProgress, type TodoDocument } from "../domain/todos";
 import type { ToolResultSnapshot } from "../domain/output";
 import { SessionRuntime, type SessionSnapshot } from "./session-runtime";
 import type { TodoController } from "./ports";
@@ -91,7 +91,9 @@ export class SessionMonitor implements MonitoringSource {
 		}
 		const tools = toolSummary(runtime.tools);
 		const progress = this.todoSnapshot ? todoProgress(this.todoSnapshot) : { completed: 0, total: 0 };
-		const activeContent = this.todoSnapshot?.items.find(item => item.status === "in_progress")?.content ?? null;
+		const detailProgress = this.todoSnapshot ? todoDetailProgress(this.todoSnapshot) : { completed: 0, total: 0 };
+		const activeItem = this.todoSnapshot?.items.find(item => item.status === "in_progress");
+		const activeContent = activeItem?.details.find(detail => detail.status === "in_progress")?.content ?? activeItem?.content ?? null;
 		return Object.freeze({
 			sessionId: runtime.id,
 			projectName: runtime.projectName,
@@ -106,7 +108,13 @@ export class SessionMonitor implements MonitoringSource {
 			elapsedMs: Math.max(0, updatedAt - this.startedAt),
 			turns: Object.freeze(turns),
 			tools,
-			todo: Object.freeze({ completed: progress.completed, total: progress.total, activeContent }),
+			todo: Object.freeze({
+				completed: progress.completed,
+				total: progress.total,
+				detailCompleted: detailProgress.completed,
+				detailTotal: detailProgress.total,
+				activeContent,
+			}),
 		});
 	}
 }

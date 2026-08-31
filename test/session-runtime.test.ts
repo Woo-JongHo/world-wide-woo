@@ -7,7 +7,7 @@ import { fauxAssistantMessage, fauxProvider, fauxToolCall } from "@earendil-work
 import { Type } from "typebox";
 import type { WwwSettings } from "../src/domain/model-settings";
 import { ModelRouter } from "../src/infrastructure/model-router";
-import { SessionRuntime } from "../src/application/session-runtime";
+import { buildSessionSystemPrompt, SessionRuntime } from "../src/application/session-runtime";
 import { SessionEventStore } from "../src/infrastructure/session-store";
 import type { AgentTool, ModelClient, TerminalCommandExecutor } from "../src/application/ports";
 import { TodoLedger } from "../src/application/todo-ledger";
@@ -369,7 +369,7 @@ describe("SessionRuntime", () => {
 		});
 		faux.setResponses([
 			fauxAssistantMessage([
-				fauxToolCall("read", { path: "src/app.ts" }, { id: "n-read" }),
+				fauxToolCall("read", { path: "src/app.ts", reason: "API token=secret-value 없이 파일 구조를 확인" }, { id: "n-read" }),
 				fauxToolCall("search", { pattern: "SessionRuntime" }, { id: "n-search" }),
 				fauxToolCall("bash", { command: "git", args: ["status", "--token", '"secret-value"', "-H", "Authorization: Bearer bearer-secret-value"] }, { id: "n-bash" }),
 				fauxToolCall("unknown_tool", { token: "secret-value" }, { id: "n-unknown" }),
@@ -403,8 +403,83 @@ describe("SessionRuntime", () => {
 			"명령 실행 · git status --token [REDACTED] -H Authorization: [REDACTED]",
 			"unknown_tool 실행",
 		]);
+		expect(runtime.snapshot.narrations.map(({ step, action, reason }) => ({ step, action, reason }))).toEqual([
+			{ step: 1, action: "파일 확인 · src/app.ts", reason: "API token=[REDACTED] 없이 파일 구조를 확인" },
+			{ step: 2, action: "코드 검색 · SessionRuntime", reason: "관련 구현 위치 탐색" },
+			{ step: 3, action: "명령 실행 · git status --token [REDACTED] -H Authorization: [REDACTED]", reason: "실제 상태 확인" },
+			{ step: 4, action: "unknown_tool 실행", reason: "요청된 도구 실행" },
+		]);
 		expect(JSON.stringify((await store.readAll("narration-labels")).filter(event => event.type === "narration.recorded")))
 			.not.toContain("secret-value");
+	});
+
+	test("appends a bounded observed learning summary after a multi-tool turn without duplicating structured answers", async () => {
+		const faux = fauxProvider({
+			provider: "openai",
+			models: [{ id: "gpt-5.4", reasoning: true }],
+			tokensPerSecond: 100_000,
+		});
+		faux.setResponses([
+			fauxAssistantMessage([
+				fauxToolCall("read", { path: "src/app.ts" }, { id: "summary-read" }),
+				fauxToolCall("search", { pattern: "main" }, { id: "summary-search" }),
+			], { stopReason: "toolUse" }),
+			fauxAssistantMessage("작업을 마쳤습니다."),
+		]);
+		const models = createModels();
+		models.setProvider(faux.provider);
+		const tool = (name: string): AgentTool => ({
+			definition: { name, description: name, parameters: Type.Object({}) },
+			execute: async () => ({
+				modelContent: "ok",
+				isError: false,
+				snapshot: { id: crypto.randomUUID(), toolName: name, status: "passed", input: "", output: "", startedAt: 1, durationMs: 1, error: undefined },
+			}),
+		});
+		const store = new SessionEventStore(await mkdtemp(join(tmpdir(), "www-runtime-summary-")));
+		const runtime = new SessionRuntime(settings, new ModelRouter(models), store, { cwd: "/workspace/project" }, "summary", [tool("read"), tool("search")]);
+		await runtime.initialize();
+		await runtime.submit("확인");
+
+		const answer = runtime.snapshot.turns.at(-1)?.content ?? "";
+		expect(answer).toContain("관찰한 사실: 단계 1 파일 확인 · src/app.ts (필요한 파일 내용을 확인); 단계 2 코드 검색 · main (관련 구현 위치 탐색)");
+		expect(answer).toContain("판단과 이유: 실제 도구 상태는 passed");
+		expect(answer).toContain("남은 격차:");
+		expect(answer).toContain("검증:");
+		const saved = (await store.readAll("summary")).find(event => event.type === "message.assistant.completed" && event.body.includes("관찰한 사실"));
+		expect(saved?.body).toBe(answer);
+	});
+
+	test("migrates legacy narration events by event order and rejects duplicate persisted steps", async () => {
+		const store = new SessionEventStore(await mkdtemp(join(tmpdir(), "www-runtime-legacy-narration-")));
+		const timestamp = new Date(1).toISOString();
+		await store.append("legacy-narration", {
+			category: "action", type: "narration.recorded", status: "running", title: "작업 설명", body: "파일 확인 · src/a.ts",
+			turnId: "turn-1", itemId: "tool-1",
+			metadata: { narration: { id: "legacy-1", turnId: "turn-1", toolCallId: "tool-1", timestamp, label: "파일 확인 · src/a.ts" } },
+		});
+		const models = createModels();
+		const faux = fauxProvider({ provider: "openai", models: [{ id: "gpt-5.4", reasoning: true }] });
+		models.setProvider(faux.provider);
+		const runtime = new SessionRuntime(settings, new ModelRouter(models), store, { cwd: "/workspace/project" }, "legacy-narration");
+		await runtime.initialize({ resume: true });
+		expect(runtime.snapshot.narrations).toEqual([
+			expect.objectContaining({ step: 1, action: "파일 확인 · src/a.ts", reason: "요청된 도구 실행" }),
+		]);
+		await store.append("legacy-narration", {
+			category: "action", type: "narration.recorded", status: "running", title: "작업 설명", body: "파일 확인 · src/b.ts",
+			turnId: "turn-1", itemId: "tool-2",
+			metadata: { narration: { id: "current-2", turnId: "turn-1", toolCallId: "tool-2", timestamp, label: "파일 확인 · src/b.ts", step: 1, action: "파일 확인 · src/b.ts", reason: "필요한 파일 내용을 확인" } },
+		});
+		const duplicate = new SessionRuntime(settings, new ModelRouter(models), store, { cwd: "/workspace/project" }, "legacy-narration");
+		await expect(duplicate.initialize({ resume: true })).rejects.toThrow("중복된 작업 설명 단계");
+	});
+
+	test("requires public tool reasons and evidence-scoped final summaries in the system prompt", () => {
+		const prompt = buildSessionSystemPrompt({ cwd: "/workspace/project" }, settings, ["read"]);
+		expect(prompt).toContain("모든 도구 호출에 optional reason");
+		expect(prompt).toContain("관찰한 사실, 판단과 이유, 남은 격차, 검증");
+		expect(prompt).toContain("hidden thinking");
 	});
 
 	test("retries a transient overloaded provider response before failing the turn", async () => {
@@ -615,7 +690,8 @@ describe("SessionRuntime", () => {
 			["todo-2", "pending"],
 			["todo-3", "pending"],
 		]);
-		expect(runtime.snapshot.turns.at(-1)?.content).toBe("첫 항목을 완료했습니다.");
+		expect(runtime.snapshot.turns.at(-1)?.content).toContain("첫 항목을 완료했습니다.");
+		expect(runtime.snapshot.turns.at(-1)?.content).toContain("관찰한 사실:");
 		const events = await store.readAll("live-todo");
 		const evidence = events.find(event => event.type === "command.completed" && event.itemId === "read-evidence");
 		if (!evidence) throw new Error("Missing read evidence event");

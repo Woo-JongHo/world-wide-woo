@@ -4,6 +4,9 @@ export interface WorkNarration {
 	toolCallId: string;
 	timestamp: string;
 	label: string;
+	step: number;
+	action: string;
+	reason: string;
 }
 
 const CONTROL_OR_ANSI = /\u001B(?:\[[0-?]*[ -/]*[@-~]|\][\s\S]*?(?:\u0007|\u001B\\))|[\u0000-\u0008\u000B-\u001F\u007F-\u009F]/gu;
@@ -15,7 +18,7 @@ function value(arguments_: Record<string, unknown>, key: string): string {
 	return typeof candidate === "string" ? candidate : "";
 }
 
-function safe(value_: string): string {
+function safe(value_: string, limit = 100): string {
 	const sanitized = value_
 		.replace(CONTROL_OR_ANSI, "")
 		.replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/giu, "Bearer [REDACTED]")
@@ -25,7 +28,11 @@ function safe(value_: string): string {
 		.replace(/\bAKIA[A-Z0-9]{16}\b/gu, "[REDACTED]")
 		.replace(JSON_SECRET, "$1[REDACTED]")
 		.replace(SECRET_VALUE, "$1[REDACTED]");
-	return Array.from(sanitized).slice(0, 100).join("");
+	return Array.from(sanitized).slice(0, limit).join("");
+}
+
+export function isPublicNarrationText(value_: string, limit: number): boolean {
+	return value_ === safe(value_, limit);
 }
 
 export function workNarrationLabel(name: string, arguments_: Record<string, unknown>): string {
@@ -55,4 +62,23 @@ export function workNarrationLabel(name: string, arguments_: Record<string, unkn
 			label = `${name} 실행`;
 	}
 	return safe(label);
+}
+
+export function workNarrationReason(name: string, arguments_: Record<string, unknown>): string {
+	const explicit = value(arguments_, "reason");
+	if (explicit) return safe(explicit, 160);
+	switch (name) {
+		case "read":
+			return "필요한 파일 내용을 확인";
+		case "search":
+			return "관련 구현 위치 탐색";
+		case "bash":
+			return "실제 상태 확인";
+		case "ssh_config":
+			return "연결 설정 확인";
+		case "todo_write":
+			return "실행 계획과 상태 일치";
+		default:
+			return "요청된 도구 실행";
+	}
 }

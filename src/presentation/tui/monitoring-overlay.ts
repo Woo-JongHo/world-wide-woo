@@ -67,7 +67,9 @@ export class MonitoringOverlay implements Component {
 			`  최근 ${latest}`,
 			"",
 			colors.secondary("Todo"),
-			`  ${snapshot.todo.completed}/${snapshot.todo.total}${snapshot.todo.activeContent ? ` · ${snapshot.todo.activeContent}` : ""}`,
+			`  ${snapshot.todo.completed}/${snapshot.todo.total}${
+				snapshot.todo.detailTotal > 0 ? ` · 세부 ${snapshot.todo.detailCompleted}/${snapshot.todo.detailTotal}` : ""
+			}${snapshot.todo.activeContent ? ` · ${snapshot.todo.activeContent}` : ""}`,
 		];
 		return rowsWrapped(rows, width);
 	}

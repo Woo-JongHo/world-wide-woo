@@ -41,7 +41,7 @@ export class TodoLedger implements TodoController {
 			ownerSessionId: this.sessionId,
 			storyId: storyId ?? null,
 			title,
-			items: items.map((content, index) => ({ id: `todo-${index + 1}`, content, status: "pending" as const, evidenceIds: [] })),
+			items: items.map((content, index) => ({ id: `todo-${index + 1}`, content, status: "pending" as const, evidenceIds: [], details: [] })),
 		});
 		return this.commit(next);
 	}
@@ -55,7 +55,7 @@ export class TodoLedger implements TodoController {
 			const match = /^todo-(\d+)$/u.exec(item.id);
 			return Math.max(highest, match ? Number.parseInt(match[1]!, 10) : 0);
 		}, 0) + 1;
-		const item = { id: `todo-${nextNumber}`, content, status: placement === "now" ? "in_progress" as const : "pending" as const, evidenceIds: [] };
+		const item = { id: `todo-${nextNumber}`, content, status: placement === "now" ? "in_progress" as const : "pending" as const, evidenceIds: [], details: [] };
 		const activeIndex = document.items.findIndex(candidate => candidate.status === "in_progress");
 		let items = document.items.map(candidate =>
 			placement === "now" && candidate.status === "in_progress"
@@ -71,34 +71,80 @@ export class TodoLedger implements TodoController {
 		return this.commit(this.document({ ...document, items }));
 	}
 
+	public async addDetails(itemId: string, details: readonly string[]): Promise<TodoDocument> {
+		if (typeof itemId !== "string" || !isId(itemId)) throw new Error("Invalid todo item id");
+		if (!Array.isArray(details) || details.length < 1 || details.length > 8 || details.some(detail => typeof detail !== "string")) {
+			throw new Error("Todo details must contain between 1 and 8 strings");
+		}
+		const document = this.requireCurrent();
+		this.assertOwner(document);
+		const parent = document.items.find(item => item.id === itemId);
+		if (!parent) throw new Error(`Unknown todo item: ${itemId}`);
+		if (parent.status === "completed") throw new Error("Cannot add details to a completed todo item");
+		if (parent.details.length + details.length > 8) throw new Error("Todo detail limit reached");
+		const nextNumber = parent.details.reduce((highest, detail) => {
+			const match = new RegExp(`^${escapeRegExp(parent.id)}-detail-(\\d+)$`, "u").exec(detail.id);
+			return Math.max(highest, match ? Number.parseInt(match[1]!, 10) : 0);
+		}, 0);
+		const next = this.document({
+			...document,
+			items: document.items.map(item => item.id === parent.id
+				? {
+					...item,
+					details: [
+						...item.details,
+						...details.map((content, index) => ({
+							id: `${parent.id}-detail-${nextNumber + index + 1}`,
+							content,
+							status: "pending" as const,
+							evidenceIds: [],
+						})),
+					],
+				}
+				: item),
+		});
+		return this.commit(next);
+	}
+
 	public async start(itemId: string): Promise<TodoDocument> {
-		return this.transition(itemId, (item, document) => {
+		return this.transition(itemId, (item, parent, document) => {
 			this.assertOwner(document);
 			if (item.status !== "pending") throw new Error("Only pending todo items can be started");
-			if (document.items.some((candidate) => candidate.status === "in_progress")) throw new Error("A todo item is already active");
+			if (parent) {
+				if (parent.status !== "in_progress") throw new Error("Todo detail requires an active parent");
+				if (document.items.some(candidate => candidate.details.some(detail => detail.status === "in_progress"))) {
+					throw new Error("A todo detail is already active");
+				}
+			} else if (document.items.some((candidate) => candidate.status === "in_progress")) throw new Error("A todo item is already active");
 			return { ...item, status: "in_progress", evidenceIds: [] };
 		});
 	}
 
 	public async complete(itemId: string): Promise<TodoDocument> {
-		return this.transition(itemId, (item, document) => {
+		return this.transition(itemId, (item, parent, document) => {
 			this.assertOwner(document);
 			if (item.status !== "in_progress") throw new Error("Only active todo items can be completed");
-			if (item.evidenceIds.length === 0) throw new Error("Todo completion requires evidence recorded after start");
+			if (parent) {
+				if (item.evidenceIds.length === 0) throw new Error("Todo detail completion requires evidence recorded after start");
+			} else if (isTodoParent(item) && item.details.length > 0) {
+				if (!item.details.every(detail => detail.status === "completed")) throw new Error("Todo completion requires all details to be completed");
+			} else if (item.evidenceIds.length === 0) throw new Error("Todo completion requires evidence recorded after start");
 			return { ...item, status: "completed" };
 		});
 	}
 
 	public async block(itemId: string): Promise<TodoDocument> {
-		return this.transition(itemId, (item, document) => {
+		return this.transition(itemId, (item, parent, document) => {
 			this.assertOwner(document);
 			if (item.status !== "pending" && item.status !== "in_progress") throw new Error("Only pending or active todo items can be blocked");
-			return { ...item, status: "blocked" };
+			if (parent) return { ...item, status: "blocked" };
+			if (!isTodoParent(item)) throw new Error("Invalid todo detail parent");
+			return { ...item, status: "blocked", details: item.details.map(detail => detail.status === "in_progress" ? { ...detail, status: "blocked" as const } : detail) };
 		});
 	}
 
 	public async reopen(itemId: string): Promise<TodoDocument> {
-		return this.transition(itemId, (item, document) => {
+		return this.transition(itemId, (item, _parent, document) => {
 			this.assertOwner(document);
 			if (item.status !== "blocked") throw new Error("Only blocked todo items can be reopened");
 			return { ...item, status: "pending" };
@@ -111,10 +157,15 @@ export class TodoLedger implements TodoController {
 		const document = this.requireCurrent();
 		this.assertOwner(document);
 		const active = document.items.find((item) => item.status === "in_progress");
-		if (!active || active.evidenceIds.includes(evidenceId) || active.evidenceIds.length >= MAX_TODO_EVIDENCE) return null;
+		const activeDetail = active?.details.find(detail => detail.status === "in_progress");
+		if (!active) return null;
+		if (activeDetail && (activeDetail.evidenceIds.includes(evidenceId) || activeDetail.evidenceIds.length >= MAX_TODO_EVIDENCE)) return null;
+		if (!activeDetail && (active.evidenceIds.includes(evidenceId) || active.evidenceIds.length >= MAX_TODO_EVIDENCE)) return null;
 		const next = this.document({
 			...document,
-			items: document.items.map((item) => item.id === active.id ? { ...item, evidenceIds: [...item.evidenceIds, evidenceId] } : item),
+			items: document.items.map((item) => item.id !== active.id ? item : activeDetail
+				? { ...item, details: item.details.map(detail => detail.id === activeDetail.id ? { ...detail, evidenceIds: [...detail.evidenceIds, evidenceId] } : detail) }
+				: { ...item, evidenceIds: [...item.evidenceIds, evidenceId] }),
 		});
 		return this.commit(next);
 	}
@@ -124,13 +175,25 @@ export class TodoLedger implements TodoController {
 		return () => this.listeners.delete(listener);
 	}
 
-	private async transition(itemId: string, change: (item: TodoDocument["items"][number], document: TodoDocument) => TodoDocument["items"][number]): Promise<TodoDocument> {
+	private async transition(itemId: string, change: (item: TodoDocument["items"][number] | TodoDocument["items"][number]["details"][number], parent: TodoDocument["items"][number] | null, document: TodoDocument) => TodoDocument["items"][number] | TodoDocument["items"][number]["details"][number]): Promise<TodoDocument> {
 		if (typeof itemId !== "string" || !isId(itemId)) throw new Error("Invalid todo item id");
 		const document = this.requireCurrent();
-		const item = document.items.find((candidate) => candidate.id === itemId);
-		if (!item) throw new Error(`Unknown todo item: ${itemId}`);
-		const changed = change(item, document);
-		return this.commit(this.document({ ...document, items: document.items.map((candidate) => candidate.id === itemId ? changed : candidate) }));
+		const parent = document.items.find(candidate => candidate.id === itemId);
+		if (parent) {
+			const changed = change(parent, null, document);
+			return this.commit(this.document({ ...document, items: document.items.map(candidate => candidate.id === itemId ? changed as typeof candidate : candidate) }));
+		}
+		const detailParent = document.items.find(candidate => candidate.details.some(detail => detail.id === itemId));
+		const detail = detailParent?.details.find(candidate => candidate.id === itemId);
+		if (!detail || !detailParent) throw new Error(`Unknown todo item: ${itemId}`);
+		const changed = change(detail, detailParent, document);
+		return this.commit(this.document({
+			...document,
+			items: document.items.map(candidate => candidate.id !== detailParent.id ? candidate : {
+				...candidate,
+				details: candidate.details.map(value => value.id === itemId ? changed as typeof value : value),
+			}),
+		}));
 	}
 
 	private async commit(next: TodoDocument): Promise<TodoDocument> {
@@ -184,6 +247,14 @@ function todoUpdatedEvent(document: TodoDocument): SessionEventInput {
 
 function isId(value: string): boolean {
 	return /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(value) && sanitizeTodoText(value) === value;
+}
+
+function escapeRegExp(value: string): string {
+	return value.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+}
+
+function isTodoParent(item: TodoDocument["items"][number] | TodoDocument["items"][number]["details"][number]): item is TodoDocument["items"][number] {
+	return "details" in item;
 }
 
 function immutableSnapshot(document: TodoDocument | null): TodoDocument | null {

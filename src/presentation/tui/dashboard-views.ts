@@ -8,7 +8,7 @@ import {
 import type { SessionSnapshot } from "../../application/session-runtime";
 import type { UsageSnapshot } from "../../application/ports";
 import type { Effort } from "../../domain/model-settings";
-import { todoProgress, type TodoDocument, type TodoItem } from "../../domain/todos";
+import { todoDetailProgress, todoProgress, type TodoDocument, type TodoItem } from "../../domain/todos";
 import { BashResultCard, GenericToolResultCard } from "./result-cards";
 import { colors, gradientLines, markdownTheme, semantic } from "./theme";
 
@@ -155,16 +155,39 @@ export class WorkspaceTodoView implements Component {
 		];
 
 		const progress = todoProgress(document);
+		const detailProgress = todoDetailProgress(document);
+		const progressLabel = detailProgress.total > 0
+			? `TODO ${progress.completed}/${progress.total} · 세부 ${detailProgress.completed}/${detailProgress.total}`
+			: `TODO ${progress.completed}/${progress.total}`;
 		const items = width < 42
-			? [document.items.find(item => item.status === "in_progress") ?? document.items.find(item => item.status === "pending")].filter(
+			? [document.items.find(item => item.status === "in_progress")
+				?? document.items.find(item => item.status === "pending")
+				?? document.items.find(item => item.status === "blocked")].filter(
 				(item): item is TodoItem => item !== undefined,
 			)
 			: document.items.slice(0, 12);
-		return [
-			colors.secondary(`TODO ${progress.completed}/${progress.total}`),
+		const rows = [
+			colors.secondary(progressLabel),
 			colors.highlight(`  ${document.storyId ? `${document.storyId} · ` : ""}${document.title}`),
-			...items.map(item => `  ${todoMarker(item.status)} ${item.content}`),
 		];
+		for (const item of items) {
+			const parentDetailProgress = item.details.length > 0
+				? ` (${item.details.filter(detail => detail.status === "completed").length}/${item.details.length})`
+				: "";
+			rows.push(`  ${todoMarker(item.status)} ${item.content}${parentDetailProgress}`);
+			const details = width < 42
+				? [item.details.find(detail => detail.status === "in_progress")
+					?? item.details.find(detail => detail.status === "pending")
+					?? item.details.find(detail => detail.status === "blocked")].filter(
+					(detail): detail is TodoItem["details"][number] => detail !== undefined,
+				)
+				: item.details;
+			for (const [index, detail] of details.entries()) {
+				const branch = index === details.length - 1 ? "└" : "├";
+				rows.push(`      ${branch} ${todoMarker(detail.status)} ${detail.content}`);
+			}
+		}
+		return rows;
 	}
 }
 
@@ -205,6 +228,11 @@ type TranscriptEntry =
 	| { kind: "turn"; timestamp: number; turn: SessionSnapshot["turns"][number] }
 	| { kind: "tool"; timestamp: number; tool: SessionSnapshot["tools"][number] }
 	| { kind: "narration"; timestamp: number; narration: SessionSnapshot["narrations"][number] };
+
+function transcriptEntryPriority(entry: TranscriptEntry): number {
+	if (entry.kind === "turn") return entry.turn.role === "user" ? 0 : 3;
+	return entry.kind === "narration" ? 1 : 2;
+}
 
 export class TranscriptView implements Component {
 	private snapshot: SessionSnapshot;
@@ -289,7 +317,7 @@ export class TranscriptView implements Component {
 				timestamp: Date.parse(narration.timestamp),
 				narration,
 			})),
-		].sort((left, right) => left.timestamp - right.timestamp);
+		].sort((left, right) => left.timestamp - right.timestamp || transcriptEntryPriority(left) - transcriptEntryPriority(right));
 		for (const entry of entries) {
 			rows.push(...this.entryRows(entry, contentWidth), "");
 		}
@@ -315,7 +343,7 @@ export class TranscriptView implements Component {
 						? `${entry.tool.stdout.length}:${entry.tool.stderr.length}`
 						: `${entry.tool.output.length}:${entry.tool.error?.length ?? 0}`
 				}`
-				: entry.narration.label;
+				: `${entry.narration.step}:${entry.narration.action}:${entry.narration.reason}`;
 		const cached = widthCache.get(id);
 		if (cached?.key === key) return cached.rows;
 		const rows = this.renderEntry(entry, contentWidth);
@@ -326,7 +354,9 @@ export class TranscriptView implements Component {
 	private renderEntry(entry: TranscriptEntry, contentWidth: number): string[] {
 		if (entry.kind === "narration") {
 			return surfaceRows([
-				`${semantic.assistantLabel("WWW")}  ${semantic.narration(`• ${entry.narration.label}`)}`,
+				`${semantic.assistantLabel("WWW")}  ${semantic.narration(`단계 ${entry.narration.step}`)}`,
+				semantic.narration(`동작: ${entry.narration.action}`),
+				semantic.narration(`이유: ${entry.narration.reason}`),
 			], contentWidth, semantic.assistantSurface);
 		}
 		if (entry.kind === "tool") {

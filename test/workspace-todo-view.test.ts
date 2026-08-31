@@ -16,10 +16,20 @@ function todo(items: TodoDocument["items"]): TodoDocument {
 }
 
 const mixedTodo = todo([
-	{ id: "pending", content: "한국어 pending 작업", status: "pending", evidenceIds: [] },
-	{ id: "active", content: "\u001B[31m진행 중인 아주 긴 작업\u001B[0m", status: "in_progress", evidenceIds: [] },
-	{ id: "completed", content: "완료 작업", status: "completed", evidenceIds: ["proof"] },
-	{ id: "blocked", content: "막힌 작업", status: "blocked", evidenceIds: [] },
+	{ id: "pending", content: "한국어 pending 작업", status: "pending", evidenceIds: [], details: [] },
+	{
+		id: "active",
+		content: "\u001B[31m진행 중인 아주 긴 작업\u001B[0m",
+		status: "in_progress",
+		evidenceIds: [],
+		details: [
+			{ id: "active-detail-1", content: "재현 완료", status: "completed", evidenceIds: ["proof"] },
+			{ id: "active-detail-2", content: "캐시 구현", status: "in_progress", evidenceIds: [] },
+			{ id: "active-detail-3", content: "검증 예정", status: "pending", evidenceIds: [] },
+		],
+	},
+	{ id: "completed", content: "완료 작업", status: "completed", evidenceIds: ["proof"], details: [] },
+	{ id: "blocked", content: "막힌 작업", status: "blocked", evidenceIds: [], details: [] },
 ]);
 
 describe("WorkspaceTodoView", () => {
@@ -38,13 +48,16 @@ describe("WorkspaceTodoView", () => {
 
 	test("uses status markers without mixing project metadata or commands into Todo", () => {
 		const output = new WorkspaceTodoView(() => mixedTodo).render(120).join("\n");
-		expect(output).toContain("TODO 1/4");
+		expect(output).toContain("TODO 1/4 · 세부 1/3");
 		expect(output).toContain("릴리스");
 		expect(output).toContain("[ ] 한국어 pending 작업");
 		expect(output).toContain("[•]");
 		expect(output).toContain("\u001B[31m진행 중인 아주 긴 작업\u001B[0m");
 		expect(output).toContain("[x] 완료 작업");
 		expect(output).toContain("[!] 막힌 작업");
+		expect(output).toContain("├ [x] 재현 완료");
+		expect(output).toContain("├ [•] 캐시 구현");
+		expect(output).toContain("└ [ ] 검증 예정");
 		expect(output).not.toContain("프로젝트");
 		expect(output).not.toContain("작업 위치");
 		expect(output).not.toContain("/usage");
@@ -56,8 +69,9 @@ describe("WorkspaceTodoView", () => {
 
 	test("uses the active item rather than an earlier pending item in compact layout", () => {
 		const output = new WorkspaceTodoView(() => mixedTodo).render(40).join("\n");
-		expect(output).toContain("TODO 1/4");
+		expect(output).toContain("TODO 1/4 · 세부 1/3");
 		expect(output).toContain("[•]");
+		expect(output).toContain("└ [•] 캐시 구현");
 		expect(output).not.toContain("[ ]");
 		expect(output).not.toContain("[x]");
 		expect(output).not.toContain("[!]");

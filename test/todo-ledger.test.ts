@@ -74,6 +74,50 @@ describe("TodoLedger", () => {
 		expect(completed.items[0]).toMatchObject({ status: "completed", evidenceIds: ["proof-1"] });
 	});
 
+	test("runs one-level detail work with stable IDs and records evidence on the active detail", async () => {
+		const fixture = ledger();
+		await fixture.ledger.initialize();
+		const created = await fixture.ledger.create("Work", ["parent"]);
+		expect(created.items[0]?.details).toEqual([]);
+		const detailed = await fixture.ledger.addDetails("todo-1", ["first", "second"]);
+		expect(detailed.items[0]?.details.map(detail => detail.id)).toEqual(["todo-1-detail-1", "todo-1-detail-2"]);
+		await fixture.ledger.addDetails("todo-1", ["third"]);
+		expect(fixture.ledger.snapshot?.items[0]?.details.map(detail => detail.id)).toEqual(["todo-1-detail-1", "todo-1-detail-2", "todo-1-detail-3"]);
+		await expect(fixture.ledger.start("todo-1-detail-1")).rejects.toThrow("active parent");
+		await fixture.ledger.start("todo-1");
+		await fixture.ledger.start("todo-1-detail-1");
+		await expect(fixture.ledger.start("todo-1-detail-2")).rejects.toThrow("already active");
+		await fixture.ledger.recordEvidence("detail-proof");
+		expect(fixture.ledger.snapshot?.items[0]?.evidenceIds).toEqual([]);
+		expect(fixture.ledger.snapshot?.items[0]?.details[0]?.evidenceIds).toEqual(["detail-proof"]);
+		await fixture.ledger.complete("todo-1-detail-1");
+		await fixture.ledger.start("todo-1-detail-2");
+		await fixture.ledger.recordEvidence("second-proof");
+		await fixture.ledger.complete("todo-1-detail-2");
+		await fixture.ledger.start("todo-1-detail-3");
+		await fixture.ledger.recordEvidence("third-proof");
+		await fixture.ledger.complete("todo-1-detail-3");
+		await expect(fixture.ledger.complete("todo-1")).resolves.toMatchObject({ items: [{ status: "completed" }] });
+	});
+
+	test("blocks and reopens details, blocks an active detail with its parent, and requires every detail for parent completion", async () => {
+		const fixture = ledger();
+		await fixture.ledger.initialize();
+		await fixture.ledger.create("Work", ["parent"]);
+		await fixture.ledger.addDetails("todo-1", ["first", "second"]);
+		await fixture.ledger.start("todo-1");
+		await fixture.ledger.start("todo-1-detail-1");
+		await expect(fixture.ledger.complete("todo-1")).rejects.toThrow("all details");
+		const blocked = await fixture.ledger.block("todo-1");
+		expect(blocked.items[0]?.status).toBe("blocked");
+		expect(blocked.items[0]?.details[0]?.status).toBe("blocked");
+		await fixture.ledger.reopen("todo-1");
+		await fixture.ledger.reopen("todo-1-detail-1");
+		expect(fixture.ledger.snapshot?.items[0]?.status).toBe("pending");
+		expect(fixture.ledger.snapshot?.items[0]?.details[0]?.status).toBe("pending");
+		await expect(fixture.ledger.addDetails("todo-1", Array.from({ length: 7 }, (_, index) => `extra ${index}`))).rejects.toThrow("limit");
+	});
+
 	test("blocks pending or active items and reopens only blocked items", async () => {
 		const fixture = ledger();
 		await fixture.ledger.initialize();

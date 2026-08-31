@@ -105,8 +105,11 @@ describe("TranscriptView Markdown", () => {
 				id: "narration-1",
 				turnId: "turn-1",
 				toolCallId: "tool-read",
-				timestamp: new Date(2).toISOString(),
+				timestamp: new Date(3).toISOString(),
 				label: "파일 확인 · src/app.ts",
+				step: 1,
+				action: "파일 확인 · src/app.ts",
+				reason: "필요한 파일 내용을 확인",
 			}],
 			tools: [{
 				id: "tool-read",
@@ -120,7 +123,9 @@ describe("TranscriptView Markdown", () => {
 			}],
 		}));
 		const output = stripTerminalSequences(view.render(80).join("\n"));
-		expect(output.indexOf("파일 확인 · src/app.ts")).toBeLessThan(output.indexOf("read · PASSED"));
+		expect(output.indexOf("단계 1")).toBeLessThan(output.indexOf("read · PASSED"));
+		expect(output).toContain("동작: 파일 확인 · src/app.ts");
+		expect(output).toContain("이유: 필요한 파일 내용을 확인");
 	});
 
 	test("reuses stable transcript rows across scroll frames and invalidates on observation changes", () => {

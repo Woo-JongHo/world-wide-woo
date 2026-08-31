@@ -25,7 +25,7 @@ const base: MonitoringSnapshot = {
 		active: { name: "read", status: "running" },
 		latest: { name: "read", status: "running" },
 	},
-	todo: { completed: 1, total: 3, activeContent: "Monitor 구현" },
+	todo: { completed: 1, total: 3, detailCompleted: 1, detailTotal: 2, activeContent: "Monitor 구현" },
 };
 
 class FakeMonitor implements MonitoringSource {
@@ -49,7 +49,7 @@ describe("MonitoringOverlay", () => {
 		expect(output).toContain("Monitoring · Dashboard");
 		expect(output).toContain("사용자 2 · WWW 1 · 중단 0");
 		expect(output).toContain("성공 3 · 실패 1");
-		expect(output).toContain("1/3 · Monitor 구현");
+		expect(output).toContain("1/3 · 세부 1/2 · Monitor 구현");
 		expect(output).not.toContain("raw prompt");
 		expect(updates).toBe(1);
 	});
