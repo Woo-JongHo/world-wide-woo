@@ -213,14 +213,18 @@ describe("SessionRuntime", () => {
 	test("cancels an active terminal command and returns the session to ready", async () => {
 		const executor: TerminalCommandExecutor = {
 			execute(_command, _cwd, signal): Promise<TerminalCommandResult> {
-				return new Promise(resolve => signal.addEventListener("abort", () => resolve({
-					stdout: "",
-					stderr: "",
-					exitCode: null,
-					durationMs: 1,
-					cancelled: true,
-					timedOut: false,
-				}), { once: true }));
+				return new Promise(resolve => {
+					const cancelled = () => resolve({
+						stdout: "",
+						stderr: "",
+						exitCode: null,
+						durationMs: 1,
+						cancelled: true,
+						timedOut: false,
+					});
+					if (signal.aborted) cancelled();
+					else signal.addEventListener("abort", cancelled, { once: true });
+				});
 			},
 		};
 		const { runtime } = await runtimeWithTerminal(executor, "terminal-cancel");
