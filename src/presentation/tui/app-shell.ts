@@ -56,16 +56,21 @@ export interface TuiShellDependencies {
 	routerSettings: RouterSettingsController;
 	repository: RepositoryInsights;
 	composerDraft: ComposerDraftController;
+	releaseSessionLease: () => Promise<void>;
 }
 
 export function runTuiShell(dependencies: TuiShellDependencies): void {
-	const { runtime, auth, usage, recentSessions, routerSettings, repository, composerDraft } = dependencies;
+	const { runtime, auth, usage, recentSessions, routerSettings, repository, composerDraft, releaseSessionLease } = dependencies;
 	const tui = new TuiAltScreen(new ProcessTerminal(), true);
 	let snapshot = runtime.snapshot;
 	const status = new StatusLine();
 	const usageStrip = new UsageStripView();
 	const routerModel = new RouterModelView(() => snapshot);
-	const sessionFlow = new SessionFlowView(recentSessions, () => snapshot.cwd);
+	const sessionFlow = new SessionFlowView(recentSessions, () => ({
+		name: snapshot.projectName,
+		cwd: snapshot.cwd,
+		root: snapshot.projectRoot,
+	}));
 	const transcript = new TranscriptView(snapshot);
 	const dashboard = createDashboardLayout(
 		() => `🐙 WWW · ${snapshot.settings.provider}/${snapshot.settings.model} · ${
@@ -348,7 +353,11 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 				status.setNotice("모델 설정 flush에 실패했지만 세션 종료는 계속합니다.");
 				tui.requestRender();
 			}
-			await runtime.close();
+			try {
+				await runtime.close();
+			} finally {
+				await releaseSessionLease();
+			}
 		})(), 5_000);
 		tui.stop();
 	};

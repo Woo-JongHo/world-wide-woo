@@ -8,6 +8,7 @@ import {
 import type { SessionSnapshot } from "../../application/session-runtime";
 import type { RecentSessionSummary, UsageSnapshot } from "../../application/ports";
 import type { Effort } from "../../domain/model-settings";
+import { BashResultCard, GenericToolResultCard } from "./result-cards";
 import { colors, gradientLines, markdownTheme, semantic } from "./theme";
 
 export const EFFORT_LABEL: Record<Effort, string> = {
@@ -137,13 +138,17 @@ export class RouterModelView implements Component {
 export class SessionFlowView implements Component {
 	constructor(
 		private readonly recentSessions: readonly RecentSessionSummary[],
-		private readonly cwd: () => string,
+		private readonly workspace: () => { name: string; cwd: string; root: string },
 	) {}
 	invalidate(): void {}
 	render(width: number): string[] {
 		const rows = [
+			colors.secondary("프로젝트"),
+			`  ${this.workspace().name}`,
+			`  ${this.workspace().root}/.www`,
+			"",
 			colors.secondary("작업 위치"),
-			`  ${this.cwd()}`,
+			`  ${this.workspace().cwd}`,
 			"",
 			colors.secondary("명령"),
 			"  /usage   사용량 즉시 갱신",
@@ -187,10 +192,22 @@ export class TranscriptView implements Component {
 	}
 
 	render(width: number): string[] {
-		if (this.snapshot.turns.length === 0) return this.renderWelcome(width);
+		if (this.snapshot.turns.length === 0 && this.snapshot.tools.length === 0) return this.renderWelcome(width);
 		const contentWidth = Math.max(1, width);
 		const rows: string[] = [];
-		for (const turn of this.snapshot.turns) {
+		const entries = [
+			...this.snapshot.turns.map(turn => ({ kind: "turn" as const, timestamp: turn.timestamp, turn })),
+			...this.snapshot.tools.map(tool => ({ kind: "tool" as const, timestamp: tool.startedAt ?? 0, tool })),
+		].sort((left, right) => left.timestamp - right.timestamp);
+		for (const entry of entries) {
+			if (entry.kind === "tool") {
+				const card = "shell" in entry.tool
+					? new BashResultCard(entry.tool)
+					: new GenericToolResultCard(entry.tool);
+				rows.push(...card.render(contentWidth), "");
+				continue;
+			}
+			const { turn } = entry;
 			if (turn.role === "user") {
 				rows.push(semantic.userLabel("사용자"));
 				rows.push(...wrapTextWithAnsi(turn.content, contentWidth), "");

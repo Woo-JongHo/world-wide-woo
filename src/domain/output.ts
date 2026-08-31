@@ -39,6 +39,8 @@ export interface DiffResultSnapshot {
 	error: string | undefined;
 }
 
+export type ToolResultSnapshot = CommandResultSnapshot | GenericToolResultSnapshot;
+
 export interface CompletionSection {
 	title: string;
 	bullets: readonly string[];

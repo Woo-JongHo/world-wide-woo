@@ -4,10 +4,12 @@ import type {
 	AuthInteraction,
 	AuthType,
 	Context,
+	Tool,
 } from "@earendil-works/pi-ai";
 import type { SessionEvent, SessionEventInput } from "../domain/session-events";
 import type { Provider, WwwSettings } from "../domain/model-settings";
 import type { CommitSummary, IssueState, IssueSummary, RepositorySnapshot } from "../domain/repository";
+import type { ToolResultSnapshot } from "../domain/output";
 
 export interface ModelAuthStatus {
 	configured: boolean;
@@ -18,6 +20,17 @@ export interface ModelAuthStatus {
 export interface ModelClient {
 	checkAuth(settings: Pick<WwwSettings, "provider">): Promise<ModelAuthStatus>;
 	stream(settings: WwwSettings, context: Context, signal?: AbortSignal): AssistantMessageEventStream;
+}
+
+export interface AgentToolExecution {
+	modelContent: string;
+	isError: boolean;
+	snapshot: ToolResultSnapshot;
+}
+
+export interface AgentTool {
+	readonly definition: Tool;
+	execute(arguments_: Record<string, unknown>, signal: AbortSignal): Promise<AgentToolExecution>;
 }
 
 export interface SessionRepository {

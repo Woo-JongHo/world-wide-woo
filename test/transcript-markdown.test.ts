@@ -13,7 +13,10 @@ function snapshot(overrides: Partial<SessionSnapshot> = {}): SessionSnapshot {
 		auth: { configured: true, source: "OAuth", type: "oauth" },
 		settings: { provider: "anthropic", model: "claude-opus-4-6", effort: "high" },
 		cwd: "/workspace/project",
+		projectName: "project",
+		projectRoot: "/workspace/project",
 		activity: null,
+		tools: [],
 		...overrides,
 	};
 }
@@ -72,5 +75,26 @@ describe("TranscriptView Markdown", () => {
 			}],
 		}));
 		expect(stripTerminalSequences(view.render(100).join("\n"))).toContain("WWW  중단됨");
+	});
+
+	test("renders actual tool observations as boxed transcript items", () => {
+		const view = new TranscriptView(snapshot({
+			turns: [{ id: "user-tool", role: "user", content: "파일을 읽어", timestamp: 1 }],
+			tools: [{
+				id: "tool-read",
+				toolName: "read",
+				status: "passed",
+				input: "{\"path\":\"src/app.ts\"}",
+				output: "export async function main() {}",
+				startedAt: 2,
+				durationMs: 3,
+				error: undefined,
+			}],
+		}));
+		const output = stripTerminalSequences(view.render(80).join("\n"));
+		expect(output).toContain("╭");
+		expect(output).toContain("read · PASSED");
+		expect(output).toContain("src/app.ts");
+		expect(output).toContain("╰");
 	});
 });

@@ -9,6 +9,8 @@
 
 ## P0 — 제품 Shell
 
+- [x] 프로젝트 root의 `.www/project.json`과 local session·draft state
+- [x] 프로젝트별 session 목록과 `.www` 위치 표시
 - [x] 단일 외곽 프레임 안의 왼쪽 1개·오른쪽 상하 2개 viewport
 - [x] 넓은 화면의 영역별 독립 ScrollView와 저높이 compact 전환
 - [x] Claude 계열 팔레트와 ANSI 폭을 보존하는 WWW 그라데이션
@@ -32,12 +34,13 @@
 ## P1 — 출력 계약
 
 - [x] Bash 실행 상태 DTO와 width-safe 결과 카드
+- [x] 실제 read·search·safe Bash tool lifecycle 연결
 - [x] 번호·bullet·검증을 표현하는 완료 요약 카드
 - [x] Gajae native syntax와 message·tool·diff·effort semantic highlight role
 - [x] display-safe generic unknown-tool card와 textual diff card
-- [ ] `command.started → command.output → command.completed` 이벤트 projector 연결
+- [x] `command.started → command.output → command.completed` 이벤트 projector 연결
 - [ ] stdout/stderr streaming 중 활성 Bash 카드 갱신
-- [ ] 명령 취소·실패·exit code·duration의 terminal 상태 보장
+- [x] 명령 취소·실패·exit code·duration의 terminal 상태 보장
 - [ ] 완료된 턴의 `CompletionReport` 생성과 transcript 삽입
 - [ ] 긴 출력 paging·접기·복사·원문 열기
 - [ ] command card golden/PTY snapshot 검증
@@ -46,10 +49,13 @@
 
 ## P2 — Agent runtime
 
+- [x] bounded model → tool result → follow-up model loop
+- [x] transient Provider retry와 실제 activity 상태
 - [ ] 단일 활성 Turn 상태기계
 - [ ] model → tool call → approval → execution → tool result 반복 루프
-- [ ] Bash·read·search·edit 최소 tool set
-- [ ] 명령별 cwd·권한·timeout·AbortSignal
+- [x] sandboxed Bash·read·search 최소 tool set
+- [ ] preview·approval을 포함한 edit tool
+- [x] 명령별 cwd·권한·timeout·AbortSignal
 - [ ] 위험 작업 승인 overlay와 fail-closed 정책
 - [ ] tool-only·thinking-only·부분 응답 보존
 - [x] 중단된 Turn의 cancelled terminal event와 transcript 중단 표지
