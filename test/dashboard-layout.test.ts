@@ -10,6 +10,12 @@ class Lines implements Component {
 	render(): string[] { return this.lines; }
 }
 
+class MutableLines implements Component {
+	constructor(public lines: string[]) {}
+	invalidate(): void {}
+	render(): string[] { return [...this.lines]; }
+}
+
 const identity = (text: string) => text;
 
 function scrollContent(box: LayoutBox): string[] {
@@ -61,5 +67,30 @@ describe("dashboard layout", () => {
 		expect(output).toContain("대화 · 작업");
 		expect(output).toContain("실시간 사용량");
 		expect(output).toContain("Router · 세션");
+	});
+
+	test("reuses section rows when a child returns the same stable projection", () => {
+		const layout = dashboard();
+		const first = layout.leftScroll.render(80);
+		const second = layout.leftScroll.render(80);
+		expect(second).toBe(first);
+		expect(layout.leftScroll.render(70)).not.toBe(first);
+	});
+
+	test("reuses unchanged prefixes without retaining a stale dynamic tail", () => {
+		const left = new MutableLines(["stable one", "stable two", "tail one"]);
+		const fixed = new Lines(["fixed"]);
+		const layout = createDashboardLayout(
+			() => "WWW",
+			{ title: "Work", color: identity, component: left },
+			{ title: "Router", color: identity, component: fixed },
+			{ title: "Todo", color: identity, component: fixed },
+		);
+		const first = layout.leftScroll.render(80);
+		left.lines = ["stable one", "stable two", "tail two"];
+		const second = layout.leftScroll.render(80);
+		expect(second).not.toBe(first);
+		expect(second.join("\n")).toContain("tail two");
+		expect(second.join("\n")).not.toContain("tail one");
 	});
 });

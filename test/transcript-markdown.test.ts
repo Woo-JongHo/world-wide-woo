@@ -122,4 +122,58 @@ describe("TranscriptView Markdown", () => {
 		const output = stripTerminalSequences(view.render(80).join("\n"));
 		expect(output.indexOf("파일 확인 · src/app.ts")).toBeLessThan(output.indexOf("read · PASSED"));
 	});
+
+	test("reuses stable transcript rows across scroll frames and invalidates on observation changes", () => {
+		const initial = snapshot({
+			turns: [{ id: "user-cache", role: "user", content: "cache me", timestamp: 1 }],
+			tools: [{
+				id: "tool-cache",
+				toolName: "read",
+				status: "running",
+				input: "{}",
+				output: "",
+				startedAt: 2,
+				durationMs: undefined,
+				error: undefined,
+			}],
+		});
+		const view = new TranscriptView(initial);
+		const first = view.render(80);
+		expect(view.render(80)).toBe(first);
+		view.update({ ...initial, phase: "streaming", draft: "partial", activity: { kind: "responding", label: "응답 작성 중" } });
+		expect(view.render(80)).not.toBe(first);
+		view.update({ ...initial, phase: "ready", draft: "", activity: null });
+		expect(view.render(80)).toBe(first);
+		view.update({
+			...initial,
+			tools: [{ ...initial.tools[0]!, status: "passed", output: "done", durationMs: 3 }],
+		});
+		const completed = view.render(80);
+		expect(completed).not.toBe(first);
+		expect(stripTerminalSequences(completed.join("\n"))).toContain("read · PASSED");
+	});
+
+	test("bounds stable transcript caches to two width variants", () => {
+		const view = new TranscriptView(snapshot({
+			turns: [{ id: "user-width-cache", role: "user", content: "width cache", timestamp: 1 }],
+		}));
+		const width80 = view.render(80);
+		const width90 = view.render(90);
+		expect(view.render(90)).toBe(width90);
+		view.render(100);
+		expect(view.render(80)).not.toBe(width80);
+	});
+
+	test("keeps a long unchanged transcript on one cached row projection", () => {
+		const turns = Array.from({ length: 600 }, (_, index) => ({
+			id: `long-${index}`,
+			role: index % 2 === 0 ? "user" as const : "assistant" as const,
+			content: `긴 Transcript ${index} `.repeat(3),
+			timestamp: index,
+		}));
+		const view = new TranscriptView(snapshot({ turns }));
+		const rows = view.render(100);
+		expect(rows.length).toBeGreaterThan(1_000);
+		for (let frame = 0; frame < 20; frame += 1) expect(view.render(100)).toBe(rows);
+	});
 });

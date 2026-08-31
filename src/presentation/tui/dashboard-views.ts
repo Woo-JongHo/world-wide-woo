@@ -175,10 +175,38 @@ function todoMarker(status: TodoItem["status"]): string {
 	return "[ ]";
 }
 
+function transcriptProjectionKey(snapshot: SessionSnapshot): string {
+	const lastTurn = snapshot.turns.at(-1);
+	const lastNarration = snapshot.narrations.at(-1);
+	const tools = snapshot.tools.map(tool => {
+		const outputLength = "shell" in tool
+			? tool.stdout.length + tool.stderr.length
+			: tool.output.length + (tool.error?.length ?? 0);
+		return `${tool.id}:${tool.status}:${tool.durationMs ?? ""}:${outputLength}`;
+	}).join(",");
+	return [
+		snapshot.turns.length,
+		lastTurn?.id ?? "",
+		lastTurn?.content.length ?? 0,
+		lastTurn?.outcome ?? "",
+		snapshot.tools.length,
+		tools,
+		snapshot.narrations.length,
+		lastNarration?.id ?? "",
+		snapshot.settings.provider,
+		snapshot.settings.model,
+		snapshot.settings.effort,
+		snapshot.auth?.configured ? "1" : "0",
+		snapshot.auth?.source ?? "",
+	].join("|");
+}
+
 export class TranscriptView implements Component {
 	private snapshot: SessionSnapshot;
 	private readonly markdownByTurn = new Map<string, Markdown>();
 	private readonly draft = new Markdown("", 0, 0, markdownTheme);
+	private projectionKey = "";
+	private readonly stableRowsByWidth = new Map<number, string[]>();
 
 	constructor(initial: SessionSnapshot) {
 		this.snapshot = initial;
@@ -193,16 +221,55 @@ export class TranscriptView implements Component {
 			}
 		}
 		this.draft.setText(snapshot.draft);
+		const nextKey = transcriptProjectionKey(snapshot);
+		if (nextKey !== this.projectionKey) {
+			this.projectionKey = nextKey;
+			this.stableRowsByWidth.clear();
+		}
 	}
 
 	invalidate(): void {
 		for (const markdown of this.markdownByTurn.values()) markdown.invalidate();
 		this.draft.invalidate();
+		this.stableRowsByWidth.clear();
 	}
 
 	render(width: number): string[] {
-		if (this.snapshot.turns.length === 0 && this.snapshot.tools.length === 0) return this.renderWelcome(width);
 		const contentWidth = Math.max(1, width);
+		const stable = this.stableRows(contentWidth);
+		if (this.snapshot.phase !== "streaming" && !this.snapshot.error) return stable;
+		const rows = [...stable];
+		if (this.snapshot.phase === "streaming") {
+			const frame = ACTIVITY_FRAMES[Math.floor(performance.now() / 80) % ACTIVITY_FRAMES.length];
+			const activity = this.snapshot.activity?.label ?? "응답 준비 중";
+			rows.push(...surfaceRows([
+				`${semantic.assistantLabel("WWW")}  ${semantic.toolRunning(`${frame} ${activity}`)}`,
+				...(this.snapshot.draft ? this.draft.render(contentWidth) : [colors.muted("응답을 준비하는 중…")]),
+			], contentWidth, semantic.assistantSurface), "");
+		}
+		if (this.snapshot.error) {
+			rows.push(colors.error("오류"));
+			rows.push(...wrapTextWithAnsi(this.snapshot.error, contentWidth).map(colors.error), "");
+		}
+		return rows;
+	}
+
+	private stableRows(contentWidth: number): string[] {
+		const cached = this.stableRowsByWidth.get(contentWidth);
+		if (cached) return cached;
+		const rows = this.buildStableRows(contentWidth);
+		this.stableRowsByWidth.set(contentWidth, rows);
+		if (this.stableRowsByWidth.size > 2) {
+			const oldest = this.stableRowsByWidth.keys().next().value;
+			if (oldest !== undefined) this.stableRowsByWidth.delete(oldest);
+		}
+		return rows;
+	}
+
+	private buildStableRows(contentWidth: number): string[] {
+		if (this.snapshot.turns.length === 0 && this.snapshot.tools.length === 0 && this.snapshot.narrations.length === 0) {
+			return this.renderWelcome(contentWidth);
+		}
 		const rows: string[] = [];
 		const entries = [
 			...this.snapshot.turns.map(turn => ({ kind: "turn" as const, timestamp: turn.timestamp, turn })),
@@ -241,18 +308,6 @@ export class TranscriptView implements Component {
 			const markdown = this.markdownByTurn.get(turn.id);
 			if (markdown) assistantRows.push(...markdown.render(contentWidth));
 			rows.push(...surfaceRows(assistantRows, contentWidth, semantic.assistantSurface), "");
-		}
-		if (this.snapshot.phase === "streaming") {
-			const frame = ACTIVITY_FRAMES[Math.floor(performance.now() / 80) % ACTIVITY_FRAMES.length];
-			const activity = this.snapshot.activity?.label ?? "응답 준비 중";
-			rows.push(...surfaceRows([
-				`${semantic.assistantLabel("WWW")}  ${semantic.toolRunning(`${frame} ${activity}`)}`,
-				...(this.snapshot.draft ? this.draft.render(contentWidth) : [colors.muted("응답을 준비하는 중…")]),
-			], contentWidth, semantic.assistantSurface), "");
-		}
-		if (this.snapshot.error) {
-			rows.push(colors.error("오류"));
-			rows.push(...wrapTextWithAnsi(this.snapshot.error, contentWidth).map(colors.error), "");
 		}
 		return rows;
 	}

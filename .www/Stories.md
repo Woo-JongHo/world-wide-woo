@@ -87,6 +87,7 @@
 - [ ] ST-005-05 quota rate-limit·stale cache·offline 상태를 검증한다.
 - [ ] ST-005-06 session pagination과 장기 memory 상한을 검증한다.
 - [ ] ST-005-07 command·output·provider error redaction을 audit한다.
+- [x] ST-005-08 긴 Transcript에서 항목 정렬·card·wrap·background projection을 cache하여 스크롤 프레임 비용을 제한한다.
 
 ## EP-006 — 배포
 

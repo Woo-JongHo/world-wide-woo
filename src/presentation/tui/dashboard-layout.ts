@@ -52,29 +52,66 @@ class VerticalRule implements Component {
 }
 
 class SectionDocument implements Component {
+	private cachedWidth = -1;
+	private cachedChildRows: string[] | null = null;
+	private cachedRows: string[] | null = null;
 	constructor(private readonly section: DashboardSection) {}
 	invalidate(): void {
 		this.section.component.invalidate();
+		this.cachedWidth = -1;
+		this.cachedChildRows = null;
+		this.cachedRows = null;
 	}
 	render(width: number): string[] {
-		return [
-			fit(` ${this.section.color(this.section.title)}`, width),
-			...this.section.component.render(Math.max(1, width - 2)).map((line) => ` ${fit(line, Math.max(1, width - 2))} `),
-		];
+		const contentWidth = Math.max(1, width - 2);
+		const childRows = this.section.component.render(contentWidth);
+		if (width === this.cachedWidth && childRows === this.cachedChildRows && this.cachedRows) return this.cachedRows;
+		const sameWidth = width === this.cachedWidth;
+		const previousChildRows = sameWidth ? this.cachedChildRows : null;
+		const previousRows = sameWidth ? this.cachedRows : null;
+		const rows = new Array<string>(childRows.length + 1);
+		rows[0] = previousRows?.[0] ?? fit(` ${this.section.color(this.section.title)}`, width);
+		for (let index = 0; index < childRows.length; index += 1) {
+			rows[index + 1] = previousChildRows?.[index] === childRows[index] && previousRows?.[index + 1]
+				? previousRows[index + 1]
+				: ` ${fit(childRows[index]!, contentWidth)} `;
+		}
+		this.cachedWidth = width;
+		this.cachedChildRows = childRows;
+		this.cachedRows = rows;
+		return rows;
 	}
 }
 
 class CompactDocument implements Component {
-	constructor(private readonly sections: readonly DashboardSection[]) {}
+	private readonly documents: readonly SectionDocument[];
+	private cachedWidth = -1;
+	private cachedSections: readonly string[][] = [];
+	private cachedRows: string[] | null = null;
+	constructor(sections: readonly DashboardSection[]) {
+		this.documents = sections.map(section => new SectionDocument(section));
+	}
 	invalidate(): void {
-		for (const section of this.sections) section.component.invalidate();
+		for (const document of this.documents) document.invalidate();
+		this.cachedWidth = -1;
+		this.cachedSections = [];
+		this.cachedRows = null;
 	}
 	render(width: number): string[] {
+		const sections = this.documents.map(document => document.render(width));
+		if (
+			width === this.cachedWidth &&
+			this.cachedRows &&
+			sections.every((section, index) => section === this.cachedSections[index])
+		) return this.cachedRows;
 		const rows: string[] = [];
-		for (const [index, section] of this.sections.entries()) {
+		for (const [index, section] of sections.entries()) {
 			if (index > 0) rows.push(colors.border("─".repeat(Math.max(0, width))));
-			rows.push(...new SectionDocument(section).render(width));
+			rows.push(...section);
 		}
+		this.cachedWidth = width;
+		this.cachedSections = sections;
+		this.cachedRows = rows;
 		return rows;
 	}
 }
