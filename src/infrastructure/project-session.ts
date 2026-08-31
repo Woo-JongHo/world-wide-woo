@@ -1,6 +1,7 @@
 import type { ModelClient, RecentSessionSummary, TodoController } from "../application/ports";
 import { join } from "node:path";
 import { SessionRuntime } from "../application/session-runtime";
+import { SessionMonitor } from "../application/session-monitor";
 import { TodoLedger } from "../application/todo-ledger";
 import type { WwwSettings } from "../domain/model-settings";
 import { createProjectAgentTools } from "./agent-tools";
@@ -12,6 +13,7 @@ export interface ProjectSessionBundle {
 	workspace: ProjectWorkspace;
 	runtime: SessionRuntime;
 	todos: TodoController;
+	monitor: SessionMonitor;
 	releaseSessionLease(): Promise<void>;
 }
 
@@ -48,10 +50,12 @@ export async function createProjectSession(
 			todos,
 		);
 		await runtime.initialize({ resume: requestedSessionId !== undefined });
+		const monitor = new SessionMonitor(runtime, todos);
 		return {
 			workspace,
 			runtime,
 			todos,
+			monitor,
 			releaseSessionLease: () => lease.release(),
 		};
 	} catch (error) {

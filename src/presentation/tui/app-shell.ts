@@ -18,6 +18,7 @@ import type {
 	UsageMonitor,
 } from "../../application/ports";
 import type { SessionRuntime } from "../../application/session-runtime";
+import type { SessionMonitor } from "../../application/session-monitor";
 import { MODELS, type WwwSettings } from "../../domain/model-settings";
 import { todoProgress } from "../../domain/todos";
 import { AuthFlowOverlay } from "./auth-overlay";
@@ -33,6 +34,7 @@ import { OverlaySheet } from "./overlay-sheet";
 import { IssueListOverlay, RepositoryActivityOverlay } from "./repository-overlays";
 import { LoginProviderOverlay } from "./router-overlays";
 import { ModelPickerOverlay } from "./model-picker-overlay";
+import { MonitoringOverlay } from "./monitoring-overlay";
 import { RenderScheduler } from "./render-scheduler";
 import { parseShellCommand, shellCommandConcurrency, SLASH_COMMANDS } from "./slash-commands";
 import { colors, editorTheme } from "./theme";
@@ -58,10 +60,11 @@ export interface TuiShellDependencies {
 	composerDraft: ComposerDraftController;
 	releaseSessionLease: () => Promise<void>;
 	todos: TodoController;
+	monitor: SessionMonitor;
 }
 
 export function runTuiShell(dependencies: TuiShellDependencies): void {
-	const { runtime, auth, usage, routerSettings, repository, composerDraft, releaseSessionLease, todos } = dependencies;
+	const { runtime, auth, usage, routerSettings, repository, composerDraft, releaseSessionLease, todos, monitor } = dependencies;
 	const tui = new TuiAltScreen(new ProcessTerminal(), true);
 	let snapshot = runtime.snapshot;
 	let todoSnapshot = todos.snapshot;
@@ -95,6 +98,7 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 	let clearedExitDraftTimer: ReturnType<typeof setTimeout> | undefined;
 	let overlayHandlesInterrupt = false;
 	let overlayMutationLocked = false;
+	let monitoringOverlay: MonitoringOverlay | null = null;
 	let settingsMutationInFlight = false;
 	const exitKeys = new ExitKeyPolicy();
 	let unsubscribeRuntime = () => {};
@@ -114,6 +118,8 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 	const closeOverlay = (expected: OverlayHandle | null = overlay): boolean => {
 		if (!overlay || overlay !== expected) return false;
 		overlay.hide();
+		monitoringOverlay?.stop();
+		monitoringOverlay = null;
 		overlay = null;
 		overlayHandlesInterrupt = false;
 		overlayMutationLocked = false;
@@ -263,6 +269,15 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 		});
 		panel.start();
 	};
+	const openMonitoring = () => {
+		if (overlay) return;
+		const panel = new MonitoringOverlay(monitor, () => tui.requestRender(), closeOverlay);
+		monitoringOverlay = panel;
+		overlay = tui.showOverlay(new OverlaySheet(panel), {
+			width: "64%", minWidth: 48, maxHeight: "75%", anchor: "bottom-center", margin: 2,
+		});
+		panel.start();
+	};
 	const handleShellCommand = async (text: string): Promise<void> => {
 		const command = parseShellCommand(text, snapshot.settings);
 		if (!command) return;
@@ -316,7 +331,7 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 			}
 		}
 		if (command.type === "help") {
-			status.setNotice("/model · /login · /usage · /commits · /issues · /status · /exit");
+			status.setNotice("/model · /login · /usage · /monitor · /commits · /issues · /status · /exit");
 		}
 		if (command.type === "status") {
 			status.setNotice(
@@ -327,6 +342,7 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 		}
 		if (command.type === "repository.commits") return openCommits();
 		if (command.type === "repository.issues") return openIssues();
+		if (command.type === "monitoring") return openMonitoring();
 		if (command.type === "exit") return shutdown();
 		if (command.type === "error") status.setNotice(command.message);
 		tui.requestRender();
@@ -342,6 +358,7 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 		if (activityTimer) clearInterval(activityTimer);
 		unsubscribeRuntime();
 		unsubscribeTodo();
+		monitor.dispose();
 		transcriptRenders.dispose();
 		await settleWithin((async () => {
 			try {

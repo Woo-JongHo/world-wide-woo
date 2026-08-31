@@ -43,3 +43,23 @@
 - 상태: 예정
 - 목표: 검증된 실행 파일과 설치·업데이트·복구 계약을 제공한다.
 - Stories: [`ST-006-*`](./Stories.md#ep-006--배포)
+
+## EP-007 — Monitoring Dashboard
+
+- 상태: 완료
+- 목표: session·turn·tool·Todo 상태를 하나의 read-only 관측 projection으로 제공한다.
+- Stories: [`ST-007-*`](./Stories.md#ep-007--monitoring-dashboard)
+
+## EP-008 — Work Narration UX
+
+- 상태: 완료
+- 목표: 숨겨진 추론을 노출하지 않으면서 WWW가 실제로 무엇을 수행하는지 지속적으로 설명한다.
+- Stories: [`ST-008-*`](./Stories.md#ep-008--work-narration-ux)
+
+## EP-009 — 01_www Adapt-In
+
+- 상태: 진행 중
+- 목표: 01_www의 검증된 경계·역할·Planning·Work Ledger 재료를 WWW 제품에 작은 목표 단위로 흡수한다.
+- Source: `woo-world/www`의 `01_www`, reviewed baseline `490bc36e94c89180edd81df4bc374ad7870cad79`
+- 규칙: 파일을 통째로 복제하지 않고 acceptance와 evidence가 있는 capability만 Story 단위로 Adapt-In한다.
+- Stories: [`ST-009-*`](./Stories.md#ep-009--01_www-adapt-in)

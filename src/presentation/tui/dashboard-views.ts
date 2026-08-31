@@ -38,6 +38,10 @@ function center(text: string, width: number): string {
 	return " ".repeat(Math.max(0, Math.floor((width - visibleWidth(clipped)) / 2))) + clipped;
 }
 
+function surfaceRows(rows: readonly string[], width: number, surface: (text: string) => string): string[] {
+	return rows.map(row => surface(fit(row, width)));
+}
+
 export class StatusLine implements Component {
 	private notice = "/ 명령 · /model 모델 · /usage 사용량 · Ctrl+C 두 번 또는 Ctrl+D 종료";
 	setNotice(notice: string): void {
@@ -203,8 +207,19 @@ export class TranscriptView implements Component {
 		const entries = [
 			...this.snapshot.turns.map(turn => ({ kind: "turn" as const, timestamp: turn.timestamp, turn })),
 			...this.snapshot.tools.map(tool => ({ kind: "tool" as const, timestamp: tool.startedAt ?? 0, tool })),
+			...this.snapshot.narrations.map(narration => ({
+				kind: "narration" as const,
+				timestamp: Date.parse(narration.timestamp),
+				narration,
+			})),
 		].sort((left, right) => left.timestamp - right.timestamp);
 		for (const entry of entries) {
+			if (entry.kind === "narration") {
+				rows.push(...surfaceRows([
+					`${semantic.assistantLabel("WWW")}  ${semantic.narration(`• ${entry.narration.label}`)}`,
+				], contentWidth, semantic.assistantSurface), "");
+				continue;
+			}
 			if (entry.kind === "tool") {
 				const card = "shell" in entry.tool
 					? new BashResultCard(entry.tool)
@@ -214,22 +229,26 @@ export class TranscriptView implements Component {
 			}
 			const { turn } = entry;
 			if (turn.role === "user") {
-				rows.push(semantic.userLabel("사용자"));
-				rows.push(...wrapTextWithAnsi(turn.content, contentWidth), "");
+				rows.push(...surfaceRows([
+					semantic.userLabel("사용자"),
+					...wrapTextWithAnsi(turn.content, contentWidth),
+				], contentWidth, semantic.userSurface), "");
 				continue;
 			}
-			rows.push(turn.outcome === "cancelled"
+			const assistantRows = [turn.outcome === "cancelled"
 				? `${semantic.assistantLabel("WWW")}  ${semantic.toolCancelled("중단됨")}`
-				: semantic.assistantLabel("WWW"));
+				: semantic.assistantLabel("WWW")];
 			const markdown = this.markdownByTurn.get(turn.id);
-			if (markdown) rows.push(...markdown.render(contentWidth));
-			rows.push("");
+			if (markdown) assistantRows.push(...markdown.render(contentWidth));
+			rows.push(...surfaceRows(assistantRows, contentWidth, semantic.assistantSurface), "");
 		}
 		if (this.snapshot.phase === "streaming") {
 			const frame = ACTIVITY_FRAMES[Math.floor(performance.now() / 80) % ACTIVITY_FRAMES.length];
 			const activity = this.snapshot.activity?.label ?? "응답 준비 중";
-			rows.push(`${semantic.assistantLabel("WWW")}  ${semantic.toolRunning(`${frame} ${activity}`)}`);
-			rows.push(...(this.snapshot.draft ? this.draft.render(contentWidth) : [colors.muted("응답을 준비하는 중…")]), "");
+			rows.push(...surfaceRows([
+				`${semantic.assistantLabel("WWW")}  ${semantic.toolRunning(`${frame} ${activity}`)}`,
+				...(this.snapshot.draft ? this.draft.render(contentWidth) : [colors.muted("응답을 준비하는 중…")]),
+			], contentWidth, semantic.assistantSurface), "");
 		}
 		if (this.snapshot.error) {
 			rows.push(colors.error("오류"));

@@ -158,7 +158,7 @@ Item lifecycle: started → delta* → completed | failed | cancelled
 | 공간 | 한 외곽 프레임, 왼쪽 Conversation, 오른쪽 Router·Model/Session·Flow |
 | 사용량 | 카드 바로 아래 Codex/Claude 2행; 잔여율과 reset 표시 |
 | 출력 | Bash와 completion을 카드로 표현하되 transcript 정본과 분리 |
-| 명령 | `/model`, `/effort`, `/login`, `/logout`, `/usage`, `/status`, `/help`, `/exit` |
+| 명령 | `/model`, `/effort`, `/login`, `/logout`, `/usage`, `/monitor`, `/dashboard`, `/status`, `/help`, `/exit` |
 
 WWW는 Gajae Code의 Claw, OMP의 IDE surface, Codex의 단일 chat pane, OpenCode의 sidebar, Claude의 status line 중 어느 것도 그대로 복사하지 않는다. **사용자가 대화·실행·Context·Router를 같은 화면에서 의식적으로 통제한다**는 정보 구조가 차별점이다.
 

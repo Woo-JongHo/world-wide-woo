@@ -6,6 +6,7 @@ import {
 	type ToolResultMessage,
 } from "@earendil-works/pi-ai";
 import type { WwwSettings } from "../domain/model-settings";
+import { workNarrationLabel, type WorkNarration } from "../domain/narration";
 import type { SessionEvent } from "../domain/session-events";
 import type { CommandResultSnapshot, GenericToolResultSnapshot, ToolResultSnapshot } from "../domain/output";
 import type { AgentTool, ModelAuthStatus, ModelClient, SessionRepository, TodoController } from "./ports";
@@ -47,6 +48,7 @@ export interface SessionSnapshot {
 	projectRoot: string;
 	activity: SessionActivity | null;
 	tools: readonly ToolResultSnapshot[];
+	narrations: readonly WorkNarration[];
 }
 
 export type SessionListener = (snapshot: SessionSnapshot) => void;
@@ -183,11 +185,37 @@ function storedToolSnapshot(event: SessionEvent): ToolResultSnapshot | null {
 	return null;
 }
 
+function storedNarration(event: SessionEvent): WorkNarration {
+	const value = event.metadata.narration;
+	if (!value || typeof value !== "object" || Array.isArray(value)) {
+		throw new Error(`세션 ${event.sessionId}의 ${event.sequence}번 작업 설명을 복원할 수 없습니다.`);
+	}
+	const narration = value as Partial<WorkNarration>;
+	const keys = Object.keys(narration).sort();
+	if (
+		Object.keys(event.metadata).length !== 1 ||
+		!("narration" in event.metadata) ||
+		keys.join(",") !== "id,label,timestamp,toolCallId,turnId" ||
+		typeof narration.id !== "string" || !narration.id ||
+		typeof narration.turnId !== "string" || !narration.turnId ||
+		typeof narration.toolCallId !== "string" || !narration.toolCallId ||
+		typeof narration.timestamp !== "string" || Number.isNaN(Date.parse(narration.timestamp)) ||
+		typeof narration.label !== "string" ||
+		event.turnId !== narration.turnId ||
+		event.itemId !== narration.toolCallId
+	) {
+		throw new Error(`세션 ${event.sessionId}의 ${event.sequence}번 작업 설명 메타데이터가 올바르지 않습니다.`);
+	}
+	return narration as WorkNarration;
+}
+
 export class SessionRuntime {
 	private readonly context: Context;
 	private readonly listeners = new Set<SessionListener>();
 	private readonly turns: ConversationTurn[] = [];
 	private readonly toolExecutions: ToolResultSnapshot[] = [];
+	private readonly narrations: WorkNarration[] = [];
+	private readonly narratedToolCallIds = new Set<string>();
 	private phase: SessionPhase = "starting";
 	private draft = "";
 	private activity: SessionActivity | null = null;
@@ -234,6 +262,7 @@ export class SessionRuntime {
 			projectRoot: this.workspace.root ?? this.workspace.cwd,
 			activity: this.activity ? { ...this.activity } : null,
 			tools: this.toolExecutions.map(snapshot => ({ ...snapshot })),
+			narrations: this.narrations.map(narration => ({ ...narration })),
 		};
 	}
 
@@ -512,6 +541,7 @@ export class SessionRuntime {
 	}
 
 	private async executeToolCall(toolCall: ToolCall, turnId: string): Promise<ToolResultMessage> {
+		await this.recordNarration(toolCall, turnId);
 		const startedAt = Date.now();
 		const running = runningToolSnapshot(toolCall, this.workspace.cwd, startedAt);
 		this.toolExecutions.push(running);
@@ -618,6 +648,34 @@ export class SessionRuntime {
 		return message;
 	}
 
+	private async recordNarration(toolCall: ToolCall, turnId: string): Promise<void> {
+		if (this.narratedToolCallIds.has(toolCall.id)) {
+			throw new Error(`중복된 도구 호출 ID입니다: ${toolCall.id}`);
+		}
+		const timestamp = new Date().toISOString();
+		const narration: WorkNarration = {
+			id: crypto.randomUUID(),
+			turnId,
+			toolCallId: toolCall.id,
+			timestamp,
+			label: workNarrationLabel(toolCall.name, toolCall.arguments),
+		};
+		await this.store.append(this.id, {
+			category: "action",
+			type: "narration.recorded",
+			status: "running",
+			title: "작업 설명",
+			body: narration.label,
+			correlationId: turnId,
+			turnId,
+			itemId: toolCall.id,
+			metadata: { narration },
+		});
+		this.narratedToolCallIds.add(toolCall.id);
+		this.narrations.push(narration);
+		this.emit();
+	}
+
 	private async cancelUnexecutedToolCall(toolCall: ToolCall, turnId: string): Promise<ToolResultMessage> {
 		const startedAt = Date.now();
 		const running = runningToolSnapshot(toolCall, this.workspace.cwd, startedAt);
@@ -673,11 +731,21 @@ export class SessionRuntime {
 	private restore(events: readonly SessionEvent[]): void {
 		this.turns.length = 0;
 		this.toolExecutions.length = 0;
+		this.narrations.length = 0;
+		this.narratedToolCallIds.clear();
 		this.context.messages.length = 0;
 		const openTurns = new Set<string>();
 		const toolGroups: Array<{ message: AssistantMessage; callIds: string[] }> = [];
 		const completedToolCalls = new Set<string>();
 		for (const event of events) {
+			if (event.type === "narration.recorded") {
+				const narration = storedNarration(event);
+				if (this.narratedToolCallIds.has(narration.toolCallId)) {
+					throw new Error(`세션 ${this.id}에 중복된 도구 호출 작업 설명이 있습니다: ${narration.toolCallId}`);
+				}
+				this.narratedToolCallIds.add(narration.toolCallId);
+				this.narrations.push(narration);
+			}
 			if (event.type === "turn.started" && event.turnId) openTurns.add(event.turnId);
 			if (event.type === "turn.completed" && event.turnId) openTurns.delete(event.turnId);
 			if (event.type === "message.user") {

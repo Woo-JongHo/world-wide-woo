@@ -14,6 +14,8 @@ export const palette = {
 	yellow: "#cba36d",
 	red: "#c76060",
 	warm: "#d97757",
+	userSurface: "#15202a",
+	assistantSurface: "#211d29",
 } as const;
 
 export const colors = {
@@ -34,6 +36,9 @@ export const colors = {
 export const semantic = {
 	userLabel: colors.highlight,
 	assistantLabel: colors.secondary,
+	userSurface: chalk.bgHex(palette.userSurface).hex(palette.foreground),
+	assistantSurface: chalk.bgHex(palette.assistantSurface).hex(palette.foreground),
+	narration: colors.accent,
 	toolPending: colors.muted,
 	toolRunning: colors.highlight,
 	toolPassed: colors.success,

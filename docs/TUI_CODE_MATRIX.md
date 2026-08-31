@@ -152,7 +152,8 @@
 | Auth | provider/auth state | `AuthController` | `auth-service.ts`, `credential-store.ts` | `auth-overlay.ts`, `/login`, `/logout` |
 | Usage | display-safe limit snapshot | `UsageMonitor` | `usage-service.ts` + Gajae AI adapter | `UsageStripView`, `/usage` |
 | Session | `session-events.ts` | `SessionRuntime`, `SessionRepository` | `session-store.ts` | `TranscriptView`, `SessionFlowView` |
-| Output | `output.ts` | future item projector | future executor/event reducer | `BashResultCard`, `CompletionSummaryCard` |
+| Output | `output.ts`, `narration.ts` | `SessionRuntime` event projection | `agent-tools.ts` | truthful narration, `BashResultCard`, `CompletionSummaryCard` |
+| Monitoring | `monitoring.ts` | `SessionMonitor` | Session/Todo 정본 재사용 | `MonitoringOverlay`, `/monitor`, `/dashboard` |
 | Commit/Issue | `repository.ts` | `RepositoryInsights` | `repository-insights.ts` | `repository-overlays.ts`, `/commits`, `/issues` |
 | Markdown | assistant text item | render scheduling boundary | native syntax package adapter | `syntax-highlighter.ts`, `render-scheduler.ts`, theme |
 | Layout | 없음 | 없음 | 없음 | `dashboard-layout.ts`, `OverlaySheet`, `app-shell.ts` |

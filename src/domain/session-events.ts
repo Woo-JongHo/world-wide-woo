@@ -28,6 +28,7 @@ export const SESSION_EVENT_TYPES = [
 	"message.assistant.completed",
 	"message.assistant.cancelled",
 	"message.assistant.failed",
+	"narration.recorded",
 	"command.started",
 	"command.output",
 	"command.completed",

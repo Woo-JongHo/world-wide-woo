@@ -94,3 +94,25 @@
 - [ ] ST-006-02 npm/Bun executable 배포 계약을 확정한다.
 - [ ] ST-006-03 version·changelog 자동화를 제공한다.
 - [ ] ST-006-04 설치·로그인·복구 운영 문서를 제공한다.
+
+## EP-007 — Monitoring Dashboard
+
+- [x] ST-007-01 Session snapshot에서 phase·turn·tool·Todo 관측값을 결정론적으로 projection한다.
+- [x] ST-007-02 `/monitor`와 `/dashboard`에서 read-only monitoring overlay를 연다.
+- [x] ST-007-03 성공·실패·취소 Tool 집계와 현재 activity를 실시간 갱신한다.
+- [x] ST-007-04 프로젝트 장기 Dashboard와 session monitoring의 정본 경계를 분리한다.
+
+## EP-008 — Work Narration UX
+
+- [x] ST-008-01 실제 Tool 이름과 입력에서 안전한 작업 설명을 생성한다.
+- [x] ST-008-02 Tool card 사이에 시작·완료 중간 과정을 시간 순서대로 표시한다.
+- [x] ST-008-03 사용자와 WWW 메시지 영역을 미세한 배경색으로 구분한다.
+- [x] ST-008-04 숨겨진 chain-of-thought 대신 공개 가능한 activity·evidence만 표시한다.
+
+## EP-009 — 01_www Adapt-In
+
+- [x] ST-009-01 MAP·Architecture·Planning Package·Work Ledger·Harness 경계를 inventory한다.
+- [x] ST-009-02 canonical/projection 경계를 Monitoring infrastructure 첫 목표에 적용한다.
+- [ ] ST-009-03 Why/How/Outcome/Work를 분리한 project-local Planning Package v1을 설계한다.
+- [ ] ST-009-04 framer·executor·reviewer·governor·verifier 역할과 권한 경계를 단계적으로 도입한다.
+- [ ] ST-009-05 01_www 자동화는 재현 증거와 promotion 기준을 통과한 capability만 흡수한다.

@@ -16,6 +16,7 @@ describe("WWW slash commands", () => {
 
 	test("classifies streaming concurrency independently from mutability", () => {
 		expect(shellCommandConcurrency({ type: "status" })).toBe("local-read");
+		expect(shellCommandConcurrency({ type: "monitoring" })).toBe("local-read");
 		expect(shellCommandConcurrency({ type: "repository.commits" })).toBe("async-read");
 		expect(shellCommandConcurrency({ type: "usage.refresh" })).toBe("async-read");
 		expect(shellCommandConcurrency({ type: "model.select" })).toBe("mutation");
@@ -35,6 +36,8 @@ describe("WWW slash commands", () => {
 		expect(parseShellCommand("/logout anthropic", current)).toEqual({ type: "auth.logout", provider: "anthropic" });
 		expect(parseShellCommand("/effort ultra", current)).toEqual({ type: "effort.set", effort: "ultra" });
 		expect(parseShellCommand("/status", current)).toEqual({ type: "status" });
+		expect(parseShellCommand("/monitor", current)).toEqual({ type: "monitoring" });
+		expect(parseShellCommand("/dashboard", current)).toEqual({ type: "monitoring" });
 		expect(parseShellCommand("/commits", current)).toEqual({ type: "repository.commits" });
 		expect(parseShellCommand("/issues", current)).toEqual({ type: "repository.issues" });
 		expect(parseShellCommand("/exit", current)).toEqual({ type: "exit" });
@@ -54,6 +57,8 @@ describe("WWW slash commands", () => {
 			"effort",
 			"usage",
 			"status",
+			"monitor",
+			"dashboard",
 			"commits",
 			"issues",
 			"help",

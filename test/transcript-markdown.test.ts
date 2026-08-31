@@ -17,6 +17,7 @@ function snapshot(overrides: Partial<SessionSnapshot> = {}): SessionSnapshot {
 		projectRoot: "/workspace/project",
 		activity: null,
 		tools: [],
+		narrations: [],
 		...overrides,
 	};
 }
@@ -96,5 +97,29 @@ describe("TranscriptView Markdown", () => {
 		expect(output).toContain("read · PASSED");
 		expect(output).toContain("src/app.ts");
 		expect(output).toContain("╰");
+	});
+
+	test("renders truthful work narration before the corresponding tool card", () => {
+		const view = new TranscriptView(snapshot({
+			narrations: [{
+				id: "narration-1",
+				turnId: "turn-1",
+				toolCallId: "tool-read",
+				timestamp: new Date(2).toISOString(),
+				label: "파일 확인 · src/app.ts",
+			}],
+			tools: [{
+				id: "tool-read",
+				toolName: "read",
+				status: "passed",
+				input: "{\"path\":\"src/app.ts\"}",
+				output: "ok",
+				startedAt: 3,
+				durationMs: 1,
+				error: undefined,
+			}],
+		}));
+		const output = stripTerminalSequences(view.render(80).join("\n"));
+		expect(output.indexOf("파일 확인 · src/app.ts")).toBeLessThan(output.indexOf("read · PASSED"));
 	});
 });

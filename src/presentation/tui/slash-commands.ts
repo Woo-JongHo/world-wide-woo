@@ -17,6 +17,7 @@ export type ShellCommand =
 	| { type: "effort.set"; effort: Effort }
 	| { type: "usage.refresh" }
 	| { type: "status" }
+	| { type: "monitoring" }
 	| { type: "repository.commits" }
 	| { type: "repository.issues" }
 	| { type: "help" }
@@ -28,6 +29,7 @@ export type ShellCommandConcurrency = "local-read" | "async-read" | "mutation" |
 export function shellCommandConcurrency(command: ShellCommand): ShellCommandConcurrency {
 	switch (command.type) {
 		case "status":
+		case "monitoring":
 		case "help":
 			return "local-read";
 		case "usage.refresh":
@@ -85,6 +87,8 @@ export const SLASH_COMMANDS: SlashCommand[] = [
 	},
 	{ name: "usage", description: "Codex·Claude 사용량 즉시 갱신" },
 	{ name: "status", description: "현재 Router·인증·세션 상태" },
+	{ name: "monitor", description: "실시간 Session·Turn·Tool·Todo 관측" },
+	{ name: "dashboard", description: "Monitoring Dashboard 열기" },
 	{ name: "commits", description: "Git 작업 트리와 최근 Commit" },
 	{ name: "issues", description: "현재 저장소의 열린 GitHub Issue" },
 	{ name: "help", description: "WWW Shell 명령 안내" },
@@ -135,6 +139,7 @@ export function parseShellCommand(text: string, current: WwwSettings): ShellComm
 	}
 	if (name === "usage") return { type: "usage.refresh" };
 	if (name === "status") return { type: "status" };
+	if (name === "monitor" || name === "dashboard") return { type: "monitoring" };
 	if (name === "commits" || name === "commit") return { type: "repository.commits" };
 	if (name === "issues" || name === "issue") return { type: "repository.issues" };
 	if (name === "help") return { type: "help" };

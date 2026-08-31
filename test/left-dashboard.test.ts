@@ -17,6 +17,7 @@ const snapshot: SessionSnapshot = {
 	projectRoot: "/workspace/project",
 	activity: null,
 	tools: [],
+	narrations: [],
 };
 
 describe("WWW left welcome", () => {

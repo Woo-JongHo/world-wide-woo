@@ -207,12 +207,17 @@ describe("SessionRuntime", () => {
 		expect(runtime.snapshot.tools).toEqual([
 			expect.objectContaining({ id: "tool-read", toolName: "read", status: "passed" }),
 		]);
+		expect(runtime.snapshot.narrations).toEqual([
+			expect.objectContaining({ turnId: expect.any(String), toolCallId: "tool-read", label: "파일 확인 · src/app.ts" }),
+		]);
 		const events = await store.readAll("tool-test");
 		expect(events.map(event => event.type)).toEqual(expect.arrayContaining([
 			"command.started",
 			"command.output",
 			"command.completed",
 		]));
+		expect(events.findIndex(event => event.type === "narration.recorded"))
+			.toBeLessThan(events.findIndex(event => event.type === "command.started"));
 
 		const resumed = new SessionRuntime(
 			settings,
@@ -226,6 +231,53 @@ describe("SessionRuntime", () => {
 		expect(resumed.snapshot.tools).toEqual([
 			expect.objectContaining({ id: "tool-read", toolName: "read", status: "passed" }),
 		]);
+		expect(resumed.snapshot.narrations).toEqual(runtime.snapshot.narrations);
+	});
+
+	test("records safe narration labels only for attempted tools", async () => {
+		const faux = fauxProvider({
+			provider: "openai",
+			models: [{ id: "gpt-5.4", reasoning: true }],
+			tokensPerSecond: 100_000,
+		});
+		faux.setResponses([
+			fauxAssistantMessage([
+				fauxToolCall("read", { path: "src/app.ts" }, { id: "n-read" }),
+				fauxToolCall("search", { pattern: "SessionRuntime" }, { id: "n-search" }),
+				fauxToolCall("bash", { command: "git", args: ["status", "--token", '"secret-value"', "-H", "Authorization: Bearer bearer-secret-value"] }, { id: "n-bash" }),
+				fauxToolCall("unknown_tool", { token: "secret-value" }, { id: "n-unknown" }),
+			], { stopReason: "toolUse" }),
+			fauxAssistantMessage("완료"),
+		]);
+		const models = createModels();
+		models.setProvider(faux.provider);
+		const execute = async () => ({
+			modelContent: "ok",
+			isError: false,
+			snapshot: {
+				id: "adapter", toolName: "tool", status: "passed" as const, input: "", output: "",
+				startedAt: 1, durationMs: 1, error: undefined,
+			},
+		});
+		const tools: AgentTool[] = ["read", "search", "bash"].map(name => ({
+			definition: { name, description: name, parameters: Type.Object({}) },
+			execute,
+		}));
+		const store = new SessionEventStore(await mkdtemp(join(tmpdir(), "www-runtime-narration-")));
+		const runtime = new SessionRuntime(
+			settings, new ModelRouter(models), store, { cwd: "/workspace/project" }, "narration-labels", tools,
+		);
+		await runtime.initialize();
+		await runtime.submit("확인");
+
+		expect(runtime.snapshot.narrations.map(narration => narration.label)).toEqual([
+			"파일 확인 · src/app.ts",
+			"코드 검색 · SessionRuntime",
+			"명령 실행 · git status --token [REDACTED] -H Authorization: [REDACTED]",
+			"unknown_tool 실행",
+		]);
+		expect(JSON.stringify((await store.readAll("narration-labels")).filter(event => event.type === "narration.recorded")))
+			.not.toContain("secret-value");
 	});
 
 	test("retries a transient overloaded provider response before failing the turn", async () => {
@@ -316,6 +368,7 @@ describe("SessionRuntime", () => {
 			["tool-one", "cancelled"],
 			["tool-two", "cancelled"],
 		]);
+		expect(runtime.snapshot.narrations.map(narration => narration.toolCallId)).toEqual(["tool-one"]);
 		const terminal = (await store.readAll("multi-abort")).filter(event => event.type === "command.completed");
 		expect(terminal.map(event => event.itemId)).toEqual(["tool-one", "tool-two"]);
 	});
