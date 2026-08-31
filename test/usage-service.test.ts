@@ -88,4 +88,76 @@ describe("UsageService", () => {
 		expect(notifications).toBe(1);
 		expect(fetches).toBe(2);
 	});
+
+	test("classifies Claude 429 responses and suppresses polling during backoff", async () => {
+		let now = 1_000;
+		let fetches = 0;
+		const service = new UsageService(
+			store({ anthropic: oauth() }),
+			models,
+			async () => {
+				fetches++;
+				return new Response("", { status: 429, headers: { "retry-after": "120" } });
+			},
+			() => now,
+			async () => undefined,
+		);
+
+		const first = await service.refresh();
+		expect(first[1]).toMatchObject({
+			provider: "anthropic",
+			state: "error",
+			limits: [],
+			issue: { kind: "rate-limit", retryAt: 121_000 },
+		});
+		expect(fetches).toBe(3);
+
+		now += 30_000;
+		const second = await service.refresh();
+		expect(second[1]).toMatchObject({ state: "error", issue: { kind: "rate-limit" } });
+		expect(fetches).toBe(3);
+	});
+
+	test("keeps the last successful Claude limits visibly stale during a 429", async () => {
+		let now = 10_000;
+		let limited = false;
+		let fetches = 0;
+		const service = new UsageService(
+			store({ anthropic: oauth() }),
+			models,
+			async () => {
+				fetches++;
+				return limited
+					? new Response("", { status: 429 })
+					: response({ account_id: "account", email: "account@example.com", five_hour: { utilization: 25 }, seven_day: { utilization: 50 } });
+			},
+			() => now,
+			async () => undefined,
+		);
+
+		const ready = await service.refresh();
+		expect(ready[1]).toMatchObject({ state: "ready", fetchedAt: 10_000 });
+		expect(ready[1].stale).toBeUndefined();
+		now = 20_000;
+		expect((await service.refresh())[1]).toMatchObject({ state: "ready", fetchedAt: 10_000 });
+		expect(fetches).toBe(1);
+
+		limited = true;
+		now = 310_001;
+		const stale = await service.refresh();
+		expect(stale[1]).toMatchObject({
+			state: "ready",
+			stale: true,
+			fetchedAt: 10_000,
+			issue: { kind: "rate-limit" },
+			limits: expect.arrayContaining([expect.objectContaining({ remainingPercent: 75 })]),
+		});
+
+		limited = false;
+		now = 370_002;
+		const recovered = await service.refresh();
+		expect(recovered[1]).toMatchObject({ state: "ready", fetchedAt: 370_002 });
+		expect(recovered[1].stale).toBeUndefined();
+		expect(recovered[1].issue).toBeUndefined();
+	});
 });

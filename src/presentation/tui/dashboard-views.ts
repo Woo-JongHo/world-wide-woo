@@ -69,6 +69,16 @@ function compactLimitLabel(label: string): string {
 		.replace(/\s+\(([^)]+)\)/u, "·$1");
 }
 
+function usageIssueLabel(snapshot: UsageSnapshot): string {
+	if (!snapshot.issue) return "";
+	const retry = snapshot.issue.retryAt ? compactReset(snapshot.issue.retryAt) : "";
+	const suffix = retry ? `(${retry})` : "";
+	if (snapshot.issue.kind === "rate-limit") return `요청 제한${suffix}`;
+	if (snapshot.issue.kind === "authentication") return "인증 갱신 필요";
+	if (snapshot.issue.kind === "network") return `네트워크 오류${suffix}`;
+	return `Provider 오류${suffix}`;
+}
+
 export class UsageStripView implements Component {
 	private snapshots: readonly UsageSnapshot[] = [
 		{ provider: "openai-codex", state: "loading", fetchedAt: Date.now(), limits: [] },
@@ -82,11 +92,15 @@ export class UsageStripView implements Component {
 	render(width: number): string[] {
 		return ["openai-codex", "anthropic"].map((provider) => {
 			const snapshot = this.snapshots.find((item) => item.provider === provider);
-			const label = provider === "openai-codex" ? colors.highlight("Codex") : colors.warm("Claude");
+			const providerLabel = provider === "openai-codex" ? colors.highlight("Codex") : colors.warm("Claude");
+			const label = snapshot?.stale ? `${providerLabel}${colors.warning("*")}` : providerLabel;
 			if (!snapshot || snapshot.state === "loading") return fit(`${label}  ${colors.muted("확인 중…")}`, width);
 			if (snapshot.state === "auth-required") return fit(`${label}  ${colors.warning("로그인 필요")} ${colors.muted(`(/login ${provider})`)}`, width);
 			if (snapshot.state === "unsupported") return fit(`${label}  ${colors.muted("OAuth 사용량 미지원")}`, width);
-			if (snapshot.state === "error") return fit(`${label}  ${colors.error("조회 실패")} ${colors.muted("· 자동 재시도")}`, width);
+			if (snapshot.state === "error") {
+				const issue = usageIssueLabel(snapshot);
+				return fit(`${label}  ${colors.error(issue || "조회 실패")} ${colors.muted("· 자동 재시도")}`, width);
+			}
 			const limits = snapshot.limits.slice(0, 4).map((limit) => {
 				const remaining = limit.remainingPercent;
 				if (remaining === undefined) return compactLimitLabel(limit.label);
@@ -94,7 +108,9 @@ export class UsageStripView implements Component {
 				const reset = compactReset(limit.resetsAt);
 				return `${colors.muted(`${compactLimitLabel(limit.label)}:`)}${color(`${remaining.toFixed(0)}%남음`)}${reset ? colors.muted(`(${reset})`) : ""}`;
 			});
-			return fit(`${label}  ${limits.join(colors.muted(" · ")) || colors.muted("제한 정보 없음")}`, width);
+			const issue = usageIssueLabel(snapshot);
+			const issueSuffix = issue ? `${colors.muted(" · ")}${colors.warning(issue)}` : "";
+			return fit(`${label}  ${limits.join(colors.muted(" · ")) || colors.muted("제한 정보 없음")}${issueSuffix}`, width);
 		});
 	}
 }

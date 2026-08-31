@@ -38,6 +38,12 @@ export interface AuthController {
 
 export type UsageProviderId = "openai-codex" | "anthropic";
 export type UsageState = "loading" | "ready" | "auth-required" | "unsupported" | "error";
+export type UsageIssueKind = "rate-limit" | "authentication" | "network" | "provider";
+
+export interface UsageIssue {
+	kind: UsageIssueKind;
+	retryAt?: number;
+}
 
 export interface UsageLimitSnapshot {
 	label: string;
@@ -52,6 +58,8 @@ export interface UsageSnapshot {
 	state: UsageState;
 	fetchedAt: number;
 	limits: UsageLimitSnapshot[];
+	stale?: boolean;
+	issue?: UsageIssue;
 }
 
 export interface UsageMonitor {
