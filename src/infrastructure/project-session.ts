@@ -10,6 +10,7 @@ import { FileProjectWorkspace, type ProjectWorkspace } from "./project-workspace
 import { SessionEventStore } from "./session-store";
 import { FileTodoStore, migrateLegacyTodo } from "./todo-store";
 import { FilePlanningStore } from "./planning-store";
+import { LocalTerminalCommandExecutor } from "./terminal-command-executor";
 
 export interface ProjectSessionBundle {
 	workspace: ProjectWorkspace;
@@ -54,6 +55,7 @@ export async function createProjectSession(
 			tools,
 			todos,
 			planningSnapshot,
+			new LocalTerminalCommandExecutor(),
 		);
 		await runtime.initialize({ resume: requestedSessionId !== undefined });
 		const monitor = new SessionMonitor(runtime, todos);

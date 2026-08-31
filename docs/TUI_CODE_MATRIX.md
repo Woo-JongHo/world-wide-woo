@@ -155,6 +155,7 @@
 | Output | `output.ts`, `narration.ts` | `SessionRuntime` event projection | `agent-tools.ts` | truthful narration, `BashResultCard`, `CompletionSummaryCard` |
 | Monitoring | `monitoring.ts` | `SessionMonitor` | Session/Todo 정본 재사용 | `MonitoringOverlay`, `/monitor`, `/dashboard` |
 | Planning | `planning.ts` | `PlanningService` | `planning-store.ts`, project-local catalog/artifacts | `/planning`, `/epic`, `/story` |
+| Direct terminal | `terminal.ts`, `output.ts` | `TerminalCommandExecutor`, `SessionRuntime` lifecycle | restricted env, non-interactive process group executor | `!<command>` is explicit user authority, never an Agent auto-tool |
 | Commit/Issue | `repository.ts` | `RepositoryInsights` | `repository-insights.ts` | `repository-overlays.ts`, `/commits`, `/issues` |
 | Markdown | assistant text item | render scheduling boundary | native syntax package adapter | `syntax-highlighter.ts`, `render-scheduler.ts`, theme |
 | Layout | 없음 | 없음 | 없음 | `dashboard-layout.ts`, `OverlaySheet`, `app-shell.ts` |

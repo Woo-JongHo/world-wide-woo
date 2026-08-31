@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
 	parseShellCommand,
+	parseTerminalCommand,
 	shellCommandConcurrency,
 	SLASH_COMMANDS,
 } from "../src/presentation/tui/slash-commands";
@@ -64,6 +65,13 @@ describe("WWW slash commands", () => {
 		expect(parseShellCommand("/model fake/nope", current)).toMatchObject({ type: "error" });
 		expect(parseShellCommand("/epic missing separator", current)).toMatchObject({ type: "error" });
 		expect(parseShellCommand("/story EP-010 missing acceptance", current)).toMatchObject({ type: "error" });
+	});
+
+	test("extracts explicit bang commands without treating ordinary messages as shell", () => {
+		expect(parseTerminalCommand("!git status --short")).toBe("git status --short");
+		expect(parseTerminalCommand("  ! printf 'hello' | wc -c  ")).toBe("printf 'hello' | wc -c");
+		expect(parseTerminalCommand("!")).toBe("");
+		expect(parseTerminalCommand("terminal 설명")).toBeNull();
 	});
 
 	test("advertises every supported command for editor completion", () => {

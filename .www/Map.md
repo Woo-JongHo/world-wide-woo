@@ -23,6 +23,7 @@ Read-only overlay:
 - `/monitor`, `/dashboard` — Session·Turn·Tool·Todo monitoring
 - `/planning` — Project Planning catalog 상태
 - `/epic`, `/story` — 명시적 drafted Planning artifact 저장
+- `!<command>` — 현재 cwd에서 사용자 명시적 non-interactive terminal 실행
 - `/commits` — Git 작업 트리와 최근 Commit
 - `/issues` — 열린 GitHub Issue
 - `/model`, `/login` — Router와 인증 설정

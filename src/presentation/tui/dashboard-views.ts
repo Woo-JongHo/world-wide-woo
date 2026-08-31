@@ -43,7 +43,7 @@ function surfaceRows(rows: readonly string[], width: number, surface: (text: str
 }
 
 export class StatusLine implements Component {
-	private notice = "/ 명령 · /model 모델 · /usage 사용량 · Ctrl+C 두 번 또는 Ctrl+D 종료";
+	private notice = "/ 명령 · ! 터미널 · /model 모델 · /usage 사용량 · Ctrl+C 두 번 또는 Ctrl+D 종료";
 	setNotice(notice: string): void {
 		this.notice = notice;
 	}
@@ -201,12 +201,18 @@ function transcriptProjectionKey(snapshot: SessionSnapshot): string {
 	].join("|");
 }
 
+type TranscriptEntry =
+	| { kind: "turn"; timestamp: number; turn: SessionSnapshot["turns"][number] }
+	| { kind: "tool"; timestamp: number; tool: SessionSnapshot["tools"][number] }
+	| { kind: "narration"; timestamp: number; narration: SessionSnapshot["narrations"][number] };
+
 export class TranscriptView implements Component {
 	private snapshot: SessionSnapshot;
 	private readonly markdownByTurn = new Map<string, Markdown>();
 	private readonly draft = new Markdown("", 0, 0, markdownTheme);
 	private projectionKey = "";
 	private readonly stableRowsByWidth = new Map<number, string[]>();
+	private readonly entryRowsByWidth = new Map<number, Map<string, { key: string; rows: string[] }>>();
 
 	constructor(initial: SessionSnapshot) {
 		this.snapshot = initial;
@@ -232,6 +238,7 @@ export class TranscriptView implements Component {
 		for (const markdown of this.markdownByTurn.values()) markdown.invalidate();
 		this.draft.invalidate();
 		this.stableRowsByWidth.clear();
+		this.entryRowsByWidth.clear();
 	}
 
 	render(width: number): string[] {
@@ -239,7 +246,7 @@ export class TranscriptView implements Component {
 		const stable = this.stableRows(contentWidth);
 		if (this.snapshot.phase !== "streaming" && !this.snapshot.error) return stable;
 		const rows = [...stable];
-		if (this.snapshot.phase === "streaming") {
+		if (this.snapshot.phase === "streaming" && !this.snapshot.activity?.label.startsWith("Terminal")) {
 			const frame = ACTIVITY_FRAMES[Math.floor(performance.now() / 80) % ACTIVITY_FRAMES.length];
 			const activity = this.snapshot.activity?.label ?? "응답 준비 중";
 			rows.push(...surfaceRows([
@@ -261,7 +268,10 @@ export class TranscriptView implements Component {
 		this.stableRowsByWidth.set(contentWidth, rows);
 		if (this.stableRowsByWidth.size > 2) {
 			const oldest = this.stableRowsByWidth.keys().next().value;
-			if (oldest !== undefined) this.stableRowsByWidth.delete(oldest);
+			if (oldest !== undefined) {
+				this.stableRowsByWidth.delete(oldest);
+				this.entryRowsByWidth.delete(oldest);
+			}
 		}
 		return rows;
 	}
@@ -271,7 +281,7 @@ export class TranscriptView implements Component {
 			return this.renderWelcome(contentWidth);
 		}
 		const rows: string[] = [];
-		const entries = [
+		const entries: TranscriptEntry[] = [
 			...this.snapshot.turns.map(turn => ({ kind: "turn" as const, timestamp: turn.timestamp, turn })),
 			...this.snapshot.tools.map(tool => ({ kind: "tool" as const, timestamp: tool.startedAt ?? 0, tool })),
 			...this.snapshot.narrations.map(narration => ({
@@ -281,35 +291,63 @@ export class TranscriptView implements Component {
 			})),
 		].sort((left, right) => left.timestamp - right.timestamp);
 		for (const entry of entries) {
-			if (entry.kind === "narration") {
-				rows.push(...surfaceRows([
-					`${semantic.assistantLabel("WWW")}  ${semantic.narration(`• ${entry.narration.label}`)}`,
-				], contentWidth, semantic.assistantSurface), "");
-				continue;
-			}
-			if (entry.kind === "tool") {
-				const card = "shell" in entry.tool
-					? new BashResultCard(entry.tool)
-					: new GenericToolResultCard(entry.tool);
-				rows.push(...card.render(contentWidth), "");
-				continue;
-			}
-			const { turn } = entry;
-			if (turn.role === "user") {
-				rows.push(...surfaceRows([
-					semantic.userLabel("사용자"),
-					...wrapTextWithAnsi(turn.content, contentWidth),
-				], contentWidth, semantic.userSurface), "");
-				continue;
-			}
-			const assistantRows = [turn.outcome === "cancelled"
-				? `${semantic.assistantLabel("WWW")}  ${semantic.toolCancelled("중단됨")}`
-				: semantic.assistantLabel("WWW")];
-			const markdown = this.markdownByTurn.get(turn.id);
-			if (markdown) assistantRows.push(...markdown.render(contentWidth));
-			rows.push(...surfaceRows(assistantRows, contentWidth, semantic.assistantSurface), "");
+			rows.push(...this.entryRows(entry, contentWidth), "");
 		}
 		return rows;
+	}
+
+	private entryRows(entry: TranscriptEntry, contentWidth: number): string[] {
+		let widthCache = this.entryRowsByWidth.get(contentWidth);
+		if (!widthCache) {
+			widthCache = new Map();
+			this.entryRowsByWidth.set(contentWidth, widthCache);
+		}
+		const id = entry.kind === "turn"
+			? `turn:${entry.turn.id}`
+			: entry.kind === "tool"
+				? `tool:${entry.tool.id}`
+				: `narration:${entry.narration.id}`;
+		const key = entry.kind === "turn"
+			? `${entry.turn.outcome ?? ""}:${entry.turn.content.length}`
+			: entry.kind === "tool"
+				? `${entry.tool.status}:${entry.tool.durationMs ?? ""}:${
+					"shell" in entry.tool
+						? `${entry.tool.stdout.length}:${entry.tool.stderr.length}`
+						: `${entry.tool.output.length}:${entry.tool.error?.length ?? 0}`
+				}`
+				: entry.narration.label;
+		const cached = widthCache.get(id);
+		if (cached?.key === key) return cached.rows;
+		const rows = this.renderEntry(entry, contentWidth);
+		widthCache.set(id, { key, rows });
+		return rows;
+	}
+
+	private renderEntry(entry: TranscriptEntry, contentWidth: number): string[] {
+		if (entry.kind === "narration") {
+			return surfaceRows([
+				`${semantic.assistantLabel("WWW")}  ${semantic.narration(`• ${entry.narration.label}`)}`,
+			], contentWidth, semantic.assistantSurface);
+		}
+		if (entry.kind === "tool") {
+			const card = "shell" in entry.tool
+				? new BashResultCard(entry.tool)
+				: new GenericToolResultCard(entry.tool);
+			return card.render(contentWidth);
+		}
+		const { turn } = entry;
+		if (turn.role === "user") {
+			return surfaceRows([
+				semantic.userLabel("사용자"),
+				...wrapTextWithAnsi(turn.content, contentWidth),
+			], contentWidth, semantic.userSurface);
+		}
+		const assistantRows = [turn.outcome === "cancelled"
+			? `${semantic.assistantLabel("WWW")}  ${semantic.toolCancelled("중단됨")}`
+			: semantic.assistantLabel("WWW")];
+		const markdown = this.markdownByTurn.get(turn.id);
+		if (markdown) assistantRows.push(...markdown.render(contentWidth));
+		return surfaceRows(assistantRows, contentWidth, semantic.assistantSurface);
 	}
 
 	private pill(text: string, color: (value: string) => string): string {

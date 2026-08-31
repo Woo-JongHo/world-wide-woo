@@ -35,6 +35,7 @@
 - [x] ST-001-21 `/issues`에서 현재 저장소의 열린 GitHub Issue를 조회한다.
 - [x] ST-001-22 프로젝트 단일 `.www/Todo.md`와 Workspace 실시간 진행률을 제공한다.
 - [x] ST-001-23 Workspace Pane에는 현재 Todo만 표시하고 project metadata는 `/status`로 분리한다.
+- [x] ST-001-24 `!<command>`로 사용자 명시적 non-interactive terminal 명령을 현재 cwd에서 실행한다.
 
 ## EP-002 — 출력 계약
 

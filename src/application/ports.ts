@@ -10,6 +10,7 @@ import type { SessionEvent, SessionEventInput } from "../domain/session-events";
 import type { Provider, WwwSettings } from "../domain/model-settings";
 import type { CommitSummary, IssueState, IssueSummary, RepositorySnapshot } from "../domain/repository";
 import type { ToolResultSnapshot } from "../domain/output";
+import type { TerminalCommandResult, TerminalCommandUpdate } from "../domain/terminal";
 import type { TodoDocument } from "../domain/todos";
 
 export interface ModelAuthStatus {
@@ -32,6 +33,16 @@ export interface AgentToolExecution {
 export interface AgentTool {
 	readonly definition: Tool;
 	execute(arguments_: Record<string, unknown>, signal: AbortSignal): Promise<AgentToolExecution>;
+}
+
+/** Executes a command explicitly submitted by the user, outside the agent tool surface. */
+export interface TerminalCommandExecutor {
+	execute(
+		command: string,
+		cwd: string,
+		signal: AbortSignal,
+		onUpdate: (update: TerminalCommandUpdate) => void,
+	): Promise<TerminalCommandResult>;
 }
 
 export interface TodoStore {

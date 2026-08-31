@@ -30,7 +30,7 @@ export function sanitizePlanningText(value: string, maximumCodePoints: number): 
 		.replace(/<!--[\s\S]*?-->/g, "")
 		.replace(/[\x00-\x1F\x7F-\x9F]/g, " ")
 		.replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, "Bearer [redacted]")
-		.replace(/\b(?:authorization|api[_-]?key|access[_-]?token|token|secret|password|credential)\b\s*(?:=|:)\s*(?:"[^"]*"|'[^']*'|[^\s,;]+)/gi, "[redacted]")
+		.replace(/\b(?:authorization|api[_-]?key|access[_-]?token|token|secret|password|credential)\b\s*(?:=|:)\s*(?:"[^"]*"|'[^']*'|[^\s,;"']+)/gi, "[redacted]")
 		.replace(/\bsk-[A-Za-z0-9_-]{8,}\b/g, "[redacted]")
 		.replace(/\b(?:gh[pousr]_[A-Za-z0-9_]{8,}|github_pat_[A-Za-z0-9_]{8,})\b/g, "[redacted]")
 		.replace(/\bAIza[A-Za-z0-9_-]{20,}\b/g, "[redacted]")

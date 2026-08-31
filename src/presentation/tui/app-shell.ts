@@ -22,6 +22,7 @@ import type { SessionMonitor } from "../../application/session-monitor";
 import type { PlanningService } from "../../application/planning-service";
 import { MODELS, type WwwSettings } from "../../domain/model-settings";
 import { todoProgress } from "../../domain/todos";
+import { sanitizeTerminalText } from "../../domain/terminal";
 import { AuthFlowOverlay } from "./auth-overlay";
 import { createDashboardLayout } from "./dashboard-layout";
 import {
@@ -37,7 +38,7 @@ import { LoginProviderOverlay } from "./router-overlays";
 import { ModelPickerOverlay } from "./model-picker-overlay";
 import { MonitoringOverlay } from "./monitoring-overlay";
 import { RenderScheduler } from "./render-scheduler";
-import { parseShellCommand, shellCommandConcurrency, SLASH_COMMANDS } from "./slash-commands";
+import { parseShellCommand, parseTerminalCommand, shellCommandConcurrency, SLASH_COMMANDS } from "./slash-commands";
 import { colors, editorTheme } from "./theme";
 import { ExitKeyPolicy } from "./exit-key-policy";
 
@@ -77,7 +78,9 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 	const transcript = new TranscriptView(snapshot);
 	const dashboard = createDashboardLayout(
 		() => `🐙 WWW · ${snapshot.settings.provider}/${snapshot.settings.model} · ${
-			snapshot.phase === "streaming" ? "응답 중" : snapshot.auth?.configured ? "준비됨" : "인증 필요"
+			snapshot.phase === "streaming"
+				? snapshot.activity?.label.startsWith("Terminal") ? "명령 실행 중" : "응답 중"
+				: snapshot.auth?.configured ? "준비됨" : "인증 필요"
 		}${todoSnapshot ? ` · TODO ${todoProgress(todoSnapshot).completed}/${todoSnapshot.items.length}` : ""}`,
 		{ title: "대화 · 작업", color: colors.accent, component: transcript },
 		{ title: "Router · 모델", color: colors.secondary, component: routerModel },
@@ -129,7 +132,7 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 		return true;
 	};
 	const updateRouterSettings = async (next: WwwSettings): Promise<void> => {
-		if (snapshot.phase === "streaming") throw new Error("응답 중에는 모델 설정을 적용할 수 없습니다.");
+		if (snapshot.phase === "streaming") throw new Error("작업 중에는 모델 설정을 적용할 수 없습니다.");
 		if (settingsMutationInFlight) throw new Error("다른 모델 설정을 적용하는 중입니다.");
 		settingsMutationInFlight = true;
 		try {
@@ -162,7 +165,7 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 			},
 			next => {
 				if (snapshot.phase === "streaming") {
-					status.setNotice("응답 중에는 로그인을 시작할 수 없습니다. 선택 내용은 모델 화면에 유지됩니다.");
+					status.setNotice("작업 중에는 로그인을 시작할 수 없습니다. 선택 내용은 모델 화면에 유지됩니다.");
 					tui.requestRender();
 					return;
 				}
@@ -285,7 +288,7 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 		if (!command) return;
 		const concurrency = shellCommandConcurrency(command);
 		if (snapshot.phase === "streaming" && concurrency === "mutation" && command.type !== "model.select") {
-			status.setNotice("응답 중에는 설정을 변경할 수 없습니다. 조회 명령과 /exit는 계속 사용할 수 있습니다.");
+			status.setNotice("작업 중에는 설정을 변경할 수 없습니다. 조회 명령과 /exit는 계속 사용할 수 있습니다.");
 			tui.requestRender();
 			return;
 		}
@@ -293,7 +296,7 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 		if (command.type === "model.set") {
 			const authState = await auth.status(command.settings.provider);
 			if (snapshot.phase === "streaming") {
-				status.setNotice("응답이 시작되어 모델 변경을 취소했습니다.");
+				status.setNotice("다른 작업이 시작되어 모델 변경을 취소했습니다.");
 				tui.requestRender();
 				return;
 			}
@@ -326,14 +329,14 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 		}
 		if (command.type === "usage.refresh") {
 			if (snapshot.phase === "streaming") {
-				status.setNotice("응답 중에는 현재 표시된 사용량 캐시를 유지합니다.");
+				status.setNotice("작업 중에는 현재 표시된 사용량 캐시를 유지합니다.");
 			} else {
 				usageStrip.update(await usage.refresh());
 				status.setNotice("Codex·Claude 사용량을 갱신했습니다.");
 			}
 		}
 		if (command.type === "help") {
-			status.setNotice("/model · /login · /usage · /monitor · /planning · /epic · /story · /commits · /issues · /status · /exit");
+			status.setNotice("!<command> · /model · /login · /usage · /monitor · /planning · /epic · /story · /commits · /issues · /status · /exit");
 		}
 		if (command.type === "status") {
 			status.setNotice(
@@ -426,6 +429,33 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 	editor.onSubmit = (text) => {
 		if (shuttingDown) return;
 		if (!text.trim()) return;
+		const terminalCommand = parseTerminalCommand(text);
+		if (terminalCommand !== null) {
+			editor.addToHistory(`!${sanitizeTerminalText(terminalCommand, 8_192)}`);
+			if (!terminalCommand) {
+				editor.setText(text);
+				status.setNotice("사용법: !<terminal command> · non-interactive 현재 cwd 실행");
+				tui.requestRender();
+				return;
+			}
+			if (snapshot.phase === "streaming" || settingsMutationInFlight) {
+				editor.setText(text);
+				status.setNotice("현재 작업이 끝난 뒤 terminal 명령을 실행하세요.");
+				tui.requestRender();
+				return;
+			}
+			const turnsBefore = runtime.snapshot.turns.length;
+			status.setNotice("Terminal 명령을 실행 중입니다. Ctrl+C로 중단할 수 있습니다.");
+			void runtime.runTerminalCommand(terminalCommand)
+				.then(() => composerDraft.clear().catch(() => undefined))
+				.catch(error => {
+					if (runtime.snapshot.turns.length === turnsBefore) editor.setText(text);
+					else void composerDraft.clear().catch(() => undefined);
+					status.setNotice(error instanceof Error ? error.message : String(error));
+				})
+				.finally(() => tui.requestRender());
+			return;
+		}
 		editor.addToHistory(text);
 		if (text.trim().startsWith("/")) {
 			void handleShellCommand(text).catch((error) => {
@@ -436,7 +466,7 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 		}
 		if (snapshot.phase === "streaming") {
 			editor.setText(text);
-			status.setNotice("현재 응답이 끝난 뒤 메시지를 전송하세요. 조회 명령은 계속 사용할 수 있습니다.");
+			status.setNotice("현재 작업이 끝난 뒤 메시지를 전송하세요. 조회 명령은 계속 사용할 수 있습니다.");
 			tui.requestRender();
 			return;
 		}
@@ -460,17 +490,22 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 	unsubscribeRuntime = runtime.subscribe((next) => {
 		const previousPhase = snapshot.phase;
 		snapshot = next;
-		if (next.phase === "streaming" && !activityTimer) {
+		const animatedActivity = next.phase === "streaming" && !next.activity?.label.startsWith("Terminal");
+		if (animatedActivity && !activityTimer) {
 			activityTimer = setInterval(() => tui.requestRender(), 80);
 		}
-		if (next.phase !== "streaming" && activityTimer) {
+		if (!animatedActivity && activityTimer) {
 			clearInterval(activityTimer);
 			activityTimer = undefined;
 		}
 		if (next.phase !== previousPhase) {
-			if (next.phase === "streaming") status.setNotice("모델이 응답 중입니다. 다음 입력은 작성할 수 있고 Esc로 중단합니다.");
+			if (next.phase === "streaming") {
+				status.setNotice(next.activity?.label.startsWith("Terminal")
+					? "Terminal 명령을 실행 중입니다. Ctrl+C로 중단할 수 있습니다."
+					: "모델이 응답 중입니다. 다음 입력은 작성할 수 있고 Esc로 중단합니다.");
+			}
 			if (next.phase === "error") status.setNotice("응답에 실패했습니다. 오류를 확인한 뒤 다시 전송하세요.");
-			if (next.phase === "ready") status.setNotice("/ 명령 · /model 모델 · /usage 사용량 · Ctrl+C 두 번 또는 Ctrl+D 종료");
+			if (next.phase === "ready") status.setNotice("/ 명령 · ! 터미널 · /model 모델 · /usage 사용량 · Ctrl+C 두 번 또는 Ctrl+D 종료");
 		}
 		transcriptRenders.request(next.phase === "streaming" ? "streaming" : "immediate");
 	});
@@ -512,7 +547,7 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 		if (overlay) return undefined;
 		if (matchesKey(data, Key.ctrl("o"))) {
 			if (snapshot.phase === "streaming") {
-				status.setNotice("응답 중에는 로그인을 시작할 수 없습니다.");
+				status.setNotice("작업 중에는 로그인을 시작할 수 없습니다.");
 				tui.requestRender();
 				return { consume: true };
 			}
@@ -546,7 +581,7 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 			}
 			if (action === "abort") {
 				runtime.abort();
-				status.setNotice("현재 응답을 중단합니다. 500ms 안에 Ctrl+C를 다시 누르면 종료합니다.");
+				status.setNotice("현재 작업을 중단합니다. 500ms 안에 Ctrl+C를 다시 누르면 종료합니다.");
 				tui.requestRender();
 				return { consume: true };
 			}

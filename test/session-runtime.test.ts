@@ -9,11 +9,12 @@ import type { WwwSettings } from "../src/domain/model-settings";
 import { ModelRouter } from "../src/infrastructure/model-router";
 import { SessionRuntime } from "../src/application/session-runtime";
 import { SessionEventStore } from "../src/infrastructure/session-store";
-import type { AgentTool, ModelClient } from "../src/application/ports";
+import type { AgentTool, ModelClient, TerminalCommandExecutor } from "../src/application/ports";
 import { TodoLedger } from "../src/application/todo-ledger";
 import { createProjectAgentTools } from "../src/infrastructure/agent-tools";
 import { FileTodoStore } from "../src/infrastructure/todo-store";
 import { createPlanningSnapshot } from "../src/domain/planning";
+import type { TerminalCommandResult } from "../src/domain/terminal";
 
 const settings: WwwSettings = { provider: "openai", model: "gpt-5.4", effort: "high" };
 
@@ -25,6 +26,27 @@ async function runtimeWithResponse(response: string) {
 	const directory = await mkdtemp(join(tmpdir(), "www-runtime-"));
 	const store = new SessionEventStore(directory);
 	return { runtime: new SessionRuntime(settings, new ModelRouter(models), store, { cwd: "/workspace/project" }, "session-test"), store };
+}
+
+async function runtimeWithTerminal(executor: TerminalCommandExecutor, sessionId = "terminal-session") {
+	const faux = fauxProvider({ provider: "openai", models: [{ id: "gpt-5.4", reasoning: true }] });
+	const models = createModels();
+	models.setProvider(faux.provider);
+	const router = new ModelRouter(models);
+	const directory = await mkdtemp(join(tmpdir(), "www-runtime-terminal-"));
+	const store = new SessionEventStore(directory);
+	const runtime = new SessionRuntime(
+		settings,
+		router,
+		store,
+		{ cwd: "/workspace/project" },
+		sessionId,
+		[],
+		undefined,
+		null,
+		executor,
+	);
+	return { runtime, store, router };
 }
 
 describe("SessionRuntime", () => {
@@ -125,6 +147,90 @@ describe("SessionRuntime", () => {
 		await expect(runtime.submit("두 번째 질문")).rejects.toThrow("이미 모델 응답을 처리하고 있습니다.");
 		await first;
 		expect(runtime.snapshot.turns).toHaveLength(2);
+	});
+
+	test("records an explicit bang command outside the model with display-safe output", async () => {
+		const executor: TerminalCommandExecutor = {
+			async execute(_command, _cwd, _signal, onUpdate): Promise<TerminalCommandResult> {
+				onUpdate({ stdout: "first line\n", stderr: "" });
+				onUpdate({ stdout: "first line\ntoken=secret-value\n", stderr: "" });
+				return {
+					stdout: "first line\ntoken=secret-value\n",
+					stderr: "",
+					exitCode: 0,
+					durationMs: 4,
+					cancelled: false,
+					timedOut: false,
+				};
+			},
+		};
+		const { runtime, store, router } = await runtimeWithTerminal(executor);
+		await runtime.initialize();
+		await runtime.runTerminalCommand("printf token=secret-value");
+		expect(runtime.snapshot.phase).toBe("ready");
+		expect(runtime.snapshot.turns).toEqual([
+			expect.objectContaining({ role: "user", content: "!printf token=[redacted]" }),
+		]);
+		expect(runtime.snapshot.tools).toEqual([
+			expect.objectContaining({
+				shell: "bash",
+				command: "printf token=[redacted]",
+				status: "passed",
+				stdout: "first line\ntoken=[redacted]\n",
+				exitCode: 0,
+			}),
+		]);
+		expect(runtime.snapshot.narrations[0]?.label).toBe("명령 실행 · printf token=[REDACTED]");
+		const events = await store.readAll("terminal-session");
+		expect(events.map(event => event.type)).toEqual([
+			"session.started",
+			"turn.started",
+			"message.user",
+			"narration.recorded",
+			"command.started",
+			"command.output",
+			"command.completed",
+			"turn.completed",
+		]);
+		expect(JSON.stringify(events)).not.toContain("secret-value");
+		expect((runtime as unknown as { context: { messages: unknown[] } }).context.messages).toEqual([]);
+		const restored = new SessionRuntime(
+			settings,
+			router,
+			store,
+			{ cwd: "/workspace/project" },
+			"terminal-session",
+			[],
+			undefined,
+			null,
+			executor,
+		);
+		await restored.initialize({ resume: true });
+		expect(restored.snapshot.turns[0]?.content).toBe("!printf token=[redacted]");
+		expect((restored as unknown as { context: { messages: unknown[] } }).context.messages).toEqual([]);
+	});
+
+	test("cancels an active terminal command and returns the session to ready", async () => {
+		const executor: TerminalCommandExecutor = {
+			execute(_command, _cwd, signal): Promise<TerminalCommandResult> {
+				return new Promise(resolve => signal.addEventListener("abort", () => resolve({
+					stdout: "",
+					stderr: "",
+					exitCode: null,
+					durationMs: 1,
+					cancelled: true,
+					timedOut: false,
+				}), { once: true }));
+			},
+		};
+		const { runtime } = await runtimeWithTerminal(executor, "terminal-cancel");
+		await runtime.initialize();
+		const command = runtime.runTerminalCommand("sleep 30");
+		await Bun.sleep(1);
+		expect(runtime.abort()).toBe(true);
+		await command;
+		expect(runtime.snapshot.phase).toBe("ready");
+		expect(runtime.snapshot.tools[0]).toMatchObject({ status: "cancelled", exitCode: undefined });
 	});
 
 	test("commits a cancelled assistant item without polluting model context", async () => {

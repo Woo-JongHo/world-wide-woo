@@ -184,3 +184,9 @@ export function parseShellCommand(text: string, current: WwwSettings): ShellComm
 	if (name === "exit" || name === "quit") return { type: "exit" };
 	return { type: "error", message: `알 수 없는 명령입니다: /${name}` };
 }
+
+export function parseTerminalCommand(text: string): string | null {
+	const trimmed = text.trimStart();
+	if (!trimmed.startsWith("!")) return null;
+	return trimmed.slice(1).trim();
+}
