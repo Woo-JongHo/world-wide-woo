@@ -11,6 +11,7 @@ import {
 } from "@earendil-works/pi-tui";
 import type {
 	AuthController,
+	ComposerDraftController,
 	RecentSessionSummary,
 	RepositoryInsights,
 	RouterSettingsController,
@@ -29,10 +30,23 @@ import {
 } from "./dashboard-views";
 import { OverlaySheet } from "./overlay-sheet";
 import { IssueListOverlay, RepositoryActivityOverlay } from "./repository-overlays";
-import { LoginProviderOverlay, ModelSettingsOverlay } from "./router-overlays";
+import { LoginProviderOverlay } from "./router-overlays";
+import { ModelPickerOverlay } from "./model-picker-overlay";
 import { RenderScheduler } from "./render-scheduler";
-import { parseShellCommand, SLASH_COMMANDS } from "./slash-commands";
+import { parseShellCommand, shellCommandConcurrency, SLASH_COMMANDS } from "./slash-commands";
 import { colors, editorTheme } from "./theme";
+import { ExitKeyPolicy } from "./exit-key-policy";
+
+async function settleWithin(operation: Promise<unknown>, timeoutMs: number): Promise<boolean> {
+	let timer: ReturnType<typeof setTimeout> | undefined;
+	const timeout = new Promise<false>((resolve) => {
+		timer = setTimeout(() => resolve(false), timeoutMs);
+	});
+	const completed = operation.then(() => true as const, () => true as const);
+	const result = await Promise.race([completed, timeout]);
+	if (timer) clearTimeout(timer);
+	return result;
+}
 
 export interface TuiShellDependencies {
 	runtime: SessionRuntime;
@@ -41,10 +55,11 @@ export interface TuiShellDependencies {
 	recentSessions: readonly RecentSessionSummary[];
 	routerSettings: RouterSettingsController;
 	repository: RepositoryInsights;
+	composerDraft: ComposerDraftController;
 }
 
 export function runTuiShell(dependencies: TuiShellDependencies): void {
-	const { runtime, auth, usage, recentSessions, routerSettings, repository } = dependencies;
+	const { runtime, auth, usage, recentSessions, routerSettings, repository, composerDraft } = dependencies;
 	const tui = new TuiAltScreen(new ProcessTerminal(), true);
 	let snapshot = runtime.snapshot;
 	const status = new StatusLine();
@@ -62,6 +77,7 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 	);
 	const editor = new Editor(tui, editorTheme, { paddingX: 1, autocompleteMaxVisible: 5 });
 	editor.setAutocompleteProvider(new CombinedAutocompleteProvider(SLASH_COMMANDS, process.cwd()));
+	if (composerDraft.initialText) editor.setText(composerDraft.initialText);
 	const root = new VStack([
 		{ component: dashboard.component, basis: 0, grow: 1, shrink: 1, minSize: 1 },
 		{ component: usageStrip, basis: 2, minSize: 2, maxSize: 2 },
@@ -71,6 +87,13 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 
 	let overlay: OverlayHandle | null = null;
 	let shuttingDown = false;
+	let pendingModelSettings: WwwSettings | null = null;
+	let clearedExitDraft: string | null = null;
+	let clearedExitDraftTimer: ReturnType<typeof setTimeout> | undefined;
+	let overlayHandlesInterrupt = false;
+	let overlayMutationLocked = false;
+	let settingsMutationInFlight = false;
+	const exitKeys = new ExitKeyPolicy();
 	let unsubscribeRuntime = () => {};
 	const transcriptRenders = new RenderScheduler(() => {
 		transcript.update(snapshot);
@@ -80,56 +103,129 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 		usageStrip.update(snapshots);
 		tui.requestRender();
 	});
-	const closeOverlay = () => {
-		overlay?.hide();
+	const closeOverlay = (expected: OverlayHandle | null = overlay): boolean => {
+		if (!overlay || overlay !== expected) return false;
+		overlay.hide();
 		overlay = null;
+		overlayHandlesInterrupt = false;
+		overlayMutationLocked = false;
 		tui.setFocus(editor);
+		return true;
 	};
-	const persistSettings = (next: WwwSettings) => {
-		closeOverlay();
-		void routerSettings.update(next).then(
-			() => status.setNotice("모델 설정을 저장했습니다."),
-			(error) => status.setNotice(`설정 저장 실패: ${error instanceof Error ? error.message : String(error)}`),
-		).finally(() => tui.requestRender());
+	const updateRouterSettings = async (next: WwwSettings): Promise<void> => {
+		if (snapshot.phase === "streaming") throw new Error("응답 중에는 모델 설정을 적용할 수 없습니다.");
+		if (settingsMutationInFlight) throw new Error("다른 모델 설정을 적용하는 중입니다.");
+		settingsMutationInFlight = true;
+		try {
+			await routerSettings.update(next);
+		} finally {
+			settingsMutationInFlight = false;
+		}
 	};
-	const openModelSettings = () => {
+	let openAuthFlow!: (provider: WwwSettings["provider"], pending?: WwwSettings) => void;
+	const openModelSettings = (initial: WwwSettings = pendingModelSettings ?? snapshot.settings) => {
 		if (overlay) return;
-		const authLabel = snapshot.auth?.configured ? snapshot.auth.source ?? "설정됨" : "필요";
-		const panel = new ModelSettingsOverlay(snapshot.settings, authLabel, persistSettings, closeOverlay);
+		pendingModelSettings = null;
+		const panel = new ModelPickerOverlay(
+			snapshot.settings,
+			provider => auth.status(provider),
+			() => tui.requestRender(),
+			async next => {
+				overlayMutationLocked = true;
+				try {
+					await updateRouterSettings(next);
+				} catch {
+					throw new Error("모델 설정을 적용하지 못했습니다. 기존 설정을 유지했습니다.");
+				} finally {
+					overlayMutationLocked = false;
+				}
+				status.setNotice(`모델 변경: ${next.provider}/${next.model} · 추론 ${next.effort}`);
+			},
+			next => {
+				if (snapshot.phase === "streaming") {
+					status.setNotice("응답 중에는 로그인을 시작할 수 없습니다. 선택 내용은 모델 화면에 유지됩니다.");
+					tui.requestRender();
+					return;
+				}
+				openAuthFlow(next.provider, next);
+			},
+			closeOverlay,
+			initial,
+		);
 		overlay = tui.showOverlay(new OverlaySheet(panel), {
-			width: "60%", minWidth: 42, maxHeight: "55%", anchor: "bottom-center", margin: 2,
+			width: "72%", minWidth: 54, maxHeight: "100%", anchor: "bottom-center", margin: 1,
 		});
+		overlayHandlesInterrupt = false;
+		panel.start();
 	};
-	const openAuthFlow = (provider: WwwSettings["provider"]) => {
+	openAuthFlow = (provider, pending) => {
+		const staged = pending ?? null;
+		pendingModelSettings = staged;
 		closeOverlay();
+		let owner: OverlayHandle | null = null;
+		const closeAuthOverlay = () => closeOverlay(owner);
 		const panel = new AuthFlowOverlay(
 			provider,
 			auth.methods(provider),
 			auth,
 			() => tui.requestRender(),
-			(authStatus) => {
-				const activate = authStatus.state === "configured" && authStatus.provider !== snapshot.settings.provider
-					? routerSettings.update({
-						...snapshot.settings,
-						provider: authStatus.provider,
-						model: (MODELS[authStatus.provider] as readonly string[]).includes(snapshot.settings.model)
-							? snapshot.settings.model
-							: MODELS[authStatus.provider][0],
-					})
-					: runtime.refreshAuth().then(() => undefined);
-				void activate.then(() => usage.refresh()).then((snapshots) => {
-					usageStrip.update(snapshots);
+			async (authStatus) => {
+				if (!owner || overlay !== owner) return;
+				if (staged && snapshot.phase === "streaming") {
+					pendingModelSettings = null;
+					closeAuthOverlay();
+					openModelSettings(staged);
+					status.setNotice("로그인은 완료됐습니다. 현재 응답이 끝난 뒤 선택한 모델을 적용하세요.");
 					tui.requestRender();
-				}).catch((error) => {
-					status.setNotice(error instanceof Error ? error.message : String(error));
+					return;
+				}
+				overlayMutationLocked = true;
+				try {
+					if (authStatus.state !== "configured") throw new Error("인증이 완료되지 않았습니다.");
+					if (staged) await updateRouterSettings(staged);
+					else if (authStatus.provider !== snapshot.settings.provider) {
+						await updateRouterSettings({
+							...snapshot.settings,
+							provider: authStatus.provider,
+							model: (MODELS[authStatus.provider] as readonly string[]).includes(snapshot.settings.model)
+								? snapshot.settings.model
+								: MODELS[authStatus.provider][0],
+						});
+					} else await runtime.refreshAuth();
+				} catch {
+					overlayMutationLocked = false;
+					closeAuthOverlay();
+					status.setNotice("로그인 후 모델 설정을 적용하지 못했습니다. 선택 내용을 복원했습니다.");
+					if (staged) openModelSettings(staged);
 					tui.requestRender();
-				});
+					return;
+				}
+				overlayMutationLocked = false;
+				pendingModelSettings = null;
+				closeAuthOverlay();
+				status.setNotice(staged
+					? `로그인 후 모델 적용: ${staged.provider}/${staged.model}`
+					: `${provider} 로그인이 완료되었습니다.`);
+				tui.requestRender();
+				try {
+					usageStrip.update(await usage.refresh());
+				} catch {
+					status.setNotice("로그인은 완료됐지만 사용량은 다음 주기에 갱신됩니다.");
+				}
+				tui.requestRender();
 			},
-			closeOverlay,
+			() => {
+				if (!owner || overlay !== owner) return;
+				pendingModelSettings = null;
+				closeAuthOverlay();
+				if (staged) openModelSettings(staged);
+			},
 		);
-		overlay = tui.showOverlay(new OverlaySheet(panel), {
+		owner = tui.showOverlay(new OverlaySheet(panel), {
 			width: "60%", minWidth: 46, maxHeight: "70%", anchor: "bottom-center", margin: 2,
 		});
+		overlay = owner;
+		overlayHandlesInterrupt = true;
 		panel.start();
 	};
 	const openAuthentication = () => {
@@ -158,9 +254,33 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 	const handleShellCommand = async (text: string): Promise<void> => {
 		const command = parseShellCommand(text, snapshot.settings);
 		if (!command) return;
+		const concurrency = shellCommandConcurrency(command);
+		if (snapshot.phase === "streaming" && concurrency === "mutation" && command.type !== "model.select") {
+			status.setNotice("응답 중에는 설정을 변경할 수 없습니다. 조회 명령과 /exit는 계속 사용할 수 있습니다.");
+			tui.requestRender();
+			return;
+		}
 		if (command.type === "model.select") return openModelSettings();
 		if (command.type === "model.set") {
-			await routerSettings.update(command.settings);
+			const authState = await auth.status(command.settings.provider);
+			if (snapshot.phase === "streaming") {
+				status.setNotice("응답이 시작되어 모델 변경을 취소했습니다.");
+				tui.requestRender();
+				return;
+			}
+			if (authState.state === "required") return openAuthFlow(command.settings.provider, command.settings);
+			if (authState.state === "failed") {
+				status.setNotice("인증 상태를 확인하지 못해 모델을 변경하지 않았습니다.");
+				tui.requestRender();
+				return;
+			}
+			try {
+				await updateRouterSettings(command.settings);
+			} catch {
+				status.setNotice("모델 설정을 적용하지 못했습니다. 기존 설정을 유지했습니다.");
+				tui.requestRender();
+				return;
+			}
 			status.setNotice(`모델 변경: ${command.settings.provider}/${command.settings.model} · 추론 ${command.settings.effort}`);
 		}
 		if (command.type === "auth.select") return openAuthentication();
@@ -172,12 +292,16 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 			status.setNotice(`${command.provider} 인증을 삭제했습니다.`);
 		}
 		if (command.type === "effort.set") {
-			await routerSettings.update({ ...snapshot.settings, effort: command.effort });
+			await updateRouterSettings({ ...snapshot.settings, effort: command.effort });
 			status.setNotice(`추론 강도 변경: ${command.effort}`);
 		}
 		if (command.type === "usage.refresh") {
-			usageStrip.update(await usage.refresh());
-			status.setNotice("Codex·Claude 사용량을 갱신했습니다.");
+			if (snapshot.phase === "streaming") {
+				status.setNotice("응답 중에는 현재 표시된 사용량 캐시를 유지합니다.");
+			} else {
+				usageStrip.update(await usage.refresh());
+				status.setNotice("Codex·Claude 사용량을 갱신했습니다.");
+			}
 		}
 		if (command.type === "help") {
 			status.setNotice("/model · /login · /usage · /commits · /issues · /status · /exit");
@@ -200,15 +324,41 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 		shuttingDown = true;
 		status.setNotice("세션을 안전하게 종료하는 중…");
 		tui.requestRender();
+		const draft = editor.getExpandedText() || clearedExitDraft || "";
+		if (clearedExitDraftTimer) clearTimeout(clearedExitDraftTimer);
 		stopUsagePolling();
 		unsubscribeRuntime();
 		transcriptRenders.dispose();
-		await routerSettings.flush();
-		await runtime.close();
+		await settleWithin((async () => {
+			try {
+				await composerDraft.save(draft);
+			} catch {
+				status.setNotice("초안을 저장하지 못했습니다. 터미널 복원을 위해 종료는 계속합니다.");
+				tui.requestRender();
+			}
+			try {
+				await routerSettings.flush();
+			} catch {
+				status.setNotice("모델 설정 flush에 실패했지만 세션 종료는 계속합니다.");
+				tui.requestRender();
+			}
+			await runtime.close();
+		})(), 5_000);
 		tui.stop();
 	};
 
+	let restoredDraftActive = Boolean(composerDraft.initialText);
+	editor.onChange = (text) => {
+		if (text) {
+			clearedExitDraft = null;
+			if (clearedExitDraftTimer) clearTimeout(clearedExitDraftTimer);
+		}
+		if (!restoredDraftActive) return;
+		restoredDraftActive = false;
+		status.setNotice("복원된 초안을 편집 중입니다.");
+	};
 	editor.onSubmit = (text) => {
+		if (shuttingDown) return;
 		if (!text.trim()) return;
 		editor.addToHistory(text);
 		if (text.trim().startsWith("/")) {
@@ -218,30 +368,81 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 			});
 			return;
 		}
-		editor.disableSubmit = true;
+		if (snapshot.phase === "streaming") {
+			editor.setText(text);
+			status.setNotice("현재 응답이 끝난 뒤 메시지를 전송하세요. 조회 명령은 계속 사용할 수 있습니다.");
+			tui.requestRender();
+			return;
+		}
+		if (settingsMutationInFlight) {
+			editor.setText(text);
+			status.setNotice("모델 설정 적용이 끝난 뒤 메시지를 전송하세요.");
+			tui.requestRender();
+			return;
+		}
 		void runtime.submit(text)
-			.catch((error) => status.setNotice(error instanceof Error ? error.message : String(error)))
-			.finally(() => {
-				editor.disableSubmit = false;
-				tui.requestRender();
-			});
+			.then(() => composerDraft.clear().catch(() => undefined))
+			.catch((error) => {
+				const enteredTranscript = runtime.snapshot.turns.some(turn => turn.role === "user" && turn.content === text);
+				if (enteredTranscript) void composerDraft.clear().catch(() => undefined);
+				else editor.setText(text);
+				status.setNotice(error instanceof Error ? error.message : String(error));
+			})
+			.finally(() => tui.requestRender());
 	};
 
 	unsubscribeRuntime = runtime.subscribe((next) => {
 		const previousPhase = snapshot.phase;
 		snapshot = next;
-		editor.disableSubmit = next.phase === "streaming";
 		if (next.phase !== previousPhase) {
 			if (next.phase === "streaming") status.setNotice("모델이 응답 중입니다. 다음 입력은 작성할 수 있고 Esc로 중단합니다.");
 			if (next.phase === "error") status.setNotice("응답에 실패했습니다. 오류를 확인한 뒤 다시 전송하세요.");
-			if (next.phase === "ready") status.setNotice("/ 명령 · /model 모델 · /login 계정 · /usage 사용량 · Ctrl+C 종료");
+			if (next.phase === "ready") status.setNotice("/ 명령 · /model 모델 · /usage 사용량 · Ctrl+C 두 번 또는 Ctrl+D 종료");
 		}
 		transcriptRenders.request(next.phase === "streaming" ? "streaming" : "immediate");
 	});
+	if (composerDraft.initialText) {
+		status.setNotice("이 프로젝트의 작성 중 초안을 복원했습니다.");
+	}
 
 	tui.addInputListener((data) => {
+		if (shuttingDown) return { consume: true };
+		if (overlay && matchesKey(data, Key.ctrl("c"))) {
+			if (overlayMutationLocked) {
+				status.setNotice("설정을 적용하는 중입니다. 완료될 때까지 기다려 주세요.");
+				tui.requestRender();
+				return { consume: true };
+			}
+			if (overlayHandlesInterrupt) return undefined;
+			exitKeys.reset();
+			closeOverlay();
+			status.setNotice("열린 화면을 닫고 입력창으로 돌아왔습니다.");
+			tui.requestRender();
+			return { consume: true };
+		}
+		if (overlay && matchesKey(data, Key.ctrl("d"))) {
+			if (overlayMutationLocked) {
+				status.setNotice("설정을 적용하는 중에는 종료할 수 없습니다.");
+				tui.requestRender();
+				return { consume: true };
+			}
+			if (overlayHandlesInterrupt) return undefined;
+			if (exitKeys.ctrlD(Boolean(editor.getText())) === "ignore") {
+				closeOverlay();
+				status.setNotice("작성 중인 입력이 있어 종료하지 않았습니다.");
+				tui.requestRender();
+				return { consume: true };
+			}
+			void shutdown();
+			return { consume: true };
+		}
 		if (overlay) return undefined;
 		if (matchesKey(data, Key.ctrl("o"))) {
+			if (snapshot.phase === "streaming") {
+				status.setNotice("응답 중에는 로그인을 시작할 수 없습니다.");
+				tui.requestRender();
+				return { consume: true };
+			}
 			openAuthentication();
 			return { consume: true };
 		}
@@ -254,15 +455,34 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 			return { consume: true };
 		}
 		if (matchesKey(data, Key.ctrl("c"))) {
-			if (editor.getText()) {
+			const action = exitKeys.ctrlC(snapshot.phase === "streaming");
+			if (action === "clear") {
+				const hadDraft = Boolean(editor.getText());
+				clearedExitDraft = editor.getExpandedText() || null;
+				if (clearedExitDraftTimer) clearTimeout(clearedExitDraftTimer);
+				clearedExitDraftTimer = setTimeout(() => {
+					clearedExitDraft = null;
+					clearedExitDraftTimer = undefined;
+				}, 500);
 				editor.setText("");
-				status.setNotice("작성 중인 입력을 지웠습니다.");
+				status.setNotice(hadDraft
+					? "작성 중인 입력을 지웠습니다. 500ms 안에 Ctrl+C를 다시 누르면 종료합니다."
+					: "500ms 안에 Ctrl+C를 다시 누르면 종료합니다.");
 				tui.requestRender();
 				return { consume: true };
 			}
-			if (snapshot.phase === "streaming") {
+			if (action === "abort") {
 				runtime.abort();
-				status.setNotice("현재 응답을 중단하는 중…");
+				status.setNotice("현재 응답을 중단합니다. 500ms 안에 Ctrl+C를 다시 누르면 종료합니다.");
+				tui.requestRender();
+				return { consume: true };
+			}
+			void shutdown();
+			return { consume: true };
+		}
+		if (matchesKey(data, Key.ctrl("d"))) {
+			if (exitKeys.ctrlD(Boolean(editor.getText())) === "ignore") {
+				status.setNotice("작성 중인 입력이 있습니다. Ctrl+D 종료는 입력이 비었을 때만 동작합니다.");
 				tui.requestRender();
 				return { consume: true };
 			}

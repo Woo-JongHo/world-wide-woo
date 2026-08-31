@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import type { CommandResultSnapshot } from "../src/domain/output";
-import { BashResultCard, CompletionSummaryCard } from "../src/presentation/tui/result-cards";
-import { colors } from "../src/presentation/tui/theme";
+import type { CommandResultSnapshot, DiffResultSnapshot, GenericToolResultSnapshot } from "../src/domain/output";
+import { BashResultCard, CompletionSummaryCard, DiffResultCard, GenericToolResultCard } from "../src/presentation/tui/result-cards";
+import { semantic } from "../src/presentation/tui/theme";
 
 function snapshot(overrides: Partial<CommandResultSnapshot> = {}): CommandResultSnapshot {
 	return {
@@ -23,11 +23,11 @@ function snapshot(overrides: Partial<CommandResultSnapshot> = {}): CommandResult
 describe("BashResultCard", () => {
 	test("renders every lifecycle status with its themed label", () => {
 		const expected = {
-			pending: colors.muted("PENDING"),
-			running: colors.highlight("RUNNING"),
-			passed: colors.success("PASSED"),
-			failed: colors.error("FAILED"),
-			cancelled: colors.warning("CANCELLED"),
+			pending: semantic.toolPending("PENDING"),
+			running: semantic.toolRunning("RUNNING"),
+			passed: semantic.toolPassed("PASSED"),
+			failed: semantic.toolFailed("FAILED"),
+			cancelled: semantic.toolCancelled("CANCELLED"),
 		};
 		for (const status of ["pending", "running", "passed", "failed", "cancelled"] as const) {
 			const lines = new BashResultCard(snapshot({ status })).render(100);
@@ -69,6 +69,73 @@ describe("BashResultCard", () => {
 	test("preserves Korean visible width in a 40-column card", () => {
 		const lines = new BashResultCard(snapshot({ command: "printf 안녕하세요 세계", stdout: "한글 출력입니다" })).render(40);
 		expect(lines.every((line) => visibleWidth(line) === 40)).toBe(true);
+	});
+});
+
+function generic(overrides: Partial<GenericToolResultSnapshot> = {}): GenericToolResultSnapshot {
+	return {
+		id: "tool-1",
+		toolName: "unknown-tool",
+		status: "passed",
+		input: "{\"query\":\"안녕하세요\"}",
+		output: "one\ntwo\nthree",
+		startedAt: 1,
+		durationMs: 24,
+		error: undefined,
+		...overrides,
+	};
+}
+
+describe("GenericToolResultCard", () => {
+	test("renders lifecycle labels and display-safe values", () => {
+		for (const status of ["pending", "running", "passed", "failed", "cancelled"] as const) {
+			const text = stripTerminalSequences(new GenericToolResultCard(generic({
+				status,
+				input: "unsafe=\u001b[31mnope\u001b[0m\u0007 {\"api_key\":\"supersecretvalue\"}",
+				output: "bad\u0007output sk-proj-abcdefghijklmnopqrstuvwxyz",
+				error: status === "failed" ? "실패" : undefined,
+			})).render(100).join("\n"));
+			expect(text).toContain(status.toUpperCase());
+			expect(text).toContain("입력:");
+			expect(text).toContain("[REDACTED]");
+			expect(text).not.toContain("supersecretvalue");
+			expect(text).not.toContain("sk-proj-abcdefghijklmnopqrstuvwxyz");
+			expect(text).not.toContain("\u001b");
+			expect(text).not.toContain("\u0007");
+		}
+	});
+
+	test("bounds output and preserves visible width at narrow and wide widths", () => {
+		for (const width of [40, 100]) {
+			const lines = new GenericToolResultCard(generic(), 2).render(width);
+			const text = stripTerminalSequences(lines.join("\n"));
+			expect(text).toContain("… 1 earlier lines omitted");
+			expect(lines.every((line) => visibleWidth(line) === width)).toBe(true);
+		}
+	});
+});
+
+describe("DiffResultCard", () => {
+	test("distinguishes added, removed, and context lines without color", () => {
+		const snapshot: DiffResultSnapshot = {
+			id: "diff-1",
+			title: "변경사항",
+			status: "passed",
+			diff: "\u001b[32m+ added\u001b[0m\n- removed\u0007\n context",
+			startedAt: 1,
+			durationMs: undefined,
+			error: undefined,
+		};
+		for (const width of [40, 100]) {
+			const lines = new DiffResultCard(snapshot).render(width);
+			const text = stripTerminalSequences(lines.join("\n"));
+			expect(text).toContain("+ added");
+			expect(text).toContain("- removed");
+			expect(text).toContain("  context");
+			expect(text).not.toContain("\u001b");
+			expect(text).not.toContain("\u0007");
+			expect(lines.every((line) => visibleWidth(line) === width)).toBe(true);
+		}
 	});
 });
 

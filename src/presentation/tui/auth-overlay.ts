@@ -31,7 +31,7 @@ export class AuthFlowOverlay implements Component {
 		private readonly methods: readonly AuthType[],
 		private readonly auth: AuthController,
 		private readonly requestRender: () => void,
-		private readonly onAuthenticated: (status: ProviderAuthState) => void,
+		private readonly onAuthenticated: (status: ProviderAuthState) => void | Promise<void>,
 		private readonly onClose: () => void,
 	) {}
 
@@ -68,7 +68,7 @@ export class AuthFlowOverlay implements Component {
 	}
 
 	handleInput(data: string): void {
-		if (matchesKey(data, Key.escape)) {
+		if (matchesKey(data, Key.escape) || matchesKey(data, Key.ctrl("c")) || matchesKey(data, Key.ctrl("d"))) {
 			if (this.done) return this.onClose();
 			this.controller.abort();
 			this.rejectPrompt(new DOMException("로그인이 취소되었습니다.", "AbortError"));
@@ -121,8 +121,8 @@ export class AuthFlowOverlay implements Component {
 				notify: (event) => this.notify(event),
 			});
 			this.lines.push(colors.success("로그인이 완료되었습니다."));
+			await this.onAuthenticated(status);
 			this.done = true;
-			this.onAuthenticated(status);
 		} catch (error) {
 			if (!this.controller.signal.aborted) {
 				this.lines.push(colors.error(error instanceof Error ? error.message : String(error)));

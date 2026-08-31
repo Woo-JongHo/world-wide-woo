@@ -1,5 +1,5 @@
 import { MODELS, PROVIDERS, type WwwSettings } from "../domain/model-settings";
-import type { ModelClient, RouterSettingsController, SettingsRepository } from "./ports";
+import type { AtomicSettingsRepository, ModelClient, RouterSettingsController, SettingsRepository } from "./ports";
 import type { SessionRuntime } from "./session-runtime";
 
 /** Serializes durable selection writes before publishing them to the active session. */
@@ -7,17 +7,41 @@ export class RouterService implements RouterSettingsController {
 	private writeChain: Promise<void> = Promise.resolve();
 
 	constructor(
-		private readonly settings: SettingsRepository,
+		private readonly settings: AtomicSettingsRepository,
 		private readonly session: Pick<SessionRuntime, "updateSettings">,
+		private current: WwwSettings,
 	) {}
 
 	update(selection: WwwSettings): Promise<void> {
 		const operation = this.writeChain.then(async () => {
-			await this.settings.save(selection);
-			await this.session.updateSettings(selection);
+			const previous = this.current;
+			if (!(await this.settings.compareAndSwap(previous, selection))) {
+				await this.synchronizeObservedSettings();
+				throw new Error("다른 WWW 프로세스의 모델 설정을 반영했습니다. 모델 화면을 다시 확인하세요.");
+			}
+			try {
+				await this.session.updateSettings(selection);
+			} catch (error) {
+				try {
+					if (!(await this.settings.compareAndSwap(selection, previous))) {
+						await this.synchronizeObservedSettings();
+						throw new Error("다른 WWW 프로세스의 새 설정을 반영하고 rollback하지 않았습니다.");
+					}
+				} catch (rollbackError) {
+					throw new AggregateError([error, rollbackError], "모델 설정 적용과 rollback에 모두 실패했습니다.");
+				}
+				throw error;
+			}
+			this.current = { ...selection };
 		});
 		this.writeChain = operation.catch(() => undefined);
 		return operation;
+	}
+
+	private async synchronizeObservedSettings(): Promise<void> {
+		const observed = await this.settings.load();
+		await this.session.updateSettings(observed);
+		this.current = { ...observed };
 	}
 
 	async flush(): Promise<void> {

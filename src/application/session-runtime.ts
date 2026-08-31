@@ -10,6 +10,7 @@ export interface ConversationTurn {
 	role: "user" | "assistant";
 	content: string;
 	timestamp: number;
+	outcome?: "completed" | "cancelled";
 }
 
 export interface SessionSnapshot {
@@ -93,7 +94,11 @@ export class SessionRuntime {
 
 	subscribe(listener: SessionListener): () => void {
 		this.listeners.add(listener);
-		listener(this.snapshot);
+		try {
+			listener(this.snapshot);
+		} catch {
+			this.listeners.delete(listener);
+		}
 		return () => this.listeners.delete(listener);
 	}
 
@@ -129,16 +134,18 @@ export class SessionRuntime {
 
 	async updateSettings(settings: WwwSettings): Promise<void> {
 		if (this.closed) throw new Error("종료된 세션의 모델 설정은 변경할 수 없습니다.");
-		this.selection = { ...settings };
-		this.auth = await this.router.checkAuth(this.selection);
+		const nextSelection = { ...settings };
+		const nextAuth = await this.router.checkAuth(nextSelection);
 		await this.store.append(this.id, {
 			category: "decision",
 			type: "model.changed",
-			status: this.auth.configured ? "passed" : "blocked",
+			status: nextAuth.configured ? "passed" : "blocked",
 			title: "모델 설정 변경",
 			body: `${settings.provider}/${settings.model}`,
-			metadata: { settings, auth: this.auth },
+			metadata: { settings, auth: nextAuth },
 		});
+		this.selection = nextSelection;
+		this.auth = nextAuth;
 		this.emit();
 	}
 
@@ -228,10 +235,23 @@ export class SessionRuntime {
 			}
 
 			const result = await stream.result();
+			if (this.abortController.signal.aborted) {
+				await this.commitCancellation(this.draft, turnId, assistantItemId);
+				await this.recordTurnCompletion(turnId, "blocked", true);
+				this.error = null;
+				this.phase = "ready";
+				return;
+			}
 			const content = messageText(result);
 			if (content.trim()) {
 				this.context.messages.push(result);
-				this.turns.push({ id: assistantItemId, role: "assistant", content, timestamp: result.timestamp });
+				this.turns.push({
+					id: assistantItemId,
+					role: "assistant",
+					content,
+					timestamp: result.timestamp,
+					outcome: "completed",
+				});
 				await this.store.append(this.id, {
 					category: "answer",
 					type: "message.assistant.completed",
@@ -248,11 +268,16 @@ export class SessionRuntime {
 			this.phase = this.error ? "error" : "ready";
 			await this.recordTurnCompletion(turnId, this.error ? "failed" : "passed");
 		} catch (error) {
-			this.error = errorMessage(error);
 			const cancelled = this.abortController.signal.aborted;
-			await this.recordError(this.error, turnId, assistantItemId);
+			if (cancelled) {
+				await this.commitCancellation(this.draft, turnId, assistantItemId);
+				this.error = null;
+			} else {
+				this.error = errorMessage(error);
+				await this.recordError(this.error, turnId, assistantItemId);
+			}
 			await this.recordTurnCompletion(turnId, cancelled ? "blocked" : "failed", cancelled);
-			this.phase = "error";
+			this.phase = cancelled ? "ready" : "error";
 		} finally {
 			this.abortController = null;
 			this.draft = "";
@@ -286,6 +311,16 @@ export class SessionRuntime {
 					role: "assistant",
 					content: messageText(message),
 					timestamp: message.timestamp,
+					outcome: "completed",
+				});
+			}
+			if (event.type === "message.assistant.cancelled" && event.body.trim()) {
+				this.turns.push({
+					id: event.itemId ?? event.id,
+					role: "assistant",
+					content: event.body,
+					timestamp: Date.parse(event.timestamp),
+					outcome: "cancelled",
 				});
 			}
 		}
@@ -329,6 +364,32 @@ export class SessionRuntime {
 		});
 	}
 
+	private async commitCancellation(content: string, turnId: string, itemId: string): Promise<void> {
+		if (content.trim()) {
+			this.turns.push({
+				id: itemId,
+				role: "assistant",
+				content,
+				timestamp: Date.now(),
+				outcome: "cancelled",
+			});
+		}
+		await this.recordCancellation(content, turnId, itemId);
+	}
+
+	private async recordCancellation(content: string, turnId: string, itemId: string): Promise<void> {
+		await this.store.append(this.id, {
+			category: "answer",
+			type: "message.assistant.cancelled",
+			status: "blocked",
+			title: "모델 응답 중단",
+			body: content,
+			correlationId: turnId,
+			turnId,
+			itemId,
+		});
+	}
+
 	private async recordTurnCompletion(turnId: string, status: "passed" | "failed" | "blocked", cancelled = false): Promise<void> {
 		await this.store.append(this.id, {
 			category: "evidence",
@@ -344,6 +405,12 @@ export class SessionRuntime {
 
 	private emit(): void {
 		const snapshot = this.snapshot;
-		for (const listener of this.listeners) listener(snapshot);
+		for (const listener of this.listeners) {
+			try {
+				listener(snapshot);
+			} catch {
+				this.listeners.delete(listener);
+			}
+		}
 	}
 }

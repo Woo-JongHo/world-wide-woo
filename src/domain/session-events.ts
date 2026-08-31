@@ -26,6 +26,7 @@ export const SESSION_EVENT_TYPES = [
 	"message.user",
 	"message.assistant.started",
 	"message.assistant.completed",
+	"message.assistant.cancelled",
 	"message.assistant.failed",
 	"command.started",
 	"command.output",

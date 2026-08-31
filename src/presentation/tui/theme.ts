@@ -30,6 +30,24 @@ export const colors = {
 	error: chalk.hex(palette.red),
 };
 
+/** Semantic colors for transcript and result renderers. */
+export const semantic = {
+	userLabel: colors.highlight,
+	assistantLabel: colors.secondary,
+	toolPending: colors.muted,
+	toolRunning: colors.highlight,
+	toolPassed: colors.success,
+	toolFailed: colors.error,
+	toolCancelled: colors.warning,
+	diffAdded: colors.success,
+	diffRemoved: colors.error,
+	diffContext: colors.muted,
+	effortLow: colors.muted,
+	effortMedium: colors.accent,
+	effortHigh: colors.secondary,
+	effortUltra: colors.warm,
+} as const;
+
 export const selectListTheme: SelectListTheme = {
 	selectedPrefix: colors.accent,
 	selectedText: (text) => chalk.bold(colors.text(text)),

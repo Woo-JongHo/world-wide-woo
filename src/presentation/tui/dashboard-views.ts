@@ -8,7 +8,7 @@ import {
 import type { SessionSnapshot } from "../../application/session-runtime";
 import type { RecentSessionSummary, UsageSnapshot } from "../../application/ports";
 import type { Effort } from "../../domain/model-settings";
-import { colors, gradientLines, markdownTheme } from "./theme";
+import { colors, gradientLines, markdownTheme, semantic } from "./theme";
 
 export const EFFORT_LABEL: Record<Effort, string> = {
 	low: "낮음",
@@ -40,7 +40,7 @@ function indent(lines: string[], prefix = "  "): string[] {
 }
 
 export class StatusLine implements Component {
-	private notice = "/ 명령 · /model 모델 · /login 계정 · /usage 사용량 · Ctrl+C 종료";
+	private notice = "/ 명령 · /model 모델 · /usage 사용량 · Ctrl+C 두 번 또는 Ctrl+D 종료";
 	setNotice(notice: string): void {
 		this.notice = notice;
 	}
@@ -189,17 +189,19 @@ export class TranscriptView implements Component {
 		const rows: string[] = [];
 		for (const turn of this.snapshot.turns) {
 			if (turn.role === "user") {
-				rows.push(`  ${colors.accent("사용자")}`);
+				rows.push(`  ${semantic.userLabel("사용자")}`);
 				rows.push(...indent(wrapTextWithAnsi(turn.content, contentWidth), "    "), "");
 				continue;
 			}
-			rows.push(`  ${colors.success("WWW")}`);
+			rows.push(turn.outcome === "cancelled"
+				? `  ${semantic.assistantLabel("WWW")}  ${semantic.toolCancelled("중단됨")}`
+				: `  ${semantic.assistantLabel("WWW")}`);
 			const markdown = this.markdownByTurn.get(turn.id);
 			if (markdown) rows.push(...indent(markdown.render(contentWidth), "    "));
 			rows.push("");
 		}
 		if (this.snapshot.phase === "streaming") {
-			rows.push(`  ${colors.success("WWW")}  ${colors.muted("응답 중")}`);
+			rows.push(`  ${semantic.assistantLabel("WWW")}  ${semantic.toolRunning("응답 중")}`);
 			rows.push(...indent(this.snapshot.draft ? this.draft.render(contentWidth) : [colors.muted("응답을 준비하는 중…")], "    "), "");
 		}
 		if (this.snapshot.error) {

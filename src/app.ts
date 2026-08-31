@@ -35,10 +35,10 @@ export async function runApp(options: { sessionId?: string } = {}): Promise<void
 		runtime,
 		auth: new AuthService(registry),
 		usage: new UsageService(credentials, registry),
-		recentSessions: (await sessions.list()).filter(session => session.id !== runtime.id)
-			.map(({ id, updatedAt }) => ({ id, updatedAt })),
-		routerSettings: new RouterService(settingsStore, runtime),
+		recentSessions: (await sessions.list()).filter(session => session.id !== runtime.id).map(({ id, updatedAt }) => ({ id, updatedAt })),
+		routerSettings: new RouterService(settingsStore, runtime, settings),
 		repository: new GitHubRepositoryInsights(process.cwd()),
+		composerDraft: await (await import("./infrastructure/composer-draft-store")).FileComposerDraftController.create(process.cwd(), runtime.id),
 	});
 }
 

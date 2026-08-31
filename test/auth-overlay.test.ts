@@ -47,4 +47,20 @@ describe("AuthFlowOverlay", () => {
 		expect(authenticated).toBe(true);
 		expect(overlay.render(60).join("\n")).not.toContain("secret-token");
 	});
+
+	test.each(["\u0003", "\u0004"])("cancels an active auth overlay before global %j handling", async (key) => {
+		let closed = false;
+		const overlay = new AuthFlowOverlay(
+			"openai",
+			["api_key"],
+			new AuthService(fakeAuthModels()),
+			() => undefined,
+			() => undefined,
+			() => { closed = true; },
+		);
+		overlay.start();
+		await Bun.sleep(0);
+		overlay.handleInput(key);
+		expect(closed).toBe(true);
+	});
 });

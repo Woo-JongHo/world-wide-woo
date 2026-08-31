@@ -73,6 +73,17 @@ export interface SettingsRepository {
 	save(settings: WwwSettings): Promise<void>;
 }
 
+export interface AtomicSettingsRepository extends SettingsRepository {
+	/** Replaces expected with next under an interprocess lock; false means another writer won. */
+	compareAndSwap(expected: WwwSettings, next: WwwSettings): Promise<boolean>;
+}
+
+export interface ComposerDraftController {
+	readonly initialText: string;
+	save(text: string): Promise<void>;
+	clear(): Promise<void>;
+}
+
 export interface RecentSessionSummary {
 	id: string;
 	updatedAt: string;

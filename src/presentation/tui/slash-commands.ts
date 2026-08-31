@@ -23,6 +23,31 @@ export type ShellCommand =
 	| { type: "exit" }
 	| { type: "error"; message: string };
 
+export type ShellCommandConcurrency = "local-read" | "async-read" | "mutation" | "control" | "error";
+
+export function shellCommandConcurrency(command: ShellCommand): ShellCommandConcurrency {
+	switch (command.type) {
+		case "status":
+		case "help":
+			return "local-read";
+		case "usage.refresh":
+		case "repository.commits":
+		case "repository.issues":
+			return "async-read";
+		case "model.select":
+		case "model.set":
+		case "auth.select":
+		case "auth.login":
+		case "auth.logout":
+		case "effort.set":
+			return "mutation";
+		case "exit":
+			return "control";
+		case "error":
+			return "error";
+	}
+}
+
 const modelItems = PROVIDERS.flatMap((provider) =>
 	MODELS[provider].map((model) => ({
 		value: `${provider}/${model}`,

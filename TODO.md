@@ -15,6 +15,9 @@
 - [x] `🐙` WWW 제품 마크와 World Wide Woo 설명
 - [x] 공식 Editor 기반 한글 IME·paste·history·autocomplete
 - [x] `/model`, `/effort`, `/login`, `/logout`, `/usage`, `/status`, `/help`, `/exit`
+- [x] 검색·Provider tab·staged atomic apply 기반 Model bottom sheet
+- [x] Ctrl+C 2단계·Ctrl+D·Esc 우선순위와 프로젝트 Composer draft 복원
+- [x] streaming 중 local/async read·mutation·control Slash concurrency 분리
 - [x] Codex OAuth와 OpenAI API Provider 구분
 - [x] 동일 모델의 유일한 인증 Router 자동 재조정
 - [x] OMC형 Codex·Claude 2줄 사용량 HUD
@@ -26,6 +29,8 @@
 
 - [x] Bash 실행 상태 DTO와 width-safe 결과 카드
 - [x] 번호·bullet·검증을 표현하는 완료 요약 카드
+- [x] Gajae native syntax와 message·tool·diff·effort semantic highlight role
+- [x] display-safe generic unknown-tool card와 textual diff card
 - [ ] `command.started → command.output → command.completed` 이벤트 projector 연결
 - [ ] stdout/stderr streaming 중 활성 Bash 카드 갱신
 - [ ] 명령 취소·실패·exit code·duration의 terminal 상태 보장
@@ -43,7 +48,7 @@
 - [ ] 명령별 cwd·권한·timeout·AbortSignal
 - [ ] 위험 작업 승인 overlay와 fail-closed 정책
 - [ ] tool-only·thinking-only·부분 응답 보존
-- [ ] 중단된 Turn의 cancelled terminal event
+- [x] 중단된 Turn의 cancelled terminal event와 transcript 중단 표지
 
 ## P3 — WES Context
 

@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { parseShellCommand, SLASH_COMMANDS } from "../src/presentation/tui/slash-commands";
+import {
+	parseShellCommand,
+	shellCommandConcurrency,
+	SLASH_COMMANDS,
+} from "../src/presentation/tui/slash-commands";
 import type { WwwSettings } from "../src/domain/model-settings";
 
 const current: WwwSettings = { provider: "openai", model: "gpt-5.4", effort: "high" };
@@ -8,6 +12,14 @@ describe("WWW slash commands", () => {
 	test("opens interactive model and login selectors", () => {
 		expect(parseShellCommand("/model", current)).toEqual({ type: "model.select" });
 		expect(parseShellCommand("/login", current)).toEqual({ type: "auth.select" });
+	});
+
+	test("classifies streaming concurrency independently from mutability", () => {
+		expect(shellCommandConcurrency({ type: "status" })).toBe("local-read");
+		expect(shellCommandConcurrency({ type: "repository.commits" })).toBe("async-read");
+		expect(shellCommandConcurrency({ type: "usage.refresh" })).toBe("async-read");
+		expect(shellCommandConcurrency({ type: "model.select" })).toBe("mutation");
+		expect(shellCommandConcurrency({ type: "exit" })).toBe("control");
 	});
 
 	test("sets a validated Router model directly", () => {

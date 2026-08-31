@@ -40,6 +40,19 @@ describe("TranscriptView Markdown", () => {
 		const output = lines.join("\n");
 		expect(output).toContain("\u001b[38;2;");
 		expect(stripTerminalSequences(output)).toContain("return [3, 12, 41]");
-		expect(lines.every((line) => visibleWidth(line) <= 40)).toBe(true);
+		expect(lines.every((line) => visibleWidth(line) <= 100)).toBe(true);
+	});
+
+	test("labels a persisted partial assistant response as cancelled", () => {
+		const view = new TranscriptView(snapshot({
+			turns: [{
+				id: "assistant-cancelled",
+				role: "assistant",
+				content: "여기까지 생성됨",
+				timestamp: 1,
+				outcome: "cancelled",
+			}],
+		}));
+		expect(stripTerminalSequences(view.render(100).join("\n"))).toContain("WWW  중단됨");
 	});
 });

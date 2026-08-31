@@ -62,6 +62,43 @@ describe("SessionRuntime", () => {
 		expect(runtime.snapshot.turns).toHaveLength(2);
 	});
 
+	test("commits a cancelled assistant item without polluting model context", async () => {
+		const faux = fauxProvider({
+			provider: "openai",
+			models: [{ id: "gpt-5.4", reasoning: true }],
+			tokensPerSecond: 20,
+		});
+		faux.setResponses([fauxAssistantMessage("중단 전까지 보존해야 하는 충분히 긴 응답입니다.")]);
+		const models = createModels();
+		models.setProvider(faux.provider);
+		const directory = await mkdtemp(join(tmpdir(), "www-runtime-cancel-"));
+		const store = new SessionEventStore(directory);
+		const runtime = new SessionRuntime(settings, new ModelRouter(models), store, "cancel-test");
+		await runtime.initialize();
+
+		let resolveDraft!: () => void;
+		const draftSeen = new Promise<void>((resolve) => {
+			resolveDraft = resolve;
+		});
+		const unsubscribe = runtime.subscribe((snapshot) => {
+			if (snapshot.draft) resolveDraft();
+		});
+		const submission = runtime.submit("길게 답해 줘");
+		await draftSeen;
+		expect(runtime.abort()).toBe(true);
+		await submission;
+		unsubscribe();
+
+		expect(runtime.snapshot.phase).toBe("ready");
+		expect(runtime.snapshot.error).toBeNull();
+		expect(runtime.snapshot.turns.at(-1)?.role).toBe("assistant");
+		expect(runtime.snapshot.turns.at(-1)?.content.length).toBeGreaterThan(0);
+		const events = await store.readAll("cancel-test");
+		expect(events.map(({ type }) => type)).toContain("message.assistant.cancelled");
+		expect(events.map(({ type }) => type)).not.toContain("message.assistant.failed");
+		expect(events.at(-1)).toMatchObject({ type: "turn.completed", status: "blocked", body: "cancelled" });
+	});
+
 	test("blocks unauthenticated turns before they enter the transcript", async () => {
 		const directory = await mkdtemp(join(tmpdir(), "www-runtime-auth-"));
 		const store = new SessionEventStore(directory);
@@ -77,6 +114,15 @@ describe("SessionRuntime", () => {
 		await expect(runtime.submit("보내지면 안 됨")).rejects.toThrow("Ctrl+O");
 		expect(runtime.snapshot.turns).toEqual([]);
 		expect((await store.readAll("auth-required")).map((event) => event.type)).toEqual(["session.started"]);
+	});
+
+	test("isolates a broken observer from durable model-setting commits", async () => {
+		const { runtime, store } = await runtimeWithResponse("응답");
+		await runtime.initialize();
+		expect(() => runtime.subscribe(() => { throw new Error("observer failed"); })).not.toThrow();
+		await runtime.updateSettings({ ...settings, effort: "ultra" });
+		expect(runtime.snapshot.settings.effort).toBe("ultra");
+		expect((await store.readAll("session-test")).at(-1)?.type).toBe("model.changed");
 	});
 
 	test("resumes canonical messages from the durable event trail", async () => {
