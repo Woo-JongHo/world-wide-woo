@@ -36,10 +36,6 @@ function center(text: string, width: number): string {
 	return " ".repeat(Math.max(0, Math.floor((width - visibleWidth(clipped)) / 2))) + clipped;
 }
 
-function indent(lines: string[], prefix = "  "): string[] {
-	return lines.map((line) => `${prefix}${line}`);
-}
-
 export class StatusLine implements Component {
 	private notice = "/ 명령 · /model 모델 · /usage 사용량 · Ctrl+C 두 번 또는 Ctrl+D 종료";
 	setNotice(notice: string): void {
@@ -192,30 +188,30 @@ export class TranscriptView implements Component {
 
 	render(width: number): string[] {
 		if (this.snapshot.turns.length === 0) return this.renderWelcome(width);
-		const contentWidth = Math.max(1, width - 4);
+		const contentWidth = Math.max(1, width);
 		const rows: string[] = [];
 		for (const turn of this.snapshot.turns) {
 			if (turn.role === "user") {
-				rows.push(`  ${semantic.userLabel("사용자")}`);
-				rows.push(...indent(wrapTextWithAnsi(turn.content, contentWidth), "    "), "");
+				rows.push(semantic.userLabel("사용자"));
+				rows.push(...wrapTextWithAnsi(turn.content, contentWidth), "");
 				continue;
 			}
 			rows.push(turn.outcome === "cancelled"
-				? `  ${semantic.assistantLabel("WWW")}  ${semantic.toolCancelled("중단됨")}`
-				: `  ${semantic.assistantLabel("WWW")}`);
+				? `${semantic.assistantLabel("WWW")}  ${semantic.toolCancelled("중단됨")}`
+				: semantic.assistantLabel("WWW"));
 			const markdown = this.markdownByTurn.get(turn.id);
-			if (markdown) rows.push(...indent(markdown.render(contentWidth), "    "));
+			if (markdown) rows.push(...markdown.render(contentWidth));
 			rows.push("");
 		}
 		if (this.snapshot.phase === "streaming") {
 			const frame = ACTIVITY_FRAMES[Math.floor(performance.now() / 80) % ACTIVITY_FRAMES.length];
 			const activity = this.snapshot.activity?.label ?? "응답 준비 중";
-			rows.push(`  ${semantic.assistantLabel("WWW")}  ${semantic.toolRunning(`${frame} ${activity}`)}`);
-			rows.push(...indent(this.snapshot.draft ? this.draft.render(contentWidth) : [colors.muted("응답을 준비하는 중…")], "    "), "");
+			rows.push(`${semantic.assistantLabel("WWW")}  ${semantic.toolRunning(`${frame} ${activity}`)}`);
+			rows.push(...(this.snapshot.draft ? this.draft.render(contentWidth) : [colors.muted("응답을 준비하는 중…")]), "");
 		}
 		if (this.snapshot.error) {
-			rows.push(`  ${colors.error("오류")}`);
-			rows.push(...indent(wrapTextWithAnsi(this.snapshot.error, contentWidth).map(colors.error), "    "), "");
+			rows.push(colors.error("오류"));
+			rows.push(...wrapTextWithAnsi(this.snapshot.error, contentWidth).map(colors.error), "");
 		}
 		return rows;
 	}

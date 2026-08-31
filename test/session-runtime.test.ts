@@ -88,7 +88,9 @@ describe("SessionRuntime", () => {
 		await runtime.submit("지금 경로 위치가 어디야?");
 
 		expect(systemPrompt).toContain('현재 작업 디렉토리는 "/workspace/world-wide-woo"');
+		expect(systemPrompt).toContain('활성 Router는 "openai", 모델 ID는 "gpt-5.4", 추론 강도는 "high"');
 		expect(systemPrompt).toContain("pwd 실행을 사용자에게 요구하지 마세요");
+		expect(systemPrompt).toContain("ChatGPT라고 뭉뚱그리거나 모델 ID를 볼 수 없다고 답하지 마세요");
 		expect(systemPrompt).toContain("물리적 위치나 GPS를 명시적으로 물은 경우에만");
 		expect((await store.readAll("cwd-test"))[0]?.metadata).toMatchObject({
 			workspace: { cwd: "/workspace/world-wide-woo" },

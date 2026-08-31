@@ -21,6 +21,20 @@ function snapshot(overrides: Partial<SessionSnapshot> = {}): SessionSnapshot {
 const PYTHON = "```python\ndef generate_lotto():\n    return [3, 12, 41]\n```";
 
 describe("TranscriptView Markdown", () => {
+	test("left-aligns role labels and message bodies at the conversation edge", () => {
+		const view = new TranscriptView(snapshot({
+			turns: [
+				{ id: "user-left", role: "user", content: "지금 모델 뭔데?", timestamp: 1 },
+				{ id: "assistant-left", role: "assistant", content: "openai-codex/gpt-5.6-sol", timestamp: 2 },
+			],
+		}));
+		const lines = view.render(80).map(line => stripTerminalSequences(line).trimEnd());
+		expect(lines[0]).toBe("사용자");
+		expect(lines[1]).toBe("지금 모델 뭔데?");
+		expect(lines[3]).toBe("WWW");
+		expect(lines[4]).toBe("openai-codex/gpt-5.6-sol");
+	});
+
 	test("syntax-highlights completed fenced code", () => {
 		const view = new TranscriptView(snapshot({
 			turns: [{ id: "assistant-1", role: "assistant", content: PYTHON, timestamp: 1 }],

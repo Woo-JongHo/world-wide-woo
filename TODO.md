@@ -17,6 +17,8 @@
 - [x] `/model`, `/effort`, `/login`, `/logout`, `/usage`, `/status`, `/help`, `/exit`
 - [x] Provider → Model → 추론 → 확인 계층형 staged atomic Model bottom sheet
 - [x] 현재 작업 경로의 model context 주입과 Session 영역 표시
+- [x] 활성 provider/model/effort의 model context 주입과 직접 답변
+- [x] Conversation role·message body의 pane-edge 좌측 정렬
 - [x] 실제 request·waiting·thinking·responding·cancelling activity indicator
 - [x] Ctrl+C 2단계·Ctrl+D·Esc 우선순위와 프로젝트 Composer draft 복원
 - [x] streaming 중 local/async read·mutation·control Slash concurrency 분리
