@@ -18,6 +18,9 @@ export type ShellCommand =
 	| { type: "usage.refresh" }
 	| { type: "status" }
 	| { type: "monitoring" }
+	| { type: "planning.status" }
+	| { type: "planning.epic.create"; title: string; goal: string }
+	| { type: "planning.story.create"; epicId: string; title: string; acceptance: string; supersedes: string | null }
 	| { type: "repository.commits" }
 	| { type: "repository.issues" }
 	| { type: "help" }
@@ -30,6 +33,7 @@ export function shellCommandConcurrency(command: ShellCommand): ShellCommandConc
 	switch (command.type) {
 		case "status":
 		case "monitoring":
+		case "planning.status":
 		case "help":
 			return "local-read";
 		case "usage.refresh":
@@ -42,6 +46,8 @@ export function shellCommandConcurrency(command: ShellCommand): ShellCommandConc
 		case "auth.login":
 		case "auth.logout":
 		case "effort.set":
+		case "planning.epic.create":
+		case "planning.story.create":
 			return "mutation";
 		case "exit":
 			return "control";
@@ -89,6 +95,9 @@ export const SLASH_COMMANDS: SlashCommand[] = [
 	{ name: "status", description: "현재 Router·인증·세션 상태" },
 	{ name: "monitor", description: "실시간 Session·Turn·Tool·Todo 관측" },
 	{ name: "dashboard", description: "Monitoring Dashboard 열기" },
+	{ name: "planning", description: "Project Planning catalog 상태" },
+	{ name: "epic", description: "새 Epic 초안 저장", argumentHint: "<title> :: <goal>" },
+	{ name: "story", description: "새 Story 초안 저장", argumentHint: "<EP-ID> <title> [--supersedes ST-ID] :: <acceptance>" },
 	{ name: "commits", description: "Git 작업 트리와 최근 Commit" },
 	{ name: "issues", description: "현재 저장소의 열린 GitHub Issue" },
 	{ name: "help", description: "WWW Shell 명령 안내" },
@@ -140,6 +149,35 @@ export function parseShellCommand(text: string, current: WwwSettings): ShellComm
 	if (name === "usage") return { type: "usage.refresh" };
 	if (name === "status") return { type: "status" };
 	if (name === "monitor" || name === "dashboard") return { type: "monitoring" };
+	if (name === "planning") return { type: "planning.status" };
+	if (name === "epic") {
+		const body = trimmed.slice("/epic".length).trim();
+		const separator = body.indexOf("::");
+		const title = separator < 0 ? "" : body.slice(0, separator).trim();
+		const goal = separator < 0 ? "" : body.slice(separator + 2).trim();
+		return title && goal
+			? { type: "planning.epic.create", title, goal }
+			: { type: "error", message: "사용법: /epic <title> :: <goal>" };
+	}
+	if (name === "story") {
+		const body = trimmed.slice("/story".length).trim();
+		const separator = body.indexOf("::");
+		const header = separator < 0 ? "" : body.slice(0, separator).trim();
+		const acceptance = separator < 0 ? "" : body.slice(separator + 2).trim();
+		const parts = header.split(/\s+/u).filter(Boolean);
+		const epicId = parts.shift() ?? "";
+		const supersedesAt = parts.indexOf("--supersedes");
+		let supersedes: string | null = null;
+		if (supersedesAt >= 0) {
+			supersedes = parts[supersedesAt + 1] ?? null;
+			parts.splice(supersedesAt, 2);
+		}
+		const title = parts.join(" ");
+		if (!/^EP-\d{3}$/u.test(epicId) || !title || !acceptance || (supersedesAt >= 0 && !/^ST-\d{3}-\d{2}$/u.test(supersedes ?? ""))) {
+			return { type: "error", message: "사용법: /story <EP-ID> <title> [--supersedes ST-ID] :: <acceptance>" };
+		}
+		return { type: "planning.story.create", epicId, title, acceptance, supersedes };
+	}
 	if (name === "commits" || name === "commit") return { type: "repository.commits" };
 	if (name === "issues" || name === "issue") return { type: "repository.issues" };
 	if (name === "help") return { type: "help" };

@@ -2,18 +2,21 @@ import type { ModelClient, RecentSessionSummary, TodoController } from "../appli
 import { join } from "node:path";
 import { SessionRuntime } from "../application/session-runtime";
 import { SessionMonitor } from "../application/session-monitor";
+import { PlanningService } from "../application/planning-service";
 import { TodoLedger } from "../application/todo-ledger";
 import type { WwwSettings } from "../domain/model-settings";
 import { createProjectAgentTools } from "./agent-tools";
 import { FileProjectWorkspace, type ProjectWorkspace } from "./project-workspace";
 import { SessionEventStore } from "./session-store";
 import { FileTodoStore, migrateLegacyTodo } from "./todo-store";
+import { FilePlanningStore } from "./planning-store";
 
 export interface ProjectSessionBundle {
 	workspace: ProjectWorkspace;
 	runtime: SessionRuntime;
 	todos: TodoController;
 	monitor: SessionMonitor;
+	planning: PlanningService;
 	releaseSessionLease(): Promise<void>;
 }
 
@@ -39,6 +42,8 @@ export async function createProjectSession(
 			sessions,
 		);
 		await todos.initialize();
+		const planning = new PlanningService(new FilePlanningStore(workspace.directory));
+		const planningSnapshot = await planning.initialize();
 		const tools = createProjectAgentTools(workspace.root, { todos });
 		const runtime = new SessionRuntime(
 			settings,
@@ -48,6 +53,7 @@ export async function createProjectSession(
 			sessionId,
 			tools,
 			todos,
+			planningSnapshot,
 		);
 		await runtime.initialize({ resume: requestedSessionId !== undefined });
 		const monitor = new SessionMonitor(runtime, todos);
@@ -56,6 +62,7 @@ export async function createProjectSession(
 			runtime,
 			todos,
 			monitor,
+			planning,
 			releaseSessionLease: () => lease.release(),
 		};
 	} catch (error) {

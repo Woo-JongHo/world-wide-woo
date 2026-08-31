@@ -13,6 +13,7 @@ import type { AgentTool, ModelClient } from "../src/application/ports";
 import { TodoLedger } from "../src/application/todo-ledger";
 import { createProjectAgentTools } from "../src/infrastructure/agent-tools";
 import { FileTodoStore } from "../src/infrastructure/todo-store";
+import { createPlanningSnapshot } from "../src/domain/planning";
 
 const settings: WwwSettings = { provider: "openai", model: "gpt-5.4", effort: "high" };
 
@@ -89,6 +90,19 @@ describe("SessionRuntime", () => {
 			"cwd-test",
 		);
 		await runtime.initialize();
+		runtime.updatePlanning(createPlanningSnapshot(2, [{
+			id: "EP-010",
+			title: "Planning Package",
+			goal: "private goal",
+			createdAt: "2026-08-31T11:24:24.000Z",
+		}], [{
+			id: "ST-010-01",
+			epicId: "EP-010",
+			title: "Context projection",
+			acceptance: "private acceptance",
+			createdAt: "2026-08-31T11:24:24.000Z",
+			supersedes: null,
+		}]));
 		await runtime.submit("지금 경로 위치가 어디야?");
 
 		expect(systemPrompt).toContain('현재 작업 디렉토리는 "/workspace/world-wide-woo"');
@@ -96,6 +110,9 @@ describe("SessionRuntime", () => {
 		expect(systemPrompt).toContain("pwd 실행을 사용자에게 요구하지 마세요");
 		expect(systemPrompt).toContain("ChatGPT라고 뭉뚱그리거나 모델 ID를 볼 수 없다고 답하지 마세요");
 		expect(systemPrompt).toContain("물리적 위치나 GPS를 명시적으로 물은 경우에만");
+		expect(systemPrompt).toContain("Epic EP-010: Planning Package");
+		expect(systemPrompt).toContain("Story ST-010-01 (EP-010): Context projection");
+		expect(systemPrompt).not.toContain("private acceptance");
 		expect((await store.readAll("cwd-test"))[0]?.metadata).toMatchObject({
 			workspace: { cwd: "/workspace/world-wide-woo" },
 		});

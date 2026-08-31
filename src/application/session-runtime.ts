@@ -7,6 +7,7 @@ import {
 } from "@earendil-works/pi-ai";
 import type { WwwSettings } from "../domain/model-settings";
 import { workNarrationLabel, type WorkNarration } from "../domain/narration";
+import type { PlanningSnapshot } from "../domain/planning";
 import type { SessionEvent } from "../domain/session-events";
 import type { CommandResultSnapshot, GenericToolResultSnapshot, ToolResultSnapshot } from "../domain/output";
 import type { AgentTool, ModelAuthStatus, ModelClient, SessionRepository, TodoController } from "./ports";
@@ -57,6 +58,7 @@ export function buildSessionSystemPrompt(
 	workspace: WorkspaceContext,
 	settings: WwwSettings,
 	toolNames: readonly string[] = [],
+	planning: PlanningSnapshot | null = null,
 ): string {
 	const lines = [
 		"사용자에게 한국어로 명확하고 간결하게 답하세요.",
@@ -86,6 +88,14 @@ export function buildSessionSystemPrompt(
 				"Todo 상태를 최종 답변보다 먼저 갱신하고, 실행하지 않았거나 검증하지 않은 항목을 완료로 표시하지 마세요.",
 			);
 		}
+	}
+	if (planning && (planning.epics.length > 0 || planning.stories.length > 0)) {
+		lines.push(
+			"다음 Project Planning 목록은 drafted 작업 의도의 bounded projection이며 구현 승인이나 완료 증거가 아닙니다.",
+			...planning.epics.slice(-5).map(epic => `Epic ${epic.id}: ${epic.title}`),
+			...planning.stories.slice(-8).map(story => `Story ${story.id} (${story.epicId}): ${story.title}`),
+			"Planning 본문과 acceptance가 필요한 판단에서는 `.www/planning/artifacts/<ID>.md` projection과 catalog 정본을 확인하고 제목만으로 완료를 주장하지 마세요.",
+		);
 	}
 	return lines.join("\n");
 }
@@ -233,10 +243,11 @@ export class SessionRuntime {
 		readonly id: string = crypto.randomUUID(),
 		private readonly tools: readonly AgentTool[] = [],
 		private readonly todos?: TodoController,
+		private planning: PlanningSnapshot | null = null,
 	) {
 		this.selection = { ...settings };
 		this.context = {
-			systemPrompt: buildSessionSystemPrompt(workspace, settings, tools.map(tool => tool.definition.name)),
+			systemPrompt: buildSessionSystemPrompt(workspace, settings, tools.map(tool => tool.definition.name), planning),
 			messages: [],
 			tools: tools.map(tool => tool.definition),
 		};
@@ -246,6 +257,16 @@ export class SessionRuntime {
 
 	get settings(): WwwSettings {
 		return { ...this.selection };
+	}
+
+	updatePlanning(snapshot: PlanningSnapshot): void {
+		this.planning = snapshot;
+		this.context.systemPrompt = buildSessionSystemPrompt(
+			this.workspace,
+			this.selection,
+			this.tools.map(tool => tool.definition.name),
+			this.planning,
+		);
 	}
 
 	get snapshot(): SessionSnapshot {
@@ -324,6 +345,7 @@ export class SessionRuntime {
 			this.workspace,
 			nextSelection,
 			this.tools.map(tool => tool.definition.name),
+			this.planning,
 		);
 		this.emit();
 	}

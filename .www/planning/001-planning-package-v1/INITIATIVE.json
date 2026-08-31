@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "INIT-001",
+  "scope": "project",
+  "title": "Project-local Planning Package v1",
+  "status": "active",
+  "canonicalPath": ".www/planning/001-planning-package-v1",
+  "artifacts": [
+    { "id": "PRD-001", "kind": "prd", "path": "PRD.md" },
+    { "id": "ARCH-001", "kind": "architecture", "path": "ARCHITECTURE.md" },
+    { "id": "EP-010", "kind": "epic", "path": "../artifacts/EP-010.md" },
+    { "id": "ST-010-01", "kind": "story", "path": "../artifacts/ST-010-01.md" },
+    { "id": "ST-010-02", "kind": "story", "path": "../artifacts/ST-010-02.md" },
+    { "id": "ST-010-03", "kind": "story", "path": "../artifacts/ST-010-03.md" },
+    { "id": "ST-010-04", "kind": "story", "path": "../artifacts/ST-010-04.md" },
+    { "id": "ST-010-05", "kind": "story", "path": "../artifacts/ST-010-05.md" }
+  ],
+  "relations": [
+    { "from": "PRD-001", "kind": "constrains", "to": "ARCH-001" },
+    { "from": "PRD-001", "kind": "defines-scope-for", "to": "EP-010" },
+    { "from": "ARCH-001", "kind": "shapes", "to": "EP-010" },
+    { "from": "EP-010", "kind": "decomposes-to", "to": "ST-010-01" },
+    { "from": "EP-010", "kind": "decomposes-to", "to": "ST-010-02" },
+    { "from": "EP-010", "kind": "decomposes-to", "to": "ST-010-03" },
+    { "from": "EP-010", "kind": "decomposes-to", "to": "ST-010-04" },
+    { "from": "EP-010", "kind": "decomposes-to", "to": "ST-010-05" }
+  ]
+}

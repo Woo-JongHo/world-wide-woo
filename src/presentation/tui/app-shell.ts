@@ -19,6 +19,7 @@ import type {
 } from "../../application/ports";
 import type { SessionRuntime } from "../../application/session-runtime";
 import type { SessionMonitor } from "../../application/session-monitor";
+import type { PlanningService } from "../../application/planning-service";
 import { MODELS, type WwwSettings } from "../../domain/model-settings";
 import { todoProgress } from "../../domain/todos";
 import { AuthFlowOverlay } from "./auth-overlay";
@@ -61,10 +62,11 @@ export interface TuiShellDependencies {
 	releaseSessionLease: () => Promise<void>;
 	todos: TodoController;
 	monitor: SessionMonitor;
+	planning: PlanningService;
 }
 
 export function runTuiShell(dependencies: TuiShellDependencies): void {
-	const { runtime, auth, usage, routerSettings, repository, composerDraft, releaseSessionLease, todos, monitor } = dependencies;
+	const { runtime, auth, usage, routerSettings, repository, composerDraft, releaseSessionLease, todos, monitor, planning } = dependencies;
 	const tui = new TuiAltScreen(new ProcessTerminal(), true);
 	let snapshot = runtime.snapshot;
 	let todoSnapshot = todos.snapshot;
@@ -331,7 +333,7 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 			}
 		}
 		if (command.type === "help") {
-			status.setNotice("/model · /login · /usage · /monitor · /commits · /issues · /status · /exit");
+			status.setNotice("/model · /login · /usage · /monitor · /planning · /epic · /story · /commits · /issues · /status · /exit");
 		}
 		if (command.type === "status") {
 			status.setNotice(
@@ -339,6 +341,35 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 					snapshot.auth?.configured ? `인증 ${snapshot.auth.source ?? "설정됨"}` : "인증 필요"
 				} · 세션 ${snapshot.id.slice(0, 8)} · 경로 ${snapshot.cwd}`,
 			);
+		}
+		if (command.type === "planning.status") {
+			const current = planning.current;
+			status.setNotice(current
+				? `Planning r${current.revision} · Epic ${current.epics.length} · Story ${current.stories.length}`
+				: "Planning catalog를 아직 읽지 않았습니다.");
+		}
+		if (command.type === "planning.epic.create") {
+			try {
+				const epic = await planning.createEpic(command.title, command.goal);
+				if (planning.current) runtime.updatePlanning(planning.current);
+				status.setNotice(`${epic.id} 초안을 저장했습니다. 구현 승인이나 완료 상태는 변경하지 않았습니다.`);
+			} catch (error) {
+				status.setNotice(error instanceof Error ? error.message : "Epic 초안을 저장하지 못했습니다.");
+			}
+		}
+		if (command.type === "planning.story.create") {
+			try {
+				const story = await planning.createStory(
+					command.epicId,
+					command.title,
+					command.acceptance,
+					command.supersedes,
+				);
+				if (planning.current) runtime.updatePlanning(planning.current);
+				status.setNotice(`${story.id} 초안을 저장했습니다. 현재 session Todo에는 추가하지 않았습니다.`);
+			} catch (error) {
+				status.setNotice(error instanceof Error ? error.message : "Story 초안을 저장하지 못했습니다.");
+			}
 		}
 		if (command.type === "repository.commits") return openCommits();
 		if (command.type === "repository.issues") return openIssues();

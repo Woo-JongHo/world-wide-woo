@@ -113,6 +113,13 @@
 
 - [x] ST-009-01 MAP·Architecture·Planning Package·Work Ledger·Harness 경계를 inventory한다.
 - [x] ST-009-02 canonical/projection 경계를 Monitoring infrastructure 첫 목표에 적용한다.
-- [ ] ST-009-03 Why/How/Outcome/Work를 분리한 project-local Planning Package v1을 설계한다.
+- [x] ST-009-03 Why/How/Outcome/Work를 분리한 project-local Planning Package v1을 설계한다.
 - [ ] ST-009-04 framer·executor·reviewer·governor·verifier 역할과 권한 경계를 단계적으로 도입한다.
 - [ ] ST-009-05 01_www 자동화는 재현 증거와 promotion 기준을 통과한 capability만 흡수한다.
+<!-- www-planning-v1:start -->
+- ST-010-01 | EP-010 | Planning Package contract와 Map | Map은 현재 topology만 소유하고 Planning contract는 artifact 역할, stable ID, append와 supersede authority를 정의한다.
+- ST-010-02 | EP-010 | Append-only Planning store | 동시 writer에서도 ID와 revision이 중복되지 않고 immutable artifact와 managed projection 밖의 bytes를 보존한다.
+- ST-010-03 | EP-010 | Explicit Planning save surface | 명시적 /epic과 /story 명령이 drafted artifact를 저장하며 streaming mutation과 잘못된 relation을 거부한다.
+- ST-010-04 | EP-010 | Planning summary context projection | System context에는 bounded Planning ID와 제목만 포함하고 acceptance나 evidence를 자동 주장하지 않는다.
+- ST-010-05 | EP-010 | Planning lifecycle verification | ID, supersede, concurrency, malformed state, restart, Slash flow와 전체 quality gates를 검증한다.
+<!-- www-planning-v1:end -->

@@ -63,3 +63,6 @@
 - Source: `woo-world/www`의 `01_www`, reviewed baseline `490bc36e94c89180edd81df4bc374ad7870cad79`
 - 규칙: 파일을 통째로 복제하지 않고 acceptance와 evidence가 있는 capability만 Story 단위로 Adapt-In한다.
 - Stories: [`ST-009-*`](./Stories.md#ep-009--01_www-adapt-in)
+<!-- www-planning-v1:start -->
+- EP-010 | Project-local Planning Package v1 | Why·How·Outcome·Work·Runtime 경계를 stable ID와 append-only 이력으로 관리하고 명시적인 Epic·Story 저장 surface를 제공한다.
+<!-- www-planning-v1:end -->

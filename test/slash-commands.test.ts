@@ -17,6 +17,8 @@ describe("WWW slash commands", () => {
 	test("classifies streaming concurrency independently from mutability", () => {
 		expect(shellCommandConcurrency({ type: "status" })).toBe("local-read");
 		expect(shellCommandConcurrency({ type: "monitoring" })).toBe("local-read");
+		expect(shellCommandConcurrency({ type: "planning.status" })).toBe("local-read");
+		expect(shellCommandConcurrency({ type: "planning.epic.create", title: "A", goal: "B" })).toBe("mutation");
 		expect(shellCommandConcurrency({ type: "repository.commits" })).toBe("async-read");
 		expect(shellCommandConcurrency({ type: "usage.refresh" })).toBe("async-read");
 		expect(shellCommandConcurrency({ type: "model.select" })).toBe("mutation");
@@ -38,6 +40,19 @@ describe("WWW slash commands", () => {
 		expect(parseShellCommand("/status", current)).toEqual({ type: "status" });
 		expect(parseShellCommand("/monitor", current)).toEqual({ type: "monitoring" });
 		expect(parseShellCommand("/dashboard", current)).toEqual({ type: "monitoring" });
+		expect(parseShellCommand("/planning", current)).toEqual({ type: "planning.status" });
+		expect(parseShellCommand("/epic Safe edits :: Preview and approve every edit", current)).toEqual({
+			type: "planning.epic.create",
+			title: "Safe edits",
+			goal: "Preview and approve every edit",
+		});
+		expect(parseShellCommand("/story EP-010 Approval flow --supersedes ST-010-01 :: User approves before mutation", current)).toEqual({
+			type: "planning.story.create",
+			epicId: "EP-010",
+			title: "Approval flow",
+			acceptance: "User approves before mutation",
+			supersedes: "ST-010-01",
+		});
 		expect(parseShellCommand("/commits", current)).toEqual({ type: "repository.commits" });
 		expect(parseShellCommand("/issues", current)).toEqual({ type: "repository.issues" });
 		expect(parseShellCommand("/exit", current)).toEqual({ type: "exit" });
@@ -47,6 +62,8 @@ describe("WWW slash commands", () => {
 		expect(parseShellCommand("hello", current)).toBeNull();
 		expect(parseShellCommand("/unknown", current)).toEqual({ type: "error", message: "알 수 없는 명령입니다: /unknown" });
 		expect(parseShellCommand("/model fake/nope", current)).toMatchObject({ type: "error" });
+		expect(parseShellCommand("/epic missing separator", current)).toMatchObject({ type: "error" });
+		expect(parseShellCommand("/story EP-010 missing acceptance", current)).toMatchObject({ type: "error" });
 	});
 
 	test("advertises every supported command for editor completion", () => {
@@ -59,6 +76,9 @@ describe("WWW slash commands", () => {
 			"status",
 			"monitor",
 			"dashboard",
+			"planning",
+			"epic",
+			"story",
 			"commits",
 			"issues",
 			"help",
