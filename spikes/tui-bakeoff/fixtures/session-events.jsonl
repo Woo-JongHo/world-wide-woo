@@ -1,0 +1,7 @@
+{"id":"evt-001","timestamp":"2026-08-30T21:50:00+09:00","category":"user","title":"USER","body":"로그인 오류를 분석해줘","status":"completed"}
+{"id":"evt-002","timestamp":"2026-08-30T21:50:02+09:00","category":"assistant","title":"ASSISTANT","body":"인증 흐름과 만료 처리를 확인했습니다.","status":"completed"}
+{"id":"evt-003","timestamp":"2026-08-30T21:50:04+09:00","category":"command","title":"git diff --stat","body":"src/auth.ts | 12 +++++++-----","status":"passed","metadata":{"cwd":"~/project","exitCode":0}}
+{"id":"evt-004","timestamp":"2026-08-30T21:50:06+09:00","category":"command","title":"bun test auth","body":"✓ 8 passed\n0 failed","status":"passed","metadata":{"cwd":"~/project","exitCode":0}}
+{"id":"evt-005","timestamp":"2026-08-30T21:50:08+09:00","category":"action","title":"ACTION","body":"인증 만료 처리를 수정함","status":"completed"}
+{"id":"evt-006","timestamp":"2026-08-30T21:50:09+09:00","category":"decision","title":"DECISION","body":"refresh token 방식을 유지함 — 기존 세션 계약과 호환되며 회전 정책이 이미 검증됨","status":"completed"}
+{"id":"evt-007","timestamp":"2026-08-30T21:50:10+09:00","category":"evidence","title":"EVIDENCE","body":"auth 테스트 8개 통과","status":"passed"}
