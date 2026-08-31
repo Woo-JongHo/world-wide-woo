@@ -15,6 +15,7 @@
     "@earendil-works/pi-ai": "0.84.4",
     "@earendil-works/pi-tui": "0.84.4",
     "@gajae-code/ai": "0.15.6",
+    "@gajae-code/natives": "0.15.6",
     "chalk": "5.6.2",
     "open": "10.2.0"
   },

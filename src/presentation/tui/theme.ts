@@ -1,5 +1,6 @@
 import chalk from "chalk";
 import type { EditorTheme, MarkdownTheme, SelectListTheme } from "@earendil-works/pi-tui";
+import { createNativeSyntaxHighlightPlugin } from "./syntax-highlighter";
 
 /** Claude-derived clay, parchment, blue, moss, and ochre terminal palette. */
 export const palette = {
@@ -42,13 +43,27 @@ export const editorTheme: EditorTheme = {
 	selectList: selectListTheme,
 };
 
+export const syntaxHighlightPlugin = createNativeSyntaxHighlightPlugin({
+	comment: palette.muted,
+	keyword: palette.violet,
+	function: palette.blue,
+	variable: palette.foreground,
+	string: palette.green,
+	number: palette.warm,
+	type: palette.cyan,
+	operator: palette.yellow,
+	punctuation: palette.muted,
+	inserted: palette.green,
+	deleted: palette.red,
+});
+
 export const markdownTheme: MarkdownTheme = {
 	heading: (text) => colors.accent(chalk.bold(text)),
 	link: chalk.underline.hex(palette.cyan),
 	linkUrl: colors.muted,
-	code: chalk.hex(palette.yellow),
-	codeBlock: colors.text,
-	codeBlockBorder: colors.border,
+	code: (text) => chalk.bgHex("#252422").hex(palette.yellow)(` ${text} `),
+	codeBlock: chalk.hex(palette.foreground),
+	codeBlockBorder: colors.warm,
 	quote: chalk.italic.hex(palette.foreground),
 	quoteBorder: colors.secondary,
 	hr: colors.border,
@@ -57,6 +72,8 @@ export const markdownTheme: MarkdownTheme = {
 	italic: chalk.italic,
 	strikethrough: chalk.strikethrough,
 	underline: chalk.underline,
+	highlightCode: (code, language) => syntaxHighlightPlugin.highlight(code, language),
+	codeBlockIndent: "  ",
 };
 
 /** Claude blue → lavender → clay stops for the WWW landmark glyph. */

@@ -147,6 +147,7 @@ export class TranscriptView implements Component {
 
 	constructor(initial: SessionSnapshot) {
 		this.snapshot = initial;
+		this.update(initial);
 	}
 
 	update(snapshot: SessionSnapshot): void {

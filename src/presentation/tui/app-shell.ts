@@ -27,6 +27,7 @@ import {
 	UsageStripView,
 } from "./dashboard-views";
 import { LoginProviderOverlay, ModelSettingsOverlay } from "./router-overlays";
+import { RenderScheduler } from "./render-scheduler";
 import { parseShellCommand, SLASH_COMMANDS } from "./slash-commands";
 import { colors, editorTheme } from "./theme";
 
@@ -66,6 +67,11 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 
 	let overlay: OverlayHandle | null = null;
 	let shuttingDown = false;
+	let unsubscribeRuntime = () => {};
+	const transcriptRenders = new RenderScheduler(() => {
+		transcript.update(snapshot);
+		tui.requestRender();
+	});
 	const stopUsagePolling = usage.startPolling((snapshots) => {
 		usageStrip.update(snapshots);
 		tui.requestRender();
@@ -166,6 +172,8 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 		status.setNotice("세션을 안전하게 종료하는 중…");
 		tui.requestRender();
 		stopUsagePolling();
+		unsubscribeRuntime();
+		transcriptRenders.dispose();
 		await routerSettings.flush();
 		await runtime.close();
 		tui.stop();
@@ -190,14 +198,16 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 			});
 	};
 
-	runtime.subscribe((next) => {
+	unsubscribeRuntime = runtime.subscribe((next) => {
+		const previousPhase = snapshot.phase;
 		snapshot = next;
-		transcript.update(next);
 		editor.disableSubmit = next.phase === "streaming";
-		if (next.phase === "streaming") status.setNotice("모델이 응답 중입니다. 다음 입력은 작성할 수 있고 Esc로 중단합니다.");
-		if (next.phase === "error") status.setNotice("응답에 실패했습니다. 오류를 확인한 뒤 다시 전송하세요.");
-		if (next.phase === "ready") status.setNotice("/ 명령 · /model 모델 · /login 계정 · /usage 사용량 · Ctrl+C 종료");
-		tui.requestRender();
+		if (next.phase !== previousPhase) {
+			if (next.phase === "streaming") status.setNotice("모델이 응답 중입니다. 다음 입력은 작성할 수 있고 Esc로 중단합니다.");
+			if (next.phase === "error") status.setNotice("응답에 실패했습니다. 오류를 확인한 뒤 다시 전송하세요.");
+			if (next.phase === "ready") status.setNotice("/ 명령 · /model 모델 · /login 계정 · /usage 사용량 · Ctrl+C 종료");
+		}
+		transcriptRenders.request(next.phase === "streaming" ? "streaming" : "immediate");
 	});
 
 	tui.addInputListener((data) => {
