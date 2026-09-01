@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { runCli, type CliDependencies } from "../src/cli";
+import { runCli, writeWorkbenchBootstrap, type CliDependencies } from "../src/cli";
 import type { NativeThreadSummary } from "../src/domain/native-session";
 
 const threads: readonly NativeThreadSummary[] = [{
@@ -37,10 +37,18 @@ function fakeDependencies() {
 }
 
 describe("WWW CLI session entry", () => {
+	test("paints the lightweight bori bootstrap before production modules load", () => {
+		const writes: string[] = [];
+		writeWorkbenchBootstrap(value => writes.push(value), true);
+		expect(writes).toEqual(["\r\x1b[2Kbori · 프로젝트 Workbench를 여는 중…\n"]);
+		writeWorkbenchBootstrap(value => writes.push(value), false);
+		expect(writes).toHaveLength(1);
+	});
+
 	test("reports the package release version", async () => {
 		const { calls, dependencies } = fakeDependencies();
 		expect(await runCli(["--version"], dependencies)).toBe(0);
-		expect(calls.out).toEqual(["0.1.6"]);
+		expect(calls.out).toEqual(["0.1.7"]);
 		expect(calls.app).toEqual([]);
 	});
 

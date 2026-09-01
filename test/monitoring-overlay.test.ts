@@ -47,7 +47,7 @@ describe("MonitoringOverlay", () => {
 		overlay.start();
 		const output = stripTerminalSequences(overlay.render(70).join("\n"));
 		expect(output).toContain("Monitoring · Dashboard");
-		expect(output).toContain("사용자 2 · WWW 1 · 중단 0");
+		expect(output).toContain("user 2 · bori 1 · 중단 0");
 		expect(output).toContain("성공 3 · 실패 1");
 		expect(output).toContain("1/3 · 세부 1/2 · Monitor 구현");
 		expect(output).not.toContain("raw prompt");

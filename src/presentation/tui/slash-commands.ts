@@ -128,10 +128,10 @@ export type WorkbenchShellCommand =
 
 export const WORKBENCH_SLASH_COMMANDS: SlashCommand[] = [
 	{ name: "chat", description: "Chat pane 안내" },
-	{ name: "tnotes", description: "T-notes·source pane 안내" },
+	{ name: "tnotes", description: "세션 요약·source pane 안내" },
 	{ name: "todo", description: "Todo.md 생성·항목·근거 관리", argumentHint: "<create|add|detail|start|complete|block|reopen|evidence|import-legacy> …" },
 	{ name: "source", description: "Activity source 선택", argumentHint: "<activity-id|latest|clear>" },
-	{ name: "tnote", description: "선택 또는 연속 Activity를 T-note로 캡처", argumentHint: "[range <start-sequence> <end-sequence>]" },
+	{ name: "tnote", description: "선택 또는 연속 Activity를 세션 요약으로 수동 캡처", argumentHint: "[range <start-sequence> <end-sequence>]" },
 	{ name: "promote", description: "T-note 정본 반영: diff 확인 후 사람 승인", argumentHint: "<tnote|confirm> <note-id|token>" },
 	{ name: "review", description: "공개 분류 T-note의 외부 검토 미리보기·송신", argumentHint: "<preview|send> …" },
 	{ name: "approve", description: "대기 중인 native 요청 승인" },

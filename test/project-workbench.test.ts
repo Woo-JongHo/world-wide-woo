@@ -7,6 +7,7 @@ import type {
 import {
 	ProjectWorkbench,
 	type WorkbenchActivityJournal,
+	type WorkbenchTNoteSource,
 	type WorkbenchTodoSource,
 } from "../src/application/project-workbench";
 import type {
@@ -317,6 +318,86 @@ describe("ProjectWorkbench", () => {
 			.toBe("thread-1");
 		expect(journal.records.findIndex(activity => activity.payload.text === "두 번째 요청"))
 			.toBeGreaterThan(journal.records.findIndex(activity => activity.payload.method === "turn/completed"));
+		await workbench.close();
+	});
+
+	test("creates a session-summary T-note only at a substantial completed-turn checkpoint without blocking queued chat", async () => {
+		const native = new FakeNativeHarness();
+		const journal = new MemoryJournal();
+		const createCalls: Parameters<WorkbenchTNoteSource["create"]>[0][] = [];
+		let releaseSummary!: () => void;
+		const summaryGate = new Promise<void>((resolve) => { releaseSummary = resolve; });
+		const tnotes: WorkbenchTNoteSource = {
+			readAll: async () => [],
+			create: async (input) => {
+				createCalls.push(input);
+				await summaryGate;
+				return {
+					schemaVersion: 1,
+					id: "automatic-session-summary-1",
+					sequence: 1,
+					createdAt: "2026-09-01T00:00:01.000Z",
+					packet: {
+						schemaVersion: 1,
+						projectId: input.projectId,
+						range: input.range,
+						createdAt: "2026-09-01T00:00:01.000Z",
+						activities: input.activities.map((activity) => ({ ...activity, nativeRefs: activity.nativeRefs ?? [] })),
+						digest: "c".repeat(64),
+					},
+					text: "목표와 결정, 검증 결과, 남은 위험을 정리한 세션 요약",
+					provenance: { provider: "openai-codex", model: "gpt-5.6-sol", version: "test" },
+				};
+			},
+		};
+		const workbench = new ProjectWorkbench(native, journal, {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+			tnotes,
+		});
+		await ready(workbench);
+		await workbench.dispatch({ type: "chat.send", text: "이 세션의 구현과 검증을 진행해줘" });
+		await workbench.dispatch({ type: "chat.send", text: "끝나면 다음 요청도 이어서 처리해줘" });
+
+		for (const [itemId, command] of [["read-1", "rg -n 'summary' src"], ["test-1", "bun test"]] as const) {
+			native.emit({
+				type: "notification",
+				method: "item/completed",
+				refs: { threadId: "thread-1", turnId: "turn-1", itemId },
+				params: { item: { type: "commandExecution", command, exitCode: 0 } },
+			});
+		}
+		native.emit({
+			type: "notification",
+			method: "item/completed",
+			refs: { threadId: "thread-1", turnId: "turn-1", itemId: "assistant-1" },
+			params: { item: { type: "agentMessage", text: "구현과 검증을 마쳤습니다." } },
+		});
+		await Bun.sleep(10);
+		expect(createCalls).toEqual([]);
+
+		native.emit({
+			type: "notification",
+			method: "turn/completed",
+			refs: { threadId: "thread-1", turnId: "turn-1" },
+			params: {},
+		});
+		await Bun.sleep(10);
+
+		expect(createCalls).toHaveLength(1);
+		expect(createCalls[0]?.range).toEqual({ startSequence: 1, endSequence: 8 });
+		expect(createCalls[0]?.instruction).toContain("세션 요약");
+		expect(native.startTurnCalls).toBe(2);
+		expect(workbench.snapshot.chatQueue).toEqual([]);
+		expect(workbench.snapshot.tnotes).toEqual([]);
+
+		releaseSummary();
+		await Bun.sleep(10);
+		expect(workbench.snapshot.tnotes[0]).toMatchObject({
+			id: "automatic-session-summary-1",
+			title: "세션 요약 #1",
+			summary: "목표와 결정, 검증 결과, 남은 위험을 정리한 세션 요약",
+		});
 		await workbench.close();
 	});
 

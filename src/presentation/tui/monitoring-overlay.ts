@@ -59,7 +59,7 @@ export class MonitoringOverlay implements Component {
 			`  ${snapshot.phase} · ${snapshot.activityLabel ?? "activity 없음"} · ${elapsed(liveElapsed)}`,
 			"",
 			colors.secondary("Turn"),
-			`  사용자 ${snapshot.turns.user} · WWW ${snapshot.turns.assistant} · 중단 ${snapshot.turns.cancelled}`,
+			`  user ${snapshot.turns.user} · bori ${snapshot.turns.assistant} · 중단 ${snapshot.turns.cancelled}`,
 			"",
 			colors.secondary("Tool"),
 			`  실행 ${snapshot.tools.running} · 성공 ${snapshot.tools.passed} · 실패 ${snapshot.tools.failed} · 취소 ${snapshot.tools.cancelled}`,

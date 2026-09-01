@@ -33,9 +33,9 @@ describe("TranscriptView Markdown", () => {
 			],
 		}));
 		const lines = view.render(80).map(line => stripTerminalSequences(line).trimEnd());
-		expect(lines[0]).toBe("사용자");
+		expect(lines[0]).toBe("user");
 		expect(lines[1]).toBe("지금 모델 뭔데?");
-		expect(lines[3]).toBe("WWW");
+		expect(lines[3]).toBe("bori");
 		expect(lines[4]).toBe("openai-codex/gpt-5.6-sol");
 	});
 
@@ -75,7 +75,7 @@ describe("TranscriptView Markdown", () => {
 				outcome: "cancelled",
 			}],
 		}));
-		expect(stripTerminalSequences(view.render(100).join("\n"))).toContain("WWW  중단됨");
+		expect(stripTerminalSequences(view.render(100).join("\n"))).toContain("bori  중단됨");
 	});
 
 	test("renders actual tool observations as boxed transcript items", () => {

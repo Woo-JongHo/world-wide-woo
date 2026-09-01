@@ -16,7 +16,10 @@ export const palette = {
 	orange: "#c9865e",
 	userSurface: "#14242b",
 	assistantSurface: "#1a2228",
-	executionSurface: "#151c20",
+	toolPendingSurface: "#151c20",
+	toolSuccessSurface: "#16231e",
+	toolErrorSurface: "#291a1c",
+	toolWarningSurface: "#282218",
 } as const;
 
 export const colors = {
@@ -39,7 +42,11 @@ export const semantic = {
 	assistantLabel: colors.secondary,
 	userSurface: chalk.bgHex(palette.userSurface).hex(palette.foreground),
 	assistantSurface: chalk.bgHex(palette.assistantSurface).hex(palette.foreground),
-	executionSurface: chalk.bgHex(palette.executionSurface).hex(palette.foreground),
+	executionSurface: chalk.bgHex(palette.toolPendingSurface).hex(palette.foreground),
+	executionSurfacePending: chalk.bgHex(palette.toolPendingSurface).hex(palette.foreground),
+	executionSurfacePassed: chalk.bgHex(palette.toolSuccessSurface).hex(palette.foreground),
+	executionSurfaceFailed: chalk.bgHex(palette.toolErrorSurface).hex(palette.foreground),
+	executionSurfaceCancelled: chalk.bgHex(palette.toolWarningSurface).hex(palette.foreground),
 	executionCommand: (text: string) => chalk.bold(colors.accent(text)),
 	executionOutput: colors.muted,
 	narration: colors.accent,

@@ -129,7 +129,7 @@ describe("workbench dashboard views", () => {
 		expect(output).not.toContain("단계 1");
 	});
 
-	test("keeps plan-only steps out of Chat while keeping T-notes completion-only", () => {
+	test("keeps plan-only steps out of Chat while showing compact observation work", () => {
 		const activities: WorkbenchSnapshot["activities"] = [
 			{
 				...snapshot.activities[0]!,
@@ -165,7 +165,14 @@ describe("workbench dashboard views", () => {
 				nativeRefs: { threadId: "thread-1", turnId: "turn-1", itemId: "read-1" },
 				payload: {
 					method: "item/completed",
-					params: { item: { type: "commandExecution", command: "sed -n '1,120p' src/app.ts" } },
+					params: {
+						item: {
+							type: "commandExecution",
+							command: "sed -n '1,120p' src/app.ts",
+							aggregatedOutput: "src/app.ts: application bootstrap",
+							exitCode: 0,
+						},
+					},
 				},
 			},
 		];
@@ -176,11 +183,13 @@ describe("workbench dashboard views", () => {
 
 		expect(chat).not.toContain("단계 1");
 		expect(chat).not.toContain("단계 2");
-		expect(chat).not.toContain("sed -n");
+		expect(chat).toContain("Read");
+		expect(chat).toContain("sed -n");
+		expect(chat).toContain("application bootstrap");
 		expect(notes).not.toContain("T-NOTES · LIVE");
 		expect(notes).not.toContain("Executor 흐름과 Live T-notes를 구현한다");
 		expect(notes).not.toContain("Live T-notes 흐름 연결");
-		expect(notes).toContain("CAPTURED 1");
+		expect(notes).toContain("SESSION SUMMARY 1");
 		expect(notes).toContain("Native 응답을 정리했다.");
 	});
 
@@ -271,7 +280,7 @@ describe("workbench dashboard views", () => {
 
 		expect(tnotesOutput).not.toContain("T-NOTES 0");
 		expect(todoOutput).not.toContain("TODO 0/0");
-		expect(tnotesOutput).toContain("작업이 끝난 뒤 T-note로 정리할 수 있습니다");
+		expect(tnotesOutput).toContain("충분한 작업이 완료되면 세션 요약을 자동으로 정리합니다");
 		expect(todoOutput).toContain("진행 중인 작업 없음");
 	});
 
@@ -327,14 +336,12 @@ describe("workbench dashboard views", () => {
 		};
 		const output = stripTerminalSequences(new WorkbenchChatView(pending).render(100).join("\n"));
 
-		expect(output).toContain("승인 요청 · 명령 실행");
-		expect(output).toContain("무엇을 하나요 · bun test test/workbench-views.test.ts");
-		expect(output).toContain("왜 필요한가요 · 변경이 동작하는지 테스트해야 합니다.");
-		expect(output).toContain("위치 · /workspace/sample-project");
-		expect(output).toContain("/approve 이번만 승인");
-		expect(output).toContain("/approve-session 이 세션에서 승인");
-		expect(output).toContain("/decline 거절");
-		expect(output).toContain("일반 메시지 1개는 승인 처리 후 전송됩니다.");
+		expect(output).toContain("승인 필요 · 명령");
+		expect(output).toContain("명령 · bun test test/workbench-views.test.ts");
+		expect(output).toContain("이유 · 변경이 동작하는지 테스트해야 합니다.");
+		expect(output).toContain("경로 · /workspace/sample-project");
+		expect(output).toContain("승인 /approve · 세션 /approve-session · 거절 /decline");
+		expect(output).toContain("대기 메시지 1개");
 	});
 
 	test("redacts a historical completed reasoning envelope from Source", () => {
@@ -502,9 +509,9 @@ describe("workbench dashboard views", () => {
 			],
 		};
 		const output = stripTerminalSequences(new WorkbenchChatView(queued).render(62).join("\n"));
-		expect(output).toContain("사용자 · 대기 1");
+		expect(output).toContain("user · 대기 1");
 		expect(output).toContain("첫 번째 후속 요청");
-		expect(output).toContain("사용자 · 대기 2");
+		expect(output).toContain("user · 대기 2");
 		expect(output).toContain("두 번째 후속 요청");
 		expect(output.indexOf("첫 번째 후속 요청")).toBeLessThan(output.indexOf("두 번째 후속 요청"));
 		expect(output).not.toContain("queue-secret");
@@ -538,7 +545,7 @@ describe("workbench dashboard views", () => {
 			}],
 		};
 		const output = stripTerminalSequences(new WorkbenchChatView(outbound).render(70).join("\n"));
-		expect(output).toContain(`사용자 · ${label}`);
+		expect(output).toContain(`user · ${label}`);
 		expect(output).toContain("전달 상태를 확인할 요청");
 	});
 
@@ -834,7 +841,7 @@ describe("workbench dashboard views", () => {
 		const layout = createDashboardLayout(
 			() => "WWW · sample-project",
 			{ color: text => text, component: new WorkbenchChatView(snapshot) },
-			{ title: "T-notes · Source", color: text => text, component: new TNotesSourceView(() => snapshot) },
+			{ title: "T-notes · 세션 요약", color: text => text, component: new TNotesSourceView(() => snapshot) },
 			{ title: "Todo.md · 현재 작업", color: text => text, component: new WorkspaceTodoView(() => snapshot.todo) },
 		);
 		const frame = renderLayoutFrame(layout.component, width, height, () => undefined);
@@ -843,7 +850,7 @@ describe("workbench dashboard views", () => {
 			...allScrollContent(frame.root),
 		].join("\n"));
 		expect(output).not.toContain("Chat · Native");
-		expect(output).toContain("T-notes · Source");
+		expect(output).toContain("T-notes · 세션 요약");
 		expect(output).toContain("Todo.md · 현재 작업");
 		expect(output).toContain("결정 요약");
 		expect(output).toContain("SOURCE");

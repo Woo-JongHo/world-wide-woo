@@ -1,14 +1,7 @@
 #!/usr/bin/env bun
 
-import {
-	listNativeThreads as productionListNativeThreads,
-	listSessions as productionListSessions,
-	runApp as productionRunApp,
-	runAuth as productionRunAuth,
-	type RunAppOptions,
-} from "./app";
+import type { RunAppOptions } from "./app";
 import type { NativeThreadSummary } from "./domain/native-session";
-import { selectNativeThread as productionSelectNativeThread } from "./presentation/tui/native-thread-picker";
 import { PRODUCT_VERSION } from "./product-version";
 
 export interface CliDependencies {
@@ -22,14 +15,39 @@ export interface CliDependencies {
 }
 
 const productionDependencies: CliDependencies = {
-	runApp: productionRunApp,
-	runAuth: productionRunAuth,
-	listSessions: productionListSessions,
-	listNativeThreads: productionListNativeThreads,
-	selectNativeThread: productionSelectNativeThread,
+	runApp: async (options) => {
+		writeWorkbenchBootstrap();
+		const { runApp } = await import("./app");
+		await runApp(options);
+	},
+	runAuth: async (args) => {
+		const { runAuth } = await import("./app");
+		await runAuth(args);
+	},
+	listSessions: async () => {
+		const { listSessions } = await import("./app");
+		return listSessions();
+	},
+	listNativeThreads: async () => {
+		const { listNativeThreads } = await import("./app");
+		return listNativeThreads();
+	},
+	selectNativeThread: async (threads) => {
+		const { selectNativeThread } = await import("./presentation/tui/native-thread-picker");
+		return selectNativeThread(threads);
+	},
 	writeOut: value => console.log(value),
 	writeError: value => console.error(value),
 };
+
+/** First paint stays dependency-free; App Server and TUI modules load after this line is visible. */
+export function writeWorkbenchBootstrap(
+	write: (value: string) => void = value => process.stdout.write(value),
+	isTTY = process.stdout.isTTY,
+): void {
+	if (!isTTY) return;
+	write("\r\x1b[2Kbori · 프로젝트 Workbench를 여는 중…\n");
+}
 
 function helpText(): string {
 	return [
@@ -46,7 +64,7 @@ function helpText(): string {
 		"",
 		"Workbench 명령:",
 		"  /source <id|latest|clear>  T-notes source 선택",
-		"  /tnote  선택 source를 packet-only Codex T-note로 캡처",
+		"  /tnote  선택 source를 packet-only 세션 요약으로 수동 캡처",
 		"  /approve · /approve-session · /decline  Codex native 승인 응답",
 		"  /cancel  현재 native turn 중단",
 		"  /exit  Workbench를 안전하게 종료",

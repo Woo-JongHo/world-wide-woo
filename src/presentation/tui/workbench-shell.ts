@@ -54,7 +54,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	const dashboard = createDashboardLayout(
 		() => `🐙 WWW · ${snapshot.projectId} · ${snapshot.phase}${snapshot.chatQueue.length > 0 ? ` · 대기 ${snapshot.chatQueue.length}` : ""}${snapshot.pendingApproval ? " · 승인 대기" : ""}`,
 		{ color: colors.accent, component: chat },
-		{ title: "T-notes · Source", color: colors.secondary, component: tnotes },
+		{ title: "T-notes · 세션 요약", color: colors.secondary, component: tnotes },
 		{ title: "Todo.md · 현재 작업", color: colors.warm, component: todo },
 	);
 	const editor = new Editor(tui, editorTheme, { paddingX: 1, autocompleteMaxVisible: 5 });

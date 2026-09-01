@@ -58,6 +58,9 @@ const JOURNAL_NATIVE_OMISSION = "[journal observation omitted]";
 const WORKBENCH_SNAPSHOT_ACTIVITY_LIMIT = 80;
 const WORKBENCH_FLOW_ACTIVITY_LIMIT = 400;
 const WORKBENCH_ACTION_RESULT_CHARACTER_LIMIT = 12 * 1024;
+const AUTOMATIC_TNOTE_ACTIVITY_THRESHOLD = 8;
+const AUTOMATIC_TNOTE_ACTIVITY_LIMIT = 100;
+const AUTOMATIC_TNOTE_INSTRUCTION = "이 완료된 세션 구간을 세션 요약으로 정리하세요. 사용자의 목표, 중요한 결정, 변경 및 실행 결과, 검증 결과, 남은 작업과 위험을 간결한 항목으로 작성하고 raw activity를 시간순으로 나열하지 마세요.";
 
 interface BoundedTextProjection {
 	readonly tail: string;
@@ -111,7 +114,7 @@ export interface WorkbenchTNoteSource {
 		range: TNoteSourceRange;
 		activities: readonly TNoteActivitySource[];
 		instruction: string;
-	}): Promise<TNoteDraft>;
+	}, signal?: AbortSignal): Promise<TNoteDraft>;
 }
 
 export interface ProjectWorkbenchOptions {
@@ -179,6 +182,8 @@ export class ProjectWorkbench {
 	};
 	private visibleThreadId: string | null = null;
 	private visibleAfterSequence = 0;
+	private automaticTNoteCoveredThrough = 0;
+	private automaticTNotePending = false;
 	private durableNoteProjection: DurableNoteProjection = {
 		sourceLength: -1,
 		notes: Object.freeze([]),
@@ -191,6 +196,7 @@ export class ProjectWorkbench {
 	private eventQueue: Promise<void> = Promise.resolve();
 	private commandQueue: Promise<void> = Promise.resolve();
 	private todoSyncQueue: Promise<void> = Promise.resolve();
+	private tnoteQueue: Promise<void> = Promise.resolve();
 	private readonly ready: Promise<void>;
 	private readonly unsubscribeNative: () => void;
 	private readonly unsubscribeTodo: () => void;
@@ -284,6 +290,7 @@ export class ProjectWorkbench {
 		await this.commandQueue.catch(() => undefined);
 		await this.eventQueue.catch(() => undefined);
 		await this.todoSyncQueue.catch(() => undefined);
+		await this.tnoteQueue.catch(() => undefined);
 		await this.native.close();
 		this.publish("closed");
 		this.listeners.clear();
@@ -300,6 +307,7 @@ export class ProjectWorkbench {
 			this.rememberTerminalTurn(durableActivity);
 		}
 		this.visibleAfterSequence = this.activities.at(-1)?.sequence ?? 0;
+		this.automaticTNoteCoveredThrough = this.visibleAfterSequence;
 		for (const note of notes) {
 			this.noteDrafts.set(note.id, note);
 			this.notes.push(immutable(projectTNote(note)));
@@ -560,12 +568,15 @@ export class ProjectWorkbench {
 			projectId: this.options.projectId,
 			range: { startSequence, endSequence },
 			activities: selected.map(projectActivityToTNoteSource),
-			instruction: title?.trim() || "선택한 활동에서 결정, 작업 결과, 남은 위험을 간결하게 요약하세요.",
-		});
+			instruction: title?.trim() || "선택한 세션 활동에서 목표, 결정, 작업 및 검증 결과, 남은 위험을 간결하게 요약하세요.",
+		}, this.narrationAbort.signal);
 		this.noteDrafts.set(draft.id, draft);
 		this.notes.push(immutable(projectTNote(draft)));
-		this.setActionResult("tnote", `T-note #${draft.sequence}`, draft.text, draft.packet.digest);
-		return { state: "accepted", commandId, message: `T-note #${draft.sequence}을 만들었습니다.` };
+		if (startSequence <= this.automaticTNoteCoveredThrough + 1) {
+			this.automaticTNoteCoveredThrough = Math.max(this.automaticTNoteCoveredThrough, endSequence);
+		}
+		this.setActionResult("tnote", `세션 요약 #${draft.sequence}`, draft.text, draft.packet.digest);
+		return { state: "accepted", commandId, message: `세션 요약 #${draft.sequence}을 만들었습니다.` };
 	}
 
 	private async captureNoteRange(
@@ -717,6 +728,8 @@ export class ProjectWorkbench {
 		const lifecycle = event.type === "notification" ? turnLifecycle(event.method) : null;
 		const completedActiveTurn = lifecycle === "terminal" && event.type === "notification" &&
 			event.refs.turnId === this.activeTurnId;
+		const completedSummaryCheckpoint = completedActiveTurn && event.type === "notification" &&
+			event.method.toLowerCase() === "turn/completed";
 		const sourceDigest = digestSource(stableJson(event));
 		const observation = nativeObservation(event);
 		await this.appendActivity(observation.kind, observation.phase, observation.refs, observation.payload, false, sourceDigest);
@@ -765,7 +778,54 @@ export class ProjectWorkbench {
 		const refs = event.type === "approval-requested" ? event.approval.refs : event.refs;
 		this.reconcileNativeState(refs.threadId ?? this.threadId ?? undefined);
 		this.publish();
+		if (completedSummaryCheckpoint) this.scheduleAutomaticTNote();
 		if (completedActiveTurn) await this.drainChatQueue();
+	}
+
+	/**
+	 * T-notes are completed-session summaries, never a live activity mirror.
+	 * Generation runs behind its own queue so the next Chat turn can start while
+	 * the detached summary model works from an immutable, bounded packet.
+	 */
+	private scheduleAutomaticTNote(): void {
+		const source = this.options.tnotes;
+		if (!source || this.closed || this.automaticTNotePending || this.narrationAbort.signal.aborted) return;
+		const pending = this.activities.filter((activity) => activity.sequence > this.automaticTNoteCoveredThrough);
+		if (pending.length < AUTOMATIC_TNOTE_ACTIVITY_THRESHOLD) return;
+		const selected = pending.slice(-AUTOMATIC_TNOTE_ACTIVITY_LIMIT);
+		const startSequence = selected[0]?.sequence;
+		const endSequence = selected.at(-1)?.sequence;
+		if (!startSequence || !endSequence || endSequence - startSequence + 1 !== selected.length) return;
+
+		this.automaticTNotePending = true;
+		this.tnoteQueue = this.tnoteQueue
+			.catch(() => undefined)
+			.then(async () => {
+				try {
+					const draft = await source.create({
+						projectId: this.options.projectId,
+						range: { startSequence, endSequence },
+						activities: selected.map(projectActivityToTNoteSource),
+						instruction: AUTOMATIC_TNOTE_INSTRUCTION,
+					}, this.narrationAbort.signal);
+					if (this.closed || this.narrationAbort.signal.aborted) return;
+					this.automaticTNoteCoveredThrough = Math.max(this.automaticTNoteCoveredThrough, endSequence);
+					this.noteDrafts.set(draft.id, draft);
+					this.notes.push(immutable(projectTNote(draft)));
+					this.publish();
+				} catch (error) {
+					if (this.closed || this.narrationAbort.signal.aborted) return;
+					this.actionResult = immutable({
+						kind: "tnote",
+						title: "세션 요약 자동 생성 보류",
+						body: sanitizeTerminalTextExcerpt(errorMessage(error), WORKBENCH_ACTION_RESULT_CHARACTER_LIMIT, "head-tail"),
+						createdAt: new Date().toISOString(),
+					});
+					this.publish();
+				} finally {
+					this.automaticTNotePending = false;
+				}
+			});
 	}
 
 	private applyDelta(event: Extract<NativeHarnessEvent, { type: "notification" }>): void {
@@ -1164,7 +1224,7 @@ function journalNativeFieldPriority(key: string): number {
 function projectTNote(draft: TNoteDraft): WorkbenchTNote {
 	return {
 		id: draft.id,
-		title: `T-note #${draft.sequence}`,
+		title: `세션 요약 #${draft.sequence}`,
 		summary: draft.text,
 		sourceActivityIds: draft.packet.activities.map((activity) => activity.id),
 		updatedAt: draft.createdAt,
@@ -1175,7 +1235,7 @@ function canonicalTNoteDraft(draft: TNoteDraft, sessionId: string): CanonicalDoc
 	const source = stableJson(draft);
 	return createCanonicalDocumentDraft({
 		kind: "tnote",
-		body: `# T-note #${draft.sequence}\n\n${draft.text}`,
+		body: `# 세션 요약 #${draft.sequence}\n\n${draft.text}`,
 		source: { id: draft.id, body: source },
 		provenance: { sessionId, capturedAt: draft.createdAt },
 	});

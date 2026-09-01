@@ -8,10 +8,10 @@ import {
 import type { NativeApprovalRequest } from "../../domain/native-session";
 import { sanitizeTerminalTextExcerpt } from "../../domain/terminal";
 import { workbenchApprovalDecisions, type WorkbenchActionResult, type WorkbenchSnapshot } from "../../domain/workbench";
-import type { SemanticWorkStep, WorkStepStatus } from "../../domain/work-steps";
+import { classifyWorkActivity, type SemanticWorkStep, type WorkStepStatus } from "../../domain/work-steps";
 import { boundedPublicProjection, PUBLIC_SOURCE_OMISSION } from "./bounded-public-projection";
 import { colors, markdownTheme, semantic, syntaxHighlightPlugin } from "./theme";
-import { isVisibleWorkStep, WorkStepCard } from "./work-step-card";
+import { isVisibleWorkStep, ObservationCard, WorkStepCard } from "./work-step-card";
 
 const WORKBENCH_MARKDOWN_MAX_CHARS = 16 * 1024;
 const WORKBENCH_MARKDOWN_MAX_LINES = 120;
@@ -20,7 +20,7 @@ const WORKBENCH_ACTIVITY_WINDOW = 80;
 const WORKBENCH_ACTION_MAX_CHARS = 12 * 1024;
 const WORKBENCH_ACTION_MAX_LINES = 80;
 const WORKBENCH_ACTION_OMISSION = "… ACTION 일부 생략 …";
-const WORKBENCH_APPROVAL_DETAIL_MAX_CHARS = 1_200;
+const WORKBENCH_APPROVAL_DETAIL_MAX_CHARS = 200;
 
 function fit(text: string, width: number): string {
 	if (width <= 0) return "";
@@ -80,9 +80,9 @@ function boundedActionResultRows(lines: readonly string[], width: number): strin
 }
 
 function approvalKindLabel(kind: NativeApprovalRequest["kind"]): string {
-	if (kind === "command") return "명령 실행";
+	if (kind === "command") return "명령";
 	if (kind === "file-change") return "파일 변경";
-	return "권한 사용";
+	return "권한";
 }
 
 function approvalParamText(request: NativeApprovalRequest, key: string): string | null {
@@ -94,19 +94,25 @@ function approvalParamText(request: NativeApprovalRequest, key: string): string 
 }
 
 function approvalFallback(request: NativeApprovalRequest): string {
-	if (request.kind === "command") return "Codex가 명령을 실행하려고 합니다.";
-	if (request.kind === "file-change") return "Codex가 작업 파일 변경을 적용하려고 합니다.";
-	return "Codex가 추가 권한을 사용하려고 합니다.";
+	if (request.kind === "command") return "명령 실행에 승인이 필요합니다.";
+	if (request.kind === "file-change") return "파일 변경에 승인이 필요합니다.";
+	return "추가 권한이 필요합니다.";
 }
 
-function approvalInstructionRows(request: NativeApprovalRequest): string[] {
+function approvalDetailLabel(request: NativeApprovalRequest): string {
+	if (request.kind === "command") return "명령";
+	if (request.kind === "file-change") return "변경";
+	return "권한";
+}
+
+function approvalInstruction(request: NativeApprovalRequest): string {
 	const decisions = workbenchApprovalDecisions(request);
 	const instructions: string[] = [];
-	if (decisions.includes("accept")) instructions.push("/approve 이번만 승인");
-	if (decisions.includes("acceptForSession")) instructions.push("/approve-session 이 세션에서 승인");
-	if (decisions.includes("decline")) instructions.push("/decline 거절");
-	if (instructions.length === 0) instructions.push("/cancel 현재 턴 중단");
-	return instructions;
+	if (decisions.includes("accept")) instructions.push("승인 /approve");
+	if (decisions.includes("acceptForSession")) instructions.push("세션 /approve-session");
+	if (decisions.includes("decline")) instructions.push("거절 /decline");
+	if (instructions.length === 0) instructions.push("중단 /cancel");
+	return instructions.join(" · ");
 }
 
 function approvalCardRows(request: NativeApprovalRequest, queueDepth: number, width: number): string[] {
@@ -114,13 +120,12 @@ function approvalCardRows(request: NativeApprovalRequest, queueDepth: number, wi
 	const reason = approvalParamText(request, "reason");
 	const cwd = approvalParamText(request, "cwd");
 	const logicalRows = [
-		colors.warning(`승인 요청 · ${approvalKindLabel(request.kind)}`),
-		`${colors.accent("무엇을 하나요")} · ${command ?? approvalFallback(request)}`,
-		`${colors.accent("왜 필요한가요")} · ${reason ?? "Codex가 이유를 제공하지 않았습니다. 승인 전 내용을 확인하세요."}`,
-		...(cwd ? [`${colors.accent("위치")} · ${cwd}`] : []),
-		`${colors.accent("입력하세요")} · ${approvalInstructionRows(request).join(" · ")}`,
-		colors.muted("결정 전에는 현재 작업이 멈춰 있습니다."),
-		...(queueDepth > 0 ? [colors.muted(`일반 메시지 ${queueDepth}개는 승인 처리 후 전송됩니다.`)] : []),
+		colors.warning(`승인 필요 · ${approvalKindLabel(request.kind)}`),
+		`${colors.accent(approvalDetailLabel(request))} · ${command ?? approvalFallback(request)}`,
+		`${colors.accent("이유")} · ${reason ?? approvalFallback(request)}`,
+		...(cwd ? [`${colors.accent("경로")} · ${cwd}`] : []),
+		colors.muted(approvalInstruction(request)),
+		...(queueDepth > 0 ? [colors.muted(`대기 메시지 ${queueDepth}개`)] : []),
 	];
 	return logicalRows.flatMap(row => wrapTextWithAnsi(row, Math.max(1, width)));
 }
@@ -181,7 +186,7 @@ export class WorkbenchChatView implements Component {
 	render(width: number): string[] {
 		const contentWidth = Math.max(1, width);
 		if (this.snapshot.activities.length === 0) return [
-			colors.accent("WWW · Native Workbench"),
+			colors.accent("bori · Native Workbench"),
 			colors.muted("Codex native 세션에 메시지를 보내면 활동이 여기에 기록됩니다."),
 		];
 		const activities = this.snapshot.activities.slice(-WORKBENCH_ACTIVITY_WINDOW);
@@ -193,6 +198,12 @@ export class WorkbenchChatView implements Component {
 			const lastVisibleActivityId = [...step.activityIds].reverse().find((id) => activities.some((activity) => activity.id === id));
 			if (lastVisibleActivityId) stepByLastActivity.set(lastVisibleActivityId, step);
 		}
+		const observationByItem = new Map<string, string>();
+		for (const activity of activities) {
+			if (classifyWorkActivity(activity) !== "observation") continue;
+			observationByItem.set(activity.nativeRefs.itemId ?? activity.id, activity.id);
+		}
+		const observationActivityIds = new Set(observationByItem.values());
 		const rows: string[] = [];
 		if (omittedActivityCount > 0) rows.push(colors.muted(`… 이전 활동 ${omittedActivityCount}개 생략 · 최근 ${activities.length}개 표시 …`), "");
 		for (const activity of activities) {
@@ -203,7 +214,7 @@ export class WorkbenchChatView implements Component {
 						: message.status === "cancelled" ? semantic.toolCancelled("전송 중단")
 							: message.status === "streaming" ? semantic.toolRunning("전송 중") : "";
 					rows.push(...surfaceRows([
-						`${semantic.userLabel("사용자")}${label ? ` · ${label}` : ""}`,
+						`${semantic.userLabel("user")}${label ? ` · ${label}` : ""}`,
 						...wrapTextWithAnsi(boundedWorkbenchMarkdown(message.content), contentWidth),
 					], contentWidth, semantic.userSurface), "");
 				} else {
@@ -211,7 +222,7 @@ export class WorkbenchChatView implements Component {
 						: message.status === "failed" ? semantic.toolFailed("실패")
 							: message.status === "streaming" ? semantic.toolRunning("응답 중") : "";
 					rows.push(...surfaceRows([
-						`${semantic.assistantLabel("WWW")}${label ? `  ${label}` : ""}`,
+						`${semantic.assistantLabel("bori")}${label ? `  ${label}` : ""}`,
 						...(this.markdown.get(message.id)?.render(contentWidth) ?? [boundedWorkbenchMarkdown(message.content)]),
 					], contentWidth, semantic.assistantSurface), "");
 				}
@@ -223,6 +234,15 @@ export class WorkbenchChatView implements Component {
 				const live = currentLive && currentLive.nativeRefs.itemId === activity.nativeRefs.itemId
 					&& isVisibleWorkStep(currentLive.kind) ? currentLive : undefined;
 				rows.push(...this.renderStepCard(step, contentWidth, activity, live), "");
+			} else if (observationActivityIds.has(activity.id)) {
+				const currentLive = this.snapshot.liveActivity;
+				const live = currentLive && currentLive.nativeRefs.itemId === activity.nativeRefs.itemId
+					&& isVisibleWorkStep(currentLive.kind) ? currentLive : undefined;
+				const projectedActivity = {
+					...activity,
+					payload: boundedPublicProjection(activity.payload).value as typeof activity.payload,
+				};
+				rows.push(...new ObservationCard({ activity: projectedActivity, liveActivity: live }).render(contentWidth), "");
 			}
 		}
 		if (this.snapshot.pendingApproval) {
@@ -237,13 +257,13 @@ export class WorkbenchChatView implements Component {
 		}
 		if (this.snapshot.draft) {
 			rows.push(...surfaceRows([
-				`${semantic.assistantLabel("WWW")}  ${semantic.toolRunning("응답 중")}`,
+				`${semantic.assistantLabel("bori")}  ${semantic.toolRunning("응답 중")}`,
 				...this.draftMarkdown.render(contentWidth),
 			], contentWidth, semantic.assistantSurface), "");
 		}
 		for (const [index, queued] of this.snapshot.chatQueue.entries()) {
 			rows.push(...surfaceRows([
-				`${semantic.userLabel("사용자")} · ${semantic.toolPending(`대기 ${index + 1}`)}`,
+				`${semantic.userLabel("user")} · ${semantic.toolPending(`대기 ${index + 1}`)}`,
 				...wrapTextWithAnsi(boundedWorkbenchMarkdown(queued.content), contentWidth),
 			], contentWidth, semantic.userSurface), "");
 		}
@@ -289,7 +309,7 @@ export class WorkbenchChatView implements Component {
 	}
 }
 
-/** T-note summaries and the selected activity's highlighted source payload. */
+/** Completed session summaries and the selected activity's highlighted source payload. */
 export class TNotesSourceView implements Component {
 	private sourceCache: { key: string; rows: readonly string[] } | null = null;
 
@@ -299,12 +319,12 @@ export class TNotesSourceView implements Component {
 		const snapshot = this.getSnapshot();
 		const actionResult = workbenchActionResult(snapshot);
 		const rows: string[] = [];
-		if (snapshot.tnotes.length > 0) rows.push(colors.secondary(`CAPTURED ${snapshot.tnotes.length}`));
-		if (snapshot.tnotes.length === 0) rows.push(colors.muted("  작업이 끝난 뒤 T-note로 정리할 수 있습니다."));
+		if (snapshot.tnotes.length > 0) rows.push(colors.secondary(`SESSION SUMMARY ${snapshot.tnotes.length}`));
+		if (snapshot.tnotes.length === 0) rows.push(colors.muted("  충분한 작업이 완료되면 세션 요약을 자동으로 정리합니다."));
 		for (const note of snapshot.tnotes.slice(-6)) {
 			rows.push(colors.highlight(`  ${note.title} · ${note.id}`));
 			rows.push(...wrapTextWithAnsi(`    ${note.summary}`, Math.max(1, width)));
-			rows.push(colors.muted(`    source ${note.sourceActivityIds.length}개`));
+			rows.push(colors.muted(`    세션 활동 ${note.sourceActivityIds.length}개`));
 		}
 		if (actionResult) {
 			rows.push("", colors.warm(`ACTION · ${actionResult.kind} · ${actionResult.title}`));

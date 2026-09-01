@@ -207,7 +207,7 @@ export class TranscriptView implements Component {
 			const frame = ACTIVITY_FRAMES[Math.floor(performance.now() / 80) % ACTIVITY_FRAMES.length];
 			const activity = this.snapshot.activity?.label ?? "응답 준비 중";
 			rows.push(...surfaceRows([
-				`${semantic.assistantLabel("WWW")}  ${semantic.toolRunning(`${frame} ${activity}`)}`,
+				`${semantic.assistantLabel("bori")}  ${semantic.toolRunning(`${frame} ${activity}`)}`,
 				...(this.snapshot.draft ? this.draft.render(contentWidth) : [colors.muted("응답을 준비하는 중…")]),
 			], contentWidth, semantic.assistantSurface), "");
 		}
@@ -283,7 +283,7 @@ export class TranscriptView implements Component {
 	private renderEntry(entry: TranscriptEntry, contentWidth: number): string[] {
 		if (entry.kind === "narration") {
 			return surfaceRows([
-				`${semantic.assistantLabel("WWW")}  ${semantic.narration(`단계 ${entry.narration.step}`)}`,
+				`${semantic.assistantLabel("bori")}  ${semantic.narration(`단계 ${entry.narration.step}`)}`,
 				semantic.narration(`동작: ${entry.narration.action}`),
 				semantic.narration(`이유: ${entry.narration.reason}`),
 			], contentWidth, semantic.assistantSurface);
@@ -297,13 +297,13 @@ export class TranscriptView implements Component {
 		const { turn } = entry;
 		if (turn.role === "user") {
 			return surfaceRows([
-				semantic.userLabel("사용자"),
+				semantic.userLabel("user"),
 				...wrapTextWithAnsi(turn.content, contentWidth),
 			], contentWidth, semantic.userSurface);
 		}
 		const assistantRows = [turn.outcome === "cancelled"
-			? `${semantic.assistantLabel("WWW")}  ${semantic.toolCancelled("중단됨")}`
-			: semantic.assistantLabel("WWW")];
+			? `${semantic.assistantLabel("bori")}  ${semantic.toolCancelled("중단됨")}`
+			: semantic.assistantLabel("bori")];
 		const markdown = this.markdownByTurn.get(turn.id);
 		if (markdown) assistantRows.push(...markdown.render(contentWidth));
 		return surfaceRows(assistantRows, contentWidth, semantic.assistantSurface);
