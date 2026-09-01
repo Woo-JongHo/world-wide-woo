@@ -99,6 +99,7 @@ export class LocalTerminalCommandExecutor implements TerminalCommandExecutor {
 		let timedOut = false;
 		let killTimer: ReturnType<typeof setTimeout> | undefined;
 		let windowsKill: Promise<void> | undefined;
+		const outputReaders = new Set<ReadableStreamDefaultReader<Uint8Array<ArrayBufferLike>>>();
 		const decoder = new TextDecoder();
 		const update = () => {
 			try {
@@ -132,10 +133,11 @@ export class LocalTerminalCommandExecutor implements TerminalCommandExecutor {
 		const terminate = () => {
 			if (process.platform === "win32") {
 				killWindowsTree();
-				return;
+			} else {
+				killPosixGroup("SIGTERM");
+				killTimer ??= setTimeout(() => killPosixGroup("SIGKILL"), this.killGraceMs);
 			}
-			killPosixGroup("SIGTERM");
-			killTimer ??= setTimeout(() => killPosixGroup("SIGKILL"), this.killGraceMs);
+			for (const reader of outputReaders) void reader.cancel().catch(() => undefined);
 		};
 		const abort = () => { cancelled = true; terminate(); };
 		signal.addEventListener("abort", abort, { once: true });
@@ -147,6 +149,7 @@ export class LocalTerminalCommandExecutor implements TerminalCommandExecutor {
 		): Promise<void> => {
 			if (!stream || typeof stream === "number") return;
 			const reader = stream.getReader();
+			outputReaders.add(reader);
 			try {
 				while (true) {
 					const { done, value } = await reader.read();
@@ -155,6 +158,7 @@ export class LocalTerminalCommandExecutor implements TerminalCommandExecutor {
 					update();
 				}
 			} finally {
+				outputReaders.delete(reader);
 				reader.releaseLock();
 			}
 		};
