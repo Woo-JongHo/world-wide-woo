@@ -98,6 +98,7 @@ export class LocalTerminalCommandExecutor implements TerminalCommandExecutor {
 		let cancelled = false;
 		let timedOut = false;
 		let killTimer: ReturnType<typeof setTimeout> | undefined;
+		let windowsKill: Promise<void> | undefined;
 		const decoder = new TextDecoder();
 		const update = () => {
 			try {
@@ -109,13 +110,32 @@ export class LocalTerminalCommandExecutor implements TerminalCommandExecutor {
 				// Presentation listeners cannot interrupt the user-owned process.
 			}
 		};
-		const killGroup = (signal: NodeJS.Signals) => {
+		const killPosixGroup = (signal: NodeJS.Signals) => {
 			try { process.kill(-child.pid, signal); }
 			catch { try { child.kill(signal); } catch { /* already exited */ } }
 		};
+		const killWindowsTree = () => {
+			if (windowsKill) return;
+			try {
+				const killer = Bun.spawn(["taskkill.exe", "/PID", String(child.pid), "/T", "/F"], {
+					stdin: "ignore",
+					stdout: "ignore",
+					stderr: "ignore",
+				});
+				windowsKill = killer.exited.then((exitCode) => {
+					if (exitCode !== 0) try { child.kill("SIGKILL"); } catch { /* already exited */ }
+				});
+			} catch {
+				try { child.kill("SIGKILL"); } catch { /* already exited */ }
+			}
+		};
 		const terminate = () => {
-			killGroup("SIGTERM");
-			killTimer ??= setTimeout(() => killGroup("SIGKILL"), this.killGraceMs);
+			if (process.platform === "win32") {
+				killWindowsTree();
+				return;
+			}
+			killPosixGroup("SIGTERM");
+			killTimer ??= setTimeout(() => killPosixGroup("SIGKILL"), this.killGraceMs);
 		};
 		const abort = () => { cancelled = true; terminate(); };
 		signal.addEventListener("abort", abort, { once: true });
@@ -141,7 +161,7 @@ export class LocalTerminalCommandExecutor implements TerminalCommandExecutor {
 		try {
 			const [exitCode] = await Promise.all([
 				child.exited.then(exitCode => {
-					killGroup("SIGTERM");
+					if (process.platform !== "win32") killPosixGroup("SIGTERM");
 					return exitCode;
 				}),
 				drain(child.stdout, value => { stdout = appendTail(stdout, value); }),
@@ -161,7 +181,8 @@ export class LocalTerminalCommandExecutor implements TerminalCommandExecutor {
 			clearTimeout(timeout);
 			if (killTimer) clearTimeout(killTimer);
 			signal.removeEventListener("abort", abort);
-			killGroup("SIGTERM");
+			if (process.platform !== "win32") killPosixGroup("SIGTERM");
+			if (windowsKill) await windowsKill;
 		}
 	}
 }
