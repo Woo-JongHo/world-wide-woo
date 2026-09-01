@@ -56,7 +56,7 @@ describe("CodexAppServer", () => {
 				id: 1,
 				method: "initialize",
 				params: {
-					clientInfo: { name: "www", title: "World Wide Woo", version: "0.1.3" },
+					clientInfo: { name: "www", title: "World Wide Woo", version: "0.1.4" },
 					capabilities: { experimentalApi: false, requestAttestation: false },
 				},
 			},

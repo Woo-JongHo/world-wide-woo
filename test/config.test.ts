@@ -40,8 +40,10 @@ describe("model settings", () => {
 		await store.save(settings);
 		expect(await store.load()).toEqual(settings);
 		expect(JSON.parse(await readFile(path, "utf8"))).toEqual(settings);
-		expect((await stat(dirname(path))).mode & 0o777).toBe(0o700);
-		expect((await stat(path)).mode & 0o777).toBe(0o600);
+		if (process.platform !== "win32") {
+			expect((await stat(dirname(path))).mode & 0o777).toBe(0o700);
+			expect((await stat(path)).mode & 0o777).toBe(0o600);
+		}
 	});
 
 	test("reports a malformed settings file instead of silently resetting it", async () => {

@@ -46,8 +46,10 @@ describe("file credential store", () => {
 		const path = await credentialPath();
 		const store = new FileCredentialStore(path);
 		await store.modify("google", async () => ({ type: "api_key", key: "secret" }));
-		expect((await stat(dirname(path))).mode & 0o777).toBe(0o700);
-		expect((await stat(path)).mode & 0o777).toBe(0o600);
+		if (process.platform !== "win32") {
+			expect((await stat(dirname(path))).mode & 0o777).toBe(0o700);
+			expect((await stat(path)).mode & 0o777).toBe(0o600);
+		}
 	});
 
 	test("rejects corrupt credential files", async () => {

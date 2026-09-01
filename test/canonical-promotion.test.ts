@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { CanonicalPromotionService, createCanonicalDocumentDraft, digestCanonicalDocument, fingerprintCanonicalDocument } from "../src/application/canonical-promotion";
 import { canonicalTemporaryPath, FileCanonicalDocumentStore } from "../src/infrastructure/canonical-document-store";
 
@@ -27,9 +27,10 @@ function draft(body = "# 오늘의 작업\n\n- [ ] 정리"): ReturnType<typeof c
 
 describe("human-gated canonical promotion", () => {
 	test("uses the ignored per-document temporary-file convention", () => {
-		const temporary = canonicalTemporaryPath("/workspace/.www/vault/Todo.md", "nonce");
-		expect(temporary).toBe("/workspace/.www/vault/.Todo.md." + process.pid + ".nonce.tmp");
-		expect(temporary).toMatch(/\/\.Todo\.md\.\d+\.nonce\.tmp$/);
+		const target = join("workspace", ".www", "vault", "Todo.md");
+		const temporary = canonicalTemporaryPath(target, "nonce");
+		expect(temporary).toBe(join(dirname(target), `.${basename(target)}.${process.pid}.nonce.tmp`));
+		expect(basename(temporary)).toMatch(/^\.Todo\.md\.\d+\.nonce\.tmp$/);
 	});
 
 	test("accepts then atomically promotes an approved Todo draft without git operations", async () => {

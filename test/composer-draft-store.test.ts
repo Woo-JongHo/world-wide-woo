@@ -56,8 +56,10 @@ describe("file composer draft controller", () => {
 		const directory = await draftDirectory();
 		await (await FileComposerDraftController.create("/projects/one", "session-1", directory)).save("draft");
 		const [file] = await readdir(directory);
-		expect((await stat(directory)).mode & 0o777).toBe(0o700);
-		expect((await stat(join(directory, file))).mode & 0o777).toBe(0o600);
+		if (process.platform !== "win32") {
+			expect((await stat(directory)).mode & 0o777).toBe(0o700);
+			expect((await stat(join(directory, file))).mode & 0o777).toBe(0o600);
+		}
 	});
 
 	test("isolates drafts by project key", async () => {

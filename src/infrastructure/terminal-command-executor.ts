@@ -70,7 +70,9 @@ export class LocalTerminalCommandExecutor implements TerminalCommandExecutor {
 	async execute(command: string, cwd: string, signal: AbortSignal, onUpdate: (update: TerminalCommandUpdate) => void): Promise<TerminalCommandResult> {
 		await validate(command, cwd);
 		const startedAt = performance.now();
-		const shell = process.env.SHELL?.startsWith("/") ? process.env.SHELL : "/bin/sh";
+		const shell = process.platform === "win32"
+			? "bash"
+			: process.env.SHELL?.startsWith("/") ? process.env.SHELL : "/bin/sh";
 		let child: ReturnType<typeof Bun.spawn> | undefined;
 		try {
 			const loginShell = ["bash", "zsh"].includes(basename(shell));

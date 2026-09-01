@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { access, chmod, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { tmpdir } from "node:os";
 import { createProjectAgentTools } from "../src/infrastructure/agent-tools";
 import type { TodoController } from "../src/application/ports";
@@ -59,7 +59,8 @@ describe("project agent tools", () => {
 		const bash = tool(tools, "bash");
 		const pwd = await bash.execute({ command: "pwd", args: [] }, signal());
 		expect(pwd.snapshot).toMatchObject({ shell: "bash", cwd: root, status: "passed" });
-		expect(pwd.modelContent).toContain(root);
+		// Git Bash exposes Windows temporary directories through its POSIX path mapping.
+		expect(pwd.modelContent).toContain(basename(root));
 		expect((await bash.execute({ command: "git", args: ["status"] }, signal())).snapshot).toHaveProperty("shell", "bash");
 		const ssh = await tool(tools, "ssh_config").execute({ host: "woojongho" }, signal());
 		expect(ssh.modelContent).toContain("hostname 100.85.195.37");

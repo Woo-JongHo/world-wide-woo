@@ -32,7 +32,9 @@ describe("FilePlanningStore", () => {
 		const catalog = await readFile(join(root, "planning", "catalog.jsonl"), "utf8");
 		expect(catalog).not.toContain("AKIA1234567890ABCDEF");
 		expect(catalog).not.toContain("Bearer abc");
-		const info = await lstat(join(root, "planning", "artifacts", "EP-001.md")); expect(info.mode & 0o777).toBe(0o600);
+		if (process.platform !== "win32") {
+			const info = await lstat(join(root, "planning", "artifacts", "EP-001.md")); expect(info.mode & 0o777).toBe(0o600);
+		}
 	});
 	test("serializes independent process writers without duplicate IDs", async () => {
 		const root = await workspace();

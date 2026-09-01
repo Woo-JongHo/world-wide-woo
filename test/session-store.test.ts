@@ -58,8 +58,10 @@ describe("SessionEventStore", () => {
 		const sessionId = createSessionId();
 		await store.append(sessionId, { category: "system", type: "session.started", status: "passed", title: "Created", body: "" });
 
-		expect((await stat(directory)).mode & 0o777).toBe(0o700);
-		expect((await stat(join(directory, `${sessionId}.jsonl`))).mode & 0o777).toBe(0o600);
+		if (process.platform !== "win32") {
+			expect((await stat(directory)).mode & 0o777).toBe(0o700);
+			expect((await stat(join(directory, `${sessionId}.jsonl`))).mode & 0o777).toBe(0o600);
+		}
 	});
 
 	test("lists stored sessions by most recent update", async () => {

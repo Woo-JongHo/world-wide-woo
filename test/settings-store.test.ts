@@ -20,7 +20,7 @@ describe("FileSettingsStore atomic updates", () => {
 		await settings.save(codex);
 		expect(await settings.compareAndSwap(codex, claude)).toBe(true);
 		expect(await settings.load()).toEqual(claude);
-		expect((await stat(settings.path)).mode & 0o777).toBe(0o600);
+		if (process.platform !== "win32") expect((await stat(settings.path)).mode & 0o777).toBe(0o600);
 	});
 
 	test("preserves a newer selection when expected is stale", async () => {

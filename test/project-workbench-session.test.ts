@@ -139,7 +139,7 @@ describe("createProjectWorkbenchSession", () => {
 
 		expect(session.projectId).toBe(scopedProjectId(workspace.root));
 		expect(observed.todoPath).toBe(workspace.canonicalTodoPath);
-		expect(observed.journalPath).toBe(`${workspace.runtimeDirectory}/activity`);
+		expect(observed.journalPath).toBe(join(workspace.runtimeDirectory, "activity"));
 		expect(observed.draftPath).toBe(workspace.draftsDirectory);
 		expect(observed.tnoteModel).toBe("gpt-5.6-sol");
 		expect(observed.options).toMatchObject({

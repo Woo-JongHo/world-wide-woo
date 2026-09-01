@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { lstat, mkdtemp, mkdir, readFile, realpath, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { FileProjectWorkspace } from "../src/infrastructure/project-workspace";
 import { FileTodoStore } from "../src/infrastructure/todo-store";
 
@@ -41,7 +41,7 @@ describe("FileProjectWorkspace", () => {
 		expect(workspace.root).toBe(await realpath(root));
 		expect(JSON.parse(await readFile(workspace.manifestPath, "utf8"))).toMatchObject({
 			schemaVersion: 1,
-			name: root.split("/").at(-1),
+			name: basename(root),
 		});
 	});
 
@@ -76,11 +76,13 @@ describe("FileProjectWorkspace", () => {
 		expect(await readFile(join(workspace.directory, ".gitignore"), "utf8")).toBe(
 			"sessions/\ndrafts/\ncache/\nruntime/\ntodos/\n/Todo.md\n.Todo.md.*.tmp\n",
 		);
-		for (const directory of [workspace.directory, workspace.sessionsDirectory, workspace.draftsDirectory, workspace.runtimeDirectory, workspace.todosDirectory, workspace.vaultDirectory]) {
-			expect((await stat(directory)).mode & 0o777).toBe(0o700);
-		}
-		for (const file of [workspace.manifestPath, join(workspace.directory, ".gitignore")]) {
-			expect((await stat(file)).mode & 0o777).toBe(0o600);
+		if (process.platform !== "win32") {
+			for (const directory of [workspace.directory, workspace.sessionsDirectory, workspace.draftsDirectory, workspace.runtimeDirectory, workspace.todosDirectory, workspace.vaultDirectory]) {
+				expect((await stat(directory)).mode & 0o777).toBe(0o700);
+			}
+			for (const file of [workspace.manifestPath, join(workspace.directory, ".gitignore")]) {
+				expect((await stat(file)).mode & 0o777).toBe(0o600);
+			}
 		}
 	});
 
