@@ -189,7 +189,7 @@ export class CodexAppServer implements NativeHarnessPort {
 				title: options.clientTitle ?? "World Wide Woo",
 				version: options.clientVersion ?? PRODUCT_VERSION,
 			},
-			capabilities: { experimentalApi: false, requestAttestation: false },
+			capabilities: { experimentalApi: true, requestAttestation: false },
 		}, false);
 		await server.notify("initialized");
 		return server;
@@ -246,6 +246,8 @@ export class CodexAppServer implements NativeHarnessPort {
 			model: input.model,
 			effort: input.effort,
 			approvalPolicy: input.approvalPolicy,
+			sandboxPolicy: input.sandboxPolicy,
+			collaborationMode: input.collaborationMode,
 		}), true);
 		return turnSnapshot(result, input.threadId);
 	}

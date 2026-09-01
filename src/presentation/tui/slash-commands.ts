@@ -106,6 +106,8 @@ export const SLASH_COMMANDS: SlashCommand[] = [
 
 export type WorkbenchShellCommand =
 	| { type: "pane.show"; pane: "chat" | "tnotes" | "todo" }
+	| { type: "session.permission"; mode: "all" | "manual" }
+	| { type: "session.mode"; mode: "plan" | "manual" }
 	| { type: "activity.select"; activityId: string | "latest" | null }
 	| { type: "tnote.capture" }
 	| { type: "tnote.capture-range"; startSequence: number; endSequence: number }
@@ -130,8 +132,26 @@ export const WORKBENCH_SLASH_COMMANDS: SlashCommand[] = [
 	{ name: "chat", description: "Chat pane 안내" },
 	{ name: "tnotes", description: "세션 요약·source pane 안내" },
 	{ name: "todo", description: "Todo.md 생성·항목·근거 관리", argumentHint: "<create|add|detail|start|complete|block|reopen|evidence|import-legacy> …" },
+	{
+		name: "permission",
+		description: "Native 권한 범위 전환",
+		argumentHint: "<manual|all>",
+		getArgumentCompletions: () => [
+			{ value: "manual", label: "manual", description: "workspace 범위·수동 승인" },
+			{ value: "all", label: "all", description: "전체 로컬 권한·승인 없음" },
+		],
+	},
+	{
+		name: "mode",
+		description: "Native 실행 방식 전환",
+		argumentHint: "<manual|plan>",
+		getArgumentCompletions: () => [
+			{ value: "manual", label: "manual", description: "기본 실행 모드" },
+			{ value: "plan", label: "plan", description: "계획 중심 모드" },
+		],
+	},
 	{ name: "source", description: "Activity source 선택", argumentHint: "<activity-id|latest|clear>" },
-	{ name: "tnote", description: "선택 또는 연속 Activity를 세션 요약으로 수동 캡처", argumentHint: "[range <start-sequence> <end-sequence>]" },
+	{ name: "tnote", description: "현재 Native 세션의 전체 대화를 누적 요약", argumentHint: "[range <start-sequence> <end-sequence>]" },
 	{ name: "promote", description: "T-note 정본 반영: diff 확인 후 사람 승인", argumentHint: "<tnote|confirm> <note-id|token>" },
 	{ name: "review", description: "공개 분류 T-note의 외부 검토 미리보기·송신", argumentHint: "<preview|send> …" },
 	{ name: "approve", description: "대기 중인 native 요청 승인" },
@@ -146,6 +166,16 @@ export function parseWorkbenchShellCommand(text: string): WorkbenchShellCommand 
 	if (!trimmed.startsWith("/")) return null;
 	const [name, ...args] = trimmed.slice(1).split(/\s+/u);
 	if ((name === "chat" || name === "tnotes" || name === "todo") && args.length === 0) return { type: "pane.show", pane: name };
+	if (name === "permission") {
+		return args.length === 1 && (args[0] === "all" || args[0] === "manual")
+			? { type: "session.permission", mode: args[0] }
+			: { type: "error", message: "사용법: /permission <manual|all>" };
+	}
+	if (name === "mode") {
+		return args.length === 1 && (args[0] === "plan" || args[0] === "manual")
+			? { type: "session.mode", mode: args[0] }
+			: { type: "error", message: "사용법: /mode <manual|plan>" };
+	}
 	if (name === "source") {
 		const activityId = args[0];
 		if (!activityId) return { type: "error", message: "사용법: /source <activity-id|latest|clear>" };

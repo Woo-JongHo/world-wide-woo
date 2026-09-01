@@ -26,6 +26,25 @@ export type NativeApprovalPolicy =
 
 export type NativeSandboxMode = "read-only" | "workspace-write" | "danger-full-access";
 
+export type NativeSandboxPolicy =
+	| { readonly type: "dangerFullAccess" }
+	| {
+		readonly type: "workspaceWrite";
+		readonly writableRoots: readonly string[];
+		readonly networkAccess: boolean;
+		readonly excludeTmpdirEnvVar: boolean;
+		readonly excludeSlashTmp: boolean;
+	};
+
+export interface NativeCollaborationMode {
+	readonly mode: "plan" | "default";
+	readonly settings: {
+		readonly model: string;
+		readonly reasoning_effort: string | null;
+		readonly developer_instructions: null;
+	};
+}
+
 export interface NativeThreadSnapshot {
 	id: string;
 	value: Readonly<Record<string, unknown>>;
@@ -87,6 +106,8 @@ export interface NativeTurnStart {
 	model?: string;
 	effort?: string;
 	approvalPolicy?: NativeApprovalPolicy;
+	sandboxPolicy?: NativeSandboxPolicy;
+	collaborationMode?: NativeCollaborationMode;
 }
 
 export interface NativeTurnInterrupt {

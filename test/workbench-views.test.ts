@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { renderLayoutFrame } from "@earendil-works/pi-tui/dist/layout.js";
 import type { LayoutBox } from "@earendil-works/pi-tui/dist/layout.js";
-import { stripTerminalSequences } from "@earendil-works/pi-tui";
+import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
 import type { WorkbenchSnapshot } from "../src/domain/workbench";
 import { createDashboardLayout } from "../src/presentation/tui/dashboard-layout";
 import {
@@ -189,7 +189,7 @@ describe("workbench dashboard views", () => {
 		expect(notes).not.toContain("T-NOTES · LIVE");
 		expect(notes).not.toContain("Executor 흐름과 Live T-notes를 구현한다");
 		expect(notes).not.toContain("Live T-notes 흐름 연결");
-		expect(notes).toContain("SESSION SUMMARY 1");
+		expect(notes).toContain("CURRENT SESSION SUMMARY");
 		expect(notes).toContain("Native 응답을 정리했다.");
 	});
 
@@ -280,8 +280,31 @@ describe("workbench dashboard views", () => {
 
 		expect(tnotesOutput).not.toContain("T-NOTES 0");
 		expect(todoOutput).not.toContain("TODO 0/0");
-		expect(tnotesOutput).toContain("충분한 작업이 완료되면 세션 요약을 자동으로 정리합니다");
+		expect(tnotesOutput).toContain("현재 세션 대화가 충분히 진행되면 누적 요약을 자동으로 정리합니다");
 		expect(todoOutput).toContain("진행 중인 작업 없음");
+	});
+
+	test("renders Todo status icons and hanging wraps inside the pane width", () => {
+		const view = new WorkspaceTodoView(() => ({
+			version: 1,
+			revision: 2,
+			ownerSessionId: "workbench",
+			storyId: "ST-001",
+			title: "현재 구현 진행 상황",
+			updatedAt: "2026-09-01T00:00:00.000Z",
+			items: [
+				{ id: "todo-1", content: "아주 긴 완료 항목이 패널 바깥으로 넘어가지 않게 줄바꿈합니다", status: "completed", evidenceIds: [], details: [] },
+				{ id: "todo-2", content: "현재 진행 항목", status: "in_progress", evidenceIds: [], details: [] },
+			],
+		}));
+		const lines = view.render(48);
+		const output = stripTerminalSequences(lines.join("\n"));
+
+		expect(lines.every((line) => visibleWidth(line) <= 48)).toBe(true);
+		expect(output).toContain("✓");
+		expect(output).toContain("◉");
+		expect(output).not.toContain("[x]");
+		expect(lines.length).toBeGreaterThan(4);
 	});
 
 	test("hides lifecycle progress payloads from Chat cards", () => {
@@ -589,7 +612,7 @@ describe("workbench dashboard views", () => {
 		expect(output).not.toContain("비공개 판단");
 	});
 
-	test("bounds completed and draft Markdown with head and tail while preserving snapshot content", () => {
+	test("preserves completed Markdown while bounding only the live draft", () => {
 		const completed = Array.from({ length: 200 }, (_, index) => `completed-line-${String(index + 1).padStart(3, "0")}`).join("\n");
 		const draft = Array.from({ length: 200 }, (_, index) => `draft-line-${String(index + 1).padStart(3, "0")}`).join("\n");
 		const large: WorkbenchSnapshot = {
@@ -600,16 +623,54 @@ describe("workbench dashboard views", () => {
 		const output = stripTerminalSequences(new WorkbenchChatView(large).render(100).join("\n"));
 		expect(output).toContain("completed-line-001");
 		expect(output).toContain("completed-line-200");
-		expect(output).not.toContain("completed-line-100");
+		expect(output).toContain("completed-line-100");
 		expect(output).toContain("draft-line-001");
 		expect(output).toContain("draft-line-200");
 		expect(output).not.toContain("draft-line-100");
-		expect(output.match(/응답 일부 생략/gu)).toHaveLength(2);
+		expect(output.match(/응답 일부 생략/gu)).toHaveLength(1);
 		expect(large.chat[0]?.content).toBe(completed);
 		expect(large.draft).toBe(draft);
 	});
 
-	test("bounds a long native transcript to recent activities and marks omitted history", () => {
+	test("keeps a structured native answer in its original Markdown order", () => {
+		const structured = [
+			"### autoresearch",
+			"특정 목표에 대한 조사 임무를 수행합니다.",
+			"```text",
+			"/skill:autoresearch Codex App Server 조사",
+			"```",
+			"적합한 상황:",
+			"- 공식 문서와 코드 근거",
+			"- 기술 선택지 비교",
+			"---",
+			"### 스킬과 서브에이전트의 차이",
+			"둘은 완전히 다른 개념입니다.",
+		].join("\n");
+		const view = new WorkbenchChatView({
+			...snapshot,
+			chat: [{ ...snapshot.chat[0]!, content: structured }],
+		});
+		const output = stripTerminalSequences(view.render(80).join("\n"));
+		const landmarks = [
+			"autoresearch",
+			"특정 목표에 대한 조사 임무",
+			"/skill:autoresearch Codex App Server 조사",
+			"적합한 상황:",
+			"공식 문서와 코드 근거",
+			"기술 선택지 비교",
+			"스킬과 서브에이전트의 차이",
+			"둘은 완전히 다른 개념입니다.",
+		];
+		let previous = -1;
+		for (const landmark of landmarks) {
+			const index = output.indexOf(landmark);
+			expect(index).toBeGreaterThan(previous);
+			previous = index;
+		}
+		expect(output).not.toContain("응답 일부 생략");
+	});
+
+	test("keeps the full current native session transcript visible", () => {
 		const activities = Array.from({ length: 180 }, (_, index) => ({
 			...snapshot.activities[0]!,
 			id: `activity-${index + 1}`,
@@ -634,15 +695,15 @@ describe("workbench dashboard views", () => {
 
 		const view = new WorkbenchChatView(longSession);
 		const output = stripTerminalSequences(view.render(80).join("\n"));
-		expect(output).toContain("이전 활동 100개 생략");
-		expect(output).not.toContain("assistant-message-001");
-		expect(output).not.toContain("assistant-message-100");
+		expect(output).not.toContain("이전 활동");
+		expect(output).toContain("assistant-message-001");
+		expect(output).toContain("assistant-message-100");
 		expect(output).toContain("assistant-message-101");
 		expect(output).toContain("assistant-message-180");
 
 		view.update({ ...longSession, draft: "새 응답" });
 		const updated = stripTerminalSequences(view.render(80).join("\n"));
-		expect(updated).toContain("이전 활동 100개 생략");
+		expect(updated).toContain("assistant-message-001");
 		expect(updated).toContain("assistant-message-180");
 		expect(updated).toContain("새 응답");
 	});
@@ -650,10 +711,9 @@ describe("workbench dashboard views", () => {
 	test("advertises only commands and exit keys supported by the native shell", () => {
 		const output = stripTerminalSequences(new StatusLine(WORKBENCH_STATUS_NOTICE).render(240).join("\n"));
 		expect(output).toContain("/source");
-		expect(output).toContain("/approve-session");
+		expect(output).toContain("/mode");
+		expect(output).toContain("/permission");
 		expect(output).toContain("Esc 중단");
-		expect(output).toContain("Ctrl+C 두 번 종료");
-		expect(output).toContain("Ctrl+D(빈 입력) 종료");
 		expect(output).not.toContain("! 터미널");
 		expect(output).not.toContain("/model");
 		expect(output).not.toContain("/usage");

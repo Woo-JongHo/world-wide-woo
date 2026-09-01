@@ -40,7 +40,7 @@ export class PiDetachedCodexGenerator implements DetachedTextGenerator {
 		if (!model) throw new Error(`Detached Codex model is not available: ${DETACHED_CODEX_PROVIDER}/${this.modelId}`);
 
 		const context: Context = {
-			systemPrompt: "You create a concise session summary from only the supplied immutable T-note packet. Cover goals, decisions, results, verification, remaining work, and risks. Do not infer omitted project data, list raw events chronologically, or call tools. Return text only.",
+			systemPrompt: "You create a concise summary of the user-bori conversation from only the supplied immutable T-note packet. Include execution details only when they directly support a user request. Cover goals, decisions, results, verification, remaining work, and risks. Ignore unrelated session startup, environment initialization, MCP, authentication, and account-status activity. Do not infer omitted project data, list raw events chronologically, or call tools. Return text only.",
 			messages: [{ role: "user", content: detachedInput(request), timestamp: Date.now() }],
 			tools: [],
 		};

@@ -23,6 +23,7 @@ export async function runApp(options: RunAppOptions = {}): Promise<void> {
 		runProjectWorkbenchShell({
 			workbench: project.workbench,
 			cwd: project.workspace.root,
+			usage: project.usage,
 			composerDraft: project.composerDraft,
 			releaseSessionLease: project.releaseSessionLease,
 		});

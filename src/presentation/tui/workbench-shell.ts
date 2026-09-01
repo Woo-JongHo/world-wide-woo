@@ -2,21 +2,18 @@ import {
 	CombinedAutocompleteProvider,
 	Editor,
 	Key,
-	Loader,
 	ProcessTerminal,
 	TuiAltScreen,
 	VStack,
 	isViewportTUI,
 	matchesKey,
-	type Component,
-	type TUI,
 } from "@earendil-works/pi-tui";
-import type { ComposerDraftController } from "../../application/ports";
+import type { ComposerDraftController, UsageMonitor } from "../../application/ports";
 import type { ProjectWorkbench } from "../../application/project-workbench";
 import { sanitizeTerminalTextUnbounded } from "../../domain/terminal";
 import type { WorkbenchCommandReceipt } from "../../domain/workbench";
 import { createDashboardLayout } from "./dashboard-layout";
-import { WorkspaceTodoView } from "./shared-dashboard-views";
+import { StatusLine, WorkspaceTodoView } from "./shared-dashboard-views";
 import { TNotesSourceView, WorkbenchChatView } from "./workbench-views";
 import { ExitKeyPolicy } from "./exit-key-policy";
 import { RenderScheduler, workbenchRenderUrgency } from "./render-scheduler";
@@ -24,10 +21,12 @@ import { settleWithin } from "./shell-lifecycle";
 import { parseWorkbenchShellCommand, WORKBENCH_SLASH_COMMANDS } from "./slash-commands";
 import { colors, editorTheme } from "./theme";
 import { WorkbenchTelemetryLine } from "./workbench-telemetry";
+import { UsageStripView } from "./usage-strip-view";
 
 export interface ProjectWorkbenchShellDependencies {
 	workbench: ProjectWorkbench;
 	cwd?: string;
+	usage: UsageMonitor;
 	composerDraft?: ComposerDraftController;
 	releaseSessionLease?: () => Promise<void>;
 }
@@ -43,7 +42,7 @@ export function workbenchReceiptClearsComposer(receipt: WorkbenchCommandReceipt)
 	return receipt.state !== "rejected";
 }
 
-export const WORKBENCH_STATUS_NOTICE = "/source · /tnote range · /todo · /promote · /review · /approve · /approve-session · /decline · /cancel · /exit · Esc 중단 · Ctrl+C 두 번 종료 · Ctrl+D(빈 입력) 종료";
+export const WORKBENCH_STATUS_NOTICE = "/mode · /permission · /source · /tnote · /todo · /approve · /decline · /cancel · /exit · Esc 중단";
 
 const WORKBENCH_ACTIVITY_FRAMES = Object.freeze(["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]);
 const WORKBENCH_ACTIVITY_INTERVAL_MS = 80;
@@ -114,64 +113,20 @@ function latestCurrentTurnAssistantIntent(chat: WorkbenchActivityIndicatorSource
 	return null;
 }
 
-class WorkbenchActivityLine implements Component {
-	private readonly loader: Loader;
-	private animated = false;
-
-	constructor(tui: TUI) {
-		this.loader = new Loader(tui, colors.accent, colors.muted, WORKBENCH_STATUS_NOTICE, { frames: [] });
-	}
-
-	setNotice(notice: string): void {
-		this.stopAnimation();
-		this.loader.setMessage(notice);
-	}
-
-	sync(source: WorkbenchActivityIndicatorSource): void {
-		const indicator = workbenchActivityIndicator(source);
-		if (!indicator) {
-			if (this.animated) this.setNotice(WORKBENCH_STATUS_NOTICE);
-			return;
-		}
-		if (!this.animated) {
-			this.loader.setIndicator({ frames: [...indicator.frames], intervalMs: indicator.intervalMs });
-			this.animated = true;
-		}
-		this.loader.setMessage(indicator.message);
-	}
-
-	dispose(): void {
-		this.loader.stop();
-	}
-
-	invalidate(): void {
-		this.loader.invalidate();
-	}
-
-	render(width: number): string[] {
-		return this.loader.render(width).slice(-1);
-	}
-
-	private stopAnimation(): void {
-		if (!this.animated) return;
-		this.loader.setIndicator({ frames: [] });
-		this.animated = false;
-	}
-}
-
 /** Native workbench shell. */
 export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDependencies): void {
-	const { workbench, composerDraft, releaseSessionLease } = dependencies;
+	const { workbench, usage, composerDraft, releaseSessionLease } = dependencies;
 	const cwd = dependencies.cwd ?? process.cwd();
 	const tui = new TuiAltScreen(new ProcessTerminal(), true);
 	let snapshot = workbench.snapshot;
-	const status = new WorkbenchActivityLine(tui);
+	const status = new StatusLine(WORKBENCH_STATUS_NOTICE);
 	const chat = new WorkbenchChatView(snapshot);
+	const usageStrip = new UsageStripView();
 	const tnotes = new TNotesSourceView(() => snapshot);
 	const todo = new WorkspaceTodoView(() => snapshot.todo);
 	const telemetry = new WorkbenchTelemetryLine(() => snapshot, cwd, () => tui.requestRender());
 	const dashboard = createDashboardLayout(
-		() => `🐙 WWW · ${snapshot.projectId} · ${snapshot.phase}${snapshot.chatQueue.length > 0 ? ` · 대기 ${snapshot.chatQueue.length}` : ""}${snapshot.pendingApproval ? " · 승인 대기" : ""}`,
+		() => `🐙 WWW · ${snapshot.projectId} · ${snapshot.phase} · ${snapshot.collaborationMode === "plan" ? "Plan" : "Manual"} · Permission ${snapshot.permissionMode ?? "manual"}${snapshot.chatQueue.length > 0 ? ` · 대기 ${snapshot.chatQueue.length}` : ""}${snapshot.pendingApproval ? " · 승인 대기" : ""}`,
 		{ color: colors.accent, component: chat },
 		{ title: "T-notes · 세션 요약", color: colors.secondary, component: tnotes },
 		{ title: "Todo.md · 현재 작업", color: colors.warm, component: todo },
@@ -184,6 +139,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		{ component: editor, basis: "auto", shrink: 1, minSize: 3 },
 		{ component: status, basis: 1, minSize: 1, maxSize: 1, visible: ({ height }) => height >= 5 },
 		{ component: telemetry, basis: 1, minSize: 1, maxSize: 1, visible: ({ height }) => height >= 6 },
+		{ component: usageStrip, basis: 2, minSize: 2, maxSize: 2, visible: ({ height }) => height >= 8 },
 	]);
 	let shuttingDown = false;
 	const exitKeys = new ExitKeyPolicy();
@@ -192,14 +148,18 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		chat.update(snapshot);
 		tui.requestRender();
 	});
+	const stopUsagePolling = usage.startPolling((snapshots) => {
+		usageStrip.update(snapshots);
+		tui.requestRender();
+	});
 	const shutdown = async () => {
 		if (shuttingDown) return;
 		shuttingDown = true;
 		status.setNotice("Workbench를 안전하게 종료하는 중…");
 		tui.requestRender();
 		unsubscribe();
+		stopUsagePolling();
 		workbenchRenders.dispose();
-		status.dispose();
 		telemetry.dispose();
 		chat.dispose();
 		await settleWithin((async () => {
@@ -213,8 +173,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		tui.stop();
 	};
 	const showReceipt = (receipt: Awaited<ReturnType<ProjectWorkbench["dispatch"]>>) => {
-		if (snapshot.phase === "working") status.sync(snapshot);
-		else status.setNotice(workbenchReceiptNotice(receipt));
+		status.setNotice(workbenchReceiptNotice(receipt));
 		tui.requestRender();
 	};
 	const handleLocal = async (text: string): Promise<boolean> => {
@@ -236,18 +195,21 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 			tui.requestRender();
 			return true;
 		}
+		if (command.type === "session.permission") {
+			showReceipt(await workbench.dispatch({ type: "session.permission", mode: command.mode }));
+			return true;
+		}
+		if (command.type === "session.mode") {
+			showReceipt(await workbench.dispatch({ type: "session.mode", mode: command.mode }));
+			return true;
+		}
 		if (command.type === "activity.select") {
 			const activityId = command.activityId === "latest" ? snapshot.activities.at(-1)?.id ?? null : command.activityId;
 			showReceipt(await workbench.dispatch({ type: "activity.select", activityId }));
 			return true;
 		}
 		if (command.type === "tnote.capture") {
-			if (!snapshot.selectedActivityId) {
-				status.setNotice("먼저 /source <activity-id|latest>로 source를 선택하세요.");
-				tui.requestRender();
-				return true;
-			}
-			showReceipt(await workbench.dispatch({ type: "tnote.capture", activityIds: [snapshot.selectedActivityId] }));
+			showReceipt(await workbench.dispatch({ type: "tnote.capture-session" }));
 			return true;
 		}
 		if (command.type === "tnote.capture-range") {
@@ -350,7 +312,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		const urgency = workbenchRenderUrgency(snapshot, next);
 		const refreshTelemetry = snapshot.phase === "working" && next.phase !== "working";
 		snapshot = next;
-		status.sync(snapshot);
+		chat.syncActivity(workbenchActivityIndicator(snapshot), () => tui.requestRender());
 		if (refreshTelemetry) telemetry.refresh();
 		workbenchRenders.request(urgency);
 	});
@@ -395,6 +357,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	tui.setLayoutRoot(root);
 	tui.setFocus(editor);
 	telemetry.refresh();
+	chat.syncActivity(workbenchActivityIndicator(snapshot), () => tui.requestRender());
 	chat.playWelcomeIntro(() => tui.requestRender());
 	tui.start();
 }

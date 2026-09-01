@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.1.9 — 2026-09-01
+
+Native 세션의 전체 흐름과 실제 사용량을 한 화면에서 읽고, 실행 방식도 직접 전환할 수 있게 했습니다.
+
+### 추가
+
+- 하단 고정 영역에 Codex·Claude의 실제 잔여 사용량과 reset 시각 표시
+- `/permission manual|all`로 Native 승인·sandbox 범위를 전환하고 `/mode manual|plan`으로 App Server collaboration mode 전환
+- Todo 상태를 `○`·`◉`·`✓`·`◆` 아이콘과 진행 rail로 구분하고 긴 항목을 pane 안에서 hanging wrap
+
+### 수정
+
+- 진행 spinner와 현재 동작 설명을 하단이 아니라 Chat 대화 흐름 안에 표시
+- 완료된 Native 답변은 생략하지 않고 제목·목록·코드 블록의 원래 Markdown 순서를 그대로 표시
+- T-notes를 현재 Native 세션 대화의 단일 누적 요약으로 정의하고 이전 요약을 이어서 재생성
+- 최근 80개 제한을 제거해 현재 Native 세션의 이전 Chat·Step·Read·실행 활동을 전부 유지
+- 컨텍스트 계기판을 사용률이 아니라 잔여율(`%남음`)로 명시
+
 ## 0.1.8 — 2026-09-01
 
 Native 작업이 시작되는 순간부터 현재 동작과 실제 세션 계기판을 계속 볼 수 있게 했습니다.

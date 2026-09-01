@@ -6,7 +6,7 @@ import {
 	type Component,
 } from "@earendil-works/pi-tui";
 import type { NativeApprovalRequest } from "../../domain/native-session";
-import { sanitizeTerminalTextExcerpt } from "../../domain/terminal";
+import { sanitizeTerminalTextExcerpt, sanitizeTerminalTextUnbounded } from "../../domain/terminal";
 import { workbenchApprovalDecisions, type WorkbenchActionResult, type WorkbenchSnapshot } from "../../domain/workbench";
 import { classifyWorkActivity, type SemanticWorkStep, type WorkStepStatus } from "../../domain/work-steps";
 import { boundedPublicProjection, PUBLIC_SOURCE_OMISSION } from "./bounded-public-projection";
@@ -17,7 +17,7 @@ import { isVisibleWorkStep, ObservationCard, WorkStepCard } from "./work-step-ca
 const WORKBENCH_MARKDOWN_MAX_CHARS = 16 * 1024;
 const WORKBENCH_MARKDOWN_MAX_LINES = 120;
 const WORKBENCH_MARKDOWN_OMISSION = "… 응답 일부 생략 …";
-const WORKBENCH_ACTIVITY_WINDOW = 80;
+const WORKBENCH_STEP_CACHE_LIMIT = 512;
 const WORKBENCH_ACTION_MAX_CHARS = 12 * 1024;
 const WORKBENCH_ACTION_MAX_LINES = 80;
 const WORKBENCH_ACTION_OMISSION = "… ACTION 일부 생략 …";
@@ -135,6 +135,9 @@ function approvalCardRows(request: NativeApprovalRequest, queueDepth: number, wi
 export class WorkbenchChatView implements Component {
 	private snapshot: WorkbenchSnapshot;
 	private readonly welcome = new WorkbenchWelcomeView();
+	private activityIndicator: { message: string; frames: readonly string[]; intervalMs: number } | null = null;
+	private activityFrame = 0;
+	private activityTimer: ReturnType<typeof setInterval> | null = null;
 	private readonly markdown = new Map<string, Markdown>();
 	private readonly markdownInput = new Map<string, string>();
 	private readonly markdownSource = new Map<string, string>();
@@ -152,11 +155,11 @@ export class WorkbenchChatView implements Component {
 		this.snapshot = snapshot;
 		if (hasVisibleChatContent(snapshot)) this.welcome.dispose();
 		const visibleAssistantIds = new Set<string>();
-		for (const message of snapshot.chat.slice(-WORKBENCH_ACTIVITY_WINDOW)) {
+		for (const message of snapshot.chat) {
 			if (message.role !== "assistant") continue;
 			visibleAssistantIds.add(message.id);
 			if (this.markdownInput.get(message.id) === message.content) continue;
-			const content = boundedWorkbenchMarkdown(message.content);
+			const content = sanitizeTerminalTextUnbounded(message.content);
 			const existing = this.markdown.get(message.id);
 			if (this.markdownSource.get(message.id) !== content) {
 				if (existing) existing.setText(content);
@@ -190,16 +193,36 @@ export class WorkbenchChatView implements Component {
 		if (!hasVisibleChatContent(this.snapshot)) this.welcome.playIntro(requestRender);
 	}
 
+	syncActivity(
+		indicator: { message: string; frames: readonly string[]; intervalMs: number } | null,
+		requestRender: () => void,
+	): void {
+		this.activityIndicator = indicator;
+		if (!indicator) {
+			this.stopActivity();
+			return;
+		}
+		if (!this.activityTimer) {
+			this.activityFrame = 0;
+			this.activityTimer = setInterval(() => {
+				this.activityFrame += 1;
+				requestRender();
+			}, indicator.intervalMs);
+			this.activityTimer.unref?.();
+		}
+		requestRender();
+	}
+
 	dispose(): void {
 		this.welcome.dispose();
+		this.stopActivity();
 	}
 
 	render(width: number): string[] {
 		const contentWidth = Math.max(1, width);
 		if (!hasVisibleChatContent(this.snapshot)) return this.welcome.render(contentWidth);
-		const activities = this.snapshot.activities.slice(-WORKBENCH_ACTIVITY_WINDOW);
-		const omittedActivityCount = Math.max(0, (this.snapshot.activityCount ?? this.snapshot.activities.length) - activities.length);
-		const messages = new Map(this.snapshot.chat.slice(-WORKBENCH_ACTIVITY_WINDOW).map((message) => [message.activityId, message]));
+		const activities = this.snapshot.activities;
+		const messages = new Map(this.snapshot.chat.map((message) => [message.activityId, message]));
 		const projectedSteps = this.snapshot.workFlow.steps;
 		const stepByLastActivity = new Map<string, SemanticWorkStep>();
 		for (const step of projectedSteps) {
@@ -213,7 +236,6 @@ export class WorkbenchChatView implements Component {
 		}
 		const observationActivityIds = new Set(observationByItem.values());
 		const rows: string[] = [];
-		if (omittedActivityCount > 0) rows.push(colors.muted(`… 이전 활동 ${omittedActivityCount}개 생략 · 최근 ${activities.length}개 표시 …`), "");
 		for (const activity of activities) {
 			const message = messages.get(activity.id);
 			if (message) {
@@ -231,7 +253,7 @@ export class WorkbenchChatView implements Component {
 							: message.status === "streaming" ? semantic.toolRunning("응답 중") : "";
 					rows.push(...surfaceRows([
 						`${semantic.assistantLabel("bori")}${label ? `  ${label}` : ""}`,
-						...(this.markdown.get(message.id)?.render(contentWidth) ?? [boundedWorkbenchMarkdown(message.content)]),
+						...(this.markdown.get(message.id)?.render(contentWidth) ?? [sanitizeTerminalTextUnbounded(message.content)]),
 					], contentWidth, semantic.assistantSurface), "");
 				}
 				continue;
@@ -284,7 +306,17 @@ export class WorkbenchChatView implements Component {
 				colors.muted("수신 여부가 불명확하면 /cancel로 서버 상태를 확인합니다."),
 			], contentWidth, semantic.assistantSurface), "");
 		}
+		if (this.activityIndicator) {
+			const frame = this.activityIndicator.frames[this.activityFrame % Math.max(1, this.activityIndicator.frames.length)] ?? "·";
+			rows.push(`${colors.accent(frame)} ${colors.secondary(this.activityIndicator.message)}`, "");
+		}
 		return rows;
+	}
+
+	private stopActivity(): void {
+		if (this.activityTimer) clearInterval(this.activityTimer);
+		this.activityTimer = null;
+		this.activityFrame = 0;
 	}
 
 	private renderStepCard(
@@ -312,7 +344,7 @@ export class WorkbenchChatView implements Component {
 		if (liveActivity) return new WorkStepCard(options).render(contentWidth);
 		const rows = new WorkStepCard(options).render(contentWidth);
 		this.stepRows.set(key, rows);
-		if (this.stepRows.size > WORKBENCH_ACTIVITY_WINDOW * 2) this.stepRows.clear();
+		if (this.stepRows.size > WORKBENCH_STEP_CACHE_LIMIT) this.stepRows.clear();
 		return rows;
 	}
 }
@@ -334,9 +366,9 @@ export class TNotesSourceView implements Component {
 		const snapshot = this.getSnapshot();
 		const actionResult = workbenchActionResult(snapshot);
 		const rows: string[] = [];
-		if (snapshot.tnotes.length > 0) rows.push(colors.secondary(`SESSION SUMMARY ${snapshot.tnotes.length}`));
-		if (snapshot.tnotes.length === 0) rows.push(colors.muted("  충분한 작업이 완료되면 세션 요약을 자동으로 정리합니다."));
-		for (const note of snapshot.tnotes.slice(-6)) {
+		if (snapshot.tnotes.length > 0) rows.push(colors.secondary("CURRENT SESSION SUMMARY"));
+		if (snapshot.tnotes.length === 0) rows.push(colors.muted("  현재 세션 대화가 충분히 진행되면 누적 요약을 자동으로 정리합니다."));
+		for (const note of snapshot.tnotes.slice(-1)) {
 			rows.push(colors.highlight(`  ${note.title} · ${note.id}`));
 			rows.push(...wrapTextWithAnsi(`    ${note.summary}`, Math.max(1, width)));
 			rows.push(colors.muted(`    세션 활동 ${note.sourceActivityIds.length}개`));

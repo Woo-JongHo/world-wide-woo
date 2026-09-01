@@ -56,8 +56,8 @@ describe("CodexAppServer", () => {
 				id: 1,
 				method: "initialize",
 				params: {
-					clientInfo: { name: "www", title: "World Wide Woo", version: "0.1.8" },
-					capabilities: { experimentalApi: false, requestAttestation: false },
+					clientInfo: { name: "www", title: "World Wide Woo", version: "0.1.9" },
+					capabilities: { experimentalApi: true, requestAttestation: false },
 				},
 			},
 			{ method: "initialized" },
@@ -108,11 +108,27 @@ describe("CodexAppServer", () => {
 			sortKey: "updated_at",
 			sortDirection: "desc",
 		});
-		expect((await server.startTurn({ threadId: "thread-native-1", text: "hello", effort: "low" })).id).toBe("turn-native-1");
+		expect((await server.startTurn({
+			threadId: "thread-native-1",
+			text: "hello",
+			effort: "low",
+			approvalPolicy: "never",
+			sandboxPolicy: { type: "dangerFullAccess" },
+			collaborationMode: {
+				mode: "plan",
+				settings: { model: "gpt-5.6-sol", reasoning_effort: "low", developer_instructions: null },
+			},
+		})).id).toBe("turn-native-1");
 		expect(transport.sent.find((message) => message.method === "turn/start")?.params).toEqual({
 			threadId: "thread-native-1",
 			input: [{ type: "text", text: "hello" }],
 			effort: "low",
+			approvalPolicy: "never",
+			sandboxPolicy: { type: "dangerFullAccess" },
+			collaborationMode: {
+				mode: "plan",
+				settings: { model: "gpt-5.6-sol", reasoning_effort: "low", developer_instructions: null },
+			},
 		});
 
 		const events: unknown[] = [];

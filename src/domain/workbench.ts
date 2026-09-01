@@ -5,6 +5,8 @@ import type { ReviewProvider } from "./review.js";
 import type { WorkFlowProjection } from "./work-steps.js";
 
 export type WorkbenchPhase = "loading" | "ready" | "working" | "error" | "closed";
+export type WorkbenchPermissionMode = "manual" | "all";
+export type WorkbenchCollaborationMode = "manual" | "plan";
 
 export interface WorkbenchChatMessage {
 	id: string;
@@ -60,9 +62,11 @@ export interface WorkbenchSnapshot {
 	model?: string;
 	effort?: string | null;
 	contextUsage?: WorkbenchContextUsage | null;
+	permissionMode?: WorkbenchPermissionMode;
+	collaborationMode?: WorkbenchCollaborationMode;
 	threadId: string | null;
 	activeTurnId: string | null;
-	/** Total durable activities; `activities` is a recent bounded projection. */
+	/** Total durable activities in the current Native session. */
 	activityCount?: number;
 	activities: readonly ProjectActivity[];
 	selectedActivityId: string | null;
@@ -85,6 +89,9 @@ export type WorkbenchCommand =
 	| { type: "chat.cancel" }
 	| { type: "approval.resolve"; requestId: string | number; response: NativeApprovalResponse }
 	| { type: "activity.select"; activityId: string | null }
+	| { type: "session.permission"; mode: WorkbenchPermissionMode }
+	| { type: "session.mode"; mode: WorkbenchCollaborationMode }
+	| { type: "tnote.capture-session" }
 	| { type: "tnote.capture"; activityIds: readonly string[]; title?: string }
 	| { type: "tnote.capture-range"; startSequence: number; endSequence: number; title?: string }
 	| { type: "todo.create"; title: string; items: readonly string[]; storyId?: string }

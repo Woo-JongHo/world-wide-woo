@@ -46,11 +46,13 @@ function gitLabel(git: WorkbenchGitTelemetry | null): string {
 
 /** One-line operational telemetry. Unknown Native values are never guessed. */
 export function formatWorkbenchTelemetry(source: WorkbenchTelemetrySource, width: number): string {
-	const usage = source.contextUsage ? `${source.contextUsage.percent.toFixed(1)}%` : "–%";
+	const contextRemaining = source.contextUsage
+		? `${Math.max(0, 100 - source.contextUsage.percent).toFixed(1)}%남음`
+		: "–%남음";
 	const output = [
 		`${colors.accent("⬢")} ${colors.text(modelLabel(source.model))}`,
 		`${colors.secondary("◑")} ${colors.text(source.effort ?? "–")}`,
-		colors.highlight(usage),
+		`${colors.muted("컨텍스트")} ${colors.highlight(contextRemaining)}`,
 		`${colors.warm("⑂")} ${colors.text(gitLabel(source.git))}`,
 		`${colors.muted("📁")} ${colors.muted(projectPath(source.cwd, source.home))}`,
 	].join(colors.muted(" · "));

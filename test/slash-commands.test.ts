@@ -78,6 +78,11 @@ describe("WWW slash commands", () => {
 
 	test("intercepts only exact workbench-local commands", () => {
 		expect(parseWorkbenchShellCommand("/source latest")).toEqual({ type: "activity.select", activityId: "latest" });
+		expect(parseWorkbenchShellCommand("/permission all")).toEqual({ type: "session.permission", mode: "all" });
+		expect(parseWorkbenchShellCommand("/permission manual")).toEqual({ type: "session.permission", mode: "manual" });
+		expect(parseWorkbenchShellCommand("/permission unsafe")).toMatchObject({ type: "error" });
+		expect(parseWorkbenchShellCommand("/mode plan")).toEqual({ type: "session.mode", mode: "plan" });
+		expect(parseWorkbenchShellCommand("/mode manual")).toEqual({ type: "session.mode", mode: "manual" });
 		expect(parseWorkbenchShellCommand("/tnote")).toEqual({ type: "tnote.capture" });
 		expect(parseWorkbenchShellCommand("/tnote range 3 7")).toEqual({ type: "tnote.capture-range", startSequence: 3, endSequence: 7 });
 		expect(parseWorkbenchShellCommand("/tnote range 7 3")).toMatchObject({ type: "error" });

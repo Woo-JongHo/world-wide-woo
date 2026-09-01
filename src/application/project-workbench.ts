@@ -5,9 +5,13 @@ import type { ReviewService } from "./review-service.js";
 import type { ActivityNarrator } from "./activity-narrator.js";
 import { TodoWriteConflictError } from "./todo-ledger.js";
 import type {
+	NativeApprovalPolicy,
 	NativeApprovalRequest,
+	NativeCollaborationMode,
 	NativeHarnessEvent,
 	NativeRefs,
+	NativeSandboxMode,
+	NativeSandboxPolicy,
 	NativeThreadStart,
 	NativeUncertainOperation,
 } from "../domain/native-session.js";
@@ -19,7 +23,7 @@ import {
 	type ProjectActivityKind,
 	type ProjectActivityPhase,
 } from "../domain/project-activity.js";
-import { sanitizeTerminalTextExcerpt } from "../domain/terminal.js";
+import { sanitizeTerminalTextExcerpt, sanitizeTerminalTextUnbounded } from "../domain/terminal.js";
 import type { TodoDocument } from "../domain/todos.js";
 import type { CanonicalDocumentDraft } from "../domain/canonical-document.js";
 import type { ReviewPacket, ReviewProvider } from "../domain/review.js";
@@ -38,11 +42,13 @@ import type {
 	WorkbenchChatMessage,
 	WorkbenchChatQueueItem,
 	WorkbenchActionResult,
+	WorkbenchCollaborationMode,
 	WorkbenchCommand,
 	WorkbenchCommandReceipt,
 	WorkbenchContextUsage,
 	WorkbenchListener,
 	WorkbenchLiveActivity,
+	WorkbenchPermissionMode,
 	WorkbenchSnapshot,
 	WorkbenchTNote,
 } from "../domain/workbench.js";
@@ -56,12 +62,10 @@ const JOURNAL_NATIVE_MAX_DEPTH = 8;
 const JOURNAL_NATIVE_MAX_ITEMS = 128;
 const JOURNAL_NATIVE_MAX_COLLECTION_ITEMS = 64;
 const JOURNAL_NATIVE_OMISSION = "[journal observation omitted]";
-const WORKBENCH_SNAPSHOT_ACTIVITY_LIMIT = 80;
-const WORKBENCH_FLOW_ACTIVITY_LIMIT = 400;
 const WORKBENCH_ACTION_RESULT_CHARACTER_LIMIT = 12 * 1024;
 const AUTOMATIC_TNOTE_ACTIVITY_THRESHOLD = 8;
 const AUTOMATIC_TNOTE_ACTIVITY_LIMIT = 100;
-const AUTOMATIC_TNOTE_INSTRUCTION = "이 완료된 세션 구간을 세션 요약으로 정리하세요. 사용자의 목표, 중요한 결정, 변경 및 실행 결과, 검증 결과, 남은 작업과 위험을 간결한 항목으로 작성하고 raw activity를 시간순으로 나열하지 마세요.";
+const AUTOMATIC_TNOTE_INSTRUCTION = "이 www에서 생성한 현재 Native 세션의 사용자와 bori 대화 전체를 누적 세션 요약으로 다시 정리하세요. 대화의 요청과 직접 연결된 실행만 근거로 사용자의 목표, 중요한 결정, 변경 및 실행 결과, 검증 결과, 남은 작업과 위험을 간결한 항목으로 작성하세요. 세션 시작, 환경 초기화, MCP·인증 상태처럼 사용자 요청과 무관한 시스템 활동은 제외하고 raw activity를 시간순으로 나열하지 마세요.";
 
 interface BoundedTextProjection {
 	readonly tail: string;
@@ -77,6 +81,7 @@ interface DurableActivityProjection {
 
 interface DurableNoteProjection {
 	readonly sourceLength: number;
+	readonly activitySourceLength: number;
 	readonly notes: readonly WorkbenchTNote[];
 }
 
@@ -164,6 +169,10 @@ export class ProjectWorkbench {
 	private pendingApproval: NativeApprovalRequest | null = null;
 	private effectiveModel: string;
 	private effectiveEffort: string | null;
+	private permissionMode: WorkbenchPermissionMode;
+	private collaborationMode: WorkbenchCollaborationMode = "manual";
+	private approvalPolicy: NativeApprovalPolicy;
+	private sandbox: NativeSandboxMode;
 	private contextUsage: WorkbenchContextUsage | null = null;
 	private threadId: string | null = null;
 	private activeTurnId: string | null = null;
@@ -191,6 +200,7 @@ export class ProjectWorkbench {
 	private automaticTNotePending = false;
 	private durableNoteProjection: DurableNoteProjection = {
 		sourceLength: -1,
+		activitySourceLength: -1,
 		notes: Object.freeze([]),
 	};
 	private chatDeliveryBlocked = false;
@@ -213,6 +223,9 @@ export class ProjectWorkbench {
 	) {
 		this.effectiveModel = options.model ?? "codex";
 		this.effectiveEffort = options.effort ?? null;
+		this.permissionMode = options.approvalPolicy === "never" && options.sandbox === "danger-full-access" ? "all" : "manual";
+		this.approvalPolicy = options.approvalPolicy ?? "on-request";
+		this.sandbox = options.sandbox ?? "workspace-write";
 		this.todo = immutable(options.todos?.snapshot ?? null);
 		this.current = this.makeSnapshot("loading");
 		this.ready = this.initialize();
@@ -253,8 +266,11 @@ export class ProjectWorkbench {
 		try {
 			await this.ready;
 			await this.eventQueue;
-			switch (command.type) {
+				switch (command.type) {
 				case "activity.select": return this.selectActivity(commandId, command.activityId);
+				case "session.permission": return this.configurePermission(commandId, command.mode);
+				case "session.mode": return this.configureCollaboration(commandId, command.mode);
+				case "tnote.capture-session": return await this.captureSessionNote(commandId);
 				case "tnote.capture": return await this.captureNote(commandId, command.activityIds, command.title);
 				case "tnote.capture-range": return await this.captureNoteRange(commandId, command.startSequence, command.endSequence, command.title);
 				case "chat.send": return await this.sendChat(commandId, command.text);
@@ -325,8 +341,8 @@ export class ProjectWorkbench {
 				cwd: this.options.cwd,
 				model: this.options.model,
 				effort: this.options.effort,
-				approvalPolicy: this.options.approvalPolicy,
-				sandbox: this.options.sandbox,
+				approvalPolicy: this.approvalPolicy,
+				sandbox: this.sandbox,
 				excludeTurns: true,
 			});
 			this.applyThreadSettings(resumed);
@@ -389,8 +405,8 @@ export class ProjectWorkbench {
 					cwd: this.options.cwd,
 					model: this.options.model,
 					effort: this.options.effort,
-					approvalPolicy: this.options.approvalPolicy,
-					sandbox: this.options.sandbox,
+					approvalPolicy: this.approvalPolicy,
+					sandbox: this.sandbox,
 				});
 			} catch (error) {
 				await this.appendActivity("message", "failed", initialMessageRefs, {
@@ -417,7 +433,9 @@ export class ProjectWorkbench {
 				cwd: this.options.cwd,
 				model: this.options.model,
 				effort: this.options.effort,
-				approvalPolicy: this.options.approvalPolicy,
+				approvalPolicy: this.approvalPolicy,
+				sandboxPolicy: this.currentSandboxPolicy(),
+				collaborationMode: this.currentNativeCollaborationMode(),
 			});
 		} catch (error) {
 			if (isUncertain(error)) {
@@ -559,6 +577,54 @@ export class ProjectWorkbench {
 		return { state: "accepted", commandId };
 	}
 
+	private configurePermission(commandId: string, mode: WorkbenchPermissionMode): WorkbenchCommandReceipt {
+		this.permissionMode = mode;
+		this.approvalPolicy = mode === "all" ? "never" : "on-request";
+		this.sandbox = mode === "all" ? "danger-full-access" : "workspace-write";
+		this.publish();
+		return {
+			state: "accepted",
+			commandId,
+			message: mode === "all"
+				? "Permission all: 다음 요청부터 승인 없이 전체 로컬 권한을 사용합니다."
+				: "Permission manual: 다음 요청부터 workspace 범위와 수동 승인을 사용합니다.",
+		};
+	}
+
+	private configureCollaboration(commandId: string, mode: WorkbenchCollaborationMode): WorkbenchCommandReceipt {
+		this.collaborationMode = mode;
+		this.publish();
+		return {
+			state: "accepted",
+			commandId,
+			message: mode === "plan"
+				? "Plan 모드: 다음 요청부터 계획 중심으로 응답합니다."
+				: "Manual 모드: 다음 요청부터 기본 실행 모드로 응답합니다.",
+		};
+	}
+
+	private currentSandboxPolicy(): NativeSandboxPolicy {
+		if (this.permissionMode === "all") return { type: "dangerFullAccess" };
+		return {
+			type: "workspaceWrite",
+			writableRoots: [this.options.cwd],
+			networkAccess: true,
+			excludeTmpdirEnvVar: false,
+			excludeSlashTmp: false,
+		};
+	}
+
+	private currentNativeCollaborationMode(): NativeCollaborationMode {
+		return {
+			mode: this.collaborationMode === "plan" ? "plan" : "default",
+			settings: {
+				model: this.effectiveModel,
+				reasoning_effort: this.effectiveEffort,
+				developer_instructions: null,
+			},
+		};
+	}
+
 	private async captureNote(
 		commandId: string,
 		activityIds: readonly string[],
@@ -589,6 +655,16 @@ export class ProjectWorkbench {
 		}
 		this.setActionResult("tnote", `세션 요약 #${draft.sequence}`, draft.text, draft.packet.digest);
 		return { state: "accepted", commandId, message: `세션 요약 #${draft.sequence}을 만들었습니다.` };
+	}
+
+	private async captureSessionNote(commandId: string): Promise<WorkbenchCommandReceipt> {
+		const selected = this.visibleActivities.slice(-AUTOMATIC_TNOTE_ACTIVITY_LIMIT);
+		if (selected.length === 0) return { state: "rejected", commandId, reason: "요약할 현재 세션 대화가 없습니다." };
+		return this.captureNote(
+			commandId,
+			selected.map((activity) => activity.id),
+			this.cumulativeTNoteInstruction(),
+		);
 	}
 
 	private async captureNoteRange(
@@ -805,9 +881,9 @@ export class ProjectWorkbench {
 	private scheduleAutomaticTNote(): void {
 		const source = this.options.tnotes;
 		if (!source || this.closed || this.automaticTNotePending || this.narrationAbort.signal.aborted) return;
-		const pending = this.activities.filter((activity) => activity.sequence > this.automaticTNoteCoveredThrough);
+		const pending = this.visibleActivities.filter((activity) => activity.sequence > this.automaticTNoteCoveredThrough);
 		if (pending.length < AUTOMATIC_TNOTE_ACTIVITY_THRESHOLD) return;
-		const selected = pending.slice(-AUTOMATIC_TNOTE_ACTIVITY_LIMIT);
+		const selected = this.visibleActivities.slice(-AUTOMATIC_TNOTE_ACTIVITY_LIMIT);
 		const startSequence = selected[0]?.sequence;
 		const endSequence = selected.at(-1)?.sequence;
 		if (!startSequence || !endSequence || endSequence - startSequence + 1 !== selected.length) return;
@@ -821,7 +897,7 @@ export class ProjectWorkbench {
 						projectId: this.options.projectId,
 						range: { startSequence, endSequence },
 						activities: selected.map(projectActivityToTNoteSource),
-						instruction: AUTOMATIC_TNOTE_INSTRUCTION,
+						instruction: this.cumulativeTNoteInstruction(),
 					}, this.narrationAbort.signal);
 					if (this.closed || this.narrationAbort.signal.aborted) return;
 					this.automaticTNoteCoveredThrough = Math.max(this.automaticTNoteCoveredThrough, endSequence);
@@ -841,6 +917,13 @@ export class ProjectWorkbench {
 					this.automaticTNotePending = false;
 				}
 			});
+	}
+
+	private cumulativeTNoteInstruction(): string {
+		const previous = this.currentSessionNotes().at(-1)?.summary;
+		if (!previous) return AUTOMATIC_TNOTE_INSTRUCTION;
+		const prior = sanitizeTerminalTextExcerpt(previous, 2_400, "head-tail");
+		return `${AUTOMATIC_TNOTE_INSTRUCTION}\n\n이전 누적 요약:\n${prior}`;
 	}
 
 	private applyDelta(event: Extract<NativeHarnessEvent, { type: "notification" }>): void {
@@ -984,6 +1067,8 @@ export class ProjectWorkbench {
 			model: this.effectiveModel,
 			effort: this.effectiveEffort,
 			contextUsage: this.contextUsage,
+			permissionMode: this.permissionMode,
+			collaborationMode: this.collaborationMode,
 			threadId: this.threadId,
 			activeTurnId: this.activeTurnId,
 			activityCount: durable.activityCount,
@@ -1007,7 +1092,7 @@ export class ProjectWorkbench {
 		if (this.durableActivityProjection.sourceLength === this.visibleActivities.length) {
 			return this.durableActivityProjection;
 		}
-		const activities = Object.freeze(this.visibleActivities.slice(-WORKBENCH_SNAPSHOT_ACTIVITY_LIMIT));
+		const activities = Object.freeze([...this.visibleActivities]);
 		this.durableActivityProjection = {
 			sourceLength: this.visibleActivities.length,
 			activityCount: this.visibleActivities.length,
@@ -1018,12 +1103,22 @@ export class ProjectWorkbench {
 	}
 
 	private projectDurableNotes(): readonly WorkbenchTNote[] {
-		if (this.durableNoteProjection.sourceLength === this.notes.length) return this.durableNoteProjection.notes;
+		if (this.durableNoteProjection.sourceLength === this.notes.length
+			&& this.durableNoteProjection.activitySourceLength === this.visibleActivities.length) {
+			return this.durableNoteProjection.notes;
+		}
+		const latest = this.currentSessionNotes().at(-1);
 		this.durableNoteProjection = {
 			sourceLength: this.notes.length,
-			notes: Object.freeze([...this.notes]),
+			activitySourceLength: this.visibleActivities.length,
+			notes: Object.freeze(latest ? [latest] : []),
 		};
 		return this.durableNoteProjection.notes;
+	}
+
+	private currentSessionNotes(): readonly WorkbenchTNote[] {
+		const activityIds = new Set(this.visibleActivities.map((activity) => activity.id));
+		return this.notes.filter((note) => note.sourceActivityIds.some((id) => activityIds.has(id)));
 	}
 
 	private projectCurrentWorkFlow(): WorkFlowProjection {
@@ -1031,7 +1126,7 @@ export class ProjectWorkbench {
 			&& this.workFlowProjection.narrationRevision === this.narrationRevision) {
 			return this.workFlowProjection.value;
 		}
-		const source = this.visibleActivities.slice(-WORKBENCH_FLOW_ACTIVITY_LIMIT);
+		const source = this.visibleActivities;
 		this.workFlowProjection = {
 			sourceLength: this.visibleActivities.length,
 			narrationRevision: this.narrationRevision,
@@ -1097,7 +1192,7 @@ export class ProjectWorkbench {
 	private scheduleNarrations(): void {
 		const narrator = this.options.narrator;
 		if (!narrator || this.closed || this.narrationAbort.signal.aborted) return;
-		const source = this.visibleActivities.slice(-WORKBENCH_FLOW_ACTIVITY_LIMIT);
+		const source = this.visibleActivities;
 		const baseFlow = projectWorkFlow(source);
 		for (const step of baseFlow.steps) {
 			if (step.narration.inputSummary.length === 0) continue;
@@ -1164,15 +1259,18 @@ function nativeObservation(event: NativeHarnessEvent): {
 		refs: event.refs,
 		payload: { eventType: event.type, method: event.method, classification: "reasoning", redacted: true },
 	};
+	const kind = activityKind(event.method, event.params);
+	const publicMessage = kind === "message" ? activityText({ params: event.params }) : "";
 	const params = boundedJournalNativeValue(event.params);
 	const payload = {
 		eventType: event.type,
 		method: event.method,
 		params: params.value,
+		...(publicMessage ? { text: sanitizeTerminalTextUnbounded(publicMessage) } : {}),
 		...(params.omitted ? { observationTruncated: true } : {}),
 	};
 	return {
-		kind: activityKind(event.method, event.params),
+		kind,
 		phase: activityPhase(event.method),
 		refs: event.refs,
 		payload,
@@ -1261,7 +1359,7 @@ function journalNativeFieldPriority(key: string): number {
 function projectTNote(draft: TNoteDraft): WorkbenchTNote {
 	return {
 		id: draft.id,
-		title: `세션 요약 #${draft.sequence}`,
+		title: "현재 세션 대화 요약",
 		summary: draft.text,
 		sourceActivityIds: draft.packet.activities.map((activity) => activity.id),
 		updatedAt: draft.createdAt,

@@ -15,7 +15,7 @@ describe("workbench telemetry rail", () => {
 
 		expect(output).toContain("⬢ GPT-5.6-Sol");
 		expect(output).toContain("◑ low");
-		expect(output).toContain("3.4%");
+		expect(output).toContain("컨텍스트 96.6%남음");
 		expect(output).toContain("⑂ main ?2");
 		expect(output).toContain("📁 ~/woo/00_project/99_www");
 	});
@@ -31,7 +31,7 @@ describe("workbench telemetry rail", () => {
 		}, 100));
 
 		expect(output).toContain("◑ –");
-		expect(output).toContain("–%");
+		expect(output).toContain("컨텍스트 –%남음");
 		expect(output).toContain("⑂ –");
 	});
 

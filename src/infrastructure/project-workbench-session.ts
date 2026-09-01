@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { ProjectWorkbench, type ProjectWorkbenchOptions, type WorkbenchActivityJournal, type WorkbenchTNoteSource } from "../application/project-workbench.js";
 import type { NativeHarnessPort } from "../application/native-harness.js";
-import type { ComposerDraftController, SessionRepository, TodoStore } from "../application/ports.js";
+import type { ComposerDraftController, SessionRepository, TodoStore, UsageMonitor } from "../application/ports.js";
 import { TNoteService } from "../application/t-note-service.js";
 import type { ActivityNarrator } from "../application/activity-narrator.js";
 import { TodoLedger } from "../application/todo-ledger.js";
@@ -22,6 +22,7 @@ import { FileTodoStore, importLegacyTodo } from "./todo-store.js";
 import { FileCanonicalDocumentStore } from "./canonical-document-store.js";
 import { createReviewAdapters, PiReviewGenerationClient, sha256ReviewDigest } from "./review-adapters.js";
 import { FileReviewProvenanceStore } from "./review-store.js";
+import { UsageService } from "./usage-service.js";
 
 const WORKBENCH_LEASE_ID = "workbench";
 
@@ -36,6 +37,7 @@ export interface ProjectWorkbenchSession {
 	projectId: string;
 	workbench: ProjectWorkbench;
 	composerDraft: ComposerDraftController;
+	usage: UsageMonitor;
 	/** Called by the TUI after it has closed the workbench. */
 	releaseSessionLease(): Promise<void>;
 	/** Safe for errors before the TUI owns shutdown. */
@@ -61,6 +63,7 @@ export interface ProjectWorkbenchSessionFactories {
 	createReviewService(runtimeDirectory: string): ReviewService;
 	createWorkbench(native: NativeHarnessPort, journal: WorkbenchActivityJournal, options: ProjectWorkbenchOptions): ProjectWorkbench;
 	createComposerDraft(root: string, sessionId: string, directory: string): Promise<ComposerDraftController>;
+	createUsageMonitor(): UsageMonitor;
 }
 
 const productionFactories: ProjectWorkbenchSessionFactories = {
@@ -90,6 +93,10 @@ const productionFactories: ProjectWorkbenchSessionFactories = {
 	createWorkbench: (native, journal, options) => new ProjectWorkbench(native, journal, options),
 	// Keep the class receiver: passing the static method itself loses `this`.
 	createComposerDraft: (root, sessionId, directory) => FileComposerDraftController.create(root, sessionId, directory),
+	createUsageMonitor: () => {
+		const credentials = new FileCredentialStore();
+		return new UsageService(credentials, createModelRegistry(credentials));
+	},
 };
 
 /**
@@ -144,11 +151,13 @@ export async function createProjectWorkbenchSession(
 			reviews: factories.createReviewService(workspace.runtimeDirectory),
 		});
 		const composerDraft = await factories.createComposerDraft(workspace.root, WORKBENCH_LEASE_ID, workspace.draftsDirectory);
+		const usage = factories.createUsageMonitor();
 		return {
 			workspace,
 			projectId,
 			workbench,
 			composerDraft,
+			usage,
 			releaseSessionLease: release,
 			close: async () => {
 				try {

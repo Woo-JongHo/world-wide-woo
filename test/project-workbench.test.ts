@@ -79,6 +79,7 @@ class FakeNativeHarness implements NativeHarnessPort {
 	startTurnInputs: NativeTurnStart[] = [];
 	startTurnErrors = new Map<number, unknown>();
 	startThreadCalls = 0;
+	startThreadInputs: NativeThreadStart[] = [];
 	startThreadGate: Promise<void> | null = null;
 	startTurnGate: Promise<void> | null = null;
 	uncertain = false;
@@ -89,8 +90,9 @@ class FakeNativeHarness implements NativeHarnessPort {
 	readInputs: NativeThreadRead[] = [];
 	readValue: Readonly<Record<string, unknown>> = { status: { type: "idle" }, turns: [] };
 	interruptInputs: NativeTurnInterrupt[] = [];
-	async startThread(_input: NativeThreadStart): Promise<NativeThreadSnapshot> {
+	async startThread(input: NativeThreadStart): Promise<NativeThreadSnapshot> {
 		this.startThreadCalls += 1;
+		this.startThreadInputs.push(input);
 		if (this.startThreadGate) await this.startThreadGate;
 		return { id: "thread-1", value: {} };
 	}
@@ -395,9 +397,62 @@ describe("ProjectWorkbench", () => {
 		await Bun.sleep(10);
 		expect(workbench.snapshot.tnotes[0]).toMatchObject({
 			id: "automatic-session-summary-1",
-			title: "세션 요약 #1",
+			title: "현재 세션 대화 요약",
 			summary: "목표와 결정, 검증 결과, 남은 위험을 정리한 세션 요약",
 		});
+		await workbench.close();
+	});
+
+	test("rebuilds one cumulative summary for the current native session", async () => {
+		const native = new FakeNativeHarness();
+		const createCalls: Parameters<WorkbenchTNoteSource["create"]>[0][] = [];
+		const tnotes: WorkbenchTNoteSource = {
+			readAll: async () => [],
+			create: async (input) => {
+				createCalls.push(input);
+				const sequence = createCalls.length;
+				return {
+					schemaVersion: 1,
+					id: `session-summary-${sequence}`,
+					sequence,
+					createdAt: `2026-09-01T00:00:0${sequence}.000Z`,
+					packet: {
+						schemaVersion: 1,
+						projectId: input.projectId,
+						range: input.range,
+						createdAt: `2026-09-01T00:00:0${sequence}.000Z`,
+						activities: input.activities.map((activity) => ({ ...activity, nativeRefs: undefined })),
+						digest: "d".repeat(64),
+					},
+					text: sequence === 1 ? "첫 누적 요약" : "현재 대화 전체를 반영한 두 번째 누적 요약",
+					provenance: { provider: "openai-codex", model: "gpt-5.6-sol", version: "test" },
+				};
+			},
+		};
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+			tnotes,
+		});
+		await ready(workbench);
+		await workbench.dispatch({ type: "chat.send", text: "현재 세션을 정리해줘" });
+		expect(await workbench.dispatch({ type: "tnote.capture-session" })).toMatchObject({ state: "accepted" });
+
+		native.emit({
+			type: "notification",
+			method: "item/completed",
+			refs: { threadId: "thread-1", turnId: "turn-1", itemId: "assistant-1" },
+			params: { item: { type: "agentMessage", text: "결정을 하나 더 반영했습니다." } },
+		});
+		await Bun.sleep(10);
+		expect(await workbench.dispatch({ type: "tnote.capture-session" })).toMatchObject({ state: "accepted" });
+
+		expect(createCalls).toHaveLength(2);
+		expect(createCalls[1]?.instruction).toContain("이전 누적 요약:\n첫 누적 요약");
+		expect(createCalls[1]?.activities.length).toBeGreaterThan(createCalls[0]?.activities.length ?? 0);
+		expect(workbench.snapshot.tnotes).toEqual([
+			expect.objectContaining({ id: "session-summary-2", title: "현재 세션 대화 요약" }),
+		]);
 		await workbench.close();
 	});
 
@@ -457,6 +512,33 @@ describe("ProjectWorkbench", () => {
 			model: "gpt-5.6-sol",
 			effort: "low",
 			contextUsage: { usedTokens: 25_840, contextWindow: 258_400, percent: 10 },
+		});
+		await workbench.close();
+	});
+
+	test("applies permission and collaboration controls to native thread and turn settings", async () => {
+		const native = new FakeNativeHarness();
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+			model: "gpt-5.6-sol",
+			effort: "low",
+		});
+		await ready(workbench);
+
+		expect(await workbench.dispatch({ type: "session.permission", mode: "all" })).toMatchObject({ state: "accepted" });
+		expect(await workbench.dispatch({ type: "session.mode", mode: "plan" })).toMatchObject({ state: "accepted" });
+		expect(workbench.snapshot).toMatchObject({ permissionMode: "all", collaborationMode: "plan" });
+		await workbench.dispatch({ type: "chat.send", text: "계획을 세워줘" });
+
+		expect(native.startThreadInputs[0]).toMatchObject({ approvalPolicy: "never", sandbox: "danger-full-access" });
+		expect(native.startTurnInputs[0]).toMatchObject({
+			approvalPolicy: "never",
+			sandboxPolicy: { type: "dangerFullAccess" },
+			collaborationMode: {
+				mode: "plan",
+				settings: { model: "gpt-5.6-sol", reasoning_effort: "low", developer_instructions: null },
+			},
 		});
 		await workbench.close();
 	});
@@ -896,7 +978,7 @@ describe("ProjectWorkbench", () => {
 		await ready(workbench);
 		const before = workbench.snapshot;
 		expect(before.activityCount).toBe(101);
-		expect(before.activities).toHaveLength(80);
+		expect(before.activities).toHaveLength(101);
 		const largeActivity = before.activities.find(activity => String(activity.payload.text).startsWith("large:"));
 		const largeChat = before.chat.find(message => message.content.startsWith("large:"));
 		expect(largeActivity).toBeDefined();
@@ -937,7 +1019,7 @@ describe("ProjectWorkbench", () => {
 		await workbench.close();
 	});
 
-	test("bounds assistant and reasoning drafts plus durable native observations while redacting completed reasoning", async () => {
+	test("bounds live drafts and raw native envelopes while preserving the full safe completed assistant reply", async () => {
 		const native = new FakeNativeHarness();
 		const journal = new MemoryJournal();
 		const workbench = new ProjectWorkbench(native, journal, {
@@ -986,10 +1068,15 @@ describe("ProjectWorkbench", () => {
 		await Bun.sleep(10);
 
 		const storedMessage = ((journal.records[0]?.payload.params as { item?: { text?: string } })?.item?.text) ?? "";
+		const publicMessage = String(journal.records[0]?.payload.text ?? "");
 		expect(storedMessage.length).toBeLessThanOrEqual(32 * 1024);
 		expect(storedMessage).toStartWith("complete password=[redacted]");
 		expect(storedMessage).toContain("…[output truncated]");
 		expect(storedMessage).toEndWith("https://[redacted]@example.com/end");
+		expect(publicMessage.length).toBeGreaterThan(32 * 1024);
+		expect(publicMessage).toStartWith("complete password=[redacted]");
+		expect(publicMessage).not.toContain("…[output truncated]");
+		expect(publicMessage).toEndWith("https://[redacted]@example.com/end");
 		expect(journal.records[0]?.payload.observationTruncated).toBe(true);
 		expect(journal.records[0]?.sourceDigest).toMatch(/^sha256:[a-f0-9]{64}$/u);
 		expect(JSON.stringify(journal.records[0]?.payload)).not.toContain("message-secret");
@@ -1016,8 +1103,9 @@ describe("ProjectWorkbench", () => {
 			threadId: "opaque-native-thread",
 			cwd: "/workspace/sample",
 			model: undefined,
-			approvalPolicy: undefined,
-			sandbox: undefined,
+			effort: undefined,
+			approvalPolicy: "on-request",
+			sandbox: "workspace-write",
 			excludeTurns: true,
 		}]);
 		expect(native.readInputs).toEqual([{ threadId: "thread-1", includeTurns: true }]);
@@ -1343,7 +1431,7 @@ describe("ProjectWorkbench", () => {
 		expect(native.approvalResponses).toEqual([{ requestId: 9, response: { decision: "acceptForSession" } }]);
 		expect(await workbench.dispatch({ type: "tnote.capture-range", startSequence: 1, endSequence: 1 }))
 			.toMatchObject({ state: "accepted" });
-		expect(workbench.snapshot.tnotes[0]).toMatchObject({ id: "note-1", summary: "결정과 남은 위험을 요약함" });
+		expect(workbench.snapshot.actionResult).toMatchObject({ kind: "tnote", body: "결정과 남은 위험을 요약함" });
 		await workbench.close();
 	});
 
