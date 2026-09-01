@@ -35,6 +35,12 @@ export interface WorkbenchLiveActivity {
 	nativeRefs: NativeRefs;
 }
 
+export interface WorkbenchContextUsage {
+	readonly usedTokens: number;
+	readonly contextWindow: number;
+	readonly percent: number;
+}
+
 export interface WorkbenchActionResult {
 	readonly kind: "todo" | "tnote" | "promotion" | "review";
 	readonly title: string;
@@ -50,6 +56,10 @@ export interface WorkbenchSnapshot {
 	/** Last durable ProjectActivity sequence; deltas never advance it. */
 	journalSequence: number;
 	phase: WorkbenchPhase;
+	/** Effective Native thread settings and latest context telemetry. */
+	model?: string;
+	effort?: string | null;
+	contextUsage?: WorkbenchContextUsage | null;
 	threadId: string | null;
 	activeTurnId: string | null;
 	/** Total durable activities; `activities` is a recent bounded projection. */

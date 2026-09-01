@@ -247,6 +247,7 @@ function isReadOnlyShell(command: string): boolean {
 	if (/\bgit\s+(?:add|commit|push|pull|merge|rebase|reset|checkout|switch|restore|clean|tag)\b/u.test(withoutNullRedirects)) return false;
 	if (/\bfind\b[^\n]*(?:-delete|-exec|-execdir)\b/u.test(withoutNullRedirects)) return false;
 	if (/\bsed\b[^\n]*(?:-i\b|--in-place\b)/u.test(withoutNullRedirects)) return false;
+	if (/\bsort\b[^\n]*(?:\s-o(?:\s|=)|--output(?:\s|=))/u.test(withoutNullRedirects)) return false;
 	if (/(?:^|[^<])>(?:>|&)?/u.test(withoutNullRedirects)) return false;
 
 	const segments = withoutNullRedirects.split(/&&|\|\||[;|]/u).map((segment) => segment.trim()).filter(Boolean);
@@ -255,7 +256,7 @@ function isReadOnlyShell(command: string): boolean {
 			.replace(/^(?:[A-Za-z_][A-Za-z0-9_]*=[^\s]+\s+)*/u, "")
 			.replace(/^\(?\s*/u, "")
 			.trim();
-		return /^(?:cd\b|pwd\b|ls\b|eza\b|tree\b|rg\b|grep\b|cat\b|head\b|tail\b|wc\b|stat\b|file\b|which\b|whereis\b|type\b|find\b|readlink\b|realpath\b|sed\s+-n\b|git\s+(?:status|diff|log|show|rev-parse)\b|echo\b|printf\b|true\b)/u.test(executable);
+		return /^(?:cd\b|pwd\b|ls\b|eza\b|tree\b|rg\b|grep\b|cat\b|head\b|tail\b|wc\b|sort\b|stat\b|file\b|which\b|whereis\b|type\b|find\b|readlink\b|realpath\b|sed\s+-n\b|git\s+(?:status|diff|log|show|rev-parse)\b|echo\b|printf\b|true\b)/u.test(executable);
 	});
 }
 

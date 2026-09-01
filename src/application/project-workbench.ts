@@ -40,6 +40,7 @@ import type {
 	WorkbenchActionResult,
 	WorkbenchCommand,
 	WorkbenchCommandReceipt,
+	WorkbenchContextUsage,
 	WorkbenchListener,
 	WorkbenchLiveActivity,
 	WorkbenchSnapshot,
@@ -122,6 +123,7 @@ export interface ProjectWorkbenchOptions {
 	provider?: string;
 	cwd: string;
 	model?: NativeThreadStart["model"];
+	effort?: NativeThreadStart["effort"];
 	approvalPolicy?: NativeThreadStart["approvalPolicy"];
 	sandbox?: NativeThreadStart["sandbox"];
 	resumeThreadId?: string;
@@ -160,6 +162,9 @@ export class ProjectWorkbench {
 	};
 	private selectedActivityId: string | null = null;
 	private pendingApproval: NativeApprovalRequest | null = null;
+	private effectiveModel: string;
+	private effectiveEffort: string | null;
+	private contextUsage: WorkbenchContextUsage | null = null;
 	private threadId: string | null = null;
 	private activeTurnId: string | null = null;
 	private todo: TodoDocument | null;
@@ -206,6 +211,8 @@ export class ProjectWorkbench {
 		private readonly journal: WorkbenchActivityJournal,
 		private readonly options: ProjectWorkbenchOptions,
 	) {
+		this.effectiveModel = options.model ?? "codex";
+		this.effectiveEffort = options.effort ?? null;
 		this.todo = immutable(options.todos?.snapshot ?? null);
 		this.current = this.makeSnapshot("loading");
 		this.ready = this.initialize();
@@ -317,10 +324,12 @@ export class ProjectWorkbench {
 				threadId: this.options.resumeThreadId,
 				cwd: this.options.cwd,
 				model: this.options.model,
+				effort: this.options.effort,
 				approvalPolicy: this.options.approvalPolicy,
 				sandbox: this.options.sandbox,
 				excludeTurns: true,
 			});
+			this.applyThreadSettings(resumed);
 			this.visibleThreadId = resumed.id;
 			this.visibleActivities.push(...this.activities.filter(activity => activity.nativeRefs.threadId === resumed.id));
 			this.invalidateWorkFlow();
@@ -379,6 +388,7 @@ export class ProjectWorkbench {
 				thread = await this.native.startThread({
 					cwd: this.options.cwd,
 					model: this.options.model,
+					effort: this.options.effort,
 					approvalPolicy: this.options.approvalPolicy,
 					sandbox: this.options.sandbox,
 				});
@@ -391,6 +401,7 @@ export class ProjectWorkbench {
 				this.publish();
 				throw error;
 			}
+			this.applyThreadSettings(thread);
 			this.threadId = thread.id;
 			await this.appendActivity("progress", "completed", { threadId: thread.id }, {
 				method: "thread/start",
@@ -405,6 +416,7 @@ export class ProjectWorkbench {
 				text,
 				cwd: this.options.cwd,
 				model: this.options.model,
+				effort: this.options.effort,
 				approvalPolicy: this.options.approvalPolicy,
 			});
 		} catch (error) {
@@ -721,6 +733,9 @@ export class ProjectWorkbench {
 
 	private async recordNativeEvent(event: NativeHarnessEvent): Promise<void> {
 		if (this.closed) return;
+		if (event.type === "notification" && event.method === "thread/tokenUsage/updated") {
+			this.contextUsage = projectContextUsage(event.params);
+		}
 		if (event.type === "notification" && isDeltaNotification(event.method)) {
 			this.applyDelta(event);
 			return;
@@ -923,6 +938,11 @@ export class ProjectWorkbench {
 			: null;
 	}
 
+	private applyThreadSettings(thread: { model?: string; effort?: string | null }): void {
+		if (thread.model) this.effectiveModel = thread.model;
+		if (thread.effort !== undefined) this.effectiveEffort = thread.effort;
+	}
+
 	private hasTerminalTurn(threadId: string | undefined, turnId: string): boolean {
 		if (!threadId) return false;
 		return this.terminalTurns.has(turnKey(threadId, turnId));
@@ -961,6 +981,9 @@ export class ProjectWorkbench {
 			revision: this.revision,
 			journalSequence: this.activities.at(-1)?.sequence ?? 0,
 			phase,
+			model: this.effectiveModel,
+			effort: this.effectiveEffort,
+			contextUsage: this.contextUsage,
 			threadId: this.threadId,
 			activeTurnId: this.activeTurnId,
 			activityCount: durable.activityCount,
@@ -1154,6 +1177,20 @@ function nativeObservation(event: NativeHarnessEvent): {
 		refs: event.refs,
 		payload,
 	};
+}
+
+function projectContextUsage(params: Readonly<Record<string, unknown>>): WorkbenchContextUsage | null {
+	const tokenUsage = record(params.tokenUsage);
+	const last = record(tokenUsage?.last);
+	const usedTokens = last?.totalTokens;
+	const contextWindow = tokenUsage?.modelContextWindow;
+	if (typeof usedTokens !== "number" || !Number.isFinite(usedTokens) || usedTokens < 0) return null;
+	if (typeof contextWindow !== "number" || !Number.isFinite(contextWindow) || contextWindow <= 0) return null;
+	return Object.freeze({
+		usedTokens,
+		contextWindow,
+		percent: Math.round((usedTokens / contextWindow) * 1_000) / 10,
+	});
 }
 
 function boundedJournalNativeValue(value: unknown): { value: unknown; omitted: boolean } {

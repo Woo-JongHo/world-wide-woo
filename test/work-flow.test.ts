@@ -203,9 +203,12 @@ describe("semantic work flow", () => {
 			type: "commandExecution", command: "git diff --stat",
 		}))).toBe("observation");
 		expect(classifyWorkActivity(activity(2, "tool", "completed", "item/completed", {
+			type: "commandExecution", command: "pwd; git status --short --branch; find . -maxdepth 4 -print | sort",
+		}))).toBe("observation");
+		expect(classifyWorkActivity(activity(3, "tool", "completed", "item/completed", {
 			type: "commandExecution", command: "find . -name '*.tmp' -delete",
 		}))).toBe("action");
-		expect(classifyWorkActivity(activity(3, "tool", "completed", "item/completed", {
+		expect(classifyWorkActivity(activity(4, "tool", "completed", "item/completed", {
 			type: "commandExecution", command: "cat input.txt > output.txt",
 		}))).toBe("action");
 	});

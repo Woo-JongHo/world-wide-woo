@@ -29,6 +29,9 @@ export type NativeSandboxMode = "read-only" | "workspace-write" | "danger-full-a
 export interface NativeThreadSnapshot {
 	id: string;
 	value: Readonly<Record<string, unknown>>;
+	/** Effective values confirmed by thread/start or thread/resume. */
+	model?: string;
+	effort?: string | null;
 }
 
 export interface NativeTurnSnapshot {
@@ -40,6 +43,7 @@ export interface NativeTurnSnapshot {
 export interface NativeThreadStart {
 	cwd: string;
 	model?: string;
+	effort?: string;
 	approvalPolicy?: NativeApprovalPolicy;
 	sandbox?: NativeSandboxMode;
 	ephemeral?: boolean;
@@ -49,6 +53,7 @@ export interface NativeThreadResume {
 	threadId: string;
 	cwd?: string;
 	model?: string;
+	effort?: string;
 	approvalPolicy?: NativeApprovalPolicy;
 	sandbox?: NativeSandboxMode;
 	excludeTurns?: boolean;
@@ -80,6 +85,7 @@ export interface NativeTurnStart {
 	text: string;
 	cwd?: string;
 	model?: string;
+	effort?: string;
 	approvalPolicy?: NativeApprovalPolicy;
 }
 

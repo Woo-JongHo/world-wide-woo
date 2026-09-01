@@ -28,6 +28,7 @@ const WORKBENCH_LEASE_ID = "workbench";
 export interface ProjectWorkbenchSessionOptions {
 	resumeThreadId?: string;
 	model?: string;
+	effort?: string;
 }
 
 export interface ProjectWorkbenchSession {
@@ -132,6 +133,7 @@ export async function createProjectWorkbenchSession(
 			provider: "openai-codex",
 			cwd: workspace.root,
 			model: options.model,
+			effort: options.effort,
 			approvalPolicy: "on-request",
 			sandbox: "workspace-write",
 			resumeThreadId: options.resumeThreadId,

@@ -199,6 +199,7 @@ export class CodexAppServer implements NativeHarnessPort {
 		const result = await this.request("thread/start", compact({
 			cwd: input.cwd,
 			model: input.model,
+			config: input.effort ? { model_reasoning_effort: input.effort } : undefined,
 			approvalPolicy: input.approvalPolicy,
 			sandbox: input.sandbox,
 			ephemeral: input.ephemeral,
@@ -207,7 +208,11 @@ export class CodexAppServer implements NativeHarnessPort {
 	}
 
 	public async resumeThread(input: NativeThreadResume): Promise<NativeThreadSnapshot> {
-		const result = await this.request("thread/resume", compact({ ...input }), true);
+		const { effort, ...resume } = input;
+		const result = await this.request("thread/resume", compact({
+			...resume,
+			config: effort ? { model_reasoning_effort: effort } : undefined,
+		}), true);
 		return threadSnapshot(result, "thread/resume");
 	}
 
@@ -239,6 +244,7 @@ export class CodexAppServer implements NativeHarnessPort {
 			input: [{ type: "text", text: input.text }],
 			cwd: input.cwd,
 			model: input.model,
+			effort: input.effort,
 			approvalPolicy: input.approvalPolicy,
 		}), true);
 		return turnSnapshot(result, input.threadId);
@@ -393,7 +399,14 @@ function threadSnapshot(result: unknown, method: string): NativeThreadSnapshot {
 	if (!isRecord(result) || !isRecord(result.thread) || typeof result.thread.id !== "string") {
 		throw new Error(`Codex App Server returned an invalid ${method} result`);
 	}
-	return { id: result.thread.id, value: result.thread };
+	return {
+		id: result.thread.id,
+		value: result.thread,
+		...(typeof result.model === "string" ? { model: result.model } : {}),
+		...(typeof result.reasoningEffort === "string" || result.reasoningEffort === null
+			? { effort: result.reasoningEffort as string | null }
+			: {}),
+	};
 }
 
 function turnSnapshot(result: unknown, threadId: string): NativeTurnSnapshot {

@@ -11,6 +11,7 @@ import { workbenchApprovalDecisions, type WorkbenchActionResult, type WorkbenchS
 import { classifyWorkActivity, type SemanticWorkStep, type WorkStepStatus } from "../../domain/work-steps";
 import { boundedPublicProjection, PUBLIC_SOURCE_OMISSION } from "./bounded-public-projection";
 import { colors, markdownTheme, semantic, syntaxHighlightPlugin } from "./theme";
+import { WorkbenchWelcomeView } from "./workbench-welcome";
 import { isVisibleWorkStep, ObservationCard, WorkStepCard } from "./work-step-card";
 
 const WORKBENCH_MARKDOWN_MAX_CHARS = 16 * 1024;
@@ -133,6 +134,7 @@ function approvalCardRows(request: NativeApprovalRequest, queueDepth: number, wi
 /** Chat projection for the native ProjectWorkbench, including existing tool cards. */
 export class WorkbenchChatView implements Component {
 	private snapshot: WorkbenchSnapshot;
+	private readonly welcome = new WorkbenchWelcomeView();
 	private readonly markdown = new Map<string, Markdown>();
 	private readonly markdownInput = new Map<string, string>();
 	private readonly markdownSource = new Map<string, string>();
@@ -148,6 +150,7 @@ export class WorkbenchChatView implements Component {
 
 	update(snapshot: WorkbenchSnapshot): void {
 		this.snapshot = snapshot;
+		if (hasVisibleChatContent(snapshot)) this.welcome.dispose();
 		const visibleAssistantIds = new Set<string>();
 		for (const message of snapshot.chat.slice(-WORKBENCH_ACTIVITY_WINDOW)) {
 			if (message.role !== "assistant") continue;
@@ -183,12 +186,17 @@ export class WorkbenchChatView implements Component {
 		this.draftMarkdown.invalidate();
 	}
 
+	playWelcomeIntro(requestRender: () => void): void {
+		if (!hasVisibleChatContent(this.snapshot)) this.welcome.playIntro(requestRender);
+	}
+
+	dispose(): void {
+		this.welcome.dispose();
+	}
+
 	render(width: number): string[] {
 		const contentWidth = Math.max(1, width);
-		if (this.snapshot.activities.length === 0) return [
-			colors.accent("bori · Native Workbench"),
-			colors.muted("Codex native 세션에 메시지를 보내면 활동이 여기에 기록됩니다."),
-		];
+		if (!hasVisibleChatContent(this.snapshot)) return this.welcome.render(contentWidth);
 		const activities = this.snapshot.activities.slice(-WORKBENCH_ACTIVITY_WINDOW);
 		const omittedActivityCount = Math.max(0, (this.snapshot.activityCount ?? this.snapshot.activities.length) - activities.length);
 		const messages = new Map(this.snapshot.chat.slice(-WORKBENCH_ACTIVITY_WINDOW).map((message) => [message.activityId, message]));
@@ -307,6 +315,13 @@ export class WorkbenchChatView implements Component {
 		if (this.stepRows.size > WORKBENCH_ACTIVITY_WINDOW * 2) this.stepRows.clear();
 		return rows;
 	}
+}
+
+function hasVisibleChatContent(snapshot: WorkbenchSnapshot): boolean {
+	return snapshot.chat.length > 0
+		|| snapshot.workFlow.steps.length > 0
+		|| Boolean(snapshot.pendingApproval || snapshot.reasoningDraft || snapshot.draft || snapshot.error)
+		|| Boolean(snapshot.liveActivity && isVisibleWorkStep(snapshot.liveActivity.kind));
 }
 
 /** Completed session summaries and the selected activity's highlighted source payload. */

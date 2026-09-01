@@ -135,7 +135,11 @@ describe("createProjectWorkbenchSession", () => {
 			createComposerDraft: async () => ({ initialText: "", save: async () => undefined, clear: async () => undefined }),
 		};
 
-		const session = await createProjectWorkbenchSession("/ignored", { resumeThreadId: "opaque-native-id", model: "gpt-5.6-sol" }, factories);
+		const session = await createProjectWorkbenchSession("/ignored", {
+			resumeThreadId: "opaque-native-id",
+			model: "gpt-5.6-sol",
+			effort: "low",
+		}, factories);
 
 		expect(session.projectId).toBe(scopedProjectId(workspace.root));
 		expect(observed.todoPath).toBe(workspace.canonicalTodoPath);
@@ -146,6 +150,7 @@ describe("createProjectWorkbenchSession", () => {
 			provider: "openai-codex",
 			cwd: workspace.root,
 			model: "gpt-5.6-sol",
+			effort: "low",
 			resumeThreadId: "opaque-native-id",
 			approvalPolicy: "on-request",
 			sandbox: "workspace-write",

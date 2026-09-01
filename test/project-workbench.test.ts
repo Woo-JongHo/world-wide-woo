@@ -428,6 +428,39 @@ describe("ProjectWorkbench", () => {
 		await workbench.close();
 	});
 
+	test("projects the effective native model, effort, and latest context usage", async () => {
+		const native = new FakeNativeHarness();
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+			model: "gpt-5.6-sol",
+			effort: "low",
+		});
+		await ready(workbench);
+		await workbench.dispatch({ type: "chat.send", text: "상태를 확인해줘" });
+
+		native.emit({
+			type: "notification",
+			method: "thread/tokenUsage/updated",
+			refs: { threadId: "thread-1", turnId: "turn-1" },
+			params: {
+				tokenUsage: {
+					last: { totalTokens: 25_840 },
+					modelContextWindow: 258_400,
+				},
+			},
+		});
+		await Bun.sleep(10);
+
+		expect(native.startTurnInputs[0]).toMatchObject({ model: "gpt-5.6-sol", effort: "low" });
+		expect(workbench.snapshot).toMatchObject({
+			model: "gpt-5.6-sol",
+			effort: "low",
+			contextUsage: { usedTokens: 25_840, contextWindow: 258_400, percent: 10 },
+		});
+		await workbench.close();
+	});
+
 	test("hides the previous semantic flow while native turn start is pending", async () => {
 		const native = new FakeNativeHarness();
 		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {

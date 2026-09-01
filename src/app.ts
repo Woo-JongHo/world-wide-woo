@@ -17,10 +17,12 @@ export async function runApp(options: RunAppOptions = {}): Promise<void> {
 	const project = await createProjectWorkbenchSession(process.cwd(), {
 		resumeThreadId: options.resumeThreadId,
 		model: codexInteractiveModel(settings),
+		effort: settings.effort,
 	});
 	try {
 		runProjectWorkbenchShell({
 			workbench: project.workbench,
+			cwd: project.workspace.root,
 			composerDraft: project.composerDraft,
 			releaseSessionLease: project.releaseSessionLease,
 		});

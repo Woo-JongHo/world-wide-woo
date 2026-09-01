@@ -56,14 +56,18 @@ describe("CodexAppServer", () => {
 				id: 1,
 				method: "initialize",
 				params: {
-					clientInfo: { name: "www", title: "World Wide Woo", version: "0.1.7" },
+					clientInfo: { name: "www", title: "World Wide Woo", version: "0.1.8" },
 					capabilities: { experimentalApi: false, requestAttestation: false },
 				},
 			},
 			{ method: "initialized" },
 		]);
 
-		transport.responseFor.set("thread/start", { thread: { id: "thread-native-1", turns: [] } });
+		transport.responseFor.set("thread/start", {
+			thread: { id: "thread-native-1", turns: [] },
+			model: "gpt-5.6-sol",
+			reasoningEffort: "low",
+		});
 		transport.responseFor.set("thread/resume", { thread: { id: "thread-native-1", turns: [] } });
 		transport.responseFor.set("thread/read", { thread: { id: "thread-native-1", turns: [{ id: "turn-native-0" }] } });
 		transport.responseFor.set("thread/list", {
@@ -80,7 +84,13 @@ describe("CodexAppServer", () => {
 		});
 		transport.responseFor.set("turn/start", { turn: { id: "turn-native-1", items: [] } });
 
-		expect((await server.startThread({ cwd: "/workspace" })).id).toBe("thread-native-1");
+		const startedThread = await server.startThread({ cwd: "/workspace", model: "gpt-5.6-sol", effort: "low" });
+		expect(startedThread).toMatchObject({ id: "thread-native-1", model: "gpt-5.6-sol", effort: "low" });
+		expect(transport.sent.find((message) => message.method === "thread/start")?.params).toEqual({
+			cwd: "/workspace",
+			model: "gpt-5.6-sol",
+			config: { model_reasoning_effort: "low" },
+		});
 		expect((await server.resumeThread({ threadId: "thread-native-1" })).id).toBe("thread-native-1");
 		expect((await server.readThread({ threadId: "thread-native-1", includeTurns: true })).value.turns).toEqual([
 			{ id: "turn-native-0" },
@@ -98,7 +108,12 @@ describe("CodexAppServer", () => {
 			sortKey: "updated_at",
 			sortDirection: "desc",
 		});
-		expect((await server.startTurn({ threadId: "thread-native-1", text: "hello" })).id).toBe("turn-native-1");
+		expect((await server.startTurn({ threadId: "thread-native-1", text: "hello", effort: "low" })).id).toBe("turn-native-1");
+		expect(transport.sent.find((message) => message.method === "turn/start")?.params).toEqual({
+			threadId: "thread-native-1",
+			input: [{ type: "text", text: "hello" }],
+			effort: "low",
+		});
 
 		const events: unknown[] = [];
 		server.subscribe((event) => events.push(event));

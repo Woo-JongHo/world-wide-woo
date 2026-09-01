@@ -2,29 +2,32 @@ import {
 	CombinedAutocompleteProvider,
 	Editor,
 	Key,
+	Loader,
 	ProcessTerminal,
 	TuiAltScreen,
 	VStack,
 	isViewportTUI,
 	matchesKey,
+	type Component,
+	type TUI,
 } from "@earendil-works/pi-tui";
 import type { ComposerDraftController } from "../../application/ports";
 import type { ProjectWorkbench } from "../../application/project-workbench";
+import { sanitizeTerminalTextUnbounded } from "../../domain/terminal";
 import type { WorkbenchCommandReceipt } from "../../domain/workbench";
 import { createDashboardLayout } from "./dashboard-layout";
-import {
-	StatusLine,
-	WorkspaceTodoView,
-} from "./shared-dashboard-views";
+import { WorkspaceTodoView } from "./shared-dashboard-views";
 import { TNotesSourceView, WorkbenchChatView } from "./workbench-views";
 import { ExitKeyPolicy } from "./exit-key-policy";
 import { RenderScheduler, workbenchRenderUrgency } from "./render-scheduler";
 import { settleWithin } from "./shell-lifecycle";
 import { parseWorkbenchShellCommand, WORKBENCH_SLASH_COMMANDS } from "./slash-commands";
 import { colors, editorTheme } from "./theme";
+import { WorkbenchTelemetryLine } from "./workbench-telemetry";
 
 export interface ProjectWorkbenchShellDependencies {
 	workbench: ProjectWorkbench;
+	cwd?: string;
 	composerDraft?: ComposerDraftController;
 	releaseSessionLease?: () => Promise<void>;
 }
@@ -42,15 +45,131 @@ export function workbenchReceiptClearsComposer(receipt: WorkbenchCommandReceipt)
 
 export const WORKBENCH_STATUS_NOTICE = "/source · /tnote range · /todo · /promote · /review · /approve · /approve-session · /decline · /cancel · /exit · Esc 중단 · Ctrl+C 두 번 종료 · Ctrl+D(빈 입력) 종료";
 
+const WORKBENCH_ACTIVITY_FRAMES = Object.freeze(["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]);
+const WORKBENCH_ACTIVITY_INTERVAL_MS = 80;
+const WORKBENCH_ACTIVITY_MESSAGE_MAX_CHARS = 72;
+
+interface WorkbenchActivityIndicatorSource {
+	readonly phase: string;
+	readonly pendingApproval: unknown;
+	readonly draft: string;
+	readonly reasoningDraft: string;
+	readonly chat: readonly { readonly role: string; readonly content: string; readonly status?: string }[];
+	readonly workFlow: {
+		readonly steps: readonly {
+			readonly status: string;
+			readonly narration: { readonly what: string; readonly source: string };
+		}[];
+	};
+}
+
+export interface WorkbenchActivityIndicator {
+	readonly message: string;
+	readonly frames: readonly string[];
+	readonly intervalMs: number;
+}
+
+/** Gajae-style live rail driven only by public Native workbench state. */
+export function workbenchActivityIndicator(source: WorkbenchActivityIndicatorSource): WorkbenchActivityIndicator | null {
+	const outboundPending = [...source.chat].reverse().find((message) => message.role === "user")?.status === "streaming";
+	if (source.phase !== "working" && !outboundPending) return null;
+	const currentIntent = latestCurrentTurnAssistantIntent(source.chat);
+	const runningStep = source.workFlow.steps.find((step) => step.status === "running");
+	const label = source.pendingApproval
+		? "승인 결정을 기다리는 중"
+		: source.draft
+			? "응답을 작성하는 중"
+			: currentIntent
+				?? (runningStep?.narration.source !== "fallback" ? runningStep?.narration.what : undefined)
+				?? (source.reasoningDraft ? "작업 계획을 정리하는 중" : "요청을 분석하는 중");
+	return Object.freeze({
+		message: `${label} ⟦esc⟧`,
+		frames: WORKBENCH_ACTIVITY_FRAMES,
+		intervalMs: WORKBENCH_ACTIVITY_INTERVAL_MS,
+	});
+}
+
+function latestCurrentTurnAssistantIntent(chat: WorkbenchActivityIndicatorSource["chat"]): string | null {
+	let latestUser = -1;
+	for (let index = chat.length - 1; index >= 0; index -= 1) {
+		if (chat[index]?.role === "user") {
+			latestUser = index;
+			break;
+		}
+	}
+	if (latestUser < 0) return null;
+	for (let index = chat.length - 1; index > latestUser; index -= 1) {
+		const message = chat[index];
+		if (message?.role !== "assistant") continue;
+		const text = sanitizeTerminalTextUnbounded(message.content)
+			.replace(/^(?:\s*[-*#>]\s*|\s*`+)/u, "")
+			.replace(/\s+/gu, " ")
+			.trim();
+		if (!text) continue;
+		const characters = Array.from(text);
+		return characters.length <= WORKBENCH_ACTIVITY_MESSAGE_MAX_CHARS
+			? text
+			: `${characters.slice(0, WORKBENCH_ACTIVITY_MESSAGE_MAX_CHARS - 1).join("")}…`;
+	}
+	return null;
+}
+
+class WorkbenchActivityLine implements Component {
+	private readonly loader: Loader;
+	private animated = false;
+
+	constructor(tui: TUI) {
+		this.loader = new Loader(tui, colors.accent, colors.muted, WORKBENCH_STATUS_NOTICE, { frames: [] });
+	}
+
+	setNotice(notice: string): void {
+		this.stopAnimation();
+		this.loader.setMessage(notice);
+	}
+
+	sync(source: WorkbenchActivityIndicatorSource): void {
+		const indicator = workbenchActivityIndicator(source);
+		if (!indicator) {
+			if (this.animated) this.setNotice(WORKBENCH_STATUS_NOTICE);
+			return;
+		}
+		if (!this.animated) {
+			this.loader.setIndicator({ frames: [...indicator.frames], intervalMs: indicator.intervalMs });
+			this.animated = true;
+		}
+		this.loader.setMessage(indicator.message);
+	}
+
+	dispose(): void {
+		this.loader.stop();
+	}
+
+	invalidate(): void {
+		this.loader.invalidate();
+	}
+
+	render(width: number): string[] {
+		return this.loader.render(width).slice(-1);
+	}
+
+	private stopAnimation(): void {
+		if (!this.animated) return;
+		this.loader.setIndicator({ frames: [] });
+		this.animated = false;
+	}
+}
+
 /** Native workbench shell. */
 export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDependencies): void {
 	const { workbench, composerDraft, releaseSessionLease } = dependencies;
+	const cwd = dependencies.cwd ?? process.cwd();
 	const tui = new TuiAltScreen(new ProcessTerminal(), true);
 	let snapshot = workbench.snapshot;
-	const status = new StatusLine(WORKBENCH_STATUS_NOTICE);
+	const status = new WorkbenchActivityLine(tui);
 	const chat = new WorkbenchChatView(snapshot);
 	const tnotes = new TNotesSourceView(() => snapshot);
 	const todo = new WorkspaceTodoView(() => snapshot.todo);
+	const telemetry = new WorkbenchTelemetryLine(() => snapshot, cwd, () => tui.requestRender());
 	const dashboard = createDashboardLayout(
 		() => `🐙 WWW · ${snapshot.projectId} · ${snapshot.phase}${snapshot.chatQueue.length > 0 ? ` · 대기 ${snapshot.chatQueue.length}` : ""}${snapshot.pendingApproval ? " · 승인 대기" : ""}`,
 		{ color: colors.accent, component: chat },
@@ -64,6 +183,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		{ component: dashboard.component, basis: 0, grow: 1, shrink: 1, minSize: 1 },
 		{ component: editor, basis: "auto", shrink: 1, minSize: 3 },
 		{ component: status, basis: 1, minSize: 1, maxSize: 1, visible: ({ height }) => height >= 5 },
+		{ component: telemetry, basis: 1, minSize: 1, maxSize: 1, visible: ({ height }) => height >= 6 },
 	]);
 	let shuttingDown = false;
 	const exitKeys = new ExitKeyPolicy();
@@ -79,6 +199,9 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		tui.requestRender();
 		unsubscribe();
 		workbenchRenders.dispose();
+		status.dispose();
+		telemetry.dispose();
+		chat.dispose();
 		await settleWithin((async () => {
 			if (composerDraft) await composerDraft.save(editor.getExpandedText()).catch(() => undefined);
 			try {
@@ -90,7 +213,8 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		tui.stop();
 	};
 	const showReceipt = (receipt: Awaited<ReturnType<ProjectWorkbench["dispatch"]>>) => {
-		status.setNotice(workbenchReceiptNotice(receipt));
+		if (snapshot.phase === "working") status.sync(snapshot);
+		else status.setNotice(workbenchReceiptNotice(receipt));
 		tui.requestRender();
 	};
 	const handleLocal = async (text: string): Promise<boolean> => {
@@ -224,7 +348,10 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	};
 	unsubscribe = workbench.subscribe((next) => {
 		const urgency = workbenchRenderUrgency(snapshot, next);
+		const refreshTelemetry = snapshot.phase === "working" && next.phase !== "working";
 		snapshot = next;
+		status.sync(snapshot);
+		if (refreshTelemetry) telemetry.refresh();
 		workbenchRenders.request(urgency);
 	});
 	tui.addInputListener((data) => {
@@ -267,5 +394,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	if (!isViewportTUI(tui)) throw new Error("현재 터미널 렌더러가 viewport layout을 지원하지 않습니다.");
 	tui.setLayoutRoot(root);
 	tui.setFocus(editor);
+	telemetry.refresh();
+	chat.playWelcomeIntro(() => tui.requestRender());
 	tui.start();
 }
