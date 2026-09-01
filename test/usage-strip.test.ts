@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { visibleWidth } from "@earendil-works/pi-tui";
-import { UsageStripView } from "../src/presentation/tui/dashboard-views";
+import { UsageStripView } from "../src/presentation/tui/legacy-dashboard-views";
 
 describe("UsageStripView", () => {
 	test("renders Codex and Claude in exactly two compact HUD lines", () => {

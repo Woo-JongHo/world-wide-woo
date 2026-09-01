@@ -104,6 +104,143 @@ export const SLASH_COMMANDS: SlashCommand[] = [
 	{ name: "exit", description: "세션을 안전하게 종료" },
 ];
 
+export type WorkbenchShellCommand =
+	| { type: "pane.show"; pane: "chat" | "tnotes" | "todo" }
+	| { type: "activity.select"; activityId: string | "latest" | null }
+	| { type: "tnote.capture" }
+	| { type: "tnote.capture-range"; startSequence: number; endSequence: number }
+	| { type: "todo.create"; title: string; items: readonly string[] }
+	| { type: "todo.add"; placement: "now" | "after"; content: string }
+	| { type: "todo.details"; itemId: string; details: readonly string[] }
+	| { type: "todo.transition"; action: "start" | "complete" | "block" | "reopen"; itemId: string }
+	| { type: "todo.evidence"; activityId: string | "latest" }
+	| { type: "todo.import-legacy" }
+	| { type: "promotion.accept"; noteId: string }
+	| { type: "promotion.confirm"; token: string }
+	| { type: "review.preview"; provider: "anthropic" | "google"; noteId: string; request: string }
+	| { type: "review.send"; digest: string }
+	| { type: "approval.accept" }
+	| { type: "approval.accept-session" }
+	| { type: "approval.decline" }
+	| { type: "chat.cancel" }
+	| { type: "exit" }
+	| { type: "error"; message: string };
+
+export const WORKBENCH_SLASH_COMMANDS: SlashCommand[] = [
+	{ name: "chat", description: "Chat pane 안내" },
+	{ name: "tnotes", description: "T-notes·source pane 안내" },
+	{ name: "todo", description: "Todo.md 생성·항목·근거 관리", argumentHint: "<create|add|detail|start|complete|block|reopen|evidence|import-legacy> …" },
+	{ name: "source", description: "Activity source 선택", argumentHint: "<activity-id|latest|clear>" },
+	{ name: "tnote", description: "선택 또는 연속 Activity를 T-note로 캡처", argumentHint: "[range <start-sequence> <end-sequence>]" },
+	{ name: "promote", description: "T-note 정본 반영: diff 확인 후 사람 승인", argumentHint: "<tnote|confirm> <note-id|token>" },
+	{ name: "review", description: "공개 분류 T-note의 외부 검토 미리보기·송신", argumentHint: "<preview|send> …" },
+	{ name: "approve", description: "대기 중인 native 요청 승인" },
+	{ name: "approve-session", description: "현재 세션 동안 native 요청 승인" },
+	{ name: "decline", description: "대기 중인 native 요청 거절" },
+	{ name: "cancel", description: "현재 native turn 중단" },
+	{ name: "exit", description: "Workbench를 안전하게 종료" },
+];
+
+export function parseWorkbenchShellCommand(text: string): WorkbenchShellCommand | null {
+	const trimmed = text.trim();
+	if (!trimmed.startsWith("/")) return null;
+	const [name, ...args] = trimmed.slice(1).split(/\s+/u);
+	if ((name === "chat" || name === "tnotes" || name === "todo") && args.length === 0) return { type: "pane.show", pane: name };
+	if (name === "source") {
+		const activityId = args[0];
+		if (!activityId) return { type: "error", message: "사용법: /source <activity-id|latest|clear>" };
+		return { type: "activity.select", activityId: activityId === "clear" ? null : activityId };
+	}
+	if (name === "tnote") {
+		if (args.length === 0) return { type: "tnote.capture" };
+		if (args[0] !== "range" || args.length !== 3) return { type: "error", message: "사용법: /tnote [range <start-sequence> <end-sequence>]" };
+		const startSequence = parseSequence(args[1]);
+		const endSequence = parseSequence(args[2]);
+		return startSequence !== null && endSequence !== null && startSequence <= endSequence
+			? { type: "tnote.capture-range", startSequence, endSequence }
+			: { type: "error", message: "T-note 범위는 1 이상의 시작·끝 sequence여야 합니다." };
+	}
+	if (name === "todo") return parseTodoCommand(trimmed);
+	if (name === "promote") {
+		if (args[0] === "tnote" && args.length === 2 && args[1]) return { type: "promotion.accept", noteId: args[1] };
+		if (args[0] === "confirm" && args.length === 2 && args[1]) return { type: "promotion.confirm", token: args[1] };
+		return { type: "error", message: "사용법: /promote tnote <note-id> | /promote confirm <token>" };
+	}
+	if (name === "review") return parseReviewCommand(trimmed);
+	if (name === "approve") return { type: "approval.accept" };
+	if (name === "approve-session") return { type: "approval.accept-session" };
+	if (name === "decline") return { type: "approval.decline" };
+	if (name === "cancel") return { type: "chat.cancel" };
+	if (name === "exit" || name === "quit") return { type: "exit" };
+	return null;
+}
+
+function parseTodoCommand(trimmed: string): WorkbenchShellCommand {
+	const body = trimmed.slice("/todo".length).trim();
+	const [action, ...args] = body.split(/\s+/u);
+	if (action === "create") {
+		const separator = body.slice("create".length).indexOf("::");
+		const header = separator < 0 ? "" : body.slice("create".length, "create".length + separator).trim();
+		const items = separator < 0 ? [] : body.slice("create".length + separator + 2)
+			.split("|").map(item => item.trim()).filter(Boolean);
+		return header && items.length > 0
+			? { type: "todo.create", title: header, items }
+			: { type: "error", message: "사용법: /todo create <title> :: <item1> | <item2>" };
+	}
+	if (action === "add") {
+		const placement = args[0];
+		const content = body.slice("add".length).trim().slice(placement?.length ?? 0).trim();
+		return (placement === "now" || placement === "after") && content
+			? { type: "todo.add", placement, content }
+			: { type: "error", message: "사용법: /todo add <now|after> <text>" };
+	}
+	if (action === "detail") {
+		const itemId = args[0];
+		const detail = body.slice("detail".length).trim().slice(itemId?.length ?? 0).trim();
+		return itemId && detail
+			? { type: "todo.details", itemId, details: [detail] }
+			: { type: "error", message: "사용법: /todo detail <id> <text>" };
+	}
+	if (action === "start" || action === "complete" || action === "block" || action === "reopen") {
+		return args.length === 1 && args[0]
+			? { type: "todo.transition", action, itemId: args[0] }
+			: { type: "error", message: "사용법: /todo start|complete|block|reopen <id>" };
+	}
+	if (action === "evidence") {
+		return args.length === 1 && args[0]
+			? { type: "todo.evidence", activityId: args[0] }
+			: { type: "error", message: "사용법: /todo evidence <activity-id|latest>" };
+	}
+	if (action === "import-legacy" && args.length === 0) return { type: "todo.import-legacy" };
+	return { type: "error", message: "사용법: /todo create|add|detail|start|complete|block|reopen|evidence|import-legacy …" };
+}
+
+function parseReviewCommand(trimmed: string): WorkbenchShellCommand {
+	const body = trimmed.slice("/review".length).trim();
+	const [action, ...args] = body.split(/\s+/u);
+	if (action === "send") {
+		return args.length === 1 && args[0]
+			? { type: "review.send", digest: args[0] }
+			: { type: "error", message: "사용법: /review send <digest>" };
+	}
+	if (action !== "preview") return { type: "error", message: "사용법: /review preview <opus|gemini> public <note-id> :: <request> | /review send <digest>" };
+	const separator = body.indexOf("::");
+	const header = separator < 0 ? [] : body.slice(0, separator).trim().split(/\s+/u);
+	const request = separator < 0 ? "" : body.slice(separator + 2).trim();
+	const provider = header[1];
+	const classification = header[2];
+	const noteId = header[3];
+	return (provider === "opus" || provider === "gemini") && classification === "public" && noteId && request && header.length === 4
+		? { type: "review.preview", provider: provider === "opus" ? "anthropic" : "google", noteId, request }
+		: { type: "error", message: "사용법: /review preview <opus|gemini> public <note-id> :: <request>" };
+}
+
+function parseSequence(value: string | undefined): number | null {
+	if (!value || !/^\d+$/u.test(value)) return null;
+	const sequence = Number(value);
+	return Number.isSafeInteger(sequence) && sequence > 0 ? sequence : null;
+}
+
 function provider(value: string): Provider | null {
 	return PROVIDERS.includes(value as Provider) ? value as Provider : null;
 }
@@ -182,7 +319,9 @@ export function parseShellCommand(text: string, current: WwwSettings): ShellComm
 	if (name === "issues" || name === "issue") return { type: "repository.issues" };
 	if (name === "help") return { type: "help" };
 	if (name === "exit" || name === "quit") return { type: "exit" };
-	return { type: "error", message: `알 수 없는 명령입니다: /${name}` };
+	// Only exact WWW-local commands are intercepted. Unknown slash input (for
+	// example native /skills) remains ordinary chat input for Codex.
+	return null;
 }
 
 export function parseTerminalCommand(text: string): string | null {

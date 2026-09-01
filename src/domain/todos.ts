@@ -20,6 +20,7 @@ export interface TodoItem {
 export interface TodoDocument {
 	readonly version: 1;
 	readonly revision: number;
+	/** Creator provenance only. Project Todo authorization is never session-scoped. */
 	readonly ownerSessionId: string;
 	readonly storyId: string | null;
 	readonly title: string;
@@ -117,7 +118,7 @@ export function validateTodoDocument(value: unknown): TodoDocument {
 
 export function renderTodoMarkdown(document: TodoDocument): string {
 	const todo = validateTodoDocument(document);
-	const header = JSON.stringify({ version: todo.version, revision: todo.revision, ownerSessionId: todo.ownerSessionId, storyId: todo.storyId, updatedAt: todo.updatedAt });
+	const header = renderHeader(todo);
 	const lines = [`<!-- ${header} -->`, `# ${todo.title}`, ""];
 	for (const item of todo.items) {
 		lines.push(renderEntry(item));
@@ -127,24 +128,77 @@ export function renderTodoMarkdown(document: TodoDocument): string {
 }
 
 export function parseTodoMarkdown(markdown: string): TodoDocument {
-	const lines = markdown.split("\n");
+	const lines = markdown.split(/\r?\n/u);
 	if (lines.at(-1) === "") lines.pop();
-	if (lines.length < 3 || !lines[0] || !lines[1] || lines[2] !== "") fail("invalid todo markdown layout");
+	if (lines.length < 2 || !lines[0] || !lines[1]) fail("invalid todo markdown layout");
 	const header = parseComment(lines[0]);
 	if (!isRecord(header) || Object.keys(header).length !== 5 || header.version !== 1) fail("invalid todo markdown header");
 	if (!lines[1].startsWith("# ") || lines[1].slice(2).length === 0) fail("invalid todo heading");
 	const items: Array<Omit<TodoItem, "details"> & { details: TodoDetail[] }> = [];
-	for (const line of lines.slice(3)) {
+	for (const line of lines.slice(2)) {
+		if (!isManagedTodoLine(line)) {
+			if (/- \[[ x]\] .+ <!-- \{"id":/.test(line)) fail("invalid todo detail indentation");
+			continue;
+		}
 		if (line.startsWith("  - ")) {
 			const parent = items.at(-1);
 			if (!parent) fail("orphan todo detail markdown");
 			parent.details.push(parseItemLine(line.slice(2)));
 		} else {
-			if (/^\s/.test(line)) fail("invalid todo detail indentation");
 			items.push({ ...parseItemLine(line), details: [] });
 		}
 	}
 	return validateTodoDocument({ ...header, title: lines[1].slice(2), items });
+}
+
+/**
+ * Rewrites only WWW-owned metadata, heading, and managed checkbox lines.
+ * Unrecognized Markdown and the source line-ending convention remain byte-for-byte stable.
+ */
+export function patchTodoMarkdown(markdown: string, next: TodoDocument): string {
+	parseTodoMarkdown(markdown);
+	const todo = validateTodoDocument(next);
+	const lines = splitMarkdownLines(markdown);
+	lines[0]!.content = `<!-- ${renderHeader(todo)} -->`;
+	lines[1]!.content = `# ${todo.title}`;
+
+	const desired = todo.items.flatMap((item) => [
+		renderEntry(item),
+		...item.details.map((detail) => `  ${renderEntry(detail)}`),
+	]);
+	const managed = lines.flatMap((line, index) => isManagedTodoLine(line.content) ? [index] : []);
+	const common = Math.min(managed.length, desired.length);
+	for (let index = 0; index < common; index += 1) lines[managed[index]!]!.content = desired[index]!;
+	for (let index = managed.length - 1; index >= desired.length; index -= 1) lines.splice(managed[index]!, 1);
+	if (desired.length > managed.length) {
+		const insertion = managed.length > 0 ? managed.at(-1)! + 1 : Math.min(3, lines.length);
+		const eol = insertionLineEnding(lines, insertion);
+		lines.splice(insertion, 0, ...desired.slice(managed.length).map(content => ({ content, eol })));
+	}
+	return lines.map(line => `${line.content}${line.eol}`).join("");
+}
+
+interface MarkdownLine {
+	content: string;
+	eol: "\r\n" | "\n" | "";
+}
+
+/** Keeps every original line terminator attached to its source line. */
+function splitMarkdownLines(markdown: string): MarkdownLine[] {
+	const lines: MarkdownLine[] = [];
+	for (const match of markdown.matchAll(/([^\r\n]*)(\r\n|\n|$)/gu)) {
+		const content = match[1]!;
+		const eol = match[2]! as MarkdownLine["eol"];
+		if (content === "" && eol === "") break;
+		lines.push({ content, eol });
+	}
+	return lines;
+}
+
+function insertionLineEnding(lines: readonly MarkdownLine[], insertion: number): "\r\n" | "\n" {
+	const nearby = [lines[insertion - 1]?.eol, lines[insertion]?.eol, ...lines.map(line => line.eol)]
+		.find((eol): eol is "\r\n" | "\n" => eol === "\r\n" || eol === "\n");
+	return nearby ?? "\n";
 }
 
 export function sanitizeTodoText(value: string): string {
@@ -178,6 +232,14 @@ function parseItemLine(line: string): TodoItem {
 		content = content.slice("막힘: ".length);
 	}
 	return { id: metadata.id, status, evidenceIds: metadata.evidenceIds as string[], content, details: [] };
+}
+
+function isManagedTodoLine(line: string): boolean {
+	return /^(?:  )?- \[[ x]\] .+ <!-- \{"id":/.test(line);
+}
+
+function renderHeader(todo: TodoDocument): string {
+	return JSON.stringify({ version: todo.version, revision: todo.revision, ownerSessionId: todo.ownerSessionId, storyId: todo.storyId, updatedAt: todo.updatedAt });
 }
 
 function renderEntry(item: TodoDetail | TodoItem): string {

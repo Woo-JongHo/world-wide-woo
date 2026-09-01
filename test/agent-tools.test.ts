@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { access, chmod, mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import { access, chmod, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { createProjectAgentTools } from "../src/infrastructure/agent-tools";
@@ -109,13 +109,23 @@ describe("project agent tools", () => {
 		await writeFile(join(root, ".www", "Todo.md"), "- [ ] private planning instruction");
 		await mkdir(join(root, ".www", "todos", "session"), { recursive: true });
 		await writeFile(join(root, ".www", "todos", "session", "Todo.md"), "- [ ] session private instruction");
+		await mkdir(join(root, ".www", "vault"), { recursive: true });
+		await writeFile(join(root, ".www", "vault", "Todo.md"), "- [ ] canonical private instruction");
 		const read = await tool(tools, "read").execute({ path: ".www/Todo.md" }, signal());
 		expect(read.isError).toBe(true);
 		const sessionRead = await tool(tools, "read").execute({ path: ".www/todos/session/Todo.md" }, signal());
 		expect(sessionRead.isError).toBe(true);
+		expect((await tool(tools, "read").execute({ path: ".www/vault/Todo.md" }, signal())).isError).toBe(true);
 		const search = await tool(tools, "search").execute({ pattern: "private planning instruction" }, signal());
 		expect(search.modelContent).toBe("No matches.");
 		expect((await tool(tools, "search").execute({ pattern: "session private instruction" }, signal())).modelContent).toBe("No matches.");
+		expect((await tool(tools, "search").execute({ pattern: "canonical private instruction" }, signal())).modelContent).toBe("No matches.");
+		const rawWrite = await tool(tools, "bash").execute({
+			command: "printf",
+			args: ["overwrite", ".www/vault/Todo.md"],
+		}, signal());
+		expect(rawWrite.isError).toBe(true);
+		expect(await readFile(join(root, ".www", "vault", "Todo.md"), "utf8")).toBe("- [ ] canonical private instruction");
 	});
 
 	test("resolves SSH aliases without evaluating Match exec", async () => {

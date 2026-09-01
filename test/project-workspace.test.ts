@@ -3,6 +3,7 @@ import { lstat, mkdtemp, mkdir, readFile, realpath, rm, stat, symlink, writeFile
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { FileProjectWorkspace } from "../src/infrastructure/project-workspace";
+import { FileTodoStore } from "../src/infrastructure/todo-store";
 
 async function temporaryDirectory(): Promise<string> {
 	return mkdtemp(join(tmpdir(), "www-workspace-"));
@@ -28,6 +29,8 @@ describe("FileProjectWorkspace", () => {
 		expect(workspace.sessionsDirectory).toBe(join(canonicalRoot, ".www", "sessions"));
 		expect(workspace.draftsDirectory).toBe(join(canonicalRoot, ".www", "drafts"));
 		expect(workspace.todosDirectory).toBe(join(canonicalRoot, ".www", "todos"));
+		expect(workspace.vaultDirectory).toBe(join(canonicalRoot, ".www", "vault"));
+		expect(workspace.canonicalTodoPath).toBe(join(canonicalRoot, ".www", "vault", "Todo.md"));
 		expect(workspace.legacyTodoPath).toBe(join(canonicalRoot, ".www", "Todo.md"));
 	});
 
@@ -71,9 +74,9 @@ describe("FileProjectWorkspace", () => {
 		const workspace = await FileProjectWorkspace.open(root);
 
 		expect(await readFile(join(workspace.directory, ".gitignore"), "utf8")).toBe(
-			"sessions/\ndrafts/\ncache/\nruntime/\ntodos/\nTodo.md\n.Todo.md.*.tmp\n",
+			"sessions/\ndrafts/\ncache/\nruntime/\ntodos/\n/Todo.md\n.Todo.md.*.tmp\n",
 		);
-		for (const directory of [workspace.directory, workspace.sessionsDirectory, workspace.draftsDirectory, workspace.runtimeDirectory, workspace.todosDirectory]) {
+		for (const directory of [workspace.directory, workspace.sessionsDirectory, workspace.draftsDirectory, workspace.runtimeDirectory, workspace.todosDirectory, workspace.vaultDirectory]) {
 			expect((await stat(directory)).mode & 0o777).toBe(0o700);
 		}
 		for (const file of [workspace.manifestPath, join(workspace.directory, ".gitignore")]) {
@@ -88,9 +91,47 @@ describe("FileProjectWorkspace", () => {
 		await FileProjectWorkspace.open(root);
 		const ignore = await readFile(join(workspace.directory, ".gitignore"), "utf8");
 		expect(ignore).toContain("custom-local/\n");
-		expect(ignore).toContain("Todo.md\n");
+		expect(ignore).not.toContain("\nTodo.md\n");
+		expect(ignore).toContain("/Todo.md\n");
 		expect(ignore).toContain("runtime/\n");
 		expect(ignore).toContain("todos/\n");
+	});
+
+	test("keeps the canonical vault Todo visible to Git", async () => {
+		const root = await temporaryDirectory();
+		await initializeGit(root);
+		const workspace = await FileProjectWorkspace.open(root);
+		await new FileTodoStore(workspace.canonicalTodoPath).compareAndSwap(null, {
+			version: 1,
+			revision: 0,
+			ownerSessionId: "session-1",
+			storyId: null,
+			title: "Tracked Todo",
+			items: [{ id: "work", content: "Ship", status: "pending", evidenceIds: [], details: [] }],
+			updatedAt: "2026-09-01T00:00:00.000Z",
+		});
+		await writeFile(workspace.legacyTodoPath, "legacy local source\n");
+		const ignored = Bun.spawn(["git", "check-ignore", "--quiet", ".www/vault/Todo.md"], {
+			cwd: root,
+			stdout: "ignore",
+			stderr: "ignore",
+		});
+		expect(await ignored.exited).not.toBe(0);
+		const legacyIgnored = Bun.spawn(["git", "check-ignore", "--quiet", ".www/Todo.md"], {
+			cwd: root,
+			stdout: "ignore",
+			stderr: "ignore",
+		});
+		expect(await legacyIgnored.exited).toBe(0);
+		const status = Bun.spawn(["git", "status", "--short", "--untracked-files=all", "--", ".www"], {
+			cwd: root,
+			stdout: "pipe",
+			stderr: "pipe",
+		});
+		const output = await new Response(status.stdout).text();
+		expect(output).toContain(".www/vault/Todo.md");
+		expect(output).not.toContain("vault/runtime");
+		expect(output).not.toContain("todo-lock.sqlite");
 	});
 
 	test("rejects workspace symlinks instead of escaping the project root", async () => {

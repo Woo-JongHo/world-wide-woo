@@ -5,10 +5,9 @@ import {
 	wrapTextWithAnsi,
 	type Component,
 } from "@earendil-works/pi-tui";
-import type { SessionSnapshot } from "../../application/session-runtime";
 import type { UsageSnapshot } from "../../application/ports";
+import type { SessionSnapshot } from "../../application/session-runtime";
 import type { Effort } from "../../domain/model-settings";
-import { todoDetailProgress, todoProgress, type TodoDocument, type TodoItem } from "../../domain/todos";
 import { BashResultCard, GenericToolResultCard } from "./result-cards";
 import { colors, gradientLines, markdownTheme, semantic } from "./theme";
 
@@ -40,17 +39,6 @@ function center(text: string, width: number): string {
 
 function surfaceRows(rows: readonly string[], width: number, surface: (text: string) => string): string[] {
 	return rows.map(row => surface(fit(row, width)));
-}
-
-export class StatusLine implements Component {
-	private notice = "/ 명령 · ! 터미널 · /model 모델 · /usage 사용량 · Ctrl+C 두 번 또는 Ctrl+D 종료";
-	setNotice(notice: string): void {
-		this.notice = notice;
-	}
-	invalidate(): void {}
-	render(width: number): string[] {
-		return [colors.muted(fit(this.notice, width))];
-	}
 }
 
 function compactReset(timestamp: number | undefined): string {
@@ -117,7 +105,6 @@ export class UsageStripView implements Component {
 		});
 	}
 }
-
 export class RouterModelView implements Component {
 	constructor(private readonly getSnapshot: () => SessionSnapshot) {}
 	invalidate(): void {}
@@ -138,64 +125,6 @@ export class RouterModelView implements Component {
 		];
 		return rows.flatMap((row) => wrapTextWithAnsi(row, Math.max(1, width)));
 	}
-}
-
-export class WorkspaceTodoView implements Component {
-	constructor(private readonly todo: () => TodoDocument | null) {}
-	invalidate(): void {}
-	render(width: number): string[] {
-		return this.renderTodo(width).flatMap((row) => wrapTextWithAnsi(row, Math.max(1, width)));
-	}
-
-	private renderTodo(width: number): string[] {
-		const document = this.todo();
-		if (!document || document.items.length === 0) return [
-			colors.secondary("TODO 0/0"),
-			"  진행 중인 작업 없음",
-		];
-
-		const progress = todoProgress(document);
-		const detailProgress = todoDetailProgress(document);
-		const progressLabel = detailProgress.total > 0
-			? `TODO ${progress.completed}/${progress.total} · 세부 ${detailProgress.completed}/${detailProgress.total}`
-			: `TODO ${progress.completed}/${progress.total}`;
-		const items = width < 42
-			? [document.items.find(item => item.status === "in_progress")
-				?? document.items.find(item => item.status === "pending")
-				?? document.items.find(item => item.status === "blocked")].filter(
-				(item): item is TodoItem => item !== undefined,
-			)
-			: document.items.slice(0, 12);
-		const rows = [
-			colors.secondary(progressLabel),
-			colors.highlight(`  ${document.storyId ? `${document.storyId} · ` : ""}${document.title}`),
-		];
-		for (const item of items) {
-			const parentDetailProgress = item.details.length > 0
-				? ` (${item.details.filter(detail => detail.status === "completed").length}/${item.details.length})`
-				: "";
-			rows.push(`  ${todoMarker(item.status)} ${item.content}${parentDetailProgress}`);
-			const details = width < 42
-				? [item.details.find(detail => detail.status === "in_progress")
-					?? item.details.find(detail => detail.status === "pending")
-					?? item.details.find(detail => detail.status === "blocked")].filter(
-					(detail): detail is TodoItem["details"][number] => detail !== undefined,
-				)
-				: item.details;
-			for (const [index, detail] of details.entries()) {
-				const branch = index === details.length - 1 ? "└" : "├";
-				rows.push(`      ${branch} ${todoMarker(detail.status)} ${detail.content}`);
-			}
-		}
-		return rows;
-	}
-}
-
-function todoMarker(status: TodoItem["status"]): string {
-	if (status === "in_progress") return "[•]";
-	if (status === "completed") return "[x]";
-	if (status === "blocked") return "[!]";
-	return "[ ]";
 }
 
 function transcriptProjectionKey(snapshot: SessionSnapshot): string {

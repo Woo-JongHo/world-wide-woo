@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { visibleWidth } from "@earendil-works/pi-tui";
 import type { TodoDocument } from "../src/domain/todos";
-import { WorkspaceTodoView } from "../src/presentation/tui/dashboard-views";
+import { WorkspaceTodoView } from "../src/presentation/tui/shared-dashboard-views";
 
 function todo(items: TodoDocument["items"]): TodoDocument {
 	return {
@@ -36,7 +36,7 @@ describe("WorkspaceTodoView", () => {
 	test("shows no active work for a missing or empty todo", () => {
 		for (const document of [null, todo([])]) {
 			const output = new WorkspaceTodoView(() => document).render(70).join("\n");
-			expect(output).toContain("TODO 0/0");
+			expect(output).not.toContain("TODO 0/0");
 			expect(output).toContain("진행 중인 작업 없음");
 		}
 	});

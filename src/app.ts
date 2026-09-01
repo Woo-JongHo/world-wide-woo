@@ -1,41 +1,38 @@
-export async function runApp(options: { sessionId?: string } = {}): Promise<void> {
-	const [
-		{ RouterService, reconcileInitialRouter },
-		{ AuthService }, { FileCredentialStore },
-		{ ModelRouter, createModelRegistry },
-		{ FileSettingsStore },
-		{ GitHubRepositoryInsights }, { UsageService },
-		{ createProjectSession },
-		{ runTuiShell },
-	] = await Promise.all([
-		import("./application/router-service"),
-		import("./infrastructure/auth-service"), import("./infrastructure/credential-store"),
-		import("./infrastructure/model-router"),
-		import("./infrastructure/settings-store"),
-		import("./infrastructure/repository-insights"), import("./infrastructure/usage-service"),
-		import("./infrastructure/project-session"),
-		import("./presentation/tui/app-shell"),
-	]);
-	const settingsStore = new FileSettingsStore();
-	const credentials = new FileCredentialStore();
-	const registry = createModelRegistry(credentials);
-	const modelRouter = new ModelRouter(registry);
-	const settings = await reconcileInitialRouter(await settingsStore.load(), modelRouter, settingsStore);
-	const project = await createProjectSession(process.cwd(), settings, modelRouter, options.sessionId);
-	const { workspace, runtime, todos, monitor, planning, releaseSessionLease } = project;
+import { DEFAULT_SETTINGS, type WwwSettings } from "./domain/model-settings.js";
+import { createProjectWorkbenchSession } from "./infrastructure/project-workbench-session.js";
+export { listNativeThreads } from "./infrastructure/native-thread-discovery.js";
 
-	runTuiShell({
-		runtime,
-		auth: new AuthService(registry),
-		usage: new UsageService(credentials, registry),
-		routerSettings: new RouterService(settingsStore, runtime, settings),
-		repository: new GitHubRepositoryInsights(process.cwd()),
-		composerDraft: await (await import("./infrastructure/composer-draft-store")).FileComposerDraftController.create(workspace.root, runtime.id, workspace.draftsDirectory),
-		releaseSessionLease,
-		todos,
-		monitor,
-		planning,
+export interface RunAppOptions {
+	/** Opaque Codex App Server thread id, not a legacy WWW session id. */
+	resumeThreadId?: string;
+}
+
+/** Native 3-pane workbench is the default `www` entrypoint. */
+export async function runApp(options: RunAppOptions = {}): Promise<void> {
+	const [{ FileSettingsStore }, { runProjectWorkbenchShell }] = await Promise.all([
+		import("./infrastructure/settings-store"),
+		import("./presentation/tui/workbench-shell"),
+	]);
+	const settings = await new FileSettingsStore().load();
+	const project = await createProjectWorkbenchSession(process.cwd(), {
+		resumeThreadId: options.resumeThreadId,
+		model: codexInteractiveModel(settings),
 	});
+	try {
+		runProjectWorkbenchShell({
+			workbench: project.workbench,
+			composerDraft: project.composerDraft,
+			releaseSessionLease: project.releaseSessionLease,
+		});
+	} catch (error) {
+		await project.close();
+		throw error;
+	}
+}
+
+/** Chat is always native Codex; router settings only select a Codex model when applicable. */
+export function codexInteractiveModel(settings: WwwSettings): string {
+	return settings.provider === "openai-codex" ? settings.model : DEFAULT_SETTINGS.model;
 }
 
 export async function runAuth(args: string[]): Promise<void> {
@@ -49,6 +46,7 @@ export async function runAuth(args: string[]): Promise<void> {
 	await runAuthCommand(new AuthService(registry), args);
 }
 
+/** Legacy SessionRuntime archive only. Native Codex threads are resumed by their opaque id. */
 export async function listSessions(): Promise<Array<{ id: string; updatedAt: string }>> {
 	const { listProjectSessions } = await import("./infrastructure/project-session");
 	return listProjectSessions(process.cwd());

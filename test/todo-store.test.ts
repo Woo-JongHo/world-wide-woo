@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { access, lstat, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { FileTodoStore, migrateLegacyTodo } from "../src/infrastructure/todo-store.js";
+import { FileTodoStore, importLegacyTodo } from "../src/infrastructure/todo-store.js";
 import { renderTodoMarkdown, type TodoDocument } from "../src/domain/todos.js";
 
 const directories: string[] = [];
@@ -58,6 +58,51 @@ describe("FileTodoStore", () => {
 		expect(await store.read()).toEqual(todo(0));
 	});
 
+	test("preserves CRLF and unknown Markdown while patching managed Todo lines", async () => {
+		const { path, store } = await fixture();
+		const source = renderTodoMarkdown(todo(0))
+			.replace("\n\n", "\n\n> kept by Obsidian\n\n- [ ] personal note\n")
+			.replaceAll("\n", "\r\n");
+		await writeFile(path, source);
+		expect(await store.compareAndSwap(0, todo(1, "Changed"))).toBe("written");
+		const written = await readFile(path, "utf8");
+		expect(written).toContain("> kept by Obsidian\r\n\r\n- [ ] personal note\r\n");
+		expect(written.replaceAll("\r\n", "")).not.toContain("\n");
+	});
+
+	test("debounces external editor writes and suppresses its own atomic rename", async () => {
+		const { path, store } = await fixture();
+		const snapshots: TodoDocument[] = [];
+		const stop = store.watch((document) => { if (document) snapshots.push(document); }, { debounceMs: 20 });
+		try {
+			await store.compareAndSwap(null, todo(0));
+			await Bun.sleep(80);
+			expect(snapshots).toEqual([]);
+			await writeFile(path, renderTodoMarkdown(todo(1, "External one")));
+			await writeFile(path, renderTodoMarkdown(todo(1, "External final")));
+			await Bun.sleep(80);
+			expect(snapshots.map(snapshot => snapshot.title)).toEqual(["External final"]);
+		} finally {
+			stop();
+		}
+	});
+
+	test("delivers the same external source only once across separate filesystem events", async () => {
+		const { path, store } = await fixture();
+		const sources: Array<string | null> = [];
+		const source = renderTodoMarkdown(todo(1, "External final"));
+		const stop = store.watch((_document, observedSource) => { sources.push(observedSource); }, { debounceMs: 20 });
+		try {
+			await writeFile(path, source);
+			await Bun.sleep(80);
+			await writeFile(path, source);
+			await Bun.sleep(80);
+			expect(sources).toEqual([source]);
+		} finally {
+			stop();
+		}
+	});
+
 	test("rejects symlink and non-regular targets", async () => {
 		const { directory, path, store } = await fixture();
 		const target = join(directory, "target.md");
@@ -77,6 +122,16 @@ describe("FileTodoStore", () => {
 		expect((await store.read())?.revision).toBe(1);
 		const entries = await readdir(directory);
 		expect(entries.filter((entry) => entry.includes(".lock") || entry.endsWith(".tmp"))).toEqual([]);
+	});
+
+	test("keeps the canonical vault free of local lock databases", async () => {
+		const directory = await mkdtemp(join(tmpdir(), "www-canonical-todo-store-"));
+		directories.push(directory);
+		const vault = join(directory, "vault");
+		const store = new FileTodoStore(join(vault, "Todo.md"));
+		expect(await store.compareAndSwap(null, todo(0))).toBe("written");
+		await expect(access(join(vault, "runtime", "todo-lock.sqlite"))).rejects.toThrow();
+		await expect(access(join(directory, "runtime", "todo-lock.sqlite"))).resolves.toBeNull();
 	});
 
 	test("releases the interprocess lock when a writer process is killed", async () => {
@@ -107,25 +162,25 @@ describe("FileTodoStore", () => {
 		expect(await store.compareAndSwap(0, todo(1))).toBe("written");
 	});
 
-	test("migrates one legacy project Todo into its owner session directory", async () => {
+	test("copies a legacy Todo into an absent canonical path without deleting the source", async () => {
 		const { directory } = await fixture();
 		const legacy = join(directory, "Todo.md");
-		const todos = join(directory, "todos");
-		await mkdir(todos, { mode: 0o700 });
+		const canonical = join(directory, "vault", "Todo.md");
 		await writeFile(legacy, renderTodoMarkdown(todo(0)));
-		const destination = await migrateLegacyTodo(legacy, todos);
-		expect(destination).toBe(join(todos, "session_1", "Todo.md"));
-		await expect(access(legacy)).rejects.toThrow();
-		expect(await new FileTodoStore(destination!).read()).toEqual(todo(0));
+		expect(await importLegacyTodo(legacy, canonical)).toBe(canonical);
+		expect(await readFile(legacy, "utf8")).toBe(renderTodoMarkdown(todo(0)));
+		expect(await new FileTodoStore(canonical).read()).toEqual(todo(0));
 	});
 
-	test("leaves a legacy Todo in place while its owner session is active", async () => {
+	test("does not overwrite an existing canonical Todo during explicit import", async () => {
 		const { directory } = await fixture();
 		const legacy = join(directory, "Todo.md");
-		const todos = join(directory, "todos");
-		await mkdir(todos, { mode: 0o700 });
+		const canonical = join(directory, "vault", "Todo.md");
 		await writeFile(legacy, renderTodoMarkdown(todo(0)));
-		expect(await migrateLegacyTodo(legacy, todos, async () => false)).toBeNull();
+		const canonicalStore = new FileTodoStore(canonical);
+		await canonicalStore.compareAndSwap(null, todo(0, "Canonical"));
+		expect(await importLegacyTodo(legacy, canonical)).toBeNull();
 		expect(await readFile(legacy, "utf8")).toBe(renderTodoMarkdown(todo(0)));
+		expect((await canonicalStore.read())?.title).toBe("Canonical");
 	});
 });

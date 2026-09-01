@@ -9,7 +9,7 @@ import {
 import { colors } from "./theme";
 
 export interface DashboardSection {
-	title: string;
+	title?: string;
 	color: (text: string) => string;
 	component: Component;
 }
@@ -69,11 +69,13 @@ class SectionDocument implements Component {
 		const sameWidth = width === this.cachedWidth;
 		const previousChildRows = sameWidth ? this.cachedChildRows : null;
 		const previousRows = sameWidth ? this.cachedRows : null;
-		const rows = new Array<string>(childRows.length + 1);
-		rows[0] = previousRows?.[0] ?? fit(` ${this.section.color(this.section.title)}`, width);
+		const childOffset = this.section.title ? 1 : 0;
+		const rows = new Array<string>(childRows.length + childOffset);
+		if (this.section.title) rows[0] = previousRows?.[0] ?? fit(` ${this.section.color(this.section.title)}`, width);
 		for (let index = 0; index < childRows.length; index += 1) {
-			rows[index + 1] = previousChildRows?.[index] === childRows[index] && previousRows?.[index + 1]
-				? previousRows[index + 1]
+			const rowIndex = index + childOffset;
+			rows[rowIndex] = previousChildRows?.[index] === childRows[index] && previousRows?.[rowIndex]
+				? previousRows[rowIndex]
 				: ` ${fit(childRows[index]!, contentWidth)} `;
 		}
 		this.cachedWidth = width;

@@ -1,5 +1,22 @@
 export type RenderUrgency = "streaming" | "immediate";
 
+interface WorkbenchRenderState {
+	readonly phase: string;
+	readonly journalSequence: number;
+}
+
+/** Native delta-only revisions are repaint noise; durable and lifecycle changes stay immediate. */
+export function workbenchRenderUrgency(
+	previous: WorkbenchRenderState,
+	next: WorkbenchRenderState,
+): RenderUrgency {
+	return previous.phase === "working" &&
+		next.phase === "working" &&
+		previous.journalSequence === next.journalSequence
+		? "streaming"
+		: "immediate";
+}
+
 type TimerToken = ReturnType<typeof setTimeout>;
 type ScheduleTimer = (callback: () => void, delayMs: number) => TimerToken;
 type CancelTimer = (token: TimerToken) => void;

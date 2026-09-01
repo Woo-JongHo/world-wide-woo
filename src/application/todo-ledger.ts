@@ -1,11 +1,21 @@
 import type { SessionEventInput } from "../domain/session-events";
-import { MAX_TODO_EVIDENCE, sanitizeTodoText, validateTodoDocument, type TodoDocument } from "../domain/todos";
+import {
+	MAX_TODO_EVIDENCE,
+	sanitizeTodoText,
+	validateTodoDocument,
+	type TodoDetail,
+	type TodoDocument,
+	type TodoItem,
+	type TodoItemStatus,
+} from "../domain/todos";
+import type { SemanticWorkStep, WorkFlowProjection, WorkStepStatus } from "../domain/work-steps";
 import type { SessionRepository, TodoController, TodoStore } from "./ports";
 
 /** Coordinates the project todo document with the session audit trail. */
 export class TodoLedger implements TodoController {
 	private current: TodoDocument | null = null;
 	private readonly listeners = new Set<(snapshot: TodoDocument | null) => void>();
+	private stopWatching: (() => void) | null = null;
 
 	public constructor(
 		private readonly sessionId: string,
@@ -20,10 +30,43 @@ export class TodoLedger implements TodoController {
 
 	public async initialize(): Promise<void> {
 		this.current = immutableSnapshot(await this.store.read());
-		if (this.current && this.current.ownerSessionId !== this.sessionId) {
-			throw new Error(`Session Todo owner mismatch: ${this.current.ownerSessionId}`);
-		}
+		this.stopWatching?.();
+		const observable = this.store as TodoStore & {
+			watch?: (listener: (document: TodoDocument | null, source: string | null) => void) => () => void;
+		};
+		this.stopWatching = observable.watch?.((document) => {
+			const snapshot = immutableSnapshot(document);
+			if (JSON.stringify(snapshot) === JSON.stringify(this.current)) return;
+			this.current = snapshot;
+			this.emit();
+		}) ?? null;
 		this.emit();
+	}
+
+	public dispose(): void {
+		this.stopWatching?.();
+		this.stopWatching = null;
+	}
+
+	/** Mirrors the current Native plan into the canonical two-level Todo.md. */
+	public async syncNativePlan(_turnId: string, flow: WorkFlowProjection): Promise<TodoDocument> {
+		let activeAssigned = false;
+		const items = flow.steps.slice(0, 12).map((step, index): TodoItem => {
+			let status = todoStatus(step.status);
+			if (status === "in_progress") {
+				if (activeAssigned) status = "pending";
+				else activeAssigned = true;
+			}
+			return nativeTodoItem(step, index, status);
+		});
+		const content = {
+			ownerSessionId: this.sessionId,
+			storyId: null,
+			title: boundedTodoText(flow.goal, "현재 요청"),
+			items,
+		};
+		if (this.current && sameTodoContent(this.current, content)) return this.current;
+		return this.commit(this.document(content));
 	}
 
 	public async create(title: string, items: readonly string[], storyId?: string): Promise<TodoDocument> {
@@ -48,7 +91,6 @@ export class TodoLedger implements TodoController {
 
 	public async add(content: string, placement: "now" | "after"): Promise<TodoDocument> {
 		const document = this.requireCurrent();
-		this.assertOwner(document);
 		if (document.items.length >= 12) throw new Error("Todo item limit reached");
 		if (placement !== "now" && placement !== "after") throw new Error("Todo placement must be now or after");
 		const nextNumber = document.items.reduce((highest, item) => {
@@ -77,7 +119,6 @@ export class TodoLedger implements TodoController {
 			throw new Error("Todo details must contain between 1 and 8 strings");
 		}
 		const document = this.requireCurrent();
-		this.assertOwner(document);
 		const parent = document.items.find(item => item.id === itemId);
 		if (!parent) throw new Error(`Unknown todo item: ${itemId}`);
 		if (parent.status === "completed") throw new Error("Cannot add details to a completed todo item");
@@ -108,7 +149,6 @@ export class TodoLedger implements TodoController {
 
 	public async start(itemId: string): Promise<TodoDocument> {
 		return this.transition(itemId, (item, parent, document) => {
-			this.assertOwner(document);
 			if (item.status !== "pending") throw new Error("Only pending todo items can be started");
 			if (parent) {
 				if (parent.status !== "in_progress") throw new Error("Todo detail requires an active parent");
@@ -122,7 +162,6 @@ export class TodoLedger implements TodoController {
 
 	public async complete(itemId: string): Promise<TodoDocument> {
 		return this.transition(itemId, (item, parent, document) => {
-			this.assertOwner(document);
 			if (item.status !== "in_progress") throw new Error("Only active todo items can be completed");
 			if (parent) {
 				if (item.evidenceIds.length === 0) throw new Error("Todo detail completion requires evidence recorded after start");
@@ -135,7 +174,6 @@ export class TodoLedger implements TodoController {
 
 	public async block(itemId: string): Promise<TodoDocument> {
 		return this.transition(itemId, (item, parent, document) => {
-			this.assertOwner(document);
 			if (item.status !== "pending" && item.status !== "in_progress") throw new Error("Only pending or active todo items can be blocked");
 			if (parent) return { ...item, status: "blocked" };
 			if (!isTodoParent(item)) throw new Error("Invalid todo detail parent");
@@ -145,7 +183,6 @@ export class TodoLedger implements TodoController {
 
 	public async reopen(itemId: string): Promise<TodoDocument> {
 		return this.transition(itemId, (item, _parent, document) => {
-			this.assertOwner(document);
 			if (item.status !== "blocked") throw new Error("Only blocked todo items can be reopened");
 			return { ...item, status: "pending" };
 		});
@@ -155,7 +192,6 @@ export class TodoLedger implements TodoController {
 		if (!this.current) return null;
 		if (typeof evidenceId !== "string" || !isId(evidenceId)) throw new Error("Invalid evidence id");
 		const document = this.requireCurrent();
-		this.assertOwner(document);
 		const active = document.items.find((item) => item.status === "in_progress");
 		const activeDetail = active?.details.find(detail => detail.status === "in_progress");
 		if (!active) return null;
@@ -199,9 +235,19 @@ export class TodoLedger implements TodoController {
 	private async commit(next: TodoDocument): Promise<TodoDocument> {
 		const expectedRevision = this.current?.revision ?? null;
 		if (await this.store.compareAndSwap(expectedRevision, next) !== "written") {
-			this.current = immutableSnapshot(await this.store.read());
+			let current: TodoDocument | null = null;
+			try { current = await this.store.read(); } catch { current = null; }
+			this.current = immutableSnapshot(current);
 			this.emit();
-			throw new Error("Todo document changed concurrently");
+			const inspectable = this.store as TodoStore & {
+				readonly lastConflictSource?: string | null;
+				readSource?: () => Promise<string | null>;
+			};
+			let source = inspectable.lastConflictSource ?? null;
+			if (source === null && inspectable.readSource) {
+				try { source = await inspectable.readSource(); } catch { source = null; }
+			}
+			throw new TodoWriteConflictError(source, next, this.current);
 		}
 		this.current = next;
 		this.emit();
@@ -223,14 +269,21 @@ export class TodoLedger implements TodoController {
 		return this.current;
 	}
 
-	private assertOwner(document: TodoDocument): void {
-		if (document.ownerSessionId !== this.sessionId) throw new Error("Only the todo owner may change it");
-	}
-
 	private emit(): void {
 		for (const listener of this.listeners) {
 			try { listener(this.current); } catch { /* Listeners cannot break ledger state. */ }
 		}
+	}
+}
+
+export class TodoWriteConflictError extends Error {
+	public constructor(
+		public readonly currentSource: string | null,
+		public readonly pending: TodoDocument,
+		public readonly current: TodoDocument | null,
+	) {
+		super("Todo document changed concurrently; review currentSource and pending before retrying");
+		this.name = "TodoWriteConflictError";
 	}
 }
 
@@ -255,6 +308,64 @@ function escapeRegExp(value: string): string {
 
 function isTodoParent(item: TodoDocument["items"][number] | TodoDocument["items"][number]["details"][number]): item is TodoDocument["items"][number] {
 	return "details" in item;
+}
+
+function nativeTodoItem(step: SemanticWorkStep, index: number, status: TodoItemStatus): TodoItem {
+	const id = `native-step-${index + 1}`;
+	const evidenceIds = validEvidenceIds(step.activityIds);
+	const summaries = step.narration.inputSummary
+		.map((summary) => boundedTodoText(summary, "실행 내용 확인"))
+		.filter((summary, summaryIndex, values) => values.indexOf(summary) === summaryIndex)
+		.slice(0, 8);
+	const details = summaries.map((content, detailIndex): TodoDetail => {
+		const isLast = detailIndex === summaries.length - 1;
+		return {
+			id: `${id}-detail-${detailIndex + 1}`,
+			content,
+			status: detailStatus(status, isLast),
+			evidenceIds: isLast ? evidenceIds : [],
+		};
+	});
+	return {
+		id,
+		content: boundedTodoText(step.title, `Step ${index + 1}`),
+		status,
+		evidenceIds: details.length === 0 ? evidenceIds : [],
+		details,
+	};
+}
+
+function todoStatus(status: WorkStepStatus): TodoItemStatus {
+	if (status === "running") return "in_progress";
+	if (status === "completed") return "completed";
+	if (status === "failed" || status === "cancelled") return "blocked";
+	return "pending";
+}
+
+function detailStatus(parentStatus: TodoItemStatus, isLast: boolean): TodoItemStatus {
+	if (parentStatus === "completed") return "completed";
+	if (parentStatus === "blocked") return "blocked";
+	if (parentStatus === "in_progress") return isLast ? "in_progress" : "completed";
+	return "pending";
+}
+
+function validEvidenceIds(values: readonly string[]): string[] {
+	return [...new Set(values.filter(isId))].slice(-MAX_TODO_EVIDENCE);
+}
+
+function boundedTodoText(value: string, fallback: string): string {
+	const sanitized = sanitizeTodoText(value) || fallback;
+	return Array.from(sanitized).slice(0, 120).join("");
+}
+
+function sameTodoContent(
+	current: TodoDocument,
+	next: Pick<TodoDocument, "ownerSessionId" | "storyId" | "title" | "items">,
+): boolean {
+	return current.ownerSessionId === next.ownerSessionId
+		&& current.storyId === next.storyId
+		&& current.title === next.title
+		&& JSON.stringify(current.items) === JSON.stringify(next.items);
 }
 
 function immutableSnapshot(document: TodoDocument | null): TodoDocument | null {

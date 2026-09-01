@@ -65,4 +65,5 @@
 - Stories: [`ST-009-*`](./Stories.md#ep-009--01_www-adapt-in)
 <!-- www-planning-v1:start -->
 - EP-010 | Project-local Planning Package v1 | Why·How·Outcome·Work·Runtime 경계를 stable ID와 append-only 이력으로 관리하고 명시적인 Epic·Story 저장 surface를 제공한다.
+- EP-011 | v0.1.0 Native Project Workbench | Codex native execution을 보존하면서 Chat·T-notes·project Todo를 세 패널로 연결하고, 승인된 Markdown을 Git/GitHub/Obsidian same-file 정본으로 관리하며 Claude Opus·Gemini 읽기 전용 검토와 macOS·Windows release gate를 제공한다.
 <!-- www-planning-v1:end -->

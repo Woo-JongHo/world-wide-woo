@@ -2,33 +2,34 @@ import chalk from "chalk";
 import type { EditorTheme, MarkdownTheme, SelectListTheme } from "@earendil-works/pi-tui";
 import { createNativeSyntaxHighlightPlugin } from "./syntax-highlighter";
 
-/** Claude-derived clay, parchment, blue, moss, and ochre terminal palette. */
+/** WWW instrument-panel palette: graphite, telemetry teal, steel, and signal amber. */
 export const palette = {
-	foreground: "#e8e6df",
-	muted: "#8a8780",
-	border: "#4a4742",
-	blue: "#6a9bcc",
-	cyan: "#83b5c9",
-	violet: "#9b87c6",
-	green: "#788c5d",
-	yellow: "#cba36d",
-	red: "#c76060",
-	warm: "#d97757",
-	userSurface: "#15202a",
-	assistantSurface: "#211d29",
+	foreground: "#dce6e8",
+	muted: "#839199",
+	border: "#34464f",
+	teal: "#55aeb6",
+	blue: "#78a7c6",
+	steel: "#a3b4bd",
+	amber: "#d0a15f",
+	success: "#72ad8f",
+	red: "#d06c70",
+	orange: "#c9865e",
+	userSurface: "#14242b",
+	assistantSurface: "#1a2228",
+	executionSurface: "#151c20",
 } as const;
 
 export const colors = {
 	text: chalk.hex(palette.foreground),
-	accent: chalk.hex(palette.cyan),
-	secondary: chalk.hex(palette.violet),
+	accent: chalk.hex(palette.teal),
+	secondary: chalk.hex(palette.steel),
 	highlight: chalk.hex(palette.blue),
-	warm: chalk.hex(palette.warm),
+	warm: chalk.hex(palette.orange),
 	border: chalk.hex(palette.border),
 	muted: chalk.hex(palette.muted),
-	selected: chalk.bgHex(palette.blue).hex("#16161e"),
-	success: chalk.hex(palette.green),
-	warning: chalk.hex(palette.yellow),
+	selected: chalk.bgHex(palette.blue).hex("#0d151a"),
+	success: chalk.hex(palette.success),
+	warning: chalk.hex(palette.amber),
 	error: chalk.hex(palette.red),
 };
 
@@ -38,6 +39,9 @@ export const semantic = {
 	assistantLabel: colors.secondary,
 	userSurface: chalk.bgHex(palette.userSurface).hex(palette.foreground),
 	assistantSurface: chalk.bgHex(palette.assistantSurface).hex(palette.foreground),
+	executionSurface: chalk.bgHex(palette.executionSurface).hex(palette.foreground),
+	executionCommand: (text: string) => chalk.bold(colors.accent(text)),
+	executionOutput: colors.muted,
 	narration: colors.accent,
 	toolPending: colors.muted,
 	toolRunning: colors.highlight,
@@ -49,7 +53,7 @@ export const semantic = {
 	diffContext: colors.muted,
 	effortLow: colors.muted,
 	effortMedium: colors.accent,
-	effortHigh: colors.secondary,
+	effortHigh: colors.highlight,
 	effortUltra: colors.warm,
 } as const;
 
@@ -68,23 +72,23 @@ export const editorTheme: EditorTheme = {
 
 export const syntaxHighlightPlugin = createNativeSyntaxHighlightPlugin({
 	comment: palette.muted,
-	keyword: palette.violet,
-	function: palette.blue,
+	keyword: palette.blue,
+	function: palette.teal,
 	variable: palette.foreground,
-	string: palette.green,
-	number: palette.warm,
-	type: palette.cyan,
-	operator: palette.yellow,
+	string: palette.amber,
+	number: palette.orange,
+	type: palette.steel,
+	operator: palette.amber,
 	punctuation: palette.muted,
-	inserted: palette.green,
+	inserted: palette.success,
 	deleted: palette.red,
 });
 
 export const markdownTheme: MarkdownTheme = {
 	heading: (text) => colors.accent(chalk.bold(text)),
-	link: chalk.underline.hex(palette.cyan),
+	link: chalk.underline.hex(palette.teal),
 	linkUrl: colors.muted,
-	code: (text) => chalk.bgHex("#252422").hex(palette.yellow)(` ${text} `),
+	code: (text) => chalk.bgHex("#20292d").hex(palette.amber)(` ${text} `),
 	codeBlock: chalk.hex(palette.foreground),
 	codeBlockBorder: colors.warm,
 	quote: chalk.italic.hex(palette.foreground),
@@ -99,11 +103,11 @@ export const markdownTheme: MarkdownTheme = {
 	codeBlockIndent: "  ",
 };
 
-/** Claude blue → lavender → clay stops for the WWW landmark glyph. */
+/** Telemetry teal → steel blue → signal amber stops for the WWW landmark glyph. */
 const GRADIENT_STOPS: ReadonlyArray<readonly [number, number, number]> = [
-	[106, 155, 188],
-	[155, 135, 198],
-	[217, 119, 87],
+	[85, 174, 182],
+	[120, 167, 198],
+	[208, 161, 95],
 ];
 
 function gradientColorAt(position: number): (text: string) => string {
@@ -120,7 +124,7 @@ function gradientColorAt(position: number): (text: string) => string {
 	);
 }
 
-/** Diagonal Claude gradient applied without changing visible width. */
+/** Diagonal telemetry gradient applied without changing visible width. */
 export function gradientLines(lines: readonly string[]): string[] {
 	const rows = lines.length;
 	const columns = Math.max(1, ...lines.map((line) => Array.from(line).length));

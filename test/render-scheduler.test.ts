@@ -1,7 +1,14 @@
 import { describe, expect, test } from "bun:test";
-import { RenderScheduler } from "../src/presentation/tui/render-scheduler";
+import { RenderScheduler, workbenchRenderUrgency } from "../src/presentation/tui/render-scheduler";
 
 describe("RenderScheduler", () => {
+	test("coalesces in-turn native deltas but flushes durable and terminal updates", () => {
+		const working = { phase: "working", journalSequence: 7 } as const;
+		expect(workbenchRenderUrgency(working, { phase: "working", journalSequence: 7 })).toBe("streaming");
+		expect(workbenchRenderUrgency(working, { phase: "working", journalSequence: 8 })).toBe("immediate");
+		expect(workbenchRenderUrgency(working, { phase: "ready", journalSequence: 7 })).toBe("immediate");
+	});
+
 	test("coalesces token deltas to a 64ms trailing render", () => {
 		let now = 0;
 		let renders = 0;

@@ -1,49 +1,101 @@
 #!/usr/bin/env bun
 
-import { listSessions, runApp, runAuth } from "./app";
-import packageJson from "../package.json" with { type: "json" };
+import {
+	listNativeThreads as productionListNativeThreads,
+	listSessions as productionListSessions,
+	runApp as productionRunApp,
+	runAuth as productionRunAuth,
+	type RunAppOptions,
+} from "./app";
+import type { NativeThreadSummary } from "./domain/native-session";
+import { selectNativeThread as productionSelectNativeThread } from "./presentation/tui/native-thread-picker";
+import { PRODUCT_VERSION } from "./product-version";
 
-const args = process.argv.slice(2);
+export interface CliDependencies {
+	runApp: (options?: RunAppOptions) => Promise<void>;
+	runAuth: (args: string[]) => Promise<void>;
+	listSessions: () => Promise<Array<{ id: string; updatedAt: string }>>;
+	listNativeThreads: () => Promise<readonly NativeThreadSummary[]>;
+	selectNativeThread: (threads: readonly NativeThreadSummary[]) => Promise<string | null>;
+	writeOut: (value: string) => void;
+	writeError: (value: string) => void;
+}
 
-if (args.includes("--help") || args.includes("-h")) {
-	console.log([
+const productionDependencies: CliDependencies = {
+	runApp: productionRunApp,
+	runAuth: productionRunAuth,
+	listSessions: productionListSessions,
+	listNativeThreads: productionListNativeThreads,
+	selectNativeThread: productionSelectNativeThread,
+	writeOut: value => console.log(value),
+	writeError: value => console.error(value),
+};
+
+function helpText(): string {
+	return [
 		"사용법:",
-		"  www                         월드 와이드 우 TUI 실행",
+		"  www                         새 Codex native 3-pane Workbench 실행",
 		"  www auth status             모델 인증 상태 확인",
 		"  www auth login <공급자> [oauth|api-key]",
 		"                              구독 계정 또는 API 키 로그인",
 		"  www auth logout <공급자>    저장된 인증 삭제",
-		"  www sessions                 저장된 세션 목록",
-		"  www --resume <세션 ID>       기존 세션 재개",
+		"  www sessions                 레거시 SessionRuntime 세션 목록",
+		"  www threads                  현재 프로젝트의 Codex native thread 목록",
+		"  www --resume                현재 프로젝트의 native thread를 선택해 재개",
+		"  www --resume <native-thread-id>  지정한 native thread 바로 재개",
 		"",
-		"TUI 키:",
-		"  /model  Router · 모델 설정",
-		"  /login  로그인 · 계정",
-		"  /usage  Codex·Claude 사용량 갱신",
-		"  /commits Git 작업 트리와 최근 Commit",
-		"  /issues  열린 GitHub Issue",
-		"  Ctrl+C  입력 지우기 · 응답 중단 · 종료",
-	].join("\n"));
-} else if (args.includes("--version") || args.includes("-v")) {
-	console.log(packageJson.version);
-} else {
+		"Workbench 명령:",
+		"  /source <id|latest|clear>  T-notes source 선택",
+		"  /tnote  선택 source를 packet-only Codex T-note로 캡처",
+		"  /approve · /approve-session · /decline  Codex native 승인 응답",
+		"  /cancel  현재 native turn 중단",
+		"  /exit  Workbench를 안전하게 종료",
+	].join("\n");
+}
+
+export async function runCli(args: string[], dependencies: CliDependencies = productionDependencies): Promise<number> {
+	if (args.includes("--help") || args.includes("-h")) {
+		dependencies.writeOut(helpText());
+		return 0;
+	}
+	if (args.includes("--version") || args.includes("-v")) {
+		dependencies.writeOut(PRODUCT_VERSION);
+		return 0;
+	}
 	try {
-		if (args[0] === "auth") await runAuth(args.slice(1));
+		if (args[0] === "auth") await dependencies.runAuth(args.slice(1));
 		else if (args[0] === "sessions") {
-			const sessions = await listSessions();
-			if (sessions.length === 0) console.log("저장된 세션이 없습니다.");
+			const sessions = await dependencies.listSessions();
+			if (sessions.length === 0) dependencies.writeOut("저장된 세션이 없습니다.");
 			for (const session of sessions) {
-				console.log(`${session.id}  ${new Date(session.updatedAt).toLocaleString("ko-KR")}`);
+				dependencies.writeOut(`${session.id}  ${new Date(session.updatedAt).toLocaleString("ko-KR")}`);
+			}
+		}
+		else if (args[0] === "threads") {
+			const threads = await dependencies.listNativeThreads();
+			if (threads.length === 0) dependencies.writeOut("현재 프로젝트의 Codex native thread가 없습니다.");
+			for (const thread of threads) {
+				const updatedAt = new Date(thread.updatedAt * 1_000).toLocaleString("ko-KR");
+				const preview = thread.preview.replace(/\s+/gu, " ").trim() || "(미리보기 없음)";
+				dependencies.writeOut(`${thread.id}  ${thread.status}  ${updatedAt}  ${preview}`);
 			}
 		}
 		else if (args[0] === "--resume") {
-			if (!args[1]) throw new Error("재개할 세션 ID를 지정하세요.");
-			await runApp({ sessionId: args[1] });
+			let threadId: string | undefined = args[1];
+			if (!threadId) {
+				const threads = await dependencies.listNativeThreads();
+				if (threads.length === 0) throw new Error("현재 프로젝트에서 재개할 Codex native thread가 없습니다.");
+				threadId = await dependencies.selectNativeThread(threads) ?? undefined;
+			}
+			if (threadId) await dependencies.runApp({ resumeThreadId: threadId });
 		}
-		else if (args.length === 0) await runApp();
+		else if (args.length === 0) await dependencies.runApp({});
 		else throw new Error(`알 수 없는 명령입니다: ${args.join(" ")}`);
+		return 0;
 	} catch (error) {
-		console.error(error instanceof Error ? error.message : String(error));
-		process.exitCode = 1;
+		dependencies.writeError(error instanceof Error ? error.message : String(error));
+		return 1;
 	}
 }
+
+if (import.meta.main) process.exitCode = await runCli(process.argv.slice(2));

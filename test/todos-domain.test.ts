@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { parseTodoMarkdown, renderTodoMarkdown, todoDetailProgress, todoProgress, validateTodoDocument } from "../src/domain/todos.js";
+import { parseTodoMarkdown, patchTodoMarkdown, renderTodoMarkdown, todoDetailProgress, todoProgress, validateTodoDocument } from "../src/domain/todos.js";
 
 const document = {
 	version: 1 as const,
@@ -26,6 +26,39 @@ describe("todo domain", () => {
 		expect(parsed).toEqual(document);
 		expect(Object.isFrozen(parsed.items)).toBe(true);
 		expect(Object.isFrozen(parsed.items[1]?.details)).toBe(true);
+	});
+
+	test("patches managed CRLF ranges without changing unknown Markdown", () => {
+		const source = renderTodoMarkdown(document)
+			.replace("\n\n", "\n\n> Obsidian note\n\n- [ ] human checkbox\n")
+			.replaceAll("\n", "\r\n");
+		const next = validateTodoDocument({
+			...document,
+			revision: 5,
+			title: "Release work updated",
+			items: document.items.map(item => item.id === "three" ? { ...item, content: "Wait for approval" } : item),
+		});
+		const patched = patchTodoMarkdown(source, next);
+		expect(patched).toContain("> Obsidian note\r\n\r\n- [ ] human checkbox\r\n");
+		expect(patched).toContain("Wait for approval");
+		expect(patched.replaceAll("\r\n", "")).not.toContain("\n");
+		expect(parseTodoMarkdown(patched)).toEqual(next);
+	});
+
+	test("preserves each unowned Markdown line ending in a mixed LF and CRLF document", () => {
+		const source = renderTodoMarkdown(document)
+			.replace("\n\n", "\r\n> keep CRLF\n- [ ] human checkbox\r\n");
+		const next = validateTodoDocument({
+			...document,
+			revision: 5,
+			title: "Release work updated",
+			items: document.items.map(item => item.id === "three" ? { ...item, content: "Wait for approval" } : item),
+		});
+		const patched = patchTodoMarkdown(source, next);
+		expect(source).toContain("> keep CRLF\n- [ ] human checkbox\r\n");
+		expect(patched).toContain("> keep CRLF\n- [ ] human checkbox\r\n");
+		expect(patched).toContain("Wait for approval");
+		expect(parseTodoMarkdown(patched)).toEqual(next);
 	});
 
 	test("reports progress and rejects a second active item", () => {

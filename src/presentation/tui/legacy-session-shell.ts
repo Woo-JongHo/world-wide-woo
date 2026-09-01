@@ -27,31 +27,27 @@ import { AuthFlowOverlay } from "./auth-overlay";
 import { createDashboardLayout } from "./dashboard-layout";
 import {
 	RouterModelView,
-	StatusLine,
 	TranscriptView,
 	UsageStripView,
-	WorkspaceTodoView,
-} from "./dashboard-views";
+} from "./legacy-dashboard-views";
+import { StatusLine, WorkspaceTodoView } from "./shared-dashboard-views";
 import { OverlaySheet } from "./overlay-sheet";
 import { IssueListOverlay, RepositoryActivityOverlay } from "./repository-overlays";
 import { LoginProviderOverlay } from "./router-overlays";
 import { ModelPickerOverlay } from "./model-picker-overlay";
 import { MonitoringOverlay } from "./monitoring-overlay";
 import { RenderScheduler } from "./render-scheduler";
-import { parseShellCommand, parseTerminalCommand, shellCommandConcurrency, SLASH_COMMANDS } from "./slash-commands";
+import {
+	parseShellCommand,
+	parseTerminalCommand,
+	shellCommandConcurrency,
+	SLASH_COMMANDS,
+} from "./slash-commands";
+import { settleWithin } from "./shell-lifecycle";
 import { colors, editorTheme } from "./theme";
 import { ExitKeyPolicy } from "./exit-key-policy";
 
-async function settleWithin(operation: Promise<unknown>, timeoutMs: number): Promise<boolean> {
-	let timer: ReturnType<typeof setTimeout> | undefined;
-	const timeout = new Promise<false>((resolve) => {
-		timer = setTimeout(() => resolve(false), timeoutMs);
-	});
-	const completed = operation.then(() => true as const, () => true as const);
-	const result = await Promise.race([completed, timeout]);
-	if (timer) clearTimeout(timer);
-	return result;
-}
+const LEGACY_STATUS_NOTICE = "/ 명령 · ! 터미널 · /model 모델 · /usage 사용량 · Ctrl+C 두 번 또는 Ctrl+D 종료";
 
 export interface TuiShellDependencies {
 	runtime: SessionRuntime;
@@ -71,7 +67,7 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 	const tui = new TuiAltScreen(new ProcessTerminal(), true);
 	let snapshot = runtime.snapshot;
 	let todoSnapshot = todos.snapshot;
-	const status = new StatusLine();
+	const status = new StatusLine(LEGACY_STATUS_NOTICE);
 	const usageStrip = new UsageStripView();
 	const routerModel = new RouterModelView(() => snapshot);
 	const workspaceTodo = new WorkspaceTodoView(() => todoSnapshot);
@@ -457,7 +453,7 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 			return;
 		}
 		editor.addToHistory(text);
-		if (text.trim().startsWith("/")) {
+		if (text.trim().startsWith("/") && parseShellCommand(text, snapshot.settings)) {
 			void handleShellCommand(text).catch((error) => {
 				status.setNotice(error instanceof Error ? error.message : String(error));
 				tui.requestRender();
@@ -505,7 +501,7 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 					: "모델이 응답 중입니다. 다음 입력은 작성할 수 있고 Esc로 중단합니다.");
 			}
 			if (next.phase === "error") status.setNotice("응답에 실패했습니다. 오류를 확인한 뒤 다시 전송하세요.");
-			if (next.phase === "ready") status.setNotice("/ 명령 · ! 터미널 · /model 모델 · /usage 사용량 · Ctrl+C 두 번 또는 Ctrl+D 종료");
+			if (next.phase === "ready") status.setNotice(LEGACY_STATUS_NOTICE);
 		}
 		transcriptRenders.request(next.phase === "streaming" ? "streaming" : "immediate");
 	});

@@ -1,13 +1,20 @@
 import { describe, expect, test } from "bun:test";
-import { TodoLedger } from "../src/application/todo-ledger.js";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { TodoLedger, TodoWriteConflictError } from "../src/application/todo-ledger.js";
 import type { SessionEvent, SessionEventInput } from "../src/domain/session-events";
-import type { TodoDocument } from "../src/domain/todos";
+import { renderTodoMarkdown, type TodoDocument } from "../src/domain/todos";
+import type { WorkFlowProjection } from "../src/domain/work-steps";
 import type { SessionRepository, TodoStore } from "../src/application/ports";
+import { FileTodoStore } from "../src/infrastructure/todo-store.js";
 
 class MemoryTodoStore implements TodoStore {
 	public document: TodoDocument | null = null;
 	public conflict = false;
+	public source: string | null = null;
 	public async read(): Promise<TodoDocument | null> { return this.document; }
+	public async readSource(): Promise<string | null> { return this.source; }
 	public async compareAndSwap(expected: number | null, next: TodoDocument): Promise<"written" | "conflict"> {
 		if (this.conflict || (this.document?.revision ?? null) !== expected) return "conflict";
 		this.document = next;
@@ -42,24 +49,75 @@ function ledger(
 }
 
 describe("TodoLedger", () => {
-	test("creates stable IDs and refuses to overwrite unfinished or actively owned work", async () => {
+	test("mirrors a Native plan and its live execution summary as a two-level Todo", async () => {
+		const fixture = ledger();
+		await fixture.ledger.initialize();
+		const syncNativePlan = (fixture.ledger as TodoLedger & {
+			syncNativePlan(turnId: string, flow: WorkFlowProjection): Promise<TodoDocument>;
+		}).syncNativePlan.bind(fixture.ledger);
+		const running: WorkFlowProjection = {
+			goal: "Native 계획을 Todo로 반영한다",
+			steps: [{
+				id: "plan:turn-1:1",
+				number: 1,
+				title: "계획 자동 동기화",
+				status: "running",
+				activityIds: ["activity-1"],
+				observationCount: 0,
+				narration: { what: "Todo 저장 경계를 연결합니다.", inputSummary: ["대상 파일 변경"], source: "model" },
+			}, {
+				id: "plan:turn-1:2",
+				number: 2,
+				title: "동기화 결과 검증",
+				status: "pending",
+				activityIds: [],
+				observationCount: 0,
+				narration: { what: "동기화 결과 검증", inputSummary: [], source: "plan" },
+			}],
+			completedCount: 0,
+			currentStepNumber: 1,
+			observationCount: 0,
+			summary: "2단계 중 0단계를 완료했고, 현재 1단계를 진행하고 있습니다.",
+		};
+
+		const first = await syncNativePlan("turn-1", running);
+
+		expect(first.title).toBe("Native 계획을 Todo로 반영한다");
+		expect(first.items.map((item) => [item.id, item.status, item.content])).toEqual([
+			["native-step-1", "in_progress", "계획 자동 동기화"],
+			["native-step-2", "pending", "동기화 결과 검증"],
+		]);
+		expect(first.items[0]?.details).toEqual([{
+			id: "native-step-1-detail-1",
+			content: "대상 파일 변경",
+			status: "in_progress",
+			evidenceIds: ["activity-1"],
+		}]);
+
+		const unchanged = await syncNativePlan("turn-1", running);
+		expect(unchanged).toBe(first);
+		expect(fixture.events.inputs).toHaveLength(1);
+	});
+
+	test("creates stable IDs, refuses unfinished replacement, and shares project work across sessions", async () => {
 		const fixture = ledger();
 		await fixture.ledger.initialize();
 		const created = await fixture.ledger.create("Current work", ["one", "two"]);
 		expect(created.items.map((item) => item.id)).toEqual(["todo-1", "todo-2"]);
 		await expect(fixture.ledger.create("Replacement", ["three"])).rejects.toThrow("unfinished");
 		const other = ledger("session-2", fixture.store).ledger;
-		await expect(other.initialize()).rejects.toThrow("owner mismatch");
+		await expect(other.initialize()).resolves.toBeUndefined();
+		expect(other.snapshot).toEqual(created);
 	});
 
-	test("enforces owner and one active item", async () => {
+	test("enforces one active item across shared sessions", async () => {
 		const fixture = ledger();
 		await fixture.ledger.initialize();
 		await fixture.ledger.create("Work", ["one", "two"]);
 		const other = ledger("session-2", fixture.store).ledger;
-		await expect(other.initialize()).rejects.toThrow("owner mismatch");
-		await fixture.ledger.start("todo-1");
-		await expect(fixture.ledger.start("todo-2")).rejects.toThrow("already active");
+		await other.initialize();
+		await other.start("todo-1");
+		await expect(other.start("todo-2")).rejects.toThrow("already active");
 	});
 
 	test("requires unique evidence recorded while active before completion", async () => {
@@ -137,12 +195,13 @@ describe("TodoLedger", () => {
 		await fixture.ledger.start("todo-1");
 	});
 
-	test("rejects a Todo document stored under a different session path", async () => {
+	test("accepts a project Todo created by another session", async () => {
 		const fixture = ledger();
 		await fixture.ledger.initialize();
 		await fixture.ledger.create("Work", ["one"]);
 		const next = ledger("session-2", fixture.store, fixture.events).ledger;
-		await expect(next.initialize()).rejects.toThrow("owner mismatch");
+		await expect(next.initialize()).resolves.toBeUndefined();
+		expect(next.snapshot?.title).toBe("Work");
 	});
 
 	test("caps evidence and Todo rewrites at eight observations per active item", async () => {
@@ -186,6 +245,46 @@ describe("TodoLedger", () => {
 		await expect(fixture.ledger.start("todo-1")).rejects.toThrow("concurrently");
 		expect(fixture.ledger.snapshot).toEqual(durable);
 		expect(snapshots).toEqual([durable]);
+	});
+
+	test("reports the exact current source and pending patch on a CAS conflict", async () => {
+		const fixture = ledger();
+		await fixture.ledger.initialize();
+		await fixture.ledger.create("Work", ["one"]);
+		fixture.store.conflict = true;
+		fixture.store.source = "# externally edited source\r\n";
+		try {
+			await fixture.ledger.start("todo-1");
+			throw new Error("expected conflict");
+		} catch (error) {
+			expect(error).toBeInstanceOf(TodoWriteConflictError);
+			const conflict = error as TodoWriteConflictError;
+			expect(conflict.currentSource).toBe(fixture.store.source);
+			expect(conflict.pending.items[0]?.status).toBe("in_progress");
+		}
+	});
+
+	test("reflects a debounced external file edit in the live ledger snapshot", async () => {
+		const directory = await mkdtemp(join(tmpdir(), "www-todo-ledger-watch-"));
+		const path = join(directory, "Todo.md");
+		const ledger = new TodoLedger("session-1", new FileTodoStore(path), new MemoryEvents());
+		try {
+			await ledger.initialize();
+			const created = await ledger.create("Local", ["one"]);
+			await Bun.sleep(100);
+			await writeFile(path, renderTodoMarkdown({
+				...created,
+				revision: 1,
+				title: "Edited in Obsidian",
+				updatedAt: "2026-08-31T08:01:00.000Z",
+			}));
+			await Bun.sleep(140);
+			expect(ledger.snapshot?.title).toBe("Edited in Obsidian");
+			expect(ledger.snapshot?.revision).toBe(1);
+		} finally {
+			ledger.dispose();
+			await rm(directory, { recursive: true, force: true });
+		}
 	});
 
 	test("appends one sanitized todo.updated event and isolates broken listeners", async () => {

@@ -241,7 +241,8 @@ async function assertNonSensitive(root: string, target: string): Promise<void> {
 		parts.some(part => [".npmrc", ".pypirc", "id_rsa", "id_ed25519"].includes(part)) ||
 		parts[0] === ".www" && (
 			["sessions", "drafts", "runtime", "todos"].includes(parts[1] ?? "") ||
-			(parts[1] ?? "").toLowerCase() === "todo.md"
+			(parts[1] ?? "").toLowerCase() === "todo.md" ||
+			parts[1] === "vault" && (parts[2] ?? "").toLowerCase() === "todo.md"
 		)
 	) {
 		throw new Error("Sensitive project state cannot be read by the model.");
@@ -270,7 +271,7 @@ async function searchProject(
 				const childRelative = relative(root, child);
 				if (
 					childRelative.startsWith(`.www${sep}`) &&
-					/^(?:\.www\/)?(?:(?:sessions|drafts|runtime|todos)(?:\/|$)|Todo\.md$)/iu.test(childRelative.replaceAll(sep, "/"))
+					/^(?:\.www\/)?(?:(?:sessions|drafts|runtime|todos)(?:\/|$)|Todo\.md$|vault\/Todo\.md$)/iu.test(childRelative.replaceAll(sep, "/"))
 				) continue;
 				await visit(child);
 				if (matches.length >= MAX_SEARCH_RESULTS) return;

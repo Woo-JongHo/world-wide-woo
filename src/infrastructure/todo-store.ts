@@ -1,13 +1,17 @@
+import { unwatchFile, watchFile, type Stats } from "node:fs";
 import { chmod, lstat, mkdir, open, readFile, rename, rm } from "node:fs/promises";
 import { dirname, basename, join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { Database } from "bun:sqlite";
-import { parseTodoMarkdown, renderTodoMarkdown, type TodoDocument } from "../domain/todos.js";
+import { parseTodoMarkdown, patchTodoMarkdown, renderTodoMarkdown, type TodoDocument } from "../domain/todos.js";
 
 const queues = new Map<string, Promise<unknown>>();
 
-/** Filesystem-backed store for one project-local `.www/Todo.md` document. */
+/** Filesystem-backed store for one tracked project-local `.www/vault/Todo.md` document. */
 export class FileTodoStore {
+	private lastInternalSource: string | null = null;
+	private conflictSource: string | null = null;
+
 	public constructor(private readonly path: string) {}
 
 	public async read(): Promise<TodoDocument | null> {
@@ -15,9 +19,17 @@ export class FileTodoStore {
 		return content === null ? null : parseTodoMarkdown(content);
 	}
 
+	/** Returns the exact source for conflict presentation without normalizing Markdown. */
+	public readSource(): Promise<string | null> {
+		return this.readExisting();
+	}
+
+	public get lastConflictSource(): string | null {
+		return this.conflictSource;
+	}
+
 	public async compareAndSwap(expectedRevision: number | null, next: TodoDocument): Promise<"written" | "conflict"> {
 		return serialize(this.path, async () => {
-			const markdown = renderTodoMarkdown(next);
 			if (next.revision !== (expectedRevision ?? -1) + 1) return "conflict";
 			const directory = dirname(this.path);
 			await mkdir(directory, { recursive: true, mode: 0o700 });
@@ -25,8 +37,14 @@ export class FileTodoStore {
 			try {
 				return await this.withDatabaseLock(directory, async () => {
 					const current = await this.readExisting();
-					if (current === null ? expectedRevision !== null : !this.hasExpectedRevision(current, expectedRevision)) return "conflict";
+					if (current === null ? expectedRevision !== null : !this.hasExpectedRevision(current, expectedRevision)) {
+						this.conflictSource = current;
+						return "conflict";
+					}
+					const markdown = current === null ? renderTodoMarkdown(next) : patchTodoMarkdown(current, next);
 					await this.writeAtomically(directory, markdown);
+					this.lastInternalSource = markdown;
+					this.conflictSource = null;
 					return "written";
 				});
 			} catch (error) {
@@ -34,6 +52,41 @@ export class FileTodoStore {
 				throw error;
 			}
 		});
+	}
+
+	/** Watches external editors (including Obsidian) and coalesces their rename/write bursts. */
+	public watch(
+		listener: (document: TodoDocument | null, source: string | null) => void,
+		options: { debounceMs?: number } = {},
+	): () => void {
+		const debounceMs = options.debounceMs ?? 60;
+		let timer: ReturnType<typeof setTimeout> | undefined;
+		let closed = false;
+		let lastObservedSource: string | null | undefined;
+		const refresh = async (): Promise<void> => {
+			if (closed) return;
+			try {
+				const source = await this.readExisting();
+				if (source === lastObservedSource) return;
+				lastObservedSource = source;
+				if (source === this.lastInternalSource) return;
+				this.lastInternalSource = null;
+				listener(source === null ? null : parseTodoMarkdown(source), source);
+			} catch {
+				// A partially-written or invalid external document is not a valid snapshot.
+			}
+		};
+		const changed = (current: Stats, previous: Stats): void => {
+			if (current.mtimeMs === previous.mtimeMs && current.size === previous.size && current.ino === previous.ino) return;
+			if (timer) clearTimeout(timer);
+			timer = setTimeout(() => { void refresh(); }, debounceMs);
+		};
+		watchFile(this.path, { interval: Math.max(20, debounceMs), persistent: false }, changed);
+		return () => {
+			closed = true;
+			if (timer) clearTimeout(timer);
+			unwatchFile(this.path, changed);
+		};
 	}
 
 	private async readExisting(): Promise<string | null> {
@@ -47,7 +100,9 @@ export class FileTodoStore {
 	}
 
 	private async withDatabaseLock<T>(directory: string, operation: () => Promise<T>): Promise<T> {
-		const runtimeDirectory = join(directory, "runtime");
+		const runtimeDirectory = basename(directory) === "vault"
+			? join(dirname(directory), "runtime")
+			: join(directory, "runtime");
 		await mkdir(runtimeDirectory, { recursive: true, mode: 0o700 });
 		const runtimeInfo = await lstat(runtimeDirectory);
 		if (!runtimeInfo.isDirectory() || runtimeInfo.isSymbolicLink()) throw unsafeFileError(runtimeDirectory);
@@ -104,11 +159,8 @@ export class FileTodoStore {
 	}
 }
 
-export async function migrateLegacyTodo(
-	legacyPath: string,
-	todosDirectory: string,
-	canMigrate: (ownerSessionId: string) => Promise<boolean> = async () => true,
-): Promise<string | null> {
+/** Explicit, non-destructive import. The legacy source is never moved or deleted. */
+export async function importLegacyTodo(legacyPath: string, canonicalPath: string): Promise<string | null> {
 	let info;
 	try {
 		info = await lstat(legacyPath);
@@ -118,24 +170,23 @@ export async function migrateLegacyTodo(
 	}
 	if (!info.isFile() || info.isSymbolicLink()) throw unsafeFileError(legacyPath);
 	const document = parseTodoMarkdown(await readFile(legacyPath, "utf8"));
-	if (!(await canMigrate(document.ownerSessionId))) return null;
-	const todosInfo = await lstat(todosDirectory);
-	if (!todosInfo.isDirectory() || todosInfo.isSymbolicLink()) throw unsafeFileError(todosDirectory);
-	const sessionDirectory = join(todosDirectory, document.ownerSessionId);
-	await mkdir(sessionDirectory, { recursive: true, mode: 0o700 });
-	const directoryInfo = await lstat(sessionDirectory);
-	if (!directoryInfo.isDirectory() || directoryInfo.isSymbolicLink()) throw unsafeFileError(sessionDirectory);
-	await chmod(sessionDirectory, 0o700);
-	const destination = join(sessionDirectory, "Todo.md");
 	try {
-		await lstat(destination);
-		throw new Error(`Cannot migrate legacy Todo because session Todo already exists: ${destination}`);
+		await lstat(canonicalPath);
+		return null;
 	} catch (error) {
 		if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
 	}
-	await rename(legacyPath, destination);
-	await chmod(destination, 0o600);
-	return destination;
+	const imported = { ...document, revision: 0 } satisfies TodoDocument;
+	return await new FileTodoStore(canonicalPath).compareAndSwap(null, imported) === "written" ? canonicalPath : null;
+}
+
+/** @deprecated Use importLegacyTodo from an explicit user action. */
+export async function migrateLegacyTodo(
+	legacyPath: string,
+	canonicalPath: string,
+	_canMigrate?: (ownerSessionId: string) => Promise<boolean>,
+): Promise<string | null> {
+	return importLegacyTodo(legacyPath, canonicalPath);
 }
 
 function unsafeFileError(path: string): Error { return new Error(`Unsafe todo store file: ${path}`); }

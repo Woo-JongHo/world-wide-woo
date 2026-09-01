@@ -10,7 +10,12 @@ permissions:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    name: Core (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-13, windows-latest]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
@@ -19,6 +24,8 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run check
       - run: bun test
+      - name: Verify platform file/process boundary
+        run: bun run release:gate -- --platform-check
 
   conventional-title:
     if: github.event_name == 'pull_request'

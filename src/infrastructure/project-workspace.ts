@@ -6,7 +6,8 @@ const WORKSPACE_DIRECTORY = ".www";
 const MANIFEST_FILE = "project.json";
 const WORKSPACE_GITIGNORE_FILE = ".gitignore";
 const LOCAL_DIRECTORIES = ["sessions", "drafts", "runtime", "todos"] as const;
-const WORKSPACE_GITIGNORE = "sessions/\ndrafts/\ncache/\nruntime/\ntodos/\nTodo.md\n.Todo.md.*.tmp\n";
+const WORKSPACE_GITIGNORE = "sessions/\ndrafts/\ncache/\nruntime/\ntodos/\n/Todo.md\n.Todo.md.*.tmp\n";
+const OBSOLETE_MANAGED_IGNORES = new Set(["Todo.md"]);
 
 type ProjectManifest = {
 	schemaVersion: 1;
@@ -22,6 +23,8 @@ export type ProjectWorkspace = {
 	draftsDirectory: string;
 	runtimeDirectory: string;
 	todosDirectory: string;
+	vaultDirectory: string;
+	canonicalTodoPath: string;
 	legacyTodoPath: string;
 	manifestPath: string;
 };
@@ -118,10 +121,13 @@ export class FileProjectWorkspace {
 		const draftsDirectory = join(directory, "drafts");
 		const runtimeDirectory = join(directory, "runtime");
 		const todosDirectory = join(directory, "todos");
+		const vaultDirectory = join(directory, "vault");
+		const canonicalTodoPath = join(vaultDirectory, "Todo.md");
 		const legacyTodoPath = join(directory, "Todo.md");
 		for (const localDirectory of LOCAL_DIRECTORIES) {
 			await ensureDirectory(join(directory, localDirectory));
 		}
+		await ensureDirectory(vaultDirectory);
 
 		const manifestPath = join(directory, MANIFEST_FILE);
 		let manifest: ProjectManifest;
@@ -148,16 +154,16 @@ export class FileProjectWorkspace {
 		const gitignorePath = join(directory, WORKSPACE_GITIGNORE_FILE);
 		if (await existsRegularFile(gitignorePath)) {
 			const existing = await readFile(gitignorePath, "utf8");
-			const lines = new Set(existing.split(/\r?\n/u).filter(Boolean));
+			const lines = new Set(existing.split(/\r?\n/u).filter(line => line && !OBSOLETE_MANAGED_IGNORES.has(line)));
 			const required = WORKSPACE_GITIGNORE.split("\n").filter(Boolean);
-			if (required.some(line => !lines.has(line))) {
+			if (required.some(line => !lines.has(line)) || existing.split(/\r?\n/u).some(line => OBSOLETE_MANAGED_IGNORES.has(line))) {
 				await atomicWrite(gitignorePath, `${[...lines, ...required.filter(line => !lines.has(line))].join("\n")}\n`, 0o600);
 			}
 		} else {
 			await atomicWrite(gitignorePath, WORKSPACE_GITIGNORE, 0o600);
 		}
 
-		return { name: manifest.name, root, directory, sessionsDirectory, draftsDirectory, runtimeDirectory, todosDirectory, legacyTodoPath, manifestPath };
+		return { name: manifest.name, root, directory, sessionsDirectory, draftsDirectory, runtimeDirectory, todosDirectory, vaultDirectory, canonicalTodoPath, legacyTodoPath, manifestPath };
 	}
 
 	static async acquireSessionLease(workspace: ProjectWorkspace, sessionId: string): Promise<SessionLease> {
