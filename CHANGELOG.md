@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.1.12 — 2026-09-02
+
+Native Plan의 실행 권위를 안정화하고, 현재 행동부터 완료 회고까지 Chat의 정보 위계를 다시 정리했습니다.
+
+### 추가
+
+- Native Plan revision과 Step identity를 결정적으로 추적하고 root thread·turn 경계를 검증하는 `dplan-v1`
+- 승인 요청을 현재 선택지와 명령·이유·경로로 보여주는 전용 오버레이
+- Native Plan이 없는 작업도 실제 확인·변경·검증 활동에서 `#1`·`#2`·`#3` 완료 회고를 만드는 fallback
+- `pi-tui` 스크롤 위치를 안정화하는 프로젝트 고정 패치
+
+### 수정
+
+- 사용자 입력만 배경을 유지하고 assistant 답변은 열린 transcript로 표시
+- 현재 Step, Bash·Edit·Tool 활동, 공개 판단 요약을 한 진행 rail에서 함께 표시하고 `Esc 중단`을 별도 행으로 분리
+- 명령 실행을 command·output·exit code·duration이 보이는 Gajae 방식 Bash 카드로 표시
+- Provider 사용량과 활성 모델을 4행 HUD에서 구분하고 좁은 화면에서도 핵심 정보를 보존
+- Thread-bound activity journal과 Todo projection이 다른 thread나 child turn의 상태를 섞지 않도록 보강
+
 ## 0.1.11 — 2026-09-01
 
 첫 화면과 하단 계기판을 정돈하고, Todo.md를 다시 Native 세션 경계에 맞췄습니다.

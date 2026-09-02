@@ -12,9 +12,16 @@ import {
 
 const projectIdPattern = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
 const sha256Pattern = /^sha256:[a-f0-9]{64}$/;
+const threadJournalKeyPattern = /^native-[a-f0-9]{48}$/;
 
 export function digestActivitySource(source: string | Uint8Array): string {
 	return `sha256:${createHash("sha256").update(source).digest("hex")}`;
+}
+
+/** Stable v1 stream name for one opaque native thread; no lookup map is used. */
+export function nativeThreadJournalKey(threadId: string): string {
+	if (typeof threadId !== "string" || !threadId.trim()) throw new Error("Native thread id is required for activity journal");
+	return `native-${digestActivitySource(threadId).slice("sha256:".length, "sha256:".length + 48)}`;
 }
 
 export class ActivityJournalStore {
@@ -56,6 +63,11 @@ export class ActivityJournalStore {
 
 	public readAll(projectId: string): Promise<ProjectActivity[]> {
 		return this.serialize(projectId, () => this.readAllUnchecked(projectId));
+	}
+
+	/** Validates the deterministic stream key used by thread-bound composition. */
+	public static assertNativeThreadJournalKey(key: string): void {
+		if (!threadJournalKeyPattern.test(key)) throw new Error("Invalid native thread journal key");
 	}
 
 	private serialize<T>(projectId: string, operation: () => Promise<T>): Promise<T> {

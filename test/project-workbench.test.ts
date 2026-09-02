@@ -34,6 +34,7 @@ import { SessionModelUsageAccumulator } from "../src/application/session-model-u
 import { TodoWriteConflictError } from "../src/application/todo-ledger";
 import { WooEntry, type WooEntryCollection } from "../src/application/woo-entry";
 import type { TodoDocument } from "../src/domain/todos";
+import type { WorkFlowProjection } from "../src/domain/work-steps";
 import { ProviderReviewAdapter, sha256ReviewDigest } from "../src/infrastructure/review-adapters";
 import { TNoteService } from "../src/application/t-note-service";
 import type { DetachedTextGenerator } from "../src/application/detached-text-generator";
@@ -272,31 +273,89 @@ describe("ProjectWorkbench", () => {
 		await Bun.sleep(10);
 
 		expect(native.startTurnCalls).toBe(2);
-		const dynamicSnapshots = native.startTurnInputs.map((input) => {
-			const entry = Object.values(input.additionalContext ?? {}).find((value) => value.kind === "untrusted");
-			expect(entry).toBeDefined();
-			return JSON.parse(entry!.value) as { revision: number; git: { branch: string } };
+		const contexts = native.startTurnInputs.map((input) => {
+			const entry = input.additionalContext?.www_context_sources;
+			expect(entry).toMatchObject({ kind: "untrusted" });
+			return JSON.parse(entry!.value) as { sources: Array<{
+				repository: { id: string; root: string };
+				revision: string;
+				included: boolean;
+				exclusionReason: string | null;
+				payload: { git?: { branch: string } };
+			}> };
 		});
-		expect(dynamicSnapshots.map((snapshot) => [snapshot.revision, snapshot.git.branch])).toEqual([
-			[1, "first"],
-			[2, "second"],
+		expect(contexts.map(({ sources }) => {
+			const wes = sources.find((source) => source.repository.id === "WES")!;
+			return [wes.revision, wes.payload.git?.branch];
+		})).toEqual([
+			["1", "first"],
+			["2", "second"],
 		]);
-		expect(native.startTurnInputs.every((input) => Object.values(input.additionalContext ?? {})
-			.some((value) => value.kind === "application"))).toBe(true);
+		for (const { sources } of contexts) {
+			expect(sources).toEqual(expect.arrayContaining([
+				expect.objectContaining({
+					repository: { id: "WES", root: "/wes" },
+					included: true,
+					exclusionReason: null,
+				}),
+				expect.objectContaining({
+					repository: { id: "WWW", root: "/workspace/sample" },
+					included: true,
+					exclusionReason: null,
+					revision: "turn-input-v1",
+				}),
+			]));
+		}
+		expect(native.startTurnInputs.every((input) => input.additionalContext?.www_context_policy?.kind === "application")).toBe(true);
+		await workbench.close();
+	});
+
+	test("excludes a WES source that exceeds its bounded collection payload", async () => {
+		const native = new FakeNativeHarness();
+		const wooEntry = new WooEntry({
+			collect: async () => ({
+				source: { root: "/wes", runner: "hooks/wes_entry.py" },
+				payload: {
+					status: { detail: "x".repeat(4_000) },
+					git: {},
+					authority: {},
+					signals: [],
+					nextActions: [],
+				},
+			}),
+		});
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+			wooEntry,
+		});
+
+		await ready(workbench);
+		await workbench.dispatch({ type: "chat.send", text: "bounded context" });
+
+		const context = JSON.parse(native.startTurnInputs[0]!.additionalContext!.www_context_sources!.value) as {
+			sources: Array<{ repository: { id: string }; included: boolean; exclusionReason: string | null; payload: Record<string, unknown> }>;
+		};
+		const wes = context.sources.find((source) => source.repository.id === "WES");
+		expect(wes).toMatchObject({
+			included: false,
+			exclusionReason: "WES entry snapshot exceeds the chat context budget.",
+			payload: { state: "blocked" },
+		});
 		await workbench.close();
 	});
 
 	test("mirrors Native plan activity to Todo without delaying real-time Chat projection", async () => {
 		const native = new FakeNativeHarness();
-		const syncCalls: Array<{ turnId: string; flow: Parameters<NonNullable<WorkbenchTodoSource["syncNativePlan"]>>[1] }> = [];
+		const syncCalls: WorkFlowProjection[] = [];
 		let releasePlanSync: () => void = () => undefined;
 		const planSyncGate = new Promise<void>((resolve) => { releasePlanSync = resolve; });
 		const unsupported = async (): Promise<never> => { throw new Error("not used"); };
 		const todos: WorkbenchTodoSource = {
 			snapshot: null,
 			subscribe: () => () => undefined,
-			syncNativePlan: async (turnId, flow) => {
-				syncCalls.push({ turnId, flow });
+			syncNativePlan: async (flow) => {
+				syncCalls.push(flow);
 				if (flow.steps.length > 0) await planSyncGate;
 				return todoDocument();
 			},
@@ -321,6 +380,7 @@ describe("ProjectWorkbench", () => {
 		native.emit({
 			type: "notification",
 			method: "turn/plan/updated",
+			// The App Server adapter binds a plan-only payload to its known root thread.
 			refs: { threadId: "thread-1", turnId: "turn-1" },
 			params: { plan: [
 				{ step: "계획 자동 동기화", status: "inProgress" },
@@ -336,17 +396,130 @@ describe("ProjectWorkbench", () => {
 		});
 		await Bun.sleep(10);
 
-		expect(syncCalls.some((call) => call.flow.steps.length === 2)).toBe(true);
+		native.emit({
+			type: "notification",
+			method: "turn/plan/updated",
+			refs: { threadId: "child-thread", turnId: "child-turn" },
+			params: { plan: [{ step: "Foreign plan", status: "inProgress" }] },
+		});
+		await Bun.sleep(10);
+
+		expect(syncCalls.some((flow) => flow.steps.length === 2)).toBe(true);
 		const execution = workbench.snapshot.activities.find((activity) => activity.nativeRefs.itemId === "write-1");
 		expect(execution).toBeDefined();
-		expect(workbench.snapshot.workFlow.steps[0]?.activityIds).toContain(execution!.id);
-		expect(workbench.snapshot.workFlow.steps[0]?.narration.inputSummary).toEqual(["command: apply_patch Todo.md"]);
+		expect(workbench.snapshot.activities.find((activity) => activity.payload.method === "turn/plan/updated")?.nativeRefs)
+			.toMatchObject({ threadId: "thread-1", turnId: "turn-1" });
+		expect(workbench.snapshot.workFlow.source).toMatchObject({ turnId: "turn-1", algorithm: "dplan-v1" });
+		expect(workbench.snapshot.workFlow.steps.some(step => step.title === "계획 자동 동기화")).toBe(true);
+		expect(workbench.snapshot.workFlow.steps.some(step => step.title === "Foreign plan")).toBe(false);
 		releasePlanSync();
 		await workbench.close();
 		expect(syncCalls.at(-1)).toMatchObject({
-			turnId: "turn-1",
-			flow: { steps: [{ title: "계획 자동 동기화", status: "running" }, { title: "결과 검증", status: "pending" }] },
+			source: { kind: "native-plan-derived", turnId: "turn-1", algorithm: "dplan-v1" },
+			steps: [{ title: "계획 자동 동기화", status: "running" }, { title: "결과 검증", status: "pending" }],
 		});
+	});
+
+	test("preserves rewritten root-plan identity through Todo sync and resume", async () => {
+		const native = new FakeNativeHarness();
+		const journal = new MemoryJournal();
+		const mirrored = { todo: null as TodoDocument | null };
+		let revision = 0;
+		const unsupported = async (): Promise<never> => { throw new Error("not used"); };
+		const todos: WorkbenchTodoSource = {
+			snapshot: null,
+			subscribe: () => () => undefined,
+			syncNativePlan: async (flow) => {
+				mirrored.todo = {
+					version: 1,
+					revision: ++revision,
+					ownerSessionId: "workbench",
+					storyId: null,
+					title: flow.goal,
+					updatedAt: "2026-09-01T00:00:00.000Z",
+					items: flow.steps.map((step) => ({
+						id: step.id,
+						content: step.title,
+						status: step.status === "running" ? "in_progress" : step.status === "completed" ? "completed" : "pending",
+						evidenceIds: [],
+						details: [],
+					})),
+				};
+				return mirrored.todo;
+			},
+			create: unsupported,
+			add: unsupported,
+			addDetails: unsupported,
+			start: unsupported,
+			complete: unsupported,
+			block: unsupported,
+			reopen: unsupported,
+			recordEvidence: async () => null,
+			importLegacy: async () => null,
+		};
+		const workbench = new ProjectWorkbench(native, journal, {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+			todos,
+		});
+		await ready(workbench);
+		await workbench.dispatch({ type: "chat.send", text: "계획을 끝까지 반영해줘" });
+
+		native.emit({ type: "notification", method: "turn/started", refs: { threadId: "thread-1", turnId: "turn-1" }, params: {} });
+		native.emit({
+			type: "notification",
+			method: "turn/plan/updated",
+			refs: { threadId: "thread-1", turnId: "turn-1" },
+			params: { plan: [{ step: "루트 계획", status: "inProgress" }] },
+		});
+		await Bun.sleep(10);
+		native.emit({
+			type: "notification",
+			method: "item/completed",
+			refs: { threadId: "child-thread", turnId: "child-turn", itemId: "child-write-1" },
+			params: { item: { type: "commandExecution", command: "apply_patch child.md" } },
+		});
+		native.emit({
+			type: "notification",
+			method: "item/completed",
+			refs: { threadId: "thread-1", turnId: "turn-1", itemId: "write-1" },
+			params: { item: { type: "commandExecution", command: "apply_patch Todo.md" } },
+		});
+		native.emit({
+			type: "notification",
+			method: "turn/plan/updated",
+			refs: { threadId: "thread-1", turnId: "turn-1" },
+			params: { plan: [{ step: "루트 계획", status: "completed" }] },
+		});
+		await Bun.sleep(10);
+
+		const finalFlow = workbench.snapshot.workFlow;
+		const finalIdentity = finalFlow.steps[0]?.id;
+		const childActivity = journal.records.find((activity) => activity.nativeRefs.itemId === "child-write-1");
+		const rootActivity = journal.records.find((activity) => activity.nativeRefs.itemId === "write-1");
+		expect(finalFlow.source).toMatchObject({ turnId: "turn-1", algorithm: "dplan-v1" });
+		expect(finalFlow.steps[0]).toMatchObject({ title: "루트 계획", status: "completed", activityIds: [rootActivity?.id] });
+		expect(finalFlow.steps[0]?.activityIds).not.toContain(childActivity?.id);
+		expect(finalFlow.orphans).toEqual(expect.arrayContaining([
+			expect.objectContaining({ activityId: childActivity?.id, reason: "source_mismatch" }),
+		]));
+		const finalTodo = mirrored.todo;
+		if (!finalTodo) throw new Error("Todo mirror was not invoked for the rewritten root plan.");
+		expect(finalTodo.items).toEqual([expect.objectContaining({ id: finalIdentity, status: "completed" })]);
+
+		native.emit({ type: "notification", method: "turn/completed", refs: { threadId: "thread-1", turnId: "turn-1" }, params: {} });
+		await Bun.sleep(10);
+		await workbench.close();
+
+		const resumed = new ProjectWorkbench(new FakeNativeHarness(), journal, {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+			resumeThreadId: "thread-1",
+		});
+		await ready(resumed);
+		expect(resumed.snapshot.workFlow.source).toMatchObject({ turnId: "turn-1", algorithm: "dplan-v1" });
+		expect(resumed.snapshot.workFlow.steps[0]).toMatchObject({ id: finalIdentity, title: "루트 계획", status: "completed" });
+		await resumed.close();
 	});
 
 	test("narrates meaningful actions asynchronously while excluding Read commands", async () => {
@@ -385,21 +558,41 @@ describe("ProjectWorkbench", () => {
 		});
 		await Bun.sleep(20);
 
+		expect(narrator.calls).toHaveLength(0);
+		expect(workbench.snapshot.workFlow.steps).toEqual([]);
+		await workbench.close();
+	});
+
+	test("narrates a selected plan with sanitized goal and bounded action evidence", async () => {
+		const native = new FakeNativeHarness();
+		const narrator = new FakeActivityNarrator();
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+			narrator,
+		});
+		await ready(workbench);
+		await workbench.dispatch({ type: "chat.send", text: "검증 /private/selected-goal" });
+		native.emit({
+			type: "notification",
+			method: "turn/plan/updated",
+			refs: { threadId: "thread-1", turnId: "turn-1" },
+			params: { plan: [{ step: "변경 검증", status: "inProgress" }] },
+		});
+		native.emit({
+			type: "notification",
+			method: "item/completed",
+			refs: { threadId: "thread-1", turnId: "turn-1", itemId: "write-1" },
+			params: { item: { id: "write-1", type: "commandExecution", command: "apply_patch /private/action-path" } },
+		});
+		await Bun.sleep(20);
+
 		expect(narrator.calls).toHaveLength(1);
-		expect(narrator.calls[0]).toMatchObject({
-			goal: "의미 Step과 Live T-notes를 구현해줘",
-			stepTitle: "변경 결과 검증",
-		});
-		expect(narrator.calls[0]?.inputSummary[0]).toContain("command: bun test");
-		expect(narrator.calls[0]?.inputSummary[0]).toContain("[redacted:local-path]");
-		expect(workbench.snapshot.workFlow.steps).toHaveLength(1);
-		expect(workbench.snapshot.workFlow.steps[0]).toMatchObject({
-			status: "completed",
-			narration: {
-				what: "의미 Step과 Live T-notes의 회귀 테스트를 실행합니다.",
-				source: "model",
-			},
-		});
+		expect(narrator.calls[0]).toMatchObject({ stepTitle: "변경 검증" });
+		expect(narrator.calls[0]!.goal).toContain("[redacted:local-path]");
+		expect(narrator.calls[0]!.inputSummary).toHaveLength(1);
+		expect(narrator.calls[0]!.inputSummary.join(" ")).not.toContain("/private/");
+		expect(workbench.snapshot.workFlow.steps[0]!.narration.inputSummary).toEqual(["work-flow 관련 테스트"]);
 		await workbench.close();
 	});
 
@@ -433,7 +626,7 @@ describe("ProjectWorkbench", () => {
 			text: activity.payload.text,
 			threadId: activity.nativeRefs.threadId,
 		}))).toEqual([
-			{ text: "첫 요청", threadId: undefined },
+			{ text: "첫 요청", threadId: "thread-1" },
 			{ text: "두 번째 요청", threadId: "thread-1" },
 		]);
 		expect(journal.records.find(activity => activity.payload.text === "첫 요청" && activity.phase === "completed")?.nativeRefs.threadId)
@@ -468,6 +661,33 @@ describe("ProjectWorkbench", () => {
 		await expect(workbench.dispatch({ type: "chat.send", text: "실패 요청" })).resolves.toMatchObject({ state: "rejected" });
 		expect(workbench.snapshot.chat).toContainEqual(expect.objectContaining({ content: "실패 요청", status: "failed" }));
 		expect(workbench.snapshot.activeTurnId).toBeNull();
+		await workbench.close();
+	});
+
+	test("ignores Native events that arrive before the journal owns a thread", async () => {
+		class UnboundJournal implements WorkbenchActivityJournal {
+			appends = 0;
+			hasBoundThread(): boolean { return false; }
+			async append(_input: ProjectActivityInput): Promise<ProjectActivityAppendResult> {
+				this.appends += 1;
+				throw new Error("활동 기록은 Native thread에 묶인 뒤에만 추가할 수 있습니다.");
+			}
+			async readAll(): Promise<ProjectActivity[]> { return []; }
+		}
+		const native = new FakeNativeHarness();
+		const journal = new UnboundJournal();
+		const workbench = new ProjectWorkbench(native, journal, { projectId: "sample-project", cwd: "/workspace/sample" });
+		await ready(workbench);
+		native.emit({
+			type: "notification",
+			method: "turn/started",
+			refs: { threadId: "foreign-thread", turnId: "turn-9" },
+			params: {},
+		});
+		await workbench.dispatch({ type: "activity.select", activityId: null });
+		expect(journal.appends).toBe(0);
+		expect(workbench.snapshot.error).toBeNull();
+		expect(workbench.snapshot.phase).not.toBe("error");
 		await workbench.close();
 	});
 
@@ -1112,6 +1332,28 @@ describe("ProjectWorkbench", () => {
 			},
 		});
 
+		const rootUsage = workbench.snapshot.sessionUsage;
+		native.emit({
+			type: "notification",
+			method: "thread/tokenUsage/updated",
+			refs: { threadId: "child-thread", turnId: "child-turn" },
+			params: {
+				tokenUsage: {
+					last: { totalTokens: 99_999 },
+					total: { totalTokens: 99_999 },
+					modelContextWindow: 258_400,
+				},
+			},
+		});
+		await Bun.sleep(10);
+
+		expect(workbench.snapshot.contextUsage).toEqual({
+			usedTokens: 25_840,
+			contextWindow: 258_400,
+			percent: 5.6,
+		});
+		expect(workbench.snapshot.sessionUsage).toEqual(rootUsage);
+
 		native.emit({
 			type: "notification",
 			method: "thread/tokenUsage/updated",
@@ -1266,7 +1508,7 @@ describe("ProjectWorkbench", () => {
 		await workbench.close();
 	});
 
-	test("hides the previous semantic flow while native turn start is pending", async () => {
+	test("keeps the selected flow while exposing a pending turn goal", async () => {
 		const native = new FakeNativeHarness();
 		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
 			projectId: "sample-project",
@@ -1294,7 +1536,7 @@ describe("ProjectWorkbench", () => {
 		await submission;
 
 		expect(pending.workFlow.goal).toBe("현재 요청");
-		expect(pending.workFlow.steps).toEqual([]);
+		expect(pending.workFlow.steps.map(step => step.title)).toEqual(["이전 단계"]);
 		await workbench.close();
 	});
 
@@ -1349,6 +1591,39 @@ describe("ProjectWorkbench", () => {
 		expect(native.startTurnInputs.map((input) => input.text)).toEqual(["첫 요청", "두 번째 요청"]);
 		expect(workbench.snapshot.activeTurnId).toBe("turn-2");
 		expect(workbench.snapshot.chatQueue).toEqual([]);
+		await workbench.close();
+	});
+
+	test("keeps follow-up messages on the root thread while sub-agent events are streaming", async () => {
+		const native = new FakeNativeHarness();
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+		});
+		await ready(workbench);
+		await workbench.dispatch({ type: "chat.send", text: "루트 요청" });
+		native.startTurnErrors.set(2, new Error("direct app-server input is not allowed for multi-agent v2 sub-agents"));
+
+		native.emit({
+			type: "notification",
+			method: "turn/started",
+			refs: { threadId: "child-thread", turnId: "child-turn" },
+			params: {},
+		});
+		native.emit({
+			type: "notification",
+			method: "item/started",
+			refs: { threadId: "child-thread", turnId: "child-turn", itemId: "child-message" },
+			params: { item: { type: "agentMessage", id: "child-message", text: "자식 작업 중" } },
+		});
+		await Bun.sleep(10);
+
+		const followUp = await workbench.dispatch({ type: "chat.send", text: "진행 중 추가 요청" });
+		expect(followUp).toMatchObject({ state: "queued", position: 1 });
+		expect(workbench.snapshot.threadId).toBe("thread-1");
+		expect(workbench.snapshot.activeTurnId).toBe("turn-1");
+		expect(workbench.snapshot.chat.some(message => message.status === "failed")).toBe(false);
+		expect(native.startTurnInputs.map(input => input.threadId)).toEqual(["thread-1"]);
 		await workbench.close();
 	});
 
@@ -1444,6 +1719,7 @@ describe("ProjectWorkbench", () => {
 		native.emit({ type: "notification", method: "turn/started", refs: { threadId: "thread-1", turnId: "turn-2" }, params: {} });
 		await Bun.sleep(10);
 		expect(workbench.snapshot.chatQueue.map(message => message.content)).toEqual(["마지막 요청"]);
+		expect(workbench.snapshot.chat.find(message => message.content === "수신 불명 요청")?.status).toBe("completed");
 		expect(workbench.snapshot.error).toBeNull();
 		native.emit({ type: "notification", method: "turn/completed", refs: { threadId: "thread-1", turnId: "turn-2" }, params: {} });
 		await Bun.sleep(10);
@@ -1632,6 +1908,54 @@ describe("ProjectWorkbench", () => {
 		native.emit({ type: "approval-resolved", requestId: 44, approvalId: 44, refs: {} });
 		await Bun.sleep(10);
 		expect(workbench.snapshot.pendingApproval).toBeNull();
+		await workbench.close();
+	});
+
+	test("surfaces a child approval without replacing the root conversation thread", async () => {
+		const native = new FakeNativeHarness();
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+		});
+		await ready(workbench);
+		await workbench.dispatch({ type: "chat.send", text: "서브에이전트를 포함한 루트 요청" });
+
+		native.emit({
+			type: "approval-requested",
+			approval: {
+				requestId: 46,
+				callbackId: null,
+				kind: "command",
+				refs: { threadId: "child-thread", turnId: "child-turn", approvalRequestId: 46 },
+				availableDecisions: ["accept", "decline"],
+				params: {},
+			},
+		});
+		await Bun.sleep(10);
+
+		expect(workbench.snapshot.pendingApproval?.requestId).toBe(46);
+		expect(workbench.snapshot.threadId).toBe("thread-1");
+		expect(workbench.snapshot.activeTurnId).toBe("turn-1");
+		expect(await workbench.dispatch({ type: "chat.send", text: "승인 뒤 처리할 요청" }))
+			.toMatchObject({ state: "queued", position: 1 });
+		expect(await workbench.dispatch({
+			type: "approval.resolve",
+			requestId: 46,
+			response: { decision: "accept" },
+		})).toMatchObject({ state: "accepted" });
+		expect(native.approvalResponses).toEqual([{ requestId: 46, response: { decision: "accept" } }]);
+		native.emit({
+			type: "approval-resolved",
+			requestId: 46,
+			approvalId: 46,
+			refs: { threadId: "child-thread", turnId: "child-turn" },
+		});
+		await Bun.sleep(10);
+
+		expect(workbench.snapshot.pendingApproval).toBeNull();
+		expect(workbench.snapshot.threadId).toBe("thread-1");
+		expect(workbench.snapshot.activeTurnId).toBe("turn-1");
+		expect(native.startTurnInputs.map(input => input.threadId)).toEqual(["thread-1"]);
 		await workbench.close();
 	});
 

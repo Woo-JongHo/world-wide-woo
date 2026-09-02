@@ -12,9 +12,10 @@ import type { TodoDocument } from "../domain/todos.js";
 import type { TNoteDraft } from "../domain/t-notes.js";
 import type { WorkbenchModelSelection } from "../domain/workbench.js";
 import type { WorkFlowProjection } from "../domain/work-steps.js";
+import type { ProjectActivity } from "../domain/project-activity.js";
 import { CanonicalPromotionService } from "../application/canonical-promotion.js";
 import { ReviewService } from "../application/review-service.js";
-import { digestActivitySource, ActivityJournalStore } from "./activity-journal-store.js";
+import { digestActivitySource, ActivityJournalStore, nativeThreadJournalKey } from "./activity-journal-store.js";
 import { CodexAppServer } from "./codex-app-server.js";
 import { FileComposerDraftController } from "./composer-draft-store.js";
 import { PiDetachedCodexGenerator } from "./detached-codex-generator.js";
@@ -142,7 +143,8 @@ export async function createProjectWorkbenchSession(
 	};
 	try {
 		const projectId = scopedProjectId(workspace.root);
-		const journal = factories.createJournal(join(workspace.runtimeDirectory, "activity", runId));
+		const journal = new ThreadBoundActivityJournal(factories.createJournal(join(workspace.runtimeDirectory, "activity")));
+		if (options.resumeThreadId) await journal.bindThread(options.resumeThreadId);
 		todos = new ThreadScopedTodoSource(workspace, factories);
 		const auxiliaryUsage = new SessionModelUsageAccumulator();
 		const observeAuxiliaryUsage = (observation: SessionModelUsageObservation): void => auxiliaryUsage.observe(observation);
@@ -166,6 +168,12 @@ export async function createProjectWorkbenchSession(
 			sandbox: "workspace-write",
 			resumeThreadId: options.resumeThreadId,
 			acquireThreadLease: async (threadId) => {
+				// Bind before the lease.  Native emits for the thread as soon as `thread/start`
+				// resolves, so a bind placed after the lock I/O leaves a window in which an
+				// arriving event has no stream to land in.  The bind also sits outside the
+				// `threadLease` early return: a second thread must rebind the journal instead of
+				// appending into the previous thread's stream.
+				await journal.bindThread(threadId);
 				if (threadLease) return;
 				threadLease = await factories.acquireWriterLease(workspace, scopedTodoSessionId(threadId));
 			},
@@ -211,8 +219,43 @@ export function scopedProjectId(projectRoot: string): string {
 }
 
 export function scopedTodoSessionId(nativeThreadId: string): string {
-	if (typeof nativeThreadId !== "string" || nativeThreadId.trim().length === 0) throw new Error("Native thread id is required for Todo");
+	if (typeof nativeThreadId !== "string" || nativeThreadId.trim().length === 0) throw new Error("Todo에는 Native thread id가 필요합니다.");
 	return `native-${digestActivitySource(nativeThreadId).slice("sha256:".length, "sha256:".length + 32)}`;
+}
+
+/**
+ * The journal directory is shared by all workbench processes.  Its v1 stream
+ * selection is exclusively derived from the native thread, never a run id.
+ */
+export class ThreadBoundActivityJournal implements WorkbenchActivityJournal {
+	private streamId: string | null = null;
+
+	public constructor(private readonly journal: WorkbenchActivityJournal) {}
+
+	public async bindThread(threadId: string): Promise<void> {
+		const streamId = nativeThreadJournalKey(threadId);
+		if (this.streamId && this.streamId !== streamId) {
+			throw new Error("활동 기록이 이미 다른 Native thread에 묶여 있습니다.");
+		}
+		this.streamId = streamId;
+	}
+
+	public hasBoundThread(): boolean {
+		return this.streamId !== null;
+	}
+
+	public async append(input: Parameters<WorkbenchActivityJournal["append"]>[0]): ReturnType<WorkbenchActivityJournal["append"]> {
+		return this.journal.append({ ...input, projectId: this.requireStreamId() });
+	}
+
+	public readAll(_projectId: string): Promise<ProjectActivity[]> {
+		return this.streamId ? this.journal.readAll(this.streamId) : Promise.resolve([]);
+	}
+
+	private requireStreamId(): string {
+		if (!this.streamId) throw new Error("활동 기록은 Native thread에 묶인 뒤에만 추가할 수 있습니다.");
+		return this.streamId;
+	}
 }
 
 class ThreadScopedTNoteSource implements WorkbenchTNoteSource {
@@ -223,7 +266,7 @@ class ThreadScopedTNoteSource implements WorkbenchTNoteSource {
 	public async bindThread(threadId: string): Promise<void> {
 		const projectId = scopedTodoSessionId(threadId);
 		if (this.projectId && this.projectId !== projectId) {
-			throw new Error("T-note is already bound to another Native thread");
+			throw new Error("T-note가 이미 다른 Native thread에 묶여 있습니다.");
 		}
 		this.projectId = projectId;
 	}
@@ -264,7 +307,7 @@ class ThreadScopedTodoSource implements WorkbenchTodoSource {
 		const sessionId = scopedTodoSessionId(threadId);
 		const operation = this.binding.then(async () => {
 			if (this.sessionId === sessionId) return;
-			if (this.sessionId) throw new Error("Todo is already bound to another Native thread");
+			if (this.sessionId) throw new Error("Todo가 이미 다른 Native thread에 묶여 있습니다.");
 			const todoPath = join(this.workspace.todosDirectory, sessionId, "Todo.md");
 			const ledger = this.factories.createTodoLedger(
 				sessionId,
@@ -296,7 +339,10 @@ class ThreadScopedTodoSource implements WorkbenchTodoSource {
 		return () => this.listeners.delete(listener);
 	}
 
-	public syncNativePlan(turnId: string, flow: WorkFlowProjection): Promise<TodoDocument> { return this.requireLedger().syncNativePlan(turnId, flow); }
+	public syncNativePlan(flow: WorkFlowProjection): Promise<TodoDocument> {
+		if (!flow.source) throw new Error("Native plan source authority is required for Todo sync");
+		return this.requireLedger().syncNativePlan(flow);
+	}
 	public create(title: string, items: readonly string[], storyId?: string): Promise<TodoDocument> { return this.requireLedger().create(title, items, storyId); }
 	public add(content: string, placement: "now" | "after"): Promise<TodoDocument> { return this.requireLedger().add(content, placement); }
 	public addDetails(itemId: string, details: readonly string[]): Promise<TodoDocument> { return this.requireLedger().addDetails(itemId, details); }

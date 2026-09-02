@@ -49,15 +49,18 @@ export class TodoLedger implements TodoController {
 	}
 
 	/** Mirrors the current Native plan into the canonical two-level Todo.md. */
-	public async syncNativePlan(_turnId: string, flow: WorkFlowProjection): Promise<TodoDocument> {
+	public async syncNativePlan(flow: WorkFlowProjection): Promise<TodoDocument> {
+		validateNativePlanSource(flow.source);
 		let activeAssigned = false;
-		const items = flow.steps.slice(0, 12).map((step, index): TodoItem => {
+		const nativeSteps = flow.steps.slice(0, 12);
+		validateNativeTodoIds(nativeSteps);
+		const items = nativeSteps.map((step): TodoItem => {
 			let status = todoStatus(step.status);
 			if (status === "in_progress") {
 				if (activeAssigned) status = "pending";
 				else activeAssigned = true;
 			}
-			return nativeTodoItem(step, index, status);
+			return nativeTodoItem(step, status);
 		});
 		const content = {
 			ownerSessionId: this.sessionId,
@@ -287,6 +290,24 @@ export class TodoWriteConflictError extends Error {
 	}
 }
 
+export class TodoIdentityCollisionError extends Error {
+	public constructor(
+		public readonly code: "invalid_identity" | "id_collision",
+	) {
+		super(code === "invalid_identity" ? "Invalid deterministic Native Plan identity" : "Native Plan Todo ID collision");
+		this.name = "TodoIdentityCollisionError";
+	}
+}
+
+export class TodoNativeSourceError extends Error {
+	public readonly code = "invalid_source";
+
+	public constructor() {
+		super("Native plan source authority is invalid");
+		this.name = "TodoNativeSourceError";
+	}
+}
+
 function todoUpdatedEvent(document: TodoDocument): SessionEventInput {
 	return {
 		category: "todo",
@@ -310,19 +331,15 @@ function isTodoParent(item: TodoDocument["items"][number] | TodoDocument["items"
 	return "details" in item;
 }
 
-function nativeTodoItem(step: SemanticWorkStep, index: number, status: TodoItemStatus): TodoItem {
-	const id = `native-step-${index + 1}`;
+function nativeTodoItem(step: SemanticWorkStep, status: TodoItemStatus): TodoItem {
+	const id = nativeTodoParentId(step.identity.value);
 	const evidenceIds = validEvidenceIds(step.activityIds);
-	const summaries = [todoNarrationText(step.narration.why, TODO_NARRATION_WHY)];
-	const details = summaries.map((content, detailIndex): TodoDetail => {
-		const isLast = detailIndex === summaries.length - 1;
-		return {
-			id: `${id}-detail-${detailIndex + 1}`,
-			content,
-			status: detailStatus(status, isLast),
-			evidenceIds: isLast ? evidenceIds : [],
-		};
-	});
+	const details: TodoDetail[] = [{
+		id: `${id}-detail-1`,
+		content: todoNarrationText(step.narration.why, TODO_NARRATION_WHY),
+		status: detailStatus(status, true),
+		evidenceIds,
+	}];
 	return {
 		id,
 		content: todoNarrationText(step.narration.what, TODO_NARRATION_WHAT),
@@ -330,6 +347,64 @@ function nativeTodoItem(step: SemanticWorkStep, index: number, status: TodoItemS
 		evidenceIds: [],
 		details,
 	};
+}
+
+function validateNativePlanSource(source: WorkFlowProjection["source"]): void {
+	if (!isNativePlanSource(source)) throw new TodoNativeSourceError();
+}
+
+function isNativePlanSource(source: unknown): boolean {
+	try {
+		if (!isRecord(source) || source.kind !== "native-plan-derived" || source.algorithm !== "dplan-v1") return false;
+		if (!isOpaqueNativeId(source.turnId) || !isSha256Hex(source.expectedThreadKeyDigest)) return false;
+		const revision = source.currentRevision;
+		return isRecord(revision)
+			&& isSha256Hex(revision.sourceRevisionKeyDigest)
+			&& isOpaqueNativeId(revision.activityId)
+			&& typeof revision.sequence === "number"
+			&& Number.isSafeInteger(revision.sequence)
+			&& revision.sequence > 0
+			&& typeof revision.sourceDigest === "string"
+			&& /^sha256:[a-f0-9]{64}$/u.test(revision.sourceDigest);
+	} catch {
+		return false;
+	}
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function isSha256Hex(value: unknown): value is string {
+	return typeof value === "string" && /^[a-f0-9]{64}$/u.test(value);
+}
+
+function isOpaqueNativeId(value: unknown): value is string {
+	return typeof value === "string" && value.length > 0 && value.length <= 512 && value.trim() === value;
+}
+
+function validateNativeTodoIds(steps: readonly SemanticWorkStep[]): void {
+	const identities = new Map<string, string>();
+	const ids = new Set<string>();
+	for (const step of steps) {
+		const identity = step.identity?.value;
+		if (typeof identity !== "string" || !/^[a-f0-9]{64}$/u.test(identity)) {
+			throw new TodoIdentityCollisionError("invalid_identity");
+		}
+		const parentId = nativeTodoParentId(identity);
+		const detailId = `${parentId}-detail-1`;
+		const previous = identities.get(parentId);
+		if ((previous !== undefined && previous !== identity) || ids.has(parentId) || ids.has(detailId)) {
+			throw new TodoIdentityCollisionError("id_collision");
+		}
+		identities.set(parentId, identity);
+		ids.add(parentId);
+		ids.add(detailId);
+	}
+}
+
+function nativeTodoParentId(identity: string): string {
+	return `native-${identity.slice(0, 48)}`;
 }
 
 function todoStatus(status: WorkStepStatus): TodoItemStatus {

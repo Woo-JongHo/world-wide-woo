@@ -5,6 +5,9 @@
 - 현재 구현 범위: 프로젝트별 Codex Native Workbench
 - 장기 범위: 개인용 멀티프로젝트 업무 Control Plane
 
+Initiative·Architecture·Epic·Story의 다음 세대 검증안은
+[WWW 개인 업무 Control Plane 계획 제안](./WWW_CONTROL_PLANE_PLANNING_PROPOSAL.md)을 따른다.
+
 ## 목적
 
 WWW의 목적은 사용자의 반복 업무 방식을 코드화하고 여러 프로젝트에 일관되게
@@ -39,6 +42,7 @@ Project Binding + Logical ID
 WWW Workflow Loop
         |
         +-- Codex App Server       [기본 Native Executor]
+        +-- Gemini Rule Critic     [규칙 preflight·경계 사례]
         +-- Claude read-only       [독립 검토]
         +-- Script / RPA           [결정론적 실행]
         +-- Direct one-shot        [제한된 정형 생성]
@@ -243,6 +247,42 @@ WWW가 우선 소유할 튜닝은 모델 weight 학습이 아니라 다음 정�
 복잡한 코딩은 Native Executor에 맡기고, 작고 정형화된 작업만 Direct 호출로 정밀
 측정한다. 모델 내부를 보지 못하는 한계를 추정값으로 덮지 않는다.
 
+Gemini는 Standard·Blueprint·Contract·Validator 규칙의 누락·충돌·모호성과 빠진 경계
+사례를 찾는 읽기 전용 `Rule Critic`을 기본 역할로 맡는다. 분류·추출·형식 변환·bounded
+요약처럼 실패 영향이 작고 결과를 즉시 Contract로 검증할 수 있는 `Lightweight
+Executor`로도 사용할 수 있다. 모델명은 고정하지 않고 사용 가능한 Gemini catalog에서
+정책 Binding으로 선택한다. 설계·복잡한 코딩·외부 Write·Validator의 최종 pass/fail
+판정에는 사용하지 않는다.
+
+GitHub에서는 규칙 변경 PR마다 Gemini Rule Critic을 read-only advisory CI Job으로
+실행할 수 있다. 결정론적 Validator는 별도의 required check로 유지하고, Gemini 결과나
+장애가 merge 판정을 직접 소유하지 않는다.
+
+### 세 Provider Lane과 Native Execution Routing
+
+WWW는 Codex·Claude·Gemini를 고정된 역할명이 아니라 독립된 `Provider Lane`으로 다룬다.
+Primary Executor·Independent Reviewer·Rule Critic 같은 `Agent Role`은 Role Binding을 통해
+provider·model·effort·권한·예산에 연결한다.
+
+1차 범위에서는 구독 가용성에 따라 Story 시작 시 `Codex App Server Adapter` 또는
+`Claude Code CLI Adapter`를 선택한다. 선택된 Native Executor가 해당 Run의 Plan·Tool Loop·Skill·
+Subagent·Session·승인을 끝까지 소유한다. Gemini는 이 실행 선택에 참여하지 않고 Rule
+Critic에 고정한다.
+
+실행 중 Provider를 바꾸지 않는다. 다른 Lane으로 넘어가려면 현재 Run을 terminal 상태로
+끝내고 Evidence와 handoff packet을 만든 뒤 새 Run으로 시작한다. 선택된 Lane과 이유,
+구독 관측값, native session ref는 TUI·Evidence·Agent Revision에 남긴다. 독립 Reviewer는
+Execution Lane과 별도이며 어떤 provider에 결속돼도 read-only다.
+
+현재 WES 상위 정책은 Codex를 기본 작성자, Claude를 읽기 전용 검토자로 규정한다.
+Anthropic에는 Codex App Server와 동명·동형인 공식 `Claude App Server`가 확인되지
+않았으므로 WWW는 그 이름의 서버를 가정하지 않는다. 로그인된 Claude Code CLI의
+`stream-json`·resume 표면을 Adapter 뒤에 두고, transport 차이는 WWW TUI 밖으로 노출하지
+않는다.
+
+제품이 `claude-execution` Lane을 지원하더라도 실제 활성화는 현재 권한 정책을
+변경하는 별도 Decision과 사람 승인을 통과한 뒤에만 가능하다.
+
 ## Senpi·GJC와의 공통점과 차이
 
 세 제품 모두 독립 CLI/TUI, Skill·Tool·Workflow, Session과 실행 관찰을 제공할 수 있다.
@@ -279,6 +319,30 @@ Binding, Logical ID, Validator, 실행기 교체 가능성, Agent Revision의 �
 - Chat·T-notes·Todo와 ProjectActivity projection
 - 승인·resume·취소·사용량 관찰
 - 제한된 Direct one-shot과 읽기 전용 외부 검토
+
+### v0.2 — Codex 기준 의미 확정
+
+- Native Plan을 읽기 전용 Todo로 투영
+- 관측 가능한 실행을 Trace·Source로 투영
+- 완료 T-note를 Chat의 안정된 `#n`으로 이동
+- provider-neutral `NativeHarness`와 `ProjectActivity` 의미 계약
+- Standard·Contract·결정론적 Validator와 Gemini Rule Critic의 첫 vertical slice
+- 로그인된 Claude Code 구독을 사용하는 packet-only·no-tools Review Transport
+- Codex 전용 event field가 TUI·Progress Model로 직접 새지 않는 경계
+
+v0.2는 Claude 전체 실행을 제공하지 않는다. Claude는 승인된 redacted packet 하나를
+읽고 검토 결과만 반환하는 제한된 Review Backend로 사용한다. Codex App Server로 실제
+작업하면서 WWW가 정말 필요로 하는 공통 event와 optional capability를 확정한다.
+
+### v0.3 — Claude Native Backend
+
+- Claude Code CLI stream-json 실제 schema probe
+- `ClaudeCodeCliAdapter`와 session·resume·cancel·permission 연결
+- Claude message·Plan·Tool·Subagent·승인·usage를 `ProjectActivity`로 정규화
+- Codex·Claude capability matrix와 unsupported 상태 표시
+- 구독 상태에 따른 Run 시작 Backend 선택
+- 실행 중 전환 금지와 terminal handoff packet
+- 동일 fixture의 Codex/Claude projection parity 검증
 
 ### 다음 제품 단계
 

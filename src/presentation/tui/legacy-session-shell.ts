@@ -47,7 +47,7 @@ import { settleWithin } from "./shell-lifecycle";
 import { colors, editorTheme } from "./theme";
 import { ExitKeyPolicy } from "./exit-key-policy";
 
-const LEGACY_STATUS_NOTICE = "/ 명령 · ! 터미널 · /model 모델 · /usage 사용량 · Ctrl+C 두 번 또는 Ctrl+D 종료";
+const LEGACY_STATUS_NOTICE = "호환 Router · Native 기능 제한 · /model · /login · /usage · Ctrl+D 종료";
 
 export interface TuiShellDependencies {
 	runtime: SessionRuntime;

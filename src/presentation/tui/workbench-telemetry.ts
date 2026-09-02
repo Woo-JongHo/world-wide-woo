@@ -2,7 +2,6 @@ import { execFile } from "node:child_process";
 import { homedir } from "node:os";
 import { truncateToWidth, visibleWidth, type Component } from "@earendil-works/pi-tui";
 import type { WorkbenchContextUsage, WorkbenchSessionUsage, WorkbenchSnapshot } from "../../domain/workbench";
-import { usagePercent } from "./usage-value";
 import { colors } from "./theme";
 
 export interface WorkbenchGitTelemetry {
@@ -52,14 +51,6 @@ export function formatWorkbenchTelemetry(source: WorkbenchTelemetrySource, width
 		`${colors.warm("⑂")} ${colors.text(gitLabel(source.git))}`,
 		`${colors.muted("📁")} ${colors.muted(projectPath(source.cwd, source.home))}`,
 	].join(colors.muted(" · "));
-	return truncateToWidth(output, Math.max(0, width));
-}
-
-export function formatWorkbenchSessionTelemetry(source: WorkbenchTelemetrySource, width: number): string {
-	const remaining = source.contextUsage ? Math.max(0, 100 - source.contextUsage.percent) : undefined;
-	const contextColor = remaining === undefined ? colors.muted
-		: remaining <= 10 ? colors.error : remaining <= 30 ? colors.warning : colors.highlight;
-	const output = `${colors.muted("Context")} ${contextColor(usagePercent(remaining))}`;
 	return truncateToWidth(output, Math.max(0, width));
 }
 
@@ -135,7 +126,7 @@ export class WorkbenchTelemetryLine implements Component {
 			cwd: this.cwd,
 			home: homedir(),
 		};
-		return [formatWorkbenchTelemetry(source, width), formatWorkbenchSessionTelemetry(source, width)]
-			.map((line) => line + " ".repeat(Math.max(0, width - visibleWidth(line))));
+		const line = formatWorkbenchTelemetry(source, width);
+		return [line + " ".repeat(Math.max(0, width - visibleWidth(line)))];
 	}
 }

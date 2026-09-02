@@ -33,11 +33,9 @@ const mixedTodo = todo([
 ]);
 
 describe("WorkspaceTodoView", () => {
-	test("shows no active work for a missing or empty todo", () => {
+	test("renders a blank pane for a missing or empty todo", () => {
 		for (const document of [null, todo([])]) {
-			const output = new WorkspaceTodoView(() => document).render(70).join("\n");
-			expect(output).not.toContain("TODO 0/0");
-			expect(output).toContain("진행 중인 작업 없음");
+			expect(new WorkspaceTodoView(() => document).render(70)).toEqual([]);
 		}
 	});
 

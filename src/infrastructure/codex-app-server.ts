@@ -164,6 +164,11 @@ export class CodexAppServer implements NativeHarnessPort {
 	private readonly pending = new Map<NativeRequestId, PendingRequest>();
 	private readonly pendingApprovalResponses = new Map<NativeRequestId, PendingApprovalResponse>();
 	private readonly approvals = new Map<NativeRequestId, NativeApprovalRequest>();
+	/**
+	 * Some notifications (notably turn/plan/updated) carry only a turn id.  Only
+	 * bind those notifications when this adapter has observed the turn's owner.
+	 */
+	private readonly threadIdByTurnId = new Map<string, string>();
 	private requestSequence = 0;
 	private closing = false;
 	private disconnected = false;
@@ -204,7 +209,9 @@ export class CodexAppServer implements NativeHarnessPort {
 			sandbox: input.sandbox,
 			ephemeral: input.ephemeral,
 		}), true);
-		return threadSnapshot(result, "thread/start");
+		const snapshot = threadSnapshot(result, "thread/start");
+		this.registerThreadTurns(snapshot);
+		return snapshot;
 	}
 
 	public async resumeThread(input: NativeThreadResume): Promise<NativeThreadSnapshot> {
@@ -213,12 +220,16 @@ export class CodexAppServer implements NativeHarnessPort {
 			...resume,
 			config: effort ? { model_reasoning_effort: effort } : undefined,
 		}), true);
-		return threadSnapshot(result, "thread/resume");
+		const snapshot = threadSnapshot(result, "thread/resume");
+		this.registerThreadTurns(snapshot);
+		return snapshot;
 	}
 
 	public async readThread(input: NativeThreadRead): Promise<NativeThreadSnapshot> {
 		const result = await this.request("thread/read", compact({ ...input }), false);
-		return threadSnapshot(result, "thread/read");
+		const snapshot = threadSnapshot(result, "thread/read");
+		this.registerThreadTurns(snapshot);
+		return snapshot;
 	}
 
 	public async listThreads(input: NativeThreadList): Promise<readonly NativeThreadSummary[]> {
@@ -250,7 +261,9 @@ export class CodexAppServer implements NativeHarnessPort {
 			collaborationMode: input.collaborationMode,
 			additionalContext: input.additionalContext,
 		}), true);
-		return turnSnapshot(result, input.threadId);
+		const snapshot = turnSnapshot(result, input.threadId);
+		this.threadIdByTurnId.set(snapshot.id, input.threadId);
+		return snapshot;
 	}
 
 	public async interruptTurn(input: NativeTurnInterrupt): Promise<void> {
@@ -341,7 +354,7 @@ export class CodexAppServer implements NativeHarnessPort {
 				id: message.id,
 				callbackId,
 				kind,
-				refs: refsFrom(params, message.id, callbackId),
+				refs: this.refsFrom(params, message.id, callbackId),
 				availableDecisions: nativeApprovalDecisions(params.availableDecisions),
 				params,
 			};
@@ -357,10 +370,10 @@ export class CodexAppServer implements NativeHarnessPort {
 				this.pendingApprovalResponses.delete(requestId);
 				pending.resolve();
 			}
-			this.emit({ type: "approval-resolved", requestId, approvalId: requestId, refs: refsFrom(params, requestId) });
+			this.emit({ type: "approval-resolved", requestId, approvalId: requestId, refs: this.refsFrom(params, requestId) });
 			return;
 		}
-		this.emit({ type: "notification", method: message.method, refs: refsFrom(params), params });
+		this.emit({ type: "notification", method: message.method, refs: this.refsFrom(params), params });
 	}
 
 	private receiveResponse(id: NativeRequestId, message: JsonRecord): void {
@@ -395,6 +408,30 @@ export class CodexAppServer implements NativeHarnessPort {
 
 	private emit(event: NativeHarnessEvent): void {
 		for (const listener of this.listeners) listener(event);
+	}
+
+	private registerThreadTurns(snapshot: NativeThreadSnapshot): void {
+		const turns = snapshot.value.turns;
+		if (!Array.isArray(turns)) return;
+		for (const turn of turns) {
+			if (!isRecord(turn) || typeof turn.id !== "string") continue;
+			this.threadIdByTurnId.set(turn.id, snapshot.id);
+		}
+	}
+
+	private refsFrom(
+		params: JsonRecord,
+		approvalRequestId?: NativeRequestId,
+		approvalCallbackId?: string | null,
+	): NativeRefs {
+		const refs = refsFrom(params, approvalRequestId, approvalCallbackId);
+		if (refs.threadId !== undefined) {
+			if (refs.turnId !== undefined) this.threadIdByTurnId.set(refs.turnId, refs.threadId);
+			return refs;
+		}
+		if (refs.turnId === undefined) return refs;
+		const threadId = this.threadIdByTurnId.get(refs.turnId);
+		return threadId === undefined ? refs : { ...refs, threadId };
 	}
 }
 
@@ -445,7 +482,13 @@ function isNativeThreadStatus(value: unknown): value is NativeThreadStatus {
 function refsFrom(params: JsonRecord, approvalRequestId?: NativeRequestId, approvalCallbackId?: string | null): NativeRefs {
 	const thread = isRecord(params.thread) ? params.thread : undefined;
 	const turn = isRecord(params.turn) ? params.turn : undefined;
-	const item = isRecord(params.item) ? params.item : undefined;
+	// Collaboration notifications may carry their public item directly instead
+	// of under `item`; retain that native identity for later projection.
+	const item = isRecord(params.item)
+		? params.item
+		: params.type === "collabAgentToolCall" || params.type === "subAgentActivity"
+		? params
+		: undefined;
 	return compact({
 		threadId: typeof params.threadId === "string" ? params.threadId : typeof thread?.id === "string" ? thread.id : undefined,
 		turnId: typeof params.turnId === "string" ? params.turnId : typeof turn?.id === "string" ? turn.id : undefined,

@@ -92,6 +92,8 @@ export interface WorkbenchSnapshot {
 	phase: WorkbenchPhase;
 	/** Effective Native thread settings and latest context telemetry. */
 	model?: string;
+	/** Model the in-flight turn actually runs on; falls back to the selected model when idle. */
+	activeModel?: string;
 	effort?: string | null;
 	contextUsage?: WorkbenchContextUsage | null;
 	sessionUsage?: WorkbenchSessionUsage;
@@ -118,6 +120,8 @@ export interface WorkbenchSnapshot {
 	tnotes: readonly WorkbenchTNote[];
 	todo: TodoDocument | null;
 	actionResult: WorkbenchActionResult | null;
+	/** True only while a chat send is unconfirmed and `/cancel` can still reconcile it. */
+	deliveryUncertain?: boolean;
 	error: string | null;
 }
 

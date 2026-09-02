@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { appendFile, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { ActivityJournalStore, digestActivitySource } from "../src/infrastructure/activity-journal-store.js";
+import { ActivityJournalStore, digestActivitySource, nativeThreadJournalKey } from "../src/infrastructure/activity-journal-store.js";
 
 const temporaryDirectories: string[] = [];
 
@@ -147,5 +147,22 @@ describe("ActivityJournalStore", () => {
 
 		expect(historicalRecordParses).toBe(0);
 		expect((await store.readAll("cached")).at(-1)?.sequence).toBe(200);
+	});
+
+	test("replays a native-thread stream in a fresh store and still rejects a durable sequence gap", async () => {
+		const { directory, store } = createStore();
+		const projectId = nativeThreadJournalKey("opaque-native-thread");
+		await store.append({
+			projectId, kind: "progress", phase: "completed", provider: "openai-codex",
+			nativeRefs: { threadId: "opaque-native-thread" }, sourceDigest: digestActivitySource("first"), payload: { method: "thread/start" },
+		});
+		expect((await new ActivityJournalStore(directory).readAll(projectId)).map((entry) => entry.sequence)).toEqual([1]);
+		const valid = (sequence: number) => JSON.stringify({
+			schemaVersion: 1, id: crypto.randomUUID(), projectId, sequence, recordedAt: new Date().toISOString(),
+			kind: "progress", phase: "updated", provider: "openai-codex", nativeRefs: {},
+			sourceDigest: digestActivitySource(`gap-${sequence}`), payload: {},
+		});
+		await writeFile(join(directory, `${projectId}.jsonl`), `${valid(1)}\n${valid(3)}\n`);
+		await expect(new ActivityJournalStore(directory).readAll(projectId)).rejects.toThrow("sequence at line 2");
 	});
 });
