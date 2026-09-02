@@ -122,6 +122,48 @@ function allScrollContent(box: LayoutBox): string[] {
 }
 
 describe("workbench dashboard views", () => {
+	test("keeps a resumed truncated Native turn's durable question number and reveals its selected T-note sources", () => {
+		const secondAssistant = {
+			...snapshot.activities[0]!,
+			id: "assistant-second",
+			sequence: 5,
+			nativeRefs: { threadId: "thread-1", turnId: "turn-second", itemId: "assistant-second" },
+			payload: { text: "두 번째 답변" },
+		};
+		const completed = [
+			{ ...secondAssistant, id: "turn-second-completed", sequence: 6, kind: "progress" as const, payload: { method: "turn/completed" }, nativeRefs: { threadId: "thread-1", turnId: "turn-second" } },
+		];
+		const indexed: WorkbenchSnapshot = {
+			...snapshot,
+			activities: [completed[0]!, secondAssistant],
+			chat: [
+				{ id: "assistant-second", role: "assistant", content: "두 번째 답변", activityId: "assistant-second", status: "completed" },
+			],
+			selectedActivityId: "assistant-second",
+			tnotes: [{
+				id: "note-second",
+				title: "두 번째 질문",
+				summary: "질문: 두 번째 질문\n왜: 선택한 완료 기록을 확인합니다.\n결과: source를 표시합니다.",
+				sourceActivityIds: ["assistant-second", "turn-second-completed"],
+				updatedAt: "2026-09-01T00:00:02.000Z",
+				completion: {
+					threadId: "thread-1",
+					turnId: "turn-second",
+					number: 2,
+					terminalActivityId: "turn-second-completed",
+				},
+			} as WorkbenchSnapshot["tnotes"][number] & {
+				completion: { threadId: string; turnId: string; number: number; terminalActivityId: string };
+			}],
+		};
+
+		const output = stripTerminalSequences(new WorkbenchChatView(indexed).render(100).join("\n"));
+		expect(output).toContain("#2");
+		expect(output).toContain("T-note · 두 번째 질문");
+		expect(output).toContain("sourceActivityIds · assistant-second, turn-second-completed");
+		expect(output).not.toContain("T-note · 첫 질문");
+	});
+
 	test("keeps the live chat, streaming projection, and Todo while switching to the monitor projection", () => {
 		const live: WorkbenchSnapshot = {
 			...snapshot,
@@ -1079,6 +1121,7 @@ describe("workbench dashboard views", () => {
 		}).render(70).join("\n"));
 		expect(output).toContain("단계 1 · PASSED");
 		expect(output).toContain("변경 결과 검증");
+		expect(output).toContain("Trace source · planItemId command-1 · /trace command-1");
 		expect(output).toContain("$ bun test test/workbench-views.test.ts");
 		expect(output).not.toContain("왜 하는지:");
 		expect(output).toContain("┌─── ✔ Bash");

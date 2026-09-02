@@ -97,14 +97,12 @@ describe("WWW slash commands", () => {
 		expect(parseWorkbenchShellCommand("/tnote")).toEqual({ type: "tnote.capture" });
 		expect(parseWorkbenchShellCommand("/tnote range 3 7")).toEqual({ type: "tnote.capture-range", startSequence: 3, endSequence: 7 });
 		expect(parseWorkbenchShellCommand("/tnote range 7 3")).toMatchObject({ type: "error" });
-		expect(parseWorkbenchShellCommand("/todo create v0.1 :: TUI 배선 | 증거 확인")).toEqual({
-			type: "todo.create", title: "v0.1", items: ["TUI 배선", "증거 확인"],
-		});
-		expect(parseWorkbenchShellCommand("/todo add now 우선 작업")).toEqual({ type: "todo.add", placement: "now", content: "우선 작업" });
-		expect(parseWorkbenchShellCommand("/todo detail todo-1 세부 검증")).toEqual({ type: "todo.details", itemId: "todo-1", details: ["세부 검증"] });
-		expect(parseWorkbenchShellCommand("/todo complete todo-1")).toEqual({ type: "todo.transition", action: "complete", itemId: "todo-1" });
-		expect(parseWorkbenchShellCommand("/todo evidence latest")).toEqual({ type: "todo.evidence", activityId: "latest" });
-		expect(parseWorkbenchShellCommand("/todo import-legacy")).toEqual({ type: "todo.import-legacy" });
+		expect(parseWorkbenchShellCommand("/todo create v0.1 :: TUI 배선 | 증거 확인")).toMatchObject({ type: "error" });
+		expect(parseWorkbenchShellCommand("/todo add now 우선 작업")).toMatchObject({ type: "error" });
+		expect(parseWorkbenchShellCommand("/todo detail todo-1 세부 검증")).toMatchObject({ type: "error" });
+		expect(parseWorkbenchShellCommand("/todo complete todo-1")).toMatchObject({ type: "error" });
+		expect(parseWorkbenchShellCommand("/todo evidence latest")).toMatchObject({ type: "error" });
+		expect(parseWorkbenchShellCommand("/todo import-legacy")).toMatchObject({ type: "error" });
 		expect(parseWorkbenchShellCommand("/promote tnote note-1")).toEqual({ type: "promotion.accept", noteId: "note-1" });
 		expect(parseWorkbenchShellCommand("/promote confirm receipt-token")).toEqual({ type: "promotion.confirm", token: "receipt-token" });
 		expect(parseWorkbenchShellCommand("/review preview opus public note-1 :: 현재 결정만 검토")).toEqual({

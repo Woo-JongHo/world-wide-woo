@@ -41,6 +41,7 @@ import {
 	type WorkStepNarration,
 } from "../domain/work-steps.js";
 import {
+	projectTNoteCompletionIndex,
 	projectActivityToTNoteSource,
 	sanitizeTNoteText,
 	type TNoteActivitySource,
@@ -89,7 +90,7 @@ const SESSION_GOAL_CHARACTER_LIMIT = 160;
 interface McpManagementPort {
 	listMcpServers(): Promise<readonly WorkbenchMcpServer[]>;
 	setMcpServerEnabled(name: string, enabled: boolean): Promise<void>;
-	reconnectMcpServer(name: string): Promise<void>;
+	reloadMcpServers(): Promise<void>;
 }
 
 interface BoundedTextProjection {
@@ -190,6 +191,7 @@ export class ProjectWorkbench {
 	private readonly notes: WorkbenchTNote[] = [];
 	private readonly terminalTurns = new Set<string>();
 	private readonly noteDrafts = new Map<string, TNoteDraft>();
+	private readonly completionOrdinals = new Map<string, number>();
 	private readonly promotionDrafts = new Map<string, CanonicalDocumentDraft>();
 	private readonly reviewPreviews = new Map<string, { provider: ReviewProvider; packet: ReviewPacket }>();
 	private readonly stepNarrations = new Map<string, WorkStepNarration>();
@@ -352,7 +354,7 @@ export class ProjectWorkbench {
 				case "mcp.refresh": return await this.refreshMcpServers(commandId);
 				case "mcp.enable": return await this.setMcpServerEnabled(commandId, command.name, true);
 				case "mcp.disable": return await this.setMcpServerEnabled(commandId, command.name, false);
-				case "mcp.reconnect": return await this.reconnectMcpServer(commandId, command.name);
+				case "mcp.reload": return await this.reloadMcpServers(commandId);
 				case "woo-entry.refresh": return await this.refreshWooEntry(commandId);
 				case "tnote.capture-session": return await this.captureSessionNote(commandId);
 				case "tnote.capture": return await this.captureNote(commandId, command.activityIds);
@@ -753,7 +755,7 @@ export class ProjectWorkbench {
 		const candidate = this.native as Partial<McpManagementPort>;
 		return typeof candidate.listMcpServers === "function"
 			&& typeof candidate.setMcpServerEnabled === "function"
-			&& typeof candidate.reconnectMcpServer === "function"
+			&& typeof candidate.reloadMcpServers === "function"
 			? candidate as McpManagementPort
 			: null;
 	}
@@ -778,9 +780,9 @@ export class ProjectWorkbench {
 		return { state: "accepted", commandId };
 	}
 
-	private async reconnectMcpServer(commandId: string, name: string): Promise<WorkbenchCommandReceipt> {
+	private async reloadMcpServers(commandId: string): Promise<WorkbenchCommandReceipt> {
 		const management = this.requireMcpManagement();
-		await management.reconnectMcpServer(name);
+		await management.reloadMcpServers();
 		this.mcpServers = immutable(await management.listMcpServers());
 		this.publish();
 		return { state: "accepted", commandId };
@@ -965,16 +967,46 @@ export class ProjectWorkbench {
 		const turnId = selected.at(-1)!.nativeRefs.turnId!;
 		const scope = completedTurnNoteScope(selected, turnId)!;
 		const question = scope.question;
+		const terminalActivity = selected.at(-1)!;
+		const threadId = terminalActivity.nativeRefs.threadId!;
+		const number = this.completionOrdinal(threadId, turnId);
 		return {
 			turnId,
 			input: {
 				projectId: this.options.projectId,
 				range: { startSequence: selected[0]!.sequence, endSequence: selected.at(-1)!.sequence },
-				activities: selected.map(projectActivityToTNoteSource),
+				activities: selected.map((activity) => ({
+					...projectActivityToTNoteSource(activity),
+					...(activity.id === terminalActivity.id ? {
+						completion: { threadId, turnId, number, terminalActivityId: terminalActivity.id },
+					} : {}),
+				})),
 				instruction: turnTNoteInstruction(question),
 				expectedQuestion: question,
 			},
 		};
+	}
+
+	private completionOrdinal(threadId: string, turnId: string): number {
+		const key = `${threadId}:${turnId}`;
+		const reserved = this.completionOrdinals.get(key);
+		if (reserved) return reserved;
+		const durableMaximum = [...this.noteDrafts.values()]
+			.map((note) => note.packet.completion)
+			.filter((completion): completion is NonNullable<typeof completion> => completion?.threadId === threadId)
+			.reduce((maximum, completion) => Math.max(maximum, completion.number), 0);
+		const visibleMaximum = projectTNoteCompletionIndex(
+			this.visibleActivities,
+			[...this.noteDrafts.values()].map((note) => ({
+				id: note.id,
+				sourceActivityIds: note.packet.activities.map((activity) => activity.id),
+				completion: note.packet.completion,
+			})),
+		).filter((completion) => completion.threadId === threadId && completion.turnId !== turnId)
+			.reduce((maximum, completion) => Math.max(maximum, completion.number), 0);
+		const number = Math.max(durableMaximum, visibleMaximum) + 1;
+		this.completionOrdinals.set(key, number);
+		return number;
 	}
 
 	private async createTNote(
@@ -1128,6 +1160,12 @@ export class ProjectWorkbench {
 		const notes = await this.options.tnotes.readAll(this.options.projectId);
 		for (const note of notes) {
 			this.noteDrafts.set(note.id, note);
+			if (note.packet.completion) {
+				this.completionOrdinals.set(
+					`${note.packet.completion.threadId}:${note.packet.completion.turnId}`,
+					note.packet.completion.number,
+				);
+			}
 			this.notes.push(immutable(projectTNote(note)));
 		}
 	}
@@ -1526,7 +1564,12 @@ export class ProjectWorkbench {
 
 	private currentSessionNotes(): readonly WorkbenchTNote[] {
 		const activityIds = new Set(this.visibleActivities.map((activity) => activity.id));
-		return this.notes.filter((note) => note.sourceActivityIds.some((id) => activityIds.has(id)));
+		const notes = this.notes.filter((note) => note.sourceActivityIds.some((id) => activityIds.has(id)));
+		const completionOrder = new Map(projectTNoteCompletionIndex(this.visibleActivities, notes)
+			.flatMap((completion) => completion.noteId ? [[completion.noteId, completion.number] as const] : []));
+		return [...notes].sort((left, right) =>
+			(completionOrder.get(left.id) ?? Number.MAX_SAFE_INTEGER) - (completionOrder.get(right.id) ?? Number.MAX_SAFE_INTEGER)
+			|| left.id.localeCompare(right.id));
 	}
 
 	private projectCurrentWorkFlow(): WorkFlowProjection {
@@ -1942,15 +1985,17 @@ function sessionGoalMarker(text: string): string | null {
 
 function projectTNote(draft: TNoteDraft): WorkbenchTNote {
 	const question = /^질문:\s*(.+)$/imu.exec(draft.text)?.[1]?.trim();
-	return {
+	const note = {
 		id: draft.id,
 		title: question
 			? sanitizeTerminalTextExcerpt(question, 160, "head-tail")
 			: "현재 세션 대화 요약",
 		summary: draft.text,
 		sourceActivityIds: draft.packet.activities.map((activity) => activity.id),
+		...(draft.packet.completion ? { completion: draft.packet.completion } : {}),
 		updatedAt: draft.createdAt,
 	};
+	return note;
 }
 
 function canonicalTNoteDraft(draft: TNoteDraft, sessionId: string): CanonicalDocumentDraft {

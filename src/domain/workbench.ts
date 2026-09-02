@@ -145,7 +145,7 @@ export type WorkbenchCommand =
 	| { type: "mcp.refresh" }
 	| { type: "mcp.enable"; name: string }
 	| { type: "mcp.disable"; name: string }
-	| { type: "mcp.reconnect"; name: string }
+	| { type: "mcp.reload" }
 	| { type: "woo-entry.refresh" }
 	| { type: "tnote.capture-session" }
 	| { type: "tnote.capture"; activityIds: readonly string[]; title?: string }

@@ -105,6 +105,83 @@ describe("dplan-v1", () => {
 		expect(result.orphans.map((x) => x.reason)).toEqual(["pre_plan", "no_unambiguous_running_item", "no_unambiguous_running_item"]);
 		expect(result.steps[0]!.activityIds).toEqual(["a-6"]);
 	});
+	test("preserves each inferred activity's plan revision interval", () => {
+		const action = (n: number, refs: Record<string, string> = {}) =>
+			activity(n, "item/completed", { params: { item: {} } }, refs);
+		const result = projectWorkFlow(
+			[
+				start(),
+				plan(2, [{ step: "A", status: "inProgress" }]),
+				action(3),
+				// The equal-status revision is a new monotonic interval; its action
+				// remains attributable, while the parallel boundary is fail-closed.
+				plan(4, [{ step: "A", status: "inProgress" }]),
+				action(5),
+				plan(6, [{ step: "A", status: "inProgress" }, { step: "B", status: "inProgress" }]),
+				action(7),
+				action(8, { turnId: "other" }),
+			],
+			new Map(),
+			input,
+		);
+		expect(result.steps[0]!.association).toEqual({
+			attribution: "inferred",
+			activityIds: ["a-3", "a-5"],
+			observationActivityIds: [],
+			sources: [
+				{
+					turnId: "turn-1",
+					startSequence: 2,
+					endSequence: 4,
+					activityIds: ["a-3"],
+					observationActivityIds: [],
+				},
+				{
+					turnId: "turn-1",
+					startSequence: 4,
+					endSequence: 6,
+					activityIds: ["a-5"],
+					observationActivityIds: [],
+				},
+			],
+		});
+		expect(result.steps[0]!.activityIds).toEqual(["a-3", "a-5"]);
+		expect(result.orphans.map((orphan) => [orphan.activityId, orphan.reason])).toEqual([
+			["a-7", "no_unambiguous_running_item"],
+			["a-8", "source_mismatch"],
+		]);
+	});
+	test("keeps boundary and equal-status revision attribution in monotonic intervals", () => {
+		const action = (n: number) =>
+			activity(n, "item/completed", { params: { item: {} } });
+		const result = projectWorkFlow(
+			[
+				start(),
+				plan(2, [{ step: "A", status: "inProgress" }]),
+				action(3),
+				plan(4, [{ step: "A", status: "inProgress" }]),
+				action(5),
+			],
+			new Map(),
+			input,
+		);
+		expect(result.steps[0]!.association?.sources).toEqual([
+			{
+				turnId: "turn-1",
+				startSequence: 2,
+				endSequence: 4,
+				activityIds: ["a-3"],
+				observationActivityIds: [],
+			},
+			{
+				turnId: "turn-1",
+				startSequence: 4,
+				endSequence: null,
+				activityIds: ["a-5"],
+				observationActivityIds: [],
+			},
+		]);
+	});
 	test("halts at integrity prefix and gives revision precedence to source mismatch", () => {
 		const bad = { ...plan(3, [{ step: "X", status: "inProgress" }]), id: "a-2" };
 		const integrity = projectWorkFlow(

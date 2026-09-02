@@ -8,12 +8,14 @@ import { ProjectWorkbench, type ProjectWorkbenchOptions, type WorkbenchActivityJ
 import { WooEntry } from "../src/application/woo-entry.js";
 import type { SessionRepository, TodoStore } from "../src/application/ports.js";
 import { TodoLedger } from "../src/application/todo-ledger";
+import { ReviewService } from "../src/application/review-service";
 
 import type { NativeApprovalResolution, NativeHarnessEvent, NativeThreadList, NativeThreadRead, NativeThreadResume, NativeThreadSnapshot, NativeThreadStart, NativeThreadSummary, NativeTurnInterrupt, NativeTurnSnapshot, NativeTurnStart } from "../src/domain/native-session.js";
 import type { ProjectActivity, ProjectActivityAppendResult, ProjectActivityInput } from "../src/domain/project-activity.js";
 import { createProjectWorkbenchSession, scopedProjectId, scopedTodoSessionId, ThreadBoundActivityJournal, type ProjectWorkbenchSessionFactories } from "../src/infrastructure/project-workbench-session.js";
 import type { ProjectWorkspace } from "../src/infrastructure/project-workspace.js";
 import { nativeThreadJournalKey } from "../src/infrastructure/activity-journal-store.js";
+import { sha256ReviewDigest } from "../src/infrastructure/review-adapters.js";
 
 class MemoryTodoStore implements TodoStore {
 	async read() { return null; }
@@ -147,6 +149,7 @@ describe("createProjectWorkbenchSession", () => {
 				createTodoStore: () => new MemoryTodoStore(),
 				createSessionEvents: () => new MemoryEvents(),
 				createTNoteSource: () => ({ readAll: async () => [], create: async () => { throw new Error("not used"); } }),
+				createReviewService: () => new ReviewService(new Map(), sha256ReviewDigest),
 				createWooEntry: memoryWooEntry,
 			});
 			expect(session.composerDraft.initialText).toBe("");

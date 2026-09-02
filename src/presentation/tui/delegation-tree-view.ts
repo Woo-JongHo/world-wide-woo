@@ -31,6 +31,11 @@ interface AgentProjection {
 export interface WorkbenchDelegationSection {
 	readonly anchorActivityId: string;
 	readonly activityIds: readonly string[];
+	readonly attribution: "observed";
+	readonly source: {
+		readonly turnId: string;
+		readonly itemIds: readonly string[];
+	};
 	readonly rows: readonly string[];
 }
 
@@ -53,6 +58,7 @@ export function projectWorkbenchDelegationSections(
 		const item = activityItem(activity);
 		const type = normalized(item?.type);
 		if (!item || type !== "subagentactivity" && !isCollabItemType(type)) continue;
+		if (!activity.nativeRefs.turnId || !activity.nativeRefs.itemId) continue;
 		const key = activity.nativeRefs.turnId ?? activity.nativeRefs.threadId ?? `activity:${activity.id}`;
 		if (!delegationTurns.has(key)) continue;
 		const group = groups.get(key) ?? { calls: [], subAgents: [] };
@@ -99,6 +105,13 @@ export function projectWorkbenchDelegationSections(
 		return [{
 			anchorActivityId: anchor,
 			activityIds: Object.freeze(sectionActivities.map((entry) => entry.activity.id)),
+			attribution: "observed" as const,
+			source: {
+				turnId: sectionActivities[0]!.activity.nativeRefs.turnId!,
+				itemIds: Object.freeze(unique(sectionActivities.flatMap((entry) =>
+					entry.activity.nativeRefs.itemId ? [entry.activity.nativeRefs.itemId] : [],
+				))),
+			},
 			rows: Object.freeze(rows),
 		}];
 	}));
@@ -164,6 +177,7 @@ function delegationRows(
 	const statusStyle = statusPresentation(status);
 	const rows = [
 		clip(colors.secondary("Planning executor delegation structure"), width),
+		clip(colors.muted("Source: observed native turn/item references"), width),
 		clip(`${statusStyle.color(status === "running" ? "⏳" : statusStyle.glyph)} ${colors.text("Task: executor")}`, width),
 		clip(colors.muted("├─ Context"), width),
 		clip(`│  ${publicLine(goal) ?? "현재 요청을 처리합니다."}`, width),
