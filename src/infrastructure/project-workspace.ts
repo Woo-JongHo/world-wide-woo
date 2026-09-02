@@ -189,7 +189,8 @@ export class FileProjectWorkspace {
 				}
 				const pid = typeof owner === "object" && owner !== null ? (owner as { pid?: unknown }).pid : undefined;
 				if (typeof pid === "number" && !isProcessAlive(pid)) {
-					throw new Error(`Session lease is stale: ${sessionId}. 활성 프로세스가 없는지 확인한 뒤 ${path} 파일을 삭제하세요.`);
+					await rm(path, { force: true });
+					return acquire();
 				}
 				throw new Error(`Session is already active: ${sessionId}`);
 			}

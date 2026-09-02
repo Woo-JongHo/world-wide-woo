@@ -50,7 +50,7 @@ const snapshot: WorkbenchSnapshot = {
 	tnotes: [{
 		id: "note-1",
 		title: "결정 요약",
-		summary: "Native 응답을 정리했다.",
+		summary: "질문: 결정 요약\n왜: 완료된 질문의 이유를 남깁니다.\n결과: Native 응답을 정리했습니다.",
 		sourceActivityIds: ["activity-1"],
 		updatedAt: "2026-09-01T00:00:01.000Z",
 	}],
@@ -64,6 +64,46 @@ function allScrollContent(box: LayoutBox): string[] {
 }
 
 describe("workbench dashboard views", () => {
+	test("keeps public Native plan, compaction, collaboration, and reasoning summaries in transcript order", () => {
+		const activities: WorkbenchSnapshot["activities"] = [
+			{
+				...snapshot.activities[0]!, id: "plan", sequence: 1, kind: "progress", phase: "updated",
+				payload: { method: "turn/plan/updated", params: { plan: [
+					{ step: "공용 컴포넌트 검증", status: "completed" },
+					{ step: "화면 반영", status: "inProgress" },
+				] } },
+			},
+			{
+				...snapshot.activities[0]!, id: "compaction", sequence: 2, kind: "progress", phase: "completed",
+				payload: { method: "item/completed", params: { item: { type: "contextCompaction" } } },
+			},
+			{
+				...snapshot.activities[0]!, id: "collab", sequence: 3, kind: "tool", phase: "started",
+				payload: { method: "item/started", params: { item: {
+					type: "collabToolCall", tool: "spawn_agent", status: "inProgress", prompt: "Shared visual QA",
+				} } },
+			},
+			{
+				...snapshot.activities[0]!, id: "reasoning", sequence: 4, kind: "progress", phase: "completed",
+				payload: { method: "item/completed", classification: "reasoning", redacted: true, publicSummary: "Planning semantic color token adjustments" },
+			},
+		];
+		const output = stripTerminalSequences(new WorkbenchChatView({
+			...snapshot,
+			activities,
+			chat: [],
+			workFlow: projectWorkFlow(activities),
+		}).render(88).join("\n"));
+
+		expect(output).toContain("Plan updated");
+		expect(output).toContain("✓ 공용 컴포넌트 검증");
+		expect(output).toContain("▸ 화면 반영");
+		expect(output).toContain("컨텍스트가 자동으로 압축됨");
+		expect(output).toContain("Shared visual QA 작업 시작됨");
+		expect(output).toContain("Planning semantic color token adjustments");
+		expect(output.indexOf("Plan updated")).toBeLessThan(output.indexOf("컨텍스트가 자동으로 압축됨"));
+	});
+
 	test("does not revive an older turn when the latest turn is still preparing its plan", () => {
 		const activities: WorkbenchSnapshot["activities"] = [
 			{
@@ -189,11 +229,11 @@ describe("workbench dashboard views", () => {
 		expect(notes).not.toContain("T-NOTES · LIVE");
 		expect(notes).not.toContain("Executor 흐름과 Live T-notes를 구현한다");
 		expect(notes).not.toContain("Live T-notes 흐름 연결");
-		expect(notes).toContain("CURRENT SESSION SUMMARY");
-		expect(notes).toContain("Native 응답을 정리했다.");
+		expect(notes).not.toContain("TRACE · SOURCE");
+		expect(notes).toContain("Native 응답을 정리했습니다.");
 	});
 
-	test("adds only the plan step that has a real-time execution activity to Chat", () => {
+	test("shows the public Native plan while adding only its executing step card", () => {
 		const activities: WorkbenchSnapshot["activities"] = [
 			{
 				...snapshot.activities[0]!,
@@ -236,7 +276,7 @@ describe("workbench dashboard views", () => {
 		expect(output).toContain("단계 1 · RUNNING");
 		expect(output).toContain("현재 구현");
 		expect(output).not.toContain("단계 2");
-		expect(output).not.toContain("후속 검증");
+		expect(output).toContain("· 후속 검증");
 	});
 
 	test("renders model-interpreted what and why on the shared Step card", () => {
@@ -268,7 +308,8 @@ describe("workbench dashboard views", () => {
 
 		expect(output).toContain("Native 이벤트를 의미 있는 작업 단계로 묶습니다.");
 		expect(output).not.toContain("무엇을 하고 있는지:");
-		expect(output).toContain("왜 하는지: Read 기록과 사용자에게 보여줄 실행 흐름을 분리하기 위해서");
+		expect(output).toContain("Read 기록과 사용자에게 보여줄 실행 흐름을 분리하기 위해서");
+		expect(output).toContain("왜 하는지:");
 		expect(output).toContain("의미 Step 집계 Module 추가");
 		expect(output).not.toContain("작업 입력 해석 중");
 	});
@@ -280,8 +321,52 @@ describe("workbench dashboard views", () => {
 
 		expect(tnotesOutput).not.toContain("T-NOTES 0");
 		expect(todoOutput).not.toContain("TODO 0/0");
-		expect(tnotesOutput).toContain("현재 세션 대화가 충분히 진행되면 누적 요약을 자동으로 정리합니다");
+		expect(tnotesOutput).toContain("질문 하나가 끝나면 질문·과정의 이유·결과를 자동으로 정리합니다");
 		expect(todoOutput).toContain("진행 중인 작업 없음");
+	});
+
+	test("keeps active goal, progress, queue, Todo, and source details out of T-notes", () => {
+		const output = stripTerminalSequences(new TNotesSourceView(() => ({
+			...snapshot,
+			tnotes: [],
+			sessionGoal: {
+				text: "프로젝트별 WWW 작업 공간을 실제 사용 가능한 상태로 만든다.",
+				sourceActivityId: "activity-goal",
+				updatedAt: "2026-09-01T00:00:00.000Z",
+			},
+			draft: "현재 응답을 작성 중입니다.",
+			chatQueue: [{ id: "queued", content: "다음 요청", queuedAt: "2026-09-01T00:00:01.000Z" }],
+			todo: {
+				version: 1, revision: 1, ownerSessionId: "workbench", storyId: null, title: "현재 Todo",
+				updatedAt: "2026-09-01T00:00:00.000Z", items: [],
+			},
+		})).render(80).join("\n"));
+
+		expect(output).toContain("질문 하나가 끝나면 질문·과정의 이유·결과를 자동으로 정리합니다");
+		expect(output).not.toContain("SESSION GOAL");
+		expect(output).not.toContain("프로젝트별 WWW 작업 공간");
+		expect(output).not.toContain("현재 응답을 작성 중입니다.");
+		expect(output).not.toContain("다음 요청");
+		expect(output).not.toContain("현재 Todo");
+	});
+
+	test("bounds append-only T-notes while preserving omission and visible-count evidence", () => {
+		const tnotes = Array.from({ length: 23 }, (_, index) => ({
+			id: `note-${index + 1}`,
+			title: `질문 ${index + 1}`,
+			summary: index === 22
+				? `질문: 질문 23\n왜: ${"긴 요약 ".repeat(800)}\n결과: 끝`
+				: `질문: 질문 ${index + 1}\n왜: 완료된 이유입니다.\n결과: 요약 ${index + 1}`,
+			sourceActivityIds: [],
+			updatedAt: `2026-09-01T00:00:${String(index).padStart(2, "0")}.000Z`,
+		}));
+		const output = stripTerminalSequences(new TNotesSourceView(() => ({ ...snapshot, tnotes })).render(80).join("\n"));
+
+		expect(output).toContain("이전 T-note 3개 생략 · 최근 20개 표시");
+		expect(output).not.toContain("질문 1 · note-1");
+		expect(output).toContain("질문 4 · note-4");
+		expect(output).toContain("질문 23 · note-23");
+		expect(output).toContain("T-note 요약 일부 생략");
 	});
 
 	test("renders Todo status icons and hanging wraps inside the pane width", () => {
@@ -336,6 +421,17 @@ describe("workbench dashboard views", () => {
 		expect(output).not.toContain("사용자의 의도를 분석한다");
 	});
 
+	test("shows only the App Server public reasoning summary text", () => {
+		const reasoning: WorkbenchSnapshot = {
+			...snapshot,
+			reasoningDraft: "raw chain of thought must stay hidden",
+			reasoningSummaryDraft: "Planning semantic color token adjustments",
+		};
+		const output = stripTerminalSequences(new WorkbenchChatView(reasoning).render(70).join("\n"));
+		expect(output).toContain("Planning semantic color token adjustments");
+		expect(output).not.toContain("raw chain of thought");
+	});
+
 	test("explains a pending approval and tells the user how to respond", () => {
 		const pending: WorkbenchSnapshot = {
 			...snapshot,
@@ -364,12 +460,50 @@ describe("workbench dashboard views", () => {
 		expect(output).toContain("이유 · 변경이 동작하는지 테스트해야 합니다.");
 		expect(output).toContain("경로 · /workspace/sample-project");
 		expect(output).toContain("승인 /approve · 세션 /approve-session · 거절 /decline");
-		expect(output).toContain("대기 메시지 1개");
+		expect(output).toContain("현재 턴 일시중지 · 승인 결정을 기다립니다.");
+		expect(output).toContain("백그라운드 작업 · unknown");
+		expect(output).toContain("대기 메시지 1개 · 승인 후 순서대로 전송");
 	});
 
-	test("redacts a historical completed reasoning envelope from Source", () => {
-		const reasoning: WorkbenchSnapshot = {
+	test("renders authoritative approval background states and compact queued delivery", () => {
+		const approval = {
+			requestId: 17,
+			callbackId: null,
+			kind: "command" as const,
+			refs: { threadId: "thread-1", turnId: "turn-1" },
+			availableDecisions: ["accept", "decline"] as const,
+			params: {},
+		};
+		const lifecycle = (status: string, agentsStates: Record<string, unknown>) => ({
+			...snapshot.activities[0]!,
+			id: `lifecycle-${status}`,
+			kind: "progress" as const,
+			payload: { params: { item: { id: "spawn-1", tool: "spawnAgent", status, receiverThreadIds: ["child-1"], agentsStates } } },
+		});
+		for (const [expected, activities] of [
+			["none", [lifecycle("completed", { "child-1": { status: "completed" } })]],
+			["active", [lifecycle("in_progress", {})]],
+			["unknown", [lifecycle("completed", {})]],
+		] as const) {
+			const output = stripTerminalSequences(new WorkbenchChatView({
+				...snapshot,
+				pendingApproval: approval,
+				activities,
+				chatQueue: [
+					{ id: "queued-1", content: "첫 번째 대기 메시지", queuedAt: "2026-09-01T00:00:02.000Z" },
+					{ id: "queued-2", content: "두 번째 대기 메시지", queuedAt: "2026-09-01T00:00:03.000Z" },
+				],
+			}).render(36).join("\n"));
+			expect(output).toContain(`백그라운드 작업 · ${expected}`);
+			expect(output).toContain("대기 메시지 2개");
+			for (const line of output.split("\n")) expect(visibleWidth(line)).toBeLessThanOrEqual(36);
+		}
+	});
+
+	test("shows persisted completed-question records after active work without source payloads", () => {
+		const active: WorkbenchSnapshot = {
 			...snapshot,
+			tnotes: [],
 			activities: [{
 				...snapshot.activities[0]!,
 				id: "reasoning-completed",
@@ -381,12 +515,26 @@ describe("workbench dashboard views", () => {
 			}],
 			selectedActivityId: "reasoning-completed",
 			chat: [],
+			draft: "실행 중인 다음 단계",
 		};
-		const output = stripTerminalSequences(new TNotesSourceView(() => reasoning).render(80).join("\n"));
-		expect(output).toContain('"classification": "reasoning"');
-		expect(output).toContain("비공개 내용 생략");
-		expect(output).not.toContain("비공개 reasoning 원문");
-		expect(output).not.toContain("비공개 요약");
+		const activeOutput = stripTerminalSequences(new TNotesSourceView(() => active).render(80).join("\n"));
+		expect(activeOutput).not.toContain('"classification": "reasoning"');
+		expect(activeOutput).not.toContain("비공개 reasoning 원문");
+		expect(activeOutput).not.toContain("실행 중인 다음 단계");
+
+		const completedOutput = stripTerminalSequences(new TNotesSourceView(() => ({
+			...active,
+			tnotes: [{
+				id: "resumed-note",
+				title: "완료된 질문",
+				summary: "질문: 완료된 질문\n왜: 재개 뒤에도 완료된 질문 기록만 유지합니다.\n결과: 검증을 마쳤습니다.",
+				sourceActivityIds: ["reasoning-completed"],
+				updatedAt: "2026-09-01T00:00:02.000Z",
+			}],
+		})).render(80).join("\n"));
+		expect(completedOutput).toContain("완료된 질문 · resumed-note");
+		expect(completedOutput).toContain("질문: 완료된 질문");
+		expect(completedOutput).toContain("결과: 검증을 마쳤습니다.");
 	});
 
 	test("renders a completed native command as a bounded public step card", () => {
@@ -425,13 +573,13 @@ describe("workbench dashboard views", () => {
 		}).render(70).join("\n"));
 		expect(output).toContain("단계 1 · PASSED");
 		expect(output).toContain("변경 결과 검증");
-		expect(output).toContain("command: bun test [redacted:local-path]");
-		expect(output).not.toContain("왜 하는지:");
-		expect(output).toContain("입력 요약");
+		expect(output).toContain("$ bun test [redacted:local-path]");
+		expect(output).toContain("왜 하는지:");
+		expect(output).toContain("┌─── ✔ Bash");
 		expect(output).not.toContain("/workspace/sample");
-		expect(output).toContain("출력 요약");
+		expect(output).toContain("├─── Output");
 		expect(output).toContain("result-20");
-		expect(output).toContain("이전 출력");
+		expect(output).toContain("earlier lines, showing 10 of 20");
 		expect(output).not.toContain("result-01");
 		expect(output).not.toContain("rawEnvelope");
 		expect(output).not.toContain("thread-secret");
@@ -470,7 +618,7 @@ describe("workbench dashboard views", () => {
 		}).render(62).join("\n"));
 		expect(output).toContain("단계 1 · RUNNING");
 		expect(output).toContain("변경 결과 검증");
-		expect(output).not.toContain("왜 하는지:");
+		expect(output).toContain("왜 하는지:");
 		expect(output).toContain("12 pass");
 		expect(output).toContain("1 fail");
 		expect(output).not.toContain("outputDelta");
@@ -556,7 +704,7 @@ describe("workbench dashboard views", () => {
 
 	test.each([
 		["failed", "전송 실패"],
-		["streaming", "전송 중"],
+		["streaming", "전송 준비 중"],
 	] as const)("shows the %s delivery state on an outbound user bubble", (status, label) => {
 		const outbound: WorkbenchSnapshot = {
 			...snapshot,
@@ -713,13 +861,13 @@ describe("workbench dashboard views", () => {
 		expect(output).toContain("/source");
 		expect(output).toContain("/mode");
 		expect(output).toContain("/permission");
+		expect(output).toContain("/model");
 		expect(output).toContain("Esc 중단");
 		expect(output).not.toContain("! 터미널");
-		expect(output).not.toContain("/model");
 		expect(output).not.toContain("/usage");
 	});
 
-	test("shows note identifiers and the complete immutable action result", () => {
+	test("keeps immutable action results out of completed-question notes", () => {
 		const withAction = {
 			...snapshot,
 			actionResult: {
@@ -732,14 +880,12 @@ describe("workbench dashboard views", () => {
 		} as WorkbenchSnapshot;
 		const output = stripTerminalSequences(new TNotesSourceView(() => withAction).render(100).join("\n"));
 		expect(output).toContain("note-1");
-		expect(output).toContain("ACTION · promotion · T-note promotion preview");
-		expect(output).toContain("- old");
-		expect(output).toContain("+ new");
-		expect(output).toContain("currentSource: # current");
-		expect(output).toContain("pending: # pending");
+		expect(output).not.toContain("ACTION");
+		expect(output).not.toContain("T-note promotion preview");
+		expect(output).not.toContain("currentSource");
 	});
 
-	test("shows only public activity metadata and a filtered payload in Source", () => {
+	test("keeps selected activity payloads out of completed-question notes", () => {
 		const selected: WorkbenchSnapshot = {
 			...snapshot,
 			journalSequence: 7,
@@ -771,15 +917,8 @@ describe("workbench dashboard views", () => {
 			chat: [],
 		};
 		const output = stripTerminalSequences(new TNotesSourceView(() => selected).render(100).join("\n"));
-		expect(output).toContain('"activityId": "activity-public-7"');
-		expect(output).toContain('"sequence": 7');
-		expect(output).toContain('"kind": "tool"');
-		expect(output).toContain('"phase": "completed"');
-		expect(output).toContain('"provider": "openai-codex"');
-		expect(output).toContain('"command": "bun test"');
-		expect(output).toContain('"aggregatedOutput": "12 pass"');
-		expect(output).not.toContain("nativeRefs");
-		expect(output).not.toContain("sourceDigest");
+		expect(output).not.toContain("activity-public-7");
+		expect(output).not.toContain("bun test");
 		expect(output).not.toContain("thread-secret");
 		expect(output).not.toContain("native-item-secret");
 		expect(output).not.toContain("rawEnvelope");
@@ -829,10 +968,10 @@ describe("workbench dashboard views", () => {
 		const output = stripTerminalSequences(sourceView.render(100).join("\n"));
 		const repeated = stripTerminalSequences(sourceView.render(100).join("\n"));
 		expect(performance.now() - startedAt).toBeLessThan(500);
-		expect(output).toContain("공개 Source 일부 생략");
-		expect(output).toContain("large-output-command");
-		expect(output).toContain("output-start");
-		expect(output).toContain("output-end");
+		expect(output).not.toContain("SOURCE");
+		expect(output).not.toContain("large-output-command");
+		expect(output).not.toContain("output-start");
+		expect(output).not.toContain("output-end");
 		expect(output).not.toContain("source-token-secret");
 		expect(output).not.toContain("비공개 판단");
 		expect(output).not.toContain("very-secret-value");
@@ -888,21 +1027,17 @@ describe("workbench dashboard views", () => {
 			},
 		};
 		const output = stripTerminalSequences(new TNotesSourceView(() => actionOnly).render(100).join("\n"));
-		expect(output).toContain("action-start password=[redacted]");
-		expect(output).toContain("action-end token=[redacted]");
-		expect(output).toContain("ACTION 일부 생략");
-		expect(output).not.toContain("front-password");
-		expect(output).not.toContain("tail-token");
-		expect(output.length).toBeLessThan(16_000);
-		expect(output.split("\n").length).toBeLessThanOrEqual(90);
+		expect(output).not.toContain("action-start");
+		expect(output).not.toContain("action-end");
+		expect(output).not.toContain("ACTION");
 	});
 
-	test.each([[120, 30], [70, 24]])("keeps titleless Chat, T-notes source, and Todo reachable at %ix%i", (width, height) => {
+	test.each([[120, 30], [70, 24]])("keeps titleless Chat, T-notes, and Todo content reachable at %ix%i", (width, height) => {
 		const layout = createDashboardLayout(
 			() => "WWW · sample-project",
 			{ color: text => text, component: new WorkbenchChatView(snapshot) },
-			{ title: "T-notes · 세션 요약", color: text => text, component: new TNotesSourceView(() => snapshot) },
-			{ title: "Todo.md · 현재 작업", color: text => text, component: new WorkspaceTodoView(() => snapshot.todo) },
+			{ color: text => text, component: new TNotesSourceView(() => snapshot) },
+			{ color: text => text, component: new WorkspaceTodoView(() => snapshot.todo) },
 		);
 		const frame = renderLayoutFrame(layout.component, width, height, () => undefined);
 		const output = stripTerminalSequences([
@@ -910,9 +1045,10 @@ describe("workbench dashboard views", () => {
 			...allScrollContent(frame.root),
 		].join("\n"));
 		expect(output).not.toContain("Chat · Native");
-		expect(output).toContain("T-notes · 세션 요약");
-		expect(output).toContain("Todo.md · 현재 작업");
+		expect(output).not.toContain("T-notes · 질문별 요약");
+		expect(output).not.toContain("T-notes · 세션 요약");
+		expect(output).not.toContain("Todo.md · 현재 작업");
 		expect(output).toContain("결정 요약");
-		expect(output).toContain("SOURCE");
+		expect(output).not.toContain("SOURCE");
 	});
 });

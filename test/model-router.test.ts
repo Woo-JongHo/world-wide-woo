@@ -25,6 +25,7 @@ describe("ModelRouter", () => {
 			}
 		}
 		expect(registry.getModel("openai-codex", "gpt-5.6-sol")).toBeDefined();
+		expect(registry.getModel("openai-codex", "gpt-5.6-luna")).toBeDefined();
 		expect(registry.getModel("openai", "gpt-5.4")).toBeDefined();
 		expect(registry.getModel("anthropic", "claude-opus-4-6")).toBeDefined();
 		expect(registry.getModel("google", "gemini-3.1-pro-preview")).toBeDefined();

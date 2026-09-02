@@ -20,7 +20,7 @@ export interface TodoItem {
 export interface TodoDocument {
 	readonly version: 1;
 	readonly revision: number;
-	/** Creator provenance only. Project Todo authorization is never session-scoped. */
+	/** Native thread-derived owner and provenance for this session-scoped Todo. */
 	readonly ownerSessionId: string;
 	readonly storyId: string | null;
 	readonly title: string;

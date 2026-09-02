@@ -89,17 +89,19 @@ describe("external review boundary", () => {
 	test("Pi production bridge uses a fresh tool-free packet-only context and rejects tool output", async () => {
 		const model = {} as Model<Api>;
 		let observed: { context: Context; options: ModelsSimpleStreamOptions } | undefined;
-		const response = { role: "assistant", content: [{ type: "text", text: "독립 검토" }], stopReason: "stop" } as AssistantMessage;
+		const observedUsage: unknown[] = [];
+		const response = { role: "assistant", content: [{ type: "text", text: "독립 검토" }], stopReason: "stop", usage: { totalTokens: 4_321 } } as AssistantMessage;
 		const client = new PiReviewGenerationClient({
 			getModel: (provider, id) => provider === "anthropic" && id === CLAUDE_OPUS_REVIEW_MODEL ? model : undefined,
 			streamSimple: (_model, context, options) => {
 				observed = { context, options: options ?? {} };
 				return { result: async () => response } as AssistantMessageEventStream;
 			},
-		});
+		}, observation => observedUsage.push(observation));
 		await expect(client.generate({ provider: "anthropic", model: CLAUDE_OPUS_REVIEW_MODEL, version: "opus-v", cwd: "", tools: [], readOnly: true, networkAccess: "provider-api-only", input: "packet only", packetDigest: "a".repeat(64) })).resolves.toBe("독립 검토");
 		expect(observed).toEqual(expect.objectContaining({ options: { toolChoice: "none" } }));
 		expect(observed?.context).toEqual(expect.objectContaining({ tools: [], messages: [expect.objectContaining({ role: "user", content: "packet only" })] }));
+		expect(observedUsage).toEqual([{ model: CLAUDE_OPUS_REVIEW_MODEL, effort: null, totalTokens: 4_321 }]);
 		const toolClient = new PiReviewGenerationClient({
 			getModel: () => model,
 			streamSimple: () => ({ result: async () => ({ role: "assistant", content: [{ type: "toolCall" }], stopReason: "toolUse" } as AssistantMessage) }) as AssistantMessageEventStream,

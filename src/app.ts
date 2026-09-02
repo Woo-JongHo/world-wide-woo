@@ -7,17 +7,22 @@ export interface RunAppOptions {
 	resumeThreadId?: string;
 }
 
-/** Native 3-pane workbench is the default `www` entrypoint. */
 export async function runApp(options: RunAppOptions = {}): Promise<void> {
-	const [{ FileSettingsStore }, { runProjectWorkbenchShell }] = await Promise.all([
-		import("./infrastructure/settings-store"),
-		import("./presentation/tui/workbench-shell"),
-	]);
-	const settings = await new FileSettingsStore().load();
+	const { FileSettingsStore } = await import("./infrastructure/settings-store");
+	const { runProjectWorkbenchShell } = await import("./presentation/tui/workbench-shell");
+	const settingsStore = new FileSettingsStore();
+	const settings = await settingsStore.load();
+	let persistedSettings = settings;
 	const project = await createProjectWorkbenchSession(process.cwd(), {
 		resumeThreadId: options.resumeThreadId,
 		model: codexInteractiveModel(settings),
 		effort: settings.effort,
+		persistModelSelection: async (selection) => {
+			const next: WwwSettings = { provider: "openai-codex", ...selection };
+			const saved = await settingsStore.compareAndSwap(persistedSettings, next);
+			if (!saved) throw new Error("다른 WWW 프로세스가 모델 설정을 먼저 변경했습니다. 다시 선택하세요.");
+			persistedSettings = next;
+		},
 	});
 	try {
 		runProjectWorkbenchShell({
@@ -33,18 +38,15 @@ export async function runApp(options: RunAppOptions = {}): Promise<void> {
 	}
 }
 
-/** Chat is always native Codex; router settings only select a Codex model when applicable. */
 export function codexInteractiveModel(settings: WwwSettings): string {
 	return settings.provider === "openai-codex" ? settings.model : DEFAULT_SETTINGS.model;
 }
 
 export async function runAuth(args: string[]): Promise<void> {
-	const [{ AuthService }, { FileCredentialStore }, { createModelRegistry }, { runAuthCommand }] = await Promise.all([
-		import("./infrastructure/auth-service"),
-		import("./infrastructure/credential-store"),
-		import("./infrastructure/model-router"),
-		import("./presentation/cli/auth-command"),
-	]);
+	const { AuthService } = await import("./infrastructure/auth-service");
+	const { FileCredentialStore } = await import("./infrastructure/credential-store");
+	const { createModelRegistry } = await import("./infrastructure/model-router");
+	const { runAuthCommand } = await import("./presentation/cli/auth-command");
 	const registry = createModelRegistry(new FileCredentialStore());
 	await runAuthCommand(new AuthService(registry), args);
 }

@@ -14,6 +14,7 @@ import type {
 	GenericToolResultSnapshot,
 } from "../../domain/output";
 import { colors, semantic, syntaxHighlightPlugin } from "./theme";
+import { renderExecutionLine } from "./work-step-card";
 
 const STRUCTURED_DISPLAY_MAX_BYTES = 64 * 1024;
 const STRUCTURED_DISPLAY_MAX_LINES = 2000;
@@ -188,7 +189,8 @@ export class BashResultCard implements Component {
 				activeStream = line.stream;
 				rows.push(line.stream === "stdout" ? colors.muted("stdout") : colors.error("stderr"));
 			}
-			rows.push(...wrapped(`  ${line.text}`, contentWidth));
+			const rendered = line.stream === "stderr" ? colors.error(line.text) : renderExecutionLine(line.text, "output");
+			rows.push(...wrappedHighlighted(`  ${rendered}`, contentWidth));
 		}
 		const details: string[] = [];
 		if (this.snapshot.exitCode !== undefined) details.push(`exit ${this.snapshot.exitCode}`);

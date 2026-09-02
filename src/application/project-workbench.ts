@@ -3,8 +3,11 @@ import type { NativeHarnessPort } from "./native-harness.js";
 import { createCanonicalDocumentDraft, type CanonicalPromotionService } from "./canonical-promotion.js";
 import type { ReviewService } from "./review-service.js";
 import type { ActivityNarrator } from "./activity-narrator.js";
+import type { SessionModelUsageSource } from "./session-model-usage.js";
 import { TodoWriteConflictError } from "./todo-ledger.js";
+import type { WooEntry } from "./woo-entry.js";
 import type {
+	BackgroundWorkState,
 	NativeApprovalPolicy,
 	NativeApprovalRequest,
 	NativeCollaborationMode,
@@ -15,6 +18,8 @@ import type {
 	NativeThreadStart,
 	NativeUncertainOperation,
 } from "../domain/native-session.js";
+import { projectBackgroundWorkState } from "../domain/native-session.js";
+import { EFFORTS, MODELS } from "../domain/model-settings.js";
 import {
 	isReasoningActivityPayload,
 	type ProjectActivity,
@@ -34,10 +39,12 @@ import {
 } from "../domain/work-steps.js";
 import {
 	projectActivityToTNoteSource,
+	sanitizeTNoteText,
 	type TNoteActivitySource,
 	type TNoteDraft,
 	type TNoteSourceRange,
 } from "../domain/t-notes.js";
+import { validateCanonicalTNote } from "./t-note-service.js";
 import type {
 	WorkbenchChatMessage,
 	WorkbenchChatQueueItem,
@@ -48,7 +55,10 @@ import type {
 	WorkbenchContextUsage,
 	WorkbenchListener,
 	WorkbenchLiveActivity,
+	WorkbenchModelSelection,
 	WorkbenchPermissionMode,
+	WorkbenchSessionGoal,
+	WorkbenchSessionUsage,
 	WorkbenchSnapshot,
 	WorkbenchTNote,
 } from "../domain/workbench.js";
@@ -63,9 +73,10 @@ const JOURNAL_NATIVE_MAX_ITEMS = 128;
 const JOURNAL_NATIVE_MAX_COLLECTION_ITEMS = 64;
 const JOURNAL_NATIVE_OMISSION = "[journal observation omitted]";
 const WORKBENCH_ACTION_RESULT_CHARACTER_LIMIT = 12 * 1024;
-const AUTOMATIC_TNOTE_ACTIVITY_THRESHOLD = 8;
-const AUTOMATIC_TNOTE_ACTIVITY_LIMIT = 100;
-const AUTOMATIC_TNOTE_INSTRUCTION = "이 www에서 생성한 현재 Native 세션의 사용자와 bori 대화 전체를 누적 세션 요약으로 다시 정리하세요. 대화의 요청과 직접 연결된 실행만 근거로 사용자의 목표, 중요한 결정, 변경 및 실행 결과, 검증 결과, 남은 작업과 위험을 간결한 항목으로 작성하세요. 세션 시작, 환경 초기화, MCP·인증 상태처럼 사용자 요청과 무관한 시스템 활동은 제외하고 raw activity를 시간순으로 나열하지 마세요.";
+const NATIVE_CONTEXT_BASELINE_TOKENS = 12_000;
+
+const SESSION_GOAL_MARKER = /^SESSION_GOAL:[ \t]*(\S(?:[^\r\n]*\S)?)$/u;
+const SESSION_GOAL_CHARACTER_LIMIT = 160;
 
 interface BoundedTextProjection {
 	readonly tail: string;
@@ -99,6 +110,8 @@ export interface WorkbenchActivityJournal {
 export interface WorkbenchTodoSource {
 	readonly snapshot: TodoDocument | null;
 	subscribe(listener: (snapshot: TodoDocument | null) => void): () => void;
+	/** Binds the live board to the provider-issued Native thread identity. */
+	bindThread?(threadId: string): Promise<void>;
 	/** Optional Native-plan mirror. It must never block the interactive Chat path. */
 	syncNativePlan?(turnId: string, flow: WorkFlowProjection): Promise<TodoDocument>;
 	create(title: string, items: readonly string[], storyId?: string): Promise<TodoDocument>;
@@ -113,6 +126,8 @@ export interface WorkbenchTodoSource {
 }
 
 export interface WorkbenchTNoteSource {
+	/** Binds T-note history to the provider-issued Native thread identity. */
+	bindThread?(threadId: string): Promise<void>;
 	readAll(projectId: string): Promise<readonly TNoteDraft[]>;
 	/** The adapter/generator owns its isolated cwd; Workbench never supplies the project root. */
 	create(input: {
@@ -120,11 +135,14 @@ export interface WorkbenchTNoteSource {
 		range: TNoteSourceRange;
 		activities: readonly TNoteActivitySource[];
 		instruction: string;
+		expectedQuestion: string;
 	}, signal?: AbortSignal): Promise<TNoteDraft>;
 }
 
 export interface ProjectWorkbenchOptions {
 	projectId: string;
+	/** Local, per-process journal namespace. Defaults to the project identity. */
+	activityJournalProjectId?: string;
 	provider?: string;
 	cwd: string;
 	model?: NativeThreadStart["model"];
@@ -132,11 +150,16 @@ export interface ProjectWorkbenchOptions {
 	approvalPolicy?: NativeThreadStart["approvalPolicy"];
 	sandbox?: NativeThreadStart["sandbox"];
 	resumeThreadId?: string;
+	/** Acquires the caller-owned writable lease before resuming a thread. */
+	acquireThreadLease?: (threadId: string) => Promise<void>;
 	todos?: WorkbenchTodoSource;
 	tnotes?: WorkbenchTNoteSource;
 	promotions?: CanonicalPromotionService;
 	reviews?: ReviewService;
 	narrator?: ActivityNarrator;
+	wooEntry?: WooEntry;
+	auxiliaryUsage?: SessionModelUsageSource;
+	persistModelSelection?: (selection: WorkbenchModelSelection) => Promise<void>;
 }
 
 /**
@@ -167,6 +190,8 @@ export class ProjectWorkbench {
 	};
 	private selectedActivityId: string | null = null;
 	private pendingApproval: NativeApprovalRequest | null = null;
+	private selectedModel: NativeThreadStart["model"];
+	private selectedEffort: NativeThreadStart["effort"];
 	private effectiveModel: string;
 	private effectiveEffort: string | null;
 	private permissionMode: WorkbenchPermissionMode;
@@ -174,16 +199,27 @@ export class ProjectWorkbench {
 	private approvalPolicy: NativeApprovalPolicy;
 	private sandbox: NativeSandboxMode;
 	private contextUsage: WorkbenchContextUsage | null = null;
+	private sessionGoal: WorkbenchSessionGoal | null = null;
+	private contextTurnId: string | null = null;
+	private observedThreadTotalTokens: number | null;
+	private readonly turnUsageModels = new Map<string, { model: string; effort: string | null }>();
+	private readonly usageTurns = new Set<string>();
+	private readonly modelUsage = new Map<string, { model: string; effort: string | null; turns: number; totalTokens: number }>();
+	private readonly pendingUsageByTurn = new Map<string, number>();
+	private unattributedUsageTokens = 0;
 	private threadId: string | null = null;
 	private activeTurnId: string | null = null;
 	private todo: TodoDocument | null;
 	private error: string | null = null;
 	private draft = "";
 	private reasoningDraft = "";
+	private reasoningSummaryDraft = "";
 	private draftItemId: string | null = null;
 	private reasoningItemId: string | null = null;
+	private reasoningSummaryItemId: string | null = null;
 	private draftProjection = emptyBoundedTextProjection();
 	private reasoningProjection = emptyBoundedTextProjection();
+	private reasoningSummaryProjection = emptyBoundedTextProjection();
 	private liveActivity: WorkbenchLiveActivity | null = null;
 	private liveActivityProjection = emptyBoundedTextProjection();
 	private actionResult: WorkbenchActionResult | null = null;
@@ -196,8 +232,8 @@ export class ProjectWorkbench {
 	};
 	private visibleThreadId: string | null = null;
 	private visibleAfterSequence = 0;
-	private automaticTNoteCoveredThrough = 0;
-	private automaticTNotePending = false;
+	private readonly automaticTNoteTurns = new Set<string>();
+	private readonly tnoteInFlight = new Map<string, Promise<TNoteDraft>>();
 	private durableNoteProjection: DurableNoteProjection = {
 		sourceLength: -1,
 		activitySourceLength: -1,
@@ -215,14 +251,18 @@ export class ProjectWorkbench {
 	private readonly ready: Promise<void>;
 	private readonly unsubscribeNative: () => void;
 	private readonly unsubscribeTodo: () => void;
+	private readonly unsubscribeAuxiliaryUsage: () => void;
 
 	public constructor(
 		private readonly native: NativeHarnessPort,
 		private readonly journal: WorkbenchActivityJournal,
 		private readonly options: ProjectWorkbenchOptions,
 	) {
+		this.selectedModel = options.model;
+		this.selectedEffort = options.effort;
 		this.effectiveModel = options.model ?? "codex";
 		this.effectiveEffort = options.effort ?? null;
+		this.observedThreadTotalTokens = options.resumeThreadId ? null : 0;
 		this.permissionMode = options.approvalPolicy === "never" && options.sandbox === "danger-full-access" ? "all" : "manual";
 		this.approvalPolicy = options.approvalPolicy ?? "on-request";
 		this.sandbox = options.sandbox ?? "workspace-write";
@@ -239,11 +279,25 @@ export class ProjectWorkbench {
 			this.todo = immutable(todo);
 			this.publish();
 		}) ?? (() => undefined);
+		this.unsubscribeAuxiliaryUsage = options.auxiliaryUsage?.subscribe(() => this.publish()) ?? (() => undefined);
 		void this.ready.catch((error) => this.fail(error));
 	}
 
 	public get snapshot(): WorkbenchSnapshot {
 		return this.current;
+	}
+
+	/** Conservative native-only background state for consumers that need it. */
+	public get backgroundWorkState(): BackgroundWorkState {
+		return projectBackgroundWorkState(this.visibleActivities.flatMap((activity) => {
+			const item = record(record(activity.payload.params)?.item);
+			return item ? [item] : [];
+		}));
+	}
+
+	/** Allows composition to fail before exposing a session with unusable state. */
+	public waitUntilReady(): Promise<void> {
+		return this.ready;
 	}
 
 	public subscribe(listener: WorkbenchListener, afterSequence?: number): () => void {
@@ -270,9 +324,11 @@ export class ProjectWorkbench {
 				case "activity.select": return this.selectActivity(commandId, command.activityId);
 				case "session.permission": return this.configurePermission(commandId, command.mode);
 				case "session.mode": return this.configureCollaboration(commandId, command.mode);
+				case "session.model": return await this.configureModel(commandId, command.selection);
+				case "woo-entry.refresh": return await this.refreshWooEntry(commandId);
 				case "tnote.capture-session": return await this.captureSessionNote(commandId);
-				case "tnote.capture": return await this.captureNote(commandId, command.activityIds, command.title);
-				case "tnote.capture-range": return await this.captureNoteRange(commandId, command.startSequence, command.endSequence, command.title);
+				case "tnote.capture": return await this.captureNote(commandId, command.activityIds);
+				case "tnote.capture-range": return await this.captureNoteRange(commandId, command.startSequence, command.endSequence);
 				case "chat.send": return await this.sendChat(commandId, command.text);
 				case "chat.cancel": return await this.cancelChat(commandId);
 				case "approval.resolve": return await this.resolveApproval(commandId, command);
@@ -310,6 +366,7 @@ export class ProjectWorkbench {
 		this.narrationAbort.abort();
 		this.unsubscribeNative();
 		this.unsubscribeTodo();
+		this.unsubscribeAuxiliaryUsage();
 		await this.commandQueue.catch(() => undefined);
 		await this.eventQueue.catch(() => undefined);
 		await this.todoSyncQueue.catch(() => undefined);
@@ -320,9 +377,9 @@ export class ProjectWorkbench {
 	}
 
 	private async initialize(): Promise<void> {
-		const [activities, notes] = await Promise.all([
-			this.journal.readAll(this.options.projectId),
-			this.options.tnotes?.readAll(this.options.projectId) ?? Promise.resolve([]),
+		const [activities] = await Promise.all([
+			this.journal.readAll(this.activityJournalProjectId()),
+			this.options.wooEntry?.refresh() ?? Promise.resolve(null),
 		]);
 		for (const activity of activities) {
 			const durableActivity = immutable(activity);
@@ -330,21 +387,19 @@ export class ProjectWorkbench {
 			this.rememberTerminalTurn(durableActivity);
 		}
 		this.visibleAfterSequence = this.activities.at(-1)?.sequence ?? 0;
-		this.automaticTNoteCoveredThrough = this.visibleAfterSequence;
-		for (const note of notes) {
-			this.noteDrafts.set(note.id, note);
-			this.notes.push(immutable(projectTNote(note)));
-		}
+		if (this.options.tnotes && !this.options.tnotes.bindThread) await this.loadBoundTNotes();
 		if (this.options.resumeThreadId) {
+			await this.options.acquireThreadLease?.(this.options.resumeThreadId);
 			const resumed = await this.native.resumeThread({
 				threadId: this.options.resumeThreadId,
 				cwd: this.options.cwd,
-				model: this.options.model,
-				effort: this.options.effort,
+				model: this.selectedModel,
+				effort: this.selectedEffort ?? undefined,
 				approvalPolicy: this.approvalPolicy,
 				sandbox: this.sandbox,
 				excludeTurns: true,
 			});
+			await this.bindThreadSources(resumed.id);
 			this.applyThreadSettings(resumed);
 			this.visibleThreadId = resumed.id;
 			this.visibleActivities.push(...this.activities.filter(activity => activity.nativeRefs.threadId === resumed.id));
@@ -363,6 +418,8 @@ export class ProjectWorkbench {
 			}, false);
 			if (delivery.state === "in-progress") {
 				this.activeTurnId = delivery.turnId;
+				this.contextTurnId = delivery.turnId;
+				this.bindTurnUsage(delivery.turnId, this.effectiveModel, this.effectiveEffort);
 				await this.appendActivity("progress", "started", {
 					threadId: read.id,
 					turnId: delivery.turnId,
@@ -372,13 +429,15 @@ export class ProjectWorkbench {
 				}, false);
 			}
 		}
+		this.sessionGoal = projectSessionGoal(this.visibleActivities);
+		this.reconcileAutomaticTNotes();
 		this.publish("ready");
 	}
 
 	private async sendChat(commandId: string, rawText: string): Promise<WorkbenchCommandReceipt> {
 		const text = rawText.trim();
 		if (!text) return { state: "rejected", commandId, reason: "보낼 메시지가 비어 있습니다." };
-		if (this.activeTurnId || this.chatQueue.length > 0 || this.chatDeliveryBlocked) {
+		if (this.activeTurnId || this.pendingApproval || this.chatQueue.length > 0 || this.chatDeliveryBlocked) {
 			this.chatQueue.push({ id: commandId, content: text, queuedAt: new Date().toISOString() });
 			this.publish();
 			return { state: "queued", commandId, position: this.chatQueue.length };
@@ -403,8 +462,8 @@ export class ProjectWorkbench {
 			try {
 				thread = await this.native.startThread({
 					cwd: this.options.cwd,
-					model: this.options.model,
-					effort: this.options.effort,
+					model: this.selectedModel,
+					effort: this.selectedEffort ?? undefined,
 					approvalPolicy: this.approvalPolicy,
 					sandbox: this.sandbox,
 				});
@@ -417,8 +476,10 @@ export class ProjectWorkbench {
 				this.publish();
 				throw error;
 			}
-			this.applyThreadSettings(thread);
 			this.threadId = thread.id;
+			await this.options.acquireThreadLease?.(thread.id);
+			await this.bindThreadSources(thread.id);
+			this.applyThreadSettings(thread);
 			await this.appendActivity("progress", "completed", { threadId: thread.id }, {
 				method: "thread/start",
 				thread: thread.value,
@@ -427,20 +488,25 @@ export class ProjectWorkbench {
 		const messageRefs = { threadId: this.threadId, itemId: localMessageId };
 		let turn: Awaited<ReturnType<NativeHarnessPort["startTurn"]>>;
 		try {
-			turn = await this.native.startTurn({
+			const turnInput = {
 				threadId: this.threadId,
 				text,
 				cwd: this.options.cwd,
-				model: this.options.model,
-				effort: this.options.effort,
+				model: this.selectedModel,
+				effort: this.selectedEffort ?? undefined,
 				approvalPolicy: this.approvalPolicy,
 				sandboxPolicy: this.currentSandboxPolicy(),
 				collaborationMode: this.currentNativeCollaborationMode(),
-			});
+			};
+			turn = await this.native.startTurn(this.options.wooEntry?.prepareTurn(turnInput) ?? turnInput);
 		} catch (error) {
 			if (isUncertain(error)) {
 				this.chatDeliveryBlocked = true;
 				this.blockedChat = { id: localMessageId, content: text };
+				await this.appendActivity("message", "failed", messageRefs, {
+					...messagePayload,
+					error: "Native가 메시지를 수신했는지 확인할 수 없습니다. 자동 재시도하지 않습니다.",
+				});
 				if (queued && this.chatQueue[0]?.id === localMessageId) this.chatQueue.shift();
 				throw error;
 			}
@@ -452,6 +518,8 @@ export class ProjectWorkbench {
 			this.publish();
 			throw error;
 		}
+		this.bindTurnUsage(turn.id, this.effectiveModel, this.effectiveEffort);
+		this.contextTurnId = turn.id;
 		this.activeTurnId = turn.id;
 		this.chatDeliveryBlocked = false;
 		this.blockedChat = null;
@@ -465,7 +533,7 @@ export class ProjectWorkbench {
 	}
 
 	private async drainChatQueue(): Promise<void> {
-		while (!this.closed && !this.activeTurnId && !this.chatDeliveryBlocked) {
+		while (!this.closed && !this.activeTurnId && !this.pendingApproval && !this.chatDeliveryBlocked) {
 			const next = this.chatQueue[0];
 			if (!next) return;
 			try {
@@ -507,6 +575,8 @@ export class ProjectWorkbench {
 			if (this.chatQueue[0]?.id === abandoned.id) this.chatQueue.shift();
 			if (delivery.state === "in-progress") {
 				this.activeTurnId = delivery.turnId;
+				this.contextTurnId = delivery.turnId;
+				this.bindTurnUsage(delivery.turnId, this.effectiveModel, this.effectiveEffort);
 				await this.appendActivity("progress", "started", {
 					threadId: this.threadId,
 					turnId: delivery.turnId,
@@ -603,6 +673,128 @@ export class ProjectWorkbench {
 		};
 	}
 
+	private async configureModel(
+		commandId: string,
+		selection: WorkbenchModelSelection,
+	): Promise<WorkbenchCommandReceipt> {
+		const supportedModels = MODELS["openai-codex"] as readonly string[];
+		if (!supportedModels.includes(selection.model) || !EFFORTS.includes(selection.effort)) {
+			return { state: "rejected", commandId, reason: "지원하지 않는 Codex 모델 설정입니다." };
+		}
+		if (selection.model === this.selectedModel && selection.effort === this.selectedEffort) {
+			return { state: "accepted", commandId, message: `이미 ${selection.model} · 추론 ${selection.effort}을 사용 중입니다.` };
+		}
+		if (this.activeTurnId || this.chatQueue.length > 0 || this.chatDeliveryBlocked) {
+			return { state: "rejected", commandId, reason: "응답 또는 대기 메시지를 처리하는 중에는 모델을 변경할 수 없습니다." };
+		}
+		await this.options.persistModelSelection?.(selection);
+		this.selectedModel = selection.model;
+		this.selectedEffort = selection.effort;
+		this.effectiveModel = selection.model;
+		this.effectiveEffort = selection.effort;
+		this.publish();
+		return {
+			state: "accepted",
+			commandId,
+			message: `모델 변경: ${selection.model} · 추론 ${selection.effort}`,
+		};
+	}
+
+	private observeTokenUsage(event: Extract<NativeHarnessEvent, { type: "notification" }>): void {
+		if (event.refs.threadId && this.threadId && event.refs.threadId !== this.threadId) return;
+		const totalTokens = projectThreadTotalTokens(event.params);
+		if (totalTokens !== null) {
+			let delta = 0;
+			if (this.observedThreadTotalTokens === null) {
+				// A resumed thread already contains historical usage. The first
+				// snapshot establishes this WWW process's baseline.
+				this.observedThreadTotalTokens = totalTokens;
+			} else if (totalTokens >= this.observedThreadTotalTokens) {
+				delta = totalTokens - this.observedThreadTotalTokens;
+				this.observedThreadTotalTokens = totalTokens;
+			}
+			if (delta > 0) this.attributeUsageDelta(event.refs.turnId, delta);
+		}
+		if (event.refs.turnId && event.refs.turnId === this.contextTurnId) {
+			this.contextUsage = projectContextUsage(event.params);
+		}
+	}
+
+	private bindTurnUsage(turnId: string, model: string, effort: string | null): void {
+		this.turnUsageModels.set(turnId, { model, effort });
+		const pending = this.pendingUsageByTurn.get(turnId);
+		if (!pending) return;
+		this.pendingUsageByTurn.delete(turnId);
+		this.unattributedUsageTokens = Math.max(0, this.unattributedUsageTokens - pending);
+		this.addModelUsage(turnId, model, effort, pending);
+	}
+
+	private attributeUsageDelta(turnId: string | undefined, delta: number): void {
+		const binding = turnId ? this.turnUsageModels.get(turnId) : undefined;
+		if (turnId && binding) {
+			this.addModelUsage(turnId, binding.model, binding.effort, delta);
+			return;
+		}
+		this.unattributedUsageTokens += delta;
+		if (turnId) this.pendingUsageByTurn.set(turnId, (this.pendingUsageByTurn.get(turnId) ?? 0) + delta);
+	}
+
+	private addModelUsage(turnId: string, model: string, effort: string | null, delta: number): void {
+		const key = `${model}\u0000${effort ?? ""}`;
+		const current = this.modelUsage.get(key) ?? { model, effort, turns: 0, totalTokens: 0 };
+		const firstUsageForTurn = !this.usageTurns.has(turnId);
+		if (firstUsageForTurn) this.usageTurns.add(turnId);
+		this.modelUsage.set(key, {
+			...current,
+			turns: current.turns + (firstUsageForTurn ? 1 : 0),
+			totalTokens: current.totalTokens + delta,
+		});
+	}
+
+	private projectSessionUsage(): WorkbenchSessionUsage {
+		const merged = new Map<string, { model: string; effort: string | null; turns: number; totalTokens: number }>();
+		for (const usage of [...this.modelUsage.values(), ...(this.options.auxiliaryUsage?.snapshot ?? [])]) {
+			const key = `${usage.model}\u0000${usage.effort ?? ""}`;
+			const current = merged.get(key);
+			merged.set(key, {
+				model: usage.model,
+				effort: usage.effort,
+				turns: (current?.turns ?? 0) + usage.turns,
+				totalTokens: (current?.totalTokens ?? 0) + usage.totalTokens,
+			});
+		}
+		const models = [...merged.values()]
+			.sort((left, right) => right.totalTokens - left.totalTokens || left.model.localeCompare(right.model))
+			.map((usage) => ({ ...usage }));
+		const attributedTokens = models.reduce((total, usage) => total + usage.totalTokens, 0);
+		return {
+			totalTokens: attributedTokens + this.unattributedUsageTokens,
+			unattributedTokens: this.unattributedUsageTokens,
+			models,
+		};
+	}
+
+	private async refreshWooEntry(commandId: string): Promise<WorkbenchCommandReceipt> {
+		const entry = this.options.wooEntry;
+		if (!entry) return { state: "rejected", commandId, reason: "woo-entry가 이 세션에 연결되지 않았습니다." };
+		const snapshot = await entry.refresh();
+		this.publish();
+		if (snapshot.state === "blocked") {
+			return { state: "rejected", commandId, reason: `woo-entry BLOCKED: ${snapshot.reason}` };
+		}
+		if (snapshot.state === "loading") {
+			return { state: "rejected", commandId, reason: "woo-entry 수집이 아직 끝나지 않았습니다." };
+		}
+		const signalCount = snapshot.payload.signals.length;
+		return {
+			state: "accepted",
+			commandId,
+			message: signalCount > 0
+				? `woo-entry를 갱신했습니다 · signal ${signalCount}개`
+				: "woo-entry를 갱신했습니다.",
+		};
+	}
+
 	private currentSandboxPolicy(): NativeSandboxPolicy {
 		if (this.permissionMode === "all") return { type: "dangerFullAccess" };
 		return {
@@ -628,7 +820,6 @@ export class ProjectWorkbench {
 	private async captureNote(
 		commandId: string,
 		activityIds: readonly string[],
-		title?: string,
 	): Promise<WorkbenchCommandReceipt> {
 		if (!this.options.tnotes) return { state: "rejected", commandId, reason: "T-notes 저장소가 연결되지 않았습니다." };
 		const uniqueIds = [...new Set(activityIds)];
@@ -637,33 +828,32 @@ export class ProjectWorkbench {
 		}
 		const selected = this.activities.filter((activity) => uniqueIds.includes(activity.id))
 			.sort((left, right) => left.sequence - right.sequence);
-		const startSequence = selected[0]!.sequence;
-		const endSequence = selected.at(-1)!.sequence;
-		if (endSequence - startSequence + 1 !== selected.length) {
-			return { state: "rejected", commandId, reason: "T-note source는 연속된 activity 범위여야 합니다." };
+		const scope = fullCompletedTurnScope(selected);
+		if (!scope) return { state: "rejected", commandId, reason: "T-note는 완료된 질문 하나의 전체 turn 범위여야 합니다." };
+		const request = this.tnoteRequest(scope.activities);
+		let existing = request.turnId ? this.noteForTurn(request.turnId) : undefined;
+		if (existing) return { state: "accepted", commandId, message: `T-note #${existing.sequence}을 사용합니다.` };
+		if (request.turnId && this.automaticTNoteTurns.has(request.turnId)) {
+			await this.tnoteQueue;
+			existing = this.noteForTurn(request.turnId);
+			if (existing) return { state: "accepted", commandId, message: `T-note #${existing.sequence}을 사용합니다.` };
 		}
-		const draft = await this.options.tnotes.create({
-			projectId: this.options.projectId,
-			range: { startSequence, endSequence },
-			activities: selected.map(projectActivityToTNoteSource),
-			instruction: title?.trim() || "선택한 세션 활동에서 목표, 결정, 작업 및 검증 결과, 남은 위험을 간결하게 요약하세요.",
-		}, this.narrationAbort.signal);
+		const draft = await this.createTNote(request, request.turnId);
+		if (!validateCanonicalTNote(draft.text, request.input.expectedQuestion).valid) {
+			return { state: "rejected", commandId, reason: "T-note 생성 결과 형식이 올바르지 않습니다." };
+		}
 		this.noteDrafts.set(draft.id, draft);
 		this.notes.push(immutable(projectTNote(draft)));
-		if (startSequence <= this.automaticTNoteCoveredThrough + 1) {
-			this.automaticTNoteCoveredThrough = Math.max(this.automaticTNoteCoveredThrough, endSequence);
-		}
-		this.setActionResult("tnote", `세션 요약 #${draft.sequence}`, draft.text, draft.packet.digest);
-		return { state: "accepted", commandId, message: `세션 요약 #${draft.sequence}을 만들었습니다.` };
+		this.setActionResult("tnote", `T-note #${draft.sequence}`, draft.text, draft.packet.digest);
+		return { state: "accepted", commandId, message: `T-note #${draft.sequence}을 만들었습니다.` };
 	}
 
 	private async captureSessionNote(commandId: string): Promise<WorkbenchCommandReceipt> {
-		const selected = this.visibleActivities.slice(-AUTOMATIC_TNOTE_ACTIVITY_LIMIT);
-		if (selected.length === 0) return { state: "rejected", commandId, reason: "요약할 현재 세션 대화가 없습니다." };
+		const scope = latestCompletedTurnNoteScope(this.visibleActivities);
+		if (!scope) return { state: "rejected", commandId, reason: "요약할 완료된 질문이 없습니다." };
 		return this.captureNote(
 			commandId,
-			selected.map((activity) => activity.id),
-			this.cumulativeTNoteInstruction(),
+			scope.activities.map((activity) => activity.id),
 		);
 	}
 
@@ -671,7 +861,6 @@ export class ProjectWorkbench {
 		commandId: string,
 		startSequence: number,
 		endSequence: number,
-		title?: string,
 	): Promise<WorkbenchCommandReceipt> {
 		if (!Number.isSafeInteger(startSequence) || !Number.isSafeInteger(endSequence) || startSequence < 1 || endSequence < startSequence) {
 			return { state: "rejected", commandId, reason: "T-note sequence 범위가 올바르지 않습니다." };
@@ -680,7 +869,53 @@ export class ProjectWorkbench {
 		if (selected.length !== endSequence - startSequence + 1 || selected[0]?.sequence !== startSequence || selected.at(-1)?.sequence !== endSequence) {
 			return { state: "rejected", commandId, reason: "요청한 T-note sequence 범위가 activity journal에서 연속되지 않습니다." };
 		}
-		return this.captureNote(commandId, selected.map((activity) => activity.id), title);
+		return this.captureNote(commandId, selected.map((activity) => activity.id));
+	}
+
+	private tnoteRequest(selected: readonly ProjectActivity[]): {
+		readonly turnId: string;
+		readonly input: Parameters<WorkbenchTNoteSource["create"]>[0];
+	} {
+		const turnId = selected.at(-1)!.nativeRefs.turnId!;
+		const scope = completedTurnNoteScope(selected, turnId)!;
+		const question = scope.question;
+		return {
+			turnId,
+			input: {
+				projectId: this.options.projectId,
+				range: { startSequence: selected[0]!.sequence, endSequence: selected.at(-1)!.sequence },
+				activities: selected.map(projectActivityToTNoteSource),
+				instruction: turnTNoteInstruction(question),
+				expectedQuestion: question,
+			},
+		};
+	}
+
+	private async createTNote(
+		request: ReturnType<ProjectWorkbench["tnoteRequest"]>,
+		turnId?: string,
+	): Promise<TNoteDraft> {
+		if (!this.options.tnotes) throw new Error("T-notes 저장소가 연결되지 않았습니다.");
+		if (turnId) {
+			const inFlight = this.tnoteInFlight.get(turnId);
+			if (inFlight) return inFlight;
+			this.automaticTNoteTurns.add(turnId);
+			const pending = this.options.tnotes.create(request.input, this.narrationAbort.signal);
+			this.tnoteInFlight.set(turnId, pending);
+			try { return await pending; } finally {
+				this.tnoteInFlight.delete(turnId);
+				this.automaticTNoteTurns.delete(turnId);
+			}
+		}
+		return this.options.tnotes.create(request.input, this.narrationAbort.signal);
+	}
+
+	private noteForTurn(turnId: string): TNoteDraft | undefined {
+		const scope = completedTurnNoteScope(this.visibleActivities, turnId);
+		const terminalActivityId = scope?.activities.at(-1)?.id;
+		return terminalActivityId
+			? [...this.noteDrafts.values()].find((note) => note.packet.activities.some((activity) => activity.id === terminalActivityId))
+			: undefined;
 	}
 
 	private async mutateTodo(
@@ -796,6 +1031,28 @@ export class ProjectWorkbench {
 		return this.options.todos;
 	}
 
+	private async bindThreadSources(threadId: string): Promise<void> {
+		await this.options.tnotes?.bindThread?.(threadId);
+		await this.loadBoundTNotes();
+		await this.bindTodoThread(threadId);
+	}
+
+	private async loadBoundTNotes(): Promise<void> {
+		if (!this.options.tnotes) return;
+		const notes = await this.options.tnotes.readAll(this.options.projectId);
+		for (const note of notes) {
+			this.noteDrafts.set(note.id, note);
+			this.notes.push(immutable(projectTNote(note)));
+		}
+	}
+
+	private async bindTodoThread(threadId: string): Promise<void> {
+		const todos = this.options.todos;
+		if (!todos?.bindThread) return;
+		await todos.bindThread(threadId);
+		this.todo = immutable(todos.snapshot);
+	}
+
 	private setActionResult(kind: WorkbenchActionResult["kind"], title: string, body: string, digest?: string): void {
 		this.actionResult = immutable({
 			kind,
@@ -810,7 +1067,7 @@ export class ProjectWorkbench {
 	private async recordNativeEvent(event: NativeHarnessEvent): Promise<void> {
 		if (this.closed) return;
 		if (event.type === "notification" && event.method === "thread/tokenUsage/updated") {
-			this.contextUsage = projectContextUsage(event.params);
+			this.observeTokenUsage(event);
 		}
 		if (event.type === "notification" && isDeltaNotification(event.method)) {
 			this.applyDelta(event);
@@ -823,9 +1080,19 @@ export class ProjectWorkbench {
 			event.method.toLowerCase() === "turn/completed";
 		const sourceDigest = digestSource(stableJson(event));
 		const observation = nativeObservation(event);
-		await this.appendActivity(observation.kind, observation.phase, observation.refs, observation.payload, false, sourceDigest);
+		await this.appendActivity(
+			observation.kind,
+			observation.phase,
+			observation.refs,
+			observation.payload,
+			false,
+			sourceDigest,
+		);
+		const projectedGoal = projectSessionGoal(this.visibleActivities);
+		if (projectedGoal) this.sessionGoal = projectedGoal;
 		if (event.type === "approval-requested") this.pendingApproval = immutable(event.approval);
-		if (event.type === "approval-resolved" && this.pendingApproval?.requestId === event.requestId) this.pendingApproval = null;
+		const approvalResolved = event.type === "approval-resolved" && this.pendingApproval?.requestId === event.requestId;
+		if (approvalResolved) this.pendingApproval = null;
 		if (event.type === "notification") {
 			const lateStartForTerminalTurn = lifecycle === "started" && event.refs.turnId
 				? this.hasTerminalTurn(event.refs.threadId ?? this.threadId ?? undefined, event.refs.turnId)
@@ -833,6 +1100,10 @@ export class ProjectWorkbench {
 			if (lifecycle === "started" && event.refs.turnId && !lateStartForTerminalTurn) {
 				const reconciledChat = this.blockedChat;
 				this.activeTurnId = event.refs.turnId;
+				this.contextTurnId = event.refs.turnId;
+				if (!this.turnUsageModels.has(event.refs.turnId)) {
+					this.bindTurnUsage(event.refs.turnId, this.effectiveModel, this.effectiveEffort);
+				}
 				this.chatDeliveryBlocked = false;
 				if (reconciledChat) this.error = null;
 				if (reconciledChat && this.chatQueue[0]?.id === reconciledChat.id) this.chatQueue.shift();
@@ -861,6 +1132,11 @@ export class ProjectWorkbench {
 				this.reasoningItemId = null;
 				this.reasoningProjection = emptyBoundedTextProjection();
 			}
+			if (!event.refs.itemId || event.refs.itemId === this.reasoningSummaryItemId) {
+				this.reasoningSummaryDraft = "";
+				this.reasoningSummaryItemId = null;
+				this.reasoningSummaryProjection = emptyBoundedTextProjection();
+			}
 			if (!event.refs.itemId || event.refs.itemId === this.liveActivity?.nativeRefs.itemId) {
 				this.liveActivity = null;
 				this.liveActivityProjection = emptyBoundedTextProjection();
@@ -869,38 +1145,31 @@ export class ProjectWorkbench {
 		const refs = event.type === "approval-requested" ? event.approval.refs : event.refs;
 		this.reconcileNativeState(refs.threadId ?? this.threadId ?? undefined);
 		this.publish();
-		if (completedSummaryCheckpoint) this.scheduleAutomaticTNote();
-		if (completedActiveTurn) await this.drainChatQueue();
+		if (completedSummaryCheckpoint && event.type === "notification" && event.refs.turnId) {
+			this.scheduleAutomaticTNote(event.refs.turnId);
+		}
+		if (completedActiveTurn || approvalResolved) await this.drainChatQueue();
 	}
 
 	/**
-	 * T-notes are completed-session summaries, never a live activity mirror.
-	 * Generation runs behind its own queue so the next Chat turn can start while
-	 * the detached summary model works from an immutable, bounded packet.
+	 * T-notes describe one completed user question at a time. Generation stays
+	 * on a detached queue so it cannot delay the next native Chat turn.
 	 */
-	private scheduleAutomaticTNote(): void {
-		const source = this.options.tnotes;
-		if (!source || this.closed || this.automaticTNotePending || this.narrationAbort.signal.aborted) return;
-		const pending = this.visibleActivities.filter((activity) => activity.sequence > this.automaticTNoteCoveredThrough);
-		if (pending.length < AUTOMATIC_TNOTE_ACTIVITY_THRESHOLD) return;
-		const selected = this.visibleActivities.slice(-AUTOMATIC_TNOTE_ACTIVITY_LIMIT);
-		const startSequence = selected[0]?.sequence;
-		const endSequence = selected.at(-1)?.sequence;
-		if (!startSequence || !endSequence || endSequence - startSequence + 1 !== selected.length) return;
-
-		this.automaticTNotePending = true;
+	private scheduleAutomaticTNote(turnId: string): void {
+		if (!this.options.tnotes || this.closed || this.narrationAbort.signal.aborted || this.automaticTNoteTurns.has(turnId)) return;
+		const scope = completedTurnNoteScope(this.visibleActivities, turnId);
+		if (!scope || this.hasTNoteFor(scope.activities)) return;
+		this.automaticTNoteTurns.add(turnId);
+		const request = this.tnoteRequest(scope.activities);
 		this.tnoteQueue = this.tnoteQueue
 			.catch(() => undefined)
 			.then(async () => {
 				try {
-					const draft = await source.create({
-						projectId: this.options.projectId,
-						range: { startSequence, endSequence },
-						activities: selected.map(projectActivityToTNoteSource),
-						instruction: this.cumulativeTNoteInstruction(),
-					}, this.narrationAbort.signal);
+					const draft = await this.createTNote(request, turnId);
 					if (this.closed || this.narrationAbort.signal.aborted) return;
-					this.automaticTNoteCoveredThrough = Math.max(this.automaticTNoteCoveredThrough, endSequence);
+					if (!validateCanonicalTNote(draft.text, request.input.expectedQuestion).valid) {
+						throw new Error("T-note 생성 결과 형식이 올바르지 않습니다.");
+					}
 					this.noteDrafts.set(draft.id, draft);
 					this.notes.push(immutable(projectTNote(draft)));
 					this.publish();
@@ -908,22 +1177,29 @@ export class ProjectWorkbench {
 					if (this.closed || this.narrationAbort.signal.aborted) return;
 					this.actionResult = immutable({
 						kind: "tnote",
-						title: "세션 요약 자동 생성 보류",
+						title: "질문 요약 자동 생성 보류",
 						body: sanitizeTerminalTextExcerpt(errorMessage(error), WORKBENCH_ACTION_RESULT_CHARACTER_LIMIT, "head-tail"),
 						createdAt: new Date().toISOString(),
 					});
 					this.publish();
 				} finally {
-					this.automaticTNotePending = false;
+					this.automaticTNoteTurns.delete(turnId);
 				}
 			});
 	}
 
-	private cumulativeTNoteInstruction(): string {
-		const previous = this.currentSessionNotes().at(-1)?.summary;
-		if (!previous) return AUTOMATIC_TNOTE_INSTRUCTION;
-		const prior = sanitizeTerminalTextExcerpt(previous, 2_400, "head-tail");
-		return `${AUTOMATIC_TNOTE_INSTRUCTION}\n\n이전 누적 요약:\n${prior}`;
+	private reconcileAutomaticTNotes(): void {
+		const turnIds = new Set<string>();
+		for (const activity of this.visibleActivities) {
+			if (activity.payload.method === "turn/completed" && activity.nativeRefs.turnId) turnIds.add(activity.nativeRefs.turnId);
+		}
+		for (const turnId of turnIds) this.scheduleAutomaticTNote(turnId);
+	}
+
+	private hasTNoteFor(activities: readonly ProjectActivity[]): boolean {
+		const terminalActivityId = activities.at(-1)?.id;
+		return Boolean(terminalActivityId && [...this.noteDrafts.values()]
+			.some((note) => note.packet.activities.some((activity) => activity.id === terminalActivityId)));
 	}
 
 	private applyDelta(event: Extract<NativeHarnessEvent, { type: "notification" }>): void {
@@ -931,7 +1207,20 @@ export class ProjectWorkbench {
 		const delta = activityText({ params: event.params });
 		const method = event.method.toLowerCase();
 		const reasoning = method.includes("reasoning");
-		if (reasoning) {
+		const publicReasoningSummary = method.includes("reasoning/summarytextdelta");
+		if (publicReasoningSummary) {
+			if (event.refs.itemId && this.reasoningSummaryItemId && event.refs.itemId !== this.reasoningSummaryItemId) {
+				this.reasoningSummaryProjection = emptyBoundedTextProjection();
+			}
+			this.reasoningSummaryItemId = event.refs.itemId ?? this.reasoningSummaryItemId;
+			const projection = appendBoundedText(
+				this.reasoningSummaryProjection,
+				delta,
+				REASONING_DRAFT_TAIL_CHARACTER_LIMIT,
+			);
+			this.reasoningSummaryProjection = projection.state;
+			this.reasoningSummaryDraft = projection.text;
+		} else if (reasoning) {
 			if (event.refs.itemId && this.reasoningItemId && event.refs.itemId !== this.reasoningItemId) {
 				this.reasoningProjection = emptyBoundedTextProjection();
 			}
@@ -989,7 +1278,7 @@ export class ProjectWorkbench {
 	): Promise<ProjectActivity> {
 		const digest = sourceDigest ?? digestSource(stableJson({ kind, phase, nativeRefs, payload }));
 		const result = await this.journal.append({
-			projectId: this.options.projectId,
+			projectId: this.activityJournalProjectId(),
 			kind,
 			phase,
 			provider: this.options.provider ?? "openai-codex",
@@ -1010,6 +1299,10 @@ export class ProjectWorkbench {
 		this.rememberTerminalTurn(durableActivity);
 		if (publish) this.publish();
 		return durableActivity;
+	}
+
+	private activityJournalProjectId(): string {
+		return this.options.activityJournalProjectId ?? this.options.projectId;
 	}
 
 	private reconcileNativeState(threadId: string | undefined): void {
@@ -1051,7 +1344,7 @@ export class ProjectWorkbench {
 
 	private publish(phase?: WorkbenchSnapshot["phase"]): void {
 		if (phase !== "loading") this.revision += 1;
-		this.current = this.makeSnapshot(phase ?? (this.error ? "error" : this.activeTurnId ? "working" : "ready"));
+		this.current = this.makeSnapshot(phase ?? (this.error ? "error" : this.activeTurnId || this.pendingApproval ? "working" : "ready"));
 		for (const listener of this.listeners) {
 			try { listener(this.current); } catch { /* observers cannot corrupt durable state */ }
 		}
@@ -1067,8 +1360,11 @@ export class ProjectWorkbench {
 			model: this.effectiveModel,
 			effort: this.effectiveEffort,
 			contextUsage: this.contextUsage,
+			sessionUsage: this.projectSessionUsage(),
+			sessionGoal: this.sessionGoal,
 			permissionMode: this.permissionMode,
 			collaborationMode: this.collaborationMode,
+			wooEntry: this.options.wooEntry?.snapshot ?? null,
 			threadId: this.threadId,
 			activeTurnId: this.activeTurnId,
 			activityCount: durable.activityCount,
@@ -1079,6 +1375,7 @@ export class ProjectWorkbench {
 			chatQueue: immutable(this.chatQueue),
 			draft: this.draft,
 			reasoningDraft: this.reasoningDraft,
+			reasoningSummaryDraft: this.reasoningSummaryDraft,
 			liveActivity: immutable(this.liveActivity),
 			workFlow: this.projectCurrentWorkFlow(),
 			tnotes: this.projectDurableNotes(),
@@ -1107,11 +1404,11 @@ export class ProjectWorkbench {
 			&& this.durableNoteProjection.activitySourceLength === this.visibleActivities.length) {
 			return this.durableNoteProjection.notes;
 		}
-		const latest = this.currentSessionNotes().at(-1);
+		const current = this.currentSessionNotes();
 		this.durableNoteProjection = {
 			sourceLength: this.notes.length,
 			activitySourceLength: this.visibleActivities.length,
-			notes: Object.freeze(latest ? [latest] : []),
+			notes: Object.freeze([...current]),
 		};
 		return this.durableNoteProjection.notes;
 	}
@@ -1140,7 +1437,8 @@ export class ProjectWorkbench {
 	}
 
 	private scheduleNativeTodoSync(activity: ProjectActivity): void {
-		const sync = this.options.todos?.syncNativePlan;
+		const todos = this.options.todos;
+		const sync = todos?.syncNativePlan?.bind(todos);
 		const turnId = activity.nativeRefs.turnId;
 		if (!sync || !turnId) return;
 		const flow = this.projectCurrentWorkFlow();
@@ -1154,7 +1452,8 @@ export class ProjectWorkbench {
 	}
 
 	private scheduleNarratedTodoSync(): void {
-		const sync = this.options.todos?.syncNativePlan;
+		const todos = this.options.todos;
+		const sync = todos?.syncNativePlan?.bind(todos);
 		if (!sync) return;
 		const flow = this.projectCurrentWorkFlow();
 		const planStep = flow.steps.find((step) => /^plan:.+:\d+$/u.test(step.id));
@@ -1253,12 +1552,21 @@ function nativeObservation(event: NativeHarnessEvent): {
 		payload: { eventType: event.type, requestId: event.requestId },
 	};
 	const rawPayload = { eventType: event.type, method: event.method, params: event.params };
-	if (isReasoningActivityPayload(rawPayload)) return {
-		kind: activityKind(event.method, event.params),
-		phase: activityPhase(event.method),
-		refs: event.refs,
-		payload: { eventType: event.type, method: event.method, classification: "reasoning", redacted: true },
-	};
+	if (isReasoningActivityPayload(rawPayload)) {
+		const publicSummary = nativeReasoningSummary(event.params);
+		return {
+			kind: activityKind(event.method, event.params),
+			phase: activityPhase(event.method),
+			refs: event.refs,
+			payload: {
+				eventType: event.type,
+				method: event.method,
+				classification: "reasoning",
+				redacted: true,
+				...(publicSummary ? { publicSummary } : {}),
+			},
+		};
+	}
 	const kind = activityKind(event.method, event.params);
 	const publicMessage = kind === "message" ? activityText({ params: event.params }) : "";
 	const params = boundedJournalNativeValue(event.params);
@@ -1277,6 +1585,20 @@ function nativeObservation(event: NativeHarnessEvent): {
 	};
 }
 
+function nativeReasoningSummary(params: Readonly<Record<string, unknown>>): string {
+	const item = record(params.item);
+	if (String(item?.type ?? "").toLowerCase() !== "reasoning") return "";
+	const summary = item?.summary;
+	const text = typeof summary === "string"
+		? summary
+		: Array.isArray(summary) && summary.every((part) => typeof part === "string")
+			? summary.join("\n")
+			: "";
+	return text
+		? sanitizeTerminalTextExcerpt(text, REASONING_DRAFT_TAIL_CHARACTER_LIMIT, "head-tail").trim()
+		: "";
+}
+
 function projectContextUsage(params: Readonly<Record<string, unknown>>): WorkbenchContextUsage | null {
 	const tokenUsage = record(params.tokenUsage);
 	const last = record(tokenUsage?.last);
@@ -1284,11 +1606,20 @@ function projectContextUsage(params: Readonly<Record<string, unknown>>): Workben
 	const contextWindow = tokenUsage?.modelContextWindow;
 	if (typeof usedTokens !== "number" || !Number.isFinite(usedTokens) || usedTokens < 0) return null;
 	if (typeof contextWindow !== "number" || !Number.isFinite(contextWindow) || contextWindow <= 0) return null;
+	const effectiveWindow = Math.max(1, contextWindow - NATIVE_CONTEXT_BASELINE_TOKENS);
+	const effectiveUsed = Math.max(0, usedTokens - NATIVE_CONTEXT_BASELINE_TOKENS);
 	return Object.freeze({
 		usedTokens,
 		contextWindow,
-		percent: Math.round((usedTokens / contextWindow) * 1_000) / 10,
+		percent: Math.min(100, Math.round((effectiveUsed / effectiveWindow) * 1_000) / 10),
 	});
+}
+
+function projectThreadTotalTokens(params: Readonly<Record<string, unknown>>): number | null {
+	const tokenUsage = record(params.tokenUsage);
+	const total = record(tokenUsage?.total);
+	const totalTokens = total?.totalTokens;
+	return typeof totalTokens === "number" && Number.isFinite(totalTokens) && totalTokens >= 0 ? totalTokens : null;
 }
 
 function boundedJournalNativeValue(value: unknown): { value: unknown; omitted: boolean } {
@@ -1356,10 +1687,135 @@ function journalNativeFieldPriority(key: string): number {
 		.includes(normalized) ? 1 : 0;
 }
 
+function completedTurnNoteScope(
+	activities: readonly ProjectActivity[],
+	turnId: string,
+): { readonly question: string; readonly activities: readonly ProjectActivity[] } | null {
+	let terminalIndex = -1;
+	let startIndex = -1;
+	for (const [index, activity] of activities.entries()) {
+		if (activity.nativeRefs.turnId !== turnId) continue;
+		if (activity.payload.method === "turn/start" || activity.payload.method === "turn/started") startIndex = index;
+		if (activity.payload.method === "turn/completed") terminalIndex = index;
+	}
+	if (startIndex < 0 || terminalIndex < startIndex) return null;
+	const questionIndex = questionIndexForTurn(activities, startIndex, activities[startIndex]!.nativeRefs.threadId);
+	if (questionIndex < 0) return null;
+	const threadId = activities[startIndex]!.nativeRefs.threadId;
+	if (!threadId || activities[questionIndex]!.nativeRefs.threadId !== threadId) return null;
+	const question = normalizedQuestion(activityText(activities[questionIndex]!.payload));
+	if (!question) return null;
+	const selected = activities.filter((activity, index) =>
+		index === questionIndex || (index >= startIndex && index <= terminalIndex &&
+			activity.nativeRefs.threadId === threadId && activity.nativeRefs.turnId === turnId));
+	if (!selected.some((activity) => activity.payload.method === "turn/completed")) return null;
+	const sequences = selected.map((activity) => activity.sequence);
+	if (sequences.some((sequence, index) => index > 0 && sequence <= sequences[index - 1]!)) return null;
+	return { question, activities: selected };
+}
+
+function questionForTurn(activities: readonly ProjectActivity[], turnId: string, knownStartIndex?: number): string | null {
+	let startIndex = knownStartIndex ?? -1;
+	if (startIndex < 0) {
+		for (const [index, activity] of activities.entries()) {
+			if (activity.nativeRefs.turnId === turnId &&
+				(activity.payload.method === "turn/start" || activity.payload.method === "turn/started")) startIndex = index;
+		}
+	}
+	if (startIndex < 0) return null;
+	const questionIndex = questionIndexForTurn(activities, startIndex, activities[startIndex]!.nativeRefs.threadId);
+	if (questionIndex < 0) return null;
+	const question = normalizedQuestion(activityText(activities[questionIndex]!.payload));
+	return question || null;
+}
+
+function questionIndexForTurn(activities: readonly ProjectActivity[], startIndex: number, threadId?: string): number {
+	if (!threadId) return -1;
+	let questionIndex = -1;
+	for (let index = startIndex - 1; index >= 0; index -= 1) {
+		const activity = activities[index]!;
+		if (activity.kind === "message" && activity.phase === "completed" &&
+			activity.payload.direction === "outbound" && activity.nativeRefs.threadId === threadId) {
+			questionIndex = index;
+			break;
+		}
+	}
+	return questionIndex;
+}
+
+function latestCompletedTurnNoteScope(
+	activities: readonly ProjectActivity[],
+): { readonly question: string; readonly activities: readonly ProjectActivity[] } | null {
+	for (let index = activities.length - 1; index >= 0; index -= 1) {
+		const activity = activities[index]!;
+		if (activity.payload.method !== "turn/completed" || !activity.nativeRefs.turnId) continue;
+		const scope = completedTurnNoteScope(activities, activity.nativeRefs.turnId);
+		if (scope) return scope;
+	}
+	return null;
+}
+
+function fullCompletedTurnScope(
+	selected: readonly ProjectActivity[],
+): { readonly question: string; readonly activities: readonly ProjectActivity[] } | null {
+	const turnId = selected.at(-1)?.nativeRefs.turnId;
+	if (!turnId) return null;
+	const scope = completedTurnNoteScope([...selected].sort((left, right) => left.sequence - right.sequence), turnId);
+	if (!scope || scope.activities.length !== selected.length ||
+		scope.activities.some((activity, index) => activity.id !== selected[index]?.id)) return null;
+	return scope;
+}
+
+function turnTNoteInstruction(question: string): string {
+	return [
+		"완료된 질문 하나를 T-note로 정리하세요.",
+		`질문: ${question}`,
+		"관찰 가능한 대화와 실행만 근거로 삼고 숨은 사고과정은 추측하지 마세요.",
+		"처음 보는 사람도 이해하도록 전문용어를 풀고, 각 항목은 한두 문장으로 짧게 쓰세요.",
+		"파일 목록·원시 로그·다음 할 일은 넣지 마세요. 미완료나 실패는 결과에 그대로 밝히세요.",
+		"출력은 다음 세 줄 형식을 정확히 지키세요:",
+		`질문: ${question}`,
+		"왜: 이 답에 도달하려고 어떤 확인이나 작업을 왜 거쳤는지 설명",
+		"결과: 실제로 나온 답, 변경, 검증 또는 남은 문제",
+	].join("\n");
+}
+
+function normalizedQuestion(text: string): string {
+	const excerpt = sanitizeTerminalTextExcerpt(text, 800, "head-tail").trim().replace(/\s+/gu, " ");
+	return sanitizeTNoteText(excerpt, 800);
+}
+
+function projectSessionGoal(activities: readonly ProjectActivity[]): WorkbenchSessionGoal | null {
+	for (let index = activities.length - 1; index >= 0; index -= 1) {
+		const activity = activities[index]!;
+		if (activity.kind !== "message" || activity.phase !== "completed" || activity.payload.direction === "outbound") continue;
+		const text = sessionGoalMarker(activityText(activity.payload));
+		if (!text || !activity.nativeRefs.turnId) continue;
+		const question = questionForTurn(activities, activity.nativeRefs.turnId);
+		if (!question || !isSessionGoalRequest(question)) continue;
+		return { text, sourceActivityId: activity.id, updatedAt: activity.recordedAt };
+	}
+	return null;
+}
+
+function isSessionGoalRequest(question: string): boolean {
+	return /^\$session-goal(?:[ \t]+|$)/u.test(question);
+}
+
+function sessionGoalMarker(text: string): string | null {
+	const match = SESSION_GOAL_MARKER.exec(text);
+	const goal = match?.[1];
+	if (!goal || goal.length > SESSION_GOAL_CHARACTER_LIMIT) return null;
+	return goal;
+}
+
 function projectTNote(draft: TNoteDraft): WorkbenchTNote {
+	const question = /^질문:\s*(.+)$/imu.exec(draft.text)?.[1]?.trim();
 	return {
 		id: draft.id,
-		title: "현재 세션 대화 요약",
+		title: question
+			? sanitizeTerminalTextExcerpt(question, 160, "head-tail")
+			: "현재 세션 대화 요약",
 		summary: draft.text,
 		sourceActivityIds: draft.packet.activities.map((activity) => activity.id),
 		updatedAt: draft.createdAt,
@@ -1370,7 +1826,7 @@ function canonicalTNoteDraft(draft: TNoteDraft, sessionId: string): CanonicalDoc
 	const source = stableJson(draft);
 	return createCanonicalDocumentDraft({
 		kind: "tnote",
-		body: `# 세션 요약 #${draft.sequence}\n\n${draft.text}`,
+		body: `# 질문 요약 #${draft.sequence}\n\n${draft.text}`,
 		source: { id: draft.id, body: source },
 		provenance: { sessionId, capturedAt: draft.createdAt },
 	});

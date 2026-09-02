@@ -1,0 +1,6 @@
+interface:
+  display_name: "Session Goal"
+  short_description: "현재 WWW 세션의 목표를 한 문장으로 정리"
+  default_prompt: "Use $session-goal to define one concise goal for this WWW session."
+policy:
+  allow_implicit_invocation: false

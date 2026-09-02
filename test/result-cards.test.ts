@@ -84,6 +84,19 @@ describe("BashResultCard", () => {
 		expect(text).not.toContain("supersecret");
 		expect(lines.every((line) => visibleWidth(line) === 40)).toBe(true);
 	});
+
+	test("applies semantic Git status and diff highlighting inside Bash output", () => {
+		const rendered = new BashResultCard(snapshot({
+			command: "git status --short && git diff -- src/app.ts",
+			stdout: " M src/app.ts\n?? notes.md\ndiff --git a/src/app.ts b/src/app.ts\n@@ -1 +1 @@\n-old\n+new",
+		})).render(100).join("\n");
+		const text = stripTerminalSequences(rendered);
+		expect(rendered).toContain("\u001b[38;2;");
+		expect(text).toContain(" M src/app.ts");
+		expect(text).toContain("?? notes.md");
+		expect(text).toContain("diff --git");
+		expect(text).toContain("@@ -1 +1 @@");
+	});
 });
 
 function generic(overrides: Partial<GenericToolResultSnapshot> = {}): GenericToolResultSnapshot {

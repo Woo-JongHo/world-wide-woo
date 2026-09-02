@@ -56,7 +56,7 @@ describe("CodexAppServer", () => {
 				id: 1,
 				method: "initialize",
 				params: {
-					clientInfo: { name: "www", title: "World Wide Woo", version: "0.1.9" },
+					clientInfo: { name: "www", title: "World Wide Woo", version: "0.1.11" },
 					capabilities: { experimentalApi: true, requestAttestation: false },
 				},
 			},
@@ -108,7 +108,7 @@ describe("CodexAppServer", () => {
 			sortKey: "updated_at",
 			sortDirection: "desc",
 		});
-		expect((await server.startTurn({
+			expect((await server.startTurn({
 			threadId: "thread-native-1",
 			text: "hello",
 			effort: "low",
@@ -117,6 +117,10 @@ describe("CodexAppServer", () => {
 			collaborationMode: {
 				mode: "plan",
 				settings: { model: "gpt-5.6-sol", reasoning_effort: "low", developer_instructions: null },
+			},
+			additionalContext: {
+				woo_entry_policy: { kind: "application", value: "read-only" },
+				woo_entry_snapshot: { kind: "untrusted", value: "{}" },
 			},
 		})).id).toBe("turn-native-1");
 		expect(transport.sent.find((message) => message.method === "turn/start")?.params).toEqual({
@@ -128,6 +132,10 @@ describe("CodexAppServer", () => {
 			collaborationMode: {
 				mode: "plan",
 				settings: { model: "gpt-5.6-sol", reasoning_effort: "low", developer_instructions: null },
+			},
+			additionalContext: {
+				woo_entry_policy: { kind: "application", value: "read-only" },
+				woo_entry_snapshot: { kind: "untrusted", value: "{}" },
 			},
 		});
 

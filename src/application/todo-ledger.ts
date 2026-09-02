@@ -62,7 +62,7 @@ export class TodoLedger implements TodoController {
 		const content = {
 			ownerSessionId: this.sessionId,
 			storyId: null,
-			title: boundedTodoText(flow.goal, "현재 요청"),
+			title: todoNarrationText(flow.goal, "현재 요청"),
 			items,
 		};
 		if (this.current && sameTodoContent(this.current, content)) return this.current;
@@ -313,10 +313,7 @@ function isTodoParent(item: TodoDocument["items"][number] | TodoDocument["items"
 function nativeTodoItem(step: SemanticWorkStep, index: number, status: TodoItemStatus): TodoItem {
 	const id = `native-step-${index + 1}`;
 	const evidenceIds = validEvidenceIds(step.activityIds);
-	const summaries = step.narration.inputSummary
-		.map((summary) => boundedTodoText(summary, "실행 내용 확인"))
-		.filter((summary, summaryIndex, values) => values.indexOf(summary) === summaryIndex)
-		.slice(0, 8);
+	const summaries = [todoNarrationText(step.narration.why, TODO_NARRATION_WHY)];
 	const details = summaries.map((content, detailIndex): TodoDetail => {
 		const isLast = detailIndex === summaries.length - 1;
 		return {
@@ -328,9 +325,9 @@ function nativeTodoItem(step: SemanticWorkStep, index: number, status: TodoItemS
 	});
 	return {
 		id,
-		content: boundedTodoText(step.title, `Step ${index + 1}`),
+		content: todoNarrationText(step.narration.what, TODO_NARRATION_WHAT),
 		status,
-		evidenceIds: details.length === 0 ? evidenceIds : [],
+		evidenceIds: [],
 		details,
 	};
 }
@@ -353,9 +350,22 @@ function validEvidenceIds(values: readonly string[]): string[] {
 	return [...new Set(values.filter(isId))].slice(-MAX_TODO_EVIDENCE);
 }
 
-function boundedTodoText(value: string, fallback: string): string {
+const TODO_NARRATION_WHAT = "작업을 진행합니다.";
+const TODO_NARRATION_WHY = "요청을 안전하게 처리하고 결과를 확인하기 위해서입니다.";
+
+function todoNarrationText(value: unknown, fallback: string): string {
+	if (typeof value !== "string" || isTechnicalInput(value)) return fallback;
 	const sanitized = sanitizeTodoText(value) || fallback;
 	return Array.from(sanitized).slice(0, 120).join("");
+}
+
+function isTechnicalInput(value: string): boolean {
+	return /`/u.test(value)
+		|| /\b(?:command|cmd|args?|input|path)\s*[:=]/iu.test(value)
+		|| /(?:^|[\s;|&])\$?\s*(?:apply_patch|bash|bun|cat|cd|find|git|grep|node|npm|npx|pnpm|python|rg|sed|sh|yarn)\b/iu.test(value)
+		|| /(?:^|[\s"'`])(?:[~/][A-Za-z0-9_.-]+(?:[\\/][A-Za-z0-9_.-]+)*|\.{1,2}[\\/]|[A-Za-z0-9_-]+(?:[\\/][A-Za-z0-9_.-]+)+)/u.test(value)
+		|| /\b[A-Za-z0-9_-]+\.(?:cjs|css|go|html|java|js|json|jsx|md|mjs|py|rb|rs|sh|sql|toml|ts|tsx|yaml|yml|zsh)\b/iu.test(value)
+		|| /(?:^|\s)--[A-Za-z0-9_-]+/u.test(value);
 }
 
 function sameTodoContent(

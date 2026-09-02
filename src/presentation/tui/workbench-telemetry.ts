@@ -1,7 +1,8 @@
 import { execFile } from "node:child_process";
 import { homedir } from "node:os";
 import { truncateToWidth, visibleWidth, type Component } from "@earendil-works/pi-tui";
-import type { WorkbenchContextUsage, WorkbenchSnapshot } from "../../domain/workbench";
+import type { WorkbenchContextUsage, WorkbenchSessionUsage, WorkbenchSnapshot } from "../../domain/workbench";
+import { usagePercent } from "./usage-value";
 import { colors } from "./theme";
 
 export interface WorkbenchGitTelemetry {
@@ -15,12 +16,13 @@ export interface WorkbenchTelemetrySource {
 	readonly model?: string;
 	readonly effort?: string | null;
 	readonly contextUsage?: WorkbenchContextUsage | null;
+	readonly sessionUsage?: WorkbenchSessionUsage;
 	readonly git: WorkbenchGitTelemetry | null;
 	readonly cwd: string;
 	readonly home: string;
 }
 
-function modelLabel(model: string | undefined): string {
+export function workbenchModelLabel(model: string | undefined): string {
 	if (!model) return "–";
 	return model.split("-").map((part, index) => {
 		if (index === 0) return part.toUpperCase();
@@ -46,16 +48,18 @@ function gitLabel(git: WorkbenchGitTelemetry | null): string {
 
 /** One-line operational telemetry. Unknown Native values are never guessed. */
 export function formatWorkbenchTelemetry(source: WorkbenchTelemetrySource, width: number): string {
-	const contextRemaining = source.contextUsage
-		? `${Math.max(0, 100 - source.contextUsage.percent).toFixed(1)}%남음`
-		: "–%남음";
 	const output = [
-		`${colors.accent("⬢")} ${colors.text(modelLabel(source.model))}`,
-		`${colors.secondary("◑")} ${colors.text(source.effort ?? "–")}`,
-		`${colors.muted("컨텍스트")} ${colors.highlight(contextRemaining)}`,
 		`${colors.warm("⑂")} ${colors.text(gitLabel(source.git))}`,
 		`${colors.muted("📁")} ${colors.muted(projectPath(source.cwd, source.home))}`,
 	].join(colors.muted(" · "));
+	return truncateToWidth(output, Math.max(0, width));
+}
+
+export function formatWorkbenchSessionTelemetry(source: WorkbenchTelemetrySource, width: number): string {
+	const remaining = source.contextUsage ? Math.max(0, 100 - source.contextUsage.percent) : undefined;
+	const contextColor = remaining === undefined ? colors.muted
+		: remaining <= 10 ? colors.error : remaining <= 30 ? colors.warning : colors.highlight;
+	const output = `${colors.muted("Context")} ${contextColor(usagePercent(remaining))}`;
 	return truncateToWidth(output, Math.max(0, width));
 }
 
@@ -122,14 +126,16 @@ export class WorkbenchTelemetryLine implements Component {
 
 	render(width: number): string[] {
 		const snapshot = this.snapshot();
-		const line = formatWorkbenchTelemetry({
+		const source = {
 			model: snapshot.model,
 			effort: snapshot.effort,
 			contextUsage: snapshot.contextUsage,
+			sessionUsage: snapshot.sessionUsage,
 			git: this.git,
 			cwd: this.cwd,
 			home: homedir(),
-		}, width);
-		return [line + " ".repeat(Math.max(0, width - visibleWidth(line)))];
+		};
+		return [formatWorkbenchTelemetry(source, width), formatWorkbenchSessionTelemetry(source, width)]
+			.map((line) => line + " ".repeat(Math.max(0, width - visibleWidth(line))));
 	}
 }

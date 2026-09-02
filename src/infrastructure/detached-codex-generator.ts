@@ -1,6 +1,7 @@
 import type { Context, Models, ModelsSimpleStreamOptions } from "@earendil-works/pi-ai";
 import { validateTNotePacket, type TNoteModelProvenance } from "../domain/t-notes";
 import type { DetachedGenerationPolicy, DetachedTextGenerationRequest, DetachedTextGenerator } from "../application/detached-text-generator";
+import type { SessionModelUsageObservation } from "../application/session-model-usage.js";
 
 export const DETACHED_CODEX_PROVIDER = "openai-codex";
 
@@ -20,6 +21,7 @@ export class PiDetachedCodexGenerator implements DetachedTextGenerator {
 		private readonly models: PiDetachedCodexModels,
 		private readonly modelId: string,
 		private readonly version: string = modelId,
+		private readonly observeUsage?: (observation: SessionModelUsageObservation) => void,
 	) {
 		if (!nonEmptyText(modelId) || !nonEmptyText(version)) throw new Error("Detached Codex model and version are required");
 	}
@@ -40,12 +42,13 @@ export class PiDetachedCodexGenerator implements DetachedTextGenerator {
 		if (!model) throw new Error(`Detached Codex model is not available: ${DETACHED_CODEX_PROVIDER}/${this.modelId}`);
 
 		const context: Context = {
-			systemPrompt: "You create a concise summary of the user-bori conversation from only the supplied immutable T-note packet. Include execution details only when they directly support a user request. Cover goals, decisions, results, verification, remaining work, and risks. Ignore unrelated session startup, environment initialization, MCP, authentication, and account-status activity. Do not infer omitted project data, list raw events chronologically, or call tools. Return text only.",
+			systemPrompt: "You create a concise Korean T-note from only the supplied immutable packet and instruction. Explain it so a person seeing the work for the first time can understand it. Include execution details only when they directly explain the answer. Never expose hidden chain-of-thought, infer omitted project data, copy raw logs, add future Todo items, or call tools. Follow the requested output shape exactly and return text only.",
 			messages: [{ role: "user", content: detachedInput(request), timestamp: Date.now() }],
 			tools: [],
 		};
 		const options: ModelsSimpleStreamOptions = Object.freeze({ toolChoice: "none", signal });
 		const response = await this.models.streamSimple(model, context, options).result();
+		recordUsage(response.usage?.totalTokens, this.modelId, this.observeUsage);
 		if (response.stopReason === "toolUse" || response.content.some(block => block.type === "toolCall")) {
 			throw new Error("Detached Codex generator rejected a tool call");
 		}
@@ -65,6 +68,11 @@ export class PiDetachedCodexGenerator implements DetachedTextGenerator {
 			}),
 		});
 	}
+}
+
+function recordUsage(totalTokens: number | undefined, model: string, observer: ((observation: SessionModelUsageObservation) => void) | undefined): void {
+	if (!observer || !Number.isSafeInteger(totalTokens) || (totalTokens ?? -1) < 0) return;
+	try { observer({ model, effort: null, totalTokens: totalTokens! }); } catch { /* Telemetry cannot invalidate a completed provider response. */ }
 }
 
 function assertPacketOnlyRequest(request: DetachedTextGenerationRequest): void {

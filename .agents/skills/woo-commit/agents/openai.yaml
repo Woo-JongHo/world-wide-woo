@@ -1,0 +1,5 @@
+interface:
+  display_name: "WWW Commit"
+  short_description: "접두어 없는 한국어 의미 단위 로컬 커밋"
+  default_prompt: "Use $woo-commit to prepare and verify one local semantic commit for 99_www."
+

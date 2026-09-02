@@ -1,5 +1,80 @@
 export type NativeRequestId = string | number;
 
+/**
+ * Conservative summary of App Server collaboration work. `none` is emitted
+ * only after every announced child has a terminal lifecycle state.
+ */
+export type BackgroundWorkState = "none" | "active" | "unknown";
+
+export interface NativeCollaborationLifecycle {
+	readonly id?: unknown;
+	readonly tool?: unknown;
+	readonly status?: unknown;
+	readonly receiverThreadIds?: unknown;
+	readonly agentsStates?: unknown;
+}
+
+/**
+ * Derives background work strictly from authoritative collaboration lifecycle
+ * snapshots. Missing or malformed snapshots remain unknown; they are never
+ * treated as proof that no work exists.
+ */
+export function projectBackgroundWorkState(
+	lifecycles: readonly NativeCollaborationLifecycle[],
+): BackgroundWorkState {
+	const children = new Set<string>();
+	const states = new Map<string, string>();
+	let sawLifecycle = false;
+	const latest = new Map<string, NativeCollaborationLifecycle>();
+	for (const [index, lifecycle] of lifecycles.entries()) {
+		const id = typeof lifecycle.id === "string" && lifecycle.id.trim() ? lifecycle.id : `anonymous:${index}`;
+		latest.set(id, lifecycle);
+	}
+	for (const lifecycle of latest.values()) {
+		if (normalizeNativeLifecycleName(lifecycle.tool) !== "spawnagent") continue;
+		sawLifecycle = true;
+		for (const child of nativeLifecycleIds(lifecycle.receiverThreadIds)) children.add(child);
+		const status = normalizeNativeLifecycleName(lifecycle.status);
+		if (status === "inprogress" || status === "pending" || status === "queued" || !terminalLifecycleStatus(status)) {
+			return "active";
+		}
+		const snapshot = nativeLifecycleRecord(lifecycle.agentsStates);
+		for (const [child, value] of Object.entries(snapshot ?? {})) {
+			const childStatus = normalizeNativeLifecycleName(nativeLifecycleRecord(value)?.status);
+			if (childStatus) states.set(child, childStatus);
+		}
+	}
+	if (!sawLifecycle) return "unknown";
+	for (const child of children) {
+		const status = states.get(child);
+		if (!status) return "unknown";
+		if (!terminalLifecycleStatus(status)) return "active";
+	}
+	return "none";
+}
+
+function nativeLifecycleRecord(value: unknown): Readonly<Record<string, unknown>> | null {
+	return value && typeof value === "object" && !Array.isArray(value)
+		? value as Readonly<Record<string, unknown>>
+		: null;
+}
+
+function nativeLifecycleIds(value: unknown): readonly string[] {
+	return Array.isArray(value)
+		? value.filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0)
+		: [];
+}
+
+function normalizeNativeLifecycleName(value: unknown): string {
+	return typeof value === "string" ? value.replace(/[^a-z]/giu, "").toLowerCase() : "";
+}
+
+function terminalLifecycleStatus(status: string): boolean {
+	return status === "completed" || status === "failed" || status === "errored"
+		|| status === "interrupted" || status === "cancelled" || status === "shutdown"
+		|| status === "notfound";
+}
+
 export interface NativeRefs {
 	threadId?: string;
 	turnId?: string;
@@ -44,6 +119,15 @@ export interface NativeCollaborationMode {
 		readonly developer_instructions: null;
 	};
 }
+
+export type NativeAdditionalContextKind = "application" | "untrusted";
+
+export interface NativeAdditionalContextEntry {
+	readonly value: string;
+	readonly kind: NativeAdditionalContextKind;
+}
+
+export type NativeAdditionalContext = Readonly<Record<string, NativeAdditionalContextEntry>>;
 
 export interface NativeThreadSnapshot {
 	id: string;
@@ -108,6 +192,7 @@ export interface NativeTurnStart {
 	approvalPolicy?: NativeApprovalPolicy;
 	sandboxPolicy?: NativeSandboxPolicy;
 	collaborationMode?: NativeCollaborationMode;
+	additionalContext?: NativeAdditionalContext;
 }
 
 export interface NativeTurnInterrupt {

@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences } from "@earendil-works/pi-tui";
-import { formatWorkbenchTelemetry, parseGitTelemetry } from "../src/presentation/tui/workbench-telemetry";
+import {
+	formatWorkbenchSessionTelemetry,
+	formatWorkbenchTelemetry,
+	parseGitTelemetry,
+} from "../src/presentation/tui/workbench-telemetry";
 
 describe("workbench telemetry rail", () => {
 	test("renders the actual native model, effort, context, Git state, and project path", () => {
@@ -8,16 +12,39 @@ describe("workbench telemetry rail", () => {
 			model: "gpt-5.6-sol",
 			effort: "low",
 			contextUsage: { usedTokens: 8_785, contextWindow: 258_400, percent: 3.4 },
+			sessionUsage: {
+				totalTokens: 25_840,
+				unattributedTokens: 0,
+				models: [{ model: "gpt-5.6-sol", effort: "low", turns: 1, totalTokens: 25_840 }],
+			},
 			git: { branch: "main", staged: 0, unstaged: 0, untracked: 2 },
 			cwd: "/Users/tester/woo/00_project/99_www",
 			home: "/Users/tester",
 		}, 160));
 
-		expect(output).toContain("⬢ GPT-5.6-Sol");
-		expect(output).toContain("◑ low");
-		expect(output).toContain("컨텍스트 96.6%남음");
+		expect(output).not.toContain("GPT-5.6-Sol");
+		expect(output).not.toContain("◑ low");
 		expect(output).toContain("⑂ main ?2");
 		expect(output).toContain("📁 ~/woo/00_project/99_www");
+
+		const session = stripTerminalSequences(formatWorkbenchSessionTelemetry({
+			model: "gpt-5.6-sol",
+			effort: "low",
+			contextUsage: { usedTokens: 8_785, contextWindow: 258_400, percent: 3.4 },
+			sessionUsage: {
+				totalTokens: 25_840,
+				unattributedTokens: 0,
+				models: [{ model: "gpt-5.6-sol", effort: "low", turns: 1, totalTokens: 25_840 }],
+			},
+			git: null,
+			cwd: "/work/project",
+			home: "/Users/tester",
+		}, 160));
+		expect(session).not.toContain("Sol·low 25.8k");
+		expect(session).toContain("Context  97%");
+		expect(session).not.toContain(":");
+		expect(session).not.toMatch(/[▐▌▮█░]/u);
+		expect(session).toContain("97%");
 	});
 
 	test("uses explicit unknown markers before native usage and Git arrive", () => {
@@ -30,8 +57,6 @@ describe("workbench telemetry rail", () => {
 			home: "/Users/tester",
 		}, 100));
 
-		expect(output).toContain("◑ –");
-		expect(output).toContain("컨텍스트 –%남음");
 		expect(output).toContain("⑂ –");
 	});
 

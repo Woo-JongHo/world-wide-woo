@@ -12,6 +12,7 @@ import {
 	type ReviewProvider,
 } from "../domain/review";
 import { redactForExternalReview } from "../domain/redaction";
+import type { SessionModelUsageObservation } from "../application/session-model-usage.js";
 
 export const CLAUDE_OPUS_REVIEW_MODEL = "claude-opus-5";
 export const GEMINI_REVIEW_MODEL = "gemini-3.1-pro-preview";
@@ -44,7 +45,10 @@ export function sha256ReviewDigest(value: string): string {
  * or filesystem capability.
  */
 export class PiReviewGenerationClient implements ReviewGenerationClient {
-	constructor(private readonly models: PiReviewModels) {}
+	constructor(
+		private readonly models: PiReviewModels,
+		private readonly observeUsage?: (observation: SessionModelUsageObservation) => void,
+	) {}
 
 	async generate(request: import("../domain/review").ReviewGenerationRequest): Promise<string> {
 		assertDetachedRequest(request);
@@ -58,6 +62,10 @@ export class PiReviewGenerationClient implements ReviewGenerationClient {
 		const options: ModelsSimpleStreamOptions = { toolChoice: "none" };
 		const stream = this.models.streamSimple(model, context, options);
 		const response = await stream.result();
+		const totalTokens = response.usage?.totalTokens;
+		if (this.observeUsage && Number.isSafeInteger(totalTokens) && (totalTokens ?? -1) >= 0) {
+			try { this.observeUsage({ model: request.model, effort: null, totalTokens: totalTokens! }); } catch { /* Telemetry cannot invalidate a review response. */ }
+		}
 		if (response.stopReason === "toolUse" || response.content.some(block => block.type === "toolCall")) {
 			throw new Error("Review providers may not return tool calls");
 		}

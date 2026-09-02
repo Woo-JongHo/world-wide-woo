@@ -20,7 +20,7 @@ const policy = { cwd: "" as const, noTools: true as const, network: false as con
 const generator: DetachedTextGenerator = {
 	async generate(request) {
 		expect(request.policy).toEqual(policy);
-		return { text: "선택 활동 요약", provenance: { provider: "anthropic", model: "claude-opus", version: "2026-09-01" }, isolation: { appliedPolicy: policy, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 } };
+		return { text: "질문: 무엇을 확인했나\n왜: 선택한 활동의 결과를 보존하기 위해서다\n결과: 검증이 통과했다", provenance: { provider: "anthropic", model: "claude-opus", version: "2026-09-01" }, isolation: { appliedPolicy: policy, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 } };
 	},
 };
 
@@ -30,6 +30,7 @@ describe("T-note service", () => {
 		const service = new TNoteService(generator, draftStore, () => new Date("2026-09-01T00:00:00.000Z"), () => "tnote-1");
 		const note = await service.create({
 			projectId: "project-1",
+			expectedQuestion: "무엇을 확인했나",
 			range: { startSequence: 3, endSequence: 4 },
 			activities: [
 				{ id: "act-3", projectId: "project-1", sequence: 3, occurredAt: "2026-09-01T00:00:00.000Z", kind: "assistant", title: "결과", body: "token=secret-value /Users/customer-X/acme customer=Acme", nativeRefs: ["thread-1", "item-3"] },
@@ -49,13 +50,83 @@ describe("T-note service", () => {
 		expect(text).not.toContain("Acme");
 	});
 
+	test("sanitizes a question embedded in the instruction before detached generation", async () => {
+		const draftStore = await store();
+		let dispatchedInstruction = "";
+		const capturingGenerator: DetachedTextGenerator = {
+			async generate(request) {
+				dispatchedInstruction = request.instruction;
+				return { text: "질문: Git과 Bash\n왜: 출력을 확인했습니다.\n결과: 표시를 검증했습니다.", provenance: { provider: "openai-codex", model: "gpt-5.6-luna", version: "gpt-5.6-luna" }, isolation: { appliedPolicy: policy, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 } };
+			},
+		};
+		const service = new TNoteService(capturingGenerator, draftStore, () => new Date("2026-09-01T00:00:00.000Z"), () => "tnote-safe-instruction");
+		await service.create({
+			projectId: "project-1",
+			expectedQuestion: "Git과 Bash",
+			range: { startSequence: 1, endSequence: 1 },
+			activities: [{ id: "act-1", projectId: "project-1", sequence: 1, occurredAt: "2026-09-01T00:00:00.000Z", kind: "message", title: "질문", body: "Git/Bash와 /Users/example/private를 확인" }],
+			instruction: "Git/Bash와 /Users/example/private를 질문별로 정리",
+		});
+
+		expect(dispatchedInstruction).toContain("[redacted:local-path]");
+		expect(dispatchedInstruction).not.toContain("/Users/example/private");
+	});
+
 	test("rejects a cross-project, unordered range and a generator that does not confirm isolation", async () => {
 		const draftStore = await store();
 		const service = new TNoteService(generator, draftStore);
-		await expect(service.create({ projectId: "one", range: { startSequence: 1, endSequence: 1 }, activities: [{ id: "a", projectId: "two", sequence: 1, occurredAt: "2026-09-01T00:00:00.000Z", kind: "x", title: "x", body: "x" }], instruction: "요약" })).rejects.toThrow("one project");
-		await expect(service.create({ projectId: "one", range: { startSequence: 1, endSequence: 2 }, activities: [{ id: "b", projectId: "one", sequence: 2, occurredAt: "2026-09-01T00:00:00.000Z", kind: "x", title: "x", body: "x" }, { id: "a", projectId: "one", sequence: 1, occurredAt: "2026-09-01T00:00:00.000Z", kind: "x", title: "x", body: "x" }], instruction: "요약" })).rejects.toThrow("sorted");
+		await expect(service.create({ projectId: "one", expectedQuestion: "무엇을 확인했나", range: { startSequence: 1, endSequence: 1 }, activities: [{ id: "a", projectId: "two", sequence: 1, occurredAt: "2026-09-01T00:00:00.000Z", kind: "x", title: "x", body: "x" }], instruction: "요약" })).rejects.toThrow("one project");
+		await expect(service.create({ projectId: "one", expectedQuestion: "무엇을 확인했나", range: { startSequence: 1, endSequence: 2 }, activities: [{ id: "b", projectId: "one", sequence: 2, occurredAt: "2026-09-01T00:00:00.000Z", kind: "x", title: "x", body: "x" }, { id: "a", projectId: "one", sequence: 1, occurredAt: "2026-09-01T00:00:00.000Z", kind: "x", title: "x", body: "x" }], instruction: "요약" })).rejects.toThrow("sorted");
 		const unsafe: DetachedTextGenerator = { async generate() { return { text: "x", provenance: { provider: "p", model: "m", version: "v" }, isolation: { appliedPolicy: policy, projectRootVisible: true, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 } as never }; } };
-		await expect(new TNoteService(unsafe, draftStore).create({ projectId: "one", range: { startSequence: 1, endSequence: 1 }, activities: [{ id: "a", projectId: "one", sequence: 1, occurredAt: "2026-09-01T00:00:00.000Z", kind: "x", title: "x", body: "x" }], instruction: "요약" })).rejects.toThrow("isolation");
+		await expect(new TNoteService(unsafe, draftStore).create({ projectId: "one", expectedQuestion: "무엇을 확인했나", range: { startSequence: 1, endSequence: 1 }, activities: [{ id: "a", projectId: "one", sequence: 1, occurredAt: "2026-09-01T00:00:00.000Z", kind: "x", title: "x", body: "x" }], instruction: "요약" })).rejects.toThrow("isolation");
+	});
+
+	test("persists strictly increasing sparse global source sequences", async () => {
+		const draftStore = await store();
+		const service = new TNoteService(generator, draftStore);
+		const note = await service.create({
+			projectId: "project-1",
+			expectedQuestion: "무엇을 확인했나",
+			range: { startSequence: 3, endSequence: 9 },
+			activities: [
+				{ id: "act-3", projectId: "project-1", sequence: 3, occurredAt: "2026-09-01T00:00:00.000Z", kind: "message", title: "질문", body: "질문" },
+				{ id: "act-9", projectId: "project-1", sequence: 9, occurredAt: "2026-09-01T00:01:00.000Z", kind: "progress", title: "완료", body: "완료" },
+			],
+			instruction: "요약",
+		});
+		expect(note.packet.activities.map((activity) => activity.sequence)).toEqual([3, 9]);
+		expect(await draftStore.readAll("project-1")).toEqual([note]);
+	});
+
+	test("retries one missing sparse interleaved-turn note after a failed generation", async () => {
+		const draftStore = await store();
+		let attempts = 0;
+		const recovering: DetachedTextGenerator = {
+			async generate() {
+				attempts += 1;
+				if (attempts === 1) throw new Error("temporary generation failure");
+				return {
+					text: "질문: 첫 thread 질문\n왜: 완료된 turn을 다시 확인했습니다.\n결과: 재시작 뒤 요약을 저장했습니다.",
+					provenance: { provider: "test", model: "test", version: "test" },
+					isolation: { appliedPolicy: policy, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 },
+				};
+			},
+		};
+		const input = {
+			projectId: "project-1",
+			expectedQuestion: "첫 thread 질문",
+			range: { startSequence: 1, endSequence: 5 },
+			activities: [
+				{ id: "thread-1-question", projectId: "project-1", sequence: 1, occurredAt: "2026-09-01T00:00:00.000Z", kind: "message", title: "질문", body: "첫 thread 질문" },
+				{ id: "thread-1-complete", projectId: "project-1", sequence: 5, occurredAt: "2026-09-01T00:01:00.000Z", kind: "progress", title: "완료", body: "완료" },
+			],
+			instruction: "요약",
+		};
+		await expect(new TNoteService(recovering, draftStore).create(input)).rejects.toThrow("temporary");
+		expect(await draftStore.readAll("project-1")).toEqual([]);
+		const recovered = await new TNoteService(recovering, draftStore).create(input);
+		expect(attempts).toBe(2);
+		expect(await draftStore.readAll("project-1")).toEqual([recovered]);
 	});
 
 	test("adapts the append-only ProjectActivity journal without provider-state reconstruction", () => {
@@ -131,7 +202,7 @@ describe("T-note service", () => {
 	test("truncates only a final crash residue while rejecting an invalid middle record", async () => {
 		const draftStore = await store();
 		const service = new TNoteService(generator, draftStore, () => new Date("2026-09-01T00:00:00.000Z"), () => "tnote-tail");
-		const note = await service.create({ projectId: "project-1", range: { startSequence: 1, endSequence: 1 }, activities: [{ id: "act-1", projectId: "project-1", sequence: 1, occurredAt: "2026-09-01T00:00:00.000Z", kind: "tool", title: "검증", body: "통과" }], instruction: "요약" });
+		const note = await service.create({ projectId: "project-1", expectedQuestion: "무엇을 확인했나", range: { startSequence: 1, endSequence: 1 }, activities: [{ id: "act-1", projectId: "project-1", sequence: 1, occurredAt: "2026-09-01T00:00:00.000Z", kind: "tool", title: "검증", body: "통과" }], instruction: "요약" });
 		const path = join((draftStore as unknown as { directory: string }).directory, "t-notes.jsonl");
 		await appendFile(path, "{\"schemaVersion\":");
 		expect(await draftStore.readAll("project-1")).toEqual([note]);

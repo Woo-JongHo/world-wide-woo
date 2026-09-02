@@ -65,6 +65,8 @@ interface PublicStepProjection {
 	what: string;
 	why: string;
 	command?: string;
+	exitCode?: number;
+	durationMs?: number;
 	input: readonly string[];
 	output: readonly string[];
 }
@@ -77,7 +79,10 @@ export type ExecutionLineTone =
 	| "warning"
 	| "error"
 	| "diff-added"
-	| "diff-removed";
+	| "diff-removed"
+	| "diff-header"
+	| "git-modified"
+	| "git-untracked";
 
 interface Field {
 	label: string;
@@ -114,6 +119,10 @@ function stringValue(value: unknown): string | undefined {
 	if (typeof value === "string") return clean(value);
 	if (Array.isArray(value) && value.every((part) => typeof part === "string")) return clean(value.join(" "));
 	return undefined;
+}
+
+function numberValue(value: unknown): number | undefined {
+	return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
 function hiddenKey(key: string): boolean {
@@ -209,6 +218,8 @@ function projection(options: WorkStepCardOptions): PublicStepProjection {
 	const command = stringValue(firstValue(sources, ["command", "cmd"]));
 	const cwd = stringValue(firstValue(sources, ["cwd", "workingDirectory"]));
 	const args = firstValue(sources, ["arguments", "args", "input"]);
+	const exitCode = numberValue(firstValue(sources, ["exitCode"]));
+	const durationMs = numberValue(firstValue(sources, ["durationMs"]));
 	const path = stringValue(firstValue(sources, ["path", "filePath", "targetPath"]));
 	const query = stringValue(firstValue(sources, ["query", "searchQuery", "pattern"]));
 	const isCommand = command !== undefined || normalized.includes("command") || normalized.includes("bash") || normalized.includes("shell");
@@ -265,6 +276,8 @@ function projection(options: WorkStepCardOptions): PublicStepProjection {
 		what,
 		why,
 		command,
+		exitCode,
+		durationMs,
 		input: inputFields.length > 0
 			? inputFields.map(({ label, value }) => `${label}: ${displayValue(value)}`)
 			: ["공개 입력 없음"],
@@ -277,14 +290,92 @@ function projection(options: WorkStepCardOptions): PublicStepProjection {
 			: [statusOf(options) === "running" || statusOf(options) === "pending" ? "결과를 기다리는 중" : "공개 출력 없음"],
 	};
 	if (!options.narration) return projected;
+	const narratedCommand = options.narration.inputSummary
+		.map((line) => /^command\s*:\s*(.*)$/iu.exec(line)?.[1])
+		.find((value): value is string => Boolean(value));
 	return {
 		...projected,
+		command: narratedCommand ?? projected.command,
 		what: options.narration.what,
 		why: options.narration.why ?? "",
 		input: options.narration.inputSummary.length > 0
 			? options.narration.inputSummary
 			: projected.input,
 	};
+}
+
+const BASH_OUTPUT_MAX_LINES = 10;
+const BASH_SPINNER = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"] as const;
+
+function bashStatusSymbol(status: CommandStatus): string {
+	if (status === "running") return BASH_SPINNER[Math.floor(Date.now() / 80) % BASH_SPINNER.length] ?? "⠋";
+	return STATUS_SYMBOL[status];
+}
+
+function bashBar(
+	left: "┌" | "├",
+	right: "┐" | "┤",
+	label: string,
+	width: number,
+	border: (text: string) => string,
+): string {
+	const leftPart = border(`${left}───`);
+	const rightPart = border(right);
+	const available = Math.max(0, width - visibleWidth(leftPart) - visibleWidth(rightPart));
+	const renderedLabel = truncateToWidth(` ${label} `, available);
+	const fill = Math.max(0, width - visibleWidth(leftPart) - visibleWidth(renderedLabel) - visibleWidth(rightPart));
+	return `${leftPart}${renderedLabel}${border("─".repeat(fill))}${rightPart}`;
+}
+
+function bashContent(line: string, width: number, border: (text: string) => string): string {
+	if (width < 4) return fit(line, width);
+	return `${border("│")} ${fit(line, width - 4)} ${border("│")}`;
+}
+
+function bashOutputLines(projected: PublicStepProjection, width: number): string[] {
+	const contentWidth = Math.max(1, width - 4);
+	const logical = projected.output.flatMap((line) => {
+		if (/^(?:output|stdout|result)$/iu.test(line.trim()) || /^exit\s*:/iu.test(line.trim())) return [];
+		return [line.replace(/^(?:output|stdout|result)\s*:\s*/iu, "")];
+	});
+	const visual = logical.flatMap((line) => wrapTextWithAnsi(line, contentWidth));
+	if (visual.length <= BASH_OUTPUT_MAX_LINES) return visual;
+	const shown = visual.slice(-BASH_OUTPUT_MAX_LINES);
+	return [
+		colors.muted(`… (${visual.length - shown.length} earlier lines, showing ${shown.length} of ${visual.length})`),
+		...shown,
+	];
+}
+
+function renderBashExecutionBlock(
+	projected: PublicStepProjection,
+	status: CommandStatus,
+	width: number,
+): string[] {
+	if (!projected.command || width < 12) return [fit(projected.command ? `$ ${projected.command}` : "Bash", width)];
+	const border = status === "running" || status === "pending"
+		? colors.accent
+		: status === "failed"
+			? colors.error
+			: status === "cancelled"
+				? colors.warning
+				: colors.muted;
+	const surface = STATUS_SURFACE[status];
+	const header = `${STATUS_COLOR[status](bashStatusSymbol(status))} ${colors.secondary("Bash")}`;
+	const commandRows = wrapTextWithAnsi(`${colors.muted("$")} ${highlightedSource(projected.command, "bash")}`, width - 4);
+	const outputRows = bashOutputLines(projected, width).map((line) => renderExecutionLine(line, "output"));
+	const metadata: string[] = [];
+	if (projected.exitCode !== undefined) metadata.push(`Exit: ${projected.exitCode}`);
+	if (projected.durationMs !== undefined) metadata.push(`Duration: ${Math.max(0, Math.round(projected.durationMs))}ms`);
+	const rows = [
+		bashBar("┌", "┐", header, width, border),
+		...commandRows.map((line) => bashContent(line, width, border)),
+		bashBar("├", "┤", colors.secondary("Output"), width, border),
+		...outputRows.map((line) => bashContent(line, width, border)),
+		...metadata.map((value) => bashContent(colors.muted(`⟦${value}⟧`), width, border)),
+		`${border("└───")}${border("─".repeat(Math.max(0, width - 5)))}${border("┘")}`,
+	];
+	return rows.map((row) => surface(fit(row, width)));
 }
 
 /** Semantic tone for executor lines. Kept independent from ANSI rendering so the visual rule is testable. */
@@ -298,6 +389,14 @@ export function executionLineTone(line: string, section: "input" | "output"): Ex
 	if (/^(?:stderr|error)\s*:/iu.test(value)) return "error";
 	if (/^exit\s*:\s*(?!0(?:\D|$))\d+/iu.test(value)) return "error";
 	if (/^exit\s*:\s*0(?:\D|$)/iu.test(value)) return "success";
+	const gitStatus = /^([ MADRCU?!]{2})\s+.+$/u.exec(line);
+	if (gitStatus?.[1] === "??") return "git-untracked";
+	if (gitStatus?.[1]?.includes("A")) return "diff-added";
+	if (gitStatus?.[1]?.includes("D")) return "diff-removed";
+	if (gitStatus) return "git-modified";
+	if (/^(?:diff --git\b|index\s+[\da-f]+\.\.[\da-f]+\b|@@\s)/iu.test(value)) return "diff-header";
+	if (/^\+\+\+\s/u.test(value)) return "diff-added";
+	if (/^---\s/u.test(value)) return "diff-removed";
 	if (/^\+(?!\+\+)/u.test(value)) return "diff-added";
 	if (/^-(?!---)/u.test(value)) return "diff-removed";
 	if (/^(?:warn(?:ing)?s?\b|\d+\s+warn(?:ing)?s?\b)/iu.test(value)) return "warning";
@@ -320,14 +419,10 @@ function highlightedSource(source: string, language: "bash" | "json"): string {
 }
 
 function highlightedWhat(projected: PublicStepProjection): string {
-	if (!projected.command) return projected.what;
-	const command = projected.command.replace(/\s+/gu, " ");
-	const commandStart = projected.what.lastIndexOf(command);
-	if (commandStart < 0) return projected.what;
-	return `${projected.what.slice(0, commandStart)}${highlightedSource(command, "bash")}`;
+	return colors.success(projected.what);
 }
 
-function renderExecutionLine(line: string, section: "input" | "output"): string {
+export function renderExecutionLine(line: string, section: "input" | "output"): string {
 	if (line.startsWith("… ")) return line;
 	const tone = executionLineTone(line, section);
 	if (tone === "command") {
@@ -353,6 +448,12 @@ function renderExecutionLine(line: string, section: "input" | "output"): string 
 					? semantic.diffAdded
 					: tone === "diff-removed"
 						? semantic.diffRemoved
+						: tone === "diff-header"
+							? colors.accent
+							: tone === "git-modified"
+								? colors.warning
+								: tone === "git-untracked"
+									? colors.secondary
 						: semantic.executionOutput;
 	return color(line);
 }
@@ -392,6 +493,14 @@ export class WorkStepCard implements Component {
 		const status = statusOf(this.options);
 		const statusText = STATUS_COLOR[status](STATUS_LABEL[status]);
 		if (width < 4) return [fit(`단계 ${this.options.stepNumber} · ${STATUS_LABEL[status]}`, width)];
+		if (projected.command) {
+			return [
+				fit(`${semantic.assistantLabel(`단계 ${this.options.stepNumber}`)} · ${statusText}`, width),
+				fit(highlightedWhat(projected), width),
+				...(projected.why ? [fit(colors.warm(`왜 하는지: ${projected.why}`), width)] : []),
+				...renderBashExecutionBlock(projected, status, width),
+			];
+		}
 		const contentWidth = width - 4;
 		const input = boundedRows(projected.input, contentWidth, INPUT_MAX_LINES, INPUT_MAX_CHARS, false, "입력");
 		const output = boundedRows(projected.output, contentWidth, OUTPUT_MAX_LINES, OUTPUT_MAX_CHARS, true, "출력");
@@ -400,7 +509,7 @@ export class WorkStepCard implements Component {
 		const rows = [
 			`${semantic.assistantLabel(`단계 ${this.options.stepNumber}`)} · ${statusText}`,
 			highlightedWhat(projected),
-			...(projected.why ? [`${colors.muted("왜 하는지:")} ${projected.why}`] : []),
+			...(projected.why ? [colors.warm(`왜 하는지: ${projected.why}`)] : []),
 			colors.border("─".repeat(contentWidth)),
 			semantic.userLabel("입력 요약"),
 			...input.map((line) => `  ${renderExecutionLine(line, "input")}`),
@@ -428,6 +537,11 @@ export class ObservationCard implements Component {
 		const stepOptions: WorkStepCardOptions = { stepNumber: 0, ...this.options };
 		const projected = projection(stepOptions);
 		const status = statusOf(stepOptions);
+		if (projected.command) {
+			const surface = STATUS_SURFACE[status];
+			const header = `${STATUS_COLOR[status](STATUS_SYMBOL[status])} ${colors.text(observationLabel(projected.command))} ${colors.muted(`· ${STATUS_LABEL[status]}`)}`;
+			return [surface(fit(` ${header}`, width)), ...renderBashExecutionBlock(projected, status, width)];
+		}
 		const surface = STATUS_SURFACE[status];
 		const header = `${STATUS_COLOR[status](STATUS_SYMBOL[status])} ${colors.text(observationLabel(projected.command))} ${colors.muted(`· ${STATUS_LABEL[status]}`)}`;
 		const lines: string[] = [header];

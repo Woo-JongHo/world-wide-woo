@@ -248,6 +248,7 @@ export class CodexAppServer implements NativeHarnessPort {
 			approvalPolicy: input.approvalPolicy,
 			sandboxPolicy: input.sandboxPolicy,
 			collaborationMode: input.collaborationMode,
+			additionalContext: input.additionalContext,
 		}), true);
 		return turnSnapshot(result, input.threadId);
 	}

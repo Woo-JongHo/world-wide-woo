@@ -59,14 +59,14 @@ Chat     T-notes    Todo.md
 | --- | --- | --- |
 | native Chat | Codex App Server adapter가 start/resume/stream/approval/cancel을 소유 | 실제 macOS 수용 시나리오의 전체 반복 |
 | Workbench | Chat·T-notes·Todo 3-pane, source inspector, activity journal 및 serialized command queue 구현 | 사람 사용성 수락 |
-| Todo | tracked `.www/vault/Todo.md`, range patch, CAS/watch와 `/todo` command 도달성 구현 | 실제 Obsidian 동시 편집 수용 |
+| Todo | Native thread별 `.www/todos/<thread>/Todo.md`, range patch, CAS/watch와 `/todo` command 도달성 구현. `.www/vault/Todo.md`는 명시적 promotion 대상 | 실제 Obsidian 동시 편집 수용 |
 | T-notes | packet-only direct Codex generator, range capture와 draft/provenance 구현 | 사람 수락 |
 | review | Claude Opus·Gemini read-only adapter, exact-digest gate와 `/review` command 도달성 구현 | 외부 provider 실제 호출은 이 문서가 주장하지 않음 |
 | release | `0.1.0`, CI 및 release gate/runbook 구현 | Windows Terminal·13단계 실제 E2E·operator evidence |
 
-초기 기준선은 `bun test` 220개 통과였다. 2026-09-01의 최신 직접 run은 `272 pass`,
-`0 fail`, `1343 expect() calls`, `47 files`이며 `bun run check`도 통과했다. 현재 구현의 Story별 판정은
-`.omo/evidence/ST-011-06.md`~`ST-011-13.md`가 소유한다. ST-011-06~12는 PASS다.
+초기 기준선은 `bun test` 220개 통과였다. 2026-09-01의 최신 직접 run은 `380 pass`,
+`0 fail`, `1965 expect() calls`, `58 files`이며 `bun run check`도 통과했다. 현재 구현의 Story별 판정은
+`.www/evidence/ST-011-06.md`~`ST-011-13.md`가 소유한다. ST-011-06~12는 PASS다.
 ST-011-09는 App Server 격리 실패 뒤 안전한 생성기로 전환한 실제 production smoke를
 포함한다. ST-011-13은 BLOCKED다.
 따라서 이 문서는 구현 후보를 설명할 뿐 사람 수락이나 release 완료를 선언하지 않는다.
@@ -107,7 +107,7 @@ Todo 양쪽 입력이 준비된 뒤 구현됐다.
 | [ST-011-07](../.www/planning/artifacts/ST-011-07.md) | append-only `ProjectActivity` | `src/domain/project-activity.ts`, `src/infrastructure/activity-journal-store.ts` | ST-011-06 | PASS: append/replay/corruption/sequence test |
 | [ST-011-08](../.www/planning/artifacts/ST-011-08.md) | Chat·T-notes·Todo 3-pane Workbench | `src/application/project-workbench.ts`, `src/presentation/tui/` | ST-011-06, ST-011-07 | PASS: contract/layout + 실제 PTY stream/resume |
 | [ST-011-09](../.www/planning/artifacts/ST-011-09.md) | source-linked packet-only T-note draft | `src/application/t-note-service.ts`, `src/infrastructure/detached-codex-generator.ts`, `src/infrastructure/t-note-store.ts` | ST-011-07 | PASS: safe replacement smoke, packet redaction/provenance/no-tools |
-| [ST-011-10](../.www/planning/artifacts/ST-011-10.md) | tracked project `Todo.md` | `todos.ts`, `todo-store.ts`, `project-workspace.ts`, Todo view·watcher | ST-011-08 | PASS: range patch/CAS/Obsidian/CRLF fixture |
+| [ST-011-10](../.www/planning/artifacts/ST-011-10.md) | Native session `Todo.md`와 별도 canonical promotion 대상 | `todos.ts`, `todo-store.ts`, `project-workspace.ts`, Todo view·watcher | ST-011-08 | PASS: fresh/resume thread scope, range patch/CAS/Obsidian/CRLF fixture |
 | [ST-011-11](../.www/planning/artifacts/ST-011-11.md) | human-gated Markdown promotion | `src/domain/canonical-document.ts`, `src/application/canonical-promotion.ts`, `src/infrastructure/canonical-document-store.ts` | ST-011-09, ST-011-10 | PASS: digest/stale/approval/path allowlist/atomic write/no-Git-side-effect |
 | [ST-011-12](../.www/planning/artifacts/ST-011-12.md) | Claude Opus·Gemini read-only review | `src/domain/review.ts`, `src/application/review-service.ts`, `src/infrastructure/review-adapters.ts` | ST-011-07, ST-011-11 | PASS: deny-by-default redaction, exact-digest approval, no-tool request, provenance |
 | [ST-011-13](../.www/planning/artifacts/ST-011-13.md) | v0.1.0 cross-platform release gate | `package.json`, changelog, CI, install/update/rollback runbook | ST-011-06~12 | BLOCKED: darwin platform gate 외 Windows Terminal·13단계 E2E·operator evidence 없음 |

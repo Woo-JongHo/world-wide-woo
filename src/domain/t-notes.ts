@@ -116,7 +116,8 @@ export function createTNotePacket(
 		throw new Error(`T-note source range must contain between 1 and ${MAX_ACTIVITIES} activities`);
 	}
 
-	const projected = activities.map((activity, index) => projectActivity(activity, projectId, range, index));
+	const projected = activities.map((activity) => projectActivity(activity, projectId, range));
+	assertStrictlyIncreasingSequences(projected, range);
 	const material = {
 		schemaVersion: 1 as const,
 		projectId,
@@ -161,7 +162,8 @@ export function validateTNotePacket(value: TNotePacket, calculateDigest?: TNoteP
 	if (!Array.isArray(value.activities) || value.activities.length < 1 || value.activities.length > MAX_ACTIVITIES) {
 		throw new Error("Invalid T-note packet activities");
 	}
-	const activities = value.activities.map((activity, index) => projectPacketActivity(activity, value.projectId, value.range, index));
+	const activities = value.activities.map((activity) => projectPacketActivity(activity, value.projectId, value.range));
+	assertStrictlyIncreasingSequences(activities, value.range);
 	if (typeof value.digest !== "string" || !DIGEST_PATTERN.test(value.digest)) throw new Error("Invalid T-note packet digest");
 	const material = { schemaVersion: 1 as const, projectId: value.projectId, range: { ...value.range }, createdAt: value.createdAt, activities };
 	const canonicalMaterial = canonicalJson(material);
@@ -185,7 +187,7 @@ export function sanitizeTNoteText(value: string, maximumBytes: number): string {
 	return truncateUtf8(restoreRedactionMarkers(redactForExternalReview(localPathsRedacted).text, protectedMarkers.markers), maximumBytes);
 }
 
-function projectActivity(activity: TNoteActivitySource, projectId: string, range: TNoteSourceRange, index: number): TNoteSourceActivity {
+function projectActivity(activity: TNoteActivitySource, projectId: string, range: TNoteSourceRange): TNoteSourceActivity {
 	if (!activity || typeof activity !== "object" || Array.isArray(activity)) throw new Error("Invalid T-note source activity");
 	if (activity.projectId !== projectId) throw new Error("T-note activities must belong to one project");
 	return projectPacketActivity({
@@ -195,24 +197,30 @@ function projectActivity(activity: TNoteActivitySource, projectId: string, range
 		kind: activity.kind,
 		title: activity.title,
 		body: activity.body,
-	}, projectId, range, index);
+	}, projectId, range);
 }
 
-function projectPacketActivity(activity: TNoteSourceActivity, _projectId: string, range: TNoteSourceRange, index: number): TNoteSourceActivity {
+function projectPacketActivity(activity: TNoteSourceActivity, _projectId: string, range: TNoteSourceRange): TNoteSourceActivity {
 	if (!activity || typeof activity !== "object" || Array.isArray(activity)) throw new Error("Invalid T-note source activity");
 	assertId(activity.id, "activity id");
-	if (!Number.isSafeInteger(activity.sequence) || activity.sequence !== range.startSequence + index) {
-		throw new Error("T-note activities must be sorted and contiguous within the selected range");
+	if (!Number.isSafeInteger(activity.sequence) || activity.sequence < range.startSequence || activity.sequence > range.endSequence) {
+		throw new Error("T-note activity is outside the selected range");
 	}
-	if (activity.sequence > range.endSequence) throw new Error("T-note activity is outside the selected range");
 	assertDate(activity.occurredAt, "activity timestamp");
 	const kind = sanitizeTNoteText(activity.kind, 120);
 	const title = sanitizeTNoteText(activity.title, 2 * 1024);
 	const body = sanitizeTNoteText(activity.body, MAX_ACTIVITY_BODY);
 	if (kind.length === 0 || title.length === 0 || body !== activity.body && body.length === 0) throw new Error("Invalid T-note activity text");
-	if (index === 0 && activity.sequence !== range.startSequence) throw new Error("T-note range start does not match selected activity");
-	if (index === range.endSequence - range.startSequence && activity.sequence !== range.endSequence) throw new Error("T-note range end does not match selected activity");
 	return Object.freeze({ id: activity.id, sequence: activity.sequence, occurredAt: activity.occurredAt, kind, title, body });
+}
+
+function assertStrictlyIncreasingSequences(activities: readonly TNoteSourceActivity[], range: TNoteSourceRange): void {
+	if (activities.some((activity, index) => index > 0 && activity.sequence <= activities[index - 1]!.sequence)) {
+		throw new Error("T-note activities must be sorted with strictly increasing unique sequences");
+	}
+	if (activities[0]?.sequence !== range.startSequence || activities.at(-1)?.sequence !== range.endSequence) {
+		throw new Error("T-note range bounds do not match selected activities");
+	}
 }
 
 function validateProvenance(value: TNoteModelProvenance): TNoteModelProvenance {
@@ -226,7 +234,7 @@ function validateProvenance(value: TNoteModelProvenance): TNoteModelProvenance {
 
 function assertRange(range: TNoteSourceRange): void {
 	if (!range || typeof range !== "object" || !Number.isSafeInteger(range.startSequence) || !Number.isSafeInteger(range.endSequence)
-		|| range.startSequence < 1 || range.endSequence < range.startSequence || range.endSequence - range.startSequence + 1 > MAX_ACTIVITIES) {
+		|| range.startSequence < 1 || range.endSequence < range.startSequence) {
 		throw new Error("Invalid T-note source range");
 	}
 }

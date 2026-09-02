@@ -4,6 +4,8 @@ import { sanitizeTerminalTextExcerpt } from "./terminal.js";
 
 const MAX_PUBLIC_TEXT = 1_200;
 const MAX_INPUT_SUMMARY = 4;
+const DEFAULT_NARRATION_WHAT = "작업을 진행합니다.";
+const DEFAULT_NARRATION_WHY = "요청을 안전하게 처리하고 결과를 확인하기 위해서입니다.";
 
 export type WorkActivityClass = "observation" | "action" | "control";
 export type WorkStepStatus = "pending" | "running" | "completed" | "failed" | "cancelled";
@@ -352,7 +354,8 @@ function fallbackStepTitle(activity: ProjectActivity): string {
 
 function planNarration(title: string, activity: ProjectActivity | undefined): WorkStepNarration {
 	return {
-		what: title,
+		what: narrationText(title, DEFAULT_NARRATION_WHAT),
+		why: DEFAULT_NARRATION_WHY,
 		inputSummary: Object.freeze(activity ? activityInputSummary(activity) : []),
 		source: "plan",
 	};
@@ -360,7 +363,8 @@ function planNarration(title: string, activity: ProjectActivity | undefined): Wo
 
 function activityNarration(activity: ProjectActivity): WorkStepNarration {
 	return {
-		what: fallbackStepTitle(activity),
+		what: narrationText(fallbackStepTitle(activity), DEFAULT_NARRATION_WHAT),
+		why: DEFAULT_NARRATION_WHY,
 		inputSummary: Object.freeze(activityInputSummary(activity)),
 		source: "fallback",
 	};
@@ -408,11 +412,25 @@ function publicText(value: string): string {
 
 function freezeNarration(value: WorkStepNarration): WorkStepNarration {
 	return Object.freeze({
-		what: publicText(value.what),
-		...(value.why ? { why: publicText(value.why) } : {}),
+		what: narrationText(value.what, DEFAULT_NARRATION_WHAT),
+		why: narrationText(value.why, DEFAULT_NARRATION_WHY),
 		inputSummary: Object.freeze(value.inputSummary.slice(0, MAX_INPUT_SUMMARY).map(publicText).filter(Boolean)),
 		source: value.source,
 	});
+}
+
+function narrationText(value: unknown, fallback: string): string {
+	if (typeof value !== "string" || isTechnicalInput(value)) return fallback;
+	return publicText(value) || fallback;
+}
+
+function isTechnicalInput(value: string): boolean {
+	return /`/u.test(value)
+		|| /\b(?:command|cmd|args?|input|path)\s*[:=]/iu.test(value)
+		|| /(?:^|[\s;|&])\$?\s*(?:apply_patch|bash|bun|cat|cd|find|git|grep|node|npm|npx|pnpm|python|rg|sed|sh|yarn)\b/iu.test(value)
+		|| /(?:^|[\s"'`])(?:[~/][A-Za-z0-9_.-]+(?:[\\/][A-Za-z0-9_.-]+)*|\.{1,2}[\\/]|[A-Za-z0-9_-]+(?:[\\/][A-Za-z0-9_.-]+)+)/u.test(value)
+		|| /\b[A-Za-z0-9_-]+\.(?:cjs|css|go|html|java|js|json|jsx|md|mjs|py|rb|rs|sh|sql|toml|ts|tsx|yaml|yml|zsh)\b/iu.test(value)
+		|| /(?:^|\s)--[A-Za-z0-9_-]+/u.test(value);
 }
 
 function unique(values: readonly string[]): string[] {

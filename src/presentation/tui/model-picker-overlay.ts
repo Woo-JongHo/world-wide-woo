@@ -16,6 +16,11 @@ type AuthStatus = ProviderAuthState | { state: "pending"; provider: Provider };
 export type ModelPickerAuthStatus = (provider: Provider) => Promise<ProviderAuthState>;
 export type ModelPickerApply = (settings: WwwSettings) => Promise<void>;
 
+export interface ModelPickerOptions {
+	providers?: readonly Provider[];
+	startAtModel?: boolean;
+}
+
 const STEP_LABEL: Record<ModelPickerStep, string> = {
 	provider: "공급자",
 	model: "모델",
@@ -38,6 +43,8 @@ function fit(text: string, width: number): string {
 /** Provider → model → effort → confirmation picker. Persistence and authentication stay caller-owned. */
 export class ModelPickerOverlay implements Component {
 	private readonly auth = new Map<Provider, AuthStatus>();
+	private readonly providers: readonly Provider[];
+	private readonly providerStepVisible: boolean;
 	private staged: WwwSettings;
 	private step: ModelPickerStep = "provider";
 	private selected: number;
@@ -54,16 +61,25 @@ export class ModelPickerOverlay implements Component {
 		private readonly onClose: () => void,
 		initial: WwwSettings = current,
 		resumeAtConfirmation = false,
+		options: ModelPickerOptions = {},
 	) {
-		this.staged = { ...initial };
-		this.step = resumeAtConfirmation ? "confirm" : "provider";
-		this.selected = Math.max(0, PROVIDERS.indexOf(initial.provider));
-		for (const provider of PROVIDERS) this.auth.set(provider, { state: "pending", provider });
+		const requestedProviders = options.providers?.length ? options.providers : PROVIDERS;
+		this.providers = requestedProviders.filter((provider, index) => requestedProviders.indexOf(provider) === index);
+		const provider = this.providers.includes(initial.provider) ? initial.provider : this.providers[0] ?? initial.provider;
+		const models = MODELS[provider];
+		const model = (models as readonly string[]).includes(initial.model) ? initial.model : models[0];
+		this.staged = { ...initial, provider, model };
+		this.providerStepVisible = !(options.startAtModel === true && this.providers.length === 1);
+		this.step = resumeAtConfirmation ? "confirm" : this.providerStepVisible ? "provider" : "model";
+		this.selected = this.step === "model"
+			? Math.max(0, (models as readonly string[]).indexOf(model))
+			: Math.max(0, this.providers.indexOf(provider));
+		for (const provider of this.providers) this.auth.set(provider, { state: "pending", provider });
 	}
 
 	start(): void {
 		const generation = ++this.lookupGeneration;
-		for (const provider of PROVIDERS) {
+		for (const provider of this.providers) {
 			this.auth.set(provider, { state: "pending", provider });
 			void this.authStatus(provider).then(
 				status => {
@@ -114,13 +130,15 @@ export class ModelPickerOverlay implements Component {
 	}
 
 	private breadcrumb(): string {
-		const order: ModelPickerStep[] = ["provider", "model", "effort", "confirm"];
+		const order: ModelPickerStep[] = this.providerStepVisible
+			? ["provider", "model", "effort", "confirm"]
+			: ["model", "effort", "confirm"];
 		return order.map(step => step === this.step ? colors.accent(`[${STEP_LABEL[step]}]`) : colors.muted(STEP_LABEL[step])).join("  ›  ");
 	}
 
 	private rows(): string[] {
 		if (this.step === "provider") {
-			return PROVIDERS.map((provider, index) => this.row(
+			return this.providers.map((provider, index) => this.row(
 				index,
 				provider,
 				this.authBadge(provider),
@@ -168,7 +186,7 @@ export class ModelPickerOverlay implements Component {
 	}
 
 	private optionCount(): number {
-		if (this.step === "provider") return PROVIDERS.length;
+		if (this.step === "provider") return this.providers.length;
 		if (this.step === "model") return MODELS[this.staged.provider].length;
 		if (this.step === "effort") return EFFORTS.length;
 		return 1;
@@ -177,7 +195,7 @@ export class ModelPickerOverlay implements Component {
 	private forward(): void | Promise<void> {
 		this.error = null;
 		if (this.step === "provider") {
-			const provider = PROVIDERS[this.selected];
+			const provider = this.providers[this.selected];
 			const models = MODELS[provider];
 			const model = (models as readonly string[]).includes(this.staged.model) ? this.staged.model : models[0];
 			this.staged = { ...this.staged, provider, model };
@@ -212,8 +230,12 @@ export class ModelPickerOverlay implements Component {
 			this.step = "model";
 			this.selected = Math.max(0, (MODELS[this.staged.provider] as readonly string[]).indexOf(this.staged.model));
 		} else if (this.step === "model") {
+			if (!this.providerStepVisible) {
+				this.onClose();
+				return;
+			}
 			this.step = "provider";
-			this.selected = Math.max(0, PROVIDERS.indexOf(this.staged.provider));
+			this.selected = Math.max(0, this.providers.indexOf(this.staged.provider));
 		} else {
 			this.onClose();
 			return;

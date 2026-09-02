@@ -1,5 +1,44 @@
 # Changelog
 
+## 0.1.11 — 2026-09-01
+
+첫 화면과 하단 계기판을 정돈하고, Todo.md를 다시 Native 세션 경계에 맞췄습니다.
+
+### 추가
+
+- 모델별 세션 토큰 오른쪽의 같은 3행에 teal·steel·amber 그라데이션 Wooni 캐릭터와 identity prompt 표시
+- 구독 한도 옆에 `Sol/Fable`, `Terra/Opus`, `Luna/Sonnet` 고정 슬롯으로 표시하는 Native·T-note·외부 검토 모델별 세션 토큰
+- Native Plan·압축·서브에이전트·웹 검색·리뷰·공개 reasoning summary를 시간 순서대로 남기는 Chat 타임라인
+
+### 수정
+
+- 첫 질문의 Native Plan 자동 동기화에서 Todo source의 메서드 receiver를 보존해 `requireLedger` 오류가 T-notes 영역에 노출되지 않도록 수정
+- 오른쪽 T-notes와 Todo pane의 중복 제목을 제거하고 내용부터 바로 표시
+- 상단 프레임 제목에 현재 Native 모델과 effort를 넣고 하단 중복 표기를 제거
+- 사용량 게이지 문자를 제거하고 `50%`처럼 정렬된 숫자만 남기며 Codex는 `7Day`, Claude는 `5Session · 7Day`만 표시
+- 새 Native 세션이 프로젝트 공용 Todo를 이어받지 않도록 `.www/todos/<native-thread>/Todo.md`에 세션별로 생성하고 `--resume`에서만 같은 Todo를 복구
+- Context, 구독 잔여량, 현재 WWW 세션의 모델별 토큰을 서로 다른 값으로 유지
+- Git·Bash 실행을 `├─── Output` 구분선·상태 아이콘·tail 생략 표식을 갖춘 Gajae 방식 카드로 표시
+- 원시 reasoning text는 계속 숨기고 App Server가 공개 요약으로 구분한 `summaryTextDelta`만 실시간 활동 문구로 표시
+
+## 0.1.10 — 2026-09-01
+
+현재 대화의 기억, 이번 실행의 모델 사용량, 구독 잔여량을 분리하고 T-notes와 Todo의 역할을 다시 고정했습니다.
+
+### 추가
+
+- `$session-goal` 프로젝트 스킬과 T-notes 상단의 선택적 Session Goal 표시
+- 질문 하나가 끝날 때 `질문 · 왜 이 과정을 거쳤는지 · 결과`를 쉬운 말로 남기는 비동기 T-note
+- Native 턴별 모델 사용량과 현재 Context 배터리, Codex·Claude 구독 잔여 배터리
+- Git status·diff와 Bash 출력의 수정·미추적·추가·삭제·구간 헤더 의미 색상
+
+### 수정
+
+- 현재 턴이 아닌 지연 사용량 이벤트가 Context 표시를 덮어쓰지 않도록 턴 경계를 고정
+- Todo.md의 2계층을 명령·경로가 아니라 `무엇을 하는지 · 왜 필요한지` 서술로 변경
+- T-note 생성 모델을 주 대화와 분리된 `gpt-5.6-luna`로 낮추고 다음 Chat 전송과 직렬화하지 않음
+- T-notes의 단일 누적 요약을 없애고 완료된 질문별 immutable 기록을 모두 유지
+
 ## 0.1.9 — 2026-09-01
 
 Native 세션의 전체 흐름과 실제 사용량을 한 화면에서 읽고, 실행 방식도 직접 전환할 수 있게 했습니다.

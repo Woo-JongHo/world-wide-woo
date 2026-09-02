@@ -5,6 +5,7 @@ import {
 	parseWorkbenchShellCommand,
 	shellCommandConcurrency,
 	SLASH_COMMANDS,
+	WORKBENCH_SLASH_COMMANDS,
 } from "../src/presentation/tui/slash-commands";
 import type { WwwSettings } from "../src/domain/model-settings";
 
@@ -77,12 +78,22 @@ describe("WWW slash commands", () => {
 	});
 
 	test("intercepts only exact workbench-local commands", () => {
+		expect(parseWorkbenchShellCommand("/model")).toEqual({ type: "model.select" });
+		expect(parseWorkbenchShellCommand("/model gpt-5.6-sol")).toEqual({ type: "model.set", model: "gpt-5.6-sol" });
+		expect(parseWorkbenchShellCommand("/model openai-codex/gpt-5.6-terra high")).toEqual({
+			type: "model.set", model: "gpt-5.6-terra", effort: "high",
+		});
+		expect(parseWorkbenchShellCommand("/model gpt-5.6-sol medium extra")).toMatchObject({ type: "error" });
+		expect(parseWorkbenchShellCommand("/model gpt-5.4 impossible")).toMatchObject({ type: "error" });
+		expect(parseWorkbenchShellCommand("/model anthropic/claude-sonnet-4-6")).toMatchObject({ type: "error" });
 		expect(parseWorkbenchShellCommand("/source latest")).toEqual({ type: "activity.select", activityId: "latest" });
 		expect(parseWorkbenchShellCommand("/permission all")).toEqual({ type: "session.permission", mode: "all" });
 		expect(parseWorkbenchShellCommand("/permission manual")).toEqual({ type: "session.permission", mode: "manual" });
 		expect(parseWorkbenchShellCommand("/permission unsafe")).toMatchObject({ type: "error" });
 		expect(parseWorkbenchShellCommand("/mode plan")).toEqual({ type: "session.mode", mode: "plan" });
 		expect(parseWorkbenchShellCommand("/mode manual")).toEqual({ type: "session.mode", mode: "manual" });
+		expect(parseWorkbenchShellCommand("/woo-entry")).toEqual({ type: "woo-entry.refresh" });
+		expect(parseWorkbenchShellCommand("/woo-entry now")).toMatchObject({ type: "error" });
 		expect(parseWorkbenchShellCommand("/tnote")).toEqual({ type: "tnote.capture" });
 		expect(parseWorkbenchShellCommand("/tnote range 3 7")).toEqual({ type: "tnote.capture-range", startSequence: 3, endSequence: 7 });
 		expect(parseWorkbenchShellCommand("/tnote range 7 3")).toMatchObject({ type: "error" });
@@ -106,7 +117,23 @@ describe("WWW slash commands", () => {
 		expect(parseWorkbenchShellCommand("/skill commit")).toBeNull();
 	});
 
-	test("advertises every supported command for editor completion", () => {
+	test("advertises every supported command for editor completion", async () => {
+		expect(WORKBENCH_SLASH_COMMANDS.map((command) => command.name)).toContain("model");
+		const modelCommand = WORKBENCH_SLASH_COMMANDS.find((command) => command.name === "model");
+		const modelCompletions = await modelCommand?.getArgumentCompletions?.("");
+		expect(modelCompletions?.map((item) => item.value)).toEqual([
+			"gpt-5.6-sol",
+			"gpt-5.6-terra",
+			"gpt-5.6-luna",
+			"gpt-5.4",
+		]);
+		const effortCompletions = await modelCommand?.getArgumentCompletions?.("gpt-5.6-terra ");
+		expect(effortCompletions).toEqual([
+			{ value: "low", label: "low", description: "추론 강도" },
+			{ value: "medium", label: "medium", description: "추론 강도" },
+			{ value: "high", label: "high", description: "추론 강도" },
+			{ value: "ultra", label: "ultra", description: "추론 강도" },
+		]);
 		expect(SLASH_COMMANDS.map((command) => command.name)).toEqual([
 			"model",
 			"login",

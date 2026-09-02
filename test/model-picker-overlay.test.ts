@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
 import type { ProviderAuthState } from "../src/application/ports";
 import type { Provider, WwwSettings } from "../src/domain/model-settings";
-import { ModelPickerOverlay } from "../src/presentation/tui/model-picker-overlay";
+import { ModelPickerOverlay, type ModelPickerOptions } from "../src/presentation/tui/model-picker-overlay";
 
 const current: WwwSettings = { provider: "openai-codex", model: "gpt-5.6-sol", effort: "ultra" };
 
@@ -21,6 +21,7 @@ function overlay(options: {
 	onClose?: () => void;
 	initial?: WwwSettings;
 	resumeAtConfirmation?: boolean;
+	pickerOptions?: ModelPickerOptions;
 } = {}): ModelPickerOverlay {
 	return new ModelPickerOverlay(
 		current,
@@ -31,6 +32,7 @@ function overlay(options: {
 		options.onClose ?? (() => undefined),
 		options.initial,
 		options.resumeAtConfirmation,
+		options.pickerOptions,
 	);
 }
 
@@ -47,6 +49,61 @@ describe("ModelPickerOverlay hierarchy", () => {
 		expect(output).not.toContain("검색");
 		picker.handleInput("gemini");
 		expect(text(picker)).toContain("› openai-codex");
+	});
+
+	test("limits provider rows and auth lookups to the configured subset", async () => {
+		const lookedUp: Provider[] = [];
+		const picker = overlay({
+			pickerOptions: { providers: ["openai-codex", "anthropic"] },
+			authStatus: async provider => {
+				lookedUp.push(provider);
+				return { state: "configured", provider, source: "test", type: "api_key" };
+			},
+		});
+		picker.start();
+		await Bun.sleep(0);
+
+		const output = text(picker);
+		expect(output).toContain("› openai-codex");
+		expect(output).toContain("  anthropic");
+		expect(output).not.toContain("openai  ");
+		expect(output).not.toContain("google  ");
+		expect(lookedUp.sort()).toEqual(["anthropic", "openai-codex"]);
+		picker.handleInput("\x1b[B");
+		picker.handleInput("\r");
+		expect(text(picker)).toContain("선택: anthropic / claude-opus-4-6 / ultra");
+	});
+
+	test("starts at model and applies without exposing the single provider step", async () => {
+		let applied: WwwSettings | undefined;
+		const picker = overlay({
+			pickerOptions: { providers: ["openai-codex"], startAtModel: true },
+			onApply: async settings => { applied = settings; },
+		});
+		picker.start();
+		await Bun.sleep(0);
+
+		const output = text(picker);
+		expect(output).toContain("[모델]  ›  추론  ›  확인");
+		expect(output).not.toContain("[공급자]");
+		expect(output).toContain("› gpt-5.6-sol");
+		picker.handleInput("\r");
+		expect(text(picker)).toContain("[추론]");
+		picker.handleInput("\r");
+		expect(text(picker)).toContain("[확인]");
+		picker.handleInput("\r");
+		await Bun.sleep(0);
+		expect(applied).toEqual(current);
+	});
+
+	test("backs out of the model step when provider selection was intentionally skipped", () => {
+		let closed = false;
+		const picker = overlay({
+			pickerOptions: { providers: ["openai-codex"], startAtModel: true },
+			onClose: () => { closed = true; },
+		});
+		picker.handleInput("\x1b[D");
+		expect(closed).toBe(true);
 	});
 
 	test("walks provider to model to effort and applies only at confirmation", async () => {

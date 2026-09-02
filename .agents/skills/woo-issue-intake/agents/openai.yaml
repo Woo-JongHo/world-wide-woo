@@ -1,0 +1,4 @@
+interface:
+  display_name: "WWW Issue Intake"
+  short_description: "접두어 없는 문제·요청 중심 GitHub Issue"
+  default_prompt: "Use $woo-issue-intake to prepare and verify one GitHub Issue for 99_www."

@@ -7,7 +7,7 @@ import { parseTodoMarkdown, patchTodoMarkdown, renderTodoMarkdown, type TodoDocu
 
 const queues = new Map<string, Promise<unknown>>();
 
-/** Filesystem-backed store for one tracked project-local `.www/vault/Todo.md` document. */
+/** Filesystem-backed store for one explicit Todo.md path; runtime ownership is decided by the composer. */
 export class FileTodoStore {
 	private lastInternalSource: string | null = null;
 	private conflictSource: string | null = null;

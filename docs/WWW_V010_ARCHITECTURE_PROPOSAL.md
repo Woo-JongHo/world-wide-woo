@@ -7,6 +7,11 @@
 - 후속 배포 단위: 여러 프로젝트를 모으는 본사 TUI
 - release 결정: `0.1.0` package/changelog/게이트는 구현됐으나 실제 cross-platform 출시 증거는 아직 없다
 
+이 문서는 v0.1.0의 구현 경계를 소유한다. 멀티프로젝트 Standard·Project Binding·
+Contract Validator·Agent Revision·Token Tuning을 포함한 장기 제품 목적은
+[WWW 제품 방향과 Agent 실행 경계](./WWW_PRODUCT_DIRECTION.md)가 소유한다. 장기 방향은
+v0.1.0에서 범용 Agent Runtime을 선행 구현한다는 뜻이 아니다.
+
 ## 결정 요약
 
 WWW는 플러그인도, 새 범용 에이전트 런타임도 아니다.

@@ -157,12 +157,14 @@ describe("FileProjectWorkspace", () => {
 		await second.release();
 	});
 
-	test("fails closed for a lease owned by a dead process", async () => {
+	test("reclaims a lease only after confirming its owner process is dead", async () => {
 		const workspace = await FileProjectWorkspace.open(await temporaryDirectory());
 		await writeFile(
 			join(workspace.runtimeDirectory, "stale.lock"),
 			`${JSON.stringify({ pid: 2_147_483_647, token: "stale", createdAt: new Date().toISOString() })}\n`,
 		);
-		await expect(FileProjectWorkspace.acquireSessionLease(workspace, "stale")).rejects.toThrow("lease is stale");
+		const lease = await FileProjectWorkspace.acquireSessionLease(workspace, "stale");
+		expect(await FileProjectWorkspace.hasSessionLease(workspace, "stale")).toBe(true);
+		await lease.release();
 	});
 });

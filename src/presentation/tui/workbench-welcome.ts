@@ -34,13 +34,17 @@ function colorAt(position: number): readonly [number, number, number] {
 
 /** A deterministic diagonal scan; the visible wordmark never changes between frames. */
 export function workbenchWelcomeLogoFrame(elapsedMs: number): string[] {
+	return artworkFrame(WWW_WORDMARK, elapsedMs);
+}
+
+function artworkFrame(artwork: readonly string[], elapsedMs: number): string[] {
 	const running = elapsedMs < INTRO_DURATION_MS;
 	const progress = running ? Math.max(0, elapsedMs) / INTRO_DURATION_MS : 1;
 	const fade = running ? 0.5 + Math.min(1, progress * 5) * 0.5 : 1;
 	const scan = running ? progress * 2.2 - 0.15 : -10;
-	const height = WWW_WORDMARK.length;
-	const width = Math.max(...WWW_WORDMARK.map((line) => Array.from(line).length));
-	return WWW_WORDMARK.map((line, row) => Array.from(line).map((character, column) => {
+	const height = artwork.length;
+	const width = Math.max(...artwork.map((line) => Array.from(line).length));
+	return artwork.map((line, row) => Array.from(line).map((character, column) => {
 		if (character === " ") return character;
 		const diagonal = (column + (height - row) * 1.8) / Math.max(1, width + height * 1.8);
 		const base = colorAt(diagonal);
@@ -87,7 +91,7 @@ export class WorkbenchWelcomeView implements Component {
 			...workbenchWelcomeLogoFrame(this.elapsedMs).map((line) => centered(line, width)),
 			"",
 			centered(colors.accent("bori · Native Project Workbench"), width),
-			centered(colors.muted("대화 · 세션 요약 · 현재 작업을 한 공간에서 봅니다."), width),
+			centered(colors.muted("대화 · 질문별 요약 · 현재 작업을 한 공간에서 봅니다."), width),
 		];
 	}
 

@@ -106,8 +106,11 @@ export const SLASH_COMMANDS: SlashCommand[] = [
 
 export type WorkbenchShellCommand =
 	| { type: "pane.show"; pane: "chat" | "tnotes" | "todo" }
+	| { type: "model.select" }
+	| { type: "model.set"; model: string; effort?: Effort }
 	| { type: "session.permission"; mode: "all" | "manual" }
 	| { type: "session.mode"; mode: "plan" | "manual" }
+	| { type: "woo-entry.refresh" }
 	| { type: "activity.select"; activityId: string | "latest" | null }
 	| { type: "tnote.capture" }
 	| { type: "tnote.capture-range"; startSequence: number; endSequence: number }
@@ -129,8 +132,16 @@ export type WorkbenchShellCommand =
 	| { type: "error"; message: string };
 
 export const WORKBENCH_SLASH_COMMANDS: SlashCommand[] = [
+	{
+		name: "model",
+		description: "Native Codex 모델·추론 강도 설정",
+		argumentHint: "<codex-model> [low|medium|high|ultra]",
+		getArgumentCompletions: (prefix) => prefix.includes(" ")
+			? EFFORTS.map((effort) => ({ value: effort, label: effort, description: "추론 강도" }))
+			: MODELS["openai-codex"].map((model) => ({ value: model, label: model, description: "Codex 모델" })),
+	},
 	{ name: "chat", description: "Chat pane 안내" },
-	{ name: "tnotes", description: "세션 요약·source pane 안내" },
+	{ name: "tnotes", description: "질문별 요약·source pane 안내" },
 	{ name: "todo", description: "Todo.md 생성·항목·근거 관리", argumentHint: "<create|add|detail|start|complete|block|reopen|evidence|import-legacy> …" },
 	{
 		name: "permission",
@@ -150,8 +161,9 @@ export const WORKBENCH_SLASH_COMMANDS: SlashCommand[] = [
 			{ value: "plan", label: "plan", description: "계획 중심 모드" },
 		],
 	},
+	{ name: "woo-entry", description: "WES 현재 상태와 다음 작업 다시 읽기" },
 	{ name: "source", description: "Activity source 선택", argumentHint: "<activity-id|latest|clear>" },
-	{ name: "tnote", description: "현재 Native 세션의 전체 대화를 누적 요약", argumentHint: "[range <start-sequence> <end-sequence>]" },
+	{ name: "tnote", description: "마지막 질문 또는 선택 범위를 질문·이유·결과로 요약", argumentHint: "[range <start-sequence> <end-sequence>]" },
 	{ name: "promote", description: "T-note 정본 반영: diff 확인 후 사람 승인", argumentHint: "<tnote|confirm> <note-id|token>" },
 	{ name: "review", description: "공개 분류 T-note의 외부 검토 미리보기·송신", argumentHint: "<preview|send> …" },
 	{ name: "approve", description: "대기 중인 native 요청 승인" },
@@ -166,6 +178,7 @@ export function parseWorkbenchShellCommand(text: string): WorkbenchShellCommand 
 	if (!trimmed.startsWith("/")) return null;
 	const [name, ...args] = trimmed.slice(1).split(/\s+/u);
 	if ((name === "chat" || name === "tnotes" || name === "todo") && args.length === 0) return { type: "pane.show", pane: name };
+	if (name === "model") return parseWorkbenchModelCommand(args);
 	if (name === "permission") {
 		return args.length === 1 && (args[0] === "all" || args[0] === "manual")
 			? { type: "session.permission", mode: args[0] }
@@ -175,6 +188,11 @@ export function parseWorkbenchShellCommand(text: string): WorkbenchShellCommand 
 		return args.length === 1 && (args[0] === "plan" || args[0] === "manual")
 			? { type: "session.mode", mode: args[0] }
 			: { type: "error", message: "사용법: /mode <manual|plan>" };
+	}
+	if (name === "woo-entry") {
+		return args.length === 0
+			? { type: "woo-entry.refresh" }
+			: { type: "error", message: "사용법: /woo-entry" };
 	}
 	if (name === "source") {
 		const activityId = args[0];
@@ -203,6 +221,25 @@ export function parseWorkbenchShellCommand(text: string): WorkbenchShellCommand 
 	if (name === "cancel") return { type: "chat.cancel" };
 	if (name === "exit" || name === "quit") return { type: "exit" };
 	return null;
+}
+
+function parseWorkbenchModelCommand(args: readonly string[]): WorkbenchShellCommand {
+	if (args.length === 0) return { type: "model.select" };
+	if (args.length > 2) return { type: "error", message: "사용법: /model <codex-model> [low|medium|high|ultra] (인자가 너무 많습니다.)" };
+
+	const requestedModel = args[0];
+	const model = requestedModel?.startsWith("openai-codex/")
+		? requestedModel.slice("openai-codex/".length)
+		: requestedModel;
+	if (!model || !(MODELS["openai-codex"] as readonly string[]).includes(model)) {
+		return { type: "error", message: `지원하지 않는 Codex 모델입니다: ${requestedModel ?? ""}` };
+	}
+
+	const effort = args[1];
+	if (effort !== undefined && !EFFORTS.includes(effort as Effort)) {
+		return { type: "error", message: `지원하지 않는 추론 강도입니다: ${effort}` };
+	}
+	return effort === undefined ? { type: "model.set", model } : { type: "model.set", model, effort: effort as Effort };
 }
 
 function parseTodoCommand(trimmed: string): WorkbenchShellCommand {

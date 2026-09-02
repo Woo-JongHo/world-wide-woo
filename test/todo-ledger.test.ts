@@ -64,7 +64,12 @@ describe("TodoLedger", () => {
 				status: "running",
 				activityIds: ["activity-1"],
 				observationCount: 0,
-				narration: { what: "Todo 저장 경계를 연결합니다.", inputSummary: ["대상 파일 변경"], source: "model" },
+				narration: {
+					what: "Todo 저장 경계를 연결합니다.",
+					why: "진행 상황을 코드가 아닌 문장으로 보여주기 위해서입니다.",
+					inputSummary: ["command: sed -n '1,200p' src/application/todo-ledger.ts"],
+					source: "model",
+				},
 			}, {
 				id: "plan:turn-1:2",
 				number: 2,
@@ -84,12 +89,12 @@ describe("TodoLedger", () => {
 
 		expect(first.title).toBe("Native 계획을 Todo로 반영한다");
 		expect(first.items.map((item) => [item.id, item.status, item.content])).toEqual([
-			["native-step-1", "in_progress", "계획 자동 동기화"],
+			["native-step-1", "in_progress", "Todo 저장 경계를 연결합니다."],
 			["native-step-2", "pending", "동기화 결과 검증"],
 		]);
 		expect(first.items[0]?.details).toEqual([{
 			id: "native-step-1-detail-1",
-			content: "대상 파일 변경",
+			content: "진행 상황을 코드가 아닌 문장으로 보여주기 위해서입니다.",
 			status: "in_progress",
 			evidenceIds: ["activity-1"],
 		}]);
@@ -97,6 +102,68 @@ describe("TodoLedger", () => {
 		const unchanged = await syncNativePlan("turn-1", running);
 		expect(unchanged).toBe(first);
 		expect(fixture.events.inputs).toHaveLength(1);
+	});
+
+	test("uses coarse semantic narration when a narrator is pending, fails, or returns null reasons", async () => {
+		const fixture = ledger();
+		await fixture.ledger.initialize();
+		const syncNativePlan = (fixture.ledger as TodoLedger & {
+			syncNativePlan(turnId: string, flow: WorkFlowProjection): Promise<TodoDocument>;
+		}).syncNativePlan.bind(fixture.ledger);
+		const document = await syncNativePlan("turn-unsafe", {
+			goal: "bun test src/application/todo-ledger.ts",
+			steps: [{
+				id: "step-null-reason",
+				number: 1,
+				title: "src/application/todo-ledger.ts 변경",
+				status: "running",
+				activityIds: [],
+				observationCount: 0,
+				narration: { what: "command: bun test --filter todo", why: null as unknown as string, inputSummary: [], source: "model" },
+			}, {
+				id: "step-pending",
+				number: 2,
+				title: "args: {\"path\":\"src/domain/work-steps.ts\"}",
+				status: "pending",
+				activityIds: [],
+				observationCount: 0,
+				narration: { what: "src/domain/work-steps.ts 변경", inputSummary: [], source: "fallback" },
+			}, {
+				id: "step-failed",
+				number: 3,
+				title: "apply_patch src/domain/work-steps.ts",
+				status: "pending",
+				activityIds: [],
+				observationCount: 0,
+				narration: { what: "args: --path src/domain/work-steps.ts", why: "path: src/domain/work-steps.ts", inputSummary: [], source: "fallback" },
+			}, {
+				id: "step-inline-command",
+				number: 4,
+				title: "todo-ledger.ts 수정",
+				status: "pending",
+				activityIds: [],
+				observationCount: 0,
+				narration: {
+					what: "검증 전에 `bun test --filter todo`를 실행합니다.",
+					why: "package.json 변경이 필요한지 확인합니다.",
+					inputSummary: [],
+					source: "model",
+				},
+			}],
+			completedCount: 0,
+			currentStepNumber: 1,
+			observationCount: 0,
+			summary: "",
+		});
+
+		expect(document.title).toBe("현재 요청");
+		expect(document.items.map((item) => [item.content, item.details[0]?.content])).toEqual([
+			["작업을 진행합니다.", "요청을 안전하게 처리하고 결과를 확인하기 위해서입니다."],
+			["작업을 진행합니다.", "요청을 안전하게 처리하고 결과를 확인하기 위해서입니다."],
+			["작업을 진행합니다.", "요청을 안전하게 처리하고 결과를 확인하기 위해서입니다."],
+			["작업을 진행합니다.", "요청을 안전하게 처리하고 결과를 확인하기 위해서입니다."],
+		]);
+		expect(JSON.stringify(document)).not.toMatch(/(?:bun test|apply_patch|args:|command:|src\/(?:application|domain)|todo-ledger\.ts|package\.json)/u);
 	});
 
 	test("creates stable IDs, refuses unfinished replacement, and shares project work across sessions", async () => {

@@ -30,8 +30,8 @@ describe("release gate hygiene", () => {
 		await writeFile(join(root, "README.md"), "fixture\n");
 		git(root, ["add", "README.md"]);
 		git(root, ["-c", "user.name=fixture", "-c", "user.email=fixture@example.test", "commit", "-m", "baseline"]);
-		await mkdir(join(root, ".omo", "evidence"), { recursive: true });
-		await writeFile(join(root, ".omo", "evidence", "ST-TEST.md"), "Status: PASS\n");
+		await mkdir(join(root, ".www", "evidence"), { recursive: true });
+		await writeFile(join(root, ".www", "evidence", "ST-TEST.md"), "Status: PASS\n");
 		await mkdir(join(root, "test"));
 		const skipped = "skip";
 		await writeFile(join(root, "test", "hygiene-sentinel.test.ts"), `import { test } from "bun:test"; test.${skipped}("fixture", () => {});\n`);
@@ -48,8 +48,8 @@ describe("release gate hygiene", () => {
 		await writeFile(join(root, "README.md"), "fixture\n");
 		git(root, ["add", "README.md"]);
 		git(root, ["-c", "user.name=fixture", "-c", "user.email=fixture@example.test", "commit", "-m", "baseline"]);
-		await mkdir(join(root, ".omo", "evidence"), { recursive: true });
-		await writeFile(join(root, ".omo", "evidence", "ST-TEST.md"), "Status: PASS\n");
+		await mkdir(join(root, ".www", "evidence"), { recursive: true });
+		await writeFile(join(root, ".www", "evidence", "ST-TEST.md"), "Status: PASS\n");
 		await mkdir(join(root, "src"));
 		await writeFile(join(root, "src", "committed.ts"), `// ${"TO" + "DO"}: remove sentinel\nexport const committed = true;\n`);
 		git(root, ["add", "src/committed.ts"]);
@@ -71,8 +71,8 @@ describe("release gate hygiene", () => {
 		const root = await mkdtemp(join(tmpdir(), "www-release-gate-test-"));
 		roots.push(root);
 		git(root, ["init"]);
-		await mkdir(join(root, ".omo", "evidence"), { recursive: true });
-		await writeFile(join(root, ".omo", "evidence", "ST-TEST.md"), "Status: PASS\n");
+		await mkdir(join(root, ".www", "evidence"), { recursive: true });
+		await writeFile(join(root, ".www", "evidence", "ST-TEST.md"), "Status: PASS\n");
 		await mkdir(join(root, "test"));
 		const focused = "only";
 		await writeFile(join(root, "test", "committed.test.ts"), `import { test } from "bun:test"; test.${focused}("fixture", () => {});\n`);
@@ -99,8 +99,8 @@ describe("release gate hygiene", () => {
 		git(source, ["-c", "user.name=fixture", "-c", "user.email=fixture@example.test", "commit", "-m", "violation"]);
 		await rm(shallow, { recursive: true, force: true });
 		execFileSync("git", ["clone", "--depth", "1", "--no-local", source, shallow], { stdio: "ignore" });
-		await mkdir(join(shallow, ".omo", "evidence"), { recursive: true });
-		await writeFile(join(shallow, ".omo", "evidence", "ST-TEST.md"), "Status: PASS\n");
+		await mkdir(join(shallow, ".www", "evidence"), { recursive: true });
+		await writeFile(join(shallow, ".www", "evidence", "ST-TEST.md"), "Status: PASS\n");
 
 		const { exitCode, output } = await runGate(shallow);
 		expect(exitCode).toBe(1);

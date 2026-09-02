@@ -1,4 +1,5 @@
 import type { NativeApprovalRequest, NativeApprovalResponse, NativeRefs } from "./native-session.js";
+import type { Effort } from "./model-settings.js";
 import type { ProjectActivity } from "./project-activity.js";
 import type { TodoDocument } from "./todos.js";
 import type { ReviewProvider } from "./review.js";
@@ -43,6 +44,37 @@ export interface WorkbenchContextUsage {
 	readonly percent: number;
 }
 
+export interface WorkbenchModelUsage {
+	readonly model: string;
+	readonly effort: string | null;
+	readonly turns: number;
+	readonly totalTokens: number;
+}
+
+/** Tokens observed after this WWW process attached; this is not subscription quota. */
+export interface WorkbenchSessionUsage {
+	readonly totalTokens: number;
+	readonly unattributedTokens: number;
+	readonly models: readonly WorkbenchModelUsage[];
+}
+
+export interface WorkbenchSessionGoal {
+	readonly text: string;
+	readonly sourceActivityId: string;
+	readonly updatedAt: string;
+}
+
+export interface WorkbenchWooEntrySnapshot {
+	readonly state: "loading" | "ready" | "blocked";
+	readonly revision: number;
+	readonly collectedAt: string | null;
+}
+
+export interface WorkbenchModelSelection {
+	readonly model: string;
+	readonly effort: Effort;
+}
+
 export interface WorkbenchActionResult {
 	readonly kind: "todo" | "tnote" | "promotion" | "review";
 	readonly title: string;
@@ -62,8 +94,11 @@ export interface WorkbenchSnapshot {
 	model?: string;
 	effort?: string | null;
 	contextUsage?: WorkbenchContextUsage | null;
+	sessionUsage?: WorkbenchSessionUsage;
+	sessionGoal?: WorkbenchSessionGoal | null;
 	permissionMode?: WorkbenchPermissionMode;
 	collaborationMode?: WorkbenchCollaborationMode;
+	wooEntry?: WorkbenchWooEntrySnapshot | null;
 	threadId: string | null;
 	activeTurnId: string | null;
 	/** Total durable activities in the current Native session. */
@@ -75,6 +110,8 @@ export interface WorkbenchSnapshot {
 	chatQueue: readonly WorkbenchChatQueueItem[];
 	draft: string;
 	reasoningDraft: string;
+	/** Public App Server reasoning summary; raw reasoningDraft is never rendered. */
+	reasoningSummaryDraft?: string;
 	liveActivity: WorkbenchLiveActivity | null;
 	/** Derived live execution brief; Native activities and plan status remain authoritative. */
 	workFlow: WorkFlowProjection;
@@ -91,6 +128,8 @@ export type WorkbenchCommand =
 	| { type: "activity.select"; activityId: string | null }
 	| { type: "session.permission"; mode: WorkbenchPermissionMode }
 	| { type: "session.mode"; mode: WorkbenchCollaborationMode }
+	| { type: "session.model"; selection: WorkbenchModelSelection }
+	| { type: "woo-entry.refresh" }
 	| { type: "tnote.capture-session" }
 	| { type: "tnote.capture"; activityIds: readonly string[]; title?: string }
 	| { type: "tnote.capture-range"; startSequence: number; endSequence: number; title?: string }

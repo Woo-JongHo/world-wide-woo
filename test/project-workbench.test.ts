@@ -30,9 +30,18 @@ import type {
 } from "../src/domain/project-activity";
 import { CanonicalPromotionService, digestCanonicalDocument } from "../src/application/canonical-promotion";
 import { ReviewService } from "../src/application/review-service";
+import { SessionModelUsageAccumulator } from "../src/application/session-model-usage";
 import { TodoWriteConflictError } from "../src/application/todo-ledger";
+import { WooEntry, type WooEntryCollection } from "../src/application/woo-entry";
 import type { TodoDocument } from "../src/domain/todos";
 import { ProviderReviewAdapter, sha256ReviewDigest } from "../src/infrastructure/review-adapters";
+import { TNoteService } from "../src/application/t-note-service";
+import type { DetachedTextGenerator } from "../src/application/detached-text-generator";
+import { FileTNoteStore } from "../src/infrastructure/t-note-store";
+import { sanitizeTNoteText } from "../src/domain/t-notes";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 class MemoryJournal implements WorkbenchActivityJournal {
 	readonly records: ProjectActivity[] = [];
@@ -81,6 +90,7 @@ class FakeNativeHarness implements NativeHarnessPort {
 	startThreadCalls = 0;
 	startThreadInputs: NativeThreadStart[] = [];
 	startThreadGate: Promise<void> | null = null;
+	startThreadError: unknown = null;
 	startTurnGate: Promise<void> | null = null;
 	uncertain = false;
 	approvalResponses: NativeApprovalResolution[] = [];
@@ -94,6 +104,7 @@ class FakeNativeHarness implements NativeHarnessPort {
 		this.startThreadCalls += 1;
 		this.startThreadInputs.push(input);
 		if (this.startThreadGate) await this.startThreadGate;
+		if (this.startThreadError) throw this.startThreadError;
 		return { id: "thread-1", value: {} };
 	}
 	async resumeThread(input: NativeThreadResume): Promise<NativeThreadSnapshot> {
@@ -166,6 +177,115 @@ async function ready(workbench: ProjectWorkbench): Promise<void> {
 }
 
 describe("ProjectWorkbench", () => {
+	test("derives conservative background work only from complete native collaboration lifecycle snapshots", async () => {
+		const native = new FakeNativeHarness();
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+		});
+		await ready(workbench);
+		expect(workbench.backgroundWorkState).toBe("unknown");
+
+		native.emit({
+			type: "notification",
+			method: "item/updated",
+			refs: { threadId: "thread-1", turnId: "turn-1", itemId: "spawn-1" },
+			params: { item: {
+				type: "collabAgentToolCall", id: "spawn-1", tool: "spawnAgent", status: "inProgress",
+				receiverThreadIds: ["child-1"], agentsStates: {},
+			} },
+		});
+		await Bun.sleep(5);
+		expect(workbench.backgroundWorkState).toBe("active");
+
+		native.emit({
+			type: "notification",
+			method: "item/updated",
+			refs: { threadId: "thread-1", turnId: "turn-1", itemId: "spawn-1" },
+			params: { item: {
+				type: "collabAgentToolCall", id: "spawn-1", tool: "spawnAgent", status: "completed",
+				receiverThreadIds: ["child-1"], agentsStates: {},
+			} },
+		});
+		await Bun.sleep(5);
+		expect(workbench.backgroundWorkState).toBe("unknown");
+
+		native.emit({
+			type: "notification",
+			method: "item/updated",
+			refs: { threadId: "thread-1", turnId: "turn-1", itemId: "spawn-1" },
+			params: { item: {
+				type: "collabAgentToolCall", id: "spawn-1", tool: "spawnAgent", status: "completed",
+				receiverThreadIds: ["child-1"], agentsStates: { "child-1": { status: "running" } },
+			} },
+		});
+		await Bun.sleep(5);
+		expect(workbench.backgroundWorkState).toBe("active");
+
+		native.emit({
+			type: "notification",
+			method: "item/updated",
+			refs: { threadId: "thread-1", turnId: "turn-1", itemId: "spawn-1" },
+			params: { item: {
+				type: "collabAgentToolCall", id: "spawn-1", tool: "spawnAgent", status: "completed",
+				receiverThreadIds: ["child-1"], agentsStates: { "child-1": { status: "completed" } },
+			} },
+		});
+		await Bun.sleep(5);
+		expect(workbench.backgroundWorkState).toBe("none");
+		await workbench.close();
+	});
+
+	test("collects woo-entry before Chat and applies a refresh to the next queued turn", async () => {
+		const native = new FakeNativeHarness();
+		let collectionCount = 0;
+		const collection = (branch: string): WooEntryCollection => ({
+			source: { root: "/wes", runner: "hooks/wes_entry.py" },
+			payload: {
+				status: { status: "bootstrap", branch },
+				git: { branch, head: branch === "first" ? "a".repeat(40) : "b".repeat(40) },
+				authority: { active_ledger: "planning/active/todo.md" },
+				signals: branch === "first" ? [] : [{ kind: "stale-revision", sources: ["TODO.md"] }],
+				nextActions: [{ id: "TASK-1", label: branch, status: "in-progress" }],
+			},
+		});
+		const wooEntry = new WooEntry({
+			collect: async () => collection(++collectionCount === 1 ? "first" : "second"),
+		});
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+			wooEntry,
+		});
+
+		await ready(workbench);
+		expect(collectionCount).toBe(1);
+		expect(workbench.snapshot.wooEntry).toMatchObject({ state: "ready", revision: 1 });
+		await workbench.dispatch({ type: "chat.send", text: "첫 요청" });
+		await workbench.dispatch({ type: "chat.send", text: "대기 요청" });
+		const refresh = await workbench.dispatch({ type: "woo-entry.refresh" });
+		expect(refresh).toMatchObject({ state: "accepted" });
+		expect(collectionCount).toBe(2);
+		expect(native.startTurnCalls).toBe(1);
+
+		native.emit({ type: "notification", method: "turn/completed", refs: { threadId: "thread-1", turnId: "turn-1" }, params: {} });
+		await Bun.sleep(10);
+
+		expect(native.startTurnCalls).toBe(2);
+		const dynamicSnapshots = native.startTurnInputs.map((input) => {
+			const entry = Object.values(input.additionalContext ?? {}).find((value) => value.kind === "untrusted");
+			expect(entry).toBeDefined();
+			return JSON.parse(entry!.value) as { revision: number; git: { branch: string } };
+		});
+		expect(dynamicSnapshots.map((snapshot) => [snapshot.revision, snapshot.git.branch])).toEqual([
+			[1, "first"],
+			[2, "second"],
+		]);
+		expect(native.startTurnInputs.every((input) => Object.values(input.additionalContext ?? {})
+			.some((value) => value.kind === "application"))).toBe(true);
+		await workbench.close();
+	});
+
 	test("mirrors Native plan activity to Todo without delaying real-time Chat projection", async () => {
 		const native = new FakeNativeHarness();
 		const syncCalls: Array<{ turnId: string; flow: Parameters<NonNullable<WorkbenchTodoSource["syncNativePlan"]>>[1] }> = [];
@@ -323,7 +443,35 @@ describe("ProjectWorkbench", () => {
 		await workbench.close();
 	});
 
-	test("creates a session-summary T-note only at a substantial completed-turn checkpoint without blocking queued chat", async () => {
+	test("publishes the accepted user message as preparing before native start settles", async () => {
+		const native = new FakeNativeHarness();
+		let releaseStart!: () => void;
+		native.startThreadGate = new Promise<void>((resolve) => { releaseStart = resolve; });
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "sample-project", cwd: "/workspace/sample" });
+		await ready(workbench);
+		const sent = workbench.dispatch({ type: "chat.send", text: "즉시 보여야 하는 요청" });
+		await Bun.sleep(5);
+		expect(workbench.snapshot.chat).toContainEqual(expect.objectContaining({
+			content: "즉시 보여야 하는 요청",
+			status: "streaming",
+		}));
+		releaseStart();
+		await expect(sent).resolves.toMatchObject({ state: "accepted" });
+		await workbench.close();
+	});
+
+	test("marks a first-submit thread start failure without leaving preparing progress", async () => {
+		const native = new FakeNativeHarness();
+		native.startThreadError = new Error("thread start failed");
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "sample-project", cwd: "/workspace/sample" });
+		await ready(workbench);
+		await expect(workbench.dispatch({ type: "chat.send", text: "실패 요청" })).resolves.toMatchObject({ state: "rejected" });
+		expect(workbench.snapshot.chat).toContainEqual(expect.objectContaining({ content: "실패 요청", status: "failed" }));
+		expect(workbench.snapshot.activeTurnId).toBeNull();
+		await workbench.close();
+	});
+
+	test("creates one plain-language question summary after turn completion without blocking queued chat", async () => {
 		const native = new FakeNativeHarness();
 		const journal = new MemoryJournal();
 		const createCalls: Parameters<WorkbenchTNoteSource["create"]>[0][] = [];
@@ -347,8 +495,8 @@ describe("ProjectWorkbench", () => {
 						activities: input.activities.map((activity) => ({ ...activity, nativeRefs: activity.nativeRefs ?? [] })),
 						digest: "c".repeat(64),
 					},
-					text: "목표와 결정, 검증 결과, 남은 위험을 정리한 세션 요약",
-					provenance: { provider: "openai-codex", model: "gpt-5.6-sol", version: "test" },
+					text: "질문: 이 세션의 구현과 검증을 진행해줘\n왜: 구현 위치를 찾고 실제 동작을 검증해야 했습니다.\n결과: 구현과 테스트가 끝났습니다.",
+					provenance: { provider: "openai-codex", model: "gpt-5.6-luna", version: "test" },
 				};
 			},
 		};
@@ -387,8 +535,11 @@ describe("ProjectWorkbench", () => {
 		await Bun.sleep(10);
 
 		expect(createCalls).toHaveLength(1);
-		expect(createCalls[0]?.range).toEqual({ startSequence: 1, endSequence: 8 });
-		expect(createCalls[0]?.instruction).toContain("세션 요약");
+		expect(createCalls[0]?.range).toEqual({ startSequence: 3, endSequence: 8 });
+		expect(createCalls[0]?.instruction).toContain("질문: 이 세션의 구현과 검증을 진행해줘");
+		expect(createCalls[0]?.instruction).toContain("왜:");
+		expect(createCalls[0]?.instruction).toContain("결과:");
+		expect(createCalls[0]?.instruction).toContain("처음 보는 사람");
 		expect(native.startTurnCalls).toBe(2);
 		expect(workbench.snapshot.chatQueue).toEqual([]);
 		expect(workbench.snapshot.tnotes).toEqual([]);
@@ -397,13 +548,13 @@ describe("ProjectWorkbench", () => {
 		await Bun.sleep(10);
 		expect(workbench.snapshot.tnotes[0]).toMatchObject({
 			id: "automatic-session-summary-1",
-			title: "현재 세션 대화 요약",
-			summary: "목표와 결정, 검증 결과, 남은 위험을 정리한 세션 요약",
+			title: "이 세션의 구현과 검증을 진행해줘",
+			summary: "질문: 이 세션의 구현과 검증을 진행해줘\n왜: 구현 위치를 찾고 실제 동작을 검증해야 했습니다.\n결과: 구현과 테스트가 끝났습니다.",
 		});
 		await workbench.close();
 	});
 
-	test("rebuilds one cumulative summary for the current native session", async () => {
+	test("keeps one immutable T-note per completed question instead of replacing a cumulative summary", async () => {
 		const native = new FakeNativeHarness();
 		const createCalls: Parameters<WorkbenchTNoteSource["create"]>[0][] = [];
 		const tnotes: WorkbenchTNoteSource = {
@@ -424,8 +575,10 @@ describe("ProjectWorkbench", () => {
 						activities: input.activities.map((activity) => ({ ...activity, nativeRefs: undefined })),
 						digest: "d".repeat(64),
 					},
-					text: sequence === 1 ? "첫 누적 요약" : "현재 대화 전체를 반영한 두 번째 누적 요약",
-					provenance: { provider: "openai-codex", model: "gpt-5.6-sol", version: "test" },
+					text: sequence === 1
+						? "질문: 첫 질문\n왜: 원인을 확인했습니다.\n결과: 첫 답을 냈습니다."
+						: "질문: 두 번째 질문\n왜: 앞선 결과를 바탕으로 확인했습니다.\n결과: 두 번째 답을 냈습니다.",
+					provenance: { provider: "openai-codex", model: "gpt-5.6-luna", version: "test" },
 				};
 			},
 		};
@@ -435,25 +588,464 @@ describe("ProjectWorkbench", () => {
 			tnotes,
 		});
 		await ready(workbench);
-		await workbench.dispatch({ type: "chat.send", text: "현재 세션을 정리해줘" });
-		expect(await workbench.dispatch({ type: "tnote.capture-session" })).toMatchObject({ state: "accepted" });
-
+		await workbench.dispatch({ type: "chat.send", text: "첫 질문" });
 		native.emit({
 			type: "notification",
 			method: "item/completed",
 			refs: { threadId: "thread-1", turnId: "turn-1", itemId: "assistant-1" },
-			params: { item: { type: "agentMessage", text: "결정을 하나 더 반영했습니다." } },
+			params: { item: { type: "agentMessage", text: "첫 답을 냈습니다." } },
 		});
+		native.emit({ type: "notification", method: "turn/completed", refs: { threadId: "thread-1", turnId: "turn-1" }, params: {} });
 		await Bun.sleep(10);
-		expect(await workbench.dispatch({ type: "tnote.capture-session" })).toMatchObject({ state: "accepted" });
+
+		await workbench.dispatch({ type: "chat.send", text: "두 번째 질문" });
+		native.emit({
+			type: "notification",
+			method: "item/completed",
+			refs: { threadId: "thread-1", turnId: "turn-2", itemId: "assistant-2" },
+			params: { item: { type: "agentMessage", text: "두 번째 답을 냈습니다." } },
+		});
+		native.emit({ type: "notification", method: "turn/completed", refs: { threadId: "thread-1", turnId: "turn-2" }, params: {} });
+		await Bun.sleep(10);
 
 		expect(createCalls).toHaveLength(2);
-		expect(createCalls[1]?.instruction).toContain("이전 누적 요약:\n첫 누적 요약");
-		expect(createCalls[1]?.activities.length).toBeGreaterThan(createCalls[0]?.activities.length ?? 0);
-		expect(workbench.snapshot.tnotes).toEqual([
-			expect.objectContaining({ id: "session-summary-2", title: "현재 세션 대화 요약" }),
-		]);
+		expect(createCalls[0]?.instruction).toContain("질문: 첫 질문");
+		expect(createCalls[1]?.instruction).toContain("질문: 두 번째 질문");
+		expect(createCalls[1]?.instruction).not.toContain("첫 누적 요약");
+		expect(workbench.snapshot.tnotes.map((note) => note.title)).toEqual(["첫 질문", "두 번째 질문"]);
+		await workbench.dispatch({ type: "tnote.capture-session" });
+		expect(createCalls).toHaveLength(2);
 		await workbench.close();
+	});
+
+	test("projects a SessionGoal marker from a completed assistant message", async () => {
+		const native = new FakeNativeHarness();
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+		});
+		await ready(workbench);
+		await workbench.dispatch({ type: "chat.send", text: "$session-goal 프로젝트별 작업 TUI를 완성한다" });
+		native.emit({
+			type: "notification",
+			method: "item/completed",
+			refs: { threadId: "thread-1", turnId: "turn-1", itemId: "assistant-goal" },
+			params: { item: { type: "agentMessage", text: "SESSION_GOAL: 프로젝트별 작업 TUI를 완성하고 실제 사용으로 검증한다." } },
+		});
+		await Bun.sleep(10);
+
+		expect(workbench.snapshot.sessionGoal).toMatchObject({
+			text: "프로젝트별 작업 TUI를 완성하고 실제 사용으로 검증한다.",
+			sourceActivityId: expect.any(String),
+		});
+		await workbench.close();
+	});
+
+	test("rejects SessionGoal spoof markers unless they are a sole bounded assistant line for a $session-goal turn", async () => {
+		for (const [question, marker] of [
+			["일반 질문", "SESSION_GOAL: unrelated"],
+			["$session-goal 목표", "> SESSION_GOAL: quoted"],
+			["$session-goal 목표", "앞말\nSESSION_GOAL: multiline"],
+			["$session-goal 목표", "SESSION_GOAL: one\nSESSION_GOAL: duplicate"],
+			["$session-goal 목표", `SESSION_GOAL: ${"x".repeat(161)}`],
+		]) {
+			const native = new FakeNativeHarness();
+			const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "sample-project", cwd: "/workspace/sample" });
+			await ready(workbench);
+			await workbench.dispatch({ type: "chat.send", text: question });
+			native.emit({
+				type: "notification",
+				method: "item/completed",
+				refs: { threadId: "thread-1", turnId: "turn-1", itemId: "assistant-goal" },
+				params: { item: { type: "agentMessage", text: marker } },
+			});
+			await Bun.sleep(2);
+			expect(workbench.snapshot.sessionGoal).toBeNull();
+			await workbench.close();
+		}
+	});
+
+	test("rejects generated T-notes without exactly one canonical non-empty question, why, and result", async () => {
+		const appends: unknown[] = [];
+		const generator: DetachedTextGenerator = {
+			async generate() {
+				return {
+					text: "질문: 질문\n왜: 이유\n결과: 결과\n추가: 금지",
+					provenance: { provider: "test", model: "test", version: "test" },
+					isolation: { appliedPolicy: { cwd: "", noTools: true, network: false, readOnly: true, ephemeral: true }, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 },
+				};
+			},
+		};
+		const service = new TNoteService(generator, {
+			async append(input) { appends.push(input); throw new Error("must not append"); },
+			async readAll() { return []; },
+		});
+		await expect(service.create({
+			projectId: "project-1",
+			range: { startSequence: 1, endSequence: 1 },
+			activities: [{ id: "a", projectId: "project-1", sequence: 1, occurredAt: "2026-09-01T00:00:00.000Z", kind: "message", title: "message", body: "body" }],
+			instruction: "요약",
+			expectedQuestion: "질문",
+		})).rejects.toThrow("malformed");
+		expect(appends).toEqual([]);
+	});
+
+	test("does not append question-mismatched or prohibited T-note fields", async () => {
+		for (const text of [
+			"질문: 다른 질문\n왜: 이유를 확인했습니다.\n결과: 결과를 저장했습니다.",
+			"질문: 질문\n왜: 이유를 확인했습니다.\n결과: 후속 작업을 처리할 예정입니다.",
+			"질문: 질문\n왜: 이유를 확인했습니다.\n결과: 이후 배포합니다.",
+			"질문: 질문\n왜: src/app.ts와 package.json을 확인했습니다.\n결과: 결과를 저장했습니다.",
+			"질문: 질문\n왜: 이유를 확인했습니다.\n결과: README.md와 package.json을 수정했습니다.",
+			"질문: 질문\n왜: stderr FAIL expected received\n결과: 결과를 저장했습니다.",
+			"질문: 질문\n왜: AssertionError: expected 2 to equal 1\n결과: 결과를 저장했습니다.",
+			"질문: 질문\n왜: 숨은 사고를 그대로 기록합니다.\n결과: 결과를 저장했습니다.",
+		]) {
+			let appendCount = 0;
+			const service = new TNoteService({
+				async generate() {
+					return {
+						text,
+						provenance: { provider: "test", model: "test", version: "test" },
+						isolation: { appliedPolicy: { cwd: "", noTools: true, network: false, readOnly: true, ephemeral: true }, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 },
+					};
+				},
+			}, {
+				async append() { appendCount += 1; throw new Error("must not append"); },
+				async readAll() { return []; },
+			});
+			await expect(service.create({
+				projectId: "project-1", range: { startSequence: 1, endSequence: 1 },
+				activities: [{ id: "a", projectId: "project-1", sequence: 1, occurredAt: "2026-09-01T00:00:00.000Z", kind: "message", title: "message", body: "body" }],
+				instruction: "요약", expectedQuestion: "질문",
+			})).rejects.toThrow();
+			expect(appendCount).toBe(0);
+		}
+	});
+
+	test("permits user-owned Git/Bun/error/path questions and normal explanatory fields", async () => {
+		let appendCount = 0;
+		const question = "Git과 Bun 오류, src/app.ts 경로를 확인해줘";
+		const service = new TNoteService({
+			async generate() {
+				return {
+					text: `질문: ${question}\n왜: 문제의 원인과 영향을 이해하려고 확인했습니다.\n결과: 오류 원인을 설명하고 해결 방법을 정리했습니다.`,
+					provenance: { provider: "test", model: "test", version: "test" },
+					isolation: { appliedPolicy: { cwd: "", noTools: true, network: false, readOnly: true, ephemeral: true }, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 },
+				};
+			},
+		}, {
+			async append(input) {
+				appendCount += 1;
+				return { ...input, schemaVersion: 1 as const, sequence: 1 };
+			},
+			async readAll() { return []; },
+		});
+		await service.create({
+			projectId: "project-1", range: { startSequence: 1, endSequence: 1 },
+			activities: [{ id: "a", projectId: "project-1", sequence: 1, occurredAt: "2026-09-01T00:00:00.000Z", kind: "message", title: "message", body: "body" }],
+			instruction: "요약", expectedQuestion: question,
+		});
+		expect(appendCount).toBe(1);
+	});
+
+	test("permits completed-state results that negatively mention 후속 or 추후", async () => {
+		let appendCount = 0;
+		const service = new TNoteService({
+			async generate() {
+				return {
+					text: "질문: 질문\n왜: 완료 상태를 확인했습니다.\n결과: 후속 작업이나 추후 조치는 필요하지 않습니다.",
+					provenance: { provider: "test", model: "test", version: "test" },
+					isolation: { appliedPolicy: { cwd: "", noTools: true, network: false, readOnly: true, ephemeral: true }, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 },
+				};
+			},
+		}, {
+			async append(input) { appendCount += 1; return { ...input, schemaVersion: 1 as const, sequence: 1 }; },
+			async readAll() { return []; },
+		});
+		await service.create({
+			projectId: "project-1", range: { startSequence: 1, endSequence: 1 },
+			activities: [{ id: "a", projectId: "project-1", sequence: 1, occurredAt: "2026-09-01T00:00:00.000Z", kind: "message", title: "message", body: "body" }],
+			instruction: "요약", expectedQuestion: "질문",
+		});
+		expect(appendCount).toBe(1);
+	});
+
+	test("persists an exactly once-sanitized completed question through FileTNoteStore", async () => {
+		const directory = await mkdtemp(join(tmpdir(), "workbench-tnote-"));
+		const rawQuestion = "Git으로 /Users/example/private를 확인하고 alice@example.com 오류를 봐줘";
+		const expectedQuestion = sanitizeTNoteText(rawQuestion, 800);
+		const service = new TNoteService({
+			async generate() {
+				return {
+					text: `질문: ${expectedQuestion}\n왜: 문제의 영향을 이해하려고 확인했습니다.\n결과: 오류 원인을 설명했습니다.`,
+					provenance: { provider: "test", model: "test", version: "test" },
+					isolation: { appliedPolicy: { cwd: "", noTools: true, network: false, readOnly: true, ephemeral: true }, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 },
+				};
+			},
+		}, new FileTNoteStore(directory));
+		try {
+			const note = await service.create({
+				projectId: "project-1", range: { startSequence: 1, endSequence: 1 },
+				activities: [{ id: "a", projectId: "project-1", sequence: 1, occurredAt: "2026-09-01T00:00:00.000Z", kind: "message", title: "message", body: "body" }],
+				instruction: "요약", expectedQuestion,
+			});
+			expect(note.text.split("\n")[0]).toBe(`질문: ${expectedQuestion}`);
+			expect((await service.readAll("project-1"))[0]?.text).toBe(note.text);
+		} finally {
+			await rm(directory, { recursive: true, force: true });
+		}
+	});
+
+	test("validates a range capture through TNoteService with its canonical expected question", async () => {
+		const journal = new MemoryJournal();
+		await journal.append({
+			projectId: "sample-project",
+			kind: "message",
+			phase: "completed",
+			provider: "test",
+			nativeRefs: { threadId: "thread-1" },
+			sourceDigest: `sha256:${"a".repeat(64)}`,
+			payload: { direction: "outbound", text: "범위 질문" },
+		});
+		await journal.append({
+			projectId: "sample-project", kind: "progress", phase: "started", provider: "test",
+			nativeRefs: { threadId: "thread-1", turnId: "turn-1" }, sourceDigest: `sha256:${"b".repeat(64)}`,
+			payload: { method: "turn/start" },
+		});
+		await journal.append({
+			projectId: "sample-project", kind: "progress", phase: "completed", provider: "test",
+			nativeRefs: { threadId: "thread-1", turnId: "turn-1" }, sourceDigest: `sha256:${"c".repeat(64)}`,
+			payload: { method: "turn/completed" },
+		});
+		const stored: import("../src/domain/t-notes").TNoteDraft[] = [];
+		const service = new TNoteService({
+			async generate() {
+				return {
+					text: "질문: 범위 질문\n왜: 선택 범위를 확인했습니다.\n결과: 범위 요약을 저장했습니다.",
+					provenance: { provider: "test", model: "test", version: "test" },
+					isolation: { appliedPolicy: { cwd: "", noTools: true, network: false, readOnly: true, ephemeral: true }, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 },
+				};
+			},
+		}, {
+			async append(input) {
+				const draft = { ...input, schemaVersion: 1 as const, sequence: stored.length + 1 };
+				stored.push(draft);
+				return draft;
+			},
+			async readAll() { return stored; },
+		});
+		const workbench = new ProjectWorkbench(new FakeNativeHarness(), journal, {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+			tnotes: service,
+		});
+		await ready(workbench);
+		await expect(workbench.dispatch({ type: "tnote.capture-range", startSequence: 1, endSequence: 3 }))
+			.resolves.toMatchObject({ state: "accepted" });
+		expect(stored).toHaveLength(1);
+		await workbench.close();
+	});
+
+	test("rejects pre-completion and cross-turn manual T-note ranges", async () => {
+		const native = new FakeNativeHarness();
+		const creates: unknown[] = [];
+		const tnotes: WorkbenchTNoteSource = {
+			async readAll() { return []; },
+			async create(input) {
+				creates.push(input);
+				return {
+					schemaVersion: 1, id: `note-${creates.length}`, sequence: creates.length,
+					createdAt: "2026-09-01T00:00:00.000Z",
+					packet: { schemaVersion: 1, projectId: input.projectId, range: input.range, createdAt: "2026-09-01T00:00:00.000Z", activities: input.activities, digest: "d".repeat(64) },
+					text: `질문: ${input.expectedQuestion}\n왜: 완료 범위를 확인했습니다.\n결과: 요약을 저장했습니다.`,
+					provenance: { provider: "test", model: "test", version: "test" },
+				};
+			},
+		};
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "sample-project", cwd: "/workspace/sample", tnotes });
+		await ready(workbench);
+		await workbench.dispatch({ type: "chat.send", text: "첫 질문" });
+		expect(await workbench.dispatch({ type: "tnote.capture-session" })).toMatchObject({ state: "rejected" });
+		native.emit({ type: "notification", method: "turn/completed", refs: { threadId: "thread-1", turnId: "turn-1" }, params: {} });
+		await Bun.sleep(5);
+		await workbench.dispatch({ type: "chat.send", text: "둘째 질문" });
+		native.emit({ type: "notification", method: "turn/completed", refs: { threadId: "thread-1", turnId: "turn-2" }, params: {} });
+		await Bun.sleep(5);
+		const createdBeforeCrossTurnAttempt = creates.length;
+		expect(await workbench.dispatch({ type: "tnote.capture-range", startSequence: 3, endSequence: 8 })).toMatchObject({ state: "rejected" });
+		expect(creates).toHaveLength(createdBeforeCrossTurnAttempt);
+		await workbench.close();
+	});
+
+	test("reconciles a failed automatic T-note after restart and appends it only after generation succeeds", async () => {
+		const journal = new MemoryJournal();
+		const persisted: import("../src/domain/t-notes").TNoteDraft[] = [];
+		let attempts = 0;
+		const tnotes: WorkbenchTNoteSource = {
+			readAll: async () => persisted,
+			create: async (input) => {
+				attempts += 1;
+				if (attempts === 1) throw new Error("temporary generator failure");
+				const draft: import("../src/domain/t-notes").TNoteDraft = {
+					schemaVersion: 1,
+					id: "reconciled-note",
+					sequence: 1,
+					createdAt: "2026-09-01T00:00:01.000Z",
+					packet: {
+						schemaVersion: 1,
+						projectId: input.projectId,
+						range: input.range,
+						createdAt: "2026-09-01T00:00:01.000Z",
+						activities: input.activities.map(({ nativeRefs: _, ...activity }) => activity),
+						digest: "e".repeat(64),
+					},
+					text: "질문: 복구 질문\n왜: 실패 뒤에도 완료 turn을 다시 확인했습니다.\n결과: 재시작 후 저장했습니다.",
+					provenance: { provider: "test", model: "test", version: "test" },
+				};
+				persisted.push(draft);
+				return draft;
+			},
+		};
+		const firstNative = new FakeNativeHarness();
+		const first = new ProjectWorkbench(firstNative, journal, { projectId: "sample-project", cwd: "/workspace/sample", tnotes });
+		await ready(first);
+		await first.dispatch({ type: "chat.send", text: "복구 질문" });
+		firstNative.emit({ type: "notification", method: "turn/completed", refs: { threadId: "thread-1", turnId: "turn-1" }, params: {} });
+		await Bun.sleep(10);
+		expect(attempts).toBe(1);
+		expect(persisted).toEqual([]);
+		await first.close();
+
+		const resumed = new ProjectWorkbench(new FakeNativeHarness(), journal, {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+			resumeThreadId: "thread-1",
+			tnotes,
+		});
+		await ready(resumed);
+		await Bun.sleep(10);
+		expect(attempts).toBe(2);
+		expect(resumed.snapshot.tnotes.map((note) => note.id)).toEqual(["reconciled-note"]);
+		expect(persisted).toHaveLength(1);
+		await resumed.close();
+	});
+
+	test("reconciles one sparse target-thread T-note after interleaved foreign journal activity", async () => {
+		const journal = new MemoryJournal();
+		const append = (kind: ProjectActivity["kind"], phase: ProjectActivity["phase"], nativeRefs: ProjectActivity["nativeRefs"], payload: ProjectActivity["payload"]) =>
+			journal.append({
+				projectId: "sample-project",
+				kind,
+				phase,
+				provider: "test",
+				nativeRefs,
+				sourceDigest: `sha256:${"a".repeat(64)}`,
+				payload,
+			});
+		await append("message", "completed", { threadId: "thread-1" }, { direction: "outbound", text: "대상 thread 질문" });
+		await append("progress", "started", { threadId: "thread-1", turnId: "turn-1" }, { method: "turn/start" });
+		await append("message", "completed", { threadId: "thread-2", turnId: "turn-2" }, { text: "외부 thread 활동" });
+		await append("progress", "completed", { threadId: "thread-1", turnId: "turn-1" }, { method: "turn/completed" });
+
+		const persisted: import("../src/domain/t-notes").TNoteDraft[] = [];
+		let attempts = 0;
+		const tnotes: WorkbenchTNoteSource = {
+			readAll: async () => persisted,
+			create: async (input) => {
+				attempts += 1;
+				if (attempts === 1) throw new Error("temporary generation failure");
+				const draft: import("../src/domain/t-notes").TNoteDraft = {
+					schemaVersion: 1,
+					id: "sparse-target-note",
+					sequence: 1,
+					createdAt: "2026-09-01T00:00:01.000Z",
+					packet: {
+						schemaVersion: 1,
+						projectId: input.projectId,
+						range: input.range,
+						createdAt: "2026-09-01T00:00:01.000Z",
+						activities: input.activities.map(({ nativeRefs: _, ...activity }) => activity),
+						digest: "f".repeat(64),
+					},
+					text: "질문: 대상 thread 질문\n왜: 대상 turn만 다시 확인했습니다.\n결과: 재시작 뒤 요약을 저장했습니다.",
+					provenance: { provider: "test", model: "test", version: "test" },
+				};
+				persisted.push(draft);
+				return draft;
+			},
+		};
+		const failed = new ProjectWorkbench(new FakeNativeHarness(), journal, {
+			projectId: "sample-project", cwd: "/workspace/sample", resumeThreadId: "thread-1", tnotes,
+		});
+		await ready(failed);
+		await Bun.sleep(10);
+		expect(attempts).toBe(1);
+		expect(persisted).toEqual([]);
+		await failed.close();
+
+		const resumed = new ProjectWorkbench(new FakeNativeHarness(), journal, {
+			projectId: "sample-project", cwd: "/workspace/sample", resumeThreadId: "thread-1", tnotes,
+		});
+		await ready(resumed);
+		await Bun.sleep(10);
+		expect(attempts).toBe(2);
+		expect(persisted).toHaveLength(1);
+		expect(persisted[0]?.packet.range).toEqual({ startSequence: 1, endSequence: 4 });
+		expect(persisted[0]?.packet.activities.map((activity) => activity.sequence)).toEqual([1, 2, 4]);
+		expect(persisted[0]?.packet.activities.some((activity) => activity.id === journal.records[2]?.id)).toBe(false);
+		expect(resumed.snapshot.tnotes.map((note) => note.id)).toEqual(["sparse-target-note"]);
+		await resumed.close();
+	});
+
+	test("retries a target-thread note after a foreign outbound question interleaves before its turn", async () => {
+		const directory = await mkdtemp(join(tmpdir(), "workbench-sparse-tnote-"));
+		const journal = new MemoryJournal();
+		const append = (nativeRefs: ProjectActivity["nativeRefs"], payload: ProjectActivity["payload"], kind: ProjectActivity["kind"] = "message", phase: ProjectActivity["phase"] = "completed") =>
+			journal.append({
+				projectId: "sample-project", kind, phase, provider: "test", nativeRefs,
+				sourceDigest: `sha256:${"a".repeat(64)}`, payload,
+			});
+		await append({ threadId: "thread-1" }, { direction: "outbound", text: "대상 질문" });
+		await append({ threadId: "thread-2" }, { direction: "outbound", text: "외부 질문" });
+		await append({ threadId: "thread-1", turnId: "turn-1" }, { method: "turn/start" }, "progress", "started");
+		await append({ threadId: "thread-1", turnId: "turn-1" }, { method: "turn/completed" }, "progress", "completed");
+		let attempts = 0;
+		const service = new TNoteService({
+			async generate() {
+				attempts += 1;
+				if (attempts === 1) throw new Error("temporary generation failure");
+				return {
+					text: "질문: 대상 질문\n왜: 대상 turn만 다시 확인했습니다.\n결과: 재시작 뒤 요약을 저장했습니다.",
+					provenance: { provider: "test", model: "test", version: "test" },
+					isolation: { appliedPolicy: { cwd: "", noTools: true, network: false, readOnly: true, ephemeral: true }, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 },
+				};
+			},
+		}, new FileTNoteStore(directory));
+		try {
+			const failed = new ProjectWorkbench(new FakeNativeHarness(), journal, {
+				projectId: "sample-project", cwd: "/workspace/sample", resumeThreadId: "thread-1", tnotes: service,
+			});
+			await ready(failed);
+			await Bun.sleep(10);
+			expect(attempts).toBe(1);
+			await failed.close();
+
+			const resumed = new ProjectWorkbench(new FakeNativeHarness(), journal, {
+				projectId: "sample-project", cwd: "/workspace/sample", resumeThreadId: "thread-1", tnotes: service,
+			});
+			await ready(resumed);
+			await Bun.sleep(10);
+			const notes = await service.readAll("sample-project");
+			expect(attempts).toBe(2);
+			expect(notes).toHaveLength(1);
+			expect(notes[0]?.packet.activities.map((activity) => activity.sequence)).toEqual([1, 3, 4]);
+			expect(notes[0]?.packet.activities.some((activity) => activity.sequence === 2)).toBe(false);
+			expect(resumed.snapshot.tnotes.map((note) => note.id)).toEqual([notes[0]?.id]);
+			await resumed.close();
+		} finally {
+			await rm(directory, { recursive: true, force: true });
+		}
 	});
 
 	test("publishes the first user message before a slow native thread start completes", async () => {
@@ -483,7 +1075,7 @@ describe("ProjectWorkbench", () => {
 		await workbench.close();
 	});
 
-	test("projects the effective native model, effort, and latest context usage", async () => {
+	test("keeps active context separate from cumulative model usage and ignores a late auxiliary turn", async () => {
 		const native = new FakeNativeHarness();
 		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
 			projectId: "sample-project",
@@ -501,6 +1093,7 @@ describe("ProjectWorkbench", () => {
 			params: {
 				tokenUsage: {
 					last: { totalTokens: 25_840 },
+					total: { totalTokens: 25_840 },
 					modelContextWindow: 258_400,
 				},
 			},
@@ -511,7 +1104,65 @@ describe("ProjectWorkbench", () => {
 		expect(workbench.snapshot).toMatchObject({
 			model: "gpt-5.6-sol",
 			effort: "low",
-			contextUsage: { usedTokens: 25_840, contextWindow: 258_400, percent: 10 },
+			contextUsage: { usedTokens: 25_840, contextWindow: 258_400, percent: 5.6 },
+			sessionUsage: {
+				totalTokens: 25_840,
+				unattributedTokens: 0,
+				models: [{ model: "gpt-5.6-sol", effort: "low", turns: 1, totalTokens: 25_840 }],
+			},
+		});
+
+		native.emit({
+			type: "notification",
+			method: "thread/tokenUsage/updated",
+			refs: { threadId: "thread-1", turnId: "turn-aux" },
+			params: {
+				tokenUsage: {
+					last: { totalTokens: 2_000 },
+					total: { totalTokens: 38_760 },
+					modelContextWindow: 258_400,
+				},
+			},
+		});
+		await Bun.sleep(10);
+
+		expect(workbench.snapshot.contextUsage).toEqual({
+			usedTokens: 25_840,
+			contextWindow: 258_400,
+			percent: 5.6,
+		});
+		expect(workbench.snapshot.sessionUsage).toEqual({
+			totalTokens: 38_760,
+			unattributedTokens: 12_920,
+			models: [{ model: "gpt-5.6-sol", effort: "low", turns: 1, totalTokens: 25_840 }],
+		});
+		await workbench.close();
+	});
+
+	test("merges detached Luna and Claude usage into the live WWW session totals", async () => {
+		const native = new FakeNativeHarness();
+		const auxiliaryUsage = new SessionModelUsageAccumulator();
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+			model: "gpt-5.6-sol",
+			effort: "ultra",
+			auxiliaryUsage,
+		});
+		await ready(workbench);
+		const revision = workbench.snapshot.revision;
+
+		auxiliaryUsage.observe({ model: "gpt-5.6-luna", effort: null, totalTokens: 1_200 });
+		auxiliaryUsage.observe({ model: "claude-opus-5", effort: null, totalTokens: 3_400 });
+
+		expect(workbench.snapshot.revision).toBeGreaterThan(revision);
+		expect(workbench.snapshot.sessionUsage).toEqual({
+			totalTokens: 4_600,
+			unattributedTokens: 0,
+			models: [
+				{ model: "claude-opus-5", effort: null, turns: 1, totalTokens: 3_400 },
+				{ model: "gpt-5.6-luna", effort: null, turns: 1, totalTokens: 1_200 },
+			],
 		});
 		await workbench.close();
 	});
@@ -540,6 +1191,78 @@ describe("ProjectWorkbench", () => {
 				settings: { model: "gpt-5.6-sol", reasoning_effort: "low", developer_instructions: null },
 			},
 		});
+		await workbench.close();
+	});
+
+	test("persists an idle Codex selection and uses it for the next native turn", async () => {
+		const native = new FakeNativeHarness();
+		const persisted: Array<{ model: string; effort: string }> = [];
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+			model: "gpt-5.6-sol",
+			effort: "ultra",
+			persistModelSelection: async selection => { persisted.push(selection); },
+		});
+		await ready(workbench);
+		await workbench.dispatch({ type: "chat.send", text: "기존 모델 요청" });
+		native.emit({
+			type: "notification",
+			method: "turn/completed",
+			refs: { threadId: "thread-1", turnId: "turn-1" },
+			params: {},
+		});
+		await Bun.sleep(10);
+
+		const receipt = await workbench.dispatch({
+			type: "session.model",
+			selection: { model: "gpt-5.6-terra", effort: "high" },
+		});
+
+		expect(receipt).toMatchObject({ state: "accepted", message: "모델 변경: gpt-5.6-terra · 추론 high" });
+		expect(persisted).toEqual([{ model: "gpt-5.6-terra", effort: "high" }]);
+		expect(workbench.snapshot).toMatchObject({ model: "gpt-5.6-terra", effort: "high" });
+
+		await workbench.dispatch({ type: "chat.send", text: "새 모델로 답해줘" });
+		expect(native.startThreadInputs[0]).toMatchObject({ model: "gpt-5.6-sol", effort: "ultra" });
+		expect(native.startTurnInputs[0]).toMatchObject({ model: "gpt-5.6-sol", effort: "ultra" });
+		expect(native.startTurnInputs[1]).toMatchObject({
+			model: "gpt-5.6-terra",
+			effort: "high",
+			collaborationMode: {
+				settings: { model: "gpt-5.6-terra", reasoning_effort: "high" },
+			},
+		});
+		await workbench.close();
+	});
+
+	test("keeps the current model when persistence fails or a turn is active", async () => {
+		const native = new FakeNativeHarness();
+		let persistCalls = 0;
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+			model: "gpt-5.6-sol",
+			effort: "low",
+			persistModelSelection: async () => {
+				persistCalls += 1;
+				throw new Error("설정 저장 실패");
+			},
+		});
+		await ready(workbench);
+
+		expect(await workbench.dispatch({
+			type: "session.model",
+			selection: { model: "gpt-5.6-terra", effort: "medium" },
+		})).toMatchObject({ state: "rejected", reason: "설정 저장 실패" });
+		expect(workbench.snapshot).toMatchObject({ model: "gpt-5.6-sol", effort: "low" });
+
+		await workbench.dispatch({ type: "chat.send", text: "진행 중 요청" });
+		expect(await workbench.dispatch({
+			type: "session.model",
+			selection: { model: "gpt-5.6-terra", effort: "medium" },
+		})).toMatchObject({ state: "rejected", reason: expect.stringContaining("처리하는 중") });
+		expect(persistCalls).toBe(1);
 		await workbench.close();
 	});
 
@@ -912,6 +1635,42 @@ describe("ProjectWorkbench", () => {
 		await workbench.close();
 	});
 
+	test("holds multiple queued messages through approval and drains them only after resolution and turn completion", async () => {
+		const native = new FakeNativeHarness();
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "sample-project", cwd: "/workspace/sample" });
+		await ready(workbench);
+		await workbench.dispatch({ type: "chat.send", text: "승인이 필요한 요청" });
+		native.emit({
+			type: "approval-requested",
+			approval: {
+				requestId: 45,
+				callbackId: null,
+				kind: "command",
+				refs: { threadId: "thread-1", turnId: "turn-1", approvalRequestId: 45 },
+				availableDecisions: ["accept", "decline"],
+				params: {},
+			},
+		});
+		await Bun.sleep(5);
+		expect(workbench.snapshot.phase).toBe("working");
+		await workbench.dispatch({ type: "chat.send", text: "승인 뒤 첫 요청" });
+		await workbench.dispatch({ type: "chat.send", text: "승인 뒤 두 번째 요청" });
+		expect(workbench.snapshot.chatQueue.map(item => item.content)).toEqual(["승인 뒤 첫 요청", "승인 뒤 두 번째 요청"]);
+		expect(native.startTurnCalls).toBe(1);
+		await workbench.dispatch({ type: "approval.resolve", requestId: 45, response: { decision: "accept" } });
+		native.emit({ type: "approval-resolved", requestId: 45, approvalId: 45, refs: { threadId: "thread-1", turnId: "turn-1" } });
+		await Bun.sleep(5);
+		expect(workbench.snapshot.pendingApproval).toBeNull();
+		expect(native.startTurnCalls).toBe(1);
+		native.emit({ type: "notification", method: "turn/completed", refs: { threadId: "thread-1", turnId: "turn-1" }, params: {} });
+		await Bun.sleep(5);
+		expect(native.startTurnInputs.map(input => input.text)).toEqual(["승인이 필요한 요청", "승인 뒤 첫 요청"]);
+		native.emit({ type: "notification", method: "turn/completed", refs: { threadId: "thread-1", turnId: "turn-2" }, params: {} });
+		await Bun.sleep(5);
+		expect(native.startTurnInputs.map(input => input.text)).toEqual(["승인이 필요한 요청", "승인 뒤 첫 요청", "승인 뒤 두 번째 요청"]);
+		await workbench.close();
+	});
+
 	test("keeps deltas ephemeral and durably appends completed native observations before publishing", async () => {
 		const native = new FakeNativeHarness();
 		const journal = new MemoryJournal();
@@ -1085,6 +1844,54 @@ describe("ProjectWorkbench", () => {
 		expect(JSON.stringify(journal.records[1]?.payload)).not.toContain(completedReasoning);
 		expect(workbench.snapshot.draft).toBe("");
 		expect(workbench.snapshot.reasoningDraft).toBe("");
+		await workbench.close();
+	});
+
+	test("separates public reasoning summaries from raw reasoning content", async () => {
+		const native = new FakeNativeHarness();
+		const journal = new MemoryJournal();
+		const workbench = new ProjectWorkbench(native, journal, {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+		});
+		await ready(workbench);
+
+		native.emit({
+			type: "notification",
+			method: "item/reasoning/summaryTextDelta",
+			refs: { threadId: "thread-1", turnId: "turn-1", itemId: "reasoning-1" },
+			params: { delta: "Planning semantic color token adjustments" },
+		});
+		native.emit({
+			type: "notification",
+			method: "item/reasoning/textDelta",
+			refs: { threadId: "thread-1", turnId: "turn-1", itemId: "reasoning-1" },
+			params: { delta: "raw chain of thought must stay hidden" },
+		});
+		await Bun.sleep(10);
+
+		expect(workbench.snapshot.reasoningSummaryDraft).toBe("Planning semantic color token adjustments");
+		expect(workbench.snapshot.reasoningSummaryDraft).not.toContain("raw chain of thought");
+
+		native.emit({
+			type: "notification",
+			method: "item/completed",
+			refs: { threadId: "thread-1", turnId: "turn-1", itemId: "reasoning-1" },
+			params: { item: {
+				type: "reasoning",
+				summary: ["Planning semantic color token adjustments"],
+				content: ["raw chain of thought must stay hidden"],
+			} },
+		});
+		await Bun.sleep(10);
+
+		expect(journal.records.at(-1)?.payload).toMatchObject({
+			classification: "reasoning",
+			redacted: true,
+			publicSummary: "Planning semantic color token adjustments",
+		});
+		expect(JSON.stringify(journal.records.at(-1)?.payload)).not.toContain("raw chain of thought");
+		expect(workbench.snapshot.reasoningSummaryDraft).toBe("");
 		await workbench.close();
 	});
 
@@ -1346,6 +2153,7 @@ describe("ProjectWorkbench", () => {
 		expect(receipt).toMatchObject({ state: "uncertain", resolution: "manual-reconcile" });
 		expect(native.startTurnCalls).toBe(1);
 		expect(workbench.snapshot.chat.at(-1)?.content).toBe("/skills");
+		expect(workbench.snapshot.chat.at(-1)?.status).toBe("failed");
 		expect(await workbench.dispatch({ type: "chat.send", text: "불명확한 전송 뒤 요청" }))
 			.toMatchObject({ state: "queued", position: 1 });
 		expect(native.startTurnCalls).toBe(1);
@@ -1400,7 +2208,7 @@ describe("ProjectWorkbench", () => {
 						activities: input.activities.map((activity) => ({ ...activity, nativeRefs: activity.nativeRefs ?? [] })),
 						digest: "c".repeat(64),
 					},
-					text: "결정과 남은 위험을 요약함",
+					text: "질문: 선택한 활동\n왜: 선택한 활동을 확인했습니다.\n결과: 결정과 남은 위험을 요약했습니다.",
 					provenance: { provider: "openai-codex", model: "gpt-5.6-sol", version: "test" },
 				};
 			},
@@ -1430,8 +2238,7 @@ describe("ProjectWorkbench", () => {
 			.toMatchObject({ state: "accepted" });
 		expect(native.approvalResponses).toEqual([{ requestId: 9, response: { decision: "acceptForSession" } }]);
 		expect(await workbench.dispatch({ type: "tnote.capture-range", startSequence: 1, endSequence: 1 }))
-			.toMatchObject({ state: "accepted" });
-		expect(workbench.snapshot.actionResult).toMatchObject({ kind: "tnote", body: "결정과 남은 위험을 요약함" });
+			.toMatchObject({ state: "rejected" });
 		await workbench.close();
 	});
 

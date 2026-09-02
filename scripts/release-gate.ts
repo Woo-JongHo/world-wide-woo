@@ -33,7 +33,7 @@ type ProductScope = {
 function parseArgs(argv: string[]): Options {
 	const options: Options = {
 		repo: process.cwd(),
-		evidenceDir: ".omo/evidence",
+		evidenceDir: ".www/evidence",
 		base: null,
 		stories: [],
 		platformCheck: false,
@@ -78,7 +78,7 @@ function printHelp(): void {
 옵션:
   --repo DIR          검사할 Git 저장소 (기본: 현재 디렉터리)
   --base REF          REF 이후 worktree + untracked 범위를 검사
-  --evidence-dir DIR  Story evidence 디렉터리 (기본: .omo/evidence)
+  --evidence-dir DIR  Story evidence 디렉터리 (기본: .www/evidence)
   --story ST-ID       검사할 Story ID (반복 가능)
   --platform-check    현재 OS의 플랫폼 진입점만 검사
 

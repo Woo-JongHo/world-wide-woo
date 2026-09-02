@@ -6,22 +6,26 @@ import {
 	type Component,
 } from "@earendil-works/pi-tui";
 import type { NativeApprovalRequest } from "../../domain/native-session";
+import { projectBackgroundWorkState, type BackgroundWorkState } from "../../domain/native-session";
 import { sanitizeTerminalTextExcerpt, sanitizeTerminalTextUnbounded } from "../../domain/terminal";
-import { workbenchApprovalDecisions, type WorkbenchActionResult, type WorkbenchSnapshot } from "../../domain/workbench";
+import { workbenchApprovalDecisions, type WorkbenchSnapshot } from "../../domain/workbench";
 import { classifyWorkActivity, type SemanticWorkStep, type WorkStepStatus } from "../../domain/work-steps";
-import { boundedPublicProjection, PUBLIC_SOURCE_OMISSION } from "./bounded-public-projection";
-import { colors, markdownTheme, semantic, syntaxHighlightPlugin } from "./theme";
+import { boundedPublicProjection } from "./bounded-public-projection";
+import { colors, markdownTheme, semantic } from "./theme";
 import { WorkbenchWelcomeView } from "./workbench-welcome";
 import { isVisibleWorkStep, ObservationCard, WorkStepCard } from "./work-step-card";
+import { projectWorkbenchDelegationSections } from "./delegation-tree-view";
 
 const WORKBENCH_MARKDOWN_MAX_CHARS = 16 * 1024;
 const WORKBENCH_MARKDOWN_MAX_LINES = 120;
 const WORKBENCH_MARKDOWN_OMISSION = "… 응답 일부 생략 …";
 const WORKBENCH_STEP_CACHE_LIMIT = 512;
-const WORKBENCH_ACTION_MAX_CHARS = 12 * 1024;
-const WORKBENCH_ACTION_MAX_LINES = 80;
-const WORKBENCH_ACTION_OMISSION = "… ACTION 일부 생략 …";
 const WORKBENCH_APPROVAL_DETAIL_MAX_CHARS = 200;
+const TNOTE_VISIBLE_LIMIT = 20;
+const TNOTE_SUMMARY_MAX_CHARS = 2 * 1024;
+const TNOTE_SUMMARY_MAX_LINES = 24;
+const TNOTE_OMISSION = "… 이전 T-note %d개 생략 · 최근 %d개 표시 …";
+const TNOTE_SUMMARY_OMISSION = "… T-note 요약 일부 생략 …";
 
 function fit(text: string, width: number): string {
 	if (width <= 0) return "";
@@ -53,31 +57,6 @@ function boundedWorkbenchMarkdown(text: string): string {
 		tail = tail.slice(-(contentBudget - headBudget));
 	}
 	return `${head}\n${WORKBENCH_MARKDOWN_OMISSION}\n${tail}`;
-}
-
-function boundedActionResultBody(text: string): string[] {
-	const sanitized = sanitizeTerminalTextExcerpt(text, WORKBENCH_ACTION_MAX_CHARS, "head-tail");
-	const lines = sanitized.split(/\r?\n/u);
-	if (lines.length <= WORKBENCH_ACTION_MAX_LINES) return lines;
-	const headCount = Math.floor((WORKBENCH_ACTION_MAX_LINES - 1) / 2);
-	const tailCount = WORKBENCH_ACTION_MAX_LINES - headCount - 1;
-	return [
-		...lines.slice(0, headCount),
-		WORKBENCH_ACTION_OMISSION,
-		...lines.slice(-tailCount),
-	];
-}
-
-function boundedActionResultRows(lines: readonly string[], width: number): string[] {
-	const wrapped = lines.flatMap((line) => wrapTextWithAnsi(line || " ", Math.max(1, width)));
-	if (wrapped.length <= WORKBENCH_ACTION_MAX_LINES) return wrapped;
-	const headCount = Math.floor((WORKBENCH_ACTION_MAX_LINES - 1) / 2);
-	const tailCount = WORKBENCH_ACTION_MAX_LINES - headCount - 1;
-	return [
-		...wrapped.slice(0, headCount),
-		colors.muted(WORKBENCH_ACTION_OMISSION),
-		...wrapped.slice(-tailCount),
-	];
 }
 
 function approvalKindLabel(kind: NativeApprovalRequest["kind"]): string {
@@ -116,7 +95,12 @@ function approvalInstruction(request: NativeApprovalRequest): string {
 	return instructions.join(" · ");
 }
 
-function approvalCardRows(request: NativeApprovalRequest, queueDepth: number, width: number): string[] {
+function approvalCardRows(
+	request: NativeApprovalRequest,
+	queueDepth: number,
+	background: BackgroundWorkState,
+	width: number,
+): string[] {
 	const command = approvalParamText(request, "command");
 	const reason = approvalParamText(request, "reason");
 	const cwd = approvalParamText(request, "cwd");
@@ -126,9 +110,84 @@ function approvalCardRows(request: NativeApprovalRequest, queueDepth: number, wi
 		`${colors.accent("이유")} · ${reason ?? approvalFallback(request)}`,
 		...(cwd ? [`${colors.accent("경로")} · ${cwd}`] : []),
 		colors.muted(approvalInstruction(request)),
-		...(queueDepth > 0 ? [colors.muted(`대기 메시지 ${queueDepth}개`)] : []),
+		colors.warning("현재 턴 일시중지 · 승인 결정을 기다립니다."),
+		colors.muted(`백그라운드 작업 · ${background}`),
+		...(queueDepth > 0 ? [colors.muted(`대기 메시지 ${queueDepth}개 · 승인 후 순서대로 전송`)] : []),
 	];
 	return logicalRows.flatMap(row => wrapTextWithAnsi(row, Math.max(1, width)));
+}
+
+function projectApprovalBackgroundState(activities: WorkbenchSnapshot["activities"]): BackgroundWorkState {
+	return projectBackgroundWorkState(activities.flatMap((activity) => {
+		const params = activity.payload.params;
+		if (!params || typeof params !== "object" || Array.isArray(params)) return [];
+		const item = (params as Readonly<Record<string, unknown>>).item;
+		return item && typeof item === "object" && !Array.isArray(item) ? [item] : [];
+	}));
+}
+
+function publicRecord(value: unknown): Readonly<Record<string, unknown>> | null {
+	return value && typeof value === "object" && !Array.isArray(value)
+		? value as Readonly<Record<string, unknown>>
+		: null;
+}
+
+function publicText(value: unknown, limit = 160): string | null {
+	if (typeof value !== "string" || !value.trim()) return null;
+	return sanitizeTerminalTextExcerpt(value, limit, "head-tail").trim();
+}
+
+/** Compact public lifecycle rows mirroring Codex App's chronological transcript. */
+function publicTimelineActivityRows(
+	activity: WorkbenchSnapshot["activities"][number],
+	width: number,
+): string[] | null {
+	const method = publicText(activity.payload.method)?.toLowerCase() ?? "";
+	const params = publicRecord(activity.payload.params);
+	const item = publicRecord(params?.item);
+	const itemType = publicText(item?.type)?.toLowerCase() ?? "";
+	if (method === "turn/plan/updated") {
+		const plan = Array.isArray(params?.plan) ? params.plan : [];
+		const entries = plan.flatMap((value) => {
+			const entry = publicRecord(value);
+			const step = publicText(entry?.step, 240);
+			if (!step) return [];
+			const status = publicText(entry?.status)?.toLowerCase();
+			const symbol = status === "completed" ? colors.success("✓")
+				: status === "inprogress" || status === "in_progress" ? colors.accent("▸") : colors.muted("·");
+			return [`${symbol} ${step}`];
+		});
+		if (entries.length === 0) return null;
+		return [colors.secondary("Plan updated"), ...entries]
+			.flatMap((line) => wrapTextWithAnsi(line, Math.max(1, width)));
+	}
+	if (itemType === "contextcompaction") return [colors.muted("컨텍스트가 자동으로 압축됨")];
+	if (itemType === "collabtoolcall" || itemType === "collabagenttoolcall") {
+		const prompt = publicText(item?.prompt, 120)?.split(/\r?\n/u)[0];
+		const tool = publicText(item?.tool, 80);
+		const label = prompt || tool || "서브에이전트";
+		const nativeStatus = publicText(item?.status)?.toLowerCase() ?? "";
+		const failed = activity.phase === "failed" || nativeStatus === "failed" || nativeStatus === "errored";
+		const interrupted = activity.phase === "cancelled" || nativeStatus === "interrupted";
+		const running = activity.phase === "started" || activity.phase === "updated"
+			|| nativeStatus === "inprogress" || nativeStatus === "running";
+		const state = failed ? "작업 실패" : interrupted ? "작업 중단됨" : running ? "작업 시작됨" : "작업 완료됨";
+		const color = failed ? colors.error : interrupted ? colors.warning : running ? colors.accent : colors.success;
+		return wrapTextWithAnsi(color(`${label} ${state}`), Math.max(1, width));
+	}
+	if (itemType === "websearch") {
+		const query = publicText(item?.query, 180);
+		return [colors.muted(query ? `웹에서 검색함 · ${query}` : "웹에서 검색함")];
+	}
+	if (itemType === "enteredreviewmode") return [colors.accent("독립 검토를 시작함")];
+	if (itemType === "exitedreviewmode") return [colors.success("독립 검토를 마침")];
+	if (activity.payload.classification === "reasoning") {
+		const summary = publicText(activity.payload.publicSummary, 1_200);
+		return summary ? summary.split(/\r?\n/u).flatMap((line) => wrapTextWithAnsi(colors.muted(line), Math.max(1, width))) : null;
+	}
+	// MCP startup/retry telemetry belongs in Source, not the user conversation.
+	if (method === "mcpserver/startupstatus/updated") return null;
+	return null;
 }
 
 /** Chat projection for the native ProjectWorkbench, including existing tool cards. */
@@ -235,6 +294,16 @@ export class WorkbenchChatView implements Component {
 			observationByItem.set(activity.nativeRefs.itemId ?? activity.id, activity.id);
 		}
 		const observationActivityIds = new Set(observationByItem.values());
+		const delegationByActivity = new Map<string, readonly string[] | null>();
+		for (const section of projectWorkbenchDelegationSections(
+			activities,
+			this.snapshot.workFlow.goal,
+			this.snapshot.threadId,
+			contentWidth,
+		)) {
+			for (const activityId of section.activityIds) delegationByActivity.set(activityId, null);
+			delegationByActivity.set(section.anchorActivityId, section.rows);
+		}
 		const rows: string[] = [];
 		for (const activity of activities) {
 			const message = messages.get(activity.id);
@@ -242,7 +311,7 @@ export class WorkbenchChatView implements Component {
 				if (message.role === "user") {
 					const label = message.status === "failed" ? semantic.toolFailed("전송 실패")
 						: message.status === "cancelled" ? semantic.toolCancelled("전송 중단")
-							: message.status === "streaming" ? semantic.toolRunning("전송 중") : "";
+							: message.status === "streaming" ? semantic.toolRunning("전송 준비 중") : "";
 					rows.push(...surfaceRows([
 						`${semantic.userLabel("user")}${label ? ` · ${label}` : ""}`,
 						...wrapTextWithAnsi(boundedWorkbenchMarkdown(message.content), contentWidth),
@@ -256,6 +325,16 @@ export class WorkbenchChatView implements Component {
 						...(this.markdown.get(message.id)?.render(contentWidth) ?? [sanitizeTerminalTextUnbounded(message.content)]),
 					], contentWidth, semantic.assistantSurface), "");
 				}
+				continue;
+			}
+			if (delegationByActivity.has(activity.id)) {
+				const delegationRows = delegationByActivity.get(activity.id);
+				if (delegationRows?.length) rows.push(...delegationRows, "");
+				continue;
+			}
+			const timelineRows = publicTimelineActivityRows(activity, contentWidth);
+			if (timelineRows) {
+				rows.push(...timelineRows, "");
 				continue;
 			}
 			const step = stepByLastActivity.get(activity.id);
@@ -277,12 +356,20 @@ export class WorkbenchChatView implements Component {
 		}
 		if (this.snapshot.pendingApproval) {
 			rows.push(...surfaceRows(
-				approvalCardRows(this.snapshot.pendingApproval, this.snapshot.chatQueue.length, contentWidth),
+				approvalCardRows(
+					this.snapshot.pendingApproval,
+					this.snapshot.chatQueue.length,
+					projectApprovalBackgroundState(this.snapshot.activities),
+					contentWidth,
+				),
 				contentWidth,
 				semantic.assistantSurface,
 			), "");
 		}
-		if (this.snapshot.reasoningDraft) {
+		if (!this.activityIndicator && this.snapshot.reasoningSummaryDraft) {
+			rows.push(...this.snapshot.reasoningSummaryDraft.split(/\r?\n/u)
+				.flatMap((line) => wrapTextWithAnsi(colors.muted(line), contentWidth)), "");
+		} else if (!this.activityIndicator && this.snapshot.reasoningDraft) {
 			rows.push(colors.muted("작업 계획을 정리하는 중"), "");
 		}
 		if (this.snapshot.draft) {
@@ -352,63 +439,42 @@ export class WorkbenchChatView implements Component {
 function hasVisibleChatContent(snapshot: WorkbenchSnapshot): boolean {
 	return snapshot.chat.length > 0
 		|| snapshot.workFlow.steps.length > 0
-		|| Boolean(snapshot.pendingApproval || snapshot.reasoningDraft || snapshot.draft || snapshot.error)
+		|| Boolean(snapshot.pendingApproval || snapshot.reasoningSummaryDraft || snapshot.reasoningDraft || snapshot.draft || snapshot.error)
 		|| Boolean(snapshot.liveActivity && isVisibleWorkStep(snapshot.liveActivity.kind));
 }
 
-/** Completed session summaries and the selected activity's highlighted source payload. */
+/** Append-only summaries of completed questions only. */
 export class TNotesSourceView implements Component {
-	private sourceCache: { key: string; rows: readonly string[] } | null = null;
-
 	constructor(private readonly getSnapshot: () => WorkbenchSnapshot) {}
-	invalidate(): void { this.sourceCache = null; }
+	invalidate(): void {}
 	render(width: number): string[] {
 		const snapshot = this.getSnapshot();
-		const actionResult = workbenchActionResult(snapshot);
 		const rows: string[] = [];
-		if (snapshot.tnotes.length > 0) rows.push(colors.secondary("CURRENT SESSION SUMMARY"));
-		if (snapshot.tnotes.length === 0) rows.push(colors.muted("  현재 세션 대화가 충분히 진행되면 누적 요약을 자동으로 정리합니다."));
-		for (const note of snapshot.tnotes.slice(-1)) {
-			rows.push(colors.highlight(`  ${note.title} · ${note.id}`));
-			rows.push(...wrapTextWithAnsi(`    ${note.summary}`, Math.max(1, width)));
-			rows.push(colors.muted(`    세션 활동 ${note.sourceActivityIds.length}개`));
+		if (snapshot.tnotes.length === 0) rows.push(colors.muted("  질문 하나가 끝나면 질문·과정의 이유·결과를 자동으로 정리합니다."));
+		const omittedTNotes = Math.max(0, snapshot.tnotes.length - TNOTE_VISIBLE_LIMIT);
+		const visibleTNotes = snapshot.tnotes.slice(-TNOTE_VISIBLE_LIMIT);
+		if (omittedTNotes > 0) {
+			rows.push(colors.muted(TNOTE_OMISSION.replace("%d", String(omittedTNotes)).replace("%d", String(visibleTNotes.length))));
 		}
-		if (actionResult) {
-			rows.push("", colors.warm(`ACTION · ${actionResult.kind} · ${actionResult.title}`));
-			if (actionResult.digest) rows.push(colors.muted(`  digest ${actionResult.digest}`));
-			rows.push(...boundedActionResultRows(boundedActionResultBody(actionResult.body), width));
+		for (const [visibleIndex, note] of visibleTNotes.entries()) {
+			const index = omittedTNotes + visibleIndex;
+			rows.push(colors.highlight(`  ${index + 1}. ${note.title} · ${note.id}`));
+			const summary = boundedTNoteSummary(note.summary);
+			for (const line of summary.text.split(/\r?\n/u)) {
+				rows.push(...wrapTextWithAnsi(`    ${line}`, Math.max(1, width)));
+			}
+			if (summary.omitted) rows.push(colors.muted(TNOTE_SUMMARY_OMISSION));
+			rows.push(colors.muted(`    근거 활동 ${note.sourceActivityIds.length}개`));
 		}
-		const selected = snapshot.activities.find((activity) => activity.id === snapshot.selectedActivityId);
-		if (!selected) return rows;
-		rows.push("", colors.warm(`SOURCE · #${selected.sequence} ${selected.kind}/${selected.phase}`));
-		const sourceKey = `${selected.id}:${selected.sourceDigest}:${width}`;
-		if (this.sourceCache?.key === sourceKey) {
-			rows.push(...this.sourceCache.rows);
-			return rows;
-		}
-		const projection = boundedPublicProjection(selected.payload);
-		const source = JSON.stringify({
-			activityId: selected.id,
-			sequence: selected.sequence,
-			kind: selected.kind,
-			phase: selected.phase,
-			provider: selected.provider,
-			payload: projection.value,
-		}, null, 2);
-		const highlighted = syntaxHighlightPlugin.highlight(source, "json");
-		const sourceRows: string[] = [];
-		for (const line of highlighted.slice(0, 80)) {
-			sourceRows.push(...wrapTextWithAnsi(line, Math.max(1, width)));
-		}
-		if (projection.omitted || highlighted.length > 80) sourceRows.push(colors.muted(PUBLIC_SOURCE_OMISSION));
-		this.sourceCache = { key: sourceKey, rows: Object.freeze(sourceRows) };
-		rows.push(...sourceRows);
 		return rows;
 	}
 }
 
-function workbenchActionResult(snapshot: WorkbenchSnapshot): WorkbenchActionResult | null {
-	return snapshot.actionResult;
+function boundedTNoteSummary(summary: string): { text: string; omitted: boolean } {
+	const clipped = summary.slice(0, TNOTE_SUMMARY_MAX_CHARS);
+	const lines = clipped.split(/\r?\n/u);
+	const text = lines.slice(0, TNOTE_SUMMARY_MAX_LINES).join("\n");
+	return { text, omitted: clipped.length < summary.length || lines.length > TNOTE_SUMMARY_MAX_LINES };
 }
 
 function commandStatus(status: WorkStepStatus): "pending" | "running" | "passed" | "failed" | "cancelled" {
