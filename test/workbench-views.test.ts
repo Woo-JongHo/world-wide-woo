@@ -75,6 +75,7 @@ const snapshot: WorkbenchSnapshot = {
 	revision: 3,
 	journalSequence: 1,
 	phase: "ready",
+	mcpServers: [],
 	threadId: "thread-1",
 	activeTurnId: null,
 	activities: [{
@@ -1345,6 +1346,32 @@ describe("workbench dashboard views", () => {
 		expect(output).toContain("전달 상태를 확인할 요청");
 	});
 
+	test("renders the first outbound user message before native thread activity exists", () => {
+		const outbound: WorkbenchSnapshot = {
+			...snapshot,
+			threadId: null,
+			activities: [],
+			selectedActivityId: null,
+			chat: [{
+				id: "local-first-message",
+				role: "user",
+				content: "Native Thread가 열리기 전에도 보여야 하는 요청",
+				activityId: "local-first-message",
+				status: "streaming",
+			}, {
+				id: "orphan-assistant-message",
+				role: "assistant",
+				content: "activity 순서가 없는 응답",
+				activityId: "orphan-assistant-message",
+				status: "completed",
+			}],
+		};
+		const output = stripTerminalSequences(new WorkbenchChatView(outbound).render(70).join("\n"));
+		expect(output).toContain("user · 전송 준비 중");
+		expect(output).toContain("Native Thread가 열리기 전에도 보여야 하는 요청");
+		expect(output).not.toContain("activity 순서가 없는 응답");
+	});
+
 	test("uses the public MCP item status, arguments, and error without exposing reasoning", () => {
 		const failedTool: WorkbenchSnapshot = {
 			...snapshot,
@@ -1717,5 +1744,52 @@ describe("workbench dashboard views", () => {
 		expect(layout.leftScroll.isFollowingEnd).toBe(true);
 		expect(layout.leftScroll.scrollTop).toBeGreaterThan(previousScrollTop);
 		expect(output).toContain("반복 요청 7");
+	});
+
+	test("does not restore chat auto-follow while wheel scrolling concurrent streaming output", () => {
+		const conversation = (count: number): WorkbenchSnapshot => {
+			const activities = Array.from({ length: count }, (_, index) => ({
+				...snapshot.activities[0]!,
+				id: `activity-${index}`,
+				sequence: index + 1,
+				nativeRefs: { threadId: "thread-1", itemId: `message-${index}` },
+				payload: { role: "assistant", text: `streaming message ${index}\n${"detail\n".repeat(3)}` },
+			}));
+			return {
+				...snapshot,
+				revision: count,
+				journalSequence: count,
+				activities,
+				chat: activities.map((activity, index) => ({
+					id: `message-${index}`,
+					activityId: activity.id,
+					role: "assistant" as const,
+					content: `streaming message ${index}\n${"detail\n".repeat(3)}`,
+					status: "completed" as const,
+				})),
+			};
+		};
+		const chat = new WorkbenchChatView(conversation(12));
+		const layout = createDashboardLayout(
+			() => "WWW · sample-project",
+			{ color: text => text, component: chat },
+			{ color: text => text, component: new TNotesSourceView(() => snapshot) },
+			{ color: text => text, component: new WorkspaceTodoView(() => null) },
+		);
+		renderLayoutFrame(layout.component, 120, 14, () => undefined);
+		const offsets: number[] = [];
+
+		for (const count of [13, 14, 15]) {
+			chat.update(conversation(count));
+			layout.leftScroll.scrollBy(-2);
+			renderLayoutFrame(layout.component, 120, 14, () => undefined);
+			offsets.push(layout.leftScroll.scrollTop);
+		}
+
+		expect(offsets[1]).toBeLessThan(offsets[0]!);
+		expect(offsets[2]).toBeLessThan(offsets[1]!);
+		expect(layout.leftScroll.isFollowingEnd).toBe(false);
+		layout.leftScroll.scrollToEnd();
+		expect(layout.leftScroll.isFollowingEnd).toBe(true);
 	});
 });

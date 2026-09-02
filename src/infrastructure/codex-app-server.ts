@@ -42,6 +42,13 @@ export interface CodexAppServerOptions {
 	clientVersion?: string;
 }
 
+export interface NativeMcpServer {
+	readonly name: string;
+	readonly enabled: boolean;
+	readonly status: string;
+	readonly tools: readonly string[];
+}
+
 interface PendingRequest {
 	method: string;
 	uncertainOnDisconnect: boolean;
@@ -247,6 +254,24 @@ export class CodexAppServer implements NativeHarnessPort {
 			throw new Error("Codex App Server returned an invalid thread/list result");
 		}
 		return result.data.map((thread, index) => threadSummary(thread, index));
+	}
+
+	public async listMcpServers(): Promise<readonly NativeMcpServer[]> {
+		const result = await this.request("mcpServer/list", {}, false);
+		if (!isRecord(result) || !Array.isArray(result.data)) {
+			throw new Error("Codex App Server returned an invalid mcpServer/list result");
+		}
+		return result.data.map((server, index) => mcpServer(server, index));
+	}
+
+	public async setMcpServerEnabled(name: string, enabled: boolean): Promise<void> {
+		if (!name) throw new Error("MCP server name is required");
+		await this.request("mcpServer/toggle", { name, enabled }, true);
+	}
+
+	public async reconnectMcpServer(name: string): Promise<void> {
+		if (!name) throw new Error("MCP server name is required");
+		await this.request("mcpServer/reconnect", { name }, true);
 	}
 
 	public async startTurn(input: NativeTurnStart): Promise<NativeTurnSnapshot> {
@@ -473,6 +498,22 @@ function threadSummary(value: unknown, index: number): NativeThreadSummary {
 		preview: sanitizeTerminalText(value.preview, 240),
 		status: value.status.type,
 	};
+}
+
+function mcpServer(value: unknown, index: number): NativeMcpServer {
+	if (!isRecord(value) || typeof value.name !== "string" || typeof value.enabled !== "boolean") {
+		throw new Error(`Codex App Server returned an invalid mcpServer/list item at index ${index}`);
+	}
+	const status = typeof value.status === "string"
+		? value.status
+		: isRecord(value.status) && typeof value.status.type === "string"
+		? value.status.type
+		: "unknown";
+	const tools = Array.isArray(value.tools)
+		? value.tools.map((tool) => typeof tool === "string" ? tool : isRecord(tool) && typeof tool.name === "string" ? tool.name : null)
+			.filter((tool): tool is string => tool !== null)
+		: [];
+	return { name: value.name, enabled: value.enabled, status, tools };
 }
 
 function isNativeThreadStatus(value: unknown): value is NativeThreadStatus {

@@ -356,7 +356,13 @@ function renderBashExecutionBlock(
 	status: CommandStatus,
 	width: number,
 ): string[] {
-	if (!projected.command || width < 12) return [fit(projected.command ? `$ ${projected.command}` : "Bash", width)];
+	if (!projected.command || width < 12) {
+		return [
+			fit(highlightedWhat(projected), width),
+			...(projected.why ? [fit(colors.warm(`왜 하는지: ${projected.why}`), width)] : []),
+			fit(projected.command ? `$ ${projected.command}` : "Bash", width),
+		];
+	}
 	const border = status === "running" || status === "pending"
 		? colors.accent
 		: status === "failed"
@@ -372,6 +378,8 @@ function renderBashExecutionBlock(
 	if (projected.exitCode !== undefined) metadata.push(`Exit: ${projected.exitCode}`);
 	if (projected.durationMs !== undefined) metadata.push(`Duration: ${Math.max(0, Math.round(projected.durationMs))}ms`);
 	const rows = [
+		fit(highlightedWhat(projected), width),
+		...(projected.why ? [fit(colors.warm(`왜 하는지: ${projected.why}`), width)] : []),
 		bashBar("┌", "┐", header, width, border),
 		...commandRows.map((line) => bashContent(line, width, border)),
 		bashBar("├", "┤", colors.secondary("Output"), width, border),
@@ -500,8 +508,6 @@ export class WorkStepCard implements Component {
 		if (projected.command) {
 			return [
 				fit(`${semantic.assistantLabel(`단계 ${this.options.stepNumber}`)} · ${statusText}`, width),
-				fit(highlightedWhat(projected), width),
-				...(projected.why ? [fit(colors.warm(`왜 하는지: ${projected.why}`), width)] : []),
 				...renderBashExecutionBlock(projected, status, width),
 			];
 		}

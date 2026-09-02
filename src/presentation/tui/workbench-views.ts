@@ -504,29 +504,15 @@ export class WorkbenchChatView implements Component {
 			delegationByActivity.set(section.anchorActivityId, section.rows);
 		}
 		const rows: string[] = [];
+		const renderedMessageIds = new Set<string>();
 		for (const activity of activities) {
 			const message = messages.get(activity.id);
 			if (message) {
-				if (message.role === "user") {
-					const label = message.status === "failed" ? semantic.toolFailed("전송 실패")
-						: message.status === "cancelled" ? semantic.toolCancelled("전송 중단")
-							: message.status === "streaming" ? semantic.toolRunning("전송 준비 중") : "";
-					rows.push(...surfaceRows([
-						`${semantic.userLabel("user")}${label ? ` · ${label}` : ""}`,
-						...wrapTextWithAnsi(boundedWorkbenchMarkdown(message.content), contentWidth),
-					], contentWidth, semantic.userSurface), "");
-				} else {
-					const label = message.status === "cancelled" ? semantic.toolCancelled("중단됨")
-						: message.status === "failed" ? semantic.toolFailed("실패")
-							: message.status === "streaming" ? semantic.toolRunning("응답 중") : "";
-					rows.push(...transcriptRows([
-						`${semantic.assistantLabel("bori")}${label ? `  ${label}` : ""}`,
-						...(this.markdown.get(message.id)?.render(contentWidth) ?? [sanitizeTerminalTextUnbounded(message.content)]),
-					], contentWidth), "");
-					const completionSummary = completionSummaries.get(activity.id);
-					if (completionSummary) {
-						rows.push(...new CompletionSummaryCard(completionSummary).render(contentWidth), "");
-					}
+				renderedMessageIds.add(message.id);
+				rows.push(...this.renderMessage(message, contentWidth), "");
+				const completionSummary = completionSummaries.get(activity.id);
+				if (message.role !== "user" && completionSummary) {
+					rows.push(...new CompletionSummaryCard(completionSummary).render(contentWidth), "");
 				}
 				continue;
 			}
@@ -573,6 +559,13 @@ export class WorkbenchChatView implements Component {
 					parentStepNumber: stepByActivity.get(activity.id)?.number,
 				}).render(contentWidth), "");
 			}
+		}
+		// The first outbound message is published before Native thread creation has
+		// produced a durable activity. Keep only that optimistic delivery visible until
+		// the matching activity takes over; other messages need activity order authority.
+		for (const message of this.snapshot.chat) {
+			if (renderedMessageIds.has(message.id) || message.role !== "user" || message.status === "completed") continue;
+			rows.push(...this.renderMessage(message, contentWidth), "");
 		}
 		if (this.snapshot.pendingApproval) {
 			rows.push(...surfaceRows(
@@ -635,6 +628,25 @@ export class WorkbenchChatView implements Component {
 		return rows;
 	}
 
+	private renderMessage(message: WorkbenchSnapshot["chat"][number], contentWidth: number): string[] {
+		if (message.role === "user") {
+			const label = message.status === "failed" ? semantic.toolFailed("전송 실패")
+				: message.status === "cancelled" ? semantic.toolCancelled("전송 중단")
+					: message.status === "streaming" ? semantic.toolRunning("전송 준비 중") : "";
+			return surfaceRows([
+				`${semantic.userLabel("user")}${label ? ` · ${label}` : ""}`,
+				...wrapTextWithAnsi(boundedWorkbenchMarkdown(message.content), contentWidth),
+			], contentWidth, semantic.userSurface);
+		}
+		const label = message.status === "cancelled" ? semantic.toolCancelled("중단됨")
+			: message.status === "failed" ? semantic.toolFailed("실패")
+				: message.status === "streaming" ? semantic.toolRunning("응답 중") : "";
+		return transcriptRows([
+			`${semantic.assistantLabel("bori")}${label ? `  ${label}` : ""}`,
+			...(this.markdown.get(message.id)?.render(contentWidth) ?? [sanitizeTerminalTextUnbounded(message.content)]),
+		], contentWidth);
+	}
+
 	private stopActivity(): void {
 		if (this.activityTimer) clearInterval(this.activityTimer);
 		this.activityTimer = null;
@@ -648,7 +660,7 @@ export class WorkbenchChatView implements Component {
 		activity?: WorkbenchSnapshot["activities"][number],
 		liveActivity?: NonNullable<WorkbenchSnapshot["liveActivity"]>,
 	): string[] {
-		const key = `${contentWidth}:${step.number}:${step.id}:${step.status}:${step.narration.source}:${step.narration.what}:${activity?.sourceDigest ?? "none"}`;
+		const key = `${contentWidth}:${step.number}:${step.id}:${step.status}:${step.narration.source}:${step.narration.what}:${step.narration.why ?? ""}:${activity?.sourceDigest ?? "none"}`;
 		if (!liveActivity) {
 			const cached = this.stepRows.get(key);
 			if (cached) return cached;
@@ -727,6 +739,9 @@ export class WorkbenchMonitorView implements Component {
 			`${colors.secondary("Turn")} · ${currentStep ? `${currentStep.number}/${snapshot.workFlow.steps.length} · ${currentStep.title}` : "진행 단계 없음"}`,
 			`${colors.secondary("Live")} · ${live}`,
 			`${colors.secondary("Queue")} · ${snapshot.chatQueue.length}개${snapshot.pendingApproval ? " · 승인 대기" : ""}`,
+			`${colors.secondary("MCP")} · ${snapshot.mcpServers.length === 0 ? "서버 없음" : snapshot.mcpServers.map((server) =>
+				`${server.name} ${server.enabled ? "활성" : "비활성"} · ${server.status} · 도구 ${server.tools.length}개`
+			).join(" | ")}`,
 			`${colors.secondary("Delegation")} · ${projectWorkbenchDelegationSections(
 				snapshot.activities,
 				snapshot.workFlow.goal,

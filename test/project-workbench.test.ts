@@ -101,6 +101,9 @@ class FakeNativeHarness implements NativeHarnessPort {
 	readInputs: NativeThreadRead[] = [];
 	readValue: Readonly<Record<string, unknown>> = { status: { type: "idle" }, turns: [] };
 	interruptInputs: NativeTurnInterrupt[] = [];
+	mcpServers = [{ name: "filesystem", enabled: true, status: "ready", tools: ["read_file"] }];
+	mcpEnableInputs: Array<{ name: string; enabled: boolean }> = [];
+	mcpReconnectInputs: string[] = [];
 	async startThread(input: NativeThreadStart): Promise<NativeThreadSnapshot> {
 		this.startThreadCalls += 1;
 		this.startThreadInputs.push(input);
@@ -133,6 +136,12 @@ class FakeNativeHarness implements NativeHarnessPort {
 		return { id: `turn-${this.startTurnCalls}`, threadId: "thread-1", value: {} };
 	}
 	async interruptTurn(input: NativeTurnInterrupt): Promise<void> { this.interruptInputs.push(input); }
+	async listMcpServers() { return this.mcpServers; }
+	async setMcpServerEnabled(name: string, enabled: boolean): Promise<void> {
+		this.mcpEnableInputs.push({ name, enabled });
+		this.mcpServers = this.mcpServers.map((server) => server.name === name ? { ...server, enabled } : server);
+	}
+	async reconnectMcpServer(name: string): Promise<void> { this.mcpReconnectInputs.push(name); }
 	async respondToApproval(input: NativeApprovalResolution): Promise<void> { this.approvalResponses.push(input); }
 	subscribe(listener: (event: NativeHarnessEvent) => void): () => void {
 		this.listener = listener;
@@ -178,6 +187,29 @@ async function ready(workbench: ProjectWorkbench): Promise<void> {
 }
 
 describe("ProjectWorkbench", () => {
+	test("projects MCP management separately and sends enable, disable, and reconnect requests", async () => {
+		const native = new FakeNativeHarness();
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+		});
+		await ready(workbench);
+		expect(workbench.snapshot.mcpServers).toEqual([{
+			name: "filesystem", enabled: true, status: "ready", tools: ["read_file"],
+		}]);
+
+		expect((await workbench.dispatch({ type: "mcp.disable", name: "filesystem" })).state).toBe("accepted");
+		expect((await workbench.dispatch({ type: "mcp.enable", name: "filesystem" })).state).toBe("accepted");
+		expect((await workbench.dispatch({ type: "mcp.reconnect", name: "filesystem" })).state).toBe("accepted");
+
+		expect(native.mcpEnableInputs).toEqual([
+			{ name: "filesystem", enabled: false },
+			{ name: "filesystem", enabled: true },
+		]);
+		expect(native.mcpReconnectInputs).toEqual(["filesystem"]);
+		expect(workbench.snapshot.mcpServers[0]).toMatchObject({ enabled: true, tools: ["read_file"] });
+	});
+
 	test("derives conservative background work only from complete native collaboration lifecycle snapshots", async () => {
 		const native = new FakeNativeHarness();
 		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {

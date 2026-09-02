@@ -75,6 +75,14 @@ export interface WorkbenchModelSelection {
 	readonly effort: Effort;
 }
 
+/** MCP configuration state reported by the native App Server, separate from tool activity. */
+export interface WorkbenchMcpServer {
+	readonly name: string;
+	readonly enabled: boolean;
+	readonly status: string;
+	readonly tools: readonly string[];
+}
+
 export interface WorkbenchActionResult {
 	readonly kind: "todo" | "tnote" | "promotion" | "review";
 	readonly title: string;
@@ -100,6 +108,7 @@ export interface WorkbenchSnapshot {
 	sessionGoal?: WorkbenchSessionGoal | null;
 	permissionMode?: WorkbenchPermissionMode;
 	collaborationMode?: WorkbenchCollaborationMode;
+	mcpServers: readonly WorkbenchMcpServer[];
 	wooEntry?: WorkbenchWooEntrySnapshot | null;
 	threadId: string | null;
 	activeTurnId: string | null;
@@ -133,6 +142,10 @@ export type WorkbenchCommand =
 	| { type: "session.permission"; mode: WorkbenchPermissionMode }
 	| { type: "session.mode"; mode: WorkbenchCollaborationMode }
 	| { type: "session.model"; selection: WorkbenchModelSelection }
+	| { type: "mcp.refresh" }
+	| { type: "mcp.enable"; name: string }
+	| { type: "mcp.disable"; name: string }
+	| { type: "mcp.reconnect"; name: string }
 	| { type: "woo-entry.refresh" }
 	| { type: "tnote.capture-session" }
 	| { type: "tnote.capture"; activityIds: readonly string[]; title?: string }
@@ -157,6 +170,86 @@ export type WorkbenchCommandReceipt =
 export type WorkbenchListener = (snapshot: WorkbenchSnapshot) => void;
 
 export type WorkbenchApprovalDecision = "accept" | "acceptForSession" | "decline" | "cancel";
+
+export type WorkbenchExternalMutationKind = "commit" | "push" | "issue";
+
+/**
+ * A complete, immutable description of a pending external mutation. The identity is
+ * derived from every displayed and executable field, so a decision cannot be reused
+ * after any part of the candidate changes.
+ */
+export interface WorkbenchExternalMutationCandidate {
+	readonly identity: string;
+	readonly kind: WorkbenchExternalMutationKind;
+	readonly target: string;
+	readonly content: string;
+	readonly currentState: string;
+	readonly scope: string;
+	readonly status: string;
+	readonly payload: Readonly<Record<string, unknown>>;
+}
+
+export function workbenchExternalMutationCandidates(request: NativeApprovalRequest): readonly WorkbenchExternalMutationCandidate[] {
+	const raw = request.params.externalMutationCandidates;
+	if (!Array.isArray(raw)) return [];
+	return Object.freeze(raw.flatMap((value, index) => {
+		if (!value || typeof value !== "object" || Array.isArray(value)) return [];
+		const candidate = value as Readonly<Record<string, unknown>>;
+		const kind = candidate.kind;
+		const target = candidate.target;
+		const content = candidate.content;
+		const currentState = candidate.currentState;
+		const scope = candidate.scope;
+		const status = candidate.status;
+		const payload = candidate.payload;
+		if ((kind !== "commit" && kind !== "push" && kind !== "issue")
+			|| typeof target !== "string" || typeof content !== "string" || typeof currentState !== "string"
+			|| typeof scope !== "string" || typeof status !== "string"
+			|| !payload || typeof payload !== "object" || Array.isArray(payload)) return [];
+		const exactPayload = immutableMutationPayload(payload as Record<string, unknown>);
+		const identity = mutationIdentity({ kind, target, content, currentState, scope, status, payload: exactPayload });
+		return [Object.freeze({ identity: typeof candidate.identity === "string" && candidate.identity === identity ? candidate.identity : identity, kind, target, content, currentState, scope, status, payload: exactPayload })];
+	}));
+}
+
+/** Identity of the complete approval payload, including each mutation candidate. */
+export function workbenchApprovalIdentity(request: NativeApprovalRequest): string {
+	return mutationIdentity({
+		requestId: request.requestId,
+		callbackId: request.callbackId,
+		kind: request.kind,
+		params: request.params,
+		candidates: workbenchExternalMutationCandidates(request).map(candidate => candidate.identity),
+	});
+}
+
+function mutationIdentity(value: unknown): string {
+	const text = JSON.stringify(canonicalMutationValue(value));
+	let hash = 0x811c9dc5;
+	for (const character of text) {
+		hash ^= character.charCodeAt(0);
+		hash = Math.imul(hash, 0x01000193);
+	}
+	return `mutation:${(hash >>> 0).toString(16).padStart(8, "0")}`;
+}
+
+function canonicalMutationValue(value: unknown): unknown {
+	if (Array.isArray(value)) return value.map(canonicalMutationValue);
+	if (!value || typeof value !== "object") return value;
+	return Object.fromEntries(Object.keys(value as Record<string, unknown>).sort().map(key =>
+		[key, canonicalMutationValue((value as Record<string, unknown>)[key])],
+	));
+}
+
+function immutableMutationPayload(value: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> {
+	return Object.freeze(Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, immutableMutationValue(entry)])));
+}
+
+function immutableMutationValue(value: unknown): unknown {
+	if (Array.isArray(value)) return Object.freeze(value.map(immutableMutationValue));
+	if (value && typeof value === "object") return immutableMutationPayload(value as Record<string, unknown>);
+	return value;
+}
 
 /** Preserves adapter-advertised choices; legacy requests get the safe v0.1 set. */
 export function workbenchApprovalDecisions(request: NativeApprovalRequest): readonly WorkbenchApprovalDecision[] {

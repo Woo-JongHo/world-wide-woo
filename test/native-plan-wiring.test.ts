@@ -106,6 +106,7 @@ async function waitFor(assertion: () => void, attempts = 80): Promise<void> {
 describe("Native Plan transport-to-Todo wiring", () => {
 	test("accepts only the known root turn's threadless plan at the Workbench and Todo boundaries", async () => {
 		const transport = new FakeJsonLineTransport();
+		transport.responses.set("mcpServer/list", [{ data: [] }]);
 		transport.responses.set("thread/start", [{ thread: { id: "thread-root", turns: [] } }]);
 		transport.responses.set("turn/start", [
 			{ turn: { id: "turn-root", items: [] } },

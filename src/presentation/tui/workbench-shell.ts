@@ -14,7 +14,7 @@ import type { ComposerDraftController, UsageMonitor } from "../../application/po
 import type { ProjectWorkbench } from "../../application/project-workbench";
 import { normalizeSettings, type WwwSettings } from "../../domain/model-settings";
 import { sanitizeTerminalTextUnbounded } from "../../domain/terminal";
-import type { WorkbenchCommandReceipt, WorkbenchSnapshot } from "../../domain/workbench";
+import { workbenchApprovalIdentity, type WorkbenchCommandReceipt, type WorkbenchSnapshot } from "../../domain/workbench";
 import { createDashboardLayout } from "./dashboard-layout";
 import { StatusLine, WorkspaceTodoView } from "./shared-dashboard-views";
 import { TNotesSourceView, WorkbenchChatView, WorkbenchMonitorView } from "./workbench-views";
@@ -56,6 +56,31 @@ export type WorkbenchViewMode = "dashboard" | "monitor";
 export function workbenchViewModeCommand(text: string): WorkbenchViewMode | null {
 	const command = text.trim();
 	return command === "/dashboard" ? "dashboard" : command === "/monitor" ? "monitor" : null;
+}
+
+export function createWorkbenchViewHost(
+	getMode: () => WorkbenchViewMode,
+	dashboard: Component,
+	monitor: Component,
+): Component {
+	return new VStack([
+		{
+			component: dashboard,
+			basis: 0,
+			grow: 1,
+			shrink: 1,
+			minSize: 1,
+			visible: () => getMode() === "dashboard",
+		},
+		{
+			component: monitor,
+			basis: 0,
+			grow: 1,
+			shrink: 1,
+			minSize: 1,
+			visible: () => getMode() === "monitor",
+		},
+	]);
 }
 
 export function workbenchModelSettings(source: Pick<WorkbenchSnapshot, "model" | "effort">): WwwSettings {
@@ -197,13 +222,11 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		{ color: colors.warm, component: todo },
 	);
 	let viewMode: WorkbenchViewMode = "dashboard";
-	const activeView: Component = {
-		invalidate: () => {
-			dashboard.component.invalidate();
-			monitorLayout.component.invalidate();
-		},
-		render: (width) => (viewMode === "dashboard" ? dashboard : monitorLayout).component.render(width),
-	};
+	const activeView = createWorkbenchViewHost(
+		() => viewMode,
+		dashboard.component,
+		monitorLayout.component,
+	);
 	const editor = new Editor(tui, editorTheme, { paddingX: 1, autocompleteMaxVisible: 5 });
 	editor.setAutocompleteProvider(new CombinedAutocompleteProvider(WORKBENCH_SLASH_COMMANDS, process.cwd()));
 	if (composerDraft?.initialText) editor.setText(composerDraft.initialText);
@@ -298,10 +321,18 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	// model picker keeps it if already open; the chat-pane card and /approve still resolve it.
 	const openApproval = (request: NonNullable<WorkbenchSnapshot["pendingApproval"]>): void => {
 		if (overlay) return;
+		const approvalIdentity = workbenchApprovalIdentity(request);
 		const panel = new ApprovalOverlay(
 			request,
 			() => tui.requestRender(),
 			(decision) => {
+				if (!snapshot.pendingApproval
+					|| snapshot.pendingApproval.requestId !== request.requestId
+					|| workbenchApprovalIdentity(snapshot.pendingApproval) !== approvalIdentity) {
+					closeOverlay();
+					showReceipt({ state: "rejected", commandId: "approval-stale", reason: "승인 후보가 변경되어 결정을 거부했습니다. 최신 후보를 확인하세요." });
+					return;
+				}
 				void workbench.dispatch({ type: "approval.resolve", requestId: request.requestId, response: { decision } })
 					.then((receipt) => {
 						closeOverlay();
@@ -484,6 +515,10 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		workbenchRenders.request(urgency);
 	});
 	tui.addInputListener((data) => {
+		// This listener runs before the focused Editor. Defer any streaming frame
+		// until the Editor has committed this input turn; Pi TUI then takes its
+		// immediate keyboard-render path instead of a 64ms workbench repaint.
+		workbenchRenders.prioritizeInput();
 		if (shuttingDown) return { consume: true };
 		if (overlay) {
 			if (matchesKey(data, Key.ctrl("c")) || matchesKey(data, Key.ctrl("d"))) {

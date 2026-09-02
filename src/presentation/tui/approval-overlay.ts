@@ -1,6 +1,6 @@
 import { Key, matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi, type Component } from "@earendil-works/pi-tui";
 import type { NativeApprovalRequest } from "../../domain/native-session";
-import { workbenchApprovalDecisions, type WorkbenchApprovalDecision } from "../../domain/workbench";
+import { workbenchApprovalDecisions, workbenchExternalMutationCandidates, type WorkbenchApprovalDecision } from "../../domain/workbench";
 import { colors } from "./theme";
 import { approvalDetailLabel, approvalFallback, approvalKindLabel, approvalParamText } from "./workbench-views";
 
@@ -56,6 +56,14 @@ export class ApprovalOverlay implements Component {
 			...(cwd ? [`${colors.accent("경로")} · ${cwd}`] : []),
 			"",
 		];
+		const mutations = workbenchExternalMutationCandidates(this.request).flatMap((candidate, index) => [
+			colors.accent(`${index + 1}. ${mutationKindLabel(candidate.kind)} · ${candidate.status}`),
+			`${colors.accent("대상")} · ${candidate.target}`,
+			`${colors.accent("내용")} · ${candidate.content}`,
+			`${colors.accent("현재 상태")} · ${candidate.currentState}`,
+			`${colors.accent("실행 범위")} · ${candidate.scope}`,
+			"",
+		]);
 		const options = this.decisions.length > 0
 			? this.decisions.map((decision, index) => {
 				const marker = index === this.selected ? colors.accent("▸") : " ";
@@ -66,7 +74,7 @@ export class ApprovalOverlay implements Component {
 		const footer = this.resolving
 			? colors.muted("결정을 전달하는 중입니다.")
 			: colors.muted("↑↓ 선택 · Enter 결정 · Esc 닫기 · /approve 로도 가능");
-		return [...detail, ...options, "", footer].flatMap(row => wrapTextWithAnsi(row, inner)).map(row => fit(row, inner));
+		return [...detail, ...mutations, ...options, "", footer].flatMap(row => wrapTextWithAnsi(row, inner)).map(row => fit(row, inner));
 	}
 
 	public handleInput(data: string): void {
@@ -104,4 +112,8 @@ export class ApprovalOverlay implements Component {
 		this.requestRender();
 		this.onResolve(decision);
 	}
+}
+
+function mutationKindLabel(kind: "commit" | "push" | "issue"): string {
+	return kind === "commit" ? "커밋" : kind === "push" ? "Push" : "GitHub Issue";
 }
