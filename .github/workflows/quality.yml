@@ -27,15 +27,15 @@ jobs:
       - name: Verify platform file/process boundary
         run: bun run release:gate -- --platform-check
 
-  conventional-title:
+  korean-result-title:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - name: Validate conventional pull request title
+      - name: Validate Korean result-sentence pull request title
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
-          if [[ ! "$PR_TITLE" =~ ^(feat|fix|docs|refactor|perf|test|build|ci|chore)(\([a-z0-9._/-]+\))?!?:\ .+ ]]; then
-            printf '%s\n' 'PR title must follow Conventional Commits, for example: feat(tui): add issue panel'
+          if [[ -z "$PR_TITLE" || "$PR_TITLE" =~ ^(feat|fix|docs|refactor|perf|test|build|ci|chore)(\([a-z0-9._/-]+\))?!?:\  ]]; then
+            printf '%s\n' 'PR title must be a Korean problem, request, or result sentence without a Conventional Commits prefix'
             exit 1
           fi
