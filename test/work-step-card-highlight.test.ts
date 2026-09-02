@@ -132,6 +132,8 @@ describe("WorkStepCard executor highlighting", () => {
 		}).render(88);
 		const text = rendered.map((line) => stripTerminalSequences(line));
 
+		expect(text[1]?.trimEnd()).toBe("명령 실행 · bun test --filter 'work step'");
+		expect(text[2]?.trimEnd()).toBe("왜 하는지: 명령 결과를 확인해 다음 작업을 안전하게 진행합니다.");
 		expect(text[3]).toStartWith("┌─── ✔ Bash ");
 		expect(text.some((line) => line.includes("│ $ bun test --filter 'work step'"))).toBe(true);
 		expect(text.some((line) => line.startsWith("├─── Output "))).toBe(true);
@@ -163,6 +165,12 @@ describe("WorkStepCard executor highlighting", () => {
 		expect(rendered).toContain("왜 하는지: 완료 상태를 신뢰할 수 있는지 판단하기 위해서입니다.");
 		expect(rendered).toContain("$ bun test --filter 'work step'");
 		expect(rendered).toContain("line 1");
+		const lines = rendered.split("\n").map((line) => line.trimEnd());
+		const what = lines.indexOf("검증 명령의 결과를 확인합니다.");
+		const why = lines.indexOf("왜 하는지: 완료 상태를 신뢰할 수 있는지 판단하기 위해서입니다.");
+		const bash = lines.findIndex((line) => line.startsWith("┌─── ✔ Bash "));
+		expect(what).toBe(bash - 2);
+		expect(why).toBe(bash - 1);
 	});
 
 	test("classifies execution output by semantic meaning", () => {

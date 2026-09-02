@@ -292,6 +292,7 @@ describe("Gajae-style delegation tree", () => {
 			revision: 1,
 			journalSequence: 7,
 			phase: "working",
+			mcpServers: [],
 			threadId: ROOT_THREAD,
 			activeTurnId: TURN,
 			activities,
@@ -332,6 +333,7 @@ describe("Gajae-style delegation tree", () => {
 		})];
 		const snapshot: WorkbenchSnapshot = {
 			projectId: "sample-project", revision: 1, journalSequence: 1, phase: "working",
+			mcpServers: [],
 			threadId: ROOT_THREAD, activeTurnId: TURN, activities, selectedActivityId: null,
 			pendingApproval: null, chat: [], chatQueue: [], draft: "", reasoningDraft: "",
 			liveActivity: null, workFlow: workFlowFor(activities), tnotes: [], todo: null,

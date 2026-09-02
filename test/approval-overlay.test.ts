@@ -99,4 +99,19 @@ describe("ApprovalOverlay", () => {
 		view.panel.handleInput(ENTER);
 		expect(view.decisions).toEqual([]);
 	});
+
+	test("renders commit, push, and GitHub Issue candidates with their exact execution scope", () => {
+		const lines = overlay({
+			params: {
+				externalMutationCandidates: [
+					{ kind: "commit", target: "main", content: "승인 화면 추가", currentState: "2 files staged", scope: "staged files only", status: "pending", payload: { message: "승인 화면 추가" } },
+					{ kind: "push", target: "origin/main", content: "abc1234", currentState: "ahead 1", scope: "one commit", status: "ready", payload: { remote: "origin", branch: "main" } },
+					{ kind: "issue", target: "owner/repo", content: "버그 보고", currentState: "new", scope: "create one issue", status: "blocked", payload: { title: "버그 보고" } },
+				],
+			},
+		}).lines().join("\n");
+		for (const value of ["커밋 · pending", "Push · ready", "GitHub Issue · blocked", "staged files only", "one commit", "create one issue"]) {
+			expect(lines).toContain(value);
+		}
+	});
 });

@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
+import { stripTerminalSequences, type Component } from "@earendil-works/pi-tui";
+import { renderLayoutFrame } from "@earendil-works/pi-tui/dist/layout.js";
 import {
+	createWorkbenchViewHost,
 	workbenchActivityIndicator,
 	workbenchFrameTitle,
 	workbenchModelSettings,
@@ -7,6 +10,9 @@ import {
 	workbenchReceiptNotice,
 	workbenchViewModeCommand,
 } from "../src/presentation/tui/workbench-shell";
+import { RenderScheduler } from "../src/presentation/tui/render-scheduler";
+import { workbenchApprovalIdentity, workbenchExternalMutationCandidates } from "../src/domain/workbench";
+import { createDashboardLayout } from "../src/presentation/tui/dashboard-layout";
 
 const workingSnapshot = {
 	phase: "working",
@@ -21,10 +27,101 @@ const workingSnapshot = {
 } as const;
 
 describe("native workbench shell receipt policy", () => {
+	test("preserves ordered editor input while streaming frames remain coalesced", async () => {
+		let now = 0;
+		let renders = 0;
+		let scheduled: (() => void) | undefined;
+		let draft = "";
+		const scheduler = new RenderScheduler(
+			() => { renders += 1; },
+			64,
+			() => now,
+			(callback) => {
+				scheduled = callback;
+				return 1 as unknown as ReturnType<typeof setTimeout>;
+			},
+			() => { scheduled = undefined; },
+		);
+
+		scheduler.request("streaming");
+		for (const key of "빠른 입력") {
+			scheduler.prioritizeInput();
+			scheduler.request("streaming");
+			draft += key;
+			await Promise.resolve();
+			now += 5;
+		}
+
+		expect(draft).toBe("빠른 입력");
+		expect(renders).toBe(1);
+		now = 64;
+		scheduled?.();
+		expect(renders).toBe(2);
+	});
+
+	test("binds an external mutation approval identity to the exact candidate payload", () => {
+		const approval = {
+			requestId: "approval-1",
+			callbackId: "callback-1",
+			kind: "command",
+			refs: {},
+			availableDecisions: ["accept"],
+			params: {
+				externalMutationCandidates: [{
+					kind: "commit",
+					target: "main",
+					content: "승인 화면 추가",
+					currentState: "2 files staged",
+					scope: "staged files only",
+					status: "pending",
+					payload: { message: "승인 화면 추가", paths: ["src/a.ts", "test/a.test.ts"] },
+				}],
+			},
+		} as const;
+		const candidate = workbenchExternalMutationCandidates(approval)[0]!;
+		expect(candidate.payload).toEqual({ message: "승인 화면 추가", paths: ["src/a.ts", "test/a.test.ts"] });
+		expect(workbenchApprovalIdentity(approval)).not.toBe(workbenchApprovalIdentity({
+			...approval,
+			params: {
+				externalMutationCandidates: [{ ...approval.params.externalMutationCandidates[0], payload: { message: "다른 커밋", paths: ["src/a.ts"] } }],
+			},
+		}));
+	});
+
 	test("routes dashboard and monitor to distinct local view modes", () => {
 		expect(workbenchViewModeCommand("/dashboard")).toBe("dashboard");
 		expect(workbenchViewModeCommand(" /monitor ")).toBe("monitor");
 		expect(workbenchViewModeCommand("/monitor details")).toBeNull();
+	});
+
+	test("preserves dashboard layout viewports while switching views", () => {
+		const text = (value: string): Component => ({
+			invalidate: () => undefined,
+			render: () => [value],
+		});
+		const dashboard = createDashboardLayout(
+			() => "Dashboard",
+			{ color: value => value, component: text("dashboard-chat") },
+			{ color: value => value, component: text("dashboard-trace") },
+			{ color: value => value, component: text("dashboard-todo") },
+		);
+		const monitor = createDashboardLayout(
+			() => "Monitor",
+			{ color: value => value, component: text("monitor-chat") },
+			{ color: value => value, component: text("monitor-trace") },
+			{ color: value => value, component: text("monitor-todo") },
+		);
+		let mode: "dashboard" | "monitor" = "dashboard";
+		const host = createWorkbenchViewHost(() => mode, dashboard.component, monitor.component);
+
+		let frame = renderLayoutFrame(host, 120, 24, () => undefined);
+		expect(frame.primaryScrollView).toBe(dashboard.leftScroll);
+		expect(stripTerminalSequences(frame.lines.join("\n"))).toContain("dashboard-chat");
+
+		mode = "monitor";
+		frame = renderLayoutFrame(host, 120, 24, () => undefined);
+		expect(frame.primaryScrollView).toBe(monitor.leftScroll);
+		expect(stripTerminalSequences(frame.lines.join("\n"))).toContain("monitor-chat");
 	});
 
 	test("normalizes native model telemetry into a selectable Codex setting", () => {

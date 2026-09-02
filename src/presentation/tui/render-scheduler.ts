@@ -30,6 +30,8 @@ export class RenderScheduler {
 	private lastRenderAt: number | undefined;
 	private timer: TimerToken | undefined;
 	private pending = false;
+	private immediatePending = false;
+	private inputPending = false;
 	private disposed = false;
 
 	constructor(
@@ -42,6 +44,11 @@ export class RenderScheduler {
 
 	request(urgency: RenderUrgency): void {
 		if (this.disposed) return;
+		if (this.inputPending) {
+			this.pending = true;
+			this.immediatePending ||= urgency === "immediate";
+			return;
+		}
 		if (urgency === "immediate") {
 			this.flush();
 			return;
@@ -60,6 +67,31 @@ export class RenderScheduler {
 		}, delay);
 	}
 
+	/**
+	 * Lets the focused component consume its current terminal input before a
+	 * queued workbench projection can render. Pi TUI renders that input on its
+	 * immediate path, while streaming work remains subject to this scheduler's
+	 * interval when the input turn has completed.
+	 */
+	prioritizeInput(): void {
+		if (this.disposed || this.inputPending) return;
+		this.inputPending = true;
+		if (this.timer !== undefined) {
+			this.cancel(this.timer);
+			this.timer = undefined;
+		}
+		queueMicrotask(() => {
+			this.inputPending = false;
+			if (this.disposed || !this.pending) return;
+			if (this.immediatePending) {
+				this.immediatePending = false;
+				this.flush();
+				return;
+			}
+			this.request("streaming");
+		});
+	}
+
 	flush(): void {
 		if (this.disposed) return;
 		if (this.timer !== undefined) {
@@ -67,6 +99,7 @@ export class RenderScheduler {
 			this.timer = undefined;
 		}
 		this.pending = false;
+		this.immediatePending = false;
 		this.lastRenderAt = this.now();
 		this.renderNow();
 	}
@@ -74,6 +107,7 @@ export class RenderScheduler {
 	dispose(): void {
 		this.disposed = true;
 		this.pending = false;
+		this.immediatePending = false;
 		if (this.timer !== undefined) this.cancel(this.timer);
 		this.timer = undefined;
 	}

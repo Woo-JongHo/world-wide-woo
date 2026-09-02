@@ -58,6 +58,7 @@ import type {
 	WorkbenchContextUsage,
 	WorkbenchListener,
 	WorkbenchLiveActivity,
+	WorkbenchMcpServer,
 	WorkbenchModelSelection,
 	WorkbenchPermissionMode,
 	WorkbenchSessionGoal,
@@ -84,6 +85,12 @@ const NATIVE_CONTEXT_BASELINE_TOKENS = 12_000;
 
 const SESSION_GOAL_MARKER = /^SESSION_GOAL:[ \t]*(\S(?:[^\r\n]*\S)?)$/u;
 const SESSION_GOAL_CHARACTER_LIMIT = 160;
+
+interface McpManagementPort {
+	listMcpServers(): Promise<readonly WorkbenchMcpServer[]>;
+	setMcpServerEnabled(name: string, enabled: boolean): Promise<void>;
+	reconnectMcpServer(name: string): Promise<void>;
+}
 
 interface BoundedTextProjection {
 	readonly tail: string;
@@ -239,6 +246,7 @@ export class ProjectWorkbench {
 	private liveActivity: WorkbenchLiveActivity | null = null;
 	private liveActivityProjection = emptyBoundedTextProjection();
 	private actionResult: WorkbenchActionResult | null = null;
+	private mcpServers: readonly WorkbenchMcpServer[] = Object.freeze([]);
 	private readonly chatQueue: WorkbenchChatQueueItem[] = [];
 	private durableActivityProjection: DurableActivityProjection = {
 		sourceLength: -1,
@@ -341,6 +349,10 @@ export class ProjectWorkbench {
 				case "session.permission": return this.configurePermission(commandId, command.mode);
 				case "session.mode": return this.configureCollaboration(commandId, command.mode);
 				case "session.model": return await this.configureModel(commandId, command.selection);
+				case "mcp.refresh": return await this.refreshMcpServers(commandId);
+				case "mcp.enable": return await this.setMcpServerEnabled(commandId, command.name, true);
+				case "mcp.disable": return await this.setMcpServerEnabled(commandId, command.name, false);
+				case "mcp.reconnect": return await this.reconnectMcpServer(commandId, command.name);
 				case "woo-entry.refresh": return await this.refreshWooEntry(commandId);
 				case "tnote.capture-session": return await this.captureSessionNote(commandId);
 				case "tnote.capture": return await this.captureNote(commandId, command.activityIds);
@@ -396,6 +408,7 @@ export class ProjectWorkbench {
 		const [activities] = await Promise.all([
 			this.journal.readAll(this.activityJournalProjectId()),
 			this.options.wooEntry?.refresh() ?? Promise.resolve(null),
+			this.mcpManagement()?.listMcpServers().then((servers) => { this.mcpServers = immutable(servers); }) ?? Promise.resolve(),
 		]);
 		for (const activity of activities) {
 			const durableActivity = immutable(activity);
@@ -734,6 +747,43 @@ export class ProjectWorkbench {
 			commandId,
 			message: `모델 변경: ${selection.model} · 추론 ${selection.effort}`,
 		};
+	}
+
+	private mcpManagement(): McpManagementPort | null {
+		const candidate = this.native as Partial<McpManagementPort>;
+		return typeof candidate.listMcpServers === "function"
+			&& typeof candidate.setMcpServerEnabled === "function"
+			&& typeof candidate.reconnectMcpServer === "function"
+			? candidate as McpManagementPort
+			: null;
+	}
+
+	private requireMcpManagement(): McpManagementPort {
+		const management = this.mcpManagement();
+		if (!management) throw new Error("연결된 App Server는 MCP 서버 관리를 지원하지 않습니다.");
+		return management;
+	}
+
+	private async refreshMcpServers(commandId: string): Promise<WorkbenchCommandReceipt> {
+		this.mcpServers = immutable(await this.requireMcpManagement().listMcpServers());
+		this.publish();
+		return { state: "accepted", commandId };
+	}
+
+	private async setMcpServerEnabled(commandId: string, name: string, enabled: boolean): Promise<WorkbenchCommandReceipt> {
+		const management = this.requireMcpManagement();
+		await management.setMcpServerEnabled(name, enabled);
+		this.mcpServers = immutable(await management.listMcpServers());
+		this.publish();
+		return { state: "accepted", commandId };
+	}
+
+	private async reconnectMcpServer(commandId: string, name: string): Promise<WorkbenchCommandReceipt> {
+		const management = this.requireMcpManagement();
+		await management.reconnectMcpServer(name);
+		this.mcpServers = immutable(await management.listMcpServers());
+		this.publish();
+		return { state: "accepted", commandId };
 	}
 
 	private observeTokenUsage(event: Extract<NativeHarnessEvent, { type: "notification" }>): void {
@@ -1416,6 +1466,7 @@ export class ProjectWorkbench {
 			sessionGoal: this.sessionGoal,
 			permissionMode: this.permissionMode,
 			collaborationMode: this.collaborationMode,
+			mcpServers: this.mcpServers,
 			wooEntry: this.options.wooEntry?.snapshot ?? null,
 			threadId: this.threadId,
 			activeTurnId: this.activeTurnId,

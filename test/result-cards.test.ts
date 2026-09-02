@@ -114,6 +114,19 @@ function generic(overrides: Partial<GenericToolResultSnapshot> = {}): GenericToo
 }
 
 describe("GenericToolResultCard", () => {
+	test("keeps generic tool cards focused on their own input and output", () => {
+		const text = stripTerminalSequences(new GenericToolResultCard(generic({
+			toolName: "Read",
+			input: "src/app.ts",
+			output: "export const app = true;",
+		})).render(100).join("\n"));
+
+		expect(text).toContain("Read · PASSED");
+		expect(text).toContain("입력:");
+		expect(text).toContain("출력");
+		expect(text).not.toContain("왜 하는지:");
+	});
+
 	test("renders lifecycle labels and display-safe values", () => {
 		for (const status of ["pending", "running", "passed", "failed", "cancelled"] as const) {
 			const text = stripTerminalSequences(new GenericToolResultCard(generic({

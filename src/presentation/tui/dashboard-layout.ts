@@ -125,6 +125,12 @@ export interface DashboardLayout {
 	routerScroll: ScrollView;
 }
 
+const containedScrollbar = {
+	overscroll: "contain" as const,
+	scrollbar: "auto" as const,
+	scrollbarStyle: colors.muted,
+};
+
 /**
  * One visual frame containing three native viewport regions. Wide mode keeps
  * independent scroll state for left, right-top and right-bottom; compact mode
@@ -139,21 +145,15 @@ export function createDashboardLayout(
 	const leftScroll = new ScrollView(new SectionDocument(left), {
 		follow: "end",
 		primary: true,
-		overscroll: "contain",
-		scrollbar: "auto",
-		scrollbarStyle: colors.muted,
+		...containedScrollbar,
 	});
 	const usageScroll = new ScrollView(new SectionDocument(rightTop), {
 		follow: "none",
-		overscroll: "contain",
-		scrollbar: "auto",
-		scrollbarStyle: colors.muted,
+		...containedScrollbar,
 	});
 	const routerScroll = new ScrollView(new SectionDocument(rightBottom), {
 		follow: "none",
-		overscroll: "contain",
-		scrollbar: "auto",
-		scrollbarStyle: colors.muted,
+		...containedScrollbar,
 	});
 	const right = new VStack([
 		{ component: usageScroll, basis: 0, grow: 1, shrink: 1, minSize: 3 },
@@ -172,9 +172,7 @@ export function createDashboardLayout(
 	const compactScroll = new ScrollView(new CompactDocument([left, rightTop, rightBottom]), {
 		follow: "end",
 		primary: true,
-		overscroll: "contain",
-		scrollbar: "auto",
-		scrollbarStyle: colors.muted,
+		...containedScrollbar,
 	});
 	const compact = new HStack([
 		{ component: new VerticalRule(), basis: 1, shrink: 0, minSize: 1, maxSize: 1 },
