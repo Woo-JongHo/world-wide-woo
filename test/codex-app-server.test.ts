@@ -148,6 +148,17 @@ describe("CodexAppServer", () => {
 			params: { threadId: "thread-native-1", turnId: "turn-native-1", item: { id: "item-native-1", type: "agentMessage" } },
 		});
 		transport.emit({
+			method: "item/updated",
+			params: {
+				threadId: "thread-native-1",
+				turnId: "turn-native-1",
+				id: "delegation-native-1",
+				type: "collabAgentToolCall",
+				tool: "spawnAgent",
+				receiverThreadIds: ["agent-native-1"],
+			},
+		});
+		transport.emit({
 			id: "approval-rpc-1",
 			method: "item/commandExecution/requestApproval",
 			params: {
@@ -173,6 +184,15 @@ describe("CodexAppServer", () => {
 				type: "notification",
 				method: "item/completed",
 				refs: { threadId: "thread-native-1", turnId: "turn-native-1", itemId: "item-native-1" },
+			}),
+			expect.objectContaining({
+				type: "notification",
+				method: "item/updated",
+				refs: { threadId: "thread-native-1", turnId: "turn-native-1", itemId: "delegation-native-1" },
+				params: expect.objectContaining({
+					type: "collabAgentToolCall",
+					receiverThreadIds: ["agent-native-1"],
+				}),
 			}),
 			expect.objectContaining({
 				type: "approval-requested",
@@ -224,6 +244,50 @@ describe("CodexAppServer", () => {
 			method: "turn/start",
 		});
 		expect(transport.sent.filter((message) => message.method === "turn/start")).toHaveLength(1);
+	});
+
+	test("binds threadless plan updates only to their observed root or child turn owners", async () => {
+		const { server, transport } = await connectedFake();
+		const events: unknown[] = [];
+		server.subscribe((event) => events.push(event));
+
+		transport.responseFor.set("turn/start", { turn: { id: "turn-root" } });
+		await server.startTurn({ threadId: "thread-root", text: "root" });
+		transport.responseFor.set("turn/start", { turn: { id: "turn-child" } });
+		await server.startTurn({ threadId: "thread-child", text: "child" });
+		transport.responseFor.set("thread/resume", {
+			thread: { id: "thread-resumed", turns: [{ id: "turn-resumed" }] },
+		});
+		await server.resumeThread({ threadId: "thread-resumed" });
+		transport.responseFor.set("thread/read", {
+			thread: { id: "thread-read", turns: [{ id: "turn-read" }] },
+		});
+		await server.readThread({ threadId: "thread-read", includeTurns: true });
+
+		for (const turnId of ["turn-root", "turn-child", "turn-resumed", "turn-read", "turn-unknown"]) {
+			transport.emit({ method: "turn/plan/updated", params: { turnId, plan: [] } });
+		}
+		transport.emit({
+			method: "turn/plan/updated",
+			params: { threadId: "thread-explicit", turnId: "turn-root", plan: [] },
+		});
+
+		const refsFor = (turnId: string) => (events.find((event) =>
+			(event as { type?: string; method?: string; refs?: { turnId?: string } }).type === "notification" &&
+			(event as { method?: string }).method === "turn/plan/updated" &&
+			(event as { refs?: { turnId?: string } }).refs?.turnId === turnId,
+		) as { refs: Record<string, unknown> } | undefined)?.refs;
+		expect(refsFor("turn-root")).toEqual({ threadId: "thread-root", turnId: "turn-root" });
+		expect(refsFor("turn-child")).toEqual({ threadId: "thread-child", turnId: "turn-child" });
+		expect(refsFor("turn-resumed")).toEqual({ threadId: "thread-resumed", turnId: "turn-resumed" });
+		expect(refsFor("turn-read")).toEqual({ threadId: "thread-read", turnId: "turn-read" });
+		expect(refsFor("turn-unknown")).toEqual({ turnId: "turn-unknown" });
+		expect(events.at(-1)).toMatchObject({
+			type: "notification",
+			method: "turn/plan/updated",
+			refs: { threadId: "thread-explicit", turnId: "turn-root" },
+		});
+		await server.close();
 	});
 
 	test("includes a bounded sanitized stderr tail when the App Server process exits", async () => {

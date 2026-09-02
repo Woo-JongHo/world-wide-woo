@@ -7,11 +7,13 @@ import type { NativeHarnessPort } from "../src/application/native-harness.js";
 import { ProjectWorkbench, type ProjectWorkbenchOptions, type WorkbenchActivityJournal } from "../src/application/project-workbench.js";
 import { WooEntry } from "../src/application/woo-entry.js";
 import type { SessionRepository, TodoStore } from "../src/application/ports.js";
-import { TodoLedger } from "../src/application/todo-ledger.js";
+import { TodoLedger } from "../src/application/todo-ledger";
+
 import type { NativeApprovalResolution, NativeHarnessEvent, NativeThreadList, NativeThreadRead, NativeThreadResume, NativeThreadSnapshot, NativeThreadStart, NativeThreadSummary, NativeTurnInterrupt, NativeTurnSnapshot, NativeTurnStart } from "../src/domain/native-session.js";
 import type { ProjectActivity, ProjectActivityAppendResult, ProjectActivityInput } from "../src/domain/project-activity.js";
-import { createProjectWorkbenchSession, scopedProjectId, scopedTodoSessionId, type ProjectWorkbenchSessionFactories } from "../src/infrastructure/project-workbench-session.js";
+import { createProjectWorkbenchSession, scopedProjectId, scopedTodoSessionId, ThreadBoundActivityJournal, type ProjectWorkbenchSessionFactories } from "../src/infrastructure/project-workbench-session.js";
 import type { ProjectWorkspace } from "../src/infrastructure/project-workspace.js";
+import { nativeThreadJournalKey } from "../src/infrastructure/activity-journal-store.js";
 
 class MemoryTodoStore implements TodoStore {
 	async read() { return null; }
@@ -24,8 +26,10 @@ class MemoryEvents implements SessionRepository {
 }
 
 class MemoryJournal implements WorkbenchActivityJournal {
+	private sequence = 0;
 	async append(input: ProjectActivityInput): Promise<ProjectActivityAppendResult> {
-		return { appended: true, activity: { ...input, schemaVersion: 1, id: "activity", sequence: 1, recordedAt: new Date(0).toISOString() } };
+		this.sequence += 1;
+		return { appended: true, activity: { ...input, schemaVersion: 1, id: `activity-${this.sequence}`, sequence: this.sequence, recordedAt: new Date(0).toISOString() } };
 	}
 	async readAll() { return []; }
 }
@@ -39,10 +43,21 @@ class FakeNative implements NativeHarnessPort {
 		return { id: input.threadId, value: { status: { type: "idle" }, turns: [] } };
 	}
 	async listThreads(_input: NativeThreadList): Promise<readonly NativeThreadSummary[]> { return []; }
-	async startTurn(_input: NativeTurnStart): Promise<NativeTurnSnapshot> { return { id: "turn", threadId: "thread", value: {} }; }
+	async startTurn(_input: NativeTurnStart): Promise<NativeTurnSnapshot> {
+		setTimeout(() => {
+			this.listener?.({
+				type: "notification",
+				method: "turn/plan/updated",
+				refs: { threadId: "thread", turnId: "turn" },
+				params: { plan: [{ step: "세션 Todo 시작", status: "inProgress" }] },
+			});
+		});
+		return { id: "turn", threadId: "thread", value: {} };
+	}
 	async interruptTurn(_input: NativeTurnInterrupt): Promise<void> {}
 	async respondToApproval(_input: NativeApprovalResolution): Promise<void> {}
 	subscribe(listener: (event: NativeHarnessEvent) => void): () => void { this.listener = listener; return () => { this.listener = undefined; }; }
+	emit(event: NativeHarnessEvent): void { this.listener?.(event); }
 	async close(): Promise<void> { this.order.push("native.close"); }
 }
 
@@ -87,6 +102,32 @@ function memoryWooEntry(): WooEntry {
 }
 
 describe("createProjectWorkbenchSession", () => {
+	test("requires an explicit thread bind before selecting a journal stream or appending activity", async () => {
+		let reads = 0, appends = 0;
+		const journal = new ThreadBoundActivityJournal({
+			append: async () => {
+				appends += 1;
+				throw new Error("must not append");
+			},
+			readAll: async () => {
+				reads += 1;
+				return [];
+			},
+		});
+		await expect(journal.append({
+			projectId: "unbound",
+			kind: "progress",
+			phase: "completed",
+			provider: "native",
+			nativeRefs: { threadId: "forged-thread" },
+			sourceDigest: `sha256:${"1".padStart(64, "0")}`,
+			payload: { method: "thread/start" },
+		})).rejects.toThrow("Native thread에 묶인 뒤에만");
+		expect(appends).toBe(0);
+		await expect(journal.readAll("unbound")).resolves.toEqual([]);
+		expect(reads).toBe(0);
+	});
+
 	test("uses the configured Codex model only and falls back when a legacy router selected another provider", () => {
 		expect(codexInteractiveModel({ provider: "openai-codex", model: "gpt-5.6-terra", effort: "high" })).toBe("gpt-5.6-terra");
 		expect(codexInteractiveModel({ provider: "anthropic", model: "claude-opus-4-6", effort: "ultra" })).toBe("gpt-5.6-sol");
@@ -116,7 +157,7 @@ describe("createProjectWorkbenchSession", () => {
 		}
 	});
 
-	test("uses distinct run-local leases and journals without pre-bind T-note I/O", async () => {
+	test("uses distinct run-local leases and one shared unbound journal without pre-bind T-note I/O", async () => {
 		const leaseIds: string[] = [];
 		const journalPaths: string[] = [];
 		let reads = 0;
@@ -143,7 +184,7 @@ describe("createProjectWorkbenchSession", () => {
 		const second = await createProjectWorkbenchSession("/ignored", {}, factories);
 		expect(leaseIds).toHaveLength(2);
 		expect(new Set(leaseIds).size).toBe(2);
-		expect(new Set(journalPaths).size).toBe(2);
+		expect(new Set(journalPaths).size).toBe(1);
 		expect(reads).toBe(0);
 		await first.close();
 		await second.close();
@@ -178,6 +219,106 @@ describe("createProjectWorkbenchSession", () => {
 		await first.close();
 		const reopened = await createProjectWorkbenchSession("/ignored", { resumeThreadId: "thread" }, factories);
 		await reopened.close();
+	});
+
+	test("prebinds two close/reopen resume sessions to the same native journal before Native resume", async () => {
+		const order: string[] = [];
+		const streamReads: string[] = [];
+		const resumeReconciliations: ProjectActivityInput[] = [];
+		const activity = (sequence: number, method: string, refs: Record<string, string>, payload: Record<string, unknown> = {}) => ({
+			schemaVersion: 1 as const, id: `a-${sequence}`, projectId: nativeThreadJournalKey("thread"), sequence,
+			recordedAt: new Date(0).toISOString(), kind: method === "item/completed" ? "file-change" as const : "progress" as const,
+			phase: "completed" as const, provider: "native", nativeRefs: refs,
+			sourceDigest: `sha256:${String(sequence).padStart(64, "0")}`, payload: { method, ...payload },
+		});
+		const persisted = [
+			activity(1, "turn/started", { threadId: "thread", turnId: "root-turn" }),
+			activity(2, "turn/plan/updated", { threadId: "thread", turnId: "root-turn" }, { params: { plan: [{ step: "root plan", status: "inProgress" }] } }),
+			activity(3, "turn/plan/updated", { threadId: "thread", turnId: "foreign-turn" }, { params: { plan: [{ step: "foreign plan", status: "inProgress" }] } }),
+			activity(4, "item/completed", { threadId: "thread", turnId: "foreign-turn" }),
+		];
+		const shared: WorkbenchActivityJournal = {
+			append: async (input) => {
+				if (input.payload.method === "thread/resume-local-reconciled") resumeReconciliations.push(input);
+				return { appended: false, activity: { ...input, schemaVersion: 1, id: crypto.randomUUID(), sequence: persisted.length + 1, recordedAt: new Date(0).toISOString() } };
+			},
+			readAll: async (projectId) => { streamReads.push(projectId); order.push("journal.read"); return persisted; },
+		};
+		const factories: Partial<ProjectWorkbenchSessionFactories> = {
+			openWorkspace: async () => workspace,
+			acquireWriterLease: async () => ({ release: async () => undefined }),
+			connectNative: async () => {
+				const native = new FakeNative(order);
+				native.resumeThread = async (input) => { order.push("native.resume"); return { id: input.threadId, value: {} }; };
+				return native;
+			},
+			createJournal: () => shared,
+			createTodoStore: () => new MemoryTodoStore(),
+			createSessionEvents: () => new MemoryEvents(),
+			createTNoteSource: () => ({ readAll: async () => [], create: async () => { throw new Error("not used"); } }),
+			createComposerDraft: async () => ({ initialText: "", save: async () => undefined, clear: async () => undefined }),
+		};
+		const first = await createProjectWorkbenchSession("/ignored", { resumeThreadId: "thread" }, factories);
+		expect(first.workbench.snapshot.workFlow).toMatchObject({ source: { turnId: "root-turn" }, steps: [{ title: "root plan" }], rejections: [{ code: "source_turn_mismatch" }], orphans: [{ reason: "source_mismatch" }] });
+		const identity = first.workbench.snapshot.workFlow.steps[0]!.id;
+		await first.close();
+		const second = await createProjectWorkbenchSession("/ignored", { resumeThreadId: "thread" }, factories);
+		expect(second.workbench.snapshot.workFlow).toMatchObject({ source: { turnId: "root-turn" }, steps: [{ id: identity, title: "root plan" }], rejections: [{ code: "source_turn_mismatch" }], orphans: [{ reason: "source_mismatch" }] });
+		expect(second.workbench.snapshot.workFlow.source).toEqual(first.workbench.snapshot.workFlow.source);
+		await second.close();
+		expect(streamReads).toEqual([nativeThreadJournalKey("thread"), nativeThreadJournalKey("thread")]);
+		expect(order.filter((entry) => entry === "journal.read" || entry === "native.resume")).toEqual([
+			"journal.read", "native.resume", "journal.read", "native.resume",
+		]);
+		expect(resumeReconciliations).toHaveLength(2);
+		expect(resumeReconciliations).toEqual(expect.arrayContaining([
+			expect.objectContaining({ payload: expect.objectContaining({ method: "thread/resume-local-reconciled", historyHydrated: false }) }),
+		]));
+	});
+
+	test("resumes an in-progress root turn through repeated markers and applies its later Plan and action", async () => {
+		const activity = (sequence: number, method: string, payload: Record<string, unknown> = {}) => ({
+			schemaVersion: 1 as const, id: `resume-${sequence}`, projectId: nativeThreadJournalKey("thread"), sequence,
+			recordedAt: new Date(0).toISOString(), kind: method === "item/completed" ? "file-change" as const : "progress" as const,
+			phase: "completed" as const, provider: "native", nativeRefs: { threadId: "thread", turnId: "root-turn" },
+			sourceDigest: `sha256:${String(sequence).padStart(64, "0")}`, payload: { method, ...payload },
+		});
+		const persisted = [
+			activity(1, "turn/started"),
+			activity(2, "turn/plan/updated", { params: { plan: [{ step: "root plan", status: "inProgress" }] } }),
+		];
+		let sequence = persisted.length;
+		const journal: WorkbenchActivityJournal = {
+			append: async (input) => ({ appended: true, activity: { ...input, schemaVersion: 1, id: crypto.randomUUID(), sequence: ++sequence, recordedAt: new Date(0).toISOString() } }),
+			readAll: async () => persisted,
+		};
+		let native: FakeNative | undefined;
+		const session = await createProjectWorkbenchSession("/ignored", { resumeThreadId: "thread" }, {
+			openWorkspace: async () => workspace,
+			acquireWriterLease: async () => ({ release: async () => undefined }),
+			connectNative: async () => {
+				native = new FakeNative([]);
+				native.readThread = async (input) => ({ id: input.threadId, value: { status: { type: "inProgress" }, turns: [{ id: "root-turn", status: "inProgress" }] } });
+				return native;
+			},
+			createJournal: () => journal,
+			createTodoStore: () => new MemoryTodoStore(),
+			createSessionEvents: () => new MemoryEvents(),
+			createTNoteSource: () => ({ readAll: async () => [], create: async () => { throw new Error("not used"); } }),
+			createComposerDraft: async () => ({ initialText: "", save: async () => undefined, clear: async () => undefined }),
+		});
+		const identity = session.workbench.snapshot.workFlow.steps[0]!.id;
+		native!.emit({ type: "notification", method: "turn/started", refs: { threadId: "thread", turnId: "root-turn" }, params: {} });
+		await Bun.sleep(5);
+		native!.emit({ type: "notification", method: "turn/plan/updated", refs: { threadId: "thread", turnId: "root-turn" }, params: { plan: [{ step: "root plan", status: "inProgress" }] } });
+		await Bun.sleep(5);
+		native!.emit({ type: "notification", method: "item/completed", refs: { threadId: "thread", turnId: "root-turn", itemId: "write-1" }, params: { item: { id: "write-1", type: "commandExecution", command: "apply_patch file" } } });
+		await Bun.sleep(20);
+		expect(session.workbench.snapshot.workFlow).toMatchObject({
+			source: { turnId: "root-turn" },
+			steps: [{ id: identity, title: "root plan", activityIds: [expect.any(String)] }],
+		});
+		await session.close();
 	});
 
 	test("wires one native writer to thread-scoped Todo, private activity/drafts, and deterministic project identity", async () => {
@@ -224,7 +365,7 @@ describe("createProjectWorkbenchSession", () => {
 
 		expect(session.projectId).toBe(scopedProjectId(workspace.root));
 		expect(observed.todoPath).toBe(join(workspace.todosDirectory, scopedTodoSessionId("thread"), "Todo.md"));
-		expect(observed.journalPath).toMatch(new RegExp(`^${join(workspace.runtimeDirectory, "activity", "workbench-")}`));
+		expect(observed.journalPath).toBe(join(workspace.runtimeDirectory, "activity"));
 		expect(observed.draftPath).toBe(workspace.draftsDirectory);
 		expect(observed.tnoteModel).toBe("gpt-5.6-luna");
 		expect(observed.options).toMatchObject({
@@ -322,6 +463,7 @@ describe("createProjectWorkbenchSession", () => {
 
 		await session.workbench.dispatch({ type: "chat.send", text: "세션 Todo를 시작해" });
 		expect(todoPaths).toEqual([join(workspace.todosDirectory, scopedTodoSessionId("thread"), "Todo.md")]);
+		await Bun.sleep(10);
 		await session.close();
 		expect(nativePlanSyncCalls).toBeGreaterThan(0);
 		expect(session.workbench.snapshot.actionResult).toBeNull();

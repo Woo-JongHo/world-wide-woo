@@ -1,24 +1,31 @@
 import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
 import type { ProjectActivity } from "../src/domain/project-activity";
-import { projectWorkFlow } from "../src/domain/work-steps";
+import { projectWorkFlow, type DplanHash } from "../src/domain/work-steps";
 import {
 	executionLineTone,
+	ObservationCard,
 	WorkStepCard,
 } from "../src/presentation/tui/work-step-card";
 
-function commandActivity(output: string): ProjectActivity {
+const THREAD = "thread-highlight";
+const TURN = "turn-highlight";
+const hash: DplanHash = {
+	sha256Hex: (input) => new Bun.CryptoHasher("sha256").update(input).digest("hex"),
+};
+
+function commandActivity(output: string, sequence = 3): ProjectActivity {
 	return {
 		schemaVersion: 1,
 		id: "command-highlight",
 		projectId: "sample-project",
-		sequence: 1,
+		sequence,
 		recordedAt: "2026-09-01T00:00:00.000Z",
 		kind: "tool",
 		phase: "completed",
 		provider: "openai-codex",
-		nativeRefs: { itemId: "command-1" },
-		sourceDigest: `sha256:${"a".repeat(64)}`,
+		nativeRefs: { threadId: THREAD, turnId: TURN, itemId: "command-1" },
+		sourceDigest: `sha256:${String(sequence).padStart(64, "0")}`,
 		payload: {
 			method: "item/completed",
 			params: {
@@ -34,7 +41,89 @@ function commandActivity(output: string): ProjectActivity {
 	};
 }
 
+function fileChangeActivity(): ProjectActivity {
+	return {
+		schemaVersion: 1,
+		id: "file-change-highlight",
+		projectId: "sample-project",
+		sequence: 3,
+		recordedAt: "2026-09-01T00:00:00.000Z",
+		kind: "file-change",
+		phase: "completed",
+		provider: "openai-codex",
+		nativeRefs: { threadId: THREAD, turnId: TURN, itemId: "edit-1" },
+		sourceDigest: `sha256:${"3".padStart(64, "0")}`,
+		payload: {
+			method: "item/completed",
+			params: {
+				item: {
+					type: "fileChange",
+					changes: [{ path: "src/app.ts", kind: "update", diff: "+ change" }],
+				},
+			},
+		},
+	};
+}
+
+function toolActivity(): ProjectActivity {
+	return {
+		schemaVersion: 1,
+		id: "tool-highlight",
+		projectId: "sample-project",
+		sequence: 3,
+		recordedAt: "2026-09-01T00:00:00.000Z",
+		kind: "tool",
+		phase: "completed",
+		provider: "openai-codex",
+		nativeRefs: { threadId: THREAD, turnId: TURN, itemId: "tool-1" },
+		sourceDigest: `sha256:${"3".padStart(64, "0")}`,
+		payload: {
+			method: "item/completed",
+			params: { item: { type: "webSearch", query: "UX" } },
+		},
+	};
+}
+
+function workflowActivities(output: string): readonly ProjectActivity[] {
+	return [{
+		schemaVersion: 1, id: "turn-highlight-start", projectId: "sample-project", sequence: 1,
+		recordedAt: "2026-09-01T00:00:00.000Z", kind: "progress", phase: "completed", provider: "openai-codex",
+		nativeRefs: { threadId: THREAD, turnId: TURN }, sourceDigest: `sha256:${"1".padStart(64, "0")}`,
+		payload: { method: "turn/started" },
+	}, {
+		schemaVersion: 1, id: "turn-highlight-plan", projectId: "sample-project", sequence: 2,
+		recordedAt: "2026-09-01T00:00:01.000Z", kind: "progress", phase: "completed", provider: "openai-codex",
+		nativeRefs: { threadId: THREAD, turnId: TURN }, sourceDigest: `sha256:${"2".padStart(64, "0")}`,
+		payload: { method: "turn/plan/updated", params: { plan: [{ step: "변경 결과 검증", status: "inProgress" }] } },
+	}, commandActivity(output)];
+}
+
+function planInput(activities: readonly ProjectActivity[]) {
+	const activity = activities[0]!;
+	return { expectedThreadKey: activity.nativeRefs.threadId!, selectedTurnId: activity.nativeRefs.turnId!, hash };
+}
+
 describe("WorkStepCard executor highlighting", () => {
+	test("labels an unplanned action as Bash, Edit, or Tool while keeping the Bash block", () => {
+		const bash = stripTerminalSequences(new ObservationCard({
+			activity: commandActivity("12 pass"),
+			mode: "action",
+		}).render(88).join("\n"));
+		const edit = stripTerminalSequences(new ObservationCard({
+			activity: fileChangeActivity(),
+			mode: "action",
+		}).render(88).join("\n"));
+		const tool = stripTerminalSequences(new ObservationCard({
+			activity: toolActivity(),
+			mode: "action",
+		}).render(88).join("\n"));
+
+		expect(bash).toContain("✔ Bash · PASSED");
+		expect(bash).toContain("│ $ bun test --filter 'work step'");
+		expect(edit).toContain("✔ Edit · PASSED");
+		expect(tool).toContain("✔ Tool · PASSED");
+	});
+
 	test("renders native command execution with a Gajae-style Bash frame", () => {
 		const output = Array.from({ length: 16 }, (_, index) => `line ${index + 1}`).join("\n");
 		const rendered = new WorkStepCard({
@@ -53,17 +142,18 @@ describe("WorkStepCard executor highlighting", () => {
 	});
 
 	test("keeps direct work and why text without a repeated what label", () => {
-		const source = [commandActivity("line 1\nline 2")];
-		const initial = projectWorkFlow(source);
+		const source = workflowActivities("line 1\nline 2");
+		const input = planInput(source);
+		const initial = projectWorkFlow(source, new Map(), input);
 		const flow = projectWorkFlow(source, new Map([[initial.steps[0]!.id, {
 			what: "검증 명령의 결과를 확인합니다.",
 			why: "완료 상태를 신뢰할 수 있는지 판단하기 위해서입니다.",
 			inputSummary: [],
 			source: "model" as const,
-		}]]));
+		}]]), input);
 		const rendered = stripTerminalSequences(new WorkStepCard({
 			stepNumber: 7,
-			activity: source[0]!,
+			activity: source.at(-1)!,
 			narration: flow.steps[0]!.narration,
 		}).render(88).join("\n"));
 
@@ -100,7 +190,15 @@ describe("WorkStepCard executor highlighting", () => {
 	});
 
 	test("keeps a semantic reason while narrator work is pending or has failed", () => {
-		const flow = projectWorkFlow([commandActivity("completed")]);
+		const source = workflowActivities("completed");
+		const input = planInput(source);
+		const initial = projectWorkFlow(source, new Map(), input);
+		const flow = projectWorkFlow(source, new Map([[initial.steps[0]!.id, {
+			what: "변경 결과 검증",
+			why: "요청을 안전하게 처리하고 결과를 확인하기 위해서입니다.",
+			inputSummary: [],
+			source: "fallback",
+		}]]), input);
 
 		expect(flow.steps[0]?.narration).toMatchObject({
 			what: "변경 결과 검증",
@@ -110,14 +208,15 @@ describe("WorkStepCard executor highlighting", () => {
 	});
 
 	test("rejects inline commands and filename-only narrator text", () => {
-		const source = [commandActivity("completed")];
-		const initial = projectWorkFlow(source);
+		const source = workflowActivities("completed");
+		const input = planInput(source);
+		const initial = projectWorkFlow(source, new Map(), input);
 		const narrated = projectWorkFlow(source, new Map([[initial.steps[0]!.id, {
 			what: "먼저 `git status --short`를 실행합니다.",
 			why: "work-steps.ts 변경을 검토하기 위해서입니다.",
 			inputSummary: [],
 			source: "model" as const,
-		}]]));
+		}]]), input);
 
 		expect(narrated.steps[0]?.narration).toMatchObject({
 			what: "작업을 진행합니다.",

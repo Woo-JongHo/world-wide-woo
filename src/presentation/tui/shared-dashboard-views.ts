@@ -18,6 +18,9 @@ export class StatusLine implements Component {
 	constructor(initialNotice: string) {
 		this.notice = initialNotice;
 	}
+	get hasNotice(): boolean {
+		return this.notice.length > 0;
+	}
 	setNotice(notice: string): void {
 		this.notice = notice;
 	}
@@ -36,9 +39,7 @@ export class WorkspaceTodoView implements Component {
 
 	private renderTodo(width: number): string[] {
 		const document = this.todo();
-		if (!document || document.items.length === 0) return [
-			colors.muted("  ○ 진행 중인 작업 없음"),
-		];
+		if (!document || document.items.length === 0) return [];
 
 		const progress = todoProgress(document);
 		const detailProgress = todoDetailProgress(document);

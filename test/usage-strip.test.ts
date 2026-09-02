@@ -1,129 +1,128 @@
 import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import { UsageStripView } from "../src/presentation/tui/usage-strip-view";
+import type { WorkbenchModelUsage } from "../src/domain/workbench";
+import { colors } from "../src/presentation/tui/theme";
+import { modelChipLabel, UsageStripView, type UsageStripSession } from "../src/presentation/tui/usage-strip-view";
+
+function readyView(session?: UsageStripSession): UsageStripView {
+	const now = Date.now();
+	const view = new UsageStripView(session ? () => session : undefined);
+	view.update([
+		{
+			provider: "openai-codex",
+			state: "ready",
+			fetchedAt: now,
+			limits: [
+				{ label: "5 hours", remainingPercent: 68, usedPercent: 32, resetsAt: now + 2 * 3_600_000 + 14 * 60_000 + 59_000, status: "ok" },
+				{ label: "7 days", remainingPercent: 51, usedPercent: 49, resetsAt: now + (3 * 24 + 8) * 3_600_000 + 59_000, status: "ok" },
+				{ label: "7 days (Spark)", remainingPercent: 81, usedPercent: 19, resetsAt: now + (5 * 24 + 2) * 3_600_000 + 59_000, status: "ok" },
+			],
+		},
+		{
+			provider: "anthropic",
+			state: "ready",
+			fetchedAt: now,
+			limits: [
+				{ label: "Claude 5 Hour", remainingPercent: 63, usedPercent: 37, resetsAt: now + 1 * 3_600_000 + 42 * 60_000 + 59_000, status: "ok" },
+				{ label: "Claude 7 Day", remainingPercent: 72, usedPercent: 28, resetsAt: now + (4 * 24 + 6) * 3_600_000 + 59_000, status: "ok" },
+				{ label: "Claude 7 Day (Opus)", remainingPercent: 41, usedPercent: 59, resetsAt: now + (4 * 24 + 6) * 3_600_000 + 59_000, status: "ok" },
+			],
+		},
+	]);
+	return view;
+}
+
+function usage(model: string, turns: number, totalTokens: number): WorkbenchModelUsage {
+	return { model, effort: null, turns, totalTokens };
+}
 
 describe("UsageStripView", () => {
-	test("renders Codex and Claude in exactly two compact HUD lines", () => {
-		const view = new UsageStripView();
-		view.update([
-			{
-				provider: "openai-codex",
-				state: "ready",
-				fetchedAt: Date.now(),
-				limits: [
-					{ label: "7 days", remainingPercent: 66, usedPercent: 34, resetsAt: Date.now() + 6 * 86_400_000, status: "ok" },
-					{ label: "5 hours (Spark)", remainingPercent: 100, usedPercent: 0, resetsAt: Date.now() + 5 * 3_600_000, status: "ok" },
-				],
-			},
-			{ provider: "anthropic", state: "auth-required", fetchedAt: Date.now(), limits: [] },
-		]);
+	test("gives every provider window its own row with a bar and a reset time", () => {
+		const rendered = readyView().render(100);
+		const lines = rendered.map(stripTerminalSequences);
 
-		const lines = view.render(120);
-		expect(lines).toHaveLength(2);
-		expect(lines.every((line) => visibleWidth(line) === 120)).toBe(true);
+		expect(lines).toHaveLength(4);
+		expect(lines.every((line) => visibleWidth(line) === 100)).toBe(true);
 		expect(lines[0]).toContain("Codex");
-		expect(lines[0]).toContain("7Day");
-		expect(lines[0]).toContain("7Day      66%");
-		expect(lines[0]).not.toContain(":");
-		expect(lines[0]).not.toMatch(/[▐▌▮█░]/u);
-		expect(lines[0]).toContain("66%");
-		expect(lines[0]).not.toContain("Spark");
+		expect(lines[0]).toContain("7d");
+		expect(lines[0]).toContain("3d08h");
 		expect(lines[1]).toContain("Claude");
-		expect(lines[1]).toContain("/login anthropic");
+		expect(lines[1]).toContain("4d06h");
+		expect(lines[2]).toContain("5h");
+		expect(lines[2]).toContain("1h42m");
+		expect(lines[3]).toContain("Gemini");
 	});
 
-	test("aligns provider usage columns by terminal width", () => {
-		const view = new UsageStripView();
-		view.update([
-			{ provider: "openai-codex", state: "ready", fetchedAt: 1, limits: [{ label: "7 days", remainingPercent: 34, usedPercent: 66, status: "ok" }] },
-			{ provider: "anthropic", state: "ready", fetchedAt: 1, limits: [{ label: "Claude 5 Hour", remainingPercent: 92, usedPercent: 8, status: "ok" }] },
-		]);
-
-		const [codex, claude] = view.render(100).map(stripTerminalSequences);
-		expect(codex?.indexOf("7Day")).toBe(claude?.indexOf("5Session"));
-		expect(codex?.indexOf("%")).toBe(claude?.indexOf("%"));
+	test("repeats no provider label on its second window row", () => {
+		const lines = readyView().render(100).map(stripTerminalSequences);
+		expect(lines[2]?.startsWith("      ")).toBe(true);
+		expect(lines[2]).not.toContain("Claude");
 	});
 
-	test("keeps resets beside compact quotas at constrained widths", () => {
+	test("keeps the bar proportional to the remaining quota", () => {
+		const lines = readyView().render(100).map(stripTerminalSequences);
+		// Codex 7d is 51% remaining, so five of ten cells are filled.
+		expect(lines[0]).toContain("█████░░░░░");
+		// Claude 7d is 72% remaining.
+		expect(lines[1]).toContain("███████░░░");
+	});
+
+	test("marks only the running model and attributes chips to the owning provider", () => {
+		const session: UsageStripSession = {
+			activeModel: "gpt-5.6-sol",
+			models: [usage("gpt-5.6-sol", 12, 900), usage("claude-opus-4-6", 3, 400), usage("gemini-3.1-pro", 2, 100)],
+		};
+		const rendered = readyView(session).render(100);
+		const lines = rendered.map(stripTerminalSequences);
+
+		expect(lines[0]).toContain("● Sol 12");
+		expect(lines[1]).toContain("Opus 3");
+		expect(lines[1]).not.toContain("●");
+		expect(lines[3]).toContain("Pro 2");
+		expect(rendered[0]).toContain(colors.success("● Sol 12"));
+	});
+
+	test("counts an unrecognised model instead of attributing it to a guess", () => {
+		const session: UsageStripSession = { models: [usage("mystery-model", 4, 50)] };
+		const lines = readyView(session).render(100).map(stripTerminalSequences);
+		expect(lines.join("\n")).not.toContain("Mystery");
+		expect(lines[3]).toContain("+1");
+	});
+
+	test("shows the provider state instead of a bar when a snapshot is not ready", () => {
 		const view = new UsageStripView();
 		view.update([
-			{ provider: "openai-codex", state: "ready", fetchedAt: 1, limits: [{ label: "7 days", remainingPercent: 34, usedPercent: 66, resetsAt: Date.now() + 3_600_000, status: "ok" }] },
-			{ provider: "anthropic", state: "ready", fetchedAt: 1, limits: [{ label: "Claude 5 Hour", remainingPercent: 92, usedPercent: 8, resetsAt: Date.now() + 2 * 3_600_000, status: "ok" }] },
+			{ provider: "openai-codex", state: "auth-required", fetchedAt: Date.now(), limits: [] },
+			{ provider: "anthropic", state: "loading", fetchedAt: Date.now(), limits: [] },
 		]);
+		const lines = view.render(100).map(stripTerminalSequences);
+		expect(lines[0]).toContain("/login");
+		expect(lines[1]).toContain("확인 중");
+		expect(lines[0]).not.toContain("█");
+	});
 
-		for (const width of [32, 36, 50, 64]) {
-			const lines = view.render(width).map(stripTerminalSequences);
-			expect(lines).toHaveLength(2);
+	test("keeps four padded rows and drops chips before the quota when narrow", () => {
+		for (const width of [28, 40, 64, 100, 140]) {
+			const lines = readyView({ models: [usage("gpt-5.6-sol", 9, 10)] }).render(width).map(stripTerminalSequences);
+			expect(lines).toHaveLength(4);
 			expect(lines.every((line) => visibleWidth(line) === width)).toBe(true);
-			expect(lines[0]).toMatch(/34% 59m|34% 1h/u);
-			expect(lines[1]).toMatch(/92% 1h|92% 2h/u);
 		}
+		const narrow = readyView({ models: [usage("gpt-5.6-sol", 9, 10)] }).render(28).map(stripTerminalSequences);
+		expect(narrow.join("\n")).not.toContain("Sol");
+		expect(narrow[0]).toContain("Codex");
 	});
 
-	test("places the six fixed session model slots beside the selected provider quotas", () => {
-		const view = new UsageStripView(() => ({
-			totalTokens: 38_760,
-			unattributedTokens: 0,
-			models: [
-				{ model: "gpt-5.6-sol", effort: "ultra", turns: 2, totalTokens: 25_840 },
-				{ model: "claude-opus-5", effort: null, turns: 1, totalTokens: 12_920 },
-			],
-		}));
-		view.update([
-			{
-				provider: "openai-codex",
-				state: "ready",
-				fetchedAt: 1,
-				limits: [
-					{ label: "7 days", remainingPercent: 34, usedPercent: 66, status: "ok" },
-					{ label: "5 hours (Spark)", remainingPercent: 100, usedPercent: 0, status: "ok" },
-				],
-			},
-			{
-				provider: "anthropic",
-				state: "ready",
-				fetchedAt: 1,
-				limits: [
-					{ label: "Claude 5 Hour", remainingPercent: 92, usedPercent: 8, status: "ok" },
-					{ label: "Claude 7 Day", remainingPercent: 69, usedPercent: 31, status: "ok" },
-				],
-			},
-		]);
-
-		const lines = view.render(132).map(stripTerminalSequences);
-		expect(lines).toHaveLength(3);
-		expect(lines[0]).toContain("Codex   7Day");
-		expect(lines[0]).toContain("Sol   : 25.8k");
-		expect(lines[0]).toContain("Fable  :     –");
-		expect(lines[1]).toContain("Claude  5Session");
-		expect(lines[1]).toContain("7Day");
-		expect(lines[1]).toContain("Terra :     –");
-		expect(lines[1]).toContain("Opus   : 12.9k");
-		expect(lines[2]).toContain("Luna  :     –");
-		expect(lines[2]).toContain("Sonnet :     –");
-		expect(lines[0]?.indexOf("Fable")).toBe(lines[1]?.indexOf("Opus"));
-		expect(lines[1]?.indexOf("Opus")).toBe(lines[2]?.indexOf("Sonnet"));
-		expect(lines.join("\n")).not.toContain("Spark");
+	test("reports a width it cannot lay out rather than clipping silently", () => {
+		const lines = readyView().render(12).map(stripTerminalSequences);
+		expect(lines).toHaveLength(4);
+		expect(lines[0]).toContain("폭 부족");
+		expect(lines.every((line) => visibleWidth(line) === 12)).toBe(true);
 	});
 
-	test("distinguishes rate limiting and preserves visibly stale values", () => {
-		const view = new UsageStripView();
-		view.update([
-			{ provider: "openai-codex", state: "error", fetchedAt: 1, limits: [] },
-			{
-				provider: "anthropic",
-				state: "ready",
-				fetchedAt: 1,
-				stale: true,
-				issue: { kind: "rate-limit", retryAt: Date.now() + 120_000 },
-				limits: [{ label: "Claude 5 Hour", remainingPercent: 69, usedPercent: 31, status: "ok" }],
-			},
-		]);
-
-		const lines = view.render(120);
-		expect(lines[1]).toContain("Claude");
-		expect(lines[1]).toContain("*");
-		expect(lines[1]).toContain("69%");
-		expect(lines[1]).toContain("요청 제한");
+	test("shortens a model id to its variant and keeps an unusual id intact", () => {
+		expect(modelChipLabel("gpt-5.6-sol")).toBe("Sol");
+		expect(modelChipLabel("claude-opus-4-6")).toBe("Opus");
+		expect(modelChipLabel("gemini-3.1-pro-preview")).toBe("Pro");
+		expect(modelChipLabel("weird_id")).toBe("weird_id");
 	});
 });

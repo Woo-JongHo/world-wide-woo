@@ -5,6 +5,7 @@ import {
 	workbenchModelSettings,
 	workbenchReceiptClearsComposer,
 	workbenchReceiptNotice,
+	workbenchViewModeCommand,
 } from "../src/presentation/tui/workbench-shell";
 
 const workingSnapshot = {
@@ -16,10 +17,16 @@ const workingSnapshot = {
 		{ role: "user", content: "현재 디렉터리 구조를 확인해줘" },
 		{ role: "assistant", content: "현재 디렉터리 구조를 직접 확인하겠습니다." },
 	],
-	workFlow: { steps: [] },
+	workFlow: { currentStepNumber: null, steps: [] },
 } as const;
 
 describe("native workbench shell receipt policy", () => {
+	test("routes dashboard and monitor to distinct local view modes", () => {
+		expect(workbenchViewModeCommand("/dashboard")).toBe("dashboard");
+		expect(workbenchViewModeCommand(" /monitor ")).toBe("monitor");
+		expect(workbenchViewModeCommand("/monitor details")).toBeNull();
+	});
+
 	test("normalizes native model telemetry into a selectable Codex setting", () => {
 		expect(workbenchModelSettings({ model: "gpt-5.6-terra", effort: "high" })).toEqual({
 			provider: "openai-codex",
@@ -48,11 +55,30 @@ describe("native workbench shell receipt policy", () => {
 		expect(title).toBe("🐙 WWW · project-123 · GPT-5.6-Sol · ultra · ready · Manual · Permission manual");
 	});
 
-	test("shows an animated current-activity rail while a native turn is working", () => {
+	test("names the model the running turn uses, not a selection that applies to the next one", () => {
+		const title = workbenchFrameTitle({
+			projectId: "project-123",
+			phase: "working",
+			model: "gpt-5.6-luna",
+			activeModel: "gpt-5.6-sol",
+			effort: "ultra",
+			collaborationMode: "manual",
+			permissionMode: "manual",
+			chatQueue: [],
+			pendingApproval: null,
+		});
+
+		expect(title).toContain("GPT-5.6-Sol");
+		expect(title).not.toContain("Luna");
+	});
+
+	test("does not repeat an assistant chat sentence in the current-activity rail", () => {
 		const indicator = workbenchActivityIndicator(workingSnapshot);
 
 		expect(indicator?.frames.length).toBeGreaterThan(1);
-		expect(indicator?.message).toBe("현재 디렉터리 구조를 직접 확인하겠습니다. ⟦esc⟧");
+		expect(indicator?.message).toBe("분석 · 요청을 읽고 첫 단계를 정하는 중");
+		expect(indicator?.message).not.toContain("현재 디렉터리 구조를 직접 확인하겠습니다.");
+		expect(indicator?.hint).toBe("Esc 중단");
 	});
 
 	test("falls back to an immediate analysis label before native intent arrives", () => {
@@ -61,18 +87,117 @@ describe("native workbench shell receipt policy", () => {
 			chat: [{ role: "user", content: "응답해봐" }],
 		});
 
-		expect(indicator?.message).toBe("요청을 분석하는 중 ⟦esc⟧");
+		expect(indicator?.message).toBe("분석 · 요청을 읽고 첫 단계를 정하는 중");
+		expect(indicator?.message).not.toContain("esc");
 	});
 
-	test("uses the public Native reasoning summary as the live activity label", () => {
+	test("shows the numbered current Native plan step", () => {
+		const indicator = workbenchActivityIndicator({
+			...workingSnapshot,
+			workFlow: {
+				currentStepNumber: 2,
+				steps: [
+					{ number: 1, title: "기준 확인" },
+					{ number: 2, title: "입출력 UX 정리" },
+					{ number: 3, title: "검증" },
+				],
+			},
+		});
+
+		expect(indicator?.message).toBe("단계 2/3 · 입출력 UX 정리");
+	});
+
+	test("adds the concrete live action to the current Native plan step", () => {
+		const indicator = workbenchActivityIndicator({
+			...workingSnapshot,
+			liveActivity: {
+				method: "item/commandExecution/outputDelta",
+				kind: "tool",
+			},
+			workFlow: {
+				currentStepNumber: 2,
+				steps: [
+					{ number: 1, title: "기준 확인" },
+					{ number: 2, title: "입출력 UX 정리" },
+					{ number: 3, title: "검증" },
+				],
+			},
+		});
+
+		expect(indicator?.message).toBe("단계 2/3 · 입출력 UX 정리 · Bash 명령 결과를 확인하는 중");
+	});
+
+	test("shows the concrete live action even when Native Plan is absent", () => {
+		const indicator = workbenchActivityIndicator({
+			...workingSnapshot,
+			liveActivity: {
+				method: "item/fileChange/outputDelta",
+				kind: "file-change",
+			},
+		});
+
+		expect(indicator?.message).toBe("실행 · Edit 변경을 반영하는 중");
+		expect(indicator?.message).not.toBe("분석 · 요청을 읽고 첫 단계를 정하는 중");
+	});
+
+	test("keeps the completed plan visible while the final response is being prepared", () => {
+		const indicator = workbenchActivityIndicator({
+			...workingSnapshot,
+			workFlow: {
+				currentStepNumber: null,
+				steps: [
+					{ number: 1, title: "기준 확인" },
+					{ number: 2, title: "입출력 UX 정리" },
+					{ number: 3, title: "검증" },
+				],
+			},
+		});
+
+		expect(indicator?.message).toBe("마무리 · 3개 단계 결과를 정리하는 중");
+	});
+
+	test("keeps the current step while adding the public Native reasoning summary", () => {
 		const indicator = workbenchActivityIndicator({
 			...workingSnapshot,
 			chat: [{ role: "user", content: "테마를 조정해줘" }],
 			reasoningDraft: "raw reasoning hidden",
-			reasoningSummaryDraft: "Planning semantic color token adjustments",
+			reasoningSummaryDraft: "Planning semantic color token adjustments ⟦esc⟧",
+			workFlow: {
+				currentStepNumber: 1,
+				steps: [{ number: 1, title: "테마 조정" }],
+			},
 		});
 
-		expect(indicator?.message).toBe("Planning semantic color token adjustments ⟦esc⟧");
+		expect(indicator?.message).toBe("단계 1/1 · 테마 조정 · 판단 · Planning semantic color token adjustments");
+		expect(indicator?.message).not.toContain("raw reasoning hidden");
+		expect(indicator?.message).not.toContain("⟦esc⟧");
+	});
+
+	test("keeps a no-plan live action visible alongside its public reasoning summary", () => {
+		const indicator = workbenchActivityIndicator({
+			...workingSnapshot,
+			chat: [{ role: "user", content: "테스트를 실행해줘" }],
+			reasoningDraft: "raw reasoning hidden",
+			reasoningSummaryDraft: "회귀 범위를 확인하는 중",
+			liveActivity: {
+				method: "item/commandExecution/outputDelta",
+				kind: "tool",
+			},
+		});
+
+		expect(indicator?.message).toBe("실행 · Bash 명령 결과를 확인하는 중 · 판단 · 회귀 범위를 확인하는 중");
+		expect(indicator?.message).not.toContain("raw reasoning hidden");
+	});
+
+	test("identifies response drafting without exposing partial output", () => {
+		const indicator = workbenchActivityIndicator({
+			...workingSnapshot,
+			draft: "완성되지 않은 응답 본문",
+			reasoningSummaryDraft: "최종 답변 구성 확정",
+		});
+
+		expect(indicator?.message).toBe("응답 · 결과를 작성하는 중");
+		expect(indicator?.message).not.toContain("완성되지 않은 응답 본문");
 	});
 
 	test("shows approval as a paused turn instead of animated background work", () => {
@@ -83,7 +208,8 @@ describe("native workbench shell receipt policy", () => {
 		});
 
 		expect(indicator?.frames).toEqual(["⏸"]);
-		expect(indicator?.message).toBe("승인 대기 · 현재 턴 일시중지 · 대기 메시지 2개는 승인 후 전송 ⟦esc⟧");
+		expect(indicator?.message).toBe("승인 대기 · 현재 턴 일시중지 · 대기 메시지 2개는 승인 후 전송");
+		expect(indicator?.hint).toBe("Esc 중단");
 	});
 
 	test("starts animating while the first user message is still being delivered", () => {
@@ -93,7 +219,7 @@ describe("native workbench shell receipt policy", () => {
 			chat: [{ role: "user", content: "응답해봐", status: "streaming" }],
 		});
 
-		expect(indicator?.message).toBe("요청 전송 준비 중 ⟦esc⟧");
+		expect(indicator?.message).toBe("전송 · 요청을 Native Thread에 전달하는 중");
 	});
 
 	test("does not animate the current-activity rail after the turn completes", () => {

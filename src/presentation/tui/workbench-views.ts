@@ -6,6 +6,7 @@ import {
 	type Component,
 } from "@earendil-works/pi-tui";
 import type { NativeApprovalRequest } from "../../domain/native-session";
+import type { CompletionReport } from "../../domain/output";
 import { projectBackgroundWorkState, type BackgroundWorkState } from "../../domain/native-session";
 import { sanitizeTerminalTextExcerpt, sanitizeTerminalTextUnbounded } from "../../domain/terminal";
 import { workbenchApprovalDecisions, type WorkbenchSnapshot } from "../../domain/workbench";
@@ -15,6 +16,7 @@ import { colors, markdownTheme, semantic } from "./theme";
 import { WorkbenchWelcomeView } from "./workbench-welcome";
 import { isVisibleWorkStep, ObservationCard, WorkStepCard } from "./work-step-card";
 import { projectWorkbenchDelegationSections } from "./delegation-tree-view";
+import { CompletionSummaryCard } from "./result-cards";
 
 const WORKBENCH_MARKDOWN_MAX_CHARS = 16 * 1024;
 const WORKBENCH_MARKDOWN_MAX_LINES = 120;
@@ -35,6 +37,10 @@ function fit(text: string, width: number): string {
 
 function surfaceRows(rows: readonly string[], width: number, surface: (text: string) => string): string[] {
 	return rows.map(row => surface(fit(row, width)));
+}
+
+function transcriptRows(rows: readonly string[], width: number): string[] {
+	return rows.map((row) => truncateToWidth(row, Math.max(1, width)));
 }
 
 function boundedWorkbenchMarkdown(text: string): string {
@@ -59,13 +65,13 @@ function boundedWorkbenchMarkdown(text: string): string {
 	return `${head}\n${WORKBENCH_MARKDOWN_OMISSION}\n${tail}`;
 }
 
-function approvalKindLabel(kind: NativeApprovalRequest["kind"]): string {
+export function approvalKindLabel(kind: NativeApprovalRequest["kind"]): string {
 	if (kind === "command") return "명령";
 	if (kind === "file-change") return "파일 변경";
 	return "권한";
 }
 
-function approvalParamText(request: NativeApprovalRequest, key: string): string | null {
+export function approvalParamText(request: NativeApprovalRequest, key: string): string | null {
 	const value = request.params[key];
 	if (typeof value !== "string" || !value.trim()) return null;
 	return sanitizeTerminalTextExcerpt(value, WORKBENCH_APPROVAL_DETAIL_MAX_CHARS, "head-tail")
@@ -73,13 +79,13 @@ function approvalParamText(request: NativeApprovalRequest, key: string): string 
 		.trim();
 }
 
-function approvalFallback(request: NativeApprovalRequest): string {
+export function approvalFallback(request: NativeApprovalRequest): string {
 	if (request.kind === "command") return "명령 실행에 승인이 필요합니다.";
 	if (request.kind === "file-change") return "파일 변경에 승인이 필요합니다.";
 	return "추가 권한이 필요합니다.";
 }
 
-function approvalDetailLabel(request: NativeApprovalRequest): string {
+export function approvalDetailLabel(request: NativeApprovalRequest): string {
 	if (request.kind === "command") return "명령";
 	if (request.kind === "file-change") return "변경";
 	return "권한";
@@ -183,20 +189,199 @@ function publicTimelineActivityRows(
 	if (itemType === "exitedreviewmode") return [colors.success("독립 검토를 마침")];
 	if (activity.payload.classification === "reasoning") {
 		const summary = publicText(activity.payload.publicSummary, 1_200);
-		return summary ? summary.split(/\r?\n/u).flatMap((line) => wrapTextWithAnsi(colors.muted(line), Math.max(1, width))) : null;
+		return summary ? summary.split(/\r?\n/u)
+			.flatMap((line) => wrapTextWithAnsi(`판단 · ${line}`, Math.max(1, width)).map(semantic.reasoning)) : null;
 	}
 	// MCP startup/retry telemetry belongs in Source, not the user conversation.
 	if (method === "mcpserver/startupstatus/updated") return null;
 	return null;
 }
 
+const WORK_STEP_STATUS_LABEL: Record<WorkStepStatus, string> = {
+	pending: "대기",
+	running: "진행 중",
+	completed: "완료",
+	failed: "실패",
+	cancelled: "중단",
+};
+
+function nativePlanStatus(value: unknown): WorkStepStatus {
+	const status = publicText(value)?.replace(/[_-]/gu, "").toLowerCase();
+	if (status === "completed" || status === "passed") return "completed";
+	if (status === "inprogress" || status === "running") return "running";
+	if (status === "failed" || status === "errored") return "failed";
+	if (status === "cancelled" || status === "canceled" || status === "interrupted") return "cancelled";
+	return "pending";
+}
+
+type CompletionEvidenceCategory = "inspect" | "change" | "verify";
+
+interface CompletionEvidence {
+	readonly category: CompletionEvidenceCategory;
+	readonly label: string;
+	readonly status: WorkStepStatus;
+}
+
+const COMPLETION_EVIDENCE_SECTIONS: readonly {
+	readonly category: CompletionEvidenceCategory;
+	readonly title: string;
+}[] = [
+	{ category: "inspect", title: "대상과 기준 확인" },
+	{ category: "change", title: "변경과 실행" },
+	{ category: "verify", title: "결과 검증" },
+];
+
+function completionActivityStatus(
+	activity: WorkbenchSnapshot["activities"][number],
+	item: Readonly<Record<string, unknown>> | null,
+): WorkStepStatus {
+	if (activity.phase === "failed") return "failed";
+	if (activity.phase === "cancelled") return "cancelled";
+	const itemStatus = nativePlanStatus(item?.status);
+	if (itemStatus !== "pending") return itemStatus;
+	if (activity.phase === "completed") return "completed";
+	if (activity.phase === "started" || activity.phase === "updated") return "running";
+	return "pending";
+}
+
+function isVerificationCommand(command: string): boolean {
+	return /\b(?:bun|npm|pnpm|yarn)\s+(?:(?:run|exec)\s+)?(?:test|check|lint|build|typecheck|type-check)\b/iu.test(command)
+		|| /\b(?:tsc|pytest|vitest|jest|ruff|mypy|eslint)\b/iu.test(command)
+		|| /\b(?:cargo|go)\s+test\b/iu.test(command)
+		|| /\bgit\s+diff\s+--check\b/iu.test(command);
+}
+
+function safeCompletionCommand(command: string): string {
+	return command
+		.replace(/(?:file:\/\/\/|~\/|(?<![A-Za-z0-9_.-])\/)[^\s'"`]+/gu, "[로컬 경로 숨김]")
+		.replace(/\b[A-Za-z]:\\[^\s'"`]+/gu, "[로컬 경로 숨김]");
+}
+
+function completionFileChangeLabel(item: Readonly<Record<string, unknown>> | null): string {
+	const changes = Array.isArray(item?.changes) ? item.changes : [];
+	const paths = changes.flatMap((value) => {
+		const path = publicText(publicRecord(value)?.path, 120);
+		if (!path) return [];
+		return /^(?:file:\/\/\/|~\/|\.\.\/|\/|[A-Za-z]:\\)/u.test(path)
+			? ["[로컬 경로 숨김]"]
+			: [path];
+	});
+	const unique = [...new Set(paths)];
+	if (unique.length === 0) return "파일 변경";
+	const visible = unique.slice(0, 3).join(", ");
+	return unique.length > 3 ? `파일 변경 · ${visible} 외 ${unique.length - 3}개` : `파일 변경 · ${visible}`;
+}
+
+function completionEvidence(
+	activity: WorkbenchSnapshot["activities"][number],
+): CompletionEvidence | null {
+	if (!isVisibleWorkStep(activity.kind)) return null;
+	const projectedPayload = publicRecord(boundedPublicProjection(activity.payload).value);
+	const params = publicRecord(projectedPayload?.params);
+	const item = publicRecord(params?.item) ?? params ?? projectedPayload;
+	const command = publicText(item?.command ?? item?.cmd, 360);
+	const status = completionActivityStatus(activity, item);
+	if (command) {
+		return {
+			category: isVerificationCommand(command)
+				? "verify"
+				: classifyWorkActivity({ ...activity, payload: projectedPayload ?? {} }) === "observation"
+					? "inspect"
+					: "change",
+			label: `$ ${safeCompletionCommand(command)}`,
+			status,
+		};
+	}
+	if (activity.kind === "file-change") {
+		return { category: "change", label: completionFileChangeLabel(item), status };
+	}
+	const tool = publicText(item?.tool ?? item?.toolName ?? item?.name ?? item?.type, 120);
+	const activityClass = classifyWorkActivity({ ...activity, payload: projectedPayload ?? {} });
+	return {
+		category: activityClass === "observation" ? "inspect" : "change",
+		label: tool ? `도구 실행 · ${tool}` : "도구 실행",
+		status,
+	};
+}
+
+function evidenceCompletionReport(evidence: ReadonlyMap<string, CompletionEvidence>): CompletionReport {
+	const values = [...evidence.values()];
+	const sections = COMPLETION_EVIDENCE_SECTIONS.flatMap(({ category, title }) => {
+		const matches = values.filter((entry) => entry.category === category);
+		if (matches.length === 0) return [];
+		const visible = matches.slice(0, 6).map((entry) => `${entry.label} · ${WORK_STEP_STATUS_LABEL[entry.status]}`);
+		if (matches.length > visible.length) visible.push(`그 외 ${matches.length - visible.length}개 활동`);
+		return [{ title, bullets: visible }];
+	});
+	return {
+		title: "이번 요청에서 한 일",
+		sections: sections.length > 0 ? sections : [{ title: "응답 제공", bullets: ["상태 · 완료"] }],
+		verification: [`Native Turn · 완료 확인 · 실행 기록 ${values.length}개`],
+	};
+}
+
+/** Replays completed Native turns into stable recaps that survive later turns and resume. */
+function projectCompletionSummaries(snapshot: WorkbenchSnapshot): ReadonlyMap<string, CompletionReport> {
+	const reports = new Map<string, CompletionReport>();
+	const rootThreadId = snapshot.threadId;
+	if (!rootThreadId) return reports;
+	const messageByActivity = new Map(snapshot.chat.map((message) => [message.activityId, message]));
+	const latestPlanByTurn = new Map<string, readonly { title: string; status: WorkStepStatus }[]>();
+	const latestAssistantByTurn = new Map<string, string>();
+	const latestEvidenceByTurn = new Map<string, Map<string, CompletionEvidence>>();
+	for (const activity of snapshot.activities) {
+		const turnId = activity.nativeRefs.turnId;
+		if (activity.nativeRefs.threadId !== rootThreadId || !turnId) continue;
+		const message = messageByActivity.get(activity.id);
+		if (message?.role === "assistant" && message.status === "completed") {
+			latestAssistantByTurn.set(turnId, message.activityId);
+		}
+		const evidence = completionEvidence(activity);
+		if (evidence) {
+			const byItem = latestEvidenceByTurn.get(turnId) ?? new Map<string, CompletionEvidence>();
+			byItem.set(activity.nativeRefs.itemId ?? activity.id, evidence);
+			latestEvidenceByTurn.set(turnId, byItem);
+		}
+		const method = publicText(activity.payload.method)?.toLowerCase();
+		if (method === "turn/plan/updated") {
+			const candidate = publicRecord(activity.payload.params)?.plan;
+			const steps = Array.isArray(candidate) ? candidate.flatMap((value) => {
+				const entry = publicRecord(value);
+				const title = publicText(entry?.step, 240);
+				return title ? [{ title, status: nativePlanStatus(entry?.status) }] : [];
+			}) : [];
+			latestPlanByTurn.set(turnId, steps);
+			continue;
+		}
+		if (method !== "turn/completed" || activity.phase !== "completed") continue;
+		const steps = latestPlanByTurn.get(turnId) ?? [];
+		const anchorActivityId = latestAssistantByTurn.get(turnId);
+		if (!anchorActivityId || reports.has(anchorActivityId)) continue;
+		if (steps.length === 0) {
+			reports.set(anchorActivityId, evidenceCompletionReport(latestEvidenceByTurn.get(turnId) ?? new Map()));
+			continue;
+		}
+		const completedCount = steps.filter((step) => step.status === "completed").length;
+		reports.set(anchorActivityId, {
+			title: "이번 요청에서 한 일",
+			sections: steps.map((step) => ({
+				title: step.title,
+				bullets: [`상태 · ${WORK_STEP_STATUS_LABEL[step.status]}`],
+			})),
+			verification: [`Native Plan · ${completedCount}/${steps.length} 단계 완료`],
+		});
+	}
+	return reports;
+}
+
 /** Chat projection for the native ProjectWorkbench, including existing tool cards. */
 export class WorkbenchChatView implements Component {
 	private snapshot: WorkbenchSnapshot;
 	private readonly welcome = new WorkbenchWelcomeView();
-	private activityIndicator: { message: string; frames: readonly string[]; intervalMs: number } | null = null;
+	private activityIndicator: { message: string; hint?: string; frames: readonly string[]; intervalMs: number } | null = null;
 	private activityFrame = 0;
 	private activityTimer: ReturnType<typeof setInterval> | null = null;
+	private activityIntervalMs: number | null = null;
 	private readonly markdown = new Map<string, Markdown>();
 	private readonly markdownInput = new Map<string, string>();
 	private readonly markdownSource = new Map<string, string>();
@@ -253,16 +438,23 @@ export class WorkbenchChatView implements Component {
 	}
 
 	syncActivity(
-		indicator: { message: string; frames: readonly string[]; intervalMs: number } | null,
+		indicator: { message: string; hint?: string; frames: readonly string[]; intervalMs: number } | null,
 		requestRender: () => void,
 	): void {
+		const intervalChanged = this.activityIntervalMs !== indicator?.intervalMs;
 		this.activityIndicator = indicator;
 		if (!indicator) {
 			this.stopActivity();
 			return;
 		}
+		if (this.activityTimer && intervalChanged) {
+			clearInterval(this.activityTimer);
+			this.activityTimer = null;
+			this.activityFrame = 0;
+		}
 		if (!this.activityTimer) {
 			this.activityFrame = 0;
+			this.activityIntervalMs = indicator.intervalMs;
 			this.activityTimer = setInterval(() => {
 				this.activityFrame += 1;
 				requestRender();
@@ -281,15 +473,22 @@ export class WorkbenchChatView implements Component {
 		const contentWidth = Math.max(1, width);
 		if (!hasVisibleChatContent(this.snapshot)) return this.welcome.render(contentWidth);
 		const activities = this.snapshot.activities;
+		const completionSummaries = projectCompletionSummaries(this.snapshot);
 		const messages = new Map(this.snapshot.chat.map((message) => [message.activityId, message]));
 		const projectedSteps = this.snapshot.workFlow.steps;
 		const stepByLastActivity = new Map<string, SemanticWorkStep>();
+		const stepByActivity = new Map<string, SemanticWorkStep>();
 		for (const step of projectedSteps) {
+			for (const activityId of step.activityIds) stepByActivity.set(activityId, step);
 			const lastVisibleActivityId = [...step.activityIds].reverse().find((id) => activities.some((activity) => activity.id === id));
 			if (lastVisibleActivityId) stepByLastActivity.set(lastVisibleActivityId, step);
 		}
 		const observationByItem = new Map<string, string>();
+		const lastVisibleActivityByItem = new Map<string, string>();
 		for (const activity of activities) {
+			if (isVisibleWorkStep(activity.kind)) {
+				lastVisibleActivityByItem.set(activity.nativeRefs.itemId ?? activity.id, activity.id);
+			}
 			if (classifyWorkActivity(activity) !== "observation") continue;
 			observationByItem.set(activity.nativeRefs.itemId ?? activity.id, activity.id);
 		}
@@ -320,10 +519,14 @@ export class WorkbenchChatView implements Component {
 					const label = message.status === "cancelled" ? semantic.toolCancelled("중단됨")
 						: message.status === "failed" ? semantic.toolFailed("실패")
 							: message.status === "streaming" ? semantic.toolRunning("응답 중") : "";
-					rows.push(...surfaceRows([
+					rows.push(...transcriptRows([
 						`${semantic.assistantLabel("bori")}${label ? `  ${label}` : ""}`,
 						...(this.markdown.get(message.id)?.render(contentWidth) ?? [sanitizeTerminalTextUnbounded(message.content)]),
-					], contentWidth, semantic.assistantSurface), "");
+					], contentWidth), "");
+					const completionSummary = completionSummaries.get(activity.id);
+					if (completionSummary) {
+						rows.push(...new CompletionSummaryCard(completionSummary).render(contentWidth), "");
+					}
 				}
 				continue;
 			}
@@ -352,6 +555,23 @@ export class WorkbenchChatView implements Component {
 					payload: boundedPublicProjection(activity.payload).value as typeof activity.payload,
 				};
 				rows.push(...new ObservationCard({ activity: projectedActivity, liveActivity: live }).render(contentWidth), "");
+			} else if (
+				isVisibleWorkStep(activity.kind)
+				&& lastVisibleActivityByItem.get(activity.nativeRefs.itemId ?? activity.id) === activity.id
+			) {
+				const currentLive = this.snapshot.liveActivity;
+				const live = currentLive && currentLive.nativeRefs.itemId === activity.nativeRefs.itemId
+					&& isVisibleWorkStep(currentLive.kind) ? currentLive : undefined;
+				const projectedActivity = {
+					...activity,
+					payload: boundedPublicProjection(activity.payload).value as typeof activity.payload,
+				};
+				rows.push(...new ObservationCard({
+					activity: projectedActivity,
+					liveActivity: live,
+					mode: "action",
+					parentStepNumber: stepByActivity.get(activity.id)?.number,
+				}).render(contentWidth), "");
 			}
 		}
 		if (this.snapshot.pendingApproval) {
@@ -363,20 +583,20 @@ export class WorkbenchChatView implements Component {
 					contentWidth,
 				),
 				contentWidth,
-				semantic.assistantSurface,
+				semantic.noticeSurface,
 			), "");
 		}
 		if (!this.activityIndicator && this.snapshot.reasoningSummaryDraft) {
 			rows.push(...this.snapshot.reasoningSummaryDraft.split(/\r?\n/u)
-				.flatMap((line) => wrapTextWithAnsi(colors.muted(line), contentWidth)), "");
+				.flatMap((line) => wrapTextWithAnsi(`판단 · ${line}`, contentWidth).map(semantic.reasoning)), "");
 		} else if (!this.activityIndicator && this.snapshot.reasoningDraft) {
-			rows.push(colors.muted("작업 계획을 정리하는 중"), "");
+			rows.push(semantic.reasoning("분석 · 작업 계획을 정리하는 중"), "");
 		}
 		if (this.snapshot.draft) {
-			rows.push(...surfaceRows([
+			rows.push(...transcriptRows([
 				`${semantic.assistantLabel("bori")}  ${semantic.toolRunning("응답 중")}`,
 				...this.draftMarkdown.render(contentWidth),
-			], contentWidth, semantic.assistantSurface), "");
+			], contentWidth), "");
 		}
 		for (const [index, queued] of this.snapshot.chatQueue.entries()) {
 			rows.push(...surfaceRows([
@@ -390,12 +610,27 @@ export class WorkbenchChatView implements Component {
 			rows.push(...surfaceRows([
 				colors.error("확인이 필요한 상태"),
 				...wrapTextWithAnsi(boundedWorkbenchMarkdown(publicError), contentWidth),
-				colors.muted("수신 여부가 불명확하면 /cancel로 서버 상태를 확인합니다."),
-			], contentWidth, semantic.assistantSurface), "");
+				// `/cancel` only reconciles an unconfirmed send.  Offering it for any other failure
+				// hands the operator a remedy that cannot apply.
+				...(this.snapshot.deliveryUncertain
+					? [colors.muted("수신 여부가 불명확하면 /cancel로 서버 상태를 확인합니다.")]
+					: []),
+			], contentWidth, semantic.noticeSurface), "");
 		}
 		if (this.activityIndicator) {
 			const frame = this.activityIndicator.frames[this.activityFrame % Math.max(1, this.activityIndicator.frames.length)] ?? "·";
-			rows.push(`${colors.accent(frame)} ${colors.secondary(this.activityIndicator.message)}`, "");
+			if (contentWidth <= 2) {
+				rows.push(truncateToWidth(`${colors.accent(frame)} ${this.activityIndicator.message}`, contentWidth));
+			} else {
+				const activityRows = wrapTextWithAnsi(this.activityIndicator.message, contentWidth - 2);
+				for (const [index, line] of activityRows.entries()) {
+					rows.push(`${index === 0 ? `${colors.accent(frame)} ` : "  "}${semantic.activity(line)}`);
+				}
+			}
+			if (this.activityIndicator.hint) {
+				rows.push(...wrapTextWithAnsi(`  ${this.activityIndicator.hint}`, contentWidth).map((line) => colors.muted(line)));
+			}
+			rows.push("");
 		}
 		return rows;
 	}
@@ -404,6 +639,7 @@ export class WorkbenchChatView implements Component {
 		if (this.activityTimer) clearInterval(this.activityTimer);
 		this.activityTimer = null;
 		this.activityFrame = 0;
+		this.activityIntervalMs = null;
 	}
 
 	private renderStepCard(
@@ -450,7 +686,6 @@ export class TNotesSourceView implements Component {
 	render(width: number): string[] {
 		const snapshot = this.getSnapshot();
 		const rows: string[] = [];
-		if (snapshot.tnotes.length === 0) rows.push(colors.muted("  질문 하나가 끝나면 질문·과정의 이유·결과를 자동으로 정리합니다."));
 		const omittedTNotes = Math.max(0, snapshot.tnotes.length - TNOTE_VISIBLE_LIMIT);
 		const visibleTNotes = snapshot.tnotes.slice(-TNOTE_VISIBLE_LIMIT);
 		if (omittedTNotes > 0) {
@@ -467,6 +702,39 @@ export class TNotesSourceView implements Component {
 			rows.push(colors.muted(`    근거 활동 ${note.sourceActivityIds.length}개`));
 		}
 		return rows;
+	}
+}
+
+/** Read-only execution projection; it deliberately does not own a session or transcript. */
+export class WorkbenchMonitorView implements Component {
+	constructor(private readonly getSnapshot: () => WorkbenchSnapshot) {}
+	invalidate(): void {}
+	render(width: number): string[] {
+		const snapshot = this.getSnapshot();
+		const contentWidth = Math.max(1, width);
+		const currentStep = snapshot.workFlow.currentStepNumber === null
+			? null
+			: snapshot.workFlow.steps.find((step) => step.number === snapshot.workFlow.currentStepNumber);
+		const live = snapshot.liveActivity
+			? `${snapshot.liveActivity.kind} · ${sanitizeTerminalTextExcerpt(snapshot.liveActivity.text || snapshot.liveActivity.method, 180, "head-tail")}`
+			: "대기 중인 실행 없음";
+		const rows = [
+			colors.accent("Monitor · 실행 관측"),
+			colors.muted("읽기 전용 · Chat과 Todo는 같은 Workbench 상태를 사용합니다."),
+			"",
+			`${colors.secondary("Session")} · ${snapshot.phase} · thread ${snapshot.threadId ?? "없음"}${snapshot.activeTurnId ? ` · turn ${snapshot.activeTurnId}` : ""}`,
+			`${colors.secondary("Activity")} · ${snapshot.activityCount ?? snapshot.activities.length}개 · journal ${snapshot.journalSequence}`,
+			`${colors.secondary("Turn")} · ${currentStep ? `${currentStep.number}/${snapshot.workFlow.steps.length} · ${currentStep.title}` : "진행 단계 없음"}`,
+			`${colors.secondary("Live")} · ${live}`,
+			`${colors.secondary("Queue")} · ${snapshot.chatQueue.length}개${snapshot.pendingApproval ? " · 승인 대기" : ""}`,
+			`${colors.secondary("Delegation")} · ${projectWorkbenchDelegationSections(
+				snapshot.activities,
+				snapshot.workFlow.goal,
+				snapshot.threadId,
+				contentWidth,
+			).length}개 실행 그룹`,
+		];
+		return rows.flatMap((row) => wrapTextWithAnsi(row, contentWidth));
 	}
 }
 

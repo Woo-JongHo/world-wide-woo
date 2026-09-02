@@ -51,6 +51,8 @@ describe("dashboard layout", () => {
 		expect(layout.leftScroll.viewportHeight).toBeGreaterThan(0);
 		expect(layout.usageScroll.viewportHeight).toBeGreaterThan(0);
 		expect(layout.routerScroll.viewportHeight).toBeGreaterThan(0);
+		// Todo/Plan owns more of the right column than the T-note list.
+		expect(layout.routerScroll.viewportHeight).toBeGreaterThan(layout.usageScroll.viewportHeight);
 	});
 
 	test("uses one ordered viewport inside the same frame when compact", () => {

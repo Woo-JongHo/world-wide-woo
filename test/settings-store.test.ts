@@ -3,7 +3,7 @@ import { mkdtemp, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { WwwSettings } from "../src/domain/model-settings";
-import { FileSettingsStore } from "../src/infrastructure/settings-store";
+import { FileSettingsStore, routerSettingsPath, settingsPath } from "../src/infrastructure/settings-store";
 
 const codex: WwwSettings = { provider: "openai-codex", model: "gpt-5.6-sol", effort: "high" };
 const claude: WwwSettings = { provider: "anthropic", model: "claude-opus-4-6", effort: "ultra" };
@@ -15,6 +15,13 @@ async function store(): Promise<FileSettingsStore> {
 }
 
 describe("FileSettingsStore atomic updates", () => {
+	test("keeps native and compatibility Router selections in separate files", () => {
+		const root = join(tmpdir(), "www-config-test");
+		const env = { WWW_CONFIG_DIR: root } as NodeJS.ProcessEnv;
+		expect(settingsPath(env)).toBe(join(root, "settings.json"));
+		expect(routerSettingsPath(env)).toBe(join(root, "router-settings.json"));
+	});
+
 	test("compares and swaps an exact durable selection", async () => {
 		const settings = await store();
 		await settings.save(codex);
