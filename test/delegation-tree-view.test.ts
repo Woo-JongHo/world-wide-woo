@@ -319,6 +319,31 @@ describe("Gajae-style delegation tree", () => {
 	test("stays absent when the App Server has not emitted collaboration items", () => {
 		expect(projectWorkbenchDelegationSections([], "goal", ROOT_THREAD, 72)).toEqual([]);
 	});
+	test("requires native turn and item references for observed trace nodes and keeps source visible when compact", () => {
+		const observed = collaborationActivities().slice(0, 2);
+		const missingItemRef = {
+			...observed[0]!,
+			id: "missing-item-ref",
+			sequence: 8,
+			nativeRefs: { threadId: ROOT_THREAD, turnId: TURN },
+			sourceDigest: `sha256:${"8".padStart(64, "0")}`,
+		};
+		const sections = projectWorkbenchDelegationSections(
+			[missingItemRef, ...observed],
+			"goal",
+			ROOT_THREAD,
+			42,
+		);
+		expect(sections).toHaveLength(1);
+		expect(sections[0]!.activityIds).not.toContain("missing-item-ref");
+		expect(sections[0]).toMatchObject({
+			attribution: "observed",
+			source: { turnId: TURN },
+		});
+		const output = stripTerminalSequences(sections[0]!.rows.join("\n"));
+		expect(output).toContain("Source: observed native turn/item");
+		expect(sections[0]!.rows.every((line) => visibleWidth(line) <= 42)).toBe(true);
+	});
 
 	test("keeps a failed spawn visible before the server assigns a receiver thread", () => {
 		const activities = [collabActivity(1, "spawn-failed", {

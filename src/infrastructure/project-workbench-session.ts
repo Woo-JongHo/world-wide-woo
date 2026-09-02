@@ -27,7 +27,7 @@ import { SessionEventStore } from "./session-store.js";
 import { FileTNoteStore } from "./t-note-store.js";
 import { FileTodoStore, importLegacyTodo } from "./todo-store.js";
 import { FileCanonicalDocumentStore } from "./canonical-document-store.js";
-import { createReviewAdapters, PiReviewGenerationClient, sha256ReviewDigest } from "./review-adapters.js";
+import { createProductionReviewAdapters, installedClaudeCliVersion, PiReviewGenerationClient, sha256ReviewDigest } from "./review-adapters.js";
 import { FileReviewProvenanceStore } from "./review-store.js";
 import { UsageService } from "./usage-service.js";
 import { WesEntryCollector } from "./wes-entry-collector.js";
@@ -98,7 +98,9 @@ const productionFactories: ProjectWorkbenchSessionFactories = {
 	createReviewService: (runtimeDirectory, observeUsage) => {
 		const registry = createModelRegistry(new FileCredentialStore());
 		return new ReviewService(
-			createReviewAdapters(new PiReviewGenerationClient(registry, observeUsage)),
+			createProductionReviewAdapters(new PiReviewGenerationClient(registry, observeUsage), {
+				claudeCliVersion: installedClaudeCliVersion(),
+			}),
 			sha256ReviewDigest,
 			new FileReviewProvenanceStore(join(runtimeDirectory, "review-provenance.jsonl")),
 		);

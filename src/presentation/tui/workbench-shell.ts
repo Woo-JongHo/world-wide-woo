@@ -404,6 +404,18 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 			showReceipt(await workbench.dispatch({ type: "activity.select", activityId }));
 			return true;
 		}
+		if (command.type === "trace.select") {
+			const activityId = [...snapshot.activities].reverse().find((activity) =>
+				activity.nativeRefs.itemId === command.planItemId,
+			)?.id ?? null;
+			if (!activityId) {
+				status.setNotice(`Todo planItemId를 찾을 수 없습니다: ${command.planItemId}`);
+				tui.requestRender();
+				return true;
+			}
+			showReceipt(await workbench.dispatch({ type: "activity.select", activityId }));
+			return true;
+		}
 		if (command.type === "tnote.capture") {
 			showReceipt(await workbench.dispatch({ type: "tnote.capture-session" }));
 			return true;
@@ -414,36 +426,6 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 				startSequence: command.startSequence,
 				endSequence: command.endSequence,
 			}));
-			return true;
-		}
-		if (command.type === "todo.create") {
-			showReceipt(await workbench.dispatch({ type: "todo.create", title: command.title, items: command.items }));
-			return true;
-		}
-		if (command.type === "todo.add") {
-			showReceipt(await workbench.dispatch({ type: "todo.add", placement: command.placement, content: command.content }));
-			return true;
-		}
-		if (command.type === "todo.details") {
-			showReceipt(await workbench.dispatch({ type: "todo.details", itemId: command.itemId, details: command.details }));
-			return true;
-		}
-		if (command.type === "todo.transition") {
-			showReceipt(await workbench.dispatch({ type: "todo.transition", action: command.action, itemId: command.itemId }));
-			return true;
-		}
-		if (command.type === "todo.evidence") {
-			const activityId = command.activityId === "latest" ? snapshot.activities.at(-1)?.id : command.activityId;
-			if (!activityId) {
-				status.setNotice("기록할 activity가 없습니다.");
-				tui.requestRender();
-				return true;
-			}
-			showReceipt(await workbench.dispatch({ type: "todo.evidence", activityId }));
-			return true;
-		}
-		if (command.type === "todo.import-legacy") {
-			showReceipt(await workbench.dispatch({ type: "todo.import-legacy" }));
 			return true;
 		}
 		if (command.type === "promotion.accept") {

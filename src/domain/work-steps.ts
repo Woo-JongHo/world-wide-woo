@@ -10,6 +10,8 @@ const FALLBACK_NARRATION: WorkStepNarration = {
 	source: "fallback",
 };
 export type WorkActivityClass = "observation" | "action" | "control";
+/** Every trace relation is either backed by a native identifier or explicitly projected. */
+export type TraceAttribution = "observed" | "inferred";
 export type WorkStepStatus =
 	| "pending"
 	| "running"
@@ -88,6 +90,14 @@ export interface PlanAssociation {
 	readonly attribution: "inferred";
 	readonly activityIds: readonly string[];
 	readonly observationActivityIds: readonly string[];
+	/** Each native Plan revision interval and the activities it permits. */
+	readonly sources: ReadonlyArray<{
+		readonly turnId: string;
+		readonly startSequence: number;
+		readonly endSequence: number | null;
+		readonly activityIds: readonly string[];
+		readonly observationActivityIds: readonly string[];
+	}>;
 }
 export interface PlanRetirement {
 	readonly identity: DerivedPlanIdentity;
@@ -158,6 +168,11 @@ export interface NativeDelegationActivity {
 	readonly itemId: string;
 	readonly kind: string;
 	readonly message: string | null;
+	readonly attribution: "observed";
+	readonly source: {
+		readonly turnId: string;
+		readonly itemId: string;
+	};
 }
 export interface NativeDelegatedTask {
 	readonly id: string;
@@ -243,7 +258,16 @@ interface State {
 	identity: DerivedPlanIdentity;
 	currentRevision: PlanRevisionRef;
 	reconciliation: PlanReconciliation;
-	association: { actions: string[]; observations: string[] };
+	association: {
+		actions: string[];
+		observations: string[];
+		sources: {
+			startSequence: number;
+			endSequence: number | null;
+			actions: string[];
+			observations: string[];
+		}[];
+	};
 	canonicalSeed: string;
 }
 
@@ -364,6 +388,11 @@ export function projectWorkFlow(
 			invalid = false;
 			ordinal++;
 			const nextRevision = revision(activity, threadDigest, input.hash);
+			for (const state of current) {
+				for (const source of state.association.sources) {
+					if (source.endSequence === null) source.endSequence = nextRevision.sequence;
+				}
+			}
 			current = reconcile(
 				current,
 				parsed.entries!,
@@ -395,9 +424,26 @@ export function projectWorkFlow(
 		if (!currentRevision) emitOrphan(activity, "pre_plan");
 		else if (running.length !== 1) {
 			emitOrphan(activity, "no_unambiguous_running_item");
-		} else if (kind === "action") {
-			running[0]!.association.actions.push(activity.id);
-		} else running[0]!.association.observations.push(activity.id);
+		} else {
+			const state = running[0]!;
+			let source = state.association.sources.at(-1);
+			if (!source || source.startSequence !== currentRevision.sequence) {
+				source = {
+					startSequence: currentRevision.sequence,
+					endSequence: null,
+					actions: [],
+					observations: [],
+				};
+				state.association.sources.push(source);
+			}
+			if (kind === "action") {
+				state.association.actions.push(activity.id);
+				source.actions.push(activity.id);
+			} else {
+				state.association.observations.push(activity.id);
+				source.observations.push(activity.id);
+			}
+		}
 	}
 	const activityById = new Map(
 		checked.activities.map((activity) => [activity.id, activity]),
@@ -412,6 +458,13 @@ export function projectWorkFlow(
 				attribution: "inferred",
 				activityIds: state.association.actions,
 				observationActivityIds: state.association.observations,
+				sources: state.association.sources.map((source) => ({
+					turnId: selectedTurnId,
+					startSequence: source.startSequence,
+					endSequence: source.endSequence,
+					activityIds: source.actions,
+					observationActivityIds: source.observations,
+				})),
 			}
 			: null,
 		number: index + 1,
@@ -668,7 +721,7 @@ function reconcile(
 					sourcePosition,
 				},
 			},
-			association: { actions: [], observations: [] },
+			association: { actions: [], observations: [], sources: [] },
 			canonicalSeed: seed,
 		};
 	});
@@ -821,7 +874,10 @@ export function projectNativeDelegation(
 		const item = record(record(activity.payload.params)?.item);
 		const type = (delegationText(item?.type) ?? "").replace(/[^a-z]/giu, "").toLowerCase();
 		if (type !== "collabagenttoolcall" && type !== "subagentactivity") continue;
-		const turnId = activity.nativeRefs.turnId ?? activity.nativeRefs.threadId;
+		// A collaboration payload alone is not an observed trace relation.  Keep
+		// it out rather than manufacturing an observed edge from display fields.
+		if (!activity.nativeRefs.turnId || !activity.nativeRefs.itemId) continue;
+		const turnId = activity.nativeRefs.turnId;
 		if (!turnId) continue;
 		const entries = byTurn.get(turnId) ?? [];
 		entries.push(activity);
@@ -881,11 +937,16 @@ function delegationActivity(
 	item: Readonly<Record<string, unknown>>,
 	message: string | null,
 ): NativeDelegationActivity {
+	const turnId = activity.nativeRefs.turnId;
+	const itemId = activity.nativeRefs.itemId;
+	if (!turnId || !itemId) throw new Error("native delegation activity requires turn and item references");
 	return {
 		activityId: activity.id,
-		itemId: delegationText(item.id) ?? activity.nativeRefs.itemId ?? activity.id,
+		itemId,
 		kind: delegationText(item.kind) ?? delegationText(item.tool) ?? "activity",
 		message,
+		attribution: "observed",
+		source: { turnId, itemId },
 	};
 }
 function delegationText(value: unknown): string | null {

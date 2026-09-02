@@ -112,14 +112,9 @@ export type WorkbenchShellCommand =
 	| { type: "session.mode"; mode: "plan" | "manual" }
 	| { type: "woo-entry.refresh" }
 	| { type: "activity.select"; activityId: string | "latest" | null }
+	| { type: "trace.select"; planItemId: string }
 	| { type: "tnote.capture" }
 	| { type: "tnote.capture-range"; startSequence: number; endSequence: number }
-	| { type: "todo.create"; title: string; items: readonly string[] }
-	| { type: "todo.add"; placement: "now" | "after"; content: string }
-	| { type: "todo.details"; itemId: string; details: readonly string[] }
-	| { type: "todo.transition"; action: "start" | "complete" | "block" | "reopen"; itemId: string }
-	| { type: "todo.evidence"; activityId: string | "latest" }
-	| { type: "todo.import-legacy" }
 	| { type: "promotion.accept"; noteId: string }
 	| { type: "promotion.confirm"; token: string }
 	| { type: "review.preview"; provider: "anthropic" | "google"; noteId: string; request: string }
@@ -142,7 +137,7 @@ export const WORKBENCH_SLASH_COMMANDS: SlashCommand[] = [
 	},
 	{ name: "chat", description: "Chat pane 안내" },
 	{ name: "tnotes", description: "질문별 요약·source pane 안내" },
-	{ name: "todo", description: "Todo.md 생성·항목·근거 관리", argumentHint: "<create|add|detail|start|complete|block|reopen|evidence|import-legacy> …" },
+	{ name: "todo", description: "레거시 Todo.md 읽기 전용 migration view" },
 	{
 		name: "permission",
 		description: "Native 권한 범위 전환",
@@ -163,6 +158,7 @@ export const WORKBENCH_SLASH_COMMANDS: SlashCommand[] = [
 	},
 	{ name: "woo-entry", description: "WES 현재 상태와 다음 작업 다시 읽기" },
 	{ name: "source", description: "Activity source 선택", argumentHint: "<activity-id|latest|clear>" },
+	{ name: "trace", description: "Todo planItemId로 Trace 선택", argumentHint: "<plan-item-id>" },
 	{ name: "tnote", description: "마지막 질문 또는 선택 범위를 질문·이유·결과로 요약", argumentHint: "[range <start-sequence> <end-sequence>]" },
 	{ name: "promote", description: "T-note 정본 반영: diff 확인 후 사람 승인", argumentHint: "<tnote|confirm> <note-id|token>" },
 	{ name: "review", description: "공개 분류 T-note의 외부 검토 미리보기·송신", argumentHint: "<preview|send> …" },
@@ -199,6 +195,11 @@ export function parseWorkbenchShellCommand(text: string): WorkbenchShellCommand 
 		if (!activityId) return { type: "error", message: "사용법: /source <activity-id|latest|clear>" };
 		return { type: "activity.select", activityId: activityId === "clear" ? null : activityId };
 	}
+	if (name === "trace") {
+		return args.length === 1 && args[0]
+			? { type: "trace.select", planItemId: args[0] }
+			: { type: "error", message: "사용법: /trace <plan-item-id>" };
+	}
 	if (name === "tnote") {
 		if (args.length === 0) return { type: "tnote.capture" };
 		if (args[0] !== "range" || args.length !== 3) return { type: "error", message: "사용법: /tnote [range <start-sequence> <end-sequence>]" };
@@ -208,7 +209,11 @@ export function parseWorkbenchShellCommand(text: string): WorkbenchShellCommand 
 			? { type: "tnote.capture-range", startSequence, endSequence }
 			: { type: "error", message: "T-note 범위는 1 이상의 시작·끝 sequence여야 합니다." };
 	}
-	if (name === "todo") return parseTodoCommand(trimmed);
+	if (name === "todo") {
+		return args.length === 0
+			? { type: "pane.show", pane: "todo" }
+			: { type: "error", message: "레거시 Todo.md는 읽기 전용 migration view입니다." };
+	}
 	if (name === "promote") {
 		if (args[0] === "tnote" && args.length === 2 && args[1]) return { type: "promotion.accept", noteId: args[1] };
 		if (args[0] === "confirm" && args.length === 2 && args[1]) return { type: "promotion.confirm", token: args[1] };
@@ -240,46 +245,6 @@ function parseWorkbenchModelCommand(args: readonly string[]): WorkbenchShellComm
 		return { type: "error", message: `지원하지 않는 추론 강도입니다: ${effort}` };
 	}
 	return effort === undefined ? { type: "model.set", model } : { type: "model.set", model, effort: effort as Effort };
-}
-
-function parseTodoCommand(trimmed: string): WorkbenchShellCommand {
-	const body = trimmed.slice("/todo".length).trim();
-	const [action, ...args] = body.split(/\s+/u);
-	if (action === "create") {
-		const separator = body.slice("create".length).indexOf("::");
-		const header = separator < 0 ? "" : body.slice("create".length, "create".length + separator).trim();
-		const items = separator < 0 ? [] : body.slice("create".length + separator + 2)
-			.split("|").map(item => item.trim()).filter(Boolean);
-		return header && items.length > 0
-			? { type: "todo.create", title: header, items }
-			: { type: "error", message: "사용법: /todo create <title> :: <item1> | <item2>" };
-	}
-	if (action === "add") {
-		const placement = args[0];
-		const content = body.slice("add".length).trim().slice(placement?.length ?? 0).trim();
-		return (placement === "now" || placement === "after") && content
-			? { type: "todo.add", placement, content }
-			: { type: "error", message: "사용법: /todo add <now|after> <text>" };
-	}
-	if (action === "detail") {
-		const itemId = args[0];
-		const detail = body.slice("detail".length).trim().slice(itemId?.length ?? 0).trim();
-		return itemId && detail
-			? { type: "todo.details", itemId, details: [detail] }
-			: { type: "error", message: "사용법: /todo detail <id> <text>" };
-	}
-	if (action === "start" || action === "complete" || action === "block" || action === "reopen") {
-		return args.length === 1 && args[0]
-			? { type: "todo.transition", action, itemId: args[0] }
-			: { type: "error", message: "사용법: /todo start|complete|block|reopen <id>" };
-	}
-	if (action === "evidence") {
-		return args.length === 1 && args[0]
-			? { type: "todo.evidence", activityId: args[0] }
-			: { type: "error", message: "사용법: /todo evidence <activity-id|latest>" };
-	}
-	if (action === "import-legacy" && args.length === 0) return { type: "todo.import-legacy" };
-	return { type: "error", message: "사용법: /todo create|add|detail|start|complete|block|reopen|evidence|import-legacy …" };
 }
 
 function parseReviewCommand(trimmed: string): WorkbenchShellCommand {

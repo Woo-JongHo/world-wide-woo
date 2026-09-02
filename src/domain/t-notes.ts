@@ -35,6 +35,8 @@ export interface TNoteActivitySource {
 	readonly body: string;
 	/** Accepted only at the source boundary; native identifiers are never retained in a packet. */
 	readonly nativeRefs?: readonly string[];
+	/** Stable completed-turn position, retained only as packet metadata. */
+	readonly completion?: TNoteCompletionMetadata;
 }
 
 export interface TNoteSourceRange {
@@ -58,7 +60,16 @@ export interface TNotePacket {
 	readonly range: TNoteSourceRange;
 	readonly createdAt: string;
 	readonly activities: readonly TNoteSourceActivity[];
+	readonly completion?: TNoteCompletionMetadata;
 	readonly digest: string;
+}
+
+/** Durable identity and ordinal for one completed Native turn. */
+export interface TNoteCompletionMetadata {
+	readonly threadId: string;
+	readonly turnId: string;
+	readonly number: number;
+	readonly terminalActivityId: string;
 }
 
 export interface TNoteModelProvenance {
@@ -79,6 +90,76 @@ export interface TNoteDraftInput {
 export interface TNoteDraft extends TNoteDraftInput {
 	readonly schemaVersion: 1;
 	readonly sequence: number;
+}
+
+/** Public, immutable T-note fields used by the Workbench transcript. */
+export interface TNoteCompletionRecord {
+	readonly id: string;
+	readonly sourceActivityIds: readonly string[];
+	readonly completion?: TNoteCompletionMetadata;
+}
+
+/** Minimal journal shape needed to assign completed-question indices. */
+export interface TNoteCompletionActivity {
+	readonly id: string;
+	readonly sequence: number;
+	readonly nativeRefs: {
+		readonly threadId?: string;
+		readonly turnId?: string;
+	};
+	readonly payload: {
+		readonly method?: string;
+	};
+}
+
+/**
+ * A Native turn owns its number, rather than a vault note's append sequence.
+ * Thus replay, note truncation, and presentation ordering cannot renumber a
+ * completed question.
+ */
+export interface TNoteCompletionIndex {
+	readonly threadId: string;
+	readonly turnId: string;
+	readonly number: number;
+	readonly terminalActivityId: string;
+	readonly noteId: string | null;
+	readonly sourceActivityIds: readonly string[];
+}
+
+export function projectTNoteCompletionIndex(
+	activities: readonly TNoteCompletionActivity[],
+	notes: readonly TNoteCompletionRecord[],
+): readonly TNoteCompletionIndex[] {
+	const notesByTerminalActivity = new Map<string, TNoteCompletionRecord>();
+	for (const note of notes) {
+		for (const activityId of note.sourceActivityIds) notesByTerminalActivity.set(activityId, note);
+	}
+	const completed = activities
+		.filter((activity) => activity.payload.method === "turn/completed"
+			&& typeof activity.nativeRefs.threadId === "string"
+			&& typeof activity.nativeRefs.turnId === "string")
+		.sort((left, right) => left.sequence - right.sequence);
+	const numbers = new Map<string, number>();
+	return Object.freeze(completed.map((activity) => {
+		const threadId = activity.nativeRefs.threadId!;
+		const turnId = activity.nativeRefs.turnId!;
+		const note = notesByTerminalActivity.get(activity.id);
+		const metadata = completionFor(note);
+		const projectedNumber = (numbers.get(threadId) ?? 0) + 1;
+		const number = metadata?.threadId === threadId && metadata.turnId === turnId
+			&& metadata.terminalActivityId === activity.id
+			? metadata.number
+			: projectedNumber;
+		numbers.set(threadId, Math.max(numbers.get(threadId) ?? 0, number));
+		return Object.freeze({
+			threadId,
+			turnId,
+			number,
+			terminalActivityId: activity.id,
+			noteId: note?.id ?? null,
+			sourceActivityIds: Object.freeze([...(note?.sourceActivityIds ?? [])]),
+		});
+	}));
 }
 
 export type TNotePacketDigest = (canonicalPacket: string) => string;
@@ -118,12 +199,14 @@ export function createTNotePacket(
 
 	const projected = activities.map((activity) => projectActivity(activity, projectId, range));
 	assertStrictlyIncreasingSequences(projected, range);
+	const completion = completionFor(activities.at(-1));
 	const material = {
 		schemaVersion: 1 as const,
 		projectId,
 		range: { ...range },
 		createdAt,
 		activities: projected,
+		...(completion ? { completion } : {}),
 	};
 	const canonicalMaterial = canonicalJson(material);
 	if (utf8ByteLength(canonicalMaterial) > MAX_PACKET_BYTES) {
@@ -165,7 +248,15 @@ export function validateTNotePacket(value: TNotePacket, calculateDigest?: TNoteP
 	const activities = value.activities.map((activity) => projectPacketActivity(activity, value.projectId, value.range));
 	assertStrictlyIncreasingSequences(activities, value.range);
 	if (typeof value.digest !== "string" || !DIGEST_PATTERN.test(value.digest)) throw new Error("Invalid T-note packet digest");
-	const material = { schemaVersion: 1 as const, projectId: value.projectId, range: { ...value.range }, createdAt: value.createdAt, activities };
+	const completion = completionFor(value);
+	const material = {
+		schemaVersion: 1 as const,
+		projectId: value.projectId,
+		range: { ...value.range },
+		createdAt: value.createdAt,
+		activities,
+		...(completion ? { completion } : {}),
+	};
 	const canonicalMaterial = canonicalJson(material);
 	if (calculateDigest && calculateDigest(canonicalMaterial) !== value.digest) throw new Error("T-note packet digest mismatch");
 	if (utf8ByteLength(canonicalMaterial) > MAX_PACKET_BYTES) throw new Error("T-note source packet is too large");
@@ -245,6 +336,26 @@ function assertId(value: string, label: string): void {
 
 function assertDate(value: string, label: string): void {
 	if (typeof value !== "string" || Number.isNaN(Date.parse(value))) throw new Error(`Invalid ${label}`);
+}
+
+function completionFor(value: unknown): TNoteCompletionMetadata | undefined {
+	if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+	const completion = (value as { completion?: unknown }).completion;
+	if (!completion || typeof completion !== "object" || Array.isArray(completion)) return undefined;
+	const candidate = completion as Partial<TNoteCompletionMetadata>;
+	const number = candidate.number;
+	if (typeof candidate.threadId !== "string" || !ID_PATTERN.test(candidate.threadId)
+		|| typeof candidate.turnId !== "string" || !ID_PATTERN.test(candidate.turnId)
+		|| typeof candidate.terminalActivityId !== "string" || !ID_PATTERN.test(candidate.terminalActivityId)
+		|| typeof number !== "number" || !Number.isSafeInteger(number) || number < 1) {
+		return undefined;
+	}
+	return Object.freeze({
+		threadId: candidate.threadId,
+		turnId: candidate.turnId,
+		number,
+		terminalActivityId: candidate.terminalActivityId,
+	});
 }
 
 function canonicalJson(value: unknown): string {

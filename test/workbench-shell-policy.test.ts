@@ -13,6 +13,7 @@ import {
 import { RenderScheduler } from "../src/presentation/tui/render-scheduler";
 import { workbenchApprovalIdentity, workbenchExternalMutationCandidates } from "../src/domain/workbench";
 import { createDashboardLayout } from "../src/presentation/tui/dashboard-layout";
+import { parseWorkbenchShellCommand, WORKBENCH_SLASH_COMMANDS } from "../src/presentation/tui/slash-commands";
 
 const workingSnapshot = {
 	phase: "working",
@@ -27,6 +28,23 @@ const workingSnapshot = {
 } as const;
 
 describe("native workbench shell receipt policy", () => {
+	test("selects Trace by Todo planItemId and rejects mutable legacy Todo commands", () => {
+		expect(parseWorkbenchShellCommand("/trace plan-item-17")).toEqual({
+			type: "trace.select",
+			planItemId: "plan-item-17",
+		});
+		for (const command of ["create 계획 :: 항목", "add now 항목", "detail item 항목", "start item", "complete item", "block item", "reopen item", "evidence latest"]) {
+			expect(parseWorkbenchShellCommand(`/todo ${command}`)).toEqual({
+				type: "error",
+				message: "레거시 Todo.md는 읽기 전용 migration view입니다.",
+			});
+		}
+		expect(WORKBENCH_SLASH_COMMANDS.find((command) => command.name === "todo")).toEqual({
+			name: "todo",
+			description: "레거시 Todo.md 읽기 전용 migration view",
+		});
+	});
+
 	test("preserves ordered editor input while streaming frames remain coalesced", async () => {
 		let now = 0;
 		let renders = 0;

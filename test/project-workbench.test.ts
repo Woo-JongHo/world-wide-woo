@@ -39,7 +39,7 @@ import { ProviderReviewAdapter, sha256ReviewDigest } from "../src/infrastructure
 import { TNoteService } from "../src/application/t-note-service";
 import type { DetachedTextGenerator } from "../src/application/detached-text-generator";
 import { FileTNoteStore } from "../src/infrastructure/t-note-store";
-import { sanitizeTNoteText } from "../src/domain/t-notes";
+import { projectTNoteCompletionIndex, sanitizeTNoteText } from "../src/domain/t-notes";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -103,7 +103,7 @@ class FakeNativeHarness implements NativeHarnessPort {
 	interruptInputs: NativeTurnInterrupt[] = [];
 	mcpServers = [{ name: "filesystem", enabled: true, status: "ready", tools: ["read_file"] }];
 	mcpEnableInputs: Array<{ name: string; enabled: boolean }> = [];
-	mcpReconnectInputs: string[] = [];
+	mcpReloadCalls = 0;
 	async startThread(input: NativeThreadStart): Promise<NativeThreadSnapshot> {
 		this.startThreadCalls += 1;
 		this.startThreadInputs.push(input);
@@ -141,7 +141,7 @@ class FakeNativeHarness implements NativeHarnessPort {
 		this.mcpEnableInputs.push({ name, enabled });
 		this.mcpServers = this.mcpServers.map((server) => server.name === name ? { ...server, enabled } : server);
 	}
-	async reconnectMcpServer(name: string): Promise<void> { this.mcpReconnectInputs.push(name); }
+	async reloadMcpServers(): Promise<void> { this.mcpReloadCalls += 1; }
 	async respondToApproval(input: NativeApprovalResolution): Promise<void> { this.approvalResponses.push(input); }
 	subscribe(listener: (event: NativeHarnessEvent) => void): () => void {
 		this.listener = listener;
@@ -187,7 +187,7 @@ async function ready(workbench: ProjectWorkbench): Promise<void> {
 }
 
 describe("ProjectWorkbench", () => {
-	test("projects MCP management separately and sends enable, disable, and reconnect requests", async () => {
+	test("projects MCP management separately and sends enable, disable, and global reload requests", async () => {
 		const native = new FakeNativeHarness();
 		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
 			projectId: "sample-project",
@@ -200,13 +200,13 @@ describe("ProjectWorkbench", () => {
 
 		expect((await workbench.dispatch({ type: "mcp.disable", name: "filesystem" })).state).toBe("accepted");
 		expect((await workbench.dispatch({ type: "mcp.enable", name: "filesystem" })).state).toBe("accepted");
-		expect((await workbench.dispatch({ type: "mcp.reconnect", name: "filesystem" })).state).toBe("accepted");
+		expect((await workbench.dispatch({ type: "mcp.reload" })).state).toBe("accepted");
 
 		expect(native.mcpEnableInputs).toEqual([
 			{ name: "filesystem", enabled: false },
 			{ name: "filesystem", enabled: true },
 		]);
-		expect(native.mcpReconnectInputs).toEqual(["filesystem"]);
+		expect(native.mcpReloadCalls).toBe(1);
 		expect(workbench.snapshot.mcpServers[0]).toMatchObject({ enabled: true, tools: ["read_file"] });
 	});
 
@@ -825,6 +825,7 @@ describe("ProjectWorkbench", () => {
 						range: input.range,
 						createdAt: `2026-09-01T00:00:0${sequence}.000Z`,
 						activities: input.activities.map((activity) => ({ ...activity, nativeRefs: undefined })),
+						...(input.activities.at(-1)?.completion ? { completion: input.activities.at(-1)!.completion } : {}),
 						digest: "d".repeat(64),
 					},
 					text: sequence === 1
@@ -865,6 +866,15 @@ describe("ProjectWorkbench", () => {
 		expect(createCalls[1]?.instruction).toContain("질문: 두 번째 질문");
 		expect(createCalls[1]?.instruction).not.toContain("첫 누적 요약");
 		expect(workbench.snapshot.tnotes.map((note) => note.title)).toEqual(["첫 질문", "두 번째 질문"]);
+		const resumedAndReordered = projectTNoteCompletionIndex(
+			[...workbench.snapshot.activities]
+				.filter((activity) => activity.nativeRefs.turnId === "turn-2")
+				.reverse(),
+			[workbench.snapshot.tnotes[1]!],
+		);
+		expect(resumedAndReordered).toEqual([
+			expect.objectContaining({ turnId: "turn-2", number: 2, noteId: "session-summary-2" }),
+		]);
 		await workbench.dispatch({ type: "tnote.capture-session" });
 		expect(createCalls).toHaveLength(2);
 		await workbench.close();

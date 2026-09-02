@@ -50,10 +50,12 @@ export class ReviewService {
 			provider: delivery.provider,
 			model: delivery.model,
 			version: delivery.version,
+			...(delivery.transport ? { transport: delivery.transport } : {}),
 			packetDigest: delivery.packetDigest,
 			resultDigest: delivery.resultDigest,
 			sentAt: delivery.sentAt,
 			receivedAt: delivery.receivedAt,
+			...(delivery.usage ? { usage: delivery.usage } : {}),
 		});
 		await this.store?.append(record);
 		this.records.push(record);

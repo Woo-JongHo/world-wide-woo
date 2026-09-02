@@ -257,21 +257,43 @@ export class CodexAppServer implements NativeHarnessPort {
 	}
 
 	public async listMcpServers(): Promise<readonly NativeMcpServer[]> {
-		const result = await this.request("mcpServer/list", {}, false);
-		if (!isRecord(result) || !Array.isArray(result.data)) {
-			throw new Error("Codex App Server returned an invalid mcpServer/list result");
-		}
-		return result.data.map((server, index) => mcpServer(server, index));
+		const servers: NativeMcpServer[] = [];
+		const visitedCursors = new Set<string>();
+		let cursor: string | undefined;
+		do {
+			const result = await this.request("mcpServerStatus/list", compact({
+				detail: "toolsAndAuthOnly",
+				limit: 100,
+				cursor,
+			}), false);
+			if (!isRecord(result) || !Array.isArray(result.data) ||
+				(result.nextCursor !== undefined && result.nextCursor !== null && typeof result.nextCursor !== "string")) {
+				throw new Error("Codex App Server returned an invalid mcpServerStatus/list result");
+			}
+			servers.push(...result.data.map((server, index) => mcpServer(server, servers.length + index)));
+			cursor = typeof result.nextCursor === "string" && result.nextCursor.length > 0
+				? result.nextCursor
+				: undefined;
+			if (cursor && visitedCursors.has(cursor)) {
+				throw new Error("Codex App Server returned a repeated mcpServerStatus/list cursor");
+			}
+			if (cursor) visitedCursors.add(cursor);
+		} while (cursor);
+		return servers;
 	}
 
 	public async setMcpServerEnabled(name: string, enabled: boolean): Promise<void> {
 		if (!name) throw new Error("MCP server name is required");
-		await this.request("mcpServer/toggle", { name, enabled }, true);
+		await this.request("config/value/write", {
+			keyPath: `mcp_servers."${escapeConfigKeySegment(name)}".enabled`,
+			value: enabled,
+			mergeStrategy: "upsert",
+		}, true);
+		await this.request("config/mcpServer/reload", undefined, true);
 	}
 
-	public async reconnectMcpServer(name: string): Promise<void> {
-		if (!name) throw new Error("MCP server name is required");
-		await this.request("mcpServer/reconnect", { name }, true);
+	public async reloadMcpServers(): Promise<void> {
+		await this.request("config/mcpServer/reload", undefined, true);
 	}
 
 	public async startTurn(input: NativeTurnStart): Promise<NativeTurnSnapshot> {
@@ -330,13 +352,14 @@ export class CodexAppServer implements NativeHarnessPort {
 		this.disconnect();
 	}
 
-	private request(method: string, params: JsonRecord, uncertainOnDisconnect: boolean): Promise<unknown> {
+	private request(method: string, params: JsonRecord | undefined, uncertainOnDisconnect: boolean): Promise<unknown> {
 		if (this.disconnected) return Promise.reject(new Error("Codex App Server is disconnected"));
 		const id = ++this.requestSequence;
 		return new Promise((resolve, reject) => {
 			const pending: PendingRequest = { method, uncertainOnDisconnect, dispatched: false, resolve, reject };
 			this.pending.set(id, pending);
-			void this.transport.send(JSON.stringify({ id, method, params })).then(
+			const request = params === undefined ? { id, method } : { id, method, params };
+			void this.transport.send(JSON.stringify(request)).then(
 				() => {
 					pending.dispatched = true;
 				},
@@ -501,19 +524,15 @@ function threadSummary(value: unknown, index: number): NativeThreadSummary {
 }
 
 function mcpServer(value: unknown, index: number): NativeMcpServer {
-	if (!isRecord(value) || typeof value.name !== "string" || typeof value.enabled !== "boolean") {
-		throw new Error(`Codex App Server returned an invalid mcpServer/list item at index ${index}`);
+	if (!isRecord(value) || typeof value.name !== "string" || !isRecord(value.tools)) {
+		throw new Error(`Codex App Server returned an invalid mcpServerStatus/list item at index ${index}`);
 	}
-	const status = typeof value.status === "string"
-		? value.status
-		: isRecord(value.status) && typeof value.status.type === "string"
-		? value.status.type
-		: "unknown";
-	const tools = Array.isArray(value.tools)
-		? value.tools.map((tool) => typeof tool === "string" ? tool : isRecord(tool) && typeof tool.name === "string" ? tool.name : null)
-			.filter((tool): tool is string => tool !== null)
-		: [];
-	return { name: value.name, enabled: value.enabled, status, tools };
+	const status = typeof value.runtimeStatus === "string" ? value.runtimeStatus : "unknown";
+	return { name: value.name, enabled: status !== "disabled", status, tools: Object.keys(value.tools) };
+}
+
+function escapeConfigKeySegment(value: string): string {
+	return value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
 }
 
 function isNativeThreadStatus(value: unknown): value is NativeThreadStatus {

@@ -9,6 +9,7 @@ import type { NativeApprovalRequest } from "../../domain/native-session";
 import type { CompletionReport } from "../../domain/output";
 import { projectBackgroundWorkState, type BackgroundWorkState } from "../../domain/native-session";
 import { sanitizeTerminalTextExcerpt, sanitizeTerminalTextUnbounded } from "../../domain/terminal";
+import { projectTNoteCompletionIndex } from "../../domain/t-notes";
 import { workbenchApprovalDecisions, type WorkbenchSnapshot } from "../../domain/workbench";
 import { classifyWorkActivity, type SemanticWorkStep, type WorkStepStatus } from "../../domain/work-steps";
 import { boundedPublicProjection } from "./bounded-public-projection";
@@ -494,14 +495,36 @@ export class WorkbenchChatView implements Component {
 		}
 		const observationActivityIds = new Set(observationByItem.values());
 		const delegationByActivity = new Map<string, readonly string[] | null>();
+		const selectedPlanItemId = this.snapshot.selectedActivityId
+			? activities.find((activity) => activity.id === this.snapshot.selectedActivityId)?.nativeRefs.itemId
+			: undefined;
+		const selectedStep = selectedPlanItemId
+			? projectedSteps.find((step) => step.activityIds.some((activityId) =>
+				activities.find((activity) => activity.id === activityId)?.nativeRefs.itemId === selectedPlanItemId,
+			))
+			: undefined;
 		for (const section of projectWorkbenchDelegationSections(
 			activities,
 			this.snapshot.workFlow.goal,
 			this.snapshot.threadId,
 			contentWidth,
 		)) {
+			const linked = selectedStep && section.activityIds.some((id) =>
+				selectedStep.activityIds.includes(id),
+			);
+			const traceRows = linked
+				? [
+					...wrapTextWithAnsi(colors.secondary(
+						`Todo ${selectedStep.number}: ${selectedStep.title} · planItemId ${selectedPlanItemId} · Trace (inferred, collapsed)`,
+					), contentWidth),
+					...section.rows,
+				]
+				: [
+					...wrapTextWithAnsi(colors.muted("Other observed Trace · unselected/orphan"), contentWidth),
+					...section.rows,
+				];
 			for (const activityId of section.activityIds) delegationByActivity.set(activityId, null);
-			delegationByActivity.set(section.anchorActivityId, section.rows);
+			delegationByActivity.set(section.anchorActivityId, traceRows);
 		}
 		const rows: string[] = [];
 		const renderedMessageIds = new Set<string>();
@@ -641,9 +664,21 @@ export class WorkbenchChatView implements Component {
 		const label = message.status === "cancelled" ? semantic.toolCancelled("중단됨")
 			: message.status === "failed" ? semantic.toolFailed("실패")
 				: message.status === "streaming" ? semantic.toolRunning("응답 중") : "";
+		const messageActivity = this.snapshot.activities.find((activity) => activity.id === message.activityId);
+		const completion = projectTNoteCompletionIndex(this.snapshot.activities, this.snapshot.tnotes)
+			.find((entry) => entry.threadId === messageActivity?.nativeRefs.threadId
+				&& entry.turnId === messageActivity?.nativeRefs.turnId);
+		const note = completion?.noteId ? this.snapshot.tnotes.find((candidate) => candidate.id === completion.noteId) : undefined;
+		const selected = Boolean(completion && this.snapshot.selectedActivityId
+			&& this.snapshot.activities.find((activity) => activity.id === this.snapshot.selectedActivityId)?.nativeRefs.turnId === completion.turnId);
 		return transcriptRows([
-			`${semantic.assistantLabel("bori")}${label ? `  ${label}` : ""}`,
+			`${semantic.assistantLabel("bori")}${completion ? `  ${colors.highlight(`#${completion.number}`)}` : ""}${label ? `  ${label}` : ""}`,
 			...(this.markdown.get(message.id)?.render(contentWidth) ?? [sanitizeTerminalTextUnbounded(message.content)]),
+			...(selected && note ? [
+				colors.muted(`T-note · ${note.title}`),
+				...boundedTNoteSummary(note.summary).text.split(/\r?\n/u).flatMap((line) => wrapTextWithAnsi(line, contentWidth)),
+				colors.muted(`sourceActivityIds · ${note.sourceActivityIds.join(", ") || "없음"}`),
+			] : []),
 		], contentWidth);
 	}
 
@@ -676,8 +711,17 @@ export class WorkbenchChatView implements Component {
 			status: commandStatus(step.status),
 			narration: step.narration,
 		};
-		if (liveActivity) return new WorkStepCard(options).render(contentWidth);
-		const rows = new WorkStepCard(options).render(contentWidth);
+		const traceSource = step.association
+			? step.association.sources.flatMap(source => wrapTextWithAnsi(colors.muted(
+				`Source: inferred · turn ${source.turnId} · sequence ${source.startSequence}${source.endSequence === null ? "+" : `-${source.endSequence}`} · ${source.activityIds.length + source.observationActivityIds.length} activities (collapsed)`,
+			), contentWidth))
+			: [];
+		const planItemId = activity?.nativeRefs.itemId;
+		const compactSource = planItemId
+			? wrapTextWithAnsi(colors.muted(`Trace source · planItemId ${planItemId} · /trace ${planItemId}`), contentWidth)
+			: [];
+		if (liveActivity) return [...new WorkStepCard(options).render(contentWidth), ...traceSource, ...compactSource];
+		const rows = [...new WorkStepCard(options).render(contentWidth), ...traceSource, ...compactSource];
 		this.stepRows.set(key, rows);
 		if (this.stepRows.size > WORKBENCH_STEP_CACHE_LIMIT) this.stepRows.clear();
 		return rows;
