@@ -1,221 +1,266 @@
 # World Wide Woo
 
-> **프로젝트와 실행기가 바뀌어도 나의 업무 방식은 유지되는 개인화 서비스 생애주기
-> Orchestration Harness.**
+> **프로젝트와 도구가 바뀌어도 업무 방식은 유지되는 Service Lifecycle Orchestration Harness.**
 
-World Wide Woo, 줄여서 **WWW**는 기획·디자인·개발·검증·배포·운영·유지보수를 여러
-AI와 도구에 배분하고, 사용자의 업무 규칙·승인·Evidence 아래 일관되게 관리하는 로컬
-CLI/TUI 기반 Orchestration Harness다.
+**World Wide Woo(WWW)**는 기획·디자인·개발·검증·배포·운영·유지보수를 여러 AI와 도구에
+배분하고, 사용자가 정의한 **업무 규칙·승인·Evidence** 아래 일관되게 관리하는 개인화
+Service Lifecycle Orchestration Harness다.
 
-현재 버전은 Codex App Server를 사용하는 **Native Project Workbench**다. 여러 프로젝트의
-Service Lifecycle과 복수 Execution Lane을 연결하는 전체 Orchestration Harness는 구현
-중인 장기 제품 방향이며, 아직 완성된 기능으로 주장하지 않는다.
+WWW가 지키는 것은 특정 모델이나 도구가 아니라 사용자의 업무 방식이다. 프로젝트 환경이
+달라져도 **Workflow·Contract·Progress·Approval·Evidence**의 의미를 유지한다.
 
-## 왜 WWW를 만드는가
+> **현재 상태:** WWW는 개발 중이다. 현재 제품은 프로젝트별 업무를 다루는 초기
+> Workbench이며, 이 문서는 완성하려는 제품의 목적과 계약을 설명한다.
 
-서비스를 만들고 운영하는 일은 한 Agent 안에서 끝나지 않는다. 기획·디자인은 Figma에,
-개발 정의는 Atlas에, 실행 항목과 일지는 Linear에, 코드는 GitHub에, 장기 의사결정은
-Obsidian에 남는다. Codex·Claude 같은 Agent Runtime과 구독도 상황에 따라 달라진다.
+## Why WWW
 
-문제는 도구가 많다는 사실 자체가 아니다.
+서비스를 만들고 운영하는 일은 하나의 AI나 하나의 도구 안에서 끝나지 않는다.
+
+```text
+Figma      디자인 원본
+Atlas      개발 구조와 정의
+Linear     실행 항목과 진행 상태
+GitHub     코드와 변경 이력
+Obsidian   장기 의사결정과 지식
+```
+
+문제는 도구가 많다는 사실 자체가 아니다. 도구와 프로젝트가 바뀔 때 업무의 의미, 진행
+상태와 완료 기준까지 함께 흔들린다는 점이다.
 
 - 프로젝트마다 같은 업무 규칙을 다시 설명해야 한다.
-- 한 도구의 상태만 보고는 실제 업무가 어디까지 끝났는지 알기 어렵다.
-- Agent가 성공했다고 말해도 완료 조건과 증거가 충분한지 따로 확인해야 한다.
-- 모델·Skill·Context·effort 변경이 품질과 Token에 어떤 영향을 줬는지 비교하기 어렵다.
-- 실행기나 구독을 바꾸면 계획과 진행 맥락이 함께 끊어진다.
+- 여러 도구에 흩어진 상태만으로 전체 진행도를 판단하기 어렵다.
+- 작업이 성공했다고 보고돼도 실제 완료 조건을 만족했는지는 별도로 확인해야 한다.
+- 모델·Skill·Context·effort 변경이 품질과 비용에 미치는 영향을 비교하기 어렵다.
+- 담당 도구가 바뀌면 계획과 작업 맥락도 함께 끊어진다.
+- 기획부터 유지보수까지 같은 기준으로 이어지는 기록이 부족하다.
 
-WWW는 특정 Agent Runtime 하나에 업무 체계를 결속하지 않는다. WWW Application Runtime
-위에 사용자가 소유하는 업무 규칙과 상태를 두고, 모델·Tool Loop를 담당하는 Agent
-Execution Runtime은 Adapter 뒤에서 교체한다.
-
-```text
-Agent Execution Runtime 교체 가능
-Model / Subscription    교체 가능
-Client / Tool           교체 가능
-
-Standard / Contract     유지
-Work Chain ID           유지
-Progress Model          유지
-Evidence                유지
-Operations TUI          유지
-```
+WWW는 도구별 기능을 한곳에 복제하는 대신, 그 위에서 유지되어야 할 업무 규칙과 관계를
+소유한다.
 
 ```text
-현재
-www -> Project Workbench -> NativeHarnessPort -> Codex App Server
+바뀔 수 있는 것                 WWW가 유지하는 것
 
-목표
-www -> WWW Application Runtime -> Execution Lane
-                                  |- Codex Native Executor
-                                  |- Pi Embedded Executor
-                                  `- GJC 등 위임 Harness
+AI / Model                       Standard / Contract
+Subscription                     Work Chain Identity
+Client / Tool                    Progress Model
+Project Environment              Approval / Evidence
+                                 Operations View
 ```
 
-Pi는 사용자가 별도로 실행하는 CLI가 아니다. WWW 프로세스 안에서 SDK Library로 사용하며,
-제품 이름·명령·화면·업무 상태의 소유자는 계속 WWW다.
+## Product Model
 
-## WWW가 소유하는 것
+WWW는 사용자의 짧은 요청을 서비스 생애주기의 업무로 연결한다.
 
-### 일관된 업무 규칙
+```text
+사용자 의도
+   ↓
+업무 유형과 필요한 Stage 결정
+   ↓
+Standard·Blueprint·Project Binding 적용
+   ↓
+역할과 도구 배분
+   ↓
+진행 상태와 관계 관측
+   ↓
+Contract 검증·Approval·Evidence
+   ↓
+업무 수락과 다음 Stage
+```
 
-반복 업무를 버전이 있는 `Standard`로 정의하고, 실행 순서는 `Blueprint`, 완료 조건은
-`Contract`, 프로젝트별 값과 예외는 `Project Binding`으로 분리한다. Skill은 특정 Stage를
-수행하는 방법이며 Standard나 Contract를 대신하지 않는다.
+예를 들어 `로그인 기능을 만들어줘`라는 요청은 코드 변경 하나로 끝나지 않는다.
 
-### 연결된 Work Chain
+```text
+요구사항
+  → 사용자 경험과 보안 설계
+  → 개발
+  → 검증과 독립 검토
+  → 사용자 수락
+  → 배포
+  → 운영과 유지보수
+```
 
-각 도구의 원본 소유권은 유지하면서 하나의 업무를 Logical ID로 연결한다.
+각 Stage는 서로 다른 AI와 도구가 담당할 수 있다. 그러나 Stage의 목적, 필요한 입력,
+완료 조건과 결과의 의미는 WWW가 일관되게 관리한다.
+
+## Core Concepts
+
+### Service Lifecycle
+
+WWW가 관리하는 최상위 업무 범위다.
+
+```text
+기획 → 디자인 → 개발 → 검증 → 배포 → 운영 → 유지보수
+```
+
+모든 업무가 모든 Stage를 거치는 것은 아니다. 프로젝트와 업무 유형에 필요한 Stage를
+선택하고, 생략하거나 되돌아간 이유도 Workflow 상태의 일부로 다룬다.
+
+### Standard
+
+여러 프로젝트에서 반복해서 사용하는 업무 방식을 버전이 있는 Standard로 정의한다.
+
+```text
+Standard
+├─ Blueprint       어떤 Stage를 어떤 순서로 수행하는가
+├─ Contract        무엇을 만족해야 완료로 인정하는가
+└─ Project Binding 프로젝트별 값·환경·허용 예외
+```
+
+Skill은 특정 Stage를 수행하는 방법이다. Skill이 정상적으로 끝났다는 사실만으로 Standard가
+적용되거나 Contract가 충족된 것은 아니다.
+
+### Workflow
+
+Workflow는 업무를 완료하기 위해 Stage를 선택하고 연결하는 상위 흐름이다.
+
+```text
+Stage 선택
+  → 역할과 도구 배정
+  → 결과 확인
+  → Contract 검증
+  → 통과 / 재작업 / 기준 보강 / 사용자 승인 / 중단
+  → 다음 Stage
+```
+
+AI는 Workflow 후보를 제안할 수 있지만, 실제 Workflow는 적용 가능한 Blueprint와 Project
+Binding을 기준으로 확정한다.
+
+### Work Chain
+
+WWW는 여러 도구의 원본을 하나의 중앙 데이터베이스로 복제하지 않는다. 각 도구가 자신의
+Truth를 소유한 상태에서 하나의 업무를 `Logical Work Chain ID`로 연결한다.
 
 ```text
 Product: Figma → Atlas → Linear → GitHub → Obsidian
 RPA:              Atlas → Linear → GitHub → Obsidian
 ```
 
-- **Figma**: 디자인 원본
-- **Atlas**: 디자인 또는 자동화 정의를 개발 항목으로 구조화
-- **Linear**: 실행 항목, 진행 상태와 개발 일지
-- **GitHub**: 코드, commit, PR과 check
-- **Obsidian**: 장기 의사결정과 다시 사용해야 하는 지식
+| Tool | Ownership |
+|---|---|
+| Figma | 디자인 원본 |
+| Atlas | 개발 구조와 정의 |
+| Linear | 실행 항목과 진행 상태 |
+| GitHub | 코드·Commit·PR·Check |
+| Obsidian | 장기 의사결정과 재사용 지식 |
 
-### 사용자의 진행 상태
+WWW는 원본을 대체하지 않고 참조, 관계와 Lifecycle 상태를 관리한다.
 
-WWW는 실행기의 `running`이나 `succeeded`를 그대로 업무 완료로 취급하지 않는다. 적용된
-규칙, Contract 검증, 필요한 승인과 남은 Stage를 함께 보고 사용자의 `Progress Model`로
-현재 상태를 판단한다.
+### Progress Model
 
-### 관측 가능한 실행
-
-TUI는 다음 질문에 답해야 한다.
-
-- 지금 무엇을 하고 있는가.
-- 어떤 Plan 항목이 진행 중인가.
-- 그 아래 어떤 Agent·Tool·승인·결과가 실행됐는가.
-- 무엇이 막혔고 다음 행동은 무엇인가.
-- 완료를 뒷받침하는 Evidence가 있는가.
-- Token·시간·재시도·사람 개입이 이전보다 나아졌는가.
-
-이를 위해 화면의 책임을 나눈다.
+도구가 보고하는 성공과 사용자가 판단하는 업무 완료는 다르다.
 
 ```text
-Chat    사용자와 Execution Lane의 대화 및 공개 중간 작업
-Todo    활성 Run Plan의 읽기 전용 Projection
-T-note  완료 질문의 질문·이유·결과와 Chat #n
-Trace   선택한 Run의 Plan·Agent·Tool·승인·결과와 Source
+작업 결과
+   ↓
+Contract validation
+   ↓
+Required approval
+   ↓
+Evidence accepted
+   ↓
+Work accepted
 ```
 
-### 교체 가능한 실행 Runtime
+WWW는 **작업 성공과 업무 수락을 분리한다.** 사용자는 자신의 기준에서 무엇을 시작, 진행,
+대기, 위험과 완료로 판단할지 Progress Model로 정의한다.
 
-WWW 자체는 Work Chain·Workflow·승인·Projection·Evidence를 유지하는 Application Runtime을
-소유한다. 복잡한 모델·Tool 반복은 Codex App Server 같은 Native Executor 또는 Pi SDK를
-Library로 내장한 Embedded Executor에 맡긴다. 사용자는 어느 경우에도 `www`만 실행한다.
+### Approval
 
-## WWW가 아닌 것
+사용자 판단이나 외부 변경이 필요한 경계에서는 결정의 대상과 영향을 먼저 보여준다.
+승인은 특정 작업, 입력과 대상에 결속되며 대상이나 범위가 바뀌면 다시 확인한다.
 
-- Codex·Claude·Gajae Code와 경쟁하는 또 하나의 범용 Coding Agent
-- 많은 Agent·Skill·Provider를 묶어 제공하는 배포판
+### Evidence
+
+완료는 주장보다 Evidence를 우선한다.
+
+```text
+Test result
+Command result
+Git diff
+Commit / PR
+Screenshot
+Generated artifact
+Validator result
+Human approval
+External system result
+```
+
+어떤 Evidence가 필요한지는 Stage의 Contract가 결정한다. WWW는 관측하지 않은 결과를 성공으로
+추정하지 않으며 `PASS`, `PARTIAL`, `BLOCKED`를 구분한다.
+
+## Observable Work
+
+WWW의 화면은 AI의 최종 답변만 보여주는 곳이 아니다. 사용자가 다음 질문에 답할 수 있어야
+한다.
+
+- 지금 무엇을 하고 있으며 왜 하는가?
+- 어떤 Plan 항목이 진행 중인가?
+- 어떤 AI와 도구가 참여했는가?
+- 어떤 승인이나 사용자 개입이 있었는가?
+- 무엇이 실패하거나 막혔는가?
+- 다음 행동은 무엇인가?
+- 완료를 뒷받침하는 Evidence가 존재하는가?
+- 이전 작업보다 Token·시간·재시도·품질이 개선됐는가?
+
+화면은 책임에 따라 분리한다.
+
+```text
+Chat    사용자와 AI의 대화 및 공개 가능한 중간 작업
+Todo    현재 Run Plan의 read-only Projection
+T-note  완료된 질문의 질문·이유·결과와 Chat reference
+Trace   Plan·Agent·Tool·Approval·Result·Source
+```
+
+WWW는 모델의 hidden reasoning을 노출하지 않는다. 관측 가능한 활동과 Evidence만 다룬다.
+
+## What WWW Owns
+
+```text
+Service Lifecycle
+Workflow
+Standard / Blueprint / Contract
+Project Binding
+Progress Model
+Approval / Validation / Evidence
+Work Chain Identity
+Work Projection
+```
+
+WWW의 핵심은 AI가 일을 하게 만드는 것만이 아니다. **어떤 일을 해야 하고, 어떤 관계와
+기준을 지켜야 하며, 무엇을 만족해야 완료인지 일관되게 관리하는 것**이다.
+
+## What WWW Is Not
+
+- 특정 Coding Agent를 대체하기 위한 또 하나의 범용 Coding Agent
+- 여러 AI·Model·Provider를 묶어서 제공하는 배포판
 - Figma·Linear·GitHub·Obsidian의 원본을 복제하는 중앙 데이터베이스
-- 모델의 숨겨진 추론을 보여주는 관찰 도구
-- 실행 성공만으로 업무 완료를 선언하는 자동화
-- Pane 분할이나 화려한 Dashboard 자체를 목적으로 한 TUI
+- 모델의 hidden reasoning을 보여주는 관찰 도구
+- 도구의 `success`를 그대로 업무 완료로 판단하는 시스템
+- 많은 Pane이나 Dashboard 자체를 목적으로 하는 TUI
 
-범용 Agent Runtime을 다시 만들지는 않는다. 복잡한 코딩은 Native Executor 또는 검증된
-SDK 기반 Embedded Executor에 맡기고, WWW는 Stage 선택·검증·재시도·승인·완료를 조정하는
-상위 Workflow를 소유한다.
+## Design Principles
 
-## 현재 상태
+- **WWW owns the lifecycle**: 도구가 바뀌어도 Workflow·Progress·Approval·Evidence의 의미를 유지한다.
+- **Evidence before completion**: 작업 성공과 업무 수락을 분리한다.
+- **Observed before inferred**: 관측하지 않은 관계나 결과를 사실처럼 표시하지 않는다.
+- **One owner per truth**: 각 시스템의 원본 소유권을 유지하고 reference로 연결한다.
+- **Schema-EN / Prose-KO**: 기계가 읽는 identifier와 schema는 영어, 사람을 위한 설명과 화면은 한국어를 사용한다.
+- **Human authority**: AI가 제안하고 검증해도 최종 승인 권한은 사용자에게 있다.
 
-현재 `v0.1.11`은 프로젝트별 Codex Native Workbench를 제공한다.
-
-현재 사용할 수 있는 기능:
-
-- Codex native thread 생성·선택·resume
-- Chat, Todo, T-note, Trace와 실행 Activity Projection
-- 모델·effort 선택과 사용량 표시
-- command·approval·subagent 등 Native 실행 관측
-- 프로젝트 로컬 `.www/` 작업 기록
-
-진행 중인 다음 단계:
-
-1. Todo·T-note·Trace의 역할과 source identity 안정화
-2. Pi SDK를 Library로 내장하는 선택적 Execution Lane
-3. Executor와 무관한 의미형 Event·승인·Evidence 계약
-4. Standard·Blueprint·Contract와 결정론적 Validator
-5. Figma·Atlas·Linear·GitHub·Obsidian Work Chain
-6. Agent Revision별 Token·시간·품질 비교
-
-현재 계획과 구현의 차이는 [제품 방향](docs/WWW_PRODUCT_DIRECTION.md)과
-[기존 Control Plane 구현계획](docs/WWW_CONTROL_PLANE_PLANNING_PROPOSAL.md)에 명시한다.
-
-## Quickstart
-
-### 요구 사항
-
-- Bun 1.4 이상
-- Git
-- Codex App Server 대화를 사용할 경우 로그인된 Codex CLI
-- ANSI/UTF-8을 지원하는 Terminal
-
-### 개발 환경에서 실행
-
-```sh
-git clone https://github.com/Woo-JongHo/world-wide-woo.git www
-cd www
-bun install --frozen-lockfile
-bun run check
-bun test
-bun start
-```
-
-패키지는 현재 `private: true`이며 자동 publish를 제공하지 않는다. 작업 데이터는 실행한
-프로젝트의 `.www/`에 저장되므로 설치 저장소와 작업 프로젝트를 구분해야 한다.
-
-### 주요 명령
-
-```text
-www                         새 Codex native Workbench 실행
-www threads                 현재 프로젝트의 native thread 목록
-www --resume                native thread를 선택해 재개
-www --resume <thread-id>    지정한 native thread 재개
-www auth status             모델 인증 상태 확인
-```
-
-Workbench 안에서는 `/model`, `/source`, `/tnote`, `/approve`, `/decline`, `/cancel`,
-`/exit`을 사용할 수 있다. 전체 설치·업데이트·롤백 절차는
-[릴리스 절차](docs/RELEASE_V010.md)를 따른다.
-
-## 설계 원칙
-
-- **WWW owns the lifecycle**: 실행기가 바뀌어도 Workflow·승인·상태·Evidence의 의미를 유지한다.
-- **Native default, Embedded measured**: 현재는 Codex Native를 기본으로 두고 Pi 내장은 contract와 실측을 통과한 기능부터 맡긴다.
-- **Evidence before completion**: 실행 성공과 업무 수락을 분리한다.
-- **Observed before inferred**: 관측하지 않은 관계를 사실처럼 표시하지 않는다.
-- **One owner per truth**: 도구별 원본 소유권을 유지하고 참조로 연결한다.
-- **Schema-EN / Prose-KO**: 기계가 읽는 값은 영어, 사람이 읽는 설명과 UI는 한국어로 쓴다.
-- **Human authority**: 자동화가 제안하고 검증해도 최종 승인 권한은 사람이 가진다.
-
-## 문서
+## Documentation
 
 - [제품 방향과 Agent 실행 경계](docs/WWW_PRODUCT_DIRECTION.md)
-- [서비스 생애주기 Harness의 기존 Control Plane 구현계획](docs/WWW_CONTROL_PLANE_PLANNING_PROPOSAL.md)
+- [Service Lifecycle의 기존 Control Plane 설계](docs/WWW_CONTROL_PLANE_PLANNING_PROPOSAL.md)
 - [오픈소스 제품과 WWW의 경계](docs/OSS_POSITIONING.md)
 - [Agent TUI 비교](docs/TUI_COMPARISON.md)
 - [기능별 TUI 코드 구성표](docs/TUI_CODE_MATRIX.md)
-- [README 구성 조사](docs/README_STRUCTURE_RESEARCH.md)
+- [README 구조 조사](docs/README_STRUCTURE_RESEARCH.md)
 - [릴리스 절차](docs/RELEASE_V010.md)
 
-## 개발 검증
+내부 구조와 개발·설치·검증 절차는 README에서 반복하지 않고 해당 문서와 프로젝트 명령을
+정본으로 사용한다.
 
-```sh
-bun run check
-bun test
-bun run release:gate -- --platform-check
-```
+## License
 
-이 저장소는 기존 dirty worktree와 로컬 Evidence를 자동으로 정리하지 않는다. `PASS`,
-`BLOCKED`, `PARTIAL`을 구분하고 관측하지 않은 결과를 추정값으로 채우지 않는다.
-
-## 라이선스와 배포
-
-현재 저장소에는 공개 배포용 라이선스가 정해져 있지 않으며 npm package도 private이다.
-라이선스와 외부 배포 정책이 확정되기 전에는 공개 사용 조건을 가정하지 않는다.
+현재 공개 배포용 라이선스는 정해져 있지 않으며 npm package도 private이다. 라이선스와 외부
+배포 정책이 확정되기 전까지 공개 사용·수정·재배포 권한을 가정하지 않는다.
