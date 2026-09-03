@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import type { NativeHarnessPort } from "./native-harness.js";
+import type { ExecutorPort } from "./ports/executor-port.js";
 import { createCanonicalDocumentDraft, type CanonicalPromotionService } from "./canonical-promotion.js";
 import type { ReviewService } from "./review-service.js";
 import type { ActivityNarrator } from "./activity-narrator.js";
@@ -7,6 +7,7 @@ import type { SessionModelUsageSource } from "./session-model-usage.js";
 import { TodoWriteConflictError } from "./todo-ledger.js";
 import type { WooEntry } from "./woo-entry.js";
 import { ContextComposer } from "./context-composer.js";
+import { SessionUsageTracker } from "./session/session-usage-tracker.js";
 import type {
 	BackgroundWorkState,
 	NativeApprovalPolicy,
@@ -56,14 +57,12 @@ import type {
 	WorkbenchCollaborationMode,
 	WorkbenchCommand,
 	WorkbenchCommandReceipt,
-	WorkbenchContextUsage,
 	WorkbenchListener,
 	WorkbenchLiveActivity,
 	WorkbenchMcpServer,
 	WorkbenchModelSelection,
 	WorkbenchPermissionMode,
 	WorkbenchSessionGoal,
-	WorkbenchSessionUsage,
 	WorkbenchSnapshot,
 	WorkbenchTNote,
 } from "../domain/workbench.js";
@@ -82,7 +81,6 @@ const JOURNAL_NATIVE_MAX_ITEMS = 128;
 const JOURNAL_NATIVE_MAX_COLLECTION_ITEMS = 64;
 const JOURNAL_NATIVE_OMISSION = "[journal observation omitted]";
 const WORKBENCH_ACTION_RESULT_CHARACTER_LIMIT = 12 * 1024;
-const NATIVE_CONTEXT_BASELINE_TOKENS = 12_000;
 
 const SESSION_GOAL_MARKER = /^SESSION_GOAL:[ \t]*(\S(?:[^\r\n]*\S)?)$/u;
 const SESSION_GOAL_CHARACTER_LIMIT = 160;
@@ -219,25 +217,11 @@ export class ProjectWorkbench {
 	private collaborationMode: WorkbenchCollaborationMode = "manual";
 	private approvalPolicy: NativeApprovalPolicy;
 	private sandbox: NativeSandboxMode;
-	private contextUsage: WorkbenchContextUsage | null = null;
 	private sessionGoal: WorkbenchSessionGoal | null = null;
 	private contextTurnId: string | null = null;
-	private observedThreadTotalTokens: number | null;
-	private readonly turnUsageModels = new Map<string, { model: string; effort: string | null }>();
-	private readonly usageTurns = new Set<string>();
-	private readonly modelUsage = new Map<string, {
-		model: string;
-		effort: string | null;
-		interactiveRootTurns: number;
-		interactiveTokens: number;
-		detachedInvocations: 0;
-		detachedTokens: 0;
-		totalTokens: number;
-	}>();
-	private readonly pendingUsageByTurn = new Map<string, number>();
+	private readonly usageTracker: SessionUsageTracker;
 	private readonly firstOutputObservedTurns = new Set<string>();
 	private readonly processAttachedAt = new Date().toISOString();
-	private unattributedUsageTokens = 0;
 	private threadId: string | null = null;
 	private activeTurnId: string | null = null;
 	/** Last explicitly selected root turn; remains plan authority after terminal completion. */
@@ -290,7 +274,7 @@ export class ProjectWorkbench {
 	private readonly unsubscribeAuxiliaryUsage: () => void;
 
 	public constructor(
-		private readonly native: NativeHarnessPort,
+		private readonly native: ExecutorPort,
 		private readonly journal: WorkbenchActivityJournal,
 		private readonly options: ProjectWorkbenchOptions,
 	) {
@@ -298,7 +282,7 @@ export class ProjectWorkbench {
 		this.selectedEffort = options.effort;
 		this.effectiveModel = options.model ?? "codex";
 		this.effectiveEffort = options.effort ?? null;
-		this.observedThreadTotalTokens = options.resumeThreadId ? null : 0;
+		this.usageTracker = new SessionUsageTracker(Boolean(options.resumeThreadId));
 		this.permissionMode = options.approvalPolicy === "never" && options.sandbox === "danger-full-access" ? "all" : "manual";
 		this.approvalPolicy = options.approvalPolicy ?? "on-request";
 		this.sandbox = options.sandbox ?? "workspace-write";
@@ -479,7 +463,7 @@ export class ProjectWorkbench {
 				this.activeTurnId = delivery.turnId;
 				this.selectedPlanTurnId = delivery.turnId;
 				this.contextTurnId = delivery.turnId;
-				this.bindTurnUsage(delivery.turnId, this.effectiveModel, this.effectiveEffort);
+				this.usageTracker.bindTurn(delivery.turnId, this.effectiveModel, this.effectiveEffort);
 				await this.appendActivity("progress", "started", {
 					threadId: read.id,
 					turnId: delivery.turnId,
@@ -523,7 +507,7 @@ export class ProjectWorkbench {
 				status: "streaming",
 			});
 			this.publish();
-			let thread: Awaited<ReturnType<NativeHarnessPort["startThread"]>>;
+			let thread: Awaited<ReturnType<ExecutorPort["startThread"]>>;
 			try {
 				thread = await this.native.startThread({
 					cwd: this.options.cwd,
@@ -558,7 +542,7 @@ export class ProjectWorkbench {
 		this.pendingPlanGoalActivityId = sent.id;
 		this.invalidateWorkFlow();
 		this.publish();
-		let turn: Awaited<ReturnType<NativeHarnessPort["startTurn"]>>;
+		let turn: Awaited<ReturnType<ExecutorPort["startTurn"]>>;
 		try {
 			const turnInput = {
 				threadId: this.threadId,
@@ -594,7 +578,7 @@ export class ProjectWorkbench {
 			this.publish();
 			throw error;
 		}
-		this.bindTurnUsage(turn.id, this.effectiveModel, this.effectiveEffort);
+		this.usageTracker.bindTurn(turn.id, this.effectiveModel, this.effectiveEffort);
 		this.contextTurnId = turn.id;
 		this.activeTurnId = turn.id;
 		this.selectedPlanTurnId = turn.id;
@@ -676,7 +660,7 @@ export class ProjectWorkbench {
 				this.activeTurnId = delivery.turnId;
 				this.selectedPlanTurnId = delivery.turnId;
 				this.contextTurnId = delivery.turnId;
-				this.bindTurnUsage(delivery.turnId, this.effectiveModel, this.effectiveEffort);
+				this.usageTracker.bindTurn(delivery.turnId, this.effectiveModel, this.effectiveEffort);
 				await this.appendActivity("progress", "started", {
 					threadId: this.threadId,
 					turnId: delivery.turnId,
@@ -837,99 +821,6 @@ export class ProjectWorkbench {
 		return { state: "accepted", commandId };
 	}
 
-	private observeTokenUsage(event: Extract<NativeHarnessEvent, { type: "notification" }>): void {
-		if (event.refs.threadId && this.threadId && event.refs.threadId !== this.threadId) return;
-		const totalTokens = projectThreadTotalTokens(event.params);
-		if (totalTokens !== null) {
-			let delta = 0;
-			if (this.observedThreadTotalTokens === null) {
-				// A resumed thread already contains historical usage. The first
-				// snapshot establishes this WWW process's baseline.
-				this.observedThreadTotalTokens = totalTokens;
-			} else if (totalTokens >= this.observedThreadTotalTokens) {
-				delta = totalTokens - this.observedThreadTotalTokens;
-				this.observedThreadTotalTokens = totalTokens;
-			}
-			if (delta > 0) this.attributeUsageDelta(event.refs.turnId, delta);
-		}
-		if (event.refs.turnId && event.refs.turnId === this.contextTurnId) {
-			this.contextUsage = projectContextUsage(event.params);
-		}
-	}
-
-	private bindTurnUsage(turnId: string, model: string, effort: string | null): void {
-		this.turnUsageModels.set(turnId, { model, effort });
-		const pending = this.pendingUsageByTurn.get(turnId);
-		if (!pending) return;
-		this.pendingUsageByTurn.delete(turnId);
-		this.unattributedUsageTokens = Math.max(0, this.unattributedUsageTokens - pending);
-		this.addModelUsage(turnId, model, effort, pending);
-	}
-
-	private attributeUsageDelta(turnId: string | undefined, delta: number): void {
-		const binding = turnId ? this.turnUsageModels.get(turnId) : undefined;
-		if (turnId && binding) {
-			this.addModelUsage(turnId, binding.model, binding.effort, delta);
-			return;
-		}
-		this.unattributedUsageTokens += delta;
-		if (turnId) this.pendingUsageByTurn.set(turnId, (this.pendingUsageByTurn.get(turnId) ?? 0) + delta);
-	}
-
-	private addModelUsage(turnId: string, model: string, effort: string | null, delta: number): void {
-		const key = `${model}\u0000${effort ?? ""}`;
-		const current = this.modelUsage.get(key) ?? {
-			model,
-			effort,
-			interactiveRootTurns: 0,
-			interactiveTokens: 0,
-			detachedInvocations: 0,
-			detachedTokens: 0,
-			totalTokens: 0,
-		};
-		const firstUsageForTurn = !this.usageTurns.has(turnId);
-		if (firstUsageForTurn) this.usageTurns.add(turnId);
-		this.modelUsage.set(key, {
-			...current,
-			interactiveRootTurns: current.interactiveRootTurns + (firstUsageForTurn ? 1 : 0),
-			interactiveTokens: current.interactiveTokens + delta,
-			totalTokens: current.totalTokens + delta,
-		});
-	}
-
-	private projectSessionUsage(): WorkbenchSessionUsage {
-		const merged = new Map<string, {
-			model: string;
-			effort: string | null;
-			interactiveRootTurns: number;
-			interactiveTokens: number;
-			detachedInvocations: number;
-			detachedTokens: number;
-			totalTokens: number;
-		}>();
-		for (const usage of [...this.modelUsage.values(), ...(this.options.auxiliaryUsage?.snapshot ?? [])]) {
-			const key = `${usage.model}\u0000${usage.effort ?? ""}`;
-			const current = merged.get(key);
-			merged.set(key, {
-				model: usage.model,
-				effort: usage.effort,
-				interactiveRootTurns: (current?.interactiveRootTurns ?? 0) + usage.interactiveRootTurns,
-				interactiveTokens: (current?.interactiveTokens ?? 0) + usage.interactiveTokens,
-				detachedInvocations: (current?.detachedInvocations ?? 0) + (usage.detachedInvocations ?? 0),
-				detachedTokens: (current?.detachedTokens ?? 0) + usage.detachedTokens,
-				totalTokens: (current?.totalTokens ?? 0) + usage.totalTokens,
-			});
-		}
-		const models = [...merged.values()]
-			.sort((left, right) => right.totalTokens - left.totalTokens || left.model.localeCompare(right.model))
-			.map((usage) => ({ ...usage }));
-		const attributedTokens = models.reduce((total, usage) => total + usage.totalTokens, 0);
-		return {
-			totalTokens: attributedTokens + this.unattributedUsageTokens,
-			unattributedTokens: this.unattributedUsageTokens,
-			models,
-		};
-	}
 
 	private async refreshWooEntry(commandId: string): Promise<WorkbenchCommandReceipt> {
 		const entry = this.options.wooEntry;
@@ -1266,7 +1157,7 @@ export class ProjectWorkbench {
 		const eventBelongsToRootThread = event.type !== "notification"
 			|| this.isRootThreadEvent(event.refs.threadId);
 		if (eventBelongsToRootThread && event.type === "notification" && event.method === "thread/tokenUsage/updated") {
-			this.observeTokenUsage(event);
+			this.usageTracker.observe(event, this.threadId, this.contextTurnId);
 		}
 		if (event.type === "notification" && isDeltaNotification(event.method)) {
 			if (eventBelongsToRootThread) await this.applyDelta(event);
@@ -1301,8 +1192,8 @@ export class ProjectWorkbench {
 				this.activeTurnId = event.refs.turnId;
 				this.selectedPlanTurnId = event.refs.turnId;
 				this.contextTurnId = event.refs.turnId;
-				if (!this.turnUsageModels.has(event.refs.turnId)) {
-					this.bindTurnUsage(event.refs.turnId, this.effectiveModel, this.effectiveEffort);
+				if (!this.usageTracker.hasTurn(event.refs.turnId)) {
+					this.usageTracker.bindTurn(event.refs.turnId, this.effectiveModel, this.effectiveEffort);
 				}
 				this.chatDeliveryBlocked = false;
 				if (reconciledChat) this.error = null;
@@ -1409,7 +1300,7 @@ export class ProjectWorkbench {
 		const reasoning = method.includes("reasoning");
 		const publicReasoningSummary = method.includes("reasoning/summarytextdelta");
 		if (!reasoning && activityKind(event.method, event.params) === "message" && delta.trim().length > 0 && event.refs.turnId &&
-			this.turnUsageModels.has(event.refs.turnId) &&
+			this.usageTracker.hasTurn(event.refs.turnId) &&
 			!this.firstOutputObservedTurns.has(event.refs.turnId)) {
 			await this.appendActivity("progress", "completed", {
 				threadId: event.refs.threadId ?? this.threadId ?? undefined,
@@ -1578,10 +1469,10 @@ export class ProjectWorkbench {
 			// A model switch takes effect on the next turn, so the running turn keeps the model it
 			// was started with.  Reporting the selection here would name a model that is not
 			// producing the output on screen.
-			activeModel: (this.activeTurnId ? this.turnUsageModels.get(this.activeTurnId)?.model : undefined) ?? this.effectiveModel,
+			activeModel: (this.activeTurnId ? this.usageTracker.modelFor(this.activeTurnId) : undefined) ?? this.effectiveModel,
 			effort: this.effectiveEffort,
-			contextUsage: this.contextUsage,
-			sessionUsage: this.projectSessionUsage(),
+			contextUsage: this.usageTracker.contextUsage,
+			sessionUsage: this.usageTracker.snapshot(this.options.auxiliaryUsage),
 			resumeCoverage: {
 				mode: this.options.resumeThreadId ? "partial-local-journal" : "fresh",
 				processAttachedAt: this.processAttachedAt,
@@ -1857,29 +1748,6 @@ function nativeReasoningSummary(params: Readonly<Record<string, unknown>>): stri
 	return text
 		? sanitizeTerminalTextExcerpt(text, REASONING_DRAFT_TAIL_CHARACTER_LIMIT, "head-tail").trim()
 		: "";
-}
-
-function projectContextUsage(params: Readonly<Record<string, unknown>>): WorkbenchContextUsage | null {
-	const tokenUsage = record(params.tokenUsage);
-	const last = record(tokenUsage?.last);
-	const usedTokens = last?.totalTokens;
-	const contextWindow = tokenUsage?.modelContextWindow;
-	if (typeof usedTokens !== "number" || !Number.isFinite(usedTokens) || usedTokens < 0) return null;
-	if (typeof contextWindow !== "number" || !Number.isFinite(contextWindow) || contextWindow <= 0) return null;
-	const effectiveWindow = Math.max(1, contextWindow - NATIVE_CONTEXT_BASELINE_TOKENS);
-	const effectiveUsed = Math.max(0, usedTokens - NATIVE_CONTEXT_BASELINE_TOKENS);
-	return Object.freeze({
-		usedTokens,
-		contextWindow,
-		percent: Math.min(100, Math.round((effectiveUsed / effectiveWindow) * 1_000) / 10),
-	});
-}
-
-function projectThreadTotalTokens(params: Readonly<Record<string, unknown>>): number | null {
-	const tokenUsage = record(params.tokenUsage);
-	const total = record(tokenUsage?.total);
-	const totalTokens = total?.totalTokens;
-	return typeof totalTokens === "number" && Number.isFinite(totalTokens) && totalTokens >= 0 ? totalTokens : null;
 }
 
 function boundedJournalNativeValue(value: unknown): { value: unknown; omitted: boolean } {
