@@ -23,6 +23,7 @@ import { sanitizeTerminalText } from "../domain/terminal.js";
 import { PRODUCT_VERSION } from "../product-version.js";
 
 const STDERR_TAIL_CODE_POINTS = 4_096;
+const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
 
 interface JsonRecord {
 	[key: string]: unknown;
@@ -40,6 +41,7 @@ export interface CodexAppServerOptions {
 	clientName?: string;
 	clientTitle?: string;
 	clientVersion?: string;
+	requestTimeoutMs?: number;
 }
 
 export interface NativeMcpServer {
@@ -55,6 +57,7 @@ interface PendingRequest {
 	dispatched: boolean;
 	resolve: (result: unknown) => void;
 	reject: (error: Error) => void;
+	timeout: ReturnType<typeof setTimeout>;
 }
 
 interface PendingApprovalResponse {
@@ -180,7 +183,10 @@ export class CodexAppServer implements NativeHarnessPort {
 	private closing = false;
 	private disconnected = false;
 
-	private constructor(private readonly transport: JsonLineTransport) {
+	private constructor(
+		private readonly transport: JsonLineTransport,
+		private readonly requestTimeoutMs: number,
+	) {
 		transport.onLine((line) => this.receive(line));
 		transport.onClose((error) => this.disconnect(error));
 	}
@@ -194,7 +200,9 @@ export class CodexAppServer implements NativeHarnessPort {
 		transport: JsonLineTransport,
 		options: Omit<CodexAppServerOptions, "command"> = {},
 	): Promise<CodexAppServer> {
-		const server = new CodexAppServer(transport);
+		const requestTimeoutMs = options.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
+		if (!Number.isFinite(requestTimeoutMs) || requestTimeoutMs <= 0) throw new Error("Codex App Server request timeout must be positive");
+		const server = new CodexAppServer(transport, requestTimeoutMs);
 		await server.request("initialize", {
 			clientInfo: {
 				name: options.clientName ?? "www",
@@ -356,7 +364,15 @@ export class CodexAppServer implements NativeHarnessPort {
 		if (this.disconnected) return Promise.reject(new Error("Codex App Server is disconnected"));
 		const id = ++this.requestSequence;
 		return new Promise((resolve, reject) => {
-			const pending: PendingRequest = { method, uncertainOnDisconnect, dispatched: false, resolve, reject };
+			const timeout = setTimeout(() => {
+				const pending = this.pending.get(id);
+				if (!pending) return;
+				this.pending.delete(id);
+				pending.reject(pending.dispatched && pending.uncertainOnDisconnect
+					? new NativeOperationUncertainError(method, id)
+					: new Error(`Codex App Server ${method} timed out after ${this.requestTimeoutMs}ms`));
+			}, this.requestTimeoutMs);
+			const pending: PendingRequest = { method, uncertainOnDisconnect, dispatched: false, resolve, reject, timeout };
 			this.pending.set(id, pending);
 			const request = params === undefined ? { id, method } : { id, method, params };
 			void this.transport.send(JSON.stringify(request)).then(
@@ -365,6 +381,7 @@ export class CodexAppServer implements NativeHarnessPort {
 				},
 				(error) => {
 					this.pending.delete(id);
+					clearTimeout(timeout);
 					reject(error as Error);
 				},
 			);
@@ -428,6 +445,7 @@ export class CodexAppServer implements NativeHarnessPort {
 		const pending = this.pending.get(id);
 		if (!pending) return;
 		this.pending.delete(id);
+		clearTimeout(pending.timeout);
 		if (message.error !== undefined) {
 			pending.reject(new Error(`Codex App Server ${pending.method} failed: ${errorText(message.error)}`));
 			return;
@@ -439,6 +457,7 @@ export class CodexAppServer implements NativeHarnessPort {
 		if (this.disconnected) return;
 		this.disconnected = true;
 		for (const [id, pending] of this.pending) {
+			clearTimeout(pending.timeout);
 			const failure = !this.closing && pending.dispatched && pending.uncertainOnDisconnect
 				? new NativeOperationUncertainError(pending.method, id)
 				: error;

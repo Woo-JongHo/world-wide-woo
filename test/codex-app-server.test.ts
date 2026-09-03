@@ -366,4 +366,20 @@ describe("CodexAppServer", () => {
 		expect(error.message).not.toContain(secret);
 		expect(Array.from(error.message).length).toBeLessThan(4_200);
 	});
+
+	test("fails a stalled turn start as uncertain instead of waiting forever", async () => {
+		const transport = new FakeJsonLineTransport();
+		const server = await CodexAppServer.connectTransport(transport, { requestTimeoutMs: 10 });
+		transport.hold.add("turn/start");
+
+		await expect(server.startTurn({
+			threadId: "thread-1",
+			text: "continue",
+			cwd: "/workspace",
+			model: "gpt-5.4",
+			approvalPolicy: "on-request",
+			sandboxPolicy: { type: "workspaceWrite", writableRoots: ["/workspace"], networkAccess: false, excludeTmpdirEnvVar: false, excludeSlashTmp: false },
+		})).rejects.toBeInstanceOf(NativeOperationUncertainError);
+		await server.close();
+	});
 });
