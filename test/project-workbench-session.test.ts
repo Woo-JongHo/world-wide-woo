@@ -7,7 +7,7 @@ import type { NativeHarnessPort } from "../src/application/native-harness.js";
 import { ProjectWorkbench, type ProjectWorkbenchOptions, type WorkbenchActivityJournal } from "../src/application/project-workbench.js";
 import { WooEntry } from "../src/application/woo-entry.js";
 import type { SessionRepository, TodoStore } from "../src/application/ports.js";
-import { TodoLedger } from "../src/application/todo-ledger";
+import { TodoLedger, TodoWriteConflictError } from "../src/application/todo-ledger";
 import { ReviewService } from "../src/application/review-service";
 
 import type { NativeApprovalResolution, NativeHarnessEvent, NativeThreadList, NativeThreadRead, NativeThreadResume, NativeThreadSnapshot, NativeThreadStart, NativeThreadSummary, NativeTurnInterrupt, NativeTurnSnapshot, NativeTurnStart } from "../src/domain/native-session.js";
@@ -21,6 +21,21 @@ import { sha256ReviewDigest } from "../src/infrastructure/review-adapters.js";
 class MemoryTodoStore implements TodoStore {
 	async read() { return null; }
 	async compareAndSwap() { return "written" as const; }
+}
+
+class TrackingTodoStore implements TodoStore {
+	public writes = 0;
+
+	public constructor(public document: import("../src/domain/todos.js").TodoDocument | null) {}
+
+	async read() { return this.document; }
+
+	async compareAndSwap(expectedRevision: number | null, next: import("../src/domain/todos.js").TodoDocument) {
+		if (expectedRevision !== (this.document?.revision ?? null)) return "conflict" as const;
+		this.document = next;
+		this.writes += 1;
+		return "written" as const;
+	}
 }
 
 class MemoryEvents implements SessionRepository {
@@ -314,6 +329,93 @@ describe("createProjectWorkbenchSession", () => {
 		expect(resumeReconciliations).toEqual(expect.arrayContaining([
 			expect.objectContaining({ payload: expect.objectContaining({ method: "thread/resume-local-reconciled", historyHydrated: false }) }),
 		]));
+	});
+
+	test("bootstraps a missing or empty resumed Todo once without replacing an existing Todo", async () => {
+		const activity = (sequence: number, method: string, payload: Record<string, unknown> = {}) => ({
+			schemaVersion: 1 as const, id: `resume-todo-${sequence}`, projectId: nativeThreadJournalKey("thread"), sequence,
+			recordedAt: new Date(0).toISOString(), kind: "progress" as const, phase: "completed" as const, provider: "native",
+			nativeRefs: { threadId: "thread", turnId: "root-turn" },
+			sourceDigest: `sha256:${String(sequence).padStart(64, "0")}`, payload: { method, ...payload },
+		});
+		const journal: WorkbenchActivityJournal = {
+			append: async (input) => ({ appended: true, activity: { ...input, schemaVersion: 1, id: crypto.randomUUID(), sequence: 3, recordedAt: new Date(0).toISOString() } }),
+			readAll: async () => [
+				activity(1, "turn/started"),
+				activity(2, "turn/plan/updated", { params: { plan: [{ step: "resumed root plan", status: "inProgress" }] } }),
+			],
+		};
+		const syncCalls = new Map<TrackingTodoStore, number>();
+		const open = async (store: TrackingTodoStore) => createProjectWorkbenchSession("/ignored", { resumeThreadId: "thread" }, {
+			openWorkspace: async () => workspace,
+			acquireWriterLease: async () => ({ release: async () => undefined }),
+			connectNative: async () => new FakeNative([]),
+			createJournal: () => journal,
+			createTodoStore: () => store,
+			createTodoLedger: (sessionId, todoStore, events) => {
+				const ledger = new TodoLedger(sessionId, todoStore, events);
+				const syncNativePlan = ledger.syncNativePlan.bind(ledger);
+				ledger.syncNativePlan = async (...args) => {
+					syncCalls.set(store, (syncCalls.get(store) ?? 0) + 1);
+					return syncNativePlan(...args);
+				};
+				return ledger;
+			},
+			createSessionEvents: () => new MemoryEvents(),
+			createTNoteSource: () => ({ readAll: async () => [], create: async () => { throw new Error("not used"); } }),
+			createComposerDraft: async () => ({ initialText: "", save: async () => undefined, clear: async () => undefined }),
+		});
+
+		const emptyTodo = { version: 1 as const, revision: 0, updatedAt: new Date(0).toISOString(), ownerSessionId: scopedTodoSessionId("thread"), storyId: null, title: "비어 있는 Todo", items: [] };
+		for (const store of [new TrackingTodoStore(null), new TrackingTodoStore(emptyTodo)]) {
+			const session = await open(store);
+			await session.close();
+			expect(store.document).toMatchObject({ title: "현재 요청을 처리합니다.", items: [{ content: "resumed root plan", status: "in_progress" }] });
+			expect(store.writes).toBe(1);
+			expect(syncCalls.get(store)).toBe(1);
+			const reopened = await open(store);
+			expect(reopened.workbench.snapshot.todo).toEqual(store.document);
+			expect(store.writes).toBe(1);
+			expect(syncCalls.get(store)).toBe(1);
+			await reopened.close();
+		}
+
+		const existing = new TrackingTodoStore({
+			version: 1, revision: 4, updatedAt: new Date(0).toISOString(), ownerSessionId: scopedTodoSessionId("thread"), storyId: null,
+			title: "보존할 기존 Todo", items: [{ id: "todo-1", content: "사용자 작업", status: "pending", evidenceIds: [], details: [] }],
+		});
+		const session = await open(existing);
+		expect(session.workbench.snapshot.todo).toEqual(existing.document);
+		expect(existing.writes).toBe(0);
+		expect(syncCalls.get(existing) ?? 0).toBe(0);
+		await session.close();
+	});
+
+	test("does not wait for resumed Todo bootstrap and exposes rejected and conflicted writes", async () => {
+		const activity = (sequence: number, method: string, payload: Record<string, unknown> = {}) => ({
+			schemaVersion: 1 as const, id: `resume-todo-failure-${sequence}`, projectId: nativeThreadJournalKey("thread"), sequence, recordedAt: new Date(0).toISOString(), kind: "progress" as const, phase: "completed" as const, provider: "native", nativeRefs: { threadId: "thread", turnId: "root-turn" }, sourceDigest: `sha256:${String(sequence).padStart(64, "0")}`, payload: { method, ...payload },
+		});
+		const journal: WorkbenchActivityJournal = {
+			append: async (input) => ({ appended: true, activity: { ...input, schemaVersion: 1, id: crypto.randomUUID(), sequence: 3, recordedAt: new Date(0).toISOString() } }),
+			readAll: async () => [activity(1, "turn/started"), activity(2, "turn/plan/updated", { params: { plan: [{ step: "resumed root plan", status: "inProgress" }] } })],
+		};
+		const open = async (configure: (ledger: TodoLedger) => void) => createProjectWorkbenchSession("/ignored", { resumeThreadId: "thread" }, {
+			openWorkspace: async () => workspace, acquireWriterLease: async () => ({ release: async () => undefined }), connectNative: async () => new FakeNative([]), createJournal: () => journal, createTodoStore: () => new TrackingTodoStore(null),
+			createTodoLedger: (sessionId, store, events) => { const ledger = new TodoLedger(sessionId, store, events); configure(ledger); return ledger; },
+			createSessionEvents: () => new MemoryEvents(), createTNoteSource: () => ({ readAll: async () => [], create: async () => { throw new Error("not used"); } }), createComposerDraft: async () => ({ initialText: "", save: async () => undefined, clear: async () => undefined }),
+		});
+		let releaseSlow!: () => void;
+		const slowGate = new Promise<void>((resolve) => { releaseSlow = resolve; });
+		const slow = await open((ledger) => { const sync = ledger.syncNativePlan.bind(ledger); ledger.syncNativePlan = async (flow) => { await slowGate; return sync(flow); }; });
+		expect(slow.workbench.snapshot.phase).toBe("ready");
+		releaseSlow();
+		await slow.close();
+		const rejected = await open((ledger) => { ledger.syncNativePlan = async () => { throw new Error("sync rejected"); }; });
+		await rejected.close();
+		expect(rejected.workbench.snapshot.actionResult).toMatchObject({ kind: "todo", title: "Todo 자동 동기화 보류", body: expect.stringContaining("sync rejected") });
+		const conflicted = await open((ledger) => { ledger.syncNativePlan = async () => { throw new TodoWriteConflictError(null, { version: 1, revision: 0, updatedAt: new Date(0).toISOString(), ownerSessionId: scopedTodoSessionId("thread"), storyId: null, title: "pending", items: [] }, null); }; });
+		await conflicted.close();
+		expect(conflicted.workbench.snapshot.actionResult).toMatchObject({ kind: "todo", title: "Todo 자동 동기화 보류", body: expect.stringContaining("currentSource") });
 	});
 
 	test("resumes an in-progress root turn through repeated markers and applies its later Plan and action", async () => {
