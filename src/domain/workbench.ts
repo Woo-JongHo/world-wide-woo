@@ -47,7 +47,12 @@ export interface WorkbenchContextUsage {
 export interface WorkbenchModelUsage {
 	readonly model: string;
 	readonly effort: string | null;
-	readonly turns: number;
+	/** Interactive root turns with observed token usage in this WWW process. */
+	readonly interactiveRootTurns: number;
+	readonly interactiveTokens: number;
+	/** Detached model invocations owned by this WWW process. */
+	readonly detachedInvocations: number;
+	readonly detachedTokens: number;
 	readonly totalTokens: number;
 }
 
@@ -68,6 +73,12 @@ export interface WorkbenchWooEntrySnapshot {
 	readonly state: "loading" | "ready" | "blocked";
 	readonly revision: number;
 	readonly collectedAt: string | null;
+}
+
+export interface WorkbenchResumeCoverage {
+	readonly mode: "fresh" | "partial-local-journal";
+	readonly processAttachedAt: string;
+	readonly priorProviderHistoryHydrated: false;
 }
 
 export interface WorkbenchModelSelection {
@@ -105,6 +116,7 @@ export interface WorkbenchSnapshot {
 	effort?: string | null;
 	contextUsage?: WorkbenchContextUsage | null;
 	sessionUsage?: WorkbenchSessionUsage;
+	resumeCoverage?: WorkbenchResumeCoverage;
 	sessionGoal?: WorkbenchSessionGoal | null;
 	permissionMode?: WorkbenchPermissionMode;
 	collaborationMode?: WorkbenchCollaborationMode;

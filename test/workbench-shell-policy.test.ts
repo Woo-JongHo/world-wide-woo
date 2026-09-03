@@ -3,12 +3,14 @@ import { stripTerminalSequences, type Component } from "@earendil-works/pi-tui";
 import { renderLayoutFrame } from "@earendil-works/pi-tui/dist/layout.js";
 import {
 	createWorkbenchViewHost,
+	workbenchEscapeView,
 	workbenchActivityIndicator,
 	workbenchFrameTitle,
 	workbenchModelSettings,
 	workbenchPaneNotice,
 	workbenchReceiptClearsComposer,
 	workbenchReceiptNotice,
+	workbenchStatsTargetCommand,
 	workbenchViewModeForCommand,
 	workbenchViewModeCommand,
 } from "../src/presentation/tui/workbench-shell";
@@ -118,10 +120,26 @@ describe("native workbench shell receipt policy", () => {
 		}));
 	});
 
-	test("routes dashboard and monitor to distinct local view modes", () => {
+	test("routes dashboard, monitor, map, and stats to distinct local view modes", () => {
 		expect(workbenchViewModeCommand("/dashboard")).toBe("dashboard");
 		expect(workbenchViewModeCommand(" /monitor ")).toBe("monitor");
+		expect(workbenchViewModeCommand(" /map ")).toBe("map");
+		expect(workbenchViewModeCommand(" /stats ")).toBe("stats");
 		expect(workbenchViewModeCommand("/monitor details")).toBeNull();
+		expect(workbenchStatsTargetCommand("/stats")).toBe("session");
+		expect(workbenchStatsTargetCommand("/stats diagnostics")).toBe("diagnostics");
+		expect(workbenchStatsTargetCommand("/stats latest")).toBe("latest");
+		expect(workbenchStatsTargetCommand("/stats #7")).toBe(7);
+		expect(workbenchStatsTargetCommand("/stats nope")).toBe("invalid");
+		expect(WORKBENCH_SLASH_COMMANDS.find((command) => command.name === "stats")?.argumentHint).toBe("[diagnostics|latest|#n]");
+		expect(parseWorkbenchShellCommand("/source activity-1")).toEqual({ type: "activity.select", activityId: "activity-1" });
+	});
+
+	test("returns from the map to the view that opened it", () => {
+		expect(workbenchEscapeView("map", "dashboard")).toBe("dashboard");
+		expect(workbenchEscapeView("map", "monitor")).toBe("monitor");
+		expect(workbenchEscapeView("stats", "dashboard")).toBe("dashboard");
+		expect(workbenchEscapeView("dashboard", "dashboard")).toBeNull();
 	});
 
 	test("preserves dashboard layout viewports while switching views", () => {
@@ -141,8 +159,10 @@ describe("native workbench shell receipt policy", () => {
 			{ color: value => value, component: text("monitor-trace") },
 			{ color: value => value, component: text("monitor-todo") },
 		);
-		let mode: "dashboard" | "monitor" = "dashboard";
-		const host = createWorkbenchViewHost(() => mode, dashboard.component, monitor.component);
+		const map = text("INIT-001 → EP-010 → ST-010-01");
+		const stats = text("PURPOSE · ACTION · RESULT");
+		let mode: "dashboard" | "monitor" | "map" | "stats" = "dashboard";
+		const host = createWorkbenchViewHost(() => mode, dashboard.component, monitor.component, map, stats);
 
 		let frame = renderLayoutFrame(host, 120, 24, () => undefined);
 		expect(frame.primaryScrollView).toBe(dashboard.leftScroll);
@@ -152,6 +172,14 @@ describe("native workbench shell receipt policy", () => {
 		frame = renderLayoutFrame(host, 120, 24, () => undefined);
 		expect(frame.primaryScrollView).toBe(monitor.leftScroll);
 		expect(stripTerminalSequences(frame.lines.join("\n"))).toContain("monitor-chat");
+
+		mode = "map";
+		frame = renderLayoutFrame(host, 120, 24, () => undefined);
+		expect(stripTerminalSequences(frame.lines.join("\n"))).toContain("INIT-001 → EP-010 → ST-010-01");
+
+		mode = "stats";
+		frame = renderLayoutFrame(host, 120, 24, () => undefined);
+		expect(stripTerminalSequences(frame.lines.join("\n"))).toContain("PURPOSE · ACTION · RESULT");
 	});
 
 	test("normalizes native model telemetry into a selectable Codex setting", () => {

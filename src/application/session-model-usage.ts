@@ -31,7 +31,10 @@ export class SessionModelUsageAccumulator implements SessionModelUsageSource {
 		this.usage.set(key, Object.freeze({
 			model: observation.model,
 			effort,
-			turns: (current?.turns ?? 0) + 1,
+			interactiveRootTurns: 0,
+			interactiveTokens: 0,
+			detachedInvocations: (current?.detachedInvocations ?? 0) + 1,
+			detachedTokens: (current?.detachedTokens ?? 0) + observation.totalTokens,
 			totalTokens: (current?.totalTokens ?? 0) + observation.totalTokens,
 		}));
 		for (const listener of this.listeners) {

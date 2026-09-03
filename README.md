@@ -51,6 +51,7 @@ WWW의 TUI는 단순한 AI 채팅창이 아니다. 현재 업무와 실행 상�
 - **Todo** — 현재 Run Plan의 읽기 전용 Projection
 - **T-note** — 완료된 질문의 Question·Reason·Result와 Chat reference
 - **Trace / Source** — Monitor에서 확인하는 Plan·Agent·Tool·Approval·Result와 출처
+- **Session Stats** — `/stats`에서 확인하는 목적·행동·결과, 속도·사용량·실패·복구의 읽기 전용 Projection
 
 Dashboard의 오른쪽 위는 T-note를 보여준다. 실행 상태를 자세히 볼 때는 같은 위치를 Monitor로 전환해 Trace·Source를 확인한다. 좁은 화면에서는 같은 내용을 한 열로 배치한다.
 
@@ -139,6 +140,7 @@ Execution Observation
 
 ## Documentation
 
+- [전체 개발 현황 Map](.www/Development-Map.md)
 - [Product Workflow](docs/workflows/PRODUCT_WORKFLOW.md)
 - [RPA Workflow](docs/workflows/RPA_WORKFLOW.md)
 - [제품 방향과 Agent 실행 경계](docs/WWW_PRODUCT_DIRECTION.md)

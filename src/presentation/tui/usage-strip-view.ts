@@ -201,7 +201,11 @@ export class UsageStripView implements Component {
 			while (pool.length > 0) {
 				const usage = pool[0];
 				if (!usage) break;
-				const chip = `${usage.model === session?.activeModel ? "● " : ""}${modelChipLabel(usage.model)} ${usage.turns}`;
+				const work = [
+					usage.interactiveRootTurns > 0 ? `i${usage.interactiveRootTurns}` : "",
+					usage.detachedInvocations > 0 ? `d${usage.detachedInvocations}` : "",
+				].filter(Boolean).join("/");
+				const chip = `${usage.model === session?.activeModel ? "● " : ""}${modelChipLabel(usage.model)} ${work || "0"}`;
 				const cost = (taken.length === 0 ? 0 : 2) + visibleWidth(chip);
 				if (used + cost > chipWidth) break;
 				used += cost;

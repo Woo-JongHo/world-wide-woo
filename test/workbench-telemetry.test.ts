@@ -14,7 +14,7 @@ describe("workbench telemetry rail", () => {
 			sessionUsage: {
 				totalTokens: 25_840,
 				unattributedTokens: 0,
-				models: [{ model: "gpt-5.6-sol", effort: "low", turns: 1, totalTokens: 25_840 }],
+				models: [{ model: "gpt-5.6-sol", effort: "low", interactiveRootTurns: 1, interactiveTokens: 25_840, detachedInvocations: 0, detachedTokens: 0, totalTokens: 25_840 }],
 			},
 			git: { branch: "main", staged: 0, unstaged: 0, untracked: 2 },
 			cwd: "/Users/tester/woo/00_project/99_www",
