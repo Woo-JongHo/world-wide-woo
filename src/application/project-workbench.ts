@@ -447,6 +447,16 @@ export class ProjectWorkbench {
 				throw new Error("재개한 native thread의 현재 turn 상태를 안전하게 판독할 수 없습니다.");
 			}
 			this.threadId = read.id;
+			const resumedTodoFlow = this.projectCurrentWorkFlow();
+			const syncResumedTodo = this.options.todos?.syncNativePlan?.bind(this.options.todos);
+			if (
+				syncResumedTodo
+				&& (!this.todo || this.todo.items.length === 0)
+				&& resumedTodoFlow.source
+				&& resumedTodoFlow.steps.length > 0
+			) {
+				this.enqueueNativeTodoSync(syncResumedTodo, resumedTodoFlow);
+			}
 			await this.appendActivity("progress", "completed", { threadId: read.id }, {
 				method: "thread/resume-local-reconciled",
 				historyHydrated: false,
