@@ -1,6 +1,6 @@
 # World Wide Woo Code Architecture
 
-- 상태: Opus review 반영 migration 진행 중
+- 상태: Opus review 반영 1차 boundary migration 완료
 - 기준: `Different tools. One project. No broken handoffs.`
 - Review: `.www/scratchpad/2026-09-04-capability-architecture-opus-review.md`
 
@@ -131,3 +131,33 @@ src/
 - 테스트 수 감소, skip/only 추가
 - 미수락 capability를 pilot로 이동해야 함
 - 기존 사용자 변경을 overwrite/stage해야 함
+
+## 1차 Migration 결과
+
+```text
+src/application/
+├── ports/
+│   ├── index.ts
+│   └── executor-port.ts
+└── session/
+    └── session-usage-tracker.ts
+
+src/infrastructure/
+└── executors/
+    ├── factory.ts
+    ├── codex-app-server.ts
+    └── pi-harness.ts
+```
+
+| Before | After | 의미 |
+|---|---|---|
+| `application/native-harness.ts` | `application/ports/executor-port.ts` | Native 전용처럼 보이던 이름을 Codex/Pi 공통 실행 계약으로 교정 |
+| `application/ports.ts` | `application/ports/index.ts` | application-owned port public boundary |
+| `infrastructure/codex-app-server.ts` | `infrastructure/executors/codex-app-server.ts` | concrete Codex executor |
+| `infrastructure/pi-harness.ts` | `infrastructure/executors/pi-harness.ts` | concrete Pi executor |
+| `infrastructure/native-harness-factory.ts` | `infrastructure/executors/factory.ts` | composition-time executor 선택 |
+| `ProjectWorkbench` 내부 usage state | `application/session/session-usage-tracker.ts` | aggregate seam을 유지한 내부 협력자 |
+| presentation의 `execFile(git status)` | `infrastructure/git-telemetry-source.ts` + application port | OS process를 presentation 밖으로 이동 |
+| presentation 인라인 history structural type | `ObservabilityHistoryReader` | application이 요구하는 read contract 명시 |
+
+이번 migration은 Workflow Engine, Runtime Registry, Feature Registry를 만들지 않았다. `ExecutorPort`는 실행 capability만 소유하며 Workflow·업무 완료·acceptance는 계속 상위 domain/Application Runtime이 소유한다.
