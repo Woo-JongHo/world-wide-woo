@@ -1,9 +1,12 @@
 import {
+	stripTerminalSequences,
 	truncateToWidth,
 	visibleWidth,
 	wrapTextWithAnsi,
 	type Component,
 } from "@earendil-works/pi-tui";
+import { homedir } from "node:os";
+import { isAlias, parseAllDocuments, stringify, visit } from "yaml";
 import type { CommandStatus } from "../../domain/output";
 import { isReasoningActivityPayload, type ProjectActivity, type ProjectActivityKind } from "../../domain/project-activity";
 import { sanitizeTerminalTextExcerpt } from "../../domain/terminal";
@@ -15,6 +18,8 @@ const INPUT_MAX_LINES = 4;
 const INPUT_MAX_CHARS = 1_200;
 const OUTPUT_MAX_LINES = 10;
 const OUTPUT_MAX_CHARS = 2_400;
+const STRUCTURED_DISPLAY_MAX_BYTES = 64 * 1024;
+const STRUCTURED_DISPLAY_MAX_LINES = 2_000;
 
 const STATUS_LABEL: Record<CommandStatus, string> = {
 	pending: "PENDING",
@@ -97,6 +102,21 @@ function clean(value: string): string {
 	return sanitizeTerminalTextExcerpt(value, OUTPUT_MAX_CHARS, "head-tail").replace(/\t/gu, "    ");
 }
 
+function replacePathPrefix(value: string, path: string, replacement: string): string {
+	const normalizedPath = path.replace(/[\\/]+$/gu, "");
+	if (!normalizedPath) return value;
+	const escaped = normalizedPath.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+	const boundary = "[\\s/\\\\\"':,;=()\\[\\]{}]";
+	return value.replace(new RegExp(`(^|${boundary})${escaped}(?=$|${boundary})`, "gu"), `$1${replacement}`);
+}
+
+/** Shortens local paths only in terminal projections; persisted native activity remains raw. */
+export function projectNativePathText(value: string, projectCwd?: string, home = homedir()): string {
+	const project = projectCwd?.replace(/[\\/]+$/gu, "");
+	const withProject = project ? replacePathPrefix(value, project, "$PROJECT") : value;
+	return replacePathPrefix(withProject, home, "~");
+}
+
 function fit(text: string, width: number): string {
 	const clipped = truncateToWidth(text, Math.max(0, width));
 	return clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)));
@@ -123,6 +143,17 @@ function stringValue(value: unknown): string | undefined {
 	if (typeof value === "string") return clean(value);
 	if (Array.isArray(value) && value.every((part) => typeof part === "string")) return clean(value.join(" "));
 	return undefined;
+}
+
+function mcpContent(value: unknown): string | undefined {
+	if (typeof value === "string") return value;
+	if (!Array.isArray(value)) return undefined;
+	const text = value.flatMap((part) => {
+		if (typeof part === "string") return [part];
+		const source = record(part);
+		return typeof source?.text === "string" ? [source.text] : [];
+	}).join("\n");
+	return text || undefined;
 }
 
 function numberValue(value: unknown): number | undefined {
@@ -177,10 +208,68 @@ export function publicPayloadProjection(value: unknown): unknown {
 	return publicValue(value);
 }
 
-function displayValue(value: unknown): string {
+function displayValue(value: unknown, projectCwd?: string): string {
 	const safe = publicValue(value);
-	if (typeof safe === "string") return safe;
-	return clean(JSON.stringify(safe));
+	if (typeof safe === "string") return projectNativePathText(safe, projectCwd);
+	return projectNativePathText(clean(JSON.stringify(safe)), projectCwd);
+}
+
+export type StructuredLanguage = "bash" | "json" | "yaml" | "markdown";
+
+export function highlightStructured(source: string, language: StructuredLanguage): string[] {
+	try {
+		const lines = syntaxHighlightPlugin.highlight(source, language);
+		return stripTerminalSequences(lines.join("\n")) === source ? lines : source.split("\n");
+	} catch {
+		return source.split("\n");
+	}
+}
+
+function isWithinStructuredDisplayBudget(value: string): boolean {
+	return Buffer.byteLength(value, "utf8") <= STRUCTURED_DISPLAY_MAX_BYTES
+		&& value.split("\n").length <= STRUCTURED_DISPLAY_MAX_LINES;
+}
+
+function prettyJson(value: string): string | undefined {
+	if (!isWithinStructuredDisplayBudget(value)) return undefined;
+	try {
+		return JSON.stringify(JSON.parse(value), null, 2);
+	} catch {
+		return undefined;
+	}
+}
+
+function prettyYaml(value: string): string | undefined {
+	if (!isWithinStructuredDisplayBudget(value)) return undefined;
+	try {
+		const documents = parseAllDocuments(value);
+		if (documents.length !== 1 || documents[0].errors.length > 0) return undefined;
+		let hasAlias = false;
+		visit(documents[0], { Alias: () => { hasAlias = true; } });
+		return hasAlias ? undefined : stringify(documents[0].toJS());
+	} catch {
+		return undefined;
+	}
+}
+
+/** Prettifies safe structured tool output within a bounded parsing budget. */
+export function structuredOutput(input: string, output: string): { value: string; language?: StructuredLanguage } {
+	let path: unknown;
+	try {
+		path = JSON.parse(input).path;
+	} catch {
+		path = input.trim();
+	}
+	const normalizedPath = typeof path === "string" ? path.toLowerCase() : "";
+	if (normalizedPath.endsWith(".yaml") || normalizedPath.endsWith(".yml")) {
+		const value = prettyYaml(output);
+		return value === undefined ? { value: output } : { value, language: "yaml" };
+	}
+	if (normalizedPath.endsWith(".md") || normalizedPath.endsWith(".markdown")) {
+		return isWithinStructuredDisplayBudget(output) ? { value: output, language: "markdown" } : { value: output };
+	}
+	const value = prettyJson(output);
+	return value === undefined ? { value: output } : { value, language: "json" };
 }
 
 function statusOf(options: WorkStepCardOptions): CommandStatus {
@@ -219,12 +308,17 @@ function projection(options: WorkStepCardOptions): PublicStepProjection {
 		?? stringValue(payload?.method)
 		?? "native-tool";
 	const normalized = `${method} ${stringValue(item?.type) ?? ""}`.toLowerCase();
-	const command = stringValue(firstValue(sources, ["command", "cmd"]));
+	const rawCommand = stringValue(firstValue(sources, ["command", "cmd"]));
 	const cwd = stringValue(firstValue(sources, ["cwd", "workingDirectory"]));
+	const command = rawCommand && projectNativePathText(rawCommand, cwd);
 	const args = firstValue(sources, ["arguments", "args", "input"]);
+	const argumentRecord = record(args);
+	const mcpResult = normalized.includes("mcptoolcall") ? record(item?.result) : undefined;
+	const mcpOutput = mcpResult?.structuredContent ?? mcpContent(mcpResult?.content);
 	const exitCode = numberValue(firstValue(sources, ["exitCode"]));
 	const durationMs = numberValue(firstValue(sources, ["durationMs"]));
-	const path = stringValue(firstValue(sources, ["path", "filePath", "targetPath"]));
+	const rawPath = stringValue(firstValue([...sources, argumentRecord], ["path", "filePath", "targetPath"]));
+	const path = rawPath && projectNativePathText(rawPath, cwd);
 	const query = stringValue(firstValue(sources, ["query", "searchQuery", "pattern"]));
 	const isCommand = command !== undefined || normalized.includes("command") || normalized.includes("bash") || normalized.includes("shell");
 	const isFileChange = options.activity?.kind === "file-change" || options.liveActivity?.kind === "file-change" || normalized.includes("filechange");
@@ -261,15 +355,19 @@ function projection(options: WorkStepCardOptions): PublicStepProjection {
 	const outputFields: Field[] = [];
 	if (options.liveActivity?.text) outputFields.push({ label: "output", value: options.liveActivity.text });
 	if (!options.liveActivity) {
-		for (const [label, keys] of [
-			["output", ["aggregatedOutput", "output", "stdout", "content"]],
-			["stderr", ["stderr"]],
-			["result", ["result", "changes", "diff"]],
-			["error", ["error", "message"]],
-			["exit", ["exitCode"]],
-		] as const) {
-			const value = firstValue(sources, keys);
-			if (value !== undefined) outputFields.push({ label, value });
+		if (mcpOutput !== undefined) {
+			outputFields.push({ label: "output", value: mcpOutput });
+		} else {
+			for (const [label, keys] of [
+				["output", ["aggregatedOutput", "output", "stdout", "content"]],
+				["stderr", ["stderr"]],
+				["result", ["result", "changes", "diff"]],
+				["error", ["error", "message"]],
+				["exit", ["exitCode"]],
+			] as const) {
+				const value = firstValue(sources, keys);
+				if (value !== undefined) outputFields.push({ label, value });
+			}
 		}
 	}
 	if (outputFields.length === 0 && options.activity?.phase === "failed") {
@@ -283,13 +381,18 @@ function projection(options: WorkStepCardOptions): PublicStepProjection {
 		exitCode,
 		durationMs,
 		input: inputFields.length > 0
-			? inputFields.map(({ label, value }) => `${label}: ${displayValue(value)}`)
+			? inputFields.map(({ label, value }) => `${label}: ${displayValue(value, cwd)}`)
 			: ["공개 입력 없음"],
 		output: outputFields.length > 0
 			? outputFields.flatMap(({ label, value }) => {
-				const rendered = displayValue(value);
-				const lines = rendered.split(/\r?\n/gu);
-				return lines.length === 1 ? [`${label}: ${rendered}`] : [label, ...lines];
+				const rendered = displayValue(value, cwd);
+				const display = /^(?:output|stdout|result)$/iu.test(label)
+					? structuredOutput(rawPath ?? path ?? "", rendered)
+					: { value: rendered };
+				const lines = display.language
+					? highlightStructured(display.value, display.language)
+					: display.value.split(/\r?\n/gu);
+				return lines.length === 1 ? [`${label}: ${lines[0]}`] : [label, ...lines];
 			})
 			: [statusOf(options) === "running" || statusOf(options) === "pending" ? "결과를 기다리는 중" : "공개 출력 없음"],
 	};
@@ -299,11 +402,11 @@ function projection(options: WorkStepCardOptions): PublicStepProjection {
 		.find((value): value is string => Boolean(value));
 	return {
 		...projected,
-		command: narratedCommand ?? projected.command,
-		what: options.narration.what,
-		why: options.narration.why ?? "",
+		command: narratedCommand ? projectNativePathText(narratedCommand, cwd) : projected.command,
+		what: projectNativePathText(options.narration.what, cwd),
+		why: projectNativePathText(options.narration.why ?? "", cwd),
 		input: options.narration.inputSummary.length > 0
-			? options.narration.inputSummary
+			? options.narration.inputSummary.map((line) => projectNativePathText(line, cwd))
 			: projected.input,
 	};
 }
@@ -423,11 +526,7 @@ export function executionLineTone(line: string, section: "input" | "output"): Ex
 }
 
 function highlightedSource(source: string, language: "bash" | "json"): string {
-	try {
-		return syntaxHighlightPlugin.highlight(source, language).join("\n");
-	} catch {
-		return language === "bash" ? semantic.executionCommand(source) : colors.text(source);
-	}
+	return highlightStructured(source, language).join("\n");
 }
 
 function highlightedWhat(projected: PublicStepProjection): string {
@@ -478,11 +577,14 @@ function boundedRows(
 	preserveTail: boolean,
 	label: "입력" | "출력",
 ): string[] {
-	const joined = clean(lines.join("\n"));
-	const clippedByChars = joined.length > maximumChars;
+	const raw = lines.join("\n");
+	const plain = stripTerminalSequences(raw);
+	// Compare and truncate only plain text. Cutting highlighted bytes can leave an
+	// unterminated escape sequence in the terminal stream.
+	const clippedByChars = plain.length > maximumChars;
 	const clipped = clippedByChars
-		? preserveTail ? joined.slice(-maximumChars) : joined.slice(0, maximumChars)
-		: joined;
+		? preserveTail ? clean(plain).slice(-maximumChars) : clean(plain).slice(0, maximumChars)
+		: raw;
 	const wrapped = clipped.split(/\r?\n/gu)
 		.flatMap((line) => wrapTextWithAnsi(line, Math.max(1, width)));
 	const omittedLines = Math.max(0, wrapped.length - maximumLines + 1);

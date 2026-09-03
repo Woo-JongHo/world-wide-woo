@@ -8,6 +8,7 @@ import {
 import type { NativeApprovalRequest } from "../../domain/native-session";
 import type { CompletionReport } from "../../domain/output";
 import { projectBackgroundWorkState, type BackgroundWorkState } from "../../domain/native-session";
+import { sanitizeCompletedAssistantResponse } from "../../domain/redaction";
 import { sanitizeTerminalTextExcerpt, sanitizeTerminalTextUnbounded } from "../../domain/terminal";
 import { projectTNoteCompletionIndex } from "../../domain/t-notes";
 import { workbenchApprovalDecisions, type WorkbenchSnapshot } from "../../domain/workbench";
@@ -403,14 +404,17 @@ export class WorkbenchChatView implements Component {
 		for (const message of snapshot.chat) {
 			if (message.role !== "assistant") continue;
 			visibleAssistantIds.add(message.id);
-			if (this.markdownInput.get(message.id) === message.content) continue;
-			const content = sanitizeTerminalTextUnbounded(message.content);
+			const inputKey = `${message.status}\0${message.content}`;
+			if (this.markdownInput.get(message.id) === inputKey) continue;
+			const content = sanitizeTerminalTextUnbounded(
+				message.status === "completed" ? sanitizeCompletedAssistantResponse(message.content) : message.content,
+			);
 			const existing = this.markdown.get(message.id);
 			if (this.markdownSource.get(message.id) !== content) {
 				if (existing) existing.setText(content);
 				else this.markdown.set(message.id, new Markdown(content, 0, 0, markdownTheme));
 			}
-			this.markdownInput.set(message.id, message.content);
+			this.markdownInput.set(message.id, inputKey);
 			this.markdownSource.set(message.id, content);
 		}
 		for (const id of this.markdown.keys()) {
@@ -633,6 +637,12 @@ export class WorkbenchChatView implements Component {
 					: []),
 			], contentWidth, semantic.noticeSurface), "");
 		}
+		if (this.snapshot.actionResult?.kind === "tnote") {
+			rows.push(...surfaceRows([
+				colors.warning(this.snapshot.actionResult.title),
+				...wrapTextWithAnsi(boundedWorkbenchMarkdown(this.snapshot.actionResult.body), contentWidth),
+			], contentWidth, semantic.noticeSurface), "");
+		}
 		if (this.activityIndicator) {
 			const frame = this.activityIndicator.frames[this.activityFrame % Math.max(1, this.activityIndicator.frames.length)] ?? "·";
 			if (contentWidth <= 2) {
@@ -735,7 +745,10 @@ function hasVisibleChatContent(snapshot: WorkbenchSnapshot): boolean {
 		|| Boolean(snapshot.liveActivity && isVisibleWorkStep(snapshot.liveActivity.kind));
 }
 
-/** Append-only summaries of completed questions only. */
+/**
+ * Right-top Dashboard pane: append-only records of completed questions only.
+ * Trace and Source stay with the selected execution in Monitor.
+ */
 export class TNotesSourceView implements Component {
 	constructor(private readonly getSnapshot: () => WorkbenchSnapshot) {}
 	invalidate(): void {}
@@ -774,6 +787,16 @@ export class WorkbenchMonitorView implements Component {
 		const live = snapshot.liveActivity
 			? `${snapshot.liveActivity.kind} · ${sanitizeTerminalTextExcerpt(snapshot.liveActivity.text || snapshot.liveActivity.method, 180, "head-tail")}`
 			: "대기 중인 실행 없음";
+		const selected = snapshot.selectedActivityId
+			? snapshot.activities.find((activity) => activity.id === snapshot.selectedActivityId)
+			: undefined;
+		const selectedSource = selected
+			? boundedPublicProjection({
+				method: selected.payload.method,
+				refs: selected.nativeRefs,
+				payload: selected.payload,
+			}).value
+			: null;
 		const rows = [
 			colors.accent("Monitor · 실행 관측"),
 			colors.muted("읽기 전용 · Chat과 Todo는 같은 Workbench 상태를 사용합니다."),
@@ -792,6 +815,10 @@ export class WorkbenchMonitorView implements Component {
 				snapshot.threadId,
 				contentWidth,
 			).length}개 실행 그룹`,
+			`${colors.secondary("Trace·Source")} · ${selected
+				? `${selected.id} · ${selected.nativeRefs.turnId ?? "turn 없음"} · ${selected.nativeRefs.itemId ?? "item 없음"}`
+				: "선택한 실행 없음"}`,
+			...(selectedSource ? [colors.muted(JSON.stringify(selectedSource))] : []),
 		];
 		return rows.flatMap((row) => wrapTextWithAnsi(row, contentWidth));
 	}

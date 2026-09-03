@@ -5,7 +5,6 @@ import {
 	wrapTextWithAnsi,
 	type Component,
 } from "@earendil-works/pi-tui";
-import { isAlias, parseAllDocuments, stringify, visit } from "yaml";
 import type {
 	CommandResultSnapshot,
 	CommandStatus,
@@ -13,8 +12,9 @@ import type {
 	DiffResultSnapshot,
 	GenericToolResultSnapshot,
 } from "../../domain/output";
-import { colors, semantic, syntaxHighlightPlugin } from "./theme";
-import { renderExecutionLine } from "./work-step-card";
+import { sanitizeTerminalTextExcerpt } from "../../domain/terminal";
+import { colors, semantic } from "./theme";
+import { highlightStructured, projectNativePathText, renderExecutionLine, structuredOutput } from "./work-step-card";
 
 const STRUCTURED_DISPLAY_MAX_BYTES = 64 * 1024;
 const STRUCTURED_DISPLAY_MAX_LINES = 2000;
@@ -34,6 +34,7 @@ const STATUS_COLOR: Record<CommandStatus, (text: string) => string> = {
 	failed: semantic.toolFailed,
 	cancelled: semantic.toolCancelled,
 };
+const STRUCTURED_FALLBACK_MAX_CHARS = 2_400;
 
 function clean(value: string): string {
 	return stripTerminalSequences(value)
@@ -60,64 +61,6 @@ function wrappedHighlighted(text: string, width: number): string[] {
 	return text.split("\n").flatMap((line) => wrapTextWithAnsi(line, Math.max(1, width)));
 }
 
-function highlight(source: string, language: string): string[] {
-	try {
-		const lines = syntaxHighlightPlugin.highlight(source, language);
-		return stripTerminalSequences(lines.join("\n")) === source ? lines : source.split("\n");
-	} catch {
-		return source.split("\n");
-	}
-}
-
-function isWithinStructuredDisplayBudget(value: string): boolean {
-	return Buffer.byteLength(value, "utf8") <= STRUCTURED_DISPLAY_MAX_BYTES
-		&& value.split("\n").length <= STRUCTURED_DISPLAY_MAX_LINES;
-}
-
-function prettyJson(value: string): string | undefined {
-	if (!isWithinStructuredDisplayBudget(value)) return undefined;
-	try {
-		return JSON.stringify(JSON.parse(value), null, 2);
-	} catch {
-		return undefined;
-	}
-}
-
-function prettyYaml(value: string): string | undefined {
-	if (!isWithinStructuredDisplayBudget(value)) return undefined;
-	try {
-		const documents = parseAllDocuments(value);
-		if (documents.length !== 1 || documents[0].errors.length > 0) return undefined;
-		let hasAlias = false;
-		visit(documents[0], { Alias: () => { hasAlias = true; } });
-		return hasAlias ? undefined : stringify(documents[0].toJS());
-	} catch {
-		return undefined;
-	}
-}
-
-function structuredOutput(input: string, output: string): { value: string; language?: string } {
-	const safeInput = clean(input);
-	const safeOutput = clean(output);
-	let path: unknown;
-	try {
-		path = JSON.parse(safeInput).path;
-	} catch {
-		path = safeInput.trim();
-	}
-	const normalizedPath = typeof path === "string" ? path.toLowerCase() : "";
-	if (normalizedPath.endsWith(".yaml") || normalizedPath.endsWith(".yml")) {
-		const value = prettyYaml(safeOutput);
-		return value === undefined ? { value: safeOutput } : { value, language: "yaml" };
-	}
-	if (normalizedPath.endsWith(".json")) {
-		const value = prettyJson(safeOutput);
-		return value === undefined ? { value: safeOutput } : { value, language: "json" };
-	}
-	const value = prettyJson(safeOutput);
-	return value === undefined ? { value: safeOutput } : { value, language: "json" };
-}
-
 function card(width: number, rows: readonly string[]): string[] {
 	if (width < 4) return rows.map((row) => fit(row, width));
 	const contentWidth = width - 4;
@@ -136,7 +79,7 @@ interface OutputLine {
 function outputLines(snapshot: CommandResultSnapshot, maximum: number): { lines: OutputLine[]; omitted: number } {
 	const lines: OutputLine[] = [];
 	for (const [stream, output] of [["stdout", snapshot.stdout], ["stderr", snapshot.stderr]] as const) {
-		for (const text of clean(output).split("\n")) {
+		for (const text of projectNativePathText(clean(output), snapshot.cwd).split("\n")) {
 			if (text || output.length > 0) lines.push({ stream, text });
 		}
 	}
@@ -149,8 +92,15 @@ function boundedLines(output: string, maximum: number): { lines: string[]; omitt
 }
 
 function boundedDisplayLines(output: string, language: string | undefined, maximum: number): { lines: string[]; omitted: number } {
-	const lines = language ? highlight(output, language) : clean(output).split("\n");
-	return { lines: maximum > 0 ? lines.slice(-maximum) : [], omitted: Math.max(0, lines.length - maximum) };
+	const plain = clean(output);
+	const allLines = plain.split("\n");
+	const selected = maximum > 0 ? allLines.slice(-maximum).join("\n") : "";
+	// Bound unstyled text first: highlighter ANSI bytes must never consume the display budget.
+	const bounded = clean(sanitizeTerminalTextExcerpt(selected, STRUCTURED_FALLBACK_MAX_CHARS, "tail"));
+	const lines = language
+		? highlightStructured(bounded, language as "json" | "yaml" | "markdown")
+		: bounded.split("\n");
+	return { lines, omitted: Math.max(0, allLines.length - maximum) };
 }
 
 function statusLabel(status: CommandStatus): string {
@@ -175,11 +125,11 @@ export class BashResultCard implements Component {
 
 	render(width: number): string[] {
 		const contentWidth = Math.max(1, width - 4);
-		const command = highlight(clean(this.snapshot.command), "bash");
+		const command = highlightStructured(projectNativePathText(clean(this.snapshot.command), this.snapshot.cwd), "bash");
 		const rows = [
 			`${semantic.assistantLabel("Bash")} · ${statusLabel(this.snapshot.status)}`,
 			...command.flatMap((line, index) => wrappedHighlighted(`${colors.muted(index === 0 ? "$" : ">")} ${line}`, contentWidth)),
-			...wrapped(`${colors.muted("cwd:")} ${clean(this.snapshot.cwd)}`, contentWidth),
+			...wrapped(`${colors.muted("cwd:")} ${projectNativePathText(clean(this.snapshot.cwd), this.snapshot.cwd)}`, contentWidth),
 		];
 		const output = outputLines(this.snapshot, Math.max(0, this.maxOutputLines));
 		if (output.omitted > 0) rows.push(colors.muted(`… ${output.omitted} earlier lines omitted`));
@@ -212,15 +162,17 @@ export class GenericToolResultCard implements Component {
 	render(width: number): string[] {
 		const contentWidth = Math.max(1, width - 4);
 		const safeInput = clean(this.snapshot.input);
-		const prettyInput = prettyJson(safeInput);
-		const input = prettyInput ?? safeInput;
-		const inputLines = prettyInput === undefined ? input.split("\n") : highlight(input, "json");
+		const structuredInput = structuredOutput("", safeInput);
+		const input = structuredInput.value;
+		const inputLines = structuredInput.language === "json"
+			? highlightStructured(input, "json")
+			: input.split("\n");
 		const rows = [
 			`${semantic.assistantLabel(clean(this.snapshot.toolName) || "Tool")} · ${statusLabel(this.snapshot.status)}`,
 			semantic.userLabel("입력:"),
 			...inputLines.flatMap((line) => wrappedHighlighted(`  ${line}`, contentWidth)),
 		];
-		const display = structuredOutput(this.snapshot.input, this.snapshot.output);
+		const display = structuredOutput(clean(this.snapshot.input), clean(this.snapshot.output));
 		const output = boundedDisplayLines(display.value, display.language, Math.max(0, this.maxOutputLines));
 		if (output.omitted > 0) rows.push(colors.muted(`… ${output.omitted} earlier lines omitted`));
 		if (output.lines.length > 0) {
