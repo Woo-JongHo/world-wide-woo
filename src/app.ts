@@ -1,10 +1,11 @@
 import { DEFAULT_SETTINGS, type WwwSettings } from "./domain/model-settings.js";
+import { buildPiExecutionSystemPrompt, type ExecutionLane } from "./infrastructure/native-harness-factory.js";
 import { createProjectWorkbenchSession } from "./infrastructure/project-workbench-session.js";
 export { listNativeThreads } from "./infrastructure/native-thread-discovery.js";
 
 export interface RunAppOptions {
-	/** Opaque Codex App Server thread id, not a legacy WWW session id. */
 	resumeThreadId?: string;
+	executionLane?: ExecutionLane;
 }
 
 export async function runApp(options: RunAppOptions = {}): Promise<void> {
@@ -13,11 +14,16 @@ export async function runApp(options: RunAppOptions = {}): Promise<void> {
 	const settingsStore = new FileSettingsStore();
 	const settings = await settingsStore.load();
 	let persistedSettings = settings;
+	const executionLane = options.executionLane ?? "codex";
 	const project = await createProjectWorkbenchSession(process.cwd(), {
 		resumeThreadId: options.resumeThreadId,
-		model: codexInteractiveModel(settings),
+		executionLane,
+		provider: executionLane === "pi" ? settings.provider : "openai-codex",
+		model: executionLane === "pi" ? settings.model : codexInteractiveModel(settings),
 		effort: settings.effort,
+		systemPrompt: executionLane === "pi" ? buildPiExecutionSystemPrompt(process.cwd()) : undefined,
 		persistModelSelection: async (selection) => {
+			if (executionLane === "pi") throw new Error("Pi Phase A 모델 변경은 새 Workbench에서만 적용할 수 있습니다.");
 			const next: WwwSettings = { provider: "openai-codex", ...selection };
 			const saved = await settingsStore.compareAndSwap(persistedSettings, next);
 			if (!saved) throw new Error("다른 WWW 프로세스가 모델 설정을 먼저 변경했습니다. 다시 선택하세요.");
@@ -25,13 +31,8 @@ export async function runApp(options: RunAppOptions = {}): Promise<void> {
 		},
 	});
 	try {
-		runProjectWorkbenchShell({
-			workbench: project.workbench,
-			cwd: project.workspace.root,
-			usage: project.usage,
-			composerDraft: project.composerDraft,
-			releaseSessionLease: project.releaseSessionLease,
-		});
+		runProjectWorkbenchShell({ workbench: project.workbench, cwd: project.workspace.root, usage: project.usage,
+			composerDraft: project.composerDraft, releaseSessionLease: project.releaseSessionLease });
 	} catch (error) {
 		await project.close();
 		throw error;

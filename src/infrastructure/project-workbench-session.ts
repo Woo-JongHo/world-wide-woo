@@ -16,7 +16,7 @@ import type { ProjectActivity } from "../domain/project-activity.js";
 import { CanonicalPromotionService } from "../application/canonical-promotion.js";
 import { ReviewService } from "../application/review-service.js";
 import { digestActivitySource, ActivityJournalStore, nativeThreadJournalKey } from "./activity-journal-store.js";
-import { CodexAppServer } from "./codex-app-server.js";
+import { createNativeHarness, type ExecutionLane, type NativeHarnessSelection } from "./native-harness-factory.js";
 import { FileComposerDraftController } from "./composer-draft-store.js";
 import { PiDetachedCodexGenerator } from "./detached-codex-generator.js";
 import { PiActivityNarrator } from "./pi-activity-narrator.js";
@@ -37,6 +37,10 @@ export const DEFAULT_TNOTE_MODEL = "gpt-5.6-luna";
 
 export interface ProjectWorkbenchSessionOptions {
 	resumeThreadId?: string;
+	executionLane?: ExecutionLane;
+	provider?: string;
+	/** WWW-owned instructions for the optional embedded Pi execution lane. */
+	systemPrompt?: string;
 	model?: string;
 	effort?: string;
 	/** Opt in to local WES policy collection and Chat context injection. */
@@ -63,7 +67,7 @@ export interface ProjectWorkbenchSession {
 export interface ProjectWorkbenchSessionFactories {
 	openWorkspace(cwd: string): Promise<ProjectWorkspace>;
 	acquireWriterLease(workspace: ProjectWorkspace, id: string): Promise<SessionLease>;
-	connectNative(): Promise<NativeHarnessPort>;
+	connectNative(input: NativeHarnessSelection): Promise<NativeHarnessPort>;
 	createJournal(directory: string): WorkbenchActivityJournal;
 	createTodoStore(path: string): TodoStore;
 	createTodoLedger(sessionId: string, store: TodoStore, events: SessionRepository): TodoLedger;
@@ -82,7 +86,7 @@ export interface ProjectWorkbenchSessionFactories {
 const productionFactories: ProjectWorkbenchSessionFactories = {
 	openWorkspace: FileProjectWorkspace.open,
 	acquireWriterLease: FileProjectWorkspace.acquireSessionLease,
-	connectNative: () => CodexAppServer.connect(),
+	connectNative: createNativeHarness,
 	createJournal: (directory) => new ActivityJournalStore(directory),
 	createTodoStore: (path) => new FileTodoStore(path),
 	createTodoLedger: (sessionId, store, events) => new TodoLedger(sessionId, store, events),
@@ -150,7 +154,16 @@ export async function createProjectWorkbenchSession(
 		todos = new ThreadScopedTodoSource(workspace, factories);
 		const auxiliaryUsage = new SessionModelUsageAccumulator();
 		const observeAuxiliaryUsage = (observation: SessionModelUsageObservation): void => auxiliaryUsage.observe(observation);
-		native = await factories.connectNative();
+		if (options.executionLane === "pi" && (!options.provider || !options.model || !options.effort)) {
+			throw new Error("Pi execution lane requires explicit provider, model, and effort");
+		}
+		native = await factories.connectNative({
+			executionLane: options.executionLane,
+			provider: options.provider ?? "openai-codex",
+			model: options.model ?? "gpt-5.6-sol",
+			effort: options.effort ?? "medium",
+			systemPrompt: options.systemPrompt,
+		});
 		const tnotes = new ThreadScopedTNoteSource(
 			factories.createTNoteSource(workspace.draftsDirectory, DEFAULT_TNOTE_MODEL, observeAuxiliaryUsage),
 		);
@@ -160,7 +173,7 @@ export async function createProjectWorkbenchSession(
 		const wooEntry = options.enableWooEntry ? factories.createWooEntry() : undefined;
 		workbench = factories.createWorkbench(native, journal, {
 			projectId,
-			provider: "openai-codex",
+			provider: options.provider ?? "openai-codex",
 			cwd: workspace.root,
 			model: options.model,
 			effort: options.effort,
