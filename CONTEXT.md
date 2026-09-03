@@ -72,6 +72,9 @@ _Avoid_: 복잡한 설계·코딩, 외부 Write, 사람 승인 대체.
 **Workflow Loop**: Blueprint의 Stage 사이에서 실행기 선택·재시도·승인·검증·완료를 조정하는 WWW의 상위 반복.
 _Avoid_: 모델과 Tool 사이를 반복하는 Native Execution Loop.
 
+**Workflow Profile**: Product·RPA처럼 업무 유형에 맞는 Stage·Handoff·Contract의 기본 구성을 선택하는 Standard의 분기.
+_Avoid_: 별도 WWW 제품, 특정 프로젝트의 값, 실행기 종류.
+
 **Agent Revision**: 같은 업무 목적을 유지하면서 Stage·Skill·모델·Context·예산 정책을 바꾼 비교 가능한 Agent 정의 버전.
 _Avoid_: 모델 이름만 바꾼 세션, 실행 중 임시 Prompt.
 
@@ -105,10 +108,10 @@ _Avoid_: 자유 형식 전달 메모, 복사·붙여넣기, 다음 역할의 추
 **Work Chain**: 하나의 업무와 역할 사이 전달을 Figma·Atlas·Linear·GitHub·Obsidian의 Artifact 및 WWW Logical ID로 연결한 추적 단위.
 _Avoid_: 도구 간 내용 복제, 외부 ID 하나를 전체 업무 ID로 사용하는 것.
 
-**RPA Work**: 기본 Workflow가 Atlas의 자동화 정의에서 시작되는 업무 유형.
+**RPA Work**: 업무 프로세스와 자동화 정의에서 시작해 입력·출력·예외·운영을 중심으로 구성되는 Workflow Profile.
 _Avoid_: WWW가 수행하는 모든 자동화, Agent Tool 실행.
 
-**Product Work**: Figma의 디자인 원본에서 시작해 Atlas의 개발 항목으로 이어지는 Web·App·Tool 업무 유형.
+**Product Work**: 사용자 문제와 제품 요구에서 시작해 기획·디자인·개발·검증을 연결하는 Web·App·Tool Workflow Profile.
 _Avoid_: 비RPA, 디자인과 무관한 모든 개발 작업.
 
 **Atlas**: 디자인 또는 자동화 요구를 개발 가능한 항목과 Dashboard로 구조화하는 업무 공간.
