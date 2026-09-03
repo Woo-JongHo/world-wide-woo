@@ -39,6 +39,7 @@ Development Map
 | Planning Package | [`INIT-001`](./planning/001-planning-package-v1/INITIATIVE.json) | [`EP-010`](./planning/artifacts/EP-010.md) | 구현됨·미수락 | [`ST-010-01~05`](./planning/artifacts/ST-010-01.md) | catalog·artifact·planning tests | 상태·Evidence event 계약 |
 | Native Workbench | 상위 Initiative 미연결 | [`EP-011`](./planning/artifacts/EP-011.md) | 보완 중·6 PR 검증 대기 | [`ST-011-06~13`](./planning/artifacts/ST-011-06.md) | [실행 Handoff](../docs/WWW_V010_EXECUTION_HANDOFF.md)·Story Evidence·[#27~32](https://github.com/Woo-JongHo/world-wide-woo/pulls) | 의존 PR 순서대로 병합 후 acceptance 재검증 |
 | Session Stats | 상위 Initiative 미연결 | [`EP-012`](./planning/artifacts/EP-012.md) | 구현 중·미수락 | [`ST-012-14~19`](./planning/artifacts/ST-012-14.md) | Planning catalog·Session Stats tests | 실제 `/stats` build 수동 검증 |
+| Observability Workspace | 상위 Initiative 미연결 | [`EP-019`](./planning/artifacts/EP-019.md) | 로컬 구현·자동 검증 완료·수동 QA 대기 | [`ST-019-01~08`](./planning/artifacts/ST-019-01.md) | [Architecture](../docs/WWW_OBSERVABILITY_VIEW_ARCHITECTURE.md)·[입력](./planning/inputs/OBS-20260904-01.md)·[Evidence](./evidence/EP-019-observability-workspace.md) | 실제 TUI에서 rotation·drilldown·live state 수동 수락 |
 
 
 ## 장기 제품 방향
