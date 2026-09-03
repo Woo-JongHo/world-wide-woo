@@ -4,176 +4,210 @@
 
 > **프로젝트와 도구가 바뀌어도 업무 방식은 유지되는 Service Lifecycle Orchestration Harness.**
 
-**World Wide Woo(WWW)**는 기획·디자인·개발·검증·배포·운영·유지보수를 여러 AI와 도구에
-배분하고, 사용자가 정의한 **업무 규칙·승인·Evidence** 아래 일관되게 관리하는 개인화
-Service Lifecycle Orchestration Harness다.
+**World Wide Woo(WWW)**는 Figma, Atlas, Linear, GitHub, Obsidian처럼 서로 다른 도구에서
+이루어지는 하나의 프로젝트를 **검증 가능한 Work Chain으로 연결하는 개인화 Service
+Lifecycle Orchestration Harness**다.
 
-WWW가 지키는 것은 특정 모델이나 도구가 아니라 사용자의 업무 방식이다. 프로젝트 환경이
-달라져도 **Workflow·Contract·Progress·Approval·Evidence**의 의미를 유지한다.
+각 역할은 자신에게 맞는 도구에서 필요한 깊이까지만 일한다. WWW는 도구를 하나로 합치거나
+원본을 복제하지 않는다. 대신 업무가 역할과 도구의 경계를 넘을 때 **무엇이 전달되어야
+하고, 무엇을 만족해야 다음 단계로 갈 수 있는지 Contract로 통제한다.**
 
-> **현재 상태:** WWW는 개발 중이다. 현재 제품은 프로젝트별 업무를 다루는 초기
-> Workbench이며, 이 문서는 완성하려는 제품의 목적과 계약을 설명한다.
+WWW가 지키는 것은 특정 AI나 도구가 아니라 사용자의 업무 방식이다. 프로젝트 환경이나
+실행기가 달라져도 **Workflow·Contract·Progress·Approval·Evidence**의 의미를 유지한다.
+
+> **현재 상태:** WWW는 개발 중이며, 현재 제품은 프로젝트별 업무를 다루는 초기
+> Workbench다. 이 README는 WWW가 지향하는 제품의 역할과 핵심 계약을 설명한다.
 
 ## Why WWW
 
-서비스를 만들고 운영하는 사람은 역할에 따라 편한 도구도, 확인해야 할 내용도 다르다.
-
-| 역할 | 주로 다루는 원본 | 필요한 관점 |
-|---|---|---|
-| PM·기획 | 요구사항·일정·의사결정 | 범위·우선순위·의존성·위험·수락 상태 |
-| 디자인 | 디자인 원본·상태·승인 | 사용자 흐름·화면 상태·결정·개발 연결 |
-| 개발 | 구조·코드·테스트·변경 이력 | 지금 하는 일·이유·결과·막힘·검증 근거 |
-| 검증·운영 | 재현·검증·배포·운영 기록 | 완료 조건·회귀·릴리스·장애 Evidence |
-
-Figma·Atlas·Linear·GitHub·Obsidian 같은 도구는 각 역할의 원본을 잘 다룬다. 문제는
-역할과 도구의 경계를 사람이 매번 연결하면서 의도, 결정, 상태와 완료 기준이 누락되거나
-다르게 해석된다는 점이다.
-
-- 프로젝트마다 같은 업무 규칙을 다시 설명해야 한다.
-- 역할마다 다른 화면과 용어를 보면서도 같은 업무를 보고 있는지 확인하기 어렵다.
-- 기획에서 디자인, 디자인에서 개발로 넘어갈 때 전달 내용과 원본의 관계가 깨진다.
-- 작업이 성공했다고 보고돼도 실제 완료 조건을 만족했는지는 별도로 확인해야 한다.
-- 모델·Skill·Context·effort 변경이 품질과 비용에 미치는 영향을 비교하기 어렵다.
-- 담당 도구가 바뀌면 계획과 작업 맥락도 함께 끊어진다.
-- 기획부터 유지보수까지 같은 기준으로 이어지는 기록이 부족하다.
-
-WWW는 도구별 기능을 한곳에 복제하지 않는다. 각 역할과 도구가 자기 원본을 소유하게
-두면서, 경계를 넘을 때 보존해야 할 내용은 Handoff Contract로 검증하고 같은 업무는
-Work Chain으로 연결한다. 사용자는 역할에 맞는 화면에서 필요한 판단과 근거를 본다.
+서비스 개발은 하나의 도구 안에서 이루어지지 않는다.
 
 ```text
-바뀔 수 있는 것                 WWW가 유지하는 것
+Designer        PM             Developer          Code
+  Figma  ───▶  Atlas  ───▶      Linear    ───▶   GitHub
+                 │
+                 │
+              Project View
 
-AI / Model                       Standard / Contract
-Subscription                     Work Chain Identity
-Client / Tool                    Progress Model
-Project Environment              Approval / Evidence
-                                 Operations View
+Long-term Decision ─────────────────────▶ Obsidian
 ```
 
-## Product Model
+디자이너는 Figma에서 화면과 사용자 경험을 만든다.
 
-WWW는 사용자의 짧은 요청을 서비스 생애주기의 업무로 연결한다.
+PM은 Atlas에서 Figma의 화면을 그대로 보면서 **어떤 기능이 존재하고, 기능들이 어떻게
+연결되어 있으며, 현재 어디까지 진행됐는지** 확인한다.
+
+개발자는 Linear에서 기능의 세부 요구사항, 실행 항목, Acceptance Criteria와 진행 상태를
+확인하고 구현한다.
+
+실제 코드와 PR, Check는 GitHub에 남고, 장기적으로 보존해야 하는 중요한 결정과 그 이유는
+Obsidian에 기록한다.
+
+문제는 각 도구 자체가 아니라 **도구와 역할 사이의 경계**다.
 
 ```text
-사용자 의도
-   ↓
-업무 유형과 필요한 Stage 결정
-   ↓
-Standard·Blueprint·Project Binding 적용
-   ↓
-역할과 도구 배분
-   ↓
-역할별 View와 Handoff Contract 적용
-   ↓
-진행 상태와 관계 관측
-   ↓
-Contract 검증·Approval·Evidence
-   ↓
-업무 수락과 다음 Stage
+Figma
+  │ 화면의 어떤 기능이 개발 대상인가?
+  ▼
+Atlas
+  │ 이 기능을 개발하려면 무엇을 해야 하는가?
+  ▼
+Linear
+  │ 실제로 무엇이 변경됐고 검증됐는가?
+  ▼
+GitHub
 ```
 
-예를 들어 `로그인 기능을 만들어줘`라는 요청은 코드 변경 하나로 끝나지 않는다.
+역할이 바뀌는 순간 업무의 의도, 원본과의 관계, 결정, 완료 조건과 검증 근거가 쉽게 끊어진다.
+WWW는 이 연결고리를 Work Chain으로 유지하고, 각 경계를 **Handoff Contract**로 검증한다.
+
+## Role Boundaries
+
+WWW는 모든 역할에게 모든 정보를 보여주지 않는다. 각 역할은 자신의 판단에 필요한
+깊이까지만 본다.
 
 ```text
-요구사항
-  → 사용자 경험과 보안 설계
-  → 개발
-  → 검증과 독립 검토
-  → 사용자 수락
-  → 배포
-  → 운영과 유지보수
+Figma   화면 / UX / 디자인 원본
+  ↓
+Atlas   화면 + 기능 + 관계 + 프로젝트 상태
+  ↓
+Linear  기능 상세 + 실행 항목 + Acceptance Criteria
+  ↓
+GitHub  실제 구현 + PR + Test + Check
 ```
 
-각 Stage는 서로 다른 AI와 도구가 담당할 수 있다. 그러나 Stage의 목적, 필요한 입력,
-완료 조건과 결과의 의미는 WWW가 일관되게 관리한다.
+### Figma
 
-## Core Concepts
+디자인의 원본이다. 화면, Component, Flow와 사용자 경험을 소유한다.
 
-### Service Lifecycle
+### Atlas
 
-WWW가 관리하는 최상위 업무 범위다.
+PM과 프로젝트 전체를 보기 위한 **View / Projection**이다. 새로운 원본을 만들기보다 Figma와
+개발 업무의 관계를 보여준다.
 
 ```text
-기획 → 디자인 → 개발 → 검증 → 배포 → 운영 → 유지보수
+로그인
+
+[Figma Preview]
+
+기능
+├─ 이메일 로그인
+├─ 로그인 실패 처리
+├─ 비밀번호 찾기
+└─ 자동 로그인
+
+Progress       3 / 4
+Development    LIN-128 ~ LIN-134
 ```
 
-모든 업무가 모든 Stage를 거치는 것은 아니다. 프로젝트와 업무 유형에 필요한 Stage를
-선택하고, 생략하거나 되돌아간 이유도 Workflow 상태의 일부로 다룬다.
+Atlas는 개발 세부사항을 모두 담지 않는다. **화면에 어떤 기능이 있고, 그 기능이 어떤 개발
+업무와 연결되어 있으며, 현재 상태가 무엇인지** 보여주는 것이 핵심이다.
 
-### Standard
+### Linear
 
-여러 프로젝트에서 반복해서 사용하는 업무 방식을 버전이 있는 Standard로 정의한다.
+개발자가 실제 업무를 수행하는 실행 영역이다. Requirement, Acceptance Criteria,
+Implementation Task, Dependency, Progress와 Validation을 관리한다. Atlas가 `무엇이 있는가`와
+`어디까지 됐는가`를 보여준다면, Linear는 **그 기능을 실제로 어떻게 완성할 것인가**를 다룬다.
 
-```text
-Standard
-├─ Blueprint       어떤 Stage를 어떤 순서로 수행하는가
-├─ Contract        무엇을 만족해야 완료로 인정하는가
-└─ Project Binding 프로젝트별 값·환경·허용 예외
-```
+### GitHub
 
-Skill은 특정 Stage를 수행하는 방법이다. Skill이 정상적으로 끝났다는 사실만으로 Standard가
-적용되거나 Contract가 충족된 것은 아니다.
+실제 코드와 변경의 원본이다. Commit, PR, Test, Check와 구현 결과를 소유한다.
 
-### Workflow
+### Obsidian
 
-Workflow는 업무를 완료하기 위해 Stage를 선택하고 연결하는 상위 흐름이다.
+장기적으로 다시 참고해야 하는 **결정과 그 이유**를 보존한다. 실행 중 발생한 모든 기록이
+아니라, 이후에도 프로젝트의 판단 근거로 사용할 내용을 남긴다.
 
-```text
-Stage 선택
-  → 역할과 도구 배정
-  → 결과 확인
-  → Contract 검증
-  → 통과 / 재작업 / 기준 보강 / 사용자 승인 / 중단
-  → 다음 Stage
-```
-
-AI는 Workflow 후보를 제안할 수 있지만, 실제 Workflow는 적용 가능한 Blueprint와 Project
-Binding을 기준으로 확정한다.
-
-### Work Chain
+## Work Chain
 
 WWW는 여러 도구의 원본을 하나의 중앙 데이터베이스로 복제하지 않는다. 각 역할과 도구가
 자신의 Truth를 소유한 상태에서 하나의 업무와 그 전달 경계를 `Logical Work Chain ID`로
 연결한다.
 
 ```text
-Product: Figma → Atlas → Linear → GitHub → Obsidian
-RPA:              Atlas → Linear → GitHub → Obsidian
+Figma Screen → Atlas Feature → Linear Issue → GitHub PR
+                    │
+                    └──────────────▶ Obsidian Decision
 ```
 
-| Tool | Ownership |
-|---|---|
-| Figma | 디자인 원본 |
-| Atlas | 개발 구조와 정의 |
-| Linear | 실행 항목과 진행 상태 |
-| GitHub | 코드·Commit·PR·Check |
-| Obsidian | 장기 의사결정과 재사용 지식 |
+각 도구는 자신의 원본을 계속 소유한다. WWW는 그 위에서 Identity, Relationship, Handoff,
+Progress, Approval과 Evidence를 관리한다.
 
-WWW는 원본을 대체하지 않고 참조, 관계와 Lifecycle 상태를 관리한다.
+## Handoff Contract
 
-### Role View와 Handoff Contract
-
-하나의 프로젝트라도 역할마다 필요한 화면은 달라야 한다. WWW의 Role View는 동일한 Work
-Chain을 PM·디자인·개발·검증의 책임에 맞게 보여준다. 역할별로 별도 상태를 만드는 것이
-아니라, 같은 업무에서 지금 판단해야 할 내용과 원본, 승인과 Evidence를 다르게 투영한다.
-
-Handoff Contract는 역할이나 도구가 바뀔 때 다음 내용이 끊기지 않았는지 확인한다.
+WWW가 가장 강하게 통제하는 것은 각 도구 안의 작성 방식이 아니라 **다음 역할로 넘어가는
+경계**다.
 
 ```text
-업무 의도와 범위
-원본 Artifact와 변경 관계
-결정과 그 이유
-현재 상태와 다음 책임
-Acceptance Criteria
-필요한 승인과 Evidence
+Figma → Atlas
+화면 원본이 연결되어 있는가
+주요 기능이 식별되어 있는가
+각 기능의 Identity가 유지되는가
+
+Atlas → Linear
+개발해야 할 기능이 명확한가
+원본 화면과 기능의 의도·범위가 전달됐는가
+Acceptance Criteria가 존재하는가
+
+Linear → GitHub
+Issue와 실제 변경이 연결되어 있는가
+Acceptance Criteria가 검증됐는가
+Test / Check Evidence가 존재하는가
 ```
 
-WWW가 기획·디자인·개발을 강하게 결합한다는 것은 모두를 하나의 도구에 가두는 뜻이 아니다.
-각자 편한 도구를 사용하되 다음 역할이 추측이나 복사·붙여넣기에 의존하지 않도록 업무의
-의미와 완료 조건을 보존한다는 뜻이다.
+WWW가 강하게 규제하는 것은 정보의 양이 아니다. **다음 역할이 추측이나 복사·붙여넣기에
+의존하지 않아도 될 만큼 업무의 의미가 보존되었는가**를 검증한다.
 
-### Progress Model
+## Workflow
+
+WWW는 하나의 요청을 필요한 Service Lifecycle Stage로 연결한다.
+
+```text
+기획 → 디자인 → 개발 → 검증 → 배포 → 운영 → 유지보수
+```
+
+모든 업무가 모든 Stage를 거칠 필요는 없다. 업무 유형과 프로젝트 규칙에 따라 필요한
+Stage를 선택하고, 각 Stage의 완료 조건과 다음 Handoff를 관리한다.
+
+```text
+"로그인 기능을 만들어줘"
+  ↓
+Design: Figma 화면과 사용자 흐름
+  ↓
+Project View: Atlas 기능 정의와 관계
+  ↓
+Development: Linear 실행 항목
+  ↓
+Implementation: GitHub Code / PR / Test
+  ↓
+Validation / Approval / Evidence
+  ↓
+Accepted
+```
+
+AI는 각 Stage의 작업을 수행하거나 Workflow를 제안할 수 있지만, **무엇을 만족해야 다음
+단계로 이동할 수 있는지는 WWW의 Contract가 결정한다.**
+
+## Standard and Contract
+
+프로젝트마다 같은 업무 방식을 다시 설명하지 않도록 반복 가능한 규칙을 Standard로 정의한다.
+
+```text
+Standard
+├─ Blueprint
+├─ Contract
+└─ Project Binding
+```
+
+- **Blueprint** — 어떤 Stage와 Handoff를 사용하는가
+- **Contract** — 무엇을 만족해야 통과할 수 있는가
+- **Project Binding** — 프로젝트별 환경, 값과 허용 예외
+- **Skill** — 특정 작업을 실제로 수행하는 방법
+
+Skill이 성공했다고 해서 업무가 자동으로 완료되는 것은 아니다. 실행 결과는 Contract와
+Evidence를 통해 별도로 검증한다.
+
+## Progress and Evidence
 
 도구가 보고하는 성공과 사용자가 판단하는 업무 완료는 다르다.
 
@@ -189,17 +223,8 @@ Evidence accepted
 Work accepted
 ```
 
-WWW는 **작업 성공과 업무 수락을 분리한다.** 사용자는 자신의 기준에서 무엇을 시작, 진행,
-대기, 위험과 완료로 판단할지 Progress Model로 정의한다.
-
-### Approval
-
-사용자 판단이나 외부 변경이 필요한 경계에서는 결정의 대상과 영향을 먼저 보여준다.
-승인은 특정 작업, 입력과 대상에 결속되며 대상이나 범위가 바뀌면 다시 확인한다.
-
-### Evidence
-
-완료는 주장보다 Evidence를 우선한다.
+WWW는 **작업 성공과 업무 수락을 분리한다.** Evidence는 작업에 따라 다음과 같은 형태가
+될 수 있다.
 
 ```text
 Test result
@@ -213,70 +238,89 @@ Human approval
 External system result
 ```
 
-어떤 Evidence가 필요한지는 Stage의 Contract가 결정한다. WWW는 관측하지 않은 결과를 성공으로
-추정하지 않으며 `PASS`, `PARTIAL`, `BLOCKED`를 구분한다.
+WWW는 관측하지 않은 결과를 성공으로 추정하지 않는다.
 
 ## Observable Work
 
-개발자에게 WWW의 화면은 AI의 최종 답변만 보여주는 곳이 아니다. 지금 무엇을 하고 있고,
-정해진 규칙대로 제대로 수행하고 있는지를 확인하는 작업 창이다. 사용자는 다음 질문에
-답할 수 있어야 한다.
+WWW의 Workbench는 AI의 최종 답변만 보여주는 화면이 아니다. 사용자는 지금 무엇을 하고
+있는지, 왜 하는지, 무엇이 막혔는지, 무엇으로 완료를 증명하는지와 다음 행동을 확인할 수
+있어야 한다.
 
-- 지금 무엇을 하고 있으며 왜 하는가?
-- 어떤 Plan 항목이 진행 중인가?
-- 어떤 AI와 도구가 참여했는가?
-- 어떤 승인이나 사용자 개입이 있었는가?
-- 무엇이 실패하거나 막혔는가?
-- 다음 행동은 무엇인가?
-- 완료를 뒷받침하는 Evidence가 존재하는가?
-- 이전 작업보다 Token·시간·재시도·품질이 개선됐는가?
+현재 초기 Workbench의 TUI는 다음 책임으로 나뉜다.
 
-화면은 책임에 따라 분리한다.
+```text
+┌──────────────────────────────────────────────────────────┐
+│ Project · Model · 상태 · 승인 정책                      │ Header
+├───────────────────────────────────┬──────────────────────┤
+│                                   │ T-note / Trace       │
+│ Chat                              │ 질문 결과와 실행 근거│
+│ 대화와 공개 가능한 중간 작업     ├──────────────────────┤
+│                                   │ Todo                 │
+│                                   │ 현재 Run Plan        │
+├───────────────────────────────────┴──────────────────────┤
+│ Composer · 사용자 입력                                  │
+├──────────────────────────────────────────────────────────┤
+│ Context · 사용량 · 작업 상태                            │ Status
+└──────────────────────────────────────────────────────────┘
+```
 
 ```text
 Chat    사용자와 AI의 대화 및 공개 가능한 중간 작업
-Todo    현재 Run Plan의 read-only Projection
-T-note  완료된 질문의 질문·이유·결과와 Chat reference
+Todo    현재 Run Plan
+T-note  완료된 질문과 결과
 Trace   Plan·Agent·Tool·Approval·Result·Source
 ```
 
-WWW는 모델의 hidden reasoning을 노출하지 않는다. 관측 가능한 활동과 Evidence만 다룬다.
+이 배치는 고정된 최종 Dashboard가 아니다. 현재는 개발자가 하나의 Run을 관측하는
+Workbench이고, 장기적으로는 같은 Work Chain을 역할별 깊이에 맞게 보여주는 Role
+Projection으로 확장한다. WWW는 모델의 hidden reasoning을 노출하지 않고 관측 가능한
+활동과 Evidence만 다룬다.
 
 ## What WWW Owns
 
 ```text
 Service Lifecycle
+
 Workflow
 Standard / Blueprint / Contract
 Project Binding
-Progress Model
-Approval / Validation / Evidence
+
 Work Chain Identity
-Role View / Handoff Contract
-Work Projection
+Handoff Contract
+
+Progress
+Approval
+Validation
+Evidence
+
+Role Projection
+Observable Work
 ```
 
-WWW의 핵심은 AI가 일을 하게 만드는 것만이 아니다. **한 프로젝트의 기획·디자인·개발을
-검증 가능한 업무 관계로 결합하고, 역할마다 필요한 화면과 내용을 제공하며, 무엇을
-만족해야 완료인지 일관되게 관리하는 것**이다.
+WWW의 핵심은 모든 도구를 하나로 합치는 것이 아니다. **각 역할은 자신에게 맞는 도구에서
+일하고, WWW는 그 업무가 다음 역할로 넘어갈 때 의미와 완료 조건이 끊어지지 않도록 연결과
+규칙을 소유한다.**
 
 ## What WWW Is Not
 
-- 특정 Coding Agent를 대체하기 위한 또 하나의 범용 Coding Agent
-- 여러 AI·Model·Provider를 묶어서 제공하는 배포판
+- 특정 Coding Agent를 대체하는 또 하나의 범용 Coding Agent
+- 여러 AI·Model·Provider를 묶어 제공하는 배포판
 - Figma·Linear·GitHub·Obsidian의 원본을 복제하는 중앙 데이터베이스
+- 모든 역할에게 동일한 정보를 보여주는 프로젝트 관리 도구
 - 모델의 hidden reasoning을 보여주는 관찰 도구
-- 도구의 `success`를 그대로 업무 완료로 판단하는 시스템
-- 많은 Pane이나 Dashboard 자체를 목적으로 하는 TUI
+- Tool이나 Agent의 `success`를 그대로 업무 완료로 판단하는 시스템
+- Dashboard나 Pane 자체를 목적으로 하는 TUI
 
 ## Design Principles
 
-- **WWW owns the lifecycle**: 도구가 바뀌어도 Workflow·Progress·Approval·Evidence의 의미를 유지한다.
-- **Evidence before completion**: 작업 성공과 업무 수락을 분리한다.
+- **WWW owns the lifecycle**: 도구와 실행기가 바뀌어도 Workflow와 완료의 의미를 유지한다.
+- **Strong boundaries, loose tools**: 각 도구의 사용 자유는 유지하되 역할 사이의 Handoff는 엄격하게 검증한다.
+- **Right depth for each role**: 모든 사람이 모든 정보를 보는 대신 역할에 필요한 깊이까지만 보여준다.
+- **Evidence before completion**: 실행 성공과 업무 수락을 분리한다.
 - **Observed before inferred**: 관측하지 않은 관계나 결과를 사실처럼 표시하지 않는다.
 - **One owner per truth**: 각 시스템의 원본 소유권을 유지하고 reference로 연결한다.
 - **Schema-EN / Prose-KO**: 기계가 읽는 identifier와 schema는 영어, 사람을 위한 설명과 화면은 한국어를 사용한다.
-- **Human authority**: AI가 제안하고 검증해도 최종 승인 권한은 사용자에게 있다.
+- **Human authority**: AI가 실행·제안·검증해도 최종 승인 권한은 사용자에게 있다.
 
 ## Documentation
 
@@ -288,7 +332,7 @@ WWW의 핵심은 AI가 일을 하게 만드는 것만이 아니다. **한 프로
 - [README 구조 조사](docs/README_STRUCTURE_RESEARCH.md)
 - [릴리스 절차](docs/RELEASE_V010.md)
 
-내부 구조와 개발·설치·검증 절차는 README에서 반복하지 않고 해당 문서와 프로젝트 명령을
+세부 Architecture, 설치·개발·검증 절차와 구현 계획은 README에서 반복하지 않고 각 문서를
 정본으로 사용한다.
 
 ## License
