@@ -14,7 +14,7 @@ import type {
 	GenericToolResultSnapshot,
 } from "../../domain/output";
 import { colors, semantic, syntaxHighlightPlugin } from "./theme";
-import { renderExecutionLine } from "./work-step-card";
+import { projectNativePathText, renderExecutionLine } from "./work-step-card";
 
 const STRUCTURED_DISPLAY_MAX_BYTES = 64 * 1024;
 const STRUCTURED_DISPLAY_MAX_LINES = 2000;
@@ -136,7 +136,7 @@ interface OutputLine {
 function outputLines(snapshot: CommandResultSnapshot, maximum: number): { lines: OutputLine[]; omitted: number } {
 	const lines: OutputLine[] = [];
 	for (const [stream, output] of [["stdout", snapshot.stdout], ["stderr", snapshot.stderr]] as const) {
-		for (const text of clean(output).split("\n")) {
+		for (const text of projectNativePathText(clean(output), snapshot.cwd).split("\n")) {
 			if (text || output.length > 0) lines.push({ stream, text });
 		}
 	}
@@ -175,11 +175,11 @@ export class BashResultCard implements Component {
 
 	render(width: number): string[] {
 		const contentWidth = Math.max(1, width - 4);
-		const command = highlight(clean(this.snapshot.command), "bash");
+		const command = highlight(projectNativePathText(clean(this.snapshot.command), this.snapshot.cwd), "bash");
 		const rows = [
 			`${semantic.assistantLabel("Bash")} · ${statusLabel(this.snapshot.status)}`,
 			...command.flatMap((line, index) => wrappedHighlighted(`${colors.muted(index === 0 ? "$" : ">")} ${line}`, contentWidth)),
-			...wrapped(`${colors.muted("cwd:")} ${clean(this.snapshot.cwd)}`, contentWidth),
+			...wrapped(`${colors.muted("cwd:")} ${projectNativePathText(clean(this.snapshot.cwd), this.snapshot.cwd)}`, contentWidth),
 		];
 		const output = outputLines(this.snapshot, Math.max(0, this.maxOutputLines));
 		if (output.omitted > 0) rows.push(colors.muted(`… ${output.omitted} earlier lines omitted`));

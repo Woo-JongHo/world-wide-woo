@@ -1,12 +1,15 @@
 import { describe, expect, test } from "bun:test";
+import { homedir } from "node:os";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
 import type { ProjectActivity } from "../src/domain/project-activity";
 import { projectWorkFlow, type DplanHash } from "../src/domain/work-steps";
 import {
 	executionLineTone,
 	ObservationCard,
+	projectNativePathText,
 	WorkStepCard,
 } from "../src/presentation/tui/work-step-card";
+import { BashResultCard } from "../src/presentation/tui/result-cards";
 
 const THREAD = "thread-highlight";
 const TURN = "turn-highlight";
@@ -141,6 +144,109 @@ describe("WorkStepCard executor highlighting", () => {
 		expect(text.some((line) => line.includes("⟦Exit: 0⟧"))).toBe(true);
 		expect(text.at(-1)).toStartWith("└───");
 		expect(rendered.every((line) => visibleWidth(line) === 88)).toBe(true);
+	});
+
+	test("shortens repeated native paths at the presentation boundary without conflating external paths", () => {
+		const project = `${homedir()}/very-long-project`;
+		const outside = `${homedir()}/other-project/src/app.ts`;
+		const activity = commandActivity(
+			`${project}/src/app.ts\n${outside}`,
+		);
+		const item = (activity.payload.params as { item: Record<string, unknown> }).item;
+		item.cwd = project;
+		item.command = `bun test ${project}/test/work-step-card-highlight.test.ts`;
+		const rendered = stripTerminalSequences(new WorkStepCard({
+			stepNumber: 1,
+			activity,
+			narration: {
+				what: `검증 ${project}/src/app.ts`,
+				why: `결과 ${project}/src/app.ts를 확인합니다.`,
+				inputSummary: [`command: bun test ${project}/test/work-step-card-highlight.test.ts`],
+				source: "model",
+			},
+		}).render(120).join("\n"));
+
+		expect(rendered).toContain("$PROJECT/src/app.ts");
+		expect(rendered).toContain("$PROJECT/test/work-step-card-highlight.test.ts");
+		expect(rendered).toContain("~/other-project/src/app.ts");
+		expect(rendered).not.toContain(project);
+		expect(item.command).toBe(`bun test ${project}/test/work-step-card-highlight.test.ts`);
+		expect(item.aggregatedOutput).toBe(`${project}/src/app.ts\n${outside}`);
+		expect(rendered.split("\n").every((line) => visibleWidth(line) === 120)).toBe(true);
+	});
+
+	test("projects project, home, sibling, outside, false-prefix, and Windows paths on component boundaries", () => {
+		const home = "/Users/ada";
+		const project = "/Users/ada/woo/www";
+		const windowsHome = "C:\\Users\\ada";
+		const windowsProject = "C:\\Users\\ada\\woo\\www";
+		const cases = [
+			{ value: `${project}/src/app.ts`, cwd: project, home, expected: "$PROJECT/src/app.ts" },
+			{ value: `${home}/notes/todo.md`, cwd: project, home, expected: "~/notes/todo.md" },
+			{ value: `${home}/woo/www-issue-23/src/app.ts`, cwd: project, home, expected: "~/woo/www-issue-23/src/app.ts" },
+			{ value: "/tmp/outside.txt", cwd: project, home, expected: "/tmp/outside.txt" },
+			{ value: `${project}-backup/src/app.ts`, cwd: project, home, expected: "~/woo/www-backup/src/app.ts" },
+			{ value: `${windowsProject}\\src\\app.ts`, cwd: windowsProject, home: windowsHome, expected: "$PROJECT\\src\\app.ts" },
+		] as const;
+
+		for (const path of cases) {
+			expect(projectNativePathText(path.value, path.cwd, path.home)).toBe(path.expected);
+		}
+	});
+
+	test("uses the same path projection at the Bash result-card boundary without mutating its snapshot", () => {
+		const project = `${homedir()}/very-long-project`;
+		const snapshot = {
+			id: "path-projection",
+			shell: "bash" as const,
+			command: `bun test ${project}/test/work-step-card-highlight.test.ts`,
+			cwd: project,
+			status: "passed" as const,
+			stdout: `${project}/src/app.ts`,
+			stderr: "",
+			startedAt: undefined,
+			durationMs: undefined,
+			exitCode: 0,
+		};
+		const text = stripTerminalSequences(new BashResultCard(snapshot).render(120).join("\n"));
+
+		expect(text).toContain("$PROJECT/test/work-step-card-highlight.test.ts");
+		expect(text).toContain("$PROJECT/src/app.ts");
+		expect(snapshot.command).toBe(`bun test ${project}/test/work-step-card-highlight.test.ts`);
+		expect(snapshot.stdout).toBe(`${project}/src/app.ts`);
+	});
+
+	test("projects file-change and read what paths without narration while preserving raw activities", () => {
+		const project = `${homedir()}/very-long-project`;
+		const file = `${project}/src/app.ts`;
+		const fileChange = fileChangeActivity();
+		const fileItem = (fileChange.payload.params as { item: Record<string, unknown> }).item;
+		fileItem.cwd = project;
+		fileItem.path = file;
+		const read = toolActivity();
+		const readItem = (read.payload.params as { item: Record<string, unknown> }).item;
+		readItem.type = "readFile";
+		delete readItem.query;
+		readItem.cwd = project;
+		readItem.path = file;
+
+		const fileText = stripTerminalSequences(new WorkStepCard({ stepNumber: 1, activity: fileChange }).render(120).join("\n"));
+		const readText = stripTerminalSequences(new WorkStepCard({ stepNumber: 2, activity: read }).render(120).join("\n"));
+
+		expect(fileText).toContain("파일 변경 · $PROJECT/src/app.ts");
+		expect(readText).toContain("파일 확인 · $PROJECT/src/app.ts");
+		expect(fileItem.path).toBe(file);
+		expect(readItem.path).toBe(file);
+	});
+
+	test("leaves short relative paths unchanged", () => {
+		const rendered = stripTerminalSequences(new WorkStepCard({
+			stepNumber: 1,
+			activity: commandActivity("src/app.ts"),
+		}).render(120).join("\n"));
+
+		expect(rendered).toContain("bun test --filter 'work step'");
+		expect(rendered).toContain("src/app.ts");
 	});
 
 	test("keeps direct work and why text without a repeated what label", () => {

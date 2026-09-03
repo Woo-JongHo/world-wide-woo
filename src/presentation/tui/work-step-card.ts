@@ -4,6 +4,7 @@ import {
 	wrapTextWithAnsi,
 	type Component,
 } from "@earendil-works/pi-tui";
+import { homedir } from "node:os";
 import type { CommandStatus } from "../../domain/output";
 import { isReasoningActivityPayload, type ProjectActivity, type ProjectActivityKind } from "../../domain/project-activity";
 import { sanitizeTerminalTextExcerpt } from "../../domain/terminal";
@@ -97,6 +98,21 @@ function clean(value: string): string {
 	return sanitizeTerminalTextExcerpt(value, OUTPUT_MAX_CHARS, "head-tail").replace(/\t/gu, "    ");
 }
 
+function replacePathPrefix(value: string, path: string, replacement: string): string {
+	const normalizedPath = path.replace(/[\\/]+$/gu, "");
+	if (!normalizedPath) return value;
+	const escaped = normalizedPath.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+	const boundary = "[\\s/\\\\\"':,;=()\\[\\]{}]";
+	return value.replace(new RegExp(`(^|${boundary})${escaped}(?=$|${boundary})`, "gu"), `$1${replacement}`);
+}
+
+/** Shortens local paths only in terminal projections; persisted native activity remains raw. */
+export function projectNativePathText(value: string, projectCwd?: string, home = homedir()): string {
+	const project = projectCwd?.replace(/[\\/]+$/gu, "");
+	const withProject = project ? replacePathPrefix(value, project, "$PROJECT") : value;
+	return replacePathPrefix(withProject, home, "~");
+}
+
 function fit(text: string, width: number): string {
 	const clipped = truncateToWidth(text, Math.max(0, width));
 	return clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)));
@@ -177,10 +193,10 @@ export function publicPayloadProjection(value: unknown): unknown {
 	return publicValue(value);
 }
 
-function displayValue(value: unknown): string {
+function displayValue(value: unknown, projectCwd?: string): string {
 	const safe = publicValue(value);
-	if (typeof safe === "string") return safe;
-	return clean(JSON.stringify(safe));
+	if (typeof safe === "string") return projectNativePathText(safe, projectCwd);
+	return projectNativePathText(clean(JSON.stringify(safe)), projectCwd);
 }
 
 function statusOf(options: WorkStepCardOptions): CommandStatus {
@@ -219,12 +235,14 @@ function projection(options: WorkStepCardOptions): PublicStepProjection {
 		?? stringValue(payload?.method)
 		?? "native-tool";
 	const normalized = `${method} ${stringValue(item?.type) ?? ""}`.toLowerCase();
-	const command = stringValue(firstValue(sources, ["command", "cmd"]));
+	const rawCommand = stringValue(firstValue(sources, ["command", "cmd"]));
 	const cwd = stringValue(firstValue(sources, ["cwd", "workingDirectory"]));
+	const command = rawCommand && projectNativePathText(rawCommand, cwd);
 	const args = firstValue(sources, ["arguments", "args", "input"]);
 	const exitCode = numberValue(firstValue(sources, ["exitCode"]));
 	const durationMs = numberValue(firstValue(sources, ["durationMs"]));
-	const path = stringValue(firstValue(sources, ["path", "filePath", "targetPath"]));
+	const rawPath = stringValue(firstValue(sources, ["path", "filePath", "targetPath"]));
+	const path = rawPath && projectNativePathText(rawPath, cwd);
 	const query = stringValue(firstValue(sources, ["query", "searchQuery", "pattern"]));
 	const isCommand = command !== undefined || normalized.includes("command") || normalized.includes("bash") || normalized.includes("shell");
 	const isFileChange = options.activity?.kind === "file-change" || options.liveActivity?.kind === "file-change" || normalized.includes("filechange");
@@ -283,11 +301,11 @@ function projection(options: WorkStepCardOptions): PublicStepProjection {
 		exitCode,
 		durationMs,
 		input: inputFields.length > 0
-			? inputFields.map(({ label, value }) => `${label}: ${displayValue(value)}`)
+			? inputFields.map(({ label, value }) => `${label}: ${displayValue(value, cwd)}`)
 			: ["공개 입력 없음"],
 		output: outputFields.length > 0
 			? outputFields.flatMap(({ label, value }) => {
-				const rendered = displayValue(value);
+				const rendered = displayValue(value, cwd);
 				const lines = rendered.split(/\r?\n/gu);
 				return lines.length === 1 ? [`${label}: ${rendered}`] : [label, ...lines];
 			})
@@ -299,11 +317,11 @@ function projection(options: WorkStepCardOptions): PublicStepProjection {
 		.find((value): value is string => Boolean(value));
 	return {
 		...projected,
-		command: narratedCommand ?? projected.command,
-		what: options.narration.what,
-		why: options.narration.why ?? "",
+		command: narratedCommand ? projectNativePathText(narratedCommand, cwd) : projected.command,
+		what: projectNativePathText(options.narration.what, cwd),
+		why: projectNativePathText(options.narration.why ?? "", cwd),
 		input: options.narration.inputSummary.length > 0
-			? options.narration.inputSummary
+			? options.narration.inputSummary.map((line) => projectNativePathText(line, cwd))
 			: projected.input,
 	};
 }
