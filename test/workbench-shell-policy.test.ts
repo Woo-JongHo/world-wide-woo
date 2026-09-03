@@ -6,8 +6,10 @@ import {
 	workbenchActivityIndicator,
 	workbenchFrameTitle,
 	workbenchModelSettings,
+	workbenchPaneNotice,
 	workbenchReceiptClearsComposer,
 	workbenchReceiptNotice,
+	workbenchViewModeForCommand,
 	workbenchViewModeCommand,
 } from "../src/presentation/tui/workbench-shell";
 import { RenderScheduler } from "../src/presentation/tui/render-scheduler";
@@ -28,6 +30,16 @@ const workingSnapshot = {
 } as const;
 
 describe("native workbench shell receipt policy", () => {
+	test("keeps completed T-notes separate from selected execution Trace and current Todo", () => {
+		expect(workbenchPaneNotice("tnotes")).toContain("완료 질문 T-note");
+		expect(workbenchPaneNotice("tnotes")).not.toContain("Trace");
+		expect(workbenchPaneNotice("chat")).toContain("질문과 공개 응답");
+		expect(workbenchPaneNotice("todo")).toContain("현재 Native Plan·Todo.md");
+		expect(workbenchViewModeForCommand("monitor", { type: "pane.show", pane: "tnotes" })).toBe("dashboard");
+		expect(workbenchViewModeForCommand("dashboard", { type: "activity.select", activityId: "activity-1" })).toBe("monitor");
+		expect(workbenchViewModeForCommand("dashboard", { type: "trace.select", planItemId: "plan-1" })).toBe("monitor");
+	});
+
 	test("selects Trace by Todo planItemId and rejects mutable legacy Todo commands", () => {
 		expect(parseWorkbenchShellCommand("/trace plan-item-17")).toEqual({
 			type: "trace.select",
