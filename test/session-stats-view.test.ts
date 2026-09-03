@@ -48,4 +48,15 @@ describe("session stats view", () => {
 		expect(output).toContain("Waiting for the first request");
 		for (const noise of ["PERFORMANCE", "MODEL USAGE", "REQUESTS", "Retries"]) expect(output).not.toContain(noise);
 	});
+	test("renders a conservatively bounded historical session drilldown", () => {
+		const historical = {
+			sessionId: "thread-history", projectId: null, boundary: "observed" as const,
+			startedAt: "2026-09-01T00:00:00Z", endedAt: "2026-09-01T00:01:00Z",
+			result: "completed" as const, failures: 0, retries: 0, usage: null,
+		};
+		const output = stripTerminalSequences(new SessionStatsView(() => stats, () => "session", () => historical).render(100).join("\n"));
+		expect(output).toContain("thread-history · COMPLETED");
+		expect(output).toContain("TOKENS       —");
+		expect(output).toContain("Request details and live execution are unavailable");
+	});
 });

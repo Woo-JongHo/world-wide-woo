@@ -1,5 +1,6 @@
 import { truncateToWidth, visibleWidth, wrapTextWithAnsi, type Component } from "@earendil-works/pi-tui";
 import type { RequestReview, SessionStatsSnapshot } from "../../domain/session-stats.js";
+import type { ObservabilitySessionSummary } from "../../domain/observability-dashboard.js";
 import { colors } from "./theme.js";
 
 type StatsTarget = "session" | "diagnostics" | "latest" | number;
@@ -10,6 +11,7 @@ export class SessionStatsView implements Component {
 	public constructor(
 		private readonly getStats: () => SessionStatsSnapshot,
 		private readonly getTarget: () => StatsTarget = () => "session",
+		private readonly getHistoricalSession: () => ObservabilitySessionSummary | null = () => null,
 	) {}
 	public invalidate(): void {}
 	public render(width: number): string[] {
@@ -19,11 +21,25 @@ export class SessionStatsView implements Component {
 		const target = this.getTarget();
 		const rows: string[] = [];
 		const line: LineWriter = (value = "") => rows.push(...wrapTextWithAnsi(value, safeWidth));
-		if (target === "diagnostics") this.renderDiagnostics(line, stats, safeWidth);
+		const historical = this.getHistoricalSession();
+		if (target === "session" && historical) this.renderHistorical(line, historical, safeWidth);
+		else if (target === "diagnostics") this.renderDiagnostics(line, stats, safeWidth);
 		else if (target === "latest" || typeof target === "number") this.renderRequest(line, stats, target, safeWidth);
 		else this.renderDashboard(line, stats, safeWidth);
 		const offset = Math.max(0, Math.floor((viewportWidth - safeWidth) / 2));
 		return rows.map(row => `${" ".repeat(offset)}${truncateToWidth(row, safeWidth)}`);
+	}
+
+	private renderHistorical(line: LineWriter, session: ObservabilitySessionSummary, width: number): void {
+		line(colors.accent("WORLD WIDE WOO · SESSION STATS"));
+		line(`${session.sessionId} · ${session.result.toUpperCase()} · historical observation`);
+		line(rule(width));
+		line(`PROJECT      ${session.projectId ?? "—"}`);
+		line(`ELAPSED      ${session.startedAt && session.endedAt ? duration(Date.parse(session.endedAt) - Date.parse(session.startedAt)) : "—"}`);
+		line(`TOKENS       ${session.usage ? compactNumber(session.usage.totalTokens) : "—"}`);
+		line(`FAILURES     ${session.failures ?? "—"}    RETRIES ${session.retries ?? "—"}`);
+		line(colors.muted("Request details and live execution are unavailable for this historical coverage."));
+		line(colors.muted("r next · R prev · [1 Stats] · 2 Dashboard · 3 Monitor · Esc back"));
 	}
 
 	private renderDashboard(line: LineWriter, stats: SessionStatsSnapshot, width: number): void {

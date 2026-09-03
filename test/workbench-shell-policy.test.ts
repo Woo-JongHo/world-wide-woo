@@ -3,6 +3,9 @@ import { stripTerminalSequences, type Component } from "@earendil-works/pi-tui";
 import { renderLayoutFrame } from "@earendil-works/pi-tui/dist/layout.js";
 import {
 	createWorkbenchViewHost,
+	directObservabilityView,
+	rotateObservabilityView,
+	shouldHandleObservabilityShortcut,
 	workbenchEscapeView,
 	workbenchActivityIndicator,
 	workbenchFrameTitle,
@@ -37,9 +40,9 @@ describe("native workbench shell receipt policy", () => {
 		expect(workbenchPaneNotice("tnotes")).not.toContain("Trace");
 		expect(workbenchPaneNotice("chat")).toContain("질문과 공개 응답");
 		expect(workbenchPaneNotice("todo")).toContain("현재 Native Plan·Todo.md");
-		expect(workbenchViewModeForCommand("monitor", { type: "pane.show", pane: "tnotes" })).toBe("dashboard");
-		expect(workbenchViewModeForCommand("dashboard", { type: "activity.select", activityId: "activity-1" })).toBe("monitor");
-		expect(workbenchViewModeForCommand("dashboard", { type: "trace.select", planItemId: "plan-1" })).toBe("monitor");
+		expect(workbenchViewModeForCommand("monitor", { type: "pane.show", pane: "tnotes" })).toBe("workbench");
+		expect(workbenchViewModeForCommand("dashboard", { type: "activity.select", activityId: "activity-1" })).toBe("source");
+		expect(workbenchViewModeForCommand("dashboard", { type: "trace.select", planItemId: "plan-1" })).toBe("source");
 	});
 
 	test("selects Trace by Todo planItemId and rejects mutable legacy Todo commands", () => {
@@ -135,11 +138,20 @@ describe("native workbench shell receipt policy", () => {
 		expect(parseWorkbenchShellCommand("/source activity-1")).toEqual({ type: "activity.select", activityId: "activity-1" });
 	});
 
-	test("returns from the map to the view that opened it", () => {
-		expect(workbenchEscapeView("map", "dashboard")).toBe("dashboard");
-		expect(workbenchEscapeView("map", "monitor")).toBe("monitor");
-		expect(workbenchEscapeView("stats", "dashboard")).toBe("dashboard");
-		expect(workbenchEscapeView("dashboard", "dashboard")).toBeNull();
+	test("treats observability views as siblings with one workspace return target", () => {
+		for (const mode of ["map", "stats", "dashboard", "monitor", "source"] as const) expect(workbenchEscapeView(mode, "workbench")).toBe("workbench");
+		expect(workbenchEscapeView("workbench", "workbench")).toBeNull();
+		expect(rotateObservabilityView("stats", 1)).toBe("dashboard");
+		expect(rotateObservabilityView("dashboard", 1)).toBe("monitor");
+		expect(rotateObservabilityView("monitor", 1)).toBe("stats");
+		expect(rotateObservabilityView("stats", -1)).toBe("monitor");
+		expect(["1", "2", "3", "r"].map(directObservabilityView)).toEqual(["stats", "dashboard", "monitor", null]);
+		expect(shouldHandleObservabilityShortcut(true, false, "r")).toBe(true);
+		for (const key of ["r", "R", "1", "2", "3"]) expect(shouldHandleObservabilityShortcut(true, true, key)).toBe(false);
+		let mode = rotateObservabilityView("stats", 1);
+		mode = rotateObservabilityView(mode, 1);
+		expect(mode).toBe("monitor");
+		expect(workbenchEscapeView(mode, "workbench")).toBe("workbench");
 	});
 
 	test("preserves dashboard layout viewports while switching views", () => {
@@ -153,16 +165,13 @@ describe("native workbench shell receipt policy", () => {
 			{ color: value => value, component: text("dashboard-trace") },
 			{ color: value => value, component: text("dashboard-todo") },
 		);
-		const monitor = createDashboardLayout(
-			() => "Monitor",
-			{ color: value => value, component: text("monitor-chat") },
-			{ color: value => value, component: text("monitor-trace") },
-			{ color: value => value, component: text("monitor-todo") },
-		);
+		const aggregate = text("aggregate-dashboard");
+		const monitor = text("live-monitor");
 		const map = text("INIT-001 → EP-010 → ST-010-01");
 		const stats = text("PURPOSE · ACTION · RESULT");
-		let mode: "dashboard" | "monitor" | "map" | "stats" = "dashboard";
-		const host = createWorkbenchViewHost(() => mode, dashboard.component, monitor.component, map, stats);
+		const source = text("source-detail");
+		let mode: "workbench" | "dashboard" | "monitor" | "source" | "map" | "stats" = "workbench";
+		const host = createWorkbenchViewHost(() => mode, dashboard.component, aggregate, monitor, source, map, stats);
 
 		let frame = renderLayoutFrame(host, 120, 24, () => undefined);
 		expect(frame.primaryScrollView).toBe(dashboard.leftScroll);
@@ -170,8 +179,11 @@ describe("native workbench shell receipt policy", () => {
 
 		mode = "monitor";
 		frame = renderLayoutFrame(host, 120, 24, () => undefined);
-		expect(frame.primaryScrollView).toBe(monitor.leftScroll);
-		expect(stripTerminalSequences(frame.lines.join("\n"))).toContain("monitor-chat");
+		expect(stripTerminalSequences(frame.lines.join("\n"))).toContain("live-monitor");
+
+		mode = "dashboard";
+		frame = renderLayoutFrame(host, 120, 24, () => undefined);
+		expect(stripTerminalSequences(frame.lines.join("\n"))).toContain("aggregate-dashboard");
 
 		mode = "map";
 		frame = renderLayoutFrame(host, 120, 24, () => undefined);

@@ -122,6 +122,28 @@ function allScrollContent(box: LayoutBox): string[] {
 }
 
 describe("workbench dashboard views", () => {
+	test("reuses the complete chat projection for scroll-only frames", () => {
+		const count = 5_000;
+		const activities = Array.from({ length: count }, (_, index) => ({
+			...snapshot.activities[0]!,
+			id: `perf-${index}`,
+			sequence: index + 1,
+			nativeRefs: { threadId: "thread-perf", itemId: `message-${index}` },
+		}));
+		const chat = activities.map((activity, index) => ({
+			id: `message-${index}`,
+			role: "assistant" as const,
+			content: `Result ${index} with stable markdown content`,
+			activityId: activity.id,
+			status: "completed" as const,
+		}));
+		const view = new WorkbenchChatView({ ...snapshot, activities, chat, tnotes: [], selectedActivityId: null });
+		const first = view.render(100);
+		const started = performance.now();
+		for (let index = 0; index < 600; index += 1) expect(view.render(100)).toBe(first);
+		const elapsed = performance.now() - started;
+		expect(elapsed / 600).toBeLessThan(0.25);
+	});
 	test("shows a T-note failure without assigning a completion number to an unstored note", () => {
 		const failed = {
 			...snapshot,
@@ -449,7 +471,7 @@ describe("workbench dashboard views", () => {
 		}
 	});
 
-	test("restarts the activity timer when the cadence changes", () => {
+	test("renders activity state changes without a high-frequency spinner timer", () => {
 		const originalSetInterval = globalThis.setInterval;
 		const originalClearInterval = globalThis.clearInterval;
 		const scheduled: Array<{ delay: number; handle: ReturnType<typeof setInterval> }> = [];
@@ -468,8 +490,9 @@ describe("workbench dashboard views", () => {
 			view.syncActivity({ message: "분석", frames: ["⠹"], intervalMs: 80 }, () => undefined);
 			view.syncActivity({ message: "승인 대기", frames: ["⏸"], intervalMs: 1_000 }, () => undefined);
 
-			expect(scheduled.map((timer) => timer.delay)).toEqual([80, 1_000]);
-			expect(cleared).toEqual([scheduled[0]!.handle]);
+			expect(scheduled).toEqual([]);
+			expect(cleared).toEqual([]);
+			expect(stripTerminalSequences(view.render(80).join("\n"))).toContain("승인 대기");
 		} finally {
 			view.dispose();
 			globalThis.setInterval = originalSetInterval;

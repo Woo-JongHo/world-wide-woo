@@ -1,5 +1,6 @@
 import type { ProjectActivity } from "./project-activity.js";
 import type { WorkbenchSnapshot } from "./workbench.js";
+import { observedCompletionPercent, observedElapsedMs as elapsed } from "./observability-metrics.js";
 
 const DETAIL_LIMIT = 1000;
 const SHORTLIST_LIMIT = 8;
@@ -143,7 +144,7 @@ export function projectSessionStats(snapshot: WorkbenchSnapshot): SessionStatsSn
 		}),
 		performance: Object.freeze({
 			journalSpanMs: span,
-			rootTurnCompletionPercent: rootTurns.length > 0 ? round((completed.length / rootTurns.length) * 100) : null,
+			rootTurnCompletionPercent: observedCompletionPercent(completed.length, rootTurns.length),
 			averageCompletedRootTurnMs: average(completed.map(turn => turn.elapsedMs!)),
 			pairedToolTimeMs: sum(toolDurations),
 			averageApprovalWaitMs: average(approvalDurations),
@@ -428,7 +429,6 @@ function noteResult(title: string, summary: string): string { return summary.spl
 function claim(text: string, authority: ClaimAuthority, sourceActivityIds: readonly string[]): Claim { return Object.freeze({ text: bound(text, 480), authority, sourceActivityIds: Object.freeze([...new Set(sourceActivityIds)]), independentlyVerified: false }); }
 function bound(value: string, limit: number): string { return value.length > limit ? `${value.slice(0, limit)}…` : value; }
 function record(value: unknown): Readonly<Record<string, unknown>> | null { return value !== null && typeof value === "object" && !Array.isArray(value) ? value as Readonly<Record<string, unknown>> : null; }
-function elapsed(startedAt: string | null, endedAt: string | null): number | null { if (!startedAt || !endedAt) return null; const value = Date.parse(endedAt) - Date.parse(startedAt); return Number.isFinite(value) && value >= 0 ? value : null; }
 function average(values: readonly number[]): number | null { return values.length === 0 ? null : Math.round(values.reduce((total, value) => total + value, 0) / values.length); }
 function sum(values: readonly number[]): number | null { return values.length === 0 ? null : values.reduce((total, value) => total + value, 0); }
 function round(value: number): number { return Math.round(value * 10) / 10; }

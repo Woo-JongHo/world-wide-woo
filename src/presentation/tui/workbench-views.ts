@@ -391,6 +391,9 @@ export class WorkbenchChatView implements Component {
 	private draftInput = "";
 	private draftSource = "";
 	private readonly stepRows = new Map<string, string[]>();
+	private cachedSnapshot: WorkbenchSnapshot | null = null;
+	private cachedWidth = -1;
+	private cachedRows: string[] | null = null;
 
 	constructor(snapshot: WorkbenchSnapshot) {
 		this.snapshot = snapshot;
@@ -398,6 +401,7 @@ export class WorkbenchChatView implements Component {
 	}
 
 	update(snapshot: WorkbenchSnapshot): void {
+		if (this.snapshot !== snapshot) this.cachedRows = null;
 		this.snapshot = snapshot;
 		if (hasVisibleChatContent(snapshot)) this.welcome.dispose();
 		const visibleAssistantIds = new Set<string>();
@@ -434,6 +438,7 @@ export class WorkbenchChatView implements Component {
 	}
 
 	invalidate(): void {
+		this.cachedRows = null;
 		for (const markdown of this.markdown.values()) markdown.invalidate();
 		this.draftMarkdown.invalidate();
 	}
@@ -446,27 +451,15 @@ export class WorkbenchChatView implements Component {
 		indicator: { message: string; hint?: string; frames: readonly string[]; intervalMs: number } | null,
 		requestRender: () => void,
 	): void {
-		const intervalChanged = this.activityIntervalMs !== indicator?.intervalMs;
+		const changed = this.activityIndicator?.message !== indicator?.message
+			|| this.activityIndicator?.hint !== indicator?.hint
+			|| this.activityIndicator?.frames[0] !== indicator?.frames[0];
 		this.activityIndicator = indicator;
-		if (!indicator) {
-			this.stopActivity();
-			return;
+		this.stopActivity();
+		if (changed) {
+			this.cachedRows = null;
+			requestRender();
 		}
-		if (this.activityTimer && intervalChanged) {
-			clearInterval(this.activityTimer);
-			this.activityTimer = null;
-			this.activityFrame = 0;
-		}
-		if (!this.activityTimer) {
-			this.activityFrame = 0;
-			this.activityIntervalMs = indicator.intervalMs;
-			this.activityTimer = setInterval(() => {
-				this.activityFrame += 1;
-				requestRender();
-			}, indicator.intervalMs);
-			this.activityTimer.unref?.();
-		}
-		requestRender();
 	}
 
 	dispose(): void {
@@ -477,7 +470,13 @@ export class WorkbenchChatView implements Component {
 	render(width: number): string[] {
 		const contentWidth = Math.max(1, width);
 		if (!hasVisibleChatContent(this.snapshot)) return this.welcome.render(contentWidth);
+		if (
+			this.cachedRows
+			&& this.cachedSnapshot === this.snapshot
+			&& this.cachedWidth === contentWidth
+		) return this.cachedRows;
 		const activities = this.snapshot.activities;
+		const activityById = new Map(activities.map((activity) => [activity.id, activity]));
 		const completionSummaries = projectCompletionSummaries(this.snapshot);
 		const messages = new Map(this.snapshot.chat.map((message) => [message.activityId, message]));
 		const projectedSteps = this.snapshot.workFlow.steps;
@@ -485,7 +484,7 @@ export class WorkbenchChatView implements Component {
 		const stepByActivity = new Map<string, SemanticWorkStep>();
 		for (const step of projectedSteps) {
 			for (const activityId of step.activityIds) stepByActivity.set(activityId, step);
-			const lastVisibleActivityId = [...step.activityIds].reverse().find((id) => activities.some((activity) => activity.id === id));
+			const lastVisibleActivityId = [...step.activityIds].reverse().find((id) => activityById.has(id));
 			if (lastVisibleActivityId) stepByLastActivity.set(lastVisibleActivityId, step);
 		}
 		const observationByItem = new Map<string, string>();
@@ -500,11 +499,11 @@ export class WorkbenchChatView implements Component {
 		const observationActivityIds = new Set(observationByItem.values());
 		const delegationByActivity = new Map<string, readonly string[] | null>();
 		const selectedPlanItemId = this.snapshot.selectedActivityId
-			? activities.find((activity) => activity.id === this.snapshot.selectedActivityId)?.nativeRefs.itemId
+			? activityById.get(this.snapshot.selectedActivityId)?.nativeRefs.itemId
 			: undefined;
 		const selectedStep = selectedPlanItemId
 			? projectedSteps.find((step) => step.activityIds.some((activityId) =>
-				activities.find((activity) => activity.id === activityId)?.nativeRefs.itemId === selectedPlanItemId,
+				activityById.get(activityId)?.nativeRefs.itemId === selectedPlanItemId,
 			))
 			: undefined;
 		for (const section of projectWorkbenchDelegationSections(
@@ -658,6 +657,9 @@ export class WorkbenchChatView implements Component {
 			}
 			rows.push("");
 		}
+		this.cachedSnapshot = this.snapshot;
+		this.cachedWidth = contentWidth;
+		this.cachedRows = rows;
 		return rows;
 	}
 

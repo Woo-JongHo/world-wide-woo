@@ -2,8 +2,9 @@ import { DEFAULT_SETTINGS, type WwwSettings } from "./domain/model-settings.js";
 import { buildPiExecutionSystemPrompt, type ExecutionLane } from "./infrastructure/native-harness-factory.js";
 import { createProjectWorkbenchSession } from "./infrastructure/project-workbench-session.js";
 import { FileDevelopmentMapSource } from "./infrastructure/development-map-source.js";
+import { ObservabilityHistorySource } from "./infrastructure/observability-history-source.js";
+import { join } from "node:path";
 export { listNativeThreads } from "./infrastructure/native-thread-discovery.js";
-
 export interface RunAppOptions { resumeThreadId?: string; executionLane?: ExecutionLane }
 export async function runApp(options: RunAppOptions = {}): Promise<void> {
 	const { FileSettingsStore } = await import("./infrastructure/settings-store");
@@ -31,6 +32,7 @@ export async function runApp(options: RunAppOptions = {}): Promise<void> {
 		runProjectWorkbenchShell({
 			workbench: project.workbench, cwd: project.workspace.root, usage: project.usage,
 			developmentMapSource: new FileDevelopmentMapSource(project.workspace.root),
+			observabilityHistorySource: new ObservabilityHistorySource(join(project.workspace.root, ".www", "runtime", "activity")),
 			composerDraft: project.composerDraft, releaseSessionLease: project.releaseSessionLease,
 		});
 	} catch (error) {
@@ -38,11 +40,9 @@ export async function runApp(options: RunAppOptions = {}): Promise<void> {
 		throw error;
 	}
 }
-
 export function codexInteractiveModel(settings: WwwSettings): string {
 	return settings.provider === "openai-codex" ? settings.model : DEFAULT_SETTINGS.model;
 }
-
 export async function runAuth(args: string[]): Promise<void> {
 	const { AuthService } = await import("./infrastructure/auth-service");
 	const { FileCredentialStore } = await import("./infrastructure/credential-store");
