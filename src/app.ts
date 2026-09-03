@@ -1,9 +1,10 @@
 import { DEFAULT_SETTINGS, type WwwSettings } from "./domain/model-settings.js";
-import { buildPiExecutionSystemPrompt, type ExecutionLane } from "./infrastructure/native-harness-factory.js";
+import { buildPiExecutionSystemPrompt, type ExecutionLane } from "./infrastructure/executors/factory.js";
 import { createProjectWorkbenchSession } from "./infrastructure/project-workbench-session.js";
 import { FileDevelopmentMapSource } from "./infrastructure/development-map-source.js";
 import { ObservabilityHistorySource } from "./infrastructure/observability-history-source.js";
-import { join } from "node:path";
+import { GitTelemetrySource } from "./infrastructure/git-telemetry-source.js";
+import { homedir } from "node:os"; import { join } from "node:path";
 export { listNativeThreads } from "./infrastructure/native-thread-discovery.js";
 export interface RunAppOptions { resumeThreadId?: string; executionLane?: ExecutionLane }
 export async function runApp(options: RunAppOptions = {}): Promise<void> {
@@ -33,6 +34,7 @@ export async function runApp(options: RunAppOptions = {}): Promise<void> {
 			workbench: project.workbench, cwd: project.workspace.root, usage: project.usage,
 			developmentMapSource: new FileDevelopmentMapSource(project.workspace.root),
 			observabilityHistorySource: new ObservabilityHistorySource(join(project.workspace.root, ".www", "runtime", "activity")),
+			gitTelemetrySource: new GitTelemetrySource(), homeDirectory: homedir(),
 			composerDraft: project.composerDraft, releaseSessionLease: project.releaseSessionLease,
 		});
 	} catch (error) {
@@ -40,9 +42,7 @@ export async function runApp(options: RunAppOptions = {}): Promise<void> {
 		throw error;
 	}
 }
-export function codexInteractiveModel(settings: WwwSettings): string {
-	return settings.provider === "openai-codex" ? settings.model : DEFAULT_SETTINGS.model;
-}
+export function codexInteractiveModel(settings: WwwSettings): string { return settings.provider === "openai-codex" ? settings.model : DEFAULT_SETTINGS.model; }
 export async function runAuth(args: string[]): Promise<void> {
 	const { AuthService } = await import("./infrastructure/auth-service");
 	const { FileCredentialStore } = await import("./infrastructure/credential-store");
@@ -51,7 +51,6 @@ export async function runAuth(args: string[]): Promise<void> {
 	const registry = createModelRegistry(new FileCredentialStore());
 	await runAuthCommand(new AuthService(registry), args);
 }
-
 /** Legacy SessionRuntime archive only. Native Codex threads are resumed by their opaque id. */
 export async function listSessions(): Promise<Array<{ id: string; updatedAt: string }>> {
 	const { listProjectSessions } = await import("./infrastructure/project-session");

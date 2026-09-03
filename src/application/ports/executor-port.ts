@@ -10,10 +10,10 @@ import type {
 	NativeTurnInterrupt,
 	NativeTurnSnapshot,
 	NativeTurnStart,
-} from "../domain/native-session.js";
+} from "../../domain/native-session.js";
 
 /** Application-owned semantic boundary around a native model session host. */
-export interface NativeHarnessPort {
+export interface ExecutorPort {
 	startThread(input: NativeThreadStart): Promise<NativeThreadSnapshot>;
 	resumeThread(input: NativeThreadResume): Promise<NativeThreadSnapshot>;
 	readThread(input: NativeThreadRead): Promise<NativeThreadSnapshot>;

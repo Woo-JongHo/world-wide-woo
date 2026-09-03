@@ -1,9 +1,9 @@
 import { expect } from "bun:test";
-import type { NativeHarnessPort } from "../src/application/native-harness.js";
+import type { ExecutorPort } from "../src/application/ports/executor-port.js";
 import type { NativeHarnessEvent } from "../src/domain/native-session.js";
 
 export interface NativeHarnessContractFixture {
-	readonly harness: NativeHarnessPort;
+	readonly harness: ExecutorPort;
 	settleSuccess(text?: string): void;
 	settleFailure(error?: Error): void;
 	settleInterrupted(): void;

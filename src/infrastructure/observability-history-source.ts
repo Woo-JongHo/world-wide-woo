@@ -1,19 +1,15 @@
 import { readdir, readFile } from "node:fs/promises";
 import type { Dirent } from "node:fs";
 import { join } from "node:path";
-import type { ObservabilityActivityStream, ObservabilityCoverage } from "../domain/observability-dashboard.js";
+import type { ObservabilityActivityStream } from "../domain/observability-dashboard.js";
 import type { ProjectActivity } from "../domain/project-activity.js";
+import type { ObservabilityHistory, ObservabilityHistoryReader } from "../application/ports/index.js";
 
 export const OBSERVABILITY_HISTORY_STREAM_LIMIT = 64;
 export const OBSERVABILITY_HISTORY_ACTIVITY_LIMIT = 5_000;
 
-export interface ObservabilityHistory {
-	readonly coverage: ObservabilityCoverage;
-	readonly streams: readonly ObservabilityActivityStream[];
-}
-
 /** Read-only, bounded discovery of existing ActivityJournalStore JSONL streams. */
-export class ObservabilityHistorySource {
+export class ObservabilityHistorySource implements ObservabilityHistoryReader {
 	public constructor(
 		private readonly activityDirectory: string,
 		private readonly limits: { readonly streams?: number; readonly activitiesPerStream?: number } = {},

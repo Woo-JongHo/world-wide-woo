@@ -1,7 +1,7 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { AssistantMessage } from "@earendil-works/pi-ai/compat";
-import type { NativeHarnessPort } from "../application/native-harness.js";
+import type { ExecutorPort } from "../../application/ports/executor-port.js";
 import { CodexAppServer } from "./codex-app-server.js";
 import { PiHarness, type PiHarnessSdk, type PiSession, type PiSessionEvent, type PiSessionInput } from "./pi-harness.js";
 
@@ -23,11 +23,11 @@ export interface NativeHarnessSelection {
 	readonly model: string;
 	readonly effort: string;
 	readonly systemPrompt?: string;
-	readonly connectCodex?: (input: Readonly<{ provider: string; model: string; effort: string }>) => Promise<NativeHarnessPort>;
-	readonly createPi?: (input: Readonly<{ provider: string; model: string; effort: string }>) => Promise<NativeHarnessPort>;
+	readonly connectCodex?: (input: Readonly<{ provider: string; model: string; effort: string }>) => Promise<ExecutorPort>;
+	readonly createPi?: (input: Readonly<{ provider: string; model: string; effort: string }>) => Promise<ExecutorPort>;
 }
 
-export async function createNativeHarness(input: NativeHarnessSelection): Promise<NativeHarnessPort> {
+export async function createNativeHarness(input: NativeHarnessSelection): Promise<ExecutorPort> {
 	const selection = { provider: input.provider, model: input.model, effort: input.effort };
 	if ((input.executionLane ?? "codex") === "codex") {
 		return (input.connectCodex ?? (() => CodexAppServer.connect()))(selection);

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { NativeHarnessPort } from "../application/native-harness.js";
+import type { ExecutorPort } from "../../application/ports/executor-port.js";
 import type {
 	NativeApprovalResolution,
 	NativeHarnessEvent,
@@ -11,7 +11,7 @@ import type {
 	NativeTurnSnapshot,
 	NativeTurnStart,
 	NativeThreadStart,
-} from "../domain/native-session.js";
+} from "../../domain/native-session.js";
 
 export type PiSessionEvent =
 	| { type: "text-delta"; text: string }
@@ -57,7 +57,7 @@ export class UnsupportedPiOperationError extends Error {
 	}
 }
 
-export class PiHarness implements NativeHarnessPort {
+export class PiHarness implements ExecutorPort {
 	private readonly listeners = new Set<(event: NativeHarnessEvent) => void>();
 	private threadId: string | null = null;
 	private session: PiSession | null = null;

@@ -1,15 +1,7 @@
-import { execFile } from "node:child_process";
-import { homedir } from "node:os";
 import { truncateToWidth, visibleWidth, type Component } from "@earendil-works/pi-tui";
+import type { WorkbenchGitTelemetry, WorkbenchGitTelemetryReader } from "../../application/ports/index.js";
 import type { WorkbenchContextUsage, WorkbenchSessionUsage, WorkbenchSnapshot } from "../../domain/workbench";
 import { colors } from "./theme";
-
-export interface WorkbenchGitTelemetry {
-	readonly branch: string | null;
-	readonly staged: number;
-	readonly unstaged: number;
-	readonly untracked: number;
-}
 
 export interface WorkbenchTelemetrySource {
 	readonly model?: string;
@@ -54,35 +46,6 @@ export function formatWorkbenchTelemetry(source: WorkbenchTelemetrySource, width
 	return truncateToWidth(output, Math.max(0, width));
 }
 
-export function parseGitTelemetry(output: string): WorkbenchGitTelemetry | null {
-	const lines = output.replace(/\r/gu, "").split("\n").filter(Boolean);
-	const header = lines.find((line) => line.startsWith("## "));
-	if (!header) return null;
-	const headerValue = header.slice(3).trim();
-	const unborn = /^No commits yet on (.+)$/u.exec(headerValue);
-	const rawBranch = unborn?.[1] ?? headerValue.split("...")[0]?.split(" [")[0]?.trim() ?? "";
-	let staged = 0;
-	let unstaged = 0;
-	let untracked = 0;
-	for (const line of lines) {
-		if (line.startsWith("## ")) continue;
-		const index = line[0] ?? " ";
-		const worktree = line[1] ?? " ";
-		if (index === "?" && worktree === "?") {
-			untracked += 1;
-			continue;
-		}
-		if (index !== " ") staged += 1;
-		if (worktree !== " ") unstaged += 1;
-	}
-	return Object.freeze({
-		branch: rawBranch === "HEAD (no branch)" ? null : rawBranch || null,
-		staged,
-		unstaged,
-		untracked,
-	});
-}
-
 export class WorkbenchTelemetryLine implements Component {
 	private git: WorkbenchGitTelemetry | null = null;
 	private refreshing = false;
@@ -92,19 +55,17 @@ export class WorkbenchTelemetryLine implements Component {
 		private readonly snapshot: () => WorkbenchSnapshot,
 		private readonly cwd: string,
 		private readonly requestRender: () => void,
+		private readonly gitSource?: WorkbenchGitTelemetryReader,
+		private readonly home = "",
 	) {}
 
 	refresh(): void {
 		if (this.disposed || this.refreshing) return;
 		this.refreshing = true;
-		execFile("git", ["status", "--short", "--branch"], {
-			cwd: this.cwd,
-			timeout: 2_000,
-			maxBuffer: 256 * 1024,
-		}, (error, stdout) => {
+		void (this.gitSource?.read(this.cwd) ?? Promise.resolve(null)).then(git => {
 			this.refreshing = false;
 			if (this.disposed) return;
-			this.git = error ? null : parseGitTelemetry(stdout);
+			this.git = git;
 			this.requestRender();
 		});
 	}
@@ -124,7 +85,7 @@ export class WorkbenchTelemetryLine implements Component {
 			sessionUsage: snapshot.sessionUsage,
 			git: this.git,
 			cwd: this.cwd,
-			home: homedir(),
+			home: this.home,
 		};
 		const line = formatWorkbenchTelemetry(source, width);
 		return [line + " ".repeat(Math.max(0, width - visibleWidth(line)))];

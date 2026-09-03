@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { NativeHarnessPort } from "../src/application/native-harness";
+import type { ExecutorPort } from "../src/application/ports/executor-port";
 import type {
 	ActivityNarrationRequest,
 	ActivityNarrator,
@@ -83,7 +83,7 @@ class MessageCompletionGateJournal extends MemoryJournal {
 	}
 }
 
-class FakeNativeHarness implements NativeHarnessPort {
+class FakeNativeHarness implements ExecutorPort {
 	private listener: ((event: NativeHarnessEvent) => void) | null = null;
 	startTurnCalls = 0;
 	startTurnInputs: NativeTurnStart[] = [];

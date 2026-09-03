@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences } from "@earendil-works/pi-tui";
 import {
 	formatWorkbenchTelemetry,
-	parseGitTelemetry,
 } from "../src/presentation/tui/workbench-telemetry";
+import { parseGitTelemetry } from "../src/infrastructure/git-telemetry-source";
 
 describe("workbench telemetry rail", () => {
 	test("renders only Git state and project path; Context belongs to the usage strip", () => {

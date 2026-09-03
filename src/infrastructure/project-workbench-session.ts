@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { ProjectWorkbench, type ProjectWorkbenchOptions, type WorkbenchActivityJournal, type WorkbenchTNoteSource, type WorkbenchTodoSource } from "../application/project-workbench.js";
-import type { NativeHarnessPort } from "../application/native-harness.js";
-import type { ComposerDraftController, SessionRepository, TodoStore, UsageMonitor } from "../application/ports.js";
+import type { ExecutorPort } from "../application/ports/executor-port.js";
+import type { ComposerDraftController, SessionRepository, TodoStore, UsageMonitor } from "../application/ports/index.js";
 import { TNoteService } from "../application/t-note-service.js";
 import type { ActivityNarrator } from "../application/activity-narrator.js";
 import { WooEntry } from "../application/woo-entry.js";
@@ -16,7 +16,7 @@ import type { ProjectActivity } from "../domain/project-activity.js";
 import { CanonicalPromotionService } from "../application/canonical-promotion.js";
 import { ReviewService } from "../application/review-service.js";
 import { digestActivitySource, ActivityJournalStore, nativeThreadJournalKey } from "./activity-journal-store.js";
-import { createNativeHarness, type ExecutionLane, type NativeHarnessSelection } from "./native-harness-factory.js";
+import { createNativeHarness, type ExecutionLane, type NativeHarnessSelection } from "./executors/factory.js";
 import { FileComposerDraftController } from "./composer-draft-store.js";
 import { PiDetachedCodexGenerator } from "./detached-codex-generator.js";
 import { PiActivityNarrator } from "./pi-activity-narrator.js";
@@ -67,7 +67,7 @@ export interface ProjectWorkbenchSession {
 export interface ProjectWorkbenchSessionFactories {
 	openWorkspace(cwd: string): Promise<ProjectWorkspace>;
 	acquireWriterLease(workspace: ProjectWorkspace, id: string): Promise<SessionLease>;
-	connectNative(input: NativeHarnessSelection): Promise<NativeHarnessPort>;
+	connectNative(input: NativeHarnessSelection): Promise<ExecutorPort>;
 	createJournal(directory: string): WorkbenchActivityJournal;
 	createTodoStore(path: string): TodoStore;
 	createTodoLedger(sessionId: string, store: TodoStore, events: SessionRepository): TodoLedger;
@@ -77,7 +77,7 @@ export interface ProjectWorkbenchSessionFactories {
 	createActivityNarrator(): ActivityNarrator;
 	createPromotionService(root: string): CanonicalPromotionService;
 	createReviewService(runtimeDirectory: string, observeUsage?: (observation: SessionModelUsageObservation) => void): ReviewService;
-	createWorkbench(native: NativeHarnessPort, journal: WorkbenchActivityJournal, options: ProjectWorkbenchOptions): ProjectWorkbench;
+	createWorkbench(native: ExecutorPort, journal: WorkbenchActivityJournal, options: ProjectWorkbenchOptions): ProjectWorkbench;
 	createComposerDraft(root: string, sessionId: string, directory: string): Promise<ComposerDraftController>;
 	createUsageMonitor(): UsageMonitor;
 	createWooEntry(): WooEntry;
@@ -134,7 +134,7 @@ export async function createProjectWorkbenchSession(
 	const runId = `${WORKBENCH_RUN_PREFIX}-${randomUUID()}`;
 	const lease = await factories.acquireWriterLease(workspace, runId);
 	let threadLease: SessionLease | undefined;
-	let native: NativeHarnessPort | undefined;
+	let native: ExecutorPort | undefined;
 	let todos: ThreadScopedTodoSource | undefined;
 	let workbench: ProjectWorkbench | undefined;
 	let released = false;

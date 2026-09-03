@@ -11,7 +11,7 @@ import {
 	type Component,
 	type OverlayHandle,
 } from "@earendil-works/pi-tui";
-import type { ComposerDraftController, UsageMonitor } from "../../application/ports";
+import type { ComposerDraftController, ObservabilityHistoryReader, UsageMonitor, WorkbenchGitTelemetryReader } from "../../application/ports";
 import type { ProjectWorkbench } from "../../application/project-workbench";
 import { EMPTY_DEVELOPMENT_MAP, type DevelopmentMapSnapshot } from "../../domain/development-map";
 import { projectObservabilityDashboard, summarizeObservabilityStreams, type ObservabilityDashboard } from "../../domain/observability-dashboard";
@@ -46,9 +46,9 @@ export interface ProjectWorkbenchShellDependencies {
 	developmentMapSource?: {
 		startPolling(listener: (snapshot: DevelopmentMapSnapshot) => void, intervalMs?: number): () => void;
 	};
-	observabilityHistorySource?: {
-		read(): Promise<{ coverage: ObservabilityDashboard["coverage"]; streams: Parameters<typeof summarizeObservabilityStreams>[0] }>;
-	};
+	observabilityHistorySource?: ObservabilityHistoryReader;
+	gitTelemetrySource?: WorkbenchGitTelemetryReader;
+	homeDirectory?: string;
 	composerDraft?: ComposerDraftController;
 	releaseSessionLease?: () => Promise<void>;
 }
@@ -373,7 +373,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		scrollbar: "auto",
 		scrollbarStyle: colors.muted,
 	});
-	const telemetry = new WorkbenchTelemetryLine(() => snapshot, cwd, () => tui.requestRender());
+	const telemetry = new WorkbenchTelemetryLine(() => snapshot, cwd, () => tui.requestRender(), dependencies.gitTelemetrySource, dependencies.homeDirectory);
 	const bottomHud = new WorkbenchBottomHudView(usageStrip);
 	const dashboard = createDashboardLayout(
 		() => `Workbench · ${workbenchFrameTitle(snapshot)}`,

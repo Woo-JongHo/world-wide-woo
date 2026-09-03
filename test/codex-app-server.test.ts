@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import type { JsonLineTransport } from "../src/infrastructure/codex-app-server.js";
-import { CodexAppServer, NativeOperationUncertainError, StdioJsonLineTransport } from "../src/infrastructure/codex-app-server.js";
+import type { JsonLineTransport } from "../src/infrastructure/executors/codex-app-server.js";
+import { CodexAppServer, NativeOperationUncertainError, StdioJsonLineTransport } from "../src/infrastructure/executors/codex-app-server.js";
 
 class FakeJsonLineTransport implements JsonLineTransport {
 	public readonly sent: Array<Record<string, unknown>> = [];

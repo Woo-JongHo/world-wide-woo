@@ -34,6 +34,25 @@ describe("source architecture", () => {
 		}
 	});
 
+	test("keeps process execution behind application-owned ports", async () => {
+		const graph = await loadSourceGraph();
+		for (const source of graph.values()) {
+			if (layer(source.path) !== "presentation") continue;
+			expect(source.imports, source.path).not.toContain("node:child_process");
+		}
+	});
+
+	test("keeps concrete executor adapters independent", async () => {
+		const graph = await loadSourceGraph();
+		for (const source of graph.values()) {
+			if (!source.path.startsWith("infrastructure/executors/") || source.path.endsWith("/factory.ts")) continue;
+			for (const dependency of source.imports) {
+				if (!dependency.startsWith("infrastructure/executors/")) continue;
+				expect(dependency, `${source.path} -> ${dependency}`).toBe(source.path);
+			}
+		}
+	});
+
 	test("has no relative source dependency cycles", async () => {
 		expect(relativeCycles(await loadSourceGraph())).toEqual([]);
 	});

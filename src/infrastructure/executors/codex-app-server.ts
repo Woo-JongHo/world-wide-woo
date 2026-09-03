@@ -1,4 +1,4 @@
-import type { NativeHarnessPort } from "../application/native-harness.js";
+import type { ExecutorPort } from "../../application/ports/executor-port.js";
 import type {
 	NativeApprovalDecision,
 	NativeApprovalKind,
@@ -18,9 +18,9 @@ import type {
 	NativeTurnSnapshot,
 	NativeTurnStart,
 	NativeUncertainOperation,
-} from "../domain/native-session.js";
-import { sanitizeTerminalText } from "../domain/terminal.js";
-import { PRODUCT_VERSION } from "../product-version.js";
+} from "../../domain/native-session.js";
+import { sanitizeTerminalText } from "../../domain/terminal.js";
+import { PRODUCT_VERSION } from "../../product-version.js";
 
 const STDERR_TAIL_CODE_POINTS = 4_096;
 const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
@@ -169,7 +169,7 @@ export class StdioJsonLineTransport implements JsonLineTransport {
 	}
 }
 
-export class CodexAppServer implements NativeHarnessPort {
+export class CodexAppServer implements ExecutorPort {
 	private readonly listeners = new Set<(event: NativeHarnessEvent) => void>();
 	private readonly pending = new Map<NativeRequestId, PendingRequest>();
 	private readonly pendingApprovalResponses = new Map<NativeRequestId, PendingApprovalResponse>();

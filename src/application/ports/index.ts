@@ -6,12 +6,13 @@ import type {
 	Context,
 	Tool,
 } from "@earendil-works/pi-ai";
-import type { SessionEvent, SessionEventInput } from "../domain/session-events";
-import type { Provider, WwwSettings } from "../domain/model-settings";
-import type { CommitSummary, IssueState, IssueSummary, RepositorySnapshot } from "../domain/repository";
-import type { ToolResultSnapshot } from "../domain/output";
-import type { TerminalCommandResult, TerminalCommandUpdate } from "../domain/terminal";
-import type { TodoDocument } from "../domain/todos";
+import type { SessionEvent, SessionEventInput } from "../../domain/session-events";
+import type { Provider, WwwSettings } from "../../domain/model-settings";
+import type { CommitSummary, IssueState, IssueSummary, RepositorySnapshot } from "../../domain/repository";
+import type { ToolResultSnapshot } from "../../domain/output";
+import type { TerminalCommandResult, TerminalCommandUpdate } from "../../domain/terminal";
+import type { TodoDocument } from "../../domain/todos";
+import type { ObservabilityActivityStream, ObservabilityCoverage } from "../../domain/observability-dashboard";
 
 export interface ModelAuthStatus {
 	configured: boolean;
@@ -110,6 +111,26 @@ export interface UsageSnapshot {
 export interface UsageMonitor {
 	refresh(): Promise<readonly UsageSnapshot[]>;
 	startPolling(listener: (snapshots: readonly UsageSnapshot[]) => void, intervalMs?: number): () => void;
+}
+
+export interface ObservabilityHistory {
+	readonly coverage: ObservabilityCoverage;
+	readonly streams: readonly ObservabilityActivityStream[];
+}
+
+export interface ObservabilityHistoryReader {
+	read(): Promise<ObservabilityHistory>;
+}
+
+export interface WorkbenchGitTelemetry {
+	readonly branch: string | null;
+	readonly staged: number;
+	readonly unstaged: number;
+	readonly untracked: number;
+}
+
+export interface WorkbenchGitTelemetryReader {
+	read(cwd: string): Promise<WorkbenchGitTelemetry | null>;
 }
 
 export interface SettingsRepository {

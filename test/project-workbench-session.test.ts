@@ -3,10 +3,10 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { codexInteractiveModel } from "../src/app.js";
-import type { NativeHarnessPort } from "../src/application/native-harness.js";
+import type { ExecutorPort } from "../src/application/ports/executor-port.js";
 import { ProjectWorkbench, type ProjectWorkbenchOptions, type WorkbenchActivityJournal } from "../src/application/project-workbench.js";
 import { WooEntry } from "../src/application/woo-entry.js";
-import type { SessionRepository, TodoStore } from "../src/application/ports.js";
+import type { SessionRepository, TodoStore } from "../src/application/ports/index.js";
 import { TodoLedger, TodoWriteConflictError } from "../src/application/todo-ledger";
 import { ReviewService } from "../src/application/review-service";
 
@@ -15,7 +15,7 @@ import type { ProjectActivity, ProjectActivityAppendResult, ProjectActivityInput
 import { createProjectWorkbenchSession, scopedProjectId, scopedTodoSessionId, ThreadBoundActivityJournal, type ProjectWorkbenchSessionFactories } from "../src/infrastructure/project-workbench-session.js";
 import type { ProjectWorkspace } from "../src/infrastructure/project-workspace.js";
 import { nativeThreadJournalKey } from "../src/infrastructure/activity-journal-store.js";
-import { createNativeHarness } from "../src/infrastructure/native-harness-factory.js";
+import { createNativeHarness } from "../src/infrastructure/executors/factory.js";
 import { sha256ReviewDigest } from "../src/infrastructure/review-adapters.js";
 
 class MemoryTodoStore implements TodoStore {
@@ -52,7 +52,7 @@ class MemoryJournal implements WorkbenchActivityJournal {
 	async readAll() { return []; }
 }
 
-class FakeNative implements NativeHarnessPort {
+class FakeNative implements ExecutorPort {
 	private listener: ((event: NativeHarnessEvent) => void) | undefined;
 	constructor(private readonly order: string[]) {}
 	async startThread(_input: NativeThreadStart): Promise<NativeThreadSnapshot> { return { id: "thread", value: {} }; }
