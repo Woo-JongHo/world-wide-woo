@@ -141,4 +141,12 @@
 - ST-012-17 | EP-012 | Stats 페이지와 /stats 탐색을 TUI에 연결한다 | 사용자가 /stats로 현재 session의 Stats 전용 페이지를 열고 Esc로 이전 Dashboard 또는 Monitor에 돌아간다. 좁은 폭에서도 summary·efficiency·usage·activity가 읽히고 색상 없이도 의미가 유지된다.
 - ST-012-18 | EP-012 | 세션 Activity 타임라인과 오케스트레이션 병목을 표시한다 | 시간축에서 assistant·agent·tool·approval·compaction·failure 활동의 횟수와 지속 시간을 구분하고, 대기·재시도·실패·승인 지연을 source와 함께 보여준다. 겹치거나 누락된 시간은 이중 계산하지 않는다.
 - ST-012-19 | EP-012 | Stats 저장·재개·내보내기 경계를 확정한다 | Stats 원본은 기존 journal과 artifact가 소유하고 session 재개 후 같은 projection을 복원한다. 별도 snapshot 저장이 필요한 경우 schema·revision·무효화 조건을 명시하며 Markdown 또는 JSON export는 secret·local path redaction 계약을 따른다.
+- ST-019-01 | EP-019 | 관측 사실과 공통 지표 경계를 확정한다 | 세 projection이 동일 Journal·Receipt·Usage authority와 metric 정의를 사용한다.
+- ST-019-02 | EP-019 | Observability Workspace 탐색을 연결한다 | r/R·1/2/3 sibling navigation, 단일 Esc 복귀, input safety와 journal 불변을 보장한다.
+- ST-019-03 | EP-019 | 관측 가능한 Session history source를 만든다 | 여러 session의 coverage를 읽고 누락된 경계를 unknown으로 유지한다.
+- ST-019-04 | EP-019 | Aggregate Dashboard projection을 계산한다 | status·usage·health·trend·attention·recent session을 결정론적으로 집계한다.
+- ST-019-05 | EP-019 | Aggregate Dashboard 화면과 drilldown을 제공한다 | responsive overview와 Stats/Monitor handoff를 제공한다.
+- ST-019-06 | EP-019 | Live Monitor projection과 상태 기계를 만든다 | active execution과 최근 semantic activity를 bounded projection으로 계산한다.
+- ST-019-07 | EP-019 | Live Monitor 화면을 event-driven으로 갱신한다 | idle부터 completion까지 현재 상태를 bounded redraw로 표시한다.
+- ST-019-08 | EP-019 | Observability acceptance와 성능을 검증한다 | navigation·projection·responsive·runtime capture·observer overhead를 검증한다.
 <!-- www-planning-v1:end -->

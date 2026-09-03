@@ -67,4 +67,5 @@
 - EP-010 | Project-local Planning Package v1 | Why·How·Outcome·Work·Runtime 경계를 stable ID와 append-only 이력으로 관리하고 명시적인 Epic·Story 저장 surface를 제공한다.
 - EP-011 | v0.1.0 Native Project Workbench | Codex native execution을 보존하면서 Chat·T-notes·project Todo를 세 패널로 연결하고, 승인된 Markdown을 Git/GitHub/Obsidian same-file 정본으로 관리하며 Claude Opus·Gemini 읽기 전용 검토와 macOS·Windows release gate를 제공한다.
 - EP-012 | 세션 오케스트레이션 상태를 읽을 수 있게 만든다 | 사용자가 /stats에서 한 세션의 목적·행동·결과와 실행 효율·자원 사용·병목을 한 페이지로 확인하되, hidden reasoning이나 별도 Truth를 만들지 않는다.
+- EP-019 | 관측 화면을 하나의 시스템으로 통합한다 | Stats·Dashboard·Monitor가 동일 Journal·Receipt·Usage 사실에서 서로 다른 scope의 projection을 만들고 하나의 Observability Workspace로 연결된다.
 <!-- www-planning-v1:end -->

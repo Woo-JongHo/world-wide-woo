@@ -100,3 +100,5 @@ src/
 - `docs/TUI_CODE_MATRIX.md` — 구현 위치와 외부 비교 지도
 - `docs/WWW_V010_ARCHITECTURE_PROPOSAL.md` — EP-011의 제품 범위와 구조 결정
 - `docs/WWW_V010_EXECUTION_HANDOFF.md` — EP-011 Story 순서·중단 조건·실행 인계
+- `docs/WWW_OBSERVABILITY_VIEW_ARCHITECTURE.md` — EP-019 Stats·Dashboard·Monitor projection과 workspace navigation 승인 초안
+- `.www/planning/inputs/OBS-20260904-01.md` — EP-019를 만든 사용자 입력의 source·요구사항·금지사항 기록
