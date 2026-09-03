@@ -308,6 +308,67 @@ describe("workbench dashboard views", () => {
 		expect(plain.join("\n")).toContain("열린 답변");
 	});
 
+	test("renders only the public answer from a completed assistant envelope", () => {
+		const output = stripTerminalSequences(new WorkbenchChatView({
+			...snapshot,
+			chat: [{
+				...snapshot.chat[0]!,
+				content: [
+					"<analysis>비공개 추론</analysis>",
+					"<results>내부 결과</results>",
+					"<files>내부 파일 목록</files>",
+					"<answer>",
+					"## 공개 답변",
+					"정상 **Markdown**과 <kbd>Esc</kbd>는 유지합니다.",
+					"```xml",
+					"<analysis>코드 예시 태그</analysis>",
+					"```",
+					"</answer>",
+					"<next_steps>내부 다음 단계</next_steps>",
+				].join("\n"),
+			}],
+		}).render(100).join("\n"));
+
+		expect(output).toContain("공개 답변");
+		expect(output).toContain("정상 Markdown과 <kbd>Esc</kbd>는 유지합니다.");
+		expect(output).toContain("<analysis>코드 예시 태그</analysis>");
+		expect(output).not.toContain("비공개 추론");
+		expect(output).not.toContain("내부 결과");
+		expect(output).not.toContain("내부 파일 목록");
+		expect(output).not.toContain("내부 다음 단계");
+	});
+
+	test("reprojects unchanged envelope text when streaming becomes completed", () => {
+		const message = {
+			...snapshot.chat[0]!,
+			status: "streaming" as const,
+			content: "<analysis>내부</analysis>\n<answer>공개</answer>",
+		};
+		const view = new WorkbenchChatView({ ...snapshot, chat: [message] });
+		expect(stripTerminalSequences(view.render(80).join("\n"))).toContain("<analysis>내부</analysis>");
+		view.update({ ...snapshot, chat: [{ ...message, status: "completed" }] });
+		const completed = stripTerminalSequences(view.render(80).join("\n"));
+		expect(completed).toContain("공개");
+		expect(completed).not.toContain("내부");
+	});
+
+	test("preserves partial tags, surrounding text, and fenced tag examples", () => {
+		for (const content of [
+			"prefix <answer>content</answer> suffix",
+			"인라인 코드 `<analysis>`는 설명입니다.",
+			"```xml\n<analysis>\n코드\n</analysis>\n```",
+			"```xml\n<analysis>example</analysis>\n```\n<answer>literal HTML example</answer>",
+		]) {
+			const output = stripTerminalSequences(new WorkbenchChatView({
+				...snapshot,
+				chat: [{ ...snapshot.chat[0]!, content }],
+			}).render(100).join("\n"));
+			for (const token of content.match(/(?:prefix|content|suffix|인라인 코드|<analysis>|설명입니다|코드)/gu) ?? []) {
+				expect(output).toContain(token);
+			}
+		}
+	});
+
 	test("renders the live action and its Esc hint as separate rows", () => {
 		const view = new WorkbenchChatView(snapshot);
 		view.syncActivity({

@@ -34,6 +34,65 @@ const CUSTOMER_IDENTIFIER_PATTERNS: readonly RegExp[] = [
 	/\b(?:phone|tel|telephone|mobile|연락처|전화(?:번호)?)\b\s*[:=#]?\s*\+?\d{8,15}\b/giu,
 ];
 
+const COMPLETION_ENVELOPE_LINE = /^\s*<(\/?)(analysis|results|files|answer|next_steps)\s*>\s*$/iu;
+const COMPLETION_ENVELOPE_SECTION = /^\s*<(analysis|results|files|answer|next_steps)\s*>(.*?)<\/\1\s*>\s*$/iu;
+const FENCE_OPEN = /^ {0,3}(`{3,}|~{3,})/u;
+
+/**
+ * Keeps only the public answer from a completed Assistant response envelope.
+ * Responses without an envelope, including ordinary HTML-like content and
+ * fenced code, are returned unchanged.
+ */
+export function sanitizeCompletedAssistantResponse(value: string): string {
+	if (typeof value !== "string") throw new Error("Assistant response must be a string");
+	let activeSection: string | null = null;
+	let fence: { marker: string; length: number } | null = null;
+	let answerCount = 0;
+	let sawEnvelope = false;
+	const answer: string[] = [];
+	for (const line of value.split(/\r?\n/u)) {
+		if (fence) {
+			if (new RegExp(`^ {0,3}${fence.marker}{${fence.length},}\\s*$`, "u").test(line)) fence = null;
+			if (activeSection === "answer") answer.push(line);
+			continue;
+		}
+		const openedFence = line.match(FENCE_OPEN)?.[1];
+		if (openedFence) {
+			if (!activeSection) return value;
+			fence = { marker: openedFence[0]!, length: openedFence.length };
+			if (activeSection === "answer") answer.push(line);
+			continue;
+		}
+		const section = line.match(COMPLETION_ENVELOPE_SECTION);
+		if (section) {
+			if (activeSection) return value;
+			sawEnvelope = true;
+			if (section[1]!.toLowerCase() === "answer") {
+				answerCount += 1;
+				answer.push(section[2]!);
+			}
+			continue;
+		}
+		const tag = line.match(COMPLETION_ENVELOPE_LINE);
+		if (tag) {
+			sawEnvelope = true;
+			const name = tag[2]!.toLowerCase();
+			if (tag[1] === "/") {
+				if (activeSection !== name) return value;
+				activeSection = null;
+			} else {
+				if (activeSection) return value;
+				activeSection = name;
+				if (name === "answer") answerCount += 1;
+			}
+			continue;
+		}
+		if (activeSection === "answer") answer.push(line);
+		else if (!activeSection && line.trim()) return value;
+	}
+	return sawEnvelope && !activeSection && answerCount === 1 ? answer.join("\n").trim() : value;
+}
+
 /**
  * Produces the only text allowed into a cross-provider review packet. Every
  * known sensitive class is replaced, and callers receive findings for the
