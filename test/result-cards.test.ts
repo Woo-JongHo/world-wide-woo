@@ -218,6 +218,25 @@ describe("GenericToolResultCard", () => {
 		expect(text).toContain("line-19");
 		expect(lines.every((line) => visibleWidth(line) === 24)).toBe(true);
 	});
+
+	test("bounds huge valid structured output before highlighting without breaking ANSI or width", () => {
+		const output = JSON.stringify({
+			items: Array.from({ length: 2_000 }, (_, index) => `line-${index}`),
+			tail: "tail-marker",
+		});
+		const lines = new GenericToolResultCard(generic({
+			input: "{\"path\":\"report.json\"}",
+			output,
+		}), 3).render(32);
+		const rendered = lines.join("\n");
+		const text = stripTerminalSequences(rendered);
+
+		expect(rendered).toContain("\u001b[");
+		expect(text).toContain("tail-marker");
+		expect(text).toContain("earlier lines omitted");
+		expect(text).not.toContain("\u001b");
+		expect(lines.every((line) => visibleWidth(line) === 32)).toBe(true);
+	});
 });
 
 describe("DiffResultCard", () => {
