@@ -24,7 +24,7 @@ import { ModelPickerOverlay } from "./model-picker-overlay";
 import { OverlaySheet } from "./overlay-sheet";
 import { RenderScheduler, workbenchRenderUrgency } from "./render-scheduler";
 import { settleWithin } from "./shell-lifecycle";
-import { parseWorkbenchShellCommand, WORKBENCH_SLASH_COMMANDS } from "./slash-commands";
+import { parseWorkbenchShellCommand, WORKBENCH_SLASH_COMMANDS, type WorkbenchShellCommand } from "./slash-commands";
 import { colors, editorTheme } from "./theme";
 import { WorkbenchBottomHudView } from "./workbench-bottom-hud";
 import { WorkbenchTelemetryLine, workbenchModelLabel } from "./workbench-telemetry";
@@ -95,6 +95,22 @@ export function workbenchFrameTitle(source: Pick<WorkbenchSnapshot,
 	"projectId" | "model" | "activeModel" | "effort" | "phase" | "collaborationMode" | "permissionMode" | "chatQueue" | "pendingApproval"
 >): string {
 	return `🐙 WWW · ${source.projectId} · ${workbenchModelLabel(source.activeModel ?? source.model)} · ${source.effort ?? "–"} · ${source.phase} · ${source.collaborationMode === "plan" ? "Plan" : "Manual"} · Permission ${source.permissionMode ?? "manual"}${source.chatQueue.length > 0 ? ` · 대기 ${source.chatQueue.length}` : ""}${source.pendingApproval ? " · 승인 대기" : ""}`;
+}
+
+export function workbenchPaneNotice(pane: "chat" | "tnotes" | "todo"): string {
+	const location = pane === "chat" ? "왼쪽 Chat · 질문과 공개 응답"
+		: pane === "tnotes" ? "오른쪽 위 완료 질문 T-note" : "오른쪽 아래 현재 Native Plan·Todo.md";
+	return `${location} pane은 현재 화면에 계속 표시됩니다.`;
+}
+
+export function workbenchViewModeForCommand(
+	current: WorkbenchViewMode,
+	command: WorkbenchShellCommand,
+): WorkbenchViewMode {
+	if (command.type === "pane.show") return "dashboard";
+	if (command.type === "activity.select" && command.activityId) return "monitor";
+	if (command.type === "trace.select") return "monitor";
+	return current;
 }
 
 const WORKBENCH_ACTIVITY_FRAMES = Object.freeze(["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]);
@@ -368,9 +384,8 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 			return true;
 		}
 		if (command.type === "pane.show") {
-			const pane = command.pane === "chat" ? "왼쪽 Chat"
-				: command.pane === "tnotes" ? "오른쪽 위 Trace·Source" : "오른쪽 아래 Todo.md";
-			status.setNotice(`${pane} pane은 현재 화면에 계속 표시됩니다.`);
+			viewMode = workbenchViewModeForCommand(viewMode, command);
+			status.setNotice(workbenchPaneNotice(command.pane));
 			tui.requestRender();
 			return true;
 		}
@@ -402,6 +417,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		if (command.type === "activity.select") {
 			const activityId = command.activityId === "latest" ? snapshot.activities.at(-1)?.id ?? null : command.activityId;
 			showReceipt(await workbench.dispatch({ type: "activity.select", activityId }));
+			viewMode = workbenchViewModeForCommand(viewMode, { ...command, activityId });
 			return true;
 		}
 		if (command.type === "trace.select") {
@@ -414,6 +430,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 				return true;
 			}
 			showReceipt(await workbench.dispatch({ type: "activity.select", activityId }));
+			viewMode = workbenchViewModeForCommand(viewMode, command);
 			return true;
 		}
 		if (command.type === "tnote.capture") {

@@ -122,6 +122,16 @@ function allScrollContent(box: LayoutBox): string[] {
 }
 
 describe("workbench dashboard views", () => {
+	test("keeps completed T-notes in Dashboard and selected execution Source in Monitor", () => {
+		const notes = stripTerminalSequences(new TNotesSourceView(() => snapshot).render(100).join("\n"));
+		const monitor = stripTerminalSequences(new WorkbenchMonitorView(() => snapshot).render(100).join("\n"));
+		expect(notes).toContain("결정 요약");
+		expect(notes).not.toContain("Trace·Source");
+		expect(monitor).toContain("Trace·Source · activity-1");
+		expect(monitor).toContain("message-1");
+		expect(monitor).not.toContain("결정 요약");
+	});
+
 	test("keeps a resumed truncated Native turn's durable question number and reveals its selected T-note sources", () => {
 		const secondAssistant = {
 			...snapshot.activities[0]!,

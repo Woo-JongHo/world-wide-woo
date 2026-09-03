@@ -735,7 +735,10 @@ function hasVisibleChatContent(snapshot: WorkbenchSnapshot): boolean {
 		|| Boolean(snapshot.liveActivity && isVisibleWorkStep(snapshot.liveActivity.kind));
 }
 
-/** Append-only summaries of completed questions only. */
+/**
+ * Right-top Dashboard pane: append-only records of completed questions only.
+ * Trace and Source stay with the selected execution in Monitor.
+ */
 export class TNotesSourceView implements Component {
 	constructor(private readonly getSnapshot: () => WorkbenchSnapshot) {}
 	invalidate(): void {}
@@ -774,6 +777,16 @@ export class WorkbenchMonitorView implements Component {
 		const live = snapshot.liveActivity
 			? `${snapshot.liveActivity.kind} · ${sanitizeTerminalTextExcerpt(snapshot.liveActivity.text || snapshot.liveActivity.method, 180, "head-tail")}`
 			: "대기 중인 실행 없음";
+		const selected = snapshot.selectedActivityId
+			? snapshot.activities.find((activity) => activity.id === snapshot.selectedActivityId)
+			: undefined;
+		const selectedSource = selected
+			? boundedPublicProjection({
+				method: selected.payload.method,
+				refs: selected.nativeRefs,
+				payload: selected.payload,
+			}).value
+			: null;
 		const rows = [
 			colors.accent("Monitor · 실행 관측"),
 			colors.muted("읽기 전용 · Chat과 Todo는 같은 Workbench 상태를 사용합니다."),
@@ -792,6 +805,10 @@ export class WorkbenchMonitorView implements Component {
 				snapshot.threadId,
 				contentWidth,
 			).length}개 실행 그룹`,
+			`${colors.secondary("Trace·Source")} · ${selected
+				? `${selected.id} · ${selected.nativeRefs.turnId ?? "turn 없음"} · ${selected.nativeRefs.itemId ?? "item 없음"}`
+				: "선택한 실행 없음"}`,
+			...(selectedSource ? [colors.muted(JSON.stringify(selectedSource))] : []),
 		];
 		return rows.flatMap((row) => wrapTextWithAnsi(row, contentWidth));
 	}

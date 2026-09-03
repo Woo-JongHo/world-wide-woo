@@ -14,22 +14,24 @@
 
 ```text
 외곽 Frame
-├── Chat                native message · 의미 Step · approval · queue
-├── T-notes · Source    immutable T-note · 선택 activity · action result
-├── Todo.md             현재 project 실행 보드
+├── Dashboard Chat      native message · 의미 Step · approval · queue
+├── 완료 질문 T-note    immutable 질문·이유·결과
+├── Native Plan·Todo.md 현재 실행 단계
+├── Monitor             선택 실행의 Trace·Source
 └── Composer/Status     native chat 입력 · local command 결과
 ```
 
 Workbench local command:
 
-- `/source`, `/tnote` — activity 선택과 packet-only T-note 생성
-- `/todo` — project Todo 생성·전이·evidence 연결
+- `/source`, `/trace` — Monitor에서 activity와 Todo 실행 근거 선택
+- `/monitor`, `/dashboard` — 실행 Trace·Source와 프로젝트 Dashboard 전환
+- `/tnotes`, `/tnote` — Dashboard의 완료 질문 기록 확인과 packet-only T-note 생성
+- `/todo` — legacy Todo migration view
 - `/promote`, `/review` — 사람 승인 기반 local promotion과 제한된 외부 검토
 - `/approve`, `/decline`, `/cancel` — native approval/turn 제어
 
 다음 표면은 `legacy-session-shell.ts`에만 남아 있고 기본 `www` 실행 경로에서는 열리지 않는다.
 
-- `/monitor`, `/dashboard` — Session·Turn·Tool·Todo monitoring
 - `/planning` — Project Planning catalog 상태
 - `/epic`, `/story` — 명시적 drafted Planning artifact 저장
 - `!<command>` — 현재 cwd에서 사용자 명시적 non-interactive terminal 실행
