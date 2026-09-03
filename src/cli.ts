@@ -83,6 +83,8 @@ function helpText(): string {
 		"  www --resume <native-thread-id>  지정한 native thread 바로 재개",
 		"",
 		"Workbench 명령:",
+		"  /stats · /dashboard · /monitor  Observability View 직접 열기",
+		"  r/R · 1/2/3 · Esc          View 회전·직접 이동·Workbench 복귀",
 		"  /model [모델] [추론 강도]  현재·다음 실행의 Codex 모델 변경",
 		"  /source <id|latest|clear>  Trace source 선택",
 		"  /tnote  마지막 질문을 packet-only 질문·이유·결과로 수동 캡처",
