@@ -7,7 +7,7 @@ import type { Api, AssistantMessage, AssistantMessageEventStream, Context, Model
 import { ReviewService } from "../src/application/review-service";
 import { createReviewPacket } from "../src/domain/review";
 import { redactForExternalReview } from "../src/domain/redaction";
-import { CLAUDE_OPUS_REVIEW_MODEL, CLAUDE_CLI_REVIEW_INPUT_LIMIT, ClaudeCliReviewAdapter, GEMINI_REVIEW_MODEL, PiReviewGenerationClient, ProviderReviewAdapter, createProductionReviewAdapters, createReviewAdapters, createSystemClaudeCliRunner, sha256ReviewDigest } from "../src/infrastructure/review-adapters";
+import { CLAUDE_OPUS_REVIEW_MODEL, CLAUDE_CLI_REVIEW_INPUT_LIMIT, ClaudeCliReviewAdapter, ClaudeCliReviewError, GEMINI_REVIEW_MODEL, PiReviewGenerationClient, ProviderReviewAdapter, createProductionReviewAdapters, createReviewAdapters, createSystemClaudeCliRunner, sha256ReviewDigest } from "../src/infrastructure/review-adapters";
 import { FileReviewProvenanceStore } from "../src/infrastructure/review-store";
 
 const directories: string[] = [];
@@ -190,6 +190,27 @@ describe("external review boundary", () => {
 		expect(adapter).toBeInstanceOf(ClaudeCliReviewAdapter);
 		expect(adapter.version).toBe("claude 2.1.3");
 		await expect(adapter.review(packet)).rejects.toMatchObject({ code: "authentication" });
+	});
+
+	test("production Claude CLI probing is lazy and an unavailable CLI fails without Provider API fallback", async () => {
+		let versionLookups = 0;
+		let providerCalls = 0;
+		const adapters = createProductionReviewAdapters(
+			{ generate: async () => { providerCalls += 1; return "Provider API must not be called"; } },
+			{ claudeCliVersion: () => {
+				versionLookups += 1;
+				throw new ClaudeCliReviewError("unavailable", "Claude CLI version is unavailable");
+			}, claudeCli: {
+				makeTempDirectory: async () => "/tmp/unused-claude",
+				removeDirectory: async () => {},
+			} },
+		);
+		const adapter = adapters.get("anthropic")!;
+		expect(versionLookups).toBe(0);
+		const packet = createReviewPacket({ purpose: publicText("review"), request: publicText("packet only"), createdAt: "2026-09-01T00:00:00.000Z" }, sha256ReviewDigest).packet;
+		await expect(adapter.review(packet)).rejects.toMatchObject({ name: "ClaudeCliReviewError", code: "unavailable" });
+		expect(versionLookups).toBe(1);
+		expect(providerCalls).toBe(0);
 	});
 
 	test("system Claude runner caps streamed output before process completion and kills its process group", async () => {

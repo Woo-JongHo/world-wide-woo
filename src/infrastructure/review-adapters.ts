@@ -40,8 +40,8 @@ export interface ReviewAdapterOptions {
 }
 
 export interface ProductionReviewAdapterOptions extends ReviewAdapterOptions {
-	/** The installed Claude CLI version, captured by production composition. */
-	readonly claudeCliVersion: string;
+	/** Installed Claude CLI provenance, resolved only when Claude review is sent. */
+	readonly claudeCliVersion: string | (() => string);
 	readonly claudeCli?: ClaudeCliReviewAdapterOptions;
 }
 
@@ -138,7 +138,7 @@ export class ProviderReviewAdapter implements ReviewAdapter {
 	}
 }
 
-export type ClaudeCliReviewFailureCode = "authentication" | "subscription-limit" | "timeout" | "malformed-json" | "process";
+export type ClaudeCliReviewFailureCode = "unavailable" | "authentication" | "subscription-limit" | "timeout" | "malformed-json" | "process";
 
 export class ClaudeCliReviewError extends Error {
 	constructor(readonly code: ClaudeCliReviewFailureCode, message: string) {
@@ -205,13 +205,13 @@ export class ClaudeCliReviewAdapter implements ReviewAdapter {
 
 	constructor(
 		readonly model: string,
-		/** Installed Claude CLI version, supplied by composition rather than guessed. */
-		readonly version: string,
+		/** Installed Claude CLI provenance, supplied by composition rather than guessed. */
+		private readonly cliVersion: string | (() => string),
 		private readonly digest: ReviewDigester = sha256ReviewDigest,
 		options: ClaudeCliReviewAdapterOptions = {},
 	) {
 		if (resolveModel("anthropic", model) !== model) throw new Error("Unsupported anthropic review model");
-		if (version.trim().length === 0) throw new Error("Claude CLI version is required");
+		if (typeof cliVersion === "string" && cliVersion.trim().length === 0) throw new Error("Claude CLI version is required");
 		this.command = options.command ?? "claude";
 		this.timeoutMs = options.timeoutMs ?? CLAUDE_CLI_REVIEW_TIMEOUT_MS;
 		this.inputLimit = options.inputLimit ?? CLAUDE_CLI_REVIEW_INPUT_LIMIT;
@@ -223,10 +223,19 @@ export class ClaudeCliReviewAdapter implements ReviewAdapter {
 		this.clock = options.clock ?? (() => new Date());
 	}
 
+	get version(): string {
+		const version = typeof this.cliVersion === "function" ? this.cliVersion() : this.cliVersion;
+		if (typeof version !== "string" || version.trim().length === 0) {
+			throw new ClaudeCliReviewError("unavailable", "Claude CLI version is unavailable");
+		}
+		return version;
+	}
+
 	async review(packet: ReviewPacket): Promise<ReviewDelivery> {
 		verifyReviewPacket(packet, this.digest);
 		const input = reviewPacketInput(packet, this.digest);
 		if (Buffer.byteLength(input, "utf8") > this.inputLimit) throw new ClaudeCliReviewError("process", "Claude CLI review input exceeds its budget");
+		const version = this.version;
 		const cwd = await this.makeTempDirectory();
 		const sentAt = this.clock().toISOString();
 		try {
@@ -241,7 +250,7 @@ export class ClaudeCliReviewAdapter implements ReviewAdapter {
 			const safeResult = redactForExternalReview(parsed.result).text;
 			const receivedAt = this.clock().toISOString();
 			return Object.freeze({
-				provider: this.provider, model: this.model, version: this.version, transport: "claude-cli",
+				provider: this.provider, model: this.model, version, transport: "claude-cli",
 				packetDigest: packet.digest, sentAt, receivedAt, result: safeResult, resultDigest: this.digest(safeResult),
 				usage: parsed.usage,
 			});
@@ -408,11 +417,16 @@ export function createProductionReviewAdapters(
 }
 
 export function installedClaudeCliVersion(command = "claude"): string {
-	const result = Bun.spawnSync([command, "--version"], { stdout: "pipe", stderr: "pipe" });
-	if (result.exitCode !== 0) throw new Error("Claude CLI version is unavailable");
-	const version = new TextDecoder().decode(result.stdout).trim();
-	if (version.length === 0) throw new Error("Claude CLI version is unavailable");
-	return version;
+	try {
+		const result = Bun.spawnSync([command, "--version"], { stdout: "pipe", stderr: "pipe" });
+		if (result.exitCode !== 0) throw new ClaudeCliReviewError("unavailable", "Claude CLI version is unavailable");
+		const version = new TextDecoder().decode(result.stdout).trim();
+		if (version.length === 0) throw new ClaudeCliReviewError("unavailable", "Claude CLI version is unavailable");
+		return version;
+	} catch (error) {
+		if (error instanceof ClaudeCliReviewError) throw error;
+		throw new ClaudeCliReviewError("unavailable", "Claude CLI version is unavailable");
+	}
 }
 
 function createAdapter(provider: ReviewProvider, selection: ReviewModelSelection | undefined, client: ReviewGenerationClient, digest: ReviewDigester): ProviderReviewAdapter {

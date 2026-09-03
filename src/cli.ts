@@ -68,6 +68,7 @@ function helpText(): string {
 	return [
 		"사용법:",
 		"  www                         새 Codex native 3-pane Workbench 실행",
+		"  www --execution-lane pi     실험적 내장 Pi text lane으로 Workbench 실행",
 		"  www router                  호환 Claude·Gemini·OpenAI Router 실행",
 		"                              Native 승인·Sandbox·Skill은 제공하지 않음",
 		"  www router --resume <session-id>",
@@ -145,6 +146,9 @@ export async function runCli(args: string[], dependencies: CliDependencies = pro
 			if (threadId) await dependencies.runApp({ resumeThreadId: threadId });
 		}
 		else if (args.length === 0) await dependencies.runApp({});
+		else if (args.length === 2 && args[0] === "--execution-lane" && (args[1] === "pi" || args[1] === "codex")) {
+			await dependencies.runApp({ executionLane: args[1] });
+		}
 		else throw new Error(`알 수 없는 명령입니다: ${args.join(" ")}`);
 		return 0;
 	} catch (error) {

@@ -15,6 +15,7 @@ import type { ProjectActivity, ProjectActivityAppendResult, ProjectActivityInput
 import { createProjectWorkbenchSession, scopedProjectId, scopedTodoSessionId, ThreadBoundActivityJournal, type ProjectWorkbenchSessionFactories } from "../src/infrastructure/project-workbench-session.js";
 import type { ProjectWorkspace } from "../src/infrastructure/project-workspace.js";
 import { nativeThreadJournalKey } from "../src/infrastructure/activity-journal-store.js";
+import { createNativeHarness } from "../src/infrastructure/native-harness-factory.js";
 import { sha256ReviewDigest } from "../src/infrastructure/review-adapters.js";
 
 class MemoryTodoStore implements TodoStore {
@@ -104,6 +105,42 @@ function memoryWooEntry(): WooEntry {
 }
 
 describe("createProjectWorkbenchSession", () => {
+	test("selects Codex by default and forwards an explicit Pi lane independently from provider, model, and effort", async () => {
+		const codex = new FakeNative([]);
+		const pi = new FakeNative([]);
+		const codexInputs: unknown[] = [];
+		const piInputs: unknown[] = [];
+
+		await expect(createNativeHarness({
+			connectCodex: async input => { codexInputs.push(input); return codex; },
+			createPi: async input => { piInputs.push(input); return pi; },
+			provider: "openai-codex",
+			model: "gpt-5.6-sol",
+			effort: "medium",
+		})).resolves.toBe(codex);
+		expect(codexInputs).toEqual([{
+			provider: "openai-codex",
+			model: "gpt-5.6-sol",
+			effort: "medium",
+		}]);
+		expect(piInputs).toEqual([]);
+
+		await expect(createNativeHarness({
+			executionLane: "pi",
+			connectCodex: async input => { codexInputs.push(input); return codex; },
+			createPi: async input => { piInputs.push(input); return pi; },
+			provider: "anthropic",
+			model: "claude-sonnet",
+			effort: "high",
+		})).resolves.toBe(pi);
+		expect(piInputs).toEqual([{
+			provider: "anthropic",
+			model: "claude-sonnet",
+			effort: "high",
+		}]);
+		expect(codexInputs).toHaveLength(1);
+	});
+
 	test("requires an explicit thread bind before selecting a journal stream or appending activity", async () => {
 		let reads = 0, appends = 0;
 		const journal = new ThreadBoundActivityJournal({

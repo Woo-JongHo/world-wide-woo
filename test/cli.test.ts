@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import type { RunAppOptions } from "../src/app";
 import { runCli, writeRouterBootstrap, writeWorkbenchBootstrap, type CliDependencies } from "../src/cli";
 import type { NativeThreadSummary } from "../src/domain/native-session";
 
@@ -18,7 +19,7 @@ const threads: readonly NativeThreadSummary[] = [{
 
 function fakeDependencies() {
 	const calls = {
-		app: [] as Array<{ resumeThreadId?: string }>,
+		app: [] as RunAppOptions[],
 		router: [] as Array<{ resumeSessionId?: string }>,
 		listed: 0,
 		picked: [] as Array<readonly NativeThreadSummary[]>,
@@ -76,6 +77,18 @@ describe("WWW CLI session entry", () => {
 		expect(calls.app).toEqual([{}]);
 		expect(calls.listed).toBe(0);
 		expect(calls.picked).toEqual([]);
+	});
+
+	test("opens the experimental embedded Pi lane without changing the default", async () => {
+		const { calls, dependencies } = fakeDependencies();
+		expect(await runCli(["--execution-lane", "pi"], dependencies)).toBe(0);
+		expect(calls.app).toEqual([{ executionLane: "pi" }]);
+	});
+
+	test("accepts an explicit Codex lane without changing its default semantics", async () => {
+		const { calls, dependencies } = fakeDependencies();
+		expect(await runCli(["--execution-lane", "codex"], dependencies)).toBe(0);
+		expect(calls.app).toEqual([{ executionLane: "codex" }]);
 	});
 
 	test("opens an explicit multi-provider Router session without changing the native default", async () => {
