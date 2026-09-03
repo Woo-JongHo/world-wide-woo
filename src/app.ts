@@ -1,13 +1,10 @@
 import { DEFAULT_SETTINGS, type WwwSettings } from "./domain/model-settings.js";
 import { buildPiExecutionSystemPrompt, type ExecutionLane } from "./infrastructure/native-harness-factory.js";
 import { createProjectWorkbenchSession } from "./infrastructure/project-workbench-session.js";
+import { FileDevelopmentMapSource } from "./infrastructure/development-map-source.js";
 export { listNativeThreads } from "./infrastructure/native-thread-discovery.js";
 
-export interface RunAppOptions {
-	resumeThreadId?: string;
-	executionLane?: ExecutionLane;
-}
-
+export interface RunAppOptions { resumeThreadId?: string; executionLane?: ExecutionLane }
 export async function runApp(options: RunAppOptions = {}): Promise<void> {
 	const { FileSettingsStore } = await import("./infrastructure/settings-store");
 	const { runProjectWorkbenchShell } = await import("./presentation/tui/workbench-shell");
@@ -31,8 +28,11 @@ export async function runApp(options: RunAppOptions = {}): Promise<void> {
 		},
 	});
 	try {
-		runProjectWorkbenchShell({ workbench: project.workbench, cwd: project.workspace.root, usage: project.usage,
-			composerDraft: project.composerDraft, releaseSessionLease: project.releaseSessionLease });
+		runProjectWorkbenchShell({
+			workbench: project.workbench, cwd: project.workspace.root, usage: project.usage,
+			developmentMapSource: new FileDevelopmentMapSource(project.workspace.root),
+			composerDraft: project.composerDraft, releaseSessionLease: project.releaseSessionLease,
+		});
 	} catch (error) {
 		await project.close();
 		throw error;

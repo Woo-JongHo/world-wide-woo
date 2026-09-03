@@ -3,6 +3,7 @@ import { stripTerminalSequences, type Component } from "@earendil-works/pi-tui";
 import { renderLayoutFrame } from "@earendil-works/pi-tui/dist/layout.js";
 import {
 	createWorkbenchViewHost,
+	workbenchEscapeView,
 	workbenchActivityIndicator,
 	workbenchFrameTitle,
 	workbenchModelSettings,
@@ -118,10 +119,17 @@ describe("native workbench shell receipt policy", () => {
 		}));
 	});
 
-	test("routes dashboard and monitor to distinct local view modes", () => {
+	test("routes dashboard, monitor, and the full development map to distinct local view modes", () => {
 		expect(workbenchViewModeCommand("/dashboard")).toBe("dashboard");
 		expect(workbenchViewModeCommand(" /monitor ")).toBe("monitor");
+		expect(workbenchViewModeCommand(" /map ")).toBe("map");
 		expect(workbenchViewModeCommand("/monitor details")).toBeNull();
+	});
+
+	test("returns from the map to the view that opened it", () => {
+		expect(workbenchEscapeView("map", "dashboard")).toBe("dashboard");
+		expect(workbenchEscapeView("map", "monitor")).toBe("monitor");
+		expect(workbenchEscapeView("dashboard", "dashboard")).toBeNull();
 	});
 
 	test("preserves dashboard layout viewports while switching views", () => {
@@ -141,8 +149,9 @@ describe("native workbench shell receipt policy", () => {
 			{ color: value => value, component: text("monitor-trace") },
 			{ color: value => value, component: text("monitor-todo") },
 		);
-		let mode: "dashboard" | "monitor" = "dashboard";
-		const host = createWorkbenchViewHost(() => mode, dashboard.component, monitor.component);
+		const map = text("INIT-001 → EP-010 → ST-010-01");
+		let mode: "dashboard" | "monitor" | "map" = "dashboard";
+		const host = createWorkbenchViewHost(() => mode, dashboard.component, monitor.component, map);
 
 		let frame = renderLayoutFrame(host, 120, 24, () => undefined);
 		expect(frame.primaryScrollView).toBe(dashboard.leftScroll);
@@ -152,6 +161,10 @@ describe("native workbench shell receipt policy", () => {
 		frame = renderLayoutFrame(host, 120, 24, () => undefined);
 		expect(frame.primaryScrollView).toBe(monitor.leftScroll);
 		expect(stripTerminalSequences(frame.lines.join("\n"))).toContain("monitor-chat");
+
+		mode = "map";
+		frame = renderLayoutFrame(host, 120, 24, () => undefined);
+		expect(stripTerminalSequences(frame.lines.join("\n"))).toContain("INIT-001 → EP-010 → ST-010-01");
 	});
 
 	test("normalizes native model telemetry into a selectable Codex setting", () => {

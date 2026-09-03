@@ -2,6 +2,8 @@
 
 이 문서는 현재 프로젝트의 탐색 지도다. 설계 이유와 불변식은 `PLAN.md`와 `decisions/`가 소유하며 여기에서 복제하지 않는다.
 
+전체 제품의 개발 상태와 ID 연결은 [`Development-Map.md`](./Development-Map.md)에서 본다.
+
 ## Entrypoints
 
 - `src/cli.ts` — `www`, auth, native thread/session CLI 진입점

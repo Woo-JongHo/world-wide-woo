@@ -96,6 +96,9 @@ _Avoid_: 모델 weight 학습, Token 절감만으로 한 최적화.
 **Progress Model**: 여러 프로젝트의 업무 상태·완료·대기·위험·다음 행동을 사용자가 자기 업무 기준으로 정의하고 판정하는 체계.
 _Avoid_: 실행기가 내보낸 raw status, 고정된 범용 Kanban 상태.
 
+**Development Map**: Initiative·Epic·Story의 stable ID와 검증된 상태를 제품 영역별로 모아 현재 위치와 다음 전환을 보여주는 읽기 전용 Projection.
+_Avoid_: 세부 요구사항의 복제, 별도 상태 정본, session Todo 목록.
+
 **Operations TUI**: Progress Model에 따라 여러 프로젝트의 현재 위치·근거·다음 행동을 한곳에서 파악하고 조작하는 사용자 표면.
 _Avoid_: Native Executor 화면의 단순 복제, 로그를 나열한 Dashboard.
 
