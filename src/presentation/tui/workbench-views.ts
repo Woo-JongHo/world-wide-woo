@@ -8,6 +8,7 @@ import {
 import type { NativeApprovalRequest } from "../../domain/native-session";
 import type { CompletionReport } from "../../domain/output";
 import { projectBackgroundWorkState, type BackgroundWorkState } from "../../domain/native-session";
+import { sanitizeCompletedAssistantResponse } from "../../domain/redaction";
 import { sanitizeTerminalTextExcerpt, sanitizeTerminalTextUnbounded } from "../../domain/terminal";
 import { projectTNoteCompletionIndex } from "../../domain/t-notes";
 import { workbenchApprovalDecisions, type WorkbenchSnapshot } from "../../domain/workbench";
@@ -403,14 +404,17 @@ export class WorkbenchChatView implements Component {
 		for (const message of snapshot.chat) {
 			if (message.role !== "assistant") continue;
 			visibleAssistantIds.add(message.id);
-			if (this.markdownInput.get(message.id) === message.content) continue;
-			const content = sanitizeTerminalTextUnbounded(message.content);
+			const inputKey = `${message.status}\0${message.content}`;
+			if (this.markdownInput.get(message.id) === inputKey) continue;
+			const content = sanitizeTerminalTextUnbounded(
+				message.status === "completed" ? sanitizeCompletedAssistantResponse(message.content) : message.content,
+			);
 			const existing = this.markdown.get(message.id);
 			if (this.markdownSource.get(message.id) !== content) {
 				if (existing) existing.setText(content);
 				else this.markdown.set(message.id, new Markdown(content, 0, 0, markdownTheme));
 			}
-			this.markdownInput.set(message.id, message.content);
+			this.markdownInput.set(message.id, inputKey);
 			this.markdownSource.set(message.id, content);
 		}
 		for (const id of this.markdown.keys()) {
