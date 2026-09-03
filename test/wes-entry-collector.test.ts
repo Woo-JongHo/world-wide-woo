@@ -1,18 +1,20 @@
 import { describe, expect, test } from "bun:test";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { WesEntryCollector } from "../src/infrastructure/wes-entry-collector";
 
 const config = "workspace_root: ~/wes\n";
 const system = "authority:\n  wes_entry_runner: hooks/wes_entry.py\n";
+const testRoot = resolve("/Users/test/wes");
+const testRunner = join(testRoot, "hooks", "wes_entry.py");
 const json = JSON.stringify({ kind: "wes-entry-snapshot", status: { branch: "main" }, git: {}, authority: {}, signals: [{ kind: "upstream-missing" }], next_actions: [{ id: "WI-1" }] });
 describe("WesEntryCollector", () => {
 	test("uses configured safe runner once and preserves signals", async () => {
 		const calls: string[][] = [];
-		const collector = new WesEntryCollector({ configPath: "/config", readText: async path => path === "/config" ? config : system, realpath: async path => path === "/Users/test/wes/hooks/wes_entry.py" ? path : "/Users/test/wes", runner: async (_command, args) => { calls.push([...args]); return { exitCode: 0, stdout: json, stderr: "" }; } });
+		const collector = new WesEntryCollector({ configPath: "/config", readText: async path => path === "/config" ? config : system, realpath: async path => path.includes("hooks") ? testRunner : testRoot, runner: async (_command, args) => { calls.push([...args]); return { exitCode: 0, stdout: json, stderr: "" }; } });
 		const result = await collector.collect();
-		expect(calls).toEqual([["/Users/test/wes/hooks/wes_entry.py", "--root", "/Users/test/wes"]]);
+		expect(calls).toEqual([[testRunner, "--root", testRoot]]);
 		expect(result.payload.signals).toEqual([{ kind: "upstream-missing" }]);
 	});
 
@@ -57,7 +59,7 @@ function fakeCollector(
 	return new WesEntryCollector({
 		configPath: "/config",
 		readText: async path => path === "/config" ? config : `authority:\n  wes_entry_runner: ${runnerPath}\n`,
-		realpath: async path => path.includes("hooks") ? "/Users/test/wes/hooks/wes_entry.py" : "/Users/test/wes",
+		realpath: async path => path.includes("hooks") ? testRunner : testRoot,
 		runner: async (command, args) => runner(command, args),
 	});
 }

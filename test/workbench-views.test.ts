@@ -2,22 +2,80 @@ import { describe, expect, test } from "bun:test";
 import { renderLayoutFrame } from "@earendil-works/pi-tui/dist/layout.js";
 import type { LayoutBox } from "@earendil-works/pi-tui/dist/layout.js";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
+import chalk from "chalk";
 import type { WorkbenchSnapshot } from "../src/domain/workbench";
 import { createDashboardLayout } from "../src/presentation/tui/dashboard-layout";
 import {
 	StatusLine,
 	WorkspaceTodoView,
 } from "../src/presentation/tui/shared-dashboard-views";
-import { TNotesSourceView, WorkbenchChatView } from "../src/presentation/tui/workbench-views";
+import { TNotesSourceView, WorkbenchChatView, WorkbenchMonitorView } from "../src/presentation/tui/workbench-views";
 import { WORKBENCH_STATUS_NOTICE } from "../src/presentation/tui/workbench-shell";
 import { boundedPublicProjection } from "../src/presentation/tui/bounded-public-projection";
-import { projectWorkFlow } from "../src/domain/work-steps";
+import { projectWorkFlow, type DplanHash } from "../src/domain/work-steps";
+
+const hash: DplanHash = {
+	sha256Hex: (input) => new Bun.CryptoHasher("sha256").update(input).digest("hex"),
+};
+
+function fixtureWorkFlow(activities: WorkbenchSnapshot["activities"]) {
+	const source = [...activities].reverse().find(activity =>
+		(activity.payload.method === "turn/start" || activity.payload.method === "turn/started")
+		&& activity.nativeRefs.threadId && activity.nativeRefs.turnId,
+	) ?? [...activities].reverse().find(activity => activity.nativeRefs.threadId && activity.nativeRefs.turnId);
+	const threadId = source?.nativeRefs.threadId
+		?? activities.find(activity => activity.nativeRefs.threadId)?.nativeRefs.threadId
+		?? "fixture-thread";
+	const turnId = source?.nativeRefs.turnId ?? "fixture-turn";
+	const hasPlan = activities.some(activity => activity.payload.method === "turn/plan/updated");
+	const hasTurnStart = activities.some(activity =>
+		activity.payload.method === "turn/start" || activity.payload.method === "turn/started",
+	);
+	const normalized = activities.map((activity, index) => ({
+		...activity,
+		sequence: index + (hasPlan ? 2 : 3),
+		kind: !hasPlan && activity.kind === "tool" ? "file-change" as const : activity.kind,
+		nativeRefs: {
+			...activity.nativeRefs,
+			threadId: activity.nativeRefs.threadId ?? threadId,
+			turnId: activity.nativeRefs.turnId ?? turnId,
+		},
+	}));
+	const sourceItem = activities.find(activity => activity.kind === "tool")?.payload.params as { item?: { tool?: string; status?: string } } | undefined;
+	const title = sourceItem?.item?.tool ? `${sourceItem.item.tool} 입력 해석 중` : "변경 결과 검증";
+	const status = sourceItem?.item?.status === "failed" ? "failed" : normalized.some(activity => activity.phase === "started") ? "inProgress" : "completed";
+	const plan = hasPlan || hasTurnStart ? [] : [{
+		...normalized[0]!,
+		id: "fixture-plan",
+		sequence: 2,
+		kind: "progress" as const,
+		phase: "updated" as const,
+		nativeRefs: { threadId, turnId },
+		payload: { method: "turn/plan/updated", params: { plan: [{ step: title, status: "inProgress" }] } },
+	}];
+	const finalPlan = hasPlan || hasTurnStart ? [] : [{
+		...plan[0]!,
+		id: "fixture-plan-final",
+		sequence: normalized.length + 3,
+		payload: { method: "turn/plan/updated", params: { plan: [{ step: title, status }] } },
+	}];
+	return projectWorkFlow([{
+		...normalized[0]!,
+		id: "fixture-turn-start",
+		sequence: 1,
+		kind: "progress",
+		phase: "started",
+		nativeRefs: { threadId, turnId },
+		payload: { method: "turn/started" },
+	}, ...plan, ...normalized, ...finalPlan], new Map(), { expectedThreadKey: threadId, selectedTurnId: turnId, hash });
+}
 
 const snapshot: WorkbenchSnapshot = {
 	projectId: "sample-project",
 	revision: 3,
 	journalSequence: 1,
 	phase: "ready",
+	mcpServers: [],
 	threadId: "thread-1",
 	activeTurnId: null,
 	activities: [{
@@ -64,6 +122,113 @@ function allScrollContent(box: LayoutBox): string[] {
 }
 
 describe("workbench dashboard views", () => {
+	test("keeps a resumed truncated Native turn's durable question number and reveals its selected T-note sources", () => {
+		const secondAssistant = {
+			...snapshot.activities[0]!,
+			id: "assistant-second",
+			sequence: 5,
+			nativeRefs: { threadId: "thread-1", turnId: "turn-second", itemId: "assistant-second" },
+			payload: { text: "두 번째 답변" },
+		};
+		const completed = [
+			{ ...secondAssistant, id: "turn-second-completed", sequence: 6, kind: "progress" as const, payload: { method: "turn/completed" }, nativeRefs: { threadId: "thread-1", turnId: "turn-second" } },
+		];
+		const indexed: WorkbenchSnapshot = {
+			...snapshot,
+			activities: [completed[0]!, secondAssistant],
+			chat: [
+				{ id: "assistant-second", role: "assistant", content: "두 번째 답변", activityId: "assistant-second", status: "completed" },
+			],
+			selectedActivityId: "assistant-second",
+			tnotes: [{
+				id: "note-second",
+				title: "두 번째 질문",
+				summary: "질문: 두 번째 질문\n왜: 선택한 완료 기록을 확인합니다.\n결과: source를 표시합니다.",
+				sourceActivityIds: ["assistant-second", "turn-second-completed"],
+				updatedAt: "2026-09-01T00:00:02.000Z",
+				completion: {
+					threadId: "thread-1",
+					turnId: "turn-second",
+					number: 2,
+					terminalActivityId: "turn-second-completed",
+				},
+			} as WorkbenchSnapshot["tnotes"][number] & {
+				completion: { threadId: string; turnId: string; number: number; terminalActivityId: string };
+			}],
+		};
+
+		const output = stripTerminalSequences(new WorkbenchChatView(indexed).render(100).join("\n"));
+		expect(output).toContain("#2");
+		expect(output).toContain("T-note · 두 번째 질문");
+		expect(output).toContain("sourceActivityIds · assistant-second, turn-second-completed");
+		expect(output).not.toContain("T-note · 첫 질문");
+	});
+
+	test("keeps the live chat, streaming projection, and Todo while switching to the monitor projection", () => {
+		const live: WorkbenchSnapshot = {
+			...snapshot,
+			activities: [
+				...snapshot.activities,
+				{
+					...snapshot.activities[0]!,
+					id: "assistant-stream-activity",
+					sequence: 2,
+					phase: "updated" as const,
+					nativeRefs: { threadId: "thread-1", turnId: "turn-1", itemId: "assistant-stream" },
+					payload: { text: "streaming response" },
+				},
+			],
+			chat: [
+				...snapshot.chat,
+				{
+					id: "assistant-stream",
+					role: "assistant" as const,
+					content: "streaming response",
+					activityId: "assistant-stream-activity",
+					status: "streaming" as const,
+				},
+			],
+			draft: "partial response",
+			todo: {
+				version: 1,
+				revision: 1,
+				ownerSessionId: "workbench",
+				storyId: null,
+				title: "현재 Todo",
+				updatedAt: "2026-09-01T00:00:00.000Z",
+				items: [{
+					id: "todo-1",
+					content: "전환 상태 보존",
+					status: "in_progress",
+					evidenceIds: [],
+					details: [],
+				}],
+			},
+			liveActivity: {
+				method: "item/commandExecution/outputDelta",
+				kind: "tool" as const,
+				text: "bun test",
+				nativeRefs: { threadId: "thread-1", turnId: "turn-1", itemId: "tool-1" },
+			},
+		};
+		let current = live;
+		const chat = new WorkbenchChatView(current);
+		const monitor = new WorkbenchMonitorView(() => current);
+		const todo = new WorkspaceTodoView(() => current.todo);
+
+		const dashboardOutput = stripTerminalSequences(chat.render(80).join("\n"));
+		const monitorOutput = stripTerminalSequences(monitor.render(80).join("\n"));
+		const todoOutput = stripTerminalSequences(todo.render(80).join("\n"));
+
+		expect(dashboardOutput).toContain("streaming response");
+		expect(dashboardOutput).toContain("partial response");
+		expect(monitorOutput).toContain("Monitor · 실행 관측");
+		expect(monitorOutput).toContain("bun test");
+		expect(todoOutput).toContain("전환 상태 보존");
+		chat.update(current);
+		expect(stripTerminalSequences(chat.render(80).join("\n"))).toContain("streaming response");
+	});
+
 	test("keeps public Native plan, compaction, collaboration, and reasoning summaries in transcript order", () => {
 		const activities: WorkbenchSnapshot["activities"] = [
 			{
@@ -92,7 +257,7 @@ describe("workbench dashboard views", () => {
 			...snapshot,
 			activities,
 			chat: [],
-			workFlow: projectWorkFlow(activities),
+			workFlow: fixtureWorkFlow(activities),
 		}).render(88).join("\n"));
 
 		expect(output).toContain("Plan updated");
@@ -100,8 +265,398 @@ describe("workbench dashboard views", () => {
 		expect(output).toContain("▸ 화면 반영");
 		expect(output).toContain("컨텍스트가 자동으로 압축됨");
 		expect(output).toContain("Shared visual QA 작업 시작됨");
-		expect(output).toContain("Planning semantic color token adjustments");
+		expect(output).toContain("판단 · Planning semantic color token adjustments");
 		expect(output.indexOf("Plan updated")).toBeLessThan(output.indexOf("컨텍스트가 자동으로 압축됨"));
+	});
+
+	test("uses one filled user surface and an open assistant transcript", () => {
+		const activities: WorkbenchSnapshot["activities"] = [
+			{
+				...snapshot.activities[0]!,
+				id: "user-surface",
+				sequence: 1,
+				nativeRefs: { threadId: "thread-1", turnId: "turn-surface", itemId: "user-surface" },
+				payload: { role: "user", text: "배경을 가진 질문" },
+			},
+			{
+				...snapshot.activities[0]!,
+				id: "assistant-transcript",
+				sequence: 2,
+				nativeRefs: { threadId: "thread-1", turnId: "turn-surface", itemId: "assistant-transcript" },
+				payload: { role: "assistant", text: "열린 답변" },
+			},
+		];
+		const view = new WorkbenchChatView({
+			...snapshot,
+			activities,
+			chat: [
+				{ id: "user-surface", role: "user", content: "배경을 가진 질문", activityId: "user-surface", status: "completed" },
+				{ id: "assistant-transcript", role: "assistant", content: "열린 답변", activityId: "assistant-transcript", status: "completed" },
+			],
+			workFlow: projectWorkFlow([]),
+		});
+		const rows = view.render(48);
+		const plain = rows.map((line) => stripTerminalSequences(line));
+		const userLabel = plain.findIndex((line) => line.trimEnd() === "user");
+		const assistantLabel = plain.findIndex((line) => line === "bori");
+
+		expect(userLabel).toBeGreaterThanOrEqual(0);
+		expect(assistantLabel).toBeGreaterThan(userLabel);
+		expect(visibleWidth(rows[userLabel]!)).toBe(48);
+		expect(visibleWidth(rows[assistantLabel]!)).toBeLessThan(48);
+		expect(plain.join("\n")).toContain("배경을 가진 질문");
+		expect(plain.join("\n")).toContain("열린 답변");
+	});
+
+	test("renders the live action and its Esc hint as separate rows", () => {
+		const view = new WorkbenchChatView(snapshot);
+		view.syncActivity({
+			message: "단계 2/3 · 입출력 UX 정리",
+			hint: "Esc 중단",
+			frames: ["⠹"],
+			intervalMs: 1_000,
+		}, () => undefined);
+		const rows = view.render(60).map((line) => stripTerminalSequences(line));
+		view.dispose();
+		const activityRow = rows.findIndex((line) => line.includes("단계 2/3 · 입출력 UX 정리"));
+
+		expect(activityRow).toBeGreaterThanOrEqual(0);
+		expect(rows[activityRow]).not.toContain("Esc");
+		expect(rows[activityRow + 1]?.trim()).toBe("Esc 중단");
+	});
+
+	test("keeps activity emphasis on every wrapped row at narrow widths", () => {
+		const previousLevel = chalk.level;
+		chalk.level = 3;
+		const view = new WorkbenchChatView(snapshot);
+		view.syncActivity({
+			message: "분석 · 공개된 판단 근거를 바탕으로 입력과 출력의 시각적 위계를 다시 조정하는 중",
+			hint: "Esc 중단",
+			frames: ["⠹"],
+			intervalMs: 1_000,
+		}, () => undefined);
+		try {
+			const rows = view.render(36);
+			const plain = rows.map((line) => stripTerminalSequences(line));
+			const first = plain.findIndex((line) => line.startsWith("⠹ "));
+			const hint = plain.findIndex((line) => line.trim() === "Esc 중단");
+			const wrappedActivity = rows.slice(first, hint);
+
+			expect(wrappedActivity.length).toBeGreaterThan(1);
+			expect(wrappedActivity.every((line) => line.includes("\u001B[3m"))).toBe(true);
+			expect(wrappedActivity.every((line) => visibleWidth(line) <= 36)).toBe(true);
+		} finally {
+			view.dispose();
+			chalk.level = previousLevel;
+		}
+	});
+
+	test("restarts the activity timer when the cadence changes", () => {
+		const originalSetInterval = globalThis.setInterval;
+		const originalClearInterval = globalThis.clearInterval;
+		const scheduled: Array<{ delay: number; handle: ReturnType<typeof setInterval> }> = [];
+		const cleared: Array<ReturnType<typeof setInterval>> = [];
+		let nextHandle = 0;
+		globalThis.setInterval = ((_callback: (...args: unknown[]) => void, delay?: number) => {
+			const handle = { id: ++nextHandle, unref: () => undefined } as unknown as ReturnType<typeof setInterval>;
+			scheduled.push({ delay: delay ?? 0, handle });
+			return handle;
+		}) as typeof setInterval;
+		globalThis.clearInterval = ((handle: ReturnType<typeof setInterval>) => {
+			cleared.push(handle);
+		}) as typeof clearInterval;
+		const view = new WorkbenchChatView(snapshot);
+		try {
+			view.syncActivity({ message: "분석", frames: ["⠹"], intervalMs: 80 }, () => undefined);
+			view.syncActivity({ message: "승인 대기", frames: ["⏸"], intervalMs: 1_000 }, () => undefined);
+
+			expect(scheduled.map((timer) => timer.delay)).toEqual([80, 1_000]);
+			expect(cleared).toEqual([scheduled[0]!.handle]);
+		} finally {
+			view.dispose();
+			globalThis.setInterval = originalSetInterval;
+			globalThis.clearInterval = originalClearInterval;
+		}
+	});
+
+	test("attaches a durable #1 #2 #3 recap to the completed assistant turn", () => {
+		const activities: WorkbenchSnapshot["activities"] = [
+			{
+				...snapshot.activities[0]!,
+				id: "recap-plan",
+				sequence: 1,
+				kind: "progress",
+				phase: "updated",
+				nativeRefs: { threadId: "thread-1", turnId: "turn-recap" },
+				payload: { method: "turn/plan/updated", params: { plan: [
+					{ step: "현재 UX 확인", status: "completed" },
+					{ step: "Chat 표현 개선", status: "completed" },
+					{ step: "회귀 테스트", status: "completed" },
+				] } },
+			},
+			{
+				...snapshot.activities[0]!,
+				id: "recap-answer",
+				sequence: 2,
+				kind: "message",
+				phase: "completed",
+				nativeRefs: { threadId: "thread-1", turnId: "turn-recap", itemId: "recap-answer" },
+				payload: { role: "assistant", text: "요청한 UX 개선을 마쳤습니다." },
+			},
+			{
+				...snapshot.activities[0]!,
+				id: "recap-turn-completed",
+				sequence: 3,
+				kind: "progress",
+				phase: "completed",
+				nativeRefs: { threadId: "thread-1", turnId: "turn-recap" },
+				payload: { method: "turn/completed" },
+			},
+		];
+		const output = stripTerminalSequences(new WorkbenchChatView({
+			...snapshot,
+			activities,
+			chat: [{
+				id: "recap-answer",
+				role: "assistant",
+				content: "요청한 UX 개선을 마쳤습니다.",
+				activityId: "recap-answer",
+				status: "completed",
+			}],
+			// The selected workflow may already belong to the next turn; the completed recap must persist.
+			workFlow: projectWorkFlow([]),
+		}).render(72).join("\n"));
+
+		expect(output).toContain("이번 요청에서 한 일");
+		expect(output).toContain("#1 현재 UX 확인");
+		expect(output).toContain("#2 Chat 표현 개선");
+		expect(output).toContain("#3 회귀 테스트");
+		expect(output).toContain("Native Plan · 3/3 단계 완료");
+		expect(output.indexOf("요청한 UX 개선을 마쳤습니다.")).toBeLessThan(output.indexOf("이번 요청에서 한 일"));
+	});
+
+	test("builds a #1 #2 #3 recap from actual work when Native Plan is absent", () => {
+		const activities: WorkbenchSnapshot["activities"] = [
+			{
+				...snapshot.activities[0]!,
+				id: "fallback-read-start",
+				sequence: 1,
+				kind: "tool",
+				phase: "started",
+				nativeRefs: { threadId: "thread-1", turnId: "turn-fallback", itemId: "fallback-read" },
+				payload: { method: "item/started", params: { item: {
+					type: "commandExecution",
+					command: "rg -n 'CompletionSummary' src/presentation/tui",
+				} } },
+			},
+			{
+				...snapshot.activities[0]!,
+				id: "fallback-read",
+				sequence: 2,
+				kind: "tool",
+				phase: "completed",
+				nativeRefs: { threadId: "thread-1", turnId: "turn-fallback", itemId: "fallback-read" },
+				payload: { method: "item/completed", params: { item: {
+					type: "commandExecution",
+					command: "rg -n 'CompletionSummary' src/presentation/tui",
+					exitCode: 0,
+				} } },
+			},
+			{
+				...snapshot.activities[0]!,
+				id: "fallback-edit",
+				sequence: 3,
+				kind: "file-change",
+				phase: "completed",
+				nativeRefs: { threadId: "thread-1", turnId: "turn-fallback", itemId: "fallback-edit" },
+				payload: { method: "item/completed", params: { item: {
+					type: "fileChange",
+					changes: [
+						{ path: "src/presentation/tui/workbench-views.ts", kind: "update" },
+						{ path: "/Users/private/hidden-note.txt", kind: "update" },
+					],
+				} } },
+			},
+			{
+				...snapshot.activities[0]!,
+				id: "fallback-test",
+				sequence: 4,
+				kind: "tool",
+				phase: "completed",
+				nativeRefs: { threadId: "thread-1", turnId: "turn-fallback", itemId: "fallback-test" },
+				payload: { method: "item/completed", params: { item: {
+					type: "commandExecution",
+					command: "bun test test/workbench-views.test.ts",
+					exitCode: 0,
+				} } },
+			},
+			{
+				...snapshot.activities[0]!,
+				id: "fallback-answer",
+				sequence: 5,
+				kind: "message",
+				phase: "completed",
+				nativeRefs: { threadId: "thread-1", turnId: "turn-fallback", itemId: "fallback-answer" },
+				payload: { role: "assistant", text: "Plan 없이도 작업을 마쳤습니다." },
+			},
+			{
+				...snapshot.activities[0]!,
+				id: "fallback-turn-completed",
+				sequence: 6,
+				kind: "progress",
+				phase: "completed",
+				nativeRefs: { threadId: "thread-1", turnId: "turn-fallback" },
+				payload: { method: "turn/completed" },
+			},
+		];
+		const output = stripTerminalSequences(new WorkbenchChatView({
+			...snapshot,
+			activities,
+			chat: [{
+				id: "fallback-answer",
+				role: "assistant",
+				content: "Plan 없이도 작업을 마쳤습니다.",
+				activityId: "fallback-answer",
+				status: "completed",
+			}],
+			workFlow: projectWorkFlow([]),
+		}).render(72).join("\n"));
+		const recap = output.slice(output.indexOf("이번 요청에서 한 일"));
+
+		expect(recap).toContain("#1 대상과 기준 확인");
+		expect(recap).toContain("#2 변경과 실행");
+		expect(recap).toContain("#3 결과 검증");
+		expect(recap).toContain("$ rg -n 'CompletionSummary' src/presentation/tui · 완료");
+		expect(recap.match(/\$ rg -n 'CompletionSummary' src\/presentation\/tui/gu)).toHaveLength(1);
+		expect(recap).toContain("파일 변경 · src/presentation/tui/workbench-views.ts, [로컬 경로");
+		expect(recap).toContain("숨김] · 완료");
+		expect(recap).not.toContain("/Users/private");
+		expect(recap).toContain("$ bun test test/workbench-views.test.ts · 완료");
+		expect(recap).toContain("Native Turn · 완료 확인 · 실행 기록 3개");
+	});
+
+	test("still closes an answer-only Native turn with a structured recap", () => {
+		const activities: WorkbenchSnapshot["activities"] = [
+			{
+				...snapshot.activities[0]!,
+				id: "answer-only",
+				sequence: 1,
+				kind: "message",
+				phase: "completed",
+				nativeRefs: { threadId: "thread-1", turnId: "turn-answer-only", itemId: "answer-only" },
+				payload: { role: "assistant", text: "간단한 답변입니다." },
+			},
+			{
+				...snapshot.activities[0]!,
+				id: "answer-only-completed",
+				sequence: 2,
+				kind: "progress",
+				phase: "completed",
+				nativeRefs: { threadId: "thread-1", turnId: "turn-answer-only" },
+				payload: { method: "turn/completed" },
+			},
+		];
+		const output = stripTerminalSequences(new WorkbenchChatView({
+			...snapshot,
+			activities,
+			chat: [{
+				id: "answer-only",
+				role: "assistant",
+				content: "간단한 답변입니다.",
+				activityId: "answer-only",
+				status: "completed",
+			}],
+			workFlow: projectWorkFlow([]),
+		}).render(48).join("\n"));
+
+		expect(output).toContain("이번 요청에서 한 일");
+		expect(output).toContain("#1 응답 제공");
+		expect(output).toContain("상태 · 완료");
+		expect(output).toContain("Native Turn · 완료 확인 · 실행 기록 0개");
+	});
+
+	test("does not claim a completion recap before the same Native turn completes", () => {
+		const activities: WorkbenchSnapshot["activities"] = [
+			{
+				...snapshot.activities[0]!,
+				id: "unfinished-plan",
+				sequence: 1,
+				kind: "progress",
+				phase: "updated",
+				nativeRefs: { threadId: "thread-1", turnId: "turn-unfinished" },
+				payload: { method: "turn/plan/updated", params: { plan: [
+					{ step: "표면 정리", status: "completed" },
+				] } },
+			},
+			{
+				...snapshot.activities[0]!,
+				id: "unfinished-answer",
+				sequence: 2,
+				nativeRefs: { threadId: "thread-1", turnId: "turn-unfinished", itemId: "unfinished-answer" },
+				payload: { role: "assistant", text: "중간 응답" },
+			},
+		];
+		const output = stripTerminalSequences(new WorkbenchChatView({
+			...snapshot,
+			activities,
+			chat: [{
+				id: "unfinished-answer",
+				role: "assistant",
+				content: "중간 응답",
+				activityId: "unfinished-answer",
+				status: "completed",
+			}],
+			workFlow: fixtureWorkFlow(activities),
+		}).render(72).join("\n"));
+
+		expect(output).not.toContain("이번 요청에서 한 일");
+		expect(output).not.toContain("#1 표면 정리");
+	});
+
+	test("never promotes a completed child-thread plan into the root completion recap", () => {
+		const activities: WorkbenchSnapshot["activities"] = [
+			{
+				...snapshot.activities[0]!,
+				id: "child-plan",
+				sequence: 1,
+				kind: "progress",
+				phase: "updated",
+				nativeRefs: { threadId: "thread-child", turnId: "turn-child" },
+				payload: { method: "turn/plan/updated", params: { plan: [
+					{ step: "자식 전용 작업", status: "completed" },
+				] } },
+			},
+			{
+				...snapshot.activities[0]!,
+				id: "child-answer",
+				sequence: 2,
+				nativeRefs: { threadId: "thread-child", turnId: "turn-child", itemId: "child-answer" },
+				payload: { role: "assistant", text: "자식 작업 완료" },
+			},
+			{
+				...snapshot.activities[0]!,
+				id: "child-turn-completed",
+				sequence: 3,
+				kind: "progress",
+				nativeRefs: { threadId: "thread-child", turnId: "turn-child" },
+				payload: { method: "turn/completed" },
+			},
+		];
+		const output = stripTerminalSequences(new WorkbenchChatView({
+			...snapshot,
+			activities,
+			chat: [{
+				id: "child-answer",
+				role: "assistant",
+				content: "자식 작업 완료",
+				activityId: "child-answer",
+				status: "completed",
+			}],
+			workFlow: projectWorkFlow([]),
+		}).render(72).join("\n"));
+
+		expect(output).not.toContain("이번 요청에서 한 일");
+		expect(output).not.toContain("#1 자식 전용 작업");
 	});
 
 	test("does not revive an older turn when the latest turn is still preparing its plan", () => {
@@ -155,7 +710,7 @@ describe("workbench dashboard views", () => {
 				payload: { method: "turn/started" },
 			},
 		];
-		const workFlow = projectWorkFlow(activities);
+		const workFlow = fixtureWorkFlow(activities);
 		const output = stripTerminalSequences(new WorkbenchChatView({
 			...snapshot,
 			activities,
@@ -163,7 +718,7 @@ describe("workbench dashboard views", () => {
 			workFlow,
 		}).render(72).join("\n"));
 
-		expect(workFlow.goal).toBe("현재 요청");
+		expect(workFlow.goal).toBe("현재 요청을 처리합니다.");
 		expect(workFlow.steps).toEqual([]);
 		expect(output).not.toContain("stale-old-turn");
 		expect(output).not.toContain("단계 1");
@@ -216,7 +771,7 @@ describe("workbench dashboard views", () => {
 				},
 			},
 		];
-		const workFlow = projectWorkFlow(activities);
+		const workFlow = fixtureWorkFlow(activities);
 		const live = { ...snapshot, activities, chat: [], workFlow };
 		const chat = stripTerminalSequences(new WorkbenchChatView(live).render(72).join("\n"));
 		const notes = stripTerminalSequences(new TNotesSourceView(() => live).render(52).join("\n"));
@@ -265,7 +820,7 @@ describe("workbench dashboard views", () => {
 				},
 			},
 		];
-		const workFlow = projectWorkFlow(activities);
+		const workFlow = fixtureWorkFlow(activities);
 		const output = stripTerminalSequences(new WorkbenchChatView({
 			...snapshot,
 			activities,
@@ -292,13 +847,7 @@ describe("workbench dashboard views", () => {
 				params: { item: { type: "fileChange", changes: [{ path: "src/domain/work-steps.ts", kind: "update" }] } },
 			},
 		}];
-		const initial = projectWorkFlow(activities);
-		const workFlow = projectWorkFlow(activities, new Map([[initial.steps[0]!.id, {
-			what: "Native 이벤트를 의미 있는 작업 단계로 묶습니다.",
-			why: "Read 기록과 사용자에게 보여줄 실행 흐름을 분리하기 위해서입니다.",
-			inputSummary: ["의미 Step 집계 Module 추가"],
-			source: "model" as const,
-		}]]));
+		const workFlow = fixtureWorkFlow(activities);
 		const output = stripTerminalSequences(new WorkbenchChatView({
 			...snapshot,
 			activities,
@@ -306,11 +855,10 @@ describe("workbench dashboard views", () => {
 			workFlow,
 		}).render(76).join("\n"));
 
-		expect(output).toContain("Native 이벤트를 의미 있는 작업 단계로 묶습니다.");
+		expect(output).toContain("변경 결과 검증");
 		expect(output).not.toContain("무엇을 하고 있는지:");
-		expect(output).toContain("Read 기록과 사용자에게 보여줄 실행 흐름을 분리하기 위해서");
-		expect(output).toContain("왜 하는지:");
-		expect(output).toContain("의미 Step 집계 Module 추가");
+		expect(output).not.toContain("왜 하는지:");
+		expect(output).not.toContain("의미 Step 집계 Module 추가");
 		expect(output).not.toContain("작업 입력 해석 중");
 	});
 
@@ -321,8 +869,8 @@ describe("workbench dashboard views", () => {
 
 		expect(tnotesOutput).not.toContain("T-NOTES 0");
 		expect(todoOutput).not.toContain("TODO 0/0");
-		expect(tnotesOutput).toContain("질문 하나가 끝나면 질문·과정의 이유·결과를 자동으로 정리합니다");
-		expect(todoOutput).toContain("진행 중인 작업 없음");
+		expect(tnotesOutput).toBe("");
+		expect(todoOutput).toBe("");
 	});
 
 	test("keeps active goal, progress, queue, Todo, and source details out of T-notes", () => {
@@ -342,7 +890,7 @@ describe("workbench dashboard views", () => {
 			},
 		})).render(80).join("\n"));
 
-		expect(output).toContain("질문 하나가 끝나면 질문·과정의 이유·결과를 자동으로 정리합니다");
+		expect(output).toBe("");
 		expect(output).not.toContain("SESSION GOAL");
 		expect(output).not.toContain("프로젝트별 WWW 작업 공간");
 		expect(output).not.toContain("현재 응답을 작성 중입니다.");
@@ -569,12 +1117,13 @@ describe("workbench dashboard views", () => {
 		};
 		const output = stripTerminalSequences(new WorkbenchChatView({
 			...command,
-			workFlow: projectWorkFlow(command.activities),
+			workFlow: fixtureWorkFlow(command.activities),
 		}).render(70).join("\n"));
 		expect(output).toContain("단계 1 · PASSED");
 		expect(output).toContain("변경 결과 검증");
-		expect(output).toContain("$ bun test [redacted:local-path]");
-		expect(output).toContain("왜 하는지:");
+		expect(output).toContain("Trace source · planItemId command-1 · /trace command-1");
+		expect(output).toContain("$ bun test test/workbench-views.test.ts");
+		expect(output).not.toContain("왜 하는지:");
 		expect(output).toContain("┌─── ✔ Bash");
 		expect(output).not.toContain("/workspace/sample");
 		expect(output).toContain("├─── Output");
@@ -585,6 +1134,112 @@ describe("workbench dashboard views", () => {
 		expect(output).not.toContain("thread-secret");
 		expect(output).not.toContain("hiddenReasoning");
 		expect(output).not.toContain("사용자에게 보여서는 안 되는 추론");
+	});
+
+	test("keeps an unplanned command as a detailed Bash action instead of a generic sentence", () => {
+		const activities: WorkbenchSnapshot["activities"] = [
+			{
+				...snapshot.activities[0]!,
+				id: "unplanned-user",
+				sequence: 1,
+				kind: "message",
+				nativeRefs: { threadId: "thread-1", turnId: "turn-unplanned", itemId: "unplanned-user" },
+				payload: { direction: "outbound", role: "user", text: "Git 변경을 준비해줘" },
+			},
+			{
+				...snapshot.activities[0]!,
+				id: "unplanned-command",
+				sequence: 2,
+				kind: "tool",
+				phase: "completed",
+				nativeRefs: { threadId: "thread-1", turnId: "turn-unplanned", itemId: "unplanned-command" },
+				payload: { method: "item/completed", params: { item: {
+					type: "commandExecution",
+					command: "git add src/app.ts",
+					aggregatedOutput: "staged src/app.ts",
+					exitCode: 0,
+					durationMs: 18,
+				} } },
+			},
+		];
+		const output = stripTerminalSequences(new WorkbenchChatView({
+			...snapshot,
+			activities,
+			chat: [{
+				id: "unplanned-user",
+				role: "user",
+				content: "Git 변경을 준비해줘",
+				activityId: "unplanned-user",
+				status: "completed",
+			}],
+			workFlow: projectWorkFlow([]),
+		}).render(72).join("\n"));
+
+		expect(output).toContain("✔ Bash · PASSED");
+		expect(output).toContain("┌─── ✔ Bash");
+		expect(output).toContain("$ git add src/app.ts");
+		expect(output).toContain("staged src/app.ts");
+		expect(output).toContain("⟦Exit: 0⟧");
+		expect(output).toContain("⟦Duration: 18ms⟧");
+		expect(output).not.toContain("명령을 실행했습니다");
+	});
+
+	test("keeps every planned action once and labels intermediate actions with their parent step", () => {
+		const activities: WorkbenchSnapshot["activities"] = [
+			{
+				...snapshot.activities[0]!,
+				id: "multi-plan-start",
+				kind: "progress",
+				phase: "updated",
+				nativeRefs: { threadId: "thread-1", turnId: "turn-multi" },
+				payload: { method: "turn/plan/updated", params: { plan: [
+					{ step: "Chat UX 구현과 검증", status: "inProgress" },
+				] } },
+			},
+			{
+				...snapshot.activities[0]!,
+				id: "multi-edit",
+				kind: "tool",
+				nativeRefs: { threadId: "thread-1", turnId: "turn-multi", itemId: "multi-edit" },
+				payload: { method: "item/completed", params: { item: {
+					type: "commandExecution",
+					command: "git add src/app.ts",
+					aggregatedOutput: "staged src/app.ts",
+					exitCode: 0,
+				} } },
+			},
+			{
+				...snapshot.activities[0]!,
+				id: "multi-test",
+				kind: "file-change",
+				nativeRefs: { threadId: "thread-1", turnId: "turn-multi", itemId: "multi-test" },
+				payload: { method: "item/completed", params: { item: {
+					type: "fileChange",
+					changes: [{ path: "src/app.ts", diff: "+ changed" }],
+				} } },
+			},
+			{
+				...snapshot.activities[0]!,
+				id: "multi-plan-complete",
+				kind: "progress",
+				phase: "updated",
+				nativeRefs: { threadId: "thread-1", turnId: "turn-multi" },
+				payload: { method: "turn/plan/updated", params: { plan: [
+					{ step: "Chat UX 구현과 검증", status: "completed" },
+				] } },
+			},
+		];
+		const output = stripTerminalSequences(new WorkbenchChatView({
+			...snapshot,
+			activities,
+			chat: [],
+			workFlow: fixtureWorkFlow(activities),
+		}).render(72).join("\n"));
+
+		expect(output).toContain("✔ 단계 1 › Bash · PASSED");
+		expect(output).toContain("단계 1 · PASSED");
+		expect(output.match(/\$ git add src\/app\.ts/gu)).toHaveLength(1);
+		expect(output.match(/\+ changed/gu)).toHaveLength(1);
 	});
 
 	test("keeps a native command output delta on the same running step", () => {
@@ -614,18 +1269,18 @@ describe("workbench dashboard views", () => {
 		};
 		const output = stripTerminalSequences(new WorkbenchChatView({
 			...running,
-			workFlow: projectWorkFlow(running.activities),
+			workFlow: fixtureWorkFlow(running.activities),
 		}).render(62).join("\n"));
 		expect(output).toContain("단계 1 · RUNNING");
 		expect(output).toContain("변경 결과 검증");
-		expect(output).toContain("왜 하는지:");
+		expect(output).not.toContain("왜 하는지:");
 		expect(output).toContain("12 pass");
 		expect(output).toContain("1 fail");
 		expect(output).not.toContain("outputDelta");
 		expect(output.match(/단계 1/gu)).toHaveLength(1);
 	});
 
-	test("numbers only visible work steps consecutively", () => {
+	test("keeps completed command observations out of Native-plan step numbering", () => {
 		const steps: WorkbenchSnapshot = {
 			...snapshot,
 			journalSequence: 9,
@@ -635,14 +1290,15 @@ describe("workbench dashboard views", () => {
 					id: "hidden-progress",
 					sequence: 2,
 					kind: "progress",
-					payload: { method: "turn/started" },
+					nativeRefs: { threadId: "fixture-thread", turnId: "hidden-turn" },
+					payload: { method: "item/started" },
 				},
 				{
 					...snapshot.activities[0]!,
 					id: "visible-command",
 					sequence: 4,
 					kind: "tool",
-					nativeRefs: { itemId: "command-visible" },
+					nativeRefs: { threadId: "fixture-thread", turnId: "fixture-turn", itemId: "command-visible" },
 					payload: { method: "item/completed", params: { item: { type: "commandExecution", command: "bun test" } } },
 				},
 				{
@@ -650,7 +1306,7 @@ describe("workbench dashboard views", () => {
 					id: "visible-file-change",
 					sequence: 9,
 					kind: "file-change",
-					nativeRefs: { itemId: "file-visible" },
+					nativeRefs: { threadId: "fixture-thread", turnId: "fixture-turn", itemId: "file-visible" },
 					payload: {
 						method: "item/completed",
 						params: { item: { type: "fileChange", changes: [{ path: "src/app.ts", diff: "+ change" }] } },
@@ -662,11 +1318,11 @@ describe("workbench dashboard views", () => {
 		};
 		const output = stripTerminalSequences(new WorkbenchChatView({
 			...steps,
-			workFlow: projectWorkFlow(steps.activities),
+			workFlow: fixtureWorkFlow(steps.activities),
 		}).render(70).join("\n"));
+		expect(output).toContain("Observe · PASSED");
 		expect(output).toContain("단계 1 · PASSED");
-		expect(output).toContain("단계 2 · PASSED");
-		expect(output.indexOf("단계 1")).toBeLessThan(output.indexOf("단계 2"));
+		expect(output).not.toContain("단계 2");
 		expect(output).not.toContain("단계 4");
 		expect(output).not.toContain("단계 9");
 	});
@@ -693,6 +1349,7 @@ describe("workbench dashboard views", () => {
 		const uncertain: WorkbenchSnapshot = {
 			...snapshot,
 			phase: "error",
+			deliveryUncertain: true,
 			error: "Native turn/start 요청의 수신 여부가 불명확합니다. accessToken=source-token-secret",
 		};
 		const output = stripTerminalSequences(new WorkbenchChatView(uncertain).render(70).join("\n"));
@@ -700,6 +1357,18 @@ describe("workbench dashboard views", () => {
 		expect(output).toContain("수신 여부가 불명확합니다");
 		expect(output).toContain("/cancel로 서버 상태를 확인합니다");
 		expect(output).not.toContain("source-token-secret");
+	});
+
+	test("omits the /cancel recovery line for a failure it cannot reconcile", () => {
+		const internal: WorkbenchSnapshot = {
+			...snapshot,
+			phase: "error",
+			error: "활동 기록은 Native thread에 묶인 뒤에만 추가할 수 있습니다.",
+		};
+		const output = stripTerminalSequences(new WorkbenchChatView(internal).render(70).join("\n"));
+		expect(output).toContain("확인이 필요한 상태");
+		expect(output).toContain("Native thread에 묶인 뒤에만");
+		expect(output).not.toContain("/cancel");
 	});
 
 	test.each([
@@ -720,6 +1389,32 @@ describe("workbench dashboard views", () => {
 		expect(output).toContain("전달 상태를 확인할 요청");
 	});
 
+	test("renders the first outbound user message before native thread activity exists", () => {
+		const outbound: WorkbenchSnapshot = {
+			...snapshot,
+			threadId: null,
+			activities: [],
+			selectedActivityId: null,
+			chat: [{
+				id: "local-first-message",
+				role: "user",
+				content: "Native Thread가 열리기 전에도 보여야 하는 요청",
+				activityId: "local-first-message",
+				status: "streaming",
+			}, {
+				id: "orphan-assistant-message",
+				role: "assistant",
+				content: "activity 순서가 없는 응답",
+				activityId: "orphan-assistant-message",
+				status: "completed",
+			}],
+		};
+		const output = stripTerminalSequences(new WorkbenchChatView(outbound).render(70).join("\n"));
+		expect(output).toContain("user · 전송 준비 중");
+		expect(output).toContain("Native Thread가 열리기 전에도 보여야 하는 요청");
+		expect(output).not.toContain("activity 순서가 없는 응답");
+	});
+
 	test("uses the public MCP item status, arguments, and error without exposing reasoning", () => {
 		const failedTool: WorkbenchSnapshot = {
 			...snapshot,
@@ -730,7 +1425,7 @@ describe("workbench dashboard views", () => {
 				sequence: 5,
 				kind: "tool",
 				phase: "completed",
-				nativeRefs: { itemId: "mcp-1" },
+				nativeRefs: { threadId: "fixture-thread", turnId: "fixture-turn", itemId: "mcp-1" },
 				payload: {
 					method: "item/completed",
 					params: {
@@ -750,7 +1445,7 @@ describe("workbench dashboard views", () => {
 		};
 		const output = stripTerminalSequences(new WorkbenchChatView({
 			...failedTool,
-			workFlow: projectWorkFlow(failedTool.activities),
+			workFlow: fixtureWorkFlow(failedTool.activities),
 		}).render(70).join("\n"));
 		expect(output).toContain("단계 1 · FAILED");
 		expect(output).toContain("create_issue 입력 해석 중");
@@ -856,15 +1551,11 @@ describe("workbench dashboard views", () => {
 		expect(updated).toContain("새 응답");
 	});
 
-	test("advertises only commands and exit keys supported by the native shell", () => {
+	test("leaves the resting status line blank instead of advertising commands", () => {
 		const output = stripTerminalSequences(new StatusLine(WORKBENCH_STATUS_NOTICE).render(240).join("\n"));
-		expect(output).toContain("/source");
-		expect(output).toContain("/mode");
-		expect(output).toContain("/permission");
-		expect(output).toContain("/model");
-		expect(output).toContain("Esc 중단");
-		expect(output).not.toContain("! 터미널");
-		expect(output).not.toContain("/usage");
+		expect(output.trim()).toBe("");
+		expect(output).not.toContain("/model");
+		expect(output).not.toContain("/woo-entry");
 	});
 
 	test("keeps immutable action results out of completed-question notes", () => {
@@ -1000,7 +1691,7 @@ describe("workbench dashboard views", () => {
 		};
 		const output = stripTerminalSequences(new WorkbenchChatView({
 			...command,
-			workFlow: projectWorkFlow(command.activities),
+			workFlow: fixtureWorkFlow(command.activities),
 		}).render(100).join("\n"));
 		expect(output).toContain("step-end");
 		expect(output).not.toContain("front-password");
@@ -1050,5 +1741,98 @@ describe("workbench dashboard views", () => {
 		expect(output).not.toContain("Todo.md · 현재 작업");
 		expect(output).toContain("결정 요약");
 		expect(output).not.toContain("SOURCE");
+	});
+
+	test("keeps following the newest user message when repeated delivery states extend Chat", () => {
+		const failedConversation = (count: number): WorkbenchSnapshot => {
+			const activities = Array.from({ length: count }, (_, index) => ({
+				...snapshot.activities[0]!,
+				id: `failed-activity-${index + 1}`,
+				sequence: index + 1,
+				kind: "message" as const,
+				phase: "failed" as const,
+				nativeRefs: { threadId: "thread-1", itemId: `failed-message-${index + 1}` },
+				payload: { direction: "outbound", role: "user", text: `반복 요청 ${index + 1}` },
+			}));
+			return {
+				...snapshot,
+				revision: count,
+				journalSequence: count,
+				activities,
+				chat: activities.map((activity, index) => ({
+					id: activity.nativeRefs.itemId!,
+					role: "user" as const,
+					content: `반복 요청 ${index + 1}`,
+					activityId: activity.id,
+					status: "failed" as const,
+				})),
+				workFlow: projectWorkFlow([]),
+			};
+		};
+		const initial = failedConversation(6);
+		const chat = new WorkbenchChatView(initial);
+		const layout = createDashboardLayout(
+			() => "WWW · sample-project",
+			{ color: text => text, component: chat },
+			{ color: text => text, component: new TNotesSourceView(() => initial) },
+			{ color: text => text, component: new WorkspaceTodoView(() => null) },
+		);
+		renderLayoutFrame(layout.component, 120, 14, () => undefined);
+		const previousScrollTop = layout.leftScroll.scrollTop;
+
+		chat.update(failedConversation(7));
+		const frame = renderLayoutFrame(layout.component, 120, 14, () => undefined);
+		const output = stripTerminalSequences(frame.lines.join("\n"));
+
+		expect(layout.leftScroll.isFollowingEnd).toBe(true);
+		expect(layout.leftScroll.scrollTop).toBeGreaterThan(previousScrollTop);
+		expect(output).toContain("반복 요청 7");
+	});
+
+	test("does not restore chat auto-follow while wheel scrolling concurrent streaming output", () => {
+		const conversation = (count: number): WorkbenchSnapshot => {
+			const activities = Array.from({ length: count }, (_, index) => ({
+				...snapshot.activities[0]!,
+				id: `activity-${index}`,
+				sequence: index + 1,
+				nativeRefs: { threadId: "thread-1", itemId: `message-${index}` },
+				payload: { role: "assistant", text: `streaming message ${index}\n${"detail\n".repeat(3)}` },
+			}));
+			return {
+				...snapshot,
+				revision: count,
+				journalSequence: count,
+				activities,
+				chat: activities.map((activity, index) => ({
+					id: `message-${index}`,
+					activityId: activity.id,
+					role: "assistant" as const,
+					content: `streaming message ${index}\n${"detail\n".repeat(3)}`,
+					status: "completed" as const,
+				})),
+			};
+		};
+		const chat = new WorkbenchChatView(conversation(12));
+		const layout = createDashboardLayout(
+			() => "WWW · sample-project",
+			{ color: text => text, component: chat },
+			{ color: text => text, component: new TNotesSourceView(() => snapshot) },
+			{ color: text => text, component: new WorkspaceTodoView(() => null) },
+		);
+		renderLayoutFrame(layout.component, 120, 14, () => undefined);
+		const offsets: number[] = [];
+
+		for (const count of [13, 14, 15]) {
+			chat.update(conversation(count));
+			layout.leftScroll.scrollBy(-2);
+			renderLayoutFrame(layout.component, 120, 14, () => undefined);
+			offsets.push(layout.leftScroll.scrollTop);
+		}
+
+		expect(offsets[1]).toBeLessThan(offsets[0]!);
+		expect(offsets[2]).toBeLessThan(offsets[1]!);
+		expect(layout.leftScroll.isFollowingEnd).toBe(false);
+		layout.leftScroll.scrollToEnd();
+		expect(layout.leftScroll.isFollowingEnd).toBe(true);
 	});
 });

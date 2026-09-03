@@ -255,7 +255,7 @@ export class DiffResultCard implements Component {
 					? semantic.diffRemoved
 					: semantic.diffContext;
 			const prefixed = cleanLine.startsWith("+") || cleanLine.startsWith("-") ? cleanLine : `  ${cleanLine}`;
-			rows.push(...wrapped(prefixed, contentWidth).map(color));
+			rows.push(...wrapped(prefixed, contentWidth).map((line) => color(line)));
 		}
 		const details = resultDetails(this.snapshot.durationMs, this.snapshot.error);
 		if (details.length > 0) rows.push(colors.muted(details.join(" · ")));
@@ -274,7 +274,7 @@ export class CompletionSummaryCard implements Component {
 		const rows = wrapped(this.report.title, contentWidth);
 		for (const [index, section] of this.report.sections.entries()) {
 			rows.push("");
-			rows.push(...wrapped(`${index + 1}. ${section.title}`, contentWidth).map(colors.secondary));
+			rows.push(...wrapped(`#${index + 1} ${section.title}`, contentWidth).map((line) => colors.secondary(line)));
 			for (const bullet of section.bullets) rows.push(...wrapped(`  • ${bullet}`, contentWidth));
 		}
 		if (this.report.verification.length > 0) {

@@ -1,12 +1,12 @@
 import { truncateToWidth, visibleWidth, type Component } from "@earendil-works/pi-tui";
 import { WOONI_FULL_WIDTH, WooniDockView } from "./wooni-dock";
 
-const HUD_ROWS = 3;
+const HUD_ROWS = 4;
 const HUD_GAP = 2;
-const MODEL_USAGE_MINIMUM_WIDTH = 64;
-const WOONI_FULL_MINIMUM_WIDTH = MODEL_USAGE_MINIMUM_WIDTH + HUD_GAP + WOONI_FULL_WIDTH;
+const USAGE_MINIMUM_WIDTH = 64;
+const WOONI_FULL_MINIMUM_WIDTH = USAGE_MINIMUM_WIDTH + HUD_GAP + WOONI_FULL_WIDTH;
 
-/** Three shared rows: quotas/models on the left and the Wooni identity on the right. */
+/** Four shared rows: usage on the left and the three-row Wooni identity on the right. */
 export class WorkbenchBottomHudView implements Component {
 	private readonly wooniFull = new WooniDockView(false);
 

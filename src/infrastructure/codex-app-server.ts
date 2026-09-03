@@ -42,6 +42,13 @@ export interface CodexAppServerOptions {
 	clientVersion?: string;
 }
 
+export interface NativeMcpServer {
+	readonly name: string;
+	readonly enabled: boolean;
+	readonly status: string;
+	readonly tools: readonly string[];
+}
+
 interface PendingRequest {
 	method: string;
 	uncertainOnDisconnect: boolean;
@@ -164,6 +171,11 @@ export class CodexAppServer implements NativeHarnessPort {
 	private readonly pending = new Map<NativeRequestId, PendingRequest>();
 	private readonly pendingApprovalResponses = new Map<NativeRequestId, PendingApprovalResponse>();
 	private readonly approvals = new Map<NativeRequestId, NativeApprovalRequest>();
+	/**
+	 * Some notifications (notably turn/plan/updated) carry only a turn id.  Only
+	 * bind those notifications when this adapter has observed the turn's owner.
+	 */
+	private readonly threadIdByTurnId = new Map<string, string>();
 	private requestSequence = 0;
 	private closing = false;
 	private disconnected = false;
@@ -204,7 +216,9 @@ export class CodexAppServer implements NativeHarnessPort {
 			sandbox: input.sandbox,
 			ephemeral: input.ephemeral,
 		}), true);
-		return threadSnapshot(result, "thread/start");
+		const snapshot = threadSnapshot(result, "thread/start");
+		this.registerThreadTurns(snapshot);
+		return snapshot;
 	}
 
 	public async resumeThread(input: NativeThreadResume): Promise<NativeThreadSnapshot> {
@@ -213,12 +227,16 @@ export class CodexAppServer implements NativeHarnessPort {
 			...resume,
 			config: effort ? { model_reasoning_effort: effort } : undefined,
 		}), true);
-		return threadSnapshot(result, "thread/resume");
+		const snapshot = threadSnapshot(result, "thread/resume");
+		this.registerThreadTurns(snapshot);
+		return snapshot;
 	}
 
 	public async readThread(input: NativeThreadRead): Promise<NativeThreadSnapshot> {
 		const result = await this.request("thread/read", compact({ ...input }), false);
-		return threadSnapshot(result, "thread/read");
+		const snapshot = threadSnapshot(result, "thread/read");
+		this.registerThreadTurns(snapshot);
+		return snapshot;
 	}
 
 	public async listThreads(input: NativeThreadList): Promise<readonly NativeThreadSummary[]> {
@@ -238,6 +256,46 @@ export class CodexAppServer implements NativeHarnessPort {
 		return result.data.map((thread, index) => threadSummary(thread, index));
 	}
 
+	public async listMcpServers(): Promise<readonly NativeMcpServer[]> {
+		const servers: NativeMcpServer[] = [];
+		const visitedCursors = new Set<string>();
+		let cursor: string | undefined;
+		do {
+			const result = await this.request("mcpServerStatus/list", compact({
+				detail: "toolsAndAuthOnly",
+				limit: 100,
+				cursor,
+			}), false);
+			if (!isRecord(result) || !Array.isArray(result.data) ||
+				(result.nextCursor !== undefined && result.nextCursor !== null && typeof result.nextCursor !== "string")) {
+				throw new Error("Codex App Server returned an invalid mcpServerStatus/list result");
+			}
+			servers.push(...result.data.map((server, index) => mcpServer(server, servers.length + index)));
+			cursor = typeof result.nextCursor === "string" && result.nextCursor.length > 0
+				? result.nextCursor
+				: undefined;
+			if (cursor && visitedCursors.has(cursor)) {
+				throw new Error("Codex App Server returned a repeated mcpServerStatus/list cursor");
+			}
+			if (cursor) visitedCursors.add(cursor);
+		} while (cursor);
+		return servers;
+	}
+
+	public async setMcpServerEnabled(name: string, enabled: boolean): Promise<void> {
+		if (!name) throw new Error("MCP server name is required");
+		await this.request("config/value/write", {
+			keyPath: `mcp_servers."${escapeConfigKeySegment(name)}".enabled`,
+			value: enabled,
+			mergeStrategy: "upsert",
+		}, true);
+		await this.request("config/mcpServer/reload", undefined, true);
+	}
+
+	public async reloadMcpServers(): Promise<void> {
+		await this.request("config/mcpServer/reload", undefined, true);
+	}
+
 	public async startTurn(input: NativeTurnStart): Promise<NativeTurnSnapshot> {
 		const result = await this.request("turn/start", compact({
 			threadId: input.threadId,
@@ -250,7 +308,9 @@ export class CodexAppServer implements NativeHarnessPort {
 			collaborationMode: input.collaborationMode,
 			additionalContext: input.additionalContext,
 		}), true);
-		return turnSnapshot(result, input.threadId);
+		const snapshot = turnSnapshot(result, input.threadId);
+		this.threadIdByTurnId.set(snapshot.id, input.threadId);
+		return snapshot;
 	}
 
 	public async interruptTurn(input: NativeTurnInterrupt): Promise<void> {
@@ -292,13 +352,14 @@ export class CodexAppServer implements NativeHarnessPort {
 		this.disconnect();
 	}
 
-	private request(method: string, params: JsonRecord, uncertainOnDisconnect: boolean): Promise<unknown> {
+	private request(method: string, params: JsonRecord | undefined, uncertainOnDisconnect: boolean): Promise<unknown> {
 		if (this.disconnected) return Promise.reject(new Error("Codex App Server is disconnected"));
 		const id = ++this.requestSequence;
 		return new Promise((resolve, reject) => {
 			const pending: PendingRequest = { method, uncertainOnDisconnect, dispatched: false, resolve, reject };
 			this.pending.set(id, pending);
-			void this.transport.send(JSON.stringify({ id, method, params })).then(
+			const request = params === undefined ? { id, method } : { id, method, params };
+			void this.transport.send(JSON.stringify(request)).then(
 				() => {
 					pending.dispatched = true;
 				},
@@ -341,7 +402,7 @@ export class CodexAppServer implements NativeHarnessPort {
 				id: message.id,
 				callbackId,
 				kind,
-				refs: refsFrom(params, message.id, callbackId),
+				refs: this.refsFrom(params, message.id, callbackId),
 				availableDecisions: nativeApprovalDecisions(params.availableDecisions),
 				params,
 			};
@@ -357,10 +418,10 @@ export class CodexAppServer implements NativeHarnessPort {
 				this.pendingApprovalResponses.delete(requestId);
 				pending.resolve();
 			}
-			this.emit({ type: "approval-resolved", requestId, approvalId: requestId, refs: refsFrom(params, requestId) });
+			this.emit({ type: "approval-resolved", requestId, approvalId: requestId, refs: this.refsFrom(params, requestId) });
 			return;
 		}
-		this.emit({ type: "notification", method: message.method, refs: refsFrom(params), params });
+		this.emit({ type: "notification", method: message.method, refs: this.refsFrom(params), params });
 	}
 
 	private receiveResponse(id: NativeRequestId, message: JsonRecord): void {
@@ -395,6 +456,30 @@ export class CodexAppServer implements NativeHarnessPort {
 
 	private emit(event: NativeHarnessEvent): void {
 		for (const listener of this.listeners) listener(event);
+	}
+
+	private registerThreadTurns(snapshot: NativeThreadSnapshot): void {
+		const turns = snapshot.value.turns;
+		if (!Array.isArray(turns)) return;
+		for (const turn of turns) {
+			if (!isRecord(turn) || typeof turn.id !== "string") continue;
+			this.threadIdByTurnId.set(turn.id, snapshot.id);
+		}
+	}
+
+	private refsFrom(
+		params: JsonRecord,
+		approvalRequestId?: NativeRequestId,
+		approvalCallbackId?: string | null,
+	): NativeRefs {
+		const refs = refsFrom(params, approvalRequestId, approvalCallbackId);
+		if (refs.threadId !== undefined) {
+			if (refs.turnId !== undefined) this.threadIdByTurnId.set(refs.turnId, refs.threadId);
+			return refs;
+		}
+		if (refs.turnId === undefined) return refs;
+		const threadId = this.threadIdByTurnId.get(refs.turnId);
+		return threadId === undefined ? refs : { ...refs, threadId };
 	}
 }
 
@@ -438,6 +523,18 @@ function threadSummary(value: unknown, index: number): NativeThreadSummary {
 	};
 }
 
+function mcpServer(value: unknown, index: number): NativeMcpServer {
+	if (!isRecord(value) || typeof value.name !== "string" || !isRecord(value.tools)) {
+		throw new Error(`Codex App Server returned an invalid mcpServerStatus/list item at index ${index}`);
+	}
+	const status = typeof value.runtimeStatus === "string" ? value.runtimeStatus : "unknown";
+	return { name: value.name, enabled: status !== "disabled", status, tools: Object.keys(value.tools) };
+}
+
+function escapeConfigKeySegment(value: string): string {
+	return value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
+}
+
 function isNativeThreadStatus(value: unknown): value is NativeThreadStatus {
 	return value === "notLoaded" || value === "idle" || value === "systemError" || value === "active";
 }
@@ -445,7 +542,13 @@ function isNativeThreadStatus(value: unknown): value is NativeThreadStatus {
 function refsFrom(params: JsonRecord, approvalRequestId?: NativeRequestId, approvalCallbackId?: string | null): NativeRefs {
 	const thread = isRecord(params.thread) ? params.thread : undefined;
 	const turn = isRecord(params.turn) ? params.turn : undefined;
-	const item = isRecord(params.item) ? params.item : undefined;
+	// Collaboration notifications may carry their public item directly instead
+	// of under `item`; retain that native identity for later projection.
+	const item = isRecord(params.item)
+		? params.item
+		: params.type === "collabAgentToolCall" || params.type === "subAgentActivity"
+		? params
+		: undefined;
 	return compact({
 		threadId: typeof params.threadId === "string" ? params.threadId : typeof thread?.id === "string" ? thread.id : undefined,
 		turnId: typeof params.turnId === "string" ? params.turnId : typeof turn?.id === "string" ? turn.id : undefined,

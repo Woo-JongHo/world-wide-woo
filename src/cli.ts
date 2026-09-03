@@ -2,10 +2,12 @@
 
 import type { RunAppOptions } from "./app";
 import type { NativeThreadSummary } from "./domain/native-session";
+import type { RunLegacyRouterOptions } from "./legacy-router-app";
 import { PRODUCT_VERSION } from "./product-version";
 
 export interface CliDependencies {
 	runApp: (options?: RunAppOptions) => Promise<void>;
+	runRouter: (options?: RunLegacyRouterOptions) => Promise<void>;
 	runAuth: (args: string[]) => Promise<void>;
 	listSessions: () => Promise<Array<{ id: string; updatedAt: string }>>;
 	listNativeThreads: () => Promise<readonly NativeThreadSummary[]>;
@@ -19,6 +21,11 @@ const productionDependencies: CliDependencies = {
 		writeWorkbenchBootstrap();
 		const { runApp } = await import("./app");
 		await runApp(options);
+	},
+	runRouter: async (options) => {
+		writeRouterBootstrap();
+		const { runLegacyRouter } = await import("./legacy-router-app");
+		await runLegacyRouter(options);
 	},
 	runAuth: async (args) => {
 		const { runAuth } = await import("./app");
@@ -49,10 +56,23 @@ export function writeWorkbenchBootstrap(
 	write("\r\x1b[2Kbori · 프로젝트 Workbench를 여는 중…\n");
 }
 
+export function writeRouterBootstrap(
+	write: (value: string) => void = value => process.stdout.write(value),
+	isTTY = process.stdout.isTTY,
+): void {
+	if (!isTTY) return;
+	write("\r\x1b[2Kbori · 호환 Multi-provider Router를 여는 중…\n");
+}
+
 function helpText(): string {
 	return [
 		"사용법:",
 		"  www                         새 Codex native 3-pane Workbench 실행",
+		"  www --execution-lane pi     실험적 내장 Pi text lane으로 Workbench 실행",
+		"  www router                  호환 Claude·Gemini·OpenAI Router 실행",
+		"                              Native 승인·Sandbox·Skill은 제공하지 않음",
+		"  www router --resume <session-id>",
+		"                              기존 Router 세션 재개",
 		"  www auth status             모델 인증 상태 확인",
 		"  www auth login <공급자> [oauth|api-key]",
 		"                              구독 계정 또는 API 키 로그인",
@@ -69,7 +89,18 @@ function helpText(): string {
 		"  /approve · /approve-session · /decline  Codex native 승인 응답",
 		"  /cancel  현재 native turn 중단",
 		"  /exit  Workbench를 안전하게 종료",
+		"",
+		"호환 Router 명령:",
+		"  /login [provider]           OAuth 또는 API 키 연결",
+		"  /model [provider/model] [low|medium|high|ultra]",
+		"                              Claude·Gemini·OpenAI 모델 변경",
+		"  /logout <provider>          저장된 인증 삭제",
+		"  /usage                      Codex·Claude 사용량 갱신",
 	].join("\n");
+}
+
+function isLegacySessionId(value: string | undefined): value is string {
+	return value !== undefined && /^[A-Za-z0-9][A-Za-z0-9_-]*$/u.test(value);
 }
 
 export async function runCli(args: string[], dependencies: CliDependencies = productionDependencies): Promise<number> {
@@ -83,6 +114,12 @@ export async function runCli(args: string[], dependencies: CliDependencies = pro
 	}
 	try {
 		if (args[0] === "auth") await dependencies.runAuth(args.slice(1));
+		else if (args[0] === "router") {
+			if (args.length === 1) await dependencies.runRouter({});
+			else if (args.length === 3 && args[1] === "--resume" && isLegacySessionId(args[2])) {
+				await dependencies.runRouter({ resumeSessionId: args[2] });
+			} else throw new Error("사용법: www router [--resume <session-id>]");
+		}
 		else if (args[0] === "sessions") {
 			const sessions = await dependencies.listSessions();
 			if (sessions.length === 0) dependencies.writeOut("저장된 세션이 없습니다.");
@@ -109,6 +146,9 @@ export async function runCli(args: string[], dependencies: CliDependencies = pro
 			if (threadId) await dependencies.runApp({ resumeThreadId: threadId });
 		}
 		else if (args.length === 0) await dependencies.runApp({});
+		else if (args.length === 2 && args[0] === "--execution-lane" && (args[1] === "pi" || args[1] === "codex")) {
+			await dependencies.runApp({ executionLane: args[1] });
+		}
 		else throw new Error(`알 수 없는 명령입니다: ${args.join(" ")}`);
 		return 0;
 	} catch (error) {

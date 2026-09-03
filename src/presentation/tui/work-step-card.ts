@@ -56,9 +56,13 @@ interface WorkStepCardOptions {
 	narration?: WorkStepNarration;
 }
 
-interface ObservationCardOptions {
+export interface ObservationCardOptions {
 	activity?: ProjectActivity;
 	liveActivity?: WorkbenchLiveActivity;
+	/** Labels a native action as executable/editing work instead of a read-only observation. */
+	mode?: "observation" | "action";
+	/** Preserves plan context when this is an intermediate action within a larger step. */
+	parentStepNumber?: number;
 }
 
 interface PublicStepProjection {
@@ -352,7 +356,13 @@ function renderBashExecutionBlock(
 	status: CommandStatus,
 	width: number,
 ): string[] {
-	if (!projected.command || width < 12) return [fit(projected.command ? `$ ${projected.command}` : "Bash", width)];
+	if (!projected.command || width < 12) {
+		return [
+			fit(highlightedWhat(projected), width),
+			...(projected.why ? [fit(colors.warm(`왜 하는지: ${projected.why}`), width)] : []),
+			fit(projected.command ? `$ ${projected.command}` : "Bash", width),
+		];
+	}
 	const border = status === "running" || status === "pending"
 		? colors.accent
 		: status === "failed"
@@ -368,6 +378,8 @@ function renderBashExecutionBlock(
 	if (projected.exitCode !== undefined) metadata.push(`Exit: ${projected.exitCode}`);
 	if (projected.durationMs !== undefined) metadata.push(`Duration: ${Math.max(0, Math.round(projected.durationMs))}ms`);
 	const rows = [
+		fit(highlightedWhat(projected), width),
+		...(projected.why ? [fit(colors.warm(`왜 하는지: ${projected.why}`), width)] : []),
 		bashBar("┌", "┐", header, width, border),
 		...commandRows.map((line) => bashContent(line, width, border)),
 		bashBar("├", "┤", colors.secondary("Output"), width, border),
@@ -496,8 +508,6 @@ export class WorkStepCard implements Component {
 		if (projected.command) {
 			return [
 				fit(`${semantic.assistantLabel(`단계 ${this.options.stepNumber}`)} · ${statusText}`, width),
-				fit(highlightedWhat(projected), width),
-				...(projected.why ? [fit(colors.warm(`왜 하는지: ${projected.why}`), width)] : []),
 				...renderBashExecutionBlock(projected, status, width),
 			];
 		}
@@ -539,11 +549,13 @@ export class ObservationCard implements Component {
 		const status = statusOf(stepOptions);
 		if (projected.command) {
 			const surface = STATUS_SURFACE[status];
-			const header = `${STATUS_COLOR[status](STATUS_SYMBOL[status])} ${colors.text(observationLabel(projected.command))} ${colors.muted(`· ${STATUS_LABEL[status]}`)}`;
+			const label = activityLabel(this.options, projected.command, stepOptions);
+			const header = `${STATUS_COLOR[status](STATUS_SYMBOL[status])} ${colors.text(label)} ${colors.muted(`· ${STATUS_LABEL[status]}`)}`;
 			return [surface(fit(` ${header}`, width)), ...renderBashExecutionBlock(projected, status, width)];
 		}
 		const surface = STATUS_SURFACE[status];
-		const header = `${STATUS_COLOR[status](STATUS_SYMBOL[status])} ${colors.text(observationLabel(projected.command))} ${colors.muted(`· ${STATUS_LABEL[status]}`)}`;
+		const label = activityLabel(this.options, projected.command, stepOptions);
+		const header = `${STATUS_COLOR[status](STATUS_SYMBOL[status])} ${colors.text(label)} ${colors.muted(`· ${STATUS_LABEL[status]}`)}`;
 		const lines: string[] = [header];
 		if (projected.command) {
 			lines.push(`${colors.muted("$")} ${highlightedSource(projected.command, "bash")}`);
@@ -555,6 +567,27 @@ export class ObservationCard implements Component {
 			.map((line) => renderExecutionLine(line, "output")));
 		return lines.map((line) => surface(` ${fit(line, Math.max(1, width - 1))}`));
 	}
+}
+
+function activityLabel(
+	options: ObservationCardOptions,
+	command: string | undefined,
+	stepOptions: WorkStepCardOptions,
+): string {
+	if ((options.mode ?? "observation") !== "action") return observationLabel(command);
+	const label = actionLabel(stepOptions);
+	return options.parentStepNumber === undefined ? label : `단계 ${options.parentStepNumber} › ${label}`;
+}
+
+function actionLabel(options: WorkStepCardOptions): "Bash" | "Edit" | "Tool" {
+	if (options.activity?.kind === "file-change" || options.liveActivity?.kind === "file-change") return "Edit";
+	const payload = options.activity?.payload;
+	const params = record(payload?.params);
+	const item = record(params?.item);
+	const nativeType = stringValue(item?.type) ?? "";
+	const method = options.liveActivity?.method ?? stringValue(payload?.method) ?? "";
+	if (/command|bash|shell/iu.test(`${nativeType} ${method}`)) return "Bash";
+	return "Tool";
 }
 
 function observationLabel(command: string | undefined): string {

@@ -14,6 +14,11 @@ export function settingsPath(env: NodeJS.ProcessEnv = process.env): string {
 	return join(configRoot, "settings.json");
 }
 
+export function routerSettingsPath(env: NodeJS.ProcessEnv = process.env): string {
+	const configRoot = env.WWW_CONFIG_DIR ?? join(homedir(), ".config", "www");
+	return join(configRoot, "router-settings.json");
+}
+
 const LOCK_WAIT_MS = 2_000;
 const STALE_LOCK_MS = 10_000;
 

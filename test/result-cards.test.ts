@@ -114,6 +114,19 @@ function generic(overrides: Partial<GenericToolResultSnapshot> = {}): GenericToo
 }
 
 describe("GenericToolResultCard", () => {
+	test("keeps generic tool cards focused on their own input and output", () => {
+		const text = stripTerminalSequences(new GenericToolResultCard(generic({
+			toolName: "Read",
+			input: "src/app.ts",
+			output: "export const app = true;",
+		})).render(100).join("\n"));
+
+		expect(text).toContain("Read · PASSED");
+		expect(text).toContain("입력:");
+		expect(text).toContain("출력");
+		expect(text).not.toContain("왜 하는지:");
+	});
+
 	test("renders lifecycle labels and display-safe values", () => {
 		for (const status of ["pending", "running", "passed", "failed", "cancelled"] as const) {
 			const text = stripTerminalSequences(new GenericToolResultCard(generic({
@@ -224,6 +237,9 @@ describe("DiffResultCard", () => {
 			expect(text).toContain("+ added");
 			expect(text).toContain("- removed");
 			expect(text).toContain("  context");
+			expect(text.match(/\+ added/gu)).toHaveLength(1);
+			expect(text.match(/- removed/gu)).toHaveLength(1);
+			expect(text.match(/  context/gu)).toHaveLength(1);
 			expect(text).not.toContain("\u001b");
 			expect(text).not.toContain("\u0007");
 			expect(lines.every((line) => visibleWidth(line) === width)).toBe(true);
@@ -232,16 +248,36 @@ describe("DiffResultCard", () => {
 });
 
 describe("CompletionSummaryCard", () => {
-	test("normalizes numbered sections, bullets, and verification", () => {
-		const lines = new CompletionSummaryCard({
+	test("renders three ordered # sections, bullets, and verification at stable widths", () => {
+		const report = {
 			title: "완료 요약",
-			sections: [{ title: "구현", bullets: ["카드를 추가했습니다"] }],
+			sections: [
+				{ title: "구현", bullets: ["카드를 추가했습니다"] },
+				{ title: "UX", bullets: ["진행 상태를 구분했습니다"] },
+				{ title: "문서", bullets: ["사용법을 기록했습니다"] },
+			],
 			verification: ["bun test test/result-cards.test.ts"],
-		}).render(100);
-		const text = stripTerminalSequences(lines.join("\n"));
-		expect(text).toContain("1. 구현");
-		expect(text).toContain("• 카드를 추가했습니다");
-		expect(text).toContain("검증");
-		expect(text).toContain("• bun test test/result-cards.test.ts");
+		};
+
+		for (const width of [48, 100]) {
+			const lines = new CompletionSummaryCard(report).render(width);
+			const rows = lines.slice(1, -1).map((line) => stripTerminalSequences(line).slice(2, -2).trimEnd());
+			expect(lines.every((line) => visibleWidth(line) === width)).toBe(true);
+			expect(rows).toEqual([
+				"완료 요약",
+				"",
+				"#1 구현",
+				"  • 카드를 추가했습니다",
+				"",
+				"#2 UX",
+				"  • 진행 상태를 구분했습니다",
+				"",
+				"#3 문서",
+				"  • 사용법을 기록했습니다",
+				"",
+				"검증",
+				"  • bun test test/result-cards.test.ts",
+			]);
+		}
 	});
 });

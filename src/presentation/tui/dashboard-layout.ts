@@ -125,6 +125,12 @@ export interface DashboardLayout {
 	routerScroll: ScrollView;
 }
 
+const containedScrollbar = {
+	overscroll: "contain" as const,
+	scrollbar: "auto" as const,
+	scrollbarStyle: colors.muted,
+};
+
 /**
  * One visual frame containing three native viewport regions. Wide mode keeps
  * independent scroll state for left, right-top and right-bottom; compact mode
@@ -139,40 +145,34 @@ export function createDashboardLayout(
 	const leftScroll = new ScrollView(new SectionDocument(left), {
 		follow: "end",
 		primary: true,
-		overscroll: "contain",
-		scrollbar: "auto",
-		scrollbarStyle: colors.muted,
+		...containedScrollbar,
 	});
 	const usageScroll = new ScrollView(new SectionDocument(rightTop), {
 		follow: "none",
-		overscroll: "contain",
-		scrollbar: "auto",
-		scrollbarStyle: colors.muted,
+		...containedScrollbar,
 	});
 	const routerScroll = new ScrollView(new SectionDocument(rightBottom), {
 		follow: "none",
-		overscroll: "contain",
-		scrollbar: "auto",
-		scrollbarStyle: colors.muted,
+		...containedScrollbar,
 	});
 	const right = new VStack([
 		{ component: usageScroll, basis: 0, grow: 1, shrink: 1, minSize: 3 },
 		{ component: new HorizontalRule(), basis: 1, minSize: 1, maxSize: 1 },
-		{ component: routerScroll, basis: 0, grow: 1, shrink: 1, minSize: 3 },
+		// Todo/Plan carries more rows than the T-note list and is the pane operators
+		// actually work in, so it takes two thirds of the right column.
+		{ component: routerScroll, basis: 0, grow: 2, shrink: 1, minSize: 3 },
 	]);
 	const wide = new HStack([
 		{ component: new VerticalRule(), basis: 1, shrink: 0, minSize: 1, maxSize: 1 },
 		{ component: leftScroll, basis: 0, grow: 3, shrink: 1, minSize: 42 },
 		{ component: new VerticalRule(), basis: 1, shrink: 0, minSize: 1, maxSize: 1 },
-		{ component: right, basis: 0, grow: 2, shrink: 1, minSize: 34, maxSize: 58 },
+		{ component: right, basis: 0, grow: 2, shrink: 1, minSize: 34, maxSize: 72 },
 		{ component: new VerticalRule(), basis: 1, shrink: 0, minSize: 1, maxSize: 1 },
 	]);
 	const compactScroll = new ScrollView(new CompactDocument([left, rightTop, rightBottom]), {
 		follow: "end",
 		primary: true,
-		overscroll: "contain",
-		scrollbar: "auto",
-		scrollbarStyle: colors.muted,
+		...containedScrollbar,
 	});
 	const compact = new HStack([
 		{ component: new VerticalRule(), basis: 1, shrink: 0, minSize: 1, maxSize: 1 },

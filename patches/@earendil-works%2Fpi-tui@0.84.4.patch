@@ -1,0 +1,29 @@
+diff --git a/dist/tui-alt-screen.js b/dist/tui-alt-screen.js
+index 8bfcffd4dd99653930ec0a88055c18e14943e363..327309b868c27ebc46c72b68490350c11b225edd 100644
+--- a/dist/tui-alt-screen.js
++++ b/dist/tui-alt-screen.js
+@@ -556,14 +556,22 @@ export class TuiAltScreen extends TuiBase {
+     routeWheel(event) {
+         let remaining = event.direction * this.wheelScrollLines;
+         const seen = new Set();
++        // A scroll view declaring overscroll "contain" absorbs the whole wheel event.
++        // Without this flag the leftover below still reached the primary scroll view, so
++        // reaching the end of a contained pane silently scrolled an unrelated one.
++        let contained = false;
+         for (const scrollView of this.currentLayout ? getScrollViewsAt(this.currentLayout, event.x, event.y) : []) {
+             seen.add(scrollView);
+             remaining = scrollView.scrollBy(remaining);
+-            if (remaining === 0 || scrollView.overscroll === "contain")
++            if (scrollView.overscroll === "contain") {
++                contained = true;
++                break;
++            }
++            if (remaining === 0)
+                 break;
+         }
+         const primary = this.getPrimaryScrollView();
+-        if (remaining !== 0 && !seen.has(primary))
++        if (!contained && remaining !== 0 && !seen.has(primary))
+             primary.scrollBy(remaining);
+         this.updateScrollbarHover(event.x, event.y);
+         this.requestRender();

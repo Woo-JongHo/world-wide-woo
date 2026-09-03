@@ -62,21 +62,33 @@ export interface ReviewDelivery {
 	readonly provider: ReviewProvider;
 	readonly model: string;
 	readonly version: string;
+	readonly transport?: "provider-api" | "claude-cli";
 	readonly packetDigest: string;
 	readonly sentAt: string;
 	readonly receivedAt: string;
 	readonly result: string;
 	readonly resultDigest: string;
+	readonly usage?: ReviewUsage;
+}
+
+/** Usage is recorded only when the selected transport actually reports it. */
+export interface ReviewUsage {
+	readonly inputTokens?: number;
+	readonly outputTokens?: number;
+	readonly cacheCreationInputTokens?: number;
+	readonly cacheReadInputTokens?: number;
 }
 
 export interface ReviewProvenance {
 	readonly provider: ReviewProvider;
 	readonly model: string;
 	readonly version: string;
+	readonly transport?: "provider-api" | "claude-cli";
 	readonly packetDigest: string;
 	readonly resultDigest: string;
 	readonly sentAt: string;
 	readonly receivedAt: string;
+	readonly usage?: ReviewUsage;
 }
 
 export function createReviewPacket(input: ReviewPacketInput, digest: ReviewDigester): ReviewPacketPreview {

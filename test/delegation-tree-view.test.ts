@@ -2,12 +2,15 @@ import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
 import type { ProjectActivity, ProjectActivityPhase } from "../src/domain/project-activity";
 import type { WorkbenchSnapshot } from "../src/domain/workbench";
-import { projectWorkFlow } from "../src/domain/work-steps";
+import { projectNativeDelegation, projectWorkFlow, type DplanHash } from "../src/domain/work-steps";
 import { projectWorkbenchDelegationSections } from "../src/presentation/tui/delegation-tree-view";
 import { WorkbenchChatView } from "../src/presentation/tui/workbench-views";
 
 const ROOT_THREAD = "thread-root";
 const TURN = "turn-delegation";
+const hash: DplanHash = {
+	sha256Hex: (input) => new Bun.CryptoHasher("sha256").update(input).digest("hex"),
+};
 
 function collabActivity(
 	sequence: number,
@@ -99,6 +102,33 @@ function collaborationActivities(): readonly ProjectActivity[] {
 			agentsStates: { "thread-todo": { status: "completed", message: "focused tests passed" } },
 		}, "completed", "thread-todo"),
 	];
+}
+
+function planInput(activities: readonly ProjectActivity[]) {
+	const activity = activities[0]!;
+	return {
+		expectedThreadKey: activity.nativeRefs.threadId!,
+		selectedTurnId: activity.nativeRefs.turnId!,
+		hash,
+	};
+}
+
+function workFlowFor(activities: readonly ProjectActivity[]) {
+	const authority = planInput(activities);
+	const [first] = activities;
+	return projectWorkFlow([{
+		...first!,
+		id: "delegation-turn-start",
+		sequence: 1,
+		payload: { method: "turn/started" },
+		sourceDigest: `sha256:${"1".padStart(64, "0")}`,
+	}, {
+		...first!,
+		id: "delegation-plan",
+		sequence: 2,
+		payload: { method: "turn/plan/updated", params: { plan: [{ step: "delegation", status: "inProgress" }] } },
+		sourceDigest: `sha256:${"2".padStart(64, "0")}`,
+	}], new Map(), authority);
 }
 
 describe("Gajae-style delegation tree", () => {
@@ -199,6 +229,62 @@ describe("Gajae-style delegation tree", () => {
 		expect(narrow[0]!.rows.every((line) => visibleWidth(line) <= 42)).toBe(true);
 	});
 
+	test("preserves native nested activity messages while excluding ordinary collaboration tools", () => {
+		const activities = [
+			collabActivity(1, "spawn", {
+				type: "collabAgentToolCall", id: "spawn", tool: "spawnAgent", status: "inProgress",
+				senderThreadId: ROOT_THREAD, receiverThreadIds: ["agent-child"], prompt: "Inspect the native boundary",
+				model: "gpt-5.6-terra", reasoningEffort: "high",
+				agentsStates: { "agent-child": { status: "running", message: "Reading raw event fixtures" } },
+			}),
+			collabActivity(2, "nested-message", {
+				type: "subAgentActivity", id: "nested-message", kind: "interacted",
+				agentThreadId: "agent-child", agentPath: "/root/NativeObserver",
+				message: "Found both lifecycle payloads",
+			}),
+			collabActivity(3, "ordinary-tool", {
+				type: "collabToolCall", id: "ordinary-tool", tool: "search", status: "completed",
+				senderThreadId: ROOT_THREAD, receiverThreadIds: ["agent-unrelated"],
+			}),
+		];
+		const output = stripTerminalSequences(
+			projectWorkbenchDelegationSections(activities, "goal", ROOT_THREAD, 100)[0]!.rows.join("\n"),
+		);
+		expect(output).toContain("NativeObserver · running");
+		expect(output).toContain("Model: gpt-5.6-terra · high");
+		expect(output).toContain("Found both lifecycle payloads");
+		expect(output).not.toContain("agent-unrelated");
+	});
+
+	test("projects native call and subagent payloads into one stable delegated task", () => {
+		const activities = [
+			collabActivity(1, "spawn", {
+				type: "collabAgentToolCall", id: "spawn-native", tool: "spawnAgent", status: "inProgress",
+				senderThreadId: ROOT_THREAD, receiverThreadIds: ["agent-native"], prompt: "Audit event attribution",
+				settings: { model: "gpt-5.6-terra", reasoning_effort: "medium" },
+				agentsStates: { "agent-native": { status: "running", message: "Collecting lifecycle events" } },
+			}),
+			collabActivity(2, "subagent", {
+				type: "subAgentActivity", id: "subagent-native", kind: "completed",
+				agentThreadId: "agent-native", message: "Projection verified",
+			}),
+		];
+		const projection = projectNativeDelegation(activities);
+		expect(projection).toHaveLength(1);
+		expect(projection[0]!.tasks).toEqual([expect.objectContaining({
+			id: "agent-native",
+			parentId: ROOT_THREAD,
+			status: "completed",
+			task: "Audit event attribution",
+			model: "gpt-5.6-terra",
+			reasoningEffort: "medium",
+			activities: [
+				expect.objectContaining({ itemId: "spawn-native", message: "Collecting lifecycle events" }),
+				expect.objectContaining({ itemId: "subagent-native", message: "Projection verified" }),
+			],
+		})]);
+	});
+
 	test("renders the grouped tree in Chat instead of the old one-line collaboration notice", () => {
 		const activities = collaborationActivities();
 		const snapshot: WorkbenchSnapshot = {
@@ -206,6 +292,7 @@ describe("Gajae-style delegation tree", () => {
 			revision: 1,
 			journalSequence: 7,
 			phase: "working",
+			mcpServers: [],
 			threadId: ROOT_THREAD,
 			activeTurnId: TURN,
 			activities,
@@ -216,7 +303,7 @@ describe("Gajae-style delegation tree", () => {
 			draft: "",
 			reasoningDraft: "",
 			liveActivity: null,
-			workFlow: projectWorkFlow(activities),
+			workFlow: workFlowFor(activities),
 			tnotes: [],
 			todo: null,
 			actionResult: null,
@@ -232,6 +319,31 @@ describe("Gajae-style delegation tree", () => {
 	test("stays absent when the App Server has not emitted collaboration items", () => {
 		expect(projectWorkbenchDelegationSections([], "goal", ROOT_THREAD, 72)).toEqual([]);
 	});
+	test("requires native turn and item references for observed trace nodes and keeps source visible when compact", () => {
+		const observed = collaborationActivities().slice(0, 2);
+		const missingItemRef = {
+			...observed[0]!,
+			id: "missing-item-ref",
+			sequence: 8,
+			nativeRefs: { threadId: ROOT_THREAD, turnId: TURN },
+			sourceDigest: `sha256:${"8".padStart(64, "0")}`,
+		};
+		const sections = projectWorkbenchDelegationSections(
+			[missingItemRef, ...observed],
+			"goal",
+			ROOT_THREAD,
+			42,
+		);
+		expect(sections).toHaveLength(1);
+		expect(sections[0]!.activityIds).not.toContain("missing-item-ref");
+		expect(sections[0]).toMatchObject({
+			attribution: "observed",
+			source: { turnId: TURN },
+		});
+		const output = stripTerminalSequences(sections[0]!.rows.join("\n"));
+		expect(output).toContain("Source: observed native turn/item");
+		expect(sections[0]!.rows.every((line) => visibleWidth(line) <= 42)).toBe(true);
+	});
 
 	test("keeps a failed spawn visible before the server assigns a receiver thread", () => {
 		const activities = [collabActivity(1, "spawn-failed", {
@@ -246,9 +358,10 @@ describe("Gajae-style delegation tree", () => {
 		})];
 		const snapshot: WorkbenchSnapshot = {
 			projectId: "sample-project", revision: 1, journalSequence: 1, phase: "working",
+			mcpServers: [],
 			threadId: ROOT_THREAD, activeTurnId: TURN, activities, selectedActivityId: null,
 			pendingApproval: null, chat: [], chatQueue: [], draft: "", reasoningDraft: "",
-			liveActivity: null, workFlow: projectWorkFlow(activities), tnotes: [], todo: null,
+			liveActivity: null, workFlow: workFlowFor(activities), tnotes: [], todo: null,
 			actionResult: null, error: null,
 		};
 		const output = stripTerminalSequences(new WorkbenchChatView(snapshot).render(72).join("\n"));

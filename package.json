@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@earendil-works/pi-ai": "0.84.4",
+    "@earendil-works/pi-coding-agent": "0.84.4",
     "@earendil-works/pi-tui": "0.84.4",
     "@gajae-code/ai": "0.15.6",
     "@gajae-code/natives": "0.15.6",
@@ -25,5 +26,8 @@
   "devDependencies": {
     "@types/bun": "1.4.0",
     "typescript": "7.0.2"
+  },
+  "patchedDependencies": {
+    "@earendil-works/pi-tui@0.84.4": "patches/@earendil-works%2Fpi-tui@0.84.4.patch"
   }
 }

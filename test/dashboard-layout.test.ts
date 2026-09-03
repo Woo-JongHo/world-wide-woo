@@ -51,6 +51,8 @@ describe("dashboard layout", () => {
 		expect(layout.leftScroll.viewportHeight).toBeGreaterThan(0);
 		expect(layout.usageScroll.viewportHeight).toBeGreaterThan(0);
 		expect(layout.routerScroll.viewportHeight).toBeGreaterThan(0);
+		// Todo/Plan owns more of the right column than the T-note list.
+		expect(layout.routerScroll.viewportHeight).toBeGreaterThan(layout.usageScroll.viewportHeight);
 	});
 
 	test("uses one ordered viewport inside the same frame when compact", () => {
@@ -92,5 +94,33 @@ describe("dashboard layout", () => {
 		expect(second).not.toBe(first);
 		expect(second.join("\n")).toContain("tail two");
 		expect(second.join("\n")).not.toContain("tail one");
+	});
+
+	test("keeps every wheel delta in its contained chat viewport while content renders", () => {
+		const left = new MutableLines(Array.from({ length: 40 }, (_, index) => `message ${index}`));
+		const fixed = new Lines(["fixed"]);
+		const layout = createDashboardLayout(
+			() => "WWW",
+			{ title: "Chat", color: identity, component: left },
+			{ title: "Usage", color: identity, component: fixed },
+			{ title: "Todo", color: identity, component: fixed },
+		);
+		renderLayoutFrame(layout.component, 120, 14, () => undefined);
+		const start = layout.leftScroll.scrollTop;
+
+		const offsets = [-2, -2, -2].map((delta, index) => {
+			layout.leftScroll.scrollBy(delta);
+			left.lines.push(`stream ${index}`);
+			renderLayoutFrame(layout.component, 120, 14, () => undefined);
+			return layout.leftScroll.scrollTop;
+		});
+
+		expect(offsets).toEqual([start - 2, start - 4, start - 6]);
+		expect(layout.leftScroll.isFollowingEnd).toBe(false);
+		expect(layout.usageScroll.scrollTop).toBe(0);
+		expect(layout.routerScroll.scrollTop).toBe(0);
+
+		layout.leftScroll.scrollToEnd();
+		expect(layout.leftScroll.isFollowingEnd).toBe(true);
 	});
 });

@@ -6,6 +6,7 @@ import type { ActivityNarrator } from "./activity-narrator.js";
 import type { SessionModelUsageSource } from "./session-model-usage.js";
 import { TodoWriteConflictError } from "./todo-ledger.js";
 import type { WooEntry } from "./woo-entry.js";
+import { ContextComposer } from "./context-composer.js";
 import type {
 	BackgroundWorkState,
 	NativeApprovalPolicy,
@@ -34,10 +35,13 @@ import type { CanonicalDocumentDraft } from "../domain/canonical-document.js";
 import type { ReviewPacket, ReviewProvider } from "../domain/review.js";
 import {
 	projectWorkFlow,
+	type DplanHash,
+	type WorkFlowProjectionInput,
 	type WorkFlowProjection,
 	type WorkStepNarration,
 } from "../domain/work-steps.js";
 import {
+	projectTNoteCompletionIndex,
 	projectActivityToTNoteSource,
 	sanitizeTNoteText,
 	type TNoteActivitySource,
@@ -55,6 +59,7 @@ import type {
 	WorkbenchContextUsage,
 	WorkbenchListener,
 	WorkbenchLiveActivity,
+	WorkbenchMcpServer,
 	WorkbenchModelSelection,
 	WorkbenchPermissionMode,
 	WorkbenchSessionGoal,
@@ -65,10 +70,14 @@ import type {
 import { workbenchApprovalDecisions } from "../domain/workbench.js";
 
 const LIVE_ACTIVITY_TAIL_CHARACTER_LIMIT = 32 * 1024 - 128;
+const contextComposer = new ContextComposer();
 const ASSISTANT_DRAFT_TAIL_CHARACTER_LIMIT = 28 * 1024 - 128;
 const REASONING_DRAFT_TAIL_CHARACTER_LIMIT = 16 * 1024 - 128;
 const JOURNAL_NATIVE_TEXT_CHARACTER_LIMIT = 32 * 1024;
 const JOURNAL_NATIVE_MAX_DEPTH = 8;
+const dplanHash: DplanHash = {
+	sha256Hex: (input) => createHash("sha256").update(input).digest("hex"),
+};
 const JOURNAL_NATIVE_MAX_ITEMS = 128;
 const JOURNAL_NATIVE_MAX_COLLECTION_ITEMS = 64;
 const JOURNAL_NATIVE_OMISSION = "[journal observation omitted]";
@@ -77,6 +86,12 @@ const NATIVE_CONTEXT_BASELINE_TOKENS = 12_000;
 
 const SESSION_GOAL_MARKER = /^SESSION_GOAL:[ \t]*(\S(?:[^\r\n]*\S)?)$/u;
 const SESSION_GOAL_CHARACTER_LIMIT = 160;
+
+interface McpManagementPort {
+	listMcpServers(): Promise<readonly WorkbenchMcpServer[]>;
+	setMcpServerEnabled(name: string, enabled: boolean): Promise<void>;
+	reloadMcpServers(): Promise<void>;
+}
 
 interface BoundedTextProjection {
 	readonly tail: string;
@@ -105,6 +120,8 @@ interface JournalNativeProjectionState {
 export interface WorkbenchActivityJournal {
 	append(input: ProjectActivityInput): Promise<ProjectActivityAppendResult>;
 	readAll(projectId: string): Promise<ProjectActivity[]>;
+	/** True once the journal owns a Native thread stream; appends fail before that. */
+	hasBoundThread?(): boolean;
 }
 
 export interface WorkbenchTodoSource {
@@ -113,7 +130,7 @@ export interface WorkbenchTodoSource {
 	/** Binds the live board to the provider-issued Native thread identity. */
 	bindThread?(threadId: string): Promise<void>;
 	/** Optional Native-plan mirror. It must never block the interactive Chat path. */
-	syncNativePlan?(turnId: string, flow: WorkFlowProjection): Promise<TodoDocument>;
+	syncNativePlan?(flow: WorkFlowProjection): Promise<TodoDocument>;
 	create(title: string, items: readonly string[], storyId?: string): Promise<TodoDocument>;
 	add(content: string, placement: "now" | "after"): Promise<TodoDocument>;
 	addDetails(itemId: string, details: readonly string[]): Promise<TodoDocument>;
@@ -170,9 +187,11 @@ export class ProjectWorkbench {
 	private readonly listeners = new Set<WorkbenchListener>();
 	private readonly activities: ProjectActivity[] = [];
 	private readonly visibleActivities: ProjectActivity[] = [];
+	private readonly preThreadChat = new Map<string, WorkbenchChatMessage>();
 	private readonly notes: WorkbenchTNote[] = [];
 	private readonly terminalTurns = new Set<string>();
 	private readonly noteDrafts = new Map<string, TNoteDraft>();
+	private readonly completionOrdinals = new Map<string, number>();
 	private readonly promotionDrafts = new Map<string, CanonicalDocumentDraft>();
 	private readonly reviewPreviews = new Map<string, { provider: ReviewProvider; packet: ReviewPacket }>();
 	private readonly stepNarrations = new Map<string, WorkStepNarration>();
@@ -182,10 +201,12 @@ export class ProjectWorkbench {
 	private workFlowProjection: {
 		sourceLength: number;
 		narrationRevision: number;
+		authorityKey: string | null;
 		value: WorkFlowProjection;
 	} = {
 		sourceLength: -1,
 		narrationRevision: -1,
+		authorityKey: null,
 		value: projectWorkFlow([]),
 	};
 	private selectedActivityId: string | null = null;
@@ -209,6 +230,10 @@ export class ProjectWorkbench {
 	private unattributedUsageTokens = 0;
 	private threadId: string | null = null;
 	private activeTurnId: string | null = null;
+	/** Last explicitly selected root turn; remains plan authority after terminal completion. */
+	private selectedPlanTurnId: string | null = null;
+	/** A submitted root question can update the public goal before Native confirms its turn id. */
+	private pendingPlanGoalActivityId: string | null = null;
 	private todo: TodoDocument | null;
 	private error: string | null = null;
 	private draft = "";
@@ -223,6 +248,7 @@ export class ProjectWorkbench {
 	private liveActivity: WorkbenchLiveActivity | null = null;
 	private liveActivityProjection = emptyBoundedTextProjection();
 	private actionResult: WorkbenchActionResult | null = null;
+	private mcpServers: readonly WorkbenchMcpServer[] = Object.freeze([]);
 	private readonly chatQueue: WorkbenchChatQueueItem[] = [];
 	private durableActivityProjection: DurableActivityProjection = {
 		sourceLength: -1,
@@ -325,6 +351,10 @@ export class ProjectWorkbench {
 				case "session.permission": return this.configurePermission(commandId, command.mode);
 				case "session.mode": return this.configureCollaboration(commandId, command.mode);
 				case "session.model": return await this.configureModel(commandId, command.selection);
+				case "mcp.refresh": return await this.refreshMcpServers(commandId);
+				case "mcp.enable": return await this.setMcpServerEnabled(commandId, command.name, true);
+				case "mcp.disable": return await this.setMcpServerEnabled(commandId, command.name, false);
+				case "mcp.reload": return await this.reloadMcpServers(commandId);
 				case "woo-entry.refresh": return await this.refreshWooEntry(commandId);
 				case "tnote.capture-session": return await this.captureSessionNote(commandId);
 				case "tnote.capture": return await this.captureNote(commandId, command.activityIds);
@@ -380,6 +410,7 @@ export class ProjectWorkbench {
 		const [activities] = await Promise.all([
 			this.journal.readAll(this.activityJournalProjectId()),
 			this.options.wooEntry?.refresh() ?? Promise.resolve(null),
+			this.mcpManagement()?.listMcpServers().then((servers) => { this.mcpServers = immutable(servers); }) ?? Promise.resolve(),
 		]);
 		for (const activity of activities) {
 			const durableActivity = immutable(activity);
@@ -403,6 +434,11 @@ export class ProjectWorkbench {
 			this.applyThreadSettings(resumed);
 			this.visibleThreadId = resumed.id;
 			this.visibleActivities.push(...this.activities.filter(activity => activity.nativeRefs.threadId === resumed.id));
+			this.selectedPlanTurnId = [...this.activities].reverse().find((activity) =>
+				activity.nativeRefs.threadId === resumed.id
+				&& (activity.payload.method === "turn/start" || activity.payload.method === "turn/started")
+				&& typeof activity.nativeRefs.turnId === "string",
+			)?.nativeRefs.turnId ?? null;
 			this.invalidateWorkFlow();
 			this.scheduleNarrations();
 			const read = await this.native.readThread({ threadId: resumed.id, includeTurns: true });
@@ -418,6 +454,7 @@ export class ProjectWorkbench {
 			}, false);
 			if (delivery.state === "in-progress") {
 				this.activeTurnId = delivery.turnId;
+				this.selectedPlanTurnId = delivery.turnId;
 				this.contextTurnId = delivery.turnId;
 				this.bindTurnUsage(delivery.turnId, this.effectiveModel, this.effectiveEffort);
 				await this.appendActivity("progress", "started", {
@@ -452,12 +489,15 @@ export class ProjectWorkbench {
 			role: "user",
 			text,
 		} as const;
-		const initialMessageRefs: NativeRefs = {
-			...(this.threadId ? { threadId: this.threadId } : {}),
-			itemId: localMessageId,
-		};
-		const sent = await this.appendActivity("message", "started", initialMessageRefs, messagePayload);
 		if (!this.threadId) {
+			this.preThreadChat.set(localMessageId, {
+				id: localMessageId,
+				role: "user",
+				content: text,
+				activityId: localMessageId,
+				status: "streaming",
+			});
+			this.publish();
 			let thread: Awaited<ReturnType<NativeHarnessPort["startThread"]>>;
 			try {
 				thread = await this.native.startThread({
@@ -468,10 +508,10 @@ export class ProjectWorkbench {
 					sandbox: this.sandbox,
 				});
 			} catch (error) {
-				await this.appendActivity("message", "failed", initialMessageRefs, {
-					...messagePayload,
-					error: errorMessage(error),
-				}, false);
+				this.preThreadChat.set(localMessageId, {
+					...this.preThreadChat.get(localMessageId)!,
+					status: "failed",
+				});
 				if (queued && this.chatQueue[0]?.id === localMessageId) this.chatQueue.shift();
 				this.publish();
 				throw error;
@@ -486,6 +526,11 @@ export class ProjectWorkbench {
 			});
 		}
 		const messageRefs = { threadId: this.threadId, itemId: localMessageId };
+		const sent = await this.appendActivity("message", "started", messageRefs, messagePayload, false);
+		this.preThreadChat.delete(localMessageId);
+		this.pendingPlanGoalActivityId = sent.id;
+		this.invalidateWorkFlow();
+		this.publish();
 		let turn: Awaited<ReturnType<NativeHarnessPort["startTurn"]>>;
 		try {
 			const turnInput = {
@@ -498,8 +543,10 @@ export class ProjectWorkbench {
 				sandboxPolicy: this.currentSandboxPolicy(),
 				collaborationMode: this.currentNativeCollaborationMode(),
 			};
-			turn = await this.native.startTurn(this.options.wooEntry?.prepareTurn(turnInput) ?? turnInput);
+			turn = await this.native.startTurn(contextComposer.compose(turnInput, this.options.wooEntry?.snapshot));
 		} catch (error) {
+			this.pendingPlanGoalActivityId = null;
+			this.invalidateWorkFlow();
 			if (isUncertain(error)) {
 				this.chatDeliveryBlocked = true;
 				this.blockedChat = { id: localMessageId, content: text };
@@ -521,6 +568,9 @@ export class ProjectWorkbench {
 		this.bindTurnUsage(turn.id, this.effectiveModel, this.effectiveEffort);
 		this.contextTurnId = turn.id;
 		this.activeTurnId = turn.id;
+		this.selectedPlanTurnId = turn.id;
+		this.pendingPlanGoalActivityId = null;
+		this.invalidateWorkFlow();
 		this.chatDeliveryBlocked = false;
 		this.blockedChat = null;
 		if (queued && this.chatQueue[0]?.id === localMessageId) this.chatQueue.shift();
@@ -575,6 +625,7 @@ export class ProjectWorkbench {
 			if (this.chatQueue[0]?.id === abandoned.id) this.chatQueue.shift();
 			if (delivery.state === "in-progress") {
 				this.activeTurnId = delivery.turnId;
+				this.selectedPlanTurnId = delivery.turnId;
 				this.contextTurnId = delivery.turnId;
 				this.bindTurnUsage(delivery.turnId, this.effectiveModel, this.effectiveEffort);
 				await this.appendActivity("progress", "started", {
@@ -698,6 +749,43 @@ export class ProjectWorkbench {
 			commandId,
 			message: `모델 변경: ${selection.model} · 추론 ${selection.effort}`,
 		};
+	}
+
+	private mcpManagement(): McpManagementPort | null {
+		const candidate = this.native as Partial<McpManagementPort>;
+		return typeof candidate.listMcpServers === "function"
+			&& typeof candidate.setMcpServerEnabled === "function"
+			&& typeof candidate.reloadMcpServers === "function"
+			? candidate as McpManagementPort
+			: null;
+	}
+
+	private requireMcpManagement(): McpManagementPort {
+		const management = this.mcpManagement();
+		if (!management) throw new Error("연결된 App Server는 MCP 서버 관리를 지원하지 않습니다.");
+		return management;
+	}
+
+	private async refreshMcpServers(commandId: string): Promise<WorkbenchCommandReceipt> {
+		this.mcpServers = immutable(await this.requireMcpManagement().listMcpServers());
+		this.publish();
+		return { state: "accepted", commandId };
+	}
+
+	private async setMcpServerEnabled(commandId: string, name: string, enabled: boolean): Promise<WorkbenchCommandReceipt> {
+		const management = this.requireMcpManagement();
+		await management.setMcpServerEnabled(name, enabled);
+		this.mcpServers = immutable(await management.listMcpServers());
+		this.publish();
+		return { state: "accepted", commandId };
+	}
+
+	private async reloadMcpServers(commandId: string): Promise<WorkbenchCommandReceipt> {
+		const management = this.requireMcpManagement();
+		await management.reloadMcpServers();
+		this.mcpServers = immutable(await management.listMcpServers());
+		this.publish();
+		return { state: "accepted", commandId };
 	}
 
 	private observeTokenUsage(event: Extract<NativeHarnessEvent, { type: "notification" }>): void {
@@ -879,16 +967,46 @@ export class ProjectWorkbench {
 		const turnId = selected.at(-1)!.nativeRefs.turnId!;
 		const scope = completedTurnNoteScope(selected, turnId)!;
 		const question = scope.question;
+		const terminalActivity = selected.at(-1)!;
+		const threadId = terminalActivity.nativeRefs.threadId!;
+		const number = this.completionOrdinal(threadId, turnId);
 		return {
 			turnId,
 			input: {
 				projectId: this.options.projectId,
 				range: { startSequence: selected[0]!.sequence, endSequence: selected.at(-1)!.sequence },
-				activities: selected.map(projectActivityToTNoteSource),
+				activities: selected.map((activity) => ({
+					...projectActivityToTNoteSource(activity),
+					...(activity.id === terminalActivity.id ? {
+						completion: { threadId, turnId, number, terminalActivityId: terminalActivity.id },
+					} : {}),
+				})),
 				instruction: turnTNoteInstruction(question),
 				expectedQuestion: question,
 			},
 		};
+	}
+
+	private completionOrdinal(threadId: string, turnId: string): number {
+		const key = `${threadId}:${turnId}`;
+		const reserved = this.completionOrdinals.get(key);
+		if (reserved) return reserved;
+		const durableMaximum = [...this.noteDrafts.values()]
+			.map((note) => note.packet.completion)
+			.filter((completion): completion is NonNullable<typeof completion> => completion?.threadId === threadId)
+			.reduce((maximum, completion) => Math.max(maximum, completion.number), 0);
+		const visibleMaximum = projectTNoteCompletionIndex(
+			this.visibleActivities,
+			[...this.noteDrafts.values()].map((note) => ({
+				id: note.id,
+				sourceActivityIds: note.packet.activities.map((activity) => activity.id),
+				completion: note.packet.completion,
+			})),
+		).filter((completion) => completion.threadId === threadId && completion.turnId !== turnId)
+			.reduce((maximum, completion) => Math.max(maximum, completion.number), 0);
+		const number = Math.max(durableMaximum, visibleMaximum) + 1;
+		this.completionOrdinals.set(key, number);
+		return number;
 	}
 
 	private async createTNote(
@@ -1042,6 +1160,12 @@ export class ProjectWorkbench {
 		const notes = await this.options.tnotes.readAll(this.options.projectId);
 		for (const note of notes) {
 			this.noteDrafts.set(note.id, note);
+			if (note.packet.completion) {
+				this.completionOrdinals.set(
+					`${note.packet.completion.threadId}:${note.packet.completion.turnId}`,
+					note.packet.completion.number,
+				);
+			}
 			this.notes.push(immutable(projectTNote(note)));
 		}
 	}
@@ -1066,15 +1190,21 @@ export class ProjectWorkbench {
 
 	private async recordNativeEvent(event: NativeHarnessEvent): Promise<void> {
 		if (this.closed) return;
-		if (event.type === "notification" && event.method === "thread/tokenUsage/updated") {
+		// A shared App Server can emit for threads this workbench does not own, and the journal
+		// stays unbound until this session adopts its own thread.  Such an event has no stream to
+		// land in; journaling it would fail the whole session on an internal invariant.
+		if (this.journal.hasBoundThread?.() === false) return;
+		const eventBelongsToRootThread = event.type !== "notification"
+			|| this.isRootThreadEvent(event.refs.threadId);
+		if (eventBelongsToRootThread && event.type === "notification" && event.method === "thread/tokenUsage/updated") {
 			this.observeTokenUsage(event);
 		}
 		if (event.type === "notification" && isDeltaNotification(event.method)) {
-			this.applyDelta(event);
+			if (eventBelongsToRootThread) this.applyDelta(event);
 			return;
 		}
 		const lifecycle = event.type === "notification" ? turnLifecycle(event.method) : null;
-		const completedActiveTurn = lifecycle === "terminal" && event.type === "notification" &&
+		const completedActiveTurn = eventBelongsToRootThread && lifecycle === "terminal" && event.type === "notification" &&
 			event.refs.turnId === this.activeTurnId;
 		const completedSummaryCheckpoint = completedActiveTurn && event.type === "notification" &&
 			event.method.toLowerCase() === "turn/completed";
@@ -1097,9 +1227,10 @@ export class ProjectWorkbench {
 			const lateStartForTerminalTurn = lifecycle === "started" && event.refs.turnId
 				? this.hasTerminalTurn(event.refs.threadId ?? this.threadId ?? undefined, event.refs.turnId)
 				: false;
-			if (lifecycle === "started" && event.refs.turnId && !lateStartForTerminalTurn) {
+			if (eventBelongsToRootThread && lifecycle === "started" && event.refs.turnId && !lateStartForTerminalTurn) {
 				const reconciledChat = this.blockedChat;
 				this.activeTurnId = event.refs.turnId;
+				this.selectedPlanTurnId = event.refs.turnId;
 				this.contextTurnId = event.refs.turnId;
 				if (!this.turnUsageModels.has(event.refs.turnId)) {
 					this.bindTurnUsage(event.refs.turnId, this.effectiveModel, this.effectiveEffort);
@@ -1119,9 +1250,9 @@ export class ProjectWorkbench {
 					}, false);
 				}
 			}
-			if (lifecycle === "terminal" && event.refs.turnId === this.activeTurnId) this.activeTurnId = null;
+			if (eventBelongsToRootThread && lifecycle === "terminal" && event.refs.turnId === this.activeTurnId) this.activeTurnId = null;
 		}
-		if (event.type === "notification" && activityPhase(event.method) === "completed") {
+		if (eventBelongsToRootThread && event.type === "notification" && activityPhase(event.method) === "completed") {
 			if (!event.refs.itemId || event.refs.itemId === this.draftItemId) {
 				this.draft = "";
 				this.draftItemId = null;
@@ -1307,11 +1438,16 @@ export class ProjectWorkbench {
 
 	private reconcileNativeState(threadId: string | undefined): void {
 		if (!threadId) return;
+		if (this.threadId && this.threadId !== threadId) return;
 		const currentActiveTurnId = this.threadId === threadId ? this.activeTurnId : null;
 		this.threadId = threadId;
 		this.activeTurnId = currentActiveTurnId && !this.hasTerminalTurn(threadId, currentActiveTurnId)
 			? currentActiveTurnId
 			: null;
+	}
+
+	private isRootThreadEvent(threadId: string | undefined): boolean {
+		return !threadId || !this.threadId || threadId === this.threadId;
 	}
 
 	private applyThreadSettings(thread: { model?: string; effort?: string | null }): void {
@@ -1358,12 +1494,17 @@ export class ProjectWorkbench {
 			journalSequence: this.activities.at(-1)?.sequence ?? 0,
 			phase,
 			model: this.effectiveModel,
+			// A model switch takes effect on the next turn, so the running turn keeps the model it
+			// was started with.  Reporting the selection here would name a model that is not
+			// producing the output on screen.
+			activeModel: (this.activeTurnId ? this.turnUsageModels.get(this.activeTurnId)?.model : undefined) ?? this.effectiveModel,
 			effort: this.effectiveEffort,
 			contextUsage: this.contextUsage,
 			sessionUsage: this.projectSessionUsage(),
 			sessionGoal: this.sessionGoal,
 			permissionMode: this.permissionMode,
 			collaborationMode: this.collaborationMode,
+			mcpServers: this.mcpServers,
 			wooEntry: this.options.wooEntry?.snapshot ?? null,
 			threadId: this.threadId,
 			activeTurnId: this.activeTurnId,
@@ -1371,7 +1512,7 @@ export class ProjectWorkbench {
 			activities: durable.activities,
 			selectedActivityId: this.selectedActivityId,
 			pendingApproval: this.pendingApproval,
-			chat: durable.chat,
+			chat: this.projectChat(durable.chat),
 			chatQueue: immutable(this.chatQueue),
 			draft: this.draft,
 			reasoningDraft: this.reasoningDraft,
@@ -1381,6 +1522,7 @@ export class ProjectWorkbench {
 			tnotes: this.projectDurableNotes(),
 			todo: this.todo,
 			actionResult: this.actionResult,
+			deliveryUncertain: this.chatDeliveryBlocked && this.blockedChat !== null,
 			error: this.error,
 		});
 	}
@@ -1399,6 +1541,13 @@ export class ProjectWorkbench {
 		return this.durableActivityProjection;
 	}
 
+	private projectChat(durable: readonly WorkbenchChatMessage[]): readonly WorkbenchChatMessage[] {
+		if (this.preThreadChat.size === 0) return durable;
+		const messages = new Map(durable.map(message => [message.id, message]));
+		for (const message of this.preThreadChat.values()) messages.set(message.id, message);
+		return Object.freeze([...messages.values()]);
+	}
+
 	private projectDurableNotes(): readonly WorkbenchTNote[] {
 		if (this.durableNoteProjection.sourceLength === this.notes.length
 			&& this.durableNoteProjection.activitySourceLength === this.visibleActivities.length) {
@@ -1415,21 +1564,50 @@ export class ProjectWorkbench {
 
 	private currentSessionNotes(): readonly WorkbenchTNote[] {
 		const activityIds = new Set(this.visibleActivities.map((activity) => activity.id));
-		return this.notes.filter((note) => note.sourceActivityIds.some((id) => activityIds.has(id)));
+		const notes = this.notes.filter((note) => note.sourceActivityIds.some((id) => activityIds.has(id)));
+		const completionOrder = new Map(projectTNoteCompletionIndex(this.visibleActivities, notes)
+			.flatMap((completion) => completion.noteId ? [[completion.noteId, completion.number] as const] : []));
+		return [...notes].sort((left, right) =>
+			(completionOrder.get(left.id) ?? Number.MAX_SAFE_INTEGER) - (completionOrder.get(right.id) ?? Number.MAX_SAFE_INTEGER)
+			|| left.id.localeCompare(right.id));
 	}
 
 	private projectCurrentWorkFlow(): WorkFlowProjection {
-		if (this.workFlowProjection.sourceLength === this.visibleActivities.length
-			&& this.workFlowProjection.narrationRevision === this.narrationRevision) {
+		const input = this.currentPlanProjectionInput();
+		const authorityKey = input
+			? stableJson([
+				"kind" in input ? "pending-goal" : "selected-root-turn",
+				input.expectedThreadKey,
+				!("kind" in input) ? input.selectedTurnId : null,
+				this.pendingPlanGoalActivityId,
+			])
+			: null;
+		if (this.workFlowProjection.sourceLength === this.activities.length
+			&& this.workFlowProjection.narrationRevision === this.narrationRevision
+			&& this.workFlowProjection.authorityKey === authorityKey) {
 			return this.workFlowProjection.value;
 		}
-		const source = this.visibleActivities;
+		// Dplan validates the complete append-only journal for sequence integrity.
+		// Keep child activity out of the visible transcript, but retain it here so a
+		// root action after a child event does not look like a forged sequence gap.
+		const source = this.activities;
+		const projection = projectWorkFlow(source, this.stepNarrations, input);
+		const pendingGoal = this.pendingPlanGoalActivityId && this.threadId && input && !("kind" in input)
+			? projectWorkFlow(source, new Map(), { kind: "pending-goal", expectedThreadKey: this.threadId, hash: dplanHash }).goal
+			: null;
 		this.workFlowProjection = {
-			sourceLength: this.visibleActivities.length,
+			sourceLength: this.activities.length,
 			narrationRevision: this.narrationRevision,
-			value: projectWorkFlow(source, this.stepNarrations),
+			authorityKey,
+			value: pendingGoal ? { ...projection, goal: pendingGoal } : projection,
 		};
 		return this.workFlowProjection.value;
+	}
+
+	private currentPlanProjectionInput(): WorkFlowProjectionInput | undefined {
+		if (!this.threadId) return undefined;
+		if (!this.selectedPlanTurnId) return { kind: "pending-goal", expectedThreadKey: this.threadId, hash: dplanHash };
+		return { expectedThreadKey: this.threadId, selectedTurnId: this.selectedPlanTurnId, hash: dplanHash };
 	}
 
 	private invalidateWorkFlow(): void {
@@ -1439,16 +1617,16 @@ export class ProjectWorkbench {
 	private scheduleNativeTodoSync(activity: ProjectActivity): void {
 		const todos = this.options.todos;
 		const sync = todos?.syncNativePlan?.bind(todos);
-		const turnId = activity.nativeRefs.turnId;
-		if (!sync || !turnId) return;
+		if (!sync) return;
 		const flow = this.projectCurrentWorkFlow();
+		const source = flow.source;
+		if (!source || source.turnId !== this.activeTurnId) return;
+		if (activity.nativeRefs.threadId !== this.threadId || activity.nativeRefs.turnId !== source.turnId) return;
 		const method = typeof activity.payload.method === "string" ? activity.payload.method : "";
-		const startsTurn = method === "turn/start" || method === "turn/started";
 		const updatesPlan = method === "turn/plan/updated";
 		const contributesExecution = flow.steps.some((step) => step.activityIds.includes(activity.id));
-		const belongsToNativePlan = flow.steps.some((step) => step.id.startsWith(`plan:${turnId}:`));
-		if (!startsTurn && (!belongsToNativePlan || !updatesPlan && !contributesExecution)) return;
-		this.enqueueNativeTodoSync(sync, turnId, flow);
+		if (!updatesPlan && !contributesExecution) return;
+		this.enqueueNativeTodoSync(sync, flow);
 	}
 
 	private scheduleNarratedTodoSync(): void {
@@ -1456,23 +1634,19 @@ export class ProjectWorkbench {
 		const sync = todos?.syncNativePlan?.bind(todos);
 		if (!sync) return;
 		const flow = this.projectCurrentWorkFlow();
-		const planStep = flow.steps.find((step) => /^plan:.+:\d+$/u.test(step.id));
-		if (!planStep) return;
-		const turnId = planStep.id.replace(/^plan:/u, "").replace(/:\d+$/u, "");
-		if (!turnId) return;
-		this.enqueueNativeTodoSync(sync, turnId, flow);
+		if (!flow.source || flow.source.turnId !== this.activeTurnId || flow.steps.length === 0) return;
+		this.enqueueNativeTodoSync(sync, flow);
 	}
 
 	private enqueueNativeTodoSync(
 		sync: NonNullable<WorkbenchTodoSource["syncNativePlan"]>,
-		turnId: string,
 		flow: WorkFlowProjection,
 	): void {
 		this.todoSyncQueue = this.todoSyncQueue
 			.catch(() => undefined)
 			.then(async () => {
 				try {
-					await sync(turnId, flow);
+					await sync(flow);
 				} catch (error) {
 					const body = error instanceof TodoWriteConflictError
 						? stableJson({ currentSource: error.currentSource, pending: error.pending })
@@ -1491,8 +1665,8 @@ export class ProjectWorkbench {
 	private scheduleNarrations(): void {
 		const narrator = this.options.narrator;
 		if (!narrator || this.closed || this.narrationAbort.signal.aborted) return;
-		const source = this.visibleActivities;
-		const baseFlow = projectWorkFlow(source);
+		const source = this.activities;
+		const baseFlow = projectWorkFlow(source, new Map(), this.currentPlanProjectionInput());
 		for (const step of baseFlow.steps) {
 			if (step.narration.inputSummary.length === 0) continue;
 			const request = {
@@ -1811,15 +1985,17 @@ function sessionGoalMarker(text: string): string | null {
 
 function projectTNote(draft: TNoteDraft): WorkbenchTNote {
 	const question = /^질문:\s*(.+)$/imu.exec(draft.text)?.[1]?.trim();
-	return {
+	const note = {
 		id: draft.id,
 		title: question
 			? sanitizeTerminalTextExcerpt(question, 160, "head-tail")
 			: "현재 세션 대화 요약",
 		summary: draft.text,
 		sourceActivityIds: draft.packet.activities.map((activity) => activity.id),
+		...(draft.packet.completion ? { completion: draft.packet.completion } : {}),
 		updatedAt: draft.createdAt,
 	};
+	return note;
 }
 
 function canonicalTNoteDraft(draft: TNoteDraft, sessionId: string): CanonicalDocumentDraft {

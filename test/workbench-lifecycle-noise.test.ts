@@ -41,6 +41,7 @@ describe("Workbench lifecycle noise filter", () => {
 		];
 		const snapshot: WorkbenchSnapshot = {
 			projectId: "sample-project", revision: 1, journalSequence: 6, phase: "ready",
+			mcpServers: [],
 			threadId: "thread-root", activeTurnId: null, activities, selectedActivityId: null,
 			pendingApproval: null, chat: [{
 				id: "message", role: "user", content: "현재 작업을 계속합니다.", activityId: "message", status: "completed",

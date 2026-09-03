@@ -38,10 +38,15 @@ export const colors = {
 
 /** Semantic colors for transcript and result renderers. */
 export const semantic = {
-	userLabel: colors.highlight,
-	assistantLabel: colors.secondary,
+	userLabel: (text: string) => chalk.bold(colors.highlight(text)),
+	assistantLabel: (text: string) => chalk.bold(colors.secondary(text)),
 	userSurface: chalk.bgHex(palette.userSurface).hex(palette.foreground),
-	assistantSurface: chalk.bgHex(palette.assistantSurface).hex(palette.foreground),
+	/** Assistant prose stays on the terminal canvas; only user input owns a transcript surface. */
+	assistantSurface: chalk.hex(palette.foreground),
+	/** Operational notices remain bounded surfaces and are not mistaken for assistant prose. */
+	noticeSurface: chalk.bgHex(palette.assistantSurface).hex(palette.foreground),
+	reasoning: (text: string) => chalk.italic(colors.muted(text)),
+	activity: (text: string) => chalk.italic(colors.secondary(text)),
 	executionSurface: chalk.bgHex(palette.toolPendingSurface).hex(palette.foreground),
 	executionSurfacePending: chalk.bgHex(palette.toolPendingSurface).hex(palette.foreground),
 	executionSurfacePassed: chalk.bgHex(palette.toolSuccessSurface).hex(palette.foreground),

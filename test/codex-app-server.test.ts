@@ -5,6 +5,7 @@ import { CodexAppServer, NativeOperationUncertainError, StdioJsonLineTransport }
 class FakeJsonLineTransport implements JsonLineTransport {
 	public readonly sent: Array<Record<string, unknown>> = [];
 	public responseFor = new Map<string, unknown>();
+	public responseQueueFor = new Map<string, unknown[]>();
 	public hold = new Set<string>();
 	private readonly lineListeners = new Set<(line: string) => void>();
 	private readonly closeListeners = new Set<(error?: Error) => void>();
@@ -13,7 +14,8 @@ class FakeJsonLineTransport implements JsonLineTransport {
 		const message = JSON.parse(line) as Record<string, unknown>;
 		this.sent.push(message);
 		if (typeof message.method === "string" && message.id !== undefined && !this.hold.has(message.method)) {
-			const result = this.responseFor.get(message.method) ?? {};
+			const queued = this.responseQueueFor.get(message.method);
+			const result = queued?.shift() ?? this.responseFor.get(message.method) ?? {};
 			queueMicrotask(() => this.emit({ id: message.id, result }));
 		}
 	}
@@ -49,6 +51,65 @@ async function connectedFake(): Promise<{ server: CodexAppServer; transport: Fak
 }
 
 describe("CodexAppServer", () => {
+	test("uses the native MCP status protocol and projects runtime status and tool names", async () => {
+		const { server, transport } = await connectedFake();
+		transport.responseQueueFor.set("mcpServerStatus/list", [
+			{
+				data: [
+				{
+					name: "filesystem",
+					runtimeStatus: "connected",
+					tools: {
+						read_file: { name: "read_file", inputSchema: {} },
+						write_file: { name: "write_file", inputSchema: {} },
+					},
+				},
+				],
+				nextCursor: "next-page",
+			},
+			{
+				data: [{
+					name: "paused",
+					runtimeStatus: "disabled",
+					tools: {},
+				}],
+				nextCursor: null,
+			},
+		]);
+
+		await expect(server.listMcpServers()).resolves.toEqual([
+			{ name: "filesystem", enabled: true, status: "connected", tools: ["read_file", "write_file"] },
+			{ name: "paused", enabled: false, status: "disabled", tools: [] },
+		]);
+		expect(transport.sent.filter((message) => message.method === "mcpServerStatus/list").map((message) => message.params)).toEqual([
+			{ detail: "toolsAndAuthOnly", limit: 100 },
+			{ detail: "toolsAndAuthOnly", limit: 100, cursor: "next-page" },
+		]);
+		await server.close();
+	});
+
+	test("writes escaped MCP enablement config and reloads through supported protocol methods", async () => {
+		const { server, transport } = await connectedFake();
+
+		await server.setMcpServerEnabled('team."alpha\\beta', false);
+		expect(transport.sent.slice(-2)).toEqual([
+			{
+				id: 2,
+				method: "config/value/write",
+				params: {
+					keyPath: 'mcp_servers."team.\\"alpha\\\\beta".enabled',
+					value: false,
+					mergeStrategy: "upsert",
+				},
+			},
+			{ id: 3, method: "config/mcpServer/reload" },
+		]);
+
+		await server.reloadMcpServers();
+		expect(transport.sent.at(-1)).toEqual({ id: 4, method: "config/mcpServer/reload" });
+		await server.close();
+	});
+
 	test("performs the JSONL handshake and preserves native thread, turn, item, and approval ids", async () => {
 		const { server, transport } = await connectedFake();
 		expect(transport.sent.slice(0, 2)).toEqual([
@@ -148,6 +209,17 @@ describe("CodexAppServer", () => {
 			params: { threadId: "thread-native-1", turnId: "turn-native-1", item: { id: "item-native-1", type: "agentMessage" } },
 		});
 		transport.emit({
+			method: "item/updated",
+			params: {
+				threadId: "thread-native-1",
+				turnId: "turn-native-1",
+				id: "delegation-native-1",
+				type: "collabAgentToolCall",
+				tool: "spawnAgent",
+				receiverThreadIds: ["agent-native-1"],
+			},
+		});
+		transport.emit({
 			id: "approval-rpc-1",
 			method: "item/commandExecution/requestApproval",
 			params: {
@@ -173,6 +245,15 @@ describe("CodexAppServer", () => {
 				type: "notification",
 				method: "item/completed",
 				refs: { threadId: "thread-native-1", turnId: "turn-native-1", itemId: "item-native-1" },
+			}),
+			expect.objectContaining({
+				type: "notification",
+				method: "item/updated",
+				refs: { threadId: "thread-native-1", turnId: "turn-native-1", itemId: "delegation-native-1" },
+				params: expect.objectContaining({
+					type: "collabAgentToolCall",
+					receiverThreadIds: ["agent-native-1"],
+				}),
 			}),
 			expect.objectContaining({
 				type: "approval-requested",
@@ -224,6 +305,50 @@ describe("CodexAppServer", () => {
 			method: "turn/start",
 		});
 		expect(transport.sent.filter((message) => message.method === "turn/start")).toHaveLength(1);
+	});
+
+	test("binds threadless plan updates only to their observed root or child turn owners", async () => {
+		const { server, transport } = await connectedFake();
+		const events: unknown[] = [];
+		server.subscribe((event) => events.push(event));
+
+		transport.responseFor.set("turn/start", { turn: { id: "turn-root" } });
+		await server.startTurn({ threadId: "thread-root", text: "root" });
+		transport.responseFor.set("turn/start", { turn: { id: "turn-child" } });
+		await server.startTurn({ threadId: "thread-child", text: "child" });
+		transport.responseFor.set("thread/resume", {
+			thread: { id: "thread-resumed", turns: [{ id: "turn-resumed" }] },
+		});
+		await server.resumeThread({ threadId: "thread-resumed" });
+		transport.responseFor.set("thread/read", {
+			thread: { id: "thread-read", turns: [{ id: "turn-read" }] },
+		});
+		await server.readThread({ threadId: "thread-read", includeTurns: true });
+
+		for (const turnId of ["turn-root", "turn-child", "turn-resumed", "turn-read", "turn-unknown"]) {
+			transport.emit({ method: "turn/plan/updated", params: { turnId, plan: [] } });
+		}
+		transport.emit({
+			method: "turn/plan/updated",
+			params: { threadId: "thread-explicit", turnId: "turn-root", plan: [] },
+		});
+
+		const refsFor = (turnId: string) => (events.find((event) =>
+			(event as { type?: string; method?: string; refs?: { turnId?: string } }).type === "notification" &&
+			(event as { method?: string }).method === "turn/plan/updated" &&
+			(event as { refs?: { turnId?: string } }).refs?.turnId === turnId,
+		) as { refs: Record<string, unknown> } | undefined)?.refs;
+		expect(refsFor("turn-root")).toEqual({ threadId: "thread-root", turnId: "turn-root" });
+		expect(refsFor("turn-child")).toEqual({ threadId: "thread-child", turnId: "turn-child" });
+		expect(refsFor("turn-resumed")).toEqual({ threadId: "thread-resumed", turnId: "turn-resumed" });
+		expect(refsFor("turn-read")).toEqual({ threadId: "thread-read", turnId: "turn-read" });
+		expect(refsFor("turn-unknown")).toEqual({ turnId: "turn-unknown" });
+		expect(events.at(-1)).toMatchObject({
+			type: "notification",
+			method: "turn/plan/updated",
+			refs: { threadId: "thread-explicit", turnId: "turn-root" },
+		});
+		await server.close();
 	});
 
 	test("includes a bounded sanitized stderr tail when the App Server process exits", async () => {

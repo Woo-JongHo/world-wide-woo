@@ -339,12 +339,30 @@ pass/fail은 결정론적 Validator가 소유하고, 규칙 변경은 Sol 설계
 - 결과는 `.www/evidence/ST-011-14.md`에 version, 재현 명령, redacted event shape,
   필드 matrix와 미관측 method를 기록하면 완료된다.
 
+#### ST-011-14R — 미관측 App Server 관계 보강 실측
+
+- `ST-011-14`의 `BLOCKED / PARTIAL` Evidence를 checkpoint 입력으로 사용하고 기존 live
+  관측을 다시 작성하거나 완료로 승격하지 않는다.
+- `turn/plan/updated`, command approval request→response→terminal, collaborator
+  started→completed 관계만 좁혀 실측한다.
+- 보강 전 구현은 이미 관측된 필드만 `observed`로 사용하고 나머지는 `inferred` 또는
+  `unavailable`로 fail-closed한다.
+- `ST-011-15`부터 `ST-011-21`까지의 구현을 막지 않지만 `ST-011-19` 통합 수락 전에는
+  PASS 또는 version-local `unsupported` Evidence로 닫혀야 한다.
+
 #### ST-011-15 — 안정적인 Native Plan 항목 식별
 
 - Plan 재작성·삽입·삭제 후에도 동일 단계의 identity가 유지된다.
 - array index만으로 Activity를 기존 Plan 단계에 귀속하지 않는다.
 - identity가 불명확하면 이전 Activity를 새 단계로 이동하지 않고 orphan/inferred로 남긴다.
 - replay와 resume에서 같은 입력은 같은 projection을 만든다.
+- **Schema-EN:** `dplan-v1` accepts immutable `expectedThreadKey` and `selectedTurnId`;
+  `WorkFlowProjection.source` only attests that bound source and never discovers authority.
+- **Prose-KO:** Native Plan-entry ID는 관측되지 않았으므로 만들지 않는다. identity는
+  deterministic-derived digest이며, 모호한 변경과 source mismatch는 inferred 또는 orphan으로
+  fail-closed한다. Todo parent는 `native-${digest.slice(0,48)}`, detail은 정확히
+  `${parent}-detail-1`로 렌더링하고, 실제 ID 검증·prefix collision 검사는 CAS/event 전에
+  원자적으로 끝낸다.
 
 #### ST-011-16 — Trace attribution 계약
 
@@ -695,7 +713,8 @@ pass/fail은 결정론적 Validator가 소유하고, 규칙 변경은 Sol 설계
 
 ```text
 EP-011 follow-up Trace/Review
-   ST-011-14 -> 15 -> 16 -> 21 -> 17 -> 19
+   ST-011-14(checkpoint) -> 15 -> 16 -> 21 -> 17 -> 19
+             ST-011-14R ---------------------------> 19
                          `-> 18 -> 19
    ST-011-20 --------------------> 19 independent review
                               |
@@ -719,8 +738,9 @@ WorkStepCard, delegation tree, ProjectActivity와 Source inspector가 있어 가
 
 ### Story 선행관계
 
-- ST-011-14 → ST-011-15 → ST-011-16 → ST-011-21
+- ST-011-14 checkpoint → ST-011-15 → ST-011-16 → ST-011-21
 - ST-011-21 → ST-011-17, ST-011-18 → ST-011-19
+- ST-011-14R → ST-011-19
 - 기존 ReviewAdapter와 Claude CLI 인증 → ST-011-20 → ST-011-19
 - ST-012-01 → ST-012-02 → ST-012-03 → ST-012-04·05 → ST-012-06·08 → ST-012-07
 - ST-013-01 → ST-013-02 → ST-013-03·04 → ST-013-05
