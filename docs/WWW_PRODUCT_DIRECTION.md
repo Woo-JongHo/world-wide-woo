@@ -1,34 +1,78 @@
 # WWW 제품 방향과 Agent 실행 경계
 
 - 상태: 장기 제품 방향
-- 기준일: 2026-09-02
+- 기준일: 2026-09-03
 - 현재 구현 범위: 프로젝트별 Codex Native Workbench
-- 장기 범위: 개인용 멀티프로젝트 업무 Control Plane
+- 장기 범위: 개인화 서비스 생애주기 Orchestration Harness
 
 Initiative·Architecture·Epic·Story의 다음 세대 검증안은
-[WWW 개인 업무 Control Plane 계획 제안](./WWW_CONTROL_PLANE_PLANNING_PROPOSAL.md)을 따른다.
+[WWW의 기존 개인 업무 Control Plane 계획 제안](./WWW_CONTROL_PLANE_PLANNING_PROPOSAL.md)을
+Service Lifecycle의 단계형 구현 기반으로 사용한다.
+
+## 진행상황 스냅샷
+
+기준은 2026-09-03의 `origin/main`과 현재 작업 디렉터리를 구분한다. `구현됨`은 main에
+존재하는 코드, `보완 중`은 아직 commit되지 않은 현재 작업, `설계`는 제품 코드가 없는
+문서 단계다.
+
+| 영역 | 상태 | 확인된 경계 |
+| --- | --- | --- |
+| 제품 목적과 업무 계약 README | 구현됨 | `646440a`; Service Lifecycle·Standard·Workflow·Progress·Approval·Evidence 중심으로 공개 설명 |
+| Codex Native Project Workbench | 구현됨 | thread·turn·resume·cancel·approval과 Chat·Activity projection |
+| Todo.md | 구현됨 + 보완 중 | Native Plan의 읽기 전용 projection은 main에 존재; resume bootstrap과 source authority 보완은 현재 dirty worktree |
+| T-note | 구현됨 + 보완 중 | 질문별 완료 기록·packet·provenance·저장은 main에 존재; Chat `#n`과 실패 표면의 역할 정리는 후속 작업 |
+| Trace·Source | 구현됨 + 보완 중 | Native Plan·Agent·Tool·승인·결과 projection은 main에 존재; T-note pane과 명칭·선택 UX 정리는 후속 작업 |
+| 독립 리뷰 | 부분 구현 | ReviewService와 provider adapter가 존재; 모델 정책과 최종 감사 계약은 현재 dirty worktree에서 보완 중 |
+| Pi Embedded Executor | 설계 | main은 `pi-ai`·`pi-tui`만 사용; `pi-coding-agent`, `PiHarness`, execution-lane 선택 코드는 없음 |
+| 의미형 Executor Event | 설계 | `NativeHarnessPort`는 존재하지만 application/domain/TUI에 Codex wire 문자열 의존이 남음 |
+| Service Lifecycle Workflow | 설계 | Standard·Blueprint·Contract·Validator 용어와 계획은 존재; end-to-end Stage Runtime은 없음 |
+| 멀티프로젝트 Work Chain | 설계 | Figma·Atlas·Linear·GitHub·Obsidian 소유 경계만 정의; 통합 Lifecycle은 없음 |
+| Role View·Handoff Contract | 설계 | 역할별 화면과 경계 계약을 제품 용어로 확정; projection·validator 제품 코드는 없음 |
+
+현재 package version은 `0.1.11`이다. `0.1.12` 출시, Pi Lane, 전체 Service Lifecycle을
+완료 상태로 기록하지 않는다.
 
 ## 목적
 
-WWW의 목적은 사용자의 반복 업무 방식을 코드화하고 여러 프로젝트에 일관되게
-적용하며, 각 프로젝트의 진행상황을 사용자가 자기 업무 기준으로 정의·판단하는
-TUI에서 파악하고, 실행 결과와 Token 성과를 근거로 그 방식을 계속 개선하는 것이다.
+WWW의 목적은 역할마다 편한 도구와 필요한 화면을 유지하면서도 기획·디자인·개발·검증의
+경계에서 업무 의미가 깨지지 않게 하는 것이다. 사용자의 반복 업무 방식을 코드화하고,
+여러 AI와 도구에 배분한 실행을 동일한 Handoff Contract·승인·상태·Evidence로 통제하며,
+결과와 Token 성과를 근거로 그 방식을 계속 개선한다.
 
-> **WWW는 반복 업무를 버전이 있는 Standard와 프로젝트별 Binding으로 구성하고,
-> Native Executor와 선택적 Direct Executor로 실행하며, Contract·Logical ID·Validator로
+> **WWW는 Service Lifecycle의 반복 업무를 버전이 있는 Standard와 프로젝트별 Binding으로 구성하고,
+> Native Executor와 Embedded Executor로 실행하며, Contract·Logical ID·Validator로
 > 결과를 검증하고, 사용자가 정의한 Progress Model과 Operations TUI로 여러 프로젝트의
 > 현재 위치를 파악하며, Agent Revision별 성과를 학습하는 개인용 멀티프로젝트
-> Workbench다.**
+> Orchestration Harness다.**
 
 WWW의 차별점은 Pane, TUI 외형, Skill 개수 또는 Agent Loop 보유 자체가 아니다. 여러
-프로젝트에 같은 업무 의미를 유지하고, 그 의미에 맞는 진행상황을 사용자가 직접
-정의하며, 다음 다섯 가지를 한 운영 이력으로 연결하는 것이 핵심이다.
+프로젝트와 역할 사이에 같은 업무 의미를 유지하고, 각 역할에 필요한 화면으로 진행상황을
+보여주며, 다음 여섯 가지를 한 운영 이력으로 연결하는 것이 핵심이다.
 
 1. 어떤 Standard와 Project Binding을 적용했는가.
 2. 어떤 Agent Revision·Skill·모델·실행기로 수행했는가.
 3. 결과가 Contract와 Logical ID 규칙을 만족했는가.
 4. Token·시간·재시도·사람 개입·품질이 이전 실행보다 나아졌는가.
 5. 지금 어디까지 왔고, 무엇이 막혔으며, 다음에 무엇을 해야 하는가.
+6. 다음 역할로 전달할 때 어떤 의도·결정·원본·완료 조건을 보존해야 하는가.
+
+## 역할 경계와 제품 화면
+
+PM·기획, 디자인, 개발, 검증·운영은 같은 프로젝트를 다루지만 필요한 정보와 원본 도구가
+다르다. WWW는 이 차이를 없애지 않는다. 각 도구의 Truth는 해당 도구에 남기고, 하나의
+Work Chain 위에 역할별 Role View를 제공한다.
+
+| Role View | 우선 보여줄 내용 |
+| --- | --- |
+| PM·기획 | 범위·우선순위·의존성·위험·결정·수락 상태 |
+| 디자인 | 디자인 원본·사용자 흐름·화면 상태·승인·개발 연결 |
+| 개발 | 현재 작업·이유·Plan·Tool 결과·막힘·테스트·Evidence |
+| 검증·운영 | Acceptance Criteria·재현·회귀·릴리스·운영 Evidence |
+
+역할이나 도구가 바뀌는 지점에는 Handoff Contract를 적용한다. 이 계약은 업무 의도와 범위,
+원본 Artifact, 결정과 이유, 현재 상태, 다음 책임, Acceptance Criteria, 승인과 Evidence가
+유실되지 않았음을 요구한다. 따라서 강한 결합은 모든 데이터를 중앙에 복제하는 것이 아니라,
+서로 다른 원본 사이의 의미와 수락 조건을 검증 가능한 관계로 보존하는 것이다.
 
 ## 여섯 층
 
@@ -42,6 +86,7 @@ Project Binding + Logical ID
 WWW Workflow Loop
         |
         +-- Codex App Server       [기본 Native Executor]
+        +-- Pi AgentSession        [선택적 Embedded Executor]
         +-- Gemini Rule Critic     [규칙 preflight·경계 사례]
         +-- Claude read-only       [독립 검토]
         +-- Script / RPA           [결정론적 실행]
@@ -78,8 +123,8 @@ External Artifact ID:   provider가 발급한 opaque ID
 
 ### Workflow Loop
 
-WWW의 핵심 Loop는 모델과 Tool 사이의 내부 반복이 아니라 업무 Stage 사이의 상위
-반복이다.
+WWW Application Runtime의 핵심 Loop는 모델과 Tool 사이의 내부 반복이 아니라 Service
+Lifecycle의 Stage 사이를 조정하는 상위 반복이다.
 
 ```text
 Stage 선택
@@ -169,7 +214,8 @@ Tool 사이의 반복은 Codex가 소유할 수 있다. Codex turn 뒤 WWW가 Va
 소유하지만 범용 Agent Runtime을 소유하는 것은 아니다.
 
 WWW가 Provider를 직접 호출하고 Tool call을 해석·실행하며 결과를 다시 모델에 넣는
-반복까지 수행할 때만 Direct Agent Loop를 소유한다고 부른다.
+반복까지 수행할 때만 Agent Execution Runtime을 소유한다고 부른다. SDK를 내장해도 그
+실행 계약은 WWW Application Runtime과 분리한다.
 
 ## 실행기 전략
 
@@ -195,6 +241,16 @@ Evidence와 Token Tuning을 소유한다.
 명확한 작업은 Direct one-shot이 더 작고 측정 가능하다. 이는 Native Chat 경로를
 대체하지 않는다.
 
+### Pi는 Embedded Executor로 검증한다
+
+Pi CLI나 별도 프로세스를 제품 표면으로 노출하지 않는다. `pi-coding-agent`의 SDK를
+WWW 프로세스 안에 Library로 내장하고, 기존 Executor Adapter 뒤에서 text·stream·abort
+계약부터 검증한다. Codex App Server는 기본 Lane으로 유지하며 Pi는 contract와 실측이
+통과한 기능만 단계적으로 맡는다.
+
+Pi의 기본 Bash·Edit·Write는 WWW 승인·Sandbox·Evidence를 우회하지 않도록 초기에는
+비활성화한다. Tool 실행은 후속 WWW Tool Gateway 계약이 생긴 뒤에만 연결한다.
+
 ### Direct Agent Loop는 조건부다
 
 다음 요구가 반복 실행 증거로 확인될 때만 별도 Execution Adapter로 검토한다.
@@ -205,8 +261,8 @@ Evidence와 Token Tuning을 소유한다.
 4. Native 내부 동작 때문에 같은 품질 문제가 반복된다.
 5. 자체 보안·승인·복구 유지비보다 얻는 가치가 크다.
 
-Direct Agent Loop가 추가돼도 WWW의 중심은 Runtime이 아니라 Standard·Binding·Workflow·
-Validation·Optimization이다.
+Embedded Agent Execution Runtime이 추가돼도 WWW의 중심은 Application Runtime이 소유하는
+Standard·Binding·Workflow·Validation·Optimization이다.
 
 ## Tool 소유 경계
 
@@ -290,10 +346,10 @@ Anthropic에는 Codex App Server와 동명·동형인 공식 `Claude App Server`
 
 | 축 | Senpi | GJC | WWW |
 | --- | --- | --- | --- |
-| 정체성 | 범용 Agent Runtime | 검증 가능한 코딩 Harness | 개인 업무 Control Plane |
+| 정체성 | 범용 Agent Runtime | 검증 가능한 코딩 Harness | 서비스 생애주기 Orchestration Harness |
 | 핵심 목적 | 모델과 Tool 실행 최적화 | 코딩 작업의 계획·완료·증거 | 여러 프로젝트의 업무 표준·진행 파악·검증·개선 |
 | 기본 Loop | 자체 모델↔Tool Loop | 자체 모델↔Tool Loop와 코딩 Workflow | Stage·실행기·검증 사이 Workflow Loop |
-| 실행 엔진 | 자체 | 자체 | Native 우선, Direct는 선택적 |
+| 실행 엔진 | 자체 | 자체 | Native 기본, Embedded·Direct는 선택적 |
 | 핵심 단위 | Session·Turn·Tool | Interview·Plan·Goal·Evidence | Standard·Binding·Progress Model·Agent Revision·Run |
 | 엄격한 반복성 | Runtime 동작 | Goal과 Evidence | Contract·Logical ID·Validator |
 | 튜닝 대상 | Prompt·Provider·Tool·압축 | 계획·Agent·Goal Workflow | 업무·Stage·Skill·모델·실행기·예산 |
@@ -311,30 +367,45 @@ WWW가 범용 Provider SDK, Tool-call parser, compaction, shell sandbox, 일반 
 Binding, Logical ID, Validator, 실행기 교체 가능성, Agent Revision의 장기 성과를
 중심에 둔다.
 
-## 현재 단계와 장기 단계
+## 현재 단계와 다음 전환
 
 ### 현재 v0.1.x
 
 - Codex App Server 기반 Native Project Workbench
-- Chat·T-notes·Todo와 ProjectActivity projection
+- Chat·Todo·질문별 T-note·Trace와 ProjectActivity projection
 - 승인·resume·취소·사용량 관찰
 - 제한된 Direct one-shot과 읽기 전용 외부 검토
+- 실행 성공과 업무 수락을 구분하기 위한 local Evidence 기반
 
-### v0.2 — Codex 기준 의미 확정
+현재 worktree에서는 Todo resume/source authority, review adapter와 관련 test를 보완 중이다.
+이 변경은 commit·push·release 전까지 main 기능으로 간주하지 않는다.
+
+### 다음 전환 1 — 화면과 기록 계약 안정화
 
 - Native Plan을 읽기 전용 Todo로 투영
 - 관측 가능한 실행을 Trace·Source로 투영
 - 완료 T-note를 Chat의 안정된 `#n`으로 이동
-- provider-neutral `NativeHarness`와 `ProjectActivity` 의미 계약
+- Todo·T-note·Trace의 source identity와 resume 복원 검증
+
+### 다음 전환 2 — 실행기 의미 계약과 Pi Phase A
+
+- provider-neutral Executor Harness와 `ProjectActivity` 의미 계약
+- no-tools Pi Embedded Executor의 text·stream·abort contract
+- Codex를 기본 Lane으로 유지한 상태에서 명시적 Pi 선택
+- first output·총시간·Token·interrupt·event 유실의 동일 질문 비교
+- Pi 기본 Bash·Edit·Write 없이 unsupported operation을 fail closed
+
+### 다음 전환 3 — Workflow vertical slice
+
 - Standard·Contract·결정론적 Validator와 Gemini Rule Critic의 첫 vertical slice
 - 로그인된 Claude Code 구독을 사용하는 packet-only·no-tools Review Transport
 - Codex 전용 event field가 TUI·Progress Model로 직접 새지 않는 경계
 
-v0.2는 Claude 전체 실행을 제공하지 않는다. Claude는 승인된 redacted packet 하나를
+이 단계는 Claude 전체 실행을 제공하지 않는다. Claude는 승인된 redacted packet 하나를
 읽고 검토 결과만 반환하는 제한된 Review Backend로 사용한다. Codex App Server로 실제
 작업하면서 WWW가 정말 필요로 하는 공통 event와 optional capability를 확정한다.
 
-### v0.3 — Claude Native Backend
+### 후속 — 추가 Native Backend
 
 - Claude Code CLI stream-json 실제 schema probe
 - `ClaudeCodeCliAdapter`와 session·resume·cancel·permission 연결
@@ -357,7 +428,8 @@ v0.2는 Claude 전체 실행을 제공하지 않는다. Claude는 승인된 reda
 
 - 여러 Native Executor Adapter
 - 사용자 업무 Tool과 RPA
-- Native로 충족되지 않는 좁은 Direct Agent Loop
+- WWW 승인·Sandbox·Evidence를 통과하는 Tool Gateway
+- Native·Embedded로 충족되지 않는 좁은 Direct Agent Loop
 
 ## 제품 경계 판별 질문
 
