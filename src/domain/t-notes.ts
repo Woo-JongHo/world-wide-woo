@@ -140,10 +140,11 @@ export function projectTNoteCompletionIndex(
 			&& typeof activity.nativeRefs.turnId === "string")
 		.sort((left, right) => left.sequence - right.sequence);
 	const numbers = new Map<string, number>();
-	return Object.freeze(completed.map((activity) => {
+	return Object.freeze(completed.flatMap((activity) => {
 		const threadId = activity.nativeRefs.threadId!;
 		const turnId = activity.nativeRefs.turnId!;
 		const note = notesByTerminalActivity.get(activity.id);
+		if (!note) return [];
 		const metadata = completionFor(note);
 		const projectedNumber = (numbers.get(threadId) ?? 0) + 1;
 		const number = metadata?.threadId === threadId && metadata.turnId === turnId
@@ -151,14 +152,14 @@ export function projectTNoteCompletionIndex(
 			? metadata.number
 			: projectedNumber;
 		numbers.set(threadId, Math.max(numbers.get(threadId) ?? 0, number));
-		return Object.freeze({
+		return [Object.freeze({
 			threadId,
 			turnId,
 			number,
 			terminalActivityId: activity.id,
-			noteId: note?.id ?? null,
-			sourceActivityIds: Object.freeze([...(note?.sourceActivityIds ?? [])]),
-		});
+			noteId: note.id,
+			sourceActivityIds: Object.freeze([...note.sourceActivityIds]),
+		})];
 	}));
 }
 

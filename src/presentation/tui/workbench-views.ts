@@ -633,6 +633,12 @@ export class WorkbenchChatView implements Component {
 					: []),
 			], contentWidth, semantic.noticeSurface), "");
 		}
+		if (this.snapshot.actionResult?.kind === "tnote") {
+			rows.push(...surfaceRows([
+				colors.warning(this.snapshot.actionResult.title),
+				...wrapTextWithAnsi(boundedWorkbenchMarkdown(this.snapshot.actionResult.body), contentWidth),
+			], contentWidth, semantic.noticeSurface), "");
+		}
 		if (this.activityIndicator) {
 			const frame = this.activityIndicator.frames[this.activityFrame % Math.max(1, this.activityIndicator.frames.length)] ?? "·";
 			if (contentWidth <= 2) {
