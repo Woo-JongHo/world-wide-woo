@@ -122,6 +122,33 @@ function allScrollContent(box: LayoutBox): string[] {
 }
 
 describe("workbench dashboard views", () => {
+	test("shows a T-note failure without assigning a completion number to an unstored note", () => {
+		const failed = {
+			...snapshot,
+			activities: [
+				{ ...snapshot.activities[0]!, nativeRefs: { threadId: "thread-1", turnId: "turn-1", itemId: "message-1" } },
+				{
+					...snapshot.activities[0]!,
+					id: "turn-1-completed",
+					sequence: 2,
+					nativeRefs: { threadId: "thread-1", turnId: "turn-1" },
+					payload: { method: "turn/completed" },
+				},
+			],
+			tnotes: [],
+			actionResult: {
+				kind: "tnote" as const,
+				title: "질문 요약 자동 생성 보류",
+				body: "T-note 저장에 실패했습니다.",
+				createdAt: "2026-09-03T00:00:00.000Z",
+			},
+		};
+		const output = stripTerminalSequences(new WorkbenchChatView(failed).render(100).join("\n"));
+		expect(output).not.toMatch(/^bori\s+#1$/mu);
+		expect(output).toContain("질문 요약 자동 생성 보류");
+		expect(output).toContain("T-note 저장에 실패했습니다.");
+	});
+
 	test("keeps completed T-notes in Dashboard and selected execution Source in Monitor", () => {
 		const notes = stripTerminalSequences(new TNotesSourceView(() => snapshot).render(100).join("\n"));
 		const monitor = stripTerminalSequences(new WorkbenchMonitorView(() => snapshot).render(100).join("\n"));
