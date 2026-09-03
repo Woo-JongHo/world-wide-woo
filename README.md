@@ -1,20 +1,21 @@
 # World Wide Woo
 
-> **프로젝트와 Agent가 바뀌어도 나의 업무 방식은 바뀌지 않는 개인용 Engineering
-> Control Plane.**
+> **프로젝트와 실행기가 바뀌어도 나의 업무 방식은 유지되는 개인화 서비스 생애주기
+> Orchestration Harness.**
 
-World Wide Woo, 줄여서 **WWW**는 여러 프로젝트의 개발 업무를 같은 규칙으로 운영하고,
-진행 상태·연결 관계·검증 증거를 사용자의 기준으로 파악하기 위한 로컬 CLI/TUI다.
+World Wide Woo, 줄여서 **WWW**는 기획·디자인·개발·검증·배포·운영·유지보수를 여러
+AI와 도구에 배분하고, 사용자의 업무 규칙·승인·Evidence 아래 일관되게 관리하는 로컬
+CLI/TUI 기반 Orchestration Harness다.
 
-현재 버전은 Codex App Server를 사용하는 **Native Project Workbench**다. 여러 프로젝트와
-Provider를 연결하는 전체 Control Plane은 구현 중인 장기 제품 방향이며, 아직 완성된
-기능으로 주장하지 않는다.
+현재 버전은 Codex App Server를 사용하는 **Native Project Workbench**다. 여러 프로젝트의
+Service Lifecycle과 복수 Execution Lane을 연결하는 전체 Orchestration Harness는 구현
+중인 장기 제품 방향이며, 아직 완성된 기능으로 주장하지 않는다.
 
 ## 왜 WWW를 만드는가
 
-개발 업무는 한 Agent 안에서 끝나지 않는다. 디자인은 Figma에, 개발 정의는 Atlas에,
-실행 항목과 일지는 Linear에, 코드는 GitHub에, 장기 의사결정은 Obsidian에 남는다.
-Codex·Claude 같은 Agent Runtime과 구독도 상황에 따라 달라진다.
+서비스를 만들고 운영하는 일은 한 Agent 안에서 끝나지 않는다. 기획·디자인은 Figma에,
+개발 정의는 Atlas에, 실행 항목과 일지는 Linear에, 코드는 GitHub에, 장기 의사결정은
+Obsidian에 남는다. Codex·Claude 같은 Agent Runtime과 구독도 상황에 따라 달라진다.
 
 문제는 도구가 많다는 사실 자체가 아니다.
 
@@ -24,20 +25,35 @@ Codex·Claude 같은 Agent Runtime과 구독도 상황에 따라 달라진다.
 - 모델·Skill·Context·effort 변경이 품질과 Token에 어떤 영향을 줬는지 비교하기 어렵다.
 - 실행기나 구독을 바꾸면 계획과 진행 맥락이 함께 끊어진다.
 
-WWW는 Agent Runtime을 하나 더 만드는 것으로 이 문제를 해결하지 않는다. 교체 가능한
-Runtime 위에 사용자가 소유하는 업무 규칙과 상태 체계를 둔다.
+WWW는 특정 Agent Runtime 하나에 업무 체계를 결속하지 않는다. WWW Application Runtime
+위에 사용자가 소유하는 업무 규칙과 상태를 두고, 모델·Tool Loop를 담당하는 Agent
+Execution Runtime은 Adapter 뒤에서 교체한다.
 
 ```text
-Agent Runtime          교체 가능
-Model / Subscription   교체 가능
-Client / Tool          교체 가능
+Agent Execution Runtime 교체 가능
+Model / Subscription    교체 가능
+Client / Tool           교체 가능
 
-Standard / Contract    유지
-Work Chain ID          유지
-Progress Model         유지
-Evidence               유지
-Operations TUI         유지
+Standard / Contract     유지
+Work Chain ID           유지
+Progress Model          유지
+Evidence                유지
+Operations TUI          유지
 ```
+
+```text
+현재
+www -> Project Workbench -> NativeHarnessPort -> Codex App Server
+
+목표
+www -> WWW Application Runtime -> Execution Lane
+                                  |- Codex Native Executor
+                                  |- Pi Embedded Executor
+                                  `- GJC 등 위임 Harness
+```
+
+Pi는 사용자가 별도로 실행하는 CLI가 아니다. WWW 프로세스 안에서 SDK Library로 사용하며,
+제품 이름·명령·화면·업무 상태의 소유자는 계속 WWW다.
 
 ## WWW가 소유하는 것
 
@@ -82,47 +98,54 @@ TUI는 다음 질문에 답해야 한다.
 이를 위해 화면의 책임을 나눈다.
 
 ```text
-Chat   대화와 질문별 완료 기록 #n
-Todo   Native Plan의 사용자용 Projection
-Trace  Plan 아래에서 관측된 Agent·Tool·승인·결과와 Source
+Chat    사용자와 Execution Lane의 대화 및 공개 중간 작업
+Todo    활성 Run Plan의 읽기 전용 Projection
+T-note  완료 질문의 질문·이유·결과와 Chat #n
+Trace   선택한 Run의 Plan·Agent·Tool·승인·결과와 Source
 ```
+
+### 교체 가능한 실행 Runtime
+
+WWW 자체는 Work Chain·Workflow·승인·Projection·Evidence를 유지하는 Application Runtime을
+소유한다. 복잡한 모델·Tool 반복은 Codex App Server 같은 Native Executor 또는 Pi SDK를
+Library로 내장한 Embedded Executor에 맡긴다. 사용자는 어느 경우에도 `www`만 실행한다.
 
 ## WWW가 아닌 것
 
-- Codex·Claude·Gajae Code를 대체하는 범용 Coding Agent Runtime
+- Codex·Claude·Gajae Code와 경쟁하는 또 하나의 범용 Coding Agent
 - 많은 Agent·Skill·Provider를 묶어 제공하는 배포판
 - Figma·Linear·GitHub·Obsidian의 원본을 복제하는 중앙 데이터베이스
 - 모델의 숨겨진 추론을 보여주는 관찰 도구
 - 실행 성공만으로 업무 완료를 선언하는 자동화
 - Pane 분할이나 화려한 Dashboard 자체를 목적으로 한 TUI
 
-필요성이 실제로 입증되기 전에는 범용 Agent Loop를 직접 소유하지 않는다. 복잡한 코딩은
-Codex App Server나 Claude Code 같은 Native Executor에 맡기고, WWW는 Stage 선택·검증·
-재시도·승인·완료를 조정하는 상위 Workflow를 소유한다.
+범용 Agent Runtime을 다시 만들지는 않는다. 복잡한 코딩은 Native Executor 또는 검증된
+SDK 기반 Embedded Executor에 맡기고, WWW는 Stage 선택·검증·재시도·승인·완료를 조정하는
+상위 Workflow를 소유한다.
 
 ## 현재 상태
 
-현재 `v0.1.12`는 프로젝트별 Codex Native Workbench를 제공한다.
+현재 `v0.1.11`은 프로젝트별 Codex Native Workbench를 제공한다.
 
 현재 사용할 수 있는 기능:
 
 - Codex native thread 생성·선택·resume
-- Chat, Todo, T-note와 실행 Activity Projection
+- Chat, Todo, T-note, Trace와 실행 Activity Projection
 - 모델·effort 선택과 사용량 표시
 - command·approval·subagent 등 Native 실행 관측
 - 프로젝트 로컬 `.www/` 작업 기록
 
 진행 중인 다음 단계:
 
-1. Native Plan 항목의 안정적인 identity
-2. Phase Todo와 선택 항목 기반 Trace
-3. Standard·Blueprint·Contract와 결정론적 Validator
-4. Figma·Atlas·Linear·GitHub·Obsidian Work Chain
-5. Codex·Claude Native Executor 선택과 명시적 handoff
+1. Todo·T-note·Trace의 역할과 source identity 안정화
+2. Pi SDK를 Library로 내장하는 선택적 Execution Lane
+3. Executor와 무관한 의미형 Event·승인·Evidence 계약
+4. Standard·Blueprint·Contract와 결정론적 Validator
+5. Figma·Atlas·Linear·GitHub·Obsidian Work Chain
 6. Agent Revision별 Token·시간·품질 비교
 
 현재 계획과 구현의 차이는 [제품 방향](docs/WWW_PRODUCT_DIRECTION.md)과
-[Control Plane 구현계획](docs/WWW_CONTROL_PLANE_PLANNING_PROPOSAL.md)에 명시한다.
+[기존 Control Plane 구현계획](docs/WWW_CONTROL_PLANE_PLANNING_PROPOSAL.md)에 명시한다.
 
 ## Quickstart
 
@@ -163,7 +186,8 @@ Workbench 안에서는 `/model`, `/source`, `/tnote`, `/approve`, `/decline`, `/
 
 ## 설계 원칙
 
-- **Native first**: 검증된 Native Runtime 기능을 기본으로 사용한다.
+- **WWW owns the lifecycle**: 실행기가 바뀌어도 Workflow·승인·상태·Evidence의 의미를 유지한다.
+- **Native default, Embedded measured**: 현재는 Codex Native를 기본으로 두고 Pi 내장은 contract와 실측을 통과한 기능부터 맡긴다.
 - **Evidence before completion**: 실행 성공과 업무 수락을 분리한다.
 - **Observed before inferred**: 관측하지 않은 관계를 사실처럼 표시하지 않는다.
 - **One owner per truth**: 도구별 원본 소유권을 유지하고 참조로 연결한다.
@@ -173,7 +197,7 @@ Workbench 안에서는 `/model`, `/source`, `/tnote`, `/approve`, `/decline`, `/
 ## 문서
 
 - [제품 방향과 Agent 실행 경계](docs/WWW_PRODUCT_DIRECTION.md)
-- [개인 업무 Control Plane 구현계획](docs/WWW_CONTROL_PLANE_PLANNING_PROPOSAL.md)
+- [서비스 생애주기 Harness의 기존 Control Plane 구현계획](docs/WWW_CONTROL_PLANE_PLANNING_PROPOSAL.md)
 - [오픈소스 제품과 WWW의 경계](docs/OSS_POSITIONING.md)
 - [Agent TUI 비교](docs/TUI_COMPARISON.md)
 - [기능별 TUI 코드 구성표](docs/TUI_CODE_MATRIX.md)
