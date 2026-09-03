@@ -87,6 +87,25 @@ function toolActivity(): ProjectActivity {
 	};
 }
 
+function structuredToolActivity(output: string, path = "result.json"): ProjectActivity {
+	return {
+		schemaVersion: 1,
+		id: "structured-tool-highlight",
+		projectId: "sample-project",
+		sequence: 4,
+		recordedAt: "2026-09-01T00:00:00.000Z",
+		kind: "tool",
+		phase: "completed",
+		provider: "openai-codex",
+		nativeRefs: { threadId: THREAD, turnId: TURN, itemId: "structured-tool-1" },
+		sourceDigest: `sha256:${"4".padStart(64, "0")}`,
+		payload: {
+			method: "item/completed",
+			params: { item: { type: "mcpToolCall", path, output } },
+		},
+	};
+}
+
 function workflowActivities(output: string): readonly ProjectActivity[] {
 	return [{
 		schemaVersion: 1, id: "turn-highlight-start", projectId: "sample-project", sequence: 1,
@@ -301,6 +320,78 @@ describe("WorkStepCard executor highlighting", () => {
 		expect(rendered).toContain("\u001b[38;2;");
 		expect(stripTerminalSequences(rendered)).toContain("$ bun test --filter 'work step'");
 		expect(rendered.split("\n").every((line) => visibleWidth(line) === 80)).toBe(true);
+	});
+
+	test("pretty prints and highlights native structured tool output like generic tools", () => {
+		const rendered = new WorkStepCard({
+			stepNumber: 1,
+			activity: structuredToolActivity('{"outer":{"answer":42}}'),
+		}).render(100).join("\n");
+
+		expect(rendered).toContain("\u001b[38;2;");
+		expect(stripTerminalSequences(rendered)).toContain('"answer": 42');
+		expect(stripTerminalSequences(new WorkStepCard({
+			stepNumber: 1,
+			activity: structuredToolActivity("service:\n  enabled: true", "config.yaml"),
+		}).render(100).join("\n"))).toContain("enabled: true");
+		const markdown = new WorkStepCard({
+			stepNumber: 1,
+			activity: structuredToolActivity("# Heading\n\n**bold**", "result.md"),
+		}).render(100).join("\n");
+		expect(markdown).toContain("\u001b[38;2;");
+		expect(stripTerminalSequences(markdown)).toContain("# Heading");
+		for (const output of ["{invalid", "x".repeat(2_500)]) {
+			const fallback = stripTerminalSequences(new WorkStepCard({
+				stepNumber: 1,
+				activity: structuredToolActivity(output),
+			}).render(100).join("\n"));
+			expect(fallback).toContain(output === "{invalid" ? "{invalid" : "… 이전 출력");
+		}
+	});
+
+	test("unwraps the Codex mcpToolCall arguments and result envelope before rendering", () => {
+		const base = structuredToolActivity("", "ignored.txt");
+		const activity = { ...base, payload: { ...base.payload, params: {
+			item: {
+				type: "mcpToolCall",
+				server: "filesystem",
+				tool: "read_file",
+				arguments: { path: "report.json", authorization: "Bearer secret-value" },
+				result: {
+					content: [{ type: "text", text: "{\"fallback\":true}" }],
+					structuredContent: { answer: 42, api_key: "secret-value" },
+				},
+			},
+		} } };
+
+		const rendered = new WorkStepCard({ stepNumber: 1, activity }).render(100).join("\n");
+		const text = stripTerminalSequences(rendered);
+		expect(rendered).toContain("\u001b[38;2;");
+		expect(text).toContain('args: {"path":"report.json"}');
+		expect(text).toContain('"answer": 42');
+		expect(text).not.toContain("structuredContent");
+		expect(text).not.toContain("fallback");
+		expect(text).not.toContain("secret-value");
+	});
+
+	test("renders text from a Codex mcpToolCall result.content envelope", () => {
+		const base = structuredToolActivity("", "ignored.txt");
+		const activity = { ...base, payload: { ...base.payload, params: {
+			item: {
+				type: "mcpToolCall",
+				arguments: { path: "config.yaml" },
+				result: { content: [{ type: "text", text: "service:\n  enabled: true" }] },
+			},
+		} } };
+
+		const rendered = new WorkStepCard({
+			stepNumber: 1,
+			activity,
+		}).render(100).join("\n");
+		const text = stripTerminalSequences(rendered);
+		expect(rendered).toContain("\u001b[38;2;");
+		expect(text).toContain("enabled: true");
+		expect(text).not.toContain('"content":');
 	});
 
 	test("keeps a semantic reason while narrator work is pending or has failed", () => {
