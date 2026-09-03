@@ -33,7 +33,7 @@ function readyView(session?: UsageStripSession): UsageStripView {
 }
 
 function usage(model: string, turns: number, totalTokens: number): WorkbenchModelUsage {
-	return { model, effort: null, turns, totalTokens };
+	return { model, effort: null, interactiveRootTurns: turns, interactiveTokens: totalTokens, detachedInvocations: 0, detachedTokens: 0, totalTokens };
 }
 
 describe("UsageStripView", () => {
@@ -75,11 +75,11 @@ describe("UsageStripView", () => {
 		const rendered = readyView(session).render(100);
 		const lines = rendered.map(stripTerminalSequences);
 
-		expect(lines[0]).toContain("● Sol 12");
-		expect(lines[1]).toContain("Opus 3");
+		expect(lines[0]).toContain("● Sol i12");
+		expect(lines[1]).toContain("Opus i3");
 		expect(lines[1]).not.toContain("●");
-		expect(lines[3]).toContain("Pro 2");
-		expect(rendered[0]).toContain(colors.success("● Sol 12"));
+		expect(lines[3]).toContain("Pro i2");
+		expect(rendered[0]).toContain(colors.success("● Sol i12"));
 	});
 
 	test("counts an unrecognised model instead of attributing it to a guess", () => {

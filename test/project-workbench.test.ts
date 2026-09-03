@@ -665,6 +665,47 @@ describe("ProjectWorkbench", () => {
 			.toBe("thread-1");
 		expect(journal.records.findIndex(activity => activity.payload.text === "두 번째 요청"))
 			.toBeGreaterThan(journal.records.findIndex(activity => activity.payload.method === "turn/completed"));
+		expect(journal.records.filter(activity => activity.payload.method === "request/started")).toEqual([
+			expect.objectContaining({ payload: expect.objectContaining({ requestId: first.commandId }), nativeRefs: expect.objectContaining({ turnId: "turn-1" }) }),
+			expect.objectContaining({ payload: expect.objectContaining({ requestId: second.commandId }), nativeRefs: expect.objectContaining({ turnId: "turn-2" }) }),
+		]);
+		expect(journal.records.filter(activity => activity.payload.method === "request/queued"))
+			.toEqual([expect.objectContaining({ payload: expect.objectContaining({ requestId: second.commandId }) })]);
+		await workbench.close();
+	});
+
+	test("records the first public output milestone once without journaling delta text or reasoning", async () => {
+		const native = new FakeNativeHarness();
+		const journal = new MemoryJournal();
+		const workbench = new ProjectWorkbench(native, journal, { projectId: "sample-project", cwd: "/workspace/sample" });
+		await ready(workbench);
+		await workbench.dispatch({ type: "chat.send", text: "출력 관찰" });
+		native.emit({
+			type: "notification",
+			method: "item/reasoning/delta",
+			refs: { threadId: "thread-1", turnId: "turn-1", itemId: "reasoning-1" },
+			params: { delta: "비공개 추론" },
+		});
+		native.emit({
+			type: "notification",
+			method: "item/agentMessage/delta",
+			refs: { threadId: "thread-1", turnId: "turn-1", itemId: "message-1" },
+			params: { delta: "첫 공개 출력" },
+		});
+		native.emit({
+			type: "notification",
+			method: "item/agentMessage/delta",
+			refs: { threadId: "thread-1", turnId: "turn-1", itemId: "message-1" },
+			params: { delta: "두 번째 공개 출력" },
+		});
+		await Bun.sleep(10);
+		const milestones = journal.records.filter(activity => activity.payload.method === "turn/first-output-observed");
+		expect(milestones).toEqual([expect.objectContaining({
+			nativeRefs: { threadId: "thread-1", turnId: "turn-1" },
+			payload: { method: "turn/first-output-observed" },
+		})]);
+		expect(JSON.stringify(milestones)).not.toContain("공개 출력");
+		expect(JSON.stringify(journal.records)).not.toContain("비공개 추론");
 		await workbench.close();
 	});
 
@@ -787,7 +828,7 @@ describe("ProjectWorkbench", () => {
 		await Bun.sleep(10);
 
 		expect(createCalls).toHaveLength(1);
-		expect(createCalls[0]?.range).toEqual({ startSequence: 3, endSequence: 8 });
+		expect(createCalls[0]?.range).toEqual({ startSequence: 4, endSequence: 12 });
 		expect(createCalls[0]?.instruction).toContain("질문: 이 세션의 구현과 검증을 진행해줘");
 		expect(createCalls[0]?.instruction).toContain("왜:");
 		expect(createCalls[0]?.instruction).toContain("결과:");
@@ -1370,7 +1411,7 @@ describe("ProjectWorkbench", () => {
 			sessionUsage: {
 				totalTokens: 25_840,
 				unattributedTokens: 0,
-				models: [{ model: "gpt-5.6-sol", effort: "low", turns: 1, totalTokens: 25_840 }],
+				models: [{ model: "gpt-5.6-sol", effort: "low", interactiveRootTurns: 1, interactiveTokens: 25_840, detachedInvocations: 0, detachedTokens: 0, totalTokens: 25_840 }],
 			},
 		});
 
@@ -1418,7 +1459,7 @@ describe("ProjectWorkbench", () => {
 		expect(workbench.snapshot.sessionUsage).toEqual({
 			totalTokens: 38_760,
 			unattributedTokens: 12_920,
-			models: [{ model: "gpt-5.6-sol", effort: "low", turns: 1, totalTokens: 25_840 }],
+			models: [{ model: "gpt-5.6-sol", effort: "low", interactiveRootTurns: 1, interactiveTokens: 25_840, detachedInvocations: 0, detachedTokens: 0, totalTokens: 25_840 }],
 		});
 		await workbench.close();
 	});
@@ -1444,8 +1485,8 @@ describe("ProjectWorkbench", () => {
 			totalTokens: 4_600,
 			unattributedTokens: 0,
 			models: [
-				{ model: "claude-opus-5", effort: null, turns: 1, totalTokens: 3_400 },
-				{ model: "gpt-5.6-luna", effort: null, turns: 1, totalTokens: 1_200 },
+				{ model: "claude-opus-5", effort: null, interactiveRootTurns: 0, interactiveTokens: 0, detachedInvocations: 1, detachedTokens: 3_400, totalTokens: 3_400 },
+				{ model: "gpt-5.6-luna", effort: null, interactiveRootTurns: 0, interactiveTokens: 0, detachedInvocations: 1, detachedTokens: 1_200, totalTokens: 1_200 },
 			],
 		});
 		await workbench.close();

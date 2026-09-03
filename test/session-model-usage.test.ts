@@ -12,8 +12,8 @@ describe("SessionModelUsageAccumulator", () => {
 		usage.observe({ model: "claude-opus-5", effort: null, totalTokens: 3_000 });
 
 		expect(usage.snapshot).toEqual([
-			{ model: "claude-opus-5", effort: null, turns: 1, totalTokens: 3_000 },
-			{ model: "gpt-5.6-luna", effort: null, turns: 2, totalTokens: 2_000 },
+			{ model: "claude-opus-5", effort: null, interactiveRootTurns: 0, interactiveTokens: 0, detachedInvocations: 1, detachedTokens: 3_000, totalTokens: 3_000 },
+			{ model: "gpt-5.6-luna", effort: null, interactiveRootTurns: 0, interactiveTokens: 0, detachedInvocations: 2, detachedTokens: 2_000, totalTokens: 2_000 },
 		]);
 		expect(Object.isFrozen(usage.snapshot)).toBe(true);
 		expect(notifications).toBe(3);

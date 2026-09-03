@@ -168,7 +168,9 @@ describe("Native Plan transport-to-Todo wiring", () => {
 				params: { turnId: "turn-unknown", plan: [{ step: "unknown plan", status: "inProgress" }] },
 			});
 
-			await waitFor(() => expect(journal.records).toHaveLength(8));
+			await waitFor(() => expect(journal.records.some(activity =>
+				activity.nativeRefs.turnId === "turn-unknown"
+				&& activity.payload.method === "turn/plan/updated")).toBe(true));
 			await Bun.sleep(10);
 			expect(workbench.snapshot.workFlow).toMatchObject({
 				source: { turnId: "turn-root" },

@@ -71,9 +71,10 @@ export function workbenchViewModeCommand(text: string): WorkbenchViewMode | null
 		: null;
 }
 
-export function workbenchStatsTargetCommand(text: string): "session" | "latest" | number | "invalid" | null {
+export function workbenchStatsTargetCommand(text: string): "session" | "diagnostics" | "latest" | number | "invalid" | null {
 	const command = text.trim();
 	if (command === "/stats") return "session";
+	if (command === "/stats diagnostics") return "diagnostics";
 	if (command === "/stats latest") return "latest";
 	const numbered = command.match(/^\/stats\s+#(\d+)$/u);
 	if (numbered) return Number(numbered[1]);
@@ -294,7 +295,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		scrollbar: "auto",
 		scrollbarStyle: colors.muted,
 	});
-	let statsTarget: "session" | "latest" | number = "session";
+	let statsTarget: "session" | "diagnostics" | "latest" | number = "session";
 	const sessionStatsView = new SessionStatsView(() => projectSessionStats(snapshot), () => statsTarget);
 	const sessionStats = new ScrollView(sessionStatsView, {
 		follow: "none",
@@ -460,18 +461,21 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	};
 	const handleLocal = async (text: string): Promise<boolean> => {
 		const requestedStatsTarget = workbenchStatsTargetCommand(text);
-		if (requestedStatsTarget) {
+		if (requestedStatsTarget !== null) {
 			if (requestedStatsTarget === "invalid") {
-				status.setNotice("사용법: /stats [latest|#n]");
+				status.setNotice("사용법: /stats [diagnostics|latest|#n]");
 				tui.requestRender();
 				return true;
 			}
 			if (viewMode !== "map" && viewMode !== "stats") previousViewMode = viewMode;
 			statsTarget = requestedStatsTarget;
+			sessionStats.scrollTo(0);
 			setViewMode("stats");
 			status.setNotice(requestedStatsTarget === "session"
-				? "Session Stats · 목적·행동·결과와 오케스트레이션 효율"
-				: `Request Stats · ${requestedStatsTarget === "latest" ? "latest" : `#${requestedStatsTarget}`}`);
+				? "Session Review · 목적·결과·성능과 요청 검토"
+				: requestedStatsTarget === "diagnostics"
+					? "Session Diagnostics · 관측 원본 진단"
+					: `Request Stats · ${requestedStatsTarget === "latest" ? "latest" : `#${requestedStatsTarget}`}`);
 			tui.requestRender();
 			return true;
 		}

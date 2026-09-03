@@ -3,21 +3,42 @@ import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
 import type { SessionStatsSnapshot } from "../src/domain/session-stats";
 import { SessionStatsView } from "../src/presentation/tui/session-stats-view";
 
-const stats = {
-	session: { threadId: "thread-1", startedAt: "2026-09-03T00:00:00.000Z", endedAt: "2026-09-03T00:01:00.000Z", durationMs: 60_000, timeAuthority: "www-observed", turns: 2, completedTurns: 1, failedActivities: 1, cancelledActivities: 0, agentOperations: 1, toolOperations: 3, approvals: 1, compactions: 0, retries: 1, waits: 1, activityIds: ["activity-1"] },
-	speed: { averageTurnMs: 30_000, averageToolMs: 2_500, averageFirstOutputMs: null, averageApprovalWaitMs: 8_000, activitiesPerMinute: 12.5, generationTokensPerSecond: null },
-	usage: { totalTokens: 4200, unattributedTokens: 100, authority: "since-process-attach", limitation: "since process attach; prior/resumed session usage is unknown", models: [{ model: "gpt-5.4", effort: "high", turns: 2, totalTokens: 4100 }] },
-	summary: { purpose: { text: "Stats를 구현한다", authority: "session-goal", sourceActivityIds: ["goal-1"] }, actions: { text: "Tool 3개", authority: "www-observed", sourceActivityIds: ["activity-1"] }, result: { text: "unknown", authority: "unknown", sourceActivityIds: [] } },
-	turns: [{ id: "turn-1", number: 1, startedAt: "2026-09-03T00:00:00.000Z", endedAt: "2026-09-03T00:00:30.000Z", durationMs: 30_000, firstOutputMs: null, firstOutputAuthority: "unknown", agents: 1, tools: 3, approvals: 1, compactions: 0, retries: 1, waits: 1, failures: 1, activityIds: ["activity-1"] }],
-	activities: [{ id: "activity-1", turnId: "turn-1", itemId: "tool-1", recordedAt: "2026-09-03T00:00:01.000Z", category: "tool", phase: "started", method: "item/commandExecution/started", observedDurationMs: 2_000, sourceActivityId: "activity-1" }],
-	failures: [{ activityId: "failure-1", turnId: "turn-1", recordedAt: "2026-09-03T00:00:10.000Z", method: "item/commandExecution/completed", summary: "exit 1", recovered: false, recoveryActivityId: null }], unavailable: ["provider generation speed"],
-} as const satisfies SessionStatsSnapshot;
+const request = { ordinal: 1, requestId: "hidden-id", turnId: "turn-1", excerpt: "Implement review dashboard", excerptSourceActivityId: "activity-1", lifecycle: "completed", observedElapsedMs: 30_000, models: ["gpt-5.4"], sourceActivityIds: ["activity-1"] } as const;
+const stats: SessionStatsSnapshot = {
+	state: "observed", coverage: "fresh", activeModel: "gpt-5.4",
+	lifecycle: { threadId: "thread-1", startedAt: null, endedAt: null, journalSpanMs: 60_000, rootTurns: 3, completedRootTurns: 3, failedRootTurns: 0, cancelledRootTurns: 0, activeRootTurns: 0 },
+	performance: { journalSpanMs: 60_000, rootTurnCompletionPercent: 100, averageCompletedRootTurnMs: 20_000, pairedToolTimeMs: 3_000, averageApprovalWaitMs: null, totalApprovalWaitMs: null, averageFirstOutputMs: 1_000, interactiveTokensPerCompletedRootTurn: 1400 },
+	modelUsage: [{ namespace: "interactive", model: "gpt-5.4", effort: "high", interactiveRootTurns: 3, detachedInvocations: 0, totalTokens: 4200 }], unattributedUsage: null,
+	claims: { purpose: { text: "Implement dashboard", authority: "session-goal", sourceActivityIds: ["goal-1"], independentlyVerified: false }, actions: { text: "3 activities", authority: "journal", sourceActivityIds: [], independentlyVerified: false }, result: { text: "Completed", authority: "t-note", sourceActivityIds: [], independentlyVerified: false } },
+	requests: { submitted: 1, shortlist: [request], details: [request], omittedCount: 0 }, issues: [],
+	diagnostics: { activityCounts: { message: 3 }, retryCount: 1, waitCount: 2, compactionCount: 0, providerMetricsUnavailable: ["provider wait timing"], warnings: [] },
+};
 
 describe("session stats view", () => {
-	test("renders provenance, unknown values, partial usage, sources, and failure state", () => {
-		const output = stripTerminalSequences(new SessionStatsView(() => stats).render(100).join("\n"));
-		for (const text of ["SESSION STATS", "www-observed", "session-goal", "since-process-attach", "prior/resumed", "unknown", "ACTIVE", "failure-1", "activity-1"]) expect(output).toContain(text);
+	test("renders review-first session semantics without diagnostics or raw request IDs", () => {
+		const output = stripTerminalSequences(new SessionStatsView(() => stats).render(120).join("\n"));
+		for (const text of ["SESSION REVIEW", "PURPOSE", "RESULT NARRATIVE", "UNVERIFIED", "PERFORMANCE", "MODEL USAGE", "interactive turns", "REQUESTS", "WWW local journal"]) expect(output).toContain(text);
+		expect(output).not.toContain("ISSUES");
+		expect(output).not.toContain("hidden-id");
+		expect(output).not.toContain("Retries");
 	});
-	test("keeps every row within a narrow terminal width", () => { for (const row of new SessionStatsView(() => stats).render(42)) expect(visibleWidth(row)).toBeLessThanOrEqual(42); });
-	test("shows latest and numbered turn detail without replacing session totals", () => { const output = stripTerminalSequences(new SessionStatsView(() => stats, () => 1).render(100).join("\n")); expect(output).toContain("REQUEST DETAIL"); expect(output).toContain("#1 · turn-1"); expect(output).toContain("wall clock"); });
+	test("keeps all responsive layouts bounded", () => {
+		for (const width of [42, 80, 120, 160, 220]) for (const row of new SessionStatsView(() => stats).render(width)) expect(visibleWidth(row)).toBeLessThanOrEqual(width);
+	});
+	test("renders diagnostics and request investigation as separate top-level views", () => {
+		const diagnostics = stripTerminalSequences(new SessionStatsView(() => stats, () => "diagnostics").render(100).join("\n"));
+		expect(diagnostics).toContain("SESSION DIAGNOSTICS");
+		expect(diagnostics).toContain("Retries");
+		const detail = stripTerminalSequences(new SessionStatsView(() => stats, () => 1).render(100).join("\n"));
+		expect(detail).toContain("REQUEST INVESTIGATION");
+		expect(detail).toContain("/source activity-1");
+		expect(detail).not.toContain("SESSION REVIEW");
+	});
+	test("keeps empty sessions quiet", () => {
+		const empty = { ...stats, state: "empty" as const, modelUsage: [], requests: { submitted: 0, shortlist: [], details: [], omittedCount: 0 }, issues: [] };
+		const output = stripTerminalSequences(new SessionStatsView(() => empty).render(80).join("\n"));
+		expect(output).toContain("Waiting for the first request");
+		expect(output).toContain("Active model · gpt-5.4");
+		for (const noise of ["PERFORMANCE", "MODEL USAGE", "REQUESTS", "ISSUES", "Retries"]) expect(output).not.toContain(noise);
+	});
 });

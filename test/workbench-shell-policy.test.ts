@@ -127,9 +127,12 @@ describe("native workbench shell receipt policy", () => {
 		expect(workbenchViewModeCommand(" /stats ")).toBe("stats");
 		expect(workbenchViewModeCommand("/monitor details")).toBeNull();
 		expect(workbenchStatsTargetCommand("/stats")).toBe("session");
+		expect(workbenchStatsTargetCommand("/stats diagnostics")).toBe("diagnostics");
 		expect(workbenchStatsTargetCommand("/stats latest")).toBe("latest");
 		expect(workbenchStatsTargetCommand("/stats #7")).toBe(7);
 		expect(workbenchStatsTargetCommand("/stats nope")).toBe("invalid");
+		expect(WORKBENCH_SLASH_COMMANDS.find((command) => command.name === "stats")?.argumentHint).toBe("[diagnostics|latest|#n]");
+		expect(parseWorkbenchShellCommand("/source activity-1")).toEqual({ type: "activity.select", activityId: "activity-1" });
 	});
 
 	test("returns from the map to the view that opened it", () => {

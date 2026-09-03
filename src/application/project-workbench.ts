@@ -225,8 +225,18 @@ export class ProjectWorkbench {
 	private observedThreadTotalTokens: number | null;
 	private readonly turnUsageModels = new Map<string, { model: string; effort: string | null }>();
 	private readonly usageTurns = new Set<string>();
-	private readonly modelUsage = new Map<string, { model: string; effort: string | null; turns: number; totalTokens: number }>();
+	private readonly modelUsage = new Map<string, {
+		model: string;
+		effort: string | null;
+		interactiveRootTurns: number;
+		interactiveTokens: number;
+		detachedInvocations: 0;
+		detachedTokens: 0;
+		totalTokens: number;
+	}>();
 	private readonly pendingUsageByTurn = new Map<string, number>();
+	private readonly firstOutputObservedTurns = new Set<string>();
+	private readonly processAttachedAt = new Date().toISOString();
 	private unattributedUsageTokens = 0;
 	private threadId: string | null = null;
 	private activeTurnId: string | null = null;
@@ -416,6 +426,9 @@ export class ProjectWorkbench {
 			const durableActivity = immutable(activity);
 			this.activities.push(durableActivity);
 			this.rememberTerminalTurn(durableActivity);
+			if (durableActivity.payload.method === "turn/first-output-observed" && durableActivity.nativeRefs.turnId) {
+				this.firstOutputObservedTurns.add(durableActivity.nativeRefs.turnId);
+			}
 		}
 		this.visibleAfterSequence = this.activities.at(-1)?.sequence ?? 0;
 		if (this.options.tnotes && !this.options.tnotes.bindThread) await this.loadBoundTNotes();
@@ -472,9 +485,11 @@ export class ProjectWorkbench {
 	}
 
 	private async sendChat(commandId: string, rawText: string): Promise<WorkbenchCommandReceipt> {
-		const text = rawText.trim();
+		const text = sanitizeTerminalTextUnbounded(rawText).trim();
 		if (!text) return { state: "rejected", commandId, reason: "보낼 메시지가 비어 있습니다." };
 		if (this.activeTurnId || this.pendingApproval || this.chatQueue.length > 0 || this.chatDeliveryBlocked) {
+			await this.appendRequestObservation("request/submitted", commandId, this.threadId ?? undefined, text);
+			await this.appendRequestObservation("request/queued", commandId, this.threadId ?? undefined, text);
 			this.chatQueue.push({ id: commandId, content: text, queuedAt: new Date().toISOString() });
 			this.publish();
 			return { state: "queued", commandId, position: this.chatQueue.length };
@@ -526,7 +541,9 @@ export class ProjectWorkbench {
 			});
 		}
 		const messageRefs = { threadId: this.threadId, itemId: localMessageId };
-		const sent = await this.appendActivity("message", "started", messageRefs, messagePayload, false);
+		const outboundSourceDigest = digestSource(stableJson(messagePayload));
+		const sent = await this.appendActivity("message", "started", messageRefs, messagePayload, false, outboundSourceDigest);
+		if (!queued) await this.appendRequestObservation("request/submitted", localMessageId, this.threadId, text, outboundSourceDigest);
 		this.preThreadChat.delete(localMessageId);
 		this.pendingPlanGoalActivityId = sent.id;
 		this.invalidateWorkFlow();
@@ -550,6 +567,7 @@ export class ProjectWorkbench {
 			if (isUncertain(error)) {
 				this.chatDeliveryBlocked = true;
 				this.blockedChat = { id: localMessageId, content: text };
+				await this.appendRequestObservation("request/uncertain", localMessageId, this.threadId, text, outboundSourceDigest);
 				await this.appendActivity("message", "failed", messageRefs, {
 					...messagePayload,
 					error: "Native가 메시지를 수신했는지 확인할 수 없습니다. 자동 재시도하지 않습니다.",
@@ -557,6 +575,7 @@ export class ProjectWorkbench {
 				if (queued && this.chatQueue[0]?.id === localMessageId) this.chatQueue.shift();
 				throw error;
 			}
+			await this.appendRequestObservation("request/failed", localMessageId, this.threadId, text, outboundSourceDigest);
 			await this.appendActivity("message", "failed", messageRefs, {
 				...messagePayload,
 				error: errorMessage(error),
@@ -575,11 +594,31 @@ export class ProjectWorkbench {
 		this.blockedChat = null;
 		if (queued && this.chatQueue[0]?.id === localMessageId) this.chatQueue.shift();
 		await this.appendActivity("message", "completed", messageRefs, messagePayload);
+		await this.appendRequestObservation("request/started", localMessageId, this.threadId, text, outboundSourceDigest, turn.id, {
+			model: this.effectiveModel,
+			effort: this.effectiveEffort,
+		});
 		await this.appendActivity("progress", "started", { threadId: this.threadId, turnId: turn.id }, {
 			method: "turn/start",
 			turn: turn.value,
 		});
 		return sent;
+	}
+
+	private async appendRequestObservation(
+		method: "request/submitted" | "request/queued" | "request/started" | "request/failed" | "request/uncertain",
+		requestId: string,
+		threadId: string | undefined,
+		text: string,
+		sourceDigest = digestSource(stableJson({ direction: "outbound", role: "user", text })),
+		turnId?: string,
+		model?: { readonly model: string; readonly effort: string | null },
+	): Promise<ProjectActivity> {
+		return this.appendActivity("progress", method === "request/failed" || method === "request/uncertain" ? "failed" : "started", {
+			threadId,
+			itemId: requestId,
+			...(turnId ? { turnId } : {}),
+		}, { method, requestId, ...(model ?? {}) }, false, sourceDigest);
 	}
 
 	private async drainChatQueue(): Promise<void> {
@@ -829,25 +868,45 @@ export class ProjectWorkbench {
 
 	private addModelUsage(turnId: string, model: string, effort: string | null, delta: number): void {
 		const key = `${model}\u0000${effort ?? ""}`;
-		const current = this.modelUsage.get(key) ?? { model, effort, turns: 0, totalTokens: 0 };
+		const current = this.modelUsage.get(key) ?? {
+			model,
+			effort,
+			interactiveRootTurns: 0,
+			interactiveTokens: 0,
+			detachedInvocations: 0,
+			detachedTokens: 0,
+			totalTokens: 0,
+		};
 		const firstUsageForTurn = !this.usageTurns.has(turnId);
 		if (firstUsageForTurn) this.usageTurns.add(turnId);
 		this.modelUsage.set(key, {
 			...current,
-			turns: current.turns + (firstUsageForTurn ? 1 : 0),
+			interactiveRootTurns: current.interactiveRootTurns + (firstUsageForTurn ? 1 : 0),
+			interactiveTokens: current.interactiveTokens + delta,
 			totalTokens: current.totalTokens + delta,
 		});
 	}
 
 	private projectSessionUsage(): WorkbenchSessionUsage {
-		const merged = new Map<string, { model: string; effort: string | null; turns: number; totalTokens: number }>();
+		const merged = new Map<string, {
+			model: string;
+			effort: string | null;
+			interactiveRootTurns: number;
+			interactiveTokens: number;
+			detachedInvocations: number;
+			detachedTokens: number;
+			totalTokens: number;
+		}>();
 		for (const usage of [...this.modelUsage.values(), ...(this.options.auxiliaryUsage?.snapshot ?? [])]) {
 			const key = `${usage.model}\u0000${usage.effort ?? ""}`;
 			const current = merged.get(key);
 			merged.set(key, {
 				model: usage.model,
 				effort: usage.effort,
-				turns: (current?.turns ?? 0) + usage.turns,
+				interactiveRootTurns: (current?.interactiveRootTurns ?? 0) + usage.interactiveRootTurns,
+				interactiveTokens: (current?.interactiveTokens ?? 0) + usage.interactiveTokens,
+				detachedInvocations: (current?.detachedInvocations ?? 0) + (usage.detachedInvocations ?? 0),
+				detachedTokens: (current?.detachedTokens ?? 0) + usage.detachedTokens,
 				totalTokens: (current?.totalTokens ?? 0) + usage.totalTokens,
 			});
 		}
@@ -1200,7 +1259,7 @@ export class ProjectWorkbench {
 			this.observeTokenUsage(event);
 		}
 		if (event.type === "notification" && isDeltaNotification(event.method)) {
-			if (eventBelongsToRootThread) this.applyDelta(event);
+			if (eventBelongsToRootThread) await this.applyDelta(event);
 			return;
 		}
 		const lifecycle = event.type === "notification" ? turnLifecycle(event.method) : null;
@@ -1333,12 +1392,24 @@ export class ProjectWorkbench {
 			.some((note) => note.packet.activities.some((activity) => activity.id === terminalActivityId)));
 	}
 
-	private applyDelta(event: Extract<NativeHarnessEvent, { type: "notification" }>): void {
+	private async applyDelta(event: Extract<NativeHarnessEvent, { type: "notification" }>): Promise<void> {
 		if (event.refs.threadId) this.threadId = event.refs.threadId;
 		const delta = activityText({ params: event.params });
 		const method = event.method.toLowerCase();
 		const reasoning = method.includes("reasoning");
 		const publicReasoningSummary = method.includes("reasoning/summarytextdelta");
+		if (!reasoning && activityKind(event.method, event.params) === "message" && delta.trim().length > 0 && event.refs.turnId &&
+			this.turnUsageModels.has(event.refs.turnId) &&
+			!this.firstOutputObservedTurns.has(event.refs.turnId)) {
+			await this.appendActivity("progress", "completed", {
+				threadId: event.refs.threadId ?? this.threadId ?? undefined,
+				turnId: event.refs.turnId,
+			}, { method: "turn/first-output-observed" }, false, digestSource(stableJson({
+				method: "turn/first-output-observed",
+				refs: { threadId: event.refs.threadId, turnId: event.refs.turnId },
+			})));
+			this.firstOutputObservedTurns.add(event.refs.turnId);
+		}
 		if (publicReasoningSummary) {
 			if (event.refs.itemId && this.reasoningSummaryItemId && event.refs.itemId !== this.reasoningSummaryItemId) {
 				this.reasoningSummaryProjection = emptyBoundedTextProjection();
@@ -1501,6 +1572,11 @@ export class ProjectWorkbench {
 			effort: this.effectiveEffort,
 			contextUsage: this.contextUsage,
 			sessionUsage: this.projectSessionUsage(),
+			resumeCoverage: {
+				mode: this.options.resumeThreadId ? "partial-local-journal" : "fresh",
+				processAttachedAt: this.processAttachedAt,
+				priorProviderHistoryHydrated: false,
+			},
 			sessionGoal: this.sessionGoal,
 			permissionMode: this.permissionMode,
 			collaborationMode: this.collaborationMode,
