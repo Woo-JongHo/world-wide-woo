@@ -103,7 +103,8 @@ const productionFactories: ProjectWorkbenchSessionFactories = {
 		const registry = createModelRegistry(new FileCredentialStore());
 		return new ReviewService(
 			createProductionReviewAdapters(new PiReviewGenerationClient(registry, observeUsage), {
-				claudeCliVersion: installedClaudeCliVersion(),
+				// Claude is optional until its review transport is explicitly used.
+				claudeCliVersion: installedClaudeCliVersion,
 			}),
 			sha256ReviewDigest,
 			new FileReviewProvenanceStore(join(runtimeDirectory, "review-provenance.jsonl")),
