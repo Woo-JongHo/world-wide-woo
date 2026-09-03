@@ -117,6 +117,7 @@ describe("WWW slash commands", () => {
 
 	test("advertises every supported command for editor completion", async () => {
 		expect(WORKBENCH_SLASH_COMMANDS.map((command) => command.name)).toContain("model");
+		expect(WORKBENCH_SLASH_COMMANDS.map((command) => command.name)).toContain("stats");
 		expect(WORKBENCH_SLASH_COMMANDS.find((command) => command.name === "tnotes")?.description)
 			.toBe("완료된 질문별 T-note pane 안내");
 		expect(WORKBENCH_SLASH_COMMANDS.find((command) => command.name === "source")?.description).toContain("Monitor");

@@ -139,6 +139,7 @@ export const WORKBENCH_SLASH_COMMANDS: SlashCommand[] = [
 	{ name: "dashboard", description: "Chat·완료 T-note·Native Plan Dashboard" },
 	{ name: "monitor", description: "선택 실행의 Trace·Source Monitor" },
 	{ name: "map", description: "전체 개발 구조와 진척도 Map 열기" },
+	{ name: "stats", description: "현재 Session의 목적·행동·결과와 효율 열기" },
 	{ name: "tnotes", description: "완료된 질문별 T-note pane 안내" },
 	{ name: "todo", description: "레거시 Todo.md 읽기 전용 migration view" },
 	{

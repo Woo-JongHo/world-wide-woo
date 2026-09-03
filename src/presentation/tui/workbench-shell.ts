@@ -15,6 +15,7 @@ import type { ComposerDraftController, UsageMonitor } from "../../application/po
 import type { ProjectWorkbench } from "../../application/project-workbench";
 import { EMPTY_DEVELOPMENT_MAP, type DevelopmentMapSnapshot } from "../../domain/development-map";
 import { normalizeSettings, type WwwSettings } from "../../domain/model-settings";
+import { projectSessionStats } from "../../domain/session-stats";
 import { sanitizeTerminalTextUnbounded } from "../../domain/terminal";
 import { workbenchApprovalIdentity, type WorkbenchCommandReceipt, type WorkbenchSnapshot } from "../../domain/workbench";
 import { createDashboardLayout } from "./dashboard-layout";
@@ -32,6 +33,7 @@ import { WorkbenchBottomHudView } from "./workbench-bottom-hud";
 import { WorkbenchTelemetryLine, workbenchModelLabel } from "./workbench-telemetry";
 import { UsageStripView } from "./usage-strip-view";
 import { DevelopmentMapView } from "./development-map-view";
+import { SessionStatsView } from "./session-stats-view";
 
 export interface ProjectWorkbenchShellDependencies {
 	workbench: ProjectWorkbench;
@@ -57,18 +59,32 @@ export function workbenchReceiptClearsComposer(receipt: WorkbenchCommandReceipt)
 
 export const WORKBENCH_STATUS_NOTICE = "";
 
-export type WorkbenchViewMode = "dashboard" | "monitor" | "map";
+export type WorkbenchBaseViewMode = "dashboard" | "monitor";
+export type WorkbenchViewMode = WorkbenchBaseViewMode | "map" | "stats";
 
 export function workbenchViewModeCommand(text: string): WorkbenchViewMode | null {
 	const command = text.trim();
-	return command === "/dashboard" ? "dashboard" : command === "/monitor" ? "monitor" : command === "/map" ? "map" : null;
+	return command === "/dashboard" ? "dashboard"
+		: command === "/monitor" ? "monitor"
+		: command === "/map" ? "map"
+		: command === "/stats" ? "stats"
+		: null;
+}
+
+export function workbenchStatsTargetCommand(text: string): "session" | "latest" | number | "invalid" | null {
+	const command = text.trim();
+	if (command === "/stats") return "session";
+	if (command === "/stats latest") return "latest";
+	const numbered = command.match(/^\/stats\s+#(\d+)$/u);
+	if (numbered) return Number(numbered[1]);
+	return command.startsWith("/stats") ? "invalid" : null;
 }
 
 export function workbenchEscapeView(
 	mode: WorkbenchViewMode,
-	previous: Exclude<WorkbenchViewMode, "map">,
-): Exclude<WorkbenchViewMode, "map"> | null {
-	return mode === "map" ? previous : null;
+	previous: WorkbenchBaseViewMode,
+): WorkbenchBaseViewMode | null {
+	return mode === "map" || mode === "stats" ? previous : null;
 }
 
 export class DevelopmentMapPollingLifecycle {
@@ -91,6 +107,7 @@ export function createWorkbenchViewHost(
 	dashboard: Component,
 	monitor: Component,
 	map: Component,
+	stats: Component,
 ): Component {
 	return new VStack([
 		{
@@ -116,6 +133,14 @@ export function createWorkbenchViewHost(
 			shrink: 1,
 			minSize: 1,
 			visible: () => getMode() === "map",
+		},
+		{
+			component: stats,
+			basis: 0,
+			grow: 1,
+			shrink: 1,
+			minSize: 1,
+			visible: () => getMode() === "stats",
 		},
 	]);
 }
@@ -269,6 +294,15 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		scrollbar: "auto",
 		scrollbarStyle: colors.muted,
 	});
+	let statsTarget: "session" | "latest" | number = "session";
+	const sessionStatsView = new SessionStatsView(() => projectSessionStats(snapshot), () => statsTarget);
+	const sessionStats = new ScrollView(sessionStatsView, {
+		follow: "none",
+		primary: true,
+		overscroll: "contain",
+		scrollbar: "auto",
+		scrollbarStyle: colors.muted,
+	});
 	const telemetry = new WorkbenchTelemetryLine(() => snapshot, cwd, () => tui.requestRender());
 	const bottomHud = new WorkbenchBottomHudView(usageStrip);
 	const dashboard = createDashboardLayout(
@@ -284,12 +318,13 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		{ color: colors.warm, component: todo },
 	);
 	let viewMode: WorkbenchViewMode = "dashboard";
-	let previousViewMode: Exclude<WorkbenchViewMode, "map"> = "dashboard";
+	let previousViewMode: WorkbenchBaseViewMode = "dashboard";
 	const activeView = createWorkbenchViewHost(
 		() => viewMode,
 		dashboard.component,
 		monitorLayout.component,
 		developmentMap,
+		sessionStats,
 	);
 	const editor = new Editor(tui, editorTheme, { paddingX: 1, autocompleteMaxVisible: 5 });
 	editor.setAutocompleteProvider(new CombinedAutocompleteProvider(WORKBENCH_SLASH_COMMANDS, process.cwd()));
@@ -424,16 +459,35 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		overlayKind = "approval";
 	};
 	const handleLocal = async (text: string): Promise<boolean> => {
+		const requestedStatsTarget = workbenchStatsTargetCommand(text);
+		if (requestedStatsTarget) {
+			if (requestedStatsTarget === "invalid") {
+				status.setNotice("사용법: /stats [latest|#n]");
+				tui.requestRender();
+				return true;
+			}
+			if (viewMode !== "map" && viewMode !== "stats") previousViewMode = viewMode;
+			statsTarget = requestedStatsTarget;
+			setViewMode("stats");
+			status.setNotice(requestedStatsTarget === "session"
+				? "Session Stats · 목적·행동·결과와 오케스트레이션 효율"
+				: `Request Stats · ${requestedStatsTarget === "latest" ? "latest" : `#${requestedStatsTarget}`}`);
+			tui.requestRender();
+			return true;
+		}
 		const requestedViewMode = workbenchViewModeCommand(text);
 		if (requestedViewMode) {
-			if (requestedViewMode === "map" && viewMode !== "map") previousViewMode = viewMode;
-			if (requestedViewMode !== "map") previousViewMode = requestedViewMode;
+			if ((requestedViewMode === "map" || requestedViewMode === "stats")
+				&& viewMode !== "map" && viewMode !== "stats") previousViewMode = viewMode;
+			if (requestedViewMode === "dashboard" || requestedViewMode === "monitor") previousViewMode = requestedViewMode;
 			setViewMode(requestedViewMode);
 			status.setNotice(requestedViewMode === "dashboard"
 				? "Dashboard · 프로젝트 요약과 작업 진입"
 				: requestedViewMode === "monitor"
 					? "Monitor · session·turn·tool 실행 관측"
-					: "Development Map · 전체 구조와 진척도 · 자동 갱신");
+					: requestedViewMode === "map"
+						? "Development Map · 전체 구조와 진척도 · 자동 갱신"
+						: "Session Stats · 목적·행동·결과와 오케스트레이션 효율");
 			tui.requestRender();
 			return true;
 		}
@@ -601,8 +655,8 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 			if (returnView) {
 				setViewMode(returnView);
 				status.setNotice(returnView === "dashboard"
-					? "Development Map을 닫고 Dashboard로 돌아왔습니다."
-					: "Development Map을 닫고 Monitor로 돌아왔습니다.");
+					? "전체 페이지를 닫고 Dashboard로 돌아왔습니다."
+					: "전체 페이지를 닫고 Monitor로 돌아왔습니다.");
 				tui.requestRender();
 				return { consume: true };
 			}

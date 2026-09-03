@@ -93,6 +93,12 @@ _Avoid_: 실행 중 조용한 Provider 변경, Provider에 역할을 영구 고�
 **Token Tuning**: Agent Revision별 Token·시간·재시도·사람 개입·검증 결과를 함께 비교해 다음 실행 정책을 개선하는 과정.
 _Avoid_: 모델 weight 학습, Token 절감만으로 한 최적화.
 
+**Session Stats**: 한 Session의 목적·관측된 행동·durable 결과와 시간·Token·Agent·Tool·승인·실패를 source reference와 함께 보여주는 읽기 전용 Projection.
+_Avoid_: 별도 상태 정본, hidden reasoning, 근거 없는 성공 요약, 비용 절감만을 효율로 해석하는 것.
+
+**Orchestration Efficiency**: Session Goal과 Contract를 충족하기 위해 사용한 시간·Token·Tool·재시도·승인 대기·실패·사람 개입을 결과 품질 및 Evidence와 함께 비교하는 지표 묶음.
+_Avoid_: 단일 점수, Token 또는 wall clock 최소화, 서로 다른 업무 유형의 무맥락 순위 비교.
+
 **Progress Model**: 여러 프로젝트의 업무 상태·완료·대기·위험·다음 행동을 사용자가 자기 업무 기준으로 정의하고 판정하는 체계.
 _Avoid_: 실행기가 내보낸 raw status, 고정된 범용 Kanban 상태.
 
