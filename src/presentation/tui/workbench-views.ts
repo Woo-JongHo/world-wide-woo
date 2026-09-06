@@ -8,7 +8,7 @@ import {
 import type { NativeApprovalRequest } from "../../domain/native-session";
 import type { CompletionReport } from "../../domain/output";
 import { projectBackgroundWorkState, type BackgroundWorkState } from "../../domain/native-session";
-import { sanitizeCompletedAssistantResponse } from "../../domain/redaction";
+import { sanitizeCompletedAssistantResponse, sanitizePartialAssistantResponse } from "../../domain/redaction";
 import { sanitizeTerminalTextExcerpt, sanitizeTerminalTextUnbounded } from "../../domain/terminal";
 import { projectTNoteCompletionIndex } from "../../domain/t-notes";
 import { workbenchApprovalDecisions, type WorkbenchSnapshot } from "../../domain/workbench";
@@ -408,10 +408,12 @@ export class WorkbenchChatView implements Component {
 		for (const message of snapshot.chat) {
 			if (message.role !== "assistant") continue;
 			visibleAssistantIds.add(message.id);
-			const inputKey = `${message.status}\0${message.content}`;
+			const inputKey = `${message.status}\0${message.partial === true ? "partial" : "whole"}\0${message.content}`;
 			if (this.markdownInput.get(message.id) === inputKey) continue;
 			const content = sanitizeTerminalTextUnbounded(
-				message.status === "completed" || message.status === "incomplete"
+				message.partial
+					? sanitizePartialAssistantResponse(message.content)
+					: message.status === "completed" || message.status === "incomplete"
 					? sanitizeCompletedAssistantResponse(message.content)
 					: message.content,
 			);

@@ -468,6 +468,21 @@ describe("workbench dashboard views", () => {
 		expect(incomplete).not.toContain("내부");
 	});
 
+	test("reprojects unchanged failed text when its observation becomes partial", () => {
+		const message = {
+			...snapshot.chat[0]!,
+			status: "failed" as const,
+			content: "<analysis>내부</analysis>\n<answer>공개된 실패 전 부분</answer>",
+		};
+		const view = new WorkbenchChatView({ ...snapshot, chat: [message] });
+		expect(stripTerminalSequences(view.render(80).join("\n"))).toContain("내부");
+
+		view.update({ ...snapshot, chat: [{ ...message, partial: true }] });
+		const partial = stripTerminalSequences(view.render(80).join("\n"));
+		expect(partial).toContain("공개된 실패 전 부분");
+		expect(partial).not.toContain("내부");
+	});
+
 	test("distinguishes an empty missing-final response from a preserved partial answer", () => {
 		const output = stripTerminalSequences(new WorkbenchChatView({
 			...snapshot,
@@ -487,18 +502,40 @@ describe("workbench dashboard views", () => {
 	test.each([
 		["failed", "실패"],
 		["cancelled", "중단됨"],
-	] as const)("keeps preserved answer text beside the %s terminal label", (status, label) => {
+	] as const)("sanitizes preserved answer text beside the %s terminal label", (status, label) => {
 		const output = stripTerminalSequences(new WorkbenchChatView({
 			...snapshot,
 			chat: [{
 				...snapshot.chat[0]!,
-				content: "종료 전에 받은 부분 답변",
+				content: "<analysis>내부 추론</analysis>\n<answer>종료 전에 받은 부분 답변</answer>",
 				status,
+				partial: true,
 			}],
 		}).render(48).join("\n"));
 
 		expect(output).toContain("종료 전에 받은 부분 답변");
 		expect(output).toContain(label);
+		expect(output).not.toContain("내부 추론");
+	});
+
+	test.each([
+		["incomplete", "부분 응답 · 최종 본문 미수신"],
+		["failed", "실패"],
+		["cancelled", "중단됨"],
+	] as const)("fails closed for an unfinished analysis envelope on a %s partial", (status, label) => {
+		const output = stripTerminalSequences(new WorkbenchChatView({
+			...snapshot,
+			chat: [{
+				...snapshot.chat[0]!,
+				content: "<analysis>\n화면에 나오면 안 되는 중간 추론",
+				status,
+				partial: true,
+			}],
+		}).render(80).join("\n"));
+
+		expect(output).toContain(label);
+		expect(output).not.toContain("화면에 나오면 안 되는 중간 추론");
+		expect(output).not.toContain("<analysis>");
 	});
 
 	test("preserves partial tags, surrounding text, and fenced tag examples", () => {

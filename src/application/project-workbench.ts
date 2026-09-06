@@ -1187,18 +1187,23 @@ export class ProjectWorkbench {
 			if (eventBelongsToRootThread) await this.applyDelta(event);
 			return;
 		}
-		if (event.type === "notification" && isTerminalItemMethod(event.method) && this.hasTerminalItem(event.refs)) return;
 		const lifecycle = event.type === "notification" ? turnLifecycle(event.method) : null;
+		const sourceDigest = digestSource(stableJson(event));
+		const observation = nativeObservation(event);
+		const terminalItemCandidate = event.type === "notification" && Boolean(event.refs.itemId)
+			&& isTerminalActivityPhase(observation.phase);
+		if (terminalItemCandidate && event.type === "notification" && isAssistantMessageObservation(event, observation)
+			&& !nativeItemIdentity(event.refs)) return;
+		const terminalItemObservation = terminalItemCandidate && Boolean(nativeItemIdentity(observation.refs));
+		if (terminalItemObservation && event.type === "notification" && this.hasTerminalItem(event.refs)) return;
 		const completedActiveTurn = eventBelongsToRootThread && lifecycle === "terminal" && event.type === "notification" &&
 			event.refs.turnId === this.activeTurnId;
 		const completedSummaryCheckpoint = completedActiveTurn && event.type === "notification" &&
-			event.method.toLowerCase() === "turn/completed";
-		const sourceDigest = digestSource(stableJson(event));
-		const observation = nativeObservation(event);
+			event.method.toLowerCase() === "turn/completed" && observation.phase === "completed";
 		const terminalItemMissingMessage = event.type === "notification"
 			&& eventBelongsToRootThread
-			&& isTerminalItemMethod(event.method)
-			&& observation.kind === "message"
+			&& terminalItemObservation
+			&& isAssistantMessageObservation(event, observation)
 			&& activityText(observation.payload).trim().length === 0;
 		if (terminalItemMissingMessage && event.type === "notification") {
 			await this.preserveUnfinalizedAssistantResponse(event, observation.phase);
@@ -1248,7 +1253,7 @@ export class ProjectWorkbench {
 			}
 			if (eventBelongsToRootThread && lifecycle === "terminal" && event.refs.turnId === this.activeTurnId) this.activeTurnId = null;
 		}
-		const eventPhase = event.type === "notification" ? activityPhase(event.method) : null;
+		const eventPhase = event.type === "notification" ? observation.phase : null;
 		const clearsTerminalProjection = eventPhase === "completed" || lifecycle === "terminal"
 			|| Boolean(event.type === "notification" && event.refs.itemId && eventPhase && isTerminalActivityPhase(eventPhase));
 		if (eventBelongsToRootThread && event.type === "notification" && clearsTerminalProjection) {
@@ -1332,7 +1337,9 @@ export class ProjectWorkbench {
 	private reconcileAutomaticTNotes(): void {
 		const turnIds = new Set<string>();
 		for (const activity of this.visibleActivities) {
-			if (activity.payload.method === "turn/completed" && activity.nativeRefs.turnId) turnIds.add(activity.nativeRefs.turnId);
+			if (activity.payload.method === "turn/completed" && activity.phase === "completed" && activity.nativeRefs.turnId) {
+				turnIds.add(activity.nativeRefs.turnId);
+			}
 		}
 		for (const turnId of turnIds) this.scheduleAutomaticTNote(turnId);
 	}
@@ -1525,8 +1532,7 @@ export class ProjectWorkbench {
 	}
 
 	private rememberTerminalItem(activity: ProjectActivity): void {
-		const method = typeof activity.payload.method === "string" ? activity.payload.method : "";
-		if (!isTerminalItemMethod(method)) return;
+		if (!isTerminalActivityPhase(activity.phase)) return;
 		const identity = nativeItemIdentity(activity.nativeRefs);
 		if (identity) this.terminalItems.add(identity);
 	}
@@ -1538,18 +1544,20 @@ export class ProjectWorkbench {
 	): Promise<void> {
 		const { threadId, turnId } = event.refs;
 		if (!threadId || !turnId || this.hasTerminalTurn(threadId, turnId)) return;
-		const matchingDraft = this.draft.length > 0 && sameTurnOwner(this.draftNativeRefs, event.refs);
+		const matchingDraft = this.draft.trim().length > 0 && sameTurnOwner(this.draftNativeRefs, event.refs);
+		const targetRefs = matchingDraft && this.draftNativeRefs ? this.draftNativeRefs : event.refs;
+		const targetIdentity = nativeItemIdentity(targetRefs);
 		const hasTerminalMessage = this.visibleActivities.some((activity) =>
 			activity.kind === "message"
 			&& activity.nativeRefs.threadId === threadId
 			&& activity.nativeRefs.turnId === turnId
-			&& activity.payload.direction !== "outbound"
-			&& activity.payload.role !== "user"
+			&& isAssistantMessageActivity(activity)
 			&& isTerminalActivityPhase(activity.phase)
-			&& activityText(activity.payload).trim().length > 0);
-		if (!matchingDraft && hasTerminalMessage) return;
+			&& activityText(activity.payload).trim().length > 0
+			&& (targetIdentity ? nativeItemIdentity(activity.nativeRefs) === targetIdentity : true));
+		if (hasTerminalMessage) return;
 
-		const text = matchingDraft ? this.draft : "최종 답변 본문을 받지 못했습니다.";
+		const text = matchingDraft ? this.draft : missingAssistantResponseNotice(phase);
 		const itemId = matchingDraft && this.draftNativeRefs?.itemId
 			? this.draftNativeRefs.itemId
 			: event.refs.itemId ?? `local-missing-final:${turnId}`;
@@ -1561,6 +1569,7 @@ export class ProjectWorkbench {
 			partial: matchingDraft,
 			finalObservation: "missing",
 			observationScope: matchingDraft ? "bounded-local-delta" : "local-lifecycle",
+			presentation: matchingDraft ? "partial-response" : "terminal-status-notice",
 			terminalMethod: event.method,
 		};
 		await this.appendActivity("message", phase, refs, payload, false, digestSource(stableJson({ refs, payload })));
@@ -1840,7 +1849,7 @@ function nativeObservation(event: NativeHarnessEvent): {
 		const publicSummary = nativeReasoningSummary(event.params);
 		return {
 			kind: activityKind(event.method, event.params),
-			phase: activityPhase(event.method),
+			phase: activityPhase(event.method, event.params),
 			refs: event.refs,
 			payload: {
 				eventType: event.type,
@@ -1863,7 +1872,7 @@ function nativeObservation(event: NativeHarnessEvent): {
 	};
 	return {
 		kind,
-		phase: activityPhase(event.method),
+		phase: activityPhase(event.method, event.params),
 		refs: event.refs,
 		payload,
 	};
@@ -1957,7 +1966,7 @@ function completedTurnNoteScope(
 	for (const [index, activity] of activities.entries()) {
 		if (activity.nativeRefs.turnId !== turnId) continue;
 		if (activity.payload.method === "turn/start" || activity.payload.method === "turn/started") startIndex = index;
-		if (activity.payload.method === "turn/completed") terminalIndex = index;
+		if (activity.payload.method === "turn/completed" && activity.phase === "completed") terminalIndex = index;
 	}
 	if (startIndex < 0 || terminalIndex < startIndex) return null;
 	const questionIndex = questionIndexForTurn(activities, startIndex, activities[startIndex]!.nativeRefs.threadId);
@@ -1969,7 +1978,7 @@ function completedTurnNoteScope(
 	const selected = activities.filter((activity, index) =>
 		index === questionIndex || (index >= startIndex && index <= terminalIndex &&
 			activity.nativeRefs.threadId === threadId && activity.nativeRefs.turnId === turnId));
-	if (!selected.some((activity) => activity.payload.method === "turn/completed")) return null;
+	if (!selected.some((activity) => activity.payload.method === "turn/completed" && activity.phase === "completed")) return null;
 	const sequences = selected.map((activity) => activity.sequence);
 	if (sequences.some((sequence, index) => index > 0 && sequence <= sequences[index - 1]!)) return null;
 	return { question, activities: selected };
@@ -2009,7 +2018,7 @@ function latestCompletedTurnNoteScope(
 ): { readonly question: string; readonly activities: readonly ProjectActivity[] } | null {
 	for (let index = activities.length - 1; index >= 0; index -= 1) {
 		const activity = activities[index]!;
-		if (activity.payload.method !== "turn/completed" || !activity.nativeRefs.turnId) continue;
+		if (activity.payload.method !== "turn/completed" || activity.phase !== "completed" || !activity.nativeRefs.turnId) continue;
 		const scope = completedTurnNoteScope(activities, activity.nativeRefs.turnId);
 		if (scope) return scope;
 	}
@@ -2111,8 +2120,15 @@ function activityKind(method: string, params: Readonly<Record<string, unknown>>)
 	return "progress";
 }
 
-function activityPhase(method: string): ProjectActivityPhase {
+function activityPhase(method: string, params?: Readonly<Record<string, unknown>>): ProjectActivityPhase {
 	const normalized = method.toLowerCase();
+	if (normalized === "turn/completed") {
+		const turn = record(params?.turn);
+		const status = typeof turn?.status === "string" ? turn.status : record(turn?.status)?.type;
+		const nativeStatus = typeof status === "string" ? status.replace(/[-_]/gu, "").toLowerCase() : "";
+		if (nativeStatus === "failed" || nativeStatus === "errored" || nativeStatus === "error") return "failed";
+		if (nativeStatus === "cancelled" || nativeStatus === "canceled" || nativeStatus === "interrupted") return "cancelled";
+	}
 	if (normalized.includes("failed") || normalized.includes("error")) return "failed";
 	if (normalized.includes("cancelled") || normalized.includes("canceled") || normalized.includes("interrupted")) return "cancelled";
 	if (normalized.includes("completed") || normalized.includes("finished")) return "completed";
@@ -2124,16 +2140,36 @@ function isDeltaNotification(method: string): boolean {
 	return method.toLowerCase().includes("delta");
 }
 
-function isTerminalItemMethod(method: string): boolean {
-	return method.toLowerCase().startsWith("item/") && isTerminalActivityPhase(activityPhase(method));
-}
-
 function turnLifecycle(method: string): "started" | "terminal" | null {
 	const normalized = method.toLowerCase();
 	if (normalized === "turn/start" || normalized === "turn/started") return "started";
 	if (normalized === "turn/completed" || normalized === "turn/interrupted" || normalized === "turn/failed" ||
 		normalized === "turn/cancelled" || normalized === "turn/canceled") return "terminal";
 	return null;
+}
+
+function isAssistantMessageObservation(
+	event: Extract<NativeHarnessEvent, { type: "notification" }>,
+	observation: { readonly kind: ProjectActivityKind },
+): boolean {
+	if (observation.kind !== "message") return false;
+	const itemType = String(record(event.params.item)?.type ?? "").replace(/[-_]/gu, "").toLowerCase();
+	return itemType === "agentmessage" || event.method.toLowerCase().startsWith("item/agentmessage/");
+}
+
+function isAssistantMessageActivity(activity: ProjectActivity): boolean {
+	if (activity.payload.role === "assistant") return true;
+	if (activity.payload.role === "user" || activity.payload.direction === "outbound") return false;
+	const params = record(activity.payload.params);
+	const itemType = String(record(params?.item)?.type ?? "").replace(/[-_]/gu, "").toLowerCase();
+	const method = typeof activity.payload.method === "string" ? activity.payload.method.toLowerCase() : "";
+	return itemType === "agentmessage" || method.startsWith("item/agentmessage/");
+}
+
+function missingAssistantResponseNotice(phase: ProjectActivityPhase): string {
+	if (phase === "cancelled") return "답변 본문을 받기 전에 작업이 중단되었습니다.";
+	if (phase === "failed") return "답변 본문을 받기 전에 작업이 실패했습니다.";
+	return "최종 답변 본문을 받지 못했습니다.";
 }
 
 /** @linear WOO-690 */

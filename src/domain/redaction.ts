@@ -36,6 +36,8 @@ const CUSTOMER_IDENTIFIER_PATTERNS: readonly RegExp[] = [
 
 const COMPLETION_ENVELOPE_LINE = /^\s*<(\/?)(analysis|results|files|answer|next_steps)\s*>\s*$/iu;
 const COMPLETION_ENVELOPE_SECTION = /^\s*<(analysis|results|files|answer|next_steps)\s*>(.*?)<\/\1\s*>\s*$/iu;
+const COMPLETION_ENVELOPE_OPEN_PREFIX = /^\s*<(analysis|results|files|answer|next_steps)\s*>(.*)$/iu;
+const COMPLETION_ENVELOPE_CLOSE_SUFFIX = /^(.*?)<\/(analysis|results|files|answer|next_steps)\s*>\s*$/iu;
 const FENCE_OPEN = /^ {0,3}(`{3,}|~{3,})/u;
 
 /**
@@ -91,6 +93,81 @@ export function sanitizeCompletedAssistantResponse(value: string): string {
 		else if (!activeSection && line.trim()) return value;
 	}
 	return sawEnvelope && !activeSection && answerCount === 1 ? answer.join("\n").trim() : value;
+}
+
+/**
+ * Keeps an observed public answer fragment while a response is incomplete.
+ * Once a completion envelope starts, malformed or unfinished private sections
+ * fail closed instead of exposing their contents. Plain Markdown and fenced
+ * examples without a leading envelope remain unchanged.
+ */
+export function sanitizePartialAssistantResponse(value: string): string {
+	if (typeof value !== "string") throw new Error("Assistant response must be a string");
+	let activeSection: string | null = null;
+	let fence: { marker: string; length: number } | null = null;
+	let answerCount = 0;
+	let sawEnvelope = false;
+	const answer: string[] = [];
+	const projectedAnswer = (): string => answerCount === 1 ? answer.join("\n").trim() : "";
+	for (const line of value.split(/\r?\n/u)) {
+		if (fence) {
+			if (new RegExp(`^ {0,3}${fence.marker}{${fence.length},}\\s*$`, "u").test(line)) fence = null;
+			if (activeSection === "answer") answer.push(line);
+			continue;
+		}
+		const openedFence = line.match(FENCE_OPEN)?.[1];
+		if (openedFence) {
+			if (!activeSection) return sawEnvelope ? projectedAnswer() : value;
+			fence = { marker: openedFence[0]!, length: openedFence.length };
+			if (activeSection === "answer") answer.push(line);
+			continue;
+		}
+		const section = line.match(COMPLETION_ENVELOPE_SECTION);
+		if (section) {
+			if (activeSection) return projectedAnswer();
+			sawEnvelope = true;
+			if (section[1]!.toLowerCase() === "answer") {
+				answerCount += 1;
+				answer.push(section[2]!);
+			}
+			continue;
+		}
+		const closeSuffix = line.match(COMPLETION_ENVELOPE_CLOSE_SUFFIX);
+		if (closeSuffix && activeSection) {
+			if (activeSection !== closeSuffix[2]!.toLowerCase()) return projectedAnswer();
+			if (activeSection === "answer") answer.push(closeSuffix[1]!);
+			activeSection = null;
+			continue;
+		}
+		const tag = line.match(COMPLETION_ENVELOPE_LINE);
+		if (tag) {
+			sawEnvelope = true;
+			const name = tag[2]!.toLowerCase();
+			if (tag[1] === "/") {
+				if (activeSection !== name) return projectedAnswer();
+				activeSection = null;
+			} else {
+				if (activeSection) return projectedAnswer();
+				activeSection = name;
+				if (name === "answer") answerCount += 1;
+			}
+			continue;
+		}
+		const openPrefix = line.match(COMPLETION_ENVELOPE_OPEN_PREFIX);
+		if (openPrefix) {
+			if (activeSection) return projectedAnswer();
+			sawEnvelope = true;
+			activeSection = openPrefix[1]!.toLowerCase();
+			if (activeSection === "answer") {
+				answerCount += 1;
+				answer.push(openPrefix[2]!);
+			}
+			continue;
+		}
+		if (activeSection === "answer") answer.push(line);
+		else if (!activeSection && line.trim()) return sawEnvelope ? projectedAnswer() : value;
+	}
+	return sawEnvelope ? projectedAnswer() : value;
 }
 
 /**

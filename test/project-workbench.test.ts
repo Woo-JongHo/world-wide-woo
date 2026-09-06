@@ -1928,6 +1928,206 @@ describe("ProjectWorkbench", () => {
 	});
 
 	// @linear WOO-688
+	test("does not turn a Native userMessage completion into a missing assistant response", async () => {
+		const native = new FakeNativeHarness();
+		const journal = new MemoryJournal();
+		const workbench = new ProjectWorkbench(native, journal, {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+		});
+		await ready(workbench);
+		await workbench.dispatch({ type: "chat.send", text: "실제 Native 질문" });
+
+		native.emit({
+			type: "notification",
+			method: "item/completed",
+			refs: { threadId: "thread-1", turnId: "turn-1", itemId: "native-user-message" },
+			params: { item: { type: "userMessage", content: [{ type: "text", text: "실제 Native 질문" }] } },
+		});
+		native.emit({
+			type: "notification",
+			method: "item/completed",
+			refs: { threadId: "thread-1", turnId: "turn-1", itemId: "native-agent-message" },
+			params: { item: { type: "agentMessage", text: "실제 Native 답변" } },
+		});
+		native.emit({
+			type: "notification",
+			method: "turn/completed",
+			refs: { threadId: "thread-1", turnId: "turn-1" },
+			params: { turn: { id: "turn-1", status: "completed", error: null } },
+		});
+		await Bun.sleep(10);
+
+		expect(workbench.snapshot.chat.map((message) => [message.role, message.content, message.status])).toEqual([
+			["user", "실제 Native 질문", "completed"],
+			["assistant", "실제 Native 답변", "completed"],
+		]);
+		expect(journal.records.filter((activity) => activity.payload.finalObservation === "missing")).toHaveLength(0);
+		expect(journal.records.some((activity) =>
+			activity.nativeRefs.itemId === "native-user-message" && activity.payload.role === "assistant",
+		)).toBe(false);
+		await workbench.close();
+	});
+
+	test("projects a nested interrupted turn/completed as a cancelled partial response", async () => {
+		const native = new FakeNativeHarness();
+		const journal = new MemoryJournal();
+		let tnoteCreates = 0;
+		const workbench = new ProjectWorkbench(native, journal, {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+			tnotes: {
+				readAll: async () => [],
+				create: async () => {
+					tnoteCreates += 1;
+					throw new Error("중단 turn은 자동 T-note를 만들면 안 됩니다.");
+				},
+			},
+		});
+		await ready(workbench);
+		await workbench.dispatch({ type: "chat.send", text: "중단할 요청" });
+		native.emit({
+			type: "notification",
+			method: "item/agentMessage/delta",
+			refs: { threadId: "thread-1", turnId: "turn-1", itemId: "interrupted-message" },
+			params: { delta: "중단 전에 받은 부분" },
+		});
+		native.emit({
+			type: "notification",
+			method: "turn/completed",
+			refs: { threadId: "thread-1", turnId: "turn-1" },
+			params: { turn: { id: "turn-1", status: "interrupted", error: null } },
+		});
+		await Bun.sleep(10);
+
+		expect(workbench.snapshot.chat.find((message) => message.role === "assistant")).toMatchObject({
+			content: "중단 전에 받은 부분",
+			status: "cancelled",
+			partial: true,
+		});
+		const preserved = journal.records.find((activity) => activity.payload.finalObservation === "missing");
+		const terminal = journal.records.find((activity) => activity.payload.method === "turn/completed");
+		expect(preserved).toMatchObject({ phase: "cancelled", payload: { terminalMethod: "turn/completed" } });
+		expect(terminal).toMatchObject({ phase: "cancelled" });
+		expect(tnoteCreates).toBe(0);
+		expect(workbench.snapshot.draft).toBe("");
+		await workbench.close();
+	});
+
+	test("renders an outputless interrupted turn as a terminal state notice", async () => {
+		const native = new FakeNativeHarness();
+		const journal = new MemoryJournal();
+		const workbench = new ProjectWorkbench(native, journal, {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+		});
+		await ready(workbench);
+		await workbench.dispatch({ type: "chat.send", text: "바로 중단" });
+		native.emit({
+			type: "notification",
+			method: "item/agentMessage/delta",
+			refs: { threadId: "thread-1", turnId: "turn-1", itemId: "whitespace-message" },
+			params: { delta: " \n\t" },
+		});
+		native.emit({
+			type: "notification",
+			method: "turn/completed",
+			refs: { threadId: "thread-1", turnId: "turn-1" },
+			params: { turn: { id: "turn-1", status: "interrupted", error: null } },
+		});
+		await Bun.sleep(10);
+
+		expect(workbench.snapshot.chat.find((message) => message.role === "assistant")).toMatchObject({
+			content: "답변 본문을 받기 전에 작업이 중단되었습니다.",
+			status: "cancelled",
+			partial: false,
+		});
+		expect(journal.records.find((activity) => activity.payload.finalObservation === "missing")?.payload)
+			.toMatchObject({ presentation: "terminal-status-notice", partial: false });
+		await workbench.close();
+	});
+
+	test.each([
+		["failed", "failed"],
+		["cancelled", "cancelled"],
+	] as const)("projects nested %s turn/completed status and skips the success checkpoint", async (nativeStatus, phase) => {
+		const native = new FakeNativeHarness();
+		const journal = new MemoryJournal();
+		let tnoteCreates = 0;
+		const workbench = new ProjectWorkbench(native, journal, {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+			tnotes: {
+				readAll: async () => [],
+				create: async () => {
+					tnoteCreates += 1;
+					throw new Error("비성공 turn은 자동 T-note를 만들면 안 됩니다.");
+				},
+			},
+		});
+		await ready(workbench);
+		await workbench.dispatch({ type: "chat.send", text: `${nativeStatus} 요청` });
+		native.emit({
+			type: "notification",
+			method: "item/agentMessage/delta",
+			refs: { threadId: "thread-1", turnId: "turn-1", itemId: `${nativeStatus}-message` },
+			params: { delta: "종료 전 공개 부분" },
+		});
+		native.emit({
+			type: "notification",
+			method: "turn/completed",
+			refs: { threadId: "thread-1", turnId: "turn-1" },
+			params: { turn: { id: "turn-1", status: nativeStatus, error: null } },
+		});
+		await Bun.sleep(10);
+
+		expect(workbench.snapshot.chat.find((message) => message.role === "assistant")).toMatchObject({
+			content: "종료 전 공개 부분",
+			status: phase,
+			partial: true,
+		});
+		expect(journal.records.find((activity) => activity.payload.method === "turn/completed")).toMatchObject({ phase });
+		expect(tnoteCreates).toBe(0);
+		await workbench.close();
+	});
+
+	test("uses nested completed turn status as a success T-note checkpoint", async () => {
+		const native = new FakeNativeHarness();
+		const journal = new MemoryJournal();
+		let tnoteCreates = 0;
+		const workbench = new ProjectWorkbench(native, journal, {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+			tnotes: {
+				readAll: async () => [],
+				create: async () => {
+					tnoteCreates += 1;
+					throw new Error("checkpoint 관측용 종료");
+				},
+			},
+		});
+		await ready(workbench);
+		await workbench.dispatch({ type: "chat.send", text: "정상 완료 요청" });
+		native.emit({
+			type: "notification",
+			method: "item/completed",
+			refs: { threadId: "thread-1", turnId: "turn-1", itemId: "completed-message" },
+			params: { item: { type: "agentMessage", text: "정상 완료 답변" } },
+		});
+		native.emit({
+			type: "notification",
+			method: "turn/completed",
+			refs: { threadId: "thread-1", turnId: "turn-1" },
+			params: { turn: { id: "turn-1", status: "completed", error: null } },
+		});
+		await Bun.sleep(10);
+
+		expect(journal.records.find((activity) => activity.payload.method === "turn/completed"))
+			.toMatchObject({ phase: "completed" });
+		expect(tnoteCreates).toBe(1);
+		await workbench.close();
+	});
+
 	test("preserves a partial answer and marks a completed turn with no final item as incomplete", async () => {
 		const native = new FakeNativeHarness();
 		const journal = new MemoryJournal();
@@ -2147,6 +2347,86 @@ describe("ProjectWorkbench", () => {
 		});
 		await Bun.sleep(10);
 		expect(workbench.snapshot.draft).toBe("다른 turn의 정상 조각");
+		await workbench.close();
+	});
+
+	test("remembers a terminal message observation without relying on an item method prefix", async () => {
+		const native = new FakeNativeHarness();
+		const journal = new MemoryJournal();
+		const workbench = new ProjectWorkbench(native, journal, {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+		});
+		await ready(workbench);
+		await workbench.dispatch({ type: "chat.send", text: "비표준 완료 통지" });
+		native.emit({
+			type: "notification",
+			method: "response/completed",
+			refs: { threadId: "thread-1", turnId: "turn-1", itemId: "response-message" },
+			params: { item: { type: "agentMessage", text: "완전한 답변" } },
+		});
+		native.emit({
+			type: "notification",
+			method: "response/completed",
+			refs: { threadId: "thread-1", turnId: "turn-1", itemId: "response-message" },
+			params: { item: { type: "agentMessage", text: "중복 답변" } },
+		});
+		native.emit({
+			type: "notification",
+			method: "item/agentMessage/delta",
+			refs: { threadId: "thread-1", turnId: "turn-1", itemId: "response-message" },
+			params: { delta: "늦은 조각" },
+		});
+		native.emit({
+			type: "notification",
+			method: "turn/completed",
+			refs: { threadId: "thread-1", turnId: "turn-1" },
+			params: { turn: { id: "turn-1", status: "completed", error: null } },
+		});
+		await Bun.sleep(10);
+
+		expect(workbench.snapshot.chat.filter((message) => message.role === "assistant").map((message) => ({
+			content: message.content,
+			status: message.status,
+		}))).toEqual([{ content: "완전한 답변", status: "completed" }]);
+		expect(workbench.snapshot.draft).toBe("");
+		expect(journal.records.filter((activity) => activity.nativeRefs.itemId === "response-message")).toHaveLength(1);
+		expect(journal.records.filter((activity) => activity.payload.finalObservation === "missing")).toHaveLength(0);
+		await workbench.close();
+	});
+
+	test("does not accept a sparse assistant completion without a turn owner", async () => {
+		const native = new FakeNativeHarness();
+		const journal = new MemoryJournal();
+		const workbench = new ProjectWorkbench(native, journal, {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+		});
+		await ready(workbench);
+		await workbench.dispatch({ type: "chat.send", text: "소유권 확인" });
+		native.emit({
+			type: "notification",
+			method: "item/completed",
+			refs: { threadId: "thread-1", itemId: "unowned-final" },
+			params: { item: { type: "agentMessage", text: "turn 없는 완료" } },
+		});
+		native.emit({
+			type: "notification",
+			method: "turn/completed",
+			refs: { threadId: "thread-1", turnId: "turn-1" },
+			params: { turn: { id: "turn-1", status: "completed", error: null } },
+		});
+		await Bun.sleep(10);
+
+		expect(workbench.snapshot.chat.some((message) => message.content === "turn 없는 완료")).toBe(false);
+		expect(workbench.snapshot.chat.filter((message) => message.role === "assistant")).toEqual([
+			expect.objectContaining({
+				content: "최종 답변 본문을 받지 못했습니다.",
+				status: "incomplete",
+				partial: false,
+			}),
+		]);
+		expect(journal.records.some((activity) => activity.nativeRefs.itemId === "unowned-final")).toBe(false);
 		await workbench.close();
 	});
 
