@@ -6,7 +6,7 @@ const session = (id: string, result: ObservabilitySessionSummary["result"], ende
 
 describe("observability dashboard", () => {
 	test("is deterministic, aggregates only attributed usage, and bounds recent sessions", () => {
-		const sessions = Array.from({ length: OBSERVABILITY_RECENT_SESSION_LIMIT + 2 }, (_, index) => session(`s${index}`, "completed", `2026-09-${String(index % 3 + 1).padStart(2, "0")}T00:00:00.000Z`, index === 0 ? { totalTokens: 12, unattributedTokens: 99, models: [{ model: "model-a", effort: null, interactiveRootTurns: 1, interactiveTokens: 12, detachedInvocations: 0, detachedTokens: 0, totalTokens: 12 }] } : null));
+		const sessions = Array.from({ length: OBSERVABILITY_RECENT_SESSION_LIMIT + 2 }, (_, index) => session(`s${index}`, "completed", `2026-09-${String(index % 3 + 1).padStart(2, "0")}T00:00:00.000Z`, index === 0 ? { totalTokens: 12, unattributedTokens: 99, models: [{ model: "model-a", effort: null, interactiveRootTurns: 1, interactiveTokens: 12, detachedInvocations: 0, detachedTokens: 0, totalTokens: 12 }], observationCoverage: { interactive: true, detached: false } } : null));
 		const first = projectObservabilityDashboard(sessions, coverage);
 		expect(first).toEqual(projectObservabilityDashboard(sessions, coverage));
 		expect(first.usage).toEqual({ totalTokens: 12, models: [{ model: "model-a", effort: null, totalTokens: 12, interactiveRootTurns: 1, detachedInvocations: 0 }] });

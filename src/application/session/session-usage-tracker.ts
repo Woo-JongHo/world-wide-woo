@@ -7,6 +7,7 @@ const NATIVE_CONTEXT_BASELINE_TOKENS = 12_000;
 export class SessionUsageTracker {
 	private contextUsageValue: WorkbenchContextUsage | null = null;
 	private observedThreadTotalTokens: number | null;
+	private interactiveUsageObserved = false;
 	private readonly turnModels = new Map<string, { model: string; effort: string | null }>();
 	private readonly observedTurns = new Set<string>();
 	private readonly modelUsage = new Map<string, WorkbenchModelUsage>();
@@ -25,6 +26,7 @@ export class SessionUsageTracker {
 			let delta = 0;
 			if (this.observedThreadTotalTokens === null) this.observedThreadTotalTokens = totalTokens;
 			else if (totalTokens >= this.observedThreadTotalTokens) {
+				this.interactiveUsageObserved = true;
 				delta = totalTokens - this.observedThreadTotalTokens;
 				this.observedThreadTotalTokens = totalTokens;
 			}
@@ -57,7 +59,15 @@ export class SessionUsageTracker {
 			});
 		}
 		const models = [...merged.values()].sort((left, right) => right.totalTokens - left.totalTokens || left.model.localeCompare(right.model));
-		return { totalTokens: models.reduce((sum, usage) => sum + usage.totalTokens, 0) + this.unattributedTokens, unattributedTokens: this.unattributedTokens, models };
+		return {
+			totalTokens: models.reduce((sum, usage) => sum + usage.totalTokens, 0) + this.unattributedTokens,
+			unattributedTokens: this.unattributedTokens,
+			models,
+			observationCoverage: {
+				interactive: this.interactiveUsageObserved,
+				detached: models.some(usage => usage.detachedInvocations > 0),
+			},
+		};
 	}
 
 	private attribute(turnId: string | undefined, delta: number): void {

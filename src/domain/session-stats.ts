@@ -5,7 +5,7 @@ import { observedCompletionPercent, observedElapsedMs as elapsed } from "./obser
 const DETAIL_LIMIT = 1000;
 const SHORTLIST_LIMIT = 8;
 
-export type SessionReviewState = "empty" | "observed";
+export type SessionReviewState = "empty" | "active" | "failed" | "cancelled" | "completed" | "observed";
 export type ObservationCoverage = "fresh" | "partial-local-journal" | "unknown";
 export type ClaimAuthority = "journal" | "session-goal" | "t-note" | "unknown";
 export type ModelUsageNamespace = "interactive" | "detached";
@@ -28,16 +28,21 @@ export interface LifecycleSummary {
 	readonly failedRootTurns: number;
 	readonly cancelledRootTurns: number;
 	readonly activeRootTurns: number;
+	readonly boundaryOnlyRootTurns: number;
 }
 
 export interface Performance {
 	readonly journalSpanMs: number | null;
 	readonly rootTurnCompletionPercent: number | null;
 	readonly averageCompletedRootTurnMs: number | null;
+	readonly completedRootTurnDurationObservations: number;
 	readonly pairedToolTimeMs: number | null;
+	readonly pairedToolObservations: number;
 	readonly averageApprovalWaitMs: number | null;
 	readonly totalApprovalWaitMs: number | null;
+	readonly pairedApprovalWaitObservations: number;
 	readonly averageFirstOutputMs: number | null;
+	readonly firstOutputObservations: number;
 	readonly interactiveTokensPerCompletedRootTurn: number | null;
 }
 
@@ -86,6 +91,12 @@ export interface SessionStatsSnapshot {
 	readonly state: SessionReviewState;
 	readonly coverage: ObservationCoverage;
 	readonly activeModel: string | null;
+	/** Sum across observed usage namespaces. Null means neither namespace was observed; zero is an observed value. */
+	readonly observedTotalTokens: number | null;
+	readonly usageObservationCoverage: {
+		readonly interactive: boolean;
+		readonly detached: boolean;
+	};
 	readonly lifecycle: LifecycleSummary;
 	readonly performance: Performance;
 	readonly modelUsage: readonly ModelUsageRow[];
@@ -105,9 +116,12 @@ export interface SessionStatsSnapshot {
 	readonly diagnostics: Diagnostics;
 }
 
+/** @linear WOO-714 */
 export function projectSessionStats(snapshot: WorkbenchSnapshot): SessionStatsSnapshot {
 	const activities = [...snapshot.activities].sort((left, right) => left.sequence - right.sequence);
-	const rootActivities = activities.filter(activity => activity.nativeRefs.threadId === snapshot.threadId);
+	const rootActivities = snapshot.threadId === null
+		? []
+		: activities.filter(activity => activity.nativeRefs.threadId === snapshot.threadId);
 	const rootTurns = projectRootTurns(rootActivities);
 	const requests = projectRequests(activities, rootTurns);
 	const failureIssues = activities
@@ -117,6 +131,7 @@ export function projectSessionStats(snapshot: WorkbenchSnapshot): SessionStatsSn
 	const span = elapsed(activities.at(0)?.recordedAt ?? null, activities.at(-1)?.recordedAt ?? null);
 	const firstOutput = rootTurns.flatMap(turn => turn.firstOutputMs === null ? [] : [turn.firstOutputMs]);
 	const completed = rootTurns.filter(turn => turn.status === "completed");
+	const completedDurations = completed.flatMap(turn => turn.elapsedMs === null ? [] : [turn.elapsedMs]);
 	const toolDurations = pairedDurations(rootActivities, isTool);
 	const approvalDurations = pairedApprovalDurations(rootActivities);
 	const totalApprovalWaitMs = sum(approvalDurations);
@@ -125,12 +140,19 @@ export function projectSessionStats(snapshot: WorkbenchSnapshot): SessionStatsSn
 	const requestDetails = retainedRequestDetails(requests, requestShortlist);
 	const coverage = snapshot.resumeCoverage?.mode === "partial-local-journal"
 		? "partial-local-journal"
-		: activities.length > 0 ? "fresh" : "unknown";
+		: snapshot.resumeCoverage?.mode === "fresh" || activities.length > 0 ? "fresh" : "unknown";
+	const state = sessionReviewState(activities, rootTurns);
+	const usageObservationCoverage = observationCoverage(snapshot);
+	const observedTotalTokens = usageObservationCoverage.interactive || usageObservationCoverage.detached
+		? snapshot.sessionUsage?.totalTokens ?? null
+		: null;
 
 	return Object.freeze({
-		state: activities.length === 0 ? "empty" : "observed",
+		state,
 		coverage,
 		activeModel: snapshot.activeModel ?? snapshot.model ?? null,
+		observedTotalTokens,
+		usageObservationCoverage,
 		lifecycle: Object.freeze({
 			threadId: snapshot.threadId,
 			startedAt: activities.at(0)?.recordedAt ?? null,
@@ -141,16 +163,21 @@ export function projectSessionStats(snapshot: WorkbenchSnapshot): SessionStatsSn
 			failedRootTurns: rootTurns.filter(turn => turn.status === "failed").length,
 			cancelledRootTurns: rootTurns.filter(turn => turn.status === "cancelled").length,
 			activeRootTurns: rootTurns.filter(turn => turn.status === "running").length,
+			boundaryOnlyRootTurns: rootTurns.filter(turn => turn.status === "observed").length,
 		}),
 		performance: Object.freeze({
 			journalSpanMs: span,
 			rootTurnCompletionPercent: observedCompletionPercent(completed.length, rootTurns.length),
-			averageCompletedRootTurnMs: average(completed.map(turn => turn.elapsedMs!)),
+			averageCompletedRootTurnMs: average(completedDurations),
+			completedRootTurnDurationObservations: completedDurations.length,
 			pairedToolTimeMs: sum(toolDurations),
+			pairedToolObservations: toolDurations.length,
 			averageApprovalWaitMs: average(approvalDurations),
 			totalApprovalWaitMs,
+			pairedApprovalWaitObservations: approvalDurations.length,
 			averageFirstOutputMs: average(firstOutput),
-			interactiveTokensPerCompletedRootTurn: completed.length > 0 && snapshot.sessionUsage
+			firstOutputObservations: firstOutput.length,
+			interactiveTokensPerCompletedRootTurn: completed.length > 0 && snapshot.sessionUsage && usageObservationCoverage.interactive
 				? Math.round(snapshot.sessionUsage.models.reduce((total, model) => total + model.interactiveTokens, 0) / completed.length)
 				: null,
 		}),
@@ -211,11 +238,11 @@ export function projectSessionStats(snapshot: WorkbenchSnapshot): SessionStatsSn
 
 interface RootTurn {
 	readonly id: string;
-	readonly startedAt: string;
+	readonly startedAt: string | null;
 	readonly endedAt: string | null;
 	readonly elapsedMs: number | null;
 	readonly firstOutputMs: number | null;
-	readonly status: "running" | "completed" | "failed" | "cancelled";
+	readonly status: "observed" | "running" | "completed" | "failed" | "cancelled";
 	readonly sourceActivityIds: readonly string[];
 }
 
@@ -228,15 +255,13 @@ function projectRootTurns(activities: readonly ProjectActivity[]): RootTurn[] {
 		groups.set(activity.nativeRefs.turnId, group);
 	}
 	return [...groups.entries()].map(([id, group]) => {
-		const startedAt = group.find(isTurnStarted)?.recordedAt ?? group[0]!.recordedAt;
+		const startedAt = group.find(isTurnStarted)?.recordedAt ?? null;
 		const terminal = group.find(isTurnTerminal);
 		const endedAt = terminal?.recordedAt ?? null;
 		const first = group.find(activity => method(activity) === "turn/first-output-observed");
-		const terminalMethod = terminal ? method(terminal) : "";
-		const status = terminalMethod === "turn/completed" ? "completed"
-			: terminalMethod.includes("failed") ? "failed"
-			: terminal ? "cancelled"
-			: "running";
+		const status = terminal ? rootTurnTerminalStatus(terminal)
+			: startedAt ? "running"
+			: "observed";
 		return {
 			id,
 			startedAt,
@@ -247,6 +272,18 @@ function projectRootTurns(activities: readonly ProjectActivity[]): RootTurn[] {
 			sourceActivityIds: Object.freeze(group.map(activity => activity.id)),
 		};
 	});
+}
+
+function sessionReviewState(
+	activities: readonly ProjectActivity[],
+	rootTurns: readonly RootTurn[],
+): SessionReviewState {
+	if (activities.length === 0) return "empty";
+	if (rootTurns.some(turn => turn.status === "running")) return "active";
+	if (rootTurns.some(turn => turn.status === "failed")) return "failed";
+	if (rootTurns.some(turn => turn.status === "cancelled")) return "cancelled";
+	if (rootTurns.length > 0 && rootTurns.every(turn => turn.status === "completed")) return "completed";
+	return "observed";
 }
 
 function projectRequests(activities: readonly ProjectActivity[], turns: readonly RootTurn[]): RequestReview[] {
@@ -346,8 +383,18 @@ function projectUsage(snapshot: WorkbenchSnapshot): { rows: readonly ModelUsageR
 			}));
 		}
 	}
-	const warning = usage.unattributedTokens > 0 ? "Some observed tokens cannot be attributed to a model or namespace." : null;
+	const warning = usage.unattributedTokens > 0 ? "Some observed interactive tokens cannot be attributed to a model." : null;
 	return { rows: Object.freeze(rows), unattributed: warning ? Object.freeze({ totalTokens: usage.unattributedTokens, warning }) : null, warning };
+}
+
+function observationCoverage(snapshot: WorkbenchSnapshot): SessionStatsSnapshot["usageObservationCoverage"] {
+	const explicit = snapshot.sessionUsage?.observationCoverage;
+	if (explicit) return Object.freeze({ interactive: explicit.interactive, detached: explicit.detached });
+	const models = snapshot.sessionUsage?.models ?? [];
+	return Object.freeze({
+		interactive: models.some(usage => usage.interactiveRootTurns > 0 || usage.interactiveTokens > 0),
+		detached: models.some(usage => usage.detachedInvocations > 0 || usage.detachedTokens > 0),
+	});
 }
 
 function pairedDurations(activities: readonly ProjectActivity[], predicate: (activity: ProjectActivity) => boolean): number[] {
@@ -360,6 +407,7 @@ function pairedDurations(activities: readonly ProjectActivity[], predicate: (act
 		if ((activity.phase === "completed" || activity.phase === "failed" || activity.phase === "cancelled") && started.has(id)) {
 			const duration = elapsed(started.get(id)!, activity.recordedAt);
 			if (duration !== null) durations.push(duration);
+			started.delete(id);
 		}
 	}
 	return durations;
@@ -374,6 +422,7 @@ function pairedApprovalDurations(activities: readonly ProjectActivity[]): number
 		if (activity.payload.eventType === "approval-resolved" && (typeof id === "string" || typeof id === "number") && started.has(id)) {
 			const duration = elapsed(started.get(id)!, activity.recordedAt);
 			if (duration !== null) durations.push(duration);
+			started.delete(id);
 		}
 	}
 	return durations;
@@ -394,6 +443,25 @@ function isTurnStarted(activity: ProjectActivity): boolean {
 
 function isTurnTerminal(activity: ProjectActivity): boolean {
 	return ["turn/completed", "turn/failed", "turn/cancelled", "turn/canceled", "turn/interrupted"].includes(method(activity));
+}
+
+function rootTurnTerminalStatus(activity: ProjectActivity): "completed" | "failed" | "cancelled" {
+	if (activity.phase === "failed") return "failed";
+	if (activity.phase === "cancelled") return "cancelled";
+
+	const params = record(activity.payload.params);
+	const turn = record(params?.turn);
+	const statusValue = turn?.status;
+	const status = normalizeStatus(typeof statusValue === "string" ? statusValue : record(statusValue)?.type);
+	if (["failed", "errored", "error"].includes(status)) return "failed";
+	if (["interrupted", "cancelled", "canceled", "shutdown"].includes(status)) return "cancelled";
+	if (turn?.error !== undefined && turn.error !== null) return "failed";
+	if (["completed", "complete", "succeeded", "success"].includes(status)) return "completed";
+
+	const terminalMethod = method(activity).toLowerCase();
+	if (terminalMethod.includes("failed") || terminalMethod.includes("error")) return "failed";
+	if (terminalMethod.includes("cancelled") || terminalMethod.includes("canceled") || terminalMethod.includes("interrupted")) return "cancelled";
+	return "completed";
 }
 
 function isRequestTerminal(value: string): boolean {
@@ -422,13 +490,28 @@ function isWait(activity: ProjectActivity): boolean {
 function isCompaction(activity: ProjectActivity): boolean {
 	return /compact/u.test(method(activity));
 }
-function isFailure(activity: ProjectActivity): boolean { const params = record(activity.payload.params); const item = record(params?.item); const status = String(activity.payload.status ?? params?.status ?? item?.status ?? "").toLowerCase(); const error = activity.payload.error ?? params?.error ?? item?.error; const exitCode = activity.payload.exitCode ?? params?.exitCode ?? item?.exitCode; return activity.phase === "failed" || status === "failed" || status === "error" || (error !== undefined && error !== null) || (typeof exitCode === "number" && exitCode !== 0); }
+function isFailure(activity: ProjectActivity): boolean {
+	const params = record(activity.payload.params);
+	const item = record(params?.item);
+	const turn = record(params?.turn);
+	const turnStatusValue = turn?.status;
+	const turnStatus = normalizeStatus(typeof turnStatusValue === "string" ? turnStatusValue : record(turnStatusValue)?.type);
+	const status = normalizeStatus(activity.payload.status ?? params?.status ?? item?.status);
+	const error = activity.payload.error ?? params?.error ?? item?.error ?? turn?.error;
+	const exitCode = activity.payload.exitCode ?? params?.exitCode ?? item?.exitCode;
+	return activity.phase === "failed"
+		|| status === "failed" || status === "error" || status === "errored"
+		|| turnStatus === "failed" || turnStatus === "error" || turnStatus === "errored"
+		|| (error !== undefined && error !== null)
+		|| (typeof exitCode === "number" && exitCode !== 0);
+}
 function textValue(payload: Readonly<Record<string, unknown>>): string { const params = record(payload.params); const item = record(params?.item); for (const value of [payload.text, payload.content, params?.text, item?.text, item?.content]) if (typeof value === "string") return value; return ""; }
 function failureSummary(activity: ProjectActivity): string { return textValue(activity.payload) || `${method(activity)} failed`; }
 function noteResult(title: string, summary: string): string { return summary.split(/\r?\n/u).find(line => /^\s*결과\s*:/u.test(line))?.replace(/^\s*결과\s*:\s*/u, "") || title; }
 function claim(text: string, authority: ClaimAuthority, sourceActivityIds: readonly string[]): Claim { return Object.freeze({ text: bound(text, 480), authority, sourceActivityIds: Object.freeze([...new Set(sourceActivityIds)]), independentlyVerified: false }); }
 function bound(value: string, limit: number): string { return value.length > limit ? `${value.slice(0, limit)}…` : value; }
 function record(value: unknown): Readonly<Record<string, unknown>> | null { return value !== null && typeof value === "object" && !Array.isArray(value) ? value as Readonly<Record<string, unknown>> : null; }
+function normalizeStatus(value: unknown): string { return typeof value === "string" ? value.replace(/[^a-z]/giu, "").toLowerCase() : ""; }
 function average(values: readonly number[]): number | null { return values.length === 0 ? null : Math.round(values.reduce((total, value) => total + value, 0) / values.length); }
 function sum(values: readonly number[]): number | null { return values.length === 0 ? null : values.reduce((total, value) => total + value, 0); }
 function round(value: number): number { return Math.round(value * 10) / 10; }

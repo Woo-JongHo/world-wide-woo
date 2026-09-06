@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "linear": {
+    "id": "WOO-714",
+    "uuid": "b7db4486-ed21-413d-8c35-541bfd536fc1",
+    "parentId": "WOO-677"
+  },
+  "baselineCommit": "19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d",
+  "branch": "woo-714-stats-observations",
+  "nativePtyEvidence": {
+    "path": "/Users/jonghoPro/woo/00_project/99_www-pr-chat-lifecycle/.www/scratchpad/2026-09-07-native-pty-events.jsonl",
+    "observedBoundary": "turn/completed carries nested completed or interrupted turn status"
+  },
+  "reviewReceipts": [
+    {
+      "provider": "claude",
+      "model": "claude-opus-5",
+      "uuid": "55b59f28-8278-41f6-b6a6-da46a4f8c6c0",
+      "decision": "REVISE",
+      "result": "D1, D2, D3 addressed; re-review pending"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5",
+      "uuid": "e93091fb-a9a9-491b-b6bb-0ee55a7f3e6b",
+      "decision": "UNAVAILABLE",
+      "result": "429 session limit; no review verdict"
+    }
+  ],
+  "verification": {
+    "targeted": "111 pass, 0 fail, 955 assertions",
+    "typecheck": "pass",
+    "full": "633 pass, 0 fail, 4502 assertions, 73 files",
+    "diffCheck": "pass"
+  },
+  "actualNativeTuiAcceptance": {
+    "preFix": "semantic outcome passed; 80-column outcome counts were not visible",
+    "artifacts": [
+      ".www/evidence/2026-09-07-stats-native-pty-before-layout-fix/02-completed-stats-80.txt",
+      ".www/evidence/2026-09-07-stats-native-pty-before-layout-fix/03-resize-40.txt",
+      ".www/evidence/2026-09-07-stats-native-pty-before-layout-fix/03-resize-80.txt",
+      ".www/evidence/2026-09-07-stats-native-pty-before-layout-fix/03-resize-120.txt",
+      ".www/evidence/2026-09-07-stats-native-pty-before-layout-fix/05-cancelled-stats-80.txt"
+    ],
+    "postFix": "actual Native PTY: outcome counts visible at 40/80/120; cancellation count and completion 1/2 verified; full navigation and denominator captions remain",
+    "postFixEvidence": ".www/evidence/2026-09-07-stats-native-pty-after-layout-fix/README.md"
+  }
+}

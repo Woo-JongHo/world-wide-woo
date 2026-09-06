@@ -6,7 +6,7 @@ import { colors } from "./theme.js";
 type StatsTarget = "session" | "diagnostics" | "latest" | number;
 type LineWriter = (value?: string) => void;
 
-/** Read-only dashboard of the public session statistics projection. */
+/** Read-only dashboard of the public session statistics projection. @linear WOO-714 */
 export class SessionStatsView implements Component {
 	public constructor(
 		private readonly getStats: () => SessionStatsSnapshot,
@@ -44,30 +44,35 @@ export class SessionStatsView implements Component {
 
 	private renderDashboard(line: LineWriter, stats: SessionStatsSnapshot, width: number): void {
 		line(colors.accent("WORLD WIDE WOO · SESSION STATS"));
-		const state = stats.lifecycle.activeRootTurns > 0 ? colors.warning("ACTIVE") : colors.success("COMPLETED");
-		const completion = completionText(stats);
-		line(oneLine(`${stats.lifecycle.threadId ?? "local session"} · ${state}   Purpose ${compactClaim(stats.claims.purpose.text)}   Result ${completion}`, width));
+		line(oneLine(`${stats.lifecycle.threadId ?? "local session"} · ${stateText(stats)} · coverage ${coverageText(stats.coverage)}   Purpose ${compactClaim(stats.claims.purpose.text)}`, width));
+		line(colors.muted(rootOutcomesText(stats)));
 		line(rule(width));
 		if (stats.state === "empty") {
 			line(colors.muted(`No activity observed · ${stats.activeModel ?? "model unavailable"}`));
+			line(colors.muted(stats.observedTotalTokens === null ? "Token usage unobserved." : `${compactNumber(stats.observedTotalTokens)} observed tokens.`));
 			line(colors.muted("Waiting for the first request…"));
 			return;
 		}
 
-		const totalTokens = observedTokens(stats);
+		const totalTokens = stats.observedTotalTokens;
 		const kpis = [
-			["COMPLETION", percent(stats.performance.rootTurnCompletionPercent), `${stats.lifecycle.completedRootTurns}/${stats.lifecycle.rootTurns}`],
-			["ELAPSED", duration(stats.performance.journalSpanMs), ""],
-			["TOKENS", compactNumber(totalTokens), ""],
-			["REQUESTS", String(stats.requests.submitted), ""],
-			["FIRST OUTPUT", duration(stats.performance.averageFirstOutputMs), ""],
+			["ROOT COMPLETION", percent(stats.performance.rootTurnCompletionPercent), `${stats.lifecycle.completedRootTurns}/${stats.lifecycle.rootTurns} root turns`],
+			["JOURNAL SPAN", duration(stats.performance.journalSpanMs), "observed activity range"],
+			["TOKENS", totalTokens === null ? "—" : compactNumber(totalTokens), totalTokens === null ? "usage unobserved" : "observed namespaces"],
+			["REQUESTS", String(stats.requests.submitted), "submitted requests"],
+			["FIRST OUTPUT AVG", duration(stats.performance.averageFirstOutputMs), `${stats.performance.firstOutputObservations}/${stats.lifecycle.rootTurns} root turns`],
 		] as const;
 		for (const row of metricCells(kpis, width, width < 110 ? 2 : 5)) line(row);
 
 		section(line, "MODEL USAGE", width);
-		if (stats.modelUsage.length === 0) line(colors.muted("No observed model usage."));
+		line(colors.muted(`Coverage · interactive ${observedLabel(stats.usageObservationCoverage.interactive)} · detached ${observedLabel(stats.usageObservationCoverage.detached)}`));
+		if (totalTokens === null) line(colors.muted("Token usage unobserved."));
+		else if (totalTokens === 0) line(colors.muted(stats.modelUsage.length === 0
+			? "0 observed tokens · no attributed model or namespace usage."
+			: "0 observed tokens across recorded model namespaces."));
+		else if (stats.modelUsage.length === 0) line(colors.muted("No model-attributed usage rows observed."));
 		for (const usage of stats.modelUsage) {
-			const share = totalTokens > 0 ? Math.round((usage.totalTokens / totalTokens) * 100) : null;
+			const share = totalTokens !== null && totalTokens > 0 ? Math.round((usage.totalTokens / totalTokens) * 100) : null;
 			const count = usage.namespace === "interactive" ? usage.interactiveRootTurns : usage.detachedInvocations;
 			const unit = usage.namespace === "interactive" ? "turns" : "calls";
 			const labelWidth = width < 70 ? 10 : 20;
@@ -79,14 +84,16 @@ export class SessionStatsView implements Component {
 
 		section(line, "PERFORMANCE", width);
 		const performance = [
-			["REQUEST AVG", duration(stats.performance.averageCompletedRootTurnMs), ""],
-			["TOOL TIME", duration(stats.performance.pairedToolTimeMs), ""],
-			["FIRST OUTPUT", duration(stats.performance.averageFirstOutputMs), ""],
-			["TOKENS / REQUEST", stats.performance.interactiveTokensPerCompletedRootTurn === null ? "—" : compactNumber(stats.performance.interactiveTokensPerCompletedRootTurn), ""],
-			["APPROVAL WAIT", duration(stats.performance.totalApprovalWaitMs), ""],
-			["COMPLETION", percent(stats.performance.rootTurnCompletionPercent), ""],
+			["ROOT TURN AVG", duration(stats.performance.averageCompletedRootTurnMs), `${stats.performance.completedRootTurnDurationObservations}/${stats.lifecycle.completedRootTurns} completed pairs`],
+			["PAIRED TOOL TIME", duration(stats.performance.pairedToolTimeMs), `${stats.performance.pairedToolObservations} paired calls`],
+			["FIRST OUTPUT AVG", duration(stats.performance.averageFirstOutputMs), `${stats.performance.firstOutputObservations}/${stats.lifecycle.rootTurns} root turns`],
+			["TOKENS / ROOT TURN", stats.performance.interactiveTokensPerCompletedRootTurn === null ? "—" : compactNumber(stats.performance.interactiveTokensPerCompletedRootTurn), stats.usageObservationCoverage.interactive ? `interactive tokens ÷ ${stats.lifecycle.completedRootTurns} completed root turns` : "interactive usage unobserved"],
+			["APPROVAL WAIT", duration(stats.performance.totalApprovalWaitMs), `${stats.performance.pairedApprovalWaitObservations} paired approvals`],
+			["ROOT COMPLETION", percent(stats.performance.rootTurnCompletionPercent), `${stats.lifecycle.completedRootTurns}/${stats.lifecycle.rootTurns} root turns`],
 		] as const;
 		for (const row of metricCells(performance, width, width < 110 ? 2 : 3)) line(row);
+		line(colors.muted("Elapsed pairs use local journal start → terminal only; partial coverage may omit earlier runtime."));
+		line(colors.muted("Paired tool durations are summed and may overlap."));
 
 		section(line, `REQUESTS · ${stats.requests.submitted}`, width);
 		for (const row of requestHeader(width)) line(colors.muted(row));
@@ -96,6 +103,7 @@ export class SessionStatsView implements Component {
 		line(rule(width));
 		if (stats.issues.length === 0) line(colors.success("✓ No orchestration issues observed"));
 		else for (const issue of stats.issues.slice(-5)) line(oneLine(`${issue.recovered ? colors.warning("!") : colors.error("!")} ${issue.turnId ?? "session"}  ${issue.method} · ${issue.summary}`, width));
+		line(colors.muted("Execution observations only · root-turn completion is not task acceptance · Cost unavailable."));
 		line(colors.muted("Enter / /stats #n · request detail    /source · evidence    Esc · back"));
 	}
 
@@ -118,15 +126,22 @@ export class SessionStatsView implements Component {
 	}
 }
 
-function completionText(stats: SessionStatsSnapshot): string {
-	const completed = stats.lifecycle.completedRootTurns;
-	const total = stats.lifecycle.rootTurns;
-	if (stats.lifecycle.failedRootTurns > 0) return colors.error(`✗ FAILED · ${completed}/${total}`);
-	if (stats.lifecycle.cancelledRootTurns > 0 || stats.lifecycle.activeRootTurns > 0) return colors.warning(`◐ PARTIAL · ${completed}/${total}`);
-	return colors.success(`✓ COMPLETED · ${completed}/${total}`);
+function rootOutcomesText(stats: SessionStatsSnapshot): string {
+	return `ROOT OUTCOMES · completed ${stats.lifecycle.completedRootTurns} · failed ${stats.lifecycle.failedRootTurns} · cancelled ${stats.lifecycle.cancelledRootTurns} · active ${stats.lifecycle.activeRootTurns} · boundary-only ${stats.lifecycle.boundaryOnlyRootTurns}`;
 }
+function stateText(stats: SessionStatsSnapshot): string {
+	switch (stats.state) {
+		case "empty": return colors.muted("EMPTY");
+		case "active": return colors.warning("ACTIVE");
+		case "failed": return colors.error("FAILED");
+		case "cancelled": return colors.warning("CANCELLED");
+		case "completed": return colors.success("OBSERVED COMPLETED");
+		case "observed": return colors.muted("OBSERVED");
+	}
+}
+function coverageText(coverage: SessionStatsSnapshot["coverage"]): string { return coverage.replaceAll("-", " "); }
+function observedLabel(observed: boolean): string { return observed ? "observed" : "unobserved"; }
 function compactClaim(value: string): string { return !value || value === "unknown" ? "—" : oneLine(value, 44); }
-function observedTokens(stats: SessionStatsSnapshot): number { return stats.modelUsage.reduce((sum, row) => sum + row.totalTokens, 0) + (stats.unattributedUsage?.totalTokens ?? 0); }
 function section(line: LineWriter, title: string, width: number): void { line(ruleTitle(title, width)); }
 function rule(width: number): string { return colors.border("─".repeat(width)); }
 function ruleTitle(title: string, width: number): string { const label = ` ${title} `; return colors.border(`${label}${"─".repeat(Math.max(0, width - visibleWidth(label)))}`); }

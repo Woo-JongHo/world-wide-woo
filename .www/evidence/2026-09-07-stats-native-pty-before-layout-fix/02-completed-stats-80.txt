@@ -1,0 +1,36 @@
+WORLD WIDE WOO · SESSION STATS                                                  
+01a0775d-48c5-7e30-8182-689d72d67e6c · OBSERVED COMPLETED · coverage fresh Pu...
+────────────────────────────────────────────────────────────────────────────────
+ROOT COMPLETION                          JOURNAL SPAN                           
+100%                                     11.1s                                  
+1/1 root turns                           observed activity range                
+TOKENS                                   REQUESTS                               
+24.7k                                    1                                      
+observed namespaces                      submitted requests                     
+FIRST OUTPUT AVG                                                                
+6s                                                                              
+1/1 root turns                                                                  
+ MODEL USAGE ───────────────────────────────────────────────────────────────────
+Coverage · interactive observed · detached unobserved                           
+sol                  ████████████████████████████████████  100%  24.7k  1 turns 
+ PERFORMANCE ───────────────────────────────────────────────────────────────────
+ROOT TURN AVG                            PAIRED TOOL TIME                       
+6.3s                                     —                                      
+1/1 completed pairs                      0 paired calls                         
+FIRST OUTPUT AVG                         TOKENS / ROOT TURN                     
+6s                                       24.7k                                  
+1/1 root turns                           interactive tokens ÷ 1 completed roo...
+APPROVAL WAIT                            ROOT COMPLETION                        
+—                                        100%                                   
+0 paired approvals                       1/1 root turns                         
+Elapsed pairs use local journal start → terminal only; partial coverage may omit
+earlier runtime.                                                                
+────────────────────────────────────────────────────────────────────────────────
+                                                                                
+────────────────────────────────────────────────────────────────────────────────
+Session Review · 목적·결과·성능과 요청 검토                                     
+⑂ – · 📁 ~/var/folders/mg/06v1fkqx341gsjxv_l0l3kcw0000gp/T/www-native-chat-9T...
+Codex  7d 확인 중            ● Sol i1                                           
+Claude 7d 확인 중                                                               
+       5h 확인 중                                                               
+Gemini 7d —                                                                     

@@ -61,6 +61,12 @@ export interface WorkbenchSessionUsage {
 	readonly totalTokens: number;
 	readonly unattributedTokens: number;
 	readonly models: readonly WorkbenchModelUsage[];
+	readonly observationCoverage: {
+		/** At least one comparable Native cumulative usage reading was observed after the session baseline. */
+		readonly interactive: boolean;
+		/** At least one detached model invocation reported usage, including an observed zero. */
+		readonly detached: boolean;
+	};
 }
 
 export interface WorkbenchSessionGoal {

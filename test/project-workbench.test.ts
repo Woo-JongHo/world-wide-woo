@@ -40,6 +40,7 @@ import { TNoteService } from "../src/application/t-note-service";
 import type { DetachedTextGenerator } from "../src/application/detached-text-generator";
 import { FileTNoteStore } from "../src/infrastructure/t-note-store";
 import { projectTNoteCompletionIndex, sanitizeTNoteText } from "../src/domain/t-notes";
+import { projectSessionStats } from "../src/domain/session-stats";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -1460,6 +1461,7 @@ describe("ProjectWorkbench", () => {
 			totalTokens: 38_760,
 			unattributedTokens: 12_920,
 			models: [{ model: "gpt-5.6-sol", effort: "low", interactiveRootTurns: 1, interactiveTokens: 25_840, detachedInvocations: 0, detachedTokens: 0, totalTokens: 25_840 }],
+			observationCoverage: { interactive: true, detached: false },
 		});
 		await workbench.close();
 	});
@@ -1488,8 +1490,105 @@ describe("ProjectWorkbench", () => {
 				{ model: "claude-opus-5", effort: null, interactiveRootTurns: 0, interactiveTokens: 0, detachedInvocations: 1, detachedTokens: 3_400, totalTokens: 3_400 },
 				{ model: "gpt-5.6-luna", effort: null, interactiveRootTurns: 0, interactiveTokens: 0, detachedInvocations: 1, detachedTokens: 1_200, totalTokens: 1_200 },
 			],
+			observationCoverage: { interactive: false, detached: true },
 		});
 		await workbench.close();
+	});
+
+	test("preserves real usage observation coverage from ProjectWorkbench into Stats", async () => {
+		const freshNative = new FakeNativeHarness();
+		const auxiliaryUsage = new SessionModelUsageAccumulator();
+		const fresh = new ProjectWorkbench(freshNative, new MemoryJournal(), {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+			model: "gpt-5.6-sol",
+			effort: "low",
+			auxiliaryUsage,
+		});
+		await ready(fresh);
+
+		expect(fresh.snapshot.sessionUsage).toMatchObject({
+			totalTokens: 0,
+			observationCoverage: { interactive: false, detached: false },
+		});
+		expect(projectSessionStats(fresh.snapshot)).toMatchObject({
+			observedTotalTokens: null,
+			usageObservationCoverage: { interactive: false, detached: false },
+		});
+
+		freshNative.emit({
+			type: "notification",
+			method: "thread/tokenUsage/updated",
+			refs: { threadId: "thread-1", turnId: "zero-turn" },
+			params: { tokenUsage: { total: { totalTokens: 0 } } },
+		});
+		await Bun.sleep(10);
+		expect(projectSessionStats(fresh.snapshot)).toMatchObject({
+			observedTotalTokens: 0,
+			usageObservationCoverage: { interactive: true, detached: false },
+		});
+
+		auxiliaryUsage.observe({ model: "gpt-5.6-luna", effort: null, totalTokens: 0 });
+		expect(projectSessionStats(fresh.snapshot)).toMatchObject({
+			observedTotalTokens: 0,
+			usageObservationCoverage: { interactive: true, detached: true },
+			modelUsage: [expect.objectContaining({ namespace: "detached", detachedInvocations: 1, totalTokens: 0 })],
+		});
+
+		await fresh.dispatch({ type: "chat.send", text: "사용량 단위를 확인해줘" });
+		freshNative.emit({
+			type: "notification",
+			method: "thread/tokenUsage/updated",
+			refs: { threadId: "thread-1", turnId: "turn-1" },
+			params: { tokenUsage: { total: { totalTokens: 100 } } },
+		});
+		auxiliaryUsage.observe({ model: "gpt-5.6-luna", effort: null, totalTokens: 50 });
+		await Bun.sleep(10);
+		const mixed = projectSessionStats(fresh.snapshot);
+		expect(mixed).toMatchObject({
+			observedTotalTokens: 150,
+			usageObservationCoverage: { interactive: true, detached: true },
+		});
+		expect(mixed.modelUsage).toEqual([
+			expect.objectContaining({ namespace: "interactive", interactiveRootTurns: 1, totalTokens: 100 }),
+			expect.objectContaining({ namespace: "detached", detachedInvocations: 2, totalTokens: 50 }),
+		]);
+		await fresh.close();
+
+		const resumedNative = new FakeNativeHarness();
+		const resumed = new ProjectWorkbench(resumedNative, new MemoryJournal(), {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+			resumeThreadId: "thread-1",
+		});
+		await ready(resumed);
+		expect(projectSessionStats(resumed.snapshot).observedTotalTokens).toBeNull();
+
+		resumedNative.emit({
+			type: "notification",
+			method: "thread/tokenUsage/updated",
+			refs: { threadId: "thread-1", turnId: "prior-turn" },
+			params: { tokenUsage: { total: { totalTokens: 500 } } },
+		});
+		await Bun.sleep(10);
+		expect(resumed.snapshot.sessionUsage).toMatchObject({
+			totalTokens: 0,
+			observationCoverage: { interactive: false, detached: false },
+		});
+		expect(projectSessionStats(resumed.snapshot).observedTotalTokens).toBeNull();
+
+		resumedNative.emit({
+			type: "notification",
+			method: "thread/tokenUsage/updated",
+			refs: { threadId: "thread-1", turnId: "prior-turn" },
+			params: { tokenUsage: { total: { totalTokens: 500 } } },
+		});
+		await Bun.sleep(10);
+		expect(projectSessionStats(resumed.snapshot)).toMatchObject({
+			observedTotalTokens: 0,
+			usageObservationCoverage: { interactive: true, detached: false },
+		});
+		await resumed.close();
 	});
 
 	test("applies permission and collaboration controls to native thread and turn settings", async () => {
