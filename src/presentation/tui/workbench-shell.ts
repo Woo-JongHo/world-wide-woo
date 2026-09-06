@@ -773,6 +773,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 			}
 			return { consume: true };
 		}
+		// @linear WOO-715
 		if (observabilityNavigation && viewMode === "stats" && matchesKey(data, Key.enter)) {
 			const stats = projectSessionStats(snapshot);
 			if (statsTarget === "session" || statsTarget === "diagnostics") {
