@@ -23,6 +23,7 @@ import type {
 import { projectBackgroundWorkState } from "../domain/native-session.js";
 import { EFFORTS, MODELS } from "../domain/model-settings.js";
 import {
+	isTerminalActivityPhase,
 	isReasoningActivityPayload,
 	type ProjectActivity,
 	type ProjectActivityAppendResult,
@@ -189,6 +190,7 @@ export class ProjectWorkbench {
 	private readonly preThreadChat = new Map<string, WorkbenchChatMessage>();
 	private readonly notes: WorkbenchTNote[] = [];
 	private readonly terminalTurns = new Set<string>();
+	private readonly terminalItems = new Set<string>();
 	private readonly noteDrafts = new Map<string, TNoteDraft>();
 	private readonly completionOrdinals = new Map<string, number>();
 	private readonly threadOwnersByTurnId = new Map<string, Set<string>>();
@@ -239,6 +241,9 @@ export class ProjectWorkbench {
 	private draftIdentity: string | null = null;
 	private reasoningIdentity: string | null = null;
 	private reasoningSummaryIdentity: string | null = null;
+	private draftNativeRefs: NativeRefs | null = null;
+	private reasoningNativeRefs: NativeRefs | null = null;
+	private reasoningSummaryNativeRefs: NativeRefs | null = null;
 	private draftProjection = emptyBoundedTextProjection();
 	private reasoningProjection = emptyBoundedTextProjection();
 	private reasoningSummaryProjection = emptyBoundedTextProjection();
@@ -415,6 +420,7 @@ export class ProjectWorkbench {
 			this.activities.push(durableActivity);
 			this.rememberNativeRefs(durableActivity.nativeRefs);
 			this.rememberTerminalTurn(durableActivity);
+			this.rememberTerminalItem(durableActivity);
 			if (durableActivity.payload.method === "turn/first-output-observed" && durableActivity.nativeRefs.turnId) {
 				this.firstOutputObservedTurns.add(durableActivity.nativeRefs.turnId);
 			}
@@ -1181,6 +1187,7 @@ export class ProjectWorkbench {
 			if (eventBelongsToRootThread) await this.applyDelta(event);
 			return;
 		}
+		if (event.type === "notification" && isTerminalItemMethod(event.method) && this.hasTerminalItem(event.refs)) return;
 		const lifecycle = event.type === "notification" ? turnLifecycle(event.method) : null;
 		const completedActiveTurn = eventBelongsToRootThread && lifecycle === "terminal" && event.type === "notification" &&
 			event.refs.turnId === this.activeTurnId;
@@ -1188,6 +1195,17 @@ export class ProjectWorkbench {
 			event.method.toLowerCase() === "turn/completed";
 		const sourceDigest = digestSource(stableJson(event));
 		const observation = nativeObservation(event);
+		const terminalItemMissingMessage = event.type === "notification"
+			&& eventBelongsToRootThread
+			&& isTerminalItemMethod(event.method)
+			&& observation.kind === "message"
+			&& activityText(observation.payload).trim().length === 0;
+		if (terminalItemMissingMessage && event.type === "notification") {
+			await this.preserveUnfinalizedAssistantResponse(event, observation.phase);
+		}
+		if (completedActiveTurn && event.type === "notification") {
+			await this.preserveUnfinalizedAssistantResponse(event, observation.phase);
+		}
 		await this.appendActivity(
 			observation.kind,
 			observation.phase,
@@ -1230,26 +1248,37 @@ export class ProjectWorkbench {
 			}
 			if (eventBelongsToRootThread && lifecycle === "terminal" && event.refs.turnId === this.activeTurnId) this.activeTurnId = null;
 		}
-		if (eventBelongsToRootThread && event.type === "notification" && activityPhase(event.method) === "completed") {
+		const eventPhase = event.type === "notification" ? activityPhase(event.method) : null;
+		const clearsTerminalProjection = eventPhase === "completed" || lifecycle === "terminal"
+			|| Boolean(event.type === "notification" && event.refs.itemId && eventPhase && isTerminalActivityPhase(eventPhase));
+		if (eventBelongsToRootThread && event.type === "notification" && clearsTerminalProjection) {
 			const completedIdentity = nativeItemIdentity(event.refs);
-			const itemScopedCompletion = Boolean(event.refs.itemId);
-			if (!itemScopedCompletion || completedIdentity === this.draftIdentity) {
+			const itemScopedTerminal = Boolean(event.refs.itemId);
+			const clearsProjection = (identity: string | null, refs: NativeRefs | null): boolean => {
+				if (itemScopedTerminal) return Boolean(completedIdentity && completedIdentity === identity);
+				if (lifecycle === "terminal") return sameTurnOwner(refs, event.refs);
+				return true;
+			};
+			if (clearsProjection(this.draftIdentity, this.draftNativeRefs)) {
 				this.draft = "";
 				this.draftIdentity = null;
+				this.draftNativeRefs = null;
 				this.draftProjection = emptyBoundedTextProjection();
 			}
-			if (!itemScopedCompletion || completedIdentity === this.reasoningIdentity) {
+			if (clearsProjection(this.reasoningIdentity, this.reasoningNativeRefs)) {
 				this.reasoningDraft = "";
 				this.reasoningIdentity = null;
+				this.reasoningNativeRefs = null;
 				this.reasoningProjection = emptyBoundedTextProjection();
 			}
-			if (!itemScopedCompletion || completedIdentity === this.reasoningSummaryIdentity) {
+			if (clearsProjection(this.reasoningSummaryIdentity, this.reasoningSummaryNativeRefs)) {
 				this.reasoningSummaryDraft = "";
 				this.reasoningSummaryIdentity = null;
+				this.reasoningSummaryNativeRefs = null;
 				this.reasoningSummaryProjection = emptyBoundedTextProjection();
 			}
 			const liveActivityIdentity = this.liveActivity ? nativeItemIdentity(this.liveActivity.nativeRefs) : null;
-			if (!itemScopedCompletion || completedIdentity === liveActivityIdentity) {
+			if (clearsProjection(liveActivityIdentity, this.liveActivity?.nativeRefs ?? null)) {
 				this.liveActivity = null;
 				this.liveActivityProjection = emptyBoundedTextProjection();
 			}
@@ -1321,6 +1350,7 @@ export class ProjectWorkbench {
 		const reasoning = method.includes("reasoning");
 		const publicReasoningSummary = method.includes("reasoning/summarytextdelta");
 		const itemIdentity = nativeItemIdentity(event.refs);
+		if (event.refs.turnId && (this.hasTerminalTurn(event.refs.threadId, event.refs.turnId) || this.hasTerminalItem(event.refs))) return;
 		if (!reasoning && activityKind(event.method, event.params) === "message" && delta.trim().length > 0 && event.refs.turnId &&
 			this.usageTracker.hasTurn(event.refs.turnId) &&
 			!this.firstOutputObservedTurns.has(event.refs.turnId)) {
@@ -1342,6 +1372,7 @@ export class ProjectWorkbench {
 				this.reasoningSummaryProjection = emptyBoundedTextProjection();
 			}
 			this.reasoningSummaryIdentity = itemIdentity ?? this.reasoningSummaryIdentity;
+			this.reasoningSummaryNativeRefs = event.refs;
 			const projection = appendBoundedText(
 				this.reasoningSummaryProjection,
 				delta,
@@ -1354,6 +1385,7 @@ export class ProjectWorkbench {
 				this.reasoningProjection = emptyBoundedTextProjection();
 			}
 			this.reasoningIdentity = itemIdentity ?? this.reasoningIdentity;
+			this.reasoningNativeRefs = event.refs;
 			const projection = appendBoundedText(
 				this.reasoningProjection,
 				delta,
@@ -1366,6 +1398,7 @@ export class ProjectWorkbench {
 				this.draftProjection = emptyBoundedTextProjection();
 			}
 			this.draftIdentity = itemIdentity ?? this.draftIdentity;
+			this.draftNativeRefs = event.refs;
 			const projection = appendBoundedText(
 				this.draftProjection,
 				delta,
@@ -1427,6 +1460,7 @@ export class ProjectWorkbench {
 			if (visible) this.scheduleNativeTodoSync(durableActivity);
 		}
 		this.rememberTerminalTurn(durableActivity);
+		this.rememberTerminalItem(durableActivity);
 		if (publish) this.publish();
 		return durableActivity;
 	}
@@ -1483,6 +1517,53 @@ export class ProjectWorkbench {
 		if (turnLifecycle(method) !== "terminal") return;
 		const { threadId, turnId } = activity.nativeRefs;
 		if (threadId && turnId) this.terminalTurns.add(turnKey(threadId, turnId));
+	}
+
+	private hasTerminalItem(refs: NativeRefs): boolean {
+		const identity = nativeItemIdentity(refs);
+		return Boolean(identity && this.terminalItems.has(identity));
+	}
+
+	private rememberTerminalItem(activity: ProjectActivity): void {
+		const method = typeof activity.payload.method === "string" ? activity.payload.method : "";
+		if (!isTerminalItemMethod(method)) return;
+		const identity = nativeItemIdentity(activity.nativeRefs);
+		if (identity) this.terminalItems.add(identity);
+	}
+
+	/** @linear WOO-688 */
+	private async preserveUnfinalizedAssistantResponse(
+		event: Extract<NativeHarnessEvent, { type: "notification" }>,
+		phase: ProjectActivityPhase,
+	): Promise<void> {
+		const { threadId, turnId } = event.refs;
+		if (!threadId || !turnId || this.hasTerminalTurn(threadId, turnId)) return;
+		const matchingDraft = this.draft.length > 0 && sameTurnOwner(this.draftNativeRefs, event.refs);
+		const hasTerminalMessage = this.visibleActivities.some((activity) =>
+			activity.kind === "message"
+			&& activity.nativeRefs.threadId === threadId
+			&& activity.nativeRefs.turnId === turnId
+			&& activity.payload.direction !== "outbound"
+			&& activity.payload.role !== "user"
+			&& isTerminalActivityPhase(activity.phase)
+			&& activityText(activity.payload).trim().length > 0);
+		if (!matchingDraft && hasTerminalMessage) return;
+
+		const text = matchingDraft ? this.draft : "최종 답변 본문을 받지 못했습니다.";
+		const itemId = matchingDraft && this.draftNativeRefs?.itemId
+			? this.draftNativeRefs.itemId
+			: event.refs.itemId ?? `local-missing-final:${turnId}`;
+		const refs = { threadId, turnId, itemId };
+		const payload = {
+			method: "turn/final-message-observation-missing",
+			role: "assistant",
+			text,
+			partial: matchingDraft,
+			finalObservation: "missing",
+			observationScope: matchingDraft ? "bounded-local-delta" : "local-lifecycle",
+			terminalMethod: event.method,
+		};
+		await this.appendActivity("message", phase, refs, payload, false, digestSource(stableJson({ refs, payload })));
 	}
 
 	private isActivityVisible(activity: ProjectActivity): boolean {
@@ -2043,6 +2124,10 @@ function isDeltaNotification(method: string): boolean {
 	return method.toLowerCase().includes("delta");
 }
 
+function isTerminalItemMethod(method: string): boolean {
+	return method.toLowerCase().startsWith("item/") && isTerminalActivityPhase(activityPhase(method));
+}
+
 function turnLifecycle(method: string): "started" | "terminal" | null {
 	const normalized = method.toLowerCase();
 	if (normalized === "turn/start" || normalized === "turn/started") return "started";
@@ -2064,7 +2149,8 @@ function projectChat(activities: readonly ProjectActivity[], rootThreadId: strin
 			? threadItemKey(activity.nativeRefs.threadId, activity.nativeRefs.itemId)
 			: nativeItemIdentity(activity.nativeRefs) ?? `activity:${activity.id}`;
 		const previous = messages.get(key);
-		const status = activity.phase === "failed" ? "failed"
+		const status = activity.phase === "completed" && activity.payload.finalObservation === "missing" ? "incomplete"
+			: activity.phase === "failed" ? "failed"
 			: activity.phase === "cancelled" ? "cancelled"
 				: activity.phase === "completed" ? "completed" : "streaming";
 		messages.set(key, {
@@ -2073,6 +2159,7 @@ function projectChat(activities: readonly ProjectActivity[], rootThreadId: strin
 			content: previous && status === "streaming" ? `${previous.content}${text}` : text,
 			activityId: activity.id,
 			status,
+			...(activity.payload.finalObservation === "missing" ? { partial: activity.payload.partial === true } : {}),
 		});
 	}
 	return [...messages.values()];
@@ -2085,6 +2172,11 @@ function nativeItemIdentity(refs: NativeRefs): string | null {
 		turnId: refs.turnId,
 		itemId: refs.itemId,
 	});
+}
+
+function sameTurnOwner(left: NativeRefs | null, right: NativeRefs): boolean {
+	return Boolean(left?.threadId && left.turnId && right.threadId && right.turnId
+		&& left.threadId === right.threadId && left.turnId === right.turnId);
 }
 
 function threadItemKey(threadId: string, itemId: string): string {

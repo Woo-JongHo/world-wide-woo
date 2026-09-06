@@ -411,7 +411,9 @@ export class WorkbenchChatView implements Component {
 			const inputKey = `${message.status}\0${message.content}`;
 			if (this.markdownInput.get(message.id) === inputKey) continue;
 			const content = sanitizeTerminalTextUnbounded(
-				message.status === "completed" ? sanitizeCompletedAssistantResponse(message.content) : message.content,
+				message.status === "completed" || message.status === "incomplete"
+					? sanitizeCompletedAssistantResponse(message.content)
+					: message.content,
 			);
 			const existing = this.markdown.get(message.id);
 			if (this.markdownSource.get(message.id) !== content) {
@@ -673,7 +675,9 @@ export class WorkbenchChatView implements Component {
 				...wrapTextWithAnsi(boundedWorkbenchMarkdown(message.content), contentWidth),
 			], contentWidth, semantic.userSurface);
 		}
-		const label = message.status === "cancelled" ? semantic.toolCancelled("중단됨")
+		const label = message.status === "incomplete"
+			? semantic.toolCancelled(message.partial ? "부분 응답 · 최종 본문 미수신" : "최종 본문 미수신")
+			: message.status === "cancelled" ? semantic.toolCancelled("중단됨")
 			: message.status === "failed" ? semantic.toolFailed("실패")
 				: message.status === "streaming" ? semantic.toolRunning("응답 중") : "";
 		const messageActivity = this.snapshot.activities.find((activity) => activity.id === message.activityId);

@@ -14,7 +14,9 @@ export interface WorkbenchChatMessage {
 	role: "user" | "assistant" | "system";
 	content: string;
 	activityId: string;
-	status: "streaming" | "completed" | "failed" | "cancelled";
+	status: "streaming" | "completed" | "incomplete" | "failed" | "cancelled";
+	/** True when an incomplete terminal message preserves text observed from deltas. */
+	partial?: boolean;
 }
 
 export interface WorkbenchChatQueueItem {

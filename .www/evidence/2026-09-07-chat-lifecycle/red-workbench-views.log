@@ -1,0 +1,129 @@
+bun test v1.4.0 (34cbb9a40)
+
+test/workbench-views.test.ts:
+(pass) workbench dashboard views > reuses the complete chat projection for scroll-only frames [147.01ms]
+(pass) workbench dashboard views > shows a T-note failure without assigning a completion number to an unstored note [3.27ms]
+(pass) workbench dashboard views > keeps completed T-notes in Dashboard and selected execution Source in Monitor [0.66ms]
+(pass) workbench dashboard views > keeps a resumed truncated Native turn's durable question number and reveals its selected T-note sources [0.36ms]
+(pass) workbench dashboard views > keeps the live chat, streaming projection, and Todo while switching to the monitor projection [0.52ms]
+(pass) workbench dashboard views > keeps public Native plan, compaction, collaboration, and reasoning summaries in transcript order [8.60ms]
+(pass) workbench dashboard views > uses one filled user surface and an open assistant transcript [0.30ms]
+(pass) workbench dashboard views > renders only the public answer from a completed assistant envelope [6.72ms]
+(pass) workbench dashboard views > reprojects unchanged envelope text when streaming becomes completed [0.34ms]
+444 | 			tnotes: [],
+445 | 		}).render(width);
+446 | 		const output = stripTerminalSequences(rows.join("\n"));
+447 | 
+448 | 		expect(output).toContain("보존한 부분 답변");
+449 | 		expect(output).toContain("부분 응답 · 최종 본문 미수신");
+                       ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "부분 응답 · 최종 본문 미수신"
+Received: "bori\n보존한 부분 답변                        \n"
+
+      at <anonymous> (/Users/jonghoPro/woo/00_project/99_www-pr-chat-lifecycle/test/workbench-views.test.ts:449:18)
+(fail) workbench dashboard views > renders a preserved incomplete answer and final-observation notice within 40 columns [0.93ms]
+444 | 			tnotes: [],
+445 | 		}).render(width);
+446 | 		const output = stripTerminalSequences(rows.join("\n"));
+447 | 
+448 | 		expect(output).toContain("보존한 부분 답변");
+449 | 		expect(output).toContain("부분 응답 · 최종 본문 미수신");
+                       ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "부분 응답 · 최종 본문 미수신"
+Received: "bori\n보존한 부분 답변                                                                \n"
+
+      at <anonymous> (/Users/jonghoPro/woo/00_project/99_www-pr-chat-lifecycle/test/workbench-views.test.ts:449:18)
+(fail) workbench dashboard views > renders a preserved incomplete answer and final-observation notice within 80 columns [0.21ms]
+444 | 			tnotes: [],
+445 | 		}).render(width);
+446 | 		const output = stripTerminalSequences(rows.join("\n"));
+447 | 
+448 | 		expect(output).toContain("보존한 부분 답변");
+449 | 		expect(output).toContain("부분 응답 · 최종 본문 미수신");
+                       ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "부분 응답 · 최종 본문 미수신"
+Received: "bori\n보존한 부분 답변                                                                                                        \n"
+
+      at <anonymous> (/Users/jonghoPro/woo/00_project/99_www-pr-chat-lifecycle/test/workbench-views.test.ts:449:18)
+(fail) workbench dashboard views > renders a preserved incomplete answer and final-observation notice within 120 columns [0.15ms]
+461 | 		expect(stripTerminalSequences(view.render(80).join("\n"))).toContain("<analysis>내부</analysis>");
+462 | 
+463 | 		view.update({ ...snapshot, chat: [{ ...message, status: "incomplete" as const }] });
+464 | 		const incomplete = stripTerminalSequences(view.render(80).join("\n"));
+465 | 		expect(incomplete).toContain("보존된 공개 부분");
+466 | 		expect(incomplete).toContain("부분 응답 · 최종 본문 미수신");
+                           ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "부분 응답 · 최종 본문 미수신"
+Received: "bori\n<analysis>내부</analysis>                                                       \n<answer>보존된 공개 부분</answer>                                               \n"
+
+      at <anonymous> (/Users/jonghoPro/woo/00_project/99_www-pr-chat-lifecycle/test/workbench-views.test.ts:466:22)
+(fail) workbench dashboard views > reprojects unchanged partial text when streaming becomes incomplete [0.32ms]
+(pass) workbench dashboard views > keeps preserved answer text beside the failed terminal label [0.09ms]
+(pass) workbench dashboard views > keeps preserved answer text beside the cancelled terminal label [0.04ms]
+(pass) workbench dashboard views > preserves partial tags, surrounding text, and fenced tag examples [0.70ms]
+(pass) workbench dashboard views > renders the live action and its Esc hint as separate rows [0.15ms]
+(pass) workbench dashboard views > keeps activity emphasis on every wrapped row at narrow widths [0.44ms]
+(pass) workbench dashboard views > renders activity state changes without a high-frequency spinner timer [0.10ms]
+(pass) workbench dashboard views > attaches a durable #1 #2 #3 recap to the completed assistant turn [0.31ms]
+(pass) workbench dashboard views > builds a #1 #2 #3 recap from actual work when Native Plan is absent [27.00ms]
+(pass) workbench dashboard views > still closes an answer-only Native turn with a structured recap [0.21ms]
+(pass) workbench dashboard views > does not claim a completion recap before the same Native turn completes [0.27ms]
+(pass) workbench dashboard views > never promotes a completed child-thread plan into the root completion recap [0.10ms]
+(pass) workbench dashboard views > does not revive an older turn when the latest turn is still preparing its plan [0.99ms]
+(pass) workbench dashboard views > keeps plan-only steps out of Chat while showing compact observation work [2.88ms]
+(pass) workbench dashboard views > shows the public Native plan while adding only its executing step card [1.09ms]
+(pass) workbench dashboard views > renders model-interpreted what and why on the shared Step card [0.53ms]
+(pass) workbench dashboard views > hides empty Todo and T-note counters [0.04ms]
+(pass) workbench dashboard views > keeps active goal, progress, queue, Todo, and source details out of T-notes [0.07ms]
+(pass) workbench dashboard views > bounds append-only T-notes while preserving omission and visible-count evidence [1.25ms]
+(pass) workbench dashboard views > renders Todo status icons and hanging wraps inside the pane width [0.18ms]
+(pass) workbench dashboard views > hides lifecycle progress payloads from Chat cards [0.48ms]
+(pass) workbench dashboard views > shows only a content-free state while native reasoning is streaming [0.13ms]
+(pass) workbench dashboard views > shows only the App Server public reasoning summary text [0.07ms]
+(pass) workbench dashboard views > explains a pending approval and tells the user how to respond [0.54ms]
+(pass) workbench dashboard views > renders authoritative approval background states and compact queued delivery [0.69ms]
+(pass) workbench dashboard views > shows persisted completed-question records after active work without source payloads [0.10ms]
+(pass) workbench dashboard views > renders a completed native command as a bounded public step card [1.10ms]
+(pass) workbench dashboard views > keeps an unplanned command as a detailed Bash action instead of a generic sentence [0.51ms]
+(pass) workbench dashboard views > keeps every planned action once and labels intermediate actions with their parent step [1.03ms]
+(pass) workbench dashboard views > keeps a native command output delta on the same running step [0.57ms]
+(pass) workbench dashboard views > keeps completed command observations out of Native-plan step numbering [1.25ms]
+(pass) workbench dashboard views > shows queued user inputs in their delivery order [0.16ms]
+(pass) workbench dashboard views > keeps an uncertain delivery warning and its recovery command visible [0.14ms]
+(pass) workbench dashboard views > omits the /cancel recovery line for a failure it cannot reconcile [0.07ms]
+(pass) workbench dashboard views > shows the failed delivery state on an outbound user bubble [0.04ms]
+(pass) workbench dashboard views > shows the streaming delivery state on an outbound user bubble [0.03ms]
+(pass) workbench dashboard views > renders the first outbound user message before native thread activity exists [0.06ms]
+(pass) workbench dashboard views > uses the public MCP item status, arguments, and error without exposing reasoning [0.46ms]
+(pass) workbench dashboard views > preserves completed Markdown while bounding only the live draft [1.25ms]
+(pass) workbench dashboard views > keeps a structured native answer in its original Markdown order [1.08ms]
+(pass) workbench dashboard views > keeps the full current native session transcript visible [3.00ms]
+(pass) workbench dashboard views > leaves the resting status line blank instead of advertising commands [0.11ms]
+(pass) workbench dashboard views > keeps immutable action results out of completed-question notes [0.07ms]
+(pass) workbench dashboard views > keeps selected activity payloads out of completed-question notes [0.07ms]
+(pass) workbench dashboard views > bounds public Source strings and total projection before JSON rendering [4.05ms]
+(pass) workbench dashboard views > bounds large work-step output without leaking edge credentials [4.75ms]
+(pass) workbench dashboard views > bounds action result body by characters and lines before rendering Source [0.61ms]
+(pass) workbench dashboard views > keeps titleless Chat, T-notes, and Todo content reachable at 120x30 [5.53ms]
+(pass) workbench dashboard views > keeps titleless Chat, T-notes, and Todo content reachable at 70x24 [1.75ms]
+(pass) workbench dashboard views > keeps following the newest user message when repeated delivery states extend Chat [3.73ms]
+(pass) workbench dashboard views > does not restore chat auto-follow while wheel scrolling concurrent streaming output [8.85ms]
+
+4 tests failed:
+(fail) workbench dashboard views > renders a preserved incomplete answer and final-observation notice within 40 columns [0.93ms]
+(fail) workbench dashboard views > renders a preserved incomplete answer and final-observation notice within 80 columns [0.21ms]
+(fail) workbench dashboard views > renders a preserved incomplete answer and final-observation notice within 120 columns [0.15ms]
+(fail) workbench dashboard views > reprojects unchanged partial text when streaming becomes incomplete [0.32ms]
+
+ 59 pass
+ 4 fail
+ 980 expect() calls
+Ran 63 tests across 1 file. [325.00ms]

@@ -1,0 +1,217 @@
+bun test v1.4.0 (34cbb9a40)
+
+test/project-workbench.test.ts:
+(pass) ProjectWorkbench > projects MCP management separately and sends enable, disable, and global reload requests [3.75ms]
+(pass) ProjectWorkbench > derives conservative background work only from complete native collaboration lifecycle snapshots [22.80ms]
+(pass) ProjectWorkbench > collects woo-entry before Chat and applies a refresh to the next queued turn [14.46ms]
+(pass) ProjectWorkbench > excludes a WES source that exceeds its bounded collection payload [0.97ms]
+(pass) ProjectWorkbench > mirrors Native plan activity to Todo without delaying real-time Chat projection [33.34ms]
+(pass) ProjectWorkbench > preserves rewritten root-plan identity through Todo sync and resume [35.63ms]
+(pass) ProjectWorkbench > narrates meaningful actions asynchronously while excluding Read commands [32.74ms]
+(pass) ProjectWorkbench > narrates a selected plan with sanitized goal and bounded action evidence [21.07ms]
+(pass) ProjectWorkbench > queues rapid chat submissions and starts the next message after the active turn completes [11.92ms]
+(pass) ProjectWorkbench > records the first public output milestone once without journaling delta text or reasoning [11.53ms]
+(pass) ProjectWorkbench > publishes the accepted user message as preparing before native start settles [6.14ms]
+(pass) ProjectWorkbench > marks a first-submit thread start failure without leaving preparing progress [0.41ms]
+(pass) ProjectWorkbench > ignores Native events that arrive before the journal owns a thread [0.17ms]
+(pass) ProjectWorkbench > creates one plain-language question summary after turn completion without blocking queued chat [33.67ms]
+(pass) ProjectWorkbench > keeps one immutable T-note per completed question instead of replacing a cumulative summary [23.66ms]
+(pass) ProjectWorkbench > projects a SessionGoal marker from a completed assistant message [11.58ms]
+(pass) ProjectWorkbench > rejects SessionGoal spoof markers unless they are a sole bounded assistant line for a $session-goal turn [14.01ms]
+(pass) ProjectWorkbench > rejects generated T-notes without exactly one canonical non-empty question, why, and result [0.82ms]
+(pass) ProjectWorkbench > does not append question-mismatched or prohibited T-note fields [0.44ms]
+(pass) ProjectWorkbench > permits user-owned Git/Bun/error/path questions and normal explanatory fields [0.12ms]
+(pass) ProjectWorkbench > permits completed-state results that negatively mention 후속 or 추후 [0.09ms]
+(pass) ProjectWorkbench > persists an exactly once-sanitized completed question through FileTNoteStore [3.53ms]
+(pass) ProjectWorkbench > validates a range capture through TNoteService with its canonical expected question [0.61ms]
+(pass) ProjectWorkbench > rejects pre-completion and cross-turn manual T-note ranges [12.14ms]
+(pass) ProjectWorkbench > reconciles a failed automatic T-note after restart and appends it only after generation succeeds [23.39ms]
+(pass) ProjectWorkbench > reconciles one sparse target-thread T-note after interleaved foreign journal activity [23.61ms]
+(pass) ProjectWorkbench > retries a target-thread note after a foreign outbound question interleaves before its turn [24.71ms]
+(pass) ProjectWorkbench > publishes the first user message before a slow native thread start completes [0.53ms]
+(pass) ProjectWorkbench > keeps active context separate from cumulative model usage and ignores a late auxiliary turn [36.91ms]
+(pass) ProjectWorkbench > merges detached Luna and Claude usage into the live WWW session totals [0.58ms]
+(pass) ProjectWorkbench > applies permission and collaboration controls to native thread and turn settings [0.56ms]
+(pass) ProjectWorkbench > persists an idle Codex selection and uses it for the next native turn [12.10ms]
+(pass) ProjectWorkbench > keeps the current model when persistence fails or a turn is active [0.52ms]
+(pass) ProjectWorkbench > keeps the selected flow while exposing a pending turn goal [22.94ms]
+(pass) ProjectWorkbench > drains FIFO only for exact interrupted and failed turn lifecycle notifications [22.87ms]
+(pass) ProjectWorkbench > keeps a normally started turn active when an item event arrives before its local start activity is journaled [22.32ms]
+(pass) ProjectWorkbench > keeps follow-up messages on the root thread while sub-agent events are streaming [11.79ms]
+(pass) ProjectWorkbench > shows the first optimistic request once while request journaling is pending [12.03ms]
+(pass) ProjectWorkbench > observes first output without an item id without accepting an unowned draft [11.61ms]
+(pass) ProjectWorkbench > isolates root chat identity from child threads and repeated item ids across turns [22.93ms]
+(pass) ProjectWorkbench > keeps a current turn draft separate from a repeated item id in another turn [33.62ms]
+(pass) ProjectWorkbench > normalizes sparse root message refs only from an observed turn or item owner [11.69ms]
+(pass) ProjectWorkbench > does not treat an ownerless item-only completion as a root message wildcard [11.64ms]
+1949 | 			params: {},
+1950 | 		});
+1951 | 		await Bun.sleep(10);
+1952 | 
+1953 | 		const assistant = workbench.snapshot.chat.filter((message) => message.role === "assistant");
+1954 | 		expect(assistant).toHaveLength(1);
+                           ^
+error: expect(received).toHaveLength(expected)
+
+Expected length: 1
+Received length: 0
+
+      at <anonymous> (/Users/jonghoPro/woo/00_project/99_www-pr-chat-lifecycle/test/project-workbench.test.ts:1954:21)
+(fail) ProjectWorkbench > preserves a partial answer and marks a completed turn with no final item as incomplete [23.34ms]
+1994 | 			refs: { threadId: "thread-1", turnId: "turn-1" },
+1995 | 			params: {},
+1996 | 		});
+1997 | 		await Bun.sleep(10);
+1998 | 
+1999 | 		expect(workbench.snapshot.chat.find((message) => message.role === "assistant")).toMatchObject({
+                                                                                         ^
+error: expect(received).toMatchObject(expected)
+
+Matcher error: received value must be a non-null object
+
+      at <anonymous> (/Users/jonghoPro/woo/00_project/99_www-pr-chat-lifecycle/test/project-workbench.test.ts:1999:83)
+(fail) ProjectWorkbench > preserves a partial answer when turn/failed ends the turn [12.04ms]
+1994 | 			refs: { threadId: "thread-1", turnId: "turn-1" },
+1995 | 			params: {},
+1996 | 		});
+1997 | 		await Bun.sleep(10);
+1998 | 
+1999 | 		expect(workbench.snapshot.chat.find((message) => message.role === "assistant")).toMatchObject({
+                                                                                         ^
+error: expect(received).toMatchObject(expected)
+
+Matcher error: received value must be a non-null object
+
+      at <anonymous> (/Users/jonghoPro/woo/00_project/99_www-pr-chat-lifecycle/test/project-workbench.test.ts:1999:83)
+(fail) ProjectWorkbench > preserves a partial answer when turn/interrupted ends the turn [11.96ms]
+1994 | 			refs: { threadId: "thread-1", turnId: "turn-1" },
+1995 | 			params: {},
+1996 | 		});
+1997 | 		await Bun.sleep(10);
+1998 | 
+1999 | 		expect(workbench.snapshot.chat.find((message) => message.role === "assistant")).toMatchObject({
+                                                                                         ^
+error: expect(received).toMatchObject(expected)
+
+Matcher error: received value must be a non-null object
+
+      at <anonymous> (/Users/jonghoPro/woo/00_project/99_www-pr-chat-lifecycle/test/project-workbench.test.ts:1999:83)
+(fail) ProjectWorkbench > preserves a partial answer when turn/cancelled ends the turn [12.17ms]
+2018 | 			refs: { threadId: "thread-1", turnId: "turn-1" },
+2019 | 			params: {},
+2020 | 		});
+2021 | 		await Bun.sleep(10);
+2022 | 
+2023 | 		expect(workbench.snapshot.chat.find((message) => message.role === "assistant")).toMatchObject({
+                                                                                         ^
+error: expect(received).toMatchObject(expected)
+
+Matcher error: received value must be a non-null object
+
+      at <anonymous> (/Users/jonghoPro/woo/00_project/99_www-pr-chat-lifecycle/test/project-workbench.test.ts:2023:83)
+(fail) ProjectWorkbench > shows an incomplete placeholder when a completed turn has no answer observation [12.07ms]
+2055 | 			params: { delta: "늦게 온 조각" },
+2056 | 		});
+2057 | 		await Bun.sleep(10);
+2058 | 
+2059 | 		expect(workbench.snapshot.chat.filter((message) => message.role === "assistant").map((message) => message.content))
+2060 | 			.toEqual(["고정된 최종 답변"]);
+           ^
+error: expect(received).toEqual(expected)
+
+  [
+-   "고정된 최종 답변",
++   "중복이 덮어쓴 답변",
+  ]
+
+- Expected  - 1
++ Received  + 1
+
+      at <anonymous> (/Users/jonghoPro/woo/00_project/99_www-pr-chat-lifecycle/test/project-workbench.test.ts:2060:5)
+(fail) ProjectWorkbench > ignores duplicate completion and late delta only for the exact terminal item owner [12.34ms]
+2114 | 		await Bun.sleep(10);
+2115 | 
+2116 | 		expect(workbench.snapshot.chat.filter((message) => message.role === "assistant").map((message) => ({
+2117 | 			content: message.content,
+2118 | 			status: message.status,
+2119 | 		}))).toEqual([
+              ^
+error: expect(received).toEqual(expected)
+
+  [
+    {
+      "content": "A 최종 답변",
+      "status": "completed",
+    },
+-   {
+-     "content": "B 부분 답변",
+-     "status": "incomplete",
+-   },
+  ]
+
+- Expected  - 4
++ Received  + 0
+
+      at <anonymous> (/Users/jonghoPro/woo/00_project/99_www-pr-chat-lifecycle/test/project-workbench.test.ts:2119:8)
+(fail) ProjectWorkbench > preserves only the unfinished item when another item in the turn already completed [12.84ms]
+2151 | 			refs: { threadId: "thread-1", turnId: "turn-resumed", itemId: "terminal-message" },
+2152 | 			params: { delta: "재개 뒤 늦은 조각" },
+2153 | 		});
+2154 | 		await Bun.sleep(10);
+2155 | 
+2156 | 		expect(workbench.snapshot.draft).toBe("");
+                                          ^
+error: expect(received).toBe(expected)
+
+Expected: ""
+Received: "재개 뒤 늦은 조각"
+
+      at <anonymous> (/Users/jonghoPro/woo/00_project/99_www-pr-chat-lifecycle/test/project-workbench.test.ts:2156:36)
+(fail) ProjectWorkbench > hydrates terminal item identity from the local journal before accepting resumed deltas [12.44ms]
+(pass) ProjectWorkbench > ignores a late start for a terminal turn without replacing the active FIFO turn [34.03ms]
+(pass) ProjectWorkbench > records one failed bubble and recovers after a definite first-send failure [0.68ms]
+(pass) ProjectWorkbench > continues FIFO after a definite queued-send failure without duplicate bubbles [11.15ms]
+(pass) ProjectWorkbench > reconciles an uncertain queued send from native lifecycle without duplicate delivery [33.97ms]
+(pass) ProjectWorkbench > explicit cancel escapes an uncertain queued send without retrying it and preserves the remaining FIFO [24.39ms]
+(pass) ProjectWorkbench > explicit cancel reconciles and interrupts a server-received uncertain turn before draining FIFO [34.77ms]
+(pass) ProjectWorkbench > keeps an uncertain FIFO blocked when thread read shape is unknown [11.61ms]
+(pass) ProjectWorkbench > does not drain queued chat after the workbench closes [11.46ms]
+(pass) ProjectWorkbench > keeps an active turn through item and hook completion until the turn lifecycle terminates [43.76ms]
+(pass) ProjectWorkbench > resolves a pending approval by request id when the resolution omits its thread ref [22.45ms]
+(pass) ProjectWorkbench > surfaces a child approval without replacing the root conversation thread [24.07ms]
+(pass) ProjectWorkbench > holds multiple queued messages through approval and drains them only after resolution and turn completion [23.99ms]
+(pass) ProjectWorkbench > keeps deltas ephemeral and durably appends completed native observations before publishing [22.50ms]
+(pass) ProjectWorkbench > shares frozen durable projections across deltas after a large activity history [25.08ms]
+(pass) ProjectWorkbench > bounds live drafts and raw native envelopes while preserving the full safe completed assistant reply [22.88ms]
+(pass) ProjectWorkbench > separates public reasoning summaries from raw reasoning content [22.31ms]
+(pass) ProjectWorkbench > resumes without native turns and reconciles the opaque thread against local activity [0.27ms]
+(pass) ProjectWorkbench > fails closed before reading or journaling when native resume returns another thread [0.15ms]
+(pass) ProjectWorkbench > fails closed before journaling when thread read returns another resumed thread [0.10ms]
+(pass) ProjectWorkbench > uses native idle state instead of reviving an unterminated historical turn on resume [1.42ms]
+(pass) ProjectWorkbench > queues behind the exact in-progress native turn discovered during resume [22.48ms]
+(pass) ProjectWorkbench > projects command output deltas as ephemeral tool activity rather than assistant text [11.29ms]
+(pass) ProjectWorkbench > does not clear live activity for the same item id completed by another turn [22.37ms]
+(pass) ProjectWorkbench > keeps sparse live deltas on one observed owner and clears its sparse completion [22.30ms]
+(pass) ProjectWorkbench > bounds repeated live tool deltas to a recent tail with cumulative omission metadata [22.12ms]
+(pass) ProjectWorkbench > journals MCP startup status as hidden progress instead of a Chat tool card [11.00ms]
+(pass) ProjectWorkbench > never infers a native resume from historical local activities [0.93ms]
+(pass) ProjectWorkbench > returns uncertain without retrying an ambiguous native send [0.35ms]
+(pass) ProjectWorkbench > rejects invalid local commands without touching native state [0.12ms]
+(pass) ProjectWorkbench > routes native approval and detached T-note commands through their explicit ports [11.30ms]
+(pass) ProjectWorkbench > reaches Todo mutations and preserves both CAS conflict documents in the immutable action result [1.15ms]
+(pass) ProjectWorkbench > promotes a full T-note only after a one-time token and reviews only after exact digest approval [2.15ms]
+
+8 tests failed:
+(fail) ProjectWorkbench > preserves a partial answer and marks a completed turn with no final item as incomplete [23.34ms]
+(fail) ProjectWorkbench > preserves a partial answer when turn/failed ends the turn [12.04ms]
+(fail) ProjectWorkbench > preserves a partial answer when turn/interrupted ends the turn [11.96ms]
+(fail) ProjectWorkbench > preserves a partial answer when turn/cancelled ends the turn [12.17ms]
+(fail) ProjectWorkbench > shows an incomplete placeholder when a completed turn has no answer observation [12.07ms]
+(fail) ProjectWorkbench > ignores duplicate completion and late delta only for the exact terminal item owner [12.34ms]
+(fail) ProjectWorkbench > preserves only the unfinished item when another item in the turn already completed [12.84ms]
+(fail) ProjectWorkbench > hydrates terminal item identity from the local journal before accepting resumed deltas [12.44ms]
+
+ 75 pass
+ 8 fail
+ 445 expect() calls
+Ran 83 tests across 1 file. [1232.00ms]
