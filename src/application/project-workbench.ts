@@ -62,11 +62,13 @@ import type {
 	WorkbenchMcpServer,
 	WorkbenchModelSelection,
 	WorkbenchPermissionMode,
+	WorkbenchResumeCoverage,
 	WorkbenchSessionGoal,
 	WorkbenchSnapshot,
 	WorkbenchTNote,
 } from "../domain/workbench.js";
 import { workbenchApprovalDecisions } from "../domain/workbench.js";
+import { resolveActivitySelection, resolveTraceSelection, type ActivitySelectionResult } from "../domain/trace-selection.js";
 
 const LIVE_ACTIVITY_TAIL_CHARACTER_LIMIT = 32 * 1024 - 128;
 const contextComposer = new ContextComposer();
@@ -346,6 +348,7 @@ export class ProjectWorkbench {
 			await this.eventQueue;
 				switch (command.type) {
 				case "activity.select": return this.selectActivity(commandId, command.activityId);
+				case "trace.select": return this.selectTraceActivity(commandId, command.activityId);
 				case "session.permission": return this.configurePermission(commandId, command.mode);
 				case "session.mode": return this.configureCollaboration(commandId, command.mode);
 				case "session.model": return await this.configureModel(commandId, command.selection);
@@ -736,12 +739,55 @@ export class ProjectWorkbench {
 	}
 
 	private selectActivity(commandId: string, activityId: string | null): WorkbenchCommandReceipt {
-		if (activityId && !this.activities.some((activity) => activity.id === activityId)) {
-			return { state: "rejected", commandId, reason: `Activity를 찾을 수 없습니다: ${activityId}` };
+		if (!activityId) {
+			this.selectedActivityId = null;
+			this.publish();
+			return { state: "accepted", commandId };
 		}
+		const selection = resolveActivitySelection({
+			activityId,
+			activities: this.activities,
+			currentThreadId: this.threadId,
+			resumeCoverage: this.resumeCoverage(),
+		});
+		if (selection.state === "failed") return this.rejectedSelection(commandId, selection);
 		this.selectedActivityId = activityId;
 		this.publish();
-		return { state: "accepted", commandId };
+		return { state: "accepted", commandId, selection };
+	}
+
+	private selectTraceActivity(commandId: string, activityId: string): WorkbenchCommandReceipt {
+		const selection = resolveTraceSelection({
+			activityId,
+			activities: this.activities,
+			currentThreadId: this.threadId,
+			workFlow: this.projectCurrentWorkFlow(),
+			resumeCoverage: this.resumeCoverage(),
+		});
+		if (selection.state === "failed") return this.rejectedSelection(commandId, selection);
+		this.selectedActivityId = selection.identity.activityId;
+		this.publish();
+		return { state: "accepted", commandId, selection };
+	}
+
+	private rejectedSelection(
+		commandId: string,
+		selection: Extract<ActivitySelectionResult, { state: "failed" }>,
+	): WorkbenchCommandReceipt {
+		return {
+			state: "rejected",
+			commandId,
+			reason: `Activity 선택 실패 (${selection.failure.code}): ${selection.failure.activityId}`,
+			selection,
+		};
+	}
+
+	private resumeCoverage(): WorkbenchResumeCoverage {
+		return {
+			mode: this.options.resumeThreadId ? "partial-local-journal" : "fresh",
+			processAttachedAt: this.processAttachedAt,
+			priorProviderHistoryHydrated: false,
+		};
 	}
 
 	private configurePermission(commandId: string, mode: WorkbenchPermissionMode): WorkbenchCommandReceipt {
@@ -1519,11 +1565,7 @@ export class ProjectWorkbench {
 			effort: this.effectiveEffort,
 			contextUsage: this.usageTracker.contextUsage,
 			sessionUsage: this.usageTracker.snapshot(this.options.auxiliaryUsage),
-			resumeCoverage: {
-				mode: this.options.resumeThreadId ? "partial-local-journal" : "fresh",
-				processAttachedAt: this.processAttachedAt,
-				priorProviderHistoryHydrated: false,
-			},
+			resumeCoverage: this.resumeCoverage(),
 			sessionGoal: this.sessionGoal,
 			permissionMode: this.permissionMode,
 			collaborationMode: this.collaborationMode,

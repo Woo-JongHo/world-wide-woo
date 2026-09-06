@@ -707,7 +707,7 @@ export class WorkbenchChatView implements Component {
 		activity?: WorkbenchSnapshot["activities"][number],
 		liveActivity?: NonNullable<WorkbenchSnapshot["liveActivity"]>,
 	): string[] {
-		const key = `${contentWidth}:${step.number}:${step.id}:${step.status}:${step.narration.source}:${step.narration.what}:${step.narration.why ?? ""}:${activity?.sourceDigest ?? "none"}`;
+		const key = `${contentWidth}:${step.number}:${step.id}:${step.status}:${step.narration.source}:${step.narration.what}:${step.narration.why ?? ""}:${activity?.id ?? "none"}:${activity?.sourceDigest ?? "none"}`;
 		if (!liveActivity) {
 			const cached = this.stepRows.get(key);
 			if (cached) return cached;
@@ -728,9 +728,9 @@ export class WorkbenchChatView implements Component {
 				`Source: inferred · turn ${source.turnId} · sequence ${source.startSequence}${source.endSequence === null ? "+" : `-${source.endSequence}`} · ${source.activityIds.length + source.observationActivityIds.length} activities (collapsed)`,
 			), contentWidth))
 			: [];
-		const planItemId = activity?.nativeRefs.itemId;
-		const compactSource = planItemId
-			? wrapTextWithAnsi(colors.muted(`Trace source · planItemId ${planItemId} · /trace ${planItemId}`), contentWidth)
+		const traceActivityId = activity?.id;
+		const compactSource = traceActivityId
+			? wrapTextWithAnsi(colors.muted(`Trace source · activityId ${traceActivityId} · /trace ${traceActivityId}`), contentWidth)
 			: [];
 		if (liveActivity) return [...new WorkStepCard(options).render(contentWidth), ...traceSource, ...compactSource];
 		const rows = [...new WorkStepCard(options).render(contentWidth), ...traceSource, ...compactSource];

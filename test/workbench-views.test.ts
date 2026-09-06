@@ -1242,7 +1242,7 @@ describe("workbench dashboard views", () => {
 		}).render(70).join("\n"));
 		expect(output).toContain("단계 1 · PASSED");
 		expect(output).toContain("변경 결과 검증");
-		expect(output).toContain("Trace source · planItemId command-1 · /trace command-1");
+		expect(output).toContain("Trace source · activityId command-activity · /trace command-activity");
 		expect(output).toContain("$ bun test test/workbench-views.test.ts");
 		expect(output).not.toContain("왜 하는지:");
 		expect(output).toContain("┌─── ✔ Bash");

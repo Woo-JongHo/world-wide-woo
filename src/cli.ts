@@ -87,6 +87,7 @@ function helpText(): string {
 		"  r/R · 1/2/3 · Esc          View 회전·직접 이동·Workbench 복귀",
 		"  /model [모델] [추론 강도]  현재·다음 실행의 Codex 모델 변경",
 		"  /source <id|latest|clear>  Trace source 선택",
+		"  /trace <activity-id>       선택 Plan에 결속된 정확한 Activity Trace 선택",
 		"  /tnote  마지막 질문을 packet-only 질문·이유·결과로 수동 캡처",
 		"  /approve · /approve-session · /decline  Codex native 승인 응답",
 		"  /cancel  현재 native turn 중단",

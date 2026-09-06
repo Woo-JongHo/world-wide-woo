@@ -646,18 +646,13 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 			return true;
 		}
 		if (command.type === "trace.select") {
-			const activityId = [...snapshot.activities].reverse().find((activity) =>
-				activity.nativeRefs.itemId === command.planItemId,
-			)?.id ?? null;
-			if (!activityId) {
-				status.setNotice(`Todo planItemId를 찾을 수 없습니다: ${command.planItemId}`);
-				tui.requestRender();
-				return true;
+			const receipt = await workbench.dispatch({ type: "trace.select", activityId: command.activityId });
+			showReceipt(receipt);
+			if (receipt.state === "accepted") {
+				setViewMode("source");
+				observabilityNavigation = false;
+				tui.setFocus(sourceLayout.leftScroll);
 			}
-			showReceipt(await workbench.dispatch({ type: "activity.select", activityId }));
-			setViewMode("source");
-			observabilityNavigation = false;
-			tui.setFocus(sourceLayout.leftScroll);
 			return true;
 		}
 		if (command.type === "tnote.capture") {

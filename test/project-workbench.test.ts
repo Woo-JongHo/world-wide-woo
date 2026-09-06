@@ -2887,10 +2887,86 @@ describe("ProjectWorkbench", () => {
 		});
 		await ready(workbench);
 		expect(await workbench.dispatch({ type: "activity.select", activityId: "missing" }))
-			.toMatchObject({ state: "rejected" });
+			.toMatchObject({
+				state: "rejected",
+				selection: { state: "failed", failure: { code: "activity_not_found" }, coverage: { mode: "fresh" } },
+			});
+		expect(await workbench.dispatch({ type: "trace.select", activityId: "missing" }))
+			.toMatchObject({
+				state: "rejected",
+				selection: { state: "failed", failure: { code: "activity_not_found" }, coverage: { mode: "fresh" } },
+			});
 		expect(await workbench.dispatch({ type: "tnote.capture", activityIds: ["missing"] }))
 			.toMatchObject({ state: "rejected" });
 		expect(native.startTurnCalls).toBe(0);
+		await workbench.close();
+	});
+
+	// @linear WOO-705 4738e3c5-c5b3-4cc2-9cea-ff9bf600367d
+	test("selects Trace by exact activity across turns that reuse an item id", async () => {
+		const native = new FakeNativeHarness();
+		const journal = new MemoryJournal();
+		const workbench = new ProjectWorkbench(native, journal, {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+		});
+		await ready(workbench);
+		await workbench.dispatch({ type: "chat.send", text: "첫 요청" });
+		native.emit({
+			type: "notification",
+			method: "turn/plan/updated",
+			refs: { threadId: "thread-1", turnId: "turn-1" },
+			params: { plan: [{ step: "같은 제목", status: "inProgress" }] },
+		});
+		native.emit({
+			type: "notification",
+			method: "item/completed",
+			refs: { threadId: "thread-1", turnId: "turn-1", itemId: "same-item" },
+			params: { item: { id: "same-item", type: "commandExecution", command: "first" } },
+		});
+		await Bun.sleep(10);
+		const first = journal.records.find((activity) => activity.nativeRefs.turnId === "turn-1" && activity.nativeRefs.itemId === "same-item");
+		expect(first).toBeDefined();
+		expect(await workbench.dispatch({ type: "trace.select", activityId: first!.id })).toMatchObject({
+			state: "accepted",
+			selection: {
+				state: "selected",
+				identity: { activityId: first!.id, threadId: "thread-1", turnId: "turn-1", itemId: "same-item" },
+				attribution: { identity: "observed", planAssociation: "inferred" },
+			},
+		});
+
+		native.emit({ type: "notification", method: "turn/completed", refs: { threadId: "thread-1", turnId: "turn-1" }, params: {} });
+		await Bun.sleep(10);
+		await workbench.dispatch({ type: "chat.send", text: "둘째 요청" });
+		native.emit({
+			type: "notification",
+			method: "turn/plan/updated",
+			refs: { threadId: "thread-1", turnId: "turn-2" },
+			params: { plan: [{ step: "같은 제목", status: "inProgress" }] },
+		});
+		native.emit({
+			type: "notification",
+			method: "item/completed",
+			refs: { threadId: "thread-1", turnId: "turn-2", itemId: "same-item" },
+			params: { item: { id: "same-item", type: "commandExecution", command: "second" } },
+		});
+		await Bun.sleep(10);
+		const second = journal.records.find((activity) => activity.nativeRefs.turnId === "turn-2" && activity.nativeRefs.itemId === "same-item");
+		expect(second).toBeDefined();
+		expect(await workbench.dispatch({ type: "trace.select", activityId: second!.id })).toMatchObject({
+			state: "accepted",
+			selection: { state: "selected", identity: { activityId: second!.id, turnId: "turn-2", itemId: "same-item" } },
+		});
+		expect(await workbench.dispatch({ type: "trace.select", activityId: first!.id })).toMatchObject({
+			state: "rejected",
+			selection: { state: "failed", failure: { code: "turn_mismatch", activityId: first!.id } },
+		});
+		expect(await workbench.dispatch({ type: "trace.select", activityId: "same-item" })).toMatchObject({
+			state: "rejected",
+			selection: { state: "failed", failure: { code: "activity_not_found", activityId: "same-item" } },
+		});
+		expect(workbench.snapshot.selectedActivityId).toBe(second!.id);
 		await workbench.close();
 	});
 

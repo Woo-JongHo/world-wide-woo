@@ -42,13 +42,13 @@ describe("native workbench shell receipt policy", () => {
 		expect(workbenchPaneNotice("todo")).toContain("현재 Native Plan·Todo.md");
 		expect(workbenchViewModeForCommand("monitor", { type: "pane.show", pane: "tnotes" })).toBe("workbench");
 		expect(workbenchViewModeForCommand("dashboard", { type: "activity.select", activityId: "activity-1" })).toBe("source");
-		expect(workbenchViewModeForCommand("dashboard", { type: "trace.select", planItemId: "plan-1" })).toBe("source");
+		expect(workbenchViewModeForCommand("dashboard", { type: "trace.select", activityId: "activity-1" })).toBe("source");
 	});
 
-	test("selects Trace by Todo planItemId and rejects mutable legacy Todo commands", () => {
-		expect(parseWorkbenchShellCommand("/trace plan-item-17")).toEqual({
+	test("selects Trace only by exact activity id and rejects mutable legacy Todo commands", () => {
+		expect(parseWorkbenchShellCommand("/trace activity-17")).toEqual({
 			type: "trace.select",
-			planItemId: "plan-item-17",
+			activityId: "activity-17",
 		});
 		for (const command of ["create 계획 :: 항목", "add now 항목", "detail item 항목", "start item", "complete item", "block item", "reopen item", "evidence latest"]) {
 			expect(parseWorkbenchShellCommand(`/todo ${command}`)).toEqual({
