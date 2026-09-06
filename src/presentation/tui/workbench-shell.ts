@@ -773,6 +773,36 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 			}
 			return { consume: true };
 		}
+		if (observabilityNavigation && viewMode === "stats" && matchesKey(data, Key.enter)) {
+			const stats = projectSessionStats(snapshot);
+			if (statsTarget === "session" || statsTarget === "diagnostics") {
+				if (stats.requests.details.length === 0) {
+					status.setNotice("열 수 있는 요청이 없습니다. 현재 세션의 요청이 관측되면 다시 시도하세요.");
+					tui.requestRender();
+					return { consume: true };
+				}
+				statsTarget = "latest";
+				sessionStats.scrollTo(0);
+				status.setNotice("가장 최근 요청 상세를 열었습니다. Enter로 같은 Source를 엽니다.");
+				tui.requestRender();
+				return { consume: true };
+			}
+			const request = statsTarget === "latest"
+				? stats.requests.details.at(-1)
+				: stats.requests.details.find(item => item.ordinal === statsTarget);
+			const activityId = request?.sourceActivityIds[0] ?? request?.excerptSourceActivityId ?? null;
+			if (!activityId) {
+				status.setNotice("이 요청의 원본 Source를 확인할 수 없습니다. 보존 범위 밖이거나 원본이 없습니다.");
+				tui.requestRender();
+				return { consume: true };
+			}
+			void workbench.dispatch({ type: "activity.select", activityId }).then(showReceipt);
+			setViewMode("source");
+			observabilityNavigation = false;
+			tui.setFocus(sourceLayout.leftScroll);
+			status.setNotice(`Request #${request?.ordinal ?? "?"} · 같은 실행의 Source를 열었습니다.`);
+			return { consume: true };
+		}
 		if (shouldHandleObservabilityShortcut(observabilityNavigation, !observabilityNavigation, data)
 			&& (viewMode === "stats" || viewMode === "dashboard" || viewMode === "monitor")) {
 			const direct = directObservabilityView(data);
