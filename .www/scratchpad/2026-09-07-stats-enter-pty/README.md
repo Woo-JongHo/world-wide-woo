@@ -10,6 +10,4 @@
 ## 결과 파일
 
 - `steps.json`
-- `03-selected-request-list.txt`
-- `04-enter-request-detail.txt`
-- `05-enter-source.txt`
+- `steps.json`의 선택·상세·Source 단계
