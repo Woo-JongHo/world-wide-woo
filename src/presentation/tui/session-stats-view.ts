@@ -12,6 +12,7 @@ export class SessionStatsView implements Component {
 		private readonly getStats: () => SessionStatsSnapshot,
 		private readonly getTarget: () => StatsTarget = () => "session",
 		private readonly getHistoricalSession: () => ObservabilitySessionSummary | null = () => null,
+		private readonly getSelectedRequestOrdinal: () => number | null = () => null,
 	) {}
 	public invalidate(): void {}
 	public render(width: number): string[] {
@@ -97,7 +98,8 @@ export class SessionStatsView implements Component {
 
 		section(line, `REQUESTS · ${stats.requests.submitted}`, width);
 		for (const row of requestHeader(width)) line(colors.muted(row));
-		for (const request of stats.requests.shortlist.slice(0, 10)) line(requestTableRow(request, width));
+		const selectedOrdinal = this.getSelectedRequestOrdinal();
+		for (const request of stats.requests.shortlist.slice(0, 10)) line(requestTableRow(request, width, request.ordinal === selectedOrdinal));
 		if (stats.requests.submitted > stats.requests.shortlist.length) line(colors.muted(`… ${stats.requests.submitted - stats.requests.shortlist.length} more requests`));
 
 		line(rule(width));
@@ -157,11 +159,12 @@ function metricCells(items: readonly (readonly [string, string, string])[], widt
 	return rows;
 }
 function requestHeader(width: number): string[] { return [width < 110 ? "#   REQUEST                         STATUS      TIME" : "#   REQUEST                                      STATUS       MODEL             TIME"]; }
-function requestTableRow(request: RequestReview, width: number): string {
+function requestTableRow(request: RequestReview, width: number, selected = false): string {
 	const status = request.lifecycle === "completed" ? colors.success("✓ done") : request.lifecycle === "failed" ? colors.error("✗ fail") : colors.warning(request.lifecycle);
 	const ordinal = String(request.ordinal).padStart(2, "0");
-	if (width < 110) return `${ordinal}  ${pad(requestLabel(request), 30)}  ${pad(status, 10)}  ${pad(duration(request.observedElapsedMs), 8)}`;
-	return `${ordinal}  ${pad(requestLabel(request), 44)}  ${pad(status, 11)}  ${pad(modelLabel(request.models.at(0) ?? "—"), 14)}  ${pad(duration(request.observedElapsedMs), 8)}`;
+	const marker = selected ? colors.accent("▶") : " ";
+	if (width < 110) return `${marker}${ordinal}  ${pad(requestLabel(request), 29)}  ${pad(status, 10)}  ${pad(duration(request.observedElapsedMs), 8)}`;
+	return `${marker}${ordinal}  ${pad(requestLabel(request), 43)}  ${pad(status, 11)}  ${pad(modelLabel(request.models.at(0) ?? "—"), 14)}  ${pad(duration(request.observedElapsedMs), 8)}`;
 }
 function requestLabel(request: RequestReview): string { return oneLine(request.excerpt ?? "Request label unavailable", 44); }
 function modelLabel(model: string): string { return model.replace(/^gpt-[\d.]+-/u, "").replace(/^claude-/u, "").replace(/^gemini-/u, ""); }

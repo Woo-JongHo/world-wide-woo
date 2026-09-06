@@ -54,6 +54,10 @@ describe("session stats view", () => {
 			expect(output.match(/01\s+Implement review dashboard/g)?.length).toBe(1);
 		}
 	});
+	test("marks the selected shortlist request so Enter has a visible target", () => {
+		const output = stripTerminalSequences(new SessionStatsView(() => stats, () => "session", () => null, () => 1).render(120).join("\n"));
+		expect(output).toContain("▶01");
+	});
 	test("keeps wide, normal, and narrow layouts bounded", () => {
 		for (const width of [40, 42, 80, 109, 110, 120, 159, 160, 220]) for (const row of new SessionStatsView(() => stats).render(width)) expect(visibleWidth(row)).toBeLessThanOrEqual(width);
 	});

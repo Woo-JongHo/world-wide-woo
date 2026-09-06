@@ -365,7 +365,8 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		scrollbarStyle: colors.muted,
 	});
 	let statsTarget: "session" | "diagnostics" | "latest" | number = "session";
-	const sessionStatsView = new SessionStatsView(() => projectSessionStats(snapshot), () => statsTarget, () => selectedHistoricalSession);
+	let selectedStatsRequestOrdinal: number | null = null;
+	const sessionStatsView = new SessionStatsView(() => projectSessionStats(snapshot), () => statsTarget, () => selectedHistoricalSession, () => selectedStatsRequestOrdinal);
 	const sessionStats = new ScrollView(sessionStatsView, {
 		follow: "none",
 		primary: true,
@@ -561,6 +562,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 				return true;
 			}
 			statsTarget = requestedStatsTarget;
+			selectedStatsRequestOrdinal = typeof requestedStatsTarget === "number" ? requestedStatsTarget : null;
 			selectedHistoricalSession = null;
 			sessionStats.scrollTo(0);
 			await enterObservability("stats");
@@ -773,6 +775,19 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 			}
 			return { consume: true };
 		}
+		if (observabilityNavigation && viewMode === "stats" && statsTarget === "session" && (matchesKey(data, Key.up) || matchesKey(data, Key.down))) {
+			const shortlist = projectSessionStats(snapshot).requests.shortlist;
+			if (shortlist.length > 0) {
+				const currentIndex = shortlist.findIndex(request => request.ordinal === selectedStatsRequestOrdinal);
+				const nextIndex = currentIndex < 0
+					? (matchesKey(data, Key.up) ? shortlist.length - 1 : 0)
+					: Math.max(0, Math.min(shortlist.length - 1, currentIndex + (matchesKey(data, Key.up) ? -1 : 1)));
+				selectedStatsRequestOrdinal = shortlist[nextIndex]?.ordinal ?? null;
+				sessionStats.scrollTo(0);
+				tui.requestRender();
+				return { consume: true };
+			}
+		}
 		// @linear WOO-715
 		if (observabilityNavigation && viewMode === "stats" && matchesKey(data, Key.enter)) {
 			if (selectedHistoricalSession) {
@@ -787,9 +802,11 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 					tui.requestRender();
 					return { consume: true };
 				}
-				statsTarget = "latest";
+				statsTarget = selectedStatsRequestOrdinal ?? "latest";
 				sessionStats.scrollTo(0);
-				status.setNotice("가장 최근 요청 상세를 열었습니다. Enter로 같은 Source를 엽니다.");
+				status.setNotice(statsTarget === "latest"
+					? "가장 최근 요청 상세를 열었습니다. Enter로 같은 Source를 엽니다."
+					: `선택한 요청 #${statsTarget} 상세를 열었습니다. Enter로 같은 Source를 엽니다.`);
 				tui.requestRender();
 				return { consume: true };
 			}
