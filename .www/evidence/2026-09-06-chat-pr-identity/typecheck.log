@@ -1,5 +1,3 @@
-$ bun run check
 $ tsc --noEmit
 
 exit_code=0
-

@@ -42,17 +42,17 @@
 
 ## 검증
 
-- [`targeted-project-workbench.log`](targeted-project-workbench.log): `73 pass / 0 fail`, exit 0
+- [`targeted-project-workbench.log`](targeted-project-workbench.log): `75 pass / 0 fail`, exit 0
 - [`targeted-project-workbench-session.log`](targeted-project-workbench-session.log): `13 pass / 0 fail`, exit 0
 - [`typecheck.log`](typecheck.log): `bun run check`, exit 0
-- [`full-test.log`](full-test.log): `619 pass / 0 fail / 73 files / 4211 assertions`, exit 0
+- [`full-test.log`](full-test.log): `621 pass / 0 fail / 73 files / 4215 assertions`, exit 0
 - `git diff --check`: exit 0
 - 변경한 코드·테스트에서 `test.skip`, `test.only`, `describe.skip`, `describe.only`, `[DEBUG-...]`를 찾지 못했다.
 
 ## 파일 fingerprint
 
-- `src/application/project-workbench.ts`: `dd91fb6dd0c39c768dad3ada45121d4d121fe29c78a59294a2a4a5ac12fad396`
-- `test/project-workbench.test.ts`: `a1ea4ffd04bf79d92f01642f939e5894497b000a2526da3f5b0e17e5da7480f1`
+- `src/application/project-workbench.ts`: `bd4dbbcc4cb16c7e293c4f9941c4ae6ddf770fdc89b68e7a4be33c5470409f50`
+- `test/project-workbench.test.ts`: `9dd086a9e96391c53b3b4fd622000dbd217c7312752cbc573e4f0d1f015d1166`
 - `test/project-workbench-session.test.ts`: `6959de1803c88e0905aa52bcbc15676a8e4a0ce139f186b8fd7d4e9f107df967`
 
 ## 남은 수락 범위
@@ -60,4 +60,13 @@
 - 실제 Codex Native 연결에서 root/child가 동시에 동일 item ID를 내보내는 시나리오를 실행하지 않았다.
 - 실제 TUI에서 재개 전후 순서, root Chat 가시성, 스크롤·focus를 확인하지 않았다. 따라서 WOO-690 전체 수락 완료를 주장하지 않으며 이 변경은 부분 구현 PR 근거다.
 - WOO-688의 final 미수신 부분 답변 소실과 terminal item late delta는 별도 후속 범위로 남겼고 이번 변경에서 수정하지 않았다.
-- commit, push, PR 생성, Linear write는 이 worktree에서 수행하지 않았다.
+- 최초 worker 보고 시 commit, push, PR, Linear write는 미실행이었다. 이후 PR #39가 생성됐으며 수락 상태는 PR/Linear 코멘트를 따른다.
+
+## 2차 Opus 지적과 수정 · 2026-09-07
+
+- 첫 입력의 message/started와 request/submitted 사이 journal 쓰기를 고정한 회귀에서 optimistic/durable 중복을 재현했다. durable thread/item key가 존재하면 해당 local bubble을 재투영하지 않는다.
+- item ID 없는 첫 출력의 TTFT 누락을 재현했다. turn-level 첫 출력 관측을 유지하면서 불완전한 item draft는 여전히 합치지 않는다.
+- 이 두 회귀는 수정 전 `73 pass / 2 fail`이었다. [재현 로그](review-regressions-red.log)를 보존한다.
+- 실제 Native의 agentMessage/reasoning delta에 thread/turn/item refs가 어떤 밀도로 오는지는 아직 실측하지 않았다. 기존 `ST-011-14.md`의 live 근거는 commandExecution 중심이므로 assistant 스트리밍 호환성의 수락 증거로 대신하지 않는다. full refs 또는 유일한 관측 소유자 정규화가 가능해야 스트리밍이 표시되는 잔여 위험을 실제 연결로 확인해야 한다.
+- sparse refs 정규화는 nativeObservation/sourceDigest 전에 실행되므로 저장 refs는 원본 params만이 아니라 관측 소유자로 보완한 값을 포함한다. 원본 params와 대조해야 하며 수신 순서에 따른 digest 차이 가능성이 남는다.
+- 소유권 Map은 세션 수명 동안 유지하며 현재 pruning이 없다. 장기 세션 메모리 수락은 아직 확인하지 않았다.

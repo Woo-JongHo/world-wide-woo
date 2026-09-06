@@ -1321,7 +1321,6 @@ export class ProjectWorkbench {
 		const reasoning = method.includes("reasoning");
 		const publicReasoningSummary = method.includes("reasoning/summarytextdelta");
 		const itemIdentity = nativeItemIdentity(event.refs);
-		if (!itemIdentity) return;
 		if (!reasoning && activityKind(event.method, event.params) === "message" && delta.trim().length > 0 && event.refs.turnId &&
 			this.usageTracker.hasTurn(event.refs.turnId) &&
 			!this.firstOutputObservedTurns.has(event.refs.turnId)) {
@@ -1333,6 +1332,10 @@ export class ProjectWorkbench {
 				refs: { threadId: event.refs.threadId, turnId: event.refs.turnId },
 			})));
 			this.firstOutputObservedTurns.add(event.refs.turnId);
+		}
+		if (!itemIdentity) {
+			this.publish();
+			return;
 		}
 		if (publicReasoningSummary) {
 			if (itemIdentity && this.reasoningSummaryIdentity && itemIdentity !== this.reasoningSummaryIdentity) {
@@ -1566,7 +1569,11 @@ export class ProjectWorkbench {
 	private projectChat(durable: readonly WorkbenchChatMessage[]): readonly WorkbenchChatMessage[] {
 		if (this.preThreadChat.size === 0) return durable;
 		const messages = new Map(durable.map(message => [message.id, message]));
-		for (const message of this.preThreadChat.values()) messages.set(message.id, message);
+		for (const message of this.preThreadChat.values()) {
+			// Durable acceptance owns the row even while the request observation is still being written.
+			if (this.threadId && messages.has(threadItemKey(this.threadId, message.id))) continue;
+			messages.set(message.id, message);
+		}
 		return Object.freeze([...messages.values()]);
 	}
 

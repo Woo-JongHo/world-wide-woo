@@ -1712,6 +1712,59 @@ describe("ProjectWorkbench", () => {
 		await workbench.close();
 	});
 
+	test("shows the first optimistic request once while request journaling is pending", async () => {
+		let release!: () => void;
+		let reached!: () => void;
+		const gate = new Promise<void>(resolve => { release = resolve; });
+		const entered = new Promise<void>(resolve => { reached = resolve; });
+		class SubmissionGateJournal extends MemoryJournal {
+			override async append(input: ProjectActivityInput): Promise<ProjectActivityAppendResult> {
+				if (input.payload.method === "request/submitted") {
+					reached();
+					await gate;
+				}
+				return super.append(input);
+			}
+		}
+		const native = new FakeNativeHarness();
+		const workbench = new ProjectWorkbench(native, new SubmissionGateJournal(), {
+			projectId: "sample-project", cwd: "/workspace/sample",
+		});
+		await ready(workbench);
+		const sending = workbench.dispatch({ type: "chat.send", text: "첫 요청 하나" });
+		try {
+			await entered;
+			native.emit({ type: "notification", method: "thread/started", refs: { threadId: "thread-1" }, params: {} });
+			await Bun.sleep(10);
+			const users = workbench.snapshot.chat.filter(message => message.role === "user");
+			expect(users.map(message => message.content)).toEqual(["첫 요청 하나"]);
+			expect(workbench.snapshot.activities.some(activity => activity.id === users[0]?.activityId)).toBe(true);
+		} finally {
+			release();
+			await sending;
+			await workbench.close();
+		}
+	});
+
+	test("observes first output without an item id without accepting an unowned draft", async () => {
+		const native = new FakeNativeHarness();
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
+			projectId: "sample-project", cwd: "/workspace/sample",
+		});
+		await ready(workbench);
+		await workbench.dispatch({ type: "chat.send", text: "요청" });
+		const event: NativeHarnessEvent = {
+			type: "notification", method: "item/agentMessage/delta",
+			refs: { threadId: "thread-1", turnId: "turn-1" }, params: { delta: "첫 출력" },
+		};
+		native.emit(event);
+		native.emit(event);
+		await Bun.sleep(10);
+		expect(workbench.snapshot.activities.filter(activity => activity.payload.method === "turn/first-output-observed")).toHaveLength(1);
+		expect(workbench.snapshot.draft).toBe("");
+		await workbench.close();
+	});
+
 	// @linear WOO-690
 	test("isolates root chat identity from child threads and repeated item ids across turns", async () => {
 		const native = new FakeNativeHarness();
