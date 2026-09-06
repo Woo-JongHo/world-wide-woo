@@ -1,0 +1,7 @@
+{
+  "blockers": [
+    "Native first turn produced no Plan source",
+    "Native first turn produced no item-bearing activity associated with current Plan"
+  ],
+  "exitCode": 0
+}

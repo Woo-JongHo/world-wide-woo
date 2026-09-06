@@ -1,0 +1,8 @@
+88830c13be3856fadeb1070128b7db8770b5ce8e94070a41316170403d4e16b9  src/domain/trace-selection.ts
+b5aca190d8904433c974ca29034462b392234271fb03f922da6001d882eb1e1d  src/domain/workbench.ts
+1bec331b276537c8e55bd0b369220a01fd66e5819ce200d986f8de2557219fe0  src/application/project-workbench.ts
+03c3b33993b2b56240d65c62d6358dd625b0eca447fd7fd94311fc6abc4bc65d  src/presentation/tui/slash-commands.ts
+61666c8c9fa42269e7d51d134284d67900287b2ee87847936653db80ada64b99  src/presentation/tui/workbench-shell.ts
+92548521cc1491e30e9951cc4f4100f7495d5688515360ca55ac6a81b4ba108c  src/presentation/tui/workbench-views.ts
+5cc3a1d09fc1cc1859e6158f903a1641654e35cd9e6d510328c9647428167ca1  .www/evidence/2026-09-07-tracer-native-pty-terra/native-pty-probe.ts
+69eedf5a6c3cf8df750ca83b81fa7293b0bd28f924288eaf773ffb677f61906b  .www/evidence/2026-09-07-tracer-native-pty-terra/run-native-pty.py
