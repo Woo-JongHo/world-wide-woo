@@ -13,4 +13,3 @@
 - `03-selected-request-list.txt`
 - `04-enter-request-detail.txt`
 - `05-enter-source.txt`
-- `terminal.ansi`
