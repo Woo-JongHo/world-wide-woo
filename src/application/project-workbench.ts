@@ -31,7 +31,7 @@ import {
 	type ProjectActivityPhase,
 } from "../domain/project-activity.js";
 import { sanitizeTerminalTextExcerpt, sanitizeTerminalTextUnbounded } from "../domain/terminal.js";
-import type { TodoDocument } from "../domain/todos.js";
+import type { TodoDocument, TodoNativePlanBinding } from "../domain/todos.js";
 import type { CanonicalDocumentDraft } from "../domain/canonical-document.js";
 import type { ReviewPacket, ReviewProvider } from "../domain/review.js";
 import {
@@ -129,7 +129,7 @@ export interface WorkbenchTodoSource {
 	/** Binds the live board to the provider-issued Native thread identity. */
 	bindThread?(threadId: string): Promise<void>;
 	/** Optional Native-plan mirror. It must never block the interactive Chat path. */
-	syncNativePlan?(flow: WorkFlowProjection): Promise<TodoDocument>;
+	syncNativePlan?(flow: WorkFlowProjection, binding: TodoNativePlanBinding): Promise<TodoDocument>;
 	create(title: string, items: readonly string[], storyId?: string): Promise<TodoDocument>;
 	add(content: string, placement: "now" | "after"): Promise<TodoDocument>;
 	addDetails(itemId: string, details: readonly string[]): Promise<TodoDocument>;
@@ -459,7 +459,7 @@ export class ProjectWorkbench {
 			const syncResumedTodo = this.options.todos?.syncNativePlan?.bind(this.options.todos);
 			if (
 				syncResumedTodo
-				&& (!this.todo || this.todo.items.length === 0)
+				&& (!this.todo || this.todo.items.length === 0 || this.todo.source !== undefined)
 				&& resumedTodoFlow.source
 				&& resumedTodoFlow.steps.length > 0
 			) {
@@ -1671,11 +1671,12 @@ export class ProjectWorkbench {
 		sync: NonNullable<WorkbenchTodoSource["syncNativePlan"]>,
 		flow: WorkFlowProjection,
 	): void {
+		const binding = this.nativeTodoBinding(flow);
 		this.todoSyncQueue = this.todoSyncQueue
 			.catch(() => undefined)
 			.then(async () => {
 				try {
-					await sync(flow);
+					await sync(flow, binding);
 				} catch (error) {
 					const body = error instanceof TodoWriteConflictError
 						? stableJson({ currentSource: error.currentSource, pending: error.pending })
@@ -1689,6 +1690,35 @@ export class ProjectWorkbench {
 					this.publish();
 				}
 			});
+	}
+
+	/** @linear WOO-702 Uses only turn-bound journal observations for durable model/input references. */
+	private nativeTodoBinding(flow: WorkFlowProjection): TodoNativePlanBinding {
+		const source = flow.source;
+		if (!source) throw new Error("Native plan source authority is required for Todo binding");
+		const request = [...this.activities].reverse().find((activity) =>
+			activity.nativeRefs.threadId === this.threadId
+			&& activity.nativeRefs.turnId === source.turnId
+			&& activity.payload.method === "request/started"
+			&& typeof activity.payload.requestId === "string"
+		);
+		const model = typeof request?.payload.model === "string" && request.payload.model.trim()
+			? request.payload.model
+			: null;
+		return {
+			input: request ? {
+				activityId: request.id,
+				requestId: request.payload.requestId as string,
+				sourceDigest: request.sourceDigest,
+			} : null,
+			rootExecution: {
+				provider: null,
+				model,
+				agentId: null,
+				threadId: this.threadId,
+				runId: source.turnId,
+			},
+		};
 	}
 
 	private scheduleNarrations(): void {

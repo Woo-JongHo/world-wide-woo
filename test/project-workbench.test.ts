@@ -381,15 +381,15 @@ describe("ProjectWorkbench", () => {
 
 	test("mirrors Native plan activity to Todo without delaying real-time Chat projection", async () => {
 		const native = new FakeNativeHarness();
-		const syncCalls: WorkFlowProjection[] = [];
+		const syncCalls: Array<{ flow: WorkFlowProjection; binding: Parameters<NonNullable<WorkbenchTodoSource["syncNativePlan"]>>[1] }> = [];
 		let releasePlanSync: () => void = () => undefined;
 		const planSyncGate = new Promise<void>((resolve) => { releasePlanSync = resolve; });
 		const unsupported = async (): Promise<never> => { throw new Error("not used"); };
 		const todos: WorkbenchTodoSource = {
 			snapshot: null,
 			subscribe: () => () => undefined,
-			syncNativePlan: async (flow) => {
-				syncCalls.push(flow);
+			syncNativePlan: async (flow, binding) => {
+				syncCalls.push({ flow, binding });
 				if (flow.steps.length > 0) await planSyncGate;
 				return todoDocument();
 			},
@@ -438,7 +438,7 @@ describe("ProjectWorkbench", () => {
 		});
 		await Bun.sleep(10);
 
-		expect(syncCalls.some((flow) => flow.steps.length === 2)).toBe(true);
+		expect(syncCalls.some(({ flow }) => flow.steps.length === 2)).toBe(true);
 		const execution = workbench.snapshot.activities.find((activity) => activity.nativeRefs.itemId === "write-1");
 		expect(execution).toBeDefined();
 		expect(workbench.snapshot.activities.find((activity) => activity.payload.method === "turn/plan/updated")?.nativeRefs)
@@ -449,8 +449,14 @@ describe("ProjectWorkbench", () => {
 		releasePlanSync();
 		await workbench.close();
 		expect(syncCalls.at(-1)).toMatchObject({
-			source: { kind: "native-plan-derived", turnId: "turn-1", algorithm: "dplan-v1" },
-			steps: [{ title: "계획 자동 동기화", status: "running" }, { title: "결과 검증", status: "pending" }],
+			flow: {
+				source: { kind: "native-plan-derived", turnId: "turn-1", algorithm: "dplan-v1" },
+				steps: [{ title: "계획 자동 동기화", status: "running" }, { title: "결과 검증", status: "pending" }],
+			},
+			binding: {
+				input: { requestId: expect.any(String), activityId: expect.any(String), sourceDigest: expect.stringMatching(/^sha256:/u) },
+				rootExecution: { provider: null, model: "codex", agentId: null, threadId: "thread-1", runId: "turn-1" },
+			},
 		});
 	});
 

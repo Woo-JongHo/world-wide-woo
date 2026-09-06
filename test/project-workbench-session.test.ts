@@ -371,12 +371,17 @@ describe("createProjectWorkbenchSession", () => {
 			const session = await open(store);
 			await session.close();
 			expect(store.document).toMatchObject({ title: "현재 요청을 처리합니다.", items: [{ content: "resumed root plan", status: "in_progress" }] });
+			expect(store.document?.source).toMatchObject({
+				turnId: "root-turn",
+				input: null,
+				rootExecution: { model: null, agentId: null, threadId: "thread", runId: "root-turn" },
+			});
 			expect(store.writes).toBe(1);
 			expect(syncCalls.get(store)).toBe(1);
 			const reopened = await open(store);
 			expect(reopened.workbench.snapshot.todo).toEqual(store.document);
 			expect(store.writes).toBe(1);
-			expect(syncCalls.get(store)).toBe(1);
+			expect(syncCalls.get(store)).toBe(2);
 			await reopened.close();
 		}
 
@@ -389,6 +394,128 @@ describe("createProjectWorkbenchSession", () => {
 		expect(existing.writes).toBe(0);
 		expect(syncCalls.get(existing) ?? 0).toBe(0);
 		await session.close();
+	});
+
+	test("refreshes an older source-bound Todo on resume while keeping unobserved model and agent unknown", async () => {
+		const activity = (sequence: number, method: string, payload: Record<string, unknown> = {}) => ({
+			schemaVersion: 1 as const,
+			id: `resume-source-${sequence}`,
+			projectId: nativeThreadJournalKey("thread"),
+			sequence,
+			recordedAt: new Date(0).toISOString(),
+			kind: "progress" as const,
+			phase: "completed" as const,
+			provider: "native",
+			nativeRefs: { threadId: "thread", turnId: "root-turn" },
+			sourceDigest: `sha256:${String(sequence).padStart(64, "0")}`,
+			payload: { method, ...payload },
+		});
+		const persisted = [
+			activity(1, "turn/started"),
+			activity(2, "turn/plan/updated", { params: { plan: [{ step: "옛 계획", status: "inProgress" }] } }),
+		];
+		const journal: WorkbenchActivityJournal = {
+			append: async (input) => ({ appended: true, activity: { ...input, schemaVersion: 1, id: crypto.randomUUID(), sequence: persisted.length + 1, recordedAt: new Date(0).toISOString() } }),
+			readAll: async () => [...persisted],
+		};
+		const store = new TrackingTodoStore(null);
+		const open = async () => createProjectWorkbenchSession("/ignored", {
+			resumeThreadId: "thread",
+			model: "currently-selected-but-unobserved",
+		}, {
+			openWorkspace: async () => workspace,
+			acquireWriterLease: async () => ({ release: async () => undefined }),
+			connectNative: async () => new FakeNative([]),
+			createJournal: () => journal,
+			createTodoStore: () => store,
+			createSessionEvents: () => new MemoryEvents(),
+			createTNoteSource: () => ({ readAll: async () => [], create: async () => { throw new Error("not used"); } }),
+			createComposerDraft: async () => ({ initialText: "", save: async () => undefined, clear: async () => undefined }),
+		});
+
+		const first = await open();
+		await first.close();
+		expect(store.document).toMatchObject({
+			title: "현재 요청을 처리합니다.",
+			items: [{ content: "옛 계획" }],
+			source: { planRevision: { sequence: 2 }, rootExecution: { model: null, agentId: null } },
+		});
+
+		persisted.push(activity(3, "turn/plan/updated", { params: { plan: [{ step: "재개할 최신 계획", status: "inProgress" }] } }));
+		const second = await open();
+		await second.close();
+		expect(store.writes).toBe(2);
+		expect(store.document).toMatchObject({
+			items: [{ content: "재개할 최신 계획" }],
+			source: { planRevision: { sequence: 3 }, rootExecution: { model: null, agentId: null, threadId: "thread", runId: "root-turn" } },
+		});
+	});
+
+	test("keeps two Native inputs in distinct session Todo files with matching input, turn, and model references", async () => {
+		const stores = new Map<string, TrackingTodoStore>();
+		const activity = (
+			threadId: string,
+			turnId: string,
+			sequence: number,
+			kind: ProjectActivity["kind"],
+			method: string,
+			payload: Record<string, unknown> = {},
+		): ProjectActivity => ({
+			schemaVersion: 1,
+			id: `${threadId}-activity-${sequence}`,
+			projectId: nativeThreadJournalKey(threadId),
+			sequence,
+			recordedAt: new Date(0).toISOString(),
+			kind,
+			phase: "completed",
+			provider: "native",
+			nativeRefs: { threadId, turnId, ...(method === "request/started" ? { itemId: `${threadId}-request` } : {}) },
+			sourceDigest: `sha256:${String(sequence).padStart(64, threadId === "thread-a" ? "a" : "b")}`,
+			payload: { method, ...payload },
+		});
+		const histories = new Map(["thread-a", "thread-b"].map((threadId, index) => {
+			const turnId = `turn-${index + 1}`;
+			const model = index === 0 ? "gpt-5.6-sol" : "gpt-5.6-terra";
+			return [nativeThreadJournalKey(threadId), [
+				activity(threadId, turnId, 1, "message", "message/sent", { direction: "outbound", role: "user", text: `input ${index + 1}` }),
+				activity(threadId, turnId, 2, "progress", "request/started", { requestId: `${threadId}-request`, model, effort: "medium" }),
+				activity(threadId, turnId, 3, "progress", "turn/started"),
+				activity(threadId, turnId, 4, "progress", "turn/plan/updated", { params: { plan: [{ step: `plan ${index + 1}`, status: "inProgress" }] } }),
+			]] as const;
+		}));
+		const journal: WorkbenchActivityJournal = {
+			append: async (input) => ({ appended: false, activity: { ...input, schemaVersion: 1, id: crypto.randomUUID(), sequence: 5, recordedAt: new Date(0).toISOString() } }),
+			readAll: async (projectId) => [...(histories.get(projectId) ?? [])],
+		};
+		const factories: Partial<ProjectWorkbenchSessionFactories> = {
+			openWorkspace: async () => workspace,
+			acquireWriterLease: async () => ({ release: async () => undefined }),
+			connectNative: async () => new FakeNative([]),
+			createJournal: () => journal,
+			createTodoStore: (path) => {
+				const store = new TrackingTodoStore(null);
+				stores.set(path, store);
+				return store;
+			},
+			createSessionEvents: () => new MemoryEvents(),
+			createTNoteSource: () => ({ readAll: async () => [], create: async () => { throw new Error("not used"); } }),
+			createComposerDraft: async () => ({ initialText: "", save: async () => undefined, clear: async () => undefined }),
+		};
+
+		for (const threadId of ["thread-a", "thread-b"]) {
+			const session = await createProjectWorkbenchSession("/ignored", { resumeThreadId: threadId }, factories);
+			await session.close();
+		}
+
+		const entries = [...stores.entries()];
+		expect(entries.map(([path]) => path)).toEqual([
+			join(workspace.todosDirectory, scopedTodoSessionId("thread-a"), "Todo.md"),
+			join(workspace.todosDirectory, scopedTodoSessionId("thread-b"), "Todo.md"),
+		]);
+		expect(entries.map(([, store]) => store.document)).toEqual([
+			expect.objectContaining({ items: [expect.objectContaining({ content: "plan 1" })], source: expect.objectContaining({ turnId: "turn-1", input: expect.objectContaining({ requestId: "thread-a-request" }), rootExecution: expect.objectContaining({ model: "gpt-5.6-sol", threadId: "thread-a", runId: "turn-1" }) }) }),
+			expect.objectContaining({ items: [expect.objectContaining({ content: "plan 2" })], source: expect.objectContaining({ turnId: "turn-2", input: expect.objectContaining({ requestId: "thread-b-request" }), rootExecution: expect.objectContaining({ model: "gpt-5.6-terra", threadId: "thread-b", runId: "turn-2" }) }) }),
+		]);
 	});
 
 	test("does not wait for resumed Todo bootstrap and exposes rejected and conflicted writes", async () => {

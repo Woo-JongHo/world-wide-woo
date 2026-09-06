@@ -15,7 +15,70 @@ const document = {
 	updatedAt: "2026-08-31T07:55:00.000Z",
 };
 
+const nativeSource = {
+	kind: "native-plan" as const,
+	threadKeyDigest: "a".repeat(64),
+	turnId: "turn-1",
+	input: {
+		activityId: "request-activity-1",
+		requestId: "request-1",
+		sourceDigest: `sha256:${"b".repeat(64)}`,
+	},
+	planRevision: {
+		sourceRevisionKeyDigest: "c".repeat(64),
+		activityId: "plan-activity-1",
+		sequence: 7,
+		sourceDigest: `sha256:${"d".repeat(64)}`,
+	},
+	rootExecution: {
+		provider: null,
+		model: "gpt-5.6-sol",
+		agentId: null,
+		threadId: "thread-1",
+		runId: "turn-1",
+	},
+};
+
 describe("todo domain", () => {
+	test("round trips Native input, Plan revision, item identity, and observed execution references", () => {
+		const nativeDocument = validateTodoDocument({
+			...document,
+			source: nativeSource,
+			items: [{
+				...document.items[0],
+				id: `native-${"e".repeat(48)}`,
+				source: {
+					kind: "native-plan-item",
+					identity: "e".repeat(64),
+					originRevision: nativeSource.planRevision,
+					currentRevision: nativeSource.planRevision,
+					executions: [nativeSource.rootExecution],
+				},
+			}],
+		});
+
+		const markdown = renderTodoMarkdown(nativeDocument);
+		const restored = parseTodoMarkdown(markdown);
+
+		expect(restored).toEqual(nativeDocument);
+		expect(restored.source).toEqual(nativeSource);
+		expect(restored.items[0]?.source).toMatchObject({
+			identity: "e".repeat(64),
+			executions: [{ model: "gpt-5.6-sol", threadId: "thread-1", runId: "turn-1" }],
+		});
+		expect(Object.isFrozen(restored.source)).toBe(true);
+		expect(Object.isFrozen(restored.items[0]?.source?.executions)).toBe(true);
+	});
+
+	test("reads reference-free legacy Markdown as unknown without changing its bytes", () => {
+		const legacy = renderTodoMarkdown(document).replace("\n\n", "\r\n\r\n> keep this exact legacy note\r\n");
+		const restored = parseTodoMarkdown(legacy);
+
+		expect(restored.source).toBeUndefined();
+		expect(restored.items.every((item) => item.source === undefined)).toBe(true);
+		expect(patchTodoMarkdown(legacy, restored)).toBe(legacy);
+	});
+
 	test("round trips strict markdown with visible status prefixes", () => {
 		const markdown = renderTodoMarkdown(document);
 		expect(markdown).toContain("- [x] Ship this");
@@ -110,6 +173,24 @@ describe("todo domain", () => {
 			...document,
 			items: [{ id: "one", content: "Too much evidence", status: "pending", evidenceIds: Array.from({ length: 9 }, (_, index) => `evt_${index}`), details: [] }],
 		})).toThrow("evidence");
+		const bound = {
+			...document,
+			source: nativeSource,
+			items: [{
+				...document.items[0],
+				id: `native-${"e".repeat(48)}`,
+				source: {
+					kind: "native-plan-item",
+					identity: "e".repeat(64),
+					originRevision: nativeSource.planRevision,
+					currentRevision: nativeSource.planRevision,
+					executions: [nativeSource.rootExecution],
+				},
+			}],
+		};
+		expect(() => validateTodoDocument({ ...bound, items: [{ ...bound.items[0], id: "native-forged" }] })).toThrow("identity");
+		expect(() => validateTodoDocument({ ...bound, source: { ...nativeSource, turnId: "other-turn" } })).toThrow("execution");
+		expect(() => validateTodoDocument({ ...document, items: bound.items })).toThrow("document source");
 	});
 
 	test("normalizes legacy flat documents and rejects orphan, nested, and invalid detail states", () => {
