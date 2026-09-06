@@ -29,6 +29,8 @@ def wait_for(predicate,seconds):
  return False
 def shot(name):
  text=re.sub(r'\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07]*(?:\x07|\x1b\\))','',record.decode('utf-8','replace'))
+ expected={'04-enter-request-detail':'REQUEST INVESTIGATION','05-enter-source':'Activity'}.get(name)
+ if expected is not None and expected not in text: raise AssertionError(f'{name}: expected {expected!r} in terminal output')
  (out/(name+'.txt')).write_text(text)
  steps.append({'step':name,'state':state(),'columns':screen.columns,'lines':screen.lines})
 def type_line(text):os.write(master,text.encode());pump(.15);os.write(master,b'\r')
@@ -38,7 +40,7 @@ try:
  type_line("도구 없이 다음 한 줄만 답하세요: 안녕하세요 👋 연결 확인")
  assert wait_for(lambda s:s.get('activeTurnId') is None and any(m.get('role')=='assistant' for m in s.get('chat',[])),45),'first response timeout'
  type_line('/stats');pump(1);shot('02-completed-stats-80')
- os.write(master,b'\x1b[B');pump(.5);shot('03-selected-request-list')
+ os.write(master,b'\x1b[B');pump(1.5);shot('03-selected-request-list')
  os.write(master,b'\r');pump(1);shot('04-enter-request-detail')
  os.write(master,b'\r');pump(1);shot('05-enter-source')
  os.write(master,b'\x1b');pump(.5)
