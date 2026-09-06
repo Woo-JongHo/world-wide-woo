@@ -58,6 +58,7 @@ Monitor/Dashboard 제품 코드는 변경하지 않았다.
 - `git diff --check`: exit 0.
 - 변경 코드·테스트에서 `test.skip`, `test.only`, `describe.skip`, `describe.only`, `[DEBUG` marker를 찾지 못했다. 기존 제품 문자열 `TODO.md`와 UI assertion `TODO 0/0`만 검색됐다.
 - [`post-opus-validation.md`](post-opus-validation.md): 보완 뒤 targeted `168 pass / 0 fail / 1518 assertions`, 전체 `657 pass / 0 fail / 74 files / 4330 assertions`, typecheck와 diff check exit 0. marker 직접 검사 결과도 함께 기록했다.
+- Terra runtime evidence 검토의 `REVISE` 뒤 보존 probe import와 runner 실행·출력 경로를 archive 기준으로 고쳤다. [`replay-002`](../2026-09-07-chat-lifecycle-native-pty-after-fix/replay-002/steps.json)는 archive runner를 `uv run --with pyte==0.8.2`로 실제 재실행한 결과이며 자체 acceptance assertion과 probe exit 0을 통과했다. 같은 디렉터리의 `source-fingerprints.txt`는 `executedHead=a5188b351ebceb12f4529e9fc7ac1558b5accaf5`, archive probe/runner, Native executor, executor port, ProjectWorkbench, activity/status/redaction domain, workbench shell과 Chat view를 실행 직전에 pin한다.
 
 ## 파일 fingerprint
 
@@ -76,5 +77,6 @@ Fingerprint는 receipt 작성 직전 값이다. 이후 코드 수정이 생기�
 - 수정 전 실제 Codex Native·PTY 실행은 두 결함을 재현해 실패했다. 수정 뒤 같은 harness를 재실행했고 정상 응답의 거짓 미수신 bubble이 사라졌으며 Esc 중단의 partial+`중단됨` 표시를 확인했다. 원본은 `../2026-09-07-chat-lifecycle-native-pty-after-fix/`에 있다. 실제 provider에서 final item 미수신, body 없는 terminal agent-message, failed terminal, late delta를 모두 강제로 발생시킨 것은 아니며 이 경계는 자동 회귀 범위다.
 - 실제 interactive TUI의 40/80/120열 깜빡임, 읽던 위치, scroll/focus 수락은 아직 완료되지 않았다. 자동 fixture는 실제 pi-tui renderer/layout을 통과하지만 사람의 화면 수락을 대체하지 않는다.
 - 1차 Opus `REVISE` 지적은 코드와 회귀로 보완했지만, 보완 diff에 대한 최종 Opus 감사는 세션 제한으로 아직 실행하지 않았다. 더 낮은 모델로 대체하지 않는다.
+- Terra의 runtime evidence `REVISE`에서 지적한 archive 재실행과 실행 경로 지문 blocker는 하네스 수정 및 `replay-002` 재실행으로 보완했다. 이 문서는 후속 독립 Terra/Opus 판정을 대신하지 않는다.
 - `node_modules`는 준비용 untracked symlink다. commit 후보가 아니다.
 - 이 worktree에서 commit, push, PR 생성, Linear 쓰기를 수행하지 않았다.

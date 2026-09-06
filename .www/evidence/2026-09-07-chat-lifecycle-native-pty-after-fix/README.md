@@ -19,3 +19,23 @@
 따라서 수정 전 실제 실행에서 확인한 거짓 미수신 bubble과 중단의 incomplete 오분류는 같은 시나리오에서 재현되지 않았다. 실제 provider가 body 없는 agent terminal, late delta, failed terminal을 임의로 발생시키지는 못했으므로 해당 경계는 자동 회귀 범위다. 재시작·스크롤·focus·IME 전체 수락과 최종 Opus 감사도 남아 있다.
 
 원 ANSI, 화면 프레임, 공개 Native refs·종류·상태만 남긴 JSONL, 실행 harness를 함께 보존했다. 내부 reasoning 본문은 기록하지 않았다.
+
+## 보존 하네스 재실행
+
+이 디렉터리에서 아래 명령을 실행한다. `uv`가 격리 환경에 `pyte 0.8.2`를 설치하고, Python runner는 이 디렉터리에 보존된 TypeScript probe를 직접 실행한다.
+
+```sh
+uv run --with pyte==0.8.2 -- python 2026-09-07-run-native-pty.py
+```
+
+runner는 현재 작업 디렉터리에 의존하지 않고 자신의 파일 위치에서 repository root와 probe를 찾는다. 결과는 기존 관측을 덮어쓰지 않도록 이 디렉터리 아래의 새 `replay-NNN/`에 저장한다. 각 replay의 `source-fingerprints.txt`는 실행 HEAD와 다음 경로를 실행 직전에 기록한다.
+
+- 보존된 TypeScript probe와 Python runner
+- Native executor와 application executor port
+- `ProjectWorkbench`와 journal activity domain
+- Chat status/redaction domain
+- 실제 workbench shell과 Chat view
+
+Terra REVISE 뒤의 자체 검증 포함 재실행 정본은 `replay-002/`다. runner는 정상 user/assistant 각각 1개, assistant completed 본문, 40·80·120열 본문 유지, Esc 뒤 cancelled partial과 `중단됨`, 거짓 미수신 문구 부재, Native terminal status `completed → interrupted`, `userMessage` payload shape, probe exit 0을 assertion으로 확인했다.
+
+`replay-001/`은 archive 경로와 고유 출력 생성을 처음 확인한 실행이다. 이후 runner 자체에 위 acceptance assertion을 추가했으므로 최종 재현 판정에는 `replay-002/`를 사용한다.
