@@ -771,6 +771,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 			selectedHistoricalSession = observabilityDashboardSnapshot.recentSessions[selectedDashboardSessionIndex] ?? null;
 			if (selectedHistoricalSession) {
 				statsTarget = "session";
+				selectedStatsRequestOrdinal = null;
 				void enterObservability("stats").then(() => tui.requestRender());
 			}
 			return { consume: true };
