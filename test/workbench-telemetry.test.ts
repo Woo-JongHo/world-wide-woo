@@ -13,6 +13,7 @@ describe("workbench telemetry rail", () => {
 			contextUsage: { usedTokens: 8_785, contextWindow: 258_400, percent: 3.4 },
 			sessionUsage: {
 				totalTokens: 25_840,
+				observedTotalTokens: 25_840,
 				unattributedTokens: 0,
 				models: [{ model: "gpt-5.6-sol", effort: "low", interactiveRootTurns: 1, interactiveTokens: 25_840, detachedInvocations: 0, detachedTokens: 0, totalTokens: 25_840 }],
 				observationCoverage: { interactive: true, detached: false },

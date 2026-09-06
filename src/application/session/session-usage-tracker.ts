@@ -59,13 +59,16 @@ export class SessionUsageTracker {
 			});
 		}
 		const models = [...merged.values()].sort((left, right) => right.totalTokens - left.totalTokens || left.model.localeCompare(right.model));
+		const totalTokens = models.reduce((sum, usage) => sum + usage.totalTokens, 0) + this.unattributedTokens;
+		const detachedUsageObserved = models.some(usage => usage.detachedInvocations > 0);
 		return {
-			totalTokens: models.reduce((sum, usage) => sum + usage.totalTokens, 0) + this.unattributedTokens,
+			totalTokens,
+			observedTotalTokens: this.interactiveUsageObserved || detachedUsageObserved ? totalTokens : null,
 			unattributedTokens: this.unattributedTokens,
 			models,
 			observationCoverage: {
 				interactive: this.interactiveUsageObserved,
-				detached: models.some(usage => usage.detachedInvocations > 0),
+				detached: detachedUsageObserved,
 			},
 		};
 	}

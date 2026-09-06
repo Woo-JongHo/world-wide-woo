@@ -143,9 +143,7 @@ export function projectSessionStats(snapshot: WorkbenchSnapshot): SessionStatsSn
 		: snapshot.resumeCoverage?.mode === "fresh" || activities.length > 0 ? "fresh" : "unknown";
 	const state = sessionReviewState(activities, rootTurns);
 	const usageObservationCoverage = observationCoverage(snapshot);
-	const observedTotalTokens = usageObservationCoverage.interactive || usageObservationCoverage.detached
-		? snapshot.sessionUsage?.totalTokens ?? null
-		: null;
+	const observedTotalTokens = snapshot.sessionUsage?.observedTotalTokens ?? null;
 
 	return Object.freeze({
 		state,

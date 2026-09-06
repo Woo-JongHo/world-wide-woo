@@ -1411,6 +1411,7 @@ describe("ProjectWorkbench", () => {
 			contextUsage: { usedTokens: 25_840, contextWindow: 258_400, percent: 5.6 },
 			sessionUsage: {
 				totalTokens: 25_840,
+				observedTotalTokens: 25_840,
 				unattributedTokens: 0,
 				models: [{ model: "gpt-5.6-sol", effort: "low", interactiveRootTurns: 1, interactiveTokens: 25_840, detachedInvocations: 0, detachedTokens: 0, totalTokens: 25_840 }],
 			},
@@ -1459,6 +1460,7 @@ describe("ProjectWorkbench", () => {
 		});
 		expect(workbench.snapshot.sessionUsage).toEqual({
 			totalTokens: 38_760,
+			observedTotalTokens: 38_760,
 			unattributedTokens: 12_920,
 			models: [{ model: "gpt-5.6-sol", effort: "low", interactiveRootTurns: 1, interactiveTokens: 25_840, detachedInvocations: 0, detachedTokens: 0, totalTokens: 25_840 }],
 			observationCoverage: { interactive: true, detached: false },
@@ -1485,6 +1487,7 @@ describe("ProjectWorkbench", () => {
 		expect(workbench.snapshot.revision).toBeGreaterThan(revision);
 		expect(workbench.snapshot.sessionUsage).toEqual({
 			totalTokens: 4_600,
+			observedTotalTokens: 4_600,
 			unattributedTokens: 0,
 			models: [
 				{ model: "claude-opus-5", effort: null, interactiveRootTurns: 0, interactiveTokens: 0, detachedInvocations: 1, detachedTokens: 3_400, totalTokens: 3_400 },
@@ -1509,6 +1512,7 @@ describe("ProjectWorkbench", () => {
 
 		expect(fresh.snapshot.sessionUsage).toMatchObject({
 			totalTokens: 0,
+			observedTotalTokens: null,
 			observationCoverage: { interactive: false, detached: false },
 		});
 		expect(projectSessionStats(fresh.snapshot)).toMatchObject({
@@ -1523,6 +1527,11 @@ describe("ProjectWorkbench", () => {
 			params: { tokenUsage: { total: { totalTokens: 0 } } },
 		});
 		await Bun.sleep(10);
+		expect(fresh.snapshot.sessionUsage).toMatchObject({
+			totalTokens: 0,
+			observedTotalTokens: 0,
+			observationCoverage: { interactive: true, detached: false },
+		});
 		expect(projectSessionStats(fresh.snapshot)).toMatchObject({
 			observedTotalTokens: 0,
 			usageObservationCoverage: { interactive: true, detached: false },
@@ -1562,17 +1571,9 @@ describe("ProjectWorkbench", () => {
 			resumeThreadId: "thread-1",
 		});
 		await ready(resumed);
-		expect(projectSessionStats(resumed.snapshot).observedTotalTokens).toBeNull();
-
-		resumedNative.emit({
-			type: "notification",
-			method: "thread/tokenUsage/updated",
-			refs: { threadId: "thread-1", turnId: "prior-turn" },
-			params: { tokenUsage: { total: { totalTokens: 500 } } },
-		});
-		await Bun.sleep(10);
 		expect(resumed.snapshot.sessionUsage).toMatchObject({
 			totalTokens: 0,
+			observedTotalTokens: null,
 			observationCoverage: { interactive: false, detached: false },
 		});
 		expect(projectSessionStats(resumed.snapshot).observedTotalTokens).toBeNull();
@@ -1584,6 +1585,25 @@ describe("ProjectWorkbench", () => {
 			params: { tokenUsage: { total: { totalTokens: 500 } } },
 		});
 		await Bun.sleep(10);
+		expect(resumed.snapshot.sessionUsage).toMatchObject({
+			totalTokens: 0,
+			observedTotalTokens: null,
+			observationCoverage: { interactive: false, detached: false },
+		});
+		expect(projectSessionStats(resumed.snapshot).observedTotalTokens).toBeNull();
+
+		resumedNative.emit({
+			type: "notification",
+			method: "thread/tokenUsage/updated",
+			refs: { threadId: "thread-1", turnId: "prior-turn" },
+			params: { tokenUsage: { total: { totalTokens: 500 } } },
+		});
+		await Bun.sleep(10);
+		expect(resumed.snapshot.sessionUsage).toMatchObject({
+			totalTokens: 0,
+			observedTotalTokens: 0,
+			observationCoverage: { interactive: true, detached: false },
+		});
 		expect(projectSessionStats(resumed.snapshot)).toMatchObject({
 			observedTotalTokens: 0,
 			usageObservationCoverage: { interactive: true, detached: false },

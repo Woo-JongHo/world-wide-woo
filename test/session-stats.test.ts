@@ -21,7 +21,7 @@ describe("session review projection", () => {
 	test("distinguishes unobserved token usage from an observed zero", () => {
 		const unobserved = projectSessionStats(snapshot([activity({ id: "event", sequence: 1, method: "event" })]));
 		const zero = projectSessionStats(snapshot([activity({ id: "event", sequence: 1, method: "event" })], {
-			sessionUsage: { totalTokens: 0, unattributedTokens: 0, models: [], observationCoverage: { interactive: true, detached: false } },
+			sessionUsage: { totalTokens: 0, observedTotalTokens: 0, unattributedTokens: 0, models: [], observationCoverage: { interactive: true, detached: false } },
 		}));
 		expect(unobserved.observedTotalTokens).toBeNull();
 		expect(zero.observedTotalTokens).toBe(0);
@@ -29,13 +29,13 @@ describe("session review projection", () => {
 
 	test("B: preserves a single model's three successful root turns", () => {
 		const activities = ["one", "two", "three"].flatMap((turnId, index) => [activity({ id: `${turnId}-start`, sequence: index * 2 + 1, method: "turn/started", turnId, phase: "started" }), activity({ id: `${turnId}-end`, sequence: index * 2 + 2, method: "turn/completed", turnId, phase: "completed" })]);
-		const stats = projectSessionStats(snapshot(activities, { sessionUsage: { totalTokens: 30, unattributedTokens: 0, models: [{ model: "gpt", effort: "high", interactiveRootTurns: 3, interactiveTokens: 30, detachedInvocations: 0, detachedTokens: 0, totalTokens: 30 }], observationCoverage: { interactive: true, detached: false } } }));
+		const stats = projectSessionStats(snapshot(activities, { sessionUsage: { totalTokens: 30, observedTotalTokens: 30, unattributedTokens: 0, models: [{ model: "gpt", effort: "high", interactiveRootTurns: 3, interactiveTokens: 30, detachedInvocations: 0, detachedTokens: 0, totalTokens: 30 }], observationCoverage: { interactive: true, detached: false } } }));
 		expect(stats.lifecycle).toMatchObject({ rootTurns: 3, completedRootTurns: 3, activeRootTurns: 0 });
 		expect(stats.modelUsage).toEqual([expect.objectContaining({ namespace: "interactive", interactiveRootTurns: 3, totalTokens: 30 })]);
 	});
 
 	test("C: separates interactive and detached model namespaces", () => {
-		const stats = projectSessionStats(snapshot([], { sessionUsage: { totalTokens: 5, unattributedTokens: 0, models: [{ model: "a", effort: null, interactiveRootTurns: 1, interactiveTokens: 3, detachedInvocations: 2, detachedTokens: 2, totalTokens: 5 }], observationCoverage: { interactive: true, detached: true } } }));
+		const stats = projectSessionStats(snapshot([], { sessionUsage: { totalTokens: 5, observedTotalTokens: 5, unattributedTokens: 0, models: [{ model: "a", effort: null, interactiveRootTurns: 1, interactiveTokens: 3, detachedInvocations: 2, detachedTokens: 2, totalTokens: 5 }], observationCoverage: { interactive: true, detached: true } } }));
 		expect(stats.modelUsage).toEqual([
 			expect.objectContaining({ namespace: "interactive", detachedInvocations: 0, totalTokens: 3 }),
 			expect.objectContaining({ namespace: "detached", interactiveRootTurns: 0, detachedInvocations: 2, totalTokens: 2 }),
@@ -106,7 +106,7 @@ describe("session review projection", () => {
 	});
 
 	test("G: gives unattributed usage its own warning", () => {
-		const stats = projectSessionStats(snapshot([], { sessionUsage: { totalTokens: 2, unattributedTokens: 2, models: [], observationCoverage: { interactive: true, detached: false } } }));
+		const stats = projectSessionStats(snapshot([], { sessionUsage: { totalTokens: 2, observedTotalTokens: 2, unattributedTokens: 2, models: [], observationCoverage: { interactive: true, detached: false } } }));
 		expect(stats).toMatchObject({ observedTotalTokens: 2, unattributedUsage: { totalTokens: 2 } });
 		expect(stats.diagnostics.warnings).toHaveLength(1);
 	});
@@ -163,7 +163,7 @@ describe("session review projection", () => {
 			activity({ id: "t2-end", sequence: 12, method: "turn/completed", turnId: "t2", phase: "completed" }),
 		];
 		const stats = projectSessionStats(snapshot(activities, {
-			sessionUsage: { totalTokens: 1_000, unattributedTokens: 0, models: [{ model: "gpt", effort: null, interactiveRootTurns: 2, interactiveTokens: 100, detachedInvocations: 3, detachedTokens: 900, totalTokens: 1_000 }], observationCoverage: { interactive: true, detached: true } },
+			sessionUsage: { totalTokens: 1_000, observedTotalTokens: 1_000, unattributedTokens: 0, models: [{ model: "gpt", effort: null, interactiveRootTurns: 2, interactiveTokens: 100, detachedInvocations: 3, detachedTokens: 900, totalTokens: 1_000 }], observationCoverage: { interactive: true, detached: true } },
 		}));
 		expect(stats.requests.submitted).toBe(1);
 		expect(stats.lifecycle.rootTurns).toBe(2);

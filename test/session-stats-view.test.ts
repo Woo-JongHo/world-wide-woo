@@ -34,7 +34,7 @@ function projectedStats(methods: readonly string[], partial = false): SessionSta
 	}));
 	return projectSessionStats({
 		projectId: "project", threadId: "thread", phase: "ready", activities,
-		sessionUsage: { totalTokens: 0, unattributedTokens: 0, models: [], observationCoverage: { interactive: false, detached: false } },
+		sessionUsage: { totalTokens: 0, observedTotalTokens: null, unattributedTokens: 0, models: [], observationCoverage: { interactive: false, detached: false } },
 		resumeCoverage: partial ? { mode: "partial-local-journal", processAttachedAt: "2026-09-07T00:00:00.000Z", priorProviderHistoryHydrated: false } : { mode: "fresh", processAttachedAt: "2026-09-07T00:00:00.000Z", priorProviderHistoryHydrated: false },
 		sessionGoal: null, tnotes: [], workFlow: { goal: null, currentStepNumber: null, steps: [] },
 	} as unknown as WorkbenchSnapshot);
