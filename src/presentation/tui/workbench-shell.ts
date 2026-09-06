@@ -775,6 +775,11 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		}
 		// @linear WOO-715
 		if (observabilityNavigation && viewMode === "stats" && matchesKey(data, Key.enter)) {
+			if (selectedHistoricalSession) {
+				status.setNotice("과거 세션은 현재 실행 Source를 열 수 없습니다. 현재 세션으로 돌아온 뒤 요청을 선택하세요.");
+				tui.requestRender();
+				return { consume: true };
+			}
 			const stats = projectSessionStats(snapshot);
 			if (statsTarget === "session" || statsTarget === "diagnostics") {
 				if (stats.requests.details.length === 0) {
