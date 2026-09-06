@@ -38,17 +38,18 @@ try:
  type_line("도구 없이 다음 한 줄만 답하세요: 안녕하세요 👋 연결 확인")
  assert wait_for(lambda s:s.get('activeTurnId') is None and any(m.get('role')=='assistant' for m in s.get('chat',[])),45),'first response timeout'
  type_line('/stats');pump(1);shot('02-completed-stats-80')
- os.write(master,b'\r');pump(1);shot('03-enter-request-detail')
- os.write(master,b'\r');pump(1);shot('04-enter-source')
+ os.write(master,b'\x1b[B');pump(.5);shot('03-selected-request-list')
+ os.write(master,b'\r');pump(1);shot('04-enter-request-detail')
+ os.write(master,b'\r');pump(1);shot('05-enter-source')
  os.write(master,b'\x1b');pump(.5)
  for cols in [40,120,80]:
-  screen.resize(36,cols);fcntl.ioctl(master,termios.TIOCSWINSZ,struct.pack('HHHH',36,cols,0,0));os.kill(p.pid,signal.SIGWINCH);pump(.5);shot('05-resize-'+str(cols))
+  screen.resize(36,cols);fcntl.ioctl(master,termios.TIOCSWINSZ,struct.pack('HHHH',36,cols,0,0));os.kill(p.pid,signal.SIGWINCH);pump(.5);shot('06-resize-'+str(cols))
  os.write(master,b'\x1b');pump(.5)
  type_line('도구를 사용하지 말고 번호를 붙여 한글 예문을 1000줄 연속 작성하세요. 서론 없이 즉시 1번부터 시작하세요.')
  assert wait_for(lambda s:s.get('draft') is True,45),'streaming timeout'
- shot('06-streaming-80');os.write(master,b'\x1b')
+ shot('07-streaming-80');os.write(master,b'\x1b')
  assert wait_for(lambda s:s.get('activeTurnId') is None,20),'cancel timeout'
- type_line('/stats');pump(1);shot('07-cancelled-stats-80');os.write(master,b'\x1b');pump(.5)
+ type_line('/stats');pump(1);shot('08-cancelled-stats-80');os.write(master,b'\x1b');pump(.5)
  os.write(master,b'\x04');pump(2)
  if p.poll() is None:p.wait(timeout=8)
  steps.append({'step':'exit','exitCode':p.returncode})

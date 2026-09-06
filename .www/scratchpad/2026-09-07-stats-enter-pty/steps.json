@@ -16,22 +16,22 @@
     "step": "02-completed-stats-80",
     "state": {
       "phase": "ready",
-      "threadId": "01a07798-9e32-7930-8800-6db7c132590f",
+      "threadId": "01a0779c-5fbd-7f10-aeda-7cbd04524810",
       "activeTurnId": null,
       "draft": false,
       "chat": [
         {
-          "id": "878a4e6b-b2c7-446c-b998-b65ade980873",
+          "id": "64c7b394-794c-4fb6-8c4e-46823305f5ed",
           "role": "user",
           "content": "도구 없이 다음 한 줄만 답하세요: 안녕하세요 👋 연결 확인",
-          "activityId": "probe-17",
+          "activityId": "probe-16",
           "status": "completed"
         },
         {
-          "id": "msg_0889e2dc5a6b449f016a9d97babf3c87d0a2c64dc9fc63df3d",
+          "id": "msg_09b7ba8800847c44016a9d98b1020887d0a57649cf59a1af5c",
           "role": "assistant",
           "content": "안녕하세요 👋 연결 확인",
-          "activityId": "probe-43",
+          "activityId": "probe-42",
           "status": "completed"
         }
       ],
@@ -41,25 +41,25 @@
     "lines": 36
   },
   {
-    "step": "03-enter-request-detail",
+    "step": "03-selected-request-list",
     "state": {
       "phase": "ready",
-      "threadId": "01a07798-9e32-7930-8800-6db7c132590f",
+      "threadId": "01a0779c-5fbd-7f10-aeda-7cbd04524810",
       "activeTurnId": null,
       "draft": false,
       "chat": [
         {
-          "id": "878a4e6b-b2c7-446c-b998-b65ade980873",
+          "id": "64c7b394-794c-4fb6-8c4e-46823305f5ed",
           "role": "user",
           "content": "도구 없이 다음 한 줄만 답하세요: 안녕하세요 👋 연결 확인",
-          "activityId": "probe-17",
+          "activityId": "probe-16",
           "status": "completed"
         },
         {
-          "id": "msg_0889e2dc5a6b449f016a9d97babf3c87d0a2c64dc9fc63df3d",
+          "id": "msg_09b7ba8800847c44016a9d98b1020887d0a57649cf59a1af5c",
           "role": "assistant",
           "content": "안녕하세요 👋 연결 확인",
-          "activityId": "probe-43",
+          "activityId": "probe-42",
           "status": "completed"
         }
       ],
@@ -69,25 +69,25 @@
     "lines": 36
   },
   {
-    "step": "04-enter-source",
+    "step": "04-enter-request-detail",
     "state": {
       "phase": "ready",
-      "threadId": "01a07798-9e32-7930-8800-6db7c132590f",
+      "threadId": "01a0779c-5fbd-7f10-aeda-7cbd04524810",
       "activeTurnId": null,
       "draft": false,
       "chat": [
         {
-          "id": "878a4e6b-b2c7-446c-b998-b65ade980873",
+          "id": "64c7b394-794c-4fb6-8c4e-46823305f5ed",
           "role": "user",
           "content": "도구 없이 다음 한 줄만 답하세요: 안녕하세요 👋 연결 확인",
-          "activityId": "probe-17",
+          "activityId": "probe-16",
           "status": "completed"
         },
         {
-          "id": "msg_0889e2dc5a6b449f016a9d97babf3c87d0a2c64dc9fc63df3d",
+          "id": "msg_09b7ba8800847c44016a9d98b1020887d0a57649cf59a1af5c",
           "role": "assistant",
           "content": "안녕하세요 👋 연결 확인",
-          "activityId": "probe-43",
+          "activityId": "probe-42",
           "status": "completed"
         }
       ],
@@ -97,25 +97,53 @@
     "lines": 36
   },
   {
-    "step": "05-resize-40",
+    "step": "05-enter-source",
     "state": {
       "phase": "ready",
-      "threadId": "01a07798-9e32-7930-8800-6db7c132590f",
+      "threadId": "01a0779c-5fbd-7f10-aeda-7cbd04524810",
       "activeTurnId": null,
       "draft": false,
       "chat": [
         {
-          "id": "878a4e6b-b2c7-446c-b998-b65ade980873",
+          "id": "64c7b394-794c-4fb6-8c4e-46823305f5ed",
           "role": "user",
           "content": "도구 없이 다음 한 줄만 답하세요: 안녕하세요 👋 연결 확인",
-          "activityId": "probe-17",
+          "activityId": "probe-16",
           "status": "completed"
         },
         {
-          "id": "msg_0889e2dc5a6b449f016a9d97babf3c87d0a2c64dc9fc63df3d",
+          "id": "msg_09b7ba8800847c44016a9d98b1020887d0a57649cf59a1af5c",
           "role": "assistant",
           "content": "안녕하세요 👋 연결 확인",
-          "activityId": "probe-43",
+          "activityId": "probe-42",
+          "status": "completed"
+        }
+      ],
+      "error": null
+    },
+    "columns": 80,
+    "lines": 36
+  },
+  {
+    "step": "06-resize-40",
+    "state": {
+      "phase": "ready",
+      "threadId": "01a0779c-5fbd-7f10-aeda-7cbd04524810",
+      "activeTurnId": null,
+      "draft": false,
+      "chat": [
+        {
+          "id": "64c7b394-794c-4fb6-8c4e-46823305f5ed",
+          "role": "user",
+          "content": "도구 없이 다음 한 줄만 답하세요: 안녕하세요 👋 연결 확인",
+          "activityId": "probe-16",
+          "status": "completed"
+        },
+        {
+          "id": "msg_09b7ba8800847c44016a9d98b1020887d0a57649cf59a1af5c",
+          "role": "assistant",
+          "content": "안녕하세요 👋 연결 확인",
+          "activityId": "probe-42",
           "status": "completed"
         }
       ],
@@ -125,25 +153,25 @@
     "lines": 36
   },
   {
-    "step": "05-resize-120",
+    "step": "06-resize-120",
     "state": {
       "phase": "ready",
-      "threadId": "01a07798-9e32-7930-8800-6db7c132590f",
+      "threadId": "01a0779c-5fbd-7f10-aeda-7cbd04524810",
       "activeTurnId": null,
       "draft": false,
       "chat": [
         {
-          "id": "878a4e6b-b2c7-446c-b998-b65ade980873",
+          "id": "64c7b394-794c-4fb6-8c4e-46823305f5ed",
           "role": "user",
           "content": "도구 없이 다음 한 줄만 답하세요: 안녕하세요 👋 연결 확인",
-          "activityId": "probe-17",
+          "activityId": "probe-16",
           "status": "completed"
         },
         {
-          "id": "msg_0889e2dc5a6b449f016a9d97babf3c87d0a2c64dc9fc63df3d",
+          "id": "msg_09b7ba8800847c44016a9d98b1020887d0a57649cf59a1af5c",
           "role": "assistant",
           "content": "안녕하세요 👋 연결 확인",
-          "activityId": "probe-43",
+          "activityId": "probe-42",
           "status": "completed"
         }
       ],
@@ -153,25 +181,25 @@
     "lines": 36
   },
   {
-    "step": "05-resize-80",
+    "step": "06-resize-80",
     "state": {
       "phase": "ready",
-      "threadId": "01a07798-9e32-7930-8800-6db7c132590f",
+      "threadId": "01a0779c-5fbd-7f10-aeda-7cbd04524810",
       "activeTurnId": null,
       "draft": false,
       "chat": [
         {
-          "id": "878a4e6b-b2c7-446c-b998-b65ade980873",
+          "id": "64c7b394-794c-4fb6-8c4e-46823305f5ed",
           "role": "user",
           "content": "도구 없이 다음 한 줄만 답하세요: 안녕하세요 👋 연결 확인",
-          "activityId": "probe-17",
+          "activityId": "probe-16",
           "status": "completed"
         },
         {
-          "id": "msg_0889e2dc5a6b449f016a9d97babf3c87d0a2c64dc9fc63df3d",
+          "id": "msg_09b7ba8800847c44016a9d98b1020887d0a57649cf59a1af5c",
           "role": "assistant",
           "content": "안녕하세요 👋 연결 확인",
-          "activityId": "probe-43",
+          "activityId": "probe-42",
           "status": "completed"
         }
       ],
@@ -181,32 +209,32 @@
     "lines": 36
   },
   {
-    "step": "06-streaming-80",
+    "step": "07-streaming-80",
     "state": {
       "phase": "working",
-      "threadId": "01a07798-9e32-7930-8800-6db7c132590f",
-      "activeTurnId": "01a07798-c9b2-73b3-9935-74dde70fc093",
+      "threadId": "01a0779c-5fbd-7f10-aeda-7cbd04524810",
+      "activeTurnId": "01a0779c-8d94-7cb2-a4c8-95e5e509803c",
       "draft": true,
       "chat": [
         {
-          "id": "878a4e6b-b2c7-446c-b998-b65ade980873",
+          "id": "64c7b394-794c-4fb6-8c4e-46823305f5ed",
           "role": "user",
           "content": "도구 없이 다음 한 줄만 답하세요: 안녕하세요 👋 연결 확인",
-          "activityId": "probe-17",
+          "activityId": "probe-16",
           "status": "completed"
         },
         {
-          "id": "msg_0889e2dc5a6b449f016a9d97babf3c87d0a2c64dc9fc63df3d",
+          "id": "msg_09b7ba8800847c44016a9d98b1020887d0a57649cf59a1af5c",
           "role": "assistant",
           "content": "안녕하세요 👋 연결 확인",
-          "activityId": "probe-43",
+          "activityId": "probe-42",
           "status": "completed"
         },
         {
-          "id": "50f6eeac-b2b2-4a85-8b56-86c4108b7e5e",
+          "id": "120db623-2052-4025-9f35-84dafafddeed",
           "role": "user",
           "content": "도구를 사용하지 말고 번호를 붙여 한글 예문을 1000줄 연속 작성하세요. 서론 없이 즉시 1번부터 시작하세요.",
-          "activityId": "probe-50",
+          "activityId": "probe-49",
           "status": "completed"
         }
       ],
@@ -216,32 +244,32 @@
     "lines": 36
   },
   {
-    "step": "07-cancelled-stats-80",
+    "step": "08-cancelled-stats-80",
     "state": {
       "phase": "ready",
-      "threadId": "01a07798-9e32-7930-8800-6db7c132590f",
+      "threadId": "01a0779c-5fbd-7f10-aeda-7cbd04524810",
       "activeTurnId": null,
       "draft": false,
       "chat": [
         {
-          "id": "878a4e6b-b2c7-446c-b998-b65ade980873",
+          "id": "64c7b394-794c-4fb6-8c4e-46823305f5ed",
           "role": "user",
           "content": "도구 없이 다음 한 줄만 답하세요: 안녕하세요 👋 연결 확인",
-          "activityId": "probe-17",
+          "activityId": "probe-16",
           "status": "completed"
         },
         {
-          "id": "msg_0889e2dc5a6b449f016a9d97babf3c87d0a2c64dc9fc63df3d",
+          "id": "msg_09b7ba8800847c44016a9d98b1020887d0a57649cf59a1af5c",
           "role": "assistant",
           "content": "안녕하세요 👋 연결 확인",
-          "activityId": "probe-43",
+          "activityId": "probe-42",
           "status": "completed"
         },
         {
-          "id": "50f6eeac-b2b2-4a85-8b56-86c4108b7e5e",
+          "id": "120db623-2052-4025-9f35-84dafafddeed",
           "role": "user",
           "content": "도구를 사용하지 말고 번호를 붙여 한글 예문을 1000줄 연속 작성하세요. 서론 없이 즉시 1번부터 시작하세요.",
-          "activityId": "probe-50",
+          "activityId": "probe-49",
           "status": "completed"
         }
       ],
