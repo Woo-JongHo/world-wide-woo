@@ -96,6 +96,8 @@ class FakeNativeHarness implements ExecutorPort {
 	uncertain = false;
 	approvalResponses: NativeApprovalResolution[] = [];
 	resumeCalls = 0;
+	resumeThreadId: string | null = null;
+	readThreadId: string | null = null;
 	readCalls = 0;
 	resumeInputs: NativeThreadResume[] = [];
 	readInputs: NativeThreadRead[] = [];
@@ -114,12 +116,12 @@ class FakeNativeHarness implements ExecutorPort {
 	async resumeThread(input: NativeThreadResume): Promise<NativeThreadSnapshot> {
 		this.resumeCalls += 1;
 		this.resumeInputs.push(input);
-		return { id: "thread-1", value: {} };
+		return { id: this.resumeThreadId ?? input.threadId, value: {} };
 	}
 	async readThread(input: NativeThreadRead): Promise<NativeThreadSnapshot> {
 		this.readCalls += 1;
 		this.readInputs.push(input);
-		return { id: input.threadId, value: this.readValue };
+		return { id: this.readThreadId ?? input.threadId, value: this.readValue };
 	}
 	async listThreads(_input: NativeThreadList): Promise<readonly NativeThreadSummary[]> { return []; }
 	async startTurn(input: NativeTurnStart): Promise<NativeTurnSnapshot> {
@@ -1710,6 +1712,163 @@ describe("ProjectWorkbench", () => {
 		await workbench.close();
 	});
 
+	// @linear WOO-690
+	test("isolates root chat identity from child threads and repeated item ids across turns", async () => {
+		const native = new FakeNativeHarness();
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+		});
+		await ready(workbench);
+		await workbench.dispatch({ type: "chat.send", text: "첫 요청" });
+
+		native.emit({
+			type: "notification",
+			method: "item/completed",
+			refs: { threadId: "thread-1", turnId: "turn-1", itemId: "same-item" },
+			params: { item: { type: "agentMessage", text: "첫 root 답변" } },
+		});
+		native.emit({
+			type: "notification",
+			method: "item/completed",
+			refs: { threadId: "child-thread", turnId: "child-turn", itemId: "same-item" },
+			params: { item: { type: "agentMessage", text: "child 답변" } },
+		});
+		native.emit({
+			type: "notification",
+			method: "turn/completed",
+			refs: { threadId: "thread-1", turnId: "turn-1" },
+			params: {},
+		});
+		await Bun.sleep(10);
+		await workbench.dispatch({ type: "chat.send", text: "두 번째 요청" });
+		native.emit({
+			type: "notification",
+			method: "item/completed",
+			refs: { threadId: "thread-1", turnId: "turn-2", itemId: "same-item" },
+			params: { item: { type: "agentMessage", text: "두 번째 root 답변" } },
+		});
+		await Bun.sleep(10);
+
+		const assistant = workbench.snapshot.chat.filter((message) => message.role === "assistant");
+		expect(assistant.map((message) => message.content)).toEqual(["첫 root 답변", "두 번째 root 답변"]);
+		expect(new Set(assistant.map((message) => message.id)).size).toBe(2);
+		expect(workbench.snapshot.activities.some((activity) =>
+			activity.nativeRefs.threadId === "child-thread" && activity.nativeRefs.itemId === "same-item",
+		)).toBe(true);
+		await workbench.close();
+	});
+
+	test("keeps a current turn draft separate from a repeated item id in another turn", async () => {
+		const native = new FakeNativeHarness();
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+		});
+		await ready(workbench);
+		await workbench.dispatch({ type: "chat.send", text: "요청" });
+
+		native.emit({
+			type: "notification",
+			method: "item/agentMessage/delta",
+			refs: { threadId: "thread-1", turnId: "turn-1", itemId: "same-item" },
+			params: { delta: "현재 turn" },
+		});
+		native.emit({
+			type: "notification",
+			method: "item/agentMessage/delta",
+			refs: { threadId: "child-thread", turnId: "child-turn", itemId: "same-item" },
+			params: { delta: "child turn" },
+		});
+		await Bun.sleep(10);
+		expect(workbench.snapshot.draft).toBe("현재 turn");
+		native.emit({
+			type: "notification",
+			method: "item/agentMessage/delta",
+			refs: { threadId: "thread-1", turnId: "turn-other", itemId: "same-item" },
+			params: { delta: "다른 turn" },
+		});
+		await Bun.sleep(10);
+		expect(workbench.snapshot.draft).toBe("다른 turn");
+
+		native.emit({
+			type: "notification",
+			method: "item/completed",
+			refs: { threadId: "thread-1", turnId: "turn-1", itemId: "same-item" },
+			params: { item: { type: "agentMessage", text: "현재 turn 완료" } },
+		});
+		await Bun.sleep(10);
+		expect(workbench.snapshot.draft).toBe("다른 turn");
+		await workbench.close();
+	});
+
+	test("normalizes sparse root message refs only from an observed turn or item owner", async () => {
+		const native = new FakeNativeHarness();
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+		});
+		await ready(workbench);
+		await workbench.dispatch({ type: "chat.send", text: "요청" });
+
+		native.emit({
+			type: "notification",
+			method: "item/agentMessage/delta",
+			refs: { turnId: "turn-1", itemId: "sparse-message" },
+			params: { delta: "작성 중" },
+		});
+		native.emit({
+			type: "notification",
+			method: "item/completed",
+			refs: { threadId: "thread-1", itemId: "sparse-message" },
+			params: { item: { type: "agentMessage", text: "완료 답변" } },
+		});
+		native.emit({
+			type: "notification",
+			method: "item/completed",
+			refs: { turnId: "turn-1", itemId: "threadless-final" },
+			params: { item: { type: "agentMessage", text: "thread 없는 완료 답변" } },
+		});
+		await Bun.sleep(10);
+
+		expect(workbench.snapshot.draft).toBe("");
+		expect(workbench.snapshot.chat.filter((message) => message.role === "assistant").map((message) => message.content))
+			.toEqual(["완료 답변", "thread 없는 완료 답변"]);
+		const completed = workbench.snapshot.activities.find((activity) => activity.payload.params !== undefined
+			&& activity.nativeRefs.itemId === "sparse-message");
+		expect(completed?.nativeRefs).toEqual({ threadId: "thread-1", turnId: "turn-1", itemId: "sparse-message" });
+		expect(workbench.snapshot.activities.find((activity) => activity.nativeRefs.itemId === "threadless-final")?.nativeRefs)
+			.toEqual({ threadId: "thread-1", turnId: "turn-1", itemId: "threadless-final" });
+		await workbench.close();
+	});
+
+	test("does not treat an ownerless item-only completion as a root message wildcard", async () => {
+		const native = new FakeNativeHarness();
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+		});
+		await ready(workbench);
+		await workbench.dispatch({ type: "chat.send", text: "요청" });
+		native.emit({
+			type: "notification",
+			method: "item/agentMessage/delta",
+			refs: { threadId: "thread-1", turnId: "turn-1", itemId: "root-message" },
+			params: { delta: "root draft" },
+		});
+		native.emit({
+			type: "notification",
+			method: "item/completed",
+			refs: { itemId: "root-message" },
+			params: { item: { type: "agentMessage", text: "소유권 없는 완료" } },
+		});
+		await Bun.sleep(10);
+
+		expect(workbench.snapshot.draft).toBe("root draft");
+		expect(workbench.snapshot.chat.some((message) => message.content === "소유권 없는 완료")).toBe(false);
+		await workbench.close();
+	});
+
 	test("ignores a late start for a terminal turn without replacing the active FIFO turn", async () => {
 		const native = new FakeNativeHarness();
 		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
@@ -2322,13 +2481,50 @@ describe("ProjectWorkbench", () => {
 			sandbox: "workspace-write",
 			excludeTurns: true,
 		}]);
-		expect(native.readInputs).toEqual([{ threadId: "thread-1", includeTurns: true }]);
-		expect(workbench.snapshot.threadId).toBe("thread-1");
+		expect(native.readInputs).toEqual([{ threadId: "opaque-native-thread", includeTurns: true }]);
+		expect(workbench.snapshot.threadId).toBe("opaque-native-thread");
+		expect(workbench.snapshot.resumeCoverage).toEqual({
+			mode: "partial-local-journal",
+			processAttachedAt: expect.any(String),
+			priorProviderHistoryHydrated: false,
+		});
 		expect(workbench.snapshot.journalSequence).toBe(1);
 		expect(journal.records[0]?.payload).toMatchObject({
 			method: "thread/resume-local-reconciled",
 			historyHydrated: false,
 		});
+		await workbench.close();
+	});
+
+	test("fails closed before reading or journaling when native resume returns another thread", async () => {
+		const native = new FakeNativeHarness();
+		native.resumeThreadId = "unexpected-thread";
+		const journal = new MemoryJournal();
+		const workbench = new ProjectWorkbench(native, journal, {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+			resumeThreadId: "requested-thread",
+		});
+
+		await expect(workbench.waitUntilReady()).rejects.toThrow("requested-thread");
+		expect(native.readCalls).toBe(0);
+		expect(journal.records).toEqual([]);
+		await workbench.close();
+	});
+
+	test("fails closed before journaling when thread read returns another resumed thread", async () => {
+		const native = new FakeNativeHarness();
+		native.readThreadId = "unexpected-read-thread";
+		const journal = new MemoryJournal();
+		const workbench = new ProjectWorkbench(native, journal, {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+			resumeThreadId: "requested-thread",
+		});
+
+		await expect(workbench.waitUntilReady()).rejects.toThrow("unexpected-read-thread");
+		expect(native.readInputs).toEqual([{ threadId: "requested-thread", includeTurns: true }]);
+		expect(journal.records).toEqual([]);
 		await workbench.close();
 	});
 
@@ -2418,6 +2614,69 @@ describe("ProjectWorkbench", () => {
 			kind: "tool",
 			text: "checking files\n",
 		});
+		await workbench.close();
+	});
+
+	test("does not clear live activity for the same item id completed by another turn", async () => {
+		const native = new FakeNativeHarness();
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+		});
+		await ready(workbench);
+		native.emit({
+			type: "notification",
+			method: "item/commandExecution/outputDelta",
+			refs: { threadId: "thread-1", turnId: "turn-current", itemId: "same-command" },
+			params: { delta: "현재 실행" },
+		});
+		await Bun.sleep(10);
+
+		native.emit({
+			type: "notification",
+			method: "item/completed",
+			refs: { threadId: "thread-1", turnId: "turn-old", itemId: "same-command" },
+			params: { item: { type: "commandExecution", command: "pwd" } },
+		});
+		await Bun.sleep(10);
+
+		expect(workbench.snapshot.liveActivity).toMatchObject({
+			text: "현재 실행",
+			nativeRefs: { threadId: "thread-1", turnId: "turn-current", itemId: "same-command" },
+		});
+		await workbench.close();
+	});
+
+	test("keeps sparse live deltas on one observed owner and clears its sparse completion", async () => {
+		const native = new FakeNativeHarness();
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+		});
+		await ready(workbench);
+		native.emit({
+			type: "notification",
+			method: "item/commandExecution/outputDelta",
+			refs: { threadId: "thread-1", turnId: "turn-1", itemId: "sparse-command" },
+			params: { delta: "first" },
+		});
+		native.emit({
+			type: "notification",
+			method: "item/commandExecution/outputDelta",
+			refs: { turnId: "turn-1", itemId: "sparse-command" },
+			params: { delta: " second" },
+		});
+		await Bun.sleep(10);
+		expect(workbench.snapshot.liveActivity?.text).toBe("first second");
+
+		native.emit({
+			type: "notification",
+			method: "item/completed",
+			refs: { threadId: "thread-1", itemId: "sparse-command" },
+			params: { item: { type: "commandExecution", command: "pwd" } },
+		});
+		await Bun.sleep(10);
+		expect(workbench.snapshot.liveActivity).toBeNull();
 		await workbench.close();
 	});
 

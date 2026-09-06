@@ -1,0 +1,25 @@
+$ bun test test/project-workbench-session.test.ts
+bun test v1.4.0 (34cbb9a40)
+
+test/project-workbench-session.test.ts:
+(pass) createProjectWorkbenchSession > selects Codex by default and forwards an explicit Pi lane independently from provider, model, and effort [0.27ms]
+(pass) createProjectWorkbenchSession > requires an explicit thread bind before selecting a journal stream or appending activity [0.22ms]
+(pass) createProjectWorkbenchSession > uses the configured Codex model only and falls back when a legacy router selected another provider [0.03ms]
+(pass) createProjectWorkbenchSession > uses the production composer factory with its static class receiver intact [7.78ms]
+(pass) createProjectWorkbenchSession > uses distinct run-local leases and one shared unbound journal without pre-bind T-note I/O [2.01ms]
+(pass) createProjectWorkbenchSession > refuses a concurrent writable resume and releases only its own thread lease [6.52ms]
+(pass) createProjectWorkbenchSession > prebinds two close/reopen resume sessions to the same native journal before Native resume [12.28ms]
+(pass) createProjectWorkbenchSession > bootstraps a missing or empty resumed Todo once without replacing an existing Todo [6.22ms]
+(pass) createProjectWorkbenchSession > does not wait for resumed Todo bootstrap and exposes rejected and conflicted writes [1.89ms]
+(pass) createProjectWorkbenchSession > resumes an in-progress root turn through repeated markers and applies its later Plan and action [52.13ms]
+(pass) createProjectWorkbenchSession > wires one native writer to thread-scoped Todo, private activity/drafts, and deterministic project identity [0.82ms]
+(pass) createProjectWorkbenchSession > isolates WES from default Chat and creates it only when explicitly enabled [0.76ms]
+(pass) createProjectWorkbenchSession > binds a fresh workbench Todo before automatic Native-plan sync [36.33ms]
+
+ 13 pass
+ 0 fail
+ 72 expect() calls
+Ran 13 tests across 1 file. [461.00ms]
+
+exit_code=0
+

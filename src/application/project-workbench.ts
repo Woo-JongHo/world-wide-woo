@@ -98,6 +98,7 @@ interface BoundedTextProjection {
 
 interface DurableActivityProjection {
 	readonly sourceLength: number;
+	readonly rootThreadId: string | null;
 	readonly activityCount: number;
 	readonly activities: readonly ProjectActivity[];
 	readonly chat: readonly WorkbenchChatMessage[];
@@ -190,6 +191,8 @@ export class ProjectWorkbench {
 	private readonly terminalTurns = new Set<string>();
 	private readonly noteDrafts = new Map<string, TNoteDraft>();
 	private readonly completionOrdinals = new Map<string, number>();
+	private readonly threadOwnersByTurnId = new Map<string, Set<string>>();
+	private readonly turnOwnersByThreadItemId = new Map<string, Set<string>>();
 	private readonly promotionDrafts = new Map<string, CanonicalDocumentDraft>();
 	private readonly reviewPreviews = new Map<string, { provider: ReviewProvider; packet: ReviewPacket }>();
 	private readonly stepNarrations = new Map<string, WorkStepNarration>();
@@ -233,9 +236,9 @@ export class ProjectWorkbench {
 	private draft = "";
 	private reasoningDraft = "";
 	private reasoningSummaryDraft = "";
-	private draftItemId: string | null = null;
-	private reasoningItemId: string | null = null;
-	private reasoningSummaryItemId: string | null = null;
+	private draftIdentity: string | null = null;
+	private reasoningIdentity: string | null = null;
+	private reasoningSummaryIdentity: string | null = null;
 	private draftProjection = emptyBoundedTextProjection();
 	private reasoningProjection = emptyBoundedTextProjection();
 	private reasoningSummaryProjection = emptyBoundedTextProjection();
@@ -246,6 +249,7 @@ export class ProjectWorkbench {
 	private readonly chatQueue: WorkbenchChatQueueItem[] = [];
 	private durableActivityProjection: DurableActivityProjection = {
 		sourceLength: -1,
+		rootThreadId: null,
 		activityCount: 0,
 		activities: Object.freeze([]),
 		chat: Object.freeze([]),
@@ -409,6 +413,7 @@ export class ProjectWorkbench {
 		for (const activity of activities) {
 			const durableActivity = immutable(activity);
 			this.activities.push(durableActivity);
+			this.rememberNativeRefs(durableActivity.nativeRefs);
 			this.rememberTerminalTurn(durableActivity);
 			if (durableActivity.payload.method === "turn/first-output-observed" && durableActivity.nativeRefs.turnId) {
 				this.firstOutputObservedTurns.add(durableActivity.nativeRefs.turnId);
@@ -427,6 +432,9 @@ export class ProjectWorkbench {
 				sandbox: this.sandbox,
 				excludeTurns: true,
 			});
+			if (resumed.id !== this.options.resumeThreadId) {
+				throw new Error(`Native 재개가 요청한 thread ${this.options.resumeThreadId} 대신 ${resumed.id}를 반환했습니다.`);
+			}
 			await this.bindThreadSources(resumed.id);
 			this.applyThreadSettings(resumed);
 			this.visibleThreadId = resumed.id;
@@ -439,6 +447,9 @@ export class ProjectWorkbench {
 			this.invalidateWorkFlow();
 			this.scheduleNarrations();
 			const read = await this.native.readThread({ threadId: resumed.id, includeTurns: true });
+			if (read.id !== resumed.id) {
+				throw new Error(`Native thread 조회가 재개한 thread ${resumed.id} 대신 ${read.id}를 반환했습니다.`);
+			}
 			const delivery = blockedChatDeliveryState(read.value);
 			if (delivery.state === "unknown") {
 				throw new Error("재개한 native thread의 현재 turn 상태를 안전하게 판독할 수 없습니다.");
@@ -461,6 +472,7 @@ export class ProjectWorkbench {
 			}, false);
 			if (delivery.state === "in-progress") {
 				this.activeTurnId = delivery.turnId;
+				this.rememberNativeRefs({ threadId: read.id, turnId: delivery.turnId });
 				this.selectedPlanTurnId = delivery.turnId;
 				this.contextTurnId = delivery.turnId;
 				this.usageTracker.bindTurn(delivery.turnId, this.effectiveModel, this.effectiveEffort);
@@ -579,6 +591,7 @@ export class ProjectWorkbench {
 			throw error;
 		}
 		this.usageTracker.bindTurn(turn.id, this.effectiveModel, this.effectiveEffort);
+		this.rememberNativeRefs({ threadId: this.threadId, turnId: turn.id });
 		this.contextTurnId = turn.id;
 		this.activeTurnId = turn.id;
 		this.selectedPlanTurnId = turn.id;
@@ -1154,6 +1167,11 @@ export class ProjectWorkbench {
 		// stays unbound until this session adopts its own thread.  Such an event has no stream to
 		// land in; journaling it would fail the whole session on an internal invariant.
 		if (this.journal.hasBoundThread?.() === false) return;
+		if (event.type === "notification") {
+			const refs = this.normalizeNativeRefs(event.refs);
+			if (refs !== event.refs) event = { ...event, refs };
+			this.rememberNativeRefs(event.refs);
+		}
 		const eventBelongsToRootThread = event.type !== "notification"
 			|| this.isRootThreadEvent(event.refs.threadId);
 		if (eventBelongsToRootThread && event.type === "notification" && event.method === "thread/tokenUsage/updated") {
@@ -1213,22 +1231,25 @@ export class ProjectWorkbench {
 			if (eventBelongsToRootThread && lifecycle === "terminal" && event.refs.turnId === this.activeTurnId) this.activeTurnId = null;
 		}
 		if (eventBelongsToRootThread && event.type === "notification" && activityPhase(event.method) === "completed") {
-			if (!event.refs.itemId || event.refs.itemId === this.draftItemId) {
+			const completedIdentity = nativeItemIdentity(event.refs);
+			const itemScopedCompletion = Boolean(event.refs.itemId);
+			if (!itemScopedCompletion || completedIdentity === this.draftIdentity) {
 				this.draft = "";
-				this.draftItemId = null;
+				this.draftIdentity = null;
 				this.draftProjection = emptyBoundedTextProjection();
 			}
-			if (!event.refs.itemId || event.refs.itemId === this.reasoningItemId) {
+			if (!itemScopedCompletion || completedIdentity === this.reasoningIdentity) {
 				this.reasoningDraft = "";
-				this.reasoningItemId = null;
+				this.reasoningIdentity = null;
 				this.reasoningProjection = emptyBoundedTextProjection();
 			}
-			if (!event.refs.itemId || event.refs.itemId === this.reasoningSummaryItemId) {
+			if (!itemScopedCompletion || completedIdentity === this.reasoningSummaryIdentity) {
 				this.reasoningSummaryDraft = "";
-				this.reasoningSummaryItemId = null;
+				this.reasoningSummaryIdentity = null;
 				this.reasoningSummaryProjection = emptyBoundedTextProjection();
 			}
-			if (!event.refs.itemId || event.refs.itemId === this.liveActivity?.nativeRefs.itemId) {
+			const liveActivityIdentity = this.liveActivity ? nativeItemIdentity(this.liveActivity.nativeRefs) : null;
+			if (!itemScopedCompletion || completedIdentity === liveActivityIdentity) {
 				this.liveActivity = null;
 				this.liveActivityProjection = emptyBoundedTextProjection();
 			}
@@ -1299,6 +1320,8 @@ export class ProjectWorkbench {
 		const method = event.method.toLowerCase();
 		const reasoning = method.includes("reasoning");
 		const publicReasoningSummary = method.includes("reasoning/summarytextdelta");
+		const itemIdentity = nativeItemIdentity(event.refs);
+		if (!itemIdentity) return;
 		if (!reasoning && activityKind(event.method, event.params) === "message" && delta.trim().length > 0 && event.refs.turnId &&
 			this.usageTracker.hasTurn(event.refs.turnId) &&
 			!this.firstOutputObservedTurns.has(event.refs.turnId)) {
@@ -1312,10 +1335,10 @@ export class ProjectWorkbench {
 			this.firstOutputObservedTurns.add(event.refs.turnId);
 		}
 		if (publicReasoningSummary) {
-			if (event.refs.itemId && this.reasoningSummaryItemId && event.refs.itemId !== this.reasoningSummaryItemId) {
+			if (itemIdentity && this.reasoningSummaryIdentity && itemIdentity !== this.reasoningSummaryIdentity) {
 				this.reasoningSummaryProjection = emptyBoundedTextProjection();
 			}
-			this.reasoningSummaryItemId = event.refs.itemId ?? this.reasoningSummaryItemId;
+			this.reasoningSummaryIdentity = itemIdentity ?? this.reasoningSummaryIdentity;
 			const projection = appendBoundedText(
 				this.reasoningSummaryProjection,
 				delta,
@@ -1324,10 +1347,10 @@ export class ProjectWorkbench {
 			this.reasoningSummaryProjection = projection.state;
 			this.reasoningSummaryDraft = projection.text;
 		} else if (reasoning) {
-			if (event.refs.itemId && this.reasoningItemId && event.refs.itemId !== this.reasoningItemId) {
+			if (itemIdentity && this.reasoningIdentity && itemIdentity !== this.reasoningIdentity) {
 				this.reasoningProjection = emptyBoundedTextProjection();
 			}
-			this.reasoningItemId = event.refs.itemId ?? this.reasoningItemId;
+			this.reasoningIdentity = itemIdentity ?? this.reasoningIdentity;
 			const projection = appendBoundedText(
 				this.reasoningProjection,
 				delta,
@@ -1336,10 +1359,10 @@ export class ProjectWorkbench {
 			this.reasoningProjection = projection.state;
 			this.reasoningDraft = projection.text;
 		} else if (activityKind(event.method, event.params) === "message") {
-			if (event.refs.itemId && this.draftItemId && event.refs.itemId !== this.draftItemId) {
+			if (itemIdentity && this.draftIdentity && itemIdentity !== this.draftIdentity) {
 				this.draftProjection = emptyBoundedTextProjection();
 			}
-			this.draftItemId = event.refs.itemId ?? this.draftItemId;
+			this.draftIdentity = itemIdentity ?? this.draftIdentity;
 			const projection = appendBoundedText(
 				this.draftProjection,
 				delta,
@@ -1350,6 +1373,7 @@ export class ProjectWorkbench {
 		} else {
 			const kind = activityKind(event.method, event.params);
 			const continuesSameActivity = this.liveActivity?.method === event.method &&
+				this.liveActivity.nativeRefs.threadId === event.refs.threadId &&
 				this.liveActivity.nativeRefs.itemId === event.refs.itemId &&
 				this.liveActivity.nativeRefs.turnId === event.refs.turnId;
 			if (!continuesSameActivity) {
@@ -1419,7 +1443,26 @@ export class ProjectWorkbench {
 	}
 
 	private isRootThreadEvent(threadId: string | undefined): boolean {
-		return !threadId || !this.threadId || threadId === this.threadId;
+		return Boolean(threadId && (!this.threadId || threadId === this.threadId));
+	}
+
+	private normalizeNativeRefs(refs: NativeRefs): NativeRefs {
+		let threadId = refs.threadId;
+		let turnId = refs.turnId;
+		if (!threadId && turnId) threadId = soleValue(this.threadOwnersByTurnId.get(turnId));
+		if (threadId && !turnId && refs.itemId) {
+			turnId = soleValue(this.turnOwnersByThreadItemId.get(threadItemKey(threadId, refs.itemId)));
+		}
+		if (threadId === refs.threadId && turnId === refs.turnId) return refs;
+		return { ...refs, ...(threadId ? { threadId } : {}), ...(turnId ? { turnId } : {}) };
+	}
+
+	private rememberNativeRefs(refs: NativeRefs): void {
+		if (!refs.threadId || !refs.turnId) return;
+		addOwner(this.threadOwnersByTurnId, refs.turnId, refs.threadId);
+		if (refs.itemId) {
+			addOwner(this.turnOwnersByThreadItemId, threadItemKey(refs.threadId, refs.itemId), refs.turnId);
+		}
 	}
 
 	private applyThreadSettings(thread: { model?: string; effort?: string | null }): void {
@@ -1505,15 +1548,17 @@ export class ProjectWorkbench {
 	}
 
 	private projectDurableActivities(): DurableActivityProjection {
-		if (this.durableActivityProjection.sourceLength === this.visibleActivities.length) {
+		if (this.durableActivityProjection.sourceLength === this.visibleActivities.length
+			&& this.durableActivityProjection.rootThreadId === this.threadId) {
 			return this.durableActivityProjection;
 		}
 		const activities = Object.freeze([...this.visibleActivities]);
 		this.durableActivityProjection = {
 			sourceLength: this.visibleActivities.length,
+			rootThreadId: this.threadId,
 			activityCount: this.visibleActivities.length,
 			activities,
-			chat: deepFreeze(projectChat(activities)),
+			chat: deepFreeze(projectChat(activities, this.threadId)),
 		};
 		return this.durableActivityProjection;
 	}
@@ -1999,15 +2044,19 @@ function turnLifecycle(method: string): "started" | "terminal" | null {
 	return null;
 }
 
-function projectChat(activities: readonly ProjectActivity[]): WorkbenchChatMessage[] {
+/** @linear WOO-690 */
+function projectChat(activities: readonly ProjectActivity[], rootThreadId: string | null): WorkbenchChatMessage[] {
 	const messages = new Map<string, WorkbenchChatMessage>();
 	for (const activity of activities) {
 		if (activity.kind !== "message") continue;
+		if (rootThreadId && activity.nativeRefs.threadId !== rootThreadId) continue;
 		const text = activityText(activity.payload);
 		if (!text) continue;
-		const key = activity.nativeRefs.itemId ?? activity.id;
-		const previous = messages.get(key);
 		const role = activity.payload.role === "user" || activity.payload.direction === "outbound" ? "user" : "assistant";
+		const key = role === "user" && activity.nativeRefs.threadId && activity.nativeRefs.itemId
+			? threadItemKey(activity.nativeRefs.threadId, activity.nativeRefs.itemId)
+			: nativeItemIdentity(activity.nativeRefs) ?? `activity:${activity.id}`;
+		const previous = messages.get(key);
 		const status = activity.phase === "failed" ? "failed"
 			: activity.phase === "cancelled" ? "cancelled"
 				: activity.phase === "completed" ? "completed" : "streaming";
@@ -2020,6 +2069,29 @@ function projectChat(activities: readonly ProjectActivity[]): WorkbenchChatMessa
 		});
 	}
 	return [...messages.values()];
+}
+
+function nativeItemIdentity(refs: NativeRefs): string | null {
+	if (!refs.threadId || !refs.turnId || !refs.itemId) return null;
+	return stableJson({
+		threadId: refs.threadId,
+		turnId: refs.turnId,
+		itemId: refs.itemId,
+	});
+}
+
+function threadItemKey(threadId: string, itemId: string): string {
+	return stableJson({ threadId, itemId });
+}
+
+function addOwner(owners: Map<string, Set<string>>, key: string, owner: string): void {
+	const values = owners.get(key) ?? new Set<string>();
+	values.add(owner);
+	owners.set(key, values);
+}
+
+function soleValue(values: ReadonlySet<string> | undefined): string | undefined {
+	return values?.size === 1 ? values.values().next().value : undefined;
 }
 
 function activityText(payload: Readonly<Record<string, unknown>>): string {

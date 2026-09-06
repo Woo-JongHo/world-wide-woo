@@ -56,7 +56,7 @@ class FakeNative implements ExecutorPort {
 	private listener: ((event: NativeHarnessEvent) => void) | undefined;
 	constructor(private readonly order: string[]) {}
 	async startThread(_input: NativeThreadStart): Promise<NativeThreadSnapshot> { return { id: "thread", value: {} }; }
-	async resumeThread(_input: NativeThreadResume): Promise<NativeThreadSnapshot> { return { id: "thread", value: {} }; }
+	async resumeThread(input: NativeThreadResume): Promise<NativeThreadSnapshot> { return { id: input.threadId, value: {} }; }
 	async readThread(input: NativeThreadRead): Promise<NativeThreadSnapshot> {
 		return { id: input.threadId, value: { status: { type: "idle" }, turns: [] } };
 	}
@@ -506,7 +506,7 @@ describe("createProjectWorkbenchSession", () => {
 		await session.workbench.dispatch({ type: "session.mode", mode: "manual" });
 
 		expect(session.projectId).toBe(scopedProjectId(workspace.root));
-		expect(observed.todoPath).toBe(join(workspace.todosDirectory, scopedTodoSessionId("thread"), "Todo.md"));
+		expect(observed.todoPath).toBe(join(workspace.todosDirectory, scopedTodoSessionId("opaque-native-id"), "Todo.md"));
 		expect(observed.journalPath).toBe(join(workspace.runtimeDirectory, "activity"));
 		expect(observed.draftPath).toBe(workspace.draftsDirectory);
 		expect(observed.tnoteModel).toBe("gpt-5.6-luna");
