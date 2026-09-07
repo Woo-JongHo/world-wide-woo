@@ -404,7 +404,7 @@ describe("workbench dashboard views", () => {
 			content: "<analysis>내부</analysis>\n<answer>공개</answer>",
 		};
 		const view = new WorkbenchChatView({ ...snapshot, chat: [message] });
-		expect(stripTerminalSequences(view.render(80).join("\n"))).toContain("<analysis>내부</analysis>");
+		expect(stripTerminalSequences(view.render(80).join("\n"))).not.toContain("<analysis>내부</analysis>");
 		view.update({ ...snapshot, chat: [{ ...message, status: "completed" }] });
 		const completed = stripTerminalSequences(view.render(80).join("\n"));
 		expect(completed).toContain("공개");
@@ -459,7 +459,7 @@ describe("workbench dashboard views", () => {
 			content: "<analysis>내부</analysis>\n<answer>보존된 공개 부분</answer>",
 		};
 		const view = new WorkbenchChatView({ ...snapshot, chat: [message] });
-		expect(stripTerminalSequences(view.render(80).join("\n"))).toContain("<analysis>내부</analysis>");
+		expect(stripTerminalSequences(view.render(80).join("\n"))).not.toContain("<analysis>내부</analysis>");
 
 		view.update({ ...snapshot, chat: [{ ...message, status: "incomplete" as const, partial: true }] });
 		const incomplete = stripTerminalSequences(view.render(80).join("\n"));
@@ -475,7 +475,7 @@ describe("workbench dashboard views", () => {
 			content: "<analysis>내부</analysis>\n<answer>공개된 실패 전 부분</answer>",
 		};
 		const view = new WorkbenchChatView({ ...snapshot, chat: [message] });
-		expect(stripTerminalSequences(view.render(80).join("\n"))).toContain("내부");
+		expect(stripTerminalSequences(view.render(80).join("\n"))).not.toContain("내부");
 
 		view.update({ ...snapshot, chat: [{ ...message, partial: true }] });
 		const partial = stripTerminalSequences(view.render(80).join("\n"));

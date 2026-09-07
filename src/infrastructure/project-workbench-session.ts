@@ -274,6 +274,7 @@ export class ThreadBoundActivityJournal implements WorkbenchActivityJournal {
 	}
 }
 
+/** @linear WOO-718 */
 class ThreadScopedTNoteSource implements WorkbenchTNoteSource {
 	private projectId: string | null = null;
 
@@ -295,7 +296,13 @@ class ThreadScopedTNoteSource implements WorkbenchTNoteSource {
 		input: Parameters<WorkbenchTNoteSource["create"]>[0],
 		signal?: AbortSignal,
 	): ReturnType<WorkbenchTNoteSource["create"]> {
-		return this.source.create({ ...input, projectId: this.requireProjectId() }, signal);
+		const projectId = this.requireProjectId();
+		// Journal records retain process-run ownership; the detached note packet is
+		// a projection scoped to this bound Native thread. Preserve source identities.
+		return this.source.create({
+			...input, projectId,
+			activities: input.activities.map((activity) => ({ ...activity, projectId })),
+		}, signal);
 	}
 
 	private requireProjectId(): string {

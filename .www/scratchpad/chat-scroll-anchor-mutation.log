@@ -1,0 +1,20 @@
+bun test v1.4.0 (34cbb9a40)
+
+test/chat-scroll-acceptance.test.ts:
+45 | 	return renderLayoutFrame(layout.component, width, 14, () => undefined);
+46 | }
+47 | 
+48 | function firstVisibleMessage(frame: ReturnType<typeof renderLayoutFrame>): number {
+49 | 	const match = stripTerminalSequences(frame.lines.join("\n")).match(/message-(\d+)/);
+50 | 	if (!match) throw new Error("No chat message is visible");
+                                                              ^
+error: No chat message is visible
+      at firstVisibleMessage (/Users/jonghoPro/woo/00_project/99_www-pr-chat-completion/test/chat-scroll-acceptance.test.ts:50:58)
+      at <anonymous> (/Users/jonghoPro/woo/00_project/99_www-pr-chat-completion/test/chat-scroll-acceptance.test.ts:71:19)
+(fail) chat scroll acceptance > retains the older reading anchor and disabled follow across 120, 80, and 40 columns while streaming [16.17ms]
+(pass) chat scroll acceptance > restores follow when the reader returns to latest before changing width [5.81ms]
+
+ 1 pass
+ 1 fail
+ 9 expect() calls
+Ran 2 tests across 1 file. [52.00ms]

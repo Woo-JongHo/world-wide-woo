@@ -1,0 +1,11 @@
+executedHead  e1b188be4a03026523df691c3c5ae32ad8fb8c9e
+22e81156d8ef48abccee45e174f295d8d2723182ee69d73f732a9c24288f8c17  .www/evidence/2026-09-07-chat-interaction/2026-09-07-native-pty-probe.ts
+b5af00a20493fca7b8c1f5defdcd0730fa06d1a2b0d7e3f78ee9ad78914bb6fb  .www/evidence/2026-09-07-chat-interaction/2026-09-07-run-native-pty.py
+0de8eeb834ff2e8d1d2332d611ca2da273e41bcfd21fb8c2be459cef629a15b3  src/infrastructure/executors/codex-app-server.ts
+b183f37f194067cfb410da8571aaf63ab4d61af228069d0f60d439f5cfaa127f  src/application/project-workbench.ts
+231d3edee65bbaf3d372fcda852368412712a5a569a1a48b4a8e0494b3cf943b  src/application/ports/executor-port.ts
+680b696da3cb11b7c3b5eb254ee6a5f8c915e5065fad0717ca4a0b4a133bdf5f  src/domain/project-activity.ts
+377d17b18376a3f15df25fb7885ba81c7463a4eb8f96fbfa969643834a3a568e  src/domain/workbench.ts
+3050726cfa59a124d8f062c3fa3eaeaeeed0407a382dce2bb1cb0a75e630640c  src/domain/redaction.ts
+32ec68339ebca06c34f1236371985547bde3ab439558876c0522fad179a1e741  src/presentation/tui/workbench-shell.ts
+b0830307e91428a2b36ccfbf152c5f6a79cd67262b3bb4d02a0ece1d2464c4cb  src/presentation/tui/workbench-views.ts

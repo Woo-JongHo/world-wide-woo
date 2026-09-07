@@ -45,6 +45,27 @@ function transcriptRows(rows: readonly string[], width: number): string[] {
 	return rows.map((row) => truncateToWidth(row, Math.max(1, width)));
 }
 
+function activityOwnerKey(activity: WorkbenchSnapshot["activities"][number]): string {
+	const { threadId, turnId, itemId } = activity.nativeRefs;
+	return itemId ? `${threadId ?? ""}\0${turnId ?? ""}\0${itemId}` : `activity\0${activity.id}`;
+}
+
+function nativeOwnerKey(nativeRefs: WorkbenchSnapshot["activities"][number]["nativeRefs"], fallbackId: string): string {
+	const { threadId, turnId, itemId } = nativeRefs;
+	return itemId ? `${threadId ?? ""}\0${turnId ?? ""}\0${itemId}` : `activity\0${fallbackId}`;
+}
+
+function sameActivityOwner(
+	left: { readonly nativeRefs: WorkbenchSnapshot["activities"][number]["nativeRefs"] },
+	right: WorkbenchSnapshot["activities"][number],
+): boolean {
+	return nativeOwnerKey(left.nativeRefs, "live") === activityOwnerKey(right);
+}
+
+function turnOwnerKey(threadId: string | undefined, turnId: string | undefined): string | null {
+	return threadId && turnId ? `${threadId}\0${turnId}` : null;
+}
+
 function boundedWorkbenchMarkdown(text: string): string {
 	let candidate = text;
 	if (candidate.length > WORKBENCH_MARKDOWN_MAX_CHARS) {
@@ -377,6 +398,7 @@ function projectCompletionSummaries(snapshot: WorkbenchSnapshot): ReadonlyMap<st
 }
 
 /** Chat projection for the native ProjectWorkbench, including existing tool cards. */
+/** @linear WOO-679 WOO-686 WOO-687 WOO-688 WOO-689 WOO-691 WOO-718 */
 export class WorkbenchChatView implements Component {
 	private snapshot: WorkbenchSnapshot;
 	private readonly welcome = new WorkbenchWelcomeView();
@@ -408,19 +430,27 @@ export class WorkbenchChatView implements Component {
 		for (const message of snapshot.chat) {
 			if (message.role !== "assistant") continue;
 			visibleAssistantIds.add(message.id);
-			const inputKey = `${message.status}\0${message.partial === true ? "partial" : "whole"}\0${message.content}`;
+			const runtimeContent = typeof message.content === "string" ? message.content : "[잘못된 메시지 본문]";
+			const inputKey = `${message.status}\0${message.partial === true ? "partial" : "whole"}\0${runtimeContent}`;
 			if (this.markdownInput.get(message.id) === inputKey) continue;
-			const content = sanitizeTerminalTextUnbounded(
-				message.partial
-					? sanitizePartialAssistantResponse(message.content)
-					: message.status === "completed" || message.status === "incomplete"
-					? sanitizeCompletedAssistantResponse(message.content)
-					: message.content,
-			);
+			let content: string;
+			try {
+				content = sanitizeTerminalTextUnbounded(
+				message.partial || message.status !== "completed"
+					? sanitizePartialAssistantResponse(runtimeContent)
+					: sanitizeCompletedAssistantResponse(runtimeContent),
+				);
+			} catch {
+				content = "메시지의 공개 본문을 확인할 수 없습니다.";
+			}
 			const existing = this.markdown.get(message.id);
 			if (this.markdownSource.get(message.id) !== content) {
-				if (existing) existing.setText(content);
-				else this.markdown.set(message.id, new Markdown(content, 0, 0, markdownTheme));
+				try {
+					if (existing) existing.setText(content);
+					else this.markdown.set(message.id, new Markdown(content, 0, 0, markdownTheme));
+				} catch {
+					this.markdown.delete(message.id);
+				}
 			}
 			this.markdownInput.set(message.id, inputKey);
 			this.markdownSource.set(message.id, content);
@@ -433,7 +463,7 @@ export class WorkbenchChatView implements Component {
 		}
 		if (snapshot.draft !== this.draftInput) {
 			this.draftInput = snapshot.draft;
-			const draft = boundedWorkbenchMarkdown(snapshot.draft);
+			const draft = boundedWorkbenchMarkdown(sanitizePartialAssistantResponse(snapshot.draft));
 			if (draft !== this.draftSource) {
 				this.draftSource = draft;
 				this.draftMarkdown.setText(draft);
@@ -481,6 +511,15 @@ export class WorkbenchChatView implements Component {
 		) return this.cachedRows;
 		const activities = this.snapshot.activities;
 		const activityById = new Map(activities.map((activity) => [activity.id, activity]));
+		const tnoteCompletionByTurn = new Map(projectTNoteCompletionIndex(this.snapshot.activities, this.snapshot.tnotes)
+			.flatMap((completion) => {
+				const key = turnOwnerKey(completion.threadId, completion.turnId);
+				return key ? [[key, completion] as const] : [];
+			}));
+		const tnoteById = new Map(this.snapshot.tnotes.map((note) => [note.id, note]));
+		const selectedActivity = this.snapshot.selectedActivityId
+			? activityById.get(this.snapshot.selectedActivityId)
+			: undefined;
 		const completionSummaries = projectCompletionSummaries(this.snapshot);
 		const messages = new Map(this.snapshot.chat.map((message) => [message.activityId, message]));
 		const projectedSteps = this.snapshot.workFlow.steps;
@@ -495,10 +534,10 @@ export class WorkbenchChatView implements Component {
 		const lastVisibleActivityByItem = new Map<string, string>();
 		for (const activity of activities) {
 			if (isVisibleWorkStep(activity.kind)) {
-				lastVisibleActivityByItem.set(activity.nativeRefs.itemId ?? activity.id, activity.id);
+				lastVisibleActivityByItem.set(activityOwnerKey(activity), activity.id);
 			}
 			if (classifyWorkActivity(activity) !== "observation") continue;
-			observationByItem.set(activity.nativeRefs.itemId ?? activity.id, activity.id);
+			observationByItem.set(activityOwnerKey(activity), activity.id);
 		}
 		const observationActivityIds = new Set(observationByItem.values());
 		const delegationByActivity = new Map<string, readonly string[] | null>();
@@ -539,7 +578,7 @@ export class WorkbenchChatView implements Component {
 			const message = messages.get(activity.id);
 			if (message) {
 				renderedMessageIds.add(message.id);
-				rows.push(...this.renderMessage(message, contentWidth), "");
+				rows.push(...this.renderMessage(message, contentWidth, activityById, tnoteCompletionByTurn, tnoteById, selectedActivity), "");
 				const completionSummary = completionSummaries.get(activity.id);
 				if (message.role !== "user" && completionSummary) {
 					rows.push(...new CompletionSummaryCard(completionSummary).render(contentWidth), "");
@@ -559,24 +598,28 @@ export class WorkbenchChatView implements Component {
 			const step = stepByLastActivity.get(activity.id);
 			if (step) {
 				const currentLive = this.snapshot.liveActivity;
-				const live = currentLive && currentLive.nativeRefs.itemId === activity.nativeRefs.itemId
+				const live = currentLive && sameActivityOwner(currentLive, activity)
 					&& isVisibleWorkStep(currentLive.kind) ? currentLive : undefined;
 				rows.push(...this.renderStepCard(step, contentWidth, activity, live), "");
 			} else if (observationActivityIds.has(activity.id)) {
 				const currentLive = this.snapshot.liveActivity;
-				const live = currentLive && currentLive.nativeRefs.itemId === activity.nativeRefs.itemId
+				const live = currentLive && sameActivityOwner(currentLive, activity)
 					&& isVisibleWorkStep(currentLive.kind) ? currentLive : undefined;
 				const projectedActivity = {
 					...activity,
 					payload: boundedPublicProjection(activity.payload).value as typeof activity.payload,
 				};
-				rows.push(...new ObservationCard({ activity: projectedActivity, liveActivity: live }).render(contentWidth), "");
+				rows.push(
+					...new ObservationCard({ activity: projectedActivity, liveActivity: live }).render(contentWidth),
+					...wrapTextWithAnsi(colors.muted(`Source · /source ${activity.id}`), contentWidth),
+					"",
+				);
 			} else if (
 				isVisibleWorkStep(activity.kind)
-				&& lastVisibleActivityByItem.get(activity.nativeRefs.itemId ?? activity.id) === activity.id
+				&& lastVisibleActivityByItem.get(activityOwnerKey(activity)) === activity.id
 			) {
 				const currentLive = this.snapshot.liveActivity;
-				const live = currentLive && currentLive.nativeRefs.itemId === activity.nativeRefs.itemId
+				const live = currentLive && sameActivityOwner(currentLive, activity)
 					&& isVisibleWorkStep(currentLive.kind) ? currentLive : undefined;
 				const projectedActivity = {
 					...activity,
@@ -587,7 +630,7 @@ export class WorkbenchChatView implements Component {
 					liveActivity: live,
 					mode: "action",
 					parentStepNumber: stepByActivity.get(activity.id)?.number,
-				}).render(contentWidth), "");
+				}).render(contentWidth), ...wrapTextWithAnsi(colors.muted(`Source · /source ${activity.id}`), contentWidth), "");
 			}
 		}
 		// The first outbound message is published before Native thread creation has
@@ -595,7 +638,7 @@ export class WorkbenchChatView implements Component {
 		// the matching activity takes over; other messages need activity order authority.
 		for (const message of this.snapshot.chat) {
 			if (renderedMessageIds.has(message.id) || message.role !== "user" || message.status === "completed") continue;
-			rows.push(...this.renderMessage(message, contentWidth), "");
+			rows.push(...this.renderMessage(message, contentWidth, activityById, tnoteCompletionByTurn, tnoteById, selectedActivity), "");
 		}
 		if (this.snapshot.pendingApproval) {
 			rows.push(...surfaceRows(
@@ -618,7 +661,7 @@ export class WorkbenchChatView implements Component {
 		if (this.snapshot.draft) {
 			rows.push(...transcriptRows([
 				`${semantic.assistantLabel("bori")}  ${semantic.toolRunning("응답 중")}`,
-				...this.draftMarkdown.render(contentWidth),
+				...this.renderDraft(contentWidth),
 			], contentWidth), "");
 		}
 		for (const [index, queued] of this.snapshot.chatQueue.entries()) {
@@ -667,37 +710,69 @@ export class WorkbenchChatView implements Component {
 		return rows;
 	}
 
-	private renderMessage(message: WorkbenchSnapshot["chat"][number], contentWidth: number): string[] {
+	private renderMessage(
+		message: WorkbenchSnapshot["chat"][number],
+		contentWidth: number,
+		activityById: ReadonlyMap<string, WorkbenchSnapshot["activities"][number]>,
+		completionByTurn: ReadonlyMap<string, ReturnType<typeof projectTNoteCompletionIndex>[number]>,
+		noteById: ReadonlyMap<string, WorkbenchSnapshot["tnotes"][number]>,
+		selectedActivity: WorkbenchSnapshot["activities"][number] | undefined,
+	): string[] {
+		const runtimeRole: unknown = message.role;
+		const runtimeStatus: unknown = message.status;
+		const content = typeof message.content === "string" ? message.content : "[잘못된 메시지 본문]";
 		if (message.role === "user") {
 			const label = message.status === "failed" ? semantic.toolFailed("전송 실패")
 				: message.status === "cancelled" ? semantic.toolCancelled("전송 중단")
 					: message.status === "streaming" ? semantic.toolRunning("전송 준비 중") : "";
 			return surfaceRows([
 				`${semantic.userLabel("user")}${label ? ` · ${label}` : ""}`,
-				...wrapTextWithAnsi(boundedWorkbenchMarkdown(message.content), contentWidth),
+				...wrapTextWithAnsi(boundedWorkbenchMarkdown(content), contentWidth),
 			], contentWidth, semantic.userSurface);
 		}
+		if (runtimeRole !== "assistant" && runtimeRole !== "system") {
+			return transcriptRows([
+				colors.error(`알 수 없는 메시지 역할 · ${publicText(runtimeRole) ?? "값 없음"}`),
+				...wrapTextWithAnsi(boundedWorkbenchMarkdown(sanitizePartialAssistantResponse(content)), contentWidth),
+			], contentWidth);
+		}
+		const knownStatus = runtimeStatus === "streaming" || runtimeStatus === "completed" || runtimeStatus === "incomplete"
+			|| runtimeStatus === "failed" || runtimeStatus === "cancelled";
 		const label = message.status === "incomplete"
 			? semantic.toolCancelled(message.partial ? "부분 응답 · 최종 본문 미수신" : "최종 본문 미수신")
-			: message.status === "cancelled" ? semantic.toolCancelled("중단됨")
-			: message.status === "failed" ? semantic.toolFailed("실패")
-				: message.status === "streaming" ? semantic.toolRunning("응답 중") : "";
-		const messageActivity = this.snapshot.activities.find((activity) => activity.id === message.activityId);
-		const completion = projectTNoteCompletionIndex(this.snapshot.activities, this.snapshot.tnotes)
-			.find((entry) => entry.threadId === messageActivity?.nativeRefs.threadId
-				&& entry.turnId === messageActivity?.nativeRefs.turnId);
-		const note = completion?.noteId ? this.snapshot.tnotes.find((candidate) => candidate.id === completion.noteId) : undefined;
+			: message.status === "cancelled" ? semantic.toolCancelled(message.partial ? "중단됨 · 부분 응답" : "중단됨")
+			: message.status === "failed" ? semantic.toolFailed(message.partial ? "실패 · 부분 응답" : "실패")
+				: message.status === "streaming" ? semantic.toolRunning("응답 중")
+					: !knownStatus ? semantic.toolFailed(`알 수 없는 상태 · ${publicText(runtimeStatus) ?? "값 없음"}`) : "";
+		const messageActivity = activityById.get(message.activityId);
+		const completionKey = turnOwnerKey(messageActivity?.nativeRefs.threadId, messageActivity?.nativeRefs.turnId);
+		const completion = completionKey ? completionByTurn.get(completionKey) : undefined;
+		const note = completion?.noteId ? noteById.get(completion.noteId) : undefined;
 		const selected = Boolean(completion && this.snapshot.selectedActivityId
-			&& this.snapshot.activities.find((activity) => activity.id === this.snapshot.selectedActivityId)?.nativeRefs.turnId === completion.turnId);
+			&& selectedActivity?.nativeRefs.threadId === completion.threadId
+			&& selectedActivity.nativeRefs.turnId === completion.turnId);
+		const safeContent = this.markdownSource.get(message.id)
+			?? (runtimeRole === "system" ? sanitizeTerminalTextUnbounded(content) : "메시지의 공개 본문을 확인할 수 없습니다.");
+		let bodyRows: string[];
+		try {
+			bodyRows = this.markdown.get(message.id)?.render(contentWidth) ?? wrapTextWithAnsi(safeContent, contentWidth);
+		} catch {
+			bodyRows = wrapTextWithAnsi(safeContent, contentWidth);
+		}
 		return transcriptRows([
-			`${semantic.assistantLabel("bori")}${completion ? `  ${colors.highlight(`#${completion.number}`)}` : ""}${label ? `  ${label}` : ""}`,
-			...(this.markdown.get(message.id)?.render(contentWidth) ?? [sanitizeTerminalTextUnbounded(message.content)]),
+			`${runtimeRole === "system" ? colors.warning("system") : semantic.assistantLabel("bori")}${completion ? `  ${colors.highlight(`#${completion.number}`)}` : ""}${label ? `  ${label}` : ""}`,
+			...bodyRows,
 			...(selected && note ? [
 				colors.muted(`T-note · ${note.title}`),
 				...boundedTNoteSummary(note.summary).text.split(/\r?\n/u).flatMap((line) => wrapTextWithAnsi(line, contentWidth)),
 				colors.muted(`sourceActivityIds · ${note.sourceActivityIds.join(", ") || "없음"}`),
 			] : []),
 		], contentWidth);
+	}
+
+	private renderDraft(width: number): string[] {
+		try { return this.draftMarkdown.render(width); }
+		catch { return wrapTextWithAnsi(sanitizeTerminalTextUnbounded(this.draftSource), width); }
 	}
 
 	private stopActivity(): void {
@@ -734,10 +809,12 @@ export class WorkbenchChatView implements Component {
 				`Source: inferred · turn ${source.turnId} · sequence ${source.startSequence}${source.endSequence === null ? "+" : `-${source.endSequence}`} · ${source.activityIds.length + source.observationActivityIds.length} activities (collapsed)`,
 			), contentWidth))
 			: [];
-		const planItemId = activity?.nativeRefs.itemId;
-		const compactSource = planItemId
-			? wrapTextWithAnsi(colors.muted(`Trace source · planItemId ${planItemId} · /trace ${planItemId}`), contentWidth)
-			: [];
+		const compactSource = activity ? [
+			...(activity.nativeRefs.itemId
+				? wrapTextWithAnsi(colors.muted(`Trace source · planItemId ${activity.nativeRefs.itemId} · /trace ${activity.nativeRefs.itemId}`), contentWidth)
+				: []),
+			...wrapTextWithAnsi(colors.muted(`Source · /source ${activity.id}`), contentWidth),
+		] : [];
 		if (liveActivity) return [...new WorkStepCard(options).render(contentWidth), ...traceSource, ...compactSource];
 		const rows = [...new WorkStepCard(options).render(contentWidth), ...traceSource, ...compactSource];
 		this.stepRows.set(key, rows);

@@ -3663,4 +3663,50 @@ describe("ProjectWorkbench", () => {
 		expect(workbench.snapshot.actionResult?.body).toContain("provenance");
 		await workbench.close();
 	});
+	// @linear WOO-688 WOO-691
+	test("keeps clipped private envelopes out of the live and preserved public response", async () => {
+		const native = new FakeNativeHarness();
+		const journal = new MemoryJournal();
+		const workbench = new ProjectWorkbench(native, journal, { projectId: "sample", cwd: "/sample" });
+		await ready(workbench);
+		await workbench.dispatch({ type: "chat.send", text: "긴 답변" });
+		const refs = { threadId: "thread-1", turnId: "turn-1", itemId: "answer" };
+		native.emit({ type: "notification", method: "item/agentMessage/delta", refs,
+			params: { delta: "<analysis>\n" + "PRIVATE-SECRET\n".repeat(5000) } });
+		await Bun.sleep(10);
+		expect(workbench.snapshot.draft).not.toContain("PRIVATE-SECRET");
+		native.emit({ type: "notification", method: "item/agentMessage/delta", refs,
+			params: { delta: "MORE-PRIVATE\n</analysis>\n<answer>\n공개 답변" } });
+		native.emit({ type: "notification", method: "turn/interrupted", refs: { threadId: "thread-1", turnId: "turn-1" }, params: {} });
+		await Bun.sleep(10);
+		const partial = workbench.snapshot.chat.find(message => message.role === "assistant");
+		expect(partial?.status).toBe("cancelled");
+		expect(partial?.content).toContain("표시를 보류");
+		expect(JSON.stringify(journal.records)).not.toContain("PRIVATE-SECRET");
+		expect(JSON.stringify(journal.records)).not.toContain("MORE-PRIVATE");
+		await workbench.close();
+	});
+
+	// @linear WOO-691 WOO-718
+	test("isolates unknown message roles and refuses a source from another thread", async () => {
+		const native = new FakeNativeHarness();
+		const journal = new MemoryJournal();
+		const workbench = new ProjectWorkbench(native, journal, { projectId: "sample", cwd: "/sample" });
+		await ready(workbench);
+		await workbench.dispatch({ type: "chat.send", text: "질문" });
+		for (const [itemId, threadId, item] of [
+			["invalid", "thread-1", { type: "alienMessage", text: "SECRET-PAYLOAD" }],
+			["foreign", "other-thread", { type: "agentMessage", text: "다른 대화" }],
+			["valid", "thread-1", { type: "agentMessage", text: "정상 복구" }],
+		] as const) native.emit({ type: "notification", method: "item/completed", refs: { threadId, turnId: "turn-1", itemId }, params: { item } });
+		await Bun.sleep(10);
+		expect(workbench.snapshot.chat.some(message => message.role === "system" && message.content.includes("형식을 확인"))).toBe(true);
+		expect(workbench.snapshot.chat.some(message => message.content.includes("SECRET-PAYLOAD"))).toBe(false);
+		expect(workbench.snapshot.chat.some(message => message.content === "정상 복구")).toBe(true);
+		const foreign = journal.records.find(activity => activity.nativeRefs.threadId === "other-thread")!;
+		expect(await workbench.dispatch({ type: "activity.select", activityId: foreign.id })).toMatchObject({ state: "rejected" });
+		expect(workbench.snapshot.selectedActivityId).toBeNull();
+		await workbench.close();
+	});
+
 });

@@ -465,7 +465,7 @@ describe("createProjectWorkbenchSession", () => {
 
 	test("wires one native writer to thread-scoped Todo, private activity/drafts, and deterministic project identity", async () => {
 		const order: string[] = [];
-		const observed: { todoPath?: string; journalPath?: string; draftPath?: string; tnoteModel?: string; options?: ProjectWorkbenchOptions } = {};
+		const observed: { todoPath?: string; journalPath?: string; draftPath?: string; tnoteModel?: string; options?: ProjectWorkbenchOptions; noteInput?: Parameters<NonNullable<ProjectWorkbenchOptions["tnotes"]>["create"]>[0] } = {};
 		let ledger: TodoLedger | undefined;
 		const factories: Partial<ProjectWorkbenchSessionFactories> = {
 			openWorkspace: async () => workspace,
@@ -486,7 +486,7 @@ describe("createProjectWorkbenchSession", () => {
 			createTNoteSource: (path, model) => {
 				observed.draftPath = path;
 				observed.tnoteModel = model;
-				return { readAll: async () => [], create: async () => { throw new Error("not used"); } };
+				return { readAll: async () => [], create: async (input) => { observed.noteInput = input; throw new Error("captured note input"); } };
 			},
 			createWorkbench: (native, journal, options) => {
 				observed.options = options;
@@ -536,6 +536,14 @@ describe("createProjectWorkbenchSession", () => {
 		expect(observed.options?.narrator).toBeDefined();
 		expect(observed.options?.wooEntry).toBeUndefined();
 		expect(observed.options?.persistModelSelection).toBe(persistModelSelection);
+		// @linear WOO-718
+		const source = { id: "source-1", projectId: "prior-process-run", sequence: 1,
+			occurredAt: new Date(0).toISOString(), kind: "message", title: "질문", body: "원문" };
+		await expect(observed.options!.tnotes!.create({ projectId: session.projectId,
+			range: { startSequence: 1, endSequence: 1 }, activities: [source], instruction: "요약", expectedQuestion: "질문" })).rejects.toThrow("captured note input");
+		expect(observed.noteInput?.projectId).toBe(scopedTodoSessionId("opaque-native-id"));
+		expect(observed.noteInput?.activities[0]).toEqual({ ...source, projectId: scopedTodoSessionId("opaque-native-id") });
+		expect(source.projectId).toBe("prior-process-run");
 		await session.close();
 		expect(order).toEqual(["native.close", "todo.dispose", "lease.release", "lease.release"]);
 	});

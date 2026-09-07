@@ -31,6 +31,7 @@ import {
 	type ProjectActivityKind,
 	type ProjectActivityPhase,
 } from "../domain/project-activity.js";
+import { sanitizePartialAssistantResponse } from "../domain/redaction.js";
 import { sanitizeTerminalTextExcerpt, sanitizeTerminalTextUnbounded } from "../domain/terminal.js";
 import type { TodoDocument } from "../domain/todos.js";
 import type { CanonicalDocumentDraft } from "../domain/canonical-document.js";
@@ -245,6 +246,7 @@ export class ProjectWorkbench {
 	private reasoningNativeRefs: NativeRefs | null = null;
 	private reasoningSummaryNativeRefs: NativeRefs | null = null;
 	private draftProjection = emptyBoundedTextProjection();
+	private draftEnvelopeClipped = false;
 	private reasoningProjection = emptyBoundedTextProjection();
 	private reasoningSummaryProjection = emptyBoundedTextProjection();
 	private liveActivity: WorkbenchLiveActivity | null = null;
@@ -741,8 +743,10 @@ export class ProjectWorkbench {
 		return { state: "accepted", commandId };
 	}
 
+	/** @linear WOO-718 */
 	private selectActivity(commandId: string, activityId: string | null): WorkbenchCommandReceipt {
-		if (activityId && !this.activities.some((activity) => activity.id === activityId)) {
+		if (activityId && !this.visibleActivities.some((activity) => activity.id === activityId
+			&& (!this.threadId || activity.nativeRefs.threadId === this.threadId))) {
 			return { state: "rejected", commandId, reason: `Activity를 찾을 수 없습니다: ${activityId}` };
 		}
 		this.selectedActivityId = activityId;
@@ -1269,6 +1273,7 @@ export class ProjectWorkbench {
 				this.draftIdentity = null;
 				this.draftNativeRefs = null;
 				this.draftProjection = emptyBoundedTextProjection();
+				this.draftEnvelopeClipped = false;
 			}
 			if (clearsProjection(this.reasoningIdentity, this.reasoningNativeRefs)) {
 				this.reasoningDraft = "";
@@ -1403,16 +1408,26 @@ export class ProjectWorkbench {
 		} else if (activityKind(event.method, event.params) === "message") {
 			if (itemIdentity && this.draftIdentity && itemIdentity !== this.draftIdentity) {
 				this.draftProjection = emptyBoundedTextProjection();
+				this.draftEnvelopeClipped = false;
 			}
 			this.draftIdentity = itemIdentity ?? this.draftIdentity;
 			this.draftNativeRefs = event.refs;
-			const projection = appendBoundedText(
-				this.draftProjection,
-				delta,
-				ASSISTANT_DRAFT_TAIL_CHARACTER_LIMIT,
-			);
+			const candidate = this.draftProjection.tail + delta;
+			const projection = appendBoundedText(this.draftProjection, delta, ASSISTANT_DRAFT_TAIL_CHARACTER_LIMIT);
+			// Sanitize before clipping: losing a private envelope opener must never turn
+			// its tail into public prose. Keep the last known public fragment until final.
+			if (!this.draftEnvelopeClipped) {
+				const publicText = sanitizePartialAssistantResponse(candidate);
+				const isEnvelope = /^\s*<(?:analysis|results|files|answer|next_steps)\s*>/iu.test(candidate);
+				this.draft = isEnvelope
+					? appendBoundedText(emptyBoundedTextProjection(), publicText, ASSISTANT_DRAFT_TAIL_CHARACTER_LIMIT).text
+					: projection.text;
+				if (isEnvelope && projection.state.omittedCharacters > 0) {
+					this.draftEnvelopeClipped = true;
+					this.draft += "\n… 응답 앞부분이 생략되어 이후 공개 본문 표시를 보류합니다 …";
+				}
+			}
 			this.draftProjection = projection.state;
-			this.draft = projection.text;
 		} else {
 			const kind = activityKind(event.method, event.params);
 			const continuesSameActivity = this.liveActivity?.method === event.method &&
@@ -2172,23 +2187,34 @@ function missingAssistantResponseNotice(phase: ProjectActivityPhase): string {
 	return "최종 답변 본문을 받지 못했습니다.";
 }
 
-/** @linear WOO-690 */
+/** @linear WOO-690 WOO-691 */
 function projectChat(activities: readonly ProjectActivity[], rootThreadId: string | null): WorkbenchChatMessage[] {
 	const messages = new Map<string, WorkbenchChatMessage>();
 	for (const activity of activities) {
 		if (activity.kind !== "message") continue;
 		if (rootThreadId && activity.nativeRefs.threadId !== rootThreadId) continue;
-		const text = activityText(activity.payload);
-		if (!text) continue;
-		const role = activity.payload.role === "user" || activity.payload.direction === "outbound" ? "user" : "assistant";
+		const payload = record(activity.payload);
+		const role = payload ? chatMessageRole(payload) : null;
+		const status = chatMessageStatus(activity, payload);
+		const text = payload ? activityText(payload) : "";
+		// Empty lifecycle markers are not malformed bubbles; terminal absence is
+		// represented by preserveUnfinalizedAssistantResponse for the same identity.
+		if (role && !text) continue;
+		if (!role || !status || !text) {
+			const key = `invalid-message:${activity.id}`;
+			messages.set(key, {
+				id: key,
+				role: "system",
+				content: "이 메시지 기록은 형식을 확인할 수 없어 표시하지 않았습니다.",
+				activityId: activity.id,
+				status: "failed",
+			});
+			continue;
+		}
 		const key = role === "user" && activity.nativeRefs.threadId && activity.nativeRefs.itemId
 			? threadItemKey(activity.nativeRefs.threadId, activity.nativeRefs.itemId)
 			: nativeItemIdentity(activity.nativeRefs) ?? `activity:${activity.id}`;
 		const previous = messages.get(key);
-		const status = activity.phase === "completed" && activity.payload.finalObservation === "missing" ? "incomplete"
-			: activity.phase === "failed" ? "failed"
-			: activity.phase === "cancelled" ? "cancelled"
-				: activity.phase === "completed" ? "completed" : "streaming";
 		messages.set(key, {
 			id: key,
 			role,
@@ -2199,6 +2225,31 @@ function projectChat(activities: readonly ProjectActivity[], rootThreadId: strin
 		});
 	}
 	return [...messages.values()];
+}
+
+function chatMessageRole(payload: Readonly<Record<string, unknown>>): WorkbenchChatMessage["role"] | null {
+	if (payload.role === "user" || payload.direction === "outbound") return "user";
+	if (payload.role === "assistant") return "assistant";
+	if (payload.role !== undefined || payload.direction !== undefined) return null;
+	const params = record(payload.params);
+	const itemType = String(record(params?.item)?.type ?? "").replace(/[-_]/gu, "").toLowerCase();
+	if (itemType === "usermessage") return "user";
+	const method = typeof payload.method === "string" ? payload.method.replace(/[-_]/gu, "").toLowerCase() : "";
+	if (itemType === "agentmessage" || method.startsWith("item/agentmessage/")) return "assistant";
+	return null;
+}
+
+function chatMessageStatus(
+	activity: ProjectActivity,
+	payload: Readonly<Record<string, unknown>> | null,
+): WorkbenchChatMessage["status"] | null {
+	if (!payload) return null;
+	if (activity.phase === "completed" && payload.finalObservation === "missing") return "incomplete";
+	if (activity.phase === "failed") return "failed";
+	if (activity.phase === "cancelled") return "cancelled";
+	if (activity.phase === "completed") return "completed";
+	if (activity.phase === "started" || activity.phase === "updated") return "streaming";
+	return null;
 }
 
 function nativeItemIdentity(refs: NativeRefs): string | null {
