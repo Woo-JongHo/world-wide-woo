@@ -1124,6 +1124,16 @@
       "id": "WOO-718",
       "uuid": "5712cc2e-af70-4209-88b1-e4155f776f41",
       "url": "https://linear.app/woo-world/issue/WOO-718/08-대화실행결과를-하나의-흐름으로-연결한다"
+    },
+    {
+      "kind": "linear-issue",
+      "id": "WOO-727",
+      "uuid": "1d8148e6-8a8f-481c-9078-85c70e5797e7",
+      "url": "https://linear.app/woo-world/issue/WOO-727/native-workbench에서-provider-로그인을-연결한다"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/project-auth.ts"
     }
   ],
   "links": [
@@ -3691,6 +3701,97 @@
         "id": "WOO-714",
         "uuid": "b7db4486-ed21-413d-8c35-541bfd536fc1",
         "url": "https://linear.app/woo-world/issue/WOO-714/한-세션의-결과사용량시간을-관측-단위와-함께-계산한다"
+      }
+    },
+    {
+      "from": {
+        "kind": "linear-issue",
+        "id": "WOO-727",
+        "uuid": "1d8148e6-8a8f-481c-9078-85c70e5797e7",
+        "url": "https://linear.app/woo-world/issue/WOO-727/native-workbench에서-provider-로그인을-연결한다"
+      },
+      "relation": "implements",
+      "to": {
+        "kind": "code",
+        "id": "src/app.ts"
+      }
+    },
+    {
+      "from": {
+        "kind": "linear-issue",
+        "id": "WOO-727",
+        "uuid": "1d8148e6-8a8f-481c-9078-85c70e5797e7",
+        "url": "https://linear.app/woo-world/issue/WOO-727/native-workbench에서-provider-로그인을-연결한다"
+      },
+      "relation": "implements",
+      "to": {
+        "kind": "code",
+        "id": "src/infrastructure/project-auth.ts"
+      }
+    },
+    {
+      "from": {
+        "kind": "linear-issue",
+        "id": "WOO-727",
+        "uuid": "1d8148e6-8a8f-481c-9078-85c70e5797e7",
+        "url": "https://linear.app/woo-world/issue/WOO-727/native-workbench에서-provider-로그인을-연결한다"
+      },
+      "relation": "implements",
+      "to": {
+        "kind": "code",
+        "id": "src/presentation/tui/slash-commands.ts"
+      }
+    },
+    {
+      "from": {
+        "kind": "linear-issue",
+        "id": "WOO-727",
+        "uuid": "1d8148e6-8a8f-481c-9078-85c70e5797e7",
+        "url": "https://linear.app/woo-world/issue/WOO-727/native-workbench에서-provider-로그인을-연결한다"
+      },
+      "relation": "implements",
+      "to": {
+        "kind": "code",
+        "id": "src/presentation/tui/workbench-shell.ts"
+      }
+    },
+    {
+      "from": {
+        "kind": "test",
+        "id": "test/slash-commands.test.ts"
+      },
+      "relation": "verifies",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-727",
+        "uuid": "1d8148e6-8a8f-481c-9078-85c70e5797e7",
+        "url": "https://linear.app/woo-world/issue/WOO-727/native-workbench에서-provider-로그인을-연결한다"
+      }
+    },
+    {
+      "from": {
+        "kind": "test",
+        "id": "test/auth-service.test.ts"
+      },
+      "relation": "verifies",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-727",
+        "uuid": "1d8148e6-8a8f-481c-9078-85c70e5797e7",
+        "url": "https://linear.app/woo-world/issue/WOO-727/native-workbench에서-provider-로그인을-연결한다"
+      }
+    },
+    {
+      "from": {
+        "kind": "test",
+        "id": "test/auth-overlay.test.ts"
+      },
+      "relation": "verifies",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-727",
+        "uuid": "1d8148e6-8a8f-481c-9078-85c70e5797e7",
+        "url": "https://linear.app/woo-world/issue/WOO-727/native-workbench에서-provider-로그인을-연결한다"
       }
     }
   ]

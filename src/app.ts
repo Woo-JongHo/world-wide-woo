@@ -30,8 +30,8 @@ export async function runApp(options: RunAppOptions = {}): Promise<void> {
 		},
 	});
 	try {
-		runProjectWorkbenchShell({
-			workbench: project.workbench, cwd: project.workspace.root, usage: project.usage,
+		const { createProjectAuthController } = await import("./infrastructure/project-auth"); runProjectWorkbenchShell({
+			workbench: project.workbench, cwd: project.workspace.root, usage: project.usage, auth: createProjectAuthController(),
 			developmentMapSource: new FileDevelopmentMapSource(project.workspace.root),
 			development: project.development,
 			observabilityHistorySource: new ObservabilityHistorySource(join(project.workspace.root, ".www", "runtime", "activity")),

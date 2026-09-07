@@ -108,6 +108,9 @@ export type WorkbenchShellCommand =
 	| { type: "pane.show"; pane: "chat" | "tnotes" | "todo" }
 	| { type: "model.select" }
 	| { type: "model.set"; model: string; effort?: Effort }
+	| { type: "auth.select" }
+	| { type: "auth.login"; provider: Provider }
+	| { type: "auth.logout"; provider: Provider }
 	| { type: "session.permission"; mode: "all" | "manual" }
 	| { type: "session.mode"; mode: "plan" | "manual" }
 	| { type: "woo-entry.refresh" }
@@ -135,6 +138,8 @@ export const WORKBENCH_SLASH_COMMANDS: SlashCommand[] = [
 			? EFFORTS.map((effort) => ({ value: effort, label: effort, description: "추론 강도" }))
 			: MODELS["openai-codex"].map((model) => ({ value: model, label: model, description: "Codex 모델" })),
 	},
+	{ name: "login", description: "Provider OAuth·API key 로그인", argumentHint: "[provider]" },
+	{ name: "logout", description: "Provider 인증 삭제", argumentHint: "<provider>" },
 	{ name: "chat", description: "Chat pane 안내" },
 	{ name: "dashboard", description: "전체 Session·Project 관측 Dashboard" },
 	{ name: "monitor", description: "현재 Runtime·Request·Tool Live Monitor" },
@@ -179,6 +184,15 @@ export function parseWorkbenchShellCommand(text: string): WorkbenchShellCommand 
 	const [name, ...args] = trimmed.slice(1).split(/\s+/u);
 	if ((name === "chat" || name === "tnotes" || name === "todo") && args.length === 0) return { type: "pane.show", pane: name };
 	if (name === "model") return parseWorkbenchModelCommand(args);
+	if (name === "login") {
+		if (args.length === 0) return { type: "auth.select" };
+		const providerId = args.length === 1 ? provider(args[0]!) : null;
+		return providerId ? { type: "auth.login", provider: providerId } : { type: "error", message: "사용법: /login [provider]" };
+	}
+	if (name === "logout") {
+		const providerId = args.length === 1 ? provider(args[0]!) : null;
+		return providerId ? { type: "auth.logout", provider: providerId } : { type: "error", message: "사용법: /logout <provider>" };
+	}
 	if (name === "permission") {
 		return args.length === 1 && (args[0] === "all" || args[0] === "manual")
 			? { type: "session.permission", mode: args[0] }

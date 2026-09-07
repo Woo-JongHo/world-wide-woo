@@ -13,7 +13,7 @@ import {
 	type Component,
 	type OverlayHandle,
 } from "@earendil-works/pi-tui";
-import type { ComposerDraftController, ObservabilityHistoryReader, UsageMonitor, WorkbenchGitTelemetryReader } from "../../application/ports";
+import type { AuthController, ComposerDraftController, ObservabilityHistoryReader, UsageMonitor, WorkbenchGitTelemetryReader } from "../../application/ports";
 import type { ProjectWorkbench } from "../../application/project-workbench";
 import { EMPTY_DEVELOPMENT_MAP, type DevelopmentMapSnapshot } from "../../domain/development-map";
 import { projectObservabilityDashboard, summarizeObservabilityStreams, type ObservabilityDashboard } from "../../domain/observability-dashboard";
@@ -27,8 +27,10 @@ import { StatusLine, WorkspaceTodoView } from "./shared-dashboard-views";
 import { TNotesSourceView, WorkbenchChatView, WorkbenchMonitorView } from "./workbench-views";
 import { ExitKeyPolicy } from "./exit-key-policy";
 import { ApprovalOverlay } from "./approval-overlay";
+import { AuthFlowOverlay } from "./auth-overlay";
 import { ModelPickerOverlay } from "./model-picker-overlay";
 import { OverlaySheet } from "./overlay-sheet";
+import { LoginProviderOverlay } from "./router-overlays";
 import { RenderScheduler, workbenchRenderUrgency } from "./render-scheduler";
 import { settleWithin } from "./shell-lifecycle";
 import { parseWorkbenchShellCommand, WORKBENCH_SLASH_COMMANDS, type WorkbenchShellCommand } from "./slash-commands";
@@ -46,6 +48,7 @@ export interface ProjectWorkbenchShellDependencies {
 	development?: DevelopmentService;
 	cwd?: string;
 	usage: UsageMonitor;
+	auth: AuthController;
 	developmentMapSource?: {
 		startPolling(listener: (snapshot: DevelopmentMapSnapshot) => void, intervalMs?: number): () => void;
 	};
@@ -366,10 +369,11 @@ function boundedActivityText(value: string | undefined): string | null {
 
 /** @Unit Code-004 */
 /** Native workbench shell. */
+// @linear WOO-727
 /** @linear WOO-674 */
 /** @codeId 0004 */
 export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDependencies): void {
-	const { workbench, usage, composerDraft, releaseSessionLease } = dependencies;
+	const { workbench, usage, auth, composerDraft, releaseSessionLease } = dependencies;
 	const cwd = dependencies.cwd ?? process.cwd();
 	const tui = new TuiAltScreen(new ProcessTerminal(), true);
 	let snapshot = workbench.snapshot;
@@ -455,7 +459,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	let shuttingDown = false;
 	let observabilityNavigation = false;
 	let overlay: OverlayHandle | null = null;
-	let overlayKind: "model" | "approval" | "development" | null = null;
+	let overlayKind: "model" | "approval" | "auth" | "development" | null = null;
 	const exitKeys = new ExitKeyPolicy();
 	let unsubscribe: () => void = () => undefined;
 	const workbenchRenders = new RenderScheduler(() => {
@@ -553,6 +557,40 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		const receipt = await dispatchModelSelection(settings);
 		if (receipt.state !== "accepted") throw new Error(workbenchReceiptNotice(receipt));
 		showReceipt(receipt);
+	};
+	const openAuthFlow = (provider: Parameters<AuthController["methods"]>[0]): void => {
+		if (overlay) closeOverlay();
+		if (snapshot.phase === "working") {
+			status.setNotice("현재 응답이 끝난 뒤 로그인할 수 있습니다.");
+			tui.requestRender();
+			return;
+		}
+		const panel = new AuthFlowOverlay(
+			provider,
+			auth.methods(provider),
+			auth,
+			() => tui.requestRender(),
+			async (authStatus) => {
+				if (authStatus.state !== "configured") throw new Error("인증이 완료되지 않았습니다.");
+				status.setNotice(`${provider} 로그인이 완료되었습니다.`);
+				usageStrip.update(await usage.refresh());
+				tui.requestRender();
+			},
+			closeOverlay,
+		);
+		overlay = tui.showOverlay(new OverlaySheet(panel), {
+			width: "60%", minWidth: 46, maxHeight: "70%", anchor: "bottom-center", margin: 2,
+		});
+		overlayKind = "auth";
+		panel.start();
+	};
+	const openAuthentication = (): void => {
+		if (overlay) return;
+		const selector = new LoginProviderOverlay(openAuthFlow, closeOverlay);
+		overlay = tui.showOverlay(new OverlaySheet(selector), {
+			width: "60%", minWidth: 46, maxHeight: "55%", anchor: "bottom-center", margin: 2,
+		});
+		overlayKind = "auth";
 	};
 	const openModelSettings = (): void => {
 		if (overlay) return;
@@ -710,6 +748,26 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 				model: command.model,
 				effort: command.effort ?? current.effort,
 			}));
+			return true;
+		}
+		if (command.type === "auth.select") {
+			openAuthentication();
+			return true;
+		}
+		if (command.type === "auth.login") {
+			openAuthFlow(command.provider);
+			return true;
+		}
+		if (command.type === "auth.logout") {
+			if (snapshot.phase === "working") {
+				status.setNotice("현재 응답이 끝난 뒤 로그아웃할 수 있습니다.");
+				tui.requestRender();
+				return true;
+			}
+			await auth.logout(command.provider);
+			usageStrip.update(await usage.refresh());
+			status.setNotice(`${command.provider} 인증을 삭제했습니다.`);
+			tui.requestRender();
 			return true;
 		}
 		if (command.type === "session.permission") {
