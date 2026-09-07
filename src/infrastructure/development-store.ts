@@ -1,7 +1,7 @@
 import { Database } from "bun:sqlite";
 import { createHash, randomUUID } from "node:crypto";
 import { closeSync, existsSync, fsyncSync, linkSync, mkdirSync, openSync, readFileSync, readdirSync, unlinkSync, writeFileSync, chmodSync } from "node:fs";
-import { homedir } from "node:os";
+import { homedir, platform } from "node:os";
 import { join, resolve } from "node:path";
 import type { CaptureDevelopmentRecordInput, DevelopmentBinding, DevelopmentContext, DevelopmentIssue, DevelopmentRecord, DevelopmentTest, DevelopmentUnit, RecordDevelopmentTestInput } from "../domain/development-records.js";
 import type { TraceabilityEdge, TraceabilityLedger, TraceRef } from "../domain/development-traceability.js";
@@ -39,7 +39,9 @@ function durableCreate(path: string, content: string): boolean {
  try { writeFileSync(fd, content); fsyncSync(fd); } finally { closeSync(fd); }
  try { linkSync(temp, path); } catch (error) { if ((error as NodeJS.ErrnoException).code === "EEXIST") return false; throw error; }
  finally { unlinkSync(temp); }
- const dir = openSync(resolve(path, ".."), "r"); try { fsyncSync(dir); } finally { closeSync(dir); }
+ if (platform() !== "win32") {
+  const dir = openSync(resolve(path, ".."), "r"); try { fsyncSync(dir); } finally { closeSync(dir); }
+ }
  return true;
 }
 

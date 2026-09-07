@@ -1,0 +1,481 @@
+{
+  "status": "VALIDATION_PASS_OPUS_BLOCK_RESOLVED_PENDING_REREVIEW",
+  "runId": "traceability-validation-v020-20260907",
+  "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty",
+  "branch": "woo-v020-traceability",
+  "scope": {
+    "units": 10,
+    "linearIssues": 17,
+    "obsidianNotes": 17,
+    "sqliteEntities": 46,
+    "edges": 110,
+    "logicalDigest": "68c2fc9da169b0e6fd2f8117f72b5d63801910767ed09c1329c57e52d922c96f",
+    "projectionDigest": "e3f73171eb323f71f82f4763b24ae2cf74781ab2e7585ec44ebf816a805d6d4f"
+  },
+  "linear": {
+    "milestone": {
+      "id": "11c54a66-8b02-497b-b462-c273141a440c",
+      "name": "v0.2.0 — Development Traceability"
+    },
+    "reusedIssues": [
+      "WOO-695",
+      "WOO-696",
+      "WOO-697",
+      "WOO-698",
+      "WOO-699"
+    ],
+    "chatIssues": [
+      "WOO-679",
+      "WOO-686",
+      "WOO-687",
+      "WOO-688",
+      "WOO-689",
+      "WOO-690",
+      "WOO-691",
+      "WOO-692",
+      "WOO-718",
+      "WOO-719",
+      "WOO-720"
+    ],
+    "finalReadback": ".www/evidence/v020-traceability/linear-final-readback.json",
+    "draftGates": {
+      "chat": "PASS",
+      "traceability": "PASS"
+    },
+    "readbackGates": {
+      "chat": "PASS",
+      "traceability": "PASS"
+    },
+    "preservedMetadata": [
+      "parentId",
+      "project",
+      "projectMilestone (Chat only)",
+      "labels",
+      "UUID"
+    ],
+    "movedV010Issues": false,
+    "acquisitionReceipt": {
+      "path": ".www/evidence/v020-traceability/linear-mcp-receipt.json",
+      "boundary": "external-mcp-ingestion",
+      "freshness": "PASS",
+      "snapshotHash": "PASS",
+      "issueUuidSetHash": "PASS",
+      "pagination": "PASS",
+      "contractScopes": [
+        "Chat",
+        "Traceability"
+      ],
+      "selectedIssueCount": 22,
+      "workspaceIssueCount": 56
+    },
+    "dogfoodIssue": {
+      "id": "WOO-678",
+      "uuid": "1c98b99d-cc26-43a0-913b-8ef1df0ad1ae",
+      "parentId": "WOO-673",
+      "milestone": "v0.1.0 — First Public Release",
+      "status": "Backlog",
+      "codeId": "Code-010",
+      "completionConditionsRetained": 3,
+      "postWriteReadback": ".www/evidence/v020-traceability/woo678-linear-readback.json",
+      "fullProjectReadback": ".www/evidence/v020-traceability/linear-project-full-readback-summary.json",
+      "priorStatus": "Canceled",
+      "statusTransition": {
+        "from": "Canceled",
+        "to": "Backlog",
+        "at": "2026-09-07T04:54:59.390Z",
+        "source": ".www/evidence/v020-traceability/woo678-linear-readback.json"
+      },
+      "statusWasPreserved": false
+    }
+  },
+  "obsidian": {
+    "vaultId": "5521cc40c75eb293",
+    "actualRoot": "/Users/jonghoPro/woo/01_obsidian",
+    "paths": "01_프로젝트/99_WWW/01_문서/Traceability/WOO-*.md",
+    "byteReadback": "PASS",
+    "fileCount": 17,
+    "readbackEvidence": ".www/evidence/v020-traceability/obsidian-readback.json",
+    "preservedBeforeWrite": ".www/evidence/v020-traceability/obsidian-before.tar.gz",
+    "exportManifest": ".www/evidence/v020-traceability/obsidian-export-manifest.json",
+    "preservedBeforeReviewFixes": ".www/evidence/v020-traceability/obsidian-before-review-fixes.tar.gz",
+    "woo678ActualPath": "/Users/jonghoPro/woo/01_obsidian/01_프로젝트/99_WWW/01_문서/Traceability/WOO-678.md",
+    "woo678Sha256": "d07b01c24c8116dbdace00251d9f5daf1f588f6b1c0db879f5e9c29e167cbd1b",
+    "woo678BeforeWrite": ".www/evidence/v020-traceability/woo678-vault-before.json"
+  },
+  "checks": [
+    {
+      "command": "bun test",
+      "status": "PASS",
+      "tests": 650,
+      "assertions": 4582,
+      "files": 81,
+      "phase": "before Sonnet minimal dead-module cleanup",
+      "current": false
+    },
+    {
+      "command": "bun run check",
+      "status": "PASS",
+      "current": false,
+      "phase": "historical before final Opus resolution"
+    },
+    {
+      "command": "bun run release:gate -- --platform-check",
+      "status": "PASS",
+      "platform": "darwin",
+      "boundaries": [
+        "path",
+        "process",
+        "CRLF",
+        "file-lock/rename"
+      ],
+      "current": false,
+      "phase": "historical before final Opus resolution"
+    },
+    {
+      "command": "bun run traceability:check",
+      "status": "PASS",
+      "mode": "offline frozen Linear readback and actual-Vault-derived export manifest",
+      "current": false,
+      "phase": "historical before final Opus resolution"
+    },
+    {
+      "command": "bun run traceability:rebuild",
+      "status": "PASS",
+      "store": "DevelopmentStore",
+      "index": "development/index.sqlite",
+      "entities": 43,
+      "edges": 105,
+      "current": false,
+      "phase": "historical before final Opus resolution"
+    },
+    {
+      "command": "bun run development-map:build && bun run development-map:check",
+      "status": "PASS",
+      "issues": 16,
+      "current": false,
+      "phase": "historical before final Opus resolution"
+    },
+    {
+      "command": "git diff --check",
+      "status": "PASS",
+      "current": false,
+      "phase": "historical before final Opus resolution"
+    },
+    {
+      "command": "bun src/cli.ts --version",
+      "status": "PASS",
+      "output": "0.0.15",
+      "current": false,
+      "phase": "historical before final Opus resolution"
+    },
+    {
+      "command": "forbidden plugin-path scan",
+      "status": "PASS",
+      "matches": 0,
+      "current": false,
+      "phase": "historical before final Opus resolution"
+    },
+    {
+      "command": "bun run traceability:receipt-check -- --vault-root /Users/jonghoPro/woo/01_obsidian",
+      "status": "PASS",
+      "mode": "fresh external MCP acquisition receipt plus actual Obsidian Vault; no live Linear API claim",
+      "current": false,
+      "phase": "historical before final Opus resolution"
+    },
+    {
+      "command": "work reference realpath/existence gate",
+      "status": "PASS",
+      "references": 245,
+      "current": false,
+      "phase": "historical before final Opus resolution"
+    },
+    {
+      "command": "bun test test/work-traceability.test.ts test/development-cli.test.ts test/development-traceability.test.ts test/architecture.test.ts",
+      "status": "PASS",
+      "phase": "after Sonnet minimal cleanup",
+      "tests": 25,
+      "assertions": 592,
+      "files": 4,
+      "current": false
+    },
+    {
+      "command": "bun run check && bun run traceability:check && bun run development-map:check && git diff --check",
+      "status": "PASS",
+      "phase": "after Sonnet minimal cleanup",
+      "current": false
+    },
+    {
+      "command": "bun test test/workbench-bottom-hud.test.ts test/usage-strip.test.ts test/development-traceability.test.ts",
+      "status": "PASS",
+      "phase": "WOO-678 dogfood",
+      "tests": 10,
+      "assertions": 63,
+      "files": 3,
+      "current": false
+    },
+    {
+      "command": "bun run check && bun run traceability:check && bun run traceability:receipt-check -- --vault-root /Users/jonghoPro/woo/01_obsidian && bun run development-map:check && git diff --check",
+      "status": "PASS",
+      "phase": "WOO-678 dogfood",
+      "units": 10,
+      "issues": 17,
+      "notes": 17,
+      "edges": 110,
+      "current": false
+    },
+    {
+      "command": "bun test test/usage-strip.test.ts test/workbench-bottom-hud.test.ts test/development-cli.test.ts test/development-traceability.test.ts test/work-traceability.test.ts",
+      "status": "PASS",
+      "phase": "final Opus resolution",
+      "current": true,
+      "tests": 22,
+      "assertions": 297,
+      "files": 5
+    },
+    {
+      "command": "bun test test/development-traceability.test.ts",
+      "status": "PASS",
+      "phase": "final Opus deleted-source validator retest",
+      "current": true,
+      "tests": 7,
+      "assertions": 51,
+      "files": 1
+    },
+    {
+      "command": "bun run check",
+      "status": "PASS",
+      "phase": "final Opus resolution",
+      "current": true
+    },
+    {
+      "command": "bun run traceability:check",
+      "status": "PASS",
+      "phase": "final Opus resolution",
+      "current": true,
+      "units": 10,
+      "issues": 17,
+      "notes": 17,
+      "edges": 110,
+      "logicalDigest": "68c2fc9da169b0e6fd2f8117f72b5d63801910767ed09c1329c57e52d922c96f"
+    },
+    {
+      "command": "bun run traceability:receipt-check -- --vault-root /Users/jonghoPro/woo/01_obsidian",
+      "status": "PASS",
+      "phase": "final Opus resolution",
+      "current": true
+    },
+    {
+      "command": "bun run development-map:check && git diff --check",
+      "status": "PASS",
+      "phase": "final Opus resolution",
+      "current": true,
+      "issues": 17
+    }
+  ],
+  "mutationRed": [
+    "deleted or mutated SQLite entity row",
+    "deleted or mutated SQLite edge row",
+    "deleted or mutated SQLite metadata row",
+    "canonical projection digest mismatch",
+    "deleted shared SQLite projection",
+    "absolute Obsidian note path",
+    "parent-traversal Obsidian note path",
+    "Obsidian symlink escape outside real vault",
+    "Obsidian URI vault/path mismatch",
+    "Obsidian Unit UUID mismatch",
+    "note source_revision mismatch",
+    "missing frozen Linear readback artifact",
+    "missing Vault export manifest",
+    "mutated Vault export bytes/hash",
+    "linked Linear Code-ID",
+    "missing Linear readback issue",
+    "missing AST declaration",
+    "duplicate/reused Unit alias/location/edge",
+    "active Unit tombstone reuse",
+    "mutated generated Development Map row",
+    "reverse PR and work-reference query scope",
+    "missing Linear acquisition receipt",
+    "mutated Linear snapshot/receipt hash",
+    "mismatched Linear issue UUID set",
+    "incomplete Linear pagination receipt",
+    "stale Linear acquisition receipt",
+    "Linear snapshot symlink escape",
+    "Vault manifest symlink escape",
+    "Vault export-root symlink escape",
+    "missing repository code/test/evidence reference",
+    "repository reference symlink escape",
+    "competing Unit/link source envelope refusal"
+  ],
+  "storageBoundary": {
+    "canonicalRelationLedger": ".www/control-ledger/traceability-v2.json",
+    "immutableCaptureEnvelopes": "$WWW_DATA_DIR/development/sources/<project-uuid>",
+    "sharedProjection": "$WWW_DATA_DIR/development/index.sqlite",
+    "owner": "DevelopmentStore",
+    "tables": [
+      "development_sources",
+      "traceability_entities",
+      "traceability_edges",
+      "traceability_meta"
+    ],
+    "dualWriter": false,
+    "mainDirtyInputPreserved": [
+      "src/domain/development-records.ts",
+      "src/domain/work/traceability.ts",
+      "src/infrastructure/development-store.ts",
+      "test/development-store.test.ts",
+      "src/application/development-service.ts",
+      "src/infrastructure/development-cli.ts",
+      "src/infrastructure/development-code-scanner.ts",
+      "src/infrastructure/development-vault.ts",
+      "src/infrastructure/development-test-runner.ts",
+      "src/infrastructure/development-snapshot.ts",
+      "test/development-cli.test.ts",
+      "test/development-code-scanner.test.ts",
+      "test/development-test-runner.test.ts",
+      "test/development-vault.test.ts",
+      "src/domain/work/index.ts",
+      "src/domain/work/traceability-validator.ts",
+      "test/work-traceability.test.ts"
+    ]
+  },
+  "falseCompletionScan": {
+    "executableSkipOrOnlyCalls": 0,
+    "textualSkipFixtureMentions": 1,
+    "unimplementedBranchMatches": 0,
+    "intentionalMarkerMatches": [
+      "release gate tests inject and detect TODO/FIXME/placeholder markers",
+      "Linear contract validator and mutation test reject TODO/TBD/WIP markers"
+    ]
+  },
+  "sqliteDeleteRebuild": ".www/evidence/v020-traceability/sqlite-delete-rebuild.json",
+  "releaseGate": {
+    "command": "bun run release:gate",
+    "status": "BLOCKED",
+    "reason": "Repository-wide v0.1.0 release gate requires ST-011-06 through ST-011-13 evidence files; this v0.2 work did not fabricate unrelated acceptance records."
+  },
+  "completionLimits": [
+    "No commit, push, pull request, or merge was performed.",
+    "No v0.2.0 issue status or acceptance checkbox was auto-completed.",
+    "Independent Standards/Spec rereview and final Sonnet/Opus acceptance remain pending."
+  ],
+  "runPurpose": "traceability-validation",
+  "sourceState": "dirty-worktree",
+  "acceptanceStatus": "not-asserted",
+  "pr46Scope": {
+    "roleInLedger": "Chat v0.1 code evidence only",
+    "directIssueIds": [
+      "WOO-679",
+      "WOO-686",
+      "WOO-687",
+      "WOO-688",
+      "WOO-689",
+      "WOO-690",
+      "WOO-691",
+      "WOO-692",
+      "WOO-718",
+      "WOO-719",
+      "WOO-720"
+    ],
+    "v020IssueIdsLinked": [],
+    "readbackEvidence": ".www/evidence/v020-traceability/pr46-readback.json",
+    "scopeSeparationStatus": "MEASURED: one file is under the committed exportRoot but outside the v2 ledger note set; no v2 ledger note path is present",
+    "observedHeadOid": "668d5a398e85a7a56ab89411c392574b0486834d",
+    "observedTitle": "Chat의 공개 본문과 읽던 위치를 안정적으로 보존한다",
+    "observedCommitCount": 9,
+    "observedFileCount": 126,
+    "externalScopeSeparationObserved": true,
+    "paginationPages": 2,
+    "exportRootPathsOutsideLedgerNoteSet": [
+      ".www/vault/Development/2026-09-07-Chat-Completion-Verification.md"
+    ],
+    "ledgerNoteSetPathsInPr": [],
+    "zeroTraceabilityPathsClaim": false
+  },
+  "reviewResolution": {
+    "priorStandardsSpecReview": "BLOCKED",
+    "implementedFixes": [
+      "canonical SQLite row and projection digest comparison",
+      "realpath and symlink-safe Vault and frozen-artifact boundaries",
+      "typed traceability-validation run provenance",
+      "0.0.15 shared product version",
+      "mandatory frozen artifacts and freshness-bound external MCP acquisition receipt without a live API claim",
+      "Chat and Traceability Linear contracts inside the single CI traceability gate",
+      "shared DevelopmentStore and index.sqlite integration with preserved main dirty development implementation",
+      "repository code/test/evidence reference existence and realpath gate before Map projection",
+      "PR #46 Chat-only relation with one measured exportRoot file outside the v2 ledger note set and no v2 ledger note paths",
+      "work manifest-derived Map and reverse queries"
+    ],
+    "independentRereview": "PENDING",
+    "sonnetMinimalBlock": "RESOLVED_PENDING_REREVIEW",
+    "sonnetMinimalFixes": [
+      "removed three dead duplicate work-flow domain modules and narrowed work/index.ts to traceability exports",
+      "remapped work manifest references and links to origin/main canonical src/domain/work-steps.ts without duplicates",
+      "corrected Map provenance wording to relation-ledger/work-manifest generation with SQLite canonical-digest comparison",
+      "PR #46 Chat-only relation with one measured exportRoot file outside the v2 ledger note set and no v2 ledger note paths",
+      "hid the legacy development Unit/link writer from the top-level CLI and retained skill plus traceability gate as the public registration path"
+    ],
+    "opusFinalBlock": "RESOLVED_PENDING_REREVIEW",
+    "opusFinalFixes": [
+      "ready providers without a weekly limit render — for Codex, Claude, and Gemini",
+      "Linear example and actual Vault note use the same missing-weekly rule",
+      "removed false Code-010 alias 0010",
+      "removed orphan usage color fixture and dead Wooni module/test",
+      "legacy Router usage strip reserves one row",
+      "internal development help no longer advertises hidden top-level commands",
+      "corrected WOO-678 status-transition and PR #46 exportRoot evidence claims",
+      "removed deleted work modules from preserved-input list and separated historical from current checks"
+    ]
+  },
+  "workManifest": {
+    "references": 241,
+    "links": 173,
+    "duplicateReferences": 0,
+    "duplicateLinks": 0,
+    "missingRepositoryReferences": 0,
+    "canonicalWorkFlowModule": "src/domain/work-steps.ts",
+    "removedDeadModules": [
+      "src/domain/work/activity-classification.ts",
+      "src/domain/work/delegation.ts",
+      "src/domain/work/workflow-projection.ts"
+    ]
+  },
+  "hudDogfood": {
+    "unit": {
+      "key": "Code-010",
+      "uuid": "bdee96af-1b07-4f96-8004-bc5ac0ca157d",
+      "location": "src/presentation/tui/workbench-bottom-hud.ts#WorkbenchBottomHudView",
+      "aliases": []
+    },
+    "behavior": [
+      "one-row weekly provider quota",
+      "ready with no weekly limit displays — for every provider",
+      "loading/auth-required/unsupported may display a short state",
+      "Gemini has no backend weekly snapshot and displays —",
+      "follow-up issues after real use"
+    ],
+    "sqliteQuery": "PASS",
+    "mapProjection": "PASS",
+    "version": "0.0.15"
+  },
+  "latestValidation": {
+    "phase": "final Opus resolution",
+    "targeted": {
+      "tests": 22,
+      "failures": 0,
+      "assertions": 297,
+      "files": 5
+    },
+    "validatorRetest": {
+      "tests": 7,
+      "failures": 0,
+      "assertions": 51,
+      "files": 1
+    },
+    "typecheck": "PASS",
+    "offlineTraceability": "PASS",
+    "actualVaultReceipt": "PASS",
+    "map": "PASS",
+    "diffCheck": "PASS",
+    "fullSuite": "not rerun by explicit minimal-targeted instruction"
+  }
+}

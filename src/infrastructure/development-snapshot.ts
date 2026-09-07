@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, lstatSync, realpathSync, openSync, writeFileSync, fsyncSync, closeSync } from 'node:fs';
 import { dirname, join, resolve, sep } from 'node:path';
+import { platform } from 'node:os';
 
 /** @linear WOO-697 */
 export interface DevelopmentSnapshot {
@@ -20,8 +21,10 @@ export function writeDevelopmentArtifact(path: string, contents: string | Uint8A
     return;
   }
   try { writeFileSync(fd, contents); fsyncSync(fd); } finally { closeSync(fd); }
-  const parent = openSync(dirname(path), 'r');
-  try { fsyncSync(parent); } finally { closeSync(parent); }
+  if (platform() !== 'win32') {
+    const parent = openSync(dirname(path), 'r');
+    try { fsyncSync(parent); } finally { closeSync(parent); }
+  }
 }
 export function captureDevelopmentSnapshot(repository: string, artifactRoot: string): DevelopmentSnapshot {
   repository = realpathSync(resolve(repository));
@@ -34,7 +37,8 @@ export function captureDevelopmentSnapshot(repository: string, artifactRoot: str
   const limitations = ['Ignored files, environment, dependencies and external services are not captured.', 'Capture is observational; concurrent edits cannot be excluded.'];
   if (listing.exitCode !== 0) throw new Error(`Cannot enumerate Git inputs: ${listing.stderr.toString()}`);
   const files: DevelopmentSnapshot['files'] = [];
-  for (const path of [...new Set(listing.stdout.toString().split('\0').filter(Boolean))].sort()) {
+  const listedPaths = listing.stdout.toString().split('\0').filter(Boolean).map((path) => path.replace(/\\/gu, '/'));
+  for (const path of [...new Set(listedPaths)].sort()) {
     try {
       const absolute = join(repository, path);
       if (absolute === artifactRoot || absolute.startsWith(artifactRoot + sep)) continue;
