@@ -1,0 +1,32 @@
+사용법:
+  www                         새 Codex native 3-pane Workbench 실행
+  www --execution-lane pi     실험적 내장 Pi text lane으로 Workbench 실행
+  www router                  호환 Claude·Gemini·OpenAI Router 실행
+                              Native 승인·Sandbox·Skill은 제공하지 않음
+  www router --resume <session-id>
+                              기존 Router 세션 재개
+  www auth status             모델 인증 상태 확인
+  www auth login <공급자> [oauth|api-key]
+                              구독 계정 또는 API 키 로그인
+  www auth logout <공급자>    저장된 인증 삭제
+  www sessions                 레거시 SessionRuntime 세션 목록
+  www threads                  현재 프로젝트의 Codex native thread 목록
+  www --resume                현재 프로젝트의 native thread를 선택해 재개
+  www --resume <native-thread-id>  지정한 native thread 바로 재개
+
+Workbench 명령:
+  /stats · /dashboard · /monitor  Observability View 직접 열기
+  r/R · 1/2/3 · Esc          View 회전·직접 이동·Workbench 복귀
+  /model [모델] [추론 강도]  현재·다음 실행의 Codex 모델 변경
+  /source <id|latest|clear>  Trace source 선택
+  /tnote  마지막 질문을 packet-only 질문·이유·결과로 수동 캡처
+  /approve · /approve-session · /decline  Codex native 승인 응답
+  /cancel  현재 native turn 중단
+  /exit  Workbench를 안전하게 종료
+
+호환 Router 명령:
+  /login [provider]           OAuth 또는 API 키 연결
+  /model [provider/model] [low|medium|high|ultra]
+                              Claude·Gemini·OpenAI 모델 변경
+  /logout <provider>          저장된 인증 삭제
+  /usage                      Codex·Claude 사용량 갱신

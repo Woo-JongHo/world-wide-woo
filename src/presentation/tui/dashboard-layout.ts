@@ -4,6 +4,7 @@ import {
 	VStack,
 	truncateToWidth,
 	visibleWidth,
+	stripTerminalSequences,
 	type Component,
 } from "@earendil-works/pi-tui";
 import { colors } from "./theme";
@@ -121,6 +122,7 @@ class CompactDocument implements Component {
 export interface DashboardLayout {
 	component: Component;
 	leftScroll: ScrollView;
+	compactScroll: ScrollView;
 	usageScroll: ScrollView;
 	routerScroll: ScrollView;
 }
@@ -130,6 +132,68 @@ const containedScrollbar = {
 	scrollbar: "auto" as const,
 	scrollbarStyle: colors.muted,
 };
+
+type ReadingPosition =
+	| { follow: true }
+	| { follow: false; fraction: number; anchor: string };
+
+function normalizedRow(row: string): string {
+	return stripTerminalSequences(row).replace(/\s/gu, "");
+}
+
+/** @linear WOO-689 */
+class ChatScrollView extends ScrollView {
+	private observedContentHeight = 0;
+	private renderedRows: string[] = [];
+	private pendingPosition: ReadingPosition | undefined;
+	private renderedWidth: number | undefined;
+
+	readingPosition(): ReadingPosition {
+		if (this.isFollowingEnd) return { follow: true };
+		return {
+			follow: false,
+			anchor: this.renderedRows.slice(this.scrollTop, this.scrollTop + 4).map(normalizedRow).join("").slice(0, 80),
+			fraction: this.observedContentHeight <= 1 ? 0 : this.scrollTop / (this.observedContentHeight - 1),
+		};
+	}
+
+	restoreOnNextLayout(position: ReadingPosition): void {
+		this.pendingPosition = position;
+	}
+
+	override render(width: number): string[] {
+		if (this.renderedWidth !== undefined && this.renderedWidth !== width && !this.pendingPosition) {
+			this.pendingPosition = this.readingPosition();
+		}
+		this.renderedWidth = width;
+		const rows = super.render(width);
+		this.renderedRows = rows;
+		return rows;
+	}
+
+	override updateLayout(contentHeight: number, viewportHeight: number, requestRender: () => void): void {
+		this.observedContentHeight = contentHeight;
+		super.updateLayout(contentHeight, viewportHeight, requestRender);
+		const pending = this.pendingPosition;
+		if (!pending) return;
+		this.pendingPosition = undefined;
+		if (pending.follow) {
+			this.scrollToEnd();
+			return;
+		}
+		const normalized = this.renderedRows.map(normalizedRow);
+		const joined = normalized.join("");
+		let target = Math.round(pending.fraction * Math.max(0, contentHeight - 1));
+		for (let length = pending.anchor.length; length >= 16; length -= 8) {
+			const offset = joined.indexOf(pending.anchor.slice(0, length));
+			if (offset < 0) continue;
+			let consumed = 0;
+			target = normalized.findIndex(row => { consumed += row.length; return consumed > offset; });
+			break;
+		}
+		this.scrollTo(target, { disableFollow: true });
+	}
+}
 
 /**
  * One visual frame containing three native viewport regions. Wide mode keeps
@@ -142,7 +206,7 @@ export function createDashboardLayout(
 	rightTop: DashboardSection,
 	rightBottom: DashboardSection,
 ): DashboardLayout {
-	const leftScroll = new ScrollView(new SectionDocument(left), {
+	const leftScroll = new ChatScrollView(new SectionDocument(left), {
 		follow: "end",
 		primary: true,
 		...containedScrollbar,
@@ -169,7 +233,7 @@ export function createDashboardLayout(
 		{ component: right, basis: 0, grow: 2, shrink: 1, minSize: 34, maxSize: 72 },
 		{ component: new VerticalRule(), basis: 1, shrink: 0, minSize: 1, maxSize: 1 },
 	]);
-	const compactScroll = new ScrollView(new CompactDocument([left, rightTop, rightBottom]), {
+	const compactScroll = new ChatScrollView(new CompactDocument([left, rightTop, rightBottom]), {
 		follow: "end",
 		primary: true,
 		...containedScrollbar,
@@ -179,9 +243,19 @@ export function createDashboardLayout(
 		{ component: compactScroll, basis: 0, grow: 1, shrink: 1, minSize: 1 },
 		{ component: new VerticalRule(), basis: 1, shrink: 0, minSize: 1, maxSize: 1 },
 	]);
+	let activeMode: "wide" | "compact" | undefined;
+	const activate = (mode: "wide" | "compact"): true => {
+		if (activeMode && activeMode !== mode) {
+			const source = activeMode === "wide" ? leftScroll : compactScroll;
+			const target = mode === "wide" ? leftScroll : compactScroll;
+			target.restoreOnNextLayout(source.readingPosition());
+		}
+		activeMode = mode;
+		return true;
+	};
 	const body = new VStack([
-		{ component: wide, basis: 0, grow: 1, shrink: 1, minSize: 1, visible: ({ width, height }) => width >= 88 && height >= 14 },
-		{ component: compact, basis: 0, grow: 1, shrink: 1, minSize: 1, visible: ({ width, height }) => width < 88 || height < 14 },
+		{ component: wide, basis: 0, grow: 1, shrink: 1, minSize: 1, visible: ({ width, height }) => width >= 88 && height >= 14 && activate("wide") },
+		{ component: compact, basis: 0, grow: 1, shrink: 1, minSize: 1, visible: ({ width, height }) => (width < 88 || height < 14) && activate("compact") },
 	]);
 	return {
 		component: new VStack([
@@ -190,6 +264,7 @@ export function createDashboardLayout(
 			{ component: new FrameLine(title, "bottom"), basis: 1, minSize: 1, maxSize: 1 },
 		]),
 		leftScroll,
+		compactScroll,
 		usageScroll,
 		routerScroll,
 	};

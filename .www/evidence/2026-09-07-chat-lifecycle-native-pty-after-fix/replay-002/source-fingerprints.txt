@@ -1,0 +1,11 @@
+executedHead  a5188b351ebceb12f4529e9fc7ac1558b5accaf5
+a9f6bb20e81585a46d59a32187e4b21aca5d014063659807ae80d3481db7a314  .www/evidence/2026-09-07-chat-lifecycle-native-pty-after-fix/2026-09-07-native-pty-probe.ts
+4594a5cd1b3f6066f13c5cb20f32b96b22a4aab531a544201a1c79beb9c6b985  .www/evidence/2026-09-07-chat-lifecycle-native-pty-after-fix/2026-09-07-run-native-pty.py
+0de8eeb834ff2e8d1d2332d611ca2da273e41bcfd21fb8c2be459cef629a15b3  src/infrastructure/executors/codex-app-server.ts
+e823f6a0a88f73143210b3f755aae58406c881c31f4ff0b118e3829c89594399  src/application/project-workbench.ts
+231d3edee65bbaf3d372fcda852368412712a5a569a1a48b4a8e0494b3cf943b  src/application/ports/executor-port.ts
+680b696da3cb11b7c3b5eb254ee6a5f8c915e5065fad0717ca4a0b4a133bdf5f  src/domain/project-activity.ts
+377d17b18376a3f15df25fb7885ba81c7463a4eb8f96fbfa969643834a3a568e  src/domain/workbench.ts
+3050726cfa59a124d8f062c3fa3eaeaeeed0407a382dce2bb1cb0a75e630640c  src/domain/redaction.ts
+420d14f1a2bc8b2aae10b50b4aececd689ad439f9c060cd5be403baec7e72486  src/presentation/tui/workbench-shell.ts
+99e7cb6ee7b893b17d49b16d48fbab50d649356ff912e19051ae4862f1def47f  src/presentation/tui/workbench-views.ts

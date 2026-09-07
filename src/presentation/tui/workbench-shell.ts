@@ -639,7 +639,9 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		}
 		if (command.type === "activity.select") {
 			const activityId = command.activityId === "latest" ? snapshot.activities.at(-1)?.id ?? null : command.activityId;
-			showReceipt(await workbench.dispatch({ type: "activity.select", activityId }));
+			const receipt = await workbench.dispatch({ type: "activity.select", activityId });
+			showReceipt(receipt);
+			if (receipt.state !== "accepted" || !activityId) return true;
 			setViewMode("source");
 			observabilityNavigation = false;
 			tui.setFocus(sourceLayout.leftScroll);
@@ -654,7 +656,9 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 				tui.requestRender();
 				return true;
 			}
-			showReceipt(await workbench.dispatch({ type: "activity.select", activityId }));
+			const receipt = await workbench.dispatch({ type: "activity.select", activityId });
+			showReceipt(receipt);
+			if (receipt.state !== "accepted") return true;
 			setViewMode("source");
 			observabilityNavigation = false;
 			tui.setFocus(sourceLayout.leftScroll);
@@ -796,7 +800,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 				setViewMode(returnView);
 				observabilityNavigation = false;
 				tui.setFocus(editor);
-				status.setNotice("Observability Workspace를 닫고 Workbench로 돌아왔습니다.");
+				status.setNotice("상세 화면을 닫고 Workbench로 돌아왔습니다.");
 				tui.requestRender();
 				return { consume: true };
 			}

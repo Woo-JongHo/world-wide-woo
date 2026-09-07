@@ -1,0 +1,3765 @@
+{
+  "recordedAt": "2026-09-07T02:04:38.825Z",
+  "outcome": "passed",
+  "model": "gpt-5.6-sol",
+  "effort": "low",
+  "nativePolicy": {
+    "approvalPolicy": "never",
+    "sandbox": "read-only",
+    "ephemeral": false
+  },
+  "workspaceKind": "temporary and removed after capture",
+  "sourceFingerprints": {
+    "src/infrastructure/project-workbench-session.ts": "sha256:4513a83ec8dff7f467b104a704e5cc81891ddb32c2f40a532b26d697c010162f",
+    "src/infrastructure/executors/codex-app-server.ts": "sha256:0de8eeb834ff2e8d1d2332d611ca2da273e41bcfd21fb8c2be459cef629a15b3",
+    "src/infrastructure/activity-journal-store.ts": "sha256:82c297701021c1dfdfab0a1d060f7e0d34c5d646c081221a543f4b10404fc028",
+    "src/application/project-workbench.ts": "sha256:b183f37f194067cfb410da8571aaf63ab4d61af228069d0f60d439f5cfaa127f",
+    "src/presentation/tui/workbench-views.ts": "sha256:a3a3b11b5c88115604cd402812eac979b00efb776d80d6bafc4de72cf848f44e"
+  },
+  "phases": [
+    {
+      "name": "normal-completed",
+      "state": {
+        "phase": "ready",
+        "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+        "activeTurnId": null,
+        "chat": [
+          {
+            "id": "{\"itemId\":\"1c9b0311-3c72-4291-b75d-a845854e3664\",\"threadId\":\"01a0799c-047e-7312-b1bd-fe38dc547fdc\"}",
+            "role": "user",
+            "status": "completed",
+            "partial": false,
+            "content": "도구를 사용하거나 파일을 만들지 마세요. 정확히 다음 한 줄만 답하세요: 재개 정상 확인",
+            "activityId": "2e0b2e39-f81e-4ca9-ad32-de0fe4afd7b5"
+          },
+          {
+            "id": "{\"itemId\":\"msg_02a621db11807c58016a9e1bae70bc87d08587c1786dde578a\",\"threadId\":\"01a0799c-047e-7312-b1bd-fe38dc547fdc\",\"turnId\":\"01a0799c-0590-7ce3-8511-b1a23e83d9ce\"}",
+            "role": "assistant",
+            "status": "completed",
+            "partial": false,
+            "content": "재개 정상 확인",
+            "activityId": "7ff1f386-ce3e-4c60-a166-409bfdcaaf5f"
+          }
+        ],
+        "activities": [
+          {
+            "sequence": 1,
+            "kind": "progress",
+            "phase": "started",
+            "method": "thread/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 2,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "thread/start",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 3,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 4,
+            "kind": "message",
+            "phase": "started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "itemId": "1c9b0311-3c72-4291-b75d-a845854e3664"
+            }
+          },
+          {
+            "sequence": 5,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 6,
+            "kind": "progress",
+            "phase": "started",
+            "method": "request/submitted",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "itemId": "1c9b0311-3c72-4291-b75d-a845854e3664"
+            }
+          },
+          {
+            "sequence": 7,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 8,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 9,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 10,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 11,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 12,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 13,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 14,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 15,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "thread/settings/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 16,
+            "kind": "message",
+            "phase": "completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "itemId": "1c9b0311-3c72-4291-b75d-a845854e3664"
+            }
+          },
+          {
+            "sequence": 17,
+            "kind": "progress",
+            "phase": "started",
+            "method": "request/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "itemId": "1c9b0311-3c72-4291-b75d-a845854e3664",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 18,
+            "kind": "progress",
+            "phase": "started",
+            "method": "turn/start",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 19,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "thread/status/changed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 20,
+            "kind": "progress",
+            "phase": "started",
+            "method": "turn/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 21,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 22,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 23,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 24,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 25,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 26,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 27,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 28,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 29,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 30,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 31,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 32,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 33,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 34,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 35,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 36,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 37,
+            "kind": "progress",
+            "phase": "started",
+            "method": "hook/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 38,
+            "kind": "progress",
+            "phase": "started",
+            "method": "hook/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 39,
+            "kind": "progress",
+            "phase": "started",
+            "method": "hook/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 40,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "hook/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 41,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "hook/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 42,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "hook/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 43,
+            "kind": "message",
+            "phase": "started",
+            "method": "item/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce",
+              "itemId": "01a0799c-1ace-78f0-930f-ea94dd6b6802"
+            }
+          },
+          {
+            "sequence": 44,
+            "kind": "message",
+            "phase": "completed",
+            "method": "item/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce",
+              "itemId": "01a0799c-1ace-78f0-930f-ea94dd6b6802"
+            }
+          },
+          {
+            "sequence": 45,
+            "kind": "message",
+            "phase": "started",
+            "method": "item/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce",
+              "itemId": "msg_02a621db11807c58016a9e1bae70bc87d08587c1786dde578a"
+            }
+          },
+          {
+            "sequence": 46,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "turn/first-output-observed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 47,
+            "kind": "message",
+            "phase": "completed",
+            "method": "item/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce",
+              "itemId": "msg_02a621db11807c58016a9e1bae70bc87d08587c1786dde578a"
+            }
+          },
+          {
+            "sequence": 48,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "thread/tokenUsage/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 49,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "account/rateLimits/updated",
+            "refs": {}
+          },
+          {
+            "sequence": 50,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "thread/status/changed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 51,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "turn/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          }
+        ],
+        "journalSequence": 51,
+        "activityCount": 51,
+        "error": null
+      }
+    },
+    {
+      "name": "normal-reopen-before-assertions",
+      "state": {
+        "phase": "ready",
+        "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+        "activeTurnId": null,
+        "chat": [
+          {
+            "id": "{\"itemId\":\"1c9b0311-3c72-4291-b75d-a845854e3664\",\"threadId\":\"01a0799c-047e-7312-b1bd-fe38dc547fdc\"}",
+            "role": "user",
+            "status": "completed",
+            "partial": false,
+            "content": "도구를 사용하거나 파일을 만들지 마세요. 정확히 다음 한 줄만 답하세요: 재개 정상 확인",
+            "activityId": "2e0b2e39-f81e-4ca9-ad32-de0fe4afd7b5"
+          },
+          {
+            "id": "{\"itemId\":\"msg_02a621db11807c58016a9e1bae70bc87d08587c1786dde578a\",\"threadId\":\"01a0799c-047e-7312-b1bd-fe38dc547fdc\",\"turnId\":\"01a0799c-0590-7ce3-8511-b1a23e83d9ce\"}",
+            "role": "assistant",
+            "status": "completed",
+            "partial": false,
+            "content": "재개 정상 확인",
+            "activityId": "7ff1f386-ce3e-4c60-a166-409bfdcaaf5f"
+          }
+        ],
+        "activities": [
+          {
+            "sequence": 1,
+            "kind": "progress",
+            "phase": "started",
+            "method": "thread/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 2,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "thread/start",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 3,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 4,
+            "kind": "message",
+            "phase": "started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "itemId": "1c9b0311-3c72-4291-b75d-a845854e3664"
+            }
+          },
+          {
+            "sequence": 5,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 6,
+            "kind": "progress",
+            "phase": "started",
+            "method": "request/submitted",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "itemId": "1c9b0311-3c72-4291-b75d-a845854e3664"
+            }
+          },
+          {
+            "sequence": 7,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 8,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 9,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 10,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 11,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 12,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 13,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 14,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 15,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "thread/settings/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 16,
+            "kind": "message",
+            "phase": "completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "itemId": "1c9b0311-3c72-4291-b75d-a845854e3664"
+            }
+          },
+          {
+            "sequence": 17,
+            "kind": "progress",
+            "phase": "started",
+            "method": "request/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "itemId": "1c9b0311-3c72-4291-b75d-a845854e3664",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 18,
+            "kind": "progress",
+            "phase": "started",
+            "method": "turn/start",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 19,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "thread/status/changed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 20,
+            "kind": "progress",
+            "phase": "started",
+            "method": "turn/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 21,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 22,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 23,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 24,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 25,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 26,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 27,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 28,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 29,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 30,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 31,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 32,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 33,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 34,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 35,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 36,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 37,
+            "kind": "progress",
+            "phase": "started",
+            "method": "hook/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 38,
+            "kind": "progress",
+            "phase": "started",
+            "method": "hook/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 39,
+            "kind": "progress",
+            "phase": "started",
+            "method": "hook/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 40,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "hook/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 41,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "hook/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 42,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "hook/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 43,
+            "kind": "message",
+            "phase": "started",
+            "method": "item/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce",
+              "itemId": "01a0799c-1ace-78f0-930f-ea94dd6b6802"
+            }
+          },
+          {
+            "sequence": 44,
+            "kind": "message",
+            "phase": "completed",
+            "method": "item/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce",
+              "itemId": "01a0799c-1ace-78f0-930f-ea94dd6b6802"
+            }
+          },
+          {
+            "sequence": 45,
+            "kind": "message",
+            "phase": "started",
+            "method": "item/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce",
+              "itemId": "msg_02a621db11807c58016a9e1bae70bc87d08587c1786dde578a"
+            }
+          },
+          {
+            "sequence": 46,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "turn/first-output-observed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 47,
+            "kind": "message",
+            "phase": "completed",
+            "method": "item/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce",
+              "itemId": "msg_02a621db11807c58016a9e1bae70bc87d08587c1786dde578a"
+            }
+          },
+          {
+            "sequence": 48,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "thread/tokenUsage/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 50,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "thread/status/changed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 51,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "turn/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 52,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "thread/resume-local-reconciled",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          }
+        ],
+        "journalSequence": 52,
+        "activityCount": 51,
+        "error": null
+      }
+    },
+    {
+      "name": "normal-reopened",
+      "state": {
+        "phase": "ready",
+        "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+        "activeTurnId": null,
+        "chat": [
+          {
+            "id": "{\"itemId\":\"1c9b0311-3c72-4291-b75d-a845854e3664\",\"threadId\":\"01a0799c-047e-7312-b1bd-fe38dc547fdc\"}",
+            "role": "user",
+            "status": "completed",
+            "partial": false,
+            "content": "도구를 사용하거나 파일을 만들지 마세요. 정확히 다음 한 줄만 답하세요: 재개 정상 확인",
+            "activityId": "2e0b2e39-f81e-4ca9-ad32-de0fe4afd7b5"
+          },
+          {
+            "id": "{\"itemId\":\"msg_02a621db11807c58016a9e1bae70bc87d08587c1786dde578a\",\"threadId\":\"01a0799c-047e-7312-b1bd-fe38dc547fdc\",\"turnId\":\"01a0799c-0590-7ce3-8511-b1a23e83d9ce\"}",
+            "role": "assistant",
+            "status": "completed",
+            "partial": false,
+            "content": "재개 정상 확인",
+            "activityId": "7ff1f386-ce3e-4c60-a166-409bfdcaaf5f"
+          }
+        ],
+        "activities": [
+          {
+            "sequence": 1,
+            "kind": "progress",
+            "phase": "started",
+            "method": "thread/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 2,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "thread/start",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 3,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 4,
+            "kind": "message",
+            "phase": "started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "itemId": "1c9b0311-3c72-4291-b75d-a845854e3664"
+            }
+          },
+          {
+            "sequence": 5,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 6,
+            "kind": "progress",
+            "phase": "started",
+            "method": "request/submitted",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "itemId": "1c9b0311-3c72-4291-b75d-a845854e3664"
+            }
+          },
+          {
+            "sequence": 7,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 8,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 9,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 10,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 11,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 12,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 13,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 14,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 15,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "thread/settings/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 16,
+            "kind": "message",
+            "phase": "completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "itemId": "1c9b0311-3c72-4291-b75d-a845854e3664"
+            }
+          },
+          {
+            "sequence": 17,
+            "kind": "progress",
+            "phase": "started",
+            "method": "request/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "itemId": "1c9b0311-3c72-4291-b75d-a845854e3664",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 18,
+            "kind": "progress",
+            "phase": "started",
+            "method": "turn/start",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 19,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "thread/status/changed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 20,
+            "kind": "progress",
+            "phase": "started",
+            "method": "turn/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 21,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 22,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 23,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 24,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 25,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 26,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 27,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 28,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 29,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 30,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 31,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 32,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 33,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 34,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 35,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 36,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 37,
+            "kind": "progress",
+            "phase": "started",
+            "method": "hook/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 38,
+            "kind": "progress",
+            "phase": "started",
+            "method": "hook/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 39,
+            "kind": "progress",
+            "phase": "started",
+            "method": "hook/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 40,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "hook/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 41,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "hook/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 42,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "hook/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 43,
+            "kind": "message",
+            "phase": "started",
+            "method": "item/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce",
+              "itemId": "01a0799c-1ace-78f0-930f-ea94dd6b6802"
+            }
+          },
+          {
+            "sequence": 44,
+            "kind": "message",
+            "phase": "completed",
+            "method": "item/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce",
+              "itemId": "01a0799c-1ace-78f0-930f-ea94dd6b6802"
+            }
+          },
+          {
+            "sequence": 45,
+            "kind": "message",
+            "phase": "started",
+            "method": "item/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce",
+              "itemId": "msg_02a621db11807c58016a9e1bae70bc87d08587c1786dde578a"
+            }
+          },
+          {
+            "sequence": 46,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "turn/first-output-observed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 47,
+            "kind": "message",
+            "phase": "completed",
+            "method": "item/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce",
+              "itemId": "msg_02a621db11807c58016a9e1bae70bc87d08587c1786dde578a"
+            }
+          },
+          {
+            "sequence": 48,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "thread/tokenUsage/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 50,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "thread/status/changed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 51,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "turn/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 52,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "thread/resume-local-reconciled",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          }
+        ],
+        "journalSequence": 52,
+        "activityCount": 51,
+        "error": null
+      },
+      "frame80": [
+        "user                                                                            ",
+        "도구를 사용하거나 파일을 만들지 마세요. 정확히 다음 한 줄만 답하세요: 재개 정상 ",
+        "확인                                                                            ",
+        "",
+        "bori",
+        "재개 정상 확인                                                                  ",
+        "",
+        "╭──────────────────────────────────────────────────────────────────────────────╮",
+        "│ 이번 요청에서 한 일                                                          │",
+        "│                                                                              │",
+        "│ #1 응답 제공                                                                 │",
+        "│   • 상태 · 완료                                                              │",
+        "│                                                                              │",
+        "│ 검증                                                                         │",
+        "│   • Native Turn · 완료 확인 · 실행 기록 0개                                  │",
+        "╰──────────────────────────────────────────────────────────────────────────────╯",
+        ""
+      ],
+      "localJournalNotice": {
+        "text": "재개 화면의 이전 대화는 local activity journal에서 복원되며 Native history는 hydrate하지 않는다.",
+        "observed": true,
+        "reconciliationRefs": {
+          "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+        }
+      }
+    },
+    {
+      "name": "interrupted",
+      "state": {
+        "phase": "ready",
+        "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+        "activeTurnId": null,
+        "chat": [
+          {
+            "id": "{\"itemId\":\"1c9b0311-3c72-4291-b75d-a845854e3664\",\"threadId\":\"01a0799c-047e-7312-b1bd-fe38dc547fdc\"}",
+            "role": "user",
+            "status": "completed",
+            "partial": false,
+            "content": "도구를 사용하거나 파일을 만들지 마세요. 정확히 다음 한 줄만 답하세요: 재개 정상 확인",
+            "activityId": "2e0b2e39-f81e-4ca9-ad32-de0fe4afd7b5"
+          },
+          {
+            "id": "{\"itemId\":\"msg_02a621db11807c58016a9e1bae70bc87d08587c1786dde578a\",\"threadId\":\"01a0799c-047e-7312-b1bd-fe38dc547fdc\",\"turnId\":\"01a0799c-0590-7ce3-8511-b1a23e83d9ce\"}",
+            "role": "assistant",
+            "status": "completed",
+            "partial": false,
+            "content": "재개 정상 확인",
+            "activityId": "7ff1f386-ce3e-4c60-a166-409bfdcaaf5f"
+          },
+          {
+            "id": "{\"itemId\":\"17db464e-52fa-40b8-b63c-5e73a4d53487\",\"threadId\":\"01a0799c-047e-7312-b1bd-fe38dc547fdc\"}",
+            "role": "user",
+            "status": "completed",
+            "partial": false,
+            "content": "도구를 사용하거나 파일을 만들지 마세요. 숫자와 짧은 한글 문장을 400줄 이상 작성하세요. 1번부터 즉시 시작하세요.",
+            "activityId": "d66c8a7e-f49a-4af6-b707-2d730e0b456a"
+          },
+          {
+            "id": "{\"itemId\":\"msg_0be5d01337108e26016a9e1bb651a087d0aaa9ba9271f1a3d9\",\"threadId\":\"01a0799c-047e-7312-b1bd-fe38dc547fdc\",\"turnId\":\"01a0799c-26ab-7de2-af75-340dbb72020a\"}",
+            "role": "assistant",
+            "status": "cancelled",
+            "partial": true,
+            "content": "1. 정상",
+            "activityId": "12f59b83-2fa8-4b15-a8b6-da22c7b0f553"
+          }
+        ],
+        "activities": [
+          {
+            "sequence": 1,
+            "kind": "progress",
+            "phase": "started",
+            "method": "thread/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 2,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "thread/start",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 3,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 4,
+            "kind": "message",
+            "phase": "started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "itemId": "1c9b0311-3c72-4291-b75d-a845854e3664"
+            }
+          },
+          {
+            "sequence": 5,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 6,
+            "kind": "progress",
+            "phase": "started",
+            "method": "request/submitted",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "itemId": "1c9b0311-3c72-4291-b75d-a845854e3664"
+            }
+          },
+          {
+            "sequence": 7,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 8,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 9,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 10,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 11,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 12,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 13,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 14,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 15,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "thread/settings/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 16,
+            "kind": "message",
+            "phase": "completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "itemId": "1c9b0311-3c72-4291-b75d-a845854e3664"
+            }
+          },
+          {
+            "sequence": 17,
+            "kind": "progress",
+            "phase": "started",
+            "method": "request/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "itemId": "1c9b0311-3c72-4291-b75d-a845854e3664",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 18,
+            "kind": "progress",
+            "phase": "started",
+            "method": "turn/start",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 19,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "thread/status/changed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 20,
+            "kind": "progress",
+            "phase": "started",
+            "method": "turn/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 21,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 22,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 23,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 24,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 25,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 26,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 27,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 28,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 29,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 30,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 31,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 32,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 33,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 34,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 35,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 36,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 37,
+            "kind": "progress",
+            "phase": "started",
+            "method": "hook/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 38,
+            "kind": "progress",
+            "phase": "started",
+            "method": "hook/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 39,
+            "kind": "progress",
+            "phase": "started",
+            "method": "hook/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 40,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "hook/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 41,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "hook/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 42,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "hook/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 43,
+            "kind": "message",
+            "phase": "started",
+            "method": "item/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce",
+              "itemId": "01a0799c-1ace-78f0-930f-ea94dd6b6802"
+            }
+          },
+          {
+            "sequence": 44,
+            "kind": "message",
+            "phase": "completed",
+            "method": "item/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce",
+              "itemId": "01a0799c-1ace-78f0-930f-ea94dd6b6802"
+            }
+          },
+          {
+            "sequence": 45,
+            "kind": "message",
+            "phase": "started",
+            "method": "item/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce",
+              "itemId": "msg_02a621db11807c58016a9e1bae70bc87d08587c1786dde578a"
+            }
+          },
+          {
+            "sequence": 46,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "turn/first-output-observed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 47,
+            "kind": "message",
+            "phase": "completed",
+            "method": "item/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce",
+              "itemId": "msg_02a621db11807c58016a9e1bae70bc87d08587c1786dde578a"
+            }
+          },
+          {
+            "sequence": 48,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "thread/tokenUsage/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 50,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "thread/status/changed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 51,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "turn/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 52,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "thread/resume-local-reconciled",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 53,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 54,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 55,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 56,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 57,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 58,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 59,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 60,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 61,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 62,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 63,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 64,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "thread/status/changed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 65,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "thread/goal/cleared",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 67,
+            "kind": "message",
+            "phase": "started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "itemId": "17db464e-52fa-40b8-b63c-5e73a4d53487"
+            }
+          },
+          {
+            "sequence": 68,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 69,
+            "kind": "progress",
+            "phase": "started",
+            "method": "request/submitted",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "itemId": "17db464e-52fa-40b8-b63c-5e73a4d53487"
+            }
+          },
+          {
+            "sequence": 70,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "thread/settings/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 71,
+            "kind": "message",
+            "phase": "completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "itemId": "17db464e-52fa-40b8-b63c-5e73a4d53487"
+            }
+          },
+          {
+            "sequence": 72,
+            "kind": "progress",
+            "phase": "started",
+            "method": "request/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "itemId": "17db464e-52fa-40b8-b63c-5e73a4d53487",
+              "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a"
+            }
+          },
+          {
+            "sequence": 73,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 74,
+            "kind": "progress",
+            "phase": "started",
+            "method": "turn/start",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a"
+            }
+          },
+          {
+            "sequence": 75,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "thread/status/changed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 76,
+            "kind": "progress",
+            "phase": "started",
+            "method": "turn/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a"
+            }
+          },
+          {
+            "sequence": 77,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 78,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 79,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 80,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 81,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 82,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 83,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 84,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 85,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 86,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 87,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 88,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 89,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 90,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 91,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 92,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 93,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 94,
+            "kind": "progress",
+            "phase": "started",
+            "method": "hook/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a"
+            }
+          },
+          {
+            "sequence": 95,
+            "kind": "progress",
+            "phase": "started",
+            "method": "hook/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a"
+            }
+          },
+          {
+            "sequence": 96,
+            "kind": "progress",
+            "phase": "started",
+            "method": "hook/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a"
+            }
+          },
+          {
+            "sequence": 97,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "hook/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a"
+            }
+          },
+          {
+            "sequence": 98,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "hook/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a"
+            }
+          },
+          {
+            "sequence": 99,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "hook/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a"
+            }
+          },
+          {
+            "sequence": 100,
+            "kind": "message",
+            "phase": "started",
+            "method": "item/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a",
+              "itemId": "01a0799c-34c0-7a81-ad37-c8d35b013ad1"
+            }
+          },
+          {
+            "sequence": 101,
+            "kind": "message",
+            "phase": "completed",
+            "method": "item/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a",
+              "itemId": "01a0799c-34c0-7a81-ad37-c8d35b013ad1"
+            }
+          },
+          {
+            "sequence": 102,
+            "kind": "progress",
+            "phase": "started",
+            "method": "item/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a",
+              "itemId": "rs_0be5d01337108e26016a9e1bb584c887d0bf9384ebcd64bea9"
+            }
+          },
+          {
+            "sequence": 103,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "item/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a",
+              "itemId": "rs_0be5d01337108e26016a9e1bb584c887d0bf9384ebcd64bea9"
+            }
+          },
+          {
+            "sequence": 104,
+            "kind": "message",
+            "phase": "started",
+            "method": "item/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a",
+              "itemId": "msg_0be5d01337108e26016a9e1bb651a087d0aaa9ba9271f1a3d9"
+            }
+          },
+          {
+            "sequence": 105,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "turn/first-output-observed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a"
+            }
+          },
+          {
+            "sequence": 107,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "thread/status/changed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 108,
+            "kind": "message",
+            "phase": "cancelled",
+            "method": "turn/final-message-observation-missing",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a",
+              "itemId": "msg_0be5d01337108e26016a9e1bb651a087d0aaa9ba9271f1a3d9"
+            }
+          },
+          {
+            "sequence": 109,
+            "kind": "progress",
+            "phase": "cancelled",
+            "method": "turn/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a"
+            }
+          }
+        ],
+        "journalSequence": 109,
+        "activityCount": 106,
+        "error": null
+      }
+    },
+    {
+      "name": "interrupted-reopened",
+      "state": {
+        "phase": "ready",
+        "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+        "activeTurnId": null,
+        "chat": [
+          {
+            "id": "{\"itemId\":\"1c9b0311-3c72-4291-b75d-a845854e3664\",\"threadId\":\"01a0799c-047e-7312-b1bd-fe38dc547fdc\"}",
+            "role": "user",
+            "status": "completed",
+            "partial": false,
+            "content": "도구를 사용하거나 파일을 만들지 마세요. 정확히 다음 한 줄만 답하세요: 재개 정상 확인",
+            "activityId": "2e0b2e39-f81e-4ca9-ad32-de0fe4afd7b5"
+          },
+          {
+            "id": "{\"itemId\":\"msg_02a621db11807c58016a9e1bae70bc87d08587c1786dde578a\",\"threadId\":\"01a0799c-047e-7312-b1bd-fe38dc547fdc\",\"turnId\":\"01a0799c-0590-7ce3-8511-b1a23e83d9ce\"}",
+            "role": "assistant",
+            "status": "completed",
+            "partial": false,
+            "content": "재개 정상 확인",
+            "activityId": "7ff1f386-ce3e-4c60-a166-409bfdcaaf5f"
+          },
+          {
+            "id": "{\"itemId\":\"17db464e-52fa-40b8-b63c-5e73a4d53487\",\"threadId\":\"01a0799c-047e-7312-b1bd-fe38dc547fdc\"}",
+            "role": "user",
+            "status": "completed",
+            "partial": false,
+            "content": "도구를 사용하거나 파일을 만들지 마세요. 숫자와 짧은 한글 문장을 400줄 이상 작성하세요. 1번부터 즉시 시작하세요.",
+            "activityId": "d66c8a7e-f49a-4af6-b707-2d730e0b456a"
+          },
+          {
+            "id": "{\"itemId\":\"msg_0be5d01337108e26016a9e1bb651a087d0aaa9ba9271f1a3d9\",\"threadId\":\"01a0799c-047e-7312-b1bd-fe38dc547fdc\",\"turnId\":\"01a0799c-26ab-7de2-af75-340dbb72020a\"}",
+            "role": "assistant",
+            "status": "cancelled",
+            "partial": true,
+            "content": "1. 정상",
+            "activityId": "12f59b83-2fa8-4b15-a8b6-da22c7b0f553"
+          }
+        ],
+        "activities": [
+          {
+            "sequence": 1,
+            "kind": "progress",
+            "phase": "started",
+            "method": "thread/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 2,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "thread/start",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 3,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 4,
+            "kind": "message",
+            "phase": "started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "itemId": "1c9b0311-3c72-4291-b75d-a845854e3664"
+            }
+          },
+          {
+            "sequence": 5,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 6,
+            "kind": "progress",
+            "phase": "started",
+            "method": "request/submitted",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "itemId": "1c9b0311-3c72-4291-b75d-a845854e3664"
+            }
+          },
+          {
+            "sequence": 7,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 8,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 9,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 10,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 11,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 12,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 13,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 14,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 15,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "thread/settings/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 16,
+            "kind": "message",
+            "phase": "completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "itemId": "1c9b0311-3c72-4291-b75d-a845854e3664"
+            }
+          },
+          {
+            "sequence": 17,
+            "kind": "progress",
+            "phase": "started",
+            "method": "request/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "itemId": "1c9b0311-3c72-4291-b75d-a845854e3664",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 18,
+            "kind": "progress",
+            "phase": "started",
+            "method": "turn/start",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 19,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "thread/status/changed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 20,
+            "kind": "progress",
+            "phase": "started",
+            "method": "turn/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 21,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 22,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 23,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 24,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 25,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 26,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 27,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 28,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 29,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 30,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 31,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 32,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 33,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 34,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 35,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 36,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 37,
+            "kind": "progress",
+            "phase": "started",
+            "method": "hook/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 38,
+            "kind": "progress",
+            "phase": "started",
+            "method": "hook/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 39,
+            "kind": "progress",
+            "phase": "started",
+            "method": "hook/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 40,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "hook/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 41,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "hook/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 42,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "hook/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 43,
+            "kind": "message",
+            "phase": "started",
+            "method": "item/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce",
+              "itemId": "01a0799c-1ace-78f0-930f-ea94dd6b6802"
+            }
+          },
+          {
+            "sequence": 44,
+            "kind": "message",
+            "phase": "completed",
+            "method": "item/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce",
+              "itemId": "01a0799c-1ace-78f0-930f-ea94dd6b6802"
+            }
+          },
+          {
+            "sequence": 45,
+            "kind": "message",
+            "phase": "started",
+            "method": "item/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce",
+              "itemId": "msg_02a621db11807c58016a9e1bae70bc87d08587c1786dde578a"
+            }
+          },
+          {
+            "sequence": 46,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "turn/first-output-observed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 47,
+            "kind": "message",
+            "phase": "completed",
+            "method": "item/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce",
+              "itemId": "msg_02a621db11807c58016a9e1bae70bc87d08587c1786dde578a"
+            }
+          },
+          {
+            "sequence": 48,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "thread/tokenUsage/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 50,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "thread/status/changed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 51,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "turn/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+            }
+          },
+          {
+            "sequence": 52,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "thread/resume-local-reconciled",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 53,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 54,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 55,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 56,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 57,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 58,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 59,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 60,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 61,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 62,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 63,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 64,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "thread/status/changed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 65,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "thread/goal/cleared",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 67,
+            "kind": "message",
+            "phase": "started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "itemId": "17db464e-52fa-40b8-b63c-5e73a4d53487"
+            }
+          },
+          {
+            "sequence": 68,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 69,
+            "kind": "progress",
+            "phase": "started",
+            "method": "request/submitted",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "itemId": "17db464e-52fa-40b8-b63c-5e73a4d53487"
+            }
+          },
+          {
+            "sequence": 70,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "thread/settings/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 71,
+            "kind": "message",
+            "phase": "completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "itemId": "17db464e-52fa-40b8-b63c-5e73a4d53487"
+            }
+          },
+          {
+            "sequence": 72,
+            "kind": "progress",
+            "phase": "started",
+            "method": "request/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "itemId": "17db464e-52fa-40b8-b63c-5e73a4d53487",
+              "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a"
+            }
+          },
+          {
+            "sequence": 73,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 74,
+            "kind": "progress",
+            "phase": "started",
+            "method": "turn/start",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a"
+            }
+          },
+          {
+            "sequence": 75,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "thread/status/changed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 76,
+            "kind": "progress",
+            "phase": "started",
+            "method": "turn/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a"
+            }
+          },
+          {
+            "sequence": 77,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 78,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 79,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 80,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 81,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 82,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 83,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 84,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 85,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 86,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 87,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 88,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 89,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 90,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 91,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 92,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 93,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "mcpServer/startupStatus/updated",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 94,
+            "kind": "progress",
+            "phase": "started",
+            "method": "hook/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a"
+            }
+          },
+          {
+            "sequence": 95,
+            "kind": "progress",
+            "phase": "started",
+            "method": "hook/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a"
+            }
+          },
+          {
+            "sequence": 96,
+            "kind": "progress",
+            "phase": "started",
+            "method": "hook/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a"
+            }
+          },
+          {
+            "sequence": 97,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "hook/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a"
+            }
+          },
+          {
+            "sequence": 98,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "hook/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a"
+            }
+          },
+          {
+            "sequence": 99,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "hook/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a"
+            }
+          },
+          {
+            "sequence": 100,
+            "kind": "message",
+            "phase": "started",
+            "method": "item/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a",
+              "itemId": "01a0799c-34c0-7a81-ad37-c8d35b013ad1"
+            }
+          },
+          {
+            "sequence": 101,
+            "kind": "message",
+            "phase": "completed",
+            "method": "item/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a",
+              "itemId": "01a0799c-34c0-7a81-ad37-c8d35b013ad1"
+            }
+          },
+          {
+            "sequence": 102,
+            "kind": "progress",
+            "phase": "started",
+            "method": "item/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a",
+              "itemId": "rs_0be5d01337108e26016a9e1bb584c887d0bf9384ebcd64bea9"
+            }
+          },
+          {
+            "sequence": 103,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "item/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a",
+              "itemId": "rs_0be5d01337108e26016a9e1bb584c887d0bf9384ebcd64bea9"
+            }
+          },
+          {
+            "sequence": 104,
+            "kind": "message",
+            "phase": "started",
+            "method": "item/started",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a",
+              "itemId": "msg_0be5d01337108e26016a9e1bb651a087d0aaa9ba9271f1a3d9"
+            }
+          },
+          {
+            "sequence": 105,
+            "kind": "progress",
+            "phase": "completed",
+            "method": "turn/first-output-observed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a"
+            }
+          },
+          {
+            "sequence": 107,
+            "kind": "progress",
+            "phase": "updated",
+            "method": "thread/status/changed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+            }
+          },
+          {
+            "sequence": 108,
+            "kind": "message",
+            "phase": "cancelled",
+            "method": "turn/final-message-observation-missing",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a",
+              "itemId": "msg_0be5d01337108e26016a9e1bb651a087d0aaa9ba9271f1a3d9"
+            }
+          },
+          {
+            "sequence": 109,
+            "kind": "progress",
+            "phase": "cancelled",
+            "method": "turn/completed",
+            "refs": {
+              "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+              "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a"
+            }
+          }
+        ],
+        "journalSequence": 109,
+        "activityCount": 106,
+        "error": null
+      },
+      "frame80": [
+        "user                                                                            ",
+        "도구를 사용하거나 파일을 만들지 마세요. 정확히 다음 한 줄만 답하세요: 재개 정상 ",
+        "확인                                                                            ",
+        "",
+        "bori",
+        "재개 정상 확인                                                                  ",
+        "",
+        "╭──────────────────────────────────────────────────────────────────────────────╮",
+        "│ 이번 요청에서 한 일                                                          │",
+        "│                                                                              │",
+        "│ #1 응답 제공                                                                 │",
+        "│   • 상태 · 완료                                                              │",
+        "│                                                                              │",
+        "│ 검증                                                                         │",
+        "│   • Native Turn · 완료 확인 · 실행 기록 0개                                  │",
+        "╰──────────────────────────────────────────────────────────────────────────────╯",
+        "",
+        "user                                                                            ",
+        "도구를 사용하거나 파일을 만들지 마세요. 숫자와 짧은 한글 문장을 400줄 이상 작성 ",
+        "하세요. 1번부터 즉시 시작하세요.                                                ",
+        "",
+        "bori  중단됨",
+        "1. 정상                                                                         ",
+        ""
+      ],
+      "localJournalNotice": {
+        "text": "재개 화면의 이전 대화는 local activity journal에서 복원되며 Native history는 hydrate하지 않는다.",
+        "observed": true,
+        "reconciliationRefs": {
+          "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc"
+        }
+      }
+    }
+  ],
+  "nativeTerminalEvents": [
+    {
+      "method": "item/completed",
+      "refs": {
+        "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+        "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce",
+        "itemId": "01a0799c-1ace-78f0-930f-ea94dd6b6802"
+      },
+      "itemType": "userMessage"
+    },
+    {
+      "method": "item/completed",
+      "refs": {
+        "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+        "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce",
+        "itemId": "msg_02a621db11807c58016a9e1bae70bc87d08587c1786dde578a"
+      },
+      "itemType": "agentMessage"
+    },
+    {
+      "method": "turn/completed",
+      "refs": {
+        "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+        "turnId": "01a0799c-0590-7ce3-8511-b1a23e83d9ce"
+      },
+      "turnStatus": "completed"
+    },
+    {
+      "method": "item/completed",
+      "refs": {
+        "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+        "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a",
+        "itemId": "01a0799c-34c0-7a81-ad37-c8d35b013ad1"
+      },
+      "itemType": "userMessage"
+    },
+    {
+      "method": "item/completed",
+      "refs": {
+        "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+        "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a",
+        "itemId": "rs_0be5d01337108e26016a9e1bb584c887d0bf9384ebcd64bea9"
+      },
+      "itemType": "reasoning"
+    },
+    {
+      "method": "turn/completed",
+      "refs": {
+        "threadId": "01a0799c-047e-7312-b1bd-fe38dc547fdc",
+        "turnId": "01a0799c-26ab-7de2-af75-340dbb72020a"
+      },
+      "turnStatus": "interrupted"
+    }
+  ],
+  "scope": "Actual createProjectWorkbenchSession → CodexAppServer → file ActivityJournalStore persistence. Only public chat/activity content and Native refs are retained; reasoning text is excluded."
+}

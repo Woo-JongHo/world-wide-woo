@@ -404,11 +404,138 @@ describe("workbench dashboard views", () => {
 			content: "<analysis>내부</analysis>\n<answer>공개</answer>",
 		};
 		const view = new WorkbenchChatView({ ...snapshot, chat: [message] });
-		expect(stripTerminalSequences(view.render(80).join("\n"))).toContain("<analysis>내부</analysis>");
+		expect(stripTerminalSequences(view.render(80).join("\n"))).not.toContain("<analysis>내부</analysis>");
 		view.update({ ...snapshot, chat: [{ ...message, status: "completed" }] });
 		const completed = stripTerminalSequences(view.render(80).join("\n"));
 		expect(completed).toContain("공개");
 		expect(completed).not.toContain("내부");
+	});
+
+	// @linear WOO-688
+	test.each([40, 80, 120])("renders a preserved incomplete answer and final-observation notice within %i columns", (width) => {
+		const activity = {
+			...snapshot.activities[0]!,
+			id: "partial-answer",
+			nativeRefs: { threadId: "thread-1", turnId: "turn-partial", itemId: "partial-answer" },
+			payload: {
+				role: "assistant",
+				text: "보존한 부분 답변",
+				partial: true,
+				finalObservation: "missing",
+			},
+		};
+		const rows = new WorkbenchChatView({
+			...snapshot,
+			activities: [activity, {
+				...snapshot.activities[0]!,
+				id: "partial-turn-completed",
+				sequence: 2,
+				kind: "progress",
+				nativeRefs: { threadId: "thread-1", turnId: "turn-partial" },
+				payload: { method: "turn/completed" },
+			}],
+			chat: [{
+				id: "partial-answer",
+				role: "assistant",
+				content: "보존한 부분 답변",
+				activityId: "partial-answer",
+				status: "incomplete" as const,
+				partial: true,
+			}],
+			tnotes: [],
+		}).render(width);
+		const output = stripTerminalSequences(rows.join("\n"));
+
+		expect(output).toContain("보존한 부분 답변");
+		expect(output).toContain("부분 응답 · 최종 본문 미수신");
+		expect(output).not.toContain("이번 요청에서 한 일");
+		expect(rows.every((row) => visibleWidth(row) <= width)).toBe(true);
+	});
+
+	test("reprojects unchanged partial text when streaming becomes incomplete", () => {
+		const message = {
+			...snapshot.chat[0]!,
+			status: "streaming" as const,
+			content: "<analysis>내부</analysis>\n<answer>보존된 공개 부분</answer>",
+		};
+		const view = new WorkbenchChatView({ ...snapshot, chat: [message] });
+		expect(stripTerminalSequences(view.render(80).join("\n"))).not.toContain("<analysis>내부</analysis>");
+
+		view.update({ ...snapshot, chat: [{ ...message, status: "incomplete" as const, partial: true }] });
+		const incomplete = stripTerminalSequences(view.render(80).join("\n"));
+		expect(incomplete).toContain("보존된 공개 부분");
+		expect(incomplete).toContain("부분 응답 · 최종 본문 미수신");
+		expect(incomplete).not.toContain("내부");
+	});
+
+	test("reprojects unchanged failed text when its observation becomes partial", () => {
+		const message = {
+			...snapshot.chat[0]!,
+			status: "failed" as const,
+			content: "<analysis>내부</analysis>\n<answer>공개된 실패 전 부분</answer>",
+		};
+		const view = new WorkbenchChatView({ ...snapshot, chat: [message] });
+		expect(stripTerminalSequences(view.render(80).join("\n"))).not.toContain("내부");
+
+		view.update({ ...snapshot, chat: [{ ...message, partial: true }] });
+		const partial = stripTerminalSequences(view.render(80).join("\n"));
+		expect(partial).toContain("공개된 실패 전 부분");
+		expect(partial).not.toContain("내부");
+	});
+
+	test("distinguishes an empty missing-final response from a preserved partial answer", () => {
+		const output = stripTerminalSequences(new WorkbenchChatView({
+			...snapshot,
+			chat: [{
+				...snapshot.chat[0]!,
+				content: "최종 답변 본문을 받지 못했습니다.",
+				status: "incomplete",
+				partial: false,
+			}],
+		}).render(48).join("\n"));
+
+		expect(output).toContain("최종 본문 미수신");
+		expect(output).toContain("최종 답변 본문을 받지 못했습니다.");
+		expect(output).not.toContain("부분 응답");
+	});
+
+	test.each([
+		["failed", "실패"],
+		["cancelled", "중단됨"],
+	] as const)("sanitizes preserved answer text beside the %s terminal label", (status, label) => {
+		const output = stripTerminalSequences(new WorkbenchChatView({
+			...snapshot,
+			chat: [{
+				...snapshot.chat[0]!,
+				content: "<analysis>내부 추론</analysis>\n<answer>종료 전에 받은 부분 답변</answer>",
+				status,
+				partial: true,
+			}],
+		}).render(48).join("\n"));
+
+		expect(output).toContain("종료 전에 받은 부분 답변");
+		expect(output).toContain(label);
+		expect(output).not.toContain("내부 추론");
+	});
+
+	test.each([
+		["incomplete", "부분 응답 · 최종 본문 미수신"],
+		["failed", "실패"],
+		["cancelled", "중단됨"],
+	] as const)("fails closed for an unfinished analysis envelope on a %s partial", (status, label) => {
+		const output = stripTerminalSequences(new WorkbenchChatView({
+			...snapshot,
+			chat: [{
+				...snapshot.chat[0]!,
+				content: "<analysis>\n화면에 나오면 안 되는 중간 추론",
+				status,
+				partial: true,
+			}],
+		}).render(80).join("\n"));
+
+		expect(output).toContain(label);
+		expect(output).not.toContain("화면에 나오면 안 되는 중간 추론");
+		expect(output).not.toContain("<analysis>");
 	});
 
 	test("preserves partial tags, surrounding text, and fenced tag examples", () => {
@@ -1862,6 +1989,37 @@ describe("workbench dashboard views", () => {
 		expect(output).not.toContain("Todo.md · 현재 작업");
 		expect(output).toContain("결정 요약");
 		expect(output).not.toContain("SOURCE");
+	});
+
+	test.each([40, 80, 120])("keeps an incomplete answer reachable through the full TUI layout at %i columns", (width) => {
+		const incomplete: WorkbenchSnapshot = {
+			...snapshot,
+			activities: [{
+				...snapshot.activities[0]!,
+				payload: { role: "assistant", text: "레이아웃에 보존된 부분 답변", partial: true, finalObservation: "missing" },
+			}],
+			chat: [{
+				...snapshot.chat[0]!,
+				content: "레이아웃에 보존된 부분 답변",
+				status: "incomplete",
+				partial: true,
+			}],
+		};
+		const layout = createDashboardLayout(
+			() => "WWW · sample-project",
+			{ color: text => text, component: new WorkbenchChatView(incomplete) },
+			{ color: text => text, component: new TNotesSourceView(() => incomplete) },
+			{ color: text => text, component: new WorkspaceTodoView(() => incomplete.todo) },
+		);
+		const frame = renderLayoutFrame(layout.component, width, 24, () => undefined);
+		const output = stripTerminalSequences([
+			...frame.lines,
+			...allScrollContent(frame.root),
+		].join("\n"));
+
+		expect(output).toContain("레이아웃에 보존된 부분 답변");
+		expect(output).toContain("부분 응답 · 최종 본문 미수신");
+		expect(frame.lines.every((line) => visibleWidth(line) <= width)).toBe(true);
 	});
 
 	test("keeps following the newest user message when repeated delivery states extend Chat", () => {

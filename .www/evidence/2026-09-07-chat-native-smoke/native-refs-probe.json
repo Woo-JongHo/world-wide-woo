@@ -1,0 +1,154 @@
+{
+  "recordedAt": "2026-09-06T15:23:29.346Z",
+  "model": "gpt-5.6-sol",
+  "outcome": "turn-completed",
+  "raw": [
+    {
+      "method": "item/started",
+      "keys": [
+        "item",
+        "threadId",
+        "turnId",
+        "startedAtMs"
+      ],
+      "threadId": "01a07751-1c7c-78e3-99a7-79b9e64b038a",
+      "turnId": "01a07751-1dab-7f21-93bc-a94cbfad9296",
+      "itemId": "01a07751-34f3-7f71-9013-9373a2fd28b7",
+      "itemType": "userMessage"
+    },
+    {
+      "method": "item/completed",
+      "keys": [
+        "item",
+        "threadId",
+        "turnId",
+        "completedAtMs"
+      ],
+      "threadId": "01a07751-1c7c-78e3-99a7-79b9e64b038a",
+      "turnId": "01a07751-1dab-7f21-93bc-a94cbfad9296",
+      "itemId": "01a07751-34f3-7f71-9013-9373a2fd28b7",
+      "itemType": "userMessage"
+    },
+    {
+      "method": "item/started",
+      "keys": [
+        "item",
+        "threadId",
+        "turnId",
+        "startedAtMs"
+      ],
+      "threadId": "01a07751-1c7c-78e3-99a7-79b9e64b038a",
+      "turnId": "01a07751-1dab-7f21-93bc-a94cbfad9296",
+      "itemId": "msg_0dc1fd6f6f1d9cdb016a9d8570529887d0ae32cbc11ba355d4",
+      "itemType": "agentMessage"
+    },
+    {
+      "method": "item/agentMessage/delta",
+      "keys": [
+        "threadId",
+        "turnId",
+        "itemId",
+        "delta"
+      ],
+      "threadId": "01a07751-1c7c-78e3-99a7-79b9e64b038a",
+      "turnId": "01a07751-1dab-7f21-93bc-a94cbfad9296",
+      "itemId": "msg_0dc1fd6f6f1d9cdb016a9d8570529887d0ae32cbc11ba355d4"
+    },
+    {
+      "method": "item/agentMessage/delta",
+      "keys": [
+        "threadId",
+        "turnId",
+        "itemId",
+        "delta"
+      ],
+      "threadId": "01a07751-1c7c-78e3-99a7-79b9e64b038a",
+      "turnId": "01a07751-1dab-7f21-93bc-a94cbfad9296",
+      "itemId": "msg_0dc1fd6f6f1d9cdb016a9d8570529887d0ae32cbc11ba355d4"
+    },
+    {
+      "method": "item/agentMessage/delta",
+      "keys": [
+        "threadId",
+        "turnId",
+        "itemId",
+        "delta"
+      ],
+      "threadId": "01a07751-1c7c-78e3-99a7-79b9e64b038a",
+      "turnId": "01a07751-1dab-7f21-93bc-a94cbfad9296",
+      "itemId": "msg_0dc1fd6f6f1d9cdb016a9d8570529887d0ae32cbc11ba355d4"
+    },
+    {
+      "method": "item/completed",
+      "keys": [
+        "item",
+        "threadId",
+        "turnId",
+        "completedAtMs"
+      ],
+      "threadId": "01a07751-1c7c-78e3-99a7-79b9e64b038a",
+      "turnId": "01a07751-1dab-7f21-93bc-a94cbfad9296",
+      "itemId": "msg_0dc1fd6f6f1d9cdb016a9d8570529887d0ae32cbc11ba355d4",
+      "itemType": "agentMessage"
+    }
+  ],
+  "adapted": [
+    {
+      "method": "item/started",
+      "refs": {
+        "threadId": "01a07751-1c7c-78e3-99a7-79b9e64b038a",
+        "turnId": "01a07751-1dab-7f21-93bc-a94cbfad9296",
+        "itemId": "01a07751-34f3-7f71-9013-9373a2fd28b7"
+      }
+    },
+    {
+      "method": "item/completed",
+      "refs": {
+        "threadId": "01a07751-1c7c-78e3-99a7-79b9e64b038a",
+        "turnId": "01a07751-1dab-7f21-93bc-a94cbfad9296",
+        "itemId": "01a07751-34f3-7f71-9013-9373a2fd28b7"
+      }
+    },
+    {
+      "method": "item/started",
+      "refs": {
+        "threadId": "01a07751-1c7c-78e3-99a7-79b9e64b038a",
+        "turnId": "01a07751-1dab-7f21-93bc-a94cbfad9296",
+        "itemId": "msg_0dc1fd6f6f1d9cdb016a9d8570529887d0ae32cbc11ba355d4"
+      }
+    },
+    {
+      "method": "item/agentMessage/delta",
+      "refs": {
+        "threadId": "01a07751-1c7c-78e3-99a7-79b9e64b038a",
+        "turnId": "01a07751-1dab-7f21-93bc-a94cbfad9296",
+        "itemId": "msg_0dc1fd6f6f1d9cdb016a9d8570529887d0ae32cbc11ba355d4"
+      }
+    },
+    {
+      "method": "item/agentMessage/delta",
+      "refs": {
+        "threadId": "01a07751-1c7c-78e3-99a7-79b9e64b038a",
+        "turnId": "01a07751-1dab-7f21-93bc-a94cbfad9296",
+        "itemId": "msg_0dc1fd6f6f1d9cdb016a9d8570529887d0ae32cbc11ba355d4"
+      }
+    },
+    {
+      "method": "item/agentMessage/delta",
+      "refs": {
+        "threadId": "01a07751-1c7c-78e3-99a7-79b9e64b038a",
+        "turnId": "01a07751-1dab-7f21-93bc-a94cbfad9296",
+        "itemId": "msg_0dc1fd6f6f1d9cdb016a9d8570529887d0ae32cbc11ba355d4"
+      }
+    },
+    {
+      "method": "item/completed",
+      "refs": {
+        "threadId": "01a07751-1c7c-78e3-99a7-79b9e64b038a",
+        "turnId": "01a07751-1dab-7f21-93bc-a94cbfad9296",
+        "itemId": "msg_0dc1fd6f6f1d9cdb016a9d8570529887d0ae32cbc11ba355d4"
+      }
+    }
+  ],
+  "scope": "isolated ephemeral Native adapter probe; not rendered TUI acceptance"
+}

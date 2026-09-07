@@ -1,0 +1,209 @@
+[
+  {
+    "step": "01-ready-80",
+    "state": {
+      "phase": "ready",
+      "threadId": null,
+      "activeTurnId": null,
+      "draft": false,
+      "chat": [],
+      "error": null
+    },
+    "columns": 80,
+    "lines": 36
+  },
+  {
+    "step": "02-completed-80",
+    "state": {
+      "phase": "ready",
+      "threadId": "01a07770-2d3c-7bc0-bc00-57ad89c026fe",
+      "activeTurnId": null,
+      "draft": false,
+      "chat": [
+        {
+          "id": "{\"itemId\":\"4751b46d-ec03-4620-9170-c31e994386b1\",\"threadId\":\"01a07770-2d3c-7bc0-bc00-57ad89c026fe\"}",
+          "role": "user",
+          "content": "도구 없이 다음 한 줄만 답하세요: 안녕하세요 👋 연결 확인",
+          "activityId": "probe-18",
+          "status": "completed"
+        },
+        {
+          "id": "{\"itemId\":\"msg_066fc6ba708237aa016a9d8d61b7ec87d08bad713da9efcad8\",\"threadId\":\"01a07770-2d3c-7bc0-bc00-57ad89c026fe\",\"turnId\":\"01a07770-3012-7e82-b2a3-db1824105e3d\"}",
+          "role": "assistant",
+          "content": "안녕하세요 👋 연결 확인",
+          "activityId": "probe-43",
+          "status": "completed"
+        }
+      ],
+      "error": null
+    },
+    "columns": 80,
+    "lines": 36
+  },
+  {
+    "step": "03-resize-40",
+    "state": {
+      "phase": "ready",
+      "threadId": "01a07770-2d3c-7bc0-bc00-57ad89c026fe",
+      "activeTurnId": null,
+      "draft": false,
+      "chat": [
+        {
+          "id": "{\"itemId\":\"4751b46d-ec03-4620-9170-c31e994386b1\",\"threadId\":\"01a07770-2d3c-7bc0-bc00-57ad89c026fe\"}",
+          "role": "user",
+          "content": "도구 없이 다음 한 줄만 답하세요: 안녕하세요 👋 연결 확인",
+          "activityId": "probe-18",
+          "status": "completed"
+        },
+        {
+          "id": "{\"itemId\":\"msg_066fc6ba708237aa016a9d8d61b7ec87d08bad713da9efcad8\",\"threadId\":\"01a07770-2d3c-7bc0-bc00-57ad89c026fe\",\"turnId\":\"01a07770-3012-7e82-b2a3-db1824105e3d\"}",
+          "role": "assistant",
+          "content": "안녕하세요 👋 연결 확인",
+          "activityId": "probe-43",
+          "status": "completed"
+        }
+      ],
+      "error": null
+    },
+    "columns": 40,
+    "lines": 36
+  },
+  {
+    "step": "03-resize-120",
+    "state": {
+      "phase": "ready",
+      "threadId": "01a07770-2d3c-7bc0-bc00-57ad89c026fe",
+      "activeTurnId": null,
+      "draft": false,
+      "chat": [
+        {
+          "id": "{\"itemId\":\"4751b46d-ec03-4620-9170-c31e994386b1\",\"threadId\":\"01a07770-2d3c-7bc0-bc00-57ad89c026fe\"}",
+          "role": "user",
+          "content": "도구 없이 다음 한 줄만 답하세요: 안녕하세요 👋 연결 확인",
+          "activityId": "probe-18",
+          "status": "completed"
+        },
+        {
+          "id": "{\"itemId\":\"msg_066fc6ba708237aa016a9d8d61b7ec87d08bad713da9efcad8\",\"threadId\":\"01a07770-2d3c-7bc0-bc00-57ad89c026fe\",\"turnId\":\"01a07770-3012-7e82-b2a3-db1824105e3d\"}",
+          "role": "assistant",
+          "content": "안녕하세요 👋 연결 확인",
+          "activityId": "probe-43",
+          "status": "completed"
+        }
+      ],
+      "error": null
+    },
+    "columns": 120,
+    "lines": 36
+  },
+  {
+    "step": "03-resize-80",
+    "state": {
+      "phase": "ready",
+      "threadId": "01a07770-2d3c-7bc0-bc00-57ad89c026fe",
+      "activeTurnId": null,
+      "draft": false,
+      "chat": [
+        {
+          "id": "{\"itemId\":\"4751b46d-ec03-4620-9170-c31e994386b1\",\"threadId\":\"01a07770-2d3c-7bc0-bc00-57ad89c026fe\"}",
+          "role": "user",
+          "content": "도구 없이 다음 한 줄만 답하세요: 안녕하세요 👋 연결 확인",
+          "activityId": "probe-18",
+          "status": "completed"
+        },
+        {
+          "id": "{\"itemId\":\"msg_066fc6ba708237aa016a9d8d61b7ec87d08bad713da9efcad8\",\"threadId\":\"01a07770-2d3c-7bc0-bc00-57ad89c026fe\",\"turnId\":\"01a07770-3012-7e82-b2a3-db1824105e3d\"}",
+          "role": "assistant",
+          "content": "안녕하세요 👋 연결 확인",
+          "activityId": "probe-43",
+          "status": "completed"
+        }
+      ],
+      "error": null
+    },
+    "columns": 80,
+    "lines": 36
+  },
+  {
+    "step": "04-streaming-80",
+    "state": {
+      "phase": "working",
+      "threadId": "01a07770-2d3c-7bc0-bc00-57ad89c026fe",
+      "activeTurnId": "01a07770-4f1a-7410-848e-213fa40766fb",
+      "draft": true,
+      "chat": [
+        {
+          "id": "{\"itemId\":\"4751b46d-ec03-4620-9170-c31e994386b1\",\"threadId\":\"01a07770-2d3c-7bc0-bc00-57ad89c026fe\"}",
+          "role": "user",
+          "content": "도구 없이 다음 한 줄만 답하세요: 안녕하세요 👋 연결 확인",
+          "activityId": "probe-18",
+          "status": "completed"
+        },
+        {
+          "id": "{\"itemId\":\"msg_066fc6ba708237aa016a9d8d61b7ec87d08bad713da9efcad8\",\"threadId\":\"01a07770-2d3c-7bc0-bc00-57ad89c026fe\",\"turnId\":\"01a07770-3012-7e82-b2a3-db1824105e3d\"}",
+          "role": "assistant",
+          "content": "안녕하세요 👋 연결 확인",
+          "activityId": "probe-43",
+          "status": "completed"
+        },
+        {
+          "id": "{\"itemId\":\"03b229bf-9620-415d-9c63-5d02922aeca2\",\"threadId\":\"01a07770-2d3c-7bc0-bc00-57ad89c026fe\"}",
+          "role": "user",
+          "content": "도구를 사용하지 말고 번호를 붙여 한글 예문을 1000줄 연속 작성하세요. 서론 없이 즉시 1번부터 시작하세요.",
+          "activityId": "probe-50",
+          "status": "completed"
+        }
+      ],
+      "error": null
+    },
+    "columns": 80,
+    "lines": 36
+  },
+  {
+    "step": "05-cancelled-80",
+    "state": {
+      "phase": "ready",
+      "threadId": "01a07770-2d3c-7bc0-bc00-57ad89c026fe",
+      "activeTurnId": null,
+      "draft": false,
+      "chat": [
+        {
+          "id": "{\"itemId\":\"4751b46d-ec03-4620-9170-c31e994386b1\",\"threadId\":\"01a07770-2d3c-7bc0-bc00-57ad89c026fe\"}",
+          "role": "user",
+          "content": "도구 없이 다음 한 줄만 답하세요: 안녕하세요 👋 연결 확인",
+          "activityId": "probe-18",
+          "status": "completed"
+        },
+        {
+          "id": "{\"itemId\":\"msg_066fc6ba708237aa016a9d8d61b7ec87d08bad713da9efcad8\",\"threadId\":\"01a07770-2d3c-7bc0-bc00-57ad89c026fe\",\"turnId\":\"01a07770-3012-7e82-b2a3-db1824105e3d\"}",
+          "role": "assistant",
+          "content": "안녕하세요 👋 연결 확인",
+          "activityId": "probe-43",
+          "status": "completed"
+        },
+        {
+          "id": "{\"itemId\":\"03b229bf-9620-415d-9c63-5d02922aeca2\",\"threadId\":\"01a07770-2d3c-7bc0-bc00-57ad89c026fe\"}",
+          "role": "user",
+          "content": "도구를 사용하지 말고 번호를 붙여 한글 예문을 1000줄 연속 작성하세요. 서론 없이 즉시 1번부터 시작하세요.",
+          "activityId": "probe-50",
+          "status": "completed"
+        },
+        {
+          "id": "{\"itemId\":\"msg_066fc6ba708237aa016a9d8d67235087d0aaa74d9d5e3e46a8\",\"threadId\":\"01a07770-2d3c-7bc0-bc00-57ad89c026fe\",\"turnId\":\"01a07770-4f1a-7410-848e-213fa40766fb\"}",
+          "role": "assistant",
+          "content": "1.",
+          "activityId": "probe-64",
+          "status": "cancelled",
+          "partial": true
+        }
+      ],
+      "error": null
+    },
+    "columns": 80,
+    "lines": 36
+  },
+  {
+    "step": "exit",
+    "exitCode": 0
+  }
+]

@@ -1,0 +1,303 @@
+[
+  {
+    "step": "01-ready-80",
+    "state": {
+      "phase": "ready",
+      "threadId": null,
+      "activeTurnId": null,
+      "draft": false,
+      "chat": [],
+      "error": null,
+      "selectedActivityId": null
+    },
+    "columns": 80,
+    "lines": 36
+  },
+  {
+    "step": "02-completed-80",
+    "state": {
+      "phase": "ready",
+      "threadId": "01a0799d-0d24-7772-9f8e-7754196c8da2",
+      "activeTurnId": null,
+      "draft": false,
+      "chat": [
+        {
+          "id": "{\"itemId\":\"c49a4e01-12a6-42e9-b969-541ca5b143fd\",\"threadId\":\"01a0799d-0d24-7772-9f8e-7754196c8da2\"}",
+          "role": "user",
+          "content": "도구 없이 다음 한 줄만 답하세요: 안녕하세요 👋 연결 확인",
+          "activityId": "probe-16",
+          "status": "completed"
+        },
+        {
+          "id": "{\"itemId\":\"msg_0830b0be0da01621016a9e1bf52d6487d0a9634a380de160e3\",\"threadId\":\"01a0799d-0d24-7772-9f8e-7754196c8da2\",\"turnId\":\"01a0799d-0de0-74d1-bfc5-23e1b3e48568\"}",
+          "role": "assistant",
+          "content": "안녕하세요 👋 연결 확인",
+          "activityId": "probe-42",
+          "status": "completed"
+        }
+      ],
+      "error": null,
+      "selectedActivityId": null
+    },
+    "columns": 80,
+    "lines": 36
+  },
+  {
+    "step": "02-invalid-source",
+    "state": {
+      "phase": "ready",
+      "threadId": "01a0799d-0d24-7772-9f8e-7754196c8da2",
+      "activeTurnId": null,
+      "draft": false,
+      "chat": [
+        {
+          "id": "{\"itemId\":\"c49a4e01-12a6-42e9-b969-541ca5b143fd\",\"threadId\":\"01a0799d-0d24-7772-9f8e-7754196c8da2\"}",
+          "role": "user",
+          "content": "도구 없이 다음 한 줄만 답하세요: 안녕하세요 👋 연결 확인",
+          "activityId": "probe-16",
+          "status": "completed"
+        },
+        {
+          "id": "{\"itemId\":\"msg_0830b0be0da01621016a9e1bf52d6487d0a9634a380de160e3\",\"threadId\":\"01a0799d-0d24-7772-9f8e-7754196c8da2\",\"turnId\":\"01a0799d-0de0-74d1-bfc5-23e1b3e48568\"}",
+          "role": "assistant",
+          "content": "안녕하세요 👋 연결 확인",
+          "activityId": "probe-42",
+          "status": "completed"
+        }
+      ],
+      "error": null,
+      "selectedActivityId": null
+    },
+    "columns": 80,
+    "lines": 36
+  },
+  {
+    "step": "02-valid-source",
+    "state": {
+      "phase": "ready",
+      "threadId": "01a0799d-0d24-7772-9f8e-7754196c8da2",
+      "activeTurnId": null,
+      "draft": false,
+      "chat": [
+        {
+          "id": "{\"itemId\":\"c49a4e01-12a6-42e9-b969-541ca5b143fd\",\"threadId\":\"01a0799d-0d24-7772-9f8e-7754196c8da2\"}",
+          "role": "user",
+          "content": "도구 없이 다음 한 줄만 답하세요: 안녕하세요 👋 연결 확인",
+          "activityId": "probe-16",
+          "status": "completed"
+        },
+        {
+          "id": "{\"itemId\":\"msg_0830b0be0da01621016a9e1bf52d6487d0a9634a380de160e3\",\"threadId\":\"01a0799d-0d24-7772-9f8e-7754196c8da2\",\"turnId\":\"01a0799d-0de0-74d1-bfc5-23e1b3e48568\"}",
+          "role": "assistant",
+          "content": "안녕하세요 👋 연결 확인",
+          "activityId": "probe-42",
+          "status": "completed"
+        }
+      ],
+      "error": null,
+      "selectedActivityId": "probe-42"
+    },
+    "columns": 80,
+    "lines": 36
+  },
+  {
+    "step": "02-source-return",
+    "state": {
+      "phase": "ready",
+      "threadId": "01a0799d-0d24-7772-9f8e-7754196c8da2",
+      "activeTurnId": null,
+      "draft": false,
+      "chat": [
+        {
+          "id": "{\"itemId\":\"c49a4e01-12a6-42e9-b969-541ca5b143fd\",\"threadId\":\"01a0799d-0d24-7772-9f8e-7754196c8da2\"}",
+          "role": "user",
+          "content": "도구 없이 다음 한 줄만 답하세요: 안녕하세요 👋 연결 확인",
+          "activityId": "probe-16",
+          "status": "completed"
+        },
+        {
+          "id": "{\"itemId\":\"msg_0830b0be0da01621016a9e1bf52d6487d0a9634a380de160e3\",\"threadId\":\"01a0799d-0d24-7772-9f8e-7754196c8da2\",\"turnId\":\"01a0799d-0de0-74d1-bfc5-23e1b3e48568\"}",
+          "role": "assistant",
+          "content": "안녕하세요 👋 연결 확인",
+          "activityId": "probe-42",
+          "status": "completed"
+        }
+      ],
+      "error": null,
+      "selectedActivityId": "probe-42"
+    },
+    "columns": 80,
+    "lines": 36
+  },
+  {
+    "step": "03-resize-40",
+    "state": {
+      "phase": "ready",
+      "threadId": "01a0799d-0d24-7772-9f8e-7754196c8da2",
+      "activeTurnId": null,
+      "draft": false,
+      "chat": [
+        {
+          "id": "{\"itemId\":\"c49a4e01-12a6-42e9-b969-541ca5b143fd\",\"threadId\":\"01a0799d-0d24-7772-9f8e-7754196c8da2\"}",
+          "role": "user",
+          "content": "도구 없이 다음 한 줄만 답하세요: 안녕하세요 👋 연결 확인",
+          "activityId": "probe-16",
+          "status": "completed"
+        },
+        {
+          "id": "{\"itemId\":\"msg_0830b0be0da01621016a9e1bf52d6487d0a9634a380de160e3\",\"threadId\":\"01a0799d-0d24-7772-9f8e-7754196c8da2\",\"turnId\":\"01a0799d-0de0-74d1-bfc5-23e1b3e48568\"}",
+          "role": "assistant",
+          "content": "안녕하세요 👋 연결 확인",
+          "activityId": "probe-42",
+          "status": "completed"
+        }
+      ],
+      "error": null,
+      "selectedActivityId": "probe-42"
+    },
+    "columns": 40,
+    "lines": 36
+  },
+  {
+    "step": "03-resize-120",
+    "state": {
+      "phase": "ready",
+      "threadId": "01a0799d-0d24-7772-9f8e-7754196c8da2",
+      "activeTurnId": null,
+      "draft": false,
+      "chat": [
+        {
+          "id": "{\"itemId\":\"c49a4e01-12a6-42e9-b969-541ca5b143fd\",\"threadId\":\"01a0799d-0d24-7772-9f8e-7754196c8da2\"}",
+          "role": "user",
+          "content": "도구 없이 다음 한 줄만 답하세요: 안녕하세요 👋 연결 확인",
+          "activityId": "probe-16",
+          "status": "completed"
+        },
+        {
+          "id": "{\"itemId\":\"msg_0830b0be0da01621016a9e1bf52d6487d0a9634a380de160e3\",\"threadId\":\"01a0799d-0d24-7772-9f8e-7754196c8da2\",\"turnId\":\"01a0799d-0de0-74d1-bfc5-23e1b3e48568\"}",
+          "role": "assistant",
+          "content": "안녕하세요 👋 연결 확인",
+          "activityId": "probe-42",
+          "status": "completed"
+        }
+      ],
+      "error": null,
+      "selectedActivityId": "probe-42"
+    },
+    "columns": 120,
+    "lines": 36
+  },
+  {
+    "step": "03-resize-80",
+    "state": {
+      "phase": "ready",
+      "threadId": "01a0799d-0d24-7772-9f8e-7754196c8da2",
+      "activeTurnId": null,
+      "draft": false,
+      "chat": [
+        {
+          "id": "{\"itemId\":\"c49a4e01-12a6-42e9-b969-541ca5b143fd\",\"threadId\":\"01a0799d-0d24-7772-9f8e-7754196c8da2\"}",
+          "role": "user",
+          "content": "도구 없이 다음 한 줄만 답하세요: 안녕하세요 👋 연결 확인",
+          "activityId": "probe-16",
+          "status": "completed"
+        },
+        {
+          "id": "{\"itemId\":\"msg_0830b0be0da01621016a9e1bf52d6487d0a9634a380de160e3\",\"threadId\":\"01a0799d-0d24-7772-9f8e-7754196c8da2\",\"turnId\":\"01a0799d-0de0-74d1-bfc5-23e1b3e48568\"}",
+          "role": "assistant",
+          "content": "안녕하세요 👋 연결 확인",
+          "activityId": "probe-42",
+          "status": "completed"
+        }
+      ],
+      "error": null,
+      "selectedActivityId": "probe-42"
+    },
+    "columns": 80,
+    "lines": 36
+  },
+  {
+    "step": "04-streaming-80",
+    "state": {
+      "phase": "working",
+      "threadId": "01a0799d-0d24-7772-9f8e-7754196c8da2",
+      "activeTurnId": "01a0799d-48b3-7452-9a6d-672fbc42f281",
+      "draft": true,
+      "chat": [
+        {
+          "id": "{\"itemId\":\"c49a4e01-12a6-42e9-b969-541ca5b143fd\",\"threadId\":\"01a0799d-0d24-7772-9f8e-7754196c8da2\"}",
+          "role": "user",
+          "content": "도구 없이 다음 한 줄만 답하세요: 안녕하세요 👋 연결 확인",
+          "activityId": "probe-16",
+          "status": "completed"
+        },
+        {
+          "id": "{\"itemId\":\"msg_0830b0be0da01621016a9e1bf52d6487d0a9634a380de160e3\",\"threadId\":\"01a0799d-0d24-7772-9f8e-7754196c8da2\",\"turnId\":\"01a0799d-0de0-74d1-bfc5-23e1b3e48568\"}",
+          "role": "assistant",
+          "content": "안녕하세요 👋 연결 확인",
+          "activityId": "probe-42",
+          "status": "completed"
+        },
+        {
+          "id": "{\"itemId\":\"7c546b68-77de-4b0e-b633-c20e4ef2fcbe\",\"threadId\":\"01a0799d-0d24-7772-9f8e-7754196c8da2\"}",
+          "role": "user",
+          "content": "도구를 사용하지 말고 번호를 붙여 한글 예문을 1000줄 연속 작성하세요. 서론 없이 즉시 1번부터 시작하세요.",
+          "activityId": "probe-49",
+          "status": "completed"
+        }
+      ],
+      "error": null,
+      "selectedActivityId": "probe-42"
+    },
+    "columns": 80,
+    "lines": 36
+  },
+  {
+    "step": "05-cancelled-80",
+    "state": {
+      "phase": "ready",
+      "threadId": "01a0799d-0d24-7772-9f8e-7754196c8da2",
+      "activeTurnId": null,
+      "draft": false,
+      "chat": [
+        {
+          "id": "{\"itemId\":\"c49a4e01-12a6-42e9-b969-541ca5b143fd\",\"threadId\":\"01a0799d-0d24-7772-9f8e-7754196c8da2\"}",
+          "role": "user",
+          "content": "도구 없이 다음 한 줄만 답하세요: 안녕하세요 👋 연결 확인",
+          "activityId": "probe-16",
+          "status": "completed"
+        },
+        {
+          "id": "{\"itemId\":\"msg_0830b0be0da01621016a9e1bf52d6487d0a9634a380de160e3\",\"threadId\":\"01a0799d-0d24-7772-9f8e-7754196c8da2\",\"turnId\":\"01a0799d-0de0-74d1-bfc5-23e1b3e48568\"}",
+          "role": "assistant",
+          "content": "안녕하세요 👋 연결 확인",
+          "activityId": "probe-42",
+          "status": "completed"
+        },
+        {
+          "id": "{\"itemId\":\"7c546b68-77de-4b0e-b633-c20e4ef2fcbe\",\"threadId\":\"01a0799d-0d24-7772-9f8e-7754196c8da2\"}",
+          "role": "user",
+          "content": "도구를 사용하지 말고 번호를 붙여 한글 예문을 1000줄 연속 작성하세요. 서론 없이 즉시 1번부터 시작하세요.",
+          "activityId": "probe-49",
+          "status": "completed"
+        },
+        {
+          "id": "{\"itemId\":\"msg_0830b0be0da01621016a9e1bfcdd8087d0a9dce29883b929b7\",\"threadId\":\"01a0799d-0d24-7772-9f8e-7754196c8da2\",\"turnId\":\"01a0799d-48b3-7452-9a6d-672fbc42f281\"}",
+          "role": "assistant",
+          "content": "1. 오늘은 날",
+          "activityId": "probe-63",
+          "status": "cancelled",
+          "partial": true
+        }
+      ],
+      "error": null,
+      "selectedActivityId": "probe-42"
+    },
+    "columns": 80,
+    "lines": 36
+  },
+  {
+    "step": "exit",
+    "exitCode": 0
+  }
+]
