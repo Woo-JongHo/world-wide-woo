@@ -9,12 +9,17 @@ import {
 	type AssistantMessageEventStream,
 	type CredentialStore,
 } from "@earendil-works/pi-ai";
+import { registerBunOAuthFlows } from "@earendil-works/pi-ai/bun-oauth";
 import { anthropicProvider } from "@earendil-works/pi-ai/providers/anthropic";
 import { googleProvider } from "@earendil-works/pi-ai/providers/google";
 import { openaiProvider } from "@earendil-works/pi-ai/providers/openai";
 import { openaiCodexProvider } from "@earendil-works/pi-ai/providers/openai-codex";
 import type { ModelAuthStatus, ModelClient } from "../application/ports";
 import type { Effort, WwwSettings } from "../domain/model-settings";
+
+// pi-ai keeps Node-only OAuth flows behind runtime imports for browser builds.
+// Standalone Bun binaries need the package's static loader registration.
+registerBunOAuthFlows();
 
 type ModelRegistry = Pick<Models, "checkAuth" | "getModel" | "streamSimple">;
 

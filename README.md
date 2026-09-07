@@ -8,7 +8,7 @@
 
 WWW는 하나의 Workflow를 모든 업무에 강요하지 않는다. Product, RPA처럼 성격이 다른 업무에는 서로 다른 `Workflow Profile`을 적용하되, **Work Chain·Contract·Progress·Approval·Evidence**라는 공통 원칙으로 연결과 완료를 관리한다.
 
-> **현재 상태:** WWW는 개발 중이며, 현재 제품은 프로젝트별 AI 작업을 관측하고 통제하는 초기 Workbench다. Workflow Profile과 전체 Service Lifecycle 연결은 장기 제품 방향이다.
+> **현재 상태:** WWW는 개발 중인 프로젝트별 AI Workbench다. 기존 로컬 Workbench 마일스톤은 Codex Native 작업의 요청·관측·승인·종료·재개 흐름을 다룬다. 이것은 Linear의 `v0.1.0 — First Public Release` 전체 범위와 동일하지 않다. 공개 배포에 포함할 System·첫 Workflow의 상세 범위는 [Linear 개발 기획](docs/planning/linear-development/README.md)에서 사용자와 순서대로 확정한다.
 
 ## Why WWW
 
@@ -140,11 +140,13 @@ Execution Observation
 
 ## Documentation
 
+- [현재 Linear 기반 개발 기획과 결정 상태](docs/planning/linear-development/README.md)
 - [전체 개발 현황 Map](.www/Development-Map.md)
-- [코드 Architecture와 migration map](docs/WWW_CODE_ARCHITECTURE.md)
+- [기존 로컬 Workbench 마일스톤](docs/WWW_FIRST_PRODUCT_MILESTONE.md)
 - [Product Workflow](docs/workflows/PRODUCT_WORKFLOW.md)
 - [RPA Workflow](docs/workflows/RPA_WORKFLOW.md)
 - [제품 방향과 Agent 실행 경계](docs/WWW_PRODUCT_DIRECTION.md)
+- [코드 Architecture와 migration map](docs/WWW_CODE_ARCHITECTURE.md)
 - [Service Lifecycle의 기존 Control Plane 설계](docs/WWW_CONTROL_PLANE_PLANNING_PROPOSAL.md)
 - [오픈소스 제품과 WWW의 경계](docs/OSS_POSITIONING.md)
 - [Agent TUI 비교](docs/TUI_COMPARISON.md)

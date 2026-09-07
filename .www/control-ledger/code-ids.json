@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "scope": "repository",
+  "codes": [
+    {
+      "id": "0001",
+      "name": "Chat 표시",
+      "locations": [
+        {
+          "path": "src/presentation/tui/workbench-views.ts",
+          "symbol": "WorkbenchChatView",
+          "members": [
+            "update",
+            "renderMessage"
+          ]
+        }
+      ],
+      "linearIssueIds": [
+        "WOO-679",
+        "WOO-686",
+        "WOO-687",
+        "WOO-688",
+        "WOO-689",
+        "WOO-691",
+        "WOO-692",
+        "WOO-718",
+        "WOO-719",
+        "WOO-720"
+      ],
+      "detail": ".www/vault/Development/Code-0001.md"
+    },
+    {
+      "id": "0002",
+      "name": "Chat 대화 수명",
+      "locations": [
+        {
+          "path": "src/application/project-workbench.ts",
+          "symbol": "ProjectWorkbench"
+        }
+      ],
+      "linearIssueIds": [
+        "WOO-679",
+        "WOO-688",
+        "WOO-690",
+        "WOO-691",
+        "WOO-692",
+        "WOO-718",
+        "WOO-719",
+        "WOO-720"
+      ],
+      "detail": ".www/vault/Development/Code-0002.md"
+    },
+    {
+      "id": "0003",
+      "name": "Chat 읽던 위치",
+      "locations": [
+        {
+          "path": "src/presentation/tui/dashboard-layout.ts",
+          "symbol": "ChatScrollView"
+        }
+      ],
+      "linearIssueIds": [
+        "WOO-679",
+        "WOO-689",
+        "WOO-692",
+        "WOO-720"
+      ],
+      "detail": ".www/vault/Development/Code-0003.md"
+    },
+    {
+      "id": "0004",
+      "name": "Chat 입력과 Source 이동",
+      "locations": [
+        {
+          "path": "src/presentation/tui/workbench-shell.ts",
+          "symbol": "runProjectWorkbenchShell"
+        }
+      ],
+      "linearIssueIds": [
+        "WOO-679",
+        "WOO-692",
+        "WOO-718",
+        "WOO-719",
+        "WOO-720"
+      ],
+      "detail": ".www/vault/Development/Code-0004.md"
+    },
+    {
+      "id": "0005",
+      "name": "Chat 요약의 thread 범위",
+      "locations": [
+        {
+          "path": "src/infrastructure/project-workbench-session.ts",
+          "symbol": "ThreadScopedTNoteSource"
+        }
+      ],
+      "linearIssueIds": [
+        "WOO-679",
+        "WOO-692",
+        "WOO-718",
+        "WOO-719",
+        "WOO-720"
+      ],
+      "detail": ".www/vault/Development/Code-0005.md"
+    }
+  ]
+}

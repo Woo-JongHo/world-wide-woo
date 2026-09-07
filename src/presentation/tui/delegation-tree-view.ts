@@ -1,6 +1,6 @@
 import { truncateToWidth, type Component } from "@earendil-works/pi-tui";
 import type { ProjectActivity } from "../../domain/project-activity";
-import { projectNativeDelegation } from "../../domain/work-steps";
+import { projectNativeDelegation } from "../../domain/work/index";
 import { sanitizeTerminalTextExcerpt } from "../../domain/terminal";
 import { colors } from "./theme";
 

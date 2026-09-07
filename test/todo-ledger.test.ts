@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { TodoIdentityCollisionError, TodoLedger, TodoNativeSourceError, TodoWriteConflictError } from "../src/application/todo-ledger.js";
 import type { SessionEvent, SessionEventInput } from "../src/domain/session-events";
 import { renderTodoMarkdown, type TodoDocument } from "../src/domain/todos";
-import type { SemanticWorkStep, WorkFlowProjection } from "../src/domain/work-steps";
+import type { SemanticWorkStep, WorkFlowProjection } from "../src/domain/work/index";
 import type { SessionRepository, TodoStore } from "../src/application/ports";
 import { FileTodoStore } from "../src/infrastructure/todo-store.js";
 

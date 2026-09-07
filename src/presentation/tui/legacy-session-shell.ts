@@ -87,7 +87,7 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 	if (composerDraft.initialText) editor.setText(composerDraft.initialText);
 	const root = new VStack([
 		{ component: dashboard.component, basis: 0, grow: 1, shrink: 1, minSize: 1 },
-		{ component: usageStrip, basis: 2, minSize: 2, maxSize: 2 },
+		{ component: usageStrip, basis: 1, minSize: 1, maxSize: 1 },
 		{ component: editor, basis: "auto", shrink: 1, minSize: 3 },
 		{ component: status, basis: 1, minSize: 1, maxSize: 1, visible: ({ height }) => height >= 6 },
 	]);

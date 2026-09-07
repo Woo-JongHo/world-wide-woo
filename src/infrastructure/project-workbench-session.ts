@@ -1,3 +1,5 @@
+import type { DevelopmentService } from "../application/development-service";
+import { createDevelopmentService } from "./development-cli";
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { ProjectWorkbench, type ProjectWorkbenchOptions, type WorkbenchActivityJournal, type WorkbenchTNoteSource, type WorkbenchTodoSource } from "../application/project-workbench.js";
@@ -11,7 +13,7 @@ import { TodoLedger } from "../application/todo-ledger.js";
 import type { TodoDocument, TodoNativePlanBinding } from "../domain/todos.js";
 import type { TNoteDraft } from "../domain/t-notes.js";
 import type { WorkbenchModelSelection } from "../domain/workbench.js";
-import type { WorkFlowProjection } from "../domain/work-steps.js";
+import type { WorkFlowProjection } from "../domain/work/index.js";
 import type { ProjectActivity } from "../domain/project-activity.js";
 import { CanonicalPromotionService } from "../application/canonical-promotion.js";
 import { ReviewService } from "../application/review-service.js";
@@ -52,6 +54,7 @@ export interface ProjectWorkbenchSession {
 	workspace: ProjectWorkspace;
 	projectId: string;
 	workbench: ProjectWorkbench;
+	development?: DevelopmentService;
 	composerDraft: ComposerDraftController;
 	usage: UsageMonitor;
 	/** Called by the TUI after it has closed the workbench. */
@@ -81,6 +84,7 @@ export interface ProjectWorkbenchSessionFactories {
 	createComposerDraft(root: string, sessionId: string, directory: string): Promise<ComposerDraftController>;
 	createUsageMonitor(): UsageMonitor;
 	createWooEntry(): WooEntry;
+	createDevelopment?(root: string, runId: string): DevelopmentService;
 }
 
 const productionFactories: ProjectWorkbenchSessionFactories = {
@@ -118,6 +122,7 @@ const productionFactories: ProjectWorkbenchSessionFactories = {
 		return new UsageService(credentials, createModelRegistry(credentials));
 	},
 	createWooEntry: () => new WooEntry(new WesEntryCollector()),
+	createDevelopment: (projectRoot, runId) => createDevelopmentService({ projectRoot, runId }),
 };
 
 /**
@@ -137,15 +142,16 @@ export async function createProjectWorkbenchSession(
 	let native: ExecutorPort | undefined;
 	let todos: ThreadScopedTodoSource | undefined;
 	let workbench: ProjectWorkbench | undefined;
+	let development: DevelopmentService | undefined;
 	let released = false;
 	const release = async (): Promise<void> => {
 		if (released) return;
 		released = true;
 		todos?.dispose();
 		try {
-			await threadLease?.release();
+			await development?.close();
 		} finally {
-			await lease.release();
+			try { await threadLease?.release(); } finally { await lease.release(); }
 		}
 	};
 	try {
@@ -172,7 +178,9 @@ export async function createProjectWorkbenchSession(
 		// WES is an optional local policy source. Ordinary Chat sessions must not
 		// collect it or expose a WES loading/blocked state.
 		const wooEntry = options.enableWooEntry ? factories.createWooEntry() : undefined;
+		development = factories.createDevelopment?.(workspace.root, runId);
 		workbench = factories.createWorkbench(native, journal, {
+			developmentObserver: development ? { capture: activity => development!.observe(activity) } : undefined,
 			projectId,
 			provider: options.provider ?? "openai-codex",
 			cwd: workspace.root,
@@ -208,6 +216,7 @@ export async function createProjectWorkbenchSession(
 			workspace,
 			projectId,
 			workbench,
+			development,
 			composerDraft,
 			usage,
 			releaseSessionLease: release,
@@ -274,7 +283,8 @@ export class ThreadBoundActivityJournal implements WorkbenchActivityJournal {
 	}
 }
 
-/** @linear WOO-718 */
+/** @Unit Code-005 */
+/** @codeId 0005 */
 class ThreadScopedTNoteSource implements WorkbenchTNoteSource {
 	private projectId: string | null = null;
 

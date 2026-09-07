@@ -20,14 +20,14 @@ describe("projectRuntimeMonitor", () => {
 		expect(projectRuntimeMonitor(input).state).toBe("idle");
 	});
 	test("reports a model-only execution as running", () => {
-		const result = projectRuntimeMonitor(snapshot([activity(1, "turn/started", { payload: { model: "gpt-test" }, nativeRefs: { turnId: "turn" } })]));
+		const result = projectRuntimeMonitor(snapshot([activity(1, "turn/started", { payload: { model: "gpt-test" }, nativeRefs: { turnId: "turn" } })], { phase: "working", activeTurnId: "turn" }));
 		expect(result).toMatchObject({ state: "running", model: "gpt-test", currentTool: null });
 	});
 	test("reports a running tool before execution", () => {
 		const result = projectRuntimeMonitor(snapshot([
 			activity(1, "turn/started", { nativeRefs: { turnId: "turn" } }),
 			activity(2, "item/started", { kind: "tool", nativeRefs: { itemId: "tool" }, payload: { params: { item: { tool: "shell" } } } }),
-		]));
+		], { phase: "working", activeTurnId: "turn" }));
 		expect(result).toMatchObject({ state: "running", currentTool: { label: "shell" } });
 	});
 	test("reports pending approval as blocked", () => {
@@ -50,6 +50,16 @@ describe("projectRuntimeMonitor", () => {
 	test("reports completion after a completed turn", () => {
 		const result = projectRuntimeMonitor(snapshot([activity(1, "turn/started", { nativeRefs: { turnId: "turn" } }), activity(2, "turn/completed", { phase: "completed", nativeRefs: { turnId: "turn" } })]));
 		expect(result.state).toBe("completed");
+	});
+	test("does not revive an older unmatched request after the current snapshot becomes ready", () => {
+		const result = projectRuntimeMonitor(snapshot([
+			activity(1, "request/started", { payload: { requestId: "old-request" } }),
+			activity(2, "turn/started", { nativeRefs: { turnId: "current-turn" } }),
+			activity(3, "turn/completed", { phase: "completed", nativeRefs: { turnId: "current-turn" } }),
+		]));
+
+		expect(result.state).toBe("completed");
+		expect(result.activeRequest).toBeNull();
 	});
 	test("bounds a semantic event burst to its latest twelve events", () => {
 		const result = projectRuntimeMonitor(snapshot(Array.from({ length: 20 }, (_, index) => activity(index + 1, "request/started", { payload: { requestId: String(index) } }))));

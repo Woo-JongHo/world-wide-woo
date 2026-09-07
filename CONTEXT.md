@@ -21,6 +21,21 @@ _Avoid_: 숨겨진 추론, 관측되지 않은 실행, raw activity log.
 **Evidence**: Artifact가 Contract를 충족하고 업무가 수락 가능한지를 뒷받침하는 검증 자료의 집합.
 _Avoid_: 실행기의 완료 주장, 성공 exit code 하나, raw 로그 전체.
 
+**Unit**: 변경 작업이 끝난 뒤에도 지속 관리하는 사용자 기능 또는 독립 책임을 가진 공통 기능의 정체성.
+_Avoid_: Linear Issue 자체, 파일·폴더 하나, 한 번의 실행.
+
+**Linear Issue**: 범위와 수락 조건을 가진 변경 작업. 지속 기능인 Unit과는 별도의 식별과 수명을 가진다.
+_Avoid_: 영구 기능 ID, 실행 성공만으로 수락된 작업.
+
+**Development Session**: 선택한 개발 작업을 수행하며 대화·코드 변경·검증 기록을 연결하는 작업 맥락. 하나의 작업을 여러 세션에서 이어갈 수 있고, 각 기록은 발생 당시의 작업 대상을 가진다.
+_Avoid_: Native thread 하나와의 자동 동일시, 기능 자체의 ID.
+
+**Development Record**: 개발 중 공개된 대화·결정·검증 관측을 대상 작업과 코드 상태에 연결한 기록.
+_Avoid_: 모든 기록을 수락 Evidence로 자동 승격하는 것, 숨겨진 모델 추론.
+
+**Knowledge Note**: 개발 기록을 읽고 설명·판단을 남기는 지속 문서. 문서의 정체성은 제목이나 저장 위치가 바뀌어도 유지된다.
+_Avoid_: Linear 상태의 별도 정본, 편집만으로 바뀌는 실제 테스트 결과.
+
 **Summary checkpoint**: 완료된 Turn 경계에서 충분한 새 활동이 누적됐는지 판단하고 T-note 생성을 예약하는 시점.
 _Avoid_: activity가 들어올 때마다 요약을 다시 만드는 동작.
 
@@ -29,6 +44,9 @@ _Avoid_: 코딩 세션 하나, 배포 파이프라인만을 뜻하는 lifecycle.
 
 **Orchestration Harness**: Service Lifecycle의 Stage를 실행기와 도구에 배분하고 승인·상태·Evidence·완료 판정을 일관되게 통제하는 WWW 제품 전체.
 _Avoid_: 모델 Router만 있는 오케스트레이터, 내부 Adapter 하나, 범용 Coding Agent.
+
+**First Product Milestone**: 한 프로젝트에서 Codex Native 작업을 요청하고, 진행을 이해하고, 필요한 결정을 내리고, 결과와 검증 근거를 확인한 뒤 안전하게 종료·재개할 수 있는 완결된 로컬 Workbench 흐름.
+_Avoid_: 공개 배포 전체 범위와의 자동 동일시, 전체 Service Lifecycle 자동화, 여러 프로젝트 Operations TUI, 장기 제품 비전 전체의 완료.
 
 **Application Runtime**: Work Chain·Workflow Loop·승인·Projection·Evidence의 상태와 생명주기를 소유하는 WWW의 실행 계층.
 _Avoid_: TUI 자체, Agent Execution Runtime, 저장 디렉터리.

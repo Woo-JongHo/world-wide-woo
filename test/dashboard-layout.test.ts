@@ -26,8 +26,8 @@ function dashboard() {
 	return createDashboardLayout(
 		() => "WWW · test/model",
 		{ title: "대화 · 작업", color: identity, component: new Lines(["왼쪽 내용"]) },
-		{ title: "실시간 사용량", color: identity, component: new Lines(["Codex 66% 남음", "Claude 로그인 필요"]) },
-		{ title: "Router · 세션", color: identity, component: new Lines(["openai-codex", "최근 세션"]) },
+		{ title: "Todo", color: identity, component: new Lines(["현재 작업"]) },
+		{ title: "Tracer", color: identity, component: new Lines(["실행 추적"]) },
 	);
 }
 
@@ -37,8 +37,8 @@ describe("dashboard layout", () => {
 		const frame = renderLayoutFrame(layout.component, 120, 30, () => undefined);
 		expect(frame.lines.every((line) => visibleWidth(line) === 0 || visibleWidth(line) === 120)).toBe(true);
 		expect(frame.lines.join("\n")).toContain("대화 · 작업");
-		expect(frame.lines.join("\n")).toContain("실시간 사용량");
-		expect(frame.lines.join("\n")).toContain("Router · 세션");
+		expect(frame.lines.join("\n")).toContain("Todo");
+		expect(frame.lines.join("\n")).toContain("Tracer");
 		expect(frame.lines.filter((line) => line.includes("╭")).length).toBe(1);
 		expect(frame.lines.at(-1)).toContain("╰");
 		for (const line of frame.lines.slice(1, -1)) {
@@ -51,24 +51,27 @@ describe("dashboard layout", () => {
 		expect(layout.leftScroll.viewportHeight).toBeGreaterThan(0);
 		expect(layout.usageScroll.viewportHeight).toBeGreaterThan(0);
 		expect(layout.routerScroll.viewportHeight).toBeGreaterThan(0);
-		// Todo/Plan owns more of the right column than the T-note list.
-		expect(layout.routerScroll.viewportHeight).toBeGreaterThan(layout.usageScroll.viewportHeight);
+		// Todo owns roughly 60% and Tracer the remaining 40% of the right rail.
+		expect(layout.usageScroll.viewportHeight).toBeGreaterThan(layout.routerScroll.viewportHeight);
+		expect(layout.usageScroll.viewportHeight / layout.routerScroll.viewportHeight).toBeGreaterThanOrEqual(1.25);
+		expect(layout.usageScroll.viewportHeight / layout.routerScroll.viewportHeight).toBeLessThanOrEqual(1.75);
 	});
 
 	test("uses one ordered viewport inside the same frame when compact", () => {
 		const frame = renderLayoutFrame(dashboard().component, 70, 24, () => undefined);
 		expect(frame.lines.every((line) => visibleWidth(line) === 0 || visibleWidth(line) === 70)).toBe(true);
 		expect(frame.lines.join("\n")).toContain("대화 · 작업");
-		expect(frame.lines.join("\n")).toContain("실시간 사용량");
-		expect(frame.lines.join("\n")).toContain("Router · 세션");
+		expect(frame.lines.join("\n")).toContain("Todo");
+		expect(frame.lines.join("\n")).toContain("Tracer");
+		expect(frame.lines.findIndex(line => line.includes("Todo"))).toBeLessThan(frame.lines.findIndex(line => line.includes("Tracer")));
 	});
 
 	test.each([10, 13])("keeps every section reachable at 120×%i", (height) => {
 		const frame = renderLayoutFrame(dashboard().component, 120, height, () => undefined);
 		const output = scrollContent(frame.root).join("\n");
 		expect(output).toContain("대화 · 작업");
-		expect(output).toContain("실시간 사용량");
-		expect(output).toContain("Router · 세션");
+		expect(output).toContain("Todo");
+		expect(output).toContain("Tracer");
 	});
 
 	test("reuses section rows when a child returns the same stable projection", () => {

@@ -1,0 +1,31 @@
+version: 2
+project: World Wide Woo
+hierarchy:
+  workbench:
+    root: WOO-674
+    features:
+      Chat: { parent: WOO-679, numbered: [1, 8], exception: WOO-719, test: WOO-720 }
+      Todo: { parent: WOO-682, numbered: [1, 4], exception: WOO-721, test: WOO-722 }
+      Tracer: { parent: WOO-681, numbered: [1, 4], exception: WOO-723, test: WOO-724 }
+      Layout: { parent: WOO-680, numbered: [1, 2], exception: WOO-725, test: WOO-726 }
+  traceability:
+    parent: WOO-672
+    milestone: v0.2.0 — Development Traceability
+    issues: [WOO-695, WOO-696, WOO-697, WOO-698, WOO-699]
+titles:
+  numberedPattern: "^(\\d{2})\\. .+"
+  exception: 예외 처리
+  test: 테스트
+  forbiddenIntermediates: [WOO-683]
+bodies:
+  parent: [목적, 결과, 범위, 완료 조건, 연결]
+  numbered: [목적, 결과, 범위, 동작, 완료 조건, 연결]
+  exception: [목적, 결과, 범위, 동작, 완료 조건, 연결]
+  test: [목적, 결과, 범위, 동작, 완료 조건, 연결]
+  traceability: [목적, 결과, 범위, 동작, 완료 조건, 연결]
+connections:
+  codeIdPattern: "^- Code-ID: Code-\\d{3}(?:, Code-\\d{3})*$"
+  githubPattern: "^- GitHub: \\[#[0-9]+\\]\\(https://github\\.com/Woo-JongHo/world-wide-woo/(?:pull|issues)/[0-9]+\\)$"
+  obsidianPattern: "^- Obsidian: \\[.+\\]\\(obsidian://open\\?vault=5521cc40c75eb293&file=.+\\)$"
+  codeIdIsPlainText: true
+protectedMetadata: [status, labels, projectMilestone, project, priority, archivedAt, parentId]

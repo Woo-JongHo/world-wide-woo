@@ -3,11 +3,18 @@ import type { Effort } from "./model-settings.js";
 import type { ProjectActivity } from "./project-activity.js";
 import type { TodoDocument } from "./todos.js";
 import type { ReviewProvider } from "./review.js";
-import type { WorkFlowProjection } from "./work-steps.js";
+import type { WorkFlowProjection } from "./work/index.js";
+import type { ActivitySelectionResult } from "./trace-selection.js";
 
 export type WorkbenchPhase = "loading" | "ready" | "working" | "error" | "closed";
 export type WorkbenchPermissionMode = "manual" | "all";
 export type WorkbenchCollaborationMode = "manual" | "plan";
+
+export interface WorkbenchTodoSyncState {
+	readonly state: "idle" | "syncing" | "confirmed" | "blocked";
+	readonly lastConfirmedAt: string | null;
+	readonly message: string | null;
+}
 
 export interface WorkbenchChatMessage {
 	id: string;
@@ -154,10 +161,14 @@ export interface WorkbenchSnapshot {
 	workFlow: WorkFlowProjection;
 	tnotes: readonly WorkbenchTNote[];
 	todo: TodoDocument | null;
+	/** Durable Todo mirror health; Chat execution continues while this is blocked. */
+	todoSync?: WorkbenchTodoSyncState;
 	actionResult: WorkbenchActionResult | null;
 	/** True only while a chat send is unconfirmed and `/cancel` can still reconcile it. */
 	deliveryUncertain?: boolean;
 	error: string | null;
+	/** Independent from Native execution errors; older snapshots may omit it. */
+	developmentRecordingError?: string | null;
 }
 
 export type WorkbenchCommand =
@@ -165,6 +176,7 @@ export type WorkbenchCommand =
 	| { type: "chat.cancel" }
 	| { type: "approval.resolve"; requestId: string | number; response: NativeApprovalResponse }
 	| { type: "activity.select"; activityId: string | null }
+	| { type: "trace.select"; activityId: string }
 	| { type: "session.permission"; mode: WorkbenchPermissionMode }
 	| { type: "session.mode"; mode: WorkbenchCollaborationMode }
 	| { type: "session.model"; selection: WorkbenchModelSelection }
@@ -188,9 +200,9 @@ export type WorkbenchCommand =
 	| { type: "review.send"; digest: string };
 
 export type WorkbenchCommandReceipt =
-	| { state: "accepted"; commandId: string; activitySequence?: number; message?: string }
+	| { state: "accepted"; commandId: string; activitySequence?: number; message?: string; selection?: Extract<ActivitySelectionResult, { state: "selected" }> }
 	| { state: "queued"; commandId: string; position: number }
-	| { state: "rejected"; commandId: string; reason: string }
+	| { state: "rejected"; commandId: string; reason: string; selection?: Extract<ActivitySelectionResult, { state: "failed" }> }
 	| { state: "uncertain"; commandId: string; reason: string; resolution: "manual-reconcile" };
 
 export type WorkbenchListener = (snapshot: WorkbenchSnapshot) => void;

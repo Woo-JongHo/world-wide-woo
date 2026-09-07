@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { homedir } from "node:os";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
 import type { ProjectActivity } from "../src/domain/project-activity";
-import { projectWorkFlow, type DplanHash } from "../src/domain/work-steps";
+import { projectWorkFlow, type DplanHash } from "../src/domain/work/index";
 import {
 	executionLineTone,
 	ObservationCard,

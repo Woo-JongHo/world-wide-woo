@@ -1,3 +1,4 @@
+/** @linear WOO-688 WOO-690 WOO-691 */
 import { createHash, randomUUID } from "node:crypto";
 import type { ExecutorPort } from "./ports/executor-port.js";
 import { createCanonicalDocumentDraft, type CanonicalPromotionService } from "./canonical-promotion.js";
@@ -37,12 +38,13 @@ import type { TodoDocument, TodoNativePlanBinding } from "../domain/todos.js";
 import type { CanonicalDocumentDraft } from "../domain/canonical-document.js";
 import type { ReviewPacket, ReviewProvider } from "../domain/review.js";
 import {
+	classifyWorkActivity,
 	projectWorkFlow,
 	type DplanHash,
 	type WorkFlowProjectionInput,
 	type WorkFlowProjection,
 	type WorkStepNarration,
-} from "../domain/work-steps.js";
+} from "../domain/work/index.js";
 import {
 	projectTNoteCompletionIndex,
 	projectActivityToTNoteSource,
@@ -64,11 +66,14 @@ import type {
 	WorkbenchMcpServer,
 	WorkbenchModelSelection,
 	WorkbenchPermissionMode,
+	WorkbenchResumeCoverage,
 	WorkbenchSessionGoal,
 	WorkbenchSnapshot,
 	WorkbenchTNote,
+	WorkbenchTodoSyncState,
 } from "../domain/workbench.js";
 import { workbenchApprovalDecisions } from "../domain/workbench.js";
+import { resolveActivitySelection, resolveTraceSelection, type ActivitySelectionResult } from "../domain/trace-selection.js";
 
 const LIVE_ACTIVITY_TAIL_CHARACTER_LIMIT = 32 * 1024 - 128;
 const contextComposer = new ContextComposer();
@@ -158,6 +163,8 @@ export interface WorkbenchTNoteSource {
 }
 
 export interface ProjectWorkbenchOptions {
+	/** Receives newly persisted public observations; it never owns Native execution state. */
+	developmentObserver?: { capture(activity: ProjectActivity): void | Promise<void> };
 	projectId: string;
 	/** Local, per-process journal namespace. Defaults to the project identity. */
 	activityJournalProjectId?: string;
@@ -180,10 +187,12 @@ export interface ProjectWorkbenchOptions {
 	persistModelSelection?: (selection: WorkbenchModelSelection) => Promise<void>;
 }
 
+/** @Unit Code-002 */
 /**
  * Coordinates native conversation state behind one application-owned boundary.
  * Native observations become visible only after their durable journal append.
  */
+/** @codeId 0002 */
 export class ProjectWorkbench {
 	private readonly listeners = new Set<WorkbenchListener>();
 	private readonly activities: ProjectActivity[] = [];
@@ -194,6 +203,7 @@ export class ProjectWorkbench {
 	private readonly terminalItems = new Set<string>();
 	private readonly noteDrafts = new Map<string, TNoteDraft>();
 	private readonly completionOrdinals = new Map<string, number>();
+	private readonly collaborationModeByTurnId = new Map<string, WorkbenchCollaborationMode>();
 	private readonly threadOwnersByTurnId = new Map<string, Set<string>>();
 	private readonly turnOwnersByThreadItemId = new Map<string, Set<string>>();
 	private readonly promotionDrafts = new Map<string, CanonicalDocumentDraft>();
@@ -235,7 +245,9 @@ export class ProjectWorkbench {
 	/** A submitted root question can update the public goal before Native confirms its turn id. */
 	private pendingPlanGoalActivityId: string | null = null;
 	private todo: TodoDocument | null;
+	private todoSync: WorkbenchTodoSyncState = { state: "idle", lastConfirmedAt: null, message: null };
 	private error: string | null = null;
+	private developmentRecordingError: string | null = null;
 	private draft = "";
 	private reasoningDraft = "";
 	private reasoningSummaryDraft = "";
@@ -298,6 +310,7 @@ export class ProjectWorkbench {
 		this.approvalPolicy = options.approvalPolicy ?? "on-request";
 		this.sandbox = options.sandbox ?? "workspace-write";
 		this.todo = immutable(options.todos?.snapshot ?? null);
+		if (this.todo) this.todoSync = immutable({ state: "confirmed", lastConfirmedAt: this.todo.updatedAt, message: null });
 		this.current = this.makeSnapshot("loading");
 		this.ready = this.initialize();
 		this.unsubscribeNative = native.subscribe((event) => {
@@ -308,6 +321,9 @@ export class ProjectWorkbench {
 		});
 		this.unsubscribeTodo = options.todos?.subscribe((todo) => {
 			this.todo = immutable(todo);
+			if (todo && this.todoSync.state !== "blocked") {
+				this.todoSync = immutable({ state: "confirmed", lastConfirmedAt: todo.updatedAt, message: null });
+			}
 			this.publish();
 		}) ?? (() => undefined);
 		this.unsubscribeAuxiliaryUsage = options.auxiliaryUsage?.subscribe(() => this.publish()) ?? (() => undefined);
@@ -338,11 +354,25 @@ export class ProjectWorkbench {
 	}
 
 	public dispatch(command: WorkbenchCommand): Promise<WorkbenchCommandReceipt> {
+		// Cancellation is an out-of-band control signal. It must not wait behind a
+		// journal write or another serialized command while the active turn is stuck.
+		if (command.type === "chat.cancel") return this.dispatchCancellation();
 		const operation = this.commandQueue
 			.catch(() => undefined)
 			.then(() => this.dispatchSerialized(command));
 		this.commandQueue = operation.then(() => undefined, () => undefined);
 		return operation;
+	}
+
+	private async dispatchCancellation(): Promise<WorkbenchCommandReceipt> {
+		const commandId = randomUUID();
+		if (this.closed) return { state: "rejected", commandId, reason: "Workbench가 종료되었습니다." };
+		try {
+			await this.ready;
+			return await this.cancelChat(commandId);
+		} catch (error) {
+			return { state: "rejected", commandId, reason: errorMessage(error) };
+		}
 	}
 
 	private async dispatchSerialized(command: WorkbenchCommand): Promise<WorkbenchCommandReceipt> {
@@ -353,6 +383,7 @@ export class ProjectWorkbench {
 			await this.eventQueue;
 				switch (command.type) {
 				case "activity.select": return this.selectActivity(commandId, command.activityId);
+				case "trace.select": return this.selectTraceActivity(commandId, command.activityId);
 				case "session.permission": return this.configurePermission(commandId, command.mode);
 				case "session.mode": return this.configureCollaboration(commandId, command.mode);
 				case "session.model": return await this.configureModel(commandId, command.selection);
@@ -603,6 +634,7 @@ export class ProjectWorkbench {
 		this.contextTurnId = turn.id;
 		this.activeTurnId = turn.id;
 		this.selectedPlanTurnId = turn.id;
+		this.collaborationModeByTurnId.set(turn.id, this.collaborationMode);
 		this.pendingPlanGoalActivityId = null;
 		this.invalidateWorkFlow();
 		this.chatDeliveryBlocked = false;
@@ -617,6 +649,7 @@ export class ProjectWorkbench {
 			method: "turn/start",
 			turn: turn.value,
 		});
+		if (this.collaborationMode === "manual") await this.carryPublicPlanFallback(turn.id);
 		return sent;
 	}
 
@@ -745,13 +778,55 @@ export class ProjectWorkbench {
 
 	/** @linear WOO-718 */
 	private selectActivity(commandId: string, activityId: string | null): WorkbenchCommandReceipt {
-		if (activityId && !this.visibleActivities.some((activity) => activity.id === activityId
-			&& (!this.threadId || activity.nativeRefs.threadId === this.threadId))) {
-			return { state: "rejected", commandId, reason: `Activity를 찾을 수 없습니다: ${activityId}` };
+		if (!activityId) {
+			this.selectedActivityId = null;
+			this.publish();
+			return { state: "accepted", commandId };
 		}
+		const selection = resolveActivitySelection({
+			activityId,
+			activities: this.activities,
+			currentThreadId: this.threadId,
+			resumeCoverage: this.resumeCoverage(),
+		});
+		if (selection.state === "failed") return this.rejectedSelection(commandId, selection);
 		this.selectedActivityId = activityId;
 		this.publish();
-		return { state: "accepted", commandId };
+		return { state: "accepted", commandId, selection };
+	}
+
+	private selectTraceActivity(commandId: string, activityId: string): WorkbenchCommandReceipt {
+		const selection = resolveTraceSelection({
+			activityId,
+			activities: this.activities,
+			currentThreadId: this.threadId,
+			workFlow: this.projectCurrentWorkFlow(),
+			resumeCoverage: this.resumeCoverage(),
+		});
+		if (selection.state === "failed") return this.rejectedSelection(commandId, selection);
+		this.selectedActivityId = selection.identity.activityId;
+		this.publish();
+		return { state: "accepted", commandId, selection };
+	}
+
+	private rejectedSelection(
+		commandId: string,
+		selection: Extract<ActivitySelectionResult, { state: "failed" }>,
+	): WorkbenchCommandReceipt {
+		return {
+			state: "rejected",
+			commandId,
+			reason: `Activity 선택 실패 (${selection.failure.code}): ${selection.failure.activityId}`,
+			selection,
+		};
+	}
+
+	private resumeCoverage(): WorkbenchResumeCoverage {
+		return {
+			mode: this.options.resumeThreadId ? "partial-local-journal" : "fresh",
+			processAttachedAt: this.processAttachedAt,
+			priorProviderHistoryHydrated: false,
+		};
 	}
 
 	private configurePermission(commandId: string, mode: WorkbenchPermissionMode): WorkbenchCommandReceipt {
@@ -1171,6 +1246,7 @@ export class ProjectWorkbench {
 		this.publish();
 	}
 
+	/** @linear WOO-688 WOO-690 */
 	private async recordNativeEvent(event: NativeHarnessEvent): Promise<void> {
 		if (this.closed) return;
 		// A shared App Server can emit for threads this workbench does not own, and the journal
@@ -1223,9 +1299,14 @@ export class ProjectWorkbench {
 			false,
 			sourceDigest,
 		);
+		if (completedSummaryCheckpoint && event.type === "notification" && event.refs.threadId && event.refs.turnId) {
+			await this.projectPublicPlanFallback(event.refs.threadId, event.refs.turnId);
+		}
 		const projectedGoal = projectSessionGoal(this.visibleActivities);
 		if (projectedGoal) this.sessionGoal = projectedGoal;
-		if (event.type === "approval-requested") this.pendingApproval = immutable(event.approval);
+		if (event.type === "approval-requested" && this.isRootThreadEvent(event.approval.refs.threadId)) {
+			this.pendingApproval = immutable(event.approval);
+		}
 		const approvalResolved = event.type === "approval-resolved" && this.pendingApproval?.requestId === event.requestId;
 		if (approvalResolved) this.pendingApproval = null;
 		if (event.type === "notification") {
@@ -1237,6 +1318,9 @@ export class ProjectWorkbench {
 				this.activeTurnId = event.refs.turnId;
 				this.selectedPlanTurnId = event.refs.turnId;
 				this.contextTurnId = event.refs.turnId;
+				if (!this.collaborationModeByTurnId.has(event.refs.turnId)) {
+					this.collaborationModeByTurnId.set(event.refs.turnId, this.collaborationMode);
+				}
 				if (!this.usageTracker.hasTurn(event.refs.turnId)) {
 					this.usageTracker.bindTurn(event.refs.turnId, this.effectiveModel, this.effectiveEffort);
 				}
@@ -1302,6 +1386,87 @@ export class ProjectWorkbench {
 		if (completedActiveTurn || approvalResolved) await this.drainChatQueue();
 	}
 
+	private async projectPublicPlanFallback(threadId: string, turnId: string): Promise<void> {
+		if (this.collaborationModeByTurnId.get(turnId) !== "plan") return;
+		const sameTurn = this.activities.filter((activity) =>
+			activity.nativeRefs.threadId === threadId && activity.nativeRefs.turnId === turnId);
+		if (sameTurn.some(isStructuredPlanActivity) || sameTurn.some(isPublicPlanFallbackActivity)) return;
+		const assistants = sameTurn.slice().reverse().filter((activity) =>
+			activity.kind === "message"
+			&& activity.phase === "completed"
+			&& isAssistantMessageActivity(activity)
+			&& activity.payload.finalObservation !== "missing"
+			&& activityText(activity.payload).trim().length > 0);
+		const request = sameTurn.find((activity) => activity.payload.method === "request/started");
+		const requestId = typeof request?.payload.requestId === "string" ? request.payload.requestId : null;
+		const outbound = requestId ? this.activities.slice().reverse().find((activity) =>
+			activity.nativeRefs.threadId === threadId
+			&& activity.nativeRefs.itemId === requestId
+			&& activity.payload.direction === "outbound"
+			&& typeof activity.payload.text === "string") : undefined;
+		const requestText = typeof outbound?.payload.text === "string" ? outbound.payload.text : "";
+		const candidate = assistants.map((assistant) => ({
+			assistant,
+			entries: publicNumberedPlanEntries(activityText(assistant.payload), requestText),
+		})).find((value) => value.entries !== null);
+		if (!candidate?.entries) {
+			const hasObservedWork = sameTurn.some((activity) => classifyWorkActivity(activity) !== "control");
+			const turnStart = sameTurn.find((activity) =>
+				activity.payload.method === "turn/start" || activity.payload.method === "turn/started");
+			if (!hasObservedWork || !turnStart || !requestText.trim()) return;
+			const refs = {
+				threadId,
+				turnId,
+				itemId: `missing-plan-fallback:${turnId}`,
+			};
+			const payload = {
+				method: "turn/plan/public-fallback",
+				source: "public-user-request",
+				sourceActivityId: turnStart.id,
+				userRequestActivityId: outbound?.id ?? null,
+				params: { plan: [{ step: "계획 본문 미수신", status: "pending" }] },
+			};
+			await this.appendActivity("progress", "completed", refs, payload, false, digestSource(stableJson({ refs, payload })));
+			return;
+		}
+		const { assistant, entries } = candidate;
+		const refs = {
+			threadId,
+			turnId,
+			itemId: `public-plan-fallback:${turnId}`,
+		};
+		const payload = {
+			method: "turn/plan/public-fallback",
+			source: "public-assistant-response",
+			sourceActivityId: assistant.id,
+			sourceItemId: assistant.nativeRefs.itemId ?? null,
+			params: { plan: entries },
+		};
+		await this.appendActivity("progress", "completed", refs, payload, false, digestSource(stableJson({ refs, payload })));
+	}
+
+	private async carryPublicPlanFallback(turnId: string): Promise<void> {
+		if (!this.threadId) return;
+		const latestPlan = this.activities.slice().reverse().find((activity) =>
+			activity.nativeRefs.threadId === this.threadId && isAnyPlanActivity(activity));
+		if (!latestPlan || !isPublicPlanFallbackActivity(latestPlan)) return;
+		const params = record(latestPlan.payload.params);
+		if (!params || !Array.isArray(params.plan)) return;
+		const refs = {
+			threadId: this.threadId,
+			turnId,
+			itemId: `public-plan-fallback:${turnId}`,
+		};
+		const payload = {
+			method: "turn/plan/public-fallback",
+			source: "public-assistant-response",
+			carriedFromActivityId: latestPlan.id,
+			carriedFromTurnId: latestPlan.nativeRefs.turnId ?? null,
+			params: { plan: params.plan },
+		};
+		await this.appendActivity("progress", "completed", refs, payload, false, digestSource(stableJson({ refs, payload })));
+	}
+
 	/**
 	 * T-notes describe one completed user question at a time. Generation stays
 	 * on a detached queue so it cannot delay the next native Chat turn.
@@ -1355,6 +1520,7 @@ export class ProjectWorkbench {
 			.some((note) => note.packet.activities.some((activity) => activity.id === terminalActivityId)));
 	}
 
+	/** @linear WOO-688 */
 	private async applyDelta(event: Extract<NativeHarnessEvent, { type: "notification" }>): Promise<void> {
 		if (event.refs.threadId) this.threadId = event.refs.threadId;
 		const delta = activityText({ params: event.params });
@@ -1472,6 +1638,14 @@ export class ProjectWorkbench {
 			payload,
 		});
 		const durableActivity = immutable(result.activity);
+		if (result.appended && this.options.developmentObserver) {
+			try {
+				await this.options.developmentObserver.capture(durableActivity);
+			} catch (error) {
+				// A recording failure must not turn a successful Native operation into a failure.
+				this.developmentRecordingError = errorMessage(error);
+			}
+		}
 		const added = result.appended || !this.activities.some((activity) => activity.id === result.activity.id);
 		if (added) {
 			this.activities.push(durableActivity);
@@ -1624,11 +1798,7 @@ export class ProjectWorkbench {
 			effort: this.effectiveEffort,
 			contextUsage: this.usageTracker.contextUsage,
 			sessionUsage: this.usageTracker.snapshot(this.options.auxiliaryUsage),
-			resumeCoverage: {
-				mode: this.options.resumeThreadId ? "partial-local-journal" : "fresh",
-				processAttachedAt: this.processAttachedAt,
-				priorProviderHistoryHydrated: false,
-			},
+			resumeCoverage: this.resumeCoverage(),
 			sessionGoal: this.sessionGoal,
 			permissionMode: this.permissionMode,
 			collaborationMode: this.collaborationMode,
@@ -1649,9 +1819,11 @@ export class ProjectWorkbench {
 			workFlow: this.projectCurrentWorkFlow(),
 			tnotes: this.projectDurableNotes(),
 			todo: this.todo,
+			todoSync: this.todoSync,
 			actionResult: this.actionResult,
 			deliveryUncertain: this.chatDeliveryBlocked && this.blockedChat !== null,
 			error: this.error,
+			developmentRecordingError: this.developmentRecordingError,
 		});
 	}
 
@@ -1760,7 +1932,7 @@ export class ProjectWorkbench {
 		const item = typeof activity.payload.params === "object" && activity.payload.params !== null
 			? (activity.payload.params as { item?: { type?: unknown } }).item
 			: undefined;
-		const isPlanActivity = method === "turn/plan/updated" || method === "item/completed"
+		const isPlanActivity = method === "turn/plan/updated" || method === "turn/plan/public-fallback" || method === "item/completed"
 			&& typeof item?.type === "string" && item.type.toLowerCase() === "plan";
 		const updatesPlan = isPlanActivity && source.currentRevision.activityId === activity.id;
 		const contributesExecution = flow.steps.some((step) => step.activityIds.includes(activity.id));
@@ -1782,15 +1954,28 @@ export class ProjectWorkbench {
 		flow: WorkFlowProjection,
 	): void {
 		const binding = this.nativeTodoBinding(flow);
+		this.todoSync = immutable({
+			state: "syncing",
+			lastConfirmedAt: this.todoSync.lastConfirmedAt ?? this.todo?.updatedAt ?? null,
+			message: null,
+		});
+		this.publish();
 		this.todoSyncQueue = this.todoSyncQueue
 			.catch(() => undefined)
 			.then(async () => {
 				try {
-					await sync(flow, binding);
+					const document = await sync(flow, binding);
+					this.todoSync = immutable({ state: "confirmed", lastConfirmedAt: document.updatedAt, message: null });
+					this.publish();
 				} catch (error) {
 					const body = error instanceof TodoWriteConflictError
-						? stableJson({ currentSource: error.currentSource, pending: error.pending })
-						: errorMessage(error);
+						? "다른 편집과 충돌했습니다. 저장된 내용을 유지하며 다음 계획 관측 때 다시 확인합니다."
+						: "계획을 저장하지 못했습니다. 대화는 계속되며 다음 계획 관측 때 다시 시도합니다.";
+					this.todoSync = immutable({
+						state: "blocked",
+						lastConfirmedAt: this.todoSync.lastConfirmedAt ?? this.todo?.updatedAt ?? null,
+						message: body,
+					});
 					this.actionResult = immutable({
 						kind: "todo",
 						title: "Todo 자동 동기화 보류",
@@ -2214,6 +2399,63 @@ function isAssistantMessageActivity(activity: ProjectActivity): boolean {
 	const itemType = String(record(params?.item)?.type ?? "").replace(/[-_]/gu, "").toLowerCase();
 	const method = typeof activity.payload.method === "string" ? activity.payload.method.toLowerCase() : "";
 	return itemType === "agentmessage" || method.startsWith("item/agentmessage/");
+}
+
+function isStructuredPlanActivity(activity: ProjectActivity): boolean {
+	if (activity.payload.method === "turn/plan/updated") return true;
+	if (activity.payload.method !== "item/completed") return false;
+	const item = record(record(activity.payload.params)?.item);
+	return typeof item?.type === "string" && item.type.toLowerCase() === "plan";
+}
+
+function isPublicPlanFallbackActivity(activity: ProjectActivity): boolean {
+	return activity.payload.method === "turn/plan/public-fallback"
+		&& activity.payload.source === "public-assistant-response";
+}
+
+function isMissingPlanFallbackActivity(activity: ProjectActivity): boolean {
+	return activity.payload.method === "turn/plan/public-fallback"
+		&& activity.payload.source === "public-user-request";
+}
+
+function isAnyPlanActivity(activity: ProjectActivity): boolean {
+	return isStructuredPlanActivity(activity) || isPublicPlanFallbackActivity(activity) || isMissingPlanFallbackActivity(activity);
+}
+
+function publicNumberedPlanEntries(
+	text: string,
+	requestText: string,
+): ReadonlyArray<{ readonly step: string; readonly status: "inProgress" | "pending" }> | null {
+	const publicText = sanitizeTerminalTextUnbounded(text).replace(/\r\n?/gu, "\n").trim();
+	if (!publicText || [...publicText].length > 12_000 || /```/u.test(publicText)) return null;
+	const preamble = publicText.split("\n").find((line) => line.trim() && !/^\s*\d+[.)]\s+/u.test(line)) ?? "";
+	if (!/(?:계획|단계|순서|절차|진행|실행|작업|plan|steps?|procedure|workflow)/iu.test(`${requestText}\n${preamble}`)) return null;
+	const entries: Array<{ step: string; status: "inProgress" | "pending" }> = [];
+	let started = false;
+	let ended = false;
+	let introLines = 0;
+	for (const line of publicText.split("\n")) {
+		if (!line.trim()) continue;
+		const numbered = /^\s*(\d+)[.)]\s+(.+?)\s*$/u.exec(line);
+		if (!numbered) {
+			if (!started && introLines < 4 && !/^\s*[-*+]\s+/u.test(line)) {
+				introLines += 1;
+				continue;
+			}
+			if (started) {
+				ended = true;
+				continue;
+			}
+			return null;
+		}
+		if (ended) return null;
+		started = true;
+		const ordinal = Number(numbered[1]);
+		const step = numbered[2]!.trim().replace(/^\*\*(.+)\*\*$/u, "$1").trim();
+		if (ordinal !== entries.length + 1 || !step || [...step].length > 240 || entries.length >= 12) return null;
+		entries.push({ step, status: entries.length === 0 ? "inProgress" : "pending" });
+	}
+	return entries.length >= 2 ? entries : null;
 }
 
 function missingAssistantResponseNotice(phase: ProjectActivityPhase): string {
