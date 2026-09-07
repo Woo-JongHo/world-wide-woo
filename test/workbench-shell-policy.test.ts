@@ -9,7 +9,6 @@ import {
 	workbenchDashboardSessionIndex,
 	workbenchEscapeView,
 	workbenchActivityIndicator,
-	approvalDecisionFromInput,
 	loginProviderFromInput,
 	workbenchFrameTitle,
 	workbenchModelSettings,
@@ -20,6 +19,7 @@ import {
 	workbenchViewModeForCommand,
 	workbenchViewModeCommand,
 } from "../src/presentation/tui/workbench-shell";
+import * as workbenchShell from "../src/presentation/tui/workbench-shell";
 import { RenderScheduler } from "../src/presentation/tui/render-scheduler";
 import { composerBorderColor, composerBorderHex } from "../src/presentation/tui/theme";
 import { workbenchApprovalIdentity, workbenchExternalMutationCandidates } from "../src/domain/workbench";
@@ -40,11 +40,11 @@ const workingSnapshot = {
 } as const;
 
 describe("native workbench shell receipt policy", () => {
-	test("accepts or declines a pending approval through natural Chat input", () => {
-		for (const text of ["네", "승인해", "진행해", "yes"]) expect(approvalDecisionFromInput(text)).toBe("accept");
-		for (const text of ["아니요", "거절해", "취소", "no"]) expect(approvalDecisionFromInput(text)).toBe("decline");
-		expect(approvalDecisionFromInput("이번 세션 동안 승인")).toBe("acceptForSession");
-		expect(approvalDecisionFromInput("설명을 더 해줘")).toBeNull();
+	test("does not parse ordinary Chat input as an approval decision", () => {
+		for (const text of ["네", "승인해", "진행해", "yes", "아니요", "거절해", "취소", "no", "이번 세션 동안 승인"]) {
+			expect(parseWorkbenchShellCommand(text)).toBeNull();
+		}
+		expect("approvalDecisionFromInput" in workbenchShell).toBe(false);
 	});
 
 	test("cycles the focused Composer border through distinct shimmer frames", () => {

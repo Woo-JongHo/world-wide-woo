@@ -21,11 +21,12 @@ import { projectRuntimeMonitor, type RuntimeMonitorProjection } from "../../doma
 import { normalizeSettings, PROVIDERS, type Provider, type WwwSettings } from "../../domain/model-settings";
 import { projectSessionStats } from "../../domain/session-stats";
 import { sanitizeTerminalTextUnbounded } from "../../domain/terminal";
-import type { WorkbenchCommandReceipt, WorkbenchSnapshot } from "../../domain/workbench";
+import { workbenchApprovalIdentity, type WorkbenchCommandReceipt, type WorkbenchSnapshot } from "../../domain/workbench";
 import { createDashboardLayout } from "./dashboard-layout";
 import { StatusLine, WorkspaceTodoView } from "./shared-dashboard-views";
 import { TNotesSourceView, WorkbenchChatView, WorkbenchMonitorView } from "./workbench-views";
 import { ExitKeyPolicy } from "./exit-key-policy";
+import { ApprovalOverlay } from "./approval-overlay";
 import { AuthFlowOverlay } from "./auth-overlay";
 import { ModelPickerOverlay } from "./model-picker-overlay";
 import { OverlaySheet } from "./overlay-sheet";
@@ -67,14 +68,6 @@ export function workbenchReceiptNotice(receipt: WorkbenchCommandReceipt): string
 /** @linear WOO-694 */
 export function workbenchReceiptClearsComposer(receipt: WorkbenchCommandReceipt): boolean {
 	return receipt.state !== "rejected";
-}
-
-export function approvalDecisionFromInput(text: string): "accept" | "acceptForSession" | "decline" | null {
-	const value = text.trim().toLocaleLowerCase("ko-KR").replace(/[.!?]+$/u, "");
-	if (["네", "예", "응", "승인", "승인해", "진행", "진행해", "yes", "y", "ok"].includes(value)) return "accept";
-	if (["이번 세션 동안 승인", "세션 동안 승인", "항상 승인", "accept for session"].includes(value)) return "acceptForSession";
-	if (["아니오", "아니요", "안돼", "거절", "거절해", "취소", "no", "n"].includes(value)) return "decline";
-	return null;
 }
 
 export function loginProviderFromInput(text: string): Provider | null {
@@ -474,6 +467,8 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	let observabilityNavigation = false;
 	let overlay: OverlayHandle | null = null;
 	let overlayKind: "model" | "approval" | "auth" | "development" | null = null;
+	let approvalOverlayRequestId: NonNullable<WorkbenchSnapshot["pendingApproval"]>["requestId"] | null = null;
+	let approvalOverlayIdentity: string | null = null;
 	let awaitingLoginProvider = false;
 	const exitKeys = new ExitKeyPolicy();
 	let unsubscribe: () => void = () => undefined;
@@ -570,6 +565,8 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		if (!overlay) return;
 		overlay.hide();
 		overlay = null;
+		approvalOverlayRequestId = null;
+		approvalOverlayIdentity = null;
 		overlayKind = null;
 		tui.setFocus(editor);
 	};
@@ -638,6 +635,68 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		});
 		overlayKind = "model";
 		panel.start();
+	};
+	const openApproval = (request: NonNullable<WorkbenchSnapshot["pendingApproval"]>): void => {
+		const approvalIdentity = workbenchApprovalIdentity(request);
+		if (overlayKind === "approval"
+			&& approvalOverlayRequestId === request.requestId
+			&& approvalOverlayIdentity === approvalIdentity) return;
+		if (overlayKind === "approval") closeOverlay();
+		if (overlay) return;
+		const panel = new ApprovalOverlay(
+			request,
+			() => tui.requestRender(),
+			(decision) => {
+				if (!snapshot.pendingApproval
+					|| snapshot.pendingApproval.requestId !== request.requestId
+					|| workbenchApprovalIdentity(snapshot.pendingApproval) !== approvalIdentity) {
+					closeOverlay();
+					showReceipt({ state: "rejected", commandId: "approval-stale", reason: "승인 후보가 변경되어 결정을 거부했습니다. 최신 후보를 확인하세요." });
+					if (snapshot.pendingApproval) openApproval(snapshot.pendingApproval);
+					return;
+				}
+				void workbench.dispatch({ type: "approval.resolve", requestId: request.requestId, response: { decision } })
+					.then((receipt) => {
+						showReceipt(receipt);
+						if (receipt.state === "accepted") {
+							closeOverlay();
+							return;
+						}
+						closeOverlay();
+						if (snapshot.pendingApproval) openApproval(snapshot.pendingApproval);
+					})
+					.catch((error) => {
+						status.setNotice(error instanceof Error ? error.message : String(error));
+						closeOverlay();
+						if (snapshot.pendingApproval) openApproval(snapshot.pendingApproval);
+						tui.requestRender();
+					});
+			},
+			() => {
+				void workbench.dispatch({ type: "chat.cancel" })
+					.then((receipt) => {
+						showReceipt(receipt);
+						if (receipt.state === "accepted") {
+							closeOverlay();
+							return;
+						}
+						closeOverlay();
+						if (snapshot.pendingApproval) openApproval(snapshot.pendingApproval);
+					})
+					.catch((error) => {
+						status.setNotice(error instanceof Error ? error.message : String(error));
+						closeOverlay();
+						if (snapshot.pendingApproval) openApproval(snapshot.pendingApproval);
+						tui.requestRender();
+					});
+			},
+		);
+		overlay = tui.showOverlay(new OverlaySheet(panel), {
+			width: "70%", minWidth: 46, maxHeight: "70%", anchor: "bottom-center", margin: 2,
+		});
+		overlayKind = "approval";
+		approvalOverlayRequestId = request.requestId;
+		approvalOverlayIdentity = approvalIdentity;
 	};
 	const handleLocal = async (text: string): Promise<boolean> => {
 		const developmentNotice = await executeDevelopmentShellCommand(text, dependencies.development);
@@ -863,24 +922,6 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 				return;
 			}
 			if (await handleLocal(text)) return;
-			if (snapshot.pendingApproval) {
-				const decision = approvalDecisionFromInput(text);
-				if (!decision) {
-					editor.setText(text);
-					status.setNotice("승인할까요? Input에 ‘네’ 또는 ‘아니요’라고 답해 주세요.");
-					tui.requestRender();
-					return;
-				}
-				const receipt = await workbench.dispatch({
-					type: "approval.resolve",
-					requestId: snapshot.pendingApproval.requestId,
-					response: { decision },
-				});
-				showReceipt(receipt);
-				if (workbenchReceiptClearsComposer(receipt)) await composerDraft?.clear().catch(() => undefined);
-				else editor.setText(text);
-				return;
-			}
 			const receipt = await workbench.dispatch({ type: "chat.send", text });
 			showReceipt(receipt);
 			if (workbenchReceiptClearsComposer(receipt)) {
@@ -896,7 +937,8 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		const urgency = workbenchRenderUrgency(snapshot, next);
 		const refreshTelemetry = snapshot.phase === "working" && next.phase !== "working";
 		snapshot = next;
-		if (snapshot.pendingApproval) status.setNotice("승인할까요? Input에 ‘네’ 또는 ‘아니요’라고 답해 주세요.");
+		if (snapshot.pendingApproval) openApproval(snapshot.pendingApproval);
+		else if (overlayKind === "approval") closeOverlay();
 		chat.syncActivity(workbenchActivityIndicator(snapshot), () => tui.requestRender());
 		if (refreshTelemetry) telemetry.refresh();
 		workbenchRenders.request(urgency);

@@ -118,11 +118,11 @@ export function approvalDetailLabel(request: NativeApprovalRequest): string {
 function approvalInstruction(request: NativeApprovalRequest): string {
 	const decisions = workbenchApprovalDecisions(request);
 	const instructions: string[] = [];
-	if (decisions.includes("accept")) instructions.push("승인 ‘네’");
-	if (decisions.includes("acceptForSession")) instructions.push("세션 ‘이번 세션 동안 승인’");
-	if (decisions.includes("decline")) instructions.push("거절 ‘아니요’");
+	if (decisions.includes("accept")) instructions.push("승인 /approve");
+	if (decisions.includes("acceptForSession")) instructions.push("세션 /approve-session");
+	if (decisions.includes("decline")) instructions.push("거절 /decline");
 	if (instructions.length === 0) instructions.push("중단 /cancel");
-	return `Input 답변 · ${instructions.join(" · ")}`;
+	return instructions.join(" · ");
 }
 
 function approvalCardRows(
@@ -140,7 +140,7 @@ function approvalCardRows(
 		`${colors.accent("이유")} · ${reason ?? approvalFallback(request)}`,
 		...(cwd ? [`${colors.accent("경로")} · ${cwd}`] : []),
 		colors.muted(approvalInstruction(request)),
-		colors.warning("승인할까요? 현재 턴은 Input 답변을 기다립니다."),
+		colors.warning("현재 턴 일시중지 · 승인 선택을 기다립니다."),
 		colors.muted(`백그라운드 작업 · ${background}`),
 		...(queueDepth > 0 ? [colors.muted(`대기 메시지 ${queueDepth}개 · 승인 후 순서대로 전송`)] : []),
 	];
