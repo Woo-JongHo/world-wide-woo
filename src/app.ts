@@ -30,13 +30,9 @@ export async function runApp(options: RunAppOptions = {}): Promise<void> {
 		},
 	});
 	try {
-		const { AuthService } = await import("./infrastructure/auth-service");
-		const { FileCredentialStore } = await import("./infrastructure/credential-store");
-		const { createModelRegistry } = await import("./infrastructure/model-router");
-		const credentials = new FileCredentialStore();
+		const { createProjectAuthController } = await import("./infrastructure/project-auth");
 		runProjectWorkbenchShell({
-			workbench: project.workbench, cwd: project.workspace.root, usage: project.usage,
-			auth: new AuthService(createModelRegistry(credentials)),
+			workbench: project.workbench, cwd: project.workspace.root, usage: project.usage, auth: createProjectAuthController(),
 			developmentMapSource: new FileDevelopmentMapSource(project.workspace.root),
 			development: project.development,
 			observabilityHistorySource: new ObservabilityHistorySource(join(project.workspace.root, ".www", "runtime", "activity")),
