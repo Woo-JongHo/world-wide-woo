@@ -30,8 +30,7 @@ export async function runApp(options: RunAppOptions = {}): Promise<void> {
 		},
 	});
 	try {
-		const { createProjectAuthController } = await import("./infrastructure/project-auth");
-		runProjectWorkbenchShell({
+		const { createProjectAuthController } = await import("./infrastructure/project-auth"); runProjectWorkbenchShell({
 			workbench: project.workbench, cwd: project.workspace.root, usage: project.usage, auth: createProjectAuthController(),
 			developmentMapSource: new FileDevelopmentMapSource(project.workspace.root),
 			development: project.development,
