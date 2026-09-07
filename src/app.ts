@@ -30,8 +30,13 @@ export async function runApp(options: RunAppOptions = {}): Promise<void> {
 		},
 	});
 	try {
+		const { AuthService } = await import("./infrastructure/auth-service");
+		const { FileCredentialStore } = await import("./infrastructure/credential-store");
+		const { createModelRegistry } = await import("./infrastructure/model-router");
+		const credentials = new FileCredentialStore();
 		runProjectWorkbenchShell({
 			workbench: project.workbench, cwd: project.workspace.root, usage: project.usage,
+			auth: new AuthService(createModelRegistry(credentials)),
 			developmentMapSource: new FileDevelopmentMapSource(project.workspace.root),
 			observabilityHistorySource: new ObservabilityHistorySource(join(project.workspace.root, ".www", "runtime", "activity")),
 			gitTelemetrySource: new GitTelemetrySource(), homeDirectory: homedir(),
