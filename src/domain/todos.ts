@@ -2,6 +2,50 @@ export const TODO_ITEM_STATUSES = ["pending", "in_progress", "completed", "block
 export const MAX_TODO_EVIDENCE = 8;
 export type TodoItemStatus = (typeof TODO_ITEM_STATUSES)[number];
 
+export interface TodoPlanRevisionReference {
+	readonly sourceRevisionKeyDigest: string;
+	readonly activityId: string;
+	readonly sequence: number;
+	readonly sourceDigest: string;
+}
+
+export interface TodoInputReference {
+	readonly activityId: string;
+	readonly requestId: string;
+	readonly sourceDigest: string;
+}
+
+export interface TodoExecutionReference {
+	readonly provider: string | null;
+	readonly model: string | null;
+	readonly agentId: string | null;
+	readonly threadId: string | null;
+	readonly runId: string | null;
+}
+
+/** @linear WOO-702 Native provenance survives Todo.md storage and session resume. */
+export interface TodoNativePlanSource {
+	readonly kind: "native-plan";
+	readonly threadKeyDigest: string;
+	readonly turnId: string;
+	readonly input: TodoInputReference | null;
+	readonly planRevision: TodoPlanRevisionReference;
+	readonly rootExecution: TodoExecutionReference;
+}
+
+export interface TodoNativePlanItemSource {
+	readonly kind: "native-plan-item";
+	readonly identity: string;
+	readonly originRevision: TodoPlanRevisionReference;
+	readonly currentRevision: TodoPlanRevisionReference;
+	readonly executions: readonly TodoExecutionReference[];
+}
+
+export interface TodoNativePlanBinding {
+	readonly input: TodoInputReference | null;
+	readonly rootExecution: TodoExecutionReference;
+}
+
 export interface TodoDetail {
 	readonly id: string;
 	readonly content: string;
@@ -15,6 +59,8 @@ export interface TodoItem {
 	readonly status: TodoItemStatus;
 	readonly evidenceIds: readonly string[];
 	readonly details: readonly TodoDetail[];
+	/** Absent on reference-free legacy and manually-authored Todo documents. */
+	readonly source?: TodoNativePlanItemSource;
 }
 
 export interface TodoDocument {
@@ -26,6 +72,8 @@ export interface TodoDocument {
 	readonly title: string;
 	readonly items: readonly TodoItem[];
 	readonly updatedAt: string;
+	/** Absent means the historical document has no observed Native model/agent/Plan binding. */
+	readonly source?: TodoNativePlanSource;
 }
 
 export interface TodoProgress {
@@ -43,6 +91,7 @@ const isoDatePattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 const ansiPattern = /\u001B\[[0-?]*[ -/]*[@-~]/g;
 const oscPattern = /\u001B\][\s\S]*?(?:\u0007|\u001B\\)/g;
 const controlPattern = /[\u0000-\u001F\u007F-\u009F]/g;
+const referenceControlPattern = /[\u0000-\u001F\u007F-\u009F]/u;
 const secretAssignmentPattern = /\b(api[_-]?key|token|password|secret|credential|authorization)\b\s*[:=]\s*(?:"[^"\r\n]*"|'[^'\r\n]*'|[^\s,;]+)/gi;
 const openAiKeyPattern = /\bsk-[A-Za-z0-9_-]{8,}\b/g;
 const githubTokenPattern = /\b(?:gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})\b/g;
@@ -102,9 +151,31 @@ export function validateTodoDocument(value: unknown): TodoDocument {
 		if (detailActive > 1) fail("at most one todo detail may be in progress");
 		if (details.some((detail) => detail.status === "in_progress") && status !== "in_progress") fail("active todo detail requires an in-progress parent");
 		if (status === "completed" && details.some((detail) => detail.status !== "completed")) fail("completed todo item requires completed details");
-		return Object.freeze({ id: raw.id, content, status, evidenceIds, details: Object.freeze(details) });
+		const source = raw.source === undefined ? undefined : validateTodoItemSource(raw.source);
+		return Object.freeze({
+			id: raw.id,
+			content,
+			status,
+			evidenceIds,
+			details: Object.freeze(details),
+			...(source ? { source } : {}),
+		});
 	});
 	if (active > 1) fail("at most one todo item may be in progress");
+	const source = value.source === undefined ? undefined : validateTodoSource(value.source);
+	if (!source && items.some((item) => item.source)) fail("Native Plan item requires a document source");
+	if (source) {
+		if (source.rootExecution.runId !== source.turnId) fail("Native Plan execution must match its turn");
+		for (const item of items) {
+			// Manual additions remain source-free inside a Native-sourced document.
+			if (!item.source) continue;
+			if (item.id !== `native-${item.source.identity.slice(0, 48)}`) fail("Native Plan item id must derive from source identity");
+			if (!samePlanRevision(item.source.currentRevision, source.planRevision)) fail("Native Plan item revision must match document source");
+			if (!item.source.executions.some((execution) => sameExecutionReference(execution, source.rootExecution))) {
+				fail("Native Plan item execution must include root execution");
+			}
+		}
+	}
 	return Object.freeze({
 		version: 1,
 		revision: value.revision,
@@ -113,6 +184,7 @@ export function validateTodoDocument(value: unknown): TodoDocument {
 		title: sanitizeTitle(value.title),
 		items: Object.freeze(items),
 		updatedAt: value.updatedAt,
+		...(source ? { source } : {}),
 	});
 }
 
@@ -132,7 +204,7 @@ export function parseTodoMarkdown(markdown: string): TodoDocument {
 	if (lines.at(-1) === "") lines.pop();
 	if (lines.length < 2 || !lines[0] || !lines[1]) fail("invalid todo markdown layout");
 	const header = parseComment(lines[0]);
-	if (!isRecord(header) || Object.keys(header).length !== 5 || header.version !== 1) fail("invalid todo markdown header");
+	if (!isRecord(header) || !hasExactKeys(header, ["version", "revision", "ownerSessionId", "storyId", "updatedAt"], ["source"]) || header.version !== 1) fail("invalid todo markdown header");
 	if (!lines[1].startsWith("# ") || lines[1].slice(2).length === 0) fail("invalid todo heading");
 	const items: Array<Omit<TodoItem, "details"> & { details: TodoDetail[] }> = [];
 	for (const line of lines.slice(2)) {
@@ -219,7 +291,7 @@ function parseItemLine(line: string): TodoItem {
 	const match = /^- \[([ x])\] (.+) (<!-- .+ -->)$/.exec(line);
 	if (!match) fail("invalid todo item markdown");
 	const metadata = parseComment(match[3]);
-	if (!isRecord(metadata) || Object.keys(metadata).length !== 3 || typeof metadata.id !== "string" || typeof metadata.status !== "string" || !Array.isArray(metadata.evidenceIds)) fail("invalid todo item metadata");
+	if (!isRecord(metadata) || !hasExactKeys(metadata, ["id", "status", "evidenceIds"], ["source"]) || typeof metadata.id !== "string" || typeof metadata.status !== "string" || !Array.isArray(metadata.evidenceIds)) fail("invalid todo item metadata");
 	const status = metadata.status as TodoItemStatus;
 	if (!(TODO_ITEM_STATUSES as readonly string[]).includes(status)) fail("invalid todo item status");
 	if ((match[1] === "x") !== (status === "completed")) fail("invalid todo checkbox state");
@@ -231,7 +303,14 @@ function parseItemLine(line: string): TodoItem {
 		if (!content.startsWith("막힘: ")) fail("invalid todo status prefix");
 		content = content.slice("막힘: ".length);
 	}
-	return { id: metadata.id, status, evidenceIds: metadata.evidenceIds as string[], content, details: [] };
+	return {
+		id: metadata.id,
+		status,
+		evidenceIds: metadata.evidenceIds as string[],
+		content,
+		details: [],
+		...(metadata.source === undefined ? {} : { source: metadata.source as TodoNativePlanItemSource }),
+	};
 }
 
 function isManagedTodoLine(line: string): boolean {
@@ -239,13 +318,25 @@ function isManagedTodoLine(line: string): boolean {
 }
 
 function renderHeader(todo: TodoDocument): string {
-	return JSON.stringify({ version: todo.version, revision: todo.revision, ownerSessionId: todo.ownerSessionId, storyId: todo.storyId, updatedAt: todo.updatedAt });
+	return JSON.stringify({
+		version: todo.version,
+		revision: todo.revision,
+		ownerSessionId: todo.ownerSessionId,
+		storyId: todo.storyId,
+		updatedAt: todo.updatedAt,
+		...(todo.source ? { source: todo.source } : {}),
+	});
 }
 
 function renderEntry(item: TodoDetail | TodoItem): string {
 	const prefix = item.status === "in_progress" ? "진행 중: " : item.status === "blocked" ? "막힘: " : "";
 	const checked = item.status === "completed" ? "x" : " ";
-	const metadata = JSON.stringify({ id: item.id, status: item.status, evidenceIds: item.evidenceIds });
+	const metadata = JSON.stringify({
+		id: item.id,
+		status: item.status,
+		evidenceIds: item.evidenceIds,
+		...("source" in item && item.source ? { source: item.source } : {}),
+	});
 	return `- [${checked}] ${prefix}${item.content} <!-- ${metadata} -->`;
 }
 
@@ -280,4 +371,88 @@ function isIsoDate(value: string): boolean {
 }
 function isNonNegativeInteger(value: unknown): value is number { return typeof value === "number" && Number.isSafeInteger(value) && value >= 0; }
 function isRecord(value: unknown): value is Record<string, unknown> { return !!value && typeof value === "object" && !Array.isArray(value); }
+function hasExactKeys(value: Record<string, unknown>, required: readonly string[], optional: readonly string[] = []): boolean {
+	const allowed = new Set([...required, ...optional]);
+	return required.every((key) => Object.hasOwn(value, key)) && Object.keys(value).every((key) => allowed.has(key));
+}
+
+function validateTodoSource(value: unknown): TodoNativePlanSource {
+	if (!isRecord(value) || !hasExactKeys(value, ["kind", "threadKeyDigest", "turnId", "input", "planRevision", "rootExecution"]) || value.kind !== "native-plan") fail("invalid Native Plan source");
+	if (!isSha256Hex(value.threadKeyDigest) || !isOpaqueReference(value.turnId)) fail("invalid Native Plan source");
+	const input = value.input === null ? null : validateInputReference(value.input);
+	return Object.freeze({
+		kind: "native-plan",
+		threadKeyDigest: value.threadKeyDigest,
+		turnId: value.turnId,
+		input,
+		planRevision: validatePlanRevision(value.planRevision),
+		rootExecution: validateExecutionReference(value.rootExecution),
+	});
+}
+
+function validateTodoItemSource(value: unknown): TodoNativePlanItemSource {
+	if (!isRecord(value) || !hasExactKeys(value, ["kind", "identity", "originRevision", "currentRevision", "executions"]) || value.kind !== "native-plan-item") fail("invalid Native Plan item source");
+	if (!isSha256Hex(value.identity) || !Array.isArray(value.executions) || value.executions.length > 16) fail("invalid Native Plan item source");
+	const executions = value.executions.map(validateExecutionReference);
+	const keys = executions.map((execution) => JSON.stringify(execution));
+	if (new Set(keys).size !== keys.length) fail("duplicate execution reference");
+	return Object.freeze({
+		kind: "native-plan-item",
+		identity: value.identity,
+		originRevision: validatePlanRevision(value.originRevision),
+		currentRevision: validatePlanRevision(value.currentRevision),
+		executions: Object.freeze(executions),
+	});
+}
+
+function validateInputReference(value: unknown): TodoInputReference {
+	if (!isRecord(value) || !hasExactKeys(value, ["activityId", "requestId", "sourceDigest"])) fail("invalid input reference");
+	if (!isOpaqueReference(value.activityId) || !isOpaqueReference(value.requestId) || !isSourceDigest(value.sourceDigest)) fail("invalid input reference");
+	return Object.freeze({ activityId: value.activityId, requestId: value.requestId, sourceDigest: value.sourceDigest });
+}
+
+function validatePlanRevision(value: unknown): TodoPlanRevisionReference {
+	if (!isRecord(value) || !hasExactKeys(value, ["sourceRevisionKeyDigest", "activityId", "sequence", "sourceDigest"])) fail("invalid Plan revision reference");
+	if (!isSha256Hex(value.sourceRevisionKeyDigest) || !isOpaqueReference(value.activityId) || !isPositiveInteger(value.sequence) || !isSourceDigest(value.sourceDigest)) fail("invalid Plan revision reference");
+	return Object.freeze({
+		sourceRevisionKeyDigest: value.sourceRevisionKeyDigest,
+		activityId: value.activityId,
+		sequence: value.sequence,
+		sourceDigest: value.sourceDigest,
+	});
+}
+
+function validateExecutionReference(value: unknown): TodoExecutionReference {
+	if (!isRecord(value) || !hasExactKeys(value, ["provider", "model", "agentId", "threadId", "runId"])) fail("invalid execution reference");
+	for (const field of [value.provider, value.model, value.agentId, value.threadId, value.runId]) {
+		if (field !== null && !isOpaqueReference(field)) fail("invalid execution reference");
+	}
+	return Object.freeze({
+		provider: value.provider as string | null,
+		model: value.model as string | null,
+		agentId: value.agentId as string | null,
+		threadId: value.threadId as string | null,
+		runId: value.runId as string | null,
+	});
+}
+
+function isOpaqueReference(value: unknown): value is string {
+	return typeof value === "string" && value.length > 0 && value.length <= 512 && value.trim() === value && !referenceControlPattern.test(value);
+}
+function isSha256Hex(value: unknown): value is string { return typeof value === "string" && /^[a-f0-9]{64}$/u.test(value); }
+function isSourceDigest(value: unknown): value is string { return typeof value === "string" && /^sha256:[a-f0-9]{64}$/u.test(value); }
+function isPositiveInteger(value: unknown): value is number { return typeof value === "number" && Number.isSafeInteger(value) && value > 0; }
+function samePlanRevision(left: TodoPlanRevisionReference, right: TodoPlanRevisionReference): boolean {
+	return left.sourceRevisionKeyDigest === right.sourceRevisionKeyDigest
+		&& left.activityId === right.activityId
+		&& left.sequence === right.sequence
+		&& left.sourceDigest === right.sourceDigest;
+}
+function sameExecutionReference(left: TodoExecutionReference, right: TodoExecutionReference): boolean {
+	return left.provider === right.provider
+		&& left.model === right.model
+		&& left.agentId === right.agentId
+		&& left.threadId === right.threadId
+		&& left.runId === right.runId;
+}
 function fail(message: string): never { throw new Error(`Invalid todo document: ${message}`); }

@@ -5,8 +5,11 @@ import {
 	validateTodoDocument,
 	type TodoDetail,
 	type TodoDocument,
+	type TodoExecutionReference,
 	type TodoItem,
 	type TodoItemStatus,
+	type TodoNativePlanBinding,
+	type TodoNativePlanSource,
 } from "../domain/todos";
 import type { SemanticWorkStep, WorkFlowProjection, WorkStepStatus } from "../domain/work-steps";
 import type { SessionRepository, TodoController, TodoStore } from "./ports";
@@ -48,25 +51,28 @@ export class TodoLedger implements TodoController {
 		this.stopWatching = null;
 	}
 
-	/** Mirrors the current Native plan into the canonical two-level Todo.md. */
-	public async syncNativePlan(flow: WorkFlowProjection): Promise<TodoDocument> {
+	/** @linear WOO-702 Mirrors one observed Native input/turn/Plan revision into its session Todo.md. */
+	public async syncNativePlan(flow: WorkFlowProjection, binding?: TodoNativePlanBinding): Promise<TodoDocument> {
 		validateNativePlanSource(flow.source);
 		let activeAssigned = false;
 		const nativeSteps = flow.steps.slice(0, 12);
 		validateNativeTodoIds(nativeSteps);
+		const source = nativeTodoSource(flow.source!, binding ?? reusableNativeBinding(this.current?.source, flow.source!));
+		if (this.current?.source && !canApplyNativeSource(this.current.source, source)) return this.current;
 		const items = nativeSteps.map((step): TodoItem => {
 			let status = todoStatus(step.status);
 			if (status === "in_progress") {
 				if (activeAssigned) status = "pending";
 				else activeAssigned = true;
 			}
-			return nativeTodoItem(step, status);
+			return nativeTodoItem(step, status, source.rootExecution);
 		});
 		const content = {
 			ownerSessionId: this.sessionId,
 			storyId: null,
 			title: todoNarrationText(flow.goal, "현재 요청"),
 			items,
+			source,
 		};
 		if (this.current && sameTodoContent(this.current, content)) return this.current;
 		return this.commit(this.document(content));
@@ -331,7 +337,7 @@ function isTodoParent(item: TodoDocument["items"][number] | TodoDocument["items"
 	return "details" in item;
 }
 
-function nativeTodoItem(step: SemanticWorkStep, status: TodoItemStatus): TodoItem {
+function nativeTodoItem(step: SemanticWorkStep, status: TodoItemStatus, rootExecution: TodoExecutionReference): TodoItem {
 	const id = nativeTodoParentId(step.identity.value);
 	const evidenceIds = validEvidenceIds(step.activityIds);
 	const details: TodoDetail[] = [{
@@ -346,7 +352,50 @@ function nativeTodoItem(step: SemanticWorkStep, status: TodoItemStatus): TodoIte
 		status,
 		evidenceIds: [],
 		details,
+		source: {
+			kind: "native-plan-item",
+			identity: step.identity.value,
+			originRevision: step.identity.originRevision,
+			currentRevision: step.currentRevision,
+			executions: [rootExecution],
+		},
 	};
+}
+
+function nativeTodoSource(source: NonNullable<WorkFlowProjection["source"]>, binding?: TodoNativePlanBinding): TodoNativePlanSource {
+	const rootExecution = binding?.rootExecution ?? {
+		provider: null,
+		model: null,
+		agentId: null,
+		threadId: null,
+		runId: source.turnId,
+	};
+	return {
+		kind: "native-plan",
+		threadKeyDigest: source.expectedThreadKeyDigest,
+		turnId: source.turnId,
+		input: binding?.input ?? null,
+		planRevision: source.currentRevision,
+		rootExecution,
+	};
+}
+
+function reusableNativeBinding(
+	current: TodoNativePlanSource | undefined,
+	incoming: NonNullable<WorkFlowProjection["source"]>,
+): TodoNativePlanBinding | undefined {
+	if (!current || current.threadKeyDigest !== incoming.expectedThreadKeyDigest || current.turnId !== incoming.turnId) return undefined;
+	return { input: current.input, rootExecution: current.rootExecution };
+}
+
+function canApplyNativeSource(current: TodoNativePlanSource, incoming: TodoNativePlanSource): boolean {
+	if (current.threadKeyDigest !== incoming.threadKeyDigest) return false;
+	if (incoming.planRevision.sequence < current.planRevision.sequence) return false;
+	if (incoming.planRevision.sequence > current.planRevision.sequence) return true;
+	return incoming.planRevision.sourceRevisionKeyDigest === current.planRevision.sourceRevisionKeyDigest
+		&& incoming.planRevision.activityId === current.planRevision.activityId
+		&& incoming.planRevision.sourceDigest === current.planRevision.sourceDigest
+		&& incoming.turnId === current.turnId;
 }
 
 function validateNativePlanSource(source: WorkFlowProjection["source"]): void {
@@ -445,12 +494,13 @@ function isTechnicalInput(value: string): boolean {
 
 function sameTodoContent(
 	current: TodoDocument,
-	next: Pick<TodoDocument, "ownerSessionId" | "storyId" | "title" | "items">,
+	next: Pick<TodoDocument, "ownerSessionId" | "storyId" | "title" | "items" | "source">,
 ): boolean {
 	return current.ownerSessionId === next.ownerSessionId
 		&& current.storyId === next.storyId
 		&& current.title === next.title
-		&& JSON.stringify(current.items) === JSON.stringify(next.items);
+		&& JSON.stringify(current.items) === JSON.stringify(next.items)
+		&& JSON.stringify(current.source) === JSON.stringify(next.source);
 }
 
 function immutableSnapshot(document: TodoDocument | null): TodoDocument | null {

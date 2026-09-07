@@ -67,7 +67,7 @@ function nativeRevision(value: string): SemanticWorkStep["currentRevision"] {
 function nativeStep(
 	identityValue: string,
 	index: number,
-	overrides: Partial<Pick<SemanticWorkStep, "title" | "status" | "activityIds" | "observationCount" | "narration">> = {},
+	overrides: Partial<SemanticWorkStep> = {},
 ): SemanticWorkStep {
 	const identity = nativeIdentity(identityValue);
 	const currentRevision = nativeRevision(identityValue);
@@ -101,7 +101,7 @@ function nativeFlow(identities: readonly string[]): WorkFlowProjection {
 		orphans: [],
 		rejections: [],
 		goal: "Native plan",
-		steps: identities.map((identity, index) => nativeStep(identity, index)),
+		steps: identities.map((identity, index) => ({ ...nativeStep(identity, index), currentRevision: revision })),
 		completedCount: 0,
 		currentStepNumber: 1,
 		observationCount: 0,
@@ -114,10 +114,11 @@ describe("TodoLedger", () => {
 		const fixture = ledger();
 		await fixture.ledger.initialize();
 		const syncNativePlan = fixture.ledger.syncNativePlan.bind(fixture.ledger);
+		const runningBase = nativeFlow(["a".repeat(64), "b".repeat(64)]);
 		const running: WorkFlowProjection = {
-			...nativeFlow(["a".repeat(64), "b".repeat(64)]),
+			...runningBase,
 			goal: "Native 계획을 Todo로 반영한다",
-		steps: [nativeStep("a".repeat(64), 0, {
+			steps: [nativeStep("a".repeat(64), 0, {
 				title: "계획 자동 동기화",
 				status: "running",
 				activityIds: ["activity-1"],
@@ -127,15 +128,20 @@ describe("TodoLedger", () => {
 					inputSummary: ["command: sed -n '1,200p' src/application/todo-ledger.ts"],
 					source: "model",
 				},
-		}), nativeStep("b".repeat(64), 1, {
+				currentRevision: runningBase.source!.currentRevision,
+			}), nativeStep("b".repeat(64), 1, {
 				title: "동기화 결과 검증",
 				status: "pending",
 				narration: { what: "동기화 결과 검증", inputSummary: [], source: "plan" },
+				currentRevision: runningBase.source!.currentRevision,
 			})],
 			summary: "2단계 중 0단계를 완료했고, 현재 1단계를 진행하고 있습니다.",
 		};
 
-		const first = await syncNativePlan(running);
+		const first = await syncNativePlan(running, {
+			input: { activityId: "request-activity", requestId: "request-1", sourceDigest: `sha256:${"1".repeat(64)}` },
+			rootExecution: { provider: null, model: "gpt-5.6-sol", agentId: null, threadId: "thread-native", runId: "turn-native" },
+		});
 
 		expect(first.title).toBe("Native 계획을 Todo로 반영한다");
 		expect(first.items.map((item) => [item.id, item.status, item.content])).toEqual([
@@ -148,18 +154,116 @@ describe("TodoLedger", () => {
 			status: "in_progress",
 			evidenceIds: ["activity-1"],
 		}]);
+		expect(first.source).toMatchObject({
+			kind: "native-plan",
+			turnId: "turn-native",
+			input: { activityId: "request-activity", requestId: "request-1" },
+			rootExecution: { model: "gpt-5.6-sol", agentId: null, threadId: "thread-native", runId: "turn-native" },
+		});
+		expect(first.items[0]?.source).toMatchObject({
+			kind: "native-plan-item",
+			identity: "a".repeat(64),
+			originRevision: running.steps[0]?.identity.originRevision,
+			currentRevision: running.steps[0]?.currentRevision,
+			executions: [{ model: "gpt-5.6-sol", runId: "turn-native" }],
+		});
 
-		const unchanged = await syncNativePlan(running);
+		const unchanged = await syncNativePlan(running, {
+			input: { activityId: "request-activity", requestId: "request-1", sourceDigest: `sha256:${"1".repeat(64)}` },
+			rootExecution: { provider: null, model: "gpt-5.6-sol", agentId: null, threadId: "thread-native", runId: "turn-native" },
+		});
 		expect(unchanged).toBe(first);
 		expect(fixture.events.inputs).toHaveLength(1);
+	});
+
+	test("does not downgrade an observed execution binding when an internal replay omits it", async () => {
+		const fixture = ledger();
+		await fixture.ledger.initialize();
+		const flow = nativeFlow(["a".repeat(64)]);
+		const first = await fixture.ledger.syncNativePlan(flow, {
+			input: { activityId: "request-activity", requestId: "request-1", sourceDigest: `sha256:${"1".repeat(64)}` },
+			rootExecution: { provider: null, model: "gpt-5.6-sol", agentId: null, threadId: "thread-native", runId: "turn-native" },
+		});
+
+		const replay = await fixture.ledger.syncNativePlan(flow);
+
+		expect(replay).toBe(first);
+		expect(replay.source).toEqual(first.source);
+		expect(fixture.store.compareAndSwapCalls).toBe(1);
+	});
+
+	test("keeps a manual item source-free when it is added to a Native-sourced Todo", async () => {
+		const fixture = ledger();
+		await fixture.ledger.initialize();
+		const native = await fixture.ledger.syncNativePlan(nativeFlow(["a".repeat(64)]));
+
+		const mixed = await fixture.ledger.add("사용자가 추가한 후속 작업", "after");
+
+		expect(mixed.source).toEqual(native.source);
+		expect(mixed.items).toHaveLength(2);
+		expect(mixed.items[0]?.source?.identity).toBe("a".repeat(64));
+		expect(mixed.items[1]).toMatchObject({ id: "todo-1", content: "사용자가 추가한 후속 작업" });
+		expect(mixed.items[1]?.source).toBeUndefined();
+	});
+
+	test("ignores late and foreign Plan sources after a newer session Plan is durable", async () => {
+		const fixture = ledger();
+		await fixture.ledger.initialize();
+		const firstFlow = nativeFlow(["a".repeat(64)]);
+		const newerBase = nativeFlow(["b".repeat(64)]);
+		const newerSource = {
+			...newerBase.source!,
+			turnId: "turn-2",
+			currentRevision: { ...newerBase.source!.currentRevision, activityId: "plan-2", sequence: 9 },
+		};
+		const newerFlow: WorkFlowProjection = {
+			...newerBase,
+			source: newerSource,
+			steps: newerBase.steps.map((step) => ({ ...step, currentRevision: newerSource.currentRevision })),
+		};
+		const lateFlow: WorkFlowProjection = {
+			...firstFlow,
+			source: { ...firstFlow.source!, currentRevision: { ...firstFlow.source!.currentRevision, sequence: 4 } },
+		};
+		const foreignFlow: WorkFlowProjection = {
+			...newerFlow,
+			source: { ...newerFlow.source!, expectedThreadKeyDigest: "e".repeat(64), currentRevision: { ...newerFlow.source!.currentRevision, activityId: "foreign-plan", sequence: 10 } },
+		};
+
+		const durable = await fixture.ledger.syncNativePlan(newerFlow);
+		const writes = fixture.store.compareAndSwapCalls;
+		expect(await fixture.ledger.syncNativePlan(lateFlow)).toBe(durable);
+		expect(await fixture.ledger.syncNativePlan(foreignFlow)).toBe(durable);
+		expect(fixture.store.compareAndSwapCalls).toBe(writes);
+		expect(fixture.events.inputs).toHaveLength(1);
+	});
+
+	test("enriches the same Plan revision when its observed input reference arrives later", async () => {
+		const fixture = ledger();
+		await fixture.ledger.initialize();
+		const flow = nativeFlow(["a".repeat(64)]);
+		const rootExecution = { provider: null, model: null, agentId: null, threadId: "thread-native", runId: "turn-native" };
+		const first = await fixture.ledger.syncNativePlan(flow, { input: null, rootExecution });
+		const enriched = await fixture.ledger.syncNativePlan(flow, {
+			input: { activityId: "request-activity", requestId: "request-1", sourceDigest: `sha256:${"1".repeat(64)}` },
+			rootExecution,
+		});
+
+		expect(enriched.revision).toBe(first.revision + 1);
+		expect(enriched.source?.input).toEqual({
+			activityId: "request-activity",
+			requestId: "request-1",
+			sourceDigest: `sha256:${"1".repeat(64)}`,
+		});
 	});
 
 	test("uses coarse semantic narration when a narrator is pending, fails, or returns null reasons", async () => {
 		const fixture = ledger();
 		await fixture.ledger.initialize();
 		const syncNativePlan = fixture.ledger.syncNativePlan.bind(fixture.ledger);
+		const coarseBase = nativeFlow(["c".repeat(64), "d".repeat(64), "e".repeat(64), "f".repeat(64)]);
 		const document = await syncNativePlan({
-			...nativeFlow(["c".repeat(64), "d".repeat(64), "e".repeat(64), "f".repeat(64)]),
+			...coarseBase,
 			goal: "bun test src/application/todo-ledger.ts",
 			steps: [nativeStep("c".repeat(64), 0, {
 				title: "src/application/todo-ledger.ts 변경",
@@ -182,7 +286,7 @@ describe("TodoLedger", () => {
 					inputSummary: [],
 					source: "model",
 				},
-			})],
+			})].map((step) => ({ ...step, currentRevision: coarseBase.source!.currentRevision })),
 			summary: "",
 		});
 
@@ -214,7 +318,9 @@ describe("TodoLedger", () => {
 
 		expect(first.items.map(item => item.id)).toEqual([`native-${alpha.slice(0, 48)}`, `native-${beta.slice(0, 48)}`]);
 		expect(inserted.items.map(item => item.id)).toEqual([`native-${gamma.slice(0, 48)}`, `native-${beta.slice(0, 48)}`, `native-${alpha.slice(0, 48)}`]);
+		expect(inserted.items.map(item => item.source?.identity)).toEqual([gamma, beta, alpha]);
 		expect(edited.items.map(item => item.id)).toEqual(inserted.items.map(item => item.id));
+		expect(edited.items.map(item => item.source?.identity)).toEqual(inserted.items.map(item => item.source?.identity));
 		expect(replay).toBe(edited);
 		expect(fixture.events.inputs).toHaveLength(3);
 	});

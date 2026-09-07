@@ -8,7 +8,7 @@ import type { ActivityNarrator } from "../application/activity-narrator.js";
 import { WooEntry } from "../application/woo-entry.js";
 import { SessionModelUsageAccumulator, type SessionModelUsageObservation } from "../application/session-model-usage.js";
 import { TodoLedger } from "../application/todo-ledger.js";
-import type { TodoDocument } from "../domain/todos.js";
+import type { TodoDocument, TodoNativePlanBinding } from "../domain/todos.js";
 import type { TNoteDraft } from "../domain/t-notes.js";
 import type { WorkbenchModelSelection } from "../domain/workbench.js";
 import type { WorkFlowProjection } from "../domain/work-steps.js";
@@ -362,9 +362,10 @@ class ThreadScopedTodoSource implements WorkbenchTodoSource {
 		return () => this.listeners.delete(listener);
 	}
 
-	public syncNativePlan(flow: WorkFlowProjection): Promise<TodoDocument> {
+	/** @linear WOO-702 Keeps the Workbench's observed input/turn binding intact at the file boundary. */
+	public syncNativePlan(flow: WorkFlowProjection, binding: TodoNativePlanBinding): Promise<TodoDocument> {
 		if (!flow.source) throw new Error("Native plan source authority is required for Todo sync");
-		return this.requireLedger().syncNativePlan(flow);
+		return this.requireLedger().syncNativePlan(flow, binding);
 	}
 	public create(title: string, items: readonly string[], storyId?: string): Promise<TodoDocument> { return this.requireLedger().create(title, items, storyId); }
 	public add(content: string, placement: "now" | "after"): Promise<TodoDocument> { return this.requireLedger().add(content, placement); }
