@@ -3,6 +3,7 @@ import type {
 	NativeApprovalDecision,
 	NativeApprovalKind,
 	NativeApprovalRequest,
+	NativeApprovalResponse,
 	NativeApprovalResolution,
 	NativeHarnessEvent,
 	NativeRefs,
@@ -327,7 +328,8 @@ export class CodexAppServer implements ExecutorPort {
 
 	public respondToApproval(input: NativeApprovalResolution): Promise<void> {
 		const requestId = approvalResolutionRequestId(input);
-		if (!this.approvals.has(requestId)) {
+		const approval = this.approvals.get(requestId);
+		if (!approval) {
 			return Promise.reject(new Error(`Unknown native approval: ${String(requestId)}`));
 		}
 		if (this.pendingApprovalResponses.has(requestId)) {
@@ -336,7 +338,7 @@ export class CodexAppServer implements ExecutorPort {
 		return new Promise<void>((resolve, reject) => {
 			const pending: PendingApprovalResponse = { dispatched: false, resolve, reject };
 			this.pendingApprovalResponses.set(requestId, pending);
-			void this.transport.send(JSON.stringify({ id: requestId, result: input.response })).then(
+			void this.transport.send(JSON.stringify({ id: requestId, result: nativeApprovalResponse(approval, input.response) })).then(
 				() => {
 					pending.dispatched = true;
 				},
@@ -420,7 +422,9 @@ export class CodexAppServer implements ExecutorPort {
 				callbackId,
 				kind,
 				refs: this.refsFrom(params, message.id, callbackId),
-				availableDecisions: nativeApprovalDecisions(params.availableDecisions),
+				availableDecisions: kind === "mcp-tool"
+					? ["accept", "decline", "cancel"]
+					: nativeApprovalDecisions(params.availableDecisions),
 				params,
 			};
 			this.approvals.set(message.id, approval);
@@ -582,7 +586,14 @@ function approvalKind(method: string): NativeApprovalKind | undefined {
 	if (method === "item/commandExecution/requestApproval") return "command";
 	if (method === "item/fileChange/requestApproval") return "file-change";
 	if (method === "item/permissions/requestApproval") return "permissions";
+	if (method === "mcpServer/elicitation/request") return "mcp-tool";
 	return undefined;
+}
+
+function nativeApprovalResponse(request: NativeApprovalRequest, response: NativeApprovalResponse): unknown {
+	if (request.kind !== "mcp-tool" || !("decision" in response)) return response;
+	const action = response.decision === "acceptForSession" ? "accept" : response.decision;
+	return { action, content: action === "accept" ? {} : null, _meta: null };
 }
 
 function approvalResolutionRequestId(input: NativeApprovalResolution): NativeRequestId {
