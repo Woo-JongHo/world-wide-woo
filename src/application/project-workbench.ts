@@ -1652,7 +1652,12 @@ export class ProjectWorkbench {
 		if (!source || source.turnId !== this.activeTurnId) return;
 		if (activity.nativeRefs.threadId !== this.threadId || activity.nativeRefs.turnId !== source.turnId) return;
 		const method = typeof activity.payload.method === "string" ? activity.payload.method : "";
-		const updatesPlan = method === "turn/plan/updated";
+		const item = typeof activity.payload.params === "object" && activity.payload.params !== null
+			? (activity.payload.params as { item?: { type?: unknown } }).item
+			: undefined;
+		const isPlanActivity = method === "turn/plan/updated" || method === "item/completed"
+			&& typeof item?.type === "string" && item.type.toLowerCase() === "plan";
+		const updatesPlan = isPlanActivity && source.currentRevision.activityId === activity.id;
 		const contributesExecution = flow.steps.some((step) => step.activityIds.includes(activity.id));
 		if (!updatesPlan && !contributesExecution) return;
 		this.enqueueNativeTodoSync(sync, flow);

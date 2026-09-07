@@ -361,7 +361,7 @@ export function projectWorkFlow(
 		}
 	};
 	for (const activity of interval) {
-		if (activity.payload.method === "turn/plan/updated") {
+		if (isPlanRevision(activity)) {
 			if (
 				activity.nativeRefs.threadId !== input.expectedThreadKey ||
 				activity.nativeRefs.turnId !== input.selectedTurnId
@@ -534,7 +534,7 @@ function validateJournal(
 		else if (!/^sha256:[0-9a-f]{64}$/u.test(activity.sourceDigest)) {
 			code = "invalid_source_digest";
 		} else if (
-			activity.payload.method === "turn/plan/updated" &&
+			isPlanRevision(activity) &&
 			isParseablePlanEnvelope(activity)
 		) {
 			const key = revision(activity, threadDigest, hash).sourceRevisionKeyDigest;
@@ -778,19 +778,86 @@ function technicalNarration(value: string): boolean {
 function isParseablePlanEnvelope(activity: ProjectActivity): boolean {
 	return !planValidationError(activity);
 }
+function isPlanRevision(activity: ProjectActivity): boolean {
+	if (activity.payload.method === "turn/plan/updated") return true;
+	if (activity.payload.method !== "item/completed") return false;
+	const item = record(record(activity.payload.params)?.item);
+	return typeof item?.type === "string" && item.type.toLowerCase() === "plan";
+}
+interface RawPlanEntry {
+	readonly step: string;
+	readonly status: unknown;
+}
+function rawPlanEntries(
+	activity: ProjectActivity,
+): { entries?: RawPlanEntry[]; error?: RevisionValidationCode } {
+	const params = record(activity.payload.params);
+	if (activity.payload.method === "turn/plan/updated") {
+		if (!params || !Array.isArray(params.plan) || params.plan.length > 256) {
+			return { error: "non_string_entry" };
+		}
+		const values = params.plan.map(record);
+		if (values.some((entry) => typeof entry?.step !== "string")) {
+			return { error: "non_string_entry" };
+		}
+		return {
+			entries: values.map((entry) => ({ step: entry!.step as string, status: entry!.status })),
+		};
+	}
+	const item = record(params?.item);
+	if (!item || typeof item.text !== "string") return { error: "non_string_entry" };
+	const entries: RawPlanEntry[] = [];
+	let numberedCount = 0;
+	let precedingStep: "numbered" | "bullet" | undefined;
+	for (const line of item.text.replace(/\r\n?/gu, "\n").split("\n")) {
+		if (!line.trim() || /^\s*#{1,6}\s+/u.test(line)) {
+			precedingStep = undefined;
+			continue;
+		}
+		const numbered = /^(\d+)\.\s+(.+?)\s*$/u.exec(line);
+		const bullet = /^[-*+]\s+(.+?)\s*$/u.exec(line);
+		const indentedBullet = /^([ ]+)[-*+]\s+.+?\s*$/u.exec(line);
+		if (indentedBullet) {
+			if (precedingStep !== "numbered") return { error: "non_string_entry" };
+			continue;
+		}
+		if (!numbered && !bullet) return { error: "non_string_entry" };
+		if (numbered) {
+			const number = Number(numbered[1]);
+			if (number !== numberedCount + 1) return { error: "non_string_entry" };
+			numberedCount = number;
+		}
+		const value = numbered?.[2] ?? bullet![1]!;
+		const parsed = markdownPlanEntry(value);
+		if (!parsed) return { error: "non_string_entry" };
+		const status = markdownPlanStatus(parsed.status);
+		if (!status) return { error: "non_string_entry" };
+		if (entries.length >= 256) return { error: "non_string_entry" };
+		entries.push({ step: parsed.step, status });
+		precedingStep = numbered ? "numbered" : "bullet";
+	}
+	return entries.length ? { entries } : { error: "blank_entry" };
+}
+function markdownPlanEntry(value: string): { step: string; status: string } | undefined {
+	const prefix = /^\[([^\]]+)\]\s+(.+)$/u.exec(value);
+	if (prefix) return { step: markdownPlanTitle(prefix[2]!), status: prefix[1]! };
+	const suffix = /^(.+?)\s+\[([^\]]+)\]$/u.exec(value);
+	if (suffix) return { step: markdownPlanTitle(suffix[1]!), status: suffix[2]! };
+	const separated = /^(.+?)\s+[—-]\s+(.+)$/u.exec(value);
+	if (separated) return { step: markdownPlanTitle(separated[1]!), status: separated[2]! };
+	return undefined;
+}
+function markdownPlanTitle(value: string): string {
+	const bold = /^\*\*(.+)\*\*$/u.exec(value.trim());
+	return (bold?.[1] ?? value).trim();
+}
 function planValidationError(
 	activity: ProjectActivity,
 ): RevisionValidationCode | undefined {
-	const params = record(activity.payload.params);
-	if (!params || !Array.isArray(params.plan) || params.plan.length > 256) {
-		return "non_string_entry";
-	}
-	const values = params.plan.map(record);
-	if (values.some((entry) => typeof entry?.step !== "string")) {
-		return "non_string_entry";
-	}
-	for (const value of values) {
-		const step = value!.step as string;
+	const parsed = rawPlanEntries(activity);
+	if (parsed.error) return parsed.error;
+	for (const value of parsed.entries!) {
+		const step = value.step;
 		if ([...step].length > 4_096 || !token(step)) return "blank_entry";
 	}
 	return undefined;
@@ -801,15 +868,14 @@ function parsePlan(
 ): { entries?: Entry[]; error?: RevisionValidationCode } {
 	const error = planValidationError(activity);
 	if (error) return { error };
-	const values = (record(activity.payload.params)!.plan as readonly unknown[])
-		.map(record);
+	const values = rawPlanEntries(activity).entries!;
 	const entries = values.map((value) => {
-		const step = value!.step as string;
+		const step = value.step;
 		const raw = token(step);
 		return {
 			raw,
 			title: publicText(step),
-			status: planStatus(value!.status),
+			status: planStatus(value.status),
 			tokenDigest: digest(hash, raw),
 		};
 	});
@@ -861,6 +927,17 @@ function planStatus(value: unknown): WorkStepStatus {
 		: value === "cancelled"
 		? "cancelled"
 		: "pending";
+}
+function markdownPlanStatus(value: string): WorkStepStatus | undefined {
+	const normalized = token(value).toLowerCase();
+	if (normalized === "pending" || normalized === "대기" || normalized === "대기 중") return "pending";
+	if (normalized === "in progress" || normalized === "inprogress" || normalized === "running" || normalized === "진행 중") {
+		return "running";
+	}
+	if (normalized === "completed" || normalized === "complete" || normalized === "완료") return "completed";
+	if (normalized === "failed" || normalized === "실패") return "failed";
+	if (["cancelled", "canceled", "취소", "취소됨"].includes(normalized)) return "cancelled";
+	return undefined;
 }
 /**
  * A lossless-enough, display-neutral projection of App Server's collaboration

@@ -29,6 +29,9 @@ function activity(
 function plan(sequence: number, entries: readonly Record<string, unknown>[], refs: Record<string, string> = {}) {
 	return activity(sequence, "turn/plan/updated", { params: { plan: entries } }, refs);
 }
+function completedPlan(sequence: number, text: unknown, refs: Record<string, string> = {}) {
+	return activity(sequence, "item/completed", { params: { item: { id: `plan-${sequence}`, type: "plan", text } } }, refs);
+}
 function start() {
 	return activity(1, "turn/started");
 }
@@ -37,6 +40,121 @@ function flow(entries: readonly Record<string, unknown>[]) {
 }
 
 describe("dplan-v1", () => {
+	test("parses completed plan Markdown variants and maps Korean and English statuses", () => {
+		const result = projectWorkFlow([
+			start(),
+			completedPlan(2, [
+				"## Plan",
+				"1. **README.md 읽기** — 완료",
+				"   - 이 상세 bullet은 단계가 아니다.",
+				"2. **구현하기** — in progress",
+				"3. **검증 대기** — pending",
+				"4. **실패 확인** — failed",
+				"5. **취소 확인** — cancelled",
+				"6. **한국어 대기** — 대기",
+				"7. **한국어 진행** — 진행 중",
+				"8. **한국어 실패** — 실패",
+				"9. **한국어 취소** — 취소",
+				"",
+				"10. [completed] bracket prefix",
+				"11. bracket suffix [pending]",
+				"12. plain numbered title — running",
+			].join("\n")),
+		], new Map(), input);
+
+		expect(result.steps.map(({ title, status }) => ({ title, status }))).toEqual([
+			{ title: "README.md 읽기", status: "completed" },
+			{ title: "구현하기", status: "running" },
+			{ title: "검증 대기", status: "pending" },
+			{ title: "실패 확인", status: "failed" },
+			{ title: "취소 확인", status: "cancelled" },
+			{ title: "한국어 대기", status: "pending" },
+			{ title: "한국어 진행", status: "running" },
+			{ title: "한국어 실패", status: "failed" },
+			{ title: "한국어 취소", status: "cancelled" },
+			{ title: "bracket prefix", status: "completed" },
+			{ title: "bracket suffix", status: "pending" },
+			{ title: "plain numbered title", status: "running" },
+		]);
+	});
+	test("parses top-level bullets with numbered entries in document order", () => {
+		const result = projectWorkFlow([
+			start(),
+			completedPlan(2, [
+				"## Plan",
+				"- [completed] 첫 bullet",
+				"1. 첫 numbered — 진행 중",
+				"* **둘째 bullet** — 완료",
+				"- 셋째 bullet — pending",
+				"+ 넷째 bullet [failed]",
+				"2. 둘째 numbered — cancelled",
+			].join("\n")),
+		], new Map(), input);
+
+		expect(result.steps.map(({ number, title, status }) => ({ number, title, status }))).toEqual([
+			{ number: 1, title: "첫 bullet", status: "completed" },
+			{ number: 2, title: "첫 numbered", status: "running" },
+			{ number: 3, title: "둘째 bullet", status: "completed" },
+			{ number: 4, title: "셋째 bullet", status: "pending" },
+			{ number: 5, title: "넷째 bullet", status: "failed" },
+			{ number: 6, title: "둘째 numbered", status: "cancelled" },
+		]);
+	});
+	test("fails closed for nested bullets unless they detail the preceding numbered step", () => {
+		for (const text of [
+			"   - starts indented — completed",
+			"- bullet step — completed\n   - nested without status",
+			"+ bullet step — pending\n - nested with status — completed",
+			"* bullet step — pending\n    - four-space nested detail",
+		]) {
+			const result = projectWorkFlow([start(), completedPlan(2, text)], new Map(), input);
+			expect(result.source).toBeNull();
+			expect(result.steps).toEqual([]);
+			expect(result.rejections).toEqual([
+				expect.objectContaining({ kind: "revision", code: "non_string_entry" }),
+			]);
+		}
+	});
+	test("ignores a space-indented detail bullet of any width beneath a numbered step", () => {
+		const result = projectWorkFlow([
+			start(),
+			completedPlan(2, [
+				"1. 단계 — 진행 중",
+				" - status 없는 상세",
+				"  * 상태가 있는 상세 — completed",
+				"   + bracket 상태 상세 [failed]",
+				"    - 네 칸 들여쓴 Markdown 상세",
+				"        * 더 깊게 들여쓴 상세 — completed",
+				"2. 검증 — 완료",
+			].join("\n")),
+		], new Map(), input);
+
+		expect(result.steps.map(({ title, status }) => ({ title, status }))).toEqual([
+			{ title: "단계", status: "running" },
+			{ title: "검증", status: "completed" },
+		]);
+	});
+	test("fails closed for malformed completed plan Markdown", () => {
+		for (const text of <unknown[]>[
+			"## Plan",
+			"## Plan\n**README.md 읽기** — 완료",
+			"## Plan\n1. title without status",
+			"## Plan\n1. title — unknown",
+			"## Plan\n- title without status",
+			"## Plan\n* title — unknown",
+			"## Plan\n- valid — completed\n\n   - top-level without status",
+			"## Plan\n- valid — completed\n2. numbered must start at one — pending",
+			"## Plan\n1. **README.md 읽기** — 완료\n3. **검증하기** — pending",
+			undefined,
+			42,
+			Array.from({ length: 257 }, (_, index) => `${index + 1}. item ${index + 1} — pending`).join("\n"),
+		]) {
+			const result = projectWorkFlow([start(), completedPlan(2, text)], new Map(), input);
+			expect(result.source).toBeNull();
+			expect(result.steps).toEqual([]);
+			expect(result.rejections).toHaveLength(1);
+		}
+	});
 	test("retains unique insert delete and reorder without index identity", () => {
 		const base = [
 			start(),

@@ -147,6 +147,45 @@ describe("Native Plan transport-to-Todo wiring", () => {
 			expect(rootTodo.id).toBe(`native-${rootStep.identity.value.slice(0, 48)}`);
 			expect(rootTodo.details[0]?.id).toBe(`${rootTodo.id}-detail-1`);
 			const stableTodoRevision = ledger.snapshot!.revision;
+
+			transport.emit({
+				method: "item/completed",
+				params: {
+					turnId: "turn-root",
+					item: {
+						id: "plan-item-root",
+						type: "plan",
+						text: "## Plan\n1. [completed] README.md 읽기\n   - 상세 bullet은 무시한다.\n* **구현하기** — in progress",
+					},
+				},
+			});
+			await waitFor(() => {
+				expect(workbench.snapshot.workFlow.steps.map(({ title, status }) => ({ title, status }))).toEqual([
+					{ title: "README.md 읽기", status: "completed" },
+					{ title: "구현하기", status: "running" },
+				]);
+				expect(ledger.snapshot?.revision).toBeGreaterThan(stableTodoRevision);
+				expect(ledger.snapshot?.items.map((item) => item.status)).toEqual(["completed", "in_progress"]);
+				expect(ledger.snapshot?.items[1]?.content).toBe("구현하기");
+			});
+			const markdownSteps = workbench.snapshot.workFlow.steps;
+			const markdownTodo = ledger.snapshot!;
+			const writesBeforeMalformedPlan = store.compareAndSwapCalls;
+
+			transport.emit({
+				method: "item/completed",
+				params: {
+					turnId: "turn-root",
+					item: { id: "malformed-plan", type: "plan", text: "1. missing status" },
+				},
+			});
+			await waitFor(() => expect(workbench.snapshot.workFlow.rejections).toEqual(expect.arrayContaining([
+				expect.objectContaining({ kind: "revision", activityId: expect.any(String) }),
+			])));
+			await Bun.sleep(10);
+			expect(workbench.snapshot.workFlow.steps).toEqual(markdownSteps);
+			expect(ledger.snapshot).toEqual(markdownTodo);
+			expect(store.compareAndSwapCalls).toBe(writesBeforeMalformedPlan);
 			const stableTodoWrites = store.compareAndSwapCalls;
 
 			// Register a distinct child turn with the same live adapter, then emit only its turn id.
@@ -154,6 +193,13 @@ describe("Native Plan transport-to-Todo wiring", () => {
 			transport.emit({
 				method: "turn/plan/updated",
 				params: { turnId: "turn-child", plan: [{ step: "child plan", status: "inProgress" }] },
+			});
+			transport.emit({
+				method: "item/completed",
+				params: {
+					turnId: "turn-child",
+					item: { id: "child-plan", type: "plan", text: "1. child completed plan — running" },
+				},
 			});
 			transport.emit({
 				method: "item/started",
@@ -167,6 +213,13 @@ describe("Native Plan transport-to-Todo wiring", () => {
 				method: "turn/plan/updated",
 				params: { turnId: "turn-unknown", plan: [{ step: "unknown plan", status: "inProgress" }] },
 			});
+			transport.emit({
+				method: "item/completed",
+				params: {
+					turnId: "turn-unknown",
+					item: { id: "unknown-plan", type: "plan", text: "1. unknown completed plan — running" },
+				},
+			});
 
 			await waitFor(() => expect(journal.records.some(activity =>
 				activity.nativeRefs.turnId === "turn-unknown"
@@ -174,14 +227,14 @@ describe("Native Plan transport-to-Todo wiring", () => {
 			await Bun.sleep(10);
 			expect(workbench.snapshot.workFlow).toMatchObject({
 				source: { turnId: "turn-root" },
-				steps: [{ id: rootStep.id, title: "root plan" }],
+				steps: markdownSteps.map((step) => ({ id: step.id, title: step.title })),
 			});
 			expect(workbench.snapshot.workFlow.steps.map((step) => step.title)).not.toContain("child plan");
 			expect(workbench.snapshot.workFlow.steps.map((step) => step.title)).not.toContain("unknown plan");
 			expect(workbench.snapshot.workFlow.rejections).toEqual(expect.arrayContaining([
 				expect.objectContaining({ code: "source_turn_mismatch" }),
 			]));
-			expect(ledger.snapshot).toEqual(expect.objectContaining({ revision: stableTodoRevision, items: [rootTodo] }));
+			expect(ledger.snapshot).toEqual(markdownTodo);
 			expect(store.compareAndSwapCalls).toBe(stableTodoWrites);
 			expect(journal.records).toEqual(expect.arrayContaining([
 			expect.objectContaining({ nativeRefs: { threadId: "thread-child", turnId: "turn-child" } }),
