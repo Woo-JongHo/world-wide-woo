@@ -15,7 +15,7 @@ import { projectTNoteCompletionIndex } from "../../domain/t-notes";
 import { workbenchApprovalDecisions, type WorkbenchSnapshot } from "../../domain/workbench";
 import { classifyWorkActivity, type SemanticWorkStep, type WorkStepStatus } from "../../domain/work/index";
 import { boundedPublicProjection, PUBLIC_SOURCE_OMISSION } from "./bounded-public-projection";
-import { colors, markdownTheme, semantic } from "./theme";
+import { activityGradientFrame, colors, markdownTheme, semantic } from "./theme";
 import { WorkbenchWelcomeView } from "./workbench-welcome";
 import { isVisibleWorkStep, ObservationCard, WorkStepCard } from "./work-step-card";
 import { projectWorkbenchDelegationSections } from "./delegation-tree-view";
@@ -118,11 +118,11 @@ export function approvalDetailLabel(request: NativeApprovalRequest): string {
 function approvalInstruction(request: NativeApprovalRequest): string {
 	const decisions = workbenchApprovalDecisions(request);
 	const instructions: string[] = [];
-	if (decisions.includes("accept")) instructions.push("승인 /approve");
-	if (decisions.includes("acceptForSession")) instructions.push("세션 /approve-session");
-	if (decisions.includes("decline")) instructions.push("거절 /decline");
+	if (decisions.includes("accept")) instructions.push("승인 ‘네’");
+	if (decisions.includes("acceptForSession")) instructions.push("세션 ‘이번 세션 동안 승인’");
+	if (decisions.includes("decline")) instructions.push("거절 ‘아니요’");
 	if (instructions.length === 0) instructions.push("중단 /cancel");
-	return instructions.join(" · ");
+	return `Input 답변 · ${instructions.join(" · ")}`;
 }
 
 function approvalCardRows(
@@ -140,7 +140,7 @@ function approvalCardRows(
 		`${colors.accent("이유")} · ${reason ?? approvalFallback(request)}`,
 		...(cwd ? [`${colors.accent("경로")} · ${cwd}`] : []),
 		colors.muted(approvalInstruction(request)),
-		colors.warning("현재 턴 일시중지 · 승인 결정을 기다립니다."),
+		colors.warning("승인할까요? 현재 턴은 Input 답변을 기다립니다."),
 		colors.muted(`백그라운드 작업 · ${background}`),
 		...(queueDepth > 0 ? [colors.muted(`대기 메시지 ${queueDepth}개 · 승인 후 순서대로 전송`)] : []),
 	];
@@ -275,6 +275,31 @@ function isVerificationCommand(command: string): boolean {
 		|| /\bgit\s+diff\s+--check\b/iu.test(command);
 }
 
+function completionCommandLabel(command: string, category: CompletionEvidenceCategory): string {
+	if (category === "verify") {
+		if (/\bgit\s+diff\s+--check\b/iu.test(command)) return "변경 형식을 검사";
+		if (/\b(?:tsc|typecheck|type-check)\b/iu.test(command)) return "타입을 검사";
+		if (/\b(?:lint|eslint|ruff)\b/iu.test(command)) return "코드 규칙을 검사";
+		if (/\bbuild\b/iu.test(command)) return "빌드를 검증";
+		return "테스트를 실행";
+	}
+	if (category === "inspect") {
+		if (/\b(?:rg|grep|find)\b/iu.test(command)) return "관련 코드와 설정을 검색";
+		if (/\bgit\s+(?:status|diff|log|show|rev-parse)\b/iu.test(command)) return "Git 변경 상태를 확인";
+		return "구현 대상과 현재 상태를 확인";
+	}
+	return "변경 작업을 실행";
+}
+
+function completionToolLabel(tool: string | null, activityClass: ReturnType<typeof classifyWorkActivity>): string {
+	if (activityClass === "observation") return "관련 자료를 확인";
+	if (!tool) return "관련 작업을 실행";
+	if (/save.?issue/iu.test(tool)) return "Linear 이슈를 반영";
+	if (/apply.?patch|file.?change|edit/iu.test(tool)) return "관련 파일을 변경";
+	if (/test|check|verify/iu.test(tool)) return "관련 검증을 실행";
+	return "외부 도구 작업을 실행";
+}
+
 function completionEvidence(
 	activity: WorkbenchSnapshot["activities"][number],
 ): CompletionEvidence | null {
@@ -292,9 +317,7 @@ function completionEvidence(
 				: "change";
 		return {
 			category,
-			label: category === "verify" ? "관련 검증을 실행"
-				: category === "inspect" ? "구현 대상과 현재 상태를 확인"
-				: "변경 작업을 실행",
+			label: completionCommandLabel(command, category),
 			status,
 		};
 	}
@@ -305,7 +328,7 @@ function completionEvidence(
 	const activityClass = classifyWorkActivity({ ...activity, payload: projectedPayload ?? {} });
 	return {
 		category: activityClass === "observation" ? "inspect" : "change",
-		label: activityClass === "observation" ? "관련 자료를 확인" : tool ? `${tool} 작업을 실행` : "관련 작업을 실행",
+		label: completionToolLabel(tool, activityClass),
 		status,
 	};
 }
@@ -315,20 +338,21 @@ function evidenceCompletionReport(evidence: ReadonlyMap<string, CompletionEviden
 	const sections = COMPLETION_EVIDENCE_SECTIONS.flatMap(({ category, title }) => {
 		const matches = values.filter((entry) => entry.category === category);
 		if (matches.length === 0) return [];
-		const distinct = [...new Set(matches.map((entry) => entry.label))];
-		const status = matches.find((entry) => entry.status === "failed")?.status
-			?? matches.find((entry) => entry.status === "cancelled")?.status
-			?? matches.find((entry) => entry.status === "running")?.status
-			?? matches[0]!.status;
+		const latestByLabel = new Map<string, WorkStepStatus>();
+		for (const entry of matches) latestByLabel.set(entry.label, entry.status);
 		return [{
 			title,
-			bullets: distinct.map((label) => `${label} · ${WORK_STEP_STATUS_LABEL[status]}${matches.length > 1 ? ` · ${matches.length}개 활동` : ""}`),
+			bullets: [...latestByLabel].map(([label, status]) => `${label} · ${WORK_STEP_STATUS_LABEL[status]}`),
 		}];
 	});
+	const verification = values.filter((entry) => entry.category === "verify");
+	const verificationStatus = verification.length === 0 ? "Native Turn · 완료 확인"
+		: verification.at(-1)?.status === "completed" ? "자동 검증 · 최종 통과"
+			: `자동 검증 · ${WORK_STEP_STATUS_LABEL[verification.at(-1)!.status]}`;
 	return {
 		title: "이번 요청에서 한 일",
 		sections: sections.length > 0 ? sections : [{ title: "응답 제공", bullets: ["상태 · 완료"] }],
-		verification: [`Native Turn · 완료 확인 · 실행 기록 ${values.length}개`],
+		verification: [verificationStatus],
 	};
 }
 
@@ -480,11 +504,28 @@ export class WorkbenchChatView implements Component {
 		indicator: { message: string; hint?: string; frames: readonly string[]; intervalMs: number } | null,
 		requestRender: () => void,
 	): void {
+		const previous = this.activityIndicator;
 		const changed = this.activityIndicator?.message !== indicator?.message
 			|| this.activityIndicator?.hint !== indicator?.hint
-			|| this.activityIndicator?.frames[0] !== indicator?.frames[0];
+			|| this.activityIndicator?.intervalMs !== indicator?.intervalMs
+			|| this.activityIndicator?.frames.join("\0") !== indicator?.frames.join("\0");
 		this.activityIndicator = indicator;
-		this.stopActivity();
+		if (!indicator) {
+			this.stopActivity();
+		} else if (indicator.frames.length <= 1) {
+			this.stopActivity();
+		} else if (!this.activityTimer
+			|| previous?.intervalMs !== indicator.intervalMs
+			|| previous.frames.join("\0") !== indicator.frames.join("\0")) {
+			this.stopActivity();
+			this.activityIntervalMs = indicator.intervalMs;
+			this.activityTimer = setInterval(() => {
+				this.activityFrame = (this.activityFrame + 1) % Math.max(1, indicator.frames.length * 64);
+				this.cachedRows = null;
+				requestRender();
+			}, indicator.intervalMs);
+			this.activityTimer.unref?.();
+		}
 		if (changed) {
 			this.cachedRows = null;
 			requestRender();
@@ -691,7 +732,7 @@ export class WorkbenchChatView implements Component {
 			} else {
 				const activityRows = wrapTextWithAnsi(this.activityIndicator.message, contentWidth - 2);
 				for (const [index, line] of activityRows.entries()) {
-					rows.push(`${index === 0 ? `${colors.accent(frame)} ` : "  "}${semantic.activity(line)}`);
+					rows.push(`${index === 0 ? `${colors.accent(frame)} ` : "  "}${semantic.activity(activityGradientFrame(line, this.activityFrame))}`);
 				}
 			}
 			if (this.activityIndicator.hint) {

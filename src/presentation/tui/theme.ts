@@ -149,3 +149,36 @@ export function gradientLines(lines: readonly string[]): string[] {
 		).join("")
 	);
 }
+
+/** Moving teal-to-amber highlight for live activity text; visible cells stay stable. */
+export function activityGradientFrame(text: string, frame: number): string {
+	const characters = Array.from(text);
+	const span = Math.max(1, characters.length);
+	return characters.map((character, column) => {
+		if (character === " ") return character;
+		const position = ((column - frame) % span + span) % span / span;
+		return gradientColorAt(position)(character);
+	}).join("");
+}
+
+/** Animated Composer focus border; callers advance the frame on their render clock. */
+export function composerBorderColor(frame: number): (text: string) => string {
+	return chalk.hex(composerBorderHex(frame));
+}
+
+function mixHex(start: string, end: string, amount: number): string {
+	const clamped = Math.min(1, Math.max(0, amount));
+	const channel = (value: string, offset: number): number => Number.parseInt(value.slice(offset, offset + 2), 16);
+	const mixed = [1, 3, 5].map((offset) =>
+		Math.round(channel(start, offset) + (channel(end, offset) - channel(start, offset)) * clamped)
+			.toString(16)
+			.padStart(2, "0")
+	);
+	return `#${mixed.join("")}`;
+}
+
+export function composerBorderHex(frame: number): string {
+	const position = (frame % 24) / 23;
+	if (position <= 0.5) return mixHex(palette.teal, palette.steel, position * 2);
+	return mixHex(palette.steel, palette.orange, (position - 0.5) * 2);
+}

@@ -532,6 +532,10 @@ export class ProjectWorkbench {
 	private async sendChat(commandId: string, rawText: string): Promise<WorkbenchCommandReceipt> {
 		const text = sanitizeTerminalTextUnbounded(rawText).trim();
 		if (!text) return { state: "rejected", commandId, reason: "보낼 메시지가 비어 있습니다." };
+		if (this.activeTurnId && this.threadId && !this.chatDeliveryBlocked && this.native.steerTurn) {
+			const sent = await this.steerChatTurn(text, commandId, this.threadId, this.activeTurnId);
+			return { state: "accepted", commandId, activitySequence: sent.sequence };
+		}
 		if (this.activeTurnId || this.pendingApproval || this.chatQueue.length > 0 || this.chatDeliveryBlocked) {
 			await this.appendRequestObservation("request/submitted", commandId, this.threadId ?? undefined, text);
 			await this.appendRequestObservation("request/queued", commandId, this.threadId ?? undefined, text);
@@ -541,6 +545,52 @@ export class ProjectWorkbench {
 		}
 		const sent = await this.startChatTurn(text, commandId);
 		return { state: "accepted", commandId, activitySequence: sent.sequence };
+	}
+
+	private async steerChatTurn(
+		text: string,
+		localMessageId: string,
+		threadId: string,
+		turnId: string,
+	): Promise<ProjectActivity> {
+		const messagePayload = { direction: "outbound", role: "user", text } as const;
+		const messageRefs = { threadId, turnId, itemId: localMessageId };
+		const outboundSourceDigest = digestSource(stableJson(messagePayload));
+		const sent = await this.appendActivity("message", "started", messageRefs, messagePayload, false, outboundSourceDigest);
+		await this.appendRequestObservation("request/submitted", localMessageId, threadId, text, outboundSourceDigest, turnId);
+		this.publish();
+		try {
+			await this.native.steerTurn!({
+				threadId,
+				expectedTurnId: turnId,
+				clientUserMessageId: localMessageId,
+				text,
+			});
+		} catch (error) {
+			await this.appendRequestObservation(
+				isUncertain(error) ? "request/uncertain" : "request/failed",
+				localMessageId,
+				threadId,
+				text,
+				outboundSourceDigest,
+				turnId,
+			);
+			await this.appendActivity("message", "failed", messageRefs, {
+				...messagePayload,
+				error: isUncertain(error)
+					? "Native가 후속 메시지를 수신했는지 확인할 수 없습니다. 자동 재시도하거나 큐에 넣지 않습니다."
+					: errorMessage(error),
+			}, false);
+			this.publish();
+			throw error;
+		}
+		await this.appendActivity("message", "completed", messageRefs, messagePayload, false, outboundSourceDigest);
+		await this.appendRequestObservation("request/started", localMessageId, threadId, text, outboundSourceDigest, turnId, {
+			model: this.effectiveModel,
+			effort: this.effectiveEffort,
+		});
+		this.publish();
+		return sent;
 	}
 
 	private async startChatTurn(text: string, localMessageId: string, queued = false): Promise<ProjectActivity> {

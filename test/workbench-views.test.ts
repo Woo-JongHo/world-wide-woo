@@ -652,15 +652,17 @@ describe("workbench dashboard views", () => {
 		}
 	});
 
-	test("renders activity state changes without a high-frequency spinner timer", () => {
+	test("advances the spinner and activity gradient on the configured timer", () => {
 		const originalSetInterval = globalThis.setInterval;
 		const originalClearInterval = globalThis.clearInterval;
 		const scheduled: Array<{ delay: number; handle: ReturnType<typeof setInterval> }> = [];
 		const cleared: Array<ReturnType<typeof setInterval>> = [];
 		let nextHandle = 0;
-		globalThis.setInterval = ((_callback: (...args: unknown[]) => void, delay?: number) => {
+		const callbacks: Array<() => void> = [];
+		globalThis.setInterval = ((callback: (...args: unknown[]) => void, delay?: number) => {
 			const handle = { id: ++nextHandle, unref: () => undefined } as unknown as ReturnType<typeof setInterval>;
 			scheduled.push({ delay: delay ?? 0, handle });
+			callbacks.push(() => callback());
 			return handle;
 		}) as typeof setInterval;
 		globalThis.clearInterval = ((handle: ReturnType<typeof setInterval>) => {
@@ -668,11 +670,19 @@ describe("workbench dashboard views", () => {
 		}) as typeof clearInterval;
 		const view = new WorkbenchChatView(snapshot);
 		try {
-			view.syncActivity({ message: "분석", frames: ["⠹"], intervalMs: 80 }, () => undefined);
+			let renders = 0;
+			view.syncActivity({ message: "분석", frames: ["⠋", "⠙"], intervalMs: 80 }, () => { renders += 1; });
+			const first = view.render(80).join("\n");
+			callbacks[0]?.();
+			const second = view.render(80).join("\n");
 			view.syncActivity({ message: "승인 대기", frames: ["⏸"], intervalMs: 1_000 }, () => undefined);
 
-			expect(scheduled).toEqual([]);
-			expect(cleared).toEqual([]);
+			expect(scheduled.map(({ delay }) => delay)).toEqual([80]);
+			expect(cleared).toContain(scheduled[0]!.handle);
+			expect(stripTerminalSequences(first)).toContain("⠋ 분석");
+			expect(stripTerminalSequences(second)).toContain("⠙ 분석");
+			expect(second).not.toBe(first);
+			expect(renders).toBeGreaterThan(0);
 			expect(stripTerminalSequences(view.render(80).join("\n"))).toContain("승인 대기");
 		} finally {
 			view.dispose();
@@ -828,14 +838,15 @@ describe("workbench dashboard views", () => {
 		expect(recap).toContain("#1 대상과 기준 확인");
 		expect(recap).toContain("#2 변경과 실행");
 		expect(recap).toContain("#3 결과 검증");
-		expect(recap).toContain("구현 대상과 현재 상태를 확인 · 완료");
+		expect(recap).toContain("관련 코드와 설정을 검색 · 완료");
 		expect(recap).toContain("관련 파일을 변경 · 완료");
-		expect(recap).toContain("관련 검증을 실행 · 완료");
+		expect(recap).toContain("테스트를 실행 · 완료");
 		expect(recap).not.toContain("$ rg");
 		expect(recap).not.toContain("bun test");
 		expect(recap).not.toContain("[로컬 경로 숨김]");
 		expect(recap).not.toContain("/Users/private");
-		expect(recap).toContain("Native Turn · 완료 확인 · 실행 기록 3개");
+		expect(recap).toContain("자동 검증 · 최종 통과");
+		expect(recap).not.toContain("개 활동");
 	});
 
 	test("still closes an answer-only Native turn with a structured recap", () => {
@@ -875,7 +886,7 @@ describe("workbench dashboard views", () => {
 		expect(output).toContain("이번 요청에서 한 일");
 		expect(output).toContain("#1 응답 제공");
 		expect(output).toContain("상태 · 완료");
-		expect(output).toContain("Native Turn · 완료 확인 · 실행 기록 0개");
+		expect(output).toContain("Native Turn · 완료 확인");
 	});
 
 	test("does not claim a completion recap before the same Native turn completes", () => {
@@ -1310,8 +1321,8 @@ describe("workbench dashboard views", () => {
 		expect(output).toContain("명령 · bun test test/workbench-views.test.ts");
 		expect(output).toContain("이유 · 변경이 동작하는지 테스트해야 합니다.");
 		expect(output).toContain("경로 · /workspace/sample-project");
-		expect(output).toContain("승인 /approve · 세션 /approve-session · 거절 /decline");
-		expect(output).toContain("현재 턴 일시중지 · 승인 결정을 기다립니다.");
+		expect(output).toContain("Input 답변 · 승인 ‘네’ · 세션 ‘이번 세션 동안 승인’ · 거절 ‘아니요’");
+		expect(output).toContain("승인할까요? 현재 턴은 Input 답변을 기다립니다.");
 		expect(output).toContain("백그라운드 작업 · unknown");
 		expect(output).toContain("대기 메시지 1개 · 승인 후 순서대로 전송");
 	});

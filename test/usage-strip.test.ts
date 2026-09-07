@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
 import { UsageStripView } from "../src/presentation/tui/usage-strip-view";
 
-test("주간 잔여 비율과 초기화까지 남은 기간만 표시한다", () => {
+test("주간 잔여 비율과 Claude 5시간 세션을 한 줄에 표시한다", () => {
 	const now = Date.now();
 	const view = new UsageStripView();
 	view.update([
@@ -16,9 +16,18 @@ test("주간 잔여 비율과 초기화까지 남은 기간만 표시한다", ()
 		] },
 	]);
 	const line = stripTerminalSequences(view.render(100)[0]!);
-	expect(line.trimEnd()).toBe("Codex 80% · 7d | Claude 84% · 7d | Gemini —");
-	expect(line).not.toContain("5h");
+	expect(line.trimEnd()).toBe("Codex 80% · 7d | Claude 84% · 7d · 5h 12% | Gemini —");
 	expect(line).not.toContain("●");
+});
+
+test("Claude 5시간 세션의 초기화까지 남은 시간도 표시한다", () => {
+	const now = Date.now();
+	const view = new UsageStripView();
+	view.update([{ provider: "anthropic", state: "ready", fetchedAt: now, limits: [
+		{ label: "5 hours", remainingPercent: 42, resetsAt: now + 2 * 3_600_000, status: "ok" },
+		{ label: "7 days", remainingPercent: 70, resetsAt: now + 6 * 86_400_000, status: "ok" },
+	] }]);
+	expect(stripTerminalSequences(view.render(100)[0]!)).toContain("Claude 70% · 6d · 5h 42% · 2h");
 });
 
 test("값 없음과 좁은 폭에서도 한 줄 경계를 지킨다", () => {

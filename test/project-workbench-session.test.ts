@@ -10,7 +10,7 @@ import type { SessionRepository, TodoStore } from "../src/application/ports/inde
 import { TodoLedger, TodoWriteConflictError } from "../src/application/todo-ledger";
 import { ReviewService } from "../src/application/review-service";
 
-import type { NativeApprovalResolution, NativeHarnessEvent, NativeThreadList, NativeThreadRead, NativeThreadResume, NativeThreadSnapshot, NativeThreadStart, NativeThreadSummary, NativeTurnInterrupt, NativeTurnSnapshot, NativeTurnStart } from "../src/domain/native-session.js";
+import type { NativeApprovalResolution, NativeHarnessEvent, NativeThreadList, NativeThreadRead, NativeThreadResume, NativeThreadSnapshot, NativeThreadStart, NativeThreadSummary, NativeTurnInterrupt, NativeTurnSnapshot, NativeTurnStart, NativeTurnSteer, NativeTurnSteerResult } from "../src/domain/native-session.js";
 import type { ProjectActivity, ProjectActivityAppendResult, ProjectActivityInput } from "../src/domain/project-activity.js";
 import { createProjectWorkbenchSession, scopedProjectId, scopedTodoSessionId, ThreadBoundActivityJournal, type ProjectWorkbenchSessionFactories } from "../src/infrastructure/project-workbench-session.js";
 import type { ProjectWorkspace } from "../src/infrastructure/project-workspace.js";
@@ -72,6 +72,7 @@ class FakeNative implements ExecutorPort {
 		});
 		return { id: "turn", threadId: "thread", value: {} };
 	}
+	async steerTurn(input: NativeTurnSteer): Promise<NativeTurnSteerResult> { return { turnId: input.expectedTurnId }; }
 	async interruptTurn(_input: NativeTurnInterrupt): Promise<void> {}
 	async respondToApproval(_input: NativeApprovalResolution): Promise<void> {}
 	subscribe(listener: (event: NativeHarnessEvent) => void): () => void { this.listener = listener; return () => { this.listener = undefined; }; }

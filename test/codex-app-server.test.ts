@@ -181,6 +181,7 @@ describe("CodexAppServer", () => {
 			backwardsCursor: null,
 		});
 		transport.responseFor.set("turn/start", { turn: { id: "turn-native-1", items: [] } });
+		transport.responseFor.set("turn/steer", { turnId: "turn-native-1" });
 
 		const startedThread = await server.startThread({ cwd: "/workspace", model: "gpt-5.6-sol", effort: "low" });
 		expect(startedThread).toMatchObject({ id: "thread-native-1", model: "gpt-5.6-sol", effort: "low" });
@@ -235,6 +236,18 @@ describe("CodexAppServer", () => {
 				woo_entry_policy: { kind: "application", value: "read-only" },
 				woo_entry_snapshot: { kind: "untrusted", value: "{}" },
 			},
+		});
+		expect(await server.steerTurn({
+			threadId: "thread-native-1",
+			expectedTurnId: "turn-native-1",
+			clientUserMessageId: "message-local-2",
+			text: "지금 방향을 바꿔줘",
+		})).toEqual({ turnId: "turn-native-1" });
+		expect(transport.sent.find((message) => message.method === "turn/steer")?.params).toEqual({
+			threadId: "thread-native-1",
+			expectedTurnId: "turn-native-1",
+			clientUserMessageId: "message-local-2",
+			input: [{ type: "text", text: "지금 방향을 바꿔줘" }],
 		});
 
 		const events: unknown[] = [];
