@@ -1,7 +1,9 @@
-import { Key, matchesKey, wrapTextWithAnsi, type Component } from "@earendil-works/pi-tui";
+import { Key, matchesKey, truncateToWidth, wrapTextWithAnsi, type Component } from "@earendil-works/pi-tui";
 import type { MonitoringSource } from "../../application/session-monitor";
-import type { MonitoringSnapshot } from "../../domain/monitoring";
+import type { MonitoringSnapshot, MonitoringTool } from "../../domain/monitoring";
 import { colors, semantic } from "./theme";
+
+type ObservedStatus = "RUNNING" | "COMPLETED" | "FAILED" | "CANCELLED" | "UNKNOWN";
 
 function elapsed(milliseconds: number): string {
 	const seconds = Math.max(0, Math.floor(milliseconds / 1_000));
@@ -13,6 +15,35 @@ function rowsWrapped(rows: readonly string[], width: number): string[] {
 	return rows.flatMap(row => row ? wrapTextWithAnsi(row, Math.max(1, width)) : [""]);
 }
 
+function sessionStatus(snapshot: MonitoringSnapshot): ObservedStatus {
+	if (snapshot.phase === "error") return "FAILED";
+	if (snapshot.phase === "streaming" || snapshot.tools.running > 0) return "RUNNING";
+	if (snapshot.phase === "ready" && (snapshot.turns.user > 0 || snapshot.turns.assistant > 0)) return "COMPLETED";
+	return "UNKNOWN";
+}
+
+function toolStatus(tool: MonitoringTool | null): ObservedStatus {
+	if (!tool) return "UNKNOWN";
+	if (tool.status === "running") return "RUNNING";
+	if (tool.status === "passed") return "COMPLETED";
+	if (tool.status === "failed") return "FAILED";
+	return "CANCELLED";
+}
+
+function todoStatus(snapshot: MonitoringSnapshot): ObservedStatus {
+	if (snapshot.todo.activeContent) return "RUNNING";
+	if (snapshot.todo.total > 0 && snapshot.todo.completed >= snapshot.todo.total) return "COMPLETED";
+	return "UNKNOWN";
+}
+
+function statusText(status: ObservedStatus): string {
+	if (status === "RUNNING") return semantic.toolRunning(status);
+	if (status === "COMPLETED") return semantic.toolPassed(status);
+	if (status === "FAILED") return semantic.toolFailed(status);
+	if (status === "CANCELLED") return semantic.toolCancelled(status);
+	return colors.warning(status);
+}
+
 export class MonitoringOverlay implements Component {
 	private snapshot: MonitoringSnapshot;
 	private unsubscribe: (() => void) | null = null;
@@ -21,6 +52,7 @@ export class MonitoringOverlay implements Component {
 		private readonly monitor: MonitoringSource,
 		private readonly onUpdate: () => void,
 		private readonly onClose: () => void,
+		private readonly now: () => number = Date.now,
 	) {
 		this.snapshot = monitor.snapshot;
 	}
@@ -42,34 +74,40 @@ export class MonitoringOverlay implements Component {
 
 	render(width: number): string[] {
 		const snapshot = this.snapshot;
-		const liveElapsed = Date.now() - snapshot.startedAt;
-		const latest = snapshot.tools.latest
-			? `${snapshot.tools.latest.name} · ${snapshot.tools.latest.status}`
-			: "도구 실행 없음";
+		const age = Math.max(0, this.now() - snapshot.updatedAt);
+		const latestStatus = toolStatus(snapshot.tools.latest);
 		const active = snapshot.tools.active
-			? semantic.toolRunning(`${snapshot.tools.active.name} 실행 중`)
-			: colors.muted("대기");
+			? `${snapshot.tools.active.name} · ${statusText("RUNNING")}`
+			: colors.muted("관측된 실행 없음");
+		const latest = snapshot.tools.latest
+			? `${snapshot.tools.latest.name} · ${statusText(latestStatus)}`
+			: statusText("UNKNOWN");
+		const compact = width < 48;
 		const rows = [
-			colors.accent("Monitoring · Dashboard"),
-			colors.muted("read-only projection · Esc 닫기"),
+			colors.accent("Monitoring · Live snapshot"),
+			`${statusText(sessionStatus(snapshot))} · 갱신 ${elapsed(age)} 전`,
+			colors.muted("현재 프로세스 메모리 관측 · 이전 이력은 부분적일 수 있음"),
 			"",
 			colors.secondary("Session"),
-			`  ${snapshot.projectName} · ${snapshot.sessionId.slice(0, 12)}`,
+			`  ${snapshot.projectName} · ${snapshot.sessionId.slice(0, compact ? 8 : 12)}`,
 			`  ${snapshot.provider}/${snapshot.model} · ${snapshot.effort}`,
-			`  ${snapshot.phase} · ${snapshot.activityLabel ?? "activity 없음"} · ${elapsed(liveElapsed)}`,
+			`  ${snapshot.phase} · ${snapshot.activityLabel ?? "activity 미관측"} · ${elapsed(snapshot.elapsedMs)}`,
 			"",
 			colors.secondary("Turn"),
-			`  user ${snapshot.turns.user} · bori ${snapshot.turns.assistant} · 중단 ${snapshot.turns.cancelled}`,
+			`  ${statusText(sessionStatus(snapshot))} · user ${snapshot.turns.user} · 🐙 Wooni ${snapshot.turns.assistant} · 중단 ${snapshot.turns.cancelled}`,
 			"",
 			colors.secondary("Tool"),
-			`  실행 ${snapshot.tools.running} · 성공 ${snapshot.tools.passed} · 실패 ${snapshot.tools.failed} · 취소 ${snapshot.tools.cancelled}`,
 			`  현재 ${active}`,
 			`  최근 ${latest}`,
+			`  실행 ${snapshot.tools.running} · 성공 ${snapshot.tools.passed} · 실패 ${snapshot.tools.failed} · 취소 ${snapshot.tools.cancelled}`,
 			"",
 			colors.secondary("Todo"),
-			`  ${snapshot.todo.completed}/${snapshot.todo.total}${
+			`  ${statusText(todoStatus(snapshot))} · ${snapshot.todo.completed}/${snapshot.todo.total}${
 				snapshot.todo.detailTotal > 0 ? ` · 세부 ${snapshot.todo.detailCompleted}/${snapshot.todo.detailTotal}` : ""
-			}${snapshot.todo.activeContent ? ` · ${snapshot.todo.activeContent}` : ""}`,
+			}`,
+			snapshot.todo.activeContent ? `  ${truncateToWidth(snapshot.todo.activeContent, Math.max(1, width - 2))}` : colors.muted("  활성 Todo 미관측"),
+			"",
+			colors.muted("Esc 닫기"),
 		];
 		return rowsWrapped(rows, width);
 	}

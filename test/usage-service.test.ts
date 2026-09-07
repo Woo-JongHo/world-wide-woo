@@ -89,6 +89,39 @@ describe("UsageService", () => {
 		expect(fetches).toBe(2);
 	});
 
+	test("keeps the initial HUD loading while retrying a transient startup auth failure", async () => {
+		let authAttempts = 0;
+		let fetches = 0;
+		const service = new UsageService(
+			store({ "openai-codex": oauth(), anthropic: undefined }),
+			{
+				getAuth: async provider => {
+					if (provider === "openai-codex" && authAttempts++ === 0) throw new Error("registry is still starting");
+					return {};
+				},
+				checkAuth: async () => undefined,
+			},
+			async () => {
+				fetches++;
+				return response({ rate_limit: { primary_window: { used_percent: 20 } } });
+			},
+		);
+
+		const notifications: Array<readonly { state: string }[]> = [];
+		let resolveReady!: () => void;
+		const ready = new Promise<void>(resolve => { resolveReady = resolve; });
+		const stop = service.startPolling(snapshots => {
+			notifications.push(snapshots);
+			if (snapshots[0]?.state === "ready") resolveReady();
+		}, 60_000);
+		await ready;
+		stop();
+
+		expect(notifications.map(items => items[0]?.state)).toEqual(["loading", "ready"]);
+		expect(authAttempts).toBe(2);
+		expect(fetches).toBe(1);
+	});
+
 	test("classifies Claude 429 responses and suppresses polling during backoff", async () => {
 		let now = 1_000;
 		let fetches = 0;

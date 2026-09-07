@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { ProjectActivity } from "../src/domain/project-activity";
-import { type DplanHash, DplanIdentityCollisionError, projectWorkFlow } from "../src/domain/work-steps";
+import { type DplanHash, DplanIdentityCollisionError, projectWorkFlow } from "../src/domain/work/index";
 
 const hash: DplanHash = {
 	sha256Hex: (input) => new Bun.CryptoHasher("sha256").update(input).digest("hex"),
@@ -99,6 +99,49 @@ describe("dplan-v1", () => {
 			{ number: 5, title: "넷째 bullet", status: "failed" },
 			{ number: 6, title: "둘째 numbered", status: "cancelled" },
 		]);
+	});
+	test.each([2, 12])("accepts %i plain numbered Native steps only beneath an explicit plan heading", (count) => {
+		const numbered = Array.from({ length: count }, (_, index) => `${index + 1}. 공개 단계 ${index + 1}`).join("\n");
+		const result = projectWorkFlow([
+			start(),
+			completedPlan(2, `# 결과\n\n## ${count}단계\n\n${numbered}\n\n## 검증 및 전제\n\n- 후속 설명은 단계가 아니다.`),
+		], new Map(), input);
+
+		expect(result.steps).toHaveLength(count);
+		expect(result.steps[0]).toMatchObject({ title: "공개 단계 1", status: "running" });
+		expect(result.steps.at(-1)).toMatchObject({ title: `공개 단계 ${count}`, status: "pending" });
+		expect(result.steps.map((step) => step.title)).not.toContain(`${count}단계`);
+	});
+	test("accepts top-level numbered steps from an authoritative Native plan item", () => {
+		const result = projectWorkFlow([
+			start(),
+			completedPlan(2, [
+				"# 제품명·버전 비교 계획",
+				"",
+				"1. **표기 추출**",
+				"   - README 표기는 단계 상세다.",
+				"2. **의미 비교**",
+				"   - 식별자 의미는 단계 상세다.",
+				"3. **결과 정리**",
+				"   - 비교 결과는 단계 상세다.",
+			].join("\n")),
+		], new Map(), input);
+
+		expect(result.steps.map(({ title, status }) => ({ title, status }))).toEqual([
+			{ title: "표기 추출", status: "running" },
+			{ title: "의미 비교", status: "pending" },
+			{ title: "결과 정리", status: "pending" },
+		]);
+	});
+	test.each([
+		["한 단계뿐인 목록", "## 1단계\n\n1. 공개 단계 1"],
+		["불연속 목록", "## 3단계\n\n1. 공개 단계 1\n3. 공개 단계 3"],
+		["13단계 목록", `## 13단계\n\n${Array.from({ length: 13 }, (_, index) => `${index + 1}. 공개 단계 ${index + 1}`).join("\n")}`],
+	] as const)("rejects plain numbered Native plan: %s", (_label, text) => {
+		const result = projectWorkFlow([start(), completedPlan(2, text)], new Map(), input);
+		expect(result.source).toBeNull();
+		expect(result.steps).toEqual([]);
+		expect(result.rejections).toEqual([expect.objectContaining({ kind: "revision" })]);
 	});
 	test("fails closed for nested bullets unless they detail the preceding numbered step", () => {
 		for (const text of [

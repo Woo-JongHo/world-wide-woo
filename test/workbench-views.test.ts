@@ -1,3 +1,4 @@
+/** @linear WOO-692 */
 import { describe, expect, test } from "bun:test";
 import { renderLayoutFrame } from "@earendil-works/pi-tui/dist/layout.js";
 import type { LayoutBox } from "@earendil-works/pi-tui/dist/layout.js";
@@ -12,7 +13,7 @@ import {
 import { TNotesSourceView, WorkbenchChatView, WorkbenchMonitorView } from "../src/presentation/tui/workbench-views";
 import { WORKBENCH_STATUS_NOTICE } from "../src/presentation/tui/workbench-shell";
 import { boundedPublicProjection } from "../src/presentation/tui/bounded-public-projection";
-import { projectWorkFlow, type DplanHash } from "../src/domain/work-steps";
+import { projectWorkFlow, type DplanHash } from "../src/domain/work/index";
 
 const hash: DplanHash = {
 	sha256Hex: (input) => new Bun.CryptoHasher("sha256").update(input).digest("hex"),
@@ -121,6 +122,7 @@ function allScrollContent(box: LayoutBox): string[] {
 	return [...(box.scrollContentLines ?? []), ...box.children.flatMap(allScrollContent)];
 }
 
+/** @linear WOO-692 */
 describe("workbench dashboard views", () => {
 	test("reuses the complete chat projection for scroll-only frames", () => {
 		const count = 5_000;
@@ -166,7 +168,7 @@ describe("workbench dashboard views", () => {
 			},
 		};
 		const output = stripTerminalSequences(new WorkbenchChatView(failed).render(100).join("\n"));
-		expect(output).not.toMatch(/^bori\s+#1$/mu);
+		expect(output).not.toMatch(/^🐙 Wooni\s+#1$/mu);
 		expect(output).toContain("질문 요약 자동 생성 보류");
 		expect(output).toContain("T-note 저장에 실패했습니다.");
 	});
@@ -179,6 +181,58 @@ describe("workbench dashboard views", () => {
 		expect(monitor).toContain("Trace·Source · activity-1");
 		expect(monitor).toContain("message-1");
 		expect(monitor).not.toContain("결정 요약");
+	});
+
+	test("shows each inferred Plan activity with an exact Trace address and readable public Source", () => {
+		const command = {
+			...snapshot.activities[0]!,
+			id: "trace-command",
+			kind: "tool" as const,
+			nativeRefs: { threadId: "thread-1", turnId: "turn-1", itemId: "command-1" },
+			payload: {
+				method: "item/completed",
+				params: { item: { type: "commandExecution", command: "bun test", aggregatedOutput: "3 pass", secretToken: "never-show" } },
+			},
+		};
+		const traced: WorkbenchSnapshot = {
+			...snapshot,
+			activities: [command],
+			selectedActivityId: command.id,
+			workFlow: fixtureWorkFlow([command]),
+		};
+		const output = stripTerminalSequences(new WorkbenchMonitorView(() => traced).render(100).join("\n"));
+
+		expect(output).toContain("Plan·Trace · 1/1 단계를 완료했습니다.");
+		expect(output).toContain("Trace · inferred · 1개");
+		expect(output).toContain("trace-command · /trace trace-command");
+		expect(output).toContain("공개 내용 · 보존된 관측 projection");
+		expect(output).toContain('"command": "bun test"');
+		expect(output).toContain('"aggregatedOutput": "3 pass"');
+		expect(output).toContain("Native 참조 · thread thread-1 · turn turn-1 · item command-1");
+		expect(output).not.toContain("never-show");
+		for (const width of [40, 80, 120]) {
+			const rows = new WorkbenchMonitorView(() => traced).render(width);
+			expect(rows.every((row) => visibleWidth(row) <= width)).toBe(true);
+		}
+	});
+
+	test("distinguishes an unavailable selected Source from a partial resumed journal", () => {
+		const resumed: WorkbenchSnapshot = {
+			...snapshot,
+			activities: [],
+			selectedActivityId: "activity-before-resume",
+			resumeCoverage: {
+				mode: "partial-local-journal",
+				processAttachedAt: "2026-09-07T00:00:00.000Z",
+				priorProviderHistoryHydrated: false,
+			},
+		};
+		const output = stripTerminalSequences(new WorkbenchMonitorView(() => resumed).render(80).join("\n"));
+
+		expect(output).toContain("현재 요청에서 공개 Plan Source가 관측되지 않았습니다.");
+		expect(output).toContain("선택한 Activity의 원본 부재");
+		expect(output).toContain("다른 실행으로 대신하지 않았습니다.");
+		expect(output).toContain("재개 뒤 이 프로세스가 수집한 Activity만 표시합니다.");
 	});
 
 	test("keeps a resumed truncated Native turn's durable question number and reveals its selected T-note sources", () => {
@@ -356,8 +410,8 @@ describe("workbench dashboard views", () => {
 		});
 		const rows = view.render(48);
 		const plain = rows.map((line) => stripTerminalSequences(line));
-		const userLabel = plain.findIndex((line) => line.trimEnd() === "user");
-		const assistantLabel = plain.findIndex((line) => line === "bori");
+		const userLabel = plain.findIndex((line) => line.trimEnd() === "👤 USER");
+		const assistantLabel = plain.findIndex((line) => line === "🐙 Wooni");
 
 		expect(userLabel).toBeGreaterThanOrEqual(0);
 		expect(assistantLabel).toBeGreaterThan(userLabel);
@@ -774,12 +828,13 @@ describe("workbench dashboard views", () => {
 		expect(recap).toContain("#1 대상과 기준 확인");
 		expect(recap).toContain("#2 변경과 실행");
 		expect(recap).toContain("#3 결과 검증");
-		expect(recap).toContain("$ rg -n 'CompletionSummary' src/presentation/tui · 완료");
-		expect(recap.match(/\$ rg -n 'CompletionSummary' src\/presentation\/tui/gu)).toHaveLength(1);
-		expect(recap).toContain("파일 변경 · src/presentation/tui/workbench-views.ts, [로컬 경로");
-		expect(recap).toContain("숨김] · 완료");
+		expect(recap).toContain("구현 대상과 현재 상태를 확인 · 완료");
+		expect(recap).toContain("관련 파일을 변경 · 완료");
+		expect(recap).toContain("관련 검증을 실행 · 완료");
+		expect(recap).not.toContain("$ rg");
+		expect(recap).not.toContain("bun test");
+		expect(recap).not.toContain("[로컬 경로 숨김]");
 		expect(recap).not.toContain("/Users/private");
-		expect(recap).toContain("$ bun test test/workbench-views.test.ts · 완료");
 		expect(recap).toContain("Native Turn · 완료 확인 · 실행 기록 3개");
 	});
 
@@ -1118,7 +1173,7 @@ describe("workbench dashboard views", () => {
 		expect(tnotesOutput).not.toContain("T-NOTES 0");
 		expect(todoOutput).not.toContain("TODO 0/0");
 		expect(tnotesOutput).toBe("");
-		expect(todoOutput).toBe("");
+		expect(todoOutput).toBe("TODO · 현재 계획 없음");
 	});
 
 	test("keeps active goal, progress, queue, Todo, and source details out of T-notes", () => {
@@ -1369,7 +1424,7 @@ describe("workbench dashboard views", () => {
 		}).render(70).join("\n"));
 		expect(output).toContain("단계 1 · PASSED");
 		expect(output).toContain("변경 결과 검증");
-		expect(output).toContain("Trace source · planItemId command-1 · /trace command-1");
+		expect(output).toContain("Trace source · activityId command-activity · /trace command-activity");
 		expect(output).toContain("$ bun test test/workbench-views.test.ts");
 		expect(output).not.toContain("왜 하는지:");
 		expect(output).toContain("┌─── ✔ Bash");
@@ -1575,7 +1630,7 @@ describe("workbench dashboard views", () => {
 		expect(output).not.toContain("단계 9");
 	});
 
-	test("shows queued user inputs in their delivery order", () => {
+	test("shows follow-up inputs immediately as ordinary user messages", () => {
 		const queued: WorkbenchSnapshot = {
 			...snapshot,
 			chatQueue: [
@@ -1584,9 +1639,9 @@ describe("workbench dashboard views", () => {
 			],
 		};
 		const output = stripTerminalSequences(new WorkbenchChatView(queued).render(62).join("\n"));
-		expect(output).toContain("user · 대기 1");
+		expect(output).not.toContain("대기 1");
 		expect(output).toContain("첫 번째 후속 요청");
-		expect(output).toContain("user · 대기 2");
+		expect(output).not.toContain("대기 2");
 		expect(output).toContain("두 번째 후속 요청");
 		expect(output.indexOf("첫 번째 후속 요청")).toBeLessThan(output.indexOf("두 번째 후속 요청"));
 		expect(output).not.toContain("queue-secret");
@@ -1633,7 +1688,7 @@ describe("workbench dashboard views", () => {
 			}],
 		};
 		const output = stripTerminalSequences(new WorkbenchChatView(outbound).render(70).join("\n"));
-		expect(output).toContain(`user · ${label}`);
+		expect(output).toContain(`👤 USER · ${label}`);
 		expect(output).toContain("전달 상태를 확인할 요청");
 	});
 
@@ -1658,7 +1713,7 @@ describe("workbench dashboard views", () => {
 			}],
 		};
 		const output = stripTerminalSequences(new WorkbenchChatView(outbound).render(70).join("\n"));
-		expect(output).toContain("user · 전송 준비 중");
+		expect(output).toContain("👤 USER · 전송 준비 중");
 		expect(output).toContain("Native Thread가 열리기 전에도 보여야 하는 요청");
 		expect(output).not.toContain("activity 순서가 없는 응답");
 	});

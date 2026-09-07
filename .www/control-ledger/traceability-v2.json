@@ -1,0 +1,1654 @@
+{
+  "schemaVersion": 2,
+  "projectId": "2d9bf52e-3f71-4e58-ac8e-7c8d0b60168f",
+  "vault": {
+    "id": "5521cc40c75eb293",
+    "relativeRoot": "01_프로젝트/99_WWW/01_문서"
+  },
+  "units": [
+    {
+      "uuid": "3242aa49-fa3d-4488-b8dc-809a9865f4d8",
+      "key": "Code-001",
+      "name": "Chat 표시",
+      "lifecycle": "active",
+      "aliases": [
+        "0001"
+      ],
+      "locations": [
+        {
+          "path": "src/presentation/tui/workbench-views.ts",
+          "symbol": "WorkbenchChatView"
+        }
+      ]
+    },
+    {
+      "uuid": "aadefd19-a432-4fc8-9ff2-c63b3fed01c9",
+      "key": "Code-002",
+      "name": "Chat 대화 수명",
+      "lifecycle": "active",
+      "aliases": [
+        "0002"
+      ],
+      "locations": [
+        {
+          "path": "src/application/project-workbench.ts",
+          "symbol": "ProjectWorkbench"
+        }
+      ]
+    },
+    {
+      "uuid": "3f469bd8-546c-45c0-b697-de9d17b1b33b",
+      "key": "Code-003",
+      "name": "Chat 읽던 위치",
+      "lifecycle": "active",
+      "aliases": [
+        "0003"
+      ],
+      "locations": [
+        {
+          "path": "src/presentation/tui/dashboard-layout.ts",
+          "symbol": "ChatScrollView"
+        }
+      ]
+    },
+    {
+      "uuid": "176bf198-f559-455c-ab2c-103c32454e2c",
+      "key": "Code-004",
+      "name": "Chat 입력과 Source 이동",
+      "lifecycle": "active",
+      "aliases": [
+        "0004"
+      ],
+      "locations": [
+        {
+          "path": "src/presentation/tui/workbench-shell.ts",
+          "symbol": "runProjectWorkbenchShell"
+        }
+      ]
+    },
+    {
+      "uuid": "3aca17dc-2703-4ac0-96a9-02d6488d4d39",
+      "key": "Code-005",
+      "name": "Chat 요약의 thread 범위",
+      "lifecycle": "active",
+      "aliases": [
+        "0005"
+      ],
+      "locations": [
+        {
+          "path": "src/infrastructure/project-workbench-session.ts",
+          "symbol": "ThreadScopedTNoteSource"
+        }
+      ]
+    },
+    {
+      "uuid": "aced2dc3-f0b8-44f3-b850-b6b36580bd45",
+      "key": "Code-006",
+      "name": "Unit 원장 계약",
+      "lifecycle": "active",
+      "aliases": [],
+      "locations": [
+        {
+          "path": "src/domain/development-traceability.ts",
+          "symbol": "validateLedger"
+        }
+      ]
+    },
+    {
+      "uuid": "15655b5d-1c2d-4cbe-9724-fae0981cdb6a",
+      "key": "Code-007",
+      "name": "연결 무결성 검사",
+      "lifecycle": "active",
+      "aliases": [],
+      "locations": [
+        {
+          "path": "src/infrastructure/traceability-validator.ts",
+          "symbol": "validateTraceability"
+        }
+      ]
+    },
+    {
+      "uuid": "4f2bdefd-390d-4e34-9396-d353f48b7385",
+      "key": "Code-008",
+      "name": "SQLite 그래프 투영",
+      "lifecycle": "active",
+      "aliases": [],
+      "locations": [
+        {
+          "path": "src/infrastructure/development-store.ts",
+          "symbol": "DevelopmentStore"
+        }
+      ]
+    },
+    {
+      "uuid": "e443d03c-c619-4be2-b68c-a731f052448c",
+      "key": "Code-009",
+      "name": "Development Map 생성",
+      "lifecycle": "active",
+      "aliases": [],
+      "locations": [
+        {
+          "path": "src/infrastructure/development-map-builder.ts",
+          "symbol": "buildDevelopmentMap"
+        }
+      ]
+    },
+    {
+      "uuid": "bdee96af-1b07-4f96-8004-bc5ac0ca157d",
+      "key": "Code-010",
+      "name": "Workbench 하단 주간 사용량 HUD",
+      "lifecycle": "active",
+      "aliases": [],
+      "locations": [
+        {
+          "path": "src/presentation/tui/workbench-bottom-hud.ts",
+          "symbol": "WorkbenchBottomHudView"
+        }
+      ]
+    },
+    {
+      "uuid": "4753d64f-ac84-478a-9f74-090eafb7975f",
+      "key": "Code-011",
+      "name": "TodoLedger",
+      "lifecycle": "active",
+      "aliases": [],
+      "locations": [
+        {
+          "path": "src/application/todo-ledger.ts",
+          "symbol": "TodoLedger"
+        }
+      ]
+    },
+    {
+      "uuid": "b9eeb3fa-7aa0-4eb7-bc27-e6322befcada",
+      "key": "Code-012",
+      "name": "DevelopmentService",
+      "lifecycle": "active",
+      "aliases": [],
+      "locations": [
+        {
+          "path": "src/application/development-service.ts",
+          "symbol": "DevelopmentService"
+        }
+      ]
+    },
+    {
+      "uuid": "f1ec4224-508e-4f9c-9d67-6c32509d404b",
+      "key": "Code-013",
+      "name": "createDashboardLayout",
+      "lifecycle": "active",
+      "aliases": [],
+      "locations": [
+        {
+          "path": "src/presentation/tui/dashboard-layout.ts",
+          "symbol": "createDashboardLayout"
+        }
+      ]
+    }
+  ],
+  "issues": [
+    {
+      "id": "WOO-678",
+      "uuid": "1c98b99d-cc26-43a0-913b-8ef1df0ad1ae",
+      "url": "https://linear.app/woo-world/issue/WOO-678/hud-사용량-한-줄만-남겨-작업-공간을-넓힌다",
+      "milestone": "v0.1.0 — First Public Release"
+    },
+    {
+      "id": "WOO-679",
+      "uuid": "885c2115-0821-4df6-a954-3a23923f1209",
+      "url": "https://linear.app/woo-world/issue/WOO-679/chat-대화실행결과를-읽기-좋은-하나의-흐름으로-보여준다",
+      "milestone": "v0.1.0 — First Public Release"
+    },
+    {
+      "id": "WOO-686",
+      "uuid": "b034049b-a9c1-4515-8e7f-27e0ecc1e542",
+      "url": "https://linear.app/woo-world/issue/WOO-686/01-문서와-코드를-읽기-쉽게-표시한다",
+      "milestone": "v0.1.0 — First Public Release"
+    },
+    {
+      "id": "WOO-687",
+      "uuid": "243e8918-446b-4a4e-b124-e0d6f830a2f6",
+      "url": "https://linear.app/woo-world/issue/WOO-687/02-대화-주체와-진행-상태를-한눈에-구분한다",
+      "milestone": "v0.1.0 — First Public Release"
+    },
+    {
+      "id": "WOO-688",
+      "uuid": "6336cca1-a828-45b9-ac62-cbaa3b35b7d8",
+      "url": "https://linear.app/woo-world/issue/WOO-688/03-답변-생성완료중단-과정을-보여준다",
+      "milestone": "v0.1.0 — First Public Release"
+    },
+    {
+      "id": "WOO-689",
+      "uuid": "ae15b7ba-fd9d-4319-a186-201e6177c8a6",
+      "url": "https://linear.app/woo-world/issue/WOO-689/04-긴-결과를-안정적으로-탐색한다",
+      "milestone": "v0.1.0 — First Public Release"
+    },
+    {
+      "id": "WOO-690",
+      "uuid": "a417df98-8479-4222-b7e8-170ea4230f97",
+      "url": "https://linear.app/woo-world/issue/WOO-690/05-재개-뒤에도-대화-순서와-대상을-유지한다",
+      "milestone": "v0.1.0 — First Public Release"
+    },
+    {
+      "id": "WOO-691",
+      "uuid": "9a3e3ee8-ea42-4278-9cda-f711b9ba83a6",
+      "url": "https://linear.app/woo-world/issue/WOO-691/06-비정상-응답에서도-내용을-보존하고-복구를-안내한다",
+      "milestone": "v0.1.0 — First Public Release"
+    },
+    {
+      "id": "WOO-692",
+      "uuid": "917b170a-05f5-422a-b05f-779efb3043ca",
+      "url": "https://linear.app/woo-world/issue/WOO-692/07-실제-tui에서-가독성과-상태-전환을-검증한다",
+      "milestone": "v0.1.0 — First Public Release"
+    },
+    {
+      "id": "WOO-695",
+      "uuid": "d61f3719-f59d-4f8d-aa57-8889e3d224b0",
+      "url": "https://linear.app/woo-world/issue/WOO-695/기능-unit과-linear-작업을-코드에-연결한다",
+      "milestone": "v0.2.0 — Development Traceability"
+    },
+    {
+      "id": "WOO-696",
+      "uuid": "ebeab182-33a1-41c5-a4d8-19b0209f2b01",
+      "url": "https://linear.app/woo-world/issue/WOO-696/공용-sqlite에서-개발-관계를-조회하고-복구한다",
+      "milestone": "v0.2.0 — Development Traceability"
+    },
+    {
+      "id": "WOO-697",
+      "uuid": "a9d0368a-de03-462e-b490-56252fcc626a",
+      "url": "https://linear.app/woo-world/issue/WOO-697/선택한-개발-업무의-대화와-테스트를-기록한다",
+      "milestone": "v0.2.0 — Development Traceability"
+    },
+    {
+      "id": "WOO-698",
+      "uuid": "eb9caaaf-4b82-4329-b56d-834bc151ea53",
+      "url": "https://linear.app/woo-world/issue/WOO-698/obsidian에서-개발-기록과-원본을-함께-읽는다",
+      "milestone": "v0.2.0 — Development Traceability"
+    },
+    {
+      "id": "WOO-699",
+      "uuid": "ddecdd50-fcf6-457b-84b0-aa0f681257c3",
+      "url": "https://linear.app/woo-world/issue/WOO-699/tui에서-개발-작업과-연결된-근거를-왕복-탐색한다",
+      "milestone": "v0.2.0 — Development Traceability"
+    },
+    {
+      "id": "WOO-718",
+      "uuid": "5712cc2e-af70-4209-88b1-e4155f776f41",
+      "url": "https://linear.app/woo-world/issue/WOO-718/08-대화실행결과를-하나의-흐름으로-연결한다",
+      "milestone": "v0.1.0 — First Public Release"
+    },
+    {
+      "id": "WOO-719",
+      "uuid": "a57ff328-a352-499d-ab99-09a84a2d87fb",
+      "url": "https://linear.app/woo-world/issue/WOO-719/예외-처리",
+      "milestone": "v0.1.0 — First Public Release"
+    },
+    {
+      "id": "WOO-720",
+      "uuid": "624b9fed-50cb-4ff5-8535-47fbcc33b199",
+      "url": "https://linear.app/woo-world/issue/WOO-720/테스트",
+      "milestone": "v0.1.0 — First Public Release"
+    },
+    {
+      "id": "WOO-680",
+      "uuid": "9e3c1872-b80e-4016-b24f-5e2adc9c7320",
+      "url": "https://linear.app/woo-world/issue/WOO-680/layout-화면-크기가-달라져도-읽던-위치와-입력-흐름을-유지한다",
+      "milestone": "v0.1.0 — First Public Release"
+    },
+    {
+      "id": "WOO-681",
+      "uuid": "8df10afa-0d6a-4a0d-a529-df749ecf7111",
+      "url": "https://linear.app/woo-world/issue/WOO-681/tracer-선택한-작업의-실행-구조와-근거를-따라간다",
+      "milestone": "v0.1.0 — First Public Release"
+    },
+    {
+      "id": "WOO-682",
+      "uuid": "f47d08f5-fa85-4881-86f5-7baad14bb5ec",
+      "url": "https://linear.app/woo-world/issue/WOO-682/todo-세션에서-내-입력의-계획과-각-모델이-하는-일을-실시간으로-확인한다",
+      "milestone": "v0.1.0 — First Public Release"
+    },
+    {
+      "id": "WOO-700",
+      "uuid": "770ebed8-f030-4610-9668-dd2023b26a9a",
+      "url": "https://linear.app/woo-world/issue/WOO-700/내-입력에-대한-계획이-세워지는-과정을-세션-todo로-보여준다",
+      "milestone": "v0.1.0 — First Public Release"
+    },
+    {
+      "id": "WOO-701",
+      "uuid": "caa2bea5-5a59-41b8-9f2e-187a4a417400",
+      "url": "https://linear.app/woo-world/issue/WOO-701/각-모델이-맡은-일과-실행-상태를-세션-todo에서-실시간으로-확인한다",
+      "milestone": "v0.1.0 — First Public Release"
+    },
+    {
+      "id": "WOO-702",
+      "uuid": "62bdc3c2-cb9b-428f-8e86-7e69350a400b",
+      "url": "https://linear.app/woo-world/issue/WOO-702/세션별-todomd에-입력과-계획을-보존하고-재개한다",
+      "milestone": "v0.1.0 — First Public Release"
+    },
+    {
+      "id": "WOO-703",
+      "uuid": "4fbbac82-78ed-4ea1-9b96-f7d23e749053",
+      "url": "https://linear.app/woo-world/issue/WOO-703/계획-동기화가-실패해도-작업을-이어가고-복구-상태를-이해한다",
+      "milestone": "v0.1.0 — First Public Release"
+    },
+    {
+      "id": "WOO-704",
+      "uuid": "27c3aae2-f0ff-4717-aacd-0e255ec08ada",
+      "url": "https://linear.app/woo-world/issue/WOO-704/대화와-계획에서-근거를-열고-읽던-자리로-돌아온다",
+      "milestone": "v0.1.0 — First Public Release"
+    },
+    {
+      "id": "WOO-705",
+      "uuid": "4738e3c5-c5b3-4cc2-9cea-ff9bf600367d",
+      "url": "https://linear.app/woo-world/issue/WOO-705/다른-요청의-근거가-섞이지-않도록-같은-실행을-추적한다",
+      "milestone": "v0.1.0 — First Public Release"
+    },
+    {
+      "id": "WOO-706",
+      "uuid": "1f933204-1980-4640-b49b-b030aff9a122",
+      "url": "https://linear.app/woo-world/issue/WOO-706/source의-내용과-관측-한계를-읽기-쉽게-구분한다",
+      "milestone": "v0.1.0 — First Public Release"
+    },
+    {
+      "id": "WOO-707",
+      "uuid": "26878a0b-a150-4fb8-8d94-6fe59441cbc3",
+      "url": "https://linear.app/woo-world/issue/WOO-707/넓은좁은-배치를-오가도-읽던-패널-위치를-유지한다",
+      "milestone": "v0.1.0 — First Public Release"
+    },
+    {
+      "id": "WOO-708",
+      "uuid": "b579b287-fc7a-41e2-80e7-b2bf7d9fc81a",
+      "url": "https://linear.app/woo-world/issue/WOO-708/작은-화면과-overlay-뒤에도-입력-focus와-조작을-복원한다",
+      "milestone": "v0.1.0 — First Public Release"
+    },
+    {
+      "id": "WOO-709",
+      "uuid": "7895baee-c19d-4d74-99df-0169bb8882c8",
+      "url": "https://linear.app/woo-world/issue/WOO-709/현재-실행의-상태와-관측-신선도를-사실대로-표시한다",
+      "milestone": "v0.1.0 — First Public Release"
+    },
+    {
+      "id": "WOO-721",
+      "uuid": "897cc923-dc92-4858-8314-4c48d954a6cd",
+      "url": "https://linear.app/woo-world/issue/WOO-721/예외-처리",
+      "milestone": "v0.1.0 — First Public Release"
+    },
+    {
+      "id": "WOO-722",
+      "uuid": "537de555-50e3-4fd3-a3db-8aaff563b241",
+      "url": "https://linear.app/woo-world/issue/WOO-722/테스트",
+      "milestone": "v0.1.0 — First Public Release"
+    },
+    {
+      "id": "WOO-723",
+      "uuid": "0ddd0321-b524-46be-beb1-1bd9395408f9",
+      "url": "https://linear.app/woo-world/issue/WOO-723/예외-처리",
+      "milestone": "v0.1.0 — First Public Release"
+    },
+    {
+      "id": "WOO-724",
+      "uuid": "9050073c-9868-43bd-bd3b-1bea5e107dd3",
+      "url": "https://linear.app/woo-world/issue/WOO-724/테스트",
+      "milestone": "v0.1.0 — First Public Release"
+    },
+    {
+      "id": "WOO-725",
+      "uuid": "a624cd2f-42b4-4e35-b529-640731caae34",
+      "url": "https://linear.app/woo-world/issue/WOO-725/예외-처리",
+      "milestone": "v0.1.0 — First Public Release"
+    },
+    {
+      "id": "WOO-726",
+      "uuid": "3307923e-ea5b-45e0-ba80-3f920ae39c9a",
+      "url": "https://linear.app/woo-world/issue/WOO-726/테스트",
+      "milestone": "v0.1.0 — First Public Release"
+    }
+  ],
+  "notes": [
+    {
+      "id": "WOO-678",
+      "relativePath": "Traceability/WOO-678.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_프로젝트%2F99_WWW%2F01_문서%2FTraceability%2FWOO-678.md",
+      "recordType": "requirement",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    },
+    {
+      "id": "WOO-679",
+      "relativePath": "Traceability/WOO-679.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_프로젝트%2F99_WWW%2F01_문서%2FTraceability%2FWOO-679.md",
+      "recordType": "requirement",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    },
+    {
+      "id": "WOO-686",
+      "relativePath": "Traceability/WOO-686.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_프로젝트%2F99_WWW%2F01_문서%2FTraceability%2FWOO-686.md",
+      "recordType": "requirement",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    },
+    {
+      "id": "WOO-687",
+      "relativePath": "Traceability/WOO-687.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_프로젝트%2F99_WWW%2F01_문서%2FTraceability%2FWOO-687.md",
+      "recordType": "requirement",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    },
+    {
+      "id": "WOO-688",
+      "relativePath": "Traceability/WOO-688.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_프로젝트%2F99_WWW%2F01_문서%2FTraceability%2FWOO-688.md",
+      "recordType": "requirement",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    },
+    {
+      "id": "WOO-689",
+      "relativePath": "Traceability/WOO-689.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_프로젝트%2F99_WWW%2F01_문서%2FTraceability%2FWOO-689.md",
+      "recordType": "requirement",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    },
+    {
+      "id": "WOO-690",
+      "relativePath": "Traceability/WOO-690.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_프로젝트%2F99_WWW%2F01_문서%2FTraceability%2FWOO-690.md",
+      "recordType": "requirement",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    },
+    {
+      "id": "WOO-691",
+      "relativePath": "Traceability/WOO-691.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_프로젝트%2F99_WWW%2F01_문서%2FTraceability%2FWOO-691.md",
+      "recordType": "exception",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    },
+    {
+      "id": "WOO-692",
+      "relativePath": "Traceability/WOO-692.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_프로젝트%2F99_WWW%2F01_문서%2FTraceability%2FWOO-692.md",
+      "recordType": "test",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    },
+    {
+      "id": "WOO-695",
+      "relativePath": "Traceability/WOO-695.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_프로젝트%2F99_WWW%2F01_문서%2FTraceability%2FWOO-695.md",
+      "recordType": "decision",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    },
+    {
+      "id": "WOO-696",
+      "relativePath": "Traceability/WOO-696.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_프로젝트%2F99_WWW%2F01_문서%2FTraceability%2FWOO-696.md",
+      "recordType": "decision",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    },
+    {
+      "id": "WOO-697",
+      "relativePath": "Traceability/WOO-697.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_프로젝트%2F99_WWW%2F01_문서%2FTraceability%2FWOO-697.md",
+      "recordType": "test",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    },
+    {
+      "id": "WOO-698",
+      "relativePath": "Traceability/WOO-698.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_프로젝트%2F99_WWW%2F01_문서%2FTraceability%2FWOO-698.md",
+      "recordType": "decision",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    },
+    {
+      "id": "WOO-699",
+      "relativePath": "Traceability/WOO-699.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_프로젝트%2F99_WWW%2F01_문서%2FTraceability%2FWOO-699.md",
+      "recordType": "requirement",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    },
+    {
+      "id": "WOO-718",
+      "relativePath": "Traceability/WOO-718.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_프로젝트%2F99_WWW%2F01_문서%2FTraceability%2FWOO-718.md",
+      "recordType": "requirement",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    },
+    {
+      "id": "WOO-719",
+      "relativePath": "Traceability/WOO-719.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_프로젝트%2F99_WWW%2F01_문서%2FTraceability%2FWOO-719.md",
+      "recordType": "exception",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    },
+    {
+      "id": "WOO-720",
+      "relativePath": "Traceability/WOO-720.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_프로젝트%2F99_WWW%2F01_문서%2FTraceability%2FWOO-720.md",
+      "recordType": "test",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    },
+    {
+      "id": "WOO-680",
+      "relativePath": "Traceability/WOO-680.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FTraceability%2FWOO-680.md",
+      "recordType": "requirement",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    },
+    {
+      "id": "WOO-681",
+      "relativePath": "Traceability/WOO-681.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FTraceability%2FWOO-681.md",
+      "recordType": "requirement",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    },
+    {
+      "id": "WOO-682",
+      "relativePath": "Traceability/WOO-682.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FTraceability%2FWOO-682.md",
+      "recordType": "requirement",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    },
+    {
+      "id": "WOO-700",
+      "relativePath": "Traceability/WOO-700.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FTraceability%2FWOO-700.md",
+      "recordType": "requirement",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    },
+    {
+      "id": "WOO-701",
+      "relativePath": "Traceability/WOO-701.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FTraceability%2FWOO-701.md",
+      "recordType": "requirement",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    },
+    {
+      "id": "WOO-702",
+      "relativePath": "Traceability/WOO-702.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FTraceability%2FWOO-702.md",
+      "recordType": "requirement",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    },
+    {
+      "id": "WOO-703",
+      "relativePath": "Traceability/WOO-703.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FTraceability%2FWOO-703.md",
+      "recordType": "requirement",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    },
+    {
+      "id": "WOO-704",
+      "relativePath": "Traceability/WOO-704.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FTraceability%2FWOO-704.md",
+      "recordType": "requirement",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    },
+    {
+      "id": "WOO-705",
+      "relativePath": "Traceability/WOO-705.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FTraceability%2FWOO-705.md",
+      "recordType": "requirement",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    },
+    {
+      "id": "WOO-706",
+      "relativePath": "Traceability/WOO-706.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FTraceability%2FWOO-706.md",
+      "recordType": "requirement",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    },
+    {
+      "id": "WOO-707",
+      "relativePath": "Traceability/WOO-707.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FTraceability%2FWOO-707.md",
+      "recordType": "requirement",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    },
+    {
+      "id": "WOO-708",
+      "relativePath": "Traceability/WOO-708.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FTraceability%2FWOO-708.md",
+      "recordType": "requirement",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    },
+    {
+      "id": "WOO-709",
+      "relativePath": "Traceability/WOO-709.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FTraceability%2FWOO-709.md",
+      "recordType": "requirement",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    },
+    {
+      "id": "WOO-721",
+      "relativePath": "Traceability/WOO-721.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FTraceability%2FWOO-721.md",
+      "recordType": "exception",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    },
+    {
+      "id": "WOO-722",
+      "relativePath": "Traceability/WOO-722.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FTraceability%2FWOO-722.md",
+      "recordType": "test",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    },
+    {
+      "id": "WOO-723",
+      "relativePath": "Traceability/WOO-723.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FTraceability%2FWOO-723.md",
+      "recordType": "exception",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    },
+    {
+      "id": "WOO-724",
+      "relativePath": "Traceability/WOO-724.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FTraceability%2FWOO-724.md",
+      "recordType": "test",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    },
+    {
+      "id": "WOO-725",
+      "relativePath": "Traceability/WOO-725.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FTraceability%2FWOO-725.md",
+      "recordType": "exception",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    },
+    {
+      "id": "WOO-726",
+      "relativePath": "Traceability/WOO-726.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FTraceability%2FWOO-726.md",
+      "recordType": "test",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    }
+  ],
+  "pullRequests": [
+    {
+      "id": "46",
+      "url": "https://github.com/Woo-JongHo/world-wide-woo/pull/46",
+      "scope": "chat-v0.1-code-evidence"
+    }
+  ],
+  "runs": [
+    {
+      "id": "traceability-validation-v020-20260907",
+      "status": "passed",
+      "evidencePath": ".www/evidence/v020-traceability/verification.json",
+      "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty",
+      "purpose": "traceability-validation",
+      "sourceState": "dirty-worktree"
+    }
+  ],
+  "edges": [
+    {
+      "from": "issue:WOO-679",
+      "relation": "implemented-by",
+      "to": "unit:Code-001"
+    },
+    {
+      "from": "issue:WOO-679",
+      "relation": "implemented-by",
+      "to": "unit:Code-002"
+    },
+    {
+      "from": "issue:WOO-679",
+      "relation": "implemented-by",
+      "to": "unit:Code-003"
+    },
+    {
+      "from": "issue:WOO-679",
+      "relation": "implemented-by",
+      "to": "unit:Code-004"
+    },
+    {
+      "from": "issue:WOO-679",
+      "relation": "implemented-by",
+      "to": "unit:Code-005"
+    },
+    {
+      "from": "issue:WOO-679",
+      "relation": "detailed-by",
+      "to": "note:WOO-679"
+    },
+    {
+      "from": "issue:WOO-679",
+      "relation": "code-evidenced-by",
+      "to": "pr:46"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-679"
+    },
+    {
+      "from": "issue:WOO-686",
+      "relation": "implemented-by",
+      "to": "unit:Code-001"
+    },
+    {
+      "from": "issue:WOO-686",
+      "relation": "detailed-by",
+      "to": "note:WOO-686"
+    },
+    {
+      "from": "issue:WOO-686",
+      "relation": "code-evidenced-by",
+      "to": "pr:46"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-686"
+    },
+    {
+      "from": "issue:WOO-687",
+      "relation": "implemented-by",
+      "to": "unit:Code-001"
+    },
+    {
+      "from": "issue:WOO-687",
+      "relation": "detailed-by",
+      "to": "note:WOO-687"
+    },
+    {
+      "from": "issue:WOO-687",
+      "relation": "code-evidenced-by",
+      "to": "pr:46"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-687"
+    },
+    {
+      "from": "issue:WOO-688",
+      "relation": "implemented-by",
+      "to": "unit:Code-001"
+    },
+    {
+      "from": "issue:WOO-688",
+      "relation": "implemented-by",
+      "to": "unit:Code-002"
+    },
+    {
+      "from": "issue:WOO-688",
+      "relation": "detailed-by",
+      "to": "note:WOO-688"
+    },
+    {
+      "from": "issue:WOO-688",
+      "relation": "code-evidenced-by",
+      "to": "pr:46"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-688"
+    },
+    {
+      "from": "issue:WOO-689",
+      "relation": "implemented-by",
+      "to": "unit:Code-001"
+    },
+    {
+      "from": "issue:WOO-689",
+      "relation": "implemented-by",
+      "to": "unit:Code-003"
+    },
+    {
+      "from": "issue:WOO-689",
+      "relation": "detailed-by",
+      "to": "note:WOO-689"
+    },
+    {
+      "from": "issue:WOO-689",
+      "relation": "code-evidenced-by",
+      "to": "pr:46"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-689"
+    },
+    {
+      "from": "issue:WOO-690",
+      "relation": "implemented-by",
+      "to": "unit:Code-002"
+    },
+    {
+      "from": "issue:WOO-690",
+      "relation": "detailed-by",
+      "to": "note:WOO-690"
+    },
+    {
+      "from": "issue:WOO-690",
+      "relation": "code-evidenced-by",
+      "to": "pr:46"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-690"
+    },
+    {
+      "from": "issue:WOO-691",
+      "relation": "implemented-by",
+      "to": "unit:Code-001"
+    },
+    {
+      "from": "issue:WOO-691",
+      "relation": "implemented-by",
+      "to": "unit:Code-002"
+    },
+    {
+      "from": "issue:WOO-691",
+      "relation": "detailed-by",
+      "to": "note:WOO-691"
+    },
+    {
+      "from": "issue:WOO-691",
+      "relation": "code-evidenced-by",
+      "to": "pr:46"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-691"
+    },
+    {
+      "from": "issue:WOO-692",
+      "relation": "implemented-by",
+      "to": "unit:Code-001"
+    },
+    {
+      "from": "issue:WOO-692",
+      "relation": "implemented-by",
+      "to": "unit:Code-002"
+    },
+    {
+      "from": "issue:WOO-692",
+      "relation": "implemented-by",
+      "to": "unit:Code-003"
+    },
+    {
+      "from": "issue:WOO-692",
+      "relation": "implemented-by",
+      "to": "unit:Code-004"
+    },
+    {
+      "from": "issue:WOO-692",
+      "relation": "implemented-by",
+      "to": "unit:Code-005"
+    },
+    {
+      "from": "issue:WOO-692",
+      "relation": "detailed-by",
+      "to": "note:WOO-692"
+    },
+    {
+      "from": "issue:WOO-692",
+      "relation": "code-evidenced-by",
+      "to": "pr:46"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-692"
+    },
+    {
+      "from": "issue:WOO-718",
+      "relation": "implemented-by",
+      "to": "unit:Code-001"
+    },
+    {
+      "from": "issue:WOO-718",
+      "relation": "implemented-by",
+      "to": "unit:Code-002"
+    },
+    {
+      "from": "issue:WOO-718",
+      "relation": "implemented-by",
+      "to": "unit:Code-004"
+    },
+    {
+      "from": "issue:WOO-718",
+      "relation": "implemented-by",
+      "to": "unit:Code-005"
+    },
+    {
+      "from": "issue:WOO-718",
+      "relation": "detailed-by",
+      "to": "note:WOO-718"
+    },
+    {
+      "from": "issue:WOO-718",
+      "relation": "code-evidenced-by",
+      "to": "pr:46"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-718"
+    },
+    {
+      "from": "issue:WOO-719",
+      "relation": "implemented-by",
+      "to": "unit:Code-001"
+    },
+    {
+      "from": "issue:WOO-719",
+      "relation": "implemented-by",
+      "to": "unit:Code-002"
+    },
+    {
+      "from": "issue:WOO-719",
+      "relation": "implemented-by",
+      "to": "unit:Code-004"
+    },
+    {
+      "from": "issue:WOO-719",
+      "relation": "detailed-by",
+      "to": "note:WOO-719"
+    },
+    {
+      "from": "issue:WOO-719",
+      "relation": "code-evidenced-by",
+      "to": "pr:46"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-719"
+    },
+    {
+      "from": "issue:WOO-720",
+      "relation": "implemented-by",
+      "to": "unit:Code-001"
+    },
+    {
+      "from": "issue:WOO-720",
+      "relation": "implemented-by",
+      "to": "unit:Code-002"
+    },
+    {
+      "from": "issue:WOO-720",
+      "relation": "implemented-by",
+      "to": "unit:Code-003"
+    },
+    {
+      "from": "issue:WOO-720",
+      "relation": "implemented-by",
+      "to": "unit:Code-004"
+    },
+    {
+      "from": "issue:WOO-720",
+      "relation": "implemented-by",
+      "to": "unit:Code-005"
+    },
+    {
+      "from": "issue:WOO-720",
+      "relation": "detailed-by",
+      "to": "note:WOO-720"
+    },
+    {
+      "from": "issue:WOO-720",
+      "relation": "code-evidenced-by",
+      "to": "pr:46"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-720"
+    },
+    {
+      "from": "issue:WOO-695",
+      "relation": "implemented-by",
+      "to": "unit:Code-006"
+    },
+    {
+      "from": "issue:WOO-695",
+      "relation": "implemented-by",
+      "to": "unit:Code-007"
+    },
+    {
+      "from": "issue:WOO-695",
+      "relation": "detailed-by",
+      "to": "note:WOO-695"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-695"
+    },
+    {
+      "from": "issue:WOO-696",
+      "relation": "implemented-by",
+      "to": "unit:Code-008"
+    },
+    {
+      "from": "issue:WOO-696",
+      "relation": "detailed-by",
+      "to": "note:WOO-696"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-696"
+    },
+    {
+      "from": "issue:WOO-697",
+      "relation": "implemented-by",
+      "to": "unit:Code-008"
+    },
+    {
+      "from": "issue:WOO-697",
+      "relation": "detailed-by",
+      "to": "note:WOO-697"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-697"
+    },
+    {
+      "from": "issue:WOO-698",
+      "relation": "implemented-by",
+      "to": "unit:Code-007"
+    },
+    {
+      "from": "issue:WOO-698",
+      "relation": "detailed-by",
+      "to": "note:WOO-698"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-698"
+    },
+    {
+      "from": "issue:WOO-699",
+      "relation": "implemented-by",
+      "to": "unit:Code-009"
+    },
+    {
+      "from": "issue:WOO-699",
+      "relation": "detailed-by",
+      "to": "note:WOO-699"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-699"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "unit:Code-001"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "unit:Code-002"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "unit:Code-003"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "unit:Code-004"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "unit:Code-005"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "unit:Code-006"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "unit:Code-007"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "unit:Code-008"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "unit:Code-009"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-720"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-697"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-679"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-686"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-687"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-688"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-689"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-690"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-691"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-692"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-718"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-719"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-695"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-696"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-698"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-699"
+    },
+    {
+      "from": "issue:WOO-678",
+      "relation": "implemented-by",
+      "to": "unit:Code-010"
+    },
+    {
+      "from": "issue:WOO-678",
+      "relation": "detailed-by",
+      "to": "note:WOO-678"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-678"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "unit:Code-010"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-678"
+    },
+    {
+      "from": "issue:WOO-680",
+      "relation": "implemented-by",
+      "to": "unit:Code-013"
+    },
+    {
+      "from": "issue:WOO-680",
+      "relation": "detailed-by",
+      "to": "note:WOO-680"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-680"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-680"
+    },
+    {
+      "from": "issue:WOO-681",
+      "relation": "implemented-by",
+      "to": "unit:Code-012"
+    },
+    {
+      "from": "issue:WOO-681",
+      "relation": "detailed-by",
+      "to": "note:WOO-681"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-681"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-681"
+    },
+    {
+      "from": "issue:WOO-682",
+      "relation": "implemented-by",
+      "to": "unit:Code-011"
+    },
+    {
+      "from": "issue:WOO-682",
+      "relation": "detailed-by",
+      "to": "note:WOO-682"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-682"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-682"
+    },
+    {
+      "from": "issue:WOO-700",
+      "relation": "implemented-by",
+      "to": "unit:Code-011"
+    },
+    {
+      "from": "issue:WOO-700",
+      "relation": "detailed-by",
+      "to": "note:WOO-700"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-700"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-700"
+    },
+    {
+      "from": "issue:WOO-701",
+      "relation": "implemented-by",
+      "to": "unit:Code-011"
+    },
+    {
+      "from": "issue:WOO-701",
+      "relation": "detailed-by",
+      "to": "note:WOO-701"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-701"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-701"
+    },
+    {
+      "from": "issue:WOO-702",
+      "relation": "implemented-by",
+      "to": "unit:Code-011"
+    },
+    {
+      "from": "issue:WOO-702",
+      "relation": "detailed-by",
+      "to": "note:WOO-702"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-702"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-702"
+    },
+    {
+      "from": "issue:WOO-703",
+      "relation": "implemented-by",
+      "to": "unit:Code-011"
+    },
+    {
+      "from": "issue:WOO-703",
+      "relation": "detailed-by",
+      "to": "note:WOO-703"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-703"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-703"
+    },
+    {
+      "from": "issue:WOO-704",
+      "relation": "implemented-by",
+      "to": "unit:Code-012"
+    },
+    {
+      "from": "issue:WOO-704",
+      "relation": "detailed-by",
+      "to": "note:WOO-704"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-704"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-704"
+    },
+    {
+      "from": "issue:WOO-705",
+      "relation": "implemented-by",
+      "to": "unit:Code-012"
+    },
+    {
+      "from": "issue:WOO-705",
+      "relation": "detailed-by",
+      "to": "note:WOO-705"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-705"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-705"
+    },
+    {
+      "from": "issue:WOO-706",
+      "relation": "implemented-by",
+      "to": "unit:Code-012"
+    },
+    {
+      "from": "issue:WOO-706",
+      "relation": "detailed-by",
+      "to": "note:WOO-706"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-706"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-706"
+    },
+    {
+      "from": "issue:WOO-707",
+      "relation": "implemented-by",
+      "to": "unit:Code-013"
+    },
+    {
+      "from": "issue:WOO-707",
+      "relation": "detailed-by",
+      "to": "note:WOO-707"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-707"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-707"
+    },
+    {
+      "from": "issue:WOO-708",
+      "relation": "implemented-by",
+      "to": "unit:Code-013"
+    },
+    {
+      "from": "issue:WOO-708",
+      "relation": "detailed-by",
+      "to": "note:WOO-708"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-708"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-708"
+    },
+    {
+      "from": "issue:WOO-709",
+      "relation": "implemented-by",
+      "to": "unit:Code-012"
+    },
+    {
+      "from": "issue:WOO-709",
+      "relation": "detailed-by",
+      "to": "note:WOO-709"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-709"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-709"
+    },
+    {
+      "from": "issue:WOO-721",
+      "relation": "implemented-by",
+      "to": "unit:Code-011"
+    },
+    {
+      "from": "issue:WOO-721",
+      "relation": "detailed-by",
+      "to": "note:WOO-721"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-721"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-721"
+    },
+    {
+      "from": "issue:WOO-722",
+      "relation": "implemented-by",
+      "to": "unit:Code-011"
+    },
+    {
+      "from": "issue:WOO-722",
+      "relation": "detailed-by",
+      "to": "note:WOO-722"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-722"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-722"
+    },
+    {
+      "from": "issue:WOO-723",
+      "relation": "implemented-by",
+      "to": "unit:Code-012"
+    },
+    {
+      "from": "issue:WOO-723",
+      "relation": "detailed-by",
+      "to": "note:WOO-723"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-723"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-723"
+    },
+    {
+      "from": "issue:WOO-724",
+      "relation": "implemented-by",
+      "to": "unit:Code-012"
+    },
+    {
+      "from": "issue:WOO-724",
+      "relation": "detailed-by",
+      "to": "note:WOO-724"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-724"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-724"
+    },
+    {
+      "from": "issue:WOO-725",
+      "relation": "implemented-by",
+      "to": "unit:Code-013"
+    },
+    {
+      "from": "issue:WOO-725",
+      "relation": "detailed-by",
+      "to": "note:WOO-725"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-725"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-725"
+    },
+    {
+      "from": "issue:WOO-726",
+      "relation": "implemented-by",
+      "to": "unit:Code-013"
+    },
+    {
+      "from": "issue:WOO-726",
+      "relation": "detailed-by",
+      "to": "note:WOO-726"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-726"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-726"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "unit:Code-011"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "unit:Code-012"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "unit:Code-013"
+    }
+  ],
+  "tombstones": [],
+  "migrations": [
+    {
+      "from": "0001",
+      "to": "Code-001",
+      "reason": "Code-NNN 형식으로 정규화"
+    },
+    {
+      "from": "0002",
+      "to": "Code-002",
+      "reason": "Code-NNN 형식으로 정규화"
+    },
+    {
+      "from": "0003",
+      "to": "Code-003",
+      "reason": "Code-NNN 형식으로 정규화"
+    },
+    {
+      "from": "0004",
+      "to": "Code-004",
+      "reason": "Code-NNN 형식으로 정규화"
+    },
+    {
+      "from": "0005",
+      "to": "Code-005",
+      "reason": "Code-NNN 형식으로 정규화"
+    }
+  ],
+  "payloadDigest": "0519c63e43c1dff5d654e2010e4fd29ac43cbc80a61d8e67e804a2aca326a662"
+}

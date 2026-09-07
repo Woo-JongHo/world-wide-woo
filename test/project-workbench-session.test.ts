@@ -539,10 +539,18 @@ describe("createProjectWorkbenchSession", () => {
 		await slow.close();
 		const rejected = await open((ledger) => { ledger.syncNativePlan = async () => { throw new Error("sync rejected"); }; });
 		await rejected.close();
-		expect(rejected.workbench.snapshot.actionResult).toMatchObject({ kind: "todo", title: "Todo 자동 동기화 보류", body: expect.stringContaining("sync rejected") });
+		expect(rejected.workbench.snapshot.actionResult).toMatchObject({
+			kind: "todo",
+			title: "Todo 자동 동기화 보류",
+			body: "계획을 저장하지 못했습니다. 대화는 계속되며 다음 계획 관측 때 다시 시도합니다.",
+		});
 		const conflicted = await open((ledger) => { ledger.syncNativePlan = async () => { throw new TodoWriteConflictError(null, { version: 1, revision: 0, updatedAt: new Date(0).toISOString(), ownerSessionId: scopedTodoSessionId("thread"), storyId: null, title: "pending", items: [] }, null); }; });
 		await conflicted.close();
-		expect(conflicted.workbench.snapshot.actionResult).toMatchObject({ kind: "todo", title: "Todo 자동 동기화 보류", body: expect.stringContaining("currentSource") });
+		expect(conflicted.workbench.snapshot.actionResult).toMatchObject({
+			kind: "todo",
+			title: "Todo 자동 동기화 보류",
+			body: "다른 편집과 충돌했습니다. 저장된 내용을 유지하며 다음 계획 관측 때 다시 확인합니다.",
+		});
 	});
 
 	test("resumes an in-progress root turn through repeated markers and applies its later Plan and action", async () => {

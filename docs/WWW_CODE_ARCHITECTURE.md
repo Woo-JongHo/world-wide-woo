@@ -1,10 +1,14 @@
 # World Wide Woo Code Architecture
 
-- 상태: Opus review 반영 1차 boundary migration 완료
+- 상태: 현재 구현의 의존 규칙과 1차 migration 이력. 아래 과거 이관안은 최종 목표 트리가 아니다.
 - 기준: `Different tools. One project. No broken handoffs.`
 - Review: `.www/scratchpad/2026-09-04-capability-architecture-opus-review.md`
 
-## 왜 전면 Feature-first 전환을 하지 않는가
+## 현재 구현과 목표 설계의 구분
+
+새 목표 구조의 논의 원본은 [Linear 개발 아키텍처 초안](planning/linear-development/ARCHITECTURE.md)이다. TUI / System / Workflows를 기준으로 논의하되, 하위 구조와 이관 범위는 아직 전체 확정되지 않았다. 이 문서는 현재 layer-first 코드의 안전장치와 이전 이관 이력을 소유한다. 목표 폴더명을 승인된 코드 이동 지시로 해석하지 않는다.
+
+## 기존 layer-first 구조를 유지해 온 이유
 
 현재 layer-first 구조는 import 방향과 runtime-neutral domain을 지키는 실제 안전장치다. 문제는 layer 자체가 아니라 `ProjectWorkbench`, `work-steps`, `workbench-shell`, `workbench-views`에 책임이 집중되고 한 capability를 찾을 때 layer를 횡단한다는 점이다.
 
@@ -13,11 +17,11 @@ WWW의 Orchestration은 단순 runtime 호출 계층이 아니라 Work Chain·Co
 ## 핵심 정의
 
 - Capability: 사용자의 한 질문 묶음에 대해 관측, projection, 표현, acceptance evidence까지 책임지는 제품 영역.
-- Feature: Capability 안에서 독립 수락 가능한 사용자 가치. 현재 영구 정본은 `EP-###`와 `ST-###-##`다.
+- Feature: Capability 안에서 독립 수락 가능한 사용자 가치. 기존 구현은 `EP-###`와 `ST-###-##`를 사용한다. 새 개발 기획에서는 지속 기능 Unit ID와 Linear 변경 작업 ID를 분리한다.
 - Workflow: Stage 사이 실행기 선택·재시도·승인·검증·완료를 조정해 PASS/PARTIAL/BLOCKED를 판정하는 lifecycle loop.
 - Agent Execution Runtime: 모델·Tool loop·session·sandbox를 실행하는 교체 가능한 실행기. 업무 완료나 수락을 결정하지 않는다.
 
-별도 `WWW-F-*`, `feature.yaml`, Workflow/Runtime registry는 현재 만들지 않는다. Planning catalog의 status/acceptance와 legacy ID 연결이 먼저다.
+Unit/Issue 분리 결정은 [식별 계약](planning/linear-development/IDENTITY.md)을 따른다. 아직 ID 형식이나 schema migration은 확정하지 않았으므로 임의의 `WWW-F-*`, `feature.yaml`, registry를 추가하지 않는다. 기존 Planning catalog와 EP/ST 이력은 보존한다.
 
 ## Dependency 방향
 
@@ -38,7 +42,9 @@ app.ts composition root
 - app.ts만 concrete implementation을 조립한다.
 - ProjectActivity는 runtime-neutral 관측 경계이며 concrete executor 아래로 이동하지 않는다.
 
-## 책임 Inventory와 Migration Map
+## 과거 책임 Inventory와 Migration 후보
+
+아래 Current file은 이전 이관 검토 시점의 경로이며, 현재 파일 목록이 아니다. 완료한 이동은 마지막 Migration 결과와 아래 work 모듈 설명에서 확인한다. 나머지 후보를 새 목표 구조로 자동 채택하지 않는다.
 
 | Current file | 현재 책임 | 분류 | 목표 위치/조치 | 이유 |
 |---|---|---|---|---|
@@ -68,7 +74,7 @@ app.ts composition root
 
 나머지 작은 파일은 위 public boundary가 검증된 뒤 같은 의미 단위로 이동한다. 이름만 보고 일괄 이동하지 않는다.
 
-## 교정된 목표 구조
+## 과거 layer 내부 이관안 — 현재 목표 아님
 
 ```text
 src/
@@ -99,11 +105,15 @@ src/
 └── cli.ts
 ```
 
-이 구조는 최종 강제 tree가 아니라 이동 중 behavior와 import direction을 지키는 목표다.
+이 구조는 이전 단계의 이관 검토 기록이다. 새 목표 트리는 위에서 연결한 Linear 개발 아키텍처 초안에서만 관리한다.
+
+`src/domain/work/`는 기존 layer 의존성 안전망을 유지하며 traceability 계약을 정착시키는 현재 위치다. 과거의 TUI / Work / Runtime 및 `src/work/` 승격 제안은 새 목표 초안으로 대체한다. 기존 work 모듈을 통째로 workflows에 옮기지 않는다. 각 책임의 목적지와 Interface를 먼저 정하고 architecture test로 의존 규칙을 검증한다.
+
+`domain/work-steps.ts`는 activity classification과 native delegation projection을 각각 `domain/work/activity-classification.ts`, `domain/work/delegation.ts`로 분리했다. Workflow projection과 plan reconciliation은 revision identity, journal validation, association/orphan 처리 상태를 하나의 invariant로 공유하므로 억지로 내부 API를 만들지 않고 `domain/work/workflow-projection.ts`로 함께 이동했다. 모든 소비자를 canonical Work entry인 `domain/work/index.ts`로 전환했고 legacy `domain/work-steps.ts` compatibility facade는 삭제했다. Architecture test가 canonical entry의 순수성과 legacy 경로 부재를 함께 강제한다.
 
 ## 새로운 기능을 추가하는 방법
 
-1. 사용자 가치와 acceptance를 EP/ST로 등록한다.
+1. [Linear 개발 흐름](planning/linear-development/DEVELOPMENT_FLOW.md)에 따라 사용자와 작업 범위·수락 조건을 먼저 논의한다. 기존 EP/ST를 보존하고 새 작업의 이중 발급은 자동 수행하지 않는다.
 2. 기존 capability가 소유할 수 있는지 판단한다.
 3. 순수 계약/projection은 domain의 해당 capability 폴더에 둔다.
 4. use case는 application에 두고 외부 요구는 application-owned port로 선언한다.

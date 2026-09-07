@@ -5,7 +5,10 @@ export interface SourceNode { readonly path: string; readonly text: string; read
 
 export async function loadSourceGraph(root = "src"): Promise<ReadonlyMap<string, SourceNode>> {
 	const raw: Array<{ path: string; text: string }> = [];
-	for await (const path of new Bun.Glob("**/*.ts").scan({ cwd: root })) raw.push({ path, text: await readFile(`${root}/${path}`, "utf8") });
+	for await (const scannedPath of new Bun.Glob("**/*.ts").scan({ cwd: root })) {
+		const path = scannedPath.replace(/\\/gu, "/");
+		raw.push({ path, text: await readFile(join(root, scannedPath), "utf8") });
+	}
 	const paths = new Set(raw.map(source => source.path));
 	return new Map(raw.map(source => {
 		const imports = [...source.text.matchAll(/(?:from\s+|import\()\s*["']([^"']+)["']/gu)].map(match => resolveImport(source.path, match[1]!, paths));

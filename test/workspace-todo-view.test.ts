@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { visibleWidth } from "@earendil-works/pi-tui";
+import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
+import type { ProjectActivity } from "../src/domain/project-activity";
+import type { WorkFlowProjection } from "../src/domain/work/index";
 import type { TodoDocument } from "../src/domain/todos";
 import { WorkspaceTodoView } from "../src/presentation/tui/shared-dashboard-views";
 
@@ -33,9 +35,16 @@ const mixedTodo = todo([
 ]);
 
 describe("WorkspaceTodoView", () => {
-	test("renders a blank pane for a missing or empty todo", () => {
+	test("distinguishes no plan from a plan still being prepared", () => {
 		for (const document of [null, todo([])]) {
-			expect(new WorkspaceTodoView(() => document).render(70)).toEqual([]);
+			const idle = stripTerminalSequences(new WorkspaceTodoView(() => document).render(70).join("\n"));
+			expect(idle).toContain("현재 계획 없음");
+			const waiting = stripTerminalSequences(new WorkspaceTodoView(
+				() => document,
+				() => ({ activeTurnId: "turn-1", activities: [], workFlow: emptyFlow() }),
+			).render(70).join("\n"));
+			expect(waiting).toContain("공개 계획을 기다리는 중");
+			expect(waiting).not.toContain("0/0");
 		}
 	});
 
@@ -73,5 +82,90 @@ describe("WorkspaceTodoView", () => {
 		expect(output).not.toContain("○");
 		expect(output).not.toContain("✓");
 		expect(output).not.toContain("◆");
+		expect(stripTerminalSequences(output)).toContain("3개 숨김");
+	});
+
+	test("shows observed root and parallel agent work beside the bound plan item", () => {
+		const identity = "a".repeat(64);
+		const revision = { sourceRevisionKeyDigest: "b".repeat(64), activityId: "plan", sequence: 1, sourceDigest: "sha256:plan" };
+		const document: TodoDocument = {
+			...todo([]),
+			items: [{
+				id: "native-item",
+				content: "구현한다",
+				status: "in_progress",
+				evidenceIds: [],
+				details: [],
+				source: { kind: "native-plan-item", identity, originRevision: revision, currentRevision: revision, executions: [] },
+			}],
+			source: {
+				kind: "native-plan",
+				threadKeyDigest: "c".repeat(64),
+				turnId: "turn-1",
+				input: null,
+				planRevision: revision,
+				rootExecution: { provider: "openai-codex", model: "gpt-5.6-sol", agentId: null, threadId: "root", runId: "turn-1" },
+			},
+		};
+		const activities: ProjectActivity[] = ["agent-a", "agent-b"].map((agentId, index) => ({
+			schemaVersion: 1,
+			id: `agent-activity-${index}`,
+			projectId: "project",
+			sequence: index + 2,
+			recordedAt: "2026-09-07T00:00:00.000Z",
+			kind: "progress",
+			phase: "updated",
+			provider: "codex",
+			nativeRefs: { threadId: "root", turnId: "turn-1", itemId: `spawn-${index}` },
+			sourceDigest: `sha256:${index}`,
+			payload: { method: "item/updated", params: { item: {
+				type: "collabAgentToolCall",
+				receiverThreadIds: [agentId],
+				prompt: index === 0 ? "코드 구현" : "검증",
+				model: index === 0 ? "gpt-5.6-terra" : "gpt-5.6-luna",
+				agentsStates: { [agentId]: { status: "running" } },
+			} } },
+		}));
+		const workFlow: WorkFlowProjection = {
+			...emptyFlow(),
+			source: { kind: "native-plan-derived", expectedThreadKeyDigest: "c".repeat(64), turnId: "turn-1", currentRevision: revision, algorithm: "dplan-v1" },
+			steps: [{
+				id: identity,
+				identity: { kind: "deterministic-derived", value: identity, originRevision: revision },
+				currentRevision: revision,
+				reconciliation: { kind: "minted", evidence: { kind: "mint", tokenDigest: identity, sourceRevisionOrdinal: 1, sourcePosition: 0 } },
+				association: null,
+				number: 1,
+				title: "구현한다",
+				status: "running",
+				activityIds: activities.map((activity) => activity.id),
+				observationCount: 2,
+				narration: { what: "구현", inputSummary: [], source: "plan" },
+			}],
+		};
+		const output = stripTerminalSequences(new WorkspaceTodoView(
+			() => document,
+			() => ({ activeTurnId: "turn-1", activities, workFlow, sync: { state: "syncing", lastConfirmedAt: null, message: null } }),
+		).render(120).join("\n"));
+
+		expect(output).toContain("주 실행 · gpt-5.6-sol · root · run turn-1");
+		expect(output).toContain("gpt-5.6-terra · agent agent-a · 진행 중 · 코드 구현");
+		expect(output).toContain("gpt-5.6-luna · agent agent-b · 진행 중 · 검증");
+		expect(output).toContain("저장 동기화 중 · 대화는 계속됩니다");
 	});
 });
+
+function emptyFlow(): WorkFlowProjection {
+	return {
+		source: null,
+		retirements: [],
+		orphans: [],
+		rejections: [],
+		goal: "",
+		steps: [],
+		completedCount: 0,
+		currentStepNumber: null,
+		observationCount: 0,
+		summary: "",
+	};
+}

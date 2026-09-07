@@ -9,6 +9,7 @@ export interface CliDependencies {
 	runApp: (options?: RunAppOptions) => Promise<void>;
 	runRouter: (options?: RunLegacyRouterOptions) => Promise<void>;
 	runAuth: (args: string[]) => Promise<void>;
+	runDevelopment?: (args: string[]) => Promise<string>;
 	listSessions: () => Promise<Array<{ id: string; updatedAt: string }>>;
 	listNativeThreads: () => Promise<readonly NativeThreadSummary[]>;
 	selectNativeThread: (threads: readonly NativeThreadSummary[]) => Promise<string | null>;
@@ -30,6 +31,10 @@ const productionDependencies: CliDependencies = {
 	runAuth: async (args) => {
 		const { runAuth } = await import("./app");
 		await runAuth(args);
+	},
+	runDevelopment: async args => {
+		const { runDevelopmentCli } = await import("./infrastructure/development-cli");
+		return runDevelopmentCli(args);
 	},
 	listSessions: async () => {
 		const { listSessions } = await import("./app");
@@ -53,7 +58,7 @@ export function writeWorkbenchBootstrap(
 	isTTY = process.stdout.isTTY,
 ): void {
 	if (!isTTY) return;
-	write("\r\x1b[2Kbori · 프로젝트 Workbench를 여는 중…\n");
+	write("\r\x1b[2K🐙 Wooni · 프로젝트 Workbench를 여는 중…\n");
 }
 
 export function writeRouterBootstrap(
@@ -61,7 +66,7 @@ export function writeRouterBootstrap(
 	isTTY = process.stdout.isTTY,
 ): void {
 	if (!isTTY) return;
-	write("\r\x1b[2Kbori · 호환 Multi-provider Router를 여는 중…\n");
+	write("\r\x1b[2K🐙 Wooni · 호환 Multi-provider Router를 여는 중…\n");
 }
 
 function helpText(): string {
@@ -77,6 +82,7 @@ function helpText(): string {
 		"  www auth login <공급자> [oauth|api-key]",
 		"                              구독 계정 또는 API 키 로그인",
 		"  www auth logout <공급자>    저장된 인증 삭제",
+		"  www development help        Issue·Unit·SQLite·Obsidian 개발 기록 명령",
 		"  www sessions                 레거시 SessionRuntime 세션 목록",
 		"  www threads                  현재 프로젝트의 Codex native thread 목록",
 		"  www --resume                현재 프로젝트의 native thread를 선택해 재개",
@@ -87,6 +93,7 @@ function helpText(): string {
 		"  r/R · 1/2/3 · Esc          View 회전·직접 이동·Workbench 복귀",
 		"  /model [모델] [추론 강도]  현재·다음 실행의 Codex 모델 변경",
 		"  /source <id|latest|clear>  Trace source 선택",
+		"  /trace <activity-id>       선택 Plan에 결속된 정확한 Activity Trace 선택",
 		"  /tnote  마지막 질문을 packet-only 질문·이유·결과로 수동 캡처",
 		"  /approve · /approve-session · /decline  Codex native 승인 응답",
 		"  /cancel  현재 native turn 중단",
@@ -106,16 +113,20 @@ function isLegacySessionId(value: string | undefined): value is string {
 }
 
 export async function runCli(args: string[], dependencies: CliDependencies = productionDependencies): Promise<number> {
-	if (args.includes("--help") || args.includes("-h")) {
+	if (args[0] !== "development" && (args.includes("--help") || args.includes("-h"))) {
 		dependencies.writeOut(helpText());
 		return 0;
 	}
-	if (args.includes("--version") || args.includes("-v")) {
+	if (args[0] !== "development" && (args.includes("--version") || args.includes("-v"))) {
 		dependencies.writeOut(PRODUCT_VERSION);
 		return 0;
 	}
 	try {
-		if (args[0] === "auth") await dependencies.runAuth(args.slice(1));
+		if (args[0] === "development") {
+			if (!dependencies.runDevelopment) throw new Error("개발 기록 서비스를 사용할 수 없습니다.");
+			dependencies.writeOut(await dependencies.runDevelopment(args.slice(1)));
+		}
+		else if (args[0] === "auth") await dependencies.runAuth(args.slice(1));
 		else if (args[0] === "router") {
 			if (args.length === 1) await dependencies.runRouter({});
 			else if (args.length === 3 && args[1] === "--resume" && isLegacySessionId(args[2])) {

@@ -40,10 +40,10 @@ function fakeDependencies() {
 }
 
 describe("WWW CLI session entry", () => {
-	test("paints the lightweight bori bootstrap before production modules load", () => {
+	test("paints the lightweight Wooni bootstrap before production modules load", () => {
 		const writes: string[] = [];
 		writeWorkbenchBootstrap(value => writes.push(value), true);
-		expect(writes).toEqual(["\r\x1b[2Kbori · 프로젝트 Workbench를 여는 중…\n"]);
+		expect(writes).toEqual(["\r\x1b[2K🐙 Wooni · 프로젝트 Workbench를 여는 중…\n"]);
 		writeWorkbenchBootstrap(value => writes.push(value), false);
 		expect(writes).toHaveLength(1);
 	});
@@ -51,7 +51,7 @@ describe("WWW CLI session entry", () => {
 	test("paints a distinct bootstrap for the explicit multi-provider Router", () => {
 		const writes: string[] = [];
 		writeRouterBootstrap(value => writes.push(value), true);
-		expect(writes).toEqual(["\r\x1b[2Kbori · 호환 Multi-provider Router를 여는 중…\n"]);
+		expect(writes).toEqual(["\r\x1b[2K🐙 Wooni · 호환 Multi-provider Router를 여는 중…\n"]);
 		writeRouterBootstrap(value => writes.push(value), false);
 		expect(writes).toHaveLength(1);
 	});
@@ -59,7 +59,7 @@ describe("WWW CLI session entry", () => {
 	test("reports the package release version", async () => {
 		const { calls, dependencies } = fakeDependencies();
 		expect(await runCli(["--version"], dependencies)).toBe(0);
-		expect(calls.out).toEqual(["0.1.11"]);
+		expect(calls.out).toEqual(["0.0.15"]);
 		expect(calls.app).toEqual([]);
 	});
 

@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences } from "@earendil-works/pi-tui";
 import type { ProjectActivity } from "../src/domain/project-activity";
 import type { WorkbenchSnapshot } from "../src/domain/workbench";
-import { projectWorkFlow } from "../src/domain/work-steps";
+import { projectWorkFlow } from "../src/domain/work/index";
 import { WorkbenchChatView } from "../src/presentation/tui/workbench-views";
 
 function startup(sequence: number, server: string, status: string): ProjectActivity {

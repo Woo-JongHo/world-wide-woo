@@ -17,7 +17,7 @@ describe("workbench welcome intro", () => {
 	test("keeps Wooni out of the main welcome surface", () => {
 		const output = new WorkbenchWelcomeView().render(100).map(stripTerminalSequences).join("\n");
 		expect(output).toContain("██╗");
-		expect(output).toContain("bori · Native Project Workbench");
+		expect(output).toContain("🐙 Wooni · Native Project Workbench");
 		expect(output).not.toContain("WOONI");
 		expect(output).not.toContain("wooni@worldwide:~$");
 	});

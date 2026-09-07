@@ -1,5 +1,7 @@
 # Project-local Planning Package v1
 
+이 문서는 기존 EP/ST Planning Package의 저장·검증 계약이다. 기존 catalog와 artifact는 보존한다. WWW 자체의 새 개발 작업은 [Linear 기반 개발 기획](../../docs/planning/linear-development/README.md)을 따른다. 두 체계의 ID 연결·이중 발급 정책은 아직 이관 전이며, 아래 기존 계약을 근거로 Linear 작업을 자동 복제하거나 기존 이력을 삭제하지 않는다.
+
 WWW의 Planning Package는 하나의 독립적으로 수락 가능한 Product Requirement Boundary를 Why·How·Outcome·Work로 분리한다. 이 계약은 `01_www` Planning Domain의 검증된 경계를 프로젝트 규모에 맞게 Adapt-In한 첫 버전이다.
 
 ## Artifact roles

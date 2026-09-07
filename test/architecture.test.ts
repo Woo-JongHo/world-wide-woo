@@ -57,6 +57,21 @@ describe("source architecture", () => {
 		expect(relativeCycles(await loadSourceGraph())).toEqual([]);
 	});
 
+	test("keeps the Work capability entry independent from TUI and Runtime implementations", async () => {
+		const graph = await loadSourceGraph();
+		const entry = "domain/work/index.ts";
+		expect(graph.has(entry)).toBe(true);
+		expect(graph.has("domain/work-steps.ts")).toBe(false);
+		for (const source of graph.values()) {
+			expect(source.imports, source.path).not.toContain("domain/work-steps.ts");
+		}
+		for (const source of reachableSources(graph, entry)) {
+			expect(source.path, `${entry} -> ${source.path}`).not.toMatch(
+				/^(?:presentation|infrastructure|runtime|tui)\//u,
+			);
+		}
+	});
+
 	test("keeps the composition root small", async () => {
 		const lines = (await readFile("src/app.ts", "utf8")).split("\n");
 		expect(lines.length).toBeLessThanOrEqual(60);

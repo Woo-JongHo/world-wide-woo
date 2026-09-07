@@ -3,11 +3,31 @@
   "references": [
     {
       "kind": "code",
+      "id": "src/domain/work/index.ts"
+    },
+    {
+      "kind": "code",
       "id": "src/domain/work/traceability.ts"
     },
     {
       "kind": "code",
       "id": "src/domain/work/traceability-validator.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/domain/work/activity-classification.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/domain/work/delegation.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/domain/work/workflow-projection.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/work-traceability.test.ts"
     },
     {
       "kind": "test",
@@ -16,6 +36,10 @@
     {
       "kind": "test",
       "id": "test/delegation-tree-view.test.ts"
+    },
+    {
+      "kind": "evidence",
+      "id": ".www/evidence/2026-09-06-chat-development/assessment.md"
     },
     {
       "kind": "linear-issue",
@@ -172,6 +196,10 @@
       "id": "WOO-692",
       "uuid": "917b170a-05f5-422a-b05f-779efb3043ca",
       "url": "https://linear.app/woo-world/issue/WOO-692/message-07-실제-tui에서-가독성과-상태-전환을-검증한다"
+    },
+    {
+      "kind": "evidence",
+      "id": ".www/evidence/2026-09-06-tui-preparation/assessment.md"
     },
     {
       "kind": "linear-issue",
@@ -368,10 +396,30 @@
       "url": "https://linear.app/woo-world/issue/WOO-695/기능-unit과-linear-작업을-코드에-연결한다"
     },
     {
+      "kind": "code",
+      "id": "src/domain/development-records.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/development-code-scanner.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/development-code-scanner.test.ts"
+    },
+    {
       "kind": "linear-issue",
       "id": "WOO-696",
       "uuid": "ebeab182-33a1-41c5-a4d8-19b0209f2b01",
       "url": "https://linear.app/woo-world/issue/WOO-696/공용-sqlite에서-개발-관계를-조회하고-복구한다"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/development-store.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/development-store.test.ts"
     },
     {
       "kind": "linear-issue",
@@ -380,16 +428,36 @@
       "url": "https://linear.app/woo-world/issue/WOO-697/선택한-개발-업무의-대화와-테스트를-기록한다"
     },
     {
+      "kind": "code",
+      "id": "src/application/development-service.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/development-test-runner.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/development-snapshot.ts"
+    },
+    {
       "kind": "linear-issue",
       "id": "WOO-698",
       "uuid": "eb9caaaf-4b82-4329-b56d-834bc151ea53",
       "url": "https://linear.app/woo-world/issue/WOO-698/obsidian에서-개발-기록과-원본을-함께-읽는다"
     },
     {
+      "kind": "code",
+      "id": "src/infrastructure/development-vault.ts"
+    },
+    {
       "kind": "linear-issue",
       "id": "WOO-699",
       "uuid": "ddecdd50-fcf6-457b-84b0-aa0f681257c3",
       "url": "https://linear.app/woo-world/issue/WOO-699/tui에서-개발-작업과-연결된-근거를-왕복-탐색한다"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/development-cli.ts"
     },
     {
       "kind": "code",
@@ -505,18 +573,604 @@
     },
     {
       "kind": "code",
-      "id": "scripts/code-map.ts"
+      "id": "src/app.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/application/activity-narrator.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/application/canonical-promotion.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/application/context-composer.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/application/detached-text-generator.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/application/planning-service.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/application/ports/executor-port.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/application/ports/index.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/application/review-service.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/application/router-service.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/application/session/session-usage-tracker.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/application/session-model-usage.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/application/session-monitor.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/application/session-runtime.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/application/t-note-service.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/application/woo-entry.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/domain/canonical-document.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/domain/development-map.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/domain/model-settings.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/domain/monitoring.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/domain/narration.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/domain/native-session.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/domain/output.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/domain/planning.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/domain/repository.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/domain/review.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/domain/session-events.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/domain/t-notes.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/domain/todos.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/agent-tools.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/auth-service.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/canonical-document-store.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/composer-draft-store.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/credential-store.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/detached-codex-generator.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/development-map-source.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/executors/codex-app-server.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/executors/factory.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/executors/pi-harness.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/git-telemetry-source.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/model-router.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/native-thread-discovery.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/pi-activity-narrator.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/planning-store.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/project-session.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/project-workspace.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/repository-insights.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/review-adapters.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/review-store.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/session-store.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/settings-store.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/t-note-store.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/terminal-command-executor.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/todo-store.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/usage-service.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/wes-entry-collector.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/legacy-router-app.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/presentation/cli/auth-command.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/presentation/tui/auth-overlay.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/presentation/tui/bounded-public-projection.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/presentation/tui/delegation-tree-view.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/presentation/tui/exit-key-policy.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/presentation/tui/legacy-dashboard-views.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/presentation/tui/legacy-session-shell.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/presentation/tui/monitoring-overlay.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/presentation/tui/native-thread-picker.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/presentation/tui/overlay-sheet.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/presentation/tui/render-scheduler.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/presentation/tui/repository-overlays.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/presentation/tui/router-overlays.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/presentation/tui/shell-lifecycle.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/presentation/tui/usage-value.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/presentation/tui/workbench-welcome.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/product-version.ts"
     },
     {
       "kind": "test",
-      "id": "test/work-traceability.test.ts"
+      "id": "test/activity-narrator.test.ts"
     },
     {
-      "kind": "evidence",
-      "id": ".www/evidence/2026-09-07-code-map-implementation/receipt.md"
+      "kind": "test",
+      "id": "test/agent-tools.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/architecture.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/auth-overlay.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/auth-service.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/canonical-promotion.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/cli.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/codex-app-server.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/config.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/credential-store.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/detached-codex-generator.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/development-cli.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/development-map.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/development-test-runner.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/development-vault.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/left-dashboard.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/legacy-router-app.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/model-router.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/monitoring-overlay.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/native-plan-wiring.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/native-thread-picker.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/pi-harness.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/planning-documents.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/planning-domain.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/planning-service.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/planning-store.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/project-workspace.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/release-gate.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/render-scheduler.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/repository-insights.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/repository-overlays.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/review-service.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/router-service.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/session-model-usage.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/session-monitor.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/session-runtime.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/session-store.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/settings-store.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/t-notes.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/terminal-command-executor.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/todo-store.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/todos-domain.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/transcript-markdown.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/usage-service.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/wes-entry-collector.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/woo-entry.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/workbench-welcome.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/workspace-todo-view.test.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/domain/development-traceability.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/domain/trace-selection.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/development-map-builder.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/development-traceability-digest.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/traceability-validator.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/infrastructure/work-reference-validator.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/chat-render-acceptance.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/chat-scroll-acceptance.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/code-id.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/development-traceability.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/linear-contract-v2.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/redaction.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/trace-selection.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/architecture/import-graph.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/native-harness.contract.ts"
+    },
+    {
+      "kind": "linear-issue",
+      "id": "WOO-718",
+      "uuid": "5712cc2e-af70-4209-88b1-e4155f776f41",
+      "url": "https://linear.app/woo-world/issue/WOO-718/08-대화실행결과를-하나의-흐름으로-연결한다"
     }
   ],
   "links": [
+    {
+      "from": {
+        "kind": "test",
+        "id": "test/work-traceability.test.ts"
+      },
+      "relation": "verifies",
+      "to": {
+        "kind": "code",
+        "id": "src/domain/work/index.ts"
+      }
+    },
+    {
+      "from": {
+        "kind": "test",
+        "id": "test/work-flow.test.ts"
+      },
+      "relation": "verifies",
+      "to": {
+        "kind": "code",
+        "id": "src/domain/work/activity-classification.ts"
+      }
+    },
+    {
+      "from": {
+        "kind": "test",
+        "id": "test/delegation-tree-view.test.ts"
+      },
+      "relation": "verifies",
+      "to": {
+        "kind": "code",
+        "id": "src/domain/work/delegation.ts"
+      }
+    },
+    {
+      "from": {
+        "kind": "test",
+        "id": "test/work-flow.test.ts"
+      },
+      "relation": "verifies",
+      "to": {
+        "kind": "code",
+        "id": "src/domain/work/workflow-projection.ts"
+      }
+    },
     {
       "from": {
         "kind": "linear-issue",
@@ -623,6 +1277,19 @@
     },
     {
       "from": {
+        "kind": "evidence",
+        "id": ".www/evidence/2026-09-06-chat-development/assessment.md"
+      },
+      "relation": "evidences",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-679",
+        "uuid": "885c2115-0821-4df6-a954-3a23923f1209",
+        "url": "https://linear.app/woo-world/issue/WOO-679/chat-대화실행결과를-읽기-좋은-하나의-흐름으로-보여준다"
+      }
+    },
+    {
+      "from": {
         "kind": "linear-issue",
         "id": "WOO-683",
         "uuid": "ea233806-8926-4e7f-90b1-8328f3f874d4",
@@ -701,6 +1368,19 @@
     },
     {
       "from": {
+        "kind": "evidence",
+        "id": ".www/evidence/2026-09-06-chat-development/assessment.md"
+      },
+      "relation": "evidences",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-683",
+        "uuid": "ea233806-8926-4e7f-90b1-8328f3f874d4",
+        "url": "https://linear.app/woo-world/issue/WOO-683/message-대화의-내용과-상태를-편하게-읽는다"
+      }
+    },
+    {
+      "from": {
         "kind": "linear-issue",
         "id": "WOO-684",
         "uuid": "4b2b8c9c-ba0f-4f9c-9cd9-15af279a02f0",
@@ -770,6 +1450,19 @@
         "id": "test/project-workbench.test.ts"
       },
       "relation": "verifies",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-684",
+        "uuid": "4b2b8c9c-ba0f-4f9c-9cd9-15af279a02f0",
+        "url": "https://linear.app/woo-world/issue/WOO-684/chat-git-bash-입력출력상태를-읽기-좋게-표시한다"
+      }
+    },
+    {
+      "from": {
+        "kind": "evidence",
+        "id": ".www/evidence/2026-09-06-chat-development/assessment.md"
+      },
+      "relation": "evidences",
       "to": {
         "kind": "linear-issue",
         "id": "WOO-684",
@@ -870,6 +1563,19 @@
     },
     {
       "from": {
+        "kind": "evidence",
+        "id": ".www/evidence/2026-09-06-chat-development/assessment.md"
+      },
+      "relation": "evidences",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-686",
+        "uuid": "b034049b-a9c1-4515-8e7f-27e0ecc1e542",
+        "url": "https://linear.app/woo-world/issue/WOO-686/message-01-문서와-코드를-읽기-쉽게-표시한다"
+      }
+    },
+    {
+      "from": {
         "kind": "linear-issue",
         "id": "WOO-687",
         "uuid": "243e8918-446b-4a4e-b124-e0d6f830a2f6",
@@ -913,6 +1619,19 @@
         "id": "test/workbench-views.test.ts"
       },
       "relation": "verifies",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-687",
+        "uuid": "243e8918-446b-4a4e-b124-e0d6f830a2f6",
+        "url": "https://linear.app/woo-world/issue/WOO-687/message-02-대화-주체와-진행-상태를-한눈에-구분한다"
+      }
+    },
+    {
+      "from": {
+        "kind": "evidence",
+        "id": ".www/evidence/2026-09-06-chat-development/assessment.md"
+      },
+      "relation": "evidences",
       "to": {
         "kind": "linear-issue",
         "id": "WOO-687",
@@ -1000,6 +1719,19 @@
     },
     {
       "from": {
+        "kind": "evidence",
+        "id": ".www/evidence/2026-09-06-chat-development/assessment.md"
+      },
+      "relation": "evidences",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-688",
+        "uuid": "6336cca1-a828-45b9-ac62-cbaa3b35b7d8",
+        "url": "https://linear.app/woo-world/issue/WOO-688/message-03-답변-생성완료중단-과정을-보여준다"
+      }
+    },
+    {
+      "from": {
         "kind": "linear-issue",
         "id": "WOO-689",
         "uuid": "ae15b7ba-fd9d-4319-a186-201e6177c8a6",
@@ -1069,6 +1801,19 @@
         "id": "test/workbench-shell-policy.test.ts"
       },
       "relation": "verifies",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-689",
+        "uuid": "ae15b7ba-fd9d-4319-a186-201e6177c8a6",
+        "url": "https://linear.app/woo-world/issue/WOO-689/message-04-긴-결과를-안정적으로-탐색한다"
+      }
+    },
+    {
+      "from": {
+        "kind": "evidence",
+        "id": ".www/evidence/2026-09-06-chat-development/assessment.md"
+      },
+      "relation": "evidences",
       "to": {
         "kind": "linear-issue",
         "id": "WOO-689",
@@ -1182,6 +1927,19 @@
     },
     {
       "from": {
+        "kind": "evidence",
+        "id": ".www/evidence/2026-09-06-chat-development/assessment.md"
+      },
+      "relation": "evidences",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-690",
+        "uuid": "a417df98-8479-4222-b7e8-170ea4230f97",
+        "url": "https://linear.app/woo-world/issue/WOO-690/message-05-재개-뒤에도-대화-순서와-대상을-유지한다"
+      }
+    },
+    {
+      "from": {
         "kind": "linear-issue",
         "id": "WOO-691",
         "uuid": "9a3e3ee8-ea42-4278-9cda-f711b9ba83a6",
@@ -1286,6 +2044,19 @@
     },
     {
       "from": {
+        "kind": "evidence",
+        "id": ".www/evidence/2026-09-06-chat-development/assessment.md"
+      },
+      "relation": "evidences",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-691",
+        "uuid": "9a3e3ee8-ea42-4278-9cda-f711b9ba83a6",
+        "url": "https://linear.app/woo-world/issue/WOO-691/message-06-비정상-응답에서도-내용을-보존하고-복구를-안내한다"
+      }
+    },
+    {
+      "from": {
         "kind": "test",
         "id": "test/workbench-views.test.ts"
       },
@@ -1364,6 +2135,19 @@
     },
     {
       "from": {
+        "kind": "evidence",
+        "id": ".www/evidence/2026-09-06-chat-development/assessment.md"
+      },
+      "relation": "evidences",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-692",
+        "uuid": "917b170a-05f5-422a-b05f-779efb3043ca",
+        "url": "https://linear.app/woo-world/issue/WOO-692/message-07-실제-tui에서-가독성과-상태-전환을-검증한다"
+      }
+    },
+    {
+      "from": {
         "kind": "linear-issue",
         "id": "WOO-673",
         "uuid": "477b8294-e3c6-4e71-975f-0ddb09884c52",
@@ -1394,6 +2178,19 @@
         "id": "test/workbench-shell-policy.test.ts"
       },
       "relation": "verifies",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-673",
+        "uuid": "477b8294-e3c6-4e71-975f-0ddb09884c52",
+        "url": "https://linear.app/woo-world/issue/WOO-673/tui에서-업무를-수행하고-실행과-근거를-확인한다"
+      }
+    },
+    {
+      "from": {
+        "kind": "evidence",
+        "id": ".www/evidence/2026-09-06-tui-preparation/assessment.md"
+      },
+      "relation": "evidences",
       "to": {
         "kind": "linear-issue",
         "id": "WOO-673",
@@ -1507,6 +2304,19 @@
     },
     {
       "from": {
+        "kind": "evidence",
+        "id": ".www/evidence/2026-09-06-tui-preparation/assessment.md"
+      },
+      "relation": "evidences",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-674",
+        "uuid": "4674a1dc-ba01-4007-9803-3346a1f83dcc",
+        "url": "https://linear.app/woo-world/issue/WOO-674/workbench에서-대화와-계획을-읽고-입력과-상태를-통제한다"
+      }
+    },
+    {
+      "from": {
         "kind": "linear-issue",
         "id": "WOO-680",
         "uuid": "9e3c1872-b80e-4016-b24f-5e2adc9c7320",
@@ -1585,6 +2395,19 @@
     },
     {
       "from": {
+        "kind": "evidence",
+        "id": ".www/evidence/2026-09-06-tui-preparation/assessment.md"
+      },
+      "relation": "evidences",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-680",
+        "uuid": "9e3c1872-b80e-4016-b24f-5e2adc9c7320",
+        "url": "https://linear.app/woo-world/issue/WOO-680/layout-화면-크기가-달라져도-읽던-위치와-입력-흐름을-유지한다"
+      }
+    },
+    {
+      "from": {
         "kind": "linear-issue",
         "id": "WOO-681",
         "uuid": "8df10afa-0d6a-4a0d-a529-df749ecf7111",
@@ -1654,6 +2477,19 @@
         "id": "test/project-workbench.test.ts"
       },
       "relation": "verifies",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-681",
+        "uuid": "8df10afa-0d6a-4a0d-a529-df749ecf7111",
+        "url": "https://linear.app/woo-world/issue/WOO-681/tracer-선택한-작업의-실행-구조와-근거를-따라간다"
+      }
+    },
+    {
+      "from": {
+        "kind": "evidence",
+        "id": ".www/evidence/2026-09-06-tui-preparation/assessment.md"
+      },
+      "relation": "evidences",
       "to": {
         "kind": "linear-issue",
         "id": "WOO-681",
@@ -1780,6 +2616,19 @@
     },
     {
       "from": {
+        "kind": "evidence",
+        "id": ".www/evidence/2026-09-06-tui-preparation/assessment.md"
+      },
+      "relation": "evidences",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-682",
+        "uuid": "f47d08f5-fa85-4881-86f5-7baad14bb5ec",
+        "url": "https://linear.app/woo-world/issue/WOO-682/todo-세션에서-내-입력의-계획과-각-모델이-하는-일을-실시간으로-확인한다"
+      }
+    },
+    {
+      "from": {
         "kind": "linear-issue",
         "id": "WOO-693",
         "uuid": "559c8b06-e8dd-4061-8d10-d719be0524a8",
@@ -1849,6 +2698,19 @@
         "id": "test/project-workbench-session.test.ts"
       },
       "relation": "verifies",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-693",
+        "uuid": "559c8b06-e8dd-4061-8d10-d719be0524a8",
+        "url": "https://linear.app/woo-world/issue/WOO-693/완료된-질문과-결과를-t-note에-보존하고-다시-찾는다"
+      }
+    },
+    {
+      "from": {
+        "kind": "evidence",
+        "id": ".www/evidence/2026-09-06-tui-preparation/assessment.md"
+      },
+      "relation": "evidences",
       "to": {
         "kind": "linear-issue",
         "id": "WOO-693",
@@ -2001,6 +2863,19 @@
     },
     {
       "from": {
+        "kind": "evidence",
+        "id": ".www/evidence/2026-09-06-tui-preparation/assessment.md"
+      },
+      "relation": "evidences",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-694",
+        "uuid": "c0d21b4d-3dd0-44b6-9fb7-f2f938add0a8",
+        "url": "https://linear.app/woo-world/issue/WOO-694/입력전송중단과-세션-설정을-예측-가능하게-조작한다"
+      }
+    },
+    {
+      "from": {
         "kind": "linear-issue",
         "id": "WOO-675",
         "uuid": "28bc3ec6-f98d-421e-9398-8721f5c50724",
@@ -2070,6 +2945,19 @@
         "id": "test/workbench-shell-policy.test.ts"
       },
       "relation": "verifies",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-675",
+        "uuid": "28bc3ec6-f98d-421e-9398-8721f5c50724",
+        "url": "https://linear.app/woo-world/issue/WOO-675/monitor-현재-실행과-승인실패-상태를-같은-맥락에서-관찰한다"
+      }
+    },
+    {
+      "from": {
+        "kind": "evidence",
+        "id": ".www/evidence/2026-09-06-tui-preparation/assessment.md"
+      },
+      "relation": "evidences",
       "to": {
         "kind": "linear-issue",
         "id": "WOO-675",
@@ -2183,6 +3071,19 @@
     },
     {
       "from": {
+        "kind": "evidence",
+        "id": ".www/evidence/2026-09-06-tui-preparation/assessment.md"
+      },
+      "relation": "evidences",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-676",
+        "uuid": "d99aae72-3214-4146-8702-264dc20fcafe",
+        "url": "https://linear.app/woo-world/issue/WOO-676/dashboard-세션-관측-범위와-요약을-읽고-원하는-상세로-이동한다"
+      }
+    },
+    {
+      "from": {
         "kind": "linear-issue",
         "id": "WOO-677",
         "uuid": "4cc0aa6b-67ce-47a2-bb18-01af448ae5fd",
@@ -2274,6 +3175,175 @@
     },
     {
       "from": {
+        "kind": "evidence",
+        "id": ".www/evidence/2026-09-06-tui-preparation/assessment.md"
+      },
+      "relation": "evidences",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-677",
+        "uuid": "4cc0aa6b-67ce-47a2-bb18-01af448ae5fd",
+        "url": "https://linear.app/woo-world/issue/WOO-677/stats-세션과-요청의-결과사용량시간을-근거와-함께-검토한다"
+      }
+    },
+    {
+      "from": {
+        "kind": "linear-issue",
+        "id": "WOO-695",
+        "uuid": "d61f3719-f59d-4f8d-aa57-8889e3d224b0",
+        "url": "https://linear.app/woo-world/issue/WOO-695/기능-unit과-linear-작업을-코드에-연결한다"
+      },
+      "relation": "implements",
+      "to": {
+        "kind": "code",
+        "id": "src/domain/development-records.ts"
+      }
+    },
+    {
+      "from": {
+        "kind": "linear-issue",
+        "id": "WOO-695",
+        "uuid": "d61f3719-f59d-4f8d-aa57-8889e3d224b0",
+        "url": "https://linear.app/woo-world/issue/WOO-695/기능-unit과-linear-작업을-코드에-연결한다"
+      },
+      "relation": "implements",
+      "to": {
+        "kind": "code",
+        "id": "src/infrastructure/development-code-scanner.ts"
+      }
+    },
+    {
+      "from": {
+        "kind": "test",
+        "id": "test/development-code-scanner.test.ts"
+      },
+      "relation": "verifies",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-695",
+        "uuid": "d61f3719-f59d-4f8d-aa57-8889e3d224b0",
+        "url": "https://linear.app/woo-world/issue/WOO-695/기능-unit과-linear-작업을-코드에-연결한다"
+      }
+    },
+    {
+      "from": {
+        "kind": "linear-issue",
+        "id": "WOO-696",
+        "uuid": "ebeab182-33a1-41c5-a4d8-19b0209f2b01",
+        "url": "https://linear.app/woo-world/issue/WOO-696/공용-sqlite에서-개발-관계를-조회하고-복구한다"
+      },
+      "relation": "implements",
+      "to": {
+        "kind": "code",
+        "id": "src/infrastructure/development-store.ts"
+      }
+    },
+    {
+      "from": {
+        "kind": "test",
+        "id": "test/development-store.test.ts"
+      },
+      "relation": "verifies",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-696",
+        "uuid": "ebeab182-33a1-41c5-a4d8-19b0209f2b01",
+        "url": "https://linear.app/woo-world/issue/WOO-696/공용-sqlite에서-개발-관계를-조회하고-복구한다"
+      }
+    },
+    {
+      "from": {
+        "kind": "test",
+        "id": "test/development-test-runner.test.ts"
+      },
+      "relation": "verifies",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-697",
+        "uuid": "a9d0368a-de03-462e-b490-56252fcc626a",
+        "url": "https://linear.app/woo-world/issue/WOO-697/선택한-개발-업무의-대화와-테스트를-기록한다"
+      }
+    },
+    {
+      "from": {
+        "kind": "test",
+        "id": "test/development-vault.test.ts"
+      },
+      "relation": "verifies",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-698",
+        "uuid": "eb9caaaf-4b82-4329-b56d-834bc151ea53",
+        "url": "https://linear.app/woo-world/issue/WOO-698/obsidian에서-개발-기록과-원본을-함께-읽는다"
+      }
+    },
+    {
+      "from": {
+        "kind": "linear-issue",
+        "id": "WOO-697",
+        "uuid": "a9d0368a-de03-462e-b490-56252fcc626a",
+        "url": "https://linear.app/woo-world/issue/WOO-697/선택한-개발-업무의-대화와-테스트를-기록한다"
+      },
+      "relation": "implements",
+      "to": {
+        "kind": "code",
+        "id": "src/application/development-service.ts"
+      }
+    },
+    {
+      "from": {
+        "kind": "linear-issue",
+        "id": "WOO-697",
+        "uuid": "a9d0368a-de03-462e-b490-56252fcc626a",
+        "url": "https://linear.app/woo-world/issue/WOO-697/선택한-개발-업무의-대화와-테스트를-기록한다"
+      },
+      "relation": "implements",
+      "to": {
+        "kind": "code",
+        "id": "src/infrastructure/development-test-runner.ts"
+      }
+    },
+    {
+      "from": {
+        "kind": "linear-issue",
+        "id": "WOO-697",
+        "uuid": "a9d0368a-de03-462e-b490-56252fcc626a",
+        "url": "https://linear.app/woo-world/issue/WOO-697/선택한-개발-업무의-대화와-테스트를-기록한다"
+      },
+      "relation": "implements",
+      "to": {
+        "kind": "code",
+        "id": "src/infrastructure/development-snapshot.ts"
+      }
+    },
+    {
+      "from": {
+        "kind": "linear-issue",
+        "id": "WOO-698",
+        "uuid": "eb9caaaf-4b82-4329-b56d-834bc151ea53",
+        "url": "https://linear.app/woo-world/issue/WOO-698/obsidian에서-개발-기록과-원본을-함께-읽는다"
+      },
+      "relation": "implements",
+      "to": {
+        "kind": "code",
+        "id": "src/infrastructure/development-vault.ts"
+      }
+    },
+    {
+      "from": {
+        "kind": "linear-issue",
+        "id": "WOO-699",
+        "uuid": "ddecdd50-fcf6-457b-84b0-aa0f681257c3",
+        "url": "https://linear.app/woo-world/issue/WOO-699/tui에서-개발-작업과-연결된-근거를-왕복-탐색한다"
+      },
+      "relation": "implements",
+      "to": {
+        "kind": "code",
+        "id": "src/infrastructure/development-cli.ts"
+      }
+    },
+    {
+      "from": {
         "kind": "linear-issue",
         "id": "WOO-699",
         "uuid": "ddecdd50-fcf6-457b-84b0-aa0f681257c3",
@@ -2300,67 +3370,327 @@
     },
     {
       "from": {
-        "kind": "linear-issue",
-        "id": "WOO-695",
-        "uuid": "d61f3719-f59d-4f8d-aa57-8889e3d224b0",
-        "url": "https://linear.app/woo-world/issue/WOO-695/기능-unit과-linear-작업을-코드에-연결한다"
+        "kind": "test",
+        "id": "test/development-code-scanner.test.ts"
       },
-      "relation": "implements",
+      "relation": "verifies",
       "to": {
-        "kind": "code",
-        "id": "src/domain/work/traceability.ts"
+        "kind": "linear-issue",
+        "id": "WOO-683",
+        "uuid": "ea233806-8926-4e7f-90b1-8328f3f874d4",
+        "url": "https://linear.app/woo-world/issue/WOO-683/message-대화의-내용과-상태를-편하게-읽는다"
       }
     },
     {
       "from": {
         "kind": "linear-issue",
-        "id": "WOO-695",
-        "uuid": "d61f3719-f59d-4f8d-aa57-8889e3d224b0",
-        "url": "https://linear.app/woo-world/issue/WOO-695/기능-unit과-linear-작업을-코드에-연결한다"
+        "id": "WOO-702",
+        "uuid": "62bdc3c2-cb9b-428f-8e86-7e69350a400b",
+        "url": "https://linear.app/woo-world/issue/WOO-702/세션별-todomd에-입력과-계획을-보존하고-재개한다"
       },
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/domain/work/traceability-validator.ts"
+        "id": "src/infrastructure/project-workbench-session.ts"
       }
     },
     {
       "from": {
         "kind": "linear-issue",
-        "id": "WOO-695",
-        "uuid": "d61f3719-f59d-4f8d-aa57-8889e3d224b0",
-        "url": "https://linear.app/woo-world/issue/WOO-695/기능-unit과-linear-작업을-코드에-연결한다"
+        "id": "WOO-705",
+        "uuid": "4738e3c5-c5b3-4cc2-9cea-ff9bf600367d",
+        "url": "https://linear.app/woo-world/issue/WOO-705/다른-요청의-근거가-섞이지-않도록-같은-실행을-추적한다"
       },
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "scripts/code-map.ts"
+        "id": "src/domain/trace-selection.ts"
       }
     },
     {
       "from": {
         "kind": "test",
-        "id": "test/work-traceability.test.ts"
+        "id": "test/chat-render-acceptance.test.ts"
       },
       "relation": "verifies",
       "to": {
         "kind": "linear-issue",
-        "id": "WOO-695",
-        "uuid": "d61f3719-f59d-4f8d-aa57-8889e3d224b0",
-        "url": "https://linear.app/woo-world/issue/WOO-695/기능-unit과-linear-작업을-코드에-연결한다"
+        "id": "WOO-686",
+        "uuid": "b034049b-a9c1-4515-8e7f-27e0ecc1e542",
+        "url": "https://linear.app/woo-world/issue/WOO-686/message-01-문서와-코드를-읽기-쉽게-표시한다"
       }
     },
     {
       "from": {
-        "kind": "evidence",
-        "id": ".www/evidence/2026-09-07-code-map-implementation/receipt.md"
+        "kind": "test",
+        "id": "test/chat-render-acceptance.test.ts"
       },
-      "relation": "evidences",
+      "relation": "verifies",
       "to": {
         "kind": "linear-issue",
-        "id": "WOO-695",
-        "uuid": "d61f3719-f59d-4f8d-aa57-8889e3d224b0",
-        "url": "https://linear.app/woo-world/issue/WOO-695/기능-unit과-linear-작업을-코드에-연결한다"
+        "id": "WOO-689",
+        "uuid": "ae15b7ba-fd9d-4319-a186-201e6177c8a6",
+        "url": "https://linear.app/woo-world/issue/WOO-689/message-04-긴-결과를-안정적으로-탐색한다"
+      }
+    },
+    {
+      "from": {
+        "kind": "test",
+        "id": "test/chat-render-acceptance.test.ts"
+      },
+      "relation": "verifies",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-687",
+        "uuid": "243e8918-446b-4a4e-b124-e0d6f830a2f6",
+        "url": "https://linear.app/woo-world/issue/WOO-687/message-02-대화-주체와-진행-상태를-한눈에-구분한다"
+      }
+    },
+    {
+      "from": {
+        "kind": "test",
+        "id": "test/chat-render-acceptance.test.ts"
+      },
+      "relation": "verifies",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-691",
+        "uuid": "9a3e3ee8-ea42-4278-9cda-f711b9ba83a6",
+        "url": "https://linear.app/woo-world/issue/WOO-691/message-06-비정상-응답에서도-내용을-보존하고-복구를-안내한다"
+      }
+    },
+    {
+      "from": {
+        "kind": "test",
+        "id": "test/trace-selection.test.ts"
+      },
+      "relation": "verifies",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-705",
+        "uuid": "4738e3c5-c5b3-4cc2-9cea-ff9bf600367d",
+        "url": "https://linear.app/woo-world/issue/WOO-705/다른-요청의-근거가-섞이지-않도록-같은-실행을-추적한다"
+      }
+    },
+    {
+      "from": {
+        "kind": "linear-issue",
+        "id": "WOO-702",
+        "uuid": "62bdc3c2-cb9b-428f-8e86-7e69350a400b",
+        "url": "https://linear.app/woo-world/issue/WOO-702/세션별-todomd에-입력과-계획을-보존하고-재개한다"
+      },
+      "relation": "implements",
+      "to": {
+        "kind": "code",
+        "id": "src/application/project-workbench.ts"
+      }
+    },
+    {
+      "from": {
+        "kind": "linear-issue",
+        "id": "WOO-702",
+        "uuid": "62bdc3c2-cb9b-428f-8e86-7e69350a400b",
+        "url": "https://linear.app/woo-world/issue/WOO-702/세션별-todomd에-입력과-계획을-보존하고-재개한다"
+      },
+      "relation": "implements",
+      "to": {
+        "kind": "code",
+        "id": "src/application/todo-ledger.ts"
+      }
+    },
+    {
+      "from": {
+        "kind": "linear-issue",
+        "id": "WOO-702",
+        "uuid": "62bdc3c2-cb9b-428f-8e86-7e69350a400b",
+        "url": "https://linear.app/woo-world/issue/WOO-702/세션별-todomd에-입력과-계획을-보존하고-재개한다"
+      },
+      "relation": "implements",
+      "to": {
+        "kind": "code",
+        "id": "src/domain/todos.ts"
+      }
+    },
+    {
+      "from": {
+        "kind": "linear-issue",
+        "id": "WOO-700",
+        "uuid": "770ebed8-f030-4610-9668-dd2023b26a9a",
+        "url": "https://linear.app/woo-world/issue/WOO-700/내-입력에-대한-계획이-세워지는-과정을-세션-todo로-보여준다"
+      },
+      "relation": "implements",
+      "to": {
+        "kind": "code",
+        "id": "src/presentation/tui/shared-dashboard-views.ts"
+      }
+    },
+    {
+      "from": {
+        "kind": "linear-issue",
+        "id": "WOO-701",
+        "uuid": "caa2bea5-5a59-41b8-9f2e-187a4a417400",
+        "url": "https://linear.app/woo-world/issue/WOO-701/각-모델이-맡은-일과-실행-상태를-세션-todo에서-실시간으로-확인한다"
+      },
+      "relation": "implements",
+      "to": {
+        "kind": "code",
+        "id": "src/presentation/tui/shared-dashboard-views.ts"
+      }
+    },
+    {
+      "from": {
+        "kind": "linear-issue",
+        "id": "WOO-703",
+        "uuid": "4fbbac82-78ed-4ea1-9b96-f7d23e749053",
+        "url": "https://linear.app/woo-world/issue/WOO-703/계획-동기화가-실패해도-작업을-이어가고-복구-상태를-이해한다"
+      },
+      "relation": "implements",
+      "to": {
+        "kind": "code",
+        "id": "src/presentation/tui/shared-dashboard-views.ts"
+      }
+    },
+    {
+      "from": {
+        "kind": "linear-issue",
+        "id": "WOO-704",
+        "uuid": "27c3aae2-f0ff-4717-aacd-0e255ec08ada",
+        "url": "https://linear.app/woo-world/issue/WOO-704/대화와-계획에서-근거를-열고-읽던-자리로-돌아온다"
+      },
+      "relation": "implements",
+      "to": {
+        "kind": "code",
+        "id": "src/presentation/tui/workbench-views.ts"
+      }
+    },
+    {
+      "from": {
+        "kind": "linear-issue",
+        "id": "WOO-706",
+        "uuid": "1f933204-1980-4640-b49b-b030aff9a122",
+        "url": "https://linear.app/woo-world/issue/WOO-706/source의-내용과-관측-한계를-읽기-쉽게-구분한다"
+      },
+      "relation": "implements",
+      "to": {
+        "kind": "code",
+        "id": "src/presentation/tui/workbench-views.ts"
+      }
+    },
+    {
+      "from": {
+        "kind": "test",
+        "id": "test/project-workbench.test.ts"
+      },
+      "relation": "verifies",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-705",
+        "uuid": "4738e3c5-c5b3-4cc2-9cea-ff9bf600367d",
+        "url": "https://linear.app/woo-world/issue/WOO-705/다른-요청의-근거가-섞이지-않도록-같은-실행을-추적한다"
+      }
+    },
+    {
+      "from": {
+        "kind": "linear-issue",
+        "id": "WOO-718",
+        "uuid": "5712cc2e-af70-4209-88b1-e4155f776f41",
+        "url": "https://linear.app/woo-world/issue/WOO-718/08-대화실행결과를-하나의-흐름으로-연결한다"
+      },
+      "relation": "implements",
+      "to": {
+        "kind": "code",
+        "id": "src/application/project-workbench.ts"
+      }
+    },
+    {
+      "from": {
+        "kind": "test",
+        "id": "test/project-workbench.test.ts"
+      },
+      "relation": "verifies",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-718",
+        "uuid": "5712cc2e-af70-4209-88b1-e4155f776f41",
+        "url": "https://linear.app/woo-world/issue/WOO-718/08-대화실행결과를-하나의-흐름으로-연결한다"
+      }
+    },
+    {
+      "from": {
+        "kind": "test",
+        "id": "test/chat-render-acceptance.test.ts"
+      },
+      "relation": "verifies",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-718",
+        "uuid": "5712cc2e-af70-4209-88b1-e4155f776f41",
+        "url": "https://linear.app/woo-world/issue/WOO-718/08-대화실행결과를-하나의-흐름으로-연결한다"
+      }
+    },
+    {
+      "from": {
+        "kind": "test",
+        "id": "test/project-workbench-session.test.ts"
+      },
+      "relation": "verifies",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-718",
+        "uuid": "5712cc2e-af70-4209-88b1-e4155f776f41",
+        "url": "https://linear.app/woo-world/issue/WOO-718/08-대화실행결과를-하나의-흐름으로-연결한다"
+      }
+    },
+    {
+      "from": {
+        "kind": "linear-issue",
+        "id": "WOO-714",
+        "uuid": "b7db4486-ed21-413d-8c35-541bfd536fc1",
+        "url": "https://linear.app/woo-world/issue/WOO-714/한-세션의-결과사용량시간을-관측-단위와-함께-계산한다"
+      },
+      "relation": "implements",
+      "to": {
+        "kind": "code",
+        "id": "src/domain/session-stats.ts"
+      }
+    },
+    {
+      "from": {
+        "kind": "linear-issue",
+        "id": "WOO-714",
+        "uuid": "b7db4486-ed21-413d-8c35-541bfd536fc1",
+        "url": "https://linear.app/woo-world/issue/WOO-714/한-세션의-결과사용량시간을-관측-단위와-함께-계산한다"
+      },
+      "relation": "implements",
+      "to": {
+        "kind": "code",
+        "id": "src/presentation/tui/session-stats-view.ts"
+      }
+    },
+    {
+      "from": {
+        "kind": "test",
+        "id": "test/session-stats-view.test.ts"
+      },
+      "relation": "verifies",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-714",
+        "uuid": "b7db4486-ed21-413d-8c35-541bfd536fc1",
+        "url": "https://linear.app/woo-world/issue/WOO-714/한-세션의-결과사용량시간을-관측-단위와-함께-계산한다"
+      }
+    },
+    {
+      "from": {
+        "kind": "test",
+        "id": "test/session-stats.test.ts"
+      },
+      "relation": "verifies",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-714",
+        "uuid": "b7db4486-ed21-413d-8c35-541bfd536fc1",
+        "url": "https://linear.app/woo-world/issue/WOO-714/한-세션의-결과사용량시간을-관측-단위와-함께-계산한다"
       }
     }
   ]
