@@ -1,6 +1,7 @@
-import type { ProjectActivity } from "./project-activity.js";
-import { redactForExternalReview } from "./redaction.js";
-import { sanitizeTerminalTextExcerpt } from "./terminal.js";
+import type { ProjectActivity } from "../project-activity.js";
+import { redactForExternalReview } from "../redaction.js";
+import { sanitizeTerminalTextExcerpt } from "../terminal.js";
+import { classifyWorkActivity } from "./activity-classification.js";
 
 const MAX_PUBLIC_TEXT = 1_200;
 const FALLBACK_NARRATION: WorkStepNarration = {
@@ -9,7 +10,6 @@ const FALLBACK_NARRATION: WorkStepNarration = {
 	inputSummary: [],
 	source: "fallback",
 };
-export type WorkActivityClass = "observation" | "action" | "control";
 /** Every trace relation is either backed by a native identifier or explicitly projected. */
 export type TraceAttribution = "observed" | "inferred";
 export type WorkStepStatus =
@@ -161,31 +161,6 @@ export interface WorkFlowProjection {
 }
 export interface DplanHash {
 	sha256Hex(input: Uint8Array): Sha256Hex;
-}
-export type NativeDelegationStatus = "pending" | "running" | "completed" | "failed";
-export interface NativeDelegationActivity {
-	readonly activityId: string;
-	readonly itemId: string;
-	readonly kind: string;
-	readonly message: string | null;
-	readonly attribution: "observed";
-	readonly source: {
-		readonly turnId: string;
-		readonly itemId: string;
-	};
-}
-export interface NativeDelegatedTask {
-	readonly id: string;
-	readonly parentId: string | null;
-	readonly status: NativeDelegationStatus;
-	readonly task: string | null;
-	readonly model: string | null;
-	readonly reasoningEffort: string | null;
-	readonly activities: readonly NativeDelegationActivity[];
-}
-export interface NativeDelegationProjection {
-	readonly turnId: string;
-	readonly tasks: readonly NativeDelegatedTask[];
 }
 export class DplanIdentityCollisionError extends Error {
 	constructor() {
@@ -361,7 +336,7 @@ export function projectWorkFlow(
 		}
 	};
 	for (const activity of interval) {
-		if (activity.payload.method === "turn/plan/updated") {
+		if (isPlanRevision(activity)) {
 			if (
 				activity.nativeRefs.threadId !== input.expectedThreadKey ||
 				activity.nativeRefs.turnId !== input.selectedTurnId
@@ -386,6 +361,7 @@ export function projectWorkFlow(
 				continue;
 			}
 			invalid = false;
+			const firstRevision = currentRevision === null;
 			ordinal++;
 			const nextRevision = revision(activity, threadDigest, input.hash);
 			for (const state of current) {
@@ -405,6 +381,42 @@ export function projectWorkFlow(
 				seeds,
 			);
 			currentRevision = nextRevision;
+			if (activity.payload.method === "turn/plan/public-fallback" || firstRevision) {
+				const sourceActivityId = activity.payload.sourceActivityId;
+				const sourceActivity = typeof sourceActivityId === "string"
+					? interval.find((candidate) => candidate.id === sourceActivityId)
+					: firstRevision ? interval.find(isTurnStart) : undefined;
+				const running = current.filter((state) => state.entry.status === "running");
+				const missingPlan = activity.payload.source === "public-user-request";
+				const associationTarget = running.length === 1 ? running[0] : missingPlan && current.length === 1 ? current[0] : undefined;
+				if (sourceActivity && associationTarget) {
+					const state = associationTarget;
+					const associationSource = {
+						startSequence: nextRevision.sequence,
+						endSequence: null,
+						actions: [] as string[],
+						observations: [] as string[],
+					};
+					for (const candidate of interval) {
+						if (candidate.sequence <= sourceActivity.sequence || candidate.sequence >= activity.sequence) continue;
+						if (candidate.nativeRefs.threadId !== input.expectedThreadKey || candidate.nativeRefs.turnId !== input.selectedTurnId) continue;
+						const candidateKind = classifyWorkActivity(candidate);
+						if (candidateKind === "control") continue;
+						const orphanIndex = orphans.findIndex((orphan) => orphan.activityId === candidate.id);
+						if (orphanIndex >= 0) orphans.splice(orphanIndex, 1);
+						if (candidateKind === "action") {
+							state.association.actions.push(candidate.id);
+							associationSource.actions.push(candidate.id);
+						} else {
+							state.association.observations.push(candidate.id);
+							associationSource.observations.push(candidate.id);
+						}
+					}
+					if (associationSource.actions.length > 0 || associationSource.observations.length > 0) {
+						state.association.sources.push(associationSource);
+					}
+				}
+			}
 			continue;
 		}
 		const kind = classifyWorkActivity(activity);
@@ -534,7 +546,7 @@ function validateJournal(
 		else if (!/^sha256:[0-9a-f]{64}$/u.test(activity.sourceDigest)) {
 			code = "invalid_source_digest";
 		} else if (
-			activity.payload.method === "turn/plan/updated" &&
+			isPlanRevision(activity) &&
 			isParseablePlanEnvelope(activity)
 		) {
 			const key = revision(activity, threadDigest, hash).sourceRevisionKeyDigest;
@@ -778,19 +790,134 @@ function technicalNarration(value: string): boolean {
 function isParseablePlanEnvelope(activity: ProjectActivity): boolean {
 	return !planValidationError(activity);
 }
+function isPlanRevision(activity: ProjectActivity): boolean {
+	if (activity.payload.method === "turn/plan/updated" || activity.payload.method === "turn/plan/public-fallback") return true;
+	if (activity.payload.method !== "item/completed") return false;
+	const item = record(record(activity.payload.params)?.item);
+	return typeof item?.type === "string" && item.type.toLowerCase() === "plan";
+}
+interface RawPlanEntry {
+	readonly step: string;
+	readonly status: unknown;
+}
+function rawPlanEntries(
+	activity: ProjectActivity,
+): { entries?: RawPlanEntry[]; error?: RevisionValidationCode } {
+	const params = record(activity.payload.params);
+	if (activity.payload.method === "turn/plan/updated" || activity.payload.method === "turn/plan/public-fallback") {
+		if (!params || !Array.isArray(params.plan) || params.plan.length > 256) {
+			return { error: "non_string_entry" };
+		}
+		const values = params.plan.map(record);
+		if (values.some((entry) => typeof entry?.step !== "string")) {
+			return { error: "non_string_entry" };
+		}
+		return {
+			entries: values.map((entry) => ({ step: entry!.step as string, status: entry!.status })),
+		};
+	}
+	const item = record(params?.item);
+	if (!item || typeof item.text !== "string") return { error: "non_string_entry" };
+	const numberedHeadings: RawPlanEntry[] = [];
+	let headingNumber = 0;
+	for (const line of item.text.replace(/\r\n?/gu, "\n").split("\n")) {
+		const heading = /^\s*#{2,6}\s+(\d+)[.)]\s+(.+?)\s*$/u.exec(line);
+		if (!heading) continue;
+		const number = Number(heading[1]);
+		if (number !== headingNumber + 1) return { error: "non_string_entry" };
+		headingNumber = number;
+		numberedHeadings.push({
+			step: markdownPlanTitle(heading[2]!),
+			status: numberedHeadings.length === 0 ? "inProgress" : "pending",
+		});
+	}
+	if (numberedHeadings.length > 0) return { entries: numberedHeadings };
+	const plainNumbered = nativePlainNumberedPlanBlock(item.text);
+	if (plainNumbered) return { entries: plainNumbered };
+	const entries: RawPlanEntry[] = [];
+	let numberedCount = 0;
+	let precedingStep: "numbered" | "bullet" | undefined;
+	for (const line of item.text.replace(/\r\n?/gu, "\n").split("\n")) {
+		if (!line.trim() || /^\s*#{1,6}\s+/u.test(line)) {
+			precedingStep = undefined;
+			continue;
+		}
+		const numbered = /^(\d+)\.\s+(.+?)\s*$/u.exec(line);
+		const bullet = /^[-*+]\s+(.+?)\s*$/u.exec(line);
+		const indentedBullet = /^([ ]+)[-*+]\s+.+?\s*$/u.exec(line);
+		if (indentedBullet) {
+			if (precedingStep !== "numbered") return { error: "non_string_entry" };
+			continue;
+		}
+		if (!numbered && !bullet) return { error: "non_string_entry" };
+		if (numbered) {
+			const number = Number(numbered[1]);
+			if (number !== numberedCount + 1) return { error: "non_string_entry" };
+			numberedCount = number;
+		}
+		const value = numbered?.[2] ?? bullet![1]!;
+		const parsed = markdownPlanEntry(value);
+		if (!parsed) return { error: "non_string_entry" };
+		const status = markdownPlanStatus(parsed.status);
+		if (!status) return { error: "non_string_entry" };
+		if (entries.length >= 256) return { error: "non_string_entry" };
+		entries.push({ step: parsed.step, status });
+		precedingStep = numbered ? "numbered" : "bullet";
+	}
+	return entries.length ? { entries } : { error: "blank_entry" };
+}
+
+function nativePlainNumberedPlanBlock(text: string): RawPlanEntry[] | undefined {
+	const entries: RawPlanEntry[] = [];
+	let started = false;
+	for (const line of text.replace(/\r\n?/gu, "\n").split("\n")) {
+		if (/^\s*#{1,6}\s+.+?\s*$/u.test(line)) {
+			if (started) break;
+			continue;
+		}
+		if (!line.trim()) continue;
+		if (/^[ ]+[-*+]\s+.+?\s*$/u.test(line)) {
+			if (!started) return undefined;
+			continue;
+		}
+		const numbered = /^(\d+)\.\s+(.+?)\s*$/u.exec(line);
+		if (!numbered) return undefined;
+		const number = Number(numbered[1]);
+		if (number !== entries.length + 1 || number > 12) return undefined;
+		const value = numbered[2]!;
+		const explicit = markdownPlanEntry(value);
+		if (explicit && markdownPlanStatus(explicit.status)) return undefined;
+		entries.push({
+			step: markdownPlanTitle(value),
+			status: entries.length === 0 ? "inProgress" : "pending",
+		});
+		started = true;
+	}
+	return entries.length >= 2 ? entries : undefined;
+}
+
+function markdownPlanEntry(value: string): { step: string; status: string } | undefined {
+	const outerBold = /^(?:\*\*|__)(.*)(?:\*\*|__)$/u.exec(value.trim());
+	const candidate = outerBold?.[1]?.trim() ?? value;
+	const prefix = /^\[([^\]]+)\]\s+(.+)$/u.exec(candidate);
+	if (prefix) return { step: markdownPlanTitle(prefix[2]!), status: prefix[1]! };
+	const suffix = /^(.+?)\s+\[([^\]]+)\]$/u.exec(candidate);
+	if (suffix) return { step: markdownPlanTitle(suffix[1]!), status: suffix[2]! };
+	const separated = /^(.+?)\s+[—-]\s+(.+)$/u.exec(candidate);
+	if (separated) return { step: markdownPlanTitle(separated[1]!), status: separated[2]! };
+	return undefined;
+}
+function markdownPlanTitle(value: string): string {
+	const bold = /^\*\*(.+)\*\*$/u.exec(value.trim());
+	return (bold?.[1] ?? value).trim();
+}
 function planValidationError(
 	activity: ProjectActivity,
 ): RevisionValidationCode | undefined {
-	const params = record(activity.payload.params);
-	if (!params || !Array.isArray(params.plan) || params.plan.length > 256) {
-		return "non_string_entry";
-	}
-	const values = params.plan.map(record);
-	if (values.some((entry) => typeof entry?.step !== "string")) {
-		return "non_string_entry";
-	}
-	for (const value of values) {
-		const step = value!.step as string;
+	const parsed = rawPlanEntries(activity);
+	if (parsed.error) return parsed.error;
+	for (const value of parsed.entries!) {
+		const step = value.step;
 		if ([...step].length > 4_096 || !token(step)) return "blank_entry";
 	}
 	return undefined;
@@ -801,19 +928,32 @@ function parsePlan(
 ): { entries?: Entry[]; error?: RevisionValidationCode } {
 	const error = planValidationError(activity);
 	if (error) return { error };
-	const values = (record(activity.payload.params)!.plan as readonly unknown[])
-		.map(record);
+	const values = rawPlanEntries(activity).entries!;
 	const entries = values.map((value) => {
-		const step = value!.step as string;
+		const step = value.step;
 		const raw = token(step);
 		return {
 			raw,
 			title: publicText(step),
-			status: planStatus(value!.status),
+			status: planStatus(value.status),
 			tokenDigest: digest(hash, raw),
 		};
 	});
 	return { entries };
+}
+function markdownPlanStatus(value: string | undefined): WorkStepStatus | undefined {
+	const normalized = value?.normalize("NFKC").trim().toLowerCase().replace(/[ _-]+/gu, " ");
+	return normalized === "pending" || normalized === "대기"
+		? "pending"
+		: normalized === "in progress" || normalized === "running" || normalized === "진행 중"
+		? "running"
+		: normalized === "completed" || normalized === "complete" || normalized === "완료"
+		? "completed"
+		: normalized === "failed" || normalized === "실패"
+		? "failed"
+		: normalized === "cancelled" || normalized === "canceled" || normalized === "취소" || normalized === "취소됨"
+		? "cancelled"
+		: undefined;
 }
 function count(values: string[]): Map<string, number> {
 	const counts = new Map<string, number>();
@@ -854,161 +994,13 @@ function isTurnStart(activity: ProjectActivity): boolean {
 function planStatus(value: unknown): WorkStepStatus {
 	return value === "completed"
 		? "completed"
-		: value === "inProgress" || value === "running"
+		: value === "inProgress" || value === "inprogress" || value === "running"
 		? "running"
 		: value === "failed"
 		? "failed"
 		: value === "cancelled"
 		? "cancelled"
 		: "pending";
-}
-/**
- * A lossless-enough, display-neutral projection of App Server's collaboration
- * items. It observes native payloads only; it does not select or direct agents.
- */
-export function projectNativeDelegation(
-	activities: readonly ProjectActivity[],
-): readonly NativeDelegationProjection[] {
-	const byTurn = new Map<string, ProjectActivity[]>();
-	for (const activity of activities) {
-		const item = record(record(activity.payload.params)?.item);
-		const type = (delegationText(item?.type) ?? "").replace(/[^a-z]/giu, "").toLowerCase();
-		if (type !== "collabagenttoolcall" && type !== "subagentactivity") continue;
-		// A collaboration payload alone is not an observed trace relation.  Keep
-		// it out rather than manufacturing an observed edge from display fields.
-		if (!activity.nativeRefs.turnId || !activity.nativeRefs.itemId) continue;
-		const turnId = activity.nativeRefs.turnId;
-		if (!turnId) continue;
-		const entries = byTurn.get(turnId) ?? [];
-		entries.push(activity);
-		byTurn.set(turnId, entries);
-	}
-	return Object.freeze([...byTurn.entries()].map(([turnId, entries]) => {
-		const tasks = new Map<string, {
-			parentId: string | null; status: NativeDelegationStatus; task: string | null;
-			model: string | null; reasoningEffort: string | null; activities: NativeDelegationActivity[];
-		}>();
-		const ensure = (id: string, parentId: string | null) => {
-			const existing = tasks.get(id);
-			if (existing) return existing;
-			const created = { parentId, status: "pending" as NativeDelegationStatus, task: null, model: null, reasoningEffort: null, activities: [] };
-			tasks.set(id, created);
-			return created;
-		};
-		for (const activity of entries.sort((left, right) => left.sequence - right.sequence)) {
-			const item = record(record(activity.payload.params)?.item)!;
-			const type = (delegationText(item.type) ?? "").replace(/[^a-z]/giu, "").toLowerCase();
-			if (type === "collabagenttoolcall") {
-				const parentId = delegationText(item.senderThreadId);
-				const receivers = Array.isArray(item.receiverThreadIds)
-					? item.receiverThreadIds.flatMap((value) => delegationText(value) ?? [])
-					: [];
-				for (const id of receivers) {
-					const task = ensure(id, parentId);
-					task.task ??= delegationText(item.prompt);
-					task.model ??= delegationText(item.model) ?? delegationText(record(item.settings)?.model);
-					task.reasoningEffort ??= delegationText(item.reasoningEffort) ??
-						delegationText(item.reasoning_effort) ?? delegationText(record(item.settings)?.reasoning_effort);
-					const state = record(record(item.agentsStates)?.[id]);
-					task.status = delegationStatus(state?.status ?? item.status);
-					const message = delegationText(state?.message) ??
-						delegationText(item.message) ?? delegationText(item.input);
-					if (message) task.activities.push(delegationActivity(activity, item, message));
-				}
-				continue;
-			}
-			const id = delegationText(item.agentThreadId);
-			if (!id) continue;
-			const task = ensure(id, null);
-			task.status = delegationStatus(item.kind);
-			const message = delegationText(item.message) ?? delegationText(item.text);
-			task.activities.push(delegationActivity(activity, item, message));
-		}
-		return {
-			turnId,
-			tasks: Object.freeze([...tasks.entries()].map(([id, task]) => ({
-				id, ...task, activities: Object.freeze(task.activities),
-			}))),
-		};
-	}));
-}
-function delegationActivity(
-	activity: ProjectActivity,
-	item: Readonly<Record<string, unknown>>,
-	message: string | null,
-): NativeDelegationActivity {
-	const turnId = activity.nativeRefs.turnId;
-	const itemId = activity.nativeRefs.itemId;
-	if (!turnId || !itemId) throw new Error("native delegation activity requires turn and item references");
-	return {
-		activityId: activity.id,
-		itemId,
-		kind: delegationText(item.kind) ?? delegationText(item.tool) ?? "activity",
-		message,
-		attribution: "observed",
-		source: { turnId, itemId },
-	};
-}
-function delegationText(value: unknown): string | null {
-	return typeof value === "string" && value.trim() ? value.trim() : null;
-}
-function delegationStatus(value: unknown): NativeDelegationStatus {
-	if (value === "completed") return "completed";
-	if (value === "failed" || value === "errored" || value === "interrupted" || value === "cancelled" || value === "canceled") return "failed";
-	if (value === "running" || value === "started" || value === "interacted" || value === "inProgress") return "running";
-	return "pending";
-}
-export function classifyWorkActivity(
-	activity: ProjectActivity,
-): WorkActivityClass {
-	if (activity.kind === "file-change") return "action";
-	if (activity.kind !== "tool") return "control";
-	const item = record(record(activity.payload.params)?.item) ??
-		record(activity.payload.params) ?? activity.payload;
-	const command = typeof (item.command ?? item.cmd) === "string" ? String(item.command ?? item.cmd) : "";
-	if (command) return isReadOnlyShell(command) ? "observation" : "action";
-	const tool = typeof (item.tool ?? item.toolName ?? item.name) === "string"
-		? String(item.tool ?? item.toolName ?? item.name)
-		: "";
-	if (!tool) return "action";
-	const normalized = tool.replace(/[-_.]/gu, " ").toLowerCase();
-	if (
-		/\b(?:create|update|delete|remove|write|edit|apply|send|post|put|deploy|execute|run)\b/u
-			.test(normalized)
-	) return "action";
-	if (
-		/\b(?:read|get|list|search|find|view|inspect|fetch|query|lookup|show)\b/u
-			.test(normalized)
-	) return "observation";
-	return "action";
-}
-function isReadOnlyShell(command: string): boolean {
-	const value = command.trim().replace(/\b\d?>\s*\/dev\/null\b/gu, "");
-	if (!value) return true;
-	if (
-		/(?:^|\s)(?:rm|mv|cp|mkdir|rmdir|touch|chmod|chown|tee|truncate|install|patch|apply_patch)(?:\s|$)/u
-			.test(value) ||
-		/\b(?:npm|pnpm|yarn|bun)\s+(?:add|install|remove|uninstall|update)\b/u.test(
-			value,
-		) ||
-		/\bgit\s+(?:add|commit|push|pull|merge|rebase|reset|checkout|switch|restore|clean|tag)\b/u
-			.test(value) ||
-		/\bfind\b[^\n]*(?:-delete|-exec|-execdir)\b/u.test(value) ||
-		/\bsed\b[^\n]*(?:-i\b|--in-place\b)/u.test(value) ||
-		/(?:^|[^<])>(?:>|&)?/u.test(value)
-	) return false;
-	const segments = value.split(/&&|\|\||[;|]/u).map((part) => part.trim())
-		.filter(Boolean);
-	return segments.length > 0 &&
-		segments.every((part) =>
-			/^(?:cd\b|pwd\b|ls\b|eza\b|tree\b|rg\b|grep\b|cat\b|head\b|tail\b|wc\b|sort\b|stat\b|file\b|which\b|whereis\b|type\b|find\b|readlink\b|realpath\b|sed\s+-n\b|git\s+(?:status|diff|log|show|rev-parse)\b|bun\s+test\b|echo\b|printf\b|true\b)/u
-				.test(
-					part.replace(/^(?:[A-Za-z_][A-Za-z0-9_]*=[^\s]+\s+)*/u, "").replace(
-						/^\(?\s*/u,
-						"",
-					).trim(),
-				)
-		);
 }
 function record(value: unknown): Readonly<Record<string, unknown>> | undefined {
 	return value && typeof value === "object" && !Array.isArray(value)

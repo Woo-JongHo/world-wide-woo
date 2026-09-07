@@ -39,12 +39,15 @@ export interface RuntimeMonitorProjection {
  */
 export function projectRuntimeMonitor(snapshot: WorkbenchSnapshot, activities: readonly ProjectActivity[] = snapshot.activities): RuntimeMonitorProjection {
 	const ordered = [...activities].sort((left, right) => left.sequence - right.sequence || left.id.localeCompare(right.id));
-	const request = latestActive(ordered, isRequestStart, isRequestTerminal, activity => requestIdentity(activity));
-	const tool = latestActive(ordered, isToolStart, isToolTerminal, activity => itemIdentity(activity));
-	const agent = latestActive(ordered, isAgentStart, isAgentTerminal, activity => itemIdentity(activity));
-	const execution = latestActive(ordered, isExecutionStart, isExecutionTerminal, activity => activity.nativeRefs.turnId ?? activity.id);
-	const approvalActivity = latest(ordered.filter(isApproval));
-	const waitActivity = latestActive(ordered, isWaitStart, isWaitTerminal, activity => itemIdentity(activity));
+	const activeLifecycle = snapshot.phase === "working" || snapshot.activeTurnId !== null || snapshot.pendingApproval !== null
+		? ordered
+		: [];
+	const request = latestActive(activeLifecycle, isRequestStart, isRequestTerminal, activity => requestIdentity(activity));
+	const tool = latestActive(activeLifecycle, isToolStart, isToolTerminal, activity => itemIdentity(activity));
+	const agent = latestActive(activeLifecycle, isAgentStart, isAgentTerminal, activity => itemIdentity(activity));
+	const execution = latestActive(activeLifecycle, isExecutionStart, isExecutionTerminal, activity => activity.nativeRefs.turnId ?? activity.id);
+	const approvalActivity = latest(activeLifecycle.filter(isApproval));
+	const waitActivity = latestActive(activeLifecycle, isWaitStart, isWaitTerminal, activity => itemIdentity(activity));
 	const failures = ordered.filter(isFailure);
 	const lastFailure = latest(failures);
 	const lastCompleted = latest(ordered.filter(isCompletion));

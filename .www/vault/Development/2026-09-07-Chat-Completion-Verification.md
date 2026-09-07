@@ -52,3 +52,22 @@ status: code-review-approved
 ## 남은 판정
 
 최종 통합 자동 회귀는 77개 파일, 678 pass, 0 fail, 4,403 assertions 및 타입 검사 PASS다 (`chat-completion-integrated-test.log`, `chat-completion-integrated-check.log`). Sonnet 최초 APPROVE, Opus 최초 REVISE 원문을 scratchpad에 보존했다. Opus B1의 trace 거절 후 화면 이동을 차단했고 E1의 스크롤 fixture를 불균등 길이로 바꿨다. Anchor 비활성화 mutation에서 1 fail, 원복 후 2 pass를 관측했다 (`chat-scroll-anchor-mutation.log`). Opus 재감사는 APPROVE이며 B1/E1 해소를 확인했다. 원문 `.www/scratchpad/chat-opus-rereview.json`. 이는 읽기 전용 코드 감사로 Native 재실행을 대신하지 않는다. 비차단 잔여는 봉투 접두 정책, thread별 T-note 투영의 방어 범위, 손상된 runtime role의 추가 terminal sanitation이다. 실제 provider의 bodyless·failed·late delta 강제 발생, OS IME 조합 및 마우스 입력 수락은 이 기록에서 PASS로 판정하지 않는다. Chat 전체 완료와 PR 병합은 아직 선언하지 않는다.
+
+
+## PR 및 통합 후속 검증
+
+PR https://github.com/Woo-JongHo/world-wide-woo/pull/46, Chat 구현 커밋 `b35feb9`, CI 러너 교체 `668d5a3`. Linear 계약 보강을 포함한 로컬 전체 검증은 692 pass / 0 fail / 4,420 assertions (77 files), 타입 검사와 Darwin platform gate PASS다. 원본 `chat-and-contract-final-test.log`, `chat-and-contract-final-check.log`. 이 결과는 앞의 678개 실행을 대체 삭제하지 않고 후속 실행으로 남긴다.
+
+macos-13 러너 종료는 GitHub 공식 공지 https://github.blog/changelog/2025-09-19-github-actions-macos-13-runner-image-is-closing-down/ 에서 확인했다. 지원 목록 https://docs.github.com/en/actions/reference/runners/github-hosted-runners 에 따라 macos-15-intel로 전환했고 Opus가 테스트 축과 Intel 아키텍처 보존을 승인했다 (`chat-ci-review.json`). 원격 CI 결과는 별도 확인한다.
+
+
+## 얇은 Linear와 Code-ID 파일럿
+
+사용자 추가 지시에 따라 Chat 11개 본문을 목적·완료 조건 또는 현재 결과·연결로 줄였다. 줄이기 전 원문은 `Chat/WOO-*.md`에 보존했다. 실제 등록 Vault `archive`의 `01_프로젝트/99_WWW/01_문서`에도 파일을 생성하고 내용을 재조회했다. `.www/vault`는 저장소 사본이고 실제 Vault와 구분한다.
+
+Code-ID 0001~0005를 등록하고 이름 있는 최상위 class/function에 `@codeId`를 선언했다. TypeScript AST로 실제 선언만 읽어 등록 원장·Linear 본문·노트의 code_id를 대조한다. 문자열 예시의 가짜 선언·중복·잘못된 노트/이슈 연결을 거부하는 테스트를 실행했다. 기존 Unit UUID의 SQLite 별칭 연결은 미구현이다.
+
+후속 전체 검증: 693 pass / 0 fail / 4,425 assertions (78 files) 및 타입 검사 PASS. 근거 `chat-code-id-final-test.log`, `chat-code-id-final-check.log`. 실제 Linear readback에서 계층·라벨·상태·마일스톤 보존과 코드 번호 연결을 확인했다. Obsidian 파일 내용은 재조회했으나 앱의 최종 본문 표시는 독립 확인하지 못했다.
+
+
+최종 고정 SHA·원격 소스·CI 확인: [[2026-09-07-chat-final-gate]].

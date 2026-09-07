@@ -1,3 +1,4 @@
+/** @linear WOO-679 WOO-683 WOO-686 WOO-687 WOO-688 WOO-689 */
 import {
 	Markdown,
 	truncateToWidth,
@@ -12,8 +13,8 @@ import { sanitizeCompletedAssistantResponse, sanitizePartialAssistantResponse } 
 import { sanitizeTerminalTextExcerpt, sanitizeTerminalTextUnbounded } from "../../domain/terminal";
 import { projectTNoteCompletionIndex } from "../../domain/t-notes";
 import { workbenchApprovalDecisions, type WorkbenchSnapshot } from "../../domain/workbench";
-import { classifyWorkActivity, type SemanticWorkStep, type WorkStepStatus } from "../../domain/work-steps";
-import { boundedPublicProjection } from "./bounded-public-projection";
+import { classifyWorkActivity, type SemanticWorkStep, type WorkStepStatus } from "../../domain/work/index";
+import { boundedPublicProjection, PUBLIC_SOURCE_OMISSION } from "./bounded-public-projection";
 import { colors, markdownTheme, semantic } from "./theme";
 import { WorkbenchWelcomeView } from "./workbench-welcome";
 import { isVisibleWorkStep, ObservationCard, WorkStepCard } from "./work-step-card";
@@ -45,6 +46,7 @@ function transcriptRows(rows: readonly string[], width: number): string[] {
 	return rows.map((row) => truncateToWidth(row, Math.max(1, width)));
 }
 
+/** @linear WOO-689 */
 function activityOwnerKey(activity: WorkbenchSnapshot["activities"][number]): string {
 	const { threadId, turnId, itemId } = activity.nativeRefs;
 	return itemId ? `${threadId ?? ""}\0${turnId ?? ""}\0${itemId}` : `activity\0${activity.id}`;
@@ -65,7 +67,6 @@ function sameActivityOwner(
 function turnOwnerKey(threadId: string | undefined, turnId: string | undefined): string | null {
 	return threadId && turnId ? `${threadId}\0${turnId}` : null;
 }
-
 function boundedWorkbenchMarkdown(text: string): string {
 	let candidate = text;
 	if (candidate.length > WORKBENCH_MARKDOWN_MAX_CHARS) {
@@ -91,7 +92,7 @@ function boundedWorkbenchMarkdown(text: string): string {
 export function approvalKindLabel(kind: NativeApprovalRequest["kind"]): string {
 	if (kind === "command") return "명령";
 	if (kind === "file-change") return "파일 변경";
-	return kind === "mcp-tool" ? "MCP 도구" : "권한";
+	return "권한";
 }
 
 export function approvalParamText(request: NativeApprovalRequest, key: string): string | null {
@@ -105,14 +106,13 @@ export function approvalParamText(request: NativeApprovalRequest, key: string): 
 export function approvalFallback(request: NativeApprovalRequest): string {
 	if (request.kind === "command") return "명령 실행에 승인이 필요합니다.";
 	if (request.kind === "file-change") return "파일 변경에 승인이 필요합니다.";
-	if (request.kind === "mcp-tool") return approvalParamText(request, "message") ?? "MCP 도구 실행에 승인이 필요합니다.";
 	return "추가 권한이 필요합니다.";
 }
 
 export function approvalDetailLabel(request: NativeApprovalRequest): string {
 	if (request.kind === "command") return "명령";
 	if (request.kind === "file-change") return "변경";
-	return request.kind === "mcp-tool" ? "요청" : "권한";
+	return "권한";
 }
 
 function approvalInstruction(request: NativeApprovalRequest): string {
@@ -275,27 +275,6 @@ function isVerificationCommand(command: string): boolean {
 		|| /\bgit\s+diff\s+--check\b/iu.test(command);
 }
 
-function safeCompletionCommand(command: string): string {
-	return command
-		.replace(/(?:file:\/\/\/|~\/|(?<![A-Za-z0-9_.-])\/)[^\s'"`]+/gu, "[로컬 경로 숨김]")
-		.replace(/\b[A-Za-z]:\\[^\s'"`]+/gu, "[로컬 경로 숨김]");
-}
-
-function completionFileChangeLabel(item: Readonly<Record<string, unknown>> | null): string {
-	const changes = Array.isArray(item?.changes) ? item.changes : [];
-	const paths = changes.flatMap((value) => {
-		const path = publicText(publicRecord(value)?.path, 120);
-		if (!path) return [];
-		return /^(?:file:\/\/\/|~\/|\.\.\/|\/|[A-Za-z]:\\)/u.test(path)
-			? ["[로컬 경로 숨김]"]
-			: [path];
-	});
-	const unique = [...new Set(paths)];
-	if (unique.length === 0) return "파일 변경";
-	const visible = unique.slice(0, 3).join(", ");
-	return unique.length > 3 ? `파일 변경 · ${visible} 외 ${unique.length - 3}개` : `파일 변경 · ${visible}`;
-}
-
 function completionEvidence(
 	activity: WorkbenchSnapshot["activities"][number],
 ): CompletionEvidence | null {
@@ -306,24 +285,27 @@ function completionEvidence(
 	const command = publicText(item?.command ?? item?.cmd, 360);
 	const status = completionActivityStatus(activity, item);
 	if (command) {
+		const category = isVerificationCommand(command)
+			? "verify"
+			: classifyWorkActivity({ ...activity, payload: projectedPayload ?? {} }) === "observation"
+				? "inspect"
+				: "change";
 		return {
-			category: isVerificationCommand(command)
-				? "verify"
-				: classifyWorkActivity({ ...activity, payload: projectedPayload ?? {} }) === "observation"
-					? "inspect"
-					: "change",
-			label: `$ ${safeCompletionCommand(command)}`,
+			category,
+			label: category === "verify" ? "관련 검증을 실행"
+				: category === "inspect" ? "구현 대상과 현재 상태를 확인"
+				: "변경 작업을 실행",
 			status,
 		};
 	}
 	if (activity.kind === "file-change") {
-		return { category: "change", label: completionFileChangeLabel(item), status };
+		return { category: "change", label: "관련 파일을 변경", status };
 	}
 	const tool = publicText(item?.tool ?? item?.toolName ?? item?.name ?? item?.type, 120);
 	const activityClass = classifyWorkActivity({ ...activity, payload: projectedPayload ?? {} });
 	return {
 		category: activityClass === "observation" ? "inspect" : "change",
-		label: tool ? `도구 실행 · ${tool}` : "도구 실행",
+		label: activityClass === "observation" ? "관련 자료를 확인" : tool ? `${tool} 작업을 실행` : "관련 작업을 실행",
 		status,
 	};
 }
@@ -333,9 +315,15 @@ function evidenceCompletionReport(evidence: ReadonlyMap<string, CompletionEviden
 	const sections = COMPLETION_EVIDENCE_SECTIONS.flatMap(({ category, title }) => {
 		const matches = values.filter((entry) => entry.category === category);
 		if (matches.length === 0) return [];
-		const visible = matches.slice(0, 6).map((entry) => `${entry.label} · ${WORK_STEP_STATUS_LABEL[entry.status]}`);
-		if (matches.length > visible.length) visible.push(`그 외 ${matches.length - visible.length}개 활동`);
-		return [{ title, bullets: visible }];
+		const distinct = [...new Set(matches.map((entry) => entry.label))];
+		const status = matches.find((entry) => entry.status === "failed")?.status
+			?? matches.find((entry) => entry.status === "cancelled")?.status
+			?? matches.find((entry) => entry.status === "running")?.status
+			?? matches[0]!.status;
+		return [{
+			title,
+			bullets: distinct.map((label) => `${label} · ${WORK_STEP_STATUS_LABEL[status]}${matches.length > 1 ? ` · ${matches.length}개 활동` : ""}`),
+		}];
 	});
 	return {
 		title: "이번 요청에서 한 일",
@@ -344,7 +332,9 @@ function evidenceCompletionReport(evidence: ReadonlyMap<string, CompletionEviden
 	};
 }
 
-/** Replays completed Native turns into stable recaps that survive later turns and resume. */
+/** Replays completed Native turns into stable recaps that survive later turns and resume.
+ * @linear WOO-679
+ */
 function projectCompletionSummaries(snapshot: WorkbenchSnapshot): ReadonlyMap<string, CompletionReport> {
 	const reports = new Map<string, CompletionReport>();
 	const rootThreadId = snapshot.threadId;
@@ -398,8 +388,11 @@ function projectCompletionSummaries(snapshot: WorkbenchSnapshot): ReadonlyMap<st
 	return reports;
 }
 
-/** Chat projection for the native ProjectWorkbench, including existing tool cards. */
-/** @linear WOO-679 WOO-686 WOO-687 WOO-688 WOO-689 WOO-691 WOO-718 */
+/** Chat projection for the native ProjectWorkbench, including existing tool cards.
+ * @linear WOO-679 WOO-683
+ */
+/** @Unit Code-001 */
+/** @codeId 0001 */
 export class WorkbenchChatView implements Component {
 	private snapshot: WorkbenchSnapshot;
 	private readonly welcome = new WorkbenchWelcomeView();
@@ -423,6 +416,7 @@ export class WorkbenchChatView implements Component {
 		this.update(snapshot);
 	}
 
+	/** @linear WOO-686 WOO-688 */
 	update(snapshot: WorkbenchSnapshot): void {
 		if (this.snapshot !== snapshot) this.cachedRows = null;
 		this.snapshot = snapshot;
@@ -661,13 +655,13 @@ export class WorkbenchChatView implements Component {
 		}
 		if (this.snapshot.draft) {
 			rows.push(...transcriptRows([
-				`${semantic.assistantLabel("bori")}  ${semantic.toolRunning("응답 중")}`,
+				`${semantic.assistantLabel("🐙 Wooni")}  ${semantic.toolRunning("응답 중")}`,
 				...this.renderDraft(contentWidth),
 			], contentWidth), "");
 		}
-		for (const [index, queued] of this.snapshot.chatQueue.entries()) {
+		for (const queued of this.snapshot.chatQueue) {
 			rows.push(...surfaceRows([
-				`${semantic.userLabel("user")} · ${semantic.toolPending(`대기 ${index + 1}`)}`,
+				semantic.userLabel("👤 USER"),
 				...wrapTextWithAnsi(boundedWorkbenchMarkdown(queued.content), contentWidth),
 			], contentWidth, semantic.userSurface), "");
 		}
@@ -711,6 +705,7 @@ export class WorkbenchChatView implements Component {
 		return rows;
 	}
 
+	/** @linear WOO-687 */
 	private renderMessage(
 		message: WorkbenchSnapshot["chat"][number],
 		contentWidth: number,
@@ -727,7 +722,7 @@ export class WorkbenchChatView implements Component {
 				: message.status === "cancelled" ? semantic.toolCancelled("전송 중단")
 					: message.status === "streaming" ? semantic.toolRunning("전송 준비 중") : "";
 			return surfaceRows([
-				`${semantic.userLabel("user")}${label ? ` · ${label}` : ""}`,
+				`${semantic.userLabel("👤 USER")}${label ? ` · ${label}` : ""}`,
 				...wrapTextWithAnsi(boundedWorkbenchMarkdown(content), contentWidth),
 			], contentWidth, semantic.userSurface);
 		}
@@ -760,8 +755,13 @@ export class WorkbenchChatView implements Component {
 		} catch {
 			bodyRows = wrapTextWithAnsi(safeContent, contentWidth);
 		}
+		const roleHeader = `${runtimeRole === "system" ? colors.warning("system") : semantic.assistantLabel("🐙 Wooni")}${completion ? `  ${colors.highlight(`#${completion.number}`)}` : ""}`;
+		const header = `${roleHeader}${label ? `  ${label}` : ""}`;
+		const headerRows = label && visibleWidth(header) > contentWidth
+			? [roleHeader, ...wrapTextWithAnsi(label, contentWidth)]
+			: [header];
 		return transcriptRows([
-			`${runtimeRole === "system" ? colors.warning("system") : semantic.assistantLabel("bori")}${completion ? `  ${colors.highlight(`#${completion.number}`)}` : ""}${label ? `  ${label}` : ""}`,
+			...headerRows,
 			...bodyRows,
 			...(selected && note ? [
 				colors.muted(`T-note · ${note.title}`),
@@ -789,7 +789,7 @@ export class WorkbenchChatView implements Component {
 		activity?: WorkbenchSnapshot["activities"][number],
 		liveActivity?: NonNullable<WorkbenchSnapshot["liveActivity"]>,
 	): string[] {
-		const key = `${contentWidth}:${step.number}:${step.id}:${step.status}:${step.narration.source}:${step.narration.what}:${step.narration.why ?? ""}:${activity?.sourceDigest ?? "none"}`;
+		const key = `${contentWidth}:${step.number}:${step.id}:${step.status}:${step.narration.source}:${step.narration.what}:${step.narration.why ?? ""}:${activity?.id ?? "none"}:${activity?.sourceDigest ?? "none"}`;
 		if (!liveActivity) {
 			const cached = this.stepRows.get(key);
 			if (cached) return cached;
@@ -811,9 +811,7 @@ export class WorkbenchChatView implements Component {
 			), contentWidth))
 			: [];
 		const compactSource = activity ? [
-			...(activity.nativeRefs.itemId
-				? wrapTextWithAnsi(colors.muted(`Trace source · planItemId ${activity.nativeRefs.itemId} · /trace ${activity.nativeRefs.itemId}`), contentWidth)
-				: []),
+			...wrapTextWithAnsi(colors.muted(`Trace source · activityId ${activity.id} · /trace ${activity.id}`), contentWidth),
 			...wrapTextWithAnsi(colors.muted(`Source · /source ${activity.id}`), contentWidth),
 		] : [];
 		if (liveActivity) return [...new WorkStepCard(options).render(contentWidth), ...traceSource, ...compactSource];
@@ -835,6 +833,7 @@ function hasVisibleChatContent(snapshot: WorkbenchSnapshot): boolean {
  * Right-top Dashboard pane: append-only records of completed questions only.
  * Trace and Source stay with the selected execution in Monitor.
  */
+/** @linear WOO-693 */
 export class TNotesSourceView implements Component {
 	constructor(private readonly getSnapshot: () => WorkbenchSnapshot) {}
 	invalidate(): void {}
@@ -860,7 +859,93 @@ export class TNotesSourceView implements Component {
 	}
 }
 
+function traceStatusLabel(status: WorkStepStatus): string {
+	if (status === "completed") return "완료";
+	if (status === "running") return "진행";
+	if (status === "failed") return "실패";
+	if (status === "cancelled") return "중단";
+	return "대기";
+}
+
+function traceActivityIds(step: SemanticWorkStep): readonly string[] {
+	if (!step.association) return [];
+	return [...new Set(step.association.sources.flatMap((source) => [
+		...source.activityIds,
+		...source.observationActivityIds,
+	]))];
+}
+
+/** @linear WOO-704 27c3aae2-f0ff-4717-aacd-0e255ec08ada */
+function monitorTraceRows(snapshot: WorkbenchSnapshot, width: number): string[] {
+	if (!snapshot.workFlow.source) {
+		return [
+			colors.secondary("Plan·Trace"),
+			colors.muted("현재 요청에서 공개 Plan Source가 관측되지 않았습니다."),
+		];
+	}
+
+	const activities = new Map(snapshot.activities.map((activity) => [activity.id, activity]));
+	const rows: string[] = [
+		colors.secondary(`Plan·Trace · ${snapshot.workFlow.summary}`),
+		colors.muted("Plan과 Activity의 연결은 관측 순서로 추론되며, 확정된 Native 관계가 아닙니다."),
+	];
+	for (const step of snapshot.workFlow.steps) {
+		const activityIds = traceActivityIds(step);
+		rows.push(`${colors.text(`${step.number}. ${step.title}`)} · ${traceStatusLabel(step.status)}`);
+		if (activityIds.length === 0) {
+			rows.push(colors.muted("   Trace · 연결된 공개 실행 없음"));
+			continue;
+		}
+		rows.push(colors.muted(`   Trace · inferred · ${activityIds.length}개`));
+		for (const activityId of activityIds) {
+			const activity = activities.get(activityId);
+			rows.push(activity
+				? `   ↳ ${activity.kind} · ${activity.phase} · ${activityId} · /trace ${activityId}`
+				: colors.warning(`   ↳ 원본 부재 · ${activityId}`));
+		}
+	}
+	return rows.flatMap((row) => wrapTextWithAnsi(row, width));
+}
+
+/** @linear WOO-706 1f933204-1980-4640-b49b-b030aff9a122 */
+function selectedSourceRows(snapshot: WorkbenchSnapshot, width: number): string[] {
+	if (!snapshot.selectedActivityId) {
+		return [
+			colors.secondary("Trace·Source · 선택한 실행 없음"),
+			colors.muted("Plan·Trace 목록의 /trace <activity-id>로 공개 Source를 엽니다."),
+		];
+	}
+	const selected = snapshot.activities.find((activity) => activity.id === snapshot.selectedActivityId);
+	if (!selected) {
+		return [
+			colors.warning("Trace·Source · 선택한 Activity의 원본 부재"),
+			colors.muted(`activityId ${snapshot.selectedActivityId} · 다른 실행으로 대신하지 않았습니다.`),
+		];
+	}
+
+	const projection = boundedPublicProjection(selected.payload);
+	const serialized = JSON.stringify(projection.value, null, 2);
+	const publicRows = serialized
+		? serialized.split(/\r?\n/u).flatMap((line) => wrapTextWithAnsi(line, width))
+		: [colors.muted("보존된 공개 내용 없음")];
+	const refs = [
+		selected.nativeRefs.threadId ? `thread ${selected.nativeRefs.threadId}` : "thread 없음",
+		selected.nativeRefs.turnId ? `turn ${selected.nativeRefs.turnId}` : "turn 없음",
+		selected.nativeRefs.itemId ? `item ${selected.nativeRefs.itemId}` : "item 없음",
+	].join(" · ");
+	return [
+		colors.secondary(`Trace·Source · ${selected.id} · ${selected.kind} · ${selected.phase}`),
+		colors.text("공개 내용 · 보존된 관측 projection"),
+		...publicRows,
+		...(projection.omitted ? [colors.warning(PUBLIC_SOURCE_OMISSION)] : []),
+		colors.muted(`관측 ID · activity ${selected.id}`),
+		colors.muted(`Native 참조 · ${refs}`),
+		colors.muted("이 화면은 provider 원본 전체가 아니라 보존된 공개 관측만 보여줍니다."),
+	].flatMap((row) => wrapTextWithAnsi(row, width));
+}
+
 /** Read-only execution projection; it deliberately does not own a session or transcript. */
+/** @linear WOO-681 */
 export class WorkbenchMonitorView implements Component {
 	constructor(private readonly getSnapshot: () => WorkbenchSnapshot) {}
 	invalidate(): void {}
@@ -873,16 +958,6 @@ export class WorkbenchMonitorView implements Component {
 		const live = snapshot.liveActivity
 			? `${snapshot.liveActivity.kind} · ${sanitizeTerminalTextExcerpt(snapshot.liveActivity.text || snapshot.liveActivity.method, 180, "head-tail")}`
 			: "대기 중인 실행 없음";
-		const selected = snapshot.selectedActivityId
-			? snapshot.activities.find((activity) => activity.id === snapshot.selectedActivityId)
-			: undefined;
-		const selectedSource = selected
-			? boundedPublicProjection({
-				method: selected.payload.method,
-				refs: selected.nativeRefs,
-				payload: selected.payload,
-			}).value
-			: null;
 		const rows = [
 			colors.accent("Monitor · 실행 관측"),
 			colors.muted("읽기 전용 · Chat과 Todo는 같은 Workbench 상태를 사용합니다."),
@@ -901,10 +976,13 @@ export class WorkbenchMonitorView implements Component {
 				snapshot.threadId,
 				contentWidth,
 			).length}개 실행 그룹`,
-			`${colors.secondary("Trace·Source")} · ${selected
-				? `${selected.id} · ${selected.nativeRefs.turnId ?? "turn 없음"} · ${selected.nativeRefs.itemId ?? "item 없음"}`
-				: "선택한 실행 없음"}`,
-			...(selectedSource ? [colors.muted(JSON.stringify(selectedSource))] : []),
+			"",
+			...monitorTraceRows(snapshot, contentWidth),
+			"",
+			...selectedSourceRows(snapshot, contentWidth),
+			...(snapshot.resumeCoverage?.mode === "partial-local-journal"
+				? [colors.warning("관측 범위 · 재개 뒤 이 프로세스가 수집한 Activity만 표시합니다.")]
+				: []),
 		];
 		return rows.flatMap((row) => wrapTextWithAnsi(row, contentWidth));
 	}

@@ -1,3 +1,4 @@
+/** @linear WOO-686 WOO-691 */
 import {
 	highlightCode as nativeHighlightCode,
 	supportsLanguage as nativeSupportsLanguage,
@@ -59,6 +60,7 @@ function exceedsHighlightBudget(code: string): boolean {
 	return false;
 }
 
+/** @linear WOO-686 WOO-691 */
 export function createNativeSyntaxHighlightPlugin(palette: SyntaxPalette): SyntaxHighlightPlugin {
 	const colors = nativeColors(palette);
 	const plainColor = foregroundAnsi(palette.variable);

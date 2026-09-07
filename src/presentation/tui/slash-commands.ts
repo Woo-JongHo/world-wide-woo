@@ -115,7 +115,7 @@ export type WorkbenchShellCommand =
 	| { type: "session.mode"; mode: "plan" | "manual" }
 	| { type: "woo-entry.refresh" }
 	| { type: "activity.select"; activityId: string | "latest" | null }
-	| { type: "trace.select"; planItemId: string }
+	| { type: "trace.select"; activityId: string }
 	| { type: "tnote.capture" }
 	| { type: "tnote.capture-range"; startSequence: number; endSequence: number }
 	| { type: "promotion.accept"; noteId: string }
@@ -167,7 +167,7 @@ export const WORKBENCH_SLASH_COMMANDS: SlashCommand[] = [
 	},
 	{ name: "woo-entry", description: "WES 현재 상태와 다음 작업 다시 읽기" },
 	{ name: "source", description: "Monitor에서 Activity Source 선택", argumentHint: "<activity-id|latest|clear>" },
-	{ name: "trace", description: "Monitor에서 Todo planItemId의 실행 Trace 선택", argumentHint: "<plan-item-id>" },
+	{ name: "trace", description: "Monitor에서 선택 Plan에 결속된 정확한 Activity Trace 선택", argumentHint: "<activity-id>" },
 	{ name: "tnote", description: "마지막 질문 또는 선택 범위를 질문·이유·결과로 요약", argumentHint: "[range <start-sequence> <end-sequence>]" },
 	{ name: "promote", description: "T-note 정본 반영: diff 확인 후 사람 승인", argumentHint: "<tnote|confirm> <note-id|token>" },
 	{ name: "review", description: "공개 분류 T-note의 외부 검토 미리보기·송신", argumentHint: "<preview|send> …" },
@@ -215,8 +215,8 @@ export function parseWorkbenchShellCommand(text: string): WorkbenchShellCommand 
 	}
 	if (name === "trace") {
 		return args.length === 1 && args[0]
-			? { type: "trace.select", planItemId: args[0] }
-			: { type: "error", message: "사용법: /trace <plan-item-id>" };
+			? { type: "trace.select", activityId: args[0] }
+			: { type: "error", message: "사용법: /trace <activity-id>" };
 	}
 	if (name === "tnote") {
 		if (args.length === 0) return { type: "tnote.capture" };

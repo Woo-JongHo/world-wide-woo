@@ -90,7 +90,7 @@ export class WorkbenchWelcomeView implements Component {
 		return [
 			...workbenchWelcomeLogoFrame(this.elapsedMs).map((line) => centered(line, width)),
 			"",
-			centered(colors.accent("bori · Native Project Workbench"), width),
+			centered(colors.accent("🐙 Wooni · Native Project Workbench"), width),
 			centered(colors.muted("대화 · 질문별 요약 · 현재 작업을 한 공간에서 봅니다."), width),
 		];
 	}

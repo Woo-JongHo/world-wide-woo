@@ -38,6 +38,7 @@ export async function runApp(options: RunAppOptions = {}): Promise<void> {
 			workbench: project.workbench, cwd: project.workspace.root, usage: project.usage,
 			auth: new AuthService(createModelRegistry(credentials)),
 			developmentMapSource: new FileDevelopmentMapSource(project.workspace.root),
+			development: project.development,
 			observabilityHistorySource: new ObservabilityHistorySource(join(project.workspace.root, ".www", "runtime", "activity")),
 			gitTelemetrySource: new GitTelemetrySource(), homeDirectory: homedir(),
 			composerDraft: project.composerDraft, releaseSessionLease: project.releaseSessionLease,

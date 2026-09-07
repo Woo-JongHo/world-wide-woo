@@ -1,33 +1,38 @@
 {
-  "name": "world-wide-woo",
-  "version": "0.1.11",
-  "private": true,
-  "type": "module",
-  "bin": {
-    "www": "./src/cli.ts"
-  },
-  "scripts": {
-    "start": "bun src/cli.ts",
-    "check": "tsc --noEmit",
-    "test": "bun test",
-    "release:gate": "bun scripts/release-gate.ts"
-  },
-  "dependencies": {
-    "@earendil-works/pi-ai": "0.84.4",
-    "@earendil-works/pi-coding-agent": "0.84.4",
-    "@earendil-works/pi-tui": "0.84.4",
-    "@gajae-code/ai": "0.15.6",
-    "@gajae-code/natives": "0.15.6",
-    "chalk": "5.6.2",
-    "open": "10.2.0",
-    "typebox": "1.3.7",
-    "yaml": "^2.9.0"
-  },
-  "devDependencies": {
-    "@types/bun": "1.4.0",
-    "typescript": "7.0.2"
-  },
-  "patchedDependencies": {
-    "@earendil-works/pi-tui@0.84.4": "patches/@earendil-works%2Fpi-tui@0.84.4.patch"
-  }
+	"name": "world-wide-woo",
+	"version": "0.0.15",
+	"private": true,
+	"type": "module",
+	"bin": {
+		"www": "./src/cli.ts"
+	},
+	"scripts": {
+		"start": "bun src/cli.ts",
+		"check": "tsc --noEmit",
+		"test": "bun test",
+		"release:gate": "bun scripts/release-gate.ts",
+		"traceability:check": "bun scripts/traceability.ts check --linear-snapshot .www/evidence/v020-traceability/linear-consistency-final-normalized.json --linear-receipt .www/evidence/v020-traceability/linear-consistency-final-receipt.json --vault-export-manifest .www/evidence/v020-traceability/obsidian-export-manifest.json",
+		"traceability:rebuild": "bun scripts/traceability.ts rebuild",
+		"development-map:build": "bun scripts/traceability.ts map:build",
+		"development-map:check": "bun scripts/traceability.ts map:check",
+		"traceability:receipt-check": "bun scripts/traceability.ts receipt-check --linear-snapshot .www/evidence/v020-traceability/linear-consistency-final-normalized.json --linear-receipt .www/evidence/v020-traceability/linear-consistency-final-receipt.json --vault-export-manifest .www/evidence/v020-traceability/obsidian-export-manifest.json --vault-root .www/vault"
+	},
+	"dependencies": {
+		"@earendil-works/pi-ai": "0.84.4",
+		"@earendil-works/pi-coding-agent": "0.84.4",
+		"@earendil-works/pi-tui": "0.84.4",
+		"@gajae-code/ai": "0.15.6",
+		"@gajae-code/natives": "0.15.6",
+		"chalk": "5.6.2",
+		"open": "10.2.0",
+		"typebox": "1.3.7",
+		"yaml": "^2.9.0"
+	},
+	"devDependencies": {
+		"@types/bun": "1.4.0",
+		"typescript": "7.0.2"
+	},
+	"patchedDependencies": {
+		"@earendil-works/pi-tui@0.84.4": "patches/@earendil-works%2Fpi-tui@0.84.4.patch"
+	}
 }

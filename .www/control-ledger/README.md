@@ -1,31 +1,40 @@
-# Linear ↔ Code Map
+# 코드와 Linear ID 연결
 
-이 원장은 Linear 요구와 현재 저장소 snapshot의 코드·테스트·Evidence 위치를 양방향으로 찾기 위한 얇은 관계 지도다. 제목, 본문, 진행 상태, 테스트 실행 결과, review, acceptance는 복제하지 않는다. Map에 관계가 있다는 사실은 구현 완료나 수락 완료를 뜻하지 않는다.
+`traceability.json`은 ID·관계·위치만 보존하는 연결 원장이다. 요구사항과 현재 업무 상태는 Linear, 코드·테스트는 Git, 특정 실행의 관측 결과는 Evidence가 소유한다.
 
-`traceability.json`은 schema v1 current map이다. Linear Issue는 WOO 표시 ID, UUID, URL을 함께 보존하고 code/test/evidence는 저장소 상대 경로를 쓴다. Unit과 Linear Issue는 서로 다른 identity지만 schema v1에는 Unit kind가 없으므로 Unit을 발급하거나 WOO 번호로 대체하지 않았다.
+## 현재 연결
 
-## 조회
+2026-09-06 Chat 범위의 WOO-679, WOO-683, WOO-684, WOO-686~692를 실제 Linear UUID·URL과 코드·테스트·[확인 근거](../evidence/2026-09-06-chat-development/assessment.md)에 연결했다. 기존 code/test 관계를 보존했다.
 
-저장소 root에서 실행한다.
+같은 날 TUI 전체 준비에서 WOO-673~677, WOO-680~682, WOO-693(T-note), WOO-694(Composer)를 추가해 총20개 실제 이슈를 연결했다. [TUI 확인 근거](../evidence/2026-09-06-tui-preparation/assessment.md)와 [코드 대응표](../evidence/2026-09-06-tui-preparation/code-issue-mapping.json)에 범위를 기록했다. 코드에 주석을 추가했으며 제품 동작은 변경하지 않았다.
+
+- `linear-issue → implements → code`: 해당 작업의 구현 위치. 부분 구현도 포함한다.
+- `test → verifies → linear-issue`: 요구 일부를 확인하는 기존 테스트 위치. 전체 수락을 뜻하지 않는다.
+- `evidence → evidences → linear-issue`: 대상 revision과 관측 결과의 근거.
+- WOO-692는 통합 수락 작업이므로 제품 코드 소유 없이 테스트·근거를 연결한다.
+
+Unit ID와 Linear 작업 ID는 별개다. 현재 v1은 Unit kind를 지원하지 않으므로 Unit을 발급하거나 WOO 번호로 대체하지 않았다. 기존 EP/ST도 자동 동치 연결하지 않는다.
+
+## 조회와 검증
+
+실제 함수·컴포넌트·테스트 선언에는 `@linear` 주석으로 WOO 작업 번호를 연결한다. 예를 들어 `createNativeSyntaxHighlightPlugin`은 WOO-686·WOO-691, `ProjectWorkbench.applyDelta`는 WOO-688에 연결돼 있다. UUID·URL은 원장에서 한 번 관리하며 각 함수에 복제하지 않는다.
+
+`rg -n '@linear' src test`로 코드 연결 지점을 찾는다. 무결성 테스트는 src/test의 주석을 읽어 등록되지 않은 이슈와 코드 경로의 연결 누락을 잡는다. 코드 주석은 개발 작업의 연결이며 런타임 메시지·Native item ID로 사용하지 않는다.
+
+주석은 대표 구현 선언에 붙인다. 원장에 연결한 모든 보조 파일에 주석이 있는 것은 아니며, 이 검사는 주석에서 원장으로의 연결을 검사한다.
+
+저장소 root에서 코드에 연결된 작업을 역조회한다.
 
 ```sh
-bun scripts/code-map.ts WOO-690
-bun scripts/code-map.ts src/application/project-workbench.ts
-bun scripts/code-map.ts a417df98-8479-4222-b7e8-170ea4230f97 --json
-bun scripts/code-map.ts --check
-bun scripts/code-map.ts --check --json
+bun -e 'import data from "./.www/control-ledger/traceability.json"; import {parseWorkTraceabilityManifest, relatedWorkReferences, referenceKey} from "./src/domain/work/index.ts"; const m = parseWorkTraceabilityManifest(data); for (const r of relatedWorkReferences(m, {kind:"code", id:"src/presentation/tui/syntax-highlighter.ts"})) console.log(referenceKey(r));'
 ```
 
-Issue 조회는 연결된 code/test/evidence를, repository path 조회는 연결된 Issue를 보여준다. UUID와 Linear URL도 query로 쓸 수 있다. `--check`는 schema, 중복 identity, 관계 방향, dangling endpoint, 저장소 경로 존재, `@linear` 등록·exact path 연결, production code 선언 1개 이상을 오프라인에서 검사한다. 원격 Linear 존재·권한·현재 상태는 별도 read-back으로 확인한다.
+WOO-686과 WOO-691이 나온다. 같은 API에 원장에서 읽은 `linear-issue` reference를 주면 코드·테스트·근거를 조회할 수 있다. Linear reference에는 WOO 번호뿐 아니라 UUID·URL도 필요하다.
 
-## current snapshot과 미연결
+```sh
+bun test test/work-traceability.test.ts
+```
 
-현재 Map은 base commit `d35b2bbb1f784a0f177c6e80453ce634d6d93d74` 위의 `woo-695-code-map` 작업 트리에서 실제 존재하는 경로만 등록한다. WOO-679 Chat, WOO-681 Tracer, WOO-682 Todo, WOO-677 Stats를 포함해 이 snapshot에 존재하는 기존 관계는 유지했다. Monitor/Dashboard에는 새 기능, 새 관계, 새 annotation을 추가하지 않았다.
+이 검사는 schema·중복·잘못된 관계·없는 경로·Chat 연결 누락과 양방향 조회를 검증한다. 원격 Linear 존재는 MCP 재조회로 따로 확인하며, 오프라인 테스트를 온라인 연결 검증으로 취급하지 않는다.
 
-등록된 Issue가 관계 0개일 수 있다. 이는 Issue identity는 알려졌지만 이 snapshot에 연결할 실제 구현·테스트·Evidence 위치가 없다는 뜻이다. 예를 들어 WOO-696(SQLite), WOO-697(개발 기록), WOO-698(Obsidian)은 이 PR에서 미연결로 조회된다. 계획된 이슈를 구현된 관계로 꾸미지 않는다.
-
-## dirty observation archive
-
-`observations/2026-09-06-dirty-worktree-traceability.json`은 원본 dirty worktree에서 관측된 schema v1 graph의 별도 archive다. 43개 Linear Issue, 46개 code, 30개 test, 2개 evidence, 171개 link를 보존한다. 이 archive의 경로가 현재 PR tree에 존재한다는 뜻은 아니며 `--check` 입력도 아니다. provenance와 해석은 [구현 receipt](../evidence/2026-09-07-code-map-implementation/receipt.md)에 기록했다.
-
-SQLite projection, Unit schema migration과 발급 규칙, Development Session/Run/Record/Document 연결, 제품 전용 Obsidian Vault는 WOO-695 전체 목적에서 남아 있는 후속 범위다. 이 v1 Map은 그 완료를 주장하지 않는다.
+파일 이동 시 reference와 모든 link endpoint를 함께 갱신하고 테스트를 실행한다. `main` 링크만으로 미커밋 코드가 원격에 있다고 주장하지 않으며 Evidence의 파일 fingerprint와 함께 읽는다. `/map`의 Linear 표시나 자동 동기화는 별도 개발 범위다.

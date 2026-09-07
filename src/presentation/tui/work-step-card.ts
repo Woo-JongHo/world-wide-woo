@@ -1,3 +1,4 @@
+/** @linear WOO-684 */
 import {
 	stripTerminalSequences,
 	truncateToWidth,
@@ -11,7 +12,7 @@ import type { CommandStatus } from "../../domain/output";
 import { isReasoningActivityPayload, type ProjectActivity, type ProjectActivityKind } from "../../domain/project-activity";
 import { sanitizeTerminalTextExcerpt } from "../../domain/terminal";
 import type { WorkbenchLiveActivity } from "../../domain/workbench";
-import type { WorkStepNarration } from "../../domain/work-steps";
+import type { WorkStepNarration } from "../../domain/work/index";
 import { colors, semantic, syntaxHighlightPlugin } from "./theme";
 
 const INPUT_MAX_LINES = 4;
@@ -454,6 +455,7 @@ function bashOutputLines(projected: PublicStepProjection, width: number): string
 	];
 }
 
+/** @linear WOO-684 */
 function renderBashExecutionBlock(
 	projected: PublicStepProjection,
 	status: CommandStatus,

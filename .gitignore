@@ -12,6 +12,7 @@ coverage/
 .www/sessions/
 .www/drafts/
 .www/cache/
+.www/scratchpad/
 .www/runtime/
 .www/todos/
 .www/Todo.md

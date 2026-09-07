@@ -1,3 +1,4 @@
+/** @linear WOO-689 */
 import {
 	HStack,
 	ScrollView,
@@ -141,7 +142,8 @@ function normalizedRow(row: string): string {
 	return stripTerminalSequences(row).replace(/\s/gu, "");
 }
 
-/** @linear WOO-689 */
+/** @Unit Code-003 */
+/** @codeId 0003 */
 class ChatScrollView extends ScrollView {
 	private observedContentHeight = 0;
 	private renderedRows: string[] = [];
@@ -200,6 +202,8 @@ class ChatScrollView extends ScrollView {
  * independent scroll state for left, right-top and right-bottom; compact mode
  * projects the same content into one ordered viewport.
  */
+/** @linear WOO-689 WOO-680 */
+/** @Unit Code-013 */
 export function createDashboardLayout(
 	title: () => string,
 	left: DashboardSection,
@@ -220,11 +224,10 @@ export function createDashboardLayout(
 		...containedScrollbar,
 	});
 	const right = new VStack([
-		{ component: usageScroll, basis: 0, grow: 1, shrink: 1, minSize: 3 },
+		// The upper working pane owns roughly 60% of the rail; the lower trace pane owns 40%.
+		{ component: usageScroll, basis: 0, grow: 1, shrink: 1, minSize: 4 },
 		{ component: new HorizontalRule(), basis: 1, minSize: 1, maxSize: 1 },
-		// Todo/Plan carries more rows than the T-note list and is the pane operators
-		// actually work in, so it takes two thirds of the right column.
-		{ component: routerScroll, basis: 0, grow: 2, shrink: 1, minSize: 3 },
+		{ component: routerScroll, basis: 0, grow: 1, shrink: 1, minSize: 3 },
 	]);
 	const wide = new HStack([
 		{ component: new VerticalRule(), basis: 1, shrink: 0, minSize: 1, maxSize: 1 },

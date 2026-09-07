@@ -6,6 +6,7 @@ import {
 	directObservabilityView,
 	rotateObservabilityView,
 	shouldHandleObservabilityShortcut,
+	workbenchDashboardSessionIndex,
 	workbenchEscapeView,
 	workbenchActivityIndicator,
 	workbenchFrameTitle,
@@ -25,6 +26,7 @@ import { parseWorkbenchShellCommand, WORKBENCH_SLASH_COMMANDS } from "../src/pre
 const workingSnapshot = {
 	phase: "working",
 	pendingApproval: null,
+	activities: [],
 	draft: "",
 	reasoningDraft: "",
 	chat: [
@@ -42,13 +44,13 @@ describe("native workbench shell receipt policy", () => {
 		expect(workbenchPaneNotice("todo")).toContain("현재 Native Plan·Todo.md");
 		expect(workbenchViewModeForCommand("monitor", { type: "pane.show", pane: "tnotes" })).toBe("workbench");
 		expect(workbenchViewModeForCommand("dashboard", { type: "activity.select", activityId: "activity-1" })).toBe("source");
-		expect(workbenchViewModeForCommand("dashboard", { type: "trace.select", planItemId: "plan-1" })).toBe("source");
+		expect(workbenchViewModeForCommand("dashboard", { type: "trace.select", activityId: "activity-1" })).toBe("source");
 	});
 
-	test("selects Trace by Todo planItemId and rejects mutable legacy Todo commands", () => {
-		expect(parseWorkbenchShellCommand("/trace plan-item-17")).toEqual({
+	test("selects Trace only by exact activity id and rejects mutable legacy Todo commands", () => {
+		expect(parseWorkbenchShellCommand("/trace activity-17")).toEqual({
 			type: "trace.select",
-			planItemId: "plan-item-17",
+			activityId: "activity-17",
 		});
 		for (const command of ["create 계획 :: 항목", "add now 항목", "detail item 항목", "start item", "complete item", "block item", "reopen item", "evidence latest"]) {
 			expect(parseWorkbenchShellCommand(`/todo ${command}`)).toEqual({
@@ -152,6 +154,15 @@ describe("native workbench shell receipt policy", () => {
 		mode = rotateObservabilityView(mode, 1);
 		expect(mode).toBe("monitor");
 		expect(workbenchEscapeView(mode, "workbench")).toBe("workbench");
+	});
+
+	test("preserves the selected Dashboard session by identity across refresh reorder", () => {
+		expect(workbenchDashboardSessionIndex(
+			[{ sessionId: "a" }, { sessionId: "b" }, { sessionId: "c" }],
+			1,
+			[{ sessionId: "c" }, { sessionId: "a" }, { sessionId: "b" }],
+		)).toBe(2);
+		expect(workbenchDashboardSessionIndex([{ sessionId: "a" }, { sessionId: "b" }], 1, [{ sessionId: "a" }])).toBe(0);
 	});
 
 	test("preserves dashboard layout viewports while switching views", () => {
@@ -379,6 +390,29 @@ describe("native workbench shell receipt policy", () => {
 		expect(indicator?.hint).toBe("Esc 중단");
 	});
 
+	test("marks an exact root tool as observation-stalled after its terminal event is overdue", () => {
+		const startedAt = "2026-09-07T00:00:00.000Z";
+		const indicator = workbenchActivityIndicator({
+			...workingSnapshot,
+			activeTurnId: "turn-1",
+			liveActivity: {
+				method: "item/started",
+				kind: "tool",
+				text: "Tool",
+				nativeRefs: { threadId: "thread-1", turnId: "turn-1", itemId: "tool-1" },
+			},
+			activities: [{
+				recordedAt: startedAt,
+				phase: "started",
+				nativeRefs: { threadId: "thread-1", turnId: "turn-1", itemId: "tool-1" },
+			}],
+		}, Date.parse(startedAt) + 180_001);
+
+		expect(indicator?.message).toContain("관측 단절 가능");
+		expect(indicator?.message).not.toContain("승인 대기");
+		expect(indicator?.hint).toBe("Esc 또는 /cancel 즉시 중단");
+	});
+
 	test("starts animating while the first user message is still being delivered", () => {
 		const indicator = workbenchActivityIndicator({
 			...workingSnapshot,
@@ -399,10 +433,10 @@ describe("native workbench shell receipt policy", () => {
 		expect(workbenchReceiptNotice(accepted)).toBe("전송했습니다.");
 	});
 
-	test("clears a queued chat from the editor and reports its FIFO position", () => {
+	test("clears a deferred chat from the editor without presenting FIFO as the primary UX", () => {
 		const queued = { state: "queued", commandId: "chat-2", position: 2 } as const;
 		expect(workbenchReceiptClearsComposer(queued)).toBe(true);
-		expect(workbenchReceiptNotice(queued)).toBe("메시지를 대기열 2번에 추가했습니다.");
+		expect(workbenchReceiptNotice(queued)).toBe("메시지를 Chat에 올렸습니다. 현재 응답 뒤 바로 전송합니다.");
 	});
 
 	test("restores only rejected input", () => {

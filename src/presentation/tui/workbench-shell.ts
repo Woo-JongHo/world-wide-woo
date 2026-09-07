@@ -1,3 +1,4 @@
+import { executeDevelopmentShellCommand, type DevelopmentService } from "../../application/development-service";
 import {
 	CombinedAutocompleteProvider,
 	Editor,
@@ -6,6 +7,7 @@ import {
 	ScrollView,
 	TuiAltScreen,
 	VStack,
+	wrapTextWithAnsi,
 	isViewportTUI,
 	matchesKey,
 	type Component,
@@ -43,6 +45,7 @@ import { SessionStatsView } from "./session-stats-view";
 
 export interface ProjectWorkbenchShellDependencies {
 	workbench: ProjectWorkbench;
+	development?: DevelopmentService;
 	cwd?: string;
 	usage: UsageMonitor;
 	auth: AuthController;
@@ -58,11 +61,12 @@ export interface ProjectWorkbenchShellDependencies {
 
 export function workbenchReceiptNotice(receipt: WorkbenchCommandReceipt): string {
 	if (receipt.state === "accepted") return receipt.message || "요청을 수락했습니다.";
-	if (receipt.state === "queued") return `메시지를 대기열 ${receipt.position}번에 추가했습니다.`;
+	if (receipt.state === "queued") return "메시지를 Chat에 올렸습니다. 현재 응답 뒤 바로 전송합니다.";
 	if (receipt.state === "uncertain") return `${receipt.reason} 자동 재시도하지 않습니다. /cancel로 서버 상태를 확인하세요.`;
 	return receipt.reason;
 }
 
+/** @linear WOO-694 */
 export function workbenchReceiptClearsComposer(receipt: WorkbenchCommandReceipt): boolean {
 	return receipt.state !== "rejected";
 }
@@ -129,6 +133,16 @@ export function shouldHandleObservabilityShortcut(navigationActive: boolean, edi
 	return navigationActive && !editableFocused && (key === "r" || key === "R" || directObservabilityView(key) !== null);
 }
 
+export function workbenchDashboardSessionIndex(
+	previous: readonly { readonly sessionId: string }[],
+	selectedIndex: number,
+	next: readonly { readonly sessionId: string }[],
+): number {
+	const selectedSessionId = previous[selectedIndex]?.sessionId;
+	const preserved = selectedSessionId ? next.findIndex(session => session.sessionId === selectedSessionId) : -1;
+	return preserved >= 0 ? preserved : Math.min(Math.max(0, selectedIndex), Math.max(0, next.length - 1));
+}
+
 export class DevelopmentMapPollingLifecycle {
 	private stopPolling: (() => void) | null = null;
 	public constructor(
@@ -144,6 +158,7 @@ export class DevelopmentMapPollingLifecycle {
 	}
 }
 
+/** @linear WOO-673 */
 export function createWorkbenchViewHost(
 	getMode: () => WorkbenchViewMode,
 	workbench: Component,
@@ -216,7 +231,7 @@ export function workbenchModelSettings(source: Pick<WorkbenchSnapshot, "model" |
 export function workbenchFrameTitle(source: Pick<WorkbenchSnapshot,
 	"projectId" | "model" | "activeModel" | "effort" | "phase" | "collaborationMode" | "permissionMode" | "chatQueue" | "pendingApproval"
 >): string {
-	return `🐙 WWW · ${source.projectId} · ${workbenchModelLabel(source.activeModel ?? source.model)} · ${source.effort ?? "–"} · ${source.phase} · ${source.collaborationMode === "plan" ? "Plan" : "Manual"} · Permission ${source.permissionMode ?? "manual"}${source.chatQueue.length > 0 ? ` · 대기 ${source.chatQueue.length}` : ""}${source.pendingApproval ? " · 승인 대기" : ""}`;
+	return `🐙 WWW · ${source.projectId} · ${workbenchModelLabel(source.activeModel ?? source.model)} · ${source.effort ?? "–"} · ${source.phase} · ${source.collaborationMode === "plan" ? "Plan" : "Manual"} · Permission ${source.permissionMode ?? "manual"}${source.pendingApproval ? " · 승인 대기" : ""}`;
 }
 
 export function workbenchPaneNotice(pane: "chat" | "tnotes" | "todo"): string {
@@ -238,10 +253,13 @@ export function workbenchViewModeForCommand(
 const WORKBENCH_ACTIVITY_FRAMES = Object.freeze(["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]);
 const WORKBENCH_ACTIVITY_INTERVAL_MS = 80;
 const WORKBENCH_ACTIVITY_MESSAGE_MAX_CHARS = 72;
+const WORKBENCH_TOOL_STALL_MS = 3 * 60 * 1_000;
 
 interface WorkbenchActivityIndicatorSource {
 	readonly phase: string;
+	readonly activeTurnId?: string | null;
 	readonly pendingApproval: unknown;
+	readonly activities?: readonly Pick<WorkbenchSnapshot["activities"][number], "recordedAt" | "phase" | "nativeRefs">[];
 	readonly chatQueue?: readonly unknown[];
 	readonly draft: string;
 	readonly reasoningDraft: string;
@@ -249,6 +267,8 @@ interface WorkbenchActivityIndicatorSource {
 	readonly liveActivity?: {
 		readonly method: string;
 		readonly kind: "tool" | "progress" | "file-change" | "approval";
+		readonly text?: string;
+		readonly nativeRefs?: { readonly threadId?: string; readonly turnId?: string; readonly itemId?: string };
 	} | null;
 	readonly chat: readonly { readonly role: string; readonly content: string; readonly status?: string }[];
 	readonly workFlow: {
@@ -268,7 +288,7 @@ export interface WorkbenchActivityIndicator {
 }
 
 /** Gajae-style live rail driven only by public Native workbench state. */
-export function workbenchActivityIndicator(source: WorkbenchActivityIndicatorSource): WorkbenchActivityIndicator | null {
+export function workbenchActivityIndicator(source: WorkbenchActivityIndicatorSource, now = Date.now()): WorkbenchActivityIndicator | null {
 	const outboundPending = [...source.chat].reverse().find((message) => message.role === "user")?.status === "streaming";
 	if (source.phase !== "working" && !outboundPending) return null;
 	const queueDepth = source.chatQueue?.length ?? 0;
@@ -278,6 +298,18 @@ export function workbenchActivityIndicator(source: WorkbenchActivityIndicatorSou
 		: source.workFlow.steps.find((step) => step.number === source.workFlow.currentStepNumber);
 	const currentStepTitle = boundedActivityText(currentStep?.title);
 	const liveActivity = liveActivityLabel(source.liveActivity);
+	const liveRefs = source.liveActivity?.nativeRefs;
+	let liveStartedAt: string | undefined;
+	if (source.liveActivity?.kind === "tool" && liveRefs && liveRefs.turnId === source.activeTurnId) {
+		liveStartedAt = [...(source.activities ?? [])].reverse().find((activity) =>
+			activity.phase === "started"
+			&& activity.nativeRefs.threadId === liveRefs.threadId
+			&& activity.nativeRefs.turnId === liveRefs.turnId
+			&& activity.nativeRefs.itemId === liveRefs.itemId)?.recordedAt;
+	}
+	const toolObservationStalled = Boolean(liveStartedAt
+		&& Number.isFinite(Date.parse(liveStartedAt))
+		&& now - Date.parse(liveStartedAt) >= WORKBENCH_TOOL_STALL_MS);
 	const stepLabel = currentStep && currentStepTitle
 		? `단계 ${source.workFlow.currentStepNumber}/${source.workFlow.steps.length} · ${currentStepTitle}`
 		: null;
@@ -286,6 +318,8 @@ export function workbenchActivityIndicator(source: WorkbenchActivityIndicatorSou
 		label = queueDepth > 0
 			? `승인 대기 · 현재 턴 일시중지 · 대기 메시지 ${queueDepth}개는 승인 후 전송`
 			: "승인 대기 · 현재 턴 일시중지";
+	} else if (toolObservationStalled) {
+		label = "관측 단절 가능 · Tool 결과를 3분 이상 받지 못했습니다";
 	} else if (outboundPending) {
 		label = "전송 · 요청을 Native Thread에 전달하는 중";
 	} else if (source.draft) {
@@ -305,7 +339,7 @@ export function workbenchActivityIndicator(source: WorkbenchActivityIndicatorSou
 	}
 	return Object.freeze({
 		message: label,
-		hint: "Esc 중단",
+		hint: toolObservationStalled ? "Esc 또는 /cancel 즉시 중단" : "Esc 중단",
 		frames: source.pendingApproval ? Object.freeze(["⏸"]) : WORKBENCH_ACTIVITY_FRAMES,
 		intervalMs: source.pendingApproval ? 1_000 : WORKBENCH_ACTIVITY_INTERVAL_MS,
 	});
@@ -333,8 +367,11 @@ function boundedActivityText(value: string | undefined): string | null {
 		: `${characters.slice(0, WORKBENCH_ACTIVITY_MESSAGE_MAX_CHARS - 1).join("")}…`;
 }
 
+/** @Unit Code-004 */
 /** Native workbench shell. */
 // @linear WOO-727
+/** @linear WOO-674 */
+/** @codeId 0004 */
 export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDependencies): void {
 	const { workbench, usage, auth, composerDraft, releaseSessionLease } = dependencies;
 	const cwd = dependencies.cwd ?? process.cwd();
@@ -344,7 +381,15 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	const chat = new WorkbenchChatView(snapshot);
 	const usageStrip = new UsageStripView(() => ({ models: snapshot.sessionUsage?.models ?? [], activeModel: snapshot.activeModel }));
 	const tnotes = new TNotesSourceView(() => snapshot);
-	const todo = new WorkspaceTodoView(() => snapshot.todo);
+	const todo = new WorkspaceTodoView(
+		() => snapshot.todo,
+		() => ({
+			activeTurnId: snapshot.activeTurnId,
+			activities: snapshot.activities,
+			workFlow: snapshot.workFlow,
+			sync: snapshot.todoSync,
+		}),
+	);
 	const sourceMonitor = new WorkbenchMonitorView(() => snapshot);
 	const runtimeMonitorView = new RuntimeMonitorView(() => selectedHistoricalSession && selectedHistoricalSession.sessionId !== snapshot.threadId
 		? unavailableHistoricalMonitor()
@@ -369,8 +414,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		scrollbarStyle: colors.muted,
 	});
 	let statsTarget: "session" | "diagnostics" | "latest" | number = "session";
-	let selectedStatsRequestOrdinal: number | null = null;
-	const sessionStatsView = new SessionStatsView(() => projectSessionStats(snapshot), () => statsTarget, () => selectedHistoricalSession, () => selectedStatsRequestOrdinal);
+	const sessionStatsView = new SessionStatsView(() => projectSessionStats(snapshot), () => statsTarget, () => selectedHistoricalSession);
 	const sessionStats = new ScrollView(sessionStatsView, {
 		follow: "none",
 		primary: true,
@@ -383,14 +427,14 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	const dashboard = createDashboardLayout(
 		() => `Workbench · ${workbenchFrameTitle(snapshot)}`,
 		{ color: colors.accent, component: chat },
-		{ color: colors.secondary, component: tnotes },
 		{ color: colors.warm, component: todo },
+		{ color: colors.secondary, component: tnotes },
 	);
 	const sourceLayout = createDashboardLayout(
 		() => `Source · ${workbenchFrameTitle(snapshot)}`,
 		{ color: colors.accent, component: chat },
-		{ color: colors.secondary, component: sourceMonitor },
 		{ color: colors.warm, component: todo },
+		{ color: colors.secondary, component: sourceMonitor },
 	);
 	let viewMode: WorkbenchViewMode = "workbench";
 	let previousViewMode: WorkbenchBaseViewMode = "workbench";
@@ -404,19 +448,18 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		sessionStats,
 	);
 	const editor = new Editor(tui, editorTheme, { paddingX: 1, autocompleteMaxVisible: 5 });
-	editor.setAutocompleteProvider(new CombinedAutocompleteProvider(WORKBENCH_SLASH_COMMANDS, process.cwd()));
+	editor.setAutocompleteProvider(new CombinedAutocompleteProvider([...WORKBENCH_SLASH_COMMANDS, {name: "work", description: "Issue 연결·기록 상태·Obsidian checkpoint/open"}], process.cwd()));
 	if (composerDraft?.initialText) editor.setText(composerDraft.initialText);
 	const root = new VStack([
 		{ component: activeView, basis: 0, grow: 1, shrink: 1, minSize: 1 },
 		{ component: editor, basis: "auto", shrink: 1, minSize: 3 },
 		{ component: status, basis: 1, minSize: 1, maxSize: 1, visible: ({ height }) => height >= 5 && status.hasNotice },
-		{ component: telemetry, basis: 1, minSize: 1, maxSize: 1, visible: ({ height }) => height >= 7 },
-		{ component: bottomHud, basis: 4, minSize: 4, maxSize: 4, visible: ({ height }) => height >= 10 },
+		{ component: bottomHud, basis: 1, minSize: 1, maxSize: 1, visible: ({ height }) => height >= 7 },
 	]);
 	let shuttingDown = false;
 	let observabilityNavigation = false;
 	let overlay: OverlayHandle | null = null;
-	let overlayKind: "model" | "approval" | "auth" | null = null;
+	let overlayKind: "model" | "approval" | "auth" | "development" | null = null;
 	const exitKeys = new ExitKeyPolicy();
 	let unsubscribe: () => void = () => undefined;
 	const workbenchRenders = new RenderScheduler(() => {
@@ -440,17 +483,29 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		if (wasMap && next !== "map") developmentMapPolling.leave();
 	};
 	const monitorClock = setInterval(() => {
+		if (snapshot.phase === "working") chat.syncActivity(workbenchActivityIndicator(snapshot), () => tui.requestRender());
 		if (viewMode === "monitor" && snapshot.phase === "working") tui.requestRender();
 	}, 1_000);
 	monitorClock.unref?.();
 	const refreshObservabilityDashboard = async (): Promise<void> => {
 		if (!dependencies.observabilityHistorySource) return;
-		const history = await dependencies.observabilityHistorySource.read();
-		observabilityDashboardSnapshot = projectObservabilityDashboard(
-			summarizeObservabilityStreams(history.streams),
-			history.coverage,
+		const previousSessions = observabilityDashboardSnapshot.recentSessions;
+		try {
+			const history = await dependencies.observabilityHistorySource.read();
+			observabilityDashboardSnapshot = projectObservabilityDashboard(
+				summarizeObservabilityStreams(history.streams),
+				history.coverage,
+			);
+		} catch (error) {
+			status.setNotice(`Dashboard 새로고침 실패 · 마지막 관측을 유지합니다: ${error instanceof Error ? error.message : String(error)}`);
+			observabilityDashboardView.invalidate();
+			return;
+		}
+		selectedDashboardSessionIndex = workbenchDashboardSessionIndex(
+			previousSessions,
+			selectedDashboardSessionIndex,
+			observabilityDashboardSnapshot.recentSessions,
 		);
-		selectedDashboardSessionIndex = Math.min(selectedDashboardSessionIndex, Math.max(0, observabilityDashboardSnapshot.recentSessions.length - 1));
 		observabilityDashboardView.invalidate();
 	};
 	const enterObservability = async (next: ObservabilityViewMode): Promise<void> => {
@@ -584,7 +639,10 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 						showReceipt(receipt);
 					});
 			},
-			closeOverlay,
+			() => {
+				closeOverlay();
+				void workbench.dispatch({ type: "chat.cancel" }).then(showReceipt);
+			},
 		);
 		overlay = tui.showOverlay(new OverlaySheet(panel), {
 			width: "70%", minWidth: 46, maxHeight: "70%", anchor: "bottom-center", margin: 2,
@@ -592,6 +650,34 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		overlayKind = "approval";
 	};
 	const handleLocal = async (text: string): Promise<boolean> => {
+		const developmentNotice = await executeDevelopmentShellCommand(text, dependencies.development);
+		if (developmentNotice !== null) {
+			const safeNotice = sanitizeTerminalTextUnbounded(developmentNotice);
+			status.setNotice(safeNotice.split("\n")[0] ?? "개발 연결");
+			if (safeNotice.includes("\n")) {
+				closeOverlay();
+				let offset = 0;
+				let lineCount = 0;
+				const panel: Component = {
+					invalidate() {},
+					render(width) {
+						const lines = safeNotice.split("\n").flatMap(line => wrapTextWithAnsi(line, Math.max(1, width)));
+						lineCount = lines.length;
+						return ["개발 연결 · ↑↓ 이동 · Esc 닫기", "", ...lines.slice(offset, offset + 18)];
+					},
+					handleInput(data) {
+						if (matchesKey(data, Key.escape)) closeOverlay();
+						else if (matchesKey(data, Key.down)) offset = Math.min(Math.max(0, lineCount - 18), offset + 1);
+						else if (matchesKey(data, Key.up)) offset = Math.max(0, offset - 1);
+						tui.requestRender();
+					},
+				};
+				overlay = tui.showOverlay(new OverlaySheet(panel), { width: "90%", minWidth: 40, maxHeight: "85%", anchor: "center" });
+				overlayKind = "development";
+			}
+			tui.requestRender();
+			return true;
+		}
 		const requestedStatsTarget = workbenchStatsTargetCommand(text);
 		if (requestedStatsTarget !== null) {
 			if (requestedStatsTarget === "invalid") {
@@ -600,7 +686,6 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 				return true;
 			}
 			statsTarget = requestedStatsTarget;
-			selectedStatsRequestOrdinal = typeof requestedStatsTarget === "number" ? requestedStatsTarget : null;
 			selectedHistoricalSession = null;
 			sessionStats.scrollTo(0);
 			await enterObservability("stats");
@@ -708,20 +793,13 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 			return true;
 		}
 		if (command.type === "trace.select") {
-			const activityId = [...snapshot.activities].reverse().find((activity) =>
-				activity.nativeRefs.itemId === command.planItemId,
-			)?.id ?? null;
-			if (!activityId) {
-				status.setNotice(`Todo planItemId를 찾을 수 없습니다: ${command.planItemId}`);
-				tui.requestRender();
-				return true;
-			}
-			const receipt = await workbench.dispatch({ type: "activity.select", activityId });
+			const receipt = await workbench.dispatch({ type: "trace.select", activityId: command.activityId });
 			showReceipt(receipt);
-			if (receipt.state !== "accepted") return true;
-			setViewMode("source");
-			observabilityNavigation = false;
-			tui.setFocus(sourceLayout.leftScroll);
+			if (receipt.state === "accepted") {
+				setViewMode("source");
+				observabilityNavigation = false;
+				tui.setFocus(sourceLayout.leftScroll);
+			}
 			return true;
 		}
 		if (command.type === "tnote.capture") {
@@ -816,7 +894,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 				closeOverlay();
 				status.setNotice(closing === "approval"
 					? "승인 창을 닫았습니다. /approve 로 다시 결정할 수 있습니다."
-					: "모델 변경을 취소했습니다.");
+					: closing === "development" ? "개발 연결 창을 닫았습니다." : "모델 변경을 취소했습니다.");
 				tui.requestRender();
 				return { consume: true };
 			}
@@ -833,60 +911,8 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 			selectedHistoricalSession = observabilityDashboardSnapshot.recentSessions[selectedDashboardSessionIndex] ?? null;
 			if (selectedHistoricalSession) {
 				statsTarget = "session";
-				selectedStatsRequestOrdinal = null;
 				void enterObservability("stats").then(() => tui.requestRender());
 			}
-			return { consume: true };
-		}
-		if (observabilityNavigation && viewMode === "stats" && statsTarget === "session" && (matchesKey(data, Key.up) || matchesKey(data, Key.down))) {
-			const shortlist = projectSessionStats(snapshot).requests.shortlist;
-			if (shortlist.length > 0) {
-				const currentIndex = shortlist.findIndex(request => request.ordinal === selectedStatsRequestOrdinal);
-				const nextIndex = currentIndex < 0
-					? (matchesKey(data, Key.up) ? shortlist.length - 1 : 0)
-					: Math.max(0, Math.min(shortlist.length - 1, currentIndex + (matchesKey(data, Key.up) ? -1 : 1)));
-				selectedStatsRequestOrdinal = shortlist[nextIndex]?.ordinal ?? null;
-				sessionStats.scrollTo(0);
-				tui.requestRender();
-				return { consume: true };
-			}
-		}
-		// @linear WOO-715
-		if (observabilityNavigation && viewMode === "stats" && matchesKey(data, Key.enter)) {
-			if (selectedHistoricalSession) {
-				status.setNotice("과거 세션은 현재 실행 Source를 열 수 없습니다. 현재 세션으로 돌아온 뒤 요청을 선택하세요.");
-				tui.requestRender();
-				return { consume: true };
-			}
-			const stats = projectSessionStats(snapshot);
-			if (statsTarget === "session" || statsTarget === "diagnostics") {
-				if (stats.requests.details.length === 0) {
-					status.setNotice("열 수 있는 요청이 없습니다. 현재 세션의 요청이 관측되면 다시 시도하세요.");
-					tui.requestRender();
-					return { consume: true };
-				}
-				statsTarget = selectedStatsRequestOrdinal ?? "latest";
-				sessionStats.scrollTo(0);
-				status.setNotice(statsTarget === "latest"
-					? "가장 최근 요청 상세를 열었습니다. Enter로 같은 Source를 엽니다."
-					: `선택한 요청 #${statsTarget} 상세를 열었습니다. Enter로 같은 Source를 엽니다.`);
-				tui.requestRender();
-				return { consume: true };
-			}
-			const request = statsTarget === "latest"
-				? stats.requests.details.at(-1)
-				: stats.requests.details.find(item => item.ordinal === statsTarget);
-			const activityId = request?.sourceActivityIds[0] ?? request?.excerptSourceActivityId ?? null;
-			if (!activityId) {
-				status.setNotice("이 요청의 원본 Source를 확인할 수 없습니다. 보존 범위 밖이거나 원본이 없습니다.");
-				tui.requestRender();
-				return { consume: true };
-			}
-			void workbench.dispatch({ type: "activity.select", activityId }).then(showReceipt);
-			setViewMode("source");
-			observabilityNavigation = false;
-			tui.setFocus(sourceLayout.leftScroll);
-			status.setNotice(`Request #${request?.ordinal ?? "?"} · 같은 실행의 Source를 열었습니다.`);
 			return { consume: true };
 		}
 		if (shouldHandleObservabilityShortcut(observabilityNavigation, !observabilityNavigation, data)

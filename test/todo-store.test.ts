@@ -18,9 +18,58 @@ function todo(revision: number, title = "Todo"): TodoDocument {
 	return { version: 1, revision, ownerSessionId: "session_1", storyId: null, title, items: [{ id: "item_1", content: "Work", status: "pending", evidenceIds: [], details: [] }], updatedAt: "2026-08-31T07:55:00.000Z" };
 }
 
+function nativeTodo(revision: number): TodoDocument {
+	const planRevision = {
+		sourceRevisionKeyDigest: "a".repeat(64),
+		activityId: "plan-activity",
+		sequence: 3,
+		sourceDigest: `sha256:${"b".repeat(64)}`,
+	};
+	const rootExecution = { provider: null, model: "gpt-5.6-sol", agentId: null, threadId: "thread-1", runId: "turn-1" };
+	const identity = "c".repeat(64);
+	return {
+		version: 1,
+		revision,
+		ownerSessionId: "session_1",
+		storyId: null,
+		title: "Observed Native Plan",
+		items: [{
+			id: `native-${identity.slice(0, 48)}`,
+			content: "Persist references",
+			status: "in_progress",
+			evidenceIds: [],
+			details: [],
+			source: { kind: "native-plan-item", identity, originRevision: planRevision, currentRevision: planRevision, executions: [rootExecution] },
+		}],
+		updatedAt: "2026-08-31T07:55:00.000Z",
+		source: {
+			kind: "native-plan",
+			threadKeyDigest: "d".repeat(64),
+			turnId: "turn-1",
+			input: { activityId: "request-activity", requestId: "request-1", sourceDigest: `sha256:${"e".repeat(64)}` },
+			planRevision,
+			rootExecution,
+		},
+	};
+}
+
 afterEach(async () => { await Promise.all(directories.splice(0).map((directory) => rm(directory, { recursive: true, force: true }))); });
 
 describe("FileTodoStore", () => {
+	test("round trips Native references and leaves reference-free legacy source untouched on read", async () => {
+		const native = await fixture();
+		expect(await native.store.compareAndSwap(null, nativeTodo(0))).toBe("written");
+		expect(await new FileTodoStore(native.path).read()).toEqual(nativeTodo(0));
+
+		const legacy = await fixture();
+		const source = renderTodoMarkdown(todo(0)).replace("\n\n", "\r\n\r\n> exact legacy note\r\n");
+		await writeFile(legacy.path, source);
+		const restored = await new FileTodoStore(legacy.path).read();
+		expect(restored?.source).toBeUndefined();
+		expect(restored?.items[0]?.source).toBeUndefined();
+		expect(await readFile(legacy.path, "utf8")).toBe(source);
+	});
+
 	test("writes only an absent document with null revision and enforces private modes", async () => {
 		const { directory, path, store } = await fixture();
 		expect(await store.read()).toBeNull();

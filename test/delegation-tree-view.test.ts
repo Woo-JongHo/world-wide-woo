@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
 import type { ProjectActivity, ProjectActivityPhase } from "../src/domain/project-activity";
 import type { WorkbenchSnapshot } from "../src/domain/workbench";
-import { projectNativeDelegation, projectWorkFlow, type DplanHash } from "../src/domain/work-steps";
+import { projectNativeDelegation, projectWorkFlow, type DplanHash } from "../src/domain/work/index";
 import { projectWorkbenchDelegationSections } from "../src/presentation/tui/delegation-tree-view";
 import { WorkbenchChatView } from "../src/presentation/tui/workbench-views";
 

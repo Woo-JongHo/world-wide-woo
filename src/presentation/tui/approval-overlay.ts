@@ -73,7 +73,7 @@ export class ApprovalOverlay implements Component {
 			: [colors.muted("이 요청은 결정 선택지를 제공하지 않습니다. /cancel 로 중단하세요.")];
 		const footer = this.resolving
 			? colors.muted("결정을 전달하는 중입니다.")
-			: colors.muted("↑↓ 선택 · Enter 결정 · Esc 닫기 · /approve 로도 가능");
+			: colors.muted("↑↓ 선택 · Enter 결정 · Esc 현재 턴 중단 · /approve 로도 가능");
 		return [...detail, ...mutations, ...options, "", footer].flatMap(row => wrapTextWithAnsi(row, inner)).map(row => fit(row, inner));
 	}
 

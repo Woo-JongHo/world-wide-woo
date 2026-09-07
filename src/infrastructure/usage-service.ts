@@ -124,11 +124,21 @@ export class UsageService implements UsageMonitor {
 		this.stopPolling();
 		this.listener = listener;
 		listener(PROVIDERS.map(provider => snapshot(provider, "loading")));
-		void this.refresh().then(snapshots => this.listener?.(snapshots));
+		void this.refreshInitial();
 		this.pollTimer = setInterval(() => {
 			void this.refresh().then(snapshots => this.listener?.(snapshots));
 		}, intervalMs);
 		return () => this.stopPolling();
+	}
+
+	private async refreshInitial(): Promise<void> {
+		let snapshots = await this.refresh();
+		// Pre-request startup failures carry no retryAt. Retry them once while the HUD remains
+		// loading so a registry race does not flash a false provider failure on first entry.
+		if (snapshots.some(item => item.state === "error" && item.issue?.retryAt === undefined)) {
+			snapshots = await this.refresh();
+		}
+		this.listener?.(snapshots);
 	}
 
 	stopPolling(): void {
@@ -143,9 +153,16 @@ export class UsageService implements UsageMonitor {
 
 	private async fetchProvider(provider: UsageProviderId): Promise<UsageSnapshot> {
 		const observation: FetchObservation = { networkFailure: false };
+		// Registry startup and credential refresh happen before any quota request.  A transient
+		// failure here must not enter the provider backoff, otherwise the next refresh is
+		// suppressed even though no provider request was attempted.
+		try {
+			await this.models.getAuth(provider);
+		} catch {
+			return this.degradedSnapshot(provider, { kind: "provider" });
+		}
 		try {
 			// getAuth owns serialized OAuth refresh; re-read afterwards to use its rotated token.
-			await this.models.getAuth(provider);
 			const stored = await this.credentials.read(provider);
 			if (!stored) {
 				this.clearProviderState(provider);
