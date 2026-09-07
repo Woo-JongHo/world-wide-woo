@@ -1321,8 +1321,8 @@ describe("workbench dashboard views", () => {
 		expect(output).toContain("명령 · bun test test/workbench-views.test.ts");
 		expect(output).toContain("이유 · 변경이 동작하는지 테스트해야 합니다.");
 		expect(output).toContain("경로 · /workspace/sample-project");
-		expect(output).toContain("Input 답변 · 승인 ‘네’ · 세션 ‘이번 세션 동안 승인’ · 거절 ‘아니요’");
-		expect(output).toContain("승인할까요? 현재 턴은 Input 답변을 기다립니다.");
+		expect(output).toContain("승인 /approve · 세션 /approve-session · 거절 /decline");
+		expect(output).toContain("현재 턴 일시중지 · 승인 선택을 기다립니다.");
 		expect(output).toContain("백그라운드 작업 · unknown");
 		expect(output).toContain("대기 메시지 1개 · 승인 후 순서대로 전송");
 	});
