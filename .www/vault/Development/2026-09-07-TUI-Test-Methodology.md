@@ -11,13 +11,13 @@ www_renderer_version: 1
 
 ## 이 문서의 역할
 
-이 문서는 Chat·Todo·Tracer·Stats와 Linear↔Code↔SQLite↔Obsidian 연결을 검증한 방법을 한 가지 형식으로 남긴다. Linear Comment에는 각 이슈의 결론과 blocker만 요약하고, 이 문서에는 재현 명령·입력·기대값·실패 유형·증거 위치를 보존한다.
+공통 방법론과 예외 코드의 Linear 기준점은 WOO-697이다. 기능 이슈에는 실행 결과·제품 수락 판정·blocker·공통 기록 ID만 남기고, 이 문서는 Chat·Todo·Tracer·Stats와 Linear↔Code↔SQLite↔Obsidian 연결을 검증한 상세 실행 원문과 증거를 한 곳에 보존한다.
 
 테스트 통과는 코드가 주어진 입력에서 기대 동작을 했다는 뜻이다. Linear 이슈 수락은 제품 경계, 실제 런타임, 관측 한계, 사람 검토를 함께 확인한 뒤 별도로 판정한다.
 
 ## 공통 기록 스키마
 
-각 테스트는 다음 순서로 기록한다.
+WOO-697의 공통 계약에 따라 각 테스트는 다음 순서로 기록한다.
 
 1. **테스트 목적** — 어떤 사용자 가치 또는 불변식을 확인하는가.
 2. **테스트 종류** — Unit, Integration, Contract, System, Manual/PTY, Static, Review 중 하나 이상.
