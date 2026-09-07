@@ -200,6 +200,17 @@ export interface NativeTurnInterrupt {
 	turnId: string;
 }
 
+export interface NativeTurnSteer {
+	threadId: string;
+	expectedTurnId: string;
+	text: string;
+	clientUserMessageId: string;
+}
+
+export interface NativeTurnSteerResult {
+	turnId: string;
+}
+
 export type NativeApprovalKind = "command" | "file-change" | "permissions" | "mcp-tool";
 export type NativeApprovalDecision = "accept" | "acceptForSession" | "decline" | "cancel" | Readonly<Record<string, unknown>>;
 

@@ -38,6 +38,19 @@ function weeklyLimit(snapshot: UsageSnapshot | undefined): UsageLimitSnapshot | 
 		: undefined;
 }
 
+function fiveHourLimit(snapshot: UsageSnapshot | undefined): UsageLimitSnapshot | undefined {
+	return snapshot?.state === "ready"
+		? snapshot.limits.find((limit) => /5\s*(?:hours?|h)\b/iu.test(limit.label) && !isTier(limit))
+		: undefined;
+}
+
+function limitValue(limit: UsageLimitSnapshot | undefined, prefix = ""): string {
+	if (!limit || !Number.isFinite(limit.remainingPercent)) return "";
+	const percent = Math.round(Math.max(0, Math.min(100, limit.remainingPercent!)));
+	const reset = remainingPeriod(limit.resetsAt);
+	return `${prefix}${percent}%${reset ? ` · ${reset}` : ""}`;
+}
+
 function unavailable(snapshot: UsageSnapshot | undefined): string {
 	if (!snapshot || snapshot.state === "loading") return "확인 중";
 	if (snapshot.state === "auth-required") return "로그인 필요";
@@ -54,6 +67,12 @@ function providerSegment(label: ProviderLabel, snapshot?: UsageSnapshot): string
 	const percent = Math.round(Math.max(0, Math.min(100, limit.remainingPercent!)));
 	const reset = remainingPeriod(limit.resetsAt);
 	return `${label} ${percent}%${reset ? ` · ${reset}` : ""}`;
+}
+
+function claudeSegment(snapshot?: UsageSnapshot): string {
+	const weekly = providerSegment("Claude", snapshot);
+	const session = limitValue(fiveHourLimit(snapshot), "5h ");
+	return session ? `${weekly} · ${session}` : weekly;
 }
 
 /** One-row MVP quota summary. Provider details belong outside the workbench HUD. */
@@ -77,7 +96,7 @@ export class UsageStripView implements Component {
 		const claude = this.snapshots.find((snapshot) => snapshot.provider === "anthropic");
 		const line = [
 			colors.accent(providerSegment("Codex", codex)),
-			colors.warm(providerSegment("Claude", claude)),
+			colors.warm(claudeSegment(claude)),
 			colors.highlight(providerSegment("Gemini")),
 		].join(colors.muted(" | "));
 		return [fit(line, width)];

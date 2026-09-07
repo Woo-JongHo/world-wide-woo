@@ -10,6 +10,8 @@ import type {
 	NativeTurnInterrupt,
 	NativeTurnSnapshot,
 	NativeTurnStart,
+	NativeTurnSteer,
+	NativeTurnSteerResult,
 } from "../../domain/native-session.js";
 
 /** Application-owned semantic boundary around a native model session host. */
@@ -19,6 +21,7 @@ export interface ExecutorPort {
 	readThread(input: NativeThreadRead): Promise<NativeThreadSnapshot>;
 	listThreads(input: NativeThreadList): Promise<readonly NativeThreadSummary[]>;
 	startTurn(input: NativeTurnStart): Promise<NativeTurnSnapshot>;
+	steerTurn?(input: NativeTurnSteer): Promise<NativeTurnSteerResult>;
 	interruptTurn(input: NativeTurnInterrupt): Promise<void>;
 	respondToApproval(input: NativeApprovalResolution): Promise<void>;
 	subscribe(listener: (event: NativeHarnessEvent) => void): () => void;

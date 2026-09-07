@@ -22,6 +22,8 @@ import type {
 	NativeTurnInterrupt,
 	NativeTurnSnapshot,
 	NativeTurnStart,
+	NativeTurnSteer,
+	NativeTurnSteerResult,
 } from "../src/domain/native-session";
 import type {
 	ProjectActivity,
@@ -104,6 +106,8 @@ class FakeNativeHarness implements ExecutorPort {
 	private listener: ((event: NativeHarnessEvent) => void) | null = null;
 	startTurnCalls = 0;
 	startTurnInputs: NativeTurnStart[] = [];
+	steerTurnInputs: NativeTurnSteer[] = [];
+	steerTurn?: (input: NativeTurnSteer) => Promise<NativeTurnSteerResult>;
 	startTurnErrors = new Map<number, unknown>();
 	startThreadCalls = 0;
 	startThreadInputs: NativeThreadStart[] = [];
@@ -153,6 +157,12 @@ class FakeNativeHarness implements ExecutorPort {
 			requestId: 7,
 		};
 		return { id: `turn-${this.startTurnCalls}`, threadId: "thread-1", value: {} };
+	}
+	enableSteering(): void {
+		this.steerTurn = async (input) => {
+			this.steerTurnInputs.push(input);
+			return { turnId: input.expectedTurnId };
+		};
 	}
 	async interruptTurn(input: NativeTurnInterrupt): Promise<void> { this.interruptInputs.push(input); }
 	async listMcpServers() { return this.mcpServers; }
@@ -740,7 +750,30 @@ describe("ProjectWorkbench", () => {
 		await workbench.close();
 	});
 
-	test("queues rapid chat submissions and starts the next message after the active turn completes", async () => {
+	test("steers a follow-up into the active Codex turn without creating a queued turn", async () => {
+		const native = new FakeNativeHarness();
+		native.enableSteering();
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "sample-project", cwd: "/workspace/sample" });
+		await ready(workbench);
+
+		const first = await workbench.dispatch({ type: "chat.send", text: "첫 요청" });
+		const followUp = await workbench.dispatch({ type: "chat.send", text: "방향을 이렇게 바꿔줘" });
+
+		expect(first).toMatchObject({ state: "accepted" });
+		expect(followUp).toMatchObject({ state: "accepted" });
+		expect(native.startTurnCalls).toBe(1);
+		expect(native.steerTurnInputs).toEqual([{
+			threadId: "thread-1",
+			expectedTurnId: "turn-1",
+			clientUserMessageId: followUp.commandId,
+			text: "방향을 이렇게 바꿔줘",
+		}]);
+		expect(workbench.snapshot.chatQueue).toEqual([]);
+		expect(workbench.snapshot.chat.map(message => message.content)).toEqual(["첫 요청", "방향을 이렇게 바꿔줘"]);
+		await workbench.close();
+	});
+
+	test("queues rapid chat submissions when the executor does not support steering", async () => {
 		const native = new FakeNativeHarness();
 		const journal = new MemoryJournal();
 		const workbench = new ProjectWorkbench(native, journal, { projectId: "sample-project", cwd: "/workspace/sample" });

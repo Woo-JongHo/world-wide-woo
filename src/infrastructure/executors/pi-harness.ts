@@ -10,6 +10,8 @@ import type {
 	NativeTurnInterrupt,
 	NativeTurnSnapshot,
 	NativeTurnStart,
+	NativeTurnSteer,
+	NativeTurnSteerResult,
 	NativeThreadStart,
 } from "../../domain/native-session.js";
 
@@ -118,6 +120,10 @@ export class PiHarness implements ExecutorPort {
 		this.active = { turnId, terminal: false, interrupted: false, started: false, text: "" };
 		setTimeout(() => this.beginTurn(turnId, input.text), 0);
 		return { id: turnId, threadId: this.threadId, value: {} };
+	}
+
+	public steerTurn(_input: NativeTurnSteer): Promise<NativeTurnSteerResult> {
+		return Promise.reject(new UnsupportedPiOperationError("same-turn steering"));
 	}
 
 	private beginTurn(turnId: string, text: string): void {

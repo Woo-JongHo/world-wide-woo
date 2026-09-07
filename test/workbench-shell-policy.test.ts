@@ -9,6 +9,8 @@ import {
 	workbenchDashboardSessionIndex,
 	workbenchEscapeView,
 	workbenchActivityIndicator,
+	approvalDecisionFromInput,
+	loginProviderFromInput,
 	workbenchFrameTitle,
 	workbenchModelSettings,
 	workbenchPaneNotice,
@@ -19,6 +21,7 @@ import {
 	workbenchViewModeCommand,
 } from "../src/presentation/tui/workbench-shell";
 import { RenderScheduler } from "../src/presentation/tui/render-scheduler";
+import { composerBorderColor, composerBorderHex } from "../src/presentation/tui/theme";
 import { workbenchApprovalIdentity, workbenchExternalMutationCandidates } from "../src/domain/workbench";
 import { createDashboardLayout } from "../src/presentation/tui/dashboard-layout";
 import { parseWorkbenchShellCommand, WORKBENCH_SLASH_COMMANDS } from "../src/presentation/tui/slash-commands";
@@ -37,6 +40,25 @@ const workingSnapshot = {
 } as const;
 
 describe("native workbench shell receipt policy", () => {
+	test("accepts or declines a pending approval through natural Chat input", () => {
+		for (const text of ["네", "승인해", "진행해", "yes"]) expect(approvalDecisionFromInput(text)).toBe("accept");
+		for (const text of ["아니요", "거절해", "취소", "no"]) expect(approvalDecisionFromInput(text)).toBe("decline");
+		expect(approvalDecisionFromInput("이번 세션 동안 승인")).toBe("acceptForSession");
+		expect(approvalDecisionFromInput("설명을 더 해줘")).toBeNull();
+	});
+
+	test("cycles the focused Composer border through distinct shimmer frames", () => {
+		expect(composerBorderHex(0)).not.toBe(composerBorderHex(8));
+		expect(stripTerminalSequences(composerBorderColor(8)("─"))).toBe("─");
+	});
+
+	test("resolves login Provider names from ordinary Chat input", () => {
+		expect(loginProviderFromInput("ChatGPT")).toBe("openai-codex");
+		expect(loginProviderFromInput("Claude")).toBe("anthropic");
+		expect(loginProviderFromInput("Gemini")).toBe("google");
+		expect(loginProviderFromInput("unknown")).toBeNull();
+	});
+
 	test("keeps completed T-notes separate from selected execution Trace and current Todo", () => {
 		expect(workbenchPaneNotice("tnotes")).toContain("완료 질문 T-note");
 		expect(workbenchPaneNotice("tnotes")).not.toContain("Trace");

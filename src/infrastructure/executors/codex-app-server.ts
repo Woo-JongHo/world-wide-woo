@@ -18,6 +18,8 @@ import type {
 	NativeTurnInterrupt,
 	NativeTurnSnapshot,
 	NativeTurnStart,
+	NativeTurnSteer,
+	NativeTurnSteerResult,
 	NativeUncertainOperation,
 } from "../../domain/native-session.js";
 import { sanitizeTerminalText } from "../../domain/terminal.js";
@@ -320,6 +322,25 @@ export class CodexAppServer implements ExecutorPort {
 		const snapshot = turnSnapshot(result, input.threadId);
 		this.threadIdByTurnId.set(snapshot.id, input.threadId);
 		return snapshot;
+	}
+
+	public async steerTurn(input: NativeTurnSteer): Promise<NativeTurnSteerResult> {
+		const result = await this.request("turn/steer", {
+			threadId: input.threadId,
+			expectedTurnId: input.expectedTurnId,
+			clientUserMessageId: input.clientUserMessageId,
+			input: [{ type: "text", text: input.text }],
+		}, true);
+		const turnId = result && typeof result === "object" && !Array.isArray(result)
+			? (result as Readonly<Record<string, unknown>>).turnId
+			: undefined;
+		if (typeof turnId !== "string" || !turnId.trim()) {
+			throw new Error("turn/steer response omitted turnId");
+		}
+		if (turnId !== input.expectedTurnId) {
+			throw new Error(`turn/steer targeted ${turnId}, expected ${input.expectedTurnId}`);
+		}
+		return { turnId };
 	}
 
 	public async interruptTurn(input: NativeTurnInterrupt): Promise<void> {

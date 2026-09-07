@@ -51,10 +51,10 @@ describe("dashboard layout", () => {
 		expect(layout.leftScroll.viewportHeight).toBeGreaterThan(0);
 		expect(layout.usageScroll.viewportHeight).toBeGreaterThan(0);
 		expect(layout.routerScroll.viewportHeight).toBeGreaterThan(0);
-		// Todo owns roughly 60% and Tracer the remaining 40% of the right rail.
+		// Todo visibly owns about 70% and Tracer the remaining 30%.
 		expect(layout.usageScroll.viewportHeight).toBeGreaterThan(layout.routerScroll.viewportHeight);
-		expect(layout.usageScroll.viewportHeight / layout.routerScroll.viewportHeight).toBeGreaterThanOrEqual(1.25);
-		expect(layout.usageScroll.viewportHeight / layout.routerScroll.viewportHeight).toBeLessThanOrEqual(1.75);
+		expect(layout.usageScroll.viewportHeight / layout.routerScroll.viewportHeight).toBeGreaterThanOrEqual(1.75);
+		expect(layout.usageScroll.viewportHeight / layout.routerScroll.viewportHeight).toBeLessThanOrEqual(2.5);
 	});
 
 	test("uses one ordered viewport inside the same frame when compact", () => {

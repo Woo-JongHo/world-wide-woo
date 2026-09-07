@@ -18,23 +18,21 @@ import type { ProjectWorkbench } from "../../application/project-workbench";
 import { EMPTY_DEVELOPMENT_MAP, type DevelopmentMapSnapshot } from "../../domain/development-map";
 import { projectObservabilityDashboard, summarizeObservabilityStreams, type ObservabilityDashboard } from "../../domain/observability-dashboard";
 import { projectRuntimeMonitor, type RuntimeMonitorProjection } from "../../domain/runtime-monitor";
-import { normalizeSettings, type WwwSettings } from "../../domain/model-settings";
+import { normalizeSettings, PROVIDERS, type Provider, type WwwSettings } from "../../domain/model-settings";
 import { projectSessionStats } from "../../domain/session-stats";
 import { sanitizeTerminalTextUnbounded } from "../../domain/terminal";
-import { workbenchApprovalIdentity, type WorkbenchCommandReceipt, type WorkbenchSnapshot } from "../../domain/workbench";
+import type { WorkbenchCommandReceipt, WorkbenchSnapshot } from "../../domain/workbench";
 import { createDashboardLayout } from "./dashboard-layout";
 import { StatusLine, WorkspaceTodoView } from "./shared-dashboard-views";
 import { TNotesSourceView, WorkbenchChatView, WorkbenchMonitorView } from "./workbench-views";
 import { ExitKeyPolicy } from "./exit-key-policy";
-import { ApprovalOverlay } from "./approval-overlay";
 import { AuthFlowOverlay } from "./auth-overlay";
 import { ModelPickerOverlay } from "./model-picker-overlay";
 import { OverlaySheet } from "./overlay-sheet";
-import { LoginProviderOverlay } from "./router-overlays";
 import { RenderScheduler, workbenchRenderUrgency } from "./render-scheduler";
 import { settleWithin } from "./shell-lifecycle";
 import { parseWorkbenchShellCommand, WORKBENCH_SLASH_COMMANDS, type WorkbenchShellCommand } from "./slash-commands";
-import { colors, editorTheme } from "./theme";
+import { colors, composerBorderColor, editorTheme } from "./theme";
 import { WorkbenchBottomHudView } from "./workbench-bottom-hud";
 import { WorkbenchTelemetryLine, workbenchModelLabel } from "./workbench-telemetry";
 import { UsageStripView } from "./usage-strip-view";
@@ -69,6 +67,22 @@ export function workbenchReceiptNotice(receipt: WorkbenchCommandReceipt): string
 /** @linear WOO-694 */
 export function workbenchReceiptClearsComposer(receipt: WorkbenchCommandReceipt): boolean {
 	return receipt.state !== "rejected";
+}
+
+export function approvalDecisionFromInput(text: string): "accept" | "acceptForSession" | "decline" | null {
+	const value = text.trim().toLocaleLowerCase("ko-KR").replace(/[.!?]+$/u, "");
+	if (["네", "예", "응", "승인", "승인해", "진행", "진행해", "yes", "y", "ok"].includes(value)) return "accept";
+	if (["이번 세션 동안 승인", "세션 동안 승인", "항상 승인", "accept for session"].includes(value)) return "acceptForSession";
+	if (["아니오", "아니요", "안돼", "거절", "거절해", "취소", "no", "n"].includes(value)) return "decline";
+	return null;
+}
+
+export function loginProviderFromInput(text: string): Provider | null {
+	const value = text.trim().toLocaleLowerCase("en-US");
+	const alias = value === "codex" || value === "chatgpt" ? "openai-codex"
+		: value === "claude" ? "anthropic"
+			: value === "gemini" ? "google" : value;
+	return (PROVIDERS as readonly string[]).includes(alias) ? alias as Provider : null;
 }
 
 export const WORKBENCH_STATUS_NOTICE = "";
@@ -460,6 +474,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	let observabilityNavigation = false;
 	let overlay: OverlayHandle | null = null;
 	let overlayKind: "model" | "approval" | "auth" | "development" | null = null;
+	let awaitingLoginProvider = false;
 	const exitKeys = new ExitKeyPolicy();
 	let unsubscribe: () => void = () => undefined;
 	const workbenchRenders = new RenderScheduler(() => {
@@ -487,6 +502,14 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		if (viewMode === "monitor" && snapshot.phase === "working") tui.requestRender();
 	}, 1_000);
 	monitorClock.unref?.();
+	let composerBorderFrame = 0;
+	const composerBorderClock = setInterval(() => {
+		if (!editor.focused || shuttingDown) return;
+		composerBorderFrame = (composerBorderFrame + 1) % 24;
+		editor.borderColor = composerBorderColor(composerBorderFrame);
+		tui.requestRender();
+	}, 90);
+	composerBorderClock.unref?.();
 	const refreshObservabilityDashboard = async (): Promise<void> => {
 		if (!dependencies.observabilityHistorySource) return;
 		const previousSessions = observabilityDashboardSnapshot.recentSessions;
@@ -525,6 +548,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		stopUsagePolling();
 		developmentMapPolling.leave();
 		clearInterval(monitorClock);
+		clearInterval(composerBorderClock);
 		workbenchRenders.dispose();
 		telemetry.dispose();
 		chat.dispose();
@@ -585,12 +609,10 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		panel.start();
 	};
 	const openAuthentication = (): void => {
-		if (overlay) return;
-		const selector = new LoginProviderOverlay(openAuthFlow, closeOverlay);
-		overlay = tui.showOverlay(new OverlaySheet(selector), {
-			width: "60%", minWidth: 46, maxHeight: "55%", anchor: "bottom-center", margin: 2,
-		});
-		overlayKind = "auth";
+		awaitingLoginProvider = true;
+		status.setNotice("어느 Provider에 로그인할까요? Input: ChatGPT/Codex · Claude · Gemini · OpenAI");
+		tui.setFocus(editor);
+		tui.requestRender();
 	};
 	const openModelSettings = (): void => {
 		if (overlay) return;
@@ -616,38 +638,6 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		});
 		overlayKind = "model";
 		panel.start();
-	};
-	// A pending approval pauses the turn, so it takes the surface as soon as it arrives.  The
-	// model picker keeps it if already open; the chat-pane card and /approve still resolve it.
-	const openApproval = (request: NonNullable<WorkbenchSnapshot["pendingApproval"]>): void => {
-		if (overlay) return;
-		const approvalIdentity = workbenchApprovalIdentity(request);
-		const panel = new ApprovalOverlay(
-			request,
-			() => tui.requestRender(),
-			(decision) => {
-				if (!snapshot.pendingApproval
-					|| snapshot.pendingApproval.requestId !== request.requestId
-					|| workbenchApprovalIdentity(snapshot.pendingApproval) !== approvalIdentity) {
-					closeOverlay();
-					showReceipt({ state: "rejected", commandId: "approval-stale", reason: "승인 후보가 변경되어 결정을 거부했습니다. 최신 후보를 확인하세요." });
-					return;
-				}
-				void workbench.dispatch({ type: "approval.resolve", requestId: request.requestId, response: { decision } })
-					.then((receipt) => {
-						closeOverlay();
-						showReceipt(receipt);
-					});
-			},
-			() => {
-				closeOverlay();
-				void workbench.dispatch({ type: "chat.cancel" }).then(showReceipt);
-			},
-		);
-		overlay = tui.showOverlay(new OverlaySheet(panel), {
-			width: "70%", minWidth: 46, maxHeight: "70%", anchor: "bottom-center", margin: 2,
-		});
-		overlayKind = "approval";
 	};
 	const handleLocal = async (text: string): Promise<boolean> => {
 		const developmentNotice = await executeDevelopmentShellCommand(text, dependencies.development);
@@ -860,7 +850,37 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		if (shuttingDown || !text.trim()) return;
 		editor.addToHistory(text);
 		void (async () => {
+			if (awaitingLoginProvider) {
+				const provider = loginProviderFromInput(text);
+				if (!provider) {
+					editor.setText(text);
+					status.setNotice("Provider를 알아보지 못했습니다. ChatGPT/Codex, Claude, Gemini, OpenAI 중 하나를 입력하세요.");
+					tui.requestRender();
+					return;
+				}
+				awaitingLoginProvider = false;
+				openAuthFlow(provider);
+				return;
+			}
 			if (await handleLocal(text)) return;
+			if (snapshot.pendingApproval) {
+				const decision = approvalDecisionFromInput(text);
+				if (!decision) {
+					editor.setText(text);
+					status.setNotice("승인할까요? Input에 ‘네’ 또는 ‘아니요’라고 답해 주세요.");
+					tui.requestRender();
+					return;
+				}
+				const receipt = await workbench.dispatch({
+					type: "approval.resolve",
+					requestId: snapshot.pendingApproval.requestId,
+					response: { decision },
+				});
+				showReceipt(receipt);
+				if (workbenchReceiptClearsComposer(receipt)) await composerDraft?.clear().catch(() => undefined);
+				else editor.setText(text);
+				return;
+			}
 			const receipt = await workbench.dispatch({ type: "chat.send", text });
 			showReceipt(receipt);
 			if (workbenchReceiptClearsComposer(receipt)) {
@@ -876,8 +896,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		const urgency = workbenchRenderUrgency(snapshot, next);
 		const refreshTelemetry = snapshot.phase === "working" && next.phase !== "working";
 		snapshot = next;
-		if (snapshot.pendingApproval) openApproval(snapshot.pendingApproval);
-		else if (overlayKind === "approval") closeOverlay();
+		if (snapshot.pendingApproval) status.setNotice("승인할까요? Input에 ‘네’ 또는 ‘아니요’라고 답해 주세요.");
 		chat.syncActivity(workbenchActivityIndicator(snapshot), () => tui.requestRender());
 		if (refreshTelemetry) telemetry.refresh();
 		workbenchRenders.request(urgency);
