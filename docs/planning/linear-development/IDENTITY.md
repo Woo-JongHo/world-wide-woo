@@ -1,4 +1,10 @@
-# ID Unit과 추적 계약 초안
+# ID Unit과 추적 계약
+
+상태: 2026-09-07 현재 schema v2 구현. `.www/control-ledger/traceability-v2.json`은 `Code-001`~`Code-013`의 key·UUID·대표 symbol·관계를 소유한다. 이름 있는 최상위 선언의 `@Unit Code-NNN`은 AST로 검증한다. `.www/control-ledger/traceability.json`은 기존 경로 기반 v1 관계의 호환 원장이다. SQLite와 Development Map은 v2 원장과 검증된 v1 원본에서 재구축하는 projection이다.
+
+경로 이동으로 Unit identity를 바꾸지 않는다. v0.1.0 capability 이관은 기존 13개 Unit의 key·UUID·symbol을 유지하고 location만 `src/tui`, `src/system`, `src/workflows` 아래로 갱신했다.
+
+## 역사적 결정 과정
 
 상태: 2026-09-05 사용자 결정으로 Unit ID와 Linear Issue ID의 분리를 확정했다. ID 형식·발급 단위·원장 schema 이관은 아직 논의·구현 전이다. 아래 예시는 실제 ID 발급이 아니다.
 
@@ -32,7 +38,7 @@ Unit은 파일·클래스·폴더마다 발급하지 않는다. Message처럼 �
 - 기능 후보: Message (Unit ID 미발급)
 - 현재 기능 Parent: WOO-683 / UUID ea233806-8926-4e7f-90b1-8328f3f874d4
 - 실행 작업 후보: WOO-686~WOO-690, 예외·테스트 항목 WOO-691/WOO-692는 범위 논의 필요
-- 현재 구현 후보: src/presentation/tui/workbench-views.ts
+- 현재 구현 후보: src/tui/chat/workbench-views.ts
 - 관련 테스트 후보: test/workbench-views.test.ts, test/transcript-markdown.test.ts
 - 목표 모듈 후보: src/tui/chat/message/
 
@@ -40,7 +46,7 @@ Unit은 파일·클래스·폴더마다 발급하지 않는다. Message처럼 �
 
 ## 기존 코드의 활용과 차이
 
-src/domain/work/traceability.ts는 Linear UUID·URL, EP/ST, 코드·테스트·Evidence 참조와 implements/verifies/tracks 등의 관계를 이미 검증한다. traceability-validator.ts는 로컬 경로 존재 여부를 검사한다.
+src/system/contracts/work/traceability.ts는 Linear UUID·URL, EP/ST, 코드·테스트·Evidence 참조와 implements/verifies/tracks 등의 관계를 이미 검증한다. traceability-validator.ts는 로컬 경로 존재 여부를 검사한다.
 
 현재 schemaVersion 1은 code/test/evidence의 ID로 경로를 사용한다. Unit과 Run은 별도 reference kind가 없고, 원장에는 실제 Linear reference가 아직 없다. 확정한 ID 분리를 구현하려면 schema 확장·version migration·이전 경로 추적의 상세 계약부터 정해야 한다. 문서 예시를 현재 원장에 그대로 넣지 않는다.
 

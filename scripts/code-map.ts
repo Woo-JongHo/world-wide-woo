@@ -9,13 +9,13 @@ import {
 	relatedWorkLinks,
 	type WorkReference,
 	type WorkTraceabilityManifest,
-} from "../src/domain/work/traceability.js";
+} from "../src/system/contracts/work/traceability.js";
 import {
-	extractLinearIssueIdsByPath,
 	validateLinearAnnotations,
 	validateWorkTraceabilityManifest,
 	type LinearAnnotation,
-} from "../src/domain/work/traceability-validator.js";
+} from "../src/system/contracts/work/traceability-validator.js";
+import { extractLinearIssueIdsByPath } from "../src/system/adapters/linear-annotation-scanner.js";
 
 interface Options {
 	readonly check: boolean;
@@ -58,7 +58,7 @@ function parseArgs(argv: readonly string[], repoRoot: string): Options {
 function printHelp(): void {
 	console.log(`사용법:
   bun scripts/code-map.ts WOO-690
-  bun scripts/code-map.ts src/application/project-workbench.ts
+  bun scripts/code-map.ts src/system/services/project-workbench.ts
   bun scripts/code-map.ts <Linear UUID-or-URL> --json
   bun scripts/code-map.ts --check [--json]
 

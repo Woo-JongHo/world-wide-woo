@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import type { ObservabilityDashboard } from "../src/domain/observability-dashboard";
-import type { RuntimeMonitorProjection } from "../src/domain/runtime-monitor";
-import { ObservabilityDashboardView } from "../src/presentation/tui/observability-dashboard-view";
-import { RuntimeMonitorView } from "../src/presentation/tui/runtime-monitor-view";
+import type { ObservabilityDashboard } from "../src/system/contracts/observability-dashboard";
+import type { RuntimeMonitorProjection } from "../src/system/contracts/runtime-monitor";
+import { ObservabilityDashboardView } from "../src/tui/observability/observability-dashboard-view";
+import { RuntimeMonitorView } from "../src/tui/observability/runtime-monitor-view";
 
 const dashboard: ObservabilityDashboard = {
 	coverage:{state:"observed",observedFrom:"2026-09-01T00:00:00Z",observedUntil:"2026-09-03T00:00:00Z",streamsRead:3,skippedStreams:0},

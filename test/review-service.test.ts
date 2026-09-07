@@ -4,11 +4,11 @@ import { mkdtemp, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Api, AssistantMessage, AssistantMessageEventStream, Context, Model, ModelsSimpleStreamOptions } from "@earendil-works/pi-ai";
-import { ReviewService } from "../src/application/review-service";
-import { createReviewPacket } from "../src/domain/review";
-import { redactForExternalReview } from "../src/domain/redaction";
-import { CLAUDE_OPUS_REVIEW_MODEL, CLAUDE_CLI_REVIEW_INPUT_LIMIT, ClaudeCliReviewAdapter, ClaudeCliReviewError, GEMINI_REVIEW_MODEL, PiReviewGenerationClient, ProviderReviewAdapter, createProductionReviewAdapters, createReviewAdapters, createSystemClaudeCliRunner, sha256ReviewDigest } from "../src/infrastructure/review-adapters";
-import { FileReviewProvenanceStore } from "../src/infrastructure/review-store";
+import { ReviewService } from "../src/system/services/review-service";
+import { createReviewPacket } from "../src/system/contracts/review";
+import { redactForExternalReview } from "../src/system/contracts/redaction";
+import { CLAUDE_OPUS_REVIEW_MODEL, CLAUDE_CLI_REVIEW_INPUT_LIMIT, ClaudeCliReviewAdapter, ClaudeCliReviewError, GEMINI_REVIEW_MODEL, PiReviewGenerationClient, ProviderReviewAdapter, createProductionReviewAdapters, createReviewAdapters, createSystemClaudeCliRunner, sha256ReviewDigest } from "../src/system/adapters/review-adapters";
+import { FileReviewProvenanceStore } from "../src/system/adapters/review-store";
 
 const directories: string[] = [];
 afterEach(async () => { await Promise.all(directories.splice(0).map(path => rm(path, { recursive: true, force: true }))); });

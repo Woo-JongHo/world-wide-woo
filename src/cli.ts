@@ -1,8 +1,8 @@
 #!/usr/bin/env bun
 
 import type { RunAppOptions } from "./app";
-import type { NativeThreadSummary } from "./domain/native-session";
-import type { RunLegacyRouterOptions } from "./legacy-router-app";
+import type { NativeThreadSummary } from "./system/public.js";
+import type { RunLegacyRouterOptions } from "./tui/legacy/router-app";
 import { PRODUCT_VERSION } from "./product-version";
 
 export interface CliDependencies {
@@ -25,7 +25,7 @@ const productionDependencies: CliDependencies = {
 	},
 	runRouter: async (options) => {
 		writeRouterBootstrap();
-		const { runLegacyRouter } = await import("./legacy-router-app");
+		const { runLegacyRouter } = await import("./app");
 		await runLegacyRouter(options);
 	},
 	runAuth: async (args) => {
@@ -33,8 +33,8 @@ const productionDependencies: CliDependencies = {
 		await runAuth(args);
 	},
 	runDevelopment: async args => {
-		const { runDevelopmentCli } = await import("./infrastructure/development-cli");
-		return runDevelopmentCli(args);
+		const { runDevelopment } = await import("./app.js");
+		return runDevelopment(args);
 	},
 	listSessions: async () => {
 		const { listSessions } = await import("./app");
@@ -45,7 +45,7 @@ const productionDependencies: CliDependencies = {
 		return listNativeThreads();
 	},
 	selectNativeThread: async (threads) => {
-		const { selectNativeThread } = await import("./presentation/tui/native-thread-picker");
+		const { selectNativeThread } = await import("./tui/shell/native-thread-picker");
 		return selectNativeThread(threads);
 	},
 	writeOut: value => console.log(value),

@@ -1,0 +1,118 @@
+{
+  "status": "BLOCKED_EXTERNAL_LINEAR_ACQUISITION",
+  "runId": "traceability-validation-v010-capability-20260907",
+  "runPurpose": "traceability-validation",
+  "sourceState": "dirty-worktree",
+  "sourceRevision": "worktree:f963a587d8a48ca7f14328be001533b8eb984458:dirty",
+  "issue": "WOO-842",
+  "scope": {
+    "unitKeys": [
+      "Code-001",
+      "Code-002",
+      "Code-003",
+      "Code-004",
+      "Code-005",
+      "Code-006",
+      "Code-007",
+      "Code-008",
+      "Code-009",
+      "Code-010",
+      "Code-011",
+      "Code-012",
+      "Code-013"
+    ],
+    "newUnitIds": 0,
+    "units": 13,
+    "issues": 37,
+    "notes": 37,
+    "edges": 218,
+    "logicalDigest": "985e7f0f8b62f9c3a478b5a1c0da91780f862fc3309d30083f64b20a1f6665c0",
+    "projectionDigest": "afdda3b733770acf72c74cc7e056560d138512693be0e2e7b2a3a2f33e2ce2fd"
+  },
+  "externalBoundary": {
+    "issueWrite": "verified-by-mcp-readback",
+    "issueReadback": "post-write-mcp-readback",
+    "completeLinearSnapshot": "unavailable",
+    "connectedConnectorReadback": "mcp__linear_woo matched",
+    "obsidianLinkPatch": "executed-and-read-back"
+  },
+  "checks": [
+    {
+      "command": "bun run check",
+      "status": "PASS"
+    },
+    {
+      "command": "bun test",
+      "status": "PASS",
+      "tests": 780,
+      "failures": 0,
+      "assertions": 6572,
+      "files": 86
+    },
+    {
+      "command": "bun scripts/code-map.ts --check",
+      "status": "PASS",
+      "references": 264,
+      "links": 211,
+      "linearDeclarations": 66
+    },
+    {
+      "command": "local validateTraceability without Linear snapshot",
+      "status": "PASS",
+      "units": 13,
+      "issues": 37,
+      "notes": 37,
+      "edges": 218
+    },
+    {
+      "command": "bun run traceability:rebuild",
+      "status": "PASS",
+      "entities": 90,
+      "edges": 218
+    },
+    {
+      "command": "bun run development-map:build twice && bun run development-map:check",
+      "status": "PASS",
+      "issues": 37,
+      "repeatBuildSha256": "1b45cbf89c7e7c7f71f7ecf849f55bcdce50aaf8b014e6343d8945ce37798999"
+    },
+    {
+      "command": "actual Vault byte readback",
+      "status": "PASS",
+      "notes": 37,
+      "manifest": ".www/evidence/v020-traceability/obsidian-export-manifest.json"
+    },
+    {
+      "command": "bun run traceability:check",
+      "status": "BLOCKED",
+      "reason": "complete Linear snapshot and external acquisition receipt are absent"
+    },
+    {
+      "command": "bun run release:gate -- --platform-check",
+      "status": "PASS",
+      "platform": "darwin"
+    },
+    {
+      "command": "bun run release:gate",
+      "status": "BLOCKED",
+      "reason": "ST-011-06 through ST-011-13 evidence files are absent"
+    },
+    {
+      "command": "repeat traceability rebuild and Development Map build",
+      "status": "PASS",
+      "gitStatusStable": true,
+      "gitDiffStable": true
+    },
+    {
+      "command": "changed-file fake-completion scan",
+      "status": "PASS",
+      "syntacticTodoFixme": 0,
+      "testSkipOnly": 0,
+      "conflictMarkers": 0
+    },
+    {
+      "command": "git diff --check",
+      "status": "PASS"
+    }
+  ]
+}

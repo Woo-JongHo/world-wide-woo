@@ -160,7 +160,7 @@ EP-001~009는 Planning Package v1 이전의 legacy projection이라 Initiative m
 | 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-chat-development/assessment.md<br>.www/evidence/v020-traceability/verification.json | WOO-690 | Code-002 | WOO-690 | #46 (Chat v0.1 code) | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
 | 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-chat-development/assessment.md<br>.www/evidence/v020-traceability/verification.json | WOO-691 | Code-001<br>Code-002 | WOO-691 | #46 (Chat v0.1 code) | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
 | 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-chat-development/assessment.md<br>.www/evidence/v020-traceability/verification.json | WOO-692 | Code-001<br>Code-002<br>Code-003<br>Code-004<br>Code-005 | WOO-692 | #46 (Chat v0.1 code) | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-695 | Code-006<br>Code-007 | WOO-695 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-07-code-map-implementation/receipt.md<br>.www/evidence/v020-traceability/verification.json | WOO-695 | Code-006<br>Code-007 | WOO-695 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
 | 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-696 | Code-008 | WOO-696 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
 | 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-697 | Code-008 | WOO-697 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
 | 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-698 | Code-007 | WOO-698 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
@@ -187,5 +187,6 @@ EP-001~009는 Planning Package v1 이전의 legacy projection이라 Initiative m
 | 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-724 | Code-012 | WOO-724 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
 | 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-725 | Code-013 | WOO-725 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
 | 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-726 | Code-013 | WOO-726 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | .www/evidence/v010-capability-migration/verification.json | WOO-842 | Code-001<br>Code-002<br>Code-003<br>Code-004<br>Code-005<br>Code-006<br>Code-007<br>Code-008<br>Code-009<br>Code-010<br>Code-011<br>Code-012<br>Code-013 | WOO-842 | 미연결 | traceability-validation-v010-capability-20260907 | 연결됨 | 수락 상태 확인 |
 
 <!-- traceability:generated:end -->

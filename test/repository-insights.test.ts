@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
 	GitHubRepositoryInsights,
 	type RepositoryCommandRunner,
-} from "../src/infrastructure/repository-insights";
+} from "../src/system/adapters/repository-insights";
 
 const commit = "a".repeat(40);
 

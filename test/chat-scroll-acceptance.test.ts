@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences, type Component } from "@earendil-works/pi-tui";
 import { renderLayoutFrame } from "@earendil-works/pi-tui/dist/layout.js";
-import { createDashboardLayout } from "../src/presentation/tui/dashboard-layout";
+import { createDashboardLayout } from "../src/tui/layout/dashboard-layout";
 
 class WrappingMessages implements Component {
 	constructor(public messages: string[]) {}

@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import type { WorkbenchSnapshot } from "../src/domain/workbench";
-import { projectWorkFlow } from "../src/domain/work/index";
-import { WorkbenchChatView } from "../src/presentation/tui/workbench-views";
+import type { WorkbenchSnapshot } from "../src/system/contracts/workbench";
+import { projectWorkFlow } from "../src/system/contracts/work/index";
+import { WorkbenchChatView } from "../src/tui/chat/workbench-views";
 
 function activity(id: string, sequence: number, turnId: string, itemId = id) {
 	return {

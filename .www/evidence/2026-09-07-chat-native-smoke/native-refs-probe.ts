@@ -1,7 +1,7 @@
 import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { CodexAppServer, StdioJsonLineTransport } from "../../../src/infrastructure/executors/codex-app-server";
+import { CodexAppServer, StdioJsonLineTransport } from "../../../src/system/adapters/executors/codex-app-server";
 const cwd = await mkdtemp(join(tmpdir(), "www-native-refs-"));
 const raw: unknown[] = [], adapted: unknown[] = [];
 const transport = new StdioJsonLineTransport();

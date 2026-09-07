@@ -48,7 +48,7 @@ Pi 역시 `pi-ai`, `pi-agent-core`, `pi-coding-agent`, `pi-tui`를 분리하고 
 
 Senpi는 스스로 Pi의 opinionated fork임을 밝히고 core 수정은 `changes.md`로 추적한다. permission system, todo continuation, goal, model preset, compaction 등을 builtin으로 넣어 Pi의 조립식 기반을 일상용 제품으로 좁힌다. [Senpi README](https://github.com/code-yeongyu/senpi/blob/f91130e0fa3c8f3db5a60301878cd3e0c5a869b7/README.md)
 
-WWW는 `src/domain → application → infrastructure → presentation/tui` 경계를 두고 pi-tui를 presentation engine으로만 쓴다. 이 선택은 올바르다. 다만 `patches/@earendil-works%2Fpi-tui@0.84.4.patch`가 있으므로 upstream engine과의 차이를 명시적으로 관리해야 한다.
+WWW는 `system/contracts → system/services → system/adapters` seam과 `tui`, `workflows` 경계를 두고 pi-tui를 TUI engine으로만 쓴다. 이 선택은 올바르다. 다만 `patches/@earendil-works%2Fpi-tui@0.84.4.patch`가 있으므로 upstream engine과의 차이를 명시적으로 관리해야 한다.
 
 ## 3. 실제 화면 구조
 

@@ -1,0 +1,40 @@
+{
+  "artifactKind": "linear-issue-write-readback",
+  "schemaVersion": 1,
+  "receivedAt": "2026-09-07T12:11:51Z",
+  "provenance": "primary-agent mcp__linear_woo post-write readback",
+  "issue": {
+    "identifier": "WOO-842",
+    "uuid": "30006fd3-0381-4b33-a2aa-edd90b560529",
+    "url": "https://linear.app/woo-world/issue/WOO-842/코드-탐색-구조를-tuisystemworkflow-책임으로-이관한다",
+    "title": "코드 탐색 구조를 TUI·System·Workflow 책임으로 이관한다",
+    "parent": {
+      "identifier": "WOO-672",
+      "uuid": "ae97b5d7-b0db-49ad-a70d-8aeaf79e350d"
+    },
+    "project": {
+      "name": "World Wide Woo",
+      "uuid": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+    },
+    "milestone": {
+      "name": "v0.1.0",
+      "uuid": "193948f7-2a11-4110-a143-360d83f2a076"
+    },
+    "state": "Backlog",
+    "labels": [
+      "System",
+      "Improvement"
+    ],
+    "relatedIdentifiers": [
+      "WOO-671",
+      "WOO-673"
+    ]
+  },
+  "verification": {
+    "write": "completed",
+    "identityAndPlacement": "verified-by-mcp-readback",
+    "descriptionReadback": "verified-including-obsidian-link",
+    "completeWorkspacePagination": "not-included-in-received-data",
+    "parentChildrenPagination": "verified-hasNextPage-false"
+  }
+}

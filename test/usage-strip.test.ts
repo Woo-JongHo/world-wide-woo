@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import { UsageStripView } from "../src/presentation/tui/usage-strip-view";
+import { UsageStripView } from "../src/tui/workbench/usage-strip-view";
 
 test("주간 잔여 비율과 초기화까지 남은 기간만 표시한다", () => {
 	const now = Date.now();

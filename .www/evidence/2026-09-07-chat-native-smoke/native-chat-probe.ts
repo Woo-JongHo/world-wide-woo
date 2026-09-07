@@ -1,11 +1,11 @@
 import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { CodexAppServer } from "../../../src/infrastructure/executors/codex-app-server";
-import { ProjectWorkbench, type WorkbenchActivityJournal } from "../../../src/application/project-workbench";
-import type { ExecutorPort } from "../../../src/application/ports/executor-port";
-import type { ProjectActivity, ProjectActivityInput, ProjectActivityAppendResult } from "../../../src/domain/project-activity";
-import { WorkbenchChatView } from "../../../src/presentation/tui/workbench-views";
+import { CodexAppServer } from "../../../src/system/adapters/executors/codex-app-server";
+import { ProjectWorkbench, type WorkbenchActivityJournal } from "../../../src/system/services/project-workbench";
+import type { ExecutorPort } from "../../../src/system/contracts/ports/executor-port";
+import type { ProjectActivity, ProjectActivityInput, ProjectActivityAppendResult } from "../../../src/system/contracts/project-activity";
+import { WorkbenchChatView } from "../../../src/tui/chat/workbench-views";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
 class Journal implements WorkbenchActivityJournal {
  records: ProjectActivity[] = [];

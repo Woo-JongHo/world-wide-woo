@@ -1,6 +1,6 @@
 import { cpus, platform, release } from "node:os";
-import { projectWorkFlow } from "../src/domain/work-steps";
-import { WorkbenchChatView } from "../src/presentation/tui/workbench-views";
+import { projectWorkFlow } from "../src/system/contracts/work/index";
+import { WorkbenchChatView } from "../src/tui/chat/workbench-views";
 
 const count = 5_000;
 const activities = Array.from({ length: count }, (_, index) => ({

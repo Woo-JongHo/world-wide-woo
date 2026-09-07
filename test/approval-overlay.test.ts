@@ -5,9 +5,9 @@ const UP = "\x1b[A";
 const DOWN = "\x1b[B";
 const ENTER = "\r";
 const ESC = "\x1b";
-import type { NativeApprovalRequest } from "../src/domain/native-session";
-import type { WorkbenchApprovalDecision } from "../src/domain/workbench";
-import { ApprovalOverlay } from "../src/presentation/tui/approval-overlay";
+import type { NativeApprovalRequest } from "../src/system/contracts/native-session";
+import type { WorkbenchApprovalDecision } from "../src/system/contracts/workbench";
+import { ApprovalOverlay } from "../src/tui/overlays/approval-overlay";
 
 function request(overrides: Partial<NativeApprovalRequest> = {}): NativeApprovalRequest {
 	return {

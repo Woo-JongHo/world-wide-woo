@@ -1,0 +1,20 @@
+{
+  "artifactKind": "linear-issue-write-draft",
+  "schemaVersion": 1,
+  "createdAt": "2026-09-07T09:31:29Z",
+  "sourceRevision": "worktree:f963a587d8a48ca7f14328be001533b8eb984458:dirty",
+  "status": "applied",
+  "appliedIssue": "WOO-842",
+  "title": "코드 탐색 구조를 TUI·System·Workflow 책임으로 이관한다",
+  "description": "## 목적\n\n개발자가 한 기능을 찾을 때 layer 폴더를 반복해서 횡단하고 공통 계약과 IO 구현의 경계가 흐려지는 문제를 없앤다.\n\n## 결과\n\n소스의 최상위 탐색 축이 TUI·System·Workflow로 일치하고, System 내부의 순수 계약과 IO adapter seam 및 기존 기능 동작이 함께 보존된다.\n\n## 범위\n\n### 포함\n\n- 기존 소스를 책임과 import graph에 따라 src/tui, src/system, src/workflows로 이관한다.\n- System·Workflow·TUI 공개 경계와 app.ts 단일 concrete composition 규칙을 자동 검사한다.\n- 기존 Code-ID identity와 테스트 동작을 보존하고 원장·SQLite·Development Map 경로를 갱신한다.\n\n### 제외\n\n- 범용 Workflow Engine 신설, legacy 기능 삭제, main 브랜치 릴리스 조작은 포함하지 않는다.\n- 상세 경로표·예외·rollback·테스트 출력은 Obsidian 상세 기록이 소유한다.\n\n## 동작\n\n1. 개발자는 TUI, System, Workflow 축에서 책임을 찾아 공개 interface를 통해 연결한다.\n2. System은 Workflow를 모르고, Workflow와 TUI는 System 공개 계약만 사용한다.\n3. 운영 adapter 선택과 legacy 포함 concrete wiring은 app.ts에서 조립된다.\n4. 전체 검사와 traceability projection 재구축으로 동작과 연결 정합을 확인한다.\n\n## 완료 조건\n\n- [ ] src 최상위 디렉터리는 tui, system, workflows뿐이고 이전 layer 디렉터리에 소스 파일이 없다.\n- [ ] architecture import graph와 기존 전체 테스트가 통과한다.\n- [ ] Code-001부터 Code-013까지 UUID와 symbol은 유지되고 location, SQLite, Development Map이 새 경로와 일치한다.\n- [ ] Linear readback과 실제 Obsidian Vault byte readback이 원장의 issue·note identity와 일치한다.\n\n## 연결\n\n- Code-ID: Code-001, Code-002, Code-003, Code-004, Code-005, Code-006, Code-007, Code-008, Code-009, Code-010, Code-011, Code-012, Code-013\n- Obsidian: [상세 기록](obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FTraceability%2Fv0.1.0-capability-architecture-migration.md)",
+  "target": {
+    "teamId": "95f279f5-cd73-49b6-a10e-b6cdab1e6d58",
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "milestoneId": "193948f7-2a11-4110-a143-360d83f2a076",
+    "parentId": "ae97b5d7-b0db-49ad-a70d-8aeaf79e350d",
+    "state": "Backlog",
+    "labels": ["System", "Improvement"],
+    "relatedIdentifiers": ["WOO-671", "WOO-673"]
+  },
+  "receiptPath": ".www/planning/inputs/V010_CAPABILITY_MIGRATION_LINEAR_READBACK.json"
+}

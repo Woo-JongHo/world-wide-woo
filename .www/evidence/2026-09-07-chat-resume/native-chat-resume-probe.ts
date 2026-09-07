@@ -2,10 +2,10 @@ import { createHash } from "node:crypto";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createProjectWorkbenchSession } from "../../../src/infrastructure/project-workbench-session.js";
-import { CodexAppServer } from "../../../src/infrastructure/executors/codex-app-server.js";
-import type { ExecutorPort } from "../../../src/application/ports/executor-port.js";
-import { WorkbenchChatView } from "../../../src/presentation/tui/workbench-views.js";
+import { createProjectWorkbenchSession } from "../../../src/system/services/project-workbench-session.js";
+import { CodexAppServer } from "../../../src/system/adapters/executors/codex-app-server.js";
+import type { ExecutorPort } from "../../../src/system/contracts/ports/executor-port.js";
+import { WorkbenchChatView } from "../../../src/tui/chat/workbench-views.js";
 import { stripTerminalSequences } from "@earendil-works/pi-tui";
 
 const evidenceDirectory = import.meta.dir;

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { PiHarness, type PiHarnessSdk, type PiSession } from "../src/infrastructure/executors/pi-harness.js";
-import { createNativeHarness, createProductionPiHarnessSdk, type PiSdkBindings } from "../src/infrastructure/executors/factory.js";
+import { PiHarness, type PiHarnessSdk, type PiSession } from "../src/system/adapters/executors/pi-harness.js";
+import { createNativeHarness, createProductionPiHarnessSdk, type PiSdkBindings } from "../src/system/adapters/executors/factory.js";
 import { assertPhaseANativeHarnessContract, assertPhaseATerminalContract, type NativeHarnessContractFixture } from "./native-harness.contract.js";
 
 class Deferred<T> {

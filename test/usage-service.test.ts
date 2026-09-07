@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { Credential, CredentialStore } from "@earendil-works/pi-ai";
-import { UsageService } from "../src/infrastructure/usage-service";
+import { UsageService } from "../src/system/adapters/usage-service";
 
 function store(entries: Record<string, Credential | undefined>): CredentialStore {
 	return {

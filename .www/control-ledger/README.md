@@ -1,5 +1,7 @@
 # 코드와 Linear ID 연결
 
+현재 관계 정본은 `traceability-v2.json`이다. 지속 기능은 `Code-NNN` key와 UUID를 가지며, 대표 선언의 `@Unit Code-NNN`과 원장 location을 AST로 대조한다. `traceability.json`은 기존 code/test/evidence 관계를 보존하는 schema v1 호환 원장이다. SQLite와 `Development-Map.md`는 두 원장에서 재구축되는 projection이며 독립 정본이 아니다.
+
 `traceability.json`은 ID·관계·위치만 보존하는 연결 원장이다. 요구사항과 현재 업무 상태는 Linear, 코드·테스트는 Git, 특정 실행의 관측 결과는 Evidence가 소유한다.
 
 ## 현재 연결
@@ -13,20 +15,20 @@
 - `evidence → evidences → linear-issue`: 대상 revision과 관측 결과의 근거.
 - WOO-692는 통합 수락 작업이므로 제품 코드 소유 없이 테스트·근거를 연결한다.
 
-Unit ID와 Linear 작업 ID는 별개다. 현재 v1은 Unit kind를 지원하지 않으므로 Unit을 발급하거나 WOO 번호로 대체하지 않았다. 기존 EP/ST도 자동 동치 연결하지 않는다.
+Unit ID와 Linear 작업 ID는 별개다. v2 원장은 Unit을 소유하고 v1 원장은 Unit kind를 지원하지 않는다. WOO 번호를 Unit으로 대체하거나 기존 EP/ST를 자동 동치 연결하지 않는다.
 
 ## 조회와 검증
 
 실제 함수·컴포넌트·테스트 선언에는 `@linear` 주석으로 WOO 작업 번호를 연결한다. 예를 들어 `createNativeSyntaxHighlightPlugin`은 WOO-686·WOO-691, `ProjectWorkbench.applyDelta`는 WOO-688에 연결돼 있다. UUID·URL은 원장에서 한 번 관리하며 각 함수에 복제하지 않는다.
 
-`rg -n '@linear' src test`로 코드 연결 지점을 찾는다. 무결성 테스트는 src/test의 주석을 읽어 등록되지 않은 이슈와 코드 경로의 연결 누락을 잡는다. 코드 주석은 개발 작업의 연결이며 런타임 메시지·Native item ID로 사용하지 않는다.
+`rg -n '@linear' src scripts test`로 코드 연결 지점을 찾는다. 무결성 검사는 실제 TypeScript comment AST를 읽어 등록되지 않은 이슈와 코드 경로의 연결 누락을 잡는다. 코드 주석은 개발 작업의 연결이며 런타임 메시지·Native item ID로 사용하지 않는다.
 
 주석은 대표 구현 선언에 붙인다. 원장에 연결한 모든 보조 파일에 주석이 있는 것은 아니며, 이 검사는 주석에서 원장으로의 연결을 검사한다.
 
 저장소 root에서 코드에 연결된 작업을 역조회한다.
 
 ```sh
-bun -e 'import data from "./.www/control-ledger/traceability.json"; import {parseWorkTraceabilityManifest, relatedWorkReferences, referenceKey} from "./src/domain/work/index.ts"; const m = parseWorkTraceabilityManifest(data); for (const r of relatedWorkReferences(m, {kind:"code", id:"src/presentation/tui/syntax-highlighter.ts"})) console.log(referenceKey(r));'
+bun -e 'import data from "./.www/control-ledger/traceability.json"; import {parseWorkTraceabilityManifest, relatedWorkReferences, referenceKey} from "./src/system/contracts/work/index.ts"; const m = parseWorkTraceabilityManifest(data); for (const r of relatedWorkReferences(m, {kind:"code", id:"src/tui/theme/syntax-highlighter.ts"})) console.log(referenceKey(r));'
 ```
 
 WOO-686과 WOO-691이 나온다. 같은 API에 원장에서 읽은 `linear-issue` reference를 주면 코드·테스트·근거를 조회할 수 있다. Linear reference에는 WOO 번호뿐 아니라 UUID·URL도 필요하다.

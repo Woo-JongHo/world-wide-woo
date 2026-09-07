@@ -5,16 +5,16 @@ import { join } from "node:path";
 import { createModels } from "@earendil-works/pi-ai";
 import { fauxAssistantMessage, fauxProvider, fauxToolCall } from "@earendil-works/pi-ai/providers/faux";
 import { Type } from "typebox";
-import type { WwwSettings } from "../src/domain/model-settings";
-import { ModelRouter } from "../src/infrastructure/model-router";
-import { buildSessionSystemPrompt, SessionRuntime } from "../src/application/session-runtime";
-import { SessionEventStore } from "../src/infrastructure/session-store";
-import type { AgentTool, ModelClient, TerminalCommandExecutor } from "../src/application/ports";
-import { TodoLedger } from "../src/application/todo-ledger";
-import { createProjectAgentTools } from "../src/infrastructure/agent-tools";
-import { FileTodoStore } from "../src/infrastructure/todo-store";
-import { createPlanningSnapshot } from "../src/domain/planning";
-import type { TerminalCommandResult } from "../src/domain/terminal";
+import type { WwwSettings } from "../src/system/contracts/model-settings";
+import { ModelRouter } from "../src/system/adapters/model-router";
+import { buildSessionSystemPrompt, SessionRuntime } from "../src/system/services/session-runtime";
+import { SessionEventStore } from "../src/system/adapters/session-store";
+import type { AgentTool, ModelClient, TerminalCommandExecutor } from "../src/system/contracts/ports";
+import { TodoLedger } from "../src/system/services/todo-ledger";
+import { createProjectAgentTools } from "../src/system/adapters/agent-tools";
+import { FileTodoStore } from "../src/system/adapters/todo-store";
+import { createPlanningSnapshot } from "../src/system/contracts/planning";
+import type { TerminalCommandResult } from "../src/system/contracts/terminal";
 
 const settings: WwwSettings = { provider: "openai", model: "gpt-5.4", effort: "high" };
 

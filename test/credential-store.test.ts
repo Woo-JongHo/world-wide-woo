@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { FileCredentialStore } from "../src/infrastructure/credential-store";
+import { FileCredentialStore } from "../src/system/adapters/credential-store";
 
 const directories: string[] = [];
 afterEach(async () => {

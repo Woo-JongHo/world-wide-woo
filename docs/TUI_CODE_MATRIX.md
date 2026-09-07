@@ -28,7 +28,7 @@
 | iTerm2 | `5ff63dade30865fe9faf2ac7003971dd55c46c88` | `sources/VT100`, `sources/TerminalView`, `sources/MetalRenderer`, `sources/StatusBar` |
 | Ghostty | `e8aa098674a42e2b4ed1b8c42f4224564ad9fc1e` | `src/terminal`, `src/renderer`, `src/apprt`, `macos/Sources` |
 | Oh My Zsh | `a5ecff7560b2e26f612032c632a12c75a3048bd0` | `oh-my-zsh.sh`, `lib`, `plugins`, `themes`, `tools` |
-| WWW | 현재 저장소 main | `src/domain`, `src/application`, `src/infrastructure`, `src/presentation/tui` |
+| WWW | 현재 저장소 dev 계열 | `src/tui`, `src/system`, `src/workflows` |
 
 ## 3. Terminal host와 renderer
 

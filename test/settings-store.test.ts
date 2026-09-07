@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { mkdtemp, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { WwwSettings } from "../src/domain/model-settings";
-import { FileSettingsStore, routerSettingsPath, settingsPath } from "../src/infrastructure/settings-store";
+import type { WwwSettings } from "../src/system/contracts/model-settings";
+import { FileSettingsStore, routerSettingsPath, settingsPath } from "../src/system/adapters/settings-store";
 
 const codex: WwwSettings = { provider: "openai-codex", model: "gpt-5.6-sol", effort: "high" };
 const claude: WwwSettings = { provider: "anthropic", model: "claude-opus-4-6", effort: "ultra" };

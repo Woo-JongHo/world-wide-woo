@@ -5,14 +5,14 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { TraceabilityLedger } from "../src/domain/development-traceability";
-import { nextUnitKey, validateLedger } from "../src/domain/development-traceability";
-import { parseWorkTraceabilityManifest } from "../src/domain/work/traceability";
-import { buildDevelopmentMap, issuesForWorkReference } from "../src/infrastructure/development-map-builder";
-import { digestLedger } from "../src/infrastructure/development-traceability-digest";
-import { DevelopmentStore } from "../src/infrastructure/development-store";
-import { validateTraceability } from "../src/infrastructure/traceability-validator";
-import { assertRepositoryReferencesExist } from "../src/infrastructure/work-reference-validator";
+import type { TraceabilityLedger } from "../src/system/contracts/development-traceability";
+import { nextUnitKey, validateLedger } from "../src/system/contracts/development-traceability";
+import { parseWorkTraceabilityManifest } from "../src/system/contracts/work/traceability";
+import { buildDevelopmentMap, issuesForWorkReference } from "../src/workflows/tui-development/adapters/development-map-builder";
+import { digestLedger } from "../src/workflows/tui-development/adapters/traceability-digest";
+import { DevelopmentStore } from "../src/workflows/tui-development/adapters/development-store";
+import { validateTraceability } from "../src/workflows/tui-development/adapters/traceability-validator";
+import { assertRepositoryReferencesExist } from "../src/system/adapters/work-reference-validator";
 import { runTraceability } from "../scripts/traceability";
 
 const roots: string[] = [];
@@ -73,6 +73,10 @@ describe("schema-v2 development traceability", () => {
 		expect(validateLedger(duplicate, digestLedger(duplicate)).some(error => error.includes("duplicate Unit location"))).toBeTrue();
 		const duplicateEdge = structuredClone(ledger); duplicateEdge.edges.push(duplicateEdge.edges[0]!); duplicateEdge.payloadDigest = digestLedger(duplicateEdge);
 		expect(validateLedger(duplicateEdge, digestLedger(duplicateEdge)).some(error => error.includes("duplicate edge"))).toBeTrue();
+		const sluglessUrl = structuredClone(ledger); sluglessUrl.issues[0]!.url = "https://linear.app/woo/issue/WOO-1"; sluglessUrl.payloadDigest = digestLedger(sluglessUrl);
+		expect(validateLedger(sluglessUrl, digestLedger(sluglessUrl))).toEqual([]);
+		const wrongIssueUrl = structuredClone(ledger); wrongIssueUrl.issues[0]!.url = "https://linear.app/woo/issue/WOO-10"; wrongIssueUrl.payloadDigest = digestLedger(wrongIssueUrl);
+		expect(validateLedger(wrongIssueUrl, digestLedger(wrongIssueUrl))).toContain("invalid Linear identity: WOO-1");
 	});
 
 	test("uses AST declarations and actual note frontmatter while rejecting mutations", async () => {

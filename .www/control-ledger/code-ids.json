@@ -7,7 +7,7 @@
       "name": "Chat 표시",
       "locations": [
         {
-          "path": "src/presentation/tui/workbench-views.ts",
+          "path": "src/tui/chat/workbench-views.ts",
           "symbol": "WorkbenchChatView",
           "members": [
             "update",
@@ -34,7 +34,7 @@
       "name": "Chat 대화 수명",
       "locations": [
         {
-          "path": "src/application/project-workbench.ts",
+          "path": "src/system/services/project-workbench.ts",
           "symbol": "ProjectWorkbench"
         }
       ],
@@ -55,7 +55,7 @@
       "name": "Chat 읽던 위치",
       "locations": [
         {
-          "path": "src/presentation/tui/dashboard-layout.ts",
+          "path": "src/tui/layout/dashboard-layout.ts",
           "symbol": "ChatScrollView"
         }
       ],
@@ -72,7 +72,7 @@
       "name": "Chat 입력과 Source 이동",
       "locations": [
         {
-          "path": "src/presentation/tui/workbench-shell.ts",
+          "path": "src/tui/shell/workbench-shell.ts",
           "symbol": "runProjectWorkbenchShell"
         }
       ],
@@ -90,7 +90,7 @@
       "name": "Chat 요약의 thread 범위",
       "locations": [
         {
-          "path": "src/infrastructure/project-workbench-session.ts",
+          "path": "src/system/services/project-workbench-session.ts",
           "symbol": "ThreadScopedTNoteSource"
         }
       ],

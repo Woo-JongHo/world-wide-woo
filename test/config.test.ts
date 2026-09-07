@@ -2,8 +2,8 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { DEFAULT_SETTINGS, normalizeSettings } from "../src/domain/model-settings";
-import { FileSettingsStore } from "../src/infrastructure/settings-store";
+import { DEFAULT_SETTINGS, normalizeSettings } from "../src/system/contracts/model-settings";
+import { FileSettingsStore } from "../src/system/adapters/settings-store";
 
 const paths: string[] = [];
 afterEach(async () => {

@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import type { ProjectActivity } from "../src/domain/project-activity";
-import type { WorkFlowProjection } from "../src/domain/work/index";
-import type { TodoDocument } from "../src/domain/todos";
-import { WorkspaceTodoView } from "../src/presentation/tui/shared-dashboard-views";
+import type { ProjectActivity } from "../src/system/contracts/project-activity";
+import type { WorkFlowProjection } from "../src/system/contracts/work/index";
+import type { TodoDocument } from "../src/system/contracts/todos";
+import { WorkspaceTodoView } from "../src/tui/workbench/shared-dashboard-views";
 
 function todo(items: TodoDocument["items"]): TodoDocument {
 	return {

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { createPlanningSnapshot, sanitizePlanningText } from "../src/domain/planning";
+import { createPlanningSnapshot, sanitizePlanningText } from "../src/system/contracts/planning";
 
 const createdAt = "2026-08-31T11:24:24.000Z";
 const epic = { id: "EP-010", title: "Planning", goal: "Keep intent", createdAt };
