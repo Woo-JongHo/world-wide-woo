@@ -88,6 +88,43 @@ describe("CodexAppServer", () => {
 		await server.close();
 	});
 
+	test("projects MCP tool elicitations as approvals and answers with the elicitation protocol", async () => {
+		const { server, transport } = await connectedFake();
+		const events: unknown[] = [];
+		server.subscribe(event => events.push(event));
+		transport.emit({
+			id: "mcp-approval-1",
+			method: "mcpServer/elicitation/request",
+			params: {
+				threadId: "thread-native-1",
+				turnId: "turn-native-1",
+				serverName: "linear-woo",
+				mode: "form",
+				message: 'Allow the linear-woo MCP server to run tool "save_comment"?',
+				requestedSchema: { type: "object", properties: {} },
+				_meta: { codex_approval_kind: "mcp_tool_call", tool_title: "Save comment" },
+			},
+		});
+		expect(events.at(-1)).toEqual(expect.objectContaining({
+			type: "approval-requested",
+			approval: expect.objectContaining({
+				requestId: "mcp-approval-1",
+				kind: "mcp-tool",
+				availableDecisions: ["accept", "decline", "cancel"],
+			}),
+		}));
+
+		const response = server.respondToApproval({ requestId: "mcp-approval-1", response: { decision: "accept" } });
+		await Bun.sleep(0);
+		expect(transport.sent.at(-1)).toEqual({
+			id: "mcp-approval-1",
+			result: { action: "accept", content: {}, _meta: null },
+		});
+		transport.emit({ method: "serverRequest/resolved", params: { requestId: "mcp-approval-1" } });
+		await response;
+		await server.close();
+	});
+
 	test("writes escaped MCP enablement config and reloads through supported protocol methods", async () => {
 		const { server, transport } = await connectedFake();
 

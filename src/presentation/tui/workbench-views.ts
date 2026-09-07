@@ -91,7 +91,7 @@ function boundedWorkbenchMarkdown(text: string): string {
 export function approvalKindLabel(kind: NativeApprovalRequest["kind"]): string {
 	if (kind === "command") return "명령";
 	if (kind === "file-change") return "파일 변경";
-	return "권한";
+	return kind === "mcp-tool" ? "MCP 도구" : "권한";
 }
 
 export function approvalParamText(request: NativeApprovalRequest, key: string): string | null {
@@ -105,13 +105,14 @@ export function approvalParamText(request: NativeApprovalRequest, key: string): 
 export function approvalFallback(request: NativeApprovalRequest): string {
 	if (request.kind === "command") return "명령 실행에 승인이 필요합니다.";
 	if (request.kind === "file-change") return "파일 변경에 승인이 필요합니다.";
+	if (request.kind === "mcp-tool") return approvalParamText(request, "message") ?? "MCP 도구 실행에 승인이 필요합니다.";
 	return "추가 권한이 필요합니다.";
 }
 
 export function approvalDetailLabel(request: NativeApprovalRequest): string {
 	if (request.kind === "command") return "명령";
 	if (request.kind === "file-change") return "변경";
-	return "권한";
+	return request.kind === "mcp-tool" ? "요청" : "권한";
 }
 
 function approvalInstruction(request: NativeApprovalRequest): string {

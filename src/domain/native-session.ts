@@ -200,7 +200,7 @@ export interface NativeTurnInterrupt {
 	turnId: string;
 }
 
-export type NativeApprovalKind = "command" | "file-change" | "permissions";
+export type NativeApprovalKind = "command" | "file-change" | "permissions" | "mcp-tool";
 export type NativeApprovalDecision = "accept" | "acceptForSession" | "decline" | "cancel" | Readonly<Record<string, unknown>>;
 
 export interface NativeApprovalRequest {
