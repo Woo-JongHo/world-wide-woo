@@ -1,0 +1,36 @@
+WORLD WIDE WOO · SESSION STATS                                                  
+local session · OBSERVED · coverage fresh Purpose —                             
+ROOT OUTCOMES · completed 0 · failed 0 · cancelled 0 · active 0 · boundary-only 
+0                                                                               
+────────────────────────────────────────────────────────────────────────────────
+ROOT COMPLETION                          JOURNAL SPAN                           
+—                                        0ms                                    
+0/0 root turns                           observed activity range                
+TOKENS                                   REQUESTS                               
+—                                        0                                      
+usage unobserved                         submitted requests                     
+FIRST OUTPUT AVG                                                                
+—                                                                               
+0/0 root turns                                                                  
+ MODEL USAGE ───────────────────────────────────────────────────────────────────
+Coverage · interactive unobserved · detached unobserved                         
+Token usage unobserved.                                                         
+ PERFORMANCE ───────────────────────────────────────────────────────────────────
+ROOT TURN AVG                            PAIRED TOOL TIME                       
+—                                        —                                      
+0/0 completed pairs                      0 paired calls                         
+FIRST OUTPUT AVG                         TOKENS / ROOT TURN                     
+—                                        —                                      
+0/0 root turns                           interactive usage unobserved           
+APPROVAL WAIT                            ROOT COMPLETION                        
+—                                        —                                      
+0 paired approvals                       0/0 root turns                         
+────────────────────────────────────────────────────────────────────────────────
+                                                                                
+────────────────────────────────────────────────────────────────────────────────
+Session Review · 목적·결과·성능과 요청 검토                                     
+⑂ – · 📁 ~/var/folders/mg/06v1fkqx341gsjxv_l0l3kcw0000gp/T/www-native-chat-Q4...
+Codex  7d 확인 중                                                               
+Claude 7d 확인 중                                                               
+       5h 확인 중                                                               
+Gemini 7d —                                                                     

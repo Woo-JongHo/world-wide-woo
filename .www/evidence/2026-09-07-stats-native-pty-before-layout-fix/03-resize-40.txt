@@ -1,0 +1,36 @@
+WORLD WIDE WOO · SESSION STATS          
+01a0775d-48c5-7e30-8182-689d72d67e6c ...
+────────────────────────────────────────
+ROOT COMPLETION      JOURNAL SPAN       
+100%                 11.1s              
+1/1 root turns       observed activit...
+TOKENS               REQUESTS           
+24.7k                1                  
+observed namespaces  submitted requests 
+FIRST OUTPUT AVG                        
+6s                                      
+1/1 root turns                          
+ MODEL USAGE ───────────────────────────
+Coverage · interactive observed ·       
+detached unobserved                     
+sol        ██████  100%  24.7k  1 turns 
+ PERFORMANCE ───────────────────────────
+ROOT TURN AVG        PAIRED TOOL TIME   
+6.3s                 —                  
+1/1 completed pairs  0 paired calls     
+FIRST OUTPUT AVG     TOKENS / ROOT TURN 
+6s                   24.7k              
+1/1 root turns       interactive toke...
+APPROVAL WAIT        ROOT COMPLETION    
+—                    100%               
+0 paired approvals   1/1 root turns     
+Elapsed pairs use local journal start → 
+────────────────────────────────────────
+                                        
+────────────────────────────────────────
+Session Review · 목적·결과·성능과 요... 
+⑂ – · 📁 ~/var/folders/mg/06v1fkqx341...
+Codex  7d 확인 중            ● Sol i1   
+Claude 7d 확인 중                       
+       5h 확인 중                       
+Gemini 7d —                             

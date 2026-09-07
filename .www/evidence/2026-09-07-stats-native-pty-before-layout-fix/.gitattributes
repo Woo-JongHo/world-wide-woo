@@ -1,0 +1,3 @@
+# 터미널 캡처의 제어 바이트와 열 패딩을 원본대로 보존한다.
+terminal.ansi binary
+*.txt -whitespace

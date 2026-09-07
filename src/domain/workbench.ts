@@ -61,8 +61,20 @@ export interface WorkbenchModelUsage {
 /** Tokens observed after this WWW process attached; this is not subscription quota. */
 export interface WorkbenchSessionUsage {
 	readonly totalTokens: number;
+	/**
+	 * Total tokens observed by this WWW process. A resumed thread has no comparable
+	 * baseline until a second cumulative Native reading arrives, so that state is
+	 * null rather than an observed zero.
+	 */
+	readonly observedTotalTokens: number | null;
 	readonly unattributedTokens: number;
 	readonly models: readonly WorkbenchModelUsage[];
+	readonly observationCoverage: {
+		/** At least one comparable Native cumulative usage reading was observed after the session baseline. */
+		readonly interactive: boolean;
+		/** At least one detached model invocation reported usage, including an observed zero. */
+		readonly detached: boolean;
+	};
 }
 
 export interface WorkbenchSessionGoal {

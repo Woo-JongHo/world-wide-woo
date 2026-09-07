@@ -1,0 +1,11 @@
+{
+  "src/application/session/session-usage-tracker.ts": "8f4c4a7987b4a03dd4830d4628597d38343cc18e6f5872fa177c5058fd9c0dbb",
+  "src/domain/session-stats.ts": "4ffc0c04262ebc7efa2f71d8424533e3bae3d8976b485da263b30f4b7c725a65",
+  "src/domain/workbench.ts": "1ba0cb218734000da6c4759d5504bb6a57383f66d6185346d20bbe4ad9ea3d1a",
+  "src/presentation/tui/session-stats-view.ts": "4e3caf79bf77b856ba99b553979784692df2e575634b69f7bb65afb1e2ba5eb5",
+  "test/observability-dashboard.test.ts": "129ea5c6d9b28452f3c03658a05de359000ebab8c6e56809df9a496621aa5470",
+  "test/project-workbench.test.ts": "cbdd4a4a6f5d35b367e9ff5f61281fbc076632dd4da442597c94daaf85f1575a",
+  "test/session-stats-view.test.ts": "20b7938149ef1fd72a2f3cd1696314d89e97bfddf02662b9b414f22ce3d457dd",
+  "test/session-stats.test.ts": "484037669045cdc23b4dec780ac974854fe666254781ad11a0f036e81500cedc",
+  "test/workbench-telemetry.test.ts": "329517d8b35a092b837539906c9aa2b1a0b62a265c46686e5520a9ce3ae014b4"
+}
