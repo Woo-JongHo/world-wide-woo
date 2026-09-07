@@ -1,0 +1,40 @@
+{
+  "artifactKind": "linear-issue-description-patch",
+  "schemaVersion": 1,
+  "status": "executed-and-read-back",
+  "issue": {
+    "identifier": "WOO-842",
+    "uuid": "30006fd3-0381-4b33-a2aa-edd90b560529"
+  },
+  "request": {
+    "tool": "mcp__linear_woo__save_issue",
+    "arguments": {
+      "id": "WOO-842",
+      "patch": [
+        {
+          "op": "replace",
+          "old_string": "* Obsidian: 상세 기록 연결 예정",
+          "new_string": "* Obsidian: [상세 기록](obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FTraceability%2FWOO-842.md)"
+        }
+      ]
+    }
+  },
+  "preserve": [
+    "title",
+    "parentId",
+    "project",
+    "projectMilestone",
+    "state",
+    "labels",
+    "priority",
+    "relations",
+    "all description text except the exact Obsidian line"
+  ],
+  "requiredPostWriteReadback": {
+    "identifier": "WOO-842",
+    "uuid": "30006fd3-0381-4b33-a2aa-edd90b560529",
+    "expectedObsidianUri": "obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FTraceability%2FWOO-842.md"
+  },
+  "executedAt": "2026-09-07T12:11:51Z",
+  "postWriteReadback": "matched"
+}

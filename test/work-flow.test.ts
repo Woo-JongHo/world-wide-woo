@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import type { ProjectActivity } from "../src/domain/project-activity";
-import { type DplanHash, DplanIdentityCollisionError, projectWorkFlow } from "../src/domain/work/index";
+import type { ProjectActivity } from "../src/system/contracts/project-activity";
+import { type DplanHash, DplanIdentityCollisionError, projectWorkFlow } from "../src/system/contracts/work/index";
 
 const hash: DplanHash = {
 	sha256Hex: (input) => new Bun.CryptoHasher("sha256").update(input).digest("hex"),

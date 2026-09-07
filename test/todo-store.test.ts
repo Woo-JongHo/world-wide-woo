@@ -2,8 +2,8 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { access, lstat, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { FileTodoStore, importLegacyTodo } from "../src/infrastructure/todo-store.js";
-import { renderTodoMarkdown, type TodoDocument } from "../src/domain/todos.js";
+import { FileTodoStore, importLegacyTodo } from "../src/system/adapters/todo-store.js";
+import { renderTodoMarkdown, type TodoDocument } from "../src/system/contracts/todos.js";
 
 const directories: string[] = [];
 

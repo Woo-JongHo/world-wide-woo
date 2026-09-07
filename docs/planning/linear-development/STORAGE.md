@@ -1,4 +1,10 @@
-# 저장·연결 설계 논의
+# 저장·연결 설계
+
+상태: 2026-09-07 현재 구현. Git의 `.www/control-ledger/traceability-v2.json`과 append-only source envelope가 관계 정본이며 SQLite는 삭제 후 재구축 가능한 공유 검색 projection이다. `WWW_DATA_DIR`을 지정하면 `${WWW_DATA_DIR}/development/index.sqlite`, 지정하지 않으면 `${HOME}/.local/share/www/development/index.sqlite`를 사용한다. project UUID로 row와 source directory를 격리하며 `bun run traceability:rebuild`가 원장 logical digest와 projection을 대조한다.
+
+실제 Obsidian Vault Markdown과 Linear readback은 각 외부 원본이다. SQLite나 저장소 export가 이 원본을 대신하지 않는다. 외부 acquisition receipt가 없으면 strict check는 실패해야 한다.
+
+## 역사적 논의
 
 상태: 아래 본문은 2026-09-05 논의 보존용 초안이다. 당시의 미확정 항목을 현재 결정으로 읽지 않는다. 사용자는 문서 작성까지만 진행하고 `woojongho`에서 작업을 이어가기로 했다. 이 문서는 구현 지시나 migration 완료 기록이 아니다.
 
@@ -13,9 +19,9 @@
 
 ## 현재 코드에서 확인한 사실
 
-- `src/infrastructure/planning-store.ts`: `bun:sqlite`를 사용한 `planning-lock.sqlite`는 파일 쓰기 직렬화용이다. Planning 본체는 `catalog.jsonl`과 Markdown projection을 사용한다.
-- `src/infrastructure/todo-store.ts`: `todo-lock.sqlite`도 파일 쓰기 잠금에 사용한다.
-- `src/domain/work/traceability.ts`: schemaVersion 1의 reference와 link 계약이다. Unit·Run reference kind는 아직 없다.
+- `src/system/adapters/planning-store.ts`: `bun:sqlite`를 사용한 `planning-lock.sqlite`는 파일 쓰기 직렬화용이다. Planning 본체는 `catalog.jsonl`과 Markdown projection을 사용한다.
+- `src/system/adapters/todo-store.ts`: `todo-lock.sqlite`도 파일 쓰기 잠금에 사용한다.
+- `src/system/contracts/work/traceability.ts`: schemaVersion 1의 reference와 link 계약이다. Unit·Run reference kind는 아직 없다.
 - `.www/control-ledger/traceability.json`: 현재 code/test 참조와 연결이 있으며 실제 Linear 연결은 없다.
 
 따라서 기존 SQLite 사용을 Unit 연결 DB의 구현 완료로 해석하지 않는다.

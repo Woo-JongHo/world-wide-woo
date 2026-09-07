@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { OBSERVABILITY_RECENT_SESSION_LIMIT, projectObservabilityDashboard, summarizeObservabilityStreams, type ObservabilityCoverage, type ObservabilitySessionSummary } from "../src/domain/observability-dashboard";
+import { OBSERVABILITY_RECENT_SESSION_LIMIT, projectObservabilityDashboard, summarizeObservabilityStreams, type ObservabilityCoverage, type ObservabilitySessionSummary } from "../src/system/contracts/observability-dashboard";
 
 const coverage: ObservabilityCoverage = { state: "observed", observedFrom: "2026-09-01T00:00:00.000Z", observedUntil: "2026-09-03T00:00:00.000Z", streamsRead: 1, skippedStreams: 0 };
 const session = (id: string, result: ObservabilitySessionSummary["result"], endedAt: string | null, usage: ObservabilitySessionSummary["usage"] = null): ObservabilitySessionSummary => ({ sessionId: id, projectId: "project", boundary: "observed", startedAt: endedAt, endedAt, result, failures: result === "failed" ? 1 : 0, retries: 0, usage });

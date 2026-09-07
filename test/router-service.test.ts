@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { reconcileInitialRouter, RouterService } from "../src/application/router-service";
-import type { WwwSettings } from "../src/domain/model-settings";
+import { reconcileInitialRouter, RouterService } from "../src/system/services/router-service";
+import type { WwwSettings } from "../src/system/contracts/model-settings";
 
 const codex: WwwSettings = { provider: "openai-codex", model: "gpt-5.6-sol", effort: "high" };
 const claude: WwwSettings = { provider: "anthropic", model: "claude-opus-4-6", effort: "ultra" };

@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
 	sanitizeCompletedAssistantResponse,
 	sanitizePartialAssistantResponse,
-} from "../src/domain/redaction";
+} from "../src/system/contracts/redaction";
 
 describe("assistant response envelope projection", () => {
 	test("keeps completed response compatibility for an unfinished envelope", () => {

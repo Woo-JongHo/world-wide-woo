@@ -2,12 +2,12 @@ import { describe, expect, test } from "bun:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { TodoIdentityCollisionError, TodoLedger, TodoNativeSourceError, TodoWriteConflictError } from "../src/application/todo-ledger.js";
-import type { SessionEvent, SessionEventInput } from "../src/domain/session-events";
-import { renderTodoMarkdown, type TodoDocument } from "../src/domain/todos";
-import type { SemanticWorkStep, WorkFlowProjection } from "../src/domain/work/index";
-import type { SessionRepository, TodoStore } from "../src/application/ports";
-import { FileTodoStore } from "../src/infrastructure/todo-store.js";
+import { TodoIdentityCollisionError, TodoLedger, TodoNativeSourceError, TodoWriteConflictError } from "../src/system/services/todo-ledger.js";
+import type { SessionEvent, SessionEventInput } from "../src/system/contracts/session-events";
+import { renderTodoMarkdown, type TodoDocument } from "../src/system/contracts/todos";
+import type { SemanticWorkStep, WorkFlowProjection } from "../src/system/contracts/work/index";
+import type { SessionRepository, TodoStore } from "../src/system/contracts/ports";
+import { FileTodoStore } from "../src/system/adapters/todo-store.js";
 
 class MemoryTodoStore implements TodoStore {
 	public document: TodoDocument | null = null;
@@ -125,7 +125,7 @@ describe("TodoLedger", () => {
 				narration: {
 					what: "Todo 저장 경계를 연결합니다.",
 					why: "진행 상황을 코드가 아닌 문장으로 보여주기 위해서입니다.",
-					inputSummary: ["command: sed -n '1,200p' src/application/todo-ledger.ts"],
+					inputSummary: ["command: sed -n '1,200p' src/system/services/todo-ledger.ts"],
 					source: "model",
 				},
 				currentRevision: runningBase.source!.currentRevision,
@@ -264,19 +264,19 @@ describe("TodoLedger", () => {
 		const coarseBase = nativeFlow(["c".repeat(64), "d".repeat(64), "e".repeat(64), "f".repeat(64)]);
 		const document = await syncNativePlan({
 			...coarseBase,
-			goal: "bun test src/application/todo-ledger.ts",
+			goal: "bun test src/system/services/todo-ledger.ts",
 			steps: [nativeStep("c".repeat(64), 0, {
-				title: "src/application/todo-ledger.ts 변경",
+				title: "src/system/services/todo-ledger.ts 변경",
 				status: "running",
 				narration: { what: "command: bun test --filter todo", why: null as unknown as string, inputSummary: [], source: "model" },
 			}), nativeStep("d".repeat(64), 1, {
-				title: "args: {\"path\":\"src/domain/work-steps.ts\"}",
+				title: "args: {\"path\":\"src/system/contracts/work/index.ts\"}",
 				status: "pending",
-				narration: { what: "src/domain/work-steps.ts 변경", inputSummary: [], source: "fallback" },
+				narration: { what: "src/system/contracts/work/index.ts 변경", inputSummary: [], source: "fallback" },
 			}), nativeStep("e".repeat(64), 2, {
-				title: "apply_patch src/domain/work-steps.ts",
+				title: "apply_patch src/system/contracts/work/index.ts",
 				status: "pending",
-				narration: { what: "args: --path src/domain/work-steps.ts", why: "path: src/domain/work-steps.ts", inputSummary: [], source: "fallback" },
+				narration: { what: "args: --path src/system/contracts/work/index.ts", why: "path: src/system/contracts/work/index.ts", inputSummary: [], source: "fallback" },
 			}), nativeStep("f".repeat(64), 3, {
 				title: "todo-ledger.ts 수정",
 				status: "pending",

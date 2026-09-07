@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import type { ProjectActivity } from "../src/domain/project-activity";
-import type { SessionStatsSnapshot } from "../src/domain/session-stats";
-import { projectSessionStats } from "../src/domain/session-stats";
-import type { WorkbenchSnapshot } from "../src/domain/workbench";
-import { SessionStatsView } from "../src/presentation/tui/session-stats-view";
+import type { ProjectActivity } from "../src/system/contracts/project-activity";
+import type { SessionStatsSnapshot } from "../src/system/contracts/session-stats";
+import { projectSessionStats } from "../src/system/contracts/session-stats";
+import type { WorkbenchSnapshot } from "../src/system/contracts/workbench";
+import { SessionStatsView } from "../src/tui/observability/session-stats-view";
 
 const longPrompt = "Implement review dashboard with a very long raw prompt that must never wrap into a conversation transcript or occupy several dashboard rows";
 const request = { ordinal: 1, requestId: "hidden-id", turnId: "turn-1", excerpt: longPrompt, excerptSourceActivityId: "activity-1", lifecycle: "completed", observedElapsedMs: 30_000, models: ["gpt-5.4-sol"], sourceActivityIds: ["activity-1"] } as const;

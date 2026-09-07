@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
-import { scanDevelopmentCode } from "../src/infrastructure/development-code-scanner";
+import { scanDevelopmentCode } from "../src/workflows/tui-development/adapters/code-scanner";
 
 test("annotation scanner ignores strings and keeps declarations separate without inferring edges", () => {
  const root = mkdtempSync(join(tmpdir(), "www-annotations-"));

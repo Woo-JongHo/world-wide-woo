@@ -3,13 +3,13 @@ import { mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "
 import { createHash } from "node:crypto";
 import { homedir, tmpdir } from "node:os";
 import { isAbsolute, join, relative, resolve } from "node:path";
-import type { TraceabilityLedger } from "../src/domain/development-traceability.js";
-import { parseWorkTraceabilityManifest } from "../src/domain/work/traceability.js";
-import { buildDevelopmentMap } from "../src/infrastructure/development-map-builder.js";
-import { digestLedger } from "../src/infrastructure/development-traceability-digest.js";
-import { DevelopmentStore } from "../src/infrastructure/development-store.js";
-import { validateTraceability } from "../src/infrastructure/traceability-validator.js";
-import { assertRepositoryReferencesExist } from "../src/infrastructure/work-reference-validator.js";
+import type { TraceabilityLedger } from "../src/system/contracts/development-traceability.js";
+import { parseWorkTraceabilityManifest } from "../src/system/contracts/work/traceability.js";
+import { buildDevelopmentMap } from "../src/workflows/tui-development/adapters/development-map-builder.js";
+import { digestLedger } from "../src/workflows/tui-development/adapters/traceability-digest.js";
+import { DevelopmentStore } from "../src/workflows/tui-development/adapters/development-store.js";
+import { validateTraceability } from "../src/workflows/tui-development/adapters/traceability-validator.js";
+import { assertRepositoryReferencesExist } from "../src/system/adapters/work-reference-validator.js";
 import { loadLinearContract, parseSnapshot, validate as validateLinearContract } from "./linear-contract.js";
 
 export function resolveVaultRoot(projectRoot: string, vaultId: string, explicit?: string): string {

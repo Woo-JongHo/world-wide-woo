@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import type { ObservabilityDashboard, ObservabilitySessionSummary } from "../src/domain/observability-dashboard";
-import { dashboardSessionWindow } from "../src/presentation/tui/dashboard-session-window";
-import { ObservabilityDashboardView } from "../src/presentation/tui/observability-dashboard-view";
+import type { ObservabilityDashboard, ObservabilitySessionSummary } from "../src/system/contracts/observability-dashboard";
+import { dashboardSessionWindow } from "../src/tui/layout/dashboard-session-window";
+import { ObservabilityDashboardView } from "../src/tui/observability/observability-dashboard-view";
 
 const session = (index: number): ObservabilitySessionSummary => ({
 	sessionId: `session-${String(index).padStart(2, "0")}`,

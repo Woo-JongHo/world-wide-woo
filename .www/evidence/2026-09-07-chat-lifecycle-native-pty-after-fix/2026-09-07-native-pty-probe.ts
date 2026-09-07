@@ -2,11 +2,11 @@ import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { CodexAppServer } from "../../../src/infrastructure/executors/codex-app-server";
-import { ProjectWorkbench, type WorkbenchActivityJournal } from "../../../src/application/project-workbench";
-import type { ExecutorPort } from "../../../src/application/ports/executor-port";
-import type { ProjectActivity, ProjectActivityInput, ProjectActivityAppendResult } from "../../../src/domain/project-activity";
-import { WorkbenchChatView } from "../../../src/presentation/tui/workbench-views";
+import { CodexAppServer } from "../../../src/system/adapters/executors/codex-app-server";
+import { ProjectWorkbench, type WorkbenchActivityJournal } from "../../../src/system/services/project-workbench";
+import type { ExecutorPort } from "../../../src/system/contracts/ports/executor-port";
+import type { ProjectActivity, ProjectActivityInput, ProjectActivityAppendResult } from "../../../src/system/contracts/project-activity";
+import { WorkbenchChatView } from "../../../src/tui/chat/workbench-views";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
 class Journal implements WorkbenchActivityJournal {
  records: ProjectActivity[] = [];
@@ -35,7 +35,7 @@ const port: ExecutorPort = {
  subscribe: listener => server.subscribe(listener), close: () => server.close(),
 };
 const wb = new ProjectWorkbench(port, new Journal(), { projectId:"native-chat-probe", cwd, model:"gpt-5.6-sol", effort:"low", approvalPolicy:"never", sandbox:"read-only" });
-const { runProjectWorkbenchShell } = await import("../../../src/presentation/tui/workbench-shell");
+const { runProjectWorkbenchShell } = await import("../../../src/tui/shell/workbench-shell");
 wb.subscribe(snapshot => {
  writeFileSync(join(evidenceOutputDir,"2026-09-07-native-pty-state.json"), JSON.stringify({phase:snapshot.phase,threadId:snapshot.threadId,activeTurnId:snapshot.activeTurnId,draft:!!snapshot.draft,chat:snapshot.chat,error:snapshot.error}));
 });

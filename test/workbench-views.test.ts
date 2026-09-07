@@ -4,16 +4,16 @@ import { renderLayoutFrame } from "@earendil-works/pi-tui/dist/layout.js";
 import type { LayoutBox } from "@earendil-works/pi-tui/dist/layout.js";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
 import chalk from "chalk";
-import type { WorkbenchSnapshot } from "../src/domain/workbench";
-import { createDashboardLayout } from "../src/presentation/tui/dashboard-layout";
+import type { WorkbenchSnapshot } from "../src/system/contracts/workbench";
+import { createDashboardLayout } from "../src/tui/layout/dashboard-layout";
 import {
 	StatusLine,
 	WorkspaceTodoView,
-} from "../src/presentation/tui/shared-dashboard-views";
-import { TNotesSourceView, WorkbenchChatView, WorkbenchMonitorView } from "../src/presentation/tui/workbench-views";
-import { WORKBENCH_STATUS_NOTICE } from "../src/presentation/tui/workbench-shell";
-import { boundedPublicProjection } from "../src/presentation/tui/bounded-public-projection";
-import { projectWorkFlow, type DplanHash } from "../src/domain/work/index";
+} from "../src/tui/workbench/shared-dashboard-views";
+import { TNotesSourceView, WorkbenchChatView, WorkbenchMonitorView } from "../src/tui/chat/workbench-views";
+import { WORKBENCH_STATUS_NOTICE } from "../src/tui/shell/workbench-shell";
+import { boundedPublicProjection } from "../src/tui/chat/bounded-public-projection";
+import { projectWorkFlow, type DplanHash } from "../src/system/contracts/work/index";
 
 const hash: DplanHash = {
 	sha256Hex: (input) => new Bun.CryptoHasher("sha256").update(input).digest("hex"),
@@ -748,7 +748,7 @@ describe("workbench dashboard views", () => {
 				nativeRefs: { threadId: "thread-1", turnId: "turn-fallback", itemId: "fallback-read" },
 				payload: { method: "item/started", params: { item: {
 					type: "commandExecution",
-					command: "rg -n 'CompletionSummary' src/presentation/tui",
+					command: "rg -n 'CompletionSummary' src/tui",
 				} } },
 			},
 			{
@@ -760,7 +760,7 @@ describe("workbench dashboard views", () => {
 				nativeRefs: { threadId: "thread-1", turnId: "turn-fallback", itemId: "fallback-read" },
 				payload: { method: "item/completed", params: { item: {
 					type: "commandExecution",
-					command: "rg -n 'CompletionSummary' src/presentation/tui",
+					command: "rg -n 'CompletionSummary' src/tui",
 					exitCode: 0,
 				} } },
 			},
@@ -774,7 +774,7 @@ describe("workbench dashboard views", () => {
 				payload: { method: "item/completed", params: { item: {
 					type: "fileChange",
 					changes: [
-						{ path: "src/presentation/tui/workbench-views.ts", kind: "update" },
+						{ path: "src/tui/chat/workbench-views.ts", kind: "update" },
 						{ path: "/Users/private/hidden-note.txt", kind: "update" },
 					],
 				} } },
@@ -1147,7 +1147,7 @@ describe("workbench dashboard views", () => {
 			nativeRefs: { threadId: "thread-1", turnId: "turn-1", itemId: "change-1" },
 			payload: {
 				method: "item/completed",
-				params: { item: { type: "fileChange", changes: [{ path: "src/domain/work-steps.ts", kind: "update" }] } },
+				params: { item: { type: "fileChange", changes: [{ path: "src/system/contracts/work/index.ts", kind: "update" }] } },
 			},
 		}];
 		const workFlow = fixtureWorkFlow(activities);

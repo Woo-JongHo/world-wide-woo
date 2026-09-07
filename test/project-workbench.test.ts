@@ -1,15 +1,15 @@
 import { describe, expect, test } from "bun:test";
-import type { ExecutorPort } from "../src/application/ports/executor-port";
+import type { ExecutorPort } from "../src/system/contracts/ports/executor-port";
 import type {
 	ActivityNarrationRequest,
 	ActivityNarrator,
-} from "../src/application/activity-narrator";
+} from "../src/system/services/activity-narrator";
 import {
 	ProjectWorkbench,
 	type WorkbenchActivityJournal,
 	type WorkbenchTNoteSource,
 	type WorkbenchTodoSource,
-} from "../src/application/project-workbench";
+} from "../src/system/services/project-workbench";
 import type {
 	NativeApprovalResolution,
 	NativeHarnessEvent,
@@ -22,24 +22,24 @@ import type {
 	NativeTurnInterrupt,
 	NativeTurnSnapshot,
 	NativeTurnStart,
-} from "../src/domain/native-session";
+} from "../src/system/contracts/native-session";
 import type {
 	ProjectActivity,
 	ProjectActivityAppendResult,
 	ProjectActivityInput,
-} from "../src/domain/project-activity";
-import { CanonicalPromotionService, digestCanonicalDocument } from "../src/application/canonical-promotion";
-import { ReviewService } from "../src/application/review-service";
-import { SessionModelUsageAccumulator } from "../src/application/session-model-usage";
-import { TodoWriteConflictError } from "../src/application/todo-ledger";
-import { WooEntry, type WooEntryCollection } from "../src/application/woo-entry";
-import type { TodoDocument } from "../src/domain/todos";
-import type { WorkFlowProjection } from "../src/domain/work/index";
-import { ProviderReviewAdapter, sha256ReviewDigest } from "../src/infrastructure/review-adapters";
-import { TNoteService } from "../src/application/t-note-service";
-import type { DetachedTextGenerator } from "../src/application/detached-text-generator";
-import { FileTNoteStore } from "../src/infrastructure/t-note-store";
-import { projectTNoteCompletionIndex, sanitizeTNoteText } from "../src/domain/t-notes";
+} from "../src/system/contracts/project-activity";
+import { CanonicalPromotionService, digestCanonicalDocument } from "../src/system/services/canonical-promotion";
+import { ReviewService } from "../src/system/services/review-service";
+import { SessionModelUsageAccumulator } from "../src/system/services/session-model-usage";
+import { TodoWriteConflictError } from "../src/system/services/todo-ledger";
+import { WooEntry, type WooEntryCollection } from "../src/system/services/woo-entry";
+import type { TodoDocument } from "../src/system/contracts/todos";
+import type { WorkFlowProjection } from "../src/system/contracts/work/index";
+import { ProviderReviewAdapter, sha256ReviewDigest } from "../src/system/adapters/review-adapters";
+import { TNoteService } from "../src/system/services/t-note-service";
+import type { DetachedTextGenerator } from "../src/system/services/detached-text-generator";
+import { FileTNoteStore } from "../src/system/adapters/t-note-store";
+import { projectTNoteCompletionIndex, sanitizeTNoteText } from "../src/system/contracts/t-notes";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -1266,7 +1266,7 @@ describe("ProjectWorkbench", () => {
 			nativeRefs: { threadId: "thread-1", turnId: "turn-1" }, sourceDigest: `sha256:${"c".repeat(64)}`,
 			payload: { method: "turn/completed" },
 		});
-		const stored: import("../src/domain/t-notes").TNoteDraft[] = [];
+		const stored: import("../src/system/contracts/t-notes").TNoteDraft[] = [];
 		const service = new TNoteService({
 			async generate() {
 				return {
@@ -1328,14 +1328,14 @@ describe("ProjectWorkbench", () => {
 
 	test("reconciles a failed automatic T-note after restart and appends it only after generation succeeds", async () => {
 		const journal = new MemoryJournal();
-		const persisted: import("../src/domain/t-notes").TNoteDraft[] = [];
+		const persisted: import("../src/system/contracts/t-notes").TNoteDraft[] = [];
 		let attempts = 0;
 		const tnotes: WorkbenchTNoteSource = {
 			readAll: async () => persisted,
 			create: async (input) => {
 				attempts += 1;
 				if (attempts === 1) throw new Error("temporary generator failure");
-				const draft: import("../src/domain/t-notes").TNoteDraft = {
+				const draft: import("../src/system/contracts/t-notes").TNoteDraft = {
 					schemaVersion: 1,
 					id: "reconciled-note",
 					sequence: 1,
@@ -1396,14 +1396,14 @@ describe("ProjectWorkbench", () => {
 		await append("message", "completed", { threadId: "thread-2", turnId: "turn-2" }, { text: "외부 thread 활동" });
 		await append("progress", "completed", { threadId: "thread-1", turnId: "turn-1" }, { method: "turn/completed" });
 
-		const persisted: import("../src/domain/t-notes").TNoteDraft[] = [];
+		const persisted: import("../src/system/contracts/t-notes").TNoteDraft[] = [];
 		let attempts = 0;
 		const tnotes: WorkbenchTNoteSource = {
 			readAll: async () => persisted,
 			create: async (input) => {
 				attempts += 1;
 				if (attempts === 1) throw new Error("temporary generation failure");
-				const draft: import("../src/domain/t-notes").TNoteDraft = {
+				const draft: import("../src/system/contracts/t-notes").TNoteDraft = {
 					schemaVersion: 1,
 					id: "sparse-target-note",
 					sequence: 1,
@@ -2416,7 +2416,7 @@ describe("ProjectWorkbench", () => {
 		await workbench.close();
 	});
 
-	test("shows an incomplete placeholder when a completed turn has no answer observation", async () => {
+	test("shows an incomplete fallback message when a completed turn has no answer observation", async () => {
 		const native = new FakeNativeHarness();
 		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
 			projectId: "sample-project",

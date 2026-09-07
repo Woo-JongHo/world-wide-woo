@@ -17,11 +17,11 @@ import {
 	workbenchStatsTargetCommand,
 	workbenchViewModeForCommand,
 	workbenchViewModeCommand,
-} from "../src/presentation/tui/workbench-shell";
-import { RenderScheduler } from "../src/presentation/tui/render-scheduler";
-import { workbenchApprovalIdentity, workbenchExternalMutationCandidates } from "../src/domain/workbench";
-import { createDashboardLayout } from "../src/presentation/tui/dashboard-layout";
-import { parseWorkbenchShellCommand, WORKBENCH_SLASH_COMMANDS } from "../src/presentation/tui/slash-commands";
+} from "../src/tui/shell/workbench-shell";
+import { RenderScheduler } from "../src/tui/shell/render-scheduler";
+import { workbenchApprovalIdentity, workbenchExternalMutationCandidates } from "../src/system/contracts/workbench";
+import { createDashboardLayout } from "../src/tui/layout/dashboard-layout";
+import { parseWorkbenchShellCommand, WORKBENCH_SLASH_COMMANDS } from "../src/tui/shell/slash-commands";
 
 const workingSnapshot = {
 	phase: "working",

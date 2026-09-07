@@ -1,13 +1,16 @@
 import { describe, expect, test } from "bun:test";
 import { access, readFile, readdir } from "node:fs/promises";
 import manifestJson from "../.www/control-ledger/traceability.json";
+import { extractLinearIssueIds } from "../src/system/adapters/linear-annotation-scanner.js";
 import {
+	findWorkReference,
 	parseWorkTraceabilityManifest,
 	referenceKey,
+	relatedWorkLinks,
 	relatedWorkReferences,
 	validateWorkTraceabilityManifest,
 	type LinearIssueReference,
-} from "../src/domain/work/index.js";
+} from "../src/system/contracts/work/index.js";
 
 const linear: LinearIssueReference = {
 	kind: "linear-issue",
@@ -20,13 +23,13 @@ const completeMapping = {
 	references: [
 		{ kind: "story", id: "ST-999-01" },
 		linear,
-		{ kind: "code", id: "src/domain/work/index.ts" },
+		{ kind: "code", id: "src/system/contracts/work/index.ts" },
 		{ kind: "test", id: "test/work-traceability.test.ts" },
 		{ kind: "evidence", id: ".www/evidence/work-traceability.json" },
 	],
 	links: [
 		{ from: { kind: "story", id: "ST-999-01" }, relation: "tracks", to: linear },
-		{ from: { kind: "story", id: "ST-999-01" }, relation: "implements", to: { kind: "code", id: "src/domain/work/index.ts" } },
+		{ from: { kind: "story", id: "ST-999-01" }, relation: "implements", to: { kind: "code", id: "src/system/contracts/work/index.ts" } },
 		{ from: { kind: "test", id: "test/work-traceability.test.ts" }, relation: "verifies", to: { kind: "story", id: "ST-999-01" } },
 		{ from: { kind: "evidence", id: ".www/evidence/work-traceability.json" }, relation: "evidences", to: { kind: "story", id: "ST-999-01" } },
 	],
@@ -38,13 +41,17 @@ describe("work traceability", () => {
 		const story = { kind: "story", id: "ST-999-01" } as const;
 		expect(relatedWorkReferences(manifest, story).map(referenceKey)).toEqual([
 			"linear-issue:WOO-123",
-			"code:src/domain/work/index.ts",
+			"code:src/system/contracts/work/index.ts",
 			"test:test/work-traceability.test.ts",
 			"evidence:.www/evidence/work-traceability.json",
 		]);
 		expect(relatedWorkReferences(manifest, linear).map(referenceKey)).toEqual(["story:ST-999-01"]);
 		expect(referenceKey({ kind: "project-activity", id: "activity-123" })).toBe("project-activity:activity-123");
 		expect(referenceKey({ kind: "native", id: "codex:item-456" })).toBe("native:codex:item-456");
+		expect(findWorkReference(manifest, linear.uuid)).toEqual(linear);
+		expect(findWorkReference(manifest, linear.url)).toEqual(linear);
+		expect(findWorkReference(manifest, "linear-issue:WOO-123")).toEqual(linear);
+		expect(relatedWorkLinks(manifest, linear)).toHaveLength(1);
 	});
 
 	test("rejects duplicate, dangling, conflated, and malformed references", () => {
@@ -70,14 +77,14 @@ describe("work traceability", () => {
 			linear,
 			{ kind: "project-activity", id: "activity-123" },
 			{ kind: "native", id: "codex:item-456" },
-			{ kind: "code", id: "src/domain/work/index.ts" },
+			{ kind: "code", id: "src/system/contracts/work/index.ts" },
 			{ kind: "test", id: "test/work-traceability.test.ts" },
 			{ kind: "evidence", id: ".www/evidence/work-traceability.json" },
 		];
 		const invalidLinks = [
-			{ from: { kind: "code", id: "src/domain/work/index.ts" }, relation: "implements", to: { kind: "story", id: "ST-999-01" } },
+			{ from: { kind: "code", id: "src/system/contracts/work/index.ts" }, relation: "implements", to: { kind: "story", id: "ST-999-01" } },
 			{ from: linear, relation: "tracks", to: { kind: "story", id: "ST-999-01" } },
-			{ from: { kind: "code", id: "src/domain/work/index.ts" }, relation: "verifies", to: { kind: "test", id: "test/work-traceability.test.ts" } },
+			{ from: { kind: "code", id: "src/system/contracts/work/index.ts" }, relation: "verifies", to: { kind: "test", id: "test/work-traceability.test.ts" } },
 			{ from: { kind: "story", id: "ST-999-01" }, relation: "evidences", to: { kind: "evidence", id: ".www/evidence/work-traceability.json" } },
 			{ from: { kind: "native", id: "codex:item-456" }, relation: "originated-from", to: { kind: "project-activity", id: "activity-123" } },
 		];
@@ -86,6 +93,11 @@ describe("work traceability", () => {
 			expect(() => parseWorkTraceabilityManifest({ schemaVersion: 1, references, links: [link] }))
 				.toThrow(`Invalid ${link.relation} direction`);
 		}
+	});
+
+	test("extracts @linear only from declaration comments", async () => {
+		const source = `const fake = "@linear WOO-${"999"}";\n/** @linear ${linear.id} */\nexport const value = 1;`;
+		expect(await extractLinearIssueIds(source)).toEqual(["WOO-123"]);
 	});
 
 	test("keeps source and test issue annotations connected to registered Linear identities", async () => {
@@ -117,9 +129,9 @@ describe("work traceability", () => {
 	test("requires knowledge bridge issues to annotate linked production code and regression tests", async () => {
 		const manifest = parseWorkTraceabilityManifest(manifestJson);
 		const expected = {
-			"WOO-696": { code: "src/infrastructure/development-store.ts", test: "test/development-store.test.ts" },
-			"WOO-697": { code: "src/infrastructure/development-snapshot.ts", test: "test/development-test-runner.test.ts" },
-			"WOO-698": { code: "src/infrastructure/development-vault.ts", test: "test/development-vault.test.ts" },
+			"WOO-696": { code: "src/workflows/tui-development/adapters/development-store.ts", test: "test/development-store.test.ts" },
+			"WOO-697": { code: "src/workflows/tui-development/adapters/development-snapshot.ts", test: "test/development-test-runner.test.ts" },
+			"WOO-698": { code: "src/workflows/tui-development/adapters/development-vault.ts", test: "test/development-vault.test.ts" },
 		};
 		for (const [id, paths] of Object.entries(expected)) {
 			const issue = manifest.references.find(reference => reference.kind === "linear-issue" && reference.id === id);
@@ -155,18 +167,18 @@ describe("work traceability", () => {
 				expect(relatedWorkReferences(manifest, reference).map(referenceKey)).toContain(referenceKey(issue));
 			}
 		}
-		expect(relatedWorkReferences(manifest, { kind: "code", id: "src/presentation/tui/syntax-highlighter.ts" })
+		expect(relatedWorkReferences(manifest, { kind: "code", id: "src/tui/theme/syntax-highlighter.ts" })
 			.filter(reference => reference.kind === "linear-issue").map(reference => reference.id).sort())
 			.toEqual(expect.arrayContaining(["WOO-686", "WOO-691"]));
 		expect(manifest.links).toContainEqual({
 			from: { kind: "test", id: "test/work-flow.test.ts" },
 			relation: "verifies",
-			to: { kind: "code", id: "src/domain/work/activity-classification.ts" },
+			to: { kind: "code", id: "src/system/contracts/work/activity-classification.ts" },
 		});
 
 		const missing = structuredClone(manifestJson) as { schemaVersion: 1; references: Array<{ kind: string; id: string }>; links: unknown[] };
-		missing.references.push({ kind: "code", id: "src/domain/work/missing.ts" });
-		await expect(validateWorkTraceabilityManifest(missing, { exists: async path => path !== "src/domain/work/missing.ts" }))
-			.rejects.toThrow("Missing repository traceability target: src/domain/work/missing.ts");
+		missing.references.push({ kind: "code", id: "src/system/contracts/work/missing.ts" });
+		await expect(validateWorkTraceabilityManifest(missing, { exists: async path => path !== "src/system/contracts/work/missing.ts" }))
+			.rejects.toThrow("Missing repository traceability target: src/system/contracts/work/missing.ts");
 	});
 });

@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { visibleWidth } from "@earendil-works/pi-tui";
-import type { SessionSnapshot } from "../src/application/session-runtime";
-import { TranscriptView } from "../src/presentation/tui/legacy-dashboard-views";
-import { gradientLines } from "../src/presentation/tui/theme";
+import type { SessionSnapshot } from "../src/system/services/session-runtime";
+import { TranscriptView } from "../src/tui/legacy/legacy-dashboard-views";
+import { gradientLines } from "../src/tui/theme/theme";
 
 const snapshot: SessionSnapshot = {
 	id: "design-test",

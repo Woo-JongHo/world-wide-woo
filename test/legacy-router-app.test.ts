@@ -2,14 +2,12 @@ import { describe, expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { WwwSettings } from "../src/domain/model-settings";
-import { FileCredentialStore } from "../src/infrastructure/credential-store";
-import { FileSettingsStore } from "../src/infrastructure/settings-store";
-import {
-	runLegacyRouter,
-	type LegacyRouterAppDependencies,
-} from "../src/legacy-router-app";
-import type { TuiShellDependencies } from "../src/presentation/tui/legacy-session-shell";
+import type { WwwSettings } from "../src/system/contracts/model-settings";
+import { FileCredentialStore } from "../src/system/adapters/credential-store";
+import { FileSettingsStore } from "../src/system/adapters/settings-store";
+import { createLegacyRouterAppDependencies } from "../src/app";
+import { runLegacyRouter } from "../src/tui/legacy/router-app";
+import type { TuiShellDependencies } from "../src/tui/legacy/legacy-session-shell";
 
 const codex: WwwSettings = { provider: "openai-codex", model: "gpt-5.6-terra", effort: "high" };
 const claude: WwwSettings = { provider: "anthropic", model: "claude-sonnet-4-6", effort: "medium" };
@@ -24,7 +22,7 @@ describe("legacy Router composition", () => {
 		await routerSettings.save(claude);
 
 		const captured: TuiShellDependencies[] = [];
-		const dependencies: LegacyRouterAppDependencies = {
+		const dependencies = createLegacyRouterAppDependencies({
 			cwd: () => root,
 			createSettingsStore: () => new FileSettingsStore(routerSettings.path),
 			createCredentialStore: () => new FileCredentialStore(join(config, "auth.json")),
@@ -32,7 +30,7 @@ describe("legacy Router composition", () => {
 				captured.push(shell);
 				throw new Error("stop after composition");
 			},
-		};
+		});
 
 		try {
 			await expect(runLegacyRouter({}, dependencies)).rejects.toThrow("stop after composition");

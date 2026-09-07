@@ -2,8 +2,8 @@ import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
-import { sanitizeTerminalText } from "../src/domain/terminal";
-import { LocalTerminalCommandExecutor, TerminalCommandRejectedError } from "../src/infrastructure/terminal-command-executor";
+import { sanitizeTerminalText } from "../src/system/contracts/terminal";
+import { LocalTerminalCommandExecutor, TerminalCommandRejectedError } from "../src/system/adapters/terminal-command-executor";
 
 async function fixture(): Promise<string> {
 	return mkdtemp(join(tmpdir(), "www-terminal-"));

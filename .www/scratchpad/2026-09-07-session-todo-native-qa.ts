@@ -2,17 +2,17 @@ import { createHash } from "node:crypto";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { ExecutorPort } from "../../src/application/ports/executor-port.js";
-import { ProjectWorkbench } from "../../src/application/project-workbench.js";
-import type { NativeHarnessEvent, NativeTurnStart } from "../../src/domain/native-session.js";
-import { parseTodoMarkdown, type TodoDocument } from "../../src/domain/todos.js";
-import { CodexAppServer } from "../../src/infrastructure/executors/codex-app-server.js";
+import type { ExecutorPort } from "../../src/system/contracts/ports/executor-port.js";
+import { ProjectWorkbench } from "../../src/system/services/project-workbench.js";
+import type { NativeHarnessEvent, NativeTurnStart } from "../../src/system/contracts/native-session.js";
+import { parseTodoMarkdown, type TodoDocument } from "../../src/system/contracts/todos.js";
+import { CodexAppServer } from "../../src/system/adapters/executors/codex-app-server.js";
 import {
 	createProjectWorkbenchSession,
 	scopedTodoSessionId,
 	type ProjectWorkbenchSession,
 	type ProjectWorkbenchSessionFactories,
-} from "../../src/infrastructure/project-workbench-session.js";
+} from "../../src/system/services/project-workbench-session.js";
 
 const MODEL = "gpt-5.6-sol";
 const EFFORT = "low";

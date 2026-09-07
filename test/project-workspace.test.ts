@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { lstat, mkdtemp, mkdir, readFile, realpath, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
-import { FileProjectWorkspace } from "../src/infrastructure/project-workspace";
-import { FileTodoStore } from "../src/infrastructure/todo-store";
+import { FileProjectWorkspace } from "../src/system/adapters/project-workspace";
+import { FileTodoStore } from "../src/system/adapters/todo-store";
 
 async function temporaryDirectory(): Promise<string> {
 	return mkdtemp(join(tmpdir(), "www-workspace-"));

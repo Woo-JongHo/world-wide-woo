@@ -16,7 +16,7 @@
       ],
       "locations": [
         {
-          "path": "src/presentation/tui/workbench-views.ts",
+          "path": "src/tui/chat/workbench-views.ts",
           "symbol": "WorkbenchChatView"
         }
       ]
@@ -31,7 +31,7 @@
       ],
       "locations": [
         {
-          "path": "src/application/project-workbench.ts",
+          "path": "src/system/services/project-workbench.ts",
           "symbol": "ProjectWorkbench"
         }
       ]
@@ -46,7 +46,7 @@
       ],
       "locations": [
         {
-          "path": "src/presentation/tui/dashboard-layout.ts",
+          "path": "src/tui/layout/dashboard-layout.ts",
           "symbol": "ChatScrollView"
         }
       ]
@@ -61,7 +61,7 @@
       ],
       "locations": [
         {
-          "path": "src/presentation/tui/workbench-shell.ts",
+          "path": "src/tui/shell/workbench-shell.ts",
           "symbol": "runProjectWorkbenchShell"
         }
       ]
@@ -76,7 +76,7 @@
       ],
       "locations": [
         {
-          "path": "src/infrastructure/project-workbench-session.ts",
+          "path": "src/system/services/project-workbench-session.ts",
           "symbol": "ThreadScopedTNoteSource"
         }
       ]
@@ -89,7 +89,7 @@
       "aliases": [],
       "locations": [
         {
-          "path": "src/domain/development-traceability.ts",
+          "path": "src/system/contracts/development-traceability.ts",
           "symbol": "validateLedger"
         }
       ]
@@ -102,7 +102,7 @@
       "aliases": [],
       "locations": [
         {
-          "path": "src/infrastructure/traceability-validator.ts",
+          "path": "src/workflows/tui-development/adapters/traceability-validator.ts",
           "symbol": "validateTraceability"
         }
       ]
@@ -115,7 +115,7 @@
       "aliases": [],
       "locations": [
         {
-          "path": "src/infrastructure/development-store.ts",
+          "path": "src/workflows/tui-development/adapters/development-store.ts",
           "symbol": "DevelopmentStore"
         }
       ]
@@ -128,7 +128,7 @@
       "aliases": [],
       "locations": [
         {
-          "path": "src/infrastructure/development-map-builder.ts",
+          "path": "src/workflows/tui-development/adapters/development-map-builder.ts",
           "symbol": "buildDevelopmentMap"
         }
       ]
@@ -141,7 +141,7 @@
       "aliases": [],
       "locations": [
         {
-          "path": "src/presentation/tui/workbench-bottom-hud.ts",
+          "path": "src/tui/shell/workbench-bottom-hud.ts",
           "symbol": "WorkbenchBottomHudView"
         }
       ]
@@ -154,7 +154,7 @@
       "aliases": [],
       "locations": [
         {
-          "path": "src/application/todo-ledger.ts",
+          "path": "src/system/services/todo-ledger.ts",
           "symbol": "TodoLedger"
         }
       ]
@@ -167,7 +167,7 @@
       "aliases": [],
       "locations": [
         {
-          "path": "src/application/development-service.ts",
+          "path": "src/workflows/tui-development/service.ts",
           "symbol": "DevelopmentService"
         }
       ]
@@ -180,7 +180,7 @@
       "aliases": [],
       "locations": [
         {
-          "path": "src/presentation/tui/dashboard-layout.ts",
+          "path": "src/tui/layout/dashboard-layout.ts",
           "symbol": "createDashboardLayout"
         }
       ]
@@ -401,6 +401,12 @@
       "id": "WOO-726",
       "uuid": "3307923e-ea5b-45e0-ba80-3f920ae39c9a",
       "url": "https://linear.app/woo-world/issue/WOO-726/테스트",
+      "milestone": "v0.1.0 — First Public Release"
+    },
+    {
+      "id": "WOO-842",
+      "uuid": "30006fd3-0381-4b33-a2aa-edd90b560529",
+      "url": "https://linear.app/woo-world/issue/WOO-842/코드-탐색-구조를-tuisystemworkflow-책임으로-이관한다",
       "milestone": "v0.1.0 — First Public Release"
     }
   ],
@@ -656,6 +662,13 @@
       "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FTraceability%2FWOO-726.md",
       "recordType": "test",
       "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty"
+    },
+    {
+      "id": "WOO-842",
+      "relativePath": "Traceability/WOO-842.md",
+      "uri": "obsidian://open?vault=5521cc40c75eb293&file=01_프로젝트%2F99_WWW%2F01_문서%2FTraceability%2FWOO-842.md",
+      "recordType": "decision",
+      "sourceRevision": "worktree:f963a587d8a48ca7f14328be001533b8eb984458:dirty"
     }
   ],
   "pullRequests": [
@@ -671,6 +684,14 @@
       "status": "passed",
       "evidencePath": ".www/evidence/v020-traceability/verification.json",
       "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty",
+      "purpose": "traceability-validation",
+      "sourceState": "dirty-worktree"
+    },
+    {
+      "id": "traceability-validation-v010-capability-20260907",
+      "status": "failed",
+      "evidencePath": ".www/evidence/v010-capability-migration/verification.json",
+      "sourceRevision": "worktree:f963a587d8a48ca7f14328be001533b8eb984458:dirty",
       "purpose": "traceability-validation",
       "sourceState": "dirty-worktree"
     }
@@ -1620,6 +1641,151 @@
       "from": "run:traceability-validation-v020-20260907",
       "relation": "verifies",
       "to": "unit:Code-013"
+    },
+    {
+      "from": "issue:WOO-842",
+      "relation": "implemented-by",
+      "to": "unit:Code-001"
+    },
+    {
+      "from": "issue:WOO-842",
+      "relation": "implemented-by",
+      "to": "unit:Code-002"
+    },
+    {
+      "from": "issue:WOO-842",
+      "relation": "implemented-by",
+      "to": "unit:Code-003"
+    },
+    {
+      "from": "issue:WOO-842",
+      "relation": "implemented-by",
+      "to": "unit:Code-004"
+    },
+    {
+      "from": "issue:WOO-842",
+      "relation": "implemented-by",
+      "to": "unit:Code-005"
+    },
+    {
+      "from": "issue:WOO-842",
+      "relation": "implemented-by",
+      "to": "unit:Code-006"
+    },
+    {
+      "from": "issue:WOO-842",
+      "relation": "implemented-by",
+      "to": "unit:Code-007"
+    },
+    {
+      "from": "issue:WOO-842",
+      "relation": "implemented-by",
+      "to": "unit:Code-008"
+    },
+    {
+      "from": "issue:WOO-842",
+      "relation": "implemented-by",
+      "to": "unit:Code-009"
+    },
+    {
+      "from": "issue:WOO-842",
+      "relation": "implemented-by",
+      "to": "unit:Code-010"
+    },
+    {
+      "from": "issue:WOO-842",
+      "relation": "implemented-by",
+      "to": "unit:Code-011"
+    },
+    {
+      "from": "issue:WOO-842",
+      "relation": "implemented-by",
+      "to": "unit:Code-012"
+    },
+    {
+      "from": "issue:WOO-842",
+      "relation": "implemented-by",
+      "to": "unit:Code-013"
+    },
+    {
+      "from": "issue:WOO-842",
+      "relation": "detailed-by",
+      "to": "note:WOO-842"
+    },
+    {
+      "from": "run:traceability-validation-v010-capability-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-842"
+    },
+    {
+      "from": "run:traceability-validation-v010-capability-20260907",
+      "relation": "verifies",
+      "to": "unit:Code-001"
+    },
+    {
+      "from": "run:traceability-validation-v010-capability-20260907",
+      "relation": "verifies",
+      "to": "unit:Code-002"
+    },
+    {
+      "from": "run:traceability-validation-v010-capability-20260907",
+      "relation": "verifies",
+      "to": "unit:Code-003"
+    },
+    {
+      "from": "run:traceability-validation-v010-capability-20260907",
+      "relation": "verifies",
+      "to": "unit:Code-004"
+    },
+    {
+      "from": "run:traceability-validation-v010-capability-20260907",
+      "relation": "verifies",
+      "to": "unit:Code-005"
+    },
+    {
+      "from": "run:traceability-validation-v010-capability-20260907",
+      "relation": "verifies",
+      "to": "unit:Code-006"
+    },
+    {
+      "from": "run:traceability-validation-v010-capability-20260907",
+      "relation": "verifies",
+      "to": "unit:Code-007"
+    },
+    {
+      "from": "run:traceability-validation-v010-capability-20260907",
+      "relation": "verifies",
+      "to": "unit:Code-008"
+    },
+    {
+      "from": "run:traceability-validation-v010-capability-20260907",
+      "relation": "verifies",
+      "to": "unit:Code-009"
+    },
+    {
+      "from": "run:traceability-validation-v010-capability-20260907",
+      "relation": "verifies",
+      "to": "unit:Code-010"
+    },
+    {
+      "from": "run:traceability-validation-v010-capability-20260907",
+      "relation": "verifies",
+      "to": "unit:Code-011"
+    },
+    {
+      "from": "run:traceability-validation-v010-capability-20260907",
+      "relation": "verifies",
+      "to": "unit:Code-012"
+    },
+    {
+      "from": "run:traceability-validation-v010-capability-20260907",
+      "relation": "verifies",
+      "to": "unit:Code-013"
+    },
+    {
+      "from": "run:traceability-validation-v010-capability-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-842"
     }
   ],
   "tombstones": [],
@@ -1650,5 +1816,5 @@
       "reason": "Code-NNN 형식으로 정규화"
     }
   ],
-  "payloadDigest": "0519c63e43c1dff5d654e2010e4fd29ac43cbc80a61d8e67e804a2aca326a662"
+  "payloadDigest": "985e7f0f8b62f9c3a478b5a1c0da91780f862fc3309d30083f64b20a1f6665c0"
 }
