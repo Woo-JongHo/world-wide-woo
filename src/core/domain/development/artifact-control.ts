@@ -38,6 +38,7 @@ export function artifactCandidateDigest(candidate: Omit<ArtifactCandidate, "cand
 }
 
 const line = (value: unknown): value is string => typeof value === "string" && value.trim() === value && value.length > 0 && !/[\r\n]/u.test(value);
+const text = (value: unknown): value is string => typeof value === "string" && value.trim().length > 0;
 const lines = (value: unknown): value is string[] => Array.isArray(value) && value.length > 0 && value.every(line);
 const object = (value: unknown): value is Record<string, unknown> => Boolean(value) && typeof value === "object" && !Array.isArray(value);
 const keysExactly = (value: Record<string, unknown>, keys: string[]): boolean => JSON.stringify(Object.keys(value).sort()) === JSON.stringify([...keys].sort());
@@ -99,7 +100,7 @@ export function validateArtifactCandidate(candidate: ArtifactCandidate, actualBe
 		if (!keysExactly(content, ["properties", "sections"])) errors.push("obsidian-canonical.content: properties와 sections만 허용합니다.");
 		const sections = content.sections;
 		if (!object(content.properties) || !object(sections)) errors.push("obsidian-canonical.content: properties와 sections object가 필요합니다.");
-		else for (const heading of OBSIDIAN_SECTIONS) if (!line(sections[heading])) errors.push(`obsidian-canonical.sections.${heading}: 내용이 필요합니다.`);
+		else for (const heading of OBSIDIAN_SECTIONS) if (!text(sections[heading])) errors.push(`obsidian-canonical.sections.${heading}: 내용이 필요합니다.`);
 	}
 	return errors;
 }
@@ -122,5 +123,7 @@ export function renderArtifactCandidate(candidate: ArtifactCandidate): string {
 	}
 	const properties = c.properties as Record<string, unknown>;
 	const sections = c.sections as Record<string, string>;
-	return `---\n${YAML.stringify(properties, { sortMapEntries: true }).trimEnd()}\n---\n\n${OBSIDIAN_SECTIONS.map(heading => `## ${heading}\n\n${sections[heading]}`).join("\n\n")}\n`;
+	const relativePath = String(candidate.target.relativePath ?? "");
+	const title = relativePath.split("/").at(-1)?.replace(/\.md$/u, "") ?? String(properties.capability ?? "상세 정본");
+	return `---\n${YAML.stringify(properties, { sortMapEntries: true }).trimEnd()}\n---\n\n# ${title}\n\n${OBSIDIAN_SECTIONS.map(heading => `## ${heading}\n\n${sections[heading]}`).join("\n\n")}\n`;
 }
