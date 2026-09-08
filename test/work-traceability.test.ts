@@ -7,7 +7,7 @@ import {
 	relatedWorkReferences,
 	validateWorkTraceabilityManifest,
 	type LinearIssueReference,
-} from "../src/domain/work/index.js";
+} from "../src/core/domain/work/index.js";
 
 const linear: LinearIssueReference = {
 	kind: "linear-issue",
@@ -117,9 +117,9 @@ describe("work traceability", () => {
 	test("requires knowledge bridge issues to annotate linked production code and regression tests", async () => {
 		const manifest = parseWorkTraceabilityManifest(manifestJson);
 		const expected = {
-			"WOO-696": { code: "src/infrastructure/development-store.ts", test: "test/development-store.test.ts" },
-			"WOO-697": { code: "src/infrastructure/development-snapshot.ts", test: "test/development-test-runner.test.ts" },
-			"WOO-698": { code: "src/infrastructure/development-vault.ts", test: "test/development-vault.test.ts" },
+			"WOO-696": { code: "src/adapters/outbound/development-store.ts", test: "test/development-store.test.ts" },
+			"WOO-697": { code: "src/adapters/outbound/development-snapshot.ts", test: "test/development-test-runner.test.ts" },
+			"WOO-698": { code: "src/adapters/outbound/development-vault.ts", test: "test/development-vault.test.ts" },
 		};
 		for (const [id, paths] of Object.entries(expected)) {
 			const issue = manifest.references.find(reference => reference.kind === "linear-issue" && reference.id === id);
@@ -155,13 +155,13 @@ describe("work traceability", () => {
 				expect(relatedWorkReferences(manifest, reference).map(referenceKey)).toContain(referenceKey(issue));
 			}
 		}
-		expect(relatedWorkReferences(manifest, { kind: "code", id: "src/presentation/tui/syntax-highlighter.ts" })
+		expect(relatedWorkReferences(manifest, { kind: "code", id: "src/adapters/inbound/tui/syntax-highlighter.ts" })
 			.filter(reference => reference.kind === "linear-issue").map(reference => reference.id).sort())
 			.toEqual(expect.arrayContaining(["WOO-686", "WOO-691"]));
 		expect(manifest.links).toContainEqual({
 			from: { kind: "test", id: "test/work-flow.test.ts" },
 			relation: "verifies",
-			to: { kind: "code", id: "src/domain/work/activity-classification.ts" },
+			to: { kind: "code", id: "src/core/domain/work/activity-classification.ts" },
 		});
 
 		const missing = structuredClone(manifestJson) as { schemaVersion: 1; references: Array<{ kind: string; id: string }>; links: unknown[] };

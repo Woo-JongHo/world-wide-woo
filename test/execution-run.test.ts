@@ -1,12 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import type { ProjectActivity } from "../src/domain/project-activity";
+import type { ProjectActivity } from "../src/core/domain/project-activity";
 import {
 	createExecutionRun,
 	executionCheckpointDigest,
 	normalizeProjectActivity,
 	reduceExecutionRun,
 	replayExecutionRun,
-} from "../src/domain/work/execution-run";
+} from "../src/core/runtime/execution-run";
 
 const hash = { sha256Hex: (input: Uint8Array) => [...input].reduce((value, byte) => ((value * 33) ^ byte) >>> 0, 5381).toString(16).padStart(64, "0") };
 const activity = (sequence: number, method: string, phase: ProjectActivity["phase"] = "completed", kind: ProjectActivity["kind"] = "progress", runSequence?: number, payload: Record<string, unknown> = {}): ProjectActivity => ({

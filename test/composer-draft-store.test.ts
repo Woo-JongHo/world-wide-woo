@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { FileComposerDraftController } from "../src/infrastructure/composer-draft-store";
+import { FileComposerDraftController } from "../src/adapters/outbound/composer-draft-store";
 
 const directories: string[] = [];
 afterEach(async () => {

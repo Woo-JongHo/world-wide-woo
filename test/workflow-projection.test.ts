@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import { createExecutionRun } from "../src/domain/work/execution-run";
-import { projectWorkFlow, projectWorkFlowFromExecutionRun } from "../src/domain/work/workflow-projection";
+import { createExecutionRun } from "../src/core/runtime/execution-run";
+import { projectWorkFlow, projectWorkFlowFromExecutionRun } from "../src/core/domain/work/workflow-projection";
 
 const hash = { sha256Hex: (input: Uint8Array) => String(input.length).padStart(64, "0") };
 

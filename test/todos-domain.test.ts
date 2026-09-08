@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { parseTodoMarkdown, patchTodoMarkdown, renderTodoMarkdown, todoDetailProgress, todoProgress, validateTodoDocument } from "../src/domain/todos.js";
+import { parseTodoMarkdown, patchTodoMarkdown, renderTodoMarkdown, todoDetailProgress, todoProgress, validateTodoDocument } from "../src/core/domain/todos.js";
 
 const document = {
 	version: 1 as const,

@@ -1,13 +1,13 @@
-import { RouterService, reconcileInitialRouter } from "./application/router-service";
-import { AuthService } from "./infrastructure/auth-service";
-import { FileComposerDraftController } from "./infrastructure/composer-draft-store";
-import { FileCredentialStore } from "./infrastructure/credential-store";
-import { ModelRouter, createModelRegistry } from "./infrastructure/model-router";
-import { createProjectSession } from "./infrastructure/project-session";
-import { GitHubRepositoryInsights } from "./infrastructure/repository-insights";
-import { FileSettingsStore, routerSettingsPath } from "./infrastructure/settings-store";
-import { UsageService } from "./infrastructure/usage-service";
-import { runTuiShell, type TuiShellDependencies } from "./presentation/tui/legacy-session-shell";
+import { RouterService, reconcileInitialRouter } from "./core/application/router-service";
+import { AuthService } from "./adapters/outbound/auth-service";
+import { FileComposerDraftController } from "./adapters/outbound/composer-draft-store";
+import { FileCredentialStore } from "./adapters/outbound/credential-store";
+import { ModelRouter, createModelRegistry } from "./adapters/outbound/model-router";
+import { createProjectSession } from "./adapters/outbound/project-session";
+import { GitHubRepositoryInsights } from "./adapters/outbound/repository-insights";
+import { FileSettingsStore, routerSettingsPath } from "./adapters/outbound/settings-store";
+import { UsageService } from "./adapters/outbound/usage-service";
+import { runTuiShell, type TuiShellDependencies } from "./adapters/inbound/tui/legacy-session-shell";
 
 export interface RunLegacyRouterOptions {
 	/** Legacy SessionRuntime session id, not a Codex App Server thread id. */

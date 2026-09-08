@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import type { ProjectActivity, ProjectActivityPhase } from "../src/domain/project-activity";
-import type { WorkbenchSnapshot } from "../src/domain/workbench";
-import { projectNativeDelegation, projectWorkFlow, type DplanHash } from "../src/domain/work/index";
-import { projectWorkbenchDelegationSections } from "../src/presentation/tui/delegation-tree-view";
-import { WorkbenchChatView } from "../src/presentation/tui/workbench-views";
+import type { ProjectActivity, ProjectActivityPhase } from "../src/core/domain/project-activity";
+import type { WorkbenchSnapshot } from "../src/core/domain/workbench";
+import { projectNativeDelegation, projectWorkFlow, type DplanHash } from "../src/core/domain/work/index";
+import { projectWorkbenchDelegationSections } from "../src/adapters/inbound/tui/delegation-tree-view";
+import { WorkbenchChatView } from "../src/adapters/inbound/tui/workbench-views";
 
 const ROOT_THREAD = "thread-root";
 const TURN = "turn-delegation";

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { RunAppOptions } from "../src/app";
 import { runCli, writeRouterBootstrap, writeWorkbenchBootstrap, type CliDependencies } from "../src/cli";
-import type { NativeThreadSummary } from "../src/domain/native-session";
+import type { NativeThreadSummary } from "../src/core/domain/native-session";
 
 const threads: readonly NativeThreadSummary[] = [{
 	id: "thread-2",

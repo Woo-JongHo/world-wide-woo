@@ -2,14 +2,14 @@ import { describe, expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { WwwSettings } from "../src/domain/model-settings";
-import { FileCredentialStore } from "../src/infrastructure/credential-store";
-import { FileSettingsStore } from "../src/infrastructure/settings-store";
+import type { WwwSettings } from "../src/core/domain/model-settings";
+import { FileCredentialStore } from "../src/adapters/outbound/credential-store";
+import { FileSettingsStore } from "../src/adapters/outbound/settings-store";
 import {
 	runLegacyRouter,
 	type LegacyRouterAppDependencies,
 } from "../src/legacy-router-app";
-import type { TuiShellDependencies } from "../src/presentation/tui/legacy-session-shell";
+import type { TuiShellDependencies } from "../src/adapters/inbound/tui/legacy-session-shell";
 
 const codex: WwwSettings = { provider: "openai-codex", model: "gpt-5.6-terra", effort: "high" };
 const claude: WwwSettings = { provider: "anthropic", model: "claude-sonnet-4-6", effort: "medium" };

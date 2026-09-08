@@ -7,13 +7,13 @@ import type {
 	Model,
 	ModelsSimpleStreamOptions,
 } from "@earendil-works/pi-ai";
-import type { ActivityNarrationRequest } from "../src/application/activity-narrator";
+import type { ActivityNarrationRequest } from "../src/core/application/activity-narrator";
 import {
 	ACTIVITY_NARRATOR_MODEL,
 	ACTIVITY_NARRATOR_PROVIDER,
 	PiActivityNarrator,
 	type PiActivityNarratorModels,
-} from "../src/infrastructure/pi-activity-narrator";
+} from "../src/adapters/outbound/pi-activity-narrator";
 
 const model = {} as Model<Api>;
 const request: ActivityNarrationRequest = {

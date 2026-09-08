@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { PlanningService, type PlanningCatalogStore } from "../src/application/planning-service";
-import { createPlanningSnapshot } from "../src/domain/planning";
+import { PlanningService, type PlanningCatalogStore } from "../src/core/application/planning-service";
+import { createPlanningSnapshot } from "../src/core/domain/planning";
 
 const createdAt = "2026-08-31T11:24:24.000Z";
 

@@ -3,10 +3,10 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { CommitCandidate, CommitPolicy } from "../src/domain/commit-governance";
-import { candidateDigest, CommitControlPlane } from "../src/domain/commit-governance";
-import { assertCandidateMatchesWorktree, assertStagedBoundary, authorize, candidateContentDigest, executeCommit } from "../src/infrastructure/git-commit-control";
-import { CommitReceiptStore } from "../src/infrastructure/commit-receipt-store";
+import type { CommitCandidate, CommitPolicy } from "../src/core/commit/commit-governance";
+import { candidateDigest, CommitControlPlane } from "../src/core/commit/commit-governance";
+import { assertCandidateMatchesWorktree, assertStagedBoundary, authorize, candidateContentDigest, executeCommit } from "../src/adapters/outbound/git-commit-control";
+import { CommitReceiptStore } from "../src/adapters/outbound/commit-receipt-store";
 
 const policy: CommitPolicy = { messageProfile: "korean-result", subjectMaxLength: 72, subjectSoftLength: 50, requireScope: true, requireType: true, requireHumanAuthorization: true, fullFileStagingOnly: true, protectedBranches: ["dev", "main"], allowedTypes: ["feat", "fix", "perf", "refactor", "test", "docs", "build", "ci", "chore", "revert"], scopes: { commit: "커밋" } };
 function candidate(overrides: Partial<CommitCandidate> = {}): CommitCandidate {
@@ -49,9 +49,9 @@ describe("staged boundary", () => {
 	});
 	test("직접 commit을 막고 승인된 executor만 commit과 Receipt를 만든다", () => {
 		const root = mkdtempSync(join(tmpdir(), "woo-commit-e2e-")); roots.push(root);
-		for (const directory of ["src/domain", "src/infrastructure", "scripts", ".woo", ".githooks", ".www/runtime/commit"]) mkdirSync(join(root, directory), { recursive: true });
+		for (const directory of ["src/core/commit", "src/adapters/outbound", "scripts", ".woo", ".githooks", ".www/runtime/commit"]) mkdirSync(join(root, directory), { recursive: true });
 		const project = join(import.meta.dir, "..");
-		for (const path of ["src/domain/commit-governance.ts", "src/infrastructure/git-commit-control.ts", "scripts/woo-commit.ts", ".woo/project.yaml", ".githooks/pre-commit", ".githooks/prepare-commit-msg", ".githooks/commit-msg", ".githooks/post-commit", ".githooks/pre-push"]) copyFileSync(join(project, path), join(root, path));
+		for (const path of ["src/core/commit/commit-governance.ts", "src/adapters/outbound/git-commit-control.ts", "scripts/woo-commit.ts", ".woo/project.yaml", ".githooks/pre-commit", ".githooks/prepare-commit-msg", ".githooks/commit-msg", ".githooks/post-commit", ".githooks/pre-push"]) copyFileSync(join(project, path), join(root, path));
 		execFileSync("chmod", ["+x", ...["pre-commit", "prepare-commit-msg", "commit-msg", "post-commit", "pre-push"].map(name => join(root, ".githooks", name))]);
 		execFileSync("git", ["init", "-q", root]); execFileSync("git", ["-C", root, "config", "user.name", "Woo Test"]); execFileSync("git", ["-C", root, "config", "user.email", "test@example.invalid"]);
 		writeFileSync(join(root, "base"), "base\n"); execFileSync("git", ["-C", root, "add", "base"]); execFileSync("git", ["-C", root, "commit", "-qm", "base"]); execFileSync("git", ["-C", root, "config", "core.hooksPath", ".githooks"]);

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { ExitKeyPolicy } from "../src/presentation/tui/exit-key-policy";
+import { ExitKeyPolicy } from "../src/adapters/inbound/tui/exit-key-policy";
 
 describe("ExitKeyPolicy", () => {
 	test("clears first and exits only on a second Ctrl+C inside 500ms", () => {

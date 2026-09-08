@@ -2,8 +2,8 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
-import { CanonicalPromotionService, createCanonicalDocumentDraft, digestCanonicalDocument, fingerprintCanonicalDocument } from "../src/application/canonical-promotion";
-import { canonicalTemporaryPath, FileCanonicalDocumentStore } from "../src/infrastructure/canonical-document-store";
+import { CanonicalPromotionService, createCanonicalDocumentDraft, digestCanonicalDocument, fingerprintCanonicalDocument } from "../src/core/application/canonical-promotion";
+import { canonicalTemporaryPath, FileCanonicalDocumentStore } from "../src/adapters/outbound/canonical-document-store";
 
 const roots: string[] = [];
 afterEach(async () => {

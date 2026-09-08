@@ -2,12 +2,12 @@ import { describe, expect, test } from "bun:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { TodoIdentityCollisionError, TodoLedger, TodoNativeSourceError, TodoWriteConflictError } from "../src/application/todo-ledger.js";
-import type { SessionEvent, SessionEventInput } from "../src/domain/session-events";
-import { renderTodoMarkdown, type TodoDocument } from "../src/domain/todos";
-import type { SemanticWorkStep, WorkFlowProjection } from "../src/domain/work/index";
-import type { SessionRepository, TodoStore } from "../src/application/ports";
-import { FileTodoStore } from "../src/infrastructure/todo-store.js";
+import { TodoIdentityCollisionError, TodoLedger, TodoNativeSourceError, TodoWriteConflictError } from "../src/core/application/todo-ledger.js";
+import type { SessionEvent, SessionEventInput } from "../src/core/domain/session-events";
+import { renderTodoMarkdown, type TodoDocument } from "../src/core/domain/todos";
+import type { SemanticWorkStep, WorkFlowProjection } from "../src/core/domain/work/index";
+import type { SessionRepository, TodoStore } from "../src/core/ports";
+import { FileTodoStore } from "../src/adapters/outbound/todo-store.js";
 
 class MemoryTodoStore implements TodoStore {
 	public document: TodoDocument | null = null;

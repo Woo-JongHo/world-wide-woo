@@ -4,8 +4,8 @@ import {
 	type RegistryEnvelope,
 	type TraceabilityLedgerV3,
 	type VerificationReceipt,
-} from "../src/domain/development-traceability";
-import type { CompletionReceipt } from "../src/domain/work/execution-run";
+} from "../src/core/domain/development-traceability";
+import type { CompletionReceipt } from "../src/core/runtime/execution-run";
 import {
 	canonicalDigest,
 	migrateTraceabilityV2ToV3,
@@ -14,7 +14,7 @@ import {
 	validateTraceabilityLedgerV3,
 	validateVerificationReceipt,
 	type VerificationReceiptCompletionContext,
-} from "../src/infrastructure/development-traceability-contract";
+} from "../src/adapters/outbound/development-traceability-contract";
 
 const digest = <T extends object>(value: T): string => {
 	const { payloadDigest: _, ...body } = value as unknown as Record<string, unknown>;

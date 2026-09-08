@@ -2,8 +2,8 @@ import { expect, test } from 'bun:test';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { runDevelopmentTest } from '../src/infrastructure/development-test-runner.js';
-import { captureDevelopmentSnapshot } from '../src/infrastructure/development-snapshot.js';
+import { runDevelopmentTest } from '../src/adapters/outbound/development-test-runner.js';
+import { captureDevelopmentSnapshot } from '../src/adapters/outbound/development-snapshot.js';
 /** @linear WOO-697 */
 test('explicit argv captures failure and both streams, with actual input blobs', async () => {
   const root = mkdtempSync(join(tmpdir(), 'www-test-run-')); const repo = join(root, 'repo'); mkdirSync(repo);

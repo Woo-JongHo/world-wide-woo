@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { projectRuntimeMonitor } from "../src/domain/runtime-monitor.js";
-import type { ProjectActivity } from "../src/domain/project-activity.js";
-import type { WorkbenchSnapshot } from "../src/domain/workbench.js";
+import { projectRuntimeMonitor } from "../src/core/domain/runtime-monitor.js";
+import type { ProjectActivity } from "../src/core/domain/project-activity.js";
+import type { WorkbenchSnapshot } from "../src/core/domain/workbench.js";
 
 function activity(sequence: number, method: string, options: Partial<ProjectActivity> & { payload?: Record<string, unknown> } = {}): ProjectActivity {
 	return {

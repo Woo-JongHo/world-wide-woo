@@ -32,7 +32,7 @@ Unit은 파일·클래스·폴더마다 발급하지 않는다. Message처럼 �
 - 기능 후보: Message (Unit ID 미발급)
 - 현재 기능 Parent: WOO-683 / UUID ea233806-8926-4e7f-90b1-8328f3f874d4
 - 실행 작업 후보: WOO-686~WOO-690, 예외·테스트 항목 WOO-691/WOO-692는 범위 논의 필요
-- 현재 구현 후보: src/presentation/tui/workbench-views.ts
+- 현재 구현 후보: src/adapters/inbound/tui/workbench-views.ts
 - 관련 테스트 후보: test/workbench-views.test.ts, test/transcript-markdown.test.ts
 - 목표 모듈 후보: src/tui/chat/message/
 
@@ -40,7 +40,7 @@ Unit은 파일·클래스·폴더마다 발급하지 않는다. Message처럼 �
 
 ## 기존 코드의 활용과 차이
 
-src/domain/work/traceability.ts는 Linear UUID·URL, EP/ST, 코드·테스트·Evidence 참조와 implements/verifies/tracks 등의 관계를 이미 검증한다. traceability-validator.ts는 로컬 경로 존재 여부를 검사한다.
+src/core/domain/work/traceability.ts는 Linear UUID·URL, EP/ST, 코드·테스트·Evidence 참조와 implements/verifies/tracks 등의 관계를 이미 검증한다. traceability-validator.ts는 로컬 경로 존재 여부를 검사한다.
 
 현재 schemaVersion 1은 code/test/evidence의 ID로 경로를 사용한다. Unit과 Run은 별도 reference kind가 없고, 원장에는 실제 Linear reference가 아직 없다. 확정한 ID 분리를 구현하려면 schema 확장·version migration·이전 경로 추적의 상세 계약부터 정해야 한다. 문서 예시를 현재 원장에 그대로 넣지 않는다.
 

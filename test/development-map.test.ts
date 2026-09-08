@@ -3,9 +3,9 @@ import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { stripTerminalSequences } from "@earendil-works/pi-tui";
-import { FileDevelopmentMapSource } from "../src/infrastructure/development-map-source";
-import { DevelopmentMapView } from "../src/presentation/tui/development-map-view";
-import { DevelopmentMapPollingLifecycle } from "../src/presentation/tui/workbench-shell";
+import { FileDevelopmentMapSource } from "../src/adapters/outbound/development-map-source";
+import { DevelopmentMapView } from "../src/adapters/inbound/tui/development-map-view";
+import { DevelopmentMapPollingLifecycle } from "../src/adapters/inbound/tui/workbench-shell";
 
 describe("development map", () => {
 	test("projects explicit initiative, epic, and story relations without inferring acceptance", async () => {

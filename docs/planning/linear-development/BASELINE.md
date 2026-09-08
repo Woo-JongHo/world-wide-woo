@@ -20,13 +20,13 @@ WOO-683의 최신 본문을 직접 조회했으며, 제외 범위가 여전히 C
 
 | 기능/작업 | 현재 코드 후보 | 목표 영역 후보 |
 | --- | --- | --- |
-| Message / WOO-683 | src/presentation/tui/workbench-views.ts | tui/chat/message |
-| Layout / WOO-680 | src/presentation/tui/dashboard-layout.ts | tui/layout |
-| Tracer / WOO-681 | src/presentation/tui/delegation-tree-view.ts | tui/tracer (부분 책임만 확인) |
-| Todo / WOO-682 | src/application/todo-ledger.ts, src/domain/todos.ts | system의 계획 상태 처리와 tui/todo 분리 검토 |
-| System / WOO-672 | src/application/project-workbench.ts, src/infrastructure/executors/ | system/workbench, system/runtime |
-| 관측 기록 | src/domain/project-activity.ts, src/infrastructure/activity-journal-store.ts | system/journal |
-| ID 연결 | src/domain/work/traceability.ts, traceability-validator.ts | system/ledger |
+| Message / WOO-683 | src/adapters/inbound/tui/workbench-views.ts | tui/chat/message |
+| Layout / WOO-680 | src/adapters/inbound/tui/dashboard-layout.ts | tui/layout |
+| Tracer / WOO-681 | src/adapters/inbound/tui/delegation-tree-view.ts | tui/tracer (부분 책임만 확인) |
+| Todo / WOO-682 | src/core/application/todo-ledger.ts, src/core/domain/todos.ts | system의 계획 상태 처리와 tui/todo 분리 검토 |
+| System / WOO-672 | src/core/application/project-workbench.ts, src/adapters/outbound/executors/ | system/workbench, system/runtime |
+| 관측 기록 | src/core/domain/project-activity.ts, src/adapters/outbound/activity-journal-store.ts | system/journal |
+| ID 연결 | src/core/domain/work/traceability.ts, traceability-validator.ts | system/ledger |
 
 표는 대표 후보이며 전체 귀속 inventory나 Issue 수락 검증이 아니다. 거대 파일은 복수 기능에 걸칠 수 있다. 코드 존재만으로 Done으로 바꾸지 않는다.
 

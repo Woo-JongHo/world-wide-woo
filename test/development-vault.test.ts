@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { mkdtempSync, readFileSync, writeFileSync, renameSync, copyFileSync, rmSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { exportDevelopmentVault, replayDevelopmentVault, resolveDevelopmentDocument, type DevelopmentVaultRequest } from '../src/infrastructure/development-vault.js';
+import { exportDevelopmentVault, replayDevelopmentVault, resolveDevelopmentDocument, type DevelopmentVaultRequest } from '../src/adapters/outbound/development-vault.js';
 /** @linear WOO-698 */
 const request: DevelopmentVaultRequest = { requestId: 'checkpoint-1', projectId: 'p', runId: 'r', title: 'Message 개발', unitIds: ['u'], issues: [{ id: 'WOO-683', uuid: 'uuid' }], records: [{ id: 'record-1', body: '공개 대화', metadata: { source: 'test' } }] };
 describe('development Vault', () => {

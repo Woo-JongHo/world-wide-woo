@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 import type { RunAppOptions } from "./app";
-import type { NativeThreadSummary } from "./domain/native-session";
+import type { NativeThreadSummary } from "./core/domain/native-session";
 import type { RunLegacyRouterOptions } from "./legacy-router-app";
 import { PRODUCT_VERSION } from "./product-version";
 
@@ -33,7 +33,7 @@ const productionDependencies: CliDependencies = {
 		await runAuth(args);
 	},
 	runDevelopment: async args => {
-		const { runDevelopmentCli } = await import("./infrastructure/development-cli");
+		const { runDevelopmentCli } = await import("./adapters/outbound/development-cli");
 		return runDevelopmentCli(args);
 	},
 	listSessions: async () => {
@@ -45,7 +45,7 @@ const productionDependencies: CliDependencies = {
 		return listNativeThreads();
 	},
 	selectNativeThread: async (threads) => {
-		const { selectNativeThread } = await import("./presentation/tui/native-thread-picker");
+		const { selectNativeThread } = await import("./adapters/inbound/tui/native-thread-picker");
 		return selectNativeThread(threads);
 	},
 	writeOut: value => console.log(value),

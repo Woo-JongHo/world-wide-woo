@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { SessionMonitor } from "../src/application/session-monitor";
-import type { TodoController } from "../src/application/ports";
-import type { SessionRuntime, SessionSnapshot } from "../src/application/session-runtime";
-import type { TodoDocument } from "../src/domain/todos";
+import { SessionMonitor } from "../src/core/application/session-monitor";
+import type { TodoController } from "../src/core/ports";
+import type { SessionRuntime, SessionSnapshot } from "../src/core/application/session-runtime";
+import type { TodoDocument } from "../src/core/domain/todos";
 
 function session(overrides: Partial<SessionSnapshot> = {}): SessionSnapshot {
 	return {

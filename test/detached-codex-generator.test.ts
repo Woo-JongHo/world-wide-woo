@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import type { Api, AssistantMessage, AssistantMessageEventStream, Context, Model, ModelsSimpleStreamOptions } from "@earendil-works/pi-ai";
-import type { DetachedGenerationPolicy, DetachedTextGenerationRequest } from "../src/application/detached-text-generator";
-import { DETACHED_CODEX_PROVIDER, PiDetachedCodexGenerator, type PiDetachedCodexModels } from "../src/infrastructure/detached-codex-generator";
-import { createTNotePacket } from "../src/domain/t-notes";
+import type { DetachedGenerationPolicy, DetachedTextGenerationRequest } from "../src/core/application/detached-text-generator";
+import { DETACHED_CODEX_PROVIDER, PiDetachedCodexGenerator, type PiDetachedCodexModels } from "../src/adapters/outbound/detached-codex-generator";
+import { createTNotePacket } from "../src/core/domain/t-notes";
 
 const policy: DetachedGenerationPolicy = Object.freeze({ cwd: "", noTools: true, network: false, readOnly: true, ephemeral: true });
 const packet = createTNotePacket("project-1", { startSequence: 1, endSequence: 1 }, [{

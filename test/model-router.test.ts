@@ -7,8 +7,8 @@ import type {
 	Models,
 	ModelsSimpleStreamOptions,
 } from "@earendil-works/pi-ai";
-import { ModelRouteError, ModelRouter, createModelRegistry, reasoningLevel } from "../src/infrastructure/model-router";
-import type { WwwSettings } from "../src/domain/model-settings";
+import { ModelRouteError, ModelRouter, createModelRegistry, reasoningLevel } from "../src/adapters/outbound/model-router";
+import type { WwwSettings } from "../src/core/domain/model-settings";
 
 const settings: WwwSettings = {
 	provider: "openai",

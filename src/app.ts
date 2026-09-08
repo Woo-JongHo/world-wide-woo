@@ -1,15 +1,15 @@
-import { DEFAULT_SETTINGS, type WwwSettings } from "./domain/model-settings.js";
-import { buildPiExecutionSystemPrompt, type ExecutionLane } from "./infrastructure/executors/factory.js";
-import { createProjectWorkbenchSession } from "./infrastructure/project-workbench-session.js";
-import { FileDevelopmentMapSource } from "./infrastructure/development-map-source.js";
-import { ObservabilityHistorySource } from "./infrastructure/observability-history-source.js";
-import { GitTelemetrySource } from "./infrastructure/git-telemetry-source.js";
+import { DEFAULT_SETTINGS, type WwwSettings } from "./core/domain/model-settings.js";
+import { buildPiExecutionSystemPrompt, type ExecutionLane } from "./adapters/outbound/executors/factory.js";
+import { createProjectWorkbenchSession } from "./adapters/outbound/project-workbench-session.js";
+import { FileDevelopmentMapSource } from "./adapters/outbound/development-map-source.js";
+import { ObservabilityHistorySource } from "./adapters/outbound/observability-history-source.js";
+import { GitTelemetrySource } from "./adapters/outbound/git-telemetry-source.js";
 import { homedir } from "node:os"; import { join } from "node:path";
-export { listNativeThreads } from "./infrastructure/native-thread-discovery.js";
+export { listNativeThreads } from "./adapters/outbound/native-thread-discovery.js";
 export interface RunAppOptions { resumeThreadId?: string; executionLane?: ExecutionLane }
 export async function runApp(options: RunAppOptions = {}): Promise<void> {
-	const { FileSettingsStore } = await import("./infrastructure/settings-store");
-	const { runProjectWorkbenchShell } = await import("./presentation/tui/workbench-shell");
+	const { FileSettingsStore } = await import("./adapters/outbound/settings-store");
+	const { runProjectWorkbenchShell } = await import("./adapters/inbound/tui/workbench-shell");
 	const settingsStore = new FileSettingsStore();
 	const settings = await settingsStore.load();
 	let persistedSettings = settings;
@@ -30,7 +30,7 @@ export async function runApp(options: RunAppOptions = {}): Promise<void> {
 		},
 	});
 	try {
-		const { createProjectAuthController } = await import("./infrastructure/project-auth"); runProjectWorkbenchShell({
+		const { createProjectAuthController } = await import("./adapters/outbound/project-auth"); runProjectWorkbenchShell({
 			workbench: project.workbench, cwd: project.workspace.root, usage: project.usage, auth: createProjectAuthController(),
 			developmentMapSource: new FileDevelopmentMapSource(project.workspace.root),
 			development: project.development,
@@ -45,15 +45,15 @@ export async function runApp(options: RunAppOptions = {}): Promise<void> {
 }
 export function codexInteractiveModel(settings: WwwSettings): string { return settings.provider === "openai-codex" ? settings.model : DEFAULT_SETTINGS.model; }
 export async function runAuth(args: string[]): Promise<void> {
-	const { AuthService } = await import("./infrastructure/auth-service");
-	const { FileCredentialStore } = await import("./infrastructure/credential-store");
-	const { createModelRegistry } = await import("./infrastructure/model-router");
-	const { runAuthCommand } = await import("./presentation/cli/auth-command");
+	const { AuthService } = await import("./adapters/outbound/auth-service");
+	const { FileCredentialStore } = await import("./adapters/outbound/credential-store");
+	const { createModelRegistry } = await import("./adapters/outbound/model-router");
+	const { runAuthCommand } = await import("./adapters/inbound/cli/auth-command");
 	const registry = createModelRegistry(new FileCredentialStore());
 	await runAuthCommand(new AuthService(registry), args);
 }
 /** Legacy SessionRuntime archive only. Native Codex threads are resumed by their opaque id. */
 export async function listSessions(): Promise<Array<{ id: string; updatedAt: string }>> {
-	const { listProjectSessions } = await import("./infrastructure/project-session");
+	const { listProjectSessions } = await import("./adapters/outbound/project-session");
 	return listProjectSessions(process.cwd());
 }

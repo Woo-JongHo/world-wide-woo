@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import { syntaxHighlightPlugin } from "../src/presentation/tui/theme";
+import { syntaxHighlightPlugin } from "../src/adapters/inbound/tui/theme";
 
 describe("native syntax highlight plugin", () => {
 	test("colors supported Python tokens without changing terminal width", () => {

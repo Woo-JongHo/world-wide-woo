@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { SessionModelUsageAccumulator } from "../src/application/session-model-usage";
+import { SessionModelUsageAccumulator } from "../src/core/application/session-model-usage";
 
 describe("SessionModelUsageAccumulator", () => {
 	test("aggregates detached model calls and publishes immutable session snapshots", () => {

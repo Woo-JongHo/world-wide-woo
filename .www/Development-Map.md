@@ -45,9 +45,9 @@ Development Map
 | [WOO-681](https://linear.app/woo-world/issue/WOO-681) · Tracer | PR #44 Ready·Native 성공 경로 수동 수락 대기 | [PR #44](https://github.com/Woo-JongHo/world-wide-woo/pull/44) · [테스트 방법론](./vault/Development/2026-09-07-TUI-Test-Methodology.md) · [연결 원장](./control-ledger/traceability.json) | Todo/Chat 선택 → 같은 실행 Source 왕복 증거 |
 | [WOO-677](https://linear.app/woo-world/issue/WOO-677) · Stats | PR #41 Ready·Spark 승인·Opus 최종 대기 | [Stats PTY Evidence](./scratchpad/2026-09-07-stats-request-enter.md) · [PR #41](https://github.com/Woo-JongHo/world-wide-woo/pull/41) · [테스트 방법론](./vault/Development/2026-09-07-TUI-Test-Methodology.md) | Opus 판정 후 Linear/PR 상태 갱신 |
 | [WOO-695](https://linear.app/woo-world/issue/WOO-695) · Code Map | PR #42 Ready·Map 감사 기록 완료 | [PR #42](https://github.com/Woo-JongHo/world-wide-woo/pull/42) · [테스트 방법론](./vault/Development/2026-09-07-TUI-Test-Methodology.md) · [연결 원장](./control-ledger/traceability.json) | Unit·Linear·SQLite·Obsidian 왕복 수락 증거 |
-| [WOO-696](https://linear.app/woo-world/issue/WOO-696) · SQLite | 구현·자동 검증 완료·PR 분리 대기 | [development-store](../src/infrastructure/development-store.ts) · [SQLite tests](../test/development-store.test.ts) | commit/PR과 Opus 감사 |
-| [WOO-697](https://linear.app/woo-world/issue/WOO-697) · 개발 기록 | PR #45 Ready·테스트 방법론 기록 추가 | [development-service](../src/application/development-service.ts) · [test runner](../src/infrastructure/development-test-runner.ts) · [PR #45](https://github.com/Woo-JongHo/world-wide-woo/pull/45) | Linear 요약·Obsidian 상세 이중 기록 검증 |
-| [WOO-698](https://linear.app/woo-world/issue/WOO-698) · Obsidian | PR #45 Ready·상세 방법론 문서 추가 | [development-vault](../src/infrastructure/development-vault.ts) · [Vault tests](../test/development-vault.test.ts) · [테스트 방법론](./vault/Development/2026-09-07-TUI-Test-Methodology.md) | Linear ID·테스트 ID·증거 경로 readback |
+| [WOO-696](https://linear.app/woo-world/issue/WOO-696) · SQLite | 구현·자동 검증 완료·PR 분리 대기 | [development-store](../src/adapters/outbound/development-store.ts) · [SQLite tests](../test/development-store.test.ts) | commit/PR과 Opus 감사 |
+| [WOO-697](https://linear.app/woo-world/issue/WOO-697) · 개발 기록 | PR #45 Ready·테스트 방법론 기록 추가 | [development-service](../src/core/application/development-service.ts) · [test runner](../src/adapters/outbound/development-test-runner.ts) · [PR #45](https://github.com/Woo-JongHo/world-wide-woo/pull/45) | Linear 요약·Obsidian 상세 이중 기록 검증 |
+| [WOO-698](https://linear.app/woo-world/issue/WOO-698) · Obsidian | PR #45 Ready·상세 방법론 문서 추가 | [development-vault](../src/adapters/outbound/development-vault.ts) · [Vault tests](../test/development-vault.test.ts) · [테스트 방법론](./vault/Development/2026-09-07-TUI-Test-Methodology.md) | Linear ID·테스트 ID·증거 경로 readback |
 
 WOO 번호와 Linear UUID는 작업 ID다. 별도 Unit ID는 미발급이며 기존 EP/ST와 자동 동치 연결하지 않았다. 코드/테스트 연결과 관측은 [원장 안내](./control-ledger/README.md)로 탐색한다. 테스트 통과를 이슈 수락으로 승격하지 않는다. 아래 제품 전체 행은 이번 Chat 감사로 재판정하지 않았다.
 
@@ -147,45 +147,45 @@ EP-001~009는 Planning Package v1 이전의 legacy projection이라 Initiative m
 <!-- traceability:generated:start -->
 ## Linear–Code–Obsidian 추적 투영
 
-이 표는 schema v2 관계 원장과 work manifest에서 생성하며, traceability gate가 같은 그래프의 공용 SQLite 투영과 canonical digest를 대조한다. 상세 요구는 Linear와 Obsidian이 소유하며 여기에는 복제하지 않는다. Initiative·Epic·Story·Evidence는 실제 work manifest의 양방향 관계만 표시하며 ID를 추정하지 않는다.
+이 표는 schema v3 그래프 원장과 work manifest에서 생성하며, SQLite 투영과 canonical digest를 대조한다. 상세 요구와 검증 증거는 registry/evidence source가 소유하며 여기에는 복제하지 않는다.
 
-| Initiative | Epic | Story | Evidence | Linear | Code Unit | Obsidian | PR code evidence | Validation Run | 무결성 | 다음 전환 |
+| Initiative | Epic | Story | Evidence | Linear | Code Unit | Obsidian | PR code evidence | Validation Receipt | 무결성 | 다음 전환 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-678 | Code-010 | WOO-678 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-chat-development/assessment.md<br>.www/evidence/v020-traceability/verification.json | WOO-679 | Code-001<br>Code-002<br>Code-003<br>Code-004<br>Code-005 | WOO-679 | #46 (Chat v0.1 code) | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-chat-development/assessment.md<br>.www/evidence/v020-traceability/verification.json | WOO-686 | Code-001 | WOO-686 | #46 (Chat v0.1 code) | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-chat-development/assessment.md<br>.www/evidence/v020-traceability/verification.json | WOO-687 | Code-001 | WOO-687 | #46 (Chat v0.1 code) | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-chat-development/assessment.md<br>.www/evidence/v020-traceability/verification.json | WOO-688 | Code-001<br>Code-002 | WOO-688 | #46 (Chat v0.1 code) | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-chat-development/assessment.md<br>.www/evidence/v020-traceability/verification.json | WOO-689 | Code-001<br>Code-003 | WOO-689 | #46 (Chat v0.1 code) | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-chat-development/assessment.md<br>.www/evidence/v020-traceability/verification.json | WOO-690 | Code-002 | WOO-690 | #46 (Chat v0.1 code) | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-chat-development/assessment.md<br>.www/evidence/v020-traceability/verification.json | WOO-691 | Code-001<br>Code-002 | WOO-691 | #46 (Chat v0.1 code) | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-chat-development/assessment.md<br>.www/evidence/v020-traceability/verification.json | WOO-692 | Code-001<br>Code-002<br>Code-003<br>Code-004<br>Code-005 | WOO-692 | #46 (Chat v0.1 code) | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-695 | Code-006<br>Code-007 | WOO-695 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-696 | Code-008 | WOO-696 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-697 | Code-008 | WOO-697 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-698 | Code-007 | WOO-698 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-699 | Code-009 | WOO-699 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-718 | Code-001<br>Code-002<br>Code-004<br>Code-005 | WOO-718 | #46 (Chat v0.1 code) | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-719 | Code-001<br>Code-002<br>Code-004 | WOO-719 | #46 (Chat v0.1 code) | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-720 | Code-001<br>Code-002<br>Code-003<br>Code-004<br>Code-005 | WOO-720 | #46 (Chat v0.1 code) | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-tui-preparation/assessment.md<br>.www/evidence/v020-traceability/verification.json | WOO-680 | Code-013 | WOO-680 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-tui-preparation/assessment.md<br>.www/evidence/v020-traceability/verification.json | WOO-681 | Code-012 | WOO-681 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-tui-preparation/assessment.md<br>.www/evidence/v020-traceability/verification.json | WOO-682 | Code-011 | WOO-682 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-700 | Code-011 | WOO-700 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-701 | Code-011 | WOO-701 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-702 | Code-011 | WOO-702 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-703 | Code-011 | WOO-703 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-704 | Code-012 | WOO-704 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-705 | Code-012 | WOO-705 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-706 | Code-012 | WOO-706 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-707 | Code-013 | WOO-707 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-708 | Code-013 | WOO-708 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-709 | Code-012 | WOO-709 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-721 | Code-011 | WOO-721 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-722 | Code-011 | WOO-722 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-723 | Code-012 | WOO-723 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-724 | Code-012 | WOO-724 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-725 | Code-013 | WOO-725 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-726 | Code-013 | WOO-726 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | 미연결 | WOO-678 | Code-010 | WOO-678 | 미연결 | 미관측 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-chat-development/assessment.md | WOO-679 | Code-001<br>Code-002<br>Code-003<br>Code-004<br>Code-005 | WOO-679 | #46 (Chat v0.1 code) | 미관측 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-tui-preparation/assessment.md | WOO-680 | Code-013 | WOO-680 | 미연결 | 미관측 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-tui-preparation/assessment.md | WOO-681 | Code-012 | WOO-681 | 미연결 | 미관측 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-tui-preparation/assessment.md | WOO-682 | Code-011 | WOO-682 | 미연결 | 미관측 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-chat-development/assessment.md | WOO-686 | Code-001 | WOO-686 | #46 (Chat v0.1 code) | VR-CHAT-001-001<br>VR-CHAT-001-001<br>VR-CHAT-001-001 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-chat-development/assessment.md | WOO-687 | Code-001 | WOO-687 | #46 (Chat v0.1 code) | 미관측 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-chat-development/assessment.md | WOO-688 | Code-001<br>Code-002 | WOO-688 | #46 (Chat v0.1 code) | 미관측 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-chat-development/assessment.md | WOO-689 | Code-001<br>Code-003 | WOO-689 | #46 (Chat v0.1 code) | 미관측 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-chat-development/assessment.md | WOO-690 | Code-002 | WOO-690 | #46 (Chat v0.1 code) | 미관측 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-chat-development/assessment.md | WOO-691 | Code-001<br>Code-002 | WOO-691 | #46 (Chat v0.1 code) | 미관측 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-chat-development/assessment.md | WOO-692 | Code-001<br>Code-002<br>Code-003<br>Code-004<br>Code-005 | WOO-692 | #46 (Chat v0.1 code) | 미관측 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | 미연결 | WOO-695 | Code-006<br>Code-007 | WOO-695 | 미연결 | 미관측 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | 미연결 | WOO-696 | Code-008 | WOO-696 | 미연결 | 미관측 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | 미연결 | WOO-697 | Code-008 | WOO-697 | 미연결 | 미관측 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | 미연결 | WOO-698 | Code-007 | WOO-698 | 미연결 | 미관측 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | 미연결 | WOO-699 | Code-009 | WOO-699 | 미연결 | 미관측 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | 미연결 | WOO-700 | Code-011 | WOO-700 | 미연결 | 미관측 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | 미연결 | WOO-701 | Code-011 | WOO-701 | 미연결 | 미관측 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | 미연결 | WOO-702 | Code-011 | WOO-702 | 미연결 | 미관측 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | 미연결 | WOO-703 | Code-011 | WOO-703 | 미연결 | 미관측 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | 미연결 | WOO-704 | Code-012 | WOO-704 | 미연결 | 미관측 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | 미연결 | WOO-705 | Code-012 | WOO-705 | 미연결 | 미관측 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | 미연결 | WOO-706 | Code-012 | WOO-706 | 미연결 | 미관측 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | 미연결 | WOO-707 | Code-013 | WOO-707 | 미연결 | 미관측 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | 미연결 | WOO-708 | Code-013 | WOO-708 | 미연결 | 미관측 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | 미연결 | WOO-709 | Code-012 | WOO-709 | 미연결 | 미관측 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | 미연결 | WOO-718 | Code-001<br>Code-002<br>Code-004<br>Code-005 | WOO-718 | #46 (Chat v0.1 code) | 미관측 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | 미연결 | WOO-719 | Code-001<br>Code-002<br>Code-004 | WOO-719 | #46 (Chat v0.1 code) | 미관측 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | 미연결 | WOO-720 | Code-001<br>Code-002<br>Code-003<br>Code-004<br>Code-005 | WOO-720 | #46 (Chat v0.1 code) | 미관측 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | 미연결 | WOO-721 | Code-011 | WOO-721 | 미연결 | 미관측 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | 미연결 | WOO-722 | Code-011 | WOO-722 | 미연결 | 미관측 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | 미연결 | WOO-723 | Code-012 | WOO-723 | 미연결 | 미관측 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | 미연결 | WOO-724 | Code-012 | WOO-724 | 미연결 | 미관측 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | 미연결 | WOO-725 | Code-013 | WOO-725 | 미연결 | 미관측 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | 미연결 | WOO-726 | Code-013 | WOO-726 | 미연결 | 미관측 | 연결됨 | 수락 상태 확인 |
 
 <!-- traceability:generated:end -->

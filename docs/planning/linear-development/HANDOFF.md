@@ -4,7 +4,7 @@
 
 2026-09-06 정정: 아래 미결정 목록은 당시 이력이다. 공유 DB 엔진은 사용자 결정에 따라 SQLite다. 현재 저장·연결 방향은 [정정 설계](KNOWLEDGE_BRIDGE_DESIGN.md)를 따른다.
 
-접속 확인: `woojongho:/Users/woojongho/woo/00_project/99_www`, origin은 `https://github.com/Woo-JongHo/world-wide-woo.git`, branch `main`, HEAD `19bad6c`. 원격도 dirty이며 로컬과 변경 목록이 다르다. 원격에는 `src/domain/work/` 분해·traceability 신규 파일이 상태 목록에 없었다. 이번 전달 대상은 기존 원격 파일과 충돌하지 않는 `docs/planning/linear-development/` 문서 폴더뿐이다. 다른 코드·문서의 로컬 변경은 전송하지 않는다.
+접속 확인: `woojongho:/Users/woojongho/woo/00_project/99_www`, origin은 `https://github.com/Woo-JongHo/world-wide-woo.git`, branch `main`, HEAD `19bad6c`. 원격도 dirty이며 로컬과 변경 목록이 다르다. 원격에는 `src/core/domain/work/` 분해·traceability 신규 파일이 상태 목록에 없었다. 이번 전달 대상은 기존 원격 파일과 충돌하지 않는 `docs/planning/linear-development/` 문서 폴더뿐이다. 다른 코드·문서의 로컬 변경은 전송하지 않는다.
 
 ## 현재 요청
 

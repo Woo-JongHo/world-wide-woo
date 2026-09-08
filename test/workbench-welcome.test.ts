@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences } from "@earendil-works/pi-tui";
-import { WorkbenchWelcomeView, workbenchWelcomeLogoFrame } from "../src/presentation/tui/workbench-welcome";
+import { WorkbenchWelcomeView, workbenchWelcomeLogoFrame } from "../src/adapters/inbound/tui/workbench-welcome";
 
 describe("workbench welcome intro", () => {
 	test("sweeps a stable WWW wordmark through distinct gradient frames", () => {

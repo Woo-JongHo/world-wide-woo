@@ -2,9 +2,9 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { access, chmod, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { tmpdir } from "node:os";
-import { createProjectAgentTools } from "../src/infrastructure/agent-tools";
-import type { TodoController } from "../src/application/ports";
-import type { TodoDocument } from "../src/domain/todos";
+import { createProjectAgentTools } from "../src/adapters/outbound/agent-tools";
+import type { TodoController } from "../src/core/ports";
+import type { TodoDocument } from "../src/core/domain/todos";
 
 const roots: string[] = [];
 afterEach(async () => { await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))); });

@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ObservabilityHistorySource } from "../src/infrastructure/observability-history-source";
+import { ObservabilityHistorySource } from "../src/adapters/outbound/observability-history-source";
 
 const activity = (id: string, sequence: number) => JSON.stringify({ schemaVersion: 1, id, projectId: "native-stream", sequence, recordedAt: `2026-09-0${sequence}T00:00:00.000Z`, kind: "progress", phase: "updated", provider: "test", nativeRefs: { threadId: "thread" }, sourceDigest: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", payload: {} });
 

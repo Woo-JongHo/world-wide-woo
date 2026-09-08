@@ -6,8 +6,8 @@ import {
 	shellCommandConcurrency,
 	SLASH_COMMANDS,
 	WORKBENCH_SLASH_COMMANDS,
-} from "../src/presentation/tui/slash-commands";
-import type { WwwSettings } from "../src/domain/model-settings";
+} from "../src/adapters/inbound/tui/slash-commands";
+import type { WwwSettings } from "../src/core/domain/model-settings";
 
 const current: WwwSettings = { provider: "openai", model: "gpt-5.4", effort: "high" };
 

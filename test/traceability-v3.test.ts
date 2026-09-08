@@ -2,12 +2,12 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import type { TraceabilityLedgerV3 } from "../src/domain/development-traceability.js";
-import type { ProjectActivity } from "../src/domain/project-activity.js";
-import { createExecutionRun, normalizeProjectActivity, replayExecutionRun } from "../src/domain/work/execution-run.js";
-import { DevelopmentStore } from "../src/infrastructure/development-store.js";
-import { canonicalDigest, requiredCoverageFromRegistries, sha256 } from "../src/infrastructure/development-traceability-contract.js";
-import { validateTraceability } from "../src/infrastructure/traceability-validator.js";
+import type { TraceabilityLedgerV3 } from "../src/core/domain/development-traceability.js";
+import type { ProjectActivity } from "../src/core/domain/project-activity.js";
+import { createExecutionRun, normalizeProjectActivity, replayExecutionRun } from "../src/core/runtime/execution-run.js";
+import { DevelopmentStore } from "../src/adapters/outbound/development-store.js";
+import { canonicalDigest, requiredCoverageFromRegistries, sha256 } from "../src/adapters/outbound/development-traceability-contract.js";
+import { validateTraceability } from "../src/adapters/outbound/traceability-validator.js";
 import { runTraceability, selectedCompletionReceipt } from "../scripts/traceability.js";
 
 const roots: string[] = [];

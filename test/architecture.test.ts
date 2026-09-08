@@ -1,35 +1,38 @@
 import { describe, expect, test } from "bun:test";
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { layer, loadSourceGraph, reachableSources, relativeCycles } from "./architecture/import-graph";
 
 describe("source architecture", () => {
-	test("keeps domain pure", async () => {
+	test("keeps the core independent from adapters", async () => {
 		const graph = await loadSourceGraph();
 		for (const source of graph.values()) {
-			if (layer(source.path) !== "domain") continue;
-			for (const dependency of source.imports) {
-				if (graph.has(dependency)) expect(layer(dependency), `${source.path} -> ${dependency}`).toBe("domain");
-				else expect(dependency, `${source.path} -> ${dependency}`).not.toMatch(/^(?:node:|@earendil|@gajae)/u);
+			if (layer(source.path) !== "core") continue;
+			for (const dependency of source.imports.filter(path => graph.has(path)))
+				expect(layer(dependency), `${source.path} -> ${dependency}`).not.toBe("adapters");
+		}
+	});
+
+	test("keeps core domain independent from orchestration and effects", async () => {
+		const graph = await loadSourceGraph();
+		for (const source of graph.values()) {
+			if (!source.path.startsWith("core/domain/")) continue;
+			for (const dependency of source.imports.filter(path => graph.has(path))) {
+				expect(dependency, `${source.path} -> ${dependency}`).not.toMatch(/^core\/(?:application|ports|runtime|commit)\//u);
 			}
 		}
 	});
 
-	test("prevents application from importing infrastructure or presentation", async () => {
-		const graph = await loadSourceGraph();
-		for (const source of graph.values()) {
-			if (layer(source.path) !== "application") continue;
-			for (const dependency of source.imports.filter(path => graph.has(path))) {
-				expect(["infrastructure", "presentation"], `${source.path} -> ${dependency}`).not.toContain(layer(dependency));
-			}
-		}
+	test("does not recreate the retired top-level source layers", async () => {
+		for (const path of ["src/domain", "src/application", "src/infrastructure", "src/presentation"])
+			expect(await exists(path), path).toBe(false);
 	});
 
-	test("keeps presentation behind application and domain public contracts", async () => {
+	test("keeps inbound adapters from importing outbound adapters", async () => {
 		const graph = await loadSourceGraph();
 		for (const source of graph.values()) {
-			if (layer(source.path) !== "presentation") continue;
+			if (!source.path.startsWith("adapters/inbound/")) continue;
 			for (const dependency of source.imports.filter(path => graph.has(path))) {
-				expect(layer(dependency), `${source.path} -> ${dependency}`).not.toBe("infrastructure");
+				expect(dependency, `${source.path} -> ${dependency}`).not.toMatch(/^adapters\/outbound\//u);
 			}
 		}
 	});
@@ -37,7 +40,7 @@ describe("source architecture", () => {
 	test("keeps process execution behind application-owned ports", async () => {
 		const graph = await loadSourceGraph();
 		for (const source of graph.values()) {
-			if (layer(source.path) !== "presentation") continue;
+			if (!source.path.startsWith("adapters/inbound/")) continue;
 			expect(source.imports, source.path).not.toContain("node:child_process");
 		}
 	});
@@ -45,9 +48,9 @@ describe("source architecture", () => {
 	test("keeps concrete executor adapters independent", async () => {
 		const graph = await loadSourceGraph();
 		for (const source of graph.values()) {
-			if (!source.path.startsWith("infrastructure/executors/") || source.path.endsWith("/factory.ts")) continue;
+			if (!source.path.startsWith("adapters/outbound/executors/") || source.path.endsWith("/factory.ts")) continue;
 			for (const dependency of source.imports) {
-				if (!dependency.startsWith("infrastructure/executors/")) continue;
+				if (!dependency.startsWith("adapters/outbound/executors/")) continue;
 				expect(dependency, `${source.path} -> ${dependency}`).toBe(source.path);
 			}
 		}
@@ -59,15 +62,15 @@ describe("source architecture", () => {
 
 	test("keeps the Work capability entry independent from TUI and Runtime implementations", async () => {
 		const graph = await loadSourceGraph();
-		const entry = "domain/work/index.ts";
+		const entry = "core/domain/work/index.ts";
 		expect(graph.has(entry)).toBe(true);
-		expect(graph.has("domain/work-steps.ts")).toBe(false);
+		expect(graph.has("core/domain/work-steps.ts")).toBe(false);
 		for (const source of graph.values()) {
-			expect(source.imports, source.path).not.toContain("domain/work-steps.ts");
+			expect(source.imports, source.path).not.toContain("core/domain/work-steps.ts");
 		}
 		for (const source of reachableSources(graph, entry)) {
 			expect(source.path, `${entry} -> ${source.path}`).not.toMatch(
-				/^(?:presentation|infrastructure|runtime|tui)\//u,
+				/^adapters\//u,
 			);
 		}
 	});
@@ -86,3 +89,11 @@ describe("source architecture", () => {
 		}
 	});
 });
+
+async function exists(path: string): Promise<boolean> {
+	try { await stat(path); return true; }
+	catch (error) {
+		if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
+		throw error;
+	}
+}

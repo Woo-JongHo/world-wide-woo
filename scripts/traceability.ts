@@ -4,14 +4,14 @@ import { execFileSync } from "node:child_process";
 import { mkdtempSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
-import type { RegistryEnvelope, TraceabilityLedger, TraceabilityRef } from "../src/domain/development-traceability.js";
-import type { ProjectActivity } from "../src/domain/project-activity.js";
-import { createExecutionRun, normalizeProjectActivity, replayExecutionRun, type CompletionReceipt } from "../src/domain/work/execution-run.js";
-import { parseWorkTraceabilityManifest } from "../src/domain/work/traceability.js";
-import { buildDevelopmentMap } from "../src/infrastructure/development-map-builder.js";
-import { DevelopmentStore } from "../src/infrastructure/development-store.js";
-import { canonicalDigest, migrateTraceabilityV2ToV3, requiredCoverageFromRegistries, sha256, validateVerificationReceipt, verificationReceiptFromCompletion, type VerificationReceiptCompletionContext } from "../src/infrastructure/development-traceability-contract.js";
-import { validateTraceability } from "../src/infrastructure/traceability-validator.js";
+import type { RegistryEnvelope, TraceabilityLedger, TraceabilityRef } from "../src/core/domain/development-traceability.js";
+import type { ProjectActivity } from "../src/core/domain/project-activity.js";
+import { createExecutionRun, normalizeProjectActivity, replayExecutionRun, type CompletionReceipt } from "../src/core/runtime/execution-run.js";
+import { parseWorkTraceabilityManifest } from "../src/core/domain/work/traceability.js";
+import { buildDevelopmentMap } from "../src/adapters/outbound/development-map-builder.js";
+import { DevelopmentStore } from "../src/adapters/outbound/development-store.js";
+import { canonicalDigest, migrateTraceabilityV2ToV3, requiredCoverageFromRegistries, sha256, validateVerificationReceipt, verificationReceiptFromCompletion, type VerificationReceiptCompletionContext } from "../src/adapters/outbound/development-traceability-contract.js";
+import { validateTraceability } from "../src/adapters/outbound/traceability-validator.js";
 
 export function resolveVaultRoot(projectRoot: string, _vaultId: string, explicit?: string): string {
 	return resolve(explicit ?? process.env.WWW_OBSIDIAN_VAULT_ROOT ?? join(projectRoot, ".www/vault"));

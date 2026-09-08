@@ -3,20 +3,20 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { codexInteractiveModel } from "../src/app.js";
-import type { ExecutorPort } from "../src/application/ports/executor-port.js";
-import { ProjectWorkbench, type ProjectWorkbenchOptions, type WorkbenchActivityJournal } from "../src/application/project-workbench.js";
-import { WooEntry } from "../src/application/woo-entry.js";
-import type { SessionRepository, TodoStore } from "../src/application/ports/index.js";
-import { TodoLedger, TodoWriteConflictError } from "../src/application/todo-ledger";
-import { ReviewService } from "../src/application/review-service";
+import type { ExecutorPort } from "../src/core/ports/executor-port.js";
+import { ProjectWorkbench, type ProjectWorkbenchOptions, type WorkbenchActivityJournal } from "../src/core/application/project-workbench.js";
+import { WooEntry } from "../src/core/application/woo-entry.js";
+import type { SessionRepository, TodoStore } from "../src/core/ports/index.js";
+import { TodoLedger, TodoWriteConflictError } from "../src/core/application/todo-ledger";
+import { ReviewService } from "../src/core/application/review-service";
 
-import type { NativeApprovalResolution, NativeHarnessEvent, NativeThreadList, NativeThreadRead, NativeThreadResume, NativeThreadSnapshot, NativeThreadStart, NativeThreadSummary, NativeTurnInterrupt, NativeTurnSnapshot, NativeTurnStart, NativeTurnSteer, NativeTurnSteerResult } from "../src/domain/native-session.js";
-import type { ProjectActivity, ProjectActivityAppendResult, ProjectActivityInput } from "../src/domain/project-activity.js";
-import { createProjectWorkbenchSession, scopedProjectId, scopedTodoSessionId, ThreadBoundActivityJournal, type ProjectWorkbenchSessionFactories } from "../src/infrastructure/project-workbench-session.js";
-import type { ProjectWorkspace } from "../src/infrastructure/project-workspace.js";
-import { nativeThreadJournalKey } from "../src/infrastructure/activity-journal-store.js";
-import { createNativeHarness } from "../src/infrastructure/executors/factory.js";
-import { sha256ReviewDigest } from "../src/infrastructure/review-adapters.js";
+import type { NativeApprovalResolution, NativeHarnessEvent, NativeThreadList, NativeThreadRead, NativeThreadResume, NativeThreadSnapshot, NativeThreadStart, NativeThreadSummary, NativeTurnInterrupt, NativeTurnSnapshot, NativeTurnStart, NativeTurnSteer, NativeTurnSteerResult } from "../src/core/domain/native-session.js";
+import type { ProjectActivity, ProjectActivityAppendResult, ProjectActivityInput } from "../src/core/domain/project-activity.js";
+import { createProjectWorkbenchSession, scopedProjectId, scopedTodoSessionId, ThreadBoundActivityJournal, type ProjectWorkbenchSessionFactories } from "../src/adapters/outbound/project-workbench-session.js";
+import type { ProjectWorkspace } from "../src/adapters/outbound/project-workspace.js";
+import { nativeThreadJournalKey } from "../src/adapters/outbound/activity-journal-store.js";
+import { createNativeHarness } from "../src/adapters/outbound/executors/factory.js";
+import { sha256ReviewDigest } from "../src/adapters/outbound/review-adapters.js";
 
 class MemoryTodoStore implements TodoStore {
 	async read() { return null; }
@@ -26,11 +26,11 @@ class MemoryTodoStore implements TodoStore {
 class TrackingTodoStore implements TodoStore {
 	public writes = 0;
 
-	public constructor(public document: import("../src/domain/todos.js").TodoDocument | null) {}
+	public constructor(public document: import("../src/core/domain/todos.js").TodoDocument | null) {}
 
 	async read() { return this.document; }
 
-	async compareAndSwap(expectedRevision: number | null, next: import("../src/domain/todos.js").TodoDocument) {
+	async compareAndSwap(expectedRevision: number | null, next: import("../src/core/domain/todos.js").TodoDocument) {
 		if (expectedRevision !== (this.document?.revision ?? null)) return "conflict" as const;
 		this.document = next;
 		this.writes += 1;

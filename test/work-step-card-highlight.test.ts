@@ -1,15 +1,15 @@
 import { describe, expect, test } from "bun:test";
 import { homedir } from "node:os";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import type { ProjectActivity } from "../src/domain/project-activity";
-import { projectWorkFlow, type DplanHash } from "../src/domain/work/index";
+import type { ProjectActivity } from "../src/core/domain/project-activity";
+import { projectWorkFlow, type DplanHash } from "../src/core/domain/work/index";
 import {
 	executionLineTone,
 	ObservationCard,
 	projectNativePathText,
 	WorkStepCard,
-} from "../src/presentation/tui/work-step-card";
-import { BashResultCard } from "../src/presentation/tui/result-cards";
+} from "../src/adapters/inbound/tui/work-step-card";
+import { BashResultCard } from "../src/adapters/inbound/tui/result-cards";
 
 const THREAD = "thread-highlight";
 const TURN = "turn-highlight";

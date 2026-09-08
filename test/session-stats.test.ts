@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import type { ProjectActivity } from "../src/domain/project-activity";
-import type { WorkbenchSnapshot } from "../src/domain/workbench";
-import { projectSessionStats } from "../src/domain/session-stats";
+import type { ProjectActivity } from "../src/core/domain/project-activity";
+import type { WorkbenchSnapshot } from "../src/core/domain/workbench";
+import { projectSessionStats } from "../src/core/domain/session-stats";
 
 function activity(input: { id: string; sequence: number; method: string; kind?: ProjectActivity["kind"]; phase?: ProjectActivity["phase"]; turnId?: string; itemId?: string; payload?: Record<string, unknown>; approvalRequestId?: string }): ProjectActivity {
 	return { schemaVersion: 1, id: input.id, projectId: "project", sequence: input.sequence, recordedAt: `2026-09-03T00:00:${String(input.sequence).padStart(2, "0")}.000Z`, kind: input.kind ?? "progress", phase: input.phase ?? "updated", provider: "openai-codex", nativeRefs: { threadId: "thread", turnId: input.turnId, itemId: input.itemId, approvalRequestId: input.approvalRequestId }, sourceDigest: `sha256:${input.id.padEnd(64, "0").slice(0, 64)}`, payload: { method: input.method, ...input.payload } };
