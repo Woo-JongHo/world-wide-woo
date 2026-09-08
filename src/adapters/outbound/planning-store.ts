@@ -2,8 +2,8 @@ import { chmod, lstat, mkdir, open, readFile, rename, rm } from "node:fs/promise
 import { basename, join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { Database } from "bun:sqlite";
-import { createPlanningSnapshot, sanitizePlanningText, type PlanningEpic, type PlanningSnapshot, type PlanningStory } from "../../core/domain/planning.js";
-import type { PlanningCatalogStore } from "../../core/application/planning-service.js";
+import { createPlanningSnapshot, sanitizePlanningText, type PlanningEpic, type PlanningSnapshot, type PlanningStory } from "../../core/domain/work/planning.js";
+import type { PlanningCatalogStore } from "../../core/application/work/planning-service.js";
 
 const queues = new Map<string, Promise<unknown>>();
 const START = "<!-- www-planning-v1:start -->";

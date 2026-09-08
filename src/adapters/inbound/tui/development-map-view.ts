@@ -1,6 +1,6 @@
 import { truncateToWidth, visibleWidth, wrapTextWithAnsi, type Component } from "@earendil-works/pi-tui";
-import type { DevelopmentMapEpic, DevelopmentMapSnapshot } from "../../../core/domain/development-map.js";
-import { sanitizeTerminalTextUnbounded } from "../../../core/domain/terminal.js";
+import type { DevelopmentMapEpic, DevelopmentMapSnapshot } from "../../../core/domain/development/development-map.js";
+import { sanitizeTerminalTextUnbounded } from "../../../core/domain/execution/terminal.js";
 import { colors } from "./theme.js";
 
 const SOURCE_TEXT_MAX_WIDTH = 72;

@@ -1,5 +1,5 @@
-import type { ProjectActivity } from "./project-activity.js";
-import type { WorkbenchSessionUsage } from "./workbench.js";
+import type { ProjectActivity } from "../execution/project-activity.js";
+import type { WorkbenchSessionUsage } from "../work/workbench.js";
 import { observedCompletionPercent, sumAttributedTokens } from "./observability-metrics.js";
 
 export const OBSERVABILITY_RECENT_SESSION_LIMIT = 12;

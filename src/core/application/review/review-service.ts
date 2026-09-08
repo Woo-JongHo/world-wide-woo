@@ -6,7 +6,7 @@ import {
 	type ReviewPacketInput,
 	type ReviewPacketPreview,
 	type ReviewProvenance,
-} from "../domain/review";
+} from "../../domain/review/review";
 
 export interface ApprovedReview {
 	readonly packet: ReviewPacketPreview["packet"];

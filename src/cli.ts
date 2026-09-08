@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 import type { RunAppOptions } from "./app";
-import type { NativeThreadSummary } from "./core/domain/native-session";
+import type { NativeThreadSummary } from "./core/domain/execution/native-session";
 import type { RunLegacyRouterOptions } from "./legacy-router-app";
 import { PRODUCT_VERSION } from "./product-version";
 

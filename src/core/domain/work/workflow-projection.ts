@@ -1,8 +1,8 @@
-import type { ProjectActivity } from "../project-activity.js";
-import { redactForExternalReview } from "../redaction.js";
-import { sanitizeTerminalTextExcerpt } from "../terminal.js";
+import type { ProjectActivity } from "../execution/project-activity.js";
+import { redactForExternalReview } from "../review/redaction.js";
+import { sanitizeTerminalTextExcerpt } from "../execution/terminal.js";
 import { classifyWorkActivity } from "./activity-classification.js";
-import type { ExecutionRunState } from "../execution-run-contract.js";
+import type { ExecutionRunState } from "../execution/execution-run-contract.js";
 
 const MAX_PUBLIC_TEXT = 1_200;
 const FALLBACK_NARRATION: WorkStepNarration = {

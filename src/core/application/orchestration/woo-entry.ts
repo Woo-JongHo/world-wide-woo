@@ -1,4 +1,4 @@
-import type { NativeTurnStart } from "../domain/native-session.js";
+import type { NativeTurnStart } from "../../domain/execution/native-session.js";
 
 const CONTEXT_LIMIT = 3_500;
 const POLICY_CONTEXT_KEY = "woo_entry_policy";

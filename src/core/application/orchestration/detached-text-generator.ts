@@ -1,4 +1,4 @@
-import type { TNoteModelProvenance, TNotePacket } from "../domain/t-notes.js";
+import type { TNoteModelProvenance, TNotePacket } from "../../domain/work/t-notes.js";
 
 /** Required isolation contract for a detached summary request. */
 export interface DetachedGenerationPolicy {

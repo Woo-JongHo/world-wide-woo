@@ -5,8 +5,8 @@ const UP = "\x1b[A";
 const DOWN = "\x1b[B";
 const ENTER = "\r";
 const ESC = "\x1b";
-import type { NativeApprovalRequest } from "../src/core/domain/native-session";
-import type { WorkbenchApprovalDecision } from "../src/core/domain/workbench";
+import type { NativeApprovalRequest } from "../src/core/domain/execution/native-session";
+import type { WorkbenchApprovalDecision } from "../src/core/domain/work/workbench";
 import { ApprovalOverlay } from "../src/adapters/inbound/tui/approval-overlay";
 
 function request(overrides: Partial<NativeApprovalRequest> = {}): NativeApprovalRequest {

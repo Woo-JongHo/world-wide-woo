@@ -4,9 +4,9 @@ import { mkdtemp, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Api, AssistantMessage, AssistantMessageEventStream, Context, Model, ModelsSimpleStreamOptions } from "@earendil-works/pi-ai";
-import { ReviewService } from "../src/core/application/review-service";
-import { createReviewPacket } from "../src/core/domain/review";
-import { redactForExternalReview } from "../src/core/domain/redaction";
+import { ReviewService } from "../src/core/application/review/review-service";
+import { createReviewPacket } from "../src/core/domain/review/review";
+import { redactForExternalReview } from "../src/core/domain/review/redaction";
 import { CLAUDE_OPUS_REVIEW_MODEL, CLAUDE_CLI_REVIEW_INPUT_LIMIT, ClaudeCliReviewAdapter, ClaudeCliReviewError, GEMINI_REVIEW_MODEL, PiReviewGenerationClient, ProviderReviewAdapter, createProductionReviewAdapters, createReviewAdapters, createSystemClaudeCliRunner, sha256ReviewDigest } from "../src/adapters/outbound/review-adapters";
 import { FileReviewProvenanceStore } from "../src/adapters/outbound/review-store";
 

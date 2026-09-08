@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences } from "@earendil-works/pi-tui";
-import type { ProjectActivity } from "../src/core/domain/project-activity";
-import type { WorkbenchSnapshot } from "../src/core/domain/workbench";
-import { projectWorkFlow } from "../src/core/domain/work/index";
+import type { ProjectActivity } from "../src/core/domain/execution/project-activity";
+import type { WorkbenchSnapshot } from "../src/core/domain/work/workbench";
+import { projectWorkFlow } from "../src/core/domain/work";
 import { WorkbenchChatView } from "../src/adapters/inbound/tui/workbench-views";
 
 function startup(sequence: number, server: string, status: string): ProjectActivity {

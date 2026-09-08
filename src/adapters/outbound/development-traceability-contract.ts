@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync, realpathSync } from "node:fs";
 import { isAbsolute, relative, resolve } from "node:path";
-import { canonicalTraceabilityRef, deriveVerificationVerdict, entityRefs, type EvidenceArtifact, type ExceptionContract, type RegistryEnvelope, type SpecContract, type TestContract, type TraceEntityKind, type TraceabilityLedgerV3, type TraceabilityRef, type TraceabilityRelation, type VerificationReceipt } from "../../core/domain/development-traceability.js";
+import { canonicalTraceabilityRef, deriveVerificationVerdict, entityRefs, type EvidenceArtifact, type ExceptionContract, type RegistryEnvelope, type SpecContract, type TestContract, type TraceEntityKind, type TraceabilityLedgerV3, type TraceabilityRef, type TraceabilityRelation, type VerificationReceipt } from "../../core/domain/development/development-traceability.js";
 import type { CompletionReceipt } from "../../core/runtime/execution-run.js";
 
 const SHA256 = /^[a-f0-9]{64}$/iu;

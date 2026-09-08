@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { ProjectActivity } from "../src/core/domain/project-activity";
+import type { ProjectActivity } from "../src/core/domain/execution/project-activity";
 import {
 	createExecutionRun,
 	executionCheckpointDigest,

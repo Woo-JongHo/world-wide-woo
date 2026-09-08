@@ -3,7 +3,7 @@ import { homedir } from "node:os";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import { Type } from "typebox";
 import type { AgentTool, AgentToolExecution, TodoController } from "../../core/ports";
-import type { CommandResultSnapshot, GenericToolResultSnapshot } from "../../core/domain/output";
+import type { CommandResultSnapshot, GenericToolResultSnapshot } from "../../core/domain/execution/output";
 
 const MAX_FILE_BYTES = 256 * 1024;
 const MAX_OUTPUT_BYTES = 64 * 1024;

@@ -7,7 +7,7 @@ import {
 	DEFAULT_SETTINGS,
 	normalizeSettings,
 	type WwwSettings,
-} from "../../core/domain/model-settings";
+} from "../../core/domain/execution/model-settings";
 
 export function settingsPath(env: NodeJS.ProcessEnv = process.env): string {
 	const configRoot = env.WWW_CONFIG_DIR ?? join(homedir(), ".config", "www");

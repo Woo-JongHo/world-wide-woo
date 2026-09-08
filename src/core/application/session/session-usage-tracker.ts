@@ -1,6 +1,6 @@
-import type { NativeHarnessEvent } from "../../domain/native-session.js";
-import type { WorkbenchContextUsage, WorkbenchModelUsage, WorkbenchSessionUsage } from "../../domain/workbench.js";
-import type { SessionModelUsageSource } from "../session-model-usage.js";
+import type { NativeHarnessEvent } from "../../domain/execution/native-session.js";
+import type { WorkbenchContextUsage, WorkbenchModelUsage, WorkbenchSessionUsage } from "../../domain/work/workbench.js";
+import type { SessionModelUsageSource } from "./session-model-usage.js";
 const NATIVE_CONTEXT_BASELINE_TOKENS = 12_000;
 
 /** Session-local accounting for executor and detached model usage observations. */

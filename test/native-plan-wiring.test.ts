@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { ProjectWorkbench, type WorkbenchActivityJournal } from "../src/core/application/project-workbench.js";
+import { ProjectWorkbench, type WorkbenchActivityJournal } from "../src/core/application/orchestration/project-workbench.js";
 import type { SessionRepository, TodoStore } from "../src/core/ports/index.js";
-import { TodoLedger } from "../src/core/application/todo-ledger.js";
-import type { SessionEvent, SessionEventInput } from "../src/core/domain/session-events.js";
-import type { ProjectActivity, ProjectActivityAppendResult, ProjectActivityInput } from "../src/core/domain/project-activity.js";
-import type { TodoDocument } from "../src/core/domain/todos.js";
+import { TodoLedger } from "../src/core/application/work/todo-ledger.js";
+import type { SessionEvent, SessionEventInput } from "../src/core/domain/execution/session-events.js";
+import type { ProjectActivity, ProjectActivityAppendResult, ProjectActivityInput } from "../src/core/domain/execution/project-activity.js";
+import type { TodoDocument } from "../src/core/domain/work/todos.js";
 import { CodexAppServer, type JsonLineTransport } from "../src/adapters/outbound/executors/codex-app-server.js";
 
 class FakeJsonLineTransport implements JsonLineTransport {

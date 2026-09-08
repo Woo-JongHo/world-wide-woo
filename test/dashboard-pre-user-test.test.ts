@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import type { ObservabilityDashboard, ObservabilitySessionSummary } from "../src/core/domain/observability-dashboard";
+import type { ObservabilityDashboard, ObservabilitySessionSummary } from "../src/core/domain/observability/observability-dashboard";
 import { dashboardSessionWindow } from "../src/adapters/inbound/tui/dashboard-session-window";
 import { ObservabilityDashboardView } from "../src/adapters/inbound/tui/observability-dashboard-view";
 

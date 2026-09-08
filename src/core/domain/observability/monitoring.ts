@@ -1,4 +1,4 @@
-import type { CommandStatus } from "./output";
+import type { CommandStatus } from "../execution/output";
 
 export type MonitoringPhase = "starting" | "ready" | "streaming" | "error";
 

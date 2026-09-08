@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { ExecutorPort } from "../../../core/ports/executor-port.js";
+import type { ExecutorPort } from "../../../core/ports/execution/executor-port.js";
 import type {
 	NativeApprovalResolution,
 	NativeHarnessEvent,
@@ -13,7 +13,7 @@ import type {
 	NativeTurnSteer,
 	NativeTurnSteerResult,
 	NativeThreadStart,
-} from "../../../core/domain/native-session.js";
+} from "../../../core/domain/execution/native-session.js";
 
 export type PiSessionEvent =
 	| { type: "text-delta"; text: string }

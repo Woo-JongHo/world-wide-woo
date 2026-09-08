@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import type { ProjectActivity } from "../src/core/domain/project-activity";
+import type { ProjectActivity } from "../src/core/domain/execution/project-activity";
 import {
 	resolveTraceSelection,
 	type TraceSelectionInput,
-} from "../src/core/domain/trace-selection";
-import type { WorkFlowProjection } from "../src/core/domain/work/index";
+} from "../src/core/domain/work/trace-selection";
+import type { WorkFlowProjection } from "../src/core/domain/work";
 
 function activity(id: string, sequence: number, threadId: string, turnId: string, itemId: string): ProjectActivity {
 	return {

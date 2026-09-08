@@ -12,7 +12,7 @@ import type {
 	NativeTurnStart,
 	NativeTurnSteer,
 	NativeTurnSteerResult,
-} from "../domain/native-session.js";
+} from "../../domain/execution/native-session.js";
 
 /** Application-owned semantic boundary around a native model session host. */
 export interface ExecutorPort {

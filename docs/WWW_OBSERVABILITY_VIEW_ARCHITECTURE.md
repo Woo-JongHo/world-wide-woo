@@ -17,7 +17,7 @@
 
 ### 1. Stats projection
 
-`src/core/domain/session-stats.ts`의 `projectSessionStats(snapshot)`이 `WorkbenchSnapshot.activities`, usage, T-note, session goal을 lifecycle/performance/model usage/request/issues/diagnostics로 투영한다. `SessionStatsView`는 projection만 렌더링하고 journal 파일을 직접 읽지 않는다. 현재 scope는 열린 Workbench의 한 session이다.
+`src/core/domain/observability/session-stats.ts`의 `projectSessionStats(snapshot)`이 `WorkbenchSnapshot.activities`, usage, T-note, session goal을 lifecycle/performance/model usage/request/issues/diagnostics로 투영한다. `SessionStatsView`는 projection만 렌더링하고 journal 파일을 직접 읽지 않는다. 현재 scope는 열린 Workbench의 한 session이다.
 
 ### 2. Journal source
 
@@ -25,15 +25,15 @@
 
 ### 3. 새 Dashboard projection 위치
 
-`src/core/domain/observability-dashboard.ts`에 순수 `projectObservabilityDashboard(session summaries, coverage)`를 둔다. 파일 탐색과 journal read는 `src/adapters/outbound/observability-history-source.ts`가 담당한다. renderer는 `src/adapters/inbound/tui/observability-dashboard-view.ts`이며 Stats renderer를 재사용하지 않는다.
+`src/core/domain/observability/observability-dashboard.ts`에 순수 `projectObservabilityDashboard(session summaries, coverage)`를 둔다. 파일 탐색과 journal read는 `src/adapters/outbound/observability-history-source.ts`가 담당한다. renderer는 `src/adapters/inbound/tui/observability-dashboard-view.ts`이며 Stats renderer를 재사용하지 않는다.
 
 ### 4. 새 Monitor projection 위치
 
-`src/core/domain/runtime-monitor.ts`에 bounded incremental projection과 state machine을 둔다. 입력은 이미 정규화된 `ProjectActivity`와 현재 `WorkbenchSnapshot`이다. renderer는 `src/adapters/inbound/tui/runtime-monitor-view.ts`다. 기존 `WorkbenchMonitorView`의 raw snapshot/JSON 표시를 대체하되 `/source` 상세 책임은 유지한다.
+`src/core/domain/observability/runtime-monitor.ts`에 bounded incremental projection과 state machine을 둔다. 입력은 이미 정규화된 `ProjectActivity`와 현재 `WorkbenchSnapshot`이다. renderer는 `src/adapters/inbound/tui/runtime-monitor-view.ts`다. 기존 `WorkbenchMonitorView`의 raw snapshot/JSON 표시를 대체하되 `/source` 상세 책임은 유지한다.
 
 ### 5. Shared metric contract
 
-`src/core/domain/observability-metrics.ts`가 공통 이름과 계산만 소유한다.
+`src/core/domain/observability/observability-metrics.ts`가 공통 이름과 계산만 소유한다.
 
 - elapsed: 관측된 첫 activity와 마지막/현재 시각의 차이
 - completion: terminal completed root turns / observed root turns
@@ -150,9 +150,9 @@ State precedence는 `FAILED > BLOCKED/APPROVAL > RUNNING TOOL > RUNNING AGENT/MO
 
 ## 변경 예정 파일
 
-- 추가: `src/core/domain/observability-metrics.ts`
-- 추가: `src/core/domain/observability-dashboard.ts`
-- 추가: `src/core/domain/runtime-monitor.ts`
+- 추가: `src/core/domain/observability/observability-metrics.ts`
+- 추가: `src/core/domain/observability/observability-dashboard.ts`
+- 추가: `src/core/domain/observability/runtime-monitor.ts`
 - 추가: `src/adapters/outbound/observability-history-source.ts`
 - 추가: `src/adapters/inbound/tui/observability-dashboard-view.ts`
 - 추가: `src/adapters/inbound/tui/runtime-monitor-view.ts`

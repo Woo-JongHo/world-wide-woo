@@ -1,4 +1,4 @@
-import type { ProjectActivity } from "../project-activity.js";
+import type { ProjectActivity } from "../execution/project-activity.js";
 
 export type NativeDelegationStatus = "pending" | "running" | "completed" | "failed";
 

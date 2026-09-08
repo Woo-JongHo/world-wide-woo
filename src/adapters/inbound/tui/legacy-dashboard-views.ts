@@ -5,8 +5,8 @@ import {
 	wrapTextWithAnsi,
 	type Component,
 } from "@earendil-works/pi-tui";
-import type { SessionSnapshot } from "../../../core/application/session-runtime";
-import type { Effort } from "../../../core/domain/model-settings";
+import type { SessionSnapshot } from "../../../core/application/session/session-runtime";
+import type { Effort } from "../../../core/domain/execution/model-settings";
 import { BashResultCard, GenericToolResultCard } from "./result-cards";
 import { colors, gradientLines, markdownTheme, semantic } from "./theme";
 export { UsageStripView } from "./usage-strip-view";

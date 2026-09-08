@@ -1,7 +1,7 @@
 import type { Context, Models, ModelsSimpleStreamOptions } from "@earendil-works/pi-ai";
-import { validateTNotePacket, type TNoteModelProvenance } from "../../core/domain/t-notes";
-import type { DetachedGenerationPolicy, DetachedTextGenerationRequest, DetachedTextGenerator } from "../../core/application/detached-text-generator";
-import type { SessionModelUsageObservation } from "../../core/application/session-model-usage.js";
+import { validateTNotePacket, type TNoteModelProvenance } from "../../core/domain/work/t-notes";
+import type { DetachedGenerationPolicy, DetachedTextGenerationRequest, DetachedTextGenerator } from "../../core/application/orchestration/detached-text-generator";
+import type { SessionModelUsageObservation } from "../../core/application/session/session-model-usage.js";
 
 export const DETACHED_CODEX_PROVIDER = "openai-codex";
 

@@ -6,7 +6,7 @@ import {
 	type Effort,
 	type Provider,
 	type WwwSettings,
-} from "../../../core/domain/model-settings";
+} from "../../../core/domain/execution/model-settings";
 
 export type ShellCommand =
 	| { type: "model.select" }

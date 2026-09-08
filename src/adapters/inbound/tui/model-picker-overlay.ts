@@ -7,7 +7,7 @@ import {
 	type Component,
 } from "@earendil-works/pi-tui";
 import type { ProviderAuthState } from "../../../core/ports";
-import { EFFORTS, MODELS, PROVIDERS, type Effort, type Provider, type WwwSettings } from "../../../core/domain/model-settings";
+import { EFFORTS, MODELS, PROVIDERS, type Effort, type Provider, type WwwSettings } from "../../../core/domain/execution/model-settings";
 import { colors, semantic } from "./theme";
 
 type ModelPickerStep = "provider" | "model" | "effort" | "confirm";

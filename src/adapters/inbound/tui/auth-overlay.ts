@@ -8,7 +8,7 @@ import {
 } from "@earendil-works/pi-tui";
 import type { AuthEvent, AuthPrompt, AuthType } from "@earendil-works/pi-ai";
 import type { AuthController, ProviderAuthState } from "../../../core/ports";
-import { PROVIDERS, type Provider } from "../../../core/domain/model-settings";
+import { PROVIDERS, type Provider } from "../../../core/domain/execution/model-settings";
 import { colors } from "./theme";
 
 type PendingPrompt = {

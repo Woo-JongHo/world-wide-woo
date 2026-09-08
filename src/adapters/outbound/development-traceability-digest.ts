@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { TraceabilityLedger } from "../../core/domain/development-traceability.js";
+import type { TraceabilityLedger } from "../../core/domain/development/development-traceability.js";
 
 export function stableJson(value: unknown): string {
 	if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;

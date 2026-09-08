@@ -1,4 +1,4 @@
-import type { SessionEventInput } from "../domain/session-events";
+import type { SessionEventInput } from "../../domain/execution/session-events";
 import {
 	MAX_TODO_EVIDENCE,
 	sanitizeTodoText,
@@ -10,9 +10,9 @@ import {
 	type TodoItemStatus,
 	type TodoNativePlanBinding,
 	type TodoNativePlanSource,
-} from "../domain/todos";
-import type { SemanticWorkStep, WorkFlowProjection, WorkStepStatus } from "../domain/work/index";
-import type { SessionRepository, TodoController, TodoStore } from "../ports/index.js";
+} from "../../domain/work/todos";
+import type { SemanticWorkStep, WorkFlowProjection, WorkStepStatus } from "../../domain/work";
+import type { SessionRepository, TodoController, TodoStore } from "../../ports/index.js";
 
 /** Coordinates the project todo document with the session audit trail. */
 /** @Unit Code-011 */

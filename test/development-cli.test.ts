@@ -4,9 +4,9 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, realpathSy
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createDevelopmentService, runDevelopmentCli } from "../src/adapters/outbound/development-cli";
-import { executeDevelopmentShellCommand, DevelopmentService } from "../src/core/application/development-service";
+import { executeDevelopmentShellCommand, DevelopmentService } from "../src/core/application/development/development-service";
 import { DevelopmentStore } from "../src/adapters/outbound/development-store";
-import type { ProjectActivity } from "../src/core/domain/project-activity";
+import type { ProjectActivity } from "../src/core/domain/execution/project-activity";
 import { runCli, type CliDependencies } from "../src/cli";
 const directories: string[] = [];
 afterEach(() => { for (const dir of directories.splice(0)) rmSync(dir, { recursive:true, force:true }); });

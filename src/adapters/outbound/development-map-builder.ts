@@ -1,4 +1,4 @@
-import type { TraceabilityLedger } from "../../core/domain/development-traceability.js";
+import type { TraceabilityLedger } from "../../core/domain/development/development-traceability.js";
 import { referenceKey, type WorkReference, type WorkReferenceKind, type WorkTraceabilityManifest } from "../../core/domain/work/traceability.js";
 
 const START = "<!-- traceability:generated:start -->";

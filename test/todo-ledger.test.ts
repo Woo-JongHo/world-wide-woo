@@ -2,10 +2,10 @@ import { describe, expect, test } from "bun:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { TodoIdentityCollisionError, TodoLedger, TodoNativeSourceError, TodoWriteConflictError } from "../src/core/application/todo-ledger.js";
-import type { SessionEvent, SessionEventInput } from "../src/core/domain/session-events";
-import { renderTodoMarkdown, type TodoDocument } from "../src/core/domain/todos";
-import type { SemanticWorkStep, WorkFlowProjection } from "../src/core/domain/work/index";
+import { TodoIdentityCollisionError, TodoLedger, TodoNativeSourceError, TodoWriteConflictError } from "../src/core/application/work/todo-ledger.js";
+import type { SessionEvent, SessionEventInput } from "../src/core/domain/execution/session-events";
+import { renderTodoMarkdown, type TodoDocument } from "../src/core/domain/work/todos";
+import type { SemanticWorkStep, WorkFlowProjection } from "../src/core/domain/work";
 import type { SessionRepository, TodoStore } from "../src/core/ports";
 import { FileTodoStore } from "../src/adapters/outbound/todo-store.js";
 

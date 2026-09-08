@@ -1,5 +1,5 @@
-import type { ProjectActivity } from "./project-activity.js";
-import type { WorkbenchSnapshot } from "./workbench.js";
+import type { ProjectActivity } from "../execution/project-activity.js";
+import type { WorkbenchSnapshot } from "../work/workbench.js";
 
 const EVENT_LIMIT = 12;
 const LABEL_LIMIT = 160;

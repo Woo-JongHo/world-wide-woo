@@ -4,7 +4,7 @@ import {
 	TuiAltScreen,
 	type Component,
 } from "@earendil-works/pi-tui";
-import type { NativeThreadSummary } from "../../../core/domain/native-session";
+import type { NativeThreadSummary } from "../../../core/domain/execution/native-session";
 import { colors, selectListTheme } from "./theme";
 
 function threadPreview(thread: NativeThreadSummary): string {

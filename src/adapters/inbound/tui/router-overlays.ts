@@ -12,7 +12,7 @@ import {
 	type Effort,
 	type Provider,
 	type WwwSettings,
-} from "../../../core/domain/model-settings";
+} from "../../../core/domain/execution/model-settings";
 import { colors, selectListTheme } from "./theme";
 
 const settingsTheme: SettingsListTheme = {

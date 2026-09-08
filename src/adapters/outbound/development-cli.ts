@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
-import { DevelopmentService } from "../../core/application/development-service";
-import type { DevelopmentContext } from "../../core/domain/development-records";
-import { isReasoningActivityPayload } from "../../core/domain/project-activity";
+import { DevelopmentService } from "../../core/application/development/development-service";
+import type { DevelopmentContext } from "../../core/domain/development/development-records";
+import { isReasoningActivityPayload } from "../../core/domain/execution/project-activity";
 import { scanDevelopmentCode } from "./development-code-scanner";
 import { DevelopmentStore } from "./development-store";
 import { runDevelopmentTest } from "./development-test-runner";

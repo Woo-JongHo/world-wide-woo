@@ -1,4 +1,4 @@
-import type { ExecutorPort } from "../../../core/ports/executor-port.js";
+import type { ExecutorPort } from "../../../core/ports/execution/executor-port.js";
 import type {
 	NativeApprovalDecision,
 	NativeApprovalKind,
@@ -21,8 +21,8 @@ import type {
 	NativeTurnSteer,
 	NativeTurnSteerResult,
 	NativeUncertainOperation,
-} from "../../../core/domain/native-session.js";
-import { sanitizeTerminalText } from "../../../core/domain/terminal.js";
+} from "../../../core/domain/execution/native-session.js";
+import { sanitizeTerminalText } from "../../../core/domain/execution/terminal.js";
 import { PRODUCT_VERSION } from "../../../product-version.js";
 
 const STDERR_TAIL_CODE_POINTS = 4_096;

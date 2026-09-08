@@ -7,8 +7,8 @@ import {
 	type CanonicalDocumentDraft,
 	type CanonicalDocumentDraftInput,
 	type CanonicalDocumentTarget,
-} from "../domain/canonical-document";
-import { sanitizeTerminalText } from "../domain/terminal";
+} from "../../domain/work/canonical-document";
+import { sanitizeTerminalText } from "../../domain/execution/terminal";
 
 export interface StoredCanonicalDocument {
 	readonly body: string;

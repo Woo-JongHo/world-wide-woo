@@ -1,5 +1,5 @@
 import { truncateToWidth, visibleWidth, type Component } from "@earendil-works/pi-tui";
-import type { RuntimeMonitorProjection, RuntimeMonitorState } from "../../../core/domain/runtime-monitor.js";
+import type { RuntimeMonitorProjection, RuntimeMonitorState } from "../../../core/domain/observability/runtime-monitor.js";
 import { colors } from "./theme.js";
 
 const MAX_VIEW_WIDTH = 156;

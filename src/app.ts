@@ -1,4 +1,4 @@
-import { DEFAULT_SETTINGS, type WwwSettings } from "./core/domain/model-settings.js";
+import { DEFAULT_SETTINGS, type WwwSettings } from "./core/domain/execution/model-settings.js";
 import { buildPiExecutionSystemPrompt, type ExecutionLane } from "./adapters/outbound/executors/factory.js";
 import { createProjectWorkbenchSession } from "./adapters/outbound/project-workbench-session.js";
 import { FileDevelopmentMapSource } from "./adapters/outbound/development-map-source.js";

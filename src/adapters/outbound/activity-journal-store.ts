@@ -8,7 +8,7 @@ import {
 	type ProjectActivity,
 	type ProjectActivityAppendResult,
 	type ProjectActivityInput,
-} from "../../core/domain/project-activity.js";
+} from "../../core/domain/execution/project-activity.js";
 
 const projectIdPattern = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
 const sha256Pattern = /^sha256:[a-f0-9]{64}$/;

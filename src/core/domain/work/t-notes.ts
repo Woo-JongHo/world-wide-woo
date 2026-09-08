@@ -1,5 +1,5 @@
-import { isReasoningActivityPayload, type ProjectActivity } from "./project-activity.js";
-import { redactForExternalReview } from "./redaction.js";
+import { isReasoningActivityPayload, type ProjectActivity } from "../execution/project-activity.js";
+import { redactForExternalReview } from "../review/redaction.js";
 
 const MAX_ACTIVITIES = 100;
 const MAX_ACTIVITY_BODY = 32 * 1024;

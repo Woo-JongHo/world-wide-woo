@@ -1,10 +1,10 @@
 import type { ModelClient, RecentSessionSummary, TodoController } from "../../core/ports";
 import { join } from "node:path";
-import { SessionRuntime } from "../../core/application/session-runtime";
-import { SessionMonitor } from "../../core/application/session-monitor";
-import { PlanningService } from "../../core/application/planning-service";
-import { TodoLedger } from "../../core/application/todo-ledger";
-import type { WwwSettings } from "../../core/domain/model-settings";
+import { SessionRuntime } from "../../core/application/session/session-runtime";
+import { SessionMonitor } from "../../core/application/session/session-monitor";
+import { PlanningService } from "../../core/application/work/planning-service";
+import { TodoLedger } from "../../core/application/work/todo-ledger";
+import type { WwwSettings } from "../../core/domain/execution/model-settings";
 import { createProjectAgentTools } from "./agent-tools";
 import { FileProjectWorkspace, type ProjectWorkspace } from "./project-workspace";
 import { SessionEventStore } from "./session-store";

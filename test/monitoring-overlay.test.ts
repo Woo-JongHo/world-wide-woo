@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences } from "@earendil-works/pi-tui";
-import type { MonitoringListener, MonitoringSource } from "../src/core/application/session-monitor";
-import type { MonitoringSnapshot } from "../src/core/domain/monitoring";
+import type { MonitoringListener, MonitoringSource } from "../src/core/application/session/session-monitor";
+import type { MonitoringSnapshot } from "../src/core/domain/observability/monitoring";
 import { MonitoringOverlay } from "../src/adapters/inbound/tui/monitoring-overlay";
 
 const base: MonitoringSnapshot = {

@@ -4,7 +4,7 @@ import type {
 	Models,
 } from "@earendil-works/pi-ai";
 import type { AuthController, ProviderAuthState } from "../../core/ports";
-import type { Provider } from "../../core/domain/model-settings";
+import type { Provider } from "../../core/domain/execution/model-settings";
 
 export class AuthService implements AuthController {
 	constructor(private readonly models: Pick<Models, "checkAuth" | "getProvider" | "login" | "logout">) {}

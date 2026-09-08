@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import type { ProjectActivity, ProjectActivityPhase } from "../src/core/domain/project-activity";
-import type { WorkbenchSnapshot } from "../src/core/domain/workbench";
-import { projectNativeDelegation, projectWorkFlow, type DplanHash } from "../src/core/domain/work/index";
+import type { ProjectActivity, ProjectActivityPhase } from "../src/core/domain/execution/project-activity";
+import type { WorkbenchSnapshot } from "../src/core/domain/work/workbench";
+import { projectNativeDelegation, projectWorkFlow, type DplanHash } from "../src/core/domain/work";
 import { projectWorkbenchDelegationSections } from "../src/adapters/inbound/tui/delegation-tree-view";
 import { WorkbenchChatView } from "../src/adapters/inbound/tui/workbench-views";
 

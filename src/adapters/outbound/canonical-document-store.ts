@@ -1,7 +1,7 @@
 import { lstat, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
-import { digestCanonicalDocument, type CanonicalDocumentStore, type CanonicalWriteResult, type StoredCanonicalDocument } from "../../core/application/canonical-promotion";
-import { isCanonicalDocumentTarget, type CanonicalDocumentTarget } from "../../core/domain/canonical-document";
+import { digestCanonicalDocument, type CanonicalDocumentStore, type CanonicalWriteResult, type StoredCanonicalDocument } from "../../core/application/work/canonical-promotion";
+import { isCanonicalDocumentTarget, type CanonicalDocumentTarget } from "../../core/domain/work/canonical-document";
 
 /** Filesystem store constrained to project-local, tracked Markdown under `.www/vault`. */
 export class FileCanonicalDocumentStore implements CanonicalDocumentStore {

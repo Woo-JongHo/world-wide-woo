@@ -15,7 +15,7 @@ import { googleProvider } from "@earendil-works/pi-ai/providers/google";
 import { openaiProvider } from "@earendil-works/pi-ai/providers/openai";
 import { openaiCodexProvider } from "@earendil-works/pi-ai/providers/openai-codex";
 import type { ModelAuthStatus, ModelClient } from "../../core/ports";
-import type { Effort, WwwSettings } from "../../core/domain/model-settings";
+import type { Effort, WwwSettings } from "../../core/domain/execution/model-settings";
 
 // pi-ai keeps Node-only OAuth flows behind runtime imports for browser builds.
 // Standalone Bun binaries need the package's static loader registration.

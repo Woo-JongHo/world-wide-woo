@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 import { chmod, lstat, mkdir, open, readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { createTNoteDraft, validateTNoteDraft, type TNoteDraft, type TNoteDraftInput } from "../../core/domain/t-notes.js";
-import type { TNoteDraftStore } from "../../core/application/t-note-service.js";
+import { createTNoteDraft, validateTNoteDraft, type TNoteDraft, type TNoteDraftInput } from "../../core/domain/work/t-notes.js";
+import type { TNoteDraftStore } from "../../core/application/work/t-note-service.js";
 
 const STORE_FILE = "t-notes.jsonl";
 const queues = new Map<string, Promise<unknown>>();

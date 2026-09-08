@@ -4,7 +4,7 @@ import { renderLayoutFrame } from "@earendil-works/pi-tui/dist/layout.js";
 import type { LayoutBox } from "@earendil-works/pi-tui/dist/layout.js";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
 import chalk from "chalk";
-import type { WorkbenchSnapshot } from "../src/core/domain/workbench";
+import type { WorkbenchSnapshot } from "../src/core/domain/work/workbench";
 import { createDashboardLayout } from "../src/adapters/inbound/tui/dashboard-layout";
 import {
 	StatusLine,
@@ -13,7 +13,7 @@ import {
 import { TNotesSourceView, WorkbenchChatView, WorkbenchMonitorView } from "../src/adapters/inbound/tui/workbench-views";
 import { WORKBENCH_STATUS_NOTICE } from "../src/adapters/inbound/tui/workbench-shell";
 import { boundedPublicProjection } from "../src/adapters/inbound/tui/bounded-public-projection";
-import { projectWorkFlow, type DplanHash } from "../src/core/domain/work/index";
+import { projectWorkFlow, type DplanHash } from "../src/core/domain/work";
 
 const hash: DplanHash = {
 	sha256Hex: (input) => new Bun.CryptoHasher("sha256").update(input).digest("hex"),

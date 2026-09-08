@@ -7,9 +7,9 @@ import type {
 	ActivityNarrationRequest,
 	ActivityNarrationResult,
 	ActivityNarrator,
-} from "../../core/application/activity-narrator.js";
-import { redactForExternalReview } from "../../core/domain/redaction.js";
-import { sanitizeTerminalTextExcerpt } from "../../core/domain/terminal.js";
+} from "../../core/application/orchestration/activity-narrator.js";
+import { redactForExternalReview } from "../../core/domain/review/redaction.js";
+import { sanitizeTerminalTextExcerpt } from "../../core/domain/execution/terminal.js";
 
 const MAX_REQUEST_BYTES = 8 * 1024;
 const MAX_RESULT_TEXT = 600;

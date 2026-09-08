@@ -3,7 +3,7 @@ import { chmod, lstat, mkdir, open, readFile, rename, rm } from "node:fs/promise
 import { dirname, basename, join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { Database } from "bun:sqlite";
-import { parseTodoMarkdown, patchTodoMarkdown, renderTodoMarkdown, type TodoDocument } from "../../core/domain/todos.js";
+import { parseTodoMarkdown, patchTodoMarkdown, renderTodoMarkdown, type TodoDocument } from "../../core/domain/work/todos.js";
 
 const queues = new Map<string, Promise<unknown>>();
 

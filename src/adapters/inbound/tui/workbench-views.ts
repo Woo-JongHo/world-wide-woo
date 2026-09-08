@@ -6,15 +6,15 @@ import {
 	wrapTextWithAnsi,
 	type Component,
 } from "@earendil-works/pi-tui";
-import type { NativeApprovalRequest } from "../../../core/domain/native-session";
-import type { CompletionReport } from "../../../core/domain/output";
+import type { NativeApprovalRequest } from "../../../core/domain/execution/native-session";
+import type { CompletionReport } from "../../../core/domain/execution/output";
 import type { CompletionReceipt } from "../../../core/runtime/execution-run";
-import { projectBackgroundWorkState, type BackgroundWorkState } from "../../../core/domain/native-session";
-import { sanitizeCompletedAssistantResponse, sanitizePartialAssistantResponse } from "../../../core/domain/redaction";
-import { sanitizeTerminalTextExcerpt, sanitizeTerminalTextUnbounded } from "../../../core/domain/terminal";
-import { projectTNoteCompletionIndex } from "../../../core/domain/t-notes";
-import { workbenchApprovalDecisions, type WorkbenchSnapshot } from "../../../core/domain/workbench";
-import { classifyWorkActivity, type SemanticWorkStep, type WorkStepStatus } from "../../../core/domain/work/index";
+import { projectBackgroundWorkState, type BackgroundWorkState } from "../../../core/domain/execution/native-session";
+import { sanitizeCompletedAssistantResponse, sanitizePartialAssistantResponse } from "../../../core/domain/review/redaction";
+import { sanitizeTerminalTextExcerpt, sanitizeTerminalTextUnbounded } from "../../../core/domain/execution/terminal";
+import { projectTNoteCompletionIndex } from "../../../core/domain/work/t-notes";
+import { workbenchApprovalDecisions, type WorkbenchSnapshot } from "../../../core/domain/work/workbench";
+import { classifyWorkActivity, type SemanticWorkStep, type WorkStepStatus } from "../../../core/domain/work";
 import { boundedPublicProjection, PUBLIC_SOURCE_OMISSION } from "./bounded-public-projection";
 import { activityGradientFrame, colors, markdownTheme, semantic } from "./theme";
 import { WorkbenchWelcomeView } from "./workbench-welcome";

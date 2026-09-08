@@ -1,5 +1,5 @@
-import type { ProjectActivity } from "./project-activity.js";
-import type { WorkbenchSnapshot } from "./workbench.js";
+import type { ProjectActivity } from "../execution/project-activity.js";
+import type { WorkbenchSnapshot } from "../work/workbench.js";
 import { observedCompletionPercent, observedElapsedMs as elapsed } from "./observability-metrics.js";
 
 const DETAIL_LIMIT = 1000;

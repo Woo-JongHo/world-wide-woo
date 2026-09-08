@@ -2,7 +2,7 @@ import { readFile, realpath } from "node:fs/promises";
 import { homedir } from "node:os";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import { parse } from "yaml";
-import { normalizeWooEntryPayload, type WooEntryCollection, type WooEntryCollector } from "../../core/application/woo-entry.js";
+import { normalizeWooEntryPayload, type WooEntryCollection, type WooEntryCollector } from "../../core/application/orchestration/woo-entry.js";
 
 const OUTPUT_LIMIT = 16 * 1024;
 const TIMEOUT_MS = 10_000;

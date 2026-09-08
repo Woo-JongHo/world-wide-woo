@@ -4,7 +4,7 @@ import {
 	type RegistryEnvelope,
 	type TraceabilityLedgerV3,
 	type VerificationReceipt,
-} from "../src/core/domain/development-traceability";
+} from "../src/core/domain/development/development-traceability";
 import type { CompletionReceipt } from "../src/core/runtime/execution-run";
 import {
 	canonicalDigest,

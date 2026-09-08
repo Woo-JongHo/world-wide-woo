@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { WooEntry, type WooEntryCollector } from "../src/core/application/woo-entry";
+import { WooEntry, type WooEntryCollector } from "../src/core/application/orchestration/woo-entry";
 
 const payload = {
 	status: { branch: "main" },

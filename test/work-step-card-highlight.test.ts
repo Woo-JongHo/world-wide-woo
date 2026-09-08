@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { homedir } from "node:os";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import type { ProjectActivity } from "../src/core/domain/project-activity";
-import { projectWorkFlow, type DplanHash } from "../src/core/domain/work/index";
+import type { ProjectActivity } from "../src/core/domain/execution/project-activity";
+import { projectWorkFlow, type DplanHash } from "../src/core/domain/work";
 import {
 	executionLineTone,
 	ObservationCard,

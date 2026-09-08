@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import type { ObservabilityDashboard } from "../src/core/domain/observability-dashboard";
-import type { RuntimeMonitorProjection } from "../src/core/domain/runtime-monitor";
+import type { ObservabilityDashboard } from "../src/core/domain/observability/observability-dashboard";
+import type { RuntimeMonitorProjection } from "../src/core/domain/observability/runtime-monitor";
 import { ObservabilityDashboardView } from "../src/adapters/inbound/tui/observability-dashboard-view";
 import { RuntimeMonitorView } from "../src/adapters/inbound/tui/runtime-monitor-view";
 

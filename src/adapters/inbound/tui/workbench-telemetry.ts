@@ -1,6 +1,6 @@
 import { truncateToWidth, visibleWidth, type Component } from "@earendil-works/pi-tui";
 import type { WorkbenchGitTelemetry, WorkbenchGitTelemetryReader } from "../../../core/ports/index.js";
-import type { WorkbenchContextUsage, WorkbenchSessionUsage, WorkbenchSnapshot } from "../../../core/domain/workbench";
+import type { WorkbenchContextUsage, WorkbenchSessionUsage, WorkbenchSnapshot } from "../../../core/domain/work/workbench";
 import { colors } from "./theme";
 
 export interface WorkbenchTelemetrySource {

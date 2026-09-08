@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import type { ProjectActivity } from "../src/core/domain/project-activity";
-import type { SessionStatsSnapshot } from "../src/core/domain/session-stats";
-import { projectSessionStats } from "../src/core/domain/session-stats";
-import type { WorkbenchSnapshot } from "../src/core/domain/workbench";
+import type { ProjectActivity } from "../src/core/domain/execution/project-activity";
+import type { SessionStatsSnapshot } from "../src/core/domain/observability/session-stats";
+import { projectSessionStats } from "../src/core/domain/observability/session-stats";
+import type { WorkbenchSnapshot } from "../src/core/domain/work/workbench";
 import { SessionStatsView } from "../src/adapters/inbound/tui/session-stats-view";
 
 const longPrompt = "Implement review dashboard with a very long raw prompt that must never wrap into a conversation transcript or occupy several dashboard rows";

@@ -6,7 +6,7 @@ import type {
 	DevelopmentMapRelation,
 	DevelopmentMapSnapshot,
 	DevelopmentMapStory,
-} from "../../core/domain/development-map.js";
+} from "../../core/domain/development/development-map.js";
 
 interface CatalogEpic { id: string; title: string }
 interface CatalogStory { id: string; epicId: string; title: string }

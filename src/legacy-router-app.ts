@@ -1,4 +1,4 @@
-import { RouterService, reconcileInitialRouter } from "./core/application/router-service";
+import { RouterService, reconcileInitialRouter } from "./core/application/routing/router-service";
 import { AuthService } from "./adapters/outbound/auth-service";
 import { FileComposerDraftController } from "./adapters/outbound/composer-draft-store";
 import { FileCredentialStore } from "./adapters/outbound/credential-store";

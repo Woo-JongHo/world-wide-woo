@@ -5,13 +5,13 @@ import {
 	type ToolCall,
 	type ToolResultMessage,
 } from "@earendil-works/pi-ai";
-import type { WwwSettings } from "../domain/model-settings";
-import { isPublicNarrationText, workNarrationLabel, workNarrationReason, type WorkNarration } from "../domain/narration";
-import type { PlanningSnapshot } from "../domain/planning";
-import type { SessionEvent } from "../domain/session-events";
-import type { CommandResultSnapshot, GenericToolResultSnapshot, ToolResultSnapshot } from "../domain/output";
-import { sanitizeTerminalText } from "../domain/terminal";
-import type { AgentTool, ModelAuthStatus, ModelClient, SessionRepository, TerminalCommandExecutor, TodoController } from "../ports/index.js";
+import type { WwwSettings } from "../../domain/execution/model-settings";
+import { isPublicNarrationText, workNarrationLabel, workNarrationReason, type WorkNarration } from "../../domain/work/narration";
+import type { PlanningSnapshot } from "../../domain/work/planning";
+import type { SessionEvent } from "../../domain/execution/session-events";
+import type { CommandResultSnapshot, GenericToolResultSnapshot, ToolResultSnapshot } from "../../domain/execution/output";
+import { sanitizeTerminalText } from "../../domain/execution/terminal";
+import type { AgentTool, ModelAuthStatus, ModelClient, SessionRepository, TerminalCommandExecutor, TodoController } from "../../ports/index.js";
 
 export type SessionPhase = "starting" | "ready" | "streaming" | "error";
 const MAX_AGENT_ROUNDS = 24;

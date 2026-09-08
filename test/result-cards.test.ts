@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import type { CommandResultSnapshot, DiffResultSnapshot, GenericToolResultSnapshot } from "../src/core/domain/output";
+import type { CommandResultSnapshot, DiffResultSnapshot, GenericToolResultSnapshot } from "../src/core/domain/execution/output";
 import { BashResultCard, CompletionSummaryCard, DiffResultCard, GenericToolResultCard } from "../src/adapters/inbound/tui/result-cards";
 import { semantic } from "../src/adapters/inbound/tui/theme";
 

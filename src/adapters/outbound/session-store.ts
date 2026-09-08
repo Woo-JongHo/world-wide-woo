@@ -8,7 +8,7 @@ import {
 	SESSION_EVENT_TYPES,
 	type SessionEvent,
 	type SessionEventInput,
-} from "../../core/domain/session-events.js";
+} from "../../core/domain/execution/session-events.js";
 
 const DEFAULT_SESSION_DIRECTORY = join(homedir(), ".local", "share", "www", "sessions");
 const sessionIdPattern = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;

@@ -1,10 +1,10 @@
-import type { NativeApprovalRequest, NativeApprovalResponse, NativeRefs } from "./native-session.js";
-import type { Effort } from "./model-settings.js";
-import type { ProjectActivity } from "./project-activity.js";
+import type { NativeApprovalRequest, NativeApprovalResponse, NativeRefs } from "../execution/native-session.js";
+import type { Effort } from "../execution/model-settings.js";
+import type { ProjectActivity } from "../execution/project-activity.js";
 import type { TodoDocument } from "./todos.js";
-import type { ReviewProvider } from "./review.js";
-import type { WorkFlowProjection } from "./work/index.js";
-import type { ExecutionRunState } from "./execution-run-contract.js";
+import type { ReviewProvider } from "../review/review.js";
+import type { WorkFlowProjection } from "./index.js";
+import type { ExecutionRunState } from "../execution/execution-run-contract.js";
 import type { ActivitySelectionResult } from "./trace-selection.js";
 
 export type WorkbenchPhase = "loading" | "ready" | "working" | "error" | "closed";

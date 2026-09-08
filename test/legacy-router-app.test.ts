@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { WwwSettings } from "../src/core/domain/model-settings";
+import type { WwwSettings } from "../src/core/domain/execution/model-settings";
 import { FileCredentialStore } from "../src/adapters/outbound/credential-store";
 import { FileSettingsStore } from "../src/adapters/outbound/settings-store";
 import {

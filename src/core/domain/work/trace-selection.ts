@@ -1,5 +1,5 @@
-import type { ProjectActivity, ProjectActivityNativeRefs } from "./project-activity.js";
-import type { WorkFlowProjection } from "./work/index.js";
+import type { ProjectActivity, ProjectActivityNativeRefs } from "../execution/project-activity.js";
+import type { WorkFlowProjection } from "./index.js";
 
 export interface TraceSelectionCoverage {
 	readonly mode: "fresh" | "partial-local-journal";

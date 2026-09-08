@@ -58,7 +58,7 @@ function parseArgs(argv: readonly string[], repoRoot: string): Options {
 function printHelp(): void {
 	console.log(`사용법:
   bun scripts/code-map.ts WOO-690
-  bun scripts/code-map.ts src/core/application/project-workbench.ts
+  bun scripts/code-map.ts src/core/application/orchestration/project-workbench.ts
   bun scripts/code-map.ts <Linear UUID-or-URL> --json
   bun scripts/code-map.ts --check [--json]
 

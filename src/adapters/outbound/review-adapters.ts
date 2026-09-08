@@ -14,9 +14,9 @@ import {
 	type ReviewPacket,
 	type ReviewProvider,
 	type ReviewUsage,
-} from "../../core/domain/review";
-import { redactForExternalReview } from "../../core/domain/redaction";
-import type { SessionModelUsageObservation } from "../../core/application/session-model-usage.js";
+} from "../../core/domain/review/review";
+import { redactForExternalReview } from "../../core/domain/review/redaction";
+import type { SessionModelUsageObservation } from "../../core/application/session/session-model-usage.js";
 
 export const CLAUDE_OPUS_REVIEW_MODEL = "claude-opus-5";
 export const GEMINI_REVIEW_MODEL = "gemini-3.1-pro-preview";
@@ -63,7 +63,7 @@ export class PiReviewGenerationClient implements ReviewGenerationClient {
 		private readonly observeUsage?: (observation: SessionModelUsageObservation) => void,
 	) {}
 
-	async generate(request: import("../../core/domain/review").ReviewGenerationRequest): Promise<string> {
+	async generate(request: import("../../core/domain/review/review").ReviewGenerationRequest): Promise<string> {
 		assertDetachedRequest(request);
 		const model = this.models.getModel(request.provider, request.model);
 		if (!model) throw new Error(`Review model is not available: ${request.provider}/${request.model}`);
@@ -442,7 +442,7 @@ function resolveModel(provider: ReviewProvider, requested: string): string {
 	return resolved;
 }
 
-function assertDetachedRequest(request: import("../../core/domain/review").ReviewGenerationRequest): void {
+function assertDetachedRequest(request: import("../../core/domain/review/review").ReviewGenerationRequest): void {
 	if (request.cwd !== "" || request.readOnly !== true || request.networkAccess !== "provider-api-only" || request.tools.length !== 0) {
 		throw new Error("Review generation request is not detached");
 	}

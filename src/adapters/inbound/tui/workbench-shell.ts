@@ -1,4 +1,4 @@
-import { executeDevelopmentShellCommand, type DevelopmentService } from "../../../core/application/development-service";
+import { executeDevelopmentShellCommand, type DevelopmentService } from "../../../core/application/development/development-service";
 import {
 	CombinedAutocompleteProvider,
 	Editor,
@@ -14,14 +14,14 @@ import {
 	type OverlayHandle,
 } from "@earendil-works/pi-tui";
 import type { AuthController, ComposerDraftController, ObservabilityHistoryReader, UsageMonitor, WorkbenchGitTelemetryReader } from "../../../core/ports";
-import type { ProjectWorkbench } from "../../../core/application/project-workbench";
-import { EMPTY_DEVELOPMENT_MAP, type DevelopmentMapSnapshot } from "../../../core/domain/development-map";
-import { projectObservabilityDashboard, summarizeObservabilityStreams, type ObservabilityDashboard } from "../../../core/domain/observability-dashboard";
-import { projectRuntimeMonitor, type RuntimeMonitorProjection } from "../../../core/domain/runtime-monitor";
-import { normalizeSettings, PROVIDERS, type Provider, type WwwSettings } from "../../../core/domain/model-settings";
-import { projectSessionStats } from "../../../core/domain/session-stats";
-import { sanitizeTerminalTextUnbounded } from "../../../core/domain/terminal";
-import type { WorkbenchCommandReceipt, WorkbenchSnapshot } from "../../../core/domain/workbench";
+import type { ProjectWorkbench } from "../../../core/application/orchestration/project-workbench";
+import { EMPTY_DEVELOPMENT_MAP, type DevelopmentMapSnapshot } from "../../../core/domain/development/development-map";
+import { projectObservabilityDashboard, summarizeObservabilityStreams, type ObservabilityDashboard } from "../../../core/domain/observability/observability-dashboard";
+import { projectRuntimeMonitor, type RuntimeMonitorProjection } from "../../../core/domain/observability/runtime-monitor";
+import { normalizeSettings, PROVIDERS, type Provider, type WwwSettings } from "../../../core/domain/execution/model-settings";
+import { projectSessionStats } from "../../../core/domain/observability/session-stats";
+import { sanitizeTerminalTextUnbounded } from "../../../core/domain/execution/terminal";
+import type { WorkbenchCommandReceipt, WorkbenchSnapshot } from "../../../core/domain/work/workbench";
 import { createDashboardLayout } from "./dashboard-layout";
 import { StatusLine, WorkspaceTodoView } from "./shared-dashboard-views";
 import { TNotesSourceView, WorkbenchChatView, WorkbenchMonitorView } from "./workbench-views";

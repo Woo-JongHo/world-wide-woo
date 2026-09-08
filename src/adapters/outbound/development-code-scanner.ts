@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import * as ts from "typescript/unstable/ast";
-import type { DevelopmentIssue, DevelopmentUnit } from "../../core/domain/development-records.js";
+import type { DevelopmentIssue, DevelopmentUnit } from "../../core/domain/development/development-records.js";
 
 export interface DevelopmentCodeLocation {
  path: string; line: number; unitIds: string[]; issueIds: string[];

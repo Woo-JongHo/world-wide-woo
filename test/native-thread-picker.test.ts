@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences } from "@earendil-works/pi-tui";
-import type { NativeThreadSummary } from "../src/core/domain/native-session";
+import type { NativeThreadSummary } from "../src/core/domain/execution/native-session";
 import { NativeThreadPicker } from "../src/adapters/inbound/tui/native-thread-picker";
 
 const threads: readonly NativeThreadSummary[] = [{

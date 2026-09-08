@@ -1,6 +1,6 @@
 import { Key, matchesKey, wrapTextWithAnsi, type Component } from "@earendil-works/pi-tui";
 import type { RepositoryInsights } from "../../../core/ports";
-import type { CommitSummary, IssueSummary, RepositorySnapshot } from "../../../core/domain/repository";
+import type { CommitSummary, IssueSummary, RepositorySnapshot } from "../../../core/domain/development/repository";
 import { colors } from "./theme";
 
 type RepositoryPanelState =

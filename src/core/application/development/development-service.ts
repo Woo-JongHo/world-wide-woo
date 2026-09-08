@@ -1,4 +1,4 @@
-import type { ProjectActivity } from "../domain/project-activity";
+import type { ProjectActivity } from "../../domain/execution/project-activity";
 
 /** UI and capture boundary; adapters own storage, execution and URI opening. */
 export interface DevelopmentServicePorts {

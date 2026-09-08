@@ -87,11 +87,11 @@
     },
     {
       "kind": "code",
-      "id": "src/core/application/project-workbench.ts"
+      "id": "src/core/application/orchestration/project-workbench.ts"
     },
     {
       "kind": "code",
-      "id": "src/core/domain/workbench.ts"
+      "id": "src/core/domain/work/workbench.ts"
     },
     {
       "kind": "test",
@@ -123,11 +123,11 @@
     },
     {
       "kind": "code",
-      "id": "src/core/domain/terminal.ts"
+      "id": "src/core/domain/execution/terminal.ts"
     },
     {
       "kind": "code",
-      "id": "src/core/domain/redaction.ts"
+      "id": "src/core/domain/review/redaction.ts"
     },
     {
       "kind": "test",
@@ -179,7 +179,7 @@
     },
     {
       "kind": "code",
-      "id": "src/core/domain/project-activity.ts"
+      "id": "src/core/domain/execution/project-activity.ts"
     },
     {
       "kind": "test",
@@ -265,7 +265,7 @@
     },
     {
       "kind": "code",
-      "id": "src/core/application/todo-ledger.ts"
+      "id": "src/core/application/work/todo-ledger.ts"
     },
     {
       "kind": "test",
@@ -327,7 +327,7 @@
     },
     {
       "kind": "code",
-      "id": "src/core/domain/runtime-monitor.ts"
+      "id": "src/core/domain/observability/runtime-monitor.ts"
     },
     {
       "kind": "test",
@@ -349,7 +349,7 @@
     },
     {
       "kind": "code",
-      "id": "src/core/domain/observability-dashboard.ts"
+      "id": "src/core/domain/observability/observability-dashboard.ts"
     },
     {
       "kind": "code",
@@ -375,11 +375,11 @@
     },
     {
       "kind": "code",
-      "id": "src/core/domain/session-stats.ts"
+      "id": "src/core/domain/observability/session-stats.ts"
     },
     {
       "kind": "code",
-      "id": "src/core/domain/observability-metrics.ts"
+      "id": "src/core/domain/observability/observability-metrics.ts"
     },
     {
       "kind": "test",
@@ -397,7 +397,7 @@
     },
     {
       "kind": "code",
-      "id": "src/core/domain/development-records.ts"
+      "id": "src/core/domain/development/development-records.ts"
     },
     {
       "kind": "code",
@@ -429,7 +429,7 @@
     },
     {
       "kind": "code",
-      "id": "src/core/application/development-service.ts"
+      "id": "src/core/application/development/development-service.ts"
     },
     {
       "kind": "code",
@@ -577,27 +577,27 @@
     },
     {
       "kind": "code",
-      "id": "src/core/application/activity-narrator.ts"
+      "id": "src/core/application/orchestration/activity-narrator.ts"
     },
     {
       "kind": "code",
-      "id": "src/core/application/canonical-promotion.ts"
+      "id": "src/core/application/work/canonical-promotion.ts"
     },
     {
       "kind": "code",
-      "id": "src/core/application/context-composer.ts"
+      "id": "src/core/application/orchestration/context-composer.ts"
     },
     {
       "kind": "code",
-      "id": "src/core/application/detached-text-generator.ts"
+      "id": "src/core/application/orchestration/detached-text-generator.ts"
     },
     {
       "kind": "code",
-      "id": "src/core/application/planning-service.ts"
+      "id": "src/core/application/work/planning-service.ts"
     },
     {
       "kind": "code",
-      "id": "src/core/ports/executor-port.ts"
+      "id": "src/core/ports/execution/executor-port.ts"
     },
     {
       "kind": "code",
@@ -605,11 +605,11 @@
     },
     {
       "kind": "code",
-      "id": "src/core/application/review-service.ts"
+      "id": "src/core/application/review/review-service.ts"
     },
     {
       "kind": "code",
-      "id": "src/core/application/router-service.ts"
+      "id": "src/core/application/routing/router-service.ts"
     },
     {
       "kind": "code",
@@ -617,75 +617,75 @@
     },
     {
       "kind": "code",
-      "id": "src/core/application/session-model-usage.ts"
+      "id": "src/core/application/session/session-model-usage.ts"
     },
     {
       "kind": "code",
-      "id": "src/core/application/session-monitor.ts"
+      "id": "src/core/application/session/session-monitor.ts"
     },
     {
       "kind": "code",
-      "id": "src/core/application/session-runtime.ts"
+      "id": "src/core/application/session/session-runtime.ts"
     },
     {
       "kind": "code",
-      "id": "src/core/application/t-note-service.ts"
+      "id": "src/core/application/work/t-note-service.ts"
     },
     {
       "kind": "code",
-      "id": "src/core/application/woo-entry.ts"
+      "id": "src/core/application/orchestration/woo-entry.ts"
     },
     {
       "kind": "code",
-      "id": "src/core/domain/canonical-document.ts"
+      "id": "src/core/domain/work/canonical-document.ts"
     },
     {
       "kind": "code",
-      "id": "src/core/domain/development-map.ts"
+      "id": "src/core/domain/development/development-map.ts"
     },
     {
       "kind": "code",
-      "id": "src/core/domain/model-settings.ts"
+      "id": "src/core/domain/execution/model-settings.ts"
     },
     {
       "kind": "code",
-      "id": "src/core/domain/monitoring.ts"
+      "id": "src/core/domain/observability/monitoring.ts"
     },
     {
       "kind": "code",
-      "id": "src/core/domain/narration.ts"
+      "id": "src/core/domain/work/narration.ts"
     },
     {
       "kind": "code",
-      "id": "src/core/domain/native-session.ts"
+      "id": "src/core/domain/execution/native-session.ts"
     },
     {
       "kind": "code",
-      "id": "src/core/domain/output.ts"
+      "id": "src/core/domain/execution/output.ts"
     },
     {
       "kind": "code",
-      "id": "src/core/domain/planning.ts"
+      "id": "src/core/domain/work/planning.ts"
     },
     {
       "kind": "code",
-      "id": "src/core/domain/repository.ts"
+      "id": "src/core/domain/development/repository.ts"
     },
     {
       "kind": "code",
-      "id": "src/core/domain/review.ts"
+      "id": "src/core/domain/review/review.ts"
     },
     {
       "kind": "code",
-      "id": "src/core/domain/session-events.ts"
+      "id": "src/core/domain/execution/session-events.ts"
     },
     {
       "kind": "code",
-      "id": "src/core/domain/t-notes.ts"
+      "id": "src/core/domain/work/t-notes.ts"
     },
     {
       "kind": "code",
-      "id": "src/core/domain/todos.ts"
+      "id": "src/core/domain/work/todos.ts"
     },
     {
       "kind": "code",
@@ -1061,11 +1061,11 @@
     },
     {
       "kind": "code",
-      "id": "src/core/domain/development-traceability.ts"
+      "id": "src/core/domain/development/development-traceability.ts"
     },
     {
       "kind": "code",
-      "id": "src/core/domain/trace-selection.ts"
+      "id": "src/core/domain/work/trace-selection.ts"
     },
     {
       "kind": "code",
@@ -1331,7 +1331,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/core/application/project-workbench.ts"
+        "id": "src/core/application/orchestration/project-workbench.ts"
       }
     },
     {
@@ -1344,7 +1344,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/core/domain/workbench.ts"
+        "id": "src/core/domain/work/workbench.ts"
       }
     },
     {
@@ -1435,7 +1435,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/core/application/project-workbench.ts"
+        "id": "src/core/application/orchestration/project-workbench.ts"
       }
     },
     {
@@ -1539,7 +1539,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/core/domain/terminal.ts"
+        "id": "src/core/domain/execution/terminal.ts"
       }
     },
     {
@@ -1552,7 +1552,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/core/domain/redaction.ts"
+        "id": "src/core/domain/review/redaction.ts"
       }
     },
     {
@@ -1630,7 +1630,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/core/domain/workbench.ts"
+        "id": "src/core/domain/work/workbench.ts"
       }
     },
     {
@@ -1669,7 +1669,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/core/application/project-workbench.ts"
+        "id": "src/core/application/orchestration/project-workbench.ts"
       }
     },
     {
@@ -1851,7 +1851,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/core/application/project-workbench.ts"
+        "id": "src/core/application/orchestration/project-workbench.ts"
       }
     },
     {
@@ -1890,7 +1890,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/core/domain/project-activity.ts"
+        "id": "src/core/domain/execution/project-activity.ts"
       }
     },
     {
@@ -1968,7 +1968,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/core/domain/terminal.ts"
+        "id": "src/core/domain/execution/terminal.ts"
       }
     },
     {
@@ -1981,7 +1981,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/core/domain/redaction.ts"
+        "id": "src/core/domain/review/redaction.ts"
       }
     },
     {
@@ -2020,7 +2020,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/core/application/project-workbench.ts"
+        "id": "src/core/application/orchestration/project-workbench.ts"
       }
     },
     {
@@ -2462,7 +2462,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/core/application/project-workbench.ts"
+        "id": "src/core/application/orchestration/project-workbench.ts"
       }
     },
     {
@@ -2540,7 +2540,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/core/application/project-workbench.ts"
+        "id": "src/core/application/orchestration/project-workbench.ts"
       }
     },
     {
@@ -2553,7 +2553,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/core/application/todo-ledger.ts"
+        "id": "src/core/application/work/todo-ledger.ts"
       }
     },
     {
@@ -2670,7 +2670,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/core/application/project-workbench.ts"
+        "id": "src/core/application/orchestration/project-workbench.ts"
       }
     },
     {
@@ -2917,7 +2917,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/core/domain/runtime-monitor.ts"
+        "id": "src/core/domain/observability/runtime-monitor.ts"
       }
     },
     {
@@ -3008,7 +3008,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/core/domain/observability-dashboard.ts"
+        "id": "src/core/domain/observability/observability-dashboard.ts"
       }
     },
     {
@@ -3125,7 +3125,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/core/domain/session-stats.ts"
+        "id": "src/core/domain/observability/session-stats.ts"
       }
     },
     {
@@ -3138,7 +3138,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/core/domain/observability-metrics.ts"
+        "id": "src/core/domain/observability/observability-metrics.ts"
       }
     },
     {
@@ -3216,7 +3216,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/core/domain/development-records.ts"
+        "id": "src/core/domain/development/development-records.ts"
       }
     },
     {
@@ -3307,7 +3307,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/core/application/development-service.ts"
+        "id": "src/core/application/development/development-service.ts"
       }
     },
     {
@@ -3424,7 +3424,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/core/domain/trace-selection.ts"
+        "id": "src/core/domain/work/trace-selection.ts"
       }
     },
     {
@@ -3502,7 +3502,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/core/application/project-workbench.ts"
+        "id": "src/core/application/orchestration/project-workbench.ts"
       }
     },
     {
@@ -3515,7 +3515,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/core/application/todo-ledger.ts"
+        "id": "src/core/application/work/todo-ledger.ts"
       }
     },
     {
@@ -3528,7 +3528,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/core/domain/todos.ts"
+        "id": "src/core/domain/work/todos.ts"
       }
     },
     {
@@ -3619,7 +3619,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/core/application/project-workbench.ts"
+        "id": "src/core/application/orchestration/project-workbench.ts"
       }
     },
     {
@@ -3671,7 +3671,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/core/domain/session-stats.ts"
+        "id": "src/core/domain/observability/session-stats.ts"
       }
     },
     {

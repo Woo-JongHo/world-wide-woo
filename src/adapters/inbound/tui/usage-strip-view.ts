@@ -1,6 +1,6 @@
 import { truncateToWidth, visibleWidth, type Component } from "@earendil-works/pi-tui";
 import type { UsageLimitSnapshot, UsageSnapshot } from "../../../core/ports";
-import type { WorkbenchModelUsage } from "../../../core/domain/workbench";
+import type { WorkbenchModelUsage } from "../../../core/domain/work/workbench";
 import { colors } from "./theme";
 
 type ProviderLabel = "Codex" | "Claude" | "Gemini";

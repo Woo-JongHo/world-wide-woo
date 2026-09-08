@@ -34,7 +34,7 @@
       "name": "Chat 대화 수명",
       "locations": [
         {
-          "path": "src/core/application/project-workbench.ts",
+          "path": "src/core/application/orchestration/project-workbench.ts",
           "symbol": "ProjectWorkbench"
         }
       ],

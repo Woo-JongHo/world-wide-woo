@@ -5,16 +5,16 @@ import { join } from "node:path";
 import { createModels } from "@earendil-works/pi-ai";
 import { fauxAssistantMessage, fauxProvider, fauxToolCall } from "@earendil-works/pi-ai/providers/faux";
 import { Type } from "typebox";
-import type { WwwSettings } from "../src/core/domain/model-settings";
+import type { WwwSettings } from "../src/core/domain/execution/model-settings";
 import { ModelRouter } from "../src/adapters/outbound/model-router";
-import { buildSessionSystemPrompt, SessionRuntime } from "../src/core/application/session-runtime";
+import { buildSessionSystemPrompt, SessionRuntime } from "../src/core/application/session/session-runtime";
 import { SessionEventStore } from "../src/adapters/outbound/session-store";
 import type { AgentTool, ModelClient, TerminalCommandExecutor } from "../src/core/ports";
-import { TodoLedger } from "../src/core/application/todo-ledger";
+import { TodoLedger } from "../src/core/application/work/todo-ledger";
 import { createProjectAgentTools } from "../src/adapters/outbound/agent-tools";
 import { FileTodoStore } from "../src/adapters/outbound/todo-store";
-import { createPlanningSnapshot } from "../src/core/domain/planning";
-import type { TerminalCommandResult } from "../src/core/domain/terminal";
+import { createPlanningSnapshot } from "../src/core/domain/work/planning";
+import type { TerminalCommandResult } from "../src/core/domain/execution/terminal";
 
 const settings: WwwSettings = { provider: "openai", model: "gpt-5.4", effort: "high" };
 

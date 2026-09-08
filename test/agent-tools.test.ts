@@ -4,7 +4,7 @@ import { basename, join } from "node:path";
 import { tmpdir } from "node:os";
 import { createProjectAgentTools } from "../src/adapters/outbound/agent-tools";
 import type { TodoController } from "../src/core/ports";
-import type { TodoDocument } from "../src/core/domain/todos";
+import type { TodoDocument } from "../src/core/domain/work/todos";
 
 const roots: string[] = [];
 afterEach(async () => { await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))); });

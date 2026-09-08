@@ -11,8 +11,8 @@ import type {
 	CompletionReport,
 	DiffResultSnapshot,
 	GenericToolResultSnapshot,
-} from "../../../core/domain/output";
-import { sanitizeTerminalTextExcerpt } from "../../../core/domain/terminal";
+} from "../../../core/domain/execution/output";
+import { sanitizeTerminalTextExcerpt } from "../../../core/domain/execution/terminal";
 import { colors, semantic } from "./theme";
 import { highlightStructured, projectNativePathText, renderExecutionLine, structuredOutput } from "./work-step-card";
 

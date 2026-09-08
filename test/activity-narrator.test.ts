@@ -7,7 +7,7 @@ import type {
 	Model,
 	ModelsSimpleStreamOptions,
 } from "@earendil-works/pi-ai";
-import type { ActivityNarrationRequest } from "../src/core/application/activity-narrator";
+import type { ActivityNarrationRequest } from "../src/core/application/orchestration/activity-narrator";
 import {
 	ACTIVITY_NARRATOR_MODEL,
 	ACTIVITY_NARRATOR_PROVIDER,

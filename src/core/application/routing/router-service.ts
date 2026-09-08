@@ -1,6 +1,6 @@
-import { MODELS, PROVIDERS, type WwwSettings } from "../domain/model-settings";
-import type { AtomicSettingsRepository, ModelClient, RouterSettingsController, SettingsRepository } from "../ports/index.js";
-import type { SessionRuntime } from "./session-runtime";
+import { MODELS, PROVIDERS, type WwwSettings } from "../../domain/execution/model-settings";
+import type { AtomicSettingsRepository, ModelClient, RouterSettingsController, SettingsRepository } from "../../ports/index.js";
+import type { SessionRuntime } from "../session/session-runtime";
 
 /** Serializes durable selection writes before publishing them to the active session. */
 export class RouterService implements RouterSettingsController {

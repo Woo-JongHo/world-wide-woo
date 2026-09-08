@@ -1,4 +1,4 @@
-import type { WorkbenchModelUsage } from "../domain/workbench.js";
+import type { WorkbenchModelUsage } from "../../domain/work/workbench.js";
 
 export interface SessionModelUsageObservation {
 	readonly model: string;

@@ -1,6 +1,6 @@
 import { Key, matchesKey, truncateToWidth, wrapTextWithAnsi, type Component } from "@earendil-works/pi-tui";
-import type { MonitoringSource } from "../../../core/application/session-monitor";
-import type { MonitoringSnapshot, MonitoringTool } from "../../../core/domain/monitoring";
+import type { MonitoringSource } from "../../../core/application/session/session-monitor";
+import type { MonitoringSnapshot, MonitoringTool } from "../../../core/domain/observability/monitoring";
 import { colors, semantic } from "./theme";
 
 type ObservedStatus = "RUNNING" | "COMPLETED" | "FAILED" | "CANCELLED" | "UNKNOWN";

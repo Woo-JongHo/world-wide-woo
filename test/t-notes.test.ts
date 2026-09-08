@@ -2,10 +2,10 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { appendFile, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { TNoteService } from "../src/core/application/t-note-service.js";
-import type { DetachedTextGenerator } from "../src/core/application/detached-text-generator.js";
+import { TNoteService } from "../src/core/application/work/t-note-service.js";
+import type { DetachedTextGenerator } from "../src/core/application/orchestration/detached-text-generator.js";
 import { FileTNoteStore } from "../src/adapters/outbound/t-note-store.js";
-import { createTNotePacket, projectActivityToTNoteSource } from "../src/core/domain/t-notes.js";
+import { createTNotePacket, projectActivityToTNoteSource } from "../src/core/domain/work/t-notes.js";
 
 const directories: string[] = [];
 afterEach(async () => { await Promise.all(directories.splice(0).map(directory => rm(directory, { recursive: true, force: true }))); });

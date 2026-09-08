@@ -6,8 +6,8 @@ import {
 	type TNoteDraft,
 	type TNoteDraftInput,
 	type TNoteSourceRange,
-} from "../domain/t-notes.js";
-import { assertDetachedPolicy, type DetachedGenerationPolicy, type DetachedTextGenerator } from "./detached-text-generator.js";
+} from "../../domain/work/t-notes.js";
+import { assertDetachedPolicy, type DetachedGenerationPolicy, type DetachedTextGenerator } from "../orchestration/detached-text-generator.js";
 
 export interface TNoteDraftStore {
 	append(input: TNoteDraftInput): Promise<TNoteDraft>;

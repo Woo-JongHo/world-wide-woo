@@ -31,7 +31,7 @@
       ],
       "locations": [
         {
-          "path": "src/core/application/project-workbench.ts",
+          "path": "src/core/application/orchestration/project-workbench.ts",
           "symbol": "ProjectWorkbench"
         }
       ]
@@ -89,7 +89,7 @@
       "aliases": [],
       "locations": [
         {
-          "path": "src/core/domain/development-traceability.ts",
+          "path": "src/core/domain/development/development-traceability.ts",
           "symbol": "validateLedger"
         }
       ]
@@ -154,7 +154,7 @@
       "aliases": [],
       "locations": [
         {
-          "path": "src/core/application/todo-ledger.ts",
+          "path": "src/core/application/work/todo-ledger.ts",
           "symbol": "TodoLedger"
         }
       ]
@@ -167,7 +167,7 @@
       "aliases": [],
       "locations": [
         {
-          "path": "src/core/application/development-service.ts",
+          "path": "src/core/application/development/development-service.ts",
           "symbol": "DevelopmentService"
         }
       ]

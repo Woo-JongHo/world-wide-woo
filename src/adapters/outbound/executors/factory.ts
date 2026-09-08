@@ -1,7 +1,7 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { AssistantMessage } from "@earendil-works/pi-ai/compat";
-import type { ExecutorPort } from "../../../core/ports/executor-port.js";
+import type { ExecutorPort } from "../../../core/ports/execution/executor-port.js";
 import { CodexAppServer } from "./codex-app-server.js";
 import { PiHarness, type PiHarnessSdk, type PiSession, type PiSessionEvent, type PiSessionInput } from "./pi-harness.js";
 

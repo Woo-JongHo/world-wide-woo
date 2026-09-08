@@ -3,7 +3,7 @@ import { access, lstat, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFil
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { FileTodoStore, importLegacyTodo } from "../src/adapters/outbound/todo-store.js";
-import { renderTodoMarkdown, type TodoDocument } from "../src/core/domain/todos.js";
+import { renderTodoMarkdown, type TodoDocument } from "../src/core/domain/work/todos.js";
 
 const directories: string[] = [];
 

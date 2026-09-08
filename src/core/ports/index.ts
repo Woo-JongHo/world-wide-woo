@@ -6,13 +6,13 @@ import type {
 	Context,
 	Tool,
 } from "@earendil-works/pi-ai";
-import type { SessionEvent, SessionEventInput } from "../domain/session-events";
-import type { Provider, WwwSettings } from "../domain/model-settings";
-import type { CommitSummary, IssueState, IssueSummary, RepositorySnapshot } from "../domain/repository";
-import type { ToolResultSnapshot } from "../domain/output";
-import type { TerminalCommandResult, TerminalCommandUpdate } from "../domain/terminal";
-import type { TodoDocument } from "../domain/todos";
-import type { ObservabilityActivityStream, ObservabilityCoverage } from "../domain/observability-dashboard";
+import type { SessionEvent, SessionEventInput } from "../domain/execution/session-events";
+import type { Provider, WwwSettings } from "../domain/execution/model-settings";
+import type { CommitSummary, IssueState, IssueSummary, RepositorySnapshot } from "../domain/development/repository";
+import type { ToolResultSnapshot } from "../domain/execution/output";
+import type { TerminalCommandResult, TerminalCommandUpdate } from "../domain/execution/terminal";
+import type { TodoDocument } from "../domain/work/todos";
+import type { ObservabilityActivityStream, ObservabilityCoverage } from "../domain/observability/observability-dashboard";
 
 export interface ModelAuthStatus {
 	configured: boolean;

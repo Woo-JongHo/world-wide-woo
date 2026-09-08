@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { isAbsolute, relative, resolve } from "node:path";
-import type { RegistryEnvelope, TraceabilityLedger, VerificationReceipt } from "../../core/domain/development-traceability.js";
+import type { RegistryEnvelope, TraceabilityLedger, VerificationReceipt } from "../../core/domain/development/development-traceability.js";
 import { digestLedger } from "./development-traceability-digest.js";
 import { canonicalDigest, requiredCoverageFromRegistries, sha256, validateLedger, validateRegistryEnvelope, validateVerificationReceipt } from "./development-traceability-contract.js";
 

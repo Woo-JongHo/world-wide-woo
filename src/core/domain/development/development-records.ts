@@ -1,4 +1,4 @@
-import type { WorkReference, WorkTraceabilityLink } from "./work/traceability.js";
+import type { WorkReference, WorkTraceabilityLink } from "../work/traceability.js";
 
 export interface DevelopmentUnit { id: string; name: string; createdAt: string }
 export interface DevelopmentIssue { id: string; uuid: string; url: string }

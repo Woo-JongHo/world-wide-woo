@@ -1,7 +1,7 @@
 import { createInterface } from "node:readline/promises";
 import type { AuthEvent, AuthPrompt } from "@earendil-works/pi-ai";
 import type { AuthController } from "../../../core/ports";
-import { PROVIDERS, type Provider } from "../../../core/domain/model-settings";
+import { PROVIDERS, type Provider } from "../../../core/domain/execution/model-settings";
 
 function providerFrom(value: string | undefined): Provider {
 	if (value && PROVIDERS.includes(value as Provider)) return value as Provider;

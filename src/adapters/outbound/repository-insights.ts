@@ -6,7 +6,7 @@ import type {
 	IssueState,
 	IssueSummary,
 	RepositorySnapshot,
-} from "../../core/domain/repository";
+} from "../../core/domain/development/repository";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;

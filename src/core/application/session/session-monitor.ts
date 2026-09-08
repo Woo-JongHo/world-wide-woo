@@ -1,8 +1,8 @@
-import type { MonitoringSnapshot, MonitoringTool } from "../domain/monitoring";
-import { todoDetailProgress, todoProgress, type TodoDocument } from "../domain/todos";
-import type { ToolResultSnapshot } from "../domain/output";
+import type { MonitoringSnapshot, MonitoringTool } from "../../domain/observability/monitoring";
+import { todoDetailProgress, todoProgress, type TodoDocument } from "../../domain/work/todos";
+import type { ToolResultSnapshot } from "../../domain/execution/output";
 import { SessionRuntime, type SessionSnapshot } from "./session-runtime";
-import type { TodoController } from "../ports/index.js";
+import type { TodoController } from "../../ports/index.js";
 
 export type MonitoringListener = (snapshot: MonitoringSnapshot) => void;
 export interface MonitoringSource {

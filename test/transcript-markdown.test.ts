@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import type { SessionSnapshot } from "../src/core/application/session-runtime";
+import type { SessionSnapshot } from "../src/core/application/session/session-runtime";
 import { TranscriptView } from "../src/adapters/inbound/tui/legacy-dashboard-views";
 
 function snapshot(overrides: Partial<SessionSnapshot> = {}): SessionSnapshot {

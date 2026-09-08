@@ -1,6 +1,6 @@
 import { expect } from "bun:test";
-import type { ExecutorPort } from "../src/core/ports/executor-port.js";
-import type { NativeHarnessEvent } from "../src/core/domain/native-session.js";
+import type { ExecutorPort } from "../src/core/ports/execution/executor-port.js";
+import type { NativeHarnessEvent } from "../src/core/domain/execution/native-session.js";
 
 export interface NativeHarnessContractFixture {
 	readonly harness: ExecutorPort;

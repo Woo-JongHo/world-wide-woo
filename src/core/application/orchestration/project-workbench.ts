@@ -1,14 +1,14 @@
 /** @linear WOO-688 WOO-690 WOO-691 */
 import { createHash, randomUUID } from "node:crypto";
-import type { ExecutorPort } from "../ports/executor-port.js";
-import { createCanonicalDocumentDraft, type CanonicalPromotionService } from "./canonical-promotion.js";
-import type { ReviewService } from "./review-service.js";
+import type { ExecutorPort } from "../../ports/execution/executor-port.js";
+import { createCanonicalDocumentDraft, type CanonicalPromotionService } from "../work/canonical-promotion.js";
+import type { ReviewService } from "../review/review-service.js";
 import type { ActivityNarrator } from "./activity-narrator.js";
-import type { SessionModelUsageSource } from "./session-model-usage.js";
-import { TodoWriteConflictError } from "./todo-ledger.js";
+import type { SessionModelUsageSource } from "../session/session-model-usage.js";
+import { TodoWriteConflictError } from "../work/todo-ledger.js";
 import type { WooEntry } from "./woo-entry.js";
 import { ContextComposer } from "./context-composer.js";
-import { SessionUsageTracker } from "./session/session-usage-tracker.js";
+import { SessionUsageTracker } from "../session/session-usage-tracker.js";
 import type {
 	BackgroundWorkState,
 	NativeApprovalPolicy,
@@ -20,9 +20,9 @@ import type {
 	NativeSandboxPolicy,
 	NativeThreadStart,
 	NativeUncertainOperation,
-} from "../domain/native-session.js";
-import { projectBackgroundWorkState } from "../domain/native-session.js";
-import { EFFORTS, MODELS } from "../domain/model-settings.js";
+} from "../../domain/execution/native-session.js";
+import { projectBackgroundWorkState } from "../../domain/execution/native-session.js";
+import { EFFORTS, MODELS } from "../../domain/execution/model-settings.js";
 import {
 	isTerminalActivityPhase,
 	isReasoningActivityPayload,
@@ -31,12 +31,12 @@ import {
 	type ProjectActivityInput,
 	type ProjectActivityKind,
 	type ProjectActivityPhase,
-} from "../domain/project-activity.js";
-import { sanitizePartialAssistantResponse } from "../domain/redaction.js";
-import { sanitizeTerminalTextExcerpt, sanitizeTerminalTextUnbounded } from "../domain/terminal.js";
-import type { TodoDocument, TodoNativePlanBinding } from "../domain/todos.js";
-import type { CanonicalDocumentDraft } from "../domain/canonical-document.js";
-import type { ReviewPacket, ReviewProvider } from "../domain/review.js";
+} from "../../domain/execution/project-activity.js";
+import { sanitizePartialAssistantResponse } from "../../domain/review/redaction.js";
+import { sanitizeTerminalTextExcerpt, sanitizeTerminalTextUnbounded } from "../../domain/execution/terminal.js";
+import type { TodoDocument, TodoNativePlanBinding } from "../../domain/work/todos.js";
+import type { CanonicalDocumentDraft } from "../../domain/work/canonical-document.js";
+import type { ReviewPacket, ReviewProvider } from "../../domain/review/review.js";
 import {
 	classifyWorkActivity,
 	projectWorkFlow,
@@ -45,7 +45,7 @@ import {
 	type WorkFlowProjectionInput,
 	type WorkFlowProjection,
 	type WorkStepNarration,
-} from "../domain/work/index.js";
+} from "../../domain/work/index.js";
 import {
 	createExecutionRun,
 	normalizeProjectActivity,
@@ -53,7 +53,7 @@ import {
 	projectExecutionTodo,
 	reduceExecutionRun,
 	type ExecutionRunState,
-} from "../runtime/execution-run.js";
+} from "../../runtime/execution-run.js";
 import {
 	projectTNoteCompletionIndex,
 	projectActivityToTNoteSource,
@@ -61,8 +61,8 @@ import {
 	type TNoteActivitySource,
 	type TNoteDraft,
 	type TNoteSourceRange,
-} from "../domain/t-notes.js";
-import { validateCanonicalTNote } from "./t-note-service.js";
+} from "../../domain/work/t-notes.js";
+import { validateCanonicalTNote } from "../work/t-note-service.js";
 import type {
 	WorkbenchChatMessage,
 	WorkbenchChatQueueItem,
@@ -80,9 +80,9 @@ import type {
 	WorkbenchSnapshot,
 	WorkbenchTNote,
 	WorkbenchTodoSyncState,
-} from "../domain/workbench.js";
-import { workbenchApprovalDecisions } from "../domain/workbench.js";
-import { resolveActivitySelection, resolveTraceSelection, type ActivitySelectionResult } from "../domain/trace-selection.js";
+} from "../../domain/work/workbench.js";
+import { workbenchApprovalDecisions } from "../../domain/work/workbench.js";
+import { resolveActivitySelection, resolveTraceSelection, type ActivitySelectionResult } from "../../domain/work/trace-selection.js";
 
 const LIVE_ACTIVITY_TAIL_CHARACTER_LIMIT = 32 * 1024 - 128;
 const contextComposer = new ContextComposer();

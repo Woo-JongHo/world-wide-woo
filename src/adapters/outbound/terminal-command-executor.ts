@@ -1,7 +1,7 @@
 import { stat } from "node:fs/promises";
 import { basename, isAbsolute } from "node:path";
 import type { TerminalCommandExecutor } from "../../core/ports";
-import { sanitizeTerminalText, type TerminalCommandResult, type TerminalCommandUpdate } from "../../core/domain/terminal";
+import { sanitizeTerminalText, type TerminalCommandResult, type TerminalCommandUpdate } from "../../core/domain/execution/terminal";
 
 const MAX_COMMAND_CODE_POINTS = 8_192;
 const MAX_RAW_OUTPUT_BYTES = 256 * 1024;

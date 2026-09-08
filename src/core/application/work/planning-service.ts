@@ -1,4 +1,4 @@
-import type { PlanningEpic, PlanningSnapshot, PlanningStory } from "../domain/planning.js";
+import type { PlanningEpic, PlanningSnapshot, PlanningStory } from "../../domain/work/planning.js";
 
 export interface PlanningCatalogStore {
 	read(): Promise<PlanningSnapshot>;

@@ -1,5 +1,5 @@
-import type { ProjectActivity } from "../domain/project-activity.js";
-import type { TodoItem } from "../domain/todos.js";
+import type { ProjectActivity } from "../domain/execution/project-activity.js";
+import type { TodoItem } from "../domain/work/todos.js";
 import type {
 	ExecutionRunId,
 	RuntimeEventKind,
@@ -19,7 +19,7 @@ import type {
 	ExecutionCheckpoint,
 	ExecutionRunState,
 	ExecutionRunReduction
-} from "../domain/execution-run-contract.js";
+} from "../domain/execution/execution-run-contract.js";
 export type {
 	ExecutionRunId,
 	RuntimeEventKind,
@@ -39,7 +39,7 @@ export type {
 	ExecutionCheckpoint,
 	ExecutionRunState,
 	ExecutionRunReduction
-} from "../domain/execution-run-contract.js";
+} from "../domain/execution/execution-run-contract.js";
 
 const encoder = new TextEncoder();
 const frame = (value: unknown): Uint8Array => encoder.encode(JSON.stringify(value));

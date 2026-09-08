@@ -17,12 +17,12 @@ import type {
 	TodoController,
 	UsageMonitor,
 } from "../../../core/ports";
-import type { SessionRuntime } from "../../../core/application/session-runtime";
-import type { SessionMonitor } from "../../../core/application/session-monitor";
-import type { PlanningService } from "../../../core/application/planning-service";
-import { MODELS, type WwwSettings } from "../../../core/domain/model-settings";
-import { todoProgress } from "../../../core/domain/todos";
-import { sanitizeTerminalText } from "../../../core/domain/terminal";
+import type { SessionRuntime } from "../../../core/application/session/session-runtime";
+import type { SessionMonitor } from "../../../core/application/session/session-monitor";
+import type { PlanningService } from "../../../core/application/work/planning-service";
+import { MODELS, type WwwSettings } from "../../../core/domain/execution/model-settings";
+import { todoProgress } from "../../../core/domain/work/todos";
+import { sanitizeTerminalText } from "../../../core/domain/execution/terminal";
 import { AuthFlowOverlay } from "./auth-overlay";
 import { createDashboardLayout } from "./dashboard-layout";
 import {
