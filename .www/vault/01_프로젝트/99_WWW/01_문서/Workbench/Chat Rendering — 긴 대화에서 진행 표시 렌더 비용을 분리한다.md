@@ -15,7 +15,7 @@ test_ids: []
 exception_ids: []
 decision_ids: []
 tags: [www/spec, domain/workbench, capability/chat-rendering]
-source_revision: worktree:45aec4adbebcc5abc902d33f8b29cfd6cd796068:dirty
+source_revision: git:ccca4a378f73868cb7366c4dfae77867e405f758
 updated_at: 2026-09-08T20:40:00+09:00
 ---
 
