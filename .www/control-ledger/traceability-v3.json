@@ -1,0 +1,1634 @@
+{
+  "schemaVersion": 3,
+  "projectId": "2d9bf52e-3f71-4e58-ac8e-7c8d0b60168f",
+  "entities": [
+    {
+      "ref": "acceptance:CHAT-001/A-01@v1",
+      "kind": "acceptance",
+      "id": "CHAT-001/A-01",
+      "version": 1
+    },
+    {
+      "ref": "acceptance:CHAT-001/A-02@v1",
+      "kind": "acceptance",
+      "id": "CHAT-001/A-02",
+      "version": 1
+    },
+    {
+      "ref": "acceptance:CHAT-001/A-03@v1",
+      "kind": "acceptance",
+      "id": "CHAT-001/A-03",
+      "version": 1
+    },
+    {
+      "ref": "decision:DEC-001@v1",
+      "kind": "decision",
+      "id": "DEC-001",
+      "version": 1
+    },
+    {
+      "ref": "evidence:EV-WOO-845-846-UNVERIFIED-001",
+      "kind": "evidence",
+      "id": "EV-WOO-845-846-UNVERIFIED-001",
+      "immutable": true,
+      "source": {
+        "path": ".www/evidence/woo-845-846/unverified-evidence.json",
+        "digest": "60dcba0f8f02336c158cda4189334bc0a976cc3c99be7d9e3d854cbedbd0bb07"
+      }
+    },
+    {
+      "ref": "evidence:EV-WOO-845-EXECUTION-TESTS-001",
+      "kind": "evidence",
+      "id": "EV-WOO-845-EXECUTION-TESTS-001",
+      "immutable": true,
+      "source": {
+        "path": ".www/evidence/woo-845-846/execution-run-tests.json",
+        "digest": "10744fa2189ff6a16a2ad2e01a68ee4cf7d230ab8648528d1adb3758d3b0bb51"
+      }
+    },
+    {
+      "ref": "evidence:EV-WOO-846-TRACEABILITY-TESTS-001",
+      "kind": "evidence",
+      "id": "EV-WOO-846-TRACEABILITY-TESTS-001",
+      "immutable": true,
+      "source": {
+        "path": ".www/evidence/woo-845-846/traceability-tests.json",
+        "digest": "abd2a5cb10f7f624aade42d8a900fcba4f633252ab208f6a3479e9b3472cc3c9"
+      }
+    },
+    {
+      "ref": "exception:EXC-014@v1",
+      "kind": "exception",
+      "id": "EXC-014",
+      "version": 1
+    },
+    {
+      "ref": "git-revision:worktree:2d0f8fdcfd6eb0dbf2f16707ebf98ff75885612b:dirty",
+      "kind": "git-revision",
+      "id": "worktree:2d0f8fdcfd6eb0dbf2f16707ebf98ff75885612b:dirty"
+    },
+    {
+      "ref": "issue:WOO-678",
+      "kind": "issue",
+      "id": "WOO-678"
+    },
+    {
+      "ref": "issue:WOO-679",
+      "kind": "issue",
+      "id": "WOO-679"
+    },
+    {
+      "ref": "issue:WOO-680",
+      "kind": "issue",
+      "id": "WOO-680"
+    },
+    {
+      "ref": "issue:WOO-681",
+      "kind": "issue",
+      "id": "WOO-681"
+    },
+    {
+      "ref": "issue:WOO-682",
+      "kind": "issue",
+      "id": "WOO-682"
+    },
+    {
+      "ref": "issue:WOO-686",
+      "kind": "issue",
+      "id": "WOO-686"
+    },
+    {
+      "ref": "issue:WOO-687",
+      "kind": "issue",
+      "id": "WOO-687"
+    },
+    {
+      "ref": "issue:WOO-688",
+      "kind": "issue",
+      "id": "WOO-688"
+    },
+    {
+      "ref": "issue:WOO-689",
+      "kind": "issue",
+      "id": "WOO-689"
+    },
+    {
+      "ref": "issue:WOO-690",
+      "kind": "issue",
+      "id": "WOO-690"
+    },
+    {
+      "ref": "issue:WOO-691",
+      "kind": "issue",
+      "id": "WOO-691"
+    },
+    {
+      "ref": "issue:WOO-692",
+      "kind": "issue",
+      "id": "WOO-692"
+    },
+    {
+      "ref": "issue:WOO-695",
+      "kind": "issue",
+      "id": "WOO-695"
+    },
+    {
+      "ref": "issue:WOO-696",
+      "kind": "issue",
+      "id": "WOO-696"
+    },
+    {
+      "ref": "issue:WOO-697",
+      "kind": "issue",
+      "id": "WOO-697"
+    },
+    {
+      "ref": "issue:WOO-698",
+      "kind": "issue",
+      "id": "WOO-698"
+    },
+    {
+      "ref": "issue:WOO-699",
+      "kind": "issue",
+      "id": "WOO-699"
+    },
+    {
+      "ref": "issue:WOO-700",
+      "kind": "issue",
+      "id": "WOO-700"
+    },
+    {
+      "ref": "issue:WOO-701",
+      "kind": "issue",
+      "id": "WOO-701"
+    },
+    {
+      "ref": "issue:WOO-702",
+      "kind": "issue",
+      "id": "WOO-702"
+    },
+    {
+      "ref": "issue:WOO-703",
+      "kind": "issue",
+      "id": "WOO-703"
+    },
+    {
+      "ref": "issue:WOO-704",
+      "kind": "issue",
+      "id": "WOO-704"
+    },
+    {
+      "ref": "issue:WOO-705",
+      "kind": "issue",
+      "id": "WOO-705"
+    },
+    {
+      "ref": "issue:WOO-706",
+      "kind": "issue",
+      "id": "WOO-706"
+    },
+    {
+      "ref": "issue:WOO-707",
+      "kind": "issue",
+      "id": "WOO-707"
+    },
+    {
+      "ref": "issue:WOO-708",
+      "kind": "issue",
+      "id": "WOO-708"
+    },
+    {
+      "ref": "issue:WOO-709",
+      "kind": "issue",
+      "id": "WOO-709"
+    },
+    {
+      "ref": "issue:WOO-718",
+      "kind": "issue",
+      "id": "WOO-718"
+    },
+    {
+      "ref": "issue:WOO-719",
+      "kind": "issue",
+      "id": "WOO-719"
+    },
+    {
+      "ref": "issue:WOO-720",
+      "kind": "issue",
+      "id": "WOO-720"
+    },
+    {
+      "ref": "issue:WOO-721",
+      "kind": "issue",
+      "id": "WOO-721"
+    },
+    {
+      "ref": "issue:WOO-722",
+      "kind": "issue",
+      "id": "WOO-722"
+    },
+    {
+      "ref": "issue:WOO-723",
+      "kind": "issue",
+      "id": "WOO-723"
+    },
+    {
+      "ref": "issue:WOO-724",
+      "kind": "issue",
+      "id": "WOO-724"
+    },
+    {
+      "ref": "issue:WOO-725",
+      "kind": "issue",
+      "id": "WOO-725"
+    },
+    {
+      "ref": "issue:WOO-726",
+      "kind": "issue",
+      "id": "WOO-726"
+    },
+    {
+      "ref": "legacy:traceability-validation-v020-20260907",
+      "kind": "legacy",
+      "id": "traceability-validation-v020-20260907"
+    },
+    {
+      "ref": "note:WOO-678",
+      "kind": "note",
+      "id": "WOO-678"
+    },
+    {
+      "ref": "note:WOO-679",
+      "kind": "note",
+      "id": "WOO-679"
+    },
+    {
+      "ref": "note:WOO-680",
+      "kind": "note",
+      "id": "WOO-680"
+    },
+    {
+      "ref": "note:WOO-681",
+      "kind": "note",
+      "id": "WOO-681"
+    },
+    {
+      "ref": "note:WOO-682",
+      "kind": "note",
+      "id": "WOO-682"
+    },
+    {
+      "ref": "note:WOO-686",
+      "kind": "note",
+      "id": "WOO-686"
+    },
+    {
+      "ref": "note:WOO-687",
+      "kind": "note",
+      "id": "WOO-687"
+    },
+    {
+      "ref": "note:WOO-688",
+      "kind": "note",
+      "id": "WOO-688"
+    },
+    {
+      "ref": "note:WOO-689",
+      "kind": "note",
+      "id": "WOO-689"
+    },
+    {
+      "ref": "note:WOO-690",
+      "kind": "note",
+      "id": "WOO-690"
+    },
+    {
+      "ref": "note:WOO-691",
+      "kind": "note",
+      "id": "WOO-691"
+    },
+    {
+      "ref": "note:WOO-692",
+      "kind": "note",
+      "id": "WOO-692"
+    },
+    {
+      "ref": "note:WOO-695",
+      "kind": "note",
+      "id": "WOO-695"
+    },
+    {
+      "ref": "note:WOO-696",
+      "kind": "note",
+      "id": "WOO-696"
+    },
+    {
+      "ref": "note:WOO-697",
+      "kind": "note",
+      "id": "WOO-697"
+    },
+    {
+      "ref": "note:WOO-698",
+      "kind": "note",
+      "id": "WOO-698"
+    },
+    {
+      "ref": "note:WOO-699",
+      "kind": "note",
+      "id": "WOO-699"
+    },
+    {
+      "ref": "note:WOO-700",
+      "kind": "note",
+      "id": "WOO-700"
+    },
+    {
+      "ref": "note:WOO-701",
+      "kind": "note",
+      "id": "WOO-701"
+    },
+    {
+      "ref": "note:WOO-702",
+      "kind": "note",
+      "id": "WOO-702"
+    },
+    {
+      "ref": "note:WOO-703",
+      "kind": "note",
+      "id": "WOO-703"
+    },
+    {
+      "ref": "note:WOO-704",
+      "kind": "note",
+      "id": "WOO-704"
+    },
+    {
+      "ref": "note:WOO-705",
+      "kind": "note",
+      "id": "WOO-705"
+    },
+    {
+      "ref": "note:WOO-706",
+      "kind": "note",
+      "id": "WOO-706"
+    },
+    {
+      "ref": "note:WOO-707",
+      "kind": "note",
+      "id": "WOO-707"
+    },
+    {
+      "ref": "note:WOO-708",
+      "kind": "note",
+      "id": "WOO-708"
+    },
+    {
+      "ref": "note:WOO-709",
+      "kind": "note",
+      "id": "WOO-709"
+    },
+    {
+      "ref": "note:WOO-718",
+      "kind": "note",
+      "id": "WOO-718"
+    },
+    {
+      "ref": "note:WOO-719",
+      "kind": "note",
+      "id": "WOO-719"
+    },
+    {
+      "ref": "note:WOO-720",
+      "kind": "note",
+      "id": "WOO-720"
+    },
+    {
+      "ref": "note:WOO-721",
+      "kind": "note",
+      "id": "WOO-721"
+    },
+    {
+      "ref": "note:WOO-722",
+      "kind": "note",
+      "id": "WOO-722"
+    },
+    {
+      "ref": "note:WOO-723",
+      "kind": "note",
+      "id": "WOO-723"
+    },
+    {
+      "ref": "note:WOO-724",
+      "kind": "note",
+      "id": "WOO-724"
+    },
+    {
+      "ref": "note:WOO-725",
+      "kind": "note",
+      "id": "WOO-725"
+    },
+    {
+      "ref": "note:WOO-726",
+      "kind": "note",
+      "id": "WOO-726"
+    },
+    {
+      "ref": "pr:46",
+      "kind": "pr",
+      "id": "46"
+    },
+    {
+      "ref": "receipt:VR-CHAT-001-001",
+      "kind": "receipt",
+      "id": "VR-CHAT-001-001",
+      "source": {
+        "path": ".www/evidence/woo-845-846/verification-receipt.json",
+        "digest": "b825bdc3cdfbe4f15423b33d8b3bd2931fa54c31dac0eaa8019f2890e32c639e"
+      }
+    },
+    {
+      "ref": "spec:CHAT-001@v1",
+      "kind": "spec",
+      "id": "CHAT-001",
+      "version": 1
+    },
+    {
+      "ref": "test-contract:TEST-031@v1",
+      "kind": "test-contract",
+      "id": "TEST-031",
+      "version": 1
+    },
+    {
+      "ref": "test-contract:TEST-032@v1",
+      "kind": "test-contract",
+      "id": "TEST-032",
+      "version": 1
+    },
+    {
+      "ref": "unit:Code-001",
+      "kind": "unit",
+      "id": "Code-001"
+    },
+    {
+      "ref": "unit:Code-002",
+      "kind": "unit",
+      "id": "Code-002"
+    },
+    {
+      "ref": "unit:Code-003",
+      "kind": "unit",
+      "id": "Code-003"
+    },
+    {
+      "ref": "unit:Code-004",
+      "kind": "unit",
+      "id": "Code-004"
+    },
+    {
+      "ref": "unit:Code-005",
+      "kind": "unit",
+      "id": "Code-005"
+    },
+    {
+      "ref": "unit:Code-006",
+      "kind": "unit",
+      "id": "Code-006"
+    },
+    {
+      "ref": "unit:Code-007",
+      "kind": "unit",
+      "id": "Code-007"
+    },
+    {
+      "ref": "unit:Code-008",
+      "kind": "unit",
+      "id": "Code-008"
+    },
+    {
+      "ref": "unit:Code-009",
+      "kind": "unit",
+      "id": "Code-009"
+    },
+    {
+      "ref": "unit:Code-010",
+      "kind": "unit",
+      "id": "Code-010"
+    },
+    {
+      "ref": "unit:Code-011",
+      "kind": "unit",
+      "id": "Code-011"
+    },
+    {
+      "ref": "unit:Code-012",
+      "kind": "unit",
+      "id": "Code-012"
+    },
+    {
+      "ref": "unit:Code-013",
+      "kind": "unit",
+      "id": "Code-013"
+    }
+  ],
+  "edges": [
+    {
+      "from": "acceptance:CHAT-001/A-01@v1",
+      "relation": "verified-by",
+      "to": "test-contract:TEST-031@v1"
+    },
+    {
+      "from": "acceptance:CHAT-001/A-02@v1",
+      "relation": "verified-by",
+      "to": "test-contract:TEST-031@v1"
+    },
+    {
+      "from": "acceptance:CHAT-001/A-03@v1",
+      "relation": "verified-by",
+      "to": "test-contract:TEST-032@v1"
+    },
+    {
+      "from": "exception:EXC-014@v1",
+      "relation": "verified-by",
+      "to": "test-contract:TEST-032@v1"
+    },
+    {
+      "from": "issue:WOO-678",
+      "relation": "detailed-by",
+      "to": "note:WOO-678"
+    },
+    {
+      "from": "issue:WOO-678",
+      "relation": "implemented-by",
+      "to": "unit:Code-010"
+    },
+    {
+      "from": "issue:WOO-679",
+      "relation": "code-evidenced-by",
+      "to": "pr:46"
+    },
+    {
+      "from": "issue:WOO-679",
+      "relation": "detailed-by",
+      "to": "note:WOO-679"
+    },
+    {
+      "from": "issue:WOO-679",
+      "relation": "implemented-by",
+      "to": "unit:Code-001"
+    },
+    {
+      "from": "issue:WOO-679",
+      "relation": "implemented-by",
+      "to": "unit:Code-002"
+    },
+    {
+      "from": "issue:WOO-679",
+      "relation": "implemented-by",
+      "to": "unit:Code-003"
+    },
+    {
+      "from": "issue:WOO-679",
+      "relation": "implemented-by",
+      "to": "unit:Code-004"
+    },
+    {
+      "from": "issue:WOO-679",
+      "relation": "implemented-by",
+      "to": "unit:Code-005"
+    },
+    {
+      "from": "issue:WOO-680",
+      "relation": "detailed-by",
+      "to": "note:WOO-680"
+    },
+    {
+      "from": "issue:WOO-680",
+      "relation": "implemented-by",
+      "to": "unit:Code-013"
+    },
+    {
+      "from": "issue:WOO-681",
+      "relation": "detailed-by",
+      "to": "note:WOO-681"
+    },
+    {
+      "from": "issue:WOO-681",
+      "relation": "implemented-by",
+      "to": "unit:Code-012"
+    },
+    {
+      "from": "issue:WOO-682",
+      "relation": "detailed-by",
+      "to": "note:WOO-682"
+    },
+    {
+      "from": "issue:WOO-682",
+      "relation": "implemented-by",
+      "to": "unit:Code-011"
+    },
+    {
+      "from": "issue:WOO-686",
+      "relation": "code-evidenced-by",
+      "to": "pr:46"
+    },
+    {
+      "from": "issue:WOO-686",
+      "relation": "detailed-by",
+      "to": "note:WOO-686"
+    },
+    {
+      "from": "issue:WOO-686",
+      "relation": "implemented-by",
+      "to": "unit:Code-001"
+    },
+    {
+      "from": "issue:WOO-687",
+      "relation": "code-evidenced-by",
+      "to": "pr:46"
+    },
+    {
+      "from": "issue:WOO-687",
+      "relation": "detailed-by",
+      "to": "note:WOO-687"
+    },
+    {
+      "from": "issue:WOO-687",
+      "relation": "implemented-by",
+      "to": "unit:Code-001"
+    },
+    {
+      "from": "issue:WOO-688",
+      "relation": "code-evidenced-by",
+      "to": "pr:46"
+    },
+    {
+      "from": "issue:WOO-688",
+      "relation": "detailed-by",
+      "to": "note:WOO-688"
+    },
+    {
+      "from": "issue:WOO-688",
+      "relation": "implemented-by",
+      "to": "unit:Code-001"
+    },
+    {
+      "from": "issue:WOO-688",
+      "relation": "implemented-by",
+      "to": "unit:Code-002"
+    },
+    {
+      "from": "issue:WOO-689",
+      "relation": "code-evidenced-by",
+      "to": "pr:46"
+    },
+    {
+      "from": "issue:WOO-689",
+      "relation": "detailed-by",
+      "to": "note:WOO-689"
+    },
+    {
+      "from": "issue:WOO-689",
+      "relation": "implemented-by",
+      "to": "unit:Code-001"
+    },
+    {
+      "from": "issue:WOO-689",
+      "relation": "implemented-by",
+      "to": "unit:Code-003"
+    },
+    {
+      "from": "issue:WOO-690",
+      "relation": "code-evidenced-by",
+      "to": "pr:46"
+    },
+    {
+      "from": "issue:WOO-690",
+      "relation": "detailed-by",
+      "to": "note:WOO-690"
+    },
+    {
+      "from": "issue:WOO-690",
+      "relation": "implemented-by",
+      "to": "unit:Code-002"
+    },
+    {
+      "from": "issue:WOO-691",
+      "relation": "code-evidenced-by",
+      "to": "pr:46"
+    },
+    {
+      "from": "issue:WOO-691",
+      "relation": "detailed-by",
+      "to": "note:WOO-691"
+    },
+    {
+      "from": "issue:WOO-691",
+      "relation": "implemented-by",
+      "to": "unit:Code-001"
+    },
+    {
+      "from": "issue:WOO-691",
+      "relation": "implemented-by",
+      "to": "unit:Code-002"
+    },
+    {
+      "from": "issue:WOO-692",
+      "relation": "code-evidenced-by",
+      "to": "pr:46"
+    },
+    {
+      "from": "issue:WOO-692",
+      "relation": "detailed-by",
+      "to": "note:WOO-692"
+    },
+    {
+      "from": "issue:WOO-692",
+      "relation": "implemented-by",
+      "to": "unit:Code-001"
+    },
+    {
+      "from": "issue:WOO-692",
+      "relation": "implemented-by",
+      "to": "unit:Code-002"
+    },
+    {
+      "from": "issue:WOO-692",
+      "relation": "implemented-by",
+      "to": "unit:Code-003"
+    },
+    {
+      "from": "issue:WOO-692",
+      "relation": "implemented-by",
+      "to": "unit:Code-004"
+    },
+    {
+      "from": "issue:WOO-692",
+      "relation": "implemented-by",
+      "to": "unit:Code-005"
+    },
+    {
+      "from": "issue:WOO-695",
+      "relation": "detailed-by",
+      "to": "note:WOO-695"
+    },
+    {
+      "from": "issue:WOO-695",
+      "relation": "implemented-by",
+      "to": "unit:Code-006"
+    },
+    {
+      "from": "issue:WOO-695",
+      "relation": "implemented-by",
+      "to": "unit:Code-007"
+    },
+    {
+      "from": "issue:WOO-696",
+      "relation": "detailed-by",
+      "to": "note:WOO-696"
+    },
+    {
+      "from": "issue:WOO-696",
+      "relation": "implemented-by",
+      "to": "unit:Code-008"
+    },
+    {
+      "from": "issue:WOO-697",
+      "relation": "detailed-by",
+      "to": "note:WOO-697"
+    },
+    {
+      "from": "issue:WOO-697",
+      "relation": "implemented-by",
+      "to": "unit:Code-008"
+    },
+    {
+      "from": "issue:WOO-698",
+      "relation": "detailed-by",
+      "to": "note:WOO-698"
+    },
+    {
+      "from": "issue:WOO-698",
+      "relation": "implemented-by",
+      "to": "unit:Code-007"
+    },
+    {
+      "from": "issue:WOO-699",
+      "relation": "detailed-by",
+      "to": "note:WOO-699"
+    },
+    {
+      "from": "issue:WOO-699",
+      "relation": "implemented-by",
+      "to": "unit:Code-009"
+    },
+    {
+      "from": "issue:WOO-700",
+      "relation": "detailed-by",
+      "to": "note:WOO-700"
+    },
+    {
+      "from": "issue:WOO-700",
+      "relation": "implemented-by",
+      "to": "unit:Code-011"
+    },
+    {
+      "from": "issue:WOO-701",
+      "relation": "detailed-by",
+      "to": "note:WOO-701"
+    },
+    {
+      "from": "issue:WOO-701",
+      "relation": "implemented-by",
+      "to": "unit:Code-011"
+    },
+    {
+      "from": "issue:WOO-702",
+      "relation": "detailed-by",
+      "to": "note:WOO-702"
+    },
+    {
+      "from": "issue:WOO-702",
+      "relation": "implemented-by",
+      "to": "unit:Code-011"
+    },
+    {
+      "from": "issue:WOO-703",
+      "relation": "detailed-by",
+      "to": "note:WOO-703"
+    },
+    {
+      "from": "issue:WOO-703",
+      "relation": "implemented-by",
+      "to": "unit:Code-011"
+    },
+    {
+      "from": "issue:WOO-704",
+      "relation": "detailed-by",
+      "to": "note:WOO-704"
+    },
+    {
+      "from": "issue:WOO-704",
+      "relation": "implemented-by",
+      "to": "unit:Code-012"
+    },
+    {
+      "from": "issue:WOO-705",
+      "relation": "detailed-by",
+      "to": "note:WOO-705"
+    },
+    {
+      "from": "issue:WOO-705",
+      "relation": "implemented-by",
+      "to": "unit:Code-012"
+    },
+    {
+      "from": "issue:WOO-706",
+      "relation": "detailed-by",
+      "to": "note:WOO-706"
+    },
+    {
+      "from": "issue:WOO-706",
+      "relation": "implemented-by",
+      "to": "unit:Code-012"
+    },
+    {
+      "from": "issue:WOO-707",
+      "relation": "detailed-by",
+      "to": "note:WOO-707"
+    },
+    {
+      "from": "issue:WOO-707",
+      "relation": "implemented-by",
+      "to": "unit:Code-013"
+    },
+    {
+      "from": "issue:WOO-708",
+      "relation": "detailed-by",
+      "to": "note:WOO-708"
+    },
+    {
+      "from": "issue:WOO-708",
+      "relation": "implemented-by",
+      "to": "unit:Code-013"
+    },
+    {
+      "from": "issue:WOO-709",
+      "relation": "detailed-by",
+      "to": "note:WOO-709"
+    },
+    {
+      "from": "issue:WOO-709",
+      "relation": "implemented-by",
+      "to": "unit:Code-012"
+    },
+    {
+      "from": "issue:WOO-718",
+      "relation": "code-evidenced-by",
+      "to": "pr:46"
+    },
+    {
+      "from": "issue:WOO-718",
+      "relation": "detailed-by",
+      "to": "note:WOO-718"
+    },
+    {
+      "from": "issue:WOO-718",
+      "relation": "implemented-by",
+      "to": "unit:Code-001"
+    },
+    {
+      "from": "issue:WOO-718",
+      "relation": "implemented-by",
+      "to": "unit:Code-002"
+    },
+    {
+      "from": "issue:WOO-718",
+      "relation": "implemented-by",
+      "to": "unit:Code-004"
+    },
+    {
+      "from": "issue:WOO-718",
+      "relation": "implemented-by",
+      "to": "unit:Code-005"
+    },
+    {
+      "from": "issue:WOO-719",
+      "relation": "code-evidenced-by",
+      "to": "pr:46"
+    },
+    {
+      "from": "issue:WOO-719",
+      "relation": "detailed-by",
+      "to": "note:WOO-719"
+    },
+    {
+      "from": "issue:WOO-719",
+      "relation": "implemented-by",
+      "to": "unit:Code-001"
+    },
+    {
+      "from": "issue:WOO-719",
+      "relation": "implemented-by",
+      "to": "unit:Code-002"
+    },
+    {
+      "from": "issue:WOO-719",
+      "relation": "implemented-by",
+      "to": "unit:Code-004"
+    },
+    {
+      "from": "issue:WOO-720",
+      "relation": "code-evidenced-by",
+      "to": "pr:46"
+    },
+    {
+      "from": "issue:WOO-720",
+      "relation": "detailed-by",
+      "to": "note:WOO-720"
+    },
+    {
+      "from": "issue:WOO-720",
+      "relation": "implemented-by",
+      "to": "unit:Code-001"
+    },
+    {
+      "from": "issue:WOO-720",
+      "relation": "implemented-by",
+      "to": "unit:Code-002"
+    },
+    {
+      "from": "issue:WOO-720",
+      "relation": "implemented-by",
+      "to": "unit:Code-003"
+    },
+    {
+      "from": "issue:WOO-720",
+      "relation": "implemented-by",
+      "to": "unit:Code-004"
+    },
+    {
+      "from": "issue:WOO-720",
+      "relation": "implemented-by",
+      "to": "unit:Code-005"
+    },
+    {
+      "from": "issue:WOO-721",
+      "relation": "detailed-by",
+      "to": "note:WOO-721"
+    },
+    {
+      "from": "issue:WOO-721",
+      "relation": "implemented-by",
+      "to": "unit:Code-011"
+    },
+    {
+      "from": "issue:WOO-722",
+      "relation": "detailed-by",
+      "to": "note:WOO-722"
+    },
+    {
+      "from": "issue:WOO-722",
+      "relation": "implemented-by",
+      "to": "unit:Code-011"
+    },
+    {
+      "from": "issue:WOO-723",
+      "relation": "detailed-by",
+      "to": "note:WOO-723"
+    },
+    {
+      "from": "issue:WOO-723",
+      "relation": "implemented-by",
+      "to": "unit:Code-012"
+    },
+    {
+      "from": "issue:WOO-724",
+      "relation": "detailed-by",
+      "to": "note:WOO-724"
+    },
+    {
+      "from": "issue:WOO-724",
+      "relation": "implemented-by",
+      "to": "unit:Code-012"
+    },
+    {
+      "from": "issue:WOO-725",
+      "relation": "detailed-by",
+      "to": "note:WOO-725"
+    },
+    {
+      "from": "issue:WOO-725",
+      "relation": "implemented-by",
+      "to": "unit:Code-013"
+    },
+    {
+      "from": "issue:WOO-726",
+      "relation": "detailed-by",
+      "to": "note:WOO-726"
+    },
+    {
+      "from": "issue:WOO-726",
+      "relation": "implemented-by",
+      "to": "unit:Code-013"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "issue:WOO-678"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "issue:WOO-679"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "issue:WOO-680"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "issue:WOO-681"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "issue:WOO-682"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "issue:WOO-686"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "issue:WOO-687"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "issue:WOO-688"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "issue:WOO-689"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "issue:WOO-690"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "issue:WOO-691"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "issue:WOO-692"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "issue:WOO-695"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "issue:WOO-696"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "issue:WOO-697"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "issue:WOO-698"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "issue:WOO-699"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "issue:WOO-700"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "issue:WOO-701"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "issue:WOO-702"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "issue:WOO-703"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "issue:WOO-704"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "issue:WOO-705"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "issue:WOO-706"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "issue:WOO-707"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "issue:WOO-708"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "issue:WOO-709"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "issue:WOO-718"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "issue:WOO-719"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "issue:WOO-720"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "issue:WOO-721"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "issue:WOO-722"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "issue:WOO-723"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "issue:WOO-724"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "issue:WOO-725"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "issue:WOO-726"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "unit:Code-001"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "unit:Code-002"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "unit:Code-003"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "unit:Code-004"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "unit:Code-005"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "unit:Code-006"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "unit:Code-007"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "unit:Code-008"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "unit:Code-009"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "unit:Code-010"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "unit:Code-011"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "unit:Code-012"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "covers",
+      "to": "unit:Code-013"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-678"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-679"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-680"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-681"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-682"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-686"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-687"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-688"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-689"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-690"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-691"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-692"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-695"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-696"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-697"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-698"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-699"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-700"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-701"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-702"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-703"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-704"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-705"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-706"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-707"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-708"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-709"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-718"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-719"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-720"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-721"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-722"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-723"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-724"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-725"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-726"
+    },
+    {
+      "from": "receipt:VR-CHAT-001-001",
+      "relation": "at-revision",
+      "to": "git-revision:worktree:2d0f8fdcfd6eb0dbf2f16707ebf98ff75885612b:dirty"
+    },
+    {
+      "from": "receipt:VR-CHAT-001-001",
+      "relation": "covers",
+      "to": "acceptance:CHAT-001/A-01@v1"
+    },
+    {
+      "from": "receipt:VR-CHAT-001-001",
+      "relation": "covers",
+      "to": "acceptance:CHAT-001/A-02@v1"
+    },
+    {
+      "from": "receipt:VR-CHAT-001-001",
+      "relation": "covers",
+      "to": "acceptance:CHAT-001/A-03@v1"
+    },
+    {
+      "from": "receipt:VR-CHAT-001-001",
+      "relation": "covers",
+      "to": "exception:EXC-014@v1"
+    },
+    {
+      "from": "receipt:VR-CHAT-001-001",
+      "relation": "evidenced-by",
+      "to": "evidence:EV-WOO-845-846-UNVERIFIED-001"
+    },
+    {
+      "from": "receipt:VR-CHAT-001-001",
+      "relation": "evidenced-by",
+      "to": "evidence:EV-WOO-845-EXECUTION-TESTS-001"
+    },
+    {
+      "from": "receipt:VR-CHAT-001-001",
+      "relation": "evidenced-by",
+      "to": "evidence:EV-WOO-846-TRACEABILITY-TESTS-001"
+    },
+    {
+      "from": "receipt:VR-CHAT-001-001",
+      "relation": "executes",
+      "to": "test-contract:TEST-031@v1"
+    },
+    {
+      "from": "receipt:VR-CHAT-001-001",
+      "relation": "executes",
+      "to": "test-contract:TEST-032@v1"
+    },
+    {
+      "from": "receipt:VR-CHAT-001-001",
+      "relation": "produced",
+      "to": "evidence:EV-WOO-845-846-UNVERIFIED-001"
+    },
+    {
+      "from": "receipt:VR-CHAT-001-001",
+      "relation": "produced",
+      "to": "evidence:EV-WOO-845-EXECUTION-TESTS-001"
+    },
+    {
+      "from": "receipt:VR-CHAT-001-001",
+      "relation": "produced",
+      "to": "evidence:EV-WOO-846-TRACEABILITY-TESTS-001"
+    },
+    {
+      "from": "spec:CHAT-001@v1",
+      "relation": "decided-by",
+      "to": "decision:DEC-001@v1"
+    },
+    {
+      "from": "spec:CHAT-001@v1",
+      "relation": "excepted-by",
+      "to": "exception:EXC-014@v1"
+    },
+    {
+      "from": "spec:CHAT-001@v1",
+      "relation": "has-acceptance",
+      "to": "acceptance:CHAT-001/A-01@v1"
+    },
+    {
+      "from": "spec:CHAT-001@v1",
+      "relation": "has-acceptance",
+      "to": "acceptance:CHAT-001/A-02@v1"
+    },
+    {
+      "from": "spec:CHAT-001@v1",
+      "relation": "has-acceptance",
+      "to": "acceptance:CHAT-001/A-03@v1"
+    },
+    {
+      "from": "spec:CHAT-001@v1",
+      "relation": "implemented-by",
+      "to": "unit:Code-001"
+    },
+    {
+      "from": "spec:CHAT-001@v1",
+      "relation": "tracks",
+      "to": "issue:WOO-686"
+    }
+  ],
+  "tombstones": [],
+  "migrations": [
+    {
+      "from": "0001",
+      "to": "Code-001",
+      "reason": "Code-NNN 형식으로 정규화"
+    },
+    {
+      "from": "0002",
+      "to": "Code-002",
+      "reason": "Code-NNN 형식으로 정규화"
+    },
+    {
+      "from": "0003",
+      "to": "Code-003",
+      "reason": "Code-NNN 형식으로 정규화"
+    },
+    {
+      "from": "0004",
+      "to": "Code-004",
+      "reason": "Code-NNN 형식으로 정규화"
+    },
+    {
+      "from": "0005",
+      "to": "Code-005",
+      "reason": "Code-NNN 형식으로 정규화"
+    },
+    {
+      "from": "traceability-v2",
+      "to": "traceability-v3",
+      "reason": "one-shot migration boundary"
+    }
+  ],
+  "payloadDigest": "ff183a07e440c3d3f0a4ff163244af09b13a5b4d44e4c50330ee80e557fd1c82"
+}

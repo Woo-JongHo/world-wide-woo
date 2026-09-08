@@ -1,25 +1,34 @@
 import { Database } from "bun:sqlite";
 import { createHash, randomUUID } from "node:crypto";
-import { closeSync, existsSync, fsyncSync, linkSync, mkdirSync, openSync, readFileSync, readdirSync, unlinkSync, writeFileSync, chmodSync } from "node:fs";
+import { closeSync, existsSync, fsyncSync, linkSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, unlinkSync, writeFileSync, chmodSync } from "node:fs";
 import { homedir, platform } from "node:os";
-import { join, resolve } from "node:path";
+import { isAbsolute, join, relative, resolve } from "node:path";
 import type { CaptureDevelopmentRecordInput, DevelopmentBinding, DevelopmentContext, DevelopmentIssue, DevelopmentRecord, DevelopmentTest, DevelopmentUnit, RecordDevelopmentTestInput } from "../domain/development-records.js";
-import type { TraceabilityEdge, TraceabilityLedger, TraceRef } from "../domain/development-traceability.js";
-import { entityRefs, validateLedger } from "../domain/development-traceability.js";
+import type { TraceabilityEdge, TraceabilityLedger, TraceRef, VerificationReceipt } from "../domain/development-traceability.js";
+import { entityRefs } from "../domain/development-traceability.js";
 import { parseWorkTraceabilityManifest, referenceKey, type WorkReference, type WorkReferenceKind, type WorkTraceabilityLink, type WorkTraceabilityManifest } from "../domain/work/traceability.js";
 import { digestLedger, stableJson } from "./development-traceability-digest.js";
+import { canonicalDigest, requiredCoverageFromRegistries, sha256, validateLedger, validateVerificationReceipt } from "./development-traceability-contract.js";
+import { validateReceiptEvidenceAlignment } from "./traceability-validator.js";
 
 type Entity = DevelopmentUnit | DevelopmentBinding | DevelopmentRecord | DevelopmentTest | { id: string; unitId: string; issue: DevelopmentIssue };
 type Kind = "unit" | "link" | "binding" | "record" | "test";
 interface Envelope { schemaVersion: 1; projectId: string; kind: Kind; payload: Entity; digest: string }
 interface Source { path: string; envelope: Envelope; rawDigest: string }
 export interface TraceabilityGraph {
- logicalDigest: string; units: string[]; issues: string[]; notes: string[]; pullRequests: string[]; runs: string[]; edges: TraceabilityEdge[];
+ logicalDigest: string; entities: Array<{ ref: string; kind: string; id: string }>; edges: TraceabilityEdge[];
 }
-type TraceabilityQueryKind = "issue" | "unit" | "run" | "note" | "pr";
+type TraceabilityQueryKind = "spec" | "acceptance" | "test" | "exception" | "issue" | "unit" | "code" | "pr" | "pull-request" | "note" | "receipt";
 interface TraceabilityEntityRow { ref: string; kind: string; externalId: string; payload: string; payloadDigest: string }
 interface TraceabilityEdgeRow { source: TraceRef; relation: TraceabilityEdge["relation"]; target: TraceRef }
 const hash = (value: string) => createHash("sha256").update(value).digest("hex");
+function containedSource(root: string, path: string): string {
+ if (isAbsolute(path) || path.split(/[\\/]/u).some(part => part === "..")) throw new Error("SOURCE_PATH_MUST_BE_RELATIVE");
+ const canonicalRoot = realpathSync(root), canonicalPath = realpathSync(resolve(canonicalRoot, path));
+ const offset = relative(canonicalRoot, canonicalPath);
+ if (offset === ".." || offset.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`) || isAbsolute(offset)) throw new Error("SOURCE_PATH_ESCAPES_PROJECT");
+ return canonicalPath;
+}
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 function conflictingLinearIssue(left: DevelopmentIssue, right: DevelopmentIssue): boolean {
  return (left.id === right.id || left.uuid === right.uuid) && left.url !== right.url;
@@ -60,7 +69,7 @@ export class DevelopmentStore {
   this.metadataRoot = join(this.projectRoot, ".www/control-ledger/development");
   mkdirSync(this.metadataRoot, { recursive: true });
   const identityPath = join(this.metadataRoot, "project.json");
-  const relationLedgerPath = join(this.projectRoot, ".www/control-ledger/traceability-v2.json");
+  const relationLedgerPath = join(this.projectRoot, ".www/control-ledger/traceability-v3.json");
   const relationProjectId = existsSync(relationLedgerPath) ? (JSON.parse(readFileSync(relationLedgerPath, "utf8")) as { projectId?: string }).projectId : undefined;
   if (relationProjectId) assertUuid(relationProjectId);
   durableCreate(identityPath, `${JSON.stringify({ schemaVersion: 1, id: relationProjectId ?? randomUUID() })}\n`);
@@ -81,6 +90,9 @@ export class DevelopmentStore {
   this.db.run("CREATE TABLE IF NOT EXISTS traceability_meta (project TEXT NOT NULL, key TEXT NOT NULL, value TEXT NOT NULL, PRIMARY KEY(project,key))");
   this.db.run("CREATE TABLE IF NOT EXISTS traceability_entities (project TEXT NOT NULL, ref TEXT NOT NULL, kind TEXT NOT NULL, external_id TEXT NOT NULL, payload TEXT NOT NULL, payload_digest TEXT NOT NULL, PRIMARY KEY(project,ref))");
   this.db.run("CREATE TABLE IF NOT EXISTS traceability_edges (project TEXT NOT NULL, source TEXT NOT NULL, relation TEXT NOT NULL, target TEXT NOT NULL, PRIMARY KEY(project,source,relation,target), FOREIGN KEY(project,source) REFERENCES traceability_entities(project,ref), FOREIGN KEY(project,target) REFERENCES traceability_entities(project,ref))");
+  this.db.run("CREATE TABLE IF NOT EXISTS acceptance_coverage (project TEXT NOT NULL, acceptance_ref TEXT NOT NULL, test_ref TEXT, receipt_ref TEXT, status TEXT NOT NULL, PRIMARY KEY(project,acceptance_ref))");
+  this.db.run("CREATE TABLE IF NOT EXISTS exception_coverage (project TEXT NOT NULL, exception_ref TEXT NOT NULL, stage TEXT NOT NULL, test_ref TEXT, receipt_ref TEXT, status TEXT NOT NULL, PRIMARY KEY(project,exception_ref,stage))");
+  this.db.run("CREATE TABLE IF NOT EXISTS projection_freshness (project TEXT NOT NULL, ref TEXT NOT NULL, source_digest TEXT NOT NULL, status TEXT NOT NULL, PRIMARY KEY(project,ref))");
  }
  close() { this.db.close(); }
  private scan(): { sources: Source[]; errors: string[] } {
@@ -157,10 +169,10 @@ export class DevelopmentStore {
   if (!durableCreate(join(root, `${kind}-${payload.id}.json`), `${JSON.stringify(envelope)}\n`)) throw new Error(`Identity already exists: ${kind}/${payload.id}`);
  }
  private entities<T extends Entity>(sources: Source[], kind: Kind): T[] { return sources.filter(s => s.envelope.kind === kind).map(s => s.envelope.payload as T); }
- private hasTraceabilityV2(): boolean { return existsSync(join(this.projectRoot, ".www/control-ledger/traceability-v2.json")); }
+ private hasTraceabilityV2(): boolean { return existsSync(join(this.projectRoot, ".www/control-ledger/traceability-v3.json")); }
 
  private loadTraceabilityLedger(): TraceabilityLedger {
-  const path = join(this.projectRoot, ".www/control-ledger/traceability-v2.json");
+  const path = join(this.projectRoot, ".www/control-ledger/traceability-v3.json");
   if (!existsSync(path)) throw new Error(`Traceability relation ledger is missing: ${path}`);
   const ledger = JSON.parse(readFileSync(path, "utf8")) as TraceabilityLedger;
   const errors = validateLedger(ledger, digestLedger(ledger));
@@ -170,27 +182,79 @@ export class DevelopmentStore {
  }
 
  private expectedTraceability(ledger: TraceabilityLedger) {
-  const entities: TraceabilityEntityRow[] = [
-   ...ledger.units.map(value => ({ ref: `unit:${value.key}`, kind: "unit", externalId: value.key, payload: stableJson(value), payloadDigest: hash(stableJson(value)) })),
-   ...ledger.issues.map(value => ({ ref: `issue:${value.id}`, kind: "issue", externalId: value.id, payload: stableJson(value), payloadDigest: hash(stableJson(value)) })),
-   ...ledger.notes.map(value => ({ ref: `note:${value.id}`, kind: "note", externalId: value.id, payload: stableJson(value), payloadDigest: hash(stableJson(value)) })),
-   ...ledger.pullRequests.map(value => ({ ref: `pr:${value.id}`, kind: "pr", externalId: value.id, payload: stableJson(value), payloadDigest: hash(stableJson(value)) })),
-   ...ledger.runs.map(value => ({ ref: `run:${value.id}`, kind: "run", externalId: value.id, payload: stableJson(value), payloadDigest: hash(stableJson(value)) })),
-  ].sort((left, right) => left.ref.localeCompare(right.ref));
+  const receipts = new Map<string, VerificationReceipt>();
+  for (const entity of ledger.entities.filter(entity => entity.kind === "receipt")) {
+   if (!entity.source) throw new Error(`RECEIPT_SOURCE_MISSING:${entity.ref}`);
+   const path = containedSource(this.projectRoot, entity.source.path);
+   if (!existsSync(path)) throw new Error(`RECEIPT_SOURCE_MISSING:${entity.ref}`);
+   const receiptBytes = readFileSync(path);
+   if (sha256(receiptBytes) !== entity.source.digest) throw new Error(`RECEIPT_SOURCE_DIGEST_MISMATCH:${entity.ref}`);
+   const receipt = JSON.parse(receiptBytes.toString("utf8")) as VerificationReceipt;
+   const errors = validateVerificationReceipt(receipt);
+   if (errors.length) throw new Error(errors.join("\n"));
+   if (receipt.id !== entity.id) throw new Error(`RECEIPT_ENTITY_MISMATCH:${entity.ref}`);
+   for (const evidence of receipt.evidence) {
+    const evidencePath = containedSource(this.projectRoot, evidence.path);
+    if (sha256(readFileSync(evidencePath)) !== evidence.sha256) throw new Error(`EVIDENCE_DIGEST_MISMATCH:${evidence.id}`);
+   }
+   receipts.set(entity.ref, receipt);
+  }
+  const receiptErrors = validateReceiptEvidenceAlignment(ledger, receipts);
+  for (const [receiptRef, receipt] of receipts) {
+   const required = requiredCoverageFromRegistries(this.projectRoot, ledger, receipt);
+   if (canonicalDigest([...(receipt.requiredAcceptanceRefs ?? [])].sort()) !== canonicalDigest(required.requiredAcceptances)
+    || canonicalDigest([...(receipt.applicableExceptionStages ?? [])].sort((left, right) => left.exceptionRef.localeCompare(right.exceptionRef)))
+     !== canonicalDigest(required.importantStages)) {
+    receiptErrors.push(`RECEIPT_REQUIRED_COVERAGE_MISMATCH:${receiptRef}`);
+   }
+  }
+  if (receiptErrors.length) throw new Error(receiptErrors.join("\n"));
+  const entities: TraceabilityEntityRow[] = ledger.entities.map(value => {
+   const payload = stableJson(value);
+   return { ref: value.ref, kind: value.kind, externalId: value.id, payload, payloadDigest: hash(payload) };
+  }).sort((left, right) => left.ref.localeCompare(right.ref));
   const edges: TraceabilityEdgeRow[] = ledger.edges.map(edge => ({ source: edge.from, relation: edge.relation, target: edge.to }))
    .sort((left, right) => left.source.localeCompare(right.source) || left.relation.localeCompare(right.relation) || left.target.localeCompare(right.target));
   const logicalDigest = digestLedger(ledger);
-  const projectionDigest = hash(stableJson({ schemaVersion: 2, projectId: this.projectId, logicalDigest, entities, edges }));
+  const currentReceipts = (target: TraceRef, test: TraceRef) => ledger.edges
+   .filter(edge => edge.relation === "executes" && edge.to === test)
+   .map(edge => edge.from)
+   .filter((receiptRef, index, values) => values.indexOf(receiptRef) === index)
+   .filter(receiptRef => ledger.edges.some(edge => edge.from === receiptRef && edge.relation === "covers" && edge.to === target))
+   .filter(receiptRef => {
+    const receipt = receipts.get(receiptRef);
+    return Boolean(receipt && ledger.edges.some(edge => edge.from === receiptRef && edge.relation === "at-revision" && ledger.entities.some(entity => entity.ref === edge.to && entity.kind === "git-revision" && entity.id === receipt.sourceRevision)));
+   });
+  const acceptanceCoverage = ledger.entities.filter(entity => entity.kind === "acceptance").map(entity => {
+   const tests = ledger.edges.filter(edge => edge.from === entity.ref && edge.relation === "verified-by").map(edge => edge.to);
+   const candidates = tests.flatMap(test => currentReceipts(entity.ref, test).map(receiptRef => ({ test, receiptRef, coverage: receipts.get(receiptRef)!.acceptanceCoverage.find(item => item.acceptanceRef === entity.ref && item.testRef === test) })));
+   const candidate = candidates.length === 1 ? candidates[0] : undefined;
+   return { acceptanceRef: entity.ref, testRef: candidate?.test ?? (tests.length === 1 ? tests[0]! : null), receiptRef: candidate?.receiptRef ?? null, status: candidate?.coverage?.status ?? "blocked" };
+  }).sort((a, b) => a.acceptanceRef.localeCompare(b.acceptanceRef));
+  const exceptionCoverage = ledger.entities.filter(entity => entity.kind === "exception").flatMap(entity => ["detect", "control", "recovery"].map(stage => {
+   const tests = ledger.edges.filter(edge => edge.from === entity.ref && edge.relation === "verified-by").map(edge => edge.to);
+   const candidates = tests.flatMap(test => currentReceipts(entity.ref, test).map(receiptRef => ({ test, receiptRef, coverage: receipts.get(receiptRef)!.exceptionCoverage.find(item => item.exceptionRef === entity.ref && item.stage === stage && item.testRef === test) })).filter(candidate => candidate.coverage));
+   const candidate = candidates.length === 1 ? candidates[0] : undefined;
+   return { exceptionRef: entity.ref, stage, testRef: candidate?.test ?? (tests.length === 1 ? tests[0]! : null), receiptRef: candidate?.receiptRef ?? null, status: candidate?.coverage?.status ?? "blocked" };
+  })).sort((a, b) => a.exceptionRef.localeCompare(b.exceptionRef) || a.stage.localeCompare(b.stage));
+  const freshness = entities.map(entity => {
+   const source = ledger.entities.find(value => value.ref === entity.ref)?.source;
+   if (!source) return { ref: entity.ref, sourceDigest: entity.payloadDigest, status: "unknown" };
+   const path = resolve(this.projectRoot, source.path);
+   if (!existsSync(path)) return { ref: entity.ref, sourceDigest: source.digest, status: "unknown" };
+   return { ref: entity.ref, sourceDigest: source.digest, status: hash(readFileSync(path, "utf8")) === source.digest ? "current" : "stale" };
+  });
+  const rowDigest = hash(stableJson({ projectId: this.projectId, entities, edges, acceptanceCoverage, exceptionCoverage, freshness }));
   const meta = [
    { key: "logical_digest", value: logicalDigest },
    { key: "project_id", value: this.projectId },
-   { key: "projection_digest", value: projectionDigest },
-   { key: "schema_version", value: "2" },
+   { key: "row_digest", value: rowDigest },
+   { key: "schema_version", value: "3" },
   ];
-  return { entities, edges, meta, logicalDigest, projectionDigest };
+  return { entities, edges, acceptanceCoverage, exceptionCoverage, freshness, meta, logicalDigest, rowDigest };
  }
 
- rebuildTraceability(): { logicalDigest: string; projectionDigest: string; entities: number; edges: number } {
+ rebuildTraceability(): { logicalDigest: string; rowDigest: string; entities: number; edges: number } {
   const ledger = this.loadTraceabilityLedger();
   const expected = this.expectedTraceability(ledger);
   this.db.run("BEGIN IMMEDIATE");
@@ -198,19 +262,28 @@ export class DevelopmentStore {
    this.db.query("DELETE FROM traceability_edges WHERE project = ?").run(this.projectId);
    this.db.query("DELETE FROM traceability_entities WHERE project = ?").run(this.projectId);
    this.db.query("DELETE FROM traceability_meta WHERE project = ?").run(this.projectId);
+   this.db.query("DELETE FROM acceptance_coverage WHERE project = ?").run(this.projectId);
+   this.db.query("DELETE FROM exception_coverage WHERE project = ?").run(this.projectId);
+   this.db.query("DELETE FROM projection_freshness WHERE project = ?").run(this.projectId);
    const insertEntity = this.db.query("INSERT INTO traceability_entities(project,ref,kind,external_id,payload,payload_digest) VALUES (?,?,?,?,?,?)");
    for (const row of expected.entities) insertEntity.run(this.projectId, row.ref, row.kind, row.externalId, row.payload, row.payloadDigest);
    const insertEdge = this.db.query("INSERT INTO traceability_edges(project,source,relation,target) VALUES (?,?,?,?)");
    for (const row of expected.edges) insertEdge.run(this.projectId, row.source, row.relation, row.target);
+   const insertAcceptance = this.db.query("INSERT INTO acceptance_coverage(project,acceptance_ref,test_ref,receipt_ref,status) VALUES (?,?,?,?,?)");
+   for (const row of expected.acceptanceCoverage) insertAcceptance.run(this.projectId, row.acceptanceRef, row.testRef, row.receiptRef, row.status);
+   const insertException = this.db.query("INSERT INTO exception_coverage(project,exception_ref,stage,test_ref,receipt_ref,status) VALUES (?,?,?,?,?,?)");
+   for (const row of expected.exceptionCoverage) insertException.run(this.projectId, row.exceptionRef, row.stage, row.testRef, row.receiptRef, row.status);
+   const insertFreshness = this.db.query("INSERT INTO projection_freshness(project,ref,source_digest,status) VALUES (?,?,?,?)");
+   for (const row of expected.freshness) insertFreshness.run(this.projectId, row.ref, row.sourceDigest, row.status);
    const insertMeta = this.db.query("INSERT INTO traceability_meta(project,key,value) VALUES (?,?,?)");
    for (const row of expected.meta) insertMeta.run(this.projectId, row.key, row.value);
    this.db.run("COMMIT");
   } catch (error) { this.db.run("ROLLBACK"); throw error; }
   this.assertTraceabilityCurrent();
-  return { logicalDigest: expected.logicalDigest, projectionDigest: expected.projectionDigest, entities: entityRefs(ledger).size, edges: ledger.edges.length };
+  return { logicalDigest: expected.logicalDigest, rowDigest: expected.rowDigest, entities: entityRefs(ledger).size, edges: ledger.edges.length };
  }
 
- assertTraceabilityCurrent(): { logicalDigest: string; projectionDigest: string } {
+ assertTraceabilityCurrent(): { logicalDigest: string; rowDigest: string } {
   const ledger = this.loadTraceabilityLedger();
   const expected = this.expectedTraceability(ledger);
   const integrity = this.db.query("PRAGMA integrity_check").all() as Array<Record<string, string>>;
@@ -218,23 +291,31 @@ export class DevelopmentStore {
   const entities = (this.db.query("SELECT ref,kind,external_id,payload,payload_digest FROM traceability_entities WHERE project = ? ORDER BY ref").all(this.projectId) as Array<{ ref: string; kind: string; external_id: string; payload: string; payload_digest: string }>).map(row => ({ ref: row.ref, kind: row.kind, externalId: row.external_id, payload: row.payload, payloadDigest: row.payload_digest }));
   const edges = this.db.query("SELECT source,relation,target FROM traceability_edges WHERE project = ? ORDER BY source,relation,target").all(this.projectId) as TraceabilityEdgeRow[];
   const meta = this.db.query("SELECT key,value FROM traceability_meta WHERE project = ? ORDER BY key").all(this.projectId) as Array<{ key: string; value: string }>;
-  const actualProjectionDigest = hash(stableJson({ schemaVersion: 2, projectId: this.projectId, logicalDigest: expected.logicalDigest, entities, edges }));
+  const acceptanceCoverage = this.db.query("SELECT acceptance_ref,test_ref,receipt_ref,status FROM acceptance_coverage WHERE project = ? ORDER BY acceptance_ref").all(this.projectId).map((row: any) => ({ acceptanceRef: row.acceptance_ref, testRef: row.test_ref, receiptRef: row.receipt_ref, status: row.status }));
+  const exceptionCoverage = this.db.query("SELECT exception_ref,stage,test_ref,receipt_ref,status FROM exception_coverage WHERE project = ? ORDER BY exception_ref,stage").all(this.projectId).map((row: any) => ({ exceptionRef: row.exception_ref, stage: row.stage, testRef: row.test_ref, receiptRef: row.receipt_ref, status: row.status }));
+  const freshness = this.db.query("SELECT ref,source_digest,status FROM projection_freshness WHERE project = ? ORDER BY ref").all(this.projectId).map((row: any) => ({ ref: row.ref, sourceDigest: row.source_digest, status: row.status }));
+  const actualRowDigest = hash(stableJson({ projectId: this.projectId, entities, edges, acceptanceCoverage, exceptionCoverage, freshness }));
   const errors: string[] = [];
   if (integrity.some(row => Object.values(row).some(value => value !== "ok"))) errors.push("SQLite integrity check failed");
   if (foreignKeys.length) errors.push("SQLite foreign-key check failed");
   if (stableJson(entities) !== stableJson(expected.entities)) errors.push("traceability entity projection differs from relation ledger");
   if (stableJson(edges) !== stableJson(expected.edges)) errors.push("traceability edge projection differs from relation ledger");
   if (stableJson(meta) !== stableJson(expected.meta)) errors.push("traceability metadata projection differs from relation ledger");
-  if (actualProjectionDigest !== expected.projectionDigest) errors.push("traceability canonical projection digest differs from relation ledger");
+  if (stableJson(acceptanceCoverage) !== stableJson(expected.acceptanceCoverage) || stableJson(exceptionCoverage) !== stableJson(expected.exceptionCoverage) || stableJson(freshness) !== stableJson(expected.freshness)) errors.push("traceability materialized projection differs from relation ledger");
+  if (actualRowDigest !== expected.rowDigest) errors.push("traceability canonical row digest differs from relation ledger");
   if (errors.length) throw new Error(`${errors.join("\n")}\nrun \`bun run traceability:rebuild\``);
-  return { logicalDigest: expected.logicalDigest, projectionDigest: expected.projectionDigest };
+  return { logicalDigest: expected.logicalDigest, rowDigest: expected.rowDigest };
  }
 
  queryTraceability(kind: TraceabilityQueryKind, id: string): TraceabilityGraph {
   const { logicalDigest } = this.assertTraceabilityCurrent();
-  const start = `${kind}:${id}` as TraceRef;
+  const normalizedKind = kind === "test" ? "test-contract" : kind;
   const entities = this.db.query("SELECT ref,kind,external_id FROM traceability_entities WHERE project = ?").all(this.projectId) as Array<{ ref: string; kind: string; external_id: string }>;
-  if (!entities.some(entity => entity.ref === start)) throw new Error(`Unknown traceability id: ${start}`);
+  const match = entities
+   .filter(entity => entity.kind === normalizedKind && entity.external_id === id)
+   .sort((left, right) => right.ref.localeCompare(left.ref, undefined, { numeric: true }))[0];
+  if (!match) throw new Error(`Unknown traceability id: ${normalizedKind}:${id}`);
+  const start = match.ref as TraceRef;
   const edges = this.db.query("SELECT source,relation,target FROM traceability_edges WHERE project = ? ORDER BY source,relation,target").all(this.projectId) as TraceabilityEdgeRow[];
   const visited = new Set<string>([start]);
   const include = (edge: TraceabilityEdgeRow) => { visited.add(edge.source); visited.add(edge.target); };
@@ -247,11 +328,30 @@ export class DevelopmentStore {
     }
    }
   }
-  const collect = (entityKind: string) => entities.filter(entity => entity.kind === entityKind && visited.has(entity.ref)).map(entity => entity.external_id).sort();
-  return { logicalDigest, units: collect("unit"), issues: collect("issue"), notes: collect("note"), pullRequests: collect("pr"), runs: collect("run"), edges: edges.filter(edge => visited.has(edge.source) && visited.has(edge.target)).map(edge => ({ from: edge.source, relation: edge.relation, to: edge.target })) };
+  return { logicalDigest, entities: entities.filter(entity => visited.has(entity.ref)).map(entity => ({ ref: entity.ref, kind: entity.kind, id: entity.external_id })).sort((a, b) => a.ref.localeCompare(b.ref)), edges: edges.filter(edge => visited.has(edge.source) && visited.has(edge.target)).map(edge => ({ from: edge.source, relation: edge.relation as TraceabilityEdge["relation"], to: edge.target })) };
+ }
+ coverageForSpec(id: string) {
+  const { logicalDigest } = this.assertTraceabilityCurrent();
+  const specRow = this.db.query("SELECT ref FROM traceability_entities WHERE project = ? AND kind = 'spec' AND external_id = ? ORDER BY ref DESC LIMIT 1").get(this.projectId, id) as { ref: string } | null;
+  if (!specRow) throw new Error(`Unknown traceability spec: spec:${id}`);
+  const spec = specRow.ref as TraceRef;
+  const acceptances = this.db.query("SELECT target FROM traceability_edges WHERE project = ? AND source = ? AND relation = 'has-acceptance' ORDER BY target").all(this.projectId, spec) as Array<{ target: string }>;
+  if (!acceptances.length) throw new Error(`Traceability spec has no acceptance: ${spec}`);
+  const coverage = this.db.query("SELECT acceptance_ref,test_ref,receipt_ref,status FROM acceptance_coverage WHERE project = ? ORDER BY acceptance_ref").all(this.projectId) as Array<{ acceptance_ref: string; test_ref: string | null; receipt_ref: string | null; status: string }>;
+  return { logicalDigest, acceptances: coverage.filter(row => acceptances.some(item => item.target === row.acceptance_ref)).map(row => ({ acceptanceRef: row.acceptance_ref, testRef: row.test_ref, receiptRef: row.receipt_ref, status: row.status })) };
+ }
+ traceabilityDrift() {
+  const { logicalDigest } = this.assertTraceabilityCurrent();
+  return { logicalDigest, stale: this.db.query("SELECT ref,status FROM projection_freshness WHERE project = ? AND status != 'current' ORDER BY ref").all(this.projectId) };
+ }
+ traceabilityOrphans() {
+  const { logicalDigest } = this.assertTraceabilityCurrent();
+  const entities = this.db.query("SELECT ref FROM traceability_entities WHERE project = ? ORDER BY ref").all(this.projectId) as Array<{ ref: string }>;
+  const edges = this.db.query("SELECT source,target FROM traceability_edges WHERE project = ?").all(this.projectId) as Array<{ source: string; target: string }>;
+  return { logicalDigest, entities: entities.filter(entity => !edges.some(edge => edge.source === entity.ref || edge.target === entity.ref)).map(entity => entity.ref) };
  }
  registerUnit(input: { id?: string; name: string }): DevelopmentUnit {
-  if (this.hasTraceabilityV2()) throw new Error("Unit creation is owned by the traceability-v2 relation ledger; refusing a competing source envelope");
+  if (this.hasTraceabilityV2()) throw new Error("Unit creation is owned by the traceability-v3 graph ledger; refusing a competing source envelope");
   nonempty(input.name, "Unit name"); const id = input.id ?? randomUUID(); assertUuid(id);
   return this.transaction(sources => {
    const old = this.entities<DevelopmentUnit>(sources, "unit").find(x => x.id === id);
@@ -260,7 +360,7 @@ export class DevelopmentStore {
   });
  }
  linkIssue(input: { unitId: string; issue: DevelopmentIssue }) {
-  if (this.hasTraceabilityV2()) throw new Error("Unit–Issue links are owned by the traceability-v2 relation ledger; refusing a competing source envelope");
+  if (this.hasTraceabilityV2()) throw new Error("Unit–Issue links are owned by the traceability-v3 graph ledger; refusing a competing source envelope");
   parseWorkTraceabilityManifest({ schemaVersion: 1, references: [{ kind: "linear-issue", ...input.issue }], links: [] });
   return this.transaction(sources => {
    if (!this.entities<DevelopmentUnit>(sources, "unit").some(x => x.id === input.unitId)) throw new Error("Unknown Unit");

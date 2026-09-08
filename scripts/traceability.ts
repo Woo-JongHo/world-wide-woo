@@ -1,185 +1,286 @@
 #!/usr/bin/env bun
-import { mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
-import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
-import { isAbsolute, join, relative, resolve } from "node:path";
-import type { TraceabilityLedger } from "../src/domain/development-traceability.js";
+import { dirname, join, relative, resolve } from "node:path";
+import type { RegistryEnvelope, TraceabilityLedger, TraceabilityRef } from "../src/domain/development-traceability.js";
+import type { ProjectActivity } from "../src/domain/project-activity.js";
+import { createExecutionRun, normalizeProjectActivity, replayExecutionRun, type CompletionReceipt } from "../src/domain/work/execution-run.js";
 import { parseWorkTraceabilityManifest } from "../src/domain/work/traceability.js";
 import { buildDevelopmentMap } from "../src/infrastructure/development-map-builder.js";
-import { digestLedger } from "../src/infrastructure/development-traceability-digest.js";
 import { DevelopmentStore } from "../src/infrastructure/development-store.js";
+import { canonicalDigest, migrateTraceabilityV2ToV3, requiredCoverageFromRegistries, sha256, validateVerificationReceipt, verificationReceiptFromCompletion, type VerificationReceiptCompletionContext } from "../src/infrastructure/development-traceability-contract.js";
 import { validateTraceability } from "../src/infrastructure/traceability-validator.js";
-import { assertRepositoryReferencesExist } from "../src/infrastructure/work-reference-validator.js";
-import { loadLinearContract, parseSnapshot, validate as validateLinearContract } from "./linear-contract.js";
 
-export function resolveVaultRoot(projectRoot: string, vaultId: string, explicit?: string): string {
-	if (explicit) return resolve(explicit);
-	const env = process.env.WWW_OBSIDIAN_VAULT_ROOT;
-	if (env) return resolve(env);
+export function resolveVaultRoot(projectRoot: string, _vaultId: string, explicit?: string): string {
+	return resolve(explicit ?? process.env.WWW_OBSIDIAN_VAULT_ROOT ?? join(projectRoot, ".www/vault"));
+}
+const argument = (argv: readonly string[], name: string) => { const index = argv.indexOf(name); return index < 0 ? undefined : argv[index + 1]; };
+const ledgerPath = (root: string) => resolve(root, ".www/control-ledger/traceability-v3.json");
+const loadLedger = (root: string) => JSON.parse(readFileSync(ledgerPath(root), "utf8")) as TraceabilityLedger;
+const containedPath = (root: string, value: string | undefined, name: string): string => {
+	if (!value) throw new Error(`${name.toUpperCase()}_REQUIRED`);
+	const canonicalRoot = realpathSync(root);
+	const path = resolve(canonicalRoot, value);
+	let existing = path;
+	while (!existsSync(existing) && existing !== dirname(existing)) existing = dirname(existing);
+	const canonicalExisting = realpathSync(existing);
+	if (canonicalExisting !== canonicalRoot && !canonicalExisting.startsWith(`${canonicalRoot}/`)) throw new Error(`${name.toUpperCase()}_MUST_BE_CONTAINED`);
+	return path;
+};
+const record = (value: unknown): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value);
+const activityFromJournal = (value: unknown): ProjectActivity => {
+	if (!record(value)
+		|| value.schemaVersion !== 1
+		|| typeof value.id !== "string" || !value.id
+		|| typeof value.projectId !== "string" || !value.projectId
+		|| !Number.isSafeInteger(value.sequence) || (value.sequence as number) < 1
+		|| typeof value.recordedAt !== "string" || !Number.isFinite(Date.parse(value.recordedAt))
+		|| !["message", "tool", "approval", "progress", "file-change"].includes(value.kind as string)
+		|| !["started", "updated", "completed", "failed", "cancelled"].includes(value.phase as string)
+		|| typeof value.provider !== "string" || !value.provider
+		|| !record(value.nativeRefs)
+		|| typeof value.sourceDigest !== "string" || !/^sha256:[a-f0-9]{64}$/iu.test(value.sourceDigest)
+		|| !record(value.payload)) throw new Error("JOURNAL_PROJECT_ACTIVITY_REQUIRED");
+	return value as unknown as ProjectActivity;
+};
+const completionReceiptFromJournal = (activity: ProjectActivity): CompletionReceipt | null => {
+	const receiptValue = activity.kind === "progress" && activity.payload.method === "execution/completion-receipt"
+		? activity.payload.receipt
+		: null;
+	if (receiptValue === null || receiptValue === undefined) return null;
+	if (!receiptValue || typeof receiptValue !== "object") throw new Error("JOURNAL_COMPLETION_RECEIPT_ENVELOPE_REQUIRED");
+	const receipt = receiptValue as Partial<CompletionReceipt>;
+	if (typeof receipt.receiptId !== "string" || !/^[a-f0-9]{64}$/iu.test(receipt.receiptId)
+		|| !/^[a-f0-9]{64}$/iu.test(receipt.receiptDigest ?? "")
+		|| typeof receipt.runId !== "string" || typeof receipt.threadId !== "string" || typeof receipt.turnId !== "string"
+		|| !record(receipt.terminalSource) || typeof receipt.terminalSource.id !== "string"
+		|| !Number.isSafeInteger(receipt.terminalSource.sequence) || !/^sha256:[a-f0-9]{64}$/iu.test(receipt.terminalSource.sourceDigest as string)
+		|| !/^[a-f0-9]{64}$/iu.test(receipt.checkpointDigest ?? "")
+		|| !["completed", "cancelled", "interrupted", "failed"].includes(receipt.status ?? "")
+		|| !Array.isArray(receipt.evidenceRefs)
+		|| !receipt.evidenceRefs.every(item => item && typeof item.activityId === "string" && Number.isSafeInteger(item.sequence) && /^sha256:[a-f0-9]{64}$/iu.test(item.sourceDigest))) throw new Error("JOURNAL_COMPLETION_RECEIPT_INVALID");
+	return receipt as CompletionReceipt;
+};
+const verifiedCompletionReceipt = (receipt: CompletionReceipt): CompletionReceipt => {
+	const terminalSource = receipt.terminalSource;
+	const receiptId = sha256(JSON.stringify(["completion-receipt-v1", receipt.runId, terminalSource]));
+	const bare = {
+		receiptId, runId: receipt.runId, threadId: receipt.threadId, turnId: receipt.turnId, status: receipt.status,
+		objective: receipt.objective, changed: receipt.changed, verification: receipt.verification, evidenceRefs: receipt.evidenceRefs,
+		remaining: receipt.remaining, completedAt: receipt.completedAt, terminalSource, checkpointDigest: receipt.checkpointDigest,
+	};
+	if (receipt.receiptId !== receiptId || receipt.receiptDigest !== sha256(JSON.stringify(bare))) throw new Error("JOURNAL_COMPLETION_RECEIPT_DIGEST_MISMATCH");
+	return receipt;
+};
+export const selectedCompletionReceipt = (text: string, receiptId: string | undefined): CompletionReceipt => {
+	if (!receiptId) throw new Error("RUNTIME_RECEIPT_ID_REQUIRED");
+	const activities = text.split(/\r?\n/u).filter(Boolean).map((line) => activityFromJournal(JSON.parse(line) as unknown));
+	const ids = new Set<string>(), sequences = new Set<number>(), projectIds = new Set<string>();
+	for (const activity of activities) {
+		if (ids.has(activity.id) || sequences.has(activity.sequence)) throw new Error("JOURNAL_ACTIVITY_ID_OR_SEQUENCE_DUPLICATE");
+		ids.add(activity.id); sequences.add(activity.sequence); projectIds.add(activity.projectId);
+	}
+	if (projectIds.size !== 1) throw new Error("JOURNAL_PROJECT_IDENTITY_MISMATCH");
+	const ordered = [...activities].sort((left, right) => left.sequence - right.sequence);
+	if (ordered.some((activity, index) => activity.sequence !== index + 1)) throw new Error("JOURNAL_ACTIVITY_SEQUENCE_GAP");
+	const receipts = ordered.flatMap(activity => {
+		const receipt = completionReceiptFromJournal(activity);
+		return receipt?.receiptId === receiptId ? [{ activity, receipt }] : [];
+	});
+	if (receipts.length !== 1) throw new Error("JOURNAL_COMPLETION_RECEIPT_UNIQUE_REQUIRED");
+	const selected = receipts[0]!;
+	const receipt = verifiedCompletionReceipt(selected.receipt);
+	const { threadId, turnId } = selected.activity.nativeRefs;
+	if (!threadId || !turnId || receipt.threadId !== threadId || receipt.turnId !== turnId || receipt.runId !== `${threadId}:${turnId}`) throw new Error("JOURNAL_RECEIPT_PROJECT_THREAD_TURN_MISMATCH");
+	const events = ordered
+		.filter(activity => activity.nativeRefs.threadId === threadId && activity.nativeRefs.turnId === turnId)
+		.filter(activity => completionReceiptFromJournal(activity) === null)
+		.map(normalizeProjectActivity);
+	const hash = { sha256Hex: (input: Uint8Array) => sha256(Buffer.from(input)) };
+	const replayed = replayExecutionRun(createExecutionRun({ runId: receipt.runId, threadId, turnId, hash }), events, hash);
+	const reconstructed = replayed.receipt;
+	if (!reconstructed || replayed.rejectedEventIds.length
+		|| reconstructed.receiptId !== receipt.receiptId
+		|| reconstructed.receiptDigest !== receipt.receiptDigest
+		|| reconstructed.checkpointDigest !== receipt.checkpointDigest
+		|| !sameJson(reconstructed.terminalSource, receipt.terminalSource)
+		|| !sameJson(reconstructed.evidenceRefs, receipt.evidenceRefs)) throw new Error("JOURNAL_COMPLETION_RECEIPT_REPLAY_MISMATCH");
+	return receipt;
+};
+const sameJson = (left: unknown, right: unknown) => canonicalDigest(left) === canonicalDigest(right);
+const observedRevision = (projectRoot: string): string => {
+	const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: projectRoot, encoding: "utf8" }).trim();
+	if (!/^[a-f0-9]{40}$/u.test(head)) throw new Error("GIT_REVISION_INVALID");
+	const dirty = execFileSync("git", ["status", "--porcelain", "--untracked-files=all"], { cwd: projectRoot, encoding: "utf8" }).trim().length > 0;
+	return dirty ? `worktree:${head}:dirty` : `git:${head}`;
+};
+const writeImmutableJson = (path: string, value: unknown): void => {
+	if (existsSync(path)) throw new Error("VERIFICATION_RECEIPT_ALREADY_EXISTS");
+	mkdirSync(resolve(path, ".."), { recursive: true });
+	const temporary = `${path}.${process.pid}.${Date.now()}.tmp`;
 	try {
-		const registry = JSON.parse(readFileSync(join(homedir(), "Library/Application Support/obsidian/obsidian.json"), "utf8"));
-		if (registry.vaults?.[vaultId]?.path) return resolve(registry.vaults[vaultId].path);
-	} catch { /* CI and non-macOS use the committed export below. */ }
-	return resolve(projectRoot, ".www/vault");
-}
-
-function argument(argv: readonly string[], name: string): string | undefined {
-	const index = argv.indexOf(name);
-	return index >= 0 ? argv[index + 1] : undefined;
-}
-
-function repositoryArtifact(projectRoot: string, path: string, label: string): string {
-	const root = realpathSync(projectRoot);
-	const candidate = realpathSync(resolve(root, path));
-	const local = relative(root, candidate);
-	if (local === ".." || local.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`) || isAbsolute(local)) {
-		throw new Error(`${label} must stay inside the repository`);
+		writeFileSync(temporary, `${JSON.stringify(value, null, 2)}\n`, { flag: "wx" });
+		renameSync(temporary, path);
+	} catch (error) {
+		rmSync(temporary, { force: true });
+		throw error;
 	}
-	return candidate;
-}
-
-function sha256(bytes: string | Buffer): string {
-	return createHash("sha256").update(bytes).digest("hex");
-}
-
-type LinearReceipt = {
-	artifactKind?: string; receiptVersion?: number; trustBoundary?: string; snapshotPath?: string; snapshotSha256?: string;
-	issueUuidSetSha256?: string; queryStartedAt?: string; queryCompletedAt?: string; receivedAt?: string;
-	pagination?: Array<{ query?: string; hasNextPage?: boolean; nextCursor?: string | null; issueIds?: string[] }>;
 };
-
-type VaultExportManifest = {
-	status?: string; artifactKind?: string; vaultId?: string; exportRoot?: string; actualVaultRoot?: string; capturedAt?: string;
-	files?: Array<{ noteId?: string; relativePath?: string; actualSha256?: string; exportSha256?: string; byteIdentical?: boolean }>;
-};
-type ValidVaultExportManifest = VaultExportManifest & {
-	exportRoot: string; actualVaultRoot: string; files: NonNullable<VaultExportManifest["files"]>;
-};
-
-function readLinearReceipt(projectRoot: string, snapshotPath: string, receiptPath: string, enforceFreshness: boolean): unknown {
-	const snapshotFile = repositoryArtifact(projectRoot, snapshotPath, "Linear snapshot");
-	const receiptFile = repositoryArtifact(projectRoot, receiptPath, "Linear acquisition receipt");
-	const bytes = readFileSync(snapshotFile);
-	const snapshot = JSON.parse(bytes.toString()) as any;
-	const receipt = JSON.parse(readFileSync(receiptFile, "utf8")) as LinearReceipt;
-	if (receipt.artifactKind !== "external-linear-mcp-acquisition-receipt" || receipt.receiptVersion !== 1 || receipt.trustBoundary !== "external-mcp-ingestion") throw new Error("Linear acquisition receipt has an invalid boundary");
-	if (repositoryArtifact(projectRoot, receipt.snapshotPath ?? "", "Receipt snapshot") !== snapshotFile || receipt.snapshotSha256 !== sha256(bytes)) throw new Error("Linear acquisition receipt snapshot hash differs");
-	const issues = parseSnapshot(snapshot);
-	const uuidSet = issues.map(issue => `${issue.id}:${issue.uuid}`).sort().join("\n");
-	if (receipt.issueUuidSetSha256 !== sha256(uuidSet)) throw new Error("Linear acquisition receipt issue UUID set differs");
-	const times = [receipt.queryStartedAt, receipt.queryCompletedAt, receipt.receivedAt];
-	if (times.some(value => !value || Number.isNaN(Date.parse(value)))) throw new Error("Linear acquisition receipt timestamps are incomplete");
-	const [started, completed, received] = times.map(value => Date.parse(value!));
-	if (!(started <= completed && completed <= received) || snapshot.capturedAt !== receipt.queryCompletedAt) throw new Error("Linear acquisition receipt timestamp order differs");
-	if (!Array.isArray(receipt.pagination) || !receipt.pagination.length || receipt.pagination.some(page => page.hasNextPage !== false || page.nextCursor !== null || !Array.isArray(page.issueIds))) throw new Error("Linear acquisition receipt does not prove complete pagination");
-	const receiptIds = [...new Set(receipt.pagination.flatMap(page => page.issueIds ?? []))].sort();
-	const snapshotIds = issues.map(issue => issue.id).sort();
-	if (JSON.stringify(receiptIds) !== JSON.stringify(snapshotIds)) throw new Error("Linear acquisition receipt page issue set differs");
-	if (enforceFreshness && (Date.now() - received > 24 * 60 * 60 * 1000 || received > Date.now() + 5 * 60 * 1000)) throw new Error("Linear acquisition receipt is stale or future-dated");
-	return snapshot;
-}
-
-function readVaultExportManifest(projectRoot: string, ledger: TraceabilityLedger, manifestPath: string): ValidVaultExportManifest {
-	const manifest = JSON.parse(readFileSync(repositoryArtifact(projectRoot, manifestPath, "Vault export manifest"), "utf8")) as VaultExportManifest;
-	if (manifest.status !== "PASS" || manifest.artifactKind !== "actual-vault-byte-readback" || manifest.vaultId !== ledger.vault.id || !manifest.exportRoot || !manifest.actualVaultRoot || !manifest.capturedAt || Number.isNaN(Date.parse(manifest.capturedAt)) || !Array.isArray(manifest.files)) {
-		throw new Error("Vault export provenance manifest is incomplete");
-	}
-	return manifest as ValidVaultExportManifest;
-}
-
-function vaultExportRoot(projectRoot: string, ledger: TraceabilityLedger, manifestPath: string): string {
-	const manifest = readVaultExportManifest(projectRoot, ledger, manifestPath);
-	const root = repositoryArtifact(projectRoot, manifest.exportRoot, "Vault export root");
-	const expected = ledger.notes.map(note => `${note.id}:${note.relativePath}`).sort();
-	const actual = manifest.files.map(file => `${file.noteId}:${file.relativePath}`).sort();
-	if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error("Vault export manifest note set differs from relation ledger");
-	for (const file of manifest.files) {
-		const bytes = readFileSync(resolve(root, ledger.vault.relativeRoot, file.relativePath!));
-		const digest = createHash("sha256").update(bytes).digest("hex");
-		if (!file.byteIdentical || file.actualSha256 !== file.exportSha256 || digest !== file.exportSha256) throw new Error(`${file.noteId}: Vault export hash/provenance mismatch`);
-	}
-	return root;
-}
-
-function receiptVaultRoot(projectRoot: string, ledger: TraceabilityLedger, manifestPath: string, explicitVault: string): string {
-	const manifest = readVaultExportManifest(projectRoot, ledger, manifestPath);
-	const requested = realpathSync(resolve(explicitVault));
-	const acquired = realpathSync(resolve(manifest.actualVaultRoot));
-	if (requested !== acquired) throw new Error("receipt-check --vault-root differs from the manifest actualVaultRoot");
-	return requested;
-}
 
 export async function runTraceability(argv = process.argv.slice(2)): Promise<string> {
 	const projectRoot = resolve(argument(argv, "--project-root") ?? resolve(import.meta.dir, ".."));
-	const ledger = JSON.parse(readFileSync(resolve(projectRoot, ".www/control-ledger/traceability-v2.json"), "utf8")) as TraceabilityLedger;
-	const workManifest = parseWorkTraceabilityManifest(JSON.parse(readFileSync(resolve(projectRoot, ".www/control-ledger/traceability.json"), "utf8")));
-	await assertRepositoryReferencesExist(workManifest, projectRoot);
 	const command = argv[0] ?? "check";
-	const mapPath = resolve(projectRoot, ".www/Development-Map.md");
-	if (command === "map:build") {
-		writeFileSync(mapPath, buildDevelopmentMap(readFileSync(mapPath, "utf8"), ledger, workManifest));
-		return `Development Map generated: ${ledger.issues.length} issues`;
+	if (command === "receipt-from-runtime") {
+		const journal = containedPath(projectRoot, argument(argv, "--journal"), "journal");
+		const contextPath = containedPath(projectRoot, argument(argv, "--context"), "context");
+		const output = containedPath(projectRoot, argument(argv, "--output"), "output");
+		const completion = selectedCompletionReceipt(readFileSync(journal, "utf8"), argument(argv, "--runtime-receipt-id"));
+		const context = JSON.parse(readFileSync(contextPath, "utf8")) as VerificationReceiptCompletionContext;
+		const ledger = loadLedger(projectRoot);
+		const required = requiredCoverageFromRegistries(projectRoot, ledger, {
+			acceptanceCoverage: context.acceptanceCoverage,
+			exceptionCoverage: context.exceptionStageCoverage,
+		});
+		if (!sameJson([...context.requiredAcceptanceRefs].sort(), required.requiredAcceptances)
+			|| !sameJson([...context.applicableExceptionStages].sort((a, b) => a.exceptionRef.localeCompare(b.exceptionRef)), required.importantStages)) throw new Error("RECEIPT_CONTEXT_REQUIRED_COVERAGE_MISMATCH");
+		const revision = observedRevision(projectRoot);
+		if (context.observedSourceRevision !== revision) throw new Error("RECEIPT_SOURCE_REVISION_MISMATCH");
+		const receipt = verificationReceiptFromCompletion(completion, context);
+		const errors = validateVerificationReceipt(receipt, context.observedSourceRevision);
+		if (errors.length) throw new Error(errors.join("\n"));
+		writeImmutableJson(output, receipt);
+		const receiptEntity = ledger.entities.find((entity) => entity.ref === `receipt:${receipt.id}`);
+		if (!receiptEntity) throw new Error("RECEIPT_LEDGER_ENTITY_REQUIRED");
+		receiptEntity.source = { path: relative(realpathSync(projectRoot), realpathSync(output)), digest: sha256(readFileSync(output)) };
+		const revisionRef = `git-revision:${revision}` as const;
+		if (!ledger.entities.some((entity) => entity.ref === revisionRef)) {
+			ledger.entities.push({ ref: revisionRef, kind: "git-revision", id: revision });
+		}
+		ledger.edges = ledger.edges.filter((edge) => edge.from !== receiptEntity.ref || edge.relation !== "at-revision");
+		ledger.edges.push({ from: receiptEntity.ref, relation: "at-revision", to: revisionRef });
+		const staleEvidenceRefs = new Set(ledger.edges
+			.filter(edge => edge.from === receiptEntity.ref && (edge.relation === "produced" || edge.relation === "evidenced-by"))
+			.map(edge => edge.to));
+		ledger.edges = ledger.edges.filter(edge => edge.from !== receiptEntity.ref || (edge.relation !== "produced" && edge.relation !== "evidenced-by"));
+		for (const evidence of receipt.evidence) {
+			const ref = `evidence:${evidence.id}` as TraceabilityRef;
+			const source = { path: evidence.path, digest: evidence.sha256 };
+			const index = ledger.entities.findIndex(entity => entity.ref === ref);
+			if (index < 0) ledger.entities.push({ ref, kind: "evidence", id: evidence.id, immutable: true, source });
+			else ledger.entities[index] = { ...ledger.entities[index]!, kind: "evidence", id: evidence.id, immutable: true, source };
+			ledger.edges.push({ from: receiptEntity.ref, relation: "produced", to: ref }, { from: receiptEntity.ref, relation: "evidenced-by", to: ref });
+		}
+		ledger.entities = ledger.entities.filter(entity => entity.kind !== "evidence" || !staleEvidenceRefs.has(entity.ref) || ledger.edges.some(edge => edge.from === entity.ref || edge.to === entity.ref));
+		ledger.entities.sort((left, right) => left.ref.localeCompare(right.ref));
+		ledger.edges.sort((left, right) => left.from.localeCompare(right.from) || left.relation.localeCompare(right.relation) || left.to.localeCompare(right.to));
+		const { payloadDigest: _ledgerDigest, ...ledgerBody } = ledger;
+		ledger.payloadDigest = canonicalDigest(ledgerBody);
+		const ledgerTemporary = `${ledgerPath(projectRoot)}.${process.pid}.${Date.now()}.tmp`;
+		writeFileSync(ledgerTemporary, `${JSON.stringify(ledger, null, 2)}\n`, { flag: "wx" });
+		renameSync(ledgerTemporary, ledgerPath(projectRoot));
+		return JSON.stringify({ id: receipt.id, payloadDigest: receipt.payloadDigest });
 	}
-	if (command === "map:check") {
-		const current = readFileSync(mapPath, "utf8");
-		if (buildDevelopmentMap(current, ledger, workManifest) !== current) throw new Error("Development Map is stale; run `bun run development-map:build`");
-		return `Development Map current: ${ledger.issues.length} issues`;
+	if (command === "migrate-v2") {
+		const input = resolve(projectRoot, argument(argv, "--input") ?? ".www/control-ledger/traceability-v2.json");
+		const output = resolve(projectRoot, argument(argv, "--output") ?? ".www/control-ledger/traceability-v3.json");
+		const migrated = migrateTraceabilityV2ToV3(JSON.parse(readFileSync(input, "utf8")));
+		const content = `${JSON.stringify(migrated, null, 2)}\n`;
+		if (existsSync(output) && readFileSync(output, "utf8") !== content) throw new Error("V3_MIGRATION_OUTPUT_DIFFERS");
+		if (!existsSync(output)) writeFileSync(output, content, { flag: "wx" });
+		return JSON.stringify({ inputDigest: canonicalDigest(JSON.parse(readFileSync(input, "utf8"))), outputDigest: migrated.payloadDigest });
 	}
-	if (command === "rebuild") {
-		const store = new DevelopmentStore({ projectRoot, dataRoot: argument(argv, "--data-root") });
-		try { return JSON.stringify(store.rebuildTraceability()); } finally { store.close(); }
+	const ledger = loadLedger(projectRoot);
+	if (command === "map:build" || command === "map:check") {
+		const mapPath = resolve(projectRoot, ".www/Development-Map.md");
+		const manifestPath = resolve(projectRoot, ".www/control-ledger/traceability.json");
+		const manifest = existsSync(manifestPath) ? parseWorkTraceabilityManifest(JSON.parse(readFileSync(manifestPath, "utf8"))) : undefined;
+		const rendered = buildDevelopmentMap(readFileSync(mapPath, "utf8"), ledger, manifest);
+		if (command === "map:check") { if (rendered !== readFileSync(mapPath, "utf8")) throw new Error("Development Map is stale"); }
+		else writeFileSync(mapPath, rendered);
+		return `Development Map current: ${ledger.entities.filter(entity => entity.kind === "issue").length} issues`;
 	}
+	if (command === "rebuild") { const store = new DevelopmentStore({ projectRoot, dataRoot: argument(argv, "--data-root") }); try { return JSON.stringify(store.rebuildTraceability()); } finally { store.close(); } }
 	if (command === "query") {
-		const [kind, id] = argv.slice(1) as ["issue" | "unit" | "run" | "note", string];
-		if (!kind || !id) throw new Error("query requires <issue|unit|run|note> <id>");
+		const [kind, id] = argv.slice(1) as ["spec" | "acceptance" | "test" | "exception", string];
+		if (!kind || !id || !["spec", "acceptance", "test", "exception"].includes(kind)) throw new Error("query requires <spec|acceptance|test|exception> <id>");
+		const store = new DevelopmentStore({ projectRoot, dataRoot: argument(argv, "--data-root") }); try { return JSON.stringify(store.queryTraceability(kind, id), null, 2); } finally { store.close(); }
+	}
+	if (command === "coverage") {
+		const [kind, id] = argv.slice(1) as ["spec", string];
+		if (kind !== "spec" || !id) throw new Error("coverage requires spec <id>");
+		const store = new DevelopmentStore({ projectRoot, dataRoot: argument(argv, "--data-root") }); try { return JSON.stringify(store.coverageForSpec(id), null, 2); } finally { store.close(); }
+	}
+	if (command === "drift" || command === "orphans") {
 		const store = new DevelopmentStore({ projectRoot, dataRoot: argument(argv, "--data-root") });
-		try { return JSON.stringify(store.queryTraceability(kind, id), null, 2); } finally { store.close(); }
+		try { return JSON.stringify(command === "drift" ? store.traceabilityDrift() : store.traceabilityOrphans(), null, 2); } finally { store.close(); }
 	}
-	if (command !== "check" && command !== "receipt-check") throw new Error(`Unknown traceability command: ${command}`);
-	const linearPath = argument(argv, "--linear-snapshot");
-	if (!linearPath) throw new Error(`${command} requires an explicit --linear-snapshot artifact`);
-	const receiptPath = argument(argv, "--linear-receipt");
-	if (!receiptPath) throw new Error(`${command} requires an explicit --linear-receipt artifact`);
-	const linearArtifact = readLinearReceipt(projectRoot, linearPath, receiptPath, command === "receipt-check") as any;
-	const linearSnapshot = parseSnapshot(linearArtifact) as Array<ReturnType<typeof parseSnapshot>[number] & { uuid: string }>;
-	const contract = loadLinearContract(projectRoot);
-	const contractErrors = [
-		...validateLinearContract(linearSnapshot, undefined, contract, "Chat"),
-		...validateLinearContract(linearSnapshot, undefined, contract, "Traceability"),
-	];
-	if (contractErrors.length) throw new Error(contractErrors.join("\n"));
-	let vaultRoot: string;
-	if (command === "check") {
-		const manifestPath = argument(argv, "--vault-export-manifest");
-		if (!manifestPath) throw new Error("check requires an explicit --vault-export-manifest artifact");
-		vaultRoot = vaultExportRoot(projectRoot, ledger, manifestPath);
-	} else {
-		const explicitVault = argument(argv, "--vault-root");
-		if (!explicitVault) throw new Error("receipt-check requires an explicit --vault-root");
-		const manifestPath = argument(argv, "--vault-export-manifest");
-		if (!manifestPath) throw new Error("receipt-check requires an explicit --vault-export-manifest artifact");
-		vaultRoot = receiptVaultRoot(projectRoot, ledger, manifestPath, explicitVault);
+	const linearSnapshotPath = containedPath(projectRoot, argument(argv, "--linear-snapshot"), "linear-snapshot");
+	const linearReceiptPath = containedPath(projectRoot, argument(argv, "--linear-receipt"), "linear-receipt");
+	const vaultManifestPath = containedPath(projectRoot, argument(argv, "--vault-export-manifest"), "vault-export-manifest");
+	const linearSnapshot = JSON.parse(readFileSync(linearSnapshotPath, "utf8")) as { issues?: readonly unknown[] };
+	const linearReceipt = JSON.parse(readFileSync(linearReceiptPath, "utf8")) as { snapshotPath?: string; snapshotSha256?: string };
+	if (linearReceipt.snapshotPath !== relative(realpathSync(projectRoot), realpathSync(linearSnapshotPath))
+		|| linearReceipt.snapshotSha256 !== sha256(readFileSync(linearSnapshotPath))) {
+		throw new Error("LINEAR_READBACK_RECEIPT_MISMATCH");
 	}
-	const errors = await validateTraceability({ projectRoot, ledger, vaultRoot, linearSnapshot });
+	const vaultManifest = JSON.parse(readFileSync(vaultManifestPath, "utf8")) as {
+		status?: string;
+		actualVaultRoot?: string;
+		sourceRevision?: string;
+		files?: readonly {
+			noteId?: string;
+			actualPath?: string;
+			exportPath?: string;
+			byteIdentical?: boolean;
+			actualSha256?: string;
+			exportSha256?: string;
+		}[];
+	};
+	if (vaultManifest.status !== "PASS" || !vaultManifest.files?.length
+		|| vaultManifest.files.some((file) => !file.byteIdentical || file.actualSha256 !== file.exportSha256)) {
+		throw new Error("VAULT_EXPORT_PROVENANCE_MISMATCH");
+	}
+	if (!vaultManifest.actualVaultRoot || !vaultManifest.sourceRevision) throw new Error("VAULT_EXPORT_PROVENANCE_MISMATCH");
+	if (vaultManifest.sourceRevision !== observedRevision(projectRoot)) throw new Error("VAULT_EXPORT_SOURCE_REVISION_MISMATCH");
+	const actualVaultRoot = realpathSync(vaultManifest.actualVaultRoot);
+	const seenVaultNotes = new Set<string>();
+	for (const file of vaultManifest.files) {
+		if (!file.noteId || seenVaultNotes.has(file.noteId) || !file.actualPath || !file.exportPath) {
+			throw new Error("VAULT_EXPORT_NOTE_IDENTITY_MISMATCH");
+		}
+		seenVaultNotes.add(file.noteId);
+		const actualPath = realpathSync(file.actualPath);
+		if (actualPath !== actualVaultRoot && !actualPath.startsWith(`${actualVaultRoot}/`)) {
+			throw new Error("VAULT_ACTUAL_PATH_ESCAPES_ROOT");
+		}
+		const exportPath = containedPath(projectRoot, file.exportPath, "vault-export");
+		const actualDigest = sha256(readFileSync(actualPath));
+		const exportDigest = sha256(readFileSync(exportPath));
+		if (actualDigest !== file.actualSha256 || exportDigest !== file.exportSha256 || actualDigest !== exportDigest) {
+			throw new Error("VAULT_EXPORT_BYTE_DIGEST_MISMATCH");
+		}
+	}
+	const requiredNoteIds = ledger.entities.filter((entity) => entity.kind === "note").map((entity) => entity.id).sort();
+	const manifestNoteIds = new Set([...seenVaultNotes].filter((id) => id.startsWith("WOO-")));
+	if (requiredNoteIds.some((id) => !manifestNoteIds.has(id))) {
+		throw new Error("VAULT_EXPORT_NOTE_COVERAGE_MISMATCH");
+	}
+	const errors = await validateTraceability({
+		projectRoot,
+		ledger,
+		vaultRoot: resolveVaultRoot(projectRoot, ""),
+		linearSnapshot: linearSnapshot.issues ?? [],
+	});
 	if (errors.length) throw new Error(errors.join("\n"));
-	const current = readFileSync(mapPath, "utf8");
-	if (buildDevelopmentMap(current, ledger, workManifest) !== current) throw new Error("Development Map is stale; run `bun run development-map:build`");
 	const temp = mkdtempSync(join(tmpdir(), "www-traceability-check-"));
 	try {
-		const store = new DevelopmentStore({ projectRoot, dataRoot: temp });
-		const first = store.rebuildTraceability();
-		const probes = [store.queryTraceability("issue", ledger.issues[0]!.id), store.queryTraceability("unit", ledger.units[0]!.key), store.queryTraceability("run", ledger.runs[0]!.id), store.queryTraceability("note", ledger.notes[0]!.id)];
-		store.close();
-		rmSync(join(temp, "development", "index.sqlite"), { force: true });
-		rmSync(join(temp, "development", "index.sqlite-wal"), { force: true });
-		rmSync(join(temp, "development", "index.sqlite-shm"), { force: true });
-		const rebuilt = new DevelopmentStore({ projectRoot, dataRoot: temp });
-		const second = rebuilt.rebuildTraceability();
-		rebuilt.close();
-		if (first.logicalDigest !== second.logicalDigest || probes.some(probe => probe.logicalDigest !== first.logicalDigest)) throw new Error("SQLite rebuild/query logical digest mismatch");
-		const prefix = command === "receipt-check" ? "Fresh external-receipt traceability OK" : "Traceability OK";
-		return `${prefix}: ${ledger.units.length} Units, ${ledger.issues.length} issues, ${ledger.notes.length} notes, ${ledger.edges.length} edges, digest ${digestLedger(ledger)}`;
+		const store = new DevelopmentStore({ projectRoot, dataRoot: temp }); const first = store.rebuildTraceability(); store.close();
+		for (const suffix of ["", "-wal", "-shm"]) rmSync(join(temp, "development", `index.sqlite${suffix}`), { force: true });
+		const rebuilt = new DevelopmentStore({ projectRoot, dataRoot: temp }); const second = rebuilt.rebuildTraceability(); rebuilt.close();
+		if (first.logicalDigest !== second.logicalDigest || first.rowDigest !== second.rowDigest) throw new Error("SQLite rebuild digest mismatch");
+		return `Traceability OK: ${ledger.entities.length} entities, ${ledger.edges.length} edges, digest ${first.logicalDigest}`;
 	} finally { rmSync(temp, { recursive: true, force: true }); }
 }
-
 if (import.meta.main) runTraceability().then(console.log).catch(error => { console.error(error instanceof Error ? error.message : String(error)); process.exit(1); });

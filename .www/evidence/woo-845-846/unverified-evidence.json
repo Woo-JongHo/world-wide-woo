@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 3,
+  "immutable": true,
+  "id": "EV-WOO-845-846-UNVERIFIED-001",
+  "kind": "unverified-evidence",
+  "sourceRevision": "worktree:2d0f8fdcfd6eb0dbf2f16707ebf98ff75885612b:dirty",
+  "items": [
+    {
+      "id": "UV-WOO-845-PTY-RESIZE",
+      "subject": "TUI PTY/live resize",
+      "status": "unknown",
+      "reason": "No live PTY resize execution evidence is present."
+    },
+    {
+      "id": "UV-WOO-845-846-RECOVERY",
+      "subject": "Unexecuted recovery paths",
+      "status": "unknown",
+      "reason": "No execution evidence establishes recovery behavior for paths not run."
+    },
+    {
+      "id": "UV-WOO-845-LIVE-COMPLETION",
+      "subject": "Live WOO-845 ExecutionRun",
+      "status": "unknown",
+      "reason": "The completion binding is to the recorded G001 checkpoint, not a fabricated live runtime run."
+    }
+  ],
+  "ledgerAlignment": {
+    "status": "aligned",
+    "receiptEntity": "receipt:VR-CHAT-001-001",
+    "ledgerPath": ".www/control-ledger/traceability-v3.json",
+    "materializedPath": ".www/evidence/woo-845-846/verification-receipt.json"
+  },
+  "limitations": [
+    "Unknown coverage produces a partial verification verdict."
+  ],
+  "payloadDigest": "706751ec31c42904c7eb833bb10328cc96ac6e212594d22066e05faec2fd4c0d"
+}

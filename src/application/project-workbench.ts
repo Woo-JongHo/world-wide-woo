@@ -40,11 +40,20 @@ import type { ReviewPacket, ReviewProvider } from "../domain/review.js";
 import {
 	classifyWorkActivity,
 	projectWorkFlow,
+	projectWorkFlowFromExecutionRun,
 	type DplanHash,
 	type WorkFlowProjectionInput,
 	type WorkFlowProjection,
 	type WorkStepNarration,
 } from "../domain/work/index.js";
+import {
+	createExecutionRun,
+	normalizeProjectActivity,
+	projectExecutionActivity,
+	projectExecutionTodo,
+	reduceExecutionRun,
+	type ExecutionRunState,
+} from "../domain/work/execution-run.js";
 import {
 	projectTNoteCompletionIndex,
 	projectActivityToTNoteSource,
@@ -84,6 +93,7 @@ const JOURNAL_NATIVE_MAX_DEPTH = 8;
 const dplanHash: DplanHash = {
 	sha256Hex: (input) => createHash("sha256").update(input).digest("hex"),
 };
+const executionHash = dplanHash;
 const JOURNAL_NATIVE_MAX_ITEMS = 128;
 const JOURNAL_NATIVE_MAX_COLLECTION_ITEMS = 64;
 const JOURNAL_NATIVE_OMISSION = "[journal observation omitted]";
@@ -240,6 +250,7 @@ export class ProjectWorkbench {
 	private readonly processAttachedAt = new Date().toISOString();
 	private threadId: string | null = null;
 	private activeTurnId: string | null = null;
+	private readonly executionRuns = new Map<string, ExecutionRunState>();
 	/** Last explicitly selected root turn; remains plan authority after terminal completion. */
 	private selectedPlanTurnId: string | null = null;
 	/** A submitted root question can update the public goal before Native confirms its turn id. */
@@ -451,12 +462,18 @@ export class ProjectWorkbench {
 		for (const activity of activities) {
 			const durableActivity = immutable(activity);
 			this.activities.push(durableActivity);
+			this.reduceExecutionActivity(durableActivity);
 			this.rememberNativeRefs(durableActivity.nativeRefs);
 			this.rememberTerminalTurn(durableActivity);
 			this.rememberTerminalItem(durableActivity);
 			if (durableActivity.payload.method === "turn/first-output-observed" && durableActivity.nativeRefs.turnId) {
 				this.firstOutputObservedTurns.add(durableActivity.nativeRefs.turnId);
 			}
+		}
+		// A crash can leave a durable terminal observation without its derived
+		// receipt. Rebuild before repairing it; receipt identity makes replay safe.
+		for (const run of this.executionRuns.values()) {
+			if (run.receipt && !this.hasCompletionReceipt(run)) await this.appendExecutionReceipt(run);
 		}
 		this.visibleAfterSequence = this.activities.at(-1)?.sequence ?? 0;
 		if (this.options.tnotes && !this.options.tnotes.bindThread) await this.loadBoundTNotes();
@@ -1699,16 +1716,62 @@ export class ProjectWorkbench {
 		const added = result.appended || !this.activities.some((activity) => activity.id === result.activity.id);
 		if (added) {
 			this.activities.push(durableActivity);
+			const reduction = this.reduceExecutionActivity(durableActivity);
 			const visible = this.isActivityVisible(durableActivity);
 			if (visible) this.visibleActivities.push(durableActivity);
 			this.invalidateWorkFlow();
 			this.scheduleNarrations();
 			if (visible) this.scheduleNativeTodoSync(durableActivity);
+			if (reduction?.accepted && reduction.state.receipt && !this.hasCompletionReceipt(reduction.state)) {
+				await this.appendExecutionReceipt(reduction.state);
+			}
 		}
 		this.rememberTerminalTurn(durableActivity);
 		this.rememberTerminalItem(durableActivity);
 		if (publish) this.publish();
 		return durableActivity;
+	}
+
+
+	private reduceExecutionActivity(activity: ProjectActivity): { state: ExecutionRunState; accepted: boolean } | null {
+		if (!activity.nativeRefs.threadId || !activity.nativeRefs.turnId) return null;
+		const event = normalizeProjectActivity(activity);
+		const current = this.executionRuns.get(event.runId) ?? createExecutionRun({
+			runId: event.runId, threadId: event.threadId, turnId: event.turnId, hash: executionHash,
+		});
+		const reduction = reduceExecutionRun(current, event, executionHash);
+		this.executionRuns.set(event.runId, reduction.state);
+		return reduction;
+	}
+
+	private hasCompletionReceipt(run: ExecutionRunState): boolean {
+		return this.activities.some((activity) => activity.payload.method === "execution/completion-receipt"
+			&& activity.nativeRefs.threadId === run.threadId
+			&& activity.nativeRefs.turnId === run.turnId
+			&& activity.payload.receiptId === run.receipt?.receiptId);
+	}
+
+	private async appendExecutionReceipt(run: ExecutionRunState): Promise<void> {
+		const receipt = run.receipt;
+		if (!receipt || this.hasCompletionReceipt(run)) return;
+		const nativeRefs = { threadId: run.threadId, turnId: run.turnId };
+		const payload = {
+			method: "execution/completion-receipt", receiptId: receipt.receiptId,
+			receiptDigest: receipt.receiptDigest, checkpointDigest: receipt.checkpointDigest, receipt,
+		};
+		await this.appendActivity(
+			"progress",
+			"completed",
+			nativeRefs,
+			payload,
+			false,
+			digestSource(stableJson({ kind: "progress", phase: "completed", nativeRefs, payload })),
+		);
+	}
+
+	private selectedExecutionRun(): ExecutionRunState | null {
+		const turnId = this.activeTurnId ?? this.selectedPlanTurnId;
+		return this.threadId && turnId ? this.executionRuns.get(`${this.threadId}:${turnId}`) ?? null : null;
 	}
 
 	private activityJournalProjectId(): string {
@@ -1835,6 +1898,8 @@ export class ProjectWorkbench {
 
 	private makeSnapshot(phase: WorkbenchSnapshot["phase"]): WorkbenchSnapshot {
 		const durable = this.projectDurableActivities();
+		const executionRun = this.selectedExecutionRun();
+		const executionActivity = executionRun ? projectExecutionActivity(executionRun) : null;
 		return deepFreeze({
 			projectId: this.options.projectId,
 			revision: this.revision,
@@ -1855,7 +1920,10 @@ export class ProjectWorkbench {
 			mcpServers: this.mcpServers,
 			wooEntry: this.options.wooEntry?.snapshot ?? null,
 			threadId: this.threadId,
-			activeTurnId: this.activeTurnId,
+			activeTurnId: this.activeTurnId && executionRun && !["completed", "failed", "interrupted"].includes(executionRun.phase)
+				? executionRun.turnId
+				: null,
+			executionRun: executionRun ? immutable(executionRun) : null,
 			activityCount: durable.activityCount,
 			activities: durable.activities,
 			selectedActivityId: this.selectedActivityId,
@@ -1865,10 +1933,15 @@ export class ProjectWorkbench {
 			draft: this.draft,
 			reasoningDraft: this.reasoningDraft,
 			reasoningSummaryDraft: this.reasoningSummaryDraft,
-			liveActivity: immutable(this.liveActivity),
+			liveActivity: immutable(executionActivity && executionRun ? {
+				method: executionActivity.method,
+				kind: executionActivity.kind,
+				text: executionActivity.text,
+				nativeRefs: { threadId: executionRun.threadId, turnId: executionRun.turnId, itemId: executionActivity.id },
+			} : this.liveActivity),
 			workFlow: this.projectCurrentWorkFlow(),
 			tnotes: this.projectDurableNotes(),
-			todo: this.todo,
+			todo: executionRun ? this.projectExecutionTodo(executionRun) : this.todo,
 			todoSync: this.todoSync,
 			actionResult: this.actionResult,
 			deliveryUncertain: this.chatDeliveryBlocked && this.blockedChat !== null,
@@ -1930,6 +2003,7 @@ export class ProjectWorkbench {
 
 	private projectCurrentWorkFlow(): WorkFlowProjection {
 		const input = this.currentPlanProjectionInput();
+		const run = this.selectedExecutionRun();
 		const authorityKey = input
 			? stableJson([
 				"kind" in input ? "pending-goal" : "selected-root-turn",
@@ -1947,7 +2021,9 @@ export class ProjectWorkbench {
 		// Keep child activity out of the visible transcript, but retain it here so a
 		// root action after a child event does not look like a forged sequence gap.
 		const source = this.activities;
-		const projection = projectWorkFlow(source, this.stepNarrations, input);
+		const projection = run
+			? projectWorkFlowFromExecutionRun(run, this.stepNarrations, input, source)
+			: projectWorkFlow(source, this.stepNarrations, input);
 		const pendingGoal = this.pendingPlanGoalActivityId && this.threadId && input && !("kind" in input)
 			? projectWorkFlow(source, new Map(), { kind: "pending-goal", expectedThreadKey: this.threadId, hash: dplanHash }).goal
 			: null;
@@ -1958,6 +2034,39 @@ export class ProjectWorkbench {
 			value: pendingGoal ? { ...projection, goal: pendingGoal } : projection,
 		};
 		return this.workFlowProjection.value;
+	}
+
+	private projectExecutionTodo(run: ExecutionRunState): TodoDocument {
+		const previous = this.todo;
+		const tasks = projectExecutionTodo(run);
+		if (previous?.items.length && tasks.length > 0
+			&& !tasks.some((task) => previous.items.some((item) => item.content === task.content))) {
+			return previous;
+		}
+		if (previous && tasks.length > 0 && tasks.every((task) => previous.items.some((item) => item.content === task.content))) {
+			const statusByContent = new Map(tasks.map((task) => [task.content, task.status]));
+			return immutable({
+				...previous,
+				items: previous.items.map((item) => ({
+					...item,
+					status: statusByContent.get(item.content) ?? item.status,
+				})),
+			});
+		}
+		return immutable({
+			version: 1,
+			revision: previous?.revision ?? 0,
+			ownerSessionId: previous?.ownerSessionId ?? run.threadId,
+			storyId: previous?.storyId ?? null,
+			title: run.objective,
+			items: tasks.map((item) => ({
+				...item,
+				evidenceIds: [],
+				details: [],
+			})),
+			updatedAt: run.activities.at(-1)?.recordedAt ?? previous?.updatedAt ?? this.processAttachedAt,
+			...(previous?.source ? { source: previous.source } : {}),
+		});
 	}
 
 	private currentPlanProjectionInput(): WorkFlowProjectionInput | undefined {

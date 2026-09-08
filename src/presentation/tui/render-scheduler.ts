@@ -3,6 +3,13 @@ export type RenderUrgency = "streaming" | "immediate";
 interface WorkbenchRenderState {
 	readonly phase: string;
 	readonly journalSequence: number;
+	readonly executionRun?: {
+		readonly runId: string;
+		readonly phase: string;
+		readonly activeActivity: { readonly id: string } | null;
+		readonly receipt: { readonly receiptId: string; readonly receiptDigest: string } | null;
+		readonly checkpoint: { readonly digest: string };
+	} | null;
 }
 
 /** Native delta-only revisions are repaint noise; durable and lifecycle changes stay immediate. */
@@ -10,11 +17,20 @@ export function workbenchRenderUrgency(
 	previous: WorkbenchRenderState,
 	next: WorkbenchRenderState,
 ): RenderUrgency {
-	return previous.phase === "working" &&
-		next.phase === "working" &&
-		previous.journalSequence === next.journalSequence
-		? "streaming"
-		: "immediate";
+	const previousRun = previous.executionRun;
+	const nextRun = next.executionRun;
+	if (previousRun || nextRun) {
+		return previousRun?.runId === nextRun?.runId
+			&& previousRun?.phase === nextRun?.phase
+			&& previousRun?.activeActivity?.id === nextRun?.activeActivity?.id
+			&& previousRun?.receipt?.receiptId === nextRun?.receipt?.receiptId
+			&& previousRun?.receipt?.receiptDigest === nextRun?.receipt?.receiptDigest
+			&& previousRun?.checkpoint.digest === nextRun?.checkpoint.digest
+			&& previous.journalSequence === next.journalSequence
+			? "streaming" : "immediate";
+	}
+	return previous.phase === "working" && next.phase === "working" && previous.journalSequence === next.journalSequence
+		? "streaming" : "immediate";
 }
 
 type TimerToken = ReturnType<typeof setTimeout>;

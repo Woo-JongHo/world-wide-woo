@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 3,
+  "kind": "test-contract",
+  "id": "TEST-032",
+  "version": 1,
+  "immutable": true,
+  "payload": {
+    "what": "40, 80, 120 열 width matrix에서 채팅 본문과 dashboard scroll viewport의 resize 및 reader position을 검증한다.",
+    "why": "폭 변경이 줄바꿈, 동적 tail 또는 scroll offset을 잘못 재투영하면 사용자가 긴 본문에서 읽던 위치를 잃는다.",
+    "how": "WorkbenchChatView와 dashboard layout을 각 폭으로 렌더링하고 visible width, cached projection, scrollTop 및 scroll content를 검사한다.",
+    "pass": "모든 행이 대상 폭 안에 있고 resize는 stale tail을 남기지 않으며 scroll viewport와 reader position이 유지된다.",
+    "purpose": "CHAT-001 A-03과 EXC-014의 width-dependent reconciliation control 및 recovery를 검증한다.",
+    "risk": "resize 뒤 stale projection, reader position 손실 또는 partial/final event mismatch가 사용자에게 잘못된 본문을 보인다.",
+    "acceptanceIds": [
+      "A-03"
+    ],
+    "automation": {
+      "command": "bun test test/workbench-views.test.ts test/dashboard-layout.test.ts",
+      "paths": [
+        "test/workbench-views.test.ts",
+        "test/dashboard-layout.test.ts"
+      ]
+    }
+  },
+  "payloadDigest": "4ea2fc41be6526f2ec8b90734bab86fc3e58a6912a2db1eea9f5b5a723568bc5"
+}

@@ -8,6 +8,7 @@ import {
 } from "@earendil-works/pi-tui";
 import type { NativeApprovalRequest } from "../../domain/native-session";
 import type { CompletionReport } from "../../domain/output";
+import type { CompletionReceipt } from "../../domain/work/execution-run";
 import { projectBackgroundWorkState, type BackgroundWorkState } from "../../domain/native-session";
 import { sanitizeCompletedAssistantResponse, sanitizePartialAssistantResponse } from "../../domain/redaction";
 import { sanitizeTerminalTextExcerpt, sanitizeTerminalTextUnbounded } from "../../domain/terminal";
@@ -412,6 +413,26 @@ function projectCompletionSummaries(snapshot: WorkbenchSnapshot): ReadonlyMap<st
 	return reports;
 }
 
+function completionReportForReceipt(receipt: CompletionReceipt): CompletionReport {
+	const sections: Array<CompletionReport["sections"][number]> = [];
+	if (receipt.changed.length > 0) sections.push({ title: "변경", bullets: receipt.changed.map((change) =>
+		`${change.kind} · ${change.ref}${change.summary ? ` · ${change.summary}` : ""}`,
+	) });
+	if (receipt.evidenceRefs.length > 0) {
+		sections.push({ title: "근거", bullets: receipt.evidenceRefs.map((evidence) => `Source · /trace ${evidence.activityId}`) });
+	}
+	if (receipt.remaining.length > 0) sections.push({ title: "남은 작업", bullets: receipt.remaining.map((remaining) =>
+		`${remaining.blocking ? "차단됨" : "미완료"} · ${remaining.summary}`,
+	) });
+	return {
+		title: receipt.status === "completed" ? "이번 요청에서 한 일" : "실행 종료 결과",
+		sections,
+		verification: receipt.verification.map((verification) =>
+			`${verification.command} · ${verification.status === "skipped" ? "skipped (건너뜀)" : verification.status} · ${verification.result}`,
+		),
+	};
+}
+
 /** Chat projection for the native ProjectWorkbench, including existing tool cards.
  * @linear WOO-679 WOO-683
  */
@@ -504,6 +525,9 @@ export class WorkbenchChatView implements Component {
 		indicator: { message: string; hint?: string; frames: readonly string[]; intervalMs: number } | null,
 		requestRender: () => void,
 	): void {
+		const motionAllowed = !this.snapshot.executionRun
+			|| ["executing", "verifying", "completing"].includes(this.snapshot.executionRun.phase);
+		if (!motionAllowed) indicator = null;
 		const previous = this.activityIndicator;
 		const changed = this.activityIndicator?.message !== indicator?.message
 			|| this.activityIndicator?.hint !== indicator?.hint
@@ -556,7 +580,19 @@ export class WorkbenchChatView implements Component {
 		const selectedActivity = this.snapshot.selectedActivityId
 			? activityById.get(this.snapshot.selectedActivityId)
 			: undefined;
-		const completionSummaries = projectCompletionSummaries(this.snapshot);
+		const completionSummaries: Map<string, CompletionReport> = this.snapshot.executionRun
+			? new Map<string, CompletionReport>()
+			: new Map(projectCompletionSummaries(this.snapshot));
+		const receipt = this.snapshot.executionRun?.receipt;
+		let receiptRendered = false;
+		if (receipt) {
+			const anchor = [...this.snapshot.chat].reverse().find((message) => {
+				const activity = activityById.get(message.activityId);
+				return message.role === "assistant" && message.status === "completed"
+					&& activity?.nativeRefs.threadId === receipt.threadId && activity.nativeRefs.turnId === receipt.turnId;
+			});
+			if (anchor) completionSummaries.set(anchor.activityId, completionReportForReceipt(receipt));
+		}
 		const messages = new Map(this.snapshot.chat.map((message) => [message.activityId, message]));
 		const projectedSteps = this.snapshot.workFlow.steps;
 		const stepByLastActivity = new Map<string, SemanticWorkStep>();
@@ -618,6 +654,7 @@ export class WorkbenchChatView implements Component {
 				const completionSummary = completionSummaries.get(activity.id);
 				if (message.role !== "user" && completionSummary) {
 					rows.push(...new CompletionSummaryCard(completionSummary).render(contentWidth), "");
+					if (receipt && completionSummary === completionSummaries.get(message.activityId)) receiptRendered = true;
 				}
 				continue;
 			}
@@ -676,6 +713,9 @@ export class WorkbenchChatView implements Component {
 			if (renderedMessageIds.has(message.id) || message.role !== "user" || message.status === "completed") continue;
 			rows.push(...this.renderMessage(message, contentWidth, activityById, tnoteCompletionByTurn, tnoteById, selectedActivity), "");
 		}
+		if (receipt && !receiptRendered) {
+			rows.push(...new CompletionSummaryCard(completionReportForReceipt(receipt)).render(contentWidth), "");
+		}
 		if (this.snapshot.pendingApproval) {
 			rows.push(...surfaceRows(
 				approvalCardRows(
@@ -687,6 +727,36 @@ export class WorkbenchChatView implements Component {
 				contentWidth,
 				semantic.noticeSurface,
 			), "");
+		}
+		if (this.snapshot.executionRun?.phase === "waiting" && !this.snapshot.pendingApproval) {
+			const reason = this.snapshot.executionRun.waitReason;
+			const detail = reason === "gap"
+				? "관측 순서가 비어 있어 기록을 대조하는 중입니다."
+				: reason === "ambiguous_task"
+					? "다음 작업을 특정할 수 없습니다."
+					: reason === "approval"
+						? "실행 승인을 기다리고 있습니다."
+						: "실행 재개 조건을 기다리고 있습니다.";
+			const action = reason === "approval"
+				? "승인 요청을 확인한 뒤 허용 또는 거절합니다."
+				: "새 실행을 시작하지 말고 원본 관측을 확인합니다.";
+			rows.push(...surfaceRows([
+				colors.warning("실행 대기"),
+				...wrapTextWithAnsi(detail, contentWidth),
+				colors.muted(`조치 · ${action}`),
+			], contentWidth, semantic.noticeSurface), "");
+		}
+		if (["blocked", "reconciling", "unknown"].includes(this.snapshot.executionRun?.phase ?? "")) {
+			const phase = this.snapshot.executionRun!.phase;
+			const detail = phase === "blocked"
+				? "도구 또는 작업이 실패했습니다. 복구 관측 또는 권한 있는 종료 관측을 기다립니다."
+				: phase === "reconciling"
+					? "관측 순서를 대조하고 있습니다. 종료 결과를 추정하지 않습니다."
+					: "실행 상태를 판별할 수 없습니다. 원본 관측을 확인합니다.";
+			rows.push(...surfaceRows([
+				colors.warning(phase === "blocked" ? "실행 차단" : phase === "reconciling" ? "실행 대조 중" : "실행 상태 알 수 없음"),
+				...wrapTextWithAnsi(detail, contentWidth),
+			], contentWidth, semantic.noticeSurface), "");
 		}
 		if (!this.activityIndicator && this.snapshot.reasoningSummaryDraft) {
 			rows.push(...this.snapshot.reasoningSummaryDraft.split(/\r?\n/u)
@@ -866,7 +936,8 @@ export class WorkbenchChatView implements Component {
 function hasVisibleChatContent(snapshot: WorkbenchSnapshot): boolean {
 	return snapshot.chat.length > 0
 		|| snapshot.workFlow.steps.length > 0
-		|| Boolean(snapshot.pendingApproval || snapshot.reasoningSummaryDraft || snapshot.reasoningDraft || snapshot.draft || snapshot.error)
+		|| Boolean(snapshot.pendingApproval || snapshot.executionRun?.receipt || snapshot.executionRun?.phase === "waiting"
+			|| snapshot.reasoningSummaryDraft || snapshot.reasoningDraft || snapshot.draft || snapshot.error)
 		|| Boolean(snapshot.liveActivity && isVisibleWorkStep(snapshot.liveActivity.kind));
 }
 
@@ -996,9 +1067,12 @@ export class WorkbenchMonitorView implements Component {
 		const currentStep = snapshot.workFlow.currentStepNumber === null
 			? null
 			: snapshot.workFlow.steps.find((step) => step.number === snapshot.workFlow.currentStepNumber);
-		const live = snapshot.liveActivity
-			? `${snapshot.liveActivity.kind} · ${sanitizeTerminalTextExcerpt(snapshot.liveActivity.text || snapshot.liveActivity.method, 180, "head-tail")}`
-			: "대기 중인 실행 없음";
+		const run = snapshot.executionRun;
+		const live = run?.activeActivity
+			? `${run.activeActivity.kind} · ${sanitizeTerminalTextExcerpt(run.activeActivity.text || run.activeActivity.method, 180, "head-tail")}`
+			: snapshot.liveActivity
+				? `${snapshot.liveActivity.kind} · ${sanitizeTerminalTextExcerpt(snapshot.liveActivity.text || snapshot.liveActivity.method, 180, "head-tail")}`
+				: "대기 중인 실행 없음";
 		const rows = [
 			colors.accent("Monitor · 실행 관측"),
 			colors.muted("읽기 전용 · Chat과 Todo는 같은 Workbench 상태를 사용합니다."),
@@ -1007,6 +1081,7 @@ export class WorkbenchMonitorView implements Component {
 			`${colors.secondary("Activity")} · ${snapshot.activityCount ?? snapshot.activities.length}개 · journal ${snapshot.journalSequence}`,
 			`${colors.secondary("Turn")} · ${currentStep ? `${currentStep.number}/${snapshot.workFlow.steps.length} · ${currentStep.title}` : "진행 단계 없음"}`,
 			`${colors.secondary("Live")} · ${live}`,
+			...(run ? [`${colors.secondary("Run")} · ${run.runId} · ${run.phase}${run.receipt ? ` · receipt ${run.receipt.receiptDigest}` : ` · checkpoint ${run.checkpoint.digest}`}`] : []),
 			`${colors.secondary("Queue")} · ${snapshot.chatQueue.length}개${snapshot.pendingApproval ? " · 승인 대기" : ""}`,
 			`${colors.secondary("MCP")} · ${snapshot.mcpServers.length === 0 ? "서버 없음" : snapshot.mcpServers.map((server) =>
 				`${server.name} ${server.enabled ? "활성" : "비활성"} · ${server.status} · 도구 ${server.tools.length}개`

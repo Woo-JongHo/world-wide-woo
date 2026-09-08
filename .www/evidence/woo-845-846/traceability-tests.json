@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "artifactKind": "test-report",
+  "id": "EV-WOO-846-TRACEABILITY-TESTS-001",
+  "sourceRevision": "worktree:2d0f8fdcfd6eb0dbf2f16707ebf98ff75885612b:dirty",
+  "purpose": "WOO-846 traceability v3 contracts, production receipt promotion, provenance and deterministic SQLite projection",
+  "commands": [
+    {
+      "argv": [
+        "bun",
+        "run",
+        "traceability:check"
+      ],
+      "exitCode": 0,
+      "result": "100 entities, 213 edges; SQLite delete/rebuild logical and row digests identical"
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exitCode": 0,
+      "result": "passed"
+    }
+  ],
+  "coverage": [
+    "Spec→Acceptance→Test→Exception→Verification Receipt→Evidence",
+    "ActivityJournal JSONL replay authentication",
+    "Linear receipt hash",
+    "Vault actual/export byte hashes",
+    "evidence graph equality",
+    "SQLite query/coverage/drift/orphans"
+  ],
+  "limitations": [
+    "CHAT-001 A-03 live resize remains unknown.",
+    "EXC-014 live detect/control/recovery remains unknown."
+  ],
+  "verdict": "partial"
+}

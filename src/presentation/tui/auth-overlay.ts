@@ -8,7 +8,7 @@ import {
 } from "@earendil-works/pi-tui";
 import type { AuthEvent, AuthPrompt, AuthType } from "@earendil-works/pi-ai";
 import type { AuthController, ProviderAuthState } from "../../application/ports";
-import type { Provider } from "../../domain/model-settings";
+import { PROVIDERS, type Provider } from "../../domain/model-settings";
 import { colors } from "./theme";
 
 type PendingPrompt = {
@@ -19,6 +19,108 @@ type PendingPrompt = {
 	reject(error: Error): void;
 	removeAbort?: () => void;
 };
+
+type LoginStatus = ProviderAuthState | { state: "pending"; provider: Provider };
+
+const PROVIDER_LABELS: Record<Provider, string> = {
+	"openai-codex": "ChatGPT Plus/Pro (Codex Subscription)",
+	anthropic: "Anthropic (Claude Pro/Max)",
+	openai: "OpenAI API",
+	google: "Google Gemini",
+};
+
+/** Owns the complete provider-picker → authentication flow in one keyboard surface. */
+export class LoginOverlay implements Component {
+	private readonly statuses = new Map<Provider, LoginStatus>();
+	private selected = 0;
+	private flow: AuthFlowOverlay | null = null;
+	private generation = 0;
+
+	constructor(
+		private readonly auth: AuthController,
+		private readonly requestRender: () => void,
+		private readonly onAuthenticated: (status: ProviderAuthState) => void | Promise<void>,
+		private readonly onClose: () => void,
+		private readonly providers: readonly Provider[] = PROVIDERS,
+	) {
+		for (const provider of providers) this.statuses.set(provider, { state: "pending", provider });
+	}
+
+	start(selectImmediately = false): void {
+		if (selectImmediately) {
+			this.selectProvider();
+			return;
+		}
+		const generation = ++this.generation;
+		for (const provider of this.providers) {
+			this.statuses.set(provider, { state: "pending", provider });
+			void this.auth.status(provider).then(
+				status => {
+					if (generation !== this.generation || this.flow) return;
+					this.statuses.set(provider, status);
+					this.requestRender();
+				},
+				() => {
+					if (generation !== this.generation || this.flow) return;
+					this.statuses.set(provider, { state: "failed", provider, message: "인증 상태를 확인하지 못했습니다." });
+					this.requestRender();
+				},
+			);
+		}
+		this.requestRender();
+	}
+
+	invalidate(): void {
+		this.flow?.invalidate();
+	}
+
+	render(width: number): string[] {
+		if (this.flow) return this.flow.render(width);
+		const rows = [colors.accent("로그인할 Provider 선택"), colors.muted("↑↓ 선택 · Enter 로그인 · Esc 취소"), ""];
+		for (const [index, provider] of this.providers.entries()) {
+			const cursor = index === this.selected ? colors.accent("›") : " ";
+			rows.push(`${cursor} ${PROVIDER_LABELS[provider]}  ${this.statusLabel(provider)}`);
+		}
+		return rows;
+	}
+
+	handleInput(data: string): void {
+		if (this.flow) return this.flow.handleInput(data);
+		if (matchesKey(data, Key.escape) || matchesKey(data, Key.ctrl("c")) || matchesKey(data, Key.ctrl("d"))) {
+			this.generation += 1;
+			this.onClose();
+			return;
+		}
+		if (matchesKey(data, Key.up)) this.selected = (this.selected + this.providers.length - 1) % this.providers.length;
+		else if (matchesKey(data, Key.down)) this.selected = (this.selected + 1) % this.providers.length;
+		else if (matchesKey(data, Key.enter)) this.selectProvider();
+		else return;
+		this.requestRender();
+	}
+
+	private selectProvider(): void {
+		const provider = this.providers[this.selected];
+		if (!provider) return;
+		this.generation += 1;
+		this.flow = new AuthFlowOverlay(
+			provider,
+			this.auth.methods(provider),
+			this.auth,
+			this.requestRender,
+			this.onAuthenticated,
+			this.onClose,
+		);
+		this.flow.start();
+	}
+
+	private statusLabel(provider: Provider): string {
+		const status = this.statuses.get(provider);
+		if (!status || status.state === "pending") return colors.muted("확인 중");
+		if (status.state === "configured") return colors.success("✓ 로그인됨");
+		if (status.state === "required") return colors.warning("로그인 필요");
+		return colors.error("확인 실패");
+	}
+}
 
 export class AuthFlowOverlay implements Component {
 	private readonly controller = new AbortController();

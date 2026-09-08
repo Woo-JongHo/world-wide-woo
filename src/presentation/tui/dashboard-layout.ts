@@ -224,10 +224,11 @@ export function createDashboardLayout(
 		...containedScrollbar,
 	});
 	const right = new VStack([
-		// Todo is the active work surface, so it visibly owns about 70% of the rail.
-		{ component: usageScroll, basis: 0, grow: 4, shrink: 1, minSize: 4 },
+		// The stack allocator distributes its remaining rows sequentially; 3:5
+		// weights compensate for that bias and yield equal visible viewports.
+		{ component: usageScroll, basis: 0, grow: 3, shrink: 1, minSize: 4 },
 		{ component: new HorizontalRule(), basis: 1, minSize: 1, maxSize: 1 },
-		{ component: routerScroll, basis: 0, grow: 3, shrink: 1, minSize: 3 },
+		{ component: routerScroll, basis: 0, grow: 5, shrink: 1, minSize: 3 },
 	]);
 	const wide = new HStack([
 		{ component: new VerticalRule(), basis: 1, shrink: 0, minSize: 1, maxSize: 1 },

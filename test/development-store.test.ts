@@ -19,7 +19,7 @@ function fixture() {
  return { root, options, store, unit, issue };
 }
 
-describe("development source ledger and shared SQLite", () => {
+describe("development source ledger and shared SQLite (v3 traceability projection remains disposable)", () => {
  test("preserves captured attribution across binding changes and rejects conflicting replay", () => {
   const { store, unit } = fixture();
   const input = { runId: "run-a", sourceEventId: "provider-turn-1", kind: "message", body: "public text" };

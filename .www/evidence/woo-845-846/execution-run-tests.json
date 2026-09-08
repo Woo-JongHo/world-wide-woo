@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "artifactKind": "test-report",
+  "id": "EV-WOO-845-EXECUTION-TESTS-001",
+  "sourceRevision": "worktree:2d0f8fdcfd6eb0dbf2f16707ebf98ff75885612b:dirty",
+  "purpose": "WOO-845 canonical execution run reducer, runtime receipt, replay, Todo/activity/completion and terminal motion verification",
+  "commands": [
+    {
+      "argv": [
+        "bun",
+        "test"
+      ],
+      "exitCode": 0,
+      "result": "805 pass, 0 fail, 5816 expectations across 89 files"
+    },
+    {
+      "argv": [
+        "bun",
+        "run",
+        "check"
+      ],
+      "exitCode": 0,
+      "result": "TypeScript noEmit passed"
+    }
+  ],
+  "coverage": [
+    "normal terminal completion",
+    "tool failure recovery",
+    "cancel and interrupt",
+    "duplicate and explicit run gap",
+    "replay receipt",
+    "terminal motion stop"
+  ],
+  "limitations": [
+    "No live PTY resize capture in this execution."
+  ],
+  "verdict": "partial"
+}

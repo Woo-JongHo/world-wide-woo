@@ -691,6 +691,67 @@ describe("workbench dashboard views", () => {
 		}
 	});
 
+	test("stops activity motion when the selected execution run is terminal", () => {
+		const originalSetInterval = globalThis.setInterval;
+		let scheduled = 0;
+		globalThis.setInterval = (() => { scheduled += 1; return { unref: () => undefined } as unknown as ReturnType<typeof setInterval>; }) as unknown as typeof setInterval;
+		const view = new WorkbenchChatView({
+			...snapshot,
+			executionRun: {
+				runId: "thread-1:turn-1", threadId: "thread-1", turnId: "turn-1", phase: "completed", waitReason: null,
+				objective: "완료", tasks: [], activeActivity: null, evidence: [], activities: [], lastSequence: 1,
+				checkpoint: { runId: "thread-1:turn-1", sequence: 1, digest: "checkpoint" },
+				receipt: null, rejectedEventIds: [],
+			},
+		});
+		try {
+			view.syncActivity({ message: "실행 중", frames: ["⠋", "⠙"], intervalMs: 80 }, () => undefined);
+			expect(scheduled).toBe(0);
+		} finally {
+			view.dispose();
+			globalThis.setInterval = originalSetInterval;
+		}
+	});
+
+	test("renders an interrupted receipt without an assistant completion anchor and does not invent verification", () => {
+		const output = stripTerminalSequences(new WorkbenchChatView({
+			...snapshot,
+			chat: [],
+			executionRun: {
+				runId: "thread-1:turn-1", threadId: "thread-1", turnId: "turn-1", phase: "interrupted", waitReason: null,
+				objective: "중단된 요청", tasks: [], activeActivity: null, evidence: [], activities: [], lastSequence: 1,
+				checkpoint: { runId: "thread-1:turn-1", sequence: 1, digest: "checkpoint" },
+				rejectedEventIds: [],
+				receipt: {
+					receiptId: "receipt-1", receiptDigest: "receipt-digest", checkpointDigest: "checkpoint",
+					runId: "thread-1:turn-1", threadId: "thread-1", turnId: "turn-1", status: "interrupted",
+					objective: "중단된 요청", changed: [], verification: [], evidenceRefs: [], remaining: [],
+					completedAt: "2026-09-01T00:00:00.000Z",
+					terminalSource: { id: "terminal-1", sequence: 1, sourceDigest: "source" },
+				},
+			},
+		}).render(72).join("\n"));
+		expect(output).toContain("실행 종료 결과");
+		expect(output).not.toContain("변경 사항 없음");
+		expect(output).not.toContain("남은 작업 없음");
+		expect(output).not.toContain("검증");
+	});
+
+	test("explains the selected run waiting reason and operator action", () => {
+		const output = stripTerminalSequences(new WorkbenchChatView({
+			...snapshot,
+			executionRun: {
+				runId: "thread-1:turn-1", threadId: "thread-1", turnId: "turn-1", phase: "waiting", waitReason: "approval",
+				objective: "승인 대기", tasks: [], activeActivity: null, evidence: [], activities: [], lastSequence: 1,
+				checkpoint: { runId: "thread-1:turn-1", sequence: 1, digest: "checkpoint" },
+				receipt: null, rejectedEventIds: [],
+			},
+		}).render(72).join("\n"));
+		expect(output).toContain("실행 대기");
+		expect(output).toContain("승인을 기다리고 있습니다.");
+		expect(output).toContain("조치");
+	});
+
 	test("attaches a durable #1 #2 #3 recap to the completed assistant turn", () => {
 		const activities: WorkbenchSnapshot["activities"] = [
 			{

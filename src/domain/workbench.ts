@@ -4,6 +4,7 @@ import type { ProjectActivity } from "./project-activity.js";
 import type { TodoDocument } from "./todos.js";
 import type { ReviewProvider } from "./review.js";
 import type { WorkFlowProjection } from "./work/index.js";
+import type { ExecutionRunState } from "./work/execution-run.js";
 import type { ActivitySelectionResult } from "./trace-selection.js";
 
 export type WorkbenchPhase = "loading" | "ready" | "working" | "error" | "closed";
@@ -145,6 +146,8 @@ export interface WorkbenchSnapshot {
 	wooEntry?: WorkbenchWooEntrySnapshot | null;
 	threadId: string | null;
 	activeTurnId: string | null;
+	/** Canonical reducer state for the selected root execution, when available. */
+	executionRun?: ExecutionRunState | null;
 	/** Total durable activities in the current Native session. */
 	activityCount?: number;
 	activities: readonly ProjectActivity[];

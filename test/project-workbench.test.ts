@@ -3951,4 +3951,54 @@ describe("ProjectWorkbench", () => {
 		await workbench.close();
 	});
 
+	test("projects the selected run as failed exactly once and appends one durable receipt", async () => {
+		const native = new FakeNativeHarness();
+		const journal = new MemoryJournal();
+		const workbench = new ProjectWorkbench(native, journal, { projectId: "sample", cwd: "/sample" });
+		await ready(workbench);
+		await workbench.dispatch({ type: "chat.send", text: "실패 경로" });
+		const event = {
+			type: "notification" as const,
+			method: "turn/failed",
+			refs: { threadId: "thread-1", turnId: "turn-1" },
+			params: { turn: { id: "turn-1", status: "failed" } },
+		};
+		native.emit(event);
+		native.emit(event);
+		await Bun.sleep(10);
+		expect(workbench.snapshot.executionRun?.phase).toBe("failed");
+		expect(workbench.snapshot.executionRun?.receipt?.status).toBe("failed");
+		expect(journal.records.filter(activity => activity.payload.method === "execution/completion-receipt")).toHaveLength(1);
+		await workbench.close();
+	});
+
+	test("keeps a tool failure recoverable until the authoritative turn completion", async () => {
+		const native = new FakeNativeHarness();
+		const journal = new MemoryJournal();
+		const workbench = new ProjectWorkbench(native, journal, { projectId: "sample", cwd: "/sample" });
+		await ready(workbench);
+		await workbench.dispatch({ type: "chat.send", text: "도구 복구 경로" });
+		const refs = { threadId: "thread-1", turnId: "turn-1", itemId: "tool-1" };
+		native.emit({
+			type: "notification",
+			method: "item/commandExecution/failed",
+			refs,
+			params: { item: { type: "commandExecution", command: "false" } },
+		});
+		await Bun.sleep(10);
+		expect(workbench.snapshot.executionRun?.phase).toBe("blocked");
+		expect(workbench.snapshot.executionRun?.receipt).toBeNull();
+		expect(journal.records.filter(activity => activity.payload.method === "execution/completion-receipt")).toHaveLength(0);
+		native.emit({
+			type: "notification",
+			method: "turn/completed",
+			refs: { threadId: "thread-1", turnId: "turn-1" },
+			params: { turn: { id: "turn-1", status: "completed" } },
+		});
+		await Bun.sleep(10);
+		expect(workbench.snapshot.executionRun?.receipt?.status).toBe("completed");
+		expect(journal.records.filter(activity => activity.payload.method === "execution/completion-receipt")).toHaveLength(1);
+		await workbench.close();
+	});
+
 });

@@ -26,7 +26,7 @@ import { createDashboardLayout } from "./dashboard-layout";
 import { StatusLine, WorkspaceTodoView } from "./shared-dashboard-views";
 import { TNotesSourceView, WorkbenchChatView, WorkbenchMonitorView } from "./workbench-views";
 import { ExitKeyPolicy } from "./exit-key-policy";
-import { AuthFlowOverlay } from "./auth-overlay";
+import { LoginOverlay } from "./auth-overlay";
 import { ModelPickerOverlay } from "./model-picker-overlay";
 import { OverlaySheet } from "./overlay-sheet";
 import { RenderScheduler, workbenchRenderUrgency } from "./render-scheduler";
@@ -170,6 +170,15 @@ export class DevelopmentMapPollingLifecycle {
 		this.stopPolling?.();
 		this.stopPolling = null;
 	}
+}
+
+/** A stable layout slot whose active component and keyboard owner can be replaced without rebuilding the root. */
+export class ComponentSlot implements Component {
+	public constructor(private current: Component) {}
+	public set(component: Component): void { this.current = component; }
+	public invalidate(): void { this.current.invalidate(); }
+	public render(width: number): string[] { return this.current.render(width); }
+	public handleInput(data: string): void { this.current.handleInput?.(data); }
 }
 
 /** @linear WOO-673 */
@@ -464,17 +473,18 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	const editor = new Editor(tui, editorTheme, { paddingX: 1, autocompleteMaxVisible: 5 });
 	editor.setAutocompleteProvider(new CombinedAutocompleteProvider([...WORKBENCH_SLASH_COMMANDS, {name: "work", description: "Issue 연결·기록 상태·Obsidian checkpoint/open"}], process.cwd()));
 	if (composerDraft?.initialText) editor.setText(composerDraft.initialText);
+	const composerSlot = new ComponentSlot(editor);
 	const root = new VStack([
 		{ component: activeView, basis: 0, grow: 1, shrink: 1, minSize: 1 },
-		{ component: editor, basis: "auto", shrink: 1, minSize: 3 },
+		{ component: composerSlot, basis: "auto", shrink: 1, minSize: 3 },
 		{ component: status, basis: 1, minSize: 1, maxSize: 1, visible: ({ height }) => height >= 5 && status.hasNotice },
 		{ component: bottomHud, basis: 1, minSize: 1, maxSize: 1, visible: ({ height }) => height >= 7 },
 	]);
 	let shuttingDown = false;
 	let observabilityNavigation = false;
 	let overlay: OverlayHandle | null = null;
-	let overlayKind: "model" | "approval" | "auth" | "development" | null = null;
-	let awaitingLoginProvider = false;
+	let overlayKind: "model" | "approval" | "development" | null = null;
+	let loginPrompt: LoginOverlay | null = null;
 	const exitKeys = new ExitKeyPolicy();
 	let unsubscribe: () => void = () => undefined;
 	const workbenchRenders = new RenderScheduler(() => {
@@ -540,6 +550,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	const shutdown = async () => {
 		if (shuttingDown) return;
 		shuttingDown = true;
+		loginPrompt?.handleInput("\u0003");
 		overlay?.hide();
 		overlay = null;
 		status.setNotice("Workbench를 안전하게 종료하는 중…");
@@ -582,36 +593,38 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		if (receipt.state !== "accepted") throw new Error(workbenchReceiptNotice(receipt));
 		showReceipt(receipt);
 	};
-	const openAuthFlow = (provider: Parameters<AuthController["methods"]>[0]): void => {
+	const closeLoginPrompt = (expected: LoginOverlay | null = loginPrompt): void => {
+		if (!loginPrompt || loginPrompt !== expected) return;
+		loginPrompt = null;
+		composerSlot.set(editor);
+		tui.setFocus(editor);
+		tui.requestRender();
+	};
+	const openAuthentication = (provider?: Provider): void => {
 		if (overlay) closeOverlay();
+		if (loginPrompt) return;
 		if (snapshot.phase === "working") {
 			status.setNotice("현재 응답이 끝난 뒤 로그인할 수 있습니다.");
 			tui.requestRender();
 			return;
 		}
-		const panel = new AuthFlowOverlay(
-			provider,
-			auth.methods(provider),
+		let panel: LoginOverlay;
+		panel = new LoginOverlay(
 			auth,
 			() => tui.requestRender(),
 			async (authStatus) => {
 				if (authStatus.state !== "configured") throw new Error("인증이 완료되지 않았습니다.");
-				status.setNotice(`${provider} 로그인이 완료되었습니다.`);
+				status.setNotice(`${authStatus.provider} 로그인이 완료되었습니다.`);
 				usageStrip.update(await usage.refresh());
 				tui.requestRender();
 			},
-			closeOverlay,
+			() => closeLoginPrompt(panel),
+			provider ? [provider] : undefined,
 		);
-		overlay = tui.showOverlay(new OverlaySheet(panel), {
-			width: "60%", minWidth: 46, maxHeight: "70%", anchor: "bottom-center", margin: 2,
-		});
-		overlayKind = "auth";
-		panel.start();
-	};
-	const openAuthentication = (): void => {
-		awaitingLoginProvider = true;
-		status.setNotice("어느 Provider에 로그인할까요? Input: ChatGPT/Codex · Claude · Gemini · OpenAI");
-		tui.setFocus(editor);
+		loginPrompt = panel;
+		composerSlot.set(new OverlaySheet(panel));
+		tui.setFocus(panel);
+		panel.start(provider !== undefined);
 		tui.requestRender();
 	};
 	const openModelSettings = (): void => {
@@ -745,7 +758,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 			return true;
 		}
 		if (command.type === "auth.login") {
-			openAuthFlow(command.provider);
+			openAuthentication(command.provider);
 			return true;
 		}
 		if (command.type === "auth.logout") {
@@ -850,18 +863,6 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		if (shuttingDown || !text.trim()) return;
 		editor.addToHistory(text);
 		void (async () => {
-			if (awaitingLoginProvider) {
-				const provider = loginProviderFromInput(text);
-				if (!provider) {
-					editor.setText(text);
-					status.setNotice("Provider를 알아보지 못했습니다. ChatGPT/Codex, Claude, Gemini, OpenAI 중 하나를 입력하세요.");
-					tui.requestRender();
-					return;
-				}
-				awaitingLoginProvider = false;
-				openAuthFlow(provider);
-				return;
-			}
 			if (await handleLocal(text)) return;
 			if (snapshot.pendingApproval) {
 				const decision = approvalDecisionFromInput(text);
@@ -907,6 +908,12 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		// immediate keyboard-render path instead of a 64ms workbench repaint.
 		workbenchRenders.prioritizeInput();
 		if (shuttingDown) return { consume: true };
+		if (loginPrompt && (matchesKey(data, Key.escape) || matchesKey(data, Key.ctrl("c")) || matchesKey(data, Key.ctrl("d")))) {
+			loginPrompt.handleInput(data);
+			status.setNotice("로그인을 취소했습니다.");
+			tui.requestRender();
+			return { consume: true };
+		}
 		if (overlay) {
 			if (matchesKey(data, Key.ctrl("c")) || matchesKey(data, Key.ctrl("d"))) {
 				const closing = overlayKind;

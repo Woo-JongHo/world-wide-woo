@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 3,
+  "kind": "decision",
+  "id": "DEC-001",
+  "version": 1,
+  "immutable": true,
+  "payload": {
+    "decision": "TypeScript/Bun의 canonical reducer와 repository ledger source envelope를 정본으로 사용하고 SQLite는 이를 검증 후 언제든 재구축 가능한 projection으로만 사용한다.",
+    "rationale": "행동과 digest를 Git의 타입 계약 및 immutable source file에 고정해 SQLite의 직접 수정, stale row, 원문 복제를 정본으로 오인하는 것을 방지한다.",
+    "consequences": [
+      "registry envelope과 traceability ledger를 먼저 durable write하고 digest 및 ID/version relation을 검증한다.",
+      "SQLite 삭제 후 같은 ledger에서 재구축해 logical digest와 row digest가 동일해야 한다.",
+      "SQLite는 Intent, 테스트 로그, Obsidian 본문 또는 verdict의 유일한 원본을 소유하지 않는다."
+    ]
+  },
+  "payloadDigest": "c081cb260e390e3338572440fe0534bcc84d9ffdc509d5588ecb6c7b5f559a3d"
+}

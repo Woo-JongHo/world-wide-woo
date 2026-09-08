@@ -2,6 +2,7 @@ import type { ProjectActivity } from "../project-activity.js";
 import { redactForExternalReview } from "../redaction.js";
 import { sanitizeTerminalTextExcerpt } from "../terminal.js";
 import { classifyWorkActivity } from "./activity-classification.js";
+import type { ExecutionRunState } from "./execution-run.js";
 
 const MAX_PUBLIC_TEXT = 1_200;
 const FALLBACK_NARRATION: WorkStepNarration = {
@@ -520,6 +521,21 @@ export function projectWorkFlow(
 			? `${completedCount}/${steps.length} 단계를 완료했습니다.`
 			: "의미 있는 실행 단계를 기다리고 있습니다.",
 	};
+}
+
+/**
+ * Compatibility projection for consumers that still require the dplan-v1 trace
+ * shape. ExecutionRunState owns event ordering; this adapter only projects its
+ * durable activity evidence.
+ */
+export function projectWorkFlowFromExecutionRun(
+	run: ExecutionRunState,
+	narrations: ReadonlyMap<string, WorkStepNarration> = new Map(),
+	input?: WorkFlowProjectionInput,
+	/** The append-only journal supplies global sequence integrity and foreign-run context. */
+	journalActivities: readonly ProjectActivity[] = run.activities,
+): WorkFlowProjection {
+	return projectWorkFlow(journalActivities, narrations, input);
 }
 
 function validateJournal(

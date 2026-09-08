@@ -4,19 +4,15 @@ import { referenceKey, type WorkReference, type WorkReferenceKind, type WorkTrac
 const START = "<!-- traceability:generated:start -->";
 const END = "<!-- traceability:generated:end -->";
 
-function valuesFor(ledger: TraceabilityLedger, issueId: string, relation: string, prefix: string): string[] {
-	return ledger.edges.filter(edge => edge.from === `issue:${issueId}` && edge.relation === relation && edge.to.startsWith(`${prefix}:`)).map(edge => edge.to.slice(prefix.length + 1)).sort();
-}
-
 function connectedWorkReferences(manifest: WorkTraceabilityManifest, start: WorkReference): WorkReference[] {
-	const mapKinds = new Set<WorkReferenceKind>(["initiative", "epic", "story", "linear-issue", "evidence"]);
+	const kinds = new Set<WorkReferenceKind>(["initiative", "epic", "story", "linear-issue", "evidence"]);
 	const visited = new Map<string, WorkReference>([[referenceKey(start), start]]);
 	for (let changed = true; changed;) {
 		changed = false;
 		for (const link of manifest.links) {
 			const from = referenceKey(link.from), to = referenceKey(link.to);
-			if (visited.has(from) && !visited.has(to) && mapKinds.has(link.to.kind)) { visited.set(to, link.to); changed = true; }
-			if (visited.has(to) && !visited.has(from) && mapKinds.has(link.from.kind)) { visited.set(from, link.from); changed = true; }
+			if (visited.has(from) && !visited.has(to) && kinds.has(link.to.kind)) { visited.set(to, link.to); changed = true; }
+			if (visited.has(to) && !visited.has(from) && kinds.has(link.from.kind)) { visited.set(from, link.from); changed = true; }
 		}
 	}
 	return [...visited.values()];
@@ -32,22 +28,27 @@ export function issuesForWorkReference(manifest: WorkTraceabilityManifest, kind:
 	return start ? connectedWorkReferences(manifest, start).filter(reference => reference.kind === "linear-issue").map(reference => reference.id).sort() : [];
 }
 
+const related = (ledger: TraceabilityLedger, from: string, relation: string, kind: string) => ledger.edges
+	.filter(edge => edge.from === from && edge.relation === relation && edge.to.startsWith(`${kind}:`))
+	.map(edge => edge.to.slice(kind.length + 1).replace(/@v\d+$/u, "")).sort();
+
 /** @Unit Code-009 */
 export function buildDevelopmentMap(existing: string, ledger: TraceabilityLedger, workManifest: WorkTraceabilityManifest = { schemaVersion: 1, references: [], links: [] }): string {
 	const prefix = existing.includes(START) ? existing.slice(0, existing.indexOf(START)).trimEnd() : existing.trimEnd();
-	const rows = ledger.issues.map(issue => {
-		const work = workReferencesForIssue(workManifest, issue.id);
+	const issues = ledger.entities.filter(entity => entity.kind === "issue").map(entity => entity.id).sort();
+	const rows = issues.map(issueId => {
+		const work = workReferencesForIssue(workManifest, issueId);
 		const workValues = (kind: WorkReferenceKind) => work.filter(reference => reference.kind === kind).map(reference => reference.id).sort();
-		const initiatives = workValues("initiative"), epics = workValues("epic"), stories = workValues("story"), workEvidence = workValues("evidence");
-		const units = valuesFor(ledger, issue.id, "implemented-by", "unit");
-		const notes = valuesFor(ledger, issue.id, "detailed-by", "note");
-		const prs = valuesFor(ledger, issue.id, "code-evidenced-by", "pr");
-		const runs = ledger.edges.filter(edge => edge.to === `issue:${issue.id}` && edge.relation === "verifies" && edge.from.startsWith("run:")).map(edge => edge.from.slice(4)).sort();
-		const integrity = units.length && notes.length ? "연결됨" : "깨짐";
-		const validationEvidence = runs.map(run => ledger.runs.find(value => value.id === run)?.evidencePath).filter((value): value is string => Boolean(value));
-		return `| ${initiatives.join("<br>") || "미연결"} | ${epics.join("<br>") || "미연결"} | ${stories.join("<br>") || "미연결"} | ${[...new Set([...workEvidence, ...validationEvidence])].sort().join("<br>") || "미연결"} | ${issue.id} | ${units.join("<br>") || "미연결"} | ${notes.join("<br>") || "미연결"} | ${prs.map(id => `#${id} (Chat v0.1 code)`).join("<br>") || "미연결"} | ${runs.join("<br>") || "미관측"} | ${integrity} | ${integrity === "연결됨" ? "수락 상태 확인" : "누락 edge 복구"} |`;
+		const code = related(ledger, `issue:${issueId}`, "implemented-by", "unit");
+		const notes = related(ledger, `issue:${issueId}`, "detailed-by", "note");
+		const prs = related(ledger, `issue:${issueId}`, "code-evidenced-by", "pr");
+		const specs = ledger.edges.filter(edge => edge.relation === "tracks" && edge.to === `issue:${issueId}`).map(edge => edge.from);
+		const acceptances = ledger.edges.filter(edge => specs.includes(edge.from) && edge.relation === "has-acceptance").map(edge => edge.to);
+		const receipts = ledger.edges.filter(edge => edge.relation === "covers" && acceptances.includes(edge.to) && edge.from.startsWith("receipt:")).map(edge => edge.from.slice("receipt:".length)).sort();
+		const integrity = code.length && notes.length ? "연결됨" : "깨짐";
+		return `| ${workValues("initiative").join("<br>") || "미연결"} | ${workValues("epic").join("<br>") || "미연결"} | ${workValues("story").join("<br>") || "미연결"} | ${workValues("evidence").join("<br>") || "미연결"} | ${issueId} | ${code.join("<br>") || "미연결"} | ${notes.join("<br>") || "미연결"} | ${prs.map(id => `#${id} (Chat v0.1 code)`).join("<br>") || "미연결"} | ${receipts.join("<br>") || "미관측"} | ${integrity} | ${integrity === "연결됨" ? "수락 상태 확인" : "누락 edge 복구"} |`;
 	});
-	return `${prefix}\n\n${START}\n## Linear–Code–Obsidian 추적 투영\n\n이 표는 schema v2 관계 원장과 work manifest에서 생성하며, traceability gate가 같은 그래프의 공용 SQLite 투영과 canonical digest를 대조한다. 상세 요구는 Linear와 Obsidian이 소유하며 여기에는 복제하지 않는다. Initiative·Epic·Story·Evidence는 실제 work manifest의 양방향 관계만 표시하며 ID를 추정하지 않는다.\n\n| Initiative | Epic | Story | Evidence | Linear | Code Unit | Obsidian | PR code evidence | Validation Run | 무결성 | 다음 전환 |\n|---|---|---|---|---|---|---|---|---|---|---|\n${rows.join("\n")}\n\n${END}\n`;
+	return `${prefix}\n\n${START}\n## Linear–Code–Obsidian 추적 투영\n\n이 표는 schema v3 그래프 원장과 work manifest에서 생성하며, SQLite 투영과 canonical digest를 대조한다. 상세 요구와 검증 증거는 registry/evidence source가 소유하며 여기에는 복제하지 않는다.\n\n| Initiative | Epic | Story | Evidence | Linear | Code Unit | Obsidian | PR code evidence | Validation Receipt | 무결성 | 다음 전환 |\n|---|---|---|---|---|---|---|---|---|---|---|\n${rows.join("\n")}\n\n${END}\n`;
 }
 
 export const DEVELOPMENT_MAP_MARKERS = { start: START, end: END } as const;

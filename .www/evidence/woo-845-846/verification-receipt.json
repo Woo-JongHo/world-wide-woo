@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 3,
+  "id": "VR-CHAT-001-001",
+  "immutable": true,
+  "sourceRevision": "worktree:2d0f8fdcfd6eb0dbf2f16707ebf98ff75885612b:dirty",
+  "acceptanceCoverage": [
+    {
+      "acceptanceRef": "acceptance:CHAT-001/A-01@v1",
+      "testRef": "test-contract:TEST-031@v1",
+      "status": "pass"
+    },
+    {
+      "acceptanceRef": "acceptance:CHAT-001/A-02@v1",
+      "testRef": "test-contract:TEST-031@v1",
+      "status": "pass"
+    },
+    {
+      "acceptanceRef": "acceptance:CHAT-001/A-03@v1",
+      "testRef": "test-contract:TEST-032@v1",
+      "status": "unknown"
+    }
+  ],
+  "exceptionCoverage": [
+    {
+      "exceptionRef": "exception:EXC-014@v1",
+      "stage": "detect",
+      "testRef": "test-contract:TEST-032@v1",
+      "status": "unknown"
+    },
+    {
+      "exceptionRef": "exception:EXC-014@v1",
+      "stage": "control",
+      "testRef": "test-contract:TEST-032@v1",
+      "status": "unknown"
+    },
+    {
+      "exceptionRef": "exception:EXC-014@v1",
+      "stage": "recovery",
+      "testRef": "test-contract:TEST-032@v1",
+      "status": "unknown"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "EV-WOO-845-EXECUTION-TESTS-001",
+      "path": ".www/evidence/woo-845-846/execution-run-tests.json",
+      "sha256": "10744fa2189ff6a16a2ad2e01a68ee4cf7d230ab8648528d1adb3758d3b0bb51",
+      "immutable": true
+    },
+    {
+      "id": "EV-WOO-846-TRACEABILITY-TESTS-001",
+      "path": ".www/evidence/woo-845-846/traceability-tests.json",
+      "sha256": "abd2a5cb10f7f624aade42d8a900fcba4f633252ab208f6a3479e9b3472cc3c9",
+      "immutable": true
+    },
+    {
+      "id": "EV-WOO-845-846-UNVERIFIED-001",
+      "path": ".www/evidence/woo-845-846/unverified-evidence.json",
+      "sha256": "60dcba0f8f02336c158cda4189334bc0a976cc3c99be7d9e3d854cbedbd0bb07",
+      "immutable": true
+    }
+  ],
+  "completion": {
+    "runId": "G001",
+    "checkpointDigest": "15fea9aa79b6242e56caf2bff9cb0f3470d0f06e965d220f44121f1f92b23ba5",
+    "status": "completed",
+    "evidenceRefs": [
+      "EV-WOO-845-EXECUTION-TESTS-001"
+    ]
+  },
+  "completionBinding": {
+    "contract": "WOO-845 CompletionReceipt",
+    "bindingKind": "recorded-goal-checkpoint-not-live-runtime-run",
+    "goalId": "G001",
+    "checkpointLedgerEventId": "cc6c82f6-f6e9-40e7-976a-142971119a85",
+    "checkpointDigest": "15fea9aa79b6242e56caf2bff9cb0f3470d0f06e965d220f44121f1f92b23ba5",
+    "evidenceId": "EV-WOO-845-EXECUTION-TESTS-001"
+  },
+  "limitations": [
+    "TUI PTY/live resize is unknown.",
+    "Unexecuted recovery paths are unknown.",
+    "The recorded G001 checkpoint is not asserted to be a live runtime ExecutionRun."
+  ],
+  "ledgerAlignment": {
+    "status": "aligned",
+    "ledgerPath": ".www/control-ledger/traceability-v3.json",
+    "receiptRef": "receipt:VR-CHAT-001-001",
+    "evidenceRefs": [
+      "evidence:EV-WOO-845-EXECUTION-TESTS-001",
+      "evidence:EV-WOO-846-TRACEABILITY-TESTS-001",
+      "evidence:EV-WOO-845-846-UNVERIFIED-001"
+    ]
+  },
+  "verdict": "partial",
+  "payloadDigest": "4019ef19d4bd4dfd26d3480c911b886319df1f7557ffa6d3ccaf3a806055808f",
+  "requiredAcceptanceRefs": [
+    "acceptance:CHAT-001/A-01@v1",
+    "acceptance:CHAT-001/A-02@v1",
+    "acceptance:CHAT-001/A-03@v1"
+  ],
+  "applicableExceptionStages": [
+    {
+      "exceptionRef": "exception:EXC-014@v1",
+      "stages": [
+        "detect",
+        "control",
+        "recovery"
+      ]
+    }
+  ]
+}

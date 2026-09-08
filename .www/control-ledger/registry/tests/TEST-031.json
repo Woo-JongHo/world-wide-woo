@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 3,
+  "kind": "test-contract",
+  "id": "TEST-031",
+  "version": 1,
+  "immutable": true,
+  "payload": {
+    "what": "제목, 목록, 코드 fence와 streaming 공개 답변의 순서 및 내용을 렌더링한다.",
+    "why": "본문 구조 또는 incremental event reconciliation의 손상은 사용자가 읽은 답변의 의미와 신뢰를 훼손한다.",
+    "how": "WorkbenchChatView와 WorkbenchDashboardView에 구조화된 공개 본문 및 streaming/completed fixture를 주입해 terminal projection을 확인한다.",
+    "pass": "구조화된 공개 본문과 streaming response가 순서와 내용 그대로 보이고 비공개 추론은 보이지 않으며 completion 전환 뒤 공개 텍스트가 변하지 않는다.",
+    "purpose": "CHAT-001 A-01과 A-02의 공개 본문 구조 및 streaming 순서 보존을 검증한다.",
+    "risk": "markdown 구조 손상, streaming 순서 변경, partial/final reconciliation의 내용 손실 또는 비공개 내용 노출.",
+    "acceptanceIds": [
+      "A-01",
+      "A-02"
+    ],
+    "automation": {
+      "command": "bun test test/workbench-views.test.ts",
+      "paths": [
+        "test/workbench-views.test.ts"
+      ]
+    }
+  },
+  "payloadDigest": "0ff75e158de8f21b7e057ff5e746fcf307d8f0fd3c08aff32d120e284ff79cfd"
+}

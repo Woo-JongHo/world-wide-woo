@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { Models } from "@earendil-works/pi-ai";
-import { AuthFlowOverlay } from "../src/presentation/tui/auth-overlay";
+import { AuthFlowOverlay, LoginOverlay } from "../src/presentation/tui/auth-overlay";
 import { AuthService } from "../src/infrastructure/auth-service";
 
 function fakeAuthModels(): Pick<Models, "checkAuth" | "getProvider" | "login" | "logout"> {
@@ -26,6 +26,39 @@ function fakeAuthModels(): Pick<Models, "checkAuth" | "getProvider" | "login" | 
 }
 
 describe("AuthFlowOverlay", () => {
+	test("keeps provider selection and auth in one keyboard surface", async () => {
+		let closed = false;
+		const overlay = new LoginOverlay(
+			new AuthService(fakeAuthModels()),
+			() => undefined,
+			() => undefined,
+			() => { closed = true; },
+			["openai"],
+		);
+		overlay.start();
+		await Bun.sleep(0);
+		expect(overlay.render(80).join("\n")).toContain("OpenAI API");
+		overlay.handleInput("\r");
+		await Bun.sleep(0);
+		expect(overlay.render(80).join("\n")).toContain("API 키");
+		overlay.handleInput("\u001b");
+		expect(closed).toBe(true);
+	});
+
+	test.each(["\u001b", "\u0003", "\u0004"])("cancels provider selection with %j", async (key) => {
+		let closed = false;
+		const overlay = new LoginOverlay(
+			new AuthService(fakeAuthModels()),
+			() => undefined,
+			() => undefined,
+			() => { closed = true; },
+			["openai"],
+		);
+		overlay.start();
+		overlay.handleInput(key);
+		expect(closed).toBe(true);
+	});
+
 	test("masks secret input and completes login without rendering the credential", async () => {
 		let authenticated = false;
 		const overlay = new AuthFlowOverlay(

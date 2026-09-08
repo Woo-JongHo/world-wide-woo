@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 3,
+  "kind": "exception",
+  "id": "EXC-014",
+  "version": 1,
+  "immutable": true,
+  "payload": {
+    "importance": "important",
+    "name": "partial/final event mismatch",
+    "symptom": "streaming 또는 resize 뒤 공개 본문이 중복, 순서 변경, stale tail 또는 누락으로 보인다.",
+    "detect": "streaming, completion, width matrix fixture의 terminal projection에서 기대한 공개 본문 순서와 visible width를 대조한다.",
+    "control": "public content만 canonical projection으로 재투영하고 비공개 추론 및 stale dynamic tail을 노출하지 않는다.",
+    "recovery": "마지막 durable public content와 reader position에서 재투영하며 불일치가 남으면 receipt에 미검증 범위를 기록한다.",
+    "testIds": [
+      "TEST-032"
+    ],
+    "verification": {
+      "detect": [
+        "TEST-032"
+      ],
+      "control": [
+        "TEST-032"
+      ],
+      "recovery": [
+        "TEST-032"
+      ]
+    }
+  },
+  "payloadDigest": "ede69f8ea841730c6e719058e3a0dcb8293f75225c083aca7d7477e73e9bd0a1"
+}

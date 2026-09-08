@@ -11,6 +11,7 @@ import {
 	workbenchActivityIndicator,
 	approvalDecisionFromInput,
 	loginProviderFromInput,
+	ComponentSlot,
 	workbenchFrameTitle,
 	workbenchModelSettings,
 	workbenchPaneNotice,
@@ -40,6 +41,16 @@ const workingSnapshot = {
 } as const;
 
 describe("native workbench shell receipt policy", () => {
+	test("replaces the Composer slot without rebuilding it", () => {
+		const first = { invalidate() {}, render: () => ["composer"], handleInput() {} };
+		const second = { invalidate() {}, render: () => ["login"], handleInput() {} };
+		const slot = new ComponentSlot(first);
+		expect(slot.render(80)).toEqual(["composer"]);
+		slot.set(second);
+		expect(slot.render(80)).toEqual(["login"]);
+		slot.set(first);
+		expect(slot.render(80)).toEqual(["composer"]);
+	});
 	test("accepts or declines a pending approval through natural Chat input", () => {
 		for (const text of ["네", "승인해", "진행해", "yes"]) expect(approvalDecisionFromInput(text)).toBe("accept");
 		for (const text of ["아니요", "거절해", "취소", "no"]) expect(approvalDecisionFromInput(text)).toBe("decline");
