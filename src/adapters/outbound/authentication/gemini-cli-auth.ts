@@ -51,6 +51,7 @@ export class SystemGeminiCliAuthGateway implements GeminiCliAuthGateway {
 		private readonly run = runCommand,
 		private readonly waitIntervalMs = 500,
 		private readonly waitLimitMs = 5 * 60_000,
+		private readonly operatingSystem = platform(),
 	) {}
 
 	async configured(): Promise<boolean> {
@@ -59,7 +60,7 @@ export class SystemGeminiCliAuthGateway implements GeminiCliAuthGateway {
 		const legacy = join(this.home, ".gemini", "oauth_creds.json");
 		const fallback = join(this.home, ".gemini", "gemini-credentials.json");
 		if (await exists(legacy) || await exists(fallback)) return true;
-		if (platform() !== "darwin") return false;
+		if (this.operatingSystem !== "darwin") return false;
 		return (await this.run("security", ["find-generic-password", "-s", "gemini-cli-oauth", "-a", "main-account"])).exitCode === 0;
 	}
 
@@ -96,7 +97,7 @@ export class SystemGeminiCliAuthGateway implements GeminiCliAuthGateway {
 	}
 
 	private async launchTerminal(): Promise<void> {
-		if (platform() === "darwin") {
+		if (this.operatingSystem === "darwin") {
 			const script = 'tell application "Terminal" to do script "gemini"';
 			const result = await this.run("osascript", ["-e", script]);
 			if (result.exitCode === 0) return;

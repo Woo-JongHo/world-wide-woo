@@ -52,7 +52,7 @@ describe("ProviderAuthController", () => {
 		const gateway = new SystemGeminiCliAuthGateway(home, async (command, args) => {
 			commands.push([command, ...args].join(" "));
 			return { exitCode: 0 };
-		}, 1, 10);
+		}, 1, 10, "darwin");
 
 		await gateway.login({ prompt: async () => "", notify: () => undefined });
 		expect(commands).toContain("gemini --version");
