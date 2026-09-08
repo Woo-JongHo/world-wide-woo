@@ -24,6 +24,7 @@
 		"commit:agent-hook": "bun scripts/woo-agent-hook.ts",
 		"commit:receipts:rebuild": "bun scripts/woo-receipts.ts rebuild",
 		"artifact:control": "bun scripts/artifact-control.ts",
+		"rpa:description": "bun scripts/rpa-description.ts",
 		"skill:runtime": "bun scripts/skill-runtime.ts",
 		"traceability:receipt-check": "bun scripts/traceability.ts receipt-check --linear-snapshot .www/evidence/v020-traceability/linear-consistency-final-normalized.json --linear-receipt .www/evidence/v020-traceability/linear-consistency-final-receipt.json --vault-export-manifest .www/evidence/v020-traceability/obsidian-export-manifest.json"
 	},

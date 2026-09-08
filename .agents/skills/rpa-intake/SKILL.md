@@ -11,6 +11,7 @@ description: RPA 신규 개발·테스트·유지보수 전에 원격 코드와 
 
 1. 대상 저장소의 절대 경로, branch, HEAD, dirty 상태와 읽은 파일의 digest를 수집한다.
 2. 업무 map, 실제 Task·Unit 구현, 예외 정의, 테스트, 메일·외부 쓰기 경로를 함께 읽는다.
+   프로젝트 Description 준비 시 [RPA Description 계약 v1](../../../docs/workflows/RPA_DESCRIPTION_CONTRACT.md)에 필요한 프로젝트 정보·WBS 원본과 날짜, Unit별 실제 사용 기술·코드 심볼·Step 흐름도 수집한다. 기존 map의 구조를 확인하고 필드 대응과 source revision을 남긴다.
 3. Process별 수집물을 만들고 각 항목에 원본 경로와 revision을 연결한다. 입력·출력·외부 시스템·승인·재실행 정책이 원본에 없으면 `unknown`으로 기록한다.
 4. 자격증명, `.env`, 고객 원문, 첨부파일, 대형 실행 로그는 수집물에 넣지 않는다. 필요한 경우 경로·존재 여부·digest만 남긴다.
 

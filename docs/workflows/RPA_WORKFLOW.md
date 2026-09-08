@@ -36,6 +36,7 @@ Product Workflow와 같은 WWW 계약을 사용하지만 Figma Stage를 기본 �
 Process: 지속 업무
 ├─ Task: 독립적으로 개발·검증·추적할 업무 단위
 │  └─ Unit: Task 안에서 유지되는 안정 책임
+│      └─ Step: Unit을 구성하는 실행 단계
 ├─ 예외 처리
 └─ 테스트
 ```
@@ -45,6 +46,8 @@ Unit ID는 경로나 실행 순서가 아니라 책임을 식별한다. 실행 �
 ### Linear·Obsidian — Automation Work and Contract
 
 Linear는 Process를 업무 부모로, Task를 번호 하위 이슈로 추적한다. 예외 처리와 테스트는 Task와 같은 Process 하위에 둔다. Unit은 해당 Task 본문에 안정 ID와 책임으로 기록하고, 독립적인 변경·검증·종료가 필요한 경우에만 별도 Work 이슈로 만든다.
+
+프로젝트별 Description은 [RPA Description 계약 v1](RPA_DESCRIPTION_CONTRACT.md)의 고정 템플릿으로 생성한다. Linear Project와 Process 부모 이슈를 구분하고 기존 계층을 유지한다. 이 계약이 Project의 WBS·Task 탐색, Task의 Unit 수·예외·테스트, Unit의 기술·코드·Step 설명과 rpa-map 연결을 소유한다. 진행·고객 결정 이력은 Project Update로 관리한다.
 
 공통 RPA Agent·Skill은 Linear의 얇은 WHAT·NOW·DONE과 Obsidian의 상세 WHY·계약·결정을 1:1로 연결한다. 프로젝트별 Process·Task·Unit은 Linear와 `rpa-map`을 기본 원본으로 삼고, 장기 결정이나 별도 상세 계약이 생길 때만 Obsidian 정본을 추가한다.
 

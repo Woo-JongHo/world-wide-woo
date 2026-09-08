@@ -1,8 +1,9 @@
 import { createHash } from "node:crypto";
 import YAML from "yaml";
 import { OBSIDIAN_SECTIONS } from "./obsidian-contract.js";
+import { renderRpaProject, renderRpaTask, validateRpaDescriptionMap, type RpaDescriptionMap } from "./rpa-description.js";
 
-export const ARTIFACT_KINDS = ["linear-issue", "obsidian-canonical", "github-issue", "github-pr"] as const;
+export const ARTIFACT_KINDS = ["linear-issue", "linear-project", "obsidian-canonical", "github-issue", "github-pr"] as const;
 export type ArtifactKind = typeof ARTIFACT_KINDS[number];
 
 export interface ArtifactValidation {
@@ -61,7 +62,25 @@ export function validateArtifactCandidate(candidate: ArtifactCandidate, actualBe
 
 	const content = object(candidate.content) ? candidate.content : {};
 	const links = object(candidate.links) ? candidate.links : {};
-	if (candidate.kind === "linear-issue") {
+	const rpaTask = candidate.kind === "linear-issue" && content.profile === "rpa-task-v1";
+	if (candidate.kind === "linear-project" || rpaTask) {
+		const project = candidate.kind === "linear-project";
+		if (!keysExactly(content, project ? ["profile", "map"] : ["profile", "map", "taskId"])) errors.push("rpa.content: 정해진 템플릿 필드만 허용합니다.");
+		if (content.profile !== (project ? "rpa-project-v1" : "rpa-task-v1")) errors.push("rpa.profile: 지원하는 고정 템플릿을 지정해야 합니다.");
+		const mapErrors = validateRpaDescriptionMap(content.map);
+		errors.push(...mapErrors);
+		if (!mapErrors.length) {
+			const map = content.map as RpaDescriptionMap;
+			if (candidate.sourceRevision !== map.project.mapRef.revision) errors.push("rpa.sourceRevision: rpa-map revision과 일치해야 합니다.");
+			if (!object(candidate.target) || candidate.target.projectId !== map.project.id) errors.push("rpa.target.projectId: map의 Linear Project와 일치해야 합니다.");
+			if (!project) {
+				const task = map.tasks.find(item => item.id === content.taskId);
+				if (!task) errors.push("rpa.taskId: map에 등록된 Task가 필요합니다.");
+				else if (!object(candidate.target) || candidate.target.issueUrl !== task.issueUrl) errors.push("rpa.target.issueUrl: Task의 Linear 이슈와 일치해야 합니다.");
+			}
+		}
+	}
+	if (candidate.kind === "linear-issue" && !rpaTask) {
 		if (!keysExactly(content, ["title", "purpose", "included", "excluded", "done", "connections"])) errors.push("linear-issue.content: 정해진 필드만 허용합니다.");
 		if (!line(content.title) || !line(content.purpose) || !lines(content.included) || !lines(content.excluded) || !lines(content.done) || !lines(content.connections)) errors.push("linear-issue.content: title/purpose와 included/excluded/done/connections가 필요합니다.");
 	}
@@ -91,6 +110,8 @@ export function renderArtifactCandidate(candidate: ArtifactCandidate): string {
 	const errors = validateArtifactCandidate(candidate);
 	if (errors.length) throw new Error(errors.join("\n"));
 	const c = candidate.content;
+	if (candidate.kind === "linear-project") return renderRpaProject(c.map as RpaDescriptionMap);
+	if (candidate.kind === "linear-issue" && c.profile === "rpa-task-v1") return renderRpaTask(c.map as RpaDescriptionMap, c.taskId as string);
 	if (candidate.kind === "linear-issue") return `# ${c.title}\n\n## 목적\n\n${c.purpose}\n\n## 범위\n\n### 포함\n\n${bullets(c.included)}\n\n### 제외\n\n${bullets(c.excluded)}\n\n## 완료 조건\n\n${bullets(c.done)}\n\n## 연결\n\n${bullets(c.connections)}\n`;
 	if (candidate.kind === "github-issue") {
 		const bug = c.issueType === "bug";

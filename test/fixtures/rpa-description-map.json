@@ -1,0 +1,86 @@
+{
+  "schemaVersion": "1.0",
+  "project": {
+    "id": "RPA-PROJECT-DEMO",
+    "name": "가상 정산 자동화",
+    "customer": "가상 고객사",
+    "department": "가상 재무팀",
+    "purpose": "검증용 가상 정산 자료를 일관되게 처리한다.",
+    "systems": ["가상 ERP", "가상 저장소"],
+    "repository": "https://example.invalid/rpa-demo",
+    "processId": "RPA-PROCESS-DEMO",
+    "mapRef": {
+      "path": "docs/rpa/demo/rpa-map.md",
+      "revision": "demo-revision-001"
+    },
+    "wbs": {
+      "reference": "가상 WBS 문서",
+      "revision": "WBS-DEMO-001",
+      "baselineDate": "2026-08-01",
+      "startDate": "2026-08-03",
+      "endDate": "2026-08-31"
+    }
+  },
+  "tasks": [
+    {
+      "id": "RPA-TASK-02",
+      "name": "가상 결과 게시",
+      "sequence": 2,
+      "issueUrl": "https://linear.example.invalid/issue/RPA-TASK-02",
+      "purpose": "검증 결과를 가상 저장소에 기록한다.",
+      "output": "가상 게시 영수증",
+      "units": [
+        {
+          "id": "RPA-UNIT-02",
+          "name": "가상 게시",
+          "sequence": 1,
+          "responsibility": "검증된 가상 결과만 게시한다.",
+          "input": "검증된 가상 정산 결과",
+          "output": "가상 게시 영수증",
+          "technology": [{ "name": "TypeScript", "purpose": "게시 계약 실행" }],
+          "code": [{ "path": "src/demo/publish.ts", "symbol": "publishDemo", "explanation": "가상 게시 결과를 만든다." }],
+          "sideEffects": "가상 저장소 쓰기",
+          "approval": "가상 승인 토큰 필요",
+          "rerunPolicy": "동일 키는 기존 가상 영수증을 반환한다.",
+          "steps": [{ "id": "STEP-PUBLISH", "sequence": 1, "action": "가상 결과를 게시한다.", "codeSymbols": ["publishDemo"], "output": "가상 게시 영수증" }]
+        }
+      ],
+      "exceptions": [],
+      "tests": []
+    },
+    {
+      "id": "RPA-TASK-01",
+      "name": "가상 정산 검증",
+      "sequence": 1,
+      "issueUrl": "https://linear.example.invalid/issue/RPA-TASK-01",
+      "purpose": "가상 입력의 합계와 형식을 검증한다.",
+      "output": "검증된 가상 정산 결과",
+      "units": [
+        {
+          "id": "RPA-UNIT-01",
+          "name": "가상 입력 검증",
+          "sequence": 1,
+          "responsibility": "가상 입력의 형식과 합계를 검사한다.",
+          "input": "가상 정산 행",
+          "output": "검증된 가상 정산 행",
+          "technology": [{ "name": "TypeScript", "purpose": "결정적 입력 검증" }],
+          "code": [{ "path": "src/demo/validate.ts", "symbol": "validateDemoRows", "explanation": "가상 행의 형식과 합계를 검사한다." }],
+          "sideEffects": "unknown",
+          "approval": "불필요",
+          "rerunPolicy": "같은 입력은 같은 검증 결과를 만든다.",
+          "steps": [
+            { "id": "STEP-SUM", "sequence": 2, "action": "가상 합계를 검사한다.", "codeSymbols": ["validateDemoRows"], "output": "가상 합계 판정" },
+            { "id": "STEP-FORMAT", "sequence": 1, "action": "가상 필수 열을 검사한다.", "codeSymbols": ["validateDemoRows"], "output": "가상 형식 판정" }
+          ]
+        }
+      ],
+      "exceptions": [
+        { "id": "EX-DEMO-01", "unitId": "RPA-UNIT-01", "stepId": "STEP-FORMAT", "condition": "가상 필수 열이 없다.", "handling": "가상 입력을 실패로 분류한다.", "recovery": "열을 보완한 새 가상 입력으로 재실행한다.", "testIds": ["TEST-DEMO-FAIL"] }
+      ],
+      "tests": [
+        { "id": "TEST-DEMO-PASS", "unitId": "RPA-UNIT-01", "stepId": null, "kind": "normal", "scenario": "정상 가상 행을 검증한다.", "expected": "검증 결과가 생성된다.", "status": "passed", "evidence": "test/rpa-description.test.ts" },
+        { "id": "TEST-DEMO-FAIL", "unitId": "RPA-UNIT-01", "stepId": "STEP-FORMAT", "kind": "failure", "scenario": "필수 열이 없는 가상 행을 검증한다.", "expected": "형식 오류로 분류된다.", "status": "not-run", "evidence": null }
+      ]
+    }
+  ]
+}

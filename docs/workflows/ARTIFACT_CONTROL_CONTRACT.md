@@ -41,6 +41,8 @@ Candidate → Validate → Render → Authorize → Apply → Read-back → Woo 
 
 공통 필드는 `schemaVersion`, `candidateId`, `kind`, `sourceRevision`, `intent`, `target`, `content`, `links`, `expectedBefore`, `validation`, `candidateDigest`다. Shape는 `schemas/artifact-candidate.schema.json`, 의미 검증과 렌더링은 `src/core/domain/development/artifact-control.ts`가 소유한다.
 
+RPA 고객 업무 Description은 [RPA Description 계약 v1](RPA_DESCRIPTION_CONTRACT.md)의 고정 프로필을 사용한다. Project는 `kind: linear-project`, Task는 `kind: linear-issue`의 `rpa-task-v1` 프로필이며, 구조화된 map에서 Description 본문을 생성한다. 이 경로는 CLI Candidate 검증·렌더와 게시 스킬에 적용되며 TUI의 자동 외부 실행 기능을 추가하지 않는다.
+
 ```bash
 bun run artifact:control -- validate --candidate <candidate.json>
 bun run artifact:control -- validate --candidate <candidate.json> --actual-before <readback.json>

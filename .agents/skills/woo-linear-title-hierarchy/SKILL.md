@@ -18,6 +18,8 @@ description: 99_www Linear 기능 이슈의 제목·번호·직계 하위 구조
 
 이 스크립트는 에이전트의 반영 전후 게이트다. Linear MCP나 웹의 직접 변경을 기술적으로 차단한다고 주장하지 않는다. 사용자가 명시한 계층과 번호가 자동 분류보다 우선하며, 계약 변경이 필요하면 Linear부터 임의 변경하지 말고 정본과 사용자 결정을 먼저 맞춘다.
 
-Linear 본문은 개발자를 위한 짧은 목적·완료 조건·현재 결과와 연결만 둔다. 상세 코드·설계·예외·테스트 기록은 실제 Obsidian Vault에 보존한 뒤 본문에서 걷어낸다. 코드 연결은 작성 템플릿의 `Code-ID: 0001` 패턴을 사용하며 경로·함수 설명을 본문에 늘어놓지 않는다.
+일반 Linear 본문은 개발자를 위한 짧은 목적·완료 조건·현재 결과와 연결을 둔다. 상세 코드·설계·예외·테스트 기록은 실제 Obsidian Vault에 보존한 뒤 본문에서 걷어낸다. 코드 연결은 작성 템플릿의 `Code-ID: Code-001` 패턴을 사용한다.
+
+RPA 고객 업무 Project·Task Description은 [RPA Description 계약 v1](../../../docs/workflows/RPA_DESCRIPTION_CONTRACT.md)의 고정 템플릿을 적용하므로 Unit 기술·코드 설명·Step과 예외·테스트 케이스를 본문에 유지한다. 해당 본문은 `rpa:description check`로 검증한다. `linear-contract.ts --scope RPA`의 고정 WWW 내부 이슈 목록과 일반 헤딩을 고객 프로젝트에 강제하지 않는다. 계층·보호 메타데이터는 실제 대상 snapshot과 read-back으로 대조한다.
 
 Code-ID를 발급하거나 연결을 바꾸면 `bun run traceability:check -- --linear-snapshot <readback>`으로 `Code-NNN` 등록·대표 선언·노트 ID·SQLite Unit 별칭·Linear 본문을 함께 대조한다. 대표 선언은 이름 있는 최상위 class/function의 `@Unit Code-NNN` 주석에 한 번 둔다.

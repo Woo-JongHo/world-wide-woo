@@ -7,7 +7,7 @@
   "properties": {
     "schemaVersion": { "const": "1.0" },
     "candidateId": { "type": "string", "pattern": "^ARTIFACT-CANDIDATE-[A-Z0-9][A-Z0-9-]*$" },
-    "kind": { "enum": ["linear-issue", "obsidian-canonical", "github-issue", "github-pr"] },
+    "kind": { "enum": ["linear-issue", "linear-project", "obsidian-canonical", "github-issue", "github-pr"] },
     "sourceRevision": { "type": "string", "minLength": 1 },
     "intent": { "type": "string", "minLength": 1 },
     "target": { "type": "object", "minProperties": 1 },

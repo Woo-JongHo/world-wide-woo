@@ -14,6 +14,7 @@ description: RPA 신규 개발이나 유지보수 결과의 예외·로그·외�
 - 외부 쓰기와 Mail Unit마다 대상, 중복 실행 영향, 승인 지점, 재실행 또는 명시적 비멱등 정책이 있다.
 - 중요한 실패는 `detect`, `control`, `recovery`, 담당자 조치, 재개 지점과 연결된 테스트를 가진다.
 - 정상, 경계, 실패, 부분 실패, 재실행 시나리오가 Unit 또는 Task의 Test Contract에 연결된다.
+- 프로젝트 게시 입력의 예외·테스트는 [RPA Description 계약 v1](../../../docs/workflows/RPA_DESCRIPTION_CONTRACT.md)에 따라 Task·Unit·해당 Step으로 추적되며 실행 결과와 증거를 구분한다. 템플릿 검사 통과만으로 안전 검증을 통과시키지 않는다.
 - 고객 메시지와 운영자 메시지는 audience, 생성 조건, 전달 책임 Unit이 분명하다.
 - 실제 환경·권한·Scheduler를 검증하지 못한 항목은 `uncertain` 또는 `blocked`이며 성공 증거로 바꾸지 않는다.
 

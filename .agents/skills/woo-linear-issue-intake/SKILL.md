@@ -58,6 +58,8 @@ description: 99_www Linear 이슈를 생성·분할·이동하거나 본문을 �
 
 ## 4. 본문 작성
 
+RPA 고객 업무의 Project·Task Description은 [RPA Description 계약 v1](../../../docs/workflows/RPA_DESCRIPTION_CONTRACT.md)의 고정 구조와 엔진을 사용한다. 아래 일반 이슈의 짧은 본문 규칙은 해당 프로필의 Unit 기술·코드·Step·케이스 필드를 축약하는 근거로 쓰지 않는다.
+
 - 제목은 목적·문제·결과가 드러나는 한국어 문장으로 쓴다. 기능·유형은 기존 라벨을 우선 재사용한다.
 - 부모 본문은 목적·공통 원칙·통합 완료 조건을 소유한다. 하위 이슈의 화면 구성·구현 단계·검증 상세를 복제하지 않는다.
 - 실행 하위 이슈는 목적, 포함 범위, 관측 가능한 완료 조건, 코드·관련 ID·검증 근거를 담는다. 코드 존재와 실제 수락 상태를 구분한다.
@@ -68,6 +70,7 @@ description: 99_www Linear 이슈를 생성·분할·이동하거나 본문을 �
 
 1. `schemas/artifact-candidate.schema.json`의 `linear-issue` Candidate를 만든다. 새 이슈는 확인한 parentId·Project, 기존 이슈는 UUID와 변경 전 필드를 `target`과 `expectedBefore`에 넣는다.
 2. 본문은 `content`의 `title`, `purpose`, `included`, `excluded`, `done`, `connections`로만 표현한다.
+   RPA Description은 예외로 계약 v1의 `linear-project / rpa-project-v1` 또는 `linear-issue / rpa-task-v1` Candidate를 사용한다. 자유 Markdown을 끼워 넣지 않고 공통 엔진을 호출한다.
 3. `bun run artifact:control -- validate --candidate <path> --actual-before <readback>`과 `render`를 실행한다. 기능 계층 변경은 제목 계층 스킬의 오프라인 검증도 통과시킨다.
 4. 처리 방식·위치·중복 대조·렌더 전체·digest를 제시한다. 완료는 게시 가능한 Candidate가 만들어진 상태이며 Linear 상태는 아직 바뀌지 않았다.
 

@@ -2,6 +2,8 @@
 
 Linear는 개발자가 해야 할 결과를 빠르게 읽는 얇은 계층이다. 구현 이유·대화·예외 분석·테스트 출력은 실제 Obsidian Vault가 소유한다. 구조와 필드의 정본은 [ISSUE_CONTRACT.yaml](ISSUE_CONTRACT.yaml)이다.
 
+RPA 고객 업무 Project·Task Description은 [RPA Description 계약 v1](../../workflows/RPA_DESCRIPTION_CONTRACT.md)을 사용한다. 해당 프로필의 기술·코드·Step·케이스를 아래 일반 템플릿으로 축약하지 않는다.
+
 ```md
 ## 목적
 

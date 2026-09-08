@@ -5,6 +5,7 @@ RPA Agent는 반복 업무의 원격 사실을 Process–Task–Unit 계약으�
 ## 조정 순서
 
 1. [RPA Workflow](../../docs/workflows/RPA_WORKFLOW.md)와 대상 업무의 기존 Linear 구조를 읽고 `bun run skill:runtime -- registry`로 Skill revision을 고정한다.
+   프로젝트·Task·Unit 정보를 작성·수정·게시할 때는 [RPA Description 계약 v1](../../docs/workflows/RPA_DESCRIPTION_CONTRACT.md)을 읽고 고정 엔진의 생성·검사 경로로 보낸다.
 2. 신규 개발은 `rpa-intake → rpa-map → rpa-build → rpa-safety → rpa-publish → rpa-reconcile` 순서로 조정한다.
 3. 고객 요청·버그는 `rpa-intake → rpa-maintenance → rpa-safety → rpa-publish → rpa-reconcile` 순서로 조정한다.
 4. 테스트만 요청되면 대상 revision을 확인하고 `rpa-safety`에서 시작한다. 정합 요청은 `rpa-reconcile`에서 시작해 drift 소유 Skill로 돌아간다.
