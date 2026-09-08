@@ -6,13 +6,13 @@ import { createModels } from "@earendil-works/pi-ai";
 import { fauxAssistantMessage, fauxProvider, fauxToolCall } from "@earendil-works/pi-ai/providers/faux";
 import { Type } from "typebox";
 import type { WwwSettings } from "../src/core/domain/execution/model-settings";
-import { ModelRouter } from "../src/adapters/outbound/model-router";
+import { ModelRouter } from "../src/adapters/outbound/authentication/model-router";
 import { buildSessionSystemPrompt, SessionRuntime } from "../src/core/application/session/session-runtime";
-import { SessionEventStore } from "../src/adapters/outbound/session-store";
+import { SessionEventStore } from "../src/adapters/outbound/persistence/session-store";
 import type { AgentTool, ModelClient, TerminalCommandExecutor } from "../src/core/ports";
 import { TodoLedger } from "../src/core/application/work/todo-ledger";
-import { createProjectAgentTools } from "../src/adapters/outbound/agent-tools";
-import { FileTodoStore } from "../src/adapters/outbound/todo-store";
+import { createProjectAgentTools } from "../src/adapters/outbound/execution/agent-tools";
+import { FileTodoStore } from "../src/adapters/outbound/persistence/todo-store";
 import { createPlanningSnapshot } from "../src/core/domain/work/planning";
 import type { TerminalCommandResult } from "../src/core/domain/execution/terminal";
 

@@ -5,7 +5,7 @@ import { TodoLedger } from "../src/core/application/work/todo-ledger.js";
 import type { SessionEvent, SessionEventInput } from "../src/core/domain/execution/session-events.js";
 import type { ProjectActivity, ProjectActivityAppendResult, ProjectActivityInput } from "../src/core/domain/execution/project-activity.js";
 import type { TodoDocument } from "../src/core/domain/work/todos.js";
-import { CodexAppServer, type JsonLineTransport } from "../src/adapters/outbound/executors/codex-app-server.js";
+import { CodexAppServer, type JsonLineTransport } from "../src/adapters/outbound/execution/codex-app-server.js";
 
 class FakeJsonLineTransport implements JsonLineTransport {
 	public readonly sent: Array<Record<string, unknown>> = [];

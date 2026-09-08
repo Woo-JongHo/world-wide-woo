@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import YAML from "yaml";
 import type { CommitCandidate, CommitPolicy } from "../src/core/commit/commit-governance.js";
 import { candidateDigest, CommitControlPlane } from "../src/core/commit/commit-governance.js";
-import { assertCandidateMatchesWorktree, assertRepositoryReady, assertStagedBoundary, authorize, candidateContentDigest, changedPaths, executeCommit, loadActiveCommit, loadAuthorization, repositoryRoot, writeFailureReceipt } from "../src/adapters/outbound/git-commit-control.js";
+import { assertCandidateMatchesWorktree, assertRepositoryReady, assertStagedBoundary, authorize, candidateContentDigest, changedPaths, executeCommit, loadActiveCommit, loadAuthorization, repositoryRoot, writeFailureReceipt } from "../src/adapters/outbound/git/git-commit-control.js";
 
 function flag(args: string[], name: string): string | undefined { const index = args.indexOf(name); return index >= 0 ? args[index + 1] : undefined; }
 function required(args: string[], name: string): string { const value = flag(args, name); if (!value) throw new Error(`${name} 값이 필요합니다.`); return value; }

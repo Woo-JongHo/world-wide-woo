@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { stripTerminalSequences } from "@earendil-works/pi-tui";
-import { FileDevelopmentMapSource } from "../src/adapters/outbound/development-map-source";
+import { FileDevelopmentMapSource } from "../src/adapters/outbound/development/development-map-source";
 import { DevelopmentMapView } from "../src/adapters/inbound/tui/development-map-view";
 import { DevelopmentMapPollingLifecycle } from "../src/adapters/inbound/tui/workbench-shell";
 

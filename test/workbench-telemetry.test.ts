@@ -3,7 +3,7 @@ import { stripTerminalSequences } from "@earendil-works/pi-tui";
 import {
 	formatWorkbenchTelemetry,
 } from "../src/adapters/inbound/tui/workbench-telemetry";
-import { parseGitTelemetry } from "../src/adapters/outbound/git-telemetry-source";
+import { parseGitTelemetry } from "../src/adapters/outbound/git/git-telemetry-source";
 
 describe("workbench telemetry rail", () => {
 	test("renders only Git state and project path; Context belongs to the usage strip", () => {

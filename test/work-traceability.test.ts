@@ -117,9 +117,9 @@ describe("work traceability", () => {
 	test("requires knowledge bridge issues to annotate linked production code and regression tests", async () => {
 		const manifest = parseWorkTraceabilityManifest(manifestJson);
 		const expected = {
-			"WOO-696": { code: "src/adapters/outbound/development-store.ts", test: "test/development-store.test.ts" },
-			"WOO-697": { code: "src/adapters/outbound/development-snapshot.ts", test: "test/development-test-runner.test.ts" },
-			"WOO-698": { code: "src/adapters/outbound/development-vault.ts", test: "test/development-vault.test.ts" },
+			"WOO-696": { code: "src/adapters/outbound/development/development-store.ts", test: "test/development-store.test.ts" },
+			"WOO-697": { code: "src/adapters/outbound/development/development-snapshot.ts", test: "test/development-test-runner.test.ts" },
+			"WOO-698": { code: "src/adapters/outbound/development/development-vault.ts", test: "test/development-vault.test.ts" },
 		};
 		for (const [id, paths] of Object.entries(expected)) {
 			const issue = manifest.references.find(reference => reference.kind === "linear-issue" && reference.id === id);

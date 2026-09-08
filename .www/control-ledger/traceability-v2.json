@@ -76,7 +76,7 @@
       ],
       "locations": [
         {
-          "path": "src/adapters/outbound/project-workbench-session.ts",
+          "path": "src/adapters/outbound/workspace/project-workbench-session.ts",
           "symbol": "ThreadScopedTNoteSource"
         }
       ]
@@ -102,7 +102,7 @@
       "aliases": [],
       "locations": [
         {
-          "path": "src/adapters/outbound/traceability-validator.ts",
+          "path": "src/adapters/outbound/development/traceability-validator.ts",
           "symbol": "validateTraceability"
         }
       ]
@@ -115,7 +115,7 @@
       "aliases": [],
       "locations": [
         {
-          "path": "src/adapters/outbound/development-store.ts",
+          "path": "src/adapters/outbound/development/development-store.ts",
           "symbol": "DevelopmentStore"
         }
       ]
@@ -128,7 +128,7 @@
       "aliases": [],
       "locations": [
         {
-          "path": "src/adapters/outbound/development-map-builder.ts",
+          "path": "src/adapters/outbound/development/development-map-builder.ts",
           "symbol": "buildDevelopmentMap"
         }
       ]

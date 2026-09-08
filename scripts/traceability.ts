@@ -8,10 +8,10 @@ import type { RegistryEnvelope, TraceabilityLedger, TraceabilityRef } from "../s
 import type { ProjectActivity } from "../src/core/domain/execution/project-activity.js";
 import { createExecutionRun, normalizeProjectActivity, replayExecutionRun, type CompletionReceipt } from "../src/core/runtime/execution-run.js";
 import { parseWorkTraceabilityManifest } from "../src/core/domain/work/traceability.js";
-import { buildDevelopmentMap } from "../src/adapters/outbound/development-map-builder.js";
-import { DevelopmentStore } from "../src/adapters/outbound/development-store.js";
-import { canonicalDigest, migrateTraceabilityV2ToV3, requiredCoverageFromRegistries, sha256, validateVerificationReceipt, verificationReceiptFromCompletion, type VerificationReceiptCompletionContext } from "../src/adapters/outbound/development-traceability-contract.js";
-import { validateTraceability } from "../src/adapters/outbound/traceability-validator.js";
+import { buildDevelopmentMap } from "../src/adapters/outbound/development/development-map-builder.js";
+import { DevelopmentStore } from "../src/adapters/outbound/development/development-store.js";
+import { canonicalDigest, migrateTraceabilityV2ToV3, requiredCoverageFromRegistries, sha256, validateVerificationReceipt, verificationReceiptFromCompletion, type VerificationReceiptCompletionContext } from "../src/adapters/outbound/development/development-traceability-contract.js";
+import { validateTraceability } from "../src/adapters/outbound/development/traceability-validator.js";
 
 export function resolveVaultRoot(projectRoot: string, _vaultId: string, explicit?: string): string {
 	return resolve(explicit ?? process.env.WWW_OBSIDIAN_VAULT_ROOT ?? join(projectRoot, ".www/vault"));

@@ -90,7 +90,7 @@
       "name": "Chat 요약의 thread 범위",
       "locations": [
         {
-          "path": "src/adapters/outbound/project-workbench-session.ts",
+          "path": "src/adapters/outbound/workspace/project-workbench-session.ts",
           "symbol": "ThreadScopedTNoteSource"
         }
       ],

@@ -5,9 +5,9 @@ import { join, resolve } from "node:path";
 import type { TraceabilityLedgerV3 } from "../src/core/domain/development/development-traceability.js";
 import type { ProjectActivity } from "../src/core/domain/execution/project-activity.js";
 import { createExecutionRun, normalizeProjectActivity, replayExecutionRun } from "../src/core/runtime/execution-run.js";
-import { DevelopmentStore } from "../src/adapters/outbound/development-store.js";
-import { canonicalDigest, requiredCoverageFromRegistries, sha256 } from "../src/adapters/outbound/development-traceability-contract.js";
-import { validateTraceability } from "../src/adapters/outbound/traceability-validator.js";
+import { DevelopmentStore } from "../src/adapters/outbound/development/development-store.js";
+import { canonicalDigest, requiredCoverageFromRegistries, sha256 } from "../src/adapters/outbound/development/development-traceability-contract.js";
+import { validateTraceability } from "../src/adapters/outbound/development/traceability-validator.js";
 import { runTraceability, selectedCompletionReceipt } from "../scripts/traceability.js";
 
 const roots: string[] = [];

@@ -14,7 +14,7 @@ import {
 	validateTraceabilityLedgerV3,
 	validateVerificationReceipt,
 	type VerificationReceiptCompletionContext,
-} from "../src/adapters/outbound/development-traceability-contract";
+} from "../src/adapters/outbound/development/development-traceability-contract";
 
 const digest = <T extends object>(value: T): string => {
 	const { payloadDigest: _, ...body } = value as unknown as Record<string, unknown>;

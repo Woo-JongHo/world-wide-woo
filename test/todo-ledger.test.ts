@@ -7,7 +7,7 @@ import type { SessionEvent, SessionEventInput } from "../src/core/domain/executi
 import { renderTodoMarkdown, type TodoDocument } from "../src/core/domain/work/todos";
 import type { SemanticWorkStep, WorkFlowProjection } from "../src/core/domain/work";
 import type { SessionRepository, TodoStore } from "../src/core/ports";
-import { FileTodoStore } from "../src/adapters/outbound/todo-store.js";
+import { FileTodoStore } from "../src/adapters/outbound/persistence/todo-store.js";
 
 class MemoryTodoStore implements TodoStore {
 	public document: TodoDocument | null = null;

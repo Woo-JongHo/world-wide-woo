@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { resolve } from "node:path";
-import { syncLocalUnitRegistry } from "../src/adapters/outbound/local-unit-registry.js";
+import { syncLocalUnitRegistry } from "../src/adapters/outbound/development/local-unit-registry.js";
 
 const command = process.argv[2] ?? "check";
 if (command !== "check" && command !== "sync") throw new Error("사용법: bun run units:check | bun run units:sync");

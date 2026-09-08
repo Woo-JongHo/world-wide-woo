@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
 import { sanitizeTerminalText } from "../src/core/domain/execution/terminal";
-import { LocalTerminalCommandExecutor, TerminalCommandRejectedError } from "../src/adapters/outbound/terminal-command-executor";
+import { LocalTerminalCommandExecutor, TerminalCommandRejectedError } from "../src/adapters/outbound/execution/terminal-command-executor";
 
 async function fixture(): Promise<string> {
 	return mkdtemp(join(tmpdir(), "www-terminal-"));

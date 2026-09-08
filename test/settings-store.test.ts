@@ -3,7 +3,7 @@ import { mkdtemp, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { WwwSettings } from "../src/core/domain/execution/model-settings";
-import { FileSettingsStore, routerSettingsPath, settingsPath } from "../src/adapters/outbound/settings-store";
+import { FileSettingsStore, routerSettingsPath, settingsPath } from "../src/adapters/outbound/persistence/settings-store";
 
 const codex: WwwSettings = { provider: "openai-codex", model: "gpt-5.6-sol", effort: "high" };
 const claude: WwwSettings = { provider: "anthropic", model: "claude-opus-4-6", effort: "ultra" };

@@ -25,7 +25,7 @@
 
 ### 3. 새 Dashboard projection 위치
 
-`src/core/domain/observability/observability-dashboard.ts`에 순수 `projectObservabilityDashboard(session summaries, coverage)`를 둔다. 파일 탐색과 journal read는 `src/adapters/outbound/observability-history-source.ts`가 담당한다. renderer는 `src/adapters/inbound/tui/observability-dashboard-view.ts`이며 Stats renderer를 재사용하지 않는다.
+`src/core/domain/observability/observability-dashboard.ts`에 순수 `projectObservabilityDashboard(session summaries, coverage)`를 둔다. 파일 탐색과 journal read는 `src/adapters/outbound/observability/observability-history-source.ts`가 담당한다. renderer는 `src/adapters/inbound/tui/observability-dashboard-view.ts`이며 Stats renderer를 재사용하지 않는다.
 
 ### 4. 새 Monitor projection 위치
 
@@ -153,7 +153,7 @@ State precedence는 `FAILED > BLOCKED/APPROVAL > RUNNING TOOL > RUNNING AGENT/MO
 - 추가: `src/core/domain/observability/observability-metrics.ts`
 - 추가: `src/core/domain/observability/observability-dashboard.ts`
 - 추가: `src/core/domain/observability/runtime-monitor.ts`
-- 추가: `src/adapters/outbound/observability-history-source.ts`
+- 추가: `src/adapters/outbound/observability/observability-history-source.ts`
 - 추가: `src/adapters/inbound/tui/observability-dashboard-view.ts`
 - 추가: `src/adapters/inbound/tui/runtime-monitor-view.ts`
 - 변경: `src/adapters/inbound/tui/workbench-shell.ts`

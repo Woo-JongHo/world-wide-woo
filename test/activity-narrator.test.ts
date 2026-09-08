@@ -13,7 +13,7 @@ import {
 	ACTIVITY_NARRATOR_PROVIDER,
 	PiActivityNarrator,
 	type PiActivityNarratorModels,
-} from "../src/adapters/outbound/pi-activity-narrator";
+} from "../src/adapters/outbound/execution/pi-activity-narrator";
 
 const model = {} as Model<Api>;
 const request: ActivityNarrationRequest = {

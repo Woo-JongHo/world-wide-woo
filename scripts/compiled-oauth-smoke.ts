@@ -1,5 +1,5 @@
-import { FileCredentialStore } from "../src/adapters/outbound/credential-store.js";
-import { createModelRegistry } from "../src/adapters/outbound/model-router.js";
+import { FileCredentialStore } from "../src/adapters/outbound/authentication/credential-store.js";
+import { createModelRegistry } from "../src/adapters/outbound/authentication/model-router.js";
 
 const registry = createModelRegistry(new FileCredentialStore());
 const auth = await registry.getAuth("openai-codex");

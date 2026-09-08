@@ -37,10 +37,10 @@ import { TodoWriteConflictError } from "../src/core/application/work/todo-ledger
 import { WooEntry, type WooEntryCollection } from "../src/core/application/orchestration/woo-entry";
 import type { TodoDocument } from "../src/core/domain/work/todos";
 import type { WorkFlowProjection } from "../src/core/domain/work";
-import { ProviderReviewAdapter, sha256ReviewDigest } from "../src/adapters/outbound/review-adapters";
+import { ProviderReviewAdapter, sha256ReviewDigest } from "../src/adapters/outbound/review/review-adapters";
 import { TNoteService } from "../src/core/application/work/t-note-service";
 import type { DetachedTextGenerator } from "../src/core/application/orchestration/detached-text-generator";
-import { FileTNoteStore } from "../src/adapters/outbound/t-note-store";
+import { FileTNoteStore } from "../src/adapters/outbound/persistence/t-note-store";
 import { projectTNoteCompletionIndex, sanitizeTNoteText } from "../src/core/domain/work/t-notes";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";

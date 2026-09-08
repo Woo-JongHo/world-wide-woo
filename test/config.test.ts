@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { DEFAULT_SETTINGS, normalizeSettings } from "../src/core/domain/execution/model-settings";
-import { FileSettingsStore } from "../src/adapters/outbound/settings-store";
+import { FileSettingsStore } from "../src/adapters/outbound/persistence/settings-store";
 
 const paths: string[] = [];
 afterEach(async () => {

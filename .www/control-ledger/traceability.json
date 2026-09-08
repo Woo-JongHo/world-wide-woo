@@ -147,7 +147,7 @@
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/project-workbench-session.ts"
+      "id": "src/adapters/outbound/workspace/project-workbench-session.ts"
     },
     {
       "kind": "test",
@@ -175,7 +175,7 @@
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/activity-journal-store.ts"
+      "id": "src/adapters/outbound/persistence/activity-journal-store.ts"
     },
     {
       "kind": "code",
@@ -353,7 +353,7 @@
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/observability-history-source.ts"
+      "id": "src/adapters/outbound/observability/observability-history-source.ts"
     },
     {
       "kind": "test",
@@ -401,7 +401,7 @@
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/development-code-scanner.ts"
+      "id": "src/adapters/outbound/development/development-code-scanner.ts"
     },
     {
       "kind": "test",
@@ -415,7 +415,7 @@
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/development-store.ts"
+      "id": "src/adapters/outbound/development/development-store.ts"
     },
     {
       "kind": "test",
@@ -433,11 +433,11 @@
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/development-test-runner.ts"
+      "id": "src/adapters/outbound/development/development-test-runner.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/development-snapshot.ts"
+      "id": "src/adapters/outbound/development/development-snapshot.ts"
     },
     {
       "kind": "linear-issue",
@@ -447,7 +447,7 @@
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/development-vault.ts"
+      "id": "src/adapters/outbound/development/development-vault.ts"
     },
     {
       "kind": "linear-issue",
@@ -457,7 +457,7 @@
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/development-cli.ts"
+      "id": "src/adapters/outbound/development/development-cli.ts"
     },
     {
       "kind": "code",
@@ -689,111 +689,111 @@
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/agent-tools.ts"
+      "id": "src/adapters/outbound/execution/agent-tools.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/auth-service.ts"
+      "id": "src/adapters/outbound/authentication/auth-service.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/canonical-document-store.ts"
+      "id": "src/adapters/outbound/persistence/canonical-document-store.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/composer-draft-store.ts"
+      "id": "src/adapters/outbound/persistence/composer-draft-store.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/credential-store.ts"
+      "id": "src/adapters/outbound/authentication/credential-store.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/detached-codex-generator.ts"
+      "id": "src/adapters/outbound/execution/detached-codex-generator.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/development-map-source.ts"
+      "id": "src/adapters/outbound/development/development-map-source.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/executors/codex-app-server.ts"
+      "id": "src/adapters/outbound/execution/codex-app-server.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/executors/factory.ts"
+      "id": "src/adapters/outbound/execution/factory.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/executors/pi-harness.ts"
+      "id": "src/adapters/outbound/execution/pi-harness.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/git-telemetry-source.ts"
+      "id": "src/adapters/outbound/git/git-telemetry-source.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/model-router.ts"
+      "id": "src/adapters/outbound/authentication/model-router.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/native-thread-discovery.ts"
+      "id": "src/adapters/outbound/workspace/native-thread-discovery.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/pi-activity-narrator.ts"
+      "id": "src/adapters/outbound/execution/pi-activity-narrator.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/planning-store.ts"
+      "id": "src/adapters/outbound/persistence/planning-store.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/project-session.ts"
+      "id": "src/adapters/outbound/workspace/project-session.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/project-workspace.ts"
+      "id": "src/adapters/outbound/workspace/project-workspace.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/repository-insights.ts"
+      "id": "src/adapters/outbound/git/repository-insights.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/review-adapters.ts"
+      "id": "src/adapters/outbound/review/review-adapters.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/review-store.ts"
+      "id": "src/adapters/outbound/review/review-store.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/session-store.ts"
+      "id": "src/adapters/outbound/persistence/session-store.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/settings-store.ts"
+      "id": "src/adapters/outbound/persistence/settings-store.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/t-note-store.ts"
+      "id": "src/adapters/outbound/persistence/t-note-store.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/terminal-command-executor.ts"
+      "id": "src/adapters/outbound/execution/terminal-command-executor.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/todo-store.ts"
+      "id": "src/adapters/outbound/persistence/todo-store.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/usage-service.ts"
+      "id": "src/adapters/outbound/observability/usage-service.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/wes-entry-collector.ts"
+      "id": "src/adapters/outbound/execution/wes-entry-collector.ts"
     },
     {
       "kind": "code",
@@ -1069,19 +1069,19 @@
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/development-map-builder.ts"
+      "id": "src/adapters/outbound/development/development-map-builder.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/development-traceability-digest.ts"
+      "id": "src/adapters/outbound/development/development-traceability-digest.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/traceability-validator.ts"
+      "id": "src/adapters/outbound/development/traceability-validator.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/work-reference-validator.ts"
+      "id": "src/adapters/outbound/development/work-reference-validator.ts"
     },
     {
       "kind": "test",
@@ -1133,7 +1133,7 @@
     },
     {
       "kind": "code",
-      "id": "src/adapters/outbound/project-auth.ts"
+      "id": "src/adapters/outbound/authentication/project-auth.ts"
     },
     {
       "kind": "linear-issue",
@@ -1682,7 +1682,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/outbound/project-workbench-session.ts"
+        "id": "src/adapters/outbound/workspace/project-workbench-session.ts"
       }
     },
     {
@@ -1864,7 +1864,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/outbound/project-workbench-session.ts"
+        "id": "src/adapters/outbound/workspace/project-workbench-session.ts"
       }
     },
     {
@@ -1877,7 +1877,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/outbound/activity-journal-store.ts"
+        "id": "src/adapters/outbound/persistence/activity-journal-store.ts"
       }
     },
     {
@@ -2566,7 +2566,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/outbound/project-workbench-session.ts"
+        "id": "src/adapters/outbound/workspace/project-workbench-session.ts"
       }
     },
     {
@@ -2683,7 +2683,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/outbound/project-workbench-session.ts"
+        "id": "src/adapters/outbound/workspace/project-workbench-session.ts"
       }
     },
     {
@@ -3021,7 +3021,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/outbound/observability-history-source.ts"
+        "id": "src/adapters/outbound/observability/observability-history-source.ts"
       }
     },
     {
@@ -3229,7 +3229,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/outbound/development-code-scanner.ts"
+        "id": "src/adapters/outbound/development/development-code-scanner.ts"
       }
     },
     {
@@ -3255,7 +3255,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/outbound/development-store.ts"
+        "id": "src/adapters/outbound/development/development-store.ts"
       }
     },
     {
@@ -3320,7 +3320,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/outbound/development-test-runner.ts"
+        "id": "src/adapters/outbound/development/development-test-runner.ts"
       }
     },
     {
@@ -3333,7 +3333,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/outbound/development-snapshot.ts"
+        "id": "src/adapters/outbound/development/development-snapshot.ts"
       }
     },
     {
@@ -3346,7 +3346,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/outbound/development-vault.ts"
+        "id": "src/adapters/outbound/development/development-vault.ts"
       }
     },
     {
@@ -3359,7 +3359,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/outbound/development-cli.ts"
+        "id": "src/adapters/outbound/development/development-cli.ts"
       }
     },
     {
@@ -3411,7 +3411,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/outbound/project-workbench-session.ts"
+        "id": "src/adapters/outbound/workspace/project-workbench-session.ts"
       }
     },
     {
@@ -3736,7 +3736,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/outbound/project-auth.ts"
+        "id": "src/adapters/outbound/authentication/project-auth.ts"
       }
     },
     {

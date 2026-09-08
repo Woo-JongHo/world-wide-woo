@@ -1,12 +1,12 @@
 import { RouterService, reconcileInitialRouter } from "./core/application/routing/router-service";
-import { AuthService } from "./adapters/outbound/auth-service";
-import { FileComposerDraftController } from "./adapters/outbound/composer-draft-store";
-import { FileCredentialStore } from "./adapters/outbound/credential-store";
-import { ModelRouter, createModelRegistry } from "./adapters/outbound/model-router";
-import { createProjectSession } from "./adapters/outbound/project-session";
-import { GitHubRepositoryInsights } from "./adapters/outbound/repository-insights";
-import { FileSettingsStore, routerSettingsPath } from "./adapters/outbound/settings-store";
-import { UsageService } from "./adapters/outbound/usage-service";
+import { AuthService } from "./adapters/outbound/authentication/auth-service";
+import { FileComposerDraftController } from "./adapters/outbound/persistence/composer-draft-store";
+import { FileCredentialStore } from "./adapters/outbound/authentication/credential-store";
+import { ModelRouter, createModelRegistry } from "./adapters/outbound/authentication/model-router";
+import { createProjectSession } from "./adapters/outbound/workspace/project-session";
+import { GitHubRepositoryInsights } from "./adapters/outbound/git/repository-insights";
+import { FileSettingsStore, routerSettingsPath } from "./adapters/outbound/persistence/settings-store";
+import { UsageService } from "./adapters/outbound/observability/usage-service";
 import { runTuiShell, type TuiShellDependencies } from "./adapters/inbound/tui/legacy-session-shell";
 
 export interface RunLegacyRouterOptions {

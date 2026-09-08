@@ -13,8 +13,8 @@
 
 ## 현재 코드에서 확인한 사실
 
-- `src/adapters/outbound/planning-store.ts`: `bun:sqlite`를 사용한 `planning-lock.sqlite`는 파일 쓰기 직렬화용이다. Planning 본체는 `catalog.jsonl`과 Markdown projection을 사용한다.
-- `src/adapters/outbound/todo-store.ts`: `todo-lock.sqlite`도 파일 쓰기 잠금에 사용한다.
+- `src/adapters/outbound/persistence/planning-store.ts`: `bun:sqlite`를 사용한 `planning-lock.sqlite`는 파일 쓰기 직렬화용이다. Planning 본체는 `catalog.jsonl`과 Markdown projection을 사용한다.
+- `src/adapters/outbound/persistence/todo-store.ts`: `todo-lock.sqlite`도 파일 쓰기 잠금에 사용한다.
 - `src/core/domain/work/traceability.ts`: schemaVersion 1의 reference와 link 계약이다. Unit·Run reference kind는 아직 없다.
 - `.www/control-ledger/traceability.json`: 현재 code/test 참조와 연결이 있으며 실제 Linear 연결은 없다.
 

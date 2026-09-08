@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { access, mkdtemp, lstat, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { FilePlanningStore } from "../src/adapters/outbound/planning-store.js";
+import { FilePlanningStore } from "../src/adapters/outbound/persistence/planning-store.js";
 
 const directories: string[] = [];
 afterEach(async () => { await Promise.all(directories.splice(0).map((path) => rm(path, { recursive: true, force: true }))); });
@@ -38,7 +38,7 @@ describe("FilePlanningStore", () => {
 	});
 	test("serializes independent process writers without duplicate IDs", async () => {
 		const root = await workspace();
-		const script = `import { FilePlanningStore } from "./src/adapters/outbound/planning-store.ts"; await new FilePlanningStore(process.env.PLANNING_ROOT).createEpic(process.argv[1], "Goal");`;
+		const script = `import { FilePlanningStore } from "./src/adapters/outbound/persistence/planning-store.ts"; await new FilePlanningStore(process.env.PLANNING_ROOT).createEpic(process.argv[1], "Goal");`;
 		const children = ["First", "Second"].map(title => Bun.spawn(["bun", "-e", script, title], {
 			cwd: process.cwd(),
 			env: { ...process.env, PLANNING_ROOT: root },

@@ -12,11 +12,11 @@ import { ReviewService } from "../src/core/application/review/review-service";
 
 import type { NativeApprovalResolution, NativeHarnessEvent, NativeThreadList, NativeThreadRead, NativeThreadResume, NativeThreadSnapshot, NativeThreadStart, NativeThreadSummary, NativeTurnInterrupt, NativeTurnSnapshot, NativeTurnStart, NativeTurnSteer, NativeTurnSteerResult } from "../src/core/domain/execution/native-session.js";
 import type { ProjectActivity, ProjectActivityAppendResult, ProjectActivityInput } from "../src/core/domain/execution/project-activity.js";
-import { createProjectWorkbenchSession, scopedProjectId, scopedTodoSessionId, ThreadBoundActivityJournal, type ProjectWorkbenchSessionFactories } from "../src/adapters/outbound/project-workbench-session.js";
-import type { ProjectWorkspace } from "../src/adapters/outbound/project-workspace.js";
-import { nativeThreadJournalKey } from "../src/adapters/outbound/activity-journal-store.js";
-import { createNativeHarness } from "../src/adapters/outbound/executors/factory.js";
-import { sha256ReviewDigest } from "../src/adapters/outbound/review-adapters.js";
+import { createProjectWorkbenchSession, scopedProjectId, scopedTodoSessionId, ThreadBoundActivityJournal, type ProjectWorkbenchSessionFactories } from "../src/adapters/outbound/workspace/project-workbench-session.js";
+import type { ProjectWorkspace } from "../src/adapters/outbound/workspace/project-workspace.js";
+import { nativeThreadJournalKey } from "../src/adapters/outbound/persistence/activity-journal-store.js";
+import { createNativeHarness } from "../src/adapters/outbound/execution/factory.js";
+import { sha256ReviewDigest } from "../src/adapters/outbound/review/review-adapters.js";
 
 class MemoryTodoStore implements TodoStore {
 	async read() { return null; }

@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promis
 import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { CanonicalPromotionService, createCanonicalDocumentDraft, digestCanonicalDocument, fingerprintCanonicalDocument } from "../src/core/application/work/canonical-promotion";
-import { canonicalTemporaryPath, FileCanonicalDocumentStore } from "../src/adapters/outbound/canonical-document-store";
+import { canonicalTemporaryPath, FileCanonicalDocumentStore } from "../src/adapters/outbound/persistence/canonical-document-store";
 
 const roots: string[] = [];
 afterEach(async () => {

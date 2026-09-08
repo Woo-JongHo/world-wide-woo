@@ -3,7 +3,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { DevelopmentStore } from "../src/adapters/outbound/development-store.js";
+import { DevelopmentStore } from "../src/adapters/outbound/development/development-store.js";
 
 /** @linear WOO-696 */
 const roots: string[] = [];
@@ -69,7 +69,7 @@ describe("development source ledger and shared SQLite (v3 traceability projectio
  });
  test("serializes independent processes and preserves every source event", async () => {
   const { store, options } = fixture(); store.close();
-  const modulePath = resolve("src/adapters/outbound/development-store.ts");
+  const modulePath = resolve("src/adapters/outbound/development/development-store.ts");
   const processes = Array.from({ length: 4 }, (_, worker) => Bun.spawn([process.execPath, "-e", `import {DevelopmentStore} from ${JSON.stringify(modulePath)}; const store=new DevelopmentStore(${JSON.stringify(options)}); for(let i=0;i<8;i++) store.captureRecord({runId:'run-a',sourceEventId:${JSON.stringify(`worker-${worker}-`)}+i,kind:'message',body:'captured'}); store.close();`], { stdout: "pipe", stderr: "pipe" }));
   for (const child of processes) { const error = await new Response(child.stderr).text(); expect(await child.exited, error).toBe(0); }
   const reader = new DevelopmentStore(options); const context = reader.getRunContext("run-a");

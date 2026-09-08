@@ -7,7 +7,7 @@ import type {
 	Models,
 	ModelsSimpleStreamOptions,
 } from "@earendil-works/pi-ai";
-import { ModelRouteError, ModelRouter, createModelRegistry, reasoningLevel } from "../src/adapters/outbound/model-router";
+import { ModelRouteError, ModelRouter, createModelRegistry, reasoningLevel } from "../src/adapters/outbound/authentication/model-router";
 import type { WwwSettings } from "../src/core/domain/execution/model-settings";
 
 const settings: WwwSettings = {

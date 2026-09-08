@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { appendFile, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { ActivityJournalStore, digestActivitySource, nativeThreadJournalKey } from "../src/adapters/outbound/activity-journal-store.js";
+import { ActivityJournalStore, digestActivitySource, nativeThreadJournalKey } from "../src/adapters/outbound/persistence/activity-journal-store.js";
 
 const temporaryDirectories: string[] = [];
 

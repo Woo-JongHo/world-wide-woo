@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { TNoteService } from "../src/core/application/work/t-note-service.js";
 import type { DetachedTextGenerator } from "../src/core/application/orchestration/detached-text-generator.js";
-import { FileTNoteStore } from "../src/adapters/outbound/t-note-store.js";
+import { FileTNoteStore } from "../src/adapters/outbound/persistence/t-note-store.js";
 import { createTNotePacket, projectActivityToTNoteSource } from "../src/core/domain/work/t-notes.js";
 
 const directories: string[] = [];

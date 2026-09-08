@@ -3,7 +3,7 @@ import { Database } from "bun:sqlite";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { syncLocalUnitRegistry } from "../src/adapters/outbound/local-unit-registry.js";
+import { syncLocalUnitRegistry } from "../src/adapters/outbound/development/local-unit-registry.js";
 
 const roots: string[] = [];
 afterEach(() => { for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }); });

@@ -48,9 +48,9 @@ describe("source architecture", () => {
 	test("keeps concrete executor adapters independent", async () => {
 		const graph = await loadSourceGraph();
 		for (const source of graph.values()) {
-			if (!source.path.startsWith("adapters/outbound/executors/") || source.path.endsWith("/factory.ts")) continue;
+			if (!/^adapters\/outbound\/execution\/(?:codex-app-server|pi-harness)\.ts$/u.test(source.path)) continue;
 			for (const dependency of source.imports) {
-				if (!dependency.startsWith("adapters/outbound/executors/")) continue;
+				if (!dependency.startsWith("adapters/outbound/execution/")) continue;
 				expect(dependency, `${source.path} -> ${dependency}`).toBe(source.path);
 			}
 		}

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { AuthInteraction, Models } from "@earendil-works/pi-ai";
-import { AuthService } from "../src/adapters/outbound/auth-service";
+import { AuthService } from "../src/adapters/outbound/authentication/auth-service";
 
 function fakeModels(overrides: Partial<Pick<Models, "checkAuth" | "getProvider" | "login" | "logout">> = {}): Pick<Models, "checkAuth" | "getProvider" | "login" | "logout"> {
 	return {

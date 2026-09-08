@@ -33,7 +33,7 @@ const productionDependencies: CliDependencies = {
 		await runAuth(args);
 	},
 	runDevelopment: async args => {
-		const { runDevelopmentCli } = await import("./adapters/outbound/development-cli");
+		const { runDevelopmentCli } = await import("./adapters/outbound/development/development-cli");
 		return runDevelopmentCli(args);
 	},
 	listSessions: async () => {

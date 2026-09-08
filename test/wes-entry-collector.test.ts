@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { WesEntryCollector } from "../src/adapters/outbound/wes-entry-collector";
+import { WesEntryCollector } from "../src/adapters/outbound/execution/wes-entry-collector";
 
 const config = "workspace_root: ~/wes\n";
 const system = "authority:\n  wes_entry_runner: hooks/wes_entry.py\n";
