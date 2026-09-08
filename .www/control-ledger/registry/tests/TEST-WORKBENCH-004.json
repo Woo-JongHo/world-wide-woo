@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 3,
+  "kind": "test-contract",
+  "id": "TEST-WORKBENCH-004",
+  "version": 1,
+  "immutable": true,
+  "payload": {
+    "purpose": "Native TUI send, approval, cancel, resume",
+    "risk": "실제 lifecycle이 화면에서 관측되지 않음",
+    "pass": "행동 capture와 receipt가 전체 흐름을 증명한다.",
+    "acceptanceIds": [
+      "AC-WORKBENCH-004"
+    ]
+  },
+  "payloadDigest": "a3138dfe486744070b5f83eb9a09c2c89cd64ebc4bfbd5747b5733d5acaf28c6"
+}

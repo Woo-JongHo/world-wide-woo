@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 3,
+  "kind": "test-contract",
+  "id": "TEST-TRACER-003",
+  "version": 1,
+  "immutable": true,
+  "payload": {
+    "purpose": "Todo에서 Tracer timeline, Tracer.md, resume 및 context 복귀를 검증한다.",
+    "risk": "실시간 trace 또는 복귀 context가 실제 Native TUI에서 유실된다.",
+    "pass": "행동 capture와 receipt가 AC-TRACER-003 및 AC-TRACER-004를 증명한다.",
+    "acceptanceIds": [
+      "AC-TRACER-003",
+      "AC-TRACER-004"
+    ]
+  },
+  "payloadDigest": "4de74146f0a889d8083c0efbddf6ad5d39eae2cc5c364026159ef62766f3ee5c"
+}

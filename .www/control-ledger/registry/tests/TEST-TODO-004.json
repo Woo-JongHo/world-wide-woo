@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 3,
+  "kind": "test-contract",
+  "id": "TEST-TODO-004",
+  "version": 1,
+  "immutable": true,
+  "payload": {
+    "purpose": "실제 Native Plan, Todo View, resume와 실패 복구 행동을 검증한다.",
+    "risk": "fixture만 통과하고 실사용 세션에서 진행 상태 또는 입력을 잃는다.",
+    "pass": "실제 TUI capture와 receipt가 AC-TODO-004 및 AC-TODO-005를 증명한다.",
+    "acceptanceIds": [
+      "AC-TODO-004",
+      "AC-TODO-005"
+    ]
+  },
+  "payloadDigest": "b1592506f99c3bfc6f14b7d5512d4b7ef6581eccdd11844d2856bb9d38bbe733"
+}

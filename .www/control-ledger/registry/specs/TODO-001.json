@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 3,
+  "kind": "spec",
+  "id": "TODO-001",
+  "version": 1,
+  "immutable": true,
+  "payload": {
+    "title": "세션별 Native Plan Todo projection",
+    "linearId": "WOO-682",
+    "codeIds": [
+      "Code-011"
+    ],
+    "acceptances": [
+      {
+        "id": "AC-TODO-001",
+        "purpose": "Native Plan을 같은 session Todo에 투영한다.",
+        "risk": "Native Plan을 같은 session Todo에 투영한다. 계약이 깨지면 사용자에게 잘못된 실행 상태가 표시된다.",
+        "pass": "Todo.md와 Todo View가 같은 Plan 순서와 상태를 표시한다.",
+        "required": true
+      },
+      {
+        "id": "AC-TODO-002",
+        "purpose": "Todo 계층과 활성 상태 불변조건을 지킨다.",
+        "risk": "Todo 계층과 활성 상태 불변조건을 지킨다. 계약이 깨지면 사용자에게 잘못된 실행 상태가 표시된다.",
+        "pass": "최상위와 세부 단계 한 단계만 존재하고 활성 항목은 계약을 만족한다.",
+        "required": true
+      },
+      {
+        "id": "AC-TODO-003",
+        "purpose": "세션 격리와 재개를 보장한다.",
+        "risk": "세션 격리와 재개를 보장한다. 계약이 깨지면 사용자에게 잘못된 실행 상태가 표시된다.",
+        "pass": "다른 thread의 Todo가 섞이지 않고 같은 session만 복원된다.",
+        "required": true
+      },
+      {
+        "id": "AC-TODO-004",
+        "purpose": "실제 병렬 model과 agent 상태를 사용자 TUI에서 확인한다.",
+        "risk": "실제 병렬 model과 agent 상태를 사용자 TUI에서 확인한다. 계약이 깨지면 사용자에게 잘못된 실행 상태가 표시된다.",
+        "pass": "실제 Native TUI capture가 각 실행 주체의 관측 상태를 증명한다.",
+        "required": true
+      },
+      {
+        "id": "AC-TODO-005",
+        "purpose": "저장 실패 복구와 resize 중 입력 보존을 확인한다.",
+        "risk": "저장 실패 복구와 resize 중 입력 보존을 확인한다. 계약이 깨지면 사용자에게 잘못된 실행 상태가 표시된다.",
+        "pass": "실패 복구 및 resize 시 마지막 유효 Todo와 입력이 보존된다.",
+        "required": true
+      }
+    ]
+  },
+  "payloadDigest": "570b6fe9271ec6662b301fd27ea10e57beb5a4220ad15328d9db6d758ae4a6e8"
+}

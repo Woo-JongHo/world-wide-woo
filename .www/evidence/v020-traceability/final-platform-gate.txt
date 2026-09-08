@@ -1,0 +1,2 @@
+$ bun scripts/release-gate.ts --platform-check
+platform PASS darwin: path, process, CRLF, file-lock/rename

@@ -151,11 +151,12 @@ EP-001~009는 Planning Package v1 이전의 legacy projection이라 Initiative m
 
 | Initiative | Epic | Story | Evidence | Linear | Code Unit | Obsidian | PR code evidence | Validation Receipt | 무결성 | 다음 전환 |
 |---|---|---|---|---|---|---|---|---|---|---|
+| 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-tui-preparation/assessment.md | WOO-674 | 미연결 | 742cd6b6-37d9-4f64-a96d-273f4cfb4bea | 미연결 | 미관측 | 깨짐 | 누락 edge 복구 |
 | 미연결 | 미연결 | 미연결 | 미연결 | WOO-678 | Code-010 | WOO-678 | 미연결 | 미관측 | 연결됨 | 수락 상태 확인 |
 | 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-chat-development/assessment.md | WOO-679 | Code-001<br>Code-002<br>Code-003<br>Code-004<br>Code-005 | WOO-679 | #46 (Chat v0.1 code) | 미관측 | 연결됨 | 수락 상태 확인 |
 | 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-tui-preparation/assessment.md | WOO-680 | Code-013 | WOO-680 | 미연결 | 미관측 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-tui-preparation/assessment.md | WOO-681 | Code-012 | WOO-681 | 미연결 | 미관측 | 연결됨 | 수락 상태 확인 |
-| 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-tui-preparation/assessment.md | WOO-682 | Code-011 | WOO-682 | 미연결 | 미관측 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-tui-preparation/assessment.md | WOO-681 | Code-012 | a53bc69a-ae43-4350-bdc1-ca1e0b08fc45 | 미연결 | 미관측 | 연결됨 | 수락 상태 확인 |
+| 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-tui-preparation/assessment.md | WOO-682 | Code-011 | 034d0686-30cf-4318-a70c-94b65e98bce7 | 미연결 | 미관측 | 연결됨 | 수락 상태 확인 |
 | 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-chat-development/assessment.md | WOO-686 | Code-001 | WOO-686 | #46 (Chat v0.1 code) | VR-CHAT-001-001<br>VR-CHAT-001-001<br>VR-CHAT-001-001 | 연결됨 | 수락 상태 확인 |
 | 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-chat-development/assessment.md | WOO-687 | Code-001 | WOO-687 | #46 (Chat v0.1 code) | 미관측 | 연결됨 | 수락 상태 확인 |
 | 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-chat-development/assessment.md | WOO-688 | Code-001<br>Code-002 | WOO-688 | #46 (Chat v0.1 code) | 미관측 | 연결됨 | 수락 상태 확인 |

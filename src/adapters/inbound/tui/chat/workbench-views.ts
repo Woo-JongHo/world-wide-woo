@@ -8,6 +8,7 @@ import {
 } from "@earendil-works/pi-tui";
 import type { NativeApprovalRequest } from "../../../../core/domain/execution/native-session";
 import type { CompletionReport } from "../../../../core/domain/execution/output";
+import type { ProjectActivity } from "../../../../core/domain/execution/project-activity";
 import type { CompletionReceipt } from "../../../../core/runtime/execution-run";
 import { projectBackgroundWorkState, type BackgroundWorkState } from "../../../../core/domain/execution/native-session";
 import { sanitizeCompletedAssistantResponse, sanitizePartialAssistantResponse } from "../../../../core/domain/review/redaction";
@@ -1012,11 +1013,30 @@ function monitorTraceRows(snapshot: WorkbenchSnapshot, width: number): string[] 
 		for (const activityId of activityIds) {
 			const activity = activities.get(activityId);
 			rows.push(activity
-				? `   ↳ ${activity.kind} · ${activity.phase} · ${activityId} · /trace ${activityId}`
+				? `   ${traceTreeBranch(activity.kind)} ${traceNodeLabel(activity)} · ${activity.phase} · ${activityId} · /trace ${activityId}`
 				: colors.warning(`   ↳ 원본 부재 · ${activityId}`));
 		}
 	}
 	return rows.flatMap((row) => wrapTextWithAnsi(row, width));
+}
+
+function traceTreeBranch(kind: ProjectActivity["kind"]): string {
+	if (kind === "approval") return "├─ 승인";
+	if (kind === "tool") return "├─ 도구";
+	if (kind === "file-change") return "├─ 결과";
+	if (kind === "message") return "├─ Agent";
+	return "├─ 실행";
+}
+
+function traceNodeLabel(activity: ProjectActivity): string {
+	const params = activity.payload.params;
+	const item = params && typeof params === "object" && !Array.isArray(params)
+		? (params as Readonly<Record<string, unknown>>).item
+		: null;
+	const type = item && typeof item === "object" && !Array.isArray(item)
+		? (item as Readonly<Record<string, unknown>>).type
+		: null;
+	return typeof type === "string" && type.trim() ? type : activity.kind;
 }
 
 /** @linear WOO-706 1f933204-1980-4640-b49b-b030aff9a122 */

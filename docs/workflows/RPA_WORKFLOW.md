@@ -1,5 +1,7 @@
 # RPA Workflow
 
+Agent·Skill·상태 머신·승인·Monitor의 실행 계약은 [Skill Runtime Contract](SKILL_RUNTIME_CONTRACT.md)가 소유한다.
+
 - 상태: 장기 Workflow Profile
 - 적용 대상: 반복 업무를 자동화하고 운영하는 RPA 업무
 - 공통 계약: [WWW README](../../README.md)의 Work Chain·Handoff·Progress·Approval·Evidence
@@ -26,24 +28,25 @@ Product Workflow와 같은 WWW 계약을 사용하지만 Figma Stage를 기본 �
 
 업무의 목적, 실제 수행 순서, 판단 기준, 입력과 기대 결과를 소유한다. 자동화 구현이 현재 업무와 다르면 업무 담당자의 확인 가능한 절차가 기준이다.
 
-### Atlas — Automation Definition
+### rpa-map — Automation Contract
 
-Atlas는 자동화할 Unit과 관계를 개발 가능한 수준으로 구조화한다.
+`rpa-map`은 확인된 업무 사실을 다음 계층으로 정규화한다.
 
 ```text
-정산 메일 처리
-├─ 대상 메일 식별
-├─ 첨부파일 다운로드
-├─ Excel 검증·가공
-├─ 결과 업로드
-└─ 완료·실패 알림
+Process: 지속 업무
+├─ Task: 독립적으로 개발·검증·추적할 업무 단위
+│  └─ Unit: Task 안에서 유지되는 안정 책임
+├─ 예외 처리
+└─ 테스트
 ```
 
-프로세스 단계, 업무 규칙, 입력·출력, 외부 시스템, 예외와 운영 조건을 연결하되 실행 이력과 코드를 원본으로 복제하지 않는다.
+Unit ID는 경로나 실행 순서가 아니라 책임을 식별한다. 실행 순서는 별도 필드이며, 원본에 없는 재실행·중단·승인 정책은 `unknown` 또는 미수락 계약으로 남긴다.
 
-### Linear — Automation Work
+### Linear·Obsidian — Automation Work and Contract
 
-Linear는 Automation Unit을 구현·검증 가능한 개발 업무와 Acceptance Criteria로 나눈다.
+Linear는 Process를 업무 부모로, Task를 번호 하위 이슈로 추적한다. 예외 처리와 테스트는 Task와 같은 Process 하위에 둔다. Unit은 해당 Task 본문에 안정 ID와 책임으로 기록하고, 독립적인 변경·검증·종료가 필요한 경우에만 별도 Work 이슈로 만든다.
+
+공통 RPA Agent·Skill은 Linear의 얇은 WHAT·NOW·DONE과 Obsidian의 상세 WHY·계약·결정을 1:1로 연결한다. 프로젝트별 Process·Task·Unit은 Linear와 `rpa-map`을 기본 원본으로 삼고, 장기 결정이나 별도 상세 계약이 생길 때만 Obsidian 정본을 추가한다.
 
 ### GitHub — Implementation Truth
 
@@ -53,43 +56,39 @@ GitHub는 자동화 코드, 설정 Schema, Test, Commit, PR, Check와 배포 가
 
 Scheduler, Queue, 업무 시스템과 실행 환경은 실제 Run 상태와 외부 결과의 원본을 소유한다. WWW는 관측한 결과를 Evidence로 연결하며 성공을 추정하지 않는다.
 
-### Obsidian — Decision Truth
-
-업무 규칙 변경, 예외 허용, 운영 정책과 장애 후 결정처럼 장기적으로 다시 사용할 판단 근거를 보존한다.
-
 ## Work Chain
 
 ```text
 Business Process
-    └── Atlas Automation Unit
-            └── Linear Work
-                    └── GitHub Change
-                            └── Deployment / Scheduled Run
-                                      └── Operational Evidence
+  └── Task / Unit contract
+        └── Linear Work
+              └── GitHub Change
+                    └── Deployment / Scheduled Run
+                          └── Operational Evidence
 ```
 
 업무 정의와 구현뿐 아니라 실제 운영 Run까지 같은 Logical Work Chain으로 추적한다.
 
 ## Handoff Contracts
 
-### Process → Automation Definition
+### Process → Contract
 
 - 자동화 목적과 수동 기준선이 명확하다.
 - 입력·출력과 대상 시스템이 식별되어 있다.
 - 사람 판단이 필요한 단계가 구분되어 있다.
-- 정상·예외·재처리 흐름이 정의되어 있다.
+- 정상·예외·재처리 흐름과 source revision이 연결되어 있다.
 
-### Definition → Development
+### Contract → Development
 
 - 업무 규칙이 설정과 코드의 책임으로 구분되어 있다.
 - 환경별 값과 비밀정보의 경계가 정의되어 있다.
-- Acceptance Criteria와 대표 Fixture가 존재한다.
 - 외부 Write와 사람 승인이 필요한 지점이 식별되어 있다.
+- 고객용·운영자용 메시지는 별도 Artifact와 전달 책임 Unit을 가진다.
 
 ### Development → Validation
 
 - 업무 Unit과 코드 변경이 연결되어 있다.
-- 정상·경계·실패·재실행 Test가 수행됐다.
+- 정상·경계·실패·부분 실패·재실행 Test가 수행됐거나 미수행 범위가 표시되어 있다.
 - 실제 환경에서 검증하지 못한 범위가 표시되어 있다.
 - 데이터 손상, 중복 실행과 부분 실패의 복구 조건이 검증됐다.
 
@@ -113,4 +112,8 @@ Implementation passed
   → Operational acceptance
 ```
 
-실제 로그인, 외부 시스템, 운영 데이터나 Scheduler를 확인하지 못했다면 해당 범위는 `PARTIAL` 또는 `BLOCKED`로 남긴다.
+실제 로그인, 외부 시스템, 운영 데이터나 Scheduler를 확인하지 못했다면 해당 범위는 `uncertain` 또는 `blocked`로 남긴다. 고객 메일의 실제 발송은 명시된 Mail Unit과 그 승인·재실행 정책이 있을 때만 운영 수락에 포함된다.
+
+## Runtime
+
+`skill:runtime`은 프로젝트 Skill frontmatter와 bytes를 Git revision 및 registry digest에 고정한다. RPA intent를 고정 체인으로 계획하고 Process가 없는 실행을 차단하며, 한 번에 한 Skill만 `running`으로 전이한다. 외부 변경 Candidate가 있으면 정확한 SHA-256 digest 승인 뒤에만 검증 단계로 이동한다. 각 단계는 공통 Woo Receipt를 남기고 Monitor에는 업무 데이터 대신 Run·Skill·Process·Task·Candidate·Receipt identity만 투영한다.

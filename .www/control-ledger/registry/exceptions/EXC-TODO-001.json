@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 3,
+  "kind": "exception",
+  "id": "EXC-TODO-001",
+  "version": 1,
+  "immutable": true,
+  "payload": {
+    "importance": "important",
+    "name": "Plan source authority 실패",
+    "detect": "source ID와 revision 검증",
+    "control": "기존 Todo를 유지하고 동기화를 차단",
+    "recovery": "다음 유효 Plan에서 재시도",
+    "testIds": [
+      "TEST-TODO-001"
+    ],
+    "verification": {
+      "detect": [
+        "TEST-TODO-001"
+      ],
+      "control": [
+        "TEST-TODO-001"
+      ],
+      "recovery": [
+        "TEST-TODO-001"
+      ]
+    }
+  },
+  "payloadDigest": "2ec4bac884250906bb88732512f514543e37ea7622d82adf7d83aaeab971ade5"
+}

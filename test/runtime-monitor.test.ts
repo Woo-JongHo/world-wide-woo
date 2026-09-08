@@ -67,4 +67,9 @@ describe("projectRuntimeMonitor", () => {
 		expect(result.recentEvents[0]?.activityId).toBe("activity-9");
 		expect(result.recentEvents.at(-1)?.activityId).toBe("activity-20");
 	});
+	test("projects a Skill Run without exposing business payloads", () => {
+		const result = projectRuntimeMonitor(snapshot([activity(1, "skill/started", { payload: { skillRun: { runId: "run-1", skill: "rpa-map", stage: "running", processId: "RPA-GMB-FTA", taskId: "T01", candidateId: "candidate-1", secret: "hidden" } } })]));
+		expect(result.skillRun).toEqual({ runId: "run-1", skill: "rpa-map", stage: "running", processId: "RPA-GMB-FTA", taskId: "T01", candidateId: "candidate-1", receiptId: null });
+		expect(result.recentEvents.at(-1)).toMatchObject({ kind: "SKILL", label: "rpa-map" });
+	});
 });

@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { CommitCandidate, CommitPolicy } from "../src/core/commit/commit-governance";
 import { candidateDigest, CommitControlPlane } from "../src/core/commit/commit-governance";
-import { assertCandidateMatchesWorktree, assertStagedBoundary, authorize, candidateContentDigest, executeCommit } from "../src/adapters/outbound/git/git-commit-control";
+import { assertCandidateMatchesWorktree, assertStagedBoundary, authorize, candidateContentDigest, changedPaths, executeCommit } from "../src/adapters/outbound/git/git-commit-control";
 import { CommitReceiptStore } from "../src/adapters/outbound/persistence/commit-receipt-store";
 
 const policy: CommitPolicy = { messageProfile: "korean-result", subjectMaxLength: 72, subjectSoftLength: 50, requireScope: true, requireType: true, requireHumanAuthorization: true, fullFileStagingOnly: true, protectedBranches: ["dev", "main"], allowedTypes: ["feat", "fix", "perf", "refactor", "test", "docs", "build", "ci", "chore", "revert"], scopes: { commit: "커밋" } };
@@ -41,6 +41,14 @@ describe("woo-commit contract", () => {
 
 const roots: string[] = []; afterEach(() => { for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }); });
 describe("staged boundary", () => {
+	test("NFD/NFC로 보이는 같은 변경 경로는 Git 추적 경로 하나로 고정한다", () => {
+		const root = mkdtempSync(join(tmpdir(), "woo-commit-unicode-")); roots.push(root);
+		execFileSync("git", ["init", "-q", root]); execFileSync("git", ["-C", root, "config", "user.name", "Woo Test"]); execFileSync("git", ["-C", root, "config", "user.email", "test@example.invalid"]);
+		const tracked = "vault/01_프로젝트".normalize("NFD"), alias = "vault/01_프로젝트".normalize("NFC");
+		mkdirSync(join(root, "vault"), { recursive: true }); writeFileSync(join(root, tracked), "tracked\n"); execFileSync("git", ["-C", root, "add", "--", tracked]); execFileSync("git", ["-C", root, "commit", "-qm", "base"]); rmSync(join(root, tracked));
+		writeFileSync(join(root, alias), "ignored alias\n"); writeFileSync(join(root, ".gitignore"), "vault/\n");
+		expect(changedPaths(root).map(path => path.normalize("NFC"))).toEqual([".gitignore", alias]);
+	});
 	test("후보 경로의 unstaged hunk와 추가 staged 파일을 차단한다", () => {
 		const root = mkdtempSync(join(tmpdir(), "woo-commit-")); roots.push(root);
 		execFileSync("git", ["init", "-q", root]); execFileSync("git", ["-C", root, "config", "user.name", "Woo Test"]); execFileSync("git", ["-C", root, "config", "user.email", "test@example.invalid"]);
@@ -66,7 +74,10 @@ describe("staged boundary", () => {
 		execFileSync("git", ["-C", root, "config", "woo.receiptBaseline", result.sha]);
 		writeFileSync(join(root, "bypass.txt"), "bypass\n"); execFileSync("git", ["-C", root, "add", "bypass.txt"]); execFileSync("git", ["-C", root, "-c", "core.hooksPath=/dev/null", "commit", "-m", "bypass"]);
 		const bypass = execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
-		const pushGate = spawnSync(join(root, ".githooks/pre-push"), [], { cwd: root, input: `refs/heads/master ${bypass} refs/heads/master ${result.sha}\n`, encoding: "utf8" });
+		const hook = join(root, ".githooks/pre-push");
+		const pushGate = process.platform === "win32"
+			? spawnSync("sh", [hook], { cwd: root, input: `refs/heads/master ${bypass} refs/heads/master ${result.sha}\n`, encoding: "utf8" })
+			: spawnSync(hook, [], { cwd: root, input: `refs/heads/master ${bypass} refs/heads/master ${result.sha}\n`, encoding: "utf8" });
 		expect(pushGate.status).toBe(2); expect(pushGate.stderr).toContain("Receipt가 없습니다");
 	}, 60_000);
 	test("승인 뒤 후보 파일 내용이 바뀌면 stale로 차단한다", () => {

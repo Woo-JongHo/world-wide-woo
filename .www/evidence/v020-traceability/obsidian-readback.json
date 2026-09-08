@@ -1,0 +1,166 @@
+{
+  "status": "PASS",
+  "artifactKind": "actual-vault-byte-readback",
+  "vaultId": "5521cc40c75eb293",
+  "actualVaultRoot": "/Users/jonghoPro/woo/01_obsidian",
+  "exportRoot": ".www/vault",
+  "relativeRoot": "01_프로젝트/99_WWW/01_문서",
+  "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty",
+  "files": [
+    {
+      "noteId": "WOO-678",
+      "relativePath": "Traceability/WOO-678.md",
+      "actualPath": "/Users/jonghoPro/woo/01_obsidian/01_프로젝트/99_WWW/01_문서/Traceability/WOO-678.md",
+      "exportPath": ".www/vault/01_프로젝트/99_WWW/01_문서/Traceability/WOO-678.md",
+      "actualSha256": "d07b01c24c8116dbdace00251d9f5daf1f588f6b1c0db879f5e9c29e167cbd1b",
+      "exportSha256": "d07b01c24c8116dbdace00251d9f5daf1f588f6b1c0db879f5e9c29e167cbd1b",
+      "byteIdentical": true
+    },
+    {
+      "noteId": "WOO-679",
+      "relativePath": "Traceability/WOO-679.md",
+      "actualPath": "/Users/jonghoPro/woo/01_obsidian/01_프로젝트/99_WWW/01_문서/Traceability/WOO-679.md",
+      "exportPath": ".www/vault/01_프로젝트/99_WWW/01_문서/Traceability/WOO-679.md",
+      "actualSha256": "ba4a1a74c83c6d30ad95e6d1f971948839a5dbd04befa92e717b15659623a9fc",
+      "exportSha256": "ba4a1a74c83c6d30ad95e6d1f971948839a5dbd04befa92e717b15659623a9fc",
+      "byteIdentical": true
+    },
+    {
+      "noteId": "WOO-686",
+      "relativePath": "Traceability/WOO-686.md",
+      "actualPath": "/Users/jonghoPro/woo/01_obsidian/01_프로젝트/99_WWW/01_문서/Traceability/WOO-686.md",
+      "exportPath": ".www/vault/01_프로젝트/99_WWW/01_문서/Traceability/WOO-686.md",
+      "actualSha256": "5901372f201429a3e90873fb23779e5b36a4de6ae5b0b444765ec3bcf8767b38",
+      "exportSha256": "5901372f201429a3e90873fb23779e5b36a4de6ae5b0b444765ec3bcf8767b38",
+      "byteIdentical": true
+    },
+    {
+      "noteId": "WOO-687",
+      "relativePath": "Traceability/WOO-687.md",
+      "actualPath": "/Users/jonghoPro/woo/01_obsidian/01_프로젝트/99_WWW/01_문서/Traceability/WOO-687.md",
+      "exportPath": ".www/vault/01_프로젝트/99_WWW/01_문서/Traceability/WOO-687.md",
+      "actualSha256": "fe80c4e8912bfd2cfc68115b43d2cbd53733885b8e3ef4c677338cba4471df02",
+      "exportSha256": "fe80c4e8912bfd2cfc68115b43d2cbd53733885b8e3ef4c677338cba4471df02",
+      "byteIdentical": true
+    },
+    {
+      "noteId": "WOO-688",
+      "relativePath": "Traceability/WOO-688.md",
+      "actualPath": "/Users/jonghoPro/woo/01_obsidian/01_프로젝트/99_WWW/01_문서/Traceability/WOO-688.md",
+      "exportPath": ".www/vault/01_프로젝트/99_WWW/01_문서/Traceability/WOO-688.md",
+      "actualSha256": "6625c0d06c65629031fb85066bc3511fabe3e98fc9ba9fcbc91647d52307b08f",
+      "exportSha256": "6625c0d06c65629031fb85066bc3511fabe3e98fc9ba9fcbc91647d52307b08f",
+      "byteIdentical": true
+    },
+    {
+      "noteId": "WOO-689",
+      "relativePath": "Traceability/WOO-689.md",
+      "actualPath": "/Users/jonghoPro/woo/01_obsidian/01_프로젝트/99_WWW/01_문서/Traceability/WOO-689.md",
+      "exportPath": ".www/vault/01_프로젝트/99_WWW/01_문서/Traceability/WOO-689.md",
+      "actualSha256": "a5d29152fef94a66202f3978c12e0ac730fd5f99f1e341bd14c29e9213ac7e05",
+      "exportSha256": "a5d29152fef94a66202f3978c12e0ac730fd5f99f1e341bd14c29e9213ac7e05",
+      "byteIdentical": true
+    },
+    {
+      "noteId": "WOO-690",
+      "relativePath": "Traceability/WOO-690.md",
+      "actualPath": "/Users/jonghoPro/woo/01_obsidian/01_프로젝트/99_WWW/01_문서/Traceability/WOO-690.md",
+      "exportPath": ".www/vault/01_프로젝트/99_WWW/01_문서/Traceability/WOO-690.md",
+      "actualSha256": "eea66c9065c528412a2850a5d0f6bab052f487084f11d1ee7505fd9be227ce1f",
+      "exportSha256": "eea66c9065c528412a2850a5d0f6bab052f487084f11d1ee7505fd9be227ce1f",
+      "byteIdentical": true
+    },
+    {
+      "noteId": "WOO-691",
+      "relativePath": "Traceability/WOO-691.md",
+      "actualPath": "/Users/jonghoPro/woo/01_obsidian/01_프로젝트/99_WWW/01_문서/Traceability/WOO-691.md",
+      "exportPath": ".www/vault/01_프로젝트/99_WWW/01_문서/Traceability/WOO-691.md",
+      "actualSha256": "edc29b44372d7f4ab36b7d306ff249d4e07d31a9617eb7f9f7d2fab89802ab94",
+      "exportSha256": "edc29b44372d7f4ab36b7d306ff249d4e07d31a9617eb7f9f7d2fab89802ab94",
+      "byteIdentical": true
+    },
+    {
+      "noteId": "WOO-692",
+      "relativePath": "Traceability/WOO-692.md",
+      "actualPath": "/Users/jonghoPro/woo/01_obsidian/01_프로젝트/99_WWW/01_문서/Traceability/WOO-692.md",
+      "exportPath": ".www/vault/01_프로젝트/99_WWW/01_문서/Traceability/WOO-692.md",
+      "actualSha256": "4159ab95aa044af3b2c501b9952fd0b91a2b056fd9f5212ba5d3e5fd7b1fab2d",
+      "exportSha256": "4159ab95aa044af3b2c501b9952fd0b91a2b056fd9f5212ba5d3e5fd7b1fab2d",
+      "byteIdentical": true
+    },
+    {
+      "noteId": "WOO-695",
+      "relativePath": "Traceability/WOO-695.md",
+      "actualPath": "/Users/jonghoPro/woo/01_obsidian/01_프로젝트/99_WWW/01_문서/Traceability/WOO-695.md",
+      "exportPath": ".www/vault/01_프로젝트/99_WWW/01_문서/Traceability/WOO-695.md",
+      "actualSha256": "033b453906bab52b9fa4e3dba7c6298e17ef9178c73cfb8758ced3fb9867aacc",
+      "exportSha256": "033b453906bab52b9fa4e3dba7c6298e17ef9178c73cfb8758ced3fb9867aacc",
+      "byteIdentical": true
+    },
+    {
+      "noteId": "WOO-696",
+      "relativePath": "Traceability/WOO-696.md",
+      "actualPath": "/Users/jonghoPro/woo/01_obsidian/01_프로젝트/99_WWW/01_문서/Traceability/WOO-696.md",
+      "exportPath": ".www/vault/01_프로젝트/99_WWW/01_문서/Traceability/WOO-696.md",
+      "actualSha256": "5f47918fd5713acfaf2a3992dcca7123805a4896888cae98ea578b92c0261ab5",
+      "exportSha256": "5f47918fd5713acfaf2a3992dcca7123805a4896888cae98ea578b92c0261ab5",
+      "byteIdentical": true
+    },
+    {
+      "noteId": "WOO-697",
+      "relativePath": "Traceability/WOO-697.md",
+      "actualPath": "/Users/jonghoPro/woo/01_obsidian/01_프로젝트/99_WWW/01_문서/Traceability/WOO-697.md",
+      "exportPath": ".www/vault/01_프로젝트/99_WWW/01_문서/Traceability/WOO-697.md",
+      "actualSha256": "55d08c0b983a6f7d6b37fa075df873ff69ad4a0bb16135dde090ef77003ce487",
+      "exportSha256": "55d08c0b983a6f7d6b37fa075df873ff69ad4a0bb16135dde090ef77003ce487",
+      "byteIdentical": true
+    },
+    {
+      "noteId": "WOO-698",
+      "relativePath": "Traceability/WOO-698.md",
+      "actualPath": "/Users/jonghoPro/woo/01_obsidian/01_프로젝트/99_WWW/01_문서/Traceability/WOO-698.md",
+      "exportPath": ".www/vault/01_프로젝트/99_WWW/01_문서/Traceability/WOO-698.md",
+      "actualSha256": "76173d9ca11a9c8db44d9627266816127409a2b7135633ff8ed8ee6c1a345c04",
+      "exportSha256": "76173d9ca11a9c8db44d9627266816127409a2b7135633ff8ed8ee6c1a345c04",
+      "byteIdentical": true
+    },
+    {
+      "noteId": "WOO-699",
+      "relativePath": "Traceability/WOO-699.md",
+      "actualPath": "/Users/jonghoPro/woo/01_obsidian/01_프로젝트/99_WWW/01_문서/Traceability/WOO-699.md",
+      "exportPath": ".www/vault/01_프로젝트/99_WWW/01_문서/Traceability/WOO-699.md",
+      "actualSha256": "b659955063333c0e9e8a4580bbd03368567b7aa69a0291b4e4ece67ab34cb75b",
+      "exportSha256": "b659955063333c0e9e8a4580bbd03368567b7aa69a0291b4e4ece67ab34cb75b",
+      "byteIdentical": true
+    },
+    {
+      "noteId": "WOO-718",
+      "relativePath": "Traceability/WOO-718.md",
+      "actualPath": "/Users/jonghoPro/woo/01_obsidian/01_프로젝트/99_WWW/01_문서/Traceability/WOO-718.md",
+      "exportPath": ".www/vault/01_프로젝트/99_WWW/01_문서/Traceability/WOO-718.md",
+      "actualSha256": "1b931b6769cf7adbc89e71d1f574b32916610810b0bbf9d97458f4db16a1dfd7",
+      "exportSha256": "1b931b6769cf7adbc89e71d1f574b32916610810b0bbf9d97458f4db16a1dfd7",
+      "byteIdentical": true
+    },
+    {
+      "noteId": "WOO-719",
+      "relativePath": "Traceability/WOO-719.md",
+      "actualPath": "/Users/jonghoPro/woo/01_obsidian/01_프로젝트/99_WWW/01_문서/Traceability/WOO-719.md",
+      "exportPath": ".www/vault/01_프로젝트/99_WWW/01_문서/Traceability/WOO-719.md",
+      "actualSha256": "1e665dcb9ea750c7b57864ea38d059dea5be86344f27740cae63f9b122912be1",
+      "exportSha256": "1e665dcb9ea750c7b57864ea38d059dea5be86344f27740cae63f9b122912be1",
+      "byteIdentical": true
+    },
+    {
+      "noteId": "WOO-720",
+      "relativePath": "Traceability/WOO-720.md",
+      "actualPath": "/Users/jonghoPro/woo/01_obsidian/01_프로젝트/99_WWW/01_문서/Traceability/WOO-720.md",
+      "exportPath": ".www/vault/01_프로젝트/99_WWW/01_문서/Traceability/WOO-720.md",
+      "actualSha256": "9907f038568a4ff19091ccde6b9a69825881a8c6f15180a446ef73d9aacae71e",
+      "exportSha256": "9907f038568a4ff19091ccde6b9a69825881a8c6f15180a446ef73d9aacae71e",
+      "byteIdentical": true
+    }
+  ],
+  "capturedAt": "2026-09-07T05:21:20.841Z",
+  "source": "actual Obsidian Vault byte readback"
+}

@@ -1,0 +1,103 @@
+{
+  "artifactKind": "external-linear-mcp-full-project-readback",
+  "project": "World Wide Woo",
+  "capturedAt": "2026-09-07T05:21:20.841Z",
+  "hasNextPage": false,
+  "issueCount": 56,
+  "selectedSnapshotIssueCount": 22,
+  "woo678": {
+    "id": "WOO-678",
+    "uuid": "1c98b99d-cc26-43a0-913b-8ef1df0ad1ae",
+    "updatedAt": "2026-09-07T05:20:49.642Z",
+    "parentId": "WOO-673",
+    "milestone": "v0.1.0 — First Public Release",
+    "status": "Backlog",
+    "stateHistory": [
+      {
+        "state": {
+          "id": "53e5b43a-a9f4-436f-b678-a009957886da",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-04T02:18:43.724Z",
+        "endedAt": "2026-09-04T03:23:08.187Z"
+      },
+      {
+        "state": {
+          "id": "9918029c-94a0-43d0-bfbc-fea537b75679",
+          "name": "Canceled",
+          "type": "canceled"
+        },
+        "startedAt": "2026-09-04T03:23:08.187Z",
+        "endedAt": "2026-09-07T04:54:59.390Z"
+      },
+      {
+        "state": {
+          "id": "53e5b43a-a9f4-436f-b678-a009957886da",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-07T04:54:59.390Z",
+        "endedAt": null
+      }
+    ]
+  },
+  "issueIds": [
+    "WOO-726",
+    "WOO-725",
+    "WOO-724",
+    "WOO-723",
+    "WOO-722",
+    "WOO-721",
+    "WOO-720",
+    "WOO-719",
+    "WOO-718",
+    "WOO-717",
+    "WOO-716",
+    "WOO-715",
+    "WOO-714",
+    "WOO-713",
+    "WOO-712",
+    "WOO-711",
+    "WOO-710",
+    "WOO-709",
+    "WOO-708",
+    "WOO-707",
+    "WOO-706",
+    "WOO-705",
+    "WOO-704",
+    "WOO-703",
+    "WOO-702",
+    "WOO-701",
+    "WOO-700",
+    "WOO-699",
+    "WOO-698",
+    "WOO-697",
+    "WOO-696",
+    "WOO-695",
+    "WOO-694",
+    "WOO-693",
+    "WOO-692",
+    "WOO-691",
+    "WOO-690",
+    "WOO-689",
+    "WOO-688",
+    "WOO-687",
+    "WOO-686",
+    "WOO-685",
+    "WOO-684",
+    "WOO-683",
+    "WOO-682",
+    "WOO-681",
+    "WOO-680",
+    "WOO-679",
+    "WOO-678",
+    "WOO-677",
+    "WOO-676",
+    "WOO-675",
+    "WOO-674",
+    "WOO-673",
+    "WOO-672",
+    "WOO-671"
+  ]
+}

@@ -1,0 +1,107 @@
+{
+  "hasNextPage": false,
+  "capturedAt": "2026-09-07T13:00:00+09:00",
+  "source": "Linear MCP full issue readback and WOO-672 direct-child list; milestone lookup returned not found",
+  "issues": [
+    {
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "In Progress",
+      "priority": {
+        "value": 0,
+        "name": "No priority"
+      },
+      "parentId": "WOO-672",
+      "projectMilestone": null,
+      "id": "WOO-695",
+      "uuid": "d61f3719-f59d-4f8d-aa57-8889e3d224b0",
+      "title": "기능 Unit과 Linear 작업을 코드에 연결한다",
+      "labels": [
+        "Identity",
+        "System",
+        "Feature"
+      ],
+      "description": "## 목적\n\n기능의 지속 identity와 변경 Issue를 구분하고 코드 이동 이후에도 같은 업무를 찾는다.\n\n## 구현 범위\n\nUnit UUID 등록과 명시적 Unit–Issue 다대다 관계, `@unit` / `@linear` 선언 검사, 기존 v1 연결 호환.\n\n## 완료 조건\n\n기존 20개 Issue UUID·관계가 보존되고, 코드 이동과 작업 전환 뒤에도 원본 identity와 귀속이 유지된다.\n\n## 개발 기준\n\n* 한 머신의 공용 SQLite, 제품 전용 Obsidian Vault를 사용한다.\n* 요구·코드·원문·검토·수락은 각 원본을 유지한다.\n* 코드 계약과 상세 설계: docs/planning/linear-development/KNOWLEDGE_BRIDGE_DESIGN.md\n* 실제 구현·검증 증거를 연결한 뒤 수락한다. 이슈 등록 자체는 구현 완료가 아니다."
+    },
+    {
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "In Progress",
+      "priority": {
+        "value": 0,
+        "name": "No priority"
+      },
+      "parentId": "WOO-672",
+      "projectMilestone": null,
+      "id": "WOO-696",
+      "uuid": "ebeab182-33a1-41c5-a4d8-19b0209f2b01",
+      "title": "공용 SQLite에서 개발 관계를 조회하고 복구한다",
+      "labels": [
+        "Storage",
+        "System",
+        "Reliability"
+      ],
+      "description": "## 목적\n\n한 머신의 WWW·CLI·에이전트가 같은 개발 관계를 근거와 함께 조회한다.\n\n## 구현 범위\n\nGit 연결 manifest·보존 Evidence를 원본으로 유지하고 SQLite를 재구축 가능한 인덱스로 사용한다. 동시 쓰기, source digest, stale·손상과 재구축 receipt를 다룬다.\n\n## 완료 조건\n\nDB 삭제 후 같은 원본에서 같은 논리 관계를 재구축한다. 동시 기록·중단·재시작에서 누락·중복을 드러내고 잘못된 원본은 정상 결과로 표시하지 않는다.\n\n## 개발 기준\n\n* 한 머신의 공용 SQLite, 제품 전용 Obsidian Vault를 사용한다.\n* 요구·코드·원문·검토·수락은 각 원본을 유지한다.\n* 코드 계약과 상세 설계: docs/planning/linear-development/KNOWLEDGE_BRIDGE_DESIGN.md\n* 실제 구현·검증 증거를 연결한 뒤 수락한다. 이슈 등록 자체는 구현 완료가 아니다."
+    },
+    {
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "In Progress",
+      "priority": {
+        "value": 0,
+        "name": "No priority"
+      },
+      "parentId": "WOO-672",
+      "projectMilestone": null,
+      "id": "WOO-697",
+      "uuid": "a9d0368a-de03-462e-b490-56252fcc626a",
+      "title": "선택한 개발 업무의 대화와 테스트를 기록한다",
+      "labels": [
+        "Observability",
+        "System",
+        "Reliability"
+      ],
+      "description": "## 목적\n\n개발 중 생긴 공개 대화와 테스트 결과를 당시 Issue·Unit·Run에 연결해 다시 확인한다.\n\n## 구현 범위\n\nIssue 결속 세션 자동 수집, binding version, 명시적 테스트 실행 명령, 코드 snapshot·출력·종료 상태·보존 범위.\n\n## 완료 조건\n\n작업 전환 뒤 과거 귀속이 바뀌지 않는다. 실패·취소·미실행·통과와 Review·Acceptance를 구분한다. 기록 실패는 Native 실행 결과와 별도로 표시한다.\n\n## 개발 기준\n\n* 한 머신의 공용 SQLite, 제품 전용 Obsidian Vault를 사용한다.\n* 요구·코드·원문·검토·수락은 각 원본을 유지한다.\n* 코드 계약과 상세 설계: docs/planning/linear-development/KNOWLEDGE_BRIDGE_DESIGN.md\n* 실제 구현·검증 증거를 연결한 뒤 수락한다. 이슈 등록 자체는 구현 완료가 아니다.\n\n## 공통 테스트·예외 기록 계약\n\n이 이슈(WOO-697)가 모든 기능 이슈의 테스트와 예외 처리 기록을 모으는 공통 기준점이다. 기능 이슈 본문에는 방법론을 반복하지 않고 실행 결과·수락 판정·blocker·이 Linear ID만 남긴다."
+    },
+    {
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "In Progress",
+      "priority": {
+        "value": 0,
+        "name": "No priority"
+      },
+      "parentId": "WOO-672",
+      "projectMilestone": null,
+      "id": "WOO-698",
+      "uuid": "eb9caaaf-4b82-4329-b56d-834bc151ea53",
+      "title": "Obsidian에서 개발 기록과 원본을 함께 읽는다",
+      "labels": [
+        "Integration",
+        "System",
+        "UX"
+      ],
+      "description": "## 목적\n\n제품 전용 Vault에서 목적·대화·코드 변경·테스트·다음 행동을 읽고 원본으로 이동한다.\n\n## 구현 범위\n\n전용 Vault, append-only Raw, 완료·체크포인트 note 생성, ID·digest·원본 링크, 재시도·편집 보호.\n\n## 완료 조건\n\n재시도에서 중복 note를 만들지 않고 사람 편집을 덮어쓰지 않는다. rename과 ID 충돌을 구별하고 실제 note에서 Linear·코드·Evidence로 이동한다.\n\n## 개발 기준\n\n* 한 머신의 공용 SQLite, 제품 전용 Obsidian Vault를 사용한다.\n* 요구·코드·원문·검토·수락은 각 원본을 유지한다.\n* 코드 계약과 상세 설계: docs/planning/linear-development/KNOWLEDGE_BRIDGE_DESIGN.md\n* 실제 구현·검증 증거를 연결한 뒤 수락한다. 이슈 등록 자체는 구현 완료가 아니다."
+    },
+    {
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "In Progress",
+      "priority": {
+        "value": 0,
+        "name": "No priority"
+      },
+      "parentId": "WOO-672",
+      "projectMilestone": null,
+      "id": "WOO-699",
+      "uuid": "ddecdd50-fcf6-457b-84b0-aa0f681257c3",
+      "title": "TUI에서 개발 작업과 연결된 근거를 왕복 탐색한다",
+      "labels": [
+        "System",
+        "TUI",
+        "UX"
+      ],
+      "description": "## 목적\n\n현재 개발 Issue·Unit·기록 상태를 확인하고 코드·테스트·Obsidian 기록으로 이동한다.\n\n## 구현 범위\n\n/work 업무 결속·상태·체크포인트·열기, /map Issue·Unit 탐색, CLI 명령과 동일한 공개 계약.\n\n## 완료 조건\n\nWOO-683 한 건에서 요구→코드→대화·테스트→Obsidian→원본을 실제로 확인한다. 기존 /map·Chat 동작을 유지하며 검증만으로 Issue를 자동 완료하지 않는다.\n\n## 개발 기준\n\n* 한 머신의 공용 SQLite, 제품 전용 Obsidian Vault를 사용한다.\n* 요구·코드·원문·검토·수락은 각 원본을 유지한다.\n* 코드 계약과 상세 설계: docs/planning/linear-development/KNOWLEDGE_BRIDGE_DESIGN.md\n* 실제 구현·검증 증거를 연결한 뒤 수락한다. 이슈 등록 자체는 구현 완료가 아니다."
+    }
+  ]
+}

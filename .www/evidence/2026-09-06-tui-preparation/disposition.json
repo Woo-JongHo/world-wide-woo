@@ -1,0 +1,244 @@
+[
+  {
+    "id": "WOO-692",
+    "title": "Message 07. 실제 TUI에서 가독성과 상태 전환을 검증한다",
+    "statusBefore": "Todo",
+    "action": "Chat 본문·상태 유지, TUI 라벨 추가",
+    "parentId": "WOO-683",
+    "milestone": {
+      "id": "193948f7-2a11-4110-a143-360d83f2a076",
+      "name": "v0.1.0 — First Public Release"
+    }
+  },
+  {
+    "id": "WOO-691",
+    "title": "Message 06. 비정상 응답에서도 내용을 보존하고 복구를 안내한다",
+    "statusBefore": "In Progress",
+    "action": "Chat 본문·상태 유지, TUI 라벨 추가",
+    "parentId": "WOO-683",
+    "milestone": {
+      "id": "193948f7-2a11-4110-a143-360d83f2a076",
+      "name": "v0.1.0 — First Public Release"
+    }
+  },
+  {
+    "id": "WOO-690",
+    "title": "Message 05. 재개 뒤에도 대화 순서와 대상을 유지한다",
+    "statusBefore": "In Progress",
+    "action": "Chat 본문·상태 유지, TUI 라벨 추가",
+    "parentId": "WOO-683",
+    "milestone": {
+      "id": "193948f7-2a11-4110-a143-360d83f2a076",
+      "name": "v0.1.0 — First Public Release"
+    }
+  },
+  {
+    "id": "WOO-689",
+    "title": "Message 04. 긴 결과를 안정적으로 탐색한다",
+    "statusBefore": "In Progress",
+    "action": "Chat 본문·상태 유지, TUI 라벨 추가",
+    "parentId": "WOO-683",
+    "milestone": {
+      "id": "193948f7-2a11-4110-a143-360d83f2a076",
+      "name": "v0.1.0 — First Public Release"
+    }
+  },
+  {
+    "id": "WOO-688",
+    "title": "Message 03. 답변 생성·완료·중단 과정을 보여준다",
+    "statusBefore": "In Progress",
+    "action": "Chat 본문·상태 유지, TUI 라벨 추가",
+    "parentId": "WOO-683",
+    "milestone": {
+      "id": "193948f7-2a11-4110-a143-360d83f2a076",
+      "name": "v0.1.0 — First Public Release"
+    }
+  },
+  {
+    "id": "WOO-687",
+    "title": "Message 02. 대화 주체와 진행 상태를 한눈에 구분한다",
+    "statusBefore": "In Progress",
+    "action": "Chat 본문·상태 유지, TUI 라벨 추가",
+    "parentId": "WOO-683",
+    "milestone": {
+      "id": "193948f7-2a11-4110-a143-360d83f2a076",
+      "name": "v0.1.0 — First Public Release"
+    }
+  },
+  {
+    "id": "WOO-686",
+    "title": "Message 01. 문서와 코드를 읽기 쉽게 표시한다",
+    "statusBefore": "In Progress",
+    "action": "Chat 본문·상태 유지, TUI 라벨 추가",
+    "parentId": "WOO-683",
+    "milestone": {
+      "id": "193948f7-2a11-4110-a143-360d83f2a076",
+      "name": "v0.1.0 — First Public Release"
+    }
+  },
+  {
+    "id": "WOO-684",
+    "title": "Chat — Git Bash 입력·출력·상태를 읽기 좋게 표시한다",
+    "statusBefore": "In Progress",
+    "action": "Chat 본문·상태 유지, TUI 라벨 추가",
+    "parentId": "WOO-679",
+    "milestone": {
+      "id": "193948f7-2a11-4110-a143-360d83f2a076",
+      "name": "v0.1.0 — First Public Release"
+    }
+  },
+  {
+    "id": "WOO-683",
+    "title": "Message — 대화의 내용과 상태를 편하게 읽는다",
+    "statusBefore": "In Progress",
+    "action": "Chat 본문·상태 유지, TUI 라벨 추가",
+    "parentId": "WOO-679",
+    "milestone": {
+      "id": "193948f7-2a11-4110-a143-360d83f2a076",
+      "name": "v0.1.0 — First Public Release"
+    }
+  },
+  {
+    "id": "WOO-679",
+    "title": "Chat — 대화·실행·결과를 읽기 좋은 하나의 흐름으로 보여준다",
+    "statusBefore": "In Progress",
+    "action": "Chat 본문·상태 유지, TUI 라벨 추가",
+    "parentId": "WOO-674",
+    "milestone": {
+      "id": "193948f7-2a11-4110-a143-360d83f2a076",
+      "name": "v0.1.0 — First Public Release"
+    }
+  },
+  {
+    "id": "WOO-680",
+    "title": "Layout",
+    "statusBefore": "Backlog",
+    "action": "본문·제목·라벨 보완",
+    "parentId": "WOO-674",
+    "milestone": {
+      "id": "193948f7-2a11-4110-a143-360d83f2a076",
+      "name": "v0.1.0 — First Public Release"
+    }
+  },
+  {
+    "id": "WOO-682",
+    "title": "Todo",
+    "statusBefore": "Backlog",
+    "action": "본문·제목·라벨 보완",
+    "parentId": "WOO-674",
+    "milestone": {
+      "id": "193948f7-2a11-4110-a143-360d83f2a076",
+      "name": "v0.1.0 — First Public Release"
+    }
+  },
+  {
+    "id": "WOO-681",
+    "title": "Tracer",
+    "statusBefore": "Backlog",
+    "action": "본문·제목·라벨 보완",
+    "parentId": "WOO-674",
+    "milestone": {
+      "id": "193948f7-2a11-4110-a143-360d83f2a076",
+      "name": "v0.1.0 — First Public Release"
+    }
+  },
+  {
+    "id": "WOO-685",
+    "title": "Completion",
+    "statusBefore": "Canceled",
+    "action": "취소·보관 유지",
+    "parentId": "WOO-679",
+    "milestone": {
+      "id": "193948f7-2a11-4110-a143-360d83f2a076",
+      "name": "v0.1.0 — First Public Release"
+    }
+  },
+  {
+    "id": "WOO-674",
+    "title": "TUI 개발",
+    "statusBefore": "In Progress",
+    "action": "본문·제목·라벨 보완",
+    "parentId": "WOO-673",
+    "milestone": {
+      "id": "193948f7-2a11-4110-a143-360d83f2a076",
+      "name": "v0.1.0 — First Public Release"
+    }
+  },
+  {
+    "id": "WOO-678",
+    "title": "HUD에서 권한·사용량·연결·Lifecycle을 확인한다",
+    "statusBefore": "Canceled",
+    "action": "취소·보관 유지",
+    "parentId": null,
+    "milestone": {
+      "id": "193948f7-2a11-4110-a143-360d83f2a076",
+      "name": "v0.1.0 — First Public Release"
+    }
+  },
+  {
+    "id": "WOO-677",
+    "title": "Stats 개발",
+    "statusBefore": "Backlog",
+    "action": "본문·제목·라벨 보완",
+    "parentId": "WOO-673",
+    "milestone": {
+      "id": "193948f7-2a11-4110-a143-360d83f2a076",
+      "name": "v0.1.0 — First Public Release"
+    }
+  },
+  {
+    "id": "WOO-676",
+    "title": "Dashboard 개발",
+    "statusBefore": "Backlog",
+    "action": "본문·제목·라벨 보완",
+    "parentId": "WOO-673",
+    "milestone": {
+      "id": "193948f7-2a11-4110-a143-360d83f2a076",
+      "name": "v0.1.0 — First Public Release"
+    }
+  },
+  {
+    "id": "WOO-675",
+    "title": "Monitor 개발",
+    "statusBefore": "Backlog",
+    "action": "본문·제목·라벨 보완",
+    "parentId": "WOO-673",
+    "milestone": {
+      "id": "193948f7-2a11-4110-a143-360d83f2a076",
+      "name": "v0.1.0 — First Public Release"
+    }
+  },
+  {
+    "id": "WOO-673",
+    "title": "TUI에서 업무를 수행하고 통제할 수 있다",
+    "statusBefore": "In Progress",
+    "action": "본문·제목·라벨 보완",
+    "parentId": null,
+    "milestone": {
+      "id": "193948f7-2a11-4110-a143-360d83f2a076",
+      "name": "v0.1.0 — First Public Release"
+    }
+  },
+  {
+    "id": "WOO-672",
+    "title": "공통 실행·관측 System이 동작한다",
+    "statusBefore": "Backlog",
+    "action": "범위 밖 유지",
+    "parentId": null,
+    "milestone": {
+      "id": "193948f7-2a11-4110-a143-360d83f2a076",
+      "name": "v0.1.0 — First Public Release"
+    }
+  },
+  {
+    "id": "WOO-671",
+    "title": "첫 번째 업무 Workflow를 끝까지 수행한다",
+    "statusBefore": "Backlog",
+    "action": "범위 밖 유지",
+    "parentId": null,
+    "milestone": {
+      "id": "193948f7-2a11-4110-a143-360d83f2a076",
+      "name": "v0.1.0 — First Public Release"
+    }
+  }
+]

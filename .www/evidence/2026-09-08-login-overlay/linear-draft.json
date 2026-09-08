@@ -1,0 +1,1 @@
+{"issues":[{"id":"WOO-728","description":"Provider 선택과 인증 흐름을 하나의 Login prompt로 묶고 인증 상태 배지, 방향키 선택, Enter 진행, Esc 취소를 제공한다."},{"id":"WOO-731","description":"Provider 선택 단계와 인증 진행 단계에서 Esc·Ctrl+C·Ctrl+D가 로그인만 중단하고 기존 Composer focus와 draft를 보존한다."}]}

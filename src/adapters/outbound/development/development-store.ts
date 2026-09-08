@@ -9,7 +9,7 @@ import { entityRefs } from "../../../core/domain/development/development-traceab
 import { parseWorkTraceabilityManifest, referenceKey, type WorkReference, type WorkReferenceKind, type WorkTraceabilityLink, type WorkTraceabilityManifest } from "../../../core/domain/work/traceability.js";
 import { digestLedger, stableJson } from "./development-traceability-digest.js";
 import { canonicalDigest, requiredCoverageFromRegistries, sha256, validateLedger, validateVerificationReceipt } from "./development-traceability-contract.js";
-import { validateReceiptEvidenceAlignment } from "./traceability-validator.js";
+import { inspectObsidianTraceability, validateReceiptEvidenceAlignment, type ObsidianNoteProjection } from "./traceability-validator.js";
 
 type Entity = DevelopmentUnit | DevelopmentBinding | DevelopmentRecord | DevelopmentTest | { id: string; unitId: string; issue: DevelopmentIssue };
 type Kind = "unit" | "link" | "binding" | "record" | "test";
@@ -22,6 +22,10 @@ type TraceabilityQueryKind = "spec" | "acceptance" | "test" | "exception" | "iss
 interface TraceabilityEntityRow { ref: string; kind: string; externalId: string; payload: string; payloadDigest: string }
 interface TraceabilityEdgeRow { source: TraceRef; relation: TraceabilityEdge["relation"]; target: TraceRef }
 const hash = (value: string) => createHash("sha256").update(value).digest("hex");
+// SQLite's default ORDER BY uses binary code-point order. Projection arrays
+// must use the same order or a rebuild can write valid rows and then reject
+// its own read-back when IDs contain punctuation or mixed case.
+const sqliteOrder = (left: string, right: string): number => left < right ? -1 : left > right ? 1 : 0;
 function containedSource(root: string, path: string): string {
  if (isAbsolute(path) || path.split(/[\\/]/u).some(part => part === "..")) throw new Error("SOURCE_PATH_MUST_BE_RELATIVE");
  const canonicalRoot = realpathSync(root), canonicalPath = realpathSync(resolve(canonicalRoot, path));
@@ -63,9 +67,15 @@ export class DevelopmentStore {
  readonly sourceRoot: string;
  readonly indexPath: string;
  private readonly metadataRoot: string;
+ private readonly vaultRoot?: string;
+ private readonly vaultSpecRoot?: string;
+ private readonly requiredVaultLinearIds?: readonly string[];
  private readonly db: Database;
- constructor(options: { projectRoot: string; dataRoot?: string }) {
+ constructor(options: { projectRoot: string; dataRoot?: string; vaultRoot?: string; vaultSpecRoot?: string; requiredVaultLinearIds?: readonly string[] }) {
   this.projectRoot = resolve(options.projectRoot);
+  this.vaultRoot = options.vaultRoot ? resolve(options.vaultRoot) : undefined;
+  this.vaultSpecRoot = options.vaultSpecRoot;
+  this.requiredVaultLinearIds = options.requiredVaultLinearIds;
   this.metadataRoot = join(this.projectRoot, ".www/control-ledger/development");
   mkdirSync(this.metadataRoot, { recursive: true });
   const identityPath = join(this.metadataRoot, "project.json");
@@ -93,6 +103,7 @@ export class DevelopmentStore {
   this.db.run("CREATE TABLE IF NOT EXISTS acceptance_coverage (project TEXT NOT NULL, acceptance_ref TEXT NOT NULL, test_ref TEXT, receipt_ref TEXT, status TEXT NOT NULL, PRIMARY KEY(project,acceptance_ref))");
   this.db.run("CREATE TABLE IF NOT EXISTS exception_coverage (project TEXT NOT NULL, exception_ref TEXT NOT NULL, stage TEXT NOT NULL, test_ref TEXT, receipt_ref TEXT, status TEXT NOT NULL, PRIMARY KEY(project,exception_ref,stage))");
   this.db.run("CREATE TABLE IF NOT EXISTS projection_freshness (project TEXT NOT NULL, ref TEXT NOT NULL, source_digest TEXT NOT NULL, status TEXT NOT NULL, PRIMARY KEY(project,ref))");
+  this.db.run("CREATE TABLE IF NOT EXISTS obsidian_notes (project TEXT NOT NULL, document_id TEXT NOT NULL, path TEXT NOT NULL, digest TEXT NOT NULL, linear_id TEXT NOT NULL, schema_version INTEGER NOT NULL, status TEXT NOT NULL, PRIMARY KEY(project,document_id), UNIQUE(project,path), UNIQUE(project,linear_id))");
  }
  close() { this.db.close(); }
  private scan(): { sources: Source[]; errors: string[] } {
@@ -209,12 +220,18 @@ export class DevelopmentStore {
    }
   }
   if (receiptErrors.length) throw new Error(receiptErrors.join("\n"));
+  let notes: ObsidianNoteProjection[] = [];
+  if (this.vaultRoot) {
+   const inspected = inspectObsidianTraceability({ vaultRoot: this.vaultRoot, ledger, specRoot: this.vaultSpecRoot, requiredLinearIds: this.requiredVaultLinearIds });
+   if (inspected.errors.length) throw new Error(inspected.errors.join("\n"));
+   notes = inspected.notes;
+  }
   const entities: TraceabilityEntityRow[] = ledger.entities.map(value => {
    const payload = stableJson(value);
    return { ref: value.ref, kind: value.kind, externalId: value.id, payload, payloadDigest: hash(payload) };
-  }).sort((left, right) => left.ref.localeCompare(right.ref));
+  }).sort((left, right) => sqliteOrder(left.ref, right.ref));
   const edges: TraceabilityEdgeRow[] = ledger.edges.map(edge => ({ source: edge.from, relation: edge.relation, target: edge.to }))
-   .sort((left, right) => left.source.localeCompare(right.source) || left.relation.localeCompare(right.relation) || left.target.localeCompare(right.target));
+   .sort((left, right) => sqliteOrder(left.source, right.source) || sqliteOrder(left.relation, right.relation) || sqliteOrder(left.target, right.target));
   const logicalDigest = digestLedger(ledger);
   const currentReceipts = (target: TraceRef, test: TraceRef) => ledger.edges
    .filter(edge => edge.relation === "executes" && edge.to === test)
@@ -230,28 +247,32 @@ export class DevelopmentStore {
    const candidates = tests.flatMap(test => currentReceipts(entity.ref, test).map(receiptRef => ({ test, receiptRef, coverage: receipts.get(receiptRef)!.acceptanceCoverage.find(item => item.acceptanceRef === entity.ref && item.testRef === test) })));
    const candidate = candidates.length === 1 ? candidates[0] : undefined;
    return { acceptanceRef: entity.ref, testRef: candidate?.test ?? (tests.length === 1 ? tests[0]! : null), receiptRef: candidate?.receiptRef ?? null, status: candidate?.coverage?.status ?? "blocked" };
-  }).sort((a, b) => a.acceptanceRef.localeCompare(b.acceptanceRef));
+  }).sort((a, b) => sqliteOrder(a.acceptanceRef, b.acceptanceRef));
   const exceptionCoverage = ledger.entities.filter(entity => entity.kind === "exception").flatMap(entity => ["detect", "control", "recovery"].map(stage => {
    const tests = ledger.edges.filter(edge => edge.from === entity.ref && edge.relation === "verified-by").map(edge => edge.to);
    const candidates = tests.flatMap(test => currentReceipts(entity.ref, test).map(receiptRef => ({ test, receiptRef, coverage: receipts.get(receiptRef)!.exceptionCoverage.find(item => item.exceptionRef === entity.ref && item.stage === stage && item.testRef === test) })).filter(candidate => candidate.coverage));
    const candidate = candidates.length === 1 ? candidates[0] : undefined;
    return { exceptionRef: entity.ref, stage, testRef: candidate?.test ?? (tests.length === 1 ? tests[0]! : null), receiptRef: candidate?.receiptRef ?? null, status: candidate?.coverage?.status ?? "blocked" };
-  })).sort((a, b) => a.exceptionRef.localeCompare(b.exceptionRef) || a.stage.localeCompare(b.stage));
+  })).sort((a, b) => sqliteOrder(a.exceptionRef, b.exceptionRef) || sqliteOrder(a.stage, b.stage));
   const freshness = entities.map(entity => {
    const source = ledger.entities.find(value => value.ref === entity.ref)?.source;
    if (!source) return { ref: entity.ref, sourceDigest: entity.payloadDigest, status: "unknown" };
+   if (entity.kind === "note" && this.vaultRoot) {
+    const note = notes.find(value => value.documentId === entity.externalId);
+    return { ref: entity.ref, sourceDigest: source.digest, status: note?.status ?? "unknown" };
+   }
    const path = resolve(this.projectRoot, source.path);
    if (!existsSync(path)) return { ref: entity.ref, sourceDigest: source.digest, status: "unknown" };
    return { ref: entity.ref, sourceDigest: source.digest, status: hash(readFileSync(path, "utf8")) === source.digest ? "current" : "stale" };
   });
-  const rowDigest = hash(stableJson({ projectId: this.projectId, entities, edges, acceptanceCoverage, exceptionCoverage, freshness }));
+  const rowDigest = hash(stableJson({ projectId: this.projectId, entities, edges, acceptanceCoverage, exceptionCoverage, freshness, notes }));
   const meta = [
    { key: "logical_digest", value: logicalDigest },
    { key: "project_id", value: this.projectId },
    { key: "row_digest", value: rowDigest },
    { key: "schema_version", value: "3" },
   ];
-  return { entities, edges, acceptanceCoverage, exceptionCoverage, freshness, meta, logicalDigest, rowDigest };
+  return { entities, edges, acceptanceCoverage, exceptionCoverage, freshness, notes, meta, logicalDigest, rowDigest };
  }
 
  rebuildTraceability(): { logicalDigest: string; rowDigest: string; entities: number; edges: number } {
@@ -265,6 +286,7 @@ export class DevelopmentStore {
    this.db.query("DELETE FROM acceptance_coverage WHERE project = ?").run(this.projectId);
    this.db.query("DELETE FROM exception_coverage WHERE project = ?").run(this.projectId);
    this.db.query("DELETE FROM projection_freshness WHERE project = ?").run(this.projectId);
+   this.db.query("DELETE FROM obsidian_notes WHERE project = ?").run(this.projectId);
    const insertEntity = this.db.query("INSERT INTO traceability_entities(project,ref,kind,external_id,payload,payload_digest) VALUES (?,?,?,?,?,?)");
    for (const row of expected.entities) insertEntity.run(this.projectId, row.ref, row.kind, row.externalId, row.payload, row.payloadDigest);
    const insertEdge = this.db.query("INSERT INTO traceability_edges(project,source,relation,target) VALUES (?,?,?,?)");
@@ -275,6 +297,8 @@ export class DevelopmentStore {
    for (const row of expected.exceptionCoverage) insertException.run(this.projectId, row.exceptionRef, row.stage, row.testRef, row.receiptRef, row.status);
    const insertFreshness = this.db.query("INSERT INTO projection_freshness(project,ref,source_digest,status) VALUES (?,?,?,?)");
    for (const row of expected.freshness) insertFreshness.run(this.projectId, row.ref, row.sourceDigest, row.status);
+   const insertNote = this.db.query("INSERT INTO obsidian_notes(project,document_id,path,digest,linear_id,schema_version,status) VALUES (?,?,?,?,?,?,?)");
+   for (const row of expected.notes) insertNote.run(this.projectId, row.documentId, row.path, row.digest, row.linearId, row.schemaVersion, row.status);
    const insertMeta = this.db.query("INSERT INTO traceability_meta(project,key,value) VALUES (?,?,?)");
    for (const row of expected.meta) insertMeta.run(this.projectId, row.key, row.value);
    this.db.run("COMMIT");
@@ -294,14 +318,15 @@ export class DevelopmentStore {
   const acceptanceCoverage = this.db.query("SELECT acceptance_ref,test_ref,receipt_ref,status FROM acceptance_coverage WHERE project = ? ORDER BY acceptance_ref").all(this.projectId).map((row: any) => ({ acceptanceRef: row.acceptance_ref, testRef: row.test_ref, receiptRef: row.receipt_ref, status: row.status }));
   const exceptionCoverage = this.db.query("SELECT exception_ref,stage,test_ref,receipt_ref,status FROM exception_coverage WHERE project = ? ORDER BY exception_ref,stage").all(this.projectId).map((row: any) => ({ exceptionRef: row.exception_ref, stage: row.stage, testRef: row.test_ref, receiptRef: row.receipt_ref, status: row.status }));
   const freshness = this.db.query("SELECT ref,source_digest,status FROM projection_freshness WHERE project = ? ORDER BY ref").all(this.projectId).map((row: any) => ({ ref: row.ref, sourceDigest: row.source_digest, status: row.status }));
-  const actualRowDigest = hash(stableJson({ projectId: this.projectId, entities, edges, acceptanceCoverage, exceptionCoverage, freshness }));
+  const notes = this.db.query("SELECT document_id,path,digest,linear_id,schema_version,status FROM obsidian_notes WHERE project = ? ORDER BY document_id").all(this.projectId).map((row: any) => ({ documentId: row.document_id, path: row.path, digest: row.digest, linearId: row.linear_id, schemaVersion: row.schema_version, status: row.status }));
+  const actualRowDigest = hash(stableJson({ projectId: this.projectId, entities, edges, acceptanceCoverage, exceptionCoverage, freshness, notes }));
   const errors: string[] = [];
   if (integrity.some(row => Object.values(row).some(value => value !== "ok"))) errors.push("SQLite integrity check failed");
   if (foreignKeys.length) errors.push("SQLite foreign-key check failed");
   if (stableJson(entities) !== stableJson(expected.entities)) errors.push("traceability entity projection differs from relation ledger");
   if (stableJson(edges) !== stableJson(expected.edges)) errors.push("traceability edge projection differs from relation ledger");
   if (stableJson(meta) !== stableJson(expected.meta)) errors.push("traceability metadata projection differs from relation ledger");
-  if (stableJson(acceptanceCoverage) !== stableJson(expected.acceptanceCoverage) || stableJson(exceptionCoverage) !== stableJson(expected.exceptionCoverage) || stableJson(freshness) !== stableJson(expected.freshness)) errors.push("traceability materialized projection differs from relation ledger");
+  if (stableJson(acceptanceCoverage) !== stableJson(expected.acceptanceCoverage) || stableJson(exceptionCoverage) !== stableJson(expected.exceptionCoverage) || stableJson(freshness) !== stableJson(expected.freshness) || stableJson(notes) !== stableJson(expected.notes)) errors.push("traceability materialized projection differs from relation ledger");
   if (actualRowDigest !== expected.rowDigest) errors.push("traceability canonical row digest differs from relation ledger");
   if (errors.length) throw new Error(`${errors.join("\n")}\nrun \`bun run traceability:rebuild\``);
   return { logicalDigest: expected.logicalDigest, rowDigest: expected.rowDigest };
@@ -342,7 +367,11 @@ export class DevelopmentStore {
  }
  traceabilityDrift() {
   const { logicalDigest } = this.assertTraceabilityCurrent();
-  return { logicalDigest, stale: this.db.query("SELECT ref,status FROM projection_freshness WHERE project = ? AND status != 'current' ORDER BY ref").all(this.projectId) };
+  return {
+   logicalDigest,
+   stale: this.db.query("SELECT ref,status FROM projection_freshness WHERE project = ? AND status != 'current' ORDER BY ref").all(this.projectId),
+   notes: this.db.query("SELECT document_id AS documentId,path,digest,linear_id AS linearId,status FROM obsidian_notes WHERE project = ? AND status != 'current' ORDER BY document_id").all(this.projectId),
+  };
  }
  traceabilityOrphans() {
   const { logicalDigest } = this.assertTraceabilityCurrent();

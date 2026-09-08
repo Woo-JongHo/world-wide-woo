@@ -1,0 +1,2310 @@
+diff --git a/.www/Development-Map.md b/.www/Development-Map.md
+index 6be06ab..1856546 100644
+--- a/.www/Development-Map.md
++++ b/.www/Development-Map.md
+@@ -1,13 +1,16 @@
+ # WWW Development Map
+ 
+-- 상태: TUI 실시간 Projection 1차 구현·미수락, 열린 변경 6 PR
+-- 기준일: 2026-09-03
+-- working tree 기준 revision: `0357563fa2ca91a269aa4a78a9a0f97f61780b6b`
+-- 최신 `origin/main`: `beeb2e659af8bbc3d743b9b2b9be8bc7610c1716`
++- 상태: Chat·Todo·Tracer·Stats·Code Map 개발 PR 진행 중·Opus 최종 감사 대기; Monitor·Dashboard는 이슈·설계만 보존
++- 기준일: 2026-09-07 (Linear·PR·코드 원장·검증 증거 재확인)
++- 확인 revision: Stats `664c40b`; Chat `05e2829`/`e1b188b`; Todo `5bf2d53`; Tracer `2fd2405`; Code Map `4d4dd8d`
++- 확인 파일: [연결 원장](./control-ledger/traceability.json), [Chat Evidence](./evidence/2026-09-06-chat-development/assessment.md), [Stats PTY Evidence](./scratchpad/2026-09-07-stats-request-enter.md)
+ - 관련 Issue: [#26](https://github.com/Woo-JongHo/world-wide-woo/issues/26)
+ 
+ 이 문서는 제품 전체의 현재 위치와 다음 전환을 보여주는 읽기 전용 지도다. 세부 요구사항과 완료 권한은 연결된 Planning artifact와 Evidence가 소유한다.
+ 
++현재 첫 제품 마일스톤은 [WWW 첫 제품 마일스톤](../docs/WWW_FIRST_PRODUCT_MILESTONE.md)이
++정의한다. 장기 Service Lifecycle 비전 전체를 현재 구현 범위로 해석하지 않는다.
++
+ Native Workbench에서 `/map`을 실행하면 Planning catalog, Initiative manifest, 기존 Epic·Story projection과 Evidence 파일 변경을 감지해 전체 화면 구조도를 자동 갱신한다. 이 Markdown은 탐색용 기준 문서이며 실행 중 화면 상태의 정본은 아니다.
+ 
+ ## 읽는 법
+@@ -25,6 +28,38 @@ Development Map
+ 
+ ## 현재 제품
+ 
++### Chat·Todo·Tracer·Stats 개발 현황과 Linear 연결 — 2026-09-07
++
++| 작업 ID | 관측 상태 | 근거·연결 | 다음 전환 |
++| --- | --- | --- | --- |
++| [WOO-679](https://linear.app/woo-world/issue/WOO-679) · Chat | PR #38 + #39/#40 진행·Opus 최종 감사 대기 | [개발 확인](./evidence/2026-09-06-chat-development/assessment.md) · [PR #38](https://github.com/Woo-JongHo/world-wide-woo/pull/38) · [PR #40](https://github.com/Woo-JongHo/world-wide-woo/pull/40) · [연결 원장](./control-ledger/traceability.json) | 하위 acceptance와 실제 TUI 수락 후 Opus 판정 |
++| [WOO-683](https://linear.app/woo-world/issue/WOO-683) · Message | 부분 구현 | 동일 Evidence | 하위 보존·격리·예외 항목 해결 |
++| [WOO-684](https://linear.app/woo-world/issue/WOO-684) · Bash | 부분 구현 | 동일 Evidence | 원문 이동·실패/취소/폭 matrix |
++| WOO-686 · Markdown / WOO-687 · 역할 | 기반 구현·전체 수락 미완료 | 동일 Evidence | Markdown·상태·색상·폭 조합 확인 |
++| [WOO-688](https://linear.app/woo-world/issue/WOO-688) · 상태 전이 | PR #40 진행·Opus 감사 대기 | [runtime probes](./evidence/2026-09-06-chat-development/runtime-probes.json) · [PR #40](https://github.com/Woo-JongHo/world-wide-woo/pull/40) | Opus 판정 및 Linear 기록 |
++| [WOO-689](https://linear.app/woo-world/issue/WOO-689) · 긴 내용 | 부분 구현·캐시 회귀 통과 | 동일 Evidence | 최초 렌더/resize 실측·실제 탐색 수락 |
++| [WOO-690](https://linear.app/woo-world/issue/WOO-690) · 재개/identity | PR #39 진행·Opus 감사 대기 | [runtime probes](./evidence/2026-09-06-chat-development/runtime-probes.json) · [PR #39](https://github.com/Woo-JongHo/world-wide-woo/pull/39) | Opus 판정 및 Linear 기록 |
++| [WOO-691](https://linear.app/woo-world/issue/WOO-691) · 예외 | 부분 구현 | 동일 Evidence | 빈/unknown/renderer 실패 처리 |
++| [WOO-692](https://linear.app/woo-world/issue/WOO-692) · 통합 수락 | 자동 검증 근거 확보·실제 TUI 미검증 | [617개 회귀 결과](./evidence/2026-09-06-chat-development/tests-baseline.log) | 실제 Native TUI 시나리오·캡처·사용자 수락 |
++| [WOO-682](https://linear.app/woo-world/issue/WOO-682) · Todo | PR #43 Ready·Terra 승인·Native resume/Opus 대기 | [PR #43](https://github.com/Woo-JongHo/world-wide-woo/pull/43) · [테스트 방법론](./vault/Development/2026-09-07-TUI-Test-Methodology.md) · [연결 원장](./control-ledger/traceability.json) | Native Plan → Todo.md → 모델 귀속의 실제 세션 증거 |
++| [WOO-681](https://linear.app/woo-world/issue/WOO-681) · Tracer | PR #44 Ready·Native 성공 경로 수동 수락 대기 | [PR #44](https://github.com/Woo-JongHo/world-wide-woo/pull/44) · [테스트 방법론](./vault/Development/2026-09-07-TUI-Test-Methodology.md) · [연결 원장](./control-ledger/traceability.json) | Todo/Chat 선택 → 같은 실행 Source 왕복 증거 |
++| [WOO-677](https://linear.app/woo-world/issue/WOO-677) · Stats | PR #41 Ready·Spark 승인·Opus 최종 대기 | [Stats PTY Evidence](./scratchpad/2026-09-07-stats-request-enter.md) · [PR #41](https://github.com/Woo-JongHo/world-wide-woo/pull/41) · [테스트 방법론](./vault/Development/2026-09-07-TUI-Test-Methodology.md) | Opus 판정 후 Linear/PR 상태 갱신 |
++| [WOO-695](https://linear.app/woo-world/issue/WOO-695) · Code Map | PR #42 Ready·Map 감사 기록 완료 | [PR #42](https://github.com/Woo-JongHo/world-wide-woo/pull/42) · [테스트 방법론](./vault/Development/2026-09-07-TUI-Test-Methodology.md) · [연결 원장](./control-ledger/traceability.json) | Unit·Linear·SQLite·Obsidian 왕복 수락 증거 |
++| [WOO-696](https://linear.app/woo-world/issue/WOO-696) · SQLite | 구현·자동 검증 완료·PR 분리 대기 | [development-store](../src/infrastructure/development-store.ts) · [SQLite tests](../test/development-store.test.ts) | commit/PR과 Opus 감사 |
++| [WOO-697](https://linear.app/woo-world/issue/WOO-697) · 개발 기록 | PR #45 Ready·테스트 방법론 기록 추가 | [development-service](../src/application/development-service.ts) · [test runner](../src/infrastructure/development-test-runner.ts) · [PR #45](https://github.com/Woo-JongHo/world-wide-woo/pull/45) | Linear 요약·Obsidian 상세 이중 기록 검증 |
++| [WOO-698](https://linear.app/woo-world/issue/WOO-698) · Obsidian | PR #45 Ready·상세 방법론 문서 추가 | [development-vault](../src/infrastructure/development-vault.ts) · [Vault tests](../test/development-vault.test.ts) · [테스트 방법론](./vault/Development/2026-09-07-TUI-Test-Methodology.md) | Linear ID·테스트 ID·증거 경로 readback |
++
++WOO 번호와 Linear UUID는 작업 ID다. 별도 Unit ID는 미발급이며 기존 EP/ST와 자동 동치 연결하지 않았다. 코드/테스트 연결과 관측은 [원장 안내](./control-ledger/README.md)로 탐색한다. 테스트 통과를 이슈 수락으로 승격하지 않는다. 아래 제품 전체 행은 이번 Chat 감사로 재판정하지 않았다.
++
++### Monitor·Dashboard 범위 결정 — 2026-09-07
++
++| 작업 ID | 관측 상태 | 근거·연결 | 다음 전환 |
++| --- | --- | --- | --- |
++| [WOO-675](https://linear.app/woo-world/issue/WOO-675) · Monitor | 이슈·설계만 유지; 제품 개발/진행 코멘트 없음 | [연결 원장](./control-ledger/traceability.json) | Chat·Todo·Tracer·Stats 수락 뒤 개발 여부 결정 |
++| [WOO-676](https://linear.app/woo-world/issue/WOO-676) · Dashboard | 이슈·설계만 유지; 제품 개발/진행 코멘트 없음 | [연결 원장](./control-ledger/traceability.json) | Monitor 범위 결정 뒤 개발 여부 결정 |
++
++### 기존 제품 전체 관측 — 2026-09-04
++
+ | 제품 영역 | Initiative | Epic | 현재 상태 | 세부 Work | 확인 근거 | 다음 전환 |
+ |---|---|---|---|---|---|---|
+ | Product Shell | 미연결 | [`EP-001`](./Epics.md#ep-001--제품-shell) | 완료 | [`ST-001-*`](./Stories.md#ep-001--제품-shell) | Story checklist | Native Workbench 기준으로 legacy 범위 재분류 |
+@@ -37,8 +72,8 @@ Development Map
+ | Work Narration | 미연결 | [`EP-008`](./Epics.md#ep-008--work-narration-ux) | 완료 | [`ST-008-*`](./Stories.md#ep-008--work-narration-ux) | Story checklist | Issue #22·#24 회귀 보완 |
+ | 01_www Adapt-In | 미연결 | [`EP-009`](./Epics.md#ep-009--01_www-adapt-in) | 진행 중 | [`ST-009-*`](./Stories.md#ep-009--01_www-adapt-in) | Story checklist | 역할·Planning capability 단위 흡수 |
+ | Planning Package | [`INIT-001`](./planning/001-planning-package-v1/INITIATIVE.json) | [`EP-010`](./planning/artifacts/EP-010.md) | 구현됨·미수락 | [`ST-010-01~05`](./planning/artifacts/ST-010-01.md) | catalog·artifact·planning tests | 상태·Evidence event 계약 |
+-| Native Workbench | 상위 Initiative 미연결 | [`EP-011`](./planning/artifacts/EP-011.md) | 보완 중·6 PR 검증 대기 | [`ST-011-06~13`](./planning/artifacts/ST-011-06.md) | [실행 Handoff](../docs/WWW_V010_EXECUTION_HANDOFF.md)·Story Evidence·[#27~32](https://github.com/Woo-JongHo/world-wide-woo/pulls) | 의존 PR 순서대로 병합 후 acceptance 재검증 |
+-| Session Stats | 상위 Initiative 미연결 | [`EP-012`](./planning/artifacts/EP-012.md) | 구현 중·미수락 | [`ST-012-14~19`](./planning/artifacts/ST-012-14.md) | Planning catalog·Session Stats tests | 실제 `/stats` build 수동 검증 |
++| Native Workbench | 상위 Initiative 미연결 | [`EP-011`](./planning/artifacts/EP-011.md) | 로컬 main 통합·미수락 | [`ST-011-06~13`](./planning/artifacts/ST-011-06.md) | [실행 Handoff](../docs/WWW_V010_EXECUTION_HANDOFF.md)·Story Evidence·Native Workbench tests | 첫 제품 마일스톤 흐름과 Story acceptance 재검증 |
++| Session Stats | 상위 Initiative 미연결 | [`EP-012`](./planning/artifacts/EP-012.md) | 로컬 main 통합·미수락 | [`ST-012-14~19`](./planning/artifacts/ST-012-14.md) | Planning catalog·Session Stats tests | 실제 `/stats` TUI 수동 검증과 Evidence 연결 |
+ | Observability Workspace | 상위 Initiative 미연결 | [`EP-019`](./planning/artifacts/EP-019.md) | 로컬 구현·자동 검증 완료·수동 QA 대기 | [`ST-019-01~08`](./planning/artifacts/ST-019-01.md) | [Architecture](../docs/WWW_OBSERVABILITY_VIEW_ARCHITECTURE.md)·[입력](./planning/inputs/OBS-20260904-01.md)·[Evidence](./evidence/EP-019-observability-workspace.md) | 실제 TUI에서 rotation·drilldown·live state 수동 수락 |
+ 
+ 
+@@ -46,23 +81,24 @@ Development Map
+ 
+ | 제품 영역 | Initiative | Epic | 현재 상태 | 상세 | ID·계획 공백 | 다음 전환 |
+ |---|---|---|---|---|---|---|
+-| Lifecycle Workflow Core | 미발급 | 미발급 | 설계 | [제품 방향](../docs/WWW_PRODUCT_DIRECTION.md) | Initiative·Epic·Story 없음 | 최소 vertical slice 정의 |
++| Lifecycle Workflow Core | 미발급 | 미발급 | 설계 | [제품 방향](../docs/WWW_PRODUCT_DIRECTION.md) | Initiative·Epic·Story 없음 | [첫 제품 마일스톤](../docs/WWW_FIRST_PRODUCT_MILESTONE.md) 수락 뒤 최소 vertical slice 정의 |
+ | Product Workflow Profile | 미발급 | 미발급 | 문서화 | [Product Workflow](../docs/workflows/PRODUCT_WORKFLOW.md) | Initiative·Epic·Story 없음 | Project Binding 하나를 Story로 정의 |
+ | RPA Workflow Profile | 미발급 | 미발급 | 문서화 | [RPA Workflow](../docs/workflows/RPA_WORKFLOW.md) | Initiative·Epic·Story 없음 | 실제 RPA 하나를 Story로 정의 |
+ | Role View·Handoff Contract | 미발급 | 미발급 | 설계 | [제품 방향](../docs/WWW_PRODUCT_DIRECTION.md) | Validator·Projection Story 없음 | 한 경계의 Contract 검증 |
+ | Pi Embedded Executor | 미발급 | 미발급 | Phase A 코드 병합·Story 미발급 | [제품 방향](../docs/WWW_PRODUCT_DIRECTION.md) | [PR #25](https://github.com/Woo-JongHo/world-wide-woo/pull/25)·stable Story ID 없음 | 인증된 text lane 실측 후 Phase B Event 계약 |
+ 
+-## 현재 전달 상태
++## 현재 첫 제품 마일스톤
+ 
+-| 변경 | 상태 | 의존성 | 다음 전환 |
++| 작업 묶음 | Planning ID | 현재 상태 | 다음 전환 |
+ |---|---|---|---|
+-| [Issue #26](https://github.com/Woo-JongHo/world-wide-woo/issues/26) Development Map | 로컬 구현·미커밋·미수락 | PR #30과 `workbench-shell.ts`, `slash-commands.ts` 중첩 | PR #30 반영 후 충돌 검증·독립 수락 |
+-| [PR #30](https://github.com/Woo-JongHo/world-wide-woo/pull/30) T-note·Trace 화면 역할 | Ubuntu·Windows PASS, macOS queued | 없음 | PR #27보다 먼저 병합 |
+-| [PR #27](https://github.com/Woo-JongHo/world-wide-woo/pull/27) 저장된 T-note 번호 | Ubuntu·Windows PASS, macOS queued | PR #30 | #30 병합 후 base를 `main`으로 전환·재검증 |
+-| [PR #31](https://github.com/Woo-JongHo/world-wide-woo/pull/31) resume Todo bootstrap | Ubuntu·Windows PASS, macOS queued | 없음 | 독립 병합 후보 |
+-| [PR #28](https://github.com/Woo-JongHo/world-wide-woo/pull/28) Assistant envelope | Ubuntu·Windows PASS, macOS queued | 없음 | 독립 병합 후보 |
+-| [PR #29](https://github.com/Woo-JongHo/world-wide-woo/pull/29) Native 경로 축약 | Ubuntu·Windows PASS, macOS queued | 없음 | PR #32보다 먼저 병합 |
+-| [PR #32](https://github.com/Woo-JongHo/world-wide-woo/pull/32) 구조화 출력 강조 | Ubuntu·Windows PASS, macOS queued | PR #29 | #29 병합 후 base를 `main`으로 전환·재검증 |
++| A. 목표와 현재 위치 고정 | 미발급 | 이 문서와 첫 제품 마일스톤 문서에 반영·미수락 | 사용자 방향 확인 뒤 Planning ID 발급 여부 결정 |
++| B. 사용자 마찰 제거 | 미발급 | `/model` HUD와 의미 기반 완료 회고의 사용자 마찰이 보고됨·Issue 미등록 | Issue 미리보기 승인 후 각각 추적 |
++| C. 내부 구조 정리 | 미발급 | 구조 감사에서 거대 Workbench·Shell·View 책임 혼합 확인 | 외부 interface를 유지한 내부 모듈 분리 Story 정의 |
++| D. 수락 근거 | 미발급 | 로컬 typecheck와 587개 테스트 통과, 실제 milestone TUI·CI 검증 미실행 | 대표 흐름·terminal matrix·OS·CI 근거 연결 |
++
++원격에는 이전 전달용 PR #27~34가 열린 상태지만, 현재 로컬 `main`에는 해당 변경이 통합돼
++있다. 이전 PR별 의존·병합 상세는 Git log와 PR 기록이 소유하며 이 Projection에 복제하지
++않는다. 원격 PR 상태만으로 로컬 구현의 수락 또는 배포 완료를 주장하지 않는다.
+ 
+ ## ID 연결 상태
+ 
+@@ -72,8 +108,10 @@ INIT-001
+    └─ ST-010-01 ~ ST-010-05
+ 
+ 상위 Initiative 미연결
+-└─ EP-011
+-   └─ ST-011-06 ~ ST-011-13
++├─ EP-011
++│  └─ ST-011-06 ~ ST-011-13
++└─ EP-012
++   └─ ST-012-14 ~ ST-012-19
+ 
+ ID 미발급
+ ├─ Lifecycle Workflow Core
+diff --git a/.www/planning/README.md b/.www/planning/README.md
+index 5599ced..cff1180 100644
+--- a/.www/planning/README.md
++++ b/.www/planning/README.md
+@@ -1,5 +1,7 @@
+ # Project-local Planning Package v1
+ 
++이 문서는 기존 EP/ST Planning Package의 저장·검증 계약이다. 기존 catalog와 artifact는 보존한다. WWW 자체의 새 개발 작업은 [Linear 기반 개발 기획](../../docs/planning/linear-development/README.md)을 따른다. 두 체계의 ID 연결·이중 발급 정책은 아직 이관 전이며, 아래 기존 계약을 근거로 Linear 작업을 자동 복제하거나 기존 이력을 삭제하지 않는다.
++
+ WWW의 Planning Package는 하나의 독립적으로 수락 가능한 Product Requirement Boundary를 Why·How·Outcome·Work로 분리한다. 이 계약은 `01_www` Planning Domain의 검증된 경계를 프로젝트 규모에 맞게 Adapt-In한 첫 버전이다.
+ 
+ ## Artifact roles
+diff --git a/AGENTS.md b/AGENTS.md
+index c443472..c14f7bb 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -1,8 +1,12 @@
+ # World Wide Woo 프로젝트 규칙
+ 
++## Linear 이슈
++
++- Linear 제목·번호·하위 구조를 생성·정리하거나 이슈를 삭제할 때는 [woo-linear-title-hierarchy](.agents/skills/woo-linear-title-hierarchy/SKILL.md)를 읽고 적용한다.
++- Linear 이슈를 생성·분할·이동하거나 본문을 수정하기 전에 프로젝트 로컬 [woo-linear-issue-intake](.agents/skills/woo-linear-issue-intake/SKILL.md)를 읽고 적용한다. 기존 계층·중복·가이드를 대조해 위치를 정한 뒤 작성한다.
++
+ ## Git 기록
+ 
+ - 커밋을 준비하거나 실행할 때는 프로젝트 로컬 `$woo-commit`을 사용한다.
+ - GitHub Issue를 생성하거나 수정할 때는 프로젝트 로컬 `$woo-issue-intake`를 사용한다.
+ - 제목은 한국어 문제·요청·결과 문장으로 쓴다. `feat:`, `fix(scope):` 같은 Conventional Commits 유형·범위 접두어는 사용하지 않으며, Issue 유형은 `bug` 또는 `enhancement` 라벨이 소유한다.
+-
+diff --git a/CONTEXT.md b/CONTEXT.md
+index a9314fa..2652ca0 100644
+--- a/CONTEXT.md
++++ b/CONTEXT.md
+@@ -21,6 +21,21 @@ _Avoid_: 숨겨진 추론, 관측되지 않은 실행, raw activity log.
+ **Evidence**: Artifact가 Contract를 충족하고 업무가 수락 가능한지를 뒷받침하는 검증 자료의 집합.
+ _Avoid_: 실행기의 완료 주장, 성공 exit code 하나, raw 로그 전체.
+ 
++**Unit**: 변경 작업이 끝난 뒤에도 지속 관리하는 사용자 기능 또는 독립 책임을 가진 공통 기능의 정체성.
++_Avoid_: Linear Issue 자체, 파일·폴더 하나, 한 번의 실행.
++
++**Linear Issue**: 범위와 수락 조건을 가진 변경 작업. 지속 기능인 Unit과는 별도의 식별과 수명을 가진다.
++_Avoid_: 영구 기능 ID, 실행 성공만으로 수락된 작업.
++
++**Development Session**: 선택한 개발 작업을 수행하며 대화·코드 변경·검증 기록을 연결하는 작업 맥락. 하나의 작업을 여러 세션에서 이어갈 수 있고, 각 기록은 발생 당시의 작업 대상을 가진다.
++_Avoid_: Native thread 하나와의 자동 동일시, 기능 자체의 ID.
++
++**Development Record**: 개발 중 공개된 대화·결정·검증 관측을 대상 작업과 코드 상태에 연결한 기록.
++_Avoid_: 모든 기록을 수락 Evidence로 자동 승격하는 것, 숨겨진 모델 추론.
++
++**Knowledge Note**: 개발 기록을 읽고 설명·판단을 남기는 지속 문서. 문서의 정체성은 제목이나 저장 위치가 바뀌어도 유지된다.
++_Avoid_: Linear 상태의 별도 정본, 편집만으로 바뀌는 실제 테스트 결과.
++
+ **Summary checkpoint**: 완료된 Turn 경계에서 충분한 새 활동이 누적됐는지 판단하고 T-note 생성을 예약하는 시점.
+ _Avoid_: activity가 들어올 때마다 요약을 다시 만드는 동작.
+ 
+@@ -30,6 +45,9 @@ _Avoid_: 코딩 세션 하나, 배포 파이프라인만을 뜻하는 lifecycle.
+ **Orchestration Harness**: Service Lifecycle의 Stage를 실행기와 도구에 배분하고 승인·상태·Evidence·완료 판정을 일관되게 통제하는 WWW 제품 전체.
+ _Avoid_: 모델 Router만 있는 오케스트레이터, 내부 Adapter 하나, 범용 Coding Agent.
+ 
++**First Product Milestone**: 한 프로젝트에서 Codex Native 작업을 요청하고, 진행을 이해하고, 필요한 결정을 내리고, 결과와 검증 근거를 확인한 뒤 안전하게 종료·재개할 수 있는 완결된 로컬 Workbench 흐름.
++_Avoid_: 공개 배포 전체 범위와의 자동 동일시, 전체 Service Lifecycle 자동화, 여러 프로젝트 Operations TUI, 장기 제품 비전 전체의 완료.
++
+ **Application Runtime**: Work Chain·Workflow Loop·승인·Projection·Evidence의 상태와 생명주기를 소유하는 WWW의 실행 계층.
+ _Avoid_: TUI 자체, Agent Execution Runtime, 저장 디렉터리.
+ 
+diff --git a/README.md b/README.md
+index d481f2d..2306718 100644
+--- a/README.md
++++ b/README.md
+@@ -8,7 +8,7 @@
+ 
+ WWW는 하나의 Workflow를 모든 업무에 강요하지 않는다. Product, RPA처럼 성격이 다른 업무에는 서로 다른 `Workflow Profile`을 적용하되, **Work Chain·Contract·Progress·Approval·Evidence**라는 공통 원칙으로 연결과 완료를 관리한다.
+ 
+-> **현재 상태:** WWW는 개발 중이며, 현재 제품은 프로젝트별 AI 작업을 관측하고 통제하는 초기 Workbench다. Workflow Profile과 전체 Service Lifecycle 연결은 장기 제품 방향이다.
++> **현재 상태:** WWW는 개발 중인 프로젝트별 AI Workbench다. 기존 로컬 Workbench 마일스톤은 Codex Native 작업의 요청·관측·승인·종료·재개 흐름을 다룬다. 이것은 Linear의 `v0.1.0 — First Public Release` 전체 범위와 동일하지 않다. 공개 배포에 포함할 System·첫 Workflow의 상세 범위는 [Linear 개발 기획](docs/planning/linear-development/README.md)에서 사용자와 순서대로 확정한다.
+ 
+ ## Why WWW
+ 
+@@ -140,11 +140,13 @@ Execution Observation
+ 
+ ## Documentation
+ 
++- [현재 Linear 기반 개발 기획과 결정 상태](docs/planning/linear-development/README.md)
+ - [전체 개발 현황 Map](.www/Development-Map.md)
+-- [코드 Architecture와 migration map](docs/WWW_CODE_ARCHITECTURE.md)
++- [기존 로컬 Workbench 마일스톤](docs/WWW_FIRST_PRODUCT_MILESTONE.md)
+ - [Product Workflow](docs/workflows/PRODUCT_WORKFLOW.md)
+ - [RPA Workflow](docs/workflows/RPA_WORKFLOW.md)
+ - [제품 방향과 Agent 실행 경계](docs/WWW_PRODUCT_DIRECTION.md)
++- [코드 Architecture와 migration map](docs/WWW_CODE_ARCHITECTURE.md)
+ - [Service Lifecycle의 기존 Control Plane 설계](docs/WWW_CONTROL_PLANE_PLANNING_PROPOSAL.md)
+ - [오픈소스 제품과 WWW의 경계](docs/OSS_POSITIONING.md)
+ - [Agent TUI 비교](docs/TUI_COMPARISON.md)
+diff --git a/docs/WWW_CODE_ARCHITECTURE.md b/docs/WWW_CODE_ARCHITECTURE.md
+index 710e549..b4323f5 100644
+--- a/docs/WWW_CODE_ARCHITECTURE.md
++++ b/docs/WWW_CODE_ARCHITECTURE.md
+@@ -1,10 +1,14 @@
+ # World Wide Woo Code Architecture
+ 
+-- 상태: Opus review 반영 1차 boundary migration 완료
++- 상태: 현재 구현의 의존 규칙과 1차 migration 이력. 아래 과거 이관안은 최종 목표 트리가 아니다.
+ - 기준: `Different tools. One project. No broken handoffs.`
+ - Review: `.www/scratchpad/2026-09-04-capability-architecture-opus-review.md`
+ 
+-## 왜 전면 Feature-first 전환을 하지 않는가
++## 현재 구현과 목표 설계의 구분
++
++새 목표 구조의 논의 원본은 [Linear 개발 아키텍처 초안](planning/linear-development/ARCHITECTURE.md)이다. TUI / System / Workflows를 기준으로 논의하되, 하위 구조와 이관 범위는 아직 전체 확정되지 않았다. 이 문서는 현재 layer-first 코드의 안전장치와 이전 이관 이력을 소유한다. 목표 폴더명을 승인된 코드 이동 지시로 해석하지 않는다.
++
++## 기존 layer-first 구조를 유지해 온 이유
+ 
+ 현재 layer-first 구조는 import 방향과 runtime-neutral domain을 지키는 실제 안전장치다. 문제는 layer 자체가 아니라 `ProjectWorkbench`, `work-steps`, `workbench-shell`, `workbench-views`에 책임이 집중되고 한 capability를 찾을 때 layer를 횡단한다는 점이다.
+ 
+@@ -13,11 +17,11 @@ WWW의 Orchestration은 단순 runtime 호출 계층이 아니라 Work Chain·Co
+ ## 핵심 정의
+ 
+ - Capability: 사용자의 한 질문 묶음에 대해 관측, projection, 표현, acceptance evidence까지 책임지는 제품 영역.
+-- Feature: Capability 안에서 독립 수락 가능한 사용자 가치. 현재 영구 정본은 `EP-###`와 `ST-###-##`다.
++- Feature: Capability 안에서 독립 수락 가능한 사용자 가치. 기존 구현은 `EP-###`와 `ST-###-##`를 사용한다. 새 개발 기획에서는 지속 기능 Unit ID와 Linear 변경 작업 ID를 분리한다.
+ - Workflow: Stage 사이 실행기 선택·재시도·승인·검증·완료를 조정해 PASS/PARTIAL/BLOCKED를 판정하는 lifecycle loop.
+ - Agent Execution Runtime: 모델·Tool loop·session·sandbox를 실행하는 교체 가능한 실행기. 업무 완료나 수락을 결정하지 않는다.
+ 
+-별도 `WWW-F-*`, `feature.yaml`, Workflow/Runtime registry는 현재 만들지 않는다. Planning catalog의 status/acceptance와 legacy ID 연결이 먼저다.
++Unit/Issue 분리 결정은 [식별 계약](planning/linear-development/IDENTITY.md)을 따른다. 아직 ID 형식이나 schema migration은 확정하지 않았으므로 임의의 `WWW-F-*`, `feature.yaml`, registry를 추가하지 않는다. 기존 Planning catalog와 EP/ST 이력은 보존한다.
+ 
+ ## Dependency 방향
+ 
+@@ -38,7 +42,9 @@ app.ts composition root
+ - app.ts만 concrete implementation을 조립한다.
+ - ProjectActivity는 runtime-neutral 관측 경계이며 concrete executor 아래로 이동하지 않는다.
+ 
+-## 책임 Inventory와 Migration Map
++## 과거 책임 Inventory와 Migration 후보
++
++아래 Current file은 이전 이관 검토 시점의 경로이며, 현재 파일 목록이 아니다. 완료한 이동은 마지막 Migration 결과와 아래 work 모듈 설명에서 확인한다. 나머지 후보를 새 목표 구조로 자동 채택하지 않는다.
+ 
+ | Current file | 현재 책임 | 분류 | 목표 위치/조치 | 이유 |
+ |---|---|---|---|---|
+@@ -68,7 +74,7 @@ app.ts composition root
+ 
+ 나머지 작은 파일은 위 public boundary가 검증된 뒤 같은 의미 단위로 이동한다. 이름만 보고 일괄 이동하지 않는다.
+ 
+-## 교정된 목표 구조
++## 과거 layer 내부 이관안 — 현재 목표 아님
+ 
+ ```text
+ src/
+@@ -99,11 +105,15 @@ src/
+ └── cli.ts
+ ```
+ 
+-이 구조는 최종 강제 tree가 아니라 이동 중 behavior와 import direction을 지키는 목표다.
++이 구조는 이전 단계의 이관 검토 기록이다. 새 목표 트리는 위에서 연결한 Linear 개발 아키텍처 초안에서만 관리한다.
++
++`src/domain/work/`는 기존 layer 의존성 안전망을 유지하며 traceability 계약을 정착시키는 현재 위치다. 과거의 TUI / Work / Runtime 및 `src/work/` 승격 제안은 새 목표 초안으로 대체한다. 기존 work 모듈을 통째로 workflows에 옮기지 않는다. 각 책임의 목적지와 Interface를 먼저 정하고 architecture test로 의존 규칙을 검증한다.
++
++`domain/work-steps.ts`는 activity classification과 native delegation projection을 각각 `domain/work/activity-classification.ts`, `domain/work/delegation.ts`로 분리했다. Workflow projection과 plan reconciliation은 revision identity, journal validation, association/orphan 처리 상태를 하나의 invariant로 공유하므로 억지로 내부 API를 만들지 않고 `domain/work/workflow-projection.ts`로 함께 이동했다. 모든 소비자를 canonical Work entry인 `domain/work/index.ts`로 전환했고 legacy `domain/work-steps.ts` compatibility facade는 삭제했다. Architecture test가 canonical entry의 순수성과 legacy 경로 부재를 함께 강제한다.
+ 
+ ## 새로운 기능을 추가하는 방법
+ 
+-1. 사용자 가치와 acceptance를 EP/ST로 등록한다.
++1. [Linear 개발 흐름](planning/linear-development/DEVELOPMENT_FLOW.md)에 따라 사용자와 작업 범위·수락 조건을 먼저 논의한다. 기존 EP/ST를 보존하고 새 작업의 이중 발급은 자동 수행하지 않는다.
+ 2. 기존 capability가 소유할 수 있는지 판단한다.
+ 3. 순수 계약/projection은 domain의 해당 capability 폴더에 둔다.
+ 4. use case는 application에 두고 외부 요구는 application-owned port로 선언한다.
+diff --git a/src/app.ts b/src/app.ts
+index 594f471..db67ad8 100644
+--- a/src/app.ts
++++ b/src/app.ts
+@@ -33,6 +33,7 @@ export async function runApp(options: RunAppOptions = {}): Promise<void> {
+ 		runProjectWorkbenchShell({
+ 			workbench: project.workbench, cwd: project.workspace.root, usage: project.usage,
+ 			developmentMapSource: new FileDevelopmentMapSource(project.workspace.root),
++			development: project.development,
+ 			observabilityHistorySource: new ObservabilityHistorySource(join(project.workspace.root, ".www", "runtime", "activity")),
+ 			gitTelemetrySource: new GitTelemetrySource(), homeDirectory: homedir(),
+ 			composerDraft: project.composerDraft, releaseSessionLease: project.releaseSessionLease,
+diff --git a/src/application/project-workbench.ts b/src/application/project-workbench.ts
+index 7721794..0117f60 100644
+--- a/src/application/project-workbench.ts
++++ b/src/application/project-workbench.ts
+@@ -40,7 +40,7 @@ import {
+ 	type WorkFlowProjectionInput,
+ 	type WorkFlowProjection,
+ 	type WorkStepNarration,
+-} from "../domain/work-steps.js";
++} from "../domain/work/index.js";
+ import {
+ 	projectTNoteCompletionIndex,
+ 	projectActivityToTNoteSource,
+@@ -155,6 +155,8 @@ export interface WorkbenchTNoteSource {
+ }
+ 
+ export interface ProjectWorkbenchOptions {
++	/** Receives newly persisted public observations; it never owns Native execution state. */
++	developmentObserver?: { capture(activity: ProjectActivity): void | Promise<void> };
+ 	projectId: string;
+ 	/** Local, per-process journal namespace. Defaults to the project identity. */
+ 	activityJournalProjectId?: string;
+@@ -230,6 +232,7 @@ export class ProjectWorkbench {
+ 	private pendingPlanGoalActivityId: string | null = null;
+ 	private todo: TodoDocument | null;
+ 	private error: string | null = null;
++	private developmentRecordingError: string | null = null;
+ 	private draft = "";
+ 	private reasoningDraft = "";
+ 	private reasoningSummaryDraft = "";
+@@ -1148,6 +1151,7 @@ export class ProjectWorkbench {
+ 		this.publish();
+ 	}
+ 
++	/** @linear WOO-688 WOO-690 */
+ 	private async recordNativeEvent(event: NativeHarnessEvent): Promise<void> {
+ 		if (this.closed) return;
+ 		// A shared App Server can emit for threads this workbench does not own, and the journal
+@@ -1293,6 +1297,7 @@ export class ProjectWorkbench {
+ 			.some((note) => note.packet.activities.some((activity) => activity.id === terminalActivityId)));
+ 	}
+ 
++	/** @linear WOO-688 */
+ 	private async applyDelta(event: Extract<NativeHarnessEvent, { type: "notification" }>): Promise<void> {
+ 		if (event.refs.threadId) this.threadId = event.refs.threadId;
+ 		const delta = activityText({ params: event.params });
+@@ -1390,6 +1395,14 @@ export class ProjectWorkbench {
+ 			payload,
+ 		});
+ 		const durableActivity = immutable(result.activity);
++		if (result.appended && this.options.developmentObserver) {
++			try {
++				await this.options.developmentObserver.capture(durableActivity);
++			} catch (error) {
++				// A recording failure must not turn a successful Native operation into a failure.
++				this.developmentRecordingError = errorMessage(error);
++			}
++		}
+ 		const added = result.appended || !this.activities.some((activity) => activity.id === result.activity.id);
+ 		if (added) {
+ 			this.activities.push(durableActivity);
+@@ -1501,6 +1514,7 @@ export class ProjectWorkbench {
+ 			actionResult: this.actionResult,
+ 			deliveryUncertain: this.chatDeliveryBlocked && this.blockedChat !== null,
+ 			error: this.error,
++			developmentRecordingError: this.developmentRecordingError,
+ 		});
+ 	}
+ 
+@@ -1600,7 +1614,9 @@ export class ProjectWorkbench {
+ 		if (!source || source.turnId !== this.activeTurnId) return;
+ 		if (activity.nativeRefs.threadId !== this.threadId || activity.nativeRefs.turnId !== source.turnId) return;
+ 		const method = typeof activity.payload.method === "string" ? activity.payload.method : "";
+-		const updatesPlan = method === "turn/plan/updated";
++		const item = record(record(activity.payload.params)?.item);
++		const updatesPlan = method === "turn/plan/updated" ||
++			(method === "item/completed" && typeof item?.type === "string" && item.type.toLowerCase() === "plan");
+ 		const contributesExecution = flow.steps.some((step) => step.activityIds.includes(activity.id));
+ 		if (!updatesPlan && !contributesExecution) return;
+ 		this.enqueueNativeTodoSync(sync, flow);
+@@ -1999,6 +2015,7 @@ function turnLifecycle(method: string): "started" | "terminal" | null {
+ 	return null;
+ }
+ 
++/** @linear WOO-690 WOO-691 */
+ function projectChat(activities: readonly ProjectActivity[]): WorkbenchChatMessage[] {
+ 	const messages = new Map<string, WorkbenchChatMessage>();
+ 	for (const activity of activities) {
+diff --git a/src/application/todo-ledger.ts b/src/application/todo-ledger.ts
+index 9c21712..cf09e3e 100644
+--- a/src/application/todo-ledger.ts
++++ b/src/application/todo-ledger.ts
+@@ -8,7 +8,7 @@ import {
+ 	type TodoItem,
+ 	type TodoItemStatus,
+ } from "../domain/todos";
+-import type { SemanticWorkStep, WorkFlowProjection, WorkStepStatus } from "../domain/work-steps";
++import type { SemanticWorkStep, WorkFlowProjection, WorkStepStatus } from "../domain/work/index";
+ import type { SessionRepository, TodoController, TodoStore } from "./ports";
+ 
+ /** Coordinates the project todo document with the session audit trail. */
+diff --git a/src/cli.ts b/src/cli.ts
+index b30dd7c..ebb25f2 100755
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -9,6 +9,7 @@ export interface CliDependencies {
+ 	runApp: (options?: RunAppOptions) => Promise<void>;
+ 	runRouter: (options?: RunLegacyRouterOptions) => Promise<void>;
+ 	runAuth: (args: string[]) => Promise<void>;
++	runDevelopment?: (args: string[]) => Promise<string>;
+ 	listSessions: () => Promise<Array<{ id: string; updatedAt: string }>>;
+ 	listNativeThreads: () => Promise<readonly NativeThreadSummary[]>;
+ 	selectNativeThread: (threads: readonly NativeThreadSummary[]) => Promise<string | null>;
+@@ -31,6 +32,10 @@ const productionDependencies: CliDependencies = {
+ 		const { runAuth } = await import("./app");
+ 		await runAuth(args);
+ 	},
++	runDevelopment: async args => {
++		const { runDevelopmentCli } = await import("./infrastructure/development-cli");
++		return runDevelopmentCli(args);
++	},
+ 	listSessions: async () => {
+ 		const { listSessions } = await import("./app");
+ 		return listSessions();
+@@ -77,6 +82,7 @@ function helpText(): string {
+ 		"  www auth login <공급자> [oauth|api-key]",
+ 		"                              구독 계정 또는 API 키 로그인",
+ 		"  www auth logout <공급자>    저장된 인증 삭제",
++		"  www development help        Issue·Unit·SQLite·Obsidian 개발 기록 명령",
+ 		"  www sessions                 레거시 SessionRuntime 세션 목록",
+ 		"  www threads                  현재 프로젝트의 Codex native thread 목록",
+ 		"  www --resume                현재 프로젝트의 native thread를 선택해 재개",
+@@ -106,16 +112,20 @@ function isLegacySessionId(value: string | undefined): value is string {
+ }
+ 
+ export async function runCli(args: string[], dependencies: CliDependencies = productionDependencies): Promise<number> {
+-	if (args.includes("--help") || args.includes("-h")) {
++	if (args[0] !== "development" && (args.includes("--help") || args.includes("-h"))) {
+ 		dependencies.writeOut(helpText());
+ 		return 0;
+ 	}
+-	if (args.includes("--version") || args.includes("-v")) {
++	if (args[0] !== "development" && (args.includes("--version") || args.includes("-v"))) {
+ 		dependencies.writeOut(PRODUCT_VERSION);
+ 		return 0;
+ 	}
+ 	try {
+-		if (args[0] === "auth") await dependencies.runAuth(args.slice(1));
++		if (args[0] === "development") {
++			if (!dependencies.runDevelopment) throw new Error("개발 기록 서비스를 사용할 수 없습니다.");
++			dependencies.writeOut(await dependencies.runDevelopment(args.slice(1)));
++		}
++		else if (args[0] === "auth") await dependencies.runAuth(args.slice(1));
+ 		else if (args[0] === "router") {
+ 			if (args.length === 1) await dependencies.runRouter({});
+ 			else if (args.length === 3 && args[1] === "--resume" && isLegacySessionId(args[2])) {
+diff --git a/src/domain/work-steps.ts b/src/domain/work-steps.ts
+deleted file mode 100644
+index 5390ee5..0000000
+--- a/src/domain/work-steps.ts
++++ /dev/null
+@@ -1,1022 +0,0 @@
+-import type { ProjectActivity } from "./project-activity.js";
+-import { redactForExternalReview } from "./redaction.js";
+-import { sanitizeTerminalTextExcerpt } from "./terminal.js";
+-
+-const MAX_PUBLIC_TEXT = 1_200;
+-const FALLBACK_NARRATION: WorkStepNarration = {
+-	what: "작업을 진행합니다.",
+-	why: "요청을 안전하게 처리하고 결과를 확인하기 위해서입니다.",
+-	inputSummary: [],
+-	source: "fallback",
+-};
+-export type WorkActivityClass = "observation" | "action" | "control";
+-/** Every trace relation is either backed by a native identifier or explicitly projected. */
+-export type TraceAttribution = "observed" | "inferred";
+-export type WorkStepStatus =
+-	| "pending"
+-	| "running"
+-	| "completed"
+-	| "failed"
+-	| "cancelled";
+-export type Sha256Hex = string;
+-export interface WorkStepNarration {
+-	readonly what: string;
+-	readonly why?: string;
+-	readonly inputSummary: readonly string[];
+-	readonly source: "model" | "plan" | "fallback";
+-}
+-export interface PlanProjectionInput {
+-	readonly expectedThreadKey: string;
+-	readonly selectedTurnId: string;
+-	readonly hash: DplanHash;
+-}
+-export interface PendingGoalProjectionInput {
+-	readonly kind: "pending-goal";
+-	readonly expectedThreadKey: string;
+-	readonly hash: DplanHash;
+-}
+-export type WorkFlowProjectionInput =
+-	| PlanProjectionInput
+-	| PendingGoalProjectionInput;
+-export interface PlanRevisionRef {
+-	readonly sourceRevisionKeyDigest: Sha256Hex;
+-	readonly activityId: string;
+-	readonly sequence: number;
+-	readonly sourceDigest: string;
+-}
+-export interface DerivedPlanIdentity {
+-	readonly kind: "deterministic-derived";
+-	readonly value: Sha256Hex;
+-	readonly originRevision: PlanRevisionRef;
+-}
+-export interface NativePlanSource {
+-	readonly kind: "native-plan-derived";
+-	readonly expectedThreadKeyDigest: Sha256Hex;
+-	readonly turnId: string;
+-	readonly currentRevision: PlanRevisionRef;
+-	readonly algorithm: "dplan-v1";
+-}
+-export type PlanOrphanReason =
+-	| "pre_plan"
+-	| "no_unambiguous_running_item"
+-	| "deleted"
+-	| "ambiguous_duplicate"
+-	| "ambiguous_edit"
+-	| "replacement"
+-	| "invalid_revision"
+-	| "source_mismatch";
+-export type JournalIntegrityCode =
+-	| "duplicate_activity_id"
+-	| "duplicate_sequence"
+-	| "sequence_gap"
+-	| "invalid_source_digest"
+-	| "duplicate_revision_key";
+-export type RevisionValidationCode =
+-	| "source_turn_mismatch"
+-	| "non_string_entry"
+-	| "blank_entry";
+-export type PlanRejection = {
+-	readonly kind: "journal_integrity";
+-	readonly code: JournalIntegrityCode;
+-	readonly offendingActivityId?: string;
+-	readonly offendingSequence?: number;
+-} | {
+-	readonly kind: "revision";
+-	readonly code: RevisionValidationCode;
+-	readonly activityId: string;
+-	readonly sequence: number;
+-};
+-export interface PlanAssociation {
+-	readonly attribution: "inferred";
+-	readonly activityIds: readonly string[];
+-	readonly observationActivityIds: readonly string[];
+-	/** Each native Plan revision interval and the activities it permits. */
+-	readonly sources: ReadonlyArray<{
+-		readonly turnId: string;
+-		readonly startSequence: number;
+-		readonly endSequence: number | null;
+-		readonly activityIds: readonly string[];
+-		readonly observationActivityIds: readonly string[];
+-	}>;
+-}
+-export interface PlanRetirement {
+-	readonly identity: DerivedPlanIdentity;
+-	readonly retiredBy: PlanRevisionRef;
+-	readonly reason:
+-		| "deleted"
+-		| "ambiguous_duplicate"
+-		| "ambiguous_edit"
+-		| "replacement";
+-}
+-export interface PlanOrphan {
+-	readonly activityId: string;
+-	readonly activityKind: "action" | "observation";
+-	readonly reason: PlanOrphanReason;
+-	readonly priorIdentity: Sha256Hex | null;
+-	readonly currentRevision: PlanRevisionRef | null;
+-}
+-export type PlanReconciliation = {
+-	readonly kind: "minted";
+-	readonly evidence: {
+-		readonly kind: "mint";
+-		readonly tokenDigest: Sha256Hex;
+-		readonly sourceRevisionOrdinal: number;
+-		readonly sourcePosition: number;
+-	};
+-} | {
+-	readonly kind: "retained";
+-	readonly evidence: {
+-		readonly kind: "exact_unique" | "isolated_edit";
+-		readonly previousIdentity: Sha256Hex;
+-		readonly previousRevision: PlanRevisionRef;
+-		readonly tokenDigest: Sha256Hex;
+-		readonly distance?: number;
+-		readonly limit?: number;
+-	};
+-};
+-export interface SemanticWorkStep {
+-	readonly id: Sha256Hex;
+-	readonly identity: DerivedPlanIdentity;
+-	readonly currentRevision: PlanRevisionRef;
+-	readonly reconciliation: PlanReconciliation;
+-	readonly association: PlanAssociation | null;
+-	readonly number: number;
+-	readonly title: string;
+-	readonly status: WorkStepStatus;
+-	readonly activityIds: readonly string[];
+-	readonly observationCount: number;
+-	readonly narration: WorkStepNarration;
+-}
+-export interface WorkFlowProjection {
+-	readonly source: NativePlanSource | null;
+-	readonly retirements: readonly PlanRetirement[];
+-	readonly orphans: readonly PlanOrphan[];
+-	readonly rejections: readonly PlanRejection[];
+-	readonly goal: string;
+-	readonly steps: readonly SemanticWorkStep[];
+-	readonly completedCount: number;
+-	readonly currentStepNumber: number | null;
+-	readonly observationCount: number;
+-	readonly summary: string;
+-}
+-export interface DplanHash {
+-	sha256Hex(input: Uint8Array): Sha256Hex;
+-}
+-export type NativeDelegationStatus = "pending" | "running" | "completed" | "failed";
+-export interface NativeDelegationActivity {
+-	readonly activityId: string;
+-	readonly itemId: string;
+-	readonly kind: string;
+-	readonly message: string | null;
+-	readonly attribution: "observed";
+-	readonly source: {
+-		readonly turnId: string;
+-		readonly itemId: string;
+-	};
+-}
+-export interface NativeDelegatedTask {
+-	readonly id: string;
+-	readonly parentId: string | null;
+-	readonly status: NativeDelegationStatus;
+-	readonly task: string | null;
+-	readonly model: string | null;
+-	readonly reasoningEffort: string | null;
+-	readonly activities: readonly NativeDelegationActivity[];
+-}
+-export interface NativeDelegationProjection {
+-	readonly turnId: string;
+-	readonly tasks: readonly NativeDelegatedTask[];
+-}
+-export class DplanIdentityCollisionError extends Error {
+-	constructor() {
+-		super("dplan identity collision");
+-		this.name = "DplanIdentityCollisionError";
+-	}
+-}
+-const encoder = new TextEncoder();
+-function frame(...parts: readonly (string | Uint8Array)[]): Uint8Array {
+-	const encoded = parts.map((part) => typeof part === "string" ? encoder.encode(part) : part);
+-	const output = new Uint8Array(
+-		encoded.reduce((size, part) => size + 4 + part.length, 0),
+-	);
+-	const view = new DataView(output.buffer);
+-	let offset = 0;
+-	for (const part of encoded) {
+-		view.setUint32(offset, part.length);
+-		offset += 4;
+-		output.set(part, offset);
+-		offset += part.length;
+-	}
+-	return output;
+-}
+-function decimal(value: number): string {
+-	if (!Number.isSafeInteger(value) || value < 0) {
+-		throw new Error("invalid dplan number");
+-	}
+-	return String(value);
+-}
+-function digest(
+-	hash: DplanHash,
+-	...parts: readonly (string | Uint8Array)[]
+-): string {
+-	return hash.sha256Hex(frame(...parts));
+-}
+-function revision(
+-	activity: ProjectActivity,
+-	threadDigest: string,
+-	hash: DplanHash,
+-): PlanRevisionRef {
+-	return {
+-		sourceRevisionKeyDigest: digest(
+-			hash,
+-			"dplan-v1",
+-			"source-revision",
+-			threadDigest,
+-			activity.id,
+-			decimal(activity.sequence),
+-			activity.sourceDigest,
+-		),
+-		activityId: activity.id,
+-		sequence: activity.sequence,
+-		sourceDigest: activity.sourceDigest,
+-	};
+-}
+-function token(value: string): string {
+-	return value.normalize("NFKC").replace(/\r\n?/gu, "\n").trim().replace(
+-		/\s+/gu,
+-		" ",
+-	);
+-}
+-interface Entry {
+-	raw: string;
+-	title: string;
+-	status: WorkStepStatus;
+-	tokenDigest: string;
+-}
+-interface State {
+-	entry: Entry;
+-	identity: DerivedPlanIdentity;
+-	currentRevision: PlanRevisionRef;
+-	reconciliation: PlanReconciliation;
+-	association: {
+-		actions: string[];
+-		observations: string[];
+-		sources: {
+-			startSequence: number;
+-			endSequence: number | null;
+-			actions: string[];
+-			observations: string[];
+-		}[];
+-	};
+-	canonicalSeed: string;
+-}
+-
+-export function projectWorkFlow(
+-	activities: readonly ProjectActivity[],
+-	narrations: ReadonlyMap<string, WorkStepNarration> = new Map(),
+-	input?: WorkFlowProjectionInput,
+-): WorkFlowProjection {
+-	const empty = (): WorkFlowProjection => ({
+-		source: null,
+-		retirements: [],
+-		orphans: [],
+-		rejections: [],
+-		goal: "현재 요청을 처리합니다.",
+-		steps: [],
+-		completedCount: 0,
+-		currentStepNumber: null,
+-		observationCount: 0,
+-		summary: "의미 있는 실행 단계를 기다리고 있습니다.",
+-	});
+-	if (!input) return empty();
+-	if ("kind" in input) {
+-		const pendingGoal = activities.slice().reverse().find((activity) =>
+-			activity.nativeRefs.threadId === input.expectedThreadKey &&
+-			activity.kind === "message" &&
+-			activity.payload.direction === "outbound" &&
+-			typeof activity.payload.text === "string"
+-		);
+-		return {
+-			...empty(),
+-			goal: pendingGoal ? publicText(pendingGoal.payload.text as string) : empty().goal,
+-		};
+-	}
+-	const checked = validateJournal(
+-		activities,
+-		input.expectedThreadKey,
+-		input.hash,
+-	);
+-	const rejections: PlanRejection[] = checked.rejection ? [checked.rejection] : [];
+-	const selectedTurnId = input.selectedTurnId;
+-	const start = checked.activities.findIndex((activity) =>
+-		isTurnStart(activity) &&
+-		activity.nativeRefs.threadId === input.expectedThreadKey &&
+-		activity.nativeRefs.turnId === selectedTurnId
+-	);
+-	if (start < 0) return { ...empty(), rejections };
+-	const end = checked.activities.findIndex((activity, index) =>
+-		index > start &&
+-		isTurnStart(activity) &&
+-		activity.nativeRefs.threadId === input.expectedThreadKey &&
+-		typeof activity.nativeRefs.turnId === "string" &&
+-		activity.nativeRefs.turnId !== input.selectedTurnId
+-	);
+-	const interval = checked.activities.slice(start, end < 0 ? undefined : end);
+-	const goalActivity = checked.activities.slice(0, start).reverse().find(
+-		(activity) =>
+-			activity.nativeRefs.threadId === input.expectedThreadKey &&
+-			(activity.nativeRefs.turnId === undefined ||
+-				activity.nativeRefs.turnId === selectedTurnId) &&
+-			activity.kind === "message" &&
+-			activity.payload.direction === "outbound" &&
+-			typeof activity.payload.text === "string",
+-	);
+-	const goal = goalActivity ? publicText(goalActivity.payload.text as string) : "현재 요청을 처리합니다.";
+-	const threadDigest = digest(
+-		input.hash,
+-		"dplan-v1",
+-		"native-thread",
+-		input.expectedThreadKey,
+-	);
+-	const retirements: PlanRetirement[] = [], orphans: PlanOrphan[] = [];
+-	let current: State[] = [],
+-		currentRevision: PlanRevisionRef | null = null,
+-		invalid = false,
+-		ordinal = 0;
+-	const seeds = new Map<string, string>();
+-	const emitOrphan = (
+-		activity: ProjectActivity,
+-		reason: PlanOrphanReason,
+-		state?: State,
+-	) => {
+-		const kind = classifyWorkActivity(activity);
+-		if (kind !== "control") {
+-			orphans.push({
+-				activityId: activity.id,
+-				activityKind: kind,
+-				reason,
+-				priorIdentity: state?.identity.value ?? null,
+-				currentRevision: state?.currentRevision ?? currentRevision,
+-			});
+-		}
+-	};
+-	for (const activity of interval) {
+-		if (activity.payload.method === "turn/plan/updated") {
+-			if (
+-				activity.nativeRefs.threadId !== input.expectedThreadKey ||
+-				activity.nativeRefs.turnId !== input.selectedTurnId
+-			) {
+-				rejections.push({
+-					kind: "revision",
+-					code: "source_turn_mismatch",
+-					activityId: activity.id,
+-					sequence: activity.sequence,
+-				});
+-				continue;
+-			}
+-			const parsed = parsePlan(activity, input.hash);
+-			if (parsed.error) {
+-				rejections.push({
+-					kind: "revision",
+-					code: parsed.error,
+-					activityId: activity.id,
+-					sequence: activity.sequence,
+-				});
+-				invalid = true;
+-				continue;
+-			}
+-			invalid = false;
+-			ordinal++;
+-			const nextRevision = revision(activity, threadDigest, input.hash);
+-			for (const state of current) {
+-				for (const source of state.association.sources) {
+-					if (source.endSequence === null) source.endSequence = nextRevision.sequence;
+-				}
+-			}
+-			current = reconcile(
+-				current,
+-				parsed.entries!,
+-				nextRevision,
+-				ordinal,
+-				threadDigest,
+-				input.hash,
+-				retirements,
+-				orphans,
+-				seeds,
+-			);
+-			currentRevision = nextRevision;
+-			continue;
+-		}
+-		const kind = classifyWorkActivity(activity);
+-		if (kind === "control") continue;
+-		if (
+-			activity.nativeRefs.threadId !== input.expectedThreadKey ||
+-			activity.nativeRefs.turnId !== input.selectedTurnId
+-		) {
+-			emitOrphan(activity, "source_mismatch");
+-			continue;
+-		}
+-		if (invalid) {
+-			emitOrphan(activity, "invalid_revision");
+-			continue;
+-		}
+-		const running = current.filter((state) => state.entry.status === "running");
+-		if (!currentRevision) emitOrphan(activity, "pre_plan");
+-		else if (running.length !== 1) {
+-			emitOrphan(activity, "no_unambiguous_running_item");
+-		} else {
+-			const state = running[0]!;
+-			let source = state.association.sources.at(-1);
+-			if (!source || source.startSequence !== currentRevision.sequence) {
+-				source = {
+-					startSequence: currentRevision.sequence,
+-					endSequence: null,
+-					actions: [],
+-					observations: [],
+-				};
+-				state.association.sources.push(source);
+-			}
+-			if (kind === "action") {
+-				state.association.actions.push(activity.id);
+-				source.actions.push(activity.id);
+-			} else {
+-				state.association.observations.push(activity.id);
+-				source.observations.push(activity.id);
+-			}
+-		}
+-	}
+-	const activityById = new Map(
+-		checked.activities.map((activity) => [activity.id, activity]),
+-	);
+-	const steps = current.map((state, index): SemanticWorkStep => ({
+-		id: state.identity.value,
+-		identity: state.identity,
+-		currentRevision: state.currentRevision,
+-		reconciliation: state.reconciliation,
+-		association: state.association.actions.length || state.association.observations.length
+-			? {
+-				attribution: "inferred",
+-				activityIds: state.association.actions,
+-				observationActivityIds: state.association.observations,
+-				sources: state.association.sources.map((source) => ({
+-					turnId: selectedTurnId,
+-					startSequence: source.startSequence,
+-					endSequence: source.endSequence,
+-					activityIds: source.actions,
+-					observationActivityIds: source.observations,
+-				})),
+-			}
+-			: null,
+-		number: index + 1,
+-		title: state.entry.title,
+-		status: state.entry.status,
+-		activityIds: state.association.actions,
+-		observationCount: state.association.observations.length,
+-		narration: narration(
+-			narrations.get(state.identity.value),
+-			state.entry.title,
+-			[...state.association.actions, ...state.association.observations].slice(
+-				-8,
+-			).flatMap((id) => activitySummary(activityById.get(id))),
+-		),
+-	}));
+-	const completedCount = steps.filter((step) => step.status === "completed").length;
+-	const currentStep = steps.find((step) => step.status === "running") ??
+-		steps.find((step) => step.status === "pending") ?? null;
+-	return {
+-		source: currentRevision
+-			? {
+-				kind: "native-plan-derived",
+-				expectedThreadKeyDigest: threadDigest,
+-				turnId: selectedTurnId,
+-				currentRevision,
+-				algorithm: "dplan-v1",
+-			}
+-			: null,
+-		retirements,
+-		orphans,
+-		rejections,
+-		goal,
+-		steps,
+-		completedCount,
+-		currentStepNumber: currentStep?.number ?? null,
+-		observationCount: steps.reduce(
+-			(count, step) => count + step.observationCount,
+-			0,
+-		),
+-		summary: steps.length
+-			? `${completedCount}/${steps.length} 단계를 완료했습니다.`
+-			: "의미 있는 실행 단계를 기다리고 있습니다.",
+-	};
+-}
+-
+-function validateJournal(
+-	activities: readonly ProjectActivity[],
+-	expectedThreadKey: string,
+-	hash: DplanHash,
+-): { activities: ProjectActivity[]; rejection?: PlanRejection } {
+-	const accepted: ProjectActivity[] = [],
+-		ids = new Set<string>(),
+-		sequences = new Set<number>(),
+-		revisionKeys = new Set<string>();
+-	let expected = 1;
+-	const threadDigest = digest(
+-		hash,
+-		"dplan-v1",
+-		"native-thread",
+-		expectedThreadKey,
+-	);
+-	for (const activity of activities) {
+-		let code: JournalIntegrityCode | undefined;
+-		if (ids.has(activity.id)) code = "duplicate_activity_id";
+-		else if (sequences.has(activity.sequence)) code = "duplicate_sequence";
+-		else if (activity.sequence !== expected) code = "sequence_gap";
+-		else if (!/^sha256:[0-9a-f]{64}$/u.test(activity.sourceDigest)) {
+-			code = "invalid_source_digest";
+-		} else if (
+-			activity.payload.method === "turn/plan/updated" &&
+-			isParseablePlanEnvelope(activity)
+-		) {
+-			const key = revision(activity, threadDigest, hash).sourceRevisionKeyDigest;
+-			if (revisionKeys.has(key)) code = "duplicate_revision_key";
+-			else revisionKeys.add(key);
+-		}
+-		if (code) {
+-			return {
+-				activities: accepted,
+-				rejection: {
+-					kind: "journal_integrity",
+-					code,
+-					offendingActivityId: activity.id,
+-					offendingSequence: activity.sequence,
+-				},
+-			};
+-		}
+-		ids.add(activity.id);
+-		sequences.add(activity.sequence);
+-		expected += 1;
+-		accepted.push(activity);
+-	}
+-	return { activities: accepted };
+-}
+-
+-function reconcile(
+-	old: State[],
+-	next: Entry[],
+-	ref: PlanRevisionRef,
+-	ordinal: number,
+-	threadDigest: string,
+-	hash: DplanHash,
+-	retirements: PlanRetirement[],
+-	orphans: PlanOrphan[],
+-	seeds: Map<string, string>,
+-): State[] {
+-	for (const state of old) {
+-		const known = seeds.get(state.identity.value);
+-		if (known !== undefined && known !== state.canonicalSeed) {
+-			throw new DplanIdentityCollisionError();
+-		}
+-		seeds.set(state.identity.value, state.canonicalSeed);
+-	}
+-	const oldCounts = count(old.map((state) => state.entry.tokenDigest));
+-	const nextCounts = count(next.map((entry) => entry.tokenDigest));
+-	const blocked = collisionTitles([
+-		...old.map((state) => state.entry),
+-		...next,
+-	]);
+-	const matches = new Map<number, number>();
+-	for (let oldIndex = 0; oldIndex < old.length; oldIndex++) {
+-		const state = old[oldIndex]!;
+-		if (
+-			oldCounts.get(state.entry.tokenDigest) !== 1 ||
+-			blocked.has(state.entry.title)
+-		) continue;
+-		const newIndex = next.findIndex((entry, index) =>
+-			!matches.has(index) && entry.tokenDigest === state.entry.tokenDigest &&
+-			nextCounts.get(entry.tokenDigest) === 1 && !blocked.has(entry.title)
+-		);
+-		if (newIndex >= 0) matches.set(newIndex, oldIndex);
+-	}
+-	let unmatchedOld = old.map((_, index) => index).filter((index) => ![...matches.values()].includes(index));
+-	let unmatchedNew = next.map((_, index) => index).filter((index) => !matches.has(index));
+-	if (unmatchedOld.length === 1 && unmatchedNew.length === 1) {
+-		const prior = old[unmatchedOld[0]!]!, candidate = next[unmatchedNew[0]!];
+-		if (!blocked.has(prior.entry.title) && !blocked.has(candidate!.title)) {
+-			const maxLength = Math.max(
+-				[...prior.entry.raw].length,
+-				[...candidate!.raw].length,
+-			);
+-			const limit = Math.min(8, Math.max(1, Math.floor(maxLength * .2)));
+-			const distance = lev(prior.entry.raw, candidate!.raw, limit);
+-			if (distance <= limit && distance / maxLength <= .2) {
+-				matches.set(unmatchedNew[0]!, unmatchedOld[0]!);
+-			}
+-		}
+-	}
+-	unmatchedOld = old.map((_, index) => index).filter((index) => ![...matches.values()].includes(index));
+-	unmatchedNew = next.map((_, index) => index).filter((index) => !matches.has(index));
+-	for (const index of unmatchedOld) {
+-		const state = old[index]!;
+-		const duplicate = oldCounts.get(state.entry.tokenDigest)! > 1 ||
+-			nextCounts.get(state.entry.tokenDigest)! > 1 ||
+-			blocked.has(state.entry.title);
+-		const hasEditCandidate = unmatchedNew.some((newIndex) => isEditLike(state.entry.raw, next[newIndex]!.raw));
+-		const reason: PlanRetirement["reason"] = unmatchedNew.length === 0
+-			? "deleted"
+-			: duplicate
+-			? "ambiguous_duplicate"
+-			: hasEditCandidate
+-			? "ambiguous_edit"
+-			: "replacement";
+-		retirements.push({ identity: state.identity, retiredBy: ref, reason });
+-		for (const activityId of state.association.actions) {
+-			orphans.push({
+-				activityId,
+-				activityKind: "action",
+-				reason,
+-				priorIdentity: state.identity.value,
+-				currentRevision: ref,
+-			});
+-		}
+-		for (const activityId of state.association.observations) {
+-			orphans.push({
+-				activityId,
+-				activityKind: "observation",
+-				reason,
+-				priorIdentity: state.identity.value,
+-				currentRevision: ref,
+-			});
+-		}
+-	}
+-	return next.map((entry, sourcePosition) => {
+-		const oldIndex = matches.get(sourcePosition);
+-		if (oldIndex !== undefined) {
+-			const state = old[oldIndex]!;
+-			const exact = state.entry.tokenDigest === entry.tokenDigest;
+-			const maxLength = Math.max(
+-				[...state.entry.raw].length,
+-				[...entry.raw].length,
+-			);
+-			const limit = Math.min(8, Math.max(1, Math.floor(maxLength * .2)));
+-			return {
+-				...state,
+-				entry,
+-				currentRevision: ref,
+-				reconciliation: {
+-					kind: "retained",
+-					evidence: exact
+-						? {
+-							kind: "exact_unique",
+-							previousIdentity: state.identity.value,
+-							previousRevision: state.currentRevision,
+-							tokenDigest: entry.tokenDigest,
+-						}
+-						: {
+-							kind: "isolated_edit",
+-							previousIdentity: state.identity.value,
+-							previousRevision: state.currentRevision,
+-							tokenDigest: entry.tokenDigest,
+-							distance: lev(state.entry.raw, entry.raw, limit),
+-							limit,
+-						},
+-				},
+-			};
+-		}
+-		const nonce = frame(
+-			"source-revision-ordinal",
+-			decimal(ordinal),
+-			"source-position",
+-			decimal(sourcePosition),
+-		);
+-		const value = digest(
+-			hash,
+-			"dplan-v1",
+-			"plan-item",
+-			threadDigest,
+-			ref.sourceRevisionKeyDigest,
+-			entry.tokenDigest,
+-			nonce,
+-		);
+-		const seed = `${ref.sourceRevisionKeyDigest}:${entry.tokenDigest}:${ordinal}:${sourcePosition}`;
+-		const known = seeds.get(value);
+-		if (known !== undefined && known !== seed) {
+-			throw new DplanIdentityCollisionError();
+-		}
+-		seeds.set(value, seed);
+-		const identity: DerivedPlanIdentity = {
+-			kind: "deterministic-derived",
+-			value,
+-			originRevision: ref,
+-		};
+-		return {
+-			entry,
+-			identity,
+-			currentRevision: ref,
+-			reconciliation: {
+-				kind: "minted",
+-				evidence: {
+-					kind: "mint",
+-					tokenDigest: entry.tokenDigest,
+-					sourceRevisionOrdinal: ordinal,
+-					sourcePosition,
+-				},
+-			},
+-			association: { actions: [], observations: [], sources: [] },
+-			canonicalSeed: seed,
+-		};
+-	});
+-}
+-function collisionTitles(entries: Entry[]): Set<string> {
+-	const values = new Map<string, Set<string>>();
+-	for (const entry of entries) {
+-		const set = values.get(entry.title) ?? new Set<string>();
+-		set.add(entry.tokenDigest);
+-		values.set(entry.title, set);
+-	}
+-	return new Set(
+-		[...values].filter(([, digests]) => digests.size > 1).map(([title]) => title),
+-	);
+-}
+-function narration(
+-	value: WorkStepNarration | undefined,
+-	title: string,
+-	inputSummary: readonly string[],
+-): WorkStepNarration {
+-	if (!value) return { what: title, inputSummary, source: "plan" };
+-	return technicalNarration(value.what) ||
+-			value.why && technicalNarration(value.why)
+-		? FALLBACK_NARRATION
+-		: value;
+-}
+-function activitySummary(activity: ProjectActivity | undefined): string[] {
+-	if (!activity) return [];
+-	const params = record(activity.payload.params);
+-	const item = record(params?.item) ?? params;
+-	if (!item) return [];
+-	if (item.arguments && typeof item.arguments === "object") {
+-		return [`args: ${publicText(JSON.stringify(item.arguments))}`];
+-	}
+-	const value = typeof item.command === "string"
+-		? item.command
+-		: typeof item.tool === "string"
+-		? item.tool
+-		: typeof item.toolName === "string"
+-		? item.toolName
+-		: activity.payload.method;
+-	return typeof value === "string" ? [publicText(value)] : [];
+-}
+-function technicalNarration(value: string): boolean {
+-	return /`|\b(?:command|cmd|args?|input|path)\s*[:=]/iu.test(value) ||
+-		/(?:^|[\s;|&])\$?\s*(?:apply_patch|bash|bun|cat|cd|find|git|grep|node|npm|npx|pnpm|python|rg|sed|sh|yarn)\b/iu
+-			.test(value) ||
+-		/(?:^|[\s"'`])(?:[~/][A-Za-z0-9_.-]+(?:[\\/][A-Za-z0-9_.-]+)*|\.{1,2}[\\/]|[A-Za-z0-9_-]+(?:[\\/][A-Za-z0-9_.-]+)+)/u
+-			.test(value) ||
+-		/\b[A-Za-z0-9_-]+\.(?:cjs|css|go|html|java|js|json|jsx|md|mjs|py|rb|rs|sh|sql|toml|ts|tsx|yaml|yml|zsh)\b/iu
+-			.test(value) ||
+-		/(?:^|\s)--[A-Za-z0-9_-]+/u.test(value);
+-}
+-function isParseablePlanEnvelope(activity: ProjectActivity): boolean {
+-	return !planValidationError(activity);
+-}
+-function planValidationError(
+-	activity: ProjectActivity,
+-): RevisionValidationCode | undefined {
+-	const params = record(activity.payload.params);
+-	if (!params || !Array.isArray(params.plan) || params.plan.length > 256) {
+-		return "non_string_entry";
+-	}
+-	const values = params.plan.map(record);
+-	if (values.some((entry) => typeof entry?.step !== "string")) {
+-		return "non_string_entry";
+-	}
+-	for (const value of values) {
+-		const step = value!.step as string;
+-		if ([...step].length > 4_096 || !token(step)) return "blank_entry";
+-	}
+-	return undefined;
+-}
+-function parsePlan(
+-	activity: ProjectActivity,
+-	hash: DplanHash,
+-): { entries?: Entry[]; error?: RevisionValidationCode } {
+-	const error = planValidationError(activity);
+-	if (error) return { error };
+-	const values = (record(activity.payload.params)!.plan as readonly unknown[])
+-		.map(record);
+-	const entries = values.map((value) => {
+-		const step = value!.step as string;
+-		const raw = token(step);
+-		return {
+-			raw,
+-			title: publicText(step),
+-			status: planStatus(value!.status),
+-			tokenDigest: digest(hash, raw),
+-		};
+-	});
+-	return { entries };
+-}
+-function count(values: string[]): Map<string, number> {
+-	const counts = new Map<string, number>();
+-	for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1);
+-	return counts;
+-}
+-function lev(left: string, right: string, limit = 8): number {
+-	const a = [...left], b = [...right];
+-	if (Math.abs(a.length - b.length) > limit) return limit + 1;
+-	let previous = Array.from({ length: b.length + 1 }, (_, index) => index);
+-	for (let i = 0; i < a.length; i++) {
+-		const next = [i + 1];
+-		let minimum = next[0]!;
+-		for (let j = 0; j < b.length; j++) {
+-			const value = Math.min(
+-				next[j]! + 1,
+-				previous[j + 1]! + 1,
+-				previous[j]! + (a[i] === b[j] ? 0 : 1),
+-			);
+-			next.push(value);
+-			minimum = Math.min(minimum, value);
+-		}
+-		if (minimum > limit) return limit + 1;
+-		previous = next;
+-	}
+-	return previous.at(-1)!;
+-}
+-function isEditLike(left: string, right: string): boolean {
+-	const maxLength = Math.max([...left].length, [...right].length);
+-	const limit = Math.min(8, Math.max(1, Math.floor(maxLength * .2)));
+-	const distance = lev(left, right, limit);
+-	return distance <= limit && distance / maxLength <= .2;
+-}
+-function isTurnStart(activity: ProjectActivity): boolean {
+-	return activity.payload.method === "turn/start" ||
+-		activity.payload.method === "turn/started";
+-}
+-function planStatus(value: unknown): WorkStepStatus {
+-	return value === "completed"
+-		? "completed"
+-		: value === "inProgress" || value === "running"
+-		? "running"
+-		: value === "failed"
+-		? "failed"
+-		: value === "cancelled"
+-		? "cancelled"
+-		: "pending";
+-}
+-/**
+- * A lossless-enough, display-neutral projection of App Server's collaboration
+- * items. It observes native payloads only; it does not select or direct agents.
+- */
+-export function projectNativeDelegation(
+-	activities: readonly ProjectActivity[],
+-): readonly NativeDelegationProjection[] {
+-	const byTurn = new Map<string, ProjectActivity[]>();
+-	for (const activity of activities) {
+-		const item = record(record(activity.payload.params)?.item);
+-		const type = (delegationText(item?.type) ?? "").replace(/[^a-z]/giu, "").toLowerCase();
+-		if (type !== "collabagenttoolcall" && type !== "subagentactivity") continue;
+-		// A collaboration payload alone is not an observed trace relation.  Keep
+-		// it out rather than manufacturing an observed edge from display fields.
+-		if (!activity.nativeRefs.turnId || !activity.nativeRefs.itemId) continue;
+-		const turnId = activity.nativeRefs.turnId;
+-		if (!turnId) continue;
+-		const entries = byTurn.get(turnId) ?? [];
+-		entries.push(activity);
+-		byTurn.set(turnId, entries);
+-	}
+-	return Object.freeze([...byTurn.entries()].map(([turnId, entries]) => {
+-		const tasks = new Map<string, {
+-			parentId: string | null; status: NativeDelegationStatus; task: string | null;
+-			model: string | null; reasoningEffort: string | null; activities: NativeDelegationActivity[];
+-		}>();
+-		const ensure = (id: string, parentId: string | null) => {
+-			const existing = tasks.get(id);
+-			if (existing) return existing;
+-			const created = { parentId, status: "pending" as NativeDelegationStatus, task: null, model: null, reasoningEffort: null, activities: [] };
+-			tasks.set(id, created);
+-			return created;
+-		};
+-		for (const activity of entries.sort((left, right) => left.sequence - right.sequence)) {
+-			const item = record(record(activity.payload.params)?.item)!;
+-			const type = (delegationText(item.type) ?? "").replace(/[^a-z]/giu, "").toLowerCase();
+-			if (type === "collabagenttoolcall") {
+-				const parentId = delegationText(item.senderThreadId);
+-				const receivers = Array.isArray(item.receiverThreadIds)
+-					? item.receiverThreadIds.flatMap((value) => delegationText(value) ?? [])
+-					: [];
+-				for (const id of receivers) {
+-					const task = ensure(id, parentId);
+-					task.task ??= delegationText(item.prompt);
+-					task.model ??= delegationText(item.model) ?? delegationText(record(item.settings)?.model);
+-					task.reasoningEffort ??= delegationText(item.reasoningEffort) ??
+-						delegationText(item.reasoning_effort) ?? delegationText(record(item.settings)?.reasoning_effort);
+-					const state = record(record(item.agentsStates)?.[id]);
+-					task.status = delegationStatus(state?.status ?? item.status);
+-					const message = delegationText(state?.message) ??
+-						delegationText(item.message) ?? delegationText(item.input);
+-					if (message) task.activities.push(delegationActivity(activity, item, message));
+-				}
+-				continue;
+-			}
+-			const id = delegationText(item.agentThreadId);
+-			if (!id) continue;
+-			const task = ensure(id, null);
+-			task.status = delegationStatus(item.kind);
+-			const message = delegationText(item.message) ?? delegationText(item.text);
+-			task.activities.push(delegationActivity(activity, item, message));
+-		}
+-		return {
+-			turnId,
+-			tasks: Object.freeze([...tasks.entries()].map(([id, task]) => ({
+-				id, ...task, activities: Object.freeze(task.activities),
+-			}))),
+-		};
+-	}));
+-}
+-function delegationActivity(
+-	activity: ProjectActivity,
+-	item: Readonly<Record<string, unknown>>,
+-	message: string | null,
+-): NativeDelegationActivity {
+-	const turnId = activity.nativeRefs.turnId;
+-	const itemId = activity.nativeRefs.itemId;
+-	if (!turnId || !itemId) throw new Error("native delegation activity requires turn and item references");
+-	return {
+-		activityId: activity.id,
+-		itemId,
+-		kind: delegationText(item.kind) ?? delegationText(item.tool) ?? "activity",
+-		message,
+-		attribution: "observed",
+-		source: { turnId, itemId },
+-	};
+-}
+-function delegationText(value: unknown): string | null {
+-	return typeof value === "string" && value.trim() ? value.trim() : null;
+-}
+-function delegationStatus(value: unknown): NativeDelegationStatus {
+-	if (value === "completed") return "completed";
+-	if (value === "failed" || value === "errored" || value === "interrupted" || value === "cancelled" || value === "canceled") return "failed";
+-	if (value === "running" || value === "started" || value === "interacted" || value === "inProgress") return "running";
+-	return "pending";
+-}
+-export function classifyWorkActivity(
+-	activity: ProjectActivity,
+-): WorkActivityClass {
+-	if (activity.kind === "file-change") return "action";
+-	if (activity.kind !== "tool") return "control";
+-	const item = record(record(activity.payload.params)?.item) ??
+-		record(activity.payload.params) ?? activity.payload;
+-	const command = typeof (item.command ?? item.cmd) === "string" ? String(item.command ?? item.cmd) : "";
+-	if (command) return isReadOnlyShell(command) ? "observation" : "action";
+-	const tool = typeof (item.tool ?? item.toolName ?? item.name) === "string"
+-		? String(item.tool ?? item.toolName ?? item.name)
+-		: "";
+-	if (!tool) return "action";
+-	const normalized = tool.replace(/[-_.]/gu, " ").toLowerCase();
+-	if (
+-		/\b(?:create|update|delete|remove|write|edit|apply|send|post|put|deploy|execute|run)\b/u
+-			.test(normalized)
+-	) return "action";
+-	if (
+-		/\b(?:read|get|list|search|find|view|inspect|fetch|query|lookup|show)\b/u
+-			.test(normalized)
+-	) return "observation";
+-	return "action";
+-}
+-function isReadOnlyShell(command: string): boolean {
+-	const value = command.trim().replace(/\b\d?>\s*\/dev\/null\b/gu, "");
+-	if (!value) return true;
+-	if (
+-		/(?:^|\s)(?:rm|mv|cp|mkdir|rmdir|touch|chmod|chown|tee|truncate|install|patch|apply_patch)(?:\s|$)/u
+-			.test(value) ||
+-		/\b(?:npm|pnpm|yarn|bun)\s+(?:add|install|remove|uninstall|update)\b/u.test(
+-			value,
+-		) ||
+-		/\bgit\s+(?:add|commit|push|pull|merge|rebase|reset|checkout|switch|restore|clean|tag)\b/u
+-			.test(value) ||
+-		/\bfind\b[^\n]*(?:-delete|-exec|-execdir)\b/u.test(value) ||
+-		/\bsed\b[^\n]*(?:-i\b|--in-place\b)/u.test(value) ||
+-		/(?:^|[^<])>(?:>|&)?/u.test(value)
+-	) return false;
+-	const segments = value.split(/&&|\|\||[;|]/u).map((part) => part.trim())
+-		.filter(Boolean);
+-	return segments.length > 0 &&
+-		segments.every((part) =>
+-			/^(?:cd\b|pwd\b|ls\b|eza\b|tree\b|rg\b|grep\b|cat\b|head\b|tail\b|wc\b|sort\b|stat\b|file\b|which\b|whereis\b|type\b|find\b|readlink\b|realpath\b|sed\s+-n\b|git\s+(?:status|diff|log|show|rev-parse)\b|bun\s+test\b|echo\b|printf\b|true\b)/u
+-				.test(
+-					part.replace(/^(?:[A-Za-z_][A-Za-z0-9_]*=[^\s]+\s+)*/u, "").replace(
+-						/^\(?\s*/u,
+-						"",
+-					).trim(),
+-				)
+-		);
+-}
+-function record(value: unknown): Readonly<Record<string, unknown>> | undefined {
+-	return value && typeof value === "object" && !Array.isArray(value)
+-		? value as Readonly<Record<string, unknown>>
+-		: undefined;
+-}
+-function publicText(value: string): string {
+-	return redactForExternalReview(
+-		sanitizeTerminalTextExcerpt(value, MAX_PUBLIC_TEXT, "head-tail"),
+-	).text.trim();
+-}
+diff --git a/src/domain/workbench.ts b/src/domain/workbench.ts
+index 2bc8017..634bf89 100644
+--- a/src/domain/workbench.ts
++++ b/src/domain/workbench.ts
+@@ -3,7 +3,7 @@ import type { Effort } from "./model-settings.js";
+ import type { ProjectActivity } from "./project-activity.js";
+ import type { TodoDocument } from "./todos.js";
+ import type { ReviewProvider } from "./review.js";
+-import type { WorkFlowProjection } from "./work-steps.js";
++import type { WorkFlowProjection } from "./work/index.js";
+ 
+ export type WorkbenchPhase = "loading" | "ready" | "working" | "error" | "closed";
+ export type WorkbenchPermissionMode = "manual" | "all";
+@@ -144,6 +144,8 @@ export interface WorkbenchSnapshot {
+ 	/** True only while a chat send is unconfirmed and `/cancel` can still reconcile it. */
+ 	deliveryUncertain?: boolean;
+ 	error: string | null;
++	/** Independent from Native execution errors; older snapshots may omit it. */
++	developmentRecordingError?: string | null;
+ }
+ 
+ export type WorkbenchCommand =
+diff --git a/src/infrastructure/project-workbench-session.ts b/src/infrastructure/project-workbench-session.ts
+index 16c5522..9352488 100644
+--- a/src/infrastructure/project-workbench-session.ts
++++ b/src/infrastructure/project-workbench-session.ts
+@@ -1,3 +1,5 @@
++import type { DevelopmentService } from "../application/development-service";
++import { createDevelopmentService } from "./development-cli";
+ import { randomUUID } from "node:crypto";
+ import { join } from "node:path";
+ import { ProjectWorkbench, type ProjectWorkbenchOptions, type WorkbenchActivityJournal, type WorkbenchTNoteSource, type WorkbenchTodoSource } from "../application/project-workbench.js";
+@@ -11,7 +13,7 @@ import { TodoLedger } from "../application/todo-ledger.js";
+ import type { TodoDocument } from "../domain/todos.js";
+ import type { TNoteDraft } from "../domain/t-notes.js";
+ import type { WorkbenchModelSelection } from "../domain/workbench.js";
+-import type { WorkFlowProjection } from "../domain/work-steps.js";
++import type { WorkFlowProjection } from "../domain/work/index.js";
+ import type { ProjectActivity } from "../domain/project-activity.js";
+ import { CanonicalPromotionService } from "../application/canonical-promotion.js";
+ import { ReviewService } from "../application/review-service.js";
+@@ -52,6 +54,7 @@ export interface ProjectWorkbenchSession {
+ 	workspace: ProjectWorkspace;
+ 	projectId: string;
+ 	workbench: ProjectWorkbench;
++	development?: DevelopmentService;
+ 	composerDraft: ComposerDraftController;
+ 	usage: UsageMonitor;
+ 	/** Called by the TUI after it has closed the workbench. */
+@@ -81,6 +84,7 @@ export interface ProjectWorkbenchSessionFactories {
+ 	createComposerDraft(root: string, sessionId: string, directory: string): Promise<ComposerDraftController>;
+ 	createUsageMonitor(): UsageMonitor;
+ 	createWooEntry(): WooEntry;
++	createDevelopment?(root: string, runId: string): DevelopmentService;
+ }
+ 
+ const productionFactories: ProjectWorkbenchSessionFactories = {
+@@ -118,6 +122,7 @@ const productionFactories: ProjectWorkbenchSessionFactories = {
+ 		return new UsageService(credentials, createModelRegistry(credentials));
+ 	},
+ 	createWooEntry: () => new WooEntry(new WesEntryCollector()),
++	createDevelopment: (projectRoot, runId) => createDevelopmentService({ projectRoot, runId }),
+ };
+ 
+ /**
+@@ -137,15 +142,16 @@ export async function createProjectWorkbenchSession(
+ 	let native: ExecutorPort | undefined;
+ 	let todos: ThreadScopedTodoSource | undefined;
+ 	let workbench: ProjectWorkbench | undefined;
++	let development: DevelopmentService | undefined;
+ 	let released = false;
+ 	const release = async (): Promise<void> => {
+ 		if (released) return;
+ 		released = true;
+ 		todos?.dispose();
+ 		try {
+-			await threadLease?.release();
++			await development?.close();
+ 		} finally {
+-			await lease.release();
++			try { await threadLease?.release(); } finally { await lease.release(); }
+ 		}
+ 	};
+ 	try {
+@@ -172,7 +178,9 @@ export async function createProjectWorkbenchSession(
+ 		// WES is an optional local policy source. Ordinary Chat sessions must not
+ 		// collect it or expose a WES loading/blocked state.
+ 		const wooEntry = options.enableWooEntry ? factories.createWooEntry() : undefined;
++		development = factories.createDevelopment?.(workspace.root, runId);
+ 		workbench = factories.createWorkbench(native, journal, {
++			developmentObserver: development ? { capture: activity => development!.observe(activity) } : undefined,
+ 			projectId,
+ 			provider: options.provider ?? "openai-codex",
+ 			cwd: workspace.root,
+@@ -208,6 +216,7 @@ export async function createProjectWorkbenchSession(
+ 			workspace,
+ 			projectId,
+ 			workbench,
++			development,
+ 			composerDraft,
+ 			usage,
+ 			releaseSessionLease: release,
+diff --git a/src/infrastructure/usage-service.ts b/src/infrastructure/usage-service.ts
+index 5d3f63d..7e334ac 100644
+--- a/src/infrastructure/usage-service.ts
++++ b/src/infrastructure/usage-service.ts
+@@ -124,13 +124,23 @@ export class UsageService implements UsageMonitor {
+ 		this.stopPolling();
+ 		this.listener = listener;
+ 		listener(PROVIDERS.map(provider => snapshot(provider, "loading")));
+-		void this.refresh().then(snapshots => this.listener?.(snapshots));
++		void this.refreshInitial();
+ 		this.pollTimer = setInterval(() => {
+ 			void this.refresh().then(snapshots => this.listener?.(snapshots));
+ 		}, intervalMs);
+ 		return () => this.stopPolling();
+ 	}
+ 
++	private async refreshInitial(): Promise<void> {
++		let snapshots = await this.refresh();
++		// Pre-request startup failures carry no retryAt. Retry them once while the HUD remains
++		// loading so a registry race does not flash a false provider failure on first entry.
++		if (snapshots.some(item => item.state === "error" && item.issue?.retryAt === undefined)) {
++			snapshots = await this.refresh();
++		}
++		this.listener?.(snapshots);
++	}
++
+ 	stopPolling(): void {
+ 		if (this.pollTimer !== undefined) clearInterval(this.pollTimer);
+ 		this.pollTimer = undefined;
+@@ -143,9 +153,16 @@ export class UsageService implements UsageMonitor {
+ 
+ 	private async fetchProvider(provider: UsageProviderId): Promise<UsageSnapshot> {
+ 		const observation: FetchObservation = { networkFailure: false };
++		// Registry startup and credential refresh happen before any quota request.  A transient
++		// failure here must not enter the provider backoff, otherwise the next refresh is
++		// suppressed even though no provider request was attempted.
+ 		try {
+-			// getAuth owns serialized OAuth refresh; re-read afterwards to use its rotated token.
+ 			await this.models.getAuth(provider);
++		} catch {
++			return this.degradedSnapshot(provider, { kind: "provider" });
++		}
++		try {
++			// getAuth owns serialized OAuth refresh; re-read afterwards to use its rotated token.
+ 			const stored = await this.credentials.read(provider);
+ 			if (!stored) {
+ 				this.clearProviderState(provider);
+diff --git a/src/presentation/tui/dashboard-layout.ts b/src/presentation/tui/dashboard-layout.ts
+index e71a518..e8c0382 100644
+--- a/src/presentation/tui/dashboard-layout.ts
++++ b/src/presentation/tui/dashboard-layout.ts
+@@ -136,6 +136,7 @@ const containedScrollbar = {
+  * independent scroll state for left, right-top and right-bottom; compact mode
+  * projects the same content into one ordered viewport.
+  */
++/** @linear WOO-689 WOO-680 */
+ export function createDashboardLayout(
+ 	title: () => string,
+ 	left: DashboardSection,
+diff --git a/src/presentation/tui/delegation-tree-view.ts b/src/presentation/tui/delegation-tree-view.ts
+index 4e1940f..a55f654 100644
+--- a/src/presentation/tui/delegation-tree-view.ts
++++ b/src/presentation/tui/delegation-tree-view.ts
+@@ -1,6 +1,6 @@
+ import { truncateToWidth, type Component } from "@earendil-works/pi-tui";
+ import type { ProjectActivity } from "../../domain/project-activity";
+-import { projectNativeDelegation } from "../../domain/work-steps";
++import { projectNativeDelegation } from "../../domain/work/index";
+ import { sanitizeTerminalTextExcerpt } from "../../domain/terminal";
+ import { colors } from "./theme";
+ 
+diff --git a/src/presentation/tui/observability-dashboard-view.ts b/src/presentation/tui/observability-dashboard-view.ts
+index 878b577..db9e137 100644
+--- a/src/presentation/tui/observability-dashboard-view.ts
++++ b/src/presentation/tui/observability-dashboard-view.ts
+@@ -2,6 +2,7 @@ import { truncateToWidth, visibleWidth, type Component } from "@earendil-works/p
+ import type { ObservabilityDashboard, ObservabilitySessionSummary } from "../../domain/observability-dashboard.js";
+ import { colors } from "./theme.js";
+ 
++/** @linear WOO-676 */
+ export class ObservabilityDashboardView implements Component {
+ 	public constructor(
+ 		private readonly getDashboard: () => ObservabilityDashboard,
+diff --git a/src/presentation/tui/runtime-monitor-view.ts b/src/presentation/tui/runtime-monitor-view.ts
+index b64cd9f..afa94e3 100644
+--- a/src/presentation/tui/runtime-monitor-view.ts
++++ b/src/presentation/tui/runtime-monitor-view.ts
+@@ -2,6 +2,7 @@ import { truncateToWidth, visibleWidth, type Component } from "@earendil-works/p
+ import type { RuntimeMonitorProjection, RuntimeMonitorState } from "../../domain/runtime-monitor.js";
+ import { colors } from "./theme.js";
+ 
++/** @linear WOO-675 */
+ export class RuntimeMonitorView implements Component {
+ 	public constructor(
+ 		private readonly getMonitor: () => RuntimeMonitorProjection,
+diff --git a/src/presentation/tui/session-stats-view.ts b/src/presentation/tui/session-stats-view.ts
+index e1e1530..8b4abc5 100644
+--- a/src/presentation/tui/session-stats-view.ts
++++ b/src/presentation/tui/session-stats-view.ts
+@@ -7,6 +7,7 @@ type StatsTarget = "session" | "diagnostics" | "latest" | number;
+ type LineWriter = (value?: string) => void;
+ 
+ /** Read-only dashboard of the public session statistics projection. */
++/** @linear WOO-677 */
+ export class SessionStatsView implements Component {
+ 	public constructor(
+ 		private readonly getStats: () => SessionStatsSnapshot,
+diff --git a/src/presentation/tui/shared-dashboard-views.ts b/src/presentation/tui/shared-dashboard-views.ts
+index 9158fc7..248295e 100644
+--- a/src/presentation/tui/shared-dashboard-views.ts
++++ b/src/presentation/tui/shared-dashboard-views.ts
+@@ -30,6 +30,7 @@ export class StatusLine implements Component {
+ 	}
+ }
+ 
++/** @linear WOO-682 */
+ export class WorkspaceTodoView implements Component {
+ 	constructor(private readonly todo: () => TodoDocument | null) {}
+ 	invalidate(): void {}
+diff --git a/src/presentation/tui/syntax-highlighter.ts b/src/presentation/tui/syntax-highlighter.ts
+index 9a32392..7004879 100644
+--- a/src/presentation/tui/syntax-highlighter.ts
++++ b/src/presentation/tui/syntax-highlighter.ts
+@@ -59,6 +59,7 @@ function exceedsHighlightBudget(code: string): boolean {
+ 	return false;
+ }
+ 
++/** @linear WOO-686 WOO-691 */
+ export function createNativeSyntaxHighlightPlugin(palette: SyntaxPalette): SyntaxHighlightPlugin {
+ 	const colors = nativeColors(palette);
+ 	const plainColor = foregroundAnsi(palette.variable);
+diff --git a/src/presentation/tui/work-step-card.ts b/src/presentation/tui/work-step-card.ts
+index 1f5934e..917ae07 100644
+--- a/src/presentation/tui/work-step-card.ts
++++ b/src/presentation/tui/work-step-card.ts
+@@ -11,7 +11,7 @@ import type { CommandStatus } from "../../domain/output";
+ import { isReasoningActivityPayload, type ProjectActivity, type ProjectActivityKind } from "../../domain/project-activity";
+ import { sanitizeTerminalTextExcerpt } from "../../domain/terminal";
+ import type { WorkbenchLiveActivity } from "../../domain/workbench";
+-import type { WorkStepNarration } from "../../domain/work-steps";
++import type { WorkStepNarration } from "../../domain/work/index";
+ import { colors, semantic, syntaxHighlightPlugin } from "./theme";
+ 
+ const INPUT_MAX_LINES = 4;
+@@ -454,6 +454,7 @@ function bashOutputLines(projected: PublicStepProjection, width: number): string
+ 	];
+ }
+ 
++/** @linear WOO-684 */
+ function renderBashExecutionBlock(
+ 	projected: PublicStepProjection,
+ 	status: CommandStatus,
+diff --git a/src/presentation/tui/workbench-bottom-hud.ts b/src/presentation/tui/workbench-bottom-hud.ts
+index 4a9a6d8..fe6012f 100644
+--- a/src/presentation/tui/workbench-bottom-hud.ts
++++ b/src/presentation/tui/workbench-bottom-hud.ts
+@@ -7,6 +7,7 @@ const USAGE_MINIMUM_WIDTH = 64;
+ const WOONI_FULL_MINIMUM_WIDTH = USAGE_MINIMUM_WIDTH + HUD_GAP + WOONI_FULL_WIDTH;
+ 
+ /** Four shared rows: usage on the left and the three-row Wooni identity on the right. */
++/** @linear WOO-674 */
+ export class WorkbenchBottomHudView implements Component {
+ 	private readonly wooniFull = new WooniDockView(false);
+ 
+diff --git a/src/presentation/tui/workbench-shell.ts b/src/presentation/tui/workbench-shell.ts
+index 791f91a..237ccce 100644
+--- a/src/presentation/tui/workbench-shell.ts
++++ b/src/presentation/tui/workbench-shell.ts
+@@ -1,3 +1,4 @@
++import { executeDevelopmentShellCommand, type DevelopmentService } from "../../application/development-service";
+ import {
+ 	CombinedAutocompleteProvider,
+ 	Editor,
+@@ -6,6 +7,7 @@ import {
+ 	ScrollView,
+ 	TuiAltScreen,
+ 	VStack,
++	wrapTextWithAnsi,
+ 	isViewportTUI,
+ 	matchesKey,
+ 	type Component,
+@@ -41,6 +43,7 @@ import { SessionStatsView } from "./session-stats-view";
+ 
+ export interface ProjectWorkbenchShellDependencies {
+ 	workbench: ProjectWorkbench;
++	development?: DevelopmentService;
+ 	cwd?: string;
+ 	usage: UsageMonitor;
+ 	developmentMapSource?: {
+@@ -60,6 +63,7 @@ export function workbenchReceiptNotice(receipt: WorkbenchCommandReceipt): string
+ 	return receipt.reason;
+ }
+ 
++/** @linear WOO-694 */
+ export function workbenchReceiptClearsComposer(receipt: WorkbenchCommandReceipt): boolean {
+ 	return receipt.state !== "rejected";
+ }
+@@ -141,6 +145,7 @@ export class DevelopmentMapPollingLifecycle {
+ 	}
+ }
+ 
++/** @linear WOO-673 */
+ export function createWorkbenchViewHost(
+ 	getMode: () => WorkbenchViewMode,
+ 	workbench: Component,
+@@ -331,6 +336,7 @@ function boundedActivityText(value: string | undefined): string | null {
+ }
+ 
+ /** Native workbench shell. */
++/** @linear WOO-674 */
+ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDependencies): void {
+ 	const { workbench, usage, composerDraft, releaseSessionLease } = dependencies;
+ 	const cwd = dependencies.cwd ?? process.cwd();
+@@ -399,7 +405,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
+ 		sessionStats,
+ 	);
+ 	const editor = new Editor(tui, editorTheme, { paddingX: 1, autocompleteMaxVisible: 5 });
+-	editor.setAutocompleteProvider(new CombinedAutocompleteProvider(WORKBENCH_SLASH_COMMANDS, process.cwd()));
++	editor.setAutocompleteProvider(new CombinedAutocompleteProvider([...WORKBENCH_SLASH_COMMANDS, {name: "work", description: "Issue 연결·기록 상태·Obsidian checkpoint/open"}], process.cwd()));
+ 	if (composerDraft?.initialText) editor.setText(composerDraft.initialText);
+ 	const root = new VStack([
+ 		{ component: activeView, basis: 0, grow: 1, shrink: 1, minSize: 1 },
+@@ -411,7 +417,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
+ 	let shuttingDown = false;
+ 	let observabilityNavigation = false;
+ 	let overlay: OverlayHandle | null = null;
+-	let overlayKind: "model" | "approval" | null = null;
++	let overlayKind: "model" | "approval" | "development" | null = null;
+ 	const exitKeys = new ExitKeyPolicy();
+ 	let unsubscribe: () => void = () => undefined;
+ 	const workbenchRenders = new RenderScheduler(() => {
+@@ -553,6 +559,34 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
+ 		overlayKind = "approval";
+ 	};
+ 	const handleLocal = async (text: string): Promise<boolean> => {
++		const developmentNotice = await executeDevelopmentShellCommand(text, dependencies.development);
++		if (developmentNotice !== null) {
++			const safeNotice = sanitizeTerminalTextUnbounded(developmentNotice);
++			status.setNotice(safeNotice.split("\n")[0] ?? "개발 연결");
++			if (safeNotice.includes("\n")) {
++				closeOverlay();
++				let offset = 0;
++				let lineCount = 0;
++				const panel: Component = {
++					invalidate() {},
++					render(width) {
++						const lines = safeNotice.split("\n").flatMap(line => wrapTextWithAnsi(line, Math.max(1, width)));
++						lineCount = lines.length;
++						return ["개발 연결 · ↑↓ 이동 · Esc 닫기", "", ...lines.slice(offset, offset + 18)];
++					},
++					handleInput(data) {
++						if (matchesKey(data, Key.escape)) closeOverlay();
++						else if (matchesKey(data, Key.down)) offset = Math.min(Math.max(0, lineCount - 18), offset + 1);
++						else if (matchesKey(data, Key.up)) offset = Math.max(0, offset - 1);
++						tui.requestRender();
++					},
++				};
++				overlay = tui.showOverlay(new OverlaySheet(panel), { width: "90%", minWidth: 40, maxHeight: "85%", anchor: "center" });
++				overlayKind = "development";
++			}
++			tui.requestRender();
++			return true;
++		}
+ 		const requestedStatsTarget = workbenchStatsTargetCommand(text);
+ 		if (requestedStatsTarget !== null) {
+ 			if (requestedStatsTarget === "invalid") {
+@@ -752,7 +786,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
+ 				closeOverlay();
+ 				status.setNotice(closing === "approval"
+ 					? "승인 창을 닫았습니다. /approve 로 다시 결정할 수 있습니다."
+-					: "모델 변경을 취소했습니다.");
++					: closing === "development" ? "개발 연결 창을 닫았습니다." : "모델 변경을 취소했습니다.");
+ 				tui.requestRender();
+ 				return { consume: true };
+ 			}
+diff --git a/src/presentation/tui/workbench-views.ts b/src/presentation/tui/workbench-views.ts
+index 2f806b0..1a9d17a 100644
+--- a/src/presentation/tui/workbench-views.ts
++++ b/src/presentation/tui/workbench-views.ts
+@@ -12,7 +12,7 @@ import { sanitizeCompletedAssistantResponse } from "../../domain/redaction";
+ import { sanitizeTerminalTextExcerpt, sanitizeTerminalTextUnbounded } from "../../domain/terminal";
+ import { projectTNoteCompletionIndex } from "../../domain/t-notes";
+ import { workbenchApprovalDecisions, type WorkbenchSnapshot } from "../../domain/workbench";
+-import { classifyWorkActivity, type SemanticWorkStep, type WorkStepStatus } from "../../domain/work-steps";
++import { classifyWorkActivity, type SemanticWorkStep, type WorkStepStatus } from "../../domain/work/index";
+ import { boundedPublicProjection } from "./bounded-public-projection";
+ import { colors, markdownTheme, semantic } from "./theme";
+ import { WorkbenchWelcomeView } from "./workbench-welcome";
+@@ -45,6 +45,7 @@ function transcriptRows(rows: readonly string[], width: number): string[] {
+ 	return rows.map((row) => truncateToWidth(row, Math.max(1, width)));
+ }
+ 
++/** @linear WOO-689 */
+ function boundedWorkbenchMarkdown(text: string): string {
+ 	let candidate = text;
+ 	if (candidate.length > WORKBENCH_MARKDOWN_MAX_CHARS) {
+@@ -322,7 +323,9 @@ function evidenceCompletionReport(evidence: ReadonlyMap<string, CompletionEviden
+ 	};
+ }
+ 
+-/** Replays completed Native turns into stable recaps that survive later turns and resume. */
++/** Replays completed Native turns into stable recaps that survive later turns and resume.
++ * @linear WOO-679
++ */
+ function projectCompletionSummaries(snapshot: WorkbenchSnapshot): ReadonlyMap<string, CompletionReport> {
+ 	const reports = new Map<string, CompletionReport>();
+ 	const rootThreadId = snapshot.threadId;
+@@ -376,7 +379,9 @@ function projectCompletionSummaries(snapshot: WorkbenchSnapshot): ReadonlyMap<st
+ 	return reports;
+ }
+ 
+-/** Chat projection for the native ProjectWorkbench, including existing tool cards. */
++/** Chat projection for the native ProjectWorkbench, including existing tool cards.
++ * @linear WOO-679 WOO-683
++ */
+ export class WorkbenchChatView implements Component {
+ 	private snapshot: WorkbenchSnapshot;
+ 	private readonly welcome = new WorkbenchWelcomeView();
+@@ -400,6 +405,7 @@ export class WorkbenchChatView implements Component {
+ 		this.update(snapshot);
+ 	}
+ 
++	/** @linear WOO-686 WOO-688 */
+ 	update(snapshot: WorkbenchSnapshot): void {
+ 		if (this.snapshot !== snapshot) this.cachedRows = null;
+ 		this.snapshot = snapshot;
+@@ -663,6 +669,7 @@ export class WorkbenchChatView implements Component {
+ 		return rows;
+ 	}
+ 
++	/** @linear WOO-687 */
+ 	private renderMessage(message: WorkbenchSnapshot["chat"][number], contentWidth: number): string[] {
+ 		if (message.role === "user") {
+ 			const label = message.status === "failed" ? semantic.toolFailed("전송 실패")
+@@ -751,6 +758,7 @@ function hasVisibleChatContent(snapshot: WorkbenchSnapshot): boolean {
+  * Right-top Dashboard pane: append-only records of completed questions only.
+  * Trace and Source stay with the selected execution in Monitor.
+  */
++/** @linear WOO-693 */
+ export class TNotesSourceView implements Component {
+ 	constructor(private readonly getSnapshot: () => WorkbenchSnapshot) {}
+ 	invalidate(): void {}
+@@ -777,6 +785,7 @@ export class TNotesSourceView implements Component {
+ }
+ 
+ /** Read-only execution projection; it deliberately does not own a session or transcript. */
++/** @linear WOO-681 */
+ export class WorkbenchMonitorView implements Component {
+ 	constructor(private readonly getSnapshot: () => WorkbenchSnapshot) {}
+ 	invalidate(): void {}
+diff --git a/test/architecture.test.ts b/test/architecture.test.ts
+index cf5b479..9a6771c 100644
+--- a/test/architecture.test.ts
++++ b/test/architecture.test.ts
+@@ -57,6 +57,21 @@ describe("source architecture", () => {
+ 		expect(relativeCycles(await loadSourceGraph())).toEqual([]);
+ 	});
+ 
++	test("keeps the Work capability entry independent from TUI and Runtime implementations", async () => {
++		const graph = await loadSourceGraph();
++		const entry = "domain/work/index.ts";
++		expect(graph.has(entry)).toBe(true);
++		expect(graph.has("domain/work-steps.ts")).toBe(false);
++		for (const source of graph.values()) {
++			expect(source.imports, source.path).not.toContain("domain/work-steps.ts");
++		}
++		for (const source of reachableSources(graph, entry)) {
++			expect(source.path, `${entry} -> ${source.path}`).not.toMatch(
++				/^(?:presentation|infrastructure|runtime|tui)\//u,
++			);
++		}
++	});
++
+ 	test("keeps the composition root small", async () => {
+ 		const lines = (await readFile("src/app.ts", "utf8")).split("\n");
+ 		expect(lines.length).toBeLessThanOrEqual(60);
+diff --git a/test/delegation-tree-view.test.ts b/test/delegation-tree-view.test.ts
+index 30b45ed..1afc455 100644
+--- a/test/delegation-tree-view.test.ts
++++ b/test/delegation-tree-view.test.ts
+@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
+ import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
+ import type { ProjectActivity, ProjectActivityPhase } from "../src/domain/project-activity";
+ import type { WorkbenchSnapshot } from "../src/domain/workbench";
+-import { projectNativeDelegation, projectWorkFlow, type DplanHash } from "../src/domain/work-steps";
++import { projectNativeDelegation, projectWorkFlow, type DplanHash } from "../src/domain/work/index";
+ import { projectWorkbenchDelegationSections } from "../src/presentation/tui/delegation-tree-view";
+ import { WorkbenchChatView } from "../src/presentation/tui/workbench-views";
+ 
+diff --git a/test/native-plan-wiring.test.ts b/test/native-plan-wiring.test.ts
+index 65d561a..30be9b9 100644
+--- a/test/native-plan-wiring.test.ts
++++ b/test/native-plan-wiring.test.ts
+@@ -104,7 +104,7 @@ async function waitFor(assertion: () => void, attempts = 80): Promise<void> {
+ }
+ 
+ describe("Native Plan transport-to-Todo wiring", () => {
+-	test("accepts only the known root turn's threadless plan at the Workbench and Todo boundaries", async () => {
++	test("accepts only the known root turn's completed plan item at the Workbench and Todo boundaries", async () => {
+ 		const transport = new FakeJsonLineTransport();
+ 		transport.responses.set("mcpServerStatus/list", [{ data: [], nextCursor: null }]);
+ 		transport.responses.set("thread/start", [{ thread: { id: "thread-root", turns: [] } }]);
+@@ -130,30 +130,103 @@ describe("Native Plan transport-to-Todo wiring", () => {
+ 				.resolves.toMatchObject({ state: "accepted" });
+ 			expect(workbench.snapshot).toMatchObject({ threadId: "thread-root", activeTurnId: "turn-root" });
+ 
+-			// Official App Server shape: turn/plan/updated only guarantees { turnId, plan }.
++			// Actual App Server shape observed by the native probe: the completed item owns
++			// the full Markdown plan; turn/plan/updated may never be emitted.
+ 			transport.emit({
+-				method: "turn/plan/updated",
+-				params: { turnId: "turn-root", plan: [{ step: "root plan", status: "inProgress" }] },
++				method: "item/completed",
++				params: {
++					threadId: "thread-root",
++					turnId: "turn-root",
++					item: {
++						id: "plan-root",
++						type: "plan",
++						text: "1. [in progress] root plan\n2. [pending] verify result\n3. [completed] record result\n4. [failed] failed result\n5. [cancelled] cancelled result",
++					},
++				},
+ 			});
+ 			await waitFor(() => {
+ 				expect(workbench.snapshot.workFlow).toMatchObject({
+ 					source: { turnId: "turn-root", algorithm: "dplan-v1" },
+-					steps: [{ title: "root plan" }],
++					steps: [
++						{ title: "root plan", status: "running" },
++						{ title: "verify result", status: "pending" },
++						{ title: "record result", status: "completed" },
++						{ title: "failed result", status: "failed" },
++						{ title: "cancelled result", status: "cancelled" },
++					],
+ 				});
+-				expect(ledger.snapshot?.items).toHaveLength(1);
++				expect(ledger.snapshot?.items).toHaveLength(5);
++			});
++
++			transport.emit({
++				method: "item/completed",
++				params: {
++					threadId: "thread-root",
++					turnId: "turn-root",
++					item: {
++						id: "plan-root-korean",
++						type: "plan",
++						text: [
++							"# 작업공간 확인 계획 — 완료",
++							"",
++							"1. **README.md 읽기 — 완료**",
++							"   - 프로젝트 목적과 실행 방법을 확인했습니다.",
++							"2. **현재 디렉터리 확인 — 완료**",
++							"   - 작업공간 경계를 확인했습니다.",
++							"3. **후속 작업 대기 — 대기**",
++							"4. **검증 실행 — 진행 중**",
++							"5. **실패 사례 기록 — 실패**",
++							"6. **취소 사례 기록 — 취소**",
++						].join("\n"),
++					},
++				},
++			});
++			await waitFor(() => {
++				expect(workbench.snapshot.workFlow.steps.map(({ title, status }) => ({ title, status }))).toEqual([
++					{ title: "README.md 읽기", status: "completed" },
++					{ title: "현재 디렉터리 확인", status: "completed" },
++					{ title: "후속 작업 대기", status: "pending" },
++					{ title: "검증 실행", status: "running" },
++					{ title: "실패 사례 기록", status: "failed" },
++					{ title: "취소 사례 기록", status: "cancelled" },
++				]);
++				expect(ledger.snapshot?.items).toHaveLength(6);
+ 			});
++			expect(journal.records.find((activity) => activity.nativeRefs.itemId === "plan-root")?.payload)
++				.toMatchObject({ method: "item/completed", params: { item: { type: "plan" } } });
+ 			const rootStep = workbench.snapshot.workFlow.steps[0]!;
+ 			const rootTodo = ledger.snapshot!.items[0]!;
++			const rootTodos = ledger.snapshot!.items;
+ 			expect(rootTodo.id).toBe(`native-${rootStep.identity.value.slice(0, 48)}`);
+ 			expect(rootTodo.details[0]?.id).toBe(`${rootTodo.id}-detail-1`);
+ 			const stableTodoRevision = ledger.snapshot!.revision;
+ 			const stableTodoWrites = store.compareAndSwapCalls;
++			transport.emit({
++				method: "item/completed",
++				params: {
++					threadId: "thread-root",
++					turnId: "turn-root",
++					item: { id: "plan-malformed", type: "plan", text: "arbitrary unmarked instructions" },
++				},
++			});
++			transport.emit({
++				method: "item/completed",
++				params: {
++					threadId: "thread-root",
++					turnId: "turn-root",
++					item: { id: "plan-empty", type: "plan", text: "  \n" },
++				},
++			});
+ 
+-			// Register a distinct child turn with the same live adapter, then emit only its turn id.
++			// Register a distinct child turn with the same live adapter, then emit its plan item.
+ 			await server.startTurn({ threadId: "thread-child", text: "child work" });
+ 			transport.emit({
+-				method: "turn/plan/updated",
+-				params: { turnId: "turn-child", plan: [{ step: "child plan", status: "inProgress" }] },
++				method: "item/completed",
++				params: {
++					threadId: "thread-child",
++					turnId: "turn-child",
++					item: { id: "plan-child", type: "plan", text: "1. [in progress] child plan" },
++				},
+ 			});
+ 			transport.emit({
+ 				method: "item/started",
+@@ -162,31 +235,44 @@ describe("Native Plan transport-to-Todo wiring", () => {
+ 					item: { id: "child-command", type: "commandExecution", command: "touch child-only" },
+ 				},
+ 			});
+-			// This turn has no observed owner, so it must not be adopted as the root plan source.
++			// A foreign turn on the root thread must not replace the selected root plan either.
+ 			transport.emit({
+-				method: "turn/plan/updated",
+-				params: { turnId: "turn-unknown", plan: [{ step: "unknown plan", status: "inProgress" }] },
++				method: "item/completed",
++				params: {
++					threadId: "thread-root",
++					turnId: "turn-unknown",
++					item: { id: "plan-unknown", type: "plan", text: "1. [in progress] unknown plan" },
++				},
+ 			});
+ 
+ 			await waitFor(() => expect(journal.records.some(activity =>
+ 				activity.nativeRefs.turnId === "turn-unknown"
+-				&& activity.payload.method === "turn/plan/updated")).toBe(true));
++				&& activity.payload.method === "item/completed")).toBe(true));
+ 			await Bun.sleep(10);
+ 			expect(workbench.snapshot.workFlow).toMatchObject({
+ 				source: { turnId: "turn-root" },
+-				steps: [{ id: rootStep.id, title: "root plan" }],
++				steps: [
++					{ id: rootStep.id, title: "README.md 읽기" },
++					{ title: "현재 디렉터리 확인" },
++					{ title: "후속 작업 대기" },
++					{ title: "검증 실행" },
++					{ title: "실패 사례 기록" },
++					{ title: "취소 사례 기록" },
++				],
+ 			});
+ 			expect(workbench.snapshot.workFlow.steps.map((step) => step.title)).not.toContain("child plan");
+ 			expect(workbench.snapshot.workFlow.steps.map((step) => step.title)).not.toContain("unknown plan");
+ 			expect(workbench.snapshot.workFlow.rejections).toEqual(expect.arrayContaining([
+ 				expect.objectContaining({ code: "source_turn_mismatch" }),
++				expect.objectContaining({ code: "non_string_entry" }),
++				expect.objectContaining({ code: "blank_entry" }),
+ 			]));
+-			expect(ledger.snapshot).toEqual(expect.objectContaining({ revision: stableTodoRevision, items: [rootTodo] }));
++			expect(ledger.snapshot).toEqual(expect.objectContaining({ revision: stableTodoRevision, items: rootTodos }));
+ 			expect(store.compareAndSwapCalls).toBe(stableTodoWrites);
+ 			expect(journal.records).toEqual(expect.arrayContaining([
+-			expect.objectContaining({ nativeRefs: { threadId: "thread-child", turnId: "turn-child" } }),
+-			expect.objectContaining({ nativeRefs: { turnId: "turn-unknown" } }),
+-		]));
++				expect.objectContaining({ nativeRefs: expect.objectContaining({ threadId: "thread-child", turnId: "turn-child" }) }),
++				expect.objectContaining({ nativeRefs: expect.objectContaining({ turnId: "turn-unknown" }) }),
++			]));
+ 		} finally {
+ 			await workbench.close();
+ 		}
+diff --git a/test/project-workbench.test.ts b/test/project-workbench.test.ts
+index ff8745d..008adda 100644
+--- a/test/project-workbench.test.ts
++++ b/test/project-workbench.test.ts
+@@ -34,7 +34,7 @@ import { SessionModelUsageAccumulator } from "../src/application/session-model-u
+ import { TodoWriteConflictError } from "../src/application/todo-ledger";
+ import { WooEntry, type WooEntryCollection } from "../src/application/woo-entry";
+ import type { TodoDocument } from "../src/domain/todos";
+-import type { WorkFlowProjection } from "../src/domain/work-steps";
++import type { WorkFlowProjection } from "../src/domain/work/index";
+ import { ProviderReviewAdapter, sha256ReviewDigest } from "../src/infrastructure/review-adapters";
+ import { TNoteService } from "../src/application/t-note-service";
+ import type { DetachedTextGenerator } from "../src/application/detached-text-generator";
+@@ -187,6 +187,24 @@ async function ready(workbench: ProjectWorkbench): Promise<void> {
+ }
+ 
+ describe("ProjectWorkbench", () => {
++ test("development recording observes only newly durable activities and failure does not fail Native send", async () => {
++  const native = new FakeNativeHarness();
++  const journal = new MemoryJournal();
++  await journal.append({ projectId: "sample-project", provider: "openai-codex", kind: "progress", phase: "completed", nativeRefs: {}, sourceDigest: "historical", payload: { method: "historical" } });
++  const observed: string[] = [];
++  const workbench = new ProjectWorkbench(native, journal, { projectId: "sample-project", cwd: "/workspace/sample", developmentObserver: { capture: activity => { observed.push(activity.id); throw new Error("recording disk unavailable"); } } });
++  await ready(workbench);
++  expect(observed).toEqual([]);
++  const receipt = await workbench.dispatch({ type: "chat.send", text: "record this selected task" });
++  expect(receipt.state).toBe("accepted");
++  expect(native.startTurnCalls).toBe(1);
++  expect(observed.length).toBeGreaterThan(0);
++  expect(observed).not.toContain("activity-1");
++  expect(workbench.snapshot.error).toBeNull();
++  expect(workbench.snapshot.developmentRecordingError).toBe("recording disk unavailable");
++  await workbench.close();
++ });
++
+ 	test("projects MCP management separately and sends enable, disable, and global reload requests", async () => {
+ 		const native = new FakeNativeHarness();
+ 		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
+diff --git a/test/todo-ledger.test.ts b/test/todo-ledger.test.ts
+index 733cee2..28b2a7e 100644
+--- a/test/todo-ledger.test.ts
++++ b/test/todo-ledger.test.ts
+@@ -5,7 +5,7 @@ import { join } from "node:path";
+ import { TodoIdentityCollisionError, TodoLedger, TodoNativeSourceError, TodoWriteConflictError } from "../src/application/todo-ledger.js";
+ import type { SessionEvent, SessionEventInput } from "../src/domain/session-events";
+ import { renderTodoMarkdown, type TodoDocument } from "../src/domain/todos";
+-import type { SemanticWorkStep, WorkFlowProjection } from "../src/domain/work-steps";
++import type { SemanticWorkStep, WorkFlowProjection } from "../src/domain/work/index";
+ import type { SessionRepository, TodoStore } from "../src/application/ports";
+ import { FileTodoStore } from "../src/infrastructure/todo-store.js";
+ 
+diff --git a/test/usage-service.test.ts b/test/usage-service.test.ts
+index dfe8496..534e5db 100644
+--- a/test/usage-service.test.ts
++++ b/test/usage-service.test.ts
+@@ -89,6 +89,39 @@ describe("UsageService", () => {
+ 		expect(fetches).toBe(2);
+ 	});
+ 
++	test("keeps the initial HUD loading while retrying a transient startup auth failure", async () => {
++		let authAttempts = 0;
++		let fetches = 0;
++		const service = new UsageService(
++			store({ "openai-codex": oauth(), anthropic: undefined }),
++			{
++				getAuth: async provider => {
++					if (provider === "openai-codex" && authAttempts++ === 0) throw new Error("registry is still starting");
++					return {};
++				},
++				checkAuth: async () => undefined,
++			},
++			async () => {
++				fetches++;
++				return response({ rate_limit: { primary_window: { used_percent: 20 } } });
++			},
++		);
++
++		const notifications: Array<readonly { state: string }[]> = [];
++		let resolveReady!: () => void;
++		const ready = new Promise<void>(resolve => { resolveReady = resolve; });
++		const stop = service.startPolling(snapshots => {
++			notifications.push(snapshots);
++			if (snapshots[0]?.state === "ready") resolveReady();
++		}, 60_000);
++		await ready;
++		stop();
++
++		expect(notifications.map(items => items[0]?.state)).toEqual(["loading", "ready"]);
++		expect(authAttempts).toBe(2);
++		expect(fetches).toBe(1);
++	});
++
+ 	test("classifies Claude 429 responses and suppresses polling during backoff", async () => {
+ 		let now = 1_000;
+ 		let fetches = 0;
+diff --git a/test/work-flow.test.ts b/test/work-flow.test.ts
+index 2f32bcc..9569f9a 100644
+--- a/test/work-flow.test.ts
++++ b/test/work-flow.test.ts
+@@ -1,6 +1,6 @@
+ import { describe, expect, test } from "bun:test";
+ import type { ProjectActivity } from "../src/domain/project-activity";
+-import { type DplanHash, DplanIdentityCollisionError, projectWorkFlow } from "../src/domain/work-steps";
++import { type DplanHash, DplanIdentityCollisionError, projectWorkFlow } from "../src/domain/work/index";
+ 
+ const hash: DplanHash = {
+ 	sha256Hex: (input) => new Bun.CryptoHasher("sha256").update(input).digest("hex"),
+diff --git a/test/work-step-card-highlight.test.ts b/test/work-step-card-highlight.test.ts
+index f5d6b19..d806652 100644
+--- a/test/work-step-card-highlight.test.ts
++++ b/test/work-step-card-highlight.test.ts
+@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
+ import { homedir } from "node:os";
+ import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
+ import type { ProjectActivity } from "../src/domain/project-activity";
+-import { projectWorkFlow, type DplanHash } from "../src/domain/work-steps";
++import { projectWorkFlow, type DplanHash } from "../src/domain/work/index";
+ import {
+ 	executionLineTone,
+ 	ObservationCard,
+diff --git a/test/workbench-lifecycle-noise.test.ts b/test/workbench-lifecycle-noise.test.ts
+index 2d0b0c8..b513a0e 100644
+--- a/test/workbench-lifecycle-noise.test.ts
++++ b/test/workbench-lifecycle-noise.test.ts
+@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
+ import { stripTerminalSequences } from "@earendil-works/pi-tui";
+ import type { ProjectActivity } from "../src/domain/project-activity";
+ import type { WorkbenchSnapshot } from "../src/domain/workbench";
+-import { projectWorkFlow } from "../src/domain/work-steps";
++import { projectWorkFlow } from "../src/domain/work/index";
+ import { WorkbenchChatView } from "../src/presentation/tui/workbench-views";
+ 
+ function startup(sequence: number, server: string, status: string): ProjectActivity {
+diff --git a/test/workbench-views.test.ts b/test/workbench-views.test.ts
+index 9b39349..a20f723 100644
+--- a/test/workbench-views.test.ts
++++ b/test/workbench-views.test.ts
+@@ -12,7 +12,7 @@ import {
+ import { TNotesSourceView, WorkbenchChatView, WorkbenchMonitorView } from "../src/presentation/tui/workbench-views";
+ import { WORKBENCH_STATUS_NOTICE } from "../src/presentation/tui/workbench-shell";
+ import { boundedPublicProjection } from "../src/presentation/tui/bounded-public-projection";
+-import { projectWorkFlow, type DplanHash } from "../src/domain/work-steps";
++import { projectWorkFlow, type DplanHash } from "../src/domain/work/index";
+ 
+ const hash: DplanHash = {
+ 	sha256Hex: (input) => new Bun.CryptoHasher("sha256").update(input).digest("hex"),
+@@ -121,6 +121,7 @@ function allScrollContent(box: LayoutBox): string[] {
+ 	return [...(box.scrollContentLines ?? []), ...box.children.flatMap(allScrollContent)];
+ }
+ 
++/** @linear WOO-692 */
+ describe("workbench dashboard views", () => {
+ 	test("reuses the complete chat projection for scroll-only frames", () => {
+ 		const count = 5_000;

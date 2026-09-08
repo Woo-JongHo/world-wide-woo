@@ -1,0 +1,66 @@
+{
+  "WOO-673": [
+    [
+      "src/presentation/tui/workbench-shell.ts",
+      "export function createWorkbenchViewHost("
+    ]
+  ],
+  "WOO-674": [
+    [
+      "src/presentation/tui/workbench-shell.ts",
+      "export function runProjectWorkbenchShell("
+    ],
+    [
+      "src/presentation/tui/workbench-bottom-hud.ts",
+      "export class WorkbenchBottomHudView "
+    ]
+  ],
+  "WOO-680": [
+    [
+      "src/presentation/tui/dashboard-layout.ts",
+      "export function createDashboardLayout("
+    ]
+  ],
+  "WOO-681": [
+    [
+      "src/presentation/tui/workbench-views.ts",
+      "export class WorkbenchMonitorView "
+    ]
+  ],
+  "WOO-682": [
+    [
+      "src/presentation/tui/shared-dashboard-views.ts",
+      "export class WorkspaceTodoView "
+    ]
+  ],
+  "WOO-675": [
+    [
+      "src/presentation/tui/runtime-monitor-view.ts",
+      "export class RuntimeMonitorView "
+    ]
+  ],
+  "WOO-676": [
+    [
+      "src/presentation/tui/observability-dashboard-view.ts",
+      "export class ObservabilityDashboardView "
+    ]
+  ],
+  "WOO-677": [
+    [
+      "src/presentation/tui/session-stats-view.ts",
+      "export class SessionStatsView "
+    ]
+  ],
+  "new:tnote": [
+    [
+      "src/presentation/tui/workbench-views.ts",
+      "export class TNotesSourceView "
+    ]
+  ],
+  "new:composer": [
+    [
+      "src/presentation/tui/workbench-shell.ts",
+      "export function workbenchReceiptClearsComposer("
+    ]
+  ]
+}

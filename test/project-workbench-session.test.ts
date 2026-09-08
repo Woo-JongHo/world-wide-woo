@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { codexInteractiveModel } from "../src/app.js";
@@ -17,6 +17,16 @@ import type { ProjectWorkspace } from "../src/adapters/outbound/workspace/projec
 import { nativeThreadJournalKey } from "../src/adapters/outbound/persistence/activity-journal-store.js";
 import { createNativeHarness } from "../src/adapters/outbound/execution/factory.js";
 import { sha256ReviewDigest } from "../src/adapters/outbound/review/review-adapters.js";
+import type { SkillRegistrySnapshot } from "../src/core/skills/skill-registry.js";
+
+const testSkillRegistry: SkillRegistrySnapshot = Object.freeze({
+	schemaVersion: 1,
+	root: ".agents/skills",
+	sourceRevision: "git:test",
+	digest: "a".repeat(64),
+	skills: Object.freeze([{ name: "rpa-intake", description: "test", path: ".agents/skills/rpa-intake/SKILL.md", digest: "b".repeat(64), sourceRevision: "git:test" }]),
+});
+const loadTestSkillRegistry = async (): Promise<SkillRegistrySnapshot> => testSkillRegistry;
 
 class MemoryTodoStore implements TodoStore {
 	async read() { return null; }
@@ -181,6 +191,31 @@ describe("createProjectWorkbenchSession", () => {
 		expect(appends).toBe(0);
 		await expect(journal.readAll("unbound")).resolves.toEqual([]);
 		expect(reads).toBe(0);
+	});
+
+	test("rebuilds the bound session Tracer.md from the canonical activity journal", async () => {
+		const root = await mkdtemp(join(tmpdir(), "www-thread-trace-"));
+		const activities: ProjectActivity[] = [];
+		const journal: WorkbenchActivityJournal = {
+			append: async (input) => {
+				const activity: ProjectActivity = {
+					...input, schemaVersion: 1, id: "activity-1", sequence: 1,
+					recordedAt: "2026-09-08T00:00:00.000Z",
+				};
+				activities.push(activity);
+				return { activity, appended: true };
+			},
+			readAll: async () => activities,
+		};
+		const bound = new ThreadBoundActivityJournal(journal, root);
+		await bound.bindThread("thread-1");
+		await bound.append({
+			projectId: "ignored", kind: "tool", phase: "completed", provider: "openai-codex",
+			nativeRefs: { threadId: "thread-1", turnId: "turn-1", itemId: "item-1" },
+			sourceDigest: `sha256:${"1".padStart(64, "0")}`, payload: {},
+		});
+		const path = join(root, scopedTodoSessionId("thread-1"), "Tracer.md");
+		expect(await readFile(path, "utf8")).toContain("tool · completed · activity-1");
 	});
 
 	test("uses the configured Codex model only and falls back when a legacy router selected another provider", () => {

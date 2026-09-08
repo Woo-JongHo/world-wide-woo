@@ -1,0 +1,2 @@
+$ bun scripts/traceability.ts rebuild
+{"logicalDigest":"68c2fc9da169b0e6fd2f8117f72b5d63801910767ed09c1329c57e52d922c96f","projectionDigest":"e3f73171eb323f71f82f4763b24ae2cf74781ab2e7585ec44ebf816a805d6d4f","entities":46,"edges":110}

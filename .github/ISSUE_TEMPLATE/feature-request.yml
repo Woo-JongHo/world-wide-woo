@@ -1,6 +1,6 @@
 name: 기능 제안
 about: WWW 제품 흐름이나 TUI 기능을 제안합니다.
-title: "[Feature] "
+title: ""
 labels:
   - enhancement
 body:
@@ -12,34 +12,8 @@ body:
     validations:
       required: true
   - type: textarea
-    id: outcome
+    id: inconvenience
     attributes:
-      label: 기대 결과
+      label: 현재 상황 및 불편
     validations:
       required: true
-  - type: dropdown
-    id: surface
-    attributes:
-      label: 영향 영역
-      options:
-        - Conversation
-        - Router · Model
-        - Session · Flow
-        - Usage HUD
-        - Commit · Issue
-        - Agent · Tool runtime
-        - 기타
-    validations:
-      required: true
-  - type: textarea
-    id: acceptance
-    attributes:
-      label: 완료 조건
-      description: 관찰하고 검증할 수 있는 조건을 적어주세요.
-    validations:
-      required: true
-  - type: textarea
-    id: references
-    attributes:
-      label: 참고 제품 또는 화면
-      description: 그대로 복제할 요소와 WWW식으로 바꿀 요소를 구분해주세요.

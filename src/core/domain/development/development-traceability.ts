@@ -2,7 +2,7 @@
 export type TraceEntityKind = "spec" | "acceptance" | "test-contract" | "test-code" | "exception" | "decision" | "receipt" | "evidence" | "git-revision" | "issue" | "unit" | "pr" | "note" | "legacy";
 export type TraceabilityRef = `${TraceEntityKind}:${string}`;
 export type TraceRef = TraceabilityRef;
-export type TraceabilityRelation = "has-acceptance" | "tracks" | "implemented-by" | "verified-by" | "executes" | "covers" | "excepted-by" | "decided-by" | "produced" | "evidenced-by" | "at-revision" | "supersedes" | "recorded-in" | "detailed-by" | "code-evidenced-by";
+export type TraceabilityRelation = "has-acceptance" | "tracks" | "implemented-by" | "verified-by" | "executes" | "covers" | "excepted-by" | "decided-by" | "produced" | "evidenced-by" | "at-revision" | "supersedes" | "recorded-in" | "detailed-by" | "code-evidenced-by" | "parent-of" | "related-to" | "references";
 
 export interface TraceabilityEntity {
 	ref: TraceabilityRef;

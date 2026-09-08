@@ -14,6 +14,18 @@
 - [ ] 영향받은 TUI 폭·높이 시나리오 확인
 - [ ] token·credential·raw provider payload 비노출 확인
 
+## 연결
+
+- Linear:
+- Code-ID:
+- Obsidian:
+- Receipt:
+
+## 위험과 복구
+
+- 위험:
+- 복구:
+
 ## 경계
 
 - [ ] 화면 projection과 저장 원문을 구분했습니다.

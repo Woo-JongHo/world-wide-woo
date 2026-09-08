@@ -1,0 +1,818 @@
+bun test v1.4.0 (34cbb9a40)
+
+test/session-stats-view.test.ts:
+(pass) session stats view > renders a visual dashboard with KPI, usage bar, compact metrics, and request table [10.46ms]
+(pass) session stats view > keeps request prompts to one truncated table row [2.12ms]
+(pass) session stats view > keeps wide, normal, and narrow layouts bounded [6.87ms]
+(pass) session stats view > renders diagnostics and request investigation as separate top-level views [0.54ms]
+(pass) session stats view > keeps empty sessions quiet [0.13ms]
+(pass) session stats view > renders a conservatively bounded historical session drilldown [0.17ms]
+
+test/pi-harness.test.ts:
+(pass) PiHarness Phase A native compatibility > keeps the observable start, text delta, terminal, and close contract without exposing reasoning [12.56ms]
+(pass) PiHarness Phase A native compatibility > emits exactly one terminal for success and failure [22.70ms]
+(pass) PiHarness Phase A native compatibility > interrupts the active session and emits one interrupted terminal [11.36ms]
+(pass) PiHarness Phase A native compatibility > keeps an interrupted terminal when Pi resolves its prompt after abort [11.22ms]
+(pass) PiHarness Phase A native compatibility > interrupts before deferred Pi startup without issuing the prompt [5.56ms]
+(pass) PiHarness Phase A native compatibility > rejects a concurrent turn and inspects only the current in-memory session [5.71ms]
+(pass) PiHarness Phase A native compatibility > rejects silent mid-session model and effort substitutions [0.13ms]
+(pass) PiHarness Phase A native compatibility > fails closed for persistent-session, approval, MCP, and tool operations [0.11ms]
+(pass) PiHarness Phase A native compatibility > creates a fresh restricted Pi session and independently forwards provider, model, effort, and WWW prompt [0.55ms]
+(pass) PiHarness Phase A native compatibility > can retry thread creation after model or authentication setup fails [0.10ms]
+(pass) PiHarness Phase A native compatibility > loads the pinned Pi SDK surface used by the production adapter [329.92ms]
+(pass) PiHarness Phase A native compatibility > drives model resolution, restrictions, and public event mapping through the SDK seam [0.49ms]
+(pass) PiHarness Phase A native compatibility > requires WWW-owned instructions before constructing the production Pi lane [0.07ms]
+
+test/workbench-lifecycle-noise.test.ts:
+(pass) Workbench lifecycle noise filter > keeps repeated MCP startup and retry telemetry out of Chat [1.78ms]
+
+test/usage-strip.test.ts:
+(pass) UsageStripView > gives every provider window its own row with a bar and a reset time [0.78ms]
+(pass) UsageStripView > repeats no provider label on its second window row [0.08ms]
+(pass) UsageStripView > keeps the bar proportional to the remaining quota [0.07ms]
+(pass) UsageStripView > marks only the running model and attributes chips to the owning provider [0.38ms]
+(pass) UsageStripView > counts an unrecognised model instead of attributing it to a guess [0.08ms]
+(pass) UsageStripView > shows the provider state instead of a bar when a snapshot is not ready [0.07ms]
+(pass) UsageStripView > keeps four padded rows and drops chips before the quota when narrow [0.50ms]
+(pass) UsageStripView > reports a width it cannot lay out rather than clipping silently [0.06ms]
+(pass) UsageStripView > shortens a model id to its variant and keeps an unusual id intact [0.02ms]
+
+test/session-stats.test.ts:
+(pass) session review projection > A: projects an empty session without unavailable compatibility fields [0.65ms]
+(pass) session review projection > B: preserves a single model's three successful root turns [0.43ms]
+(pass) session review projection > C: separates interactive and detached model namespaces [0.04ms]
+(pass) session review projection > D: reports recovery only for an explicit later success with the same concrete item ID [0.11ms]
+(pass) session review projection > E: measures only paired approval time [0.05ms]
+(pass) session review projection > F: labels resumed local observations as partial coverage [0.03ms]
+(pass) session review projection > G: gives unattributed usage its own warning [0.03ms]
+(pass) session review projection > H: keeps details bounded and shortlists issues before slowest and recent requests [0.75ms]
+(pass) session review projection > retains every shortlisted issue for drill-down beyond one thousand requests [18.11ms]
+(pass) session review projection > does not assign elapsed time to an active root turn [0.28ms]
+(pass) session review projection > captures the first output milestone from a text delta [0.05ms]
+(pass) session review projection > does not classify error:null as a failure and marks t-note results unverified [0.29ms]
+
+test/composer-draft-store.test.ts:
+(pass) file composer draft controller > starts empty when its draft is missing [1.23ms]
+(pass) file composer draft controller > saves and restores a draft without exposing stored metadata [1.70ms]
+(pass) file composer draft controller > restores the project draft into a newly created session [0.91ms]
+(pass) file composer draft controller > clears drafts explicitly and when saving empty text [1.36ms]
+(pass) file composer draft controller > writes private directories and files [0.82ms]
+(pass) file composer draft controller > isolates drafts by project key [0.71ms]
+(pass) file composer draft controller > fails closed for malformed schema [0.85ms]
+(pass) file composer draft controller > fails closed when a stored draft names another project [0.95ms]
+(pass) file composer draft controller > rejects oversized UTF-8 text [0.20ms]
+(pass) file composer draft controller > ignores interrupted temporary artifacts [0.63ms]
+(pass) file composer draft controller > keeps concurrent session drafts isolated and restores the newest [3.76ms]
+(pass) file composer draft controller > does not clear a source draft that changed after it was restored [3.81ms]
+
+test/workbench-shell-policy.test.ts:
+(pass) native workbench shell receipt policy > keeps completed T-notes separate from selected execution Trace and current Todo [0.05ms]
+(pass) native workbench shell receipt policy > selects Trace by Todo planItemId and rejects mutable legacy Todo commands [0.17ms]
+(pass) native workbench shell receipt policy > preserves ordered editor input while streaming frames remain coalesced [0.18ms]
+(pass) native workbench shell receipt policy > binds an external mutation approval identity to the exact candidate payload [0.37ms]
+(pass) native workbench shell receipt policy > routes dashboard, monitor, map, and stats to distinct local view modes [0.08ms]
+(pass) native workbench shell receipt policy > treats observability views as siblings with one workspace return target [0.07ms]
+(pass) native workbench shell receipt policy > preserves dashboard layout viewports while switching views [3.66ms]
+(pass) native workbench shell receipt policy > normalizes native model telemetry into a selectable Codex setting [0.06ms]
+(pass) native workbench shell receipt policy > places the native model and effort in the frame title [0.07ms]
+(pass) native workbench shell receipt policy > names the model the running turn uses, not a selection that applies to the next one [0.02ms]
+(pass) native workbench shell receipt policy > does not repeat an assistant chat sentence in the current-activity rail [0.15ms]
+(pass) native workbench shell receipt policy > falls back to an immediate analysis label before native intent arrives [0.02ms]
+(pass) native workbench shell receipt policy > shows the numbered current Native plan step [0.45ms]
+(pass) native workbench shell receipt policy > adds the concrete live action to the current Native plan step [0.04ms]
+(pass) native workbench shell receipt policy > shows the concrete live action even when Native Plan is absent [0.02ms]
+(pass) native workbench shell receipt policy > keeps the completed plan visible while the final response is being prepared [0.02ms]
+(pass) native workbench shell receipt policy > keeps the current step while adding the public Native reasoning summary [0.03ms]
+(pass) native workbench shell receipt policy > keeps a no-plan live action visible alongside its public reasoning summary [0.02ms]
+(pass) native workbench shell receipt policy > identifies response drafting without exposing partial output [0.02ms]
+(pass) native workbench shell receipt policy > shows approval as a paused turn instead of animated background work [0.03ms]
+(pass) native workbench shell receipt policy > starts animating while the first user message is still being delivered [0.01ms]
+(pass) native workbench shell receipt policy > does not animate the current-activity rail after the turn completes
+(pass) native workbench shell receipt policy > clears an accepted chat and reports its message [0.02ms]
+(pass) native workbench shell receipt policy > clears a queued chat from the editor and reports its FIFO position
+(pass) native workbench shell receipt policy > restores only rejected input
+(pass) native workbench shell receipt policy > points an uncertain native send to the explicit reconciliation command [0.01ms]
+
+test/project-workbench.test.ts:
+(pass) ProjectWorkbench > projects MCP management separately and sends enable, disable, and global reload requests [1.34ms]
+(pass) ProjectWorkbench > derives conservative background work only from complete native collaboration lifecycle snapshots [24.56ms]
+(pass) ProjectWorkbench > collects woo-entry before Chat and applies a refresh to the next queued turn [14.80ms]
+(pass) ProjectWorkbench > excludes a WES source that exceeds its bounded collection payload [0.92ms]
+(pass) ProjectWorkbench > mirrors Native plan activity to Todo without delaying real-time Chat projection [33.16ms]
+(pass) ProjectWorkbench > preserves rewritten root-plan identity through Todo sync and resume [34.58ms]
+(pass) ProjectWorkbench > narrates meaningful actions asynchronously while excluding Read commands [32.35ms]
+(pass) ProjectWorkbench > narrates a selected plan with sanitized goal and bounded action evidence [21.83ms]
+(pass) ProjectWorkbench > queues rapid chat submissions and starts the next message after the active turn completes [12.32ms]
+(pass) ProjectWorkbench > records the first public output milestone once without journaling delta text or reasoning [11.55ms]
+(pass) ProjectWorkbench > publishes the accepted user message as preparing before native start settles [6.26ms]
+(pass) ProjectWorkbench > marks a first-submit thread start failure without leaving preparing progress [0.50ms]
+(pass) ProjectWorkbench > ignores Native events that arrive before the journal owns a thread [0.22ms]
+(pass) ProjectWorkbench > creates one plain-language question summary after turn completion without blocking queued chat [33.38ms]
+(pass) ProjectWorkbench > keeps one immutable T-note per completed question instead of replacing a cumulative summary [24.21ms]
+(pass) ProjectWorkbench > projects a SessionGoal marker from a completed assistant message [11.59ms]
+(pass) ProjectWorkbench > rejects SessionGoal spoof markers unless they are a sole bounded assistant line for a $session-goal turn [12.84ms]
+(pass) ProjectWorkbench > rejects generated T-notes without exactly one canonical non-empty question, why, and result [1.09ms]
+(pass) ProjectWorkbench > does not append question-mismatched or prohibited T-note fields [0.53ms]
+(pass) ProjectWorkbench > permits user-owned Git/Bun/error/path questions and normal explanatory fields [0.14ms]
+(pass) ProjectWorkbench > permits completed-state results that negatively mention 후속 or 추후 [0.12ms]
+(pass) ProjectWorkbench > persists an exactly once-sanitized completed question through FileTNoteStore [3.09ms]
+(pass) ProjectWorkbench > validates a range capture through TNoteService with its canonical expected question [0.75ms]
+(pass) ProjectWorkbench > rejects pre-completion and cross-turn manual T-note ranges [11.98ms]
+(pass) ProjectWorkbench > reconciles a failed automatic T-note after restart and appends it only after generation succeeds [23.07ms]
+(pass) ProjectWorkbench > reconciles one sparse target-thread T-note after interleaved foreign journal activity [23.66ms]
+(pass) ProjectWorkbench > retries a target-thread note after a foreign outbound question interleaves before its turn [24.76ms]
+(pass) ProjectWorkbench > publishes the first user message before a slow native thread start completes [0.56ms]
+(pass) ProjectWorkbench > keeps active context separate from cumulative model usage and ignores a late auxiliary turn [33.57ms]
+(pass) ProjectWorkbench > merges detached Luna and Claude usage into the live WWW session totals [0.57ms]
+(pass) ProjectWorkbench > applies permission and collaboration controls to native thread and turn settings [0.58ms]
+(pass) ProjectWorkbench > persists an idle Codex selection and uses it for the next native turn [13.49ms]
+(pass) ProjectWorkbench > keeps the current model when persistence fails or a turn is active [6.21ms]
+(pass) ProjectWorkbench > keeps the selected flow while exposing a pending turn goal [23.07ms]
+(pass) ProjectWorkbench > drains FIFO only for exact interrupted and failed turn lifecycle notifications [23.23ms]
+(pass) ProjectWorkbench > keeps a normally started turn active when an item event arrives before its local start activity is journaled [23.01ms]
+(pass) ProjectWorkbench > keeps follow-up messages on the root thread while sub-agent events are streaming [11.73ms]
+(pass) ProjectWorkbench > ignores a late start for a terminal turn without replacing the active FIFO turn [33.10ms]
+(pass) ProjectWorkbench > records one failed bubble and recovers after a definite first-send failure [1.04ms]
+(pass) ProjectWorkbench > continues FIFO after a definite queued-send failure without duplicate bubbles [11.77ms]
+(pass) ProjectWorkbench > reconciles an uncertain queued send from native lifecycle without duplicate delivery [33.95ms]
+(pass) ProjectWorkbench > explicit cancel escapes an uncertain queued send without retrying it and preserves the remaining FIFO [23.30ms]
+(pass) ProjectWorkbench > explicit cancel reconciles and interrupts a server-received uncertain turn before draining FIFO [34.27ms]
+(pass) ProjectWorkbench > keeps an uncertain FIFO blocked when thread read shape is unknown [11.15ms]
+(pass) ProjectWorkbench > does not drain queued chat after the workbench closes [11.66ms]
+(pass) ProjectWorkbench > keeps an active turn through item and hook completion until the turn lifecycle terminates [44.64ms]
+(pass) ProjectWorkbench > resolves a pending approval by request id when the resolution omits its thread ref [22.31ms]
+(pass) ProjectWorkbench > surfaces a child approval without replacing the root conversation thread [22.42ms]
+(pass) ProjectWorkbench > holds multiple queued messages through approval and drains them only after resolution and turn completion [23.14ms]
+(pass) ProjectWorkbench > keeps deltas ephemeral and durably appends completed native observations before publishing [23.77ms]
+(pass) ProjectWorkbench > shares frozen durable projections across deltas after a large activity history [24.36ms]
+(pass) ProjectWorkbench > bounds live drafts and raw native envelopes while preserving the full safe completed assistant reply [23.57ms]
+(pass) ProjectWorkbench > separates public reasoning summaries from raw reasoning content [22.44ms]
+(pass) ProjectWorkbench > resumes without native turns and reconciles the opaque thread against local activity [0.35ms]
+(pass) ProjectWorkbench > uses native idle state instead of reviving an unterminated historical turn on resume [0.60ms]
+(pass) ProjectWorkbench > queues behind the exact in-progress native turn discovered during resume [22.30ms]
+(pass) ProjectWorkbench > projects command output deltas as ephemeral tool activity rather than assistant text [11.30ms]
+(pass) ProjectWorkbench > bounds repeated live tool deltas to a recent tail with cumulative omission metadata [22.37ms]
+(pass) ProjectWorkbench > journals MCP startup status as hidden progress instead of a Chat tool card [11.36ms]
+(pass) ProjectWorkbench > never infers a native resume from historical local activities [1.22ms]
+(pass) ProjectWorkbench > returns uncertain without retrying an ambiguous native send [0.47ms]
+(pass) ProjectWorkbench > rejects invalid local commands without touching native state [0.15ms]
+(pass) ProjectWorkbench > routes native approval and detached T-note commands through their explicit ports [11.51ms]
+(pass) ProjectWorkbench > reaches Todo mutations and preserves both CAS conflict documents in the immutable action result [1.57ms]
+(pass) ProjectWorkbench > promotes a full T-note only after a one-time token and reviews only after exact digest approval [2.11ms]
+
+test/linear-contract-v2.test.ts:
+(pass) Linear v2 contract > accepts the fixed hierarchy and Feynman-readable body order [1.19ms]
+(pass) Linear v2 contract > rejects missing sections, unfilled template markers, linked Code-ID, and active WOO-683 [0.44ms]
+(pass) Linear v2 contract > requires protected metadata changes to be declared [2.48ms]
+(pass) Linear v2 contract > validates a traceability-only snapshot and its exact milestone [0.22ms]
+(pass) Linear v2 contract > accepts Linear's canonical bullet and angle-wrapped Obsidian URL [0.13ms]
+(pass) Linear v2 contract > accepts Linear's native pull request embed in a GitHub connection line [0.22ms]
+(pass) Linear v2 contract > requires a complete, unpaginated readback snapshot [0.21ms]
+
+test/render-scheduler.test.ts:
+(pass) RenderScheduler > coalesces in-turn native deltas but flushes durable and terminal updates [0.03ms]
+(pass) RenderScheduler > coalesces token deltas to a 64ms trailing render [0.06ms]
+(pass) RenderScheduler > flushes terminal state immediately and cancels a stale timer [0.05ms]
+
+test/workbench-views.test.ts:
+(pass) workbench dashboard views > reuses the complete chat projection for scroll-only frames [224.32ms]
+(pass) workbench dashboard views > shows a T-note failure without assigning a completion number to an unstored note [3.12ms]
+(pass) workbench dashboard views > keeps completed T-notes in Dashboard and selected execution Source in Monitor [0.53ms]
+(pass) workbench dashboard views > keeps a resumed truncated Native turn's durable question number and reveals its selected T-note sources [0.31ms]
+(pass) workbench dashboard views > keeps the live chat, streaming projection, and Todo while switching to the monitor projection [0.49ms]
+(pass) workbench dashboard views > keeps public Native plan, compaction, collaboration, and reasoning summaries in transcript order [2.06ms]
+(pass) workbench dashboard views > uses one filled user surface and an open assistant transcript [0.17ms]
+(pass) workbench dashboard views > renders only the public answer from a completed assistant envelope [17.57ms]
+(pass) workbench dashboard views > reprojects unchanged envelope text when streaming becomes completed [0.32ms]
+(pass) workbench dashboard views > preserves partial tags, surrounding text, and fenced tag examples [0.59ms]
+(pass) workbench dashboard views > renders the live action and its Esc hint as separate rows [0.20ms]
+(pass) workbench dashboard views > keeps activity emphasis on every wrapped row at narrow widths [0.32ms]
+(pass) workbench dashboard views > renders activity state changes without a high-frequency spinner timer [0.23ms]
+(pass) workbench dashboard views > attaches a durable #1 #2 #3 recap to the completed assistant turn [0.35ms]
+(pass) workbench dashboard views > builds a #1 #2 #3 recap from actual work when Native Plan is absent [28.15ms]
+(pass) workbench dashboard views > still closes an answer-only Native turn with a structured recap [0.26ms]
+(pass) workbench dashboard views > does not claim a completion recap before the same Native turn completes [0.25ms]
+(pass) workbench dashboard views > never promotes a completed child-thread plan into the root completion recap [0.09ms]
+(pass) workbench dashboard views > does not revive an older turn when the latest turn is still preparing its plan [0.94ms]
+(pass) workbench dashboard views > keeps plan-only steps out of Chat while showing compact observation work [0.96ms]
+(pass) workbench dashboard views > shows the public Native plan while adding only its executing step card [0.86ms]
+(pass) workbench dashboard views > renders model-interpreted what and why on the shared Step card [0.47ms]
+(pass) workbench dashboard views > hides empty Todo and T-note counters [0.05ms]
+(pass) workbench dashboard views > keeps active goal, progress, queue, Todo, and source details out of T-notes [0.07ms]
+(pass) workbench dashboard views > bounds append-only T-notes while preserving omission and visible-count evidence [1.29ms]
+(pass) workbench dashboard views > renders Todo status icons and hanging wraps inside the pane width [0.22ms]
+(pass) workbench dashboard views > hides lifecycle progress payloads from Chat cards [2.20ms]
+(pass) workbench dashboard views > shows only a content-free state while native reasoning is streaming [0.22ms]
+(pass) workbench dashboard views > shows only the App Server public reasoning summary text [0.10ms]
+(pass) workbench dashboard views > explains a pending approval and tells the user how to respond [0.46ms]
+(pass) workbench dashboard views > renders authoritative approval background states and compact queued delivery [0.78ms]
+(pass) workbench dashboard views > shows persisted completed-question records after active work without source payloads [0.14ms]
+(pass) workbench dashboard views > renders a completed native command as a bounded public step card [12.37ms]
+(pass) workbench dashboard views > keeps an unplanned command as a detailed Bash action instead of a generic sentence [0.83ms]
+(pass) workbench dashboard views > keeps every planned action once and labels intermediate actions with their parent step [1.43ms]
+(pass) workbench dashboard views > keeps a native command output delta on the same running step [0.69ms]
+(pass) workbench dashboard views > keeps completed command observations out of Native-plan step numbering [1.35ms]
+(pass) workbench dashboard views > shows queued user inputs in their delivery order [0.22ms]
+(pass) workbench dashboard views > keeps an uncertain delivery warning and its recovery command visible [0.16ms]
+(pass) workbench dashboard views > omits the /cancel recovery line for a failure it cannot reconcile [0.08ms]
+(pass) workbench dashboard views > shows the failed delivery state on an outbound user bubble [0.12ms]
+(pass) workbench dashboard views > shows the streaming delivery state on an outbound user bubble [0.03ms]
+(pass) workbench dashboard views > renders the first outbound user message before native thread activity exists [0.11ms]
+(pass) workbench dashboard views > uses the public MCP item status, arguments, and error without exposing reasoning [0.58ms]
+(pass) workbench dashboard views > preserves completed Markdown while bounding only the live draft [1.03ms]
+(pass) workbench dashboard views > keeps a structured native answer in its original Markdown order [1.35ms]
+(pass) workbench dashboard views > keeps the full current native session transcript visible [2.70ms]
+(pass) workbench dashboard views > leaves the resting status line blank instead of advertising commands [0.10ms]
+(pass) workbench dashboard views > keeps immutable action results out of completed-question notes [0.06ms]
+(pass) workbench dashboard views > keeps selected activity payloads out of completed-question notes [0.08ms]
+(pass) workbench dashboard views > bounds public Source strings and total projection before JSON rendering [3.31ms]
+(pass) workbench dashboard views > bounds large work-step output without leaking edge credentials [3.16ms]
+(pass) workbench dashboard views > bounds action result body by characters and lines before rendering Source [5.56ms]
+(pass) workbench dashboard views > keeps titleless Chat, T-notes, and Todo content reachable at 120x30 [3.85ms]
+(pass) workbench dashboard views > keeps titleless Chat, T-notes, and Todo content reachable at 70x24 [1.60ms]
+(pass) workbench dashboard views > keeps following the newest user message when repeated delivery states extend Chat [3.95ms]
+(pass) workbench dashboard views > does not restore chat auto-follow while wheel scrolling concurrent streaming output [10.31ms]
+
+test/observability-history-source.test.ts:
+(pass) observability history source > reads existing JSONL streams without treating partial records as facts [1.15ms]
+(pass) observability history source > bounds discovered streams and reports unknown for an absent directory [0.71ms]
+(pass) observability history source > discovers thread journals nested under workbench directories [0.54ms]
+
+test/todos-domain.test.ts:
+(pass) todo domain > round trips strict markdown with visible status prefixes [1.00ms]
+(pass) todo domain > patches managed CRLF ranges without changing unknown Markdown [0.31ms]
+(pass) todo domain > preserves each unowned Markdown line ending in a mixed LF and CRLF document [0.17ms]
+(pass) todo domain > reports progress and rejects a second active item [0.09ms]
+(pass) todo domain > strips controls and redacts credential material before display [0.04ms]
+(pass) todo domain > removes terminal and HTML-comment injection while preserving round trips [0.07ms]
+(pass) todo domain > round trips content that begins with visible status words [0.26ms]
+(pass) todo domain > fails closed for malformed metadata, unknown versions, duplicate ids, and invalid states [0.18ms]
+(pass) todo domain > normalizes legacy flat documents and rejects orphan, nested, and invalid detail states [0.15ms]
+
+test/activity-journal-store.test.ts:
+(pass) ActivityJournalStore > appends monotonic project observations and deduplicates a repeated native terminal observation [2.82ms]
+(pass) ActivityJournalStore > discards only an unterminated final crash residue and rejects middle corruption or sequence gaps [1.98ms]
+(pass) ActivityJournalStore > shares one monotonic append stream across store instances for the same journal [6.48ms]
+(pass) ActivityJournalStore > does not re-read and parse the complete journal on every append [42.33ms]
+(pass) ActivityJournalStore > replays a native-thread stream in a fresh store and still rejects a durable sequence gap [1.34ms]
+
+test/native-thread-picker.test.ts:
+(pass) native thread resume picker > shows project threads and returns the selected native id [7.68ms]
+
+test/development-cli.test.ts:
+(pass) CLI binds existing Linear UUID and TUI captures only after binding, then exports and opens the same document [112.11ms]
+(pass) capture errors stay observable and unrelated slash commands remain untouched [0.18ms]
+(pass) CLI preserves test argv help/version and shell metacharacters without top-level reinterpretation [0.36ms]
+(pass) completion freezes a checkpoint before later events and binding switches [31.33ms]
+
+test/development-vault.test.ts:
+(pass) development Vault > durable readback, retry and rename preserve document identity; edits and copies conflict [5.71ms]
+(pass) development Vault > same request ID cannot silently export different source records [1.74ms]
+(pass) replay validates forged done receipts and the existing exported document [4.17ms]
+(pass) blocked export can retry after the filesystem obstruction is removed [2.07ms]
+
+test/activity-narrator.test.ts:
+(pass) PiActivityNarrator > uses the smallest Codex model with no tools and a bounded structured result [0.49ms]
+(pass) PiActivityNarrator > rejects malformed output instead of inventing a narration [0.10ms]
+
+test/observability-views.test.ts:
+(pass) observability views > renders aggregate dashboard hierarchy without inventing trend [0.56ms]
+(pass) observability views > renders live current state and indeterminate tool elapsed [0.36ms]
+(pass) observability views > keeps all responsive rows bounded [4.77ms]
+
+test/wooni-dock.test.ts:
+(pass) Wooni bottom dock > keeps the supplied identity and prompt without the side statistics [0.29ms]
+(pass) Wooni bottom dock > keeps the frame widths coupled to their exported layout widths [0.18ms]
+(pass) Wooni bottom dock > keeps the full identity and compact character at exactly three rows [0.27ms]
+
+test/transcript-markdown.test.ts:
+(pass) TranscriptView Markdown > left-aligns role labels and message bodies at the conversation edge [0.41ms]
+(pass) TranscriptView Markdown > syntax-highlights completed fenced code [11.24ms]
+(pass) TranscriptView Markdown > keeps partial streaming code colored and width-safe [0.41ms]
+(pass) TranscriptView Markdown > labels a persisted partial assistant response as cancelled [0.11ms]
+(pass) TranscriptView Markdown > renders actual tool observations as boxed transcript items [0.52ms]
+(pass) TranscriptView Markdown > renders truthful work narration before the corresponding tool card [0.21ms]
+(pass) TranscriptView Markdown > reuses stable transcript rows across scroll frames and invalidates on observation changes [0.19ms]
+(pass) TranscriptView Markdown > bounds stable transcript caches to two width variants [0.04ms]
+(pass) TranscriptView Markdown > keeps a long unchanged transcript on one cached row projection [16.95ms]
+
+test/work-traceability.test.ts:
+(pass) work traceability > queries Linear, code, test, and evidence in both directions without merging identifiers [0.28ms]
+(pass) work traceability > rejects duplicate, dangling, conflated, and malformed references [0.18ms]
+(pass) work traceability > rejects links whose endpoints violate the relation contract [0.09ms]
+(pass) work traceability > keeps source and test issue annotations connected to registered Linear identities [32.36ms]
+(pass) work traceability > requires knowledge bridge issues to annotate linked production code and regression tests [2.74ms]
+(pass) work traceability > validates the real Chat issue mappings offline without inventing legacy planning ownership [22.64ms]
+
+test/model-router.test.ts:
+(pass) ModelRouter > the configured catalog resolves every selectable model [0.64ms]
+(pass) ModelRouter > routes a stream with normalized reasoning and abort signal [0.19ms]
+(pass) ModelRouter > fails before dispatch when the selected model is absent [0.06ms]
+(pass) ModelRouter > reports whether provider authentication is configured [0.13ms]
+(pass) ModelRouter > maps UI effort to SDK reasoning levels [0.02ms]
+
+test/syntax-highlighter.test.ts:
+(pass) native syntax highlight plugin > colors supported Python tokens without changing terminal width [2.16ms]
+(pass) native syntax highlight plugin > renders an unknown language safely [0.06ms]
+
+test/exit-key-policy.test.ts:
+(pass) ExitKeyPolicy > clears first and exits only on a second Ctrl+C inside 500ms [0.07ms]
+(pass) ExitKeyPolicy > resets the exit gesture after its safety window [0.02ms]
+(pass) ExitKeyPolicy > does not treat a backwards clock jump as a second press [0.01ms]
+(pass) ExitKeyPolicy > aborts streaming first and exits on the second Ctrl+C [0.01ms]
+(pass) ExitKeyPolicy > Ctrl+D exits only with an empty composer [0.02ms]
+(pass) ExitKeyPolicy > resets a pending destructive gesture after a non-destructive overlay close [0.02ms]
+
+test/session-model-usage.test.ts:
+(pass) SessionModelUsageAccumulator > aggregates detached model calls and publishes immutable session snapshots [0.07ms]
+(pass) SessionModelUsageAccumulator > rejects invalid observations rather than guessing token usage [0.03ms]
+
+test/codex-app-server.test.ts:
+(pass) CodexAppServer > uses the native MCP status protocol and projects runtime status and tool names [0.70ms]
+(pass) CodexAppServer > writes escaped MCP enablement config and reloads through supported protocol methods [0.15ms]
+(pass) CodexAppServer > performs the JSONL handshake and preserves native thread, turn, item, and approval ids [0.86ms]
+(pass) CodexAppServer > marks a sent mutating request uncertain without retrying it after disconnect [0.10ms]
+(pass) CodexAppServer > binds threadless plan updates only to their observed root or child turn owners [0.20ms]
+(pass) CodexAppServer > includes a bounded sanitized stderr tail when the App Server process exits [17.97ms]
+(pass) CodexAppServer > fails a stalled turn start as uncertain instead of waiting forever [11.24ms]
+
+test/model-picker-overlay.test.ts:
+(pass) ModelPickerOverlay hierarchy > starts at provider and contains no search field [0.59ms]
+(pass) ModelPickerOverlay hierarchy > limits provider rows and auth lookups to the configured subset [0.31ms]
+(pass) ModelPickerOverlay hierarchy > starts at model and applies without exposing the single provider step [0.37ms]
+(pass) ModelPickerOverlay hierarchy > backs out of the model step when provider selection was intentionally skipped [0.04ms]
+(pass) ModelPickerOverlay hierarchy > walks provider to model to effort and applies only at confirmation [0.31ms]
+(pass) ModelPickerOverlay hierarchy > moves backward one hierarchy level without losing staged values [0.21ms]
+(pass) ModelPickerOverlay hierarchy > hands an unauthenticated staged selection to the caller only at confirmation [0.10ms]
+(pass) ModelPickerOverlay hierarchy > keeps confirmation visible when apply fails [0.22ms]
+(pass) ModelPickerOverlay hierarchy > does not let Esc disguise an in-flight apply as cancellation [0.09ms]
+(pass) ModelPickerOverlay hierarchy > shows auth lookup errors and blocks final apply [0.21ms]
+(pass) ModelPickerOverlay hierarchy > restores a staged selection after auth without changing the current header [0.09ms]
+(pass) ModelPickerOverlay hierarchy > Esc discards every hierarchy level and all lines fit 40 columns [0.11ms]
+
+test/review-service.test.ts:
+(pass) external review boundary > redacts paths, credentials, and customer identifiers before making an immutable preview [0.24ms]
+(pass) external review boundary > keeps generic numbers but redacts separated and phone-labelled telephone numbers [0.05ms]
+(pass) external review boundary > requires the exact reviewed digest and sends only a constrained packet to Claude Opus [1.16ms]
+(pass) external review boundary > factory isolates anthropic and google review adapters from the chat router [0.19ms]
+(pass) external review boundary > Pi production bridge uses a fresh tool-free packet-only context and rejects tool output [0.28ms]
+(pass) external review boundary > Claude CLI transport runs one bounded packet-only print request in a blank temporary cwd and records observed evidence [0.70ms]
+(pass) external review boundary > Claude CLI classifies terminal failures and never retries an ambiguous packet [0.43ms]
+(pass) external review boundary > Provider API remains explicitly labelled as the selected fallback transport [0.07ms]
+(pass) external review boundary > production selection uses Claude CLI with its observed version; Provider API is not a retry path [0.12ms]
+(pass) external review boundary > production Claude CLI probing is lazy and an unavailable CLI fails without Provider API fallback [0.10ms]
+(pass) external review boundary > system Claude runner caps streamed output before process completion and kills its process group [1.34ms]
+(pass) external review boundary > system Claude runner times out by terminating and reaping the entire process group [0.22ms]
+
+test/release-gate.test.ts:
+(pass) release gate hygiene > blocks an untracked test.skip fixture [72.24ms]
+(pass) release gate hygiene > blocks a hygiene violation in the latest commit [118.75ms]
+(pass) release gate hygiene > scans the initial commit when no parent is available [69.86ms]
+(pass) release gate hygiene > scans tracked files at a shallow history boundary [133.04ms]
+
+test/project-workspace.test.ts:
+(pass) FileProjectWorkspace > uses the Git root when opened from a subdirectory [18.20ms]
+(pass) FileProjectWorkspace > uses the real cwd as root outside Git [7.63ms]
+(pass) FileProjectWorkspace > is idempotent and preserves a valid manifest [16.28ms]
+(pass) FileProjectWorkspace > fails closed for malformed or unsupported manifests [28.87ms]
+(pass) FileProjectWorkspace > creates private local directories and only ignores local workspace state [8.04ms]
+(pass) FileProjectWorkspace > adds new managed ignores without removing project-specific entries [13.62ms]
+(pass) FileProjectWorkspace > keeps the canonical vault Todo visible to Git [37.01ms]
+(pass) FileProjectWorkspace > rejects workspace symlinks instead of escaping the project root [6.42ms]
+(pass) FileProjectWorkspace > holds one session writer lease and releases it deterministically [8.42ms]
+(pass) FileProjectWorkspace > reclaims a lease only after confirming its owner process is dead [8.01ms]
+
+test/development-map.test.ts:
+(pass) development map > projects explicit initiative, epic, and story relations without inferring acceptance [3.10ms]
+(pass) development map > surfaces unavailable and invalid sources instead of a normal empty snapshot [0.98ms]
+(pass) development map > keeps the last valid projection stale during a failed poll without overlapping refreshes [32.81ms]
+(pass) development map > starts map polling only while map is open and stops idempotently [0.09ms]
+(pass) development map > sanitizes and bounds file-derived terminal text [0.33ms]
+(pass) development map > notifies an open map when its planning revision changes [32.24ms]
+(pass) development map > marks malformed catalog relations invalid and renders every aggregate as unknown [1.00ms]
+(pass) development map > marks malformed Initiative identity and unknown Epic references invalid [6.22ms]
+
+test/development-code-scanner.test.ts:
+(pass) annotation scanner ignores strings and keeps declarations separate without inferring edges [21.35ms]
+
+test/left-dashboard.test.ts:
+(pass) WWW left welcome > keeps product identity and live pills within 40 columns [0.39ms]
+(pass) WWW left welcome > keeps product identity and live pills within 100 columns [0.23ms]
+(pass) WWW left welcome > gradient styling preserves landmark cell width [0.06ms]
+
+test/session-monitor.test.ts:
+(pass) SessionMonitor > aggregates initial, streaming, and completed session state without raw content [0.30ms]
+(pass) SessionMonitor > projects Todo progress and isolates broken listeners [0.09ms]
+(pass) SessionMonitor > stops receiving runtime and Todo updates after disposal [0.05ms]
+
+test/terminal-command-executor.test.ts:
+(pass) LocalTerminalCommandExecutor > captures stdout, stderr, exit status, and shell pipes [24.12ms]
+(pass) LocalTerminalCommandExecutor > uses a restricted environment [16.96ms]
+(pass) LocalTerminalCommandExecutor > redacts credentials across output chunks and strips terminal controls [30.91ms]
+(pass) LocalTerminalCommandExecutor > keeps a bounded tail with an omission marker [18.39ms]
+(pass) LocalTerminalCommandExecutor > terminates on abort [12.09ms]
+(pass) LocalTerminalCommandExecutor > terminates on timeout [11.97ms]
+(pass) LocalTerminalCommandExecutor > rejects unsafe or non-directory working directories before execution [0.69ms]
+
+test/canonical-promotion.test.ts:
+(pass) human-gated canonical promotion > uses the ignored per-document temporary-file convention [0.10ms]
+(pass) human-gated canonical promotion > accepts then atomically promotes an approved Todo draft without git operations [1.65ms]
+(pass) human-gated canonical promotion > requires new approval when body, source, or target state becomes stale [1.41ms]
+(pass) human-gated canonical promotion > uses a safe per-note allowlist target for T-note drafts [1.33ms]
+(pass) human-gated canonical promotion > rejects path escape and symlink targets before reading or writing [0.96ms]
+
+test/agent-tools.test.ts:
+(pass) project agent tools > reads UTF-8 files and bounded directory listings [2.04ms]
+(pass) project agent tools > blocks traversal and symlink escapes [1.57ms]
+(pass) project agent tools > searches literal and regex patterns and reports no matches [2.43ms]
+(pass) project agent tools > runs only safe argv commands and preserves command observations [9.18ms]
+(pass) project agent tools > fails closed for network SSH, git mutation, and shell syntax [1.07ms]
+(pass) project agent tools > handles aborted commands and redacts terminal output [1.73ms]
+(pass) project agent tools > blocks common project credential files from read and search [1.50ms]
+(pass) project agent tools > keeps the project Todo ledger out of model read and search tools [4.19ms]
+(pass) project agent tools > resolves SSH aliases without evaluating Match exec [0.51ms]
+(pass) project agent tools > disables repository fsmonitor execution for read-only Git profiles [30.87ms]
+(pass) project agent tools > accepts ignored reasons on every tool and routes one-level Todo detail writes [1.47ms]
+
+test/legacy-router-app.test.ts:
+(pass) legacy Router composition > uses isolated Router settings and releases a failed shell handoff before resume [33.49ms]
+
+test/observability-dashboard.test.ts:
+(pass) observability dashboard > is deterministic, aggregates only attributed usage, and bounds recent sessions [0.43ms]
+(pass) observability dashboard > keeps incomplete boundaries and insufficient trend unavailable [0.03ms]
+(pass) observability dashboard > does not manufacture session boundaries from partial activity [0.11ms]
+
+test/planning-domain.test.ts:
+(pass) Planning domain > redacts credentials and removes terminal or Markdown injection [0.21ms]
+(pass) Planning domain > accepts backward same-Epic supersede and freezes the snapshot [0.13ms]
+(pass) Planning domain > rejects missing parents, forward supersedes, and mismatched IDs [0.17ms]
+
+test/router-service.test.ts:
+(pass) RouterService > serializes durable writes before active-session publication [4.84ms]
+(pass) RouterService > continues processing after a failed settings write [0.12ms]
+(pass) RouterService > rolls durable settings back when active-session publication fails [0.08ms]
+(pass) RouterService > synchronizes an external model selection so a later retry can succeed [0.13ms]
+(pass) RouterService > moves an exact model to the sole authenticated Router [0.07ms]
+(pass) RouterService > does not switch models or guess between unauthenticated Routers [0.04ms]
+
+test/runtime-monitor.test.ts:
+(pass) projectRuntimeMonitor > projects idle deterministically [0.20ms]
+(pass) projectRuntimeMonitor > reports a model-only execution as running [0.41ms]
+(pass) projectRuntimeMonitor > reports a running tool before execution [0.11ms]
+(pass) projectRuntimeMonitor > reports pending approval as blocked [0.04ms]
+(pass) projectRuntimeMonitor > counts retries [0.08ms]
+(pass) projectRuntimeMonitor > failure overrides all other observable state [0.05ms]
+(pass) projectRuntimeMonitor > reports completion after a completed turn [0.04ms]
+(pass) projectRuntimeMonitor > bounds a semantic event burst to its latest twelve events [0.17ms]
+
+test/planning-service.test.ts:
+(pass) PlanningService > publishes current immutable snapshots while isolating listener failures [0.25ms]
+
+test/credential-store.test.ts:
+(pass) file credential store > stores, reads, modifies, lists metadata, and deletes credentials [2.51ms]
+(pass) file credential store > serializes concurrent modifications against the file [4.30ms]
+(pass) file credential store > writes private directories and files atomically [0.78ms]
+(pass) file credential store > rejects corrupt credential files [0.48ms]
+(pass) file credential store > rejects operations with an already aborted signal [0.24ms]
+
+test/workbench-telemetry.test.ts:
+(pass) workbench telemetry rail > renders only Git state and project path; Context belongs to the usage strip [0.16ms]
+(pass) workbench telemetry rail > uses explicit unknown markers before Git arrives [0.02ms]
+(pass) workbench telemetry rail > normalizes an unborn Git branch without exposing the porcelain sentence [0.09ms]
+
+test/workbench-bottom-hud.test.ts:
+(pass) workbench bottom HUD > keeps the four quota rows beside the three-row Wooni dock with a blank fourth dock row [0.66ms]
+(pass) workbench bottom HUD > preserves the dock and the fourth quota row at width 97 [0.31ms]
+(pass) workbench bottom HUD > preserves the dock and the fourth quota row at width 112 [0.30ms]
+(pass) workbench bottom HUD > preserves the dock and the fourth quota row at width 205 [0.45ms]
+(pass) workbench bottom HUD > keeps all four usage rows and hides Wooni when both cannot fit at width 64 [0.10ms]
+(pass) workbench bottom HUD > keeps all four usage rows and hides Wooni when both cannot fit at width 96 [0.13ms]
+
+test/auth-overlay.test.ts:
+(pass) AuthFlowOverlay > masks secret input and completes login without rendering the credential [1.75ms]
+(pass) AuthFlowOverlay > cancels an active auth overlay before global "\u0003" handling [0.12ms]
+(pass) AuthFlowOverlay > cancels an active auth overlay before global "\u0004" handling [0.02ms]
+
+test/repository-overlays.test.ts:
+(pass) repository overlays > renders real commit status inside a width-safe sheet [1.63ms]
+(pass) repository overlays > renders open GitHub issues and closes with Escape [1.40ms]
+
+test/planning-store.test.ts:
+(pass) FilePlanningStore > does not create Planning files during an empty read [0.46ms]
+(pass) FilePlanningStore > uses legacy maxima, preserves unmanaged bytes, and restores on restart [7.69ms]
+(pass) FilePlanningStore > serializes concurrent writers, redacts secrets, and creates private immutable artifacts [14.18ms]
+(pass) FilePlanningStore > serializes independent process writers without duplicate IDs [34.67ms]
+(pass) FilePlanningStore > rejects invalid parents and unsafe symlink catalog paths [1.64ms]
+(pass) FilePlanningStore > does not commit a catalog record over an untracked artifact collision [1.92ms]
+(pass) FilePlanningStore > records only backward same-Epic supersedes relations [9.64ms]
+(pass) FilePlanningStore > repairs catalog-derived artifacts and projections but rejects immutable divergence [5.00ms]
+(pass) FilePlanningStore > fails closed for catalog revision gaps and unclosed projection markers [2.08ms]
+
+test/architecture.test.ts:
+(pass) source architecture > keeps domain pure [8.16ms]
+(pass) source architecture > prevents application from importing infrastructure or presentation [5.19ms]
+(pass) source architecture > keeps presentation behind application and domain public contracts [5.54ms]
+(pass) source architecture > keeps process execution behind application-owned ports [5.71ms]
+(pass) source architecture > keeps concrete executor adapters independent [5.55ms]
+(pass) source architecture > has no relative source dependency cycles [5.78ms]
+(pass) source architecture > keeps the composition root small [0.09ms]
+(pass) source architecture > keeps the native workbench shell independent from the legacy session runtime [5.62ms]
+
+test/todo-store.test.ts:
+(pass) FileTodoStore > writes only an absent document with null revision and enforces private modes [2.49ms]
+(pass) FileTodoStore > atomically persists and reads a parent with one detail [1.97ms]
+(pass) FileTodoStore > rejects stale revisions and malformed existing files without overwriting [2.01ms]
+(pass) FileTodoStore > preserves CRLF and unknown Markdown while patching managed Todo lines [1.90ms]
+(pass) FileTodoStore > debounces external editor writes and suppresses its own atomic rename [164.96ms]
+(pass) FileTodoStore > delivers the same external source only once across separate filesystem events [162.40ms]
+(pass) FileTodoStore > rejects symlink and non-regular targets [3.00ms]
+(pass) FileTodoStore > allows exactly one concurrent writer for the same revision and cleans artifacts [4.00ms]
+(pass) FileTodoStore > keeps the canonical vault free of local lock databases [1.80ms]
+(pass) FileTodoStore > releases the interprocess lock when a writer process is killed [15.26ms]
+(pass) FileTodoStore > copies a legacy Todo into an absent canonical path without deleting the source [2.41ms]
+(pass) FileTodoStore > does not overwrite an existing canonical Todo during explicit import [2.22ms]
+
+test/development-traceability.test.ts:
+(pass) schema-v2 development traceability > validates UUID aliases, tombstones, edge directions, and next Code-NNN allocation [16.78ms]
+(pass) schema-v2 development traceability > uses AST declarations and actual note frontmatter while rejecting mutations [413.63ms]
+(pass) schema-v2 development traceability > rebuilds SQLite after deletion and returns one logical graph from four entry points [41.85ms]
+(pass) schema-v2 development traceability > fails closed when any traceability entity, edge, or metadata row is deleted or mutated [27.96ms]
+(pass) schema-v2 development traceability > requires explicit frozen Linear and Vault export artifacts for the offline gate [85.64ms]
+(pass) schema-v2 development traceability > requires every repository reference to resolve to a real file inside the project [16.22ms]
+(pass) schema-v2 development traceability > generates a stable Map while retaining Initiative Epic Story Evidence columns [16.70ms]
+
+test/delegation-tree-view.test.ts:
+(pass) Gajae-style delegation tree > groups native agent lifecycle and IRC items without duplicating lifecycle updates [1.18ms]
+(pass) Gajae-style delegation tree > keeps agent names and states scoped to their native turn [0.18ms]
+(pass) Gajae-style delegation tree > uses the latest reordered lifecycle state for queued, failed, and cancelled agents [0.36ms]
+(pass) Gajae-style delegation tree > preserves native nested activity messages while excluding ordinary collaboration tools [0.10ms]
+(pass) Gajae-style delegation tree > projects native call and subagent payloads into one stable delegated task [0.05ms]
+(pass) Gajae-style delegation tree > renders the grouped tree in Chat instead of the old one-line collaboration notice [0.55ms]
+(pass) Gajae-style delegation tree > stays absent when the App Server has not emitted collaboration items [0.05ms]
+(pass) Gajae-style delegation tree > requires native turn and item references for observed trace nodes and keeps source visible when compact [0.25ms]
+(pass) Gajae-style delegation tree > keeps a failed spawn visible before the server assigns a receiver thread [0.29ms]
+
+test/auth-service.test.ts:
+(pass) AuthService > distinguishes configured and required providers without exposing credentials [0.13ms]
+(pass) AuthService > returns the post-login status and delegates logout [0.14ms]
+
+test/monitoring-overlay.test.ts:
+(pass) MonitoringOverlay > renders a content-safe live session dashboard [0.25ms]
+(pass) MonitoringOverlay > unsubscribes on Escape [0.05ms]
+
+test/development-store.test.ts:
+(pass) development source ledger and shared SQLite > preserves captured attribution across binding changes and rejects conflicting replay [17.27ms]
+(pass) development source ledger and shared SQLite > rebuilds after DB loss and reports modified source rather than accepting it [19.81ms]
+(pass) development source ledger and shared SQLite > keeps original v1 UUID references queryable without Unit and distinguishes test verdict [12.47ms]
+(pass) development source ledger and shared SQLite > rejects a reused Linear id or UUID with a different URL across source and legacy links [10.35ms]
+(pass) development source ledger and shared SQLite > serializes independent processes and preserves every source event [128.11ms]
+(pass) development source ledger and shared SQLite > binds an asynchronous test to its start binding and detects DB payload tampering [15.44ms]
+(pass) development source ledger and shared SQLite > rebuild is project scoped within one shared database [11.90ms]
+
+test/session-runtime.test.ts:
+(pass) SessionRuntime > streams a response while preserving a replayable event trail [5.36ms]
+(pass) SessionRuntime > grounds location questions in the exact active workspace path [4.04ms]
+(pass) SessionRuntime > rejects concurrent submissions without corrupting the transcript [2.50ms]
+(pass) SessionRuntime > records an explicit bang command outside the model with display-safe output [3.32ms]
+(pass) SessionRuntime > cancels an active terminal command and returns the session to ready [2.14ms]
+(pass) SessionRuntime > commits a cancelled assistant item without polluting model context [354.65ms]
+(pass) SessionRuntime > executes a real tool call, returns its result to the model, and persists the card [11.40ms]
+(pass) SessionRuntime > records safe narration labels only for attempted tools [26.25ms]
+(pass) SessionRuntime > appends a bounded observed learning summary after a multi-tool turn without duplicating structured answers [8.80ms]
+(pass) SessionRuntime > migrates legacy narration events by event order and rejects duplicate persisted steps [1.67ms]
+(pass) SessionRuntime > requires public tool reasons and evidence-scoped final summaries in the system prompt [0.05ms]
+(pass) SessionRuntime > retries a transient overloaded provider response before failing the turn [505.85ms]
+(pass) SessionRuntime > writes terminal tool results for every parallel call when aborted [8.23ms]
+(pass) SessionRuntime > drops an incomplete persisted tool round from resumed model context [4.66ms]
+(pass) SessionRuntime > drives a thin project Todo from model intent through real tool evidence [51.73ms]
+(pass) SessionRuntime > blocks unauthenticated turns before they enter the transcript [1.19ms]
+(pass) SessionRuntime > isolates a broken observer from durable model-setting commits [2.17ms]
+(pass) SessionRuntime > resumes canonical messages from the durable event trail [3.54ms]
+
+test/workspace-todo-view.test.ts:
+(pass) WorkspaceTodoView > renders a blank pane for a missing or empty todo [0.07ms]
+(pass) WorkspaceTodoView > wraps Korean and ANSI todo content safely within 30 columns [0.30ms]
+(pass) WorkspaceTodoView > wraps Korean and ANSI todo content safely within 40 columns [0.04ms]
+(pass) WorkspaceTodoView > wraps Korean and ANSI todo content safely within 70 columns [0.17ms]
+(pass) WorkspaceTodoView > wraps Korean and ANSI todo content safely within 120 columns [0.03ms]
+(pass) WorkspaceTodoView > uses status markers without mixing project metadata or commands into Todo [0.11ms]
+(pass) WorkspaceTodoView > uses the active item rather than an earlier pending item in compact layout [0.06ms]
+
+test/config.test.ts:
+(pass) model settings > uses defaults when no settings file exists [0.58ms]
+(pass) model settings > normalizes an unsupported provider, model, and effort [0.03ms]
+(pass) model settings > rejects a model that belongs to another provider [0.02ms]
+(pass) model settings > saves and loads a valid selection [1.82ms]
+(pass) model settings > reports a malformed settings file instead of silently resetting it [1.46ms]
+
+test/t-notes.test.ts:
+(pass) T-note service > creates an immutable redacted packet and replays an append-only detached draft [2.00ms]
+(pass) T-note service > sanitizes a question embedded in the instruction before detached generation [1.05ms]
+(pass) T-note service > rejects a cross-project, unordered range and a generator that does not confirm isolation [0.47ms]
+(pass) T-note service > persists strictly increasing sparse global source sequences [1.17ms]
+(pass) T-note service > retries one missing sparse interleaved-turn note after a failed generation [1.48ms]
+(pass) T-note service > adapts the append-only ProjectActivity journal without provider-state reconstruction [0.11ms]
+(pass) T-note service > removes native identifiers inside a non-reasoning event payload [0.18ms]
+(pass) T-note service > removes nested native reasoning bodies and all native references before they enter a T-note packet [0.11ms]
+(pass) T-note service > truncates only a final crash residue while rejecting an invalid middle record [2.26ms]
+
+test/todo-ledger.test.ts:
+(pass) TodoLedger > mirrors a Native plan and its live execution summary as a two-level Todo [1.10ms]
+(pass) TodoLedger > uses coarse semantic narration when a narrator is pending, fails, or returns null reasons [0.43ms]
+(pass) TodoLedger > keeps deterministic Native Todo IDs across insertion, reorder, edit, and replay [0.60ms]
+(pass) TodoLedger > rejects invalid identities and truncated-prefix collisions before writes or events [0.24ms]
+(pass) TodoLedger > fails closed for missing or forged Native source authority before writes or events [0.24ms]
+(pass) TodoLedger > creates stable IDs, refuses unfinished replacement, and shares project work across sessions [0.16ms]
+(pass) TodoLedger > enforces one active item across shared sessions [0.14ms]
+(pass) TodoLedger > requires unique evidence recorded while active before completion [0.23ms]
+(pass) TodoLedger > runs one-level detail work with stable IDs and records evidence on the active detail [0.69ms]
+(pass) TodoLedger > blocks and reopens details, blocks an active detail with its parent, and requires every detail for parent completion [0.31ms]
+(pass) TodoLedger > blocks pending or active items and reopens only blocked items [0.11ms]
+(pass) TodoLedger > does not record evidence for another owner or without an active item [0.06ms]
+(pass) TodoLedger > accepts a project Todo created by another session [0.06ms]
+(pass) TodoLedger > caps evidence and Todo rewrites at eight observations per active item [0.15ms]
+(pass) TodoLedger > queues work after the active item or interrupts it now without losing order [0.24ms]
+(pass) TodoLedger > reloads and emits the durable document after a CAS conflict [0.09ms]
+(pass) TodoLedger > reports the exact current source and pending patch on a CAS conflict [0.10ms]
+(pass) TodoLedger > reflects a debounced external file edit in the live ledger snapshot [244.96ms]
+(pass) TodoLedger > appends one sanitized todo.updated event and isolates broken listeners [0.38ms]
+
+test/dashboard-layout.test.ts:
+(pass) dashboard layout > keeps three regions in one wide frame with independent viewports [3.87ms]
+(pass) dashboard layout > uses one ordered viewport inside the same frame when compact [1.42ms]
+(pass) dashboard layout > keeps every section reachable at 120×10 [1.34ms]
+(pass) dashboard layout > keeps every section reachable at 120×13 [1.14ms]
+(pass) dashboard layout > reuses section rows when a child returns the same stable projection [0.14ms]
+(pass) dashboard layout > reuses unchanged prefixes without retaining a stale dynamic tail [0.17ms]
+(pass) dashboard layout > keeps every wheel delta in its contained chat viewport while content renders [10.13ms]
+
+test/settings-store.test.ts:
+(pass) FileSettingsStore atomic updates > keeps native and compatibility Router selections in separate files [0.07ms]
+(pass) FileSettingsStore atomic updates > compares and swaps an exact durable selection [2.06ms]
+(pass) FileSettingsStore atomic updates > preserves a newer selection when expected is stale [1.08ms]
+(pass) FileSettingsStore atomic updates > allows only one concurrent process-shaped writer to win [27.41ms]
+
+test/slash-commands.test.ts:
+(pass) WWW slash commands > opens interactive model and login selectors [0.15ms]
+(pass) WWW slash commands > classifies streaming concurrency independently from mutability [0.04ms]
+(pass) WWW slash commands > sets a validated Router model directly [0.03ms]
+(pass) WWW slash commands > routes provider login and usage refresh [0.07ms]
+(pass) WWW slash commands > intercepts exact WWW commands and leaves unknown native slash input untouched [0.06ms]
+(pass) WWW slash commands > extracts explicit bang commands without treating ordinary messages as shell [0.02ms]
+(pass) WWW slash commands > intercepts only exact workbench-local commands [0.21ms]
+(pass) WWW slash commands > advertises every supported command for editor completion [0.16ms]
+
+test/result-cards.test.ts:
+(pass) BashResultCard > renders every lifecycle status with its themed label [1.26ms]
+(pass) BashResultCard > groups stdout and stderr and shows failed exit details [0.12ms]
+(pass) BashResultCard > limits output lines and removes terminal controls [0.57ms]
+(pass) BashResultCard > preserves Korean visible width in a 40-column card [0.27ms]
+(pass) BashResultCard > highlights bash while retaining prompts, wrapping, and redaction [1.71ms]
+(pass) BashResultCard > applies semantic Git status and diff highlighting inside Bash output [0.31ms]
+(pass) GenericToolResultCard > keeps generic tool cards focused on their own input and output [0.10ms]
+(pass) GenericToolResultCard > renders lifecycle labels and display-safe values [0.28ms]
+(pass) GenericToolResultCard > bounds output and preserves visible width at narrow and wide widths [0.58ms]
+(pass) GenericToolResultCard > pretty prints and highlights JSON input and output without changing its snapshot [0.35ms]
+(pass) GenericToolResultCard > pretty prints path-grounded YAML but falls back for invalid, multi-document, aliased, and ungrounded YAML [7.54ms]
+(pass) GenericToolResultCard > pretty prints JSON output for raw read paths and content-based JSON detection [0.37ms]
+(pass) GenericToolResultCard > applies structured output tail limits at narrow widths [0.34ms]
+(pass) GenericToolResultCard > bounds huge valid structured output before highlighting without breaking ANSI or width [1.20ms]
+(pass) DiffResultCard > distinguishes added, removed, and context lines without color [0.33ms]
+(pass) CompletionSummaryCard > renders three ordered # sections, bullets, and verification at stable widths [0.41ms]
+
+test/cli.test.ts:
+(pass) WWW CLI session entry > paints the lightweight bori bootstrap before production modules load [0.03ms]
+(pass) WWW CLI session entry > paints a distinct bootstrap for the explicit multi-provider Router [0.02ms]
+(pass) WWW CLI session entry > reports the package release version [0.07ms]
+(pass) WWW CLI session entry > documents the compatibility Router command and its Native feature boundary [0.07ms]
+(pass) WWW CLI session entry > opens a new session for plain www without listing or resuming [0.04ms]
+(pass) WWW CLI session entry > opens the experimental embedded Pi lane without changing the default [0.03ms]
+(pass) WWW CLI session entry > accepts an explicit Codex lane without changing its default semantics [0.03ms]
+(pass) WWW CLI session entry > opens an explicit multi-provider Router session without changing the native default [0.03ms]
+(pass) WWW CLI session entry > resumes an explicit legacy Router session id [0.03ms]
+(pass) WWW CLI session entry > rejects malformed Router commands and session ids [0.21ms]
+(pass) WWW CLI session entry > opens a project-scoped picker for --resume without an id [0.05ms]
+(pass) WWW CLI session entry > resumes an explicit thread id without opening the picker [0.03ms]
+
+test/repository-insights.test.ts:
+(pass) repository insights > reads a dirty branch with upstream counts and display-safe Unicode paths [0.38ms]
+(pass) repository insights > supports clean repositories without an upstream [0.06ms]
+(pass) repository insights > parses delimiter-safe commits and clamps command limits [0.07ms]
+(pass) repository insights > reads open issue labels from the current repository [0.13ms]
+(pass) repository insights > returns bounded, redacted command errors without raw output [0.17ms]
+
+test/work-step-card-highlight.test.ts:
+(pass) WorkStepCard executor highlighting > labels an unplanned action as Bash, Edit, or Tool while keeping the Bash block [1.18ms]
+(pass) WorkStepCard executor highlighting > renders native command execution with a Gajae-style Bash frame [0.67ms]
+(pass) WorkStepCard executor highlighting > shortens repeated native paths at the presentation boundary without conflating external paths [0.82ms]
+(pass) WorkStepCard executor highlighting > projects project, home, sibling, outside, false-prefix, and Windows paths on component boundaries [0.11ms]
+(pass) WorkStepCard executor highlighting > uses the same path projection at the Bash result-card boundary without mutating its snapshot [0.20ms]
+(pass) WorkStepCard executor highlighting > projects file-change and read what paths without narration while preserving raw activities [0.60ms]
+(pass) WorkStepCard executor highlighting > leaves short relative paths unchanged [0.48ms]
+(pass) WorkStepCard executor highlighting > keeps direct work and why text without a repeated what label [1.31ms]
+(pass) WorkStepCard executor highlighting > classifies execution output by semantic meaning [0.08ms]
+(pass) WorkStepCard executor highlighting > connects native Bash highlighting without changing public text [1.15ms]
+(pass) WorkStepCard executor highlighting > pretty prints and highlights native structured tool output like generic tools [66.19ms]
+(pass) WorkStepCard executor highlighting > unwraps the Codex mcpToolCall arguments and result envelope before rendering [0.89ms]
+(pass) WorkStepCard executor highlighting > renders text from a Codex mcpToolCall result.content envelope [2.10ms]
+(pass) WorkStepCard executor highlighting > keeps a semantic reason while narrator work is pending or has failed [0.81ms]
+(pass) WorkStepCard executor highlighting > rejects inline commands and filename-only narrator text [0.81ms]
+
+test/project-workbench-session.test.ts:
+(pass) createProjectWorkbenchSession > selects Codex by default and forwards an explicit Pi lane independently from provider, model, and effort [0.18ms]
+(pass) createProjectWorkbenchSession > requires an explicit thread bind before selecting a journal stream or appending activity [0.28ms]
+(pass) createProjectWorkbenchSession > uses the configured Codex model only and falls back when a legacy router selected another provider [0.08ms]
+(pass) createProjectWorkbenchSession > uses the production composer factory with its static class receiver intact [2.86ms]
+(pass) createProjectWorkbenchSession > uses distinct run-local leases and one shared unbound journal without pre-bind T-note I/O [0.44ms]
+(pass) createProjectWorkbenchSession > refuses a concurrent writable resume and releases only its own thread lease [2.63ms]
+(pass) createProjectWorkbenchSession > prebinds two close/reopen resume sessions to the same native journal before Native resume [1.88ms]
+(pass) createProjectWorkbenchSession > bootstraps a missing or empty resumed Todo once without replacing an existing Todo [3.90ms]
+(pass) createProjectWorkbenchSession > does not wait for resumed Todo bootstrap and exposes rejected and conflicted writes [2.36ms]
+(pass) createProjectWorkbenchSession > resumes an in-progress root turn through repeated markers and applies its later Plan and action [43.18ms]
+(pass) createProjectWorkbenchSession > wires one native writer to thread-scoped Todo, private activity/drafts, and deterministic project identity [0.68ms]
+(pass) createProjectWorkbenchSession > isolates WES from default Chat and creates it only when explicitly enabled [0.33ms]
+(pass) createProjectWorkbenchSession > binds a fresh workbench Todo before automatic Native-plan sync [11.15ms]
+
+test/native-plan-wiring.test.ts:
+(pass) Native Plan transport-to-Todo wiring > accepts only the known root turn's threadless plan at the Workbench and Todo boundaries [21.06ms]
+
+test/development-test-runner.test.ts:
+(pass) explicit argv captures failure and both streams, with actual input blobs [106.77ms]
+(pass) snapshot excludes generated artifacts when artifactRoot is inside the repository [35.52ms]
+(pass) running cancellation, unavailable executable, changed inputs and start binding remain explicit [126.38ms]
+
+test/workbench-welcome.test.ts:
+(pass) workbench welcome intro > sweeps a stable WWW wordmark through distinct gradient frames [0.55ms]
+(pass) workbench welcome intro > keeps Wooni out of the main welcome surface [0.71ms]
+
+test/approval-overlay.test.ts:
+(pass) ApprovalOverlay > shows the command, the reason, the path, and every advertised decision [0.34ms]
+(pass) ApprovalOverlay > pads every row to the requested width so the sheet border stays straight [0.47ms]
+(pass) ApprovalOverlay > keeps the slash command visible as a second entrance [0.06ms]
+(pass) ApprovalOverlay > resolves the highlighted decision on Enter and moves with the arrow keys [0.10ms]
+(pass) ApprovalOverlay > wraps the selection at both ends [0.02ms]
+(pass) ApprovalOverlay > takes a number key as a direct decision [0.01ms]
+(pass) ApprovalOverlay > closes on Escape without deciding anything [0.02ms]
+(pass) ApprovalOverlay > ignores further input once a decision is on its way [0.01ms]
+(pass) ApprovalOverlay > offers only what the request advertises [0.06ms]
+(pass) ApprovalOverlay > never invents a decision when the request advertises none [0.12ms]
+(pass) ApprovalOverlay > renders commit, push, and GitHub Issue candidates with their exact execution scope [0.30ms]
+
+test/planning-documents.test.ts:
+(pass) project planning documents > keeps durable Epics and Stories as separate append-oriented catalogs [0.58ms]
+(pass) project planning documents > links the v1 Initiative, catalog, immutable artifacts, and current Map [0.66ms]
+
+test/usage-service.test.ts:
+(pass) UsageService > normalizes Codex and Claude adapter payloads without exposing credentials or raw responses [1.86ms]
+(pass) UsageService > reports missing auth and Anthropic API keys without attempting quota requests [0.09ms]
+(pass) UsageService > coalesces concurrent refreshes and stops future polling [21.20ms]
+(pass) UsageService > classifies Claude 429 responses and suppresses polling during backoff [0.46ms]
+(pass) UsageService > keeps the last successful Claude limits visibly stale during a 429 [0.24ms]
+
+test/woo-entry.test.ts:
+(pass) WooEntry > merges stable policy and untrusted snapshot without losing turn fields [0.19ms]
+(pass) WooEntry > coalesces concurrent refresh and atomically replaces ready state with blocked [0.09ms]
+(pass) WooEntry > blocks an oversize payload and still prepares a safe turn context [0.09ms]
+
+test/wes-entry-collector.test.ts:
+(pass) WesEntryCollector > uses configured safe runner once and preserves signals [0.71ms]
+(pass) WesEntryCollector > fails closed for a nonzero runner exit [0.22ms]
+(pass) WesEntryCollector > rejects malformed runner JSON separately [0.14ms]
+(pass) WesEntryCollector > rejects an unsafe runner path before any process starts [0.12ms]
+(pass) WesEntryCollector > default system runner times out and fails closed [27.99ms]
+
+test/detached-codex-generator.test.ts:
+(pass) PiDetachedCodexGenerator > sends one stable packet-only context without tools or cwd and records structural isolation [0.46ms]
+(pass) PiDetachedCodexGenerator > rejects tool output, unavailable models, and failed provider results [0.21ms]
+
+test/session-store.test.ts:
+(pass) SessionEventStore > serializes concurrent appends with monotonically increasing sequences [3.11ms]
+(pass) SessionEventStore > round-trips event data without alteration [0.57ms]
+(pass) SessionEventStore > creates private directories and files [0.52ms]
+(pass) SessionEventStore > lists stored sessions by most recent update [6.56ms]
+(pass) SessionEventStore > reports the line number for corrupt JSONL [0.47ms]
+
+test/work-flow.test.ts:
+(pass) dplan-v1 > retains unique insert delete and reorder without index identity [0.28ms]
+(pass) dplan-v1 > fails closed for duplicate/status and redaction collapse [0.28ms]
+(pass) dplan-v1 > allows one bounded unique edit but rejects multi-edit and replacement [0.22ms]
+(pass) dplan-v1 > orphans pre-plan and zero, one, or multiple running actions [0.12ms]
+(pass) dplan-v1 > preserves each inferred activity's plan revision interval [0.13ms]
+(pass) dplan-v1 > keeps boundary and equal-status revision attribution in monotonic intervals [0.07ms]
+(pass) dplan-v1 > halts at integrity prefix and gives revision precedence to source mismatch [0.11ms]
+(pass) dplan-v1 > leaves malformed plans to Layer B instead of registering revision collisions [0.07ms]
+(pass) dplan-v1 > is replay deterministic and detects injected full digest collisions [0.13ms]
+(pass) dplan-v1 > transfers every associated activity to a retirement orphan [0.09ms]
+(pass) dplan-v1 > attributes mixed unmatched regions per item before transferring orphans [0.14ms]
+(pass) dplan-v1 > treats duplicate token transitions as ambiguous and transfers each association once [0.21ms]
+(pass) dplan-v1 > does not use public labels, display status, or positions as identity evidence [0.41ms]
+(pass) dplan-v1 > uses the selected turn's outbound request as the public goal [0.06ms]
+(pass) dplan-v1 > requires the selected turn start to match the expected thread [0.02ms]
+(pass) dplan-v1 > does not take a later foreign-turn message as the selected turn goal [0.05ms]
+(pass) dplan-v1 > uses only the selected turn's preceding outbound request and sanitizes it [0.07ms]
+(pass) dplan-v1 > keeps same-turn lifecycle markers and foreign boundaries inside the selected interval [0.07ms]
+
+ 650 pass
+ 0 fail
+ 4582 expect() calls
+Ran 650 tests across 81 files. [6.49s]

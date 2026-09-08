@@ -3,6 +3,8 @@ import { isAbsolute, relative, resolve } from "node:path";
 import type { RegistryEnvelope, TraceabilityLedger, VerificationReceipt } from "../../../core/domain/development/development-traceability.js";
 import { digestLedger } from "./development-traceability-digest.js";
 import { canonicalDigest, requiredCoverageFromRegistries, sha256, validateLedger, validateRegistryEnvelope, validateVerificationReceipt } from "./development-traceability-contract.js";
+import { inspectObsidianVault, type ObsidianVaultDocument } from "./obsidian-contract.js";
+import { obsidianWikiTarget } from "../../../core/domain/development/obsidian-contract.js";
 
 const registryKind = (kind: string) => kind === "spec" ? "specs" : kind === "test-contract" ? "tests" : `${kind}s`;
 const containedFile = (root: string, path: string): string => {
@@ -18,6 +20,144 @@ const containedFile = (root: string, path: string): string => {
 
 function sameValues(left: readonly string[], right: readonly string[]): boolean {
 	return JSON.stringify([...left].sort()) === JSON.stringify([...right].sort());
+}
+
+export interface ObsidianNoteProjection {
+	documentId: string;
+	path: string;
+	digest: string;
+	linearId: string;
+	schemaVersion: 2;
+	status: "current" | "renamed" | "content-changed" | "renamed-and-content-changed" | "unmapped";
+}
+
+export interface ObsidianTraceabilityInspection {
+	notes: ObsidianNoteProjection[];
+	errors: string[];
+}
+
+function wikiAliases(document: ObsidianVaultDocument): string[] {
+	const withoutExtension = document.relativePath.replace(/\.md$/u, "");
+	return [withoutExtension, withoutExtension.split("/").at(-1)!];
+}
+
+function linearObsidianPath(description: string | undefined): string | undefined {
+	const uri = description?.match(/^[-*] Obsidian:\s*\[[^\]]+\]\(<?(obsidian:\/\/[^)>]+)>?\)$/mu)?.[1];
+	if (!uri) return undefined;
+	try {
+		const parsed = new URL(uri);
+		const path = parsed.searchParams.get("file") ?? parsed.searchParams.get("path");
+		if (!path) return undefined;
+		return decodeURIComponent(path).replaceAll("\\", "/").replace(/^\/+/, "").replace(/\.md$/u, "");
+	} catch { return undefined; }
+}
+
+function sameObsidianPath(observed: string, expected: string): boolean {
+	const canonicalExpected = expected.replace(/\.md$/u, "");
+	return observed === canonicalExpected || observed.endsWith(`/${canonicalExpected}`);
+}
+
+/**
+ * Obsidian Properties are the authoring source. The ledger must contain the
+ * normalized document identities and relationships; SQLite may only project
+ * this read-only inspection result.
+ */
+export function inspectObsidianTraceability(options: {
+	vaultRoot: string;
+	ledger: TraceabilityLedger;
+	specRoot?: string;
+	linearSnapshot?: readonly unknown[];
+	requiredLinearIds?: readonly string[];
+}): ObsidianTraceabilityInspection {
+	const inspected = inspectObsidianVault(options.vaultRoot, { specRoot: options.specRoot, requiredLinearIds: options.requiredLinearIds });
+	const errors = inspected.issues
+		.filter(problem => problem.code !== "PATH_DRIFT")
+		.map(problem => `OBSIDIAN_CONTRACT_INVALID:${problem.code}:${problem.path}`);
+	const documents = inspected.documents.filter((document): document is ObsidianVaultDocument & { documentId: string; linearId: string; properties: NonNullable<ObsidianVaultDocument["properties"]> } =>
+		Boolean(document.documentId && document.linearId && document.properties));
+	const aliases = new Map<string, ObsidianVaultDocument[]>();
+	for (const document of documents) for (const alias of wikiAliases(document)) aliases.set(alias, [...(aliases.get(alias) ?? []), document]);
+	const scopedRefs = new Set(documents.map(document => `note:${document.documentId}`));
+	const normalizedSpecRoot = options.specRoot?.replaceAll("\\", "/").replace(/^\/+|\/+$/gu, "");
+	const notes: ObsidianNoteProjection[] = [];
+	const expectedEdges = new Set<string>();
+	const expectedPropertyEdges = new Set<string>();
+	const noteEntities = options.ledger.entities.filter(entity => entity.kind === "note");
+	for (const document of documents) {
+		const ref = `note:${document.documentId}` as const;
+		const entity = noteEntities.find(candidate => candidate.ref === ref && candidate.id === document.documentId);
+		let status: ObsidianNoteProjection["status"] = "current";
+		if (!entity) {
+			errors.push(`OBSIDIAN_NOTE_LEDGER_MISSING:${ref}`);
+			status = "unmapped";
+		} else if (!entity.source) {
+			errors.push(`OBSIDIAN_NOTE_SOURCE_MISSING:${ref}`);
+			status = "unmapped";
+		} else {
+			const renamed = entity.source.path !== document.relativePath;
+			const contentChanged = entity.source.digest !== document.digest;
+			status = renamed && contentChanged ? "renamed-and-content-changed" : renamed ? "renamed" : contentChanged ? "content-changed" : "current";
+		}
+		notes.push({ documentId: document.documentId, path: document.relativePath, digest: document.digest, linearId: document.linearId, schemaVersion: 2, status });
+		const issueRef = `issue:${document.linearId}`;
+		if (!options.ledger.edges.some(edge => edge.from === issueRef && edge.relation === "detailed-by" && edge.to === ref)) errors.push(`OBSIDIAN_LINEAR_EDGE_MISSING:${issueRef}:${ref}`);
+		const relationships: Array<{ relation: "parent-of" | "related-to"; link: string; parent: boolean }> = [];
+		if (document.properties.parent) relationships.push({ relation: "parent-of", link: document.properties.parent, parent: true });
+		for (const link of document.properties.related) relationships.push({ relation: "related-to", link, parent: false });
+		for (const relationship of relationships) {
+			const target = obsidianWikiTarget(relationship.link);
+			const matches = target ? aliases.get(target) ?? [] : [];
+			if (matches.length !== 1) continue;
+			const targetRef = `note:${matches[0]!.documentId}`;
+			const from = relationship.parent ? targetRef : ref;
+			const to = relationship.parent ? ref : targetRef;
+			expectedEdges.add(`${from}|${relationship.relation}|${to}`);
+		}
+		const declared: Array<{ kind: "spec" | "unit" | "test-contract" | "exception" | "decision"; ids: readonly string[] }> = [
+			{ kind: "spec", ids: document.properties.spec_ids }, { kind: "unit", ids: document.properties.code_ids },
+			{ kind: "test-contract", ids: document.properties.test_ids }, { kind: "exception", ids: document.properties.exception_ids },
+			{ kind: "decision", ids: document.properties.decision_ids },
+		];
+		for (const property of declared) for (const id of property.ids) {
+			const matches = options.ledger.entities.filter(candidate => candidate.kind === property.kind && candidate.id === id)
+				.sort((left, right) => (right.version ?? 0) - (left.version ?? 0));
+			if (!matches.length) errors.push(`OBSIDIAN_PROPERTY_ENTITY_MISSING:${ref}:${property.kind}:${id}`);
+			else expectedPropertyEdges.add(`${ref}|references|${matches[0]!.ref}`);
+		}
+	}
+	for (const edge of options.ledger.edges.filter(edge => (edge.relation === "parent-of" || edge.relation === "related-to")
+		&& (!normalizedSpecRoot || (scopedRefs.has(edge.from) && scopedRefs.has(edge.to))))) {
+		const key = `${edge.from}|${edge.relation}|${edge.to}`;
+		if (!expectedEdges.delete(key)) errors.push(`OBSIDIAN_RELATION_EDGE_UNDECLARED:${key}`);
+	}
+	for (const edge of expectedEdges) errors.push(`OBSIDIAN_RELATION_EDGE_MISSING:${edge}`);
+	for (const edge of options.ledger.edges.filter(edge => edge.relation === "references" && (!normalizedSpecRoot || scopedRefs.has(edge.from)))) {
+		const key = `${edge.from}|${edge.relation}|${edge.to}`;
+		if (!expectedPropertyEdges.delete(key)) errors.push(`OBSIDIAN_PROPERTY_EDGE_UNDECLARED:${key}`);
+	}
+	for (const edge of expectedPropertyEdges) errors.push(`OBSIDIAN_PROPERTY_EDGE_MISSING:${edge}`);
+	for (const entity of noteEntities) {
+		const belongsToScope = !normalizedSpecRoot || entity.source?.path.replaceAll("\\", "/").startsWith(`${normalizedSpecRoot}/`);
+		if (belongsToScope && !documents.some(document => document.documentId === entity.id)) errors.push(`OBSIDIAN_NOTE_DOCUMENT_MISSING:${entity.ref}`);
+	}
+	if (options.linearSnapshot) {
+		const issues = options.linearSnapshot.filter((value): value is { id: string; description?: string } => Boolean(value && typeof value === "object" && typeof (value as { id?: unknown }).id === "string"));
+		for (const note of notes) {
+			const issue = issues.find(candidate => candidate.id === note.linearId);
+			if (!issue) continue;
+			const observed = linearObsidianPath(issue.description);
+			if (!observed || !sameObsidianPath(observed, note.path)) errors.push(`LINEAR_OBSIDIAN_URI_STALE:${note.linearId}:${note.documentId}`);
+		}
+		const targetIssues = options.requiredLinearIds?.length
+			? new Set(options.requiredLinearIds)
+			: normalizedSpecRoot ? new Set(notes.map(note => note.linearId)) : new Set(issues.map(issue => issue.id));
+		for (const issue of issues.filter(candidate => targetIssues.has(candidate.id))) {
+			const detailEdges = options.ledger.edges.filter(edge => edge.from === `issue:${issue.id}` && edge.relation === "detailed-by");
+			if (detailEdges.length !== 1) errors.push(`LINEAR_DETAILED_BY_EXACTLY_ONE_REQUIRED:${issue.id}:${detailEdges.length}`);
+			else if (!notes.some(note => `note:${note.documentId}` === detailEdges[0]!.to)) errors.push(`LINEAR_DETAILED_BY_CANONICAL_TARGET_REQUIRED:${issue.id}:${detailEdges[0]!.to}`);
+		}
+	}
+	return { notes: notes.sort((left, right) => left.documentId < right.documentId ? -1 : left.documentId > right.documentId ? 1 : 0), errors: [...new Set(errors)].sort() };
 }
 
 /** The receipt's evidence list is authoritative; the graph is its immutable projection. */
@@ -59,7 +199,7 @@ export function validateReceiptEvidenceAlignment(ledger: TraceabilityLedger, rec
 }
 
 /** Validate durable v3 sources before any SQLite projection transaction. */
-export async function validateTraceability(options: { projectRoot: string; ledger: TraceabilityLedger; vaultRoot: string; linearSnapshot?: readonly unknown[] }): Promise<string[]> {
+export async function validateTraceability(options: { projectRoot: string; ledger: TraceabilityLedger; vaultRoot: string; specRoot?: string; linearSnapshot?: readonly unknown[]; requiredLinearIds?: readonly string[] }): Promise<string[]> {
 	const { projectRoot, ledger } = options;
 	const errors = validateLedger(ledger, digestLedger(ledger));
 	const receipts = new Map<string, VerificationReceipt>();
@@ -107,6 +247,8 @@ export async function validateTraceability(options: { projectRoot: string; ledge
 		}
 	}
 	errors.push(...validateReceiptEvidenceAlignment(ledger, receipts));
+	const noteInspection = inspectObsidianTraceability({ vaultRoot: options.vaultRoot, ledger, specRoot: options.specRoot, linearSnapshot: options.linearSnapshot, requiredLinearIds: options.requiredLinearIds });
+	errors.push(...noteInspection.errors);
 	if (options.linearSnapshot) {
 		const issues = options.linearSnapshot.filter((value): value is { id: string; description?: string } =>
 			Boolean(value && typeof value === "object" && typeof (value as { id?: unknown }).id === "string"));

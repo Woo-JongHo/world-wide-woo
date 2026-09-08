@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 3,
+  "kind": "test-contract",
+  "id": "TEST-WORKBENCH-003",
+  "version": 1,
+  "immutable": true,
+  "payload": {
+    "purpose": "Workbench/Todo/Tracer Properties 관계",
+    "risk": "parent 관계의 ledger drift",
+    "pass": "canonical parent-of 관계가 동일하게 투영된다.",
+    "acceptanceIds": [
+      "AC-WORKBENCH-003"
+    ]
+  },
+  "payloadDigest": "5c532f3a99acde670a0d3dcecb690efaada709cabbc2a4081bf40c10dd0dcc07"
+}

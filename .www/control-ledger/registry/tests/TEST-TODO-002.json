@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 3,
+  "kind": "test-contract",
+  "id": "TEST-TODO-002",
+  "version": 1,
+  "immutable": true,
+  "payload": {
+    "purpose": "Todo 2계층과 활성 상태 불변조건",
+    "risk": "깊은 계층 또는 복수 활성 항목",
+    "pass": "2계층과 단일 활성 규칙을 통과한다.",
+    "acceptanceIds": [
+      "AC-TODO-002"
+    ]
+  },
+  "payloadDigest": "b3ae2b96c1597f9b24cc6f2b32ba1463265af91f2e0aa44c123f3bee0bb96741"
+}

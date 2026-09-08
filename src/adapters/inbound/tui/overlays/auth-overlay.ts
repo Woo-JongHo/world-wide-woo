@@ -29,6 +29,10 @@ const PROVIDER_LABELS: Record<Provider, string> = {
 	google: "Google Gemini",
 };
 
+export const GEMINI_API_KEY_URL = "https://aistudio.google.com/app/apikey";
+
+type OpenExternal = (target: string) => Promise<unknown>;
+
 /** Owns the complete provider-picker → authentication flow in one keyboard surface. */
 export class LoginOverlay implements Component {
 	private readonly statuses = new Map<Provider, LoginStatus>();
@@ -42,6 +46,7 @@ export class LoginOverlay implements Component {
 		private readonly onAuthenticated: (status: ProviderAuthState) => void | Promise<void>,
 		private readonly onClose: () => void,
 		private readonly providers: readonly Provider[] = PROVIDERS,
+		private readonly openExternal: OpenExternal = open,
 	) {
 		for (const provider of providers) this.statuses.set(provider, { state: "pending", provider });
 	}
@@ -109,6 +114,7 @@ export class LoginOverlay implements Component {
 			this.requestRender,
 			this.onAuthenticated,
 			this.onClose,
+			this.openExternal,
 		);
 		this.flow.start();
 	}
@@ -135,6 +141,7 @@ export class AuthFlowOverlay implements Component {
 		private readonly requestRender: () => void,
 		private readonly onAuthenticated: (status: ProviderAuthState) => void | Promise<void>,
 		private readonly onClose: () => void,
+		private readonly openExternal: OpenExternal = open,
 	) {}
 
 	start(): void {
@@ -149,6 +156,13 @@ export class AuthFlowOverlay implements Component {
 		for (const line of this.lines.slice(-8)) rows.push(...wrapTextWithAnsi(line, contentWidth));
 		if (this.pending) {
 			rows.push("", colors.highlight(stripTerminalSequences(this.pending.prompt.message)));
+			if (this.showsGeminiKeyHelp()) {
+				for (const line of [
+					colors.secondary("Gemini API 키 발급"),
+					colors.text(GEMINI_API_KEY_URL),
+					colors.muted("Ctrl+O 브라우저에서 열기 · 주소를 선택해 복사할 수 있습니다."),
+				]) rows.push(...wrapTextWithAnsi(line, contentWidth));
+			}
 			if (this.pending.prompt.type === "select") {
 				for (const [index, option] of this.pending.prompt.options.entries()) {
 					const marker = index === this.pending.selected ? colors.accent("●") : colors.muted("○");
@@ -179,6 +193,14 @@ export class AuthFlowOverlay implements Component {
 		}
 		const pending = this.pending;
 		if (!pending) return;
+		if (this.showsGeminiKeyHelp() && matchesKey(data, Key.ctrl("o"))) {
+			void this.openExternal(GEMINI_API_KEY_URL).catch(() => {
+				this.lines.push(colors.warning("브라우저를 열지 못했습니다. 아래 주소를 복사해 여세요."));
+				this.lines.push(GEMINI_API_KEY_URL);
+				this.requestRender();
+			});
+			return;
+		}
 		if (pending.prompt.type === "select") {
 			if (matchesKey(data, Key.up)) pending.selected = (pending.selected + pending.prompt.options.length - 1) % pending.prompt.options.length;
 			if (matchesKey(data, Key.down)) pending.selected = (pending.selected + 1) % pending.prompt.options.length;
@@ -202,6 +224,10 @@ export class AuthFlowOverlay implements Component {
 			pending.value += data;
 			this.requestRender();
 		}
+	}
+
+	private showsGeminiKeyHelp(): boolean {
+		return this.provider === "google" && this.pending?.prompt.type === "secret";
 	}
 
 	private async run(): Promise<void> {
@@ -270,14 +296,14 @@ export class AuthFlowOverlay implements Component {
 	private notify(event: AuthEvent): void {
 		if (event.type === "auth_url") {
 			this.lines.push(stripTerminalSequences(event.instructions ?? "브라우저에서 로그인을 완료하세요."));
-			void open(event.url).catch(() => {
+			void this.openExternal(event.url).catch(() => {
 				this.lines.push(colors.warning(`브라우저를 열지 못했습니다: ${stripTerminalSequences(event.url)}`));
 				this.requestRender();
 			});
 		}
 		if (event.type === "device_code") {
 			this.lines.push(`인증 코드: ${stripTerminalSequences(event.userCode)}`);
-			void open(event.verificationUri).catch(() => undefined);
+			void this.openExternal(event.verificationUri).catch(() => undefined);
 		}
 		if (event.type === "info") {
 			this.lines.push(stripTerminalSequences(event.message));

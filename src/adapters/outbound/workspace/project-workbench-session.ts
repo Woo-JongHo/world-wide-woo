@@ -2,6 +2,7 @@ import type { DevelopmentService } from "../../../core/application/development/d
 import { createDevelopmentService } from "../development/development-cli";
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
+import { stat } from "node:fs/promises";
 import { ProjectWorkbench, type ProjectWorkbenchOptions, type WorkbenchActivityJournal, type WorkbenchTNoteSource, type WorkbenchTodoSource } from "../../../core/application/orchestration/project-workbench.js";
 import type { ExecutorPort } from "../../../core/ports/execution/executor-port.js";
 import type { ComposerDraftController, SessionRepository, TodoStore, UsageMonitor } from "../../../core/ports/index.js";
@@ -9,6 +10,8 @@ import { TNoteService } from "../../../core/application/work/t-note-service.js";
 import type { ActivityNarrator } from "../../../core/application/orchestration/activity-narrator.js";
 import { WooEntry } from "../../../core/application/orchestration/woo-entry.js";
 import { SessionModelUsageAccumulator, type SessionModelUsageObservation } from "../../../core/application/session/session-model-usage.js";
+import { FileSkillRegistry } from "./file-skill-registry.js";
+import type { SkillRegistrySnapshot } from "../../../core/skills/skill-registry.js";
 import { TodoLedger } from "../../../core/application/work/todo-ledger.js";
 import type { TodoDocument, TodoNativePlanBinding } from "../../../core/domain/work/todos.js";
 import type { TNoteDraft } from "../../../core/domain/work/t-notes.js";
@@ -18,6 +21,7 @@ import type { ProjectActivity } from "../../../core/domain/execution/project-act
 import { CanonicalPromotionService } from "../../../core/application/work/canonical-promotion.js";
 import { ReviewService } from "../../../core/application/review/review-service.js";
 import { digestActivitySource, ActivityJournalStore, nativeThreadJournalKey } from "../persistence/activity-journal-store.js";
+import { FileTraceStore } from "../persistence/trace-store.js";
 import { createNativeHarness, type ExecutionLane, type NativeHarnessSelection } from "../execution/factory.js";
 import { FileComposerDraftController } from "../persistence/composer-draft-store.js";
 import { PiDetachedCodexGenerator } from "../execution/detached-codex-generator.js";
@@ -84,6 +88,7 @@ export interface ProjectWorkbenchSessionFactories {
 	createComposerDraft(root: string, sessionId: string, directory: string): Promise<ComposerDraftController>;
 	createUsageMonitor(): UsageMonitor;
 	createWooEntry(): WooEntry;
+	loadSkillRegistry(root: string): Promise<SkillRegistrySnapshot | undefined>;
 	createDevelopment?(root: string, runId: string): DevelopmentService;
 }
 
@@ -122,6 +127,7 @@ const productionFactories: ProjectWorkbenchSessionFactories = {
 		return new UsageService(credentials, createModelRegistry(credentials));
 	},
 	createWooEntry: () => new WooEntry(new WesEntryCollector()),
+	loadSkillRegistry: async (root) => await existingDirectory(join(root, ".agents/skills")) ? new FileSkillRegistry(root).load() : undefined,
 	createDevelopment: (projectRoot, runId) => createDevelopmentService({ projectRoot, runId }),
 };
 
@@ -156,7 +162,11 @@ export async function createProjectWorkbenchSession(
 	};
 	try {
 		const projectId = scopedProjectId(workspace.root);
-		const journal = new ThreadBoundActivityJournal(factories.createJournal(join(workspace.runtimeDirectory, "activity")));
+		const traceRoot = await existingDirectory(workspace.todosDirectory) ? workspace.todosDirectory : undefined;
+		const journal = new ThreadBoundActivityJournal(
+			factories.createJournal(join(workspace.runtimeDirectory, "activity")),
+			traceRoot,
+		);
 		if (options.resumeThreadId) await journal.bindThread(options.resumeThreadId);
 		todos = new ThreadScopedTodoSource(workspace, factories);
 		const auxiliaryUsage = new SessionModelUsageAccumulator();
@@ -178,6 +188,7 @@ export async function createProjectWorkbenchSession(
 		// WES is an optional local policy source. Ordinary Chat sessions must not
 		// collect it or expose a WES loading/blocked state.
 		const wooEntry = options.enableWooEntry ? factories.createWooEntry() : undefined;
+		const skillRegistry = await factories.loadSkillRegistry(workspace.root);
 		development = factories.createDevelopment?.(workspace.root, runId);
 		workbench = factories.createWorkbench(native, journal, {
 			developmentObserver: development ? { capture: activity => development!.observe(activity) } : undefined,
@@ -205,6 +216,7 @@ export async function createProjectWorkbenchSession(
 			tnotes,
 			narrator,
 			wooEntry,
+			skillRegistry,
 			promotions: factories.createPromotionService(workspace.root),
 			reviews: factories.createReviewService(workspace.runtimeDirectory, observeAuxiliaryUsage),
 			auxiliaryUsage,
@@ -243,6 +255,10 @@ export function scopedProjectId(projectRoot: string): string {
 	return `project-${digestActivitySource(projectRoot).slice("sha256:".length, "sha256:".length + 24)}`;
 }
 
+async function existingDirectory(path: string): Promise<boolean> {
+	try { return (await stat(path)).isDirectory(); } catch { return false; }
+}
+
 export function scopedTodoSessionId(nativeThreadId: string): string {
 	if (typeof nativeThreadId !== "string" || nativeThreadId.trim().length === 0) throw new Error("Todo에는 Native thread id가 필요합니다.");
 	return `native-${digestActivitySource(nativeThreadId).slice("sha256:".length, "sha256:".length + 32)}`;
@@ -254,8 +270,12 @@ export function scopedTodoSessionId(nativeThreadId: string): string {
  */
 export class ThreadBoundActivityJournal implements WorkbenchActivityJournal {
 	private streamId: string | null = null;
+	private trace: FileTraceStore | null = null;
 
-	public constructor(private readonly journal: WorkbenchActivityJournal) {}
+	public constructor(
+		private readonly journal: WorkbenchActivityJournal,
+		private readonly traceRoot?: string,
+	) {}
 
 	public async bindThread(threadId: string): Promise<void> {
 		const streamId = nativeThreadJournalKey(threadId);
@@ -263,6 +283,8 @@ export class ThreadBoundActivityJournal implements WorkbenchActivityJournal {
 			throw new Error("활동 기록이 이미 다른 Native thread에 묶여 있습니다.");
 		}
 		this.streamId = streamId;
+		if (this.traceRoot) this.trace = new FileTraceStore(join(this.traceRoot, scopedTodoSessionId(threadId), "Tracer.md"));
+		if (this.trace) await this.trace.replace(await this.journal.readAll(streamId));
 	}
 
 	public hasBoundThread(): boolean {
@@ -270,7 +292,10 @@ export class ThreadBoundActivityJournal implements WorkbenchActivityJournal {
 	}
 
 	public async append(input: Parameters<WorkbenchActivityJournal["append"]>[0]): ReturnType<WorkbenchActivityJournal["append"]> {
-		return this.journal.append({ ...input, projectId: this.requireStreamId() });
+		const streamId = this.requireStreamId();
+		const result = await this.journal.append({ ...input, projectId: streamId });
+		if (this.trace && result.appended) await this.trace.append(result.activity);
+		return result;
 	}
 
 	public readAll(_projectId: string): Promise<ProjectActivity[]> {

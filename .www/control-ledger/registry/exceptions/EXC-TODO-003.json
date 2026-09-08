@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 3,
+  "kind": "exception",
+  "id": "EXC-TODO-003",
+  "version": 1,
+  "immutable": true,
+  "payload": {
+    "importance": "important",
+    "name": "다른 thread 또는 turn Plan 수신",
+    "detect": "thread와 turn identity를 현재 session과 대조한다.",
+    "control": "현재 Todo를 변경하지 않고 다른 session에만 처리한다.",
+    "recovery": "올바른 session source에서 다시 projection한다.",
+    "testIds": [
+      "TEST-TODO-004"
+    ],
+    "verification": {
+      "detect": [
+        "TEST-TODO-004"
+      ],
+      "control": [
+        "TEST-TODO-004"
+      ],
+      "recovery": [
+        "TEST-TODO-004"
+      ]
+    }
+  },
+  "payloadDigest": "3d384668266ca16f19f4f097f0b8c9e53c505172df9ed5e04f92925af6d50169"
+}

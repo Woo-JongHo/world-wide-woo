@@ -5,7 +5,7 @@ description: 99_www Linear 이슈를 생성·분할·이동하거나 본문을 �
 
 # WWW Linear Issue Intake
 
-**요청 → 기존 내용·가이드 확인 → 넣을 위치와 처리 방식 결정 → 본문 작성 → 반영 → 재조회** 순서로 진행한다. GitHub Issue에는 별도 `woo-issue-intake`를 사용한다.
+**요청 → 기존 내용·가이드 확인 → 넣을 위치와 처리 방식 결정 → Candidate 작성 → 검증·렌더** 순서로 진행한다. GitHub Issue에는 별도 `woo-issue-intake`를 사용한다. 외부 반영과 재조회는 `woo-linear-publish`가 소유한다.
 
 이 스킬은 99_www 프로젝트의 Linear 분류 절차를 소유한다. 상위 방법론 정본은 `~/.codex/woo.yaml`의 workspace_root를 통해 읽는다. 상위 계약을 이 파일에 복제하지 않는다.
 
@@ -64,13 +64,11 @@ description: 99_www Linear 이슈를 생성·분할·이동하거나 본문을 �
 - 새 하위 이슈만으로 전체 부모의 범위가 완성됐다고 쓰지 않는다.
 - `@unit`, `@linear` 등 코드 어노테이션은 inline code로 써서 Linear 사용자 mention으로 변환되지 않게 한다.
 
-## 5. 반영과 완료 판정
+## 5. Candidate와 완료 판정
 
-1. 반영 직전에 대상·부모·중복 후보를 다시 조회한다. 초안 이후 범위나 계층이 바뀌었으면 재판정한다. 기능 계층 변경은 제목 계층 스킬의 오프라인 검증을 먼저 통과시킨다.
-2. 새 하위 이슈에는 확인된 parentId·Project를 명시한다. 위치가 정해지지 않았다고 루트나 임의의 부모에 생성하지 않는다.
-3. 기존 이슈는 합의한 필드만 수정한다. 이동 시 UUID·본문·상태·Milestone을 유지하고 필요한 분류 라벨만 조정한다. Milestone은 해당 릴리스 범위 근거가 있을 때만 지정한다.
-4. 응답이 불확실하면 같은 create를 반복하지 않고 목록·본문을 다시 조회해 생성 여부를 확인한다.
-5. 반영 후 이슈 자체와 부모의 하위 목록을 재조회한다. Project·parentId·상위 경로·제목·본문·라벨·상태·Milestone을 초안과 대조한다. 이동은 이전 부모에서 빠지고 새 부모에 들어갔는지도 확인한다.
-6. 전후 조회·판정·실제 ID/URL을 작업 증거에 보존한다. 코드/연결 문서에 이전 부모를 현재 정보로 적어둔 곳이 있으면 갱신하며 과거 스냅샷은 이력으로 유지한다.
+1. `schemas/artifact-candidate.schema.json`의 `linear-issue` Candidate를 만든다. 새 이슈는 확인한 parentId·Project, 기존 이슈는 UUID와 변경 전 필드를 `target`과 `expectedBefore`에 넣는다.
+2. 본문은 `content`의 `title`, `purpose`, `included`, `excluded`, `done`, `connections`로만 표현한다.
+3. `bun run artifact:control -- validate --candidate <path> --actual-before <readback>`과 `render`를 실행한다. 기능 계층 변경은 제목 계층 스킬의 오프라인 검증도 통과시킨다.
+4. 처리 방식·위치·중복 대조·렌더 전체·digest를 제시한다. 완료는 게시 가능한 Candidate가 만들어진 상태이며 Linear 상태는 아직 바뀌지 않았다.
 
-완료는 “이슈가 생겼다”가 아니라 **정해진 위치에 중복 없이 들어갔고, 기존 구조·내용과의 관계를 재조회로 확인했다**는 뜻이다. 이 스킬은 에이전트 작업 절차이며 MCP 직접 호출을 기술적으로 차단하는 훅은 아니다.
+사용자가 게시를 승인하면 `woo-linear-publish`로 넘긴다. Candidate 작성 승인은 외부 변경 승인이 아니다.

@@ -1,0 +1,39 @@
+{
+  "probeType": "fake-provider-state-observation",
+  "results": [
+    {
+      "issue": "WOO-688",
+      "scenario": "turn completes without final message observation",
+      "draftBefore": "partial answer",
+      "draftAfter": "",
+      "assistantMessages": [],
+      "error": null,
+      "requirementMet": false
+    },
+    {
+      "issue": "WOO-690",
+      "scenario": "child message and cross-thread item ID collision",
+      "rootThread": "thread-1",
+      "messages": [
+        {
+          "id": "same-item",
+          "content": "child collision"
+        },
+        {
+          "id": "child-item",
+          "content": "child answer"
+        }
+      ],
+      "requirementMet": false
+    },
+    {
+      "issue": "WOO-688",
+      "scenario": "late delta after completed item",
+      "draftAfterCompleted": "late delta",
+      "assistantMessages": [
+        "final answer"
+      ],
+      "requirementMet": false
+    }
+  ]
+}

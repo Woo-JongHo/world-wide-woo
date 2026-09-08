@@ -1,0 +1,25 @@
+{
+  "target_turn": "01a05f17-a4d1-7e20-aa1b-8d5289ac0eb8",
+  "target_turn_approvals": 0,
+  "tool_lifecycle": [
+    {
+      "sequence": 11378,
+      "recordedAt": "2026-09-01T22:35:02.513Z",
+      "phase": "started",
+      "method": "item/started"
+    },
+    {
+      "sequence": 11440,
+      "recordedAt": "2026-09-01T22:38:28.182Z",
+      "phase": "completed",
+      "method": "item/completed"
+    }
+  ],
+  "turn_terminal": [
+    {
+      "sequence": 11500,
+      "recordedAt": "2026-09-01T22:39:39.083Z",
+      "phase": "completed"
+    }
+  ]
+}

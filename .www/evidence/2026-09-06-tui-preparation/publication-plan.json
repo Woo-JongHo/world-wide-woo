@@ -1,0 +1,160 @@
+{
+  "scope": "TUI requirements and code issue identity annotations; no product behavior change",
+  "updates": [
+    {
+      "id": "WOO-673",
+      "title": "TUI에서 업무를 수행하고 실행과 근거를 확인한다",
+      "labels": [
+        "TUI",
+        "UX",
+        "Improvement"
+      ],
+      "state": "preserve",
+      "parent": "preserve",
+      "milestone": "preserve"
+    },
+    {
+      "id": "WOO-674",
+      "title": "Workbench에서 대화와 계획을 읽고 입력과 상태를 통제한다",
+      "labels": [
+        "TUI",
+        "UX",
+        "Reliability",
+        "Improvement"
+      ],
+      "state": "preserve",
+      "parent": "preserve",
+      "milestone": "preserve"
+    },
+    {
+      "id": "WOO-680",
+      "title": "화면 크기가 달라져도 읽던 위치와 입력 흐름을 유지한다",
+      "labels": [
+        "TUI",
+        "Layout",
+        "UX",
+        "Improvement"
+      ],
+      "state": "preserve",
+      "parent": "preserve",
+      "milestone": "preserve"
+    },
+    {
+      "id": "WOO-681",
+      "title": "선택한 결과에서 같은 실행의 근거를 찾아간다",
+      "labels": [
+        "TUI",
+        "Tracer",
+        "Reliability",
+        "Improvement"
+      ],
+      "state": "preserve",
+      "parent": "preserve",
+      "milestone": "preserve"
+    },
+    {
+      "id": "WOO-682",
+      "title": "현재 Native 계획과 다음 행동을 일관된 Todo로 보여준다",
+      "labels": [
+        "TUI",
+        "Todo",
+        "Reliability",
+        "Improvement"
+      ],
+      "state": "preserve",
+      "parent": "preserve",
+      "milestone": "preserve"
+    },
+    {
+      "id": "WOO-675",
+      "title": "현재 실행과 승인·실패 상태를 같은 맥락에서 관찰한다",
+      "labels": [
+        "TUI",
+        "Monitor",
+        "UX",
+        "Reliability"
+      ],
+      "state": "preserve",
+      "parent": "preserve",
+      "milestone": "preserve"
+    },
+    {
+      "id": "WOO-676",
+      "title": "세션 관측 범위와 요약을 읽고 원하는 상세로 이동한다",
+      "labels": [
+        "TUI",
+        "Dashboard",
+        "UX",
+        "Reliability"
+      ],
+      "state": "preserve",
+      "parent": "preserve",
+      "milestone": "preserve"
+    },
+    {
+      "id": "WOO-677",
+      "title": "세션과 요청의 결과·사용량·시간을 근거와 함께 검토한다",
+      "labels": [
+        "TUI",
+        "Stats",
+        "UX",
+        "Reliability"
+      ],
+      "state": "preserve",
+      "parent": "preserve",
+      "milestone": "preserve"
+    }
+  ],
+  "creates": [
+    {
+      "key": "new:tnote",
+      "title": "완료된 질문과 결과를 T-note에 보존하고 다시 찾는다",
+      "labels": [
+        "TUI",
+        "T-note",
+        "Reliability",
+        "Feature"
+      ],
+      "state": "Todo",
+      "parent": "WOO-674",
+      "milestone": "193948f7-2a11-4110-a143-360d83f2a076"
+    },
+    {
+      "key": "new:composer",
+      "title": "입력·전송·중단과 세션 설정을 예측 가능하게 조작한다",
+      "labels": [
+        "TUI",
+        "Composer",
+        "UX",
+        "Reliability",
+        "Feature"
+      ],
+      "state": "Todo",
+      "parent": "WOO-674",
+      "milestone": "193948f7-2a11-4110-a143-360d83f2a076"
+    }
+  ],
+  "labelOnly": [
+    "WOO-692",
+    "WOO-691",
+    "WOO-690",
+    "WOO-689",
+    "WOO-688",
+    "WOO-687",
+    "WOO-686",
+    "WOO-684",
+    "WOO-683",
+    "WOO-679"
+  ],
+  "newLabels": [
+    "TUI",
+    "Layout",
+    "Tracer",
+    "Todo",
+    "T-note",
+    "Composer",
+    "Monitor",
+    "Dashboard",
+    "Stats"
+  ]
+}

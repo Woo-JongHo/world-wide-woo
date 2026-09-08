@@ -1,0 +1,1554 @@
+{
+  "hasNextPage": false,
+  "capturedAt": "2026-09-07T04:05:10.191Z",
+  "source": "Linear MCP full readback for every schema-v2 ledger issue",
+  "issues": [
+    {
+      "id": "WOO-679",
+      "uuid": "885c2115-0821-4df6-a954-3a23923f1209",
+      "title": "[Chat] 대화·실행·결과를 읽기 좋은 하나의 흐름으로 보여준다",
+      "description": "## 목적\n\n질문, 답변, 실행 결과를 한 흐름에서 읽고 필요한 내용을 다시 찾는다.\n\n## 완료 조건\n\n* 질문부터 답변·실행 결과·요약까지 이어서 확인할 수 있다.\n* 중단하거나 다시 열어도 대화 내용을 잃거나 다른 대화와 섞지 않는다.\n* 응답에 문제가 생겨도 보여줄 수 있는 내용은 남고 다음 대화를 이어갈 수 있다.\n\n확인 범위: 하위 01~08의 전체 흐름.\n\n현재: PR #46에 구현을 올렸으며, 전체 사용 흐름의 최종 확인은 진행 중이다.\n\n## 연결\n\nCode-ID: [0001](<https://github.com/Woo-JongHo/world-wide-woo/blob/3036b62338be137c542b53b07326e00f5c731d7a/src/presentation/tui/workbench-views.ts>) · [0002](<https://github.com/Woo-JongHo/world-wide-woo/blob/3036b62338be137c542b53b07326e00f5c731d7a/src/application/project-workbench.ts>) · [0003](<https://github.com/Woo-JongHo/world-wide-woo/blob/3036b62338be137c542b53b07326e00f5c731d7a/src/presentation/tui/dashboard-layout.ts>) · [0004](<https://github.com/Woo-JongHo/world-wide-woo/blob/3036b62338be137c542b53b07326e00f5c731d7a/src/presentation/tui/workbench-shell.ts>) · [0005](<https://github.com/Woo-JongHo/world-wide-woo/blob/3036b62338be137c542b53b07326e00f5c731d7a/src/infrastructure/project-workbench-session.ts>)\n\n<pull-request id=\"fc0ef858-7e57-4dbb-956f-b4445c3eb78e\" href=\"https://linear.app/woo-world/review/채팅의-공개-본문과-읽던-위치를-보존한다-dead0bfcaf84\">Woo-JongHo/world-wide-woo#46</pull-request> · [Obsidian 상세](<obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FChat%2FWOO-679.md>)",
+      "projectMilestone": {
+        "id": "193948f7-2a11-4110-a143-360d83f2a076",
+        "name": "v0.1.0 — First Public Release"
+      },
+      "priority": {
+        "value": 0,
+        "name": "No priority"
+      },
+      "url": "https://linear.app/woo-world/issue/WOO-679/chat-대화실행결과를-읽기-좋은-하나의-흐름으로-보여준다",
+      "gitBranchName": "jonghowoo33/woo-679-chat-대화실행결과를-읽기-좋은-하나의-흐름으로",
+      "createdAt": "2026-09-04T02:18:46.194Z",
+      "updatedAt": "2026-09-07T03:22:18.778Z",
+      "archivedAt": null,
+      "completedAt": null,
+      "startedAt": "2026-09-04T02:18:46.227Z",
+      "canceledAt": null,
+      "dueDate": null,
+      "slaStartedAt": null,
+      "slaMediumRiskAt": null,
+      "slaHighRiskAt": null,
+      "slaBreachesAt": null,
+      "status": "In Progress",
+      "statusType": "started",
+      "labels": [
+        "UX",
+        "Chat",
+        "Improvement",
+        "TUI"
+      ],
+      "attachments": [
+        {
+          "id": "2c894cdf-2cef-426c-bdbd-8b46f0740188",
+          "title": "Chat 개발 기록을 Linear와 PR로 연결한다 (WOO-679)",
+          "subtitle": null,
+          "url": "https://github.com/Woo-JongHo/world-wide-woo/pull/38"
+        }
+      ],
+      "documents": [],
+      "stateHistory": [
+        {
+          "state": {
+            "id": "04aa2aac-1687-4b10-b225-14197c925233",
+            "name": "In Progress",
+            "type": "started"
+          },
+          "startedAt": "2026-09-04T02:18:46.194Z",
+          "endedAt": null
+        }
+      ],
+      "createdBy": "우종호",
+      "createdById": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "project": "World Wide Woo",
+      "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+      "parentId": "WOO-674",
+      "team": "Woo-World",
+      "teamId": "95f279f5-cd73-49b6-a10e-b6cdab1e6d58",
+      "relations": {
+        "blocks": [],
+        "blockedBy": [],
+        "relatedTo": [
+          {
+            "id": "WOO-697",
+            "title": "선택한 개발 업무의 대화와 테스트를 기록한다"
+          },
+          {
+            "id": "WOO-688",
+            "title": "03. 답변 생성·완료·중단 과정을 보여준다"
+          },
+          {
+            "id": "WOO-690",
+            "title": "05. 재개 뒤에도 대화 순서와 대상을 유지한다"
+          },
+          {
+            "id": "WOO-686",
+            "title": "01. 문서와 코드를 읽기 쉽게 표시한다"
+          },
+          {
+            "id": "WOO-682",
+            "title": "[Todo] 세션에서 내 입력의 계획과 각 모델이 하는 일을 실시간으로 확인한다"
+          },
+          {
+            "id": "WOO-680",
+            "title": "[Layout] 화면 크기가 달라져도 읽던 위치와 입력 흐름을 유지한다"
+          },
+          {
+            "id": "WOO-681",
+            "title": "[Tracer] 선택한 작업의 실행 구조와 근거를 따라간다"
+          },
+          {
+            "id": "WOO-692",
+            "title": "07. 실제 TUI에서 가독성과 상태 전환을 검증한다"
+          }
+        ],
+        "duplicateOf": null
+      }
+    },
+    {
+      "id": "WOO-686",
+      "uuid": "b034049b-a9c1-4515-8e7f-27e0ecc1e542",
+      "title": "01. 문서와 코드를 읽기 쉽게 표시한다",
+      "description": "## 결과\n\n답변 속 제목, 목록, 코드가 구분되어 긴 내용도 읽기 쉽다.\n\n## 완료 조건\n\n* 완성된 답변의 제목·목록·코드 블록이 구분된다.\n* 답변이 작성되는 중에도 내용을 읽을 수 있다.\n* 창 너비를 바꿔도 내용을 읽을 수 있다.\n\n## 연결\n\nCode-ID: [0001](<https://github.com/Woo-JongHo/world-wide-woo/blob/3036b62338be137c542b53b07326e00f5c731d7a/src/presentation/tui/workbench-views.ts>)\n\n<pull-request id=\"fc0ef858-7e57-4dbb-956f-b4445c3eb78e\" href=\"https://linear.app/woo-world/review/채팅의-공개-본문과-읽던-위치를-보존한다-dead0bfcaf84\">Woo-JongHo/world-wide-woo#46</pull-request> · [Obsidian 상세](<obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FChat%2FWOO-686.md>)",
+      "projectMilestone": {
+        "id": "193948f7-2a11-4110-a143-360d83f2a076",
+        "name": "v0.1.0 — First Public Release"
+      },
+      "priority": {
+        "value": 0,
+        "name": "No priority"
+      },
+      "url": "https://linear.app/woo-world/issue/WOO-686/01-문서와-코드를-읽기-쉽게-표시한다",
+      "gitBranchName": "jonghowoo33/woo-686-01-문서와-코드를-읽기-쉽게-표시한다",
+      "createdAt": "2026-09-04T03:45:52.190Z",
+      "updatedAt": "2026-09-07T03:22:20.850Z",
+      "archivedAt": null,
+      "completedAt": null,
+      "startedAt": "2026-09-06T11:18:45.371Z",
+      "canceledAt": null,
+      "dueDate": null,
+      "slaStartedAt": null,
+      "slaMediumRiskAt": null,
+      "slaHighRiskAt": null,
+      "slaBreachesAt": null,
+      "status": "In Progress",
+      "statusType": "started",
+      "labels": [
+        "UX",
+        "Chat",
+        "Improvement",
+        "TUI"
+      ],
+      "attachments": [],
+      "documents": [],
+      "stateHistory": [
+        {
+          "state": {
+            "id": "8c2d433a-f1e7-4e0f-953a-8d3279284b4c",
+            "name": "Todo",
+            "type": "unstarted"
+          },
+          "startedAt": "2026-09-04T03:45:52.190Z",
+          "endedAt": "2026-09-06T11:18:45.386Z"
+        },
+        {
+          "state": {
+            "id": "04aa2aac-1687-4b10-b225-14197c925233",
+            "name": "In Progress",
+            "type": "started"
+          },
+          "startedAt": "2026-09-06T11:18:45.386Z",
+          "endedAt": "2026-09-07T00:28:05.553Z"
+        },
+        {
+          "state": {
+            "id": "9918029c-94a0-43d0-bfbc-fea537b75679",
+            "name": "Canceled",
+            "type": "canceled"
+          },
+          "startedAt": "2026-09-07T00:28:05.553Z",
+          "endedAt": "2026-09-07T00:31:27.172Z"
+        },
+        {
+          "state": {
+            "id": "04aa2aac-1687-4b10-b225-14197c925233",
+            "name": "In Progress",
+            "type": "started"
+          },
+          "startedAt": "2026-09-07T00:31:27.172Z",
+          "endedAt": null
+        }
+      ],
+      "createdBy": "우종호",
+      "createdById": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "project": "World Wide Woo",
+      "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+      "parentId": "WOO-679",
+      "team": "Woo-World",
+      "teamId": "95f279f5-cd73-49b6-a10e-b6cdab1e6d58",
+      "relations": {
+        "blocks": [],
+        "blockedBy": [],
+        "relatedTo": [
+          {
+            "id": "WOO-720",
+            "title": "테스트"
+          },
+          {
+            "id": "WOO-706",
+            "title": "03. Source의 내용과 관측 한계를 읽기 쉽게 구분한다"
+          },
+          {
+            "id": "WOO-691",
+            "title": "06. 비정상 응답에서도 내용을 보존하고 복구를 안내한다"
+          },
+          {
+            "id": "WOO-692",
+            "title": "07. 실제 TUI에서 가독성과 상태 전환을 검증한다"
+          },
+          {
+            "id": "WOO-679",
+            "title": "[Chat] 대화·실행·결과를 읽기 좋은 하나의 흐름으로 보여준다"
+          }
+        ],
+        "duplicateOf": null
+      }
+    },
+    {
+      "id": "WOO-687",
+      "uuid": "243e8918-446b-4a4e-b124-e0d6f830a2f6",
+      "title": "02. 대화 주체와 진행 상태를 한눈에 구분한다",
+      "description": "## 결과\n\n내 질문, 모델의 답변, 도구 실행을 구분하고 지금 어떤 상태인지 알 수 있다.\n\n## 완료 조건\n\n* 누가 보낸 내용인지와 진행 중·완료·오류 상태를 구분할 수 있다.\n* 메시지 하나에 문제가 있어도 뒤의 메시지는 읽을 수 있다.\n\n## 연결\n\nCode-ID: [0001](<https://github.com/Woo-JongHo/world-wide-woo/blob/3036b62338be137c542b53b07326e00f5c731d7a/src/presentation/tui/workbench-views.ts>)\n\n<pull-request id=\"fc0ef858-7e57-4dbb-956f-b4445c3eb78e\" href=\"https://linear.app/woo-world/review/채팅의-공개-본문과-읽던-위치를-보존한다-dead0bfcaf84\">Woo-JongHo/world-wide-woo#46</pull-request> · [Obsidian 상세](<obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FChat%2FWOO-687.md>)",
+      "projectMilestone": {
+        "id": "193948f7-2a11-4110-a143-360d83f2a076",
+        "name": "v0.1.0 — First Public Release"
+      },
+      "priority": {
+        "value": 0,
+        "name": "No priority"
+      },
+      "url": "https://linear.app/woo-world/issue/WOO-687/02-대화-주체와-진행-상태를-한눈에-구분한다",
+      "gitBranchName": "jonghowoo33/woo-687-02-대화-주체와-진행-상태를-한눈에-구분한다",
+      "createdAt": "2026-09-04T03:46:04.523Z",
+      "updatedAt": "2026-09-07T03:22:22.427Z",
+      "archivedAt": null,
+      "completedAt": null,
+      "startedAt": "2026-09-06T11:18:48.036Z",
+      "canceledAt": null,
+      "dueDate": null,
+      "slaStartedAt": null,
+      "slaMediumRiskAt": null,
+      "slaHighRiskAt": null,
+      "slaBreachesAt": null,
+      "status": "In Progress",
+      "statusType": "started",
+      "labels": [
+        "UX",
+        "Chat",
+        "Improvement",
+        "TUI"
+      ],
+      "attachments": [],
+      "documents": [],
+      "stateHistory": [
+        {
+          "state": {
+            "id": "8c2d433a-f1e7-4e0f-953a-8d3279284b4c",
+            "name": "Todo",
+            "type": "unstarted"
+          },
+          "startedAt": "2026-09-04T03:46:04.523Z",
+          "endedAt": "2026-09-06T11:18:48.050Z"
+        },
+        {
+          "state": {
+            "id": "04aa2aac-1687-4b10-b225-14197c925233",
+            "name": "In Progress",
+            "type": "started"
+          },
+          "startedAt": "2026-09-06T11:18:48.050Z",
+          "endedAt": "2026-09-07T00:28:07.221Z"
+        },
+        {
+          "state": {
+            "id": "9918029c-94a0-43d0-bfbc-fea537b75679",
+            "name": "Canceled",
+            "type": "canceled"
+          },
+          "startedAt": "2026-09-07T00:28:07.221Z",
+          "endedAt": "2026-09-07T00:31:29.012Z"
+        },
+        {
+          "state": {
+            "id": "04aa2aac-1687-4b10-b225-14197c925233",
+            "name": "In Progress",
+            "type": "started"
+          },
+          "startedAt": "2026-09-07T00:31:29.012Z",
+          "endedAt": null
+        }
+      ],
+      "createdBy": "우종호",
+      "createdById": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "project": "World Wide Woo",
+      "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+      "parentId": "WOO-679",
+      "team": "Woo-World",
+      "teamId": "95f279f5-cd73-49b6-a10e-b6cdab1e6d58",
+      "relations": {
+        "blocks": [],
+        "blockedBy": [],
+        "relatedTo": [
+          {
+            "id": "WOO-720",
+            "title": "테스트"
+          },
+          {
+            "id": "WOO-688",
+            "title": "03. 답변 생성·완료·중단 과정을 보여준다"
+          },
+          {
+            "id": "WOO-691",
+            "title": "06. 비정상 응답에서도 내용을 보존하고 복구를 안내한다"
+          },
+          {
+            "id": "WOO-690",
+            "title": "05. 재개 뒤에도 대화 순서와 대상을 유지한다"
+          }
+        ],
+        "duplicateOf": null
+      }
+    },
+    {
+      "id": "WOO-688",
+      "uuid": "6336cca1-a828-45b9-ac62-cbaa3b35b7d8",
+      "title": "03. 답변 생성·완료·중단 과정을 보여준다",
+      "description": "## 결과\n\n답변이 작성 중인지, 끝났는지, 중단됐는지 알 수 있다.\n\n## 완료 조건\n\n* 중단하거나 오류가 나도 지금까지 받은 내용 중 사용자에게 보여줄 수 있는 답변은 남는다.\n* 일부만 받은 답변을 완성된 답변처럼 표시하지 않는다.\n* 완료 신호만 오고 최종 답변 내용이 오지 않으면 그 사실을 표시한다.\n\n## 연결\n\nCode-ID: [0001](<https://github.com/Woo-JongHo/world-wide-woo/blob/3036b62338be137c542b53b07326e00f5c731d7a/src/presentation/tui/workbench-views.ts>) · [0002](<https://github.com/Woo-JongHo/world-wide-woo/blob/3036b62338be137c542b53b07326e00f5c731d7a/src/application/project-workbench.ts>)\n\n<pull-request id=\"fc0ef858-7e57-4dbb-956f-b4445c3eb78e\" href=\"https://linear.app/woo-world/review/채팅의-공개-본문과-읽던-위치를-보존한다-dead0bfcaf84\">Woo-JongHo/world-wide-woo#46</pull-request> · [Obsidian 상세](<obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FChat%2FWOO-688.md>)",
+      "projectMilestone": {
+        "id": "193948f7-2a11-4110-a143-360d83f2a076",
+        "name": "v0.1.0 — First Public Release"
+      },
+      "priority": {
+        "value": 0,
+        "name": "No priority"
+      },
+      "url": "https://linear.app/woo-world/issue/WOO-688/03-답변-생성완료중단-과정을-보여준다",
+      "gitBranchName": "jonghowoo33/woo-688-03-답변-생성완료중단-과정을-보여준다",
+      "createdAt": "2026-09-04T03:46:49.055Z",
+      "updatedAt": "2026-09-07T03:22:23.848Z",
+      "archivedAt": null,
+      "completedAt": null,
+      "startedAt": "2026-09-06T11:18:49.983Z",
+      "canceledAt": null,
+      "dueDate": null,
+      "slaStartedAt": null,
+      "slaMediumRiskAt": null,
+      "slaHighRiskAt": null,
+      "slaBreachesAt": null,
+      "status": "In Progress",
+      "statusType": "started",
+      "labels": [
+        "Reliability",
+        "Chat",
+        "Improvement",
+        "Bug",
+        "TUI"
+      ],
+      "attachments": [
+        {
+          "id": "e1819340-c1f5-489b-b2f0-418f4d60f8a9",
+          "title": "답변의 부분 내용과 최종 본문 미수신을 보존한다 (WOO-688)",
+          "subtitle": null,
+          "url": "https://github.com/Woo-JongHo/world-wide-woo/pull/40"
+        }
+      ],
+      "documents": [],
+      "stateHistory": [
+        {
+          "state": {
+            "id": "8c2d433a-f1e7-4e0f-953a-8d3279284b4c",
+            "name": "Todo",
+            "type": "unstarted"
+          },
+          "startedAt": "2026-09-04T03:46:49.055Z",
+          "endedAt": "2026-09-06T11:18:50.006Z"
+        },
+        {
+          "state": {
+            "id": "04aa2aac-1687-4b10-b225-14197c925233",
+            "name": "In Progress",
+            "type": "started"
+          },
+          "startedAt": "2026-09-06T11:18:50.006Z",
+          "endedAt": "2026-09-07T00:28:08.892Z"
+        },
+        {
+          "state": {
+            "id": "9918029c-94a0-43d0-bfbc-fea537b75679",
+            "name": "Canceled",
+            "type": "canceled"
+          },
+          "startedAt": "2026-09-07T00:28:08.892Z",
+          "endedAt": "2026-09-07T00:31:35.773Z"
+        },
+        {
+          "state": {
+            "id": "04aa2aac-1687-4b10-b225-14197c925233",
+            "name": "In Progress",
+            "type": "started"
+          },
+          "startedAt": "2026-09-07T00:31:35.773Z",
+          "endedAt": null
+        }
+      ],
+      "createdBy": "우종호",
+      "createdById": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "assignee": "우종호",
+      "assigneeId": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "project": "World Wide Woo",
+      "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+      "parentId": "WOO-679",
+      "team": "Woo-World",
+      "teamId": "95f279f5-cd73-49b6-a10e-b6cdab1e6d58",
+      "relations": {
+        "blocks": [],
+        "blockedBy": [],
+        "relatedTo": [
+          {
+            "id": "WOO-720",
+            "title": "테스트"
+          },
+          {
+            "id": "WOO-679",
+            "title": "[Chat] 대화·실행·결과를 읽기 좋은 하나의 흐름으로 보여준다"
+          },
+          {
+            "id": "WOO-690",
+            "title": "05. 재개 뒤에도 대화 순서와 대상을 유지한다"
+          },
+          {
+            "id": "WOO-703",
+            "title": "04. 계획 동기화가 실패해도 작업을 이어가고 복구 상태를 이해한다"
+          },
+          {
+            "id": "WOO-691",
+            "title": "06. 비정상 응답에서도 내용을 보존하고 복구를 안내한다"
+          },
+          {
+            "id": "WOO-692",
+            "title": "07. 실제 TUI에서 가독성과 상태 전환을 검증한다"
+          },
+          {
+            "id": "WOO-687",
+            "title": "02. 대화 주체와 진행 상태를 한눈에 구분한다"
+          }
+        ],
+        "duplicateOf": null
+      }
+    },
+    {
+      "id": "WOO-689",
+      "uuid": "ae15b7ba-fd9d-4319-a186-201e6177c8a6",
+      "title": "04. 긴 결과를 안정적으로 탐색한다",
+      "description": "## 결과\n\n긴 답변을 위아래로 읽어도 보고 있던 부분을 놓치지 않는다.\n\n## 완료 조건\n\n* 이전 내용을 읽는 중에 새 답변이 와도 화면이 아래로 튀지 않는다.\n* 창 너비를 바꿔도 읽던 내용을 이어서 볼 수 있다.\n* 최신 내용을 따라가던 중에는 새 출력이 계속 보인다.\n\n## 연결\n\nCode-ID: [0001](<https://github.com/Woo-JongHo/world-wide-woo/blob/3036b62338be137c542b53b07326e00f5c731d7a/src/presentation/tui/workbench-views.ts>) · [0003](<https://github.com/Woo-JongHo/world-wide-woo/blob/3036b62338be137c542b53b07326e00f5c731d7a/src/presentation/tui/dashboard-layout.ts>)\n\n<pull-request id=\"fc0ef858-7e57-4dbb-956f-b4445c3eb78e\" href=\"https://linear.app/woo-world/review/채팅의-공개-본문과-읽던-위치를-보존한다-dead0bfcaf84\">Woo-JongHo/world-wide-woo#46</pull-request> · [Obsidian 상세](<obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FChat%2FWOO-689.md>)",
+      "projectMilestone": {
+        "id": "193948f7-2a11-4110-a143-360d83f2a076",
+        "name": "v0.1.0 — First Public Release"
+      },
+      "priority": {
+        "value": 0,
+        "name": "No priority"
+      },
+      "url": "https://linear.app/woo-world/issue/WOO-689/04-긴-결과를-안정적으로-탐색한다",
+      "gitBranchName": "jonghowoo33/woo-689-04-긴-결과를-안정적으로-탐색한다",
+      "createdAt": "2026-09-04T03:47:02.691Z",
+      "updatedAt": "2026-09-07T03:22:25.226Z",
+      "archivedAt": null,
+      "completedAt": null,
+      "startedAt": "2026-09-06T11:18:52.342Z",
+      "canceledAt": null,
+      "dueDate": null,
+      "slaStartedAt": null,
+      "slaMediumRiskAt": null,
+      "slaHighRiskAt": null,
+      "slaBreachesAt": null,
+      "status": "In Progress",
+      "statusType": "started",
+      "labels": [
+        "UX",
+        "Chat",
+        "perf",
+        "TUI"
+      ],
+      "attachments": [],
+      "documents": [],
+      "stateHistory": [
+        {
+          "state": {
+            "id": "8c2d433a-f1e7-4e0f-953a-8d3279284b4c",
+            "name": "Todo",
+            "type": "unstarted"
+          },
+          "startedAt": "2026-09-04T03:47:02.691Z",
+          "endedAt": "2026-09-06T11:18:52.357Z"
+        },
+        {
+          "state": {
+            "id": "04aa2aac-1687-4b10-b225-14197c925233",
+            "name": "In Progress",
+            "type": "started"
+          },
+          "startedAt": "2026-09-06T11:18:52.357Z",
+          "endedAt": "2026-09-07T00:28:10.547Z"
+        },
+        {
+          "state": {
+            "id": "9918029c-94a0-43d0-bfbc-fea537b75679",
+            "name": "Canceled",
+            "type": "canceled"
+          },
+          "startedAt": "2026-09-07T00:28:10.547Z",
+          "endedAt": "2026-09-07T00:31:31.281Z"
+        },
+        {
+          "state": {
+            "id": "04aa2aac-1687-4b10-b225-14197c925233",
+            "name": "In Progress",
+            "type": "started"
+          },
+          "startedAt": "2026-09-07T00:31:31.281Z",
+          "endedAt": null
+        }
+      ],
+      "createdBy": "우종호",
+      "createdById": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "project": "World Wide Woo",
+      "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+      "parentId": "WOO-679",
+      "team": "Woo-World",
+      "teamId": "95f279f5-cd73-49b6-a10e-b6cdab1e6d58",
+      "relations": {
+        "blocks": [],
+        "blockedBy": [],
+        "relatedTo": [
+          {
+            "id": "WOO-720",
+            "title": "테스트"
+          },
+          {
+            "id": "WOO-680",
+            "title": "[Layout] 화면 크기가 달라져도 읽던 위치와 입력 흐름을 유지한다"
+          },
+          {
+            "id": "WOO-707",
+            "title": "01. 넓은·좁은 배치를 오가도 읽던 패널 위치를 유지한다"
+          },
+          {
+            "id": "WOO-692",
+            "title": "07. 실제 TUI에서 가독성과 상태 전환을 검증한다"
+          }
+        ],
+        "duplicateOf": null
+      }
+    },
+    {
+      "id": "WOO-690",
+      "uuid": "a417df98-8479-4222-b7e8-170ea4230f97",
+      "title": "05. 재개 뒤에도 대화 순서와 대상을 유지한다",
+      "description": "## 결과\n\n대화를 다시 열면 이전 질문과 답변을 원래 순서대로 이어서 읽는다.\n\n## 완료 조건\n\n* 이미 있던 메시지가 두 번 나타나지 않는다.\n* 다른 대화의 답변이나 다른 질문에 대한 답변이 섞이지 않는다.\n\n## 연결\n\nCode-ID: [0002](<https://github.com/Woo-JongHo/world-wide-woo/blob/3036b62338be137c542b53b07326e00f5c731d7a/src/application/project-workbench.ts>)\n\n<pull-request id=\"fc0ef858-7e57-4dbb-956f-b4445c3eb78e\" href=\"https://linear.app/woo-world/review/채팅의-공개-본문과-읽던-위치를-보존한다-dead0bfcaf84\">Woo-JongHo/world-wide-woo#46</pull-request> · [Obsidian 상세](<obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FChat%2FWOO-690.md>)",
+      "projectMilestone": {
+        "id": "193948f7-2a11-4110-a143-360d83f2a076",
+        "name": "v0.1.0 — First Public Release"
+      },
+      "priority": {
+        "value": 0,
+        "name": "No priority"
+      },
+      "url": "https://linear.app/woo-world/issue/WOO-690/05-재개-뒤에도-대화-순서와-대상을-유지한다",
+      "gitBranchName": "jonghowoo33/woo-690-05-재개-뒤에도-대화-순서와-대상을-유지한다",
+      "createdAt": "2026-09-04T03:47:16.060Z",
+      "updatedAt": "2026-09-07T03:22:26.745Z",
+      "archivedAt": null,
+      "completedAt": null,
+      "startedAt": "2026-09-06T11:18:54.584Z",
+      "canceledAt": null,
+      "dueDate": null,
+      "slaStartedAt": null,
+      "slaMediumRiskAt": null,
+      "slaHighRiskAt": null,
+      "slaBreachesAt": null,
+      "status": "In Progress",
+      "statusType": "started",
+      "labels": [
+        "Reliability",
+        "Chat",
+        "Improvement",
+        "Bug",
+        "TUI"
+      ],
+      "attachments": [
+        {
+          "id": "18ffcac2-8991-4ec2-bf53-8bb90df58fd8",
+          "title": "Chat 메시지와 실행을 세션·턴별로 구분한다 (WOO-690)",
+          "subtitle": null,
+          "url": "https://github.com/Woo-JongHo/world-wide-woo/pull/39"
+        }
+      ],
+      "documents": [],
+      "stateHistory": [
+        {
+          "state": {
+            "id": "8c2d433a-f1e7-4e0f-953a-8d3279284b4c",
+            "name": "Todo",
+            "type": "unstarted"
+          },
+          "startedAt": "2026-09-04T03:47:16.060Z",
+          "endedAt": "2026-09-06T11:18:54.600Z"
+        },
+        {
+          "state": {
+            "id": "04aa2aac-1687-4b10-b225-14197c925233",
+            "name": "In Progress",
+            "type": "started"
+          },
+          "startedAt": "2026-09-06T11:18:54.600Z",
+          "endedAt": "2026-09-07T00:28:12.193Z"
+        },
+        {
+          "state": {
+            "id": "9918029c-94a0-43d0-bfbc-fea537b75679",
+            "name": "Canceled",
+            "type": "canceled"
+          },
+          "startedAt": "2026-09-07T00:28:12.193Z",
+          "endedAt": "2026-09-07T00:31:33.561Z"
+        },
+        {
+          "state": {
+            "id": "04aa2aac-1687-4b10-b225-14197c925233",
+            "name": "In Progress",
+            "type": "started"
+          },
+          "startedAt": "2026-09-07T00:31:33.561Z",
+          "endedAt": null
+        }
+      ],
+      "createdBy": "우종호",
+      "createdById": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "project": "World Wide Woo",
+      "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+      "parentId": "WOO-679",
+      "team": "Woo-World",
+      "teamId": "95f279f5-cd73-49b6-a10e-b6cdab1e6d58",
+      "relations": {
+        "blocks": [],
+        "blockedBy": [],
+        "relatedTo": [
+          {
+            "id": "WOO-720",
+            "title": "테스트"
+          },
+          {
+            "id": "WOO-688",
+            "title": "03. 답변 생성·완료·중단 과정을 보여준다"
+          },
+          {
+            "id": "WOO-695",
+            "title": "기능 Unit과 Linear 작업을 코드에 연결한다"
+          },
+          {
+            "id": "WOO-679",
+            "title": "[Chat] 대화·실행·결과를 읽기 좋은 하나의 흐름으로 보여준다"
+          },
+          {
+            "id": "WOO-705",
+            "title": "02. 다른 요청의 근거가 섞이지 않도록 같은 실행을 추적한다"
+          },
+          {
+            "id": "WOO-702",
+            "title": "03. 세션별 Todo.md에 입력과 계획을 보존하고 재개한다"
+          },
+          {
+            "id": "WOO-681",
+            "title": "[Tracer] 선택한 작업의 실행 구조와 근거를 따라간다"
+          },
+          {
+            "id": "WOO-691",
+            "title": "06. 비정상 응답에서도 내용을 보존하고 복구를 안내한다"
+          },
+          {
+            "id": "WOO-692",
+            "title": "07. 실제 TUI에서 가독성과 상태 전환을 검증한다"
+          },
+          {
+            "id": "WOO-687",
+            "title": "02. 대화 주체와 진행 상태를 한눈에 구분한다"
+          }
+        ],
+        "duplicateOf": null
+      }
+    },
+    {
+      "id": "WOO-691",
+      "uuid": "9a3e3ee8-ea42-4278-9cda-f711b9ba83a6",
+      "title": "06. 비정상 응답에서도 내용을 보존하고 복구를 안내한다",
+      "description": "## 결과\n\n답변 데이터에 문제가 생겨도 읽을 수 있는 내용은 남고, 다음에 할 일을 알 수 있다.\n\n## 완료 조건\n\n* 잘못된 응답 데이터나 표시 오류가 다른 메시지까지 가리지 않는다.\n* 답변이 잘려도 사용자에게 보여줄 수 있는 내용은 남고 내부 데이터는 노출되지 않는다.\n* 문제를 안내하고, 다음 정상 답변은 계속 읽을 수 있다.\n\n## 연결\n\nCode-ID: [0001](<https://github.com/Woo-JongHo/world-wide-woo/blob/3036b62338be137c542b53b07326e00f5c731d7a/src/presentation/tui/workbench-views.ts>) · [0002](<https://github.com/Woo-JongHo/world-wide-woo/blob/3036b62338be137c542b53b07326e00f5c731d7a/src/application/project-workbench.ts>)\n\n<pull-request id=\"fc0ef858-7e57-4dbb-956f-b4445c3eb78e\" href=\"https://linear.app/woo-world/review/채팅의-공개-본문과-읽던-위치를-보존한다-dead0bfcaf84\">Woo-JongHo/world-wide-woo#46</pull-request> · [Obsidian 상세](<obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FChat%2FWOO-691.md>)",
+      "projectMilestone": {
+        "id": "193948f7-2a11-4110-a143-360d83f2a076",
+        "name": "v0.1.0 — First Public Release"
+      },
+      "priority": {
+        "value": 0,
+        "name": "No priority"
+      },
+      "url": "https://linear.app/woo-world/issue/WOO-691/06-비정상-응답에서도-내용을-보존하고-복구를-안내한다",
+      "gitBranchName": "jonghowoo33/woo-691-06-비정상-응답에서도-내용을-보존하고-복구를",
+      "createdAt": "2026-09-04T06:19:44.558Z",
+      "updatedAt": "2026-09-07T03:22:28.321Z",
+      "archivedAt": null,
+      "completedAt": null,
+      "startedAt": "2026-09-06T11:18:57.585Z",
+      "canceledAt": null,
+      "dueDate": null,
+      "slaStartedAt": null,
+      "slaMediumRiskAt": null,
+      "slaHighRiskAt": null,
+      "slaBreachesAt": null,
+      "status": "In Progress",
+      "statusType": "started",
+      "labels": [
+        "Reliability",
+        "Chat",
+        "Improvement",
+        "TUI"
+      ],
+      "attachments": [],
+      "documents": [],
+      "stateHistory": [
+        {
+          "state": {
+            "id": "8c2d433a-f1e7-4e0f-953a-8d3279284b4c",
+            "name": "Todo",
+            "type": "unstarted"
+          },
+          "startedAt": "2026-09-04T06:19:44.558Z",
+          "endedAt": "2026-09-06T11:18:57.602Z"
+        },
+        {
+          "state": {
+            "id": "04aa2aac-1687-4b10-b225-14197c925233",
+            "name": "In Progress",
+            "type": "started"
+          },
+          "startedAt": "2026-09-06T11:18:57.602Z",
+          "endedAt": "2026-09-07T00:31:19.344Z"
+        },
+        {
+          "state": {
+            "id": "9918029c-94a0-43d0-bfbc-fea537b75679",
+            "name": "Canceled",
+            "type": "canceled"
+          },
+          "startedAt": "2026-09-07T00:31:19.344Z",
+          "endedAt": "2026-09-07T00:43:33.561Z"
+        },
+        {
+          "state": {
+            "id": "04aa2aac-1687-4b10-b225-14197c925233",
+            "name": "In Progress",
+            "type": "started"
+          },
+          "startedAt": "2026-09-07T00:43:33.561Z",
+          "endedAt": null
+        }
+      ],
+      "createdBy": "우종호",
+      "createdById": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "project": "World Wide Woo",
+      "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+      "parentId": "WOO-679",
+      "team": "Woo-World",
+      "teamId": "95f279f5-cd73-49b6-a10e-b6cdab1e6d58",
+      "relations": {
+        "blocks": [],
+        "blockedBy": [],
+        "relatedTo": [
+          {
+            "id": "WOO-720",
+            "title": "테스트"
+          },
+          {
+            "id": "WOO-688",
+            "title": "03. 답변 생성·완료·중단 과정을 보여준다"
+          },
+          {
+            "id": "WOO-690",
+            "title": "05. 재개 뒤에도 대화 순서와 대상을 유지한다"
+          },
+          {
+            "id": "WOO-686",
+            "title": "01. 문서와 코드를 읽기 쉽게 표시한다"
+          },
+          {
+            "id": "WOO-692",
+            "title": "07. 실제 TUI에서 가독성과 상태 전환을 검증한다"
+          },
+          {
+            "id": "WOO-687",
+            "title": "02. 대화 주체와 진행 상태를 한눈에 구분한다"
+          }
+        ],
+        "duplicateOf": null
+      }
+    },
+    {
+      "id": "WOO-692",
+      "uuid": "917b170a-05f5-422a-b05f-779efb3043ca",
+      "title": "07. 실제 TUI에서 가독성과 상태 전환을 검증한다",
+      "description": "## 결과\n\n실제 터미널 화면에서 Chat을 조작해 대화가 읽기 쉽고 동작이 자연스러운지 확인한다.\n\n## 완료 조건\n\n* 답변 받기·중단·다시 열기·실행 근거 보기·창 너비 변경을 직접 확인하고 기록한다.\n* 자동 테스트로 확인한 것과 실제 조작으로 확인한 것을 구분한다.\n* 아직 확인하지 못한 조작은 미검증으로 남긴다.\n\n## 연결\n\nCode-ID: [0001](<https://github.com/Woo-JongHo/world-wide-woo/blob/3036b62338be137c542b53b07326e00f5c731d7a/src/presentation/tui/workbench-views.ts>) · [0002](<https://github.com/Woo-JongHo/world-wide-woo/blob/3036b62338be137c542b53b07326e00f5c731d7a/src/application/project-workbench.ts>) · [0003](<https://github.com/Woo-JongHo/world-wide-woo/blob/3036b62338be137c542b53b07326e00f5c731d7a/src/presentation/tui/dashboard-layout.ts>) · [0004](<https://github.com/Woo-JongHo/world-wide-woo/blob/3036b62338be137c542b53b07326e00f5c731d7a/src/presentation/tui/workbench-shell.ts>) · [0005](<https://github.com/Woo-JongHo/world-wide-woo/blob/3036b62338be137c542b53b07326e00f5c731d7a/src/infrastructure/project-workbench-session.ts>)\n\n<pull-request id=\"fc0ef858-7e57-4dbb-956f-b4445c3eb78e\" href=\"https://linear.app/woo-world/review/채팅의-공개-본문과-읽던-위치를-보존한다-dead0bfcaf84\">Woo-JongHo/world-wide-woo#46</pull-request> · [Obsidian 상세](<obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FChat%2FWOO-692.md>)",
+      "projectMilestone": {
+        "id": "193948f7-2a11-4110-a143-360d83f2a076",
+        "name": "v0.1.0 — First Public Release"
+      },
+      "priority": {
+        "value": 0,
+        "name": "No priority"
+      },
+      "url": "https://linear.app/woo-world/issue/WOO-692/07-실제-tui에서-가독성과-상태-전환을-검증한다",
+      "gitBranchName": "jonghowoo33/woo-692-07-실제-tui에서-가독성과-상태-전환을-검증한다",
+      "createdAt": "2026-09-04T06:29:49.268Z",
+      "updatedAt": "2026-09-07T03:22:29.693Z",
+      "archivedAt": null,
+      "completedAt": null,
+      "startedAt": null,
+      "canceledAt": null,
+      "dueDate": null,
+      "slaStartedAt": null,
+      "slaMediumRiskAt": null,
+      "slaHighRiskAt": null,
+      "slaBreachesAt": null,
+      "status": "Todo",
+      "statusType": "unstarted",
+      "labels": [
+        "Testing",
+        "Chat",
+        "TUI"
+      ],
+      "attachments": [],
+      "documents": [],
+      "stateHistory": [
+        {
+          "state": {
+            "id": "8c2d433a-f1e7-4e0f-953a-8d3279284b4c",
+            "name": "Todo",
+            "type": "unstarted"
+          },
+          "startedAt": "2026-09-04T06:29:49.268Z",
+          "endedAt": "2026-09-07T00:31:15.301Z"
+        },
+        {
+          "state": {
+            "id": "9918029c-94a0-43d0-bfbc-fea537b75679",
+            "name": "Canceled",
+            "type": "canceled"
+          },
+          "startedAt": "2026-09-07T00:31:15.301Z",
+          "endedAt": "2026-09-07T00:43:35.478Z"
+        },
+        {
+          "state": {
+            "id": "8c2d433a-f1e7-4e0f-953a-8d3279284b4c",
+            "name": "Todo",
+            "type": "unstarted"
+          },
+          "startedAt": "2026-09-07T00:43:35.478Z",
+          "endedAt": null
+        }
+      ],
+      "createdBy": "우종호",
+      "createdById": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "project": "World Wide Woo",
+      "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+      "parentId": "WOO-679",
+      "team": "Woo-World",
+      "teamId": "95f279f5-cd73-49b6-a10e-b6cdab1e6d58",
+      "relations": {
+        "blocks": [],
+        "blockedBy": [],
+        "relatedTo": [
+          {
+            "id": "WOO-718",
+            "title": "08. 대화·실행·결과를 하나의 흐름으로 연결한다"
+          },
+          {
+            "id": "WOO-720",
+            "title": "테스트"
+          },
+          {
+            "id": "WOO-688",
+            "title": "03. 답변 생성·완료·중단 과정을 보여준다"
+          },
+          {
+            "id": "WOO-691",
+            "title": "06. 비정상 응답에서도 내용을 보존하고 복구를 안내한다"
+          },
+          {
+            "id": "WOO-690",
+            "title": "05. 재개 뒤에도 대화 순서와 대상을 유지한다"
+          },
+          {
+            "id": "WOO-686",
+            "title": "01. 문서와 코드를 읽기 쉽게 표시한다"
+          },
+          {
+            "id": "WOO-679",
+            "title": "[Chat] 대화·실행·결과를 읽기 좋은 하나의 흐름으로 보여준다"
+          },
+          {
+            "id": "WOO-689",
+            "title": "04. 긴 결과를 안정적으로 탐색한다"
+          },
+          {
+            "id": "WOO-673",
+            "title": "TUI에서 업무를 수행하고 실행과 근거를 확인한다"
+          }
+        ],
+        "duplicateOf": null
+      }
+    },
+    {
+      "id": "WOO-718",
+      "uuid": "5712cc2e-af70-4209-88b1-e4155f776f41",
+      "title": "08. 대화·실행·결과를 하나의 흐름으로 연결한다",
+      "description": "## 결과\n\n대화를 읽다가 해당 실행의 근거를 보고 돌아오거나, 같은 대화의 요약을 확인할 수 있다.\n\n## 완료 조건\n\n* 선택한 실행의 근거 화면(Source)으로 이동하고 대화로 돌아올 수 있다.\n* 선택을 받아들일 수 없으면 이동하지 않는다. 예: 다른 대화의 실행, 찾을 수 없는 실행.\n* 요약은 해당 대화에 연결되며 다른 대화와 섞이지 않는다.\n\n## 연결\n\nCode-ID: [0001](<https://github.com/Woo-JongHo/world-wide-woo/blob/3036b62338be137c542b53b07326e00f5c731d7a/src/presentation/tui/workbench-views.ts>) · [0002](<https://github.com/Woo-JongHo/world-wide-woo/blob/3036b62338be137c542b53b07326e00f5c731d7a/src/application/project-workbench.ts>) · [0004](<https://github.com/Woo-JongHo/world-wide-woo/blob/3036b62338be137c542b53b07326e00f5c731d7a/src/presentation/tui/workbench-shell.ts>) · [0005](<https://github.com/Woo-JongHo/world-wide-woo/blob/3036b62338be137c542b53b07326e00f5c731d7a/src/infrastructure/project-workbench-session.ts>)\n\n<pull-request id=\"fc0ef858-7e57-4dbb-956f-b4445c3eb78e\" href=\"https://linear.app/woo-world/review/채팅의-공개-본문과-읽던-위치를-보존한다-dead0bfcaf84\">Woo-JongHo/world-wide-woo#46</pull-request> · [Obsidian 상세](<obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FChat%2FWOO-718.md>)",
+      "projectMilestone": {
+        "id": "193948f7-2a11-4110-a143-360d83f2a076",
+        "name": "v0.1.0 — First Public Release"
+      },
+      "priority": {
+        "value": 0,
+        "name": "No priority"
+      },
+      "url": "https://linear.app/woo-world/issue/WOO-718/08-대화실행결과를-하나의-흐름으로-연결한다",
+      "gitBranchName": "jonghowoo33/woo-718-08-대화실행결과를-하나의-흐름으로-연결한다",
+      "createdAt": "2026-09-07T00:43:47.834Z",
+      "updatedAt": "2026-09-07T03:22:31.088Z",
+      "archivedAt": null,
+      "completedAt": null,
+      "startedAt": null,
+      "canceledAt": null,
+      "dueDate": null,
+      "slaStartedAt": null,
+      "slaMediumRiskAt": null,
+      "slaHighRiskAt": null,
+      "slaBreachesAt": null,
+      "status": "Backlog",
+      "statusType": "backlog",
+      "labels": [
+        "TUI",
+        "UX",
+        "Chat",
+        "Improvement"
+      ],
+      "attachments": [],
+      "documents": [],
+      "stateHistory": [
+        {
+          "state": {
+            "id": "53e5b43a-a9f4-436f-b678-a009957886da",
+            "name": "Backlog",
+            "type": "backlog"
+          },
+          "startedAt": "2026-09-07T00:43:47.834Z",
+          "endedAt": null
+        }
+      ],
+      "createdBy": "우종호",
+      "createdById": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "project": "World Wide Woo",
+      "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+      "parentId": "WOO-679",
+      "team": "Woo-World",
+      "teamId": "95f279f5-cd73-49b6-a10e-b6cdab1e6d58",
+      "relations": {
+        "blocks": [],
+        "blockedBy": [],
+        "relatedTo": [
+          {
+            "id": "WOO-720",
+            "title": "테스트"
+          },
+          {
+            "id": "WOO-719",
+            "title": "예외 처리"
+          },
+          {
+            "id": "WOO-692",
+            "title": "07. 실제 TUI에서 가독성과 상태 전환을 검증한다"
+          }
+        ],
+        "duplicateOf": null
+      }
+    },
+    {
+      "id": "WOO-719",
+      "uuid": "a57ff328-a352-499d-ab99-09a84a2d87fb",
+      "title": "예외 처리",
+      "description": "## 목적\n\nChat에서 문제가 났을 때 무엇을 보존하고 어떻게 다시 진행하는지 확인한다.\n\n## 현황\n\n* 보완: 중단·오류 때 받은 답변 보존, 잘못된 응답 데이터 분리, 잘못된 실행 근거 선택 시 이동 방지.\n* 검토: Opus 재감사 승인. 모든 예외 상황을 실제로 재현했다는 뜻은 아니다.\n* 발생 조건·복구 방법·남은 확인 항목은 Obsidian에 기록한다.\n\n## 연결\n\nCode-ID: [0001](<https://github.com/Woo-JongHo/world-wide-woo/blob/3036b62338be137c542b53b07326e00f5c731d7a/src/presentation/tui/workbench-views.ts>) · [0002](<https://github.com/Woo-JongHo/world-wide-woo/blob/3036b62338be137c542b53b07326e00f5c731d7a/src/application/project-workbench.ts>) · [0004](<https://github.com/Woo-JongHo/world-wide-woo/blob/3036b62338be137c542b53b07326e00f5c731d7a/src/presentation/tui/workbench-shell.ts>) · [0005](<https://github.com/Woo-JongHo/world-wide-woo/blob/3036b62338be137c542b53b07326e00f5c731d7a/src/infrastructure/project-workbench-session.ts>)\n\n<pull-request id=\"fc0ef858-7e57-4dbb-956f-b4445c3eb78e\" href=\"https://linear.app/woo-world/review/채팅의-공개-본문과-읽던-위치를-보존한다-dead0bfcaf84\">Woo-JongHo/world-wide-woo#46</pull-request> · [Obsidian 상세](<obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FChat%2FWOO-719.md>)",
+      "projectMilestone": {
+        "id": "193948f7-2a11-4110-a143-360d83f2a076",
+        "name": "v0.1.0 — First Public Release"
+      },
+      "priority": {
+        "value": 0,
+        "name": "No priority"
+      },
+      "url": "https://linear.app/woo-world/issue/WOO-719/예외-처리",
+      "gitBranchName": "jonghowoo33/woo-719-예외-처리",
+      "createdAt": "2026-09-07T00:43:49.990Z",
+      "updatedAt": "2026-09-07T03:22:32.940Z",
+      "archivedAt": null,
+      "completedAt": null,
+      "startedAt": null,
+      "canceledAt": null,
+      "dueDate": null,
+      "slaStartedAt": null,
+      "slaMediumRiskAt": null,
+      "slaHighRiskAt": null,
+      "slaBreachesAt": null,
+      "status": "Backlog",
+      "statusType": "backlog",
+      "labels": [
+        "TUI",
+        "Reliability",
+        "Chat",
+        "Improvement"
+      ],
+      "attachments": [],
+      "documents": [],
+      "stateHistory": [
+        {
+          "state": {
+            "id": "53e5b43a-a9f4-436f-b678-a009957886da",
+            "name": "Backlog",
+            "type": "backlog"
+          },
+          "startedAt": "2026-09-07T00:43:49.990Z",
+          "endedAt": null
+        }
+      ],
+      "createdBy": "우종호",
+      "createdById": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "project": "World Wide Woo",
+      "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+      "parentId": "WOO-679",
+      "team": "Woo-World",
+      "teamId": "95f279f5-cd73-49b6-a10e-b6cdab1e6d58",
+      "relations": {
+        "blocks": [],
+        "blockedBy": [],
+        "relatedTo": [
+          {
+            "id": "WOO-697",
+            "title": "선택한 개발 업무의 대화와 테스트를 기록한다"
+          },
+          {
+            "id": "WOO-718",
+            "title": "08. 대화·실행·결과를 하나의 흐름으로 연결한다"
+          },
+          {
+            "id": "WOO-720",
+            "title": "테스트"
+          }
+        ],
+        "duplicateOf": null
+      }
+    },
+    {
+      "id": "WOO-720",
+      "uuid": "624b9fed-50cb-4ff5-8535-47fbcc33b199",
+      "title": "테스트",
+      "description": "## 목적\n\nChat이 의도대로 동작하는지 확인하고, 검증한 범위와 남은 범위를 구분한다.\n\n## 결과\n\n* 자동 확인: 로컬 테스트 693개 통과, 타입 검사와 macOS 운영체제 경계 검사 통과. 창 너비에 따른 읽던 위치 유지도 자동 테스트로 확인.\n* 실제 터미널 확인: 대화 다시 열기, 실행 근거 화면(Source) 이동·복귀, 답변 중단.\n* 코드 검토: Opus 감사 승인.\n* 미검증: 운영체제 입력기(IME)·마우스 조작, 실제 모델 서비스에서 오류를 강제로 발생시키는 경우.\n\n테스트 목적·종류·기대값·실패 유형·상세 절차는 Obsidian에서 확인한다.\n\n## 연결\n\nCode-ID: [0001](<https://github.com/Woo-JongHo/world-wide-woo/blob/3036b62338be137c542b53b07326e00f5c731d7a/src/presentation/tui/workbench-views.ts>) · [0002](<https://github.com/Woo-JongHo/world-wide-woo/blob/3036b62338be137c542b53b07326e00f5c731d7a/src/application/project-workbench.ts>) · [0003](<https://github.com/Woo-JongHo/world-wide-woo/blob/3036b62338be137c542b53b07326e00f5c731d7a/src/presentation/tui/dashboard-layout.ts>) · [0004](<https://github.com/Woo-JongHo/world-wide-woo/blob/3036b62338be137c542b53b07326e00f5c731d7a/src/presentation/tui/workbench-shell.ts>) · [0005](<https://github.com/Woo-JongHo/world-wide-woo/blob/3036b62338be137c542b53b07326e00f5c731d7a/src/infrastructure/project-workbench-session.ts>)\n\n<pull-request id=\"fc0ef858-7e57-4dbb-956f-b4445c3eb78e\" href=\"https://linear.app/woo-world/review/채팅의-공개-본문과-읽던-위치를-보존한다-dead0bfcaf84\">Woo-JongHo/world-wide-woo#46</pull-request> · [Obsidian 상세](<obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FChat%2FWOO-720.md>)",
+      "projectMilestone": {
+        "id": "193948f7-2a11-4110-a143-360d83f2a076",
+        "name": "v0.1.0 — First Public Release"
+      },
+      "priority": {
+        "value": 0,
+        "name": "No priority"
+      },
+      "url": "https://linear.app/woo-world/issue/WOO-720/테스트",
+      "gitBranchName": "jonghowoo33/woo-720-테스트",
+      "createdAt": "2026-09-07T00:43:53.270Z",
+      "updatedAt": "2026-09-07T03:22:36.457Z",
+      "archivedAt": null,
+      "completedAt": null,
+      "startedAt": null,
+      "canceledAt": null,
+      "dueDate": null,
+      "slaStartedAt": null,
+      "slaMediumRiskAt": null,
+      "slaHighRiskAt": null,
+      "slaBreachesAt": null,
+      "status": "Backlog",
+      "statusType": "backlog",
+      "labels": [
+        "TUI",
+        "Testing",
+        "Chat"
+      ],
+      "attachments": [],
+      "documents": [],
+      "stateHistory": [
+        {
+          "state": {
+            "id": "53e5b43a-a9f4-436f-b678-a009957886da",
+            "name": "Backlog",
+            "type": "backlog"
+          },
+          "startedAt": "2026-09-07T00:43:53.270Z",
+          "endedAt": null
+        }
+      ],
+      "createdBy": "우종호",
+      "createdById": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "project": "World Wide Woo",
+      "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+      "parentId": "WOO-679",
+      "team": "Woo-World",
+      "teamId": "95f279f5-cd73-49b6-a10e-b6cdab1e6d58",
+      "relations": {
+        "blocks": [],
+        "blockedBy": [],
+        "relatedTo": [
+          {
+            "id": "WOO-707",
+            "title": "01. 넓은·좁은 배치를 오가도 읽던 패널 위치를 유지한다"
+          },
+          {
+            "id": "WOO-705",
+            "title": "02. 다른 요청의 근거가 섞이지 않도록 같은 실행을 추적한다"
+          },
+          {
+            "id": "WOO-726",
+            "title": "테스트"
+          },
+          {
+            "id": "WOO-722",
+            "title": "테스트"
+          },
+          {
+            "id": "WOO-702",
+            "title": "03. 세션별 Todo.md에 입력과 계획을 보존하고 재개한다"
+          },
+          {
+            "id": "WOO-724",
+            "title": "테스트"
+          },
+          {
+            "id": "WOO-719",
+            "title": "예외 처리"
+          },
+          {
+            "id": "WOO-688",
+            "title": "03. 답변 생성·완료·중단 과정을 보여준다"
+          },
+          {
+            "id": "WOO-697",
+            "title": "선택한 개발 업무의 대화와 테스트를 기록한다"
+          },
+          {
+            "id": "WOO-718",
+            "title": "08. 대화·실행·결과를 하나의 흐름으로 연결한다"
+          },
+          {
+            "id": "WOO-692",
+            "title": "07. 실제 TUI에서 가독성과 상태 전환을 검증한다"
+          },
+          {
+            "id": "WOO-691",
+            "title": "06. 비정상 응답에서도 내용을 보존하고 복구를 안내한다"
+          },
+          {
+            "id": "WOO-690",
+            "title": "05. 재개 뒤에도 대화 순서와 대상을 유지한다"
+          },
+          {
+            "id": "WOO-689",
+            "title": "04. 긴 결과를 안정적으로 탐색한다"
+          },
+          {
+            "id": "WOO-687",
+            "title": "02. 대화 주체와 진행 상태를 한눈에 구분한다"
+          },
+          {
+            "id": "WOO-686",
+            "title": "01. 문서와 코드를 읽기 쉽게 표시한다"
+          }
+        ],
+        "duplicateOf": null
+      }
+    },
+    {
+      "id": "WOO-695",
+      "uuid": "d61f3719-f59d-4f8d-aa57-8889e3d224b0",
+      "title": "기능 Unit과 Linear 작업을 코드에 연결한다",
+      "description": "## 목적\n\n개발자가 코드 이동 뒤에도 같은 기능 Unit과 Linear 작업을 안정적으로 찾는다.\n\n## 결과\n\n원장의 내부 Unit UUID와 Code-NNN 별칭, 실제 선언, Linear UUID가 한 관계로 검증된다.\n\n## 범위\n\n### 포함\n\n* schema v2 Unit 원장과 기존 0001~0005 별칭 이관\n* 이름 있는 실제 선언의 `@Unit Code-NNN` AST 검사\n* 중복·재사용·끊어진 관계의 실패 처리\n\n### 제외\n\n* Linear 화면 직접 편집 차단\n* 실시간 양방향 동기화\n\n## 동작\n\n1. 기존 책임이면 Unit UUID와 Code-NNN을 유지한다.\n2. 새 책임이면 tombstone과 마지막 번호를 확인해 다음 Code-NNN을 발급한다.\n3. 원장 location과 실제 AST 선언을 대조한다.\n\n## 완료 조건\n\n- [ ] Code-001~005가 기존 0001~0005와 일대일로 조회된다.\n- [ ] 중복 UUID·key·alias와 tombstone 재사용 mutation이 실패한다.\n- [ ] 등록 위치와 다른 선언 또는 미등록 선언이 실패한다.\n\n## 연결\n\n* Code-ID: Code-006, Code-007\n* Obsidian: [상세 기록](<obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FTraceability%2FWOO-695.md>)",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — Development Traceability"
+      },
+      "priority": {
+        "value": 0,
+        "name": "No priority"
+      },
+      "url": "https://linear.app/woo-world/issue/WOO-695/기능-unit과-linear-작업을-코드에-연결한다",
+      "gitBranchName": "jonghowoo33/woo-695-기능-unit과-linear-작업을-코드에-연결한다",
+      "createdAt": "2026-09-06T13:21:36.900Z",
+      "updatedAt": "2026-09-07T04:03:37.290Z",
+      "archivedAt": null,
+      "completedAt": null,
+      "startedAt": "2026-09-06T13:21:37.016Z",
+      "canceledAt": null,
+      "dueDate": null,
+      "slaStartedAt": null,
+      "slaMediumRiskAt": null,
+      "slaHighRiskAt": null,
+      "slaBreachesAt": null,
+      "status": "In Progress",
+      "statusType": "started",
+      "labels": [
+        "Identity",
+        "System",
+        "Feature"
+      ],
+      "attachments": [
+        {
+          "id": "aca18faa-fc07-4df7-b6f5-9d8dd4eea7e4",
+          "title": "Linear 이슈와 코드의 실제 연결 지도를 검증한다 (WOO-695)",
+          "subtitle": null,
+          "url": "https://github.com/Woo-JongHo/world-wide-woo/pull/42"
+        }
+      ],
+      "documents": [],
+      "stateHistory": [
+        {
+          "state": {
+            "id": "04aa2aac-1687-4b10-b225-14197c925233",
+            "name": "In Progress",
+            "type": "started"
+          },
+          "startedAt": "2026-09-06T13:21:36.900Z",
+          "endedAt": null
+        }
+      ],
+      "createdBy": "우종호",
+      "createdById": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "assignee": "우종호",
+      "assigneeId": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "project": "World Wide Woo",
+      "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+      "parentId": "WOO-672",
+      "team": "Woo-World",
+      "teamId": "95f279f5-cd73-49b6-a10e-b6cdab1e6d58",
+      "relations": {
+        "blocks": [],
+        "blockedBy": [],
+        "relatedTo": [
+          {
+            "id": "WOO-681",
+            "title": "[Tracer] 선택한 작업의 실행 구조와 근거를 따라간다"
+          },
+          {
+            "id": "WOO-680",
+            "title": "[Layout] 화면 크기가 달라져도 읽던 위치와 입력 흐름을 유지한다"
+          },
+          {
+            "id": "WOO-682",
+            "title": "[Todo] 세션에서 내 입력의 계획과 각 모델이 하는 일을 실시간으로 확인한다"
+          },
+          {
+            "id": "WOO-696",
+            "title": "공용 SQLite에서 개발 관계를 조회하고 복구한다"
+          },
+          {
+            "id": "WOO-690",
+            "title": "05. 재개 뒤에도 대화 순서와 대상을 유지한다"
+          },
+          {
+            "id": "WOO-698",
+            "title": "Obsidian에서 개발 기록과 원본을 함께 읽는다"
+          }
+        ],
+        "duplicateOf": null
+      }
+    },
+    {
+      "id": "WOO-696",
+      "uuid": "ebeab182-33a1-41c5-a4d8-19b0209f2b01",
+      "title": "공용 SQLite에서 개발 관계를 조회하고 복구한다",
+      "description": "## 목적\n\n개발자가 Issue·Unit·Run·Note 중 어느 ID로 시작해도 같은 관계 그래프를 조회한다.\n\n## 결과\n\nSQLite를 지워도 immutable JSON 원장에서 같은 logical digest와 관계가 재생성된다.\n\n## 범위\n\n### 포함\n\n* schema v2 엔터티와 관계의 SQLite 투영\n* source digest와 integrity 확인\n* 네 종류 ID의 양방향 관계 조회\n\n### 제외\n\n* SQLite를 유일한 정본으로 사용\n* 다른 머신 사이의 실시간 DB 동기화\n\n## 동작\n\n1. 원장을 검증하고 트랜잭션 안에서 투영을 재구축한다.\n2. 조회 전 DB integrity와 원장 digest를 확인한다.\n3. stale·손상이면 rebuild 명령과 함께 실패한다.\n\n## 완료 조건\n\n- [ ] SQLite 파일 삭제 전후 logical digest가 같다.\n- [ ] Issue·Unit·Run·Note 조회가 같은 연결 component를 반환한다.\n- [ ] stale 또는 손상된 투영을 정상 빈 결과로 반환하지 않는다.\n\n## 연결\n\n* Code-ID: Code-008\n* Obsidian: [상세 기록](<obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FTraceability%2FWOO-696.md>)",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — Development Traceability"
+      },
+      "priority": {
+        "value": 0,
+        "name": "No priority"
+      },
+      "url": "https://linear.app/woo-world/issue/WOO-696/공용-sqlite에서-개발-관계를-조회하고-복구한다",
+      "gitBranchName": "jonghowoo33/woo-696-공용-sqlite에서-개발-관계를-조회하고-복구한다",
+      "createdAt": "2026-09-06T13:21:38.491Z",
+      "updatedAt": "2026-09-07T04:03:31.996Z",
+      "archivedAt": null,
+      "completedAt": null,
+      "startedAt": "2026-09-06T13:21:38.567Z",
+      "canceledAt": null,
+      "dueDate": null,
+      "slaStartedAt": null,
+      "slaMediumRiskAt": null,
+      "slaHighRiskAt": null,
+      "slaBreachesAt": null,
+      "status": "In Progress",
+      "statusType": "started",
+      "labels": [
+        "Storage",
+        "System",
+        "Reliability"
+      ],
+      "attachments": [],
+      "documents": [],
+      "stateHistory": [
+        {
+          "state": {
+            "id": "04aa2aac-1687-4b10-b225-14197c925233",
+            "name": "In Progress",
+            "type": "started"
+          },
+          "startedAt": "2026-09-06T13:21:38.491Z",
+          "endedAt": null
+        }
+      ],
+      "createdBy": "우종호",
+      "createdById": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "project": "World Wide Woo",
+      "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+      "parentId": "WOO-672",
+      "team": "Woo-World",
+      "teamId": "95f279f5-cd73-49b6-a10e-b6cdab1e6d58",
+      "relations": {
+        "blocks": [],
+        "blockedBy": [],
+        "relatedTo": [
+          {
+            "id": "WOO-695",
+            "title": "기능 Unit과 Linear 작업을 코드에 연결한다"
+          }
+        ],
+        "duplicateOf": null
+      }
+    },
+    {
+      "id": "WOO-697",
+      "uuid": "a9d0368a-de03-462e-b490-56252fcc626a",
+      "title": "선택한 개발 업무의 대화와 테스트를 기록한다",
+      "description": "## 목적\n\n개발 중 공개 가능한 검증 결과를 당시 Issue·Unit·Run·Note에 고정해 다시 확인한다.\n\n## 결과\n\n검증 run과 Evidence 경로가 원장의 관계로 남고 실행 PASS와 제품 수락이 구분된다.\n\n## 범위\n\n### 포함\n\n* Run ID·상태·source revision·Evidence 경로\n* Run에서 Issue·Unit·Note로 향하는 검증 관계\n* 실행하지 않은 완료 조건의 미체크 유지\n\n### 제외\n\n* hidden reasoning 저장\n* 검증 통과만으로 Linear 이슈 완료\n\n## 동작\n\n1. 검증 명령과 실제 결과를 Evidence 파일에 기록한다.\n2. Run 엔터티를 immutable 원장 관계에 연결한다.\n3. Map과 조회 결과에서 같은 Evidence를 확인한다.\n\n## 완료 조건\n\n- [ ] 실행한 명령·종료 상태·logical digest가 Evidence에 남는다.\n- [ ] 실패·취소·미실행·PASS가 서로 구분된다.\n- [ ] 검증만으로 이슈 상태나 수락 상태가 바뀌지 않는다.\n\n## 연결\n\n* Code-ID: Code-008\n* Obsidian: [상세 기록](<obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FTraceability%2FWOO-697.md>)",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — Development Traceability"
+      },
+      "priority": {
+        "value": 0,
+        "name": "No priority"
+      },
+      "url": "https://linear.app/woo-world/issue/WOO-697/선택한-개발-업무의-대화와-테스트를-기록한다",
+      "gitBranchName": "jonghowoo33/woo-697-선택한-개발-업무의-대화와-테스트를-기록한다",
+      "createdAt": "2026-09-06T13:21:40.330Z",
+      "updatedAt": "2026-09-07T04:03:34.401Z",
+      "archivedAt": null,
+      "completedAt": null,
+      "startedAt": "2026-09-06T13:21:40.650Z",
+      "canceledAt": null,
+      "dueDate": null,
+      "slaStartedAt": null,
+      "slaMediumRiskAt": null,
+      "slaHighRiskAt": null,
+      "slaBreachesAt": null,
+      "status": "In Progress",
+      "statusType": "started",
+      "labels": [
+        "Observability",
+        "System",
+        "Reliability"
+      ],
+      "attachments": [],
+      "documents": [],
+      "stateHistory": [
+        {
+          "state": {
+            "id": "04aa2aac-1687-4b10-b225-14197c925233",
+            "name": "In Progress",
+            "type": "started"
+          },
+          "startedAt": "2026-09-06T13:21:40.330Z",
+          "endedAt": null
+        }
+      ],
+      "createdBy": "우종호",
+      "createdById": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "project": "World Wide Woo",
+      "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+      "parentId": "WOO-672",
+      "team": "Woo-World",
+      "teamId": "95f279f5-cd73-49b6-a10e-b6cdab1e6d58",
+      "relations": {
+        "blocks": [],
+        "blockedBy": [],
+        "relatedTo": [
+          {
+            "id": "WOO-720",
+            "title": "테스트"
+          },
+          {
+            "id": "WOO-719",
+            "title": "예외 처리"
+          },
+          {
+            "id": "WOO-679",
+            "title": "[Chat] 대화·실행·결과를 읽기 좋은 하나의 흐름으로 보여준다"
+          }
+        ],
+        "duplicateOf": null
+      }
+    },
+    {
+      "id": "WOO-698",
+      "uuid": "eb9caaaf-4b82-4329-b56d-834bc151ea53",
+      "title": "Obsidian에서 개발 기록과 원본을 함께 읽는다",
+      "description": "## 목적\n\n개발자가 Linear의 짧은 설명에서 실제 Obsidian Vault의 상세 설계와 검증 기록으로 이동한다.\n\n## 결과\n\n각 Note의 Linear UUID와 Unit UUID가 실제 Vault bytes와 원장에 일치한다.\n\n## 범위\n\n### 포함\n\n* record type별 frontmatter와 상세 본문\n* 실제 Vault 파일의 byte readback\n* 기존 파일 보존 후 명시적 갱신\n\n### 제외\n\n* repo export를 실제 Vault라고 간주\n* 사람이 편집한 Note의 자동 덮어쓰기\n\n## 동작\n\n1. 원장의 vault id와 상대 경로로 실제 파일을 찾는다.\n2. 필수 frontmatter와 ID 쌍을 원장에 대조한다.\n3. Linear의 Obsidian URI가 실제 Note를 가리키는지 확인한다.\n\n## 완료 조건\n\n- [ ] <issue id=\"d61f3719-f59d-4f8d-aa57-8889e3d224b0\" href=\"https://linear.app/woo-world/issue/WOO-695/기능-unit과-linear-작업을-코드에-연결한다\">WOO-695</issue>~699 실제 Vault bytes가 repo export와 일치한다.\n- [ ] 잘못된 Linear UUID·Unit UUID·record_type mutation이 실패한다.\n- [ ] 존재하지 않는 Note 경로가 무결성 실패로 드러난다.\n\n## 연결\n\n* Code-ID: Code-007\n* Obsidian: [상세 기록](<obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FTraceability%2FWOO-698.md>)",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — Development Traceability"
+      },
+      "priority": {
+        "value": 0,
+        "name": "No priority"
+      },
+      "url": "https://linear.app/woo-world/issue/WOO-698/obsidian에서-개발-기록과-원본을-함께-읽는다",
+      "gitBranchName": "jonghowoo33/woo-698-obsidian에서-개발-기록과-원본을-함께-읽는다",
+      "createdAt": "2026-09-06T13:21:42.043Z",
+      "updatedAt": "2026-09-07T04:03:37.318Z",
+      "archivedAt": null,
+      "completedAt": null,
+      "startedAt": "2026-09-06T13:21:42.086Z",
+      "canceledAt": null,
+      "dueDate": null,
+      "slaStartedAt": null,
+      "slaMediumRiskAt": null,
+      "slaHighRiskAt": null,
+      "slaBreachesAt": null,
+      "status": "In Progress",
+      "statusType": "started",
+      "labels": [
+        "Integration",
+        "System",
+        "UX"
+      ],
+      "attachments": [],
+      "documents": [],
+      "stateHistory": [
+        {
+          "state": {
+            "id": "04aa2aac-1687-4b10-b225-14197c925233",
+            "name": "In Progress",
+            "type": "started"
+          },
+          "startedAt": "2026-09-06T13:21:42.043Z",
+          "endedAt": null
+        }
+      ],
+      "createdBy": "우종호",
+      "createdById": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "project": "World Wide Woo",
+      "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+      "parentId": "WOO-672",
+      "team": "Woo-World",
+      "teamId": "95f279f5-cd73-49b6-a10e-b6cdab1e6d58",
+      "relations": {
+        "blocks": [],
+        "blockedBy": [],
+        "relatedTo": [
+          {
+            "id": "WOO-695",
+            "title": "기능 Unit과 Linear 작업을 코드에 연결한다"
+          }
+        ],
+        "duplicateOf": null
+      }
+    },
+    {
+      "id": "WOO-699",
+      "uuid": "ddecdd50-fcf6-457b-84b0-aa0f681257c3",
+      "title": "TUI에서 개발 작업과 연결된 근거를 왕복 탐색한다",
+      "description": "## 목적\n\n개발자가 기존 Development Map에서 Linear·Code Unit·Obsidian·PR·Run 관계와 다음 조치를 함께 찾는다.\n\n## 결과\n\n기존 Initiative·Epic·Story·Evidence 역할을 유지한 generated Map이 원장과 같은 연결 상태를 보여준다.\n\n## 범위\n\n### 포함\n\n* 기존 Map의 수동 관리 영역 보존\n* schema v2 관계 표의 결정론적 생성\n* Map freshness 검사와 깨진 edge 표시\n\n### 제외\n\n* 별도의 경쟁 Development Map 생성\n* Evidence만으로 Story·Epic 상태 자동 승격\n\n## 동작\n\n1. 원장 관계를 Issue별 행으로 투영한다.\n2. 기존 Map 뒤의 managed marker 구간만 생성한다.\n3. 재생성 diff가 있으면 check를 실패시킨다.\n\n## 완료 조건\n\n- [ ] build 뒤 check 재생성 diff가 없다.\n- [ ] 기존 Initiative·Epic·Story·Evidence 열과 문맥이 보존된다.\n- [ ] Issue와 Code-NNN 어느 방향에서도 관련 Note·Run을 조회한다.\n\n## 연결\n\n* Code-ID: Code-009\n* Obsidian: [상세 기록](<obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FTraceability%2FWOO-699.md>)",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — Development Traceability"
+      },
+      "priority": {
+        "value": 0,
+        "name": "No priority"
+      },
+      "url": "https://linear.app/woo-world/issue/WOO-699/tui에서-개발-작업과-연결된-근거를-왕복-탐색한다",
+      "gitBranchName": "jonghowoo33/woo-699-tui에서-개발-작업과-연결된-근거를-왕복-탐색한다",
+      "createdAt": "2026-09-06T13:21:43.430Z",
+      "updatedAt": "2026-09-07T04:03:39.950Z",
+      "archivedAt": null,
+      "completedAt": null,
+      "startedAt": "2026-09-06T13:21:43.496Z",
+      "canceledAt": null,
+      "dueDate": null,
+      "slaStartedAt": null,
+      "slaMediumRiskAt": null,
+      "slaHighRiskAt": null,
+      "slaBreachesAt": null,
+      "status": "In Progress",
+      "statusType": "started",
+      "labels": [
+        "System",
+        "TUI",
+        "UX"
+      ],
+      "attachments": [],
+      "documents": [],
+      "stateHistory": [
+        {
+          "state": {
+            "id": "04aa2aac-1687-4b10-b225-14197c925233",
+            "name": "In Progress",
+            "type": "started"
+          },
+          "startedAt": "2026-09-06T13:21:43.430Z",
+          "endedAt": null
+        }
+      ],
+      "createdBy": "우종호",
+      "createdById": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "project": "World Wide Woo",
+      "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+      "parentId": "WOO-672",
+      "team": "Woo-World",
+      "teamId": "95f279f5-cd73-49b6-a10e-b6cdab1e6d58",
+      "relations": {
+        "blocks": [],
+        "blockedBy": [],
+        "relatedTo": [
+          {
+            "id": "WOO-681",
+            "title": "[Tracer] 선택한 작업의 실행 구조와 근거를 따라간다"
+          }
+        ],
+        "duplicateOf": null
+      }
+    }
+  ]
+}

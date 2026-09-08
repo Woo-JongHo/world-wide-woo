@@ -1,0 +1,1 @@
+{"runId":"traceability-validation-woo-844-20260908","runPurpose":"traceability-validation","status":"passed","sourceState":"dirty-worktree","sourceRevision":"worktree:2d0f8fdcfd6eb0dbf2f16707ebf98ff75885612b:dirty","evidence":["bun test test/commit-governance.test.ts: 4 pass","bun run check: pass"]}

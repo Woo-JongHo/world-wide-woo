@@ -1,0 +1,52 @@
+{
+  "WOO-673": {
+    "id": "WOO-673",
+    "uuid": "477b8294-e3c6-4e71-975f-0ddb09884c52",
+    "url": "https://linear.app/woo-world/issue/WOO-673/tui에서-업무를-수행하고-실행과-근거를-확인한다"
+  },
+  "WOO-674": {
+    "id": "WOO-674",
+    "uuid": "4674a1dc-ba01-4007-9803-3346a1f83dcc",
+    "url": "https://linear.app/woo-world/issue/WOO-674/workbench에서-대화와-계획을-읽고-입력과-상태를-통제한다"
+  },
+  "WOO-680": {
+    "id": "WOO-680",
+    "uuid": "9e3c1872-b80e-4016-b24f-5e2adc9c7320",
+    "url": "https://linear.app/woo-world/issue/WOO-680/화면-크기가-달라져도-읽던-위치와-입력-흐름을-유지한다"
+  },
+  "WOO-681": {
+    "id": "WOO-681",
+    "uuid": "8df10afa-0d6a-4a0d-a529-df749ecf7111",
+    "url": "https://linear.app/woo-world/issue/WOO-681/선택한-결과에서-같은-실행의-근거를-찾아간다"
+  },
+  "WOO-682": {
+    "id": "WOO-682",
+    "uuid": "f47d08f5-fa85-4881-86f5-7baad14bb5ec",
+    "url": "https://linear.app/woo-world/issue/WOO-682/현재-native-계획과-다음-행동을-일관된-todo로-보여준다"
+  },
+  "WOO-675": {
+    "id": "WOO-675",
+    "uuid": "28bc3ec6-f98d-421e-9398-8721f5c50724",
+    "url": "https://linear.app/woo-world/issue/WOO-675/현재-실행과-승인실패-상태를-같은-맥락에서-관찰한다"
+  },
+  "WOO-676": {
+    "id": "WOO-676",
+    "uuid": "d99aae72-3214-4146-8702-264dc20fcafe",
+    "url": "https://linear.app/woo-world/issue/WOO-676/세션-관측-범위와-요약을-읽고-원하는-상세로-이동한다"
+  },
+  "WOO-677": {
+    "id": "WOO-677",
+    "uuid": "4cc0aa6b-67ce-47a2-bb18-01af448ae5fd",
+    "url": "https://linear.app/woo-world/issue/WOO-677/세션과-요청의-결과사용량시간을-근거와-함께-검토한다"
+  },
+  "new:tnote": {
+    "id": "WOO-693",
+    "uuid": "559c8b06-e8dd-4061-8d10-d719be0524a8",
+    "url": "https://linear.app/woo-world/issue/WOO-693/완료된-질문과-결과를-t-note에-보존하고-다시-찾는다"
+  },
+  "new:composer": {
+    "id": "WOO-694",
+    "uuid": "c0d21b4d-3dd0-44b6-9fb7-f2f938add0a8",
+    "url": "https://linear.app/woo-world/issue/WOO-694/입력전송중단과-세션-설정을-예측-가능하게-조작한다"
+  }
+}

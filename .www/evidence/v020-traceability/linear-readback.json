@@ -1,0 +1,384 @@
+{
+  "hasNextPage": false,
+  "capturedAt": "2026-09-07T04:04:20.525Z",
+  "source": "Linear MCP post-write full readback",
+  "milestone": {
+    "id": "11c54a66-8b02-497b-b462-c273141a440c",
+    "name": "v0.2.0 — Development Traceability",
+    "description": "Linear의 작업, 코드의 Unit, 실제 Obsidian 상세 기록과 실행 증거를 하나의 ID 그래프로 연결한다.\n\n완료 조건: 템플릿 생성 → ID 등록 → 코드·문서 연결 → SQLite 투영 → Map 생성 → CI 검증이 한 흐름으로 동작한다.\n\n경계: TUI v0.1.0 기능 완성도와 출시 판정은 포함하지 않는다.",
+    "progress": 25,
+    "sortOrder": 1119
+  },
+  "parentId": "WOO-672",
+  "directChildIds": [
+    "WOO-695",
+    "WOO-696",
+    "WOO-697",
+    "WOO-698",
+    "WOO-699"
+  ],
+  "issues": [
+    {
+      "id": "WOO-695",
+      "uuid": "d61f3719-f59d-4f8d-aa57-8889e3d224b0",
+      "title": "기능 Unit과 Linear 작업을 코드에 연결한다",
+      "description": "## 목적\n\n개발자가 코드 이동 뒤에도 같은 기능 Unit과 Linear 작업을 안정적으로 찾는다.\n\n## 결과\n\n원장의 내부 Unit UUID와 Code-NNN 별칭, 실제 선언, Linear UUID가 한 관계로 검증된다.\n\n## 범위\n\n### 포함\n\n* schema v2 Unit 원장과 기존 0001~0005 별칭 이관\n* 이름 있는 실제 선언의 `@Unit Code-NNN` AST 검사\n* 중복·재사용·끊어진 관계의 실패 처리\n\n### 제외\n\n* Linear 화면 직접 편집 차단\n* 실시간 양방향 동기화\n\n## 동작\n\n1. 기존 책임이면 Unit UUID와 Code-NNN을 유지한다.\n2. 새 책임이면 tombstone과 마지막 번호를 확인해 다음 Code-NNN을 발급한다.\n3. 원장 location과 실제 AST 선언을 대조한다.\n\n## 완료 조건\n\n- [ ] Code-001~005가 기존 0001~0005와 일대일로 조회된다.\n- [ ] 중복 UUID·key·alias와 tombstone 재사용 mutation이 실패한다.\n- [ ] 등록 위치와 다른 선언 또는 미등록 선언이 실패한다.\n\n## 연결\n\n* Code-ID: Code-006, Code-007\n* Obsidian: [상세 기록](<obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FTraceability%2FWOO-695.md>)",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — Development Traceability"
+      },
+      "priority": {
+        "value": 0,
+        "name": "No priority"
+      },
+      "url": "https://linear.app/woo-world/issue/WOO-695/기능-unit과-linear-작업을-코드에-연결한다",
+      "gitBranchName": "jonghowoo33/woo-695-기능-unit과-linear-작업을-코드에-연결한다",
+      "createdAt": "2026-09-06T13:21:36.900Z",
+      "updatedAt": "2026-09-07T04:03:37.290Z",
+      "archivedAt": null,
+      "completedAt": null,
+      "startedAt": "2026-09-06T13:21:37.016Z",
+      "canceledAt": null,
+      "dueDate": null,
+      "slaStartedAt": null,
+      "slaMediumRiskAt": null,
+      "slaHighRiskAt": null,
+      "slaBreachesAt": null,
+      "status": "In Progress",
+      "statusType": "started",
+      "labels": [
+        "Identity",
+        "System",
+        "Feature"
+      ],
+      "attachments": [
+        {
+          "id": "aca18faa-fc07-4df7-b6f5-9d8dd4eea7e4",
+          "title": "Linear 이슈와 코드의 실제 연결 지도를 검증한다 (WOO-695)",
+          "subtitle": null,
+          "url": "https://github.com/Woo-JongHo/world-wide-woo/pull/42"
+        }
+      ],
+      "documents": [],
+      "stateHistory": [
+        {
+          "state": {
+            "id": "04aa2aac-1687-4b10-b225-14197c925233",
+            "name": "In Progress",
+            "type": "started"
+          },
+          "startedAt": "2026-09-06T13:21:36.900Z",
+          "endedAt": null
+        }
+      ],
+      "createdBy": "우종호",
+      "createdById": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "assignee": "우종호",
+      "assigneeId": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "project": "World Wide Woo",
+      "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+      "parentId": "WOO-672",
+      "team": "Woo-World",
+      "teamId": "95f279f5-cd73-49b6-a10e-b6cdab1e6d58",
+      "relations": {
+        "blocks": [],
+        "blockedBy": [],
+        "relatedTo": [
+          {
+            "id": "WOO-681",
+            "title": "[Tracer] 선택한 작업의 실행 구조와 근거를 따라간다"
+          },
+          {
+            "id": "WOO-680",
+            "title": "[Layout] 화면 크기가 달라져도 읽던 위치와 입력 흐름을 유지한다"
+          },
+          {
+            "id": "WOO-682",
+            "title": "[Todo] 세션에서 내 입력의 계획과 각 모델이 하는 일을 실시간으로 확인한다"
+          },
+          {
+            "id": "WOO-696",
+            "title": "공용 SQLite에서 개발 관계를 조회하고 복구한다"
+          },
+          {
+            "id": "WOO-690",
+            "title": "05. 재개 뒤에도 대화 순서와 대상을 유지한다"
+          },
+          {
+            "id": "WOO-698",
+            "title": "Obsidian에서 개발 기록과 원본을 함께 읽는다"
+          }
+        ],
+        "duplicateOf": null
+      }
+    },
+    {
+      "id": "WOO-696",
+      "uuid": "ebeab182-33a1-41c5-a4d8-19b0209f2b01",
+      "title": "공용 SQLite에서 개발 관계를 조회하고 복구한다",
+      "description": "## 목적\n\n개발자가 Issue·Unit·Run·Note 중 어느 ID로 시작해도 같은 관계 그래프를 조회한다.\n\n## 결과\n\nSQLite를 지워도 immutable JSON 원장에서 같은 logical digest와 관계가 재생성된다.\n\n## 범위\n\n### 포함\n\n* schema v2 엔터티와 관계의 SQLite 투영\n* source digest와 integrity 확인\n* 네 종류 ID의 양방향 관계 조회\n\n### 제외\n\n* SQLite를 유일한 정본으로 사용\n* 다른 머신 사이의 실시간 DB 동기화\n\n## 동작\n\n1. 원장을 검증하고 트랜잭션 안에서 투영을 재구축한다.\n2. 조회 전 DB integrity와 원장 digest를 확인한다.\n3. stale·손상이면 rebuild 명령과 함께 실패한다.\n\n## 완료 조건\n\n- [ ] SQLite 파일 삭제 전후 logical digest가 같다.\n- [ ] Issue·Unit·Run·Note 조회가 같은 연결 component를 반환한다.\n- [ ] stale 또는 손상된 투영을 정상 빈 결과로 반환하지 않는다.\n\n## 연결\n\n* Code-ID: Code-008\n* Obsidian: [상세 기록](<obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FTraceability%2FWOO-696.md>)",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — Development Traceability"
+      },
+      "priority": {
+        "value": 0,
+        "name": "No priority"
+      },
+      "url": "https://linear.app/woo-world/issue/WOO-696/공용-sqlite에서-개발-관계를-조회하고-복구한다",
+      "gitBranchName": "jonghowoo33/woo-696-공용-sqlite에서-개발-관계를-조회하고-복구한다",
+      "createdAt": "2026-09-06T13:21:38.491Z",
+      "updatedAt": "2026-09-07T04:03:31.996Z",
+      "archivedAt": null,
+      "completedAt": null,
+      "startedAt": "2026-09-06T13:21:38.567Z",
+      "canceledAt": null,
+      "dueDate": null,
+      "slaStartedAt": null,
+      "slaMediumRiskAt": null,
+      "slaHighRiskAt": null,
+      "slaBreachesAt": null,
+      "status": "In Progress",
+      "statusType": "started",
+      "labels": [
+        "Storage",
+        "System",
+        "Reliability"
+      ],
+      "attachments": [],
+      "documents": [],
+      "stateHistory": [
+        {
+          "state": {
+            "id": "04aa2aac-1687-4b10-b225-14197c925233",
+            "name": "In Progress",
+            "type": "started"
+          },
+          "startedAt": "2026-09-06T13:21:38.491Z",
+          "endedAt": null
+        }
+      ],
+      "createdBy": "우종호",
+      "createdById": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "project": "World Wide Woo",
+      "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+      "parentId": "WOO-672",
+      "team": "Woo-World",
+      "teamId": "95f279f5-cd73-49b6-a10e-b6cdab1e6d58",
+      "relations": {
+        "blocks": [],
+        "blockedBy": [],
+        "relatedTo": [
+          {
+            "id": "WOO-695",
+            "title": "기능 Unit과 Linear 작업을 코드에 연결한다"
+          }
+        ],
+        "duplicateOf": null
+      }
+    },
+    {
+      "id": "WOO-697",
+      "uuid": "a9d0368a-de03-462e-b490-56252fcc626a",
+      "title": "선택한 개발 업무의 대화와 테스트를 기록한다",
+      "description": "## 목적\n\n개발 중 공개 가능한 검증 결과를 당시 Issue·Unit·Run·Note에 고정해 다시 확인한다.\n\n## 결과\n\n검증 run과 Evidence 경로가 원장의 관계로 남고 실행 PASS와 제품 수락이 구분된다.\n\n## 범위\n\n### 포함\n\n* Run ID·상태·source revision·Evidence 경로\n* Run에서 Issue·Unit·Note로 향하는 검증 관계\n* 실행하지 않은 완료 조건의 미체크 유지\n\n### 제외\n\n* hidden reasoning 저장\n* 검증 통과만으로 Linear 이슈 완료\n\n## 동작\n\n1. 검증 명령과 실제 결과를 Evidence 파일에 기록한다.\n2. Run 엔터티를 immutable 원장 관계에 연결한다.\n3. Map과 조회 결과에서 같은 Evidence를 확인한다.\n\n## 완료 조건\n\n- [ ] 실행한 명령·종료 상태·logical digest가 Evidence에 남는다.\n- [ ] 실패·취소·미실행·PASS가 서로 구분된다.\n- [ ] 검증만으로 이슈 상태나 수락 상태가 바뀌지 않는다.\n\n## 연결\n\n* Code-ID: Code-008\n* Obsidian: [상세 기록](<obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FTraceability%2FWOO-697.md>)",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — Development Traceability"
+      },
+      "priority": {
+        "value": 0,
+        "name": "No priority"
+      },
+      "url": "https://linear.app/woo-world/issue/WOO-697/선택한-개발-업무의-대화와-테스트를-기록한다",
+      "gitBranchName": "jonghowoo33/woo-697-선택한-개발-업무의-대화와-테스트를-기록한다",
+      "createdAt": "2026-09-06T13:21:40.330Z",
+      "updatedAt": "2026-09-07T04:03:34.401Z",
+      "archivedAt": null,
+      "completedAt": null,
+      "startedAt": "2026-09-06T13:21:40.650Z",
+      "canceledAt": null,
+      "dueDate": null,
+      "slaStartedAt": null,
+      "slaMediumRiskAt": null,
+      "slaHighRiskAt": null,
+      "slaBreachesAt": null,
+      "status": "In Progress",
+      "statusType": "started",
+      "labels": [
+        "Observability",
+        "System",
+        "Reliability"
+      ],
+      "attachments": [],
+      "documents": [],
+      "stateHistory": [
+        {
+          "state": {
+            "id": "04aa2aac-1687-4b10-b225-14197c925233",
+            "name": "In Progress",
+            "type": "started"
+          },
+          "startedAt": "2026-09-06T13:21:40.330Z",
+          "endedAt": null
+        }
+      ],
+      "createdBy": "우종호",
+      "createdById": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "project": "World Wide Woo",
+      "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+      "parentId": "WOO-672",
+      "team": "Woo-World",
+      "teamId": "95f279f5-cd73-49b6-a10e-b6cdab1e6d58",
+      "relations": {
+        "blocks": [],
+        "blockedBy": [],
+        "relatedTo": [
+          {
+            "id": "WOO-720",
+            "title": "테스트"
+          },
+          {
+            "id": "WOO-719",
+            "title": "예외 처리"
+          },
+          {
+            "id": "WOO-679",
+            "title": "[Chat] 대화·실행·결과를 읽기 좋은 하나의 흐름으로 보여준다"
+          }
+        ],
+        "duplicateOf": null
+      }
+    },
+    {
+      "id": "WOO-698",
+      "uuid": "eb9caaaf-4b82-4329-b56d-834bc151ea53",
+      "title": "Obsidian에서 개발 기록과 원본을 함께 읽는다",
+      "description": "## 목적\n\n개발자가 Linear의 짧은 설명에서 실제 Obsidian Vault의 상세 설계와 검증 기록으로 이동한다.\n\n## 결과\n\n각 Note의 Linear UUID와 Unit UUID가 실제 Vault bytes와 원장에 일치한다.\n\n## 범위\n\n### 포함\n\n* record type별 frontmatter와 상세 본문\n* 실제 Vault 파일의 byte readback\n* 기존 파일 보존 후 명시적 갱신\n\n### 제외\n\n* repo export를 실제 Vault라고 간주\n* 사람이 편집한 Note의 자동 덮어쓰기\n\n## 동작\n\n1. 원장의 vault id와 상대 경로로 실제 파일을 찾는다.\n2. 필수 frontmatter와 ID 쌍을 원장에 대조한다.\n3. Linear의 Obsidian URI가 실제 Note를 가리키는지 확인한다.\n\n## 완료 조건\n\n- [ ] <issue id=\"d61f3719-f59d-4f8d-aa57-8889e3d224b0\" href=\"https://linear.app/woo-world/issue/WOO-695/기능-unit과-linear-작업을-코드에-연결한다\">WOO-695</issue>~699 실제 Vault bytes가 repo export와 일치한다.\n- [ ] 잘못된 Linear UUID·Unit UUID·record_type mutation이 실패한다.\n- [ ] 존재하지 않는 Note 경로가 무결성 실패로 드러난다.\n\n## 연결\n\n* Code-ID: Code-007\n* Obsidian: [상세 기록](<obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FTraceability%2FWOO-698.md>)",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — Development Traceability"
+      },
+      "priority": {
+        "value": 0,
+        "name": "No priority"
+      },
+      "url": "https://linear.app/woo-world/issue/WOO-698/obsidian에서-개발-기록과-원본을-함께-읽는다",
+      "gitBranchName": "jonghowoo33/woo-698-obsidian에서-개발-기록과-원본을-함께-읽는다",
+      "createdAt": "2026-09-06T13:21:42.043Z",
+      "updatedAt": "2026-09-07T04:03:37.318Z",
+      "archivedAt": null,
+      "completedAt": null,
+      "startedAt": "2026-09-06T13:21:42.086Z",
+      "canceledAt": null,
+      "dueDate": null,
+      "slaStartedAt": null,
+      "slaMediumRiskAt": null,
+      "slaHighRiskAt": null,
+      "slaBreachesAt": null,
+      "status": "In Progress",
+      "statusType": "started",
+      "labels": [
+        "Integration",
+        "System",
+        "UX"
+      ],
+      "attachments": [],
+      "documents": [],
+      "stateHistory": [
+        {
+          "state": {
+            "id": "04aa2aac-1687-4b10-b225-14197c925233",
+            "name": "In Progress",
+            "type": "started"
+          },
+          "startedAt": "2026-09-06T13:21:42.043Z",
+          "endedAt": null
+        }
+      ],
+      "createdBy": "우종호",
+      "createdById": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "project": "World Wide Woo",
+      "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+      "parentId": "WOO-672",
+      "team": "Woo-World",
+      "teamId": "95f279f5-cd73-49b6-a10e-b6cdab1e6d58",
+      "relations": {
+        "blocks": [],
+        "blockedBy": [],
+        "relatedTo": [
+          {
+            "id": "WOO-695",
+            "title": "기능 Unit과 Linear 작업을 코드에 연결한다"
+          }
+        ],
+        "duplicateOf": null
+      }
+    },
+    {
+      "id": "WOO-699",
+      "uuid": "ddecdd50-fcf6-457b-84b0-aa0f681257c3",
+      "title": "TUI에서 개발 작업과 연결된 근거를 왕복 탐색한다",
+      "description": "## 목적\n\n개발자가 기존 Development Map에서 Linear·Code Unit·Obsidian·PR·Run 관계와 다음 조치를 함께 찾는다.\n\n## 결과\n\n기존 Initiative·Epic·Story·Evidence 역할을 유지한 generated Map이 원장과 같은 연결 상태를 보여준다.\n\n## 범위\n\n### 포함\n\n* 기존 Map의 수동 관리 영역 보존\n* schema v2 관계 표의 결정론적 생성\n* Map freshness 검사와 깨진 edge 표시\n\n### 제외\n\n* 별도의 경쟁 Development Map 생성\n* Evidence만으로 Story·Epic 상태 자동 승격\n\n## 동작\n\n1. 원장 관계를 Issue별 행으로 투영한다.\n2. 기존 Map 뒤의 managed marker 구간만 생성한다.\n3. 재생성 diff가 있으면 check를 실패시킨다.\n\n## 완료 조건\n\n- [ ] build 뒤 check 재생성 diff가 없다.\n- [ ] 기존 Initiative·Epic·Story·Evidence 열과 문맥이 보존된다.\n- [ ] Issue와 Code-NNN 어느 방향에서도 관련 Note·Run을 조회한다.\n\n## 연결\n\n* Code-ID: Code-009\n* Obsidian: [상세 기록](<obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FTraceability%2FWOO-699.md>)",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — Development Traceability"
+      },
+      "priority": {
+        "value": 0,
+        "name": "No priority"
+      },
+      "url": "https://linear.app/woo-world/issue/WOO-699/tui에서-개발-작업과-연결된-근거를-왕복-탐색한다",
+      "gitBranchName": "jonghowoo33/woo-699-tui에서-개발-작업과-연결된-근거를-왕복-탐색한다",
+      "createdAt": "2026-09-06T13:21:43.430Z",
+      "updatedAt": "2026-09-07T04:03:39.950Z",
+      "archivedAt": null,
+      "completedAt": null,
+      "startedAt": "2026-09-06T13:21:43.496Z",
+      "canceledAt": null,
+      "dueDate": null,
+      "slaStartedAt": null,
+      "slaMediumRiskAt": null,
+      "slaHighRiskAt": null,
+      "slaBreachesAt": null,
+      "status": "In Progress",
+      "statusType": "started",
+      "labels": [
+        "System",
+        "TUI",
+        "UX"
+      ],
+      "attachments": [],
+      "documents": [],
+      "stateHistory": [
+        {
+          "state": {
+            "id": "04aa2aac-1687-4b10-b225-14197c925233",
+            "name": "In Progress",
+            "type": "started"
+          },
+          "startedAt": "2026-09-06T13:21:43.430Z",
+          "endedAt": null
+        }
+      ],
+      "createdBy": "우종호",
+      "createdById": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "project": "World Wide Woo",
+      "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+      "parentId": "WOO-672",
+      "team": "Woo-World",
+      "teamId": "95f279f5-cd73-49b6-a10e-b6cdab1e6d58",
+      "relations": {
+        "blocks": [],
+        "blockedBy": [],
+        "relatedTo": [
+          {
+            "id": "WOO-681",
+            "title": "[Tracer] 선택한 작업의 실행 구조와 근거를 따라간다"
+          }
+        ],
+        "duplicateOf": null
+      }
+    }
+  ]
+}

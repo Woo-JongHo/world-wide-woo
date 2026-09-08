@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, 
 import { execFileSync } from "node:child_process";
 import { mkdtempSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
-import { dirname, join, relative, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import type { RegistryEnvelope, TraceabilityLedger, TraceabilityRef } from "../src/core/domain/development/development-traceability.js";
 import type { ProjectActivity } from "../src/core/domain/execution/project-activity.js";
 import { createExecutionRun, normalizeProjectActivity, replayExecutionRun, type CompletionReceipt } from "../src/core/runtime/execution-run.js";
@@ -12,6 +12,8 @@ import { buildDevelopmentMap } from "../src/adapters/outbound/development/develo
 import { DevelopmentStore } from "../src/adapters/outbound/development/development-store.js";
 import { canonicalDigest, migrateTraceabilityV2ToV3, requiredCoverageFromRegistries, sha256, validateVerificationReceipt, verificationReceiptFromCompletion, type VerificationReceiptCompletionContext } from "../src/adapters/outbound/development/development-traceability-contract.js";
 import { validateTraceability } from "../src/adapters/outbound/development/traceability-validator.js";
+import { applyObsidianLedgerMigrationPreview, createObsidianLedgerMigrationPreview, type ObsidianLedgerMigrationPreview } from "../src/adapters/outbound/development/obsidian-ledger-migration.js";
+import { inspectObsidianVault } from "../src/adapters/outbound/development/obsidian-contract.js";
 
 export function resolveVaultRoot(projectRoot: string, _vaultId: string, explicit?: string): string {
 	return resolve(explicit ?? process.env.WWW_OBSIDIAN_VAULT_ROOT ?? join(projectRoot, ".www/vault"));
@@ -26,7 +28,8 @@ const containedPath = (root: string, value: string | undefined, name: string): s
 	let existing = path;
 	while (!existsSync(existing) && existing !== dirname(existing)) existing = dirname(existing);
 	const canonicalExisting = realpathSync(existing);
-	if (canonicalExisting !== canonicalRoot && !canonicalExisting.startsWith(`${canonicalRoot}/`)) throw new Error(`${name.toUpperCase()}_MUST_BE_CONTAINED`);
+	const boundary = relative(canonicalRoot, canonicalExisting);
+	if (boundary === ".." || boundary.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`) || isAbsolute(boundary)) throw new Error(`${name.toUpperCase()}_MUST_BE_CONTAINED`);
 	return path;
 };
 const record = (value: unknown): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value);
@@ -110,6 +113,15 @@ export const selectedCompletionReceipt = (text: string, receiptId: string | unde
 	return receipt;
 };
 const sameJson = (left: unknown, right: unknown) => canonicalDigest(left) === canonicalDigest(right);
+export const validateVaultExportCoverage = (ledger: TraceabilityLedger, canonicalDocumentIds: readonly string[], manifestNoteIds: ReadonlySet<string>): string[] => {
+	const ledgerNoteIds = new Set(ledger.entities.filter(entity => entity.kind === "note").map(entity => entity.id));
+	const errors: string[] = [];
+	for (const documentId of canonicalDocumentIds) {
+		if (!ledgerNoteIds.has(documentId)) errors.push(`VAULT_EXPORT_LEDGER_NOTE_MISSING:${documentId}`);
+		if (!manifestNoteIds.has(documentId)) errors.push(`VAULT_EXPORT_NOTE_COVERAGE_MISMATCH:${documentId}`);
+	}
+	return errors;
+};
 const observedRevision = (projectRoot: string): string => {
 	const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: projectRoot, encoding: "utf8" }).trim();
 	if (!/^[a-f0-9]{40}$/u.test(head)) throw new Error("GIT_REVISION_INVALID");
@@ -132,6 +144,38 @@ const writeImmutableJson = (path: string, value: unknown): void => {
 export async function runTraceability(argv = process.argv.slice(2)): Promise<string> {
 	const projectRoot = resolve(argument(argv, "--project-root") ?? resolve(import.meta.dir, ".."));
 	const command = argv[0] ?? "check";
+	if (command === "--help" || command === "help") return [
+		"Usage: bun scripts/traceability.ts <command> [options]",
+		"",
+		"Commands: check, rebuild, drift, orphans, query, coverage, map:build, map:check",
+		"          note-migration-preview, note-migration-apply",
+		"Options:",
+		"  --project-root <path>  Repository root",
+		"  --data-root <path>     Disposable SQLite data root",
+		"  --vault-root <path>    Obsidian authoring-source root",
+		"  --spec-root <path>     Canonical document subtree within the Vault",
+		"  --linear-ids <ids>     Comma-separated Linear issues required in the selected Vault scope",
+	].join("\n");
+	if (command === "note-migration-preview") {
+		const vaultRoot = resolveVaultRoot(projectRoot, "", argument(argv, "--vault-root"));
+		const bytes = readFileSync(ledgerPath(projectRoot), "utf8");
+		const preview = createObsidianLedgerMigrationPreview(bytes, vaultRoot, { specRoot: argument(argv, "--spec-root"), requiredLinearIds: argument(argv, "--linear-ids")?.split(",").map(value => value.trim()).filter(Boolean), projectRoot });
+		const output = argument(argv, "--out");
+		if (output) writeFileSync(containedPath(projectRoot, output, "migration-preview-output"), `${JSON.stringify(preview, null, 2)}\n`, { flag: "wx" });
+		return JSON.stringify(preview, null, 2);
+	}
+	if (command === "note-migration-apply") {
+		const vaultRoot = resolveVaultRoot(projectRoot, "", argument(argv, "--vault-root"));
+		const previewPath = containedPath(projectRoot, argument(argv, "--preview"), "migration-preview");
+		const digest = argument(argv, "--digest");
+		if (!digest) throw new Error("MIGRATION_ACCEPTED_DIGEST_REQUIRED");
+		const result = applyObsidianLedgerMigrationPreview({ ledgerPath: ledgerPath(projectRoot), vaultRoot, preview: JSON.parse(readFileSync(previewPath, "utf8")) as ObsidianLedgerMigrationPreview, acceptedDigest: digest, inspect: { specRoot: argument(argv, "--spec-root"), requiredLinearIds: argument(argv, "--linear-ids")?.split(",").map(value => value.trim()).filter(Boolean) } });
+		return JSON.stringify({
+			operation: "ledger-migration-apply", ledger: { status: "applied", payloadDigest: result.payloadDigest },
+			vaultRename: { status: "unchanged-separate-operation" }, sqliteRebuild: { status: "pending" },
+			linearUriUpdate: { status: "pending-separate-draft-readback" },
+		});
+	}
 	if (command === "receipt-from-runtime") {
 		const journal = containedPath(projectRoot, argument(argv, "--journal"), "journal");
 		const contextPath = containedPath(projectRoot, argument(argv, "--context"), "context");
@@ -201,19 +245,21 @@ export async function runTraceability(argv = process.argv.slice(2)): Promise<str
 		else writeFileSync(mapPath, rendered);
 		return `Development Map current: ${ledger.entities.filter(entity => entity.kind === "issue").length} issues`;
 	}
-	if (command === "rebuild") { const store = new DevelopmentStore({ projectRoot, dataRoot: argument(argv, "--data-root") }); try { return JSON.stringify(store.rebuildTraceability()); } finally { store.close(); } }
+	const requiredVaultLinearIds = argument(argv, "--linear-ids")?.split(",").map(value => value.trim()).filter(Boolean);
+	const storeOptions = { projectRoot, dataRoot: argument(argv, "--data-root"), vaultRoot: resolveVaultRoot(projectRoot, "", argument(argv, "--vault-root")), vaultSpecRoot: argument(argv, "--spec-root"), requiredVaultLinearIds };
+	if (command === "rebuild") { const store = new DevelopmentStore(storeOptions); try { return JSON.stringify(store.rebuildTraceability()); } finally { store.close(); } }
 	if (command === "query") {
 		const [kind, id] = argv.slice(1) as ["spec" | "acceptance" | "test" | "exception", string];
 		if (!kind || !id || !["spec", "acceptance", "test", "exception"].includes(kind)) throw new Error("query requires <spec|acceptance|test|exception> <id>");
-		const store = new DevelopmentStore({ projectRoot, dataRoot: argument(argv, "--data-root") }); try { return JSON.stringify(store.queryTraceability(kind, id), null, 2); } finally { store.close(); }
+		const store = new DevelopmentStore(storeOptions); try { return JSON.stringify(store.queryTraceability(kind, id), null, 2); } finally { store.close(); }
 	}
 	if (command === "coverage") {
 		const [kind, id] = argv.slice(1) as ["spec", string];
 		if (kind !== "spec" || !id) throw new Error("coverage requires spec <id>");
-		const store = new DevelopmentStore({ projectRoot, dataRoot: argument(argv, "--data-root") }); try { return JSON.stringify(store.coverageForSpec(id), null, 2); } finally { store.close(); }
+		const store = new DevelopmentStore(storeOptions); try { return JSON.stringify(store.coverageForSpec(id), null, 2); } finally { store.close(); }
 	}
 	if (command === "drift" || command === "orphans") {
-		const store = new DevelopmentStore({ projectRoot, dataRoot: argument(argv, "--data-root") });
+		const store = new DevelopmentStore(storeOptions);
 		try { return JSON.stringify(command === "drift" ? store.traceabilityDrift() : store.traceabilityOrphans(), null, 2); } finally { store.close(); }
 	}
 	const linearSnapshotPath = containedPath(projectRoot, argument(argv, "--linear-snapshot"), "linear-snapshot");
@@ -262,23 +308,23 @@ export async function runTraceability(argv = process.argv.slice(2)): Promise<str
 			throw new Error("VAULT_EXPORT_BYTE_DIGEST_MISMATCH");
 		}
 	}
-	const requiredNoteIds = ledger.entities.filter((entity) => entity.kind === "note").map((entity) => entity.id).sort();
-	const manifestNoteIds = new Set([...seenVaultNotes].filter((id) => id.startsWith("WOO-")));
-	if (requiredNoteIds.some((id) => !manifestNoteIds.has(id))) {
-		throw new Error("VAULT_EXPORT_NOTE_COVERAGE_MISMATCH");
-	}
+	const canonicalDocuments = inspectObsidianVault(actualVaultRoot, { specRoot: argument(argv, "--spec-root"), requiredLinearIds: requiredVaultLinearIds }).snapshot.documents;
+	const coverageErrors = validateVaultExportCoverage(ledger, canonicalDocuments.map(document => document.documentId), seenVaultNotes);
+	if (coverageErrors.length) throw new Error(coverageErrors.join("\n"));
 	const errors = await validateTraceability({
 		projectRoot,
 		ledger,
-		vaultRoot: resolveVaultRoot(projectRoot, ""),
+		vaultRoot: actualVaultRoot,
+		specRoot: argument(argv, "--spec-root"),
+		requiredLinearIds: requiredVaultLinearIds,
 		linearSnapshot: linearSnapshot.issues ?? [],
 	});
 	if (errors.length) throw new Error(errors.join("\n"));
 	const temp = mkdtempSync(join(tmpdir(), "www-traceability-check-"));
 	try {
-		const store = new DevelopmentStore({ projectRoot, dataRoot: temp }); const first = store.rebuildTraceability(); store.close();
+		const store = new DevelopmentStore({ projectRoot, dataRoot: temp, vaultRoot: actualVaultRoot, vaultSpecRoot: argument(argv, "--spec-root"), requiredVaultLinearIds }); const first = store.rebuildTraceability(); store.close();
 		for (const suffix of ["", "-wal", "-shm"]) rmSync(join(temp, "development", `index.sqlite${suffix}`), { force: true });
-		const rebuilt = new DevelopmentStore({ projectRoot, dataRoot: temp }); const second = rebuilt.rebuildTraceability(); rebuilt.close();
+		const rebuilt = new DevelopmentStore({ projectRoot, dataRoot: temp, vaultRoot: actualVaultRoot, vaultSpecRoot: argument(argv, "--spec-root"), requiredVaultLinearIds }); const second = rebuilt.rebuildTraceability(); rebuilt.close();
 		if (first.logicalDigest !== second.logicalDigest || first.rowDigest !== second.rowDigest) throw new Error("SQLite rebuild digest mismatch");
 		return `Traceability OK: ${ledger.entities.length} entities, ${ledger.edges.length} edges, digest ${first.logicalDigest}`;
 	} finally { rmSync(temp, { recursive: true, force: true }); }

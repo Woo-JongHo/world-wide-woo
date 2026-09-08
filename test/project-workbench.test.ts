@@ -216,6 +216,29 @@ async function ready(workbench: ProjectWorkbench): Promise<void> {
 }
 
 describe("ProjectWorkbench", () => {
+ test("does not project ordinary execution items as Todo before a Native Plan is observed", async () => {
+  const native = new FakeNativeHarness();
+  const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
+   projectId: "sample-project",
+   cwd: "/workspace/sample",
+  });
+  await ready(workbench);
+
+  await workbench.dispatch({ type: "chat.send", text: "계획 없이 바로 처리해" });
+  native.emit({
+   type: "notification",
+   method: "item/started",
+   refs: { threadId: "thread-1", turnId: "turn-1", itemId: "tool-1" },
+   params: { item: { type: "commandExecution", command: "pwd" } },
+  });
+  await Bun.sleep(5);
+
+  expect(workbench.snapshot.executionRun?.tasks.length).toBeGreaterThan(0);
+  expect(workbench.snapshot.workFlow.source).toBeNull();
+  expect(workbench.snapshot.todo).toBeNull();
+  await workbench.close();
+ });
+
  test("development recording observes only newly durable activities and failure does not fail Native send", async () => {
   const native = new FakeNativeHarness();
   const journal = new MemoryJournal();

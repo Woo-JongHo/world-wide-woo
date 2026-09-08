@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 3,
+  "kind": "test-contract",
+  "id": "TEST-WORKBENCH-001",
+  "version": 1,
+  "immutable": true,
+  "payload": {
+    "purpose": "command receipt와 Composer 정책",
+    "risk": "uncertain send의 입력 손실 또는 중복 실행",
+    "pass": "receipt 상태에 맞춰 입력과 안내가 유지된다.",
+    "acceptanceIds": [
+      "AC-WORKBENCH-001"
+    ]
+  },
+  "payloadDigest": "827c0a94b4402b4f47235df08632b25d517a0a5151907a9973fc2e05fcbe7a86"
+}

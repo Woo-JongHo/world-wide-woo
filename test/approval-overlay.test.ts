@@ -114,4 +114,22 @@ describe("ApprovalOverlay", () => {
 			expect(lines).toContain(value);
 		}
 	});
+
+	test("renders Linear, Obsidian, and GitHub PR Artifact candidates", () => {
+		const lines = overlay({ params: { externalMutationCandidates: [
+			{ kind: "linear-issue", target: "WOO-901", content: "본문", currentState: "snapshot", scope: "one issue", status: "pending", payload: { candidateDigest: "a".repeat(64) } },
+			{ kind: "obsidian-canonical", target: "RPA/설계.md", content: "canonical bytes", currentState: "digest", scope: "one note", status: "pending", payload: { candidateDigest: "b".repeat(64) } },
+			{ kind: "github-pr", target: "owner/repo#1", content: "PR body", currentState: "head sha", scope: "one PR", status: "pending", payload: { candidateDigest: "c".repeat(64) } },
+		] } }).lines().join("\n");
+		for (const label of ["Linear Issue · pending", "Obsidian 정본 · pending", "GitHub PR · pending"]) expect(lines).toContain(label);
+	});
+
+	test("drops Artifact mutations that are not bound to an exact sha256 Candidate", () => {
+		const lines = overlay({ params: { externalMutationCandidates: [
+				{ kind: "linear-issue", target: "WOO-901", content: "본문", currentState: "snapshot", scope: "one issue", status: "pending", payload: {} },
+				{ kind: "github-pr", target: "owner/repo#1", content: "본문", currentState: "head", scope: "one PR", status: "pending", payload: { candidateDigest: "stale" } },
+		] } }).lines().join("\n");
+		expect(lines).not.toContain("WOO-901");
+		expect(lines).not.toContain("owner/repo#1");
+	});
 });

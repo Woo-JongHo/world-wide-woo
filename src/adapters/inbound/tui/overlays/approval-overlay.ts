@@ -1,6 +1,6 @@
 import { Key, matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi, type Component } from "@earendil-works/pi-tui";
 import type { NativeApprovalRequest } from "../../../../core/domain/execution/native-session";
-import { workbenchApprovalDecisions, workbenchExternalMutationCandidates, type WorkbenchApprovalDecision } from "../../../../core/domain/work/workbench";
+import { workbenchApprovalDecisions, workbenchExternalMutationCandidates, type WorkbenchApprovalDecision, type WorkbenchExternalMutationKind } from "../../../../core/domain/work/workbench";
 import { colors } from "../shell/theme";
 import { approvalDetailLabel, approvalFallback, approvalKindLabel, approvalParamText } from "../chat/workbench-views";
 
@@ -114,6 +114,6 @@ export class ApprovalOverlay implements Component {
 	}
 }
 
-function mutationKindLabel(kind: "commit" | "push" | "issue"): string {
-	return kind === "commit" ? "커밋" : kind === "push" ? "Push" : "GitHub Issue";
+function mutationKindLabel(kind: WorkbenchExternalMutationKind): string {
+	return ({ commit: "커밋", push: "Push", issue: "GitHub Issue", "linear-issue": "Linear Issue", "obsidian-canonical": "Obsidian 정본", "github-pr": "GitHub PR" })[kind];
 }

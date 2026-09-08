@@ -212,7 +212,7 @@ export type WorkbenchListener = (snapshot: WorkbenchSnapshot) => void;
 
 export type WorkbenchApprovalDecision = "accept" | "acceptForSession" | "decline" | "cancel";
 
-export type WorkbenchExternalMutationKind = "commit" | "push" | "issue";
+export type WorkbenchExternalMutationKind = "commit" | "push" | "issue" | "linear-issue" | "obsidian-canonical" | "github-pr";
 
 /**
  * A complete, immutable description of a pending external mutation. The identity is
@@ -243,11 +243,13 @@ export function workbenchExternalMutationCandidates(request: NativeApprovalReque
 		const scope = candidate.scope;
 		const status = candidate.status;
 		const payload = candidate.payload;
-		if ((kind !== "commit" && kind !== "push" && kind !== "issue")
+		if ((kind !== "commit" && kind !== "push" && kind !== "issue" && kind !== "linear-issue" && kind !== "obsidian-canonical" && kind !== "github-pr")
 			|| typeof target !== "string" || typeof content !== "string" || typeof currentState !== "string"
 			|| typeof scope !== "string" || typeof status !== "string"
 			|| !payload || typeof payload !== "object" || Array.isArray(payload)) return [];
 		const exactPayload = immutableMutationPayload(payload as Record<string, unknown>);
+		if ((kind === "linear-issue" || kind === "obsidian-canonical" || kind === "github-pr")
+			&& (typeof exactPayload.candidateDigest !== "string" || !/^[0-9a-f]{64}$/u.test(exactPayload.candidateDigest))) return [];
 		const identity = mutationIdentity({ kind, target, content, currentState, scope, status, payload: exactPayload });
 		return [Object.freeze({ identity: typeof candidate.identity === "string" && candidate.identity === identity ? candidate.identity : identity, kind, target, content, currentState, scope, status, payload: exactPayload })];
 	}));

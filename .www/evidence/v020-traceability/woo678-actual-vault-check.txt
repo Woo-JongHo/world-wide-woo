@@ -1,0 +1,2 @@
+$ bun scripts/traceability.ts receipt-check --linear-snapshot .www/evidence/v020-traceability/linear-final-readback.json --linear-receipt .www/evidence/v020-traceability/linear-mcp-receipt.json --vault-root "/Users/jonghoPro/woo/01_obsidian"
+Fresh external-receipt traceability OK: 10 Units, 17 issues, 17 notes, 110 edges, digest 7948ea2a8c355d38ac18419ad66f63d92e92564713ecb3dee8ae5c65d2702dc5

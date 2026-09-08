@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://woo.local/schemas/artifact-candidate.schema.json",
+  "title": "Woo Artifact Candidate",
+  "type": "object",
+  "required": ["schemaVersion", "candidateId", "kind", "sourceRevision", "intent", "target", "content", "links", "expectedBefore", "validation", "candidateDigest"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "candidateId": { "type": "string", "pattern": "^ARTIFACT-CANDIDATE-[A-Z0-9][A-Z0-9-]*$" },
+    "kind": { "enum": ["linear-issue", "obsidian-canonical", "github-issue", "github-pr"] },
+    "sourceRevision": { "type": "string", "minLength": 1 },
+    "intent": { "type": "string", "minLength": 1 },
+    "target": { "type": "object", "minProperties": 1 },
+    "content": { "type": "object" },
+    "links": { "type": "object", "additionalProperties": { "type": ["string", "null"] } },
+    "expectedBefore": { "type": ["object", "null"] },
+    "validation": { "type": "array", "minItems": 1, "items": { "type": "object", "required": ["id", "status", "evidence"], "properties": { "id": { "type": "string", "minLength": 1 }, "status": { "enum": ["pass", "fail", "not-run"] }, "evidence": { "type": "string", "minLength": 1 } }, "additionalProperties": false } },
+    "candidateDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  },
+  "additionalProperties": false
+}

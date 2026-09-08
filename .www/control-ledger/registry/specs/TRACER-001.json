@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 3,
+  "kind": "spec",
+  "id": "TRACER-001",
+  "version": 1,
+  "immutable": true,
+  "payload": {
+    "title": "세션별 exact activity trace",
+    "linearId": "WOO-681",
+    "codeIds": [
+      "Code-012"
+    ],
+    "acceptances": [
+      {
+        "id": "AC-TRACER-001",
+        "purpose": "exact activity만 선택한다.",
+        "risk": "exact activity만 선택한다. 계약이 깨지면 사용자에게 잘못된 실행 상태가 표시된다.",
+        "pass": "다른 thread 또는 turn의 activity를 대체 선택하지 않는다.",
+        "required": true
+      },
+      {
+        "id": "AC-TRACER-002",
+        "purpose": "잘못된 trace 요청을 fail-closed 처리한다.",
+        "risk": "잘못된 trace 요청을 fail-closed 처리한다. 계약이 깨지면 사용자에게 잘못된 실행 상태가 표시된다.",
+        "pass": "Source를 이동하지 않고 구조화된 실패를 반환한다.",
+        "required": true
+      },
+      {
+        "id": "AC-TRACER-003",
+        "purpose": "Todo 내부 실행을 session timeline과 Tracer.md로 표시한다.",
+        "risk": "Todo 내부 실행을 session timeline과 Tracer.md로 표시한다. 계약이 깨지면 사용자에게 잘못된 실행 상태가 표시된다.",
+        "pass": "도구와 승인 event가 같은 session trace에 시간 순서로 나타난다.",
+        "required": true
+      },
+      {
+        "id": "AC-TRACER-004",
+        "purpose": "Source에서 Todo와 Chat으로 복귀해 context를 보존한다.",
+        "risk": "Source에서 Todo와 Chat으로 복귀해 context를 보존한다. 계약이 깨지면 사용자에게 잘못된 실행 상태가 표시된다.",
+        "pass": "복귀 뒤 draft, focus, selected session이 유지된다.",
+        "required": true
+      }
+    ]
+  },
+  "payloadDigest": "249660db164f0b4620b07c4c93ab75f656772297d83a4af816e562149729e7ce"
+}

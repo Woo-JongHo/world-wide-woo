@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 3,
+  "kind": "test-contract",
+  "id": "TEST-TRACER-002",
+  "version": 1,
+  "immutable": true,
+  "payload": {
+    "purpose": "malformed 및 partial trace fail-closed 처리",
+    "risk": "잘못된 Source 이동",
+    "pass": "구조화된 실패와 기존 context 보존이 확인된다.",
+    "acceptanceIds": [
+      "AC-TRACER-002"
+    ]
+  },
+  "payloadDigest": "79e4a7863a2341baa84b18dd500de775e2dee135d619d76b9341a411e95e3a09"
+}
