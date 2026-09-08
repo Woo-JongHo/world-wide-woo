@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, 
 import { execFileSync } from "node:child_process";
 import { mkdtempSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
-import { dirname, join, relative, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import type { RegistryEnvelope, TraceabilityLedger, TraceabilityRef } from "../src/core/domain/development/development-traceability.js";
 import type { ProjectActivity } from "../src/core/domain/execution/project-activity.js";
 import { createExecutionRun, normalizeProjectActivity, replayExecutionRun, type CompletionReceipt } from "../src/core/runtime/execution-run.js";
@@ -28,7 +28,8 @@ const containedPath = (root: string, value: string | undefined, name: string): s
 	let existing = path;
 	while (!existsSync(existing) && existing !== dirname(existing)) existing = dirname(existing);
 	const canonicalExisting = realpathSync(existing);
-	if (canonicalExisting !== canonicalRoot && !canonicalExisting.startsWith(`${canonicalRoot}/`)) throw new Error(`${name.toUpperCase()}_MUST_BE_CONTAINED`);
+	const boundary = relative(canonicalRoot, canonicalExisting);
+	if (boundary === ".." || boundary.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`) || isAbsolute(boundary)) throw new Error(`${name.toUpperCase()}_MUST_BE_CONTAINED`);
 	return path;
 };
 const record = (value: unknown): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value);

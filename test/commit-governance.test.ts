@@ -74,7 +74,10 @@ describe("staged boundary", () => {
 		execFileSync("git", ["-C", root, "config", "woo.receiptBaseline", result.sha]);
 		writeFileSync(join(root, "bypass.txt"), "bypass\n"); execFileSync("git", ["-C", root, "add", "bypass.txt"]); execFileSync("git", ["-C", root, "-c", "core.hooksPath=/dev/null", "commit", "-m", "bypass"]);
 		const bypass = execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
-		const pushGate = spawnSync(join(root, ".githooks/pre-push"), [], { cwd: root, input: `refs/heads/master ${bypass} refs/heads/master ${result.sha}\n`, encoding: "utf8" });
+		const hook = join(root, ".githooks/pre-push");
+		const pushGate = process.platform === "win32"
+			? spawnSync("sh", [hook], { cwd: root, input: `refs/heads/master ${bypass} refs/heads/master ${result.sha}\n`, encoding: "utf8" })
+			: spawnSync(hook, [], { cwd: root, input: `refs/heads/master ${bypass} refs/heads/master ${result.sha}\n`, encoding: "utf8" });
 		expect(pushGate.status).toBe(2); expect(pushGate.stderr).toContain("Receipt가 없습니다");
 	}, 60_000);
 	test("승인 뒤 후보 파일 내용이 바뀌면 stale로 차단한다", () => {
