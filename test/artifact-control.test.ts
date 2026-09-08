@@ -51,6 +51,24 @@ describe("Artifact Candidate control", () => {
 		for (const heading of ["변경 요약", "사용자 동작", "검증", "연결", "위험과 복구"]) expect(body).toContain(`## ${heading}`);
 	});
 
+	test("Obsidian Candidate의 여러 줄 절과 경로 제목을 Vault 문서로 렌더링한다", () => {
+		const sections = Object.fromEntries([
+			"1. Intent", "2. Scope", "3. Desired Behavior", "4. Domain Contract", "5. State Model",
+			"6. Data & Runtime Flow", "7. Identity & Persistence Contract", "8. Integration Contract",
+			"9. Failure & Recovery Contract", "10. Acceptance Contract", "11. Verification Strategy",
+			"12. Implementation Map", "13. Current State & Gaps", "14. Decisions & Evidence", "Change Log",
+		].map(heading => [heading, `첫 문단\n\n두 번째 문단: ${heading}`]));
+		const candidate = signed({
+			kind: "obsidian-canonical",
+			target: { relativePath: "Login/Gemini — 구독 계정으로 로그인한다.md" },
+			content: { properties: { capability: "Gemini subscription authentication" }, sections },
+		});
+		expect(validateArtifactCandidate(candidate)).toEqual([]);
+		const rendered = renderArtifactCandidate(candidate);
+		expect(rendered).toContain("# Gemini — 구독 계정으로 로그인한다\n");
+		expect(rendered).toContain("## 1. Intent\n\n첫 문단\n\n두 번째 문단");
+	});
+
 	test("신뢰하지 않은 JSON의 null content와 links를 오류로 반환하고 죽지 않는다", () => {
 		const candidate = signed() as unknown as Record<string, unknown>;
 		candidate.content = null;

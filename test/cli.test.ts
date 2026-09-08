@@ -59,7 +59,7 @@ describe("WWW CLI session entry", () => {
 	test("reports the package release version", async () => {
 		const { calls, dependencies } = fakeDependencies();
 		expect(await runCli(["--version"], dependencies)).toBe(0);
-		expect(calls.out).toEqual(["0.0.15"]);
+		expect(calls.out).toEqual(["0.0.16"]);
 		expect(calls.app).toEqual([]);
 	});
 

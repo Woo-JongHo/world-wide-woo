@@ -113,7 +113,7 @@ export async function runAuthCommand(auth: AuthController, args: string[]): Prom
 			? "api_key"
 			: requestedMethod === "oauth"
 				? "oauth"
-				: provider === "openai-codex" || provider === "anthropic"
+				: provider === "openai-codex" || provider === "anthropic" || provider === "google"
 					? "oauth"
 					: "api_key";
 		const status = await auth.login(provider, method, { prompt: answerPrompt, notify });

@@ -45,12 +45,9 @@ export async function runApp(options: RunAppOptions = {}): Promise<void> {
 }
 export function codexInteractiveModel(settings: WwwSettings): string { return settings.provider === "openai-codex" ? settings.model : DEFAULT_SETTINGS.model; }
 export async function runAuth(args: string[]): Promise<void> {
-	const { AuthService } = await import("./adapters/outbound/authentication/auth-service");
-	const { FileCredentialStore } = await import("./adapters/outbound/authentication/credential-store");
-	const { createModelRegistry } = await import("./adapters/outbound/authentication/model-router");
+	const { createProjectAuthController } = await import("./adapters/outbound/authentication/project-auth");
 	const { runAuthCommand } = await import("./adapters/inbound/cli/auth-command");
-	const registry = createModelRegistry(new FileCredentialStore());
-	await runAuthCommand(new AuthService(registry), args);
+	await runAuthCommand(createProjectAuthController(), args);
 }
 /** Legacy SessionRuntime archive only. Native Codex threads are resumed by their opaque id. */
 export async function listSessions(): Promise<Array<{ id: string; updatedAt: string }>> {
