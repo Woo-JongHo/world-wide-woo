@@ -1,0 +1,23 @@
+schemaVersion: 1
+project: World Wide Woo
+commit:
+  messageProfile: korean-result
+  subjectMaxLength: 72
+  subjectSoftLength: 50
+  requireScope: true
+  requireType: true
+  requireHumanAuthorization: true
+  fullFileStagingOnly: true
+  protectedBranches: [dev, main]
+  receiptMigration: grandfather-history-before-installation
+  allowedTypes: [feat, fix, perf, refactor, test, docs, build, ci, chore, revert]
+  scopes:
+    commit: 커밋
+    test: 테스트
+    review: 검토
+    delivery: 전달
+    traceability: 개발 연결
+    chat: 채팅
+    todo: 할 일
+    tracer: 추적
+    authentication: 로그인

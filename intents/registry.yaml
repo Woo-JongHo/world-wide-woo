@@ -1,0 +1,18 @@
+schemaVersion: 1
+intents:
+  commit:
+    phrases: [커밋해, 변경사항 저장해, commit]
+    capabilities: [commit]
+  test:
+    phrases: [테스트해, 검증해]
+    capabilities: [test]
+  pull-request:
+    phrases: [PR 올려, 리뷰 요청해]
+    capabilities: [pr]
+  finish-work:
+    phrases: [마무리해, 배포 준비해]
+    resolveFromState:
+      testsUnknown: [test]
+      committedFalse: [commit]
+      pullRequestMissing: [pr]
+

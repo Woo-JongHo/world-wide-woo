@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://woo.local/schemas/woo-receipt.schema.json",
+  "title": "Woo Skill Receipt",
+  "type": "object",
+  "required": ["schemaVersion", "receiptId", "runId", "skill", "capability", "status", "stage", "actor", "context", "input", "validation", "execution", "result", "evidence", "nextCapabilities", "receiptDigest"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "receiptId": { "type": "string", "format": "uuid" },
+    "runId": { "type": "string", "format": "uuid" },
+    "candidateId": { "type": ["string", "null"] },
+    "skill": { "type": "object", "required": ["name", "version"], "properties": { "name": { "type": "string" }, "version": { "type": "string" } }, "additionalProperties": false },
+    "capability": { "type": "string" },
+    "intentId": { "type": ["string", "null"] },
+    "status": { "enum": ["succeeded", "failed", "blocked", "canceled", "uncertain"] },
+    "stage": { "enum": ["observe", "classify", "validate", "authorize", "execute", "verify"] },
+    "actor": { "type": "object" },
+    "context": { "type": "object" },
+    "input": { "type": "object" },
+    "decision": { "type": ["object", "null"] },
+    "validation": { "type": "array" },
+    "authorization": { "type": ["object", "null"] },
+    "execution": { "type": "object" },
+    "result": { "type": ["object", "null"] },
+    "failure": { "type": ["object", "null"] },
+    "evidence": { "type": "array" },
+    "nextCapabilities": { "type": "array", "items": { "type": "string" } },
+    "receiptDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  },
+  "additionalProperties": false
+}
+

@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+git_dir=$(git rev-parse --git-dir)
+test -f "$git_dir/woo/active.json" || { echo "woo-commit: BLOCKED — bun run commit:control -- execute를 사용하세요." >&2; exit 2; }
+

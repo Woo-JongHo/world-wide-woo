@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://www.gajae.dev/schemas/traceability-v3.schema.json",
+  "title": "WWW traceability v3 ledger",
+  "type": "object",
+  "required": ["schemaVersion", "projectId", "entities", "edges", "tombstones", "migrations", "payloadDigest"],
+  "properties": {
+    "schemaVersion": {"const": 3},
+    "projectId": {"type": "string", "minLength": 1},
+    "payloadDigest": {"type": "string", "pattern": "^[a-fA-F0-9]{64}$"},
+    "tombstones": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "migrations": {"type": "array", "items": {"type": "object", "required": ["from", "to", "reason"], "properties": {"from": {"type": "string"}, "to": {"type": "string"}, "reason": {"type": "string"}}, "additionalProperties": false}},
+    "entities": {"type": "array", "items": {"type": "object", "required": ["ref", "kind", "id"], "properties": {"ref": {"type": "string", "pattern": "^[a-z-]+:.+$"}, "kind": {"enum": ["spec", "acceptance", "test-contract", "test-code", "exception", "decision", "receipt", "evidence", "git-revision", "issue", "unit", "pr", "note", "legacy"]}, "id": {"type": "string", "minLength": 1}, "version": {"type": "integer", "minimum": 1}, "immutable": {"type": "boolean"}, "source": {"type": "object", "required": ["path", "digest"], "properties": {"path": {"type": "string", "pattern": "^(?!/)(?!.*(^|/)\\.\\.?(/|$)).+$"}, "digest": {"type": "string", "pattern": "^[a-fA-F0-9]{64}$"}}, "additionalProperties": false}}, "additionalProperties": false}},
+    "edges": {"type": "array", "items": {"type": "object", "required": ["from", "relation", "to"], "properties": {"from": {"type": "string"}, "to": {"type": "string"}, "relation": {"enum": ["has-acceptance", "tracks", "implemented-by", "verified-by", "executes", "covers", "excepted-by", "decided-by", "produced", "evidenced-by", "at-revision", "supersedes", "recorded-in", "detailed-by", "code-evidenced-by"]}}, "additionalProperties": false}}
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+root=$(git rev-parse --show-toplevel)
+exec bun "$root/scripts/woo-commit.ts" hook pre-commit --root "$root" --candidate "$(python3 -c 'import json,os; p=os.path.join(os.popen("git rev-parse --git-dir").read().strip(),"woo","active.json"); print(json.load(open(p))["candidatePath"])')"
+

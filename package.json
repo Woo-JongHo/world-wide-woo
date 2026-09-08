@@ -15,7 +15,13 @@
 		"traceability:rebuild": "bun scripts/traceability.ts rebuild",
 		"development-map:build": "bun scripts/traceability.ts map:build",
 		"development-map:check": "bun scripts/traceability.ts map:check",
-		"traceability:receipt-check": "bun scripts/traceability.ts receipt-check --linear-snapshot .www/evidence/v020-traceability/linear-consistency-final-normalized.json --linear-receipt .www/evidence/v020-traceability/linear-consistency-final-receipt.json --vault-export-manifest .www/evidence/v020-traceability/obsidian-export-manifest.json --vault-root .www/vault"
+		"units:check": "bun scripts/local-units.ts check",
+		"units:sync": "bun scripts/local-units.ts sync",
+		"commit:control": "bun scripts/woo-commit.ts",
+		"commit:hooks:install": "bun scripts/install-commit-hooks.ts",
+		"commit:agent-hook": "bun scripts/woo-agent-hook.ts",
+		"commit:receipts:rebuild": "bun scripts/woo-receipts.ts rebuild",
+		"traceability:receipt-check": "bun scripts/traceability.ts receipt-check --linear-snapshot .www/evidence/v020-traceability/linear-consistency-final-normalized.json --linear-receipt .www/evidence/v020-traceability/linear-consistency-final-receipt.json --vault-export-manifest .www/evidence/v020-traceability/obsidian-export-manifest.json"
 	},
 	"dependencies": {
 		"@earendil-works/pi-ai": "0.84.4",

@@ -3,9 +3,9 @@ name: woo-commit
 description: 99_www 변경을 의미 단위로 나누고 검증한 뒤, 후보별 사용자 승인에 결박해 로컬 Git commit을 만들 때 사용한다. Push, PR, Merge는 수행하지 않는다.
 ---
 
-# WWW Commit
+# WWW Commit Control Plane
 
-커밋은 배포가 아니라 되돌릴 수 있는 하나의 의미 단위다.
+커밋은 배포가 아니라 되돌릴 수 있는 하나의 의미 단위다. 실제 실행은 `bun run commit:control --` 경계를 통과한다.
 
 ## 메시지
 
@@ -28,17 +28,16 @@ description: 99_www 변경을 의미 단위로 나누고 검증한 뒤, 후보�
 
 ## 절차
 
-1. `pwd`, `git status --short --branch`, staged·unstaged·untracked 경로를 확인한다. 기존 dirty 변경은 사용자 작업으로 보존한다.
+1. `pwd`, `git status --short --branch`, staged·unstaged·untracked 경로를 확인한다. 기존 dirty 변경은 사용자 작업으로 보존한다. 완료: 모든 변경 경로가 후보 또는 명시적 제외에 있다.
 2. 실제 diff를 목적, 공동 rollback, 공동 validation, 하나의 정직한 제목 기준으로 묶는다. 하나라도 다르면 후보를 나눈다. 한 파일에 목적이 섞였으면 부분 stage하지 않고 후보를 보류한다.
 3. 후보에 맞는 가장 좁은 검증을 실행한다. 제품 경계나 release에 가까운 변경이면 `npm run check`와 필요한 테스트를 함께 실행한다. 미실행·실패 검증을 통과한 것으로 쓰지 않는다.
-4. 다음 내용을 후보 하나로 제시하고 사용자 승인을 받는다.
+4. `.woo/project.yaml`과 `schemas/commit-candidate.schema.json`에 맞는 Candidate를 `.www/runtime/commit/`에 만들고 다음 내용을 제시해 사용자 승인을 받는다.
    - 제목과 선택적 본문
    - 포함할 전체 경로
    - 실행한 검증과 결과
    - 제외한 dirty 경로
-5. 승인된 후보의 경로만 `git add -- <paths>`로 stage한다. `git diff --cached --name-only`가 승인 경로와 정확히 같고, 후보 경로에 unstaged hunk가 없는지 다시 확인한다.
-6. 승인된 메시지 그대로 로컬 commit을 만든다. commit object의 제목과 경로를 다시 읽어 후보와 대조한다.
-7. commit SHA, 제목, 포함 경로, 검증 결과, 남은 dirty 변경과 `not pushed`를 보고한다.
+5. `authorize --candidate <path> --actor <name>`으로 승인을 Candidate digest에 결박한다. 승인 뒤 변경되면 새 승인을 받는다.
+6. `execute --candidate <path> --authorization <path>`로만 stage와 commit을 수행한다. Git Hook이 직접 `git commit`과 staged/message 불일치를 차단한다.
+7. 실제 commit object를 재검증하고 공통 Receipt를 남긴다. commit SHA, 제목, 포함 경로, 검증 결과, 남은 dirty 변경과 `not pushed`를 보고한다.
 
-승인은 후보의 메시지·경로에만 적용된다. 승인 뒤 내용이 바뀌면 새 후보로 다시 승인받는다. Push, PR, Merge, amend, force 또는 이력 재작성은 별도 요청 없이 수행하지 않는다.
-
+type과 scope는 Candidate/Receipt에 필수지만 `99_www` 제목은 저장소 정책에 따라 한국어 결과 문장을 사용한다. Agent는 type·scope·분할·subject를 Skill 밖에서 결정하지 않는다. Push, PR, Merge, amend, force 또는 이력 재작성은 별도 capability다.

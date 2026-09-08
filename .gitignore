@@ -14,6 +14,9 @@ coverage/
 .www/cache/
 .www/scratchpad/
 .www/runtime/
+.www/receipts/
+.www/vault/
 .www/todos/
 .www/Todo.md
 .www/.Todo.md.*.tmp
+.woo/units.yaml
