@@ -456,6 +456,8 @@ export class WorkbenchChatView implements Component {
 	private cachedSnapshot: WorkbenchSnapshot | null = null;
 	private cachedWidth = -1;
 	private cachedRows: string[] | null = null;
+	/** `cachedRows`에서 activity indicator가 시작하는 행. 본문은 spinner tick에 다시 투영하지 않는다. */
+	private cachedActivityRowsStart = -1;
 
 	constructor(snapshot: WorkbenchSnapshot) {
 		this.snapshot = snapshot;
@@ -514,6 +516,7 @@ export class WorkbenchChatView implements Component {
 
 	invalidate(): void {
 		this.cachedRows = null;
+		this.cachedActivityRowsStart = -1;
 		for (const markdown of this.markdown.values()) markdown.invalidate();
 		this.draftMarkdown.invalidate();
 	}
@@ -546,13 +549,14 @@ export class WorkbenchChatView implements Component {
 			this.activityIntervalMs = indicator.intervalMs;
 			this.activityTimer = setInterval(() => {
 				this.activityFrame = (this.activityFrame + 1) % Math.max(1, indicator.frames.length * 64);
-				this.cachedRows = null;
+				this.refreshCachedActivityRows();
 				requestRender();
 			}, indicator.intervalMs);
 			this.activityTimer.unref?.();
 		}
 		if (changed) {
 			this.cachedRows = null;
+			this.cachedActivityRowsStart = -1;
 			requestRender();
 		}
 	}
@@ -796,25 +800,41 @@ export class WorkbenchChatView implements Component {
 				...wrapTextWithAnsi(boundedWorkbenchMarkdown(this.snapshot.actionResult.body), contentWidth),
 			], contentWidth, semantic.noticeSurface), "");
 		}
-		if (this.activityIndicator) {
-			const frame = this.activityIndicator.frames[this.activityFrame % Math.max(1, this.activityIndicator.frames.length)] ?? "·";
-			if (contentWidth <= 2) {
-				rows.push(truncateToWidth(`${colors.accent(frame)} ${this.activityIndicator.message}`, contentWidth));
-			} else {
-				const activityRows = wrapTextWithAnsi(this.activityIndicator.message, contentWidth - 2);
-				for (const [index, line] of activityRows.entries()) {
-					rows.push(`${index === 0 ? `${colors.accent(frame)} ` : "  "}${semantic.activity(activityGradientFrame(line, this.activityFrame))}`);
-				}
-			}
-			if (this.activityIndicator.hint) {
-				rows.push(...wrapTextWithAnsi(`  ${this.activityIndicator.hint}`, contentWidth).map((line) => colors.muted(line)));
-			}
-			rows.push("");
-		}
+		this.cachedActivityRowsStart = rows.length;
+		rows.push(...this.activityRows(contentWidth));
 		this.cachedSnapshot = this.snapshot;
 		this.cachedWidth = contentWidth;
 		this.cachedRows = rows;
 		return rows;
+	}
+
+	/** @linear WOO-689 */
+	private activityRows(contentWidth: number): string[] {
+		if (!this.activityIndicator) return [];
+		const rows: string[] = [];
+		const frame = this.activityIndicator.frames[this.activityFrame % Math.max(1, this.activityIndicator.frames.length)] ?? "·";
+		if (contentWidth <= 2) {
+			rows.push(truncateToWidth(`${colors.accent(frame)} ${this.activityIndicator.message}`, contentWidth));
+		} else {
+			const activityRows = wrapTextWithAnsi(this.activityIndicator.message, contentWidth - 2);
+			for (const [index, line] of activityRows.entries()) {
+				rows.push(`${index === 0 ? `${colors.accent(frame)} ` : "  "}${semantic.activity(activityGradientFrame(line, this.activityFrame))}`);
+			}
+		}
+		if (this.activityIndicator.hint) {
+			rows.push(...wrapTextWithAnsi(`  ${this.activityIndicator.hint}`, contentWidth).map((line) => colors.muted(line)));
+		}
+		rows.push("");
+		return rows;
+	}
+
+	/** @linear WOO-689 */
+	private refreshCachedActivityRows(): void {
+		if (!this.cachedRows || this.cachedSnapshot !== this.snapshot || this.cachedWidth < 1 || this.cachedActivityRowsStart < 0) return;
+		this.cachedRows = [
+			...this.cachedRows.slice(0, this.cachedActivityRowsStart),
+			...this.activityRows(this.cachedWidth),
+		];
 	}
 
 	/** @linear WOO-687 */
