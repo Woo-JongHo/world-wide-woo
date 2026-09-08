@@ -1,0 +1,766 @@
+{
+  "capturedAt": "2026-09-08T04:34:07Z",
+  "issues": [
+    {
+      "id": "WOO-847",
+      "uuid": "532024c9-8728-481b-bf4a-77c3bba31aa6",
+      "title": "[RPA] GMBKOREA 4개 업무를 Process·Task·Unit 계약으로 정형화한다",
+      "description": "## 목적\n\nGMBKOREA의 반복 업무를 서로 다른 문서와 코드 관행에 의존하지 않고 같은 개발·운영 계약으로 관리한다.\n\n## 결과\n\nHelixQAC, VectorCast, FTA 원산지, 외화입금이 안정적인 Process·Task·Unit ID와 예외·테스트·메시지 계약으로 연결된다.\n\n## 범위\n\n### 포함\n\n* 네 Process와 현재 rpa-map의 Task·Unit\n* 예외·재실행·외부 쓰기·메일 경계\n* Linear 계층과 안정 RPA ID\n\n### 제외\n\n* 원격 업무 코드 수정\n* 실제 고객 메일 발송\n* TUI Monitor 구현\n\n## 동작\n\n1. chacada의 확인 가능한 원본 revision을 수집한다.\n2. 네 업무를 공통 rpa-map 계약으로 정규화한다.\n3. 각 Process의 Task와 예외·테스트 컬렉션을 검증한다.\n4. 승인된 기록을 Linear에서 같은 ID로 재조회한다.\n\n## 완료 조건\n\n- [ ] 네 Process의 모든 Task·Unit이 안정 ID로 연결된다.\n- [ ] 중요한 예외가 detect·control·recovery와 Test를 가진다.\n- [ ] 네 Process 모두 read-back을 통과한다.\n\n## 연결\n\n* RPA-ID: RPA-GMB",
+      "parentId": null,
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "In Progress",
+      "labels": [],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-847/rpa-gmbkorea-4개-업무를-processtaskunit-계약으로-정형화한다"
+    },
+    {
+      "id": "WOO-848",
+      "uuid": "23342701-61c6-4f55-a36b-42148f321e4d",
+      "title": "01. HelixQAC 품질 분석 업무를 정형화한다",
+      "description": "## 목적\n\nHelixQAC 업무의 현재 자동화 순서와 운영 규칙을 검증 가능한 Process로 고정한다.\n\n## 결과\n\n6개 Task와 그 Unit, 예외·테스트·고객/운영자 메시지가 같은 안정 ID 아래 연결된다.\n\n## 범위\n\n### 포함\n\n* 현재 rpa-map과 확인 가능한 코드·문서 사실\n* Task별 입출력·부작용·재실행 경계\n* Process 수준 예외·테스트 컬렉션\n\n### 제외\n\n* 원격 업무 코드와 실행 환경 변경\n* 실제 업무 실행과 메일 발송\n\n## 동작\n\n1. 수집 revision과 출처를 확인한다.\n2. Task 실행 순서와 Unit 책임을 분리한다.\n3. 실패·부분 성공·재실행·사람 조치를 연결한다.\n4. 정규화 결과를 각 도구에서 같은 ID로 재조회한다.\n\n## 완료 조건\n\n- [ ] 6개 Task와 모든 확인 가능한 Unit이 연결된다.\n- [ ] 외부 쓰기와 메일의 재실행 정책이 명시된다.\n- [ ] 예외·테스트 문서와 미검증 범위를 확인할 수 있다.\n\n## 연결\n\n* RPA-ID: RPA-GMB-HELIX",
+      "parentId": "WOO-847",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-848/01-helixqac-품질-분석-업무를-정형화한다"
+    },
+    {
+      "id": "WOO-849",
+      "uuid": "c6e3cac1-3b57-4b6d-9cc6-55cf467e17be",
+      "title": "02. VectorCast 결과 수집 업무를 정형화한다",
+      "description": "## 목적\n\nVectorCast 업무의 현재 자동화 순서와 운영 규칙을 검증 가능한 Process로 고정한다.\n\n## 결과\n\n3개 Task와 그 Unit, 예외·테스트·고객/운영자 메시지가 같은 안정 ID 아래 연결된다.\n\n## 범위\n\n### 포함\n\n* 현재 rpa-map과 확인 가능한 코드·문서 사실\n* Task별 입출력·부작용·재실행 경계\n* Process 수준 예외·테스트 컬렉션\n\n### 제외\n\n* 원격 업무 코드와 실행 환경 변경\n* 실제 업무 실행과 메일 발송\n\n## 동작\n\n1. 수집 revision과 출처를 확인한다.\n2. Task 실행 순서와 Unit 책임을 분리한다.\n3. 실패·부분 성공·재실행·사람 조치를 연결한다.\n4. 정규화 결과를 각 도구에서 같은 ID로 재조회한다.\n\n## 완료 조건\n\n- [ ] 3개 Task와 모든 확인 가능한 Unit이 연결된다.\n- [ ] 외부 쓰기와 메일의 재실행 정책이 명시된다.\n- [ ] 예외·테스트 문서와 미검증 범위를 확인할 수 있다.\n\n## 연결\n\n* RPA-ID: RPA-GMB-VECTORCAST",
+      "parentId": "WOO-847",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-849/02-vectorcast-결과-수집-업무를-정형화한다"
+    },
+    {
+      "id": "WOO-850",
+      "uuid": "53cfe849-3a82-4002-b72a-c5b18b7007cb",
+      "title": "04. 외화입금 처리 업무를 정형화한다",
+      "description": "## 목적\n\n외화입금 업무의 현재 자동화 순서와 운영 규칙을 검증 가능한 Process로 고정한다.\n\n## 결과\n\n5개 Task와 그 Unit, 예외·테스트·고객/운영자 메시지가 같은 안정 ID 아래 연결된다.\n\n## 범위\n\n### 포함\n\n* 현재 rpa-map과 확인 가능한 코드·문서 사실\n* Task별 입출력·부작용·재실행 경계\n* Process 수준 예외·테스트 컬렉션\n\n### 제외\n\n* 원격 업무 코드와 실행 환경 변경\n* 실제 업무 실행과 메일 발송\n\n## 동작\n\n1. 수집 revision과 출처를 확인한다.\n2. Task 실행 순서와 Unit 책임을 분리한다.\n3. 실패·부분 성공·재실행·사람 조치를 연결한다.\n4. 정규화 결과를 각 도구에서 같은 ID로 재조회한다.\n\n## 완료 조건\n\n- [ ] 5개 Task와 모든 확인 가능한 Unit이 연결된다.\n- [ ] 외부 쓰기와 메일의 재실행 정책이 명시된다.\n- [ ] 예외·테스트 문서와 미검증 범위를 확인할 수 있다.\n\n## 연결\n\n* RPA-ID: RPA-GMB-FX-DEPOSIT",
+      "parentId": "WOO-847",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-850/04-외화입금-처리-업무를-정형화한다"
+    },
+    {
+      "id": "WOO-851",
+      "uuid": "68d7bedd-a473-4eb5-b365-cad1fbc5def6",
+      "title": "03. FTA 원산지 업무를 정형화한다",
+      "description": "## 목적\n\nFTA 원산지 업무의 현재 자동화 순서와 운영 규칙을 검증 가능한 Process로 고정한다.\n\n## 결과\n\n9개 Task와 그 Unit, 예외·테스트·고객/운영자 메시지가 같은 안정 ID 아래 연결된다.\n\n## 범위\n\n### 포함\n\n* 현재 rpa-map과 확인 가능한 코드·문서 사실\n* Task별 입출력·부작용·재실행 경계\n* Process 수준 예외·테스트 컬렉션\n\n### 제외\n\n* 원격 업무 코드와 실행 환경 변경\n* 실제 업무 실행과 메일 발송\n\n## 동작\n\n1. 수집 revision과 출처를 확인한다.\n2. Task 실행 순서와 Unit 책임을 분리한다.\n3. 실패·부분 성공·재실행·사람 조치를 연결한다.\n4. 정규화 결과를 각 도구에서 같은 ID로 재조회한다.\n\n## 완료 조건\n\n- [ ] 9개 Task와 모든 확인 가능한 Unit이 연결된다.\n- [ ] 외부 쓰기와 메일의 재실행 정책이 명시된다.\n- [ ] 예외·테스트 문서와 미검증 범위를 확인할 수 있다.\n\n## 연결\n\n* RPA-ID: RPA-GMB-FTA",
+      "parentId": "WOO-847",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-851/03-fta-원산지-업무를-정형화한다"
+    },
+    {
+      "id": "WOO-852",
+      "uuid": "5d2460ea-d27c-476b-a87f-fe6d1bbc3e96",
+      "title": "04. Secure Coding 분석 결과를 수집한다",
+      "description": "## 목적\n\nSecure Coding 분석 결과를 수집한다 단계를 독립적으로 구현·검증할 수 있는 Task와 Unit 계약으로 고정한다.\n\n## 결과\n\n입력부터 출력까지의 Unit 책임, 부작용, 재실행 조건과 실패 시 다음 조치를 같은 ID로 확인한다.\n\n실측 Unit: `u1.collect`, `u2.excel`\n\n## 범위\n\n### 포함\n\n* 현재 원본에서 확인되는 실행 Unit과 순서\n* 입력·출력·외부 쓰기·승인·재실행 조건\n* 연결된 예외와 테스트 상태\n\n### 제외\n\n* 원격 업무 코드 수정\n* 확인하지 못한 운영 결과의 완료 추정\n\n## 동작\n\n1. 원본 revision에서 이 Task의 Unit을 식별한다.\n2. 안정 ID와 별도 sequence로 실행 순서를 기록한다.\n3. 실패·부분 완료·재실행 시 허용되는 다음 동작을 연결한다.\n\n## 완료 조건\n\n- [ ] 모든 확인 가능한 Unit이 안정 ID와 source ref를 가진다.\n- [ ] 부작용과 재실행 정책이 누락 없이 표시된다.\n- [ ] 예외·테스트 또는 미검증 상태가 연결된다.\n\n## 연결\n\n* RPA-ID: RPA-GMB-HELIX.T04",
+      "parentId": "WOO-848",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-852/04-secure-coding-분석-결과를-수집한다"
+    },
+    {
+      "id": "WOO-853",
+      "uuid": "29eb5124-e841-4600-98aa-3d72339503d8",
+      "title": "02. HelixQAC에 인증한다",
+      "description": "## 목적\n\nHelixQAC에 인증한다 단계를 독립적으로 구현·검증할 수 있는 Task와 Unit 계약으로 고정한다.\n\n## 결과\n\n입력부터 출력까지의 Unit 책임, 부작용, 재실행 조건과 실패 시 다음 조치를 같은 ID로 확인한다.\n\n실측 Unit: `u1.connection`, `u2.login`\n\n## 범위\n\n### 포함\n\n* 현재 원본에서 확인되는 실행 Unit과 순서\n* 입력·출력·외부 쓰기·승인·재실행 조건\n* 연결된 예외와 테스트 상태\n\n### 제외\n\n* 원격 업무 코드 수정\n* 확인하지 못한 운영 결과의 완료 추정\n\n## 동작\n\n1. 원본 revision에서 이 Task의 Unit을 식별한다.\n2. 안정 ID와 별도 sequence로 실행 순서를 기록한다.\n3. 실패·부분 완료·재실행 시 허용되는 다음 동작을 연결한다.\n\n## 완료 조건\n\n- [ ] 모든 확인 가능한 Unit이 안정 ID와 source ref를 가진다.\n- [ ] 부작용과 재실행 정책이 누락 없이 표시된다.\n- [ ] 예외·테스트 또는 미검증 상태가 연결된다.\n\n## 연결\n\n* RPA-ID: RPA-GMB-HELIX.T02",
+      "parentId": "WOO-848",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-853/02-helixqac에-인증한다"
+    },
+    {
+      "id": "WOO-854",
+      "uuid": "e7fc70b7-4562-462c-b375-8cfa9a135282",
+      "title": "01. 실행 환경과 입력을 준비한다",
+      "description": "## 목적\n\n실행 환경과 입력을 준비한다 단계를 독립적으로 구현·검증할 수 있는 Task와 Unit 계약으로 고정한다.\n\n## 결과\n\n입력부터 출력까지의 Unit 책임, 부작용, 재실행 조건과 실패 시 다음 조치를 같은 ID로 확인한다.\n\n실측 Unit: `u1.setup`\n\n## 범위\n\n### 포함\n\n* 현재 원본에서 확인되는 실행 Unit과 순서\n* 입력·출력·외부 쓰기·승인·재실행 조건\n* 연결된 예외와 테스트 상태\n\n### 제외\n\n* 원격 업무 코드 수정\n* 확인하지 못한 운영 결과의 완료 추정\n\n## 동작\n\n1. 원본 revision에서 이 Task의 Unit을 식별한다.\n2. 안정 ID와 별도 sequence로 실행 순서를 기록한다.\n3. 실패·부분 완료·재실행 시 허용되는 다음 동작을 연결한다.\n\n## 완료 조건\n\n- [ ] 모든 확인 가능한 Unit이 안정 ID와 source ref를 가진다.\n- [ ] 부작용과 재실행 정책이 누락 없이 표시된다.\n- [ ] 예외·테스트 또는 미검증 상태가 연결된다.\n\n## 연결\n\n* RPA-ID: RPA-GMB-HELIX.T01",
+      "parentId": "WOO-848",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-854/01-실행-환경과-입력을-준비한다"
+    },
+    {
+      "id": "WOO-855",
+      "uuid": "abd019dd-a1db-4d2d-bbb8-0eedbb797a93",
+      "title": "03. MISRA 분석 결과를 수집한다",
+      "description": "## 목적\n\nMISRA 분석 결과를 수집한다 단계를 독립적으로 구현·검증할 수 있는 Task와 Unit 계약으로 고정한다.\n\n## 결과\n\n입력부터 출력까지의 Unit 책임, 부작용, 재실행 조건과 실패 시 다음 조치를 같은 ID로 확인한다.\n\n실측 Unit: `u1.collect`, `u2.excel`\n\n## 범위\n\n### 포함\n\n* 현재 원본에서 확인되는 실행 Unit과 순서\n* 입력·출력·외부 쓰기·승인·재실행 조건\n* 연결된 예외와 테스트 상태\n\n### 제외\n\n* 원격 업무 코드 수정\n* 확인하지 못한 운영 결과의 완료 추정\n\n## 동작\n\n1. 원본 revision에서 이 Task의 Unit을 식별한다.\n2. 안정 ID와 별도 sequence로 실행 순서를 기록한다.\n3. 실패·부분 완료·재실행 시 허용되는 다음 동작을 연결한다.\n\n## 완료 조건\n\n- [ ] 모든 확인 가능한 Unit이 안정 ID와 source ref를 가진다.\n- [ ] 부작용과 재실행 정책이 누락 없이 표시된다.\n- [ ] 예외·테스트 또는 미검증 상태가 연결된다.\n\n## 연결\n\n* RPA-ID: RPA-GMB-HELIX.T03",
+      "parentId": "WOO-848",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-855/03-misra-분석-결과를-수집한다"
+    },
+    {
+      "id": "WOO-856",
+      "uuid": "96f40f8b-b24f-46df-83b8-63cc08a0aa80",
+      "title": "05. Metric 분석 결과를 수집한다",
+      "description": "## 목적\n\nMetric 분석 결과를 수집한다 단계를 독립적으로 구현·검증할 수 있는 Task와 Unit 계약으로 고정한다.\n\n## 결과\n\n입력부터 출력까지의 Unit 책임, 부작용, 재실행 조건과 실패 시 다음 조치를 같은 ID로 확인한다.\n\n실측 Unit: `u1.parse`, `u2.csv`, `u3.excel`\n\n## 범위\n\n### 포함\n\n* 현재 원본에서 확인되는 실행 Unit과 순서\n* 입력·출력·외부 쓰기·승인·재실행 조건\n* 연결된 예외와 테스트 상태\n\n### 제외\n\n* 원격 업무 코드 수정\n* 확인하지 못한 운영 결과의 완료 추정\n\n## 동작\n\n1. 원본 revision에서 이 Task의 Unit을 식별한다.\n2. 안정 ID와 별도 sequence로 실행 순서를 기록한다.\n3. 실패·부분 완료·재실행 시 허용되는 다음 동작을 연결한다.\n\n## 완료 조건\n\n- [ ] 모든 확인 가능한 Unit이 안정 ID와 source ref를 가진다.\n- [ ] 부작용과 재실행 정책이 누락 없이 표시된다.\n- [ ] 예외·테스트 또는 미검증 상태가 연결된다.\n\n## 연결\n\n* RPA-ID: RPA-GMB-HELIX.T05",
+      "parentId": "WOO-848",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-856/05-metric-분석-결과를-수집한다"
+    },
+    {
+      "id": "WOO-857",
+      "uuid": "56fbfb8c-1121-4b61-bce2-5ce60f9d4d8d",
+      "title": "06. 분석 결과 메일을 생성·발송한다",
+      "description": "## 목적\n\n분석 결과 메일을 생성·발송한다 단계를 독립적으로 구현·검증할 수 있는 Task와 Unit 계약으로 고정한다.\n\n## 결과\n\n입력부터 출력까지의 Unit 책임, 부작용, 재실행 조건과 실패 시 다음 조치를 같은 ID로 확인한다.\n\n실측 Unit: `u1.send`\n\n## 범위\n\n### 포함\n\n* 현재 원본에서 확인되는 실행 Unit과 순서\n* 입력·출력·외부 쓰기·승인·재실행 조건\n* 연결된 예외와 테스트 상태\n\n### 제외\n\n* 원격 업무 코드 수정\n* 확인하지 못한 운영 결과의 완료 추정\n\n## 동작\n\n1. 원본 revision에서 이 Task의 Unit을 식별한다.\n2. 안정 ID와 별도 sequence로 실행 순서를 기록한다.\n3. 실패·부분 완료·재실행 시 허용되는 다음 동작을 연결한다.\n\n## 완료 조건\n\n- [ ] 모든 확인 가능한 Unit이 안정 ID와 source ref를 가진다.\n- [ ] 부작용과 재실행 정책이 누락 없이 표시된다.\n- [ ] 예외·테스트 또는 미검증 상태가 연결된다.\n\n## 연결\n\n* RPA-ID: RPA-GMB-HELIX.T06",
+      "parentId": "WOO-848",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-857/06-분석-결과-메일을-생성발송한다"
+    },
+    {
+      "id": "WOO-858",
+      "uuid": "94502dcb-f2f0-484e-9472-58d48e556b53",
+      "title": "예외 처리",
+      "description": "## 목적\n\nHelixQAC Process의 실패·부분 완료·복구 조건을 한 곳에서 관리한다.\n\n## 결과\n\n중요 예외마다 detect·control·recovery, 사람 조치와 재개 지점을 확인할 수 있다.\n\n## 범위\n\n### 포함\n\n* 업무·외부 시스템·데이터·메일 예외\n* 고객 통지와 운영자 조치의 분리\n\n### 제외\n\n* 실제 운영 실행과 고객 메일 발송\n* 테스트 통과만으로 업무 수락\n\n## 동작\n\n1. 각 Task의 계약에서 적용 대상을 모은다.\n2. 근거가 없는 항목은 unknown 또는 blocked로 유지한다.\n3. 실제 Test와 Evidence가 생기면 안정 ID로 연결한다.\n\n## 완료 조건\n\n- [ ] 모든 중요한 항목에 대상 Task·Unit이 연결된다.\n- [ ] 관측하지 못한 결과가 성공으로 표시되지 않는다.\n- [ ] 고객용 메시지와 운영자 조치가 구분된다.\n\n## 연결\n\n* RPA-ID: RPA-GMB-HELIX",
+      "parentId": "WOO-848",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-858/예외-처리"
+    },
+    {
+      "id": "WOO-859",
+      "uuid": "0d66c0c0-32c3-4111-82e3-ccaecc30c433",
+      "title": "테스트",
+      "description": "## 목적\n\nHelixQAC Process의 정상·경계·실패·재실행 검증 조건을 한 곳에서 관리한다.\n\n## 결과\n\n각 Task·Unit의 정상·경계·실패·재실행 Test와 미검증 범위을 확인할 수 있다.\n\n## 범위\n\n### 포함\n\n* 계약·fixture·실행 환경·운영 검증\n* 고객 통지와 운영자 조치의 분리\n\n### 제외\n\n* 실제 운영 실행과 고객 메일 발송\n* 테스트 통과만으로 업무 수락\n\n## 동작\n\n1. 각 Task의 계약에서 적용 대상을 모은다.\n2. 근거가 없는 항목은 unknown 또는 blocked로 유지한다.\n3. 실제 Test와 Evidence가 생기면 안정 ID로 연결한다.\n\n## 완료 조건\n\n- [ ] 모든 중요한 항목에 대상 Task·Unit이 연결된다.\n- [ ] 관측하지 못한 결과가 성공으로 표시되지 않는다.\n- [ ] 고객용 메시지와 운영자 조치가 구분된다.\n\n## 연결\n\n* RPA-ID: RPA-GMB-HELIX",
+      "parentId": "WOO-848",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-859/테스트"
+    },
+    {
+      "id": "WOO-860",
+      "uuid": "29054269-ae2c-4484-8b87-d9b9565a5d87",
+      "title": "02. 보고용 산출물을 생성한다",
+      "description": "## 목적\n\n보고용 산출물을 생성한다 단계를 독립적으로 구현·검증할 수 있는 Task와 Unit 계약으로 고정한다.\n\n## 결과\n\n입력부터 출력까지의 Unit 책임, 부작용, 재실행 조건과 실패 시 다음 조치를 같은 ID로 확인한다.\n\n실측 Unit: `u1.sheet`, `u2.fill`, `u3.upload`\n\n## 범위\n\n### 포함\n\n* 현재 원본에서 확인되는 실행 Unit과 순서\n* 입력·출력·외부 쓰기·승인·재실행 조건\n* 연결된 예외와 테스트 상태\n\n### 제외\n\n* 원격 업무 코드 수정\n* 확인하지 못한 운영 결과의 완료 추정\n\n## 동작\n\n1. 원본 revision에서 이 Task의 Unit을 식별한다.\n2. 안정 ID와 별도 sequence로 실행 순서를 기록한다.\n3. 실패·부분 완료·재실행 시 허용되는 다음 동작을 연결한다.\n\n## 완료 조건\n\n- [ ] 모든 확인 가능한 Unit이 안정 ID와 source ref를 가진다.\n- [ ] 부작용과 재실행 정책이 누락 없이 표시된다.\n- [ ] 예외·테스트 또는 미검증 상태가 연결된다.\n\n## 연결\n\n* RPA-ID: RPA-GMB-VECTORCAST.T02",
+      "parentId": "WOO-849",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-860/02-보고용-산출물을-생성한다"
+    },
+    {
+      "id": "WOO-861",
+      "uuid": "707d89f0-8f67-411e-9570-48e1faad9b71",
+      "title": "01. VectorCast 결과를 수집한다",
+      "description": "## 목적\n\nVectorCast 결과를 수집한다 단계를 독립적으로 구현·검증할 수 있는 Task와 Unit 계약으로 고정한다.\n\n## 결과\n\n입력부터 출력까지의 Unit 책임, 부작용, 재실행 조건과 실패 시 다음 조치를 같은 ID로 확인한다.\n\n실측 Unit: `u1.sync`, `u2.parse`, `u3.clean`\n\n## 범위\n\n### 포함\n\n* 현재 원본에서 확인되는 실행 Unit과 순서\n* 입력·출력·외부 쓰기·승인·재실행 조건\n* 연결된 예외와 테스트 상태\n\n### 제외\n\n* 원격 업무 코드 수정\n* 확인하지 못한 운영 결과의 완료 추정\n\n## 동작\n\n1. 원본 revision에서 이 Task의 Unit을 식별한다.\n2. 안정 ID와 별도 sequence로 실행 순서를 기록한다.\n3. 실패·부분 완료·재실행 시 허용되는 다음 동작을 연결한다.\n\n## 완료 조건\n\n- [ ] 모든 확인 가능한 Unit이 안정 ID와 source ref를 가진다.\n- [ ] 부작용과 재실행 정책이 누락 없이 표시된다.\n- [ ] 예외·테스트 또는 미검증 상태가 연결된다.\n\n## 연결\n\n* RPA-ID: RPA-GMB-VECTORCAST.T01",
+      "parentId": "WOO-849",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-861/01-vectorcast-결과를-수집한다"
+    },
+    {
+      "id": "WOO-862",
+      "uuid": "4fcff272-f891-489f-9094-a8250de448ce",
+      "title": "예외 처리",
+      "description": "## 목적\n\nVectorCast Process의 실패·부분 완료·복구 조건을 한 곳에서 관리한다.\n\n## 결과\n\n중요 예외마다 detect·control·recovery, 사람 조치와 재개 지점을 확인할 수 있다.\n\n## 범위\n\n### 포함\n\n* 업무·외부 시스템·데이터·메일 예외\n* 고객 통지와 운영자 조치의 분리\n\n### 제외\n\n* 실제 운영 실행과 고객 메일 발송\n* 테스트 통과만으로 업무 수락\n\n## 동작\n\n1. 각 Task의 계약에서 적용 대상을 모은다.\n2. 근거가 없는 항목은 unknown 또는 blocked로 유지한다.\n3. 실제 Test와 Evidence가 생기면 안정 ID로 연결한다.\n\n## 완료 조건\n\n- [ ] 모든 중요한 항목에 대상 Task·Unit이 연결된다.\n- [ ] 관측하지 못한 결과가 성공으로 표시되지 않는다.\n- [ ] 고객용 메시지와 운영자 조치가 구분된다.\n\n## 연결\n\n* RPA-ID: RPA-GMB-VECTORCAST",
+      "parentId": "WOO-849",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-862/예외-처리"
+    },
+    {
+      "id": "WOO-863",
+      "uuid": "eec50a61-0214-45b4-9db8-bfb82988b981",
+      "title": "03. 결과 알림 메일을 생성·발송한다",
+      "description": "## 목적\n\n결과 알림 메일을 생성·발송한다 단계를 독립적으로 구현·검증할 수 있는 Task와 Unit 계약으로 고정한다.\n\n## 결과\n\n입력부터 출력까지의 Unit 책임, 부작용, 재실행 조건과 실패 시 다음 조치를 같은 ID로 확인한다.\n\n실측 Unit: `u1.screenshot`, `u2.mail`\n\n## 범위\n\n### 포함\n\n* 현재 원본에서 확인되는 실행 Unit과 순서\n* 입력·출력·외부 쓰기·승인·재실행 조건\n* 연결된 예외와 테스트 상태\n\n### 제외\n\n* 원격 업무 코드 수정\n* 확인하지 못한 운영 결과의 완료 추정\n\n## 동작\n\n1. 원본 revision에서 이 Task의 Unit을 식별한다.\n2. 안정 ID와 별도 sequence로 실행 순서를 기록한다.\n3. 실패·부분 완료·재실행 시 허용되는 다음 동작을 연결한다.\n\n## 완료 조건\n\n- [ ] 모든 확인 가능한 Unit이 안정 ID와 source ref를 가진다.\n- [ ] 부작용과 재실행 정책이 누락 없이 표시된다.\n- [ ] 예외·테스트 또는 미검증 상태가 연결된다.\n\n## 연결\n\n* RPA-ID: RPA-GMB-VECTORCAST.T03",
+      "parentId": "WOO-849",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-863/03-결과-알림-메일을-생성발송한다"
+    },
+    {
+      "id": "WOO-864",
+      "uuid": "5cd6eb8b-5eba-4826-9df1-61389310871d",
+      "title": "테스트",
+      "description": "## 목적\n\nVectorCast Process의 정상·경계·실패·재실행 검증 조건을 한 곳에서 관리한다.\n\n## 결과\n\n각 Task·Unit의 정상·경계·실패·재실행 Test와 미검증 범위을 확인할 수 있다.\n\n## 범위\n\n### 포함\n\n* 계약·fixture·실행 환경·운영 검증\n* 고객 통지와 운영자 조치의 분리\n\n### 제외\n\n* 실제 운영 실행과 고객 메일 발송\n* 테스트 통과만으로 업무 수락\n\n## 동작\n\n1. 각 Task의 계약에서 적용 대상을 모은다.\n2. 근거가 없는 항목은 unknown 또는 blocked로 유지한다.\n3. 실제 Test와 Evidence가 생기면 안정 ID로 연결한다.\n\n## 완료 조건\n\n- [ ] 모든 중요한 항목에 대상 Task·Unit이 연결된다.\n- [ ] 관측하지 못한 결과가 성공으로 표시되지 않는다.\n- [ ] 고객용 메시지와 운영자 조치가 구분된다.\n\n## 연결\n\n* RPA-ID: RPA-GMB-VECTORCAST",
+      "parentId": "WOO-849",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-864/테스트"
+    },
+    {
+      "id": "WOO-865",
+      "uuid": "8e773392-f046-47df-a0d0-0be8501f9ed0",
+      "title": "03. Invoice 데이터를 추출한다",
+      "description": "## 목적\n\nInvoice 데이터를 추출한다 단계를 독립적으로 구현·검증할 수 있는 Task와 Unit 계약으로 고정한다.\n\n## 결과\n\n입력부터 출력까지의 Unit 책임, 부작용, 재실행 조건과 실패 시 다음 조치를 같은 ID로 확인한다.\n\n실측 Unit: `u1.invoice`, `u2.codemap`\n\n## 범위\n\n### 포함\n\n* 현재 원본에서 확인되는 실행 Unit과 순서\n* 입력·출력·외부 쓰기·승인·재실행 조건\n* 연결된 예외와 테스트 상태\n\n### 제외\n\n* 원격 업무 코드 수정\n* 확인하지 못한 운영 결과의 완료 추정\n\n## 동작\n\n1. 원본 revision에서 이 Task의 Unit을 식별한다.\n2. 안정 ID와 별도 sequence로 실행 순서를 기록한다.\n3. 실패·부분 완료·재실행 시 허용되는 다음 동작을 연결한다.\n\n## 완료 조건\n\n- [ ] 모든 확인 가능한 Unit이 안정 ID와 source ref를 가진다.\n- [ ] 부작용과 재실행 정책이 누락 없이 표시된다.\n- [ ] 예외·테스트 또는 미검증 상태가 연결된다.\n\n## 연결\n\n* RPA-ID: RPA-GMB-FTA.T03",
+      "parentId": "WOO-851",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-865/03-invoice-데이터를-추출한다"
+    },
+    {
+      "id": "WOO-866",
+      "uuid": "4367a7a8-1fe0-4cac-9eb4-fd06ed50fbb5",
+      "title": "01. 실행 설정과 입력을 준비한다",
+      "description": "## 목적\n\n실행 설정과 입력을 준비한다 단계를 독립적으로 구현·검증할 수 있는 Task와 Unit 계약으로 고정한다.\n\n## 결과\n\n입력부터 출력까지의 Unit 책임, 부작용, 재실행 조건과 실패 시 다음 조치를 같은 ID로 확인한다.\n\n실측 Unit: `u1.setup`, `u2.require`, `u3.worklist`\n\n## 범위\n\n### 포함\n\n* 현재 원본에서 확인되는 실행 Unit과 순서\n* 입력·출력·외부 쓰기·승인·재실행 조건\n* 연결된 예외와 테스트 상태\n\n### 제외\n\n* 원격 업무 코드 수정\n* 확인하지 못한 운영 결과의 완료 추정\n\n## 동작\n\n1. 원본 revision에서 이 Task의 Unit을 식별한다.\n2. 안정 ID와 별도 sequence로 실행 순서를 기록한다.\n3. 실패·부분 완료·재실행 시 허용되는 다음 동작을 연결한다.\n\n## 완료 조건\n\n- [ ] 모든 확인 가능한 Unit이 안정 ID와 source ref를 가진다.\n- [ ] 부작용과 재실행 정책이 누락 없이 표시된다.\n- [ ] 예외·테스트 또는 미검증 상태가 연결된다.\n\n## 연결\n\n* RPA-ID: RPA-GMB-FTA.T01",
+      "parentId": "WOO-851",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-866/01-실행-설정과-입력을-준비한다"
+    },
+    {
+      "id": "WOO-867",
+      "uuid": "cc1df3ff-2420-481d-aa20-7798b944992f",
+      "title": "02. 원산지 데이터를 추출한다",
+      "description": "## 목적\n\n원산지 데이터를 추출한다 단계를 독립적으로 구현·검증할 수 있는 Task와 Unit 계약으로 고정한다.\n\n## 결과\n\n입력부터 출력까지의 Unit 책임, 부작용, 재실행 조건과 실패 시 다음 조치를 같은 ID로 확인한다.\n\n실측 Unit: `u1.co`\n\n## 범위\n\n### 포함\n\n* 현재 원본에서 확인되는 실행 Unit과 순서\n* 입력·출력·외부 쓰기·승인·재실행 조건\n* 연결된 예외와 테스트 상태\n\n### 제외\n\n* 원격 업무 코드 수정\n* 확인하지 못한 운영 결과의 완료 추정\n\n## 동작\n\n1. 원본 revision에서 이 Task의 Unit을 식별한다.\n2. 안정 ID와 별도 sequence로 실행 순서를 기록한다.\n3. 실패·부분 완료·재실행 시 허용되는 다음 동작을 연결한다.\n\n## 완료 조건\n\n- [ ] 모든 확인 가능한 Unit이 안정 ID와 source ref를 가진다.\n- [ ] 부작용과 재실행 정책이 누락 없이 표시된다.\n- [ ] 예외·테스트 또는 미검증 상태가 연결된다.\n\n## 연결\n\n* RPA-ID: RPA-GMB-FTA.T02",
+      "parentId": "WOO-851",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-867/02-원산지-데이터를-추출한다"
+    },
+    {
+      "id": "WOO-868",
+      "uuid": "7386474c-aba8-4fae-8e6e-bdc1631ecd96",
+      "title": "04. B/L 데이터를 추출한다",
+      "description": "## 목적\n\nB/L 데이터를 추출한다 단계를 독립적으로 구현·검증할 수 있는 Task와 Unit 계약으로 고정한다.\n\n## 결과\n\n입력부터 출력까지의 Unit 책임, 부작용, 재실행 조건과 실패 시 다음 조치를 같은 ID로 확인한다.\n\n실측 Unit: `u1.bl`\n\n## 범위\n\n### 포함\n\n* 현재 원본에서 확인되는 실행 Unit과 순서\n* 입력·출력·외부 쓰기·승인·재실행 조건\n* 연결된 예외와 테스트 상태\n\n### 제외\n\n* 원격 업무 코드 수정\n* 확인하지 못한 운영 결과의 완료 추정\n\n## 동작\n\n1. 원본 revision에서 이 Task의 Unit을 식별한다.\n2. 안정 ID와 별도 sequence로 실행 순서를 기록한다.\n3. 실패·부분 완료·재실행 시 허용되는 다음 동작을 연결한다.\n\n## 완료 조건\n\n- [ ] 모든 확인 가능한 Unit이 안정 ID와 source ref를 가진다.\n- [ ] 부작용과 재실행 정책이 누락 없이 표시된다.\n- [ ] 예외·테스트 또는 미검증 상태가 연결된다.\n\n## 연결\n\n* RPA-ID: RPA-GMB-FTA.T04",
+      "parentId": "WOO-851",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-868/04-bl-데이터를-추출한다"
+    },
+    {
+      "id": "WOO-869",
+      "uuid": "5b28b93d-0c97-4748-9dea-184c4881a642",
+      "title": "05. UNI-PASS에 로그인한다",
+      "description": "## 목적\n\nUNI-PASS에 로그인한다 단계를 독립적으로 구현·검증할 수 있는 Task와 Unit 계약으로 고정한다.\n\n## 결과\n\n입력부터 출력까지의 Unit 책임, 부작용, 재실행 조건과 실패 시 다음 조치를 같은 ID로 확인한다.\n\n실측 Unit: `u1.open`, `u2.login`, `u3.cert`, `u4.fta`\n\n## 범위\n\n### 포함\n\n* 현재 원본에서 확인되는 실행 Unit과 순서\n* 입력·출력·외부 쓰기·승인·재실행 조건\n* 연결된 예외와 테스트 상태\n\n### 제외\n\n* 원격 업무 코드 수정\n* 확인하지 못한 운영 결과의 완료 추정\n\n## 동작\n\n1. 원본 revision에서 이 Task의 Unit을 식별한다.\n2. 안정 ID와 별도 sequence로 실행 순서를 기록한다.\n3. 실패·부분 완료·재실행 시 허용되는 다음 동작을 연결한다.\n\n## 완료 조건\n\n- [ ] 모든 확인 가능한 Unit이 안정 ID와 source ref를 가진다.\n- [ ] 부작용과 재실행 정책이 누락 없이 표시된다.\n- [ ] 예외·테스트 또는 미검증 상태가 연결된다.\n\n## 연결\n\n* RPA-ID: RPA-GMB-FTA.T05",
+      "parentId": "WOO-851",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-869/05-uni-pass에-로그인한다"
+    },
+    {
+      "id": "WOO-870",
+      "uuid": "6824af1d-1b66-481f-888f-4a494693a91d",
+      "title": "06. UNI-PASS 개요 정보를 조회한다",
+      "description": "## 목적\n\nUNI-PASS 개요 정보를 조회한다 단계를 독립적으로 구현·검증할 수 있는 Task와 Unit 계약으로 고정한다.\n\n## 결과\n\n입력부터 출력까지의 Unit 책임, 부작용, 재실행 조건과 실패 시 다음 조치를 같은 ID로 확인한다.\n\n실측 Unit: `u1.seqno`, `u2.customs`, `u3.applicant`, `u4.agreement`, `u5.save`\n\n## 범위\n\n### 포함\n\n* 현재 원본에서 확인되는 실행 Unit과 순서\n* 입력·출력·외부 쓰기·승인·재실행 조건\n* 연결된 예외와 테스트 상태\n\n### 제외\n\n* 원격 업무 코드 수정\n* 확인하지 못한 운영 결과의 완료 추정\n\n## 동작\n\n1. 원본 revision에서 이 Task의 Unit을 식별한다.\n2. 안정 ID와 별도 sequence로 실행 순서를 기록한다.\n3. 실패·부분 완료·재실행 시 허용되는 다음 동작을 연결한다.\n\n## 완료 조건\n\n- [ ] 모든 확인 가능한 Unit이 안정 ID와 source ref를 가진다.\n- [ ] 부작용과 재실행 정책이 누락 없이 표시된다.\n- [ ] 예외·테스트 또는 미검증 상태가 연결된다.\n\n## 연결\n\n* RPA-ID: RPA-GMB-FTA.T06",
+      "parentId": "WOO-851",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-870/06-uni-pass-개요-정보를-조회한다"
+    },
+    {
+      "id": "WOO-871",
+      "uuid": "09a16729-f6a3-474b-9fa3-c41a492534c4",
+      "title": "07. UNI-PASS 공통 정보를 처리한다",
+      "description": "## 목적\n\nUNI-PASS 공통 정보를 처리한다 단계를 독립적으로 구현·검증할 수 있는 Task와 Unit 계약으로 고정한다.\n\n## 결과\n\n입력부터 출력까지의 Unit 책임, 부작용, 재실행 조건과 실패 시 다음 조치를 같은 ID로 확인한다.\n\n실측 Unit: `u1.tab`, `u2.exporter`, `u3.manufacturer`, `u4.importer`, `u5.cert_no`, `u6.export_decl`, `u7.transport`, `u8.invoice_no`, `u9.signature`, `u10.attachment`, `u11.save`\n\n## 범위\n\n### 포함\n\n* 현재 원본에서 확인되는 실행 Unit과 순서\n* 입력·출력·외부 쓰기·승인·재실행 조건\n* 연결된 예외와 테스트 상태\n\n### 제외\n\n* 원격 업무 코드 수정\n* 확인하지 못한 운영 결과의 완료 추정\n\n## 동작\n\n1. 원본 revision에서 이 Task의 Unit을 식별한다.\n2. 안정 ID와 별도 sequence로 실행 순서를 기록한다.\n3. 실패·부분 완료·재실행 시 허용되는 다음 동작을 연결한다.\n\n## 완료 조건\n\n- [ ] 모든 확인 가능한 Unit이 안정 ID와 source ref를 가진다.\n- [ ] 부작용과 재실행 정책이 누락 없이 표시된다.\n- [ ] 예외·테스트 또는 미검증 상태가 연결된다.\n\n## 연결\n\n* RPA-ID: RPA-GMB-FTA.T07",
+      "parentId": "WOO-851",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-871/07-uni-pass-공통-정보를-처리한다"
+    },
+    {
+      "id": "WOO-872",
+      "uuid": "49e8df5e-9410-41d8-8822-ffaf7482eb5a",
+      "title": "08. UNI-PASS 품목 정보를 처리한다",
+      "description": "## 목적\n\nUNI-PASS 품목 정보를 처리한다 단계를 독립적으로 구현·검증할 수 있는 Task와 Unit 계약으로 고정한다.\n\n## 결과\n\n입력부터 출력까지의 Unit 책임, 부작용, 재실행 조건과 실패 시 다음 조치를 같은 ID로 확인한다.\n\n실측 Unit: `u1.codes`, `u2.origin`, `u3.pdf`, `u4.weight`, `u5.calc`, `u6.tab`, `u7.load`, `u8.items`, `u9.save`\n\n## 범위\n\n### 포함\n\n* 현재 원본에서 확인되는 실행 Unit과 순서\n* 입력·출력·외부 쓰기·승인·재실행 조건\n* 연결된 예외와 테스트 상태\n\n### 제외\n\n* 원격 업무 코드 수정\n* 확인하지 못한 운영 결과의 완료 추정\n\n## 동작\n\n1. 원본 revision에서 이 Task의 Unit을 식별한다.\n2. 안정 ID와 별도 sequence로 실행 순서를 기록한다.\n3. 실패·부분 완료·재실행 시 허용되는 다음 동작을 연결한다.\n\n## 완료 조건\n\n- [ ] 모든 확인 가능한 Unit이 안정 ID와 source ref를 가진다.\n- [ ] 부작용과 재실행 정책이 누락 없이 표시된다.\n- [ ] 예외·테스트 또는 미검증 상태가 연결된다.\n\n## 연결\n\n* RPA-ID: RPA-GMB-FTA.T08",
+      "parentId": "WOO-851",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-872/08-uni-pass-품목-정보를-처리한다"
+    },
+    {
+      "id": "WOO-873",
+      "uuid": "b198469b-ff5a-4366-ab59-19f07dafbc2a",
+      "title": "09. FTA 결과 메일을 생성·발송한다",
+      "description": "## 목적\n\nFTA 결과 메일을 생성·발송한다 단계를 독립적으로 구현·검증할 수 있는 Task와 Unit 계약으로 고정한다.\n\n## 결과\n\n입력부터 출력까지의 Unit 책임, 부작용, 재실행 조건과 실패 시 다음 조치를 같은 ID로 확인한다.\n\n실측 Unit: `u1.notify`\n\n## 범위\n\n### 포함\n\n* 현재 원본에서 확인되는 실행 Unit과 순서\n* 입력·출력·외부 쓰기·승인·재실행 조건\n* 연결된 예외와 테스트 상태\n\n### 제외\n\n* 원격 업무 코드 수정\n* 확인하지 못한 운영 결과의 완료 추정\n\n## 동작\n\n1. 원본 revision에서 이 Task의 Unit을 식별한다.\n2. 안정 ID와 별도 sequence로 실행 순서를 기록한다.\n3. 실패·부분 완료·재실행 시 허용되는 다음 동작을 연결한다.\n\n## 완료 조건\n\n- [ ] 모든 확인 가능한 Unit이 안정 ID와 source ref를 가진다.\n- [ ] 부작용과 재실행 정책이 누락 없이 표시된다.\n- [ ] 예외·테스트 또는 미검증 상태가 연결된다.\n\n## 연결\n\n* RPA-ID: RPA-GMB-FTA.T09",
+      "parentId": "WOO-851",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-873/09-fta-결과-메일을-생성발송한다"
+    },
+    {
+      "id": "WOO-874",
+      "uuid": "0585e8e6-6de6-41ce-bf43-dd7aef0ce463",
+      "title": "예외 처리",
+      "description": "## 목적\n\nFTA 원산지 Process의 실패·부분 완료·복구 조건을 한 곳에서 관리한다.\n\n## 결과\n\n중요 예외마다 detect·control·recovery, 사람 조치와 재개 지점을 확인할 수 있다.\n\n## 범위\n\n### 포함\n\n* 업무·외부 시스템·데이터·메일 예외\n* 고객 통지와 운영자 조치의 분리\n\n### 제외\n\n* 실제 운영 실행과 고객 메일 발송\n* 테스트 통과만으로 업무 수락\n\n## 동작\n\n1. 각 Task의 계약에서 적용 대상을 모은다.\n2. 근거가 없는 항목은 unknown 또는 blocked로 유지한다.\n3. 실제 Test와 Evidence가 생기면 안정 ID로 연결한다.\n\n## 완료 조건\n\n- [ ] 모든 중요한 항목에 대상 Task·Unit이 연결된다.\n- [ ] 관측하지 못한 결과가 성공으로 표시되지 않는다.\n- [ ] 고객용 메시지와 운영자 조치가 구분된다.\n\n## 연결\n\n* RPA-ID: RPA-GMB-FTA",
+      "parentId": "WOO-851",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-874/예외-처리"
+    },
+    {
+      "id": "WOO-875",
+      "uuid": "caeb6f16-7513-483b-9865-d6265b11b40b",
+      "title": "테스트",
+      "description": "## 목적\n\nFTA 원산지 Process의 정상·경계·실패·재실행 검증 조건을 한 곳에서 관리한다.\n\n## 결과\n\n각 Task·Unit의 정상·경계·실패·재실행 Test와 미검증 범위을 확인할 수 있다.\n\n## 범위\n\n### 포함\n\n* 계약·fixture·실행 환경·운영 검증\n* 고객 통지와 운영자 조치의 분리\n\n### 제외\n\n* 실제 운영 실행과 고객 메일 발송\n* 테스트 통과만으로 업무 수락\n\n## 동작\n\n1. 각 Task의 계약에서 적용 대상을 모은다.\n2. 근거가 없는 항목은 unknown 또는 blocked로 유지한다.\n3. 실제 Test와 Evidence가 생기면 안정 ID로 연결한다.\n\n## 완료 조건\n\n- [ ] 모든 중요한 항목에 대상 Task·Unit이 연결된다.\n- [ ] 관측하지 못한 결과가 성공으로 표시되지 않는다.\n- [ ] 고객용 메시지와 운영자 조치가 구분된다.\n\n## 연결\n\n* RPA-ID: RPA-GMB-FTA",
+      "parentId": "WOO-851",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-875/테스트"
+    },
+    {
+      "id": "WOO-876",
+      "uuid": "ca1e79b5-6a3a-4ad5-8e71-9d0b8ba65af5",
+      "title": "02. 외화입금 거래를 갱신한다",
+      "description": "## 목적\n\n외화입금 거래를 갱신한다 단계를 독립적으로 구현·검증할 수 있는 Task와 Unit 계약으로 고정한다.\n\n## 결과\n\n입력부터 출력까지의 Unit 책임, 부작용, 재실행 조건과 실패 시 다음 조치를 같은 ID로 확인한다.\n\n실측 Unit: `u1.total_scan`, `u2.source_load`, `u3.compare`, `u4.apply`, `u5.summary`\n\n## 범위\n\n### 포함\n\n* 현재 원본에서 확인되는 실행 Unit과 순서\n* 입력·출력·외부 쓰기·승인·재실행 조건\n* 연결된 예외와 테스트 상태\n\n### 제외\n\n* 원격 업무 코드 수정\n* 확인하지 못한 운영 결과의 완료 추정\n\n## 동작\n\n1. 원본 revision에서 이 Task의 Unit을 식별한다.\n2. 안정 ID와 별도 sequence로 실행 순서를 기록한다.\n3. 실패·부분 완료·재실행 시 허용되는 다음 동작을 연결한다.\n\n## 완료 조건\n\n- [ ] 모든 확인 가능한 Unit이 안정 ID와 source ref를 가진다.\n- [ ] 부작용과 재실행 정책이 누락 없이 표시된다.\n- [ ] 예외·테스트 또는 미검증 상태가 연결된다.\n\n## 연결\n\n* RPA-ID: RPA-GMB-FX-DEPOSIT.T02",
+      "parentId": "WOO-850",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-876/02-외화입금-거래를-갱신한다"
+    },
+    {
+      "id": "WOO-877",
+      "uuid": "1241ffcb-67a9-4130-8b89-c4ac2f44866c",
+      "title": "01. 실행 환경과 입력을 준비한다",
+      "description": "## 목적\n\n실행 환경과 입력을 준비한다 단계를 독립적으로 구현·검증할 수 있는 Task와 Unit 계약으로 고정한다.\n\n## 결과\n\n입력부터 출력까지의 Unit 책임, 부작용, 재실행 조건과 실패 시 다음 조치를 같은 ID로 확인한다.\n\n실측 Unit: `u1.setup`\n\n## 범위\n\n### 포함\n\n* 현재 원본에서 확인되는 실행 Unit과 순서\n* 입력·출력·외부 쓰기·승인·재실행 조건\n* 연결된 예외와 테스트 상태\n\n### 제외\n\n* 원격 업무 코드 수정\n* 확인하지 못한 운영 결과의 완료 추정\n\n## 동작\n\n1. 원본 revision에서 이 Task의 Unit을 식별한다.\n2. 안정 ID와 별도 sequence로 실행 순서를 기록한다.\n3. 실패·부분 완료·재실행 시 허용되는 다음 동작을 연결한다.\n\n## 완료 조건\n\n- [ ] 모든 확인 가능한 Unit이 안정 ID와 source ref를 가진다.\n- [ ] 부작용과 재실행 정책이 누락 없이 표시된다.\n- [ ] 예외·테스트 또는 미검증 상태가 연결된다.\n\n## 연결\n\n* RPA-ID: RPA-GMB-FX-DEPOSIT.T01",
+      "parentId": "WOO-850",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-877/01-실행-환경과-입력을-준비한다"
+    },
+    {
+      "id": "WOO-878",
+      "uuid": "c8365e4a-3521-4ddd-9958-cbdc355b6f2b",
+      "title": "03. 그룹웨어 수신 메일을 처리한다",
+      "description": "## 목적\n\n그룹웨어 수신 메일을 처리한다 단계를 독립적으로 구현·검증할 수 있는 Task와 Unit 계약으로 고정한다.\n\n## 결과\n\n입력부터 출력까지의 Unit 책임, 부작용, 재실행 조건과 실패 시 다음 조치를 같은 ID로 확인한다.\n\n실측 Unit: `u1.mail_session`, `u2.mail_search`, `u3.mail_loop`, `u4.mail_revert`, `u5.mail_summary`, `u6.self_mail`\n\n## 범위\n\n### 포함\n\n* 현재 원본에서 확인되는 실행 Unit과 순서\n* 입력·출력·외부 쓰기·승인·재실행 조건\n* 연결된 예외와 테스트 상태\n\n### 제외\n\n* 원격 업무 코드 수정\n* 확인하지 못한 운영 결과의 완료 추정\n\n## 동작\n\n1. 원본 revision에서 이 Task의 Unit을 식별한다.\n2. 안정 ID와 별도 sequence로 실행 순서를 기록한다.\n3. 실패·부분 완료·재실행 시 허용되는 다음 동작을 연결한다.\n\n## 완료 조건\n\n- [ ] 모든 확인 가능한 Unit이 안정 ID와 source ref를 가진다.\n- [ ] 부작용과 재실행 정책이 누락 없이 표시된다.\n- [ ] 예외·테스트 또는 미검증 상태가 연결된다.\n\n## 연결\n\n* RPA-ID: RPA-GMB-FX-DEPOSIT.T03",
+      "parentId": "WOO-850",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-878/03-그룹웨어-수신-메일을-처리한다"
+    },
+    {
+      "id": "WOO-879",
+      "uuid": "4f44e7ed-b38b-4e99-99f9-89395f32c214",
+      "title": "04. 처리 결과 보고서를 생성한다",
+      "description": "## 목적\n\n처리 결과 보고서를 생성한다 단계를 독립적으로 구현·검증할 수 있는 Task와 Unit 계약으로 고정한다.\n\n## 결과\n\n입력부터 출력까지의 Unit 책임, 부작용, 재실행 조건과 실패 시 다음 조치를 같은 ID로 확인한다.\n\n실측 Unit: `u1.report_build`\n\n## 범위\n\n### 포함\n\n* 현재 원본에서 확인되는 실행 Unit과 순서\n* 입력·출력·외부 쓰기·승인·재실행 조건\n* 연결된 예외와 테스트 상태\n\n### 제외\n\n* 원격 업무 코드 수정\n* 확인하지 못한 운영 결과의 완료 추정\n\n## 동작\n\n1. 원본 revision에서 이 Task의 Unit을 식별한다.\n2. 안정 ID와 별도 sequence로 실행 순서를 기록한다.\n3. 실패·부분 완료·재실행 시 허용되는 다음 동작을 연결한다.\n\n## 완료 조건\n\n- [ ] 모든 확인 가능한 Unit이 안정 ID와 source ref를 가진다.\n- [ ] 부작용과 재실행 정책이 누락 없이 표시된다.\n- [ ] 예외·테스트 또는 미검증 상태가 연결된다.\n\n## 연결\n\n* RPA-ID: RPA-GMB-FX-DEPOSIT.T04",
+      "parentId": "WOO-850",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-879/04-처리-결과-보고서를-생성한다"
+    },
+    {
+      "id": "WOO-880",
+      "uuid": "6556a765-898c-4de4-88fc-74b1634d9a70",
+      "title": "05. 운영 결과 메일을 생성·발송한다",
+      "description": "## 목적\n\n운영 결과 메일을 생성·발송한다 단계를 독립적으로 구현·검증할 수 있는 Task와 Unit 계약으로 고정한다.\n\n## 결과\n\n입력부터 출력까지의 Unit 책임, 부작용, 재실행 조건과 실패 시 다음 조치를 같은 ID로 확인한다.\n\n실측 Unit: `u1.report_send`\n\n## 범위\n\n### 포함\n\n* 현재 원본에서 확인되는 실행 Unit과 순서\n* 입력·출력·외부 쓰기·승인·재실행 조건\n* 연결된 예외와 테스트 상태\n\n### 제외\n\n* 원격 업무 코드 수정\n* 확인하지 못한 운영 결과의 완료 추정\n\n## 동작\n\n1. 원본 revision에서 이 Task의 Unit을 식별한다.\n2. 안정 ID와 별도 sequence로 실행 순서를 기록한다.\n3. 실패·부분 완료·재실행 시 허용되는 다음 동작을 연결한다.\n\n## 완료 조건\n\n- [ ] 모든 확인 가능한 Unit이 안정 ID와 source ref를 가진다.\n- [ ] 부작용과 재실행 정책이 누락 없이 표시된다.\n- [ ] 예외·테스트 또는 미검증 상태가 연결된다.\n\n## 연결\n\n* RPA-ID: RPA-GMB-FX-DEPOSIT.T05",
+      "parentId": "WOO-850",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-880/05-운영-결과-메일을-생성발송한다"
+    },
+    {
+      "id": "WOO-881",
+      "uuid": "684860a7-bf85-417f-82aa-5410a9bebcb0",
+      "title": "예외 처리",
+      "description": "## 목적\n\n외화입금 Process의 실패·부분 완료·복구 조건을 한 곳에서 관리한다.\n\n## 결과\n\n중요 예외마다 detect·control·recovery, 사람 조치와 재개 지점을 확인할 수 있다.\n\n## 범위\n\n### 포함\n\n* 업무·외부 시스템·데이터·메일 예외\n* 고객 통지와 운영자 조치의 분리\n\n### 제외\n\n* 실제 운영 실행과 고객 메일 발송\n* 테스트 통과만으로 업무 수락\n\n## 동작\n\n1. 각 Task의 계약에서 적용 대상을 모은다.\n2. 근거가 없는 항목은 unknown 또는 blocked로 유지한다.\n3. 실제 Test와 Evidence가 생기면 안정 ID로 연결한다.\n\n## 완료 조건\n\n- [ ] 모든 중요한 항목에 대상 Task·Unit이 연결된다.\n- [ ] 관측하지 못한 결과가 성공으로 표시되지 않는다.\n- [ ] 고객용 메시지와 운영자 조치가 구분된다.\n\n## 연결\n\n* RPA-ID: RPA-GMB-FX-DEPOSIT",
+      "parentId": "WOO-850",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-881/예외-처리"
+    },
+    {
+      "id": "WOO-882",
+      "uuid": "9bcf223a-a299-49ff-85a3-935d1296f94b",
+      "title": "테스트",
+      "description": "## 목적\n\n외화입금 Process의 정상·경계·실패·재실행 검증 조건을 한 곳에서 관리한다.\n\n## 결과\n\n각 Task·Unit의 정상·경계·실패·재실행 Test와 미검증 범위을 확인할 수 있다.\n\n## 범위\n\n### 포함\n\n* 계약·fixture·실행 환경·운영 검증\n* 고객 통지와 운영자 조치의 분리\n\n### 제외\n\n* 실제 운영 실행과 고객 메일 발송\n* 테스트 통과만으로 업무 수락\n\n## 동작\n\n1. 각 Task의 계약에서 적용 대상을 모은다.\n2. 근거가 없는 항목은 unknown 또는 blocked로 유지한다.\n3. 실제 Test와 Evidence가 생기면 안정 ID로 연결한다.\n\n## 완료 조건\n\n- [ ] 모든 중요한 항목에 대상 Task·Unit이 연결된다.\n- [ ] 관측하지 못한 결과가 성공으로 표시되지 않는다.\n- [ ] 고객용 메시지와 운영자 조치가 구분된다.\n\n## 연결\n\n* RPA-ID: RPA-GMB-FX-DEPOSIT",
+      "parentId": "WOO-850",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-882/테스트"
+    },
+    {
+      "id": "WOO-749",
+      "uuid": "f153175d-a562-4742-b525-c37e5a41a1aa",
+      "title": "04. Linear·Code·SQLite·Obsidian 연결을 운영한다",
+      "description": "## 목적\n\n요구·코드·상세 기록·검증 근거를 같은 개발 업무로 다시 찾는다.\n\n## 결과\n\nLinear의 얇은 작업 설명에서 Code Unit과 Obsidian 상세 기록으로 이동하고, SQLite 조회 인덱스를 복구할 수 있다.\n\n## 완료 조건\n\n- [ ] 기존 <issue id=\"d61f3719-f59d-4f8d-aa57-8889e3d224b0\" href=\"https://linear.app/woo-world/issue/WOO-695/기능-unit과-linear-작업을-코드에-연결한다\">WOO-695</issue>~699가 이 책임 아래 연결된다.\n- [ ] ID·원장·실제 선언·Vault bytes가 함께 검증된다.\n- [ ] SQLite 삭제 뒤에도 정본에서 같은 관계를 재구축한다.",
+      "parentId": "WOO-746",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "In Progress",
+      "labels": [
+        "Integration",
+        "System",
+        "Reliability"
+      ],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-749/04-linearcodesqliteobsidian-연결을-운영한다"
+    },
+    {
+      "id": "WOO-746",
+      "uuid": "e34ed270-3dd3-4385-a9b9-77863d4c1f0f",
+      "title": "[Environment] TUI 개발용 스킬·에이전트·개발 환경을 구축한다",
+      "description": "## 목적\n\nTUI 기능을 개발할 때마다 도구·사람·세션에 따라 절차와 연결 방식이 달라지는 문제를 줄인다.\n\n## 결과\n\n스킬, 에이전트 역할, 개발 추적, 브랜치 흐름이 하나의 개발 환경으로 작동한다.\n\n## 범위\n\n### 포함\n\n* TUI 개발 스킬과 템플릿\n* 에이전트 역할·모델·권한 경계\n* 기능 브랜치 → dev → main 릴리즈 흐름\n* Linear·Code·SQLite·Obsidian 연결\n* 운영 예외와 검증\n\n### 제외\n\n* v0.1.0 TUI 기능 자체의 제품 수락\n* main 릴리즈의 자동 실행\n* 외부 원본의 SQLite 복제\n\n## 완료 조건\n\n- [ ] 하위 01~04, 예외 처리, 테스트가 각각 한 책임으로 연결된다.\n- [ ] 새 TUI 작업이 같은 개발 흐름으로 시작되고 검증된다.\n- [ ] dev 통합과 main 릴리즈의 책임이 구분된다.\n- [ ] 연결이 끊기거나 도구가 실패해도 복구 방법을 확인할 수 있다.",
+      "parentId": null,
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "In Progress",
+      "labels": [
+        "System",
+        "TUI",
+        "Improvement"
+      ],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-746/environment-tui-개발용-스킬에이전트개발-환경을-구축한다"
+    },
+    {
+      "id": "WOO-747",
+      "uuid": "67c571a6-f8ff-4cc3-a2a1-7278f14ddc7b",
+      "title": "01. TUI 개발 스킬을 정형화한다",
+      "description": "## 목적\n\nTUI 기능마다 조사·설계·구현·검증 방식이 달라지는 문제를 줄인다.\n\n## 결과\n\n요구 정리부터 PR과 기록까지 같은 입력·산출물 계약을 쓰는 스킬을 제공한다.\n\n## 완료 조건\n\n- [ ] 기능 계층과 Linear 본문 형식을 검사한다.\n- [ ] 구현·검증·기록의 필수 산출물을 안내한다.\n- [ ] 미완료와 사용자 수락 전 상태를 완료로 표시하지 않는다.",
+      "parentId": "WOO-746",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Todo",
+      "labels": [
+        "System",
+        "TUI",
+        "Improvement"
+      ],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-747/01-tui-개발-스킬을-정형화한다"
+    },
+    {
+      "id": "WOO-752",
+      "uuid": "51b58b1f-6335-4124-b33e-18da7dd943ab",
+      "title": "03. 기능 브랜치에서 dev를 거쳐 main으로 릴리즈한다",
+      "description": "## 목적\n\n개발 중 변경과 공개 릴리즈를 같은 브랜치에 섞지 않는다.\n\n## 결과\n\n기능 PR은 dev에 통합되고, 사용자가 릴리즈할 때만 dev에서 main으로 이동한다.\n\n## 완료 조건\n\n- [ ] GitHub 기본 브랜치와 기능 PR 대상이 dev다.\n- [ ] dev 통합 전에 필요한 검증이 실행된다.\n- [ ] main 변경은 dev에서 시작한 릴리즈 PR로 제한된다.\n- [ ] 긴급 수정의 적용·역전파 방법이 문서화된다.",
+      "parentId": "WOO-746",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Todo",
+      "labels": [
+        "System",
+        "Reliability",
+        "Improvement"
+      ],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-752/03-기능-브랜치에서-dev를-거쳐-main으로-릴리즈한다"
+    },
+    {
+      "id": "WOO-751",
+      "uuid": "49122998-86d8-4eda-93b9-f8a903111bf4",
+      "title": "테스트",
+      "description": "## 목적\n\n새 개발 환경이 실제 TUI 작업 한 건에서 처음부터 끝까지 적용되는지 확인한다.\n\n## 결과\n\n이슈 생성, 모델 배치, 구현, dev PR, 추적 기록, 릴리즈 경계의 실제 결과를 구분해 남긴다.\n\n## 완료 조건\n\n- [ ] 대표 TUI 기능을 새 흐름으로 dev에 통합한다.\n- [ ] Linear·Code·SQLite·Obsidian 연결을 양방향 조회한다.\n- [ ] 실패·취소·충돌 시나리오와 복구 결과를 기록한다.\n- [ ] main 릴리즈는 별도 사용자 결정으로 남는다.",
+      "parentId": "WOO-746",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Todo",
+      "labels": [
+        "System",
+        "TUI",
+        "Testing"
+      ],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-751/테스트"
+    },
+    {
+      "id": "WOO-750",
+      "uuid": "4a32f5c0-f0b4-47cf-b48e-bfe0b41eac16",
+      "title": "예외 처리",
+      "description": "## 목적\n\n스킬·에이전트·연결 도구·브랜치 작업이 실패해도 원본과 다음 행동을 잃지 않는다.\n\n## 결과\n\n부분 실행, 권한 부족, 연결 단절, 충돌을 완료로 오인하지 않고 복구 경로를 보여준다.\n\n## 완료 조건\n\n- [ ] 실패 단계와 영향 범위가 기록된다.\n- [ ] 원본 변경 여부와 재시도 방법을 확인한다.\n- [ ] 승인·검토·CI 미실행 상태가 성공으로 표시되지 않는다.",
+      "parentId": "WOO-746",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Todo",
+      "labels": [
+        "System",
+        "TUI",
+        "Reliability"
+      ],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-750/예외-처리"
+    },
+    {
+      "id": "WOO-748",
+      "uuid": "95dfdccb-d2dc-4605-92de-bd90402fad1f",
+      "title": "02. 에이전트 역할과 모델 배치를 정형화한다",
+      "description": "## 목적\n\n작업 단계와 실패 위험에 맞는 에이전트·모델·권한을 일관되게 선택한다.\n\n## 결과\n\n수집·검증·구현·독립 리뷰·최종 감사의 책임과 모델 배치가 정형화된다.\n\n## 완료 조건\n\n- [ ] 단계별 기본 모델과 승격 조건이 정의된다.\n- [ ] Codex 저작과 Claude 읽기 전용 검토가 분리된다.\n- [ ] Opus 미실행을 낮은 모델의 승인으로 대체하지 않는다.",
+      "parentId": "WOO-746",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Todo",
+      "labels": [
+        "System",
+        "TUI",
+        "Reliability"
+      ],
+      "priority": 0,
+      "url": "https://linear.app/woo-world/issue/WOO-748/02-에이전트-역할과-모델-배치를-정형화한다"
+    }
+  ],
+  "hasNextPage": false
+}
+

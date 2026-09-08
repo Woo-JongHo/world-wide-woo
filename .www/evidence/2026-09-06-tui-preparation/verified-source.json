@@ -1,0 +1,46 @@
+{
+  "head": "19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d",
+  "changedFiles": [
+    {
+      "file": "src/presentation/tui/dashboard-layout.ts",
+      "sha256": "2421d5c63cfd99201884a27bd64e4611b4c6f10bbd020979a4c23ada0e22a538",
+      "annotationOnly": true
+    },
+    {
+      "file": "src/presentation/tui/observability-dashboard-view.ts",
+      "sha256": "01451cecd8254f6911d78537448d30cc78fed259b64c6131a55949c288abc48d",
+      "annotationOnly": true
+    },
+    {
+      "file": "src/presentation/tui/runtime-monitor-view.ts",
+      "sha256": "15a764966191bb5c1f2e7e4f0e725563cf95f23f9472c72eb416810a7fe4adc8",
+      "annotationOnly": true
+    },
+    {
+      "file": "src/presentation/tui/session-stats-view.ts",
+      "sha256": "de5f0ddf273b32d0924d2b7075e382a8d2f57008fdfe5ff6ae13b7909b5a7d9c",
+      "annotationOnly": true
+    },
+    {
+      "file": "src/presentation/tui/shared-dashboard-views.ts",
+      "sha256": "4a78d2c2e3f4616873e590559583f8a69aa4ceef3ad6569faad23320c1571886",
+      "annotationOnly": true
+    },
+    {
+      "file": "src/presentation/tui/workbench-bottom-hud.ts",
+      "sha256": "0308ecbdb57ecb8fcaff9b3e6de52a30c56848cf03986c2d0a4b308aaf73b56e",
+      "annotationOnly": true
+    },
+    {
+      "file": "src/presentation/tui/workbench-shell.ts",
+      "sha256": "6d8ce9db8dac338e309155e27b019a8cbf12cf0790260ca2f2e8120f15a38169",
+      "annotationOnly": true
+    },
+    {
+      "file": "src/presentation/tui/workbench-views.ts",
+      "sha256": "e3d5e64db38e12b192b514471b81fdb287a015203f751539e7139589fc92e4ba",
+      "annotationOnly": true
+    }
+  ],
+  "allOtherSourceAndTestFilesUnchanged": true
+}

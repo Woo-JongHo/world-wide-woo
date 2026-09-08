@@ -1,0 +1,43 @@
+{
+  "logicalDigest": "7948ea2a8c355d38ac18419ad66f63d92e92564713ecb3dee8ae5c65d2702dc5",
+  "units": [
+    "Code-010"
+  ],
+  "issues": [
+    "WOO-678"
+  ],
+  "notes": [
+    "WOO-678"
+  ],
+  "pullRequests": [],
+  "runs": [
+    "traceability-validation-v020-20260907"
+  ],
+  "edges": [
+    {
+      "from": "issue:WOO-678",
+      "relation": "detailed-by",
+      "to": "note:WOO-678"
+    },
+    {
+      "from": "issue:WOO-678",
+      "relation": "implemented-by",
+      "to": "unit:Code-010"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:WOO-678"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "issue:WOO-678"
+    },
+    {
+      "from": "run:traceability-validation-v020-20260907",
+      "relation": "verifies",
+      "to": "unit:Code-010"
+    }
+  ]
+}

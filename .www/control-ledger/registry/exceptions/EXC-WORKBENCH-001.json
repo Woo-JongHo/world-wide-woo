@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 3,
+  "kind": "exception",
+  "id": "EXC-WORKBENCH-001",
+  "version": 1,
+  "immutable": true,
+  "payload": {
+    "importance": "important",
+    "name": "Native send 결과 불확실",
+    "detect": "uncertain command receipt",
+    "control": "자동 재시도 차단과 입력 보존",
+    "recovery": "명시적 cancel reconciliation",
+    "testIds": [
+      "TEST-WORKBENCH-001"
+    ],
+    "verification": {
+      "detect": [
+        "TEST-WORKBENCH-001"
+      ],
+      "control": [
+        "TEST-WORKBENCH-001"
+      ],
+      "recovery": [
+        "TEST-WORKBENCH-001"
+      ]
+    }
+  },
+  "payloadDigest": "1b135d0c65973faa2fb2d58ab4a3a09fbd64f07cab1adea64cc43a8c54ef2fb8"
+}

@@ -1,0 +1,87 @@
+{
+  "id": "WOO-678",
+  "uuid": "1c98b99d-cc26-43a0-913b-8ef1df0ad1ae",
+  "title": "[HUD] 사용량 한 줄만 남겨 작업 공간을 넓힌다",
+  "description": "## 목적\n\nHUD가 차지하는 높이를 줄여 Chat과 작업 내용을 더 넓게 본다.\n\n## 결과\n\n하단 한 줄에서 Codex·Claude·Gemini의 주간 잔여 사용량과 초기화까지 남은 기간만 확인한다.\n\n예: `Codex 98% · 7d | Claude 99% · 5d | Gemini —`\n\n## 범위\n\n### 포함\n\n* Codex·Claude·Gemini 주간 잔여 비율\n* 각 주간 한도의 초기화까지 남은 기간\n* 한 줄 안에서 읽을 수 있는 축약 표시\n\n### 제외\n\n* 캐릭터와 장식 영역\n* 5시간 등 주간 외 사용량 창\n* 권한·연결·Lifecycle·세션 상세\n* 차트·상세 화면·HUD 상호작용\n\n## 동작\n\n1. 확인 가능한 세 공급자의 주간 값을 한 줄에 표시한다.\n2. 공급자가 `ready`인데 주간 값이 없으면 `—`로 표시하고, `loading`·`auth-required`·`unsupported` 상태만 짧은 상태 문구로 표시한다.\n3. 터미널 폭이 부족하면 장식을 추가하지 않고 텍스트를 축약한다.\n\n## 완료 조건\n\n- [ ] 세 공급자의 주간 잔여 비율과 남은 기간을 한 줄에서 구분한다.\n- [ ] 캐릭터와 주간 외 정보가 HUD 공간을 차지하지 않는다.\n- [ ] 좁은 폭과 값 없음에서 한 줄 경계를 넘거나 값을 추정하지 않는다.\n\n## 연결\n\n* Code-ID: Code-010\n* Obsidian: [상세 기록](<obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FTraceability%2FWOO-678.md>)",
+  "projectMilestone": {
+    "id": "193948f7-2a11-4110-a143-360d83f2a076",
+    "name": "v0.1.0 — First Public Release"
+  },
+  "priority": {
+    "value": 0,
+    "name": "No priority"
+  },
+  "url": "https://linear.app/woo-world/issue/WOO-678/hud-사용량-한-줄만-남겨-작업-공간을-넓힌다",
+  "gitBranchName": "jonghowoo33/woo-678-hud-사용량-한-줄만-남겨-작업-공간을-넓힌다",
+  "createdAt": "2026-09-04T02:18:43.724Z",
+  "updatedAt": "2026-09-07T05:20:49.642Z",
+  "archivedAt": null,
+  "completedAt": null,
+  "startedAt": null,
+  "canceledAt": null,
+  "dueDate": null,
+  "slaStartedAt": null,
+  "slaMediumRiskAt": null,
+  "slaHighRiskAt": null,
+  "slaBreachesAt": null,
+  "status": "Backlog",
+  "statusType": "backlog",
+  "labels": [
+    "TUI",
+    "UX",
+    "Improvement"
+  ],
+  "attachments": [],
+  "documents": [],
+  "stateHistory": [
+    {
+      "state": {
+        "id": "53e5b43a-a9f4-436f-b678-a009957886da",
+        "name": "Backlog",
+        "type": "backlog"
+      },
+      "startedAt": "2026-09-04T02:18:43.724Z",
+      "endedAt": "2026-09-04T03:23:08.187Z"
+    },
+    {
+      "state": {
+        "id": "9918029c-94a0-43d0-bfbc-fea537b75679",
+        "name": "Canceled",
+        "type": "canceled"
+      },
+      "startedAt": "2026-09-04T03:23:08.187Z",
+      "endedAt": "2026-09-07T04:54:59.390Z"
+    },
+    {
+      "state": {
+        "id": "53e5b43a-a9f4-436f-b678-a009957886da",
+        "name": "Backlog",
+        "type": "backlog"
+      },
+      "startedAt": "2026-09-07T04:54:59.390Z",
+      "endedAt": null
+    }
+  ],
+  "createdBy": "우종호",
+  "createdById": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+  "project": "World Wide Woo",
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "parentId": "WOO-673",
+  "team": "Woo-World",
+  "teamId": "95f279f5-cd73-49b6-a10e-b6cdab1e6d58",
+  "relations": {
+    "blocks": [],
+    "blockedBy": [],
+    "relatedTo": [
+      {
+        "id": "WOO-680",
+        "title": "[Layout] 화면 크기가 달라져도 읽던 위치와 입력 흐름을 유지한다"
+      },
+      {
+        "id": "WOO-674",
+        "title": "[Workbench] 대화와 계획을 읽고 입력과 상태를 통제한다"
+      }
+    ],
+    "duplicateOf": null
+  }
+}

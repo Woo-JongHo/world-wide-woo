@@ -1,0 +1,104 @@
+{
+  "capturedAt": "2026-09-08T11:49:55+09:00",
+  "sourceHost": "chacada",
+  "collectionMode": "read-only",
+  "securityPolicy": "paths, revisions, map digests and contract metadata only; no secrets, .env contents, customer source data or logs",
+  "processes": [
+    {
+      "stableId": "RPA-GMB-HELIX",
+      "name": "Helix QAC 검증 수집",
+      "sourcePath": "/c/Users/woo/woo/00_project/05_GMBKOREA/RPA/제어설계검증/14_HelixQAC",
+      "branch": "pilot/helix-exception-contract",
+      "head": "e2a6cdb162e6e6f7514dba0633c638dec0a58ae9",
+      "dirty": false,
+      "mapSha256": "588144e03eafefb019f53913b226a6b98d9d5ac57fb0c1abd6fc9c0260a24e55",
+      "taskCount": 6,
+      "unitCount": 11,
+      "tasks": [
+        {"id":"t1","label":"setup","units":["u1.setup"]},
+        {"id":"t2","label":"auth","units":["u1.connection","u2.login"]},
+        {"id":"t3","label":"misra","units":["u1.collect","u2.excel"]},
+        {"id":"t4","label":"secure","units":["u1.collect","u2.excel"]},
+        {"id":"t5","label":"metric","units":["u1.parse","u2.csv","u3.excel"]},
+        {"id":"t6","label":"mail","units":["u1.send"]}
+      ],
+      "exceptionContracts": {"status":"ready","countsByTask":[5,10,3,6,3,3],"total":30},
+      "verificationContracts": {"status":"ready","countsByTask":[14,13,4,4,4,3],"total":42},
+      "testFileCount": 53,
+      "mail": {"unit":"p1.t6.u1.send","sideEffect":"write_external","rerunSafe":false,"audiences":["customer","operator"]}
+    },
+    {
+      "stableId": "RPA-GMB-VECTORCAST",
+      "name": "VectorCast 커버리지 자동화",
+      "sourcePath": "/c/Users/woo/woo/00_project/05_GMBKOREA/RPA/제어설계검증/15_VectorCast",
+      "branch": "woo-665-screenshot-driver-isolation",
+      "head": "4f8d58bd12e57712d99986c8df73a6b2ca272340",
+      "dirty": true,
+      "dirtyPathCount": 14,
+      "mapSha256": "df7e9afb435e0edb9d57ddf0d724008cd64b96ec9aab2b5d6d99332e531c0334",
+      "taskCount": 3,
+      "unitCount": 8,
+      "tasks": [
+        {"id":"t1","label":"collect","units":["u1.sync","u2.parse","u3.clean"]},
+        {"id":"t2","label":"output","units":["u1.sheet","u2.fill","u3.upload"]},
+        {"id":"t3","label":"notify","units":["u1.screenshot","u2.mail"]}
+      ],
+      "exceptionContracts": {"status":"missing-structured-files"},
+      "verificationContracts": {"status":"missing-structured-files"},
+      "testFileCount": 34,
+      "mail": {"unit":"p1.t3.u2.mail","sideEffect":"write_external","rerunSafe":false,"artifact":"metric screenshot plus result mail"},
+      "knownContractDecision": "abort_on_fail is intentionally omitted because this runtime does not consume it"
+    },
+    {
+      "stableId": "RPA-GMB-FTA",
+      "name": "FTA 원산지 작성",
+      "sourcePath": "/c/Users/woo/woo/00_project/05_GMBKOREA/RPA/판매관리팀/FTA원산지",
+      "branch": "feat/t7-u6-u9-common",
+      "head": "217097eff56d3514103bb6f59b0db720d33133af",
+      "dirty": true,
+      "dirtyPathCount": 5,
+      "mapSha256": "5194471b2851ca4601668333c68498e93ebb5bbb96c90bc5d31e26cd189c077c",
+      "taskCount": 9,
+      "unitCount": 37,
+      "tasks": [
+        {"id":"t1","label":"setting","units":["u1.setup","u2.require","u3.worklist"]},
+        {"id":"t2","label":"extract_co","units":["u1.co"]},
+        {"id":"t3","label":"extract_invoice","units":["u1.invoice","u2.codemap"]},
+        {"id":"t4","label":"extract_bl","units":["u1.bl"]},
+        {"id":"t5","label":"unipass_login","units":["u1.open","u2.login","u3.cert","u4.fta"]},
+        {"id":"t6","label":"unipass_overview","units":["u1.seqno","u2.customs","u3.applicant","u4.agreement","u5.save"]},
+        {"id":"t7","label":"unipass_common","units":["u1.tab","u2.exporter","u3.manufacturer","u4.importer","u5.cert_no","u6.export_decl","u7.transport","u8.invoice_no","u9.signature","u10.attachment","u11.save"]},
+        {"id":"t8","label":"unipass_items","units":["u1.codes","u2.origin","u3.pdf","u4.weight","u5.calc","u6.tab","u7.load","u8.items","u9.save"]},
+        {"id":"t9","label":"mail","units":["u1.notify"]}
+      ],
+      "exceptionContracts": {"status":"missing-structured-files"},
+      "verificationContracts": {"status":"missing-structured-files"},
+      "testFileCount": 42,
+      "mail": {"unit":"p1.t9.u1.notify","sideEffect":"write_external","rerunSafe":"unknown","status":"implemented operator mail; developer recipient unresolved"},
+      "blockers": ["three planned save units", "multiple external-write units have rerun_safe unknown", "structured exception and verification contracts absent"]
+    },
+    {
+      "stableId": "RPA-GMB-FX-DEPOSIT",
+      "name": "외화입금 일일 처리",
+      "sourcePath": "/c/Users/woo/woo/00_project/05_GMBKOREA/RPA/판매관리팀/외화입금",
+      "branch": "codex/fix-excel-com-date",
+      "head": "91fae4eeeda25dae977ecba99499eb16d65c3adf",
+      "dirty": false,
+      "mapSha256": "b3cfd7ad5cad138f3c78afe86baae1ef10b74cc3309a935ab6c92c66de1c4fe1",
+      "taskCount": 5,
+      "unitCount": 14,
+      "tasks": [
+        {"id":"t1","label":"setup — 실행 환경 준비","units":["u1.setup"]},
+        {"id":"t2","label":"거래내역 업데이트","units":["u1.total_scan","u2.source_load","u3.compare","u4.apply","u5.summary"]},
+        {"id":"t3","label":"mail — 은행 확인메일 처리","units":["u1.mail_session","u2.mail_search","u3.mail_loop","u4.mail_revert","u5.mail_summary","u6.self_mail"]},
+        {"id":"t4","label":"통합입금내역 업데이트","units":["u1.report_build"]},
+        {"id":"t5","label":"mail — 결과 통보 발송","units":["u1.report_send"]}
+      ],
+      "exceptionContracts": {"status":"missing-structured-files"},
+      "verificationContracts": {"status":"missing-structured-files"},
+      "testFileCount": 35,
+      "mail": {"units":["p1.t3.u6.self_mail","p1.t5.u1.report_send"],"sideEffect":"write_external","rerunSafe":false,"audiences":["operator"]},
+      "blockers": ["report_build recomputes after apply and can render zero update rows", "structured exception and verification contracts absent"]
+    }
+  ]
+}

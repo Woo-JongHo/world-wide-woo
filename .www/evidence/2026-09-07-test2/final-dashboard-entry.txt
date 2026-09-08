@@ -1,0 +1,48 @@
+           WORLD WIDE WOO · DASHBOARD
+           PARTIAL LOCAL JOURNAL · event range 2026-09-01 14:02 — 2026-09-07 06:55
+           28 streams read · local journal only
+           ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+           ACTIVE                                 COMPLETED                              ATTR TOKENS                            FAILURE EVENTS                       
+           8                                      15                                     —                                      0                                    
+           — means unobserved · counts cover the local journal range above
+            MODEL USAGE / WORK · ATTRIBUTED ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+           Model work usage not observed in the local journal.
+            HEALTH / TREND ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+           Completion 100% (completed ÷ completed+failed)   Retry events 0
+           Completed sessions by observed day  ▂▆█
+            ATTENTION ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+           ! Session boundary normalization required
+            RECENT SESSIONS ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+           Selected 1/12 · 01a07aa6-335c-7631-a137-7d4fa480ccaf
+           Project native-756e0d64f66f109c21160e961b27f75a7a30258efe3c16ab · completed · Model unobserved
+           SESSION               PROJECT       RESULT      MODEL          TIME      TOKENS
+           > 01a07aa6-335c-763...  native-75...  ✓ done      —              17.2s     —
+             01a07a9f-2450-7b0...  native-e0...  ✓ done      —              16.1s     —
+             01a07a98-bbe8-710...  native-6d...  ✓ done      —              1m25s     —
+             01a07a90-09ed-7c7...  native-58...  ✓ done      —              8m52s     —
+             01a07a86-d444-753...  native-e3...  ✓ done      —              29s       —
+             01a07a82-df17-762...  native-88...  ✓ done      —              17.5s     —
+             01a07a7b-5d22-7dc...  native-89...  ● active    —              7m07s     —
+             01a07a78-7fb2-71c...  native-9d...  ✓ done      —              2m01s     —
+             01a07a63-80b0-71d...  native-b2...  ● active    —              —         —
+             01a07a23-9db1-77f...  native-e8...  ✓ done      —              50s       —
+           Showing 1–10 of 12 · ↑↓ select · Enter Stats detail
+           ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+           r next · R prev · 1 Stats · [2 Dashboard] · 3 Monitor · Esc back
+
+
+
+
+
+
+
+
+
+
+
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+                                                                                                                                                                                  
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+Dashboard · 전체 Session과 Project 관측                                                                                                                                           
+Codex 76% · 7d | Claude 84% · 7d | Gemini —                                                                                                                                       

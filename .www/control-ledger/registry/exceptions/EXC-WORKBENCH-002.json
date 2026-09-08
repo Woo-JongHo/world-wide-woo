@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 3,
+  "kind": "exception",
+  "id": "EXC-WORKBENCH-002",
+  "version": 1,
+  "immutable": true,
+  "payload": {
+    "importance": "important",
+    "name": "closed Workbench command",
+    "detect": "closed guard",
+    "control": "rejected receipt",
+    "recovery": "새 session에서 재시도",
+    "testIds": [
+      "TEST-WORKBENCH-001"
+    ],
+    "verification": {
+      "detect": [
+        "TEST-WORKBENCH-001"
+      ],
+      "control": [
+        "TEST-WORKBENCH-001"
+      ],
+      "recovery": [
+        "TEST-WORKBENCH-001"
+      ]
+    }
+  },
+  "payloadDigest": "aad718f5e20507fb65c62c9129b25105e0413efab09eee8d61c2f337b7d1b979"
+}

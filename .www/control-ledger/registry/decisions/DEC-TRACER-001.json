@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 3,
+  "kind": "decision",
+  "id": "DEC-TRACER-001",
+  "version": 1,
+  "immutable": true,
+  "payload": {
+    "decision": "Tracer Source는 exact activity identity와 현재 thread 및 Plan membership을 모두 검증한다."
+  },
+  "payloadDigest": "4a5f90f40476acfa31b283d61cd78c3fd8ae098ca7036dd0a28bff26b4a53cf2"
+}

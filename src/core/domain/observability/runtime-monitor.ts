@@ -5,7 +5,7 @@ const EVENT_LIMIT = 12;
 const LABEL_LIMIT = 160;
 
 export type RuntimeMonitorState = "idle" | "running" | "waiting" | "blocked" | "failed" | "completed";
-export type RuntimeMonitorEventKind = "REQUEST" | "MODEL" | "AGENT" | "TOOL" | "OUTPUT" | "APPROVAL" | "WAIT" | "RETRY" | "FAILURE" | "COMPACTION";
+export type RuntimeMonitorEventKind = "REQUEST" | "MODEL" | "AGENT" | "SKILL" | "TOOL" | "OUTPUT" | "APPROVAL" | "WAIT" | "RETRY" | "FAILURE" | "COMPACTION";
 
 export interface RuntimeMonitorElapsed {
 	readonly startedAt: string;
@@ -31,6 +31,7 @@ export interface RuntimeMonitorProjection {
 	readonly failureCount: number;
 	readonly sourceActivityIds: readonly string[];
 	readonly recentEvents: readonly RuntimeMonitorEvent[];
+	readonly skillRun: { readonly runId: string; readonly skill: string | null; readonly stage: string; readonly processId: string | null; readonly taskId: string | null; readonly candidateId: string | null; readonly receiptId: string | null } | null;
 }
 
 /**
@@ -62,6 +63,8 @@ export function projectRuntimeMonitor(snapshot: WorkbenchSnapshot, activities: r
 	const sourceActivityIds = unique([
 		request?.id, tool?.id, agent?.id, execution?.id, waitActivity?.id, approvalActivity?.id, lastFailure?.id, lastCompleted?.id,
 	]);
+	const skillRun = latest(ordered.filter(isSkillRun));
+	const skillPayload = skillRun ? record(skillRun.payload.skillRun) ?? skillRun.payload : null;
 	return Object.freeze({
 		state,
 		activeRequest: request ? Object.freeze({ label: requestLabel(request), sourceActivityId: request.id, elapsed: elapsedFrom(request) }) : null,
@@ -73,6 +76,7 @@ export function projectRuntimeMonitor(snapshot: WorkbenchSnapshot, activities: r
 		failureCount: failures.length + (snapshot.error !== null && failures.length === 0 ? 1 : 0),
 		sourceActivityIds: Object.freeze(sourceActivityIds),
 		recentEvents: Object.freeze(ordered.flatMap(semanticEvent).slice(-EVENT_LIMIT)),
+		skillRun: skillPayload && stringValue(skillPayload.runId) ? Object.freeze({ runId: stringValue(skillPayload.runId)!, skill: stringValue(skillPayload.skill), stage: stringValue(skillPayload.stage) ?? "unknown", processId: stringValue(skillPayload.processId), taskId: stringValue(skillPayload.taskId), candidateId: stringValue(skillPayload.candidateId), receiptId: stringValue(skillPayload.receiptId) }) : null,
 	});
 }
 
@@ -86,6 +90,7 @@ function eventKind(activity: ProjectActivity): RuntimeMonitorEventKind | null {
 	if (isRetry(activity)) return "RETRY";
 	if (isApproval(activity)) return activity.phase === "completed" ? "WAIT" : "APPROVAL";
 	if (isWait(activity)) return "WAIT";
+	if (isSkillRun(activity)) return "SKILL";
 	if (isAgent(activity)) return "AGENT";
 	if (isTool(activity)) return "TOOL";
 	if (isOutput(activity)) return "OUTPUT";
@@ -98,6 +103,7 @@ function eventLabel(kind: RuntimeMonitorEventKind, activity: ProjectActivity): s
 	if (kind === "TOOL") return toolLabel(activity);
 	if (kind === "MODEL") return line(stringValue(activity.payload.model) ?? "Model execution");
 	if (kind === "AGENT") return line(stringValue(item(activity)?.agent) ?? "Agent execution");
+	if (kind === "SKILL") return line(stringValue(record(activity.payload.skillRun)?.skill) ?? stringValue(activity.payload.skill) ?? "Skill execution");
 	return ({ OUTPUT: "Public output observed", APPROVAL: "Approval requested", WAIT: "Waiting", RETRY: "Retry observed", FAILURE: "Failure observed", COMPACTION: "Context compacted" } as const)[kind] ?? "Observed";
 }
 function latestActive(activities: readonly ProjectActivity[], start: (a: ProjectActivity) => boolean, terminal: (a: ProjectActivity) => boolean, identity: (a: ProjectActivity) => string): ProjectActivity | undefined {
@@ -137,6 +143,7 @@ function isWaitTerminal(activity: ProjectActivity): boolean { return isWait(acti
 function isRetry(activity: ProjectActivity): boolean { return /retry/u.test(method(activity)) || record(activity.payload.params)?.retryOf !== undefined; }
 function isCompaction(activity: ProjectActivity): boolean { return /compact/u.test(method(activity)); }
 function isOutput(activity: ProjectActivity): boolean { return method(activity) === "turn/first-output-observed" || (activity.kind === "message" && activity.payload.role === "assistant"); }
+function isSkillRun(activity: ProjectActivity): boolean { return method(activity).startsWith("skill/") || record(activity.payload.skillRun) !== null; }
 function isFailure(activity: ProjectActivity): boolean { const params = record(activity.payload.params); const status = stringValue(activity.payload.status) ?? stringValue(params?.status) ?? stringValue(item(activity)?.status); const exitCode = activity.payload.exitCode ?? params?.exitCode ?? item(activity)?.exitCode; return activity.phase === "failed" || status === "failed" || status === "error" || activity.payload.error != null || params?.error != null || item(activity)?.error != null || (typeof exitCode === "number" && exitCode !== 0); }
 function approvalResolvedAfter(activities: readonly ProjectActivity[], approval: ProjectActivity): boolean { return activities.some(activity => later(activity, approval) && (activity.payload.eventType === "approval-resolved" || (isApproval(activity) && activity.phase === "completed"))); }
 function requestLabel(activity: ProjectActivity): string { return line(stringValue(activity.payload.label) ?? stringValue(activity.payload.title) ?? "Request"); }

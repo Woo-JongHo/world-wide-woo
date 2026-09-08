@@ -14,11 +14,14 @@ function git(root: string, args: string[], encoding: BufferEncoding | "buffer" =
 export function repositoryRoot(cwd: string): string { return String(git(cwd, ["rev-parse", "--show-toplevel"])).trim(); }
 export function gitDir(root: string): string { return resolve(root, String(git(root, ["rev-parse", "--git-dir"])).trim()); }
 export function changedPaths(root: string): string[] {
-	const values = new Set<string>();
+	const values = new Map<string, string>();
 	for (const args of [["diff", "--no-renames", "--name-only", "-z"], ["diff", "--cached", "--no-renames", "--name-only", "-z"], ["ls-files", "--others", "--exclude-standard", "-z"]]) {
-		for (const path of (git(root, args, "buffer") as Buffer).toString("utf8").split("\0").filter(Boolean)) values.add(path);
+		for (const path of (git(root, args, "buffer") as Buffer).toString("utf8").split("\0").filter(Boolean)) {
+			const identity = path.normalize("NFC");
+			if (!values.has(identity)) values.set(identity, path);
+		}
 	}
-	return [...values].sort();
+	return [...values.values()].sort();
 }
 export function candidateContentDigest(root: string, paths: readonly string[]): string {
 	const entries = [...paths].sort().map(path => {
@@ -127,7 +130,13 @@ export function executeCommit(root: string, candidatePath: string, authorization
 	const candidate = JSON.parse(readFileSync(candidatePath, "utf8")) as CommitCandidate;
 	const control = new CommitControlPlane(policy); const errors = control.validate(candidate, true); if (errors.length) throw new Error(errors.join("\n"));
 	assertCandidateMatchesWorktree(root, candidate); const authorization = loadAuthorization(authorizationPath, candidate);
-	git(root, ["add", "--", ...candidate.paths]); assertStagedBoundary(root, candidate);
+	const tracked = new Set((git(root, ["ls-files", "-z"], "buffer") as Buffer).toString("utf8").split("\0").filter(Boolean));
+	const updates = candidate.paths.filter(path => tracked.has(path));
+	if (updates.length) git(root, ["add", "-u", "--", ...updates]);
+	const untracked = new Set((git(root, ["ls-files", "--others", "--exclude-standard", "-z"], "buffer") as Buffer).toString("utf8").split("\0").filter(Boolean));
+	const additions = candidate.paths.filter(path => untracked.has(path));
+	if (additions.length) git(root, ["add", "--", ...additions]);
+	assertStagedBoundary(root, candidate);
 	const directory = join(root, ".www/runtime/commit"); mkdirSync(directory, { recursive: true });
 	const messagePath = join(directory, `${candidate.id}.message.txt`); const message = control.render(candidate); writeFileSync(messagePath, message);
 	const activePath = activeCommitPath(root); mkdirSync(dirname(activePath), { recursive: true });

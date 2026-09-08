@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 3,
+  "kind": "exception",
+  "id": "EXC-WORKBENCH-003",
+  "version": 1,
+  "immutable": true,
+  "payload": {
+    "importance": "important",
+    "name": "resume provider history 부재",
+    "detect": "partial-local-journal coverage",
+    "control": "관측 범위를 partial로 표시",
+    "recovery": "local journal 범위에서 계속",
+    "testIds": [
+      "TEST-WORKBENCH-004"
+    ],
+    "verification": {
+      "detect": [
+        "TEST-WORKBENCH-004"
+      ],
+      "control": [
+        "TEST-WORKBENCH-004"
+      ],
+      "recovery": [
+        "TEST-WORKBENCH-004"
+      ]
+    }
+  },
+  "payloadDigest": "a1a98f6265db177e5869febd13d7f499127fcee446c1295654104467143df0ad"
+}

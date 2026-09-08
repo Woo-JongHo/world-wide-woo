@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "references": [
+    {
+      "kind": "code",
+      "id": "src/domain/work/index.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/domain/work/traceability.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/domain/work/traceability-validator.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/domain/work/activity-classification.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/domain/work/delegation.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/domain/work/workflow-projection.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/work-traceability.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/work-flow.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/delegation-tree-view.test.ts"
+    }
+  ],
+  "links": [
+    {
+      "from": {
+        "kind": "test",
+        "id": "test/work-traceability.test.ts"
+      },
+      "relation": "verifies",
+      "to": {
+        "kind": "code",
+        "id": "src/domain/work/index.ts"
+      }
+    },
+    {
+      "from": {
+        "kind": "test",
+        "id": "test/work-flow.test.ts"
+      },
+      "relation": "verifies",
+      "to": {
+        "kind": "code",
+        "id": "src/domain/work/activity-classification.ts"
+      }
+    },
+    {
+      "from": {
+        "kind": "test",
+        "id": "test/delegation-tree-view.test.ts"
+      },
+      "relation": "verifies",
+      "to": {
+        "kind": "code",
+        "id": "src/domain/work/delegation.ts"
+      }
+    },
+    {
+      "from": {
+        "kind": "test",
+        "id": "test/work-flow.test.ts"
+      },
+      "relation": "verifies",
+      "to": {
+        "kind": "code",
+        "id": "src/domain/work/workflow-projection.ts"
+      }
+    }
+  ]
+}

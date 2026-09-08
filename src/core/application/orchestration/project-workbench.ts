@@ -7,6 +7,7 @@ import type { ActivityNarrator } from "./activity-narrator.js";
 import type { SessionModelUsageSource } from "../session/session-model-usage.js";
 import { TodoWriteConflictError } from "../work/todo-ledger.js";
 import type { WooEntry } from "./woo-entry.js";
+import type { SkillRegistrySnapshot } from "../../skills/skill-registry.js";
 import { ContextComposer } from "./context-composer.js";
 import { SessionUsageTracker } from "../session/session-usage-tracker.js";
 import type {
@@ -193,6 +194,8 @@ export interface ProjectWorkbenchOptions {
 	reviews?: ReviewService;
 	narrator?: ActivityNarrator;
 	wooEntry?: WooEntry;
+	/** Revision-bound local Skill inventory supplied to every Native turn. */
+	skillRegistry?: SkillRegistrySnapshot;
 	auxiliaryUsage?: SessionModelUsageSource;
 	persistModelSelection?: (selection: WorkbenchModelSelection) => Promise<void>;
 }
@@ -672,7 +675,7 @@ export class ProjectWorkbench {
 				sandboxPolicy: this.currentSandboxPolicy(),
 				collaborationMode: this.currentNativeCollaborationMode(),
 			};
-			turn = await this.native.startTurn(contextComposer.compose(turnInput, this.options.wooEntry?.snapshot));
+			turn = await this.native.startTurn(contextComposer.compose(turnInput, this.options.wooEntry?.snapshot, this.options.skillRegistry));
 		} catch (error) {
 			this.pendingPlanGoalActivityId = null;
 			this.invalidateWorkFlow();
@@ -1900,6 +1903,10 @@ export class ProjectWorkbench {
 		const durable = this.projectDurableActivities();
 		const executionRun = this.selectedExecutionRun();
 		const executionActivity = executionRun ? projectExecutionActivity(executionRun) : null;
+		const workFlow = this.projectCurrentWorkFlow();
+		// Todo is a projection of an observed Native Plan. Ordinary request/tool
+		// activity belongs to ExecutionRun/Tracer and must not manufacture Todo rows.
+		const todo = workFlow.source && executionRun ? this.projectExecutionTodo(executionRun) : null;
 		return deepFreeze({
 			projectId: this.options.projectId,
 			revision: this.revision,
@@ -1939,9 +1946,9 @@ export class ProjectWorkbench {
 				text: executionActivity.text,
 				nativeRefs: { threadId: executionRun.threadId, turnId: executionRun.turnId, itemId: executionActivity.id },
 			} : this.liveActivity),
-			workFlow: this.projectCurrentWorkFlow(),
+			workFlow,
 			tnotes: this.projectDurableNotes(),
-			todo: executionRun ? this.projectExecutionTodo(executionRun) : this.todo,
+			todo,
 			todoSync: this.todoSync,
 			actionResult: this.actionResult,
 			deliveryUncertain: this.chatDeliveryBlocked && this.blockedChat !== null,

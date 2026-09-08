@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
+import { visibleWidth } from "@earendil-works/pi-tui";
 import type { Models } from "@earendil-works/pi-ai";
-import { AuthFlowOverlay, LoginOverlay } from "../src/adapters/inbound/tui/overlays/auth-overlay";
+import { AuthFlowOverlay, GEMINI_API_KEY_URL, LoginOverlay } from "../src/adapters/inbound/tui/overlays/auth-overlay";
 import { AuthService } from "../src/adapters/outbound/authentication/auth-service";
 
 function fakeAuthModels(): Pick<Models, "checkAuth" | "getProvider" | "login" | "logout"> {
@@ -95,5 +96,40 @@ describe("AuthFlowOverlay", () => {
 		await Bun.sleep(0);
 		overlay.handleInput(key);
 		expect(closed).toBe(true);
+	});
+
+	test("shows and opens the official Gemini API key page without capturing the shortcut as a secret", async () => {
+		const opened: string[] = [];
+		const overlay = new AuthFlowOverlay(
+			"google", ["api_key"], new AuthService(fakeAuthModels()), () => undefined,
+			() => undefined, () => undefined, async (url) => { opened.push(url); },
+		);
+		overlay.start();
+		await Bun.sleep(0);
+		const output = overlay.render(80).join("\n");
+		expect(output).toContain("Gemini API 키 발급");
+		expect(output).toContain(GEMINI_API_KEY_URL);
+		expect(output).toContain("Ctrl+O 브라우저에서 열기");
+		for (const width of [40, 80, 120]) {
+			expect(overlay.render(width).every((line) => visibleWidth(line) <= width)).toBe(true);
+		}
+		overlay.handleInput("\u000f");
+		await Bun.sleep(0);
+		expect(opened).toEqual([GEMINI_API_KEY_URL]);
+		expect(overlay.render(80).join("\n")).toContain("> 입력 중…");
+	});
+
+	test("keeps a copyable Gemini URL after browser launch fails", async () => {
+		const overlay = new AuthFlowOverlay(
+			"google", ["api_key"], new AuthService(fakeAuthModels()), () => undefined,
+			() => undefined, () => undefined, async () => { throw new Error("browser unavailable"); },
+		);
+		overlay.start();
+		await Bun.sleep(0);
+		overlay.handleInput("\u000f");
+		await Bun.sleep(0);
+		const output = overlay.render(80).join("\n");
+		expect(output).toContain("브라우저를 열지 못했습니다");
+		expect(output).toContain(GEMINI_API_KEY_URL);
 	});
 });

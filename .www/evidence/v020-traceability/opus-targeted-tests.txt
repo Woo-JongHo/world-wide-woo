@@ -1,0 +1,53 @@
+bun test v1.4.0 (34cbb9a40)
+
+test/usage-strip.test.ts:
+(pass) 주간 잔여 비율과 초기화까지 남은 기간만 표시한다 [1.01ms]
+(pass) 값 없음과 좁은 폭에서도 한 줄 경계를 지킨다 [0.22ms]
+(pass) ready 상태에 주간 값이 없으면 추정이나 실패 문구 대신 대시를 표시한다 [0.07ms]
+(pass) loading auth-required unsupported 상태만 짧은 상태 문구를 사용한다 [0.08ms]
+
+test/development-cli.test.ts:
+(pass) CLI binds existing Linear UUID and TUI captures only after binding, then exports and opens the same document [70.81ms]
+(pass) capture errors stay observable and unrelated slash commands remain untouched [0.26ms]
+(pass) top-level CLI hides the legacy Unit/link writer [0.42ms]
+(pass) completion freezes a checkpoint before later events and binding switches [32.00ms]
+
+test/work-traceability.test.ts:
+(pass) work traceability > queries Linear, code, test, and evidence in both directions without merging identifiers [0.31ms]
+(pass) work traceability > rejects duplicate, dangling, conflated, and malformed references [0.18ms]
+(pass) work traceability > rejects links whose endpoints violate the relation contract [0.12ms]
+(pass) work traceability > keeps source and test issue annotations connected to registered Linear identities [40.22ms]
+(pass) work traceability > requires knowledge bridge issues to annotate linked production code and regression tests [2.96ms]
+(pass) work traceability > validates the real Chat issue mappings offline without inventing legacy planning ownership [22.42ms]
+
+test/workbench-bottom-hud.test.ts:
+(pass) HUD는 캐릭터 없이 주간 사용량 한 줄만 차지한다 [0.25ms]
+
+test/development-traceability.test.ts:
+(pass) schema-v2 development traceability > validates UUID aliases, tombstones, edge directions, and next Code-NNN allocation [17.47ms]
+(pass) schema-v2 development traceability > uses AST declarations and actual note frontmatter while rejecting mutations [414.53ms]
+(pass) schema-v2 development traceability > rebuilds SQLite after deletion and returns one logical graph from four entry points [31.01ms]
+(pass) schema-v2 development traceability > fails closed when any traceability entity, edge, or metadata row is deleted or mutated [24.99ms]
+(pass) schema-v2 development traceability > requires explicit frozen Linear and Vault export artifacts for the offline gate [86.97ms]
+(pass) schema-v2 development traceability > requires every repository reference to resolve to a real file inside the project [15.34ms]
+(pass) schema-v2 development traceability > generates a stable Map while retaining Initiative Epic Story Evidence columns [14.68ms]
+
+ 22 pass
+ 0 fail
+ 297 expect() calls
+Ran 22 tests across 5 files. [872.00ms]
+bun test v1.4.0 (34cbb9a40)
+
+test/development-traceability.test.ts:
+(pass) schema-v2 development traceability > validates UUID aliases, tombstones, edge directions, and next Code-NNN allocation [30.22ms]
+(pass) schema-v2 development traceability > uses AST declarations and actual note frontmatter while rejecting mutations [413.96ms]
+(pass) schema-v2 development traceability > rebuilds SQLite after deletion and returns one logical graph from four entry points [33.15ms]
+(pass) schema-v2 development traceability > fails closed when any traceability entity, edge, or metadata row is deleted or mutated [24.91ms]
+(pass) schema-v2 development traceability > requires explicit frozen Linear and Vault export artifacts for the offline gate [83.02ms]
+(pass) schema-v2 development traceability > requires every repository reference to resolve to a real file inside the project [15.18ms]
+(pass) schema-v2 development traceability > generates a stable Map while retaining Initiative Epic Story Evidence columns [14.36ms]
+
+ 7 pass
+ 0 fail
+ 51 expect() calls
+Ran 7 tests across 1 file. [677.00ms]

@@ -101,7 +101,7 @@ function emptyObservabilityDashboard(): ObservabilityDashboard {
 function unavailableHistoricalMonitor(): RuntimeMonitorProjection {
 	return Object.freeze({
 		state: "idle", activeRequest: null, model: null, agent: null, currentTool: null, approval: null,
-		retryCount: 0, failureCount: 0, sourceActivityIds: Object.freeze([]), recentEvents: Object.freeze([]),
+		retryCount: 0, failureCount: 0, sourceActivityIds: Object.freeze([]), recentEvents: Object.freeze([]), skillRun: null,
 	});
 }
 

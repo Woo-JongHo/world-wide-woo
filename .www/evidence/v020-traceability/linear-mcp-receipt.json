@@ -1,0 +1,47 @@
+{
+  "artifactKind": "external-linear-mcp-acquisition-receipt",
+  "receiptVersion": 1,
+  "trustBoundary": "external-mcp-ingestion",
+  "snapshotPath": ".www/evidence/v020-traceability/linear-final-readback.json",
+  "snapshotSha256": "9b0bd4a6eb5c9c4b7bd2c4d948325e87174b8393541f23f09c22ec8e531351c6",
+  "issueUuidSetSha256": "455524ae08882b5f202601be9f660438c871d3ab7ca80f4ae7c604d92be03837",
+  "queryStartedAt": "2026-09-07T05:20:20.841Z",
+  "queryCompletedAt": "2026-09-07T05:21:20.841Z",
+  "receivedAt": "2026-09-07T05:21:20.841Z",
+  "pagination": [
+    {
+      "query": "World Wide Woo complete project readback, filtered to frozen contract set after exact WOO-678 post-write readback",
+      "hasNextPage": false,
+      "nextCursor": null,
+      "issueIds": [
+        "WOO-678",
+        "WOO-679",
+        "WOO-683",
+        "WOO-684",
+        "WOO-685",
+        "WOO-686",
+        "WOO-687",
+        "WOO-688",
+        "WOO-689",
+        "WOO-690",
+        "WOO-691",
+        "WOO-692",
+        "WOO-693",
+        "WOO-694",
+        "WOO-695",
+        "WOO-696",
+        "WOO-697",
+        "WOO-698",
+        "WOO-699",
+        "WOO-718",
+        "WOO-719",
+        "WOO-720"
+      ]
+    }
+  ],
+  "workspaceReadback": {
+    "issueCount": 56,
+    "hasNextPage": false
+  },
+  "postWriteIssueReadback": "woo678-linear-readback.json"
+}

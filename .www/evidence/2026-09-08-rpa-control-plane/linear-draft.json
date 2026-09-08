@@ -1,0 +1,142 @@
+{
+  "capturedAt": "2026-09-08T04:33:32.504Z",
+  "sourceSnapshot": ".www/evidence/2026-09-08-rpa-control-plane/linear-before-b.json",
+  "issues": [
+    {
+      "id": "WOO-746",
+      "title": "[Environment] Agent와 Skills가 실행되는 환경을 제공한다",
+      "description": "## 목적\n\nAgent와 Skills가 도구·권한·연결·Hook을 예측 가능한 환경에서 사용하게 한다.\n\n## 결과\n\n실행 위치와 보안 경계, Git·Linear·Obsidian 연결 및 검증 Gate가 Environment 책임으로 분리된다.\n\n## 범위\n\n### 포함\n\n- 런타임·도구·권한·연결\n- 브랜치·릴리즈와 Hook·Gate 실행 기반\n\n### 제외\n\n- Agent의 Intent 판단\n- Skill의 업무 절차\n\n## 완료 조건\n\n- [ ] 하위 환경 책임이 Agent·Skills와 중복되지 않는다.\n- [ ] 연결 실패와 권한 부족이 관측 가능한 상태로 남는다."
+    },
+    {
+      "id": "WOO-747",
+      "title": "[Skills] 반복 가능한 개발·검증 절차를 정형화한다",
+      "parentId": null,
+      "declaredChanges": [
+        "parentId"
+      ],
+      "description": "## 목적\n\n업무 종류별 실행 절차와 템플릿·검증·Receipt를 재사용 가능한 Skill로 관리한다.\n\n## 결과\n\nRPA를 포함한 각 Workflow가 같은 Skill 계약을 반복 실행하고 결과를 검증할 수 있다.\n\n## 범위\n\n### 포함\n\n- Skill 입력·출력·고정 절차\n- 템플릿·실패 조건·검증 Receipt\n\n### 제외\n\n- 사용자 Intent 판단\n- 실행 환경과 권한 제공\n\n## 완료 조건\n\n- [ ] RPA의 다섯 Skill이 독립적으로 호출·검증된다.\n- [ ] 미검증 결과가 완료로 승격되지 않는다."
+    },
+    {
+      "id": "WOO-748",
+      "title": "[Agents] 의도와 위험에 맞는 실행 주체를 조정한다",
+      "parentId": null,
+      "declaredChanges": [
+        "parentId"
+      ],
+      "description": "## 목적\n\n사용자의 의도와 작업 위험에 맞는 Agent 역할·모델·권한과 Skill 조정을 일관되게 선택한다.\n\n## 결과\n\nAgent가 질문·결정·실행 조정을 소유하고 실제 절차는 Skills에 위임한다.\n\n## 범위\n\n### 포함\n\n- Intent·질문·결정·Skill orchestration\n- 역할·모델·권한 경계\n\n### 제외\n\n- Skill 내부의 고정 절차\n- Environment의 도구 구현\n\n## 완료 조건\n\n- [ ] Agent와 Skill 책임이 분리된다.\n- [ ] 불명확한 요구가 사용자 결정 없이 실행되지 않는다."
+    },
+    {
+      "id": "WOO-847",
+      "title": "[RPA Agent] 의도·질문·결정과 Skill 실행을 조정한다",
+      "parentId": "WOO-748",
+      "declaredChanges": [
+        "parentId"
+      ],
+      "description": "## 목적\n\n신규 개발·테스트·Monitor·유지보수·정합 요청을 정확한 RPA Flow로 라우팅한다.\n\n## 결과\n\n불명확한 요구는 상세 질문과 A/B/C 선택으로 결정되고 확정된 Skill만 순서대로 실행된다.\n\n## 범위\n\n### 포함\n\n- Intent Router와 Clarification Engine\n- Decision Record와 Skill 상태 전이\n\n### 제외\n\n- 프로젝트 업무 규칙의 임의 생성\n- 실제 고객 메일 발송과 원격 코드 무승인 변경\n\n## 동작\n\n1. 입력을 다섯 Intent 중 하나로 분류한다.\n2. 누락·충돌 계약을 한 초점씩 질문한다.\n3. 선택지의 영향과 권장안을 제시하고 사용자 결정을 기록한다.\n4. 선행 Gate를 통과한 Skill만 호출한다.\n\n## 완료 조건\n\n- [ ] Intent가 불명확하면 실행이 시작되지 않는다.\n- [ ] 결정과 결과 계약을 같은 RPA ID로 다시 찾는다.\n- [ ] 실패 단계와 복구 Skill이 Receipt에 남는다.\n\n## 연결\n\n- RPA-ID: RPA-AGENT\n- Obsidian: [상세 정본](obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FAgents%2FRPA%20Agent%20%E2%80%94%20%EC%9D%98%EB%8F%84%EC%99%80%20Skill%20%EC%8B%A4%ED%96%89%EC%9D%84%20%EC%A1%B0%EC%A0%95%ED%95%9C%EB%8B%A4.md)"
+    },
+    {
+      "id": "WOO-848",
+      "parentId": null,
+      "declaredChanges": [
+        "parentId"
+      ]
+    },
+    {
+      "id": "WOO-849",
+      "parentId": null,
+      "declaredChanges": [
+        "parentId"
+      ]
+    },
+    {
+      "id": "WOO-850",
+      "parentId": null,
+      "declaredChanges": [
+        "parentId"
+      ]
+    },
+    {
+      "id": "WOO-851",
+      "parentId": null,
+      "declaredChanges": [
+        "parentId"
+      ]
+    },
+    {
+      "id": "NEW-RPA-DEV",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "parentId": "WOO-747",
+      "title": "[RPA] 신규 업무를 Process·Task·Unit 계약으로 설계한다",
+      "description": "## 목적\n\n업무정의서와 사용자 결정을 공통 개발 계약으로 변환한다.\n\n## 결과\n\nProcess 목적·입출력·완료 조건과 Task·Unit 안정 ID, sequence가 개발 전에 확정된다.\n\n## 범위\n\n### 포함\n\n- 업무정의 질문 템플릿\n- PTU·안정 ID·Decision Record\n\n### 제외\n\n- 실제 운영 실행\n- 확인되지 않은 재실행 정책 자동 보완\n\n## 동작\n\n1. 업무정의서와 수동 기준선을 수집한다.\n2. 미결정 필드를 질문한다.\n3. PTU와 입력·출력·부작용·승인·재실행 계약을 만든다.\n4. 완전성 Gate 뒤 개발 초안을 게시한다.\n\n## 완료 조건\n\n- [ ] 필수 질문과 PTU 필드 누락이 차단된다.\n- [ ] ID와 sequence 변경을 구분한다.\n- [ ] 공통 템플릿으로 개발 초안을 재생성한다.\n\n## 연결\n\n- RPA-ID: RPA-DEV\n- Obsidian: [상세 정본](obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FSkills%2FRPA%20Development%20%E2%80%94%20%EC%8B%A0%EA%B7%9C%20%EC%97%85%EB%AC%B4%EB%A5%BC%20PTU%20%EA%B3%84%EC%95%BD%EC%9C%BC%EB%A1%9C%20%EC%84%A4%EA%B3%84%ED%95%9C%EB%8B%A4.md)"
+    },
+    {
+      "id": "NEW-RPA-TEST",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "parentId": "WOO-747",
+      "title": "[RPA] 예외·로그·테스트를 공통 형식으로 검증한다",
+      "description": "## 목적\n\n프로젝트마다 다른 실패 표현을 동일한 예외·로그·테스트 계약으로 정리한다.\n\n## 결과\n\n모든 중요 실패가 detect·control·recovery·재개 지점과 테스트 Evidence를 가진다.\n\n## 범위\n\n### 포함\n\n- 예외·로그·테스트 템플릿\n- 정상·경계·실패·부분 실패·재실행 시나리오\n\n### 제외\n\n- 실제 고객 데이터의 로그 저장\n- 테스트 통과만으로 운영 수락\n\n## 동작\n\n1. 외부 쓰기와 Mail Unit을 식별한다.\n2. 예외와 안전 로그 필드를 정의한다.\n3. 다섯 테스트 유형을 연결한다.\n4. Evidence와 미검증 범위를 Linear에 반영한다.\n\n## 완료 조건\n\n- [ ] 중요 예외마다 복구 테스트가 연결된다.\n- [ ] 민감정보가 로그에 포함되지 않는다.\n- [ ] PARTIAL·BLOCKED가 성공으로 바뀌지 않는다.\n\n## 연결\n\n- RPA-ID: RPA-TEST\n- Obsidian: [상세 정본](obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FSkills%2FRPA%20Test%20%E2%80%94%20%EC%98%88%EC%99%B8%20%EB%A1%9C%EA%B7%B8%20%ED%85%8C%EC%8A%A4%ED%8A%B8%EB%A5%BC%20%EA%B2%80%EC%A6%9D%ED%95%9C%EB%8B%A4.md)"
+    },
+    {
+      "id": "NEW-RPA-MONITOR",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "parentId": "WOO-747",
+      "title": "[RPA] 코드 중심의 안전한 Monitor 정보를 제공한다",
+      "description": "## 목적\n\n운영자가 내부 업무 데이터를 보지 않고 현재 수행 위치와 오류 대응 방법을 빠르게 판단하게 한다.\n\n## 결과\n\nProcess·Task·Unit·revision·안전 오류 요약·복구 행동이 고정 이벤트로 제공된다.\n\n## 범위\n\n### 포함\n\n- 실행 상태와 현재 위치\n- Sanitized code event와 복구 방법\n\n### 제외\n\n- 고객명·계좌·메일 원문 등 내부 데이터\n- 관측하지 않은 진행률 추정\n\n## 동작\n\n1. 실행 이벤트를 공통 상태로 정규화한다.\n2. 민감 필드를 Sanitizer로 제거한다.\n3. 오류 영향·즉시 조치·재개 지점을 표시한다.\n4. 보안과 신속 대응 시나리오를 검증한다.\n\n## 완료 조건\n\n- [ ] 금지 데이터가 Monitor에 노출되지 않는다.\n- [ ] 현재 실패 Unit과 revision을 확인한다.\n- [ ] 운영자가 다음 행동과 재개 지점을 찾는다.\n\n## 연결\n\n- RPA-ID: RPA-MONITOR\n- Obsidian: [상세 정본](obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FSkills%2FRPA%20Monitor%20%E2%80%94%20%EC%95%88%EC%A0%84%ED%95%9C%20%EC%9A%B4%EC%98%81%20%EC%83%81%ED%83%9C%EB%A5%BC%20%EC%A0%9C%EA%B3%B5%ED%95%9C%EB%8B%A4.md)"
+    },
+    {
+      "id": "NEW-RPA-MAINT",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "parentId": "WOO-747",
+      "title": "[RPA] 고객 요청과 버그를 유지보수 Flow로 전환한다",
+      "description": "## 목적\n\n복사된 고객 요청·오류·로그를 정확한 문제 유형과 수정 대상 Unit으로 연결한다.\n\n## 결과\n\n자유 형식 입력이 보안 정제·분류·재현·원인 확인·최소 수정·회귀 검증 Flow를 탄다.\n\n## 범위\n\n### 포함\n\n- 유지보수 Intent와 문제 유형 분류\n- 영향 PTU·revision·재실행 범위\n\n### 제외\n\n- 로그만으로 원인 확정\n- 관련 없는 Unit 변경\n\n## 동작\n\n1. 입력의 민감정보를 제거한다.\n2. 문제 유형과 영향 PTU를 찾는다.\n3. 추정 원인과 확인 원인을 분리한다.\n4. 최소 변경과 회귀·재실행 결과를 갱신한다.\n\n## 완료 조건\n\n- [ ] 재현 없는 원인 확정이 차단된다.\n- [ ] 수정 범위와 회귀 테스트가 연결된다.\n- [ ] 운영 복귀와 Linear read-back을 확인한다.\n\n## 연결\n\n- RPA-ID: RPA-MAINT\n- Obsidian: [상세 정본](obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FSkills%2FRPA%20Maintenance%20%E2%80%94%20%EA%B3%A0%EA%B0%9D%20%EC%9A%94%EC%B2%AD%EA%B3%BC%20%EB%B2%84%EA%B7%B8%EB%A5%BC%20%EC%B2%98%EB%A6%AC%ED%95%9C%EB%8B%A4.md)"
+    },
+    {
+      "id": "NEW-RPA-RECON",
+      "projectMilestone": {
+        "id": "11c54a66-8b02-497b-b462-c273141a440c",
+        "name": "v0.2.0 — System & Workflow Foundation"
+      },
+      "project": "World Wide Woo",
+      "archivedAt": null,
+      "status": "Backlog",
+      "labels": [],
+      "priority": 0,
+      "parentId": "WOO-747",
+      "title": "[RPA] Code·rpa-map·Linear·Obsidian 정합을 변경마다 검사한다",
+      "description": "## 목적\n\nRPA 변경이 코드·업무 계약·작업·상세 정본 사이에서 끊어지지 않게 한다.\n\n## 결과\n\n로컬·Commit·PR·Merge마다 drift가 분류되고 불일치가 다음 단계 진행을 차단한다.\n\n## 범위\n\n### 포함\n\n- Code·rpa-map·Linear·Obsidian 연결\n- 변경 감지·drift 분류·read-back\n\n### 제외\n\n- 업무 정의를 위한 별도 DB 정본\n- 확인되지 않은 자동 병합\n\n## 동작\n\n1. 변경된 RPA ID를 탐지한다.\n2. CODE_ONLY·MAP_ONLY·LINEAR_ONLY·OBSIDIAN_ONLY·CONTRACT_MISMATCH를 분류한다.\n3. 단계별 정합 Gate를 실행한다.\n4. 복구 뒤 모든 원본을 다시 읽는다.\n\n## 완료 조건\n\n- [ ] RPA ID 없는 코드 변경이 차단된다.\n- [ ] 각 drift가 소유 원본과 복구 행동을 가진다.\n- [ ] read-back에서 동일 계약을 확인한다.\n\n## 연결\n\n- RPA-ID: RPA-RECON\n- Obsidian: [상세 정본](obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FSkills%2FRPA%20Reconciliation%20%E2%80%94%20%EB%84%A4%20%EC%9B%90%EB%B3%B8%EC%9D%98%20%EC%A0%95%ED%95%A9%EC%9D%84%20%EA%B2%80%EC%82%AC%ED%95%9C%EB%8B%A4.md)"
+    }
+  ]
+}
+

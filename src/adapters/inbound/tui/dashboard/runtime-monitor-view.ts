@@ -34,6 +34,14 @@ export class RuntimeMonitorView implements Component {
 			if (data.approval?.pending) {
 				rows.push(colors.warning(`Approval WAITING · ${data.approval.elapsed ? elapsedAt(data.approval.elapsed, this.now()) : "time unknown"}`));
 			}
+			if (data.skillRun) {
+				section(rows, "SKILL RUN", size);
+				rows.push(`Run      ${data.skillRun.runId}`);
+				rows.push(`Skill    ${data.skillRun.skill ?? "none"} · ${data.skillRun.stage}`);
+				rows.push(`Work     ${[data.skillRun.processId, data.skillRun.taskId].filter(Boolean).join(" / ") || "unbound"}`);
+				if (data.skillRun.candidateId) rows.push(`Candidate ${data.skillRun.candidateId}`);
+				if (data.skillRun.receiptId) rows.push(`Receipt   ${data.skillRun.receiptId}`);
+			}
 		}
 
 		section(rows, "STATUS", size);
@@ -59,7 +67,8 @@ function hasNoObservation(data: RuntimeMonitorProjection): boolean {
 		&& data.sourceActivityIds.length === 0
 		&& data.recentEvents.length === 0
 		&& data.activeRequest === null
-		&& data.currentTool === null;
+		&& data.currentTool === null
+		&& data.skillRun === null;
 }
 
 function stateLine(data: RuntimeMonitorProjection): string {

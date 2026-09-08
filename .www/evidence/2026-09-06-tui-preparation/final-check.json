@@ -1,0 +1,15 @@
+{
+  "checkedAt": "2026-09-06T11:46:25.951827+00:00",
+  "issuesReadBack": 24,
+  "tuiLabelCount": 20,
+  "newIssueIds": [
+    "WOO-693",
+    "WOO-694"
+  ],
+  "mappingsVerified": 10,
+  "sourceAnnotationOnlyFiles": 8,
+  "testsPassed": 618,
+  "typecheckExitCode": 0,
+  "auditLinkCorrectionsReadBack": true,
+  "remainingProductAcceptance": "not performed"
+}

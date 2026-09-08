@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 3,
+  "kind": "test-contract",
+  "id": "TEST-TRACER-001",
+  "version": 1,
+  "immutable": true,
+  "payload": {
+    "purpose": "exact activity, thread, turn, Plan membership",
+    "risk": "유사 identity의 잘못된 선택",
+    "pass": "정확한 activity만 선택된다.",
+    "acceptanceIds": [
+      "AC-TRACER-001"
+    ]
+  },
+  "payloadDigest": "4017c43abfbfb4f215dbda9ba908db1883ca95e09f360752bea8bdc703257bad"
+}

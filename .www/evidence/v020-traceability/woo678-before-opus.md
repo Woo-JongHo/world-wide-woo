@@ -1,0 +1,29 @@
+---
+linear_id: WOO-678
+linear_uuid: 1c98b99d-cc26-43a0-913b-8ef1df0ad1ae
+unit_id: Code-010
+unit_uuid: bdee96af-1b07-4f96-8004-bc5ac0ca157d
+record_type: requirement
+source_revision: worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty
+updated_at: 2026-09-07T14:00:00+09:00
+---
+
+# WOO-678 · 한 줄 주간 사용량 HUD
+
+## 목적
+
+하단 HUD를 한 줄로 제한해 Chat과 작업 영역을 넓히면서, 공급자별 주간 잔여량만 빠르게 확인한다.
+
+## MVP 결정
+
+`WorkbenchBottomHudView`가 `Code-010`의 대표 선언이다. HUD는 정확히 한 행을 사용하며 공급자별 주간 잔여 비율과 초기화까지 남은 기간만 표시한다. 캐릭터, 장식, 5시간 창, 세션 상세, 상호작용은 이 MVP 범위에 포함하지 않는다.
+
+Gemini는 현재 사용량 backend가 지원되지 않으므로 값을 추정하지 않고 `—`로 표시한다. Codex와 Claude도 확인할 수 없는 값은 같은 원칙으로 `—`를 표시한다.
+
+## 실사용 후속 원칙
+
+이 변경은 제품 완료 선언이 아니라 최소 HUD 구현이다. 실제 터미널에서 한 줄 경계, 좁은 폭, 공급자 값 없음, 남은 기간의 읽기성을 사용한 뒤 발견된 문제는 기존 완료 조건을 소급 변경하지 않고 별도 후속 이슈로 기록한다.
+
+## 확인 방법
+
+`test/workbench-bottom-hud.test.ts`와 `test/usage-strip.test.ts`에서 한 행, 폭 제한, 공급자 순서와 미지원 값 표시를 확인한다. traceability gate는 Linear의 평문 `Code-010`, 실제 Vault bytes, `@Unit Code-010`, SQLite와 Map 투영을 함께 대조한다.

@@ -1,0 +1,22 @@
+bun test v1.4.0 (34cbb9a40)
+
+test/usage-strip.test.ts:
+(pass) 주간 잔여 비율과 초기화까지 남은 기간만 표시한다 [1.72ms]
+(pass) 값 없음과 좁은 폭에서도 한 줄 경계를 지킨다 [0.52ms]
+
+test/workbench-bottom-hud.test.ts:
+(pass) HUD는 캐릭터 없이 주간 사용량 한 줄만 차지한다 [0.20ms]
+
+test/development-traceability.test.ts:
+(pass) schema-v2 development traceability > validates UUID aliases, tombstones, edge directions, and next Code-NNN allocation [35.07ms]
+(pass) schema-v2 development traceability > uses AST declarations and actual note frontmatter while rejecting mutations [417.14ms]
+(pass) schema-v2 development traceability > rebuilds SQLite after deletion and returns one logical graph from four entry points [32.04ms]
+(pass) schema-v2 development traceability > fails closed when any traceability entity, edge, or metadata row is deleted or mutated [26.52ms]
+(pass) schema-v2 development traceability > requires explicit frozen Linear and Vault export artifacts for the offline gate [79.23ms]
+(pass) schema-v2 development traceability > requires every repository reference to resolve to a real file inside the project [15.74ms]
+(pass) schema-v2 development traceability > generates a stable Map while retaining Initiative Epic Story Evidence columns [13.83ms]
+
+ 10 pass
+ 0 fail
+ 63 expect() calls
+Ran 10 tests across 3 files. [749.00ms]

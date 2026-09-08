@@ -204,6 +204,7 @@ describe("workbench dashboard views", () => {
 
 		expect(output).toContain("Plan·Trace · 1/1 단계를 완료했습니다.");
 		expect(output).toContain("Trace · inferred · 1개");
+		expect(output).toContain("├─ 도구 commandExecution · completed");
 		expect(output).toContain("trace-command · /trace trace-command");
 		expect(output).toContain("공개 내용 · 보존된 관측 projection");
 		expect(output).toContain('"command": "bun test"');

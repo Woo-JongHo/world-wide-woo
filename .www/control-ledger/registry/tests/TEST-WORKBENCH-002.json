@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 3,
+  "kind": "test-contract",
+  "id": "TEST-WORKBENCH-002",
+  "version": 1,
+  "immutable": true,
+  "payload": {
+    "purpose": "view route와 Workbench 복귀",
+    "risk": "navigation 중 session 또는 draft 손실",
+    "pass": "명시적 view mode 전환 뒤 동일 context로 복귀한다.",
+    "acceptanceIds": [
+      "AC-WORKBENCH-002"
+    ]
+  },
+  "payloadDigest": "d183d62750ee5a44c07a75dfcca80e55c4d24b10f10f6fa48926c4c8ef7e190a"
+}

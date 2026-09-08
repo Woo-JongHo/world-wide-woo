@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 3,
+  "kind": "decision",
+  "id": "DEC-WORKBENCH-001",
+  "version": 1,
+  "immutable": true,
+  "payload": {
+    "decision": "WOO-674를 Workbench parent canonical document로 두고 Todo와 Tracer를 하위 capability로 연결한다."
+  },
+  "payloadDigest": "16f642f1bf1d5b3078c567829585c20c80622beaa3c35f55e562f4752ada822d"
+}

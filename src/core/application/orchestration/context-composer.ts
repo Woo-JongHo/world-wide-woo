@@ -1,9 +1,11 @@
 import type { NativeTurnStart } from "../../domain/execution/native-session.js";
 import type { WooEntrySnapshot } from "./woo-entry.js";
+import type { SkillRegistrySnapshot } from "../../skills/skill-registry.js";
 
 const CONTEXT_LIMIT = 4_000;
 const CONTEXT_POLICY_KEY = "www_context_policy";
 const CONTEXT_SOURCES_KEY = "www_context_sources";
+const SKILL_REGISTRY_KEY = "www_skill_registry";
 
 export interface ContextSourceResult {
 	readonly repository: Readonly<{ id: "WES" | "WWW"; root: string }>;
@@ -15,7 +17,7 @@ export interface ContextSourceResult {
 
 /** Builds the model context independently of any display projection. */
 export class ContextComposer {
-	compose(input: NativeTurnStart, wooEntry: WooEntrySnapshot | undefined): NativeTurnStart {
+	compose(input: NativeTurnStart, wooEntry: WooEntrySnapshot | undefined, skillRegistry?: SkillRegistrySnapshot): NativeTurnStart {
 		const sources = [this.wooEntrySource(wooEntry), this.wwwSource(input.cwd)];
 		const context = JSON.stringify({ protocol: "www-context-composer", version: 1, sources });
 		if (context.length > CONTEXT_LIMIT) throw new Error("Composed chat context exceeds the context budget.");
@@ -35,6 +37,7 @@ export class ContextComposer {
 					}),
 				},
 				[CONTEXT_SOURCES_KEY]: { kind: "untrusted", value: context },
+				...(skillRegistry ? { [SKILL_REGISTRY_KEY]: { kind: "application" as const, value: JSON.stringify({ protocol: "www-skill-registry", version: 1, sourceRevision: skillRegistry.sourceRevision, registryDigest: skillRegistry.digest, skills: skillRegistry.skills.map(skill => ({ name: skill.name, digest: skill.digest })) }) } } : {}),
 			},
 		};
 	}

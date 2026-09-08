@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 3,
+  "kind": "exception",
+  "id": "EXC-TRACER-003",
+  "version": 1,
+  "immutable": true,
+  "payload": {
+    "importance": "important",
+    "name": "resume 뒤 local activity journal이 partial",
+    "detect": "resume coverage와 observed sequence 범위를 검사한다.",
+    "control": "관측 밖 activity를 존재하지 않는 것으로 단정하지 않는다.",
+    "recovery": "현재 관측 범위에서 재시도하고 한계를 receipt에 기록한다.",
+    "testIds": [
+      "TEST-TRACER-003"
+    ],
+    "verification": {
+      "detect": [
+        "TEST-TRACER-003"
+      ],
+      "control": [
+        "TEST-TRACER-003"
+      ],
+      "recovery": [
+        "TEST-TRACER-003"
+      ]
+    }
+  },
+  "payloadDigest": "057314f50bb780e747e60b63e372f2406baec846d6965ea75dd3a3c93b2086ea"
+}

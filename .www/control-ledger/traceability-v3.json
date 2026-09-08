@@ -27,6 +27,39 @@
       "version": 1
     },
     {
+      "ref": "decision:DEC-TODO-001@v1",
+      "kind": "decision",
+      "id": "DEC-TODO-001",
+      "version": 1,
+      "immutable": true,
+      "source": {
+        "path": ".www/control-ledger/registry/decisions/DEC-TODO-001.json",
+        "digest": "23c7b09d1a63ee0a9ca9f9742d67bb133ff885d11a690d3ee19b3380d3d97377"
+      }
+    },
+    {
+      "ref": "decision:DEC-TRACER-001@v1",
+      "kind": "decision",
+      "id": "DEC-TRACER-001",
+      "version": 1,
+      "immutable": true,
+      "source": {
+        "path": ".www/control-ledger/registry/decisions/DEC-TRACER-001.json",
+        "digest": "e716646c34db16d18413f7474967f8d9debbb8e22281b94add70436dfe82bede"
+      }
+    },
+    {
+      "ref": "decision:DEC-WORKBENCH-001@v1",
+      "kind": "decision",
+      "id": "DEC-WORKBENCH-001",
+      "version": 1,
+      "immutable": true,
+      "source": {
+        "path": ".www/control-ledger/registry/decisions/DEC-WORKBENCH-001.json",
+        "digest": "6fbcdb7c5a0b20146f8c954de14e5497dec0fe5aba440c2733ffd366431bcd93"
+      }
+    },
+    {
       "ref": "evidence:EV-WOO-845-846-UNVERIFIED-001",
       "kind": "evidence",
       "id": "EV-WOO-845-846-UNVERIFIED-001",
@@ -63,9 +96,113 @@
       "version": 1
     },
     {
+      "ref": "exception:EXC-TODO-001@v1",
+      "kind": "exception",
+      "id": "EXC-TODO-001",
+      "version": 1,
+      "immutable": true,
+      "source": {
+        "path": ".www/control-ledger/registry/exceptions/EXC-TODO-001.json",
+        "digest": "8e7fca10e9c9ee6c4a522af50c1ceaaa1368a8e23b88e8ba0365c54f889dbd10"
+      }
+    },
+    {
+      "ref": "exception:EXC-TODO-002@v1",
+      "kind": "exception",
+      "id": "EXC-TODO-002",
+      "version": 1,
+      "immutable": true,
+      "source": {
+        "path": ".www/control-ledger/registry/exceptions/EXC-TODO-002.json",
+        "digest": "f3b1efd0bfcdf2850658515af5faf512e4baaa9f5b5a280bd353391e444323e7"
+      }
+    },
+    {
+      "ref": "exception:EXC-TODO-003@v1",
+      "kind": "exception",
+      "id": "EXC-TODO-003",
+      "version": 1,
+      "immutable": true,
+      "source": {
+        "path": ".www/control-ledger/registry/exceptions/EXC-TODO-003.json",
+        "digest": "95bb59d1afc66502bef583f7fd99f78fc132c90853a81c7cef7be6f9bf2351f5"
+      }
+    },
+    {
+      "ref": "exception:EXC-TRACER-001@v1",
+      "kind": "exception",
+      "id": "EXC-TRACER-001",
+      "version": 1,
+      "immutable": true,
+      "source": {
+        "path": ".www/control-ledger/registry/exceptions/EXC-TRACER-001.json",
+        "digest": "0004df0c05ed47a574c8ca5fcfeac44169bd157b1cc9efe81f481cb200357459"
+      }
+    },
+    {
+      "ref": "exception:EXC-TRACER-002@v1",
+      "kind": "exception",
+      "id": "EXC-TRACER-002",
+      "version": 1,
+      "immutable": true,
+      "source": {
+        "path": ".www/control-ledger/registry/exceptions/EXC-TRACER-002.json",
+        "digest": "8f854126206a2daf6c0b3ba2c5f82f7884ccb8c06498b890b34eb7f63e573312"
+      }
+    },
+    {
+      "ref": "exception:EXC-TRACER-003@v1",
+      "kind": "exception",
+      "id": "EXC-TRACER-003",
+      "version": 1,
+      "immutable": true,
+      "source": {
+        "path": ".www/control-ledger/registry/exceptions/EXC-TRACER-003.json",
+        "digest": "31b2d63d6a181e447590c9129ac5ca302ae97e016aecb0524523459a45b335cb"
+      }
+    },
+    {
+      "ref": "exception:EXC-WORKBENCH-001@v1",
+      "kind": "exception",
+      "id": "EXC-WORKBENCH-001",
+      "version": 1,
+      "immutable": true,
+      "source": {
+        "path": ".www/control-ledger/registry/exceptions/EXC-WORKBENCH-001.json",
+        "digest": "8561adf70e26ff899b283761435bd3ce201924a392641079079b450d7431139f"
+      }
+    },
+    {
+      "ref": "exception:EXC-WORKBENCH-002@v1",
+      "kind": "exception",
+      "id": "EXC-WORKBENCH-002",
+      "version": 1,
+      "immutable": true,
+      "source": {
+        "path": ".www/control-ledger/registry/exceptions/EXC-WORKBENCH-002.json",
+        "digest": "9a9813d3f6bcde7757d6d43556dc21f12e9540d812727090b9f4129d7b54feff"
+      }
+    },
+    {
+      "ref": "exception:EXC-WORKBENCH-003@v1",
+      "kind": "exception",
+      "id": "EXC-WORKBENCH-003",
+      "version": 1,
+      "immutable": true,
+      "source": {
+        "path": ".www/control-ledger/registry/exceptions/EXC-WORKBENCH-003.json",
+        "digest": "b95af3247c61c950864aaa9942ade16539095ae512474ef59661c529cb190f75"
+      }
+    },
+    {
       "ref": "git-revision:worktree:2d0f8fdcfd6eb0dbf2f16707ebf98ff75885612b:dirty",
       "kind": "git-revision",
       "id": "worktree:2d0f8fdcfd6eb0dbf2f16707ebf98ff75885612b:dirty"
+    },
+    {
+      "ref": "issue:WOO-674",
+      "kind": "issue",
+      "id": "WOO-674"
     },
     {
       "ref": "issue:WOO-678",
@@ -253,6 +390,33 @@
       "id": "traceability-validation-v020-20260907"
     },
     {
+      "ref": "note:034d0686-30cf-4318-a70c-94b65e98bce7",
+      "kind": "note",
+      "id": "034d0686-30cf-4318-a70c-94b65e98bce7",
+      "source": {
+        "path": "Workbench/Todo — AI가 세운 계획을 세션별로 실시간 확인한다.md",
+        "digest": "2e8761a419be7d7bf6bb9f602b7ee2d36431c3e511ef96f50c5c55c27a554f39"
+      }
+    },
+    {
+      "ref": "note:742cd6b6-37d9-4f64-a96d-273f4cfb4bea",
+      "kind": "note",
+      "id": "742cd6b6-37d9-4f64-a96d-273f4cfb4bea",
+      "source": {
+        "path": "Workbench/Workbench — 대화와 계획을 통제한다.md",
+        "digest": "95cd1cf9d2ff1f87ec13b1b9949c3764cd897a2412fb8f31eeca9a0830a661cc"
+      }
+    },
+    {
+      "ref": "note:a53bc69a-ae43-4350-bdc1-ca1e0b08fc45",
+      "kind": "note",
+      "id": "a53bc69a-ae43-4350-bdc1-ca1e0b08fc45",
+      "source": {
+        "path": "Workbench/Tracer — Todo의 내부 실행 과정을 세션별로 실시간 확인한다.md",
+        "digest": "eb3d29a6a3c0a0755348d373c53887f47d1ea1004dbc77c74b4001702d0e7102"
+      }
+    },
+    {
       "ref": "note:WOO-678",
       "kind": "note",
       "id": "WOO-678"
@@ -266,16 +430,6 @@
       "ref": "note:WOO-680",
       "kind": "note",
       "id": "WOO-680"
-    },
-    {
-      "ref": "note:WOO-681",
-      "kind": "note",
-      "id": "WOO-681"
-    },
-    {
-      "ref": "note:WOO-682",
-      "kind": "note",
-      "id": "WOO-682"
     },
     {
       "ref": "note:WOO-686",
@@ -453,6 +607,28 @@
       "version": 1
     },
     {
+      "ref": "spec:TODO-001@v1",
+      "kind": "spec",
+      "id": "TODO-001",
+      "version": 1,
+      "immutable": true,
+      "source": {
+        "path": ".www/control-ledger/registry/specs/TODO-001.json",
+        "digest": "24bb5ba097edd723a4dc150c7321bd0d37e1d4129b63a7c105bda7df2bd71df1"
+      }
+    },
+    {
+      "ref": "spec:TRACER-001@v1",
+      "kind": "spec",
+      "id": "TRACER-001",
+      "version": 1,
+      "immutable": true,
+      "source": {
+        "path": ".www/control-ledger/registry/specs/TRACER-001.json",
+        "digest": "99313c64ba9327c81ef15be2f10af169de0a2fa89bcafc15c31e37de72b78cb4"
+      }
+    },
+    {
       "ref": "test-contract:TEST-031@v1",
       "kind": "test-contract",
       "id": "TEST-031",
@@ -463,6 +639,127 @@
       "kind": "test-contract",
       "id": "TEST-032",
       "version": 1
+    },
+    {
+      "ref": "test-contract:TEST-TODO-001@v1",
+      "kind": "test-contract",
+      "id": "TEST-TODO-001",
+      "version": 1,
+      "immutable": true,
+      "source": {
+        "path": ".www/control-ledger/registry/tests/TEST-TODO-001.json",
+        "digest": "3cc6093fbba70acbfd25d262ca9b3a0340e9d7391601503bf704d43eede5c3f9"
+      }
+    },
+    {
+      "ref": "test-contract:TEST-TODO-002@v1",
+      "kind": "test-contract",
+      "id": "TEST-TODO-002",
+      "version": 1,
+      "immutable": true,
+      "source": {
+        "path": ".www/control-ledger/registry/tests/TEST-TODO-002.json",
+        "digest": "8f02e290732bd7884d2dd23f2d6a4908cc135f11c461b0cc700ef9173e68f36c"
+      }
+    },
+    {
+      "ref": "test-contract:TEST-TODO-003@v1",
+      "kind": "test-contract",
+      "id": "TEST-TODO-003",
+      "version": 1,
+      "immutable": true,
+      "source": {
+        "path": ".www/control-ledger/registry/tests/TEST-TODO-003.json",
+        "digest": "b7c99aaf23373c7dd8d2f9990340a98cc086a16c36519cfa1ae7e1a6d1c9053f"
+      }
+    },
+    {
+      "ref": "test-contract:TEST-TODO-004@v1",
+      "kind": "test-contract",
+      "id": "TEST-TODO-004",
+      "version": 1,
+      "immutable": true,
+      "source": {
+        "path": ".www/control-ledger/registry/tests/TEST-TODO-004.json",
+        "digest": "d008421aeb652552e7014120549721f0732977592a954ea36a2fa9dd614b7c89"
+      }
+    },
+    {
+      "ref": "test-contract:TEST-TRACER-001@v1",
+      "kind": "test-contract",
+      "id": "TEST-TRACER-001",
+      "version": 1,
+      "immutable": true,
+      "source": {
+        "path": ".www/control-ledger/registry/tests/TEST-TRACER-001.json",
+        "digest": "d07dd287dfe77b07b259b28f27ca1ea3c7d1fb201d877de2302cf6b654ba14bb"
+      }
+    },
+    {
+      "ref": "test-contract:TEST-TRACER-002@v1",
+      "kind": "test-contract",
+      "id": "TEST-TRACER-002",
+      "version": 1,
+      "immutable": true,
+      "source": {
+        "path": ".www/control-ledger/registry/tests/TEST-TRACER-002.json",
+        "digest": "56789047211d9d27011b63e0497cf0e6855c60322a55f1f643981cf3adecfb37"
+      }
+    },
+    {
+      "ref": "test-contract:TEST-TRACER-003@v1",
+      "kind": "test-contract",
+      "id": "TEST-TRACER-003",
+      "version": 1,
+      "immutable": true,
+      "source": {
+        "path": ".www/control-ledger/registry/tests/TEST-TRACER-003.json",
+        "digest": "1bf8c0d4556524a467316e675089bfb6cce1b07a9d91371236abf8a4b6e041e6"
+      }
+    },
+    {
+      "ref": "test-contract:TEST-WORKBENCH-001@v1",
+      "kind": "test-contract",
+      "id": "TEST-WORKBENCH-001",
+      "version": 1,
+      "immutable": true,
+      "source": {
+        "path": ".www/control-ledger/registry/tests/TEST-WORKBENCH-001.json",
+        "digest": "da8c6d662f7bb7638791941ad7a3dee87698b6cee6f49a13dfdbf5803209ff59"
+      }
+    },
+    {
+      "ref": "test-contract:TEST-WORKBENCH-002@v1",
+      "kind": "test-contract",
+      "id": "TEST-WORKBENCH-002",
+      "version": 1,
+      "immutable": true,
+      "source": {
+        "path": ".www/control-ledger/registry/tests/TEST-WORKBENCH-002.json",
+        "digest": "3eb434d789e8eec12d89701978565a8121ba2b544a874bc832df53852eb4a205"
+      }
+    },
+    {
+      "ref": "test-contract:TEST-WORKBENCH-003@v1",
+      "kind": "test-contract",
+      "id": "TEST-WORKBENCH-003",
+      "version": 1,
+      "immutable": true,
+      "source": {
+        "path": ".www/control-ledger/registry/tests/TEST-WORKBENCH-003.json",
+        "digest": "e903f911470dcca524fb5af12441e0167001bcc1333e74c9bfbac53613c93ac6"
+      }
+    },
+    {
+      "ref": "test-contract:TEST-WORKBENCH-004@v1",
+      "kind": "test-contract",
+      "id": "TEST-WORKBENCH-004",
+      "version": 1,
+      "immutable": true,
+      "source": {
+        "path": ".www/control-ledger/registry/tests/TEST-WORKBENCH-004.json",
+        "digest": "f6ff515d9976f9ea7f7d3af8f23cedbea8f5c0c5ba0c33e2815a500186ba6146"
+      }
     },
     {
       "ref": "unit:Code-001",
@@ -552,6 +849,56 @@
       "to": "test-contract:TEST-032@v1"
     },
     {
+      "from": "exception:EXC-TODO-001@v1",
+      "relation": "verified-by",
+      "to": "test-contract:TEST-TODO-001@v1"
+    },
+    {
+      "from": "exception:EXC-TODO-002@v1",
+      "relation": "verified-by",
+      "to": "test-contract:TEST-TODO-003@v1"
+    },
+    {
+      "from": "exception:EXC-TODO-003@v1",
+      "relation": "verified-by",
+      "to": "test-contract:TEST-TODO-004@v1"
+    },
+    {
+      "from": "exception:EXC-TRACER-001@v1",
+      "relation": "verified-by",
+      "to": "test-contract:TEST-TRACER-002@v1"
+    },
+    {
+      "from": "exception:EXC-TRACER-002@v1",
+      "relation": "verified-by",
+      "to": "test-contract:TEST-TRACER-002@v1"
+    },
+    {
+      "from": "exception:EXC-TRACER-003@v1",
+      "relation": "verified-by",
+      "to": "test-contract:TEST-TRACER-003@v1"
+    },
+    {
+      "from": "exception:EXC-WORKBENCH-001@v1",
+      "relation": "verified-by",
+      "to": "test-contract:TEST-WORKBENCH-001@v1"
+    },
+    {
+      "from": "exception:EXC-WORKBENCH-002@v1",
+      "relation": "verified-by",
+      "to": "test-contract:TEST-WORKBENCH-001@v1"
+    },
+    {
+      "from": "exception:EXC-WORKBENCH-003@v1",
+      "relation": "verified-by",
+      "to": "test-contract:TEST-WORKBENCH-004@v1"
+    },
+    {
+      "from": "issue:WOO-674",
+      "relation": "detailed-by",
+      "to": "note:742cd6b6-37d9-4f64-a96d-273f4cfb4bea"
+    },
+    {
       "from": "issue:WOO-678",
       "relation": "detailed-by",
       "to": "note:WOO-678"
@@ -609,7 +956,7 @@
     {
       "from": "issue:WOO-681",
       "relation": "detailed-by",
-      "to": "note:WOO-681"
+      "to": "note:a53bc69a-ae43-4350-bdc1-ca1e0b08fc45"
     },
     {
       "from": "issue:WOO-681",
@@ -619,7 +966,7 @@
     {
       "from": "issue:WOO-682",
       "relation": "detailed-by",
-      "to": "note:WOO-682"
+      "to": "note:034d0686-30cf-4318-a70c-94b65e98bce7"
     },
     {
       "from": "issue:WOO-682",
@@ -1319,6 +1666,16 @@
     {
       "from": "legacy:traceability-validation-v020-20260907",
       "relation": "recorded-in",
+      "to": "note:034d0686-30cf-4318-a70c-94b65e98bce7"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
+      "to": "note:a53bc69a-ae43-4350-bdc1-ca1e0b08fc45"
+    },
+    {
+      "from": "legacy:traceability-validation-v020-20260907",
+      "relation": "recorded-in",
       "to": "note:WOO-678"
     },
     {
@@ -1330,16 +1687,6 @@
       "from": "legacy:traceability-validation-v020-20260907",
       "relation": "recorded-in",
       "to": "note:WOO-680"
-    },
-    {
-      "from": "legacy:traceability-validation-v020-20260907",
-      "relation": "recorded-in",
-      "to": "note:WOO-681"
-    },
-    {
-      "from": "legacy:traceability-validation-v020-20260907",
-      "relation": "recorded-in",
-      "to": "note:WOO-682"
     },
     {
       "from": "legacy:traceability-validation-v020-20260907",
@@ -1497,6 +1844,171 @@
       "to": "note:WOO-726"
     },
     {
+      "from": "note:034d0686-30cf-4318-a70c-94b65e98bce7",
+      "relation": "references",
+      "to": "decision:DEC-TODO-001@v1"
+    },
+    {
+      "from": "note:034d0686-30cf-4318-a70c-94b65e98bce7",
+      "relation": "references",
+      "to": "exception:EXC-TODO-001@v1"
+    },
+    {
+      "from": "note:034d0686-30cf-4318-a70c-94b65e98bce7",
+      "relation": "references",
+      "to": "exception:EXC-TODO-002@v1"
+    },
+    {
+      "from": "note:034d0686-30cf-4318-a70c-94b65e98bce7",
+      "relation": "references",
+      "to": "exception:EXC-TODO-003@v1"
+    },
+    {
+      "from": "note:034d0686-30cf-4318-a70c-94b65e98bce7",
+      "relation": "references",
+      "to": "spec:TODO-001@v1"
+    },
+    {
+      "from": "note:034d0686-30cf-4318-a70c-94b65e98bce7",
+      "relation": "references",
+      "to": "test-contract:TEST-TODO-001@v1"
+    },
+    {
+      "from": "note:034d0686-30cf-4318-a70c-94b65e98bce7",
+      "relation": "references",
+      "to": "test-contract:TEST-TODO-002@v1"
+    },
+    {
+      "from": "note:034d0686-30cf-4318-a70c-94b65e98bce7",
+      "relation": "references",
+      "to": "test-contract:TEST-TODO-003@v1"
+    },
+    {
+      "from": "note:034d0686-30cf-4318-a70c-94b65e98bce7",
+      "relation": "references",
+      "to": "test-contract:TEST-TODO-004@v1"
+    },
+    {
+      "from": "note:034d0686-30cf-4318-a70c-94b65e98bce7",
+      "relation": "references",
+      "to": "unit:Code-011"
+    },
+    {
+      "from": "note:034d0686-30cf-4318-a70c-94b65e98bce7",
+      "relation": "related-to",
+      "to": "note:a53bc69a-ae43-4350-bdc1-ca1e0b08fc45"
+    },
+    {
+      "from": "note:742cd6b6-37d9-4f64-a96d-273f4cfb4bea",
+      "relation": "parent-of",
+      "to": "note:034d0686-30cf-4318-a70c-94b65e98bce7"
+    },
+    {
+      "from": "note:742cd6b6-37d9-4f64-a96d-273f4cfb4bea",
+      "relation": "parent-of",
+      "to": "note:a53bc69a-ae43-4350-bdc1-ca1e0b08fc45"
+    },
+    {
+      "from": "note:742cd6b6-37d9-4f64-a96d-273f4cfb4bea",
+      "relation": "references",
+      "to": "decision:DEC-WORKBENCH-001@v1"
+    },
+    {
+      "from": "note:742cd6b6-37d9-4f64-a96d-273f4cfb4bea",
+      "relation": "references",
+      "to": "exception:EXC-WORKBENCH-001@v1"
+    },
+    {
+      "from": "note:742cd6b6-37d9-4f64-a96d-273f4cfb4bea",
+      "relation": "references",
+      "to": "exception:EXC-WORKBENCH-002@v1"
+    },
+    {
+      "from": "note:742cd6b6-37d9-4f64-a96d-273f4cfb4bea",
+      "relation": "references",
+      "to": "exception:EXC-WORKBENCH-003@v1"
+    },
+    {
+      "from": "note:742cd6b6-37d9-4f64-a96d-273f4cfb4bea",
+      "relation": "references",
+      "to": "test-contract:TEST-WORKBENCH-001@v1"
+    },
+    {
+      "from": "note:742cd6b6-37d9-4f64-a96d-273f4cfb4bea",
+      "relation": "references",
+      "to": "test-contract:TEST-WORKBENCH-002@v1"
+    },
+    {
+      "from": "note:742cd6b6-37d9-4f64-a96d-273f4cfb4bea",
+      "relation": "references",
+      "to": "test-contract:TEST-WORKBENCH-003@v1"
+    },
+    {
+      "from": "note:742cd6b6-37d9-4f64-a96d-273f4cfb4bea",
+      "relation": "references",
+      "to": "test-contract:TEST-WORKBENCH-004@v1"
+    },
+    {
+      "from": "note:742cd6b6-37d9-4f64-a96d-273f4cfb4bea",
+      "relation": "related-to",
+      "to": "note:034d0686-30cf-4318-a70c-94b65e98bce7"
+    },
+    {
+      "from": "note:742cd6b6-37d9-4f64-a96d-273f4cfb4bea",
+      "relation": "related-to",
+      "to": "note:a53bc69a-ae43-4350-bdc1-ca1e0b08fc45"
+    },
+    {
+      "from": "note:a53bc69a-ae43-4350-bdc1-ca1e0b08fc45",
+      "relation": "references",
+      "to": "decision:DEC-TRACER-001@v1"
+    },
+    {
+      "from": "note:a53bc69a-ae43-4350-bdc1-ca1e0b08fc45",
+      "relation": "references",
+      "to": "exception:EXC-TRACER-001@v1"
+    },
+    {
+      "from": "note:a53bc69a-ae43-4350-bdc1-ca1e0b08fc45",
+      "relation": "references",
+      "to": "exception:EXC-TRACER-002@v1"
+    },
+    {
+      "from": "note:a53bc69a-ae43-4350-bdc1-ca1e0b08fc45",
+      "relation": "references",
+      "to": "exception:EXC-TRACER-003@v1"
+    },
+    {
+      "from": "note:a53bc69a-ae43-4350-bdc1-ca1e0b08fc45",
+      "relation": "references",
+      "to": "spec:TRACER-001@v1"
+    },
+    {
+      "from": "note:a53bc69a-ae43-4350-bdc1-ca1e0b08fc45",
+      "relation": "references",
+      "to": "test-contract:TEST-TRACER-001@v1"
+    },
+    {
+      "from": "note:a53bc69a-ae43-4350-bdc1-ca1e0b08fc45",
+      "relation": "references",
+      "to": "test-contract:TEST-TRACER-002@v1"
+    },
+    {
+      "from": "note:a53bc69a-ae43-4350-bdc1-ca1e0b08fc45",
+      "relation": "references",
+      "to": "test-contract:TEST-TRACER-003@v1"
+    },
+    {
+      "from": "note:a53bc69a-ae43-4350-bdc1-ca1e0b08fc45",
+      "relation": "references",
+      "to": "unit:Code-012"
+    },
+    {
+      "from": "note:a53bc69a-ae43-4350-bdc1-ca1e0b08fc45",
+      "relation": "related-to",
+      "to": "note:034d0686-30cf-4318-a70c-94b65e98bce7"
+    },
+    {
       "from": "receipt:VR-CHAT-001-001",
       "relation": "at-revision",
       "to": "git-revision:worktree:2d0f8fdcfd6eb0dbf2f16707ebf98ff75885612b:dirty"
@@ -1595,9 +2107,62 @@
       "from": "spec:CHAT-001@v1",
       "relation": "tracks",
       "to": "issue:WOO-686"
+    },
+    {
+      "from": "spec:TODO-001@v1",
+      "relation": "decided-by",
+      "to": "decision:DEC-TODO-001@v1"
+    },
+    {
+      "from": "spec:TODO-001@v1",
+      "relation": "excepted-by",
+      "to": "exception:EXC-TODO-001@v1"
+    },
+    {
+      "from": "spec:TODO-001@v1",
+      "relation": "excepted-by",
+      "to": "exception:EXC-TODO-002@v1"
+    },
+    {
+      "from": "spec:TODO-001@v1",
+      "relation": "excepted-by",
+      "to": "exception:EXC-TODO-003@v1"
+    },
+    {
+      "from": "spec:TODO-001@v1",
+      "relation": "implemented-by",
+      "to": "unit:Code-011"
+    },
+    {
+      "from": "spec:TRACER-001@v1",
+      "relation": "decided-by",
+      "to": "decision:DEC-TRACER-001@v1"
+    },
+    {
+      "from": "spec:TRACER-001@v1",
+      "relation": "excepted-by",
+      "to": "exception:EXC-TRACER-001@v1"
+    },
+    {
+      "from": "spec:TRACER-001@v1",
+      "relation": "excepted-by",
+      "to": "exception:EXC-TRACER-002@v1"
+    },
+    {
+      "from": "spec:TRACER-001@v1",
+      "relation": "excepted-by",
+      "to": "exception:EXC-TRACER-003@v1"
+    },
+    {
+      "from": "spec:TRACER-001@v1",
+      "relation": "implemented-by",
+      "to": "unit:Code-012"
     }
   ],
-  "tombstones": [],
+  "tombstones": [
+    "note:WOO-681",
+    "note:WOO-682"
+  ],
   "migrations": [
     {
       "from": "0001",
@@ -1625,10 +2190,20 @@
       "reason": "Code-NNN 형식으로 정규화"
     },
     {
+      "from": "note:WOO-681",
+      "to": "note:a53bc69a-ae43-4350-bdc1-ca1e0b08fc45",
+      "reason": "Obsidian note identity migrated from Linear filename to stable document_id"
+    },
+    {
+      "from": "note:WOO-682",
+      "to": "note:034d0686-30cf-4318-a70c-94b65e98bce7",
+      "reason": "Obsidian note identity migrated from Linear filename to stable document_id"
+    },
+    {
       "from": "traceability-v2",
       "to": "traceability-v3",
       "reason": "one-shot migration boundary"
     }
   ],
-  "payloadDigest": "ff183a07e440c3d3f0a4ff163244af09b13a5b4d44e4c50330ee80e557fd1c82"
+  "payloadDigest": "50f61a1cffa89b17f8a00f3c995873e5298c5e8d9b83aeefdfb4de42ecb0475d"
 }

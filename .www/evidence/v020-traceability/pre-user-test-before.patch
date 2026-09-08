@@ -1,0 +1,996 @@
+diff --git a/.github/workflows/quality.yml b/.github/workflows/quality.yml
+index e5d6b55..5d81b9b 100644
+--- a/.github/workflows/quality.yml
++++ b/.github/workflows/quality.yml
+@@ -24,6 +24,8 @@ jobs:
+       - run: bun install --frozen-lockfile
+       - run: bun run check
+       - run: bun test
++      - name: Verify frozen Linear and Obsidian traceability artifacts
++        run: bun run traceability:check
+       - name: Verify platform file/process boundary
+         run: bun run release:gate -- --platform-check
+ 
+diff --git a/.www/Development-Map.md b/.www/Development-Map.md
+index 6be06ab..d0b91d7 100644
+--- a/.www/Development-Map.md
++++ b/.www/Development-Map.md
+@@ -105,3 +105,30 @@ EP-001~009는 Planning Package v1 이전의 legacy projection이라 Initiative m
+ | 무엇을 구현하고 검증하는가 | `ST-*.md` |
+ | 지금 무엇을 하는가 | Run의 `Todo.md` |
+ | 완료 근거가 무엇인가 | Story-linked Evidence |
++
++<!-- traceability:generated:start -->
++## Linear–Code–Obsidian 추적 투영
++
++이 표는 schema v2 관계 원장과 work manifest에서 생성하며, traceability gate가 같은 그래프의 공용 SQLite 투영과 canonical digest를 대조한다. 상세 요구는 Linear와 Obsidian이 소유하며 여기에는 복제하지 않는다. Initiative·Epic·Story·Evidence는 실제 work manifest의 양방향 관계만 표시하며 ID를 추정하지 않는다.
++
++| Initiative | Epic | Story | Evidence | Linear | Code Unit | Obsidian | PR code evidence | Validation Run | 무결성 | 다음 전환 |
++|---|---|---|---|---|---|---|---|---|---|---|
++| 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-678 | Code-010 | WOO-678 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
++| 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-chat-development/assessment.md<br>.www/evidence/v020-traceability/verification.json | WOO-679 | Code-001<br>Code-002<br>Code-003<br>Code-004<br>Code-005 | WOO-679 | #46 (Chat v0.1 code) | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
++| 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-chat-development/assessment.md<br>.www/evidence/v020-traceability/verification.json | WOO-686 | Code-001 | WOO-686 | #46 (Chat v0.1 code) | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
++| 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-chat-development/assessment.md<br>.www/evidence/v020-traceability/verification.json | WOO-687 | Code-001 | WOO-687 | #46 (Chat v0.1 code) | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
++| 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-chat-development/assessment.md<br>.www/evidence/v020-traceability/verification.json | WOO-688 | Code-001<br>Code-002 | WOO-688 | #46 (Chat v0.1 code) | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
++| 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-chat-development/assessment.md<br>.www/evidence/v020-traceability/verification.json | WOO-689 | Code-001<br>Code-003 | WOO-689 | #46 (Chat v0.1 code) | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
++| 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-chat-development/assessment.md<br>.www/evidence/v020-traceability/verification.json | WOO-690 | Code-002 | WOO-690 | #46 (Chat v0.1 code) | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
++| 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-chat-development/assessment.md<br>.www/evidence/v020-traceability/verification.json | WOO-691 | Code-001<br>Code-002 | WOO-691 | #46 (Chat v0.1 code) | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
++| 미연결 | 미연결 | 미연결 | .www/evidence/2026-09-06-chat-development/assessment.md<br>.www/evidence/v020-traceability/verification.json | WOO-692 | Code-001<br>Code-002<br>Code-003<br>Code-004<br>Code-005 | WOO-692 | #46 (Chat v0.1 code) | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
++| 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-695 | Code-006<br>Code-007 | WOO-695 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
++| 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-696 | Code-008 | WOO-696 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
++| 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-697 | Code-008 | WOO-697 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
++| 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-698 | Code-007 | WOO-698 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
++| 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-699 | Code-009 | WOO-699 | 미연결 | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
++| 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-718 | Code-001<br>Code-002<br>Code-004<br>Code-005 | WOO-718 | #46 (Chat v0.1 code) | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
++| 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-719 | Code-001<br>Code-002<br>Code-004 | WOO-719 | #46 (Chat v0.1 code) | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
++| 미연결 | 미연결 | 미연결 | .www/evidence/v020-traceability/verification.json | WOO-720 | Code-001<br>Code-002<br>Code-003<br>Code-004<br>Code-005 | WOO-720 | #46 (Chat v0.1 code) | traceability-validation-v020-20260907 | 연결됨 | 수락 상태 확인 |
++
++<!-- traceability:generated:end -->
+diff --git a/AGENTS.md b/AGENTS.md
+index c443472..00b8df2 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -1,8 +1,12 @@
+ # World Wide Woo 프로젝트 규칙
+ 
++## 개발 추적
++
++- Linear·Code-NNN·Obsidian·SQLite·Development Map 연결을 생성하거나 바꿀 때는 프로젝트 로컬 [development-traceability](.agents/skills/development-traceability/SKILL.md)를 읽고 적용한다.
++- Linear 제목·번호·계층을 바꿀 때는 [woo-linear-title-hierarchy](.agents/skills/woo-linear-title-hierarchy/SKILL.md), 이슈를 생성·이동하거나 본문을 바꿀 때는 [woo-linear-issue-intake](.agents/skills/woo-linear-issue-intake/SKILL.md)를 읽고 적용한다.
++
+ ## Git 기록
+ 
+ - 커밋을 준비하거나 실행할 때는 프로젝트 로컬 `$woo-commit`을 사용한다.
+ - GitHub Issue를 생성하거나 수정할 때는 프로젝트 로컬 `$woo-issue-intake`를 사용한다.
+ - 제목은 한국어 문제·요청·결과 문장으로 쓴다. `feat:`, `fix(scope):` 같은 Conventional Commits 유형·범위 접두어는 사용하지 않으며, Issue 유형은 `bug` 또는 `enhancement` 라벨이 소유한다.
+-
+diff --git a/package.json b/package.json
+index 4c34fb9..b55ff02 100644
+--- a/package.json
++++ b/package.json
+@@ -1,33 +1,38 @@
+ {
+-  "name": "world-wide-woo",
+-  "version": "0.1.11",
+-  "private": true,
+-  "type": "module",
+-  "bin": {
+-    "www": "./src/cli.ts"
+-  },
+-  "scripts": {
+-    "start": "bun src/cli.ts",
+-    "check": "tsc --noEmit",
+-    "test": "bun test",
+-    "release:gate": "bun scripts/release-gate.ts"
+-  },
+-  "dependencies": {
+-    "@earendil-works/pi-ai": "0.84.4",
+-    "@earendil-works/pi-coding-agent": "0.84.4",
+-    "@earendil-works/pi-tui": "0.84.4",
+-    "@gajae-code/ai": "0.15.6",
+-    "@gajae-code/natives": "0.15.6",
+-    "chalk": "5.6.2",
+-    "open": "10.2.0",
+-    "typebox": "1.3.7",
+-    "yaml": "^2.9.0"
+-  },
+-  "devDependencies": {
+-    "@types/bun": "1.4.0",
+-    "typescript": "7.0.2"
+-  },
+-  "patchedDependencies": {
+-    "@earendil-works/pi-tui@0.84.4": "patches/@earendil-works%2Fpi-tui@0.84.4.patch"
+-  }
++	"name": "world-wide-woo",
++	"version": "0.0.15",
++	"private": true,
++	"type": "module",
++	"bin": {
++		"www": "./src/cli.ts"
++	},
++	"scripts": {
++		"start": "bun src/cli.ts",
++		"check": "tsc --noEmit",
++		"test": "bun test",
++		"release:gate": "bun scripts/release-gate.ts",
++		"traceability:check": "bun scripts/traceability.ts check --linear-snapshot .www/evidence/v020-traceability/linear-final-readback.json --linear-receipt .www/evidence/v020-traceability/linear-mcp-receipt.json --vault-export-manifest .www/evidence/v020-traceability/obsidian-export-manifest.json",
++		"traceability:rebuild": "bun scripts/traceability.ts rebuild",
++		"development-map:build": "bun scripts/traceability.ts map:build",
++		"development-map:check": "bun scripts/traceability.ts map:check",
++		"traceability:receipt-check": "bun scripts/traceability.ts receipt-check --linear-snapshot .www/evidence/v020-traceability/linear-final-readback.json --linear-receipt .www/evidence/v020-traceability/linear-mcp-receipt.json --vault-export-manifest .www/evidence/v020-traceability/obsidian-export-manifest.json"
++	},
++	"dependencies": {
++		"@earendil-works/pi-ai": "0.84.4",
++		"@earendil-works/pi-coding-agent": "0.84.4",
++		"@earendil-works/pi-tui": "0.84.4",
++		"@gajae-code/ai": "0.15.6",
++		"@gajae-code/natives": "0.15.6",
++		"chalk": "5.6.2",
++		"open": "10.2.0",
++		"typebox": "1.3.7",
++		"yaml": "^2.9.0"
++	},
++	"devDependencies": {
++		"@types/bun": "1.4.0",
++		"typescript": "7.0.2"
++	},
++	"patchedDependencies": {
++		"@earendil-works/pi-tui@0.84.4": "patches/@earendil-works%2Fpi-tui@0.84.4.patch"
++	}
+ }
+diff --git a/src/application/project-workbench.ts b/src/application/project-workbench.ts
+index 7721794..d0a4011 100644
+--- a/src/application/project-workbench.ts
++++ b/src/application/project-workbench.ts
+@@ -1,3 +1,4 @@
++/** @linear WOO-688 WOO-690 WOO-691 */
+ import { createHash, randomUUID } from "node:crypto";
+ import type { ExecutorPort } from "./ports/executor-port.js";
+ import { createCanonicalDocumentDraft, type CanonicalPromotionService } from "./canonical-promotion.js";
+@@ -177,6 +178,7 @@ export interface ProjectWorkbenchOptions {
+ 	persistModelSelection?: (selection: WorkbenchModelSelection) => Promise<void>;
+ }
+ 
++/** @Unit Code-002 */
+ /**
+  * Coordinates native conversation state behind one application-owned boundary.
+  * Native observations become visible only after their durable journal append.
+diff --git a/src/cli.ts b/src/cli.ts
+index b30dd7c..8760f0d 100755
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -106,6 +106,10 @@ function isLegacySessionId(value: string | undefined): value is string {
+ }
+ 
+ export async function runCli(args: string[], dependencies: CliDependencies = productionDependencies): Promise<number> {
++	if (args[0] === "development") {
++		dependencies.writeError("development CLI는 비공개입니다. 등록은 development-traceability skill과 traceability gate를 사용하세요.");
++		return 1;
++	}
+ 	if (args.includes("--help") || args.includes("-h")) {
+ 		dependencies.writeOut(helpText());
+ 		return 0;
+diff --git a/src/infrastructure/project-workbench-session.ts b/src/infrastructure/project-workbench-session.ts
+index 16c5522..bd8818c 100644
+--- a/src/infrastructure/project-workbench-session.ts
++++ b/src/infrastructure/project-workbench-session.ts
+@@ -274,6 +274,7 @@ export class ThreadBoundActivityJournal implements WorkbenchActivityJournal {
+ 	}
+ }
+ 
++/** @Unit Code-005 */
+ class ThreadScopedTNoteSource implements WorkbenchTNoteSource {
+ 	private projectId: string | null = null;
+ 
+diff --git a/src/presentation/tui/dashboard-layout.ts b/src/presentation/tui/dashboard-layout.ts
+index e71a518..043f464 100644
+--- a/src/presentation/tui/dashboard-layout.ts
++++ b/src/presentation/tui/dashboard-layout.ts
+@@ -1,3 +1,4 @@
++/** @linear WOO-689 */
+ import {
+ 	HStack,
+ 	ScrollView,
+@@ -136,6 +137,7 @@ const containedScrollbar = {
+  * independent scroll state for left, right-top and right-bottom; compact mode
+  * projects the same content into one ordered viewport.
+  */
++/** @Unit Code-003 */
+ export function createDashboardLayout(
+ 	title: () => string,
+ 	left: DashboardSection,
+diff --git a/src/presentation/tui/legacy-session-shell.ts b/src/presentation/tui/legacy-session-shell.ts
+index 1d37d04..2ce0e97 100644
+--- a/src/presentation/tui/legacy-session-shell.ts
++++ b/src/presentation/tui/legacy-session-shell.ts
+@@ -87,7 +87,7 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
+ 	if (composerDraft.initialText) editor.setText(composerDraft.initialText);
+ 	const root = new VStack([
+ 		{ component: dashboard.component, basis: 0, grow: 1, shrink: 1, minSize: 1 },
+-		{ component: usageStrip, basis: 2, minSize: 2, maxSize: 2 },
++		{ component: usageStrip, basis: 1, minSize: 1, maxSize: 1 },
+ 		{ component: editor, basis: "auto", shrink: 1, minSize: 3 },
+ 		{ component: status, basis: 1, minSize: 1, maxSize: 1, visible: ({ height }) => height >= 6 },
+ 	]);
+diff --git a/src/presentation/tui/syntax-highlighter.ts b/src/presentation/tui/syntax-highlighter.ts
+index 9a32392..e88fdef 100644
+--- a/src/presentation/tui/syntax-highlighter.ts
++++ b/src/presentation/tui/syntax-highlighter.ts
+@@ -1,3 +1,4 @@
++/** @linear WOO-686 WOO-691 */
+ import {
+ 	highlightCode as nativeHighlightCode,
+ 	supportsLanguage as nativeSupportsLanguage,
+diff --git a/src/presentation/tui/usage-strip-view.ts b/src/presentation/tui/usage-strip-view.ts
+index 5d2d65d..7fde79f 100644
+--- a/src/presentation/tui/usage-strip-view.ts
++++ b/src/presentation/tui/usage-strip-view.ts
+@@ -3,30 +3,7 @@ import type { UsageLimitSnapshot, UsageSnapshot } from "../../application/ports"
+ import type { WorkbenchModelUsage } from "../../domain/workbench";
+ import { colors } from "./theme";
+ 
+-const HUD_ROWS = 4;
+-const LABEL_WIDTH = 6;
+-const WINDOW_WIDTH = 2;
+-const BAR_WIDTH = 10;
+-const RESET_WIDTH = 6;
+-const CHIP_GAP = 2;
+-/** `Codex  7d ██████████ 6d22h` — the fixed quota prefix every row starts with. */
+-const QUOTA_WIDTH = LABEL_WIDTH + 1 + WINDOW_WIDTH + 1 + BAR_WIDTH + 1 + RESET_WIDTH;
+-const QUOTA_MIN_WIDTH = QUOTA_WIDTH;
+-const COMPACT_MIN_WIDTH = 18;
+-
+-type Color = (text: string) => string;
+ type ProviderLabel = "Codex" | "Claude" | "Gemini";
+-type Window = "5H" | "7D";
+-
+-interface QuotaRow {
+-	readonly label: ProviderLabel | "";
+-	readonly color: Color;
+-	readonly window: Window;
+-	readonly snapshot?: UsageSnapshot;
+-	readonly limit?: UsageLimitSnapshot;
+-	/** Provider that owns this row's model chips; a second row of the same provider repeats it. */
+-	readonly owner: ProviderLabel;
+-}
+ 
+ export interface UsageStripSession {
+ 	readonly models: readonly WorkbenchModelUsage[];
+@@ -39,111 +16,54 @@ function fit(text: string, width: number): string {
+ 	return clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)));
+ }
+ 
+-function compactReset(timestamp: number | undefined): string {
++function remainingPeriod(timestamp: number | undefined): string {
+ 	if (!timestamp) return "";
+ 	const remaining = timestamp - Date.now();
+-	if (remaining <= 0) return "~0m";
+-	const minutes = Math.max(1, Math.floor(remaining / 60_000));
+-	const hours = Math.floor(minutes / 60);
+-	const days = Math.floor(hours / 24);
+-	if (days > 0) return `${days}d${String(hours % 24).padStart(2, "0")}h`;
+-	if (hours > 0) return `${hours}h${String(minutes % 60).padStart(2, "0")}m`;
+-	return `${minutes}m`;
+-}
+-
+-function hasWindow(label: string, unit: "hour" | "day"): boolean {
+-	return unit === "hour" ? /5\s*(?:hours?|h)\b/iu.test(label) : /7\s*(?:days?|d)\b/iu.test(label);
+-}
+-
+-function isTier(label: string, tier: "spark" | "opus" | "sonnet"): boolean {
+-	return label.toLowerCase().includes(tier);
+-}
+-
+-function codexWindow(snapshot: UsageSnapshot | undefined, window: Window): UsageLimitSnapshot | undefined {
+-	const limits = snapshot?.state === "ready" ? snapshot.limits : [];
+-	const regular = limits.filter((limit) => !isTier(limit.label, "spark"));
+-	return regular.find((limit) => hasWindow(limit.label, window === "5H" ? "hour" : "day"));
++	if (remaining <= 0) return "0m";
++	const hours = Math.ceil(remaining / 3_600_000);
++	return hours >= 24 ? `${Math.ceil(hours / 24)}d` : `${hours}h`;
+ }
+ 
+-function claudeWindow(snapshot: UsageSnapshot | undefined, window: Window): UsageLimitSnapshot | undefined {
+-	const limits = snapshot?.state === "ready" ? snapshot.limits : [];
+-	const regular = limits.filter((limit) => !isTier(limit.label, "opus") && !isTier(limit.label, "sonnet"));
+-	return regular.find((limit) => hasWindow(limit.label, window === "5H" ? "hour" : "day"));
++function isWeekly(limit: UsageLimitSnapshot): boolean {
++	return /7\s*(?:days?|d)\b/iu.test(limit.label);
+ }
+ 
+-function usageColor(remaining: number): Color {
+-	return remaining <= 10 ? colors.error : remaining <= 30 ? colors.warning : colors.success;
++function isTier(limit: UsageLimitSnapshot): boolean {
++	return /spark|opus|sonnet/iu.test(limit.label);
+ }
+ 
+-function issueBadge(snapshot: UsageSnapshot | undefined): string {
+-	if (!snapshot?.stale) return "";
+-	if (snapshot.issue?.kind === "rate-limit") return "*429";
+-	if (snapshot.issue?.kind === "authentication") return "*AUTH";
+-	if (snapshot.issue?.kind === "network") return "*NET";
+-	return "*ERR";
++function weeklyLimit(snapshot: UsageSnapshot | undefined): UsageLimitSnapshot | undefined {
++	return snapshot?.state === "ready"
++		? snapshot.limits.find((limit) => isWeekly(limit) && !isTier(limit))
++		: undefined;
+ }
+ 
+-function providerState(snapshot: UsageSnapshot | undefined): string {
++function unavailable(snapshot: UsageSnapshot | undefined): string {
+ 	if (!snapshot || snapshot.state === "loading") return "확인 중";
+-	if (snapshot.state === "auth-required") return "/login";
++	if (snapshot.state === "auth-required") return "로그인 필요";
+ 	if (snapshot.state === "unsupported") return "미지원";
+-	if (snapshot.issue?.kind === "rate-limit") return "429";
+-	if (snapshot.issue?.kind === "authentication") return "인증 오류";
+-	if (snapshot.issue?.kind === "network") return "네트워크";
+ 	return "조회 실패";
+ }
+ 
+-function bar(remaining: number): string {
+-	const filled = Math.max(0, Math.min(BAR_WIDTH, Math.round((remaining / 100) * BAR_WIDTH)));
+-	return `${"█".repeat(filled)}${"░".repeat(BAR_WIDTH - filled)}`;
+-}
+-
+-/**
+- * Model ids are `<family>-<version>-<variant>`; the operator recognises the variant.
+- * The first alphabetic segment after the family is that variant. An id that does not
+- * follow the shape keeps its full text rather than being guessed at.
+- */
+-export function modelChipLabel(model: string): string {
+-	const segments = model.split("-");
+-	const variant = segments.slice(1).find((segment) => /^[a-z]+$/iu.test(segment));
+-	if (!variant) return model;
+-	return `${variant[0]?.toUpperCase() ?? ""}${variant.slice(1)}`;
+-}
+-
+-/** Explicit id-to-provider table. An unrecognised id is counted, never attributed to a guess. */
+-const MODEL_OWNERS: readonly (readonly [RegExp, ProviderLabel])[] = [
+-	[/^(?:gpt|codex|o\d)/iu, "Codex"],
+-	[/^claude/iu, "Claude"],
+-	[/^gemini/iu, "Gemini"],
+-];
+-
+-function modelOwner(model: string): ProviderLabel | undefined {
+-	return MODEL_OWNERS.find(([pattern]) => pattern.test(model))?.[1];
+-}
+-
+-function quotaSegment(row: QuotaRow): string {
+-	const label = fit(row.label ? row.color(row.label) : "", LABEL_WIDTH);
+-	const window = colors.secondary(row.window === "5H" ? "5h" : "7d");
+-	if (row.snapshot && row.snapshot.state !== "ready") {
+-		return `${label} ${window} ${fit(colors.warning(providerState(row.snapshot)), BAR_WIDTH + 1 + RESET_WIDTH)}`;
+-	}
+-	const remaining = row.limit?.remainingPercent;
+-	if (remaining === undefined || !Number.isFinite(remaining)) {
+-		return `${label} ${window} ${fit(colors.muted("—"), BAR_WIDTH + 1 + RESET_WIDTH)}`;
++function providerSegment(label: ProviderLabel, snapshot?: UsageSnapshot): string {
++	if (!snapshot) return `${label} —`;
++	const limit = weeklyLimit(snapshot);
++	if (!limit || !Number.isFinite(limit.remainingPercent)) {
++		return `${label} ${snapshot.state === "ready" ? "—" : unavailable(snapshot)}`;
+ 	}
+-	const clamped = Math.max(0, Math.min(100, remaining));
+-	const badge = issueBadge(row.snapshot);
+-	const reset = `${compactReset(row.limit?.resetsAt)}${badge}`;
+-	return `${label} ${window} ${usageColor(clamped)(bar(clamped))} ${fit(colors.muted(reset), RESET_WIDTH)}`;
++	const percent = Math.round(Math.max(0, Math.min(100, limit.remainingPercent!)));
++	const reset = remainingPeriod(limit.resetsAt);
++	return `${label} ${percent}%${reset ? ` · ${reset}` : ""}`;
+ }
+ 
++/** One-row MVP quota summary. Provider details belong outside the workbench HUD. */
+ export class UsageStripView implements Component {
+ 	private snapshots: readonly UsageSnapshot[] = [
+ 		{ provider: "openai-codex", state: "loading", fetchedAt: Date.now(), limits: [] },
+ 		{ provider: "anthropic", state: "loading", fetchedAt: Date.now(), limits: [] },
+ 	];
+ 
+-	public constructor(private readonly session?: () => UsageStripSession | null | undefined) {}
++	public constructor(_session?: () => UsageStripSession | null | undefined) {}
+ 
+ 	public update(snapshots: readonly UsageSnapshot[]): void {
+ 		this.snapshots = snapshots;
+@@ -153,74 +73,13 @@ export class UsageStripView implements Component {
+ 
+ 	public render(width: number): string[] {
+ 		if (width <= 0) return [];
+-		const rows = this.quotaRows();
+-		if (width < COMPACT_MIN_WIDTH) {
+-			return [fit(colors.warning("↔ 폭 부족"), width), ...blankRows(width, HUD_ROWS - 1)];
+-		}
+-		const chipWidth = width - QUOTA_WIDTH - CHIP_GAP;
+-		const chipRows = width >= QUOTA_MIN_WIDTH + CHIP_GAP + 8
+-			? this.chipRows(rows, chipWidth)
+-			: rows.map(() => "");
+-		return rows.map((row, index) => fit(
+-			chipRows[index]
+-				? `${quotaSegment(row)}${" ".repeat(CHIP_GAP)}${fit(chipRows[index] ?? "", chipWidth)}`
+-				: quotaSegment(row),
+-			width,
+-		));
+-	}
+-
+-	private quotaRows(): readonly QuotaRow[] {
+ 		const codex = this.snapshots.find((snapshot) => snapshot.provider === "openai-codex");
+ 		const claude = this.snapshots.find((snapshot) => snapshot.provider === "anthropic");
+-		return [
+-			{ label: "Codex", color: colors.accent, window: "7D", snapshot: codex, limit: codexWindow(codex, "7D"), owner: "Codex" },
+-			{ label: "Claude", color: colors.warm, window: "7D", snapshot: claude, limit: claudeWindow(claude, "7D"), owner: "Claude" },
+-			{ label: "", color: colors.warm, window: "5H", snapshot: claude, limit: claudeWindow(claude, "5H"), owner: "Claude" },
+-			// Gemini exposes per-model quota buckets, not canonical 5H/7D windows. Do not guess a mapping.
+-			{ label: "Gemini", color: colors.highlight, window: "7D", owner: "Gemini" },
+-		];
+-	}
+-
+-	/** Chips flow down the rows their provider owns; what does not fit becomes an explicit `+N`. */
+-	private chipRows(rows: readonly QuotaRow[], chipWidth: number): string[] {
+-		const session = this.session?.();
+-		const models = session?.models ?? [];
+-		if (models.length === 0 || chipWidth <= 0) return rows.map(() => "");
+-		const byOwner = new Map<ProviderLabel | "", WorkbenchModelUsage[]>();
+-		let unowned = 0;
+-		for (const usage of models) {
+-			const owner = modelOwner(usage.model);
+-			if (!owner) { unowned += 1; continue; }
+-			byOwner.set(owner, [...(byOwner.get(owner) ?? []), usage]);
+-		}
+-		const remainingByOwner = new Map(byOwner);
+-		return rows.map((row, index) => {
+-			const pool = remainingByOwner.get(row.owner) ?? [];
+-			const taken: string[] = [];
+-			let used = 0;
+-			while (pool.length > 0) {
+-				const usage = pool[0];
+-				if (!usage) break;
+-				const work = [
+-					usage.interactiveRootTurns > 0 ? `i${usage.interactiveRootTurns}` : "",
+-					usage.detachedInvocations > 0 ? `d${usage.detachedInvocations}` : "",
+-				].filter(Boolean).join("/");
+-				const chip = `${usage.model === session?.activeModel ? "● " : ""}${modelChipLabel(usage.model)} ${work || "0"}`;
+-				const cost = (taken.length === 0 ? 0 : 2) + visibleWidth(chip);
+-				if (used + cost > chipWidth) break;
+-				used += cost;
+-				taken.push(usage.model === session?.activeModel ? colors.success(chip) : colors.muted(chip));
+-				pool.shift();
+-			}
+-			remainingByOwner.set(row.owner, pool);
+-			const isLastRowForOwner = !rows.slice(index + 1).some((later) => later.owner === row.owner);
+-			const overflow = isLastRowForOwner ? pool.length + (index === rows.length - 1 ? unowned : 0) : 0;
+-			const cells = overflow > 0 ? [...taken, colors.muted(`+${overflow}`)] : taken;
+-			return cells.join("  ");
+-		});
++		const line = [
++			colors.accent(providerSegment("Codex", codex)),
++			colors.warm(providerSegment("Claude", claude)),
++			colors.highlight(providerSegment("Gemini")),
++		].join(colors.muted(" | "));
++		return [fit(line, width)];
+ 	}
+ }
+-
+-function blankRows(width: number, count: number): string[] {
+-	return Array.from({ length: Math.max(0, count) }, () => " ".repeat(width));
+-}
+diff --git a/src/presentation/tui/wooni-dock.ts b/src/presentation/tui/wooni-dock.ts
+deleted file mode 100644
+index 3daa374..0000000
+--- a/src/presentation/tui/wooni-dock.ts
++++ /dev/null
+@@ -1,39 +0,0 @@
+-import { truncateToWidth, visibleWidth, type Component } from "@earendil-works/pi-tui";
+-import { gradientLines } from "./theme";
+-
+-const WOONI_FULL = Object.freeze([
+-	"╭─ WOONI ─╮",
+-	"│≋ ●   ● ≋│  wooni@worldwide:~$",
+-	"╰─── ᴗ ───╯",
+-]);
+-
+-const WOONI_COMPACT = Object.freeze([
+-	"╭─ WOONI ─╮",
+-	"│≋ ●   ● ≋│",
+-	"╰─── ᴗ ───╯",
+-]);
+-
+-export const WOONI_FULL_WIDTH = Math.max(...WOONI_FULL.map(visibleWidth));
+-export const WOONI_COMPACT_WIDTH = Math.max(...WOONI_COMPACT.map(visibleWidth));
+-
+-/** Static terminal identity: readable at rest, with the WWW diagonal palette. */
+-export function workbenchWooniDockFrame(compact: boolean): string[] {
+-	const source = compact ? WOONI_COMPACT : WOONI_FULL;
+-	const width = compact ? WOONI_COMPACT_WIDTH : WOONI_FULL_WIDTH;
+-	return gradientLines(source.map((line) => line + " ".repeat(width - visibleWidth(line))));
+-}
+-
+-export class WooniDockView implements Component {
+-	public constructor(private readonly compact: boolean) {}
+-
+-	public invalidate(): void {}
+-
+-	public render(width: number): string[] {
+-		return workbenchWooniDockFrame(this.compact).map((line) => rightAligned(line, width));
+-	}
+-}
+-
+-function rightAligned(text: string, width: number): string {
+-	const clipped = truncateToWidth(text, Math.max(0, width), "");
+-	return " ".repeat(Math.max(0, width - visibleWidth(clipped))) + clipped;
+-}
+diff --git a/src/presentation/tui/work-step-card.ts b/src/presentation/tui/work-step-card.ts
+index 1f5934e..3783140 100644
+--- a/src/presentation/tui/work-step-card.ts
++++ b/src/presentation/tui/work-step-card.ts
+@@ -1,3 +1,4 @@
++/** @linear WOO-684 */
+ import {
+ 	stripTerminalSequences,
+ 	truncateToWidth,
+diff --git a/src/presentation/tui/workbench-bottom-hud.ts b/src/presentation/tui/workbench-bottom-hud.ts
+index 4a9a6d8..187db08 100644
+--- a/src/presentation/tui/workbench-bottom-hud.ts
++++ b/src/presentation/tui/workbench-bottom-hud.ts
+@@ -1,41 +1,18 @@
+ import { truncateToWidth, visibleWidth, type Component } from "@earendil-works/pi-tui";
+-import { WOONI_FULL_WIDTH, WooniDockView } from "./wooni-dock";
+ 
+-const HUD_ROWS = 4;
+-const HUD_GAP = 2;
+-const USAGE_MINIMUM_WIDTH = 64;
+-const WOONI_FULL_MINIMUM_WIDTH = USAGE_MINIMUM_WIDTH + HUD_GAP + WOONI_FULL_WIDTH;
+-
+-/** Four shared rows: usage on the left and the three-row Wooni identity on the right. */
++/** One shared row reserved for provider quota. */
++/** @Unit Code-010 */
+ export class WorkbenchBottomHudView implements Component {
+-	private readonly wooniFull = new WooniDockView(false);
+-
+ 	public constructor(private readonly usage: Component) {}
+ 
+ 	public invalidate(): void {
+ 		this.usage.invalidate?.();
+-		this.wooniFull.invalidate();
+ 	}
+ 
+ 	public render(width: number): string[] {
+ 		if (width <= 0) return [];
+-		if (width < WOONI_FULL_MINIMUM_WIDTH) return fixedRows(this.usage.render(width), width);
+-
+-		const usageWidth = width - HUD_GAP - WOONI_FULL_WIDTH;
+-		const usageLines = fixedRows(this.usage.render(usageWidth), usageWidth);
+-		const dockLines = fixedRows(this.wooniFull.render(WOONI_FULL_WIDTH), WOONI_FULL_WIDTH);
+-		return usageLines.map((usageLine, index) => fit(
+-			`${usageLine}${" ".repeat(HUD_GAP)}${dockLines[index] ?? ""}`,
+-			width,
+-		));
++		const line = this.usage.render(width)[0] ?? "";
++		const clipped = truncateToWidth(line, width, "");
++		return [clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)))];
+ 	}
+ }
+-
+-function fixedRows(lines: readonly string[], width: number): string[] {
+-	return Array.from({ length: HUD_ROWS }, (_, index) => fit(lines[index] ?? "", width));
+-}
+-
+-function fit(text: string, width: number): string {
+-	const clipped = truncateToWidth(text, Math.max(0, width), "");
+-	return clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)));
+-}
+diff --git a/src/presentation/tui/workbench-shell.ts b/src/presentation/tui/workbench-shell.ts
+index 791f91a..28f0ddd 100644
+--- a/src/presentation/tui/workbench-shell.ts
++++ b/src/presentation/tui/workbench-shell.ts
+@@ -330,6 +330,7 @@ function boundedActivityText(value: string | undefined): string | null {
+ 		: `${characters.slice(0, WORKBENCH_ACTIVITY_MESSAGE_MAX_CHARS - 1).join("")}…`;
+ }
+ 
++/** @Unit Code-004 */
+ /** Native workbench shell. */
+ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDependencies): void {
+ 	const { workbench, usage, composerDraft, releaseSessionLease } = dependencies;
+@@ -406,7 +407,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
+ 		{ component: editor, basis: "auto", shrink: 1, minSize: 3 },
+ 		{ component: status, basis: 1, minSize: 1, maxSize: 1, visible: ({ height }) => height >= 5 && status.hasNotice },
+ 		{ component: telemetry, basis: 1, minSize: 1, maxSize: 1, visible: ({ height }) => height >= 7 },
+-		{ component: bottomHud, basis: 4, minSize: 4, maxSize: 4, visible: ({ height }) => height >= 10 },
++		{ component: bottomHud, basis: 1, minSize: 1, maxSize: 1, visible: ({ height }) => height >= 7 },
+ 	]);
+ 	let shuttingDown = false;
+ 	let observabilityNavigation = false;
+diff --git a/src/presentation/tui/workbench-views.ts b/src/presentation/tui/workbench-views.ts
+index 2f806b0..3684034 100644
+--- a/src/presentation/tui/workbench-views.ts
++++ b/src/presentation/tui/workbench-views.ts
+@@ -1,3 +1,4 @@
++/** @linear WOO-679 WOO-683 WOO-686 WOO-687 WOO-688 WOO-689 */
+ import {
+ 	Markdown,
+ 	truncateToWidth,
+@@ -376,6 +377,7 @@ function projectCompletionSummaries(snapshot: WorkbenchSnapshot): ReadonlyMap<st
+ 	return reports;
+ }
+ 
++/** @Unit Code-001 */
+ /** Chat projection for the native ProjectWorkbench, including existing tool cards. */
+ export class WorkbenchChatView implements Component {
+ 	private snapshot: WorkbenchSnapshot;
+diff --git a/test/cli.test.ts b/test/cli.test.ts
+index 5f77128..9045bc7 100644
+--- a/test/cli.test.ts
++++ b/test/cli.test.ts
+@@ -59,7 +59,7 @@ describe("WWW CLI session entry", () => {
+ 	test("reports the package release version", async () => {
+ 		const { calls, dependencies } = fakeDependencies();
+ 		expect(await runCli(["--version"], dependencies)).toBe(0);
+-		expect(calls.out).toEqual(["0.1.11"]);
++		expect(calls.out).toEqual(["0.0.15"]);
+ 		expect(calls.app).toEqual([]);
+ 	});
+ 
+diff --git a/test/codex-app-server.test.ts b/test/codex-app-server.test.ts
+index bc635d3..5c576b1 100644
+--- a/test/codex-app-server.test.ts
++++ b/test/codex-app-server.test.ts
+@@ -117,7 +117,7 @@ describe("CodexAppServer", () => {
+ 				id: 1,
+ 				method: "initialize",
+ 				params: {
+-					clientInfo: { name: "www", title: "World Wide Woo", version: "0.1.11" },
++					clientInfo: { name: "www", title: "World Wide Woo", version: "0.0.15" },
+ 					capabilities: { experimentalApi: true, requestAttestation: false },
+ 				},
+ 			},
+diff --git a/test/fixtures/usage-strip-color-probe.ts b/test/fixtures/usage-strip-color-probe.ts
+deleted file mode 100644
+index 1d6df7b..0000000
+--- a/test/fixtures/usage-strip-color-probe.ts
++++ /dev/null
+@@ -1,18 +0,0 @@
+-import { UsageStripView } from "../../src/presentation/tui/usage-strip-view";
+-
+-const view = new UsageStripView();
+-view.update([
+-	{
+-		provider: "openai-codex",
+-		state: "ready",
+-		fetchedAt: 1,
+-		limits: [
+-			{ label: "5 hours", remainingPercent: 9, status: "exhausted" },
+-			{ label: "7 days", remainingPercent: 25, status: "warning" },
+-			{ label: "7 days (Spark)", remainingPercent: 80, status: "ok" },
+-		],
+-	},
+-	{ provider: "anthropic", state: "ready", fetchedAt: 1, limits: [] },
+-]);
+-
+-process.stdout.write(view.render(65).join("\n"));
+diff --git a/test/usage-strip.test.ts b/test/usage-strip.test.ts
+index 9b22335..48aebbc 100644
+--- a/test/usage-strip.test.ts
++++ b/test/usage-strip.test.ts
+@@ -1,128 +1,53 @@
+-import { describe, expect, test } from "bun:test";
++import { expect, test } from "bun:test";
+ import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
+-import type { WorkbenchModelUsage } from "../src/domain/workbench";
+-import { colors } from "../src/presentation/tui/theme";
+-import { modelChipLabel, UsageStripView, type UsageStripSession } from "../src/presentation/tui/usage-strip-view";
++import { UsageStripView } from "../src/presentation/tui/usage-strip-view";
+ 
+-function readyView(session?: UsageStripSession): UsageStripView {
++test("주간 잔여 비율과 초기화까지 남은 기간만 표시한다", () => {
+ 	const now = Date.now();
+-	const view = new UsageStripView(session ? () => session : undefined);
++	const view = new UsageStripView();
+ 	view.update([
+-		{
+-			provider: "openai-codex",
+-			state: "ready",
+-			fetchedAt: now,
+-			limits: [
+-				{ label: "5 hours", remainingPercent: 68, usedPercent: 32, resetsAt: now + 2 * 3_600_000 + 14 * 60_000 + 59_000, status: "ok" },
+-				{ label: "7 days", remainingPercent: 51, usedPercent: 49, resetsAt: now + (3 * 24 + 8) * 3_600_000 + 59_000, status: "ok" },
+-				{ label: "7 days (Spark)", remainingPercent: 81, usedPercent: 19, resetsAt: now + (5 * 24 + 2) * 3_600_000 + 59_000, status: "ok" },
+-			],
+-		},
+-		{
+-			provider: "anthropic",
+-			state: "ready",
+-			fetchedAt: now,
+-			limits: [
+-				{ label: "Claude 5 Hour", remainingPercent: 63, usedPercent: 37, resetsAt: now + 1 * 3_600_000 + 42 * 60_000 + 59_000, status: "ok" },
+-				{ label: "Claude 7 Day", remainingPercent: 72, usedPercent: 28, resetsAt: now + (4 * 24 + 6) * 3_600_000 + 59_000, status: "ok" },
+-				{ label: "Claude 7 Day (Opus)", remainingPercent: 41, usedPercent: 59, resetsAt: now + (4 * 24 + 6) * 3_600_000 + 59_000, status: "ok" },
+-			],
+-		},
++		{ provider: "openai-codex", state: "ready", fetchedAt: now, limits: [
++			{ label: "5 hours", remainingPercent: 10, status: "ok" },
++			{ label: "7 days", remainingPercent: 98, resetsAt: now + 7 * 86_400_000, status: "ok" },
++		] },
++		{ provider: "anthropic", state: "ready", fetchedAt: now, limits: [
++			{ label: "Claude 5 Hour", remainingPercent: 12, status: "ok" },
++			{ label: "Claude 7 Day", remainingPercent: 99, resetsAt: now + 5 * 86_400_000, status: "ok" },
++		] },
+ 	]);
+-	return view;
+-}
+-
+-function usage(model: string, turns: number, totalTokens: number): WorkbenchModelUsage {
+-	return { model, effort: null, interactiveRootTurns: turns, interactiveTokens: totalTokens, detachedInvocations: 0, detachedTokens: 0, totalTokens };
+-}
+-
+-describe("UsageStripView", () => {
+-	test("gives every provider window its own row with a bar and a reset time", () => {
+-		const rendered = readyView().render(100);
+-		const lines = rendered.map(stripTerminalSequences);
+-
+-		expect(lines).toHaveLength(4);
+-		expect(lines.every((line) => visibleWidth(line) === 100)).toBe(true);
+-		expect(lines[0]).toContain("Codex");
+-		expect(lines[0]).toContain("7d");
+-		expect(lines[0]).toContain("3d08h");
+-		expect(lines[1]).toContain("Claude");
+-		expect(lines[1]).toContain("4d06h");
+-		expect(lines[2]).toContain("5h");
+-		expect(lines[2]).toContain("1h42m");
+-		expect(lines[3]).toContain("Gemini");
+-	});
+-
+-	test("repeats no provider label on its second window row", () => {
+-		const lines = readyView().render(100).map(stripTerminalSequences);
+-		expect(lines[2]?.startsWith("      ")).toBe(true);
+-		expect(lines[2]).not.toContain("Claude");
+-	});
+-
+-	test("keeps the bar proportional to the remaining quota", () => {
+-		const lines = readyView().render(100).map(stripTerminalSequences);
+-		// Codex 7d is 51% remaining, so five of ten cells are filled.
+-		expect(lines[0]).toContain("█████░░░░░");
+-		// Claude 7d is 72% remaining.
+-		expect(lines[1]).toContain("███████░░░");
+-	});
+-
+-	test("marks only the running model and attributes chips to the owning provider", () => {
+-		const session: UsageStripSession = {
+-			activeModel: "gpt-5.6-sol",
+-			models: [usage("gpt-5.6-sol", 12, 900), usage("claude-opus-4-6", 3, 400), usage("gemini-3.1-pro", 2, 100)],
+-		};
+-		const rendered = readyView(session).render(100);
+-		const lines = rendered.map(stripTerminalSequences);
+-
+-		expect(lines[0]).toContain("● Sol i12");
+-		expect(lines[1]).toContain("Opus i3");
+-		expect(lines[1]).not.toContain("●");
+-		expect(lines[3]).toContain("Pro i2");
+-		expect(rendered[0]).toContain(colors.success("● Sol i12"));
+-	});
+-
+-	test("counts an unrecognised model instead of attributing it to a guess", () => {
+-		const session: UsageStripSession = { models: [usage("mystery-model", 4, 50)] };
+-		const lines = readyView(session).render(100).map(stripTerminalSequences);
+-		expect(lines.join("\n")).not.toContain("Mystery");
+-		expect(lines[3]).toContain("+1");
+-	});
+-
+-	test("shows the provider state instead of a bar when a snapshot is not ready", () => {
+-		const view = new UsageStripView();
+-		view.update([
+-			{ provider: "openai-codex", state: "auth-required", fetchedAt: Date.now(), limits: [] },
+-			{ provider: "anthropic", state: "loading", fetchedAt: Date.now(), limits: [] },
+-		]);
+-		const lines = view.render(100).map(stripTerminalSequences);
+-		expect(lines[0]).toContain("/login");
+-		expect(lines[1]).toContain("확인 중");
+-		expect(lines[0]).not.toContain("█");
+-	});
++	const line = stripTerminalSequences(view.render(100)[0]!);
++	expect(line).toContain("Codex 98% · 7d");
++	expect(line).toContain("Claude 99% · 5d");
++	expect(line).not.toContain("5 Hour");
++});
+ 
+-	test("keeps four padded rows and drops chips before the quota when narrow", () => {
+-		for (const width of [28, 40, 64, 100, 140]) {
+-			const lines = readyView({ models: [usage("gpt-5.6-sol", 9, 10)] }).render(width).map(stripTerminalSequences);
+-			expect(lines).toHaveLength(4);
+-			expect(lines.every((line) => visibleWidth(line) === width)).toBe(true);
+-		}
+-		const narrow = readyView({ models: [usage("gpt-5.6-sol", 9, 10)] }).render(28).map(stripTerminalSequences);
+-		expect(narrow.join("\n")).not.toContain("Sol");
+-		expect(narrow[0]).toContain("Codex");
+-	});
++test("값 없음과 좁은 폭에서도 한 줄 경계를 지킨다", () => {
++	const line = new UsageStripView().render(24)[0]!;
++	expect(stripTerminalSequences(line)).toContain("Codex");
++	expect(visibleWidth(line)).toBe(24);
++	expect(new UsageStripView().render(24)).toHaveLength(1);
++});
+ 
+-	test("reports a width it cannot lay out rather than clipping silently", () => {
+-		const lines = readyView().render(12).map(stripTerminalSequences);
+-		expect(lines).toHaveLength(4);
+-		expect(lines[0]).toContain("폭 부족");
+-		expect(lines.every((line) => visibleWidth(line) === 12)).toBe(true);
+-	});
++test("ready 상태에 주간 값이 없으면 추정이나 실패 문구 대신 대시를 표시한다", () => {
++	const view = new UsageStripView();
++	view.update([
++		{ provider: "openai-codex", state: "ready", fetchedAt: 1, limits: [{ label: "5 hours", remainingPercent: 50, status: "ok" }] },
++		{ provider: "anthropic", state: "ready", fetchedAt: 1, limits: [] },
++	]);
++	const line = stripTerminalSequences(view.render(100)[0]!);
++	expect(line).toContain("Codex —");
++	expect(line).toContain("Claude —");
++	expect(line).toContain("Gemini —");
++	expect(line).not.toContain("조회 실패");
++});
+ 
+-	test("shortens a model id to its variant and keeps an unusual id intact", () => {
+-		expect(modelChipLabel("gpt-5.6-sol")).toBe("Sol");
+-		expect(modelChipLabel("claude-opus-4-6")).toBe("Opus");
+-		expect(modelChipLabel("gemini-3.1-pro-preview")).toBe("Pro");
+-		expect(modelChipLabel("weird_id")).toBe("weird_id");
+-	});
++test("loading auth-required unsupported 상태만 짧은 상태 문구를 사용한다", () => {
++	const view = new UsageStripView();
++	view.update([
++		{ provider: "openai-codex", state: "auth-required", fetchedAt: 1, limits: [] },
++		{ provider: "anthropic", state: "unsupported", fetchedAt: 1, limits: [] },
++	]);
++	const line = stripTerminalSequences(view.render(100)[0]!);
++	expect(line).toContain("Codex 로그인 필요");
++	expect(line).toContain("Claude 미지원");
+ });
+diff --git a/test/wooni-dock.test.ts b/test/wooni-dock.test.ts
+deleted file mode 100644
+index c1a3249..0000000
+--- a/test/wooni-dock.test.ts
++++ /dev/null
+@@ -1,40 +0,0 @@
+-import { describe, expect, test } from "bun:test";
+-import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
+-import {
+-	WOONI_COMPACT_WIDTH,
+-	WOONI_FULL_WIDTH,
+-	WooniDockView,
+-	workbenchWooniDockFrame,
+-} from "../src/presentation/tui/wooni-dock";
+-
+-describe("Wooni bottom dock", () => {
+-	test("keeps the supplied identity and prompt without the side statistics", () => {
+-		const output = workbenchWooniDockFrame(false).map(stripTerminalSequences).join("\n");
+-		expect(output).toContain("≋ ●   ● ≋");
+-		expect(output).toContain("ᴗ");
+-		expect(output).toContain("WOONI");
+-		expect(output).toContain("wooni@worldwide:~$");
+-		expect(output).not.toContain("AI Assistant");
+-		expect(output).not.toContain("Engineering Atlas");
+-		expect(output).not.toContain("Status");
+-	});
+-
+-	test("keeps the frame widths coupled to their exported layout widths", () => {
+-		expect(WOONI_FULL_WIDTH).toBe(31);
+-		expect(WOONI_COMPACT_WIDTH).toBe(11);
+-		expect(workbenchWooniDockFrame(false).every((line) => visibleWidth(line) === WOONI_FULL_WIDTH)).toBe(true);
+-		expect(workbenchWooniDockFrame(true).every((line) => visibleWidth(line) === WOONI_COMPACT_WIDTH)).toBe(true);
+-	});
+-
+-	test("keeps the full identity and compact character at exactly three rows", () => {
+-		const full = new WooniDockView(false).render(80);
+-		const compact = new WooniDockView(true).render(50);
+-		expect(full).toHaveLength(3);
+-		expect(compact).toHaveLength(3);
+-		expect(full.every(line => visibleWidth(line) <= 80)).toBe(true);
+-		expect(compact.every(line => visibleWidth(line) <= 50)).toBe(true);
+-		expect(full.map(stripTerminalSequences).join("\n")).toContain("wooni@worldwide:~$");
+-		expect(compact.map(stripTerminalSequences).join("\n")).toContain("╰─── ᴗ ───╯");
+-		expect(compact.map(stripTerminalSequences).join("\n")).not.toContain("wooni@worldwide:~$");
+-	});
+-});
+diff --git a/test/workbench-bottom-hud.test.ts b/test/workbench-bottom-hud.test.ts
+index 22cd61c..5710dbe 100644
+--- a/test/workbench-bottom-hud.test.ts
++++ b/test/workbench-bottom-hud.test.ts
+@@ -1,80 +1,19 @@
+-import { describe, expect, test } from "bun:test";
++import { expect, test } from "bun:test";
+ import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
+ import { WorkbenchBottomHudView } from "../src/presentation/tui/workbench-bottom-hud";
+ import { UsageStripView } from "../src/presentation/tui/usage-strip-view";
+-import { WOONI_FULL_WIDTH } from "../src/presentation/tui/wooni-dock";
+ 
+-function usageView(): UsageStripView {
++test("HUD는 캐릭터 없이 주간 사용량 한 줄만 차지한다", () => {
+ 	const usage = new UsageStripView();
+ 	usage.update([
+-		{
+-			provider: "openai-codex",
+-			state: "ready",
+-			fetchedAt: 1,
+-			limits: [
+-				{ label: "5 hours", remainingPercent: 13, usedPercent: 87, status: "ok" },
+-				{ label: "7 days", remainingPercent: 13, usedPercent: 87, status: "ok" },
+-				{ label: "7 days (Spark)", remainingPercent: 13, usedPercent: 87, status: "ok" },
+-			],
+-		},
+-		{
+-			provider: "anthropic",
+-			state: "ready",
+-			fetchedAt: 1,
+-			limits: [
+-				{ label: "Claude 5 Hour", remainingPercent: 100, usedPercent: 0, status: "ok" },
+-				{ label: "Claude 7 Day", remainingPercent: 100, usedPercent: 0, status: "ok" },
+-				{ label: "Claude 7 Day (Opus)", remainingPercent: 100, usedPercent: 0, status: "ok" },
+-			],
+-		},
++		{ provider: "openai-codex", state: "ready", fetchedAt: 1, limits: [{ label: "7 days", remainingPercent: 98, status: "ok" }] },
++		{ provider: "anthropic", state: "ready", fetchedAt: 1, limits: [{ label: "Claude 7 Day", remainingPercent: 99, status: "ok" }] },
+ 	]);
+-	return usage;
+-}
+-
+-describe("workbench bottom HUD", () => {
+-	test("keeps the four quota rows beside the three-row Wooni dock with a blank fourth dock row", () => {
+-		const lines = new WorkbenchBottomHudView(usageView()).render(160).map(stripTerminalSequences);
+-
+-		expect(lines).toHaveLength(4);
+-		expect(lines[0]).toContain("Codex");
+-		expect(lines[1]).toContain("Claude");
+-		expect(lines[3]).toContain("Gemini");
+-		expect(lines[0]).toContain("╭─ WOONI ─╮");
+-		expect(lines[1]).toContain("7d");
+-		expect(lines[1]).toContain("●");
+-		expect(lines[2]).toContain("5h");
+-		// Claude reports 100% remaining on both windows, so both bars are full.
+-		expect(lines[2]).toContain("██████████");
+-		expect(lines[2]).toContain("╰─── ᴗ ───╯");
+-		expect(lines[3]).toContain("Gemini");
+-		expect(lines[3]).toContain("—");
+-		expect(lines[3]?.slice(160 - WOONI_FULL_WIDTH).trim()).toBe("");
+-		for (const line of lines.slice(0, 3)) {
+-			const wooniStart = line.search(/[╭│╰]/u);
+-			expect(wooniStart).toBe(160 - WOONI_FULL_WIDTH);
+-			expect(line.slice(wooniStart - 2, wooniStart)).toBe("  ");
+-		}
+-		expect(lines.every((line) => visibleWidth(line) === 160)).toBe(true);
+-	});
+-
+-	test.each([97, 112, 205])("preserves the dock and the fourth quota row at width %i", (width) => {
+-		const lines = new WorkbenchBottomHudView(usageView()).render(width).map(stripTerminalSequences);
+-
+-		expect(lines).toHaveLength(4);
+-		expect(lines[0]).toContain("╭─ WOONI ─╮");
+-		expect(lines[1]).toContain("●");
+-		expect(lines[2]).toContain("╰─── ᴗ ───╯");
+-		expect(lines[3]).toContain("Gemini");
+-		expect(lines.every((line) => visibleWidth(line) === width)).toBe(true);
+-	});
+-
+-	test.each([64, 96])("keeps all four usage rows and hides Wooni when both cannot fit at width %i", (width) => {
+-		const lines = new WorkbenchBottomHudView(usageView()).render(width).map(stripTerminalSequences);
+-
+-		expect(lines).toHaveLength(4);
+-		expect(lines.join("\n")).toContain("Codex");
+-		expect(lines.join("\n")).toContain("5h");
+-		expect(lines.join("\n")).not.toContain("WOONI");
+-		expect(lines.every((line) => visibleWidth(line) === width)).toBe(true);
+-	});
++	const lines = new WorkbenchBottomHudView(usage).render(80).map(stripTerminalSequences);
++	expect(lines).toHaveLength(1);
++	expect(lines[0]).toContain("Codex 98%");
++	expect(lines[0]).toContain("Claude 99%");
++	expect(lines[0]).toContain("Gemini —");
++	expect(lines[0]).not.toContain("WOONI");
++	expect(visibleWidth(lines[0]!)).toBe(80);
+ });
+diff --git a/test/workbench-views.test.ts b/test/workbench-views.test.ts
+index 9b39349..198eece 100644
+--- a/test/workbench-views.test.ts
++++ b/test/workbench-views.test.ts
+@@ -1,3 +1,4 @@
++/** @linear WOO-692 */
+ import { describe, expect, test } from "bun:test";
+ import { renderLayoutFrame } from "@earendil-works/pi-tui/dist/layout.js";
+ import type { LayoutBox } from "@earendil-works/pi-tui/dist/layout.js";

@@ -15,12 +15,16 @@
 		"traceability:rebuild": "bun scripts/traceability.ts rebuild",
 		"development-map:build": "bun scripts/traceability.ts map:build",
 		"development-map:check": "bun scripts/traceability.ts map:check",
+		"obsidian:check": "bun src/adapters/outbound/development/obsidian-contract-cli.ts check",
+		"obsidian:sync": "bun src/adapters/outbound/development/obsidian-contract-cli.ts",
 		"units:check": "bun scripts/local-units.ts check",
 		"units:sync": "bun scripts/local-units.ts sync",
 		"commit:control": "bun scripts/woo-commit.ts",
 		"commit:hooks:install": "bun scripts/install-commit-hooks.ts",
 		"commit:agent-hook": "bun scripts/woo-agent-hook.ts",
 		"commit:receipts:rebuild": "bun scripts/woo-receipts.ts rebuild",
+		"artifact:control": "bun scripts/artifact-control.ts",
+		"skill:runtime": "bun scripts/skill-runtime.ts",
 		"traceability:receipt-check": "bun scripts/traceability.ts receipt-check --linear-snapshot .www/evidence/v020-traceability/linear-consistency-final-normalized.json --linear-receipt .www/evidence/v020-traceability/linear-consistency-final-receipt.json --vault-export-manifest .www/evidence/v020-traceability/obsidian-export-manifest.json"
 	},
 	"dependencies": {

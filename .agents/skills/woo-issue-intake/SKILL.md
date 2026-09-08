@@ -47,10 +47,9 @@ Enhancement는 다음 순서를 사용한다.
 
 1. 대상 GitHub repository와 현재 Issue 목록을 확인한다. 제목뿐 아니라 의미가 겹치는 열린·닫힌 Issue를 검색한다.
 2. 사용자 보고와 실제 확인을 구분한다. 추정한 재현, 영향 또는 미래 결과를 사실처럼 쓰지 않는다.
-3. 제목, `bug|enhancement` 라벨과 전체 본문을 미리보기로 제시하고 사용자 승인을 받는다.
-4. 승인된 내용 그대로 `gh issue create` 또는 `gh issue edit`로 반영한다. 승인은 그 Issue 하나와 제시된 내용에만 적용된다.
+3. `github-issue` Artifact Candidate를 만들고 `artifact:control validate`와 `render`를 통과시킨다. 제목, `bug|enhancement` 라벨, 전체 본문과 digest를 미리보기로 제시하고 사용자 승인을 받는다.
+4. 승인 직전에 대상의 현재 JSON을 `expectedBefore`와 대조한 뒤 승인된 내용 그대로 `gh issue create` 또는 `gh issue edit`로 한 번 반영한다. 승인은 그 Issue 하나와 제시된 digest에만 적용된다.
 5. GitHub에서 Issue를 JSON으로 다시 읽어 제목, 라벨, 본문이 승인안과 일치하는지 확인한다.
-6. Issue 번호와 URL을 보고한다.
+6. Issue 번호와 URL을 공통 Woo Receipt에 남긴다. 재조회가 불가능하거나 승인안과 다르면 `uncertain`이다.
 
 승인 전에는 GitHub 상태를 변경하지 않는다. Issue 생성 승인은 commit, branch, PR 또는 구현 승인을 포함하지 않는다.
-

@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 3,
+  "kind": "exception",
+  "id": "EXC-TODO-002",
+  "version": 1,
+  "immutable": true,
+  "payload": {
+    "importance": "important",
+    "name": "Todo 저장 또는 CAS 충돌",
+    "detect": "write/read 및 revision 대조",
+    "control": "마지막 유효 revision 보존",
+    "recovery": "재읽기 후 source 재검증",
+    "testIds": [
+      "TEST-TODO-003"
+    ],
+    "verification": {
+      "detect": [
+        "TEST-TODO-003"
+      ],
+      "control": [
+        "TEST-TODO-003"
+      ],
+      "recovery": [
+        "TEST-TODO-003"
+      ]
+    }
+  },
+  "payloadDigest": "a604a9e7854ee4677f33b9fe8850dad12c2e7eb00c25abb7443dbae041dc8850"
+}

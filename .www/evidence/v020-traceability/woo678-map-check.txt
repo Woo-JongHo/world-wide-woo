@@ -1,0 +1,2 @@
+$ bun scripts/traceability.ts map:check
+Development Map current: 17 issues

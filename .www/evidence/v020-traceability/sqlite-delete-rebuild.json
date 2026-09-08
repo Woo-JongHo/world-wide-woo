@@ -1,0 +1,53 @@
+{
+  "status": "PASS",
+  "operation": "traceability check deleted and rebuilt a temporary development/index.sqlite from the current relation ledger; shared projection was regenerated separately",
+  "sharedStore": "DevelopmentStore",
+  "sharedTables": [
+    "development_sources",
+    "traceability_entities",
+    "traceability_edges",
+    "traceability_meta"
+  ],
+  "projectionDeleted": true,
+  "deletionDetected": true,
+  "firstRebuild": {
+    "logicalDigest": "68c2fc9da169b0e6fd2f8117f72b5d63801910767ed09c1329c57e52d922c96f",
+    "projectionDigest": "e3f73171eb323f71f82f4763b24ae2cf74781ab2e7585ec44ebf816a805d6d4f",
+    "entities": 46,
+    "edges": 110
+  },
+  "secondRebuild": {
+    "logicalDigest": "68c2fc9da169b0e6fd2f8117f72b5d63801910767ed09c1329c57e52d922c96f",
+    "projectionDigest": "e3f73171eb323f71f82f4763b24ae2cf74781ab2e7585ec44ebf816a805d6d4f",
+    "entities": 46,
+    "edges": 110
+  },
+  "queryEntrypoints": [
+    "issue:WOO-678",
+    "unit:Code-010",
+    "run:traceability-validation-v020-20260907",
+    "note:WOO-678",
+    "pr:46"
+  ],
+  "queryLogicalDigests": [
+    "68c2fc9da169b0e6fd2f8117f72b5d63801910767ed09c1329c57e52d922c96f",
+    "68c2fc9da169b0e6fd2f8117f72b5d63801910767ed09c1329c57e52d922c96f",
+    "68c2fc9da169b0e6fd2f8117f72b5d63801910767ed09c1329c57e52d922c96f",
+    "68c2fc9da169b0e6fd2f8117f72b5d63801910767ed09c1329c57e52d922c96f",
+    "68c2fc9da169b0e6fd2f8117f72b5d63801910767ed09c1329c57e52d922c96f"
+  ],
+  "pr46ReverseIssues": [
+    "WOO-679",
+    "WOO-686",
+    "WOO-687",
+    "WOO-688",
+    "WOO-689",
+    "WOO-690",
+    "WOO-691",
+    "WOO-692",
+    "WOO-718",
+    "WOO-719",
+    "WOO-720"
+  ],
+  "currentHudDogfoodQuery": "issue:WOO-678"
+}
