@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { execFileSync, spawnSync } from "node:child_process";
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { CommitCandidate, CommitPolicy } from "../src/core/commit/commit-governance";
@@ -75,5 +75,25 @@ describe("staged boundary", () => {
 		writeFileSync(join(root, "base"), "base\n"); execFileSync("git", ["-C", root, "add", "base"]); execFileSync("git", ["-C", root, "-c", "core.hooksPath=/dev/null", "commit", "-qm", "base"]);
 		writeFileSync(join(root, "change.txt"), "first\n"); const value = candidate({ baseHead: execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim(), contentDigest: candidateContentDigest(root, ["change.txt"]) });
 		writeFileSync(join(root, "change.txt"), "second\n"); expect(() => assertCandidateMatchesWorktree(root, value)).toThrow("COMMIT_AUTH_STALE");
+	});
+	test("rename의 삭제·추가 경로를 Candidate부터 Receipt까지 동일하게 보존한다", () => {
+		const root = mkdtempSync(join(tmpdir(), "woo-commit-rename-")); roots.push(root);
+		mkdirSync(join(root, ".www/runtime/commit"), { recursive: true });
+		execFileSync("git", ["init", "-q", root]);
+		execFileSync("git", ["-C", root, "config", "user.name", "Woo Test"]);
+		execFileSync("git", ["-C", root, "config", "user.email", "test@example.invalid"]);
+		writeFileSync(join(root, "before.txt"), "same content\n");
+		execFileSync("git", ["-C", root, "add", "before.txt"]);
+		execFileSync("git", ["-C", root, "commit", "-qm", "base"]);
+		renameSync(join(root, "before.txt"), join(root, "after.txt"));
+		const paths = ["after.txt", "before.txt"];
+		const head = execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+		const value = candidate({ baseHead: head, paths, contentDigest: candidateContentDigest(root, paths) });
+		const candidatePath = join(root, ".www/runtime/commit/candidate.json");
+		writeFileSync(candidatePath, JSON.stringify(value));
+		const result = executeCommit(root, candidatePath, authorize(root, value, "Woo Test"), policy);
+		const receipt = JSON.parse(readFileSync(result.receipt, "utf8")) as { result: { files: string[] } };
+		expect(receipt.result.files).toEqual(paths);
+		expect(execFileSync("git", ["-C", root, "diff-tree", "--no-renames", "--no-commit-id", "--name-only", "-r", result.sha], { encoding: "utf8" }).trim().split("\n").sort()).toEqual(paths);
 	});
 });

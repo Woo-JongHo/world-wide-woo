@@ -15,7 +15,7 @@ export function repositoryRoot(cwd: string): string { return String(git(cwd, ["r
 export function gitDir(root: string): string { return resolve(root, String(git(root, ["rev-parse", "--git-dir"])).trim()); }
 export function changedPaths(root: string): string[] {
 	const values = new Set<string>();
-	for (const args of [["diff", "--name-only", "-z"], ["diff", "--cached", "--name-only", "-z"], ["ls-files", "--others", "--exclude-standard", "-z"]]) {
+	for (const args of [["diff", "--no-renames", "--name-only", "-z"], ["diff", "--cached", "--no-renames", "--name-only", "-z"], ["ls-files", "--others", "--exclude-standard", "-z"]]) {
 		for (const path of (git(root, args, "buffer") as Buffer).toString("utf8").split("\0").filter(Boolean)) values.add(path);
 	}
 	return [...values].sort();
@@ -27,8 +27,8 @@ export function candidateContentDigest(root: string, paths: readonly string[]): 
 	});
 	return sha256(entries.join("\0"));
 }
-export function stagedPaths(root: string): string[] { return (git(root, ["diff", "--cached", "--name-only", "-z"], "buffer") as Buffer).toString("utf8").split("\0").filter(Boolean).sort(); }
-export function unstagedPaths(root: string): string[] { return (git(root, ["diff", "--name-only", "-z"], "buffer") as Buffer).toString("utf8").split("\0").filter(Boolean).sort(); }
+export function stagedPaths(root: string): string[] { return (git(root, ["diff", "--cached", "--no-renames", "--name-only", "-z"], "buffer") as Buffer).toString("utf8").split("\0").filter(Boolean).sort(); }
+export function unstagedPaths(root: string): string[] { return (git(root, ["diff", "--no-renames", "--name-only", "-z"], "buffer") as Buffer).toString("utf8").split("\0").filter(Boolean).sort(); }
 
 export function assertRepositoryReady(root: string): void {
 	const branch = String(git(root, ["symbolic-ref", "--quiet", "--short", "HEAD"])).trim();
@@ -117,7 +117,7 @@ export function verifyRecordedCommit(root: string, candidate: CommitCandidate, m
 	if (boundary < 0) throw new Error("COMMIT_POST_VERIFY_FAILED: commit object에 메시지 경계가 없습니다.");
 	const actualMessage = object.subarray(boundary + 2).toString("utf8");
 	if (actualMessage !== message) throw new Error("COMMIT_POST_VERIFY_FAILED: commit message가 Candidate와 다릅니다.");
-	const actualPaths = (git(root, ["diff-tree", "--root", "--no-commit-id", "--name-only", "-r", "-z", sha], "buffer") as Buffer).toString("utf8").split("\0").filter(Boolean).sort();
+	const actualPaths = (git(root, ["diff-tree", "--root", "--no-renames", "--no-commit-id", "--name-only", "-r", "-z", sha], "buffer") as Buffer).toString("utf8").split("\0").filter(Boolean).sort();
 	if (canonicalJson(actualPaths) !== canonicalJson([...candidate.paths].sort())) throw new Error("COMMIT_POST_VERIFY_FAILED: commit tree 경로가 Candidate와 다릅니다.");
 	return sha;
 }
