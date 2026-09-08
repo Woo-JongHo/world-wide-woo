@@ -69,6 +69,26 @@ describe("staged boundary", () => {
 		const pushGate = spawnSync(join(root, ".githooks/pre-push"), [], { cwd: root, input: `refs/heads/master ${bypass} refs/heads/master ${result.sha}\n`, encoding: "utf8" });
 		expect(pushGate.status).toBe(2); expect(pushGate.stderr).toContain("Receipt가 없습니다");
 	}, 60_000);
+	test("새 브랜치 Push는 원격에 없는 commit의 Receipt만 검사한다", () => {
+		const root = mkdtempSync(join(tmpdir(), "woo-commit-new-branch-")); roots.push(root);
+		const remote = mkdtempSync(join(tmpdir(), "woo-commit-remote-")); roots.push(remote);
+		mkdirSync(join(root, ".githooks"), { recursive: true });
+		copyFileSync(join(import.meta.dir, "../.githooks/pre-push"), join(root, ".githooks/pre-push"));
+		execFileSync("chmod", ["+x", join(root, ".githooks/pre-push")]);
+		execFileSync("git", ["init", "--bare", "-q", remote]);
+		execFileSync("git", ["init", "-q", root]);
+		execFileSync("git", ["-C", root, "config", "user.name", "Woo Test"]);
+		execFileSync("git", ["-C", root, "config", "user.email", "test@example.invalid"]);
+		writeFileSync(join(root, "base"), "base\n"); execFileSync("git", ["-C", root, "add", "base"]); execFileSync("git", ["-C", root, "commit", "-qm", "base"]);
+		const baseline = execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+		execFileSync("git", ["-C", root, "remote", "add", "origin", remote]); execFileSync("git", ["-C", root, "push", "-q", "origin", "HEAD:refs/heads/dev"]); execFileSync("git", ["-C", root, "fetch", "-q", "origin"]);
+		execFileSync("git", ["-C", root, "config", "woo.receiptBaseline", baseline]);
+		writeFileSync(join(root, "feature"), "feature\n"); execFileSync("git", ["-C", root, "add", "feature"]); execFileSync("git", ["-C", root, "commit", "-qm", "feature"]);
+		const feature = execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+		mkdirSync(join(root, ".www/receipts/commit"), { recursive: true }); writeFileSync(join(root, ".www/receipts/commit", `${feature}.json`), "{}\n");
+		const pushGate = spawnSync(join(root, ".githooks/pre-push"), ["origin", remote], { cwd: root, input: `refs/heads/feature ${feature} refs/heads/feature ${"0".repeat(40)}\n`, encoding: "utf8" });
+		expect(pushGate.status).toBe(0); expect(pushGate.stderr).toBe("");
+	}, 60_000);
 	test("승인 뒤 후보 파일 내용이 바뀌면 stale로 차단한다", () => {
 		const root = mkdtempSync(join(tmpdir(), "woo-commit-stale-")); roots.push(root);
 		execFileSync("git", ["init", "-q", root]); execFileSync("git", ["-C", root, "config", "user.name", "Woo Test"]); execFileSync("git", ["-C", root, "config", "user.email", "test@example.invalid"]);
