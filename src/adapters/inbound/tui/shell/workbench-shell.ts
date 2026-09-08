@@ -22,6 +22,7 @@ import { normalizeSettings, PROVIDERS, type Provider, type WwwSettings } from ".
 import { projectSessionStats } from "../../../../core/domain/observability/session-stats";
 import { sanitizeTerminalTextUnbounded } from "../../../../core/domain/execution/terminal";
 import type { WorkbenchCommandReceipt, WorkbenchSnapshot } from "../../../../core/domain/work/workbench";
+import type { RuntimeProvenance } from "../../../../core/domain/execution/runtime-provenance";
 import { createDashboardLayout } from "../dashboard/dashboard-layout";
 import { StatusLine, WorkspaceTodoView } from "../dashboard/shared-dashboard-views";
 import { TNotesSourceView, WorkbenchChatView, WorkbenchMonitorView } from "../chat/workbench-views";
@@ -55,6 +56,7 @@ export interface ProjectWorkbenchShellDependencies {
 	homeDirectory?: string;
 	composerDraft?: ComposerDraftController;
 	releaseSessionLease?: () => Promise<void>;
+	runtimeProvenance?: RuntimeProvenance;
 }
 
 export function workbenchReceiptNotice(receipt: WorkbenchCommandReceipt): string {
@@ -449,7 +451,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		scrollbarStyle: colors.muted,
 	});
 	let statsTarget: "session" | "diagnostics" | "latest" | number = "session";
-	const sessionStatsView = new SessionStatsView(() => projectSessionStats(snapshot), () => statsTarget, () => selectedHistoricalSession);
+	const sessionStatsView = new SessionStatsView(() => projectSessionStats(snapshot), () => statsTarget, () => selectedHistoricalSession, () => null, () => dependencies.runtimeProvenance ?? null);
 	const sessionStats = new ScrollView(sessionStatsView, {
 		follow: "none",
 		primary: true,

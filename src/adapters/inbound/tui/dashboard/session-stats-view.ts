@@ -1,5 +1,6 @@
 import { truncateToWidth, visibleWidth, wrapTextWithAnsi, type Component } from "@earendil-works/pi-tui";
 import type { RequestReview, SessionStatsSnapshot } from "../../../../core/domain/observability/session-stats.js";
+import type { RuntimeProvenance } from "../../../../core/domain/execution/runtime-provenance.js";
 import type { ObservabilitySessionSummary } from "../../../../core/domain/observability/observability-dashboard.js";
 import { colors } from "../shell/theme.js";
 
@@ -13,6 +14,7 @@ export class SessionStatsView implements Component {
 		private readonly getTarget: () => StatsTarget = () => "session",
 		private readonly getHistoricalSession: () => ObservabilitySessionSummary | null = () => null,
 		private readonly getSelectedRequestOrdinal: () => number | null = () => null,
+		private readonly getRuntimeProvenance: () => RuntimeProvenance | null = () => null,
 	) {}
 	public invalidate(): void {}
 	public render(width: number): string[] {
@@ -125,6 +127,17 @@ export class SessionStatsView implements Component {
 		line(`Retries  ${stats.diagnostics.retryCount} · Waits  ${stats.diagnostics.waitCount} · Compactions  ${stats.diagnostics.compactionCount}`);
 		for (const warning of stats.diagnostics.warnings) line(colors.warning(warning));
 		for (const unavailable of stats.diagnostics.providerMetricsUnavailable) line(colors.muted(`${unavailable} · unavailable`));
+		const provenance = this.getRuntimeProvenance();
+		if (!provenance) return;
+		line(rule(width));
+		const state = provenance.state.toUpperCase();
+		line(provenance.state === "matched" ? colors.success(`RUNTIME PROVENANCE · ${state}`) : colors.warning(`RUNTIME PROVENANCE · ${state}`));
+		line(`Source root  ${provenance.runtime.sourceRoot ?? "unavailable"}`);
+		line(`Entrypoint   ${provenance.runtime.entrypoint ?? "unavailable"}`);
+		line(`Revision     ${provenance.runtime.revision ?? "unavailable"} · ${provenance.runtime.dirty === null ? "dirty unknown" : provenance.runtime.dirty ? "dirty" : "clean"}`);
+		line(`Workspace    ${provenance.workspace.sourceRoot ?? "unavailable"}`);
+		line(`Expected rev ${provenance.workspace.revision ?? "unavailable"} · ${provenance.workspace.dirty === null ? "dirty unknown" : provenance.workspace.dirty ? "dirty" : "clean"}`);
+		line(`Reasons      ${provenance.reasons.length === 0 ? "—" : provenance.reasons.join(", ")}`);
 	}
 }
 

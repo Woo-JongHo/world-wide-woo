@@ -4,6 +4,7 @@ import type { ProjectActivity } from "../src/core/domain/execution/project-activ
 import type { SessionStatsSnapshot } from "../src/core/domain/observability/session-stats";
 import { projectSessionStats } from "../src/core/domain/observability/session-stats";
 import type { WorkbenchSnapshot } from "../src/core/domain/work/workbench";
+import type { RuntimeProvenance } from "../src/core/domain/execution/runtime-provenance";
 import { SessionStatsView } from "../src/adapters/inbound/tui/dashboard/session-stats-view";
 
 const longPrompt = "Implement review dashboard with a very long raw prompt that must never wrap into a conversation transcript or occupy several dashboard rows";
@@ -71,6 +72,19 @@ describe("session stats view", () => {
 		expect(detail).toContain("conversation transcript or occupy several dashboard rows");
 		expect(detail).toContain("/source activity-1");
 		expect(detail).not.toContain("SESSION STATS");
+	});
+
+	test("discloses the exact runtime provenance in diagnostics", () => {
+		const provenance: RuntimeProvenance = {
+			state: "mismatched", reasons: ["source-root", "revision"],
+			runtime: { sourceRoot: "/global/world-wide-woo", entrypoint: "/global/world-wide-woo/src/cli.ts", revision: "b".repeat(40), dirty: false, packageName: "world-wide-woo", packageVersion: "0.0.16" },
+			workspace: { sourceRoot: "/workspace/99_www", entrypoint: null, revision: "a".repeat(40), dirty: true, packageName: "world-wide-woo", packageVersion: "0.0.16" },
+		};
+		const output = stripTerminalSequences(new SessionStatsView(() => stats, () => "diagnostics", () => null, () => null, () => provenance).render(120).join("\n"));
+		expect(output).toContain("RUNTIME PROVENANCE · MISMATCHED");
+		expect(output).toContain("Source root  /global/world-wide-woo");
+		expect(output).toContain("Workspace    /workspace/99_www");
+		expect(output).toContain("Reasons      source-root, revision");
 	});
 	test("keeps empty sessions quiet", () => {
 		const empty = projectedStats([]);

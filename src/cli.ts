@@ -2,6 +2,7 @@
 
 import type { RunAppOptions } from "./app";
 import type { NativeThreadSummary } from "./core/domain/execution/native-session";
+import type { RuntimeProvenance } from "./core/domain/execution/runtime-provenance";
 import type { RunLegacyRouterOptions } from "./legacy-router-app";
 import { PRODUCT_VERSION } from "./product-version";
 
@@ -13,6 +14,7 @@ export interface CliDependencies {
 	listSessions: () => Promise<Array<{ id: string; updatedAt: string }>>;
 	listNativeThreads: () => Promise<readonly NativeThreadSummary[]>;
 	selectNativeThread: (threads: readonly NativeThreadSummary[]) => Promise<string | null>;
+	inspectRuntimeProvenance: () => Promise<RuntimeProvenance>;
 	writeOut: (value: string) => void;
 	writeError: (value: string) => void;
 }
@@ -47,6 +49,10 @@ const productionDependencies: CliDependencies = {
 	selectNativeThread: async (threads) => {
 		const { selectNativeThread } = await import("./adapters/inbound/tui/overlays/native-thread-picker");
 		return selectNativeThread(threads);
+	},
+	inspectRuntimeProvenance: async () => {
+		const { inspectApplicationRuntimeProvenance } = await import("./app");
+		return inspectApplicationRuntimeProvenance();
 	},
 	writeOut: value => console.log(value),
 	writeError: value => console.error(value),
@@ -83,6 +89,7 @@ function helpText(): string {
 		"                              구독 계정 또는 API 키 로그인",
 		"  www auth logout <공급자>    저장된 인증 삭제",
 		"  www development help        Issue·Unit·SQLite·Obsidian 개발 기록 명령",
+		"  www provenance [--assert-workspace]  실행본과 현재 workspace revision 대조",
 		"  www sessions                 레거시 SessionRuntime 세션 목록",
 		"  www threads                  현재 프로젝트의 Codex native thread 목록",
 		"  www --resume                현재 프로젝트의 native thread를 선택해 재개",
@@ -127,6 +134,11 @@ export async function runCli(args: string[], dependencies: CliDependencies = pro
 			dependencies.writeOut(await dependencies.runDevelopment(args.slice(1)));
 		}
 		else if (args[0] === "auth") await dependencies.runAuth(args.slice(1));
+		else if (args[0] === "provenance" && (args.length === 1 || (args.length === 2 && args[1] === "--assert-workspace"))) {
+			const provenance = await dependencies.inspectRuntimeProvenance();
+			dependencies.writeOut(JSON.stringify(provenance, null, 2));
+			if (args[1] === "--assert-workspace" && provenance.state !== "matched") return 1;
+		}
 		else if (args[0] === "router") {
 			if (args.length === 1) await dependencies.runRouter({});
 			else if (args.length === 3 && args[1] === "--resume" && isLegacySessionId(args[2])) {

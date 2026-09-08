@@ -4,9 +4,10 @@ import { createProjectWorkbenchSession } from "./adapters/outbound/workspace/pro
 import { FileDevelopmentMapSource } from "./adapters/outbound/development/development-map-source.js";
 import { ObservabilityHistorySource } from "./adapters/outbound/observability/observability-history-source.js";
 import { GitTelemetrySource } from "./adapters/outbound/git/git-telemetry-source.js";
+import { inspectRuntimeProvenance } from "./adapters/outbound/workspace/runtime-provenance-source.js"; import type { RuntimeProvenance } from "./core/domain/execution/runtime-provenance.js";
 import { homedir } from "node:os"; import { join } from "node:path";
 export { listNativeThreads } from "./adapters/outbound/workspace/native-thread-discovery.js";
-export interface RunAppOptions { resumeThreadId?: string; executionLane?: ExecutionLane }
+export interface RunAppOptions { resumeThreadId?: string; executionLane?: ExecutionLane; runtimeProvenance?: RuntimeProvenance } export function inspectApplicationRuntimeProvenance(): RuntimeProvenance { return inspectRuntimeProvenance(); }
 export async function runApp(options: RunAppOptions = {}): Promise<void> {
 	const { FileSettingsStore } = await import("./adapters/outbound/persistence/settings-store");
 	const { runProjectWorkbenchShell } = await import("./adapters/inbound/tui/shell/workbench-shell");
@@ -14,6 +15,7 @@ export async function runApp(options: RunAppOptions = {}): Promise<void> {
 	const settings = await settingsStore.load();
 	let persistedSettings = settings;
 	const executionLane = options.executionLane ?? "codex";
+	const runtimeProvenance = options.runtimeProvenance ?? inspectApplicationRuntimeProvenance();
 	const project = await createProjectWorkbenchSession(process.cwd(), {
 		resumeThreadId: options.resumeThreadId,
 		executionLane,
@@ -36,6 +38,7 @@ export async function runApp(options: RunAppOptions = {}): Promise<void> {
 			development: project.development,
 			observabilityHistorySource: new ObservabilityHistorySource(join(project.workspace.root, ".www", "runtime", "activity")),
 			gitTelemetrySource: new GitTelemetrySource(), homeDirectory: homedir(),
+			runtimeProvenance,
 			composerDraft: project.composerDraft, releaseSessionLease: project.releaseSessionLease,
 		});
 	} catch (error) {

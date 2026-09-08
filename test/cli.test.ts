@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import type { RunAppOptions } from "../src/app";
 import { runCli, writeRouterBootstrap, writeWorkbenchBootstrap, type CliDependencies } from "../src/cli";
 import type { NativeThreadSummary } from "../src/core/domain/execution/native-session";
+import type { RuntimeProvenance } from "../src/core/domain/execution/runtime-provenance";
 
 const threads: readonly NativeThreadSummary[] = [{
 	id: "thread-2",
@@ -26,6 +27,11 @@ function fakeDependencies() {
 		out: [] as string[],
 		error: [] as string[],
 	};
+	const provenance: RuntimeProvenance = {
+		state: "matched", reasons: [],
+		runtime: { sourceRoot: "/workspace/99_www", entrypoint: "/workspace/99_www/src/cli.ts", revision: "a".repeat(40), dirty: false, packageName: "world-wide-woo", packageVersion: "0.0.16" },
+		workspace: { sourceRoot: "/workspace/99_www", entrypoint: null, revision: "a".repeat(40), dirty: false, packageName: "world-wide-woo", packageVersion: "0.0.16" },
+	};
 	const dependencies: CliDependencies = {
 		runApp: async (options = {}) => { calls.app.push(options); },
 		runRouter: async (options = {}) => { calls.router.push(options); },
@@ -33,6 +39,7 @@ function fakeDependencies() {
 		listSessions: async () => [],
 		listNativeThreads: async () => { calls.listed += 1; return threads; },
 		selectNativeThread: async (items) => { calls.picked.push(items); return items[1]?.id ?? null; },
+		inspectRuntimeProvenance: async () => provenance,
 		writeOut: (value) => { calls.out.push(value); },
 		writeError: (value) => { calls.error.push(value); },
 	};
@@ -61,6 +68,18 @@ describe("WWW CLI session entry", () => {
 		expect(await runCli(["--version"], dependencies)).toBe(0);
 		expect(calls.out).toEqual(["0.0.16"]);
 		expect(calls.app).toEqual([]);
+	});
+
+	test("prints runtime provenance and refuses a mismatched workspace assertion", async () => {
+		const { calls, dependencies } = fakeDependencies();
+		expect(await runCli(["provenance"], dependencies)).toBe(0);
+		expect(JSON.parse(calls.out[0]!)).toMatchObject({ state: "matched", runtime: { sourceRoot: "/workspace/99_www" } });
+
+		const mismatch = { ...dependencies, inspectRuntimeProvenance: async () => ({
+			...(await dependencies.inspectRuntimeProvenance()), state: "mismatched" as const, reasons: ["source-root"] as const,
+		}) };
+		expect(await runCli(["provenance", "--assert-workspace"], mismatch)).toBe(1);
+		expect(JSON.parse(calls.out[1]!)).toMatchObject({ state: "mismatched", reasons: ["source-root"] });
 	});
 
 	test("documents the compatibility Router command and its Native feature boundary", async () => {
