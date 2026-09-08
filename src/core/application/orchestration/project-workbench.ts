@@ -1900,6 +1900,10 @@ export class ProjectWorkbench {
 		const durable = this.projectDurableActivities();
 		const executionRun = this.selectedExecutionRun();
 		const executionActivity = executionRun ? projectExecutionActivity(executionRun) : null;
+		const workFlow = this.projectCurrentWorkFlow();
+		// Todo is a projection of an observed Native Plan. Ordinary request/tool
+		// activity belongs to ExecutionRun/Tracer and must not manufacture Todo rows.
+		const todo = workFlow.source && executionRun ? this.projectExecutionTodo(executionRun) : null;
 		return deepFreeze({
 			projectId: this.options.projectId,
 			revision: this.revision,
@@ -1939,9 +1943,9 @@ export class ProjectWorkbench {
 				text: executionActivity.text,
 				nativeRefs: { threadId: executionRun.threadId, turnId: executionRun.turnId, itemId: executionActivity.id },
 			} : this.liveActivity),
-			workFlow: this.projectCurrentWorkFlow(),
+			workFlow,
 			tnotes: this.projectDurableNotes(),
-			todo: executionRun ? this.projectExecutionTodo(executionRun) : this.todo,
+			todo,
 			todoSync: this.todoSync,
 			actionResult: this.actionResult,
 			deliveryUncertain: this.chatDeliveryBlocked && this.blockedChat !== null,
