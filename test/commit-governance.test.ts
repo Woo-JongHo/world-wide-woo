@@ -66,7 +66,7 @@ describe("staged boundary", () => {
 		execFileSync("git", ["-C", root, "config", "woo.receiptBaseline", result.sha]);
 		writeFileSync(join(root, "bypass.txt"), "bypass\n"); execFileSync("git", ["-C", root, "add", "bypass.txt"]); execFileSync("git", ["-C", root, "-c", "core.hooksPath=/dev/null", "commit", "-m", "bypass"]);
 		const bypass = execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
-		const pushGate = spawnSync(join(root, ".githooks/pre-push"), [], { cwd: root, input: `refs/heads/master ${bypass} refs/heads/master ${result.sha}\n`, encoding: "utf8" });
+		const pushGate = spawnSync("sh", [join(root, ".githooks/pre-push")], { cwd: root, input: `refs/heads/master ${bypass} refs/heads/master ${result.sha}\n`, encoding: "utf8" });
 		expect(pushGate.status).toBe(2); expect(pushGate.stderr).toContain("Receipt가 없습니다");
 	}, 60_000);
 	test("새 브랜치 Push는 원격에 없는 commit의 Receipt만 검사한다", () => {
@@ -86,7 +86,7 @@ describe("staged boundary", () => {
 		writeFileSync(join(root, "feature"), "feature\n"); execFileSync("git", ["-C", root, "add", "feature"]); execFileSync("git", ["-C", root, "commit", "-qm", "feature"]);
 		const feature = execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
 		mkdirSync(join(root, ".www/receipts/commit"), { recursive: true }); writeFileSync(join(root, ".www/receipts/commit", `${feature}.json`), "{}\n");
-		const pushGate = spawnSync(join(root, ".githooks/pre-push"), ["origin", remote], { cwd: root, input: `refs/heads/feature ${feature} refs/heads/feature ${"0".repeat(40)}\n`, encoding: "utf8" });
+		const pushGate = spawnSync("sh", [join(root, ".githooks/pre-push"), "origin", remote], { cwd: root, input: `refs/heads/feature ${feature} refs/heads/feature ${"0".repeat(40)}\n`, encoding: "utf8" });
 		expect(pushGate.status).toBe(0); expect(pushGate.stderr).toBe("");
 	}, 60_000);
 	test("승인 뒤 후보 파일 내용이 바뀌면 stale로 차단한다", () => {
