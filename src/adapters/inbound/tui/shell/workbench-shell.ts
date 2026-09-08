@@ -274,9 +274,21 @@ export function workbenchViewModeForCommand(
 }
 
 const WORKBENCH_ACTIVITY_FRAMES = Object.freeze(["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]);
-const WORKBENCH_ACTIVITY_INTERVAL_MS = 80;
+// Every frame walks the viewport layout. Four visible frames per second keeps
+// working state legible without competing with typing or scrolling.
+const WORKBENCH_ACTIVITY_INTERVAL_MS = 240;
 const WORKBENCH_ACTIVITY_MESSAGE_MAX_CHARS = 72;
 const WORKBENCH_TOOL_STALL_MS = 3 * 60 * 1_000;
+const COMPOSER_WELCOME_BORDER_INTERVAL_MS = 750;
+
+export function shouldAnimateComposerBorder(input: {
+	readonly focused: boolean;
+	readonly shuttingDown: boolean;
+	readonly phase: string;
+	readonly chatLength: number;
+}): boolean {
+	return input.focused && !input.shuttingDown && input.phase !== "working" && input.chatLength === 0;
+}
 
 interface WorkbenchActivityIndicatorSource {
 	readonly phase: string;
@@ -514,11 +526,18 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	monitorClock.unref?.();
 	let composerBorderFrame = 0;
 	const composerBorderClock = setInterval(() => {
-		if (!editor.focused || shuttingDown) return;
+		// A border shimmer is decorative. Once a conversation exists, redraws must
+		// belong to input or Runtime state, not a perpetual cosmetic clock.
+		if (!shouldAnimateComposerBorder({
+			focused: editor.focused,
+			shuttingDown,
+			phase: snapshot.phase,
+			chatLength: snapshot.chat.length,
+		})) return;
 		composerBorderFrame = (composerBorderFrame + 1) % 24;
 		editor.borderColor = composerBorderColor(composerBorderFrame);
 		tui.requestRender();
-	}, 90);
+	}, COMPOSER_WELCOME_BORDER_INTERVAL_MS);
 	composerBorderClock.unref?.();
 	const refreshObservabilityDashboard = async (): Promise<void> => {
 		if (!dependencies.observabilityHistorySource) return;

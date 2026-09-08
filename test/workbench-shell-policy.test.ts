@@ -20,6 +20,7 @@ import {
 	workbenchStatsTargetCommand,
 	workbenchViewModeForCommand,
 	workbenchViewModeCommand,
+	shouldAnimateComposerBorder,
 } from "../src/adapters/inbound/tui/shell/workbench-shell";
 import { RenderScheduler } from "../src/adapters/inbound/tui/shell/render-scheduler";
 import { composerBorderColor, composerBorderHex } from "../src/adapters/inbound/tui/shell/theme";
@@ -61,6 +62,13 @@ describe("native workbench shell receipt policy", () => {
 	test("cycles the focused Composer border through distinct shimmer frames", () => {
 		expect(composerBorderHex(0)).not.toBe(composerBorderHex(8));
 		expect(stripTerminalSequences(composerBorderColor(8)("─"))).toBe("─");
+	});
+
+	test("limits Composer shimmer to the idle welcome view", () => {
+		expect(shouldAnimateComposerBorder({ focused: true, shuttingDown: false, phase: "ready", chatLength: 0 })).toBe(true);
+		expect(shouldAnimateComposerBorder({ focused: true, shuttingDown: false, phase: "working", chatLength: 0 })).toBe(false);
+		expect(shouldAnimateComposerBorder({ focused: true, shuttingDown: false, phase: "ready", chatLength: 1 })).toBe(false);
+		expect(shouldAnimateComposerBorder({ focused: false, shuttingDown: false, phase: "ready", chatLength: 0 })).toBe(false);
 	});
 
 	test("resolves login Provider names from ordinary Chat input", () => {
