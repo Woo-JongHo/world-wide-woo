@@ -443,9 +443,7 @@ export class CodexAppServer implements ExecutorPort {
 				callbackId,
 				kind,
 				refs: this.refsFrom(params, message.id, callbackId),
-				availableDecisions: kind === "mcp-tool"
-					? ["accept", "decline", "cancel"]
-					: nativeApprovalDecisions(params.availableDecisions),
+				availableDecisions: approvalDecisions(kind, params.availableDecisions),
 				params,
 			};
 			this.approvals.set(message.id, approval);
@@ -631,6 +629,18 @@ function nativeApprovalDecisions(value: unknown): NativeApprovalDecision[] {
 		decision === "decline" ||
 		decision === "cancel" ||
 		isRecord(decision));
+}
+
+function approvalDecisions(kind: NativeApprovalKind, advertised: unknown): NativeApprovalDecision[] {
+	if (kind === "mcp-tool") return ["accept", "decline", "cancel"];
+	const decisions = nativeApprovalDecisions(advertised);
+	if (decisions.length > 0) return decisions;
+	// Codex App Server v2 command and file-change approval params do not carry
+	// availableDecisions. Their response contracts define this fixed decision set.
+	if (kind === "command" || kind === "file-change") {
+		return ["accept", "acceptForSession", "decline", "cancel"];
+	}
+	return [];
 }
 
 function errorText(error: unknown): string {

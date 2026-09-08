@@ -125,6 +125,40 @@ describe("CodexAppServer", () => {
 		await server.close();
 	});
 
+	test("uses protocol-defined decisions when file-change approval params omit availableDecisions", async () => {
+		const { server, transport } = await connectedFake();
+		const events: unknown[] = [];
+		server.subscribe(event => events.push(event));
+		transport.emit({
+			id: 0,
+			method: "item/fileChange/requestApproval",
+			params: {
+				threadId: "thread-native-1",
+				turnId: "turn-native-1",
+				itemId: "item-native-1",
+				startedAtMs: 1_788_849_280_280,
+				reason: null,
+				grantRoot: null,
+			},
+		});
+
+		expect(events.at(-1)).toEqual(expect.objectContaining({
+			type: "approval-requested",
+			approval: expect.objectContaining({
+				requestId: 0,
+				kind: "file-change",
+				availableDecisions: ["accept", "acceptForSession", "decline", "cancel"],
+			}),
+		}));
+
+		const response = server.respondToApproval({ requestId: 0, response: { decision: "accept" } });
+		await Bun.sleep(0);
+		expect(transport.sent.at(-1)).toEqual({ id: 0, result: { decision: "accept" } });
+		transport.emit({ method: "serverRequest/resolved", params: { requestId: 0 } });
+		await response;
+		await server.close();
+	});
+
 	test("writes escaped MCP enablement config and reloads through supported protocol methods", async () => {
 		const { server, transport } = await connectedFake();
 
