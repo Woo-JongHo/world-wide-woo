@@ -692,6 +692,42 @@ describe("workbench dashboard views", () => {
 		}
 	});
 
+	test("reuses Chat rows when only the activity spinner frame changes", () => {
+		const originalSetInterval = globalThis.setInterval;
+		const originalClearInterval = globalThis.clearInterval;
+		const callbacks: Array<() => void> = [];
+		globalThis.setInterval = ((callback: (...args: unknown[]) => void) => {
+			callbacks.push(() => callback());
+			return { unref: () => undefined } as unknown as ReturnType<typeof setInterval>;
+		}) as typeof setInterval;
+		globalThis.clearInterval = (() => undefined) as typeof clearInterval;
+		const view = new WorkbenchChatView(snapshot);
+		const instrumented = view as unknown as { renderMessage: (...args: unknown[]) => string[] };
+		const originalRenderMessage = instrumented.renderMessage.bind(view);
+		let messageProjectionCalls = 0;
+		instrumented.renderMessage = (...args: unknown[]) => {
+			messageProjectionCalls += 1;
+			return originalRenderMessage(...args);
+		};
+		try {
+			view.syncActivity({ message: "분석", frames: ["⠋", "⠙"], intervalMs: 80 }, () => undefined);
+			const first = view.render(80).join("\n");
+			const initialProjectionCalls = messageProjectionCalls;
+
+			callbacks[0]?.();
+			const second = view.render(80).join("\n");
+
+			expect(initialProjectionCalls).toBeGreaterThan(0);
+			expect(messageProjectionCalls).toBe(initialProjectionCalls);
+			expect(stripTerminalSequences(first)).toContain("⠋ 분석");
+			expect(stripTerminalSequences(second)).toContain("⠙ 분석");
+		} finally {
+			view.dispose();
+			globalThis.setInterval = originalSetInterval;
+			globalThis.clearInterval = originalClearInterval;
+		}
+	});
+
 	test("stops activity motion when the selected execution run is terminal", () => {
 		const originalSetInterval = globalThis.setInterval;
 		let scheduled = 0;

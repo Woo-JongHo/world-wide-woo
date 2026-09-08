@@ -3,7 +3,7 @@ document_id: 094ed877-fc6b-4ee0-9285-cb478f0ec67a
 schema_version: 2
 record_type: detailed-canonical
 status: draft
-acceptance: not-tested
+acceptance: partial
 domain: Workbench
 capability: Chat Rendering
 linear: WOO-689
@@ -16,7 +16,7 @@ exception_ids: []
 decision_ids: []
 tags: [www/spec, domain/workbench, capability/chat-rendering]
 source_revision: git:ccca4a378f73868cb7366c4dfae77867e405f758
-updated_at: 2026-09-08T20:40:00+09:00
+updated_at: 2026-09-08T21:10:00+09:00
 ---
 
 # Chat Rendering — 긴 대화에서 진행 표시 렌더 비용을 분리한다
@@ -165,13 +165,13 @@ Activity Journal과 Chat source는 기존 persistence를 사용한다. 본문 �
 
 | AC-ID | Acceptance Criterion | Test-ID | Evidence | Status |
 |---|---|---|---|---|
-| AC-001 | spinner tick이 과거 Activity 전체 projection을 다시 실행하지 않는다 | 미정 | 2026-09-08 render-latency 진단 | NOT TESTED |
+| AC-001 | spinner tick이 과거 Activity 전체 projection을 다시 실행하지 않는다 | `workbench-views.test.ts` | spinner cache 회귀 테스트 | PASSED |
 | AC-002 | 새 snapshot·폭 변경 뒤에는 최신 본문으로 재렌더한다 | 미정 | 없음 | NOT TESTED |
 | AC-003 | 실제 긴 세션에서 입력과 스크롤 지연이 개선된다 | 미정 | 없음 | NOT TESTED |
 
 ## 11. Verification Strategy
 
-현재 사용자 지시로 자동 검증은 실행하지 않았다. 후속 검증은 timer tick과 수백 개 활동 fixture를 함께 사용해 본문 projection 호출 수와 frame duration을 측정한다. 실제 terminal에서 입력·스크롤·resize를 관찰해 자동 측정과 분리한다.
+`bun test test/workbench-views.test.ts`는 77개, `bun test`는 909개 테스트를 통과했다. `bun run check`와 `bun build src/cli.ts --target=bun`도 통과했다. 새 회귀 테스트는 spinner tick 뒤 `renderMessage` 호출 수가 증가하지 않고 indicator만 바뀌는지 확인한다. 실제 terminal에서 입력·스크롤·resize를 관찰하는 수락 검증은 아직 실행하지 않았다.
 
 ## 12. Implementation Map
 
@@ -179,6 +179,7 @@ Activity Journal과 Chat source는 기존 persistence를 사용한다. 본문 �
 |---|---|---|
 | Chat 본문·indicator suffix cache | `src/adapters/inbound/tui/chat/workbench-views.ts` | Code-001 |
 | redraw timer와 scheduler 연결 | `src/adapters/inbound/tui/shell/workbench-shell.ts` | Code-001 |
+| spinner cache 회귀 검사 | `test/workbench-views.test.ts` | Code-001 |
 
 ## 13. Current State & Gaps
 
@@ -194,7 +195,7 @@ spinner frame 갱신은 cache된 본문 행의 suffix만 교체하도록 구현�
 
 | GAP-ID | 관련 Contract | 내용 | Linear |
 |---|---|---|---|
-| GAP-001 | AC-001~003 | 자동·실사용 성능 검증을 사용자 지시로 생략함 | WOO-689 |
+| GAP-001 | AC-002~003 | snapshot·폭 변경과 실제 terminal 성능 수락 검증은 아직 없음 | WOO-689 |
 | GAP-002 | INV-001 | 고부하 spinner frame의 지속 측정은 아직 없음 | WOO-689 |
 
 ## 14. Decisions & Evidence
@@ -225,9 +226,11 @@ INV-001, AC-001, Workbench Chat 렌더 경로.
 |---|---|---|
 | 2026-09-08 | `.www/scratchpad/2026-09-08-render-latency/replay-before.json` | 원인 관측 |
 | 2026-09-08 | `.www/scratchpad/2026-09-08-render-latency/replay-no-highlight.json` | highlighter 단독 원인 배제 |
+| 2026-09-08 | `bun test test/workbench-views.test.ts`, `bun test`, `bun run check`, Bun bundle | cache 회귀·전체 테스트·타입·번들 |
 
 ## Change Log
 
 | Date | Change | Reason |
 |---|---|---|
 | 2026-09-08 | spinner와 본문 cache의 무효화 경계를 상세화 | 긴 실행 세션의 렌더 지연 관측 |
+| 2026-09-08 | spinner cache 회귀 테스트와 자동 검증 결과를 기록 | 구현 후 검증 완료 |
