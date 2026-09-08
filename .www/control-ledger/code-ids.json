@@ -7,7 +7,7 @@
       "name": "Chat 표시",
       "locations": [
         {
-          "path": "src/adapters/inbound/tui/workbench-views.ts",
+          "path": "src/adapters/inbound/tui/chat/workbench-views.ts",
           "symbol": "WorkbenchChatView",
           "members": [
             "update",
@@ -55,7 +55,7 @@
       "name": "Chat 읽던 위치",
       "locations": [
         {
-          "path": "src/adapters/inbound/tui/dashboard-layout.ts",
+          "path": "src/adapters/inbound/tui/dashboard/dashboard-layout.ts",
           "symbol": "ChatScrollView"
         }
       ],
@@ -72,7 +72,7 @@
       "name": "Chat 입력과 Source 이동",
       "locations": [
         {
-          "path": "src/adapters/inbound/tui/workbench-shell.ts",
+          "path": "src/adapters/inbound/tui/shell/workbench-shell.ts",
           "symbol": "runProjectWorkbenchShell"
         }
       ],

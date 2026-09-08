@@ -32,7 +32,7 @@ Unit은 파일·클래스·폴더마다 발급하지 않는다. Message처럼 �
 - 기능 후보: Message (Unit ID 미발급)
 - 현재 기능 Parent: WOO-683 / UUID ea233806-8926-4e7f-90b1-8328f3f874d4
 - 실행 작업 후보: WOO-686~WOO-690, 예외·테스트 항목 WOO-691/WOO-692는 범위 논의 필요
-- 현재 구현 후보: src/adapters/inbound/tui/workbench-views.ts
+- 현재 구현 후보: src/adapters/inbound/tui/chat/workbench-views.ts
 - 관련 테스트 후보: test/workbench-views.test.ts, test/transcript-markdown.test.ts
 - 목표 모듈 후보: src/tui/chat/message/
 

@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import type { EditorTheme, MarkdownTheme, SelectListTheme } from "@earendil-works/pi-tui";
-import { createNativeSyntaxHighlightPlugin } from "./syntax-highlighter";
+import { createNativeSyntaxHighlightPlugin } from "../chat/syntax-highlighter";
 
 /** WWW instrument-panel palette: graphite, telemetry teal, steel, and signal amber. */
 export const palette = {

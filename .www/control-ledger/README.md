@@ -26,7 +26,7 @@ Unit ID와 Linear 작업 ID는 별개다. 현재 v1은 Unit kind를 지원하지
 저장소 root에서 코드에 연결된 작업을 역조회한다.
 
 ```sh
-bun -e 'import data from "./.www/control-ledger/traceability.json"; import {parseWorkTraceabilityManifest, relatedWorkReferences, referenceKey} from "./src/core/domain/work/index.ts"; const m = parseWorkTraceabilityManifest(data); for (const r of relatedWorkReferences(m, {kind:"code", id:"src/adapters/inbound/tui/syntax-highlighter.ts"})) console.log(referenceKey(r));'
+bun -e 'import data from "./.www/control-ledger/traceability.json"; import {parseWorkTraceabilityManifest, relatedWorkReferences, referenceKey} from "./src/core/domain/work/index.ts"; const m = parseWorkTraceabilityManifest(data); for (const r of relatedWorkReferences(m, {kind:"code", id:"src/adapters/inbound/tui/chat/syntax-highlighter.ts"})) console.log(referenceKey(r));'
 ```
 
 WOO-686과 WOO-691이 나온다. 같은 API에 원장에서 읽은 `linear-issue` reference를 주면 코드·테스트·근거를 조회할 수 있다. Linear reference에는 WOO 번호뿐 아니라 UUID·URL도 필요하다.

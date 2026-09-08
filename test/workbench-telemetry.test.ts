@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences } from "@earendil-works/pi-tui";
 import {
 	formatWorkbenchTelemetry,
-} from "../src/adapters/inbound/tui/workbench-telemetry";
+} from "../src/adapters/inbound/tui/dashboard/workbench-telemetry";
 import { parseGitTelemetry } from "../src/adapters/outbound/git/git-telemetry-source";
 
 describe("workbench telemetry rail", () => {

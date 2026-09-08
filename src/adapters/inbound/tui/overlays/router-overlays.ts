@@ -12,8 +12,8 @@ import {
 	type Effort,
 	type Provider,
 	type WwwSettings,
-} from "../../../core/domain/execution/model-settings";
-import { colors, selectListTheme } from "./theme";
+} from "../../../../core/domain/execution/model-settings";
+import { colors, selectListTheme } from "../shell/theme";
 
 const settingsTheme: SettingsListTheme = {
 	label: (text, active) => active ? colors.accent(text) : text,

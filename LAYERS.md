@@ -7,14 +7,14 @@
 ```text
 src/
 ├── core/
-│   ├── domain/       # 순수 상태·값·규칙·projection
-│   ├── application/  # use case와 제품 lifecycle
+│   ├── domain/       # development·execution·observability·review·work
+│   ├── application/  # development·orchestration·review·routing·session·work
 │   ├── ports/        # 외부 실행·저장·조회 계약
 │   ├── runtime/      # 실행 상태와 receipt
 │   └── commit/       # commit control 계약
 ├── adapters/
-│   ├── inbound/      # CLI·TUI 입력과 표현
-│   └── outbound/     # executor·저장소·Git·provider 구현
+│   ├── inbound/      # cli와 tui/{chat,commands,dashboard,overlays,shell}
+│   └── outbound/     # authentication·development·execution·git·observability·persistence·review·workspace
 ├── app.ts            # production 조립
 ├── cli.ts            # 실행 진입점
 └── legacy-router-app.ts
@@ -35,12 +35,20 @@ Inbound Adapter ──→ Core ←── Outbound Adapter
 - `app.ts`가 Core 계약과 Adapter 구현을 조립한다.
 - 외부 SDK, 파일, 프로세스, 네트워크, 터미널 구현은 Adapter가 소유한다.
 
+## 내부 분류
+
+- Core Domain은 제품 capability, Core Application은 use case로 분류한다.
+- Inbound TUI는 사용자가 보는 화면과 조작 영역으로 분류한다.
+- Outbound Adapter는 연결하는 외부 기능의 종류로 분류한다.
+- `shared`, `common`, `utils` 폴더는 만들지 않는다. 소유 책임을 하나 선택한다.
+- `core/agents`, `core/intents`, `core/skills`, `core/workflows`는 각각 WHEN·분류·HOW·실행 순서의 예약 경계다. 실제 코드가 생길 때만 만든다.
+
 ## 배치 순서
 
 1. 사용자에게 보이는 동작과 상태 규칙은 `core/domain`에 둔다.
 2. 동작을 수행하는 흐름은 `core/application`에 둔다.
 3. 외부 기능이 필요하면 `core/ports`에 계약을 둔다.
-4. CLI·TUI는 `adapters/inbound`, 외부 실행·저장은 `adapters/outbound`에 구현한다.
+4. CLI·TUI는 `adapters/inbound`의 책임 폴더, 외부 실행·저장은 `adapters/outbound`의 연결 종류 폴더에 구현한다.
 5. `app.ts`에서 구현을 주입한다.
 6. `bun run check`, `bun test test/architecture.test.ts`, 관련 행동 테스트를 통과시킨다.
 

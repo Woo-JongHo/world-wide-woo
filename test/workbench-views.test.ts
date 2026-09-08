@@ -5,14 +5,14 @@ import type { LayoutBox } from "@earendil-works/pi-tui/dist/layout.js";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
 import chalk from "chalk";
 import type { WorkbenchSnapshot } from "../src/core/domain/work/workbench";
-import { createDashboardLayout } from "../src/adapters/inbound/tui/dashboard-layout";
+import { createDashboardLayout } from "../src/adapters/inbound/tui/dashboard/dashboard-layout";
 import {
 	StatusLine,
 	WorkspaceTodoView,
-} from "../src/adapters/inbound/tui/shared-dashboard-views";
-import { TNotesSourceView, WorkbenchChatView, WorkbenchMonitorView } from "../src/adapters/inbound/tui/workbench-views";
-import { WORKBENCH_STATUS_NOTICE } from "../src/adapters/inbound/tui/workbench-shell";
-import { boundedPublicProjection } from "../src/adapters/inbound/tui/bounded-public-projection";
+} from "../src/adapters/inbound/tui/dashboard/shared-dashboard-views";
+import { TNotesSourceView, WorkbenchChatView, WorkbenchMonitorView } from "../src/adapters/inbound/tui/chat/workbench-views";
+import { WORKBENCH_STATUS_NOTICE } from "../src/adapters/inbound/tui/shell/workbench-shell";
+import { boundedPublicProjection } from "../src/adapters/inbound/tui/chat/bounded-public-projection";
 import { projectWorkFlow, type DplanHash } from "../src/core/domain/work";
 
 const hash: DplanHash = {

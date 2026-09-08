@@ -8,12 +8,12 @@ import {
 } from "@earendil-works/pi-tui";
 import { homedir } from "node:os";
 import { isAlias, parseAllDocuments, stringify, visit } from "yaml";
-import type { CommandStatus } from "../../../core/domain/execution/output";
-import { isReasoningActivityPayload, type ProjectActivity, type ProjectActivityKind } from "../../../core/domain/execution/project-activity";
-import { sanitizeTerminalTextExcerpt } from "../../../core/domain/execution/terminal";
-import type { WorkbenchLiveActivity } from "../../../core/domain/work/workbench";
-import type { WorkStepNarration } from "../../../core/domain/work";
-import { colors, semantic, syntaxHighlightPlugin } from "./theme";
+import type { CommandStatus } from "../../../../core/domain/execution/output";
+import { isReasoningActivityPayload, type ProjectActivity, type ProjectActivityKind } from "../../../../core/domain/execution/project-activity";
+import { sanitizeTerminalTextExcerpt } from "../../../../core/domain/execution/terminal";
+import type { WorkbenchLiveActivity } from "../../../../core/domain/work/workbench";
+import type { WorkStepNarration } from "../../../../core/domain/work";
+import { colors, semantic, syntaxHighlightPlugin } from "../shell/theme";
 
 const INPUT_MAX_LINES = 4;
 const INPUT_MAX_CHARS = 1_200;

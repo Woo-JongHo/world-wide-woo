@@ -1,7 +1,7 @@
 import { truncateToWidth, visibleWidth, type Component } from "@earendil-works/pi-tui";
-import type { ObservabilityDashboard, ObservabilitySessionSummary } from "../../../core/domain/observability/observability-dashboard.js";
+import type { ObservabilityDashboard, ObservabilitySessionSummary } from "../../../../core/domain/observability/observability-dashboard.js";
 import { dashboardSessionWindow } from "./dashboard-session-window.js";
-import { colors } from "./theme.js";
+import { colors } from "../shell/theme.js";
 
 /** @linear WOO-676 */
 export class ObservabilityDashboardView implements Component {

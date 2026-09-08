@@ -6,9 +6,9 @@ import {
 	visibleWidth,
 	type Component,
 } from "@earendil-works/pi-tui";
-import type { ProviderAuthState } from "../../../core/ports";
-import { EFFORTS, MODELS, PROVIDERS, type Effort, type Provider, type WwwSettings } from "../../../core/domain/execution/model-settings";
-import { colors, semantic } from "./theme";
+import type { ProviderAuthState } from "../../../../core/ports";
+import { EFFORTS, MODELS, PROVIDERS, type Effort, type Provider, type WwwSettings } from "../../../../core/domain/execution/model-settings";
+import { colors, semantic } from "../shell/theme";
 
 type ModelPickerStep = "provider" | "model" | "effort" | "confirm";
 type AuthStatus = ProviderAuthState | { state: "pending"; provider: Provider };

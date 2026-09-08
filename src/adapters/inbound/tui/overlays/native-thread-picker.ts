@@ -4,8 +4,8 @@ import {
 	TuiAltScreen,
 	type Component,
 } from "@earendil-works/pi-tui";
-import type { NativeThreadSummary } from "../../../core/domain/execution/native-session";
-import { colors, selectListTheme } from "./theme";
+import type { NativeThreadSummary } from "../../../../core/domain/execution/native-session";
+import { colors, selectListTheme } from "../shell/theme";
 
 function threadPreview(thread: NativeThreadSummary): string {
 	return thread.preview.replace(/\s+/gu, " ").trim() || "(미리보기 없음)";

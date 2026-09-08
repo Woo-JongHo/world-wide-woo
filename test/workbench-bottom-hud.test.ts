@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import { WorkbenchBottomHudView } from "../src/adapters/inbound/tui/workbench-bottom-hud";
-import { UsageStripView } from "../src/adapters/inbound/tui/usage-strip-view";
+import { WorkbenchBottomHudView } from "../src/adapters/inbound/tui/dashboard/workbench-bottom-hud";
+import { UsageStripView } from "../src/adapters/inbound/tui/dashboard/usage-strip-view";
 
 test("HUD는 캐릭터와 기타 상태 없이 provider 주간 사용량 한 줄만 차지한다", () => {
 	const usage = new UsageStripView();

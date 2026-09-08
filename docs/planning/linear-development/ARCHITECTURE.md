@@ -58,3 +58,7 @@ projection한다. 저장·프로세스·SDK·터미널 구현은 Adapter에만 �
 
 과거 `domain/application/infrastructure/presentation` 및 `tui/system/workflows` 초안은 이
 구조로 대체됐다. 해당 이름을 새 최상위 경로로 다시 만들지 않는다.
+
+Core와 Adapter 내부는 `LAYERS.md`의 책임 폴더를 한 단계 사용한다. Agent·Intent·Skill·Workflow는
+각각 `core/agents`, `core/intents`, `core/skills`, `core/workflows`에 배치하되 실제 코드가 생길
+때만 생성한다.

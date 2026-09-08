@@ -25,11 +25,11 @@
 
 ### 3. 새 Dashboard projection 위치
 
-`src/core/domain/observability/observability-dashboard.ts`에 순수 `projectObservabilityDashboard(session summaries, coverage)`를 둔다. 파일 탐색과 journal read는 `src/adapters/outbound/observability/observability-history-source.ts`가 담당한다. renderer는 `src/adapters/inbound/tui/observability-dashboard-view.ts`이며 Stats renderer를 재사용하지 않는다.
+`src/core/domain/observability/observability-dashboard.ts`에 순수 `projectObservabilityDashboard(session summaries, coverage)`를 둔다. 파일 탐색과 journal read는 `src/adapters/outbound/observability/observability-history-source.ts`가 담당한다. renderer는 `src/adapters/inbound/tui/dashboard/observability-dashboard-view.ts`이며 Stats renderer를 재사용하지 않는다.
 
 ### 4. 새 Monitor projection 위치
 
-`src/core/domain/observability/runtime-monitor.ts`에 bounded incremental projection과 state machine을 둔다. 입력은 이미 정규화된 `ProjectActivity`와 현재 `WorkbenchSnapshot`이다. renderer는 `src/adapters/inbound/tui/runtime-monitor-view.ts`다. 기존 `WorkbenchMonitorView`의 raw snapshot/JSON 표시를 대체하되 `/source` 상세 책임은 유지한다.
+`src/core/domain/observability/runtime-monitor.ts`에 bounded incremental projection과 state machine을 둔다. 입력은 이미 정규화된 `ProjectActivity`와 현재 `WorkbenchSnapshot`이다. renderer는 `src/adapters/inbound/tui/dashboard/runtime-monitor-view.ts`다. 기존 `WorkbenchMonitorView`의 raw snapshot/JSON 표시를 대체하되 `/source` 상세 책임은 유지한다.
 
 ### 5. Shared metric contract
 
@@ -154,10 +154,10 @@ State precedence는 `FAILED > BLOCKED/APPROVAL > RUNNING TOOL > RUNNING AGENT/MO
 - 추가: `src/core/domain/observability/observability-dashboard.ts`
 - 추가: `src/core/domain/observability/runtime-monitor.ts`
 - 추가: `src/adapters/outbound/observability/observability-history-source.ts`
-- 추가: `src/adapters/inbound/tui/observability-dashboard-view.ts`
-- 추가: `src/adapters/inbound/tui/runtime-monitor-view.ts`
-- 변경: `src/adapters/inbound/tui/workbench-shell.ts`
-- 변경: `src/adapters/inbound/tui/slash-commands.ts`
+- 추가: `src/adapters/inbound/tui/dashboard/observability-dashboard-view.ts`
+- 추가: `src/adapters/inbound/tui/dashboard/runtime-monitor-view.ts`
+- 변경: `src/adapters/inbound/tui/shell/workbench-shell.ts`
+- 변경: `src/adapters/inbound/tui/commands/slash-commands.ts`
 - 변경/제거: 기존 `WorkbenchMonitorView`
 - 테스트: projection, navigation, keyboard safety, renderer, subscription/performance 파일
 

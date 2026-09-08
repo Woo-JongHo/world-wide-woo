@@ -16,33 +16,33 @@ import type {
 	RouterSettingsController,
 	TodoController,
 	UsageMonitor,
-} from "../../../core/ports";
-import type { SessionRuntime } from "../../../core/application/session/session-runtime";
-import type { SessionMonitor } from "../../../core/application/session/session-monitor";
-import type { PlanningService } from "../../../core/application/work/planning-service";
-import { MODELS, type WwwSettings } from "../../../core/domain/execution/model-settings";
-import { todoProgress } from "../../../core/domain/work/todos";
-import { sanitizeTerminalText } from "../../../core/domain/execution/terminal";
-import { AuthFlowOverlay } from "./auth-overlay";
-import { createDashboardLayout } from "./dashboard-layout";
+} from "../../../../core/ports";
+import type { SessionRuntime } from "../../../../core/application/session/session-runtime";
+import type { SessionMonitor } from "../../../../core/application/session/session-monitor";
+import type { PlanningService } from "../../../../core/application/work/planning-service";
+import { MODELS, type WwwSettings } from "../../../../core/domain/execution/model-settings";
+import { todoProgress } from "../../../../core/domain/work/todos";
+import { sanitizeTerminalText } from "../../../../core/domain/execution/terminal";
+import { AuthFlowOverlay } from "../overlays/auth-overlay";
+import { createDashboardLayout } from "../dashboard/dashboard-layout";
 import {
 	RouterModelView,
 	TranscriptView,
 	UsageStripView,
-} from "./legacy-dashboard-views";
-import { StatusLine, WorkspaceTodoView } from "./shared-dashboard-views";
-import { OverlaySheet } from "./overlay-sheet";
-import { IssueListOverlay, RepositoryActivityOverlay } from "./repository-overlays";
-import { LoginProviderOverlay } from "./router-overlays";
-import { ModelPickerOverlay } from "./model-picker-overlay";
-import { MonitoringOverlay } from "./monitoring-overlay";
+} from "../dashboard/legacy-dashboard-views";
+import { StatusLine, WorkspaceTodoView } from "../dashboard/shared-dashboard-views";
+import { OverlaySheet } from "../overlays/overlay-sheet";
+import { IssueListOverlay, RepositoryActivityOverlay } from "../overlays/repository-overlays";
+import { LoginProviderOverlay } from "../overlays/router-overlays";
+import { ModelPickerOverlay } from "../overlays/model-picker-overlay";
+import { MonitoringOverlay } from "../overlays/monitoring-overlay";
 import { RenderScheduler } from "./render-scheduler";
 import {
 	parseShellCommand,
 	parseTerminalCommand,
 	shellCommandConcurrency,
 	SLASH_COMMANDS,
-} from "./slash-commands";
+} from "../commands/slash-commands";
 import { settleWithin } from "./shell-lifecycle";
 import { colors, editorTheme } from "./theme";
 import { ExitKeyPolicy } from "./exit-key-policy";

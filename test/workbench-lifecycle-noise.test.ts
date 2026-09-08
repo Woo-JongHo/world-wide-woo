@@ -3,7 +3,7 @@ import { stripTerminalSequences } from "@earendil-works/pi-tui";
 import type { ProjectActivity } from "../src/core/domain/execution/project-activity";
 import type { WorkbenchSnapshot } from "../src/core/domain/work/workbench";
 import { projectWorkFlow } from "../src/core/domain/work";
-import { WorkbenchChatView } from "../src/adapters/inbound/tui/workbench-views";
+import { WorkbenchChatView } from "../src/adapters/inbound/tui/chat/workbench-views";
 
 function startup(sequence: number, server: string, status: string): ProjectActivity {
 	return {

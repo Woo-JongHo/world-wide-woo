@@ -1,7 +1,7 @@
 import { truncateToWidth, visibleWidth, wrapTextWithAnsi, type Component } from "@earendil-works/pi-tui";
-import type { RequestReview, SessionStatsSnapshot } from "../../../core/domain/observability/session-stats.js";
-import type { ObservabilitySessionSummary } from "../../../core/domain/observability/observability-dashboard.js";
-import { colors } from "./theme.js";
+import type { RequestReview, SessionStatsSnapshot } from "../../../../core/domain/observability/session-stats.js";
+import type { ObservabilitySessionSummary } from "../../../../core/domain/observability/observability-dashboard.js";
+import { colors } from "../shell/theme.js";
 
 type StatsTarget = "session" | "diagnostics" | "latest" | number;
 type LineWriter = (value?: string) => void;

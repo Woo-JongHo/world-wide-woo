@@ -11,9 +11,9 @@ import type {
 	CompletionReport,
 	DiffResultSnapshot,
 	GenericToolResultSnapshot,
-} from "../../../core/domain/execution/output";
-import { sanitizeTerminalTextExcerpt } from "../../../core/domain/execution/terminal";
-import { colors, semantic } from "./theme";
+} from "../../../../core/domain/execution/output";
+import { sanitizeTerminalTextExcerpt } from "../../../../core/domain/execution/terminal";
+import { colors, semantic } from "../shell/theme";
 import { highlightStructured, projectNativePathText, renderExecutionLine, structuredOutput } from "./work-step-card";
 
 const STRUCTURED_DISPLAY_MAX_BYTES = 64 * 1024;

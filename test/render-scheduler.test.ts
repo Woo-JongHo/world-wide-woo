@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { RenderScheduler, workbenchRenderUrgency } from "../src/adapters/inbound/tui/render-scheduler";
+import { RenderScheduler, workbenchRenderUrgency } from "../src/adapters/inbound/tui/shell/render-scheduler";
 
 describe("RenderScheduler", () => {
 	test("coalesces in-turn native deltas but flushes durable and terminal updates", () => {

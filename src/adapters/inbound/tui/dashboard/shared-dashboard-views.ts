@@ -4,11 +4,11 @@ import {
 	wrapTextWithAnsi,
 	type Component,
 } from "@earendil-works/pi-tui";
-import type { ProjectActivity } from "../../../core/domain/execution/project-activity";
-import { todoDetailProgress, todoProgress, type TodoDocument, type TodoItem } from "../../../core/domain/work/todos";
-import { projectNativeDelegation, type WorkFlowProjection } from "../../../core/domain/work";
-import type { WorkbenchTodoSyncState } from "../../../core/domain/work/workbench";
-import { colors } from "./theme";
+import type { ProjectActivity } from "../../../../core/domain/execution/project-activity";
+import { todoDetailProgress, todoProgress, type TodoDocument, type TodoItem } from "../../../../core/domain/work/todos";
+import { projectNativeDelegation, type WorkFlowProjection } from "../../../../core/domain/work";
+import type { WorkbenchTodoSyncState } from "../../../../core/domain/work/workbench";
+import { colors } from "../shell/theme";
 
 function fit(text: string, width: number): string {
 	if (width <= 0) return "";

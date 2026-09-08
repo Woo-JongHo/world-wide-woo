@@ -5,10 +5,10 @@ import {
 	wrapTextWithAnsi,
 	type Component,
 } from "@earendil-works/pi-tui";
-import type { SessionSnapshot } from "../../../core/application/session/session-runtime";
-import type { Effort } from "../../../core/domain/execution/model-settings";
-import { BashResultCard, GenericToolResultCard } from "./result-cards";
-import { colors, gradientLines, markdownTheme, semantic } from "./theme";
+import type { SessionSnapshot } from "../../../../core/application/session/session-runtime";
+import type { Effort } from "../../../../core/domain/execution/model-settings";
+import { BashResultCard, GenericToolResultCard } from "../chat/result-cards";
+import { colors, gradientLines, markdownTheme, semantic } from "../shell/theme";
 export { UsageStripView } from "./usage-strip-view";
 
 export const EFFORT_LABEL: Record<Effort, string> = {

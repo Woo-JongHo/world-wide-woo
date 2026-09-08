@@ -8,7 +8,7 @@ import {
 	stripTerminalSequences,
 	type Component,
 } from "@earendil-works/pi-tui";
-import { colors } from "./theme";
+import { colors } from "../shell/theme";
 
 export interface DashboardSection {
 	title?: string;

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { Models } from "@earendil-works/pi-ai";
-import { AuthFlowOverlay, LoginOverlay } from "../src/adapters/inbound/tui/auth-overlay";
+import { AuthFlowOverlay, LoginOverlay } from "../src/adapters/inbound/tui/overlays/auth-overlay";
 import { AuthService } from "../src/adapters/outbound/authentication/auth-service";
 
 function fakeAuthModels(): Pick<Models, "checkAuth" | "getProvider" | "login" | "logout"> {

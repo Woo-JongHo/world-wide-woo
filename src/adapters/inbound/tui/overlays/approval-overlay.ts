@@ -1,8 +1,8 @@
 import { Key, matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi, type Component } from "@earendil-works/pi-tui";
-import type { NativeApprovalRequest } from "../../../core/domain/execution/native-session";
-import { workbenchApprovalDecisions, workbenchExternalMutationCandidates, type WorkbenchApprovalDecision } from "../../../core/domain/work/workbench";
-import { colors } from "./theme";
-import { approvalDetailLabel, approvalFallback, approvalKindLabel, approvalParamText } from "./workbench-views";
+import type { NativeApprovalRequest } from "../../../../core/domain/execution/native-session";
+import { workbenchApprovalDecisions, workbenchExternalMutationCandidates, type WorkbenchApprovalDecision } from "../../../../core/domain/work/workbench";
+import { colors } from "../shell/theme";
+import { approvalDetailLabel, approvalFallback, approvalKindLabel, approvalParamText } from "../chat/workbench-views";
 
 const DECISION_LABEL: Record<WorkbenchApprovalDecision, string> = {
 	accept: "승인",

@@ -6,20 +6,20 @@ import {
 	wrapTextWithAnsi,
 	type Component,
 } from "@earendil-works/pi-tui";
-import type { NativeApprovalRequest } from "../../../core/domain/execution/native-session";
-import type { CompletionReport } from "../../../core/domain/execution/output";
-import type { CompletionReceipt } from "../../../core/runtime/execution-run";
-import { projectBackgroundWorkState, type BackgroundWorkState } from "../../../core/domain/execution/native-session";
-import { sanitizeCompletedAssistantResponse, sanitizePartialAssistantResponse } from "../../../core/domain/review/redaction";
-import { sanitizeTerminalTextExcerpt, sanitizeTerminalTextUnbounded } from "../../../core/domain/execution/terminal";
-import { projectTNoteCompletionIndex } from "../../../core/domain/work/t-notes";
-import { workbenchApprovalDecisions, type WorkbenchSnapshot } from "../../../core/domain/work/workbench";
-import { classifyWorkActivity, type SemanticWorkStep, type WorkStepStatus } from "../../../core/domain/work";
+import type { NativeApprovalRequest } from "../../../../core/domain/execution/native-session";
+import type { CompletionReport } from "../../../../core/domain/execution/output";
+import type { CompletionReceipt } from "../../../../core/runtime/execution-run";
+import { projectBackgroundWorkState, type BackgroundWorkState } from "../../../../core/domain/execution/native-session";
+import { sanitizeCompletedAssistantResponse, sanitizePartialAssistantResponse } from "../../../../core/domain/review/redaction";
+import { sanitizeTerminalTextExcerpt, sanitizeTerminalTextUnbounded } from "../../../../core/domain/execution/terminal";
+import { projectTNoteCompletionIndex } from "../../../../core/domain/work/t-notes";
+import { workbenchApprovalDecisions, type WorkbenchSnapshot } from "../../../../core/domain/work/workbench";
+import { classifyWorkActivity, type SemanticWorkStep, type WorkStepStatus } from "../../../../core/domain/work";
 import { boundedPublicProjection, PUBLIC_SOURCE_OMISSION } from "./bounded-public-projection";
-import { activityGradientFrame, colors, markdownTheme, semantic } from "./theme";
-import { WorkbenchWelcomeView } from "./workbench-welcome";
+import { activityGradientFrame, colors, markdownTheme, semantic } from "../shell/theme";
+import { WorkbenchWelcomeView } from "../shell/workbench-welcome";
 import { isVisibleWorkStep, ObservationCard, WorkStepCard } from "./work-step-card";
-import { projectWorkbenchDelegationSections } from "./delegation-tree-view";
+import { projectWorkbenchDelegationSections } from "../dashboard/delegation-tree-view";
 import { CompletionSummaryCard } from "./result-cards";
 
 const WORKBENCH_MARKDOWN_MAX_CHARS = 16 * 1024;

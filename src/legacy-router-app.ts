@@ -7,7 +7,7 @@ import { createProjectSession } from "./adapters/outbound/workspace/project-sess
 import { GitHubRepositoryInsights } from "./adapters/outbound/git/repository-insights";
 import { FileSettingsStore, routerSettingsPath } from "./adapters/outbound/persistence/settings-store";
 import { UsageService } from "./adapters/outbound/observability/usage-service";
-import { runTuiShell, type TuiShellDependencies } from "./adapters/inbound/tui/legacy-session-shell";
+import { runTuiShell, type TuiShellDependencies } from "./adapters/inbound/tui/shell/legacy-session-shell";
 
 export interface RunLegacyRouterOptions {
 	/** Legacy SessionRuntime session id, not a Codex App Server thread id. */

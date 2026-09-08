@@ -1,5 +1,5 @@
-import { sanitizeTerminalTextExcerpt } from "../../../core/domain/execution/terminal";
-import { isReasoningActivityPayload } from "../../../core/domain/execution/project-activity";
+import { sanitizeTerminalTextExcerpt } from "../../../../core/domain/execution/terminal";
+import { isReasoningActivityPayload } from "../../../../core/domain/execution/project-activity";
 
 const MAX_TOTAL_TEXT_CHARS = 10_000;
 const MAX_STRING_CHARS = 2_400;

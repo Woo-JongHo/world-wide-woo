@@ -4,8 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { stripTerminalSequences } from "@earendil-works/pi-tui";
 import { FileDevelopmentMapSource } from "../src/adapters/outbound/development/development-map-source";
-import { DevelopmentMapView } from "../src/adapters/inbound/tui/development-map-view";
-import { DevelopmentMapPollingLifecycle } from "../src/adapters/inbound/tui/workbench-shell";
+import { DevelopmentMapView } from "../src/adapters/inbound/tui/dashboard/development-map-view";
+import { DevelopmentMapPollingLifecycle } from "../src/adapters/inbound/tui/shell/workbench-shell";
 
 describe("development map", () => {
 	test("projects explicit initiative, epic, and story relations without inferring acceptance", async () => {

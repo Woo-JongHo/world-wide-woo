@@ -1,4 +1,4 @@
-import { executeDevelopmentShellCommand, type DevelopmentService } from "../../../core/application/development/development-service";
+import { executeDevelopmentShellCommand, type DevelopmentService } from "../../../../core/application/development/development-service";
 import {
 	CombinedAutocompleteProvider,
 	Editor,
@@ -13,33 +13,33 @@ import {
 	type Component,
 	type OverlayHandle,
 } from "@earendil-works/pi-tui";
-import type { AuthController, ComposerDraftController, ObservabilityHistoryReader, UsageMonitor, WorkbenchGitTelemetryReader } from "../../../core/ports";
-import type { ProjectWorkbench } from "../../../core/application/orchestration/project-workbench";
-import { EMPTY_DEVELOPMENT_MAP, type DevelopmentMapSnapshot } from "../../../core/domain/development/development-map";
-import { projectObservabilityDashboard, summarizeObservabilityStreams, type ObservabilityDashboard } from "../../../core/domain/observability/observability-dashboard";
-import { projectRuntimeMonitor, type RuntimeMonitorProjection } from "../../../core/domain/observability/runtime-monitor";
-import { normalizeSettings, PROVIDERS, type Provider, type WwwSettings } from "../../../core/domain/execution/model-settings";
-import { projectSessionStats } from "../../../core/domain/observability/session-stats";
-import { sanitizeTerminalTextUnbounded } from "../../../core/domain/execution/terminal";
-import type { WorkbenchCommandReceipt, WorkbenchSnapshot } from "../../../core/domain/work/workbench";
-import { createDashboardLayout } from "./dashboard-layout";
-import { StatusLine, WorkspaceTodoView } from "./shared-dashboard-views";
-import { TNotesSourceView, WorkbenchChatView, WorkbenchMonitorView } from "./workbench-views";
+import type { AuthController, ComposerDraftController, ObservabilityHistoryReader, UsageMonitor, WorkbenchGitTelemetryReader } from "../../../../core/ports";
+import type { ProjectWorkbench } from "../../../../core/application/orchestration/project-workbench";
+import { EMPTY_DEVELOPMENT_MAP, type DevelopmentMapSnapshot } from "../../../../core/domain/development/development-map";
+import { projectObservabilityDashboard, summarizeObservabilityStreams, type ObservabilityDashboard } from "../../../../core/domain/observability/observability-dashboard";
+import { projectRuntimeMonitor, type RuntimeMonitorProjection } from "../../../../core/domain/observability/runtime-monitor";
+import { normalizeSettings, PROVIDERS, type Provider, type WwwSettings } from "../../../../core/domain/execution/model-settings";
+import { projectSessionStats } from "../../../../core/domain/observability/session-stats";
+import { sanitizeTerminalTextUnbounded } from "../../../../core/domain/execution/terminal";
+import type { WorkbenchCommandReceipt, WorkbenchSnapshot } from "../../../../core/domain/work/workbench";
+import { createDashboardLayout } from "../dashboard/dashboard-layout";
+import { StatusLine, WorkspaceTodoView } from "../dashboard/shared-dashboard-views";
+import { TNotesSourceView, WorkbenchChatView, WorkbenchMonitorView } from "../chat/workbench-views";
 import { ExitKeyPolicy } from "./exit-key-policy";
-import { LoginOverlay } from "./auth-overlay";
-import { ModelPickerOverlay } from "./model-picker-overlay";
-import { OverlaySheet } from "./overlay-sheet";
+import { LoginOverlay } from "../overlays/auth-overlay";
+import { ModelPickerOverlay } from "../overlays/model-picker-overlay";
+import { OverlaySheet } from "../overlays/overlay-sheet";
 import { RenderScheduler, workbenchRenderUrgency } from "./render-scheduler";
 import { settleWithin } from "./shell-lifecycle";
-import { parseWorkbenchShellCommand, WORKBENCH_SLASH_COMMANDS, type WorkbenchShellCommand } from "./slash-commands";
+import { parseWorkbenchShellCommand, WORKBENCH_SLASH_COMMANDS, type WorkbenchShellCommand } from "../commands/slash-commands";
 import { colors, composerBorderColor, editorTheme } from "./theme";
-import { WorkbenchBottomHudView } from "./workbench-bottom-hud";
-import { WorkbenchTelemetryLine, workbenchModelLabel } from "./workbench-telemetry";
-import { UsageStripView } from "./usage-strip-view";
-import { DevelopmentMapView } from "./development-map-view";
-import { ObservabilityDashboardView } from "./observability-dashboard-view";
-import { RuntimeMonitorView } from "./runtime-monitor-view";
-import { SessionStatsView } from "./session-stats-view";
+import { WorkbenchBottomHudView } from "../dashboard/workbench-bottom-hud";
+import { WorkbenchTelemetryLine, workbenchModelLabel } from "../dashboard/workbench-telemetry";
+import { UsageStripView } from "../dashboard/usage-strip-view";
+import { DevelopmentMapView } from "../dashboard/development-map-view";
+import { ObservabilityDashboardView } from "../dashboard/observability-dashboard-view";
+import { RuntimeMonitorView } from "../dashboard/runtime-monitor-view";
+import { SessionStatsView } from "../dashboard/session-stats-view";
 
 export interface ProjectWorkbenchShellDependencies {
 	workbench: ProjectWorkbench;

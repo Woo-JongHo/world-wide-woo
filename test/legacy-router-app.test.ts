@@ -9,7 +9,7 @@ import {
 	runLegacyRouter,
 	type LegacyRouterAppDependencies,
 } from "../src/legacy-router-app";
-import type { TuiShellDependencies } from "../src/adapters/inbound/tui/legacy-session-shell";
+import type { TuiShellDependencies } from "../src/adapters/inbound/tui/shell/legacy-session-shell";
 
 const codex: WwwSettings = { provider: "openai-codex", model: "gpt-5.6-terra", effort: "high" };
 const claude: WwwSettings = { provider: "anthropic", model: "claude-sonnet-4-6", effort: "medium" };

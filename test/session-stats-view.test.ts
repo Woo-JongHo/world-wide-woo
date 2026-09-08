@@ -4,7 +4,7 @@ import type { ProjectActivity } from "../src/core/domain/execution/project-activ
 import type { SessionStatsSnapshot } from "../src/core/domain/observability/session-stats";
 import { projectSessionStats } from "../src/core/domain/observability/session-stats";
 import type { WorkbenchSnapshot } from "../src/core/domain/work/workbench";
-import { SessionStatsView } from "../src/adapters/inbound/tui/session-stats-view";
+import { SessionStatsView } from "../src/adapters/inbound/tui/dashboard/session-stats-view";
 
 const longPrompt = "Implement review dashboard with a very long raw prompt that must never wrap into a conversation transcript or occupy several dashboard rows";
 const request = { ordinal: 1, requestId: "hidden-id", turnId: "turn-1", excerpt: longPrompt, excerptSourceActivityId: "activity-1", lifecycle: "completed", observedElapsedMs: 30_000, models: ["gpt-5.4-sol"], sourceActivityIds: ["activity-1"] } as const;

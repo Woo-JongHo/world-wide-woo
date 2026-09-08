@@ -1,8 +1,8 @@
 import { truncateToWidth, type Component } from "@earendil-works/pi-tui";
-import type { ProjectActivity } from "../../../core/domain/execution/project-activity";
-import { projectNativeDelegation } from "../../../core/domain/work";
-import { sanitizeTerminalTextExcerpt } from "../../../core/domain/execution/terminal";
-import { colors } from "./theme";
+import type { ProjectActivity } from "../../../../core/domain/execution/project-activity";
+import { projectNativeDelegation } from "../../../../core/domain/work";
+import { sanitizeTerminalTextExcerpt } from "../../../../core/domain/execution/terminal";
+import { colors } from "../shell/theme";
 
 const DELEGATION_TEXT_LIMIT = 360;
 

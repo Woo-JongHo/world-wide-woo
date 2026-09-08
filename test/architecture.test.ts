@@ -3,6 +3,24 @@ import { readFile, stat } from "node:fs/promises";
 import { layer, loadSourceGraph, reachableSources, relativeCycles } from "./architecture/import-graph";
 
 describe("source architecture", () => {
+	test("keeps flattened layers grouped by their canonical responsibility", async () => {
+		const graph = await loadSourceGraph();
+		const groups: ReadonlyArray<readonly [string, ReadonlySet<string>]> = [
+			["core/domain/", new Set(["development", "execution", "observability", "review", "work"])],
+			["core/application/", new Set(["development", "orchestration", "review", "routing", "session", "work"])],
+			["adapters/outbound/", new Set(["authentication", "development", "execution", "git", "observability", "persistence", "review", "workspace"])],
+			["adapters/inbound/tui/", new Set(["chat", "commands", "dashboard", "overlays", "shell"])],
+		];
+		for (const path of graph.keys()) {
+			for (const [prefix, allowed] of groups) {
+				if (!path.startsWith(prefix)) continue;
+				const group = path.slice(prefix.length).split("/")[0]!;
+				expect(group.endsWith(".ts"), `flat source: ${path}`).toBe(false);
+				expect(allowed.has(group), `unknown responsibility group: ${path}`).toBe(true);
+			}
+		}
+	});
+
 	test("keeps the core independent from adapters", async () => {
 		const graph = await loadSourceGraph();
 		for (const source of graph.values()) {

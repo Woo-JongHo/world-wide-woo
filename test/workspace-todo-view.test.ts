@@ -3,7 +3,7 @@ import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
 import type { ProjectActivity } from "../src/core/domain/execution/project-activity";
 import type { WorkFlowProjection } from "../src/core/domain/work";
 import type { TodoDocument } from "../src/core/domain/work/todos";
-import { WorkspaceTodoView } from "../src/adapters/inbound/tui/shared-dashboard-views";
+import { WorkspaceTodoView } from "../src/adapters/inbound/tui/dashboard/shared-dashboard-views";
 
 function todo(items: TodoDocument["items"]): TodoDocument {
 	return {

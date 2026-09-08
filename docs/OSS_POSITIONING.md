@@ -69,7 +69,7 @@ WWW가 다음을 제품 중심으로 만들면 OMX·OMO와 직접 중복된다.
 
 현재 WWW에는 자체 [`SessionRuntime`](../src/core/application/session/session-runtime.ts#L241)과 [`ModelRouter`](../src/adapters/outbound/authentication/model-router.ts#L51)가 있어 작은 agent harness의 책임까지 가진다. 이 방향을 확대하면 OMO와 차이가 줄어든다.
 
-반면 프로젝트별 [workspace](../src/adapters/outbound/workspace/project-workspace.ts#L107), [Todo 저장](../src/adapters/outbound/persistence/todo-store.ts#L10), [Workbench projection](../src/adapters/inbound/tui/workbench-views.ts), [Todo projection](../src/adapters/inbound/tui/shared-dashboard-views.ts)은 WWW의 고유 방향과 일치한다.
+반면 프로젝트별 [workspace](../src/adapters/outbound/workspace/project-workspace.ts#L107), [Todo 저장](../src/adapters/outbound/persistence/todo-store.ts#L10), [Workbench projection](../src/adapters/inbound/tui/chat/workbench-views.ts), [Todo projection](../src/adapters/inbound/tui/dashboard/shared-dashboard-views.ts)은 WWW의 고유 방향과 일치한다.
 
 차별점을 지키려면 주 작성 경로의 agent loop는 native harness adapter 뒤로 넘기고, WWW가 소유할 것은 다음으로 제한한다.
 

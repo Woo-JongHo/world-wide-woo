@@ -25,6 +25,9 @@ src/
 기존 최상위 `domain/application/infrastructure/presentation`은 `core/adapters`로 이관했다.
 `tui/system/workflows`는 검토 단계의 초안이었으며 현재 목표가 아니다.
 
+평평했던 Core와 Adapter 내부는 책임 폴더로 한 단계 더 분류한다. 정확한 허용 폴더와
+배치 규칙은 `LAYERS.md`가 소유한다.
+
 ## 책임
 
 | 경계 | 책임 |
@@ -37,6 +40,9 @@ src/
 | `adapters/inbound` | CLI 명령, TUI 입력·표현 |
 | `adapters/outbound` | executor, 저장소, provider, Git, 파일·프로세스 구현 |
 | `app.ts` | production 의존 조립 |
+
+Agent·Intent·Skill·Workflow의 실행 코드는 아직 없다. 각각 `core/agents`, `core/intents`,
+`core/skills`, `core/workflows`에 들어가지만 실제 책임이 생기기 전에는 빈 폴더를 만들지 않는다.
 
 ## 주요 이관 결정
 

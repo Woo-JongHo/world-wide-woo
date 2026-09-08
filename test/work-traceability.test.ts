@@ -155,7 +155,7 @@ describe("work traceability", () => {
 				expect(relatedWorkReferences(manifest, reference).map(referenceKey)).toContain(referenceKey(issue));
 			}
 		}
-		expect(relatedWorkReferences(manifest, { kind: "code", id: "src/adapters/inbound/tui/syntax-highlighter.ts" })
+		expect(relatedWorkReferences(manifest, { kind: "code", id: "src/adapters/inbound/tui/chat/syntax-highlighter.ts" })
 			.filter(reference => reference.kind === "linear-issue").map(reference => reference.id).sort())
 			.toEqual(expect.arrayContaining(["WOO-686", "WOO-691"]));
 		expect(manifest.links).toContainEqual({

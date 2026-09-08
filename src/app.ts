@@ -9,7 +9,7 @@ export { listNativeThreads } from "./adapters/outbound/workspace/native-thread-d
 export interface RunAppOptions { resumeThreadId?: string; executionLane?: ExecutionLane }
 export async function runApp(options: RunAppOptions = {}): Promise<void> {
 	const { FileSettingsStore } = await import("./adapters/outbound/persistence/settings-store");
-	const { runProjectWorkbenchShell } = await import("./adapters/inbound/tui/workbench-shell");
+	const { runProjectWorkbenchShell } = await import("./adapters/inbound/tui/shell/workbench-shell");
 	const settingsStore = new FileSettingsStore();
 	const settings = await settingsStore.load();
 	let persistedSettings = settings;

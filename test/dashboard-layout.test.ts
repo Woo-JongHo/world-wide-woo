@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences, visibleWidth, type Component } from "@earendil-works/pi-tui";
 import { renderLayoutFrame } from "@earendil-works/pi-tui/dist/layout.js";
 import type { LayoutBox } from "@earendil-works/pi-tui/dist/layout.js";
-import { createDashboardLayout } from "../src/adapters/inbound/tui/dashboard-layout";
+import { createDashboardLayout } from "../src/adapters/inbound/tui/dashboard/dashboard-layout";
 
 class Lines implements Component {
 	constructor(private readonly lines: string[]) {}

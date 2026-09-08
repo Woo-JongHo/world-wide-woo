@@ -45,7 +45,7 @@ const productionDependencies: CliDependencies = {
 		return listNativeThreads();
 	},
 	selectNativeThread: async (threads) => {
-		const { selectNativeThread } = await import("./adapters/inbound/tui/native-thread-picker");
+		const { selectNativeThread } = await import("./adapters/inbound/tui/overlays/native-thread-picker");
 		return selectNativeThread(threads);
 	},
 	writeOut: value => console.log(value),
