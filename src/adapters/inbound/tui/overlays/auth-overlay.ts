@@ -240,7 +240,7 @@ export class AuthFlowOverlay implements Component {
 					message: "로그인 방식을 선택하세요.",
 					options: this.methods.map((method) => ({
 						id: method,
-						label: method === "oauth" ? "구독 계정 로그인 (OAuth)" : "API 키",
+						label: method === "oauth" ? (this.provider === "google" ? "Google 구독 계정 (Gemini CLI)" : "구독 계정 로그인 (OAuth)") : "API 키",
 					})),
 				});
 			const status = await this.auth.login(this.provider, method as AuthType, {
