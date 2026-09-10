@@ -26,6 +26,7 @@ function flow(turnId: string, activityId: string, planItemId: string): WorkFlowP
 	return {
 		source: {
 			kind: "native-plan-derived",
+			authority: "native-checklist",
 			expectedThreadKeyDigest: "thread-digest",
 			turnId,
 			currentRevision: { sourceRevisionKeyDigest: "revision", activityId: `plan-${turnId}`, sequence: 1, sourceDigest: "digest" },

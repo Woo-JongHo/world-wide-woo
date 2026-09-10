@@ -48,6 +48,33 @@ describe("WorkspaceTodoView", () => {
 		}
 	});
 
+	test("projects the latest Linear Update when no native Todo is active", () => {
+		const output = stripTerminalSequences(new WorkspaceTodoView(
+			() => null,
+			undefined,
+			() => ({
+				state: "ready",
+				projectName: "World Wide Woo",
+				fetchedAt: "2026-09-09T00:00:00.000Z",
+				issues: [],
+				update: { body: "0.1.0의 최신 변경 사항", createdAt: "2026-09-09T00:00:00.000Z" },
+				milestones: [],
+				error: null,
+			}),
+		).render(80).join("\n"));
+		expect(output).toContain("Update · World Wide Woo");
+		expect(output).toContain("0.1.0의 최신 변경 사항");
+	});
+
+	test("keeps the Goal visible while the Native Plan is being prepared", () => {
+		const output = stripTerminalSequences(new WorkspaceTodoView(
+			() => null,
+			() => ({ activeTurnId: "turn-1", activities: [], workFlow: emptyFlow(), goal: "첫 공개 릴리스를 완성한다" }),
+		).render(70).join("\n"));
+		expect(output).toContain("Goal · 첫 공개 릴리스를 완성한다");
+		expect(output).toContain("공개 계획을 기다리는 중");
+	});
+
 	test.each([30, 40, 70, 120])("wraps Korean and ANSI todo content safely within %i columns", (width) => {
 		const output = new WorkspaceTodoView(() => mixedTodo).render(width);
 		expect(output.every(line => visibleWidth(line) <= width)).toBe(true);
@@ -55,15 +82,14 @@ describe("WorkspaceTodoView", () => {
 
 	test("uses status markers without mixing project metadata or commands into Todo", () => {
 		const output = new WorkspaceTodoView(() => mixedTodo).render(120).join("\n");
-		expect(output).toContain("TODO 1/4 · 세부 1/3");
-		expect(output).toContain("릴리스");
+		expect(stripTerminalSequences(output)).toContain("1 / 4");
 		expect(output).toContain("○ 한국어 pending 작업");
-		expect(output).toContain("◉");
+		expect(output).toContain("▶");
 		expect(output).toContain("\u001B[31m진행 중인 아주 긴 작업\u001B[0m");
 		expect(output).toContain("✓ 완료 작업");
 		expect(output).toContain("◆ 막힌 작업");
 		expect(output).toContain("├ ✓ 재현 완료");
-		expect(output).toContain("├ ◉ 캐시 구현");
+		expect(output).toContain("├ ▶ 캐시 구현");
 		expect(output).toContain("└ ○ 검증 예정");
 		expect(output).not.toContain("프로젝트");
 		expect(output).not.toContain("작업 위치");
@@ -76,16 +102,16 @@ describe("WorkspaceTodoView", () => {
 
 	test("uses the active item rather than an earlier pending item in compact layout", () => {
 		const output = new WorkspaceTodoView(() => mixedTodo).render(40).join("\n");
-		expect(output).toContain("TODO 1/4 · 세부 1/3");
-		expect(output).toContain("◉");
-		expect(output).toContain("└ ◉ 캐시 구현");
+		expect(stripTerminalSequences(output)).toContain("1 / 4");
+		expect(output).toContain("▶");
+		expect(output).toContain("└ ▶ 캐시 구현");
 		expect(output).not.toContain("○");
 		expect(output).not.toContain("✓");
 		expect(output).not.toContain("◆");
 		expect(stripTerminalSequences(output)).toContain("3개 숨김");
 	});
 
-	test("shows observed root and parallel agent work beside the bound plan item", () => {
+	test("keeps execution provenance out of the Todo checklist", () => {
 		const identity = "a".repeat(64);
 		const revision = { sourceRevisionKeyDigest: "b".repeat(64), activityId: "plan", sequence: 1, sourceDigest: "sha256:plan" };
 		const document: TodoDocument = {
@@ -128,7 +154,7 @@ describe("WorkspaceTodoView", () => {
 		}));
 		const workFlow: WorkFlowProjection = {
 			...emptyFlow(),
-			source: { kind: "native-plan-derived", expectedThreadKeyDigest: "c".repeat(64), turnId: "turn-1", currentRevision: revision, algorithm: "dplan-v1" },
+			source: { kind: "native-plan-derived", authority: "native-checklist", expectedThreadKeyDigest: "c".repeat(64), turnId: "turn-1", currentRevision: revision, algorithm: "dplan-v1" },
 			steps: [{
 				id: identity,
 				identity: { kind: "deterministic-derived", value: identity, originRevision: revision },
@@ -148,9 +174,9 @@ describe("WorkspaceTodoView", () => {
 			() => ({ activeTurnId: "turn-1", activities, workFlow, sync: { state: "syncing", lastConfirmedAt: null, message: null } }),
 		).render(120).join("\n"));
 
-		expect(output).toContain("주 실행 · gpt-5.6-sol · root · run turn-1");
-		expect(output).toContain("gpt-5.6-terra · agent agent-a · 진행 중 · 코드 구현");
-		expect(output).toContain("gpt-5.6-luna · agent agent-b · 진행 중 · 검증");
+		expect(output).not.toContain("주 실행");
+		expect(output).not.toContain("gpt-5.6-terra");
+		expect(output).not.toContain("gpt-5.6-luna");
 		expect(output).toContain("저장 동기화 중 · 대화는 계속됩니다");
 	});
 });

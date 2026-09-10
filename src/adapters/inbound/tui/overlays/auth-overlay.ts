@@ -3,6 +3,8 @@ import {
 	Key,
 	matchesKey,
 	stripTerminalSequences,
+	truncateToWidth,
+	visibleWidth,
 	wrapTextWithAnsi,
 	type Component,
 } from "@earendil-works/pi-tui";
@@ -27,11 +29,17 @@ const PROVIDER_LABELS: Record<Provider, string> = {
 	anthropic: "Anthropic (Claude Pro/Max)",
 	openai: "OpenAI API",
 	google: "Google Gemini",
+	zai: "Z.AI Coding API",
 };
 
 export const GEMINI_API_KEY_URL = "https://aistudio.google.com/app/apikey";
 
 type OpenExternal = (target: string) => Promise<unknown>;
+
+function fit(text: string, width: number): string {
+	const clipped = truncateToWidth(text, Math.max(1, width));
+	return clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)));
+}
 
 /** Owns the complete provider-picker → authentication flow in one keyboard surface. */
 export class LoginOverlay implements Component {
@@ -81,10 +89,16 @@ export class LoginOverlay implements Component {
 
 	render(width: number): string[] {
 		if (this.flow) return this.flow.render(width);
-		const rows = [colors.accent("로그인할 Provider 선택"), colors.muted("↑↓ 선택 · Enter 로그인 · Esc 취소"), ""];
+		const contentWidth = Math.max(1, width);
+		const rows = [
+			colors.accent("◈ 모델 연결 · 로그인"),
+			colors.muted("연결할 Provider를 선택하세요."),
+			colors.muted("↑↓ 선택 · Enter 로그인 · Esc 닫기"),
+			"",
+		].map(row => fit(row, contentWidth));
 		for (const [index, provider] of this.providers.entries()) {
 			const cursor = index === this.selected ? colors.accent("›") : " ";
-			rows.push(`${cursor} ${PROVIDER_LABELS[provider]}  ${this.statusLabel(provider)}`);
+			rows.push(fit(`${cursor} ${PROVIDER_LABELS[provider]}  ${this.statusLabel(provider)}`, contentWidth));
 		}
 		return rows;
 	}
@@ -152,7 +166,7 @@ export class AuthFlowOverlay implements Component {
 
 	render(width: number): string[] {
 		const contentWidth = Math.max(1, width - 2);
-		const rows = [colors.accent(`${this.provider} 로그인`), ""];
+		const rows = [colors.accent(`◈ 모델 연결 · ${this.provider} 로그인`), ""];
 		for (const line of this.lines.slice(-8)) rows.push(...wrapTextWithAnsi(line, contentWidth));
 		if (this.pending) {
 			rows.push("", colors.highlight(stripTerminalSequences(this.pending.prompt.message)));
@@ -166,13 +180,13 @@ export class AuthFlowOverlay implements Component {
 			if (this.pending.prompt.type === "select") {
 				for (const [index, option] of this.pending.prompt.options.entries()) {
 					const marker = index === this.pending.selected ? colors.accent("●") : colors.muted("○");
-					rows.push(`${marker} ${stripTerminalSequences(option.label)}`);
+					rows.push(...wrapTextWithAnsi(`${marker} ${stripTerminalSequences(option.label)}`, contentWidth));
 				}
 			} else {
 				const value = this.pending.prompt.type === "secret"
 					? "•".repeat(Array.from(this.pending.value).length)
 					: stripTerminalSequences(this.pending.value);
-				rows.push(`${colors.accent(">")} ${value || colors.muted("입력 중…")}`);
+				rows.push(...wrapTextWithAnsi(`${colors.accent(">")} ${value || colors.muted("입력 중…")}`, contentWidth));
 			}
 			rows.push("", colors.muted("Enter 확인 · Esc 취소"));
 		} else if (this.done) {
@@ -240,7 +254,7 @@ export class AuthFlowOverlay implements Component {
 					message: "로그인 방식을 선택하세요.",
 					options: this.methods.map((method) => ({
 						id: method,
-						label: method === "oauth" ? (this.provider === "google" ? "Google 구독 계정 (Gemini CLI)" : "구독 계정 로그인 (OAuth)") : "API 키",
+						label: method === "oauth" ? (this.provider === "google" ? "브라우저에서 Google 계정 로그인" : "구독 계정 로그인 (OAuth)") : "API 키",
 					})),
 				});
 			const status = await this.auth.login(this.provider, method as AuthType, {

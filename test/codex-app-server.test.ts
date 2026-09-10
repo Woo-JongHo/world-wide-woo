@@ -159,6 +159,30 @@ describe("CodexAppServer", () => {
 		await server.close();
 	});
 
+	test("preserves a structured v2 command approval decision and returns it unchanged", async () => {
+		const { server, transport } = await connectedFake();
+		const amendment = { acceptWithExecpolicyAmendment: { execpolicyAmendment: { command: ["bun", "test"] } } };
+		let approval: unknown;
+		server.subscribe(event => {
+			if (event.type === "approval-requested") approval = event.approval;
+		});
+		transport.emit({
+			id: "approval-policy-1",
+			method: "item/commandExecution/requestApproval",
+			params: {
+				threadId: "thread-native-1", turnId: "turn-native-1", itemId: "item-native-1",
+				availableDecisions: ["accept", amendment, "decline", "cancel"],
+			},
+		});
+		expect(approval).toEqual(expect.objectContaining({ availableDecisions: ["accept", amendment, "decline", "cancel"] }));
+		const response = server.respondToApproval({ requestId: "approval-policy-1", response: { decision: amendment } });
+		await Bun.sleep(0);
+		expect(transport.sent.at(-1)).toEqual({ id: "approval-policy-1", result: { decision: amendment } });
+		transport.emit({ method: "serverRequest/resolved", params: { requestId: "approval-policy-1" } });
+		await response;
+		await server.close();
+	});
+
 	test("writes escaped MCP enablement config and reloads through supported protocol methods", async () => {
 		const { server, transport } = await connectedFake();
 
@@ -178,6 +202,28 @@ describe("CodexAppServer", () => {
 
 		await server.reloadMcpServers();
 		expect(transport.sent.at(-1)).toEqual({ id: 4, method: "config/mcpServer/reload" });
+		await server.close();
+	});
+
+	test("starts provider-owned thread compaction through the App Server protocol", async () => {
+		const { server, transport } = await connectedFake();
+		await server.compactThread({ threadId: "thread-native-1" });
+		expect(transport.sent.at(-1)).toEqual({
+			id: 2,
+			method: "thread/compact/start",
+			params: { threadId: "thread-native-1" },
+		});
+		await server.close();
+	});
+
+	test("calls an addressed MCP tool through the documented App Server boundary", async () => {
+		const { server, transport } = await connectedFake();
+		transport.responseFor.set("mcpServer/tool/call", { content: [{ type: "text", text: "{}" }], structuredContent: { ok: true }, isError: false });
+		await expect(server.callMcpTool({ server: "linear-woo", threadId: "thread-1", tool: "list_issues", arguments: { project: "project-1" } }))
+			.resolves.toEqual({ content: [{ type: "text", text: "{}" }], structuredContent: { ok: true }, isError: false });
+		expect(transport.sent.at(-1)).toEqual({ id: 2, method: "mcpServer/tool/call", params: {
+			server: "linear-woo", threadId: "thread-1", tool: "list_issues", arguments: { project: "project-1" },
+		} });
 		await server.close();
 	});
 
@@ -222,7 +268,7 @@ describe("CodexAppServer", () => {
 		expect(transport.sent.find((message) => message.method === "thread/start")?.params).toEqual({
 			cwd: "/workspace",
 			model: "gpt-5.6-sol",
-			config: { model_reasoning_effort: "low" },
+			config: { model_reasoning_effort: "low", tools: { update_plan: { enabled: true } } },
 		});
 		expect((await server.resumeThread({ threadId: "thread-native-1" })).id).toBe("thread-native-1");
 		expect((await server.readThread({ threadId: "thread-native-1", includeTurns: true })).value.turns).toEqual([

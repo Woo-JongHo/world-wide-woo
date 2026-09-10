@@ -78,6 +78,8 @@ describe("WWW slash commands", () => {
 	});
 
 	test("intercepts only exact workbench-local commands", () => {
+		expect(parseWorkbenchShellCommand("/goal")).toEqual({ type: "goal.view" });
+		expect(parseWorkbenchShellCommand("/goal Ship the first release")).toEqual({ type: "goal.set", text: "Ship the first release" });
 		expect(parseWorkbenchShellCommand("/model")).toEqual({ type: "model.select" });
 		expect(parseWorkbenchShellCommand("/model gpt-5.6-sol")).toEqual({ type: "model.set", model: "gpt-5.6-sol" });
 		expect(parseWorkbenchShellCommand("/model openai-codex/gpt-5.6-terra high")).toEqual({
@@ -91,6 +93,9 @@ describe("WWW slash commands", () => {
 		expect(parseWorkbenchShellCommand("/logout google")).toEqual({ type: "auth.logout", provider: "google" });
 		expect(parseWorkbenchShellCommand("/login unknown")).toMatchObject({ type: "error" });
 		expect(parseWorkbenchShellCommand("/source latest")).toEqual({ type: "activity.select", activityId: "latest" });
+		expect(parseWorkbenchShellCommand("/agents")).toEqual({ type: "agent.select", agentRef: null });
+		expect(parseWorkbenchShellCommand("/agents root:turn:child:1")).toEqual({ type: "agent.select", agentRef: "root:turn:child:1" });
+		expect(parseWorkbenchShellCommand("/agents clear")).toEqual({ type: "agent.select", agentRef: null });
 		expect(parseWorkbenchShellCommand("/permission all")).toEqual({ type: "session.permission", mode: "all" });
 		expect(parseWorkbenchShellCommand("/permission manual")).toEqual({ type: "session.permission", mode: "manual" });
 		expect(parseWorkbenchShellCommand("/permission unsafe")).toMatchObject({ type: "error" });
@@ -116,6 +121,13 @@ describe("WWW slash commands", () => {
 		expect(parseWorkbenchShellCommand("/review send abc123")).toEqual({ type: "review.send", digest: "abc123" });
 		expect(parseWorkbenchShellCommand("/approve")).toEqual({ type: "approval.accept" });
 		expect(parseWorkbenchShellCommand("/approve-session")).toEqual({ type: "approval.accept-session" });
+		expect(parseWorkbenchShellCommand("/clear")).toEqual({ type: "chat.clear" });
+		expect(parseWorkbenchShellCommand("/compact")).toEqual({ type: "thread.compact" });
+		expect(parseWorkbenchShellCommand("/mcp status")).toEqual({ type: "mcp.refresh" });
+		expect(parseWorkbenchShellCommand("/mcp enable linear-woo")).toEqual({ type: "mcp.enable", name: "linear-woo" });
+		expect(parseWorkbenchShellCommand("/mcp disable linear-woo")).toEqual({ type: "mcp.disable", name: "linear-woo" });
+		expect(parseWorkbenchShellCommand("/mcp reload")).toEqual({ type: "mcp.reload" });
+		expect(parseWorkbenchShellCommand("/mcp enable")).toMatchObject({ type: "error" });
 		expect(parseWorkbenchShellCommand("/skill commit")).toBeNull();
 	});
 
@@ -126,6 +138,7 @@ describe("WWW slash commands", () => {
 			.toBe("완료된 질문별 T-note pane 안내");
 		expect(WORKBENCH_SLASH_COMMANDS.find((command) => command.name === "source")?.description).toContain("Monitor");
 		expect(WORKBENCH_SLASH_COMMANDS.find((command) => command.name === "trace")?.description).toContain("Monitor");
+		expect(WORKBENCH_SLASH_COMMANDS.map((command) => command.name)).toEqual(expect.arrayContaining(["clear", "compact", "mcp", "goal"]));
 		const modelCommand = WORKBENCH_SLASH_COMMANDS.find((command) => command.name === "model");
 		const modelCompletions = await modelCommand?.getArgumentCompletions?.("");
 		expect(modelCompletions?.map((item) => item.value)).toEqual([
@@ -159,4 +172,14 @@ describe("WWW slash commands", () => {
 			"exit",
 		]);
 	});
+});
+
+
+test("routes local workflow commands and advertises their completion", () => {
+	expect(parseWorkbenchShellCommand("/workflow check RPA-001")).toEqual({ type: "workflow.check", processId: "RPA-001" });
+	expect(parseWorkbenchShellCommand("/workflow resume run-1")).toEqual({ type: "workflow.resume", runId: "run-1" });
+	expect(parseWorkbenchShellCommand("/workflow show run-1")).toEqual({ type: "workflow.show", runId: "run-1" });
+	for (const input of ["/workflow", "/workflow check", "/workflow show a b", "/workflow delete run-1"]) expect(parseWorkbenchShellCommand(input)?.type).toBe("error");
+	expect(WORKBENCH_SLASH_COMMANDS.find(command => command.name === "workflow")).toBeDefined();
+	expect(parseWorkbenchShellCommand("/help")).toEqual({ type: "help" });
 });

@@ -1,5 +1,6 @@
 import type { ProjectActivity } from "../domain/execution/project-activity.js";
 import type { TodoItem } from "../domain/work/todos.js";
+import { projectWorkFlow } from "../domain/work/workflow-projection.js";
 import type {
 	ExecutionRunId,
 	RuntimeEventKind,
@@ -46,6 +47,11 @@ const frame = (value: unknown): Uint8Array => encoder.encode(JSON.stringify(valu
 const digest = (hash: ExecutionHash, value: unknown) => hash.sha256Hex(frame(value));
 const terminal = (phase: ExecutionRunPhase) => phase === "completed" || phase === "failed" || phase === "interrupted";
 
+export interface ExecutionRunReductionContext {
+	/** Complete append-only journal, including foreign/root turns, for dplan-v1 integrity and turn boundaries. */
+	readonly journalActivities: readonly ProjectActivity[];
+}
+
 export function createExecutionRun(input: { runId: ExecutionRunId; threadId: string; turnId: string; hash: ExecutionHash; objective?: string }): ExecutionRunState {
 	const state = {
 		runId: input.runId, threadId: input.threadId, turnId: input.turnId, phase: "requested" as const,
@@ -68,7 +74,11 @@ export function normalizeProjectActivity(activity: ProjectActivity): RuntimeEven
 	};
 }
 
-export function reduceExecutionRun(state: ExecutionRunState, event: RuntimeEvent, hash: ExecutionHash): ExecutionRunReduction {
+export function reduceExecutionRun(state: ExecutionRunState, event: RuntimeEvent, hash: ExecutionHash, context?: ExecutionRunReductionContext): ExecutionRunReduction {
+	return reduceExecutionRunVersion(state, event, hash, 3, context);
+}
+
+function reduceExecutionRunVersion(state: ExecutionRunState, event: RuntimeEvent, hash: ExecutionHash, version: 1 | 2 | 3, context?: ExecutionRunReductionContext): ExecutionRunReduction {
 	if (event.runId !== state.runId || event.threadId !== state.threadId || event.turnId !== state.turnId) return { state, accepted: false, reason: "foreign" };
 	if (state.activities.some(activity => activity.id === event.id)) return { state, accepted: false, reason: "duplicate" };
 	if (terminal(state.phase)) return { state, accepted: false, reason: "late" };
@@ -90,26 +100,41 @@ export function reduceExecutionRun(state: ExecutionRunState, event: RuntimeEvent
 	const activity = event.activity;
 	const method = stringValue(event.payload?.method ?? activity?.payload.method);
 	const nextActivities = activity ? [...state.activities, activity] : state.activities;
-	let phase = state.phase === "reconciling" ? "reconciling" : nextPhase(state.phase, event, method);
+	const auditOnly = version === 3 && method.startsWith("governance/");
+	const approvalResolved = version === 3 && activity?.kind === "approval" && activity.payload.eventType === "approval-resolved";
+	let phase = auditOnly ? state.phase : state.phase === "reconciling" ? "reconciling"
+		: approvalResolved ? state.phase === "waiting" ? "executing" : state.phase : nextPhase(state.phase, event, method);
 	let objective = state.objective;
 	if (activity?.kind === "message" && activity.payload.direction === "outbound" && typeof activity.payload.text === "string") objective = activity.payload.text;
-	const taskResult = reduceTask(state.tasks, event, activity, method, hash);
+	const taskResult = version === 3
+		? context ? projectPlanTasks(state, activity, context.journalActivities, hash) : state.tasks
+		: reduceTask(state.tasks, event, activity, method, hash, version);
 	const evidence = activity ? [...state.evidence, evidenceFor(activity, method)] : state.evidence;
-	const activeActivity = activity ? projectActivity(activity, method) : state.activeActivity;
-	const base = { ...state, phase, waitReason: phase === "waiting" ? "approval" as const : null, objective, tasks: taskResult, evidence, activities: nextActivities, activeActivity, lastSequence: activity?.sequence ?? state.lastSequence, lastRunSequence: event.runSequence ?? state.lastRunSequence ?? null };
+	const activeActivity = auditOnly ? state.activeActivity : activity ? projectActivity(activity, method) : state.activeActivity;
+	const base = { ...state, phase, waitReason: auditOnly ? state.waitReason : phase === "waiting" ? "approval" as const : null, objective, tasks: taskResult, evidence, activities: nextActivities, activeActivity, lastSequence: activity?.sequence ?? state.lastSequence, lastRunSequence: event.runSequence ?? state.lastRunSequence ?? null };
 	let next = checkpoint(base, hash);
 	if (isTerminal(event, activity, method) && phase !== "reconciling") {
 		const status = terminalStatus(event, activity, method);
 		phase = status === "cancelled" ? "interrupted" : status;
 		next = checkpoint({ ...next, phase, activeActivity: null }, hash);
-		const receipt = receiptFor(next, activity!, status, hash);
+		const receipt = receiptFor(next, activity!, status, hash, version);
 		next = { ...next, receipt };
 	}
 	return { state: next, accepted: true, reason: "applied" };
 }
 
-export function replayExecutionRun(initial: ExecutionRunState, events: readonly RuntimeEvent[], hash: ExecutionHash): ExecutionRunState {
-	return events.reduce((state, event) => reduceExecutionRun(state, event, hash).state, initial);
+export function replayExecutionRun(initial: ExecutionRunState, events: readonly RuntimeEvent[], hash: ExecutionHash, context?: ExecutionRunReductionContext): ExecutionRunState {
+	return events.reduce((state, event) => reduceExecutionRun(state, event, hash, context).state, initial);
+}
+
+/** Read-only authentication of versionless historical receipts. Never used for live execution. */
+export function replayLegacyExecutionRunForVerification(initial: ExecutionRunState, events: readonly RuntimeEvent[], hash: ExecutionHash): ExecutionRunState {
+	return events.reduce((state, event) => reduceExecutionRunVersion(state, event, hash, 1).state, initial);
+}
+
+/** Read-only authentication of persisted v2 receipts. Never used for live execution. */
+export function replayV2ExecutionRunForVerification(initial: ExecutionRunState, events: readonly RuntimeEvent[], hash: ExecutionHash): ExecutionRunState {
+	return events.reduce((state, event) => reduceExecutionRunVersion(state, event, hash, 2).state, initial);
 }
 
 export function projectExecutionTodo(run: ExecutionRunState): readonly Pick<TodoItem, "id" | "content" | "status">[] {
@@ -146,7 +171,28 @@ function nextPhase(current: ExecutionRunPhase, event: RuntimeEvent, method: stri
 	if (event.kind === "request") return "understanding";
 	return current;
 }
-function reduceTask(tasks: readonly ExecutionTask[], event: RuntimeEvent, activity: ProjectActivity | undefined, method: string, hash: ExecutionHash): readonly ExecutionTask[] {
+function projectPlanTasks(state: ExecutionRunState, activity: ProjectActivity | undefined, journal: readonly ProjectActivity[], hash: ExecutionHash): readonly ExecutionTask[] {
+	const throughSequence = activity?.sequence;
+	const prefix = throughSequence === undefined ? journal : journal.filter(candidate => candidate.sequence <= throughSequence);
+	const activities = activity && !prefix.some(candidate => candidate.id === activity.id) ? [...prefix, activity] : prefix;
+	const projection = projectWorkFlow(activities, new Map(), {
+		expectedThreadKey: state.threadId,
+		selectedTurnId: state.turnId,
+		hash,
+	});
+	if (!projection.source || projection.rejections.length > 0) return state.tasks;
+	if (projection.source.authority !== "native-checklist") return [];
+	return projection.steps.map(step => ({
+		id: step.identity.value,
+		title: step.title,
+		status: step.status,
+		activityIds: step.association?.activityIds ?? [],
+		observationActivityIds: step.association?.observationActivityIds ?? [],
+		sourceRevisionKeyDigest: step.currentRevision.sourceRevisionKeyDigest,
+	}));
+}
+
+function reduceTask(tasks: readonly ExecutionTask[], event: RuntimeEvent, activity: ProjectActivity | undefined, method: string, hash: ExecutionHash, version: 1 | 2 | 3): readonly ExecutionTask[] {
 	const plan = record(event.payload?.params ?? activity?.payload.params)?.plan;
 	if (Array.isArray(plan)) {
 		return plan.flatMap((entry, index) => {
@@ -172,9 +218,10 @@ function reduceTask(tasks: readonly ExecutionTask[], event: RuntimeEvent, activi
 	const planTask = tasks.find(task => task.id.startsWith("plan:") && (task.status === "running" || task.status === "pending"));
 	if (planTask) {
 		return tasks.map(task => task.id === planTask.id
-			? { ...task, status: status === "completed" && task.status === "pending" ? "pending" : status, activityIds: activity ? [...task.activityIds, activity.id] : task.activityIds }
+			? { ...task, ...(version === 1 ? { status: status === "completed" && task.status === "pending" ? "pending" as const : status } : {}), activityIds: activity ? [...task.activityIds, activity.id] : task.activityIds }
 			: task);
 	}
+	if (version === 2 && tasks.some(task => task.id.startsWith("plan:"))) return tasks;
 	if (!existing) return [...tasks, { id: itemId || digest(hash, [event.runId, activity?.sequence ?? event.sequence, title]), title, status, activityIds: activity ? [activity.id] : [] }];
 	if (existing.status === "completed" || existing.status === "failed" || existing.status === "cancelled") return tasks;
 	return tasks.map(task => task.id === itemId ? { ...task, status, activityIds: activity ? [...task.activityIds, activity.id] : task.activityIds } : task);
@@ -199,7 +246,7 @@ function terminalStatus(event: RuntimeEvent, activity: ProjectActivity | undefin
 	if (method.includes("failed") || activity?.phase === "failed") return "failed";
 	return "completed";
 }
-function receiptFor(run: ExecutionRunState, activity: ProjectActivity, status: CompletionReceiptStatus, hash: ExecutionHash): CompletionReceipt {
+function receiptFor(run: ExecutionRunState, activity: ProjectActivity, status: CompletionReceiptStatus, hash: ExecutionHash, version: 1 | 2 | 3): CompletionReceipt {
 	const evidenceRefs = run.evidence.slice().sort((a, b) => a.sequence - b.sequence);
 	const activities = new Map(run.activities.map(observation => [observation.id, observation]));
 	const changed = evidenceRefs.flatMap((evidence) => {
@@ -218,12 +265,24 @@ function receiptFor(run: ExecutionRunState, activity: ProjectActivity, status: C
 		if (!command || !result) return [];
 		return [{ command, status: verificationStatus(payload, evidence, exitCode), result, evidenceRefs: [evidence.activityId] }];
 	});
+	// Command outcomes are observations, not independent acceptance verification.
+	const commandResults = evidenceRefs.flatMap((evidence) => {
+		const observation = activities.get(evidence.activityId);
+		const payload = receiptFields(observation?.payload);
+		if (payload.type !== "commandExecution" || !observation || !["completed", "failed", "cancelled"].includes(observation.phase)) return [];
+		const command = stringValue(payload.command);
+		if (!command) return [];
+		const exitCode = typeof payload.exitCode === "number" ? payload.exitCode : null;
+		return [{ command, exitCode, status: exitCode !== null ? (exitCode === 0 ? "passed" as const : "failed" as const) : verificationStatus(payload, evidence, exitCode),
+			output: stringValue(payload.aggregatedOutput ?? payload.output ?? payload.result), evidenceRefs: [evidence.activityId] }];
+	});
 	const remaining = run.tasks
 		.filter(task => task.status === "pending" || task.status === "running" || task.status === "failed" || task.status === "cancelled")
 		.map(task => ({ summary: task.title, blocking: task.status === "failed" || task.status === "cancelled" }));
 	const terminalSource = { id: activity.id, sequence: activity.sequence, sourceDigest: activity.sourceDigest };
 	const receiptId = digest(hash, ["completion-receipt-v1", run.runId, terminalSource]);
-	const bare = { receiptId, runId: run.runId, threadId: run.threadId, turnId: run.turnId, status, objective: run.objective, changed, verification, evidenceRefs, remaining, completedAt: activity.recordedAt, terminalSource, checkpointDigest: run.checkpoint.digest };
+	const versioned = version === 1 ? {} : { algorithmVersion: version, ...(commandResults.length ? { commandResults } : {}) };
+	const bare = { receiptId, runId: run.runId, threadId: run.threadId, turnId: run.turnId, status, objective: run.objective, changed, verification, ...versioned, evidenceRefs, remaining, completedAt: activity.recordedAt, terminalSource, checkpointDigest: run.checkpoint.digest };
 	return { ...bare, receiptDigest: digest(hash, bare) };
 }
 function stringValue(value: unknown): string { return typeof value === "string" ? value : ""; }

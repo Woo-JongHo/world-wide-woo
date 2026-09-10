@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "1.0",
+  "candidateId": "ARTIFACT-CANDIDATE-PROJECT-UPDATE-0-0-17",
+  "kind": "linear-project-update",
+  "sourceRevision": "git:45aec4adbebcc5abc902d33f8b29cfd6cd796068:dirty",
+  "intent": "0.0.16 이후 입장 Dashboard와 Workbench 제어 기능을 0.0.17 Project Update로 종합한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "version": "0.0.17",
+    "delivered": [
+      "www 첫 화면에서 연결된 Linear 프로젝트의 Now·Next·최신 Update·마일스톤과 조회 상태를 확인한다",
+      "Chat slash UI에서 MCP 상태·재로딩, 화면 Clear, 현재 Native thread의 Context 압축을 조작한다",
+      "Gemini CLI와 Z.AI Coding Plan의 인증·쿼터 상태를 Codex·Claude와 함께 HUD에서 확인한다"
+    ],
+    "included": [
+      "Workbench의 프로젝트 연결·Dashboard 갱신·HUD·slash 표시 정책을 .www/workbench.yaml 정본으로 분리했다",
+      "Composer 상단에는 실행 모델과 effort를, 하단 HUD에는 실행 모드·공급자 잔여량·Context 토큰을 표시하도록 정보 계층을 정리했다",
+      "Todo와 Tracer 패널의 헤더·상태 기호·진행 막대·폭 제한을 하나의 Dashboard Panel 계약으로 수렴했다",
+      "Project Activity Comment와 Project Update가 승인 Candidate와 직전 Activity identity에 결박되도록 Artifact Control을 보강했다"
+    ],
+    "verification": [
+      "2026-09-09 Activity Comment의 개별 검증은 최대 984 tests, TypeScript 검사, Bun 빌드 통과를 기록한다",
+      "2026-09-10 새 read-back에서 Linear 연결 UUID·프로젝트 URL·최신 Update 0.0.16·후속 Comment 7건을 확인했다",
+      "2026-09-10 TypeScript 검사는 통과했다",
+      "2026-09-10 전체 테스트는 임시 디스크 ENOSPC로 939 pass 뒤 100건이 연쇄 실패했고 Bun 빌드도 같은 ENOSPC로 중단됐다",
+      "package.json은 아직 0.0.16이고 현재 변경은 미커밋이므로 0.0.17 릴리스 정합과 사용자 실사용 수락은 남아 있다"
+    ],
+    "connections": [
+      "Linear: WOO-907, WOO-908, WOO-909, WOO-718, WOO-845, WOO-902",
+      "Milestone: v0.1.0 — First Public Release",
+      "Git: 45aec4adbebcc5abc902d33f8b29cfd6cd796068 dirty worktree",
+      "Evidence: .www/evidence/2026-09-10-linear-now-next"
+    ],
+    "sourceCommentIds": [
+      "c38b600e-6efe-4810-8c3e-19f8e5fa8202",
+      "c963ecc0-dd13-4794-aa97-42f67412189a",
+      "c80fd76d-4dc4-44e3-a12d-09288e8c9cb7",
+      "528f3cd0-587c-4f24-8fdb-5bd2a72b2dfa",
+      "426d8d1d-06cf-41dc-9179-fab956065419",
+      "d5008441-b288-431c-a3a4-a6a8ca605647",
+      "aa76bd59-43e8-4fd4-9fb1-2f075e7bd3b1"
+    ],
+    "health": "atRisk"
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff"
+  },
+  "expectedBefore": {
+    "latestUpdateId": "ef291d4d-94c6-4b18-a89c-f19b22c3d001"
+  },
+  "validation": [
+    {
+      "id": "LINEAR-SCOPE",
+      "status": "pass",
+      "evidence": "최신 0.0.16 Update 뒤의 Project Comment 7건과 실제 연결 이슈를 재조회해 수집 범위를 고정"
+    },
+    {
+      "id": "RISK-DISCLOSURE",
+      "status": "pass",
+      "evidence": "새 전체 테스트·빌드의 ENOSPC 중단, package 0.0.16, 미커밋 상태를 검증 절에 명시"
+    }
+  ],
+  "candidateDigest": "36565cf54f4a8dd79df53d1e50fbc8f270041f7b2d31da59f58373b5aefa7cd6"
+}

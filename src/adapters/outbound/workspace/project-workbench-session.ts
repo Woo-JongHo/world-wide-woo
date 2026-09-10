@@ -1,8 +1,10 @@
+import { createLocalWorkflow } from "../development/local-workflow.js";
 import type { DevelopmentService } from "../../../core/application/development/development-service";
 import { createDevelopmentService } from "../development/development-cli";
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { stat } from "node:fs/promises";
+import { McpLinearProjectDashboard } from "./linear-project-dashboard.js";
 import { ProjectWorkbench, type ProjectWorkbenchOptions, type WorkbenchActivityJournal, type WorkbenchTNoteSource, type WorkbenchTodoSource } from "../../../core/application/orchestration/project-workbench.js";
 import type { ExecutorPort } from "../../../core/ports/execution/executor-port.js";
 import type { ComposerDraftController, SessionRepository, TodoStore, UsageMonitor } from "../../../core/ports/index.js";
@@ -37,9 +39,12 @@ import { createProductionReviewAdapters, installedClaudeCliVersion, PiReviewGene
 import { FileReviewProvenanceStore } from "../review/review-store.js";
 import { UsageService } from "../observability/usage-service.js";
 import { WesEntryCollector } from "../execution/wes-entry-collector.js";
+import { loadWorkbenchConfigWithSource } from "./workbench-config.js";
+import { DEFAULT_WORKBENCH_CONFIG, type WorkbenchConfig } from "../../../core/domain/execution/workbench-config.js";
 
 const WORKBENCH_RUN_PREFIX = "workbench";
-export const DEFAULT_TNOTE_MODEL = "gpt-5.6-luna";
+/** Compatibility export; the source of truth is the validated config default. */
+export const DEFAULT_TNOTE_MODEL = DEFAULT_WORKBENCH_CONFIG.tnote.model;
 
 export interface ProjectWorkbenchSessionOptions {
 	resumeThreadId?: string;
@@ -51,6 +56,8 @@ export interface ProjectWorkbenchSessionOptions {
 	effort?: string;
 	/** Opt in to local WES policy collection and Chat context injection. */
 	enableWooEntry?: boolean;
+	/** Opt in to the auxiliary per-step model narrator. Native public commentary is the default. */
+	enableActivityNarrator?: boolean;
 	persistModelSelection?: (selection: WorkbenchModelSelection) => Promise<void>;
 }
 
@@ -72,6 +79,7 @@ export interface ProjectWorkbenchSession {
  * be tested without starting a Codex subprocess or a terminal UI.
  */
 export interface ProjectWorkbenchSessionFactories {
+	createLocalWorkflow?(root: string): NonNullable<ProjectWorkbenchOptions["localWorkflow"]>;
 	openWorkspace(cwd: string): Promise<ProjectWorkspace>;
 	acquireWriterLease(workspace: ProjectWorkspace, id: string): Promise<SessionLease>;
 	connectNative(input: NativeHarnessSelection): Promise<ExecutorPort>;
@@ -81,9 +89,9 @@ export interface ProjectWorkbenchSessionFactories {
 	importLegacyTodo(legacyPath: string, targetPath: string): Promise<string | null>;
 	createSessionEvents(directory: string): SessionRepository;
 	createTNoteSource(directory: string, model: string, observeUsage?: (observation: SessionModelUsageObservation) => void): WorkbenchTNoteSource;
-	createActivityNarrator(): ActivityNarrator;
+	createActivityNarrator?(model: string): ActivityNarrator;
 	createPromotionService(root: string): CanonicalPromotionService;
-	createReviewService(runtimeDirectory: string, observeUsage?: (observation: SessionModelUsageObservation) => void): ReviewService;
+	createReviewService(runtimeDirectory: string, observeUsage?: (observation: SessionModelUsageObservation) => void, config?: WorkbenchConfig): ReviewService;
 	createWorkbench(native: ExecutorPort, journal: WorkbenchActivityJournal, options: ProjectWorkbenchOptions): ProjectWorkbench;
 	createComposerDraft(root: string, sessionId: string, directory: string): Promise<ComposerDraftController>;
 	createUsageMonitor(): UsageMonitor;
@@ -93,6 +101,7 @@ export interface ProjectWorkbenchSessionFactories {
 }
 
 const productionFactories: ProjectWorkbenchSessionFactories = {
+	createLocalWorkflow,
 	openWorkspace: FileProjectWorkspace.open,
 	acquireWriterLease: FileProjectWorkspace.acquireSessionLease,
 	connectNative: createNativeHarness,
@@ -106,13 +115,15 @@ const productionFactories: ProjectWorkbenchSessionFactories = {
 		const generator = new PiDetachedCodexGenerator(createModelRegistry(new FileCredentialStore()), model, model, observeUsage);
 		return new TNoteService(generator, store);
 	},
-	createActivityNarrator: () => new PiActivityNarrator(createModelRegistry(new FileCredentialStore())),
+	createActivityNarrator: (model) => new PiActivityNarrator(createModelRegistry(new FileCredentialStore()), model),
 	createPromotionService: (root) => new CanonicalPromotionService(new FileCanonicalDocumentStore(root)),
-	createReviewService: (runtimeDirectory, observeUsage) => {
+	createReviewService: (runtimeDirectory, observeUsage, config = DEFAULT_WORKBENCH_CONFIG) => {
 		const registry = createModelRegistry(new FileCredentialStore());
 		return new ReviewService(
 			createProductionReviewAdapters(new PiReviewGenerationClient(registry, observeUsage), {
 				// Claude is optional until its review transport is explicitly used.
+				anthropic: config.review.provider === "anthropic" ? { model: config.review.model } : undefined,
+				google: config.review.provider === "google" ? { model: config.review.model } : undefined,
 				claudeCliVersion: installedClaudeCliVersion,
 			}),
 			sha256ReviewDigest,
@@ -162,6 +173,8 @@ export async function createProjectWorkbenchSession(
 	};
 	try {
 		const projectId = scopedProjectId(workspace.root);
+		const loadedConfig = await loadWorkbenchConfigWithSource(workspace.root);
+		const config = loadedConfig.config;
 		const traceRoot = await existingDirectory(workspace.todosDirectory) ? workspace.todosDirectory : undefined;
 		const journal = new ThreadBoundActivityJournal(
 			factories.createJournal(join(workspace.runtimeDirectory, "activity")),
@@ -176,31 +189,46 @@ export async function createProjectWorkbenchSession(
 		}
 		native = await factories.connectNative({
 			executionLane: options.executionLane,
-			provider: options.provider ?? "openai-codex",
-			model: options.model ?? "gpt-5.6-sol",
-			effort: options.effort ?? "medium",
+				provider: options.provider ?? config.execution.provider,
+				model: options.model ?? config.execution.model,
+				effort: options.effort ?? config.execution.effort,
 			systemPrompt: options.systemPrompt,
 		});
 		const tnotes = new ThreadScopedTNoteSource(
-			factories.createTNoteSource(workspace.draftsDirectory, DEFAULT_TNOTE_MODEL, observeAuxiliaryUsage),
+			factories.createTNoteSource(workspace.draftsDirectory, config.tnote.model, observeAuxiliaryUsage),
 		);
-		const narrator = factories.createActivityNarrator();
+		const narrator = options.enableActivityNarrator ? factories.createActivityNarrator?.(config.narrator.model) : undefined;
 		// WES is an optional local policy source. Ordinary Chat sessions must not
 		// collect it or expose a WES loading/blocked state.
 		const wooEntry = options.enableWooEntry ? factories.createWooEntry() : undefined;
 		const skillRegistry = await factories.loadSkillRegistry(workspace.root);
+		const linearDashboard = await createLinearDashboard(native, config.linear);
 		development = factories.createDevelopment?.(workspace.root, runId);
+		let localWorkflow: ProjectWorkbenchOptions["localWorkflow"];
+		const getLocalWorkflow = () => localWorkflow ??= factories.createLocalWorkflow!(workspace.root);
 		workbench = factories.createWorkbench(native, journal, {
+			localWorkflow: factories.createLocalWorkflow ? {
+				run: processId => getLocalWorkflow().run(processId),
+				resume: runId => getLocalWorkflow().resume(runId),
+				inspect: runId => getLocalWorkflow().inspect(runId),
+			} : undefined,
 			developmentObserver: development ? { capture: activity => development!.observe(activity) } : undefined,
 			projectId,
-			provider: options.provider ?? "openai-codex",
+			provider: options.provider ?? config.execution.provider,
 			cwd: workspace.root,
-			model: options.model,
-			effort: options.effort,
+			model: options.model ?? config.execution.model,
+			effort: options.effort ?? config.execution.effort,
+			contextCharacterLimit: config.limits.contextCharacters,
+			delegationDetailActivities: config.delegation.detailActivities,
+			evaluationRequired: config.evaluation.requireVerification,
+			configurationSource: loadedConfig.source,
+			tnoteVisibleLimit: config.display.tnoteVisibleLimit,
+			hud: config.hud,
+			slash: config.slash,
 			activityJournalProjectId: runId,
 			persistModelSelection: options.persistModelSelection,
-			approvalPolicy: "on-request",
-			sandbox: "workspace-write",
+			approvalPolicy: config.execution.approvalPolicy,
+			sandbox: config.execution.sandbox,
 			resumeThreadId: options.resumeThreadId,
 			acquireThreadLease: async (threadId) => {
 				// Bind before the lease.  Native emits for the thread as soon as `thread/start`
@@ -218,8 +246,9 @@ export async function createProjectWorkbenchSession(
 			wooEntry,
 			skillRegistry,
 			promotions: factories.createPromotionService(workspace.root),
-			reviews: factories.createReviewService(workspace.runtimeDirectory, observeAuxiliaryUsage),
+			reviews: factories.createReviewService(workspace.runtimeDirectory, observeAuxiliaryUsage, config),
 			auxiliaryUsage,
+			linearDashboard,
 		});
 		await workbench.waitUntilReady();
 		const composerDraft = await factories.createComposerDraft(workspace.root, runId, workspace.draftsDirectory);
@@ -249,6 +278,14 @@ export async function createProjectWorkbenchSession(
 		}
 		throw error;
 	}
+}
+
+async function createLinearDashboard(native: ExecutorPort, linear: WorkbenchConfig["linear"]) {
+	const caller = native as Partial<{ callMcpTool(input: { server: string; threadId: string; tool: string; arguments?: unknown }): Promise<{ content: readonly unknown[]; structuredContent?: unknown; isError?: boolean | null }> }>;
+	if (typeof caller.callMcpTool !== "function") return undefined;
+	if (!linear) return undefined;
+	const dashboard = new McpLinearProjectDashboard(caller as Required<typeof caller>, linear);
+	return { refresh: (threadId: string) => dashboard.refresh(threadId) };
 }
 
 export function scopedProjectId(projectRoot: string): string {

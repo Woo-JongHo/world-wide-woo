@@ -161,8 +161,8 @@ export function validateTodoDocument(value: unknown): TodoDocument {
 			...(source ? { source } : {}),
 		});
 	});
-	if (active > 1) fail("at most one todo item may be in progress");
 	const source = value.source === undefined ? undefined : validateTodoSource(value.source);
+	if (active > 1 && !source) fail("at most one manual todo item may be in progress");
 	if (!source && items.some((item) => item.source)) fail("Native Plan item requires a document source");
 	if (source) {
 		if (source.rootExecution.runId !== source.turnId) fail("Native Plan execution must match its turn");

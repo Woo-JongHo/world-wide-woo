@@ -25,7 +25,8 @@
     "failure": { "type": ["object", "null"] },
     "evidence": { "type": "array" },
     "nextCapabilities": { "type": "array", "items": { "type": "string" } },
-    "receiptDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+    "receiptDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "_storeRootDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "Projection-only canonical storage root binding; excluded from receiptDigest and validated by FileSkillRunStore." }
   },
   "additionalProperties": false
 }

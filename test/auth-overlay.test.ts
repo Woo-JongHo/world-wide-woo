@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { visibleWidth } from "@earendil-works/pi-tui";
+import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
 import type { Models } from "@earendil-works/pi-ai";
 import { AuthFlowOverlay, GEMINI_API_KEY_URL, LoginOverlay } from "../src/adapters/inbound/tui/overlays/auth-overlay";
 import { AuthService } from "../src/adapters/outbound/authentication/auth-service";
@@ -27,6 +27,18 @@ function fakeAuthModels(): Pick<Models, "checkAuth" | "getProvider" | "login" | 
 }
 
 describe("AuthFlowOverlay", () => {
+	test("describes Google OAuth as an in-browser login instead of a Gemini terminal", async () => {
+		const overlay = new AuthFlowOverlay(
+			"google", ["oauth", "api_key"], new AuthService(fakeAuthModels()), () => undefined,
+			() => undefined, () => undefined,
+		);
+		overlay.start();
+		await Bun.sleep(0);
+		const output = stripTerminalSequences(overlay.render(80).join("\n"));
+		expect(output).toContain("브라우저에서 Google 계정 로그인");
+		expect(output).not.toContain("Gemini CLI");
+	});
+
 	test("keeps provider selection and auth in one keyboard surface", async () => {
 		let closed = false;
 		const overlay = new LoginOverlay(

@@ -32,13 +32,25 @@ function dashboard() {
 }
 
 describe("dashboard layout", () => {
+	test("renders Todo on the Workbench top border", () => {
+		const layout = createDashboardLayout(
+			() => "Workbench",
+			{ color: identity, component: new Lines(["Chat"]) },
+			{ color: identity, component: new Lines([]) },
+			{ title: "Tracer", color: identity, component: new Lines([]) },
+			() => "TODO 12:34",
+		);
+		const frame = renderLayoutFrame(layout.component, 120, 30, () => undefined);
+		expect(stripTerminalSequences(frame.lines[0] ?? "")).toMatch(/^╭─ Workbench ─+ TODO 12:34 ╮$/u);
+	});
+
 	test("keeps three regions in one wide frame with independent viewports", () => {
 		const layout = dashboard();
 		const frame = renderLayoutFrame(layout.component, 120, 30, () => undefined);
 		expect(frame.lines.every((line) => visibleWidth(line) === 0 || visibleWidth(line) === 120)).toBe(true);
 		expect(frame.lines.join("\n")).toContain("대화 · 작업");
-		expect(frame.lines.join("\n")).toContain("Todo");
-		expect(frame.lines.join("\n")).toContain("Tracer");
+		expect(frame.lines.join("\n")).toContain("TODO");
+		expect(frame.lines.join("\n")).toContain("TRACER");
 		expect(frame.lines.filter((line) => line.includes("╭")).length).toBe(1);
 		expect(frame.lines.at(-1)).toContain("╰");
 		for (const line of frame.lines.slice(1, -1)) {
@@ -51,25 +63,35 @@ describe("dashboard layout", () => {
 		expect(layout.leftScroll.viewportHeight).toBeGreaterThan(0);
 		expect(layout.usageScroll.viewportHeight).toBeGreaterThan(0);
 		expect(layout.routerScroll.viewportHeight).toBeGreaterThan(0);
-		// Todo and Tracer split the available work rail 5:5; an odd row may differ by one.
-		expect(Math.abs(layout.usageScroll.viewportHeight - layout.routerScroll.viewportHeight)).toBeLessThanOrEqual(1);
+		// Todo is intentionally lighter than Tracer: target the available 3:7 rail.
+		const totalRailHeight = layout.usageScroll.viewportHeight + layout.routerScroll.viewportHeight;
+		expect(layout.usageScroll.viewportHeight).toBeLessThan(layout.routerScroll.viewportHeight);
+		expect(Math.abs(layout.usageScroll.viewportHeight / totalRailHeight - 0.3)).toBeLessThanOrEqual(0.05);
+	});
+
+	test("places the Tracer title on the split rule without adding a second heading row", () => {
+		const frame = renderLayoutFrame(dashboard().component, 120, 30, () => undefined);
+		const lines = frame.lines.map(stripTerminalSequences);
+		const tracerRows = lines.filter(line => line.includes("TRACER"));
+		expect(tracerRows).toHaveLength(1);
+		expect(tracerRows[0]).toMatch(/─+ TRACER ─+/u);
 	});
 
 	test("uses one ordered viewport inside the same frame when compact", () => {
 		const frame = renderLayoutFrame(dashboard().component, 70, 24, () => undefined);
 		expect(frame.lines.every((line) => visibleWidth(line) === 0 || visibleWidth(line) === 70)).toBe(true);
 		expect(frame.lines.join("\n")).toContain("대화 · 작업");
-		expect(frame.lines.join("\n")).toContain("Todo");
-		expect(frame.lines.join("\n")).toContain("Tracer");
-		expect(frame.lines.findIndex(line => line.includes("Todo"))).toBeLessThan(frame.lines.findIndex(line => line.includes("Tracer")));
+		expect(frame.lines.join("\n")).toContain("TODO");
+		expect(frame.lines.join("\n")).toContain("TRACER");
+		expect(frame.lines.findIndex(line => line.includes("TODO"))).toBeLessThan(frame.lines.findIndex(line => line.includes("TRACER")));
 	});
 
 	test.each([10, 13])("keeps every section reachable at 120×%i", (height) => {
 		const frame = renderLayoutFrame(dashboard().component, 120, height, () => undefined);
 		const output = scrollContent(frame.root).join("\n");
 		expect(output).toContain("대화 · 작업");
-		expect(output).toContain("Todo");
-		expect(output).toContain("Tracer");
+		expect(output).toContain("TODO");
+		expect(output).toContain("TRACER");
 	});
 
 	test("reuses section rows when a child returns the same stable projection", () => {

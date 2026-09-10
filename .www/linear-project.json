@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "mcpServer": "linear-woo",
+  "workspace": {
+    "id": "b7b91489-dd9b-4fb7-b958-822d5dc577e0",
+    "name": "Woo-World",
+    "url": "https://linear.app/woo-world"
+  },
+  "project": {
+    "id": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "name": "World Wide Woo",
+    "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff"
+  },
+  "verifiedAt": "2026-09-08T22:43:11.452942+00:00"
+}

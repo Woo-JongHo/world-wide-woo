@@ -1,6 +1,8 @@
 import type { UsageCredential, UsageFetchContext, UsageLimit } from "@gajae-code/ai/core";
 import { claudeUsageProvider } from "@gajae-code/ai/usage/claude";
+import { googleGeminiCliUsageProvider } from "@gajae-code/ai/usage/gemini";
 import { openaiCodexUsageProvider } from "@gajae-code/ai/usage/openai-codex";
+import { zaiUsageProvider } from "@gajae-code/ai/usage/zai";
 import type { Credential, CredentialStore } from "@earendil-works/pi-ai";
 import type {
 	UsageLimitSnapshot,
@@ -11,6 +13,7 @@ import type {
 	UsageSnapshot,
 	UsageState,
 } from "../../../core/ports";
+import { SystemGeminiCliUsageCredentialSource, type GeminiCliUsageCredentialSource } from "./gemini-cli-usage-credentials.js";
 
 export type UsageListener = (snapshots: readonly UsageSnapshot[]) => void;
 
@@ -20,7 +23,7 @@ type AuthRegistry = {
 };
 type UsageFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
-const PROVIDERS: readonly UsageProviderId[] = ["openai-codex", "anthropic"];
+const PROVIDERS: readonly UsageProviderId[] = ["openai-codex", "anthropic", "google", "zai"];
 const BASE_BACKOFF_MS = 30_000;
 const MAX_BACKOFF_MS = 5 * 60_000;
 const CLAUDE_SUCCESS_TTL_MS = 5 * 60_000;
@@ -111,6 +114,7 @@ export class UsageService implements UsageMonitor {
 		private readonly fetchImpl: UsageFetch = fetch,
 		private readonly now: () => number = Date.now,
 		private readonly retryWait?: UsageFetchContext["retryWait"],
+		private readonly geminiCredentials: GeminiCliUsageCredentialSource = new SystemGeminiCliUsageCredentialSource(),
 	) {}
 
 	refresh(): Promise<readonly UsageSnapshot[]> {
@@ -163,15 +167,24 @@ export class UsageService implements UsageMonitor {
 		}
 		try {
 			// getAuth owns serialized OAuth refresh; re-read afterwards to use its rotated token.
-			const stored = await this.credentials.read(provider);
+			const stored = provider === "google"
+				? await this.geminiCredentials.read()
+				: await this.credentials.read(provider);
 			if (!stored) {
 				this.clearProviderState(provider);
 				const ambient = await this.models.checkAuth(provider);
 				return snapshot(provider, ambient?.type === "api_key" ? "unsupported" : "auth-required");
 			}
 			const credential = asUsageCredential(stored);
-			const adapter = provider === "openai-codex" ? openaiCodexUsageProvider : claudeUsageProvider;
-			if (!adapter.supports?.({ provider, credential })) {
+			const adapter = provider === "openai-codex"
+				? openaiCodexUsageProvider
+				: provider === "anthropic"
+					? claudeUsageProvider
+					: provider === "google"
+						? googleGeminiCliUsageProvider
+						: zaiUsageProvider;
+			const adapterProvider = provider === "google" ? "google-gemini-cli" : provider;
+			if (!adapter.supports?.({ provider: adapterProvider, credential })) {
 				this.clearProviderState(provider);
 				return snapshot(provider, "unsupported");
 			}
@@ -198,7 +211,7 @@ export class UsageService implements UsageMonitor {
 				}
 			};
 			const report = await adapter.fetchUsage(
-				{ provider, credential },
+				{ provider: adapterProvider, credential },
 				{ fetch: observedFetch as typeof fetch, retryWait: this.retryWait },
 			);
 			if (!report) return this.recordFailure(provider, observation);

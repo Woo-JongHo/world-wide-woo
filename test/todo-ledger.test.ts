@@ -92,6 +92,7 @@ function nativeFlow(identities: readonly string[]): WorkFlowProjection {
 	return {
 		source: {
 			kind: "native-plan-derived",
+			authority: "native-checklist",
 			expectedThreadKeyDigest: "f".repeat(64),
 			turnId: "turn-native",
 			currentRevision: revision,
@@ -110,7 +111,7 @@ function nativeFlow(identities: readonly string[]): WorkFlowProjection {
 }
 
 describe("TodoLedger", () => {
-	test("mirrors a Native plan and its live execution summary as a two-level Todo", async () => {
+	test("mirrors only the flat Native plan without inventing detail items", async () => {
 		const fixture = ledger();
 		await fixture.ledger.initialize();
 		const syncNativePlan = fixture.ledger.syncNativePlan.bind(fixture.ledger);
@@ -148,12 +149,8 @@ describe("TodoLedger", () => {
 			[`native-${"a".repeat(48)}`, "in_progress", "Todo 저장 경계를 연결합니다."],
 			[`native-${"b".repeat(48)}`, "pending", "동기화 결과 검증"],
 		]);
-		expect(first.items[0]?.details).toEqual([{
-			id: `native-${"a".repeat(48)}-detail-1`,
-			content: "진행 상황을 코드가 아닌 문장으로 보여주기 위해서입니다.",
-			status: "in_progress",
-			evidenceIds: ["activity-1"],
-		}]);
+		expect(first.items[0]?.details).toEqual([]);
+		expect(first.items[0]?.evidenceIds).toEqual(["activity-1"]);
 		expect(first.source).toMatchObject({
 			kind: "native-plan",
 			turnId: "turn-native",
@@ -291,11 +288,11 @@ describe("TodoLedger", () => {
 		});
 
 		expect(document.title).toBe("현재 요청");
-		expect(document.items.map((item) => [item.content, item.details[0]?.content])).toEqual([
-			["작업을 진행합니다.", "요청을 안전하게 처리하고 결과를 확인하기 위해서입니다."],
-			["작업을 진행합니다.", "요청을 안전하게 처리하고 결과를 확인하기 위해서입니다."],
-			["작업을 진행합니다.", "요청을 안전하게 처리하고 결과를 확인하기 위해서입니다."],
-			["작업을 진행합니다.", "요청을 안전하게 처리하고 결과를 확인하기 위해서입니다."],
+		expect(document.items.map((item) => [item.content, item.details.length])).toEqual([
+			["작업을 진행합니다.", 0],
+			["작업을 진행합니다.", 0],
+			["작업을 진행합니다.", 0],
+			["작업을 진행합니다.", 0],
 		]);
 		expect(JSON.stringify(document)).not.toMatch(/(?:bun test|apply_patch|args:|command:|src\/(?:application|domain)|todo-ledger\.ts|package\.json)/u);
 	});
@@ -357,6 +354,7 @@ describe("TodoLedger", () => {
 		const forgedSources: readonly unknown[] = [
 			null,
 			{ ...source, kind: "forged" },
+			{ ...source, authority: "public-plan-document" },
 			{ ...source, algorithm: "dplan-v2" },
 			{ ...source, turnId: "" },
 			{ ...source, turnId: 42 },

@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "1.0",
+  "candidateId": "ARTIFACT-CANDIDATE-WOO-907-NOW",
+  "kind": "linear-issue",
+  "sourceRevision": "git:45aec4adbebcc5abc902d33f8b29cfd6cd796068:dirty",
+  "intent": "입장 Dashboard 구현이 진행 중임을 Linear Now에 반영한다",
+  "target": {
+    "issueId": "WOO-907",
+    "issueUuid": "9f9b24c8-b5f6-4cf8-bcd1-f74cb38eb7f8",
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "parentId": "WOO-676",
+    "milestoneId": "193948f7-2a11-4110-a143-360d83f2a076",
+    "desiredState": "In Progress"
+  },
+  "content": {
+    "title": "연결된 Linear 프로젝트를 입장 Dashboard에서 요약한다",
+    "purpose": "사용자가 www를 시작하자마자 연결된 Linear 프로젝트의 현재 상태를 보고 첫 요청을 결정하며, 조회 실패도 빈 환영 화면으로 오인하지 않게 한다.",
+    "included": [
+      "첫 www 진입에서 대화가 시작되기 전까지 Chat 영역을 입장 Dashboard로 사용한다.",
+      "로딩 중·조회 성공·오래된 값·연결 없음·권한 또는 조회 실패를 구분해 표시한다.",
+      "열린 이슈는 Chat, 최신 Project Update는 Todo, 마일스톤과 기한은 Tracer에 같은 원격 snapshot으로 표시한다.",
+      "첫 사용자 메시지가 전송되면 입장 Dashboard를 일반 Chat 흐름으로 전환한다."
+    ],
+    "excluded": [
+      "Dashboard에서 Linear 이슈나 Project Update를 수정하는 기능",
+      "Linear 원격 상태를 Todo.md 또는 로컬 journal의 정본으로 복제하는 기능",
+      "대화가 시작된 뒤 입장 Dashboard를 Chat 메시지 사이에 계속 삽입하는 기능"
+    ],
+    "done": [
+      "명령 입력 전 로딩 중에는 연결 프로젝트 이름과 가져오는 데이터 범위가 보인다.",
+      "조회 성공 시 열린 이슈와 조회 시각이 보이고 Todo와 Tracer가 같은 프로젝트 snapshot을 사용한다.",
+      "연결 없음이나 조회 실패 시 실패 이유와 다시 확인할 방법이 보이며 환영 화면으로 조용히 대체되지 않는다.",
+      "첫 메시지 입력 후 Dashboard가 일반 Chat으로 전환되고 원격 요약이 대화 내용으로 중복되지 않는다.",
+      "로딩·성공·실패·첫 입력 전환을 fixture 테스트와 실제 Linear read-only 조회로 검증한다."
+    ],
+    "connections": [
+      "Parent: WOO-676",
+      "Related: WOO-679, WOO-681, WOO-682",
+      "Linear project: World Wide Woo"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-907/연결된-linear-프로젝트를-입장-dashboard에서-요약한다"
+  },
+  "expectedBefore": {
+    "status": "Backlog"
+  },
+  "validation": [
+    {
+      "id": "LINEAR-READBACK",
+      "status": "pass",
+      "evidence": "2026-09-10 Linear 조회에서 WOO-907의 UUID·Project·parentId·Milestone·현재 Backlog를 확인"
+    }
+  ],
+  "candidateDigest": "9301b38e041387d21f28e08f19b266f8659c2eb52e73439de3f6ef25db7ce28c"
+}

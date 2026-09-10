@@ -29,6 +29,7 @@ describe("ModelRouter", () => {
 		expect(registry.getModel("openai", "gpt-5.4")).toBeDefined();
 		expect(registry.getModel("anthropic", "claude-opus-4-6")).toBeDefined();
 		expect(registry.getModel("google", "gemini-3.1-pro-preview")).toBeDefined();
+		expect(registry.getModel("zai", "glm-5.3")).toBeDefined();
 	});
 
 	test("routes a stream with normalized reasoning and abort signal", () => {

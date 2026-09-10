@@ -116,7 +116,7 @@ export interface NativeCollaborationMode {
 	readonly settings: {
 		readonly model: string;
 		readonly reasoning_effort: string | null;
-		readonly developer_instructions: null;
+		readonly developer_instructions: string | null;
 	};
 }
 
@@ -170,6 +170,11 @@ export interface NativeThreadRead {
 export interface NativeThreadList {
 	cwd: string;
 	limit?: number;
+}
+
+/** Starts provider-owned compaction for one existing thread. */
+export interface NativeThreadCompact {
+	threadId: string;
 }
 
 export type NativeThreadStatus = "notLoaded" | "idle" | "systemError" | "active";
@@ -226,7 +231,12 @@ export interface NativeApprovalRequest {
 }
 
 export type NativeApprovalResponse =
-	| { decision: "accept" | "acceptForSession" | "decline" | "cancel" }
+	/**
+	 * The App Server's decision can be a named action or a structured policy
+	 * amendment.  Keep its exact value: reducing it to a local yes/no label
+	 * would make a client advertise an option it cannot faithfully submit.
+	 */
+	| { decision: NativeApprovalDecision }
 	| {
 		permissions: Readonly<Record<string, unknown>>;
 		scope: "turn" | "session";

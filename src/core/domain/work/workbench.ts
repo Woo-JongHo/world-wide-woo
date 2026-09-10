@@ -1,4 +1,4 @@
-import type { NativeApprovalRequest, NativeApprovalResponse, NativeRefs } from "../execution/native-session.js";
+import type { NativeApprovalDecision, NativeApprovalRequest, NativeApprovalResponse, NativeRefs } from "../execution/native-session.js";
 import type { Effort } from "../execution/model-settings.js";
 import type { ProjectActivity } from "../execution/project-activity.js";
 import type { TodoDocument } from "./todos.js";
@@ -6,6 +6,9 @@ import type { ReviewProvider } from "../review/review.js";
 import type { WorkFlowProjection } from "./index.js";
 import type { ExecutionRunState } from "../execution/execution-run-contract.js";
 import type { ActivitySelectionResult } from "./trace-selection.js";
+import type { LinearProjectDashboard } from "./linear-dashboard.js";
+import type { PerformanceProjection } from "./performance.js";
+import type { NativeDelegatedTask, NativeDelegationProjection } from "./delegation.js";
 
 export type WorkbenchPhase = "loading" | "ready" | "working" | "error" | "closed";
 export type WorkbenchPermissionMode = "manual" | "all";
@@ -31,6 +34,8 @@ export interface WorkbenchChatQueueItem {
 	readonly id: string;
 	readonly content: string;
 	readonly queuedAt: string;
+	/** A Goal request remains identifiable when it waits behind an active turn. */
+	readonly goal?: boolean;
 }
 
 export interface WorkbenchTNote {
@@ -117,7 +122,7 @@ export interface WorkbenchMcpServer {
 }
 
 export interface WorkbenchActionResult {
-	readonly kind: "todo" | "tnote" | "promotion" | "review";
+	readonly kind: "todo" | "tnote" | "promotion" | "review" | "workflow";
 	readonly title: string;
 	readonly body: string;
 	readonly digest?: string;
@@ -143,11 +148,25 @@ export interface WorkbenchSnapshot {
 	permissionMode?: WorkbenchPermissionMode;
 	collaborationMode?: WorkbenchCollaborationMode;
 	mcpServers: readonly WorkbenchMcpServer[];
+	linearDashboard?: LinearProjectDashboard;
 	wooEntry?: WorkbenchWooEntrySnapshot | null;
 	threadId: string | null;
 	activeTurnId: string | null;
 	/** Canonical reducer state for the selected root execution, when available. */
 	executionRun?: ExecutionRunState | null;
+	/** Shared observation model; a standalone execution has no assigned work context. */
+	performance?: PerformanceProjection;
+	delegation?: readonly NativeDelegationProjection[];
+	selectedAgentRef?: string | null;
+	selectedAgentDetail?: NativeDelegatedTask | null;
+	delegationDetailActivities?: number;
+	evaluationRequired?: boolean;
+	configurationSource?: "project-yaml" | "defaults";
+	tnoteVisibleLimit?: number;
+	hud?: { readonly showUsage: boolean; readonly showContext: boolean };
+	slash?: { readonly mcp: boolean; readonly clear: boolean; readonly compact: boolean };
+	/** Corrupt receipts stay available for read-only diagnosis, never for resuming execution. */
+	recordingReadOnly?: boolean;
 	/** Total durable activities in the current Native session. */
 	activityCount?: number;
 	activities: readonly ProjectActivity[];
@@ -175,14 +194,22 @@ export interface WorkbenchSnapshot {
 }
 
 export type WorkbenchCommand =
+	| { type: "workflow.check"; processId: string }
+	| { type: "workflow.resume"; runId: string }
+	| { type: "workflow.show"; runId: string }
 	| { type: "chat.send"; text: string }
 	| { type: "chat.cancel" }
+	/** Clears only the TUI projection; durable history is retained. */
+	| { type: "chat.clear" }
+	| { type: "thread.compact" }
 	| { type: "approval.resolve"; requestId: string | number; response: NativeApprovalResponse }
 	| { type: "activity.select"; activityId: string | null }
 	| { type: "trace.select"; activityId: string }
+	| { type: "agent.select"; agentRef: string | null }
 	| { type: "session.permission"; mode: WorkbenchPermissionMode }
 	| { type: "session.mode"; mode: WorkbenchCollaborationMode }
 	| { type: "session.model"; selection: WorkbenchModelSelection }
+	| { type: "goal.set"; text: string }
 	| { type: "mcp.refresh" }
 	| { type: "mcp.enable"; name: string }
 	| { type: "mcp.disable"; name: string }
@@ -204,15 +231,16 @@ export type WorkbenchCommand =
 
 export type WorkbenchCommandReceipt =
 	| { state: "accepted"; commandId: string; activitySequence?: number; message?: string; selection?: Extract<ActivitySelectionResult, { state: "selected" }> }
-	| { state: "queued"; commandId: string; position: number }
+	| { state: "queued"; commandId: string; position: number; message?: string }
 	| { state: "rejected"; commandId: string; reason: string; selection?: Extract<ActivitySelectionResult, { state: "failed" }> }
 	| { state: "uncertain"; commandId: string; reason: string; resolution: "manual-reconcile" };
 
 export type WorkbenchListener = (snapshot: WorkbenchSnapshot) => void;
 
-export type WorkbenchApprovalDecision = "accept" | "acceptForSession" | "decline" | "cancel";
+/** An approval selection remains an App Server protocol value, not a UI enum. */
+export type WorkbenchApprovalDecision = NativeApprovalDecision;
 
-export type WorkbenchExternalMutationKind = "commit" | "push" | "issue" | "linear-issue" | "obsidian-canonical" | "github-pr";
+export type WorkbenchExternalMutationKind = "commit" | "push" | "issue" | "linear-issue" | "linear-project-comment" | "linear-project-update" | "obsidian-canonical" | "github-pr";
 
 /**
  * A complete, immutable description of a pending external mutation. The identity is
@@ -243,12 +271,12 @@ export function workbenchExternalMutationCandidates(request: NativeApprovalReque
 		const scope = candidate.scope;
 		const status = candidate.status;
 		const payload = candidate.payload;
-		if ((kind !== "commit" && kind !== "push" && kind !== "issue" && kind !== "linear-issue" && kind !== "obsidian-canonical" && kind !== "github-pr")
+		if ((kind !== "commit" && kind !== "push" && kind !== "issue" && kind !== "linear-issue" && kind !== "linear-project-comment" && kind !== "linear-project-update" && kind !== "obsidian-canonical" && kind !== "github-pr")
 			|| typeof target !== "string" || typeof content !== "string" || typeof currentState !== "string"
 			|| typeof scope !== "string" || typeof status !== "string"
 			|| !payload || typeof payload !== "object" || Array.isArray(payload)) return [];
 		const exactPayload = immutableMutationPayload(payload as Record<string, unknown>);
-		if ((kind === "linear-issue" || kind === "obsidian-canonical" || kind === "github-pr")
+		if ((kind === "linear-issue" || kind === "linear-project-comment" || kind === "linear-project-update" || kind === "obsidian-canonical" || kind === "github-pr")
 			&& (typeof exactPayload.candidateDigest !== "string" || !/^[0-9a-f]{64}$/u.test(exactPayload.candidateDigest))) return [];
 		const identity = mutationIdentity({ kind, target, content, currentState, scope, status, payload: exactPayload });
 		return [Object.freeze({ identity: typeof candidate.identity === "string" && candidate.identity === identity ? candidate.identity : identity, kind, target, content, currentState, scope, status, payload: exactPayload })];
@@ -301,5 +329,6 @@ export function workbenchApprovalDecisions(request: NativeApprovalRequest): read
 	const value = Array.isArray(direct) ? direct : Array.isArray(nested) ? nested : null;
 	if (!value) return request.kind === "permissions" ? ["decline"] : ["accept", "acceptForSession", "decline"];
 	return value.filter((decision): decision is WorkbenchApprovalDecision =>
-		decision === "accept" || decision === "acceptForSession" || decision === "decline" || decision === "cancel");
+		decision === "accept" || decision === "acceptForSession" || decision === "decline" || decision === "cancel" ||
+		(Boolean(decision) && typeof decision === "object" && !Array.isArray(decision)));
 }

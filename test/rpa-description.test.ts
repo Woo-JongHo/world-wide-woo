@@ -116,10 +116,20 @@ describe("RPA Linear description rendering", () => {
 	});
 
 	test("renders the exact fixed H2 surfaces and explicit empty collections", () => {
-		const projectHeadings = renderRpaProject(fixture()).match(/^## .+$/gmu);
-		expect(projectHeadings).toEqual(["## 프로젝트 정보", "## WBS", "## Task", "## 연결"]);
+		const project = renderRpaProject(fixture());
+		const projectHeadings = project.match(/^## .+$/gmu);
+		expect(projectHeadings).toEqual(["## 프로젝트 정보", "## WBS", "## Task 구성", "## 연결"]);
+		expect(project).not.toContain("확인사항");
+		expect(project).not.toContain("고객 결정 이력");
+		expect(project).not.toContain("진행 경과");
 		const task = renderRpaTask(fixture(), "RPA-TASK-02");
 		expect(task.match(/^## .+$/gmu)).toEqual(["## Task 정보", "## Unit 구성", "## 예외 케이스", "## 테스트 케이스", "## Unit 상세", "## 연결"]);
+		expect(task.indexOf("## 예외 케이스")).toBeLessThan(task.indexOf("## Unit 상세"));
+		expect(task.indexOf("## 테스트 케이스")).toBeLessThan(task.indexOf("## Unit 상세"));
+		expect(task).toContain("#### 사용 기술");
+		expect(task).toContain("#### 코드 설명");
+		expect(task).toContain("#### Step 구성");
+		expect(task).toContain("| rpa-map revision | demo-revision-001 |");
 		expect(task.match(/정의 없음/gu)?.length).toBeGreaterThanOrEqual(2);
 		expect(task).not.toContain("확인 이력");
 		expect(task).not.toContain("고객 결정 이력");

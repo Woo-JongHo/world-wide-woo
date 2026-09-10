@@ -9,9 +9,12 @@ import {
 	type Component,
 } from "@earendil-works/pi-tui";
 import { colors } from "../shell/theme";
+import { DASHBOARD_PANEL_SYSTEM } from "./dashboard-panel-system";
 
 export interface DashboardSection {
 	title?: string;
+	/** Small live value aligned to the section heading, such as the Todo revision time. */
+	titleMeta?: () => string;
 	color: (text: string) => string;
 	component: Component;
 }
@@ -26,24 +29,49 @@ class FrameLine implements Component {
 	constructor(
 		private readonly title: () => string,
 		private readonly edge: "top" | "bottom",
+		private readonly railLabel?: () => string,
 	) {}
 	invalidate(): void {}
 	render(width: number): string[] {
 		if (this.edge === "bottom") return [colors.border(`╰${"─".repeat(Math.max(0, width - 2))}╯`)];
 		const label = ` ${this.title()} `;
+		const railLabel = this.railLabel?.().trim();
+		const suffix = railLabel ? ` ${railLabel} ` : "";
+		const available = Math.max(0, width - 3);
+		const visibleLabel = truncateToWidth(label, available);
+		const visibleSuffix = truncateToWidth(suffix, Math.max(0, available - visibleWidth(visibleLabel)));
 		return [
-			colors.border("╭─") + colors.text(truncateToWidth(label, Math.max(0, width - 3))) +
-			colors.border(`${"─".repeat(Math.max(0, width - visibleWidth(label) - 3))}╮`),
+			colors.border("╭─") + colors.text(visibleLabel) +
+			colors.border("─".repeat(Math.max(0, width - visibleWidth(visibleLabel) - visibleWidth(visibleSuffix) - 3))) +
+			colors.warm(visibleSuffix) + colors.border("╮"),
 		];
 	}
 }
 
-class HorizontalRule implements Component {
+class LabeledRule implements Component {
+	constructor(private readonly title: string, private readonly color: (text: string) => string) {}
 	invalidate(): void {}
 	render(width: number): string[] {
-		return [colors.border("─".repeat(Math.max(0, width)))];
+		if (!this.title || width <= 0) return [colors.border("─".repeat(Math.max(0, width)))];
+		const label = ` ${this.title.toLocaleUpperCase("en-US")} `;
+		const available = Math.max(0, width - visibleWidth(label));
+		const left = Math.min(DASHBOARD_PANEL_SYSTEM.heading.preferredLeadingRule, Math.max(
+			DASHBOARD_PANEL_SYSTEM.heading.minimumLeadingRule,
+			Math.floor(available * 0.22),
+		));
+		const right = Math.max(0, available - left);
+		return [fit(
+			colors.border("─".repeat(left)) + this.color(label) + colors.border("─".repeat(right)),
+			width,
+		)];
 	}
 }
+
+const sectionWithoutTitle = (section: DashboardSection): DashboardSection => ({
+	...section,
+	title: undefined,
+	titleMeta: undefined,
+});
 
 class VerticalRule implements Component {
 	private readonly rows = Array.from({ length: 512 }, () => colors.border("│"));
@@ -67,13 +95,15 @@ class SectionDocument implements Component {
 	render(width: number): string[] {
 		const contentWidth = Math.max(1, width - 2);
 		const childRows = this.section.component.render(contentWidth);
-		if (width === this.cachedWidth && childRows === this.cachedChildRows && this.cachedRows) return this.cachedRows;
+		// A title meta value (for example the plan timestamp) may change while its
+		// component rows stay stable, so it deliberately bypasses this row cache.
+		if (!this.section.titleMeta && width === this.cachedWidth && childRows === this.cachedChildRows && this.cachedRows) return this.cachedRows;
 		const sameWidth = width === this.cachedWidth;
 		const previousChildRows = sameWidth ? this.cachedChildRows : null;
 		const previousRows = sameWidth ? this.cachedRows : null;
 		const childOffset = this.section.title ? 1 : 0;
 		const rows = new Array<string>(childRows.length + childOffset);
-		if (this.section.title) rows[0] = previousRows?.[0] ?? fit(` ${this.section.color(this.section.title)}`, width);
+		if (this.section.title) rows[0] = sectionHeading(this.section, width);
 		for (let index = 0; index < childRows.length; index += 1) {
 			const rowIndex = index + childOffset;
 			rows[rowIndex] = previousChildRows?.[index] === childRows[index] && previousRows?.[rowIndex]
@@ -85,6 +115,21 @@ class SectionDocument implements Component {
 		this.cachedRows = rows;
 		return rows;
 	}
+}
+
+/** A compact instrument-panel heading: the rule gives the label its boundary. */
+function sectionHeading(section: DashboardSection, width: number): string {
+	if (!section.title || width <= 0) return "";
+	const meta = section.titleMeta?.().trim() ?? "";
+	const label = ` ${section.title.toLocaleUpperCase("en-US")} `;
+	const minimumRule = DASHBOARD_PANEL_SYSTEM.heading.minimumLeadingRule;
+	const available = Math.max(0, width - visibleWidth(label) - (meta ? visibleWidth(meta) + 1 : 0));
+	const left = Math.min(DASHBOARD_PANEL_SYSTEM.heading.preferredLeadingRule, Math.max(minimumRule, Math.floor(available * 0.22)));
+	const right = Math.max(0, available - left);
+	return fit(
+		colors.border("─".repeat(left)) + section.color(label) + colors.border("─".repeat(right)) + (meta ? ` ${colors.muted(meta)}` : ""),
+		width,
+	);
 }
 
 class CompactDocument implements Component {
@@ -209,6 +254,7 @@ export function createDashboardLayout(
 	left: DashboardSection,
 	rightTop: DashboardSection,
 	rightBottom: DashboardSection,
+	topRailLabel?: () => string,
 ): DashboardLayout {
 	const leftScroll = new ChatScrollView(new SectionDocument(left), {
 		follow: "end",
@@ -219,16 +265,17 @@ export function createDashboardLayout(
 		follow: "none",
 		...containedScrollbar,
 	});
-	const routerScroll = new ScrollView(new SectionDocument(rightBottom), {
+	const routerScroll = new ScrollView(new SectionDocument(sectionWithoutTitle(rightBottom)), {
 		follow: "none",
 		...containedScrollbar,
 	});
 	const right = new VStack([
-		// The stack allocator distributes its remaining rows sequentially; 3:5
-		// weights compensate for that bias and yield equal visible viewports.
-		{ component: usageScroll, basis: 0, grow: 3, shrink: 1, minSize: 4 },
-		{ component: new HorizontalRule(), basis: 1, minSize: 1, maxSize: 1 },
-		{ component: routerScroll, basis: 0, grow: 5, shrink: 1, minSize: 3 },
+		// Keep the compact Todo rail intentionally lighter than the Tracer rail.
+		// The allocator's minimums and integer rows make the result approximate,
+		// but the target remains a 3:7 visual split.
+		{ component: usageScroll, basis: 0, grow: 1, shrink: 1, minSize: 4 },
+		{ component: new LabeledRule(rightBottom.title ?? "", rightBottom.color), basis: 1, minSize: 1, maxSize: 1 },
+		{ component: routerScroll, basis: 0, grow: 6, shrink: 1, minSize: 3 },
 	]);
 	const wide = new HStack([
 		{ component: new VerticalRule(), basis: 1, shrink: 0, minSize: 1, maxSize: 1 },
@@ -263,7 +310,7 @@ export function createDashboardLayout(
 	]);
 	return {
 		component: new VStack([
-			{ component: new FrameLine(title, "top"), basis: 1, minSize: 1, maxSize: 1 },
+			{ component: new FrameLine(title, "top", topRailLabel), basis: 1, minSize: 1, maxSize: 1 },
 			{ component: body, basis: 0, grow: 1, shrink: 1, minSize: 1 },
 			{ component: new FrameLine(title, "bottom"), basis: 1, minSize: 1, maxSize: 1 },
 		]),

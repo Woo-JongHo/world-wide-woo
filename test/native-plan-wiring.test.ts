@@ -104,7 +104,7 @@ async function waitFor(assertion: () => void, attempts = 80): Promise<void> {
 }
 
 describe("Native Plan transport-to-Todo wiring", () => {
-	test("projects a completed public numbered Plan reply when Native emits no structured plan and carries it into manual execution", async () => {
+	test("shows a public numbered Plan document without making it an executable Todo or carrying it into manual execution", async () => {
 		const transport = new FakeJsonLineTransport();
 		transport.responses.set("mcpServerStatus/list", [{ data: [], nextCursor: null }]);
 		transport.responses.set("thread/start", [{ thread: { id: "thread-root", turns: [] } }]);
@@ -161,13 +161,11 @@ describe("Native Plan transport-to-Todo wiring", () => {
 				params: { threadId: "thread-root", turn: { id: "turn-plan", status: "completed", error: null } },
 			});
 
-			await waitFor(() => {
-				expect(ledger.snapshot?.items.map(({ content, status }) => ({ content, status }))).toEqual([
-					{ content: "현재 상태를 확인합니다.", status: "in_progress" },
-					{ content: "필요한 변경을 적용합니다.", status: "pending" },
-					{ content: "결과를 검증합니다.", status: "pending" },
-				]);
-			});
+			await waitFor(() => expect(workbench.snapshot.workFlow.steps).toHaveLength(3));
+			expect(ledger.snapshot).toBeNull();
+			expect(workbench.snapshot.workFlow.source?.authority).toBe("public-plan-document");
+			expect(workbench.snapshot.workFlow.steps.map(step => step.title)).toEqual(["현재 상태를 확인합니다.", "필요한 변경을 적용합니다.", "결과를 검증합니다."]);
+
 			const fallback = journal.records.find((activity) => activity.payload.method === "turn/plan/public-fallback");
 			expect(fallback).toMatchObject({
 				kind: "progress",
@@ -194,14 +192,12 @@ describe("Native Plan transport-to-Todo wiring", () => {
 					item: { id: "manual-action", type: "commandExecution", command: "apply_patch target.ts" },
 				},
 			});
-			await waitFor(() => expect(workbench.snapshot.workFlow.steps[0]?.activityIds).toHaveLength(1));
-			const action = journal.records.find((activity) => activity.nativeRefs.itemId === "manual-action");
-			expect(action).toBeDefined();
-			expect(workbench.snapshot.workFlow.source?.turnId).toBe("turn-execute");
-			expect(await workbench.dispatch({ type: "trace.select", activityId: action!.id })).toMatchObject({
-				state: "accepted",
-				selection: { state: "selected", attribution: { planAssociation: "inferred" } },
-			});
+			await waitFor(() => expect(journal.records.some(activity => activity.nativeRefs.itemId === "manual-action")).toBe(true));
+			expect(workbench.snapshot.workFlow.source).toBeNull();
+			expect(ledger.snapshot).toBeNull();
+			const action = journal.records.find(activity => activity.nativeRefs.itemId === "manual-action")!;
+			expect(workbench.snapshot.workFlow.steps.some(step => step.activityIds.includes(action.id))).toBe(false);
+
 		} finally {
 			await workbench.close();
 		}
@@ -254,7 +250,7 @@ describe("Native Plan transport-to-Todo wiring", () => {
 		}
 	});
 
-	test("keeps one honest pending goal when a completed Plan turn executes tools without any plan body", async () => {
+	test("does not manufacture Todo or a Plan when a Plan turn supplies no plan body", async () => {
 		const transport = new FakeJsonLineTransport();
 		transport.responses.set("mcpServerStatus/list", [{ data: [], nextCursor: null }]);
 		transport.responses.set("thread/start", [{ thread: { id: "thread-root", turns: [] } }]);
@@ -285,28 +281,12 @@ describe("Native Plan transport-to-Todo wiring", () => {
 				method: "turn/completed",
 				params: { threadId: "thread-root", turn: { id: "turn-plan", status: "completed", error: null } },
 			});
-			await waitFor(() => expect(ledger.snapshot?.items).toHaveLength(1));
-			expect(ledger.snapshot).toMatchObject({
-				title: "현재 구조를 점검해줘",
-				source: { rootExecution: { model: "codex", runId: "turn-plan" } },
-				items: [{ content: "계획 본문 미수신", status: "pending" }],
-			});
-			const fallback = journal.records.find((activity) => activity.payload.source === "public-user-request");
-			expect(fallback).toMatchObject({
-				nativeRefs: { threadId: "thread-root", turnId: "turn-plan", itemId: "missing-plan-fallback:turn-plan" },
-				payload: { method: "turn/plan/public-fallback", source: "public-user-request" },
-			});
-			const activity = journal.records.find((candidate) => candidate.nativeRefs.itemId === "observed-command");
-			expect(activity).toBeDefined();
-			expect(workbench.snapshot.workFlow.steps[0]).toMatchObject({
-				activityIds: [],
-				observationCount: 1,
-				association: { observationActivityIds: [activity!.id] },
-			});
-			expect(await workbench.dispatch({ type: "trace.select", activityId: activity!.id })).toMatchObject({
-				state: "accepted",
-				selection: { state: "selected", attribution: { planAssociation: "inferred" } },
-			});
+			await waitFor(() => expect(workbench.snapshot.executionRun?.receipt).not.toBeNull());
+			expect(ledger.snapshot).toBeNull();
+			expect(workbench.snapshot.workFlow.steps).toEqual([]);
+			expect(journal.records.some(activity => activity.payload.source === "public-user-request")).toBe(false);
+			expect(journal.records.some(activity => activity.nativeRefs.itemId === "observed-command")).toBe(true);
+
 		} finally {
 			await workbench.close();
 		}
@@ -692,7 +672,7 @@ describe("Native Plan transport-to-Todo wiring", () => {
 			const rootTodo = ledger.snapshot!.items[0]!;
 			const rootTodos = ledger.snapshot!.items;
 			expect(rootTodo.id).toBe(`native-${rootStep.identity.value.slice(0, 48)}`);
-			expect(rootTodo.details[0]?.id).toBe(`${rootTodo.id}-detail-1`);
+			expect(rootTodo.details).toEqual([]);
 			const stableTodoRevision = ledger.snapshot!.revision;
 
 			transport.emit({

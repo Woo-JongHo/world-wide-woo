@@ -1,3 +1,4 @@
+import legacyJournal from "./fixtures/legacy-execution-receipt.json";
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -128,6 +129,28 @@ describe("runtime receipt journal authentication", () => {
 		const { activities, completion } = runtimeJournal();
 		activities.push(runtimeActivity(5, "other-turn", "thread", "other-turn", { method: "turn/started" }));
 		expect(selectedCompletionReceipt(`${activities.map(activity => JSON.stringify(activity)).join("\n")}\n`, completion.receiptId)).toEqual(completion);
+	});
+
+	test("authenticates a fixed pre-v2 Plan plus command receipt without rewriting its historical meaning", () => {
+		const journal = legacyJournal.activities.map(activity => JSON.stringify(activity)).join("\n");
+		expect(JSON.stringify(selectedCompletionReceipt(journal, legacyJournal.receipt.receiptId))).toBe(JSON.stringify(legacyJournal.receipt));
+		const tampered = legacyJournal.activities.map(activity => activity.id === "command" ? { ...activity, sourceDigest: `sha256:${sha256("changed")}` } : activity);
+		expect(() => selectedCompletionReceipt(tampered.map(activity => JSON.stringify(activity)).join("\n"), legacyJournal.receipt.receiptId)).toThrow("JOURNAL_COMPLETION_RECEIPT_REPLAY_MISMATCH");
+	});
+
+	test("authenticates observed command results and rejects edited command output", () => {
+		const activities = [
+			runtimeActivity(1, "command", "thread", "turn", { method: "item/completed", params: { item: { type: "commandExecution", command: "bun test", exitCode: 1, aggregatedOutput: "1 fail" } } }, "failed"),
+			runtimeActivity(2, "terminal", "thread", "turn", { method: "turn/completed" }, "completed"),
+		];
+		const hash = { sha256Hex: (input: Uint8Array) => sha256(Buffer.from(input)) };
+		const receipt = replayExecutionRun(createExecutionRun({ runId: "thread:turn", threadId: "thread", turnId: "turn", hash }), activities.map(normalizeProjectActivity), hash).receipt!;
+		const journal = (value: unknown) => [...activities, runtimeActivity(3, "receipt", "thread", "turn", { method: "execution/completion-receipt", receipt: value }, "completed")].map(item => JSON.stringify(item)).join("\n");
+		expect(selectedCompletionReceipt(journal(receipt), receipt.receiptId)).toEqual(receipt);
+		expect(receipt.algorithmVersion).toBe(3);
+		expect(() => selectedCompletionReceipt(journal({ ...receipt, algorithmVersion: undefined }), receipt.receiptId)).toThrow("JOURNAL_COMPLETION_RECEIPT_VERSION_INVALID");
+		expect(selectedCompletionReceipt(journal(receipt), receipt.receiptId).algorithmVersion).toBe(3);
+		expect(() => selectedCompletionReceipt(journal({ ...receipt, commandResults: [{ ...receipt.commandResults![0], output: "1 pass" }] }), receipt.receiptId)).toThrow("JOURNAL_COMPLETION_RECEIPT_DIGEST_MISMATCH");
 	});
 
 	test("rejects replay tampering, global sequence gaps, and receipt checkpoint tampering", () => {

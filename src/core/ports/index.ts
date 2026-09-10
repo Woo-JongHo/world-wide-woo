@@ -82,7 +82,7 @@ export interface AuthController {
 	logout(provider: Provider, signal?: AbortSignal): Promise<void>;
 }
 
-export type UsageProviderId = "openai-codex" | "anthropic";
+export type UsageProviderId = "openai-codex" | "anthropic" | "google" | "zai";
 export type UsageState = "loading" | "ready" | "auth-required" | "unsupported" | "error";
 export type UsageIssueKind = "rate-limit" | "authentication" | "network" | "provider";
 

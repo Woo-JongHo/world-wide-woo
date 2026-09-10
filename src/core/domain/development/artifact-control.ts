@@ -3,8 +3,12 @@ import YAML from "yaml";
 import { OBSIDIAN_SECTIONS } from "./obsidian-contract.js";
 import { renderRpaProject, renderRpaTask, validateRpaDescriptionMap, type RpaDescriptionMap } from "./rpa-description.js";
 
-export const ARTIFACT_KINDS = ["linear-issue", "linear-project", "obsidian-canonical", "github-issue", "github-pr"] as const;
+export const ARTIFACT_KINDS = ["linear-issue", "linear-project", "linear-project-comment", "linear-project-update", "obsidian-canonical", "github-issue", "github-pr"] as const;
 export type ArtifactKind = typeof ARTIFACT_KINDS[number];
+
+const PROJECT_ACTIVITY_TYPES = ["feature", "improvement", "refactor", "fix", "verification", "operations"] as const;
+const PROJECT_ACTIVITY_STATES = ["complete", "in-progress", "blocked"] as const;
+const PROJECT_UPDATE_HEALTH = ["onTrack", "atRisk", "offTrack"] as const;
 
 export interface ArtifactValidation {
 	id: string;
@@ -13,7 +17,7 @@ export interface ArtifactValidation {
 }
 
 export interface ArtifactCandidate {
-	schemaVersion: "1.0";
+	schemaVersion: "1.0" | "1.1";
 	candidateId: string;
 	kind: ArtifactKind;
 	sourceRevision: string;
@@ -45,7 +49,7 @@ const keysExactly = (value: Record<string, unknown>, keys: string[]): boolean =>
 
 export function validateArtifactCandidate(candidate: ArtifactCandidate, actualBefore?: unknown): string[] {
 	const errors: string[] = [];
-	if (candidate.schemaVersion !== "1.0") errors.push("schemaVersion: 1.0이어야 합니다.");
+	if (candidate.schemaVersion !== "1.0" && candidate.schemaVersion !== "1.1") errors.push("schemaVersion: 1.0 또는 1.1이어야 합니다.");
 	if (!/^ARTIFACT-CANDIDATE-[A-Z0-9][A-Z0-9-]*$/u.test(candidate.candidateId)) errors.push("candidateId: ARTIFACT-CANDIDATE-* 형식이어야 합니다.");
 	if (!ARTIFACT_KINDS.includes(candidate.kind)) errors.push("kind: 지원하지 않는 artifact입니다.");
 	for (const [name, value] of [["sourceRevision", candidate.sourceRevision], ["intent", candidate.intent]] as const) if (!line(value)) errors.push(`${name}: 한 줄의 비어 있지 않은 값이어야 합니다.`);
@@ -85,6 +89,29 @@ export function validateArtifactCandidate(candidate: ArtifactCandidate, actualBe
 		if (!keysExactly(content, ["title", "purpose", "included", "excluded", "done", "connections"])) errors.push("linear-issue.content: 정해진 필드만 허용합니다.");
 		if (!line(content.title) || !line(content.purpose) || !lines(content.included) || !lines(content.excluded) || !lines(content.done) || !lines(content.connections)) errors.push("linear-issue.content: title/purpose와 included/excluded/done/connections가 필요합니다.");
 	}
+	if (candidate.kind === "linear-project-comment") {
+		const legacy = candidate.schemaVersion === "1.0";
+		const required = legacy ? ["requirement", "work", "types", "connections", "state", "next"] : ["changes", "impacts", "categories", "verification", "connections"];
+		if (!keysExactly(content, required)) errors.push("linear-project-comment.content: 정해진 필드만 허용합니다.");
+		if (!line(candidate.target.projectId)) errors.push("linear-project-comment.target.projectId: Project ID가 필요합니다.");
+		if (!object(candidate.expectedBefore) || !keysExactly(candidate.expectedBefore, ["latestCommentId"]) || (candidate.expectedBefore.latestCommentId !== null && !line(candidate.expectedBefore.latestCommentId))) errors.push("linear-project-comment.expectedBefore: latestCommentId가 필요합니다.");
+		if (legacy) {
+			if (!line(content.requirement) || !lines(content.work) || !lines(content.connections) || !line(content.next)) errors.push("linear-project-comment.content: requirement/work/connections/next가 필요합니다.");
+			if (!Array.isArray(content.types) || !content.types.length || content.types.some(type => !PROJECT_ACTIVITY_TYPES.includes(type as typeof PROJECT_ACTIVITY_TYPES[number]))) errors.push("linear-project-comment.content.types: feature|improvement|refactor|fix|verification|operations 중 하나 이상이어야 합니다.");
+			if (!PROJECT_ACTIVITY_STATES.includes(content.state as typeof PROJECT_ACTIVITY_STATES[number])) errors.push("linear-project-comment.content.state: complete|in-progress|blocked여야 합니다.");
+		} else {
+			if (!lines(content.changes) || !lines(content.impacts) || !lines(content.verification) || !lines(content.connections)) errors.push("linear-project-comment.content: changes/impacts/verification/connections가 필요합니다.");
+			if (!Array.isArray(content.categories) || !content.categories.length || content.categories.some(type => !PROJECT_ACTIVITY_TYPES.includes(type as typeof PROJECT_ACTIVITY_TYPES[number]))) errors.push("linear-project-comment.content.categories: feature|improvement|refactor|fix|verification|operations 중 하나 이상이어야 합니다.");
+		}
+	}
+	if (candidate.kind === "linear-project-update") {
+		const required = ["version", "delivered", "included", "verification", "connections", "sourceCommentIds", "health"];
+		if (!keysExactly(content, required)) errors.push("linear-project-update.content: 정해진 필드만 허용합니다.");
+		if (!line(candidate.target.projectId)) errors.push("linear-project-update.target.projectId: Project ID가 필요합니다.");
+		if (!object(candidate.expectedBefore) || !keysExactly(candidate.expectedBefore, ["latestUpdateId"]) || (candidate.expectedBefore.latestUpdateId !== null && !line(candidate.expectedBefore.latestUpdateId))) errors.push("linear-project-update.expectedBefore: latestUpdateId가 필요합니다.");
+		if (!/^0\.0\.\d+$/u.test(String(content.version ?? "")) || !lines(content.delivered) || !lines(content.included) || !lines(content.verification) || !lines(content.connections) || !lines(content.sourceCommentIds)) errors.push("linear-project-update.content: version과 delivered/included/verification/connections/sourceCommentIds가 필요합니다.");
+		if (!PROJECT_UPDATE_HEALTH.includes(content.health as typeof PROJECT_UPDATE_HEALTH[number])) errors.push("linear-project-update.content.health: onTrack|atRisk|offTrack여야 합니다.");
+	}
 	if (candidate.kind === "github-issue") {
 		if (!keysExactly(content, ["issueType", "title", "statement", "details"])) errors.push("github-issue.content: 정해진 필드만 허용합니다.");
 		if (!(["bug", "enhancement"] as unknown[]).includes(content.issueType) || !line(content.title) || !line(content.statement) || !lines(content.details)) errors.push("github-issue.content: issueType/title/statement/details가 필요합니다.");
@@ -114,6 +141,11 @@ export function renderArtifactCandidate(candidate: ArtifactCandidate): string {
 	if (candidate.kind === "linear-project") return renderRpaProject(c.map as RpaDescriptionMap);
 	if (candidate.kind === "linear-issue" && c.profile === "rpa-task-v1") return renderRpaTask(c.map as RpaDescriptionMap, c.taskId as string);
 	if (candidate.kind === "linear-issue") return `# ${c.title}\n\n## 목적\n\n${c.purpose}\n\n## 범위\n\n### 포함\n\n${bullets(c.included)}\n\n### 제외\n\n${bullets(c.excluded)}\n\n## 완료 조건\n\n${bullets(c.done)}\n\n## 연결\n\n${bullets(c.connections)}\n`;
+	if (candidate.kind === "linear-project-comment") {
+		if (candidate.schemaVersion === "1.0") return `**요구**\n${bullets([c.requirement])}\n\n**작업**\n${bullets(c.work)}\n\n**유형**\n${bullets((c.types as string[]).map(projectActivityTypeLabel))}\n\n**연결**\n${bullets(c.connections)}\n\n**상태**\n- ${projectActivityStateLabel(c.state)} — ${c.next}\n`;
+		return `## 변경\n\n${bullets(c.changes)}\n\n## 영향\n\n${bullets(c.impacts)}\n\n## 분류\n\n${(c.categories as string[]).map(projectActivityCategoryLabel).join(" · ")}\n\n## 검증\n\n${bullets(c.verification)}\n\n## 연결\n\n${bullets(c.connections)}\n`;
+	}
+	if (candidate.kind === "linear-project-update") return `# ${c.version}\n\n## 전달 기능\n\n${bullets(c.delivered)}\n\n## 함께 반영\n\n${bullets(c.included)}\n\n## 검증\n\n${bullets(c.verification)}\n\n## 작업 Comment\n\n${bullets(c.sourceCommentIds)}\n\n## 연결\n\n${bullets(c.connections)}\n`;
 	if (candidate.kind === "github-issue") {
 		const bug = c.issueType === "bug";
 		return `# ${c.title}\n\n## ${bug ? "문제" : "요청"}\n\n${c.statement}\n\n## ${bug ? "확인 및 재현" : "현재 상황 및 불편"}\n\n${bullets(c.details)}\n`;
@@ -126,4 +158,16 @@ export function renderArtifactCandidate(candidate: ArtifactCandidate): string {
 	const relativePath = String(candidate.target.relativePath ?? "");
 	const title = relativePath.split("/").at(-1)?.replace(/\.md$/u, "") ?? String(properties.capability ?? "상세 정본");
 	return `---\n${YAML.stringify(properties, { sortMapEntries: true }).trimEnd()}\n---\n\n# ${title}\n\n${OBSIDIAN_SECTIONS.map(heading => `## ${heading}\n\n${sections[heading]}`).join("\n\n")}\n`;
+}
+
+function projectActivityTypeLabel(value: string): string {
+	return ({ feature: "기능", improvement: "개선", refactor: "리팩터링", fix: "수정", verification: "검증", operations: "운영" } as Record<string, string>)[value] ?? value;
+}
+
+function projectActivityCategoryLabel(value: string): string {
+	return ({ feature: "Feature", improvement: "Improvement", refactor: "Refactor", fix: "Fix", verification: "Validation", operations: "Operation" } as Record<string, string>)[value] ?? value;
+}
+
+function projectActivityStateLabel(value: unknown): string {
+	return ({ complete: "완료", "in-progress": "진행 중", blocked: "차단됨" } as Record<string, string>)[String(value)] ?? String(value);
 }

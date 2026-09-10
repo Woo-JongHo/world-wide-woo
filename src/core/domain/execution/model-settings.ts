@@ -1,9 +1,10 @@
-export const PROVIDERS = ["openai-codex", "anthropic", "openai", "google"] as const;
+export const PROVIDERS = ["openai-codex", "anthropic", "openai", "google", "zai"] as const;
 export const MODELS = {
 	"openai-codex": ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.4"],
 	openai: ["gpt-5.4", "gpt-5.3-codex"],
 	anthropic: ["claude-opus-4-6", "claude-sonnet-4-6"],
 	google: ["gemini-3.1-pro-preview", "gemini-3-flash-preview"],
+	zai: ["glm-5.3", "glm-5.3-flash", "glm-5.2", "glm-5.2-highspeed", "glm-5.3-highspeed", "glm-5-turbo", "glm-4.7"],
 } as const;
 export const EFFORTS = ["low", "medium", "high", "ultra"] as const;
 

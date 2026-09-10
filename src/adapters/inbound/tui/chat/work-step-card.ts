@@ -624,11 +624,8 @@ export class WorkStepCard implements Component {
 			`${semantic.assistantLabel(`단계 ${this.options.stepNumber}`)} · ${statusText}`,
 			highlightedWhat(projected),
 			...(projected.why ? [colors.warm(`왜 하는지: ${projected.why}`)] : []),
-			colors.border("─".repeat(contentWidth)),
-			semantic.userLabel("입력 요약"),
-			...input.map((line) => `  ${renderExecutionLine(line, "input")}`),
-			semantic.assistantLabel("출력 요약"),
-			...output.map((line) => `  ${renderExecutionLine(line, "output")}`),
+			...input.map((line) => renderExecutionLine(line, "input")),
+			...output.map((line) => renderExecutionLine(line, "output")),
 		];
 		return [
 			border("─".repeat(width)),

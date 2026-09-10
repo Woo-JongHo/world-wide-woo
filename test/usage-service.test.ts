@@ -61,8 +61,39 @@ describe("UsageService", () => {
 		expect(await service.refresh()).toMatchObject([
 			{ provider: "openai-codex", state: "auth-required", limits: [] },
 			{ provider: "anthropic", state: "unsupported", limits: [] },
+			{ provider: "google", state: "auth-required", limits: [] },
+			{ provider: "zai", state: "auth-required", limits: [] },
 		]);
 		expect(fetches).toBe(0);
+	});
+
+	test("Gemini CLI와 Z.AI Coding Plan 쿼터를 각 공식 어댑터로 조회한다", async () => {
+		const source = { read: async (): Promise<Credential> => oauth("gemini-access") };
+		const service = new UsageService(
+			store({ zai: { type: "api_key", key: "zai-secret" } }),
+			models,
+			async url => {
+				const value = String(url);
+				if (value.includes("loadCodeAssist")) return response({ cloudaicompanionProject: "project" });
+				if (value.includes("retrieveUserQuota")) return response({ buckets: [{ modelId: "gemini-3.1-pro-preview", remainingFraction: 0.63, resetTime: "2030-01-01T00:00:00Z" }] });
+				if (value.includes("quota/limit")) return response({ success: true, data: { limits: [{ type: "TIME_LIMIT", usage: 100, currentValue: 35, percentage: 35, remaining: 65, nextResetTime: 1_800_000_000 }] } });
+				return response({ success: true, data: {} });
+			},
+			Date.now,
+			undefined,
+			source,
+		);
+
+		const snapshots = await service.refresh();
+		expect(snapshots.find(item => item.provider === "google")).toMatchObject({
+			state: "ready",
+			limits: [expect.objectContaining({ remainingPercent: 63 })],
+		});
+		expect(snapshots.find(item => item.provider === "zai")).toMatchObject({
+			state: "ready",
+			limits: [expect.objectContaining({ remainingPercent: 65 })],
+		});
+		expect(JSON.stringify(snapshots)).not.toContain("secret");
 	});
 
 	test("coalesces concurrent refreshes and stops future polling", async () => {

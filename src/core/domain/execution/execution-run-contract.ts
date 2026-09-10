@@ -39,6 +39,8 @@ export interface ExecutionTask {
 	readonly title: string;
 	readonly status: "pending" | "running" | "completed" | "failed" | "cancelled";
 	readonly activityIds: readonly string[];
+	readonly observationActivityIds?: readonly string[];
+	readonly sourceRevisionKeyDigest?: string;
 }
 
 export interface ExecutionActivity {
@@ -50,6 +52,8 @@ export interface ExecutionActivity {
 }
 
 export interface CompletionReceipt {
+	/** Missing denotes historical v1; v2 separates command outcomes; v3 aligns Plan identity and association. */
+	readonly algorithmVersion?: 2 | 3;
 	readonly receiptId: string;
 	readonly receiptDigest: string;
 	readonly checkpointDigest: string;
@@ -60,6 +64,14 @@ export interface CompletionReceipt {
 	readonly objective: string;
 	readonly changed: readonly CompletionChange[];
 	readonly verification: readonly CompletionVerification[];
+	/** Observed commands do not imply work acceptance; optional for persisted v1 receipts. */
+	readonly commandResults?: readonly {
+		readonly command: string;
+		readonly exitCode: number | null;
+		readonly status: CompletionVerification["status"];
+		readonly output: string;
+		readonly evidenceRefs: readonly string[];
+	}[];
 	readonly evidenceRefs: readonly ExecutionEvidence[];
 	readonly remaining: readonly CompletionRemaining[];
 	readonly completedAt: string;
@@ -113,4 +125,3 @@ export interface ExecutionRunReduction {
 	readonly accepted: boolean;
 	readonly reason: "applied" | "duplicate" | "late" | "foreign" | "gap" | "invalid";
 }
-

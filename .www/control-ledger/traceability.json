@@ -53,6 +53,10 @@
     },
     {
       "kind": "code",
+      "id": "src/adapters/inbound/tui/dashboard/workbench-tracer-view.ts"
+    },
+    {
+      "kind": "code",
       "id": "src/adapters/inbound/tui/chat/result-cards.ts"
     },
     {
@@ -2437,6 +2441,32 @@
       "to": {
         "kind": "code",
         "id": "src/adapters/inbound/tui/shell/workbench-shell.ts"
+      }
+    },
+    {
+      "from": {
+        "kind": "linear-issue",
+        "id": "WOO-681",
+        "uuid": "8df10afa-0d6a-4a0d-a529-df749ecf7111",
+        "url": "https://linear.app/woo-world/issue/WOO-681/tracer-선택한-작업의-실행-구조와-근거를-따라간다"
+      },
+      "relation": "implements",
+      "to": {
+        "kind": "code",
+        "id": "src/adapters/inbound/tui/dashboard/workbench-tracer-view.ts"
+      }
+    },
+    {
+      "from": {
+        "kind": "linear-issue",
+        "id": "WOO-717",
+        "uuid": "418b2aec-4e13-4f9d-b1a1-da992794839c",
+        "url": "https://linear.app/woo-world/issue/WOO-717/선택한-plan-아래-agenttool승인결과-실행-트리를-펼친다"
+      },
+      "relation": "implements",
+      "to": {
+        "kind": "code",
+        "id": "src/adapters/inbound/tui/dashboard/workbench-tracer-view.ts"
       }
     },
     {

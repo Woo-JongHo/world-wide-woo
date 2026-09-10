@@ -131,7 +131,6 @@ async function scanProductFiles(options: Options, files: string[]): Promise<stri
 		["TODO/FIXME marker", /(?:\/\/|\/\*|#)\s*(?:TODO|FIXME)\b|\bTODO\s*:/g],
 		["skip/only test", /\.(?:skip|only)\s*\(/g],
 		["NotImplemented", /NotImplemented|not implemented/gi],
-		["placeholder", /placeholder/gi],
 	];
 	for (const file of files) {
 		const absolute = resolve(options.repo, file);

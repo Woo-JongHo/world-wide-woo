@@ -68,7 +68,7 @@ describe("WWW CLI session entry", () => {
 		expect(await runCli(["--help"], dependencies)).toBe(0);
 		expect(calls.out[0]).toContain("www router");
 		expect(calls.out[0]).toContain("Native 승인·Sandbox·Skill은 제공하지 않음");
-		expect(calls.out[0]).toContain("Claude·Gemini·OpenAI 모델 변경");
+		expect(calls.out[0]).toContain("Claude·Gemini·OpenAI·Z.AI 모델 변경");
 	});
 
 	test("opens a new session for plain www without listing or resuming", async () => {

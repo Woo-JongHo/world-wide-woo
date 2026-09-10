@@ -4,11 +4,14 @@ import {
 	wrapTextWithAnsi,
 	type Component,
 } from "@earendil-works/pi-tui";
+import chalk from "chalk";
 import type { ProjectActivity } from "../../../../core/domain/execution/project-activity";
-import { todoDetailProgress, todoProgress, type TodoDocument, type TodoItem } from "../../../../core/domain/work/todos";
-import { projectNativeDelegation, type WorkFlowProjection } from "../../../../core/domain/work";
+import { todoProgress, type TodoDocument, type TodoItem } from "../../../../core/domain/work/todos";
+import type { WorkFlowProjection } from "../../../../core/domain/work";
 import type { WorkbenchTodoSyncState } from "../../../../core/domain/work/workbench";
+import type { LinearProjectDashboard } from "../../../../core/domain/work/linear-dashboard";
 import { colors } from "../shell/theme";
+import { DASHBOARD_PANEL_SYSTEM, dashboardProgressCells } from "./dashboard-panel-system";
 
 function fit(text: string, width: number): string {
 	if (width <= 0) return "";
@@ -37,7 +40,18 @@ export interface WorkspaceTodoLiveContext {
 	readonly activeTurnId: string | null;
 	readonly activities: readonly ProjectActivity[];
 	readonly workFlow: WorkFlowProjection;
+	readonly hasConversation?: boolean;
+	/** Session Goal is shown until a Native Plan becomes the Todo source. */
+	readonly goal?: string | null;
 	readonly sync?: WorkbenchTodoSyncState;
+}
+
+/** Human time for the Todo heading; malformed or absent revisions stay quiet. */
+export function todoPanelTimestamp(updatedAt: string | undefined): string {
+	if (!updatedAt) return "";
+	const date = new Date(updatedAt);
+	if (Number.isNaN(date.getTime())) return "";
+	return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
 
 /** @linear WOO-682 */
@@ -50,6 +64,7 @@ export class WorkspaceTodoView implements Component {
 			activities: [],
 			workFlow: emptyWorkFlow(),
 		}),
+		private readonly linearDashboard: () => LinearProjectDashboard | undefined = () => undefined,
 	) {}
 	invalidate(): void {}
 	render(width: number): string[] {
@@ -60,18 +75,37 @@ export class WorkspaceTodoView implements Component {
 		const document = this.todo();
 		const live = this.live();
 		if (!document || document.items.length === 0) {
-			const label = live.activeTurnId ? "TODO · 공개 계획을 기다리는 중" : "TODO · 현재 계획 없음";
+			const dashboard = this.linearDashboard();
+			const showEntryDashboard = !live.hasConversation && !live.activeTurnId && !live.workFlow.source;
+			const goalRows = live.goal
+				? wrapTextWithAnsi(colors.highlight(`Goal · ${live.goal}`), width)
+				: [];
+			if (showEntryDashboard && dashboard?.state === "loading") return [
+				...goalRows,
+				...wrapTextWithAnsi(colors.secondary(`Update · ${dashboard.projectName}`), width),
+				...wrapTextWithAnsi(colors.muted("Linear Project Update를 가져오는 중입니다."), width),
+			];
+			if (showEntryDashboard && (dashboard?.state === "ready" || dashboard?.state === "stale")) return [
+				...goalRows,
+				...wrapTextWithAnsi(colors.secondary(`Update · ${dashboard.projectName}`), width),
+				...(dashboard.state === "stale" ? wrapTextWithAnsi(colors.warning("갱신 실패 · 마지막 성공 값"), width) : []),
+				...wrapTextWithAnsi(dashboard.update?.body || "게시된 Project Update가 없습니다.", width),
+				...(dashboard.update?.createdAt ? wrapTextWithAnsi(colors.muted(`갱신 · ${dashboard.update.createdAt}`), width) : []),
+			];
+			if (showEntryDashboard && dashboard?.state === "unavailable") return [
+				...goalRows,
+				...wrapTextWithAnsi(colors.secondary(`Update · ${dashboard.projectName}`), width),
+				...wrapTextWithAnsi(colors.warning("Linear Project Update를 불러오지 못했습니다."), width),
+			];
 			return [
-				...wrapTextWithAnsi(colors.secondary(label), width),
+				...goalRows,
+				...wrapTextWithAnsi(colors.secondary(live.activeTurnId ? "TODO · 공개 계획을 기다리는 중" : "TODO · 현재 계획 없음"), width),
 				...syncRows(live.sync, width),
 			];
 		}
 
 		const progress = todoProgress(document);
-		const detailProgress = todoDetailProgress(document);
-		const progressLabel = detailProgress.total > 0
-			? `TODO ${progress.completed}/${progress.total} · 세부 ${detailProgress.completed}/${detailProgress.total}`
-			: `TODO ${progress.completed}/${progress.total}`;
+		const progressLabel = `${progress.completed} / ${progress.total}`;
 		const items = width < 42
 			? [document.items.find(item => item.status === "in_progress")
 				?? document.items.find(item => item.status === "pending")
@@ -81,14 +115,9 @@ export class WorkspaceTodoView implements Component {
 			: document.items.slice(0, 12);
 		const rows = [
 			...wrapTextWithAnsi(`${todoProgressRail(progress.completed, progress.total, width)} ${colors.secondary(progressLabel)}`, width),
-			...wrapTextWithAnsi(colors.highlight(`  ${document.storyId ? `${document.storyId} · ` : ""}${document.title}`), width),
-			...todoSourceRows(document, width),
+			...wrapTextWithAnsi(colors.highlight(`Goal · ${document.title}`), width),
 			...syncRows(live.sync, width),
 		];
-		const delegation = document.source
-			? projectNativeDelegation(live.activities).find((entry) => entry.turnId === document.source?.turnId)
-			: undefined;
-		const shownTaskIds = new Set<string>();
 		for (const item of items) {
 			const parentDetailProgress = item.details.length > 0
 				? ` (${item.details.filter(detail => detail.status === "completed").length}/${item.details.length})`
@@ -105,19 +134,6 @@ export class WorkspaceTodoView implements Component {
 				const branch = index === details.length - 1 ? "└" : "├";
 				rows.push(...todoItemRows(detail.status, detail.content, "", width, `    ${colors.muted(branch)} `));
 			}
-			const step = item.source
-				? live.workFlow.steps.find((candidate) => candidate.identity.value === item.source?.identity)
-				: undefined;
-			for (const task of delegation?.tasks ?? []) {
-				const taskActivityIds = observedTaskActivityIds(task.id, live.activities, document.source?.turnId ?? null);
-				if (!step || !taskActivityIds.some((activityId) => step.activityIds.includes(activityId))) continue;
-				shownTaskIds.add(task.id);
-				rows.push(...executionRows(task, width));
-			}
-		}
-		const unboundCount = (delegation?.tasks ?? []).filter((task) => !shownTaskIds.has(task.id)).length;
-		if (unboundCount > 0) {
-			rows.push(...wrapTextWithAnsi(colors.warning(`  실행 연결 미확정 ${unboundCount}개 · 전체 실행은 Monitor에서 확인`), width));
 		}
 		if (width < 42) {
 			const hidden = Math.max(0, document.items.length - items.length);
@@ -127,14 +143,6 @@ export class WorkspaceTodoView implements Component {
 	}
 }
 
-function todoSourceRows(document: TodoDocument, width: number): string[] {
-	if (!document.source) return wrapTextWithAnsi(colors.warning("  실행 연결 · 확인 불가"), width);
-	const execution = document.source.rootExecution;
-	const model = execution.model ?? "모델 미확인";
-	const agent = execution.agentId ?? "root";
-	return wrapTextWithAnsi(colors.muted(`  주 실행 · ${model} · ${agent} · run ${shortRef(execution.runId)}`), width);
-}
-
 function syncRows(sync: WorkbenchTodoSyncState | undefined, width: number): string[] {
 	if (!sync || sync.state === "idle") return [];
 	if (sync.state === "syncing") return wrapTextWithAnsi(colors.accent("  저장 동기화 중 · 대화는 계속됩니다"), width);
@@ -142,48 +150,6 @@ function syncRows(sync: WorkbenchTodoSyncState | undefined, width: number): stri
 		return wrapTextWithAnsi(colors.warning(`  저장 보류 · ${sync.message ?? "다음 계획 관측 때 다시 확인합니다."}`), width);
 	}
 	return wrapTextWithAnsi(colors.muted(`  저장 확인 · ${sync.lastConfirmedAt ?? "시각 미확인"}`), width);
-}
-
-function executionRows(
-	task: ReturnType<typeof projectNativeDelegation>[number]["tasks"][number],
-	width: number,
-): string[] {
-	const state = task.status === "running" ? "진행 중"
-		: task.status === "completed" ? "완료"
-			: task.status === "failed" ? "실패" : "대기";
-	const color = task.status === "running" ? colors.accent
-		: task.status === "completed" ? colors.success
-			: task.status === "failed" ? colors.error : colors.muted;
-	const model = task.model ?? "모델 미확인";
-	const label = `    ↳ ${model} · agent ${shortRef(task.id)} · ${state}${task.task ? ` · ${task.task}` : ""}`;
-	return wrapTextWithAnsi(color(label), width);
-}
-
-function observedTaskActivityIds(
-	taskId: string,
-	activities: readonly ProjectActivity[],
-	turnId: string | null,
-): string[] {
-	return activities.flatMap((activity) => {
-		if (!turnId || activity.nativeRefs.turnId !== turnId) return [];
-		const params = objectRecord(activity.payload.params);
-		const item = objectRecord(params?.item);
-		const receivers = Array.isArray(item?.receiverThreadIds)
-			? item.receiverThreadIds.filter((value): value is string => typeof value === "string")
-			: [];
-		return receivers.includes(taskId) || item?.agentThreadId === taskId ? [activity.id] : [];
-	});
-}
-
-function objectRecord(value: unknown): Readonly<Record<string, unknown>> | null {
-	return value && typeof value === "object" && !Array.isArray(value)
-		? value as Readonly<Record<string, unknown>>
-		: null;
-}
-
-function shortRef(value: string | null): string {
-	if (!value) return "미확인";
-	return value.length <= 12 ? value : `${value.slice(0, 8)}…`;
 }
 
 function emptyWorkFlow(): WorkFlowProjection {
@@ -202,10 +168,10 @@ function emptyWorkFlow(): WorkFlowProjection {
 }
 
 function todoMarker(status: TodoItem["status"]): string {
-	if (status === "in_progress") return colors.highlight("◉");
-	if (status === "completed") return colors.success("✓");
-	if (status === "blocked") return colors.error("◆");
-	return colors.muted("○");
+	if (status === "in_progress") return colors.accent(DASHBOARD_PANEL_SYSTEM.todo.active);
+	if (status === "completed") return colors.success(DASHBOARD_PANEL_SYSTEM.todo.completed);
+	if (status === "blocked") return colors.error(DASHBOARD_PANEL_SYSTEM.todo.blocked);
+	return colors.muted(DASHBOARD_PANEL_SYSTEM.todo.pending);
 }
 
 function todoItemRows(
@@ -227,8 +193,8 @@ function todoItemRows(
 }
 
 function todoProgressRail(completed: number, total: number, width: number): string {
-	const cells = Math.max(3, Math.min(10, width < 42 ? 5 : 10));
+	const cells = dashboardProgressCells(width);
 	const filled = total > 0 ? Math.round((completed / total) * cells) : 0;
-	const active = completed < total ? 1 : 0;
-	return `${colors.success("━".repeat(filled))}${colors.accent("━".repeat(Math.min(active, cells - filled)))}${colors.muted("─".repeat(Math.max(0, cells - filled - active)))}`;
+	const empty = Math.max(0, cells - filled);
+	return chalk.bgHex("#11d6e8")(" ".repeat(filled)) + chalk.bgHex("#173039")(" ".repeat(empty));
 }

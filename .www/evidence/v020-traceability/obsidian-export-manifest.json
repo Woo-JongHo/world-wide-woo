@@ -1,11 +1,12 @@
 {
-  "status": "PASS",
+  "status": "BLOCKED",
+  "blocker": "Historical Vault bytes are present, but the restored Traceability generation does not satisfy the current v3 ledger canonical-target and Obsidian schema contracts; do not assert traceability PASS until canonical migration/read-back is completed.",
   "artifactKind": "actual-vault-byte-readback",
   "vaultId": "5521cc40c75eb293",
   "actualVaultRoot": "/Users/jonghoPro/woo/00_project/99_www/.www/vault",
   "exportRoot": ".www/vault",
   "relativeRoot": "01_프로젝트/99_WWW/01_문서",
-  "sourceRevision": "worktree:19bad6c00b2dbb4f8c58fd632eb362aae6d31d8d:dirty",
+  "sourceRevision": "worktree:45aec4adbebcc5abc902d33f8b29cfd6cd796068:dirty",
   "files": [
     {
       "noteId": "WOO-678",

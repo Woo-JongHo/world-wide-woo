@@ -3,7 +3,7 @@ import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
 import type { ProjectActivity, ProjectActivityPhase } from "../src/core/domain/execution/project-activity";
 import type { WorkbenchSnapshot } from "../src/core/domain/work/workbench";
 import { projectNativeDelegation, projectWorkFlow, type DplanHash } from "../src/core/domain/work";
-import { projectWorkbenchDelegationSections } from "../src/adapters/inbound/tui/dashboard/delegation-tree-view";
+import { projectWorkbenchDelegationSections, renderDelegationDetail, renderDelegationSummary } from "../src/adapters/inbound/tui/dashboard/delegation-tree-view";
 import { WorkbenchChatView } from "../src/adapters/inbound/tui/chat/workbench-views";
 
 const ROOT_THREAD = "thread-root";
@@ -283,6 +283,110 @@ describe("Gajae-style delegation tree", () => {
 				expect.objectContaining({ itemId: "subagent-native", message: "Projection verified" }),
 			],
 		})]);
+	});
+
+	test("keeps lifecycle, identity, and attempts authoritative when events arrive out of order", () => {
+		const activities = [
+			collabActivity(1, "early", { type: "subAgentActivity", id: "early", kind: "started", agentThreadId: "child", agentPath: "/root/Worker" }),
+			collabActivity(2, "spawn-a", { type: "collabAgentToolCall", id: "spawn-a", tool: "spawnAgent", status: "completed", senderThreadId: ROOT_THREAD, receiverThreadIds: ["child"], prompt: "First assignment" }),
+			collabActivity(3, "message", { type: "collabAgentToolCall", id: "message", tool: "sendMessage", status: "completed", senderThreadId: ROOT_THREAD, receiverThreadIds: ["child"], prompt: "Do not retask", agentsStates: { child: { status: "running" } } }),
+			collabActivity(4, "done", { type: "subAgentActivity", id: "done", kind: "completed", agentThreadId: "child", message: "First result" }),
+			collabActivity(5, "spawn-b", { type: "collabAgentToolCall", id: "spawn-b", tool: "spawnAgent", status: "completed", senderThreadId: ROOT_THREAD, receiverThreadIds: ["child"], prompt: "Second assignment", agentsStates: { child: { status: "errored", message: "Second failed" } } }),
+		];
+		const tasks = projectNativeDelegation(activities, ROOT_THREAD)[0]!.tasks;
+		expect(tasks).toHaveLength(2);
+		expect(tasks[0]).toMatchObject({ attempt: 1, parentId: ROOT_THREAD, role: "Worker", task: "First assignment", status: "completed", result: "First result" });
+		expect(tasks[1]).toMatchObject({ attempt: 2, parentId: ROOT_THREAD, task: "Second assignment", status: "failed", result: null });
+		expect(tasks[0]!.ref).not.toBe(tasks[1]!.ref);
+	});
+
+	test("resolves nested ownership across turns and attaches only public child work", () => {
+		const childSpawn = collabActivity(1, "child-spawn", {
+			type: "collabAgentToolCall", id: "child-spawn", tool: "spawnAgent", status: "completed",
+			senderThreadId: ROOT_THREAD, receiverThreadIds: ["child"], prompt: "Own child task",
+			agentsStates: { child: { status: "running" } },
+		}, "completed", ROOT_THREAD, "root-turn");
+		const grandchildSpawn = collabActivity(3, "grandchild-spawn", {
+			type: "collabAgentToolCall", id: "grandchild-spawn", tool: "spawnAgent", status: "completed",
+			senderThreadId: "child", receiverThreadIds: ["grandchild"], prompt: "Nested task",
+			agentsStates: { grandchild: { status: "running" } },
+		}, "completed", "child", "child-turn");
+		const childTool: ProjectActivity = {
+			...childSpawn, id: "child-tool", sequence: 2, kind: "tool", phase: "completed",
+			nativeRefs: { threadId: "child", turnId: "child-turn", itemId: "tool-1" },
+			payload: { method: "item/completed", params: { item: { type: "commandExecution", tool: "shell", output: "tests passed" } } },
+		};
+		const childReasoning: ProjectActivity = {
+			...childTool, id: "child-reasoning", sequence: 4, kind: "progress", nativeRefs: { threadId: "child", turnId: "child-turn", itemId: "reasoning-1" },
+			payload: { method: "item/reasoning/completed", params: { item: { type: "reasoning", text: "private chain" } } },
+		};
+		const unrelated = collabActivity(5, "other-spawn", {
+			type: "collabAgentToolCall", id: "other-spawn", tool: "spawnAgent", status: "completed",
+			senderThreadId: "other-root", receiverThreadIds: ["other-child"], prompt: "Unrelated",
+		}, "completed", "other-root", "other-turn");
+		const projections = projectNativeDelegation([childSpawn, childTool, grandchildSpawn, childReasoning, unrelated], ROOT_THREAD);
+		const tasks = projections.flatMap((projection) => projection.tasks);
+		expect(tasks.map((task) => task.id)).toEqual(["child", "grandchild"]);
+		expect(tasks.find((task) => task.id === "grandchild")?.parentRef).toBe(tasks.find((task) => task.id === "child")?.ref);
+		expect(tasks.find((task) => task.id === "child")?.activities).toEqual(expect.arrayContaining([
+			expect.objectContaining({ activityId: "child-tool", kind: "shell", message: "tests passed" }),
+		]));
+		expect(JSON.stringify(tasks)).not.toContain("private chain");
+		expect(JSON.stringify(tasks)).not.toContain("Unrelated");
+	});
+
+	test("scopes repeated native spawn item ids by sender thread and turn", () => {
+		const projections = projectNativeDelegation([
+			collabActivity(1, "root-spawn", { type: "collabAgentToolCall", id: "spawn", tool: "spawnAgent", senderThreadId: ROOT_THREAD, receiverThreadIds: ["child"], prompt: "Child", agentsStates: { child: { status: "running" } } }, "completed", ROOT_THREAD, "root-turn"),
+			collabActivity(2, "nested-spawn", { type: "collabAgentToolCall", id: "spawn", tool: "spawnAgent", senderThreadId: "child", receiverThreadIds: ["grandchild"], prompt: "Grandchild", agentsStates: { grandchild: { status: "running" } } }, "completed", "child", "child-turn"),
+		], ROOT_THREAD);
+		const tasks = projections.flatMap((projection) => projection.tasks);
+		expect(tasks.map((task) => task.id)).toEqual(["child", "grandchild"]);
+		expect(tasks[1]!.parentRef).toBe(tasks[0]!.ref);
+	});
+
+	test("keeps delayed child-turn events on their bound attempt and rejects ambiguous new turns", () => {
+		const spawnOne = collabActivity(1, "spawn-one", {
+			type: "collabAgentToolCall", id: "spawn-one", tool: "spawnAgent", senderThreadId: ROOT_THREAD,
+			receiverThreadIds: ["child"], prompt: "Attempt one", agentsStates: { child: { status: "running" } },
+		}, "completed", ROOT_THREAD, "root-turn");
+		const childEvent = (sequence: number, id: string, turnId: string, output: string): ProjectActivity => ({
+			...spawnOne, id, sequence, kind: "tool", phase: "completed",
+			nativeRefs: { threadId: "child", turnId, itemId: id },
+			payload: { method: "item/completed", params: { item: { type: "commandExecution", tool: "shell", output } } },
+		});
+		const spawnTwo = collabActivity(3, "spawn-two", {
+			type: "collabAgentToolCall", id: "spawn-two", tool: "spawnAgent", senderThreadId: ROOT_THREAD,
+			receiverThreadIds: ["child"], prompt: "Attempt two", agentsStates: { child: { status: "running" } },
+		}, "completed", ROOT_THREAD, "root-turn");
+		const tasks = projectNativeDelegation([
+			spawnOne,
+			childEvent(2, "old-first", "child-old-turn", "old first"),
+			spawnTwo,
+			childEvent(4, "old-delayed", "child-old-turn", "old delayed"),
+			childEvent(5, "ambiguous", "child-new-unknown-turn", "must not not attach"),
+		], ROOT_THREAD).flatMap((projection) => projection.tasks);
+		expect(tasks).toHaveLength(2);
+		expect(tasks[0]!.activities.map((activity) => activity.activityId)).toEqual(expect.arrayContaining(["old-first", "old-delayed"]));
+		expect(tasks[1]!.activities.map((activity) => activity.activityId)).not.toContain("old-delayed");
+		expect(JSON.stringify(tasks)).not.toContain("must not attach");
+	});
+
+	test("renders an aggregate parentRef tree in DFS order with sanitized selectable refs", () => {
+		const base = { attempt: 1, role: null, status: "running" as const, task: null, model: null, reasoningEffort: null, activities: [], result: null };
+		const tasks = [
+			{ ...base, ref: "root\u001b[31m", id: "root", role: "root", parentId: ROOT_THREAD, parentRef: null },
+			{ ...base, ref: "sibling", id: "sibling", role: "sibling", parentId: ROOT_THREAD, parentRef: null },
+			{ ...base, ref: "child", id: "child", role: "Child\u001b[2J", parentId: "root", parentRef: "root\u001b[31m" },
+		];
+		const output = stripTerminalSequences(renderDelegationSummary(tasks, "goal", 120).join("\n"));
+		expect(output.indexOf("root · running")).toBeLessThan(output.indexOf("Child · running"));
+		expect(output.indexOf("Child · running")).toBeLessThan(output.indexOf("sibling · running"));
+		expect(output).toContain("Ref: root");
+		expect(output).toContain("│  └─");
+		const detail = stripTerminalSequences(renderDelegationDetail({ ...tasks[2]!, model: "bad\u001b[31m", activities: [{ activityId: "a", itemId: "i", kind: "tool\u001b[2J", message: "ok", senderId: null, receiverIds: [], attribution: "observed", source: { turnId: "t", itemId: "i" } }] }, 120).join("\n"));
+		expect(detail).not.toContain("\u001b");
+		expect(detail).toContain("Ref: child");
 	});
 
 	test("renders the grouped tree in Chat instead of the old one-line collaboration notice", () => {

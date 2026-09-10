@@ -11,6 +11,7 @@ import { SessionEventStore } from "../persistence/session-store";
 import { FileTodoStore, migrateLegacyTodo } from "../persistence/todo-store";
 import { FilePlanningStore } from "../persistence/planning-store";
 import { LocalTerminalCommandExecutor } from "../execution/terminal-command-executor";
+import { loadWorkbenchConfig } from "./workbench-config.js";
 
 export interface ProjectSessionBundle {
 	workspace: ProjectWorkspace;
@@ -28,6 +29,7 @@ export async function createProjectSession(
 	requestedSessionId?: string,
 ): Promise<ProjectSessionBundle> {
 	const workspace = await FileProjectWorkspace.open(cwd);
+	const config = await loadWorkbenchConfig(workspace.root);
 	const sessions = new SessionEventStore(workspace.sessionsDirectory);
 	const sessionId = requestedSessionId ?? crypto.randomUUID();
 	const lease = await FileProjectWorkspace.acquireSessionLease(workspace, sessionId);
@@ -56,6 +58,8 @@ export async function createProjectSession(
 			todos,
 			planningSnapshot,
 			new LocalTerminalCommandExecutor(),
+			config.retry,
+			config.orchestration.maxAgentRounds,
 		);
 		await runtime.initialize({ resume: requestedSessionId !== undefined });
 		const monitor = new SessionMonitor(runtime, todos);

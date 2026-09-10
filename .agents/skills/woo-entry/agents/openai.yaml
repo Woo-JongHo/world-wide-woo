@@ -1,0 +1,4 @@
+interface:
+  display_name: "WWW Entry"
+  short_description: "99_www 작업 시작·재개 시 위치와 Linear 연결을 확인합니다"
+  default_prompt: "$woo-entry로 현재 저장소와 Linear 프로젝트 연결을 확인하고 요청한 작업을 시작해줘."

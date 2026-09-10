@@ -32,6 +32,7 @@ export class LoginProviderOverlay implements Component {
 			anthropic: "Claude Pro/Max OAuth 또는 Anthropic API 키",
 			openai: "OpenAI API 키",
 			google: "Gemini API 키",
+			zai: "Z.AI Coding API 키",
 		};
 		this.list = new SelectList(
 			PROVIDERS.map((provider) => ({ value: provider, label: provider, description: descriptions[provider] })),

@@ -4,6 +4,7 @@ import { createProjectWorkbenchSession } from "./adapters/outbound/workspace/pro
 import { FileDevelopmentMapSource } from "./adapters/outbound/development/development-map-source.js";
 import { ObservabilityHistorySource } from "./adapters/outbound/observability/observability-history-source.js";
 import { GitTelemetrySource } from "./adapters/outbound/git/git-telemetry-source.js";
+import { saveWorkbenchExecutionSelection } from "./adapters/outbound/workspace/workbench-config.js";
 import { homedir } from "node:os"; import { join } from "node:path";
 export { listNativeThreads } from "./adapters/outbound/workspace/native-thread-discovery.js";
 export interface RunAppOptions { resumeThreadId?: string; executionLane?: ExecutionLane }
@@ -12,21 +13,19 @@ export async function runApp(options: RunAppOptions = {}): Promise<void> {
 	const { runProjectWorkbenchShell } = await import("./adapters/inbound/tui/shell/workbench-shell");
 	const settingsStore = new FileSettingsStore();
 	const settings = await settingsStore.load();
-	let persistedSettings = settings;
 	const executionLane = options.executionLane ?? "codex";
 	const project = await createProjectWorkbenchSession(process.cwd(), {
 		resumeThreadId: options.resumeThreadId,
 		executionLane,
-		provider: executionLane === "pi" ? settings.provider : "openai-codex",
-		model: executionLane === "pi" ? settings.model : codexInteractiveModel(settings),
-		effort: settings.effort,
+		// Project YAML owns the native Codex policy.  The legacy settings store is
+		// still used by the compatibility/Pi lane and for explicit model changes,
+		// but must not silently override `.www/workbench.yaml` on startup.
+		...(executionLane === "pi" ? { provider: settings.provider, model: settings.model, effort: settings.effort } : {}),
 		systemPrompt: executionLane === "pi" ? buildPiExecutionSystemPrompt(process.cwd()) : undefined,
 		persistModelSelection: async (selection) => {
 			if (executionLane === "pi") throw new Error("Pi Phase A 모델 변경은 새 Workbench에서만 적용할 수 있습니다.");
 			const next: WwwSettings = { provider: "openai-codex", ...selection };
-			const saved = await settingsStore.compareAndSwap(persistedSettings, next);
-			if (!saved) throw new Error("다른 WWW 프로세스가 모델 설정을 먼저 변경했습니다. 다시 선택하세요.");
-			persistedSettings = next;
+			await saveWorkbenchExecutionSelection(process.cwd(), next);
 		},
 	});
 	try {

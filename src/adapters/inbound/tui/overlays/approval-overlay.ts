@@ -4,12 +4,15 @@ import { workbenchApprovalDecisions, workbenchExternalMutationCandidates, type W
 import { colors } from "../shell/theme";
 import { approvalDetailLabel, approvalFallback, approvalKindLabel, approvalParamText } from "../chat/workbench-views";
 
-const DECISION_LABEL: Record<WorkbenchApprovalDecision, string> = {
-	accept: "승인",
-	acceptForSession: "이번 세션 동안 승인",
-	decline: "거절",
-	cancel: "중단",
-};
+function decisionLabel(decision: WorkbenchApprovalDecision): string {
+	if (decision === "accept") return "승인";
+	if (decision === "acceptForSession") return "이번 세션 동안 승인";
+	if (decision === "decline") return "거절";
+	if (decision === "cancel") return "중단";
+	if ("acceptWithExecpolicyAmendment" in decision) return "향후 같은 명령도 허용";
+	if ("applyNetworkPolicyAmendment" in decision) return "네트워크 정책을 저장하고 허용";
+	return "서버가 제안한 정책 변경";
+}
 
 function fit(text: string, width: number): string {
 	const clipped = truncateToWidth(text, Math.max(0, width), "");
@@ -67,7 +70,7 @@ export class ApprovalOverlay implements Component {
 		const options = this.decisions.length > 0
 			? this.decisions.map((decision, index) => {
 				const marker = index === this.selected ? colors.accent("▸") : " ";
-				const label = `${index + 1}. ${DECISION_LABEL[decision]}`;
+				const label = `${index + 1}. ${decisionLabel(decision)}`;
 				return `${marker} ${index === this.selected ? colors.text(label) : colors.muted(label)}`;
 			})
 			: [colors.muted("이 요청은 결정 선택지를 제공하지 않습니다. /cancel 로 중단하세요.")];
@@ -115,5 +118,5 @@ export class ApprovalOverlay implements Component {
 }
 
 function mutationKindLabel(kind: WorkbenchExternalMutationKind): string {
-	return ({ commit: "커밋", push: "Push", issue: "GitHub Issue", "linear-issue": "Linear Issue", "obsidian-canonical": "Obsidian 정본", "github-pr": "GitHub PR" })[kind];
+	return ({ commit: "커밋", push: "Push", issue: "GitHub Issue", "linear-issue": "Linear Issue", "linear-project-comment": "Linear Project Comment", "linear-project-update": "Linear Project Update", "obsidian-canonical": "Obsidian 정본", "github-pr": "GitHub PR" })[kind];
 }

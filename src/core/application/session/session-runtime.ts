@@ -6,6 +6,7 @@ import {
 	type ToolResultMessage,
 } from "@earendil-works/pi-ai";
 import type { WwwSettings } from "../../domain/execution/model-settings";
+import type { WorkbenchConfig } from "../../domain/execution/workbench-config.js";
 import { isPublicNarrationText, workNarrationLabel, workNarrationReason, type WorkNarration } from "../../domain/work/narration";
 import type { PlanningSnapshot } from "../../domain/work/planning";
 import type { SessionEvent } from "../../domain/execution/session-events";
@@ -14,7 +15,7 @@ import { sanitizeTerminalText } from "../../domain/execution/terminal";
 import type { AgentTool, ModelAuthStatus, ModelClient, SessionRepository, TerminalCommandExecutor, TodoController } from "../../ports/index.js";
 
 export type SessionPhase = "starting" | "ready" | "streaming" | "error";
-const MAX_AGENT_ROUNDS = 24;
+const DEFAULT_MAX_AGENT_ROUNDS = 24;
 
 export interface WorkspaceContext {
 	cwd: string;
@@ -264,6 +265,8 @@ export class SessionRuntime {
 		private readonly todos?: TodoController,
 		private planning: PlanningSnapshot | null = null,
 		private readonly terminal?: TerminalCommandExecutor,
+		private readonly retryPolicy: WorkbenchConfig["retry"] = { enabled: true, maxRetries: 2, baseDelayMs: 500 },
+		private readonly maxAgentRounds: number = DEFAULT_MAX_AGENT_ROUNDS,
 	) {
 		this.selection = { ...settings };
 		this.context = {
@@ -597,7 +600,7 @@ export class SessionRuntime {
 
 		this.abortController = new AbortController();
 		try {
-			for (let round = 0; round < MAX_AGENT_ROUNDS; round++) {
+			for (let round = 0; round < this.maxAgentRounds; round++) {
 				assistantItemId = crypto.randomUUID();
 				this.draft = "";
 				const result = await this.streamAssistant(turnSettings, turnId, assistantItemId);
@@ -644,7 +647,7 @@ export class SessionRuntime {
 					return;
 				}
 				activeToolRound = { assistant: result, callIds: new Set(toolCalls.map(call => call.id)) };
-				if (round === MAX_AGENT_ROUNDS - 1) throw new Error("도구 실행 반복 한도에 도달했습니다.");
+				if (round === this.maxAgentRounds - 1) throw new Error("도구 실행 반복 한도에 도달했습니다.");
 				for (const [index, toolCall] of toolCalls.entries()) {
 					const toolResult = await this.executeToolCall(toolCall, turnId);
 					this.context.messages.push(toolResult);
@@ -721,7 +724,7 @@ export class SessionRuntime {
 				}
 				return stream.result();
 			},
-			{ enabled: true, maxRetries: 2, baseDelayMs: 500 },
+			this.retryPolicy,
 			this.abortController?.signal,
 			{
 				onRetryScheduled: (attempt, maximum) => {

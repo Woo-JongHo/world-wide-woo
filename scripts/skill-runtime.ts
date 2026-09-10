@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+import { createLocalWorkflow } from "../src/adapters/outbound/development/local-workflow.js";
 import { resolve } from "node:path";
 import { FileSkillRegistry } from "../src/adapters/outbound/workspace/file-skill-registry.js";
 import { FileSkillRunStore } from "../src/adapters/outbound/persistence/skill-run-store.js";
@@ -11,7 +12,10 @@ const required = (name: string) => { const value = flag(name); if (!value) throw
 const root = resolve(flag("--root") ?? "."), registry = new FileSkillRegistry(root), store = new FileSkillRunStore(resolve(root, ".www"));
 
 async function main(): Promise<unknown> {
-	if (command === "registry") return registry.load();
+	if (command === "check-local") return createLocalWorkflow(root).run(required("--process"));
+ if (command === "resume-local") return createLocalWorkflow(root).resume(required("--run"));
+ if (command === "show-local") return createLocalWorkflow(root).inspect(required("--run"));
+ if (command === "registry") return registry.load();
 	if (command === "classify") return { intent: classifyRpaIntent(required("--text")) };
 	if (command === "plan" || command === "start") {
 		const intent = required("--intent") as RpaIntent;
@@ -29,10 +33,14 @@ async function main(): Promise<unknown> {
 	else if (command === "authorize") next = authorizeSkillStep(current, required("--digest"), required("--actor"));
 	else if (command === "finish") {
 		const result = finishSkillStep(current, required("--status") as WooReceiptStatus, [required("--evidence")]);
-		await store.write(result.state, current.revision); const receipt = await store.writeReceipt(result.receipt); return { state: result.state, receipt, receiptDigest: result.receipt.receiptDigest };
-	} else throw new Error("usage: skill-runtime registry|classify|plan|start|begin|request-auth|authorize|finish|monitor|receipts|receipt");
+		const receipt = await store.commitStep(result.state, result.receipt, current.revision); return { state: result.state, receipt, receiptDigest: result.receipt.receiptDigest };
+	} else throw new Error("usage: skill-runtime registry|classify|plan|start|begin|request-auth|authorize|finish|monitor|receipts|receipt|check-local|resume-local|show-local");
 	await store.write(next, current.revision); return next;
 }
 
-try { console.log(JSON.stringify(await main(), null, 2)); }
+try {
+ const result = await main();
+ console.log(JSON.stringify(result, null, 2));
+ if ((command === "check-local" || command === "resume-local") && (result as {state?: {stage?: string}})?.state?.stage !== "completed") process.exitCode = 2;
+}
 catch (error) { console.error(error instanceof Error ? error.message : String(error)); process.exit(2); }

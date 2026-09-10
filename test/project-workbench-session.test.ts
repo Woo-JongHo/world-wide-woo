@@ -415,7 +415,8 @@ describe("createProjectWorkbenchSession", () => {
 			expect(store.writes).toBe(1);
 			expect(syncCalls.get(store)).toBe(1);
 			const reopened = await open(store);
-			expect(reopened.workbench.snapshot.todo).toEqual(store.document);
+			expect(reopened.workbench.snapshot.todo?.items.map(item => [item.content, item.status])).toEqual(store.document?.items.map(item => [item.content, item.status]));
+			expect(reopened.workbench.snapshot.todo?.items.map(item => item.id)).toEqual(reopened.workbench.snapshot.workFlow.steps.map(step => step.id));
 			expect(store.writes).toBe(1);
 			expect(syncCalls.get(store)).toBe(2);
 			await reopened.close();
@@ -426,7 +427,8 @@ describe("createProjectWorkbenchSession", () => {
 			title: "보존할 기존 Todo", items: [{ id: "todo-1", content: "사용자 작업", status: "pending", evidenceIds: [], details: [] }],
 		});
 		const session = await open(existing);
-		expect(session.workbench.snapshot.todo).toEqual(existing.document);
+		expect(existing.document?.items[0]?.content).toBe("사용자 작업");
+		expect(session.workbench.snapshot.todo?.items[0]?.content).toBe("resumed root plan");
 		expect(existing.writes).toBe(0);
 		expect(syncCalls.get(existing) ?? 0).toBe(0);
 		await session.close();
@@ -636,7 +638,7 @@ describe("createProjectWorkbenchSession", () => {
 
 	test("wires one native writer to thread-scoped Todo, private activity/drafts, and deterministic project identity", async () => {
 		const order: string[] = [];
-		const observed: { todoPath?: string; journalPath?: string; draftPath?: string; tnoteModel?: string; options?: ProjectWorkbenchOptions; noteInput?: Parameters<NonNullable<ProjectWorkbenchOptions["tnotes"]>["create"]>[0] } = {};
+		const observed: { workflowRoot?: string; workflowCreated?: number; todoPath?: string; journalPath?: string; draftPath?: string; tnoteModel?: string; options?: ProjectWorkbenchOptions; noteInput?: Parameters<NonNullable<ProjectWorkbenchOptions["tnotes"]>["create"]>[0] } = {};
 		let ledger: TodoLedger | undefined;
 		const factories: Partial<ProjectWorkbenchSessionFactories> = {
 			openWorkspace: async () => workspace,
@@ -659,6 +661,11 @@ describe("createProjectWorkbenchSession", () => {
 				observed.tnoteModel = model;
 				return { readAll: async () => [], create: async (input) => { observed.noteInput = input; throw new Error("captured note input"); } };
 			},
+			createLocalWorkflow: root => {
+				observed.workflowRoot = root;
+				observed.workflowCreated = (observed.workflowCreated ?? 0) + 1;
+				return { run: async () => ({ summary: "local" }), resume: async () => ({ summary: "local" }), inspect: async () => ({ summary: "local" }) };
+			},
 			createWorkbench: (native, journal, options) => {
 				observed.options = options;
 				return new ProjectWorkbench(native, journal, options);
@@ -676,6 +683,10 @@ describe("createProjectWorkbenchSession", () => {
 		}, factories);
 		await session.workbench.dispatch({ type: "session.mode", mode: "manual" });
 
+		expect(observed.workflowCreated).toBeUndefined();
+		expect(await session.workbench.dispatch({ type: "workflow.show", runId: "run-1" })).toMatchObject({ state: "accepted" });
+		expect(observed.workflowRoot).toBe(workspace.root);
+		expect(observed.workflowCreated).toBe(1);
 		expect(session.projectId).toBe(scopedProjectId(workspace.root));
 		expect(observed.todoPath).toBe(join(workspace.todosDirectory, scopedTodoSessionId("opaque-native-id"), "Todo.md"));
 		expect(observed.journalPath).toBe(join(workspace.runtimeDirectory, "activity"));
@@ -704,7 +715,7 @@ describe("createProjectWorkbenchSession", () => {
 		}));
 		expect(observed.options?.promotions).toBeDefined();
 		expect(observed.options?.reviews).toBeDefined();
-		expect(observed.options?.narrator).toBeDefined();
+		expect(observed.options?.narrator).toBeUndefined();
 		expect(observed.options?.wooEntry).toBeUndefined();
 		expect(observed.options?.persistModelSelection).toBe(persistModelSelection);
 		// @linear WOO-718

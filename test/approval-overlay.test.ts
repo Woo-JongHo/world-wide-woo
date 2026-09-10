@@ -93,6 +93,14 @@ describe("ApprovalOverlay", () => {
 		expect(lines).not.toContain("2.");
 	});
 
+	test("keeps an advertised policy-amendment choice as a numbered option", () => {
+		const amendment = { acceptWithExecpolicyAmendment: { execpolicyAmendment: { command: ["bun", "test"] } } };
+		const view = overlay({ availableDecisions: ["accept", amendment, "decline"] });
+		expect(view.lines().join("\n")).toContain("2. 향후 같은 명령도 허용");
+		view.panel.handleInput("2");
+		expect(view.decisions).toEqual([amendment]);
+	});
+
 	test("never invents a decision when the request advertises none", () => {
 		const view = overlay({ kind: "permissions", availableDecisions: [], params: {} });
 		expect(view.lines().join("\n")).toContain("결정 선택지를 제공하지 않습니다");
@@ -115,13 +123,15 @@ describe("ApprovalOverlay", () => {
 		}
 	});
 
-	test("renders Linear, Obsidian, and GitHub PR Artifact candidates", () => {
+	test("renders Linear Issue·Project Activity, Obsidian, and GitHub PR Artifact candidates", () => {
 		const lines = overlay({ params: { externalMutationCandidates: [
 			{ kind: "linear-issue", target: "WOO-901", content: "본문", currentState: "snapshot", scope: "one issue", status: "pending", payload: { candidateDigest: "a".repeat(64) } },
+			{ kind: "linear-project-comment", target: "World Wide Woo", content: "Comment 본문", currentState: "comment-1", scope: "one project comment", status: "pending", payload: { candidateDigest: "d".repeat(64) } },
+			{ kind: "linear-project-update", target: "World Wide Woo", content: "Update 본문", currentState: "update-1", scope: "one project update", status: "pending", payload: { candidateDigest: "e".repeat(64) } },
 			{ kind: "obsidian-canonical", target: "RPA/설계.md", content: "canonical bytes", currentState: "digest", scope: "one note", status: "pending", payload: { candidateDigest: "b".repeat(64) } },
 			{ kind: "github-pr", target: "owner/repo#1", content: "PR body", currentState: "head sha", scope: "one PR", status: "pending", payload: { candidateDigest: "c".repeat(64) } },
 		] } }).lines().join("\n");
-		for (const label of ["Linear Issue · pending", "Obsidian 정본 · pending", "GitHub PR · pending"]) expect(lines).toContain(label);
+		for (const label of ["Linear Issue · pending", "Linear Project Comment · pending", "Linear Project Update · pending", "Obsidian 정본 · pending", "GitHub PR · pending"]) expect(lines).toContain(label);
 	});
 
 	test("drops Artifact mutations that are not bound to an exact sha256 Candidate", () => {

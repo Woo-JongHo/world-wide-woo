@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "1.0",
+  "candidateId": "ARTIFACT-CANDIDATE-WOO-909-NEXT",
+  "kind": "linear-issue",
+  "sourceRevision": "git:45aec4adbebcc5abc902d33f8b29cfd6cd796068:dirty",
+  "intent": "Chat slash 제어를 Linear Next에 반영한다",
+  "target": {
+    "issueId": "WOO-909",
+    "issueUuid": "6e44496c-9282-4fc7-96dc-bc5bca77b340",
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "parentId": "WOO-679",
+    "milestoneId": "193948f7-2a11-4110-a143-360d83f2a076",
+    "desiredState": "Todo"
+  },
+  "content": {
+    "title": "Chat slash UI에서 MCP·Clear·Context 압축을 조작한다",
+    "purpose": "MCP 관리 상태는 Monitor에만 흩어져 있고, 대화 Clear와 수동 Context 압축은 Chat slash UI에서 발견하거나 실행할 수 없다.",
+    "included": [
+      "slash autocomplete에 MCP 상태·새로고침과 제공 가능한 enable·disable·reload 동작을 표시한다",
+      "Clear는 native thread 기록을 삭제하지 않는 화면 projection clear와 명시적 새 thread 시작을 구분한다",
+      "Codex App Server의 thread/compact/start를 현재 thread에 요청하고 contextCompaction lifecycle을 Chat에 표시한다",
+      "명령마다 thread identity, 실행 중 상태, 지원하지 않는 App Server 응답과 recovery를 표시한다"
+    ],
+    "excluded": [
+      "MCP server endpoint·credential을 Chat에서 평문으로 추가하거나 저장하는 기능",
+      "Clear가 승인·Evidence·native history를 숨기거나 삭제하는 기능",
+      "Context compaction 결과를 사람이 쓴 완료 요약이나 Todo.md로 대체하는 기능"
+    ],
+    "done": [
+      "MCP 없는 세션·disabled server·reload 실패·지원하지 않는 관리 port가 각각 구분된다",
+      "Clear의 대상과 되돌릴 수 없는 범위가 실행 전 드러나며 다른 thread를 지우지 않는다",
+      "수동 compact 요청은 thread/compact/start readback과 contextCompaction started/completed lifecycle로 검증된다",
+      "40·80·120열에서 slash suggestion과 결과가 한 줄·패널 경계를 넘지 않는다"
+    ],
+    "connections": [
+      "Parent: WOO-679",
+      "Related: WOO-718, WOO-845",
+      "External contract: Codex App Server thread/compact/start",
+      "Obsidian: 상세 정본은 Linear issue 생성 뒤 schema v2 Candidate로 작성"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-909/chat-slash-ui에서-mcpclearcontext-압축을-조작한다"
+  },
+  "expectedBefore": {
+    "status": "Backlog"
+  },
+  "validation": [
+    {
+      "id": "LINEAR-READBACK",
+      "status": "pass",
+      "evidence": "2026-09-10 Linear 조회에서 WOO-909의 UUID·Project·parentId·Milestone·현재 Backlog를 확인"
+    }
+  ],
+  "candidateDigest": "d7a1c606d6729346e4f6404135b1c7b004b6f3eb7667b21f5d05090d3a1a915e"
+}

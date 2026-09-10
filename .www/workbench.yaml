@@ -1,0 +1,39 @@
+schemaVersion: 1
+orchestration:
+  maxAgentRounds: 24
+execution:
+  provider: openai-codex
+  model: gpt-5.6-sol
+  effort: medium
+  approvalPolicy: on-request
+  sandbox: workspace-write
+tnote:
+  model: gpt-5.6-luna
+narrator:
+  model: gpt-5.6-luna
+limits:
+  contextCharacters: 4000
+retry:
+  enabled: true
+  maxRetries: 2
+  baseDelayMs: 500
+delegation:
+  detailActivities: 8
+evaluation:
+  requireVerification: true
+review:
+  provider: anthropic
+  model: claude-opus
+display:
+  tnoteVisibleLimit: 20
+linear:
+  server: linear-woo
+  projectId: 5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db
+  projectName: World Wide Woo
+hud:
+  showUsage: true
+  showContext: true
+slash:
+  mcp: true
+  clear: true
+  compact: true

@@ -15,4 +15,10 @@ RPA Project·Task Description Candidate는 [RPA Description 계약 v1](../../../
 4. 대상과 양쪽 부모를 재조회해 UUID·Project·parentId·제목·본문·상태·Milestone을 대조한다. 완료: 초안과 read-back이 같고 계층 계약이 통과한다.
 5. 공통 Woo Receipt에 실제 ID·URL·검증 근거를 남긴다. read-back이 없거나 다르면 `uncertain`이다.
 
+## Project Activity 반영
+
+- `linear-project-comment`는 `target.projectId`의 top-level Comment다. 게시 직전 `list_comments(projectId)`에서 마지막 Comment ID를 읽어 `expectedBefore.latestCommentId`와 대조하고, 승인한 렌더 본문만 `save_comment(projectId, body)`로 한 번 게시한다. 이어서 같은 목록에서 새 Comment의 ID·작성자·본문을 재조회한다.
+- `linear-project-update`는 Project Status Update다. 게시 직전 `get_status_updates(project)`의 최신 Update ID를 `expectedBefore.latestUpdateId`와 대조한다. `content.health`와 승인한 렌더 본문만 `save_status_update(project, type: project, health, body)`로 게시하고, 새 Update의 ID·health·본문과 `content.sourceCommentIds`를 다시 대조한다.
+- 두 경우 모두 직전 identity가 달라지거나 같은 Candidate digest의 결과가 이미 있으면 Apply하지 않고 새 Candidate로 돌아간다.
+
 이 스킬의 승인은 Linear Candidate 하나에만 적용된다. Obsidian, GitHub, commit 변경은 각각 별도 승인 경계를 사용한다.

@@ -10,6 +10,7 @@ export interface CliDependencies {
 	runRouter: (options?: RunLegacyRouterOptions) => Promise<void>;
 	runAuth: (args: string[]) => Promise<void>;
 	runDevelopment?: (args: string[]) => Promise<string>;
+	runWorkflow?: (args: string[]) => Promise<string>;
 	listSessions: () => Promise<Array<{ id: string; updatedAt: string }>>;
 	listNativeThreads: () => Promise<readonly NativeThreadSummary[]>;
 	selectNativeThread: (threads: readonly NativeThreadSummary[]) => Promise<string | null>;
@@ -32,7 +33,11 @@ const productionDependencies: CliDependencies = {
 		const { runAuth } = await import("./app");
 		await runAuth(args);
 	},
-	runDevelopment: async args => {
+	runWorkflow: async args => {
+  const { runLocalWorkflowCli } = await import("./adapters/outbound/development/local-workflow-cli");
+  return runLocalWorkflowCli(args, process.cwd());
+ },
+ runDevelopment: async args => {
 		const { runDevelopmentCli } = await import("./adapters/outbound/development/development-cli");
 		return runDevelopmentCli(args);
 	},
@@ -74,7 +79,7 @@ function helpText(): string {
 		"사용법:",
 		"  www                         새 Codex native 3-pane Workbench 실행",
 		"  www --execution-lane pi     실험적 내장 Pi text lane으로 Workbench 실행",
-		"  www router                  호환 Claude·Gemini·OpenAI Router 실행",
+		"  www router                  호환 Claude·Gemini·OpenAI·Z.AI Router 실행",
 		"                              Native 승인·Sandbox·Skill은 제공하지 않음",
 		"  www router --resume <session-id>",
 		"                              기존 Router 세션 재개",
@@ -82,6 +87,8 @@ function helpText(): string {
 		"  www auth login <공급자> [oauth|api-key]",
 		"                              구독 계정 또는 API 키 로그인",
 		"  www auth logout <공급자>    저장된 인증 삭제",
+		"  www workflow check <RPA-ID> 로컬 참조 사전 검사 (원격 미검증)",
+		"  www workflow show|resume <Run-ID> 결과 조회·중단 검사 재개",
 		"  www development help        Issue·Unit·SQLite·Obsidian 개발 기록 명령",
 		"  www sessions                 레거시 SessionRuntime 세션 목록",
 		"  www threads                  현재 프로젝트의 Codex native thread 목록",
@@ -102,7 +109,7 @@ function helpText(): string {
 		"호환 Router 명령:",
 		"  /login [provider]           OAuth 또는 API 키 연결",
 		"  /model [provider/model] [low|medium|high|ultra]",
-		"                              Claude·Gemini·OpenAI 모델 변경",
+		"                              Claude·Gemini·OpenAI·Z.AI 모델 변경",
 		"  /logout <provider>          저장된 인증 삭제",
 		"  /usage                      Codex·Claude 사용량 갱신",
 	].join("\n");
@@ -127,7 +134,11 @@ export async function runCli(args: string[], dependencies: CliDependencies = pro
 			dependencies.writeOut(await dependencies.runDevelopment(args.slice(1)));
 		}
 		else if (args[0] === "auth") await dependencies.runAuth(args.slice(1));
-		else if (args[0] === "router") {
+		else if (args[0] === "workflow") {
+   if (!dependencies.runWorkflow) throw new Error("로컬 Workflow가 연결되지 않았습니다.");
+   dependencies.writeOut(await dependencies.runWorkflow(args.slice(1)));
+  }
+  else if (args[0] === "router") {
 			if (args.length === 1) await dependencies.runRouter({});
 			else if (args.length === 3 && args[1] === "--resume" && isLegacySessionId(args[2])) {
 				await dependencies.runRouter({ resumeSessionId: args[2] });

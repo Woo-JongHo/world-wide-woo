@@ -6,7 +6,7 @@ import { homedir, tmpdir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import type { RegistryEnvelope, TraceabilityLedger, TraceabilityRef } from "../src/core/domain/development/development-traceability.js";
 import type { ProjectActivity } from "../src/core/domain/execution/project-activity.js";
-import { createExecutionRun, normalizeProjectActivity, replayExecutionRun, type CompletionReceipt } from "../src/core/runtime/execution-run.js";
+import { createExecutionRun, normalizeProjectActivity, replayExecutionRun, replayLegacyExecutionRunForVerification, replayV2ExecutionRunForVerification, type CompletionReceipt } from "../src/core/runtime/execution-run.js";
 import { parseWorkTraceabilityManifest } from "../src/core/domain/work/traceability.js";
 import { buildDevelopmentMap } from "../src/adapters/outbound/development/development-map-builder.js";
 import { DevelopmentStore } from "../src/adapters/outbound/development/development-store.js";
@@ -64,6 +64,9 @@ const completionReceiptFromJournal = (activity: ProjectActivity): CompletionRece
 		|| !["completed", "cancelled", "interrupted", "failed"].includes(receipt.status ?? "")
 		|| !Array.isArray(receipt.evidenceRefs)
 		|| !receipt.evidenceRefs.every(item => item && typeof item.activityId === "string" && Number.isSafeInteger(item.sequence) && /^sha256:[a-f0-9]{64}$/iu.test(item.sourceDigest))) throw new Error("JOURNAL_COMPLETION_RECEIPT_INVALID");
+	if (receipt.algorithmVersion !== undefined && receipt.algorithmVersion !== 2 && receipt.algorithmVersion !== 3
+		|| receipt.algorithmVersion === undefined && receipt.commandResults !== undefined
+		|| receipt.commandResults !== undefined && !Array.isArray(receipt.commandResults)) throw new Error("JOURNAL_COMPLETION_RECEIPT_VERSION_INVALID");
 	return receipt as CompletionReceipt;
 };
 const verifiedCompletionReceipt = (receipt: CompletionReceipt): CompletionReceipt => {
@@ -71,7 +74,8 @@ const verifiedCompletionReceipt = (receipt: CompletionReceipt): CompletionReceip
 	const receiptId = sha256(JSON.stringify(["completion-receipt-v1", receipt.runId, terminalSource]));
 	const bare = {
 		receiptId, runId: receipt.runId, threadId: receipt.threadId, turnId: receipt.turnId, status: receipt.status,
-		objective: receipt.objective, changed: receipt.changed, verification: receipt.verification, evidenceRefs: receipt.evidenceRefs,
+		objective: receipt.objective, changed: receipt.changed, verification: receipt.verification,
+		...(receipt.algorithmVersion === 2 || receipt.algorithmVersion === 3 ? { algorithmVersion: receipt.algorithmVersion, ...(receipt.commandResults === undefined ? {} : { commandResults: receipt.commandResults }) } : {}), evidenceRefs: receipt.evidenceRefs,
 		remaining: receipt.remaining, completedAt: receipt.completedAt, terminalSource, checkpointDigest: receipt.checkpointDigest,
 	};
 	if (receipt.receiptId !== receiptId || receipt.receiptDigest !== sha256(JSON.stringify(bare))) throw new Error("JOURNAL_COMPLETION_RECEIPT_DIGEST_MISMATCH");
@@ -97,12 +101,20 @@ export const selectedCompletionReceipt = (text: string, receiptId: string | unde
 	const receipt = verifiedCompletionReceipt(selected.receipt);
 	const { threadId, turnId } = selected.activity.nativeRefs;
 	if (!threadId || !turnId || receipt.threadId !== threadId || receipt.turnId !== turnId || receipt.runId !== `${threadId}:${turnId}`) throw new Error("JOURNAL_RECEIPT_PROJECT_THREAD_TURN_MISMATCH");
-	const events = ordered
+	const terminal = ordered.find(activity => activity.id === receipt.terminalSource.id);
+	if (!terminal || terminal.sequence !== receipt.terminalSource.sequence || terminal.sourceDigest !== receipt.terminalSource.sourceDigest) throw new Error("JOURNAL_COMPLETION_RECEIPT_REPLAY_MISMATCH");
+	const prefix = ordered.filter(activity => activity.sequence <= terminal.sequence);
+	const events = prefix
 		.filter(activity => activity.nativeRefs.threadId === threadId && activity.nativeRefs.turnId === turnId)
 		.filter(activity => completionReceiptFromJournal(activity) === null)
 		.map(normalizeProjectActivity);
 	const hash = { sha256Hex: (input: Uint8Array) => sha256(Buffer.from(input)) };
-	const replayed = replayExecutionRun(createExecutionRun({ runId: receipt.runId, threadId, turnId, hash }), events, hash);
+	const initial = createExecutionRun({ runId: receipt.runId, threadId, turnId, hash });
+	const replayed = receipt.algorithmVersion === 3
+		? replayExecutionRun(initial, events, hash, { journalActivities: prefix })
+		: receipt.algorithmVersion === 2
+			? replayV2ExecutionRunForVerification(initial, events, hash)
+			: replayLegacyExecutionRunForVerification(initial, events, hash);
 	const reconstructed = replayed.receipt;
 	if (!reconstructed || replayed.rejectedEventIds.length
 		|| reconstructed.receiptId !== receipt.receiptId
@@ -297,11 +309,13 @@ export async function runTraceability(argv = process.argv.slice(2)): Promise<str
 			throw new Error("VAULT_EXPORT_NOTE_IDENTITY_MISMATCH");
 		}
 		seenVaultNotes.add(file.noteId);
+		if (!existsSync(file.actualPath)) throw new Error(`VAULT_EXPORT_ACTUAL_FILE_MISSING:${file.noteId}:${file.actualPath}`);
 		const actualPath = realpathSync(file.actualPath);
 		if (actualPath !== actualVaultRoot && !actualPath.startsWith(`${actualVaultRoot}/`)) {
 			throw new Error("VAULT_ACTUAL_PATH_ESCAPES_ROOT");
 		}
 		const exportPath = containedPath(projectRoot, file.exportPath, "vault-export");
+		if (!existsSync(exportPath)) throw new Error(`VAULT_EXPORT_EXPORTED_FILE_MISSING:${file.noteId}:${file.exportPath}`);
 		const actualDigest = sha256(readFileSync(actualPath));
 		const exportDigest = sha256(readFileSync(exportPath));
 		if (actualDigest !== file.actualSha256 || exportDigest !== file.exportSha256 || actualDigest !== exportDigest) {

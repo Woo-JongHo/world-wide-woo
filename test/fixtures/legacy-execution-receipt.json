@@ -1,0 +1,218 @@
+{
+  "activities": [
+    {
+      "schemaVersion": 1,
+      "id": "start",
+      "projectId": "legacy",
+      "sequence": 1,
+      "recordedAt": "2026-09-08T00:00:01Z",
+      "kind": "progress",
+      "phase": "started",
+      "provider": "codex",
+      "nativeRefs": {
+        "threadId": "thread",
+        "turnId": "turn"
+      },
+      "sourceDigest": "sha256:cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "payload": {
+        "method": "turn/started"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "plan",
+      "projectId": "legacy",
+      "sequence": 2,
+      "recordedAt": "2026-09-08T00:00:01Z",
+      "kind": "progress",
+      "phase": "updated",
+      "provider": "codex",
+      "nativeRefs": {
+        "threadId": "thread",
+        "turnId": "turn"
+      },
+      "sourceDigest": "sha256:64879f7d6b960a01909762d911a32d4582c20010c5641ee90278b644a9e3b525",
+      "payload": {
+        "method": "turn/plan/updated",
+        "params": {
+          "plan": [
+            {
+              "step": "검증",
+              "status": "inProgress"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "command",
+      "projectId": "legacy",
+      "sequence": 3,
+      "recordedAt": "2026-09-08T00:00:02Z",
+      "kind": "tool",
+      "phase": "completed",
+      "provider": "codex",
+      "nativeRefs": {
+        "threadId": "thread",
+        "turnId": "turn",
+        "itemId": "cmd"
+      },
+      "sourceDigest": "sha256:5d347fd948b66308f502c3f65c8f7e12ff1c5cf8c760bcdfb188ae1ec7b8b618",
+      "payload": {
+        "method": "item/completed",
+        "params": {
+          "item": {
+            "type": "commandExecution",
+            "command": "bun test",
+            "exitCode": 1,
+            "aggregatedOutput": "1 fail"
+          }
+        }
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "terminal",
+      "projectId": "legacy",
+      "sequence": 4,
+      "recordedAt": "2026-09-08T00:00:03Z",
+      "kind": "progress",
+      "phase": "completed",
+      "provider": "codex",
+      "nativeRefs": {
+        "threadId": "thread",
+        "turnId": "turn"
+      },
+      "sourceDigest": "sha256:4e686af7bdcc5ae005a247624fd8c7283257c2514f6b3ad2ff5d4cb6d95196e6",
+      "payload": {
+        "method": "turn/completed"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "receipt",
+      "projectId": "legacy",
+      "sequence": 5,
+      "recordedAt": "2026-09-08T00:00:03Z",
+      "kind": "progress",
+      "phase": "completed",
+      "provider": "codex",
+      "nativeRefs": {
+        "threadId": "thread",
+        "turnId": "turn"
+      },
+      "sourceDigest": "sha256:6f32860910ca0fb2a20c7fda143666b09dbf8db5238195c90a586fb542ff0cad",
+      "payload": {
+        "method": "execution/completion-receipt",
+        "receiptId": "8b2b4d3460159c25179031c591aa512ea1787f376b6f6a48826760b05ed2a3e9",
+        "receipt": {
+          "receiptId": "8b2b4d3460159c25179031c591aa512ea1787f376b6f6a48826760b05ed2a3e9",
+          "runId": "thread:turn",
+          "threadId": "thread",
+          "turnId": "turn",
+          "status": "completed",
+          "objective": "현재 요청을 처리합니다.",
+          "changed": [],
+          "verification": [],
+          "evidenceRefs": [
+            {
+              "activityId": "start",
+              "sequence": 1,
+              "sourceDigest": "sha256:cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+              "kind": "terminal",
+              "status": "observed",
+              "summary": "turn/started"
+            },
+            {
+              "activityId": "plan",
+              "sequence": 2,
+              "sourceDigest": "sha256:64879f7d6b960a01909762d911a32d4582c20010c5641ee90278b644a9e3b525",
+              "kind": "terminal",
+              "status": "observed",
+              "summary": "turn/plan/updated"
+            },
+            {
+              "activityId": "command",
+              "sequence": 3,
+              "sourceDigest": "sha256:5d347fd948b66308f502c3f65c8f7e12ff1c5cf8c760bcdfb188ae1ec7b8b618",
+              "kind": "tool",
+              "status": "observed",
+              "summary": "item/completed"
+            },
+            {
+              "activityId": "terminal",
+              "sequence": 4,
+              "sourceDigest": "sha256:4e686af7bdcc5ae005a247624fd8c7283257c2514f6b3ad2ff5d4cb6d95196e6",
+              "kind": "terminal",
+              "status": "observed",
+              "summary": "turn/completed"
+            }
+          ],
+          "remaining": [],
+          "completedAt": "2026-09-08T00:00:03Z",
+          "terminalSource": {
+            "id": "terminal",
+            "sequence": 4,
+            "sourceDigest": "sha256:4e686af7bdcc5ae005a247624fd8c7283257c2514f6b3ad2ff5d4cb6d95196e6"
+          },
+          "checkpointDigest": "22e888505488a8bdd82cf5d45e96b39a7c3036e4961710443c58ab3e1a8fca48",
+          "receiptDigest": "02ef326903f80dffa80cc7e759f9da170d4a5fb1faf495fdace3aab2417c530e"
+        }
+      }
+    }
+  ],
+  "receipt": {
+    "receiptId": "8b2b4d3460159c25179031c591aa512ea1787f376b6f6a48826760b05ed2a3e9",
+    "runId": "thread:turn",
+    "threadId": "thread",
+    "turnId": "turn",
+    "status": "completed",
+    "objective": "현재 요청을 처리합니다.",
+    "changed": [],
+    "verification": [],
+    "evidenceRefs": [
+      {
+        "activityId": "start",
+        "sequence": 1,
+        "sourceDigest": "sha256:cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+        "kind": "terminal",
+        "status": "observed",
+        "summary": "turn/started"
+      },
+      {
+        "activityId": "plan",
+        "sequence": 2,
+        "sourceDigest": "sha256:64879f7d6b960a01909762d911a32d4582c20010c5641ee90278b644a9e3b525",
+        "kind": "terminal",
+        "status": "observed",
+        "summary": "turn/plan/updated"
+      },
+      {
+        "activityId": "command",
+        "sequence": 3,
+        "sourceDigest": "sha256:5d347fd948b66308f502c3f65c8f7e12ff1c5cf8c760bcdfb188ae1ec7b8b618",
+        "kind": "tool",
+        "status": "observed",
+        "summary": "item/completed"
+      },
+      {
+        "activityId": "terminal",
+        "sequence": 4,
+        "sourceDigest": "sha256:4e686af7bdcc5ae005a247624fd8c7283257c2514f6b3ad2ff5d4cb6d95196e6",
+        "kind": "terminal",
+        "status": "observed",
+        "summary": "turn/completed"
+      }
+    ],
+    "remaining": [],
+    "completedAt": "2026-09-08T00:00:03Z",
+    "terminalSource": {
+      "id": "terminal",
+      "sequence": 4,
+      "sourceDigest": "sha256:4e686af7bdcc5ae005a247624fd8c7283257c2514f6b3ad2ff5d4cb6d95196e6"
+    },
+    "checkpointDigest": "22e888505488a8bdd82cf5d45e96b39a7c3036e4961710443c58ab3e1a8fca48",
+    "receiptDigest": "02ef326903f80dffa80cc7e759f9da170d4a5fb1faf495fdace3aab2417c530e"
+  }
+}

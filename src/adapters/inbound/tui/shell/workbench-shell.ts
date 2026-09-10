@@ -5,8 +5,11 @@ import {
 	Key,
 	ProcessTerminal,
 	ScrollView,
+	stripTerminalSequences,
 	TuiAltScreen,
 	VStack,
+	truncateToWidth,
+	visibleWidth,
 	wrapTextWithAnsi,
 	isViewportTUI,
 	matchesKey,
@@ -23,10 +26,12 @@ import { projectSessionStats } from "../../../../core/domain/observability/sessi
 import { sanitizeTerminalTextUnbounded } from "../../../../core/domain/execution/terminal";
 import type { WorkbenchCommandReceipt, WorkbenchSnapshot } from "../../../../core/domain/work/workbench";
 import { createDashboardLayout } from "../dashboard/dashboard-layout";
-import { StatusLine, WorkspaceTodoView } from "../dashboard/shared-dashboard-views";
-import { TNotesSourceView, WorkbenchChatView, WorkbenchMonitorView } from "../chat/workbench-views";
+import { StatusLine, todoPanelTimestamp, WorkspaceTodoView } from "../dashboard/shared-dashboard-views";
+import { WorkbenchChatView, WorkbenchMonitorView } from "../chat/workbench-views";
+import { WorkbenchTracerView } from "../dashboard/workbench-tracer-view";
 import { ExitKeyPolicy } from "./exit-key-policy";
 import { LoginOverlay } from "../overlays/auth-overlay";
+import { ApprovalOverlay } from "../overlays/approval-overlay";
 import { ModelPickerOverlay } from "../overlays/model-picker-overlay";
 import { OverlaySheet } from "../overlays/overlay-sheet";
 import { RenderScheduler, workbenchRenderUrgency } from "./render-scheduler";
@@ -36,6 +41,7 @@ import { colors, composerBorderColor, editorTheme } from "./theme";
 import { WorkbenchBottomHudView } from "../dashboard/workbench-bottom-hud";
 import { WorkbenchTelemetryLine, workbenchModelLabel } from "../dashboard/workbench-telemetry";
 import { UsageStripView } from "../dashboard/usage-strip-view";
+import { WORKBENCH_HUD_SYSTEM } from "../dashboard/workbench-hud-system";
 import { DevelopmentMapView } from "../dashboard/development-map-view";
 import { ObservabilityDashboardView } from "../dashboard/observability-dashboard-view";
 import { RuntimeMonitorView } from "../dashboard/runtime-monitor-view";
@@ -59,7 +65,7 @@ export interface ProjectWorkbenchShellDependencies {
 
 export function workbenchReceiptNotice(receipt: WorkbenchCommandReceipt): string {
 	if (receipt.state === "accepted") return receipt.message || "요청을 수락했습니다.";
-	if (receipt.state === "queued") return "메시지를 Chat에 올렸습니다. 현재 응답 뒤 바로 전송합니다.";
+	if (receipt.state === "queued") return receipt.message || "메시지를 Chat에 올렸습니다. 현재 응답 뒤 바로 전송합니다.";
 	if (receipt.state === "uncertain") return `${receipt.reason} 자동 재시도하지 않습니다. /cancel로 서버 상태를 확인하세요.`;
 	return receipt.reason;
 }
@@ -77,6 +83,18 @@ export function approvalDecisionFromInput(text: string): "accept" | "acceptForSe
 	return null;
 }
 
+export type WorkbenchRuntimeMode = "bypass" | "manual" | "plan";
+
+export function workbenchRuntimeMode(source: Pick<WorkbenchSnapshot, "permissionMode" | "collaborationMode">): WorkbenchRuntimeMode {
+	if (source.permissionMode === "all") return "bypass";
+	return source.collaborationMode === "plan" ? "plan" : "manual";
+}
+
+export function nextWorkbenchRuntimeMode(source: Pick<WorkbenchSnapshot, "permissionMode" | "collaborationMode">): WorkbenchRuntimeMode {
+	const current = workbenchRuntimeMode(source);
+	return current === "bypass" ? "manual" : current === "manual" ? "plan" : "bypass";
+}
+
 export function loginProviderFromInput(text: string): Provider | null {
 	const value = text.trim().toLocaleLowerCase("en-US");
 	const alias = value === "codex" || value === "chatgpt" ? "openai-codex"
@@ -86,6 +104,38 @@ export function loginProviderFromInput(text: string): Provider | null {
 }
 
 export const WORKBENCH_STATUS_NOTICE = "";
+
+/** The active Native model belongs to the composer it drives, not the quota HUD. */
+export function composerModelHeader(source: Pick<WorkbenchSnapshot, "model" | "activeModel" | "effort">, width: number): string {
+	const label = `${source.activeModel ?? source.model ?? "model 미확인"}${source.effort ? ` · ${source.effort}` : ""}`;
+	const prefix = `${WORKBENCH_HUD_SYSTEM.composer.leftCap} `;
+	const suffix = " ";
+	const available = Math.max(0, width - visibleWidth(prefix) - visibleWidth(suffix));
+	const content = truncateToWidth(label, available, "");
+	const rule = WORKBENCH_HUD_SYSTEM.composer.divider.repeat(Math.max(0, width - visibleWidth(prefix) - visibleWidth(content) - visibleWidth(suffix)));
+	return truncateToWidth(`${colors.accent(prefix + content)}${colors.border(suffix + rule)}`, Math.max(0, width), "");
+}
+
+/** Adds the model label to the input edge while preserving the child focus owner. */
+class ComposerModelFrame implements Component {
+	constructor(
+		private readonly child: Component,
+		private readonly snapshot: () => Pick<WorkbenchSnapshot, "model" | "activeModel" | "effort">,
+	) {}
+
+	invalidate(): void { this.child.invalidate(); }
+
+	render(width: number): string[] {
+		if (width <= 0) return [];
+		const rows = this.child.render(width);
+		// Editor has a plain horizontal top edge. Replace only that edge so
+		// overlays keep their own title and the composer does not gain a row.
+		if (rows[0] && /^─+$/u.test(stripTerminalSequences(rows[0]))) {
+			rows[0] = colors.muted(composerModelHeader(this.snapshot(), width));
+		}
+		return rows;
+	}
+}
 
 function emptyObservabilityDashboard(): ObservabilityDashboard {
 	return Object.freeze({
@@ -270,13 +320,17 @@ export function workbenchViewModeForCommand(
 	if (command.type === "pane.show") return "workbench";
 	if (command.type === "activity.select" && command.activityId) return "source";
 	if (command.type === "trace.select") return "source";
+	if (command.type === "agent.select") return "workbench";
 	return current;
 }
 
 const WORKBENCH_ACTIVITY_FRAMES = Object.freeze(["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]);
-const WORKBENCH_ACTIVITY_INTERVAL_MS = 80;
+// Every frame walks the viewport layout. Four visible frames per second keeps
+// working state legible without competing with typing or scrolling.
+const WORKBENCH_ACTIVITY_INTERVAL_MS = 240;
 const WORKBENCH_ACTIVITY_MESSAGE_MAX_CHARS = 72;
 const WORKBENCH_TOOL_STALL_MS = 3 * 60 * 1_000;
+const COMPOSER_WELCOME_BORDER_INTERVAL_MS = 750;
 
 interface WorkbenchActivityIndicatorSource {
 	readonly phase: string;
@@ -402,16 +456,28 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	let snapshot = workbench.snapshot;
 	const status = new StatusLine(WORKBENCH_STATUS_NOTICE);
 	const chat = new WorkbenchChatView(snapshot);
-	const usageStrip = new UsageStripView(() => ({ models: snapshot.sessionUsage?.models ?? [], activeModel: snapshot.activeModel }));
-	const tnotes = new TNotesSourceView(() => snapshot);
+	const usageStrip = new UsageStripView(() => ({
+		models: snapshot.sessionUsage?.models ?? [],
+		activeModel: snapshot.activeModel ?? snapshot.model,
+		effort: snapshot.effort,
+		contextUsage: snapshot.contextUsage,
+		collaborationMode: snapshot.collaborationMode,
+		permissionMode: snapshot.permissionMode,
+		showUsage: snapshot.hud?.showUsage,
+		showContext: snapshot.hud?.showContext,
+	}));
+	const tracer = new WorkbenchTracerView(() => snapshot);
 	const todo = new WorkspaceTodoView(
 		() => snapshot.todo,
 		() => ({
 			activeTurnId: snapshot.activeTurnId,
 			activities: snapshot.activities,
-			workFlow: snapshot.workFlow,
-			sync: snapshot.todoSync,
+				workFlow: snapshot.workFlow,
+				hasConversation: snapshot.chat.length > 0 || snapshot.activities.length > 0 || snapshot.actionResult !== null,
+				goal: snapshot.sessionGoal?.text ?? null,
+				sync: snapshot.todoSync,
 		}),
+		() => snapshot.linearDashboard,
 	);
 	const sourceMonitor = new WorkbenchMonitorView(() => snapshot);
 	const runtimeMonitorView = new RuntimeMonitorView(() => selectedHistoricalSession && selectedHistoricalSession.sessionId !== snapshot.threadId
@@ -448,10 +514,11 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	const telemetry = new WorkbenchTelemetryLine(() => snapshot, cwd, () => tui.requestRender(), dependencies.gitTelemetrySource, dependencies.homeDirectory);
 	const bottomHud = new WorkbenchBottomHudView(usageStrip);
 	const dashboard = createDashboardLayout(
-		() => `Workbench · ${workbenchFrameTitle(snapshot)}`,
+		() => "Workbench",
 		{ color: colors.accent, component: chat },
 		{ color: colors.warm, component: todo },
-		{ color: colors.secondary, component: tnotes },
+		{ title: "Tracer", color: colors.secondary, component: tracer },
+		() => ["TODO", todoPanelTimestamp(snapshot.todo?.updatedAt)].filter(Boolean).join(" "),
 	);
 	const sourceLayout = createDashboardLayout(
 		() => `Source · ${workbenchFrameTitle(snapshot)}`,
@@ -474,9 +541,10 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	editor.setAutocompleteProvider(new CombinedAutocompleteProvider([...WORKBENCH_SLASH_COMMANDS, {name: "work", description: "Issue 연결·기록 상태·Obsidian checkpoint/open"}], process.cwd()));
 	if (composerDraft?.initialText) editor.setText(composerDraft.initialText);
 	const composerSlot = new ComponentSlot(editor);
+	const composerFrame = new ComposerModelFrame(composerSlot, () => snapshot);
 	const root = new VStack([
 		{ component: activeView, basis: 0, grow: 1, shrink: 1, minSize: 1 },
-		{ component: composerSlot, basis: "auto", shrink: 1, minSize: 3 },
+		{ component: composerFrame, basis: "auto", shrink: 1, minSize: 3 },
 		{ component: status, basis: 1, minSize: 1, maxSize: 1, visible: ({ height }) => height >= 5 && status.hasNotice },
 		{ component: bottomHud, basis: 1, minSize: 1, maxSize: 1, visible: ({ height }) => height >= 7 },
 	]);
@@ -507,6 +575,23 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		if (!wasMap && next === "map") developmentMapPolling.enter();
 		if (wasMap && next !== "map") developmentMapPolling.leave();
 	};
+	const cycleRuntimeMode = async (): Promise<void> => {
+		const next = nextWorkbenchRuntimeMode(snapshot);
+		const configuration = next === "bypass"
+			? { permission: "all" as const, collaboration: "manual" as const }
+			: next === "plan"
+				? { permission: "manual" as const, collaboration: "plan" as const }
+				: { permission: "manual" as const, collaboration: "manual" as const };
+		const modeReceipt = await workbench.dispatch({ type: "session.mode", mode: configuration.collaboration });
+		if (modeReceipt.state === "rejected") {
+			showReceipt(modeReceipt);
+			return;
+		}
+		const permissionReceipt = await workbench.dispatch({ type: "session.permission", mode: configuration.permission });
+		if (permissionReceipt.state !== "accepted") showReceipt(permissionReceipt);
+		else status.setNotice("");
+		tui.requestRender();
+	};
 	const monitorClock = setInterval(() => {
 		if (snapshot.phase === "working") chat.syncActivity(workbenchActivityIndicator(snapshot), () => tui.requestRender());
 		if (viewMode === "monitor" && snapshot.phase === "working") tui.requestRender();
@@ -514,11 +599,13 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	monitorClock.unref?.();
 	let composerBorderFrame = 0;
 	const composerBorderClock = setInterval(() => {
-		if (!editor.focused || shuttingDown) return;
+		// A border shimmer is decorative. Once a conversation exists, redraws must
+		// belong to input or Runtime state, not a perpetual cosmetic clock.
+		if (!editor.focused || shuttingDown || snapshot.phase === "working" || snapshot.chat.length > 0) return;
 		composerBorderFrame = (composerBorderFrame + 1) % 24;
 		editor.borderColor = composerBorderColor(composerBorderFrame);
 		tui.requestRender();
-	}, 90);
+	}, COMPOSER_WELCOME_BORDER_INTERVAL_MS);
 	composerBorderClock.unref?.();
 	const refreshObservabilityDashboard = async (): Promise<void> => {
 		if (!dependencies.observabilityHistorySource) return;
@@ -652,6 +739,35 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		overlayKind = "model";
 		panel.start();
 	};
+	const openApproval = (request: NonNullable<WorkbenchSnapshot["pendingApproval"]>): void => {
+		if (overlayKind === "approval") return;
+		if (overlay) closeOverlay();
+		const panel = new ApprovalOverlay(
+			request,
+			() => tui.requestRender(),
+			(decision) => {
+				void workbench.dispatch({
+					type: "approval.resolve",
+					requestId: request.requestId,
+					response: { decision },
+				}).then(receipt => {
+					closeOverlay();
+					showReceipt(receipt);
+				}).catch(error => {
+					closeOverlay();
+					status.setNotice(error instanceof Error ? error.message : String(error));
+					tui.requestRender();
+				});
+			},
+			closeOverlay,
+		);
+		overlay = tui.showOverlay(new OverlaySheet(panel), {
+			width: "72%", minWidth: 46, maxHeight: "80%", anchor: "bottom-center", margin: 2,
+		});
+		overlayKind = "approval";
+		tui.setFocus(panel);
+		tui.requestRender();
+	};
 	const handleLocal = async (text: string): Promise<boolean> => {
 		const developmentNotice = await executeDevelopmentShellCommand(text, dependencies.development);
 		if (developmentNotice !== null) {
@@ -732,6 +848,32 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 			tui.requestRender();
 			return true;
 		}
+		if (command.type === "help") {
+			status.setNotice(WORKBENCH_SLASH_COMMANDS.map(command => `/${command.name}${command.argumentHint ? ` ${command.argumentHint}` : ""}`).join(" · "));
+			tui.requestRender();
+			return true;
+		}
+		if ((command.type === "mcp.refresh" || command.type === "mcp.reload" || command.type === "mcp.enable" || command.type === "mcp.disable") && snapshot.slash?.mcp === false) {
+			status.setNotice("이 프로젝트에서는 /mcp 명령이 비활성화되어 있습니다.");
+			tui.requestRender();
+			return true;
+		}
+		if (command.type === "chat.clear" && snapshot.slash?.clear === false) {
+			status.setNotice("이 프로젝트에서는 /clear 명령이 비활성화되어 있습니다.");
+			tui.requestRender();
+			return true;
+		}
+		if (command.type === "thread.compact" && snapshot.slash?.compact === false) {
+			status.setNotice("이 프로젝트에서는 /compact 명령이 비활성화되어 있습니다.");
+			tui.requestRender();
+			return true;
+		}
+		if (command.type === "workflow.check" || command.type === "workflow.resume" || command.type === "workflow.show") {
+			showReceipt(await workbench.dispatch(command));
+			setViewMode("workbench");
+			tui.setFocus(editor);
+			return true;
+		}
 		if (command.type === "pane.show") {
 			setViewMode(workbenchViewModeForCommand(viewMode, command));
 			observabilityNavigation = false;
@@ -781,6 +923,15 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 			showReceipt(await workbench.dispatch({ type: "session.mode", mode: command.mode }));
 			return true;
 		}
+		if (command.type === "goal.view") {
+			status.setNotice(snapshot.sessionGoal?.text ? `Goal · ${snapshot.sessionGoal.text}` : "설정된 Goal이 없습니다. /goal <목표 문장>으로 시작하세요.");
+			tui.requestRender();
+			return true;
+		}
+		if (command.type === "goal.set") {
+			showReceipt(await workbench.dispatch({ type: "goal.set", text: command.text }));
+			return true;
+		}
 		if (command.type === "woo-entry.refresh") {
 			showReceipt(await workbench.dispatch({ type: "woo-entry.refresh" }));
 			return true;
@@ -802,6 +953,16 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 				setViewMode("source");
 				observabilityNavigation = false;
 				tui.setFocus(sourceLayout.leftScroll);
+			}
+			return true;
+		}
+		if (command.type === "agent.select") {
+			const receipt = await workbench.dispatch({ type: "agent.select", agentRef: command.agentRef });
+			showReceipt(receipt);
+			if (receipt.state === "accepted") {
+				setViewMode("workbench");
+				observabilityNavigation = false;
+				tui.setFocus(editor);
 			}
 			return true;
 		}
@@ -843,6 +1004,14 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 			showReceipt(await workbench.dispatch({ type: "chat.cancel" }));
 			return true;
 		}
+		if (command.type === "chat.clear" || command.type === "thread.compact" || command.type === "mcp.refresh" || command.type === "mcp.reload") {
+			showReceipt(await workbench.dispatch({ type: command.type }));
+			return true;
+		}
+		if (command.type === "mcp.enable" || command.type === "mcp.disable") {
+			showReceipt(await workbench.dispatch(command));
+			return true;
+		}
 		const approval = snapshot.pendingApproval;
 		if (!approval) {
 			status.setNotice("대기 중인 승인 요청이 없습니다.");
@@ -868,7 +1037,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 				const decision = approvalDecisionFromInput(text);
 				if (!decision) {
 					editor.setText(text);
-					status.setNotice("승인할까요? Input에 ‘네’ 또는 ‘아니요’라고 답해 주세요.");
+					status.setNotice("승인 선택 화면을 열었습니다. ↑↓ 또는 숫자로 선택하세요.");
 					tui.requestRender();
 					return;
 				}
@@ -897,7 +1066,10 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		const urgency = workbenchRenderUrgency(snapshot, next);
 		const refreshTelemetry = snapshot.phase === "working" && next.phase !== "working";
 		snapshot = next;
-		if (snapshot.pendingApproval) status.setNotice("승인할까요? Input에 ‘네’ 또는 ‘아니요’라고 답해 주세요.");
+		if (snapshot.pendingApproval) {
+			status.setNotice("승인 선택 화면을 열었습니다. ↑↓ 또는 숫자로 선택하세요.");
+			openApproval(snapshot.pendingApproval);
+		}
 		chat.syncActivity(workbenchActivityIndicator(snapshot), () => tui.requestRender());
 		if (refreshTelemetry) telemetry.refresh();
 		workbenchRenders.request(urgency);
@@ -925,6 +1097,13 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 				return { consume: true };
 			}
 			return undefined;
+		}
+		if (matchesKey(data, Key.shift(Key.tab))) {
+			void cycleRuntimeMode().catch(error => {
+				status.setNotice(error instanceof Error ? error.message : String(error));
+				tui.requestRender();
+			});
+			return { consume: true };
 		}
 		if (observabilityNavigation && viewMode === "dashboard" && (matchesKey(data, Key.up) || matchesKey(data, Key.down))) {
 			const maximum = Math.max(0, observabilityDashboardSnapshot.recentSessions.length - 1);

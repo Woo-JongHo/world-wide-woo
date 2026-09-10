@@ -14,6 +14,7 @@ import { anthropicProvider } from "@earendil-works/pi-ai/providers/anthropic";
 import { googleProvider } from "@earendil-works/pi-ai/providers/google";
 import { openaiProvider } from "@earendil-works/pi-ai/providers/openai";
 import { openaiCodexProvider } from "@earendil-works/pi-ai/providers/openai-codex";
+import { zaiProvider } from "@earendil-works/pi-ai/providers/zai";
 import type { ModelAuthStatus, ModelClient } from "../../../core/ports";
 import type { Effort, WwwSettings } from "../../../core/domain/execution/model-settings";
 
@@ -50,6 +51,7 @@ export function createModelRegistry(credentials?: CredentialStore): Models {
 	models.setProvider(openaiProvider());
 	models.setProvider(anthropicProvider());
 	models.setProvider(googleProvider());
+	models.setProvider(zaiProvider());
 	return models;
 }
 

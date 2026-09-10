@@ -277,7 +277,7 @@ export function renderRpaProject(map: RpaDescriptionMap): string {
 			["목적", map.project.purpose], ["대상 시스템", map.project.systems.join(", ")], ["Process ID", map.project.processId], ["Task 수", tasks.length],
 		]), "", "## WBS", "",
 		table(["원본", "revision", "기준일", "시작일", "종료일"], [[map.project.wbs.reference, map.project.wbs.revision, map.project.wbs.baselineDate, map.project.wbs.startDate, map.project.wbs.endDate]]),
-		"", "## Task", "",
+		"", "## Task 구성", "",
 		table(["단계", "업무", "RPA-ID", "무엇을 하는가", "결과", "Task 이슈", "Unit 수", "Step 수", "예외 수", "테스트 수"], tasks.map(task => [task.sequence, task.name, task.id, task.purpose, task.output, raw(linearLink(task.issueUrl)), task.units.length, countSteps(task), task.exceptions.length, task.tests.length])),
 		"", "## 연결", "",
 		table(["항목", "값"], [["Repository", map.project.repository], ["rpa-map", map.project.mapRef.path], ["rpa-map revision", map.project.mapRef.revision]]),
@@ -309,7 +309,7 @@ export function renderRpaTask(map: RpaDescriptionMap, taskId: string): string {
 			table(["항목", "값"], [["책임", unit.responsibility], ["입력", unit.input], ["출력", unit.output], ["Step 수", unit.steps.length], ["부작용", unit.sideEffects], ["승인", unit.approval], ["재실행 정책", unit.rerunPolicy]]), "",
 			"#### 사용 기술", "", table(["기술", "사용 목적"], unit.technology.map(item => [item.name, item.purpose])), "",
 			"#### 코드 설명", "", table(["경로", "심볼", "설명"], unit.code.map(item => [item.path, item.symbol, item.explanation])), "",
-			"#### Step", "", table(["순서", "Step ID", "동작", "코드 심볼", "출력"], sorted(unit.steps).map(step => [step.sequence, step.id, step.action, step.codeSymbols.length ? step.codeSymbols.join(", ") : "정의 없음", step.output])), "");
+			"#### Step 구성", "", table(["순서", "Step ID", "동작", "코드 심볼", "출력"], sorted(unit.steps).map(step => [step.sequence, step.id, step.action, step.codeSymbols.length ? step.codeSymbols.join(", ") : "정의 없음", step.output])), "");
 	}
 	lines.push("## 연결", "", table(["항목", "값"], [["Linear Task", raw(linearLink(task.issueUrl))], ["rpa-map", map.project.mapRef.path], ["rpa-map revision", map.project.mapRef.revision], ["Process ID", map.project.processId]]));
 	return `${lines.join("\n")}\n`;

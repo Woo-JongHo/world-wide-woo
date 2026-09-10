@@ -42,21 +42,31 @@ describe("ProviderAuthController", () => {
 		});
 	});
 
-	test("selects official Google login, opens Gemini CLI, and recognizes its fallback credential", async () => {
+	test("persists ACP web authentication in the Gemini CLI config directory without opening Terminal", async () => {
 		const home = await mkdtemp(join(tmpdir(), "www-gemini-auth-"));
 		homes.push(home);
 		await mkdir(join(home, ".gemini"));
 		await writeFile(join(home, ".gemini", "settings.json"), "{}\n");
-		await writeFile(join(home, ".gemini", "gemini-credentials.json"), "opaque");
 		const commands: string[] = [];
+		let webAuthCalls = 0;
+		const notifications: unknown[] = [];
 		const gateway = new SystemGeminiCliAuthGateway(home, async (command, args) => {
 			commands.push([command, ...args].join(" "));
 			return { exitCode: 0 };
-		}, 1, 10, "darwin");
+		}, 1, 10, "darwin", async (configDirectory, _signal, onAuthUrl) => {
+			webAuthCalls += 1;
+			expect(configDirectory).toBe(join(home, ".gemini"));
+			await writeFile(join(configDirectory, "gemini-credentials.json"), "opaque");
+			onAuthUrl?.("https://accounts.google.com/o/oauth2/v2/auth?state=test");
+		});
 
-		await gateway.login({ prompt: async () => "", notify: () => undefined });
+		await gateway.login({ prompt: async () => "", notify: (event) => { notifications.push(event); } });
 		expect(commands).toContain("gemini --version");
-		expect(commands.some(command => command.startsWith("osascript -e"))).toBe(true);
+		expect(commands.some(command => command.startsWith("osascript -e"))).toBe(false);
+		expect(webAuthCalls).toBe(1);
+		expect(notifications).toContainEqual(expect.objectContaining({
+			type: "auth_url", url: "https://accounts.google.com/o/oauth2/v2/auth?state=test",
+		}));
 		expect(await gateway.configured()).toBe(true);
 		const settings = await Bun.file(join(home, ".gemini", "settings.json")).json();
 		expect(settings.security.auth.selectedType).toBe("oauth-personal");

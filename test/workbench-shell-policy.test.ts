@@ -10,8 +10,11 @@ import {
 	workbenchEscapeView,
 	workbenchActivityIndicator,
 	approvalDecisionFromInput,
+	nextWorkbenchRuntimeMode,
+	workbenchRuntimeMode,
 	loginProviderFromInput,
 	ComponentSlot,
+	composerModelHeader,
 	workbenchFrameTitle,
 	workbenchModelSettings,
 	workbenchPaneNotice,
@@ -56,6 +59,24 @@ describe("native workbench shell receipt policy", () => {
 		for (const text of ["아니요", "거절해", "취소", "no"]) expect(approvalDecisionFromInput(text)).toBe("decline");
 		expect(approvalDecisionFromInput("이번 세션 동안 승인")).toBe("acceptForSession");
 		expect(approvalDecisionFromInput("설명을 더 해줘")).toBeNull();
+	});
+
+	test("cycles Shift+Tab runtime modes as Bypass, Manual, and Plan", () => {
+		expect(workbenchRuntimeMode({ permissionMode: "all", collaborationMode: "manual" })).toBe("bypass");
+		expect(nextWorkbenchRuntimeMode({ permissionMode: "all", collaborationMode: "manual" })).toBe("manual");
+		expect(nextWorkbenchRuntimeMode({ permissionMode: "manual", collaborationMode: "manual" })).toBe("plan");
+		expect(nextWorkbenchRuntimeMode({ permissionMode: "manual", collaborationMode: "plan" })).toBe("bypass");
+	});
+
+	test("places the active model and effort on the composer edge", () => {
+		const header = stripTerminalSequences(composerModelHeader({
+			model: "gpt-5.6-terra",
+			activeModel: "gpt-5.6-sol",
+			effort: "low",
+		}, 40));
+		expect(header).toContain("gpt-5.6-sol · low");
+		expect(header).toMatch(/^╭─ /u);
+		expect(header).toHaveLength(40);
 	});
 
 	test("cycles the focused Composer border through distinct shimmer frames", () => {

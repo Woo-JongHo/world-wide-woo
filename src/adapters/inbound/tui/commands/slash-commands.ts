@@ -75,7 +75,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
 	},
 	{
 		name: "login",
-		description: "Codex·Claude·API Provider 로그인",
+		description: "Codex·Claude·Gemini·Z.AI API 로그인",
 		argumentHint: "[provider]",
 		getArgumentCompletions: () => PROVIDERS.map((provider) => ({ value: provider, label: provider })),
 	},
@@ -105,6 +105,10 @@ export const SLASH_COMMANDS: SlashCommand[] = [
 ];
 
 export type WorkbenchShellCommand =
+	| { type: "workflow.check"; processId: string }
+	| { type: "workflow.resume"; runId: string }
+	| { type: "workflow.show"; runId: string }
+	| { type: "help" }
 	| { type: "pane.show"; pane: "chat" | "tnotes" | "todo" }
 	| { type: "model.select" }
 	| { type: "model.set"; model: string; effort?: Effort }
@@ -113,9 +117,12 @@ export type WorkbenchShellCommand =
 	| { type: "auth.logout"; provider: Provider }
 	| { type: "session.permission"; mode: "all" | "manual" }
 	| { type: "session.mode"; mode: "plan" | "manual" }
+	| { type: "goal.view" }
+	| { type: "goal.set"; text: string }
 	| { type: "woo-entry.refresh" }
 	| { type: "activity.select"; activityId: string | "latest" | null }
 	| { type: "trace.select"; activityId: string }
+	| { type: "agent.select"; agentRef: string | null }
 	| { type: "tnote.capture" }
 	| { type: "tnote.capture-range"; startSequence: number; endSequence: number }
 	| { type: "promotion.accept"; noteId: string }
@@ -126,10 +133,19 @@ export type WorkbenchShellCommand =
 	| { type: "approval.accept-session" }
 	| { type: "approval.decline" }
 	| { type: "chat.cancel" }
+	| { type: "chat.clear" }
+	| { type: "thread.compact" }
+	| { type: "mcp.refresh" }
+	| { type: "mcp.enable"; name: string }
+	| { type: "mcp.disable"; name: string }
+	| { type: "mcp.reload" }
 	| { type: "exit" }
 	| { type: "error"; message: string };
 
 export const WORKBENCH_SLASH_COMMANDS: SlashCommand[] = [
+	{ name: "help", description: "Workbench 명령 안내" },
+	{ name: "workflow", description: "로컬 사전 검사·재개·결과 조회 (원격 미검증)", argumentHint: "check <RPA-ID> | resume <RUN> | show <RUN>",
+		getArgumentCompletions: () => ["check", "resume", "show"].map(value => ({ value, label: value })) },
 	{
 		name: "model",
 		description: "Native Codex 모델·추론 강도 설정",
@@ -165,9 +181,11 @@ export const WORKBENCH_SLASH_COMMANDS: SlashCommand[] = [
 			{ value: "plan", label: "plan", description: "계획 중심 모드" },
 		],
 	},
+	{ name: "goal", description: "장기 작업 Goal 설정·조회", argumentHint: "[목표 문장]" },
 	{ name: "woo-entry", description: "WES 현재 상태와 다음 작업 다시 읽기" },
 	{ name: "source", description: "Monitor에서 Activity Source 선택", argumentHint: "<activity-id|latest|clear>" },
 	{ name: "trace", description: "Monitor에서 선택 Plan에 결속된 정확한 Activity Trace 선택", argumentHint: "<activity-id>" },
+	{ name: "agents", description: "위임 트리 또는 선택한 에이전트의 공개 수행 관찰", argumentHint: "[agent-ref|clear]" },
 	{ name: "tnote", description: "마지막 질문 또는 선택 범위를 질문·이유·결과로 요약", argumentHint: "[range <start-sequence> <end-sequence>]" },
 	{ name: "promote", description: "T-note 정본 반영: diff 확인 후 사람 승인", argumentHint: "<tnote|confirm> <note-id|token>" },
 	{ name: "review", description: "공개 분류 T-note의 외부 검토 미리보기·송신", argumentHint: "<preview|send> …" },
@@ -175,6 +193,9 @@ export const WORKBENCH_SLASH_COMMANDS: SlashCommand[] = [
 	{ name: "approve-session", description: "현재 세션 동안 native 요청 승인" },
 	{ name: "decline", description: "대기 중인 native 요청 거절" },
 	{ name: "cancel", description: "현재 native turn 중단" },
+	{ name: "clear", description: "Chat 화면만 비우기 · 기록과 Native thread 유지" },
+	{ name: "compact", description: "현재 Native thread 컨텍스트 압축" },
+	{ name: "mcp", description: "MCP 서버 상태·활성화·재시작", argumentHint: "status | enable <name> | disable <name> | reload" },
 	{ name: "exit", description: "Workbench를 안전하게 종료" },
 ];
 
@@ -182,6 +203,15 @@ export function parseWorkbenchShellCommand(text: string): WorkbenchShellCommand 
 	const trimmed = text.trim();
 	if (!trimmed.startsWith("/")) return null;
 	const [name, ...args] = trimmed.slice(1).split(/\s+/u);
+	if (name === "help" && args.length === 0) return { type: "help" };
+	if (name === "workflow") {
+		if (args.length === 2 && args[1]) {
+			if (args[0] === "check") return { type: "workflow.check", processId: args[1] };
+			if (args[0] === "resume") return { type: "workflow.resume", runId: args[1] };
+			if (args[0] === "show") return { type: "workflow.show", runId: args[1] };
+		}
+		return { type: "error", message: "사용법: /workflow check <RPA-ID> | /workflow resume <RUN> | /workflow show <RUN>" };
+	}
 	if ((name === "chat" || name === "tnotes" || name === "todo") && args.length === 0) return { type: "pane.show", pane: name };
 	if (name === "model") return parseWorkbenchModelCommand(args);
 	if (name === "login") {
@@ -203,6 +233,10 @@ export function parseWorkbenchShellCommand(text: string): WorkbenchShellCommand 
 			? { type: "session.mode", mode: args[0] }
 			: { type: "error", message: "사용법: /mode <manual|plan>" };
 	}
+	if (name === "goal") {
+		const goal = trimmed.slice("/goal".length).trim();
+		return goal ? { type: "goal.set", text: goal } : { type: "goal.view" };
+	}
 	if (name === "woo-entry") {
 		return args.length === 0
 			? { type: "woo-entry.refresh" }
@@ -217,6 +251,12 @@ export function parseWorkbenchShellCommand(text: string): WorkbenchShellCommand 
 		return args.length === 1 && args[0]
 			? { type: "trace.select", activityId: args[0] }
 			: { type: "error", message: "사용법: /trace <activity-id>" };
+	}
+	if (name === "agents") {
+		if (args.length === 0 || args[0] === "clear" && args.length === 1) return { type: "agent.select", agentRef: null };
+		return args.length === 1 && args[0]
+			? { type: "agent.select", agentRef: args[0] }
+			: { type: "error", message: "사용법: /agents [agent-ref|clear]" };
 	}
 	if (name === "tnote") {
 		if (args.length === 0) return { type: "tnote.capture" };
@@ -242,6 +282,19 @@ export function parseWorkbenchShellCommand(text: string): WorkbenchShellCommand 
 	if (name === "approve-session") return { type: "approval.accept-session" };
 	if (name === "decline") return { type: "approval.decline" };
 	if (name === "cancel") return { type: "chat.cancel" };
+	if (name === "clear") return args.length === 0
+		? { type: "chat.clear" }
+		: { type: "error", message: "사용법: /clear" };
+	if (name === "compact") return args.length === 0
+		? { type: "thread.compact" }
+		: { type: "error", message: "사용법: /compact" };
+	if (name === "mcp") {
+		if (args.length === 1 && args[0] === "status") return { type: "mcp.refresh" };
+		if (args.length === 1 && args[0] === "reload") return { type: "mcp.reload" };
+		if (args.length === 2 && args[0] === "enable" && args[1]) return { type: "mcp.enable", name: args[1] };
+		if (args.length === 2 && args[0] === "disable" && args[1]) return { type: "mcp.disable", name: args[1] };
+		return { type: "error", message: "사용법: /mcp status | enable <name> | disable <name> | reload" };
+	}
 	if (name === "exit" || name === "quit") return { type: "exit" };
 	return null;
 }

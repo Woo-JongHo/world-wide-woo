@@ -106,16 +106,19 @@ export class ModelPickerOverlay implements Component {
 	render(width: number): string[] {
 		const contentWidth = Math.max(1, width);
 		const result = [
-			fit(colors.accent("모델 설정"), contentWidth),
+			fit(colors.accent("◈ 모델 설정 · 모델 연결"), contentWidth),
+			fit(colors.muted("현재 대화에 사용할 모델과 추론 수준을 선택합니다."), contentWidth),
 			fit(this.breadcrumb(), contentWidth),
+			fit(colors.border("─".repeat(contentWidth)), contentWidth),
 			fit(`현재: ${this.current.provider} / ${this.current.model} / ${this.current.effort}`, contentWidth),
-			fit(`선택: ${this.staged.provider} / ${this.staged.model} / ${this.staged.effort}`, contentWidth),
+			fit(colors.highlight(`선택: ${this.staged.provider} / ${this.staged.model} / ${this.staged.effort}`), contentWidth),
+			fit(colors.border("─".repeat(contentWidth)), contentWidth),
 		];
 		for (const row of this.rows()) result.push(fit(row, contentWidth));
 		if (this.error) result.push(fit(colors.error(this.error), contentWidth));
 		const hint = this.step === "confirm"
-			? "Enter 적용 · ←/Backspace 이전 · Esc 취소"
-			: "↑↓ 선택 · Enter/→ 다음 · ←/Backspace 이전 · Esc 취소";
+			? "Enter 적용 · ← 이전 · Esc 닫기"
+			: "↑↓ 선택 · Enter 다음 · ← 이전 · Esc 닫기";
 		result.push(fit(colors.muted(this.applying ? "적용하는 중…" : hint), contentWidth));
 		return result;
 	}

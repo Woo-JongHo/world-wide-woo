@@ -3,6 +3,7 @@ import type {
 	NativeHarnessEvent,
 	NativeThreadRead,
 	NativeThreadList,
+	NativeThreadCompact,
 	NativeThreadResume,
 	NativeThreadSnapshot,
 	NativeThreadStart,
@@ -20,6 +21,7 @@ export interface ExecutorPort {
 	resumeThread(input: NativeThreadResume): Promise<NativeThreadSnapshot>;
 	readThread(input: NativeThreadRead): Promise<NativeThreadSnapshot>;
 	listThreads(input: NativeThreadList): Promise<readonly NativeThreadSummary[]>;
+	compactThread?(input: NativeThreadCompact): Promise<void>;
 	startTurn(input: NativeTurnStart): Promise<NativeTurnSnapshot>;
 	steerTurn?(input: NativeTurnSteer): Promise<NativeTurnSteerResult>;
 	interruptTurn(input: NativeTurnInterrupt): Promise<void>;

@@ -52,6 +52,8 @@ export interface DerivedPlanIdentity {
 }
 export interface NativePlanSource {
 	readonly kind: "native-plan-derived";
+	/** Public Plan documents remain displayable but never own executable Todo state. */
+	readonly authority: "native-checklist" | "public-plan-document";
 	readonly expectedThreadKeyDigest: Sha256Hex;
 	readonly turnId: string;
 	readonly currentRevision: PlanRevisionRef;
@@ -500,6 +502,9 @@ export function projectWorkFlow(
 		source: currentRevision
 			? {
 				kind: "native-plan-derived",
+				authority: isPublicPlanRevision(currentRevision.activityId, interval)
+					? "public-plan-document"
+					: "native-checklist",
 				expectedThreadKeyDigest: threadDigest,
 				turnId: selectedTurnId,
 				currentRevision,
@@ -521,6 +526,10 @@ export function projectWorkFlow(
 			? `${completedCount}/${steps.length} 단계를 완료했습니다.`
 			: "의미 있는 실행 단계를 기다리고 있습니다.",
 	};
+}
+
+function isPublicPlanRevision(activityId: string, activities: readonly ProjectActivity[]): boolean {
+	return activities.find((activity) => activity.id === activityId)?.payload.method === "turn/plan/public-fallback";
 }
 
 /**

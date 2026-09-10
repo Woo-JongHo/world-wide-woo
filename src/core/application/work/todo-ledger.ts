@@ -3,7 +3,6 @@ import {
 	MAX_TODO_EVIDENCE,
 	sanitizeTodoText,
 	validateTodoDocument,
-	type TodoDetail,
 	type TodoDocument,
 	type TodoExecutionReference,
 	type TodoItem,
@@ -55,18 +54,12 @@ export class TodoLedger implements TodoController {
 	/** @linear WOO-702 Mirrors one observed Native input/turn/Plan revision into its session Todo.md. */
 	public async syncNativePlan(flow: WorkFlowProjection, binding?: TodoNativePlanBinding): Promise<TodoDocument> {
 		validateNativePlanSource(flow.source);
-		let activeAssigned = false;
 		const nativeSteps = flow.steps.slice(0, 12);
 		validateNativeTodoIds(nativeSteps);
 		const source = nativeTodoSource(flow.source!, binding ?? reusableNativeBinding(this.current?.source, flow.source!));
 		if (this.current?.source && !canApplyNativeSource(this.current.source, source)) return this.current;
 		const items = nativeSteps.map((step): TodoItem => {
-			let status = todoStatus(step.status);
-			if (status === "in_progress") {
-				if (activeAssigned) status = "pending";
-				else activeAssigned = true;
-			}
-			return nativeTodoItem(step, status, source.rootExecution);
+			return nativeTodoItem(step, todoStatus(step.status), source.rootExecution);
 		});
 		const content = {
 			ownerSessionId: this.sessionId,
@@ -202,7 +195,11 @@ export class TodoLedger implements TodoController {
 		if (!this.current) return null;
 		if (typeof evidenceId !== "string" || !isId(evidenceId)) throw new Error("Invalid evidence id");
 		const document = this.requireCurrent();
-		const active = document.items.find((item) => item.status === "in_progress");
+		const activeItems = document.items.filter((item) => item.status === "in_progress");
+		// Without a direct Native Plan item reference, evidence is safe to attach
+		// only when the current plan has one unambiguous running item.
+		if (activeItems.length !== 1) return null;
+		const active = activeItems[0]!;
 		const activeDetail = active?.details.find(detail => detail.status === "in_progress");
 		if (!active) return null;
 		if (activeDetail && (activeDetail.evidenceIds.includes(evidenceId) || activeDetail.evidenceIds.length >= MAX_TODO_EVIDENCE)) return null;
@@ -341,18 +338,12 @@ function isTodoParent(item: TodoDocument["items"][number] | TodoDocument["items"
 function nativeTodoItem(step: SemanticWorkStep, status: TodoItemStatus, rootExecution: TodoExecutionReference): TodoItem {
 	const id = nativeTodoParentId(step.identity.value);
 	const evidenceIds = validEvidenceIds(step.activityIds);
-	const details: TodoDetail[] = [{
-		id: `${id}-detail-1`,
-		content: todoNarrationText(step.narration.why, TODO_NARRATION_WHY),
-		status: detailStatus(status, true),
-		evidenceIds,
-	}];
 	return {
 		id,
 		content: todoNarrationText(step.narration.what, TODO_NARRATION_WHAT),
 		status,
-		evidenceIds: [],
-		details,
+		evidenceIds,
+		details: [],
 		source: {
 			kind: "native-plan-item",
 			identity: step.identity.value,
@@ -405,7 +396,7 @@ function validateNativePlanSource(source: WorkFlowProjection["source"]): void {
 
 function isNativePlanSource(source: unknown): boolean {
 	try {
-		if (!isRecord(source) || source.kind !== "native-plan-derived" || source.algorithm !== "dplan-v1") return false;
+		if (!isRecord(source) || source.kind !== "native-plan-derived" || source.authority !== "native-checklist" || source.algorithm !== "dplan-v1") return false;
 		if (!isOpaqueNativeId(source.turnId) || !isSha256Hex(source.expectedThreadKeyDigest)) return false;
 		const revision = source.currentRevision;
 		return isRecord(revision)
@@ -442,14 +433,12 @@ function validateNativeTodoIds(steps: readonly SemanticWorkStep[]): void {
 			throw new TodoIdentityCollisionError("invalid_identity");
 		}
 		const parentId = nativeTodoParentId(identity);
-		const detailId = `${parentId}-detail-1`;
 		const previous = identities.get(parentId);
-		if ((previous !== undefined && previous !== identity) || ids.has(parentId) || ids.has(detailId)) {
+		if ((previous !== undefined && previous !== identity) || ids.has(parentId)) {
 			throw new TodoIdentityCollisionError("id_collision");
 		}
 		identities.set(parentId, identity);
 		ids.add(parentId);
-		ids.add(detailId);
 	}
 }
 
@@ -464,19 +453,11 @@ function todoStatus(status: WorkStepStatus): TodoItemStatus {
 	return "pending";
 }
 
-function detailStatus(parentStatus: TodoItemStatus, isLast: boolean): TodoItemStatus {
-	if (parentStatus === "completed") return "completed";
-	if (parentStatus === "blocked") return "blocked";
-	if (parentStatus === "in_progress") return isLast ? "in_progress" : "completed";
-	return "pending";
-}
-
 function validEvidenceIds(values: readonly string[]): string[] {
 	return [...new Set(values.filter(isId))].slice(-MAX_TODO_EVIDENCE);
 }
 
 const TODO_NARRATION_WHAT = "작업을 진행합니다.";
-const TODO_NARRATION_WHY = "요청을 안전하게 처리하고 결과를 확인하기 위해서입니다.";
 
 function todoNarrationText(value: unknown, fallback: string): string {
 	if (typeof value !== "string" || isTechnicalInput(value)) return fallback;

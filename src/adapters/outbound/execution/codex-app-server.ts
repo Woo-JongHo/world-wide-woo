@@ -10,6 +10,7 @@ import type {
 	NativeRequestId,
 	NativeThreadRead,
 	NativeThreadList,
+	NativeThreadCompact,
 	NativeThreadResume,
 	NativeThreadSnapshot,
 	NativeThreadStart,
@@ -27,6 +28,13 @@ import { PRODUCT_VERSION } from "../../../product-version.js";
 
 const STDERR_TAIL_CODE_POINTS = 4_096;
 const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
+
+function codexThreadConfig(effort: string | undefined): JsonRecord {
+	return compact({
+		model_reasoning_effort: effort,
+		tools: { update_plan: { enabled: true } },
+	});
+}
 
 interface JsonRecord {
 	[key: string]: unknown;
@@ -52,6 +60,13 @@ export interface NativeMcpServer {
 	readonly enabled: boolean;
 	readonly status: string;
 	readonly tools: readonly string[];
+}
+
+/** Read-only result returned by an explicitly addressed App Server MCP tool. */
+export interface NativeMcpToolResult {
+	readonly content: readonly unknown[];
+	readonly structuredContent?: unknown;
+	readonly isError?: boolean | null;
 }
 
 interface PendingRequest {
@@ -222,7 +237,7 @@ export class CodexAppServer implements ExecutorPort {
 		const result = await this.request("thread/start", compact({
 			cwd: input.cwd,
 			model: input.model,
-			config: input.effort ? { model_reasoning_effort: input.effort } : undefined,
+			config: codexThreadConfig(input.effort),
 			approvalPolicy: input.approvalPolicy,
 			sandbox: input.sandbox,
 			ephemeral: input.ephemeral,
@@ -236,7 +251,7 @@ export class CodexAppServer implements ExecutorPort {
 		const { effort, ...resume } = input;
 		const result = await this.request("thread/resume", compact({
 			...resume,
-			config: effort ? { model_reasoning_effort: effort } : undefined,
+			config: codexThreadConfig(effort),
 		}), true);
 		const snapshot = threadSnapshot(result, "thread/resume");
 		this.registerThreadTurns(snapshot);
@@ -265,6 +280,12 @@ export class CodexAppServer implements ExecutorPort {
 			throw new Error("Codex App Server returned an invalid thread/list result");
 		}
 		return result.data.map((thread, index) => threadSummary(thread, index));
+	}
+
+	/** The App Server owns summary generation and replacement of its thread context. */
+	public async compactThread(input: NativeThreadCompact): Promise<void> {
+		if (!input.threadId.trim()) throw new Error("Native thread compaction requires a thread id");
+		await this.request("thread/compact/start", { threadId: input.threadId }, true);
 	}
 
 	public async listMcpServers(): Promise<readonly NativeMcpServer[]> {
@@ -305,6 +326,32 @@ export class CodexAppServer implements ExecutorPort {
 
 	public async reloadMcpServers(): Promise<void> {
 		await this.request("config/mcpServer/reload", undefined, true);
+	}
+
+	/**
+	 * Calls one configured MCP tool through the App Server's documented boundary.
+	 * The caller supplies the already-owned Native thread so tool authorization and
+	 * lifecycle remain attributable to that session.
+	 */
+	public async callMcpTool(input: {
+		server: string;
+		threadId: string;
+		tool: string;
+		arguments?: unknown;
+	}): Promise<NativeMcpToolResult> {
+		if (!input.server.trim() || !input.threadId.trim() || !input.tool.trim()) throw new Error("MCP tool call requires server, thread, and tool");
+		const result = await this.request("mcpServer/tool/call", compact({
+			server: input.server,
+			threadId: input.threadId,
+			tool: input.tool,
+			arguments: input.arguments,
+		}), false);
+		if (!isRecord(result) || !Array.isArray(result.content)) throw new Error("Codex App Server returned an invalid MCP tool result");
+		return {
+			content: result.content,
+			...("structuredContent" in result ? { structuredContent: result.structuredContent } : {}),
+			...(typeof result.isError === "boolean" || result.isError === null ? { isError: result.isError } : {}),
+		};
 	}
 
 	public async startTurn(input: NativeTurnStart): Promise<NativeTurnSnapshot> {

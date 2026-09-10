@@ -126,6 +126,17 @@ function planInput(activities: readonly ProjectActivity[]) {
 }
 
 describe("WorkStepCard executor highlighting", () => {
+	test("keeps generated input and output summaries out of a Tracer step card", () => {
+		const rendered = stripTerminalSequences(new WorkStepCard({
+			stepNumber: 1,
+			activity: toolActivity(),
+		}).render(88).join("\n"));
+
+		expect(rendered).not.toContain("입력 요약");
+		expect(rendered).not.toContain("출력 요약");
+		expect(rendered).toContain("query: UX");
+	});
+
 	test("labels an unplanned action as Bash, Edit, or Tool while keeping the Bash block", () => {
 		const bash = stripTerminalSequences(new ObservationCard({
 			activity: commandActivity("12 pass"),
@@ -323,26 +334,22 @@ describe("WorkStepCard executor highlighting", () => {
 	});
 
 	test("pretty prints and highlights native structured tool output like generic tools", () => {
-		const rendered = new WorkStepCard({
-			stepNumber: 1,
+		const rendered = new ObservationCard({
 			activity: structuredToolActivity('{"outer":{"answer":42}}'),
 		}).render(100).join("\n");
 
 		expect(rendered).toContain("\u001b[38;2;");
 		expect(stripTerminalSequences(rendered)).toContain('"answer": 42');
-		expect(stripTerminalSequences(new WorkStepCard({
-			stepNumber: 1,
+		expect(stripTerminalSequences(new ObservationCard({
 			activity: structuredToolActivity("service:\n  enabled: true", "config.yaml"),
 		}).render(100).join("\n"))).toContain("enabled: true");
-		const markdown = new WorkStepCard({
-			stepNumber: 1,
+		const markdown = new ObservationCard({
 			activity: structuredToolActivity("# Heading\n\n**bold**", "result.md"),
 		}).render(100).join("\n");
 		expect(markdown).toContain("\u001b[38;2;");
 		expect(stripTerminalSequences(markdown)).toContain("# Heading");
 		for (const output of ["{invalid", "x".repeat(2_500)]) {
-			const fallback = stripTerminalSequences(new WorkStepCard({
-				stepNumber: 1,
+			const fallback = stripTerminalSequences(new ObservationCard({
 				activity: structuredToolActivity(output),
 			}).render(100).join("\n"));
 			expect(fallback).toContain(output === "{invalid" ? "{invalid" : "… 이전 출력");
@@ -364,7 +371,7 @@ describe("WorkStepCard executor highlighting", () => {
 			},
 		} } };
 
-		const rendered = new WorkStepCard({ stepNumber: 1, activity }).render(100).join("\n");
+		const rendered = new ObservationCard({ activity }).render(100).join("\n");
 		const text = stripTerminalSequences(rendered);
 		expect(rendered).toContain("\u001b[38;2;");
 		expect(text).toContain('args: {"path":"report.json"}');
@@ -384,8 +391,7 @@ describe("WorkStepCard executor highlighting", () => {
 			},
 		} } };
 
-		const rendered = new WorkStepCard({
-			stepNumber: 1,
+		const rendered = new ObservationCard({
 			activity,
 		}).render(100).join("\n");
 		const text = stripTerminalSequences(rendered);

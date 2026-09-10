@@ -1,6 +1,6 @@
 # Artifact Control Contract
 
-Linear, Obsidian, GitHub Issue와 GitHub PR은 하나의 제어 흐름을 사용한다.
+Linear Issue·Project Activity, Obsidian, GitHub Issue와 GitHub PR은 하나의 제어 흐름을 사용한다.
 
 ```text
 Candidate → Validate → Render → Authorize → Apply → Read-back → Woo Receipt
@@ -40,6 +40,8 @@ Candidate → Validate → Render → Authorize → Apply → Read-back → Woo 
 ## Candidate
 
 공통 필드는 `schemaVersion`, `candidateId`, `kind`, `sourceRevision`, `intent`, `target`, `content`, `links`, `expectedBefore`, `validation`, `candidateDigest`다. Shape는 `schemas/artifact-candidate.schema.json`, 의미 검증과 렌더링은 `src/core/domain/development/artifact-control.ts`가 소유한다.
+
+Project Activity Comment는 `linear-project-comment` Candidate schema `1.1`로 변경·영향·분류·검증·연결을 렌더한다. `expectedBefore.latestCommentId`는 게시 직전 Project Comment 목록의 마지막 ID와 같아야 한다. 기능 릴리스 Update는 `linear-project-update` Candidate로 직전 Update 뒤 Comment ID를 본문 `작업 Comment`에도 남기고 실제 연결을 수집한다. `expectedBefore.latestUpdateId`는 게시 직전 최신 Update ID와 같아야 한다. Comment와 Update 모두 `target.projectId`와 이 직전 identity를 고정해 승인 뒤 대상이 바뀌면 재작성한다. schema `1.0` Comment는 이미 게시된 기록의 검증·렌더 호환에만 사용한다.
 
 RPA 고객 업무 Description은 [RPA Description 계약 v1](RPA_DESCRIPTION_CONTRACT.md)의 고정 프로필을 사용한다. Project는 `kind: linear-project`, Task는 `kind: linear-issue`의 `rpa-task-v1` 프로필이며, 구조화된 map에서 Description 본문을 생성한다. 이 경로는 CLI Candidate 검증·렌더와 게시 스킬에 적용되며 TUI의 자동 외부 실행 기능을 추가하지 않는다.
 
