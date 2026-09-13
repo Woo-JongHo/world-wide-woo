@@ -13,14 +13,6 @@ export function workbenchReceiptClearsComposer(receipt: WorkbenchCommandReceipt)
 	return receipt.state !== "rejected";
 }
 
-export function approvalDecisionFromInput(text: string): "accept" | "acceptForSession" | "decline" | null {
-	const value = text.trim().toLocaleLowerCase("ko-KR").replace(/[.!?]+$/u, "");
-	if (["네", "예", "응", "승인", "승인해", "진행", "진행해", "yes", "y", "ok"].includes(value)) return "accept";
-	if (["이번 세션 동안 승인", "세션 동안 승인", "항상 승인", "accept for session"].includes(value)) return "acceptForSession";
-	if (["아니오", "아니요", "안돼", "거절", "거절해", "취소", "no", "n"].includes(value)) return "decline";
-	return null;
-}
-
 export type WorkbenchRuntimeMode = "bypass" | "manual" | "plan";
 
 export interface WorkbenchRuntimeConfiguration {

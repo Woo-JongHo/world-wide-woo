@@ -29,6 +29,14 @@ function overlay(overrides: Partial<NativeApprovalRequest> = {}) {
 }
 
 describe("ApprovalOverlay", () => {
+	test("does not infer a decision from ordinary chat words", () => {
+		const { panel, decisions } = overlay();
+
+		for (const input of ["네", "승인해", "진행해", "yes", "아니요", "거절해", "취소", "no"]) panel.handleInput(input);
+
+		expect(decisions).toEqual([]);
+	});
+
 	test("shows the command, the reason, the path, and every advertised decision", () => {
 		const lines = overlay().lines().join("\n");
 		expect(lines).toContain("승인 필요 · 명령");

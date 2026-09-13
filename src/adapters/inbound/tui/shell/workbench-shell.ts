@@ -77,7 +77,6 @@ import {
 	type ObservabilityViewMode,
 } from "./workbench-navigation.controller";
 import {
-	approvalDecisionFromInput,
 	loginProviderFromInput,
 	nextWorkbenchRuntimeMode,
 	workbenchModelSettings,
@@ -981,21 +980,10 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		void (async () => {
 			if (await handleLocal(text)) return;
 			if (snapshot.pendingApproval) {
-				const decision = approvalDecisionFromInput(text);
-				if (!decision) {
-					editor.setText(text);
-					status.setNotice("승인 선택 화면을 열었습니다. ↑↓ 또는 숫자로 선택하세요.");
-					tui.requestRender();
-					return;
-				}
-				const receipt = await workbench.dispatch({
-					type: "approval.resolve",
-					requestId: snapshot.pendingApproval.requestId,
-					response: { decision },
-				});
-				showReceipt(receipt);
-				if (workbenchReceiptClearsComposer(receipt)) await composerDraft?.clear().catch(() => undefined);
-				else editor.setText(text);
+				editor.setText(text);
+				openApproval(snapshot.pendingApproval);
+				status.setNotice("승인 선택 화면을 열었습니다. ↑↓ 또는 숫자로 선택하세요.");
+				tui.requestRender();
 				return;
 			}
 			const receipt = await workbench.dispatch({ type: "chat.send", text });

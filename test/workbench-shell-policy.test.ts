@@ -7,7 +7,6 @@ import {
 	workbenchFrameTitle,
 } from "../src/adapters/inbound/tui/shell/workbench-shell";
 import {
-	approvalDecisionFromInput,
 	loginProviderFromInput,
 	nextWorkbenchRuntimeMode,
 	workbenchModelSettings,
@@ -58,13 +57,6 @@ describe("native workbench shell receipt policy", () => {
 		slot.set(first);
 		expect(slot.render(80)).toEqual(["composer"]);
 	});
-	test("accepts or declines a pending approval through natural Chat input", () => {
-		for (const text of ["네", "승인해", "진행해", "yes"]) expect(approvalDecisionFromInput(text)).toBe("accept");
-		for (const text of ["아니요", "거절해", "취소", "no"]) expect(approvalDecisionFromInput(text)).toBe("decline");
-		expect(approvalDecisionFromInput("이번 세션 동안 승인")).toBe("acceptForSession");
-		expect(approvalDecisionFromInput("설명을 더 해줘")).toBeNull();
-	});
-
 	test("cycles Shift+Tab runtime modes as Bypass, Manual, and Plan", () => {
 		expect(workbenchRuntimeMode({ permissionMode: "all", collaborationMode: "manual" })).toBe("bypass");
 		expect(nextWorkbenchRuntimeMode({ permissionMode: "all", collaborationMode: "manual" })).toBe("manual");
