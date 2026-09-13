@@ -2,6 +2,26 @@ import { describe, expect, test } from "bun:test";
 import { RenderScheduler, workbenchRenderUrgency } from "../src/adapters/inbound/tui/foundation/rendering/render-scheduler";
 
 describe("RenderScheduler", () => {
+	test("defaults streaming updates to a 32ms responsiveness budget", () => {
+		let now = 0;
+		let scheduledDelay = -1;
+		const scheduler = new RenderScheduler(
+			() => undefined,
+			undefined,
+			() => now,
+			(_callback, delay) => {
+				scheduledDelay = delay;
+				return 1 as unknown as ReturnType<typeof setTimeout>;
+			},
+			() => undefined,
+		);
+
+		scheduler.request("streaming");
+		now = 1;
+		scheduler.request("streaming");
+		expect(scheduledDelay).toBe(31);
+	});
+
 	test("coalesces in-turn native deltas but flushes durable and terminal updates", () => {
 		const working = { phase: "working", journalSequence: 7 } as const;
 		expect(workbenchRenderUrgency(working, { phase: "working", journalSequence: 7 })).toBe("streaming");

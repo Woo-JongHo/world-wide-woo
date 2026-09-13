@@ -1374,8 +1374,10 @@ describe("ProjectWorkbench", () => {
 		expect(createCalls).toHaveLength(1);
 		expect(createCalls[0]?.range).toEqual({ startSequence: 4, endSequence: 12 });
 		expect(createCalls[0]?.instruction).toContain("질문: 이 세션의 구현과 검증을 진행해줘");
-		expect(createCalls[0]?.instruction).toContain("왜:");
-		expect(createCalls[0]?.instruction).toContain("결과:");
+		expect(createCalls[0]?.instruction).toContain("Reason:");
+		expect(createCalls[0]?.instruction).toContain("Proposal:");
+		expect(createCalls[0]?.instruction).toContain("Action:");
+		expect(createCalls[0]?.instruction).toContain("Result:");
 		expect(createCalls[0]?.instruction).toContain("처음 보는 사람");
 		expect(native.startTurnCalls).toBe(2);
 		expect(workbench.snapshot.chatQueue).toEqual([]);
@@ -1512,12 +1514,12 @@ describe("ProjectWorkbench", () => {
 		}
 	});
 
-	test("rejects generated T-notes without exactly one canonical non-empty question, why, and result", async () => {
+	test("rejects generated T-notes without exactly one canonical non-empty report field", async () => {
 		const appends: unknown[] = [];
 		const generator: DetachedTextGenerator = {
 			async generate() {
 				return {
-					text: "질문: 질문\n왜: 이유\n결과: 결과\n추가: 금지",
+					text: "질문: 질문\nReason: 이유\nProposal: 방향\nAction: 수행\nResult: 결과\n추가: 금지",
 					provenance: { provider: "test", model: "test", version: "test" },
 					isolation: { appliedPolicy: { cwd: "", noTools: true, network: false, readOnly: true, ephemeral: true }, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 },
 				};
@@ -1539,14 +1541,14 @@ describe("ProjectWorkbench", () => {
 
 	test("does not append question-mismatched or prohibited T-note fields", async () => {
 		for (const text of [
-			"질문: 다른 질문\n왜: 이유를 확인했습니다.\n결과: 결과를 저장했습니다.",
-			"질문: 질문\n왜: 이유를 확인했습니다.\n결과: 후속 작업을 처리할 예정입니다.",
-			"질문: 질문\n왜: 이유를 확인했습니다.\n결과: 이후 배포합니다.",
-			"질문: 질문\n왜: src/app.ts와 package.json을 확인했습니다.\n결과: 결과를 저장했습니다.",
-			"질문: 질문\n왜: 이유를 확인했습니다.\n결과: README.md와 package.json을 수정했습니다.",
-			"질문: 질문\n왜: stderr FAIL expected received\n결과: 결과를 저장했습니다.",
-			"질문: 질문\n왜: AssertionError: expected 2 to equal 1\n결과: 결과를 저장했습니다.",
-			"질문: 질문\n왜: 숨은 사고를 그대로 기록합니다.\n결과: 결과를 저장했습니다.",
+			"질문: 다른 질문\nReason: 이유를 확인했습니다.\nProposal: 방향을 정했습니다.\nAction: 확인했습니다.\nResult: 결과를 저장했습니다.",
+			"질문: 질문\nReason: 이유를 확인했습니다.\nProposal: 방향을 정했습니다.\nAction: 확인했습니다.\nResult: 후속 작업을 처리할 예정입니다.",
+			"질문: 질문\nReason: 이유를 확인했습니다.\nProposal: 방향을 정했습니다.\nAction: 이후 배포합니다.\nResult: 결과를 저장했습니다.",
+			"질문: 질문\nReason: src/app.ts와 package.json을 확인했습니다.\nProposal: 방향을 정했습니다.\nAction: 확인했습니다.\nResult: 결과를 저장했습니다.",
+			"질문: 질문\nReason: 이유를 확인했습니다.\nProposal: 방향을 정했습니다.\nAction: README.md와 package.json을 수정했습니다.\nResult: 결과를 저장했습니다.",
+			"질문: 질문\nReason: stderr FAIL expected received\nProposal: 방향을 정했습니다.\nAction: 확인했습니다.\nResult: 결과를 저장했습니다.",
+			"질문: 질문\nReason: 이유를 확인했습니다.\nProposal: 방향을 정했습니다.\nAction: AssertionError: expected 2 to equal 1\nResult: 결과를 저장했습니다.",
+			"질문: 질문\nReason: 숨은 사고를 그대로 기록합니다.\nProposal: 방향을 정했습니다.\nAction: 확인했습니다.\nResult: 결과를 저장했습니다.",
 		]) {
 			let appendCount = 0;
 			const service = new TNoteService({
@@ -1576,7 +1578,7 @@ describe("ProjectWorkbench", () => {
 		const service = new TNoteService({
 			async generate() {
 				return {
-					text: `질문: ${question}\n왜: 문제의 원인과 영향을 이해하려고 확인했습니다.\n결과: 오류 원인을 설명하고 해결 방법을 정리했습니다.`,
+					text: `질문: ${question}\nReason: 문제의 원인과 영향을 이해하려고 확인했습니다.\nProposal: 관측된 오류를 설명하는 방향을 선택했습니다.\nAction: 관련 동작을 확인하고 설명을 정리했습니다.\nResult: 오류 원인과 해결 방법을 정리했습니다.`,
 					provenance: { provider: "test", model: "test", version: "test" },
 					isolation: { appliedPolicy: { cwd: "", noTools: true, network: false, readOnly: true, ephemeral: true }, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 },
 				};
@@ -1601,7 +1603,7 @@ describe("ProjectWorkbench", () => {
 		const service = new TNoteService({
 			async generate() {
 				return {
-					text: "질문: 질문\n왜: 완료 상태를 확인했습니다.\n결과: 후속 작업이나 추후 조치는 필요하지 않습니다.",
+					text: "질문: 질문\nReason: 완료 상태를 확인했습니다.\nProposal: 현재 결과를 유지하기로 했습니다.\nAction: 완료 상태를 검증했습니다.\nResult: 후속 작업이나 추후 조치는 필요하지 않습니다.",
 					provenance: { provider: "test", model: "test", version: "test" },
 					isolation: { appliedPolicy: { cwd: "", noTools: true, network: false, readOnly: true, ephemeral: true }, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 },
 				};
@@ -1625,7 +1627,7 @@ describe("ProjectWorkbench", () => {
 		const service = new TNoteService({
 			async generate() {
 				return {
-					text: `질문: ${expectedQuestion}\n왜: 문제의 영향을 이해하려고 확인했습니다.\n결과: 오류 원인을 설명했습니다.`,
+					text: `질문: ${expectedQuestion}\nReason: 문제의 영향을 이해하려고 확인했습니다.\nProposal: 관측 가능한 내용만 설명하기로 했습니다.\nAction: 완료된 활동을 확인했습니다.\nResult: 오류 원인을 설명했습니다.`,
 					provenance: { provider: "test", model: "test", version: "test" },
 					isolation: { appliedPolicy: { cwd: "", noTools: true, network: false, readOnly: true, ephemeral: true }, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 },
 				};
@@ -1669,7 +1671,7 @@ describe("ProjectWorkbench", () => {
 		const service = new TNoteService({
 			async generate() {
 				return {
-					text: "질문: 범위 질문\n왜: 선택 범위를 확인했습니다.\n결과: 범위 요약을 저장했습니다.",
+					text: "질문: 범위 질문\nReason: 선택 범위를 확인할 필요가 있었습니다.\nProposal: 완료된 범위만 보고서로 남기기로 했습니다.\nAction: 선택 범위를 확인했습니다.\nResult: 범위 보고서를 저장했습니다.",
 					provenance: { provider: "test", model: "test", version: "test" },
 					isolation: { appliedPolicy: { cwd: "", noTools: true, network: false, readOnly: true, ephemeral: true }, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 },
 				};
@@ -1691,6 +1693,76 @@ describe("ProjectWorkbench", () => {
 		await expect(workbench.dispatch({ type: "tnote.capture-range", startSequence: 1, endSequence: 3 }))
 			.resolves.toMatchObject({ state: "accepted" });
 		expect(stored).toHaveLength(1);
+		await workbench.close();
+	});
+
+	test("bounds a completed turn with more than 100 activities before creating its automatic T-note", async () => {
+		const journal = new MemoryJournal();
+		const append = (
+			kind: ProjectActivity["kind"],
+			phase: ProjectActivity["phase"],
+			nativeRefs: ProjectActivity["nativeRefs"],
+			payload: ProjectActivity["payload"],
+		) => journal.append({
+			projectId: "sample-project",
+			kind,
+			phase,
+			provider: "test",
+			nativeRefs,
+			sourceDigest: `sha256:${String(journal.records.length + 1).padStart(64, "0")}`,
+			payload,
+		});
+		await append("message", "completed", { threadId: "thread-1" }, { direction: "outbound", text: "긴 작업을 요약해줘" });
+		await append("progress", "started", { threadId: "thread-1", turnId: "turn-1" }, { method: "turn/start" });
+		for (let index = 0; index < 97; index += 1) {
+			await append("tool", "completed", { threadId: "thread-1", turnId: "turn-1", itemId: `tool-${index}` }, {
+				method: "item/completed",
+				params: { item: { type: "commandExecution", command: `step-${index}`, exitCode: 0 } },
+			});
+		}
+		await append("message", "completed", { threadId: "thread-1", turnId: "turn-1", itemId: "answer" }, { role: "assistant", text: "긴 작업을 마쳤습니다." });
+		await append("progress", "completed", { threadId: "thread-1", turnId: "turn-1" }, { method: "turn/completed" });
+		expect(journal.records).toHaveLength(101);
+		const questionId = journal.records[0]!.id;
+		const turnStartId = journal.records[1]!.id;
+		const answerId = journal.records.at(-2)!.id;
+		const turnCompletedId = journal.records.at(-1)!.id;
+
+		let generatedSourceIds: readonly string[] = [];
+		const drafts: import("../src/core/domain/work/t-notes").TNoteDraft[] = [];
+		const service = new TNoteService({
+			async generate(request) {
+				generatedSourceIds = request.packet.activities.map((activity) => activity.id);
+				return {
+					text: "질문: 긴 작업을 요약해줘\nReason: 긴 실행의 완료 기록이 필요했습니다.\nProposal: 대표 활동을 보존해 보고서로 정리했습니다.\nAction: 실행 범위와 최종 결과를 확인했습니다.\nResult: T-note를 저장했고 외부 기록은 변경하지 않았습니다.",
+					provenance: { provider: "test", model: "test", version: "test" },
+					isolation: { appliedPolicy: { cwd: "", noTools: true, network: false, readOnly: true, ephemeral: true }, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 },
+				};
+			},
+		}, {
+			async append(input) {
+				const draft = { ...input, schemaVersion: 1 as const, sequence: drafts.length + 1 };
+				drafts.push(draft);
+				return draft;
+			},
+			async readAll() { return drafts; },
+		});
+		const workbench = new ProjectWorkbench(new FakeNativeHarness(), journal, {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+			resumeThreadId: "thread-1",
+			tnotes: service,
+		});
+		await ready(workbench);
+		await Bun.sleep(10);
+
+		expect(generatedSourceIds).toHaveLength(100);
+		expect(generatedSourceIds).toContain(questionId);
+		expect(generatedSourceIds).toContain(turnStartId);
+		expect(generatedSourceIds).toContain(answerId);
+		expect(generatedSourceIds).toContain(turnCompletedId);
+		expect(workbench.snapshot.tnotes).toHaveLength(1);
+		expect(workbench.snapshot.actionResult?.title).not.toBe("부가 기록 실패 · 요청 실행 계속");
 		await workbench.close();
 	});
 
@@ -1863,7 +1935,7 @@ describe("ProjectWorkbench", () => {
 				attempts += 1;
 				if (attempts === 1) throw new Error("temporary generation failure");
 				return {
-					text: "질문: 대상 질문\n왜: 대상 turn만 다시 확인했습니다.\n결과: 재시작 뒤 요약을 저장했습니다.",
+					text: "질문: 대상 질문\nReason: 실패한 생성을 복구해야 했습니다.\nProposal: 대상 turn만 다시 보고서로 만들기로 했습니다.\nAction: 대상 turn 범위를 다시 확인했습니다.\nResult: 재시작 뒤 보고서를 저장했습니다.",
 					provenance: { provider: "test", model: "test", version: "test" },
 					isolation: { appliedPolicy: { cwd: "", noTools: true, network: false, readOnly: true, ephemeral: true }, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 },
 				};
@@ -2668,9 +2740,17 @@ describe("ProjectWorkbench", () => {
 		expect(tnoteCreates).toBe(1);
 		expect(workbench.snapshot.actionResult).toMatchObject({
 			kind: "tnote",
-			title: "부가 기록 실패 · 요청 실행 계속",
-			body: "checkpoint 관측용 종료",
+			title: "T-note 자동 저장 실패 · 요청은 완료됨",
+			body: expect.stringContaining("checkpoint 관측용 종료"),
 		});
+		native.emit({
+			type: "notification",
+			method: "turn/completed",
+			refs: { threadId: "thread-1", turnId: "turn-1" },
+			params: { turn: { id: "turn-1", status: "completed", error: null } },
+		});
+		await Bun.sleep(10);
+		expect(tnoteCreates).toBe(1);
 		await workbench.close();
 	});
 

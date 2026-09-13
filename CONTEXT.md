@@ -36,7 +36,7 @@ _Avoid_: 연결된 모든 도구로의 무조건 복제, 초안 생성만으로 
 
 **Session Goal**: 해당 Run 전체가 도달하려는 선택적 한 문장. Chat의 완료 기록 앞에 표시할 수 있다.
 
-**T-note**: 질문 하나의 Turn이 끝난 뒤 `질문 · 왜 이 과정을 거쳤는지 · 결과`를 Chat의 안정된 `#n`으로 남기는 완료 기록.
+**T-note**: 질문 하나의 Turn이 끝난 뒤 `질문 · Reason · Proposal · Action · Result`를 Chat의 안정된 `#n`으로 남기는 종료 보고서. 옛 `질문 · 왜 · 결과` 기록은 읽기 호환한다.
 _Avoid_: 실시간 진행 표시, Todo 복제, raw transcript 나열.
 
 **Trace**: 선택한 Run이 공개한 Plan·Agent·Tool·승인·결과와 Source를 시간 및 계층 관계로 보여주는 관측 Projection.

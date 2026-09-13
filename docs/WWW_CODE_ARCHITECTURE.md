@@ -70,3 +70,29 @@ Agent·Intent·Skill·Workflow의 실행 코드는 아직 없다. 각각 `core/a
 - TUI Foundation의 상위 계층 참조와 Feature 간 sibling import
 
 내부 path alias를 새로 도입할 때는 Architecture 검사도 같은 변경에서 확장한다.
+
+## 함수 책임과 정책의 소유
+
+CLI의 공개 `runCli`는 안내 출력, 명령 실행과 오류 종료를 조율한다. Astra 옵션 해석과
+재개 thread 선택은 내부 함수가 담당하며, 주입된 실행 함수의 receiver와 취소 동작을 보존한다.
+
+승인 화면은 `projectApprovalRequest`의 동일한 표시 투영을 소비한다. 종류별 라벨,
+문자열 정제, 길이 제한과 fallback을 각 화면에서 다시 구현하지 않는다. 실행 lane의
+provider·model·effort 선택은 session 조립 시 한 번 계산해 Native와 Workbench에 함께 전달한다.
+Chat 상태 표식과 동일한 공개 출력·구조화 파싱 한도는 `chat-output-policy.ts`가 소유한다.
+서로 다른 화면의 줄 수 제한은 각 화면에 둔다.
+
+Core의 journal 검증, turn 선택, 활동 귀속과 최종 step 조립은 명확한 계산 단계로 분리한다.
+승인·실행·journal 기록처럼 순서가 계약인 동작은 호출 순서를 유지하며, 순수 투영과
+반복되는 응답 판정만 내부 함수로 모은다.
+
+값은 실제 변경 이유에 따라 소유한다. 배포마다 달라지는 값은 구성에서 받고,
+프로토콜 버전·해시 framing·상태명은 해당 계약에, 표시 한도와 기본 문구는 해당 제품 정책에 둔다.
+모든 리터럴을 설정으로 옮기거나 함수 길이만을 이유로 전달용 함수를 만들지 않는다.
+
+함수 전수 측정과 유지·변경 판정은
+[함수 리팩토링 기록](../.omo/evidence/function-refactor-2026-09-13/scope.md)에 연결한다.
+
+커밋 영수증의 `context.projectId`는 `.www/control-ledger/development/project.json`의
+로컬 개발 프로젝트 UUID를 사용한다. 표시 이름이나 Linear UUID와 혼동하지 않는다.
+설정 누락·손상은 staging 및 커밋 전에 검증하며 기존 영수증은 다시 쓰지 않는다.

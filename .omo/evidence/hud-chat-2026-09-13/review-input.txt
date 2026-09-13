@@ -1,0 +1,90 @@
+Read-only final audit. Do not use tools or edit files. Review this HUD one-row change for defects. Shell changes: astra.show(dashboard) changed to execution, HUD maxSize is 1, reserved height changed from 2 to 1. Existing unrelated changes are excluded. 98 targeted tests and type check passed before adding startup test. Return concrete defects only, or PASS with verification limits.
+diff --git a/src/adapters/inbound/tui/features/usage/astra-usage.ts b/src/adapters/inbound/tui/features/usage/astra-usage.ts
+index 74eabca..d71005c 100644
+--- a/src/adapters/inbound/tui/features/usage/astra-usage.ts
++++ b/src/adapters/inbound/tui/features/usage/astra-usage.ts
+@@ -40,6 +40,6 @@ export function astraUsageLine(snapshots: readonly UsageSnapshot[], width: numbe
+ 	}
+ 	const compact = providers.map(p => segment(p, false, true)).join("  ");
+ 	if (visibleWidth(compact) <= width) return fit(compact, width);
+-	const names = providers.map(([id, name]) => providerInk[id](id === active ? `▸${name}` : name)).join("  ");
+-	return fit(names, width);
++	const activeProvider = providers.find(([id]) => id === active)!;
++	return fit(`${segment(activeProvider, false, true)}  +${providers.length - 1}`, width);
+ }
+diff --git a/src/adapters/inbound/tui/shell/astra-surface.ts b/src/adapters/inbound/tui/shell/astra-surface.ts
+index 49a30b1..8156048 100644
+--- a/src/adapters/inbound/tui/shell/astra-surface.ts
++++ b/src/adapters/inbound/tui/shell/astra-surface.ts
+@@ -171,9 +171,20 @@ export class AstraHud implements Component {
+ 		const context = s.hud?.showContext === false ? "" : s.contextUsage ? `ctx ${number(s.contextUsage.usedTokens)}/${number(s.contextUsage.contextWindow)} ${usagePercent(s.contextUsage.percent).trim()}` : "ctx —";
+ 		const permission = s.permissionMode === "all" ? a.attention("전체 권한") : a.muted(s.collaborationMode === "plan" ? "계획 모드" : "수동 승인");
+ 		const metadata = `${a.active("A›")}  ${a.text(model)} ${a.muted(s.effort ?? "")}  ${permission}`;
+-		const rows = [fit("  " + pair(metadata, a.muted(context), width - 4), width)];
+-		if (s.hud?.showUsage !== false) rows.push(fit(`  ${astraUsageLine(this.usage(), Math.max(1, width - 2), model)}`, width));
+-		return rows;
++		const innerWidth = Math.max(0, width - 4);
++		const compactContext = s.hud?.showContext === false ? "" : s.contextUsage ? `ctx ${usagePercent(s.contextUsage.percent).trim()}` : "ctx —";
++		const contextText = width >= 140 ? context : compactContext;
++		const contextWidth = visibleWidth(contextText);
++		const metadataWidth = s.hud?.showUsage === false
++			? Math.max(0, innerWidth - contextWidth - 2)
++			: Math.min(visibleWidth(metadata), Math.max(0, Math.floor(innerWidth * 0.42)));
++		const parts = [fit(metadata, metadataWidth)];
++		if (s.hud?.showUsage !== false) {
++			const usageWidth = Math.max(0, innerWidth - metadataWidth - contextWidth - (contextText ? 4 : 2));
++			if (usageWidth > 0) parts.push(astraUsageLine(this.usage(), usageWidth, model));
++		}
++		if (contextText) parts.push(a.muted(contextText));
++		return [fit("  " + parts.join("  "), width)];
+ 	}
+ }
+ 
+diff --git a/test/tui-shell-characterization.test.ts b/test/tui-shell-characterization.test.ts
+index 576d156..d43dd29 100644
+--- a/test/tui-shell-characterization.test.ts
++++ b/test/tui-shell-characterization.test.ts
+@@ -10,13 +10,14 @@ class CharacterizationTerminal implements Terminal {
+ 	columns = 100;
+ 	rows = 30;
+ 	kittyProtocolActive = false;
++	output = "";
+ 	stopped = false;
+ 	input: (data: string) => void = () => { throw new Error("terminal not started"); };
+ 	resize: () => void = () => { throw new Error("terminal not started"); };
+ 	start(input: (data: string) => void, resize: () => void): void { this.input = input; this.resize = resize; }
+ 	stop(): void { this.stopped = true; }
+ 	async drainInput(): Promise<void> { this.input = () => undefined; }
+-	write(): void {}
++	write(data: string): void { this.output += data; }
+ 	moveBy(): void {}
+ 	hideCursor(): void {}
+ 	showCursor(): void {}
+@@ -44,6 +45,16 @@ interface ShellHarness {
+ }
+ 
+ describe("runProjectWorkbenchShell characterization", () => {
++	test("opens Chat directly without dismissing Dashboard", async () => {
++		const shell = startShell(astraFixture("ready"));
++		try {
++			await settle();
++			expect(shell.terminal.output).not.toContain("WWW Dashboard");
++			await shell.submit("바로 대화 시작");
++			expect(shell.commands).toEqual([{ type: "chat.send", text: "바로 대화 시작" }]);
++		} finally { await shell.shutdown(); }
++	});
++
+ 	test("dispatches one chat send for a ready composer submission", async () => {
+ 		const shell = startShell(astraFixture("ready"));
+ 		try {
+@@ -92,10 +103,6 @@ describe("runProjectWorkbenchShell characterization", () => {
+ 	test("dispatches one cancellation for Escape while working", async () => {
+ 		const shell = startShell(astraFixture("working"));
+ 		try {
+-			// Astra now opens on WWW Dashboard; move to the execution surface before
+-			// asserting its Escape cancellation contract.
+-			shell.terminal.input("\x07");
+-			shell.terminal.input("1");
+ 			await settle();
+ 			shell.terminal.input("\x1b");
+ 			await settle();

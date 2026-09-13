@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { CommitCandidate, CommitPolicy } from "../src/core/commit/commit-governance";
 import { candidateDigest, CommitControlPlane } from "../src/core/commit/commit-governance";
-import { assertCandidateMatchesWorktree, assertStagedBoundary, authorize, candidateContentDigest, changedPaths, executeCommit } from "../src/adapters/outbound/git/git-commit-control";
+import { assertCandidateMatchesWorktree, assertStagedBoundary, authorize, candidateContentDigest, changedPaths, executeCommit, stagedPaths } from "../src/adapters/outbound/git/git-commit-control";
 import { CommitReceiptStore } from "../src/adapters/outbound/persistence/commit-receipt-store";
 
 const policy: CommitPolicy = { messageProfile: "korean-result", subjectMaxLength: 72, subjectSoftLength: 50, requireScope: true, requireType: true, requireHumanAuthorization: true, fullFileStagingOnly: true, protectedBranches: ["dev", "main"], allowedTypes: ["feat", "fix", "perf", "refactor", "test", "docs", "build", "ci", "chore", "revert"], scopes: { commit: "커밋" } };
@@ -57,9 +57,11 @@ describe("staged boundary", () => {
 	});
 	test("직접 commit을 막고 승인된 executor만 commit과 Receipt를 만든다", () => {
 		const root = mkdtempSync(join(tmpdir(), "woo-commit-e2e-")); roots.push(root);
-		for (const directory of ["src/core/commit", "src/adapters/outbound/git", "scripts", ".woo", ".githooks", ".www/runtime/commit"]) mkdirSync(join(root, directory), { recursive: true });
+		for (const directory of ["src/core/commit", "src/adapters/outbound/git", "scripts", ".woo", ".githooks", ".www/runtime/commit", ".www/control-ledger/development"]) mkdirSync(join(root, directory), { recursive: true });
 		const project = join(import.meta.dir, "..");
 		for (const path of ["src/core/commit/commit-governance.ts", "src/adapters/outbound/git/git-commit-control.ts", "scripts/woo-commit.ts", ".woo/project.yaml", ".githooks/pre-commit", ".githooks/prepare-commit-msg", ".githooks/commit-msg", ".githooks/post-commit", ".githooks/pre-push"]) copyFileSync(join(project, path), join(root, path));
+		const projectId = "11111111-1111-4111-8111-111111111111";
+		writeFileSync(join(root, ".www/control-ledger/development/project.json"), JSON.stringify({ schemaVersion: 1, id: projectId }));
 		execFileSync("chmod", ["+x", ...["pre-commit", "prepare-commit-msg", "commit-msg", "post-commit", "pre-push"].map(name => join(root, ".githooks", name))]);
 		execFileSync("git", ["init", "-q", root]); execFileSync("git", ["-C", root, "config", "user.name", "Woo Test"]); execFileSync("git", ["-C", root, "config", "user.email", "test@example.invalid"]);
 		writeFileSync(join(root, "base"), "base\n"); execFileSync("git", ["-C", root, "add", "base"]); execFileSync("git", ["-C", root, "commit", "-qm", "base"]); execFileSync("git", ["-C", root, "config", "core.hooksPath", ".githooks"]);
@@ -68,7 +70,8 @@ describe("staged boundary", () => {
 		const head = execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
 		const value = candidate({ baseHead: head, contentDigest: candidateContentDigest(root, ["change.txt"]) }); const candidatePath = join(root, ".www/runtime/commit/candidate.json"); writeFileSync(candidatePath, JSON.stringify(value));
 		const authorizationPath = authorize(root, value, "Woo Test"); const result = executeCommit(root, candidatePath, authorizationPath, policy);
-		expect(readFileSync(join(root, ".www/receipts/commit", `${result.sha}.json`), "utf8")).toContain(result.sha);
+		const receipt = JSON.parse(readFileSync(join(root, ".www/receipts/commit", `${result.sha}.json`), "utf8")) as { context: { projectId: string; head: string } };
+		expect(receipt.context).toMatchObject({ projectId, head: result.sha });
 		const store = new CommitReceiptStore(root, join(root, "receipts.sqlite")); expect(store.rebuild().receipts).toBe(2); expect(store.query(result.sha)).not.toBeNull(); store.close();
 		expect(execFileSync("git", ["-C", root, "show", "-s", "--format=%s", "HEAD"], { encoding: "utf8" }).trim()).toBe("승인된 변경만 커밋한다");
 		execFileSync("git", ["-C", root, "config", "woo.receiptBaseline", result.sha]);
@@ -80,6 +83,21 @@ describe("staged boundary", () => {
 			: spawnSync(hook, [], { cwd: root, input: `refs/heads/master ${bypass} refs/heads/master ${result.sha}\n`, encoding: "utf8" });
 		expect(pushGate.status).toBe(2); expect(pushGate.stderr).toContain("Receipt가 없습니다");
 	}, 60_000);
+	test("저장소 project identity가 없으면 Git을 변경하기 전에 차단한다", () => {
+		const root = mkdtempSync(join(tmpdir(), "woo-commit-no-project-")); roots.push(root);
+		mkdirSync(join(root, ".www/runtime/commit"), { recursive: true });
+		execFileSync("git", ["init", "-q", root]);
+		execFileSync("git", ["-C", root, "config", "user.name", "Woo Test"]);
+		execFileSync("git", ["-C", root, "config", "user.email", "test@example.invalid"]);
+		writeFileSync(join(root, "base"), "base\n"); execFileSync("git", ["-C", root, "add", "base"]); execFileSync("git", ["-C", root, "commit", "-qm", "base"]);
+		writeFileSync(join(root, "change.txt"), "controlled\n");
+		const head = execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+		const value = candidate({ baseHead: head, contentDigest: candidateContentDigest(root, ["change.txt"]) });
+		const candidatePath = join(root, ".www/runtime/commit/candidate.json"); writeFileSync(candidatePath, JSON.stringify(value));
+		expect(() => executeCommit(root, candidatePath, authorize(root, value, "Woo Test"), policy)).toThrow("COMMIT_PROJECT_IDENTITY_MISSING");
+		expect(execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim()).toBe(head);
+		expect(stagedPaths(root)).toEqual([]);
+	});
 	test("승인 뒤 후보 파일 내용이 바뀌면 stale로 차단한다", () => {
 		const root = mkdtempSync(join(tmpdir(), "woo-commit-stale-")); roots.push(root);
 		execFileSync("git", ["init", "-q", root]); execFileSync("git", ["-C", root, "config", "user.name", "Woo Test"]); execFileSync("git", ["-C", root, "config", "user.email", "test@example.invalid"]);
@@ -90,6 +108,8 @@ describe("staged boundary", () => {
 	test("rename의 삭제·추가 경로를 Candidate부터 Receipt까지 동일하게 보존한다", () => {
 		const root = mkdtempSync(join(tmpdir(), "woo-commit-rename-")); roots.push(root);
 		mkdirSync(join(root, ".www/runtime/commit"), { recursive: true });
+		mkdirSync(join(root, ".www/control-ledger/development"), { recursive: true });
+		writeFileSync(join(root, ".www/control-ledger/development/project.json"), JSON.stringify({ schemaVersion: 1, id: "22222222-2222-4222-8222-222222222222" }));
 		execFileSync("git", ["init", "-q", root]);
 		execFileSync("git", ["-C", root, "config", "user.name", "Woo Test"]);
 		execFileSync("git", ["-C", root, "config", "user.email", "test@example.invalid"]);

@@ -4,6 +4,7 @@ import type { ProjectActivity, ProjectActivityKind } from "../../../../../core/d
 import type { WorkbenchLiveActivity } from "../../../../../core/domain/work/workbench";
 import type { WorkStepNarration } from "../../../../../core/domain/work";
 import { colors, semantic } from "../../foundation/theme/theme";
+import { CHAT_PUBLIC_OUTPUT_MAX_CHARS } from "./chat-output-policy";
 import {
 	boundedExecutionRows,
 	fitExecutionText,
@@ -21,7 +22,6 @@ import {
 const INPUT_MAX_LINES = 4;
 const INPUT_MAX_CHARS = 1_200;
 const OUTPUT_MAX_LINES = 10;
-const OUTPUT_MAX_CHARS = 2_400;
 
 interface WorkStepCardOptions extends WorkStepProjectionOptions {
 	stepNumber: number;
@@ -59,7 +59,7 @@ export class WorkStepCard implements Component {
 		}
 		const contentWidth = width - 4;
 		const input = boundedExecutionRows(projected.input, contentWidth, INPUT_MAX_LINES, INPUT_MAX_CHARS, false, "입력");
-		const output = boundedExecutionRows(projected.output, contentWidth, OUTPUT_MAX_LINES, OUTPUT_MAX_CHARS, true, "출력");
+		const output = boundedExecutionRows(projected.output, contentWidth, OUTPUT_MAX_LINES, CHAT_PUBLIC_OUTPUT_MAX_CHARS, true, "출력");
 		const rows = [
 			`${semantic.assistantLabel(`단계 ${this.options.stepNumber}`)} · ${presentation.text}`,
 			colors.success(projected.what),
@@ -97,7 +97,7 @@ export class ObservationCard implements Component {
 		const lines: string[] = [header];
 		lines.push(...projected.input.map((line) => renderExecutionLine(line, "input")));
 		const output = compactObservationOutput(projected.output, status);
-		lines.push(...boundedExecutionRows(output, Math.max(1, width - 2), 8, OUTPUT_MAX_CHARS, true, "출력")
+		lines.push(...boundedExecutionRows(output, Math.max(1, width - 2), 8, CHAT_PUBLIC_OUTPUT_MAX_CHARS, true, "출력")
 			.map((line) => renderExecutionLine(line, "output")));
 		return lines.map((line) => presentation.surface(` ${fitExecutionText(line, Math.max(1, width - 1))}`));
 	}

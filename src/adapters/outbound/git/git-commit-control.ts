@@ -8,6 +8,21 @@ import { candidateDigest, canonicalJson, CommitControlPlane, sha256 } from "../.
 export interface CommitAuthorization { schemaVersion: 1; candidateId: string; candidateDigest: string; actor: string; authorizedAt: string }
 export interface ActiveCommit { candidatePath: string; authorizationPath: string; messagePath: string; candidateDigest: string }
 
+interface DevelopmentProjectIdentity { schemaVersion: 1; id: string }
+
+function commitProjectId(root: string): string {
+	const path = join(root, ".www/control-ledger/development/project.json");
+	if (!existsSync(path)) throw new Error(`COMMIT_PROJECT_IDENTITY_MISSING: ${path}`);
+	let value: unknown;
+	try { value = JSON.parse(readFileSync(path, "utf8")); }
+	catch { throw new Error(`COMMIT_PROJECT_IDENTITY_INVALID: ${path}`); }
+	const identity = value as Partial<DevelopmentProjectIdentity>;
+	if (identity?.schemaVersion !== 1 || typeof identity.id !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(identity.id)) {
+		throw new Error(`COMMIT_PROJECT_IDENTITY_INVALID: ${path}`);
+	}
+	return identity.id;
+}
+
 function git(root: string, args: string[], encoding: BufferEncoding | "buffer" = "utf8"): string | Buffer {
 	return execFileSync("git", ["-C", root, ...args], { encoding: encoding === "buffer" ? "buffer" : encoding, stdio: ["ignore", "pipe", "pipe"] });
 }
@@ -78,13 +93,13 @@ export function loadActiveCommit(root: string): ActiveCommit {
 	return JSON.parse(readFileSync(path, "utf8")) as ActiveCommit;
 }
 
-export function writeReceipt(root: string, candidate: CommitCandidate, authorization: CommitAuthorization, commitSha: string, message: string): string {
+export function writeReceipt(root: string, candidate: CommitCandidate, authorization: CommitAuthorization, commitSha: string, message: string, projectId = commitProjectId(root)): string {
 	const now = new Date().toISOString();
 	const receipt: Record<string, unknown> = {
 		schemaVersion: "1.0", receiptId: randomUUID(), runId: randomUUID(), candidateId: candidate.id,
 		skill: { name: "woo-commit", version: "0.1.0" }, capability: "commit", intentId: candidate.intent,
 		status: "succeeded", stage: "verify", actor: { kind: "human", provider: null, model: null },
-		context: { projectId: "world-wide-woo", repository: root, branch: String(git(root, ["branch", "--show-current"])).trim(), head: commitSha, issueIds: candidate.refs.filter(ref => /^WOO-\d+$/u.test(ref)), unitIds: candidate.refs.filter(ref => /^Code-\d{3}$/u.test(ref)) },
+		context: { projectId, repository: root, branch: String(git(root, ["branch", "--show-current"])).trim(), head: commitSha, issueIds: candidate.refs.filter(ref => /^WOO-\d+$/u.test(ref)), unitIds: candidate.refs.filter(ref => /^Code-\d{3}$/u.test(ref)) },
 		input: { digest: candidateDigest(candidate), refs: candidate.refs }, decision: { type: candidate.type, scope: candidate.scope, impactedScopes: candidate.impactedScopes ?? [], atomicity: candidate.axes },
 		validation: candidate.validations, authorization, execution: { tool: "git", argvDigest: sha256("git commit --cleanup=verbatim -F <message>"), exitCode: 0, startedAt: now, finishedAt: now },
 		result: { commitSha, treeSha: String(git(root, ["show", "-s", "--format=%T", commitSha])).trim(), messageDigest: sha256(message), files: candidate.paths, publication: "local-only" },
@@ -127,6 +142,7 @@ export function verifyRecordedCommit(root: string, candidate: CommitCandidate, m
 
 export function executeCommit(root: string, candidatePath: string, authorizationPath: string, policy: CommitPolicy): { sha: string; receipt: string } {
 	assertRepositoryReady(root);
+	const projectId = commitProjectId(root);
 	const candidate = JSON.parse(readFileSync(candidatePath, "utf8")) as CommitCandidate;
 	const control = new CommitControlPlane(policy); const errors = control.validate(candidate, true); if (errors.length) throw new Error(errors.join("\n"));
 	assertCandidateMatchesWorktree(root, candidate); const authorization = loadAuthorization(authorizationPath, candidate);
@@ -143,5 +159,5 @@ export function executeCommit(root: string, candidatePath: string, authorization
 	writeFileSync(activePath, `${JSON.stringify({ candidatePath: resolve(candidatePath), authorizationPath: resolve(authorizationPath), messagePath, candidateDigest: candidateDigest(candidate) }, null, 2)}\n`, { mode: 0o600 });
 	try { git(root, ["commit", "--cleanup=verbatim", "-F", messagePath]); }
 	finally { rmSync(activePath, { force: true }); }
-	const sha = verifyRecordedCommit(root, candidate, message); return { sha, receipt: writeReceipt(root, candidate, authorization, sha, message) };
+	const sha = verifyRecordedCommit(root, candidate, message); return { sha, receipt: writeReceipt(root, candidate, authorization, sha, message, projectId) };
 }

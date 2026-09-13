@@ -2,12 +2,11 @@ import { HStack, VStack, ScrollView, Key, matchesKey, stripTerminalSequences, vi
 import type { WorkbenchSnapshot } from "../../../../core/domain/work/workbench";
 import type { UsageSnapshot } from "../../../../core/ports";
 import { ChatScrollView } from "../features/chat/chat-scroll.view";
-import { AstraTranscriptView, executionHeading, astraExecutionIsLive } from "../features/chat/astra-execution";
+import { AstraTranscriptView, executionHeading, astraExecutionIsLive, astraNowLabel } from "../features/chat/astra-execution";
 import { AstraContextView } from "../features/context/astra-context-view";
 import { AstraPlanView, type PlanRuntimePresentation } from "../features/plan/astra-plan-view";
 import { WORKBENCH_SLASH_COMMANDS } from "../commands/slash-commands";
-import { a, astraPulse, duration, fit, number, oneLine, pair, prose, safe, section } from "../foundation/theme/astra-theme";
-import { usagePercent } from "../features/usage/usage-value";
+import { a, astraPulse, duration, fit, oneLine, pair, prose, safe, section } from "../foundation/theme/astra-theme";
 import { astraUsageLine } from "../features/usage/astra-usage";
 
 export type AstraPage = "dashboard" | "execution" | "plan" | "context" | "help";
@@ -119,9 +118,44 @@ export class AstraExecutionHeading implements Component {
 		const completedTiming = Number.isFinite(started) && Number.isFinite(ended) && ended >= started
 			? `${outcome.marker} ${outcome.label} ${duration(ended - started)}  ·  ${new Date(ended).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })} 종료`
 			: "";
-		const progress = astraExecutionIsLive(s) ? `    ${astraPulse(this.motion ? Math.floor(now / 120) : 8)}  ${a.caption(timing)}` : completedTiming ? `    ${a.caption(completedTiming)}` : "";
+		const progress = astraExecutionIsLive(s)
+			? workingStatusLine(s, now, width, this.motion)
+			: completedTiming ? `    ${a.caption(completedTiming)}` : "";
 		return [fit(`  ${ink("▎")} ${pair(ink(heading.state) + "  " + a.strong(heading.title), a.muted(hint), width - 6)}`, width), fit(`    ${pair(a.caption(heading.detail), s.chatQueue.length ? a.active(`+${s.chatQueue.length} 대기`) : "", width - 6)}`, width), fit(progress, width)];
 	}
+}
+
+function workingStatusLine(snapshot: WorkbenchSnapshot, now: number, width: number, motion: boolean): string {
+	const rootActivities = snapshot.activities.filter(activity => !snapshot.threadId || activity.nativeRefs.threadId === snapshot.threadId);
+	const turnId = snapshot.activeTurnId ?? [...rootActivities].reverse().find(activity => activity.payload.method === "turn/started")?.nativeRefs.turnId;
+	const turnActivities = rootActivities.filter(activity => turnId && activity.nativeRefs.turnId === turnId);
+	const startedAt = Date.parse(turnActivities.find(activity => activity.payload.method === "turn/started")?.recordedAt ?? "");
+	const elapsed = Number.isFinite(startedAt) ? duration(Math.max(0, now - startedAt)) : "시간 관측 대기";
+	const terminals = activeTerminalCount(turnActivities, snapshot);
+	const terminalLabel = terminals === null ? "terminal 관측 대기" : `${terminals} terminal${terminals === 1 ? "" : "s"} running`;
+	const controls = width >= 88 ? "Esc to interrupt · /monitor to view" : width >= 64 ? "Esc to interrupt" : "Esc";
+	return `    ${astraPulse(motion ? Math.floor(now / 120) : 8)}  ${a.active("Working")} ${a.caption(`(${elapsed} · ${controls}) · ${terminalLabel}`)}`;
+}
+
+/** Count only the latest observed lifecycle for each root-turn command item. */
+function activeTerminalCount(
+	activities: readonly WorkbenchSnapshot["activities"][number][],
+	snapshot: WorkbenchSnapshot,
+): number | null {
+	const latest = new Map<string, WorkbenchSnapshot["activities"][number]>();
+	for (const activity of activities) {
+		if (activity.kind !== "tool" || !activity.nativeRefs.itemId) continue;
+		latest.set(activity.nativeRefs.itemId, activity);
+	}
+	const observed = [...latest.values()].filter(activity => {
+		if (!["started", "updated"].includes(activity.phase)) return false;
+		const item = activity.payload.params && typeof activity.payload.params === "object" && !Array.isArray(activity.payload.params)
+			? (activity.payload.params as Record<string, unknown>).item : undefined;
+		return Boolean(item && typeof item === "object" && !Array.isArray(item)
+			&& (item as Record<string, unknown>).type === "commandExecution");
+	}).length;
+	if (observed > 0) return observed;
+	return snapshot.liveActivity?.kind === "tool" ? 1 : null;
 }
 
 export class AstraNotice implements Component {
@@ -144,7 +178,7 @@ export class AstraComposer implements Component {
 		const above = rows[0] ? rail(rows[0]) : null;
 		if (above === null) return rows;
 		const s = this.get();
-		const prompt = s.pendingApproval ? "승인 명령" : s.phase === "working" ? "추가 지시" : "요청 입력";
+		const prompt = "여기에 작성한다.";
 		const ink = !this.editor.focused ? a.rule : s.pendingApproval ? a.attention : a.active;
 		const label = `${this.editor.focused ? "›" : "·"} ${prompt}${above ? `  ${above}` : ""}`;
 		rows[0] = fit(`  ${ink(label)} ${ink("─".repeat(Math.max(0, width - visibleWidth(label) - 5)))}`, width);
@@ -163,17 +197,14 @@ export class AstraHud implements Component {
 	constructor(
 		private readonly get: () => WorkbenchSnapshot,
 		private readonly usage: () => readonly UsageSnapshot[] = () => [],
+		private readonly showLogos = true,
 	) {}
 	invalidate(): void {}
 	render(width: number): string[] {
 		const s = this.get();
 		const model = oneLine(s.activeModel ?? s.model ?? "모델 미확인", 70);
-		const context = s.hud?.showContext === false ? "" : s.contextUsage ? `ctx ${number(s.contextUsage.usedTokens)}/${number(s.contextUsage.contextWindow)} ${usagePercent(s.contextUsage.percent).trim()}` : "ctx —";
-		const permission = s.permissionMode === "all" ? a.attention("전체 권한") : a.muted(s.collaborationMode === "plan" ? "계획 모드" : "수동 승인");
-		const metadata = `${a.active("A›")}  ${a.text(model)} ${a.muted(s.effort ?? "")}  ${permission}`;
-		const rows = [fit("  " + pair(metadata, a.muted(context), width - 4), width)];
-		if (s.hud?.showUsage !== false) rows.push(fit(`  ${astraUsageLine(this.usage(), Math.max(1, width - 2), model)}`, width));
-		return rows;
+		if (s.hud?.showUsage === false) return [""];
+		return [fit(`  ${astraUsageLine(this.usage(), Math.max(1, width - 2), model, Date.now(), this.showLogos)}`, width)];
 	}
 }
 

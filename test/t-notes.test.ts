@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { appendFile, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { TNoteService } from "../src/core/application/work/t-note-service.js";
+import { TNoteService, validateCanonicalTNote } from "../src/core/application/work/t-note-service.js";
 import type { DetachedTextGenerator } from "../src/core/application/orchestration/detached-text-generator.js";
 import { FileTNoteStore } from "../src/adapters/outbound/persistence/t-note-store.js";
 import { createTNotePacket, projectActivityToTNoteSource } from "../src/core/domain/work/t-notes.js";
@@ -20,11 +20,34 @@ const policy = { cwd: "" as const, noTools: true as const, network: false as con
 const generator: DetachedTextGenerator = {
 	async generate(request) {
 		expect(request.policy).toEqual(policy);
-		return { text: "질문: 무엇을 확인했나\n왜: 선택한 활동의 결과를 보존하기 위해서다\n결과: 검증이 통과했다", provenance: { provider: "anthropic", model: "claude-opus", version: "2026-09-01" }, isolation: { appliedPolicy: policy, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 } };
+		return { text: "질문: 무엇을 확인했나\nReason: 선택한 활동의 결과를 보존해야 했습니다.\nProposal: 완료된 질문을 간결한 보고서로 정리했습니다.\nAction: 선택 범위와 검증 결과를 확인했습니다.\nResult: 검증이 통과했고 외부 기록은 변경하지 않았습니다.", provenance: { provider: "anthropic", model: "claude-opus", version: "2026-09-01" }, isolation: { appliedPolicy: policy, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 } };
 	},
 };
 
 describe("T-note service", () => {
+	test("accepts the completed-question report contract and rejects the legacy generation shape", () => {
+		const report = [
+			"질문: HUD가 두 줄인 원인을 확인해줘",
+			"Reason: 사용자 요구와 현재 렌더 계약이 충돌했습니다.",
+			"Proposal: 모델과 구독 상태를 한 행으로 합치는 방향을 선택했습니다.",
+			"Action: 렌더 계약과 회귀 테스트를 변경했습니다.",
+			"Result: 코드와 문서를 동기화했고 GitHub와 Linear는 변경하지 않았습니다.",
+		].join("\n");
+		expect(validateCanonicalTNote(report, "HUD가 두 줄인 원인을 확인해줘")).toEqual({ valid: true, reason: "" });
+		expect(validateCanonicalTNote(
+			"질문: HUD가 두 줄인 원인을 확인해줘\n왜: 이전 형식입니다.\n결과: 이전 결과입니다.",
+			"HUD가 두 줄인 원인을 확인해줘",
+		).valid).toBe(false);
+	});
+
+	test("preserves public test counts and repository test paths while redacting local paths", () => {
+		expect(createTNotePacket("project-1", { startSequence: 1, endSequence: 1 }, [{
+			id: "test-evidence", projectId: "project-1", sequence: 1, occurredAt: "2026-09-01T00:00:00.000Z",
+			kind: "tool.completed", title: "test", body: "Total 1/2\n01. bun test test/astra-ui.test.ts\n/Users/example/private",
+		}], "2026-09-01T00:00:00.000Z", () => "a".repeat(64)).activities[0]?.body)
+			.toBe("Total 1/2\n01. bun test test/astra-ui.test.ts\n[redacted:local-path]");
+	});
+
 	test("creates an immutable redacted packet and replays an append-only detached draft", async () => {
 		const draftStore = await store();
 		const service = new TNoteService(generator, draftStore, () => new Date("2026-09-01T00:00:00.000Z"), () => "tnote-1");
@@ -50,13 +73,31 @@ describe("T-note service", () => {
 		expect(text).not.toContain("Acme");
 	});
 
+	test("appends Test from completed external-runtime observations instead of generated prose", async () => {
+		const draftStore = await store();
+		const service = new TNoteService(generator, draftStore, () => new Date("2026-09-01T00:00:00.000Z"), () => "tnote-test-summary");
+		const note = await service.create({
+			projectId: "project-1",
+			expectedQuestion: "무엇을 확인했나",
+			range: { startSequence: 1, endSequence: 4 },
+			activities: [
+				{ id: "act-1", projectId: "project-1", sequence: 1, occurredAt: "2026-09-01T00:00:00.000Z", kind: "tool.completed", title: "검증", body: JSON.stringify({ params: { item: { type: "commandExecution", command: "bun test test/astra-ui.test.ts", durationMs: 1200, exitCode: 0 } } }) },
+				{ id: "act-2", projectId: "project-1", sequence: 2, occurredAt: "2026-09-01T00:00:01.000Z", kind: "tool.completed", title: "검증", body: JSON.stringify({ params: { item: { type: "commandExecution", command: "pnpm test test/project-workbench.test.ts", durationMs: 375, exitCode: 1 } } }) },
+				{ id: "act-3", projectId: "project-1", sequence: 3, occurredAt: "2026-09-01T00:00:02.000Z", kind: "tool.completed", title: "탐색", body: JSON.stringify({ params: { item: { type: "commandExecution", command: "rg T-note src", durationMs: 40, exitCode: 0 } } }) },
+				{ id: "act-4", projectId: "project-1", sequence: 4, occurredAt: "2026-09-01T00:00:03.000Z", kind: "progress.completed", title: "완료", body: "{}" },
+			],
+			instruction: "요약",
+		});
+		expect(note.text).toContain("Test:\nTotal 1/2\n01. bun test test/astra-ui.test.ts : 1.2s · passed\n02. pnpm test test/project-workbench.test.ts : 0.4s · failed");
+	});
+
 	test("sanitizes a question embedded in the instruction before detached generation", async () => {
 		const draftStore = await store();
 		let dispatchedInstruction = "";
 		const capturingGenerator: DetachedTextGenerator = {
 			async generate(request) {
 				dispatchedInstruction = request.instruction;
-				return { text: "질문: Git과 Bash\n왜: 출력을 확인했습니다.\n결과: 표시를 검증했습니다.", provenance: { provider: "openai-codex", model: "gpt-5.6-luna", version: "gpt-5.6-luna" }, isolation: { appliedPolicy: policy, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 } };
+				return { text: "질문: Git과 Bash\nReason: 출력 상태를 확인해야 했습니다.\nProposal: 관측된 출력만 보고서로 정리했습니다.\nAction: 출력과 표시 결과를 확인했습니다.\nResult: 표시를 검증했고 외부 기록은 변경하지 않았습니다.", provenance: { provider: "openai-codex", model: "gpt-5.6-luna", version: "gpt-5.6-luna" }, isolation: { appliedPolicy: policy, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 } };
 			},
 		};
 		const service = new TNoteService(capturingGenerator, draftStore, () => new Date("2026-09-01T00:00:00.000Z"), () => "tnote-safe-instruction");
@@ -106,7 +147,7 @@ describe("T-note service", () => {
 				attempts += 1;
 				if (attempts === 1) throw new Error("temporary generation failure");
 				return {
-					text: "질문: 첫 thread 질문\n왜: 완료된 turn을 다시 확인했습니다.\n결과: 재시작 뒤 요약을 저장했습니다.",
+					text: "질문: 첫 thread 질문\nReason: 실패한 생성 작업을 복구해야 했습니다.\nProposal: 완료된 turn만 다시 요약했습니다.\nAction: 완료 범위를 다시 확인하고 생성을 재시도했습니다.\nResult: 재시작 뒤 보고서를 저장했고 외부 기록은 변경하지 않았습니다.",
 					provenance: { provider: "test", model: "test", version: "test" },
 					isolation: { appliedPolicy: policy, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 },
 				};

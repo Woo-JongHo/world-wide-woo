@@ -82,6 +82,14 @@ describe("WWW CLI session entry", () => {
 		expect(calls.out[0]).toContain("Claude·Gemini·OpenAI·Z.AI 모델 변경");
 	});
 
+	test("keeps help ahead of version and command dispatch", async () => {
+		const { calls, dependencies } = fakeDependencies();
+		expect(await runCli(["router", "--version", "--help"], dependencies)).toBe(0);
+		expect(calls.out).toHaveLength(1);
+		expect(calls.out[0]).toStartWith("사용법:");
+		expect(calls.router).toEqual([]);
+	});
+
 	test("opens the Astra console for plain www without listing or resuming", async () => {
 		const { calls, dependencies } = fakeDependencies();
 		expect(await runCli([], dependencies)).toBe(0);
@@ -89,6 +97,14 @@ describe("WWW CLI session entry", () => {
 		expect(calls.app).toEqual([]);
 		expect(calls.listed).toBe(0);
 		expect(calls.picked).toEqual([]);
+	});
+
+	test("invokes the Astra dependency with its receiver", async () => {
+		const { dependencies } = fakeDependencies();
+		let receiver: unknown;
+		dependencies.runAstra = async function () { receiver = this; };
+		expect(await runCli([], dependencies)).toBe(0);
+		expect(receiver).toBe(dependencies);
 	});
 
 	test("opens the experimental embedded Pi lane inside Astra", async () => {
@@ -142,11 +158,28 @@ describe("WWW CLI session entry", () => {
 		expect(calls.astra).toEqual([{ resumeThreadId: "thread-1" }]);
 	});
 
+	test("treats a cancelled Astra resume picker as a successful no-op", async () => {
+		const { calls, dependencies } = fakeDependencies();
+		dependencies.selectNativeThread = async () => null;
+		expect(await runCli(["astra", "--resume"], dependencies)).toBe(0);
+		expect(calls.listed).toBe(1);
+		expect(calls.astra).toEqual([]);
+		expect(calls.error).toEqual([]);
+	});
+
 	test("resumes an explicit thread id without opening the picker", async () => {
 		const { calls, dependencies } = fakeDependencies();
 		expect(await runCli(["--resume", "thread-direct"], dependencies)).toBe(0);
 		expect(calls.listed).toBe(0);
 		expect(calls.picked).toEqual([]);
 		expect(calls.astra).toEqual([{ resumeThreadId: "thread-direct" }]);
+	});
+
+	test("opens the resume picker for an empty explicit thread id", async () => {
+		const { calls, dependencies } = fakeDependencies();
+		expect(await runCli(["--resume", ""], dependencies)).toBe(0);
+		expect(calls.listed).toBe(1);
+		expect(calls.picked).toEqual([threads]);
+		expect(calls.astra).toEqual([{ resumeThreadId: "thread-1" }]);
 	});
 });

@@ -12,6 +12,9 @@ import {
 export type { WorkStepStatus } from "./native-plan-revision.js";
 
 const MAX_PUBLIC_TEXT = 1_200;
+const DEFAULT_GOAL = "현재 요청을 처리합니다.";
+const EMPTY_SUMMARY = "의미 있는 실행 단계를 기다리고 있습니다.";
+const NARRATION_ACTIVITY_LIMIT = 8;
 const FALLBACK_NARRATION: WorkStepNarration = {
 	what: "작업을 진행합니다.",
 	why: "요청을 안전하게 처리하고 결과를 확인하기 위해서입니다.",
@@ -243,35 +246,123 @@ interface State {
 	canonicalSeed: string;
 }
 
+type AssociationSource = State["association"]["sources"][number];
+
+function emptyWorkFlow(rejections: readonly PlanRejection[] = []): WorkFlowProjection {
+	return {
+		source: null,
+		retirements: [],
+		orphans: [],
+		rejections,
+		goal: DEFAULT_GOAL,
+		steps: [],
+		completedCount: 0,
+		currentStepNumber: null,
+		observationCount: 0,
+		summary: EMPTY_SUMMARY,
+	};
+}
+
+function pendingGoal(activities: readonly ProjectActivity[], expectedThreadKey: string): string {
+	const activity = activities.findLast((candidate) =>
+		candidate.nativeRefs.threadId === expectedThreadKey &&
+		candidate.kind === "message" &&
+		candidate.payload.direction === "outbound" &&
+		typeof candidate.payload.text === "string"
+	);
+	return activity ? publicText(activity.payload.text as string) : DEFAULT_GOAL;
+}
+
+function selectedTurnActivities(
+	activities: readonly ProjectActivity[],
+	expectedThreadKey: string,
+	selectedTurnId: string,
+): { readonly interval: readonly ProjectActivity[]; readonly goal: string } | null {
+	const start = activities.findIndex((activity) =>
+		isTurnStart(activity) &&
+		activity.nativeRefs.threadId === expectedThreadKey &&
+		activity.nativeRefs.turnId === selectedTurnId
+	);
+	if (start < 0) return null;
+	const end = activities.findIndex((activity, index) =>
+		index > start &&
+		isTurnStart(activity) &&
+		activity.nativeRefs.threadId === expectedThreadKey &&
+		typeof activity.nativeRefs.turnId === "string" &&
+		activity.nativeRefs.turnId !== selectedTurnId
+	);
+	const goalActivity = activities.slice(0, start).findLast((activity) =>
+		activity.nativeRefs.threadId === expectedThreadKey &&
+		(activity.nativeRefs.turnId === undefined || activity.nativeRefs.turnId === selectedTurnId) &&
+		activity.kind === "message" &&
+		activity.payload.direction === "outbound" &&
+		typeof activity.payload.text === "string"
+	);
+	return {
+		interval: activities.slice(start, end < 0 ? undefined : end),
+		goal: goalActivity ? publicText(goalActivity.payload.text as string) : DEFAULT_GOAL,
+	};
+}
+
+function newAssociationSource(startSequence: number): AssociationSource {
+	return { startSequence, endSequence: null, actions: [], observations: [] };
+}
+
+function associateActivity(state: State, source: AssociationSource, activity: ProjectActivity): void {
+	const target = classifyWorkActivity(activity) === "action" ? "actions" : "observations";
+	state.association[target].push(activity.id);
+	source[target].push(activity.id);
+}
+
+function projectSteps(
+	states: readonly State[],
+	selectedTurnId: string,
+	activities: readonly ProjectActivity[],
+	narrations: ReadonlyMap<string, WorkStepNarration>,
+): SemanticWorkStep[] {
+	const activityById = new Map(activities.map((activity) => [activity.id, activity]));
+	return states.map((state, index): SemanticWorkStep => ({
+		id: state.identity.value,
+		identity: state.identity,
+		currentRevision: state.currentRevision,
+		reconciliation: state.reconciliation,
+		association: state.association.actions.length || state.association.observations.length
+			? {
+				attribution: "inferred",
+				activityIds: state.association.actions,
+				observationActivityIds: state.association.observations,
+				sources: state.association.sources.map((source) => ({
+					turnId: selectedTurnId,
+					startSequence: source.startSequence,
+					endSequence: source.endSequence,
+					activityIds: source.actions,
+					observationActivityIds: source.observations,
+				})),
+			}
+			: null,
+		number: index + 1,
+		title: state.entry.title,
+		status: state.entry.status,
+		activityIds: state.association.actions,
+		observationCount: state.association.observations.length,
+		narration: narration(
+			narrations.get(state.identity.value),
+			state.entry.title,
+			[...state.association.actions, ...state.association.observations]
+				.slice(-NARRATION_ACTIVITY_LIMIT)
+				.flatMap((id) => activitySummary(activityById.get(id))),
+		),
+	}));
+}
+
 export function projectWorkFlow(
 	activities: readonly ProjectActivity[],
 	narrations: ReadonlyMap<string, WorkStepNarration> = new Map(),
 	input?: WorkFlowProjectionInput,
 ): WorkFlowProjection {
-	const empty = (): WorkFlowProjection => ({
-		source: null,
-		retirements: [],
-		orphans: [],
-		rejections: [],
-		goal: "현재 요청을 처리합니다.",
-		steps: [],
-		completedCount: 0,
-		currentStepNumber: null,
-		observationCount: 0,
-		summary: "의미 있는 실행 단계를 기다리고 있습니다.",
-	});
-	if (!input) return empty();
+	if (!input) return emptyWorkFlow();
 	if ("kind" in input) {
-		const pendingGoal = activities.slice().reverse().find((activity) =>
-			activity.nativeRefs.threadId === input.expectedThreadKey &&
-			activity.kind === "message" &&
-			activity.payload.direction === "outbound" &&
-			typeof activity.payload.text === "string"
-		);
-		return {
-			...empty(),
-			goal: pendingGoal ? publicText(pendingGoal.payload.text as string) : empty().goal,
-		};
+		return { ...emptyWorkFlow(), goal: pendingGoal(activities, input.expectedThreadKey) };
 	}
 	const checked = validateJournal(
 		activities,
@@ -280,30 +371,9 @@ export function projectWorkFlow(
 	);
 	const rejections: PlanRejection[] = checked.rejection ? [checked.rejection] : [];
 	const selectedTurnId = input.selectedTurnId;
-	const start = checked.activities.findIndex((activity) =>
-		isTurnStart(activity) &&
-		activity.nativeRefs.threadId === input.expectedThreadKey &&
-		activity.nativeRefs.turnId === selectedTurnId
-	);
-	if (start < 0) return { ...empty(), rejections };
-	const end = checked.activities.findIndex((activity, index) =>
-		index > start &&
-		isTurnStart(activity) &&
-		activity.nativeRefs.threadId === input.expectedThreadKey &&
-		typeof activity.nativeRefs.turnId === "string" &&
-		activity.nativeRefs.turnId !== input.selectedTurnId
-	);
-	const interval = checked.activities.slice(start, end < 0 ? undefined : end);
-	const goalActivity = checked.activities.slice(0, start).reverse().find(
-		(activity) =>
-			activity.nativeRefs.threadId === input.expectedThreadKey &&
-			(activity.nativeRefs.turnId === undefined ||
-				activity.nativeRefs.turnId === selectedTurnId) &&
-			activity.kind === "message" &&
-			activity.payload.direction === "outbound" &&
-			typeof activity.payload.text === "string",
-	);
-	const goal = goalActivity ? publicText(goalActivity.payload.text as string) : "현재 요청을 처리합니다.";
+	const selectedTurn = selectedTurnActivities(checked.activities, input.expectedThreadKey, selectedTurnId);
+	if (!selectedTurn) return emptyWorkFlow(rejections);
+	const { interval, goal } = selectedTurn;
 	const threadDigest = digest(
 		input.hash,
 		"dplan-v1",
@@ -394,12 +464,7 @@ export function projectWorkFlow(
 				const associationTarget = running.length === 1 ? running[0] : missingPlan && current.length === 1 ? current[0] : undefined;
 				if (sourceActivity && associationTarget) {
 					const state = associationTarget;
-					const associationSource = {
-						startSequence: nextRevision.sequence,
-						endSequence: null,
-						actions: [] as string[],
-						observations: [] as string[],
-					};
+					const associationSource = newAssociationSource(nextRevision.sequence);
 					for (const candidate of interval) {
 						if (candidate.sequence <= sourceActivity.sequence || candidate.sequence >= activity.sequence) continue;
 						if (candidate.nativeRefs.threadId !== input.expectedThreadKey || candidate.nativeRefs.turnId !== input.selectedTurnId) continue;
@@ -407,13 +472,7 @@ export function projectWorkFlow(
 						if (candidateKind === "control") continue;
 						const orphanIndex = orphans.findIndex((orphan) => orphan.activityId === candidate.id);
 						if (orphanIndex >= 0) orphans.splice(orphanIndex, 1);
-						if (candidateKind === "action") {
-							state.association.actions.push(candidate.id);
-							associationSource.actions.push(candidate.id);
-						} else {
-							state.association.observations.push(candidate.id);
-							associationSource.observations.push(candidate.id);
-						}
+						associateActivity(state, associationSource, candidate);
 					}
 					if (associationSource.actions.length > 0 || associationSource.observations.length > 0) {
 						state.association.sources.push(associationSource);
@@ -443,58 +502,13 @@ export function projectWorkFlow(
 			const state = running[0]!;
 			let source = state.association.sources.at(-1);
 			if (!source || source.startSequence !== currentRevision.sequence) {
-				source = {
-					startSequence: currentRevision.sequence,
-					endSequence: null,
-					actions: [],
-					observations: [],
-				};
+				source = newAssociationSource(currentRevision.sequence);
 				state.association.sources.push(source);
 			}
-			if (kind === "action") {
-				state.association.actions.push(activity.id);
-				source.actions.push(activity.id);
-			} else {
-				state.association.observations.push(activity.id);
-				source.observations.push(activity.id);
-			}
+			associateActivity(state, source, activity);
 		}
 	}
-	const activityById = new Map(
-		checked.activities.map((activity) => [activity.id, activity]),
-	);
-	const steps = current.map((state, index): SemanticWorkStep => ({
-		id: state.identity.value,
-		identity: state.identity,
-		currentRevision: state.currentRevision,
-		reconciliation: state.reconciliation,
-		association: state.association.actions.length || state.association.observations.length
-			? {
-				attribution: "inferred",
-				activityIds: state.association.actions,
-				observationActivityIds: state.association.observations,
-				sources: state.association.sources.map((source) => ({
-					turnId: selectedTurnId,
-					startSequence: source.startSequence,
-					endSequence: source.endSequence,
-					activityIds: source.actions,
-					observationActivityIds: source.observations,
-				})),
-			}
-			: null,
-		number: index + 1,
-		title: state.entry.title,
-		status: state.entry.status,
-		activityIds: state.association.actions,
-		observationCount: state.association.observations.length,
-		narration: narration(
-			narrations.get(state.identity.value),
-			state.entry.title,
-			[...state.association.actions, ...state.association.observations].slice(
-				-8,
-			).flatMap((id) => activitySummary(activityById.get(id))),
-		),
-	}));
+	const steps = projectSteps(current, selectedTurnId, checked.activities, narrations);
 	const completedCount = steps.filter((step) => step.status === "completed").length;
 	const currentStep = steps.find((step) => step.status === "running") ??
 		steps.find((step) => step.status === "pending") ?? null;
@@ -524,7 +538,7 @@ export function projectWorkFlow(
 		),
 		summary: steps.length
 			? `${completedCount}/${steps.length} 단계를 완료했습니다.`
-			: "의미 있는 실행 단계를 기다리고 있습니다.",
+			: EMPTY_SUMMARY,
 	};
 }
 

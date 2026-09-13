@@ -14,6 +14,7 @@ import {
 	workbenchPaneNotice,
 	workbenchReceiptClearsComposer,
 	workbenchReceiptNotice,
+	workbenchRuntimeConfiguration,
 	workbenchRuntimeMode,
 } from "../src/adapters/inbound/tui/shell/workbench-input.controller";
 import {
@@ -69,6 +70,9 @@ describe("native workbench shell receipt policy", () => {
 		expect(nextWorkbenchRuntimeMode({ permissionMode: "all", collaborationMode: "manual" })).toBe("manual");
 		expect(nextWorkbenchRuntimeMode({ permissionMode: "manual", collaborationMode: "manual" })).toBe("plan");
 		expect(nextWorkbenchRuntimeMode({ permissionMode: "manual", collaborationMode: "plan" })).toBe("bypass");
+		expect(workbenchRuntimeConfiguration("bypass")).toEqual({ permission: "all", collaboration: "manual" });
+		expect(workbenchRuntimeConfiguration("manual")).toEqual({ permission: "manual", collaboration: "manual" });
+		expect(workbenchRuntimeConfiguration("plan")).toEqual({ permission: "manual", collaboration: "plan" });
 	});
 
 	test("places the active model and effort on the composer edge", () => {

@@ -25,7 +25,7 @@ export class AstraPlanView implements Component {
 	render(width: number): string[] {
 		const s = this.get();
 		const request = [...(s.requestRuntime ?? [])].reverse().find(r => r.turnId === s.activeTurnId && r.turnId !== null) ?? s.requestRuntime?.at(-1);
-		if (request && this.runtimePresentation) {
+		if (request && this.runtimePresentation && s.workFlow.steps.length === 0) {
 			const now = this.clock();
 			const frame = this.motion && this.runtimePresentation.motionActive(request, now) ? Math.floor(now / 120) : 8;
 			const rows = this.runtimePresentation.rows(request, width, this.compact, frame, this.runtimePresentation.nowLabel(s));
@@ -47,7 +47,12 @@ export class AstraPlanView implements Component {
 			if (!this.compact && step.narration.why) rows.push(...prose(a.muted(safe(step.narration.why)), width, 2));
 			if (!this.compact) for (const id of step.activityIds) rows.push(...prose(a.muted(`/trace ${safe(id)}`), width, 2));
 		}
-		const items = (s.todo?.items ?? []).filter(item => !steps.length || item.source?.kind !== "native-plan-item");
+		const planTitles = new Set(steps.map(step => step.title.trim().replace(/\s+/gu, " ")));
+		const items = (s.todo?.items ?? []).filter(item => {
+			if (!steps.length) return true;
+			const title = item.content.trim().replace(/\s+/gu, " ");
+			return item.source?.kind !== "native-plan-item" && !planTitles.has(title);
+		});
 		if (items.length || !steps.length) {
 			rows.push(...section("Todo", width, items.length ? `${items.filter(x => x.status === "completed").length}/${items.length}` : "없음", a.plan));
 			for (const item of items) {

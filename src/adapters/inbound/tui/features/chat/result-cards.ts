@@ -15,26 +15,7 @@ import type {
 import { sanitizeTerminalTextExcerpt } from "../../../../../core/domain/execution/terminal";
 import { colors, semantic } from "../../foundation/theme/theme";
 import { highlightStructured, projectNativePathText, renderExecutionLine, structuredOutput } from "./work-step-card";
-
-const STRUCTURED_DISPLAY_MAX_BYTES = 64 * 1024;
-const STRUCTURED_DISPLAY_MAX_LINES = 2000;
-
-const STATUS_LABEL: Record<CommandStatus, string> = {
-	pending: "PENDING",
-	running: "RUNNING",
-	passed: "PASSED",
-	failed: "FAILED",
-	cancelled: "CANCELLED",
-};
-
-const STATUS_COLOR: Record<CommandStatus, (text: string) => string> = {
-	pending: semantic.toolPending,
-	running: semantic.toolRunning,
-	passed: semantic.toolPassed,
-	failed: semantic.toolFailed,
-	cancelled: semantic.toolCancelled,
-};
-const STRUCTURED_FALLBACK_MAX_CHARS = 2_400;
+import { CHAT_PUBLIC_OUTPUT_MAX_CHARS, workStepStatusPresentation } from "./chat-output-policy";
 
 function clean(value: string): string {
 	return stripTerminalSequences(value)
@@ -96,7 +77,7 @@ function boundedDisplayLines(output: string, language: string | undefined, maxim
 	const allLines = plain.split("\n");
 	const selected = maximum > 0 ? allLines.slice(-maximum).join("\n") : "";
 	// Bound unstyled text first: highlighter ANSI bytes must never consume the display budget.
-	const bounded = clean(sanitizeTerminalTextExcerpt(selected, STRUCTURED_FALLBACK_MAX_CHARS, "tail"));
+	const bounded = clean(sanitizeTerminalTextExcerpt(selected, CHAT_PUBLIC_OUTPUT_MAX_CHARS, "tail"));
 	const lines = language
 		? highlightStructured(bounded, language as "json" | "yaml" | "markdown")
 		: bounded.split("\n");
@@ -104,7 +85,7 @@ function boundedDisplayLines(output: string, language: string | undefined, maxim
 }
 
 function statusLabel(status: CommandStatus): string {
-	return STATUS_COLOR[status](STATUS_LABEL[status]);
+	return workStepStatusPresentation(status).text;
 }
 
 function resultDetails(durationMs: number | undefined, error: string | undefined): string[] {

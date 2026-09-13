@@ -208,13 +208,13 @@ test("the production layout keeps autocomplete selections and multiline rails vi
 		for (let i = 0; i < 7; i++) expect(text).toContain(`line-${i}`);
 		const bottom = rows.findIndex(row => row.includes("line-6")) + 1;
 		expect(rows[bottom]).toMatch(/^\s*─+\s*$/u);
-		expect(text).toContain("› 요청 입력"); expect(rows.at(-2)).toContain("A›"); expect(rows.at(-2)).toContain("ctx");
-		expect(rows.at(-1)).toContain("구독 잔여"); expect(rows.at(-1)).toContain("Codex 7d 62%");
+		expect(text).toContain("› 여기에 작성한다.");
+		expect(text).toContain("구독 잔여"); expect(text).toContain("7d 62%");
 		expect(text).not.toContain("Enter 추가 지시");
 		terminal.input("\x01"); terminal.input("\x0b"); terminal.input("/"); await tick();
 		for (let i = 0; i < 50; i++) {
 			const output = frame().join("\n");
-			expect(output).toMatch(/→\s+\S/u); expect(output).toContain("A›");
+			expect(output).toMatch(/→\s+\S/u); expect(output).toContain("구독 잔여");
 			terminal.input("\x1b[B"); await tick();
 		}
 	} finally {

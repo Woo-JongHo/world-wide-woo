@@ -10,13 +10,14 @@ class CharacterizationTerminal implements Terminal {
 	columns = 100;
 	rows = 30;
 	kittyProtocolActive = false;
+	output = "";
 	stopped = false;
 	input: (data: string) => void = () => { throw new Error("terminal not started"); };
 	resize: () => void = () => { throw new Error("terminal not started"); };
 	start(input: (data: string) => void, resize: () => void): void { this.input = input; this.resize = resize; }
 	stop(): void { this.stopped = true; }
 	async drainInput(): Promise<void> { this.input = () => undefined; }
-	write(): void {}
+	write(data: string): void { this.output += data; }
 	moveBy(): void {}
 	hideCursor(): void {}
 	showCursor(): void {}
@@ -44,6 +45,16 @@ interface ShellHarness {
 }
 
 describe("runProjectWorkbenchShell characterization", () => {
+	test("opens Chat directly without dismissing Dashboard", async () => {
+		const shell = startShell(astraFixture("ready"));
+		try {
+			await settle();
+			expect(shell.terminal.output).not.toContain("WWW Dashboard");
+			await shell.submit("바로 대화 시작");
+			expect(shell.commands).toEqual([{ type: "chat.send", text: "바로 대화 시작" }]);
+		} finally { await shell.shutdown(); }
+	});
+
 	test("dispatches one chat send for a ready composer submission", async () => {
 		const shell = startShell(astraFixture("ready"));
 		try {
@@ -92,10 +103,6 @@ describe("runProjectWorkbenchShell characterization", () => {
 	test("dispatches one cancellation for Escape while working", async () => {
 		const shell = startShell(astraFixture("working"));
 		try {
-			// Astra now opens on WWW Dashboard; move to the execution surface before
-			// asserting its Escape cancellation contract.
-			shell.terminal.input("\x07");
-			shell.terminal.input("1");
 			await settle();
 			shell.terminal.input("\x1b");
 			await settle();

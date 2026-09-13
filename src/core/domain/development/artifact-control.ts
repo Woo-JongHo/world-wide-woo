@@ -47,8 +47,7 @@ const lines = (value: unknown): value is string[] => Array.isArray(value) && val
 const object = (value: unknown): value is Record<string, unknown> => Boolean(value) && typeof value === "object" && !Array.isArray(value);
 const keysExactly = (value: Record<string, unknown>, keys: string[]): boolean => JSON.stringify(Object.keys(value).sort()) === JSON.stringify([...keys].sort());
 
-export function validateArtifactCandidate(candidate: ArtifactCandidate, actualBefore?: unknown): string[] {
-	const errors: string[] = [];
+function validateArtifactEnvelope(candidate: ArtifactCandidate, actualBefore: unknown, errors: string[]): void {
 	if (candidate.schemaVersion !== "1.0" && candidate.schemaVersion !== "1.1") errors.push("schemaVersion: 1.0 또는 1.1이어야 합니다.");
 	if (!/^ARTIFACT-CANDIDATE-[A-Z0-9][A-Z0-9-]*$/u.test(candidate.candidateId)) errors.push("candidateId: ARTIFACT-CANDIDATE-* 형식이어야 합니다.");
 	if (!ARTIFACT_KINDS.includes(candidate.kind)) errors.push("kind: 지원하지 않는 artifact입니다.");
@@ -64,6 +63,27 @@ export function validateArtifactCandidate(candidate: ArtifactCandidate, actualBe
 	}
 	if (!/^[0-9a-f]{64}$/u.test(candidate.candidateDigest) || candidate.candidateDigest !== artifactCandidateDigest(candidate)) errors.push("candidateDigest: 현재 Candidate 내용과 일치하지 않습니다.");
 	if (actualBefore !== undefined && canonicalArtifactJson(candidate.expectedBefore) !== canonicalArtifactJson(actualBefore)) errors.push("EXPECTED_BEFORE_STALE: 대상이 Candidate 작성 뒤 변경됐습니다.");
+}
+
+function validateProjectCommentCandidate(candidate: ArtifactCandidate, content: Record<string, unknown>, errors: string[]): void {
+	const legacy = candidate.schemaVersion === "1.0";
+	const required = legacy ? ["requirement", "work", "types", "connections", "state", "next"] : ["changes", "impacts", "categories", "verification", "connections"];
+	if (!keysExactly(content, required)) errors.push("linear-project-comment.content: 정해진 필드만 허용합니다.");
+	if (!line(candidate.target.projectId)) errors.push("linear-project-comment.target.projectId: Project ID가 필요합니다.");
+	if (!object(candidate.expectedBefore) || !keysExactly(candidate.expectedBefore, ["latestCommentId"]) || (candidate.expectedBefore.latestCommentId !== null && !line(candidate.expectedBefore.latestCommentId))) errors.push("linear-project-comment.expectedBefore: latestCommentId가 필요합니다.");
+	if (legacy) {
+		if (!line(content.requirement) || !lines(content.work) || !lines(content.connections) || !line(content.next)) errors.push("linear-project-comment.content: requirement/work/connections/next가 필요합니다.");
+		if (!Array.isArray(content.types) || !content.types.length || content.types.some(type => !PROJECT_ACTIVITY_TYPES.includes(type as typeof PROJECT_ACTIVITY_TYPES[number]))) errors.push("linear-project-comment.content.types: feature|improvement|refactor|fix|verification|operations 중 하나 이상이어야 합니다.");
+		if (!PROJECT_ACTIVITY_STATES.includes(content.state as typeof PROJECT_ACTIVITY_STATES[number])) errors.push("linear-project-comment.content.state: complete|in-progress|blocked여야 합니다.");
+		return;
+	}
+	if (!lines(content.changes) || !lines(content.impacts) || !lines(content.verification) || !lines(content.connections)) errors.push("linear-project-comment.content: changes/impacts/verification/connections가 필요합니다.");
+	if (!Array.isArray(content.categories) || !content.categories.length || content.categories.some(type => !PROJECT_ACTIVITY_TYPES.includes(type as typeof PROJECT_ACTIVITY_TYPES[number]))) errors.push("linear-project-comment.content.categories: feature|improvement|refactor|fix|verification|operations 중 하나 이상이어야 합니다.");
+}
+
+export function validateArtifactCandidate(candidate: ArtifactCandidate, actualBefore?: unknown): string[] {
+	const errors: string[] = [];
+	validateArtifactEnvelope(candidate, actualBefore, errors);
 
 	const content = object(candidate.content) ? candidate.content : {};
 	const links = object(candidate.links) ? candidate.links : {};
@@ -90,19 +110,7 @@ export function validateArtifactCandidate(candidate: ArtifactCandidate, actualBe
 		if (!line(content.title) || !line(content.purpose) || !lines(content.included) || !lines(content.excluded) || !lines(content.done) || !lines(content.connections)) errors.push("linear-issue.content: title/purpose와 included/excluded/done/connections가 필요합니다.");
 	}
 	if (candidate.kind === "linear-project-comment") {
-		const legacy = candidate.schemaVersion === "1.0";
-		const required = legacy ? ["requirement", "work", "types", "connections", "state", "next"] : ["changes", "impacts", "categories", "verification", "connections"];
-		if (!keysExactly(content, required)) errors.push("linear-project-comment.content: 정해진 필드만 허용합니다.");
-		if (!line(candidate.target.projectId)) errors.push("linear-project-comment.target.projectId: Project ID가 필요합니다.");
-		if (!object(candidate.expectedBefore) || !keysExactly(candidate.expectedBefore, ["latestCommentId"]) || (candidate.expectedBefore.latestCommentId !== null && !line(candidate.expectedBefore.latestCommentId))) errors.push("linear-project-comment.expectedBefore: latestCommentId가 필요합니다.");
-		if (legacy) {
-			if (!line(content.requirement) || !lines(content.work) || !lines(content.connections) || !line(content.next)) errors.push("linear-project-comment.content: requirement/work/connections/next가 필요합니다.");
-			if (!Array.isArray(content.types) || !content.types.length || content.types.some(type => !PROJECT_ACTIVITY_TYPES.includes(type as typeof PROJECT_ACTIVITY_TYPES[number]))) errors.push("linear-project-comment.content.types: feature|improvement|refactor|fix|verification|operations 중 하나 이상이어야 합니다.");
-			if (!PROJECT_ACTIVITY_STATES.includes(content.state as typeof PROJECT_ACTIVITY_STATES[number])) errors.push("linear-project-comment.content.state: complete|in-progress|blocked여야 합니다.");
-		} else {
-			if (!lines(content.changes) || !lines(content.impacts) || !lines(content.verification) || !lines(content.connections)) errors.push("linear-project-comment.content: changes/impacts/verification/connections가 필요합니다.");
-			if (!Array.isArray(content.categories) || !content.categories.length || content.categories.some(type => !PROJECT_ACTIVITY_TYPES.includes(type as typeof PROJECT_ACTIVITY_TYPES[number]))) errors.push("linear-project-comment.content.categories: feature|improvement|refactor|fix|verification|operations 중 하나 이상이어야 합니다.");
-		}
+		validateProjectCommentCandidate(candidate, content, errors);
 	}
 	if (candidate.kind === "linear-project-update") {
 		const required = ["version", "delivered", "included", "verification", "connections", "sourceCommentIds", "health"];

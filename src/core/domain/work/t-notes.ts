@@ -1,7 +1,7 @@
 import { isReasoningActivityPayload, type ProjectActivity } from "../execution/project-activity.js";
 import { redactForExternalReview } from "../review/redaction.js";
 
-const MAX_ACTIVITIES = 100;
+export const MAX_TNOTE_SOURCE_ACTIVITIES = 100;
 const MAX_ACTIVITY_BODY = 32 * 1024;
 const MAX_PACKET_BYTES = 256 * 1024;
 const MAX_NOTE_BYTES = 64 * 1024;
@@ -194,8 +194,8 @@ export function createTNotePacket(
 	assertId(projectId, "project id");
 	assertRange(range);
 	assertDate(createdAt, "packet timestamp");
-	if (!Array.isArray(activities) || activities.length < 1 || activities.length > MAX_ACTIVITIES) {
-		throw new Error(`T-note source range must contain between 1 and ${MAX_ACTIVITIES} activities`);
+	if (!Array.isArray(activities) || activities.length < 1 || activities.length > MAX_TNOTE_SOURCE_ACTIVITIES) {
+		throw new Error(`T-note source range must contain between 1 and ${MAX_TNOTE_SOURCE_ACTIVITIES} activities`);
 	}
 
 	const projected = activities.map((activity) => projectActivity(activity, projectId, range));
@@ -243,7 +243,7 @@ export function validateTNotePacket(value: TNotePacket, calculateDigest?: TNoteP
 	assertId(value.projectId, "project id");
 	assertRange(value.range);
 	assertDate(value.createdAt, "packet timestamp");
-	if (!Array.isArray(value.activities) || value.activities.length < 1 || value.activities.length > MAX_ACTIVITIES) {
+	if (!Array.isArray(value.activities) || value.activities.length < 1 || value.activities.length > MAX_TNOTE_SOURCE_ACTIVITIES) {
 		throw new Error("Invalid T-note packet activities");
 	}
 	const activities = value.activities.map((activity) => projectPacketActivity(activity, value.projectId, value.range));
@@ -274,9 +274,16 @@ export function sanitizeTNoteText(value: string, maximumBytes: number): string {
 	if (typeof value !== "string" || !Number.isSafeInteger(maximumBytes) || maximumBytes < 1) throw new Error("Invalid T-note text");
 	// Redact customer labels first: a path expression may legally contain spaces,
 	// and otherwise could consume the label while leaving its value behind.
-	const protectedMarkers = protectRedactionMarkers(redactCustomerIdentifiers(value));
+	const protectedTestEvidence = protectTNoteTestEvidence(redactCustomerIdentifiers(value));
+	const protectedMarkers = protectRedactionMarkers(protectedTestEvidence.text);
 	const localPathsRedacted = redactLocalPaths(protectedMarkers.text);
-	return truncateUtf8(restoreRedactionMarkers(redactForExternalReview(localPathsRedacted).text, protectedMarkers.markers), maximumBytes);
+	return truncateUtf8(
+		restoreTNoteTestEvidence(
+			restoreRedactionMarkers(redactForExternalReview(localPathsRedacted).text, protectedMarkers.markers),
+			protectedTestEvidence.evidence,
+		),
+		maximumBytes,
+	);
 }
 
 function projectActivity(activity: TNoteActivitySource, projectId: string, range: TNoteSourceRange): TNoteSourceActivity {
@@ -435,6 +442,20 @@ function protectRedactionMarkers(value: string): { text: string; markers: readon
 		return `\uE000${index}\uE001`;
 	});
 	return { text, markers };
+}
+
+/** Test counts and repository test paths are public execution evidence, not local-machine paths. */
+function protectTNoteTestEvidence(value: string): { text: string; evidence: readonly string[] } {
+	const evidence: string[] = [];
+	const text = value.replace(/(^|\s)(Total\s+\d+\/\d+|(?:test|tests)\/[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)*\.(?:[cm]?[jt]sx?))/gmu, (_whole, prefix: string, entry: string) => {
+		const index = evidence.push(entry) - 1;
+		return `${prefix}\uE100${index}\uE101`;
+	});
+	return { text, evidence };
+}
+
+function restoreTNoteTestEvidence(value: string, evidence: readonly string[]): string {
+	return value.replace(/\uE100(\d+)\uE101/gu, (_whole, index: string) => evidence[Number.parseInt(index, 10)] ?? "[redacted]");
 }
 
 function restoreRedactionMarkers(value: string, markers: readonly string[]): string {

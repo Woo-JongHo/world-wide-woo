@@ -28,15 +28,15 @@ App Server는 `$skill-name` 텍스트만으로도 스킬을 찾을 수 있지만
 
 ### 질문별 요약은 턴 완료 뒤 비동기로 만든다
 
-Caltech의 학습 자료는 처음 보는 사람에게 평이한 말로 설명하고, 막히는 지점을 찾고, 다시 단순화하는 과정을 핵심으로 설명한다. WWW는 이를 장문의 교육 설명이 아니라 `질문 / 왜 이 과정을 거쳤는지 / 결과` 세 줄의 짧은 계약으로 축소한다. [Caltech CTLO, The Power of Teaching](https://ctlo.caltech.edu/aboutctlo/whoweserve/undergraduates/learning-resources/learning/power-of-teaching)
+Caltech의 학습 자료는 처음 보는 사람에게 평이한 말로 설명하고, 막히는 지점을 찾고, 다시 단순화하는 과정을 핵심으로 설명한다. WWW는 이를 장문의 교육 설명이 아니라 `질문 / Reason / Proposal / Action / Result` 다섯 줄의 짧은 종료 보고서 계약으로 축소한다. [Caltech CTLO, The Power of Teaching](https://ctlo.caltech.edu/aboutctlo/whoweserve/undergraduates/learning-resources/learning/power-of-teaching)
 
-생성 시점은 `turn/completed` 뒤다. 다음 Chat 전송을 막지 않는 별도 큐에서 작은 모델로 생성하며, raw 로그·파일 목록·다음 할 일·숨은 사고과정은 넣지 않는다. 한 질문마다 하나의 append-only T-note를 남기며 이전 질문의 노트를 교체하지 않는다.
+생성 시점은 `turn/completed` 뒤다. 다음 Chat 전송을 막지 않는 별도 큐에서 작은 모델로 생성하며, raw 로그·파일 목록·다음 할 일·숨은 사고과정은 넣지 않는다. 한 질문마다 하나의 append-only T-note를 남기며 이전 질문의 노트를 교체하지 않는다. 완료 Turn이 100개보다 많은 source activity를 만들면 질문·Turn 경계·최종 응답을 보존하고 중간 활동을 전체 구간에서 균등 표본화해 packet 안전 한도를 지킨다.
 
 ### Todo와 T-notes의 시제와 책임이 다르다
 
 - Chat: 원문 대화와 관찰 가능한 실행 내역
 - Todo.md: 지금부터 할 일과 현재 진행 상황. `무엇을 하는지`와 `왜 필요한지`를 서술
-- T-notes: 끝난 질문의 과거형 기록. 질문, 과정의 이유, 결과만 보존
+- T-notes: 끝난 질문의 과거형 기록. 이유, 제안, 실제 수행, 최종 결과와 외부 정본 변경 여부를 보존
 - SessionGoal: 세션 전체가 도달하려는 한 문장
 
 Todo에 command, args, path 같은 코드 입력을 복사하지 않는다. T-note에 다음 행동을 넣지 않는다.
@@ -57,11 +57,11 @@ Git 출력은 `diff --git`, `@@`, 추가, 삭제, 수정, 미추적 상태를 �
 ## 판정
 
 1. 컨텍스트는 Native `last`, 세션 모델 사용량은 `total` 델타, 구독 퍼센트는 provider rate-limit으로 완전히 분리한다.
-2. T-notes는 누적 세션 요약을 폐기하고 질문당 한 개의 완료 기록으로 바꾼다.
+2. T-notes는 누적 세션 요약을 폐기하고 질문당 한 개의 `Reason / Proposal / Action / Result` 종료 보고서로 남긴다.
 3. SessionGoal은 프로젝트 스킬이 제안하고 WWW가 검증된 결과를 상태로 소유한다.
 4. Todo는 코드 입력을 버리고 `무엇 / 이유`의 2계층 서술만 남긴다.
 5. Git/Bash는 GajaeCode의 카드 구조와 의미별 색 분류를 WWW 디자인 토큰으로 재구현한다.
 
 ## 파인만식 한 문장
 
-아래 퍼센트는 구독 잔여량, Context는 지금 대화의 기억 공간, 모델별 숫자는 이 WWW 실행에서 실제로 관측한 Native 턴의 토큰이며, T-notes는 질문 하나가 끝난 뒤 그 질문과 과정의 이유와 결과만 쉬운 말로 남기는 기록이다.
+아래 퍼센트는 구독 잔여량, Context는 지금 대화의 기억 공간, 모델별 숫자는 이 WWW 실행에서 실제로 관측한 Native 턴의 토큰이며, T-notes는 질문 하나가 끝난 뒤 이유·제안·실제 수행·최종 상태를 쉬운 말로 남기는 종료 보고서다.

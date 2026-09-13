@@ -1,13 +1,43 @@
-import { Markdown, visibleWidth, type Component } from "@earendil-works/pi-tui";
+import { Markdown, stripTerminalSequences, visibleWidth, type Component } from "@earendil-works/pi-tui";
 import type { WorkbenchSnapshot } from "../../../../../core/domain/work/workbench";
 import type { ProjectActivity } from "../../../../../core/domain/execution/project-activity";
 import { sanitizeCompletedAssistantResponse, sanitizePartialAssistantResponse } from "../../../../../core/domain/review/redaction";
 import { boundedPublicProjection } from "./bounded-public-projection";
 import { conversationRecapRows } from "./conversation-recap-view";
 import { a, astraMarkdownTheme, astraTitle, duration, fit, mark, oneLine, pair, prose, safe, section } from "../../foundation/theme/astra-theme";
+import { parseCanonicalTNoteReport, parseLegacyCanonicalTNote } from "../../../../../core/application/work/t-note-service";
+
+const tnoteMarkdownTheme = {
+	...astraMarkdownTheme,
+	heading: (text: string): string => {
+		const label = stripTerminalSequences(text).trim();
+		const ink = label === "Reason" || label === "원인" ? a.info
+			: label === "Proposal" ? a.plan
+			: label === "Action" ? a.tool
+			: label === "Result" || label === "결과" ? a.success : a.note;
+		return ink(text);
+	},
+};
 
 export function record(value: unknown): Record<string, unknown> {
 	return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+export function astraConversationLabels(messages: readonly WorkbenchSnapshot["chat"][number][]): ReadonlyMap<string, string> {
+	const labels = new Map<string, string>();
+	let request = 0;
+	let response = 0;
+	for (const message of messages) {
+		if (message.role === "user") {
+			request += 1;
+			response = 0;
+			labels.set(message.id, `Request ${request}`);
+		} else if (message.role === "assistant") {
+			response += 1;
+			labels.set(message.id, `Response ${Math.max(1, request)}-${response}`);
+		} else labels.set(message.id, "Notice");
+	}
+	return labels;
 }
 function verificationLabel(value: WorkbenchSnapshot["performance"]): string {
 	return ({ "not-verified": "검증 미실행", passed: "검증 통과", failed: "검증 실패", uncertain: "검증 결과 미확정" })[value?.verification ?? "not-verified"];
@@ -28,7 +58,7 @@ export function executionHeading(s: WorkbenchSnapshot): { state: string; title: 
 	if (s.phase === "working") {
 		const phase = s.executionRun?.phase;
 		const waiting = ["waiting", "blocked", "reconciling", "unknown"].includes(phase ?? "");
-		return { state: waiting ? "대기" : s.draft ? "결과 작성" : "실행 중", title: oneLine(current?.title || lastRequest?.content || s.sessionGoal?.text || "요청을 확인하는 중"), detail: waiting ? `실행 ${phase} · /monitor에서 관측 확인` : oneLine(s.liveActivity?.text || s.liveActivity?.method || s.reasoningSummaryDraft || "첫 실행 관측을 기다리는 중"), attention: waiting };
+		return { state: waiting ? "대기" : s.draft ? "결과 작성" : "실행 중", title: oneLine(current?.title || lastRequest?.content || s.sessionGoal?.text || "요청을 확인하는 중"), detail: waiting ? `실행 ${phase} · /monitor에서 관측 확인` : astraNowLabel(s) ?? oneLine(s.reasoningSummaryDraft || "첫 실행 관측을 기다리는 중"), attention: waiting };
 	}
 	const status = receipt?.status;
 	const blocking = receipt?.remaining.filter(item => item.blocking).length ?? 0;
@@ -53,75 +83,188 @@ export function astraNowLabel(s: WorkbenchSnapshot): string | null {
 }
 
 export function astraTNoteMarkdown(item: WorkbenchSnapshot["tnotes"][number]): string {
-	const canonical = /^질문:[ \t]*(\S(?:[^\r\n]*\S)?)\r?\n왜:[ \t]*(\S(?:[^\r\n]*\S)?)\r?\n결과:[ \t]*(\S(?:[^\r\n]*\S)?)$/u.exec(item.summary.trim());
-	const title = oneLine(canonical?.[1] || item.title || "질문 요약");
-	if (!canonical) return `## ${title}\n\n${safe(item.summary, 8000)}`;
-	return `## ${title}\n\n## 원인\n\n${safe(canonical[2], 4000)}\n\n## 결과\n\n${safe(canonical[3], 4000)}`;
+	const report = parseCanonicalTNoteReport(item.summary);
+	const legacy = parseLegacyCanonicalTNote(item.summary);
+	const title = oneLine(report?.question || legacy?.question || item.title || "질문 요약");
+	if (report) return [
+		`## ${title}`,
+		`## Proposal\n\n### Reason\n\n${safe(report.reason, 4000)}\n\n### Expected outcome\n\n${safe(report.proposal, 4000)}`,
+		`## Report\n\n### Reason\n\n${safe(report.reason, 4000)}\n\n### Action\n\n${safe(report.action, 4000)}\n\n### Test\n\n${safe(report.test || "테스트 실행 관측 없음", 4000)}\n\n### Result\n\n${safe(report.result, 4000)}`,
+	].join("\n\n");
+	if (legacy) return `## ${title}\n\n## 원인\n\n${safe(legacy.why, 4000)}\n\n## 결과\n\n${safe(legacy.result, 4000)}`;
+	return `## ${title}\n\n${safe(item.summary, 8000)}`;
+}
+
+function tnoteTitle(item: WorkbenchSnapshot["tnotes"][number]): string {
+	const report = parseCanonicalTNoteReport(item.summary);
+	const legacy = parseLegacyCanonicalTNote(item.summary);
+	return oneLine(report?.question || legacy?.question || item.title || "질문 요약");
+}
+
+function tnoteFieldRows(label: string, ink: (text: string) => string, value: string, width: number): string[] {
+	return [astraTitle(label, ink), ...prose(safe(value, 4000), width, 2).map(row => a.text(row)), ""];
+}
+
+function tnoteSections(item: WorkbenchSnapshot["tnotes"][number], width: number): string[][] | null {
+	const report = parseCanonicalTNoteReport(item.summary);
+	if (report) return [
+		[
+			astraTitle("Proposal", a.rainbowRed),
+			a.caption(tnoteTitle(item)),
+			"",
+			...tnoteFieldRows("Reason", a.rainbowOrange, report.reason, width),
+			...tnoteFieldRows("Expected outcome", a.rainbowYellow, report.proposal, width),
+		],
+		[
+			astraTitle("Report", a.rainbowRed),
+			...tnoteFieldRows("Reason", a.rainbowOrange, report.reason, width),
+			...tnoteFieldRows("Action", a.rainbowYellow, report.action, width),
+			...tnoteFieldRows("Test", a.rainbowGreen, report.test || "테스트 실행 관측 없음", width),
+			...tnoteFieldRows("Result", a.rainbowBlue, report.result, width),
+		],
+	];
+	const legacy = parseLegacyCanonicalTNote(item.summary);
+	if (legacy) return [[
+		astraTitle("Report", a.rainbowRed),
+		a.caption(tnoteTitle(item)),
+		"",
+		...tnoteFieldRows("Reason", a.rainbowOrange, legacy.why, width),
+		...tnoteFieldRows("Result", a.rainbowBlue, legacy.result, width),
+	]];
+	return null;
 }
 
 /** Public transcript and tool timeline. No product theme, welcome, cards, or raw reasoning. */
 export class AstraTranscriptView implements Component {
-	private cache: { snapshot: WorkbenchSnapshot; width: number; expanded: boolean; rows: string[] } | null = null;
-	private markdown = new Map<string, { text: string; view: Markdown }>();
+	private cache: {
+		snapshot: WorkbenchSnapshot;
+		width: number;
+		expanded: boolean;
+		activities: WorkbenchSnapshot["activities"];
+		chat: WorkbenchSnapshot["chat"];
+		tnotes: WorkbenchSnapshot["tnotes"];
+		draft: WorkbenchSnapshot["draft"];
+		reasoningSummaryDraft: WorkbenchSnapshot["reasoningSummaryDraft"];
+		actionResult: WorkbenchSnapshot["actionResult"];
+		error: WorkbenchSnapshot["error"];
+		developmentRecordingError: WorkbenchSnapshot["developmentRecordingError"];
+		linearDashboard: WorkbenchSnapshot["linearDashboard"];
+		rows: string[];
+	} | null = null;
+	private durableCache: {
+		width: number;
+		expanded: boolean;
+		activities: WorkbenchSnapshot["activities"];
+		chat: WorkbenchSnapshot["chat"];
+		tnotes: WorkbenchSnapshot["tnotes"];
+		rows: string[];
+		retainedMarkdown: Set<string>;
+	} | null = null;
+	private markdown = new Map<string, { text: string; view: Markdown; width: number | null; rows: string[] | null }>();
 	public expanded = false;
 	constructor(private snapshot: WorkbenchSnapshot) {}
 	update(snapshot: WorkbenchSnapshot): void { this.snapshot = snapshot; }
-	invalidate(): void { this.cache = null; }
+	invalidate(): void { this.cache = null; this.durableCache = null; }
 	// The common shell owns lifecycle ticks. Astra's pinned execution heading owns activity.
-	syncActivity(_indicator: unknown, _requestRender: () => void): void { this.invalidate(); }
+	syncActivity(_indicator: unknown, _requestRender: () => void): void {}
 	playWelcomeIntro(_requestRender: () => void): void { this.invalidate(); }
-	dispose(): void { this.markdown.clear(); this.cache = null; }
+	dispose(): void { this.markdown.clear(); this.cache = null; this.durableCache = null; }
 	private md(key: string, text: string, width: number): string[] {
 		let entry = this.markdown.get(key);
-		if (!entry) { entry = { text, view: new Markdown(text, 0, 0, astraMarkdownTheme) }; this.markdown.set(key, entry); }
-		else if (entry.text !== text) { entry.text = text; entry.view.setText(text); }
-		return entry.view.render(width).map(row => a.text(row));
+		if (!entry) { entry = { text, view: new Markdown(text, 0, 0, key.startsWith("tnote:") ? tnoteMarkdownTheme : astraMarkdownTheme), width: null, rows: null }; this.markdown.set(key, entry); }
+		else if (entry.text !== text) { entry.text = text; entry.view.setText(text); entry.width = null; entry.rows = null; }
+		if (entry.width === width && entry.rows) return entry.rows;
+		entry.width = width;
+		entry.rows = entry.view.render(width).map(row => a.text(row));
+		return entry.rows;
 	}
 	render(width: number): string[] {
 		if (width <= 0) return [];
 		const s = this.snapshot;
-		if (this.cache?.snapshot === s && this.cache.width === width && this.cache.expanded === this.expanded) return this.cache.rows;
-		const rows: string[] = [];
-		const messageByActivity = new Map(s.chat.map(m => [m.activityId, m]));
-		const rendered = new Set<string>();
-		const retained = new Set<string>();
-		const tools = new Map<string, ProjectActivity>();
-		const activitiesById = new Map(s.activities.map(activity => [activity.id, activity]));
-		const notesByAnchor = new Map<string, typeof s.tnotes>();
-		const unanchoredNotes: typeof s.tnotes[number][] = [];
-		for (const note of s.tnotes) {
-			const anchor = note.sourceActivityIds.map(id => activitiesById.get(id)).filter((activity): activity is ProjectActivity => Boolean(activity)).sort((left, right) => right.sequence - left.sequence)[0];
-			if (!anchor) unanchoredNotes.push(note);
-			else notesByAnchor.set(anchor.id, [...(notesByAnchor.get(anchor.id) ?? []), note]);
+		if (this.cache?.width === width
+			&& this.cache.expanded === this.expanded
+			&& (this.expanded ? this.cache.snapshot === s : this.cache.activities === s.activities
+				&& this.cache.chat === s.chat
+				&& this.cache.tnotes === s.tnotes
+				&& this.cache.draft === s.draft
+				&& this.cache.reasoningSummaryDraft === s.reasoningSummaryDraft
+				&& this.cache.actionResult === s.actionResult
+				&& this.cache.error === s.error
+				&& this.cache.developmentRecordingError === s.developmentRecordingError
+				&& this.cache.linearDashboard === s.linearDashboard)) return this.cache.rows;
+		const durableHit = this.durableCache?.width === width
+			&& this.durableCache.expanded === this.expanded
+			&& this.durableCache.activities === s.activities
+			&& this.durableCache.chat === s.chat
+			&& this.durableCache.tnotes === s.tnotes;
+		let rows: string[];
+		let retained: Set<string>;
+		if (durableHit) {
+			rows = [...this.durableCache!.rows];
+			retained = new Set(this.durableCache!.retainedMarkdown);
+		} else {
+			rows = [];
+			retained = new Set<string>();
+			const labels = astraConversationLabels(s.chat);
+			const messageByActivity = new Map(s.chat.map(m => [m.activityId, m]));
+			const rendered = new Set<string>();
+			const tools = new Map<string, ProjectActivity>();
+			const activitiesById = new Map(s.activities.map(activity => [activity.id, activity]));
+			const notesByAnchor = new Map<string, typeof s.tnotes>();
+			const unanchoredNotes: typeof s.tnotes[number][] = [];
+			for (const note of s.tnotes) {
+				const anchor = note.sourceActivityIds.map(id => activitiesById.get(id)).filter((activity): activity is ProjectActivity => Boolean(activity)).sort((left, right) => right.sequence - left.sequence)[0];
+				if (!anchor) unanchoredNotes.push(note);
+				else notesByAnchor.set(anchor.id, [...(notesByAnchor.get(anchor.id) ?? []), note]);
+			}
+			const identity = (item: ProjectActivity) => [item.nativeRefs.threadId, item.nativeRefs.turnId, item.nativeRefs.itemId ?? item.id].join("\0");
+			for (const activity of s.activities) if (["tool", "file-change"].includes(activity.kind)) tools.set(identity(activity), activity);
+			const note = (item: typeof s.tnotes[number]) => {
+				const contentWidth = Math.max(1, width - 4);
+				const source = item.sourceActivityIds.at(-1);
+				const sections = tnoteSections(item, contentWidth);
+				const bodies = sections ?? [[...this.md(`tnote:${item.id}`, astraTNoteMarkdown(item), contentWidth)]];
+				if (!sections) retained.add(`tnote:${item.id}`);
+				const sourceRows = prose(`근거 ${item.sourceActivityIds.length}개${source ? `  ·  /source ${safe(source)}` : ""}  ·  /promote tnote ${safe(item.id)}`, contentWidth).map(row => a.caption(row));
+				bodies.at(-1)?.push("", ...sourceRows);
+				for (const body of bodies) {
+					rows.push("");
+					if (width >= 4) {
+						rows.push(a.info(`╭${"─".repeat(width - 2)}╮`));
+						rows.push(...body.map(row => `${a.info("│")} ${fit(row, width - 4)} ${a.info("│")}`));
+						rows.push(a.info(`╰${"─".repeat(width - 2)}╯`));
+					} else rows.push(...body.map(row => fit(row, width)));
+					rows.push("");
+				}
+			};
+			const message = (m: WorkbenchSnapshot["chat"][number]) => {
+				rendered.add(m.id); retained.add(m.id);
+				const ink = m.role === "user" ? a.request : m.role === "assistant" ? a.response : a.info;
+				const label = astraTitle(labels.get(m.id) ?? "Notice", ink);
+				rows.push("", pair(label, a.muted(m.status === "completed" ? "" : m.status), width));
+				const content = m.role === "assistant" ? (m.status === "completed" && !m.partial ? sanitizeCompletedAssistantResponse(m.content) : sanitizePartialAssistantResponse(m.content)) : m.content;
+				rows.push(...this.md(m.id, safe(content, 24000), Math.max(1, width - 2)).map(row => "  " + row), "");
+			};
+			for (const activity of s.activities) {
+				const m = messageByActivity.get(activity.id);
+				if (m) message(m);
+				else if (tools.get(identity(activity)) === activity) rows.push(...astraToolRows(activity, width, this.expanded));
+				for (const item of notesByAnchor.get(activity.id) ?? []) note(item);
+			}
+			for (const item of unanchoredNotes) note(item);
+			// Durable activity order is authoritative. Only a not-yet-recorded outbound
+			// request may appear optimistically before Native thread creation finishes.
+			for (const m of s.chat) if (!rendered.has(m.id) && m.role === "user" && m.status !== "completed") message(m);
+			rows = rows.map(row => fit(row, width));
+			this.durableCache = { width, expanded: this.expanded, activities: s.activities, chat: s.chat, tnotes: s.tnotes, rows, retainedMarkdown: new Set(retained) };
 		}
-		const identity = (item: ProjectActivity) => [item.nativeRefs.threadId, item.nativeRefs.turnId, item.nativeRefs.itemId ?? item.id].join("\0");
-		for (const activity of s.activities) if (["tool", "file-change"].includes(activity.kind)) tools.set(identity(activity), activity);
-		const note = (item: typeof s.tnotes[number]) => {
-			rows.push("");
-			rows.push(...this.md(`tnote:${item.id}`, astraTNoteMarkdown(item), Math.max(1, width - 2)).map(row => "  " + row));
-			const source = item.sourceActivityIds.at(-1);
-			rows.push("  " + a.caption(`근거 ${item.sourceActivityIds.length}개${source ? `  ·  /source ${safe(source)}` : ""}  ·  /promote tnote ${safe(item.id)}`), "");
-			retained.add(`tnote:${item.id}`);
-		};
-		const message = (m: WorkbenchSnapshot["chat"][number]) => {
-			rendered.add(m.id); retained.add(m.id);
-			const label = m.role === "user" ? astraTitle("요청", a.request) : m.role === "assistant" ? astraTitle("응답", a.response) : astraTitle("안내", a.info);
-			rows.push("", pair(label, a.muted(m.status === "completed" ? "" : m.status), width));
-			const content = m.role === "assistant" ? (m.status === "completed" && !m.partial ? sanitizeCompletedAssistantResponse(m.content) : sanitizePartialAssistantResponse(m.content)) : m.content;
-			rows.push(...this.md(m.id, safe(content, 24000), Math.max(1, width - 2)).map(row => "  " + row), "");
-		};
-		for (const activity of s.activities) {
-			const m = messageByActivity.get(activity.id);
-			if (m) message(m);
-			else if (tools.get(identity(activity)) === activity) rows.push(...astraToolRows(activity, width, this.expanded));
-			for (const item of notesByAnchor.get(activity.id) ?? []) note(item);
-		}
-		for (const item of unanchoredNotes) note(item);
-		// Durable activity order is authoritative. Only a not-yet-recorded outbound
-		// request may appear optimistically before Native thread creation finishes.
-		for (const m of s.chat) if (!rendered.has(m.id) && m.role === "user" && m.status !== "completed") message(m);
+		const durableRowCount = rows.length;
 		if (s.draft) {
-			retained.add("draft"); rows.push("", astraTitle("응답 작성 중", a.response));
+			const labels = astraConversationLabels(s.chat);
+			const latestRequest = [...s.chat].reverse().find(message => message.role === "user");
+			const requestLabel = latestRequest ? labels.get(latestRequest.id)?.replace("Request ", "") : "1";
+			const responseCount = latestRequest ? s.chat.slice(s.chat.lastIndexOf(latestRequest) + 1).filter(message => message.role === "assistant").length + 1 : 1;
+			retained.add("draft"); rows.push("", astraTitle(`Response ${requestLabel}-${responseCount} 작성 중`, a.response));
 			rows.push(...this.md("draft", safe(sanitizePartialAssistantResponse(s.draft), 24000), Math.max(1, width - 2)).map(row => "  " + row));
 		}
 		if (s.reasoningSummaryDraft && !s.draft) rows.push("", ...prose(a.muted(safe(s.reasoningSummaryDraft, 1200)), width, 2));
@@ -141,7 +284,15 @@ export class AstraTranscriptView implements Component {
 			} else if (d) rows.push("", a.muted(d.state === "loading" ? "Linear 정보를 불러오는 중" : "Linear 정보를 불러오지 못했습니다"));
 		}
 		for (const key of this.markdown.keys()) if (!retained.has(key)) this.markdown.delete(key);
-		this.cache = { snapshot: s, width, expanded: this.expanded, rows: rows.map(row => fit(row, width)) };
+		this.cache = {
+			snapshot: s, width, expanded: this.expanded,
+			activities: s.activities, chat: s.chat, tnotes: s.tnotes,
+			draft: s.draft, reasoningSummaryDraft: s.reasoningSummaryDraft,
+			actionResult: s.actionResult, error: s.error,
+			developmentRecordingError: s.developmentRecordingError,
+			linearDashboard: s.linearDashboard,
+			rows: [...rows.slice(0, durableRowCount), ...rows.slice(durableRowCount).map(row => fit(row, width))],
+		};
 		return this.cache.rows;
 	}
 }

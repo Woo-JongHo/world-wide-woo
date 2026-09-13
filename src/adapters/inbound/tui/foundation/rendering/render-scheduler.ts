@@ -52,7 +52,7 @@ export class RenderScheduler {
 
 	constructor(
 		private readonly renderNow: () => void,
-		private readonly intervalMs = 64,
+		private readonly intervalMs = 32,
 		private readonly now: () => number = () => performance.now(),
 		private readonly schedule: ScheduleTimer = (callback, delay) => setTimeout(callback, delay),
 		private readonly cancel: CancelTimer = clearTimeout,

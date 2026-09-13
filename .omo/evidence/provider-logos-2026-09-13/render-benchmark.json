@@ -1,0 +1,7 @@
+{
+  "iterations": 1000,
+  "medianMs": 0.6680419999997866,
+  "p95Ms": 3.1749580000000606,
+  "utf8Bytes": 9646,
+  "note": "Warm CPU string rendering only. Not terminal decode, paint, or remote latency."
+}

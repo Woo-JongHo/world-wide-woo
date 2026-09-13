@@ -5,8 +5,7 @@ import { sanitizeTerminalTextExcerpt } from "../../../../../core/domain/executio
 import type { WorkbenchLiveActivity } from "../../../../../core/domain/work/workbench";
 import type { WorkStepNarration } from "../../../../../core/domain/work";
 import { highlightStructured, structuredOutput } from "./work-step-output-renderer";
-
-const OUTPUT_MAX_CHARS = 2_400;
+import { CHAT_PUBLIC_OUTPUT_MAX_CHARS } from "./chat-output-policy";
 
 export interface WorkStepProjectionOptions {
 	activity?: ProjectActivity;
@@ -31,7 +30,7 @@ interface Field {
 }
 
 function clean(value: string): string {
-	return sanitizeTerminalTextExcerpt(value, OUTPUT_MAX_CHARS, "head-tail").replace(/\t/gu, "    ");
+	return sanitizeTerminalTextExcerpt(value, CHAT_PUBLIC_OUTPUT_MAX_CHARS, "head-tail").replace(/\t/gu, "    ");
 }
 
 function replacePathPrefix(value: string, path: string, replacement: string): string {

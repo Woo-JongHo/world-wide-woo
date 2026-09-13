@@ -1,0 +1,11 @@
+bun test v1.4.0 (34cbb9a40)
+
+test/astra-provider-logos.test.ts:
+(pass) places all four downloaded PNG logos inside one HUD row [32.52ms]
+(pass) keeps provider names on terminals without Kitty graphics [0.55ms]
+(pass) fullscreen host emits all logos, clears placements on resize and image data on stop [96.21ms]
+
+ 3 pass
+ 0 fail
+ 61 expect() calls
+Ran 3 tests across 1 file. [270.00ms]

@@ -23,6 +23,11 @@ export function approvalDecisionFromInput(text: string): "accept" | "acceptForSe
 
 export type WorkbenchRuntimeMode = "bypass" | "manual" | "plan";
 
+export interface WorkbenchRuntimeConfiguration {
+	readonly permission: "all" | "manual";
+	readonly collaboration: "manual" | "plan";
+}
+
 export function workbenchRuntimeMode(source: Pick<WorkbenchSnapshot, "permissionMode" | "collaborationMode">): WorkbenchRuntimeMode {
 	if (source.permissionMode === "all") return "bypass";
 	return source.collaborationMode === "plan" ? "plan" : "manual";
@@ -31,6 +36,12 @@ export function workbenchRuntimeMode(source: Pick<WorkbenchSnapshot, "permission
 export function nextWorkbenchRuntimeMode(source: Pick<WorkbenchSnapshot, "permissionMode" | "collaborationMode">): WorkbenchRuntimeMode {
 	const current = workbenchRuntimeMode(source);
 	return current === "bypass" ? "manual" : current === "manual" ? "plan" : "bypass";
+}
+
+export function workbenchRuntimeConfiguration(mode: WorkbenchRuntimeMode): WorkbenchRuntimeConfiguration {
+	if (mode === "bypass") return { permission: "all", collaboration: "manual" };
+	if (mode === "plan") return { permission: "manual", collaboration: "plan" };
+	return { permission: "manual", collaboration: "manual" };
 }
 
 export function loginProviderFromInput(text: string): Provider | null {

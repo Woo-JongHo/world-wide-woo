@@ -108,6 +108,26 @@ export interface ProjectWorkbenchSessionFactories {
 	createDevelopment?(root: string, runId: string): DevelopmentService;
 }
 
+interface WorkbenchExecutionSelection {
+	readonly provider: string;
+	readonly model: string;
+	readonly effort: string;
+}
+
+function resolveExecutionSelection(
+	options: ProjectWorkbenchSessionOptions,
+	config: WorkbenchConfig,
+): WorkbenchExecutionSelection {
+	if (options.executionLane === "pi" && (!options.provider || !options.model || !options.effort)) {
+		throw new Error("Pi execution lane requires explicit provider, model, and effort");
+	}
+	return {
+		provider: options.provider ?? config.execution.provider,
+		model: options.model ?? config.execution.model,
+		effort: options.effort ?? config.execution.effort,
+	};
+}
+
 const productionFactories: ProjectWorkbenchSessionFactories = {
 	createLocalWorkflow,
 	openWorkspace: FileProjectWorkspace.open,
@@ -194,14 +214,10 @@ export async function createProjectWorkbenchSession(
 		todos = new ThreadScopedTodoSource(workspace, factories);
 		const auxiliaryUsage = new SessionModelUsageAccumulator();
 		const observeAuxiliaryUsage = (observation: SessionModelUsageObservation): void => auxiliaryUsage.observe(observation);
-		if (options.executionLane === "pi" && (!options.provider || !options.model || !options.effort)) {
-			throw new Error("Pi execution lane requires explicit provider, model, and effort");
-		}
+		const execution = resolveExecutionSelection(options, config);
 		native = await factories.connectNative({
 			executionLane: options.executionLane,
-				provider: options.provider ?? config.execution.provider,
-				model: options.model ?? config.execution.model,
-				effort: options.effort ?? config.execution.effort,
+			...execution,
 			systemPrompt: options.systemPrompt,
 		});
 		const tnotes = new ThreadScopedTNoteSource(
@@ -227,10 +243,10 @@ export async function createProjectWorkbenchSession(
 			} : undefined,
 			developmentObserver: development ? { capture: activity => development!.observe(activity) } : undefined,
 			projectId,
-			provider: options.provider ?? config.execution.provider,
+			provider: execution.provider,
 			cwd: workspace.root,
-			model: options.model ?? config.execution.model,
-			effort: options.effort ?? config.execution.effort,
+			model: execution.model,
+			effort: execution.effort,
 			contextCharacterLimit: config.limits.contextCharacters,
 			delegationDetailActivities: config.delegation.detailActivities,
 			evaluationRequired: config.evaluation.requireVerification,

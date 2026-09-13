@@ -15,6 +15,7 @@ export const a = {
 	request: chalk.hex(astraPalette.request), response: chalk.hex(astraPalette.response), tool: chalk.hex(astraPalette.tool),
 	plan: chalk.hex(astraPalette.plan), note: chalk.hex(astraPalette.note), info: chalk.hex(astraPalette.info), success: chalk.hex(astraPalette.success),
 	codex: chalk.hex(astraPalette.codex), claude: chalk.hex(astraPalette.claude), gemini: chalk.hex(astraPalette.gemini), zai: chalk.hex(astraPalette.zai),
+	rainbowRed: chalk.red, rainbowOrange: chalk.yellow, rainbowYellow: chalk.yellowBright, rainbowGreen: chalk.green, rainbowBlue: chalk.blue,
 	strong: chalk.hex(astraPalette.text).bold,
 	selected: chalk.bgHex(astraPalette.rule).hex(astraPalette.text).bold,
 };

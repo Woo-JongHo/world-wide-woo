@@ -1,36 +1,8 @@
 import { Key, matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi, type Component } from "@earendil-works/pi-tui";
 import type { NativeApprovalRequest } from "../../../../../core/domain/execution/native-session";
-import { sanitizeTerminalTextExcerpt } from "../../../../../core/domain/execution/terminal";
 import { workbenchApprovalDecisions, workbenchExternalMutationCandidates, type WorkbenchApprovalDecision, type WorkbenchExternalMutationKind } from "../../../../../core/domain/work/workbench";
 import { colors, type TuiColors } from "../../foundation/theme/theme";
-
-const APPROVAL_DETAIL_MAX_CHARS = 200;
-
-function approvalKindLabel(kind: NativeApprovalRequest["kind"]): string {
-	if (kind === "command") return "명령";
-	if (kind === "file-change") return "파일 변경";
-	return "권한";
-}
-
-function approvalParamText(request: NativeApprovalRequest, key: string): string | null {
-	const value = request.params[key];
-	if (typeof value !== "string" || !value.trim()) return null;
-	return sanitizeTerminalTextExcerpt(value, APPROVAL_DETAIL_MAX_CHARS, "head-tail")
-		.replace(/\t/gu, "    ")
-		.trim();
-}
-
-function approvalFallback(request: NativeApprovalRequest): string {
-	if (request.kind === "command") return "명령 실행에 승인이 필요합니다.";
-	if (request.kind === "file-change") return "파일 변경에 승인이 필요합니다.";
-	return "추가 권한이 필요합니다.";
-}
-
-function approvalDetailLabel(request: NativeApprovalRequest): string {
-	if (request.kind === "command") return "명령";
-	if (request.kind === "file-change") return "변경";
-	return "권한";
-}
+import { projectApprovalRequest } from "./approval-presentation";
 
 function decisionLabel(decision: WorkbenchApprovalDecision): string {
 	if (decision === "accept") return "승인";
@@ -77,15 +49,13 @@ export class ApprovalOverlay implements Component {
 
 	public render(width: number): string[] {
 		const inner = Math.max(1, width);
-		const command = approvalParamText(this.request, "command");
-		const reason = approvalParamText(this.request, "reason");
-		const cwd = approvalParamText(this.request, "cwd");
+		const presentation = projectApprovalRequest(this.request);
 		const detail: string[] = [
-			this.ui.warning(`승인 필요 · ${approvalKindLabel(this.request.kind)}`),
+			this.ui.warning(`승인 필요 · ${presentation.kind}`),
 			"",
-			`${this.ui.accent(approvalDetailLabel(this.request))} · ${command ?? approvalFallback(this.request)}`,
-			`${this.ui.accent("이유")} · ${reason ?? approvalFallback(this.request)}`,
-			...(cwd ? [`${this.ui.accent("경로")} · ${cwd}`] : []),
+			`${this.ui.accent(presentation.detailLabel)} · ${presentation.detail}`,
+			`${this.ui.accent("이유")} · ${presentation.reason}`,
+			...(presentation.cwd ? [`${this.ui.accent("경로")} · ${presentation.cwd}`] : []),
 			"",
 		];
 		const mutations = workbenchExternalMutationCandidates(this.request).flatMap((candidate, index) => [

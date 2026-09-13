@@ -555,37 +555,43 @@ export class CodexAppServer implements ExecutorPort {
 			void this.handleRuntimeTool(message.id, params).catch(error => this.disconnect(error as Error));
 			return;
 		}
-		if (isRequestId(message.id) && approvalKind(message.method)) {
-			const kind = approvalKind(message.method);
-			if (!kind) return;
-			const callbackId = kind === "command" && (typeof params.approvalId === "string" || params.approvalId === null)
-				? params.approvalId
-				: null;
-			const approval: NativeApprovalRequest = {
-				requestId: message.id,
-				id: message.id,
-				callbackId,
-				kind,
-				refs: this.refsFrom(params, message.id, callbackId),
-				availableDecisions: approvalDecisions(kind, params.availableDecisions),
-				params,
-			};
-			this.approvals.set(message.id, approval);
-			this.emit({ type: "approval-requested", approval });
+		const kind = isRequestId(message.id) ? approvalKind(message.method) : undefined;
+		if (isRequestId(message.id) && kind) {
+			this.receiveApprovalRequest(message.id, kind, params);
 			return;
 		}
 		if (message.method === "serverRequest/resolved" && isRequestId(params.requestId)) {
-			const requestId = params.requestId;
-			this.approvals.delete(requestId);
-			const pending = this.pendingApprovalResponses.get(requestId);
-			if (pending) {
-				this.pendingApprovalResponses.delete(requestId);
-				pending.resolve();
-			}
-			this.emit({ type: "approval-resolved", requestId, approvalId: requestId, refs: this.refsFrom(params, requestId) });
+			this.receiveApprovalResolution(params.requestId, params);
 			return;
 		}
 		this.emit({ type: "notification", method: message.method, refs: this.refsFrom(params), params });
+	}
+
+	private receiveApprovalRequest(id: NativeRequestId, kind: NativeApprovalKind, params: JsonRecord): void {
+		const callbackId = kind === "command" && (typeof params.approvalId === "string" || params.approvalId === null)
+			? params.approvalId
+			: null;
+		const approval: NativeApprovalRequest = {
+			requestId: id,
+			id,
+			callbackId,
+			kind,
+			refs: this.refsFrom(params, id, callbackId),
+			availableDecisions: approvalDecisions(kind, params.availableDecisions),
+			params,
+		};
+		this.approvals.set(id, approval);
+		this.emit({ type: "approval-requested", approval });
+	}
+
+	private receiveApprovalResolution(requestId: NativeRequestId, params: JsonRecord): void {
+		this.approvals.delete(requestId);
+		const pending = this.pendingApprovalResponses.get(requestId);
+		if (pending) {
+			this.pendingApprovalResponses.delete(requestId);
+			pending.resolve();
+		}
+		this.emit({ type: "approval-resolved", requestId, approvalId: requestId, refs: this.refsFrom(params, requestId) });
 	}
 
 	private receiveResponse(id: NativeRequestId, message: JsonRecord): void {

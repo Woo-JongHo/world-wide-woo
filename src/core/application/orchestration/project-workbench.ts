@@ -60,6 +60,7 @@ import {
 	type ExecutionRunState,
 } from "../../runtime/execution-run.js";
 import {
+	MAX_TNOTE_SOURCE_ACTIVITIES,
 	projectTNoteCompletionIndex,
 	projectActivityToTNoteSource,
 	type TNoteActivitySource,
@@ -98,6 +99,7 @@ import {
 	type NativeEventDeltaProjection,
 } from "./native-event-projection.js";
 import {
+	boundCompletedTurnNoteActivities,
 	questionForTurn,
 	resolveCompletedTurnNoteScope,
 } from "../work/completed-turn-note-scope.js";
@@ -127,6 +129,19 @@ interface ThreadCompactionPort {
 interface BoundedTextProjection {
 	readonly tail: string;
 	readonly omittedCharacters: number;
+}
+
+interface StreamingTextProjection {
+	readonly identity: string;
+	readonly state: BoundedTextProjection;
+	readonly text: string;
+}
+
+interface TerminalProjectionScope {
+	readonly itemScoped: boolean;
+	readonly completedIdentity: string | null;
+	readonly terminalTurn: boolean;
+	readonly refs: NativeRefs;
 }
 
 interface DurableActivityProjection {
@@ -332,6 +347,8 @@ export class ProjectWorkbench {
 	private visibleThreadId: string | null = null;
 	private visibleAfterSequence = 0;
 	private readonly automaticTNoteTurns = new Set<string>();
+	/** A failed detached note is retried after restart or manually, never by duplicate terminal events in this session. */
+	private readonly failedAutomaticTNoteTurns = new Set<string>();
 	private readonly tnoteInFlight = new Map<string, Promise<TNoteDraft>>();
 	private durableNoteProjection: DurableNoteProjection = {
 		sourceLength: -1,
@@ -1359,7 +1376,7 @@ export class ProjectWorkbench {
 			if (existing) return { state: "accepted", commandId, message: `T-note #${existing.sequence}을 사용합니다.` };
 		}
 		const draft = await this.createTNote(request, request.turnId);
-		if (!validateCanonicalTNote(draft.text, request.input.expectedQuestion).valid) {
+		if (!validateCanonicalTNote(draft.text, request.input.expectedQuestion, { allowLegacy: true, allowRuntimeTestSummary: true }).valid) {
 			return { state: "rejected", commandId, reason: "T-note 생성 결과 형식이 올바르지 않습니다." };
 		}
 		this.noteDrafts.set(draft.id, draft);
@@ -1400,6 +1417,7 @@ export class ProjectWorkbench {
 		const scope = resolveCompletedTurnNoteScope(selected, { type: "turn", turnId })!;
 		const question = scope.question;
 		const terminalActivity = selected.at(-1)!;
+		const packetActivities = boundCompletedTurnNoteActivities(selected, MAX_TNOTE_SOURCE_ACTIVITIES);
 		const threadId = terminalActivity.nativeRefs.threadId!;
 		const number = this.completionOrdinal(threadId, turnId);
 		return {
@@ -1407,7 +1425,7 @@ export class ProjectWorkbench {
 			input: {
 				projectId: this.options.projectId,
 				range: { startSequence: selected[0]!.sequence, endSequence: selected.at(-1)!.sequence },
-				activities: selected.map((activity) => ({
+				activities: packetActivities.map((activity) => ({
 					...projectActivityToTNoteSource(activity),
 					...(activity.id === terminalActivity.id ? {
 						completion: { threadId, turnId, number, terminalActivityId: terminalActivity.id },
@@ -1743,32 +1761,33 @@ export class ProjectWorkbench {
 		if (eventBelongsToRootThread && event.type === "notification" && clearsTerminalProjection) {
 			const completedIdentity = nativeItemIdentity(event.refs);
 			const itemScopedTerminal = Boolean(event.refs.itemId);
-			const clearsProjection = (identity: string | null, refs: NativeRefs | null): boolean => {
-				if (itemScopedTerminal) return Boolean(completedIdentity && completedIdentity === identity);
-				if (lifecycle === "terminal") return sameTurnOwner(refs, event.refs);
-				return true;
+			const terminalScope: TerminalProjectionScope = {
+				itemScoped: itemScopedTerminal,
+				completedIdentity,
+				terminalTurn: lifecycle === "terminal",
+				refs: event.refs,
 			};
-			if (clearsProjection(this.draftIdentity, this.draftNativeRefs)) {
+			if (shouldClearTerminalProjection(this.draftIdentity, this.draftNativeRefs, terminalScope)) {
 				this.draft = "";
 				this.draftIdentity = null;
 				this.draftNativeRefs = null;
 				this.draftProjection = emptyBoundedTextProjection();
 				this.draftEnvelopeClipped = false;
 			}
-			if (clearsProjection(this.reasoningIdentity, this.reasoningNativeRefs)) {
+			if (shouldClearTerminalProjection(this.reasoningIdentity, this.reasoningNativeRefs, terminalScope)) {
 				this.reasoningDraft = "";
 				this.reasoningIdentity = null;
 				this.reasoningNativeRefs = null;
 				this.reasoningProjection = emptyBoundedTextProjection();
 			}
-			if (clearsProjection(this.reasoningSummaryIdentity, this.reasoningSummaryNativeRefs)) {
+			if (shouldClearTerminalProjection(this.reasoningSummaryIdentity, this.reasoningSummaryNativeRefs, terminalScope)) {
 				this.reasoningSummaryDraft = "";
 				this.reasoningSummaryIdentity = null;
 				this.reasoningSummaryNativeRefs = null;
 				this.reasoningSummaryProjection = emptyBoundedTextProjection();
 			}
 			const liveActivityIdentity = this.liveActivity ? nativeItemIdentity(this.liveActivity.nativeRefs) : null;
-			if (clearsProjection(liveActivityIdentity, this.liveActivity?.nativeRefs ?? null)) {
+			if (shouldClearTerminalProjection(liveActivityIdentity, this.liveActivity?.nativeRefs ?? null, terminalScope)) {
 				this.liveActivity = null;
 				this.liveActivityProjection = emptyBoundedTextProjection();
 			}
@@ -1829,7 +1848,7 @@ export class ProjectWorkbench {
 	 * on a detached queue so it cannot delay the next native Chat turn.
 	 */
 	private scheduleAutomaticTNote(turnId: string): void {
-		if (!this.options.tnotes || this.closed || this.narrationAbort.signal.aborted || this.automaticTNoteTurns.has(turnId)) return;
+		if (!this.options.tnotes || this.closed || this.narrationAbort.signal.aborted || this.automaticTNoteTurns.has(turnId) || this.failedAutomaticTNoteTurns.has(turnId)) return;
 		const scope = resolveCompletedTurnNoteScope(this.visibleActivities, { type: "turn", turnId });
 		if (!scope || this.hasTNoteFor(scope.activities)) return;
 		this.automaticTNoteTurns.add(turnId);
@@ -1840,18 +1859,20 @@ export class ProjectWorkbench {
 				try {
 					const draft = await this.createTNote(request, turnId);
 					if (this.closed || this.narrationAbort.signal.aborted) return;
-					if (!validateCanonicalTNote(draft.text, request.input.expectedQuestion).valid) {
+					if (!validateCanonicalTNote(draft.text, request.input.expectedQuestion, { allowLegacy: true, allowRuntimeTestSummary: true }).valid) {
 						throw new Error("T-note 생성 결과 형식이 올바르지 않습니다.");
 					}
 					this.noteDrafts.set(draft.id, draft);
 					this.notes.push(immutable(projectTNote(draft)));
+					this.failedAutomaticTNoteTurns.delete(turnId);
 					this.publish();
 				} catch (error) {
 					if (this.closed || this.narrationAbort.signal.aborted) return;
+					this.failedAutomaticTNoteTurns.add(turnId);
 					this.actionResult = immutable({
 						kind: "tnote",
-						title: "부가 기록 실패 · 요청 실행 계속",
-						body: sanitizeTerminalTextExcerpt(errorMessage(error), WORKBENCH_ACTION_RESULT_CHARACTER_LIMIT, "head-tail"),
+						title: "T-note 자동 저장 실패 · 요청은 완료됨",
+						body: `${sanitizeTerminalTextExcerpt(errorMessage(error), WORKBENCH_ACTION_RESULT_CHARACTER_LIMIT, "head-tail")}\n/tnote로 이 요청의 기록을 다시 만들 수 있습니다.`,
 						createdAt: new Date().toISOString(),
 					});
 					this.publish();
@@ -1900,29 +1921,27 @@ export class ProjectWorkbench {
 			return;
 		}
 		if (event.channel === "reasoning-summary") {
-			if (itemIdentity && this.reasoningSummaryIdentity && itemIdentity !== this.reasoningSummaryIdentity) {
-				this.reasoningSummaryProjection = emptyBoundedTextProjection();
-			}
-			this.reasoningSummaryIdentity = itemIdentity ?? this.reasoningSummaryIdentity;
-			this.reasoningSummaryNativeRefs = event.refs;
-			const projection = appendBoundedText(
+			const projection = projectStreamingText(
+				this.reasoningSummaryIdentity,
+				itemIdentity,
 				this.reasoningSummaryProjection,
 				delta,
 				REASONING_DRAFT_TAIL_CHARACTER_LIMIT,
 			);
+			this.reasoningSummaryIdentity = projection.identity;
+			this.reasoningSummaryNativeRefs = event.refs;
 			this.reasoningSummaryProjection = projection.state;
 			this.reasoningSummaryDraft = projection.text;
 		} else if (event.channel === "reasoning") {
-			if (itemIdentity && this.reasoningIdentity && itemIdentity !== this.reasoningIdentity) {
-				this.reasoningProjection = emptyBoundedTextProjection();
-			}
-			this.reasoningIdentity = itemIdentity ?? this.reasoningIdentity;
-			this.reasoningNativeRefs = event.refs;
-			const projection = appendBoundedText(
+			const projection = projectStreamingText(
+				this.reasoningIdentity,
+				itemIdentity,
 				this.reasoningProjection,
 				delta,
 				REASONING_DRAFT_TAIL_CHARACTER_LIMIT,
 			);
+			this.reasoningIdentity = projection.identity;
+			this.reasoningNativeRefs = event.refs;
 			this.reasoningProjection = projection.state;
 			this.reasoningDraft = projection.text;
 		} else if (event.channel === "assistant") {
@@ -2549,15 +2568,19 @@ export class ProjectWorkbench {
 
 function turnTNoteInstruction(question: string): string {
 	return [
-		"완료된 질문 하나를 T-note로 정리하세요.",
+		"완료된 질문 하나를 종료 보고서 T-note로 정리하세요.",
 		`질문: ${question}`,
 		"관찰 가능한 대화와 실행만 근거로 삼고 숨은 사고과정은 추측하지 마세요.",
 		"처음 보는 사람도 이해하도록 전문용어를 풀고, 각 항목은 한두 문장으로 짧게 쓰세요.",
-		"파일 목록·원시 로그·다음 할 일은 넣지 마세요. 미완료나 실패는 결과에 그대로 밝히세요.",
-		"출력은 다음 세 줄 형식을 정확히 지키세요:",
+		"파일 목록·원시 로그·다음 할 일은 넣지 마세요. 관측하지 못한 변경은 추정하지 마세요.",
+		"Action에는 실제 수행만 쓰고, 수행하지 않았다면 수행하지 않았다고 밝히세요.",
+		"Result에는 바뀐 것, 검증, 문서 동기화, GitHub와 Linear 변경 여부를 관측된 범위에서 요약하세요.",
+		"출력은 다음 다섯 줄 형식을 정확히 지키세요:",
 		`질문: ${question}`,
-		"왜: 이 답에 도달하려고 어떤 확인이나 작업을 왜 거쳤는지 설명",
-		"결과: 실제로 나온 답, 변경, 검증 또는 남은 문제",
+		"Reason: 이 질문을 다룬 이유와 확인된 원인 또는 판단 근거",
+		"Proposal: 제안하거나 선택한 해결 방향",
+		"Action: 실제로 수행한 조사, 변경, 검증 또는 외부 작업",
+		"Result: 최종 결과와 코드·문서·GitHub·Linear의 실제 변경 상태",
 	].join("\n");
 }
 
@@ -2863,6 +2886,30 @@ function errorMessage(error: unknown): string {
 
 function emptyBoundedTextProjection(): BoundedTextProjection {
 	return { tail: "", omittedCharacters: 0 };
+}
+
+function projectStreamingText(
+	currentIdentity: string | null,
+	nextIdentity: string,
+	current: BoundedTextProjection,
+	delta: string,
+	characterLimit: number,
+): StreamingTextProjection {
+	const state = currentIdentity && currentIdentity !== nextIdentity
+		? emptyBoundedTextProjection()
+		: current;
+	const projection = appendBoundedText(state, delta, characterLimit);
+	return { identity: nextIdentity, ...projection };
+}
+
+function shouldClearTerminalProjection(
+	identity: string | null,
+	refs: NativeRefs | null,
+	scope: TerminalProjectionScope,
+): boolean {
+	if (scope.itemScoped) return Boolean(scope.completedIdentity && scope.completedIdentity === identity);
+	if (scope.terminalTurn) return sameTurnOwner(refs, scope.refs);
+	return true;
 }
 
 function appendBoundedText(

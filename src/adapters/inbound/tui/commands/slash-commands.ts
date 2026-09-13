@@ -195,7 +195,7 @@ export const WORKBENCH_SLASH_COMMANDS: SlashCommand[] = [
 	{ name: "trace", description: "Monitor에서 선택 Plan에 결속된 정확한 Activity Trace 선택", argumentHint: "<activity-id>" },
 	{ name: "reconcile", description: "종료된 Runtime 작업의 현재 결과만 재조회 · 동작 재실행 없음", argumentHint: "<request-id> <operation-id>" },
 	{ name: "agents", description: "위임 트리 또는 선택한 에이전트의 공개 수행 관찰", argumentHint: "[agent-ref|clear]" },
-	{ name: "tnote", description: "마지막 질문 또는 선택 범위를 질문·이유·결과로 요약", argumentHint: "[range <start-sequence> <end-sequence>]" },
+	{ name: "tnote", description: "마지막 질문 또는 선택 범위를 종료 보고서로 요약", argumentHint: "[range <start-sequence> <end-sequence>]" },
 	{ name: "promote", description: "T-note 정본 반영: diff 확인 후 사람 승인", argumentHint: "<tnote|confirm> <note-id|token>" },
 	{ name: "review", description: "공개 분류 T-note의 외부 검토 미리보기·송신", argumentHint: "<preview|send> …" },
 	{ name: "approve", description: "대기 중인 native 요청 승인" },

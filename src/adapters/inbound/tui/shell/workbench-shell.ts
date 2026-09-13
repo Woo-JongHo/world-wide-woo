@@ -84,6 +84,7 @@ import {
 	workbenchPaneNotice,
 	workbenchReceiptClearsComposer,
 	workbenchReceiptNotice,
+	workbenchRuntimeConfiguration,
 } from "./workbench-input.controller";
 
 export interface ProjectWorkbenchShellDependencies {
@@ -299,7 +300,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		// Keep the transcript's width stable while typing. Only the scrollable
 		// plan keeps its column; the optional note still uses the real row budget.
 		return Math.max(1, rows - (stable ? 3 : composerFrame.render(columns).length) - (rows >= 12 ? 2 : 0) - 3
-			- (rows >= 5 && (stable || status.hasNotice) ? 1 : 0) - (rows >= 7 ? 2 : 0));
+			- (rows >= 5 && (stable || status.hasNotice) ? 1 : 0) - (rows >= 7 ? 1 : 0));
 	}
 	const astra = dependencies.design === "astra" ? new AstraWorkspace(
 		() => snapshot,
@@ -310,7 +311,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		{ motionActive: requestRuntimeMotionActive, rows: requestRuntimeRows, nowLabel: astraNowLabel },
 		new WwwDashboardView(() => snapshot),
 	) : null;
-	astra?.show("dashboard");
+	astra?.show("execution");
 	const status = astra ? new AstraNotice() : new StatusLine(WORKBENCH_STATUS_NOTICE);
 	const entryDashboard = new EntryDashboardView(() => snapshot.linearDashboard);
 	const chat = astra?.transcript ?? new WorkbenchChatView(snapshot, entryDashboard, {
@@ -431,7 +432,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		{ component: activeView, basis: 0, grow: 1, shrink: 1, minSize: 1 },
 		{ component: composerFrame, basis: "auto", shrink: 1, minSize: 3 },
 		{ component: status, basis: 1, minSize: 1, maxSize: 1, visible: ({ height }) => height >= 5 && status.hasNotice },
-		{ component: astra ? new AstraHud(() => snapshot, () => usageSnapshots) : bottomHud, basis: astra ? "auto" : 1, minSize: 1, maxSize: astra ? 2 : 1, visible: ({ height }) => height >= 7 },
+		{ component: astra ? new AstraHud(() => snapshot, () => usageSnapshots) : bottomHud, basis: astra ? "auto" : 1, minSize: 1, maxSize: 1, visible: ({ height }) => height >= 7 },
 	]);
 	let overlay: OverlayHandle | null = null;
 	let overlayKind: "model" | "approval" | "development" | "commands" | "views" | "auth" | null = null;
@@ -477,11 +478,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	};
 	const cycleRuntimeMode = async (): Promise<void> => {
 		const next = nextWorkbenchRuntimeMode(snapshot);
-		const configuration = next === "bypass"
-			? { permission: "all" as const, collaboration: "manual" as const }
-			: next === "plan"
-				? { permission: "manual" as const, collaboration: "plan" as const }
-				: { permission: "manual" as const, collaboration: "manual" as const };
+		const configuration = workbenchRuntimeConfiguration(next);
 		const modeReceipt = await workbench.dispatch({ type: "session.mode", mode: configuration.collaboration });
 		if (modeReceipt.state === "rejected") {
 			showReceipt(modeReceipt);
@@ -501,7 +498,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	const astraClock = astra ? setInterval(() => {
 		const request = snapshot.requestRuntime?.at(-1);
 		if (!lifecycle.isShuttingDown && !overlay && (astraExecutionIsLive(snapshot) || astraMotion && request && requestRuntimeMotionActive(request, Date.now()))) tui.requestRender();
-	}, astraMotion ? 120 : 1_000) : null;
+	}, astraMotion ? 80 : 1_000) : null;
 	astraClock?.unref?.();
 	let composerBorderFrame = 0;
 	const composerBorderClock = setInterval(() => {

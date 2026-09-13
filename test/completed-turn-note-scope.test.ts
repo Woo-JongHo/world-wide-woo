@@ -5,6 +5,7 @@ import type {
 	ProjectActivityPhase,
 } from "../src/core/domain/execution/project-activity";
 import {
+	boundCompletedTurnNoteActivities,
 	questionForTurn,
 	resolveCompletedTurnNoteScope,
 } from "../src/core/application/work/completed-turn-note-scope";
@@ -110,6 +111,29 @@ describe("completed turn note scope", () => {
 		const extra = activity({ id: "foreign", sequence: 3.5, threadId: "thread-2", turnId: "foreign", payload: { method: "item/completed" } });
 		expect(resolveCompletedTurnNoteScope([...full.slice(0, 3), extra, full[3]!], { type: "exact-selection" })).toBeNull();
 		expect(resolveCompletedTurnNoteScope([...full].reverse(), { type: "exact-selection" })).toBeNull();
+	});
+
+	test("deterministically samples long turns while preserving both boundaries", () => {
+		const activities = Array.from({ length: 205 }, (_, index) => activity({
+			id: `activity-${index + 1}`,
+			sequence: index + 1,
+			kind: index === 180 ? "message" : undefined,
+			phase: index === 180 ? "completed" : undefined,
+			threadId: "thread-1",
+			turnId: "turn-1",
+			payload: index === 180 ? { role: "assistant", text: "최종 응답" } : { method: `event-${index + 1}` },
+		}));
+		const before = structuredClone(activities);
+		const sampled = boundCompletedTurnNoteActivities(activities, 100);
+
+		expect(sampled).toHaveLength(100);
+		expect(sampled.slice(0, 2).map((item) => item.id)).toEqual(["activity-1", "activity-2"]);
+		expect(sampled.at(-1)?.id).toBe("activity-205");
+		expect(sampled.map((item) => item.id)).toContain("activity-181");
+		expect(sampled.map((item) => item.sequence)).toEqual([...sampled.map((item) => item.sequence)].sort((left, right) => left - right));
+		expect(sampled.some((item) => item.sequence > 90 && item.sequence < 115)).toBe(true);
+		expect(activities).toEqual(before);
+		expect(Object.isFrozen(sampled)).toBe(true);
 	});
 
 	test("normalizes, redacts, and bounds the question without mutating its activity", () => {

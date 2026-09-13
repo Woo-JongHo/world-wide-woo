@@ -117,7 +117,7 @@ function helpText(): string {
 		"  /model [모델] [추론 강도]  현재·다음 실행의 Codex 모델 변경",
 		"  /source <id|latest|clear>  Trace source 선택",
 		"  /trace <activity-id>       선택 Plan에 결속된 정확한 Activity Trace 선택",
-		"  /tnote  마지막 질문을 packet-only 질문·이유·결과로 수동 캡처",
+		"  /tnote  마지막 질문을 packet-only 종료 보고서로 수동 캡처",
 		"  /approve · /approve-session · /decline  Codex native 승인 응답",
 		"  /cancel  현재 native turn 중단",
 		"  /exit  Workbench를 안전하게 종료",
@@ -135,87 +135,120 @@ function isLegacySessionId(value: string | undefined): value is string {
 	return value !== undefined && /^[A-Za-z0-9][A-Za-z0-9_-]*$/u.test(value);
 }
 
-export async function runCli(args: string[], dependencies: CliDependencies = productionDependencies): Promise<number> {
+function writeInformationalOutput(args: string[], dependencies: CliDependencies): boolean {
 	if (args[0] !== "development" && (args.includes("--help") || args.includes("-h"))) {
 		dependencies.writeOut(helpText());
-		return 0;
+		return true;
 	}
 	if (args[0] !== "development" && (args.includes("--version") || args.includes("-v"))) {
 		dependencies.writeOut(PRODUCT_VERSION);
-		return 0;
+		return true;
 	}
+	return false;
+}
+
+function requireAstra(
+	dependencies: CliDependencies,
+): asserts dependencies is CliDependencies & { runAstra: NonNullable<CliDependencies["runAstra"]> } {
+	if (!dependencies.runAstra) throw new Error("Astra Workbench가 연결되지 않았습니다.");
+}
+
+function parseAstraOptions(args: string[]): { options: RunAppOptions; selectResumeThread: boolean } {
+	const options: RunAppOptions = {};
+	const seen = new Set<string>();
+	let selectResumeThread = false;
+	for (let index = 1; index < args.length; index += 1) {
+		const flag = args[index]!;
+		if (seen.has(flag)) throw new Error(`중복 옵션: ${flag}`);
+		seen.add(flag);
+		if (flag === "--resume") {
+			selectResumeThread = true;
+			if (args[index + 1] && !args[index + 1]!.startsWith("--")) options.resumeThreadId = args[++index];
+		} else if (flag === "--execution-lane" && (args[index + 1] === "pi" || args[index + 1] === "codex")) {
+			options.executionLane = args[++index] as "pi" | "codex";
+		} else if (flag === "--runtime-config" && args[index + 1] && !args[index + 1]!.startsWith("--")) {
+			options.runtimeConfig = args[++index];
+		} else {
+			throw new Error("사용법: www astra [--resume [id]] [--execution-lane codex|pi] [--runtime-config <json>]");
+		}
+	}
+	return { options, selectResumeThread: selectResumeThread && !options.resumeThreadId };
+}
+
+async function selectResumeThread(dependencies: CliDependencies): Promise<string | undefined> {
+	const threads = await dependencies.listNativeThreads();
+	if (!threads.length) throw new Error("현재 프로젝트에서 재개할 Codex native thread가 없습니다.");
+	return await dependencies.selectNativeThread(threads, "astra") ?? undefined;
+}
+
+async function runAstraCommand(args: string[], dependencies: CliDependencies): Promise<void> {
+	requireAstra(dependencies);
+	const parsed = parseAstraOptions(args);
+	if (parsed.selectResumeThread) {
+		parsed.options.resumeThreadId = await selectResumeThread(dependencies);
+		if (!parsed.options.resumeThreadId) return;
+	}
+	await dependencies.runAstra(parsed.options);
+}
+
+async function runRouterCommand(args: string[], dependencies: CliDependencies): Promise<void> {
+	if (args.length === 1) await dependencies.runRouter({});
+	else if (args.length === 3 && args[1] === "--resume" && isLegacySessionId(args[2])) {
+		await dependencies.runRouter({ resumeSessionId: args[2] });
+	} else throw new Error("사용법: www router [--resume <session-id>]");
+}
+
+async function writeSessions(dependencies: CliDependencies): Promise<void> {
+	const sessions = await dependencies.listSessions();
+	if (sessions.length === 0) dependencies.writeOut("저장된 세션이 없습니다.");
+	for (const session of sessions) {
+		dependencies.writeOut(`${session.id}  ${new Date(session.updatedAt).toLocaleString("ko-KR")}`);
+	}
+}
+
+async function writeThreads(dependencies: CliDependencies): Promise<void> {
+	const threads = await dependencies.listNativeThreads();
+	if (threads.length === 0) dependencies.writeOut("현재 프로젝트의 Codex native thread가 없습니다.");
+	for (const thread of threads) {
+		const updatedAt = new Date(thread.updatedAt * 1_000).toLocaleString("ko-KR");
+		const preview = thread.preview.replace(/\s+/gu, " ").trim() || "(미리보기 없음)";
+		dependencies.writeOut(`${thread.id}  ${thread.status}  ${updatedAt}  ${preview}`);
+	}
+}
+
+async function resumeAstra(args: string[], dependencies: CliDependencies): Promise<void> {
+	requireAstra(dependencies);
+	const threadId = args[1] || await selectResumeThread(dependencies);
+	if (threadId) await dependencies.runAstra({ resumeThreadId: threadId });
+}
+
+async function dispatchCommand(args: string[], dependencies: CliDependencies): Promise<void> {
+	if (args[0] === "development") {
+		if (!dependencies.runDevelopment) throw new Error("개발 기록 서비스를 사용할 수 없습니다.");
+		dependencies.writeOut(await dependencies.runDevelopment(args.slice(1)));
+	} else if (args[0] === "auth") await dependencies.runAuth(args.slice(1));
+	else if (args[0] === "workflow") {
+		if (!dependencies.runWorkflow) throw new Error("로컬 Workflow가 연결되지 않았습니다.");
+		dependencies.writeOut(await dependencies.runWorkflow(args.slice(1)));
+	} else if (args[0] === "astra") await runAstraCommand(args, dependencies);
+	else if (args[0] === "router") await runRouterCommand(args, dependencies);
+	else if (args[0] === "sessions") await writeSessions(dependencies);
+	else if (args[0] === "threads") await writeThreads(dependencies);
+	else if (args[0] === "--resume") await resumeAstra(args, dependencies);
+	else if (args.length === 0) {
+		requireAstra(dependencies);
+		await dependencies.runAstra({});
+	}
+	else if (args.length === 2 && args[0] === "--execution-lane" && (args[1] === "pi" || args[1] === "codex")) {
+		requireAstra(dependencies);
+		await dependencies.runAstra({ executionLane: args[1] });
+	} else throw new Error(`알 수 없는 명령입니다: ${args.join(" ")}`);
+}
+
+export async function runCli(args: string[], dependencies: CliDependencies = productionDependencies): Promise<number> {
+	if (writeInformationalOutput(args, dependencies)) return 0;
 	try {
-		if (args[0] === "development") {
-			if (!dependencies.runDevelopment) throw new Error("개발 기록 서비스를 사용할 수 없습니다.");
-			dependencies.writeOut(await dependencies.runDevelopment(args.slice(1)));
-		}
-		else if (args[0] === "auth") await dependencies.runAuth(args.slice(1));
-		else if (args[0] === "workflow") {
-   if (!dependencies.runWorkflow) throw new Error("로컬 Workflow가 연결되지 않았습니다.");
-   dependencies.writeOut(await dependencies.runWorkflow(args.slice(1)));
-  }
-		else if (args[0] === "astra") {
-			if (!dependencies.runAstra) throw new Error("Astra Workbench가 연결되지 않았습니다.");
-			const options: RunAppOptions = {}, seen = new Set<string>();
-			let resume = false;
-			for (let i = 1; i < args.length; i++) {
-				const flag = args[i]!;
-				if (seen.has(flag)) throw new Error(`중복 옵션: ${flag}`);
-				seen.add(flag);
-				if (flag === "--resume") { resume = true; if (args[i + 1] && !args[i + 1]!.startsWith("--")) options.resumeThreadId = args[++i]; }
-				else if (flag === "--execution-lane" && (args[i + 1] === "pi" || args[i + 1] === "codex")) options.executionLane = args[++i] as "pi" | "codex";
-				else if (flag === "--runtime-config" && args[i + 1] && !args[i + 1]!.startsWith("--")) options.runtimeConfig = args[++i];
-				else throw new Error("사용법: www astra [--resume [id]] [--execution-lane codex|pi] [--runtime-config <json>]");
-			}
-			if (resume && !options.resumeThreadId) {
-				const threads = await dependencies.listNativeThreads();
-				if (!threads.length) throw new Error("현재 프로젝트에서 재개할 Codex native thread가 없습니다.");
-				options.resumeThreadId = await dependencies.selectNativeThread(threads, "astra") ?? undefined;
-				if (!options.resumeThreadId) return 0;
-			}
-			await dependencies.runAstra(options);
-		}
-		else if (args[0] === "router") {
-			if (args.length === 1) await dependencies.runRouter({});
-			else if (args.length === 3 && args[1] === "--resume" && isLegacySessionId(args[2])) {
-				await dependencies.runRouter({ resumeSessionId: args[2] });
-			} else throw new Error("사용법: www router [--resume <session-id>]");
-		}
-		else if (args[0] === "sessions") {
-			const sessions = await dependencies.listSessions();
-			if (sessions.length === 0) dependencies.writeOut("저장된 세션이 없습니다.");
-			for (const session of sessions) {
-				dependencies.writeOut(`${session.id}  ${new Date(session.updatedAt).toLocaleString("ko-KR")}`);
-			}
-		}
-		else if (args[0] === "threads") {
-			const threads = await dependencies.listNativeThreads();
-			if (threads.length === 0) dependencies.writeOut("현재 프로젝트의 Codex native thread가 없습니다.");
-			for (const thread of threads) {
-				const updatedAt = new Date(thread.updatedAt * 1_000).toLocaleString("ko-KR");
-				const preview = thread.preview.replace(/\s+/gu, " ").trim() || "(미리보기 없음)";
-				dependencies.writeOut(`${thread.id}  ${thread.status}  ${updatedAt}  ${preview}`);
-			}
-		}
-		else if (args[0] === "--resume") {
-			if (!dependencies.runAstra) throw new Error("Astra Workbench가 연결되지 않았습니다.");
-			let threadId: string | undefined = args[1];
-			if (!threadId) {
-				const threads = await dependencies.listNativeThreads();
-				if (threads.length === 0) throw new Error("현재 프로젝트에서 재개할 Codex native thread가 없습니다.");
-				threadId = await dependencies.selectNativeThread(threads, "astra") ?? undefined;
-			}
-			if (threadId) await dependencies.runAstra({ resumeThreadId: threadId });
-		}
-		else if (args.length === 0) {
-			if (!dependencies.runAstra) throw new Error("Astra Workbench가 연결되지 않았습니다.");
-			await dependencies.runAstra({});
-		}
-		else if (args.length === 2 && args[0] === "--execution-lane" && (args[1] === "pi" || args[1] === "codex")) {
-			if (!dependencies.runAstra) throw new Error("Astra Workbench가 연결되지 않았습니다.");
-			await dependencies.runAstra({ executionLane: args[1] });
-		}
-		else throw new Error(`알 수 없는 명령입니다: ${args.join(" ")}`);
+		await dispatchCommand(args, dependencies);
 		return 0;
 	} catch (error) {
 		dependencies.writeError(error instanceof Error ? error.message : String(error));

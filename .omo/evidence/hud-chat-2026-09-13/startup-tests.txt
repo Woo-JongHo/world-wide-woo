@@ -1,0 +1,16 @@
+bun test v1.4.0 (34cbb9a40)
+
+test/tui-shell-characterization.test.ts:
+(pass) runProjectWorkbenchShell characterization > opens Chat directly without dismissing Dashboard [153.87ms]
+(pass) runProjectWorkbenchShell characterization > dispatches one chat send for a ready composer submission [61.73ms]
+(pass) runProjectWorkbenchShell characterization > routes a working composer submission through the chat command used for steering [62.70ms]
+(pass) runProjectWorkbenchShell characterization > keeps Escape non-decisive and dispatches an approval exactly once [125.38ms]
+(pass) runProjectWorkbenchShell characterization > dispatches one cancellation for Escape while working [94.73ms]
+(pass) runProjectWorkbenchShell characterization > resumes a workflow without creating a new chat send [62.47ms]
+(pass) runProjectWorkbenchShell characterization > disposes shell-owned resources during shutdown [62.09ms]
+(pass) runProjectWorkbenchShell characterization > releases shell resources once in the established shutdown order [0.93ms]
+
+ 8 pass
+ 0 fail
+ 14 expect() calls
+Ran 8 tests across 1 file. [2.28s]

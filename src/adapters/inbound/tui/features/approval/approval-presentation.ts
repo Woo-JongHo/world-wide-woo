@@ -10,6 +10,14 @@ import { colors } from "../../foundation/theme/theme";
 
 const APPROVAL_DETAIL_MAX_CHARS = 200;
 
+export interface ApprovalRequestPresentation {
+	readonly kind: string;
+	readonly detailLabel: string;
+	readonly detail: string;
+	readonly reason: string;
+	readonly cwd: string | null;
+}
+
 export function approvalKindLabel(kind: NativeApprovalRequest["kind"]): string {
 	if (kind === "command") return "명령";
 	if (kind === "file-change") return "파일 변경";
@@ -36,6 +44,18 @@ export function approvalDetailLabel(request: NativeApprovalRequest): string {
 	return "권한";
 }
 
+/** Keep request sanitization and kind-specific fallback policy identical on every approval surface. */
+export function projectApprovalRequest(request: NativeApprovalRequest): ApprovalRequestPresentation {
+	const fallback = approvalFallback(request);
+	return {
+		kind: approvalKindLabel(request.kind),
+		detailLabel: approvalDetailLabel(request),
+		detail: approvalParamText(request, "command") ?? fallback,
+		reason: approvalParamText(request, "reason") ?? fallback,
+		cwd: approvalParamText(request, "cwd"),
+	};
+}
+
 function approvalInstruction(request: NativeApprovalRequest): string {
 	return workbenchApprovalDecisions(request).length > 0
 		? "승인 선택 화면 · ↑↓ 또는 숫자로 선택 · Enter 결정"
@@ -48,14 +68,12 @@ export function approvalCardRows(
 	background: BackgroundWorkState,
 	width: number,
 ): string[] {
-	const command = approvalParamText(request, "command");
-	const reason = approvalParamText(request, "reason");
-	const cwd = approvalParamText(request, "cwd");
+	const presentation = projectApprovalRequest(request);
 	return [
-		colors.warning(`승인 필요 · ${approvalKindLabel(request.kind)}`),
-		`${colors.accent(approvalDetailLabel(request))} · ${command ?? approvalFallback(request)}`,
-		`${colors.accent("이유")} · ${reason ?? approvalFallback(request)}`,
-		...(cwd ? [`${colors.accent("경로")} · ${cwd}`] : []),
+		colors.warning(`승인 필요 · ${presentation.kind}`),
+		`${colors.accent(presentation.detailLabel)} · ${presentation.detail}`,
+		`${colors.accent("이유")} · ${presentation.reason}`,
+		...(presentation.cwd ? [`${colors.accent("경로")} · ${presentation.cwd}`] : []),
 		colors.muted(approvalInstruction(request)),
 		colors.warning("승인할까요? 현재 턴은 Input 답변을 기다립니다."),
 		colors.muted(`백그라운드 작업 · ${background}`),

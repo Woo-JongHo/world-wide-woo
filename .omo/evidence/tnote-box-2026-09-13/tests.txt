@@ -1,0 +1,51 @@
+[0m[1mbun test [0m[2mv1.4.0 (34cbb9a40)[0m
+[0m
+test/astra-ui.test.ts:
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m Request status uses bounded motion and settles after completion[0m [0m[2m[0.41ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m Now names the actual live activity instead of repeating the current Todo[0m [0m[2m[4.15ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m the progress highlight moves without implying a percentage, and stops for approval[0m [0m[2m[[1m15.38ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m durations use whole h m s units without milliseconds[0m [0m[2m[0.09ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m the actual editor keeps its text coordinates and bottom boundary on focus changes[0m [0m[2m[4.52ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m running Bash shows bounded live output; finished commands fold and failed output stays open[0m [0m[2m[2.14ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m scrolled multiline drafts retain focus rails, hidden-line counts and autocomplete coordinates[0m [0m[2m[8.66ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m Context quota details reject non-finite percentages and clamp out-of-range values[0m [0m[2m[4.94ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m HUD and Context never expose invalid percentages: %s[0m [0m[2m[7.56ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m HUD and Context never expose invalid percentages: %s[0m [0m[2m[1.97ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m HUD and Context never expose invalid percentages: %s[0m [0m[2m[3.13ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m HUD and Context never expose invalid percentages: %s[0m [0m[2m[2.60ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m quota remains readable at 80 columns, with stale and missing values distinguished[0m [0m[2m[3.24ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m role headings and every provider have stable, distinct visual identities[0m [0m[2m[8.47ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m native-plan Todo does not repeat the visible Plan, while manual Todo remains[0m [0m[2m[6.67ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m all screen shortcuts work as a prefix sequence without function keys[0m [0m[2m[0.75ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m question summaries live inside ZChat rather than a separate slash screen[0m [0m[2m[[1m38.66ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m legacy three-field T-notes remain readable after the report migration[0m [0m[2m[0.08ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m activity ticks do not invalidate Astra's durable transcript[0m [0m[2m[2.43ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m snapshot-only telemetry updates reuse Astra's visible transcript[0m [0m[2m[1.16ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m native startup telemetry does not leave an empty execution screen[0m [0m[2m[0.42ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m long Linear metadata stays in Context instead of taking over the idle execution viewport[0m [0m[2m[6.68ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m keeps execution and controls readable at 80×24[0m [0m[2m[[1m12.35ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m keeps execution and controls readable at 112×32[0m [0m[2m[[1m23.63ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m keeps execution and controls readable at 160×48[0m [0m[2m[[1m20.12ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m keeps execution and controls readable at 60×18[0m [0m[2m[4.84ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m keeps execution and controls readable at 80×10[0m [0m[2m[8.45ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m keeps newlines, code, draft and the latest tool visible without raw reasoning[0m [0m[2m[6.26ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m preserves reading position across streaming and resize, then follows on End[0m [0m[2m[[1m41.37ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m durable messages require activity order while optimistic user delivery remains visible[0m [0m[2m[1.16ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m approval outranks running state, and no unobserved metric becomes zero[0m [0m[2m[2.45ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m a completed command with nonzero exit remains a visible failure even when output is collapsed[0m [0m[2m[0.73ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m searching commands does not execute them and includes retained workflows[0m [0m[2m[0.48ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m a small colourless palette follows the selected command rather than the search prompt[0m [0m[2m[2.20ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m Astra resume selection uses its own presentation without changing selected Native identity[0m [0m[2m[1.12ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m long approval sheets expose choices through paging without deciding on Escape[0m [0m[2m[7.78ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m moving approval selection reveals the action without hiding details on initial open[0m [0m[2m[0.85ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m pinned controls never skip candidate lines during paging[0m [0m[2m[3.24ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m an active auth prompt is revealed without preventing manual paging back to its explanation[0m [0m[2m[0.68ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m one turn finishing never claims the long-term goal is complete[0m [0m[2m[0.68ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m an accepted but unloaded source keeps its exact identity instead of reporting no selection[0m [0m[2m[0.31ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m history keeps every keyboard selection in the first 11 lines at 80×24[0m [0m[2m[[1m14.74ms[0m[2m][0m
+[0m[32m✓[0m [0mAstra execution console[2m >[0m[1m source renderer keeps exact identity and filters secret envelopes[0m [0m[2m[1.84ms[0m[2m][0m
+
+[0m[32m 43 pass[0m
+[0m[2m 0 fail[0m
+ 1229 expect() calls
+Ran 43 tests across 1 file. [0m[2m[[1m352.00ms[0m[2m][0m

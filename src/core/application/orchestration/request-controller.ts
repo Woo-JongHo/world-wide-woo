@@ -69,6 +69,16 @@ export class RequestController {
 	private response(call: RuntimeToolCall, success: boolean, reason: string, extra = {}): RuntimeToolResult {
 		return { success, text: JSON.stringify({ state: success ? "accepted" : "rejected", reason, revision: this.revision(call), ...extra }) };
 	}
+	private async appendRuntimeTransition(
+		call: RuntimeToolCall,
+		payload: Readonly<Record<string, unknown>>,
+		acceptedReason: string,
+	): Promise<RuntimeToolResult> {
+		const activity = await this.deps.append(call, "progress", "completed", payload);
+		const request = this.current(call)!;
+		const rejected = request.events.find(event => event.activityId === activity.id && event.type === "protocol.rejected");
+		return this.response(call, !rejected, rejected?.reason ?? acceptedReason, { request });
+	}
 	private async run(call: RuntimeToolCall, signal: AbortSignal, hostRecovery = false): Promise<RuntimeToolResult> {
 		const input = call.arguments;
 		if (!obj(input) || typeof input.requestId !== "string" || JSON.stringify(input).length > 32000) return this.response(call, false, "INVALID_INPUT");
@@ -118,25 +128,16 @@ export class RequestController {
 		if (!Number.isSafeInteger(input.expectedRevision) || input.expectedRevision !== this.revision(call)) return this.response(call, false, "STALE_REVISION");
 		if (call.tool === "www_runtime_require_delivery") {
 			if (!validDelivery(input) || input.target === "chat" || Object.keys(input).some(k => !["requestId", "expectedRevision", "target", "artifact"].includes(k))) return this.response(call, false, "INVALID_DELIVERY_REQUIREMENT");
-			const activity = await this.deps.append(call, "progress", "completed", { method: "runtime/delivery-required", authority: "runtime", requestId: request.requestId, target: input.target, artifact: input.artifact });
-			const next = this.current(call)!;
-			const rejected = next.events.find(e => e.activityId === activity.id && e.type === "protocol.rejected");
-			return this.response(call, !rejected, rejected?.reason ?? "DELIVERY_REQUIRED", { request: next });
+			return this.appendRuntimeTransition(call, { method: "runtime/delivery-required", authority: "runtime", requestId: request.requestId, target: input.target, artifact: input.artifact }, "DELIVERY_REQUIRED");
 		}
 		if (call.tool === "www_runtime_replan") {
 			if (Object.keys(input).some(k => !["requestId", "expectedRevision", "stage", "reason"].includes(k)) || !REQUEST_STAGES.includes(input.stage as never) || typeof input.reason !== "string" || !input.reason.trim() || input.reason.length > 4000) return this.response(call, false, "INVALID_REPLAN");
-			const activity = await this.deps.append(call, "progress", "completed", { method: "runtime/replan", authority: "runtime", requestId: request.requestId, stage: input.stage, reason: input.reason });
-			const next = this.current(call)!;
-			const rejected = next.events.find(e => e.activityId === activity.id && e.type === "protocol.rejected");
-			return this.response(call, !rejected, rejected?.reason ?? "REPLAN_ACCEPTED", { request: next });
+			return this.appendRuntimeTransition(call, { method: "runtime/replan", authority: "runtime", requestId: request.requestId, stage: input.stage, reason: input.reason }, "REPLAN_ACCEPTED");
 		}
 		if (call.tool === "www_runtime_propose") {
 			const report = parseRequestStageReport(REQUEST_REPORT_PREFIX + JSON.stringify(input.report));
 			if (!report || report.requestId !== request.requestId) return this.response(call, false, "INVALID_REPORT");
-			const activity = await this.deps.append(call, "progress", "completed", { method: "runtime/stage-report", authority: "runtime", requestId: request.requestId, report });
-			const next = this.current(call)!;
-			const rejected = next.events.find(e => e.activityId === activity.id && e.type === "protocol.rejected");
-			return this.response(call, !rejected, rejected?.reason ?? "STAGE_ACCEPTED", { request: next });
+			return this.appendRuntimeTransition(call, { method: "runtime/stage-report", authority: "runtime", requestId: request.requestId, report }, "STAGE_ACCEPTED");
 		}
 		if (call.tool !== "www_runtime_act" || Object.keys(input).some(k => !["requestId", "operationId", "stage", "capability", "arguments", "expectedRevision"].includes(k)) || !identity(input.operationId) || typeof input.capability !== "string" || !obj(input.arguments) || !REQUEST_STAGES.includes(input.stage as never)) return this.response(call, false, "INVALID_ACTION");
 		const capability = this.deps.capabilities?.find(c => c.id === input.capability);
