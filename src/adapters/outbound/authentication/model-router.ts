@@ -28,6 +28,8 @@ const REASONING_LEVEL = {
 	low: "low",
 	medium: "medium",
 	high: "high",
+	xhigh: "xhigh",
+	max: "max",
 	ultra: "max",
 } as const;
 

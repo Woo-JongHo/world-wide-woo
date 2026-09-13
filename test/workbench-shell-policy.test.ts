@@ -2,32 +2,35 @@ import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences, type Component } from "@earendil-works/pi-tui";
 import { renderLayoutFrame } from "@earendil-works/pi-tui/dist/layout.js";
 import {
+	workbenchActivityIndicator,
+	composerModelHeader,
+	workbenchFrameTitle,
+} from "../src/adapters/inbound/tui/shell/workbench-shell";
+import {
+	approvalDecisionFromInput,
+	loginProviderFromInput,
+	nextWorkbenchRuntimeMode,
+	workbenchModelSettings,
+	workbenchPaneNotice,
+	workbenchReceiptClearsComposer,
+	workbenchReceiptNotice,
+	workbenchRuntimeMode,
+} from "../src/adapters/inbound/tui/shell/workbench-input.controller";
+import {
+	ComponentSlot,
 	createWorkbenchViewHost,
 	directObservabilityView,
 	rotateObservabilityView,
 	shouldHandleObservabilityShortcut,
 	workbenchDashboardSessionIndex,
 	workbenchEscapeView,
-	workbenchActivityIndicator,
-	approvalDecisionFromInput,
-	nextWorkbenchRuntimeMode,
-	workbenchRuntimeMode,
-	loginProviderFromInput,
-	ComponentSlot,
-	composerModelHeader,
-	workbenchFrameTitle,
-	workbenchModelSettings,
-	workbenchPaneNotice,
-	workbenchReceiptClearsComposer,
-	workbenchReceiptNotice,
 	workbenchStatsTargetCommand,
-	workbenchViewModeForCommand,
 	workbenchViewModeCommand,
-} from "../src/adapters/inbound/tui/shell/workbench-shell";
-import { RenderScheduler } from "../src/adapters/inbound/tui/shell/render-scheduler";
-import { composerBorderColor, composerBorderHex } from "../src/adapters/inbound/tui/shell/theme";
+} from "../src/adapters/inbound/tui/shell/workbench-navigation.controller";
+import { RenderScheduler } from "../src/adapters/inbound/tui/foundation/rendering/render-scheduler";
+import { composerBorderColor, composerBorderHex } from "../src/adapters/inbound/tui/foundation/theme/theme";
 import { workbenchApprovalIdentity, workbenchExternalMutationCandidates } from "../src/core/domain/work/workbench";
-import { createDashboardLayout } from "../src/adapters/inbound/tui/dashboard/dashboard-layout";
+import { createDashboardLayout } from "../src/adapters/inbound/tui/foundation/layout/dashboard-layout";
 import { parseWorkbenchShellCommand, WORKBENCH_SLASH_COMMANDS } from "../src/adapters/inbound/tui/commands/slash-commands";
 
 const workingSnapshot = {
@@ -96,9 +99,6 @@ describe("native workbench shell receipt policy", () => {
 		expect(workbenchPaneNotice("tnotes")).not.toContain("Trace");
 		expect(workbenchPaneNotice("chat")).toContain("질문과 공개 응답");
 		expect(workbenchPaneNotice("todo")).toContain("현재 Native Plan·Todo.md");
-		expect(workbenchViewModeForCommand("monitor", { type: "pane.show", pane: "tnotes" })).toBe("workbench");
-		expect(workbenchViewModeForCommand("dashboard", { type: "activity.select", activityId: "activity-1" })).toBe("source");
-		expect(workbenchViewModeForCommand("dashboard", { type: "trace.select", activityId: "activity-1" })).toBe("source");
 	});
 
 	test("selects Trace only by exact activity id and rejects mutable legacy Todo commands", () => {
@@ -184,6 +184,7 @@ describe("native workbench shell receipt policy", () => {
 		expect(workbenchViewModeCommand(" /monitor ")).toBe("monitor");
 		expect(workbenchViewModeCommand(" /map ")).toBe("map");
 		expect(workbenchViewModeCommand(" /stats ")).toBe("stats");
+		expect(workbenchViewModeCommand(" /Test ")).toBe("test");
 		expect(workbenchViewModeCommand("/monitor details")).toBeNull();
 		expect(workbenchStatsTargetCommand("/stats")).toBe("session");
 		expect(workbenchStatsTargetCommand("/stats diagnostics")).toBe("diagnostics");
@@ -259,7 +260,7 @@ describe("native workbench shell receipt policy", () => {
 		expect(stripTerminalSequences(frame.lines.join("\n"))).toContain("PURPOSE · ACTION · RESULT");
 	});
 
-	test("normalizes native model telemetry into a selectable Codex setting", () => {
+	test("preserves native model identity even before the catalog recognizes it", () => {
 		expect(workbenchModelSettings({ model: "gpt-5.6-terra", effort: "high" })).toEqual({
 			provider: "openai-codex",
 			model: "gpt-5.6-terra",
@@ -267,8 +268,8 @@ describe("native workbench shell receipt policy", () => {
 		});
 		expect(workbenchModelSettings({ model: "unknown", effort: null })).toEqual({
 			provider: "openai-codex",
-			model: "gpt-5.6-sol",
-			effort: "ultra",
+			model: "unknown",
+			effort: "medium",
 		});
 	});
 
@@ -485,6 +486,12 @@ describe("native workbench shell receipt policy", () => {
 		const accepted = { state: "accepted", commandId: "chat-1", message: "전송했습니다." } as const;
 		expect(workbenchReceiptClearsComposer(accepted)).toBe(true);
 		expect(workbenchReceiptNotice(accepted)).toBe("전송했습니다.");
+	});
+
+	test("keeps a generic accepted notice from adding another HUD row", () => {
+		const accepted = { state: "accepted", commandId: "chat-accepted" } as const;
+		expect(workbenchReceiptClearsComposer(accepted)).toBe(true);
+		expect(workbenchReceiptNotice(accepted)).toBe("");
 	});
 
 	test("clears a deferred chat from the editor without presenting FIFO as the primary UX", () => {

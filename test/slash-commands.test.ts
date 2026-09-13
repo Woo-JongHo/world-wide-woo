@@ -146,13 +146,16 @@ describe("WWW slash commands", () => {
 			"gpt-5.6-terra",
 			"gpt-5.6-luna",
 			"gpt-5.4",
+			"gpt-6-astra",
 		]);
 		const effortCompletions = await modelCommand?.getArgumentCompletions?.("gpt-5.6-terra ");
 		expect(effortCompletions).toEqual([
-			{ value: "low", label: "low", description: "추론 강도" },
-			{ value: "medium", label: "medium", description: "추론 강도" },
-			{ value: "high", label: "high", description: "추론 강도" },
-			{ value: "ultra", label: "ultra", description: "추론 강도" },
+			{ value: "gpt-5.6-terra low", label: "low", description: "추론 강도" },
+			{ value: "gpt-5.6-terra medium", label: "medium", description: "추론 강도" },
+			{ value: "gpt-5.6-terra high", label: "high", description: "추론 강도" },
+			{ value: "gpt-5.6-terra xhigh", label: "xhigh", description: "추론 강도" },
+			{ value: "gpt-5.6-terra max", label: "max", description: "추론 강도" },
+			{ value: "gpt-5.6-terra ultra", label: "ultra", description: "Codex 자동 위임 포함" },
 		]);
 		expect(SLASH_COMMANDS.map((command) => command.name)).toEqual([
 			"model",

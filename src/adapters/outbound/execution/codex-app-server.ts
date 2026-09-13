@@ -1,4 +1,5 @@
 import type { ExecutorPort } from "../../../core/ports/execution/executor-port.js";
+import type { RuntimeToolDefinition, RuntimeToolHandler, RuntimeToolResult } from "../../../core/ports/execution/runtime-tool-port";
 import type {
 	NativeApprovalDecision,
 	NativeApprovalKind,
@@ -25,6 +26,7 @@ import type {
 } from "../../../core/domain/execution/native-session.js";
 import { sanitizeTerminalText } from "../../../core/domain/execution/terminal.js";
 import { PRODUCT_VERSION } from "../../../product-version.js";
+import { CODEX_EFFORTS, type Effort, type NativeModelOption } from "../../../core/domain/execution/model-settings";
 
 const STDERR_TAIL_CODE_POINTS = 4_096;
 const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
@@ -188,6 +190,10 @@ export class StdioJsonLineTransport implements JsonLineTransport {
 }
 
 export class CodexAppServer implements ExecutorPort {
+	private runtimeTools: readonly RuntimeToolDefinition[] = [];
+	private runtimeToolHandler: RuntimeToolHandler | null = null;
+	private readonly runtimeCalls = new Map<string, { signature: string; response: Promise<RuntimeToolResult> }>();
+	private readonly runtimeThreads = new Set<string>();
 	private readonly listeners = new Set<(event: NativeHarnessEvent) => void>();
 	private readonly pending = new Map<NativeRequestId, PendingRequest>();
 	private readonly pendingApprovalResponses = new Map<NativeRequestId, PendingApprovalResponse>();
@@ -233,6 +239,36 @@ export class CodexAppServer implements ExecutorPort {
 		return server;
 	}
 
+	/** Read the complete visible catalog; never publish a partially read page set. */
+	public async listModels(): Promise<readonly NativeModelOption[]> {
+		const models = new Map<string, NativeModelOption>();
+		const deadline = Date.now() + Math.min(this.requestTimeoutMs, 5_000);
+		const cursors = new Set<string>();
+		let cursor: string | undefined;
+		do {
+			const remaining = deadline - Date.now();
+			if (remaining <= 0) throw new Error("Native 모델 목록 조회 시간 초과");
+			const result = await this.request("model/list", compact({ cursor, limit: 100, includeHidden: false }), false, remaining) as { data?: unknown; nextCursor?: unknown };
+			if (!result || !Array.isArray(result.data)) throw new Error("Native 모델 목록 응답 형식 오류");
+			for (const value of result.data) {
+				if (!value || typeof value !== "object") throw new Error("Native 모델 항목 형식 오류");
+				const row = value as Record<string, unknown>;
+				if (row.hidden === true) continue;
+				if (typeof row.model !== "string" || !/^[\w./:-]+$/u.test(row.model) || !Array.isArray(row.supportedReasoningEfforts)) throw new Error("Native 모델 capability 형식 오류");
+				const efforts = [...new Set(row.supportedReasoningEfforts.map((option: { reasoningEffort?: unknown }) => option?.reasoningEffort).filter((effort): effort is Effort => CODEX_EFFORTS.includes(effort as Effort)))];
+				if (!efforts.length) throw new Error(`WWW가 지원하지 않는 Native 추론 계약: ${row.model}`);
+				const defaultEffort = efforts.find(effort => effort === row.defaultReasoningEffort) ?? efforts[0]!;
+				models.set(row.model, { model: row.model, displayName: typeof row.displayName === "string" ? row.displayName : row.model, efforts, defaultEffort });
+			}
+			if (result.nextCursor != null && typeof result.nextCursor !== "string") throw new Error("Native 모델 cursor 형식 오류");
+			cursor = result.nextCursor || undefined;
+			if (cursor && (cursors.has(cursor) || cursors.size >= 100)) throw new Error("Native 모델 목록 pagination 오류");
+			if (cursor) cursors.add(cursor);
+		} while (cursor);
+		if (!models.size) throw new Error("Native가 사용 가능한 모델을 반환하지 않았습니다.");
+		return [...models.values()];
+	}
+
 	public async startThread(input: NativeThreadStart): Promise<NativeThreadSnapshot> {
 		const result = await this.request("thread/start", compact({
 			cwd: input.cwd,
@@ -241,10 +277,44 @@ export class CodexAppServer implements ExecutorPort {
 			approvalPolicy: input.approvalPolicy,
 			sandbox: input.sandbox,
 			ephemeral: input.ephemeral,
+			dynamicTools: this.runtimeTools.length ? this.runtimeTools.map(tool => ({ type: "function", ...tool })) : undefined,
 		}), true);
 		const snapshot = threadSnapshot(result, "thread/start");
 		this.registerThreadTurns(snapshot);
+		if (this.runtimeTools.length) this.runtimeThreads.add(snapshot.id);
 		return snapshot;
+	}
+
+	public registerRuntimeTools(definitions: readonly RuntimeToolDefinition[], handler: RuntimeToolHandler): () => void {
+		if (this.runtimeToolHandler || this.runtimeThreads.size) throw new Error("Runtime tools must be registered once before thread creation");
+		if (definitions.length === 0 || new Set(definitions.map(d => d.name)).size !== definitions.length || definitions.some(d => !/^[a-zA-Z0-9_-]{1,64}$/u.test(d.name))) throw new Error("Invalid Runtime tool definitions");
+		this.runtimeTools = structuredClone(definitions);
+		this.runtimeToolHandler = handler;
+		return () => { this.runtimeToolHandler = null; };
+	}
+
+	private async handleRuntimeTool(id: NativeRequestId, params: JsonRecord): Promise<void> {
+		const failure = (reason: string): RuntimeToolResult => ({ success: false, text: JSON.stringify({ state: "rejected", reason }) });
+		let result: RuntimeToolResult;
+		const { threadId, turnId, callId, tool } = params;
+		if (typeof threadId !== "string" || typeof turnId !== "string" || typeof callId !== "string" || !callId || typeof tool !== "string" || params.namespace != null || !this.runtimeToolHandler || !this.runtimeThreads.has(threadId) || !this.runtimeTools.some(d => d.name === tool)) {
+			result = failure("RUNTIME_TOOL_UNAVAILABLE");
+		} else {
+			const owner = this.threadIdByTurnId.get(turnId);
+			if (owner !== threadId) result = failure("RUNTIME_TURN_UNBOUND");
+			else {
+				const key = JSON.stringify([threadId, turnId, callId]), signature = JSON.stringify([tool, params.arguments]);
+				const previous = this.runtimeCalls.get(key);
+				if (previous && previous.signature !== signature) result = failure("RUNTIME_CALL_ID_CONFLICT");
+				else if (!previous && this.runtimeCalls.size >= 2048) result = failure("RUNTIME_CALL_CAPACITY");
+				else {
+					const response = previous?.response ?? Promise.resolve().then(() => this.runtimeToolHandler!({ threadId, turnId, callId, tool, arguments: params.arguments })).catch(() => failure("RUNTIME_HANDLER_FAILED"));
+					if (!previous) this.runtimeCalls.set(key, { signature, response });
+					result = await response;
+				}
+			}
+		}
+		if (!this.closing && !this.disconnected) await this.transport.send(JSON.stringify({ id, result: { success: result.success, contentItems: [{ type: "inputText", text: result.text }] } }));
 	}
 
 	public async resumeThread(input: NativeThreadResume): Promise<NativeThreadSnapshot> {
@@ -255,6 +325,9 @@ export class CodexAppServer implements ExecutorPort {
 		}), true);
 		const snapshot = threadSnapshot(result, "thread/resume");
 		this.registerThreadTurns(snapshot);
+		// Definitions are restored by the host for previously brokered threads.
+		// Workbench keeps legacy requests v1; this is not an isolation attestation.
+		if (this.runtimeToolHandler) this.runtimeThreads.add(snapshot.id);
 		return snapshot;
 	}
 
@@ -430,7 +503,7 @@ export class CodexAppServer implements ExecutorPort {
 		this.disconnect();
 	}
 
-	private request(method: string, params: JsonRecord | undefined, uncertainOnDisconnect: boolean): Promise<unknown> {
+	private request(method: string, params: JsonRecord | undefined, uncertainOnDisconnect: boolean, timeoutMs = this.requestTimeoutMs): Promise<unknown> {
 		if (this.disconnected) return Promise.reject(new Error("Codex App Server is disconnected"));
 		const id = ++this.requestSequence;
 		return new Promise((resolve, reject) => {
@@ -440,8 +513,8 @@ export class CodexAppServer implements ExecutorPort {
 				this.pending.delete(id);
 				pending.reject(pending.dispatched && pending.uncertainOnDisconnect
 					? new NativeOperationUncertainError(method, id)
-					: new Error(`Codex App Server ${method} timed out after ${this.requestTimeoutMs}ms`));
-			}, this.requestTimeoutMs);
+					: new Error(`Codex App Server ${method} timed out after ${timeoutMs}ms`));
+			}, timeoutMs);
 			const pending: PendingRequest = { method, uncertainOnDisconnect, dispatched: false, resolve, reject, timeout };
 			this.pending.set(id, pending);
 			const request = params === undefined ? { id, method } : { id, method, params };
@@ -478,6 +551,10 @@ export class CodexAppServer implements ExecutorPort {
 		}
 		if (typeof message.method !== "string") return;
 		const params = isRecord(message.params) ? message.params : {};
+		if (isRequestId(message.id) && message.method === "item/tool/call") {
+			void this.handleRuntimeTool(message.id, params).catch(error => this.disconnect(error as Error));
+			return;
+		}
 		if (isRequestId(message.id) && approvalKind(message.method)) {
 			const kind = approvalKind(message.method);
 			if (!kind) return;

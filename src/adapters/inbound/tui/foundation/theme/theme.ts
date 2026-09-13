@@ -1,0 +1,185 @@
+import chalk from "chalk";
+import type { EditorTheme, MarkdownTheme, SelectListTheme } from "@earendil-works/pi-tui";
+import { createNativeSyntaxHighlightPlugin } from "./syntax-highlighter";
+
+/** WWW instrument-panel palette: graphite, telemetry teal, steel, and signal amber. */
+export const palette = {
+	foreground: "#ffffff",
+	muted: "#839199",
+	border: "#34464f",
+	teal: "#55aeb6",
+	blue: "#78a7c6",
+	steel: "#a3b4bd",
+	amber: "#d0a15f",
+	success: "#72ad8f",
+	red: "#d06c70",
+	orange: "#c9865e",
+	userSurface: "#14242b",
+	assistantSurface: "#1a2228",
+	toolPendingSurface: "#151c20",
+	toolSuccessSurface: "#16231e",
+	toolErrorSurface: "#291a1c",
+	toolWarningSurface: "#282218",
+} as const;
+
+export const colors = {
+	text: chalk.hex(palette.foreground),
+	accent: chalk.hex(palette.teal),
+	secondary: chalk.hex(palette.steel),
+	highlight: chalk.hex(palette.blue),
+	warm: chalk.hex(palette.orange),
+	border: chalk.hex(palette.border),
+	muted: chalk.hex(palette.muted),
+	selected: chalk.bgHex(palette.blue).hex("#0d151a"),
+	success: chalk.hex(palette.success),
+	warning: chalk.hex(palette.amber),
+	error: chalk.hex(palette.red),
+};
+export type TuiColors = { [K in keyof typeof colors]: (text: string) => string };
+
+/** Semantic colors for transcript and result renderers. */
+export const semantic = {
+	userLabel: (text: string) => chalk.bold(colors.highlight(text)),
+	assistantLabel: (text: string) => chalk.bold(colors.secondary(text)),
+	userSurface: chalk.bgHex(palette.userSurface).hex(palette.foreground),
+	/** Assistant prose stays on the terminal canvas; only user input owns a transcript surface. */
+	assistantSurface: chalk.hex(palette.foreground),
+	/** Operational notices remain bounded surfaces and are not mistaken for assistant prose. */
+	noticeSurface: chalk.bgHex(palette.assistantSurface).hex(palette.foreground),
+	reasoning: (text: string) => chalk.italic(colors.muted(text)),
+	activity: (text: string) => chalk.italic(colors.secondary(text)),
+	executionSurface: chalk.bgHex(palette.toolPendingSurface).hex(palette.foreground),
+	executionSurfacePending: chalk.bgHex(palette.toolPendingSurface).hex(palette.foreground),
+	executionSurfacePassed: chalk.bgHex(palette.toolSuccessSurface).hex(palette.foreground),
+	executionSurfaceFailed: chalk.bgHex(palette.toolErrorSurface).hex(palette.foreground),
+	executionSurfaceCancelled: chalk.bgHex(palette.toolWarningSurface).hex(palette.foreground),
+	executionCommand: (text: string) => chalk.bold(colors.accent(text)),
+	executionOutput: colors.muted,
+	narration: colors.accent,
+	toolPending: colors.muted,
+	toolRunning: colors.highlight,
+	toolPassed: colors.success,
+	toolFailed: colors.error,
+	toolCancelled: colors.warning,
+	diffAdded: colors.success,
+	diffRemoved: colors.error,
+	diffContext: colors.muted,
+	effortLow: colors.muted,
+	effortMedium: colors.accent,
+	effortHigh: colors.highlight,
+	effortUltra: colors.warm,
+} as const;
+
+export const selectListTheme: SelectListTheme = {
+	selectedPrefix: colors.accent,
+	selectedText: (text) => chalk.bold(colors.text(text)),
+	description: colors.muted,
+	scrollInfo: colors.muted,
+	noMatch: colors.warning,
+};
+
+export const editorTheme: EditorTheme = {
+	borderColor: colors.border,
+	selectList: selectListTheme,
+};
+
+export const syntaxHighlightPlugin = createNativeSyntaxHighlightPlugin({
+	comment: palette.muted,
+	keyword: palette.blue,
+	function: palette.teal,
+	variable: palette.foreground,
+	string: palette.amber,
+	number: palette.orange,
+	type: palette.steel,
+	operator: palette.amber,
+	punctuation: palette.muted,
+	inserted: palette.success,
+	deleted: palette.red,
+});
+
+export const markdownTheme: MarkdownTheme = {
+	heading: (text) => colors.accent(chalk.bold(text)),
+	link: chalk.underline.hex(palette.teal),
+	linkUrl: colors.muted,
+	code: (text) => chalk.bgHex("#20292d").hex(palette.amber)(` ${text} `),
+	codeBlock: chalk.hex(palette.foreground),
+	codeBlockBorder: colors.warm,
+	quote: chalk.italic.hex(palette.foreground),
+	quoteBorder: colors.secondary,
+	hr: colors.border,
+	listBullet: colors.accent,
+	bold: chalk.bold,
+	italic: chalk.italic,
+	strikethrough: chalk.strikethrough,
+	underline: chalk.underline,
+	highlightCode: (code, language) => syntaxHighlightPlugin.highlight(code, language),
+	codeBlockIndent: "  ",
+};
+
+/** Telemetry teal → steel blue → signal amber stops for the WWW landmark glyph. */
+const GRADIENT_STOPS: ReadonlyArray<readonly [number, number, number]> = [
+	[85, 174, 182],
+	[120, 167, 198],
+	[208, 161, 95],
+];
+
+function gradientColorAt(position: number): (text: string) => string {
+	const clamped = Math.min(1, Math.max(0, position));
+	const segment = clamped * (GRADIENT_STOPS.length - 1);
+	const index = Math.min(GRADIENT_STOPS.length - 2, Math.floor(segment));
+	const fraction = segment - index;
+	const [redStart, greenStart, blueStart] = GRADIENT_STOPS[index];
+	const [redEnd, greenEnd, blueEnd] = GRADIENT_STOPS[index + 1];
+	return chalk.rgb(
+		Math.round(redStart + (redEnd - redStart) * fraction),
+		Math.round(greenStart + (greenEnd - greenStart) * fraction),
+		Math.round(blueStart + (blueEnd - blueStart) * fraction),
+	);
+}
+
+/** Diagonal telemetry gradient applied without changing visible width. */
+export function gradientLines(lines: readonly string[]): string[] {
+	const rows = lines.length;
+	const columns = Math.max(1, ...lines.map((line) => Array.from(line).length));
+	const span = Math.max(1, columns + rows - 1);
+	return lines.map((line, row) =>
+		Array.from(line).map((character, column) =>
+			character === " "
+				? character
+				: gradientColorAt((column + (rows - 1 - row)) / span)(character)
+		).join("")
+	);
+}
+
+/** Moving teal-to-amber highlight for live activity text; visible cells stay stable. */
+export function activityGradientFrame(text: string, frame: number): string {
+	const characters = Array.from(text);
+	const span = Math.max(1, characters.length);
+	return characters.map((character, column) => {
+		if (character === " ") return character;
+		const position = ((column - frame) % span + span) % span / span;
+		return gradientColorAt(position)(character);
+	}).join("");
+}
+
+/** Animated Composer focus border; callers advance the frame on their render clock. */
+export function composerBorderColor(frame: number): (text: string) => string {
+	return chalk.hex(composerBorderHex(frame));
+}
+
+function mixHex(start: string, end: string, amount: number): string {
+	const clamped = Math.min(1, Math.max(0, amount));
+	const channel = (value: string, offset: number): number => Number.parseInt(value.slice(offset, offset + 2), 16);
+	const mixed = [1, 3, 5].map((offset) =>
+		Math.round(channel(start, offset) + (channel(end, offset) - channel(start, offset)) * clamped)
+			.toString(16)
+			.padStart(2, "0")
+	);
+	return `#${mixed.join("")}`;
+}
+
+export function composerBorderHex(frame: number): string {
+	const position = (frame % 24) / 23;
+	if (position <= 0.5) return mixHex(palette.teal, palette.steel, position * 2);
+	return mixHex(palette.steel, palette.orange, (position - 0.5) * 2);
+}

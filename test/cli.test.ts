@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { RunAppOptions } from "../src/app";
-import { runCli, writeRouterBootstrap, writeWorkbenchBootstrap, type CliDependencies } from "../src/cli";
+import { runCli, writeAstraBootstrap, writeRouterBootstrap, type CliDependencies } from "../src/cli";
 import type { NativeThreadSummary } from "../src/core/domain/execution/native-session";
 
 const threads: readonly NativeThreadSummary[] = [{
@@ -20,19 +20,22 @@ const threads: readonly NativeThreadSummary[] = [{
 function fakeDependencies() {
 	const calls = {
 		app: [] as RunAppOptions[],
+		astra: [] as RunAppOptions[],
 		router: [] as Array<{ resumeSessionId?: string }>,
 		listed: 0,
 		picked: [] as Array<readonly NativeThreadSummary[]>,
+		pickerDesigns: [] as Array<"astra" | undefined>,
 		out: [] as string[],
 		error: [] as string[],
 	};
 	const dependencies: CliDependencies = {
 		runApp: async (options = {}) => { calls.app.push(options); },
+		runAstra: async (options = {}) => { calls.astra.push(options); },
 		runRouter: async (options = {}) => { calls.router.push(options); },
 		runAuth: async () => undefined,
 		listSessions: async () => [],
 		listNativeThreads: async () => { calls.listed += 1; return threads; },
-		selectNativeThread: async (items) => { calls.picked.push(items); return items[1]?.id ?? null; },
+		selectNativeThread: async (items, design) => { calls.picked.push(items); calls.pickerDesigns.push(design); return items[1]?.id ?? null; },
 		writeOut: (value) => { calls.out.push(value); },
 		writeError: (value) => { calls.error.push(value); },
 	};
@@ -40,11 +43,19 @@ function fakeDependencies() {
 }
 
 describe("WWW CLI session entry", () => {
-	test("paints the lightweight Wooni bootstrap before production modules load", () => {
+	test("www astra keeps explicit Runtime scope and resume compatibility", async () => {
+		const { calls, dependencies } = fakeDependencies();
+		expect(await runCli(["astra", "--runtime-config", "runtime.json", "--resume", "thread-2"], dependencies)).toBe(0);
+		expect(calls.astra).toEqual([{ runtimeConfig: "runtime.json", resumeThreadId: "thread-2" }]);
+		expect(await runCli(["astra", "--runtime-config"], dependencies)).toBe(1);
+		expect(await runCli(["astra", "--runtime-config", "one.json", "--runtime-config", "two.json"], dependencies)).toBe(1);
+		expect(calls.astra).toHaveLength(1);
+	});
+	test("paints the Astra bootstrap before production modules load", () => {
 		const writes: string[] = [];
-		writeWorkbenchBootstrap(value => writes.push(value), true);
-		expect(writes).toEqual(["\r\x1b[2K🐙 Wooni · 프로젝트 Workbench를 여는 중…\n"]);
-		writeWorkbenchBootstrap(value => writes.push(value), false);
+		writeAstraBootstrap(value => writes.push(value), true);
+		expect(writes).toEqual(["\r\x1b[2Kastra / Execution Console을 여는 중…\n"]);
+		writeAstraBootstrap(value => writes.push(value), false);
 		expect(writes).toHaveLength(1);
 	});
 
@@ -59,7 +70,7 @@ describe("WWW CLI session entry", () => {
 	test("reports the package release version", async () => {
 		const { calls, dependencies } = fakeDependencies();
 		expect(await runCli(["--version"], dependencies)).toBe(0);
-		expect(calls.out).toEqual(["0.0.16"]);
+		expect(calls.out).toEqual(["0.0.17"]);
 		expect(calls.app).toEqual([]);
 	});
 
@@ -71,24 +82,25 @@ describe("WWW CLI session entry", () => {
 		expect(calls.out[0]).toContain("Claude·Gemini·OpenAI·Z.AI 모델 변경");
 	});
 
-	test("opens a new session for plain www without listing or resuming", async () => {
+	test("opens the Astra console for plain www without listing or resuming", async () => {
 		const { calls, dependencies } = fakeDependencies();
 		expect(await runCli([], dependencies)).toBe(0);
-		expect(calls.app).toEqual([{}]);
+		expect(calls.astra).toEqual([{}]);
+		expect(calls.app).toEqual([]);
 		expect(calls.listed).toBe(0);
 		expect(calls.picked).toEqual([]);
 	});
 
-	test("opens the experimental embedded Pi lane without changing the default", async () => {
+	test("opens the experimental embedded Pi lane inside Astra", async () => {
 		const { calls, dependencies } = fakeDependencies();
 		expect(await runCli(["--execution-lane", "pi"], dependencies)).toBe(0);
-		expect(calls.app).toEqual([{ executionLane: "pi" }]);
+		expect(calls.astra).toEqual([{ executionLane: "pi" }]);
 	});
 
-	test("accepts an explicit Codex lane without changing its default semantics", async () => {
+	test("accepts an explicit Codex lane inside Astra", async () => {
 		const { calls, dependencies } = fakeDependencies();
 		expect(await runCli(["--execution-lane", "codex"], dependencies)).toBe(0);
-		expect(calls.app).toEqual([{ executionLane: "codex" }]);
+		expect(calls.astra).toEqual([{ executionLane: "codex" }]);
 	});
 
 	test("opens an explicit multi-provider Router session without changing the native default", async () => {
@@ -126,7 +138,8 @@ describe("WWW CLI session entry", () => {
 		expect(await runCli(["--resume"], dependencies)).toBe(0);
 		expect(calls.listed).toBe(1);
 		expect(calls.picked).toEqual([threads]);
-		expect(calls.app).toEqual([{ resumeThreadId: "thread-1" }]);
+		expect(calls.pickerDesigns).toEqual(["astra"]);
+		expect(calls.astra).toEqual([{ resumeThreadId: "thread-1" }]);
 	});
 
 	test("resumes an explicit thread id without opening the picker", async () => {
@@ -134,6 +147,6 @@ describe("WWW CLI session entry", () => {
 		expect(await runCli(["--resume", "thread-direct"], dependencies)).toBe(0);
 		expect(calls.listed).toBe(0);
 		expect(calls.picked).toEqual([]);
-		expect(calls.app).toEqual([{ resumeThreadId: "thread-direct" }]);
+		expect(calls.astra).toEqual([{ resumeThreadId: "thread-direct" }]);
 	});
 });

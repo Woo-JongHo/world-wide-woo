@@ -49,15 +49,15 @@
     },
     {
       "kind": "code",
-      "id": "src/adapters/inbound/tui/chat/workbench-views.ts"
+      "id": "src/adapters/inbound/tui/features/chat/workbench-views.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/inbound/tui/dashboard/workbench-tracer-view.ts"
+      "id": "src/adapters/inbound/tui/features/trace/workbench-tracer-view.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/inbound/tui/chat/result-cards.ts"
+      "id": "src/adapters/inbound/tui/features/chat/result-cards.ts"
     },
     {
       "kind": "code",
@@ -65,7 +65,7 @@
     },
     {
       "kind": "code",
-      "id": "src/adapters/inbound/tui/shell/theme.ts"
+      "id": "src/adapters/inbound/tui/foundation/theme/theme.ts"
     },
     {
       "kind": "test",
@@ -109,7 +109,7 @@
     },
     {
       "kind": "code",
-      "id": "src/adapters/inbound/tui/chat/work-step-card.ts"
+      "id": "src/adapters/inbound/tui/features/chat/work-step-card.ts"
     },
     {
       "kind": "test",
@@ -123,7 +123,7 @@
     },
     {
       "kind": "code",
-      "id": "src/adapters/inbound/tui/chat/syntax-highlighter.ts"
+      "id": "src/adapters/inbound/tui/foundation/theme/syntax-highlighter.ts"
     },
     {
       "kind": "code",
@@ -165,7 +165,7 @@
     },
     {
       "kind": "code",
-      "id": "src/adapters/inbound/tui/dashboard/dashboard-layout.ts"
+      "id": "src/adapters/inbound/tui/foundation/layout/dashboard-layout.ts"
     },
     {
       "kind": "test",
@@ -213,7 +213,7 @@
     },
     {
       "kind": "code",
-      "id": "src/adapters/inbound/tui/dashboard/development-map-view.ts"
+      "id": "src/adapters/inbound/tui/features/project-map/development-map-view.ts"
     },
     {
       "kind": "linear-issue",
@@ -223,15 +223,15 @@
     },
     {
       "kind": "code",
-      "id": "src/adapters/inbound/tui/dashboard/workbench-bottom-hud.ts"
+      "id": "src/adapters/inbound/tui/features/usage/workbench-bottom-hud.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/inbound/tui/dashboard/usage-strip-view.ts"
+      "id": "src/adapters/inbound/tui/features/usage/usage-strip-view.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/inbound/tui/dashboard/workbench-telemetry.ts"
+      "id": "src/adapters/inbound/tui/features/monitoring/workbench-telemetry.ts"
     },
     {
       "kind": "test",
@@ -265,7 +265,7 @@
     },
     {
       "kind": "code",
-      "id": "src/adapters/inbound/tui/dashboard/shared-dashboard-views.ts"
+      "id": "src/adapters/inbound/tui/features/dashboard/shared-dashboard-views.ts"
     },
     {
       "kind": "code",
@@ -293,11 +293,11 @@
     },
     {
       "kind": "code",
-      "id": "src/adapters/inbound/tui/overlays/model-picker-overlay.ts"
+      "id": "src/adapters/inbound/tui/features/model-selection/model-picker-overlay.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/inbound/tui/overlays/approval-overlay.ts"
+      "id": "src/adapters/inbound/tui/features/approval/approval-overlay.ts"
     },
     {
       "kind": "test",
@@ -327,7 +327,7 @@
     },
     {
       "kind": "code",
-      "id": "src/adapters/inbound/tui/dashboard/runtime-monitor-view.ts"
+      "id": "src/adapters/inbound/tui/features/monitoring/runtime-monitor-view.ts"
     },
     {
       "kind": "code",
@@ -349,7 +349,7 @@
     },
     {
       "kind": "code",
-      "id": "src/adapters/inbound/tui/dashboard/observability-dashboard-view.ts"
+      "id": "src/adapters/inbound/tui/features/session/observability-dashboard-view.ts"
     },
     {
       "kind": "code",
@@ -375,7 +375,7 @@
     },
     {
       "kind": "code",
-      "id": "src/adapters/inbound/tui/dashboard/session-stats-view.ts"
+      "id": "src/adapters/inbound/tui/features/stats/session-stats-view.ts"
     },
     {
       "kind": "code",
@@ -809,15 +809,15 @@
     },
     {
       "kind": "code",
-      "id": "src/adapters/inbound/tui/overlays/auth-overlay.ts"
+      "id": "src/adapters/inbound/tui/features/authentication/auth-overlay.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/inbound/tui/chat/bounded-public-projection.ts"
+      "id": "src/adapters/inbound/tui/features/chat/bounded-public-projection.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/inbound/tui/dashboard/delegation-tree-view.ts"
+      "id": "src/adapters/inbound/tui/features/chat/delegation-tree-view.ts"
     },
     {
       "kind": "code",
@@ -825,35 +825,35 @@
     },
     {
       "kind": "code",
-      "id": "src/adapters/inbound/tui/dashboard/legacy-dashboard-views.ts"
+      "id": "src/adapters/inbound/tui/legacy/legacy-dashboard-views.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/inbound/tui/shell/legacy-session-shell.ts"
+      "id": "src/adapters/inbound/tui/legacy/legacy-session-shell.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/inbound/tui/overlays/monitoring-overlay.ts"
+      "id": "src/adapters/inbound/tui/features/monitoring/monitoring-overlay.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/inbound/tui/overlays/native-thread-picker.ts"
+      "id": "src/adapters/inbound/tui/features/session/native-thread-picker.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/inbound/tui/overlays/overlay-sheet.ts"
+      "id": "src/adapters/inbound/tui/foundation/components/overlay-sheet.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/inbound/tui/shell/render-scheduler.ts"
+      "id": "src/adapters/inbound/tui/foundation/rendering/render-scheduler.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/inbound/tui/overlays/repository-overlays.ts"
+      "id": "src/adapters/inbound/tui/features/repository/repository-overlays.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/inbound/tui/overlays/router-overlays.ts"
+      "id": "src/adapters/inbound/tui/legacy/router-overlays.ts"
     },
     {
       "kind": "code",
@@ -861,11 +861,11 @@
     },
     {
       "kind": "code",
-      "id": "src/adapters/inbound/tui/dashboard/usage-value.ts"
+      "id": "src/adapters/inbound/tui/features/usage/usage-value.ts"
     },
     {
       "kind": "code",
-      "id": "src/adapters/inbound/tui/shell/workbench-welcome.ts"
+      "id": "src/adapters/inbound/tui/features/chat/workbench-welcome.ts"
     },
     {
       "kind": "code",
@@ -1205,7 +1205,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/chat/workbench-views.ts"
+        "id": "src/adapters/inbound/tui/features/chat/workbench-views.ts"
       }
     },
     {
@@ -1218,7 +1218,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/chat/result-cards.ts"
+        "id": "src/adapters/inbound/tui/features/chat/result-cards.ts"
       }
     },
     {
@@ -1244,7 +1244,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/shell/theme.ts"
+        "id": "src/adapters/inbound/tui/foundation/theme/theme.ts"
       }
     },
     {
@@ -1322,7 +1322,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/chat/workbench-views.ts"
+        "id": "src/adapters/inbound/tui/features/chat/workbench-views.ts"
       }
     },
     {
@@ -1361,7 +1361,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/shell/theme.ts"
+        "id": "src/adapters/inbound/tui/foundation/theme/theme.ts"
       }
     },
     {
@@ -1413,7 +1413,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/chat/work-step-card.ts"
+        "id": "src/adapters/inbound/tui/features/chat/work-step-card.ts"
       }
     },
     {
@@ -1426,7 +1426,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/chat/workbench-views.ts"
+        "id": "src/adapters/inbound/tui/features/chat/workbench-views.ts"
       }
     },
     {
@@ -1504,7 +1504,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/chat/workbench-views.ts"
+        "id": "src/adapters/inbound/tui/features/chat/workbench-views.ts"
       }
     },
     {
@@ -1517,7 +1517,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/shell/theme.ts"
+        "id": "src/adapters/inbound/tui/foundation/theme/theme.ts"
       }
     },
     {
@@ -1530,7 +1530,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/chat/syntax-highlighter.ts"
+        "id": "src/adapters/inbound/tui/foundation/theme/syntax-highlighter.ts"
       }
     },
     {
@@ -1608,7 +1608,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/chat/workbench-views.ts"
+        "id": "src/adapters/inbound/tui/features/chat/workbench-views.ts"
       }
     },
     {
@@ -1621,7 +1621,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/shell/theme.ts"
+        "id": "src/adapters/inbound/tui/foundation/theme/theme.ts"
       }
     },
     {
@@ -1699,7 +1699,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/chat/workbench-views.ts"
+        "id": "src/adapters/inbound/tui/features/chat/workbench-views.ts"
       }
     },
     {
@@ -1764,7 +1764,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/chat/workbench-views.ts"
+        "id": "src/adapters/inbound/tui/features/chat/workbench-views.ts"
       }
     },
     {
@@ -1777,7 +1777,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/dashboard/dashboard-layout.ts"
+        "id": "src/adapters/inbound/tui/foundation/layout/dashboard-layout.ts"
       }
     },
     {
@@ -1998,7 +1998,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/chat/syntax-highlighter.ts"
+        "id": "src/adapters/inbound/tui/foundation/theme/syntax-highlighter.ts"
       }
     },
     {
@@ -2011,7 +2011,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/chat/workbench-views.ts"
+        "id": "src/adapters/inbound/tui/features/chat/workbench-views.ts"
       }
     },
     {
@@ -2193,7 +2193,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/dashboard/development-map-view.ts"
+        "id": "src/adapters/inbound/tui/features/project-map/development-map-view.ts"
       }
     },
     {
@@ -2245,7 +2245,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/dashboard/workbench-bottom-hud.ts"
+        "id": "src/adapters/inbound/tui/features/usage/workbench-bottom-hud.ts"
       }
     },
     {
@@ -2258,7 +2258,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/dashboard/usage-strip-view.ts"
+        "id": "src/adapters/inbound/tui/features/usage/usage-strip-view.ts"
       }
     },
     {
@@ -2271,7 +2271,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/dashboard/workbench-telemetry.ts"
+        "id": "src/adapters/inbound/tui/features/monitoring/workbench-telemetry.ts"
       }
     },
     {
@@ -2349,7 +2349,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/dashboard/dashboard-layout.ts"
+        "id": "src/adapters/inbound/tui/foundation/layout/dashboard-layout.ts"
       }
     },
     {
@@ -2375,7 +2375,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/dashboard/workbench-bottom-hud.ts"
+        "id": "src/adapters/inbound/tui/features/usage/workbench-bottom-hud.ts"
       }
     },
     {
@@ -2453,7 +2453,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/dashboard/workbench-tracer-view.ts"
+        "id": "src/adapters/inbound/tui/features/trace/workbench-tracer-view.ts"
       }
     },
     {
@@ -2466,7 +2466,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/dashboard/workbench-tracer-view.ts"
+        "id": "src/adapters/inbound/tui/features/trace/workbench-tracer-view.ts"
       }
     },
     {
@@ -2479,7 +2479,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/chat/workbench-views.ts"
+        "id": "src/adapters/inbound/tui/features/chat/workbench-views.ts"
       }
     },
     {
@@ -2557,7 +2557,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/dashboard/shared-dashboard-views.ts"
+        "id": "src/adapters/inbound/tui/features/dashboard/shared-dashboard-views.ts"
       }
     },
     {
@@ -2687,7 +2687,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/chat/workbench-views.ts"
+        "id": "src/adapters/inbound/tui/features/chat/workbench-views.ts"
       }
     },
     {
@@ -2804,7 +2804,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/overlays/model-picker-overlay.ts"
+        "id": "src/adapters/inbound/tui/features/model-selection/model-picker-overlay.ts"
       }
     },
     {
@@ -2817,7 +2817,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/overlays/approval-overlay.ts"
+        "id": "src/adapters/inbound/tui/features/approval/approval-overlay.ts"
       }
     },
     {
@@ -2934,7 +2934,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/dashboard/runtime-monitor-view.ts"
+        "id": "src/adapters/inbound/tui/features/monitoring/runtime-monitor-view.ts"
       }
     },
     {
@@ -3025,7 +3025,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/dashboard/observability-dashboard-view.ts"
+        "id": "src/adapters/inbound/tui/features/session/observability-dashboard-view.ts"
       }
     },
     {
@@ -3142,7 +3142,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/dashboard/session-stats-view.ts"
+        "id": "src/adapters/inbound/tui/features/stats/session-stats-view.ts"
       }
     },
     {
@@ -3571,7 +3571,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/dashboard/shared-dashboard-views.ts"
+        "id": "src/adapters/inbound/tui/features/dashboard/shared-dashboard-views.ts"
       }
     },
     {
@@ -3584,7 +3584,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/dashboard/shared-dashboard-views.ts"
+        "id": "src/adapters/inbound/tui/features/dashboard/shared-dashboard-views.ts"
       }
     },
     {
@@ -3597,7 +3597,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/dashboard/shared-dashboard-views.ts"
+        "id": "src/adapters/inbound/tui/features/dashboard/shared-dashboard-views.ts"
       }
     },
     {
@@ -3610,7 +3610,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/chat/workbench-views.ts"
+        "id": "src/adapters/inbound/tui/features/chat/workbench-views.ts"
       }
     },
     {
@@ -3623,7 +3623,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/chat/workbench-views.ts"
+        "id": "src/adapters/inbound/tui/features/chat/workbench-views.ts"
       }
     },
     {
@@ -3714,7 +3714,7 @@
       "relation": "implements",
       "to": {
         "kind": "code",
-        "id": "src/adapters/inbound/tui/dashboard/session-stats-view.ts"
+        "id": "src/adapters/inbound/tui/features/stats/session-stats-view.ts"
       }
     },
     {

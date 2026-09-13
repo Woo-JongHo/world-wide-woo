@@ -9,7 +9,7 @@ describe("source architecture", () => {
 			["core/domain/", new Set(["development", "execution", "observability", "review", "work"])],
 			["core/application/", new Set(["development", "orchestration", "review", "routing", "session", "work"])],
 			["adapters/outbound/", new Set(["authentication", "development", "execution", "git", "observability", "persistence", "review", "workspace"])],
-			["adapters/inbound/tui/", new Set(["chat", "commands", "dashboard", "overlays", "shell"])],
+			["adapters/inbound/tui/", new Set(["foundation", "features", "commands", "shell", "legacy"])],
 		];
 		for (const path of graph.keys()) {
 			for (const [prefix, allowed] of groups) {
@@ -63,6 +63,33 @@ describe("source architecture", () => {
 		}
 	});
 
+	test("keeps TUI foundation independent from higher-level TUI groups", async () => {
+		const graph = await loadSourceGraph();
+		for (const source of graph.values()) {
+			if (!source.path.startsWith("adapters/inbound/tui/foundation/")) continue;
+			for (const dependency of source.imports.filter(path => graph.has(path))) {
+				expect(dependency, `${source.path} -> ${dependency}`).not.toMatch(
+					/^adapters\/inbound\/tui\/(?:features|commands|shell|legacy)\//u,
+				);
+			}
+		}
+	});
+
+	test("keeps TUI feature implementations independent from sibling features", async () => {
+		const graph = await loadSourceGraph();
+		const prefix = "adapters/inbound/tui/features/";
+		for (const source of graph.values()) {
+			if (!source.path.startsWith(prefix) || source.path === `${prefix}feature-registry.ts`) continue;
+			const feature = featureImplementation(source.path, prefix);
+			if (!feature) continue;
+			for (const dependency of source.imports.filter(path => graph.has(path))) {
+				const importedFeature = featureImplementation(dependency, prefix);
+				if (!importedFeature) continue;
+				expect(importedFeature, `${source.path} -> ${dependency}`).toBe(feature);
+			}
+		}
+	});
+
 	test("keeps concrete executor adapters independent", async () => {
 		const graph = await loadSourceGraph();
 		for (const source of graph.values()) {
@@ -94,7 +121,7 @@ describe("source architecture", () => {
 	});
 
 	test("keeps the composition root small", async () => {
-		const lines = (await readFile("src/app.ts", "utf8")).split("\n");
+		const lines = sourceLines(await readFile("src/app.ts", "utf8"));
 		expect(lines.length).toBeLessThanOrEqual(60);
 	});
 
@@ -107,6 +134,17 @@ describe("source architecture", () => {
 		}
 	});
 });
+
+function featureImplementation(path: string, prefix: string): string | null {
+	if (!path.startsWith(prefix)) return null;
+	const relative = path.slice(prefix.length);
+	if (!relative.includes("/")) return null;
+	return relative.split("/")[0] ?? null;
+}
+
+function sourceLines(source: string): string[] {
+	return source.replace(/\r?\n$/u, "").split(/\r?\n/u);
+}
 
 async function exists(path: string): Promise<boolean> {
 	try { await stat(path); return true; }

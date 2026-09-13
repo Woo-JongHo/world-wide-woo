@@ -12,6 +12,8 @@ import {
 } from "../../domain/work/todos";
 import type { SemanticWorkStep, WorkFlowProjection, WorkStepStatus } from "../../domain/work";
 import type { SessionRepository, TodoController, TodoStore } from "../../ports/index.js";
+import type { RequestRuntimeRecord } from "../../domain/execution/request-runtime";
+import { projectRequestTodo } from "../../domain/work/request-projections";
 
 /** Coordinates the project todo document with the session audit trail. */
 /** @Unit Code-011 */
@@ -49,6 +51,12 @@ export class TodoLedger implements TodoController {
 	public dispose(): void {
 		this.stopWatching?.();
 		this.stopWatching = null;
+	}
+
+	public async syncRequestRuntime(request: RequestRuntimeRecord): Promise<TodoDocument> {
+		const next = projectRequestTodo(request, this.sessionId, (this.current?.revision ?? -1) + 1);
+		if (this.current?.requestId === request.requestId && JSON.stringify(this.current.items) === JSON.stringify(next.items) && this.current.title === next.title) return this.current;
+		return this.commit(validateTodoDocument(next));
 	}
 
 	/** @linear WOO-702 Mirrors one observed Native input/turn/Plan revision into its session Todo.md. */

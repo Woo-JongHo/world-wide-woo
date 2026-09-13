@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences } from "@earendil-works/pi-tui";
-import { WorkbenchTracerView } from "../src/adapters/inbound/tui/dashboard/workbench-tracer-view";
+import { WorkbenchTracerView } from "../src/adapters/inbound/tui/features/trace/workbench-tracer-view";
+import { renderDelegationDetail, renderDelegationSummary } from "../src/adapters/inbound/tui/features/chat/delegation-tree-view";
 import { projectWorkFlow } from "../src/core/domain/work";
 import type { WorkbenchSnapshot } from "../src/core/domain/work/workbench";
 import type { PerformanceProjection } from "../src/core/domain/work/performance";
@@ -48,7 +49,10 @@ function snapshot(overrides: Partial<WorkbenchSnapshot> = {}): WorkbenchSnapshot
 }
 
 function render(value: WorkbenchSnapshot): string {
-	return stripTerminalSequences(new WorkbenchTracerView(() => value).render(100).join("\n"));
+	return stripTerminalSequences(new WorkbenchTracerView(() => value, {
+		renderSummary: renderDelegationSummary,
+		renderDetail: renderDelegationDetail,
+	}).render(100).join("\n"));
 }
 
 function task(id: string, ref: string, status: NativeDelegatedTask["status"], taskText: string): NativeDelegatedTask {

@@ -7,13 +7,14 @@ import { PRODUCT_VERSION } from "./product-version";
 
 export interface CliDependencies {
 	runApp: (options?: RunAppOptions) => Promise<void>;
+	runAstra?: (options?: RunAppOptions) => Promise<void>;
 	runRouter: (options?: RunLegacyRouterOptions) => Promise<void>;
 	runAuth: (args: string[]) => Promise<void>;
 	runDevelopment?: (args: string[]) => Promise<string>;
 	runWorkflow?: (args: string[]) => Promise<string>;
 	listSessions: () => Promise<Array<{ id: string; updatedAt: string }>>;
 	listNativeThreads: () => Promise<readonly NativeThreadSummary[]>;
-	selectNativeThread: (threads: readonly NativeThreadSummary[]) => Promise<string | null>;
+	selectNativeThread: (threads: readonly NativeThreadSummary[], design?: "astra") => Promise<string | null>;
 	writeOut: (value: string) => void;
 	writeError: (value: string) => void;
 }
@@ -23,6 +24,11 @@ const productionDependencies: CliDependencies = {
 		writeWorkbenchBootstrap();
 		const { runApp } = await import("./app");
 		await runApp(options);
+	},
+	runAstra: async (options) => {
+		writeAstraBootstrap();
+		const { runAstra } = await import("./app");
+		await runAstra(options);
 	},
 	runRouter: async (options) => {
 		writeRouterBootstrap();
@@ -49,9 +55,9 @@ const productionDependencies: CliDependencies = {
 		const { listNativeThreads } = await import("./app");
 		return listNativeThreads();
 	},
-	selectNativeThread: async (threads) => {
-		const { selectNativeThread } = await import("./adapters/inbound/tui/overlays/native-thread-picker");
-		return selectNativeThread(threads);
+	selectNativeThread: async (threads, design) => {
+		const { selectNativeThread } = await import("./adapters/inbound/tui/features/session/native-thread-picker");
+		return selectNativeThread(threads, design);
 	},
 	writeOut: value => console.log(value),
 	writeError: value => console.error(value),
@@ -74,11 +80,21 @@ export function writeRouterBootstrap(
 	write("\r\x1b[2K🐙 Wooni · 호환 Multi-provider Router를 여는 중…\n");
 }
 
+export function writeAstraBootstrap(
+	write: (value: string) => void = value => process.stdout.write(value),
+	isTTY = process.stdout.isTTY,
+): void {
+	if (!isTTY) return;
+	write("\r\x1b[2Kastra / Execution Console을 여는 중…\n");
+}
+
 function helpText(): string {
 	return [
 		"사용법:",
-		"  www                         새 Codex native 3-pane Workbench 실행",
-		"  www --execution-lane pi     실험적 내장 Pi text lane으로 Workbench 실행",
+		"  www                         Astra Execution Console · F2–F8 화면 · Ctrl+P 명령",
+		"  www astra [--resume [id]]  Astra Execution Console · F2–F8 화면 · Ctrl+P 명령",
+		"  www astra --runtime-config <json>  7-Stage brokered 실행 · 파일/게시 범위 지정 · 격리 미검증",
+		"  www --execution-lane pi     실험적 내장 Pi text lane으로 Astra 실행",
 		"  www router                  호환 Claude·Gemini·OpenAI·Z.AI Router 실행",
 		"                              Native 승인·Sandbox·Skill은 제공하지 않음",
 		"  www router --resume <session-id>",
@@ -95,7 +111,7 @@ function helpText(): string {
 		"  www --resume                현재 프로젝트의 native thread를 선택해 재개",
 		"  www --resume <native-thread-id>  지정한 native thread 바로 재개",
 		"",
-		"Workbench 명령:",
+		"Astra Execution Console 명령:",
 		"  /stats · /dashboard · /monitor  Observability View 직접 열기",
 		"  r/R · 1/2/3 · Esc          View 회전·직접 이동·Workbench 복귀",
 		"  /model [모델] [추론 강도]  현재·다음 실행의 Codex 모델 변경",
@@ -138,7 +154,28 @@ export async function runCli(args: string[], dependencies: CliDependencies = pro
    if (!dependencies.runWorkflow) throw new Error("로컬 Workflow가 연결되지 않았습니다.");
    dependencies.writeOut(await dependencies.runWorkflow(args.slice(1)));
   }
-  else if (args[0] === "router") {
+		else if (args[0] === "astra") {
+			if (!dependencies.runAstra) throw new Error("Astra Workbench가 연결되지 않았습니다.");
+			const options: RunAppOptions = {}, seen = new Set<string>();
+			let resume = false;
+			for (let i = 1; i < args.length; i++) {
+				const flag = args[i]!;
+				if (seen.has(flag)) throw new Error(`중복 옵션: ${flag}`);
+				seen.add(flag);
+				if (flag === "--resume") { resume = true; if (args[i + 1] && !args[i + 1]!.startsWith("--")) options.resumeThreadId = args[++i]; }
+				else if (flag === "--execution-lane" && (args[i + 1] === "pi" || args[i + 1] === "codex")) options.executionLane = args[++i] as "pi" | "codex";
+				else if (flag === "--runtime-config" && args[i + 1] && !args[i + 1]!.startsWith("--")) options.runtimeConfig = args[++i];
+				else throw new Error("사용법: www astra [--resume [id]] [--execution-lane codex|pi] [--runtime-config <json>]");
+			}
+			if (resume && !options.resumeThreadId) {
+				const threads = await dependencies.listNativeThreads();
+				if (!threads.length) throw new Error("현재 프로젝트에서 재개할 Codex native thread가 없습니다.");
+				options.resumeThreadId = await dependencies.selectNativeThread(threads, "astra") ?? undefined;
+				if (!options.resumeThreadId) return 0;
+			}
+			await dependencies.runAstra(options);
+		}
+		else if (args[0] === "router") {
 			if (args.length === 1) await dependencies.runRouter({});
 			else if (args.length === 3 && args[1] === "--resume" && isLegacySessionId(args[2])) {
 				await dependencies.runRouter({ resumeSessionId: args[2] });
@@ -161,17 +198,22 @@ export async function runCli(args: string[], dependencies: CliDependencies = pro
 			}
 		}
 		else if (args[0] === "--resume") {
+			if (!dependencies.runAstra) throw new Error("Astra Workbench가 연결되지 않았습니다.");
 			let threadId: string | undefined = args[1];
 			if (!threadId) {
 				const threads = await dependencies.listNativeThreads();
 				if (threads.length === 0) throw new Error("현재 프로젝트에서 재개할 Codex native thread가 없습니다.");
-				threadId = await dependencies.selectNativeThread(threads) ?? undefined;
+				threadId = await dependencies.selectNativeThread(threads, "astra") ?? undefined;
 			}
-			if (threadId) await dependencies.runApp({ resumeThreadId: threadId });
+			if (threadId) await dependencies.runAstra({ resumeThreadId: threadId });
 		}
-		else if (args.length === 0) await dependencies.runApp({});
+		else if (args.length === 0) {
+			if (!dependencies.runAstra) throw new Error("Astra Workbench가 연결되지 않았습니다.");
+			await dependencies.runAstra({});
+		}
 		else if (args.length === 2 && args[0] === "--execution-lane" && (args[1] === "pi" || args[1] === "codex")) {
-			await dependencies.runApp({ executionLane: args[1] });
+			if (!dependencies.runAstra) throw new Error("Astra Workbench가 연결되지 않았습니다.");
+			await dependencies.runAstra({ executionLane: args[1] });
 		}
 		else throw new Error(`알 수 없는 명령입니다: ${args.join(" ")}`);
 		return 0;

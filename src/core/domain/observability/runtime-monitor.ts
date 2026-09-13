@@ -21,6 +21,7 @@ export interface RuntimeMonitorEvent {
 }
 
 export interface RuntimeMonitorProjection {
+	readonly requestRuntime?: NonNullable<WorkbenchSnapshot["requestRuntime"]>[number];
 	readonly state: RuntimeMonitorState;
 	readonly activeRequest: { readonly label: string; readonly sourceActivityId: string; readonly elapsed: RuntimeMonitorElapsed } | null;
 	readonly model: string | null;
@@ -65,8 +66,10 @@ export function projectRuntimeMonitor(snapshot: WorkbenchSnapshot, activities: r
 	]);
 	const skillRun = latest(ordered.filter(isSkillRun));
 	const skillPayload = skillRun ? record(skillRun.payload.skillRun) ?? skillRun.payload : null;
+	const requestRuntime = [...(snapshot.requestRuntime ?? [])].reverse().find(r => r.turnId === snapshot.activeTurnId && r.turnId !== null) ?? snapshot.requestRuntime?.at(-1);
 	return Object.freeze({
-		state,
+		requestRuntime,
+		state: requestRuntime && ["blocked", "failed"].includes(requestRuntime.status) ? requestRuntime.status as "blocked" | "failed" : state,
 		activeRequest: request ? Object.freeze({ label: requestLabel(request), sourceActivityId: request.id, elapsed: elapsedFrom(request) }) : null,
 		model: modelFor(snapshot, execution, request),
 		agent: agentFor(agent ?? execution),

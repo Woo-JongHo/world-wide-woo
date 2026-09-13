@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import { DEFAULT_WORKBENCH_CONFIG, isSupportedWorkbenchConfigDocument, normalizeWorkbenchConfig, type WorkbenchConfig } from "../../../core/domain/execution/workbench-config.js";
-import { MODELS, type Effort, type Provider } from "../../../core/domain/execution/model-settings.js";
+import { MODELS, modelEfforts, nativeModelNames, nativeModelEfforts, type NativeModelCatalog, type Effort, type Provider } from "../../../core/domain/execution/model-settings.js";
 
 /** Loads project policy at the adapter seam; callers receive a safe snapshot. */
 export async function loadWorkbenchConfig(root: string): Promise<WorkbenchConfig> {
@@ -16,7 +16,7 @@ export interface LoadedWorkbenchConfig {
 }
 
 /** Persists an explicit interactive model selection in project YAML atomically. */
-export async function saveWorkbenchExecutionSelection(root: string, selection: Readonly<{ provider: Provider; model: string; effort: Effort }>): Promise<void> {
+export async function saveWorkbenchExecutionSelection(root: string, selection: Readonly<{ provider: Provider; model: string; effort: Effort }>, catalog?: NativeModelCatalog): Promise<void> {
 	const configPath = join(root, ".www", "workbench.yaml");
 	let parsed: Record<string, unknown> = {};
 	try {
@@ -26,8 +26,10 @@ export async function saveWorkbenchExecutionSelection(root: string, selection: R
 	} catch (error) {
 		if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
 	}
-	const models = MODELS[selection.provider] as readonly string[];
+	const models = selection.provider === "openai-codex" ? nativeModelNames(catalog) : MODELS[selection.provider];
 	if (!models.includes(selection.model)) throw new Error(`지원하지 않는 모델입니다: ${selection.provider}/${selection.model}`);
+	const efforts = selection.provider === "openai-codex" ? nativeModelEfforts(selection.model, catalog) : modelEfforts(selection.provider, selection.model);
+	if (!efforts.includes(selection.effort)) throw new Error(`지원하지 않는 추론 강도입니다: ${selection.model}/${selection.effort}`);
 	const current = normalizeWorkbenchConfig(parsed);
 	const next = { ...parsed, schemaVersion: 1, execution: { ...current.execution, provider: selection.provider, model: selection.model, effort: selection.effort } };
 	const temporaryPath = `${configPath}.tmp-${randomUUID()}`;

@@ -14,7 +14,8 @@ import type { NativeApprovalResolution, NativeHarnessEvent, NativeThreadList, Na
 import type { ProjectActivity, ProjectActivityAppendResult, ProjectActivityInput } from "../src/core/domain/execution/project-activity.js";
 import { createProjectWorkbenchSession, scopedProjectId, scopedTodoSessionId, ThreadBoundActivityJournal, type ProjectWorkbenchSessionFactories } from "../src/adapters/outbound/workspace/project-workbench-session.js";
 import type { ProjectWorkspace } from "../src/adapters/outbound/workspace/project-workspace.js";
-import { nativeThreadJournalKey } from "../src/adapters/outbound/persistence/activity-journal-store.js";
+import { ActivityJournalStore, nativeThreadJournalKey } from "../src/adapters/outbound/persistence/activity-journal-store.js";
+import { projectRequestRuntime } from "../src/core/runtime/request-runtime";
 import { createNativeHarness } from "../src/adapters/outbound/execution/factory.js";
 import { sha256ReviewDigest } from "../src/adapters/outbound/review/review-adapters.js";
 import type { SkillRegistrySnapshot } from "../src/core/skills/skill-registry.js";
@@ -27,6 +28,38 @@ const testSkillRegistry: SkillRegistrySnapshot = Object.freeze({
 	skills: Object.freeze([{ name: "rpa-intake", description: "test", path: ".agents/skills/rpa-intake/SKILL.md", digest: "b".repeat(64), sourceRevision: "git:test" }]),
 });
 const loadTestSkillRegistry = async (): Promise<SkillRegistrySnapshot> => testSkillRegistry;
+
+test("pre-thread intake survives startup failure and is adopted once with provenance into the Native journal", async () => {
+	const dir = await mkdtemp(join(tmpdir(), "www-request-intake-"));
+	try {
+		const store = new ActivityJournalStore(dir);
+		const journal = new ThreadBoundActivityJournal(store, undefined, "request-intake-fixture");
+		const failed = new FakeNative([]);
+		failed.startThread = async () => { throw new Error("fixture native start failure"); };
+		const first = new ProjectWorkbench(failed, journal, { projectId: "p", cwd: dir });
+		const response = await first.dispatch({ type: "chat.send", text: "첫 접수" });
+		expect(response.state).toBe("rejected");
+		expect(first.snapshot.requestRuntime?.[0]?.stages).toHaveLength(7);
+		expect(first.snapshot.requestRuntime?.[0]?.status).toBe("failed");
+		await first.close();
+		const restored = new ThreadBoundActivityJournal(new ActivityJournalStore(dir), undefined, "request-intake-fixture");
+		const before = await restored.readAll("p");
+		expect(before.map(a => a.payload.method)).toEqual(["request/submitted", "request/failed"]);
+		const next = new ProjectWorkbench(new FakeNative([]), restored, { projectId: "p", cwd: dir, acquireThreadLease: id => restored.bindThread(id) });
+		expect((await next.dispatch({ type: "chat.send", text: "다음 접수" })).state).toBe("accepted");
+		const bound = await restored.readAll("p");
+		expect(bound.filter(a => a.payload.intakeActivityId)).toHaveLength(3);
+		expect(bound.filter(a => a.payload.method === "request/submitted")).toHaveLength(2);
+		const records = projectRequestRuntime(bound, "thread");
+		expect(records).toHaveLength(2);
+		expect(records[0]?.status).toBe("failed"); expect(records[1]?.stages).toHaveLength(7);
+		await next.close();
+		const count = (await restored.readAll("p")).length;
+		await restored.bindThread("thread");
+		expect(await restored.readAll("p")).toHaveLength(count);
+		expect(await store.readAll("request-intake-fixture")).toHaveLength(3);
+	} finally { await rm(dir, { recursive: true, force: true }); }
+});
 
 class MemoryTodoStore implements TodoStore {
 	async read() { return null; }
@@ -764,7 +797,7 @@ describe("createProjectWorkbenchSession", () => {
 		await wesSession.close();
 	});
 
-	test("binds a fresh workbench Todo before automatic Native-plan sync", async () => {
+	test("binds a fresh workbench Todo before seven-stage Runtime sync", async () => {
 		const order: string[] = [];
 		const todoPaths: string[] = [];
 		let nativePlanSyncCalls = 0;
@@ -776,8 +809,8 @@ describe("createProjectWorkbenchSession", () => {
 			createTodoStore: (path) => { todoPaths.push(path); return new MemoryTodoStore(); },
 			createTodoLedger: (sessionId, store, events) => {
 				const ledger = new TodoLedger(sessionId, store, events);
-				const syncNativePlan = ledger.syncNativePlan.bind(ledger);
-				ledger.syncNativePlan = async (...args) => {
+				const syncNativePlan = ledger.syncRequestRuntime.bind(ledger);
+				ledger.syncRequestRuntime = async (...args) => {
 					nativePlanSyncCalls += 1;
 					return syncNativePlan(...args);
 				};

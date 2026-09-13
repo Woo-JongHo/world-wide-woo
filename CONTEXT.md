@@ -7,8 +7,32 @@
 **Chat**: 사용자와 선택된 Execution Lane의 대화 및 공개 가능한 중간 작업을 시간순으로 보여주는 표면.
 _Avoid_: 별도 모델이 다시 쓴 세션 요약.
 
-**Todo.md**: 활성 Run이 공개한 Plan과 진행 상태를 보여주는 읽기 전용 Projection.
+**Todo.md**: Request의 일곱 Stage와 그 안에서 Native가 계획한 하위 작업·진행 상태를 보여주는 읽기 전용 Projection. 프로토콜 도입 전 Run은 당시의 공개 Plan을 보존한다.
 _Avoid_: 사용자 장기 Backlog, 직접 편집하는 실행 원장, raw activity log.
+
+**Request**: 사용자가 해결을 맡긴 목적·범위·성공 조건과 그 결과를 연결하는 실행 의뢰. 하나의 의뢰가 여러 Native Turn을 사용할 수 있다.
+_Avoid_: Native Turn과의 일대일 동일시, 모든 키 입력.
+
+**Request Runtime**: 모든 Request를 UNDERSTAND·DECOMPOSE·GROUND·DECIDE·EXECUTE·VERIFY·DELIVER라는 동일한 프로토콜로 통제하는 Application Runtime의 책임.
+_Avoid_: 모델 내부 사고의 복제, 단계 이름만 붙인 로그.
+
+**Request Stage**: Request에서 이해·분해·근거·결정·실행·검증·전달 중 하나를 책임지는 고정된 자리. 불필요한 Stage는 이유와 함께 생략할 수 있다.
+_Avoid_: 특정 Agent, 특정 Tool, 반드시 한 번씩 호출해야 하는 모델.
+
+**Stage Plan**: Native가 일곱 Stage 안에 배치한 하위 작업·의존성·필요 Capability의 계획. 실행 허가 자체는 아니다.
+_Avoid_: 일곱 Stage와 별도로 경쟁하는 최상위 Todo, 승인 없이 효력이 생기는 모델 제안.
+
+**Stage Grant**: 현재 Request·Stage·계획·허용 대상에 결박된 제한적 실행 권한.
+_Avoid_: 사용자 전체 권한, 다른 작업으로 양도 가능한 세션 전체 승인.
+
+**Action Intent**: Native 또는 Projection Worker가 특정 대상에 수행하려고 제안한 행동. 실행됐다는 사실이나 승인을 뜻하지 않는다.
+_Avoid_: Tool 결과, 실행 Receipt.
+
+**Action Receipt**: 특정 허가 아래 실제 시도한 행동의 결과와 원본 참조를 연결하는 기록. 결과 불명과 검증 완료를 구분한다.
+_Avoid_: 모델의 성공 선언, 명령을 전송했다는 사실만으로 한 완료 판정.
+
+**Delivery Obligation**: Request가 결과를 남겨야 하는 대상·형태·확인 조건의 약속. 선택적 전달과 필수 전달을 구분한다.
+_Avoid_: 연결된 모든 도구로의 무조건 복제, 초안 생성만으로 전달 완료.
 
 **Session Goal**: 해당 Run 전체가 도달하려는 선택적 한 문장. Chat의 완료 기록 앞에 표시할 수 있다.
 

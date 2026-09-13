@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import { WorkbenchBottomHudView } from "../src/adapters/inbound/tui/dashboard/workbench-bottom-hud";
-import { UsageStripView } from "../src/adapters/inbound/tui/dashboard/usage-strip-view";
+import { WorkbenchBottomHudView } from "../src/adapters/inbound/tui/features/usage/workbench-bottom-hud";
+import { UsageStripView } from "../src/adapters/inbound/tui/features/usage/usage-strip-view";
 
 test("HUD는 실행 모드와 provider 사용량을 한 줄에 표시한다", () => {
 	const usage = new UsageStripView();

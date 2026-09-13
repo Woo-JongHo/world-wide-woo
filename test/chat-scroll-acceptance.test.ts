@@ -1,7 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences, type Component } from "@earendil-works/pi-tui";
 import { renderLayoutFrame } from "@earendil-works/pi-tui/dist/layout.js";
-import { createDashboardLayout } from "../src/adapters/inbound/tui/dashboard/dashboard-layout";
+import { createChatScrollView } from "../src/adapters/inbound/tui/features/chat/chat-scroll.view";
+import { createDashboardLayout } from "../src/adapters/inbound/tui/foundation/layout/dashboard-layout";
 
 class WrappingMessages implements Component {
 	constructor(public messages: string[]) {}
@@ -37,6 +38,8 @@ function fixture() {
 			{ title: "Chat", color: identity, component: chat },
 			{ title: "Usage", color: identity, component: fixed },
 			{ title: "Todo", color: identity, component: fixed },
+			undefined,
+			createChatScrollView,
 		),
 	};
 }

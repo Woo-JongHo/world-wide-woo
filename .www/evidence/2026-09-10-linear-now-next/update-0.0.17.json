@@ -2,7 +2,7 @@
   "schemaVersion": "1.0",
   "candidateId": "ARTIFACT-CANDIDATE-PROJECT-UPDATE-0-0-17",
   "kind": "linear-project-update",
-  "sourceRevision": "git:45aec4adbebcc5abc902d33f8b29cfd6cd796068:dirty",
+  "sourceRevision": "git:559b29599ab966978182acdebd59a920426469a1:dirty",
   "intent": "0.0.16 이후 입장 Dashboard와 Workbench 제어 기능을 0.0.17 Project Update로 종합한다",
   "target": {
     "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
@@ -23,14 +23,14 @@
     "verification": [
       "2026-09-09 Activity Comment의 개별 검증은 최대 984 tests, TypeScript 검사, Bun 빌드 통과를 기록한다",
       "2026-09-10 새 read-back에서 Linear 연결 UUID·프로젝트 URL·최신 Update 0.0.16·후속 Comment 7건을 확인했다",
-      "2026-09-10 TypeScript 검사는 통과했다",
-      "2026-09-10 전체 테스트는 임시 디스크 ENOSPC로 939 pass 뒤 100건이 연쇄 실패했고 Bun 빌드도 같은 ENOSPC로 중단됐다",
-      "package.json은 아직 0.0.16이고 현재 변경은 미커밋이므로 0.0.17 릴리스 정합과 사용자 실사용 수락은 남아 있다"
+      "2026-09-10 전체 테스트 1039 pass·0 fail, TypeScript 검사, Bun 빌드를 통과했다",
+      "package.json·CLI·Codex app-server·Gemini ACP clientInfo를 0.0.17로 맞췄고 실제 CLI --version이 0.0.17을 반환했다",
+      "사용자 실사용 수락과 100개 초과 완료 turn의 T-note 자동 생성 보류 해소는 남아 있다"
     ],
     "connections": [
       "Linear: WOO-907, WOO-908, WOO-909, WOO-718, WOO-845, WOO-902",
       "Milestone: v0.1.0 — First Public Release",
-      "Git: 45aec4adbebcc5abc902d33f8b29cfd6cd796068 dirty worktree",
+      "Git: 559b29599ab966978182acdebd59a920426469a1 dirty worktree",
       "Evidence: .www/evidence/2026-09-10-linear-now-next"
     ],
     "sourceCommentIds": [
@@ -59,8 +59,8 @@
     {
       "id": "RISK-DISCLOSURE",
       "status": "pass",
-      "evidence": "새 전체 테스트·빌드의 ENOSPC 중단, package 0.0.16, 미커밋 상태를 검증 절에 명시"
+      "evidence": "사용자 실사용 수락과 100개 초과 turn의 T-note 자동 생성 보류를 잔여 위험으로 명시"
     }
   ],
-  "candidateDigest": "36565cf54f4a8dd79df53d1e50fbc8f270041f7b2d31da59f58373b5aefa7cd6"
+  "candidateDigest": "4296205c6ae9e14ba58f097ce3304c4de4ffb868084da0e1e966986422b4c5c1"
 }

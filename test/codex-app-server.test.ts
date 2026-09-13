@@ -51,6 +51,28 @@ async function connectedFake(): Promise<{ server: CodexAppServer; transport: Fak
 }
 
 describe("CodexAppServer", () => {
+	test("registers host tools and replies to dynamic calls once without admitting changed duplicate arguments", async () => {
+		const { server, transport } = await connectedFake();
+		let count = 0;
+		server.registerRuntimeTools([{ name: "www_runtime_inspect", description: "inspect", inputSchema: { type: "object" } }], async call => { count++; return { success: true, text: JSON.stringify({ request: call.arguments }) }; });
+		transport.responseFor.set("thread/start", { thread: { id: "t" } });
+		transport.responseFor.set("turn/start", { turn: { id: "turn" } });
+		await server.startThread({ cwd: "/tmp" }); await server.startTurn({ threadId: "t", text: "hi" });
+		expect((transport.sent.find(m => m.method === "thread/start")?.params as any).dynamicTools).toEqual([{ type: "function", name: "www_runtime_inspect", description: "inspect", inputSchema: { type: "object" } }]);
+		const params = { threadId: "t", turnId: "turn", callId: "call", namespace: null, tool: "www_runtime_inspect", arguments: { requestId: "r" } };
+		transport.emit({ id: "rpc-1", method: "item/tool/call", params });
+		transport.emit({ id: "rpc-2", method: "item/tool/call", params });
+		await Bun.sleep(5);
+		expect(count).toBe(1);
+		expect(transport.sent.find(m => m.id === "rpc-1")).toMatchObject({ result: { success: true, contentItems: [{ type: "inputText", text: expect.any(String) }] } });
+		transport.emit({ id: "rpc-conflict", method: "item/tool/call", params: { ...params, arguments: { requestId: "other" } } });
+		transport.emit({ id: "rpc-foreign", method: "item/tool/call", params: { ...params, threadId: "foreign" } });
+		transport.emit({ id: "rpc-unknown", method: "item/tool/call", params: { ...params, tool: "unknown" } });
+		await Bun.sleep(5);
+		for (const id of ["rpc-conflict", "rpc-foreign", "rpc-unknown"]) expect(transport.sent.find(m => m.id === id)).toMatchObject({ result: { success: false } });
+		expect(count).toBe(1);
+		await server.close();
+	});
 	test("uses the native MCP status protocol and projects runtime status and tool names", async () => {
 		const { server, transport } = await connectedFake();
 		transport.responseQueueFor.set("mcpServerStatus/list", [
@@ -234,7 +256,7 @@ describe("CodexAppServer", () => {
 				id: 1,
 				method: "initialize",
 				params: {
-					clientInfo: { name: "www", title: "World Wide Woo", version: "0.0.16" },
+					clientInfo: { name: "www", title: "World Wide Woo", version: "0.0.17" },
 					capabilities: { experimentalApi: true, requestAttestation: false },
 				},
 			},

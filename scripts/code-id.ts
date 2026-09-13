@@ -7,6 +7,10 @@ import { API } from "typescript/unstable/async";
 import YAML from "yaml";
 
 type Code = { id: string; name: string; locations: { path: string; symbol: string }[]; linearIssueIds: string[]; detail: string };
+type TraceabilityLedger = {
+  entities?: { kind?: string; id?: string }[];
+  migrations?: { from?: string; to?: string }[];
+};
 export function validateCodeLinks(issues: readonly { id: string; description?: string }[], codes: readonly Code[]): string[] {
   const errors: string[] = [];
   for (const issue of issues) {
@@ -22,7 +26,9 @@ export function validateCodeLinks(issues: readonly { id: string; description?: s
 export async function validateCodeIds(root: string, codes: readonly Code[]): Promise<string[]> {
   const errors: string[] = [];
   const ids = new Set<string>();
-  const paths = execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard", "-z", "--", "src"], { cwd: root, encoding: "utf8" }).split("\0").filter(p => /\.[cm]?[jt]sx?$/u.test(p));
+  const paths = execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard", "-z", "--", "src"], { cwd: root, encoding: "utf8" })
+    .split("\0")
+    .filter(path => /\.[cm]?[jt]sx?$/u.test(path) && existsSync(resolve(root, path)));
   const declarations = new Map<string, { path: string; symbol: string }[]>();
   const api = new API({ cwd: root });
   try {
@@ -60,6 +66,15 @@ export async function validateCodeIds(root: string, codes: readonly Code[]): Pro
     if (code.linearIssueIds.some(id => !/^WOO-\d+$/u.test(id))) errors.push(`${code.id}: 잘못된 Linear ID`);
     const notePath = resolve(root, code.detail);
     if (relative(root, notePath).startsWith("..") || !existsSync(notePath)) continue;
+    if (code.detail.endsWith("traceability-v3.json")) {
+      const ledger = JSON.parse(readFileSync(notePath, "utf8")) as TraceabilityLedger;
+      const unitId = `Code-${Number(code.id).toString().padStart(3, "0")}`;
+      if (!ledger.entities?.some(entity => entity.kind === "unit" && entity.id === unitId)
+        || !ledger.migrations?.some(migration => migration.from === code.id && migration.to === unitId)) {
+        errors.push(`${code.id}: traceability-v3 원장의 Unit alias가 일치하지 않습니다.`);
+      }
+      continue;
+    }
     const frontmatter = readFileSync(notePath, "utf8").match(/^---\r?\n([\s\S]*?)\r?\n---/u)?.[1];
     if (!frontmatter || YAML.parse(frontmatter)?.code_id !== code.id) errors.push(`${code.id}: 상세 노트의 code_id가 일치하지 않습니다.`);
     if (frontmatter && "linear" in (YAML.parse(frontmatter) ?? {})) errors.push(`${code.id}: 노트의 이슈 목록은 연결 원장을 참조해야 합니다.`);

@@ -25,6 +25,12 @@
 
 Unit은 파일·클래스·폴더마다 발급하지 않는다. Message처럼 유지·수락 범위를 설명할 수 있는 기능이 후보다. 상위 TUI/System/Workflows 분류는 Unit ID에 경로처럼 박아 넣지 않아도 된다.
 
+### TUI 탐색 Unit의 별도 정체성
+
+`src/adapters/inbound/tui/features/feature-registry.ts`의 `TUI-F###-U##`는 TUI에서 화면과 조작 책임을 찾기 위한 정적 탐색 metadata다. Feature가 readonly 목록을 소유하고, Unit은 부모 `featureId`, 고유 `key`, 표시 `title`, `active | legacy | unwired | retired` 상태를 가진다. retired ID는 예약 목록에 남겨 다른 동작에 다시 발급하지 않는다.
+
+이 catalog의 Unit은 이 문서에서 말하는 지속 제품·코드 책임 Unit과 이름만 같고 같은 정체성이 아니다. `.woo/units.yaml`의 `Code-###`는 코드 symbol과 Linear·Obsidian 연결을 가진 durable Unit이며 SQLite 투영 대상이다. `TUI-F###-U##`를 `.woo/units.yaml`에 추가하거나 `Code-###` 대신 사용하지 않는다.
+
 관계는 다대다다: Unit↔Issue, Unit↔Code, Issue↔변경 revision, Test/Evidence↔검증 대상. 부모 Issue 하나가 모듈 하나를 배타적으로 소유한다고 가정하지 않는다.
 
 ## 실제 Message로 보는 연결 후보
@@ -32,9 +38,9 @@ Unit은 파일·클래스·폴더마다 발급하지 않는다. Message처럼 �
 - 기능 후보: Message (Unit ID 미발급)
 - 현재 기능 Parent: WOO-683 / UUID ea233806-8926-4e7f-90b1-8328f3f874d4
 - 실행 작업 후보: WOO-686~WOO-690, 예외·테스트 항목 WOO-691/WOO-692는 범위 논의 필요
-- 현재 구현 후보: src/adapters/inbound/tui/chat/workbench-views.ts
+- 현재 구현 후보: src/adapters/inbound/tui/features/chat/workbench-views.ts
 - 관련 테스트 후보: test/workbench-views.test.ts, test/transcript-markdown.test.ts
-- 목표 모듈 후보: src/tui/chat/message/
+- 현재 정본 모듈: src/adapters/inbound/tui/features/chat/
 
 위는 탐색 연결이다. 각 Issue의 수락 조건 전체를 기존 코드가 충족한다는 증거가 아니다. 이동 전후 경로가 달라도 Unit과 Issue의 연결은 유지한다.
 

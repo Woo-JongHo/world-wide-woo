@@ -9,7 +9,7 @@ import {
 	runLegacyRouter,
 	type LegacyRouterAppDependencies,
 } from "../src/legacy-router-app";
-import type { TuiShellDependencies } from "../src/adapters/inbound/tui/shell/legacy-session-shell";
+import type { TuiShellDependencies } from "../src/adapters/inbound/tui/legacy/legacy-session-shell";
 
 const codex: WwwSettings = { provider: "openai-codex", model: "gpt-5.6-terra", effort: "high" };
 const claude: WwwSettings = { provider: "anthropic", model: "claude-sonnet-4-6", effort: "medium" };
@@ -24,12 +24,23 @@ describe("legacy Router composition", () => {
 		await routerSettings.save(claude);
 
 		const captured: TuiShellDependencies[] = [];
+		const cleanupEvents: string[] = [];
 		const dependencies: LegacyRouterAppDependencies = {
 			cwd: () => root,
 			createSettingsStore: () => new FileSettingsStore(routerSettings.path),
 			createCredentialStore: () => new FileCredentialStore(join(config, "auth.json")),
 			runShell: (shell) => {
 				captured.push(shell);
+				const dispose = shell.monitor.dispose.bind(shell.monitor);
+				shell.monitor.dispose = () => {
+					cleanupEvents.push("monitor.dispose");
+					dispose();
+				};
+				const close = shell.runtime.close.bind(shell.runtime);
+				shell.runtime.close = async () => {
+					cleanupEvents.push("runtime.close");
+					await close();
+				};
 				throw new Error("stop after composition");
 			},
 		};
@@ -40,6 +51,7 @@ describe("legacy Router composition", () => {
 			const first = captured[0]!;
 			expect(first.runtime.snapshot.settings).toEqual(claude);
 			expect(await nativeSettings.load()).toEqual(codex);
+			expect(cleanupEvents).toEqual(["monitor.dispose", "runtime.close"]);
 			const sessionId = first.runtime.id;
 
 			await expect(runLegacyRouter({ resumeSessionId: sessionId }, dependencies)).rejects.toThrow("stop after composition");
@@ -47,6 +59,12 @@ describe("legacy Router composition", () => {
 			const resumed = captured[1]!;
 			expect(resumed.runtime.id).toBe(sessionId);
 			expect(resumed.runtime.snapshot.settings).toEqual(claude);
+			expect(cleanupEvents).toEqual([
+				"monitor.dispose",
+				"runtime.close",
+				"monitor.dispose",
+				"runtime.close",
+			]);
 		} finally {
 			await rm(root, { recursive: true, force: true });
 		}

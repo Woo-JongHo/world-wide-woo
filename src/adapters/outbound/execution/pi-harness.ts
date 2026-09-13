@@ -118,7 +118,8 @@ export class PiHarness implements ExecutorPort {
 		if (input.effort && input.effort !== this.options.effort) throw new UnsupportedPiOperationError("mid-session effort changes");
 		const turnId = `pi-turn-${randomUUID()}`;
 		this.active = { turnId, terminal: false, interrupted: false, started: false, text: "" };
-		setTimeout(() => this.beginTurn(turnId, input.text), 0);
+		const context = Object.values(input.additionalContext ?? {}).map(entry => typeof entry.value === "string" ? entry.value : JSON.stringify(entry.value)).join("\n\n");
+		setTimeout(() => this.beginTurn(turnId, context ? `${input.text}\n\n${context}` : input.text), 0);
 		return { id: turnId, threadId: this.threadId, value: {} };
 	}
 

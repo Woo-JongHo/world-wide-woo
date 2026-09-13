@@ -60,6 +60,16 @@ function fixture(): Promise<NativeHarnessContractFixture> {
 }
 
 describe("PiHarness Phase A native compatibility", () => {
+	test("passes WWW request context into the Pi prompt instead of silently dropping it", async () => {
+		const sdk = new FakePiSdk();
+		const harness = new PiHarness({ sdk, provider: "openai-codex", model: "gpt-5.6-sol", effort: "high", systemPrompt: "WWW" });
+		const thread = await harness.startThread({ cwd: "/tmp" });
+		await harness.startTurn({ threadId: thread.id, text: "요청", additionalContext: { www_request_runtime: { kind: "application", value: "seven-stage-template" } } });
+		await Bun.sleep(5);
+		expect(sdk.sessions[0]?.promptCalls).toEqual(["요청\n\nseven-stage-template"]);
+		sdk.sessions[0]!.promptResult.resolve();
+		await harness.close();
+	});
 	test("keeps the observable start, text delta, terminal, and close contract without exposing reasoning", async () => {
 		await assertPhaseANativeHarnessContract(fixture);
 	});

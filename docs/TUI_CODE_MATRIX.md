@@ -15,6 +15,20 @@
 
 ## 2. 조사 대상 코드 기준점
 
+현재 WWW TUI의 물리 경계는 다음과 같다. `feature-registry.ts`는 아래 16개 descriptor의 순서와 조회만 소유하고 component factory는 Shell이 조립한다.
+
+| 경계 | 실제 경로 | 책임 |
+|---|---|---|
+| Foundation | `src/adapters/inbound/tui/foundation/{theme,layout,rendering,components}` | 색·Markdown theme, layout, scroll, render scheduling, overlay frame |
+| Features | `src/adapters/inbound/tui/features/<feature>` | `TUI-F001`~`TUI-F016`의 독립 view·interaction |
+| Commands | `src/adapters/inbound/tui/commands` | slash command descriptor와 parser |
+| Shell | `src/adapters/inbound/tui/shell` | 생성자 주입, navigation, input, lifecycle |
+| Legacy | `src/adapters/inbound/tui/legacy` | 명시적인 Router 호환 화면 |
+
+Feature 순서는 Dashboard, Chat, Plan, T-note, Trace, Monitor, Session, Stats, Usage, Project Map, Context, Test, Approval, Authentication, Model Selection, Repository다.
+
+Astra의 첫 화면은 `features/dashboard/entry-dashboard-view.ts`의 `WwwDashboardView`이며, 별도 캐시가 아닌 현재 `WorkbenchSnapshot`에서 세션·현재 작업·계획·Todo·승인·오류 상태를 직접 투영한다. Linear 프로젝트 요약은 같은 snapshot의 부가 정보로만 표시한다.
+
 | 대상 | 기준점 또는 공개 경계 | 주 코드 루트 |
 |---|---|---|
 | Gajae Code | `@gajae-code/coding-agent` 0.15.6 | `packages/coding-agent/src`, `packages/tui/src` |
@@ -158,7 +172,7 @@
 | Direct terminal | `terminal.ts`, `output.ts` | `TerminalCommandExecutor`, `SessionRuntime` lifecycle | restricted env, non-interactive process group executor | `!<command>` is explicit user authority, never an Agent auto-tool |
 | Commit/Issue | `repository.ts` | `RepositoryInsights` | `repository-insights.ts` | `repository-overlays.ts`, `/commits`, `/issues` |
 | Markdown | assistant text item | render scheduling boundary | native syntax package adapter | `syntax-highlighter.ts`, `render-scheduler.ts`, theme |
-| Layout | 없음 | 없음 | 없음 | `dashboard-layout.ts`, `OverlaySheet`, `workbench-shell.ts`, `legacy-session-shell.ts` |
+| Layout | 없음 | 없음 | 없음 | `foundation/layout/dashboard-layout.ts`, `foundation/components/overlay-sheet.ts`, `shell/workbench-shell.ts`, `legacy/legacy-session-shell.ts` |
 
 ## 14. 최종 채택 규칙
 

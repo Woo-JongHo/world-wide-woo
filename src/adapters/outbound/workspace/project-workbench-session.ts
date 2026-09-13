@@ -20,10 +20,12 @@ import type { TNoteDraft } from "../../../core/domain/work/t-notes.js";
 import type { WorkbenchModelSelection } from "../../../core/domain/work/workbench.js";
 import type { WorkFlowProjection } from "../../../core/domain/work/index.js";
 import type { ProjectActivity } from "../../../core/domain/execution/project-activity.js";
+import type { RequestRuntimeRecord } from "../../../core/domain/execution/request-runtime";
 import { CanonicalPromotionService } from "../../../core/application/work/canonical-promotion.js";
 import { ReviewService } from "../../../core/application/review/review-service.js";
 import { digestActivitySource, ActivityJournalStore, nativeThreadJournalKey } from "../persistence/activity-journal-store.js";
 import { FileTraceStore } from "../persistence/trace-store.js";
+import { FileRequestProjectionStore } from "../persistence/request-projection-store";
 import { createNativeHarness, type ExecutionLane, type NativeHarnessSelection } from "../execution/factory.js";
 import { FileComposerDraftController } from "../persistence/composer-draft-store.js";
 import { PiDetachedCodexGenerator } from "../execution/detached-codex-generator.js";
@@ -41,12 +43,17 @@ import { UsageService } from "../observability/usage-service.js";
 import { WesEntryCollector } from "../execution/wes-entry-collector.js";
 import { loadWorkbenchConfigWithSource } from "./workbench-config.js";
 import { DEFAULT_WORKBENCH_CONFIG, type WorkbenchConfig } from "../../../core/domain/execution/workbench-config.js";
+import type { RequestRuntimeMode } from "../../../core/application/orchestration/request-runtime-mode.js";
 
 const WORKBENCH_RUN_PREFIX = "workbench";
 /** Compatibility export; the source of truth is the validated config default. */
 export const DEFAULT_TNOTE_MODEL = DEFAULT_WORKBENCH_CONFIG.tnote.model;
 
 export interface ProjectWorkbenchSessionOptions {
+	/** Opt-in brokered tools; callers must provide explicit capability authority. Not strict isolation. */
+	requestCapabilities?: ProjectWorkbenchOptions["requestCapabilities"];
+	requestCapabilityFactory?: (native: ExecutorPort, threadId: () => string | null) => NonNullable<ProjectWorkbenchOptions["requestCapabilities"]>;
+	requestRuntimeMode?: RequestRuntimeMode;
 	resumeThreadId?: string;
 	executionLane?: ExecutionLane;
 	provider?: string;
@@ -58,7 +65,7 @@ export interface ProjectWorkbenchSessionOptions {
 	enableWooEntry?: boolean;
 	/** Opt in to the auxiliary per-step model narrator. Native public commentary is the default. */
 	enableActivityNarrator?: boolean;
-	persistModelSelection?: (selection: WorkbenchModelSelection) => Promise<void>;
+	persistModelSelection?: (selection: WorkbenchModelSelection, catalog: import("../../../core/domain/execution/model-settings").NativeModelCatalog) => Promise<void>;
 }
 
 export interface ProjectWorkbenchSession {
@@ -84,6 +91,7 @@ export interface ProjectWorkbenchSessionFactories {
 	acquireWriterLease(workspace: ProjectWorkspace, id: string): Promise<SessionLease>;
 	connectNative(input: NativeHarnessSelection): Promise<ExecutorPort>;
 	createJournal(directory: string): WorkbenchActivityJournal;
+	createRequestProjection?(directory: string): NonNullable<ProjectWorkbenchOptions["requestProjection"]>;
 	createTodoStore(path: string): TodoStore;
 	createTodoLedger(sessionId: string, store: TodoStore, events: SessionRepository): TodoLedger;
 	importLegacyTodo(legacyPath: string, targetPath: string): Promise<string | null>;
@@ -106,6 +114,7 @@ const productionFactories: ProjectWorkbenchSessionFactories = {
 	acquireWriterLease: FileProjectWorkspace.acquireSessionLease,
 	connectNative: createNativeHarness,
 	createJournal: (directory) => new ActivityJournalStore(directory),
+	createRequestProjection: directory => new FileRequestProjectionStore(join(directory, "requests")),
 	createTodoStore: (path) => new FileTodoStore(path),
 	createTodoLedger: (sessionId, store, events) => new TodoLedger(sessionId, store, events),
 	importLegacyTodo,
@@ -179,6 +188,7 @@ export async function createProjectWorkbenchSession(
 		const journal = new ThreadBoundActivityJournal(
 			factories.createJournal(join(workspace.runtimeDirectory, "activity")),
 			traceRoot,
+			options.resumeThreadId ? undefined : `request-intake-${runId}`,
 		);
 		if (options.resumeThreadId) await journal.bindThread(options.resumeThreadId);
 		todos = new ThreadScopedTodoSource(workspace, factories);
@@ -206,7 +216,10 @@ export async function createProjectWorkbenchSession(
 		development = factories.createDevelopment?.(workspace.root, runId);
 		let localWorkflow: ProjectWorkbenchOptions["localWorkflow"];
 		const getLocalWorkflow = () => localWorkflow ??= factories.createLocalWorkflow!(workspace.root);
-		workbench = factories.createWorkbench(native, journal, {
+	workbench = factories.createWorkbench(native, journal, {
+			requestCapabilities: options.requestCapabilityFactory?.(native, () => workbench?.snapshot.threadId ?? null) ?? options.requestCapabilities,
+				requestRuntimeMode: options.requestRuntimeMode,
+			requestProjection: factories.createRequestProjection?.(workspace.runtimeDirectory),
 			localWorkflow: factories.createLocalWorkflow ? {
 				run: processId => getLocalWorkflow().run(processId),
 				resume: runId => getLocalWorkflow().resume(runId),
@@ -312,7 +325,9 @@ export class ThreadBoundActivityJournal implements WorkbenchActivityJournal {
 	public constructor(
 		private readonly journal: WorkbenchActivityJournal,
 		private readonly traceRoot?: string,
+		private readonly intakeStreamId?: string,
 	) {}
+	public get supportsRequestIntake(): boolean { return !!this.intakeStreamId; }
 
 	public async bindThread(threadId: string): Promise<void> {
 		const streamId = nativeThreadJournalKey(threadId);
@@ -320,6 +335,15 @@ export class ThreadBoundActivityJournal implements WorkbenchActivityJournal {
 			throw new Error("활동 기록이 이미 다른 Native thread에 묶여 있습니다.");
 		}
 		this.streamId = streamId;
+		if (this.intakeStreamId) {
+			const existing = await this.journal.readAll(streamId);
+			const adopted = new Set(existing.map(a => a.payload.intakeActivityId));
+			for (const entry of await this.journal.readAll(this.intakeStreamId)) {
+				if (entry.projectId !== this.intakeStreamId) continue;
+				if (adopted.has(entry.id)) continue;
+				await this.journal.append({ ...entry, projectId: streamId, nativeRefs: { ...entry.nativeRefs, threadId }, payload: { ...entry.payload, intakeActivityId: entry.id, intakeStreamId: this.intakeStreamId, intakeRecordedAt: entry.recordedAt } });
+			}
+		}
 		if (this.traceRoot) this.trace = new FileTraceStore(join(this.traceRoot, scopedTodoSessionId(threadId), "Tracer.md"));
 		if (this.trace) await this.trace.replace(await this.journal.readAll(streamId));
 	}
@@ -329,6 +353,7 @@ export class ThreadBoundActivityJournal implements WorkbenchActivityJournal {
 	}
 
 	public async append(input: Parameters<WorkbenchActivityJournal["append"]>[0]): ReturnType<WorkbenchActivityJournal["append"]> {
+		if (!this.streamId && this.intakeStreamId && input.kind === "progress" && /^request\/(submitted|failed|uncertain)$/u.test(String(input.payload.method)) && !input.nativeRefs.threadId && typeof input.payload.requestId === "string") return this.journal.append({ ...input, projectId: this.intakeStreamId });
 		const streamId = this.requireStreamId();
 		const result = await this.journal.append({ ...input, projectId: streamId });
 		if (this.trace && result.appended) await this.trace.append(result.activity);
@@ -336,7 +361,7 @@ export class ThreadBoundActivityJournal implements WorkbenchActivityJournal {
 	}
 
 	public readAll(_projectId: string): Promise<ProjectActivity[]> {
-		return this.streamId ? this.journal.readAll(this.streamId) : Promise.resolve([]);
+		return this.streamId ? this.journal.readAll(this.streamId) : this.intakeStreamId ? this.journal.readAll(this.intakeStreamId) : Promise.resolve([]);
 	}
 
 	private requireStreamId(): string {
@@ -438,6 +463,9 @@ class ThreadScopedTodoSource implements WorkbenchTodoSource {
 	public syncNativePlan(flow: WorkFlowProjection, binding: TodoNativePlanBinding): Promise<TodoDocument> {
 		if (!flow.source) throw new Error("Native plan source authority is required for Todo sync");
 		return this.requireLedger().syncNativePlan(flow, binding);
+	}
+	public syncRequestRuntime(request: RequestRuntimeRecord): Promise<TodoDocument> {
+		return this.requireLedger().syncRequestRuntime(request);
 	}
 	public create(title: string, items: readonly string[], storyId?: string): Promise<TodoDocument> { return this.requireLedger().create(title, items, storyId); }
 	public add(content: string, placement: "now" | "after"): Promise<TodoDocument> { return this.requireLedger().add(content, placement); }

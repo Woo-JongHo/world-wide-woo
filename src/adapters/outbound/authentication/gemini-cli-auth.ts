@@ -141,7 +141,7 @@ async function runGeminiAcpWebAuthentication(configDirectory: string, signal?: A
 			jsonrpc: "2.0", id: 1, method: "initialize", params: {
 				protocolVersion: 1,
 				clientCapabilities: { auth: { terminal: false }, fs: { readTextFile: false, writeTextFile: false }, terminal: false },
-				clientInfo: { name: "world-wide-woo", version: "0.0.16" },
+				clientInfo: { name: "world-wide-woo", version: "0.0.17" },
 			},
 		})}\n`);
 		for await (const value of child.stdout) {

@@ -14,9 +14,14 @@ import type {
 	NativeTurnSteer,
 	NativeTurnSteerResult,
 } from "../../domain/execution/native-session.js";
+import type { RuntimeToolDefinition, RuntimeToolHandler } from "./runtime-tool-port";
+import type { NativeModelOption } from "../../domain/execution/model-settings";
 
 /** Application-owned semantic boundary around a native model session host. */
 export interface ExecutorPort {
+	listModels?(): Promise<readonly NativeModelOption[]>;
+	/** Register before thread creation; does not imply strict isolation support. */
+	registerRuntimeTools?(definitions: readonly RuntimeToolDefinition[], handler: RuntimeToolHandler): () => void;
 	startThread(input: NativeThreadStart): Promise<NativeThreadSnapshot>;
 	resumeThread(input: NativeThreadResume): Promise<NativeThreadSnapshot>;
 	readThread(input: NativeThreadRead): Promise<NativeThreadSnapshot>;

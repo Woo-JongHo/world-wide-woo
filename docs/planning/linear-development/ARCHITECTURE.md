@@ -19,6 +19,11 @@ src/
 │   ├── inbound/
 │   │   ├── cli/
 │   │   └── tui/
+│   │       ├── foundation/
+│   │       ├── features/
+│   │       ├── commands/
+│   │       ├── shell/
+│   │       └── legacy/
 │   └── outbound/     # executor·store·provider·Git 구현
 ├── app.ts            # production composition root
 ├── cli.ts            # 실행 진입점
@@ -31,6 +36,9 @@ src/
 - Application은 Domain과 Port를 사용해 업무 흐름을 조정한다.
 - Runtime은 Domain 계약으로 실행 상태와 Receipt를 만든다.
 - Inbound Adapter는 Core의 공개 계약만 사용한다.
+- TUI Foundation은 상위 TUI 그룹을 참조하지 않고 Feature 구현은 sibling Feature를 직접 참조하지 않는다.
+- Shell이 Feature의 생성자 의존성을 조립하며 중앙 registry는 Feature·하위 TUI Unit의 정적 descriptor와 lookup만 소유한다. factory와 plugin 등록은 registry에 두지 않는다.
+- Feature 하위 `TUI-F###-U##`는 UI 탐색 metadata이며 `.woo/units.yaml`의 지속 `Code-###` Unit이 아니다. 두 ID 체계는 서로 대신하지 않고 TUI catalog 항목을 Code Unit 원장에 추가하지 않는다.
 - Outbound Adapter는 Port를 구현하며 Inbound를 참조하지 않는다.
 - `app.ts`가 Core와 Adapter를 조립한다.
 - `legacy-router-app.ts`는 `www router` 호환 명령이 명시적으로 소유한다.

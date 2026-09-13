@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { dashboardProgressCells, DASHBOARD_PANEL_SYSTEM } from "../src/adapters/inbound/tui/dashboard/dashboard-panel-system";
+import { dashboardProgressCells, DASHBOARD_PANEL_SYSTEM } from "../src/adapters/inbound/tui/foundation/layout/dashboard-panel-system";
 
 describe("Workbench panel system", () => {
 	test("keeps the Todo and Tracer information hierarchy stable across widths", () => {

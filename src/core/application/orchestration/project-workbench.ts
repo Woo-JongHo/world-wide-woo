@@ -9,6 +9,15 @@ import { TodoWriteConflictError } from "../work/todo-ledger.js";
 import type { WooEntry } from "./woo-entry.js";
 import type { SkillRegistrySnapshot } from "../../skills/skill-registry.js";
 import { ContextComposer } from "./context-composer.js";
+import { requestProtocolContext } from "./request-protocol";
+import { RequestController, REQUEST_RUNTIME_TOOLS } from "./request-controller";
+import type { RequestActionApproval, RequestActionCapability } from "../../ports/execution/request-action-port";
+import type { RuntimeToolCall } from "../../ports/execution/runtime-tool-port";
+import { RequestRuntimePolicy, type RequestRuntimeMode } from "./request-runtime-mode.js";
+import { projectRequestRuntime } from "../../runtime/request-runtime";
+import { projectRequestTodo } from "../../domain/work/request-projections";
+import { REQUEST_REPORT_PREFIX, type RequestRuntimeRecord } from "../../domain/execution/request-runtime";
+import type { RequestProjectionPort } from "../../ports/execution/request-projection-port";
 import { ApprovalResponseDispatcher } from "./approval-dispatch.js";
 import { SessionUsageTracker } from "../session/session-usage-tracker.js";
 import type {
@@ -24,10 +33,9 @@ import type {
 	NativeUncertainOperation,
 } from "../../domain/execution/native-session.js";
 import { projectBackgroundWorkState } from "../../domain/execution/native-session.js";
-import { EFFORTS, MODELS } from "../../domain/execution/model-settings.js";
+import { fallbackNativeModelCatalog, nativeModelNames, nativeModelEfforts, type NativeModelCatalog } from "../../domain/execution/model-settings.js";
 import {
 	isTerminalActivityPhase,
-	isReasoningActivityPayload,
 	type ProjectActivity,
 	type ProjectActivityAppendResult,
 	type ProjectActivityInput,
@@ -54,7 +62,6 @@ import {
 import {
 	projectTNoteCompletionIndex,
 	projectActivityToTNoteSource,
-	sanitizeTNoteText,
 	type TNoteActivitySource,
 	type TNoteDraft,
 	type TNoteSourceRange,
@@ -84,19 +91,24 @@ import { EMPTY_LINEAR_PROJECT_DASHBOARD, type LinearProjectDashboard } from "../
 import { projectPerformance } from "../../domain/work/performance.js";
 import { ExecutionJournal } from "./execution-journal.js";
 import { projectNativeDelegation } from "../../domain/work/delegation.js";
+import {
+	nativeTurnLifecycle,
+	projectNativeEvent,
+	projectNativeEvidence,
+	type NativeEventDeltaProjection,
+} from "./native-event-projection.js";
+import {
+	questionForTurn,
+	resolveCompletedTurnNoteScope,
+} from "../work/completed-turn-note-scope.js";
 
 const LIVE_ACTIVITY_TAIL_CHARACTER_LIMIT = 32 * 1024 - 128;
 const ASSISTANT_DRAFT_TAIL_CHARACTER_LIMIT = 28 * 1024 - 128;
 const REASONING_DRAFT_TAIL_CHARACTER_LIMIT = 16 * 1024 - 128;
-const JOURNAL_NATIVE_TEXT_CHARACTER_LIMIT = 32 * 1024;
-const JOURNAL_NATIVE_MAX_DEPTH = 8;
 const dplanHash: DplanHash = {
 	sha256Hex: (input) => createHash("sha256").update(input).digest("hex"),
 };
 const executionHash = dplanHash;
-const JOURNAL_NATIVE_MAX_ITEMS = 128;
-const JOURNAL_NATIVE_MAX_COLLECTION_ITEMS = 64;
-const JOURNAL_NATIVE_OMISSION = "[journal observation omitted]";
 const WORKBENCH_ACTION_RESULT_CHARACTER_LIMIT = 12 * 1024;
 
 const SESSION_GOAL_MARKER = /^SESSION_GOAL:[ \t]*(\S(?:[^\r\n]*\S)?)$/u;
@@ -131,17 +143,13 @@ interface DurableNoteProjection {
 	readonly notes: readonly WorkbenchTNote[];
 }
 
-interface JournalNativeProjectionState {
-	remainingCharacters: number;
-	remainingItems: number;
-	omitted: boolean;
-}
-
 export interface WorkbenchActivityJournal {
 	append(input: ProjectActivityInput): Promise<ProjectActivityAppendResult>;
 	readAll(projectId: string): Promise<ProjectActivity[]>;
 	/** True once the journal owns a Native thread stream; appends fail before that. */
 	hasBoundThread?(): boolean;
+	/** Allows only durable request intake events before a Native thread exists. */
+	readonly supportsRequestIntake?: boolean;
 }
 
 export interface WorkbenchTodoSource {
@@ -151,6 +159,7 @@ export interface WorkbenchTodoSource {
 	bindThread?(threadId: string): Promise<void>;
 	/** Optional Native-plan mirror. It must never block the interactive Chat path. */
 	syncNativePlan?(flow: WorkFlowProjection, binding: TodoNativePlanBinding): Promise<TodoDocument>;
+	syncRequestRuntime?(request: RequestRuntimeRecord): Promise<TodoDocument>;
 	create(title: string, items: readonly string[], storyId?: string): Promise<TodoDocument>;
 	add(content: string, placement: "now" | "after"): Promise<TodoDocument>;
 	addDetails(itemId: string, details: readonly string[]): Promise<TodoDocument>;
@@ -177,6 +186,11 @@ export interface WorkbenchTNoteSource {
 }
 
 export interface ProjectWorkbenchOptions {
+	/** Explicitly scoped capabilities. No ambient shell or publication authority. */
+	requestCapabilities?: readonly RequestActionCapability[];
+	/** Explicit session default. A /goal request promotes off to observe for that request only. */
+	requestRuntimeMode?: RequestRuntimeMode;
+	requestProjection?: RequestProjectionPort;
 	/** Local preflight only; the implementation owns its persisted state and receipts. */
 	localWorkflow?: {
 		run(processId: string): Promise<{ readonly summary: string }>;
@@ -206,7 +220,7 @@ export interface ProjectWorkbenchOptions {
 	/** Revision-bound local Skill inventory supplied to every Native turn. */
 	skillRegistry?: SkillRegistrySnapshot;
 	auxiliaryUsage?: SessionModelUsageSource;
-	persistModelSelection?: (selection: WorkbenchModelSelection) => Promise<void>;
+	persistModelSelection?: (selection: WorkbenchModelSelection, catalog: NativeModelCatalog) => Promise<void>;
 	/** Read-only connected Linear project source, called only through the owned Native thread. */
 	linearDashboard?: { refresh(threadId: string): Promise<LinearProjectDashboard> };
 	contextCharacterLimit?: number;
@@ -225,6 +239,9 @@ export interface ProjectWorkbenchOptions {
  */
 /** @codeId 0002 */
 export class ProjectWorkbench {
+	private requestCache: { length: number; threadId: string | null; records: readonly RequestRuntimeRecord[] } = { length: -1, threadId: null, records: [] };
+	private requestProjectionQueue: Promise<void> = Promise.resolve();
+	private requestProjectionKeys = new Map<string, string>();
 	private readonly contextComposer: ContextComposer;
 	private readonly listeners = new Set<WorkbenchListener>();
 	private readonly activities: ProjectActivity[] = [];
@@ -261,6 +278,8 @@ export class ProjectWorkbench {
 	private recordingReadOnly = false;
 	private pendingApproval: NativeApprovalRequest | null = null;
 	private selectedModel: NativeThreadStart["model"];
+	private modelCatalog = fallbackNativeModelCatalog();
+	private modelRefresh: Promise<NativeModelCatalog> | null = null;
 	private selectedEffort: NativeThreadStart["effort"];
 	private effectiveModel: string;
 	private effectiveEffort: string | null;
@@ -330,6 +349,11 @@ export class ProjectWorkbench {
 	private tnoteQueue: Promise<void> = Promise.resolve();
 	private readonly ready: Promise<void>;
 	private readonly approvalDispatcher: ApprovalResponseDispatcher;
+	private readonly requestController: RequestController;
+	private readonly unregisterRuntimeTools: () => void;
+	private runtimePendingApproval = false;
+	private runtimeApproval: { id: string; resolve(accepted: boolean): void } | null = null;
+	private readonly requestRuntimePolicy: RequestRuntimePolicy;
 	private readonly unsubscribeNative: () => void;
 	private readonly unsubscribeTodo: () => void;
 	private readonly unsubscribeAuxiliaryUsage: () => void;
@@ -339,9 +363,31 @@ export class ProjectWorkbench {
 		private readonly journal: WorkbenchActivityJournal,
 		private readonly options: ProjectWorkbenchOptions,
 	) {
+		if (options.requestCapabilities !== undefined && !native.registerRuntimeTools) throw new Error("선택한 실행기는 Runtime tool request/response를 지원하지 않습니다.");
+		this.requestRuntimePolicy = new RequestRuntimePolicy({
+			mode: options.requestRuntimeMode,
+			capabilitiesConfigured: options.requestCapabilities !== undefined,
+			resuming: options.resumeThreadId !== undefined,
+		});
 		this.contextComposer = new ContextComposer(options.contextCharacterLimit);
+		this.requestController = new RequestController({
+			activities: () => this.activities,
+			digest: digestSource,
+			capabilities: options.requestCapabilities,
+			requestApproval: (call, approval, signal) => this.requestActionApproval(call, approval, signal),
+			canAct: call => !this.closed && !this.recordingReadOnly && !this.runtimePendingApproval && !this.pendingApproval && !this.chatDeliveryBlocked && this.threadId === call.threadId && this.activeTurnId === call.turnId,
+			canRecover: call => !this.closed && !this.recordingReadOnly && !this.runtimePendingApproval && !this.pendingApproval && !this.activeTurnId && !this.chatDeliveryBlocked && this.threadId === call.threadId,
+			append: (call, kind, phase, payload) => this.appendActivity(kind, phase, { threadId: call.threadId, turnId: call.turnId, itemId: call.callId }, payload, true),
+		});
+		this.unregisterRuntimeTools = (this.requestRuntimePolicy.brokered ? native.registerRuntimeTools?.(REQUEST_RUNTIME_TOOLS, async call => {
+			await this.ready;
+			await this.commandQueue;
+			const result = this.eventQueue.then(() => this.requestController.handle(call));
+			this.eventQueue = result.then(() => undefined);
+			return result;
+		}) : undefined) ?? (() => undefined);
 		this.approvalDispatcher = new ApprovalResponseDispatcher({
-			serializeEvidence: boundedJournalNativeValue,
+			serializeEvidence: projectNativeEvidence,
 			digestSource,
 			record: async (entry) => { await this.appendActivity(entry.kind, entry.phase, entry.nativeRefs, entry.payload, true, entry.sourceDigest); },
 			respondToApproval: (resolution) => this.native.respondToApproval(resolution),
@@ -362,9 +408,12 @@ export class ProjectWorkbench {
 		this.current = this.makeSnapshot("loading");
 		this.ready = this.initialize();
 		this.unsubscribeNative = native.subscribe((event) => {
+			if (event.type === "approval-requested" && event.approval.refs.threadId === this.threadId) { this.runtimePendingApproval = true; this.requestController.interrupt(); }
+			if (event.type === "notification" && event.refs.threadId === this.threadId && event.refs.turnId === this.activeTurnId && /^turn\/(completed|failed|interrupted|cancelled|canceled)$/u.test(event.method)) this.requestController.interrupt(event.refs.threadId, event.refs.turnId);
 			this.eventQueue = this.eventQueue
 				.then(() => this.ready)
 				.then(() => this.recordNativeEvent(event))
+				.then(() => { this.runtimePendingApproval = !!this.pendingApproval; })
 				.catch((error) => this.fail(error));
 		});
 		this.unsubscribeTodo = options.todos?.subscribe((todo) => {
@@ -380,6 +429,24 @@ export class ProjectWorkbench {
 
 	public get snapshot(): WorkbenchSnapshot {
 		return this.current;
+	}
+
+	/** Refresh at startup and whenever the user opens model selection. Coalesce concurrent reads. */
+	public refreshModels(): Promise<NativeModelCatalog> {
+		if (this.modelRefresh) return this.modelRefresh;
+		this.modelRefresh = (async () => {
+			try {
+				if (!this.native.listModels) throw new Error("이 실행기는 Native 모델 조회를 지원하지 않습니다.");
+				const models = await this.native.listModels();
+				if (!models.length) throw new Error("Native 모델 목록이 비어 있습니다.");
+				this.modelCatalog = { models: immutable(models), source: "native", checkedAt: new Date().toISOString(), error: null };
+			} catch (error) {
+				this.modelCatalog = { ...this.modelCatalog, error: errorMessage(error) };
+			}
+			if (!this.closed) this.publish(this.current?.phase ?? "loading");
+			return this.modelCatalog;
+		})().finally(() => { this.modelRefresh = null; });
+		return this.modelRefresh;
 	}
 
 	/** Conservative native-only background state for consumers that need it. */
@@ -405,11 +472,45 @@ export class ProjectWorkbench {
 		// Cancellation is an out-of-band control signal. It must not wait behind a
 		// journal write or another serialized command while the active turn is stuck.
 		if (command.type === "chat.cancel") return this.dispatchCancellation();
+		// The tool awaiting this decision owns eventQueue. Never queue its resolver behind it.
+		if (command.type === "approval.resolve" && typeof command.requestId === "string" && command.requestId.startsWith("runtime-")) {
+			const commandId = randomUUID();
+			if (this.closed || !this.runtimeApproval || command.requestId !== this.runtimeApproval.id || !("decision" in command.response) || !["accept", "decline", "cancel"].includes(command.response.decision as string)) return Promise.resolve({ state: "rejected", commandId, reason: "현재 Runtime 단일 작업 승인과 일치하지 않습니다." });
+			this.runtimeApproval.resolve(command.response.decision === "accept");
+			return Promise.resolve({ state: "accepted", commandId });
+		}
 		const operation = this.commandQueue
 			.catch(() => undefined)
 			.then(() => this.dispatchSerialized(command));
 		this.commandQueue = operation.then(() => undefined, () => undefined);
 		return operation;
+	}
+
+	private requestActionApproval(call: RuntimeToolCall, approval: RequestActionApproval, signal: AbortSignal): Promise<boolean> {
+		if (signal.aborted || this.closed || this.pendingApproval || this.runtimeApproval || this.threadId !== call.threadId || this.activeTurnId !== call.turnId) return Promise.resolve(false);
+		return new Promise(resolve => {
+			let done = false;
+			const finish = (accepted: boolean) => {
+				if (done) return;
+				done = true;
+				clearTimeout(timer);
+				signal.removeEventListener("abort", abort);
+				this.runtimeApproval = null;
+				if (this.pendingApproval?.requestId === approval.id) this.pendingApproval = null;
+				this.publish();
+				resolve(accepted && !signal.aborted && !this.closed && Date.now() < approval.expiresAt);
+			};
+			const abort = () => finish(false);
+			const timer = setTimeout(abort, Math.max(0, approval.expiresAt - Date.now()));
+			this.runtimeApproval = { id: approval.id, resolve: finish };
+			this.pendingApproval = immutable({
+				requestId: approval.id, callbackId: null, kind: approval.intent.stage === "EXECUTE" ? "file-change" : "mcp-tool",
+				refs: { threadId: call.threadId, turnId: call.turnId }, availableDecisions: ["decline", "accept", "cancel"],
+				params: { authority: "runtime", command: sanitizeTerminalTextUnbounded(approval.summary), reason: sanitizeTerminalTextUnbounded(approval.detail), cwd: this.options.cwd, expiresAt: approval.expiresAt },
+			});
+			signal.addEventListener("abort", abort, { once: true });
+			this.publish();
+		});
 	}
 
 	private async dispatchCancellation(): Promise<WorkbenchCommandReceipt> {
@@ -457,6 +558,13 @@ export class ProjectWorkbench {
 				case "chat.clear": return this.clearChatProjection(commandId);
 				case "thread.compact": return await this.compactThread(commandId);
 				case "approval.resolve": return await this.resolveApproval(commandId, command);
+				case "runtime.reconcile": {
+					const request = this.requestRecords().find(r => r.requestId === command.requestId);
+					if (!this.requestRuntimePolicy.brokered || !request?.threadId || !request.turnId || this.activeTurnId) return { state: "rejected", commandId, reason: "Runtime 정산은 연결된 요청의 turn이 종료된 뒤에만 가능합니다." };
+					const result = await this.requestController.recover({ tool: "www_runtime_reconcile", threadId: request.threadId, turnId: request.turnId, callId: commandId, arguments: { requestId: request.requestId, operationId: command.operationId } });
+					if (result.success) await this.drainChatQueue();
+					return result.success ? { state: "accepted", commandId, message: "기록된 대상의 현재 상태를 확인했습니다. 원래 동작은 재실행하지 않았습니다." } : { state: "rejected", commandId, reason: result.text };
+				}
 				case "todo.create": return await this.mutateTodo(commandId, "Todo 생성", () => this.requireTodos().create(command.title, command.items, command.storyId));
 				case "todo.add": return await this.mutateTodo(commandId, "Todo 항목 추가", () => this.requireTodos().add(command.content, command.placement));
 				case "todo.details": return await this.mutateTodo(commandId, "Todo 세부 항목 추가", () => this.requireTodos().addDetails(command.itemId, command.details));
@@ -488,6 +596,8 @@ export class ProjectWorkbench {
 	public async close(): Promise<void> {
 		if (this.closed) return;
 		this.closed = true;
+		this.requestController.interrupt();
+		this.unregisterRuntimeTools();
 		this.narrationAbort.abort();
 		this.unsubscribeNative();
 		this.unsubscribeTodo();
@@ -495,6 +605,7 @@ export class ProjectWorkbench {
 		await this.commandQueue.catch(() => undefined);
 		await this.eventQueue.catch(() => undefined);
 		await this.todoSyncQueue.catch(() => undefined);
+		await this.requestProjectionQueue.catch(() => undefined);
 		await this.tnoteQueue.catch(() => undefined);
 		await this.native.close();
 		this.publish("closed");
@@ -504,6 +615,7 @@ export class ProjectWorkbench {
 	private async initialize(): Promise<void> {
 		const [activities] = await Promise.all([
 			this.journal.readAll(this.activityJournalProjectId()),
+			this.refreshModels(),
 			this.options.wooEntry?.refresh() ?? Promise.resolve(null),
 			this.mcpManagement()?.listMcpServers().then((servers) => { this.mcpServers = immutable(servers); }) ?? Promise.resolve(),
 		]);
@@ -572,7 +684,7 @@ export class ProjectWorkbench {
 			}
 			this.threadId = read.id;
 			const resumedTodoFlow = this.projectCurrentWorkFlow();
-			const syncResumedTodo = this.options.todos?.syncNativePlan?.bind(this.options.todos);
+			const syncResumedTodo = this.requestRecords().length ? undefined : this.options.todos?.syncNativePlan?.bind(this.options.todos);
 			if (
 				syncResumedTodo
 				&& (!this.todo || this.todo.items.length === 0 || this.todo.source !== undefined)
@@ -643,13 +755,20 @@ export class ProjectWorkbench {
 	private async sendChat(commandId: string, rawText: string, goal = false): Promise<WorkbenchCommandReceipt> {
 		const text = sanitizeTerminalTextUnbounded(rawText).trim();
 		if (!text) return { state: "rejected", commandId, reason: "보낼 메시지가 비어 있습니다." };
-		if (this.activeTurnId && this.threadId && !this.chatDeliveryBlocked && this.native.steerTurn) {
+		if (this.requestRuntimePolicy.brokered && !this.activeTurnId) {
+			const unresolved = this.requestRecords().find(r => r.actions.some(a => a.status === "unconfirmed"));
+			const action = unresolved?.actions.find(a => a.status === "unconfirmed");
+			if (unresolved && action) return { state: "rejected", commandId, reason: `이전 실행 결과를 먼저 정산하세요: /reconcile ${unresolved.requestId} ${action.operationId}` };
+		}
+		if (this.requestProtocolVersion() !== 2 && this.activeTurnId && this.threadId && !this.chatDeliveryBlocked && this.native.steerTurn) {
 			const sent = await this.steerChatTurn(text, commandId, this.threadId, this.activeTurnId, goal);
 			return { state: "accepted", commandId, activitySequence: sent.sequence };
 		}
 		if (this.activeTurnId || this.pendingApproval || this.chatQueue.length > 0 || this.chatDeliveryBlocked) {
-			await this.appendRequestObservation("request/submitted", commandId, this.threadId ?? undefined, text);
-			await this.appendRequestObservation("request/queued", commandId, this.threadId ?? undefined, text);
+			if (this.requestRuntimePolicy.manages(goal)) {
+				await this.appendRequestObservation("request/submitted", commandId, this.threadId ?? undefined, text);
+				await this.appendRequestObservation("request/queued", commandId, this.threadId ?? undefined, text);
+			}
 			this.chatQueue.push({ id: commandId, content: text, queuedAt: new Date().toISOString(), ...(goal ? { goal: true } : {}) });
 			this.publish();
 			return { state: "queued", commandId, position: this.chatQueue.length };
@@ -677,21 +796,22 @@ export class ProjectWorkbench {
 		turnId: string,
 		goal = false,
 	): Promise<ProjectActivity> {
+		const managedRequest = this.requestRuntimePolicy.manages(goal);
 		const messagePayload = { direction: "outbound", role: "user", text, ...(goal ? { goal: true } : {}) } as const;
 		const messageRefs = { threadId, turnId, itemId: localMessageId };
 		const outboundSourceDigest = digestSource(stableJson(messagePayload));
 		const sent = await this.appendActivity("message", "started", messageRefs, messagePayload, false, outboundSourceDigest);
-		await this.appendRequestObservation("request/submitted", localMessageId, threadId, text, outboundSourceDigest, turnId);
+		if (managedRequest) await this.appendRequestObservation("request/submitted", localMessageId, threadId, text, outboundSourceDigest, turnId);
 		this.publish();
 		try {
 			await this.native.steerTurn!({
 				threadId,
 				expectedTurnId: turnId,
 				clientUserMessageId: localMessageId,
-				text,
+				text: managedRequest ? `${text}\n\n${requestProtocolContext(localMessageId, this.requestProtocolVersion()).value}` : text,
 			});
 		} catch (error) {
-			await this.appendRequestObservation(
+			if (managedRequest) await this.appendRequestObservation(
 				isUncertain(error) ? "request/uncertain" : "request/failed",
 				localMessageId,
 				threadId,
@@ -710,7 +830,7 @@ export class ProjectWorkbench {
 		}
 		const completed = await this.appendActivity("message", "completed", messageRefs, messagePayload, false, outboundSourceDigest);
 		if (goal) this.sessionGoal = { text, sourceActivityId: completed.id, updatedAt: completed.recordedAt };
-		await this.appendRequestObservation("request/started", localMessageId, threadId, text, outboundSourceDigest, turnId, {
+		if (managedRequest) await this.appendRequestObservation("request/started", localMessageId, threadId, text, outboundSourceDigest, turnId, {
 			model: this.effectiveModel,
 			effort: this.effectiveEffort,
 		});
@@ -719,6 +839,9 @@ export class ProjectWorkbench {
 	}
 
 	private async startChatTurn(text: string, localMessageId: string, queued = false, goal = false): Promise<ProjectActivity> {
+		const managedRequest = this.requestRuntimePolicy.manages(goal);
+		const intake = managedRequest && !this.threadId && this.journal.supportsRequestIntake === true;
+		if (intake) await this.appendRequestObservation("request/submitted", localMessageId, undefined, text);
 		const messagePayload = {
 			direction: "outbound",
 			role: "user",
@@ -744,6 +867,7 @@ export class ProjectWorkbench {
 					sandbox: this.sandbox,
 				});
 			} catch (error) {
+				if (intake) await this.appendRequestObservation(isUncertain(error) ? "request/uncertain" : "request/failed", localMessageId, undefined, text);
 				this.preThreadChat.set(localMessageId, {
 					...this.preThreadChat.get(localMessageId)!,
 					status: "failed",
@@ -754,6 +878,14 @@ export class ProjectWorkbench {
 			}
 			this.threadId = thread.id;
 			await this.options.acquireThreadLease?.(thread.id);
+			if (intake) {
+				// The thread journal adopts intake receipts with new sequence/identity and provenance.
+				const adopted = await this.journal.readAll(this.activityJournalProjectId());
+				const sourceIds = new Set(adopted.map(a => a.payload.intakeActivityId));
+				const merged = [...new Map([...this.activities.filter(a => !sourceIds.has(a.id)), ...adopted].map(a => [a.id, immutable(a)])).values()].sort((a, b) => a.sequence - b.sequence);
+				this.activities.splice(0, this.activities.length, ...merged);
+				this.requestCache = { ...this.requestCache, length: -1 };
+			}
 			await this.bindThreadSources(thread.id);
 			this.applyThreadSettings(thread);
 			await this.appendActivity("progress", "completed", { threadId: thread.id }, {
@@ -764,7 +896,7 @@ export class ProjectWorkbench {
 		const messageRefs = { threadId: this.threadId, itemId: localMessageId };
 		const outboundSourceDigest = digestSource(stableJson(messagePayload));
 		const sent = await this.appendActivity("message", "started", messageRefs, messagePayload, false, outboundSourceDigest);
-		if (!queued) await this.appendRequestObservation("request/submitted", localMessageId, this.threadId, text, outboundSourceDigest);
+		if (managedRequest && !queued && !intake) await this.appendRequestObservation("request/submitted", localMessageId, this.threadId, text, outboundSourceDigest);
 		this.preThreadChat.delete(localMessageId);
 		this.pendingPlanGoalActivityId = sent.id;
 		this.invalidateWorkFlow();
@@ -781,14 +913,20 @@ export class ProjectWorkbench {
 				sandboxPolicy: this.currentSandboxPolicy(),
 				collaborationMode: this.currentNativeCollaborationMode(goal),
 			};
-			turn = await this.native.startTurn(this.contextComposer.compose(turnInput, this.options.wooEntry?.snapshot, this.options.skillRegistry));
+			turn = await this.native.startTurn(this.contextComposer.compose(
+				managedRequest
+					? { ...turnInput, additionalContext: { www_request_runtime: requestProtocolContext(localMessageId, this.requestProtocolVersion()) } }
+					: turnInput,
+				this.options.wooEntry?.snapshot,
+				this.options.skillRegistry,
+			));
 		} catch (error) {
 			this.pendingPlanGoalActivityId = null;
 			this.invalidateWorkFlow();
 			if (isUncertain(error)) {
 				this.chatDeliveryBlocked = true;
 				this.blockedChat = { id: localMessageId, content: text };
-				await this.appendRequestObservation("request/uncertain", localMessageId, this.threadId, text, outboundSourceDigest);
+				if (managedRequest) await this.appendRequestObservation("request/uncertain", localMessageId, this.threadId, text, outboundSourceDigest);
 				await this.appendActivity("message", "failed", messageRefs, {
 					...messagePayload,
 					error: "Native가 메시지를 수신했는지 확인할 수 없습니다. 자동 재시도하지 않습니다.",
@@ -796,7 +934,7 @@ export class ProjectWorkbench {
 				if (queued && this.chatQueue[0]?.id === localMessageId) this.chatQueue.shift();
 				throw error;
 			}
-			await this.appendRequestObservation("request/failed", localMessageId, this.threadId, text, outboundSourceDigest);
+			if (managedRequest) await this.appendRequestObservation("request/failed", localMessageId, this.threadId, text, outboundSourceDigest);
 			await this.appendActivity("message", "failed", messageRefs, {
 				...messagePayload,
 				error: errorMessage(error),
@@ -818,7 +956,7 @@ export class ProjectWorkbench {
 		if (queued && this.chatQueue[0]?.id === localMessageId) this.chatQueue.shift();
 		const completed = await this.appendActivity("message", "completed", messageRefs, messagePayload);
 		if (goal) this.sessionGoal = { text, sourceActivityId: completed.id, updatedAt: completed.recordedAt };
-		await this.appendRequestObservation("request/started", localMessageId, this.threadId, text, outboundSourceDigest, turn.id, {
+		if (managedRequest) await this.appendRequestObservation("request/started", localMessageId, this.threadId, text, outboundSourceDigest, turn.id, {
 			model: this.effectiveModel,
 			effort: this.effectiveEffort,
 		});
@@ -842,11 +980,17 @@ export class ProjectWorkbench {
 			threadId,
 			itemId: requestId,
 			...(turnId ? { turnId } : {}),
-		}, { method, requestId, ...(model ?? {}) }, false, sourceDigest);
+		}, { method, requestId, text, protocolVersion: this.requestProtocolVersion(), ...(model ?? {}) }, false, sourceDigest);
+	}
+
+	private requestProtocolVersion(): 1 | 2 {
+		return this.requestRuntimePolicy.protocolVersion(
+			this.activities.some(a => a.payload.method === "request/submitted" && a.payload.protocolVersion === 2),
+		);
 	}
 
 	private async drainChatQueue(): Promise<void> {
-		while (!this.closed && !this.activeTurnId && !this.pendingApproval && !this.chatDeliveryBlocked) {
+		while (!this.closed && !this.activeTurnId && !this.pendingApproval && !this.chatDeliveryBlocked && !(this.requestRuntimePolicy.brokered && this.requestRecords().some(r => r.actions.some(a => a.status === "unconfirmed")) )) {
 			const next = this.chatQueue[0];
 			if (!next) return;
 			try {
@@ -859,6 +1003,7 @@ export class ProjectWorkbench {
 	}
 
 	private async cancelChat(commandId: string): Promise<WorkbenchCommandReceipt> {
+		this.requestController.interrupt(this.threadId ?? undefined, this.activeTurnId ?? undefined);
 		if (this.chatDeliveryBlocked && this.blockedChat) {
 			const abandoned = this.blockedChat;
 			if (!this.threadId) {
@@ -1074,8 +1219,8 @@ export class ProjectWorkbench {
 		commandId: string,
 		selection: WorkbenchModelSelection,
 	): Promise<WorkbenchCommandReceipt> {
-		const supportedModels = MODELS["openai-codex"] as readonly string[];
-		if (!supportedModels.includes(selection.model) || !EFFORTS.includes(selection.effort)) {
+		const supportedModels = nativeModelNames(this.modelCatalog);
+		if (!supportedModels.includes(selection.model) || !nativeModelEfforts(selection.model, this.modelCatalog).includes(selection.effort)) {
 			return { state: "rejected", commandId, reason: "지원하지 않는 Codex 모델 설정입니다." };
 		}
 		if (selection.model === this.selectedModel && selection.effort === this.selectedEffort) {
@@ -1084,7 +1229,7 @@ export class ProjectWorkbench {
 		if (this.activeTurnId || this.chatQueue.length > 0 || this.chatDeliveryBlocked) {
 			return { state: "rejected", commandId, reason: "응답 또는 대기 메시지를 처리하는 중에는 모델을 변경할 수 없습니다." };
 		}
-		await this.options.persistModelSelection?.(selection);
+		await this.options.persistModelSelection?.(selection, this.modelCatalog);
 		this.selectedModel = selection.model;
 		this.selectedEffort = selection.effort;
 		this.effectiveModel = selection.model;
@@ -1203,7 +1348,7 @@ export class ProjectWorkbench {
 		}
 		const selected = this.activities.filter((activity) => uniqueIds.includes(activity.id))
 			.sort((left, right) => left.sequence - right.sequence);
-		const scope = fullCompletedTurnScope(selected);
+		const scope = resolveCompletedTurnNoteScope(selected, { type: "exact-selection" });
 		if (!scope) return { state: "rejected", commandId, reason: "T-note는 완료된 질문 하나의 전체 turn 범위여야 합니다." };
 		const request = this.tnoteRequest(scope.activities);
 		let existing = request.turnId ? this.noteForTurn(request.turnId) : undefined;
@@ -1224,7 +1369,7 @@ export class ProjectWorkbench {
 	}
 
 	private async captureSessionNote(commandId: string): Promise<WorkbenchCommandReceipt> {
-		const scope = latestCompletedTurnNoteScope(this.visibleActivities);
+		const scope = resolveCompletedTurnNoteScope(this.visibleActivities, { type: "latest" });
 		if (!scope) return { state: "rejected", commandId, reason: "요약할 완료된 질문이 없습니다." };
 		return this.captureNote(
 			commandId,
@@ -1252,7 +1397,7 @@ export class ProjectWorkbench {
 		readonly input: Parameters<WorkbenchTNoteSource["create"]>[0];
 	} {
 		const turnId = selected.at(-1)!.nativeRefs.turnId!;
-		const scope = completedTurnNoteScope(selected, turnId)!;
+		const scope = resolveCompletedTurnNoteScope(selected, { type: "turn", turnId })!;
 		const question = scope.question;
 		const terminalActivity = selected.at(-1)!;
 		const threadId = terminalActivity.nativeRefs.threadId!;
@@ -1316,7 +1461,7 @@ export class ProjectWorkbench {
 	}
 
 	private noteForTurn(turnId: string): TNoteDraft | undefined {
-		const scope = completedTurnNoteScope(this.visibleActivities, turnId);
+		const scope = resolveCompletedTurnNoteScope(this.visibleActivities, { type: "turn", turnId });
 		const terminalActivityId = scope?.activities.at(-1)?.id;
 		return terminalActivityId
 			? [...this.noteDrafts.values()].find((note) => note.packet.activities.some((activity) => activity.id === terminalActivityId))
@@ -1328,6 +1473,7 @@ export class ProjectWorkbench {
 		title: string,
 		operation: () => Promise<TodoDocument>,
 	): Promise<WorkbenchCommandReceipt> {
+		if (this.requestRecords().length) return { state: "rejected", commandId, reason: "이 Todo는 Request Runtime의 7단계 기록입니다. 입력창에서 단계의 하위 작업 변경을 요청하세요." };
 		const document = await operation();
 		this.setActionResult("todo", title, todoResultBody(document));
 		return { state: "accepted", commandId, message: title };
@@ -1343,6 +1489,7 @@ export class ProjectWorkbench {
 	}
 
 	private async recordTodoEvidence(commandId: string, activityId: string): Promise<WorkbenchCommandReceipt> {
+		if (this.requestRecords().length) return { state: "rejected", commandId, reason: "Runtime Evidence는 Native 단계 보고와 실제 Activity 참조로 연결합니다." };
 		if (!this.activities.some((activity) => activity.id === activityId)) {
 			return { state: "rejected", commandId, reason: `Evidence activity를 찾을 수 없습니다: ${activityId}` };
 		}
@@ -1503,21 +1650,21 @@ export class ProjectWorkbench {
 			if (refs !== event.refs) event = { ...event, refs };
 			this.rememberNativeRefs(event.refs);
 		}
+		const projection = projectNativeEvent(event);
 		const eventBelongsToRootThread = event.type !== "notification"
 			|| this.isRootThreadEvent(event.refs.threadId);
 		if (eventBelongsToRootThread && event.type === "notification" && event.method === "thread/tokenUsage/updated") {
 			this.usageTracker.observe(event, this.threadId, this.contextTurnId);
 		}
-		if (event.type === "notification" && isDeltaNotification(event.method)) {
-			if (eventBelongsToRootThread) await this.applyDelta(event);
+		if (projection.type === "delta") {
+			if (eventBelongsToRootThread) await this.applyDelta(projection);
 			return;
 		}
-		const lifecycle = event.type === "notification" ? turnLifecycle(event.method) : null;
+		const { lifecycle, observation } = projection;
 		const sourceDigest = digestSource(stableJson(event));
-		const observation = nativeObservation(event);
 		const terminalItemCandidate = event.type === "notification" && Boolean(event.refs.itemId)
 			&& isTerminalActivityPhase(observation.phase);
-		if (terminalItemCandidate && event.type === "notification" && isAssistantMessageObservation(event, observation)
+		if (terminalItemCandidate && event.type === "notification" && projection.assistantMessage
 			&& !nativeItemIdentity(event.refs)) return;
 		const terminalItemObservation = terminalItemCandidate && Boolean(nativeItemIdentity(observation.refs));
 		if (terminalItemObservation && event.type === "notification" && this.hasTerminalItem(event.refs)) return;
@@ -1528,7 +1675,7 @@ export class ProjectWorkbench {
 		const terminalItemMissingMessage = event.type === "notification"
 			&& eventBelongsToRootThread
 			&& terminalItemObservation
-			&& isAssistantMessageObservation(event, observation)
+			&& projection.assistantMessage
 			&& activityText(observation.payload).trim().length === 0;
 		if (terminalItemMissingMessage && event.type === "notification") {
 			await this.preserveUnfinalizedAssistantResponse(event, observation.phase);
@@ -1683,7 +1830,7 @@ export class ProjectWorkbench {
 	 */
 	private scheduleAutomaticTNote(turnId: string): void {
 		if (!this.options.tnotes || this.closed || this.narrationAbort.signal.aborted || this.automaticTNoteTurns.has(turnId)) return;
-		const scope = completedTurnNoteScope(this.visibleActivities, turnId);
+		const scope = resolveCompletedTurnNoteScope(this.visibleActivities, { type: "turn", turnId });
 		if (!scope || this.hasTNoteFor(scope.activities)) return;
 		this.automaticTNoteTurns.add(turnId);
 		const request = this.tnoteRequest(scope.activities);
@@ -1703,7 +1850,7 @@ export class ProjectWorkbench {
 					if (this.closed || this.narrationAbort.signal.aborted) return;
 					this.actionResult = immutable({
 						kind: "tnote",
-						title: "질문 요약 자동 생성 보류",
+						title: "부가 기록 실패 · 요청 실행 계속",
 						body: sanitizeTerminalTextExcerpt(errorMessage(error), WORKBENCH_ACTION_RESULT_CHARACTER_LIMIT, "head-tail"),
 						createdAt: new Date().toISOString(),
 					});
@@ -1731,15 +1878,12 @@ export class ProjectWorkbench {
 	}
 
 	/** @linear WOO-688 */
-	private async applyDelta(event: Extract<NativeHarnessEvent, { type: "notification" }>): Promise<void> {
+	private async applyDelta(event: NativeEventDeltaProjection): Promise<void> {
 		if (event.refs.threadId) this.threadId = event.refs.threadId;
-		const delta = activityText({ params: event.params });
-		const method = event.method.toLowerCase();
-		const reasoning = method.includes("reasoning");
-		const publicReasoningSummary = method.includes("reasoning/summarytextdelta");
+		const delta = event.text;
 		const itemIdentity = nativeItemIdentity(event.refs);
 		if (event.refs.turnId && (this.hasTerminalTurn(event.refs.threadId, event.refs.turnId) || this.hasTerminalItem(event.refs))) return;
-		if (!reasoning && activityKind(event.method, event.params) === "message" && delta.trim().length > 0 && event.refs.turnId &&
+		if (event.channel === "assistant" && delta.trim().length > 0 && event.refs.turnId &&
 			this.usageTracker.hasTurn(event.refs.turnId) &&
 			!this.firstOutputObservedTurns.has(event.refs.turnId)) {
 			await this.appendActivity("progress", "completed", {
@@ -1755,7 +1899,7 @@ export class ProjectWorkbench {
 			this.publish();
 			return;
 		}
-		if (publicReasoningSummary) {
+		if (event.channel === "reasoning-summary") {
 			if (itemIdentity && this.reasoningSummaryIdentity && itemIdentity !== this.reasoningSummaryIdentity) {
 				this.reasoningSummaryProjection = emptyBoundedTextProjection();
 			}
@@ -1768,7 +1912,7 @@ export class ProjectWorkbench {
 			);
 			this.reasoningSummaryProjection = projection.state;
 			this.reasoningSummaryDraft = projection.text;
-		} else if (reasoning) {
+		} else if (event.channel === "reasoning") {
 			if (itemIdentity && this.reasoningIdentity && itemIdentity !== this.reasoningIdentity) {
 				this.reasoningProjection = emptyBoundedTextProjection();
 			}
@@ -1781,7 +1925,7 @@ export class ProjectWorkbench {
 			);
 			this.reasoningProjection = projection.state;
 			this.reasoningDraft = projection.text;
-		} else if (activityKind(event.method, event.params) === "message") {
+		} else if (event.channel === "assistant") {
 			if (itemIdentity && this.draftIdentity && itemIdentity !== this.draftIdentity) {
 				this.draftProjection = emptyBoundedTextProjection();
 				this.draftEnvelopeClipped = false;
@@ -1805,7 +1949,6 @@ export class ProjectWorkbench {
 			}
 			this.draftProjection = projection.state;
 		} else {
-			const kind = activityKind(event.method, event.params);
 			const continuesSameActivity = this.liveActivity?.method === event.method &&
 				this.liveActivity.nativeRefs.threadId === event.refs.threadId &&
 				this.liveActivity.nativeRefs.itemId === event.refs.itemId &&
@@ -1821,7 +1964,7 @@ export class ProjectWorkbench {
 			this.liveActivityProjection = projection.state;
 			this.liveActivity = {
 				method: event.method,
-				kind: kind === "message" ? "progress" : kind,
+				kind: event.activityKind === "message" ? "progress" : event.activityKind,
 				text: projection.text,
 				nativeRefs: event.refs,
 			};
@@ -1959,7 +2102,7 @@ export class ProjectWorkbench {
 
 	private rememberTerminalTurn(activity: ProjectActivity): void {
 		const method = typeof activity.payload.method === "string" ? activity.payload.method : "";
-		if (turnLifecycle(method) !== "terminal") return;
+		if (nativeTurnLifecycle(method) !== "terminal") return;
 		const { threadId, turnId } = activity.nativeRefs;
 		if (threadId && turnId) this.terminalTurns.add(turnKey(threadId, turnId));
 	}
@@ -2038,10 +2181,19 @@ export class ProjectWorkbench {
 		const executionActivity = executionRun ? projectExecutionActivity(executionRun) : null;
 		const workFlow = this.projectCurrentWorkFlow();
 		const delegation = this.projectDelegation();
-		// Todo is a projection of an observed Native Plan. Ordinary request/tool
-		// activity belongs to ExecutionRun/Tracer and must not manufacture Todo rows.
-		const todo = workFlow.source?.authority === "native-checklist" && executionRun ? this.projectExecutionTodo(executionRun, workFlow) : null;
+		// New requests always use the seven-stage template. Legacy sessions retain
+		// their Native Plan projection; stages are never inferred retroactively.
+		const allRequestRuntime = this.requestRecords();
+		const selectedRequestTurnId = this.activeTurnId ?? this.selectedPlanTurnId;
+		const requestRuntime = this.requestRuntimePolicy.mode !== "off"
+			? allRequestRuntime
+			: allRequestRuntime.filter(request => request.turnId === selectedRequestTurnId);
+		const request = [...requestRuntime].reverse().find(r => r.turnId === (this.activeTurnId ?? this.selectedPlanTurnId)) ?? requestRuntime.at(-1);
+		const todo = request ? projectRequestTodo(request, this.todo?.ownerSessionId ?? this.threadId ?? "pending", this.activities.length)
+			: workFlow.source?.authority === "native-checklist" && executionRun ? this.projectExecutionTodo(executionRun, workFlow) : null;
 		return deepFreeze({
+			requestRuntime,
+			modelCatalog: this.modelCatalog,
 			projectId: this.options.projectId,
 			revision: this.revision,
 			journalSequence: this.activities.at(-1)?.sequence ?? 0,
@@ -2083,7 +2235,7 @@ export class ProjectWorkbench {
 			pendingApproval: this.pendingApproval,
 			chat: this.projectChat(durable.chat),
 			chatQueue: immutable(this.chatQueue),
-			draft: this.draft,
+			draft: this.draft.startsWith(REQUEST_REPORT_PREFIX) ? "" : this.draft,
 			reasoningDraft: this.reasoningDraft,
 			reasoningSummaryDraft: this.reasoningSummaryDraft,
 			liveActivity: immutable(executionActivity && executionRun ? {
@@ -2228,6 +2380,7 @@ export class ProjectWorkbench {
 	}
 
 	private scheduleNativeTodoSync(activity: ProjectActivity): void {
+		if (this.requestRecords().length) { this.scheduleRequestProjections(); return; }
 		const todos = this.options.todos;
 		const sync = todos?.syncNativePlan?.bind(todos);
 		if (!sync) return;
@@ -2247,7 +2400,43 @@ export class ProjectWorkbench {
 		this.enqueueNativeTodoSync(sync, flow);
 	}
 
+	private requestRecords(): readonly RequestRuntimeRecord[] {
+		if (this.requestCache.length !== this.activities.length || this.requestCache.threadId !== this.threadId) {
+			this.requestCache = { length: this.activities.length, threadId: this.threadId, records: projectRequestRuntime(this.activities, this.threadId) };
+		}
+		return this.requestCache.records;
+	}
+
+	private scheduleRequestProjections(): void {
+		const records = this.requestRecords();
+		const selected = [...records].reverse().find(r => r.turnId === this.activeTurnId && r.turnId !== null) ?? records.at(-1);
+		for (const request of records) {
+			const key = JSON.stringify(request);
+			if (this.requestProjectionKeys.get(request.requestId) === key) continue;
+			this.requestProjectionKeys.set(request.requestId, key);
+			if (this.options.requestProjection) this.requestProjectionQueue = this.requestProjectionQueue.then(async () => {
+				try { await this.options.requestProjection!.capture(request); }
+				catch { this.requestProjectionKeys.delete(request.requestId); this.error = "Request Projection 저장 실패: 원본 Activity journal은 유지됩니다."; this.publish(); }
+			});
+			if (request === selected && this.options.todos?.syncRequestRuntime) {
+				this.todoSync = immutable({ state: "syncing", lastConfirmedAt: this.todoSync.lastConfirmedAt, message: null });
+				this.todoSyncQueue = this.todoSyncQueue.catch(() => undefined).then(async () => {
+					try {
+						const document = await this.options.todos!.syncRequestRuntime!(request);
+						this.todo = immutable(document);
+						this.todoSync = immutable({ state: "confirmed", lastConfirmedAt: document.updatedAt, message: null });
+					} catch {
+						this.requestProjectionKeys.delete(request.requestId);
+						this.todoSync = immutable({ state: "blocked", lastConfirmedAt: this.todoSync.lastConfirmedAt, message: "7단계 Todo 저장 실패. 대화는 계속되며 다음 관측에서 재시도합니다." });
+					}
+					this.publish();
+				});
+			}
+		}
+	}
+
 	private scheduleNarratedTodoSync(): void {
+		if (this.requestRecords().length) return;
 		const todos = this.options.todos;
 		const sync = todos?.syncNativePlan?.bind(todos);
 		if (!sync) return;
@@ -2358,226 +2547,6 @@ export class ProjectWorkbench {
 	}
 }
 
-function nativeObservation(event: NativeHarnessEvent): {
-	kind: ProjectActivityKind;
-	phase: ProjectActivityPhase;
-	refs: NativeRefs;
-	payload: Readonly<Record<string, unknown>>;
-} {
-	if (event.type === "approval-requested") {
-		const params = boundedJournalNativeValue(event.approval.params);
-		return {
-			kind: "approval",
-			phase: "started",
-			refs: event.approval.refs,
-			payload: {
-				eventType: event.type,
-				approval: {
-					...event.approval,
-					params: params.value,
-				},
-				...(params.omitted ? { observationTruncated: true } : {}),
-			},
-		};
-	}
-	if (event.type === "approval-resolved") return {
-		kind: "approval",
-		phase: "completed",
-		refs: { ...event.refs, approvalRequestId: event.requestId },
-		payload: { eventType: event.type, requestId: event.requestId },
-	};
-	const rawPayload = { eventType: event.type, method: event.method, params: event.params };
-	if (isReasoningActivityPayload(rawPayload)) {
-		const publicSummary = nativeReasoningSummary(event.params);
-		return {
-			kind: activityKind(event.method, event.params),
-			phase: activityPhase(event.method, event.params),
-			refs: event.refs,
-			payload: {
-				eventType: event.type,
-				method: event.method,
-				classification: "reasoning",
-				redacted: true,
-				...(publicSummary ? { publicSummary } : {}),
-			},
-		};
-	}
-	const kind = activityKind(event.method, event.params);
-	const publicMessage = kind === "message" ? activityText({ params: event.params }) : "";
-	const params = boundedJournalNativeValue(event.params);
-	const payload = {
-		eventType: event.type,
-		method: event.method,
-		params: params.value,
-		...(publicMessage ? { text: sanitizeTerminalTextUnbounded(publicMessage) } : {}),
-		...(params.omitted ? { observationTruncated: true } : {}),
-	};
-	return {
-		kind,
-		phase: activityPhase(event.method, event.params),
-		refs: event.refs,
-		payload,
-	};
-}
-
-function nativeReasoningSummary(params: Readonly<Record<string, unknown>>): string {
-	const item = record(params.item);
-	if (String(item?.type ?? "").toLowerCase() !== "reasoning") return "";
-	const summary = item?.summary;
-	const text = typeof summary === "string"
-		? summary
-		: Array.isArray(summary) && summary.every((part) => typeof part === "string")
-			? summary.join("\n")
-			: "";
-	return text
-		? sanitizeTerminalTextExcerpt(text, REASONING_DRAFT_TAIL_CHARACTER_LIMIT, "head-tail").trim()
-		: "";
-}
-
-function boundedJournalNativeValue(value: unknown): { value: unknown; omitted: boolean } {
-	const state: JournalNativeProjectionState = {
-		remainingCharacters: JOURNAL_NATIVE_TEXT_CHARACTER_LIMIT,
-		remainingItems: JOURNAL_NATIVE_MAX_ITEMS,
-		omitted: false,
-	};
-	return { value: projectJournalNativeValue(value, state, 0), omitted: state.omitted };
-}
-
-function projectJournalNativeValue(value: unknown, state: JournalNativeProjectionState, depth: number): unknown {
-	if (value === null || typeof value === "boolean" || typeof value === "number") return value;
-	if (typeof value === "string") {
-		const available = Math.max(0, state.remainingCharacters);
-		if (available === 0) {
-			state.omitted = true;
-			return JOURNAL_NATIVE_OMISSION;
-		}
-		const projected = sanitizeTerminalTextExcerpt(value, available, "head-tail");
-		state.remainingCharacters = Math.max(0, state.remainingCharacters - projected.length);
-		if (value.length > available) state.omitted = true;
-		return projected;
-	}
-	if (depth >= JOURNAL_NATIVE_MAX_DEPTH || state.remainingItems <= 0) {
-		state.omitted = true;
-		return JOURNAL_NATIVE_OMISSION;
-	}
-	if (Array.isArray(value)) {
-		const projected: unknown[] = [];
-		for (const item of value.slice(0, JOURNAL_NATIVE_MAX_COLLECTION_ITEMS)) {
-			if (state.remainingItems <= 0) break;
-			state.remainingItems -= 1;
-			projected.push(projectJournalNativeValue(item, state, depth + 1));
-		}
-		if (projected.length < value.length) state.omitted = true;
-		return projected;
-	}
-	const source = record(value);
-	if (!source) return sanitizeTerminalTextExcerpt(String(value), Math.max(0, state.remainingCharacters), "head-tail");
-	const entries = Object.entries(source)
-		.sort(([left], [right]) => journalNativeFieldPriority(left) - journalNativeFieldPriority(right));
-	const projected: Record<string, unknown> = {};
-	let accepted = 0;
-	for (const [key, item] of entries) {
-		if (key.length > 200) {
-			state.omitted = true;
-			continue;
-		}
-		if (accepted >= JOURNAL_NATIVE_MAX_COLLECTION_ITEMS || state.remainingItems <= 0) {
-			state.omitted = true;
-			break;
-		}
-		state.remainingItems -= 1;
-		state.remainingCharacters = Math.max(0, state.remainingCharacters - key.length);
-		projected[key] = projectJournalNativeValue(item, state, depth + 1);
-		accepted += 1;
-	}
-	return projected;
-}
-
-function journalNativeFieldPriority(key: string): number {
-	const normalized = key.replace(/[-_]/gu, "").toLowerCase();
-	return ["text", "content", "output", "aggregatedoutput", "stdout", "stderr", "result", "diff", "delta", "message"]
-		.includes(normalized) ? 1 : 0;
-}
-
-function completedTurnNoteScope(
-	activities: readonly ProjectActivity[],
-	turnId: string,
-): { readonly question: string; readonly activities: readonly ProjectActivity[] } | null {
-	let terminalIndex = -1;
-	let startIndex = -1;
-	for (const [index, activity] of activities.entries()) {
-		if (activity.nativeRefs.turnId !== turnId) continue;
-		if (activity.payload.method === "turn/start" || activity.payload.method === "turn/started") startIndex = index;
-		if (activity.payload.method === "turn/completed" && activity.phase === "completed") terminalIndex = index;
-	}
-	if (startIndex < 0 || terminalIndex < startIndex) return null;
-	const questionIndex = questionIndexForTurn(activities, startIndex, activities[startIndex]!.nativeRefs.threadId);
-	if (questionIndex < 0) return null;
-	const threadId = activities[startIndex]!.nativeRefs.threadId;
-	if (!threadId || activities[questionIndex]!.nativeRefs.threadId !== threadId) return null;
-	const question = normalizedQuestion(activityText(activities[questionIndex]!.payload));
-	if (!question) return null;
-	const selected = activities.filter((activity, index) =>
-		index === questionIndex || (index >= startIndex && index <= terminalIndex &&
-			activity.nativeRefs.threadId === threadId && activity.nativeRefs.turnId === turnId));
-	if (!selected.some((activity) => activity.payload.method === "turn/completed" && activity.phase === "completed")) return null;
-	const sequences = selected.map((activity) => activity.sequence);
-	if (sequences.some((sequence, index) => index > 0 && sequence <= sequences[index - 1]!)) return null;
-	return { question, activities: selected };
-}
-
-function questionForTurn(activities: readonly ProjectActivity[], turnId: string, knownStartIndex?: number): string | null {
-	let startIndex = knownStartIndex ?? -1;
-	if (startIndex < 0) {
-		for (const [index, activity] of activities.entries()) {
-			if (activity.nativeRefs.turnId === turnId &&
-				(activity.payload.method === "turn/start" || activity.payload.method === "turn/started")) startIndex = index;
-		}
-	}
-	if (startIndex < 0) return null;
-	const questionIndex = questionIndexForTurn(activities, startIndex, activities[startIndex]!.nativeRefs.threadId);
-	if (questionIndex < 0) return null;
-	const question = normalizedQuestion(activityText(activities[questionIndex]!.payload));
-	return question || null;
-}
-
-function questionIndexForTurn(activities: readonly ProjectActivity[], startIndex: number, threadId?: string): number {
-	if (!threadId) return -1;
-	let questionIndex = -1;
-	for (let index = startIndex - 1; index >= 0; index -= 1) {
-		const activity = activities[index]!;
-		if (activity.kind === "message" && activity.phase === "completed" &&
-			activity.payload.direction === "outbound" && activity.nativeRefs.threadId === threadId) {
-			questionIndex = index;
-			break;
-		}
-	}
-	return questionIndex;
-}
-
-function latestCompletedTurnNoteScope(
-	activities: readonly ProjectActivity[],
-): { readonly question: string; readonly activities: readonly ProjectActivity[] } | null {
-	for (let index = activities.length - 1; index >= 0; index -= 1) {
-		const activity = activities[index]!;
-		if (activity.payload.method !== "turn/completed" || activity.phase !== "completed" || !activity.nativeRefs.turnId) continue;
-		const scope = completedTurnNoteScope(activities, activity.nativeRefs.turnId);
-		if (scope) return scope;
-	}
-	return null;
-}
-
-function fullCompletedTurnScope(
-	selected: readonly ProjectActivity[],
-): { readonly question: string; readonly activities: readonly ProjectActivity[] } | null {
-	const turnId = selected.at(-1)?.nativeRefs.turnId;
-	if (!turnId) return null;
-	const scope = completedTurnNoteScope([...selected].sort((left, right) => left.sequence - right.sequence), turnId);
-	if (!scope || scope.activities.length !== selected.length ||
-		scope.activities.some((activity, index) => activity.id !== selected[index]?.id)) return null;
-	return scope;
-}
-
 function turnTNoteInstruction(question: string): string {
 	return [
 		"완료된 질문 하나를 T-note로 정리하세요.",
@@ -2590,11 +2559,6 @@ function turnTNoteInstruction(question: string): string {
 		"왜: 이 답에 도달하려고 어떤 확인이나 작업을 왜 거쳤는지 설명",
 		"결과: 실제로 나온 답, 변경, 검증 또는 남은 문제",
 	].join("\n");
-}
-
-function normalizedQuestion(text: string): string {
-	const excerpt = sanitizeTerminalTextExcerpt(text, 800, "head-tail").trim().replace(/\s+/gu, " ");
-	return sanitizeTNoteText(excerpt, 800);
 }
 
 function projectSessionGoal(activities: readonly ProjectActivity[]): WorkbenchSessionGoal | null {
@@ -2655,62 +2619,6 @@ function canonicalTNoteDraft(draft: TNoteDraft, sessionId: string): CanonicalDoc
 
 function todoResultBody(document: TodoDocument): string {
 	return stableJson({ revision: document.revision, title: document.title, items: document.items });
-}
-
-function activityKind(method: string, params: Readonly<Record<string, unknown>>): ProjectActivityKind {
-	const normalized = method.toLowerCase();
-	const itemType = String(record(params.item)?.type ?? "").toLowerCase();
-	const itemScoped = normalized.startsWith("item/");
-	if (itemType.includes("message") || itemScoped && normalized.includes("message")) return "message";
-	if (itemType.includes("command") || itemType.includes("tool") || itemType.includes("mcp") ||
-		itemScoped && (normalized.includes("command") || normalized.includes("tool") || normalized.includes("mcp"))) return "tool";
-	if (itemType.includes("file") || itemScoped && normalized.includes("file")) return "file-change";
-	if (normalized.includes("approval")) return "approval";
-	return "progress";
-}
-
-function activityPhase(method: string, params?: Readonly<Record<string, unknown>>): ProjectActivityPhase {
-	const normalized = method.toLowerCase();
-	if (normalized === "turn/completed") {
-		const turn = record(params?.turn);
-		const status = typeof turn?.status === "string" ? turn.status : record(turn?.status)?.type;
-		const nativeStatus = typeof status === "string" ? status.replace(/[-_]/gu, "").toLowerCase() : "";
-		if (nativeStatus === "failed" || nativeStatus === "errored" || nativeStatus === "error") return "failed";
-		if (nativeStatus === "cancelled" || nativeStatus === "canceled" || nativeStatus === "interrupted") return "cancelled";
-	}
-	if (normalized === "item/completed") {
-		const item = record(params?.item);
-		const status = String(item?.status ?? "").toLowerCase();
-		if (["failed", "error", "errored"].includes(status)
-			|| item?.type === "commandExecution" && typeof item.exitCode === "number" && item.exitCode !== 0) return "failed";
-		if (["cancelled", "canceled", "interrupted"].includes(status)) return "cancelled";
-	}
-	if (normalized.includes("failed") || normalized.includes("error")) return "failed";
-	if (normalized.includes("cancelled") || normalized.includes("canceled") || normalized.includes("interrupted")) return "cancelled";
-	if (normalized.includes("completed") || normalized.includes("finished")) return "completed";
-	if (normalized.includes("started")) return "started";
-	return "updated";
-}
-
-function isDeltaNotification(method: string): boolean {
-	return method.toLowerCase().includes("delta");
-}
-
-function turnLifecycle(method: string): "started" | "terminal" | null {
-	const normalized = method.toLowerCase();
-	if (normalized === "turn/start" || normalized === "turn/started") return "started";
-	if (normalized === "turn/completed" || normalized === "turn/interrupted" || normalized === "turn/failed" ||
-		normalized === "turn/cancelled" || normalized === "turn/canceled") return "terminal";
-	return null;
-}
-
-function isAssistantMessageObservation(
-	event: Extract<NativeHarnessEvent, { type: "notification" }>,
-	observation: { readonly kind: ProjectActivityKind },
-): boolean {
-	if (observation.kind !== "message") return false;
-	const itemType = String(record(event.params.item)?.type ?? "").replace(/[-_]/gu, "").toLowerCase();
-	return itemType === "agentmessage" || event.method.toLowerCase().startsWith("item/agentmessage/");
 }
 
 function isAssistantMessageActivity(activity: ProjectActivity): boolean {
@@ -2813,7 +2721,7 @@ function projectChat(activities: readonly ProjectActivity[], rootThreadId: strin
 			...(activity.payload.finalObservation === "missing" ? { partial: activity.payload.partial === true } : {}),
 		});
 	}
-	return [...messages.values()];
+	return [...messages.values()].filter(message => message.role !== "assistant" || !message.content.startsWith(REQUEST_REPORT_PREFIX));
 }
 
 function chatMessageRole(payload: Readonly<Record<string, unknown>>): WorkbenchChatMessage["role"] | null {

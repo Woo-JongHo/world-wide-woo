@@ -3,6 +3,13 @@ import { redactForExternalReview } from "../review/redaction.js";
 import { sanitizeTerminalTextExcerpt } from "../execution/terminal.js";
 import { classifyWorkActivity } from "./activity-classification.js";
 import type { ExecutionRunState } from "../execution/execution-run-contract.js";
+import {
+	readNativePlanRevision,
+	type NativePlanRevisionValidationCode,
+	type WorkStepStatus,
+} from "./native-plan-revision.js";
+
+export type { WorkStepStatus } from "./native-plan-revision.js";
 
 const MAX_PUBLIC_TEXT = 1_200;
 const FALLBACK_NARRATION: WorkStepNarration = {
@@ -13,12 +20,6 @@ const FALLBACK_NARRATION: WorkStepNarration = {
 };
 /** Every trace relation is either backed by a native identifier or explicitly projected. */
 export type TraceAttribution = "observed" | "inferred";
-export type WorkStepStatus =
-	| "pending"
-	| "running"
-	| "completed"
-	| "failed"
-	| "cancelled";
 export type Sha256Hex = string;
 export interface WorkStepNarration {
 	readonly what: string;
@@ -76,8 +77,7 @@ export type JournalIntegrityCode =
 	| "duplicate_revision_key";
 export type RevisionValidationCode =
 	| "source_turn_mismatch"
-	| "non_string_entry"
-	| "blank_entry";
+	| NativePlanRevisionValidationCode;
 export type PlanRejection = {
 	readonly kind: "journal_integrity";
 	readonly code: JournalIntegrityCode;
@@ -219,12 +219,6 @@ function revision(
 		sourceDigest: activity.sourceDigest,
 	};
 }
-function token(value: string): string {
-	return value.normalize("NFKC").replace(/\r\n?/gu, "\n").trim().replace(
-		/\s+/gu,
-		" ",
-	);
-}
 interface Entry {
 	raw: string;
 	title: string;
@@ -339,7 +333,8 @@ export function projectWorkFlow(
 		}
 	};
 	for (const activity of interval) {
-		if (isPlanRevision(activity)) {
+		const planRevision = readNativePlanRevision(activity);
+		if (planRevision.kind !== "not-plan-revision") {
 			if (
 				activity.nativeRefs.threadId !== input.expectedThreadKey ||
 				activity.nativeRefs.turnId !== input.selectedTurnId
@@ -352,17 +347,22 @@ export function projectWorkFlow(
 				});
 				continue;
 			}
-			const parsed = parsePlan(activity, input.hash);
-			if (parsed.error) {
+			if (planRevision.kind === "invalid-plan-revision") {
 				rejections.push({
 					kind: "revision",
-					code: parsed.error,
+					code: planRevision.code,
 					activityId: activity.id,
 					sequence: activity.sequence,
 				});
 				invalid = true;
 				continue;
 			}
+			const entries: Entry[] = planRevision.entries.map((entry) => ({
+				raw: entry.identityText,
+				title: publicText(entry.sourceTitle),
+				status: entry.status,
+				tokenDigest: digest(input.hash, entry.identityText),
+			}));
 			invalid = false;
 			const firstRevision = currentRevision === null;
 			ordinal++;
@@ -374,7 +374,7 @@ export function projectWorkFlow(
 			}
 			current = reconcile(
 				current,
-				parsed.entries!,
+				entries,
 				nextRevision,
 				ordinal,
 				threadDigest,
@@ -570,10 +570,7 @@ function validateJournal(
 		else if (activity.sequence !== expected) code = "sequence_gap";
 		else if (!/^sha256:[0-9a-f]{64}$/u.test(activity.sourceDigest)) {
 			code = "invalid_source_digest";
-		} else if (
-			isPlanRevision(activity) &&
-			isParseablePlanEnvelope(activity)
-		) {
+		} else if (readNativePlanRevision(activity).kind === "valid-plan-revision") {
 			const key = revision(activity, threadDigest, hash).sourceRevisionKeyDigest;
 			if (revisionKeys.has(key)) code = "duplicate_revision_key";
 			else revisionKeys.add(key);
@@ -812,174 +809,6 @@ function technicalNarration(value: string): boolean {
 			.test(value) ||
 		/(?:^|\s)--[A-Za-z0-9_-]+/u.test(value);
 }
-function isParseablePlanEnvelope(activity: ProjectActivity): boolean {
-	return !planValidationError(activity);
-}
-function isPlanRevision(activity: ProjectActivity): boolean {
-	if (activity.payload.method === "turn/plan/updated" || activity.payload.method === "turn/plan/public-fallback") return true;
-	if (activity.payload.method !== "item/completed") return false;
-	const item = record(record(activity.payload.params)?.item);
-	return typeof item?.type === "string" && item.type.toLowerCase() === "plan";
-}
-interface RawPlanEntry {
-	readonly step: string;
-	readonly status: unknown;
-}
-function rawPlanEntries(
-	activity: ProjectActivity,
-): { entries?: RawPlanEntry[]; error?: RevisionValidationCode } {
-	const params = record(activity.payload.params);
-	if (activity.payload.method === "turn/plan/updated" || activity.payload.method === "turn/plan/public-fallback") {
-		if (!params || !Array.isArray(params.plan) || params.plan.length > 256) {
-			return { error: "non_string_entry" };
-		}
-		const values = params.plan.map(record);
-		if (values.some((entry) => typeof entry?.step !== "string")) {
-			return { error: "non_string_entry" };
-		}
-		return {
-			entries: values.map((entry) => ({ step: entry!.step as string, status: entry!.status })),
-		};
-	}
-	const item = record(params?.item);
-	if (!item || typeof item.text !== "string") return { error: "non_string_entry" };
-	const numberedHeadings: RawPlanEntry[] = [];
-	let headingNumber = 0;
-	for (const line of item.text.replace(/\r\n?/gu, "\n").split("\n")) {
-		const heading = /^\s*#{2,6}\s+(\d+)[.)]\s+(.+?)\s*$/u.exec(line);
-		if (!heading) continue;
-		const number = Number(heading[1]);
-		if (number !== headingNumber + 1) return { error: "non_string_entry" };
-		headingNumber = number;
-		numberedHeadings.push({
-			step: markdownPlanTitle(heading[2]!),
-			status: numberedHeadings.length === 0 ? "inProgress" : "pending",
-		});
-	}
-	if (numberedHeadings.length > 0) return { entries: numberedHeadings };
-	const plainNumbered = nativePlainNumberedPlanBlock(item.text);
-	if (plainNumbered) return { entries: plainNumbered };
-	const entries: RawPlanEntry[] = [];
-	let numberedCount = 0;
-	let precedingStep: "numbered" | "bullet" | undefined;
-	for (const line of item.text.replace(/\r\n?/gu, "\n").split("\n")) {
-		if (!line.trim() || /^\s*#{1,6}\s+/u.test(line)) {
-			precedingStep = undefined;
-			continue;
-		}
-		const numbered = /^(\d+)\.\s+(.+?)\s*$/u.exec(line);
-		const bullet = /^[-*+]\s+(.+?)\s*$/u.exec(line);
-		const indentedBullet = /^([ ]+)[-*+]\s+.+?\s*$/u.exec(line);
-		if (indentedBullet) {
-			if (precedingStep !== "numbered") return { error: "non_string_entry" };
-			continue;
-		}
-		if (!numbered && !bullet) return { error: "non_string_entry" };
-		if (numbered) {
-			const number = Number(numbered[1]);
-			if (number !== numberedCount + 1) return { error: "non_string_entry" };
-			numberedCount = number;
-		}
-		const value = numbered?.[2] ?? bullet![1]!;
-		const parsed = markdownPlanEntry(value);
-		if (!parsed) return { error: "non_string_entry" };
-		const status = markdownPlanStatus(parsed.status);
-		if (!status) return { error: "non_string_entry" };
-		if (entries.length >= 256) return { error: "non_string_entry" };
-		entries.push({ step: parsed.step, status });
-		precedingStep = numbered ? "numbered" : "bullet";
-	}
-	return entries.length ? { entries } : { error: "blank_entry" };
-}
-
-function nativePlainNumberedPlanBlock(text: string): RawPlanEntry[] | undefined {
-	const entries: RawPlanEntry[] = [];
-	let started = false;
-	for (const line of text.replace(/\r\n?/gu, "\n").split("\n")) {
-		if (/^\s*#{1,6}\s+.+?\s*$/u.test(line)) {
-			if (started) break;
-			continue;
-		}
-		if (!line.trim()) continue;
-		if (/^[ ]+[-*+]\s+.+?\s*$/u.test(line)) {
-			if (!started) return undefined;
-			continue;
-		}
-		const numbered = /^(\d+)\.\s+(.+?)\s*$/u.exec(line);
-		if (!numbered) return undefined;
-		const number = Number(numbered[1]);
-		if (number !== entries.length + 1 || number > 12) return undefined;
-		const value = numbered[2]!;
-		const explicit = markdownPlanEntry(value);
-		if (explicit && markdownPlanStatus(explicit.status)) return undefined;
-		entries.push({
-			step: markdownPlanTitle(value),
-			status: entries.length === 0 ? "inProgress" : "pending",
-		});
-		started = true;
-	}
-	return entries.length >= 2 ? entries : undefined;
-}
-
-function markdownPlanEntry(value: string): { step: string; status: string } | undefined {
-	const outerBold = /^(?:\*\*|__)(.*)(?:\*\*|__)$/u.exec(value.trim());
-	const candidate = outerBold?.[1]?.trim() ?? value;
-	const prefix = /^\[([^\]]+)\]\s+(.+)$/u.exec(candidate);
-	if (prefix) return { step: markdownPlanTitle(prefix[2]!), status: prefix[1]! };
-	const suffix = /^(.+?)\s+\[([^\]]+)\]$/u.exec(candidate);
-	if (suffix) return { step: markdownPlanTitle(suffix[1]!), status: suffix[2]! };
-	const separated = /^(.+?)\s+[—-]\s+(.+)$/u.exec(candidate);
-	if (separated) return { step: markdownPlanTitle(separated[1]!), status: separated[2]! };
-	return undefined;
-}
-function markdownPlanTitle(value: string): string {
-	const bold = /^\*\*(.+)\*\*$/u.exec(value.trim());
-	return (bold?.[1] ?? value).trim();
-}
-function planValidationError(
-	activity: ProjectActivity,
-): RevisionValidationCode | undefined {
-	const parsed = rawPlanEntries(activity);
-	if (parsed.error) return parsed.error;
-	for (const value of parsed.entries!) {
-		const step = value.step;
-		if ([...step].length > 4_096 || !token(step)) return "blank_entry";
-	}
-	return undefined;
-}
-function parsePlan(
-	activity: ProjectActivity,
-	hash: DplanHash,
-): { entries?: Entry[]; error?: RevisionValidationCode } {
-	const error = planValidationError(activity);
-	if (error) return { error };
-	const values = rawPlanEntries(activity).entries!;
-	const entries = values.map((value) => {
-		const step = value.step;
-		const raw = token(step);
-		return {
-			raw,
-			title: publicText(step),
-			status: planStatus(value.status),
-			tokenDigest: digest(hash, raw),
-		};
-	});
-	return { entries };
-}
-function markdownPlanStatus(value: string | undefined): WorkStepStatus | undefined {
-	const normalized = value?.normalize("NFKC").trim().toLowerCase().replace(/[ _-]+/gu, " ");
-	return normalized === "pending" || normalized === "대기"
-		? "pending"
-		: normalized === "in progress" || normalized === "running" || normalized === "진행 중"
-		? "running"
-		: normalized === "completed" || normalized === "complete" || normalized === "완료"
-		? "completed"
-		: normalized === "failed" || normalized === "실패"
-		? "failed"
-		: normalized === "cancelled" || normalized === "canceled" || normalized === "취소" || normalized === "취소됨"
-		? "cancelled"
-		: undefined;
-}
 function count(values: string[]): Map<string, number> {
 	const counts = new Map<string, number>();
 	for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1);
@@ -1015,17 +844,6 @@ function isEditLike(left: string, right: string): boolean {
 function isTurnStart(activity: ProjectActivity): boolean {
 	return activity.payload.method === "turn/start" ||
 		activity.payload.method === "turn/started";
-}
-function planStatus(value: unknown): WorkStepStatus {
-	return value === "completed"
-		? "completed"
-		: value === "inProgress" || value === "inprogress" || value === "running"
-		? "running"
-		: value === "failed"
-		? "failed"
-		: value === "cancelled"
-		? "cancelled"
-		: "pending";
 }
 function record(value: unknown): Readonly<Record<string, unknown>> | undefined {
 	return value && typeof value === "object" && !Array.isArray(value)

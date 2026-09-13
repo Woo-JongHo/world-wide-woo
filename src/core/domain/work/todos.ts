@@ -64,6 +64,8 @@ export interface TodoItem {
 }
 
 export interface TodoDocument {
+	/** A seven-stage Runtime projection; absent for historical/native-plan boards. */
+	readonly requestId?: string;
 	readonly version: 1;
 	readonly revision: number;
 	/** Native thread-derived owner and provenance for this session-scoped Todo. */
@@ -128,6 +130,8 @@ export function validateTodoDocument(value: unknown): TodoDocument {
 	if (typeof value.title !== "string") fail("invalid title");
 	if (typeof value.updatedAt !== "string" || !isIsoDate(value.updatedAt)) fail("invalid updatedAt");
 	if (!Array.isArray(value.items) || value.items.length > 12) fail("invalid item count");
+	const runtime = value.requestId !== undefined;
+	if (runtime && (!isOpaqueReference(value.requestId) || value.items.map((item: { id?: unknown }) => item?.id).join(",") !== "understand,decompose,ground,decide,execute,verify,deliver")) fail("invalid request runtime todo");
 
 	const ids = new Set<string>();
 	let active = 0;
@@ -148,7 +152,7 @@ export function validateTodoDocument(value: unknown): TodoDocument {
 			if (validated.status === "in_progress") detailActive += 1;
 			return Object.freeze({ id: detail.id, ...validated });
 		});
-		if (detailActive > 1) fail("at most one todo detail may be in progress");
+		if (detailActive > 1 && !runtime) fail("at most one todo detail may be in progress");
 		if (details.some((detail) => detail.status === "in_progress") && status !== "in_progress") fail("active todo detail requires an in-progress parent");
 		if (status === "completed" && details.some((detail) => detail.status !== "completed")) fail("completed todo item requires completed details");
 		const source = raw.source === undefined ? undefined : validateTodoItemSource(raw.source);
@@ -184,6 +188,7 @@ export function validateTodoDocument(value: unknown): TodoDocument {
 		title: sanitizeTitle(value.title),
 		items: Object.freeze(items),
 		updatedAt: value.updatedAt,
+		...(runtime ? { requestId: value.requestId as string } : {}),
 		...(source ? { source } : {}),
 	});
 }
@@ -204,7 +209,7 @@ export function parseTodoMarkdown(markdown: string): TodoDocument {
 	if (lines.at(-1) === "") lines.pop();
 	if (lines.length < 2 || !lines[0] || !lines[1]) fail("invalid todo markdown layout");
 	const header = parseComment(lines[0]);
-	if (!isRecord(header) || !hasExactKeys(header, ["version", "revision", "ownerSessionId", "storyId", "updatedAt"], ["source"]) || header.version !== 1) fail("invalid todo markdown header");
+	if (!isRecord(header) || !hasExactKeys(header, ["version", "revision", "ownerSessionId", "storyId", "updatedAt"], ["source", "requestId"]) || header.version !== 1) fail("invalid todo markdown header");
 	if (!lines[1].startsWith("# ") || lines[1].slice(2).length === 0) fail("invalid todo heading");
 	const items: Array<Omit<TodoItem, "details"> & { details: TodoDetail[] }> = [];
 	for (const line of lines.slice(2)) {
@@ -324,6 +329,7 @@ function renderHeader(todo: TodoDocument): string {
 		ownerSessionId: todo.ownerSessionId,
 		storyId: todo.storyId,
 		updatedAt: todo.updatedAt,
+		...(todo.requestId ? { requestId: todo.requestId } : {}),
 		...(todo.source ? { source: todo.source } : {}),
 	});
 }

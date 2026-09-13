@@ -1,0 +1,222 @@
+{
+  "schemaVersion": 1,
+  "test": "live-workbench-file-acceptance",
+  "sourceJournal": "/private/var/folders/mg/06v1fkqx341gsjxv_l0l3kcw0000gp/T/www-workbench-canary-bZDiB5/native-591ab68c88f2db622bee23c2ab71d363869eb5f635a9df29.jsonl",
+  "sourceDigest": "sha256:1d6dc74e7d3257169b45f913d8c98d9236ccdeefc99086000d99394cb521b6df",
+  "requestId": "009fa711-8679-4acf-8a99-3d4a90e1fb21",
+  "status": "completed",
+  "stages": [
+    {
+      "id": "UNDERSTAND",
+      "status": "completed",
+      "skipReason": null
+    },
+    {
+      "id": "DECOMPOSE",
+      "status": "skipped",
+      "skipReason": "단일 파일의 순차 읽기·교체·검증으로 별도 분해가 필요하지 않다."
+    },
+    {
+      "id": "GROUND",
+      "status": "completed",
+      "skipReason": null
+    },
+    {
+      "id": "DECIDE",
+      "status": "completed",
+      "skipReason": null
+    },
+    {
+      "id": "EXECUTE",
+      "status": "completed",
+      "skipReason": null
+    },
+    {
+      "id": "VERIFY",
+      "status": "completed",
+      "skipReason": null
+    },
+    {
+      "id": "DELIVER",
+      "status": "completed",
+      "skipReason": null
+    }
+  ],
+  "receipts": [
+    {
+      "schemaVersion": 1,
+      "id": "748b246d-362b-4fc3-a77f-b2e5ca0783e3",
+      "projectId": "native-591ab68c88f2db622bee23c2ab71d363869eb5f635a9df29",
+      "sequence": 75,
+      "recordedAt": "2026-09-12T03:17:32.042Z",
+      "kind": "tool",
+      "phase": "completed",
+      "provider": "openai-codex",
+      "nativeRefs": {
+        "threadId": "01a0939e-3c4f-7db2-8f08-a9ab49315787",
+        "turnId": "01a0939e-3d5f-7023-b4cd-96e8a16b7d90",
+        "itemId": "exec-323fa3c2-1709-4759-895a-79f0e1d7e37a"
+      },
+      "sourceDigest": "sha256:585de648ae2d1716252c88524e8e85bc46c8c719130f1ae3574de1c5c6376774",
+      "payload": {
+        "method": "runtime/action-completed",
+        "authority": "runtime",
+        "requestId": "009fa711-8679-4acf-8a99-3d4a90e1fb21",
+        "operationId": "ground-read",
+        "stage": "GROUND",
+        "capability": "files.read-pinned",
+        "effect": "read",
+        "intentDigest": "sha256:53256558948eee3d030d46c1cd0ba1045747c8fa0318e33f9d14a44a21eaea49",
+        "preparedActivityId": "0aa73b73-a360-435e-afa4-a29bf798643d",
+        "summary": "Read /private/var/folders/mg/06v1fkqx341gsjxv_l0l3kcw0000gp/T/www-workbench-canary-bZDiB5/fixture.txt",
+        "source": {
+          "path": "/private/var/folders/mg/06v1fkqx341gsjxv_l0l3kcw0000gp/T/www-workbench-canary-bZDiB5/fixture.txt",
+          "digest": "sha256:6db7d803e74f1ffa7d8f5adc0bf95b3e15bf4c8373fffadf546227cc6c6742cb",
+          "text": "before"
+        },
+        "params": {
+          "item": {
+            "exitCode": 0
+          }
+        }
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "e729789a-cf10-4092-a1da-aa9794158137",
+      "projectId": "native-591ab68c88f2db622bee23c2ab71d363869eb5f635a9df29",
+      "sequence": 103,
+      "recordedAt": "2026-09-12T03:18:02.126Z",
+      "kind": "approval",
+      "phase": "started",
+      "provider": "openai-codex",
+      "nativeRefs": {
+        "threadId": "01a0939e-3c4f-7db2-8f08-a9ab49315787",
+        "turnId": "01a0939e-3d5f-7023-b4cd-96e8a16b7d90",
+        "itemId": "exec-8afbfa79-715c-4f84-8b9e-a5fbe4f0c318"
+      },
+      "sourceDigest": "sha256:d015016c7c34e2feacf042b49bb7b44838ae1be2881213f48f5b2f148927d4eb",
+      "payload": {
+        "method": "runtime/approval-requested",
+        "authority": "runtime",
+        "requestId": "009fa711-8679-4acf-8a99-3d4a90e1fb21",
+        "approval": {
+          "requestId": "runtime-exec-8afbfa79-715c-4f84-8b9e-a5fbe4f0c318-99"
+        },
+        "intentDigest": "sha256:ba8d15a938d721b90d98d908c8e16aff343f4b8b9375063dfaf9af1441dc48e0",
+        "stage": "EXECUTE",
+        "attempt": 1,
+        "expiresAt": 1789183382125,
+        "summary": "파일 교체 · /private/var/folders/mg/06v1fkqx341gsjxv_l0l3kcw0000gp/T/www-workbench-canary-bZDiB5/fixture.txt"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "9a61c027-fe11-48b1-b1ce-a8a66e7f921a",
+      "projectId": "native-591ab68c88f2db622bee23c2ab71d363869eb5f635a9df29",
+      "sequence": 104,
+      "recordedAt": "2026-09-12T03:18:02.134Z",
+      "kind": "approval",
+      "phase": "completed",
+      "provider": "openai-codex",
+      "nativeRefs": {
+        "threadId": "01a0939e-3c4f-7db2-8f08-a9ab49315787",
+        "turnId": "01a0939e-3d5f-7023-b4cd-96e8a16b7d90",
+        "itemId": "exec-8afbfa79-715c-4f84-8b9e-a5fbe4f0c318"
+      },
+      "sourceDigest": "sha256:efdd8e60a4d04c42ed0d9d6a229447677c9d57331e5d6e45faed8cf7aca13334",
+      "payload": {
+        "method": "runtime/approval-resolved",
+        "authority": "runtime",
+        "requestId": "runtime-exec-8afbfa79-715c-4f84-8b9e-a5fbe4f0c318-99",
+        "runtimeRequestId": "009fa711-8679-4acf-8a99-3d4a90e1fb21",
+        "intentDigest": "sha256:ba8d15a938d721b90d98d908c8e16aff343f4b8b9375063dfaf9af1441dc48e0",
+        "decision": "accept",
+        "requestedActivityId": "e729789a-cf10-4092-a1da-aa9794158137"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "07cefbc6-a299-4033-b6d3-c4f18c987036",
+      "projectId": "native-591ab68c88f2db622bee23c2ab71d363869eb5f635a9df29",
+      "sequence": 106,
+      "recordedAt": "2026-09-12T03:18:02.145Z",
+      "kind": "file-change",
+      "phase": "completed",
+      "provider": "openai-codex",
+      "nativeRefs": {
+        "threadId": "01a0939e-3c4f-7db2-8f08-a9ab49315787",
+        "turnId": "01a0939e-3d5f-7023-b4cd-96e8a16b7d90",
+        "itemId": "exec-8afbfa79-715c-4f84-8b9e-a5fbe4f0c318"
+      },
+      "sourceDigest": "sha256:edc8962866654d614d5f88b37304c69d1847c6b5319aef883d2588a9f0818b78",
+      "payload": {
+        "method": "runtime/action-completed",
+        "authority": "runtime",
+        "requestId": "009fa711-8679-4acf-8a99-3d4a90e1fb21",
+        "operationId": "replace-file",
+        "stage": "EXECUTE",
+        "capability": "files.replace-approved",
+        "effect": "workspace-change",
+        "intentDigest": "sha256:ba8d15a938d721b90d98d908c8e16aff343f4b8b9375063dfaf9af1441dc48e0",
+        "preparedActivityId": "663e2382-16a3-4fab-b2a7-6f1ebd245532",
+        "summary": "Replace /private/var/folders/mg/06v1fkqx341gsjxv_l0l3kcw0000gp/T/www-workbench-canary-bZDiB5/fixture.txt",
+        "source": {
+          "path": "/private/var/folders/mg/06v1fkqx341gsjxv_l0l3kcw0000gp/T/www-workbench-canary-bZDiB5/fixture.txt",
+          "beforeDigest": "sha256:6db7d803e74f1ffa7d8f5adc0bf95b3e15bf4c8373fffadf546227cc6c6742cb",
+          "afterDigest": "sha256:f39592393ef0859cb196a52693d2cea00fb2df784b3c04ae54aa7cadb8e562f8",
+          "readBack": true
+        },
+        "params": {
+          "item": {
+            "exitCode": 0
+          }
+        }
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "ea71c1ad-b6f1-4df9-840c-09655f95f963",
+      "projectId": "native-591ab68c88f2db622bee23c2ab71d363869eb5f635a9df29",
+      "sequence": 119,
+      "recordedAt": "2026-09-12T03:18:15.282Z",
+      "kind": "tool",
+      "phase": "completed",
+      "provider": "openai-codex",
+      "nativeRefs": {
+        "threadId": "01a0939e-3c4f-7db2-8f08-a9ab49315787",
+        "turnId": "01a0939e-3d5f-7023-b4cd-96e8a16b7d90",
+        "itemId": "exec-20fbf17c-e4d8-479d-be09-3b5deab90a1c"
+      },
+      "sourceDigest": "sha256:bb872866fcf8d9e68f7b4beb3ad12fe31de943d1891f6b05d13c7b3dd7ae076f",
+      "payload": {
+        "method": "runtime/action-completed",
+        "authority": "runtime",
+        "requestId": "009fa711-8679-4acf-8a99-3d4a90e1fb21",
+        "operationId": "verify-fresh-read",
+        "stage": "VERIFY",
+        "capability": "files.read-pinned",
+        "effect": "read",
+        "intentDigest": "sha256:d63f1a216afa99a7c1465f9b3988575d44ab51e3158a867d5c87b24012f8de60",
+        "preparedActivityId": "b60a89f3-3925-4090-a303-2952a7f3cb3d",
+        "summary": "Read /private/var/folders/mg/06v1fkqx341gsjxv_l0l3kcw0000gp/T/www-workbench-canary-bZDiB5/fixture.txt",
+        "source": {
+          "path": "/private/var/folders/mg/06v1fkqx341gsjxv_l0l3kcw0000gp/T/www-workbench-canary-bZDiB5/fixture.txt",
+          "digest": "sha256:f39592393ef0859cb196a52693d2cea00fb2df784b3c04ae54aa7cadb8e562f8",
+          "text": "after"
+        },
+        "params": {
+          "item": {
+            "exitCode": 0
+          }
+        }
+      }
+    }
+  ],
+  "strictIsolationProven": false,
+  "independentReview": {
+    "status": "blocked",
+    "model": "opus",
+    "reason": "HTTP 429 weekly usage limit"
+  }
+}

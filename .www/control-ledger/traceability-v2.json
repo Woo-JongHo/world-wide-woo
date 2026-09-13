@@ -16,7 +16,7 @@
       ],
       "locations": [
         {
-          "path": "src/adapters/inbound/tui/chat/workbench-views.ts",
+          "path": "src/adapters/inbound/tui/features/chat/workbench-views.ts",
           "symbol": "WorkbenchChatView"
         }
       ]
@@ -46,7 +46,7 @@
       ],
       "locations": [
         {
-          "path": "src/adapters/inbound/tui/dashboard/dashboard-layout.ts",
+          "path": "src/adapters/inbound/tui/features/chat/chat-scroll.view.ts",
           "symbol": "ChatScrollView"
         }
       ]
@@ -141,7 +141,7 @@
       "aliases": [],
       "locations": [
         {
-          "path": "src/adapters/inbound/tui/dashboard/workbench-bottom-hud.ts",
+          "path": "src/adapters/inbound/tui/features/usage/workbench-bottom-hud.ts",
           "symbol": "WorkbenchBottomHudView"
         }
       ]
@@ -180,7 +180,7 @@
       "aliases": [],
       "locations": [
         {
-          "path": "src/adapters/inbound/tui/dashboard/dashboard-layout.ts",
+          "path": "src/adapters/inbound/tui/foundation/layout/dashboard-layout.ts",
           "symbol": "createDashboardLayout"
         }
       ]

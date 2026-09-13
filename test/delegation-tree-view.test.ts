@@ -3,8 +3,8 @@ import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
 import type { ProjectActivity, ProjectActivityPhase } from "../src/core/domain/execution/project-activity";
 import type { WorkbenchSnapshot } from "../src/core/domain/work/workbench";
 import { projectNativeDelegation, projectWorkFlow, type DplanHash } from "../src/core/domain/work";
-import { projectWorkbenchDelegationSections, renderDelegationDetail, renderDelegationSummary } from "../src/adapters/inbound/tui/dashboard/delegation-tree-view";
-import { WorkbenchChatView } from "../src/adapters/inbound/tui/chat/workbench-views";
+import { projectWorkbenchDelegationSections, renderDelegationDetail, renderDelegationSummary } from "../src/adapters/inbound/tui/features/chat/delegation-tree-view";
+import { WorkbenchChatView } from "../src/adapters/inbound/tui/features/chat/workbench-views";
 
 const ROOT_THREAD = "thread-root";
 const TURN = "turn-delegation";

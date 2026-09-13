@@ -1,4 +1,5 @@
 import { executeDevelopmentShellCommand, type DevelopmentService } from "../../../../core/application/development/development-service";
+/** @linear WOO-674 WOO-727 */
 import {
 	CombinedAutocompleteProvider,
 	Editor,
@@ -15,39 +16,79 @@ import {
 	matchesKey,
 	type Component,
 	type OverlayHandle,
+	type Terminal,
 } from "@earendil-works/pi-tui";
 import type { AuthController, ComposerDraftController, ObservabilityHistoryReader, UsageMonitor, WorkbenchGitTelemetryReader } from "../../../../core/ports";
 import type { ProjectWorkbench } from "../../../../core/application/orchestration/project-workbench";
 import { EMPTY_DEVELOPMENT_MAP, type DevelopmentMapSnapshot } from "../../../../core/domain/development/development-map";
 import { projectObservabilityDashboard, summarizeObservabilityStreams, type ObservabilityDashboard } from "../../../../core/domain/observability/observability-dashboard";
 import { projectRuntimeMonitor, type RuntimeMonitorProjection } from "../../../../core/domain/observability/runtime-monitor";
-import { normalizeSettings, PROVIDERS, type Provider, type WwwSettings } from "../../../../core/domain/execution/model-settings";
+import { nativeModelEfforts, type Provider, type WwwSettings } from "../../../../core/domain/execution/model-settings";
 import { projectSessionStats } from "../../../../core/domain/observability/session-stats";
 import { sanitizeTerminalTextUnbounded } from "../../../../core/domain/execution/terminal";
-import type { WorkbenchCommandReceipt, WorkbenchSnapshot } from "../../../../core/domain/work/workbench";
-import { createDashboardLayout } from "../dashboard/dashboard-layout";
-import { StatusLine, todoPanelTimestamp, WorkspaceTodoView } from "../dashboard/shared-dashboard-views";
-import { WorkbenchChatView, WorkbenchMonitorView } from "../chat/workbench-views";
-import { WorkbenchTracerView } from "../dashboard/workbench-tracer-view";
+import type { WorkbenchSnapshot } from "../../../../core/domain/work/workbench";
+import { createDashboardLayout } from "../foundation/layout/dashboard-layout";
+import { StatusLine, todoPanelTimestamp, WorkspaceTodoView } from "../features/dashboard/shared-dashboard-views";
+import { WorkbenchChatView } from "../features/chat/workbench-views";
+import { renderDelegationDetail, renderDelegationSummary } from "../features/chat/delegation-tree-view";
+import { EntryDashboardView, WwwDashboardView } from "../features/dashboard/entry-dashboard-view";
+import { WorkbenchMonitorView } from "../features/monitoring/workbench-monitor-view";
+import { WorkbenchTracerView } from "../features/trace/workbench-tracer-view";
 import { ExitKeyPolicy } from "./exit-key-policy";
-import { LoginOverlay } from "../overlays/auth-overlay";
-import { ApprovalOverlay } from "../overlays/approval-overlay";
-import { ModelPickerOverlay } from "../overlays/model-picker-overlay";
-import { OverlaySheet } from "../overlays/overlay-sheet";
-import { RenderScheduler, workbenchRenderUrgency } from "./render-scheduler";
-import { settleWithin } from "./shell-lifecycle";
-import { parseWorkbenchShellCommand, WORKBENCH_SLASH_COMMANDS, type WorkbenchShellCommand } from "../commands/slash-commands";
-import { colors, composerBorderColor, editorTheme } from "./theme";
-import { WorkbenchBottomHudView } from "../dashboard/workbench-bottom-hud";
-import { WorkbenchTelemetryLine, workbenchModelLabel } from "../dashboard/workbench-telemetry";
-import { UsageStripView } from "../dashboard/usage-strip-view";
-import { WORKBENCH_HUD_SYSTEM } from "../dashboard/workbench-hud-system";
-import { DevelopmentMapView } from "../dashboard/development-map-view";
-import { ObservabilityDashboardView } from "../dashboard/observability-dashboard-view";
-import { RuntimeMonitorView } from "../dashboard/runtime-monitor-view";
-import { SessionStatsView } from "../dashboard/session-stats-view";
+import { LoginOverlay } from "../features/authentication/auth-overlay";
+import { ApprovalOverlay } from "../features/approval/approval-overlay";
+import { approvalCardRows, projectApprovalBackgroundState } from "../features/approval/approval-presentation";
+import { ModelPickerOverlay } from "../features/model-selection/model-picker-overlay";
+import { OverlaySheet } from "../foundation/components/overlay-sheet";
+import { RenderScheduler, workbenchRenderUrgency } from "../foundation/rendering/render-scheduler";
+import { ShellLifecycle } from "./shell-lifecycle";
+import { parseWorkbenchShellCommand, withNativeModelCompletions, WORKBENCH_SLASH_COMMANDS } from "../commands/slash-commands";
+import { colors, composerBorderColor, editorTheme } from "../foundation/theme/theme";
+import { WorkbenchBottomHudView } from "../features/usage/workbench-bottom-hud";
+import { WorkbenchTelemetryLine, workbenchModelLabel } from "../features/monitoring/workbench-telemetry";
+import { UsageStripView } from "../features/usage/usage-strip-view";
+import { WORKBENCH_HUD_SYSTEM } from "../features/usage/workbench-hud-system";
+import { DevelopmentMapView } from "../features/project-map/development-map-view";
+import { ObservabilityDashboardView } from "../features/session/observability-dashboard-view";
+import { RuntimeMonitorView } from "../features/monitoring/runtime-monitor-view";
+import { SessionStatsView } from "../features/stats/session-stats-view";
+import { AstraContextView } from "../features/context/astra-context-view";
+import { AstraHistoryView } from "../features/session/astra-history-view";
+import { AstraMapView } from "../features/project-map/astra-map-view";
+import { AstraMonitorView } from "../features/monitoring/astra-monitor-view";
+import { AstraStatsView } from "../features/stats/astra-stats-view";
+import { AstraTestView, projectAstraTestView } from "../features/test/astra-test-view";
+import { requestRuntimeMotionActive, requestRuntimeRows } from "../features/monitoring/request-runtime-view";
+import { AstraCommandPalette, AstraComposer, AstraExecutionHeading, AstraHeader, AstraHud, AstraInset, AstraNotice, AstraSheet, AstraViewSwitcher, AstraWorkspace, ASTRA_COMMANDS, ASTRA_KEYS, type AstraPage } from "./astra-surface";
+import { astraExecutionIsLive, astraNowLabel } from "../features/chat/astra-execution";
+import { a, astraColors, astraEditorTheme } from "../foundation/theme/astra-theme";
+import type { UsageSnapshot } from "../../../../core/ports";
+import {
+	ComponentSlot,
+	createWorkbenchViewHost,
+	directObservabilityView,
+	DevelopmentMapPollingLifecycle,
+	rotateObservabilityView,
+	shouldHandleObservabilityShortcut,
+	WorkbenchNavigationController,
+	workbenchDashboardSessionIndex,
+	workbenchStatsTargetCommand,
+	workbenchViewModeCommand,
+	type ObservabilityViewMode,
+} from "./workbench-navigation.controller";
+import {
+	approvalDecisionFromInput,
+	loginProviderFromInput,
+	nextWorkbenchRuntimeMode,
+	workbenchModelSettings,
+	workbenchPaneNotice,
+	workbenchReceiptClearsComposer,
+	workbenchReceiptNotice,
+} from "./workbench-input.controller";
 
 export interface ProjectWorkbenchShellDependencies {
+	design?: "astra";
+	terminal?: Terminal;
 	workbench: ProjectWorkbench;
 	development?: DevelopmentService;
 	cwd?: string;
@@ -61,46 +102,6 @@ export interface ProjectWorkbenchShellDependencies {
 	homeDirectory?: string;
 	composerDraft?: ComposerDraftController;
 	releaseSessionLease?: () => Promise<void>;
-}
-
-export function workbenchReceiptNotice(receipt: WorkbenchCommandReceipt): string {
-	if (receipt.state === "accepted") return receipt.message || "요청을 수락했습니다.";
-	if (receipt.state === "queued") return receipt.message || "메시지를 Chat에 올렸습니다. 현재 응답 뒤 바로 전송합니다.";
-	if (receipt.state === "uncertain") return `${receipt.reason} 자동 재시도하지 않습니다. /cancel로 서버 상태를 확인하세요.`;
-	return receipt.reason;
-}
-
-/** @linear WOO-694 */
-export function workbenchReceiptClearsComposer(receipt: WorkbenchCommandReceipt): boolean {
-	return receipt.state !== "rejected";
-}
-
-export function approvalDecisionFromInput(text: string): "accept" | "acceptForSession" | "decline" | null {
-	const value = text.trim().toLocaleLowerCase("ko-KR").replace(/[.!?]+$/u, "");
-	if (["네", "예", "응", "승인", "승인해", "진행", "진행해", "yes", "y", "ok"].includes(value)) return "accept";
-	if (["이번 세션 동안 승인", "세션 동안 승인", "항상 승인", "accept for session"].includes(value)) return "acceptForSession";
-	if (["아니오", "아니요", "안돼", "거절", "거절해", "취소", "no", "n"].includes(value)) return "decline";
-	return null;
-}
-
-export type WorkbenchRuntimeMode = "bypass" | "manual" | "plan";
-
-export function workbenchRuntimeMode(source: Pick<WorkbenchSnapshot, "permissionMode" | "collaborationMode">): WorkbenchRuntimeMode {
-	if (source.permissionMode === "all") return "bypass";
-	return source.collaborationMode === "plan" ? "plan" : "manual";
-}
-
-export function nextWorkbenchRuntimeMode(source: Pick<WorkbenchSnapshot, "permissionMode" | "collaborationMode">): WorkbenchRuntimeMode {
-	const current = workbenchRuntimeMode(source);
-	return current === "bypass" ? "manual" : current === "manual" ? "plan" : "bypass";
-}
-
-export function loginProviderFromInput(text: string): Provider | null {
-	const value = text.trim().toLocaleLowerCase("en-US");
-	const alias = value === "codex" || value === "chatgpt" ? "openai-codex"
-		: value === "claude" ? "anthropic"
-			: value === "gemini" ? "google" : value;
-	return (PROVIDERS as readonly string[]).includes(alias) ? alias as Provider : null;
 }
 
 export const WORKBENCH_STATUS_NOTICE = "";
@@ -155,173 +156,10 @@ function unavailableHistoricalMonitor(): RuntimeMonitorProjection {
 	});
 }
 
-export type WorkbenchBaseViewMode = "workbench";
-export type ObservabilityViewMode = "stats" | "dashboard" | "monitor";
-export type WorkbenchViewMode = WorkbenchBaseViewMode | ObservabilityViewMode | "map" | "source";
-
-export function workbenchViewModeCommand(text: string): WorkbenchViewMode | null {
-	const command = text.trim();
-	return command === "/dashboard" ? "dashboard"
-		: command === "/monitor" ? "monitor"
-		: command === "/map" ? "map"
-		: command === "/stats" ? "stats"
-		: null;
-}
-
-export function workbenchStatsTargetCommand(text: string): "session" | "diagnostics" | "latest" | number | "invalid" | null {
-	const command = text.trim();
-	if (command === "/stats") return "session";
-	if (command === "/stats diagnostics") return "diagnostics";
-	if (command === "/stats latest") return "latest";
-	const numbered = command.match(/^\/stats\s+#(\d+)$/u);
-	if (numbered) return Number(numbered[1]);
-	return command.startsWith("/stats") ? "invalid" : null;
-}
-
-export function workbenchEscapeView(
-	mode: WorkbenchViewMode,
-	previous: WorkbenchBaseViewMode,
-): WorkbenchBaseViewMode | null {
-	return mode !== "workbench" ? previous : null;
-}
-
-const OBSERVABILITY_ROTATION: readonly ObservabilityViewMode[] = ["stats", "dashboard", "monitor"];
-export function rotateObservabilityView(mode: ObservabilityViewMode, direction: 1 | -1): ObservabilityViewMode {
-	const index = OBSERVABILITY_ROTATION.indexOf(mode);
-	return OBSERVABILITY_ROTATION[(index + direction + OBSERVABILITY_ROTATION.length) % OBSERVABILITY_ROTATION.length]!;
-}
-export function directObservabilityView(key: string): ObservabilityViewMode | null {
-	return key === "1" ? "stats" : key === "2" ? "dashboard" : key === "3" ? "monitor" : null;
-}
-export function shouldHandleObservabilityShortcut(navigationActive: boolean, editableFocused: boolean, key: string): boolean {
-	return navigationActive && !editableFocused && (key === "r" || key === "R" || directObservabilityView(key) !== null);
-}
-
-export function workbenchDashboardSessionIndex(
-	previous: readonly { readonly sessionId: string }[],
-	selectedIndex: number,
-	next: readonly { readonly sessionId: string }[],
-): number {
-	const selectedSessionId = previous[selectedIndex]?.sessionId;
-	const preserved = selectedSessionId ? next.findIndex(session => session.sessionId === selectedSessionId) : -1;
-	return preserved >= 0 ? preserved : Math.min(Math.max(0, selectedIndex), Math.max(0, next.length - 1));
-}
-
-export class DevelopmentMapPollingLifecycle {
-	private stopPolling: (() => void) | null = null;
-	public constructor(
-		private readonly source: ProjectWorkbenchShellDependencies["developmentMapSource"],
-		private readonly listener: (snapshot: DevelopmentMapSnapshot) => void,
-	) {}
-	public enter(): void {
-		if (!this.stopPolling && this.source) this.stopPolling = this.source.startPolling(this.listener);
-	}
-	public leave(): void {
-		this.stopPolling?.();
-		this.stopPolling = null;
-	}
-}
-
-/** A stable layout slot whose active component and keyboard owner can be replaced without rebuilding the root. */
-export class ComponentSlot implements Component {
-	public constructor(private current: Component) {}
-	public set(component: Component): void { this.current = component; }
-	public invalidate(): void { this.current.invalidate(); }
-	public render(width: number): string[] { return this.current.render(width); }
-	public handleInput(data: string): void { this.current.handleInput?.(data); }
-}
-
-/** @linear WOO-673 */
-export function createWorkbenchViewHost(
-	getMode: () => WorkbenchViewMode,
-	workbench: Component,
-	dashboard: Component,
-	monitor: Component,
-	source: Component,
-	map: Component,
-	stats: Component,
-): Component {
-	return new VStack([
-		{
-			component: workbench,
-			basis: 0,
-			grow: 1,
-			shrink: 1,
-			minSize: 1,
-			visible: () => getMode() === "workbench",
-		},
-		{
-			component: dashboard,
-			basis: 0,
-			grow: 1,
-			shrink: 1,
-			minSize: 1,
-			visible: () => getMode() === "dashboard",
-		},
-		{
-			component: monitor,
-			basis: 0,
-			grow: 1,
-			shrink: 1,
-			minSize: 1,
-			visible: () => getMode() === "monitor",
-		},
-		{
-			component: source,
-			basis: 0,
-			grow: 1,
-			shrink: 1,
-			minSize: 1,
-			visible: () => getMode() === "source",
-		},
-		{
-			component: map,
-			basis: 0,
-			grow: 1,
-			shrink: 1,
-			minSize: 1,
-			visible: () => getMode() === "map",
-		},
-		{
-			component: stats,
-			basis: 0,
-			grow: 1,
-			shrink: 1,
-			minSize: 1,
-			visible: () => getMode() === "stats",
-		},
-	]);
-}
-
-export function workbenchModelSettings(source: Pick<WorkbenchSnapshot, "model" | "effort">): WwwSettings {
-	return normalizeSettings({
-		provider: "openai-codex",
-		model: source.model,
-		effort: source.effort,
-	});
-}
-
 export function workbenchFrameTitle(source: Pick<WorkbenchSnapshot,
 	"projectId" | "model" | "activeModel" | "effort" | "phase" | "collaborationMode" | "permissionMode" | "chatQueue" | "pendingApproval"
 >): string {
 	return `🐙 WWW · ${source.projectId} · ${workbenchModelLabel(source.activeModel ?? source.model)} · ${source.effort ?? "–"} · ${source.phase} · ${source.collaborationMode === "plan" ? "Plan" : "Manual"} · Permission ${source.permissionMode ?? "manual"}${source.pendingApproval ? " · 승인 대기" : ""}`;
-}
-
-export function workbenchPaneNotice(pane: "chat" | "tnotes" | "todo"): string {
-	const location = pane === "chat" ? "왼쪽 Chat · 질문과 공개 응답"
-		: pane === "tnotes" ? "오른쪽 위 완료 질문 T-note" : "오른쪽 아래 현재 Native Plan·Todo.md";
-	return `${location} pane은 현재 화면에 계속 표시됩니다.`;
-}
-
-export function workbenchViewModeForCommand(
-	current: WorkbenchViewMode,
-	command: WorkbenchShellCommand,
-): WorkbenchViewMode {
-	if (command.type === "pane.show") return "workbench";
-	if (command.type === "activity.select" && command.activityId) return "source";
-	if (command.type === "trace.select") return "source";
-	if (command.type === "agent.select") return "workbench";
-	return current;
 }
 
 const WORKBENCH_ACTIVITY_FRAMES = Object.freeze(["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]);
@@ -446,16 +284,46 @@ function boundedActivityText(value: string | undefined): string | null {
 
 /** @Unit Code-004 */
 /** Native workbench shell. */
-// @linear WOO-727
-/** @linear WOO-674 */
 /** @codeId 0004 */
 export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDependencies): void {
 	const { workbench, usage, auth, composerDraft, releaseSessionLease } = dependencies;
 	const cwd = dependencies.cwd ?? process.cwd();
-	const tui = new TuiAltScreen(new ProcessTerminal(), true);
+	const terminal = dependencies.terminal ?? new ProcessTerminal();
+	const tui = new TuiAltScreen(terminal, true);
 	let snapshot = workbench.snapshot;
-	const status = new StatusLine(WORKBENCH_STATUS_NOTICE);
-	const chat = new WorkbenchChatView(snapshot);
+	let usageSnapshots: readonly UsageSnapshot[] = [];
+	const astraMotion = process.env.ASTRA_REDUCED_MOTION !== "1" && process.env.NO_COLOR === undefined;
+	// pi-tui visibility callbacks receive the whole terminal, even in nested
+	// stacks. Reserve the real composer/HUD chrome before showing side content.
+	function astraBodyHeight(rows: number, columns: number, stable = false): number {
+		// Keep the transcript's width stable while typing. Only the scrollable
+		// plan keeps its column; the optional note still uses the real row budget.
+		return Math.max(1, rows - (stable ? 3 : composerFrame.render(columns).length) - (rows >= 12 ? 2 : 0) - 3
+			- (rows >= 5 && (stable || status.hasNotice) ? 1 : 0) - (rows >= 7 ? 2 : 0));
+	}
+	const astra = dependencies.design === "astra" ? new AstraWorkspace(
+		() => snapshot,
+		() => usageSnapshots,
+		astraBodyHeight,
+		Date.now,
+		astraMotion,
+		{ motionActive: requestRuntimeMotionActive, rows: requestRuntimeRows, nowLabel: astraNowLabel },
+		new WwwDashboardView(() => snapshot),
+	) : null;
+	astra?.show("dashboard");
+	const status = astra ? new AstraNotice() : new StatusLine(WORKBENCH_STATUS_NOTICE);
+	const entryDashboard = new EntryDashboardView(() => snapshot.linearDashboard);
+	const chat = astra?.transcript ?? new WorkbenchChatView(snapshot, entryDashboard, {
+		render: (current, width) => current.pendingApproval
+			? approvalCardRows(
+				current.pendingApproval,
+				current.chatQueue.length,
+				projectApprovalBackgroundState(current.activities),
+				width,
+			)
+			: [],
+	});
+	const sheet = (content: Component) => astra ? new AstraSheet(content, () => Math.max(6, Math.floor(terminal.rows * 0.8))) : new OverlaySheet(content);
 	const usageStrip = new UsageStripView(() => ({
 		models: snapshot.sessionUsage?.models ?? [],
 		activeModel: snapshot.activeModel ?? snapshot.model,
@@ -466,7 +334,10 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		showUsage: snapshot.hud?.showUsage,
 		showContext: snapshot.hud?.showContext,
 	}));
-	const tracer = new WorkbenchTracerView(() => snapshot);
+	const tracer = new WorkbenchTracerView(() => snapshot, {
+		renderSummary: renderDelegationSummary,
+		renderDetail: renderDelegationDetail,
+	});
 	const todo = new WorkspaceTodoView(
 		() => snapshot.todo,
 		() => ({
@@ -480,78 +351,93 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		() => snapshot.linearDashboard,
 	);
 	const sourceMonitor = new WorkbenchMonitorView(() => snapshot);
-	const runtimeMonitorView = new RuntimeMonitorView(() => selectedHistoricalSession && selectedHistoricalSession.sessionId !== snapshot.threadId
+	const getRuntimeMonitor = () => selectedHistoricalSession && selectedHistoricalSession.sessionId !== snapshot.threadId
 		? unavailableHistoricalMonitor()
-		: projectRuntimeMonitor(snapshot));
-	const runtimeMonitor = new ScrollView(runtimeMonitorView, {
-		follow: "end", primary: true, overscroll: "contain", scrollbar: "auto", scrollbarStyle: colors.muted,
+		: projectRuntimeMonitor(snapshot);
+	const runtimeMonitorView = astra ? new AstraMonitorView(getRuntimeMonitor, Date.now, astraMotion) : new RuntimeMonitorView(getRuntimeMonitor);
+	const runtimeMonitor = new ScrollView(astra ? new AstraInset(runtimeMonitorView) : runtimeMonitorView, {
+		follow: astra ? "none" : "end", primary: true, overscroll: "contain", scrollbar: "auto", scrollbarStyle: astra ? a.rule : colors.muted,
 	});
 	let observabilityDashboardSnapshot: ObservabilityDashboard = emptyObservabilityDashboard();
 	let selectedDashboardSessionIndex = 0;
 	let selectedHistoricalSession: ObservabilityDashboard["recentSessions"][number] | null = null;
-	const observabilityDashboardView = new ObservabilityDashboardView(() => observabilityDashboardSnapshot, () => selectedDashboardSessionIndex);
-	const observabilityDashboard = new ScrollView(observabilityDashboardView, {
-		follow: "none", primary: true, overscroll: "contain", scrollbar: "auto", scrollbarStyle: colors.muted,
+	const observabilityDashboardView = astra
+		? new AstraHistoryView(() => observabilityDashboardSnapshot, () => selectedDashboardSessionIndex, () => astraBodyHeight(terminal.rows, terminal.columns))
+		: new ObservabilityDashboardView(() => observabilityDashboardSnapshot, () => selectedDashboardSessionIndex);
+	const observabilityDashboard = new ScrollView(astra ? new AstraInset(observabilityDashboardView) : observabilityDashboardView, {
+		follow: "none", primary: true, overscroll: "contain", scrollbar: "auto", scrollbarStyle: astra ? a.rule : colors.muted,
 	});
 	let developmentMapSnapshot: DevelopmentMapSnapshot = EMPTY_DEVELOPMENT_MAP;
-	const developmentMapView = new DevelopmentMapView(() => developmentMapSnapshot);
-	const developmentMap = new ScrollView(developmentMapView, {
+	const developmentMapView = new (astra ? AstraMapView : DevelopmentMapView)(() => developmentMapSnapshot);
+	const developmentMap = new ScrollView(astra ? new AstraInset(developmentMapView) : developmentMapView, {
 		follow: "none",
 		primary: true,
 		overscroll: "contain",
 		scrollbar: "auto",
-		scrollbarStyle: colors.muted,
+		scrollbarStyle: astra ? a.rule : colors.muted,
 	});
 	let statsTarget: "session" | "diagnostics" | "latest" | number = "session";
-	const sessionStatsView = new SessionStatsView(() => projectSessionStats(snapshot), () => statsTarget, () => selectedHistoricalSession);
-	const sessionStats = new ScrollView(sessionStatsView, {
+	const sessionStatsView = new (astra ? AstraStatsView : SessionStatsView)(() => projectSessionStats(snapshot), () => statsTarget, () => selectedHistoricalSession);
+	const sessionStats = new ScrollView(astra ? new AstraInset(sessionStatsView) : sessionStatsView, {
 		follow: "none",
 		primary: true,
 		overscroll: "contain",
 		scrollbar: "auto",
-		scrollbarStyle: colors.muted,
+		scrollbarStyle: astra ? a.rule : colors.muted,
+	});
+	const testWorkspaceView = new AstraTestView(() => projectAstraTestView(snapshot));
+	const testWorkspace = new ScrollView(new AstraInset(testWorkspaceView), {
+		follow: "none", primary: true, overscroll: "contain", scrollbar: "auto", scrollbarStyle: astra ? a.rule : colors.muted,
 	});
 	const telemetry = new WorkbenchTelemetryLine(() => snapshot, cwd, () => tui.requestRender(), dependencies.gitTelemetrySource, dependencies.homeDirectory);
 	const bottomHud = new WorkbenchBottomHudView(usageStrip);
-	const dashboard = createDashboardLayout(
+	const dashboard = astra ? { component: astra.component } : createDashboardLayout(
 		() => "Workbench",
 		{ color: colors.accent, component: chat },
 		{ color: colors.warm, component: todo },
 		{ title: "Tracer", color: colors.secondary, component: tracer },
 		() => ["TODO", todoPanelTimestamp(snapshot.todo?.updatedAt)].filter(Boolean).join(" "),
 	);
-	const sourceLayout = createDashboardLayout(
+	const astraSource = astra ? new ScrollView(new AstraInset(new AstraContextView(() => snapshot, () => usageSnapshots, true)), { follow: "none", primary: true, overscroll: "contain", scrollbar: "auto", scrollbarStyle: a.rule }) : null;
+	const sourceLayout = astraSource ? { component: astraSource, leftScroll: astraSource } : createDashboardLayout(
 		() => `Source · ${workbenchFrameTitle(snapshot)}`,
 		{ color: colors.accent, component: chat },
 		{ color: colors.warm, component: todo },
 		{ color: colors.secondary, component: sourceMonitor },
 	);
-	let viewMode: WorkbenchViewMode = "workbench";
-	let previousViewMode: WorkbenchBaseViewMode = "workbench";
+	const initialViewMode = "workbench";
+	let navigation: WorkbenchNavigationController;
 	const activeView = createWorkbenchViewHost(
-		() => viewMode,
+		() => navigation?.mode ?? initialViewMode,
 		dashboard.component,
 		observabilityDashboard,
 		runtimeMonitor,
 		sourceLayout.component,
 		developmentMap,
 		sessionStats,
+		testWorkspace,
 	);
-	const editor = new Editor(tui, editorTheme, { paddingX: 1, autocompleteMaxVisible: 5 });
-	editor.setAutocompleteProvider(new CombinedAutocompleteProvider([...WORKBENCH_SLASH_COMMANDS, {name: "work", description: "Issue 연결·기록 상태·Obsidian checkpoint/open"}], process.cwd()));
+	const editor = new Editor(tui, astra ? astraEditorTheme : editorTheme, { paddingX: astra ? 2 : 1, autocompleteMaxVisible: 5 });
+	editor.setAutocompleteProvider(new CombinedAutocompleteProvider(withNativeModelCompletions(astra ? ASTRA_COMMANDS : [...WORKBENCH_SLASH_COMMANDS, {name: "work", description: "Issue 연결·기록 상태·Obsidian checkpoint/open"}], () => snapshot.modelCatalog), cwd));
 	if (composerDraft?.initialText) editor.setText(composerDraft.initialText);
 	const composerSlot = new ComponentSlot(editor);
-	const composerFrame = new ComposerModelFrame(composerSlot, () => snapshot);
+	let astraInlineApprovalActive = false;
+	const composerFrame = astra ? new AstraComposer(composerSlot, editor, () => snapshot, () => !astraInlineApprovalActive) : new ComposerModelFrame(composerSlot, () => snapshot);
 	const root = new VStack([
+		...(astra ? [
+			{ component: new AstraHeader(() => snapshot, () => navigation.mode === "workbench" ? astra.page : navigation.mode, cwd), basis: 2, minSize: 1, maxSize: 2, visible: ({ height }: { height: number }) => height >= 12 },
+			{ component: new AstraExecutionHeading(() => snapshot, () => navigation.mode !== "workbench" || astra.page !== "execution" || !editor.focused ? "Esc 돌아가기" : null, Date.now, astraMotion), basis: 3, minSize: 2, maxSize: 3, visible: ({ height }: { height: number }) => height >= 12 && astra.page !== "dashboard" },
+		] : []),
 		{ component: activeView, basis: 0, grow: 1, shrink: 1, minSize: 1 },
 		{ component: composerFrame, basis: "auto", shrink: 1, minSize: 3 },
 		{ component: status, basis: 1, minSize: 1, maxSize: 1, visible: ({ height }) => height >= 5 && status.hasNotice },
-		{ component: bottomHud, basis: 1, minSize: 1, maxSize: 1, visible: ({ height }) => height >= 7 },
+		{ component: astra ? new AstraHud(() => snapshot, () => usageSnapshots) : bottomHud, basis: astra ? "auto" : 1, minSize: 1, maxSize: astra ? 2 : 1, visible: ({ height }) => height >= 7 },
 	]);
-	let shuttingDown = false;
-	let observabilityNavigation = false;
 	let overlay: OverlayHandle | null = null;
-	let overlayKind: "model" | "approval" | "development" | null = null;
+	let overlayKind: "model" | "approval" | "development" | "commands" | "views" | "auth" | null = null;
+	let activeApprovalId: NonNullable<WorkbenchSnapshot["pendingApproval"]>["requestId"] | null = null;
+	let inlineApprovalSheet: AstraSheet | null = null;
+	let lastAutoApprovalId: NonNullable<WorkbenchSnapshot["pendingApproval"]>["requestId"] | null = null;
 	let loginPrompt: LoginOverlay | null = null;
 	const exitKeys = new ExitKeyPolicy();
 	let unsubscribe: () => void = () => undefined;
@@ -560,6 +446,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		tui.requestRender();
 	});
 	const stopUsagePolling = usage.startPolling((snapshots) => {
+		usageSnapshots = snapshots;
 		usageStrip.update(snapshots);
 		tui.requestRender();
 	});
@@ -568,12 +455,25 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		developmentMapView.invalidate();
 		tui.requestRender();
 	});
-	const setViewMode = (next: WorkbenchViewMode): void => {
-		if (viewMode === next) return;
-		const wasMap = viewMode === "map";
-		viewMode = next;
-		if (!wasMap && next === "map") developmentMapPolling.enter();
-		if (wasMap && next !== "map") developmentMapPolling.leave();
+	navigation = new WorkbenchNavigationController(
+		initialViewMode,
+		(component) => tui.setFocus(component),
+		{
+			editor,
+			dashboard: observabilityDashboard,
+			monitor: runtimeMonitor,
+			source: sourceLayout.leftScroll,
+			map: developmentMap,
+			stats: sessionStats,
+			test: testWorkspace,
+		},
+		developmentMapPolling,
+		astra,
+	);
+	const showAstraPage = (page: AstraPage, browse = page !== "execution"): void => {
+		if (!navigation.showAstraPage(page, browse)) return;
+		status.setNotice("");
+		tui.requestRender();
 	};
 	const cycleRuntimeMode = async (): Promise<void> => {
 		const next = nextWorkbenchRuntimeMode(snapshot);
@@ -592,21 +492,47 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		else status.setNotice("");
 		tui.requestRender();
 	};
+	let lifecycle: ShellLifecycle;
 	const monitorClock = setInterval(() => {
 		if (snapshot.phase === "working") chat.syncActivity(workbenchActivityIndicator(snapshot), () => tui.requestRender());
-		if (viewMode === "monitor" && snapshot.phase === "working") tui.requestRender();
+		if (navigation.mode === "monitor" && snapshot.phase === "working") tui.requestRender();
 	}, 1_000);
 	monitorClock.unref?.();
+	const astraClock = astra ? setInterval(() => {
+		const request = snapshot.requestRuntime?.at(-1);
+		if (!lifecycle.isShuttingDown && !overlay && (astraExecutionIsLive(snapshot) || astraMotion && request && requestRuntimeMotionActive(request, Date.now()))) tui.requestRender();
+	}, astraMotion ? 120 : 1_000) : null;
+	astraClock?.unref?.();
 	let composerBorderFrame = 0;
 	const composerBorderClock = setInterval(() => {
 		// A border shimmer is decorative. Once a conversation exists, redraws must
 		// belong to input or Runtime state, not a perpetual cosmetic clock.
-		if (!editor.focused || shuttingDown || snapshot.phase === "working" || snapshot.chat.length > 0) return;
+		if (astra || !editor.focused || lifecycle.isShuttingDown || snapshot.phase === "working" || snapshot.chat.length > 0) return;
 		composerBorderFrame = (composerBorderFrame + 1) % 24;
 		editor.borderColor = composerBorderColor(composerBorderFrame);
 		tui.requestRender();
 	}, COMPOSER_WELCOME_BORDER_INTERVAL_MS);
 	composerBorderClock.unref?.();
+	lifecycle = new ShellLifecycle({
+		cancelPrompt: () => loginPrompt?.handleInput("\u0003"),
+		dismissOverlay: () => {
+			overlay?.hide();
+			overlay = null;
+		},
+		announceClosing: () => {
+			status.setNotice("Workbench를 안전하게 종료하는 중…");
+			tui.requestRender();
+		},
+		unsubscribe: () => unsubscribe(),
+		stopPolling: [stopUsagePolling, () => navigation.dispose()],
+		timers: [monitorClock, composerBorderClock, astraClock],
+		disposables: [workbenchRenders, telemetry, chat],
+		saveDraft: composerDraft ? () => composerDraft.save(editor.getExpandedText()) : undefined,
+		closeWorkbench: () => workbench.close(),
+		releaseSessionLease,
+		stopTerminal: () => tui.stop(),
+	});
+	const shutdown = (): Promise<void> => lifecycle.shutdown();
 	const refreshObservabilityDashboard = async (): Promise<void> => {
 		if (!dependencies.observabilityHistorySource) return;
 		const previousSessions = observabilityDashboardSnapshot.recentSessions;
@@ -630,35 +556,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	};
 	const enterObservability = async (next: ObservabilityViewMode): Promise<void> => {
 		if (next === "dashboard") await refreshObservabilityDashboard();
-		setViewMode(next);
-		observabilityNavigation = true;
-		tui.setFocus(next === "stats" ? sessionStats : next === "dashboard" ? observabilityDashboard : runtimeMonitor);
-	};
-	const shutdown = async () => {
-		if (shuttingDown) return;
-		shuttingDown = true;
-		loginPrompt?.handleInput("\u0003");
-		overlay?.hide();
-		overlay = null;
-		status.setNotice("Workbench를 안전하게 종료하는 중…");
-		tui.requestRender();
-		unsubscribe();
-		stopUsagePolling();
-		developmentMapPolling.leave();
-		clearInterval(monitorClock);
-		clearInterval(composerBorderClock);
-		workbenchRenders.dispose();
-		telemetry.dispose();
-		chat.dispose();
-		await settleWithin((async () => {
-			if (composerDraft) await composerDraft.save(editor.getExpandedText()).catch(() => undefined);
-			try {
-				await workbench.close();
-			} finally {
-				await releaseSessionLease?.();
-			}
-		})(), 5_000);
-		tui.stop();
+		navigation.enterObservability(next);
 	};
 	const showReceipt = (receipt: Awaited<ReturnType<ProjectWorkbench["dispatch"]>>) => {
 		status.setNotice(workbenchReceiptNotice(receipt));
@@ -669,8 +567,19 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		overlay.hide();
 		overlay = null;
 		overlayKind = null;
-		tui.setFocus(editor);
+		activeApprovalId = null;
+		navigation.closeTransientSurface();
 	};
+	const closeInlineApproval = (): void => {
+		if (!inlineApprovalSheet) return;
+		inlineApprovalSheet = null;
+		astraInlineApprovalActive = false;
+		activeApprovalId = null;
+		composerSlot.set(editor);
+		tui.setFocus(editor);
+		tui.requestRender();
+	};
+	const closeApprovalSurface = (): void => astra ? closeInlineApproval() : closeOverlay();
 	const dispatchModelSelection = (settings: WwwSettings) => workbench.dispatch({
 			type: "session.model",
 			selection: { model: settings.model, effort: settings.effort },
@@ -683,11 +592,17 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	const closeLoginPrompt = (expected: LoginOverlay | null = loginPrompt): void => {
 		if (!loginPrompt || loginPrompt !== expected) return;
 		loginPrompt = null;
+		if (overlayKind === "auth") closeOverlay();
 		composerSlot.set(editor);
 		tui.setFocus(editor);
 		tui.requestRender();
 	};
 	const openAuthentication = (provider?: Provider): void => {
+		if (astra && snapshot.pendingApproval) {
+			status.setNotice("대기 중인 승인 요청을 먼저 결정하세요.");
+			tui.requestRender();
+			return;
+		}
 		if (overlay) closeOverlay();
 		if (loginPrompt) return;
 		if (snapshot.phase === "working") {
@@ -702,15 +617,24 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 			async (authStatus) => {
 				if (authStatus.state !== "configured") throw new Error("인증이 완료되지 않았습니다.");
 				status.setNotice(`${authStatus.provider} 로그인이 완료되었습니다.`);
-				usageStrip.update(await usage.refresh());
+				usageSnapshots = await usage.refresh();
+				usageStrip.update(usageSnapshots);
 				tui.requestRender();
 			},
 			() => closeLoginPrompt(panel),
 			provider ? [provider] : undefined,
+			undefined,
+			astra ? astraColors : undefined,
 		);
 		loginPrompt = panel;
-		composerSlot.set(new OverlaySheet(panel));
-		tui.setFocus(panel);
+		const loginSheet = astra ? new AstraSheet(panel, () => Math.max(6, Math.floor(terminal.rows * 0.8)), { followPrompt: true }) : sheet(panel);
+		if (astra) {
+			// AltScreen routes paging to its viewport before ordinary input listeners.
+			// Register auth as a real overlay so paging reaches the focused sheet.
+			overlay = tui.showOverlay(loginSheet, { width: "90%", minWidth: 36, maxHeight: "95%", anchor: "center", margin: 1 });
+			overlayKind = "auth";
+		} else composerSlot.set(loginSheet);
+		tui.setFocus(astra ? loginSheet : panel);
 		panel.start(provider !== undefined);
 		tui.requestRender();
 	};
@@ -731,17 +655,21 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 			closeOverlay,
 			current,
 			false,
-			{ providers: ["openai-codex"], startAtModel: true },
+			{ providers: ["openai-codex"], startAtModel: true, nativeCodex: true, catalog: snapshot.modelCatalog, loadCatalog: () => workbench.refreshModels(), maxVisibleOptions: () => Math.max(1, Math.floor(terminal.rows * 0.7) - 12), ...(astra ? { colors: astraColors, appearance: "astra" as const } : {}) },
 		);
-		overlay = tui.showOverlay(new OverlaySheet(panel), {
-			width: "64%", minWidth: 46, maxHeight: "70%", anchor: "bottom-center", margin: 2,
+		const modelSheet = astra ? new AstraSheet(panel, () => Math.max(6, Math.floor(terminal.rows * 0.8)), { followSelection: true }) : sheet(panel);
+		overlay = tui.showOverlay(modelSheet, {
+			width: astra ? "84%" : "64%", minWidth: 46, maxHeight: astra ? "90%" : "70%", anchor: astra ? "center" : "bottom-center", margin: astra ? 1 : 2,
 		});
 		overlayKind = "model";
+		if (astra) tui.setFocus(modelSheet);
 		panel.start();
 	};
 	const openApproval = (request: NonNullable<WorkbenchSnapshot["pendingApproval"]>): void => {
-		if (overlayKind === "approval") return;
+		if (astra ? inlineApprovalSheet && activeApprovalId === request.requestId : overlayKind === "approval") return;
+		if (astra && loginPrompt) { loginPrompt.handleInput("\x1b"); closeLoginPrompt(); }
 		if (overlay) closeOverlay();
+		if (astra) showAstraPage("execution");
 		const panel = new ApprovalOverlay(
 			request,
 			() => tui.requestRender(),
@@ -751,17 +679,28 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 					requestId: request.requestId,
 					response: { decision },
 				}).then(receipt => {
-					closeOverlay();
+					if (activeApprovalId === request.requestId) closeApprovalSurface();
 					showReceipt(receipt);
 				}).catch(error => {
-					closeOverlay();
+					if (activeApprovalId === request.requestId) closeApprovalSurface();
 					status.setNotice(error instanceof Error ? error.message : String(error));
 					tui.requestRender();
 				});
 			},
-			closeOverlay,
+			closeApprovalSurface,
+			astra ? astraColors : undefined,
 		);
-		overlay = tui.showOverlay(new OverlaySheet(panel), {
+		activeApprovalId = request.requestId;
+		if (astra) {
+			inlineApprovalSheet = new AstraSheet(panel, () => Math.max(8, Math.floor(terminal.rows * 0.45)));
+			astraInlineApprovalActive = true;
+			composerSlot.set(inlineApprovalSheet);
+			tui.setFocus(inlineApprovalSheet);
+			tui.requestRender();
+			return;
+		}
+		const approvalSheet = sheet(panel);
+		overlay = tui.showOverlay(approvalSheet, {
 			width: "72%", minWidth: 46, maxHeight: "80%", anchor: "bottom-center", margin: 2,
 		});
 		overlayKind = "approval";
@@ -769,6 +708,13 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		tui.requestRender();
 	};
 	const handleLocal = async (text: string): Promise<boolean> => {
+		if (astra && text.trim() === "/context") { showAstraPage("context"); return true; }
+		if (astra && text.trim() === "/approval") {
+			if (snapshot.pendingApproval) openApproval(snapshot.pendingApproval);
+			else status.setNotice("대기 중인 승인 요청이 없습니다.");
+			tui.requestRender();
+			return true;
+		}
 		const developmentNotice = await executeDevelopmentShellCommand(text, dependencies.development);
 		if (developmentNotice !== null) {
 			const safeNotice = sanitizeTerminalTextUnbounded(developmentNotice);
@@ -791,7 +737,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 						tui.requestRender();
 					},
 				};
-				overlay = tui.showOverlay(new OverlaySheet(panel), { width: "90%", minWidth: 40, maxHeight: "85%", anchor: "center" });
+				overlay = tui.showOverlay(sheet(panel), { width: "90%", minWidth: 40, maxHeight: "85%", anchor: "center" });
 				overlayKind = "development";
 			}
 			tui.requestRender();
@@ -818,26 +764,23 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		}
 		const requestedViewMode = workbenchViewModeCommand(text);
 		if (requestedViewMode) {
-			if (requestedViewMode === "map") {
-				observabilityNavigation = false;
-				setViewMode("map");
-				tui.setFocus(developmentMap);
-			} else if (requestedViewMode === "workbench" || requestedViewMode === "source") {
-				setViewMode("workbench");
-				observabilityNavigation = false;
-				tui.setFocus(editor);
-			} else await enterObservability(requestedViewMode);
+			if (requestedViewMode === "stats" || requestedViewMode === "dashboard" || requestedViewMode === "monitor") {
+				await enterObservability(requestedViewMode);
+			} else navigation.openCommandView(requestedViewMode);
 			status.setNotice(requestedViewMode === "dashboard"
 				? "Dashboard · 전체 Session과 Project 관측"
 				: requestedViewMode === "monitor"
 					? "Monitor · 현재 runtime 실행 관측"
 					: requestedViewMode === "map"
 						? "Development Map · 전체 구조와 진척도 · 자동 갱신"
-						: "Session Stats · 목적·행동·결과와 오케스트레이션 효율");
+						: requestedViewMode === "test"
+							? "Test · 현재 세션의 질문별 검증 목적·검사·근거"
+							: "Session Stats · 목적·행동·결과와 오케스트레이션 효율");
 			tui.requestRender();
 			return true;
 		}
-		const command = parseWorkbenchShellCommand(text);
+		if (/^\/model\s+\S/u.test(text.trim())) await workbench.refreshModels();
+		const command = parseWorkbenchShellCommand(text, snapshot.modelCatalog);
 		if (!command) return false;
 		if (command.type === "exit") {
 			void shutdown();
@@ -849,6 +792,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 			return true;
 		}
 		if (command.type === "help") {
+			if (astra) { showAstraPage("help"); return true; }
 			status.setNotice(WORKBENCH_SLASH_COMMANDS.map(command => `/${command.name}${command.argumentHint ? ` ${command.argumentHint}` : ""}`).join(" · "));
 			tui.requestRender();
 			return true;
@@ -870,14 +814,17 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		}
 		if (command.type === "workflow.check" || command.type === "workflow.resume" || command.type === "workflow.show") {
 			showReceipt(await workbench.dispatch(command));
-			setViewMode("workbench");
-			tui.setFocus(editor);
+			navigation.openWorkbench();
 			return true;
 		}
 		if (command.type === "pane.show") {
-			setViewMode(workbenchViewModeForCommand(viewMode, command));
-			observabilityNavigation = false;
-			tui.setFocus(editor);
+			if (astra) {
+				showAstraPage(command.pane === "todo" ? "plan" : "execution");
+				if (command.pane === "tnotes") status.setNotice("질문 요약은 실행 타임라인의 각 질문 뒤에 표시됩니다.");
+				tui.requestRender();
+				return true;
+			}
+			navigation.openWorkbench();
 			status.setNotice(workbenchPaneNotice(command.pane));
 			tui.requestRender();
 			return true;
@@ -888,10 +835,12 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		}
 		if (command.type === "model.set") {
 			const current = workbenchModelSettings(snapshot);
+			const efforts = nativeModelEfforts(command.model, snapshot.modelCatalog);
+			const inherited = efforts.includes(current.effort) ? current.effort : snapshot.modelCatalog?.models.find(entry => entry.model === command.model)?.defaultEffort ?? "medium";
 			showReceipt(await dispatchModelSelection({
 				provider: "openai-codex",
 				model: command.model,
-				effort: command.effort ?? current.effort,
+				effort: command.effort ?? inherited,
 			}));
 			return true;
 		}
@@ -910,7 +859,8 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 				return true;
 			}
 			await auth.logout(command.provider);
-			usageStrip.update(await usage.refresh());
+			usageSnapshots = await usage.refresh();
+			usageStrip.update(usageSnapshots);
 			status.setNotice(`${command.provider} 인증을 삭제했습니다.`);
 			tui.requestRender();
 			return true;
@@ -941,28 +891,27 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 			const receipt = await workbench.dispatch({ type: "activity.select", activityId });
 			showReceipt(receipt);
 			if (receipt.state !== "accepted" || !activityId) return true;
-			setViewMode("source");
-			observabilityNavigation = false;
-			tui.setFocus(sourceLayout.leftScroll);
+			navigation.openSource();
 			return true;
 		}
 		if (command.type === "trace.select") {
 			const receipt = await workbench.dispatch({ type: "trace.select", activityId: command.activityId });
 			showReceipt(receipt);
 			if (receipt.state === "accepted") {
-				setViewMode("source");
-				observabilityNavigation = false;
-				tui.setFocus(sourceLayout.leftScroll);
+				navigation.openSource();
 			}
+			return true;
+		}
+		if (command.type === "runtime.reconcile") {
+			showReceipt(await workbench.dispatch(command));
 			return true;
 		}
 		if (command.type === "agent.select") {
 			const receipt = await workbench.dispatch({ type: "agent.select", agentRef: command.agentRef });
 			showReceipt(receipt);
 			if (receipt.state === "accepted") {
-				setViewMode("workbench");
-				observabilityNavigation = false;
-				tui.setFocus(editor);
+				if (astra) { showAstraPage("context"); return true; }
+				navigation.openWorkbench();
 			}
 			return true;
 		}
@@ -1028,8 +977,9 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		}));
 		return true;
 	};
+	/** @linear WOO-694 */
 	editor.onSubmit = (text) => {
-		if (shuttingDown || !text.trim()) return;
+		if (lifecycle.isShuttingDown || !text.trim()) return;
 		editor.addToHistory(text);
 		void (async () => {
 			if (await handleLocal(text)) return;
@@ -1066,9 +1016,14 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		const urgency = workbenchRenderUrgency(snapshot, next);
 		const refreshTelemetry = snapshot.phase === "working" && next.phase !== "working";
 		snapshot = next;
-		if (snapshot.pendingApproval) {
-			status.setNotice("승인 선택 화면을 열었습니다. ↑↓ 또는 숫자로 선택하세요.");
+		if (snapshot.pendingApproval && (!astra || lastAutoApprovalId !== snapshot.pendingApproval.requestId)) {
+			lastAutoApprovalId = snapshot.pendingApproval.requestId;
 			openApproval(snapshot.pendingApproval);
+			status.setNotice(astra ? "채팅 영역에 승인 선택을 열었습니다. ↑↓ 또는 숫자로 선택하세요." : "승인 선택 화면을 열었습니다. ↑↓ 또는 숫자로 선택하세요.");
+		} else if (!snapshot.pendingApproval) {
+			lastAutoApprovalId = null;
+			if (astra) closeInlineApproval();
+			else if (overlayKind === "approval") closeOverlay();
 		}
 		chat.syncActivity(workbenchActivityIndicator(snapshot), () => tui.requestRender());
 		if (refreshTelemetry) telemetry.refresh();
@@ -1079,24 +1034,82 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		// until the Editor has committed this input turn; Pi TUI then takes its
 		// immediate keyboard-render path instead of a 64ms workbench repaint.
 		workbenchRenders.prioritizeInput();
-		if (shuttingDown) return { consume: true };
+		if (lifecycle.isShuttingDown) return { consume: true };
 		if (loginPrompt && (matchesKey(data, Key.escape) || matchesKey(data, Key.ctrl("c")) || matchesKey(data, Key.ctrl("d")))) {
 			loginPrompt.handleInput(data);
 			status.setNotice("로그인을 취소했습니다.");
 			tui.requestRender();
 			return { consume: true };
 		}
+		if (astra && inlineApprovalSheet) {
+			if (matchesKey(data, Key.ctrl("c")) || matchesKey(data, Key.ctrl("d"))) {
+				closeInlineApproval();
+				status.setNotice("승인 보류. /approval 다시 읽기 /approve 승인 /decline 거절");
+				return { consume: true };
+			}
+			return undefined;
+		}
 		if (overlay) {
 			if (matchesKey(data, Key.ctrl("c")) || matchesKey(data, Key.ctrl("d"))) {
 				const closing = overlayKind;
 				closeOverlay();
 				status.setNotice(closing === "approval"
-					? "승인 창을 닫았습니다. /approve 로 다시 결정할 수 있습니다."
-					: closing === "development" ? "개발 연결 창을 닫았습니다." : "모델 변경을 취소했습니다.");
+					? astra ? "승인 보류. /approval 다시 읽기 /approve 승인 /decline 거절" : "승인 창을 닫았습니다. /approve 로 다시 결정할 수 있습니다."
+					: closing === "development" ? "개발 연결 창을 닫았습니다." : closing === "views" ? "화면 이동을 닫았습니다." : closing === "commands" ? "명령 찾기를 닫았습니다." : "모델 변경을 취소했습니다.");
 				tui.requestRender();
 				return { consume: true };
 			}
 			return undefined;
+		}
+		if (astra && !loginPrompt) {
+			if (matchesKey(data, Key.ctrl("b"))) {
+				const enabled = astra.toggleSidebar();
+				status.setNotice(enabled ? "계획 사이드바를 열었습니다. 넓은 실행 화면에서 표시됩니다." : "계획 사이드바를 닫았습니다.");
+				tui.requestRender();
+				return { consume: true };
+			}
+			if (matchesKey(data, Key.ctrl("g"))) {
+				const switcher = new AstraViewSwitcher(command => {
+					closeOverlay();
+					void handleLocal(command).catch(error => { status.setNotice(String(error)); tui.requestRender(); });
+				}, () => { closeOverlay(); tui.requestRender(); }, () => tui.requestRender());
+				const switcherSheet = sheet(switcher);
+				overlay = tui.showOverlay(switcherSheet, { width: "86%", minWidth: 36, maxHeight: "95%", anchor: "center", margin: 1 });
+				overlayKind = "views";
+				tui.setFocus(switcherSheet);
+				return { consume: true };
+			}
+			if (matchesKey(data, Key.ctrl("p"))) {
+				const palette = new AstraCommandPalette(command => { closeOverlay(); editor.setText(command); tui.requestRender(); }, closeOverlay, () => tui.requestRender());
+				const paletteSheet = sheet(palette);
+				overlay = tui.showOverlay(paletteSheet, { width: "86%", minWidth: 36, maxHeight: "95%", anchor: "center", margin: 1 });
+				overlayKind = "commands";
+				tui.setFocus(paletteSheet);
+				return { consume: true };
+			}
+			for (const [key, command] of ASTRA_KEYS) {
+				if (matchesKey(data, key)) {
+					void handleLocal(command).catch(error => { status.setNotice(String(error)); tui.requestRender(); });
+					return { consume: true };
+				}
+			}
+			if (matchesKey(data, Key.ctrl("e")) && !editor.focused) { astra.transcript.expanded = !astra.transcript.expanded; astra.transcript.invalidate(); tui.requestRender(); return { consume: true }; }
+			if (matchesKey(data, Key.tab) && !editor.isShowingAutocomplete() && (!editor.focused || !editor.getText())) {
+				navigation.toggleAstraBrowse(editor.focused);
+				tui.requestRender(); return { consume: true };
+			}
+			if (matchesKey(data, Key.escape) && !editor.isShowingAutocomplete()) {
+				if (navigation.mode === "workbench" && astra.page !== "execution") { showAstraPage("execution"); return { consume: true }; }
+				if (navigation.mode === "workbench" && !editor.focused) { navigation.leaveAstraBrowse(); tui.requestRender(); return { consume: true }; }
+			}
+			if (!editor.focused && !(navigation.mode === "dashboard" && navigation.observabilityBrowsing)) {
+				const scroll = navigation.currentScroll();
+				const delta = matchesKey(data, Key.down) || data === "j" ? 1 : matchesKey(data, Key.up) || data === "k" ? -1
+					: matchesKey(data, Key.pageDown) ? Math.max(1, scroll.viewportHeight - 2) : matchesKey(data, Key.pageUp) ? -Math.max(1, scroll.viewportHeight - 2) : 0;
+				if (delta) { scroll.scrollBy(delta); tui.requestRender(); return { consume: true }; }
+				if (matchesKey(data, Key.home) || data === "g") { scroll.scrollToStart(); tui.requestRender(); return { consume: true }; }
+				if (matchesKey(data, Key.end) || data === "G") { scroll.scrollToEnd(); tui.requestRender(); return { consume: true }; }
+			}
 		}
 		if (matchesKey(data, Key.shift(Key.tab))) {
 			void cycleRuntimeMode().catch(error => {
@@ -1105,14 +1118,15 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 			});
 			return { consume: true };
 		}
-		if (observabilityNavigation && viewMode === "dashboard" && (matchesKey(data, Key.up) || matchesKey(data, Key.down))) {
+		if (navigation.observabilityBrowsing && navigation.mode === "dashboard" && (matchesKey(data, Key.up) || matchesKey(data, Key.down))) {
 			const maximum = Math.max(0, observabilityDashboardSnapshot.recentSessions.length - 1);
 			selectedDashboardSessionIndex = Math.max(0, Math.min(maximum, selectedDashboardSessionIndex + (matchesKey(data, Key.up) ? -1 : 1)));
+			if (astra) observabilityDashboard.scrollToStart();
 			observabilityDashboardView.invalidate();
 			tui.requestRender();
 			return { consume: true };
 		}
-		if (observabilityNavigation && viewMode === "dashboard" && matchesKey(data, Key.enter)) {
+		if (navigation.observabilityBrowsing && navigation.mode === "dashboard" && matchesKey(data, Key.enter)) {
 			selectedHistoricalSession = observabilityDashboardSnapshot.recentSessions[selectedDashboardSessionIndex] ?? null;
 			if (selectedHistoricalSession) {
 				statsTarget = "session";
@@ -1120,11 +1134,11 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 			}
 			return { consume: true };
 		}
-		if (shouldHandleObservabilityShortcut(observabilityNavigation, !observabilityNavigation, data)
-			&& (viewMode === "stats" || viewMode === "dashboard" || viewMode === "monitor")) {
+		if (shouldHandleObservabilityShortcut(navigation.observabilityBrowsing, astra ? editor.focused : !navigation.observabilityBrowsing, data)
+			&& (navigation.mode === "stats" || navigation.mode === "dashboard" || navigation.mode === "monitor")) {
 			const direct = directObservabilityView(data);
-			const rotated = data === "r" ? rotateObservabilityView(viewMode, 1)
-				: data === "R" ? rotateObservabilityView(viewMode, -1) : null;
+			const rotated = data === "r" ? rotateObservabilityView(navigation.mode, 1)
+				: data === "R" ? rotateObservabilityView(navigation.mode, -1) : null;
 			const next = direct ?? rotated;
 			if (next) {
 				void enterObservability(next).then(() => {
@@ -1138,11 +1152,11 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 			}
 		}
 		if (matchesKey(data, Key.escape)) {
-			const returnView = workbenchEscapeView(viewMode, previousViewMode);
-			if (returnView) {
-				setViewMode(returnView);
-				observabilityNavigation = false;
-				tui.setFocus(editor);
+			if (astra && navigation.mode === "dashboard" && !navigation.observabilityBrowsing && snapshot.phase === "working" && !editor.isShowingAutocomplete()) {
+				void workbench.dispatch({ type: "chat.cancel" }).then(showReceipt);
+				return { consume: true };
+			}
+			if (navigation.returnToWorkbench()) {
 				status.setNotice("상세 화면을 닫고 Workbench로 돌아왔습니다.");
 				tui.requestRender();
 				return { consume: true };
@@ -1185,7 +1199,8 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	});
 	if (!isViewportTUI(tui)) throw new Error("현재 터미널 렌더러가 viewport layout을 지원하지 않습니다.");
 	tui.setLayoutRoot(root);
-	tui.setFocus(editor);
+	tui.setFocus(inlineApprovalSheet ?? editor);
+	if (astra) void refreshObservabilityDashboard().then(() => tui.requestRender());
 	telemetry.refresh();
 	chat.syncActivity(workbenchActivityIndicator(snapshot), () => tui.requestRender());
 	chat.playWelcomeIntro(() => tui.requestRender());

@@ -13,7 +13,7 @@ src/
 │   ├── runtime/      # 실행 상태와 receipt
 │   └── commit/       # commit control 계약
 ├── adapters/
-│   ├── inbound/      # cli와 tui/{chat,commands,dashboard,overlays,shell}
+│   ├── inbound/      # cli와 tui/{foundation,features,commands,shell,legacy}
 │   └── outbound/     # authentication·development·execution·git·observability·persistence·review·workspace
 ├── app.ts            # production 조립
 ├── cli.ts            # 실행 진입점
@@ -39,6 +39,11 @@ Inbound Adapter ──→ Core ←── Outbound Adapter
 
 - Core Domain은 제품 capability, Core Application은 use case로 분류한다.
 - Inbound TUI는 사용자가 보는 화면과 조작 영역으로 분류한다.
+- `tui/foundation`은 theme·layout·rendering·공통 component만 소유하고 feature·shell을 참조하지 않는다.
+- `tui/features/<feature>`는 한 사용자 기능의 view와 interaction을 소유하며 다른 feature 구현을 직접 참조하지 않는다.
+- `tui/shell`은 feature 생성과 navigation·input·lifecycle을 조립한다. `feature-registry.ts`는 Feature와 그 하위 Unit의 정적 descriptor 조회만 제공하며 component factory나 plugin 등록을 소유하지 않는다.
+- `TUI-F###-U##` Unit은 화면과 조작을 찾기 위한 TUI metadata다. `.woo/units.yaml`의 지속 코드 책임 `Code-###` Unit과 별도이며 그 원장에 추가하지 않는다.
+- `tui/legacy`는 명시적인 호환 진입점만 소유한다.
 - Outbound Adapter는 연결하는 외부 기능의 종류로 분류한다.
 - `shared`, `common`, `utils` 폴더는 만들지 않는다. 소유 책임을 하나 선택한다.
 - `core/agents`, `core/intents`, `core/skills`, `core/workflows`는 각각 WHEN·분류·HOW·실행 순서의 예약 경계다. 실제 코드가 생길 때만 만든다.

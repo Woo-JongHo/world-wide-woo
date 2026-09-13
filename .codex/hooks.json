@@ -1,0 +1,39 @@
+{
+  "description": "WWW 작업 변경의 Linear·Obsidian 기록 누락을 turn 종료 전에 감지한다.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun \"$(git rev-parse --show-toplevel)/scripts/work-recording-hook.ts\"",
+            "statusMessage": "작업 기록 기준점 저장"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun \"$(git rev-parse --show-toplevel)/scripts/work-recording-hook.ts\"",
+            "timeout": 30,
+            "statusMessage": "Linear·Obsidian 기록 누락 확인"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun \"$(git rev-parse --show-toplevel)/scripts/work-recording-hook.ts\"",
+            "timeout": 3
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -5,6 +5,7 @@ import type { TodoDocument } from "./todos.js";
 import type { ReviewProvider } from "../review/review.js";
 import type { WorkFlowProjection } from "./index.js";
 import type { ExecutionRunState } from "../execution/execution-run-contract.js";
+import type { RequestRuntimeRecord } from "../execution/request-runtime";
 import type { ActivitySelectionResult } from "./trace-selection.js";
 import type { LinearProjectDashboard } from "./linear-dashboard.js";
 import type { PerformanceProjection } from "./performance.js";
@@ -130,6 +131,9 @@ export interface WorkbenchActionResult {
 }
 
 export interface WorkbenchSnapshot {
+	modelCatalog?: import("../execution/model-settings").NativeModelCatalog;
+	/** Seven-stage protocol history, projected from the durable Activity journal. */
+	requestRuntime?: readonly RequestRuntimeRecord[];
 	projectId: string;
 	/** Monotonic for every in-process UI projection change, including deltas. */
 	revision: number;
@@ -203,6 +207,7 @@ export type WorkbenchCommand =
 	| { type: "chat.clear" }
 	| { type: "thread.compact" }
 	| { type: "approval.resolve"; requestId: string | number; response: NativeApprovalResponse }
+	| { type: "runtime.reconcile"; requestId: string; operationId: string }
 	| { type: "activity.select"; activityId: string | null }
 	| { type: "trace.select"; activityId: string }
 	| { type: "agent.select"; agentRef: string | null }

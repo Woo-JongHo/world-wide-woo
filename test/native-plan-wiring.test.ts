@@ -4,7 +4,7 @@ import type { SessionRepository, TodoStore } from "../src/core/ports/index.js";
 import { TodoLedger } from "../src/core/application/work/todo-ledger.js";
 import type { SessionEvent, SessionEventInput } from "../src/core/domain/execution/session-events.js";
 import type { ProjectActivity, ProjectActivityAppendResult, ProjectActivityInput } from "../src/core/domain/execution/project-activity.js";
-import type { TodoDocument } from "../src/core/domain/work/todos.js";
+import type { TodoDocument, TodoItemStatus } from "../src/core/domain/work/todos.js";
 import { CodexAppServer, type JsonLineTransport } from "../src/adapters/outbound/execution/codex-app-server.js";
 
 class FakeJsonLineTransport implements JsonLineTransport {
@@ -103,8 +103,18 @@ async function waitFor(assertion: () => void, attempts = 80): Promise<void> {
 	throw lastError;
 }
 
-describe("Native Plan transport-to-Todo wiring", () => {
-	test("shows a public numbered Plan document without making it an executable Todo or carrying it into manual execution", async () => {
+const runtimeTodoStageIds = ["understand", "decompose", "ground", "decide", "execute", "verify", "deliver"] as const;
+const blockedRuntimeTodoStatuses = ["blocked", "blocked", "blocked", "blocked", "blocked", "blocked", "blocked"] as const;
+const activeRuntimeTodoStatuses = ["in_progress", "pending", "pending", "pending", "pending", "pending", "pending"] as const;
+
+function expectRuntimeTodo(todo: TodoDocument | null, statuses: readonly TodoItemStatus[]): void {
+	expect(todo?.items.map(({ id, status }) => ({ id, status }))).toEqual(
+		runtimeTodoStageIds.map((id, index) => ({ id, status: statuses[index] })),
+	);
+}
+
+describe("Native Plan and Runtime Todo boundaries", () => {
+	test("keeps a public numbered Plan in workFlow without replacing the seven-stage Todo or carrying it into manual execution", async () => {
 		const transport = new FakeJsonLineTransport();
 		transport.responses.set("mcpServerStatus/list", [{ data: [], nextCursor: null }]);
 		transport.responses.set("thread/start", [{ thread: { id: "thread-root", turns: [] } }]);
@@ -162,7 +172,7 @@ describe("Native Plan transport-to-Todo wiring", () => {
 			});
 
 			await waitFor(() => expect(workbench.snapshot.workFlow.steps).toHaveLength(3));
-			expect(ledger.snapshot).toBeNull();
+			expectRuntimeTodo(ledger.snapshot, blockedRuntimeTodoStatuses);
 			expect(workbench.snapshot.workFlow.source?.authority).toBe("public-plan-document");
 			expect(workbench.snapshot.workFlow.steps.map(step => step.title)).toEqual(["현재 상태를 확인합니다.", "필요한 변경을 적용합니다.", "결과를 검증합니다."]);
 
@@ -194,7 +204,7 @@ describe("Native Plan transport-to-Todo wiring", () => {
 			});
 			await waitFor(() => expect(journal.records.some(activity => activity.nativeRefs.itemId === "manual-action")).toBe(true));
 			expect(workbench.snapshot.workFlow.source).toBeNull();
-			expect(ledger.snapshot).toBeNull();
+			expectRuntimeTodo(ledger.snapshot, activeRuntimeTodoStatuses);
 			const action = journal.records.find(activity => activity.nativeRefs.itemId === "manual-action")!;
 			expect(workbench.snapshot.workFlow.steps.some(step => step.activityIds.includes(action.id))).toBe(false);
 
@@ -242,15 +252,16 @@ describe("Native Plan transport-to-Todo wiring", () => {
 				method: "turn/completed",
 				params: { threadId: "thread-root", turn: { id: "turn-plan", status: "completed", error: null } },
 			});
-			await waitFor(() => expect(ledger.snapshot?.items).toHaveLength(2));
-			expect(ledger.snapshot?.items.map((item) => item.content)).toEqual(["Native 계획", "Native 검증"]);
+			await waitFor(() => expect(workbench.snapshot.workFlow.steps).toHaveLength(2));
+			expect(workbench.snapshot.workFlow.steps.map((step) => step.title)).toEqual(["Native 계획", "Native 검증"]);
+			expectRuntimeTodo(ledger.snapshot, blockedRuntimeTodoStatuses);
 			expect(journal.records.some((activity) => activity.payload.method === "turn/plan/public-fallback")).toBe(false);
 		} finally {
 			await workbench.close();
 		}
 	});
 
-	test("does not manufacture Todo or a Plan when a Plan turn supplies no plan body", async () => {
+	test("does not manufacture a Native Plan when a Plan turn supplies no plan body", async () => {
 		const transport = new FakeJsonLineTransport();
 		transport.responses.set("mcpServerStatus/list", [{ data: [], nextCursor: null }]);
 		transport.responses.set("thread/start", [{ thread: { id: "thread-root", turns: [] } }]);
@@ -282,7 +293,7 @@ describe("Native Plan transport-to-Todo wiring", () => {
 				params: { threadId: "thread-root", turn: { id: "turn-plan", status: "completed", error: null } },
 			});
 			await waitFor(() => expect(workbench.snapshot.executionRun?.receipt).not.toBeNull());
-			expect(ledger.snapshot).toBeNull();
+			expectRuntimeTodo(ledger.snapshot, blockedRuntimeTodoStatuses);
 			expect(workbench.snapshot.workFlow.steps).toEqual([]);
 			expect(journal.records.some(activity => activity.payload.source === "public-user-request")).toBe(false);
 			expect(journal.records.some(activity => activity.nativeRefs.itemId === "observed-command")).toBe(true);
@@ -345,12 +356,13 @@ describe("Native Plan transport-to-Todo wiring", () => {
 			});
 			transport.emit({ method: "turn/completed", params: { threadId: "thread-root", turn: { id: "turn-test2", status: "completed", error: null } } });
 
-			await waitFor(() => expect(ledger.snapshot?.items).toHaveLength(3));
-			expect(ledger.snapshot?.items.map(({ content, status }) => ({ content, status }))).toEqual([
-				{ content: "값 추출", status: "in_progress" },
-				{ content: "의미 비교", status: "pending" },
-				{ content: "결과 보고", status: "pending" },
+			await waitFor(() => expect(workbench.snapshot.workFlow.steps).toHaveLength(3));
+			expect(workbench.snapshot.workFlow.steps.map(({ title, status }) => ({ title, status }))).toEqual([
+				{ title: "값 추출", status: "running" },
+				{ title: "의미 비교", status: "pending" },
+				{ title: "결과 보고", status: "pending" },
 			]);
+			expectRuntimeTodo(ledger.snapshot, blockedRuntimeTodoStatuses);
 			expect(journal.records.some((activity) => activity.payload.source === "public-user-request")).toBe(false);
 			const bash = journal.records.find((activity) => activity.nativeRefs.itemId === "bash" && activity.phase === "completed");
 			expect(bash).toBeDefined();
@@ -410,13 +422,13 @@ describe("Native Plan transport-to-Todo wiring", () => {
 			});
 			transport.emit({ method: "turn/completed", params: { threadId: "thread-root", turn: { id: "turn-test2-list", status: "completed", error: null } } });
 
-			await waitFor(() => expect(ledger.snapshot?.items).toHaveLength(3));
+			await waitFor(() => expect(workbench.snapshot.workFlow.steps).toHaveLength(3));
 			expect(workbench.snapshot.workFlow.steps.map(({ title, status }) => ({ title, status }))).toEqual([
 				{ title: "README.md에서 제품명과 버전 관련 표현을 추출한다.", status: "running" },
 				{ title: "package.json에서 패키지명과 현재 버전을 추출해 대조한다.", status: "pending" },
 				{ title: "제품명 일치 여부와 버전 표현의 의미 차이를 보고한다.", status: "pending" },
 			]);
-			expect(ledger.snapshot?.items.map((item) => item.status)).toEqual(["in_progress", "pending", "pending"]);
+			expectRuntimeTodo(ledger.snapshot, blockedRuntimeTodoStatuses);
 			expect(workbench.snapshot.workFlow.steps.map((step) => step.title)).not.toContain("3단계");
 			expect(journal.records.some((activity) => activity.payload.source === "public-user-request")).toBe(false);
 		} finally {
@@ -474,12 +486,13 @@ describe("Native Plan transport-to-Todo wiring", () => {
 			});
 			transport.emit({ method: "turn/completed", params: { threadId: "thread-root", turn: { id: "turn-test2-top-level", status: "completed", error: null } } });
 
-			await waitFor(() => expect(ledger.snapshot?.items).toHaveLength(3));
+			await waitFor(() => expect(workbench.snapshot.workFlow.steps).toHaveLength(3));
 			expect(workbench.snapshot.workFlow.steps.map(({ title, status }) => ({ title, status }))).toEqual([
 				{ title: "표기 추출", status: "running" },
 				{ title: "의미 비교", status: "pending" },
 				{ title: "결과 정리", status: "pending" },
 			]);
+			expectRuntimeTodo(ledger.snapshot, blockedRuntimeTodoStatuses);
 			expect(workbench.snapshot.workFlow.steps.map((step) => step.title)).not.toContain(expect.stringContaining("README:"));
 			expect(journal.records.some((activity) => activity.payload.source === "public-user-request")).toBe(false);
 			const bash = journal.records.find((activity) => activity.nativeRefs.itemId === "bash" && activity.phase === "completed");
@@ -497,7 +510,7 @@ describe("Native Plan transport-to-Todo wiring", () => {
 		["manual mode", "manual", "completed", true],
 		["failed Plan turn", "plan", "failed", true],
 		["Plan turn without observed work", "plan", "completed", false],
-	] as const)("does not create a missing-plan goal for %s", async (_label, mode, status, emitWork) => {
+	] as const)("does not infer a Native Plan for %s", async (_label, mode, status, emitWork) => {
 		const transport = new FakeJsonLineTransport();
 		transport.responses.set("mcpServerStatus/list", [{ data: [], nextCursor: null }]);
 		transport.responses.set("thread/start", [{ thread: { id: "thread-root", turns: [] } }]);
@@ -532,7 +545,7 @@ describe("Native Plan transport-to-Todo wiring", () => {
 			});
 			await Bun.sleep(15);
 			expect(journal.records.some((activity) => activity.payload.source === "public-user-request")).toBe(false);
-			expect(store.document).toBeNull();
+			expectRuntimeTodo(store.document, blockedRuntimeTodoStatuses);
 		} finally {
 			await workbench.close();
 		}
@@ -572,13 +585,13 @@ describe("Native Plan transport-to-Todo wiring", () => {
 			});
 			await Bun.sleep(10);
 			expect(journal.records.some((activity) => activity.payload.method === "turn/plan/public-fallback")).toBe(false);
-			expect(store.document).toBeNull();
+			expectRuntimeTodo(store.document, blockedRuntimeTodoStatuses);
 		} finally {
 			await workbench.close();
 		}
 	});
 
-	test("accepts only the known root turn's completed plan item at the Workbench and Todo boundaries", async () => {
+	test("accepts only the known root turn's completed plan item without replacing the Runtime Todo", async () => {
 		const transport = new FakeJsonLineTransport();
 		transport.responses.set("mcpServerStatus/list", [{ data: [], nextCursor: null }]);
 		transport.responses.set("thread/start", [{ thread: { id: "thread-root", turns: [] } }]);
@@ -629,7 +642,7 @@ describe("Native Plan transport-to-Todo wiring", () => {
 						{ title: "cancelled result", status: "cancelled" },
 					],
 				});
-				expect(ledger.snapshot?.items).toHaveLength(5);
+				expectRuntimeTodo(ledger.snapshot, activeRuntimeTodoStatuses);
 			});
 
 			transport.emit({
@@ -664,15 +677,11 @@ describe("Native Plan transport-to-Todo wiring", () => {
 					{ title: "실패 사례 기록", status: "failed" },
 					{ title: "취소 사례 기록", status: "cancelled" },
 				]);
-				expect(ledger.snapshot?.items).toHaveLength(6);
+				expectRuntimeTodo(ledger.snapshot, activeRuntimeTodoStatuses);
 			});
 			expect(journal.records.find((activity) => activity.nativeRefs.itemId === "plan-root")?.payload)
 				.toMatchObject({ method: "item/completed", params: { item: { type: "plan" } } });
-			const rootStep = workbench.snapshot.workFlow.steps[0]!;
-			const rootTodo = ledger.snapshot!.items[0]!;
-			const rootTodos = ledger.snapshot!.items;
-			expect(rootTodo.id).toBe(`native-${rootStep.identity.value.slice(0, 48)}`);
-			expect(rootTodo.details).toEqual([]);
+			expectRuntimeTodo(ledger.snapshot, activeRuntimeTodoStatuses);
 			const stableTodoRevision = ledger.snapshot!.revision;
 
 			transport.emit({
@@ -691,9 +700,8 @@ describe("Native Plan transport-to-Todo wiring", () => {
 					{ title: "README.md 읽기", status: "completed" },
 					{ title: "구현하기", status: "running" },
 				]);
-				expect(ledger.snapshot?.revision).toBeGreaterThan(stableTodoRevision);
-				expect(ledger.snapshot?.items.map((item) => item.status)).toEqual(["completed", "in_progress"]);
-				expect(ledger.snapshot?.items[1]?.content).toBe("구현하기");
+				expect(ledger.snapshot?.revision).toBe(stableTodoRevision);
+				expectRuntimeTodo(ledger.snapshot, activeRuntimeTodoStatuses);
 			});
 			const markdownSteps = workbench.snapshot.workFlow.steps;
 			const markdownTodo = ledger.snapshot!;

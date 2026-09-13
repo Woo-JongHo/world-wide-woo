@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
 import type { Models } from "@earendil-works/pi-ai";
-import { AuthFlowOverlay, GEMINI_API_KEY_URL, LoginOverlay } from "../src/adapters/inbound/tui/overlays/auth-overlay";
+import { AuthFlowOverlay, GEMINI_API_KEY_URL, LoginOverlay } from "../src/adapters/inbound/tui/features/authentication/auth-overlay";
 import { AuthService } from "../src/adapters/outbound/authentication/auth-service";
 
 function fakeAuthModels(): Pick<Models, "checkAuth" | "getProvider" | "login" | "logout"> {

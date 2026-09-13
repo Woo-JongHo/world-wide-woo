@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import { UsageStripView } from "../src/adapters/inbound/tui/dashboard/usage-strip-view";
+import { UsageStripView } from "../src/adapters/inbound/tui/features/usage/usage-strip-view";
 
 const now = Date.now();
 

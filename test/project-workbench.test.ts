@@ -1,4 +1,7 @@
 import legacyJournal from "./fixtures/legacy-execution-receipt.json";
+import type { RuntimeToolHandler, RuntimeToolDefinition } from "../src/core/ports/execution/runtime-tool-port";
+import { REQUEST_STAGES, type RequestRuntimeRecord } from "../src/core/domain/execution/request-runtime";
+import { projectRequestTodo } from "../src/core/domain/work/request-projections";
 import { describe, expect, test } from "bun:test";
 import type { ExecutorPort } from "../src/core/ports/execution/executor-port";
 import type {
@@ -43,7 +46,9 @@ import { TNoteService } from "../src/core/application/work/t-note-service";
 import type { DetachedTextGenerator } from "../src/core/application/orchestration/detached-text-generator";
 import { FileTNoteStore } from "../src/adapters/outbound/persistence/t-note-store";
 import { projectTNoteCompletionIndex, sanitizeTNoteText } from "../src/core/domain/work/t-notes";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, writeFile, readFile, realpath } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { pinnedFileCapabilities } from "../src/adapters/outbound/workspace/pinned-file-capabilities";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -240,6 +245,153 @@ async function ready(workbench: ProjectWorkbench): Promise<void> {
 }
 
 describe("ProjectWorkbench", () => {
+	test("host reconcile reads an uncertain action after Native termination through the Workbench command", async () => {
+		class BrokerNative extends FakeNativeHarness {
+			handler: RuntimeToolHandler | null = null;
+			registerRuntimeTools(_definitions: readonly RuntimeToolDefinition[], handler: RuntimeToolHandler) { this.handler = handler; return () => { this.handler = null; }; }
+		}
+		let writes = 0, reads = 0;
+		const native = new BrokerNative(), journal = new MemoryJournal();
+		const workbench = new ProjectWorkbench(native, journal, { projectId: "p", cwd: "/tmp", requestCapabilities: [{ id: "fixture", effect: "workspace-change", authorize: async () => true, execute: async () => { writes++; throw new Error("lost receipt"); }, reconciliation: { prepare: () => ({ path: "fixture" }), readBack: async () => { reads++; return { confirmed: true, summary: "read back", source: { readBack: true } }; } } }] });
+		await ready(workbench);
+		const request = await workbench.dispatch({ type: "chat.send", text: "변경" });
+		let callId = 0;
+		const invoke = async (tool: string, extra = {}) => JSON.parse((await native.handler!({ threadId: "thread-1", turnId: "turn-1", callId: `recover-${++callId}`, tool: `www_runtime_${tool}`, arguments: { requestId: request.commandId, ...extra } })).text);
+		for (const stage of ["UNDERSTAND", "DECOMPOSE", "GROUND", "DECIDE", "EXECUTE"]) await invoke("propose", { expectedRevision: (await invoke("inspect")).revision, report: { requestId: request.commandId, stage, status: stage === "EXECUTE" ? "running" : "skipped", summary: "fixture 작업" } });
+		await invoke("act", { expectedRevision: (await invoke("inspect")).revision, stage: "EXECUTE", operationId: "uncertain", capability: "fixture", arguments: {} });
+		expect((await workbench.dispatch({ type: "runtime.reconcile", requestId: request.commandId, operationId: "uncertain" })).state).toBe("rejected");
+		native.emit({ type: "notification", method: "turn/completed", refs: { threadId: "thread-1", turnId: "turn-1" }, params: { turn: { id: "turn-1", status: "completed" } } });
+		const result = await workbench.dispatch({ type: "runtime.reconcile", requestId: request.commandId, operationId: "uncertain" });
+		expect(result.state).toBe("accepted");
+		expect(writes).toBe(1); expect(reads).toBe(1);
+		expect(workbench.snapshot.requestRuntime?.[0]?.actions[0]?.status).toBe("reconciled");
+		expect(workbench.snapshot.requestRuntime?.[0]?.status).not.toBe("completed");
+		await workbench.close();
+	});
+	test("Runtime approval gates real files, stays cancellable, and never calls Native approval", async () => {
+		class BrokerNative extends FakeNativeHarness {
+			handler: RuntimeToolHandler | null = null;
+			registerRuntimeTools(_definitions: readonly RuntimeToolDefinition[], handler: RuntimeToolHandler) { this.handler = handler; return () => { this.handler = null; }; }
+			override async respondToApproval(_resolution: NativeApprovalResolution): Promise<void> { throw new Error("Runtime approval must not reach Native"); }
+		}
+		const dir = await realpath(await mkdtemp(join(tmpdir(), "www-runtime-approval-")));
+		try {
+			for (const decision of ["accept", "decline", "cancel-turn", "close"] as const) {
+				const path = join(dir, `${decision}.txt`); await writeFile(path, "before");
+				const native = new BrokerNative(), journal = new MemoryJournal();
+				const workbench = new ProjectWorkbench(native, journal, { projectId: "p", cwd: dir, requestCapabilities: pinnedFileCapabilities([path]) });
+				await ready(workbench);
+				const request = await workbench.dispatch({ type: "chat.send", text: "파일 교체" });
+				let callId = 0;
+				const invoke = async (tool: string, extra = {}) => JSON.parse((await native.handler!({ threadId: "thread-1", turnId: "turn-1", callId: `approval-${++callId}`, tool: `www_runtime_${tool}`, arguments: { requestId: request.commandId, ...extra } })).text);
+				for (const stage of ["UNDERSTAND", "DECOMPOSE", "GROUND", "DECIDE", "EXECUTE"]) expect((await invoke("propose", { expectedRevision: (await invoke("inspect")).revision, report: { requestId: request.commandId, stage, status: stage === "EXECUTE" ? "running" : "skipped", summary: "단일 파일 변경" } })).state).toBe("accepted");
+				const approved = new Promise<void>(resolve => { const unsub = workbench.subscribe(snapshot => { if (snapshot.pendingApproval) { unsub(); resolve(); } }); });
+				const input = { expectedRevision: (await invoke("inspect")).revision, operationId: "replace", stage: "EXECUTE", capability: "files.replace-approved", arguments: { path, content: "after", beforeDigest: `sha256:${createHash("sha256").update("before").digest("hex")}` } };
+				const action = invoke("act", input);
+				await approved;
+				expect(await readFile(path, "utf8")).toBe("before");
+				expect(workbench.snapshot.requestRuntime?.at(-1)?.stages[4]?.status).toBe("blocked");
+				const approvalId = workbench.snapshot.pendingApproval!.requestId;
+				expect((await workbench.dispatch({ type: "approval.resolve", requestId: approvalId, response: { decision: "acceptForSession" } })).state).toBe("rejected");
+				if (decision === "cancel-turn") await workbench.dispatch({ type: "chat.cancel" });
+				else if (decision === "close") await workbench.close();
+				else expect((await workbench.dispatch({ type: "approval.resolve", requestId: approvalId, response: { decision } })).state).toBe("accepted");
+				const result = await action;
+				expect(result.state).toBe(decision === "accept" ? "accepted" : "rejected");
+				expect(await readFile(path, "utf8")).toBe(decision === "accept" ? "after" : "before");
+				expect(workbench.snapshot.pendingApproval).toBeNull();
+				if (decision === "accept") {
+					expect((await invoke("act", input)).reason).toBe("RECORDED_RESULT");
+					expect(journal.records.filter(a => a.payload.method === "runtime/action-completed")).toHaveLength(1);
+				}
+				expect(journal.records.filter(a => a.payload.method === "runtime/approval-resolved")).toHaveLength(1);
+				await workbench.close();
+			}
+		} finally { await rm(dir, { recursive: true, force: true }); }
+	}, 10000);
+	test("brokered tool requests drive the actual Workbench Runtime and return corrective responses", async () => {
+		class BrokerNative extends FakeNativeHarness {
+			handler: RuntimeToolHandler | null = null;
+			definitions: readonly RuntimeToolDefinition[] = [];
+			registerRuntimeTools(definitions: readonly RuntimeToolDefinition[], handler: RuntimeToolHandler) { this.definitions = definitions; this.handler = handler; return () => { this.handler = null; }; }
+		}
+		const native = new BrokerNative(), journal = new MemoryJournal();
+		const workbench = new ProjectWorkbench(native, journal, { projectId: "p", cwd: "/tmp", requestCapabilities: [] });
+		await ready(workbench);
+		const request = await workbench.dispatch({ type: "chat.send", text: "단계별로 정리" });
+		let callId = 0;
+		const invoke = async (tool: string, extra = {}) => JSON.parse((await native.handler!({ threadId: "thread-1", turnId: "turn-1", callId: `c-${++callId}`, tool: `www_runtime_${tool}`, arguments: { requestId: request.commandId, ...extra } })).text);
+		expect(native.definitions.map(d => d.name)).toEqual(["www_runtime_require_delivery", "www_runtime_replan", "www_runtime_reconcile", "www_runtime_inspect", "www_runtime_propose", "www_runtime_act"]);
+		expect(native.startTurnInputs[0]?.additionalContext?.www_request_runtime?.value).toContain("www_runtime_propose");
+		const snapshot = await invoke("inspect");
+		expect(snapshot.request.protocolVersion).toBe(2);
+		const result = await invoke("propose", { expectedRevision: snapshot.revision, report: { requestId: request.commandId, stage: "UNDERSTAND", status: "completed", summary: "목표를 확인했다" } });
+		expect(result.state).toBe("accepted");
+		expect(workbench.snapshot.todo?.items[0]?.status).toBe("completed");
+		const rejected = await invoke("act", { expectedRevision: result.revision, operationId: "write", stage: "EXECUTE", capability: "shell", arguments: { command: "touch denied" } });
+		expect(rejected.reason).toBe("CAPABILITY_UNAVAILABLE");
+		expect(journal.records.filter(a => a.payload.method === "runtime/action-prepared")).toEqual([]);
+		await workbench.close();
+		expect(native.handler).toBeNull();
+	});
+	test("Astra native passthrough sends the user request unchanged and projects Native state", async () => {
+		const native = new FakeNativeHarness();
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
+			projectId: "sample",
+			cwd: "/sample",
+			requestRuntimeMode: "off",
+		});
+		await ready(workbench);
+		await workbench.dispatch({ type: "chat.send", text: "구조를 파악해줘" });
+		expect(native.startTurnInputs[0]?.text).toBe("구조를 파악해줘");
+		expect(native.startTurnInputs[0]?.additionalContext?.www_request_runtime).toBeUndefined();
+		expect(workbench.snapshot.requestRuntime).toEqual([]);
+		expect(workbench.snapshot.todo).toBeNull();
+		await workbench.close();
+	});
+	test("Astra goal opts one request into the seven-stage Runtime protocol", async () => {
+		const native = new FakeNativeHarness();
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
+			projectId: "sample",
+			cwd: "/sample",
+			requestRuntimeMode: "off",
+		});
+		await ready(workbench);
+		await workbench.dispatch({ type: "goal.set", text: "구조를 리팩터링한다" });
+		expect(native.startTurnInputs[0]?.text).toBe("구조를 리팩터링한다");
+		expect(native.startTurnInputs[0]?.additionalContext?.www_request_runtime?.value).toContain("UNDERSTAND");
+		expect(workbench.snapshot.requestRuntime).toHaveLength(1);
+		expect(workbench.snapshot.todo?.items.map(item => item.content)).toEqual([...REQUEST_STAGES]);
+		await workbench.close();
+	});
+	test("accepts Native stage reports into seven-stage Todo and hides transport messages from Chat", async () => {
+		const native = new FakeNativeHarness(), journal = new MemoryJournal();
+		const captured: RequestRuntimeRecord[] = [];
+		const workbench = new ProjectWorkbench(native, journal, { projectId: "sample", cwd: "/sample", requestProjection: { capture: async record => { captured.push(record); } } });
+		await ready(workbench);
+		const request = await workbench.dispatch({ type: "chat.send", text: "설계만 정리해" });
+		expect(native.startTurnInputs[0]?.additionalContext?.www_request_runtime?.value).toContain(request.commandId);
+		let item = 0;
+		const report = (stage: string, status: string, extra = {}) => native.emit({ type: "notification", method: "item/completed", refs: { threadId: "thread-1", turnId: "turn-1", itemId: `report-${++item}` }, params: { item: { type: "agentMessage", phase: "commentary", text: "[www-runtime]" + JSON.stringify({ requestId: request.commandId, stage, status, summary: "제공된 Context로 설계 정리", ...extra }) } } });
+		report("UNDERSTAND", "completed");
+		report("DECOMPOSE", "completed", { plan: [{ stage: "DECIDE", tasks: [{ id: "design", title: "설계 선택", status: "pending", dependsOn: [] }] }] });
+		report("GROUND", "skipped");
+		report("DECIDE", "completed", { plan: [{ stage: "DECIDE", tasks: [{ id: "design", title: "설계 선택", status: "completed", dependsOn: [] }] }], decision: { decision: "기존 계약 확장", rationale: "중복 방지", selectedApproach: "확장", rejectedAlternatives: [], executionPlan: [] } });
+		report("EXECUTE", "skipped"); report("VERIFY", "skipped"); report("DELIVER", "running");
+		native.emit({ type: "notification", method: "item/completed", refs: { threadId: "thread-1", turnId: "turn-1", itemId: "answer" }, params: { item: { type: "agentMessage", phase: "final", text: "기존 계약을 확장하는 설계입니다." } } });
+		native.emit({ type: "notification", method: "turn/completed", refs: { threadId: "thread-1", turnId: "turn-1" }, params: {} });
+		await Bun.sleep(20);
+		await workbench.close();
+		expect(workbench.snapshot.requestRuntime?.[0]?.status).toBe("completed");
+		expect(workbench.snapshot.todo?.items).toHaveLength(7);
+		expect(workbench.snapshot.todo?.items[3]?.details[0]?.content).toBe("설계 선택");
+		expect(workbench.snapshot.chat.some(m => m.content.includes("[www-runtime]"))).toBe(false);
+		expect(captured.at(-1)?.status).toBe("completed");
+		const resumed = new ProjectWorkbench(new FakeNativeHarness(), journal, { projectId: "sample", cwd: "/sample", resumeThreadId: "thread-1" });
+		await ready(resumed);
+		expect(resumed.snapshot.requestRuntime).toEqual(workbench.snapshot.requestRuntime);
+		await resumed.close();
+	});
 	test("turns a Goal into a Native Plan request and exposes it before Todo sync", async () => {
 		const native = new FakeNativeHarness();
 		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
@@ -369,7 +521,7 @@ describe("ProjectWorkbench", () => {
   });
   expect(workbench.snapshot.executionRun?.activities.some(activity => activity.nativeRefs.itemId === "tool-1")).toBe(true);
   expect(workbench.snapshot.workFlow.source).toBeNull();
-  expect(workbench.snapshot.todo).toBeNull();
+  expect(workbench.snapshot.todo?.items.map(item => item.content)).toEqual([...REQUEST_STAGES]);
   await workbench.close();
  });
 
@@ -389,7 +541,7 @@ describe("ProjectWorkbench", () => {
 		await Bun.sleep(10);
 		expect(workbench.snapshot.workFlow.source).toMatchObject({ authority: "public-plan-document" });
 		expect(workbench.snapshot.workFlow.steps.map(step => step.title)).toEqual(["계약을 확인한다", "회귀 테스트를 실행한다"]);
-		expect(workbench.snapshot.todo).toBeNull();
+		expect(workbench.snapshot.todo?.items.map(item => item.content)).toEqual([...REQUEST_STAGES]);
 		await workbench.close();
 	});
 
@@ -656,18 +808,18 @@ describe("ProjectWorkbench", () => {
 		await workbench.close();
 	});
 
-	test("mirrors Native plan activity to Todo without delaying real-time Chat projection", async () => {
+	test("mirrors seven-stage Runtime to Todo without delaying Native activity projection", async () => {
 		const native = new FakeNativeHarness();
-		const syncCalls: Array<{ flow: WorkFlowProjection; binding: Parameters<NonNullable<WorkbenchTodoSource["syncNativePlan"]>>[1] }> = [];
+		const syncCalls: RequestRuntimeRecord[] = [];
 		let releasePlanSync: () => void = () => undefined;
 		const planSyncGate = new Promise<void>((resolve) => { releasePlanSync = resolve; });
 		const unsupported = async (): Promise<never> => { throw new Error("not used"); };
 		const todos: WorkbenchTodoSource = {
 			snapshot: null,
 			subscribe: () => () => undefined,
-			syncNativePlan: async (flow, binding) => {
-				syncCalls.push({ flow, binding });
-				if (flow.steps.length > 0) await planSyncGate;
+			syncRequestRuntime: async (request) => {
+				syncCalls.push(request);
+				await planSyncGate;
 				return todoDocument();
 			},
 			create: unsupported,
@@ -715,7 +867,7 @@ describe("ProjectWorkbench", () => {
 		});
 		await Bun.sleep(10);
 
-		expect(syncCalls.some(({ flow }) => flow.steps.length === 2)).toBe(true);
+		expect(syncCalls[0]?.stages.map(stage => stage.id)).toEqual([...REQUEST_STAGES]);
 		const execution = workbench.snapshot.activities.find((activity) => activity.nativeRefs.itemId === "write-1");
 		expect(execution).toBeDefined();
 		expect(workbench.snapshot.activities.find((activity) => activity.payload.method === "turn/plan/updated")?.nativeRefs)
@@ -731,16 +883,9 @@ describe("ProjectWorkbench", () => {
 			lastConfirmedAt: "2026-09-01T00:00:00.000Z",
 			message: null,
 		});
-		expect(syncCalls.at(-1)).toMatchObject({
-			flow: {
-				source: { kind: "native-plan-derived", turnId: "turn-1", algorithm: "dplan-v1" },
-				steps: [{ title: "계획 자동 동기화", status: "running" }, { title: "결과 검증", status: "pending" }],
-			},
-			binding: {
-				input: { requestId: expect.any(String), activityId: expect.any(String), sourceDigest: expect.stringMatching(/^sha256:/u) },
-				rootExecution: { provider: null, model: "codex", agentId: null, threadId: "thread-1", runId: "turn-1" },
-			},
-		});
+		expect(syncCalls.at(-1)).toMatchObject({ requestId: expect.any(String), threadId: "thread-1", turnId: "turn-1" });
+		expect(syncCalls.at(-1)?.stages[0]?.evidence.map(e => e.activityId)).toContain(execution!.id);
+		expect(workbench.snapshot.todo?.items.map(item => item.content)).toEqual([...REQUEST_STAGES]);
 	});
 
 	test("keeps Chat usable while Todo sync is blocked and clears the warning after a later plan sync", async () => {
@@ -750,7 +895,7 @@ describe("ProjectWorkbench", () => {
 		const todos: WorkbenchTodoSource = {
 			snapshot: null,
 			subscribe: () => () => undefined,
-			syncNativePlan: async () => {
+			syncRequestRuntime: async () => {
 				if (shouldFail) throw new Error("disk unavailable");
 				return todoDocument(1);
 			},
@@ -806,7 +951,7 @@ describe("ProjectWorkbench", () => {
 		await workbench.close();
 	});
 
-	test("preserves rewritten root-plan identity through Todo sync and resume", async () => {
+	test("preserves rewritten root-plan Trace while seven-stage Todo survives resume", async () => {
 		const native = new FakeNativeHarness();
 		const journal = new MemoryJournal();
 		const mirrored = { todo: null as TodoDocument | null };
@@ -815,22 +960,8 @@ describe("ProjectWorkbench", () => {
 		const todos: WorkbenchTodoSource = {
 			snapshot: null,
 			subscribe: () => () => undefined,
-			syncNativePlan: async (flow) => {
-				mirrored.todo = {
-					version: 1,
-					revision: ++revision,
-					ownerSessionId: "workbench",
-					storyId: null,
-					title: flow.goal,
-					updatedAt: "2026-09-01T00:00:00.000Z",
-					items: flow.steps.map((step) => ({
-						id: step.id,
-						content: step.title,
-						status: step.status === "running" ? "in_progress" : step.status === "completed" ? "completed" : "pending",
-						evidenceIds: [],
-						details: [],
-					})),
-				};
+			syncRequestRuntime: async (request) => {
+				mirrored.todo = projectRequestTodo(request, "workbench", ++revision);
 				return mirrored.todo;
 			},
 			create: unsupported,
@@ -891,7 +1022,8 @@ describe("ProjectWorkbench", () => {
 		]));
 		const finalTodo = mirrored.todo;
 		if (!finalTodo) throw new Error("Todo mirror was not invoked for the rewritten root plan.");
-		expect(finalTodo.items).toEqual([expect.objectContaining({ id: finalIdentity, status: "completed" })]);
+		expect(finalTodo.items.map(item => item.content)).toEqual([...REQUEST_STAGES]);
+		expect(finalTodo.items[0]?.status).toBe("in_progress");
 
 		native.emit({ type: "notification", method: "turn/completed", refs: { threadId: "thread-1", turnId: "turn-1" }, params: {} });
 		await Bun.sleep(10);
@@ -905,6 +1037,8 @@ describe("ProjectWorkbench", () => {
 		await ready(resumed);
 		expect(resumed.snapshot.workFlow.source).toMatchObject({ turnId: "turn-1", algorithm: "dplan-v1" });
 		expect(resumed.snapshot.workFlow.steps[0]).toMatchObject({ id: finalIdentity, title: "루트 계획", status: "completed" });
+		expect(resumed.snapshot.requestRuntime).toEqual(workbench.snapshot.requestRuntime);
+		expect(resumed.snapshot.todo?.items.every(item => item.status === "blocked")).toBe(true);
 		await resumed.close();
 	});
 
@@ -998,7 +1132,7 @@ describe("ProjectWorkbench", () => {
 			threadId: "thread-1",
 			expectedTurnId: "turn-1",
 			clientUserMessageId: followUp.commandId,
-			text: "방향을 이렇게 바꿔줘",
+			text: expect.stringContaining("방향을 이렇게 바꿔줘\n\n"),
 		}]);
 		expect(workbench.snapshot.chatQueue).toEqual([]);
 		expect(workbench.snapshot.chat.map(message => message.content)).toEqual(["첫 요청", "방향을 이렇게 바꿔줘"]);
@@ -1045,7 +1179,7 @@ describe("ProjectWorkbench", () => {
 		]);
 		expect(journal.records.find(activity => activity.payload.text === "첫 요청" && activity.phase === "completed")?.nativeRefs.threadId)
 			.toBe("thread-1");
-		expect(journal.records.findIndex(activity => activity.payload.text === "두 번째 요청"))
+		expect(journal.records.findIndex(activity => activity.kind === "message" && activity.payload.text === "두 번째 요청"))
 			.toBeGreaterThan(journal.records.findIndex(activity => activity.payload.method === "turn/completed"));
 		expect(journal.records.filter(activity => activity.payload.method === "request/started")).toEqual([
 			expect.objectContaining({ payload: expect.objectContaining({ requestId: first.commandId }), nativeRefs: expect.objectContaining({ turnId: "turn-1" }) }),
@@ -2532,6 +2666,11 @@ describe("ProjectWorkbench", () => {
 		expect(journal.records.find((activity) => activity.payload.method === "turn/completed"))
 			.toMatchObject({ phase: "completed" });
 		expect(tnoteCreates).toBe(1);
+		expect(workbench.snapshot.actionResult).toMatchObject({
+			kind: "tnote",
+			title: "부가 기록 실패 · 요청 실행 계속",
+			body: "checkpoint 관측용 종료",
+		});
 		await workbench.close();
 	});
 
@@ -4325,11 +4464,11 @@ describe("ProjectWorkbench", () => {
 			{ command: "bun test", exitCode: 0, status: "passed", output: "1 pass" },
 		]);
 		expect(receipt?.remaining).toContainEqual({ summary: "구현과 회귀 검증", blocking: false });
-		expect(workbench.snapshot.todo?.items[0]?.status).toBe("in_progress");
+		expect(workbench.snapshot.todo?.items[0]?.status).toBe("blocked");
 		await workbench.close();
 	});
 
-	test("Todo and Tracer project the same authoritative replacement plan", async () => {
+	test("Native replacement plans remain in Trace without replacing the seven Todo parents", async () => {
 		const native = new FakeNativeHarness();
 		const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "sample", cwd: "/sample" });
 		await ready(workbench);
@@ -4342,8 +4481,8 @@ describe("ProjectWorkbench", () => {
 			native.emit({ type: "notification", method: "turn/plan/updated", refs, params: { plan } });
 			await Bun.sleep(10);
 		}
-		expect(workbench.snapshot.todo?.items.map(item => item.id)).toEqual(workbench.snapshot.workFlow.steps.map(step => step.id));
-		expect(workbench.snapshot.todo?.items.map(item => [item.content, item.status])).toEqual([["새 단계", "pending"], ["완료 단계", "completed"]]);
+		expect(workbench.snapshot.todo?.items.map(item => item.content)).toEqual([...REQUEST_STAGES]);
+		expect(workbench.snapshot.workFlow.steps.map(step => [step.title, step.status])).toEqual([["새 단계", "pending"], ["완료 단계", "completed"]]);
 		await workbench.close();
 	});
 

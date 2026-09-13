@@ -1,6 +1,7 @@
 import {
 	DEFAULT_SETTINGS,
-	EFFORTS,
+	CODEX_EFFORTS,
+	modelEfforts,
 	MODELS,
 	PROVIDERS,
 	type Effort,
@@ -64,8 +65,11 @@ export function normalizeWorkbenchConfig(value: unknown): WorkbenchConfig {
 	const execution = record(root?.execution), tnote = record(root?.tnote), narrator = record(root?.narrator), limits = record(root?.limits), retry = record(root?.retry), delegation = record(root?.delegation), evaluation = record(root?.evaluation), orchestration = record(root?.orchestration), review = record(root?.review), display = record(root?.display), hud = record(root?.hud), slash = record(root?.slash), linear = record(root?.linear);
 	const provider = PROVIDERS.includes(execution?.provider as Provider) ? execution!.provider as Provider : DEFAULT_WORKBENCH_CONFIG.execution.provider;
 	const models = MODELS[provider] as readonly string[];
-	const model = typeof execution?.model === "string" && models.includes(execution.model) ? execution.model : (models[0] ?? DEFAULT_SETTINGS.model);
-	const effort = EFFORTS.includes(execution?.effort as Effort) ? execution!.effort as Effort : DEFAULT_WORKBENCH_CONFIG.execution.effort;
+	// YAML loading preserves Native identity. Capability validation belongs to the connected host.
+	const nativeIdentity = provider === "openai-codex" && (execution?.provider === undefined || execution.provider === "openai-codex");
+	const model = typeof execution?.model === "string" && (nativeIdentity ? /^[\w./:-]+$/u.test(execution.model) : models.includes(execution.model)) ? execution.model : (models[0] ?? DEFAULT_SETTINGS.model);
+	const efforts = provider === "openai-codex" ? CODEX_EFFORTS : modelEfforts(provider, model);
+	const effort = efforts.includes(execution?.effort as Effort) ? execution!.effort as Effort : DEFAULT_WORKBENCH_CONFIG.execution.effort;
 	const approvalPolicy = execution?.approvalPolicy === "untrusted" || execution?.approvalPolicy === "on-request" || execution?.approvalPolicy === "never"
 		? execution.approvalPolicy : DEFAULT_WORKBENCH_CONFIG.execution.approvalPolicy;
 	const sandbox = execution?.sandbox === "read-only" || execution?.sandbox === "workspace-write" || execution?.sandbox === "danger-full-access"

@@ -15,7 +15,9 @@ src/
 │   ├── runtime/
 │   └── commit/
 ├── adapters/
-│   ├── inbound/{cli,tui}/
+│   ├── inbound/
+│   │   ├── cli/
+│   │   └── tui/{foundation,features,commands,shell,legacy}/
 │   └── outbound/
 ├── app.ts
 ├── cli.ts
@@ -49,6 +51,9 @@ Agent·Intent·Skill·Workflow의 실행 코드는 아직 없다. 각각 `core/a
 - `ExecutionRun`의 타입은 Domain 계약이고 reducer·checkpoint·Receipt 생성은 Runtime이 소유한다.
 - Codex/Pi 실행기는 `adapters/outbound/executors`에 둔다.
 - TUI는 `adapters/inbound/tui`, 인증 CLI는 `adapters/inbound/cli`에 둔다.
+- TUI Foundation은 Feature와 Shell을 참조하지 않고, Feature 구현은 sibling Feature를 직접 참조하지 않는다.
+- TUI Shell은 정적 Feature descriptor와 개별 구현을 조립하며 중앙 registry에 동적 component factory를 두지 않는다. Feature descriptor는 같은 Feature의 readonly `TUI-F###-U##` Unit 목록을 소유하고 registry는 전체 목록·ID lookup·Feature별 lookup만 제공한다.
+- TUI Unit catalog는 사용자가 화면·명령 책임을 탐색하기 위한 metadata다. `.woo/units.yaml`이 관리하는 지속 코드 책임 `Code-###` Unit과 수명·정본이 다르므로 TUI Unit을 그 파일에 등록하지 않는다.
 - `legacy-router-app.ts`는 `www router` 호환 표면이 사용하므로 유지한다.
 - Code-ID와 Linear 연결은 이동된 실제 경로로 갱신하고 SQLite 원장을 다시 투영한다.
 
@@ -62,5 +67,6 @@ Agent·Intent·Skill·Workflow의 실행 코드는 아직 없다. 각각 `core/a
 - 상대 import cycle
 - 옛 최상위 네 디렉터리의 재생성
 - TUI의 직접 process 실행
+- TUI Foundation의 상위 계층 참조와 Feature 간 sibling import
 
 내부 path alias를 새로 도입할 때는 Architecture 검사도 같은 변경에서 확장한다.

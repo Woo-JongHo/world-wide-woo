@@ -1,6 +1,10 @@
 import type { SlashCommand } from "@earendil-works/pi-tui";
 import {
 	EFFORTS,
+	nativeModelNames,
+	nativeModelEfforts,
+	type NativeModelCatalog,
+	modelEfforts,
 	MODELS,
 	PROVIDERS,
 	type Effort,
@@ -122,6 +126,7 @@ export type WorkbenchShellCommand =
 	| { type: "woo-entry.refresh" }
 	| { type: "activity.select"; activityId: string | "latest" | null }
 	| { type: "trace.select"; activityId: string }
+	| { type: "runtime.reconcile"; requestId: string; operationId: string }
 	| { type: "agent.select"; agentRef: string | null }
 	| { type: "tnote.capture" }
 	| { type: "tnote.capture-range"; startSequence: number; endSequence: number }
@@ -149,10 +154,12 @@ export const WORKBENCH_SLASH_COMMANDS: SlashCommand[] = [
 	{
 		name: "model",
 		description: "Native Codex 모델·추론 강도 설정",
-		argumentHint: "<codex-model> [low|medium|high|ultra]",
-		getArgumentCompletions: (prefix) => prefix.includes(" ")
-			? EFFORTS.map((effort) => ({ value: effort, label: effort, description: "추론 강도" }))
-			: MODELS["openai-codex"].map((model) => ({ value: model, label: model, description: "Codex 모델" })),
+		argumentHint: "<codex-model> [low|medium|high|xhigh|max|ultra]",
+		getArgumentCompletions: (prefix) => {
+			if (!prefix.includes(" ")) return MODELS["openai-codex"].map((model) => ({ value: model, label: model, description: "Codex 모델" }));
+			const [model = "", query = ""] = prefix.trimStart().split(/\s+/u);
+			return modelEfforts("openai-codex", model.replace(/^openai-codex\//u, "")).filter(effort => effort.startsWith(query)).map(effort => ({ value: `${model} ${effort}`, label: effort, description: effort === "ultra" ? "Codex 자동 위임 포함" : "추론 강도" }));
+		},
 	},
 	{ name: "login", description: "Provider OAuth·API key 로그인", argumentHint: "[provider]" },
 	{ name: "logout", description: "Provider 인증 삭제", argumentHint: "<provider>" },
@@ -161,6 +168,7 @@ export const WORKBENCH_SLASH_COMMANDS: SlashCommand[] = [
 	{ name: "monitor", description: "현재 Runtime·Request·Tool Live Monitor" },
 	{ name: "map", description: "전체 개발 구조와 진척도 Map 열기" },
 	{ name: "stats", description: "Session review와 request investigation 열기", argumentHint: "[diagnostics|latest|#n]" },
+	{ name: "test", description: "현재 세션의 질문별 검증 목적·검사·근거" },
 	{ name: "tnotes", description: "완료된 질문별 T-note pane 안내" },
 	{ name: "todo", description: "레거시 Todo.md 읽기 전용 migration view" },
 	{
@@ -185,6 +193,7 @@ export const WORKBENCH_SLASH_COMMANDS: SlashCommand[] = [
 	{ name: "woo-entry", description: "WES 현재 상태와 다음 작업 다시 읽기" },
 	{ name: "source", description: "Monitor에서 Activity Source 선택", argumentHint: "<activity-id|latest|clear>" },
 	{ name: "trace", description: "Monitor에서 선택 Plan에 결속된 정확한 Activity Trace 선택", argumentHint: "<activity-id>" },
+	{ name: "reconcile", description: "종료된 Runtime 작업의 현재 결과만 재조회 · 동작 재실행 없음", argumentHint: "<request-id> <operation-id>" },
 	{ name: "agents", description: "위임 트리 또는 선택한 에이전트의 공개 수행 관찰", argumentHint: "[agent-ref|clear]" },
 	{ name: "tnote", description: "마지막 질문 또는 선택 범위를 질문·이유·결과로 요약", argumentHint: "[range <start-sequence> <end-sequence>]" },
 	{ name: "promote", description: "T-note 정본 반영: diff 확인 후 사람 승인", argumentHint: "<tnote|confirm> <note-id|token>" },
@@ -199,7 +208,7 @@ export const WORKBENCH_SLASH_COMMANDS: SlashCommand[] = [
 	{ name: "exit", description: "Workbench를 안전하게 종료" },
 ];
 
-export function parseWorkbenchShellCommand(text: string): WorkbenchShellCommand | null {
+export function parseWorkbenchShellCommand(text: string, catalog?: NativeModelCatalog): WorkbenchShellCommand | null {
 	const trimmed = text.trim();
 	if (!trimmed.startsWith("/")) return null;
 	const [name, ...args] = trimmed.slice(1).split(/\s+/u);
@@ -213,7 +222,7 @@ export function parseWorkbenchShellCommand(text: string): WorkbenchShellCommand 
 		return { type: "error", message: "사용법: /workflow check <RPA-ID> | /workflow resume <RUN> | /workflow show <RUN>" };
 	}
 	if ((name === "chat" || name === "tnotes" || name === "todo") && args.length === 0) return { type: "pane.show", pane: name };
-	if (name === "model") return parseWorkbenchModelCommand(args);
+	if (name === "model") return parseWorkbenchModelCommand(args, catalog);
 	if (name === "login") {
 		if (args.length === 0) return { type: "auth.select" };
 		const providerId = args.length === 1 ? provider(args[0]!) : null;
@@ -252,6 +261,7 @@ export function parseWorkbenchShellCommand(text: string): WorkbenchShellCommand 
 			? { type: "trace.select", activityId: args[0] }
 			: { type: "error", message: "사용법: /trace <activity-id>" };
 	}
+	if (name === "reconcile") return args.length === 2 && args[0] && args[1] ? { type: "runtime.reconcile", requestId: args[0], operationId: args[1] } : { type: "error", message: "사용법: /reconcile <request-id> <operation-id>" };
 	if (name === "agents") {
 		if (args.length === 0 || args[0] === "clear" && args.length === 1) return { type: "agent.select", agentRef: null };
 		return args.length === 1 && args[0]
@@ -299,20 +309,29 @@ export function parseWorkbenchShellCommand(text: string): WorkbenchShellCommand 
 	return null;
 }
 
-function parseWorkbenchModelCommand(args: readonly string[]): WorkbenchShellCommand {
+/** Resolve at completion time so an already-open editor sees the latest host catalog. */
+export function withNativeModelCompletions(commands: readonly SlashCommand[], catalog: () => NativeModelCatalog | undefined): SlashCommand[] {
+	return commands.map(command => command.name !== "model" ? command : { ...command, getArgumentCompletions: prefix => {
+		if (!prefix.includes(" ")) return nativeModelNames(catalog()).map(model => ({ value: model, label: model, description: "Native Codex 모델" }));
+		const [model = "", query = ""] = prefix.trimStart().split(/\s+/u);
+		return nativeModelEfforts(model.replace(/^openai-codex\//u, ""), catalog()).filter(effort => effort.startsWith(query)).map(effort => ({ value: `${model} ${effort}`, label: effort }));
+	} });
+}
+
+function parseWorkbenchModelCommand(args: readonly string[], catalog?: NativeModelCatalog): WorkbenchShellCommand {
 	if (args.length === 0) return { type: "model.select" };
-	if (args.length > 2) return { type: "error", message: "사용법: /model <codex-model> [low|medium|high|ultra] (인자가 너무 많습니다.)" };
+	if (args.length > 2) return { type: "error", message: "사용법: /model <codex-model> [low|medium|high|xhigh|max|ultra] (인자가 너무 많습니다.)" };
 
 	const requestedModel = args[0];
 	const model = requestedModel?.startsWith("openai-codex/")
 		? requestedModel.slice("openai-codex/".length)
 		: requestedModel;
-	if (!model || !(MODELS["openai-codex"] as readonly string[]).includes(model)) {
+	if (!model || !nativeModelNames(catalog).includes(model)) {
 		return { type: "error", message: `지원하지 않는 Codex 모델입니다: ${requestedModel ?? ""}` };
 	}
 
 	const effort = args[1];
-	if (effort !== undefined && !EFFORTS.includes(effort as Effort)) {
+	if (effort !== undefined && !nativeModelEfforts(model, catalog).includes(effort as Effort)) {
 		return { type: "error", message: `지원하지 않는 추론 강도입니다: ${effort}` };
 	}
 	return effort === undefined ? { type: "model.set", model } : { type: "model.set", model, effort: effort as Effort };

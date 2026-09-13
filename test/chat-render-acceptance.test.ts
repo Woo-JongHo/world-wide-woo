@@ -2,7 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
 import type { WorkbenchSnapshot } from "../src/core/domain/work/workbench";
 import { projectWorkFlow } from "../src/core/domain/work";
-import { WorkbenchChatView } from "../src/adapters/inbound/tui/chat/workbench-views";
+import { ChatMessageRenderer } from "../src/adapters/inbound/tui/features/chat/chat-message-renderer";
+import { WorkbenchChatView } from "../src/adapters/inbound/tui/features/chat/workbench-views";
 
 function activity(id: string, sequence: number, turnId: string, itemId = id) {
 	return {
@@ -74,10 +75,13 @@ describe("Chat renderer completion", () => {
 			{ id: "broken", role: "assistant", content: "<analysis>PRIVATE</analysis>\n<answer>안전한 원문</answer>", activityId: "broken", status: "completed" },
 			{ id: "after", role: "assistant", content: "뒤 메시지", activityId: "after", status: "completed" },
 		] });
-		const view = new WorkbenchChatView(snapshot);
-		const markdown = (view as unknown as { markdown: Map<string, { render(width: number): string[] }> }).markdown;
+		const renderer = new ChatMessageRenderer();
+		renderer.update(snapshot);
+		const markdown = (renderer as unknown as {
+			markdown: Map<string, { render(width: number): string[] }>;
+		}).markdown;
 		markdown.set("broken", { render: () => { throw new Error("malformed markdown"); } });
-		const output = stripTerminalSequences(view.render(80).join("\n"));
+		const output = stripTerminalSequences(snapshot.chat.flatMap(message => renderer.render(message, 80)).join("\n"));
 		expect(output).toContain("안전한 원문");
 		expect(output).not.toContain("PRIVATE");
 		expect(output).toContain("뒤 메시지");

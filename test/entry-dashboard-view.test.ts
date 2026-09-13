@@ -1,7 +1,11 @@
 import { describe, expect, test } from "bun:test";
+import chalk from "chalk";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import { EntryDashboardView } from "../src/adapters/inbound/tui/dashboard/entry-dashboard-view";
+import { EntryDashboardView, WwwDashboardView } from "../src/adapters/inbound/tui/features/dashboard/entry-dashboard-view";
+import { a } from "../src/adapters/inbound/tui/foundation/theme/astra-theme";
+import { colors } from "../src/adapters/inbound/tui/foundation/theme/theme";
 import type { LinearProjectDashboard } from "../src/core/domain/work/linear-dashboard";
+import { astraFixture } from "./fixtures/astra-snapshot";
 
 const dashboard: LinearProjectDashboard = {
 	state: "ready",
@@ -19,6 +23,30 @@ const dashboard: LinearProjectDashboard = {
 };
 
 describe("EntryDashboardView", () => {
+	test("uses white as the default text colour in both TUI foundations", () => {
+		const previous = chalk.level;
+		chalk.level = 3;
+		try {
+			expect(colors.text("본문")).toContain("\x1b[97m");
+			expect(a.text("본문")).toContain("\x1b[97m");
+		} finally {
+			chalk.level = previous;
+		}
+	});
+
+	test("renders the WWW first screen from the current Workbench snapshot", () => {
+		const snapshot = astraFixture("working");
+		snapshot.sessionGoal = { text: "현재 요청을 검증한다", sourceActivityId: "request", updatedAt: "2026-09-11T09:42:00.000Z" };
+		const output = stripTerminalSequences(new WwwDashboardView(() => snapshot).render(100).join("\n"));
+		expect(output).toContain("WWW Dashboard");
+		expect(output).toContain("현재 Workbench snapshot");
+		expect(output).toContain("작업 진행 중");
+		expect(output).toContain("thread preview-thread · revision 1");
+		expect(output).toContain("재개 시나리오를 테스트하는 중");
+		expect(output).toContain("목표 · 현재 요청을 검증한다");
+		expect(output).toContain("대화 2 · 대기 0 · 활동 6");
+	});
+
 	test("renders the project pulse in the requested information order", () => {
 		const output = stripTerminalSequences(new EntryDashboardView(() => dashboard, () => new Date("2026-09-10T09:29:00.000Z")).render(100).join("\n"));
 		for (const label of ["DASHBOARD · World Wide Woo", "NOW", "NEXT", "UPDATE", "RECENT", "HEALTH", "synced 09:29"]) expect(output).toContain(label);

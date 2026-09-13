@@ -7,7 +7,7 @@
       "name": "Chat 표시",
       "locations": [
         {
-          "path": "src/adapters/inbound/tui/chat/workbench-views.ts",
+          "path": "src/adapters/inbound/tui/features/chat/workbench-views.ts",
           "symbol": "WorkbenchChatView",
           "members": [
             "update",
@@ -27,7 +27,7 @@
         "WOO-719",
         "WOO-720"
       ],
-      "detail": ".www/vault/Development/Code-0001.md"
+      "detail": ".www/control-ledger/traceability-v3.json"
     },
     {
       "id": "0002",
@@ -48,14 +48,14 @@
         "WOO-719",
         "WOO-720"
       ],
-      "detail": ".www/vault/Development/Code-0002.md"
+      "detail": ".www/control-ledger/traceability-v3.json"
     },
     {
       "id": "0003",
       "name": "Chat 읽던 위치",
       "locations": [
         {
-          "path": "src/adapters/inbound/tui/dashboard/dashboard-layout.ts",
+          "path": "src/adapters/inbound/tui/features/chat/chat-scroll.view.ts",
           "symbol": "ChatScrollView"
         }
       ],
@@ -65,7 +65,7 @@
         "WOO-692",
         "WOO-720"
       ],
-      "detail": ".www/vault/Development/Code-0003.md"
+      "detail": ".www/control-ledger/traceability-v3.json"
     },
     {
       "id": "0004",
@@ -83,7 +83,7 @@
         "WOO-719",
         "WOO-720"
       ],
-      "detail": ".www/vault/Development/Code-0004.md"
+      "detail": ".www/control-ledger/traceability-v3.json"
     },
     {
       "id": "0005",
@@ -101,7 +101,7 @@
         "WOO-719",
         "WOO-720"
       ],
-      "detail": ".www/vault/Development/Code-0005.md"
+      "detail": ".www/control-ledger/traceability-v3.json"
     }
   ]
 }

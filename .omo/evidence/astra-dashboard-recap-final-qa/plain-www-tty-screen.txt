@@ -1,0 +1,30 @@
+  astra  astra-dashboard-qa-20260913 / dashboard                          Ctrl+G 화면  Ctrl+P 명령
+
+  WWW Dashboard
+  현재 Workbench snapshot
+
+  SESSION
+  준비됨
+  thread 새 세션 · revision 1
+
+  NOW
+  현재 실행 중인 작업이 없습니다.
+  세션 목표가 아직 없습니다.
+
+  WORK
+  대화 0 · 대기 0 · 활동 0
+  계획 0/0 · Todo 0/0
+
+  HEALTH
+  승인 대기 없음
+  차단된 Todo 없음
+  오류 없음
+  Linear Dashboard 미연결
+
+
+
+  › 요청 입력 ────────────────────────────────────────────────────────────────────────────────────
+
+  ────────────────────────────────────────────────────────────────────────────────────────────────
+  A›  gpt-5.6-sol medium  수동 승인                                                          ctx —
+  구독 잔여  ▸Codex 7d 86% ↻6d / 5h 100% ↻5h  Claude 조회 실패  Gemini 로그인 필요  Z.AI 로그인 필요

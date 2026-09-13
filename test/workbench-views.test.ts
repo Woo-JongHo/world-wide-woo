@@ -5,19 +5,30 @@ import type { LayoutBox } from "@earendil-works/pi-tui/dist/layout.js";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
 import chalk from "chalk";
 import type { WorkbenchSnapshot } from "../src/core/domain/work/workbench";
-import { createDashboardLayout } from "../src/adapters/inbound/tui/dashboard/dashboard-layout";
+import { createDashboardLayout } from "../src/adapters/inbound/tui/foundation/layout/dashboard-layout";
 import {
 	StatusLine,
 	WorkspaceTodoView,
-} from "../src/adapters/inbound/tui/dashboard/shared-dashboard-views";
-import { TNotesSourceView, WorkbenchChatView, WorkbenchMonitorView } from "../src/adapters/inbound/tui/chat/workbench-views";
-import { WorkbenchTracerView } from "../src/adapters/inbound/tui/dashboard/workbench-tracer-view";
-import { WORKBENCH_STATUS_NOTICE } from "../src/adapters/inbound/tui/shell/workbench-shell";
-import { boundedPublicProjection } from "../src/adapters/inbound/tui/chat/bounded-public-projection";
+} from "../src/adapters/inbound/tui/features/dashboard/shared-dashboard-views";
+import { WorkbenchChatView } from "../src/adapters/inbound/tui/features/chat/workbench-views";
+import { EntryDashboardView } from "../src/adapters/inbound/tui/features/dashboard/entry-dashboard-view";
+import { TNotesSourceView } from "../src/adapters/inbound/tui/features/tnote/t-notes-source-view";
+import { WorkbenchMonitorView } from "../src/adapters/inbound/tui/features/monitoring/workbench-monitor-view";
+import { WorkbenchTracerView } from "../src/adapters/inbound/tui/features/trace/workbench-tracer-view";
+import { boundedPublicProjection } from "../src/adapters/inbound/tui/features/chat/bounded-public-projection";
+import { approvalCardRows, projectApprovalBackgroundState } from "../src/adapters/inbound/tui/features/approval/approval-presentation";
 import { projectWorkFlow, type DplanHash } from "../src/core/domain/work";
 
 const hash: DplanHash = {
 	sha256Hex: (input) => new Bun.CryptoHasher("sha256").update(input).digest("hex"),
+};
+
+const approvalPresentation = {
+	render(value: WorkbenchSnapshot, width: number): readonly string[] {
+		return value.pendingApproval
+			? approvalCardRows(value.pendingApproval, value.chatQueue.length, projectApprovalBackgroundState(value.activities), width)
+			: [];
+	},
 };
 
 function fixtureWorkFlow(activities: WorkbenchSnapshot["activities"]) {
@@ -123,10 +134,17 @@ function allScrollContent(box: LayoutBox): string[] {
 	return [...(box.scrollContentLines ?? []), ...box.children.flatMap(allScrollContent)];
 }
 
+function renderChatWithDashboard(value: WorkbenchSnapshot, width = 100): string {
+	return stripTerminalSequences(new WorkbenchChatView(
+		value,
+		new EntryDashboardView(() => value.linearDashboard),
+	).render(width).join("\n"));
+}
+
 /** @linear WOO-692 */
 describe("workbench dashboard views", () => {
 	test("shows the linked Linear project while the entry dashboard is connecting", () => {
-		const output = stripTerminalSequences(new WorkbenchChatView({
+		const output = renderChatWithDashboard({
 			...snapshot,
 			chat: [],
 			linearDashboard: {
@@ -138,14 +156,14 @@ describe("workbench dashboard views", () => {
 				milestones: [],
 				error: null,
 			},
-		}).render(100).join("\n"));
+		});
 		expect(output).toContain("DASHBOARD · World Wide Woo");
 		expect(output).toContain("연결 중");
 		expect(output).toContain("열린 이슈·최신 Update·마일스톤");
 	});
 
 	test("projects linked Linear issues into the empty Chat dashboard", () => {
-		const output = stripTerminalSequences(new WorkbenchChatView({
+		const output = renderChatWithDashboard({
 			...snapshot,
 			chat: [],
 			linearDashboard: {
@@ -157,7 +175,7 @@ describe("workbench dashboard views", () => {
 				milestones: [],
 				error: null,
 			},
-		}).render(100).join("\n"));
+		});
 		expect(output).toContain("DASHBOARD · World Wide Woo");
 		expect(output).toContain("NOW");
 		expect(output).toContain("WOO-999");
@@ -166,7 +184,7 @@ describe("workbench dashboard views", () => {
 	});
 
 	test("keeps a failed Linear entry Dashboard visible with a recovery action", () => {
-		const output = stripTerminalSequences(new WorkbenchChatView({
+		const output = renderChatWithDashboard({
 			...snapshot,
 			chat: [],
 			activities: [],
@@ -180,7 +198,7 @@ describe("workbench dashboard views", () => {
 				milestones: [],
 				error: "Linear MCP 인증이 필요합니다.",
 			},
-		}).render(100).join("\n"));
+		});
 		expect(output).toContain("DASHBOARD · World Wide Woo");
 		expect(output).toContain("Linear Dashboard unavailable");
 		expect(output).toContain("Linear MCP 인증이 필요합니다.");
@@ -261,14 +279,15 @@ describe("workbench dashboard views", () => {
 			tnotes: [],
 			actionResult: {
 				kind: "tnote" as const,
-				title: "질문 요약 자동 생성 보류",
+				title: "부가 기록 실패 · 요청 실행 계속",
 				body: "T-note 저장에 실패했습니다.",
 				createdAt: "2026-09-03T00:00:00.000Z",
 			},
 		};
 		const output = stripTerminalSequences(new WorkbenchChatView(failed).render(100).join("\n"));
 		expect(output).not.toMatch(/^🐙 Wooni\s+#1$/mu);
-		expect(output).toContain("질문 요약 자동 생성 보류");
+		expect(output).toContain("부가 기록 실패 · 요청 실행 계속");
+		expect(output).not.toContain("질문 요약 자동 생성 보류");
 		expect(output).toContain("T-note 저장에 실패했습니다.");
 	});
 
@@ -1544,7 +1563,7 @@ describe("workbench dashboard views", () => {
 				queuedAt: "2026-09-01T00:00:03.000Z",
 			}],
 		};
-		const output = stripTerminalSequences(new WorkbenchChatView(pending).render(100).join("\n"));
+		const output = stripTerminalSequences(new WorkbenchChatView(pending, null, approvalPresentation).render(100).join("\n"));
 
 		expect(output).toContain("승인 필요 · 명령");
 		expect(output).toContain("명령 · bun test test/workbench-views.test.ts");
@@ -1584,7 +1603,7 @@ describe("workbench dashboard views", () => {
 					{ id: "queued-1", content: "첫 번째 대기 메시지", queuedAt: "2026-09-01T00:00:02.000Z" },
 					{ id: "queued-2", content: "두 번째 대기 메시지", queuedAt: "2026-09-01T00:00:03.000Z" },
 				],
-			}).render(36).join("\n"));
+			}, null, approvalPresentation).render(36).join("\n"));
 			expect(output).toContain(`백그라운드 작업 · ${expected}`);
 			expect(output).toContain("대기 메시지 2개");
 			for (const line of output.split("\n")) expect(visibleWidth(line)).toBeLessThanOrEqual(36);
@@ -2095,7 +2114,7 @@ describe("workbench dashboard views", () => {
 	});
 
 	test("leaves the resting status line blank instead of advertising commands", () => {
-		const output = stripTerminalSequences(new StatusLine(WORKBENCH_STATUS_NOTICE).render(240).join("\n"));
+		const output = stripTerminalSequences(new StatusLine("").render(240).join("\n"));
 		expect(output.trim()).toBe("");
 		expect(output).not.toContain("/model");
 		expect(output).not.toContain("/woo-entry");
