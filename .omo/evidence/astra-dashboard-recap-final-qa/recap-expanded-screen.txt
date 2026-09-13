@@ -1,0 +1,30 @@
+  astra  astra-manual-recap / execution                                   Ctrl+G 화면  Ctrl+P 명령
+
+  ▎ 대기  Check token [redacted] and confirm this public request.                     Esc 돌아가기
+    세션 연결됨 · 다음 요청을 입력하세요
+
+
+  ┌ Bash  completed ─────────────────────────────────────────────────────────────────────────────┐
+  │ $ bun test test/session-resume.test.ts                                                       │
+  │ ──────────────────────────────────────────────────────────────────────────────────────────── │
+  │ resume boundary                                                                              │
+  │   ✓ 기존 기록 보존                                                                           │
+  │   ✓ 새 이벤트 한 번만 표시                                                                   │
+  │ exit 0                                                                                       │
+  │ /source tool-2                                                                               │
+  └──────────────────────────────────────────────────────────────────────────────────────────────┘
+
+
+
+  ▰ Conversation Recap                                                                   현재 대화
+  ────────────────────
+
+  USER
+    Check token [redacted] and confirm this public request.
+  ASSISTANT
+    PUBLIC_ANSWER_SENTINEL
+  · 요청 입력 ────────────────────────────────────────────────────────────────────────────────────
+
+  ────────────────────────────────────────────────────────────────────────────────────────────────
+  A›  gpt-5.6-sol high  수동 승인                                               ctx 28.4K/200K 14%
+  구독 잔여  ▸Codex 확인 중  Claude 확인 중  Gemini 확인 중  Z.AI 확인 중

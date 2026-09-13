@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { evaluateWorkRecordingGate } from "../src/core/domain/development/work-recording-gate";
 
 const roots: string[] = [];
@@ -57,7 +57,7 @@ describe("work recording gate", () => {
 
 	test("observes a repository symlink without following its external target", () => {
 		const root = repository();
-		const target = join(root, "..", `${root.split("/").at(-1)}-external.txt`);
+		const target = join(dirname(root), `${basename(root)}-external.txt`);
 		writeFileSync(target, "before\n");
 		roots.push(target);
 		symlinkSync(target, join(root, "external-link"));

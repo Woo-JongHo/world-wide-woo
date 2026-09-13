@@ -1,0 +1,30 @@
+  astra  astra-manual-recap / execution                                   Ctrl+G 화면  Ctrl+P 명령
+
+  ▎ 대기  Check token [redacted] and confirm this public request.                     Esc 돌아가기
+    세션 연결됨 · 다음 요청을 입력하세요
+
+  ✓ rg -n 'resume|sequence' src/core                                                        exit 0
+  ✓ bun test test/session-resume.test.ts                                                    exit 0
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  · 요청 입력 ────────────────────────────────────────────────────────────────────────────────────
+
+  ────────────────────────────────────────────────────────────────────────────────────────────────
+  A›  gpt-5.6-sol high  수동 승인                                               ctx 28.4K/200K 14%
+  구독 잔여  ▸Codex 확인 중  Claude 확인 중  Gemini 확인 중  Z.AI 확인 중

@@ -1,0 +1,30 @@
+  astra  astra-manual-recap / dashboard                                   Ctrl+G 화면  Ctrl+P 명령
+
+  WWW Dashboard
+  현재 Workbench snapshot
+
+  SESSION
+  준비됨
+  thread preview-thread · revision 1
+
+  NOW
+  현재 실행 중인 작업이 없습니다.
+  세션 목표가 아직 없습니다.
+
+  WORK
+  대화 3 · 대기 0 · 활동 6
+  계획 1/3 · Todo 0/0
+
+  HEALTH
+  승인 대기 없음
+  차단된 Todo 없음
+  오류 없음
+  Linear Dashboard 미연결
+
+
+
+  › 요청 입력 ────────────────────────────────────────────────────────────────────────────────────
+
+  ────────────────────────────────────────────────────────────────────────────────────────────────
+  A›  gpt-5.6-sol high  수동 승인                                               ctx 28.4K/200K 14%
+  구독 잔여  ▸Codex 확인 중  Claude 확인 중  Gemini 확인 중  Z.AI 확인 중

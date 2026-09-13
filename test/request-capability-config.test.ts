@@ -15,8 +15,9 @@ test("Runtime config snapshots explicit files once, exposes their argument contr
 		await writeFile(path, JSON.stringify({ schemaVersion: 1, files: ["other.txt"] }));
 		const caps = factory({} as ExecutorPort, () => null);
 		expect(caps.map(c => c.id)).toEqual(["files.read-pinned", "files.replace-approved"]);
-		expect(JSON.stringify(caps[0]!.inputSchema)).toContain(join(root, "file.txt"));
-		expect(JSON.stringify(caps[0]!.inputSchema)).not.toContain("other.txt");
+		expect(caps[0]!.inputSchema).toMatchObject({
+			properties: { path: { enum: [join(root, "file.txt")] } },
+		});
 		const intent = { requestId: "r", operationId: "read", stage: "GROUND" as const, capability: caps[0]!.id, expectedRevision: 1, arguments: { path: join(root, "file.txt") } };
 		expect((await caps[0]!.execute(intent, new AbortController().signal)).source.text).toBe("fixture");
 		expect(await caps[1]!.authorize(intent)).toBe(false);

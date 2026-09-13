@@ -1,0 +1,30 @@
+  astra  astra-manual-approval / execution                                Ctrl+G 화면  Ctrl+P 명령
+
+  ▎ 승인 대기  진행하려면 결정이 필요합니다                                         /approval 확인
+    manual Escape QA
+
+  ▰ 요청
+    세션 재개 시 작업 기록이 두 번 표시되는 문제를 수정해줘.
+
+  ✓ rg -n 'resume|sequence' src/core                                                        exit 0
+
+  ▰ 응답
+    기존 이벤트와 재개 이벤트가 같은 경로로 합쳐집니다.
+
+    sequence를 기준으로 중복을 확인하고, 연결 경계를 좁히겠습니다.
+
+  ✓ bun test test/session-resume.test.ts                                                    exit 0
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  승인 필요 · 명령
+
+  명령 · git status
+  이유 · manual Escape QA
+
+  ▸ 1. 승인
+    2. 거절
+
+  ↑↓ 선택 · Enter 결정 · Esc 닫기 (승인 보류) · /approve 로도 가능
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  채팅 영역에 승인 선택을 열었습니다. ↑↓ 또는 숫자로 선택하세요.
+  A›  gpt-5.6-sol high  수동 승인                                               ctx 28.4K/200K 14%
+  구독 잔여  ▸Codex 확인 중  Claude 확인 중  Gemini 확인 중  Z.AI 확인 중

@@ -1,0 +1,21 @@
+{
+  "scenario": "approval",
+  "phase": "ready",
+  "pendingApprovalRequestId": 99,
+  "dispatches": [],
+  "recap": {
+    "sourceMessageCount": 2,
+    "entryCount": 2,
+    "omittedMessageCount": 0,
+    "truncated": false,
+    "entryCodePointLengths": [
+      33,
+      71
+    ],
+    "entryPrefixes": [
+      "세션",
+      "기존"
+    ],
+    "totalCodePoints": 104
+  }
+}

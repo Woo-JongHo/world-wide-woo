@@ -143,8 +143,12 @@ export class FileSkillRunStore {
    } catch (error) { if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error; }
    finally { await unlink(temporary); }
    if (!published) continue;
-   const dir = await open(directory, "r");
-   try { await dir.sync(); } finally { await dir.close(); }
+   // Windows does not permit fsync on directory handles. The hard-link above
+   // remains the no-replace publication point on every supported platform.
+   if (process.platform !== "win32") {
+    const dir = await open(directory, "r");
+    try { await dir.sync(); } finally { await dir.close(); }
+   }
    await this.project(commit); return;
   }
  }

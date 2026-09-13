@@ -1,0 +1,27 @@
+{
+  "scenario": "bounds",
+  "dispatches": [],
+  "recap": {
+    "sourceMessageCount": 12,
+    "entryCount": 6,
+    "omittedMessageCount": 6,
+    "truncated": true,
+    "entryCodePointLengths": [
+      233,
+      233,
+      233,
+      233,
+      234,
+      234
+    ],
+    "entryPrefixes": [
+      "0:",
+      "7:",
+      "8:",
+      "9:",
+      "10",
+      "11"
+    ],
+    "totalCodePoints": 1400
+  }
+}

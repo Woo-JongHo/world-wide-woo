@@ -1,0 +1,19 @@
+{
+  "ulwStatusCommand": "omo ulw-loop status --json",
+  "ulwStatus": "unavailable: command not found (exit 127)",
+  "evidenceFallback": ".omo/evidence",
+  "testedRevision": "1e6f640",
+  "subsequentOutOfScopeChanges": [
+    "src/adapters/outbound/persistence/skill-run-store.ts",
+    "test/request-capability-config.test.ts",
+    "test/work-recording-hook.test.ts"
+  ],
+  "commands": [
+    { "invocation": "bun test", "exitCode": 0, "result": "1204 pass, 0 fail, 9670 assertions, 134 files" },
+    { "invocation": "bun test test/cli.test.ts test/astra-shell.test.ts test/astra-ui.test.ts test/conversation-recap.test.ts test/entry-dashboard-view.test.ts test/tui-feature-registry.test.ts", "exitCode": 0, "result": "70 pass, 0 fail, 1244 assertions, 6 files" },
+    { "invocation": "bun run check", "exitCode": 0, "result": "tsc --noEmit" },
+    { "invocation": "bun scripts/code-id.ts", "exitCode": 0, "result": "5 Code-ID entries passed registration, declaration, file, and documentation checks" },
+    { "invocation": "bun run units:check", "exitCode": 0, "result": "5 Units, 32 Linear links, valid" },
+    { "invocation": "bun test test/architecture.test.ts", "exitCode": 0, "result": "13 pass, 0 fail, 1581 assertions" }
+  ]
+}
