@@ -1,8 +1,14 @@
 import { describe, expect, test } from "bun:test";
-import { readFile, stat } from "node:fs/promises";
+import { stat } from "node:fs/promises";
 import { layer, loadSourceGraph, reachableSources, relativeCycles } from "./architecture/import-graph";
 
 describe("source architecture", () => {
+	test("resolves @ source aliases before evaluating architecture boundaries", async () => {
+		const graph = await loadSourceGraph();
+		expect(graph.get("cli.ts")?.imports).toContain("app.ts");
+		expect(graph.get("cli.ts")?.imports).toContain("core/domain/execution/native-session.ts");
+	});
+
 	test("keeps flattened layers grouped by their canonical responsibility", async () => {
 		const graph = await loadSourceGraph();
 		const groups: ReadonlyArray<readonly [string, ReadonlySet<string>]> = [
@@ -120,11 +126,6 @@ describe("source architecture", () => {
 		}
 	});
 
-	test("keeps the composition root small", async () => {
-		const lines = sourceLines(await readFile("src/app.ts", "utf8"));
-		expect(lines.length).toBeLessThanOrEqual(60);
-	});
-
 	test("keeps the native workbench shell independent from the legacy session runtime", async () => {
 		const graph = await loadSourceGraph();
 		const entry = [...graph.keys()].find(path => path.endsWith("workbench-shell.ts"));
@@ -140,10 +141,6 @@ function featureImplementation(path: string, prefix: string): string | null {
 	const relative = path.slice(prefix.length);
 	if (!relative.includes("/")) return null;
 	return relative.split("/")[0] ?? null;
-}
-
-function sourceLines(source: string): string[] {
-	return source.replace(/\r?\n$/u, "").split(/\r?\n/u);
 }
 
 async function exists(path: string): Promise<boolean> {

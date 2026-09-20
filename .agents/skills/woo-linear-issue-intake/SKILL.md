@@ -19,6 +19,7 @@ description: 99_www Linear 이슈를 생성·분할·이동하거나 본문을 �
 - 대상 Linear Project의 설명·Milestone 및 해당 기능의 부모, 형제, 직계 하위 이슈. 제안 부모의 상위 경로를 Project까지 확인한다.
 - 의미가 겹치는 기존 이슈. 활성뿐 아니라 완료·취소·보관된 관련 항목도 검색한다. 목록이 잘렸으면 본문을 개별 조회하고, 페이지가 남으면 계속 읽는다.
 - [개발 흐름](../../../docs/planning/linear-development/DEVELOPMENT_FLOW.md), [제품 경계](../../../docs/planning/linear-development/ARCHITECTURE.md), 해당 기능의 코드·ID 원장·관련 설계. 새 사용자 결정과 역사적 초안을 구분한다.
+- 새 capability 또는 되돌리기 어려운 계약 변경이면 [Design Document Contract](../../../docs/workflows/DESIGN_DOCUMENT_CONTRACT.md)의 판정과 관련 Obsidian 상세 정본을 확인한다. 디자인 검토 대상의 blocking 질문이 남아 있으면 이를 구현 완료 조건으로 숨기지 않고 설계 결정 업무로 분리한다.
 
 조회가 실패하거나 필요한 본문이 없으면 “기존 항목 없음”으로 판정하지 않는다. 확인 가능한 초안은 작성하되, 위치가 확인될 때까지 외부 생성을 보류한다.
 
@@ -63,6 +64,7 @@ RPA 고객 업무의 Project·Task Description은 [RPA Description 계약 v1](..
 - 제목은 목적·문제·결과가 드러나는 한국어 문장으로 쓴다. 기능·유형은 기존 라벨을 우선 재사용한다.
 - 부모 본문은 목적·공통 원칙·통합 완료 조건을 소유한다. 하위 이슈의 화면 구성·구현 단계·검증 상세를 복제하지 않는다.
 - 실행 하위 이슈는 목적, 포함 범위, 관측 가능한 완료 조건, 코드·관련 ID·검증 근거를 담는다. 코드 존재와 실제 수락 상태를 구분한다.
+- 디자인 검토 대상은 채택된 상세 정본과 Decision을 연결한다. 일정·현재 상태는 Linear가 소유하고, 설계 근거·대안·긴 논의를 이슈 본문에 복제하지 않는다.
 - 새 하위 이슈만으로 전체 부모의 범위가 완성됐다고 쓰지 않는다.
 - `@unit`, `@linear` 등 코드 어노테이션은 inline code로 써서 Linear 사용자 mention으로 변환되지 않게 한다.
 

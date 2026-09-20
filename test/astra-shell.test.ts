@@ -126,6 +126,7 @@ test("Astra CLI keeps resume selection, cancellation and execution-lane semantic
 	const deps: CliDependencies = {
 		runApp: async () => { throw new Error("wrong shell"); }, runAstra: async options => { opened.push(options); },
 		runRouter: async () => { throw new Error("wrong shell"); }, runAuth: async () => {}, listSessions: async () => [],
+		runDevelopment: async () => "", runWorkflow: async () => "",
 		listNativeThreads: async () => [{ id: "selected", cwd: "/test", updatedAt: 1, preview: "", status: "idle" }],
 		selectNativeThread: async () => select, writeOut: () => {}, writeError: () => {},
 	};

@@ -2,6 +2,8 @@
 
 이 템플릿은 WWW 기능의 **상세 정본**이다. Linear의 얇은 작업 이슈나 Git의 실행 결과를 복제하지 않는다. 생성·이동·변경 전에는 [Obsidian 상세 정본 계약](OBSIDIAN_CANONICAL_CONTRACT.md)과 `development-traceability` 스킬을 적용한다.
 
+새 capability나 되돌리기 어려운 계약 변경은 [Design Document Contract](../../workflows/DESIGN_DOCUMENT_CONTRACT.md)로 작성 필요성과 깊이를 먼저 판정한다. 디자인 문서가 필요하면 별도 문서를 만들지 않고 이 템플릿의 `draft`를 사용한다. 관련 없는 절을 장황하게 채우지 말고, 해당 없음의 근거를 짧게 적는다.
+
 ## 파일명과 Properties
 
 파일 경로는 `<도메인>/<기능명> — <사람이 읽는 제목>.md`다.
@@ -279,9 +281,21 @@ Status는 `NOT TESTED | PASS | PARTIAL | FAIL`만 사용한다.
 
 ## 14. Decisions & Evidence
 
+### Open Design Questions
+
+구현 전에 닫아야 할 미결 질문만 기록한다. 해결된 질문은 삭제하지 않고 아래 Decisions로 옮긴다.
+
+| Q-ID | Question | Cost of Wrong | Options | Next Evidence | Owner | Blocking |
+|---|---|---|---|---|---|---|
+| Q-001 | | | | | | yes |
+
 ### Decisions
 
 #### DEC-001 · 결정 제목
+
+**Status**
+
+proposed | approved | superseded
 
 **Decision**
 
@@ -295,9 +309,17 @@ Status는 `NOT TESTED | PASS | PARTIAL | FAIL`만 사용한다.
 
 검토했지만 선택하지 않은 대안.
 
+**Cost of Wrong**
+
+잘못 선택했을 때의 손실과 되돌림 비용.
+
 **Impact**
 
 이 결정으로 영향을 받는 Contract.
+
+**Decision Authority**
+
+결정자, 결정 시각, 승인 또는 검토 Evidence.
 
 ### Evidence
 

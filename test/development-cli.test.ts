@@ -48,7 +48,19 @@ test("capture errors stay observable and unrelated slash commands remain untouch
 test("CLI preserves test argv help/version and shell metacharacters without top-level reinterpretation",async()=>{
  const args=["test","run","--","bun","--version","a; echo secret", "$(echo x)"];
  let seen:string[]=[]; const out:string[]=[];
- const deps={runDevelopment:async(value:string[])=>{seen=value;return "ok";},writeOut:(s:string)=>out.push(s),writeError:(s:string)=>{throw new Error(s);}} as unknown as CliDependencies;
+ const deps: CliDependencies = {
+  runApp: async () => {},
+  runAstra: async () => {},
+  runRouter: async () => {},
+  runAuth: async () => {},
+  runDevelopment: async (value:string[]) => {seen=value;return "ok";},
+  runWorkflow: async () => "",
+  listSessions: async () => [],
+  listNativeThreads: async () => [],
+  selectNativeThread: async () => null,
+  writeOut: (s:string) => out.push(s),
+  writeError: (s:string) => {throw new Error(s);},
+ };
  expect(await runCli(["development",...args],deps)).toBe(0); expect(seen).toEqual(args); expect(out).toEqual(["ok"]);
 });
 

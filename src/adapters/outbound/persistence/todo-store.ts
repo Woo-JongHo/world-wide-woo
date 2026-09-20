@@ -1,34 +1,54 @@
-import { unwatchFile, watchFile, type Stats } from "node:fs";
-import { chmod, lstat, mkdir, open, readFile, rename, rm } from "node:fs/promises";
-import { dirname, basename, join } from "node:path";
-import { randomUUID } from "node:crypto";
+import { randomUUID              } from "node:crypto";
+import { unwatchFile, watchFile  } from "node:fs";
+import { basename, dirname, join } from "node:path";
+
+import {
+	chmod,
+	lstat,
+	mkdir,
+	open,
+	readFile,
+	rename,
+	rm,
+} from "node:fs/promises";
+
+import type { Stats } from "node:fs";
+
 import { Database } from "bun:sqlite";
-import { parseTodoMarkdown, patchTodoMarkdown, renderTodoMarkdown, type TodoDocument } from "../../../core/domain/work/todos.js";
 
-const queues = new Map<string, Promise<unknown>>();
+import { parseTodoMarkdown, patchTodoMarkdown, renderTodoMarkdown } from "../../../core/domain/work/todos.js";
 
-/** Filesystem-backed store for one explicit Todo.md path; runtime ownership is decided by the composer. */
+import type { TodoDocument     } from "../../../core/domain/work/todos.js";
+import type { TodoWriteOutcome } from "../../../core/ports";
+
+const queues = new Map< string, Promise< unknown > >();
+
+/** 지정된 Todo.md 하나의 원문 보존·CAS·외부 변경 감시를 소유한다. */
 export class FileTodoStore {
-	private lastInternalSource: string | null = null;
-	private conflictSource: string | null = null;
+	private lastInternalSource : string | null = null;
+	private conflictSource     : string | null = null;
 
-	public constructor(private readonly path: string) {}
+	public constructor(private readonly path : string) {}
 
-	public async read(): Promise<TodoDocument | null> {
+	public async read() : Promise< TodoDocument | null > {
 		const content = await this.readExisting();
 		return content === null ? null : parseTodoMarkdown(content);
 	}
 
-	/** Returns the exact source for conflict presentation without normalizing Markdown. */
-	public readSource(): Promise<string | null> {
+	/** 충돌 표시에 사용할 Markdown 원문을 정규화하지 않고 반환한다. */
+	public readSource() : Promise< string | null > {
 		return this.readExisting();
 	}
 
-	public get lastConflictSource(): string | null {
+	public get lastConflictSource() : string | null {
 		return this.conflictSource;
 	}
 
-	public async compareAndSwap(expectedRevision: number | null, next: TodoDocument): Promise<"written" | "conflict"> {
+	/** 현재 revision이 예상값과 같을 때만 기록하고 CAS 결과를 반환한다. */
+	public async compareAndSwap(
+		expectedRevision : number | null,
+		next             : TodoDocument,
+	) : Promise< TodoWriteOutcome > {
 		return serialize(this.path, async () => {
 			if (next.revision !== (expectedRevision ?? -1) + 1) return "conflict";
 			const directory = dirname(this.path);
@@ -54,16 +74,22 @@ export class FileTodoStore {
 		});
 	}
 
-	/** Watches external editors (including Obsidian) and coalesces their rename/write bursts. */
+	/** Obsidian을 포함한 외부 편집기의 rename·write 묶음을 하나의 변경으로 감시한다. */
 	public watch(
-		listener: (document: TodoDocument | null, source: string | null) => void,
-		options: { debounceMs?: number } = {},
-	): () => void {
+		listener : (
+			document : TodoDocument | null,
+			source   : string | null,
+		) => void,
+		options  : {
+			/** 변경 묶음을 기다리는 시간이다. 생략하면 60ms다. */
+			debounceMs ?: number;
+		} = {},
+	) : () => void {
 		const debounceMs = options.debounceMs ?? 60;
-		let timer: ReturnType<typeof setTimeout> | undefined;
+		let timer              : ReturnType< typeof setTimeout > | undefined;
 		let closed = false;
-		let lastObservedSource: string | null | undefined;
-		const refresh = async (): Promise<void> => {
+		let lastObservedSource : string | null | undefined;
+		const refresh = async () : Promise< void > => {
 			if (closed) return;
 			try {
 				const source = await this.readExisting();
@@ -76,30 +102,36 @@ export class FileTodoStore {
 				// A partially-written or invalid external document is not a valid snapshot.
 			}
 		};
-		const changed = (current: Stats, previous: Stats): void => {
+		const changed = (
+			current  : Stats,
+			previous : Stats,
+		) : void => {
 			if (current.mtimeMs === previous.mtimeMs && current.size === previous.size && current.ino === previous.ino) return;
-			if (timer) clearTimeout(timer);
+			if (timer !== undefined) clearTimeout(timer);
 			timer = setTimeout(() => { void refresh(); }, debounceMs);
 		};
 		watchFile(this.path, { interval: Math.max(20, debounceMs), persistent: false }, changed);
 		return () => {
 			closed = true;
-			if (timer) clearTimeout(timer);
+			if (timer !== undefined) clearTimeout(timer);
 			unwatchFile(this.path, changed);
 		};
 	}
 
-	private async readExisting(): Promise<string | null> {
+	private async readExisting() : Promise< string | null > {
 		let info;
 		try { info = await lstat(this.path); } catch (error) {
-			if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+			if (isNodeErrorCode(error, "ENOENT")) return null;
 			throw error;
 		}
 		if (!info.isFile() || info.isSymbolicLink()) throw unsafeFileError(this.path);
 		return readFile(this.path, "utf8");
 	}
 
-	private async withDatabaseLock<T>(directory: string, operation: () => Promise<T>): Promise<T> {
+	private async withDatabaseLock< T >(
+		directory : string,
+		operation : () => Promise< T >,
+	) : Promise< T > {
 		const runtimeDirectory = basename(directory) === "vault"
 			? join(dirname(directory), "runtime")
 			: join(directory, "runtime");
@@ -112,7 +144,7 @@ export class FileTodoStore {
 			const info = await lstat(databasePath);
 			if (!info.isFile() || info.isSymbolicLink()) throw unsafeFileError(databasePath);
 		} catch (error) {
-			if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+			if (!isNodeErrorCode(error, "ENOENT")) throw error;
 		}
 		const database = new Database(databasePath, { create: true, strict: true });
 		try {
@@ -137,7 +169,10 @@ export class FileTodoStore {
 		}
 	}
 
-	private async writeAtomically(directory: string, markdown: string): Promise<void> {
+	private async writeAtomically(
+		directory : string,
+		markdown  : string,
+	) : Promise< void > {
 		const temporaryPath = join(directory, `.${basename(this.path)}.${randomUUID()}.tmp`);
 		try {
 			const handle = await open(temporaryPath, "wx", 0o600);
@@ -153,19 +188,25 @@ export class FileTodoStore {
 		}
 	}
 
-	private hasExpectedRevision(markdown: string, expectedRevision: number | null): boolean {
+	private hasExpectedRevision(
+		markdown         : string,
+		expectedRevision : number | null,
+	) : boolean {
 		try { return parseTodoMarkdown(markdown).revision === expectedRevision; }
 		catch { return false; }
 	}
 }
 
-/** Explicit, non-destructive import. The legacy source is never moved or deleted. */
-export async function importLegacyTodo(legacyPath: string, canonicalPath: string): Promise<string | null> {
+/** Legacy Todo를 이동·삭제하지 않고 canonical 경로로 명시적으로 가져온다. */
+export async function importLegacyTodo(
+	legacyPath    : string,
+	canonicalPath : string,
+) : Promise< string | null > {
 	let info;
 	try {
 		info = await lstat(legacyPath);
 	} catch (error) {
-		if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+		if (isNodeErrorCode(error, "ENOENT")) return null;
 		throw error;
 	}
 	if (!info.isFile() || info.isSymbolicLink()) throw unsafeFileError(legacyPath);
@@ -174,28 +215,29 @@ export async function importLegacyTodo(legacyPath: string, canonicalPath: string
 		await lstat(canonicalPath);
 		return null;
 	} catch (error) {
-		if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+		if (!isNodeErrorCode(error, "ENOENT")) throw error;
 	}
 	const imported = { ...document, revision: 0 } satisfies TodoDocument;
 	return await new FileTodoStore(canonicalPath).compareAndSwap(null, imported) === "written" ? canonicalPath : null;
 }
 
-/** @deprecated Use importLegacyTodo from an explicit user action. */
-export async function migrateLegacyTodo(
-	legacyPath: string,
-	canonicalPath: string,
-	_canMigrate?: (ownerSessionId: string) => Promise<boolean>,
-): Promise<string | null> {
-	return importLegacyTodo(legacyPath, canonicalPath);
+/** @deprecated Legacy Router 시작 호환 이름이다. 새 코드는 importLegacyTodo를 사용한다. */
+export const migrateLegacyTodo = importLegacyTodo;
+
+function unsafeFileError ( path  : string  ) : Error   { return new Error(`Unsafe todo store file: ${path}`); }
+function isUnsafeFile    ( error : unknown ) : boolean { return error instanceof Error && error.message.startsWith("Unsafe todo store file:"); }
+function isMalformedTodo ( error : unknown ) : boolean { return error instanceof Error && error.message.startsWith("Invalid todo document:"); }
+
+function isNodeErrorCode( error : unknown, code : string ) : boolean {
+	return typeof error === "object" && error !== null && "code" in error && error.code === code;
 }
 
-function unsafeFileError(path: string): Error { return new Error(`Unsafe todo store file: ${path}`); }
-function isUnsafeFile(error: unknown): boolean { return error instanceof Error && error.message.startsWith("Unsafe todo store file:"); }
-function isMalformedTodo(error: unknown): boolean { return error instanceof Error && error.message.startsWith("Invalid todo document:"); }
-
-function serialize<T>(path: string, operation: () => Promise<T>): Promise<T> {
+function serialize< T >(
+	path      : string,
+	operation : () => Promise< T >,
+) : Promise< T > {
 	const previous = queues.get(path) ?? Promise.resolve();
-	const current = previous.catch(() => undefined).then(operation);
+	const current  = previous.catch(() => undefined).then(operation);
 	queues.set(path, current);
 	void current.then(
 		() => { if (queues.get(path) === current) queues.delete(path); },

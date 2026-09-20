@@ -24,7 +24,6 @@ function fakeDependencies() {
 		router: [] as Array<{ resumeSessionId?: string }>,
 		listed: 0,
 		picked: [] as Array<readonly NativeThreadSummary[]>,
-		pickerDesigns: [] as Array<"astra" | undefined>,
 		out: [] as string[],
 		error: [] as string[],
 	};
@@ -33,9 +32,11 @@ function fakeDependencies() {
 		runAstra: async (options = {}) => { calls.astra.push(options); },
 		runRouter: async (options = {}) => { calls.router.push(options); },
 		runAuth: async () => undefined,
+		runDevelopment: async () => "",
+		runWorkflow: async () => "",
 		listSessions: async () => [],
 		listNativeThreads: async () => { calls.listed += 1; return threads; },
-		selectNativeThread: async (items, design) => { calls.picked.push(items); calls.pickerDesigns.push(design); return items[1]?.id ?? null; },
+		selectNativeThread: async items => { calls.picked.push(items); return items[1]?.id ?? null; },
 		writeOut: (value) => { calls.out.push(value); },
 		writeError: (value) => { calls.error.push(value); },
 	};
@@ -154,7 +155,6 @@ describe("WWW CLI session entry", () => {
 		expect(await runCli(["--resume"], dependencies)).toBe(0);
 		expect(calls.listed).toBe(1);
 		expect(calls.picked).toEqual([threads]);
-		expect(calls.pickerDesigns).toEqual(["astra"]);
 		expect(calls.astra).toEqual([{ resumeThreadId: "thread-1" }]);
 	});
 

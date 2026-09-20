@@ -30,6 +30,7 @@
 ## Obsidian 정본
 
 - Obsidian 상세 정본을 작성·검증·게시할 때는 각각 [woo-obsidian-canonical](.agents/skills/woo-obsidian-canonical/SKILL.md), [woo-obsidian-contract](.agents/skills/woo-obsidian-contract/SKILL.md), [woo-obsidian-publish](.agents/skills/woo-obsidian-publish/SKILL.md)를 적용한다.
+- 새 capability나 되돌리기 어려운 계약 변경은 [Design Document Contract](docs/workflows/DESIGN_DOCUMENT_CONTRACT.md)로 설계 문서 필요성과 깊이를 판정한다. 별도 경쟁 정본을 만들지 않고 Obsidian 상세 정본의 `draft`에서 설계한다.
 
 ## Git 기록
 

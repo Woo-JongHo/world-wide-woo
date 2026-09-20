@@ -4,6 +4,8 @@
 
 WWW의 기능 계약을 사람이 읽고 다시 개발할 수 있는 상세 정본으로 유지한다. [Obsidian 상세 정본 템플릿](OBSIDIAN_TEMPLATE.md)은 문서 shape를, 이 문서는 정본 소유권·변경 감지·게이트를 소유한다.
 
+새 capability나 고비용 계약 변경은 [Design Document Contract](../../workflows/DESIGN_DOCUMENT_CONTRACT.md)로 작성 필요성과 깊이를 먼저 판정한다. 디자인 문서가 필요한 경우 별도 정본을 만들지 않고 이 상세 정본의 `draft`를 사용한다.
+
 ## 소유권
 
 | 시스템 | 정본 |
@@ -32,8 +34,10 @@ draft ── contract complete ──→ active ── superseded ──→ depr
 ```
 
 - `draft`는 아직 결정되지 않은 항목을 명시적으로 남길 수 있다.
-- `active`는 14절, Required Properties, 실제 Source Revision, Acceptance 상태를 모두 가져야 한다. template marker와 미표시 예시는 허용하지 않는다.
+- `active`는 14절, Required Properties, 실제 Source Revision, Acceptance 상태를 모두 가져야 한다. 디자인 검토 대상이면 구현을 막는 미결 질문이 해소되고 독립 리뷰와 필요한 사람 결정이 14절에 연결되어야 한다. template marker와 미표시 예시는 허용하지 않는다.
 - `deprecated`는 `related` 또는 Decision으로 후속 정본을 가리킨다. 과거 계약과 Evidence는 지우지 않는다.
+
+`active`는 현재 채택된 계약이라는 뜻이며 구현 완료나 사람 수락과 분리한다. 구현 완료는 Acceptance와 Evidence로 판정한다.
 
 ## 변경 감지와 동기화
 
@@ -53,6 +57,7 @@ draft ── contract complete ──→ active ── superseded ──→ depr
 | 시점 | 조건 | 실패 결과 |
 |---|---|---|
 | Work start | 대상 active/draft 상세 정본과 Linear leaf가 존재 | `SPEC_MISSING` |
+| Design review (방법론 게이트) | 디자인 검토 대상의 관련 계약이 active이고 blocking 질문이 없음 | draft 유지, 구현 시작 보류 |
 | 문서 변경 | `obsidian:check` 통과와 preview digest | `OBSIDIAN_CONTRACT_INVALID` 또는 `OBSIDIAN_DRIFT` |
 | Test 추가 | Test-ID가 Acceptance·Risk·Pass와 연결 | `UNMAPPED_TEST` |
 | Exception 추가 | 사용자/복구 의미가 있으면 Exception-ID와 detect/control/recovery Test 연결 | `IMPORTANT_EXCEPTION_UNVERIFIED` |

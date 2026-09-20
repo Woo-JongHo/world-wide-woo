@@ -6,6 +6,10 @@ const read = (path: string) => readFileSync(resolve(import.meta.dir, "..", path)
 const template = read("docs/planning/linear-development/OBSIDIAN_TEMPLATE.md");
 const contract = read("docs/planning/linear-development/OBSIDIAN_CANONICAL_CONTRACT.md");
 const skill = read(".agents/skills/development-traceability/SKILL.md");
+const designContract = read("docs/workflows/DESIGN_DOCUMENT_CONTRACT.md");
+const productWorkflow = read("docs/workflows/PRODUCT_WORKFLOW.md");
+const authoringSkill = read(".agents/skills/woo-obsidian-canonical/SKILL.md");
+const issueIntakeSkill = read(".agents/skills/woo-linear-issue-intake/SKILL.md");
 
 describe("Obsidian schema v2 documentation contract", () => {
 	test("defines a human-readable filename and Properties as the relationship authority", () => {
@@ -49,5 +53,20 @@ describe("Obsidian schema v2 documentation contract", () => {
 			"Obsidian 상세 정본 계약", "**Snapshot**", "**Resolve identity**", "**Prepare owned changes**",
 			"**Publish by owner**", "bun run obsidian:check", "bun run traceability:check",
 		]) expect(skill).toContain(phrase);
+	});
+
+	test("routes costly design decisions through the existing canonical source", () => {
+		for (const phrase of [
+			"틀렸을 때의 비용", "별도의 경쟁 정본을 만들지 않는다", "둘 이상이거나 마지막 항목에 해당하면",
+			"작성자와 최종 검토자는 다른 패스", "구현·테스트·배포 완료를 뜻하지 않는다",
+			"자동 판정한다고 주장하지 않는다",
+		]) expect(designContract).toContain(phrase);
+		expect(productWorkflow).toContain("Intent → Design Decision");
+		expect(contract).toContain("`active`는 현재 채택된 계약이라는 뜻이며 구현 완료나 사람 수락과 분리한다.");
+		expect(template).toContain("### Open Design Questions");
+		expect(template).toContain("**Cost of Wrong**");
+		expect(template).toContain("**Decision Authority**");
+		expect(authoringSkill).toContain("Design Document Contract");
+		expect(issueIntakeSkill).toContain("blocking 질문");
 	});
 });

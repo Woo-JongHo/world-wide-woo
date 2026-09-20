@@ -46,9 +46,12 @@ export interface TerminalCommandExecutor {
 	): Promise<TerminalCommandResult>;
 }
 
+/** Todo revision CAS 결과다. `conflict`이면 write가 수행되지 않았다. */
+export type TodoWriteOutcome = "written" | "conflict";
+
 export interface TodoStore {
 	read(): Promise<TodoDocument | null>;
-	compareAndSwap(expectedRevision: number | null, next: TodoDocument): Promise<"written" | "conflict">;
+	compareAndSwap(expectedRevision: number | null, next: TodoDocument): Promise< TodoWriteOutcome >;
 }
 
 export interface TodoController {
@@ -149,8 +152,11 @@ export interface ComposerDraftController {
 	clear(): Promise<void>;
 }
 
+/** 레거시 SessionRuntime 보관소에서 최근 변경된 세션을 식별한다. */
 export interface RecentSessionSummary {
+	/** 재개할 SessionRuntime의 ID다. */
 	id: string;
+	/** 세션 보관 파일의 마지막 수정 시각(ISO 8601)이다. */
 	updatedAt: string;
 }
 

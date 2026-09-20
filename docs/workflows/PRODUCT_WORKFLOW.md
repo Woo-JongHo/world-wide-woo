@@ -3,6 +3,7 @@
 - 상태: 장기 Workflow Profile
 - 적용 대상: Web·App·Tool 등 사용자 경험과 제품 기능을 만드는 업무
 - 공통 계약: [WWW README](../../README.md)의 Work Chain·Handoff·Progress·Approval·Evidence
+- 디자인 결정 계약: [Design Document Contract](DESIGN_DOCUMENT_CONTRACT.md)
 
 ## 목적
 
@@ -77,6 +78,8 @@ GitHub는 Code·Commit·Pull Request·Test·Check·Review의 원본을 소유하
 
 Obsidian은 무엇을 왜 결정했고 어떤 대안과 업무에 영향을 주었는지 장기적으로 다시 사용할 판단 근거를 소유한다. 모든 대화와 실행 로그를 복제하지 않는다.
 
+구현 전에 고비용 결정을 검토해야 하는 변경은 [Design Document Contract](DESIGN_DOCUMENT_CONTRACT.md)로 필요성과 깊이를 판정하고, 별도 문서 체계를 만들지 않고 Obsidian 상세 정본의 `draft`에서 설계한다. `active`는 현재 채택된 디자인 계약이며 구현 완료나 사용자 수락을 뜻하지 않는다.
+
 ## Work Chain
 
 Work Chain은 도구 사용 순서가 아니라 같은 기능이 여러 원본과 Projection에서 동일한 업무로 식별되도록 유지하는 관계다.
@@ -94,6 +97,13 @@ Figma Screen
 WWW는 이 관계의 Work Identity·Handoff·Progress·Approval·Evidence를 관리한다.
 
 ## Handoff Contracts
+
+### Intent → Design Decision
+
+- 디자인 문서 필요성과 투자 깊이가 틀렸을 때의 비용으로 판정되어 있다.
+- 목적·비목표·책임 경계와 고비용 결정이 상세 정본에 있다.
+- 구현을 막는 미결 질문이 해소되어 있다.
+- 작성과 분리된 리뷰 및 필요한 사람 결정의 근거가 연결되어 있다.
 
 ### Design → Product
 

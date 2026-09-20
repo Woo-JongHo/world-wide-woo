@@ -49,8 +49,13 @@ export function relativeCycles(graph: ReadonlyMap<string, SourceNode>): string[]
 }
 
 function resolveImport(from: string, specifier: string, paths: ReadonlySet<string>): string {
+	if (specifier.startsWith("@/")) return resolveSourcePath(specifier.slice(2), paths);
 	if (!specifier.startsWith(".")) return specifier;
-	let path = normalize(join(dirname(from), specifier)).replace(/\\/gu, "/").replace(/\.(?:js|mjs)$/u, ".ts");
+	return resolveSourcePath(normalize(join(dirname(from), specifier)).replace(/\\/gu, "/"), paths);
+}
+
+function resolveSourcePath(specifier: string, paths: ReadonlySet<string>): string {
+	const path = specifier.replace(/\.(?:js|mjs)$/u, ".ts");
 	for (const candidate of [path, `${path}.ts`, `${path}/index.ts`]) if (paths.has(candidate)) return candidate;
 	return path;
 }
