@@ -101,7 +101,7 @@ describe("seven-stage request runtime", () => {
 		f.report("UNDERSTAND");
 		f.report("DECOMPOSE", "completed", { plan: [{ stage: "EXECUTE", tasks: [{ id: "edit", title: "화면 계층 구현", status: "pending", dependsOn: [] }] }] });
 		const plain = stripTerminalSequences(requestRuntimeRows(f.result(), 80, false, 0, "Tool · 관련 렌더 코드를 읽는 중").join("\n"));
-		const request = plain.indexOf("REQUEST"), todo = plain.indexOf("TODO"), now = plain.indexOf("NOW");
+		const request = plain.indexOf("Plan"), todo = plain.indexOf("Todo"), now = plain.indexOf("Verify");
 		expect(request).toBeGreaterThanOrEqual(0);
 		expect(todo).toBeGreaterThan(request);
 		expect(now).toBeGreaterThan(todo);

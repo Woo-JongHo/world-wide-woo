@@ -8,6 +8,17 @@
 
 - 모듈을 생성·이동하거나 의존 경계를 수정할 때는 [LAYERS.md](LAYERS.md)를 읽고 `core / adapters` 정본과 아키텍처 게이트를 적용한다.
 
+## 산출물 위치
+
+- 사람이 다시 읽는 문서(연구·설계·분석·감사 결과)는 `docs/`에 둔다. `.www` 숨김폴더는 제어·기록 평면이므로 새 문서를 만들지 않는다.
+- 증거 Receipt·이슈 후보·read-back 기록은 `.www/evidence/`, 제어 원장은 `.www/control-ledger/`, 계획 소스는 `.www/planning/`에 둔다.
+- 버릴 수 있는 작업 중간 산출물은 `.www/scratchpad/`에 두고, 문서 지위를 얻으면 `docs/`로 승격한다. 세션 상태(`runtime`·`sessions`·`todos`)는 gitignored 영역에만 둔다.
+
+## 조회 경계
+
+- Linear·GitHub·증거 JSON을 조회할 때는 필터와 필요 필드로 범위를 제한한다. 같은 대상을 다시 읽을 때는 재조회 대신 이미 기록된 조회 결과(`issues-before`, Receipt 등)를 재사용한다.
+- 하위 에이전트에 폭넓은 조사를 맡길 때는 `.www/runtime`·`.www/sessions`·`.www/scratchpad`를 전수 탐색 대상에서 제외하고, 필요한 파일은 경로를 지정해 직접 읽게 한다.
+
 ## Linear 이슈
 
 - Project Activity에 작업 경과 Comment를 남기거나 Project Update를 게시하기 전에는 [woo-linear-activity](.agents/skills/woo-linear-activity/SKILL.md)를 읽고 적용한다. Comment는 작업 단위 기록, Update는 직전 Update 뒤 Comment를 종합한 기능 릴리스 기록이다.

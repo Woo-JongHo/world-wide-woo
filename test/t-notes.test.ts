@@ -48,6 +48,29 @@ describe("T-note service", () => {
 			.toBe("Total 1/2\n01. bun test test/astra-ui.test.ts\n[redacted:local-path]");
 	});
 
+	test("fits large valid source activities into one packet without losing their identities", () => {
+		const activities = Array.from({ length: 8 }, (_, index) => ({
+			id: `activity-${index + 1}`,
+			projectId: "project-1",
+			sequence: index + 1,
+			occurredAt: "2026-09-01T00:00:00.000Z",
+			kind: "tool.completed",
+			title: `활동 ${index + 1}`,
+			body: "관측".repeat(16_384),
+		}));
+		const packet = createTNotePacket(
+			"project-1",
+			{ startSequence: 1, endSequence: activities.length },
+			activities,
+			"2026-09-01T00:01:00.000Z",
+			() => "b".repeat(64),
+		);
+
+		expect(packet.activities.map(activity => activity.id)).toEqual(activities.map(activity => activity.id));
+		expect(new TextEncoder().encode(JSON.stringify({ ...packet, digest: undefined })).byteLength).toBeLessThanOrEqual(256 * 1024);
+		expect(packet.activities.every(activity => activity.body.length > 0)).toBe(true);
+	});
+
 	test("creates an immutable redacted packet and replays an append-only detached draft", async () => {
 		const draftStore = await store();
 		const service = new TNoteService(generator, draftStore, () => new Date("2026-09-01T00:00:00.000Z"), () => "tnote-1");

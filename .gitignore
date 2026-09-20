@@ -7,6 +7,8 @@ coverage/
 .DS_Store
 .gjc/
 .claude/
+.zcode/
+.video_agent/
 .scratch-*
 *.tmp
 .www/sessions/

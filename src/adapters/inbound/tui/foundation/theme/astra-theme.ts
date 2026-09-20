@@ -1,21 +1,20 @@
 import chalk from "chalk";
 import { truncateToWidth, visibleWidth, wrapTextWithAnsi, type EditorTheme, type MarkdownTheme } from "@earendil-works/pi-tui";
 
-/** Astra inks: semantic state, transcript roles, and provider identity. */
+/** Astra Mono-Indigo inks: neutral hierarchy, one active accent, and exceptional warning/error states. */
 export const astraPalette = {
-	text: "#FFFFFF", muted: "#8D91A5", rule: "#3A3D51",
-	active: "#A8B1FF", attention: "#E6BC87", failure: "#E18F9A",
+	text: "#D8DEE9", secondary: "#8B949E", muted: "#636C76", rule: "#2A3038",
+	active: "#7AA2F7", attention: "#D4A85F", failure: "#D77A7A",
 	request: "#6FBF8A", response: "#C49AE8", tool: "#6E9FD5", plan: "#D6B979", note: "#D97975", info: "#9BA8CD",
-	codex: "#6E87C7", claude: "#D69A78", gemini: "#75B9D6", zai: "#B89AD9", success: "#77BFA3",
+	codex: "#6E87C7", claude: "#D69A78", gemini: "#75B9D6", zai: "#B89AD9", success: "#7FB069",
 } as const;
 export const a = {
-	text: chalk.hex(astraPalette.text), muted: chalk.hex(astraPalette.muted), rule: chalk.hex(astraPalette.rule),
+	text: chalk.hex(astraPalette.text), answer: chalk.white, secondary: chalk.hex(astraPalette.secondary), muted: chalk.hex(astraPalette.muted), rule: chalk.hex(astraPalette.rule),
 	caption: chalk.hex(astraPalette.muted).italic,
 	active: chalk.hex(astraPalette.active), attention: chalk.hex(astraPalette.attention), failure: chalk.hex(astraPalette.failure),
 	request: chalk.hex(astraPalette.request), response: chalk.hex(astraPalette.response), tool: chalk.hex(astraPalette.tool),
 	plan: chalk.hex(astraPalette.plan), note: chalk.hex(astraPalette.note), info: chalk.hex(astraPalette.info), success: chalk.hex(astraPalette.success),
 	codex: chalk.hex(astraPalette.codex), claude: chalk.hex(astraPalette.claude), gemini: chalk.hex(astraPalette.gemini), zai: chalk.hex(astraPalette.zai),
-	rainbowRed: chalk.red, rainbowOrange: chalk.yellow, rainbowYellow: chalk.yellowBright, rainbowGreen: chalk.green, rainbowBlue: chalk.blue,
 	strong: chalk.hex(astraPalette.text).bold,
 	selected: chalk.bgHex(astraPalette.rule).hex(astraPalette.text).bold,
 };
@@ -79,7 +78,7 @@ export function astraPulse(frame: number, width = 12): string {
 }
 /** Compatible semantic roles for the existing authentication/model state machines. */
 export const astraColors = {
-	text: a.text, muted: a.muted, border: a.rule, accent: a.active, secondary: a.muted,
+	text: a.text, muted: a.muted, border: a.rule, accent: a.active, secondary: a.secondary,
 	highlight: a.strong, warm: a.note, selected: a.selected, success: a.success, warning: a.attention, error: a.failure,
 };
 export const astraEditorTheme: EditorTheme = {
@@ -99,8 +98,7 @@ export function safe(value: unknown, limit = 8000): string {
 export function oneLine(value: unknown, limit = 240): string { return safe(value, limit).replace(/\s+/gu, " ").trim(); }
 export function fit(value: string, width: number): string {
 	if (width <= 0) return "";
-	const clipped = truncateToWidth(value, width, "…");
-	return clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)));
+	return truncateToWidth(value, width, "…", true);
 }
 export function pair(left: string, right: string, width: number): string {
 	const room = width - visibleWidth(right) - 3;

@@ -7,7 +7,7 @@
 export const WORKBENCH_HUD_SYSTEM = Object.freeze({
 	composer: Object.freeze({ leftCap: "╭─", divider: "─" }),
 	strip: Object.freeze({ separator: " │ ", modeMarker: "●", meterCells: 12 }),
-	providers: Object.freeze(["Codex", "Claude", "Gemini", "Z.AI"] as const),
+	providers: Object.freeze(["Codex", "Claude", "Antigravity", "Z.AI"] as const),
 });
 
 export function compactTokenCount(value: number): string {

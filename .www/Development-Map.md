@@ -1,8 +1,8 @@
 # WWW Development Map
 
-- 상태: Chat·Todo·Tracer·Stats·Code Map 개발 PR 진행 중·Opus 최종 감사 대기; Monitor·Dashboard는 이슈·설계만 보존
-- 기준일: 2026-09-07 (Linear·PR·코드 원장·검증 증거 재확인)
-- 확인 revision: Stats `664c40b`; Chat `05e2829`/`e1b188b`; Todo `5bf2d53`; Tracer `2fd2405`; Code Map `4d4dd8d`
+- 상태: Chat·Todo·Tracer·Stats·Code Map 개발 PR 진행 중·Opus 최종 감사 대기; Monitor·Dashboard는 이슈·설계만 보존; 2026-09-18 렌더 성능·인증 전환·산출물 정비 현황 추가
+- 기준일: 2026-09-18 (작업트리 WIP·문서 정리·이슈 후보 재확인)
+- 확인 revision: `1d7b451` + 미커밋 작업트리(렌더 성능·Antigravity 인증·zai 사용량); 이전 확인 — Stats `664c40b`; Chat `05e2829`/`e1b188b`; Todo `5bf2d53`; Tracer `2fd2405`; Code Map `4d4dd8d`
 - 확인 파일: [연결 원장](./control-ledger/traceability.json), [Chat Evidence](./evidence/2026-09-06-chat-development/assessment.md), [Stats PTY Evidence](./scratchpad/2026-09-07-stats-request-enter.md)
 - 관련 Issue: [#26](https://github.com/Woo-JongHo/world-wide-woo/issues/26)
 
@@ -27,6 +27,18 @@ Development Map
 `Todo completed`, `Story accepted`, `Epic completed`는 서로 다른 상태다. 이 Map은 하위 상태를 근거 없이 상위 완료로 승격하지 않는다.
 
 ## 현재 제품
+
+### 렌더 성능·인증 전환·산출물 정비 현황 — 2026-09-18
+
+이 섹션의 작업은 모두 미커밋 작업트리 상태이며 Story acceptance로 승격하지 않는다. Linear ID는 미연결로 표시하고 추정 연결하지 않는다.
+
+| 작업 ID | 관측 상태 | 근거·연결 | 다음 전환 |
+| --- | --- | --- | --- |
+| 미연결 · Astra 렌더 성능 | 원인 수정·벤치마크 대폭 개선 확인, 37KB 초안 게이트 RED, 독립 리뷰 수락 미회수, 커밋 미반영 | [ASTRA_PERFORMANCE](../docs/ASTRA_PERFORMANCE.md) · [벤치마크 스크립트](../scripts/astra-render-benchmark.ts) | 37KB 초안 게이트 통과 → 독립 리뷰 → 커밋·Linear 기록 |
+| 미연결 · Antigravity 인증 전환 | Gemini CLI 인증 삭제, Antigravity auth 작업트리 반영·미커밋 | [auth-service](../src/adapters/outbound/authentication/auth-service.ts) · [antigravity-auth](../src/adapters/outbound/authentication/antigravity-auth.ts) | 실측 검증 → 커밋 → Linear 기록 |
+| 미연결 · zai-coding-plan 사용량 | Claude·z.ai 주간·5시간 세션 표시 작업트리 반영·미커밋 | [zai-coding-plan-usage](../src/adapters/outbound/observability/zai-coding-plan-usage.ts) | 실측 검증 → 커밋 → Linear 기록 |
+| 미연결 · 이슈 후보 2건 | codex-app-timeout·proposal-report-separation 게시 승인 대기 | [timeout 후보](./evidence/2026-09-14-codex-app-timeout/github-issue-candidate.json) · [분리 후보](./evidence/2026-09-14-proposal-report-separation/github-issue-candidate.json) | 미리보기 승인 → 게시 → Receipt |
+| 미연결 · 산출물 위치·토큰 위생 | AGENTS.md 위치·조회 경계 계약 신설, scratchpad 문서 20건 docs 승격, .zcode·.video_agent gitignore | [AGENTS.md](../AGENTS.md) · [docs/audit](../docs/audit) · [docs/research](../docs/research) | 위치·토큰 위반 이슈 등록 → 잔여 파일 주기 정리 |
 
 ### Chat·Todo·Tracer·Stats 개발 현황과 Linear 연결 — 2026-09-07
 

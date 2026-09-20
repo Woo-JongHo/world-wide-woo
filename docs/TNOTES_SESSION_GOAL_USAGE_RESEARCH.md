@@ -30,7 +30,7 @@ App Server는 `$skill-name` 텍스트만으로도 스킬을 찾을 수 있지만
 
 Caltech의 학습 자료는 처음 보는 사람에게 평이한 말로 설명하고, 막히는 지점을 찾고, 다시 단순화하는 과정을 핵심으로 설명한다. WWW는 이를 장문의 교육 설명이 아니라 `질문 / Reason / Proposal / Action / Result` 다섯 줄의 짧은 종료 보고서 계약으로 축소한다. [Caltech CTLO, The Power of Teaching](https://ctlo.caltech.edu/aboutctlo/whoweserve/undergraduates/learning-resources/learning/power-of-teaching)
 
-생성 시점은 `turn/completed` 뒤다. 다음 Chat 전송을 막지 않는 별도 큐에서 작은 모델로 생성하며, raw 로그·파일 목록·다음 할 일·숨은 사고과정은 넣지 않는다. 한 질문마다 하나의 append-only T-note를 남기며 이전 질문의 노트를 교체하지 않는다. 완료 Turn이 100개보다 많은 source activity를 만들면 질문·Turn 경계·최종 응답을 보존하고 중간 활동을 전체 구간에서 균등 표본화해 packet 안전 한도를 지킨다.
+생성 시점은 `turn/completed` 뒤다. 다음 Chat 전송을 막지 않는 별도 큐에서 작은 모델로 생성하며, raw 로그·파일 목록·다음 할 일·숨은 사고과정은 넣지 않는다. 한 질문마다 하나의 append-only T-note를 남기며 이전 질문의 노트를 교체하지 않는다. 완료 Turn이 100개보다 많은 source activity를 만들면 질문·Turn 경계·최종 응답을 보존하고 중간 활동을 전체 구간에서 균등 표본화한다. 표본화 뒤에도 합계가 256 KiB를 넘으면 packet 모듈이 activity identity·순서·완료 metadata는 유지하고 title·body의 공통 byte 상한을 결정론적으로 낮춰 자동저장이 유효한 큰 입력을 거부하지 않게 한다.
 
 ### Todo와 T-notes의 시제와 책임이 다르다
 

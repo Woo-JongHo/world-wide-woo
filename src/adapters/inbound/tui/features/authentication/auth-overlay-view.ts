@@ -4,6 +4,7 @@ import type { Provider } from "../../../../../core/domain/execution/model-settin
 import type { TuiColors } from "../../foundation/theme/theme";
 
 export const GEMINI_API_KEY_URL = "https://aistudio.google.com/app/apikey";
+export const ZAI_API_KEY_URL = "https://z.ai/manage-apikey/apikey-list";
 
 export interface AuthPromptViewState {
 	readonly prompt: AuthPrompt;
@@ -50,10 +51,11 @@ export function renderAuthFlowOverlayView(state: AuthFlowOverlayViewState, width
 	for (const line of state.lines.slice(-8)) rows.push(...wrapTextWithAnsi(line, contentWidth));
 	if (state.pending) {
 		rows.push("", ui.highlight(stripTerminalSequences(state.pending.prompt.message)));
-		if (state.provider === "google" && state.pending.prompt.type === "secret") {
+		const keyHelp = subscriptionKeyHelp(state.provider, state.pending.prompt.type);
+		if (keyHelp) {
 			for (const line of [
-				ui.secondary("Gemini API 키 발급"),
-				ui.text(GEMINI_API_KEY_URL),
+				ui.secondary(keyHelp.label),
+				ui.text(keyHelp.url),
 				ui.muted("Ctrl+O 브라우저에서 열기 · 주소를 선택해 복사할 수 있습니다."),
 			]) rows.push(...wrapTextWithAnsi(line, contentWidth));
 		}
@@ -77,12 +79,19 @@ export function renderAuthFlowOverlayView(state: AuthFlowOverlayViewState, width
 	return rows;
 }
 
+export function subscriptionKeyHelp(provider: Provider, promptType: AuthPrompt["type"]): { label: string; url: string } | null {
+	if (promptType !== "secret") return null;
+	if (provider === "google") return { label: "Gemini API 키 발급", url: GEMINI_API_KEY_URL };
+	if (provider === "zai") return { label: "Z.AI GLM Coding Plan 구독 API 키", url: ZAI_API_KEY_URL };
+	return null;
+}
+
 function providerLabel(provider: Provider): string {
 	return ({
 		"openai-codex": "ChatGPT Plus/Pro (Codex Subscription)",
 		anthropic: "Anthropic (Claude Pro/Max)",
 		openai: "OpenAI API",
-		google: "Google Gemini",
-		zai: "Z.AI Coding API",
+		google: "Antigravity (로컬 Google 구독)",
+		zai: "Z.AI GLM Coding Plan (구독 API 키)",
 	})[provider];
 }

@@ -24,8 +24,34 @@ function response(payload: unknown): Response {
 }
 
 const models = { getAuth: async () => ({}), checkAuth: async () => undefined };
+const noAntigravity = { configured: async () => false };
 
 describe("UsageService", () => {
+	test("prefers the running native Codex account over the separate WWW credential store", async () => {
+		let registryCalls = 0;
+		const service = new UsageService(
+			store({}),
+			{
+				getAuth: async () => { registryCalls++; throw new Error("WWW auth should not be consulted for native Codex"); },
+				checkAuth: async () => undefined,
+			},
+			async () => { throw new Error("HTTP adapter should not be used for native Codex"); },
+			Date.now,
+			undefined,
+			noAntigravity,
+			async () => ({
+				provider: "openai-codex",
+				state: "ready",
+				fetchedAt: 1,
+				limits: [{ label: "Codex 7 Days", remainingPercent: 64, status: "ok" }],
+			}),
+		);
+
+		const snapshots = await service.refresh();
+		expect(snapshots[0]).toMatchObject({ provider: "openai-codex", state: "ready", limits: [{ remainingPercent: 64 }] });
+		expect(registryCalls).toBe(3);
+	});
+
 	test("normalizes Codex and Claude adapter payloads without exposing credentials or raw responses", async () => {
 		let requests = 0;
 		const service = new UsageService(store({ "openai-codex": oauth(), anthropic: oauth() }), models, async url => {
@@ -34,7 +60,7 @@ describe("UsageService", () => {
 				return response({ rate_limit: { primary_window: { used_percent: 20, reset_at: 1_800_000_000 }, secondary_window: { used_percent: 40, reset_after_seconds: 10 } } });
 			}
 			return response({ account_id: "account", email: "account@example.com", five_hour: { utilization: 25, resets_at: "2030-01-01T00:00:00Z" }, seven_day: { utilization: 50 } });
-		});
+		}, Date.now, undefined, noAntigravity);
 
 		const snapshots = await service.refresh();
 		expect(requests).toBe(2);
@@ -57,7 +83,7 @@ describe("UsageService", () => {
 		const service = new UsageService(store({ anthropic: { type: "api_key", key: "key-secret" } }), models, async () => {
 			fetches++;
 			return response({});
-		});
+		}, Date.now, undefined, noAntigravity);
 		expect(await service.refresh()).toMatchObject([
 			{ provider: "openai-codex", state: "auth-required", limits: [] },
 			{ provider: "anthropic", state: "unsupported", limits: [] },
@@ -67,31 +93,55 @@ describe("UsageService", () => {
 		expect(fetches).toBe(0);
 	});
 
-	test("Gemini CLI와 Z.AI Coding Plan 쿼터를 각 공식 어댑터로 조회한다", async () => {
-		const source = { read: async (): Promise<Credential> => oauth("gemini-access") };
+	test("reports a revoked Claude subscription credential as login-required before quota lookup", async () => {
+		let fetches = 0;
+		const service = new UsageService(
+			store({ anthropic: oauth() }),
+			{
+				getAuth: async provider => {
+					if (provider === "anthropic") throw new Error("OAuth refresh failed: invalid_grant; Refresh token revoked");
+					return {};
+				},
+				checkAuth: async () => undefined,
+			},
+			async () => { fetches++; return response({}); },
+			Date.now,
+			undefined,
+			noAntigravity,
+		);
+		const snapshots = await service.refresh();
+		expect(snapshots.find(item => item.provider === "anthropic")).toMatchObject({ state: "auth-required", limits: [] });
+		expect(fetches).toBe(0);
+	});
+
+	test("Antigravity는 로컬 연결 상태로 두고 Z.AI의 5시간·주간 CREDIT_LIMIT를 Coding Plan 쿼터로 조회한다", async () => {
 		const service = new UsageService(
 			store({ zai: { type: "api_key", key: "zai-secret" } }),
 			models,
 			async url => {
 				const value = String(url);
-				if (value.includes("loadCodeAssist")) return response({ cloudaicompanionProject: "project" });
-				if (value.includes("retrieveUserQuota")) return response({ buckets: [{ modelId: "gemini-3.1-pro-preview", remainingFraction: 0.63, resetTime: "2030-01-01T00:00:00Z" }] });
-				if (value.includes("quota/limit")) return response({ success: true, data: { limits: [{ type: "TIME_LIMIT", usage: 100, currentValue: 35, percentage: 35, remaining: 65, nextResetTime: 1_800_000_000 }] } });
+				if (value.includes("quota/limit")) return response({ success: true, data: { limits: [
+					{ type: "CREDIT_LIMIT", unit: 3, number: 5, usage: 10_000, currentValue: 6_739, percentage: 67, remaining: 3_260, nextResetTime: 1_800_000_000 },
+					{ type: "CREDIT_LIMIT", unit: 6, number: 1, usage: 60_000, currentValue: 14_400, percentage: 24, remaining: 45_600, nextResetTime: 1_800_000_000 },
+				] } });
 				return response({ success: true, data: {} });
 			},
 			Date.now,
 			undefined,
-			source,
+			{ configured: async () => true },
 		);
 
 		const snapshots = await service.refresh();
 		expect(snapshots.find(item => item.provider === "google")).toMatchObject({
-			state: "ready",
-			limits: [expect.objectContaining({ remainingPercent: 63 })],
+			state: "unsupported",
+			limits: [],
 		});
 		expect(snapshots.find(item => item.provider === "zai")).toMatchObject({
 			state: "ready",
-			limits: [expect.objectContaining({ remainingPercent: 65 })],
+			limits: expect.arrayContaining([
+				expect.objectContaining({ label: "Z.AI 5 Hours Credit Quota", remainingPercent: 33 }),
+				expect.objectContaining({ label: "Z.AI Weekly Credit Quota", remainingPercent: 76 }),
+			]),
 		});
 		expect(JSON.stringify(snapshots)).not.toContain("secret");
 	});
@@ -104,7 +154,7 @@ describe("UsageService", () => {
 			fetches++;
 			await pending;
 			return response({ rate_limit: { primary_window: { used_percent: 1 } } });
-		});
+		}, Date.now, undefined, noAntigravity);
 		const first = service.refresh();
 		const second = service.refresh();
 		expect(first).toBe(second);
@@ -136,6 +186,9 @@ describe("UsageService", () => {
 				fetches++;
 				return response({ rate_limit: { primary_window: { used_percent: 20 } } });
 			},
+			Date.now,
+			undefined,
+			noAntigravity,
 		);
 
 		const notifications: Array<readonly { state: string }[]> = [];
@@ -165,6 +218,7 @@ describe("UsageService", () => {
 			},
 			() => now,
 			async () => undefined,
+			noAntigravity,
 		);
 
 		const first = await service.refresh();
@@ -197,6 +251,7 @@ describe("UsageService", () => {
 			},
 			() => now,
 			async () => undefined,
+			noAntigravity,
 		);
 
 		const ready = await service.refresh();

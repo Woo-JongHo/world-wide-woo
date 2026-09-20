@@ -1,47 +1,102 @@
-import { HStack, VStack, ScrollView, Key, matchesKey, stripTerminalSequences, visibleWidth, type Component, type Editor } from "@earendil-works/pi-tui";
+import { HStack, VStack, ScrollView, Key, matchesKey, stripTerminalSequences, truncateToWidth, visibleWidth, type Component, type Editor, type ScrollRowSource } from "@earendil-works/pi-tui";
 import type { WorkbenchSnapshot } from "../../../../core/domain/work/workbench";
 import type { UsageSnapshot } from "../../../../core/ports";
 import { ChatScrollView } from "../features/chat/chat-scroll.view";
 import { AstraTranscriptView, executionHeading, astraExecutionIsLive, astraNowLabel } from "../features/chat/astra-execution";
 import { AstraContextView } from "../features/context/astra-context-view";
 import { AstraPlanView, type PlanRuntimePresentation } from "../features/plan/astra-plan-view";
+import { AstraWorkflowView } from "../features/workflow/astra-workflow-view";
 import { WORKBENCH_SLASH_COMMANDS } from "../commands/slash-commands";
 import { a, astraPulse, duration, fit, oneLine, pair, prose, safe, section } from "../foundation/theme/astra-theme";
 import { astraUsageLine } from "../features/usage/astra-usage";
+import { componentScrollRows } from "../foundation/rendering/scroll-row-source";
+import { ASTRA_HELP_ACTIONS, ASTRA_KEYMAP, ASTRA_KEYS, ASTRA_VIEWS } from "../foundation/keyboard/astra-keymap";
 
-export type AstraPage = "dashboard" | "execution" | "plan" | "context" | "help";
-const ASTRA_DESCRIPTIONS: Record<string, string> = { chat: "실행·질문 요약 타임라인", todo: "현재 계획·Todo·Queue·검증 결과", test: "질문별 검증 목적·검사·근거", help: "Astra 명령과 키보드 이동", source: "선택한 Activity의 공개 실행 근거", dashboard: "이전 세션 탐색", monitor: "현재 Runtime·Request·Tool 관측" };
+export { ASTRA_DOC_EXTRA, ASTRA_HELP_ACTIONS, ASTRA_KEYMAP, ASTRA_KEYS, ASTRA_SCROLL_KEYS, ASTRA_VIEWS, matchesAstraAction, matchesAstraKey } from "../foundation/keyboard/astra-keymap";
+
+export type AstraPage = "dashboard" | "execution" | "plan" | "workflow" | "context" | "help";
+const ASTRA_DESCRIPTIONS: Record<string, string> = { chat: "실행·질문 요약 타임라인", todo: "Plan · Todo · Verify", workflow: "Request 단계·Subagent 위임 관측", test: "질문별 검증 목적·검사·근거", help: "Astra 명령과 키보드 이동", source: "선택한 Activity의 공개 실행 근거", dashboard: "이전 세션 탐색", monitor: "현재 Runtime·Request·Tool 관측" };
 export const ASTRA_COMMANDS = [...WORKBENCH_SLASH_COMMANDS.filter(command => command.name !== "tnotes" && command.name !== "tnote").map(command => ({ ...command, description: ASTRA_DESCRIPTIONS[command.name] ?? command.description })),
 	{ name: "context", description: "세션·권한·사용량·MCP·위임 작업" },
 	{ name: "approval", description: "보류한 승인 요청 다시 읽기 · 결정하지 않음" },
 	{ name: "work", description: "Issue 연결·기록 상태·Obsidian checkpoint/open" },
 ];
-export const ASTRA_KEYS = [
-	["f2", "/chat", "실행"], ["f3", "/todo", "계획"], ["f4", "/monitor", "관측"],
-	["f5", "/stats", "통계"], ["f6", "/dashboard", "세션"], ["f7", "/map", "지도"], ["f8", "/context", "Context"],
-	["f9", "/test", "Test"],
-] as const;
-export const ASTRA_VIEWS = [
-	["1", "/chat", "실행 · 질문 요약"], ["2", "/todo", "계획"], ["3", "/monitor", "관측"],
-	["4", "/stats", "통계"], ["5", "/dashboard", "세션"], ["6", "/map", "개발 지도"],
-	["7", "/context", "Context · 사용량"],
-	["8", "/test", "질문별 Test"],
-] as const;
+// Per retained generation, not total heap/RSS: old and new maps may coexist
+// during render, and the child's full transcript/output arrays have separate lifetimes.
+const ASTRA_INSET_CACHE_MAX_ENTRIES = 16_384;
+const ASTRA_INSET_CACHE_MAX_LOGICAL_BYTES = 8 * 1024 * 1024;
+const ASTRA_INSET_CACHE_ENTRY_OVERHEAD = 32;
+
+interface AstraInsetCacheEntry {
+	readonly source: string;
+	readonly rendered: string;
+	readonly logicalBytes: number;
+}
 
 export class AstraInset implements Component {
+	private cache: { width: number; padding: number; rows: ReadonlyMap<string, AstraInsetCacheEntry> } | undefined;
 	constructor(private readonly child: Component, private readonly padding = 2) {}
-	invalidate(): void { this.child.invalidate(); }
-	render(width: number): string[] {
+	invalidate(): void { this.cache = undefined; this.child.invalidate(); }
+	private insetRows(sourceRows: readonly string[], width: number, padding: number): string[] {
+		const previous = this.cache?.width === width && this.cache.padding === padding ? this.cache.rows : undefined;
+		const renderedRows = new Array<string>(sourceRows.length);
+		const retainedRows = new Map<string, AstraInsetCacheEntry>();
+		let retainedBytes = 0;
+		const inset = " ".repeat(padding);
+		for (let index = 0; index < sourceRows.length; index++) {
+			const source = sourceRows[index]!;
+			// Value keys handle mutable arrays, shifted rows, and repeated padding rows.
+			// Only the current generation is retained; old drafts cannot accumulate.
+			const entry = retainedRows.get(source) ?? previous?.get(source) ?? (() => {
+				const rendered = fit(inset + source, width);
+				return {
+					source,
+					rendered,
+					logicalBytes: (source.length + rendered.length) * 2 + ASTRA_INSET_CACHE_ENTRY_OVERHEAD,
+				};
+			})();
+			renderedRows[index] = entry.rendered;
+			if (!retainedRows.has(source) && retainedRows.size < ASTRA_INSET_CACHE_MAX_ENTRIES && retainedBytes + entry.logicalBytes <= ASTRA_INSET_CACHE_MAX_LOGICAL_BYTES) {
+				retainedRows.set(source, entry);
+				retainedBytes += entry.logicalBytes;
+			}
+		}
+		this.cache = { width, padding, rows: retainedRows };
+		return renderedRows;
+	}
+	scrollRows(width: number): ScrollRowSource {
 		const padding = width > this.padding * 2 + 4 ? this.padding : 0;
-		return this.child.render(Math.max(1, width - padding * 2)).map(row => fit(" ".repeat(padding) + row, width));
+		const contentWidth = Math.max(1, width - padding * 2);
+		const lazy = componentScrollRows(this.child, contentWidth);
+		if (lazy) return {
+			rowCount: lazy.rowCount,
+			rows: (start, count) => this.insetRows(lazy.rows(start, count), width, padding),
+		};
+		const dense = this.child.render(contentWidth);
+		return {
+			rowCount: dense.length,
+			rows: (start, count) => this.insetRows(dense.slice(start, start + count), width, padding),
+		};
+	}
+	render(width: number): string[] {
+		if (width <= 0) return [];
+		const source = this.scrollRows(width);
+		return [...source.rows(0, source.rowCount)];
 	}
 }
-class HelpView implements Component {
+export class HelpView implements Component {
 	invalidate(): void {}
 	render(width: number): string[] {
-		const rows = [...section("명령과 이동", width), "Ctrl+G   화면 선택 → 숫자 또는 ↑↓ Enter", "Ctrl+P   명령 찾기", "Tab      빈 입력에서 기록 읽기 / 읽기에서 입력", "Tab      입력 중 파일·명령 자동완성", "Ctrl+E   읽기에서 도구 출력 / 입력에서는 줄 끝", "Esc      상세 닫기 / 실행 중단", "Ctrl+D   빈 입력에서 종료", "", a.note("질문 요약은 별도 화면이 아니라 실행 타임라인에 쌓입니다."), ""];
+		const rows = [...section("명령과 이동", width)];
+		for (const action of ASTRA_HELP_ACTIONS) {
+			const binding = ASTRA_KEYMAP[action];
+			const docText = binding.doc.join(" · ");
+			rows.push(`${docText.padEnd(18)}${binding.label}`);
+		}
+		rows.push("Tab (입력 중)       파일·명령 자동완성", "", a.note("질문 요약은 별도 화면이 아니라 실행 타임라인에 쌓입니다."), "");
 		for (const [key, command, label] of ASTRA_VIEWS) rows.push(`${a.active(`Ctrl+G ${key}`)}  ${label}  ${a.muted(command)}`);
-		rows.push("", a.muted("Ctrl은 Mac의 Control 키입니다. F2–F8도 보조 키로 유지합니다."));
+		const functionKeys = ASTRA_KEYS.map(([key]) => key.toUpperCase());
+		rows.push("", a.muted(`Ctrl은 Mac의 Control 키입니다. ${functionKeys[0]}–${functionKeys[functionKeys.length - 1]}도 보조 키로 유지합니다.`));
 		rows.push(...section("Slash commands", width));
 		for (const c of ASTRA_COMMANDS) rows.push(a.text(`/${c.name}${"argumentHint" in c ? " " + c.argumentHint : ""}`), a.muted(`  ${c.description}`));
 		return rows.flatMap(row => prose(row, width));
@@ -69,7 +124,7 @@ export class AstraWorkspace {
 		this.scrolls = {
 			dashboard: scroll(dashboard),
 			execution: new ChatScrollView(new AstraInset(this.transcript), { follow: "end", primary: true, overscroll: "contain", scrollbar: "auto", scrollbarStyle: a.rule }),
-			plan: scroll(new AstraPlanView(get, false, clock, motion, runtimePresentation)), context: scroll(new AstraContextView(get, usage)), help: scroll(new HelpView()),
+			plan: scroll(new AstraPlanView(get, false, clock, motion, runtimePresentation)), workflow: scroll(new AstraWorkflowView(get)), context: scroll(new AstraContextView(get, usage)), help: scroll(new HelpView()),
 		};
 		this.side = new ScrollView(new AstraInset(new AstraPlanView(get, true, clock, motion, runtimePresentation)), { follow: "none", overscroll: "contain", scrollbar: "auto", scrollbarStyle: a.rule });
 		const execution = new HStack([
@@ -101,7 +156,7 @@ export class AstraExecutionHeading implements Component {
 	render(width: number): string[] {
 		const s = this.get(), heading = executionHeading(s);
 		const ink = heading.attention ? a.attention : astraExecutionIsLive(s) ? a.active : s.executionRun?.receipt || s.chat.length ? a.success : a.muted;
-		const hint = s.pendingApproval ? "/approval 확인" : this.actionHint?.() ?? (s.phase === "working" ? "Esc 중단" : "Enter 실행");
+		const hint = s.pendingApproval ? "/approval 확인" : this.actionHint?.() ?? (s.phase === "working" ? "Esc 중단" : "");
 		const now = this.clock();
 		const rootActivities = s.activities.filter(x => !s.threadId || x.nativeRefs.threadId === s.threadId);
 		const terminal = [...rootActivities].reverse().find(x => ["turn/completed", "turn/interrupted", "turn/failed"].includes(String(x.payload.method)));
@@ -180,7 +235,11 @@ export class AstraComposer implements Component {
 		const s = this.get();
 		const prompt = "여기에 작성한다.";
 		const ink = !this.editor.focused ? a.rule : s.pendingApproval ? a.attention : a.active;
-		const label = `${this.editor.focused ? "›" : "·"} ${prompt}${above ? `  ${above}` : ""}`;
+		const model = oneLine(s.activeModel ?? s.model ?? "모델 미확인", 48);
+		const effort = oneLine(s.effort ?? "추론 미확인", 16);
+		const mode = s.permissionMode === "all" ? "Bypass" : s.collaborationMode === "plan" ? "Plan Mode" : "Manual";
+		const rawLabel = `${this.editor.focused ? "›" : "·"} ${prompt} · ${model} · ${effort} · ${mode}${above ? `  ${above}` : ""}`;
+		const label = truncateToWidth(rawLabel, Math.max(0, width - 5), "");
 		rows[0] = fit(`  ${ink(label)} ${ink("─".repeat(Math.max(0, width - visibleWidth(label) - 5)))}`, width);
 		// Preserve the Editor's row/column coordinates and its autocomplete rows.
 		const bottom = rows.findIndex((row, index) => index > 0 && rail(row) !== null);
@@ -204,8 +263,31 @@ export class AstraHud implements Component {
 		const s = this.get();
 		const model = oneLine(s.activeModel ?? s.model ?? "모델 미확인", 70);
 		if (s.hud?.showUsage === false) return [""];
-		return [fit(`  ${astraUsageLine(this.usage(), Math.max(1, width - 2), model, Date.now(), this.showLogos)}`, width)];
+		const contentWidth = Math.max(1, width - 2);
+		const runtime = astraRuntimeStatus(s, Math.max(0, contentWidth - 40));
+		const usageWidth = Math.max(1, contentWidth - visibleWidth(runtime) - (runtime ? 3 : 0));
+		const subscription = astraUsageLine(this.usage(), usageWidth, model, Date.now(), this.showLogos, true);
+		return [fit(`  ${runtime ? `${runtime}${a.rule(" · ")}` : ""}${subscription}`, width)];
 	}
+}
+
+function astraRuntimeStatus(snapshot: WorkbenchSnapshot, maximumWidth: number): string {
+	const mode = snapshot.permissionMode === "all" ? a.attention("Bypass") : snapshot.collaborationMode === "plan" ? a.plan("Plan Mode") : a.success("Manual");
+	const context = snapshot.contextUsage && Number.isFinite(snapshot.contextUsage.percent)
+		? a.caption(`Context ${compactTokens(snapshot.contextUsage.usedTokens)} / ${compactTokens(snapshot.contextUsage.contextWindow)} ${Math.round(Math.max(0, Math.min(100, snapshot.contextUsage.percent)))}%`)
+		: a.muted("Context —");
+	const join = (parts: readonly string[]) => parts.join(a.rule(" · "));
+	for (const candidate of [join([mode, context]), mode, context]) {
+		if (visibleWidth(candidate) <= maximumWidth) return candidate;
+	}
+	return "";
+}
+
+function compactTokens(value: number): string {
+	if (!Number.isFinite(value) || value < 0) return "—";
+	if (value < 1_000) return String(Math.round(value));
+	if (value < 1_000_000) return `${Math.round(value / 1_000)}k`;
+	return `${(value / 1_000_000).toFixed(value < 10_000_000 ? 1 : 0)}m`;
 }
 
 /** A two-keystroke switcher: Control+G, then a digit. Drafts are never submitted or replaced. */

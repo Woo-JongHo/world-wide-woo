@@ -27,6 +27,7 @@ import type {
 import { sanitizeTerminalText } from "../../../core/domain/execution/terminal.js";
 import { PRODUCT_VERSION } from "../../../product-version.js";
 import { CODEX_EFFORTS, type Effort, type NativeModelOption } from "../../../core/domain/execution/model-settings";
+import type { UsageLimitSnapshot, UsageSnapshot } from "../../../core/ports/index.js";
 
 const STDERR_TAIL_CODE_POINTS = 4_096;
 const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
@@ -40,6 +41,43 @@ function codexThreadConfig(effort: string | undefined): JsonRecord {
 
 interface JsonRecord {
 	[key: string]: unknown;
+}
+
+function codexRateWindow(value: unknown, label: string): UsageLimitSnapshot | undefined {
+	if (!isRecord(value) || typeof value.usedPercent !== "number" || !Number.isFinite(value.usedPercent)) return undefined;
+	const usedPercent = Math.max(0, Math.min(100, value.usedPercent));
+	const duration = typeof value.windowDurationMins === "number" && Number.isFinite(value.windowDurationMins)
+		? value.windowDurationMins
+		: undefined;
+	const window = duration === 300 ? "5 Hours" : duration === 10_080 ? "7 Days" : duration ? `${duration} Minutes` : label;
+	const remainingPercent = Math.max(0, 100 - usedPercent);
+	return {
+		label: `${label} ${window}`,
+		usedPercent,
+		remainingPercent,
+		...(typeof value.resetsAt === "number" && Number.isFinite(value.resetsAt) ? { resetsAt: value.resetsAt * 1_000 } : {}),
+		status: remainingPercent <= 0 ? "exhausted" : remainingPercent < 20 ? "warning" : "ok",
+	};
+}
+
+function codexRateLimits(value: unknown): UsageLimitSnapshot[] {
+	if (!isRecord(value)) throw new Error("Codex App Server returned an invalid account/rateLimits/read result");
+	const byId = isRecord(value.rateLimitsByLimitId) ? value.rateLimitsByLimitId : undefined;
+	const selected = byId && isRecord(byId.codex)
+		? byId.codex
+		: isRecord(value.rateLimits)
+			? value.rateLimits
+			: byId
+				? Object.values(byId).find(isRecord)
+				: undefined;
+	if (!selected) throw new Error("Codex App Server omitted account rate limits");
+	const name = typeof selected.limitName === "string" && selected.limitName.trim()
+		? selected.limitName.trim()
+		: "Codex";
+	return [
+		codexRateWindow(selected.primary, name),
+		codexRateWindow(selected.secondary, name),
+	].filter((limit): limit is UsageLimitSnapshot => limit !== undefined);
 }
 
 export interface JsonLineTransport {
@@ -267,6 +305,31 @@ export class CodexAppServer implements ExecutorPort {
 		} while (cursor);
 		if (!models.size) throw new Error("Native가 사용 가능한 모델을 반환하지 않았습니다.");
 		return [...models.values()];
+	}
+
+	/** Uses the same native ChatGPT account as the running Codex session. */
+	public async readAccountUsage(): Promise<UsageSnapshot> {
+		const fetchedAt = Date.now();
+		const result = await this.request("account/read", { refreshToken: false }, false);
+		if (!isRecord(result) || !("account" in result)) throw new Error("Codex App Server returned an invalid account/read result");
+		if (result.account === null) {
+			return {
+				provider: "openai-codex",
+				state: result.requiresOpenaiAuth === false ? "unsupported" : "auth-required",
+				fetchedAt,
+				limits: [],
+			};
+		}
+		if (!isRecord(result.account) || typeof result.account.type !== "string") throw new Error("Codex App Server returned an invalid account record");
+		if (result.account.type === "apiKey" || result.account.type === "amazonBedrock") {
+			return { provider: "openai-codex", state: "unsupported", fetchedAt, limits: [] };
+		}
+		return {
+			provider: "openai-codex",
+			state: "ready",
+			fetchedAt,
+			limits: codexRateLimits(await this.request("account/rateLimits/read", undefined, false)),
+		};
 	}
 
 	public async startThread(input: NativeThreadStart): Promise<NativeThreadSnapshot> {

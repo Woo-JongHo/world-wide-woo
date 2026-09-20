@@ -41,6 +41,13 @@ describe("AuthService", () => {
 		});
 	});
 
+	test("treats a revoked Claude subscription refresh token as a new login requirement", async () => {
+		const service = new AuthService(fakeModels({
+			checkAuth: async () => { throw new Error("OAuth refresh failed: invalid_grant; Refresh token revoked"); },
+		}));
+		await expect(service.status("anthropic")).resolves.toEqual({ state: "required", provider: "anthropic" });
+	});
+
 	test("returns the post-login status and delegates logout", async () => {
 		let configured = false;
 		let loggedOut = false;

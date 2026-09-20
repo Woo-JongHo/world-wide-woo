@@ -29,9 +29,31 @@ test("runtime mode, 공급자 잔여 시간, Context 토큰을 한 줄에 표시
 	expect(line).toContain("80%");
 	expect(line).toMatch(/Claude (?:7d 0h|6d 23h)/u);
 	expect(line).toMatch(/5h 2h \d{2}m/u);
-	expect(line).toMatch(/Gemini (?:1d 0h|23h \d{2}m)/u);
+	expect(line).toMatch(/Antigravity (?:1d 0h|23h \d{2}m)/u);
 	expect(line).toContain("Context 92k / 200k 46%");
 	expect(line).toContain(" │ ");
+});
+
+test("Claude와 Z.AI는 주간 한도와 5시간 세션을 함께 표시한다", () => {
+	const view = new UsageStripView();
+	view.update([
+		{ provider: "anthropic", state: "ready", fetchedAt: now, limits: [
+			{ label: "Claude 5 Hour", remainingPercent: 12, resetsAt: now + 2 * 3_600_000, status: "ok" },
+			{ label: "Claude 7 Day", remainingPercent: 84, resetsAt: now + 7 * 86_400_000, status: "ok" },
+		] },
+		{ provider: "zai", state: "ready", fetchedAt: now, limits: [
+			{ label: "Z.AI 5 Hours Credit Quota", remainingPercent: 98, resetsAt: now + 5 * 3_600_000, status: "ok" },
+			{ label: "Z.AI Weekly Credit Quota", remainingPercent: 76, resetsAt: now + 7 * 86_400_000, status: "ok" },
+		] },
+	]);
+	const line = stripTerminalSequences(view.render(240)[0]!);
+	expect(line).toContain("Claude");
+	expect(line).toContain("5h");
+	expect(line).toContain("12%");
+	expect(line).toContain("84%");
+	expect(line).toContain("Z.AI");
+	expect(line).toContain("98%");
+	expect(line).toContain("76%");
 });
 
 test("값 없음과 좁은 폭에서도 한 줄 경계를 지킨다", () => {
@@ -50,7 +72,7 @@ test("ready 상태에 사용량 값이 없으면 대시를 표시한다", () => 
 	const line = stripTerminalSequences(view.render(120)[0]!);
 	expect(line).toContain("Codex —");
 	expect(line).toContain("Claude —");
-	expect(line).toContain("Gemini —");
+	expect(line).toContain("Antigravity —");
 	expect(line).not.toContain("조회 실패");
 });
 
@@ -64,7 +86,13 @@ test("loading auth-required unsupported 상태만 짧은 상태 문구를 사용
 	const line = stripTerminalSequences(view.render(120)[0]!);
 	expect(line).toContain("Codex 로그인 필요");
 	expect(line).toContain("Claude 미지원");
-	expect(line).toContain("Gemini 로그인 필요");
+	expect(line).toContain("Antigravity 로그인 필요");
+});
+
+test("Antigravity 로컬 세션은 쿼터를 재사용하지 않고 연결됨으로만 표시한다", () => {
+	const view = new UsageStripView();
+	view.update([{ provider: "google", state: "unsupported", fetchedAt: 1, limits: [] }]);
+	expect(stripTerminalSequences(view.render(120)[0]!)).toContain("Antigravity 연결됨");
 });
 
 test("YAML HUD 정책으로 측정 사용량과 Context를 각각 숨긴다", () => {

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
 import type { Models } from "@earendil-works/pi-ai";
-import { AuthFlowOverlay, GEMINI_API_KEY_URL, LoginOverlay } from "../src/adapters/inbound/tui/features/authentication/auth-overlay";
+import { AuthFlowOverlay, GEMINI_API_KEY_URL, LoginOverlay, ZAI_API_KEY_URL } from "../src/adapters/inbound/tui/features/authentication/auth-overlay";
 import { AuthService } from "../src/adapters/outbound/authentication/auth-service";
 
 function fakeAuthModels(): Pick<Models, "checkAuth" | "getProvider" | "login" | "logout"> {
@@ -143,5 +143,21 @@ describe("AuthFlowOverlay", () => {
 		const output = overlay.render(80).join("\n");
 		expect(output).toContain("브라우저를 열지 못했습니다");
 		expect(output).toContain(GEMINI_API_KEY_URL);
+	});
+
+	test("guides Z.AI Coding Plan subscribers to their API-key portal", async () => {
+		const opened: string[] = [];
+		const overlay = new AuthFlowOverlay(
+			"zai", ["api_key"], new AuthService(fakeAuthModels()), () => undefined,
+			() => undefined, () => undefined, async (url) => { opened.push(url); },
+		);
+		overlay.start();
+		await Bun.sleep(0);
+		const output = overlay.render(80).join("\n");
+		expect(output).toContain("Z.AI GLM Coding Plan 구독 API 키");
+		expect(output).toContain(ZAI_API_KEY_URL);
+		overlay.handleInput("\u000f");
+		await Bun.sleep(0);
+		expect(opened).toEqual([ZAI_API_KEY_URL]);
 	});
 });

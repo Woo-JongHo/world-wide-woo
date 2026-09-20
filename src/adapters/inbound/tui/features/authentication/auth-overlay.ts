@@ -9,9 +9,9 @@ import type { AuthEvent, AuthPrompt, AuthType } from "@earendil-works/pi-ai";
 import type { AuthController, ProviderAuthState } from "../../../../../core/ports";
 import { PROVIDERS, type Provider } from "../../../../../core/domain/execution/model-settings";
 import { colors, type TuiColors } from "../../foundation/theme/theme";
-import { GEMINI_API_KEY_URL, renderAuthFlowOverlayView, renderLoginOverlayView } from "./auth-overlay-view";
+import { renderAuthFlowOverlayView, renderLoginOverlayView, subscriptionKeyHelp } from "./auth-overlay-view";
 
-export { GEMINI_API_KEY_URL } from "./auth-overlay-view";
+export { GEMINI_API_KEY_URL, ZAI_API_KEY_URL } from "./auth-overlay-view";
 
 type PendingPrompt = {
 	prompt: AuthPrompt;
@@ -164,10 +164,11 @@ export class AuthFlowOverlay implements Component {
 		}
 		const pending = this.pending;
 		if (!pending) return;
-		if (this.showsGeminiKeyHelp() && matchesKey(data, Key.ctrl("o"))) {
-			void this.openExternal(GEMINI_API_KEY_URL).catch(() => {
+		const keyHelp = this.subscriptionKeyHelp();
+		if (keyHelp && matchesKey(data, Key.ctrl("o"))) {
+			void this.openExternal(keyHelp.url).catch(() => {
 				this.lines.push(this.ui.warning("브라우저를 열지 못했습니다. 아래 주소를 복사해 여세요."));
-				this.lines.push(GEMINI_API_KEY_URL);
+				this.lines.push(keyHelp.url);
 				this.requestRender();
 			});
 			return;
@@ -197,8 +198,8 @@ export class AuthFlowOverlay implements Component {
 		}
 	}
 
-	private showsGeminiKeyHelp(): boolean {
-		return this.provider === "google" && this.pending?.prompt.type === "secret";
+	private subscriptionKeyHelp(): { label: string; url: string } | null {
+		return this.pending ? subscriptionKeyHelp(this.provider, this.pending.prompt.type) : null;
 	}
 
 	private async run(): Promise<void> {
@@ -211,7 +212,7 @@ export class AuthFlowOverlay implements Component {
 					message: "로그인 방식을 선택하세요.",
 					options: this.methods.map((method) => ({
 						id: method,
-						label: method === "oauth" ? (this.provider === "google" ? "브라우저에서 Google 계정 로그인" : "구독 계정 로그인 (OAuth)") : "API 키",
+					label: method === "oauth" ? (this.provider === "google" ? "브라우저에서 Google 계정 로그인" : "구독 계정 로그인 (OAuth)") : this.provider === "zai" ? "GLM Coding Plan 구독 API 키" : "API 키",
 					})),
 				});
 			const status = await this.auth.login(this.provider, method as AuthType, {

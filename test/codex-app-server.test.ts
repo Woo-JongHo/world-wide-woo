@@ -51,6 +51,50 @@ async function connectedFake(): Promise<{ server: CodexAppServer; transport: Fak
 }
 
 describe("CodexAppServer", () => {
+	test("reads subscription limits from the active native ChatGPT account", async () => {
+		const { server, transport } = await connectedFake();
+		transport.responseFor.set("account/read", {
+			account: { type: "chatgpt", email: "must-not-leak@example.com", planType: "pro" },
+			requiresOpenaiAuth: true,
+		});
+		transport.responseFor.set("account/rateLimits/read", {
+			rateLimits: {
+				limitId: "codex",
+				limitName: null,
+				primary: { usedPercent: 25, windowDurationMins: 300, resetsAt: 1_800_000_000 },
+				secondary: { usedPercent: 40, windowDurationMins: 10_080, resetsAt: 1_800_604_800 },
+			},
+		});
+
+		const usage = await server.readAccountUsage();
+		expect(usage).toMatchObject({
+			provider: "openai-codex",
+			state: "ready",
+			limits: [
+				{ label: "Codex 5 Hours", usedPercent: 25, remainingPercent: 75, resetsAt: 1_800_000_000_000, status: "ok" },
+				{ label: "Codex 7 Days", usedPercent: 40, remainingPercent: 60, resetsAt: 1_800_604_800_000, status: "ok" },
+			],
+		});
+		expect(JSON.stringify(usage)).not.toContain("must-not-leak");
+		expect(transport.sent.filter(message => String(message.method).startsWith("account/"))).toEqual([
+			expect.objectContaining({ method: "account/read", params: { refreshToken: false } }),
+			expect.objectContaining({ method: "account/rateLimits/read" }),
+		]);
+		await server.close();
+	});
+
+	test("reports the native Codex account state without requesting limits when signed out", async () => {
+		const { server, transport } = await connectedFake();
+		transport.responseFor.set("account/read", { account: null, requiresOpenaiAuth: true });
+		await expect(server.readAccountUsage()).resolves.toMatchObject({
+			provider: "openai-codex",
+			state: "auth-required",
+			limits: [],
+		});
+		expect(transport.sent.some(message => message.method === "account/rateLimits/read")).toBe(false);
+		await server.close();
+	});
+
 	test("registers host tools and replies to dynamic calls once without admitting changed duplicate arguments", async () => {
 		const { server, transport } = await connectedFake();
 		let count = 0;

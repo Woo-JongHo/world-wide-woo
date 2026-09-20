@@ -30,7 +30,7 @@ export function requestRuntimeMotionActive(request: Pick<RequestRuntimeRecord, "
 }
 
 export function requestRuntimeRows(request: RequestRuntimeRecord, width: number, compact = false, motionFrame = 8, nowObservation: string | null = null): string[] {
-	const rows = section("REQUEST", width, request.status, a.plan, text => requestStatusGradient(request.status, text, motionFrame));
+	const rows = section("Plan", width, request.status, a.plan, text => requestStatusGradient(request.status, text, motionFrame));
 	if (request.attempt > 1) rows.push(...prose(a.muted(`시도 ${request.attempt} · 이전 ${request.previousAttempts.length}회 기록 보존`), width));
 	for (const stage of request.stages) {
 		const ink = stage.status === "running" ? a.strong : stage.status === "failed" ? a.failure : stage.status === "blocked" ? a.attention : a.muted;
@@ -40,7 +40,7 @@ export function requestRuntimeRows(request: RequestRuntimeRecord, width: number,
 	const current = request.stages.find(s => s.status === "running" || s.status === "blocked" || s.status === "failed");
 	const planned = request.stages.filter(stage => stage.tasks.length);
 	const taskCount = planned.reduce((count, stage) => count + stage.tasks.length, 0);
-	rows.push(...section("TODO", width, current?.id ?? (taskCount ? `${taskCount}개` : "미관측"), a.plan));
+	rows.push(...section("Todo", width, current?.id ?? (taskCount ? `${taskCount}개` : "미관측"), a.plan));
 	if (!planned.length) rows.push(...prose(a.muted("현재 공개된 세부 계획이 없습니다."), width));
 	for (const stage of planned) {
 		rows.push(a.muted(stage.id));
@@ -59,7 +59,7 @@ export function requestRuntimeRows(request: RequestRuntimeRecord, width: number,
 		rows.push(...prose(a.attention("재실행 금지 · Runtime read-back 확인 필요"), width, 2));
 		if (request.completedAt) rows.push(...prose(a.muted(`/reconcile ${safe(request.requestId)} ${safe(action.operationId)}`), width, 2));
 	}
-	rows.push(...section("NOW", width, current?.id ?? request.status, a.active));
+	rows.push(...section("Verify", width, current?.id ?? request.status, a.active));
 	if (nowObservation) rows.push(...prose(`${a.active("›")} ${a.text(safe(nowObservation))}`, width));
 	else if (current && ["blocked", "failed"].includes(current.status)) rows.push(...prose((current.status === "failed" ? a.failure : a.attention)(safe(current.output ?? "진행이 멈췄습니다.")), width));
 	else if (request.status === "completed") rows.push(...prose(a.success("요청 처리가 완료되었습니다."), width));

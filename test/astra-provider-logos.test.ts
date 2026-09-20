@@ -41,7 +41,7 @@ test("keeps provider names on terminals without Kitty graphics", () => {
 		setCapabilities({ ...saved, images });
 		const row = astraUsageLine(usage, 200, "gpt-6-astra", 1, true);
 		expect(transmissions(row)).toHaveLength(0);
-		for (const name of ["Codex", "Claude", "Gemini", "Z.AI"]) expect(row).toContain(name);
+		for (const name of ["Codex", "Claude", "Antigravity", "Z.AI"]) expect(row).toContain(name);
 	}
 });
 

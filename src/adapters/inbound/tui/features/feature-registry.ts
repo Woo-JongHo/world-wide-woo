@@ -14,6 +14,7 @@ import { testFeature } from "./test/test.feature";
 import { TNOTE_FEATURE } from "./tnote/tnote.feature";
 import { TRACE_FEATURE } from "./trace/trace.feature";
 import { usageFeature } from "./usage/usage.feature";
+import { workflowFeature } from "./workflow/workflow.feature";
 import type {
 	TuiFeatureDescriptor,
 	TuiFeatureId,
@@ -26,6 +27,7 @@ export const TUI_FEATURES = Object.freeze([
 	dashboardFeature,
 	CHAT_FEATURE,
 	PLAN_FEATURE,
+	workflowFeature,
 	TNOTE_FEATURE,
 	TRACE_FEATURE,
 	monitoringFeature,

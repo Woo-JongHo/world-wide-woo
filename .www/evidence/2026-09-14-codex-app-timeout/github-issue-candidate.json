@@ -1,0 +1,209 @@
+{
+  "schemaVersion": "1.0",
+  "candidateId": "ARTIFACT-CANDIDATE-CODEX-APP-SERVER-TIMEOUT",
+  "kind": "github-issue",
+  "sourceRevision": "git:1d7b451fe8c6abbdae717975d686392ddd212c46",
+  "intent": "Codex App이 실행되지 않은 환경에서 Native App Server 연결 타임아웃의 원인을 추적한다",
+  "target": {
+    "repository": "Woo-JongHo/world-wide-woo",
+    "repositoryUrl": "https://github.com/Woo-JongHo/world-wide-woo",
+    "defaultBranch": "main"
+  },
+  "content": {
+    "issueType": "bug",
+    "title": "Codex App이 실행되지 않은 환경에서 Native App Server 연결이 타임아웃된다",
+    "statement": "Codex App을 실행하지 않은 상태에서 WWW 테스트를 실행하면 Native App Server 연결이 타임아웃되고, Codex App을 실행한 뒤에는 같은 테스트가 진행된다.",
+    "details": [
+      "사용자 테스트에서 Codex App 미실행 상태의 타임아웃과 실행 상태의 정상 진행이 관찰됐다.",
+      "WWW의 기본 Codex 실행 경로는 CodexAppServer.connect()를 호출해 codex app-server --stdio 자식 프로세스를 시작한다.",
+      "연결 직후 initialize 응답을 기본 30초 안에 받지 못하면 Codex App Server 요청 타임아웃으로 종료된다.",
+      "제한된 실행 환경에서 실제 runtime-tool-canary를 실행하면 ~/.codex SQLite state 초기화 실패로 App Server가 종료된다.",
+      "제한 밖에서 같은 runtime-tool-canary를 실행하면 calls=1, hostAcceptedToolResult=true, nativeTurnTerminated=true로 완료된다.",
+      "현재 재현 결과만으로는 Codex App 실행 여부가 직접 원인인지, 실행 환경의 상태·권한·PATH 차이가 원인인지 확정되지 않았다."
+    ]
+  },
+  "links": {},
+  "expectedBefore": {
+    "repository": {
+      "nameWithOwner": "Woo-JongHo/world-wide-woo",
+      "url": "https://github.com/Woo-JongHo/world-wide-woo",
+      "defaultBranch": "main"
+    },
+    "issueCount": 25,
+    "issues": [
+      {
+        "number": 48,
+        "title": "긴 세션의 작업 맥락을 요약해 같은 세션이나 새 세션에서 이어간다",
+        "state": "CLOSED",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/48"
+      },
+      {
+        "number": 37,
+        "title": "결정 선택지가 없는 승인 오버레이가 대화를 중단한다",
+        "state": "CLOSED",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/37"
+      },
+      {
+        "number": 36,
+        "title": "Session Review가 작업 결과 대신 원시 실행 기록을 나열한다",
+        "state": "CLOSED",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/36"
+      },
+      {
+        "number": 35,
+        "title": "요청이 분석 시작 상태에 머물러 실행으로 전환되지 않는다",
+        "state": "CLOSED",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/35"
+      },
+      {
+        "number": 26,
+        "title": "ID로 연결된 전체 개발 현황 Map을 제공한다",
+        "state": "CLOSED",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/26"
+      },
+      {
+        "number": 24,
+        "title": "Native 구조화 결과에 Markdown과 의미 색상 하이라이트가 일관되게 적용되지 않는다",
+        "state": "CLOSED",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/24"
+      },
+      {
+        "number": 23,
+        "title": "Native 실행 카드에서 긴 로컬 절대경로가 반복되어 핵심 결과를 읽기 어렵다",
+        "state": "CLOSED",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/23"
+      },
+      {
+        "number": 22,
+        "title": "Chat이 구조화된 내부 응답 태그를 그대로 표시한다",
+        "state": "CLOSED",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/22"
+      },
+      {
+        "number": 21,
+        "title": "재개한 Native 세션에서 복원된 Plan이 빈 Todo.md로 투영되지 않는다",
+        "state": "CLOSED",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/21"
+      },
+      {
+        "number": 20,
+        "title": "저장되지 않은 T-note에도 Chat 완료 번호가 표시된다",
+        "state": "CLOSED",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/20"
+      },
+      {
+        "number": 19,
+        "title": "오른쪽 상단 패널의 T-note와 Trace·Source 역할이 일관되지 않다",
+        "state": "CLOSED",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/19"
+      },
+      {
+        "number": 15,
+        "title": "외부 변경의 실행 범위를 구조화된 승인 화면에서 확인한다",
+        "state": "CLOSED",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/15"
+      },
+      {
+        "number": 14,
+        "title": "Bash 실행 카드 위에 현재 작업 설명이 표시되지 않는다",
+        "state": "CLOSED",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/14"
+      },
+      {
+        "number": 13,
+        "title": "워크벤치의 연속 스크롤이 중간에 끊긴다",
+        "state": "CLOSED",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/13"
+      },
+      {
+        "number": 12,
+        "title": "응답 갱신 중 입력창의 타이핑이 끊긴다",
+        "state": "CLOSED",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/12"
+      },
+      {
+        "number": 11,
+        "title": "MCP 연결과 도구 구성을 Workbench에서 관리한다",
+        "state": "CLOSED",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/11"
+      },
+      {
+        "number": 10,
+        "title": "같은 프로젝트에서 Workbench를 여러 개 열 수 없다",
+        "state": "CLOSED",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/10"
+      },
+      {
+        "number": 9,
+        "title": "승인 대기 상태가 계속 작업 중인 것처럼 보인다",
+        "state": "CLOSED",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/9"
+      },
+      {
+        "number": 8,
+        "title": "Native subagent의 모델 배치와 작업 상태를 한 흐름에서 관찰한다",
+        "state": "CLOSED",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/8"
+      },
+      {
+        "number": 7,
+        "title": "첫 응답이 표시되기까지 지나치게 오래 걸린다",
+        "state": "CLOSED",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/7"
+      },
+      {
+        "number": 6,
+        "title": "T-notes가 작업 중에도 실시간 진행 상태를 표시한다",
+        "state": "CLOSED",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/6"
+      },
+      {
+        "number": 5,
+        "title": "Step 카드의 반복 라벨을 제거한다",
+        "state": "CLOSED",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/5"
+      },
+      {
+        "number": 4,
+        "title": "프로젝트 대시보드와 모니터링 화면을 분리한다",
+        "state": "CLOSED",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/4"
+      },
+      {
+        "number": 2,
+        "title": "WES Context Composer 경계를 WWW에 연결한다",
+        "state": "CLOSED",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/2"
+      },
+      {
+        "number": 1,
+        "title": "Todo 세부 작업과 실시간 동작 설명을 추가한다",
+        "state": "CLOSED",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/1"
+      }
+    ]
+  },
+  "validation": [
+    {
+      "id": "github-issue-search",
+      "status": "pass",
+      "evidence": "gh issue list --state all로 현재 전체 Issue 목록 25건의 제목·본문을 확인했고 의미가 겹치는 App Server 타임아웃 Issue를 찾지 못했다."
+    },
+    {
+      "id": "restricted-canary",
+      "status": "pass",
+      "evidence": "bun scripts/runtime-tool-canary.ts --live가 ~/.codex SQLite state 초기화 실패를 출력해 환경 의존 실패를 확인했다."
+    },
+    {
+      "id": "unrestricted-canary",
+      "status": "pass",
+      "evidence": "제한 밖 동일 canary가 calls=1 hostAcceptedToolResult=true nativeTurnTerminated=true로 완료됐다."
+    },
+    {
+      "id": "source-inspection",
+      "status": "pass",
+      "evidence": "CodexAppServer stdio spawn, initialize handshake, 30초 request timeout 경계를 소스와 대조했다."
+    }
+  ],
+  "candidateDigest": "ee0a32539ad1d3eeddf2cbe08ff959355e69ccc57012574d951b187194de6480"
+}

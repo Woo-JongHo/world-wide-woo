@@ -5,6 +5,7 @@ import type {
 } from "@earendil-works/pi-ai";
 import type { AuthController, ProviderAuthState } from "../../../core/ports";
 import type { Provider } from "../../../core/domain/execution/model-settings";
+import { isInvalidOAuthRefresh } from "./oauth-refresh-error.js";
 
 export class AuthService implements AuthController {
 	constructor(private readonly models: Pick<Models, "checkAuth" | "getProvider" | "login" | "logout">) {}
@@ -25,6 +26,9 @@ export class AuthService implements AuthController {
 				? { state: "configured", provider, source: auth.source ?? auth.type, type: auth.type }
 				: { state: "required", provider };
 		} catch (error) {
+			// A revoked Claude subscription refresh token is recoverable by signing in
+			// again.  Do not present that as an opaque provider failure in the picker.
+			if (provider === "anthropic" && isInvalidOAuthRefresh(error)) return { state: "required", provider };
 			return { state: "failed", provider, message: error instanceof Error ? error.message : String(error) };
 		}
 	}

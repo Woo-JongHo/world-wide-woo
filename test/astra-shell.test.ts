@@ -50,8 +50,8 @@ test("production Astra shell routes navigation, rejection, approval and shutdown
 	});
 	const submit = async (text: string) => { terminal.input(text); terminal.input("\r"); await tick(); };
 	try {
-		await tick(); expect(terminal.output).toContain("astra"); expect(terminal.output).toContain("WWW Dashboard"); expect(terminal.output).toContain("현재 Workbench snapshot");
-		await submit("/todo"); expect(terminal.output).toContain("계획"); expect(commands).toHaveLength(0);
+		await tick(); expect(terminal.output).toContain("astra"); expect(terminal.output).toContain("세션 연결됨"); expect(terminal.output).toContain("Request 1");
+		await submit("/todo"); expect(terminal.output).toContain("Plan"); expect(commands).toHaveLength(0);
 		terminal.input("\x1b"); await tick();
 		const legacyNotesStart = terminal.output.length;
 		await submit("/tnotes");
@@ -78,7 +78,7 @@ test("production Astra shell routes navigation, rejection, approval and shutdown
 		await submit("/login");
 		const loginStart = terminal.output.length;
 		for (let i = 0; i < 5; i++) { terminal.input("\x1b[6~"); await tick(); }
-		expect(terminal.output.slice(loginStart)).toContain("Z.AI Coding API");
+		expect(terminal.output.slice(loginStart)).toContain("Z.AI GLM Coding Plan");
 		terminal.input("\x1b"); await tick();
 		terminal.rows = 24; terminal.resize(); await tick();
 		terminal.input("abcdef"); terminal.input("\x01"); terminal.input("\x05"); terminal.input("Z"); terminal.input("\r"); await tick();
@@ -209,7 +209,7 @@ test("the production layout keeps autocomplete selections and multiline rails vi
 		const bottom = rows.findIndex(row => row.includes("line-6")) + 1;
 		expect(rows[bottom]).toMatch(/^\s*─+\s*$/u);
 		expect(text).toContain("› 여기에 작성한다.");
-		expect(text).toContain("구독 잔여"); expect(text).toContain("7d 62%");
+		expect(text).toContain("구독 잔여"); expect(text).toContain("62%");
 		expect(text).not.toContain("Enter 추가 지시");
 		terminal.input("\x01"); terminal.input("\x0b"); terminal.input("/"); await tick();
 		for (let i = 0; i < 50; i++) {

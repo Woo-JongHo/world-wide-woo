@@ -1853,6 +1853,10 @@ export class ProjectWorkbench {
 		if (!scope || this.hasTNoteFor(scope.activities)) return;
 		this.automaticTNoteTurns.add(turnId);
 		const request = this.tnoteRequest(scope.activities);
+		// The detached writer deliberately does not block the next chat turn.  Make that
+		// delay explicit instead of leaving a completed turn looking as though its report
+		// was dropped.
+		this.setActionResult("tnote", "완료 보고 작성 중", "요청은 완료되었습니다. 검증 근거를 포함한 Report를 Chat 타임라인에 저장하고 있습니다.");
 		this.tnoteQueue = this.tnoteQueue
 			.catch(() => undefined)
 			.then(async () => {
@@ -1865,7 +1869,7 @@ export class ProjectWorkbench {
 					this.noteDrafts.set(draft.id, draft);
 					this.notes.push(immutable(projectTNote(draft)));
 					this.failedAutomaticTNoteTurns.delete(turnId);
-					this.publish();
+					this.setActionResult("tnote", `완료 보고 #${draft.sequence}`, "검증 근거를 포함한 Report를 Chat 타임라인에 저장했습니다.");
 				} catch (error) {
 					if (this.closed || this.narrationAbort.signal.aborted) return;
 					this.failedAutomaticTNoteTurns.add(turnId);

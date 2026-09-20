@@ -2,7 +2,7 @@ import type { AuthController } from "../../../core/ports/index.js";
 import { AuthService } from "./auth-service.js";
 import { FileCredentialStore } from "./credential-store.js";
 import { createModelRegistry } from "./model-router.js";
-import { ProviderAuthController } from "./gemini-cli-auth.js";
+import { ProviderAuthController } from "./antigravity-auth.js";
 
 export function createProjectAuthController(): AuthController {
 	const credentials = new FileCredentialStore();

@@ -279,8 +279,8 @@ WWW가 이길 수 있는 자리는 다르다.
 
 ## 15. 조사 원문
 
-- [Gajae Code 조사 원문](../.www/scratchpad/2026-09-04-gajae-code-tui-research.md)
-- [Senpi 조사 원문](../.www/scratchpad/2026-09-04-senpi-tui-research.md)
-- [Pi 조사 원문](../.www/scratchpad/2026-09-04-pi-tui-research.md)
+- [Gajae Code 조사 원문](./research/2026-09-04-gajae-code-tui-research.md)
+- [Senpi 조사 원문](./research/2026-09-04-senpi-tui-research.md)
+- [Pi 조사 원문](./research/2026-09-04-pi-tui-research.md)
 - 기존 범용 비교: [TUI_COMPARISON.md](./TUI_COMPARISON.md)
 - 계층별 코드 지도: [TUI_CODE_MATRIX.md](./TUI_CODE_MATRIX.md)

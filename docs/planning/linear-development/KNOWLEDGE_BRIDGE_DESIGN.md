@@ -13,7 +13,7 @@
 
 기존 Product Workflow는 모든 대화·실행 로그 복제를 범위로 삼지 않았다. 최신 요청은 **선택한 개발 업무의 대화·테스트 기록을 보존·연결하는 범위 확장**이다. 모든 provider의 전체 세션 수집이나 무제한 복제를 이미 승인·구현된 것으로 확대하지 않는다.
 
-원문·상태·미확인 범위는 [WES 결정 감사](../../../.www/scratchpad/2026-09-06-sqlite-decision-audit.md), [로컬 목적 감사](../../../.www/scratchpad/2026-09-06-local-purpose-audit.md), [정정 기록](DECISION_RECONCILIATION.md)에 남긴다.
+원문·상태·미확인 범위는 [WES 결정 감사](../../../.www/scratchpad/2026-09-06-sqlite-decision-audit.md), [로컬 목적 감사](../../audit/2026-09-06-local-purpose-audit.md), [정정 기록](DECISION_RECONCILIATION.md)에 남긴다.
 
 ## 정보의 소유권
 

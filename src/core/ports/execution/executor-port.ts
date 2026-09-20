@@ -16,10 +16,13 @@ import type {
 } from "../../domain/execution/native-session.js";
 import type { RuntimeToolDefinition, RuntimeToolHandler } from "./runtime-tool-port";
 import type { NativeModelOption } from "../../domain/execution/model-settings";
+import type { UsageSnapshot } from "../index.js";
 
 /** Application-owned semantic boundary around a native model session host. */
 export interface ExecutorPort {
 	listModels?(): Promise<readonly NativeModelOption[]>;
+	/** Read the active native account's display-safe subscription limits, when supported. */
+	readAccountUsage?(): Promise<UsageSnapshot>;
 	/** Register before thread creation; does not imply strict isolation support. */
 	registerRuntimeTools?(definitions: readonly RuntimeToolDefinition[], handler: RuntimeToolHandler): () => void;
 	startThread(input: NativeThreadStart): Promise<NativeThreadSnapshot>;

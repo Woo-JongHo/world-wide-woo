@@ -179,10 +179,11 @@ describe("WWW slash commands", () => {
 
 
 test("routes local workflow commands and advertises their completion", () => {
+	expect(parseWorkbenchShellCommand("/workflow")).toEqual({ type: "workflow.view" });
 	expect(parseWorkbenchShellCommand("/workflow check RPA-001")).toEqual({ type: "workflow.check", processId: "RPA-001" });
 	expect(parseWorkbenchShellCommand("/workflow resume run-1")).toEqual({ type: "workflow.resume", runId: "run-1" });
 	expect(parseWorkbenchShellCommand("/workflow show run-1")).toEqual({ type: "workflow.show", runId: "run-1" });
-	for (const input of ["/workflow", "/workflow check", "/workflow show a b", "/workflow delete run-1"]) expect(parseWorkbenchShellCommand(input)?.type).toBe("error");
+	for (const input of ["/workflow check", "/workflow show a b", "/workflow delete run-1"]) expect(parseWorkbenchShellCommand(input)?.type).toBe("error");
 	expect(WORKBENCH_SLASH_COMMANDS.find(command => command.name === "workflow")).toBeDefined();
 	expect(parseWorkbenchShellCommand("/help")).toEqual({ type: "help" });
 });

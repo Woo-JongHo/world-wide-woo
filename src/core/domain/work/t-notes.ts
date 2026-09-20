@@ -201,18 +201,16 @@ export function createTNotePacket(
 	const projected = activities.map((activity) => projectActivity(activity, projectId, range));
 	assertStrictlyIncreasingSequences(projected, range);
 	const completion = completionFor(activities.at(-1));
-	const material = {
+	const base = {
 		schemaVersion: 1 as const,
 		projectId,
 		range: { ...range },
 		createdAt,
-		activities: projected,
 		...(completion ? { completion } : {}),
 	};
+	const fitted = fitTNotePacketActivities(base, projected);
+	const material = { ...base, activities: fitted };
 	const canonicalMaterial = canonicalJson(material);
-	if (utf8ByteLength(canonicalMaterial) > MAX_PACKET_BYTES) {
-		throw new Error("T-note source packet is too large");
-	}
 	const digest = calculateDigest(canonicalMaterial);
 	if (typeof digest !== "string" || !DIGEST_PATTERN.test(digest)) throw new Error("Invalid T-note packet digest");
 	return freezePacket({ ...material, digest });
@@ -373,6 +371,56 @@ function canonicalJson(value: unknown): string {
 	return `{${Object.keys(record).sort().map(key => `${JSON.stringify(key)}:${canonicalJson(record[key])}`).join(",")}}`;
 }
 
+/**
+ * A packet owns its aggregate byte budget. Callers provide source activities;
+ * they do not need to predict how many individually valid bodies fit together.
+ * Identity, order, range, and completion metadata remain lossless while large
+ * text fields share the remaining budget deterministically.
+ */
+function fitTNotePacketActivities(
+	base: Omit<TNotePacket, "activities" | "digest">,
+	activities: readonly TNoteSourceActivity[],
+): readonly TNoteSourceActivity[] {
+	const fits = (candidate: readonly TNoteSourceActivity[]): boolean =>
+		utf8ByteLength(canonicalJson({ ...base, activities: candidate })) <= MAX_PACKET_BYTES;
+	if (fits(activities)) return activities;
+
+	const withTextCaps = (titleCap: number, bodyCap: number): readonly TNoteSourceActivity[] => activities.map(activity => Object.freeze({
+		...activity,
+		title: truncateUtf8(activity.title, titleCap),
+		body: truncateUtf8(activity.body, bodyCap),
+	}));
+	const minimumTextBytes = 4;
+	let titleCap = 2 * 1024;
+	if (!fits(withTextCaps(titleCap, minimumTextBytes))) {
+		let low = minimumTextBytes;
+		let high = titleCap;
+		let best = minimumTextBytes;
+		while (low <= high) {
+			const middle = Math.floor((low + high) / 2);
+			if (fits(withTextCaps(middle, minimumTextBytes))) {
+				best = middle;
+				low = middle + 1;
+			} else high = middle - 1;
+		}
+		titleCap = best;
+	}
+
+	let low = minimumTextBytes;
+	let high = MAX_ACTIVITY_BODY;
+	let fitted = withTextCaps(titleCap, minimumTextBytes);
+	if (!fits(fitted)) throw new Error("T-note source packet metadata is too large");
+	while (low <= high) {
+		const middle = Math.floor((low + high) / 2);
+		const candidate = withTextCaps(titleCap, middle);
+		if (fits(candidate)) {
+			fitted = candidate;
+			low = middle + 1;
+		} else high = middle - 1;
+	}
+	return fitted;
+}
+
 /** Keeps a bounded, identifier-free record of native event data for detached summarization. */
 function redactNativePayload(value: unknown): unknown {
 	const seen = new Set<object>();
@@ -419,12 +467,15 @@ function utf8ByteLength(value: string): number { return new TextEncoder().encode
 
 function truncateUtf8(value: string, maximumBytes: number): string {
 	if (utf8ByteLength(value) <= maximumBytes) return value;
-	let result = "";
+	const result: string[] = [];
+	let usedBytes = 0;
 	for (const character of value) {
-		if (utf8ByteLength(result + character) > maximumBytes) break;
-		result += character;
+		const characterBytes = utf8ByteLength(character);
+		if (usedBytes + characterBytes > maximumBytes) break;
+		result.push(character);
+		usedBytes += characterBytes;
 	}
-	return result;
+	return result.join("");
 }
 
 function redactCustomerIdentifiers(value: string): string {

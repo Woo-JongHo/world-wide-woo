@@ -102,7 +102,7 @@ export interface ProjectWorkbenchSessionFactories {
 	createReviewService(runtimeDirectory: string, observeUsage?: (observation: SessionModelUsageObservation) => void, config?: WorkbenchConfig): ReviewService;
 	createWorkbench(native: ExecutorPort, journal: WorkbenchActivityJournal, options: ProjectWorkbenchOptions): ProjectWorkbench;
 	createComposerDraft(root: string, sessionId: string, directory: string): Promise<ComposerDraftController>;
-	createUsageMonitor(): UsageMonitor;
+	createUsageMonitor(native: ExecutorPort): UsageMonitor;
 	createWooEntry(): WooEntry;
 	loadSkillRegistry(root: string): Promise<SkillRegistrySnapshot | undefined>;
 	createDevelopment?(root: string, runId: string): DevelopmentService;
@@ -162,9 +162,17 @@ const productionFactories: ProjectWorkbenchSessionFactories = {
 	createWorkbench: (native, journal, options) => new ProjectWorkbench(native, journal, options),
 	// Keep the class receiver: passing the static method itself loses `this`.
 	createComposerDraft: (root, sessionId, directory) => FileComposerDraftController.create(root, sessionId, directory),
-	createUsageMonitor: () => {
+	createUsageMonitor: (native) => {
 		const credentials = new FileCredentialStore();
-		return new UsageService(credentials, createModelRegistry(credentials));
+		return new UsageService(
+			credentials,
+			createModelRegistry(credentials),
+			fetch,
+			Date.now,
+			undefined,
+			undefined,
+			typeof native.readAccountUsage === "function" ? () => native.readAccountUsage!() : undefined,
+		);
 	},
 	createWooEntry: () => new WooEntry(new WesEntryCollector()),
 	loadSkillRegistry: async (root) => await existingDirectory(join(root, ".agents/skills")) ? new FileSkillRegistry(root).load() : undefined,
@@ -281,7 +289,7 @@ export async function createProjectWorkbenchSession(
 		});
 		await workbench.waitUntilReady();
 		const composerDraft = await factories.createComposerDraft(workspace.root, runId, workspace.draftsDirectory);
-		const usage = factories.createUsageMonitor();
+		const usage = factories.createUsageMonitor(native);
 		return {
 			workspace,
 			projectId,

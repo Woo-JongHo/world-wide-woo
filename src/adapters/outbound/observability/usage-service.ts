@@ -1,8 +1,6 @@
 import type { UsageCredential, UsageFetchContext, UsageLimit } from "@gajae-code/ai/core";
 import { claudeUsageProvider } from "@gajae-code/ai/usage/claude";
-import { googleGeminiCliUsageProvider } from "@gajae-code/ai/usage/gemini";
 import { openaiCodexUsageProvider } from "@gajae-code/ai/usage/openai-codex";
-import { zaiUsageProvider } from "@gajae-code/ai/usage/zai";
 import type { Credential, CredentialStore } from "@earendil-works/pi-ai";
 import type {
 	UsageLimitSnapshot,
@@ -13,7 +11,9 @@ import type {
 	UsageSnapshot,
 	UsageState,
 } from "../../../core/ports";
-import { SystemGeminiCliUsageCredentialSource, type GeminiCliUsageCredentialSource } from "./gemini-cli-usage-credentials.js";
+import { SystemAntigravityLocalAuthSource, type AntigravityLocalAuthSource } from "../authentication/antigravity-local-auth.js";
+import { isInvalidOAuthRefresh } from "../authentication/oauth-refresh-error.js";
+import { fetchZaiCodingPlanUsage } from "./zai-coding-plan-usage.js";
 
 export type UsageListener = (snapshots: readonly UsageSnapshot[]) => void;
 
@@ -53,7 +53,7 @@ function asUsageCredential(credential: Credential): UsageCredential {
 
 function percent(value: number | undefined): number | undefined {
 	if (typeof value !== "number" || !Number.isFinite(value)) return undefined;
-	return Math.max(0, Math.min(100, value * 100));
+	return Math.round(Math.max(0, Math.min(100, value * 100)) * 100) / 100;
 }
 
 function normalizeLimit(limit: UsageLimit): UsageLimitSnapshot {
@@ -114,7 +114,8 @@ export class UsageService implements UsageMonitor {
 		private readonly fetchImpl: UsageFetch = fetch,
 		private readonly now: () => number = Date.now,
 		private readonly retryWait?: UsageFetchContext["retryWait"],
-		private readonly geminiCredentials: GeminiCliUsageCredentialSource = new SystemGeminiCliUsageCredentialSource(),
+		private readonly antigravity: AntigravityLocalAuthSource = new SystemAntigravityLocalAuthSource(),
+		private readonly nativeCodexUsage?: () => Promise<UsageSnapshot>,
 	) {}
 
 	refresh(): Promise<readonly UsageSnapshot[]> {
@@ -156,20 +157,38 @@ export class UsageService implements UsageMonitor {
 	}
 
 	private async fetchProvider(provider: UsageProviderId): Promise<UsageSnapshot> {
+		if (provider === "openai-codex" && this.nativeCodexUsage) {
+			try {
+				const native = await this.nativeCodexUsage();
+				if (native.provider !== provider) throw new Error("Native Codex usage returned the wrong provider");
+				if (native.state === "ready") this.lastReady.set(provider, native);
+				else this.lastReady.delete(provider);
+				this.backoff.delete(provider);
+				return native;
+			} catch {
+				return this.recordFailure(provider, { networkFailure: false });
+			}
+		}
+		if (provider === "google" && await this.antigravity.configured()) {
+			this.clearProviderState(provider);
+			return snapshot(provider, "unsupported");
+		}
 		const observation: FetchObservation = { networkFailure: false };
 		// Registry startup and credential refresh happen before any quota request.  A transient
 		// failure here must not enter the provider backoff, otherwise the next refresh is
 		// suppressed even though no provider request was attempted.
 		try {
 			await this.models.getAuth(provider);
-		} catch {
+		} catch (error) {
+			if (provider === "anthropic" && isInvalidOAuthRefresh(error)) {
+				this.clearProviderState(provider);
+				return snapshot(provider, "auth-required");
+			}
 			return this.degradedSnapshot(provider, { kind: "provider" });
 		}
 		try {
 			// getAuth owns serialized OAuth refresh; re-read afterwards to use its rotated token.
-			const stored = provider === "google"
-				? await this.geminiCredentials.read()
-				: await this.credentials.read(provider);
+			const stored = await this.credentials.read(provider);
 			if (!stored) {
 				this.clearProviderState(provider);
 				const ambient = await this.models.checkAuth(provider);
@@ -180,10 +199,20 @@ export class UsageService implements UsageMonitor {
 				? openaiCodexUsageProvider
 				: provider === "anthropic"
 					? claudeUsageProvider
-					: provider === "google"
-						? googleGeminiCliUsageProvider
-						: zaiUsageProvider;
-			const adapterProvider = provider === "google" ? "google-gemini-cli" : provider;
+					: undefined;
+			const adapterProvider = provider;
+			if (provider === "zai") {
+				const limits = await fetchZaiCodingPlanUsage(credential, this.observedFetch(observation));
+				if (!limits) return this.recordFailure(provider, observation);
+				const ready = snapshot(provider, "ready", limits.map(normalizeLimit), this.now());
+				this.lastReady.set(provider, ready);
+				this.backoff.delete(provider);
+				return ready;
+			}
+			if (!adapter) {
+				this.clearProviderState(provider);
+				return snapshot(provider, "unsupported");
+			}
 			if (!adapter.supports?.({ provider: adapterProvider, credential })) {
 				this.clearProviderState(provider);
 				return snapshot(provider, "unsupported");
@@ -196,20 +225,7 @@ export class UsageService implements UsageMonitor {
 			if (waiting?.issue.retryAt && waiting.issue.retryAt > this.now()) {
 				return this.degradedSnapshot(provider, waiting.issue);
 			}
-			const observedFetch: UsageFetch = async (input, init) => {
-				try {
-					const response = await this.fetchImpl(input, init);
-					observation.status = response.status;
-					if (response.status === 429) {
-						const hinted = retryAt(response.headers, this.now());
-						if (hinted !== undefined) observation.retryAt = Math.max(observation.retryAt ?? 0, hinted);
-					}
-					return response;
-				} catch (error) {
-					observation.networkFailure = true;
-					throw error;
-				}
-			};
+			const observedFetch = this.observedFetch(observation);
 			const report = await adapter.fetchUsage(
 				{ provider: adapterProvider, credential },
 				{ fetch: observedFetch as typeof fetch, retryWait: this.retryWait },
@@ -222,6 +238,23 @@ export class UsageService implements UsageMonitor {
 		} catch {
 			return this.recordFailure(provider, observation);
 		}
+	}
+
+	private observedFetch(observation: FetchObservation): UsageFetch {
+		return async (input, init) => {
+			try {
+				const response = await this.fetchImpl(input, init);
+				observation.status = response.status;
+				if (response.status === 429) {
+					const hinted = retryAt(response.headers, this.now());
+					if (hinted !== undefined) observation.retryAt = Math.max(observation.retryAt ?? 0, hinted);
+				}
+				return response;
+			} catch (error) {
+				observation.networkFailure = true;
+				throw error;
+			}
+		};
 	}
 
 	private recordFailure(provider: UsageProviderId, observation: FetchObservation): UsageSnapshot {

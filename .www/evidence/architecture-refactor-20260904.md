@@ -5,7 +5,7 @@
 - User proposal: layer-first에서 Capability/Feature/Workflow/Runtime 중심 전환
 - Independent review: Claude Opus 5 session `13d03246-4755-4dee-83ee-e7cf318ccb11`
 - Verdict: original proposal REJECT; purpose-preserving reduced migration accepted
-- Decision record: `.www/scratchpad/2026-09-04-capability-architecture-opus-review.md`
+- Decision record: `docs/audit/2026-09-04-capability-architecture-opus-review.md`
 
 ## Product-purpose correction
 

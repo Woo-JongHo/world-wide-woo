@@ -1,0 +1,197 @@
+{
+  "schemaVersion": "1.0",
+  "candidateId": "ARTIFACT-CANDIDATE-SESSION-TOKEN-HYGIENE",
+  "kind": "github-issue",
+  "sourceRevision": "git:1d7b451fe8c6abbdae717975d686392ddd212c46",
+  "intent": "작업 세션의 컨텍스트 토큰 과다 소모를 조회 경계 규칙으로 줄인다",
+  "target": {
+    "repository": "Woo-JongHo/world-wide-woo",
+    "repositoryUrl": "https://github.com/Woo-JongHo/world-wide-woo",
+    "defaultBranch": "main"
+  },
+  "content": {
+    "issueType": "enhancement",
+    "title": "조회 경계 규칙으로 작업 세션의 컨텍스트 토큰 과다 소모를 줄인다",
+    "statement": "작업 세션에서 전수 탐색과 전체 재조회로 컨텍스트·비용 토큰이 과다 소모되므로, 조회 경계와 탐색 범위 규칙을 스킬과 세션 흐름에 정착시켜야 한다.",
+    "details": [
+      "2026-09-18 저장소 상태 확인에서 탐색 하위 에이전트 3개가 100만 토큰 이상을 소모했다.",
+      ".www/runtime 169MB·.www/sessions 30MB·.www/scratchpad 340항목이 폭넓은 탐색 대상에 노출돼 있다.",
+      "Linear·GitHub·증거 JSON을 대상별로 재조회해 같은 데이터를 반복 읽는다.",
+      "2026-09-18 AGENTS.md에 조회 경계 섹션을 추가했지만 개별 스킬과 세션 흐름에의 정착·검증은 남아 있다."
+    ]
+  },
+  "links": {},
+  "expectedBefore": {
+    "repository": {
+      "defaultBranch": "main",
+      "nameWithOwner": "Woo-JongHo/world-wide-woo",
+      "url": "https://github.com/Woo-JongHo/world-wide-woo"
+    },
+    "issueCount": 25,
+    "issues": [
+      {
+        "number": 48,
+        "state": "CLOSED",
+        "title": "긴 세션의 작업 맥락을 요약해 같은 세션이나 새 세션에서 이어간다",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/48"
+      },
+      {
+        "number": 37,
+        "state": "CLOSED",
+        "title": "결정 선택지가 없는 승인 오버레이가 대화를 중단한다",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/37"
+      },
+      {
+        "number": 36,
+        "state": "CLOSED",
+        "title": "Session Review가 작업 결과 대신 원시 실행 기록을 나열한다",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/36"
+      },
+      {
+        "number": 35,
+        "state": "CLOSED",
+        "title": "요청이 분석 시작 상태에 머물러 실행으로 전환되지 않는다",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/35"
+      },
+      {
+        "number": 26,
+        "state": "CLOSED",
+        "title": "ID로 연결된 전체 개발 현황 Map을 제공한다",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/26"
+      },
+      {
+        "number": 24,
+        "state": "CLOSED",
+        "title": "Native 구조화 결과에 Markdown과 의미 색상 하이라이트가 일관되게 적용되지 않는다",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/24"
+      },
+      {
+        "number": 23,
+        "state": "CLOSED",
+        "title": "Native 실행 카드에서 긴 로컬 절대경로가 반복되어 핵심 결과를 읽기 어렵다",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/23"
+      },
+      {
+        "number": 22,
+        "state": "CLOSED",
+        "title": "Chat이 구조화된 내부 응답 태그를 그대로 표시한다",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/22"
+      },
+      {
+        "number": 21,
+        "state": "CLOSED",
+        "title": "재개한 Native 세션에서 복원된 Plan이 빈 Todo.md로 투영되지 않는다",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/21"
+      },
+      {
+        "number": 20,
+        "state": "CLOSED",
+        "title": "저장되지 않은 T-note에도 Chat 완료 번호가 표시된다",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/20"
+      },
+      {
+        "number": 19,
+        "state": "CLOSED",
+        "title": "오른쪽 상단 패널의 T-note와 Trace·Source 역할이 일관되지 않다",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/19"
+      },
+      {
+        "number": 15,
+        "state": "CLOSED",
+        "title": "외부 변경의 실행 범위를 구조화된 승인 화면에서 확인한다",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/15"
+      },
+      {
+        "number": 14,
+        "state": "CLOSED",
+        "title": "Bash 실행 카드 위에 현재 작업 설명이 표시되지 않는다",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/14"
+      },
+      {
+        "number": 13,
+        "state": "CLOSED",
+        "title": "워크벤치의 연속 스크롤이 중간에 끊긴다",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/13"
+      },
+      {
+        "number": 12,
+        "state": "CLOSED",
+        "title": "응답 갱신 중 입력창의 타이핑이 끊긴다",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/12"
+      },
+      {
+        "number": 11,
+        "state": "CLOSED",
+        "title": "MCP 연결과 도구 구성을 Workbench에서 관리한다",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/11"
+      },
+      {
+        "number": 10,
+        "state": "CLOSED",
+        "title": "같은 프로젝트에서 Workbench를 여러 개 열 수 없다",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/10"
+      },
+      {
+        "number": 9,
+        "state": "CLOSED",
+        "title": "승인 대기 상태가 계속 작업 중인 것처럼 보인다",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/9"
+      },
+      {
+        "number": 8,
+        "state": "CLOSED",
+        "title": "Native subagent의 모델 배치와 작업 상태를 한 흐름에서 관찰한다",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/8"
+      },
+      {
+        "number": 7,
+        "state": "CLOSED",
+        "title": "첫 응답이 표시되기까지 지나치게 오래 걸린다",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/7"
+      },
+      {
+        "number": 6,
+        "state": "CLOSED",
+        "title": "T-notes가 작업 중에도 실시간 진행 상태를 표시한다",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/6"
+      },
+      {
+        "number": 5,
+        "state": "CLOSED",
+        "title": "Step 카드의 반복 라벨을 제거한다",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/5"
+      },
+      {
+        "number": 4,
+        "state": "CLOSED",
+        "title": "프로젝트 대시보드와 모니터링 화면을 분리한다",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/4"
+      },
+      {
+        "number": 2,
+        "state": "CLOSED",
+        "title": "WES Context Composer 경계를 WWW에 연결한다",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/2"
+      },
+      {
+        "number": 1,
+        "state": "CLOSED",
+        "title": "Todo 세부 작업과 실시간 동작 설명을 추가한다",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/1"
+      }
+    ]
+  },
+  "validation": [
+    {
+      "id": "github-issue-search",
+      "status": "pass",
+      "evidence": "gh issue list --state all로 전체 25건의 제목을 확인했고 조회 경계·토큰 과다 소모와 같은 문제의 Issue를 찾지 못했다."
+    },
+    {
+      "id": "source-inspection",
+      "status": "pass",
+      "evidence": "2026-09-18 이 세션에서 상태 확인용 탐색 하위 에이전트 3개가 100만 토큰 이상을 소모했고, du 실측으로 .www/runtime 169MB·.www/sessions 30MB·.www/scratchpad 340항목이 확인됐다."
+    }
+  ],
+  "candidateDigest": "ab532c9d7c1d281995b3d2856f9fc792dad392764dda13640e14f45681793473"
+}

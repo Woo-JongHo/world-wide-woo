@@ -1,12 +1,19 @@
 /** @linear WOO-686 WOO-691 */
-import {
-	highlightCode as nativeHighlightCode,
-	supportsLanguage as nativeSupportsLanguage,
-	type HighlightColors,
-} from "@gajae-code/natives";
+import type { HighlightColors } from "@gajae-code/natives";
 
 const MAX_HIGHLIGHT_BYTES = 200_000;
 const MAX_HIGHLIGHT_LINES = 2_000;
+
+type NativeSyntaxHighlighter = Pick<typeof import("@gajae-code/natives"), "highlightCode" | "supportsLanguage">;
+
+let nativeSyntaxHighlighter: NativeSyntaxHighlighter | undefined;
+
+function loadNativeSyntaxHighlighter(): NativeSyntaxHighlighter {
+	if (nativeSyntaxHighlighter) return nativeSyntaxHighlighter;
+	const { highlightCode, supportsLanguage } = require("@gajae-code/natives") as NativeSyntaxHighlighter;
+	nativeSyntaxHighlighter = { highlightCode, supportsLanguage };
+	return nativeSyntaxHighlighter;
+}
 
 export interface SyntaxPalette {
 	comment: string;
@@ -67,12 +74,15 @@ export function createNativeSyntaxHighlightPlugin(palette: SyntaxPalette): Synta
 	const plain = (code: string) => code.split("\n").map((line) => `${plainColor}${line}\u001b[39m`);
 	return {
 		name: "gajae-native-tree-sitter",
-		supports: nativeSupportsLanguage,
+		supports(language) {
+			return loadNativeSyntaxHighlighter().supportsLanguage(language);
+		},
 		highlight(code, language) {
 			if (exceedsHighlightBudget(code)) return plain(code);
-			const supportedLanguage = language && nativeSupportsLanguage(language) ? language : undefined;
 			try {
-				return nativeHighlightCode(code, supportedLanguage, colors).split("\n");
+				const native = loadNativeSyntaxHighlighter();
+				const supportedLanguage = language && native.supportsLanguage(language) ? language : undefined;
+				return native.highlightCode(code, supportedLanguage, colors).split("\n");
 			} catch {
 				return plain(code);
 			}

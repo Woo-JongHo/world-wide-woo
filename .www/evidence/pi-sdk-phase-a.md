@@ -46,8 +46,8 @@ Status: PASS
 
 ## Review artifacts
 
-- `.www/scratchpad/pi-phase-a-sonnet-review.md`
-- `.www/scratchpad/pi-phase-a-opus-audit.md`
+- `docs/audit/pi-phase-a-sonnet-review.md`
+- `docs/audit/pi-phase-a-opus-audit.md`
 
 ## Boundaries
 

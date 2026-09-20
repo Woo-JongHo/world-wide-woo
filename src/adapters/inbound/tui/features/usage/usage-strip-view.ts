@@ -5,7 +5,7 @@ import chalk from "chalk";
 import { WORKBENCH_HUD_SYSTEM, compactTokenCount } from "./workbench-hud-system";
 import { colors } from "../../foundation/theme/theme";
 
-type ProviderLabel = "Codex" | "Claude" | "Gemini" | "Z.AI";
+type ProviderLabel = "Codex" | "Claude" | "Antigravity" | "Z.AI";
 
 export interface UsageStripSession {
 	readonly models: readonly WorkbenchModelUsage[];
@@ -36,7 +36,7 @@ function resetIn(timestamp: number | undefined, now = Date.now()): string {
 }
 
 function isWeekly(limit: UsageLimitSnapshot): boolean {
-	return /7\s*(?:days?|d)\b/iu.test(limit.label);
+	return /(?:7\s*(?:days?|d)\b|1\s*week\b|weekly|week|주간|주일)/iu.test(limit.label);
 }
 
 function isTier(limit: UsageLimitSnapshot): boolean {
@@ -51,7 +51,7 @@ function weeklyLimit(snapshot: UsageSnapshot | undefined): UsageLimitSnapshot | 
 
 function fiveHourLimit(snapshot: UsageSnapshot | undefined): UsageLimitSnapshot | undefined {
 	return snapshot?.state === "ready"
-		? snapshot.limits.find((limit) => /5\s*(?:hours?|h)\b/iu.test(limit.label) && !isTier(limit))
+		? snapshot.limits.find((limit) => /(?:5\s*(?:hours?|h)\b|5시간)/iu.test(limit.label) && !isTier(limit))
 		: undefined;
 }
 
@@ -65,14 +65,14 @@ function meter(percent: number, color: string): string {
 function providerColor(label: ProviderLabel): string {
 	if (label === "Codex") return "#15d7e9";
 	if (label === "Claude") return "#ff8b18";
-	if (label === "Gemini") return "#638dff";
+	if (label === "Antigravity") return "#638dff";
 	return "#b794f6";
 }
 
 function providerText(label: ProviderLabel, value: string): string {
 	if (label === "Codex") return colors.accent(value);
 	if (label === "Claude") return colors.warm(value);
-	if (label === "Gemini") return colors.highlight(value);
+	if (label === "Antigravity") return colors.highlight(value);
 	return chalk.hex("#b794f6")(value);
 }
 
@@ -93,13 +93,15 @@ function remaining(limit: UsageLimitSnapshot | undefined, now?: number): string 
 function providerSegment(label: ProviderLabel, snapshot: UsageSnapshot | undefined, now: number): string {
 	if (!snapshot) return colors.muted(`${label} —`);
 	const limit = weeklyLimit(snapshot) ?? (
-		label === "Gemini" || label === "Z.AI"
+		label === "Antigravity" || label === "Z.AI"
 			? snapshot.limits.find((item) => Number.isFinite(item.remainingPercent))
 			: undefined
 	);
 	if (!limit || !Number.isFinite(limit.remainingPercent)) {
 		return snapshot.state === "ready"
 			? colors.muted(`${label} —`)
+			: snapshot.state === "unsupported" && label === "Antigravity"
+				? providerText(label, `${label} 연결됨`)
 			: providerText(label, `${label} ${unavailable(snapshot)}`);
 	}
 	const percent = Math.round(Math.max(0, Math.min(100, limit.remainingPercent!)));
@@ -111,6 +113,12 @@ function claudeSegment(snapshot: UsageSnapshot | undefined, now: number): string
 	const weekly = providerSegment("Claude", snapshot, now);
 	const session = remaining(fiveHourLimit(snapshot), now);
 	return session ? `${weekly}${WORKBENCH_HUD_SYSTEM.strip.separator}${colors.error(`5h ${session}`)}` : weekly;
+}
+
+function zaiSegment(snapshot: UsageSnapshot | undefined, now: number): string {
+	const weekly = providerSegment("Z.AI", snapshot, now);
+	const session = remaining(fiveHourLimit(snapshot), now);
+	return session ? `${weekly}${WORKBENCH_HUD_SYSTEM.strip.separator}${providerText("Z.AI", `5h ${session}`)}` : weekly;
 }
 
 function contextSegment(context: WorkbenchContextUsage | null | undefined): string {
@@ -151,8 +159,8 @@ export class UsageStripView implements Component {
 			...(session?.showUsage === false ? [] : [
 				providerSegment("Codex", codex, now),
 				claudeSegment(claude, now),
-				providerSegment("Gemini", gemini, now),
-				...(showZai ? [providerSegment("Z.AI", zai, now)] : []),
+				providerSegment("Antigravity", gemini, now),
+				...(showZai ? [zaiSegment(zai, now)] : []),
 			]),
 			...(session?.showContext === false ? [] : [contextSegment(session?.contextUsage)]),
 		].join(WORKBENCH_HUD_SYSTEM.strip.separator);

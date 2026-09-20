@@ -66,7 +66,7 @@ describe("Workbench YAML configuration", () => {
 	test("loads every live project policy section from the checked-in Workbench YAML", async () => {
 		const loaded = await loadWorkbenchConfigWithSource(process.cwd());
 		expect(loaded.source).toBe("project-yaml");
-		expect(loaded.config.execution.model).toBe("gpt-6-astra");
+		expect(loaded.config.execution.model).toBe("gpt-5.6-luna");
 		expect(loaded.config.tnote.model).toBe("gpt-5.6-luna");
 		expect(loaded.config.narrator.model).toBe("gpt-5.6-luna");
 		expect(loaded.config.review).toEqual({ provider: "anthropic", model: "claude-opus" });

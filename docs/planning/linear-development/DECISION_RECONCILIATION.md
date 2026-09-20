@@ -31,7 +31,7 @@ WES의 기존 SQLite 채택은 사용자 설명과 일치하는 엔진 근거지
 
 ## 확인한 범위와 남은 한계
 
-WES 원문 목록·줄번호·수락 이력은 [WES 감사](../../../.www/scratchpad/2026-09-06-sqlite-decision-audit.md), 제품 문서 완독과 충돌은 [로컬 목적 감사](../../../.www/scratchpad/2026-09-06-local-purpose-audit.md)에 보존한다. 주 작성자는 이 보고서 외에 WES verification/Obsidian 계약 원문, 로컬 Linear 개발 문서 전체와 Product Workflow를 직접 읽었다.
+WES 원문 목록·줄번호·수락 이력은 [WES 감사](../../../.www/scratchpad/2026-09-06-sqlite-decision-audit.md), 제품 문서 완독과 충돌은 [로컬 목적 감사](../../audit/2026-09-06-local-purpose-audit.md)에 보존한다. 주 작성자는 이 보고서 외에 WES verification/Obsidian 계약 원문, 로컬 Linear 개발 문서 전체와 Product Workflow를 직접 읽었다.
 
 Linear MCP로 현재 World Wide Woo Project·Milestone·리소스, 프로젝트 문서 목록, WOO-672 본문·관계를 읽었다. Project resourceCount는 0, 문서 목록은 빈 배열이며 hasNextPage=false, WOO-672 본문은 비어 있었다. [read-back 원문](../../../.www/scratchpad/2026-09-06-sqlite-linear-readback.json)을 보존했다. 다른 모든 Issue·댓글·workspace 문서를 전수 조사했다는 뜻은 아니다.
 

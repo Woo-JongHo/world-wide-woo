@@ -109,6 +109,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
 ];
 
 export type WorkbenchShellCommand =
+	| { type: "workflow.view" }
 	| { type: "workflow.check"; processId: string }
 	| { type: "workflow.resume"; runId: string }
 	| { type: "workflow.show"; runId: string }
@@ -149,7 +150,7 @@ export type WorkbenchShellCommand =
 
 export const WORKBENCH_SLASH_COMMANDS: SlashCommand[] = [
 	{ name: "help", description: "Workbench 명령 안내" },
-	{ name: "workflow", description: "로컬 사전 검사·재개·결과 조회 (원격 미검증)", argumentHint: "check <RPA-ID> | resume <RUN> | show <RUN>",
+	{ name: "workflow", description: "Request·Subagent Workflow 관측 및 로컬 실행 조회", argumentHint: "[check <RPA-ID> | resume <RUN> | show <RUN>]",
 		getArgumentCompletions: () => ["check", "resume", "show"].map(value => ({ value, label: value })) },
 	{
 		name: "model",
@@ -214,12 +215,13 @@ export function parseWorkbenchShellCommand(text: string, catalog?: NativeModelCa
 	const [name, ...args] = trimmed.slice(1).split(/\s+/u);
 	if (name === "help" && args.length === 0) return { type: "help" };
 	if (name === "workflow") {
+		if (args.length === 0) return { type: "workflow.view" };
 		if (args.length === 2 && args[1]) {
 			if (args[0] === "check") return { type: "workflow.check", processId: args[1] };
 			if (args[0] === "resume") return { type: "workflow.resume", runId: args[1] };
 			if (args[0] === "show") return { type: "workflow.show", runId: args[1] };
 		}
-		return { type: "error", message: "사용법: /workflow check <RPA-ID> | /workflow resume <RUN> | /workflow show <RUN>" };
+		return { type: "error", message: "사용법: /workflow [check <RPA-ID> | resume <RUN> | show <RUN>]" };
 	}
 	if ((name === "chat" || name === "tnotes" || name === "todo") && args.length === 0) return { type: "pane.show", pane: name };
 	if (name === "model") return parseWorkbenchModelCommand(args, catalog);

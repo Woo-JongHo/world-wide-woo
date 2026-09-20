@@ -1,8 +1,472 @@
+diff --git a/dist/alt-screen-search.d.ts b/dist/alt-screen-search.d.ts
+index a8781c99e4266f57f6fc37e9ad179e12e4d22900..c04986ab0c0627df614c4d3ccc9efc531829f1d9 100644
+--- a/dist/alt-screen-search.d.ts
++++ b/dist/alt-screen-search.d.ts
+@@ -1,4 +1,5 @@
+ import type { Component, Focusable } from "./tui.ts";
++import type { ScrollRows } from "./scroll-row-source.ts";
+ export interface AltScreenSearchSegment {
+     row: number;
+     startCol: number;
+@@ -7,7 +8,7 @@ export interface AltScreenSearchSegment {
+ export interface AltScreenSearchMatch {
+     segments: AltScreenSearchSegment[];
+ }
+-export declare function findAltScreenSearchMatches(lines: readonly string[], query: string): AltScreenSearchMatch[];
++export declare function findAltScreenSearchMatches(lines: ScrollRows, query: string): AltScreenSearchMatch[];
+ export declare function getAltScreenSearchMatchKey(match: AltScreenSearchMatch): string;
+ export declare class AltScreenSearchComponent implements Component, Focusable {
+     private readonly input;
+diff --git a/dist/alt-screen-search.js b/dist/alt-screen-search.js
+index 3437d5aec954a672bc678c79e38cf6a78a8b52b7..adc5788fac0b6409fa5eda866d006a3c7e85fbd0 100644
+--- a/dist/alt-screen-search.js
++++ b/dist/alt-screen-search.js
+@@ -1,4 +1,5 @@
+ import { Input } from "./components/input.js";
++import { SCROLL_ROW_CHUNK_SIZE, getScrollRowCount, readScrollRows } from "./scroll-row-source.js";
+ import { getGraphemeSegmenter, stripTerminalSequences, truncateToWidth, visibleWidth } from "./utils.js";
+ const segmenter = getGraphemeSegmenter();
+ function appendMappedText(text, span, corpus) {
+@@ -9,27 +10,32 @@ function appendMappedText(text, span, corpus) {
+ function buildSearchCorpus(lines) {
+     const corpus = { text: "", source: [] };
+     let pendingSeparator = false;
+-    for (let row = 0; row < lines.length; row++) {
+-        const line = stripTerminalSequences(lines[row] ?? "");
+-        let column = 0;
+-        for (const grapheme of segmenter.segment(line)) {
+-            const text = grapheme.segment;
+-            const width = visibleWidth(text);
+-            if (/^\s+$/u.test(text)) {
+-                if (corpus.text.length > 0)
+-                    pendingSeparator = true;
++    const rowCount = getScrollRowCount(lines);
++    for (let chunkStart = 0; chunkStart < rowCount; chunkStart += SCROLL_ROW_CHUNK_SIZE) {
++        const chunk = readScrollRows(lines, chunkStart, SCROLL_ROW_CHUNK_SIZE);
++        for (let offset = 0; offset < chunk.length; offset++) {
++            const row = chunkStart + offset;
++            const line = stripTerminalSequences(chunk[offset] ?? "");
++            let column = 0;
++            for (const grapheme of segmenter.segment(line)) {
++                const text = grapheme.segment;
++                const width = visibleWidth(text);
++                if (/^\s+$/u.test(text)) {
++                    if (corpus.text.length > 0)
++                        pendingSeparator = true;
++                    column += width;
++                    continue;
++                }
++                if (pendingSeparator) {
++                    appendMappedText(" ", undefined, corpus);
++                    pendingSeparator = false;
++                }
++                appendMappedText(text, { row, startCol: column, endCol: column + width }, corpus);
+                 column += width;
+-                continue;
+-            }
+-            if (pendingSeparator) {
+-                appendMappedText(" ", undefined, corpus);
+-                pendingSeparator = false;
+             }
+-            appendMappedText(text, { row, startCol: column, endCol: column + width }, corpus);
+-            column += width;
++            if (corpus.text.length > 0)
++                pendingSeparator = true;
+         }
+-        if (corpus.text.length > 0)
+-            pendingSeparator = true;
+     }
+     return corpus;
+ }
+diff --git a/dist/components/scroll-view.d.ts b/dist/components/scroll-view.d.ts
+index 1cee44687eab05edf7f629a7cae54cd301af12eb..4ece2544b11d81ceb7fdd16755de4fb82ab40014 100644
+--- a/dist/components/scroll-view.d.ts
++++ b/dist/components/scroll-view.d.ts
+@@ -39,6 +39,7 @@ export declare class ScrollView extends Container {
+     get isScrollbarVisible(): boolean;
+     setScrollbar(scrollbar: ScrollViewScrollbar): void;
+     getContentWidth(width: number): number;
++    prepareLayout(contentWidth: number): void;
+     private markScrollbarActivity;
+     private hideTransientScrollbar;
+     setScrollbarActive(active: boolean): void;
+diff --git a/dist/components/scroll-view.js b/dist/components/scroll-view.js
+index d6daf16e4df7a99172b2d62803e1ca6fc6c6fd33..0e8facc9a757bc628a48594c54310e03ebefa951 100644
+--- a/dist/components/scroll-view.js
++++ b/dist/components/scroll-view.js
+@@ -62,6 +62,7 @@ export class ScrollView extends Container {
+     getContentWidth(width) {
+         return this.scrollbar === "always" && width > 1 ? width - 1 : width;
+     }
++    prepareLayout(_contentWidth) { }
+     markScrollbarActivity() {
+         if (this.scrollbar !== "auto" || this.contentHeight <= this.currentViewportHeight)
+             return;
+diff --git a/dist/index.d.ts b/dist/index.d.ts
+index cc05e9679cec9dd6a748f73595004dc7203d2716..8b9acfd0adca839418dd0a9bd429bc195aa5c262 100644
+--- a/dist/index.d.ts
++++ b/dist/index.d.ts
+@@ -25,6 +25,7 @@ export { ProcessTerminal, type Terminal } from "./terminal.ts";
+ export { parseOsc11BackgroundColor, parseTerminalColorSchemeReport, type RgbColor, type TerminalColorScheme, } from "./terminal-colors.ts";
+ export { allocateImageId, type CellDimensions, calculateImageRows, deleteAllKittyImages, deleteKittyImage, detectCapabilities, encodeITerm2, encodeKitty, getCapabilities, getCellDimensions, getGifDimensions, getImageDimensions, getJpegDimensions, getPngDimensions, getWebpDimensions, hyperlink, type ImageDimensions, type ImageProtocol, type ImageRenderOptions, imageFallback, renderImage, resetCapabilitiesCache, setCapabilities, setCapabilityOverrides, setCellDimensions, type TerminalCapabilities, } from "./terminal-image.ts";
+ export { type Component, Container, CURSOR_MARKER, compositeTuiLine, type Focusable, isFocusable, isViewportTUI, type OverlayAnchor, type OverlayHandle, type OverlayMargin, type OverlayOptions, type OverlayUnfocusOptions, type SizeValue, type TUI, type TuiInputListener, type TuiInputListenerResult, type TuiMode, type TuiStopOptions, type ViewportTUI, } from "./tui.ts";
++export { SCROLL_RENDER_OVERSCAN_ROWS, SCROLL_ROW_CHUNK_SIZE, getScrollRowCount, readScrollRow, readScrollRows, type ScrollContent, type ScrollRows, type ScrollRowSource, } from "./scroll-row-source.ts";
+ export { TuiAltScreen, type TuiAltScreenOptions } from "./tui-alt-screen.ts";
+ export { TuiMainScreen, type TuiMainScreenRenderState } from "./tui-main-screen.ts";
+ export { getOsc8LinkAtColumn, sliceByColumn, stripTerminalSequences, truncateToWidth, visibleWidth, wrapTextWithAnsi, } from "./utils.ts";
+diff --git a/dist/index.js b/dist/index.js
+index ecc0bd54a55b2c9e0213cfd5553e61262b54c57c..4c7e986b49cb7a1cd206f4ea529c46b9b8d9f875 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -35,6 +35,7 @@ export { parseOsc11BackgroundColor, parseTerminalColorSchemeReport, } from "./te
+ // Terminal image support
+ export { allocateImageId, calculateImageRows, deleteAllKittyImages, deleteKittyImage, detectCapabilities, encodeITerm2, encodeKitty, getCapabilities, getCellDimensions, getGifDimensions, getImageDimensions, getJpegDimensions, getPngDimensions, getWebpDimensions, hyperlink, imageFallback, renderImage, resetCapabilitiesCache, setCapabilities, setCapabilityOverrides, setCellDimensions, } from "./terminal-image.js";
+ export { Container, CURSOR_MARKER, compositeTuiLine, isFocusable, isViewportTUI, } from "./tui.js";
++export { SCROLL_RENDER_OVERSCAN_ROWS, SCROLL_ROW_CHUNK_SIZE, getScrollRowCount, readScrollRow, readScrollRows, } from "./scroll-row-source.js";
+ export { TuiAltScreen } from "./tui-alt-screen.js";
+ export { TuiMainScreen } from "./tui-main-screen.js";
+ // Utilities
+diff --git a/dist/layout-node.d.ts b/dist/layout-node.d.ts
+index 71194ef1b35807cf2aadff4ba45c587231bb5f34..cb0fc7c0047f59d342fa19a72b3320cc92b183d4 100644
+--- a/dist/layout-node.d.ts
++++ b/dist/layout-node.d.ts
+@@ -25,6 +25,7 @@ export interface ScrollLayoutState {
+     readonly overscroll: "chain" | "contain";
+     readonly viewportHeight: number;
+     getContentWidth(width: number): number;
++    prepareLayout?(contentWidth: number): void;
+     updateLayout(contentHeight: number, viewportHeight: number, requestRender: () => void): void;
+ }
+ export interface ScrollLayoutNode {
+diff --git a/dist/layout.d.ts b/dist/layout.d.ts
+index e031103f84d5fbb8d9007b00cb4940bbee046c41..ce56918036bfff803c482ded215a28b2125c4abe 100644
+--- a/dist/layout.d.ts
++++ b/dist/layout.d.ts
+@@ -1,4 +1,5 @@
+ import type { ScrollView } from "./components/scroll-view.ts";
++import type { ScrollRows } from "./scroll-row-source.ts";
+ import { type Component } from "./tui.ts";
+ export interface LayoutRect {
+     x: number;
+@@ -16,6 +17,7 @@ export interface LayoutBox {
+     lineOffset?: number;
+     scrollView?: ScrollView;
+     scrollContentLines?: readonly string[];
++    scrollContent?: ScrollRows;
+     layer: number;
+ }
+ export interface LayoutFrame {
+diff --git a/dist/layout.js b/dist/layout.js
+index 6661b31cfacfef8e3385fd12da9626e851d97e96..49ca7d3f467969ed5eb8d5cb7f2e54ab3f0368c5 100644
+--- a/dist/layout.js
++++ b/dist/layout.js
+@@ -1,5 +1,6 @@
+ import { allocateStackSizes, visibleStackEntries } from "./components/stack.js";
+ import { getLayoutNode } from "./layout-node.js";
++import { SCROLL_RENDER_OVERSCAN_ROWS, SCROLL_ROW_CHUNK_SIZE, getComponentScrollRowSource, getScrollRowCount, readScrollRows, } from "./scroll-row-source.js";
+ import { cropKittyImageLine, getKittyImageMetadata, isImageLine } from "./terminal-image.js";
+ import { CURSOR_MARKER, compositeTuiLine } from "./tui.js";
+ import { extractAnsiCode, getGraphemeCellRange, sliceByColumn, visibleWidth } from "./utils.js";
+@@ -25,10 +26,37 @@ function renderCached(context, component, width) {
+     }
+     return lines;
+ }
++function lazyScrollSource(context, node, width) {
++    const candidate = node.component;
++    if (typeof candidate.scrollRows !== "function")
++        return undefined;
++    const safeWidth = Math.max(1, Math.floor(width));
++    let widths = context.scrollSourceCache.get(node.state);
++    if (!widths) {
++        widths = new Map();
++        context.scrollSourceCache.set(node.state, widths);
++    }
++    let source = widths.get(safeWidth);
++    if (!source) {
++        node.state.prepareLayout?.(safeWidth);
++        source = getComponentScrollRowSource(node.component, safeWidth);
++        widths.set(safeWidth, source);
++    }
++    return source;
++}
+ function measureHeight(context, component, width) {
++    const node = getLayoutNode(component);
++    if (node?.type === "scroll") {
++        const source = lazyScrollSource(context, node, node.state.getContentWidth(width));
++        if (source)
++            return getScrollRowCount(source);
++    }
+     return renderCached(context, component, width).length;
+ }
+ function measureWidth(context, component, width) {
++    const node = getLayoutNode(component);
++    if (node?.type === "scroll" && lazyScrollSource(context, node, node.state.getContentWidth(width)))
++        return Math.max(1, Math.floor(width));
+     return renderCached(context, component, width).reduce((max, line) => Math.max(max, visibleWidth(line)), 0);
+ }
+ function withParent(box, parent) {
+@@ -68,8 +96,43 @@ function layoutComponent(context, component, x, y, width, height, clip) {
+         };
+     }
+     if (node.type === "scroll") {
+-        const previousScrollTop = node.state.scrollTop;
+         const contentWidth = node.state.getContentWidth(safeWidth);
++        const source = lazyScrollSource(context, node, contentWidth);
++        if (source) {
++            const contentHeight = getScrollRowCount(source);
++            const viewportHeight = height === undefined ? contentHeight : Math.max(0, Math.floor(height));
++            node.state.updateLayout(contentHeight, viewportHeight, context.requestRender);
++            const scrollTop = node.state.scrollTop;
++            const start = Math.max(0, scrollTop - SCROLL_RENDER_OVERSCAN_ROWS);
++            const end = Math.min(contentHeight, scrollTop + viewportHeight + SCROLL_RENDER_OVERSCAN_ROWS);
++            const lines = readScrollRows(source, start, Math.max(0, end - start));
++            const rect = { x, y, width: safeWidth, height: viewportHeight };
++            const childClip = intersect(clip, rect);
++            const childBox = {
++                component: node.component,
++                rect: { x, y: y - scrollTop, width: contentWidth, height: contentHeight },
++                clip: intersect(childClip, { x, y: y - scrollTop, width: contentWidth, height: contentHeight }),
++                children: [],
++                lines,
++                lineOffset: -start,
++                layer: 0,
++            };
++            const scrollView = node.state;
++            if (node.state.primary || !context.primaryScrollView)
++                context.primaryScrollView = scrollView;
++            const box = {
++                component,
++                rect,
++                clip: childClip,
++                children: [childBox],
++                scrollView,
++                scrollContent: source,
++                layer: 0,
++            };
++            childBox.parent = box;
++            return box;
++        }
++        const previousScrollTop = node.state.scrollTop;
+         const childBox = layoutComponent(context, node.component, x, y - previousScrollTop, contentWidth, undefined, clip);
+         const contentHeight = childBox.rect.height;
+         const viewportHeight = height === undefined ? contentHeight : Math.max(0, Math.floor(height));
+@@ -87,6 +150,7 @@ function layoutComponent(context, component, x, y, width, height, clip) {
+             children: [childBox],
+             scrollView,
+             scrollContentLines: renderCached(context, node.component, contentWidth),
++            scrollContent: renderCached(context, node.component, contentWidth),
+             layer: 0,
+         };
+         childBox.parent = box;
+@@ -181,7 +245,7 @@ function styleScrollbarCell(line, column, totalWidth, style) {
+ export function getScrollbarGeometry(box) {
+     if (!box.scrollView?.isScrollbarVisible || box.rect.width <= 0 || box.rect.height <= 0)
+         return undefined;
+-    const contentHeight = box.children[0]?.rect.height ?? box.scrollContentLines?.length ?? 0;
++    const contentHeight = box.children[0]?.rect.height ?? (box.scrollContent ? getScrollRowCount(box.scrollContent) : box.scrollContentLines?.length) ?? 0;
+     const trackHeight = box.rect.height;
+     const minThumbHeight = Math.min(2, trackHeight);
+     const thumbHeight = Math.max(minThumbHeight, Math.min(trackHeight, Math.round((trackHeight * trackHeight) / contentHeight)));
+@@ -243,22 +307,36 @@ function paintBox(box, screen, totalWidth) {
+     }
+     for (const child of box.children)
+         paintBox(child, screen, totalWidth);
+-    if (box.scrollView && box.scrollContentLines && box.scrollView.scrollTop > 0 && box.rect.height > 0) {
+-        for (let imageRow = box.scrollView.scrollTop - 1; imageRow >= 0; imageRow--) {
+-            const imageLine = box.scrollContentLines[imageRow] ?? "";
+-            const metadata = getKittyImageMetadata(imageLine);
+-            if (metadata) {
+-                const hiddenRows = box.scrollView.scrollTop - imageRow;
+-                if (hiddenRows < metadata.rows) {
+-                    const visibleRows = Math.min(box.rect.height, metadata.rows - hiddenRows);
+-                    const cropped = cropKittyImageLine(imageLine, hiddenRows, visibleRows);
+-                    if (box.rect.x === 0 && box.rect.width >= totalWidth)
+-                        screen[box.rect.y] = cropped;
++    const scrollContent = box.scrollContent ?? box.scrollContentLines;
++    if (box.scrollView && scrollContent && box.scrollView.scrollTop > 0 && box.rect.height > 0) {
++        let chunkEnd = box.scrollView.scrollTop;
++        let boundaryFound = false;
++        let firstChunk = true;
++        while (chunkEnd > 0 && !boundaryFound) {
++            const chunkStart = Math.max(0, chunkEnd - (firstChunk ? SCROLL_RENDER_OVERSCAN_ROWS : SCROLL_ROW_CHUNK_SIZE));
++            const chunk = readScrollRows(scrollContent, chunkStart, chunkEnd - chunkStart);
++            for (let offset = chunk.length - 1; offset >= 0; offset--) {
++                const imageLine = chunk[offset] ?? "";
++                const imageRow = chunkStart + offset;
++                const metadata = getKittyImageMetadata(imageLine);
++                if (metadata) {
++                    const hiddenRows = box.scrollView.scrollTop - imageRow;
++                    if (hiddenRows < metadata.rows) {
++                        const visibleRows = Math.min(box.rect.height, metadata.rows - hiddenRows);
++                        const cropped = cropKittyImageLine(imageLine, hiddenRows, visibleRows);
++                        if (box.rect.x === 0 && box.rect.width >= totalWidth)
++                            screen[box.rect.y] = cropped;
++                    }
++                    boundaryFound = true;
++                    break;
++                }
++                if (imageLine !== "") {
++                    boundaryFound = true;
++                    break;
+                 }
+-                break;
+             }
+-            if (imageLine !== "")
+-                break;
++            chunkEnd = chunkStart;
++            firstChunk = false;
+         }
+     }
+     paintScrollbar(box, screen, totalWidth);
+@@ -269,6 +347,7 @@ export function renderLayoutFrame(root, width, height, requestRender) {
+     const context = {
+         viewport: { width: safeWidth, height: safeHeight },
+         renderCache: new Map(),
++        scrollSourceCache: new WeakMap(),
+         requestRender,
+         primaryScrollView: undefined,
+     };
+diff --git a/dist/scroll-row-source.d.ts b/dist/scroll-row-source.d.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..577c22a12ca4e5c89528e4d9d17a2d7b90c26b2a
+--- /dev/null
++++ b/dist/scroll-row-source.d.ts
+@@ -0,0 +1,19 @@
++import type { Component } from "./tui.ts";
++
++export interface ScrollRowSource {
++    readonly rowCount: number;
++    rows(start: number, count: number): readonly string[];
++}
++
++export interface ScrollContent extends Component {
++    scrollRows(width: number): ScrollRowSource;
++}
++
++export type ScrollRows = readonly string[] | ScrollRowSource;
++
++export declare const SCROLL_ROW_CHUNK_SIZE = 256;
++export declare const SCROLL_RENDER_OVERSCAN_ROWS = 2;
++export declare function getScrollRowCount(source: ScrollRows): number;
++export declare function readScrollRows(source: ScrollRows, start: number, count: number): readonly string[];
++export declare function readScrollRow(source: ScrollRows, row: number): string | undefined;
++export declare function getComponentScrollRowSource(component: Component, width: number): ScrollRowSource | undefined;
+diff --git a/dist/scroll-row-source.js b/dist/scroll-row-source.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..3890b3cbab4d3350ca555f59e7d6dccd8369fead
+--- /dev/null
++++ b/dist/scroll-row-source.js
+@@ -0,0 +1,45 @@
++export const SCROLL_ROW_CHUNK_SIZE = 256;
++export const SCROLL_RENDER_OVERSCAN_ROWS = 2;
++
++function normalizeRangeValue(value) {
++    return Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
++}
++
++export function getScrollRowCount(source) {
++    if (Array.isArray(source))
++        return source.length;
++    const rowCount = source?.rowCount;
++    if (!Number.isSafeInteger(rowCount) || rowCount < 0)
++        throw new Error("ScrollRowSource rowCount must be an exact non-negative safe integer");
++    return rowCount;
++}
++
++export function readScrollRows(source, start, count) {
++    const rowCount = getScrollRowCount(source);
++    const safeStart = Math.min(rowCount, normalizeRangeValue(start));
++    const safeCount = Math.min(rowCount - safeStart, normalizeRangeValue(count));
++    if (Array.isArray(source))
++        return source.slice(safeStart, safeStart + safeCount);
++    const rows = source.rows(safeStart, safeCount);
++    if (!Array.isArray(rows))
++        throw new Error("ScrollRowSource rows() must return an array");
++    if (rows.length !== safeCount)
++        throw new Error(`ScrollRowSource rows() must return exactly ${safeCount} rows`);
++    if (rows.some((row) => typeof row !== "string"))
++        throw new Error("ScrollRowSource rows() must return only strings");
++    return rows;
++}
++
++export function readScrollRow(source, row) {
++    const safeRow = normalizeRangeValue(row);
++    return safeRow >= getScrollRowCount(source) ? undefined : readScrollRows(source, safeRow, 1)[0];
++}
++
++export function getComponentScrollRowSource(component, width) {
++    const provider = component;
++    if (typeof provider.scrollRows !== "function")
++        return undefined;
++    const source = provider.scrollRows(Math.max(1, Math.floor(width)));
++    getScrollRowCount(source);
++    return source;
++}
 diff --git a/dist/tui-alt-screen.js b/dist/tui-alt-screen.js
-index 8bfcffd4dd99653930ec0a88055c18e14943e363..327309b868c27ebc46c72b68490350c11b225edd 100644
+index 8bfcffd4dd99653930ec0a88055c18e14943e363..acfaf6f67eff3f27710c5c85143723dc488db30d 100644
 --- a/dist/tui-alt-screen.js
 +++ b/dist/tui-alt-screen.js
-@@ -556,14 +556,22 @@ export class TuiAltScreen extends TuiBase {
+@@ -4,6 +4,7 @@ import { ScrollView } from "./components/scroll-view.js";
+ import { getKeybindings } from "./keybindings.js";
+ import { isKeyRelease } from "./keys.js";
+ import { getScrollbarGeometry, getScrollViewBox, getScrollViewsAt, renderLayoutFrame, } from "./layout.js";
++import { SCROLL_ROW_CHUNK_SIZE, getScrollRowCount, readScrollRow, readScrollRows } from "./scroll-row-source.js";
+ import { deleteAllKittyImages, deleteAllKittyPlacements, deleteKittyImage, getCapabilities, getKittyImagePlacement, isImageLine, setCapabilities, } from "./terminal-image.js";
+ import { CURSOR_MARKER, compositeTuiLine, TuiBase, VIEWPORT_TUI, } from "./tui.js";
+ import { extractAnsiCode, getGraphemeCellRange, getOsc8LinkAtColumn, getWordSegmenter, sliceByColumn, stripTerminalSequences, visibleWidth, } from "./utils.js";
+@@ -273,16 +274,36 @@ export class TuiAltScreen extends TuiBase {
+         if (!this.currentLayout)
+             return;
+         const scrollView = this.getPrimaryScrollView();
+-        const lines = getScrollViewBox(this.currentLayout, scrollView)?.scrollContentLines;
++        const box = getScrollViewBox(this.currentLayout, scrollView);
++        const lines = box?.scrollContent ?? box?.scrollContentLines;
+         if (!lines)
+             return;
+-        for (let row = scrollView.scrollTop + direction; row >= 0 && row < lines.length; row += direction) {
+-            if (!OSC133_PROMPT_START.test(lines[row] ?? ""))
+-                continue;
+-            scrollView.scrollTo(row);
+-            this.requestRender();
++        const rowCount = getScrollRowCount(lines);
++        if (direction > 0) {
++            for (let chunkStart = scrollView.scrollTop + 1; chunkStart < rowCount; chunkStart += SCROLL_ROW_CHUNK_SIZE) {
++                const chunk = readScrollRows(lines, chunkStart, SCROLL_ROW_CHUNK_SIZE);
++                const offset = chunk.findIndex((line) => OSC133_PROMPT_START.test(line));
++                if (offset < 0)
++                    continue;
++                scrollView.scrollTo(chunkStart + offset);
++                this.requestRender();
++                return;
++            }
+             return;
+         }
++        let chunkEnd = Math.min(rowCount, scrollView.scrollTop);
++        while (chunkEnd > 0) {
++            const chunkStart = Math.max(0, chunkEnd - SCROLL_ROW_CHUNK_SIZE);
++            const chunk = readScrollRows(lines, chunkStart, chunkEnd - chunkStart);
++            for (let offset = chunk.length - 1; offset >= 0; offset--) {
++                if (!OSC133_PROMPT_START.test(chunk[offset] ?? ""))
++                    continue;
++                scrollView.scrollTo(chunkStart + offset);
++                this.requestRender();
++                return;
++            }
++            chunkEnd = chunkStart;
++        }
+     }
+     openSearch() {
+         if (this.activeSearch) {
+@@ -338,7 +359,7 @@ export class TuiAltScreen extends TuiBase {
+             return false;
+         const scrollView = layout.primaryScrollView ?? this.implicitScrollView;
+         const box = getScrollViewBox(layout, scrollView);
+-        const lines = box?.scrollContentLines;
++        const lines = box?.scrollContent ?? box?.scrollContentLines;
+         if (!lines || !search.query.trim()) {
+             search.matches = [];
+             search.selectedIndex = -1;
+@@ -556,14 +577,22 @@ export class TuiAltScreen extends TuiBase {
      routeWheel(event) {
          let remaining = event.direction * this.wheelScrollLines;
          const seen = new Set();
@@ -27,3 +491,45 @@ index 8bfcffd4dd99653930ec0a88055c18e14943e363..327309b868c27ebc46c72b68490350c1
              primary.scrollBy(remaining);
          this.updateScrollbarHover(event.x, event.y);
          this.requestRender();
+@@ -676,7 +705,8 @@ export class TuiAltScreen extends TuiBase {
+         if (visibleBottom < visibleTop)
+             return undefined;
+         const pointerRow = Math.max(visibleTop, Math.min(visibleBottom, y));
+-        const maxContentRow = Math.max(0, (box.scrollContentLines?.length ?? 1) - 1);
++        const content = box.scrollContent ?? box.scrollContentLines;
++        const maxContentRow = Math.max(0, (content ? getScrollRowCount(content) : 1) - 1);
+         return {
+             row: Math.max(0, Math.min(maxContentRow, scrollView.scrollTop + pointerRow - box.rect.y)),
+             col: Math.max(0, Math.min(box.rect.width - 1, x - box.rect.x)),
+@@ -696,9 +726,10 @@ export class TuiAltScreen extends TuiBase {
+     }
+     getSelectionSourceLine(point) {
+         if (point.scrollView && this.currentLayout) {
+-            const lines = getScrollViewBox(this.currentLayout, point.scrollView)?.scrollContentLines;
++            const box = getScrollViewBox(this.currentLayout, point.scrollView);
++            const lines = box?.scrollContent ?? box?.scrollContentLines;
+             if (lines)
+-                return lines[point.row] ?? "";
++                return readScrollRow(lines, point.row) ?? "";
+         }
+         return this.previousScreen[point.row] ?? "";
+     }
+@@ -935,13 +966,15 @@ export class TuiAltScreen extends TuiBase {
+             if (!this.currentLayout)
+                 return undefined;
+             const box = getScrollViewBox(this.currentLayout, selection.start.scrollView);
+-            if (!box?.scrollContentLines)
++            const content = box?.scrollContent ?? box?.scrollContentLines;
++            if (!content)
+                 return undefined;
+-            sourceLines = box.scrollContentLines;
++            sourceLines = readScrollRows(content, selection.start.row, selection.end.row - selection.start.row + 1);
+         }
+         const lines = [];
+         for (let row = selection.start.row; row <= selection.end.row; row++) {
+-            const line = sourceLines[row] ?? "";
++            const sourceRow = selection.start.scrollView ? row - selection.start.row : row;
++            const line = sourceLines[sourceRow] ?? "";
+             const columns = this.getSelectionColumns(line, row, selection);
+             lines.push(stripTerminalSequences(sliceByColumn(line, columns.start, Math.max(0, columns.end - columns.start), true)).trimEnd());
+         }

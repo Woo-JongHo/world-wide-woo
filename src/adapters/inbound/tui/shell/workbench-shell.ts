@@ -59,7 +59,7 @@ import { AstraMonitorView } from "../features/monitoring/astra-monitor-view";
 import { AstraStatsView } from "../features/stats/astra-stats-view";
 import { AstraTestView, projectAstraTestView } from "../features/test/astra-test-view";
 import { requestRuntimeMotionActive, requestRuntimeRows } from "../features/monitoring/request-runtime-view";
-import { AstraCommandPalette, AstraComposer, AstraExecutionHeading, AstraHeader, AstraHud, AstraInset, AstraNotice, AstraSheet, AstraViewSwitcher, AstraWorkspace, ASTRA_COMMANDS, ASTRA_KEYS, type AstraPage } from "./astra-surface";
+import { AstraCommandPalette, AstraComposer, AstraExecutionHeading, AstraHeader, AstraHud, AstraInset, AstraNotice, AstraSheet, AstraViewSwitcher, AstraWorkspace, ASTRA_COMMANDS, ASTRA_KEYMAP, ASTRA_KEYS, ASTRA_SCROLL_KEYS, matchesAstraAction, matchesAstraKey, type AstraPage } from "./astra-surface";
 import { astraExecutionIsLive, astraNowLabel } from "../features/chat/astra-execution";
 import { a, astraColors, astraEditorTheme } from "../foundation/theme/astra-theme";
 import type { UsageSnapshot } from "../../../../core/ports";
@@ -497,7 +497,10 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	const astraClock = astra ? setInterval(() => {
 		const request = snapshot.requestRuntime?.at(-1);
 		if (!lifecycle.isShuttingDown && !overlay && (astraExecutionIsLive(snapshot) || astraMotion && request && requestRuntimeMotionActive(request, Date.now()))) tui.requestRender();
-	}, astraMotion ? 80 : 1_000) : null;
+	// `workingStatusLine()` advances its pulse every 120ms. Repainting at 80ms
+	// computed an identical full layout roughly one third of the time, while live
+	// Native snapshots already use the 32ms RenderScheduler path below.
+	}, astraMotion ? 120 : 1_000) : null;
 	astraClock?.unref?.();
 	let composerBorderFrame = 0;
 	const composerBorderClock = setInterval(() => {
@@ -634,6 +637,9 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		panel.start(provider !== undefined);
 		tui.requestRender();
 	};
+	// Codex 네이티브 피커는 openai-codex만 노출하며 인증은 Codex App Server 구독이 소유한다.
+	// provider별 auth.status 조회 대신 고정된 구독 연결 상태를 보여준다.
+	const codexNativeAuthStatus = async (provider: Provider) => ({ state: "configured" as const, provider, source: "Codex App Server", type: "oauth" as const });
 	const openModelSettings = (): void => {
 		if (overlay) return;
 		if (snapshot.phase === "working") {
@@ -644,7 +650,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		const current = workbenchModelSettings(snapshot);
 		const panel = new ModelPickerOverlay(
 			current,
-			async provider => ({ state: "configured", provider, source: "Codex App Server", type: "oauth" }),
+			codexNativeAuthStatus,
 			() => tui.requestRender(),
 			applyModelSelection,
 			() => undefined,
@@ -790,6 +796,12 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		if (command.type === "help") {
 			if (astra) { showAstraPage("help"); return true; }
 			status.setNotice(WORKBENCH_SLASH_COMMANDS.map(command => `/${command.name}${command.argumentHint ? ` ${command.argumentHint}` : ""}`).join(" · "));
+			tui.requestRender();
+			return true;
+		}
+		if (command.type === "workflow.view") {
+			if (astra) showAstraPage("workflow");
+			else status.setNotice("Workflow 화면은 Astra UI에서 사용할 수 있습니다.");
 			tui.requestRender();
 			return true;
 		}
@@ -1047,13 +1059,13 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 			return undefined;
 		}
 		if (astra && !loginPrompt) {
-			if (matchesKey(data, Key.ctrl("b"))) {
+			if (matchesAstraAction(data, "plan.sidebar")) {
 				const enabled = astra.toggleSidebar();
 				status.setNotice(enabled ? "계획 사이드바를 열었습니다. 넓은 실행 화면에서 표시됩니다." : "계획 사이드바를 닫았습니다.");
 				tui.requestRender();
 				return { consume: true };
 			}
-			if (matchesKey(data, Key.ctrl("g"))) {
+			if (matchesAstraAction(data, "views.switcher")) {
 				const switcher = new AstraViewSwitcher(command => {
 					closeOverlay();
 					void handleLocal(command).catch(error => { status.setNotice(String(error)); tui.requestRender(); });
@@ -1064,7 +1076,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 				tui.setFocus(switcherSheet);
 				return { consume: true };
 			}
-			if (matchesKey(data, Key.ctrl("p"))) {
+			if (matchesAstraAction(data, "command.palette")) {
 				const palette = new AstraCommandPalette(command => { closeOverlay(); editor.setText(command); tui.requestRender(); }, closeOverlay, () => tui.requestRender());
 				const paletteSheet = sheet(palette);
 				overlay = tui.showOverlay(paletteSheet, { width: "86%", minWidth: 36, maxHeight: "95%", anchor: "center", margin: 1 });
@@ -1078,25 +1090,26 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 					return { consume: true };
 				}
 			}
-			if (matchesKey(data, Key.ctrl("e")) && !editor.focused) { astra.transcript.expanded = !astra.transcript.expanded; astra.transcript.invalidate(); tui.requestRender(); return { consume: true }; }
-			if (matchesKey(data, Key.tab) && !editor.isShowingAutocomplete() && (!editor.focused || !editor.getText())) {
+			if (matchesAstraAction(data, "transcript.expand") && !editor.focused) { astra.transcript.expanded = !astra.transcript.expanded; astra.transcript.invalidate(); tui.requestRender(); return { consume: true }; }
+			if (matchesAstraAction(data, "browse.toggle") && !editor.isShowingAutocomplete() && (!editor.focused || !editor.getText())) {
 				navigation.toggleAstraBrowse(editor.focused);
 				tui.requestRender(); return { consume: true };
 			}
-			if (matchesKey(data, Key.escape) && !editor.isShowingAutocomplete()) {
+			if (matchesAstraAction(data, "navigate.back") && !editor.isShowingAutocomplete()) {
 				if (navigation.mode === "workbench" && astra.page !== "execution") { showAstraPage("execution"); return { consume: true }; }
 				if (navigation.mode === "workbench" && !editor.focused) { navigation.leaveAstraBrowse(); tui.requestRender(); return { consume: true }; }
 			}
 			if (!editor.focused && !(navigation.mode === "dashboard" && navigation.observabilityBrowsing)) {
 				const scroll = navigation.currentScroll();
-				const delta = matchesKey(data, Key.down) || data === "j" ? 1 : matchesKey(data, Key.up) || data === "k" ? -1
-					: matchesKey(data, Key.pageDown) ? Math.max(1, scroll.viewportHeight - 2) : matchesKey(data, Key.pageUp) ? -Math.max(1, scroll.viewportHeight - 2) : 0;
+				const matchesScroll = (keys: readonly string[]) => keys.some(key => matchesAstraKey(data, key));
+				const delta = matchesScroll(ASTRA_SCROLL_KEYS.down) ? 1 : matchesScroll(ASTRA_SCROLL_KEYS.up) ? -1
+					: matchesScroll(ASTRA_SCROLL_KEYS.pageDown) ? Math.max(1, scroll.viewportHeight - 2) : matchesScroll(ASTRA_SCROLL_KEYS.pageUp) ? -Math.max(1, scroll.viewportHeight - 2) : 0;
 				if (delta) { scroll.scrollBy(delta); tui.requestRender(); return { consume: true }; }
-				if (matchesKey(data, Key.home) || data === "g") { scroll.scrollToStart(); tui.requestRender(); return { consume: true }; }
-				if (matchesKey(data, Key.end) || data === "G") { scroll.scrollToEnd(); tui.requestRender(); return { consume: true }; }
+				if (matchesScroll(ASTRA_SCROLL_KEYS.home)) { scroll.scrollToStart(); tui.requestRender(); return { consume: true }; }
+				if (matchesScroll(ASTRA_SCROLL_KEYS.end)) { scroll.scrollToEnd(); tui.requestRender(); return { consume: true }; }
 			}
 		}
-		if (matchesKey(data, Key.shift(Key.tab))) {
+		if (matchesAstraAction(data, "runtime.mode.cycle")) {
 			void cycleRuntimeMode().catch(error => {
 				status.setNotice(error instanceof Error ? error.message : String(error));
 				tui.requestRender();
@@ -1136,22 +1149,18 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 				return { consume: true };
 			}
 		}
-		if (matchesKey(data, Key.escape)) {
-			if (astra && navigation.mode === "dashboard" && !navigation.observabilityBrowsing && snapshot.phase === "working" && !editor.isShowingAutocomplete()) {
-				void workbench.dispatch({ type: "chat.cancel" }).then(showReceipt);
-				return { consume: true };
-			}
+		if (matchesAstraAction(data, "navigate.back")) {
 			if (navigation.returnToWorkbench()) {
 				status.setNotice("상세 화면을 닫고 Workbench로 돌아왔습니다.");
 				tui.requestRender();
 				return { consume: true };
 			}
 		}
-		if (matchesKey(data, Key.escape) && snapshot.phase === "working" && !editor.isShowingAutocomplete()) {
+		if (matchesAstraAction(data, "navigate.back") && snapshot.phase === "working" && !editor.isShowingAutocomplete()) {
 			void workbench.dispatch({ type: "chat.cancel" }).then(showReceipt);
 			return { consume: true };
 		}
-		if (matchesKey(data, Key.ctrl("c"))) {
+		if (matchesAstraAction(data, "interrupt.or.exit")) {
 			const action = exitKeys.ctrlC(snapshot.phase === "working");
 			if (action === "exit") {
 				void shutdown();

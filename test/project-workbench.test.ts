@@ -1382,6 +1382,11 @@ describe("ProjectWorkbench", () => {
 		expect(native.startTurnCalls).toBe(2);
 		expect(workbench.snapshot.chatQueue).toEqual([]);
 		expect(workbench.snapshot.tnotes).toEqual([]);
+		expect(workbench.snapshot.actionResult).toMatchObject({
+			kind: "tnote",
+			title: "완료 보고 작성 중",
+			body: expect.stringContaining("요청은 완료되었습니다."),
+		});
 
 		releaseSummary();
 		await Bun.sleep(10);
@@ -1389,6 +1394,11 @@ describe("ProjectWorkbench", () => {
 			id: "automatic-session-summary-1",
 			title: "이 세션의 구현과 검증을 진행해줘",
 			summary: "질문: 이 세션의 구현과 검증을 진행해줘\n왜: 구현 위치를 찾고 실제 동작을 검증해야 했습니다.\n결과: 구현과 테스트가 끝났습니다.",
+		});
+		expect(workbench.snapshot.actionResult).toMatchObject({
+			kind: "tnote",
+			title: "완료 보고 #1",
+			body: expect.stringContaining("Chat 타임라인"),
 		});
 		await workbench.close();
 	});
@@ -1696,7 +1706,7 @@ describe("ProjectWorkbench", () => {
 		await workbench.close();
 	});
 
-	test("bounds a completed turn with more than 100 activities before creating its automatic T-note", async () => {
+	test("bounds activity count and aggregate bytes before creating an automatic T-note", async () => {
 		const journal = new MemoryJournal();
 		const append = (
 			kind: ProjectActivity["kind"],
@@ -1717,7 +1727,7 @@ describe("ProjectWorkbench", () => {
 		for (let index = 0; index < 97; index += 1) {
 			await append("tool", "completed", { threadId: "thread-1", turnId: "turn-1", itemId: `tool-${index}` }, {
 				method: "item/completed",
-				params: { item: { type: "commandExecution", command: `step-${index}`, exitCode: 0 } },
+				params: { item: { type: "commandExecution", command: `step-${index}`, aggregatedOutput: "관측".repeat(6_000), exitCode: 0 } },
 			});
 		}
 		await append("message", "completed", { threadId: "thread-1", turnId: "turn-1", itemId: "answer" }, { role: "assistant", text: "긴 작업을 마쳤습니다." });
@@ -1762,7 +1772,7 @@ describe("ProjectWorkbench", () => {
 		expect(generatedSourceIds).toContain(answerId);
 		expect(generatedSourceIds).toContain(turnCompletedId);
 		expect(workbench.snapshot.tnotes).toHaveLength(1);
-		expect(workbench.snapshot.actionResult?.title).not.toBe("부가 기록 실패 · 요청 실행 계속");
+		expect(workbench.snapshot.actionResult?.title).toBe("완료 보고 #1");
 		await workbench.close();
 	});
 
