@@ -123,3 +123,43 @@
 - `core / adapters` 방향과 TUI feature 경계가 유지된다.
 - 병합 후보가 타입 검사·관련 테스트·전체 테스트의 결과와 함께 보고된다.
 - 원본 맥북·맥미니 작업 디렉터리에는 승인 없는 파괴적 조작이 없다.
+
+## 2026-09-20 진단·병합 결과
+
+### 회귀 판정
+
+맥미니의 `responseFrameRows()`가 assistant 응답을 박스 형태로 바꾼 것은 lazy
+경로만의 출력 손상이 아니었다. dense oracle과 cache literal이 이전 평문 계약을
+고정하고 있어 테스트가 새 표현 계약을 따라가지 못한 것이다. 독립 dense oracle에
+같은 응답 프레임을 반영하자 lazy integration·transcript cache가 통과했다.
+
+### 통합 기준
+
+- 기준: 양쪽 dirty snapshot을 공통 HEAD 위에 올린 뒤 수동 충돌 해소한 `240d93a`
+- 키맵: 맥북 단일 원본을 유지하고 Workflow를 뷰 9·`/workflow`로 추가
+- 화면: Workflow·Plan Mode·native Codex usage와 맥북 lazy/cache·T-note·provider
+  색상·OAuth refresh를 함께 유지
+- 응답: assistant box renderer와 dense/lazy oracle을 같은 contract로 결합
+- Z.AI: `world-wide-woo-usage/1.0`을 유지
+
+검증 결과:
+
+```text
+bun run check                         통과
+관련 10개 파일 targeted tests          137 pass, 0 fail
+전체 bun test                         1284 pass, 0 fail
+```
+
+### 활성 정책 결정
+
+공유 `.www/workbench.yaml`에는 다음 두 활성 정책을 동시에 둘 수 없다.
+
+- 맥북: `gpt-5.6-luna`, `xhigh`
+- 맥미니: `gpt-5.6-sol`, `medium`
+
+이번 통합에서는 맥북 값을 활성값으로 유지했다. 맥미니 값 자체를 삭제하거나
+원본에서 초기화한 것은 아니며, 이후 코드 수준을 맞출 때 별도 결정 대상으로 둔다.
+
+통합 결과는 `240d93a`에 반영되었고, 병합용 임시 worktree는 제거했다. 이후 SSH
+작업 디렉터리와 현재 정본의 코드 수준을 맞출 때는 이 통합 기준과 검증 결과를
+기준선으로 사용한다.
