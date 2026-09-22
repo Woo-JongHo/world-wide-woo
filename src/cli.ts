@@ -42,7 +42,7 @@ export type CliDependencies = CLIDependencies;
 //  NAME               : KIND  ( PARAMETERS      ) => { PRELUDE                      const { IMPORT NAME         } = await import("MODULE PATH                                                 "); ACTION TARGET                                    }
 const productionDependencies: CLIDependencies = {
 	runApp             : async (options) => { writeWorkbenchBootstrap();   const { runApp              } = await import("@/app");                                                        await  runApp(options); },
-	runAstra           : async (options) => { writeAstraBootstrap();       const { runAstra            } = await import("@/app");                                                        await  runAstra(options); },
+	runAstra           : async (options) => {                              const { runAstra            } = await loadAstraModule();                                                       await  runAstra(options); },
 	runRouter          : async (options) => { writeRouterBootstrap();      const { runLegacyRouter     } = await import("@/legacy-router-app");                                          await  runLegacyRouter(options); },
 	runAuth            : async ( args  ) => {                              const { runAuth             } = await import("@/app");                                                        await  runAuth(args); },
 	runWorkflow        : async ( args  ) => {                              const { runLocalWorkflowCli } = await import("@/adapters/outbound/development/local-workflow-cli");           return runLocalWorkflowCli(args, process.cwd()); },
@@ -73,9 +73,29 @@ export function writeRouterBootstrap(
 export function writeAstraBootstrap(
 	write : (value: string) => void = value => process.stdout.write(value),
 	isTTY : boolean                 = process.stdout.isTTY,
-): void {
-	if (!isTTY) return;
-	write("\r\x1b[2Kastra / Execution Console을 여는 중…\n");
+): () => void {
+	if (!isTTY) return () => {};
+	let frame = 0;
+	const paint = () => {
+		const position = frame++ % 13;
+		write(`\r\x1b[2Kwww [${"░".repeat(position)}███${"░".repeat(12 - position)}]`);
+	};
+	paint();
+	const timer = setInterval(paint, 80);
+	timer.unref();
+	return () => {
+		clearInterval(timer);
+		write("\r\x1b[2K");
+	};
+}
+
+async function loadAstraModule(): Promise<typeof import("@/app")> {
+	const stop = writeAstraBootstrap();
+	try {
+		return await import("@/app");
+	} finally {
+		stop();
+	}
 }
 
 function isLegacySessionId(value: string): boolean {

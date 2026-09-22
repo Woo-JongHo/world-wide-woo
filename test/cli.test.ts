@@ -52,12 +52,23 @@ describe("WWW CLI session entry", () => {
 		expect(await runCli(["astra", "--runtime-config", "one.json", "--runtime-config", "two.json"], dependencies)).toBe(1);
 		expect(calls.astra).toHaveLength(1);
 	});
-	test("paints the Astra bootstrap before production modules load", () => {
+	test("paints and clears a www loading bar before production modules load", async () => {
 		const writes: string[] = [];
-		writeAstraBootstrap(value => writes.push(value), true);
-		expect(writes).toEqual(["\r\x1b[2Kastra / Execution Console을 여는 중…\n"]);
-		writeAstraBootstrap(value => writes.push(value), false);
-		expect(writes).toHaveLength(1);
+		const stop = writeAstraBootstrap(value => writes.push(value), true);
+		try {
+			expect(writes).toEqual(["\r\x1b[2Kwww [███░░░░░░░░░░░░]"]);
+			await new Promise(resolve => setTimeout(resolve, 180));
+			expect(writes.length).toBeGreaterThan(1);
+			expect(writes[1]).not.toBe(writes[0]);
+		} finally {
+			stop();
+		}
+		expect(writes.at(-1)).toBe("\r\x1b[2K");
+		const count = writes.length;
+		await new Promise(resolve => setTimeout(resolve, 120));
+		expect(writes).toHaveLength(count);
+		writeAstraBootstrap(value => writes.push(value), false)();
+		expect(writes).toHaveLength(count);
 	});
 
 	test("paints a distinct bootstrap for the explicit multi-provider Router", () => {
