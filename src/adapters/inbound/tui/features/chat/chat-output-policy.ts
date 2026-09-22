@@ -4,6 +4,9 @@ import { semantic } from "../../foundation/theme/theme";
 /** Character budget shared by public native-tool projection and its Chat renderers. */
 export const CHAT_PUBLIC_OUTPUT_MAX_CHARS = 2_400;
 
+/** Default number of terminal output lines that follow a live command. */
+export const CHAT_TERMINAL_OUTPUT_CHUNK_LINES = 5;
+
 /** Parsing budget for syntax-aware structured output. */
 export const CHAT_STRUCTURED_DISPLAY_MAX_BYTES = 64 * 1024;
 export const CHAT_STRUCTURED_DISPLAY_MAX_LINES = 2_000;

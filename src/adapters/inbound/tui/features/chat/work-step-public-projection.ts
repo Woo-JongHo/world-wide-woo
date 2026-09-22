@@ -110,7 +110,7 @@ function publicValue(value: unknown, depth = 0): unknown {
 	if (value === null || typeof value === "boolean" || typeof value === "number") return value;
 	if (typeof value === "string") return clean(value);
 	if (isReasoningActivityPayload(value)) return { classification: "reasoning", content: "[비공개 내용 생략]" };
-	if (depth >= 4) return "[요약 제한]";
+	if (depth >= 4) return "[공개 결과 일부 생략]";
 	if (Array.isArray(value)) return value.slice(0, 20).map((item) => publicValue(item, depth + 1));
 	const source = record(value);
 	if (!source) return String(value);

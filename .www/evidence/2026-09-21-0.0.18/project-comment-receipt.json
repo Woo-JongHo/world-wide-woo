@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "1.0",
+  "receiptId": "RECEIPT-WWW-018-ACTIVITY-COMMENT",
+  "capability": "linear-project-comment.publish",
+  "status": "succeeded",
+  "stage": "verify",
+  "actor": { "kind": "codex" },
+  "context": {
+    "workspaceId": "b7b91489-dd9b-4fb7-b958-822d5dc577e0",
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "sourceRevision": "git:ce7731454c09c4ca5df4413f9f223be3eaea960c:dirty",
+    "verifiedAt": "2026-09-21T13:44:19.012Z"
+  },
+  "input": {
+    "candidateId": "ARTIFACT-CANDIDATE-WWW-018-ACTIVITY-COMMENT",
+    "candidateDigest": "b8e3a103a9f1f69d72de0dce722ed871b558edadb336b314ed453932f5d0a402"
+  },
+  "execution": {
+    "tool": "linear-woo.save_comment",
+    "completedAt": "2026-09-21T13:44:19.012Z"
+  },
+  "result": {
+    "id": "769e9b2d-4fc7-44fe-8ae1-61a5df3aa793",
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "author": "우종호"
+  },
+  "readBack": {
+    "latestCommentId": "769e9b2d-4fc7-44fe-8ae1-61a5df3aa793",
+    "bodyMatches": true,
+    "latestCommentFirst": true
+  }
+}

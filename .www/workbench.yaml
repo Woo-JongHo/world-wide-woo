@@ -3,8 +3,8 @@ orchestration:
   maxAgentRounds: 24
 execution:
   provider: openai-codex
-  model: gpt-5.6-luna
-  effort: xhigh
+  model: gpt-5.6-sol
+  effort: low
   approvalPolicy: on-request
   sandbox: workspace-write
 tnote:
@@ -26,6 +26,8 @@ review:
   model: claude-opus
 display:
   tnoteVisibleLimit: 20
+  tnoteSummaryMaxChars: 2048
+  tnoteSummaryMaxLines: 24
 linear:
   server: linear-woo
   projectId: 5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db

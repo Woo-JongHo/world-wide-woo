@@ -4,6 +4,7 @@ import type { ExecutorPort } from "../../ports/execution/executor-port.js";
 import { createCanonicalDocumentDraft, type CanonicalPromotionService } from "../work/canonical-promotion.js";
 import type { ReviewService } from "../review/review-service.js";
 import type { ActivityNarrator } from "./activity-narrator.js";
+import { PlanActivityNarration } from "./plan-activity-narration.js";
 import type { SessionModelUsageSource } from "../session/session-model-usage.js";
 import { TodoWriteConflictError } from "../work/todo-ledger.js";
 import type { WooEntry } from "./woo-entry.js";
@@ -187,7 +188,7 @@ export interface WorkbenchTodoSource {
 }
 
 export interface WorkbenchTNoteSource {
-	/** Binds T-note history to the provider-issued Native thread identity. */
+	/** Binds Note history to the provider-issued Native thread identity. */
 	bindThread?(threadId: string): Promise<void>;
 	readAll(projectId: string): Promise<readonly TNoteDraft[]>;
 	/** The adapter/generator owns its isolated cwd; Workbench never supplies the project root. */
@@ -243,6 +244,8 @@ export interface ProjectWorkbenchOptions {
 	evaluationRequired?: boolean;
 	configurationSource?: "project-yaml" | "defaults";
 	tnoteVisibleLimit?: number;
+	tnoteSummaryMaxChars?: number;
+	tnoteSummaryMaxLines?: number;
 	hud?: { readonly showUsage: boolean; readonly showContext: boolean };
 	slash?: { readonly mcp: boolean; readonly clear: boolean; readonly compact: boolean };
 }
@@ -273,7 +276,8 @@ export class ProjectWorkbench {
 	private readonly promotionDrafts = new Map<string, CanonicalDocumentDraft>();
 	private readonly reviewPreviews = new Map<string, { provider: ReviewProvider; packet: ReviewPacket }>();
 	private readonly stepNarrations = new Map<string, WorkStepNarration>();
-	private readonly narrationRequestKeys = new Map<string, string>();
+	private planActivityNarration?: PlanActivityNarration;
+	private narrationObservedSequence = 0;
 	private readonly narrationAbort = new AbortController();
 	private narrationRevision = 0;
 	private workFlowProjection: {
@@ -570,7 +574,7 @@ export class ProjectWorkbench {
 				case "tnote.capture-session": return await this.captureSessionNote(commandId);
 				case "tnote.capture": return await this.captureNote(commandId, command.activityIds);
 				case "tnote.capture-range": return await this.captureNoteRange(commandId, command.startSequence, command.endSequence);
-				case "chat.send": return await this.sendChat(commandId, command.text);
+				case "chat.send": return await this.sendChat(commandId, command.text, false, command.delivery);
 				case "chat.cancel": return await this.cancelChat(commandId);
 				case "chat.clear": return this.clearChatProjection(commandId);
 				case "thread.compact": return await this.compactThread(commandId);
@@ -665,6 +669,8 @@ export class ProjectWorkbench {
 			if (run.receipt && !this.hasCompletionReceipt(run)) await this.appendExecutionReceipt(run);
 		}
 		this.visibleAfterSequence = this.activities.at(-1)?.sequence ?? 0;
+		// Historical events cannot safely inherit the currently selected stage.
+		this.narrationObservedSequence = this.visibleAfterSequence;
 		if (this.options.tnotes && !this.options.tnotes.bindThread) await this.loadBoundTNotes();
 		if (this.options.resumeThreadId) {
 			await this.options.acquireThreadLease?.(this.options.resumeThreadId);
@@ -769,7 +775,7 @@ export class ProjectWorkbench {
 		});
 	}
 
-	private async sendChat(commandId: string, rawText: string, goal = false): Promise<WorkbenchCommandReceipt> {
+	private async sendChat(commandId: string, rawText: string, goal = false, delivery: "queue" | "steer" = "steer"): Promise<WorkbenchCommandReceipt> {
 		const text = sanitizeTerminalTextUnbounded(rawText).trim();
 		if (!text) return { state: "rejected", commandId, reason: "보낼 메시지가 비어 있습니다." };
 		if (this.requestRuntimePolicy.brokered && !this.activeTurnId) {
@@ -777,7 +783,7 @@ export class ProjectWorkbench {
 			const action = unresolved?.actions.find(a => a.status === "unconfirmed");
 			if (unresolved && action) return { state: "rejected", commandId, reason: `이전 실행 결과를 먼저 정산하세요: /reconcile ${unresolved.requestId} ${action.operationId}` };
 		}
-		if (this.requestProtocolVersion() !== 2 && this.activeTurnId && this.threadId && !this.chatDeliveryBlocked && this.native.steerTurn) {
+		if (delivery !== "queue" && this.requestProtocolVersion() !== 2 && this.activeTurnId && this.threadId && !this.chatDeliveryBlocked && this.native.steerTurn) {
 			const sent = await this.steerChatTurn(text, commandId, this.threadId, this.activeTurnId, goal);
 			return { state: "accepted", commandId, activitySequence: sent.sequence };
 		}
@@ -1124,7 +1130,14 @@ export class ProjectWorkbench {
 			return { state: "rejected", commandId, reason: "연결된 App Server는 수동 컨텍스트 압축을 지원하지 않습니다." };
 		}
 		await candidate.compactThread({ threadId: this.threadId });
-		return { state: "accepted", commandId, message: "Native thread 컨텍스트 압축을 시작했습니다." };
+		this.actionResult = immutable({
+			kind: "notice",
+			title: "Context",
+			body: "Native thread 컨텍스트 압축을 시작했습니다.",
+			createdAt: new Date().toISOString(),
+		});
+		this.publish();
+		return { state: "accepted", commandId };
 	}
 
 	private async resolveApproval(
@@ -1215,8 +1228,8 @@ export class ProjectWorkbench {
 			state: "accepted",
 			commandId,
 			message: mode === "all"
-				? "Permission all: 다음 요청부터 승인 없이 전체 로컬 권한을 사용합니다."
-				: "Permission manual: 다음 요청부터 workspace 범위와 수동 승인을 사용합니다.",
+				? "bypass mode: 다음 요청부터 승인 없이 전체 로컬 권한을 사용합니다."
+				: "manual mode: 다음 요청부터 workspace 범위와 수동 승인을 사용합니다.",
 		};
 	}
 
@@ -1227,8 +1240,8 @@ export class ProjectWorkbench {
 			state: "accepted",
 			commandId,
 			message: mode === "plan"
-				? "Plan 모드: 다음 요청부터 계획 중심으로 응답합니다."
-				: "Manual 모드: 다음 요청부터 기본 실행 모드로 응답합니다.",
+				? "plan mode: 다음 요청부터 계획 중심으로 응답합니다."
+				: "manual mode: 다음 요청부터 기본 실행 모드로 응답합니다.",
 		};
 	}
 
@@ -1338,7 +1351,7 @@ export class ProjectWorkbench {
 				reasoning_effort: this.effectiveEffort,
 				developer_instructions: [
 					...(planMode ? [
-						"Plan 모드에서는 실행용 update_plan을 호출하지 마세요.",
+						"plan mode에서는 실행용 update_plan을 호출하지 마세요.",
 						"사용자가 검토할 계획 문서를 공개 응답으로 작성하고, 아직 실행하지 마세요.",
 					] : [
 						"여러 단계가 필요한 실행 작업이면 실행 전에 update_plan으로 간결한 체크리스트를 등록하고 실제 진행에 맞춰 상태를 갱신하세요.",
@@ -1358,31 +1371,31 @@ export class ProjectWorkbench {
 		commandId: string,
 		activityIds: readonly string[],
 	): Promise<WorkbenchCommandReceipt> {
-		if (!this.options.tnotes) return { state: "rejected", commandId, reason: "T-notes 저장소가 연결되지 않았습니다." };
+		if (!this.options.tnotes) return { state: "rejected", commandId, reason: "Notes 저장소가 연결되지 않았습니다." };
 		const uniqueIds = [...new Set(activityIds)];
 		if (uniqueIds.length === 0 || uniqueIds.some((id) => !this.activities.some((activity) => activity.id === id))) {
-			return { state: "rejected", commandId, reason: "T-note의 source activity를 확인할 수 없습니다." };
+			return { state: "rejected", commandId, reason: "Note의 source activity를 확인할 수 없습니다." };
 		}
 		const selected = this.activities.filter((activity) => uniqueIds.includes(activity.id))
 			.sort((left, right) => left.sequence - right.sequence);
 		const scope = resolveCompletedTurnNoteScope(selected, { type: "exact-selection" });
-		if (!scope) return { state: "rejected", commandId, reason: "T-note는 완료된 질문 하나의 전체 turn 범위여야 합니다." };
+		if (!scope) return { state: "rejected", commandId, reason: "Note는 완료된 질문 하나의 전체 turn 범위여야 합니다." };
 		const request = this.tnoteRequest(scope.activities);
 		let existing = request.turnId ? this.noteForTurn(request.turnId) : undefined;
-		if (existing) return { state: "accepted", commandId, message: `T-note #${existing.sequence}을 사용합니다.` };
+		if (existing) return { state: "accepted", commandId, message: `Note #${existing.sequence}을 사용합니다.` };
 		if (request.turnId && this.automaticTNoteTurns.has(request.turnId)) {
 			await this.tnoteQueue;
 			existing = this.noteForTurn(request.turnId);
-			if (existing) return { state: "accepted", commandId, message: `T-note #${existing.sequence}을 사용합니다.` };
+			if (existing) return { state: "accepted", commandId, message: `Note #${existing.sequence}을 사용합니다.` };
 		}
 		const draft = await this.createTNote(request, request.turnId);
 		if (!validateCanonicalTNote(draft.text, request.input.expectedQuestion, { allowLegacy: true, allowRuntimeTestSummary: true }).valid) {
-			return { state: "rejected", commandId, reason: "T-note 생성 결과 형식이 올바르지 않습니다." };
+			return { state: "rejected", commandId, reason: "Note 생성 결과 형식이 올바르지 않습니다." };
 		}
 		this.noteDrafts.set(draft.id, draft);
 		this.notes.push(immutable(projectTNote(draft)));
-		this.setActionResult("tnote", `T-note #${draft.sequence}`, draft.text, draft.packet.digest);
-		return { state: "accepted", commandId, message: `T-note #${draft.sequence}을 만들었습니다.` };
+		this.setActionResult("tnote", `Note #${draft.sequence}`, draft.text, draft.packet.digest);
+		return { state: "accepted", commandId, message: `Note #${draft.sequence}을 만들었습니다.` };
 	}
 
 	private async captureSessionNote(commandId: string): Promise<WorkbenchCommandReceipt> {
@@ -1400,11 +1413,11 @@ export class ProjectWorkbench {
 		endSequence: number,
 	): Promise<WorkbenchCommandReceipt> {
 		if (!Number.isSafeInteger(startSequence) || !Number.isSafeInteger(endSequence) || startSequence < 1 || endSequence < startSequence) {
-			return { state: "rejected", commandId, reason: "T-note sequence 범위가 올바르지 않습니다." };
+			return { state: "rejected", commandId, reason: "Note sequence 범위가 올바르지 않습니다." };
 		}
 		const selected = this.activities.filter((activity) => activity.sequence >= startSequence && activity.sequence <= endSequence);
 		if (selected.length !== endSequence - startSequence + 1 || selected[0]?.sequence !== startSequence || selected.at(-1)?.sequence !== endSequence) {
-			return { state: "rejected", commandId, reason: "요청한 T-note sequence 범위가 activity journal에서 연속되지 않습니다." };
+			return { state: "rejected", commandId, reason: "요청한 Note sequence 범위가 activity journal에서 연속되지 않습니다." };
 		}
 		return this.captureNote(commandId, selected.map((activity) => activity.id));
 	}
@@ -1463,7 +1476,7 @@ export class ProjectWorkbench {
 		request: ReturnType<ProjectWorkbench["tnoteRequest"]>,
 		turnId?: string,
 	): Promise<TNoteDraft> {
-		if (!this.options.tnotes) throw new Error("T-notes 저장소가 연결되지 않았습니다.");
+		if (!this.options.tnotes) throw new Error("Notes 저장소가 연결되지 않았습니다.");
 		if (turnId) {
 			const inFlight = this.tnoteInFlight.get(turnId);
 			if (inFlight) return inFlight;
@@ -1528,7 +1541,7 @@ export class ProjectWorkbench {
 		const promotions = this.options.promotions;
 		if (!promotions) return { state: "rejected", commandId, reason: "정본 승격 서비스가 연결되지 않았습니다." };
 		const note = this.noteDrafts.get(noteId);
-		if (!note) return { state: "rejected", commandId, reason: `T-note를 찾을 수 없습니다: ${noteId}` };
+		if (!note) return { state: "rejected", commandId, reason: `Note를 찾을 수 없습니다: ${noteId}` };
 		const draft = canonicalTNoteDraft(note, this.options.projectId);
 		const accepted = await promotions.accept(draft, acceptedBy);
 		this.promotionDrafts.set(accepted.token, draft);
@@ -1567,11 +1580,11 @@ export class ProjectWorkbench {
 	): Promise<WorkbenchCommandReceipt> {
 		const reviews = this.options.reviews;
 		if (!reviews) return { state: "rejected", commandId, reason: "외부 리뷰 서비스가 연결되지 않았습니다." };
-		if (confirmedPublic !== true) return { state: "rejected", commandId, reason: "T-note를 public으로 명시 확인해야 합니다." };
+		if (confirmedPublic !== true) return { state: "rejected", commandId, reason: "Note를 public으로 명시 확인해야 합니다." };
 		const note = this.noteDrafts.get(noteId);
-		if (!note) return { state: "rejected", commandId, reason: `T-note를 찾을 수 없습니다: ${noteId}` };
+		if (!note) return { state: "rejected", commandId, reason: `Note를 찾을 수 없습니다: ${noteId}` };
 		const preview = reviews.preview({
-			purpose: { value: `T-note ${note.id} 독립 검토`, sensitivity: "public" },
+			purpose: { value: `Note ${note.id} 독립 검토`, sensitivity: "public" },
 			request: { value: request, sensitivity: "public" },
 			context: { value: note.text, sensitivity: "public" },
 		});
@@ -1844,7 +1857,7 @@ export class ProjectWorkbench {
 	}
 
 	/**
-	 * T-notes describe one completed user question at a time. Generation stays
+	 * Notes describe one completed user question at a time. Generation stays
 	 * on a detached queue so it cannot delay the next native Chat turn.
 	 */
 	private scheduleAutomaticTNote(turnId: string): void {
@@ -1864,22 +1877,19 @@ export class ProjectWorkbench {
 					const draft = await this.createTNote(request, turnId);
 					if (this.closed || this.narrationAbort.signal.aborted) return;
 					if (!validateCanonicalTNote(draft.text, request.input.expectedQuestion, { allowLegacy: true, allowRuntimeTestSummary: true }).valid) {
-						throw new Error("T-note 생성 결과 형식이 올바르지 않습니다.");
+						throw new Error("Note 생성 결과 형식이 올바르지 않습니다.");
 					}
 					this.noteDrafts.set(draft.id, draft);
 					this.notes.push(immutable(projectTNote(draft)));
 					this.failedAutomaticTNoteTurns.delete(turnId);
 					this.setActionResult("tnote", `완료 보고 #${draft.sequence}`, "검증 근거를 포함한 Report를 Chat 타임라인에 저장했습니다.");
-				} catch (error) {
+				} catch {
 					if (this.closed || this.narrationAbort.signal.aborted) return;
 					this.failedAutomaticTNoteTurns.add(turnId);
-					this.actionResult = immutable({
-						kind: "tnote",
-						title: "T-note 자동 저장 실패 · 요청은 완료됨",
-						body: `${sanitizeTerminalTextExcerpt(errorMessage(error), WORKBENCH_ACTION_RESULT_CHARACTER_LIMIT, "head-tail")}\n/tnote로 이 요청의 기록을 다시 만들 수 있습니다.`,
-						createdAt: new Date().toISOString(),
-					});
-					this.publish();
+					if (this.actionResult?.kind === "tnote" && this.actionResult.title === "완료 보고 작성 중") {
+						this.actionResult = null;
+						this.publish();
+					}
 				} finally {
 					this.automaticTNoteTurns.delete(turnId);
 				}
@@ -2199,6 +2209,7 @@ export class ProjectWorkbench {
 	}
 
 	private makeSnapshot(phase: WorkbenchSnapshot["phase"]): WorkbenchSnapshot {
+		this.scheduleNarrations();
 		const durable = this.projectDurableActivities();
 		const executionRun = this.selectedExecutionRun();
 		const executionActivity = executionRun ? projectExecutionActivity(executionRun) : null;
@@ -2215,6 +2226,9 @@ export class ProjectWorkbench {
 		const todo = request ? projectRequestTodo(request, this.todo?.ownerSessionId ?? this.threadId ?? "pending", this.activities.length)
 			: workFlow.source?.authority === "native-checklist" && executionRun ? this.projectExecutionTodo(executionRun, workFlow) : null;
 		return deepFreeze({
+			...(this.planActivityNarration && this.narrationContext()
+				? this.planActivityNarration.snapshot(this.narrationContext()!.stepId)
+				: { planActivities: [], planActivityStatus: this.options.narrator ? "pending" as const : "disabled" as const }),
 			requestRuntime,
 			modelCatalog: this.modelCatalog,
 			projectId: this.options.projectId,
@@ -2234,6 +2248,12 @@ export class ProjectWorkbench {
 			permissionMode: this.permissionMode,
 			collaborationMode: this.collaborationMode,
 			mcpServers: this.mcpServers,
+			skillInventory: this.options.skillRegistry ? {
+				count: this.options.skillRegistry.skills.length,
+				names: this.options.skillRegistry.skills.map(skill => skill.name),
+				sourceRevision: this.options.skillRegistry.sourceRevision,
+				digest: this.options.skillRegistry.digest,
+			} : undefined,
 			linearDashboard: this.options.linearDashboard ? this.linearDashboard : undefined,
 			wooEntry: this.options.wooEntry?.snapshot ?? null,
 			threadId: this.threadId,
@@ -2250,6 +2270,8 @@ export class ProjectWorkbench {
 			evaluationRequired: this.options.evaluationRequired,
 			configurationSource: this.options.configurationSource,
 			tnoteVisibleLimit: this.options.tnoteVisibleLimit,
+			tnoteSummaryMaxChars: this.options.tnoteSummaryMaxChars,
+			tnoteSummaryMaxLines: this.options.tnoteSummaryMaxLines,
 			hud: this.options.hud,
 			slash: this.options.slash,
 			activityCount: durable.activityCount,
@@ -2538,22 +2560,9 @@ export class ProjectWorkbench {
 	private scheduleNarrations(): void {
 		const narrator = this.options.narrator;
 		if (!narrator || this.closed || this.narrationAbort.signal.aborted) return;
-		const source = this.activities;
-		const baseFlow = projectWorkFlow(source, new Map(), this.currentPlanProjectionInput());
-		for (const step of baseFlow.steps) {
-			if (step.narration.inputSummary.length === 0) continue;
-			const request = {
-				goal: baseFlow.goal,
-				stepTitle: step.title,
-				inputSummary: step.narration.inputSummary,
-			};
-			const requestKey = digestSource(stableJson(request));
-			if (this.narrationRequestKeys.get(step.id) === requestKey) continue;
-			this.narrationRequestKeys.set(step.id, requestKey);
-			if (this.stepNarrations.delete(step.id)) this.narrationRevision += 1;
-			void narrator.narrate(request, this.narrationAbort.signal).then((result) => {
-				if (this.closed || this.narrationAbort.signal.aborted || this.narrationRequestKeys.get(step.id) !== requestKey) return;
-				this.stepNarrations.set(step.id, immutable({
+		this.planActivityNarration ??= new PlanActivityNarration(narrator, this.narrationAbort.signal, (stepId, result) => {
+			if (result) {
+				this.stepNarrations.set(stepId, immutable({
 					what: result.what,
 					...(result.why ? { why: result.why } : {}),
 					inputSummary: result.inputSummary,
@@ -2562,17 +2571,37 @@ export class ProjectWorkbench {
 				this.narrationRevision += 1;
 				this.invalidateWorkFlow();
 				this.scheduleNarratedTodoSync();
-				this.publish();
-			}).catch(() => {
-				// Narration is non-authoritative; the deterministic projection remains visible.
-			});
+			}
+			this.publish();
+		});
+		this.planActivityNarration.select(this.activeTurnId ?? this.selectedPlanTurnId);
+		const context = this.narrationContext();
+		for (const activity of this.activities) {
+			if (activity.sequence <= this.narrationObservedSequence) continue;
+			this.narrationObservedSequence = activity.sequence;
+			if (context && activity.nativeRefs.threadId === this.threadId) this.planActivityNarration.observe(activity, context);
 		}
+	}
+
+	private narrationContext() {
+		const turnId = this.activeTurnId ?? this.selectedPlanTurnId;
+		if (!turnId || this.pendingPlanGoalActivityId) return undefined;
+		const request = this.requestRecords().find(record => record.turnId === turnId && record.threadId === this.threadId);
+		if (request) {
+			const stage = request.stages.find(stage => stage.status === "running") ?? [...request.stages].reverse().find(stage => stage.status !== "pending");
+			return stage ? { turnId, stepId: stage.id, stepTitle: stage.goal, goal: request.objective } : undefined;
+		}
+		const flow = this.projectCurrentWorkFlow();
+		const step = flow.steps.find(step => step.status === "running") ?? [...flow.steps].reverse().find(step => step.status !== "pending");
+		return step ? { turnId, stepId: step.id, stepTitle: step.title, goal: flow.goal } : undefined;
 	}
 }
 
+// Recap and live Native Plan/Activity/Next projection remain intentionally
+// outside Note generation until the Note contract is redesigned.
 function turnTNoteInstruction(question: string): string {
 	return [
-		"완료된 질문 하나를 종료 보고서 T-note로 정리하세요.",
+		"완료된 질문 하나를 종료 보고서 Note로 정리하세요.",
 		`질문: ${question}`,
 		"관찰 가능한 대화와 실행만 근거로 삼고 숨은 사고과정은 추측하지 마세요.",
 		"처음 보는 사람도 이해하도록 전문용어를 풀고, 각 항목은 한두 문장으로 짧게 쓰세요.",

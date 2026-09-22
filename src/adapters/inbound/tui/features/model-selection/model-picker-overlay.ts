@@ -9,6 +9,7 @@ import { EFFORTS, MODELS, PROVIDERS, type Effort, type Provider, type WwwSetting
 import { colors, semantic, type TuiColors } from "../../foundation/theme/theme";
 import { nativeModelNames, nativeModelEfforts, type NativeModelCatalog } from "../../../../../core/domain/execution/model-settings";
 import { renderModelPickerView } from "./model-picker-view";
+import { workbenchEffortLabel, workbenchModelLabel } from "../../foundation/labels";
 
 type ModelPickerStep = "provider" | "model" | "effort" | "confirm";
 type AuthStatus = ProviderAuthState | { state: "pending"; provider: Provider };
@@ -170,7 +171,7 @@ export class ModelPickerOverlay implements Component {
 		if (this.step === "model") {
 			return this.models(this.staged.provider).map((model, index) => this.row(
 				index,
-				model,
+				workbenchModelLabel(model),
 				"",
 				model === this.current.model && this.staged.provider === this.current.provider
 					? "현재"
@@ -180,15 +181,15 @@ export class ModelPickerOverlay implements Component {
 		if (this.step === "effort") {
 			return this.efforts().map((effort, index) => this.row(
 				index,
-				(this.options.appearance ? this.ui.text : effortColor[effort])(effort),
+				(this.options.appearance ? this.ui.text : effortColor[effort])(workbenchEffortLabel(effort)),
 				effort === "ultra" && this.options.nativeCodex ? "자동 위임 포함" : "",
 				effort === this.current.effort ? "현재" : effort === this.staged.effort ? "선택" : "",
 			));
 		}
 		return [
 			`  공급자  ${this.staged.provider}  ${this.authBadge(this.staged.provider)}`,
-			`  모델    ${this.staged.model}`,
-			`  추론    ${(this.options.appearance ? this.ui.text : effortColor[this.staged.effort])(this.staged.effort)}`,
+			`  모델    ${workbenchModelLabel(this.staged.model)}`,
+			`  추론    ${(this.options.appearance ? this.ui.text : effortColor[this.staged.effort])(workbenchEffortLabel(this.staged.effort))}`,
 			this.ui.success("  Enter를 누르면 한 번에 적용합니다."),
 		];
 	}

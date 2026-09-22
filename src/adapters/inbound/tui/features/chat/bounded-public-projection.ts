@@ -92,11 +92,11 @@ function project(value: unknown, state: ProjectionState, depth: number): unknown
 	if (typeof value === "string") return boundedString(value, state);
 	if (depth >= MAX_DEPTH) {
 		state.omitted = true;
-		return "[요약 제한]";
+		return "[공개 Source 일부 생략]";
 	}
 	if (state.remainingItems <= 0 || state.remainingChars <= 0) {
 		state.omitted = true;
-		return "[요약 제한]";
+		return "[공개 Source 일부 생략]";
 	}
 	if (Array.isArray(value)) {
 		const result: unknown[] = [];

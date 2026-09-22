@@ -1,21 +1,35 @@
-import { HStack, VStack, ScrollView, Key, matchesKey, stripTerminalSequences, truncateToWidth, visibleWidth, type Component, type Editor, type ScrollRowSource } from "@earendil-works/pi-tui";
+import { CURSOR_MARKER, HStack, VStack, ScrollView, Key, matchesKey, stripTerminalSequences, truncateToWidth, visibleWidth, type Component, type Editor, type ScrollRowSource } from "@earendil-works/pi-tui";
 import type { WorkbenchSnapshot } from "../../../../core/domain/work/workbench";
 import type { UsageSnapshot } from "../../../../core/ports";
 import { ChatScrollView } from "../features/chat/chat-scroll.view";
-import { AstraTranscriptView, executionHeading, astraExecutionIsLive, astraNowLabel } from "../features/chat/astra-execution";
+import { AstraTranscriptView, executionHeading, astraExecutionIsLive, astraNowLabel, hasVisibleAstraContent } from "../features/chat/astra-execution";
 import { AstraContextView } from "../features/context/astra-context-view";
+import { AstraCacheView } from "../features/cache/astra-cache-view";
 import { AstraPlanView, type PlanRuntimePresentation } from "../features/plan/astra-plan-view";
+import { threeBodyOrbitFrame } from "../features/chat/three-body-orbit";
 import { AstraWorkflowView } from "../features/workflow/astra-workflow-view";
 import { WORKBENCH_SLASH_COMMANDS } from "../commands/slash-commands";
-import { a, astraPulse, duration, fit, oneLine, pair, prose, safe, section } from "../foundation/theme/astra-theme";
-import { astraUsageLine } from "../features/usage/astra-usage";
+import { a, astraFlowText, astraPulse, duration, fit, oneLine, pair, prose, safe, section } from "../foundation/theme/astra-theme";
+import { astraQuotaHudRows } from "../features/usage/astra-usage";
+import { runtimeModeLabel, workbenchEffortLabel, workbenchModelLabel } from "../foundation/labels";
 import { componentScrollRows } from "../foundation/rendering/scroll-row-source";
 import { ASTRA_HELP_ACTIONS, ASTRA_KEYMAP, ASTRA_KEYS, ASTRA_VIEWS } from "../foundation/keyboard/astra-keymap";
 
 export { ASTRA_DOC_EXTRA, ASTRA_HELP_ACTIONS, ASTRA_KEYMAP, ASTRA_KEYS, ASTRA_SCROLL_KEYS, ASTRA_VIEWS, matchesAstraAction, matchesAstraKey } from "../foundation/keyboard/astra-keymap";
 
-export type AstraPage = "dashboard" | "execution" | "plan" | "workflow" | "context" | "help";
-const ASTRA_DESCRIPTIONS: Record<string, string> = { chat: "실행·질문 요약 타임라인", todo: "Plan · Todo · Verify", workflow: "Request 단계·Subagent 위임 관측", test: "질문별 검증 목적·검사·근거", help: "Astra 명령과 키보드 이동", source: "선택한 Activity의 공개 실행 근거", dashboard: "이전 세션 탐색", monitor: "현재 Runtime·Request·Tool 관측" };
+export type AstraPage = "dashboard" | "execution" | "plan" | "workflow" | "context" | "cache" | "help" | "lab";
+export const ASTRA_PAGE_LABELS: Readonly<Record<AstraPage, string>> = {
+	dashboard: "Dashboard",
+	execution: "Chat",
+	plan: "Plan",
+	workflow: "Workflow",
+	context: "Context",
+	cache: "Cache",
+	help: "Help",
+	lab: "Three Body Lab",
+};
+export function astraPageLabel(page: AstraPage): string { return ASTRA_PAGE_LABELS[page]; }
+const ASTRA_DESCRIPTIONS: Record<string, string> = { chat: "실행·질문 요약 타임라인", todo: "Plan · Activity · Next", workflow: "Request 단계·Subagent 위임 관측", test: "질문별 검증 목적·검사·근거", help: "Astra 명령과 키보드 이동", source: "선택한 Activity의 Trace · Source", dashboard: "이전 세션 탐색", monitor: "현재 Activity·Runtime 관측" };
 export const ASTRA_COMMANDS = [...WORKBENCH_SLASH_COMMANDS.filter(command => command.name !== "tnotes" && command.name !== "tnote").map(command => ({ ...command, description: ASTRA_DESCRIPTIONS[command.name] ?? command.description })),
 	{ name: "context", description: "세션·권한·사용량·MCP·위임 작업" },
 	{ name: "approval", description: "보류한 승인 요청 다시 읽기 · 결정하지 않음" },
@@ -110,6 +124,8 @@ export class AstraWorkspace {
 	readonly component: Component;
 	private readonly side: Component;
 	private sidebarEnabled = true;
+	private sidebarOrbitVisible = false;
+	get hasVisibleSidebarOrbit(): boolean { return this.page === "execution" && this.sidebarEnabled && this.sidebarOrbitVisible; }
 	constructor(
 		get: () => WorkbenchSnapshot,
 		usage: () => readonly UsageSnapshot[],
@@ -118,18 +134,41 @@ export class AstraWorkspace {
 		motion = true,
 		runtimePresentation: PlanRuntimePresentation | null = null,
 		dashboard: Component = new HelpView(),
+		executionHeading: Component | null = null,
+		lab: Component = new HelpView(),
 	) {
 		this.transcript = new AstraTranscriptView(get());
 		const scroll = (component: Component) => new ScrollView(new AstraInset(component), { follow: "none", primary: true, overscroll: "contain", scrollbar: "auto", scrollbarStyle: a.rule });
 		this.scrolls = {
 			dashboard: scroll(dashboard),
 			execution: new ChatScrollView(new AstraInset(this.transcript), { follow: "end", primary: true, overscroll: "contain", scrollbar: "auto", scrollbarStyle: a.rule }),
-			plan: scroll(new AstraPlanView(get, false, clock, motion, runtimePresentation)), workflow: scroll(new AstraWorkflowView(get)), context: scroll(new AstraContextView(get, usage)), help: scroll(new HelpView()),
+			plan: scroll(new AstraPlanView(get, false, clock, motion, runtimePresentation)), workflow: scroll(new AstraWorkflowView(get)), context: scroll(new AstraContextView(get, usage)), cache: scroll(new AstraCacheView(() => this.transcript.cacheMetrics())), help: scroll(new HelpView()), lab: scroll(lab),
 		};
-		this.side = new ScrollView(new AstraInset(new AstraPlanView(get, true, clock, motion, runtimePresentation)), { follow: "none", overscroll: "contain", scrollbar: "auto", scrollbarStyle: a.rule });
+		const sidePlan = new AstraInset(new AstraPlanView(get, true, clock, motion, runtimePresentation), 1);
+		const sideScroll = new ScrollView(sidePlan, { follow: "none", overscroll: "contain", scrollbar: "auto", scrollbarStyle: a.rule });
+		const orbitStartedAt = clock();
+		const orbit: Component = { invalidate() {}, render: width => [a.muted(fit("  Three Body · /three-body", width)), ...threeBodyOrbitFrame(motion ? clock() - orbitStartedAt : 2_400, width, 8)] };
+		this.side = new VStack([
+			{ component: sideScroll, basis: 0, grow: 1, minSize: 1 },
+			{ component: orbit, basis: 9, minSize: 9, maxSize: 9, visible: ({ width, height }) => {
+				this.sidebarOrbitVisible = !hasVisibleAstraContent(get())
+					&& height >= sidePlan.render(sideScroll.getContentWidth(width)).length + 10;
+				return this.sidebarOrbitVisible;
+			} },
+		]);
+		const executionTranscript = executionHeading
+			? new VStack([
+				{ component: executionHeading, basis: 2, minSize: 2, maxSize: 2 },
+				{ component: this.scrolls.execution, basis: 0, grow: 1, minSize: 1 },
+			])
+			: this.scrolls.execution;
 		const execution = new HStack([
-			{ component: this.scrolls.execution, basis: 0, grow: 1, minSize: 1 },
-			{ component: this.side, basis: 38, minSize: 34, maxSize: 44, visible: ({ width, height }) => this.sidebarEnabled && width >= 112 && bodyHeight(height, width, true) >= 14 },
+			{ component: executionTranscript, basis: 0, grow: 1, minSize: 1 },
+			{ component: this.side, basis: 38, minSize: 34, maxSize: 44, visible: ({ width, height }) => {
+				const visible = this.sidebarEnabled && width >= 112 && bodyHeight(height, width, true) >= 14;
+				if (!visible) this.sidebarOrbitVisible = false;
+				return visible;
+			} },
 		]);
 		this.component = new VStack((Object.keys(this.scrolls) as AstraPage[]).map(page => ({ component: page === "execution" ? execution : this.scrolls[page], basis: 0, grow: 1, minSize: 1, visible: () => this.page === page })));
 	}
@@ -139,14 +178,16 @@ export class AstraWorkspace {
 }
 
 export class AstraHeader implements Component {
-	constructor(private readonly get: () => WorkbenchSnapshot, private readonly page: () => string, private readonly cwd: string) {}
+	constructor(private readonly get: () => WorkbenchSnapshot, private readonly page: () => string, private readonly cwd: string, private readonly clock = Date.now, private readonly motion = true) {}
 	invalidate(): void {}
 	render(width: number): string[] {
 		const s = this.get();
 		const project = this.cwd.split(/[\\/]/u).filter(Boolean).at(-1) ?? s.projectId;
 		const identity = `${a.strong("astra")}  ${a.muted(oneLine(project))} ${a.rule("/")} ${a.text(this.page())}`;
-		const nav = width >= 112 ? "Ctrl+G 화면  Ctrl+B 사이드바  /  Ctrl+P 명령" : "Ctrl+G 화면  Ctrl+P 명령";
-		return [fit("  " + pair(identity, a.muted(nav), width - 4), width), ""];
+		const goal = oneLine(s.sessionGoal?.text, 500);
+		const frame = this.motion ? Math.floor(this.clock() / 120) : 0;
+		const goalText = goal ? astraFlowText(`Goal  ${goal}`, frame) : "";
+		return [fit("  " + identity, width), goalText ? fit(`  ${goalText}`, width) : ""];
 	}
 }
 
@@ -156,15 +197,13 @@ export class AstraExecutionHeading implements Component {
 	render(width: number): string[] {
 		const s = this.get(), heading = executionHeading(s);
 		const ink = heading.attention ? a.attention : astraExecutionIsLive(s) ? a.active : s.executionRun?.receipt || s.chat.length ? a.success : a.muted;
-		const hint = s.pendingApproval ? "/approval 확인" : this.actionHint?.() ?? (s.phase === "working" ? "Esc 중단" : "");
+		const hint = s.pendingApproval ? "/approval 확인" : this.actionHint?.() ?? "";
 		const now = this.clock();
 		const rootActivities = s.activities.filter(x => !s.threadId || x.nativeRefs.threadId === s.threadId);
 		const terminal = [...rootActivities].reverse().find(x => ["turn/completed", "turn/interrupted", "turn/failed"].includes(String(x.payload.method)));
 		const turnId = s.activeTurnId ?? terminal?.nativeRefs.turnId ?? [...rootActivities].reverse().find(x => x.payload.method === "turn/started")?.nativeRefs.turnId;
 		const activities = rootActivities.filter(x => turnId && x.nativeRefs.turnId === turnId);
 		const started = Date.parse(activities.find(x => x.payload.method === "turn/started")?.recordedAt ?? "");
-		const observed = Date.parse(activities.at(-1)?.recordedAt ?? "");
-		const timing = Number.isFinite(started) ? `경과 ${duration(Math.max(0, now - started))}${Number.isFinite(observed) ? `  /  최근 관측 ${duration(Math.max(0, now - observed))} 전` : ""}` : "첫 관측 대기";
 		const ended = Date.parse(terminal?.recordedAt ?? "");
 		const terminalMethod = String(terminal?.payload.method ?? "");
 		const failed = terminalMethod === "turn/failed" || terminal?.phase === "failed";
@@ -173,23 +212,23 @@ export class AstraExecutionHeading implements Component {
 		const completedTiming = Number.isFinite(started) && Number.isFinite(ended) && ended >= started
 			? `${outcome.marker} ${outcome.label} ${duration(ended - started)}  ·  ${new Date(ended).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })} 종료`
 			: "";
-		const progress = astraExecutionIsLive(s)
-			? workingStatusLine(s, now, width, this.motion)
-			: completedTiming ? `    ${a.caption(completedTiming)}` : "";
-		return [fit(`  ${ink("▎")} ${pair(ink(heading.state) + "  " + a.strong(heading.title), a.muted(hint), width - 6)}`, width), fit(`    ${pair(a.caption(heading.detail), s.chatQueue.length ? a.active(`+${s.chatQueue.length} 대기`) : "", width - 6)}`, width), fit(progress, width)];
+		const progress = astraExecutionIsLive(s) && !s.draft
+			? workingStatusLine(s, now, this.motion)
+			: completedTiming ? a.caption(completedTiming) : "";
+		const detail = `${a.caption(heading.detail)}${progress ? `  ${progress}` : ""}`;
+		return [fit(`  ${ink("▎")} ${pair(ink(heading.state) + "  " + a.strong(heading.title), a.muted(hint), width - 6)}`, width), fit(`    ${detail}${s.chatQueue.length ? `  ${a.active(`+${s.chatQueue.length} 대기`)}` : ""}`, width)];
 	}
 }
 
-function workingStatusLine(snapshot: WorkbenchSnapshot, now: number, width: number, motion: boolean): string {
+function workingStatusLine(snapshot: WorkbenchSnapshot, now: number, motion: boolean): string {
 	const rootActivities = snapshot.activities.filter(activity => !snapshot.threadId || activity.nativeRefs.threadId === snapshot.threadId);
 	const turnId = snapshot.activeTurnId ?? [...rootActivities].reverse().find(activity => activity.payload.method === "turn/started")?.nativeRefs.turnId;
 	const turnActivities = rootActivities.filter(activity => turnId && activity.nativeRefs.turnId === turnId);
 	const startedAt = Date.parse(turnActivities.find(activity => activity.payload.method === "turn/started")?.recordedAt ?? "");
-	const elapsed = Number.isFinite(startedAt) ? duration(Math.max(0, now - startedAt)) : "시간 관측 대기";
+	const elapsed = Number.isFinite(startedAt) ? duration(Math.max(0, now - startedAt)) : "실행 경과 계산 중";
 	const terminals = activeTerminalCount(turnActivities, snapshot);
-	const terminalLabel = terminals === null ? "terminal 관측 대기" : `${terminals} terminal${terminals === 1 ? "" : "s"} running`;
-	const controls = width >= 88 ? "Esc to interrupt · /monitor to view" : width >= 64 ? "Esc to interrupt" : "Esc";
-	return `    ${astraPulse(motion ? Math.floor(now / 120) : 8)}  ${a.active("Working")} ${a.caption(`(${elapsed} · ${controls}) · ${terminalLabel}`)}`;
+	const terminalLabel = terminals === null ? "terminal 상태 확인 중" : `${terminals} terminal${terminals === 1 ? "" : "s"} running`;
+	return `${astraPulse(motion ? Math.floor(now / 120) : 8)}  ${a.active("Working")} ${a.caption(`(${elapsed} · ${terminalLabel})`)}`;
 }
 
 /** Count only the latest observed lifecycle for each root-turn command item. */
@@ -233,14 +272,15 @@ export class AstraComposer implements Component {
 		const above = rows[0] ? rail(rows[0]) : null;
 		if (above === null) return rows;
 		const s = this.get();
-		const prompt = "여기에 작성한다.";
 		const ink = !this.editor.focused ? a.rule : s.pendingApproval ? a.attention : a.active;
-		const model = oneLine(s.activeModel ?? s.model ?? "모델 미확인", 48);
-		const effort = oneLine(s.effort ?? "추론 미확인", 16);
-		const mode = s.permissionMode === "all" ? "Bypass" : s.collaborationMode === "plan" ? "Plan Mode" : "Manual";
-		const rawLabel = `${this.editor.focused ? "›" : "·"} ${prompt} · ${model} · ${effort} · ${mode}${above ? `  ${above}` : ""}`;
+		const model = oneLine(workbenchModelLabel(s.activeModel ?? s.model), 48);
+		const effort = oneLine(workbenchEffortLabel(s.effort), 16);
+		const rawLabel = `${this.editor.focused ? "›" : "·"} ${model} · ${effort}${above ? `  ${above}` : ""}`;
 		const label = truncateToWidth(rawLabel, Math.max(0, width - 5), "");
 		rows[0] = fit(`  ${ink(label)} ${ink("─".repeat(Math.max(0, width - visibleWidth(label) - 5)))}`, width);
+		if (!this.editor.getText() && s.phase === "working" && rows[1] !== undefined) {
+			rows[1] = fit(`  ${this.editor.focused ? CURSOR_MARKER : ""}${a.muted("Queue · Esc 전송")}`, width);
+		}
 		// Preserve the Editor's row/column coordinates and its autocomplete rows.
 		const bottom = rows.findIndex((row, index) => index > 0 && rail(row) !== null);
 		if (bottom > 0) {
@@ -261,18 +301,24 @@ export class AstraHud implements Component {
 	invalidate(): void {}
 	render(width: number): string[] {
 		const s = this.get();
-		const model = oneLine(s.activeModel ?? s.model ?? "모델 미확인", 70);
 		if (s.hud?.showUsage === false) return [""];
 		const contentWidth = Math.max(1, width - 2);
-		const runtime = astraRuntimeStatus(s, Math.max(0, contentWidth - 40));
-		const usageWidth = Math.max(1, contentWidth - visibleWidth(runtime) - (runtime ? 3 : 0));
-		const subscription = astraUsageLine(this.usage(), usageWidth, model, Date.now(), this.showLogos, true);
-		return [fit(`  ${runtime ? `${runtime}${a.rule(" · ")}` : ""}${subscription}`, width)];
+		const runtime = astraRuntimeStatus(s, contentWidth);
+		const sessionWidth = runtime ? Math.max(1, contentWidth - visibleWidth(runtime) - 2) : contentWidth;
+		const quota = astraQuotaHudRows(this.usage(), contentWidth, Date.now(), this.showLogos, sessionWidth);
+		const third = quota[2] ?? "";
+		const gap = runtime ? Math.max(2, contentWidth - visibleWidth(third) - visibleWidth(runtime)) : 0;
+		return [
+			fit(`  ${quota[0] ?? ""}`, width),
+			fit(`  ${quota[1] ?? ""}`, width),
+			fit(`  ${runtime ? `${third}${" ".repeat(gap)}${runtime}` : third}`, width),
+		];
 	}
 }
 
 function astraRuntimeStatus(snapshot: WorkbenchSnapshot, maximumWidth: number): string {
-	const mode = snapshot.permissionMode === "all" ? a.attention("Bypass") : snapshot.collaborationMode === "plan" ? a.plan("Plan Mode") : a.success("Manual");
+	const label = runtimeModeLabel(snapshot.permissionMode, snapshot.collaborationMode);
+	const mode = label === "bypass mode" ? a.attention(label) : label === "plan mode" ? a.plan(label) : a.success(label);
 	const context = snapshot.contextUsage && Number.isFinite(snapshot.contextUsage.percent)
 		? a.caption(`Context ${compactTokens(snapshot.contextUsage.usedTokens)} / ${compactTokens(snapshot.contextUsage.contextWindow)} ${Math.round(Math.max(0, Math.min(100, snapshot.contextUsage.percent)))}%`)
 		: a.muted("Context —");

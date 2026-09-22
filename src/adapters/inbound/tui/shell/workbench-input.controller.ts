@@ -56,6 +56,6 @@ export function workbenchModelSettings(source: Pick<WorkbenchSnapshot, "model" |
 
 export function workbenchPaneNotice(pane: "chat" | "tnotes" | "todo"): string {
 	const location = pane === "chat" ? "왼쪽 Chat · 질문과 공개 응답"
-		: pane === "tnotes" ? "오른쪽 위 완료 질문 T-note" : "오른쪽 아래 현재 Native Plan·Todo.md";
+		: pane === "tnotes" ? "완료 질문 Report · Note" : "현재 Plan · Activity · Next";
 	return `${location} pane은 현재 화면에 계속 표시됩니다.`;
 }

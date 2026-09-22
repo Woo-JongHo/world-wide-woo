@@ -11,6 +11,8 @@ import {
 	type Provider,
 	type WwwSettings,
 } from "../../../../core/domain/execution/model-settings";
+import { nextTuiTheme, TUI_THEME_OPTIONS, type TuiThemeName } from "../foundation/theme/theme";
+import { workbenchEffortLabel } from "../foundation/labels";
 
 export type ShellCommand =
 	| { type: "model.select" }
@@ -113,6 +115,7 @@ export type WorkbenchShellCommand =
 	| { type: "workflow.check"; processId: string }
 	| { type: "workflow.resume"; runId: string }
 	| { type: "workflow.show"; runId: string }
+	| { type: "theme.set"; theme: TuiThemeName }
 	| { type: "help" }
 	| { type: "pane.show"; pane: "chat" | "tnotes" | "todo" }
 	| { type: "model.select" }
@@ -159,7 +162,7 @@ export const WORKBENCH_SLASH_COMMANDS: SlashCommand[] = [
 		getArgumentCompletions: (prefix) => {
 			if (!prefix.includes(" ")) return MODELS["openai-codex"].map((model) => ({ value: model, label: model, description: "Codex 모델" }));
 			const [model = "", query = ""] = prefix.trimStart().split(/\s+/u);
-			return modelEfforts("openai-codex", model.replace(/^openai-codex\//u, "")).filter(effort => effort.startsWith(query)).map(effort => ({ value: `${model} ${effort}`, label: effort, description: effort === "ultra" ? "Codex 자동 위임 포함" : "추론 강도" }));
+			return modelEfforts("openai-codex", model.replace(/^openai-codex\//u, "")).filter(effort => effort.startsWith(query)).map(effort => ({ value: `${model} ${effort}`, label: workbenchEffortLabel(effort), description: effort === "ultra" ? "Codex 자동 위임 포함" : "추론 강도" }));
 		},
 	},
 	{ name: "login", description: "Provider OAuth·API key 로그인", argumentHint: "[provider]" },
@@ -170,7 +173,8 @@ export const WORKBENCH_SLASH_COMMANDS: SlashCommand[] = [
 	{ name: "map", description: "전체 개발 구조와 진척도 Map 열기" },
 	{ name: "stats", description: "Session review와 request investigation 열기", argumentHint: "[diagnostics|latest|#n]" },
 	{ name: "test", description: "현재 세션의 질문별 검증 목적·검사·근거" },
-	{ name: "tnotes", description: "완료된 질문별 T-note pane 안내" },
+	{ name: "three-body", description: "Orbiting Pair / Guardian 삼체 물리 실험실 열기" },
+	{ name: "tnotes", description: "완료된 질문별 Note pane 안내" },
 	{ name: "todo", description: "레거시 Todo.md 읽기 전용 migration view" },
 	{
 		name: "permission",
@@ -186,8 +190,8 @@ export const WORKBENCH_SLASH_COMMANDS: SlashCommand[] = [
 		description: "Native 실행 방식 전환",
 		argumentHint: "<manual|plan>",
 		getArgumentCompletions: () => [
-			{ value: "manual", label: "manual", description: "기본 실행 모드" },
-			{ value: "plan", label: "plan", description: "계획 중심 모드" },
+			{ value: "manual", label: "manual mode", description: "기본 실행 모드" },
+			{ value: "plan", label: "plan mode", description: "계획 중심 모드" },
 		],
 	},
 	{ name: "goal", description: "장기 작업 Goal 설정·조회", argumentHint: "[목표 문장]" },
@@ -197,15 +201,22 @@ export const WORKBENCH_SLASH_COMMANDS: SlashCommand[] = [
 	{ name: "reconcile", description: "종료된 Runtime 작업의 현재 결과만 재조회 · 동작 재실행 없음", argumentHint: "<request-id> <operation-id>" },
 	{ name: "agents", description: "위임 트리 또는 선택한 에이전트의 공개 수행 관찰", argumentHint: "[agent-ref|clear]" },
 	{ name: "tnote", description: "마지막 질문 또는 선택 범위를 종료 보고서로 요약", argumentHint: "[range <start-sequence> <end-sequence>]" },
-	{ name: "promote", description: "T-note 정본 반영: diff 확인 후 사람 승인", argumentHint: "<tnote|confirm> <note-id|token>" },
-	{ name: "review", description: "공개 분류 T-note의 외부 검토 미리보기·송신", argumentHint: "<preview|send> …" },
+	{ name: "promote", description: "Note 정본 반영: diff 확인 후 사람 승인", argumentHint: "<tnote|confirm> <note-id|token>" },
+	{ name: "review", description: "공개 분류 Note의 외부 검토 미리보기·송신", argumentHint: "<preview|send> …" },
 	{ name: "approve", description: "대기 중인 native 요청 승인" },
 	{ name: "approve-session", description: "현재 세션 동안 native 요청 승인" },
 	{ name: "decline", description: "대기 중인 native 요청 거절" },
 	{ name: "cancel", description: "현재 native turn 중단" },
 	{ name: "clear", description: "Chat 화면만 비우기 · 기록과 Native thread 유지" },
 	{ name: "compact", description: "현재 Native thread 컨텍스트 압축" },
+	{ name: "cache", description: "렌더 캐시 구성·점유·재사용 Dashboard" },
 	{ name: "mcp", description: "MCP 서버 상태·활성화·재시작", argumentHint: "status | enable <name> | disable <name> | reload" },
+	{
+		name: "theme",
+		description: "기본 UI 테마 전환",
+		argumentHint: "[gruvbox|tokyo-night]",
+		getArgumentCompletions: () => TUI_THEME_OPTIONS.map(theme => ({ value: theme.name, label: theme.name, description: theme.label })),
+	},
 	{ name: "exit", description: "Workbench를 안전하게 종료" },
 ];
 
@@ -214,6 +225,11 @@ export function parseWorkbenchShellCommand(text: string, catalog?: NativeModelCa
 	if (!trimmed.startsWith("/")) return null;
 	const [name, ...args] = trimmed.slice(1).split(/\s+/u);
 	if (name === "help" && args.length === 0) return { type: "help" };
+	if (name === "theme") {
+		if (args.length === 0) return { type: "theme.set", theme: nextTuiTheme() };
+		if (args.length === 1 && TUI_THEME_OPTIONS.some(theme => theme.name === args[0])) return { type: "theme.set", theme: args[0] as TuiThemeName };
+		return { type: "error", message: "사용법: /theme [gruvbox|tokyo-night]" };
+	}
 	if (name === "workflow") {
 		if (args.length === 0) return { type: "workflow.view" };
 		if (args.length === 2 && args[1]) {
@@ -277,7 +293,7 @@ export function parseWorkbenchShellCommand(text: string, catalog?: NativeModelCa
 		const endSequence = parseSequence(args[2]);
 		return startSequence !== null && endSequence !== null && startSequence <= endSequence
 			? { type: "tnote.capture-range", startSequence, endSequence }
-			: { type: "error", message: "T-note 범위는 1 이상의 시작·끝 sequence여야 합니다." };
+			: { type: "error", message: "Note 범위는 1 이상의 시작·끝 sequence여야 합니다." };
 	}
 	if (name === "todo") {
 		return args.length === 0
@@ -316,7 +332,7 @@ export function withNativeModelCompletions(commands: readonly SlashCommand[], ca
 	return commands.map(command => command.name !== "model" ? command : { ...command, getArgumentCompletions: prefix => {
 		if (!prefix.includes(" ")) return nativeModelNames(catalog()).map(model => ({ value: model, label: model, description: "Native Codex 모델" }));
 		const [model = "", query = ""] = prefix.trimStart().split(/\s+/u);
-		return nativeModelEfforts(model.replace(/^openai-codex\//u, ""), catalog()).filter(effort => effort.startsWith(query)).map(effort => ({ value: `${model} ${effort}`, label: effort }));
+		return nativeModelEfforts(model.replace(/^openai-codex\//u, ""), catalog()).filter(effort => effort.startsWith(query)).map(effort => ({ value: `${model} ${effort}`, label: workbenchEffortLabel(effort) }));
 	} });
 }
 

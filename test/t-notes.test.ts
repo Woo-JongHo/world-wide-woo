@@ -24,7 +24,7 @@ const generator: DetachedTextGenerator = {
 	},
 };
 
-describe("T-note service", () => {
+describe("Note service", () => {
 	test("accepts the completed-question report contract and rejects the legacy generation shape", () => {
 		const report = [
 			"질문: HUD가 두 줄인 원인을 확인해줘",
@@ -71,6 +71,35 @@ describe("T-note service", () => {
 		expect(packet.activities.every(activity => activity.body.length > 0)).toBe(true);
 	});
 
+	test("keeps packet digests stable when the aggregate fit cuts through a redaction marker", async () => {
+		const activities = Array.from({ length: 10 }, (_, index) => ({
+			id: `activity-${index + 1}`,
+			projectId: "project-1",
+			sequence: index + 1,
+			occurredAt: "2026-09-01T00:00:00.000Z",
+			kind: "tool.completed",
+			title: "관측",
+			body: `${"x".repeat(26_080)} customer: secret-value ${"x".repeat(6_000)}`,
+		}));
+		const packet = createTNotePacket(
+			"project-1",
+			{ startSequence: 1, endSequence: activities.length },
+			activities,
+			"2026-09-01T00:01:00.000Z",
+			(value) => new Bun.CryptoHasher("sha256").update(value).digest("hex"),
+		);
+		const draftStore = await store();
+		await draftStore.append({
+			id: "tnote-marker-boundary",
+			createdAt: "2026-09-01T00:01:00.000Z",
+			packet,
+			text: "질문: 무엇을 확인했나\nReason: 경계를 확인했습니다.\nProposal: 안정적인 packet을 유지합니다.\nAction: digest를 재검증했습니다.\nResult: 기록을 저장했습니다.",
+			provenance: { provider: "test", model: "test", version: "test" },
+		});
+		expect(await draftStore.readAll("project-1")).toHaveLength(1);
+		expect(packet.activities[0]?.body).not.toMatch(/\[redacted:[^\]]*$/u);
+	});
+
 	test("creates an immutable redacted packet and replays an append-only detached draft", async () => {
 		const draftStore = await store();
 		const service = new TNoteService(generator, draftStore, () => new Date("2026-09-01T00:00:00.000Z"), () => "tnote-1");
@@ -106,7 +135,7 @@ describe("T-note service", () => {
 			activities: [
 				{ id: "act-1", projectId: "project-1", sequence: 1, occurredAt: "2026-09-01T00:00:00.000Z", kind: "tool.completed", title: "검증", body: JSON.stringify({ params: { item: { type: "commandExecution", command: "bun test test/astra-ui.test.ts", durationMs: 1200, exitCode: 0 } } }) },
 				{ id: "act-2", projectId: "project-1", sequence: 2, occurredAt: "2026-09-01T00:00:01.000Z", kind: "tool.completed", title: "검증", body: JSON.stringify({ params: { item: { type: "commandExecution", command: "pnpm test test/project-workbench.test.ts", durationMs: 375, exitCode: 1 } } }) },
-				{ id: "act-3", projectId: "project-1", sequence: 3, occurredAt: "2026-09-01T00:00:02.000Z", kind: "tool.completed", title: "탐색", body: JSON.stringify({ params: { item: { type: "commandExecution", command: "rg T-note src", durationMs: 40, exitCode: 0 } } }) },
+				{ id: "act-3", projectId: "project-1", sequence: 3, occurredAt: "2026-09-01T00:00:02.000Z", kind: "tool.completed", title: "탐색", body: JSON.stringify({ params: { item: { type: "commandExecution", command: "rg Note src", durationMs: 40, exitCode: 0 } } }) },
 				{ id: "act-4", projectId: "project-1", sequence: 4, occurredAt: "2026-09-01T00:00:03.000Z", kind: "progress.completed", title: "완료", body: "{}" },
 			],
 			instruction: "요약",
@@ -228,7 +257,7 @@ describe("T-note service", () => {
 		}
 	});
 
-	test("removes nested native reasoning bodies and all native references before they enter a T-note packet", () => {
+	test("removes nested native reasoning bodies and all native references before they enter a Note packet", () => {
 		const source = projectActivityToTNoteSource({
 			schemaVersion: 1,
 			id: "reasoning-1",

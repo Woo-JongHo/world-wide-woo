@@ -50,7 +50,12 @@ test("production Astra shell routes navigation, rejection, approval and shutdown
 	});
 	const submit = async (text: string) => { terminal.input(text); terminal.input("\r"); await tick(); };
 	try {
-		await tick(); expect(terminal.output).toContain("astra"); expect(terminal.output).toContain("세션 연결됨"); expect(terminal.output).toContain("Request 1");
+		await tick(); expect(terminal.output).toContain("astra"); expect(terminal.output).toContain("세션 연결됨"); expect(terminal.output).toContain("REQ 1");
+		const labStart = terminal.output.length;
+		await submit("/three-body"); expect(terminal.output.slice(labStart)).toContain("THREE BODY LAB");
+		terminal.input(" "); await tick(); expect(terminal.output.slice(labStart)).toContain("PAUSED");
+		terminal.input("t"); await tick(); expect(terminal.output.slice(labStart)).toContain("Trail off");
+		terminal.input("q"); await tick(); expect(terminal.output.slice(labStart)).toContain("REQ 1");
 		await submit("/todo"); expect(terminal.output).toContain("Plan"); expect(commands).toHaveLength(0);
 		terminal.input("\x1b"); await tick();
 		const legacyNotesStart = terminal.output.length;
@@ -63,10 +68,10 @@ test("production Astra shell routes navigation, rejection, approval and shutdown
 		await submit("/Test"); expect(terminal.output.slice(testViewStart)).toContain("질문별 Test");
 		terminal.input("\x1b"); await tick();
 		const navigationStart = terminal.output.length;
-		terminal.input("\x07"); terminal.input("3"); await tick(); expect(terminal.output.slice(navigationStart)).toContain("실행 관측");
+		terminal.input("\x07"); terminal.input("3"); await tick(); expect(terminal.output.slice(navigationStart)).toContain("Activity");
 		terminal.input("1"); await tick();
 		terminal.input("\x10"); await tick(); terminal.input("\x1b"); await tick();
-		await submit("request 1"); expect(commands.at(-1)).toEqual({ type: "chat.send", text: "request 1" });
+		await submit("request 1"); expect(commands.at(-1)).toEqual({ type: "chat.send", text: "request 1", delivery: "queue" });
 		terminal.input("\x15");
 		terminal.input("\x1b"); await tick();
 		const sourceStart = terminal.output.length;
@@ -82,13 +87,13 @@ test("production Astra shell routes navigation, rejection, approval and shutdown
 		terminal.input("\x1b"); await tick();
 		terminal.rows = 24; terminal.resize(); await tick();
 		terminal.input("abcdef"); terminal.input("\x01"); terminal.input("\x05"); terminal.input("Z"); terminal.input("\r"); await tick();
-		expect(commands.at(-1)).toEqual({ type: "chat.send", text: "abcdefZ" });
+		expect(commands.at(-1)).toEqual({ type: "chat.send", text: "abcdefZ", delivery: "queue" });
 		terminal.input("\x15");
 		const completionStart = terminal.output.length;
 		terminal.input("/mo"); terminal.input("\t"); await tick();
 		expect(terminal.output.slice(completionStart)).toContain("→ model");
 		terminal.input("\x1b"); terminal.input("\x15"); await tick();
-		await submit("거절된 요청"); expect(commands.at(-1)).toEqual({ type: "chat.send", text: "거절된 요청" });
+		await submit("거절된 요청"); expect(commands.at(-1)).toEqual({ type: "chat.send", text: "거절된 요청", delivery: "queue" });
 		terminal.input("\x03"); await tick();
 		await submit("/login");
 		const overlaysBeforeApproval = showOverlay.mock.calls.length;
@@ -149,16 +154,48 @@ test("Mac Control+G navigation preserves drafts, routes every page, and leaves o
 	});
 	try {
 		await tick(); terminal.input("초안"); await tick();
-		for (const [key, label] of [["2", "plan"], ["3", "실행 관측"], ["4", "세션 검토"], ["5", "세션 기록"], ["6", "개발"], ["7", "Context"], ["8", "질문별 Test"], ["1", "execution"]]) {
+		for (const [key, label] of [["2", "Plan"], ["3", "Activity"], ["4", "세션 검토"], ["5", "세션 기록"], ["6", "개발"], ["7", "Context"], ["8", "질문별 Test"], ["1", "Chat"]]) {
 			terminal.input("\x07"); await tick(); expect(terminal.output).toContain("화면 이동");
 			const start = terminal.output.length; terminal.input(key!); await tick(); expect(terminal.output.slice(start)).toContain(label!);
 		}
 		expect(commands).toHaveLength(0);
 		terminal.input("\x07"); await tick(); terminal.input("\x1b"); await tick(); terminal.input("1"); terminal.input("\r"); await tick();
-		expect(commands.at(-1)).toEqual({ type: "chat.send", text: "초안1" });
+		expect(commands.at(-1)).toEqual({ type: "chat.send", text: "초안1", delivery: "queue" });
 		terminal.input("\x15"); await tick();
-		const start = terminal.output.length; terminal.input("\x1b[13~"); await tick(); expect(terminal.output.slice(start)).toContain("plan");
+		const start = terminal.output.length; terminal.input("\x1b[13~"); await tick(); expect(terminal.output.slice(start)).toContain("Plan");
 	} finally { terminal.input("\x03"); terminal.input("\x03"); await tick(); }
+});
+
+test("ESC commits a focused follow-up as an explicit Queue delivery while a turn is working", async () => {
+	const terminal = new MemoryTerminal();
+	let snapshot = astraFixture("ready");
+	let listener: WorkbenchListener = () => {};
+	const commands: WorkbenchCommand[] = [];
+	const wb = {
+		get snapshot() { return snapshot; },
+		subscribe(fn: WorkbenchListener) { listener = fn; fn(snapshot); return () => {}; },
+		async dispatch(command: WorkbenchCommand): Promise<WorkbenchCommandReceipt> {
+			commands.push(command);
+			return command.type === "chat.send"
+				? { state: "queued", commandId: "queued", position: 1 }
+				: { state: "accepted", commandId: "ok" };
+		},
+		async close() {},
+	} as unknown as ProjectWorkbench;
+	runProjectWorkbenchShell({ design: "astra", terminal, cwd: "/test/astra", workbench: wb,
+		usage: { async refresh() { return []; }, startPolling(fn) { fn([]); return () => {}; } },
+		auth: { methods: () => [], status: async provider => ({ state: "configured", provider, type: "oauth", source: "test" }), login: async () => { throw new Error("not requested"); }, logout: async () => {} },
+	});
+	try {
+		await tick();
+		snapshot = { ...snapshot, phase: "working" };
+		listener(snapshot);
+		terminal.input("후속 응답"); await tick();
+		terminal.input("\x1b"); await tick();
+		expect(commands.at(-1)).toEqual({ type: "chat.send", text: "후속 응답", delivery: "queue" });
+	} finally {
+		if (!terminal.stopped) { terminal.input("\x03"); terminal.input("\x03"); await tick(); }
+	}
 });
 
 test("the production layout keeps autocomplete selections and multiline rails visible at 80x24", async () => {
@@ -185,7 +222,7 @@ test("the production layout keeps autocomplete selections and multiline rails vi
 		});
 		await tick(); terminal.columns = 112; terminal.resize(); await tick();
 		terminal.input("\x07"); terminal.input("1"); await tick();
-		// T-notes belong to the execution stream even when the plan rail is hidden.
+		// Notes belong to the execution stream even when the plan rail is hidden.
 		expect(frame().join("\n")).toContain("QUESTION_PREVIEW_SENTINEL");
 		terminal.rows = 30; terminal.resize(); await tick(); frame();
 		const before = transcriptWidth; expect(before).toBe(74);
@@ -209,13 +246,14 @@ test("the production layout keeps autocomplete selections and multiline rails vi
 		for (let i = 0; i < 7; i++) expect(text).toContain(`line-${i}`);
 		const bottom = rows.findIndex(row => row.includes("line-6")) + 1;
 		expect(rows[bottom]).toMatch(/^\s*─+\s*$/u);
-		expect(text).toContain("› 여기에 작성한다.");
-		expect(text).toContain("구독 잔여"); expect(text).toContain("62%");
+		expect(text).toContain("› GPT-5.6-Sol · High");
+		expect(text).not.toContain("여기에 작성한다.");
+		expect(text).not.toMatch(/구독 잔여|\bleft\b|\breset\b/u); expect(text).toContain("62%");
 		expect(text).not.toContain("Enter 추가 지시");
 		terminal.input("\x01"); terminal.input("\x0b"); terminal.input("/"); await tick();
 		for (let i = 0; i < 50; i++) {
 			const output = frame().join("\n");
-			expect(output).toMatch(/→\s+\S/u); expect(output).toContain("구독 잔여");
+			expect(output).toMatch(/→\s+\S/u); expect(output).not.toMatch(/구독 잔여|\bleft\b|\breset\b/u);
 			terminal.input("\x1b[B"); await tick();
 		}
 	} finally {

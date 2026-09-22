@@ -73,7 +73,7 @@ describe("native workbench shell receipt policy", () => {
 			activeModel: "gpt-5.6-sol",
 			effort: "low",
 		}, 40));
-		expect(header).toContain("gpt-5.6-sol · low");
+		expect(header).toContain("GPT-5.6-Sol · Low");
 		expect(header).toMatch(/^╭─ /u);
 		expect(header).toHaveLength(40);
 	});
@@ -90,11 +90,11 @@ describe("native workbench shell receipt policy", () => {
 		expect(loginProviderFromInput("unknown")).toBeNull();
 	});
 
-	test("keeps completed T-notes separate from selected execution Trace and current Todo", () => {
-		expect(workbenchPaneNotice("tnotes")).toContain("완료 질문 T-note");
+	test("keeps completed Notes separate from selected execution Trace and current Todo", () => {
+		expect(workbenchPaneNotice("tnotes")).toContain("완료 질문 Report · Note");
 		expect(workbenchPaneNotice("tnotes")).not.toContain("Trace");
 		expect(workbenchPaneNotice("chat")).toContain("질문과 공개 응답");
-		expect(workbenchPaneNotice("todo")).toContain("현재 Native Plan·Todo.md");
+		expect(workbenchPaneNotice("todo")).toContain("현재 Plan · Activity · Next");
 	});
 
 	test("selects Trace only by exact activity id and rejects mutable legacy Todo commands", () => {
@@ -281,7 +281,7 @@ describe("native workbench shell receipt policy", () => {
 			pendingApproval: null,
 		});
 
-		expect(title).toBe("🐙 WWW · project-123 · GPT-5.6-Sol · ultra · ready · Manual · Permission manual");
+		expect(title).toBe("🐙 WWW · project-123 · GPT-5.6-Sol · Ultra · ready · manual mode");
 	});
 
 	test("names the model the running turn uses, not a selection that applies to the next one", () => {
@@ -305,9 +305,19 @@ describe("native workbench shell receipt policy", () => {
 		const indicator = workbenchActivityIndicator(workingSnapshot);
 
 		expect(indicator?.frames.length).toBeGreaterThan(1);
-		expect(indicator?.message).toBe("분석 · 요청을 읽고 첫 단계를 정하는 중");
+		expect(indicator?.message).toBe("분석 · 실행 순서를 정리하는 중");
 		expect(indicator?.message).not.toContain("현재 디렉터리 구조를 직접 확인하겠습니다.");
-		expect(indicator?.hint).toBe("Esc 중단");
+		expect(indicator?.hint).toBe("");
+	});
+
+	test("shows the observed public action instead of a generic tool label", () => {
+		const indicator = workbenchActivityIndicator({
+			...workingSnapshot,
+			liveActivity: { method: "skill/read", kind: "tool", text: "Skill.md 읽는 중", nativeRefs: { threadId: "thread-1", turnId: "turn-1", itemId: "tool-1" } },
+		});
+
+		expect(indicator?.message).toContain("Tool · Skill.md 읽는 중");
+		expect(indicator?.hint).toBe("");
 	});
 
 	test("falls back to an immediate analysis label before native intent arrives", () => {
@@ -316,7 +326,7 @@ describe("native workbench shell receipt policy", () => {
 			chat: [{ role: "user", content: "응답해봐" }],
 		});
 
-		expect(indicator?.message).toBe("분석 · 요청을 읽고 첫 단계를 정하는 중");
+		expect(indicator?.message).toBe("분석 · 실행 순서를 정리하는 중");
 		expect(indicator?.message).not.toContain("esc");
 	});
 
@@ -438,7 +448,7 @@ describe("native workbench shell receipt policy", () => {
 
 		expect(indicator?.frames).toEqual(["⏸"]);
 		expect(indicator?.message).toBe("승인 대기 · 현재 턴 일시중지 · 대기 메시지 2개는 승인 후 전송");
-		expect(indicator?.hint).toBe("Esc 중단");
+		expect(indicator?.hint).toBe("");
 	});
 
 	test("marks an exact root tool as observation-stalled after its terminal event is overdue", () => {
@@ -461,7 +471,7 @@ describe("native workbench shell receipt policy", () => {
 
 		expect(indicator?.message).toContain("관측 단절 가능");
 		expect(indicator?.message).not.toContain("승인 대기");
-		expect(indicator?.hint).toBe("Esc 또는 /cancel 즉시 중단");
+		expect(indicator?.hint).toBe("");
 	});
 
 	test("starts animating while the first user message is still being delivered", () => {

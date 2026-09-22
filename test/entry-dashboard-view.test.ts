@@ -18,17 +18,20 @@ const dashboard: LinearProjectDashboard = {
 		{ id: "WOO-845", title: "실행 상태를 하나의 계약으로 수렴시켜 Todo·진행·완료를 일치시킨다", status: "Backlog", statusType: "backlog", dueDate: null, updatedAt: "2026-09-10T09:25:00.000Z" },
 	],
 	update: { body: "# 09/10 · Chat 실행 관측 구조 정리\n\n- Todo → Flow → Now → Health로 계층 재정의\n- Tracer의 raw execution 노출 제거", createdAt: "2026-09-10T09:20:00.000Z" },
+	comments: [
+		{ id: "comment-1", body: "## 변경\n\n- Comment가 다시 보인다", createdAt: "2026-09-09T09:00:00.000Z", author: "우종호" },
+	],
 	milestones: [],
 	error: null,
 };
 
 describe("EntryDashboardView", () => {
-	test("uses white as the default text colour in both TUI foundations", () => {
+	test("uses the same white RGB foreground in both TUI foundations", () => {
 		const previous = chalk.level;
 		chalk.level = 3;
 		try {
-			expect(colors.text("본문")).toContain("\x1b[97m");
-			expect(a.text("본문")).toContain("\x1b[97m");
+			expect(colors.text("본문")).toContain("\x1b[38;2;255;255;255m");
+			expect(a.text("본문")).toContain("\x1b[38;2;255;255;255m");
 		} finally {
 			chalk.level = previous;
 		}
@@ -49,14 +52,16 @@ describe("EntryDashboardView", () => {
 
 	test("renders the project pulse in the requested information order", () => {
 		const output = stripTerminalSequences(new EntryDashboardView(() => dashboard, () => new Date("2026-09-10T09:29:00.000Z")).render(100).join("\n"));
-		for (const label of ["DASHBOARD · World Wide Woo", "NOW", "NEXT", "UPDATE", "RECENT", "HEALTH", "synced 09:29"]) expect(output).toContain(label);
+		for (const label of ["DASHBOARD · World Wide Woo", "NOW", "NEXT", "UPDATE", "ACTIVITY", "RECENT", "HEALTH", "synced 09:29"]) expect(output).toContain(label);
 		expect(output.indexOf("NOW")).toBeLessThan(output.indexOf("NEXT"));
 		expect(output.indexOf("NEXT")).toBeLessThan(output.indexOf("UPDATE"));
 		expect(output.indexOf("UPDATE")).toBeLessThan(output.indexOf("RECENT"));
+		expect(output.indexOf("ACTIVITY")).toBeLessThan(output.indexOf("RECENT"));
 		expect(output.indexOf("RECENT")).toBeLessThan(output.indexOf("HEALTH"));
 		expect(output.indexOf("▶ WOO-679")).toBeLessThan(output.indexOf("○ WOO-907"));
 		expect(output).toContain("18m ago");
 		expect(output).toContain("09:27  WOO-907");
+		expect(output).toContain("Comment가 다시 보인다");
 		expect(output).toContain("blocked — · stale 0");
 	});
 

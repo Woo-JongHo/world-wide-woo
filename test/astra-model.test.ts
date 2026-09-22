@@ -29,7 +29,7 @@ test("Astra model selections survive YAML reload without changing workload defau
 		expect(parseWorkbenchShellCommand("/model gpt-5.6-luna ultra")?.type).toBe("error");
 		await expect(saveWorkbenchExecutionSelection(root, { provider: "openai-codex", model: "gpt-5.6-luna", effort: "ultra" })).rejects.toThrow("추론 강도");
 		const suggestions = await WORKBENCH_SLASH_COMMANDS.find(c => c.name === "model")?.getArgumentCompletions?.("gpt-6-astra ");
-		expect(suggestions?.map(x => x.label)).toEqual(["low", "medium", "high", "xhigh", "max", "ultra"]);
+		expect(suggestions?.map(x => x.label)).toEqual(["Low", "Middle", "High", "xHigh", "Max", "Ultra"]);
 	} finally { await rm(root, { recursive: true, force: true }); }
 });
 
@@ -52,7 +52,7 @@ test("actual argument completion retains model identity for every native effort"
 		expect(result).not.toBeNull();
 		for (const item of result!.items) {
 			const completed = provider.applyCompletion([input], 0, input.length, item, result!.prefix);
-			expect(completed.lines[0]).toBe(`/model ${model} ${item.label}`);
+			expect(completed.lines[0]).toBe(`/model ${item.value}`);
 			expect(parseWorkbenchShellCommand(completed.lines[0]!)?.type).toBe("model.set");
 		}
 	}
@@ -72,7 +72,7 @@ test("Native capabilities stay separate from compatibility effort settings and n
 	const picker = new ModelPickerOverlay(legacy, async provider => ({ state: "configured", provider, source: "fixture", type: "oauth" }), () => {}, async () => {}, () => {}, () => {}, legacy, false, { providers: ["openai-codex"], startAtModel: true });
 	picker.start(); await Bun.sleep(0); picker.handleInput("\r");
 	const output = picker.render(80).join("\n");
-	expect(output).toContain("ultra"); expect(output).not.toContain("xhigh"); expect(output).not.toContain("max"); expect(output).not.toContain("자동 위임");
+	expect(output).toContain("Ultra"); expect(output).not.toContain("xHigh"); expect(output).not.toContain("Max"); expect(output).not.toContain("자동 위임");
 	expect(normalizeSettings({ ...legacy, effort: "max" }).effort).toBe("ultra");
 	expect(parseShellCommand("/effort max", legacy)?.type).toBe("error");
 	expect(parseWorkbenchShellCommand("/model gpt-5.4 ultra")?.type).toBe("error");
@@ -85,7 +85,7 @@ test("a small model sheet reveals the current effort immediately after advancing
 	const picker = new ModelPickerOverlay(current, async provider => ({ state: "configured", provider, source: "fixture", type: "oauth" }), () => {}, async () => {}, () => {}, () => {}, current, false, { providers: ["openai-codex"], startAtModel: true, appearance: "astra", nativeCodex: true });
 	picker.start(); await Bun.sleep(0);
 	const sheet = new AstraSheet(picker, () => 12); sheet.render(60); sheet.handleInput("\r");
-	expect(stripTerminalSequences(sheet.render(60).join("\n"))).toMatch(/›\s+ultra/u);
+	expect(stripTerminalSequences(sheet.render(60).join("\n"))).toMatch(/›\s+Ultra/u);
 });
 
 class NativeModelTransport implements JsonLineTransport {

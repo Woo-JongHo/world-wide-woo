@@ -1,4 +1,4 @@
-import type { LinearDashboardIssue, LinearDashboardMilestone, LinearDashboardUpdate, LinearProjectDashboard } from "../../../core/domain/work/linear-dashboard.js";
+import type { LinearDashboardComment, LinearDashboardIssue, LinearDashboardMilestone, LinearDashboardUpdate, LinearProjectDashboard } from "../../../core/domain/work/linear-dashboard.js";
 
 export interface LinearMcpToolCaller {
 	callMcpTool(input: { server: string; threadId: string; tool: string; arguments?: unknown }): Promise<{ content: readonly unknown[]; structuredContent?: unknown; isError?: boolean | null }>;
@@ -8,7 +8,7 @@ export interface LinearProjectDashboardConfig { readonly server: string; readonl
 export class McpLinearProjectDashboard {
 	public constructor(private readonly caller: LinearMcpToolCaller, private readonly config: LinearProjectDashboardConfig) {}
 	public async refresh(threadId: string): Promise<LinearProjectDashboard> {
-		const [issues, updates, milestones] = await Promise.all([
+		const [issues, updates, milestones, comments] = await Promise.all([
 			this.call("list_issues", {
 				project: this.config.projectId,
 				limit: 20,
@@ -17,8 +17,9 @@ export class McpLinearProjectDashboard {
 			}, threadId),
 			this.call("get_status_updates", { project: this.config.projectId, type: "project", limit: 1 }, threadId),
 			this.call("list_milestones", { project: this.config.projectId }, threadId),
+			this.call("list_comments", { projectId: this.config.projectId, limit: 5, orderBy: "createdAt" }, threadId).catch(() => ({ comments: [] })),
 		]);
-		return { state: "ready", projectName: this.config.projectName, fetchedAt: new Date().toISOString(), issues: projectIssues(issues), update: projectUpdate(updates), milestones: projectMilestones(milestones), error: null };
+		return { state: "ready", projectName: this.config.projectName, fetchedAt: new Date().toISOString(), issues: projectIssues(issues), update: projectUpdate(updates), comments: projectComments(comments), milestones: projectMilestones(milestones), error: null };
 	}
 	private async call(tool: string, arguments_: unknown, threadId: string): Promise<unknown> {
 		const result = await this.caller.callMcpTool({ server: this.config.server, threadId, tool, arguments: arguments_ });
@@ -33,4 +34,15 @@ function list(value: unknown, key: string): readonly Record<string, unknown>[] {
 function text(value: unknown): string { return typeof value === "string" ? value : ""; }
 function projectIssues(value: unknown): readonly LinearDashboardIssue[] { return list(value, "issues").filter(issue => text(issue.statusType) !== "completed" && text(issue.statusType) !== "canceled").map(issue => ({ id: text(issue.id), title: text(issue.title), status: text(issue.status) || "상태 미확인", statusType: text(issue.statusType) || undefined, dueDate: typeof issue.dueDate === "string" ? issue.dueDate : null, updatedAt: typeof issue.updatedAt === "string" ? issue.updatedAt : null })).filter(issue => issue.id && issue.title); }
 function projectUpdate(value: unknown): LinearDashboardUpdate | null { const entry = list(value, "statusUpdates")[0] ?? list(value, "updates")[0]; return entry && text(entry.body) ? { body: text(entry.body), createdAt: typeof entry.createdAt === "string" ? entry.createdAt : null } : null; }
+function projectComments(value: unknown): readonly LinearDashboardComment[] {
+	return list(value, "comments").map(comment => {
+		const author = record(comment.author);
+		return {
+			id: text(comment.id),
+			body: text(comment.body),
+			createdAt: typeof comment.createdAt === "string" ? comment.createdAt : null,
+			author: text(author.name) || null,
+		};
+	}).filter(comment => comment.id && comment.body);
+}
 function projectMilestones(value: unknown): readonly LinearDashboardMilestone[] { return list(value, "milestones").map(value => ({ name: text(value.name), targetDate: typeof value.targetDate === "string" ? value.targetDate : typeof value.dueDate === "string" ? value.dueDate : null })).filter(value => value.name); }

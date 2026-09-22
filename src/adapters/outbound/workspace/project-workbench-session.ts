@@ -63,7 +63,7 @@ export interface ProjectWorkbenchSessionOptions {
 	effort?: string;
 	/** Opt in to local WES policy collection and Chat context injection. */
 	enableWooEntry?: boolean;
-	/** Opt in to the auxiliary per-step model narrator. Native public commentary is the default. */
+	/** Refined plan activity is enabled by default; explicit false disables auxiliary interpretation. */
 	enableActivityNarrator?: boolean;
 	persistModelSelection?: (selection: WorkbenchModelSelection, catalog: import("../../../core/domain/execution/model-settings").NativeModelCatalog) => Promise<void>;
 }
@@ -231,7 +231,7 @@ export async function createProjectWorkbenchSession(
 		const tnotes = new ThreadScopedTNoteSource(
 			factories.createTNoteSource(workspace.draftsDirectory, config.tnote.model, observeAuxiliaryUsage),
 		);
-		const narrator = options.enableActivityNarrator ? factories.createActivityNarrator?.(config.narrator.model) : undefined;
+		const narrator = options.enableActivityNarrator !== false ? factories.createActivityNarrator?.(config.narrator.model) : undefined;
 		// WES is an optional local policy source. Ordinary Chat sessions must not
 		// collect it or expose a WES loading/blocked state.
 		const wooEntry = options.enableWooEntry ? factories.createWooEntry() : undefined;
@@ -260,6 +260,8 @@ export async function createProjectWorkbenchSession(
 			evaluationRequired: config.evaluation.requireVerification,
 			configurationSource: loadedConfig.source,
 			tnoteVisibleLimit: config.display.tnoteVisibleLimit,
+			tnoteSummaryMaxChars: config.display.tnoteSummaryMaxChars,
+			tnoteSummaryMaxLines: config.display.tnoteSummaryMaxLines,
 			hud: config.hud,
 			slash: config.slash,
 			activityJournalProjectId: runId,
@@ -404,7 +406,7 @@ class ThreadScopedTNoteSource implements WorkbenchTNoteSource {
 	public async bindThread(threadId: string): Promise<void> {
 		const projectId = scopedTodoSessionId(threadId);
 		if (this.projectId && this.projectId !== projectId) {
-			throw new Error("T-note가 이미 다른 Native thread에 묶여 있습니다.");
+			throw new Error("Note가 이미 다른 Native thread에 묶여 있습니다.");
 		}
 		this.projectId = projectId;
 	}
@@ -427,7 +429,7 @@ class ThreadScopedTNoteSource implements WorkbenchTNoteSource {
 	}
 
 	private requireProjectId(): string {
-		if (!this.projectId) throw new Error("T-note는 Native 세션이 시작된 뒤 사용할 수 있습니다.");
+		if (!this.projectId) throw new Error("Note는 Native 세션이 시작된 뒤 사용할 수 있습니다.");
 		return this.projectId;
 	}
 }

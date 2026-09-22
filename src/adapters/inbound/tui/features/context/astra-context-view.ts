@@ -2,7 +2,8 @@ import { Markdown, type Component } from "@earendil-works/pi-tui";
 import type { RequestRuntimeRecord } from "../../../../../core/domain/execution/request-runtime";
 import type { WorkbenchSnapshot } from "../../../../../core/domain/work/workbench";
 import type { UsageSnapshot } from "../../../../../core/ports";
-import { a, astraMarkdownTheme, fit, mark, number, prose, safe, section } from "../../foundation/theme/astra-theme";
+import { a, astraMarkdownTheme, fit, mark, number, pair, prose, safe, section } from "../../foundation/theme/astra-theme";
+import { runtimeModeLabel, workbenchEffortLabel, workbenchModelLabel } from "../../foundation/labels";
 
 function document(rows: string[], width: number): string[] { return rows.flatMap(row => prose(row, width)); }
 function kv(label: string, value: unknown): string { return `${a.muted(fit(label, 20))} ${a.text(safe(value ?? "—"))}`; }
@@ -21,6 +22,16 @@ function usagePercent(percent: number | undefined): string {
 	if (typeof percent !== "number" || !Number.isFinite(percent)) return " –";
 	const value = Math.round(Math.max(0, Math.min(100, percent)));
 	return `${String(value).padStart(2, " ")}%`;
+}
+function meter(value: number, total: number, width = 18): string {
+	const ratio = total > 0 ? Math.max(0, Math.min(1, value / total)) : 0;
+	const filled = Math.round(width * ratio);
+	return `${a.active("━".repeat(filled))}${a.rule("━".repeat(width - filled))}`;
+}
+function compactList(values: readonly string[], limit = 8): string {
+	if (!values.length) return "미적재";
+	const visible = values.slice(0, limit).join("  ·  ");
+	return values.length > limit ? `${visible}  +${values.length - limit}` : visible;
 }
 function requestRuntimeRows(request: RequestRuntimeRecord, width: number): string[] {
 	const rows = [...section(`Request · ${safe(request.objective)}`, width, request.status)];
@@ -41,8 +52,30 @@ export class AstraContextView implements Component {
 			else rows.push(a.muted("/source latest 또는 /source <activity-id>로 관측을 선택하세요."));
 			return document(rows, width);
 		}
-		const rows = [...section("Context", width), kv("프로젝트", s.projectId), kv("Thread", s.threadId), kv("현재 Turn", s.activeTurnId), kv("모델", s.activeModel ?? s.model), kv("추론", s.effort), kv("권한", s.permissionMode === "all" ? "전체 로컬 권한 / 승인 없음" : "workspace / 수동 승인"), kv("모드", s.collaborationMode), kv("관측 범위", s.resumeCoverage?.mode ?? "unknown"), kv("설정 원본", s.configurationSource), kv("기록", s.recordingReadOnly ? "읽기 전용" : "쓰기 가능"), kv("MCP", s.mcpServers.length)];
-		if (s.hud?.showContext !== false) rows.push(kv("Context", s.contextUsage ? `${number(s.contextUsage.usedTokens)} / ${number(s.contextUsage.contextWindow)} (${usagePercent(s.contextUsage.percent).trim()})` : "미관측"));
+		const context = s.contextUsage;
+		const used = context?.usedTokens ?? 0;
+		const total = context?.contextWindow ?? 0;
+		const free = Math.max(0, total - used);
+		const skills = s.skillInventory;
+		const enabledMcp = s.mcpServers.filter(server => server.enabled).length;
+		const memoryItems = s.chat.length + s.activities.length + s.tnotes.length;
+		const rows = [
+			...section("Context Dashboard", width, s.phase),
+			pair(`${a.strong(workbenchModelLabel(s.activeModel ?? s.model))}  ${a.active(workbenchEffortLabel(s.effort))}`, `${runtimeModeLabel(s.permissionMode, s.collaborationMode)}  ·  ${s.threadId ? "thread 연결" : "thread 대기"}`, width),
+			"",
+			pair(`Free Space  ${context ? `${number(free)} tokens` : "미관측"}`, context ? `${usagePercent(context.percent).trim()} used` : "telemetry 없음", width),
+			context ? meter(used, total, Math.max(8, Math.min(30, width - 2))) : a.rule("━".repeat(Math.max(8, Math.min(30, width - 2)))),
+			pair(`Skills  ${skills?.count ?? 0}`, `MCP  ${enabledMcp}/${s.mcpServers.length}`, width),
+			pair(`Memory  ${number(memoryItems)} items`, `Chat ${s.chat.length}  ·  Activity ${s.activities.length}  ·  Note ${s.tnotes.length}`, width),
+			...section("Session", width),
+			kv("프로젝트", s.projectId), kv("Thread", s.threadId), kv("현재 Turn", s.activeTurnId),
+			kv("권한", s.permissionMode === "all" ? "전체 로컬 권한 / 승인 없음" : "workspace / 수동 승인"),
+			kv("관측 범위", s.resumeCoverage?.mode ?? "unknown"), kv("설정 원본", s.configurationSource),
+			kv("기록", s.recordingReadOnly ? "읽기 전용" : "쓰기 가능"),
+			...section("Skills", width, skills ? `${skills.count} loaded` : "미관측"),
+			a.text(compactList(skills?.names ?? [])),
+		];
+		if (skills) rows.push(a.muted(`revision ${safe(skills.sourceRevision)}  ·  digest ${safe(skills.digest.slice(0, 12))}`));
 		for (const request of [...(s.requestRuntime ?? [])].reverse()) rows.push(...requestRuntimeRows(request, width));
 		const dashboard = s.linearDashboard;
 		if (dashboard) {

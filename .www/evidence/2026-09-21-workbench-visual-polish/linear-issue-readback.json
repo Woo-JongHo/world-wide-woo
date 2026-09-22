@@ -1,0 +1,20 @@
+{
+  "id": "WOO-912",
+  "uuid": "14a3c6f0-3055-4c44-80fc-52a002b96f20",
+  "title": "[Workbench UI] 모드·모델·계획·구독 잔여 표기를 정리한다",
+  "status": "In Progress",
+  "statusType": "started",
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "parentId": "WOO-674",
+  "labels": ["TUI", "UX", "Improvement"],
+  "relatedTo": ["WOO-681", "WOO-682", "WOO-678", "WOO-680"],
+  "descriptionChecks": [
+    "bypass mode·manual mode·plan mode를 명시한다",
+    "resetsAt 기반 구독 잔여 시간 표시를 명시한다",
+    "▰ 제거와 Plan → Todo → Tracer 순서를 명시한다",
+    "GPT-5.6-Luna·GPT-5.6-Sol·Claude Sonnet·Claude Opus·Claude Fable 표시를 명시한다",
+    "브랜치와 Evidence 경로를 명시한다"
+  ],
+  "url": "https://linear.app/woo-world/issue/WOO-912/workbench-ui-모드모델계획구독-잔여-표기를-정리한다",
+  "observedAt": "2026-09-21T18:10:10+09:00"
+}

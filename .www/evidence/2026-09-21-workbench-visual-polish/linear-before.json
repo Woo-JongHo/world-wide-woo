@@ -1,0 +1,18 @@
+{
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "parent": {
+    "id": "WOO-674",
+    "uuid": "4674a1dc-ba01-4007-9803-3346a1f83dcc",
+    "status": "In Progress"
+  },
+  "directChildren": [
+    "WOO-681",
+    "WOO-679",
+    "WOO-682",
+    "WOO-908",
+    "WOO-727",
+    "WOO-680"
+  ],
+  "matchingIssue": null,
+  "observedAt": "2026-09-21T18:08:08+09:00"
+}

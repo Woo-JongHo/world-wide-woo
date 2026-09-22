@@ -31,6 +31,7 @@ import { createDashboardLayout } from "../foundation/layout/dashboard-layout";
 import { StatusLine, todoPanelTimestamp, WorkspaceTodoView } from "../features/dashboard/shared-dashboard-views";
 import { WorkbenchChatView } from "../features/chat/workbench-views";
 import { renderDelegationDetail, renderDelegationSummary } from "../features/chat/delegation-tree-view";
+import { ThreeBodyLabView } from "../features/chat/three-body-lab";
 import { EntryDashboardView, WwwDashboardView } from "../features/dashboard/entry-dashboard-view";
 import { WorkbenchMonitorView } from "../features/monitoring/workbench-monitor-view";
 import { WorkbenchTracerView } from "../features/trace/workbench-tracer-view";
@@ -43,11 +44,12 @@ import { OverlaySheet } from "../foundation/components/overlay-sheet";
 import { RenderScheduler, workbenchRenderUrgency } from "../foundation/rendering/render-scheduler";
 import { ShellLifecycle } from "./shell-lifecycle";
 import { parseWorkbenchShellCommand, withNativeModelCompletions, WORKBENCH_SLASH_COMMANDS } from "../commands/slash-commands";
-import { colors, composerBorderColor, editorTheme } from "../foundation/theme/theme";
+import { colors, composerBorderColor, editorTheme, getActiveTuiTheme, setActiveTuiTheme, tuiBackgroundResetSequence, tuiBackgroundSequence, TUI_THEME_OPTIONS } from "../foundation/theme/theme";
 import { WorkbenchBottomHudView } from "../features/usage/workbench-bottom-hud";
 import { WorkbenchTelemetryLine, workbenchModelLabel } from "../features/monitoring/workbench-telemetry";
 import { UsageStripView } from "../features/usage/usage-strip-view";
 import { WORKBENCH_HUD_SYSTEM } from "../features/usage/workbench-hud-system";
+import { runtimeModeLabel, workbenchEffortLabel } from "../foundation/labels";
 import { DevelopmentMapView } from "../features/project-map/development-map-view";
 import { ObservabilityDashboardView } from "../features/session/observability-dashboard-view";
 import { RuntimeMonitorView } from "../features/monitoring/runtime-monitor-view";
@@ -59,7 +61,7 @@ import { AstraMonitorView } from "../features/monitoring/astra-monitor-view";
 import { AstraStatsView } from "../features/stats/astra-stats-view";
 import { AstraTestView, projectAstraTestView } from "../features/test/astra-test-view";
 import { requestRuntimeMotionActive, requestRuntimeRows } from "../features/monitoring/request-runtime-view";
-import { AstraCommandPalette, AstraComposer, AstraExecutionHeading, AstraHeader, AstraHud, AstraInset, AstraNotice, AstraSheet, AstraViewSwitcher, AstraWorkspace, ASTRA_COMMANDS, ASTRA_KEYMAP, ASTRA_KEYS, ASTRA_SCROLL_KEYS, matchesAstraAction, matchesAstraKey, type AstraPage } from "./astra-surface";
+import { AstraCommandPalette, AstraComposer, AstraExecutionHeading, AstraHeader, AstraHud, AstraInset, AstraNotice, AstraSheet, AstraViewSwitcher, AstraWorkspace, ASTRA_COMMANDS, ASTRA_KEYMAP, ASTRA_KEYS, ASTRA_SCROLL_KEYS, astraPageLabel, matchesAstraAction, matchesAstraKey, type AstraPage } from "./astra-surface";
 import { astraExecutionIsLive, astraNowLabel } from "../features/chat/astra-execution";
 import { a, astraColors, astraEditorTheme } from "../foundation/theme/astra-theme";
 import type { UsageSnapshot } from "../../../../core/ports";
@@ -108,7 +110,7 @@ export const WORKBENCH_STATUS_NOTICE = "";
 
 /** The active Native model belongs to the composer it drives, not the quota HUD. */
 export function composerModelHeader(source: Pick<WorkbenchSnapshot, "model" | "activeModel" | "effort">, width: number): string {
-	const label = `${source.activeModel ?? source.model ?? "model 미확인"}${source.effort ? ` · ${source.effort}` : ""}`;
+	const label = `${workbenchModelLabel(source.activeModel ?? source.model)}${source.effort ? ` · ${workbenchEffortLabel(source.effort)}` : ""}`;
 	const prefix = `${WORKBENCH_HUD_SYSTEM.composer.leftCap} `;
 	const suffix = " ";
 	const available = Math.max(0, width - visibleWidth(prefix) - visibleWidth(suffix));
@@ -159,7 +161,7 @@ function unavailableHistoricalMonitor(): RuntimeMonitorProjection {
 export function workbenchFrameTitle(source: Pick<WorkbenchSnapshot,
 	"projectId" | "model" | "activeModel" | "effort" | "phase" | "collaborationMode" | "permissionMode" | "chatQueue" | "pendingApproval"
 >): string {
-	return `🐙 WWW · ${source.projectId} · ${workbenchModelLabel(source.activeModel ?? source.model)} · ${source.effort ?? "–"} · ${source.phase} · ${source.collaborationMode === "plan" ? "Plan" : "Manual"} · Permission ${source.permissionMode ?? "manual"}${source.pendingApproval ? " · 승인 대기" : ""}`;
+	return `🐙 WWW · ${source.projectId} · ${workbenchModelLabel(source.activeModel ?? source.model)} · ${workbenchEffortLabel(source.effort)} · ${source.phase} · ${runtimeModeLabel(source.permissionMode, source.collaborationMode)}${source.pendingApproval ? " · 승인 대기" : ""}`;
 }
 
 const WORKBENCH_ACTIVITY_FRAMES = Object.freeze(["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]);
@@ -250,11 +252,11 @@ export function workbenchActivityIndicator(source: WorkbenchActivityIndicatorSou
 	} else if (source.workFlow.steps.length > 0) {
 		label = `마무리 · ${source.workFlow.steps.length}개 단계 결과를 정리하는 중`;
 	} else {
-		label = "분석 · 요청을 읽고 첫 단계를 정하는 중";
+		label = "분석 · 실행 순서를 정리하는 중";
 	}
 	return Object.freeze({
 		message: label,
-		hint: toolObservationStalled ? "Esc 또는 /cancel 즉시 중단" : "Esc 중단",
+		hint: "",
 		frames: source.pendingApproval ? Object.freeze(["⏸"]) : WORKBENCH_ACTIVITY_FRAMES,
 		intervalMs: source.pendingApproval ? 1_000 : WORKBENCH_ACTIVITY_INTERVAL_MS,
 	});
@@ -263,11 +265,12 @@ export function workbenchActivityIndicator(source: WorkbenchActivityIndicatorSou
 function liveActivityLabel(activity: WorkbenchActivityIndicatorSource["liveActivity"]): string | null {
 	if (!activity) return null;
 	const method = activity.method.replace(/[-_]/gu, "").toLowerCase();
-	if (activity.kind === "file-change" || method.includes("filechange")) return "Edit 변경을 반영하는 중";
-	if (activity.kind === "approval" || method.includes("approval")) return "승인 결과를 기다리는 중";
-	if (activity.kind === "tool" && /command|bash|shell/u.test(method)) return "Bash 명령 결과를 확인하는 중";
-	if (activity.kind === "tool") return "Tool 실행 결과를 확인하는 중";
-	return "현재 작업 상태를 확인하는 중";
+	const detail = boundedActivityText(activity.text);
+	if (activity.kind === "file-change" || method.includes("filechange")) return detail ? `Edit · ${detail}` : "Edit 변경을 반영하는 중";
+	if (activity.kind === "approval" || method.includes("approval")) return detail ? `승인 · ${detail}` : "승인 결과를 기다리는 중";
+	if (activity.kind === "tool" && /command|bash|shell/u.test(method)) return detail ? `Bash · ${detail}` : "Bash 명령 결과를 확인하는 중";
+	if (activity.kind === "tool") return detail ? `Tool · ${detail}` : "Tool 실행 결과를 확인하는 중";
+	return detail ?? "현재 작업 상태를 확인하는 중";
 }
 
 function boundedActivityText(value: string | undefined): string | null {
@@ -290,6 +293,9 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	const cwd = dependencies.cwd ?? process.cwd();
 	const terminal = dependencies.terminal ?? new ProcessTerminal();
 	const tui = new TuiAltScreen(terminal, true);
+	const terminalBackgroundEnabled = dependencies.design === "astra" && process.env.NO_COLOR === undefined;
+	const applyTerminalBackground = (): void => { if (terminalBackgroundEnabled) terminal.write(tuiBackgroundSequence()); };
+	const resetTerminalBackground = (): void => { if (terminalBackgroundEnabled) terminal.write(tuiBackgroundResetSequence()); };
 	let snapshot = workbench.snapshot;
 	let usageSnapshots: readonly UsageSnapshot[] = [];
 	const astraMotion = process.env.ASTRA_REDUCED_MOTION !== "1" && process.env.NO_COLOR === undefined;
@@ -298,17 +304,29 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	function astraBodyHeight(rows: number, columns: number, stable = false): number {
 		// Keep the transcript's width stable while typing. Only the scrollable
 		// plan keeps its column; the optional note still uses the real row budget.
-		return Math.max(1, rows - (stable ? 3 : composerFrame.render(columns).length) - (rows >= 12 ? 2 : 0) - 3
+		return Math.max(1, rows - (stable ? 3 : composerFrame.render(columns).length) - (rows >= 12 ? 2 : 0) - 2
 			- (rows >= 5 && (stable || status.hasNotice) ? 1 : 0) - (rows >= 7 ? 1 : 0));
 	}
+	const astraExecutionHeading = dependencies.design === "astra"
+		? new AstraExecutionHeading(() => snapshot, undefined, Date.now, astraMotion)
+		: null;
+	let closeThreeBodyLab = (): void => undefined;
+	const threeBodyLab = dependencies.design === "astra"
+		? new ThreeBodyLabView({
+			viewportHeight: () => astraBodyHeight(terminal.rows, terminal.columns),
+			onClose: () => closeThreeBodyLab(),
+		})
+		: null;
 	const astra = dependencies.design === "astra" ? new AstraWorkspace(
 		() => snapshot,
 		() => usageSnapshots,
 		astraBodyHeight,
 		Date.now,
 		astraMotion,
-		{ motionActive: requestRuntimeMotionActive, rows: requestRuntimeRows, nowLabel: astraNowLabel },
+		{ motionActive: requestRuntimeMotionActive, rows: requestRuntimeRows },
 		new WwwDashboardView(() => snapshot),
+		astraExecutionHeading,
+		threeBodyLab ?? undefined,
 	) : null;
 	astra?.show("execution");
 	const status = astra ? new AstraNotice() : new StatusLine(WORKBENCH_STATUS_NOTICE);
@@ -425,13 +443,13 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	const composerFrame = astra ? new AstraComposer(composerSlot, editor, () => snapshot, () => !astraInlineApprovalActive) : new ComposerModelFrame(composerSlot, () => snapshot);
 	const root = new VStack([
 		...(astra ? [
-			{ component: new AstraHeader(() => snapshot, () => navigation.mode === "workbench" ? astra.page : navigation.mode, cwd), basis: 2, minSize: 1, maxSize: 2, visible: ({ height }: { height: number }) => height >= 12 },
-			{ component: new AstraExecutionHeading(() => snapshot, () => navigation.mode !== "workbench" || astra.page !== "execution" || !editor.focused ? "Esc 돌아가기" : null, Date.now, astraMotion), basis: 3, minSize: 2, maxSize: 3, visible: ({ height }: { height: number }) => height >= 12 && astra.page !== "dashboard" },
+			{ component: new AstraHeader(() => snapshot, () => navigation.mode === "workbench" ? astraPageLabel(astra.page) : navigation.mode === "monitor" ? "Activity" : navigation.mode, cwd), basis: 2, minSize: 1, maxSize: 2, visible: ({ height }: { height: number }) => height >= 12 },
+			{ component: new AstraExecutionHeading(() => snapshot, () => navigation.mode !== "workbench" || astra.page !== "execution" || !editor.focused ? "Esc 돌아가기" : null, Date.now, astraMotion), basis: 2, minSize: 2, maxSize: 2, visible: ({ height }: { height: number }) => height >= 12 && astra.page !== "dashboard" && astra.page !== "execution" },
 		] : []),
 		{ component: activeView, basis: 0, grow: 1, shrink: 1, minSize: 1 },
 		{ component: composerFrame, basis: "auto", shrink: 1, minSize: 3 },
 		{ component: status, basis: 1, minSize: 1, maxSize: 1, visible: ({ height }) => height >= 5 && status.hasNotice },
-		{ component: astra ? new AstraHud(() => snapshot, () => usageSnapshots) : bottomHud, basis: astra ? "auto" : 1, minSize: 1, maxSize: 1, visible: ({ height }) => height >= 7 },
+		{ component: astra ? new AstraHud(() => snapshot, () => usageSnapshots) : bottomHud, basis: astra ? "auto" : 1, minSize: 1, maxSize: astra ? 6 : 1, visible: ({ height }) => height >= 7 },
 	]);
 	let overlay: OverlayHandle | null = null;
 	let overlayKind: "model" | "approval" | "development" | "commands" | "views" | "auth" | null = null;
@@ -471,10 +489,14 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		astra,
 	);
 	const showAstraPage = (page: AstraPage, browse = page !== "execution"): void => {
+		const wasLab = astra?.page === "lab";
 		if (!navigation.showAstraPage(page, browse)) return;
+		if (wasLab && page !== "lab") threeBodyLab?.deactivate();
+		if (page === "lab") threeBodyLab?.activate(() => tui.requestRender());
 		status.setNotice("");
 		tui.requestRender();
 	};
+	closeThreeBodyLab = () => showAstraPage("execution", false);
 	const cycleRuntimeMode = async (): Promise<void> => {
 		const next = nextWorkbenchRuntimeMode(snapshot);
 		const configuration = workbenchRuntimeConfiguration(next);
@@ -496,7 +518,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	monitorClock.unref?.();
 	const astraClock = astra ? setInterval(() => {
 		const request = snapshot.requestRuntime?.at(-1);
-		if (!lifecycle.isShuttingDown && !overlay && (astraExecutionIsLive(snapshot) || astraMotion && request && requestRuntimeMotionActive(request, Date.now()))) tui.requestRender();
+		if (!lifecycle.isShuttingDown && !overlay && (astraExecutionIsLive(snapshot) || astraMotion && (astra.hasVisibleSidebarOrbit || snapshot.sessionGoal?.text || request && requestRuntimeMotionActive(request, Date.now())))) tui.requestRender();
 	// `workingStatusLine()` advances its pulse every 120ms. Repainting at 80ms
 	// computed an identical full layout roughly one third of the time, while live
 	// Native snapshots already use the 32ms RenderScheduler path below.
@@ -525,11 +547,11 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		unsubscribe: () => unsubscribe(),
 		stopPolling: [stopUsagePolling, () => navigation.dispose()],
 		timers: [monitorClock, composerBorderClock, astraClock],
-		disposables: [workbenchRenders, telemetry, chat],
+		disposables: [workbenchRenders, telemetry, chat, ...(threeBodyLab ? [threeBodyLab] : [])],
 		saveDraft: composerDraft ? () => composerDraft.save(editor.getExpandedText()) : undefined,
 		closeWorkbench: () => workbench.close(),
 		releaseSessionLease,
-		stopTerminal: () => tui.stop(),
+		stopTerminal: () => { tui.stop(); resetTerminalBackground(); },
 	});
 	const shutdown = (): Promise<void> => lifecycle.shutdown();
 	const refreshObservabilityDashboard = async (): Promise<void> => {
@@ -560,6 +582,28 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	const showReceipt = (receipt: Awaited<ReturnType<ProjectWorkbench["dispatch"]>>) => {
 		status.setNotice(workbenchReceiptNotice(receipt));
 		tui.requestRender();
+	};
+	const submitComposer = (text: string): void => {
+		if (lifecycle.isShuttingDown || !text.trim()) return;
+		editor.addToHistory(text);
+		void (async () => {
+			if (await handleLocal(text)) return;
+			if (snapshot.pendingApproval) {
+				editor.setText(text);
+				openApproval(snapshot.pendingApproval);
+				status.setNotice("승인 선택 화면을 열었습니다. ↑↓ 또는 숫자로 선택하세요.");
+				tui.requestRender();
+				return;
+			}
+			const receipt = await workbench.dispatch({ type: "chat.send", text, delivery: "queue" });
+			showReceipt(receipt);
+			if (workbenchReceiptClearsComposer(receipt)) await composerDraft?.clear().catch(() => undefined);
+			else editor.setText(text);
+		})().catch((error) => {
+			editor.setText(text);
+			status.setNotice(error instanceof Error ? error.message : String(error));
+			tui.requestRender();
+		});
 	};
 	const closeOverlay = (): void => {
 		if (!overlay) return;
@@ -710,7 +754,16 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		tui.requestRender();
 	};
 	const handleLocal = async (text: string): Promise<boolean> => {
+		if (text.trim() === "/three-body") {
+			if (astra) {
+				showAstraPage("lab");
+				status.setNotice("THREE BODY LAB · Space 일시정지 · Q/Esc 돌아가기");
+			} else status.setNotice("THREE BODY LAB은 Astra UI에서 사용할 수 있습니다.");
+			tui.requestRender();
+			return true;
+		}
 		if (astra && text.trim() === "/context") { showAstraPage("context"); return true; }
+		if (astra && text.trim() === "/cache") { showAstraPage("cache"); return true; }
 		if (astra && text.trim() === "/approval") {
 			if (snapshot.pendingApproval) openApproval(snapshot.pendingApproval);
 			else status.setNotice("대기 중인 승인 요청이 없습니다.");
@@ -796,6 +849,15 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		if (command.type === "help") {
 			if (astra) { showAstraPage("help"); return true; }
 			status.setNotice(WORKBENCH_SLASH_COMMANDS.map(command => `/${command.name}${command.argumentHint ? ` ${command.argumentHint}` : ""}`).join(" · "));
+			tui.requestRender();
+			return true;
+		}
+		if (command.type === "theme.set") {
+			setActiveTuiTheme(command.theme);
+			applyTerminalBackground();
+			chat.invalidate();
+			const label = TUI_THEME_OPTIONS.find(theme => theme.name === getActiveTuiTheme())?.label ?? getActiveTuiTheme();
+			status.setNotice(`Theme · ${label}`);
 			tui.requestRender();
 			return true;
 		}
@@ -986,29 +1048,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		return true;
 	};
 	/** @linear WOO-694 */
-	editor.onSubmit = (text) => {
-		if (lifecycle.isShuttingDown || !text.trim()) return;
-		editor.addToHistory(text);
-		void (async () => {
-			if (await handleLocal(text)) return;
-			if (snapshot.pendingApproval) {
-				editor.setText(text);
-				openApproval(snapshot.pendingApproval);
-				status.setNotice("승인 선택 화면을 열었습니다. ↑↓ 또는 숫자로 선택하세요.");
-				tui.requestRender();
-				return;
-			}
-			const receipt = await workbench.dispatch({ type: "chat.send", text });
-			showReceipt(receipt);
-			if (workbenchReceiptClearsComposer(receipt)) {
-				await composerDraft?.clear().catch(() => undefined);
-			} else editor.setText(text);
-		})().catch((error) => {
-			editor.setText(text);
-			status.setNotice(error instanceof Error ? error.message : String(error));
-			tui.requestRender();
-		});
-	};
+	editor.onSubmit = submitComposer;
 	unsubscribe = workbench.subscribe((next) => {
 		const urgency = workbenchRenderUrgency(snapshot, next);
 		const refreshTelemetry = snapshot.phase === "working" && next.phase !== "working";
@@ -1059,6 +1099,20 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 			return undefined;
 		}
 		if (astra && !loginPrompt) {
+			if (astra.page === "lab") {
+				if (matchesKey(data, Key.escape)) {
+					showAstraPage("execution", false);
+					return { consume: true };
+				}
+				if (threeBodyLab?.handleInput(data)) return { consume: true };
+			}
+			if (matchesKey(data, Key.escape) && astra.page === "execution" && editor.focused && !editor.isShowingAutocomplete()
+				&& snapshot.phase === "working" && !snapshot.pendingApproval && !snapshot.deliveryUncertain && editor.getText().trim()) {
+				const draft = editor.getText();
+				editor.setText("");
+				submitComposer(draft);
+				return { consume: true };
+			}
 			if (matchesAstraAction(data, "plan.sidebar")) {
 				const enabled = astra.toggleSidebar();
 				status.setNotice(enabled ? "계획 사이드바를 열었습니다. 넓은 실행 화면에서 표시됩니다." : "계획 사이드바를 닫았습니다.");
@@ -1198,5 +1252,6 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	telemetry.refresh();
 	chat.syncActivity(workbenchActivityIndicator(snapshot), () => tui.requestRender());
 	chat.playWelcomeIntro(() => tui.requestRender());
+	applyTerminalBackground();
 	tui.start();
 }

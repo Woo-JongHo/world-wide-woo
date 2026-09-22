@@ -5,11 +5,11 @@ import type { SessionModelUsageObservation } from "../../../core/application/ses
 
 export const DETACHED_CODEX_PROVIDER = "openai-codex";
 
-/** The only pi-ai capabilities the detached T-note boundary may receive. */
+/** The only pi-ai capabilities the detached Note boundary may receive. */
 export type PiDetachedCodexModels = Pick<Models, "getModel" | "streamSimple">;
 
 /**
- * A single, packet-only Codex completion for T-notes.
+ * A single, packet-only Codex completion for Notes.
  *
  * This deliberately uses pi-ai rather than the Codex App Server: its Context
  * has no cwd, project root, native thread, or tool execution surface. The
@@ -42,7 +42,7 @@ export class PiDetachedCodexGenerator implements DetachedTextGenerator {
 		if (!model) throw new Error(`Detached Codex model is not available: ${DETACHED_CODEX_PROVIDER}/${this.modelId}`);
 
 		const context: Context = {
-			systemPrompt: "You create a concise Korean T-note from only the supplied immutable packet and instruction. Explain it so a person seeing the work for the first time can understand it. Include execution details only when they directly explain the answer. Never expose hidden chain-of-thought, infer omitted project data, copy raw logs, add future Todo items, or call tools. Follow the requested output shape exactly and return text only.",
+			systemPrompt: "You create a concise Korean Note from only the supplied immutable packet and instruction. Explain it so a person seeing the work for the first time can understand it. Include execution details only when they directly explain the answer. Never expose hidden chain-of-thought, infer omitted project data, copy raw logs, add future Todo items, or call tools. Follow the requested output shape exactly and return text only.",
 			messages: [{ role: "user", content: detachedInput(request), timestamp: Date.now() }],
 			tools: [],
 		};

@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "1.0",
+  "candidateId": "ARTIFACT-CANDIDATE-WWW-018-PROJECT-UPDATE",
+  "kind": "linear-project-update",
+  "sourceRevision": "git:ce7731454c09c4ca5df4413f9f223be3eaea960c:dirty",
+  "intent": "Workbench 시각 기능과 Linear Activity 복구를 0.0.18 기능 릴리스로 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "version": "0.0.18",
+    "delivered": [
+      "사용자는 /theme으로 Gruvbox·Tokyo Night를 전환하고 cached transcript·syntax highlight가 새 색으로 다시 그려지는 것을 확인한다.",
+      "입장 Dashboard에서 Linear의 최신 Project Activity Comment를 읽고 ACTIVITY 구획의 작성자·경과·요약을 확인한다.",
+      "WWW 첫 화면에서 Plan 중심 상태·Queue placeholder·bounded terminal output·provider 구독 잔여 HUD와 figure-eight 삼체 환영 애니메이션을 확인한다."
+    ],
+    "included": [
+      "Plan·Todo·Tracer 정보 계층, provider 표시, 좁은 폭 레이아웃과 Queue/steer 입력 전달을 함께 정리했다.",
+      "Comment 조회 실패 시 기존 Linear Dashboard를 유지하고, 삼체 계산은 고정 초기조건·RK4·결정적 narrow-width projection으로 제한했다.",
+      "렌더 캐시 무효화·terminal tail 경계·provider logo와 화면 폭 회귀 테스트를 현재 production layout 계약에 맞췄다."
+    ],
+    "verification": [
+      "bun run check 통과",
+      "bun test: 1311 pass, 0 fail, 16834 assertions, 146 files",
+      "Linear Dashboard·Activity·Workbench·Astra 대상 회귀 285 pass, 0 fail",
+      "git diff --check 통과 및 bun src/cli.ts --version → 0.0.18",
+      "미검증: 실제 사용자 수동 화면 수락과 Git commit/tag/push는 아직 수행하지 않았다."
+    ],
+    "connections": [
+      "Linear: WOO-912",
+      "Branch: ui/workbench-visual-polish",
+      "Package: 0.0.18",
+      "Evidence: .www/evidence/2026-09-21-0.0.18",
+      "Research: docs/research/2026-09-21-three-body-special-solutions.md"
+    ],
+    "sourceCommentIds": [
+      "60397261-ebba-4620-ab47-41570f4a872e",
+      "a5853135-2921-4b6d-b35d-d501d59d61be",
+      "7c2cd97d-d51b-4cca-906c-cfec0c1a4e91",
+      "769e9b2d-4fc7-44fe-8ae1-61a5df3aa793"
+    ],
+    "health": "atRisk"
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-912/workbench-ui-모드모델계획구독-잔여-표기를-정리한다",
+    "evidence": ".www/evidence/2026-09-21-0.0.18"
+  },
+  "expectedBefore": {
+    "latestUpdateId": "a1e61ec9-ff54-4f80-a891-99cb18847c1f"
+  },
+  "validation": [
+    {
+      "id": "linear-before-readback",
+      "status": "pass",
+      "evidence": "0.0.17 Project Update identity와 그 뒤 Comment 흐름을 게시 직전 재조회했다."
+    },
+    {
+      "id": "release-verification",
+      "status": "pass",
+      "evidence": "TypeScript, 전체 1311개 테스트, 대상 회귀 285개, CLI 버전과 diff 검사를 실제 실행했다."
+    }
+  ],
+  "candidateDigest": "9f770d6bd86aa9b8fb430a6c6b866864bc39c97a14b0f88d1a01117c98bc62b4"
+}

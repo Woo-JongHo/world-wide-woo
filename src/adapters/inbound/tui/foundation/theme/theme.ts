@@ -2,38 +2,132 @@ import chalk from "chalk";
 import type { EditorTheme, MarkdownTheme, SelectListTheme } from "@earendil-works/pi-tui";
 import { createNativeSyntaxHighlightPlugin } from "./syntax-highlighter";
 
-/** WWW instrument-panel palette: graphite, telemetry teal, steel, and signal amber. */
-export const palette = {
-	foreground: "#ffffff",
-	muted: "#839199",
-	border: "#34464f",
-	teal: "#55aeb6",
-	blue: "#78a7c6",
-	steel: "#a3b4bd",
-	amber: "#d0a15f",
-	success: "#72ad8f",
-	red: "#d06c70",
-	orange: "#c9865e",
-	userSurface: "#14242b",
-	assistantSurface: "#1a2228",
-	toolPendingSurface: "#151c20",
-	toolSuccessSurface: "#16231e",
-	toolErrorSurface: "#291a1c",
-	toolWarningSurface: "#282218",
-} as const;
+export type TuiThemeName = "gruvbox" | "tokyo-night";
 
+export interface TuiPalette {
+	readonly foreground: string;
+	readonly background: string;
+	readonly panel: string;
+	readonly muted: string;
+	readonly border: string;
+	readonly teal: string;
+	readonly blue: string;
+	readonly steel: string;
+	readonly amber: string;
+	readonly success: string;
+	readonly red: string;
+	readonly orange: string;
+	readonly userSurface: string;
+	readonly assistantSurface: string;
+	readonly toolPendingSurface: string;
+	readonly toolSuccessSurface: string;
+	readonly toolErrorSurface: string;
+	readonly toolWarningSurface: string;
+}
+
+const THEME_PALETTES: Record<TuiThemeName, TuiPalette> = {
+	gruvbox: {
+	foreground: "#ffffff",
+	background: "#1d2021",
+	panel: "#282828",
+	muted: "#928374",
+	border: "#3c3836",
+	teal: "#83a598",
+	blue: "#83a598",
+	steel: "#d5c4a1",
+	amber: "#fabd2f",
+	success: "#b8bb26",
+	red: "#fb4934",
+	orange: "#fe8019",
+	userSurface: "#3c3836",
+	assistantSurface: "#282828",
+	toolPendingSurface: "#1d2021",
+	toolSuccessSurface: "#282828",
+	toolErrorSurface: "#3c3836",
+	toolWarningSurface: "#3c3836",
+	},
+	"tokyo-night": {
+		foreground: "#ffffff",
+		background: "#1a1b26",
+		panel: "#16161e",
+		muted: "#565f89",
+		border: "#24283b",
+		teal: "#73daca",
+		blue: "#7aa2f7",
+		steel: "#bb9af7",
+		amber: "#e0af68",
+		success: "#9ece6a",
+		red: "#f7768e",
+		orange: "#7dcfff",
+		userSurface: "#24283b",
+		assistantSurface: "#1a1b26",
+		toolPendingSurface: "#16161e",
+		toolSuccessSurface: "#1a1b26",
+		toolErrorSurface: "#24283b",
+		toolWarningSurface: "#24283b",
+	},
+};
+
+export const TUI_THEME_OPTIONS = [
+	{ name: "gruvbox", label: "Gruvbox Astra" },
+	{ name: "tokyo-night", label: "Tokyo Night" },
+] as const satisfies readonly { name: TuiThemeName; label: string }[];
+
+let activeTheme: TuiThemeName = "gruvbox";
+
+export function getActiveTuiTheme(): TuiThemeName {
+	return activeTheme;
+}
+
+export function setActiveTuiTheme(theme: TuiThemeName): void {
+	activeTheme = theme;
+}
+
+export function nextTuiTheme(theme = activeTheme): TuiThemeName {
+	const index = TUI_THEME_OPTIONS.findIndex(option => option.name === theme);
+	return TUI_THEME_OPTIONS[(index + 1) % TUI_THEME_OPTIONS.length]!.name;
+}
+
+/** Applies the active palette to the terminal canvas while the Astra UI owns the screen. */
+export function tuiBackgroundSequence(theme = activeTheme): string {
+	return `\u001B]11;${THEME_PALETTES[theme].background}\u0007`;
+}
+
+/** Restores the terminal profile background after the TUI releases the alternate screen. */
+export function tuiBackgroundResetSequence(): string {
+	return "\u001B]111\u0007";
+}
+
+function currentPalette(): TuiPalette {
+	return THEME_PALETTES[activeTheme];
+}
+
+/** Mutable through accessors so long-lived TUI components follow /theme immediately. */
+export const palette = new Proxy({} as TuiPalette, {
+	get: (_target, property: string | symbol) => currentPalette()[property as keyof TuiPalette],
+});
+
+function foreground(key: keyof TuiPalette): (text: string) => string {
+	return text => chalk.hex(currentPalette()[key])(text);
+}
+
+function background(key: keyof TuiPalette, foregroundKey: keyof TuiPalette = "foreground"): (text: string) => string {
+	return text => chalk.bgHex(currentPalette()[key]).hex(currentPalette()[foregroundKey])(text);
+}
+
+/** WWW instrument-panel palette aligned to the Figma Gruvbox and Tokyo Night references. */
 export const colors = {
-	text: chalk.hex(palette.foreground),
-	accent: chalk.hex(palette.teal),
-	secondary: chalk.hex(palette.steel),
-	highlight: chalk.hex(palette.blue),
-	warm: chalk.hex(palette.orange),
-	border: chalk.hex(palette.border),
-	muted: chalk.hex(palette.muted),
-	selected: chalk.bgHex(palette.blue).hex("#0d151a"),
-	success: chalk.hex(palette.success),
-	warning: chalk.hex(palette.amber),
-	error: chalk.hex(palette.red),
+	text: foreground("foreground"),
+	accent: foreground("teal"),
+	secondary: foreground("steel"),
+	highlight: foreground("blue"),
+	warm: foreground("orange"),
+	border: foreground("border"),
+	muted: foreground("muted"),
+	selected: (text: string) => background("orange", "background")(text),
+	success: foreground("success"),
+	warning: foreground("amber"),
+	error: foreground("red"),
 };
 export type TuiColors = { [K in keyof typeof colors]: (text: string) => string };
 
@@ -41,18 +135,18 @@ export type TuiColors = { [K in keyof typeof colors]: (text: string) => string }
 export const semantic = {
 	userLabel: (text: string) => chalk.bold(colors.highlight(text)),
 	assistantLabel: (text: string) => chalk.bold(colors.secondary(text)),
-	userSurface: chalk.bgHex(palette.userSurface).hex(palette.foreground),
+	userSurface: background("userSurface"),
 	/** Assistant prose stays on the terminal canvas; only user input owns a transcript surface. */
-	assistantSurface: chalk.hex(palette.foreground),
+	assistantSurface: foreground("foreground"),
 	/** Operational notices remain bounded surfaces and are not mistaken for assistant prose. */
-	noticeSurface: chalk.bgHex(palette.assistantSurface).hex(palette.foreground),
+	noticeSurface: background("assistantSurface"),
 	reasoning: (text: string) => chalk.italic(colors.muted(text)),
 	activity: (text: string) => chalk.italic(colors.secondary(text)),
-	executionSurface: chalk.bgHex(palette.toolPendingSurface).hex(palette.foreground),
-	executionSurfacePending: chalk.bgHex(palette.toolPendingSurface).hex(palette.foreground),
-	executionSurfacePassed: chalk.bgHex(palette.toolSuccessSurface).hex(palette.foreground),
-	executionSurfaceFailed: chalk.bgHex(palette.toolErrorSurface).hex(palette.foreground),
-	executionSurfaceCancelled: chalk.bgHex(palette.toolWarningSurface).hex(palette.foreground),
+	executionSurface: background("toolPendingSurface"),
+	executionSurfacePending: background("toolPendingSurface"),
+	executionSurfacePassed: background("toolSuccessSurface"),
+	executionSurfaceFailed: background("toolErrorSurface"),
+	executionSurfaceCancelled: background("toolWarningSurface"),
 	executionCommand: (text: string) => chalk.bold(colors.accent(text)),
 	executionOutput: colors.muted,
 	narration: colors.accent,
@@ -83,28 +177,43 @@ export const editorTheme: EditorTheme = {
 	selectList: selectListTheme,
 };
 
-export const syntaxHighlightPlugin = createNativeSyntaxHighlightPlugin({
-	comment: palette.muted,
-	keyword: palette.blue,
-	function: palette.teal,
-	variable: palette.foreground,
-	string: palette.amber,
-	number: palette.orange,
-	type: palette.steel,
-	operator: palette.amber,
-	punctuation: palette.muted,
-	inserted: palette.success,
-	deleted: palette.red,
-});
+let syntaxTheme: TuiThemeName | undefined;
+let syntaxPlugin: ReturnType<typeof createNativeSyntaxHighlightPlugin> | undefined;
+function currentSyntaxPlugin(): ReturnType<typeof createNativeSyntaxHighlightPlugin> {
+	const theme = getActiveTuiTheme();
+	if (!syntaxPlugin || syntaxTheme !== theme) {
+		syntaxTheme = theme;
+		syntaxPlugin = createNativeSyntaxHighlightPlugin({
+			comment: palette.muted,
+			keyword: palette.blue,
+			function: palette.teal,
+			variable: palette.foreground,
+			string: palette.amber,
+			number: palette.orange,
+			type: palette.steel,
+			operator: palette.amber,
+			punctuation: palette.muted,
+			inserted: palette.success,
+			deleted: palette.red,
+		});
+	}
+	return syntaxPlugin;
+}
+
+export const syntaxHighlightPlugin = {
+	name: "gajae-native-tree-sitter",
+	supports: (language: string) => currentSyntaxPlugin().supports(language),
+	highlight: (code: string, language?: string) => currentSyntaxPlugin().highlight(code, language),
+};
 
 export const markdownTheme: MarkdownTheme = {
 	heading: (text) => colors.accent(chalk.bold(text)),
-	link: chalk.underline.hex(palette.teal),
+	link: text => chalk.underline(colors.accent(text)),
 	linkUrl: colors.muted,
-	code: (text) => chalk.bgHex("#20292d").hex(palette.amber)(` ${text} `),
-	codeBlock: chalk.hex(palette.foreground),
+	code: (text) => background("panel", "amber")(` ${text} `),
+	codeBlock: colors.text,
 	codeBlockBorder: colors.warm,
-	quote: chalk.italic.hex(palette.foreground),
+	quote: text => chalk.italic(colors.text(text)),
 	quoteBorder: colors.secondary,
 	hr: colors.border,
 	listBullet: colors.accent,
@@ -116,11 +225,11 @@ export const markdownTheme: MarkdownTheme = {
 	codeBlockIndent: "  ",
 };
 
-/** Telemetry teal → steel blue → signal amber stops for the WWW landmark glyph. */
+/** Gruvbox orange → aqua → yellow stops for the WWW landmark glyph. */
 const GRADIENT_STOPS: ReadonlyArray<readonly [number, number, number]> = [
-	[85, 174, 182],
-	[120, 167, 198],
-	[208, 161, 95],
+	[254, 128, 25],
+	[131, 165, 152],
+	[250, 189, 47],
 ];
 
 function gradientColorAt(position: number): (text: string) => string {
@@ -180,6 +289,6 @@ function mixHex(start: string, end: string, amount: number): string {
 
 export function composerBorderHex(frame: number): string {
 	const position = (frame % 24) / 23;
-	if (position <= 0.5) return mixHex(palette.teal, palette.steel, position * 2);
-	return mixHex(palette.steel, palette.orange, (position - 0.5) * 2);
+	if (position <= 0.5) return mixHex(palette.orange, palette.teal, position * 2);
+	return mixHex(palette.teal, palette.amber, (position - 0.5) * 2);
 }

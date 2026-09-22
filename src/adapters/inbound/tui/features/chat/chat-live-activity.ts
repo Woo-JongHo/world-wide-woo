@@ -88,9 +88,6 @@ export class ChatLiveActivity {
 				rows.push(`${index === 0 ? `${colors.accent(frame)} ` : "  "}${semantic.activity(activityGradientFrame(line, this.frame))}`);
 			}
 		}
-		if (this.indicator.hint) {
-			rows.push(...wrapTextWithAnsi(`  ${this.indicator.hint}`, contentWidth).map((line) => colors.muted(line)));
-		}
 		rows.push("");
 		return rows;
 	}

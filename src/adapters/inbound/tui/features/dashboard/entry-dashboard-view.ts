@@ -1,5 +1,5 @@
 import { truncateToWidth, visibleWidth, wrapTextWithAnsi, type Component } from "@earendil-works/pi-tui";
-import type { LinearDashboardIssue, LinearProjectDashboard } from "../../../../../core/domain/work/linear-dashboard";
+import type { LinearDashboardComment, LinearDashboardIssue, LinearProjectDashboard } from "../../../../../core/domain/work/linear-dashboard";
 import type { WorkbenchSnapshot } from "../../../../../core/domain/work/workbench";
 import { colors } from "../../foundation/theme/theme";
 
@@ -54,6 +54,20 @@ function updateRows(dashboard: LinearProjectDashboard, width: number): string[] 
 	}
 	if (update.createdAt) rows.push(colors.muted(`  ${clock(update.createdAt)}`));
 	return rows.length > 0 ? rows : [colors.muted("  Project Update가 없습니다.")];
+}
+
+function commentSummary(comment: LinearDashboardComment): string {
+	const line = comment.body.split(/\r?\n/u).map(value => value.trim()).filter(value => value && !/^#{1,6}\s*/u.test(value)).map(value => value.replace(/^[-*]\s*/u, "")).find(Boolean);
+	return line || "내용 없는 Comment";
+}
+
+function commentRows(dashboard: LinearProjectDashboard, width: number, now: Date): string[] {
+	const comments = dashboard.comments.slice(0, 3);
+	if (comments.length === 0) return [colors.muted("  최근 Comment가 없습니다.")];
+	return comments.flatMap(comment => [
+		colors.muted(`  ${comment.author ?? "Linear"} · ${relativeAge(comment.createdAt, now)}`),
+		...wrapTextWithAnsi(`  ${commentSummary(comment)}`, width),
+	]);
 }
 
 function snapshotText(value: string | null | undefined, fallback: string): string {
@@ -122,7 +136,7 @@ export class EntryDashboardView implements Component {
 		const rows: string[] = [colors.secondary(`DASHBOARD · ${projectName}`)];
 		if (!dashboard || dashboard.state === "loading") {
 			rows.push(section("NOW"), colors.accent("연결 중"));
-			rows.push(...wrapTextWithAnsi("열린 이슈·최신 Update·마일스톤을 가져오는 중입니다.", contentWidth));
+			rows.push(...wrapTextWithAnsi("열린 이슈·최신 Update·Comment·마일스톤을 가져오는 중입니다.", contentWidth));
 			return rows;
 		}
 		if (dashboard.state === "unavailable") {
@@ -149,6 +163,7 @@ export class EntryDashboardView implements Component {
 		} else rows.push(colors.muted("  다음 작업이 없습니다."));
 
 		rows.push(section("UPDATE"), ...updateRows(dashboard, contentWidth));
+		rows.push(section("ACTIVITY"), ...commentRows(dashboard, contentWidth, this.now()));
 		rows.push(section("RECENT"));
 		const recent = [...issues].filter(issue => issue.updatedAt).sort((left, right) => Date.parse(right.updatedAt!) - Date.parse(left.updatedAt!)).slice(0, 4);
 		if (recent.length > 0) {

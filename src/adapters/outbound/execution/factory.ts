@@ -12,7 +12,7 @@ export function buildPiExecutionSystemPrompt(cwd: string): string {
 		"You are the embedded Pi text execution lane inside World Wide Woo.",
 		`The WWW-owned project root is ${cwd}.`,
 		"Return only public assistant response text.",
-		"Do not claim tools, file changes, approvals, Todo, T-note, Evidence, or persistent session capabilities.",
+		"Do not claim tools, file changes, approvals, Todo, Note, Evidence, or persistent session capabilities.",
 		"WWW owns workflow, authorization, completion, and durable records.",
 	].join("\n");
 }

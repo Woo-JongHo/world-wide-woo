@@ -26,6 +26,7 @@ const EXPECTED_COUNTS = {
 	"TUI-F015": 1,
 	"TUI-F016": 2,
 	"TUI-F017": 1,
+	"TUI-F018": 1,
 } as const satisfies Record<TuiFeatureId, number>;
 
 const EXPECTED_TITLES = {
@@ -41,10 +42,10 @@ const EXPECTED_TITLES = {
 	"TUI-F002-U08": "현재 공개 대화 Recap 조회",
 	"TUI-F003-U01": "Native Plan·Todo 읽기",
 	"TUI-F003-U02": "프로젝트 계획 초안 작성",
-	"TUI-F004-U01": "질문별 완료 T-note 읽기",
-	"TUI-F004-U02": "T-note 캡처",
-	"TUI-F004-U03": "T-note 정본 반영 승인",
-	"TUI-F004-U04": "공개 T-note 외부 검토",
+	"TUI-F004-U01": "질문별 완료 Note 읽기",
+	"TUI-F004-U02": "Note 캡처",
+	"TUI-F004-U03": "Note 정본 반영 승인",
+	"TUI-F004-U04": "공개 Note 외부 검토",
 	"TUI-F005-U01": "Plan·실행 Flow Tracer",
 	"TUI-F005-U02": "정확한 Activity Source 선택",
 	"TUI-F006-U01": "Runtime·Request Live Monitor",
@@ -66,12 +67,13 @@ const EXPECTED_TITLES = {
 	"TUI-F016-U01": "Git 작업 트리·Commit 조회",
 	"TUI-F016-U02": "열린 GitHub Issue 조회",
 	"TUI-F017-U01": "Request 단계·Subagent 위임 관측",
+	"TUI-F018-U01": "렌더 캐시 구성·점유·재사용 현황",
 } as const satisfies Partial<Record<TuiFeatureUnitId, string>>;
 
 describe("TUI feature Unit catalog", () => {
-	test("contains the 17 features and exact 37 inventoried Units", () => {
-		expect(TUI_FEATURES).toHaveLength(17);
-		expect(TUI_FEATURE_UNITS).toHaveLength(37);
+	test("contains the 18 features and exact 38 inventoried Units", () => {
+		expect(TUI_FEATURES).toHaveLength(18);
+		expect(TUI_FEATURE_UNITS).toHaveLength(38);
 		expect(Object.fromEntries(TUI_FEATURE_UNITS.map((unit) => [unit.id, unit.title]))).toEqual(EXPECTED_TITLES);
 	});
 

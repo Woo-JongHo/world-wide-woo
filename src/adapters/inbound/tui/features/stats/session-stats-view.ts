@@ -2,6 +2,7 @@ import { truncateToWidth, visibleWidth, wrapTextWithAnsi, type Component } from 
 import type { RequestReview, SessionStatsSnapshot } from "../../../../../core/domain/observability/session-stats.js";
 import type { ObservabilitySessionSummary } from "../../../../../core/domain/observability/observability-dashboard.js";
 import { colors } from "../../foundation/theme/theme.js";
+import { workbenchModelLabel } from "../../foundation/labels";
 
 type StatsTarget = "session" | "diagnostics" | "latest" | number;
 type LineWriter = (value?: string) => void;
@@ -167,7 +168,7 @@ function requestTableRow(request: RequestReview, width: number, selected = false
 	return `${marker}${ordinal}  ${pad(requestLabel(request), 43)}  ${pad(status, 11)}  ${pad(modelLabel(request.models.at(0) ?? "—"), 14)}  ${pad(duration(request.observedElapsedMs), 8)}`;
 }
 function requestLabel(request: RequestReview): string { return oneLine(request.excerpt ?? "Request label unavailable", 44); }
-function modelLabel(model: string): string { return model.replace(/^gpt-[\d.]+-/u, "").replace(/^claude-/u, "").replace(/^gemini-/u, ""); }
+function modelLabel(model: string): string { return workbenchModelLabel(model); }
 function usageBar(share: number | null, width: number): string { const filled = share === null ? 0 : Math.round(width * share / 100); return `${colors.accent("█".repeat(filled))}${colors.muted("░".repeat(width - filled))}`; }
 function oneLine(value: string, width: number): string { return truncateToWidth(value.replace(/\s+/gu, " ").trim(), width); }
 function pad(value: string, width: number): string { return `${truncateToWidth(value, width)}${" ".repeat(Math.max(0, width - visibleWidth(value)))}`; }

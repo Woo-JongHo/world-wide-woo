@@ -128,7 +128,7 @@ export class CanonicalPromotionService {
 	}
 }
 
-/** Creates a redacted Todo or T-note promotion draft from an immutable source snapshot. */
+/** Creates a redacted Todo or Note promotion draft from an immutable source snapshot. */
 export function createCanonicalDocumentDraft(input: CanonicalDocumentDraftInput): CanonicalDocumentDraft {
 	if (typeof input.body !== "string" || typeof input.source.body !== "string") throw new Error("정본 문서 본문과 source는 문자열이어야 합니다.");
 	const body = sanitizeTerminalText(input.body, 256 * 1024);

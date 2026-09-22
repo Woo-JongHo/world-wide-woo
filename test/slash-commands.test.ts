@@ -128,6 +128,9 @@ describe("WWW slash commands", () => {
 		expect(parseWorkbenchShellCommand("/mcp disable linear-woo")).toEqual({ type: "mcp.disable", name: "linear-woo" });
 		expect(parseWorkbenchShellCommand("/mcp reload")).toEqual({ type: "mcp.reload" });
 		expect(parseWorkbenchShellCommand("/mcp enable")).toMatchObject({ type: "error" });
+		expect(parseWorkbenchShellCommand("/theme tokyo-night")).toEqual({ type: "theme.set", theme: "tokyo-night" });
+		expect(parseWorkbenchShellCommand("/theme gruvbox")).toEqual({ type: "theme.set", theme: "gruvbox" });
+		expect(parseWorkbenchShellCommand("/theme invalid")).toMatchObject({ type: "error" });
 		expect(parseWorkbenchShellCommand("/skill commit")).toBeNull();
 	});
 
@@ -135,10 +138,12 @@ describe("WWW slash commands", () => {
 		expect(WORKBENCH_SLASH_COMMANDS.map((command) => command.name)).toContain("model");
 		expect(WORKBENCH_SLASH_COMMANDS.map((command) => command.name)).toContain("stats");
 		expect(WORKBENCH_SLASH_COMMANDS.find((command) => command.name === "tnotes")?.description)
-			.toBe("완료된 질문별 T-note pane 안내");
+			.toBe("완료된 질문별 Note pane 안내");
 		expect(WORKBENCH_SLASH_COMMANDS.find((command) => command.name === "source")?.description).toContain("Monitor");
 		expect(WORKBENCH_SLASH_COMMANDS.find((command) => command.name === "trace")?.description).toContain("Monitor");
-		expect(WORKBENCH_SLASH_COMMANDS.map((command) => command.name)).toEqual(expect.arrayContaining(["clear", "compact", "mcp", "goal"]));
+		expect(WORKBENCH_SLASH_COMMANDS.map((command) => command.name)).toEqual(expect.arrayContaining(["clear", "compact", "cache", "mcp", "goal"]));
+		expect(WORKBENCH_SLASH_COMMANDS.find((command) => command.name === "theme")).toBeDefined();
+		expect(WORKBENCH_SLASH_COMMANDS.find((command) => command.name === "three-body")).toBeDefined();
 		const modelCommand = WORKBENCH_SLASH_COMMANDS.find((command) => command.name === "model");
 		const modelCompletions = await modelCommand?.getArgumentCompletions?.("");
 		expect(modelCompletions?.map((item) => item.value)).toEqual([
@@ -150,12 +155,12 @@ describe("WWW slash commands", () => {
 		]);
 		const effortCompletions = await modelCommand?.getArgumentCompletions?.("gpt-5.6-terra ");
 		expect(effortCompletions).toEqual([
-			{ value: "gpt-5.6-terra low", label: "low", description: "추론 강도" },
-			{ value: "gpt-5.6-terra medium", label: "medium", description: "추론 강도" },
-			{ value: "gpt-5.6-terra high", label: "high", description: "추론 강도" },
-			{ value: "gpt-5.6-terra xhigh", label: "xhigh", description: "추론 강도" },
-			{ value: "gpt-5.6-terra max", label: "max", description: "추론 강도" },
-			{ value: "gpt-5.6-terra ultra", label: "ultra", description: "Codex 자동 위임 포함" },
+			{ value: "gpt-5.6-terra low", label: "Low", description: "추론 강도" },
+			{ value: "gpt-5.6-terra medium", label: "Middle", description: "추론 강도" },
+			{ value: "gpt-5.6-terra high", label: "High", description: "추론 강도" },
+			{ value: "gpt-5.6-terra xhigh", label: "xHigh", description: "추론 강도" },
+			{ value: "gpt-5.6-terra max", label: "Max", description: "추론 강도" },
+			{ value: "gpt-5.6-terra ultra", label: "Ultra", description: "Codex 자동 위임 포함" },
 		]);
 		expect(SLASH_COMMANDS.map((command) => command.name)).toEqual([
 			"model",

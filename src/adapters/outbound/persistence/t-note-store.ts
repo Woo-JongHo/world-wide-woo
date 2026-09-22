@@ -22,7 +22,7 @@ export class FileTNoteStore implements TNoteDraftStore {
 
 	public readAll(projectId: string): Promise<readonly TNoteDraft[]> {
 		return serialize(this.path(), async () => {
-			if (typeof projectId !== "string" || projectId.length === 0) throw new Error("Invalid T-note project id");
+			if (typeof projectId !== "string" || projectId.length === 0) throw new Error("Invalid Note project id");
 			return (await this.readAllUnchecked()).filter((draft) => draft.packet.projectId === projectId);
 		});
 	}
@@ -34,7 +34,7 @@ export class FileTNoteStore implements TNoteDraftStore {
 		let content: string;
 		try {
 			const info = await lstat(path);
-			if (!info.isFile() || info.isSymbolicLink()) throw new Error(`Unsafe T-note store file: ${path}`);
+			if (!info.isFile() || info.isSymbolicLink()) throw new Error(`Unsafe Note store file: ${path}`);
 			content = await readFile(path, "utf8");
 		} catch (error) {
 			if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
@@ -63,7 +63,7 @@ export class FileTNoteStore implements TNoteDraftStore {
 			if (draft.sequence !== lineNumber) throw new Error("sequence is not monotonic");
 			return draft;
 		} catch (error) {
-			throw new Error(`Invalid T-note draft at line ${lineNumber}: ${(error as Error).message}`);
+			throw new Error(`Invalid Note draft at line ${lineNumber}: ${(error as Error).message}`);
 		}
 	}
 
@@ -87,13 +87,13 @@ export class FileTNoteStore implements TNoteDraftStore {
 	private async appendLine(line: string): Promise<void> {
 		await mkdir(this.directory, { recursive: true, mode: 0o700 });
 		const info = await lstat(this.directory);
-		if (!info.isDirectory() || info.isSymbolicLink()) throw new Error(`Unsafe T-note store directory: ${this.directory}`);
+		if (!info.isDirectory() || info.isSymbolicLink()) throw new Error(`Unsafe Note store directory: ${this.directory}`);
 		await chmod(this.directory, 0o700);
 		const path = this.path();
 		let existing = false;
 		try {
 			const file = await lstat(path);
-			if (!file.isFile() || file.isSymbolicLink()) throw new Error(`Unsafe T-note store file: ${path}`);
+			if (!file.isFile() || file.isSymbolicLink()) throw new Error(`Unsafe Note store file: ${path}`);
 			existing = true;
 		} catch (error) {
 			if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;

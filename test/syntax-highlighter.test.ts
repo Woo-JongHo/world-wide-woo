@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import { syntaxHighlightPlugin } from "../src/adapters/inbound/tui/foundation/theme/theme";
+import { getActiveTuiTheme, setActiveTuiTheme, syntaxHighlightPlugin } from "../src/adapters/inbound/tui/foundation/theme/theme";
 
 describe("native syntax highlight plugin", () => {
 	test("colors supported Python tokens without changing terminal width", () => {
@@ -17,5 +17,19 @@ describe("native syntax highlight plugin", () => {
 		const source = "alpha < beta";
 		const lines = syntaxHighlightPlugin.highlight(source, "www-unknown-language");
 		expect(stripTerminalSequences(lines.join("\n"))).toBe(source);
+	});
+
+	test("rebuilds syntax colors when /theme changes", () => {
+		const previous = getActiveTuiTheme();
+		try {
+			setActiveTuiTheme("gruvbox");
+			const gruvbox = syntaxHighlightPlugin.highlight("def generate():\n    return 1", "python").join("\n");
+			setActiveTuiTheme("tokyo-night");
+			const tokyoNight = syntaxHighlightPlugin.highlight("def generate():\n    return 1", "python").join("\n");
+			expect(tokyoNight).not.toBe(gruvbox);
+			expect(stripTerminalSequences(tokyoNight)).toBe("def generate():\n    return 1");
+		} finally {
+			setActiveTuiTheme(previous);
+		}
 	});
 });

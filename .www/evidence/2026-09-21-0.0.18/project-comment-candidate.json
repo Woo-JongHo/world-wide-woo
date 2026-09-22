@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-WWW-018-ACTIVITY-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:ce7731454c09c4ca5df4413f9f223be3eaea960c:dirty",
+  "intent": "0.0.18 후보의 Workbench UI와 Linear Activity 연결 결과를 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "Workbench에 /theme Gruvbox·Tokyo Night 전환과 theme-aware render cache 재생성을 연결했다.",
+      "Plan 세부·Queue 입력 placeholder·5행 bounded terminal output·provider 구독 잔여 HUD를 현재 화면 계약에 맞춰 정리했다.",
+      "WWW 환영 화면에 동일질량 figure-eight 삼체 수치 궤도와 결정적 narrow-width 렌더를 추가했다.",
+      "Linear Dashboard가 최신 Project Activity Comment 5건을 읽고 입장 화면 ACTIVITY에 최근 3건을 표시하도록 복구했다."
+    ],
+    "impacts": [
+      "Linear Update만 멈춰 보이던 입장 화면에서 실제 작업 Comment의 작성자·경과·요약을 확인할 수 있다.",
+      "Comment 조회가 실패해도 기존 이슈·Update·마일스톤 Dashboard는 유지된다.",
+      "새 Workbench 시각 기능과 렌더링 캐시 경계가 0.0.18 릴리스 후보에 함께 고정된다."
+    ],
+    "categories": ["feature", "improvement", "fix", "verification"],
+    "verification": [
+      "bun run check 통과",
+      "bun test: 1311 pass, 0 fail, 16834 assertions, 146 files",
+      "Linear Dashboard·Activity·Workbench·Astra 대상 회귀 285 pass, 0 fail",
+      "git diff --check 통과 및 bun src/cli.ts --version → 0.0.18",
+      "Comment 조회 실패 fallback과 narrow-width ACTIVITY 렌더 검증 통과"
+    ],
+    "connections": [
+      "Linear: WOO-912",
+      "Branch: ui/workbench-visual-polish",
+      "Package: 0.0.18",
+      "Evidence: .www/evidence/2026-09-21-0.0.18",
+      "Research: docs/research/2026-09-21-three-body-special-solutions.md"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-912/workbench-ui-모드모델계획구독-잔여-표기를-정리한다",
+    "evidence": ".www/evidence/2026-09-21-0.0.18"
+  },
+  "expectedBefore": {
+    "latestCommentId": "7c2cd97d-d51b-4cca-906c-cfec0c1a4e91"
+  },
+  "validation": [
+    {
+      "id": "linear-before-readback",
+      "status": "pass",
+      "evidence": "Project Activity 최신 Comment identity를 게시 직전 조회 결과에 고정했다."
+    },
+    {
+      "id": "implementation-verification",
+      "status": "pass",
+      "evidence": "TypeScript, 전체 1311개 테스트, 대상 회귀 285개, diff 검사를 실제 실행했다."
+    }
+  ],
+  "candidateDigest": "b8e3a103a9f1f69d72de0dce722ed871b558edadb336b314ed453932f5d0a402"
+}

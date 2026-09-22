@@ -7,6 +7,7 @@ import {
 	CHAT_PUBLIC_OUTPUT_MAX_CHARS,
 	CHAT_STRUCTURED_DISPLAY_MAX_BYTES,
 	CHAT_STRUCTURED_DISPLAY_MAX_LINES,
+	CHAT_TERMINAL_OUTPUT_CHUNK_LINES,
 	workStepStatusPresentation,
 	workStepStatusSymbol,
 	type WorkStepStatusPresentation,
@@ -14,7 +15,7 @@ import {
 
 export { workStepStatusPresentation, type WorkStepStatusPresentation } from "./chat-output-policy";
 
-const BASH_OUTPUT_MAX_LINES = 10;
+const BASH_OUTPUT_MAX_LINES = CHAT_TERMINAL_OUTPUT_CHUNK_LINES;
 const BASH_SPINNER = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"] as const;
 
 export type ExecutionLineTone =

@@ -123,7 +123,7 @@ test("a newly discovered model crosses completion, command, picker, persistence,
 		expect((await command.getArgumentCompletions!(""))?.some(item => item.value === futureModel)).toBe(false);
 		currentCatalog = catalog;
 		expect((await command.getArgumentCompletions!(""))?.map(item => item.value)).toEqual([futureModel]);
-		expect((await command.getArgumentCompletions!(`${futureModel} `))?.map(item => item.label)).toEqual(["high", "ultra"]);
+		expect((await command.getArgumentCompletions!(`${futureModel} `))?.map(item => item.label)).toEqual(["High", "Ultra"]);
 		let applied: WwwSettings | undefined;
 		const current = workbenchModelSettings(workbench.snapshot);
 		const picker = new ModelPickerOverlay(current, async provider => ({ state: "configured", provider, source: "fixture", type: "oauth" }), () => {}, async settings => {
@@ -133,7 +133,7 @@ test("a newly discovered model crosses completion, command, picker, persistence,
 		picker.start();
 		expect(stripTerminalSequences(picker.render(76).join("\n"))).toContain("갱신 중");
 		await Bun.sleep(0);
-		expect(stripTerminalSequences(picker.render(76).join("\n"))).toContain(futureModel);
+		expect(stripTerminalSequences(picker.render(76).join("\n"))).toContain("Native Future Fixture");
 		picker.handleInput("\r"); picker.handleInput("\x1b[B"); picker.handleInput("\r"); picker.handleInput("\r");
 		for (let i = 0; i < 100 && workbench.snapshot.model !== futureModel; i++) await Bun.sleep(1);
 		expect(applied).toEqual({ provider: "openai-codex", model: futureModel, effort: "ultra" });
@@ -151,7 +151,7 @@ test("a long refreshed model list keeps the selected last item visible in a smal
 	const picker = new ModelPickerOverlay(current, async provider => ({ state: "configured", provider, source: "fixture", type: "oauth" }), () => {}, async () => {}, () => {}, () => {}, current, false, { providers: ["openai-codex"], startAtModel: true, nativeCodex: true, appearance: "astra", catalog });
 	const sheet = new AstraSheet(picker, () => 12, { followSelection: true });
 	const rendered = stripTerminalSequences(sheet.render(76).join("\n"));
-	expect(rendered).toMatch(/›\s+fixture-29/u);
+	expect(rendered).toMatch(/›\s+Fixture 29/u);
 });
 
 test.each(["astra", "workbench"])("%s bounds long option lists and wraps selection without hiding it at 80x24", appearance => {
@@ -162,8 +162,8 @@ test.each(["astra", "workbench"])("%s bounds long option lists and wraps selecti
 	const plain = stripTerminalSequences(lines.join("\n"));
 	// Includes room for wrapper borders inside a 70%-height overlay.
 		expect(lines.length + 2).toBeLessThanOrEqual(Math.floor(24 * 0.7));
-		expect(plain).toMatch(/›\s+fixture-29/u);
+		expect(plain).toMatch(/›\s+Fixture 29/u);
 		expect(plain).toContain("30/30");
 	picker.handleInput("\x1b[B");
-	expect(stripTerminalSequences(picker.render(46).join("\n"))).toMatch(/›\s+fixture-0\b/u);
+	expect(stripTerminalSequences(picker.render(46).join("\n"))).toMatch(/›\s+Fixture 0\b/u);
 });

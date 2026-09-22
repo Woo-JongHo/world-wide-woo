@@ -34,16 +34,16 @@ export class TNoteService {
 	) {}
 
 	public async create(input: CreateTNoteInput, signal?: AbortSignal): Promise<TNoteDraft> {
-		if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("Invalid T-note request");
+		if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("Invalid Note request");
 		const instruction = sanitizeTNoteText(input.instruction, 4 * 1024);
-		if (instruction.length === 0) throw new Error("Invalid T-note instruction");
+		if (instruction.length === 0) throw new Error("Invalid Note instruction");
 		const packet = createTNotePacket(input.projectId, input.range, input.activities, this.clock().toISOString(), digest);
 		const policy: DetachedGenerationPolicy = Object.freeze({ cwd: "", noTools: true, network: false, readOnly: true, ephemeral: true });
 		const result = await this.generator.generate(Object.freeze({ packet, instruction, policy }), signal);
 		assertDetachedPolicy(policy, result?.isolation);
 		const text = result.text;
 		if (typeof text !== "string" || text.length === 0 || new TextEncoder().encode(text).byteLength > 64 * 1024) {
-			throw new Error("Detached generator returned unsafe T-note text");
+			throw new Error("Detached generator returned unsafe Note text");
 		}
 		const validation = validateCanonicalTNote(text, input.expectedQuestion);
 		if (!validation.valid) throw new Error(validation.reason);
@@ -109,10 +109,10 @@ export function validateCanonicalTNote(
 ): CanonicalTNoteValidation {
 	const report = parseCanonicalTNoteReport(text);
 	const legacy = options.allowLegacy ? parseLegacyCanonicalTNote(text) : null;
-	if (!report && !legacy) return { valid: false, reason: "Detached generator returned malformed T-note text" };
+	if (!report && !legacy) return { valid: false, reason: "Detached generator returned malformed Note text" };
 	if (report?.test && !options.allowRuntimeTestSummary) return { valid: false, reason: "Detached generator must not generate the runtime Test summary" };
 	const question = report?.question ?? legacy!.question;
-	if (question !== expectedQuestion) return { valid: false, reason: "Detached generator returned mismatched T-note question" };
+	if (question !== expectedQuestion) return { valid: false, reason: "Detached generator returned mismatched Note question" };
 	const fields = report
 		? [report.reason, report.proposal, report.action, report.result]
 		: [legacy!.why, legacy!.result];

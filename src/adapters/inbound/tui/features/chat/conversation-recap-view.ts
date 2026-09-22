@@ -3,7 +3,11 @@ import { currentConversationRecap } from "../../../../../core/application/work/c
 import type { WorkbenchSnapshot } from "../../../../../core/domain/work/workbench.js";
 import { a, fit, section } from "../../foundation/theme/astra-theme.js";
 
-/** Renders the bounded public recap inside Chat's existing expanded transcript. */
+/**
+ * Renders the bounded public recap inside Chat's existing expanded transcript.
+ * Recap remains a transient Chat aid by design; do not persist or merge it into
+ * Note content until the Note contract is redesigned.
+ */
 export function conversationRecapRows(snapshot: Pick<WorkbenchSnapshot, "chat">, width: number): string[] {
 	if (width <= 0) return [];
 	const recap = currentConversationRecap(snapshot);

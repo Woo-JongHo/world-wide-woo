@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "1.0",
+  "receiptId": "RECEIPT-WWW-018-FIGURE-EIGHT-LAB-COMMENT",
+  "capability": "linear-project-comment.publish",
+  "status": "succeeded",
+  "stage": "verify",
+  "actor": { "kind": "codex" },
+  "context": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "sourceRevision": "git:ce7731454c09c4ca5df4413f9f223be3eaea960c:dirty",
+    "verifiedAt": "2026-09-21T14:14:39.350Z"
+  },
+  "input": {
+    "candidateId": "ARTIFACT-CANDIDATE-WWW-018-FIGURE-EIGHT-LAB-COMMENT",
+    "candidateDigest": "60877e4b66c348b78474322aef249ecb002f3b42c237601080cd285d398ca70b",
+    "expectedBeforeLatestCommentId": "cad53592-6d1e-467e-be6d-86f052dc7340"
+  },
+  "result": {
+    "id": "187d0883-9013-4bcd-b11a-fc8d33343a26",
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "author": "우종호"
+  },
+  "readBack": {
+    "latestCommentId": "187d0883-9013-4bcd-b11a-fc8d33343a26",
+    "bodyMatches": true,
+    "latestCommentFirst": true,
+    "projectUpdateId": "864ec8bd-eff1-47fe-81fb-4062b1f06681",
+    "projectUpdateHealth": "atRisk",
+    "projectUpdateBodyMatches": true
+  }
+}

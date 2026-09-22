@@ -17,7 +17,7 @@ export function boundCompletedTurnNoteActivities(
 	activities: readonly ProjectActivity[],
 	maximum: number,
 ): readonly ProjectActivity[] {
-	if (!Number.isSafeInteger(maximum) || maximum < 4) throw new Error("T-note activity bound must be at least 4");
+	if (!Number.isSafeInteger(maximum) || maximum < 4) throw new Error("Note activity bound must be at least 4");
 	if (activities.length <= maximum) return activities;
 	const requiredIndexes = new Set([0, 1, activities.length - 1]);
 	for (let index = activities.length - 2; index >= 2; index -= 1) {

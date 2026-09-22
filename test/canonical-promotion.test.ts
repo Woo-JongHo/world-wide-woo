@@ -62,7 +62,7 @@ describe("human-gated canonical promotion", () => {
 		expect(await store.writeAtomic(original.target, digestCanonicalDocument(""), "# 덮어쓰기")).toMatchObject({ status: "conflict" });
 	});
 
-	test("uses a safe per-note allowlist target for T-note drafts", async () => {
+	test("uses a safe per-note allowlist target for Note drafts", async () => {
 		const root = await project();
 		const service = new CanonicalPromotionService(new FileCanonicalDocumentStore(root));
 		const note = createCanonicalDocumentDraft({

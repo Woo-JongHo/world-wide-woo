@@ -36,6 +36,8 @@ export class PiActivityNarrator implements ActivityNarrator {
 				"당신은 개발 실행 기록을 한국어로 짧게 해석하는 Activity Narrator입니다.",
 				"입력에 명시된 목표·단계·명령만 근거로 사용하고, 누락된 의도를 추측하지 마세요.",
 				"what은 사용자가 이해할 구체적인 한 문장, why는 근거가 있을 때만 한 문장으로 작성하세요.",
+				"stepTitle은 큰 계획 단계입니다. what에는 그 안에서 지금 수행하는 중간 규모 행동을 설명하세요. 파일 읽기, 회귀 테스트, 독립 검토도 행동입니다.",
+				"명령·경로·원시 로그를 그대로 복사하거나 item/started 같은 기술 이벤트 이름을 출력하지 마세요.",
 				"반드시 {what, why|null, inputSummary:string[]} JSON 객체 하나만 반환하세요.",
 			].join(" "),
 			messages: [{ role: "user", content: input, timestamp: Date.now() }],
@@ -82,6 +84,7 @@ function parseNarration(raw: string): ActivityNarrationResult {
 		throw new Error("Activity Narrator가 구조화된 narration을 반환하지 않았습니다.");
 	}
 	const record = value as Readonly<Record<string, unknown>>;
+	if (typeof record.what === "string" && /\b(?:item|turn)\/(?:started|completed|updated)|commandExecution|function_call|tool_call/iu.test(record.what)) throw new Error("Activity Narrator가 기술 이벤트를 반환했습니다.");
 	const what = typeof record.what === "string" ? safeText(record.what) : "";
 	const why = typeof record.why === "string" ? safeText(record.why) : "";
 	const inputSummary = Array.isArray(record.inputSummary)

@@ -14,11 +14,10 @@ beforeEach(() => { saved = getCapabilities(); setCapabilities({ ...saved, images
 afterEach(() => setCapabilities(saved));
 const transmissions = (text: string) => [...text.matchAll(/\x1b_G(a=T[^;]*);([^\x1b]*)\x1b\\/gu)];
 
-test("places all four downloaded PNG logos inside one HUD row", () => {
+test("places all four downloaded PNG logos inside the bounded HUD", () => {
 	const hud = new AstraHud(() => astraFixture(), () => usage);
 	const rows = hud.render(200);
-	expect(rows).toHaveLength(1);
-	const images = transmissions(rows[0]!);
+	const images = transmissions(rows.join("\n"));
 	expect(images).toHaveLength(4);
 	expect(new Set(images.map(image => image[2])).size).toBe(4);
 	for (const image of images) {
@@ -29,9 +28,8 @@ test("places all four downloaded PNG logos inside one HUD row", () => {
 	expect(stripTerminalSequences(rows[0]!)).not.toMatch(/Codex|Claude|Gemini|Z\.AI|[\uE001-\uE004]/u);
 	for (const width of [0, 1, 2, 10, 20, 40, 80, 120, 200]) {
 		const output = hud.render(width);
-		expect(output).toHaveLength(1);
-		expect(visibleWidth(output[0]!)).toBeLessThanOrEqual(width);
-		expect(output[0]).not.toMatch(/[\uE001-\uE004]/u);
+		expect(output.every(row => visibleWidth(row) <= width)).toBe(true);
+		expect(output.join("\n")).not.toMatch(/[\uE001-\uE004]/u);
 	}
 	expect(hud.render(200)).toEqual(rows);
 });
@@ -64,7 +62,7 @@ test("fullscreen host emits all logos, clears placements on resize and image dat
 	const hud = new AstraHud(() => ({ ...astraFixture(), hud: { showUsage, showContext: true } }), () => usage);
 	tui.setLayoutRoot(new VStack([
 		{ component: { render: () => ["Chat"], invalidate() {} }, basis: 0, grow: 1 },
-		{ component: hud, basis: 1, minSize: 1, maxSize: 1 },
+		{ component: hud, basis: "auto", minSize: 1, maxSize: 6 },
 	]));
 	try {
 		tui.start(); await settle();

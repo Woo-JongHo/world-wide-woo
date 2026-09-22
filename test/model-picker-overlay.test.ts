@@ -71,7 +71,7 @@ describe("ModelPickerOverlay hierarchy", () => {
 		expect(lookedUp.sort()).toEqual(["anthropic", "openai-codex"]);
 		picker.handleInput("\x1b[B");
 		picker.handleInput("\r");
-		expect(text(picker)).toContain("선택: anthropic / claude-opus-4-6 / ultra");
+		expect(text(picker)).toContain("선택: anthropic / Claude Opus 4.6 / Ultra");
 	});
 
 	test("starts at model and applies without exposing the single provider step", async () => {
@@ -86,7 +86,7 @@ describe("ModelPickerOverlay hierarchy", () => {
 		const output = text(picker);
 		expect(output).toContain("[모델]  ›  추론  ›  확인");
 		expect(output).not.toContain("[공급자]");
-		expect(output).toContain("› gpt-5.6-sol");
+		expect(output).toContain("› GPT-5.6-Sol");
 		picker.handleInput("\r");
 		expect(text(picker)).toContain("[추론]");
 		picker.handleInput("\r");
@@ -119,7 +119,7 @@ describe("ModelPickerOverlay hierarchy", () => {
 		picker.handleInput("\x1b[B");
 		picker.handleInput("\r");
 		expect(text(picker)).toContain("공급자  ›  [모델]  ›  추론  ›  확인");
-		expect(text(picker)).toContain("선택: anthropic / claude-opus-4-6 / ultra");
+		expect(text(picker)).toContain("선택: anthropic / Claude Opus 4.6 / Ultra");
 		picker.handleInput("\x1b[B");
 		picker.handleInput("\r");
 		expect(text(picker)).toContain("공급자  ›  모델  ›  [추론]  ›  확인");
@@ -142,7 +142,7 @@ describe("ModelPickerOverlay hierarchy", () => {
 		picker.handleInput("\r");
 		picker.handleInput("\x1b[D");
 		expect(text(picker)).toContain("공급자  ›  [모델]  ›  추론  ›  확인");
-		expect(text(picker)).toContain("선택: anthropic / claude-sonnet-4-6 / ultra");
+		expect(text(picker)).toContain("선택: anthropic / Claude Sonnet 4.6 / Ultra");
 		picker.handleInput("\x1b[D");
 		expect(text(picker)).toContain("[공급자]  ›  모델  ›  추론  ›  확인");
 	});
@@ -210,8 +210,8 @@ describe("ModelPickerOverlay hierarchy", () => {
 		const initial: WwwSettings = { provider: "google", model: "gemini-3-flash-preview", effort: "low" };
 		const picker = overlay({ initial, resumeAtConfirmation: true });
 		const output = text(picker);
-		expect(output).toContain("현재: openai-codex / gpt-5.6-sol / ultra");
-		expect(output).toContain("선택: google / gemini-3-flash-preview / low");
+		expect(output).toContain("현재: openai-codex / GPT-5.6-Sol / Ultra");
+		expect(output).toContain("선택: google / Gemini 3 Flash Preview / Low");
 		expect(output).toContain("[확인]");
 	});
 

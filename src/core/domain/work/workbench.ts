@@ -123,14 +123,33 @@ export interface WorkbenchMcpServer {
 }
 
 export interface WorkbenchActionResult {
-	readonly kind: "todo" | "tnote" | "promotion" | "review" | "workflow";
+	readonly kind: "todo" | "tnote" | "promotion" | "review" | "workflow" | "notice";
 	readonly title: string;
 	readonly body: string;
 	readonly digest?: string;
 	readonly createdAt: string;
 }
 
+export interface PlanActivity {
+	readonly id: string;
+	readonly turnId: string;
+	readonly stepId: string;
+	readonly stepTitle: string;
+	readonly summary: string;
+	readonly status: "running" | "completed" | "failed" | "cancelled";
+	readonly sequence: number;
+}
+
+export interface WorkbenchSkillInventory {
+	readonly count: number;
+	readonly names: readonly string[];
+	readonly sourceRevision: string;
+	readonly digest: string;
+}
+
 export interface WorkbenchSnapshot {
+	readonly planActivities?: readonly PlanActivity[];
+	readonly planActivityStatus?: "disabled" | "pending" | "ready" | "unavailable";
 	modelCatalog?: import("../execution/model-settings").NativeModelCatalog;
 	/** Seven-stage protocol history, projected from the durable Activity journal. */
 	requestRuntime?: readonly RequestRuntimeRecord[];
@@ -152,6 +171,7 @@ export interface WorkbenchSnapshot {
 	permissionMode?: WorkbenchPermissionMode;
 	collaborationMode?: WorkbenchCollaborationMode;
 	mcpServers: readonly WorkbenchMcpServer[];
+	skillInventory?: WorkbenchSkillInventory;
 	linearDashboard?: LinearProjectDashboard;
 	wooEntry?: WorkbenchWooEntrySnapshot | null;
 	threadId: string | null;
@@ -167,6 +187,8 @@ export interface WorkbenchSnapshot {
 	evaluationRequired?: boolean;
 	configurationSource?: "project-yaml" | "defaults";
 	tnoteVisibleLimit?: number;
+	tnoteSummaryMaxChars?: number;
+	tnoteSummaryMaxLines?: number;
 	hud?: { readonly showUsage: boolean; readonly showContext: boolean };
 	slash?: { readonly mcp: boolean; readonly clear: boolean; readonly compact: boolean };
 	/** Corrupt receipts stay available for read-only diagnosis, never for resuming execution. */
@@ -201,7 +223,7 @@ export type WorkbenchCommand =
 	| { type: "workflow.check"; processId: string }
 	| { type: "workflow.resume"; runId: string }
 	| { type: "workflow.show"; runId: string }
-	| { type: "chat.send"; text: string }
+	| { type: "chat.send"; text: string; delivery?: "queue" | "steer" }
 	| { type: "chat.cancel" }
 	/** Clears only the TUI projection; durable history is retained. */
 	| { type: "chat.clear" }

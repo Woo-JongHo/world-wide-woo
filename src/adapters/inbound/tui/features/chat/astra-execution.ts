@@ -6,6 +6,9 @@ import { boundedPublicProjection } from "./bounded-public-projection";
 import { conversationRecapRows } from "./conversation-recap-view";
 import { a, astraMarkdownTheme, astraTitle, duration, fit, mark, oneLine, pair, prose, safe, section } from "../../foundation/theme/astra-theme";
 import { parseCanonicalTNoteReport, parseLegacyCanonicalTNote } from "../../../../../core/application/work/t-note-service";
+import { WorkbenchWelcomeView } from "./workbench-welcome";
+import { CHAT_TERMINAL_OUTPUT_CHUNK_LINES } from "./chat-output-policy";
+import { getActiveTuiTheme } from "../../foundation/theme/theme";
 
 const tnoteMarkdownTheme = {
 	...astraMarkdownTheme,
@@ -24,10 +27,10 @@ export function astraConversationLabels(messages: readonly WorkbenchSnapshot["ch
 		if (message.role === "user") {
 			request += 1;
 			response = 0;
-			labels.set(message.id, `Request ${request}`);
+			labels.set(message.id, `REQ ${request}`);
 		} else if (message.role === "assistant") {
 			response += 1;
-			labels.set(message.id, `Response ${Math.max(1, request)}-${response}`);
+			labels.set(message.id, `RES ${Math.max(1, request)}-${response}`);
 		} else labels.set(message.id, "Notice");
 	}
 	return labels;
@@ -43,15 +46,16 @@ export function executionHeading(s: WorkbenchSnapshot): { state: string; title: 
 	if (s.deliveryUncertain) return { state: "수신 미확인", title: "요청 수신 여부를 확인해야 합니다", detail: "/cancel로 서버 상태 확인 · 자동 재전송하지 않음", attention: true };
 	if (s.error || s.phase === "error") return { state: "오류", title: oneLine(s.error || "실행 오류"), detail: "기록을 확인하고 다음 요청을 입력하세요", attention: true };
 	if (s.phase === "loading") return { state: "연결 중", title: "프로젝트 실행 환경을 여는 중", detail: "Native session 연결", attention: false };
-	const request = [...(s.requestRuntime ?? [])].reverse().find(r => r.turnId === s.activeTurnId && r.turnId !== null) ?? s.requestRuntime?.at(-1);
+	const turnId = s.activeTurnId ?? s.workFlow.source?.turnId;
+	const request = turnId ? [...(s.requestRuntime ?? [])].reverse().find(r => r.turnId === turnId) : s.requestRuntime?.at(-1);
 	if (request) {
 		const stage = request.stages.find(x => ["running", "failed", "blocked"].includes(x.status));
-		return { state: stage ? `${stage.id} · ${stage.status}` : request.status, title: oneLine(stage?.tasks.find(t => t.status === "running")?.title ?? request.objective), detail: `${oneLine(stage?.output ?? stage?.goal ?? "요청 종료")} · /todo 단계 · /context 기록`, attention: ["failed", "blocked"].includes(request.status) };
+		return { state: stage ? `${stage.id} · ${stage.status}` : request.status, title: oneLine(stage?.tasks.find(t => t.status === "running")?.title ?? request.objective), detail: astraNowLabel(s) ?? "정리된 작업 내용을 기다리는 중", attention: ["failed", "blocked"].includes(request.status) };
 	}
 	if (s.phase === "working") {
 		const phase = s.executionRun?.phase;
 		const waiting = ["waiting", "blocked", "reconciling", "unknown"].includes(phase ?? "");
-		return { state: waiting ? "대기" : s.draft ? "결과 작성" : "실행 중", title: oneLine(current?.title || lastRequest?.content || s.sessionGoal?.text || "요청을 확인하는 중"), detail: waiting ? `실행 ${phase} · /monitor에서 관측 확인` : astraNowLabel(s) ?? oneLine(s.reasoningSummaryDraft || "첫 실행 관측을 기다리는 중"), attention: waiting };
+		return { state: waiting ? "대기" : s.draft ? "결과 작성" : "실행 중", title: oneLine(current?.title || lastRequest?.content || s.sessionGoal?.text || "요청을 확인하는 중"), detail: waiting ? "작업 진행 상태를 확인하는 중" : astraNowLabel(s) ?? "정리된 작업 내용을 기다리는 중", attention: waiting };
 	}
 	const status = receipt?.status;
 	const blocking = receipt?.remaining.filter(item => item.blocking).length ?? 0;
@@ -64,15 +68,15 @@ export function astraExecutionIsLive(s: WorkbenchSnapshot): boolean {
 }
 
 export function astraNowLabel(s: WorkbenchSnapshot): string | null {
-	if (s.pendingApproval) return `Approval · ${oneLine(s.pendingApproval.params.command || s.pendingApproval.params.reason || "사용자 결정 대기")}`;
-	const live = s.executionRun?.activeActivity ?? s.liveActivity;
-	if (live) {
-		const method = oneLine(live.method).toLowerCase();
-		const kind = live.kind === "file-change" ? "Edit" : live.kind === "tool" && /command|bash/u.test(method) ? "Bash" : live.kind === "tool" ? "Tool" : live.kind === "approval" ? "Approval" : "Agent";
-		return `${kind} · ${oneLine(live.text || live.method)}`;
-	}
-	if (s.draft) return "Response · 최종 응답 작성 중";
-	return null;
+	if (s.pendingApproval) return "사용자 확인을 기다리는 중";
+	if (s.phase !== "working") return null;
+	const turnId = s.activeTurnId ?? s.workFlow.source?.turnId;
+	const latest = [...(s.planActivities ?? [])].filter(item => item.turnId === turnId).sort((left, right) => left.sequence - right.sequence).at(-1);
+	if (latest) return oneLine(latest.summary);
+	if (s.draft) return "최종 응답 작성 중";
+	return s.planActivityStatus === "unavailable" ? "작업 내용을 아직 정리하지 못했습니다."
+		: s.planActivityStatus === "disabled" ? "작업 내용 요약이 꺼져 있습니다."
+		: "현재 단계의 작업 내용을 정리하는 중";
 }
 
 export function astraTNoteMarkdown(item: WorkbenchSnapshot["tnotes"][number]): string {
@@ -96,11 +100,10 @@ function tnoteTitle(item: WorkbenchSnapshot["tnotes"][number]): string {
 function responseFrameRows(label: string, status: string, bodyRows: readonly string[], width: number): string[] {
 	const title = astraTitle(label, a.response);
 	if (width < 5) return ["", pair(title, a.muted(status), width), ...bodyRows, ""].map(row => fit(row, width));
-	const inside = width - 4;
+	const inside = width - 2;
 	const heading = truncateToWidth(` ${title}${status ? `  ${a.muted(status)}` : ""} `, width - 2, "…");
-	const top = `${a.response("┌")}${heading}${a.response("─".repeat(Math.max(0, width - 2 - visibleWidth(heading))))}${a.response("┐")}`;
-	const body = bodyRows.map(row => `${a.response("│")} ${fit(row, inside)} ${a.response("│")}`);
-	return ["", top, ...body, a.response(`└${"─".repeat(width - 2)}┘`), ""].map(row => fit(row, width));
+	const body = bodyRows.map(row => `${a.rule("│")} ${fit(row, inside)}`);
+	return ["", fit(heading, width), ...body, ""].map(row => fit(row, width));
 }
 
 type TNotePanel = { readonly rows: string[] };
@@ -116,8 +119,8 @@ function reportBadge(test: string | undefined): string {
 	if (passed >= count) return a.success(`DONE · TEST ${passed}/${count}`);
 	return a.muted(`OBSERVED · TEST ${passed}/${count}`);
 }
-function tnoteFieldRows(label: string, value: string, width: number, result = false): string[] {
-	return [result ? a.strong(label) : a.secondary(label), ...prose(a.text(safe(value, 4000)), width), ""];
+function tnoteFieldRows(label: string, value: string, width: number): string[] {
+	return [a.secondary(label), ...prose(a.text(safe(value, 4000)), width), ""];
 }
 
 function reportPanel(rows: string[], badge: string, width: number): TNotePanel {
@@ -126,19 +129,18 @@ function reportPanel(rows: string[], badge: string, width: number): TNotePanel {
 
 function reportFrameRows(panel: TNotePanel, evidence: string, width: number): string[] {
 	if (width < 8) return [...panel.rows, evidence].map(row => fit(row, width));
-	const inside = width - 4;
+	const inside = width - 2;
 	const [heading, ...body] = panel.rows;
-	const header = fit(` ${heading ?? ""} `, width - 2);
-	const top = `${a.response("┌")}${header}${a.response("─".repeat(Math.max(0, width - 2 - visibleWidth(header))))}${a.response("┐")}`;
-	const frame = (row: string) => `${a.response("│")} ${fit(row, inside)} ${a.response("│")}`;
-	return ["", top, ...[...body, evidence].map(frame), a.response(`└${"─".repeat(width - 2)}┘`), ""]
+	const header = fit(` ${heading ?? ""} `, width);
+	const frame = (row: string) => `${a.rule("│")} ${fit(row, inside)}`;
+	return ["", header, ...[...body, evidence].map(frame), ""]
 		.map(row => fit(row, width));
 }
 function tnotePanels(item: WorkbenchSnapshot["tnotes"][number], width: number): TNotePanel[] | null {
 	const report = parseCanonicalTNoteReport(item.summary);
 	if (report) return [reportPanel([
 		a.caption(tnoteTitle(item)), "",
-			...tnoteFieldRows("Result", report.result, width, true),
+			...tnoteFieldRows("Result", report.result, width),
 			...tnoteFieldRows("Reason", report.reason, width),
 			...tnoteFieldRows("Action", report.action, width),
 			...tnoteFieldRows("Test", report.test || "테스트 실행 관측 없음", width),
@@ -146,7 +148,7 @@ function tnotePanels(item: WorkbenchSnapshot["tnotes"][number], width: number): 
 	const legacy = parseLegacyCanonicalTNote(item.summary);
 	if (legacy) return [reportPanel([
 		a.caption(tnoteTitle(item)), "",
-		...tnoteFieldRows("Result", legacy.result, width, true),
+		...tnoteFieldRows("Result", legacy.result, width),
 		...tnoteFieldRows("Reason", legacy.why, width),
 	], a.muted("LEGACY"), width)];
 	return null;
@@ -347,8 +349,17 @@ function sameVolatileTranscriptRevision(left: VolatileTranscriptRevision, right:
 		&& left.linearDashboard === right.linearDashboard;
 }
 
-/** Public transcript and tool timeline. No product theme, welcome, cards, or raw reasoning. */
+export function hasVisibleAstraContent(snapshot: WorkbenchSnapshot): boolean {
+	return snapshot.actionResult?.kind === "workflow" || snapshot.chat.length > 0
+		|| snapshot.workFlow.steps.length > 0
+		|| Boolean(snapshot.pendingApproval || snapshot.executionRun?.receipt || snapshot.executionRun?.phase === "waiting"
+			|| snapshot.reasoningSummaryDraft || snapshot.reasoningDraft || snapshot.draft || snapshot.error);
+}
+
+/** Public transcript and tool timeline. Product welcome and raw reasoning stay outside the durable timeline. */
 export class AstraTranscriptView implements Component {
+	private readonly welcome = new WorkbenchWelcomeView();
+	private welcomeVisible = false;
 	private nextGenerationId = 1;
 	private durableGeneration: DurableTranscriptGeneration | null = null;
 	private volatileGeneration: VolatileTranscriptGeneration | null = null;
@@ -356,6 +367,7 @@ export class AstraTranscriptView implements Component {
 	private rowCacheLogicalBytes = 0;
 	private markdown = new Map<string, { text: string; view: Markdown }>();
 	private snapshotVersion = 0;
+	private renderedTheme = getActiveTuiTheme();
 	private counters = {
 		exactCountBuilds: 0, exactCountBuildMs: 0, requestedRows: 0, requestedMaterializationMs: 0, renderedBlocks: 0,
 		durableGraphBuilds: 0, durableGraphBuildMs: 0, durableGenerationNoopReuses: 0,
@@ -363,7 +375,14 @@ export class AstraTranscriptView implements Component {
 	};
 	public expanded = false;
 	constructor(private snapshot: WorkbenchSnapshot) {}
-	update(snapshot: WorkbenchSnapshot): void { this.snapshot = snapshot; this.snapshotVersion += 1; }
+	update(snapshot: WorkbenchSnapshot): void {
+		if (hasVisibleAstraContent(snapshot)) {
+			this.welcome.dispose();
+			this.welcomeVisible = false;
+		}
+		this.snapshot = snapshot;
+		this.snapshotVersion += 1;
+	}
 	invalidate(): void {
 		this.durableGeneration = null;
 		this.volatileGeneration = null;
@@ -373,8 +392,18 @@ export class AstraTranscriptView implements Component {
 	}
 	// The common shell owns lifecycle ticks. Astra's pinned execution heading owns activity.
 	syncActivity(_indicator: unknown, _requestRender: () => void): void {}
-	playWelcomeIntro(_requestRender: () => void): void { this.invalidate(); }
-	dispose(): void { this.invalidate(); this.markdown.clear(); }
+	playWelcomeIntro(requestRender: () => void): void {
+		if (hasVisibleAstraContent(this.snapshot)) return;
+		this.welcomeVisible = true;
+		this.welcome.playIntro(() => {
+			// The empty welcome block is the only live row source here. Drop its
+			// cached frame on each animation tick without changing durable cache rules.
+			this.invalidate();
+			requestRender();
+		});
+		this.invalidate();
+	}
+	dispose(): void { this.welcome.dispose(); this.welcomeVisible = false; this.invalidate(); this.markdown.clear(); }
 	cacheMetrics(): AstraTranscriptCacheMetrics {
 		const generations: TranscriptGeneration[] = [];
 		if (this.durableGeneration) generations.push(this.durableGeneration);
@@ -499,11 +528,11 @@ export class AstraTranscriptView implements Component {
 		if (s.draft) {
 			const labels = astraConversationLabels(s.chat);
 			const latestRequest = [...s.chat].reverse().find(message => message.role === "user");
-			const requestLabel = latestRequest ? labels.get(latestRequest.id)?.replace("Request ", "") : "1";
+			const requestNumber = latestRequest ? labels.get(latestRequest.id)?.replace("REQ ", "") : "1";
 			const responseCount = latestRequest ? s.chat.slice(s.chat.lastIndexOf(latestRequest) + 1).filter(message => message.role === "assistant").length + 1 : 1;
 			blocks.push({ key: "volatile:draft", markdownKeys: ["draft"], reuse: { kind: "never" }, render: width => {
 				const contentWidth = Math.max(1, width >= 5 ? width - 4 : width);
-				return responseFrameRows(`Response ${requestLabel}-${responseCount} 작성 중`, "streaming", this.md("draft", safe(sanitizePartialAssistantResponse(s.draft), 24000), contentWidth, a.answer), width);
+				return responseFrameRows(`RES ${requestNumber}-${responseCount} 작성 중`, "streaming", this.md("draft", safe(sanitizePartialAssistantResponse(s.draft), 24000), contentWidth, a.answer), width);
 			} });
 		}
 		if (s.reasoningSummaryDraft && !s.draft) blocks.push({ key: "volatile:reasoning-summary", markdownKeys: [], reuse: { kind: "never" }, render: width => ["", ...prose(a.muted(safe(s.reasoningSummaryDraft, 1200)), width, 2)].map(row => fit(row, width)) });
@@ -522,6 +551,7 @@ export class AstraTranscriptView implements Component {
 	}
 	private emptyBlock(s: WorkbenchSnapshot): TranscriptBlock {
 		return { key: "volatile:empty", markdownKeys: [], reuse: { kind: "never" }, render: width => {
+			if (this.welcomeVisible && !hasVisibleAstraContent(s)) return this.welcome.render(width).map(row => fit(row, width));
 			const rows = ["", a.strong("실행을 맡기고, 필요한 순간 개입하세요."), "", a.muted("요청 · 도구 실행 · 결과가 이곳에 시간순으로 기록됩니다."), "", a.active("/goal") + a.muted("  작업 목표 설정"), a.active("/model") + a.muted(" 모델과 추론 강도 선택"), a.active("Ctrl+P") + a.muted(" 명령 찾기")];
 			const d = s.linearDashboard;
 			if (d?.state === "ready" || d?.state === "stale") rows.push("", a.muted(`${oneLine(d.projectName)} / Linear ${d.state === "stale" ? "마지막 성공 값" : "연결됨"}`), a.muted("/context  프로젝트 갱신 · 이슈 · 마일스톤"));
@@ -701,6 +731,11 @@ export class AstraTranscriptView implements Component {
 		return rows;
 	}
 	scrollRows(width: number): ScrollRowSource {
+		const activeTheme = getActiveTuiTheme();
+		if (activeTheme !== this.renderedTheme) {
+			this.renderedTheme = activeTheme;
+			this.invalidate();
+		}
 		const safeWidth = Math.max(1, Math.floor(width));
 		const { durable, volatile } = this.prepareGenerations();
 		const durableIndex = this.widthIndex(durable, safeWidth);
@@ -749,12 +784,12 @@ export function astraToolRows(activity: ProjectActivity, width: number, expanded
 		const body = (row: string) => `${ink("│")} ${fit(row, inside)} ${ink("│")}`;
 		const command = prose(`${failed ? "!" : "$"} ${safe(item.command)}`, inside);
 		const outputRows = prose(output || result || (running ? "출력 대기 중" : "출력 없음"), inside);
-		const shown = expanded || failed ? outputRows : outputRows.slice(-6);
+		const shown = expanded ? outputRows : outputRows.slice(-CHAT_TERMINAL_OUTPUT_CHUNK_LINES);
 		const meta = [typeof item.exitCode === "number" ? `exit ${item.exitCode}` : state, typeof item.durationMs === "number" && Number.isFinite(item.durationMs) ? duration(item.durationMs) : ""].filter(Boolean).join("  ");
 		const label = ` Bash  ${state} `;
 		return ["", ink(`┌${label}${"─".repeat(Math.max(0, width - visibleWidth(label) - 2))}┐`),
 			...command.map(row => body(a.text(row))), body(a.rule("─".repeat(inside))),
-			...(shown.length < outputRows.length ? [body(a.muted(`… 앞 ${outputRows.length - shown.length}줄 · Ctrl+E 전체`))] : []),
+			...(shown.length < outputRows.length ? [body(a.muted(`… 앞 ${outputRows.length - shown.length}줄 · 최신 ${CHAT_TERMINAL_OUTPUT_CHUNK_LINES}줄 · Ctrl+E 전체`))] : []),
 			...shown.map(row => body((failed ? a.failure : a.muted)(row))),
 			body(a.muted(meta)), body(a.muted(`/source ${safe(activity.id)}`)), ink(`└${"─".repeat(width - 2)}┘`), ""];
 	}

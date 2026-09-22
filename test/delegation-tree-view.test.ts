@@ -44,7 +44,7 @@ function collaborationActivities(): readonly ProjectActivity[] {
 			status: "inProgress",
 			senderThreadId: ROOT_THREAD,
 			receiverThreadIds: ["thread-core"],
-			prompt: "SessionGoal and T-note contracts\nDo not edit unrelated files.",
+			prompt: "SessionGoal and Note contracts\nDo not edit unrelated files.",
 			model: "openai-codex/gpt-5.6-terra",
 			reasoningEffort: "high",
 			agentsStates: { "thread-core": { status: "running", message: null } },
@@ -56,7 +56,7 @@ function collaborationActivities(): readonly ProjectActivity[] {
 			status: "completed",
 			senderThreadId: ROOT_THREAD,
 			receiverThreadIds: ["thread-core"],
-			prompt: "SessionGoal and T-note contracts",
+			prompt: "SessionGoal and Note contracts",
 			model: "openai-codex/gpt-5.6-terra",
 			reasoningEffort: "high",
 			agentsStates: { "thread-core": { status: "running", message: "apply_patch" } },
@@ -153,7 +153,7 @@ describe("Gajae-style delegation tree", () => {
 		expect(output.match(/CoreContracts · running/gu)).toHaveLength(1);
 		expect(output).toContain("TodoContract · completed");
 		expect(output).toContain("Model: openai-codex/gpt-5.6-terra · high");
-		expect(output).toContain("Description: SessionGoal and T-note contracts");
+		expect(output).toContain("Description: SessionGoal and Note contracts");
 		expect(output).toContain("└─ apply_patch");
 		expect(output).toContain("ⓘ Subagent: awaiting 1 of 2");
 		expect(output).toContain("[IRC] you → CoreContracts");

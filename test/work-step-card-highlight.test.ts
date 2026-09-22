@@ -170,7 +170,7 @@ describe("WorkStepCard executor highlighting", () => {
 		expect(text[3]).toStartWith("┌─── ✔ Bash ");
 		expect(text.some((line) => line.includes("│ $ bun test --filter 'work step'"))).toBe(true);
 		expect(text.some((line) => line.startsWith("├─── Output "))).toBe(true);
-		expect(text.some((line) => line.includes("… (6 earlier lines, showing 10 of 16)"))).toBe(true);
+		expect(text.some((line) => line.includes("… (11 earlier lines, showing 5 of 16)"))).toBe(true);
 		expect(text.some((line) => line.includes("⟦Exit: 0⟧"))).toBe(true);
 		expect(text.at(-1)).toStartWith("└───");
 		expect(rendered.every((line) => visibleWidth(line) === 88)).toBe(true);

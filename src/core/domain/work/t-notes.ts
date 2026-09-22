@@ -24,7 +24,7 @@ const MAX_NATIVE_PAYLOAD_DEPTH = 8;
 const MAX_NATIVE_PAYLOAD_NODES = 128;
 const MAX_NATIVE_PAYLOAD_ENTRIES = 64;
 
-/** Structural input so T-notes can consume the activity journal without owning it. */
+/** Structural input so Notes can consume the activity journal without owning it. */
 export interface TNoteActivitySource {
 	readonly id: string;
 	readonly projectId: string;
@@ -86,13 +86,13 @@ export interface TNoteDraftInput {
 	readonly provenance: TNoteModelProvenance;
 }
 
-/** Append-only persisted T-note. `sequence` is assigned by the draft store. */
+/** Append-only persisted Note. `sequence` is assigned by the draft store. */
 export interface TNoteDraft extends TNoteDraftInput {
 	readonly schemaVersion: 1;
 	readonly sequence: number;
 }
 
-/** Public, immutable T-note fields used by the Workbench transcript. */
+/** Public, immutable Note fields used by the Workbench transcript. */
 export interface TNoteCompletionRecord {
 	readonly id: string;
 	readonly sourceActivityIds: readonly string[];
@@ -168,7 +168,7 @@ export type TNotePacketDigest = (canonicalPacket: string) => string;
 /**
  * Default adapter for the replayable ProjectActivity journal. Consumers with a
  * richer presentation can supply their own structural source instead, but this
- * keeps the T-note boundary independent from the active-chat event shape.
+ * keeps the Note boundary independent from the active-chat event shape.
  */
 export function projectActivityToTNoteSource(activity: ProjectActivity): TNoteActivitySource {
 	return {
@@ -195,7 +195,7 @@ export function createTNotePacket(
 	assertRange(range);
 	assertDate(createdAt, "packet timestamp");
 	if (!Array.isArray(activities) || activities.length < 1 || activities.length > MAX_TNOTE_SOURCE_ACTIVITIES) {
-		throw new Error(`T-note source range must contain between 1 and ${MAX_TNOTE_SOURCE_ACTIVITIES} activities`);
+		throw new Error(`Note source range must contain between 1 and ${MAX_TNOTE_SOURCE_ACTIVITIES} activities`);
 	}
 
 	const projected = activities.map((activity) => projectActivity(activity, projectId, range));
@@ -212,18 +212,18 @@ export function createTNotePacket(
 	const material = { ...base, activities: fitted };
 	const canonicalMaterial = canonicalJson(material);
 	const digest = calculateDigest(canonicalMaterial);
-	if (typeof digest !== "string" || !DIGEST_PATTERN.test(digest)) throw new Error("Invalid T-note packet digest");
+	if (typeof digest !== "string" || !DIGEST_PATTERN.test(digest)) throw new Error("Invalid Note packet digest");
 	return freezePacket({ ...material, digest });
 }
 
 export function validateTNoteDraft(value: TNoteDraft, calculateDigest?: TNotePacketDigest): TNoteDraft {
-	if (!value || typeof value !== "object" || Array.isArray(value) || value.schemaVersion !== 1) throw new Error("Invalid T-note draft");
-	assertId(value.id, "T-note id");
-	if (!Number.isSafeInteger(value.sequence) || value.sequence < 1) throw new Error("Invalid T-note sequence");
-	assertDate(value.createdAt, "T-note timestamp");
+	if (!value || typeof value !== "object" || Array.isArray(value) || value.schemaVersion !== 1) throw new Error("Invalid Note draft");
+	assertId(value.id, "Note id");
+	if (!Number.isSafeInteger(value.sequence) || value.sequence < 1) throw new Error("Invalid Note sequence");
+	assertDate(value.createdAt, "Note timestamp");
 	const packet = validateTNotePacket(value.packet, calculateDigest);
 	const text = sanitizeTNoteText(value.text, MAX_NOTE_BYTES);
-	if (text.length === 0 || text !== value.text) throw new Error("Invalid T-note text");
+	if (text.length === 0 || text !== value.text) throw new Error("Invalid Note text");
 	const provenance = validateProvenance(value.provenance);
 	return freezeDraft({
 		schemaVersion: 1,
@@ -237,16 +237,16 @@ export function validateTNoteDraft(value: TNoteDraft, calculateDigest?: TNotePac
 }
 
 export function validateTNotePacket(value: TNotePacket, calculateDigest?: TNotePacketDigest): TNotePacket {
-	if (!value || typeof value !== "object" || Array.isArray(value) || value.schemaVersion !== 1) throw new Error("Invalid T-note packet");
+	if (!value || typeof value !== "object" || Array.isArray(value) || value.schemaVersion !== 1) throw new Error("Invalid Note packet");
 	assertId(value.projectId, "project id");
 	assertRange(value.range);
 	assertDate(value.createdAt, "packet timestamp");
 	if (!Array.isArray(value.activities) || value.activities.length < 1 || value.activities.length > MAX_TNOTE_SOURCE_ACTIVITIES) {
-		throw new Error("Invalid T-note packet activities");
+		throw new Error("Invalid Note packet activities");
 	}
 	const activities = value.activities.map((activity) => projectPacketActivity(activity, value.projectId, value.range));
 	assertStrictlyIncreasingSequences(activities, value.range);
-	if (typeof value.digest !== "string" || !DIGEST_PATTERN.test(value.digest)) throw new Error("Invalid T-note packet digest");
+	if (typeof value.digest !== "string" || !DIGEST_PATTERN.test(value.digest)) throw new Error("Invalid Note packet digest");
 	const completion = completionFor(value);
 	const material = {
 		schemaVersion: 1 as const,
@@ -257,19 +257,19 @@ export function validateTNotePacket(value: TNotePacket, calculateDigest?: TNoteP
 		...(completion ? { completion } : {}),
 	};
 	const canonicalMaterial = canonicalJson(material);
-	if (calculateDigest && calculateDigest(canonicalMaterial) !== value.digest) throw new Error("T-note packet digest mismatch");
-	if (utf8ByteLength(canonicalMaterial) > MAX_PACKET_BYTES) throw new Error("T-note source packet is too large");
+	if (calculateDigest && calculateDigest(canonicalMaterial) !== value.digest) throw new Error("Note packet digest mismatch");
+	if (utf8ByteLength(canonicalMaterial) > MAX_PACKET_BYTES) throw new Error("Note source packet is too large");
 	return freezePacket({ ...material, digest: value.digest });
 }
 
 export function createTNoteDraft(input: TNoteDraftInput, sequence: number, calculateDigest?: TNotePacketDigest): TNoteDraft {
-	if (!Number.isSafeInteger(sequence) || sequence < 1) throw new Error("Invalid T-note sequence");
+	if (!Number.isSafeInteger(sequence) || sequence < 1) throw new Error("Invalid Note sequence");
 	return validateTNoteDraft({ ...input, schemaVersion: 1, sequence }, calculateDigest);
 }
 
 /** Removes terminal controls and credentials before material reaches a persisted packet. */
 export function sanitizeTNoteText(value: string, maximumBytes: number): string {
-	if (typeof value !== "string" || !Number.isSafeInteger(maximumBytes) || maximumBytes < 1) throw new Error("Invalid T-note text");
+	if (typeof value !== "string" || !Number.isSafeInteger(maximumBytes) || maximumBytes < 1) throw new Error("Invalid Note text");
 	// Redact customer labels first: a path expression may legally contain spaces,
 	// and otherwise could consume the label while leaving its value behind.
 	const protectedTestEvidence = protectTNoteTestEvidence(redactCustomerIdentifiers(value));
@@ -285,8 +285,8 @@ export function sanitizeTNoteText(value: string, maximumBytes: number): string {
 }
 
 function projectActivity(activity: TNoteActivitySource, projectId: string, range: TNoteSourceRange): TNoteSourceActivity {
-	if (!activity || typeof activity !== "object" || Array.isArray(activity)) throw new Error("Invalid T-note source activity");
-	if (activity.projectId !== projectId) throw new Error("T-note activities must belong to one project");
+	if (!activity || typeof activity !== "object" || Array.isArray(activity)) throw new Error("Invalid Note source activity");
+	if (activity.projectId !== projectId) throw new Error("Note activities must belong to one project");
 	return projectPacketActivity({
 		id: activity.id,
 		sequence: activity.sequence,
@@ -298,41 +298,41 @@ function projectActivity(activity: TNoteActivitySource, projectId: string, range
 }
 
 function projectPacketActivity(activity: TNoteSourceActivity, _projectId: string, range: TNoteSourceRange): TNoteSourceActivity {
-	if (!activity || typeof activity !== "object" || Array.isArray(activity)) throw new Error("Invalid T-note source activity");
+	if (!activity || typeof activity !== "object" || Array.isArray(activity)) throw new Error("Invalid Note source activity");
 	assertId(activity.id, "activity id");
 	if (!Number.isSafeInteger(activity.sequence) || activity.sequence < range.startSequence || activity.sequence > range.endSequence) {
-		throw new Error("T-note activity is outside the selected range");
+		throw new Error("Note activity is outside the selected range");
 	}
 	assertDate(activity.occurredAt, "activity timestamp");
 	const kind = sanitizeTNoteText(activity.kind, 120);
 	const title = sanitizeTNoteText(activity.title, 2 * 1024);
 	const body = sanitizeTNoteText(activity.body, MAX_ACTIVITY_BODY);
-	if (kind.length === 0 || title.length === 0 || body !== activity.body && body.length === 0) throw new Error("Invalid T-note activity text");
+	if (kind.length === 0 || title.length === 0 || body !== activity.body && body.length === 0) throw new Error("Invalid Note activity text");
 	return Object.freeze({ id: activity.id, sequence: activity.sequence, occurredAt: activity.occurredAt, kind, title, body });
 }
 
 function assertStrictlyIncreasingSequences(activities: readonly TNoteSourceActivity[], range: TNoteSourceRange): void {
 	if (activities.some((activity, index) => index > 0 && activity.sequence <= activities[index - 1]!.sequence)) {
-		throw new Error("T-note activities must be sorted with strictly increasing unique sequences");
+		throw new Error("Note activities must be sorted with strictly increasing unique sequences");
 	}
 	if (activities[0]?.sequence !== range.startSequence || activities.at(-1)?.sequence !== range.endSequence) {
-		throw new Error("T-note range bounds do not match selected activities");
+		throw new Error("Note range bounds do not match selected activities");
 	}
 }
 
 function validateProvenance(value: TNoteModelProvenance): TNoteModelProvenance {
-	if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Invalid T-note model provenance");
+	if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Invalid Note model provenance");
 	const provider = sanitizeTNoteText(value.provider, 120);
 	const model = sanitizeTNoteText(value.model, 240);
 	const version = sanitizeTNoteText(value.version, 240);
-	if (!provider || !model || !version || provider !== value.provider || model !== value.model || version !== value.version) throw new Error("Invalid T-note model provenance");
+	if (!provider || !model || !version || provider !== value.provider || model !== value.model || version !== value.version) throw new Error("Invalid Note model provenance");
 	return Object.freeze({ provider, model, version });
 }
 
 function assertRange(range: TNoteSourceRange): void {
 	if (!range || typeof range !== "object" || !Number.isSafeInteger(range.startSequence) || !Number.isSafeInteger(range.endSequence)
 		|| range.startSequence < 1 || range.endSequence < range.startSequence) {
-		throw new Error("Invalid T-note source range");
+		throw new Error("Invalid Note source range");
 	}
 }
 
@@ -409,7 +409,7 @@ function fitTNotePacketActivities(
 	let low = minimumTextBytes;
 	let high = MAX_ACTIVITY_BODY;
 	let fitted = withTextCaps(titleCap, minimumTextBytes);
-	if (!fits(fitted)) throw new Error("T-note source packet metadata is too large");
+	if (!fits(fitted)) throw new Error("Note source packet metadata is too large");
 	while (low <= high) {
 		const middle = Math.floor((low + high) / 2);
 		const candidate = withTextCaps(titleCap, middle);
@@ -475,7 +475,10 @@ function truncateUtf8(value: string, maximumBytes: number): string {
 		result.push(character);
 		usedBytes += characterBytes;
 	}
-	return result.join("");
+	const truncated = result.join("");
+	const markerStart = truncated.lastIndexOf("[redacted");
+	const markerEnd = truncated.lastIndexOf("]");
+	return markerStart > markerEnd ? truncated.slice(0, markerStart) : truncated;
 }
 
 function redactCustomerIdentifiers(value: string): string {

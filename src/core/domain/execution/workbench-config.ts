@@ -28,12 +28,22 @@ export interface WorkbenchConfig {
 	readonly orchestration: { readonly maxAgentRounds: number };
 	/** Detached review lane; this is deliberately separate from interactive execution. */
 	readonly review: { readonly provider: "anthropic" | "google"; readonly model: string };
-	readonly display: { readonly tnoteVisibleLimit: number };
+	readonly display: {
+		readonly tnoteVisibleLimit: number;
+		readonly tnoteSummaryMaxChars: number;
+		readonly tnoteSummaryMaxLines: number;
+	};
 	/** HUD visibility is policy, not a compile-time terminal constant. */
 	readonly hud: { readonly showUsage: boolean; readonly showContext: boolean };
 	readonly slash: { readonly mcp: boolean; readonly clear: boolean; readonly compact: boolean };
 	readonly linear: { readonly server: string; readonly projectId: string; readonly projectName: string } | null;
 }
+
+export const DEFAULT_TNOTE_DISPLAY = Object.freeze({
+	tnoteVisibleLimit: 20,
+	tnoteSummaryMaxChars: 2_048,
+	tnoteSummaryMaxLines: 24,
+});
 
 export const DEFAULT_WORKBENCH_CONFIG: WorkbenchConfig = Object.freeze({
 	schemaVersion: 1,
@@ -52,7 +62,7 @@ export const DEFAULT_WORKBENCH_CONFIG: WorkbenchConfig = Object.freeze({
 	evaluation: Object.freeze({ requireVerification: true }),
 	orchestration: Object.freeze({ maxAgentRounds: 24 }),
 	review: Object.freeze({ provider: "anthropic", model: "claude-opus" }),
-	display: Object.freeze({ tnoteVisibleLimit: 20 }),
+	display: DEFAULT_TNOTE_DISPLAY,
 	hud: Object.freeze({ showUsage: true, showContext: true }),
 	slash: Object.freeze({ mcp: true, clear: true, compact: true }),
 	linear: null,
@@ -88,7 +98,11 @@ export function normalizeWorkbenchConfig(value: unknown): WorkbenchConfig {
 			provider: review?.provider === "google" ? "google" : "anthropic",
 			model: validReviewModel(review),
 		}),
-		display: Object.freeze({ tnoteVisibleLimit: boundedInt(display?.tnoteVisibleLimit, 20, 0, 100) }),
+		display: Object.freeze({
+			tnoteVisibleLimit: boundedInt(display?.tnoteVisibleLimit, DEFAULT_TNOTE_DISPLAY.tnoteVisibleLimit, 0, 100),
+			tnoteSummaryMaxChars: boundedInt(display?.tnoteSummaryMaxChars, DEFAULT_TNOTE_DISPLAY.tnoteSummaryMaxChars, 256, 8_192),
+			tnoteSummaryMaxLines: boundedInt(display?.tnoteSummaryMaxLines, DEFAULT_TNOTE_DISPLAY.tnoteSummaryMaxLines, 4, 80),
+		}),
 		hud: Object.freeze({ showUsage: hud?.showUsage !== false, showContext: hud?.showContext !== false }),
 		slash: Object.freeze({ mcp: slash?.mcp !== false, clear: slash?.clear !== false, compact: slash?.compact !== false }),
 		linear: validLinearConfig(linear),

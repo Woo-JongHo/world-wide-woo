@@ -51,7 +51,7 @@ describe("runProjectWorkbenchShell characterization", () => {
 			await settle();
 			expect(shell.terminal.output).not.toContain("WWW Dashboard");
 			await shell.submit("바로 대화 시작");
-			expect(shell.commands).toEqual([{ type: "chat.send", text: "바로 대화 시작" }]);
+			expect(shell.commands).toEqual([{ type: "chat.send", text: "바로 대화 시작", delivery: "queue" }]);
 		} finally { await shell.shutdown(); }
 	});
 
@@ -59,15 +59,15 @@ describe("runProjectWorkbenchShell characterization", () => {
 		const shell = startShell(astraFixture("ready"));
 		try {
 			await shell.submit("첫 요청");
-			expect(shell.commands).toEqual([{ type: "chat.send", text: "첫 요청" }]);
+			expect(shell.commands).toEqual([{ type: "chat.send", text: "첫 요청", delivery: "queue" }]);
 		} finally { await shell.shutdown(); }
 	});
 
-	test("routes a working composer submission through the chat command used for steering", async () => {
+	test("routes a working composer submission through the chat command queue", async () => {
 		const shell = startShell(astraFixture("working"));
 		try {
 			await shell.submit("현재 turn에 추가 지시");
-			expect(shell.commands).toEqual([{ type: "chat.send", text: "현재 turn에 추가 지시" }]);
+			expect(shell.commands).toEqual([{ type: "chat.send", text: "현재 turn에 추가 지시", delivery: "queue" }]);
 		} finally { await shell.shutdown(); }
 	});
 

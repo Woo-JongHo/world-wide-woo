@@ -42,8 +42,8 @@ export interface AstraKeyBinding {
 
 export const ASTRA_KEYMAP: Readonly<Record<AstraKeyAction, AstraKeyBinding>> = {
 	"page.execution": { label: "실행 · 질문 요약", command: "/chat", functionKey: "f2", viewNumber: "1", doc: ["Ctrl+G → 1"] },
-	"page.plan": { label: "계획", command: "/todo", functionKey: "f3", viewNumber: "2", doc: ["Ctrl+G → 2"] },
-	"page.monitor": { label: "관측", command: "/monitor", functionKey: "f4", viewNumber: "3", doc: ["Ctrl+G → 3"] },
+	"page.plan": { label: "Plan", command: "/todo", functionKey: "f3", viewNumber: "2", doc: ["Ctrl+G → 2"] },
+	"page.monitor": { label: "Activity", command: "/monitor", functionKey: "f4", viewNumber: "3", doc: ["Ctrl+G → 3"] },
 	"page.stats": { label: "통계", command: "/stats", functionKey: "f5", viewNumber: "4", doc: ["Ctrl+G → 4"] },
 	"page.dashboard": { label: "세션", command: "/dashboard", functionKey: "f6", viewNumber: "5", doc: ["Ctrl+G → 5"] },
 	"page.map": { label: "개발 지도", command: "/map", functionKey: "f7", viewNumber: "6", doc: ["Ctrl+G → 6"] },

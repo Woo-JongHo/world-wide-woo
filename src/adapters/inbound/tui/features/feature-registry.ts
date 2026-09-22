@@ -1,6 +1,7 @@
 import { approvalFeature } from "./approval/approval.feature";
 import { authenticationFeature } from "./authentication/authentication.feature";
 import { CHAT_FEATURE } from "./chat/chat.feature";
+import { cacheFeature } from "./cache/cache.feature";
 import { contextFeature } from "./context/context.feature";
 import { dashboardFeature } from "./dashboard/dashboard.feature";
 import { modelSelectionFeature } from "./model-selection/model-selection.feature";
@@ -36,6 +37,7 @@ export const TUI_FEATURES = Object.freeze([
 	usageFeature,
 	projectMapFeature,
 	contextFeature,
+	cacheFeature,
 	testFeature,
 	approvalFeature,
 	authenticationFeature,

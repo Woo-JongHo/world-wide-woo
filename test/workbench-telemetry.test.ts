@@ -2,10 +2,19 @@ import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences } from "@earendil-works/pi-tui";
 import {
 	formatWorkbenchTelemetry,
+	workbenchModelLabel,
 } from "../src/adapters/inbound/tui/features/monitoring/workbench-telemetry";
 import { parseGitTelemetry } from "../src/adapters/outbound/git/git-telemetry-source";
 
 describe("workbench telemetry rail", () => {
+	test("uses readable provider and family casing for model labels", () => {
+		expect(workbenchModelLabel("gpt-5.6-luna")).toBe("GPT-5.6-Luna");
+		expect(workbenchModelLabel("gpt-5.6-sol")).toBe("GPT-5.6-Sol");
+		expect(workbenchModelLabel("claude-sonnet-4-6")).toBe("Claude Sonnet 4.6");
+		expect(workbenchModelLabel("claude-opus")).toBe("Claude Opus");
+		expect(workbenchModelLabel("claude-fable")).toBe("Claude Fable");
+	});
+
 	test("renders only Git state and project path; Context belongs to the usage strip", () => {
 		const output = stripTerminalSequences(formatWorkbenchTelemetry({
 			model: "gpt-5.6-sol",

@@ -9,6 +9,7 @@ import { AstraTranscriptView, astraConversationLabels, astraExecutionIsLive, ast
 import { AstraPlanView } from "../src/adapters/inbound/tui/features/plan/astra-plan-view";
 import { AstraWorkflowView } from "../src/adapters/inbound/tui/features/workflow/astra-workflow-view";
 import { AstraContextView } from "../src/adapters/inbound/tui/features/context/astra-context-view";
+import { AstraCacheView } from "../src/adapters/inbound/tui/features/cache/astra-cache-view";
 import { AstraHistoryView } from "../src/adapters/inbound/tui/features/session/astra-history-view";
 import { AstraStatsView } from "../src/adapters/inbound/tui/features/stats/astra-stats-view";
 import { projectObservabilityDashboard } from "../src/core/domain/observability/observability-dashboard";
@@ -17,11 +18,60 @@ import { projectPerformance } from "../src/core/domain/work/performance";
 import { ApprovalOverlay } from "../src/adapters/inbound/tui/features/approval/approval-overlay";
 import { NativeThreadPicker } from "../src/adapters/inbound/tui/features/session/native-thread-picker";
 import { a, astraColors, astraEditorTheme, astraPalette, astraPulse, duration } from "../src/adapters/inbound/tui/foundation/theme/astra-theme";
-import { astraUsageLine } from "../src/adapters/inbound/tui/features/usage/astra-usage";
-import { requestRuntimeMotionActive, requestStatusGradient } from "../src/adapters/inbound/tui/features/monitoring/request-runtime-view";
+import { astraQuotaHudRows, astraUsageLine } from "../src/adapters/inbound/tui/features/usage/astra-usage";
+import { requestRuntimeMotionActive, requestRuntimeRows, requestStatusGradient } from "../src/adapters/inbound/tui/features/monitoring/request-runtime-view";
 import type { UsageSnapshot } from "../src/core/ports";
 
 describe("Astra execution console", () => {
+	test("aligns the Plan side rail with the Chat readiness heading and keeps navigation hints hidden", () => {
+		const s = astraFixture("ready");
+		const workspace = new AstraWorkspace(() => s, () => [], () => 20, Date.now, false, null, undefined, new AstraExecutionHeading(() => s));
+		const root = new VStack([
+			{ component: new AstraHeader(() => s, () => "execution", "/test/astra"), basis: 2, minSize: 2 },
+			{ component: workspace.component, basis: 0, grow: 1, minSize: 1 },
+		]);
+		const lines = renderLayoutFrame(root, 120, 24, () => undefined).lines.map(stripTerminalSequences);
+		const readinessRow = lines.findIndex(line => line.includes("▎"));
+		const planRow = lines.findIndex(line => line.includes("Plan"));
+		expect(planRow).toBe(readinessRow);
+		expect(lines.join("\n")).not.toContain("Ctrl+G 화면");
+		expect(lines.join("\n")).not.toContain("Ctrl+G 2 Plan");
+	});
+
+	test("shows a configured Goal only in the top header with a persistent gradient", () => {
+		const level = chalk.level; chalk.level = 3;
+		try {
+			const s = astraFixture("ready");
+			const withoutGoal = new AstraHeader(() => s, () => "Chat", "/repo/99_www", () => 0).render(100).join("\n");
+			expect(stripTerminalSequences(withoutGoal)).toContain("astra  99_www / Chat");
+			expect(stripTerminalSequences(withoutGoal)).not.toContain("Goal");
+			s.sessionGoal = { text: "사용자가 설정한 장기 목표", sourceActivityId: "goal", updatedAt: "2026-09-22" };
+			const first = new AstraHeader(() => s, () => "Chat", "/repo/99_www", () => 0).render(100).join("\n");
+			const next = new AstraHeader(() => s, () => "Chat", "/repo/99_www", () => 480).render(100).join("\n");
+			expect(stripTerminalSequences(first)).toContain("Goal  사용자가 설정한 장기 목표");
+			expect(first).not.toBe(next);
+			expect(stripTerminalSequences(new AstraHeader(() => s, () => "Chat", "/repo/99_www", () => 0).render(24).join("\n"))).toContain("Goal  사용자가");
+			const side = stripTerminalSequences(new AstraPlanView(() => s).render(80).join("\n"));
+			expect(side).not.toContain("사용자가 설정한 장기 목표");
+		} finally { chalk.level = level; }
+	});
+
+	test("shows the existing WWW welcome wordmark on the first empty loading screen", () => {
+		const s = astraFixture("loading");
+		s.chat = [];
+		s.activities = [];
+		s.workFlow = { ...s.workFlow, steps: [], completedCount: 0 };
+		const view = new AstraTranscriptView(s);
+		view.playWelcomeIntro(() => undefined);
+		const output = stripTerminalSequences(view.render(80).join("\n"));
+		expect(output).toContain("██╗");
+		expect(output).not.toContain("ORBITING PAIR");
+		expect(output).not.toContain("GUARDIAN");
+		expect(output).toContain("🐙 Wooni · Native Project Workbench");
+		expect(output).not.toContain("실행을 맡기고");
+		view.dispose();
+	});
+
 	test("Request status uses bounded motion and settles after completion", () => {
 		const level = chalk.level; chalk.level = 3;
 		try {
@@ -37,9 +87,46 @@ describe("Astra execution console", () => {
 			expect(requestRuntimeMotionActive({ status: "failed", completedAt: new Date(9_500).toISOString() }, 10_000)).toBe(false);
 		} finally { chalk.level = level; }
 	});
-	test("Now names the actual live activity instead of repeating the current Todo", () => {
-		expect(astraNowLabel(astraFixture())).toBe("Bash · 재개 시나리오를 테스트하는 중");
+	test("Now waits for interpreted activity instead of exposing a Native event", () => {
+		expect(astraNowLabel(astraFixture())).toBe("현재 단계의 작업 내용을 정리하는 중");
 		expect(astraNowLabel(astraFixture("ready"))).toBeNull();
+	});
+	test("the Plan rail shows plan progress without individual tool activity", () => {
+		const output = stripTerminalSequences(new AstraPlanView(() => astraFixture()).render(100).join("\n"));
+		const plan = output.indexOf("Plan"), activity = output.indexOf("Activity"), proposal = output.indexOf("Next");
+		expect(plan).toBeGreaterThanOrEqual(0);
+		expect(activity).toBeGreaterThan(plan);
+		expect(proposal).toBeGreaterThan(activity);
+		expect(output).not.toContain("Todo");
+		expect(output).not.toContain("Verify");
+		expect(output).not.toContain("PROPOSAL");
+		expect(output).not.toContain("Proposal");
+		const progress = output.slice(activity, proposal);
+		expect(progress).toContain("정리된 세부 작업이 도착하면 이곳에 표시합니다.");
+		expect(progress).not.toContain("중복 이벤트 재현 및 경계 수정");
+		expect(progress).not.toContain("재개 시나리오를 테스트하는 중");
+		expect(progress).not.toContain("Trace");
+	});
+	test("an empty plan waits for plan events even while tools are active", () => {
+		const s = astraFixture();
+		s.workFlow = { ...s.workFlow, steps: [], source: null, completedCount: 0, currentStepNumber: null };
+		const output = stripTerminalSequences(new AstraPlanView(() => s).render(100).join("\n"));
+		expect(output).toContain("현재 요청에서 전달받은 계획이 없습니다.");
+		expect(output).toContain("정리된 세부 작업이 도착하면 이곳에 표시합니다.");
+		expect(output).not.toContain("재개 시나리오를 테스트하는 중");
+	});
+	test("Plan cards show completion and failure while Activity waits for interpreted actions", () => {
+		const s = astraFixture();
+		s.workFlow = { ...s.workFlow, steps: s.workFlow.steps.map(step => ({ ...step, status: "completed" as const })) };
+		const view = new AstraPlanView(() => s);
+		const completed = stripTerminalSequences(view.render(100).join("\n"));
+		expect(completed).toContain("3/3");
+		expect(completed).not.toContain("╭ 완료");
+		expect(completed).toContain("재개 시나리오 회귀 검증");
+		s.workFlow = { ...s.workFlow, steps: s.workFlow.steps.map((step, index) => ({ ...step, status: index === 1 ? "failed" as const : step.status })) };
+		const failed = stripTerminalSequences(view.render(100).join("\n"));
+		expect(failed.slice(0, failed.indexOf("Activity"))).toContain("╭ 실패");
+		expect(failed).not.toContain("재개 시나리오를 테스트하는 중");
 	});
 	test("the progress highlight moves without implying a percentage, and stops for approval", () => {
 		const level = chalk.level; chalk.level = 3;
@@ -48,11 +135,11 @@ describe("Astra execution console", () => {
 			const s = astraFixture(); let now = Date.parse("2026-09-11T09:42:10.000Z");
 			const heading = new AstraExecutionHeading(() => s, undefined, () => now);
 			const initial = heading.render(80); now += 240;
-			expect(heading.render(80)[2]).not.toBe(initial[2]); expect(stripTerminalSequences(initial[2]!)).toContain("Working");
-			expect(stripTerminalSequences(initial[2]!)).toContain("1 terminal running"); expect(stripTerminalSequences(initial[2]!)).toContain("Esc to interrupt");
-			expect(stripTerminalSequences(initial[2]!)).not.toContain("%");
+			expect(heading.render(80)[1]).not.toBe(initial[1]); expect(stripTerminalSequences(initial[1]!)).toContain("Working");
+			expect(stripTerminalSequences(initial[1]!)).toMatch(/1 termina/u); expect(stripTerminalSequences(initial[1]!)).not.toContain("Esc");
+			expect(stripTerminalSequences(initial[1]!)).not.toContain("%");
 			s.pendingApproval = { requestId: 1, callbackId: null, kind: "command", params: {}, refs: {}, availableDecisions: ["accept", "decline"] };
-			expect(astraExecutionIsLive(s)).toBe(false); expect(heading.render(80)[2]?.trim()).toBe("");
+			expect(astraExecutionIsLive(s)).toBe(false); expect(heading.render(80)).toHaveLength(2);
 			s.pendingApproval = null; s.phase = "ready";
 			s.activities = [...s.activities,
 				{ ...s.activities[1]!, id: "turn-complete", sequence: 99, recordedAt: "2026-09-11T09:42:12.000Z", phase: "completed", payload: { method: "turn/completed" } },
@@ -60,26 +147,26 @@ describe("Astra execution console", () => {
 				{ ...s.activities[1]!, id: "child-complete", sequence: 101, recordedAt: "2026-09-11T09:42:50.000Z", phase: "completed", nativeRefs: { threadId: "child-thread", turnId: "child-turn" }, payload: { method: "turn/completed" } },
 			];
 			expect(astraExecutionIsLive(s)).toBe(false);
-			const completed = stripTerminalSequences(heading.render(80)[2]!);
+			const completed = stripTerminalSequences(heading.render(80)[1]!);
 			expect(completed).toContain("처리 11s"); expect(completed).toContain("종료");
 			s.activities = s.activities.map(activity => activity.id === "turn-complete" ? { ...activity, phase: "failed" as const, payload: { method: "turn/failed" } } : activity);
-			const failed = stripTerminalSequences(heading.render(80)[2]!);
+			const failed = stripTerminalSequences(heading.render(80)[1]!);
 			expect(failed).toContain("! 실패까지 11s"); expect(failed).not.toContain("✓");
 			s.activities = s.activities.map(activity => activity.id === "turn-complete" ? { ...activity, phase: "cancelled" as const, payload: { method: "turn/interrupted" } } : activity);
-			const interrupted = stripTerminalSequences(heading.render(80)[2]!);
+			const interrupted = stripTerminalSequences(heading.render(80)[1]!);
 			expect(interrupted).toContain("− 중단까지 11s"); expect(interrupted).not.toContain("✓");
 			s.phase = "working"; s.activeTurnId = null; s.activities = s.activities.filter(activity => activity.id !== "turn-complete" && activity.id !== "child-complete");
-			const resumed = stripTerminalSequences(heading.render(80)[2]!);
-			expect(resumed).toContain("Working (9s · Esc to interrupt)"); expect(resumed).not.toContain("시간 관측 대기");
+			const resumed = stripTerminalSequences(heading.render(80)[1]!);
+			expect(resumed).toContain("Working (9s ·"); expect(resumed).toMatch(/1 termina/u); expect(resumed).not.toContain("Esc to interrupt"); expect(resumed).not.toContain("시간 관측 대기");
 		} finally { chalk.level = level; }
 	});
-	test("Working states name the current task and offer the live-monitor path", () => {
+	test("Working states name the current task without a separate interruption row", () => {
 		const s = astraFixture();
 		const heading = new AstraExecutionHeading(() => s, undefined, () => Date.parse("2026-09-11T09:42:10.000Z"));
 		const rows = heading.render(120).map(stripTerminalSequences);
-		expect(rows.join("\n")).toContain("Bash · 재개 시나리오를 테스트하는 중");
-		expect(rows[2]).toContain("Working");
-		expect(rows[2]).toContain("/monitor to view");
+		expect(rows.join("\n")).toContain("현재 단계의 작업 내용을 정리하는 중");
+		expect(rows[1]).toContain("Working");
+		expect(rows.join("\n")).not.toContain("Esc");
 	});
 	test("durations use whole h m s units without milliseconds", () => {
 		expect(duration(240)).toBe("0s");
@@ -94,22 +181,37 @@ describe("Astra execution console", () => {
 		const composer = new AstraComposer(editor, editor, () => astraFixture("ready"));
 		const focused = composer.render(80); const child = editor.render(80);
 		expect(focused.slice(1, -1)).toEqual(child.slice(1, -1));
-		expect(stripTerminalSequences(focused[0]!)).toContain("› 여기에 작성한다.");
-		expect(stripTerminalSequences(focused[0]!)).toContain("gpt-5.6-sol · high");
+		expect(stripTerminalSequences(focused[0]!)).toContain("› GPT-5.6-Sol · High");
+		expect(stripTerminalSequences(focused[0]!)).not.toContain("여기에 작성한다.");
+		expect(stripTerminalSequences(focused[0]!)).toContain("GPT-5.6-Sol · High");
 		expect(stripTerminalSequences(focused.at(-1)!)).toMatch(/─{20}/u);
-		editor.focused = false; expect(stripTerminalSequences(composer.render(80)[0]!)).toContain("· 여기에 작성한다.");
-		expect(stripTerminalSequences(composer.render(80)[0]!)).toContain("gpt-5.6-sol · high");
+		editor.focused = false; expect(stripTerminalSequences(composer.render(80)[0]!)).toContain("· GPT-5.6-Sol · High");
+		expect(stripTerminalSequences(composer.render(80)[0]!)).not.toContain("여기에 작성한다.");
+		expect(stripTerminalSequences(composer.render(80)[0]!)).toContain("GPT-5.6-Sol · High");
 		expect(composer.render(40).every(row => visibleWidth(row) <= 40)).toBe(true);
+	});
+	test("shows Queue delivery as an input placeholder while a turn is working", () => {
+		const tui = new TuiAltScreen(new ProcessTerminal()), editor = new Editor(tui, astraEditorTheme, { paddingX: 2 });
+		editor.focused = true;
+		const output = stripTerminalSequences(new AstraComposer(editor, editor, () => astraFixture("working")).render(80).join("\n"));
+		expect(output).toContain("Queue · Esc 전송");
+		expect(output).not.toContain("여기에 작성한다.");
 	});
 	test("running Bash shows bounded live output; finished commands fold and failed output stays open", () => {
 		const source = astraFixture().activities.find(x => x.id === "tool-2")!;
 		const live = { ...source, payload: { params: { item: { command: "git status\nprintf test", aggregatedOutput: Array.from({ length: 20 }, (_, i) => `output-${i}`).join("\n") } } } };
 		const rows = astraToolRows(live, 40, false), plain = stripTerminalSequences(rows.join("\n"));
-		expect(plain).toContain("Bash"); expect(plain).toContain("실행 중"); expect(plain).toContain("$ git status"); expect(plain).toContain("output-19");
-		expect(plain).not.toContain("output-0"); expect(plain).toContain("Ctrl+E 전체"); expect(rows.every(row => visibleWidth(row) <= 40)).toBe(true);
+		expect(plain).toContain("Bash"); expect(plain).toContain("실행 중"); expect(plain).toContain("$ git status");
+		for (let index = 15; index < 20; index += 1) expect(plain).toContain(`output-${index}`);
+		expect(plain).not.toContain("output-14"); expect(plain).toContain("최신 5줄"); expect(plain).toContain("Ctrl+E 전체"); expect(rows.every(row => visibleWidth(row) <= 40)).toBe(true);
 		const finished = { ...live, phase: "completed" as const };
 		expect(astraToolRows(finished, 40, false)).toHaveLength(1);
 		expect(astraToolRows(finished, 40, true).join("\n")).toContain("output-0");
+		const failed = { ...live, phase: "failed" as const };
+		const failedPlain = stripTerminalSequences(astraToolRows(failed, 40, false).join("\n"));
+		expect(failedPlain).toContain("output-19");
+		expect(failedPlain).not.toContain("output-14");
+		expect(stripTerminalSequences(astraToolRows(failed, 40, true).join("\n"))).toContain("output-0");
 	});
 	test("scrolled multiline drafts retain focus rails, hidden-line counts and autocomplete coordinates", () => {
 		class FixedTerminal extends ProcessTerminal { override get rows(): number { return 24; } }
@@ -118,16 +220,43 @@ describe("Astra execution console", () => {
 		const child = { invalidate: () => editor.invalidate(), render: (width: number) => [...editor.render(width), "AUTOCOMPLETE"] };
 		const s = astraFixture("ready"), composer = new AstraComposer(child, editor, () => s);
 		const initial = composer.render(80), raw = child.render(80);
-		expect(stripTerminalSequences(initial[0]!)).toContain("› 여기에 작성한다. · gpt-5.6-sol · high · Manual  ↑ 33 more");
+		expect(stripTerminalSequences(initial[0]!)).toContain("› GPT-5.6-Sol · High  ↑ 33 more");
 		expect(initial.slice(1, -2)).toEqual(raw.slice(1, -2)); expect(initial.at(-1)).toBe("AUTOCOMPLETE");
 		expect(stripTerminalSequences(initial.at(-2)!)).toStartWith("  ─");
 		for (let i = 0; i < 39; i++) editor.handleInput("\x1b[A");
 		editor.focused = false;
 		const top = composer.render(80);
-		expect(stripTerminalSequences(top[0]!)).toContain("· 여기에 작성한다.");
+		expect(stripTerminalSequences(top[0]!)).toContain("· GPT-5.6-Sol · High");
+		expect(stripTerminalSequences(top[0]!)).not.toContain("여기에 작성한다.");
 		expect(stripTerminalSequences(top.at(-2)!)).toContain("↓ 33 more");
 		expect(top.slice(1, -2)).toEqual(child.render(80).slice(1, -2));
 		expect(composer.render(40).every(row => visibleWidth(row) <= 40)).toBe(true);
+	});
+	test("Context dashboard exposes loaded capabilities, free space and memory without hidden payloads", () => {
+		const s = astraFixture();
+		s.skillInventory = { count: 2, names: ["woo-entry", "woo-code-readability"], sourceRevision: "git:fixture", digest: "a".repeat(64) };
+		const output = stripTerminalSequences(new AstraContextView(() => s).render(80).join("\n"));
+		expect(output).toContain("Context Dashboard");
+		expect(output).toContain("Free Space");
+		expect(output).toContain("Skills  2");
+		expect(output).toContain("woo-entry");
+		expect(output).toContain("MCP");
+		expect(output).toContain("Memory");
+	});
+	test("Cache dashboard renders bounded occupancy and live reuse diagnostics", () => {
+		const output = stripTerminalSequences(new AstraCacheView(() => ({
+			durableBlockCount: 12, volatileBlockCount: 2, markdownEntries: 4, rowEntries: 24,
+			rowLogicalBytes: 1024, widthStates: 3, widthMetadataLogicalBytes: 2048,
+			exactCountBuilds: 2, exactCountBuildMs: 1.5, requestedRows: 80,
+			requestedMaterializationMs: 2.5, renderedBlocks: 16, durableGraphBuilds: 3,
+			durableGraphBuildMs: 4.5, durableGenerationNoopReuses: 7,
+			durableCountReusedBlocks: 9, durableCountRenderedBlocks: 1,
+		})).render(80).join("\n"));
+		expect(output).toContain("Cache Dashboard");
+		expect(output).toContain("Reuse  90%");
+		expect(output).toContain("1.0 KiB / 8.00 MiB");
+		expect(output).toContain("Durable graph");
+		expect(output).toContain("Materialized");
 	});
 	test("Context quota details reject non-finite percentages and clamp out-of-range values", () => {
 		const usage: UsageSnapshot[] = [{ provider: "openai-codex", state: "ready", fetchedAt: 1, limits: [NaN, Infinity, -5, 120].map((remainingPercent, i) => ({ label: `limit${i}`, remainingPercent, status: "unknown" })) }];
@@ -148,55 +277,87 @@ describe("Astra execution console", () => {
 			{ provider: "google", state: "auth-required", fetchedAt: 1, limits: [] },
 		];
 		const row = stripTerminalSequences(astraUsageLine(usage, 76));
-		expect(row).toContain("구독 잔여"); expect(row).toContain("Codex 62%"); expect(row).toContain("Claude 9%*"); expect(row).toContain("Antigravity 로그인 필요");
+		expect(row).toContain("Codex 62%"); expect(row).toContain("Claude 9%*"); expect(row).toContain("Antigravity 로그인 필요");
+		expect(row).not.toMatch(/구독 잔여|\bleft\b|\breset\b/u);
 		expect(row).not.toMatch(/7d|5h/u);
 		expect(visibleWidth(row)).toBeLessThanOrEqual(76);
 		expect(astraUsageLine([{ ...usage[0]!, limits: [{ label: "7 days", remainingPercent: NaN, status: "unknown" }] }], 76)).not.toContain("NaN");
 		expect(stripTerminalSequences(astraUsageLine([{ ...usage[0]!, limits: [] }], 76))).not.toContain("조회 실패");
 		const s = astraFixture(); const hud = new AstraHud(() => s, () => usage, false);
 		const rows = hud.render(80);
-		expect(rows).toHaveLength(1);
-		expect(stripTerminalSequences(rows[0]!)).toContain("Manual");
-		expect(stripTerminalSequences(rows[0]!)).not.toContain("승인");
-		expect(stripTerminalSequences(rows[0]!)).not.toContain("권한");
-		expect(stripTerminalSequences(rows[0]!)).toContain("Context 28k / 200k 14%");
-		expect(stripTerminalSequences(rows[0]!)).toContain("구독 잔여");
-		expect(stripTerminalSequences(rows[0]!)).toContain("Codex 62%");
+		const text = stripTerminalSequences(rows.join("\n"));
+		expect(rows.length).toBeGreaterThanOrEqual(2);
+		expect(text).toContain("manual mode");
+		expect(text).not.toContain("승인");
+		expect(text).not.toContain("권한");
+		expect(text).toContain("Context 28k / 200k 14%");
+		expect(text).not.toMatch(/구독 잔여|\bleft\b|\breset\b/u);
+		expect(text).toContain("Codex"); expect(text).toContain("62%");
+		expect(text).toContain("Claude"); expect(text).toContain("9%");
+		expect(text).toContain("Antigravi…"); expect(text).toContain("login");
 		for (const width of [20, 40, 80, 120, 200]) {
 			const rendered = hud.render(width);
-			expect(rendered).toHaveLength(1);
-			expect(visibleWidth(rendered[0]!)).toBeLessThanOrEqual(width);
+			expect(rendered.every(row => visibleWidth(row) <= width)).toBe(true);
 		}
-		const wide = stripTerminalSequences(hud.render(200)[0]!);
-		expect(wide).toContain("Codex 62%");
-		expect(wide).toContain("Antigravity 로그인 필요");
+		const wide = stripTerminalSequences(hud.render(200).join("\n"));
+		expect(wide).toContain("Codex"); expect(wide).toContain("62%");
+		expect(wide).toContain("Antigravi…"); expect(wide).toContain("login");
 		s.permissionMode = "all";
 		s.pendingApproval = { requestId: 1, callbackId: null, kind: "command", params: {}, refs: {}, availableDecisions: ["accept", "decline"] };
-		const pending = stripTerminalSequences(hud.render(200)[0]!);
-		expect(pending).toContain("Bypass"); expect(pending).not.toContain("승인 대기");
+		const pending = stripTerminalSequences(hud.render(200).join("\n"));
+		expect(pending).toContain("bypass mode"); expect(pending).not.toContain("승인 대기");
 		s.permissionMode = "manual"; s.collaborationMode = "plan";
-		expect(stripTerminalSequences(hud.render(200)[0]!)).toContain("Plan Mode");
+		expect(stripTerminalSequences(hud.render(200).join("\n"))).toContain("plan mode");
 		s.hud = { showUsage: false, showContext: true };
 		expect(stripTerminalSequences(hud.render(80)[0]!)).toBe("");
+	});
+	test("HUD uses a provider header and two compact quota rows with runtime on the final row", () => {
+		const level = chalk.level;
+		chalk.level = 3;
+		try {
+		const now = Date.parse("2026-09-12T09:00:00Z");
+		const usage: UsageSnapshot[] = [
+			{ provider: "openai-codex", state: "ready", fetchedAt: 1, limits: [
+				{ label: "7 days", remainingPercent: 88, resetsAt: now + 7_200_000, status: "ok" },
+				{ label: "5 hours", remainingPercent: 42, resetsAt: now + 5_280_000, status: "ok" },
+			] },
+		];
+		const rows = astraQuotaHudRows(usage, 120, now, false);
+		const plain = rows.map(stripTerminalSequences);
+		expect(rows).toHaveLength(3);
+		for (const provider of ["Codex", "Claude", "Antigravi…", "Z.AI"]) expect(plain[0]).toContain(provider);
+		expect(plain[1]).toContain("7d overall");
+		expect(plain[1]).toContain("88% 2h 00m");
+		expect(plain[2]).toContain("5h session");
+		expect(plain[2]).toContain("42% 1h 28m");
+		expect(rows.join("\n")).toContain("\x1b[48;2;");
+
+		const snapshot = astraFixture();
+		const hud = new AstraHud(() => snapshot, () => usage, false);
+		const hudRows = hud.render(120).map(stripTerminalSequences);
+		expect(hudRows).toHaveLength(3);
+		expect(hudRows[2]).toMatch(/manual mode · Context 28k \/ 200k 14%\s*$/u);
+		} finally { chalk.level = level; }
 	});
 	test("Claude와 Z.AI의 주간·5시간 한도를 넓은 HUD에서 모두 표시한다", () => {
 		const usage: UsageSnapshot[] = [
 			{ provider: "anthropic", state: "ready", fetchedAt: 1, limits: [
-				{ label: "Claude 7 Day", remainingPercent: 84, status: "ok" },
-				{ label: "Claude 5 Hour", remainingPercent: 12, status: "ok" },
+				{ label: "Claude 7 Day", remainingPercent: 84, resetsAt: Date.parse("2026-09-17T00:00:00Z"), status: "ok" },
+				{ label: "Claude 5 Hour", remainingPercent: 12, resetsAt: Date.parse("2026-09-12T12:30:00Z"), status: "ok" },
 			] },
 			{ provider: "zai", state: "ready", fetchedAt: 1, limits: [
-				{ label: "Z.AI Weekly Credit Quota", remainingPercent: 76, status: "ok" },
-				{ label: "Z.AI 5 Hours Credit Quota", remainingPercent: 98, status: "ok" },
+				{ label: "Z.AI Weekly Credit Quota", remainingPercent: 76, resetsAt: Date.parse("2026-09-17T00:00:00Z"), status: "ok" },
+				{ label: "Z.AI 5 Hours Credit Quota", remainingPercent: 98, resetsAt: Date.parse("2026-09-12T12:30:00Z"), status: "ok" },
 			] },
 		];
-		const row = stripTerminalSequences(astraUsageLine(usage, 240));
+		const row = stripTerminalSequences(astraUsageLine(usage, 240, "gpt-5.6-sol", Date.parse("2026-09-12T09:00:00Z")));
 		expect(row).toContain("Claude");
-		expect(row).toContain("7d 84%");
-		expect(row).toContain("5h 12%");
+		expect(row).toContain("7d · 84% · 4d 15h");
+		expect(row).toContain("5h · 12% · 3h 30m");
 		expect(row).toContain("Z.AI");
-		expect(row).toContain("7d 76%");
-		expect(row).toContain("5h 98%");
+		expect(row).toContain("7d · 76% · 4d 15h");
+		expect(row).toContain("5h · 98% · 3h 30m");
+		expect(row).not.toMatch(/구독 잔여|\bleft\b|\breset\b/u);
 	});
 	test("role headings and every provider have stable, distinct visual identities", () => {
 		const level = chalk.level; chalk.level = 3;
@@ -207,7 +368,8 @@ describe("Astra execution console", () => {
 			s.activities = [...s.activities, { ...s.activities[0]!, id: "system-info", sequence: 102, payload: { role: "system", text: "시스템 안내" } }];
 			s.chat = [...s.chat, { id: "system-message", activityId: "system-info", role: "system", content: "시스템 안내", status: "completed" }];
 			const transcript = new AstraTranscriptView(s).render(80).join("\n");
-		for (const label of ["▰", "Request 1", "Response 1-1", "Notice", "질문 요약"]) expect(transcript).toContain(label);
+		for (const label of ["REQ 1", "RES 1-1", "Notice", "질문 요약"]) expect(transcript).toContain(label);
+		expect(transcript).not.toContain("▰");
 		expect(new AstraPlanView(() => s).render(80).join("\n")).toContain("Plan");
 		const answerRow = transcript.split("\n").find(row => stripTerminalSequences(row).includes("기존 이벤트와 재개 이벤트가 같은 경로로 합쳐집니다."));
 		expect(answerRow).toContain("\x1b[37m");
@@ -235,11 +397,11 @@ describe("Astra execution console", () => {
 			{ id: "m4", activityId: "request-2", role: "user", content: "두 번째 요청", status: "completed" },
 			{ id: "m5", activityId: "answer-2", role: "assistant", content: "두 번째 요청의 응답", status: "completed" },
 		];
-		expect([...astraConversationLabels(s.chat).values()]).toEqual(["Request 1", "Response 1-1", "Response 1-2", "Request 2", "Response 2-1"]);
+		expect([...astraConversationLabels(s.chat).values()]).toEqual(["REQ 1", "RES 1-1", "RES 1-2", "REQ 2", "RES 2-1"]);
 		const transcript = stripTerminalSequences(new AstraTranscriptView(s).render(100).join("\n"));
-		for (const label of ["Request 1", "Response 1-1", "Response 1-2", "Request 2", "Response 2-1"]) expect(transcript).toContain(label);
+		for (const label of ["REQ 1", "RES 1-1", "RES 1-2", "REQ 2", "RES 2-1"]) expect(transcript).toContain(label);
 	});
-	test("Plan Tracer follows WorkFlow actions and Response observations instead of Todo details", () => {
+	test("Plan shows Native steps while Next only looks toward user input", () => {
 		const s = astraFixture("ready");
 		const tracedStep = s.workFlow.steps[1]!;
 		s.workFlow = {
@@ -264,22 +426,50 @@ describe("Astra execution console", () => {
 			source: { kind: "native-plan", threadKeyDigest: "c".repeat(64), turnId: "preview-turn", input: null, planRevision, rootExecution },
 			items: s.workFlow.steps.map((step, index) => ({ id: `step-${index}`, content: step.title, status: step.status === "running" ? "in_progress" as const : step.status === "completed" ? "completed" as const : "pending" as const, evidenceIds: [], details: [] })),
 		};
-		s.requestRuntime = [{ status: "running" }] as unknown as WorkbenchSnapshot["requestRuntime"];
-		const runtimePresentation = { motionActive: () => false, rows: () => ["RUNTIME_TODO_SHOULD_NOT_RENDER"], nowLabel: () => null };
-		const projected = stripTerminalSequences(new AstraPlanView(() => s, false, Date.now, true, runtimePresentation).render(100).join("\n"));
-		expect(projected.split(tracedStep.title)).toHaveLength(3);
-		for (const step of s.workFlow.steps.filter(step => step.id !== tracedStep.id)) expect(projected.split(step.title)).toHaveLength(2);
-		expect(projected).not.toContain("▰ Todo");
-		expect(projected).toContain("Tracer");
-		expect(projected).toContain(`실행 · /trace tool-1`);
-		expect(projected).toContain("관측 · Response");
-		expect(projected).toContain("기존 이벤트와 재개 이벤트가 같은 경로로 합쳐집니다.");
-		expect(projected).toContain("/trace answer");
-		expect(projected).not.toContain("세부 Tracer 관측 없음");
-		expect(projected).not.toContain("RUNTIME_TODO_SHOULD_NOT_RENDER");
+		s.requestRuntime = [];
+		const projected = stripTerminalSequences(new AstraPlanView(() => s).render(100).join("\n"));
+		expect(projected).toContain("Plan");
+		expect(projected).toContain("Activity");
+		expect(projected).toContain("Next");
+		expect(projected).not.toContain("Proposal");
+		expect(projected).not.toContain("Plan 세부");
+		expect(projected).not.toContain("Todo");
+		expect(projected).not.toContain("RUNTIME_PLAN");
+		expect(projected).not.toContain("/trace");
+		expect(projected).not.toContain("세부 Plan 관측 없음");
 		s.todo = { ...s.todo, source: undefined, items: [{ id: "manual", content: "수동으로 추가한 후속 작업", status: "pending", evidenceIds: [], details: [] }] };
+		s.chatQueue = [{ id: "queued", content: "다음 입력으로 오류 로그도 확인해줘", queuedAt: "2026-09-12T00:00:01.000Z" }];
 		const manual = stripTerminalSequences(new AstraPlanView(() => s).render(100).join("\n"));
-		expect(manual).toContain("Todo"); expect(manual).toContain("수동으로 추가한 후속 작업");
+		const proposal = manual.slice(manual.indexOf("Next"));
+		expect(proposal).toContain("다음 입력으로 오류 로그도 확인해줘");
+		expect(proposal).not.toContain("수동으로 추가한 후속 작업");
+	});
+	test("the real Plan presentation never substitutes a previous request for the current plan", () => {
+		const s = astraFixture();
+		const oldRequest: NonNullable<WorkbenchSnapshot["requestRuntime"]>[number] = {
+			schemaVersion: 1, protocolVersion: 2, requestId: "old-request", threadId: s.threadId, turnId: "old-turn",
+			objective: "이전 요청", status: "completed", attempt: 1, previousAttempts: [], completedAt: "2026-09-20T01:00:00Z", startedAt: "2026-09-20T00:00:00Z",
+			requiredDeliveries: [], deliveries: [], actions: [], issues: [], events: [],
+			stages: [{ id: "EXECUTE", status: "completed", goal: "이전 요청 계획", input: [], owner: "orchestrator", model: null, agents: [], tools: [], output: null, evidence: [], decision: null, skipReason: null, startedAt: null, completedAt: null, next: null, evidenceAfterSequence: 0, tasks: [] }],
+		};
+		s.requestRuntime = [oldRequest];
+		const presentation = { motionActive: requestRuntimeMotionActive, rows: requestRuntimeRows };
+		for (const compact of [false, true]) for (const width of [24, 100]) {
+			const view = new AstraPlanView(() => s, compact, Date.now, false, presentation);
+			const rows = view.render(width);
+			const plain = stripTerminalSequences(rows.join("\n"));
+			expect(rows.every(row => visibleWidth(row) <= width)).toBe(true);
+			expect(plain).toContain("1/3");
+			expect(plain).not.toContain("계획 단계 처리가 끝났습니다.");
+			expect(plain).not.toContain("재개 시나리오를 테스트하는 중");
+		}
+		s.workFlow = { ...s.workFlow, source: null, steps: [] };
+		expect(stripTerminalSequences(new AstraPlanView(() => s, false, Date.now, false, presentation).render(100).join("\n"))).toContain("현재 요청에서 전달받은 계획이 없습니다.");
+		s.requestRuntime = [{ ...oldRequest, turnId: s.activeTurnId, status: "running", completedAt: null, stages: oldRequest.stages.map(stage => ({ ...stage, status: "running", goal: "현재 계획 단계" })) }];
+		const current = stripTerminalSequences(new AstraPlanView(() => s, true, Date.now, false, presentation).render(100).join("\n"));
+		expect(current).toContain("현재 계획 단계");
+		expect(current).not.toContain("╭ 진행 중");
+		expect(current).not.toContain("재개 시나리오를 테스트하는 중");
 	});
 	test("Runtime Plan 단계가 Native Plan보다 최신이면 완료 진행을 우선 표시한다", () => {
 		const s = astraFixture("ready");
@@ -291,23 +481,8 @@ describe("Astra execution console", () => {
 		const runtimePresentation = { motionActive: () => false, rows: () => ["RUNTIME_PLAN 3/4"], nowLabel: () => null };
 		const projected = stripTerminalSequences(new AstraPlanView(() => s, false, Date.now, false, runtimePresentation).render(100).join("\n"));
 		expect(projected).toContain("RUNTIME_PLAN 3/4");
-		expect(projected).toContain("Tracer");
-		expect(projected).toContain("실행 · /trace tool-1");
-		expect(projected).toContain("관측 · Observation · /trace tool-2");
-	});
-	test("Runtime Plan 단계가 Native Plan보다 최신이면 완료 진행을 우선 표시한다", () => {
-		const s = astraFixture("ready");
-		s.requestRuntime = [{
-			requestId: "request-4", turnId: "preview-turn", status: "completed", attempt: 1, previousAttempts: [], completedAt: null,
-			stages: ["understand", "decompose", "ground", "deliver"].map((id, index) => ({ id, status: index < 3 ? "completed" : "running", tasks: [], goal: "", output: null, skipReason: null })),
-			requiredDeliveries: [], deliveries: [], actions: [], issues: [],
-		}] as unknown as WorkbenchSnapshot["requestRuntime"];
-		const runtimePresentation = { motionActive: () => false, rows: () => ["RUNTIME_PLAN 3/4"], nowLabel: () => null };
-		const projected = stripTerminalSequences(new AstraPlanView(() => s, false, Date.now, false, runtimePresentation).render(100).join("\n"));
-		expect(projected).toContain("RUNTIME_PLAN 3/4");
-		expect(projected).toContain("Tracer");
-		expect(projected).toContain("실행 · /trace tool-1");
-		expect(projected).toContain("관측 · Observation · /trace tool-2");
+		expect(projected).not.toContain("Plan 세부");
+		expect(projected).not.toContain("/trace");
 	});
 	test("all screen shortcuts work as a prefix sequence without function keys", () => {
 		const chosen: string[] = [];
@@ -329,7 +504,7 @@ describe("Astra execution console", () => {
 		expect(astraTNoteMarkdown(s.tnotes[0]!)).toBe("## 대시보드 안 뜨는 이유\n\n## Report\n\n### Reason\n\n시작 경로와 요구가 충돌했습니다.\n\n### Action\n\n시작 화면 조립과 회귀 테스트를 변경했습니다.\n\n### Test\n\nTotal 1/2\n01. bun test test/astra-ui.test.ts : 1.2s · passed\n02. bun test test/project-workbench.test.ts : 0.8s · failed\n\n### Result\n\n코드와 문서를 동기화했고 GitHub와 Linear는 변경하지 않았습니다.");
 		expect(full).toContain("대시보드 안 뜨는 이유"); expect(full).toContain("Reason"); expect(full).not.toContain("Expected outcome"); expect(full).not.toContain("PROPOSAL"); expect(full).toContain("REPORT"); expect(full).not.toContain("NEXT ACTION"); expect(full).toContain("PARTIAL · TEST 1/2"); expect(full).toContain("Action"); expect(full).toContain("Result"); expect(full).toContain("Test"); expect(full).toContain("Total 1/2"); expect(full).toContain("Evidence 1"); expect(full).toContain("/source request");
 		const plan = stripTerminalSequences(new AstraPlanView(() => s).render(80).join("\n"));
-		expect(plan).toContain("PROPOSAL"); expect(plan).toContain("시작 화면에 로고를 함께 표시하는 방향을 선택했습니다.");
+		expect(plan).toContain("Plan"); expect(plan).not.toContain("PROPOSAL"); expect(plan).not.toContain("시작 화면에 로고를 함께 표시하는 방향을 선택했습니다.");
 		const plainRows = stripTerminalSequences(full).split("\n");
 		const report = plainRows.findIndex(row => row.includes("REPORT"));
 		const result = plainRows.findIndex(row => row.includes("Result"));
@@ -343,6 +518,10 @@ describe("Astra execution console", () => {
 		const level = chalk.level; chalk.level = 3;
 		try {
 			const colored = new AstraTranscriptView(s).render(80);
+			const reasonRow = colored.find(row => stripTerminalSequences(row).includes("Reason"))!;
+			const resultRow = colored.find(row => stripTerminalSequences(row).includes("Result"))!;
+			expect(reasonRow).toContain(a.secondary("Reason"));
+			expect(resultRow).toContain(a.secondary("Result"));
 			for (const label of ["Reason", "Action", "Test", "Result"] as const) {
 				const row = colored.find(row => stripTerminalSequences(row).includes(label!))!;
 				expect(row).toContain(label);
@@ -353,11 +532,11 @@ describe("Astra execution console", () => {
 		expect(ASTRA_COMMANDS.some(command => command.name === "tnotes")).toBe(false);
 		expect(ASTRA_COMMANDS.some(command => command.name === "tnote")).toBe(false);
 	});
-	test("legacy three-field T-notes remain readable after the report migration", () => {
+	test("legacy three-field Notes remain readable after the report migration", () => {
 		const legacy = { id: "legacy", title: "기존 질문", summary: "질문: 기존 질문\n왜: 기존 이유입니다.\n결과: 기존 결과입니다.", updatedAt: "2026-09-01T00:00:00Z", sourceActivityIds: [] };
 		expect(astraTNoteMarkdown(legacy)).toBe("## 기존 질문\n\n## 원인\n\n기존 이유입니다.\n\n## 결과\n\n기존 결과입니다.");
 	});
-	test("Report remains one T-note group after its source Response", () => {
+	test("Report remains one Note group after its source Response", () => {
 		const s = astraFixture("ready");
 		s.tnotes = [{
 			id: "linked-report",
@@ -368,10 +547,10 @@ describe("Astra execution console", () => {
 		}];
 		const rendered = new AstraTranscriptView(s).render(100);
 		const rows = rendered.map(stripTerminalSequences);
-		const response = rows.findIndex(row => row.includes("Response 1-1"));
-		const report = rows.findIndex(row => row.startsWith("┌") && row.includes("REPORT"));
+		const response = rows.findIndex(row => row.includes("RES 1-1"));
+		const report = rows.findIndex(row => row.includes("REPORT"));
 		const evidence = rows.findIndex(row => row.startsWith("│") && row.includes("Evidence 2") && row.includes("/source answer"));
-		const closing = rows.findIndex((row, index) => index > report && row.startsWith("└"));
+		const closing = rows.findIndex((row, index) => index > report && row.trim() === "");
 		expect([response < report, report < evidence, evidence < closing]).toEqual([true, true, true]);
 		expect(rows.some(row => row.includes("PROPOSAL"))).toBe(false);
 		expect(rows.some(row => row.startsWith("├─") || row.startsWith("└─ "))).toBe(false);
@@ -379,7 +558,7 @@ describe("Astra execution console", () => {
 		expect(coloredEvidence).toContain(a.secondary("Evidence 2"));
 		expect(coloredEvidence).toContain(a.active("/source answer"));
 	});
-	test("Plan owns the proposal while the execution transcript owns the report", () => {
+	test("Report stays in the execution transcript and an old proposal does not become live Plan", () => {
 		const s = astraFixture("ready");
 		s.tnotes = [{
 			id: "separated-proposal-report",
@@ -392,8 +571,9 @@ describe("Astra execution console", () => {
 		const plan = stripTerminalSequences(new AstraPlanView(() => s).render(100).join("\n"));
 		expect(transcript).not.toContain("PROPOSAL");
 		expect(transcript).toContain("REPORT");
-		expect(plan).toContain("PROPOSAL");
-		expect(plan).toContain("원래 관계를 복원합니다.");
+		expect(plan).toContain("Plan");
+		expect(plan).not.toContain("PROPOSAL");
+		expect(plan).not.toContain("원래 관계를 복원합니다.");
 	});
 	test("Report keeps semantic state, long fields, and full source commands readable at every width", () => {
 		const source = "source-12345678-1234-1234-1234-123456789abc";
@@ -460,7 +640,7 @@ describe("Astra execution console", () => {
 	});
 	test("long Linear metadata stays in Context instead of taking over the idle execution viewport", () => {
 		const s = astraFixture("ready"); s.chat = []; s.activities = [];
-		s.linearDashboard = { state: "ready", projectName: "Astra project", fetchedAt: null, update: { body: "METADATA_DETAIL ".repeat(100), createdAt: null }, issues: [{ id: "WOO-1", title: "linked issue", status: "In Progress", dueDate: null }], milestones: [], error: null };
+		s.linearDashboard = { state: "ready", projectName: "Astra project", fetchedAt: null, update: { body: "METADATA_DETAIL ".repeat(100), createdAt: null }, issues: [{ id: "WOO-1", title: "linked issue", status: "In Progress", dueDate: null }], comments: [], milestones: [], error: null };
 		const output = new AstraTranscriptView(s).render(80).join("\n");
 		expect(output).not.toContain("METADATA_DETAIL"); expect(output).toContain("/context");
 		const context = new AstraContextView(() => s).render(80).join("\n");
@@ -471,7 +651,7 @@ describe("Astra execution console", () => {
 		const workspace = new AstraWorkspace(() => s, () => []);
 		const root = new VStack([
 			{ component: new AstraHeader(() => s, () => "execution", "/repo/astra"), basis: 2, minSize: 2 },
-			{ component: new AstraExecutionHeading(() => s), basis: 3, minSize: 2 },
+			{ component: new AstraExecutionHeading(() => s), basis: 2, minSize: 2 },
 			{ component: workspace.component, basis: 0, grow: 1, minSize: 1 },
 			{ component: new AstraHud(() => s), basis: 2, minSize: 1, maxSize: 2 },
 		]);
@@ -479,8 +659,8 @@ describe("Astra execution console", () => {
 		const plain = frame.lines.map(stripTerminalSequences).join("\n");
 		expect(frame.lines).toHaveLength(height);
 		expect(frame.lines.every(row => visibleWidth(row) <= width)).toBe(true);
-		expect(plain).toContain("실행 중"); expect(plain).toContain("Esc 중단"); expect(plain).toContain("구독 잔여");
-		expect(plain).not.toMatch(/[╭╮╰╯]/u);
+		expect(plain).toContain("실행 중"); expect(plain).not.toContain("Esc 중단"); expect(plain).not.toMatch(/구독 잔여|\bleft\b|\breset\b/u);
+		if (width >= 112) expect(plain).toContain("세션과 이벤트 결합 지점 확인");
 		workspace.show("plan");
 		const plan = renderLayoutFrame(workspace.component, width, height, () => {}).lines.join("\n");
 		expect(plan).toContain("Plan"); expect(plan).toContain("중복 이벤트");

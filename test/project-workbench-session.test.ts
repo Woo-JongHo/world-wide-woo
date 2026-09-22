@@ -281,11 +281,13 @@ describe("createProjectWorkbenchSession", () => {
 		}
 	});
 
-	test("uses distinct run-local leases and one shared unbound journal without pre-bind T-note I/O", async () => {
+	test("uses distinct run-local leases and one shared unbound journal without pre-bind Note I/O", async () => {
 		const leaseIds: string[] = [];
 		const journalPaths: string[] = [];
 		let reads = 0;
+		let narratorCreations = 0;
 		const factories: Partial<ProjectWorkbenchSessionFactories> = {
+			createActivityNarrator: () => { narratorCreations += 1; return { narrate: async () => ({ what: "검증합니다.", inputSummary: [] }) }; },
 			openWorkspace: async () => workspace,
 			acquireWriterLease: async (_workspace, id) => {
 				leaseIds.push(id);
@@ -305,7 +307,9 @@ describe("createProjectWorkbenchSession", () => {
 			createComposerDraft: async () => ({ initialText: "", save: async () => undefined, clear: async () => undefined }),
 		};
 		const first = await createProjectWorkbenchSession("/ignored", {}, factories);
-		const second = await createProjectWorkbenchSession("/ignored", {}, factories);
+		const second = await createProjectWorkbenchSession("/ignored", { enableActivityNarrator: false }, factories);
+		expect(narratorCreations).toBe(1);
+		expect(second.workbench.snapshot.planActivityStatus).toBe("disabled");
 		expect(leaseIds).toHaveLength(2);
 		expect(new Set(leaseIds).size).toBe(2);
 		expect(new Set(journalPaths).size).toBe(1);
@@ -748,7 +752,7 @@ describe("createProjectWorkbenchSession", () => {
 		}));
 		expect(observed.options?.promotions).toBeDefined();
 		expect(observed.options?.reviews).toBeDefined();
-		expect(observed.options?.narrator).toBeUndefined();
+		expect(observed.options?.narrator).toEqual(expect.objectContaining({ narrate: expect.any(Function) }));
 		expect(observed.options?.wooEntry).toBeUndefined();
 		expect(observed.options?.persistModelSelection).toBe(persistModelSelection);
 		// @linear WOO-718

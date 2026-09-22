@@ -3,6 +3,9 @@ import type { WorkbenchGitTelemetry, WorkbenchGitTelemetryReader } from "../../.
 import type { WorkbenchContextUsage, WorkbenchSessionUsage, WorkbenchSnapshot } from "../../../../../core/domain/work/workbench";
 import { colors } from "../../foundation/theme/theme";
 
+export { workbenchModelLabel } from "../../foundation/labels";
+import { workbenchModelLabel } from "../../foundation/labels";
+
 export interface WorkbenchTelemetrySource {
 	readonly model?: string;
 	readonly effort?: string | null;
@@ -13,13 +16,6 @@ export interface WorkbenchTelemetrySource {
 	readonly home: string;
 }
 
-export function workbenchModelLabel(model: string | undefined): string {
-	if (!model) return "–";
-	return model.split("-").map((part, index) => {
-		if (index === 0) return part.toUpperCase();
-		return /^[a-z]/u.test(part) ? `${part[0]?.toUpperCase() ?? ""}${part.slice(1)}` : part;
-	}).join("-");
-}
 
 function projectPath(cwd: string, home: string): string {
 	if (cwd === home) return "~";

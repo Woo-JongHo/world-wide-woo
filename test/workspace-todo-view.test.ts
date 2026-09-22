@@ -58,6 +58,7 @@ describe("WorkspaceTodoView", () => {
 				fetchedAt: "2026-09-09T00:00:00.000Z",
 				issues: [],
 				update: { body: "0.1.0의 최신 변경 사항", createdAt: "2026-09-09T00:00:00.000Z" },
+				comments: [],
 				milestones: [],
 				error: null,
 			}),

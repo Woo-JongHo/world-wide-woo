@@ -3,7 +3,8 @@ import type { UsageLimitSnapshot, UsageSnapshot } from "../../../../../core/port
 import type { WorkbenchContextUsage, WorkbenchModelUsage } from "../../../../../core/domain/work/workbench";
 import chalk from "chalk";
 import { WORKBENCH_HUD_SYSTEM, compactTokenCount } from "./workbench-hud-system";
-import { colors } from "../../foundation/theme/theme";
+import { runtimeModeLabel } from "../../foundation/labels";
+import { colors, palette } from "../../foundation/theme/theme";
 
 type ProviderLabel = "Codex" | "Claude" | "Antigravity" | "Z.AI";
 
@@ -63,17 +64,17 @@ function meter(percent: number, color: string): string {
 }
 
 function providerColor(label: ProviderLabel): string {
-	if (label === "Codex") return "#15d7e9";
-	if (label === "Claude") return "#ff8b18";
-	if (label === "Antigravity") return "#638dff";
-	return "#b794f6";
+	if (label === "Codex") return palette.orange;
+	if (label === "Claude") return palette.red;
+	if (label === "Antigravity") return palette.teal;
+	return "#d3869b";
 }
 
 function providerText(label: ProviderLabel, value: string): string {
 	if (label === "Codex") return colors.accent(value);
 	if (label === "Claude") return colors.warm(value);
 	if (label === "Antigravity") return colors.highlight(value);
-	return chalk.hex("#b794f6")(value);
+	return chalk.hex("#d3869b")(value);
 }
 
 function unavailable(snapshot: UsageSnapshot | undefined): string {
@@ -87,7 +88,7 @@ function remaining(limit: UsageLimitSnapshot | undefined, now?: number): string 
 	if (!limit || !Number.isFinite(limit.remainingPercent)) return "";
 	const percent = Math.round(Math.max(0, Math.min(100, limit.remainingPercent!)));
 	const reset = resetIn(limit.resetsAt, now);
-	return `${reset ? `${reset} ` : ""}${percent}% ${meter(percent, "#ff4f1a")}`;
+	return `${percent}%${reset ? ` · ${reset}` : ""} ${meter(percent, palette.orange)}`;
 }
 
 function providerSegment(label: ProviderLabel, snapshot: UsageSnapshot | undefined, now: number): string {
@@ -106,7 +107,7 @@ function providerSegment(label: ProviderLabel, snapshot: UsageSnapshot | undefin
 	}
 	const percent = Math.round(Math.max(0, Math.min(100, limit.remainingPercent!)));
 	const reset = resetIn(limit.resetsAt, now);
-	return `${providerText(label, `${label} ${reset ? `${reset} ` : ""}${percent}%`)} ${meter(percent, providerColor(label))}`;
+	return `${providerText(label, `${label} ${percent}%${reset ? ` · ${reset}` : ""}`)} ${meter(percent, providerColor(label))}`;
 }
 
 function claudeSegment(snapshot: UsageSnapshot | undefined, now: number): string {
@@ -128,8 +129,7 @@ function contextSegment(context: WorkbenchContextUsage | null | undefined): stri
 }
 
 function runtimeMode(session: UsageStripSession | null | undefined): string {
-	const mode = session?.permissionMode === "all" ? "Bypass" : session?.collaborationMode === "plan" ? "Plan" : "Manual";
-	return colors.success(`${WORKBENCH_HUD_SYSTEM.strip.modeMarker} ${mode}`);
+	return colors.success(`${WORKBENCH_HUD_SYSTEM.strip.modeMarker} ${runtimeModeLabel(session?.permissionMode, session?.collaborationMode)}`);
 }
 
 /** A single measured-telemetry row below the composer. */

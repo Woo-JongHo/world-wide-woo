@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-WWW-018-CIRCULAR-ORBIT-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:ce7731454c09c4ca5df4413f9f223be3eaea960c:dirty",
+  "intent": "0.0.18 환영 삼체 애니메이션을 원형 라그랑주 해로 조정한 이유와 검증을 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "기존 figure-eight RK4 투영을 동일질량 라그랑주 정삼각형 원형해로 교체했다.",
+      "각 입자는 G=1·m=1·R=1 정규화에서 같은 원을 돌고, 입자 사이의 위상 차이는 120°로 유지된다.",
+      "Y축 캔버스를 6행에서 9행으로 늘리고 희미한 원형 가이드와 최근 궤적을 함께 표시한다."
+    ],
+    "impacts": [
+      "G=1은 중력상수를 실제 단위가 아닌 1로 정규화했다는 뜻이며, 화면의 시간·거리 스케일을 결정하는 기준값이다.",
+      "터미널에서 세 점이 한 정삼각형을 유지한 채 공통 중심을 도는 구조가 보이고, 작은 화면에서도 Y축 움직임이 눌리지 않는다."
+    ],
+    "categories": ["feature", "improvement", "verification"],
+    "verification": [
+      "삼체·환영·Astra 대상 회귀: 62 pass, 0 fail, 1296 assertions",
+      "전체 테스트: 1312 pass, 0 fail, 16851 assertions, 146 files",
+      "bun run check 통과 및 git diff --check 통과",
+      "bun build src/cli.ts --compile --outfile dist/www-0.0.18 통과",
+      "./dist/www-0.0.18 --version → 0.0.18 및 arm64 Mach-O 확인"
+    ],
+    "connections": [
+      "Linear: WOO-912",
+      "Branch: ui/workbench-visual-polish",
+      "Package: 0.0.18",
+      "Artifact: dist/www-0.0.18",
+      "Evidence: .www/evidence/2026-09-21-0.0.18",
+      "Research: docs/research/2026-09-21-three-body-special-solutions.md"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-912/workbench-ui-모드모델계획구독-잔여-표기를-정리한다",
+    "evidence": ".www/evidence/2026-09-21-0.0.18"
+  },
+  "expectedBefore": {
+    "latestCommentId": "48bd0853-1220-4ae1-b18a-f5223e34880c"
+  },
+  "validation": [
+    {
+      "id": "linear-before-readback",
+      "status": "pass",
+      "evidence": "빌드 결과 Comment의 identity를 게시 직전 재조회했다."
+    },
+    {
+      "id": "orbit-verification",
+      "status": "pass",
+      "evidence": "원형 가이드·9행 캔버스·전체 테스트·arm64 바이너리 실행을 실제 확인했다."
+    }
+  ],
+  "candidateDigest": "ababcd4e2460771bd975fe0d168024c8ca41fd93b644b165b88b069d5c79980e"
+}

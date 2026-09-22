@@ -1,7 +1,8 @@
 import { truncateToWidth, visibleWidth, type Component } from "@earendil-works/pi-tui";
 import { colors } from "../../foundation/theme/theme";
+import { OCTOPUS_INTRO_DURATION_MS, octopusScanFrame } from "./octopus-scan";
 
-const INTRO_DURATION_MS = 2_400;
+const INTRO_DURATION_MS = OCTOPUS_INTRO_DURATION_MS;
 const INTRO_FRAME_MS = 40;
 const WWW_WORDMARK = Object.freeze([
 	"██╗    ██╗██╗    ██╗██╗    ██╗",
@@ -46,6 +47,7 @@ function artworkFrame(artwork: readonly string[], elapsedMs: number): string[] {
 	const width = Math.max(...artwork.map((line) => Array.from(line).length));
 	return artwork.map((line, row) => Array.from(line).map((character, column) => {
 		if (character === " ") return character;
+		if (process.env.NO_COLOR !== undefined) return character;
 		const diagonal = (column + (height - row) * 1.8) / Math.max(1, width + height * 1.8);
 		const base = colorAt(diagonal);
 		const distance = Math.abs(diagonal - (scan % 1.2));
@@ -66,9 +68,15 @@ export class WorkbenchWelcomeView implements Component {
 	private elapsedMs = INTRO_DURATION_MS;
 	private startedAt = 0;
 	private timer: ReturnType<typeof setInterval> | null = null;
+	private played = false;
 
 	playIntro(requestRender: () => void): void {
-		if (this.timer) return;
+		if (this.played) return;
+		this.played = true;
+		if (process.env.ASTRA_REDUCED_MOTION === "1" || process.env.NO_COLOR !== undefined) {
+			requestRender();
+			return;
+		}
 		this.startedAt = performance.now();
 		this.elapsedMs = 0;
 		this.timer = setInterval(() => {
@@ -86,13 +94,17 @@ export class WorkbenchWelcomeView implements Component {
 
 	invalidate(): void {}
 
-	render(width: number): string[] {
+	render(width: number, availableHeight = Math.max(4, (process.stdout.rows || 40) - 8)): string[] {
+		if (width <= 0 || availableHeight <= 0) return [];
+		const logo = availableHeight >= 23 ? workbenchWelcomeLogoFrame(this.elapsedMs) : [];
+		const artHeight = Math.max(1, availableHeight - logo.length - 3);
 		return [
-			...workbenchWelcomeLogoFrame(this.elapsedMs).map((line) => centered(line, width)),
+			...logo.map((line) => centered(line, width)),
+			...octopusScanFrame(this.elapsedMs, Math.max(1, width - 2), artHeight).map((line) => centered(line, width)),
 			"",
 			centered(colors.accent("🐙 Wooni · Native Project Workbench"), width),
-			centered(colors.muted("대화 · 질문별 요약 · 현재 작업을 한 공간에서 봅니다."), width),
-		];
+			centered(colors.muted("대화 · 질문별 요약 · /three-body 물리 실험실"), width),
+		].slice(0, Math.floor(availableHeight));
 	}
 
 	private stop(): void {

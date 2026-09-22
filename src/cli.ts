@@ -1,62 +1,57 @@
 #!/usr/bin/env bun
 
 import      { PRODUCT_VERSION }         from "@/product-version";                                                                                // 배포 버전 출력
+import      { wwwHelpText }             from "@/adapters/inbound/cli/www-help";                                                                  // CLI 도움말 표현
 
 import type { RunAppOptions }           from "@/app";                                                                                            // Workbench 실행 옵션
 import type { NativeThreadSummary }     from "@/core/domain/execution/native-session";                                                           // Native thread 목록 항목
 import type { RecentSessionSummary }    from "@/core/ports";                                                                                     // 레거시 세션 목록 항목
 import type { RunLegacyRouterOptions }  from "@/legacy-router-app";                                                                              // 호환 Router 실행 옵션
 
-/** Workbench와 Astra를 시작할 때 사용하는 선택 입력이다. 생략한 항목은 애플리케이션 기본값을 사용한다. */
-type AppOptions = RunAppOptions;
-
-/** 호환 Router 시작 입력이다. 재개할 세션을 지정하지 않으면 새 세션을 시작한다. */
-type RouterOptions = RunLegacyRouterOptions;
-
-/** CLI에 표시할 레거시 세션 목록이다. */
-type SessionList = RecentSessionSummary[];
-
-/** CLI가 조회한 Native thread의 수정 불가능한 목록이다. */
-type ThreadList = readonly NativeThreadSummary[];
-
-/** 선택된 Native thread ID다. null은 사용자가 선택을 취소했다는 뜻이다. */
-type ThreadSelection = string | null;
+type AppOptions      = RunAppOptions;                   // Workbench·Astra 선택 입력. 생략한 항목은 애플리케이션 기본값 사용
+type RouterOptions   = RunLegacyRouterOptions;          // 호환 Router 시작 입력. 세션 미지정 시 새 세션 시작
+type SessionList     = RecentSessionSummary[];          // CLI에 표시할 레거시 세션 목록
+type ThreadList      = readonly NativeThreadSummary[];  // CLI가 조회한 수정 불가능한 Native thread 목록
+type ThreadSelection = string | null;                   // 선택된 Native thread ID. null은 사용자 선택 취소
 
 //  NAME               : ( PARAM   : TYPE          ) => RETURN TYPE               ; // DESCRIPTION
-export interface CliDependencies {
+export interface CLIDependencies {
 	// Run
-	runApp             : ( options : AppOptions    ) => Promise< void            >; // 호환 Workbench 실행
-	runAstra           : ( options : AppOptions    ) => Promise< void            >; // 기본 Astra 실행
-	runRouter          : ( options : RouterOptions ) => Promise< void            >; // Multi-provider Router 실행
-	runAuth            : ( args    : string[]      ) => Promise< void            >; // 인증 명령 실행
-	runDevelopment     : ( args    : string[]      ) => Promise< string          >; // 개발 기록 명령 실행
-	runWorkflow        : ( args    : string[]      ) => Promise< string          >; // 로컬 Workflow 명령 실행
+	runApp             : ( options : AppOptions    ) => Promise<void>;             // 호환 Workbench 실행
+	runAstra           : ( options : AppOptions    ) => Promise<void>;             // 기본 Astra 실행
+	runRouter          : ( options : RouterOptions ) => Promise<void>;             // Multi-provider Router 실행
+	runAuth            : ( args    : string[]      ) => Promise<void>;             // 인증 명령 실행
+	runDevelopment     : ( args    : string[]      ) => Promise<string>;           // 개발 기록 명령 실행
+	runWorkflow        : ( args    : string[]      ) => Promise<string>;           // 로컬 Workflow 명령 실행
 
 	// List
-	listSessions       : ()                          => Promise< SessionList     >; // 레거시 세션 조회
-	listNativeThreads  : ()                          => Promise< ThreadList      >; // Native thread 조회
+	listSessions       : ()                          => Promise<SessionList>;      // 레거시 세션 조회
+	listNativeThreads  : ()                          => Promise<ThreadList>;       // Native thread 조회
 
 	// Select
-	selectNativeThread : ( threads : ThreadList    ) => Promise< ThreadSelection >; // 재개할 thread 선택
+	selectNativeThread : ( threads : ThreadList    ) => Promise<ThreadSelection>;  // 재개할 thread 선택
 
 	// Write
-	writeOut           : ( value   : string        ) => void                      ; // 표준 출력
-	writeError         : ( value   : string        ) => void                      ; // 오류 출력
+	writeOut           : ( value   : string        ) => void;                      // 표준 출력
+	writeError         : ( value   : string        ) => void;                      // 오류 출력
 }
 
+/** @deprecated 새 코드에서는 `CLIDependencies`를 사용한다. */
+export type CliDependencies = CLIDependencies;
+
 //  NAME               : KIND  ( PARAMETERS      ) => { PRELUDE                      const { IMPORT NAME         } = await import("MODULE PATH                                                 "); ACTION TARGET                                    }
-const productionDependencies: CliDependencies = {
-	runApp             : async ( options         ) => { writeWorkbenchBootstrap();   const { runApp              } = await import("@/app");                                                        await  runApp(options);                          },
-	runAstra           : async ( options         ) => { writeAstraBootstrap();       const { runAstra            } = await import("@/app");                                                        await  runAstra(options);                        },
-	runRouter          : async ( options         ) => { writeRouterBootstrap();      const { runLegacyRouter     } = await import("@/legacy-router-app");                                          await  runLegacyRouter(options);                 },
-	runAuth            : async ( args            ) => {                              const { runAuth             } = await import("@/app");                                                        await  runAuth(args);                            },
-	runWorkflow        : async ( args            ) => {                              const { runLocalWorkflowCli } = await import("@/adapters/outbound/development/local-workflow-cli");           return runLocalWorkflowCli(args, process.cwd()); },
-	runDevelopment     : async ( args            ) => {                              const { runDevelopmentCli   } = await import("@/adapters/outbound/development/development-cli");              return runDevelopmentCli(args);                  },
-	listSessions       : async (                 ) => {                              const { listSessions        } = await import("@/app");                                                        return listSessions();                           },
-	listNativeThreads  : async (                 ) => {                              const { listNativeThreads   } = await import("@/app");                                                        return listNativeThreads();                      },
-	selectNativeThread : async ( threads         ) => {                              const { selectNativeThread  } = await import("@/adapters/inbound/tui/features/session/native-thread-picker"); return selectNativeThread(threads, "astra");    },
-	writeOut           :       ( value           ) => console.log   (value),
-	writeError         :       ( value           ) => console.error (value),
+const productionDependencies: CLIDependencies = {
+	runApp             : async (options) => { writeWorkbenchBootstrap();   const { runApp              } = await import("@/app");                                                        await  runApp(options); },
+	runAstra           : async (options) => { writeAstraBootstrap();       const { runAstra            } = await import("@/app");                                                        await  runAstra(options); },
+	runRouter          : async (options) => { writeRouterBootstrap();      const { runLegacyRouter     } = await import("@/legacy-router-app");                                          await  runLegacyRouter(options); },
+	runAuth            : async ( args  ) => {                              const { runAuth             } = await import("@/app");                                                        await  runAuth(args); },
+	runWorkflow        : async ( args  ) => {                              const { runLocalWorkflowCli } = await import("@/adapters/outbound/development/local-workflow-cli");           return runLocalWorkflowCli(args, process.cwd()); },
+	runDevelopment     : async ( args  ) => {                              const { runDevelopmentCli   } = await import("@/adapters/outbound/development/development-cli");              return runDevelopmentCli(args); },
+	listSessions       : async ()        => {                              const { listSessions        } = await import("@/app");                                                        return listSessions(); },
+	listNativeThreads  : async ()        => {                              const { listNativeThreads   } = await import("@/app");                                                        return listNativeThreads(); },
+	selectNativeThread : async (threads) => {                              const { selectNativeThread  } = await import("@/adapters/inbound/tui/features/session/native-thread-picker"); return selectNativeThread(threads, "astra"); },
+	writeOut           :       ( value ) => console.log   (value),
+	writeError         :       ( value ) => console.error (value),
 };
 
 export function writeWorkbenchBootstrap(                                                                                                         // 첫 화면을 먼저 보여준 뒤 App Server와 TUI 모듈을 불러온다.
@@ -83,66 +78,16 @@ export function writeAstraBootstrap(
 	write("\r\x1b[2Kastra / Execution Console을 여는 중…\n");
 }
 
-function helpText(): string {
-	const row = (command: string, description = ""): string => {
-		const commandWidth : number = [...command].reduce(
-			(width, character) => width + (/\p{Script=Hangul}/u.test(character) ? 2 : 1),
-			0,
-		);
-		const padding      : string = " ".repeat(Math.max(1, 48 - commandWidth));
-
-		return `  ${command}${padding}${description}`.trimEnd();
-	};
-
-	return [
-		"사용법:",
-		row("www",                                               "Astra Execution Console · F2–F8 화면 · Ctrl+P 명령"),
-		row("www astra [--resume [id]]",                         "Astra Execution Console · F2–F8 화면 · Ctrl+P 명령"),
-		row("www astra --runtime-config <json>",                 "7-Stage brokered 실행 · 파일/게시 범위 지정 · 격리 미검증"),
-		row("www --execution-lane pi",                           "실험적 내장 Pi text lane으로 Astra 실행"),
-		row("www router",                                        "호환 Claude·Gemini·OpenAI·Z.AI Router 실행"),
-		row("",                                                  "Native 승인·Sandbox·Skill은 제공하지 않음"),
-		row("www router --resume <session-id>",                  "기존 Router 세션 재개"),
-		row("www auth status",                                   "모델 인증 상태 확인"),
-		row("www auth login <공급자> [oauth|api-key]",           "구독 계정 또는 API 키 로그인"),
-		row("www auth logout <공급자>",                          "저장된 인증 삭제"),
-		row("www workflow check <RPA-ID>",                       "로컬 참조 사전 검사 (원격 미검증)"),
-		row("www workflow show|resume <Run-ID>",                 "결과 조회·중단 검사 재개"),
-		row("www development help",                              "Issue·Unit·SQLite·Obsidian 개발 기록 명령"),
-		row("www sessions",                                      "레거시 SessionRuntime 세션 목록"),
-		row("www threads",                                       "현재 프로젝트의 Codex native thread 목록"),
-		row("www --resume",                                      "현재 프로젝트의 native thread를 선택해 재개"),
-		row("www --resume <native-thread-id>",                   "지정한 native thread 바로 재개"),
-		"",
-		"Astra Execution Console 명령:",
-		row("/stats · /dashboard · /monitor",                    "Observability View 직접 열기"),
-		row("r/R · 1/2/3 · Esc",                                 "View 회전·직접 이동·Workbench 복귀"),
-		row("/model [모델] [추론 강도]",                         "현재·다음 실행의 Codex 모델 변경"),
-		row("/source <id|latest|clear>",                         "Trace source 선택"),
-		row("/trace <activity-id>",                              "선택 Plan에 결속된 정확한 Activity Trace 선택"),
-		row("/tnote",                                            "마지막 질문을 packet-only 종료 보고서로 수동 캡처"),
-		row("/approve · /approve-session · /decline",            "Codex native 승인 응답"),
-		row("/cancel",                                           "현재 native turn 중단"),
-		row("/exit",                                             "Workbench를 안전하게 종료"),
-		"",
-		"호환 Router 명령:",
-		row("/login [provider]",                                 "OAuth 또는 API 키 연결"),
-		row("/model [provider/model] [low|medium|high|ultra]",   "Claude·Gemini·OpenAI·Z.AI 모델 변경"),
-		row("/logout <provider>",                                "저장된 인증 삭제"),
-		row("/usage",                                            "Codex·Claude 사용량 갱신"),
-	].join("\n");
-}
-
 function isLegacySessionId(value: string): boolean {
 	return /^[A-Za-z0-9][A-Za-z0-9_-]*$/u.test(value);
 }
 
 function writeInformationalOutput(
 	args         : string[],
-	dependencies : CliDependencies,
+	dependencies : CLIDependencies,
 ): boolean {
 	if (args[0] !== "development" && (args.includes("--help") || args.includes("-h"))) {
-		dependencies.writeOut(helpText());
+		dependencies.writeOut(wwwHelpText());
 		return true;
 	}
 
@@ -193,7 +138,7 @@ function parseAstraOptions(args: string[]): { options: AppOptions; selectResumeT
 	return { options, selectResumeThread: selectResumeThread && !options.resumeThreadId };
 }
 
-async function selectResumeThread(dependencies: CliDependencies): Promise<ThreadSelection> {
+async function selectResumeThread(dependencies: CLIDependencies): Promise<ThreadSelection> {
 	const threads = await dependencies.listNativeThreads();
 
 	if (!threads.length) {
@@ -205,7 +150,7 @@ async function selectResumeThread(dependencies: CliDependencies): Promise<Thread
 
 async function runAstraCommand(
 	args         : string[],
-	dependencies : CliDependencies,
+	dependencies : CLIDependencies,
 ): Promise<void> {
 	const parsed = parseAstraOptions(args);
 
@@ -221,7 +166,7 @@ async function runAstraCommand(
 
 async function runRouterCommand(
 	args         : string[],
-	dependencies : CliDependencies,
+	dependencies : CLIDependencies,
 ): Promise<void> {
 	if (args.length === 1) {
 		await dependencies.runRouter({});
@@ -238,7 +183,7 @@ async function runRouterCommand(
 	throw new Error("사용법: www router [--resume <session-id>]");
 }
 
-async function writeSessions(dependencies: CliDependencies): Promise<void> {
+async function writeSessions(dependencies: CLIDependencies): Promise<void> {
 	const sessions = await dependencies.listSessions();
 
 	if (sessions.length === 0) {
@@ -250,7 +195,7 @@ async function writeSessions(dependencies: CliDependencies): Promise<void> {
 	}
 }
 
-async function writeThreads(dependencies: CliDependencies): Promise<void> {
+async function writeThreads(dependencies: CLIDependencies): Promise<void> {
 	const threads = await dependencies.listNativeThreads();
 
 	if (threads.length === 0) {
@@ -267,7 +212,7 @@ async function writeThreads(dependencies: CliDependencies): Promise<void> {
 
 async function resumeAstra(
 	args         : string[],
-	dependencies : CliDependencies,
+	dependencies : CLIDependencies,
 ): Promise<void> {
 	const threadId = args[1] || await selectResumeThread(dependencies);
 
@@ -278,7 +223,7 @@ async function resumeAstra(
 
 async function dispatchCommand(
 	args         : string[],
-	dependencies : CliDependencies,
+	dependencies : CLIDependencies,
 ): Promise<void> {
 	const command = args[0];
 
@@ -293,46 +238,21 @@ async function dispatchCommand(
 	}
 
 	switch (command) {
-	case "development":
-		dependencies.writeOut(await dependencies.runDevelopment(args.slice(1)));
-		return;
-
-	case "auth":
-		await dependencies.runAuth(args.slice(1));
-		return;
-
-	case "workflow":
-		dependencies.writeOut(await dependencies.runWorkflow(args.slice(1)));
-		return;
-
-	case "astra":
-		await runAstraCommand(args, dependencies);
-		return;
-
-	case "router":
-		await runRouterCommand(args, dependencies);
-		return;
-
-	case "sessions":
-		await writeSessions(dependencies);
-		return;
-
-	case "threads":
-		await writeThreads(dependencies);
-		return;
-
-	case "--resume":
-		await resumeAstra(args, dependencies);
-		return;
-
-	default:
-		throw new Error(`알 수 없는 명령입니다: ${args.join(" ")}`);
+	case "development" : dependencies.writeOut(await dependencies.runDevelopment(args.slice(1))); return;
+	case "auth"        : await dependencies.runAuth(args.slice(1));                               return;
+	case "workflow"    : dependencies.writeOut(await dependencies.runWorkflow(args.slice(1)));    return;
+	case "astra"       : await runAstraCommand(args, dependencies);                               return;
+	case "router"      : await runRouterCommand(args, dependencies);                              return;
+	case "sessions"    : await writeSessions(dependencies);                                       return;
+	case "threads"     : await writeThreads(dependencies);                                        return;
+	case "--resume"    : await resumeAstra(args, dependencies);                                   return;
+	default             : throw new Error(`알 수 없는 명령입니다: ${args.join(" ")}`);
 	}
 }
 
 export async function runCli(
 	args         : string[],
-	dependencies : CliDependencies = productionDependencies,
+	dependencies : CLIDependencies = productionDependencies,
 ): Promise<number> {
 	if (writeInformationalOutput(args, dependencies)) return 0;
 

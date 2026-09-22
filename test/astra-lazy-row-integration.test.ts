@@ -5,7 +5,6 @@ import {
 	readScrollRows,
 	stripTerminalSequences,
 	truncateToWidth,
-	visibleWidth,
 	type Component,
 	type ScrollRowSource,
 } from "@earendil-works/pi-tui";
@@ -64,11 +63,10 @@ function immutableLargeBodyHistory(count: number, bodyBytes = 4 * 1024) {
 function responseFrameOracle(label: string, status: string, bodyRows: readonly string[], width: number): string[] {
 	const title = astraTitle(label, a.response);
 	if (width < 5) return ["", pair(title, a.muted(status), width), ...bodyRows, ""].map(row => fit(row, width));
-	const inside = width - 4;
+	const inside = width - 2;
 	const heading = truncateToWidth(` ${title}${status ? `  ${a.muted(status)}` : ""} `, width - 2, "…");
-	const top = `${a.response("┌")}${heading}${a.response("─".repeat(Math.max(0, width - 2 - visibleWidth(heading))))}${a.response("┐")}`;
-	const body = bodyRows.map(row => `${a.response("│")} ${fit(row, inside)} ${a.response("│")}`);
-	return ["", top, ...body, a.response(`└${"─".repeat(width - 2)}┘`), ""].map(row => fit(row, width));
+	const body = bodyRows.map(row => `${a.rule("│")} ${fit(row, inside)}`);
+	return ["", fit(heading, width), ...body, ""].map(row => fit(row, width));
 }
 
 /** Independent dense composition for this message-only fixture. */

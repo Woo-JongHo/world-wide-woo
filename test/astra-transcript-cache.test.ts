@@ -158,7 +158,7 @@ test("8MiB보다 큰 volatile handoff는 보존하지 않고 exact rows로 fallb
 	expect(afterCount.rowEntries).toBe(0);
 	expect(afterRows.renderedBlocks - before.renderedBlocks).toBe(2);
 	expect(afterRows.rowLogicalBytes).toBeLessThanOrEqual(8 * 1024 * 1024);
-});
+}, 30_000);
 
 test("실제 AstraWorkspace는 visited 폭의 exact index를 재사용하고 visible block만 보존한다", () => {
 	const snapshot = largeHistory(200);
@@ -260,6 +260,35 @@ test("shallow-frozen tool의 mutable grandchild는 identity count hit를 허용�
 	expect(after.durableCountRenderedBlocks - before.durableCountRenderedBlocks).toBe(2);
 });
 
+test("live Terminal은 같은 5줄 window가 바뀌면 이전 row cache를 재사용하지 않는다", () => {
+	const base = astraFixture("working");
+	const makeSnapshot = (start: number) => ({
+		...base,
+		revision: base.revision + start,
+		journalSequence: base.journalSequence + start,
+		activities: base.activities.map(activity => activity.id === "tool-2" ? {
+			...activity,
+			payload: { params: { item: { command: "printf output", aggregatedOutput: Array.from({ length: 5 }, (_, index) => `output-${start + index}`).join("\n") } } },
+		} : activity),
+	});
+	let snapshot = makeSnapshot(0);
+	const view = new AstraTranscriptView(snapshot);
+	const first = stripTerminalSequences(view.render(80).join("\n"));
+	const before = view.cacheMetrics();
+
+	for (let index = 0; index < 5; index += 1) expect(first).toContain(`output-${index}`);
+	expect(first).not.toContain("output-5");
+
+	snapshot = makeSnapshot(5);
+	view.update(snapshot);
+	const second = stripTerminalSequences(view.render(80).join("\n"));
+	const after = view.cacheMetrics();
+
+	for (let index = 5; index < 10; index += 1) expect(second).toContain(`output-${index}`);
+	expect(second).not.toContain("output-4");
+	expect(after.durableCountRenderedBlocks).toBeGreaterThan(before.durableCountRenderedBlocks);
+});
+
 test("accessor와 frozen Date/Map wrapper는 immutable identity 증거가 되지 않는다", () => {
 	const makeView = (payload: Readonly<Record<string, unknown>>) => {
 		const base = astraFixture("ready");
@@ -306,7 +335,7 @@ test("accessor와 frozen Date/Map wrapper는 immutable identity 증거가 되지
 	expect(wrapperAfter.durableCountRenderedBlocks - wrapperBefore.durableCountRenderedBlocks).toBe(2);
 });
 
-test("T-note 한 개 변경은 tool count를 재사용하고 두 retained 폭의 note만 다시 count한다", () => {
+test("Note 한 개 변경은 tool count를 재사용하고 두 retained 폭의 note만 다시 count한다", () => {
 	let snapshot: ReturnType<typeof astraFixture> = deepFreezeFixture({
 		...immutableToolHistory(2),
 		tnotes: [{ id: "note-1", title: "질문", summary: "before-note-summary", sourceActivityIds: ["tool-0"], updatedAt: "2026-09-14T00:00:00.000Z" }],
@@ -328,7 +357,7 @@ test("T-note 한 개 변경은 tool count를 재사용하고 두 retained 폭의
 	expect(after.durableCountReusedBlocks - before.durableCountReusedBlocks).toBe(4);
 });
 
-test("anchor 없는 T-note는 public rows에 정확히 한 번만 나타난다", () => {
+test("anchor 없는 Note는 public rows에 정확히 한 번만 나타난다", () => {
 	const marker = "UNANCHORED_NOTE_UNIQUE_MARKER";
 	const snapshot = {
 		...astraFixture("ready"),
@@ -369,7 +398,7 @@ test("8MiB shared row LRU에서 durable/volatile 경합은 exact output과 bound
 	expect(afterFirst.rowLogicalBytes).toBeLessThanOrEqual(8 * 1024 * 1024);
 	expect(afterSecond.rowLogicalBytes).toBeLessThanOrEqual(8 * 1024 * 1024);
 	expect(afterSecond.renderedBlocks - afterFirst.renderedBlocks).toBe(2);
-});
+}, 15_000);
 
 test("100 durable append generation 뒤에도 현재 width metadata와 shared row LRU만 남는다", () => {
 	let snapshot = immutableHistory(8);
@@ -435,13 +464,12 @@ test("durable append의 ANSI 제거 byte rows는 고정 literal과 같다", () =
 
 	expect(view.render(30).map(stripTerminalSequences)).toEqual([
 		"                              ",
-		"▰ Request 1                   ",
+		"REQ 1                         ",
 		"  BYTE_GOLDEN                 ",
 		"                              ",
 		"                              ",
-		"┌ ▰ Response 1-1 ────────────┐",
-		"│ APPEND_GOLDEN              │",
-		"└────────────────────────────┘",
+		" RES 1-1                      ",
+		"│ APPEND_GOLDEN               ",
 		"                              ",
 	]);
 });

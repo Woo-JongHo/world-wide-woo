@@ -1,0 +1,73 @@
+{
+  "schemaVersion": "1.0",
+  "receiptId": "d338ab12-8cf8-4dec-810c-2b1717dc4ff0",
+  "runId": "5f99bf8b-2620-4e3f-86ea-413dc278f444",
+  "candidateId": "ARTIFACT-CANDIDATE-WORKBENCH-VISUAL-POLISH",
+  "skill": {
+    "name": "woo-linear-publish",
+    "version": "1.0"
+  },
+  "capability": "linear-issue.publish",
+  "status": "succeeded",
+  "stage": "verify",
+  "actor": {
+    "kind": "codex"
+  },
+  "context": {
+    "workspaceId": "b7b91489-dd9b-4fb7-b958-822d5dc577e0",
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "sourceRevision": "git:ce7731454c09c4ca5df4413f9f223be3eaea960c:dirty",
+    "verifiedAt": "2026-09-21T09:10:10Z"
+  },
+  "input": {
+    "candidateDigest": "e4089231ad0511b3bf062f5d0bbd01b0f475c961a14f69ec7109c4edce9146b5"
+  },
+  "decision": {
+    "outcome": "publish",
+    "reason": "사용자 요청 범위에 맞는 새 UI 하위 작업이며, 게시 직전 WOO-674 부모·직계 하위·동일 제목 중복 상태가 Candidate와 일치했다."
+  },
+  "validation": [
+    {
+      "id": "candidate-current-state",
+      "status": "pass",
+      "evidence": "artifact-control validate --actual-before 통과"
+    },
+    {
+      "id": "target-read-back",
+      "status": "pass",
+      "evidence": "WOO-912 제목·본문 핵심 절·상태·라벨·Project·parentId·relatedTo를 재조회해 확인"
+    },
+    {
+      "id": "parent-hierarchy",
+      "status": "pass",
+      "evidence": "WOO-912 parentId=WOO-674 및 World Wide Woo projectId를 재조회해 확인"
+    },
+    {
+      "id": "implementation-verification",
+      "status": "pass",
+      "evidence": "bun run check, bun test 1294/1294, git diff --check, 변경 파일 가짜 완료 흔적 점검 통과"
+    }
+  ],
+  "authorization": {
+    "actor": "user",
+    "scope": "Linear Issue 1건 생성",
+    "candidateDigest": "e4089231ad0511b3bf062f5d0bbd01b0f475c961a14f69ec7109c4edce9146b5"
+  },
+  "execution": {
+    "tool": "linear-woo.save_issue",
+    "completedAt": "2026-09-21T09:09:59Z"
+  },
+  "result": {
+    "id": "WOO-912",
+    "uuid": "14a3c6f0-3055-4c44-80fc-52a002b96f20",
+    "url": "https://linear.app/woo-world/issue/WOO-912/workbench-ui-모드모델계획구독-잔여-표기를-정리한다",
+    "status": "In Progress"
+  },
+  "failure": null,
+  "evidence": [
+    ".www/evidence/2026-09-21-workbench-visual-polish/linear-issue-candidate.json",
+    ".www/evidence/2026-09-21-workbench-visual-polish/linear-before.json",
+    ".www/evidence/2026-09-21-workbench-visual-polish/linear-issue-readback.json",
+    "linear:WOO-912"
+  ]
+}

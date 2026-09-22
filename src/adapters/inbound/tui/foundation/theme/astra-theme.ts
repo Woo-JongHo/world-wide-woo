@@ -1,22 +1,39 @@
 import chalk from "chalk";
 import { truncateToWidth, visibleWidth, wrapTextWithAnsi, type EditorTheme, type MarkdownTheme } from "@earendil-works/pi-tui";
+import { getActiveTuiTheme, palette } from "./theme";
 
-/** Astra Mono-Indigo inks: neutral hierarchy, one active accent, and exceptional warning/error states. */
+/** Figma reference inks for the default Gruvbox and the Tokyo Night theme. */
 export const astraPalette = {
-	text: "#D8DEE9", secondary: "#8B949E", muted: "#636C76", rule: "#2A3038",
-	active: "#7AA2F7", attention: "#D4A85F", failure: "#D77A7A",
-	request: "#6FBF8A", response: "#C49AE8", tool: "#6E9FD5", plan: "#D6B979", note: "#D97975", info: "#9BA8CD",
-	codex: "#6E87C7", claude: "#D69A78", gemini: "#75B9D6", zai: "#B89AD9", success: "#7FB069",
+	get text() { return palette.foreground; },
+	get secondary() { return palette.steel; },
+	get muted() { return palette.muted; },
+	get rule() { return palette.border; },
+	get active() { return palette.orange; },
+	get attention() { return palette.amber; },
+	get failure() { return palette.red; },
+	get request() { return palette.success; },
+	get response() { return getActiveTuiTheme() === "tokyo-night" ? palette.steel : "#D3869B"; },
+	get tool() { return palette.teal; },
+	get plan() { return palette.amber; },
+	get note() { return palette.orange; },
+	get info() { return getActiveTuiTheme() === "tokyo-night" ? palette.blue : "#8EC07C"; },
+	get codex() { return palette.orange; },
+	get claude() { return palette.red; },
+	get gemini() { return palette.teal; },
+	get zai() { return getActiveTuiTheme() === "tokyo-night" ? palette.steel : "#D3869B"; },
+	get success() { return palette.success; },
 } as const;
+type AstraPaletteKey = keyof typeof astraPalette;
+const astraInk = (key: AstraPaletteKey): AstraInk => text => chalk.hex(astraPalette[key])(text);
 export const a = {
-	text: chalk.hex(astraPalette.text), answer: chalk.white, secondary: chalk.hex(astraPalette.secondary), muted: chalk.hex(astraPalette.muted), rule: chalk.hex(astraPalette.rule),
-	caption: chalk.hex(astraPalette.muted).italic,
-	active: chalk.hex(astraPalette.active), attention: chalk.hex(astraPalette.attention), failure: chalk.hex(astraPalette.failure),
-	request: chalk.hex(astraPalette.request), response: chalk.hex(astraPalette.response), tool: chalk.hex(astraPalette.tool),
-	plan: chalk.hex(astraPalette.plan), note: chalk.hex(astraPalette.note), info: chalk.hex(astraPalette.info), success: chalk.hex(astraPalette.success),
-	codex: chalk.hex(astraPalette.codex), claude: chalk.hex(astraPalette.claude), gemini: chalk.hex(astraPalette.gemini), zai: chalk.hex(astraPalette.zai),
-	strong: chalk.hex(astraPalette.text).bold,
-	selected: chalk.bgHex(astraPalette.rule).hex(astraPalette.text).bold,
+	text: astraInk("text"), answer: chalk.white, secondary: astraInk("secondary"), muted: astraInk("muted"), rule: astraInk("rule"),
+	caption: (text: string) => chalk.italic(astraInk("muted")(text)),
+	active: astraInk("active"), attention: astraInk("attention"), failure: astraInk("failure"),
+	request: astraInk("request"), response: astraInk("response"), tool: astraInk("tool"),
+	plan: astraInk("plan"), note: astraInk("note"), info: astraInk("info"), success: astraInk("success"),
+	codex: astraInk("codex"), claude: astraInk("claude"), gemini: astraInk("gemini"), zai: astraInk("zai"),
+	strong: (text: string) => chalk.bold(astraInk("text")(text)),
+	selected: (text: string) => chalk.bgHex(astraPalette.rule).hex(astraPalette.text).bold(text),
 };
 export type AstraInk = (text: string) => string;
 
@@ -66,14 +83,24 @@ function boundedTerminalText(value: string, maximum: number): string {
 	return `${takeHead(head, headBudget)}${TRUNCATION_MARKER}${takeTail(tail, tailBudget)}`;
 }
 /** A compact typographic landmark; color belongs to the label, not the body. */
-export function astraTitle(label: string, ink: AstraInk = a.text): string { return `${ink("▰")} ${chalk.bold(ink(label))}`; }
+export function astraTitle(label: string, ink: AstraInk = a.text): string { return chalk.bold(ink(label)); }
 /** An indeterminate highlight, not a fabricated completion percentage. */
 export function astraPulse(frame: number, width = 12): string {
-	const base = [58, 61, 81], peak = [168, 177, 255];
+	const base = [60, 56, 54], peak = [254, 128, 25];
 	return Array.from({ length: width }, (_, column) => {
 		const light = Math.max(0, 1 - Math.abs(column - frame % (width + 6) + 3) / 4);
 		const rgb = base.map((channel, i) => Math.round(channel + (peak[i]! - channel) * light));
 		return chalk.rgb(rgb[0]!, rgb[1]!, rgb[2]!)("━");
+	}).join("");
+}
+/** A restrained moving gradient for persistent, user-authored header context. */
+export function astraFlowText(text: string, frame = 0): string {
+	const characters = Array.from(text);
+	const start = [254, 128, 25], end = [211, 134, 155];
+	return characters.map((character, index) => {
+		const wave = (Math.sin((index + frame) / 4) + 1) / 2;
+		const rgb = start.map((channel, channelIndex) => Math.round(channel + (end[channelIndex]! - channel) * wave));
+		return chalk.rgb(rgb[0]!, rgb[1]!, rgb[2]!)(character);
 	}).join("");
 }
 /** Compatible semantic roles for the existing authentication/model state machines. */

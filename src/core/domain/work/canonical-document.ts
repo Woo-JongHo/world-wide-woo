@@ -23,7 +23,7 @@ export interface CanonicalDocumentRedaction {
 	readonly bodyDigest: string;
 }
 
-/** Narrow portable contract shared by Todo and T-note drafts. */
+/** Narrow portable contract shared by Todo and Note drafts. */
 export interface CanonicalDocumentDraft {
 	readonly schemaVersion: typeof CANONICAL_DOCUMENT_SCHEMA_VERSION;
 	readonly kind: CanonicalDocumentKind;
@@ -49,7 +49,7 @@ const TNOTE_TARGET = /^\.www\/vault\/t-notes\/([A-Za-z0-9][A-Za-z0-9._-]{0,63})\
 
 export function targetForCanonicalDocument(kind: CanonicalDocumentKind, sourceId?: string): CanonicalDocumentTarget {
 	if (kind === "todo") return ".www/vault/Todo.md";
-	if (!sourceId || !SAFE_NOTE_ID.test(sourceId)) throw new Error("T-note source id는 안전한 파일 이름이어야 합니다.");
+	if (!sourceId || !SAFE_NOTE_ID.test(sourceId)) throw new Error("Note source id는 안전한 파일 이름이어야 합니다.");
 	return `.www/vault/t-notes/${sourceId}.md`;
 }
 

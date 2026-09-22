@@ -29,7 +29,7 @@ function boundedPublicProjection(value: unknown): { readonly value: unknown; rea
 			return sanitizeTerminalTextExcerpt(candidate, 2_400, "head-tail");
 		}
 		if (candidate === null || typeof candidate !== "object") return candidate;
-		if (depth >= 5 || items >= 100) { omitted = true; return "[요약 제한]"; }
+		if (depth >= 5 || items >= 100) { omitted = true; return "[공개 Source 일부 생략]"; }
 		if (Array.isArray(candidate)) {
 			if (candidate.length > 40) omitted = true;
 			return candidate.slice(0, 40).map(item => { items += 1; return project(item, depth + 1); });
@@ -124,18 +124,12 @@ function selectedSourceRows(snapshot: WorkbenchSnapshot, width: number): string[
 	const publicRows = serialized
 		? serialized.split(/\r?\n/u).flatMap(line => wrapTextWithAnsi(line, width))
 		: [colors.muted("보존된 공개 내용 없음")];
-	const refs = [
-		selected.nativeRefs.threadId ? `thread ${selected.nativeRefs.threadId}` : "thread 없음",
-		selected.nativeRefs.turnId ? `turn ${selected.nativeRefs.turnId}` : "turn 없음",
-		selected.nativeRefs.itemId ? `item ${selected.nativeRefs.itemId}` : "item 없음",
-	].join(" · ");
 	return [
 		colors.secondary(`Trace·Source · ${selected.id} · ${selected.kind} · ${selected.phase}`),
 		colors.text("공개 내용 · 보존된 관측 projection"),
 		...publicRows,
 		...(projection.omitted ? [colors.warning(PUBLIC_SOURCE_OMISSION)] : []),
 		colors.muted(`관측 ID · activity ${selected.id}`),
-		colors.muted(`Native 참조 · ${refs}`),
 		colors.muted("이 화면은 provider 원본 전체가 아니라 보존된 공개 관측만 보여줍니다."),
 	].flatMap(row => wrapTextWithAnsi(row, width));
 }
@@ -159,7 +153,6 @@ export class WorkbenchMonitorView implements Component {
 		const rows = [
 			colors.accent("Monitor · 실행 관측"),
 			colors.muted("읽기 전용 · Chat과 Todo는 같은 Workbench 상태를 사용합니다."), "",
-			`${colors.secondary("Session")} · ${snapshot.phase} · thread ${snapshot.threadId ?? "없음"}${snapshot.activeTurnId ? ` · turn ${snapshot.activeTurnId}` : ""}`,
 			`${colors.secondary("Activity")} · ${snapshot.activityCount ?? snapshot.activities.length}개 · journal ${snapshot.journalSequence}`,
 			`${colors.secondary("Turn")} · ${currentStep ? `${currentStep.number}/${snapshot.workFlow.steps.length} · ${currentStep.title}` : "진행 단계 없음"}`,
 			`${colors.secondary("Live")} · ${live}`,

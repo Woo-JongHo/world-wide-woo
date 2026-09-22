@@ -116,11 +116,14 @@ export class WorkbenchTracerView implements Component {
 			colors.border("─".repeat(contentWidth)),
 			colors.accent(TRACER_LABELS.now),
 		];
-		if (focus) {
-			rows.push(colors.highlight(`${focus.status === "completed" ? "✓" : "▶"} ${focus.title}`));
-			const source = [...focus.activityIds].reverse().map(id => activitySummary(activities.get(id))).find((value): value is string => value !== null);
-			if (source) rows.push(colors.muted(`  ${source}`));
-			rows.push(colors.muted(`  관측 ${focus.observationCount} · 수행 활동 ${focus.activityIds.length}`));
+	if (focus) {
+		rows.push(colors.highlight(`${focus.status === "completed" ? "✓" : "▶"} ${focus.title}`));
+		if (focus.narration.what.trim() && focus.narration.what.trim() !== focus.title.trim()) rows.push(colors.secondary(`  무엇 · ${focus.narration.what}`));
+		if (focus.narration.why?.trim()) rows.push(colors.muted(`  이유 · ${focus.narration.why}`));
+		if (focus.narration.inputSummary.length) rows.push(colors.muted(`  입력 · ${focus.narration.inputSummary.join(" · ")}`));
+		const source = [...focus.activityIds].reverse().map(id => activitySummary(activities.get(id))).find((value): value is string => value !== null);
+		if (source) rows.push(colors.muted(`  공개 실행 · ${source}`));
+		rows.push(colors.muted(`  관측 ${focus.observationCount} · 수행 활동 ${focus.activityIds.length}`));
 		} else rows.push(colors.muted("대기 중인 실행이 없습니다."));
 		rows.push(colors.border("─".repeat(contentWidth)));
 		rows.push(colors.muted(TRACER_LABELS.health));

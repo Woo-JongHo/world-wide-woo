@@ -4,7 +4,7 @@ import { tnoteUnits } from "./tnote.units";
 export const TNOTE_FEATURE = {
 	id: "TUI-F004",
 	key: "tnote",
-	title: "T-note",
+	title: "Report · Note",
 	order: 40,
 	kind: "embedded",
 	status: "active",

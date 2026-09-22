@@ -15,12 +15,11 @@ export class AstraMonitorView implements Component {
 	invalidate(): void {}
 	render(width: number): string[] {
 		const m = this.get();
-		const rows = section("실행 관측", width, m.state);
+		const rows = section("Activity", width, m.state);
 		if (m.requestRuntime) {
 			const now = this.clock();
 			const frame = this.motion && requestRuntimeMotionActive(m.requestRuntime, now) ? Math.floor(now / 120) : 8;
-			const nowObservation = m.currentTool?.label ?? (m.approval?.pending ? "Approval · 사용자 결정 대기" : null);
-			rows.push(...requestRuntimeRows(m.requestRuntime, width, false, frame, nowObservation));
+			rows.push(...requestRuntimeRows(m.requestRuntime, width, false, frame));
 		}
 		rows.push(kv("현재 요청", m.activeRequest?.label), kv("모델", m.model), kv("Agent", m.agent), kv("도구", m.currentTool?.label), kv("승인", m.approval?.pending ? "결정 필요" : "대기 요청 없음"), kv("재시도 / 실패", `${m.retryCount} / ${m.failureCount}`));
 		if (m.activeRequest) rows.push(kv("요청 관측 경과", monitorAge(m.activeRequest.elapsed)));
