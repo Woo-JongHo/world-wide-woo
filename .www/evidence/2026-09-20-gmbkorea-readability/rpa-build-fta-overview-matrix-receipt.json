@@ -1,0 +1,89 @@
+{
+  "schemaVersion": "1.0",
+  "receiptId": "fc3b5953-5544-4fbc-ba50-d9b6fec3e558",
+  "runId": "7f7859d7-ed3a-4287-b628-13e2b7249de2",
+  "candidateId": null,
+  "skill": {
+    "name": "rpa-build",
+    "version": "1.0"
+  },
+  "capability": "RPA-BUILD",
+  "intentId": null,
+  "status": "succeeded",
+  "stage": "execute",
+  "actor": {
+    "kind": "codex",
+    "host": "chacada"
+  },
+  "context": {
+    "completedAt": "2026-09-20T14:39:11Z",
+    "designReceipt": "dacea107-8543-437f-971b-2b8fd3ceec0e"
+  },
+  "input": {
+    "repository": "/mnt/c/Users/woo/woo/00_project/05_GMBKOREA/RPA/판매관리팀/FTA원산지",
+    "branch": "feat/t7-u6-u9-common",
+    "sourceRevision": "1b7a79ba57fb144be3c517c64d587f6e4f9fe16d",
+    "processId": "FTA원산지:p1",
+    "scope": "p1.t6 신청개요 정적 select 입력"
+  },
+  "decision": {
+    "pattern": "상태 키·화면 항목명·CSS·입력값을 frozen dataclass 행으로 둔 불변 tuple 행렬",
+    "behaviorChange": false,
+    "identityChange": false,
+    "exclusion": "국가별 동적 값인 FTA 협정은 정적 행렬에 포함하지 않음"
+  },
+  "validation": [
+    {
+      "check": "python syntax",
+      "status": "passed",
+      "detail": "Windows Python 3.14 py_compile 통과"
+    },
+    {
+      "check": "overview and Unit regression",
+      "status": "passed",
+      "detail": "test_unipass_characterization.py, test_unit_run.py, test_temp_save.py 총 33개 통과"
+    },
+    {
+      "check": "placeholder scan",
+      "status": "passed",
+      "detail": "변경 파일에서 TODO·FIXME·test.skip·test.only·pytest.mark.skip 없음"
+    }
+  ],
+  "authorization": {
+    "source": "user",
+    "scope": "코드 구조와 내용을 바꾸어 행렬형 가독성 정제"
+  },
+  "execution": {
+    "writes": [
+      "/mnt/c/Users/woo/woo/00_project/05_GMBKOREA/RPA/판매관리팀/FTA원산지/task/_06_unipass_overview/task.py",
+      "/mnt/c/Users/woo/woo/00_project/05_GMBKOREA/RPA/판매관리팀/FTA원산지/tests/test_unipass_characterization.py"
+    ],
+    "externalActions": [],
+    "externalSystemsInvoked": false
+  },
+  "result": {
+    "changed": [
+      "StaticSelectField 불변 행 타입 추가",
+      "신청세관·신청인 구분을 4열 STATIC_SELECT_FIELDS 행렬로 통합",
+      "공통 입력·검증·상태 적재 함수를 도입하고 기존 Unit 진입점 유지",
+      "행렬 내용과 입력·상태 적재 동일 행 사용을 특성화 테스트로 고정"
+    ],
+    "outputSha256": {
+      "task/_06_unipass_overview/task.py": "74e9e2a896cf16c8567e6436a93d1cc82da0636a1411414500314bfdd1c99890",
+      "tests/test_unipass_characterization.py": "704841f7d711262b6ac8310cce1837d5b9fefb445c95d0871bed520447e1798a"
+    },
+    "nextSlice": "FTA의 다음 반복 화면 입력·판정표 또는 Helix QAC 실행 배선"
+  },
+  "failure": null,
+  "evidence": [
+    {
+      "command": "C:\\Python314\\python.exe -m pytest -q tests/test_unipass_characterization.py tests/test_unit_run.py tests/test_temp_save.py",
+      "result": "33 passed in 0.36s"
+    }
+  ],
+  "nextCapabilities": [
+    "RPA-TEST",
+    "RPA-BUILD"
+  ],
+  "receiptDigest": "ccb1bfde17ea154ae3eb0fba035ec5a543b2e8593ed4711c94b427087086edbe"
+}

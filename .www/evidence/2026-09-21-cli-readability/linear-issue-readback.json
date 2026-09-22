@@ -1,0 +1,33 @@
+{
+  "observedAt": "2026-09-21T03:34:20Z",
+  "issue": {
+    "id": "WOO-911",
+    "uuid": "b00b02eb-2d80-4b10-9c9a-a29db4f1a74d",
+    "title": "코드 실행 흐름을 역할별 최소 구조와 측정 가능한 열로 정리한다",
+    "url": "https://linear.app/woo-world/issue/WOO-911/코드-실행-흐름을-역할별-최소-구조와-측정-가능한-열로-정리한다",
+    "status": "Backlog",
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "parentId": "WOO-672",
+    "milestone": {
+      "id": "11c54a66-8b02-497b-b462-c273141a440c",
+      "name": "v0.2.0 — System & Workflow Foundation"
+    },
+    "labels": ["System", "Improvement"],
+    "relatedTo": ["WOO-842"],
+    "descriptionSections": ["목적", "범위", "완료 조건", "연결"]
+  },
+  "parent": {
+    "id": "WOO-672",
+    "uuid": "ae97b5d7-b0db-49ad-a70d-8aeaf79e350d",
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "status": "Backlog",
+    "milestoneId": "11c54a66-8b02-497b-b462-c273141a440c"
+  },
+  "project": {
+    "id": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "name": "World Wide Woo",
+    "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff"
+  },
+  "directChildren": ["WOO-911", "WOO-842", "WOO-845"],
+  "paginationComplete": true
+}

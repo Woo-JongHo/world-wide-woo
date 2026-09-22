@@ -1,0 +1,67 @@
+{
+  "schemaVersion": "1.0",
+  "receiptId": "f9def610-5539-42ee-9ee5-0554ebee7f73",
+  "runId": "157e091c-852d-49c2-93a2-59b49466409f",
+  "candidateId": "ARTIFACT-CANDIDATE-NATIVE-TURN-STALL",
+  "skill": {
+    "name": "woo-issue-intake",
+    "version": "1.0"
+  },
+  "capability": "github-issue.publish",
+  "intentId": null,
+  "status": "succeeded",
+  "stage": "verify",
+  "actor": {
+    "kind": "codex"
+  },
+  "context": {
+    "repository": "Woo-JongHo/world-wide-woo",
+    "sourceRevision": "git:ce7731454c09c4ca5df4413f9f223be3eaea960c:dirty",
+    "verifiedAt": "2026-09-21T01:46:46Z"
+  },
+  "input": {
+    "candidateDigest": "3001785c7c31526733461e41c00d1f61767bcf360492db69795e8bb8dc27f8b3",
+    "authorization": "사용자가 승인된 Candidate에 대해 ㅇㅇ 계속이라고 명시했다."
+  },
+  "decision": {
+    "outcome": "publish",
+    "reason": "승인 직전 전체 GitHub Issue 목록을 재조회했으며 의미가 같은 Issue가 없었다."
+  },
+  "validation": [
+    {
+      "id": "candidate",
+      "status": "pass",
+      "evidence": "artifact-control validate 통과"
+    },
+    {
+      "id": "read-back",
+      "status": "pass",
+      "evidence": "GitHub #58의 제목, bug 라벨, 본문이 승인안과 일치"
+    }
+  ],
+  "authorization": {
+    "candidateDigest": "3001785c7c31526733461e41c00d1f61767bcf360492db69795e8bb8dc27f8b3",
+    "actor": "user",
+    "scope": "GitHub Issue 1건 생성"
+  },
+  "execution": {
+    "command": "gh issue create",
+    "completedAt": "2026-09-21T01:46:46Z"
+  },
+  "result": {
+    "number": 58,
+    "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/58",
+    "state": "OPEN",
+    "title": "Native turn의 이벤트가 끊기면 Workbench가 무기한 실행 중으로 남는다",
+    "labels": [
+      "bug"
+    ]
+  },
+  "failure": null,
+  "evidence": [
+    ".www/evidence/2026-09-21-native-turn-stall/github-issue-candidate.json",
+    "github:Woo-JongHo/world-wide-woo#58"
+  ],
+  "nextCapabilities": [],
+  "receiptDigest": "3cb95ad1506034475ec0899b0178b110a0fd328685fb5ea523a2811b1775bb3f"
+}

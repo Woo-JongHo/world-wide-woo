@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-ASTRA-DEMO-VISUAL-DENSITY-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:9546aa46bf2646d393eb75c78c2f5b808edc063a:dirty",
+  "intent": "사용자 Demo 수락 피드백에 따라 Stages 가시성, Provider 상태바, 기능 밀도와 오른쪽 rail 대비를 보강한 경과를 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "Chat 실행 heading에 Stages 완료 수를 상시 표시해 80열에서도 현재 7-stage 진행을 확인할 수 있게 했다.",
+      "구독 HUD의 Provider segment 폭 제한을 제거하고 전체 segment를 고유 배경색으로 채웠다. Codex는 흰색, Claude는 주황, Google은 청록, Z.AI는 자홍을 사용한다.",
+      "Demo fixture에 Queue·승인 대기·Todo 완료/진행/차단·Note·성공/진행/실패 Agent·파일 변경·실패 Activity와 네 Provider의 7일/5시간 quota를 추가했다.",
+      "Dashboard·Usage·Context·Cache·Workflow 오른쪽 rail의 핵심 상태값과 정상·경고·실패 신호에 서로 다른 semantic color를 적용했다."
+    ],
+    "impacts": [
+      "Demo가 단순 페이지 목록이 아니라 주요 Workbench 상태와 예외를 한 번에 검토하는 기능 카탈로그 역할을 한다.",
+      "좁은 화면에서도 Stages를 잃지 않고, 넓은 화면에서는 Provider bar와 오른쪽 rail의 시각적 우선순위가 분명해진다."
+    ],
+    "categories": ["improvement", "verification"],
+    "verification": [
+      "Astra shell·UI·preview·Usage·Dashboard 대상 89 tests, 0 fail, 2,539 assertions를 확인했다.",
+      "Demo 통합 테스트가 80×24 Stages, Queue 2건, 승인 대기, Note 2건, 실패 Agent, Plan Next 2건과 7개 화면 순환을 검증한다.",
+      "Provider HUD 테스트가 넓어진 segment 간격, 네 개 이상의 full-color background, Codex/Claude 색상 token을 검증한다.",
+      "TypeScript와 대상 diff 검사가 통과했고 test.skip·test.only와 새 TODO 자리표시가 없음을 확인했다."
+    ],
+    "connections": [
+      "Linear issue: WOO-913",
+      "Figma: Q7kGUdqiaQRJI8CZlPMRX7 section 50:609",
+      "Evidence: .www/evidence/2026-09-22-astra-demo-visual-density",
+      "Branch: ui/workbench-visual-polish"
+    ]
+  },
+  "links": {
+    "issue": "https://linear.app/woo-world/issue/WOO-913/workbench-monitoring-figma-5화면의-계측-의미와-정보-구조를-일치시킨다",
+    "figma": "https://www.figma.com/design/Q7kGUdqiaQRJI8CZlPMRX7/제목-없음?node-id=50-609&m=dev",
+    "candidateEvidence": ".www/evidence/2026-09-22-astra-demo-visual-density"
+  },
+  "expectedBefore": {
+    "latestCommentId": "1c9c3c89-562a-4705-9c6e-3dac2e978948"
+  },
+  "validation": [
+    {
+      "id": "issue-readback",
+      "status": "pass",
+      "evidence": "기존 publish Receipt와 최신 Project Activity read-back에서 WOO-913 결속 및 최신 Comment ID를 확인했다."
+    },
+    {
+      "id": "canonical-decision",
+      "status": "pass",
+      "evidence": "기존 DEC-WORKBENCH-004의 synthetic-only session presentation 경계 안에서 데이터와 색상 표현만 보강했으므로 새 Obsidian 결정은 필요하지 않다."
+    },
+    {
+      "id": "external-write-boundary",
+      "status": "pass",
+      "evidence": "Candidate만 준비하며 별도 승인 전 Linear에 게시하지 않는다."
+    }
+  ],
+  "candidateDigest": "076d31a88b6d61ceeb7d001a9b4d4e208a76ad265d6f37302fe0822690d652ba"
+}

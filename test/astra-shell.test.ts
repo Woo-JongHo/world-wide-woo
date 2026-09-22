@@ -29,7 +29,11 @@ const tick = () => new Promise(resolve => setTimeout(resolve, 40));
 test("production Astra shell routes navigation, rejection, approval and shutdown through existing contracts", async () => {
 	const terminal = new MemoryTerminal();
 	const showOverlay = spyOn(TuiAltScreen.prototype, "showOverlay");
-	let snapshot = astraFixture("ready"), listener: WorkbenchListener = () => {};
+	let snapshot = {
+		...astraFixture("ready"),
+		reasoningSummaryDraft: "LIVE_PRIVATE_REASONING_SENTINEL",
+		linearDashboard: { state: "ready" as const, projectName: "LIVE_PRIVATE_PROJECT_SENTINEL", fetchedAt: null, issues: [], update: null, comments: [], milestones: [], error: null },
+	}, listener: WorkbenchListener = () => {};
 	const commands: WorkbenchCommand[] = []; let closed = false, released = false, saved = "";
 	const wb = {
 		get snapshot() { return snapshot; },
@@ -43,7 +47,7 @@ test("production Astra shell routes navigation, rejection, approval and shutdown
 		async close() { closed = true; },
 	} as unknown as ProjectWorkbench;
 	runProjectWorkbenchShell({ design: "astra", terminal, cwd: "/test/astra", workbench: wb,
-		usage: { async refresh() { return []; }, startPolling(fn) { fn([]); return () => {}; } },
+		usage: { async refresh() { return []; }, startPolling(fn) { fn([]); return () => {}; }, cacheMetrics: () => ({ entries: 0, hits: 0, misses: 0, evictions: 0, lastAccessedAt: null }) },
 		auth: { methods: () => [], status: async provider => ({ state: "configured", provider, type: "oauth", source: "test fixture" }), login: async () => { throw new Error("not requested"); }, logout: async () => {} },
 		composerDraft: { initialText: "", save: async text => { saved = text; }, clear: async () => { saved = ""; } },
 		releaseSessionLease: async () => { released = true; },
@@ -149,12 +153,12 @@ test("Mac Control+G navigation preserves drafts, routes every page, and leaves o
 	const snapshot = astraFixture("ready");
 	const wb = { snapshot, subscribe(fn: WorkbenchListener) { fn(snapshot); return () => {}; }, async dispatch(command: WorkbenchCommand) { commands.push(command); return { state: "rejected", commandId: "r", reason: "test draft retained" }; }, async close() {} } as unknown as ProjectWorkbench;
 	runProjectWorkbenchShell({ design: "astra", terminal, cwd: "/test/astra", workbench: wb,
-		usage: { async refresh() { return []; }, startPolling(fn) { fn([]); return () => {}; } },
+		usage: { async refresh() { return []; }, startPolling(fn) { fn([]); return () => {}; }, cacheMetrics: () => ({ entries: 0, hits: 0, misses: 0, evictions: 0, lastAccessedAt: null }) },
 		auth: { methods: () => [], status: async provider => ({ state: "configured", provider, type: "oauth", source: "test" }), login: async () => { throw new Error("not requested"); }, logout: async () => {} },
 	});
 	try {
 		await tick(); terminal.input("초안"); await tick();
-		for (const [key, label] of [["2", "Plan"], ["3", "Activity"], ["4", "세션 검토"], ["5", "세션 기록"], ["6", "개발"], ["7", "Context"], ["8", "질문별 Test"], ["1", "Chat"]]) {
+		for (const [key, label] of [["2", "Plan"], ["3", "Activity"], ["4", "세션 검토"], ["5", "SESSION OVERVIEW"], ["6", "개발"], ["7", "Context"], ["8", "질문별 Test"], ["1", "Chat"]]) {
 			terminal.input("\x07"); await tick(); expect(terminal.output).toContain("화면 이동");
 			const start = terminal.output.length; terminal.input(key!); await tick(); expect(terminal.output.slice(start)).toContain(label!);
 		}
@@ -164,6 +168,68 @@ test("Mac Control+G navigation preserves drafts, routes every page, and leaves o
 		terminal.input("\x15"); await tick();
 		const start = terminal.output.length; terminal.input("\x1b[13~"); await tick(); expect(terminal.output.slice(start)).toContain("Plan");
 	} finally { terminal.input("\x03"); terminal.input("\x03"); await tick(); }
+});
+
+test("/demo presents synthetic MVP pages with R/E navigation and restores live state on Escape", async () => {
+	const terminal = new MemoryTerminal();
+	terminal.columns = 120; terminal.rows = 36;
+	let snapshot = astraFixture("ready"), listener: WorkbenchListener = () => {};
+	const commands: WorkbenchCommand[] = [];
+	const wb = {
+		get snapshot() { return snapshot; },
+		subscribe(fn: WorkbenchListener) { listener = fn; fn(snapshot); return () => {}; },
+		async dispatch(command: WorkbenchCommand) { commands.push(command); return { state: "accepted", commandId: "unexpected" }; },
+		async close() {},
+	} as unknown as ProjectWorkbench;
+	let root: Component | undefined;
+	const original = TuiAltScreen.prototype.setLayoutRoot;
+	const capture = spyOn(TuiAltScreen.prototype, "setLayoutRoot").mockImplementation(function(this: TuiAltScreen, component) { root = component; original.call(this, component); });
+	const frame = () => {
+		expect(root).toBeDefined();
+		return renderLayoutFrame(root!, terminal.columns, terminal.rows, () => {}).lines.map(stripTerminalSequences).join("\n");
+	};
+	const submit = async (text: string) => { terminal.input(text); terminal.input("\r"); await tick(); };
+	try {
+		runProjectWorkbenchShell({ design: "astra", terminal, cwd: "/test/astra", workbench: wb,
+			usage: { async refresh() { return []; }, startPolling(fn) { fn([]); return () => {}; }, cacheMetrics: () => ({ entries: 0, hits: 0, misses: 0, evictions: 0, lastAccessedAt: null }) },
+			auth: { methods: () => [], status: async provider => ({ state: "configured", provider, type: "oauth", source: "test" }), login: async () => { throw new Error("not requested"); }, logout: async () => {} },
+		});
+		await tick();
+		await submit("/demo");
+		expect(frame()).toContain("DEMO DATA");
+		expect(frame()).toContain("Chat");
+		expect(frame()).toContain("Stages");
+		expect(frame()).toContain("+2 대기");
+		terminal.columns = 80; terminal.rows = 24; terminal.resize(); await tick();
+		expect(frame()).toContain("Stages");
+		terminal.columns = 120; terminal.rows = 36; terminal.resize(); await tick();
+		expect(frame()).not.toContain("LIVE_PRIVATE_REASONING_SENTINEL");
+		terminal.input("E"); await tick(); expect(frame()).toContain("SESSION OVERVIEW"); expect(frame()).toContain("Queue"); expect(frame()).toContain("2"); expect(frame()).toContain("1 waiting");
+		terminal.input("E"); await tick(); expect(frame()).toContain("Active Providers Telemetry");
+		terminal.input("E"); await tick(); expect(frame()).toContain("CONTEXT ACCUMULATION SPECTROMETER");
+		expect(frame()).not.toContain("LIVE_PRIVATE_PROJECT_SENTINEL");
+		expect(frame()).toContain("LOADED SKILLS"); expect(frame()).toContain("STORAGE METRICS");
+		terminal.input("G"); await tick(); expect(frame()).toContain("계획 연결 근거");
+		terminal.input("E"); await tick(); expect(frame()).toContain("Cache Controller");
+		terminal.input("E"); await tick(); expect(frame()).toContain("Workflow overview"); expect(frame()).toContain("Failed"); expect(frame()).toContain("1");
+		terminal.input("E"); await tick(); expect(frame()).toContain("Plan"); expect(frame()).toContain("Next"); expect(frame()).toContain("2개");
+		terminal.input("E"); await tick(); expect(frame()).toContain("Chat");
+		terminal.input("R"); await tick(); expect(frame()).toContain("Plan");
+		snapshot = { ...snapshot, revision: 77,
+			sessionGoal: { text: "LIVE RESTORED", sourceActivityId: "live-goal", updatedAt: "2026-09-22T00:00:00Z" },
+			pendingApproval: { requestId: 77, callbackId: null, kind: "command", refs: {}, availableDecisions: ["accept", "decline"], params: { command: "DEMO_EXIT_APPROVAL" } },
+		};
+		listener(snapshot); await tick();
+		expect(frame()).not.toContain("LIVE RESTORED");
+		terminal.input("\x1b"); await tick();
+		expect(frame()).toContain("LIVE RESTORED");
+		expect(frame()).toContain("DEMO_EXIT_APPROVAL");
+		expect(frame()).not.toContain("DEMO DATA");
+		expect(commands).toHaveLength(0);
+	} finally {
+		if (!terminal.stopped) { terminal.input("\x03"); terminal.input("\x03"); await tick(); }
+		capture.mockRestore();
+	}
 });
 
 test("ESC commits a focused follow-up as an explicit Queue delivery while a turn is working", async () => {
@@ -183,7 +249,7 @@ test("ESC commits a focused follow-up as an explicit Queue delivery while a turn
 		async close() {},
 	} as unknown as ProjectWorkbench;
 	runProjectWorkbenchShell({ design: "astra", terminal, cwd: "/test/astra", workbench: wb,
-		usage: { async refresh() { return []; }, startPolling(fn) { fn([]); return () => {}; } },
+		usage: { async refresh() { return []; }, startPolling(fn) { fn([]); return () => {}; }, cacheMetrics: () => ({ entries: 0, hits: 0, misses: 0, evictions: 0, lastAccessedAt: null }) },
 		auth: { methods: () => [], status: async provider => ({ state: "configured", provider, type: "oauth", source: "test" }), login: async () => { throw new Error("not requested"); }, logout: async () => {} },
 	});
 	try {
@@ -217,7 +283,7 @@ test("the production layout keeps autocomplete selections and multiline rails vi
 	};
 	try {
 		runProjectWorkbenchShell({ design: "astra", terminal, cwd: "/test/astra", workbench: wb,
-			usage: { async refresh() { return usageSnapshots; }, startPolling(fn) { fn(usageSnapshots); return () => {}; } },
+			usage: { async refresh() { return usageSnapshots; }, startPolling(fn) { fn(usageSnapshots); return () => {}; }, cacheMetrics: () => ({ entries: usageSnapshots.length, hits: 0, misses: 1, evictions: 0, lastAccessedAt: "1970-01-01T00:00:00.001Z" }) },
 			auth: { methods: () => [], status: async provider => ({ state: "configured", provider, type: "oauth", source: "test" }), login: async () => { throw new Error("not requested"); }, logout: async () => {} },
 		});
 		await tick(); terminal.columns = 112; terminal.resize(); await tick();
@@ -261,3 +327,31 @@ test("the production layout keeps autocomplete selections and multiline rails vi
 		capture.mockRestore();
 	}
 }, 10_000);
+
+test("execution heading belongs only to the execution page", async () => {
+	const terminal = new MemoryTerminal();
+	terminal.columns = 120; terminal.rows = 32;
+	const snapshot = astraFixture("working");
+	const wb = { snapshot, subscribe(fn: WorkbenchListener) { fn(snapshot); return () => {}; }, async dispatch() { return { state: "accepted", commandId: "ok" }; }, async close() {} } as unknown as ProjectWorkbench;
+	let root: Component | undefined;
+	const original = TuiAltScreen.prototype.setLayoutRoot;
+	const capture = spyOn(TuiAltScreen.prototype, "setLayoutRoot").mockImplementation(function(this: TuiAltScreen, component) { root = component; original.call(this, component); });
+	const frame = () => {
+		expect(root).toBeDefined();
+		return renderLayoutFrame(root!, terminal.columns, terminal.rows, () => {}).lines.map(stripTerminalSequences).join("\n");
+	};
+	try {
+		runProjectWorkbenchShell({ design: "astra", initialAstraPage: "usage", terminal, cwd: "/test/astra", workbench: wb,
+			usage: { async refresh() { return []; }, startPolling(fn) { fn([]); return () => {}; }, cacheMetrics: () => ({ entries: 0, hits: 0, misses: 0, evictions: 0, lastAccessedAt: null }) },
+			auth: { methods: () => [], status: async provider => ({ state: "configured", provider, type: "oauth", source: "test" }), login: async () => { throw new Error("not requested"); }, logout: async () => {} },
+		});
+		await tick();
+		expect(frame()).toContain("Active Providers Telemetry");
+		expect(frame()).not.toContain("▎ 실행 중");
+		terminal.input("\t"); terminal.input("\x1b"); await tick();
+		expect(frame()).toContain("▎ 실행 중");
+	} finally {
+		if (!terminal.stopped) { terminal.input("\x03"); terminal.input("\x03"); await tick(); }
+		capture.mockRestore();
+	}
+});

@@ -1,0 +1,16 @@
+{
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "parent": {
+    "id": "WOO-674",
+    "uuid": "4674a1dc-ba01-4007-9803-3346a1f83dcc",
+    "status": "In Progress"
+  },
+  "matchingIssue": null,
+  "closestIssue": {
+    "id": "WOO-912",
+    "uuid": "14a3c6f0-3055-4c44-80fc-52a002b96f20",
+    "status": "In Progress",
+    "scopeDifference": "모드·모델·HUD·Sidebar 표시 정리이며 새 capability와 별도 설계는 제외한다"
+  },
+  "observedAt": "2026-09-22T15:08:49+09:00"
+}

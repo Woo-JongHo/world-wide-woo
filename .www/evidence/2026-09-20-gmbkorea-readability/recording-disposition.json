@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "1.0",
+  "decidedAt": "2026-09-20T14:19:31Z",
+  "work": "GMBKOREA Helix QAC·FTA 원산지 행렬형 코드 가독성 정제",
+  "linearIssue": {
+    "action": "reuse-existing",
+    "issue": "WOO-847",
+    "url": "https://linear.app/woo-world/issue/WOO-847/rpa-gmbkorea-4개-업무를-processtaskunit-계약으로-정형화한다",
+    "children": [
+      "WOO-848",
+      "WOO-851"
+    ],
+    "reason": "기존 이슈가 GMBKOREA RPA 정형화의 동일 결과와 수락 단위를 이미 소유한다."
+  },
+  "projectActivity": {
+    "action": "candidate-prepared",
+    "path": ".www/evidence/2026-09-20-gmbkorea-readability/project-comment-candidate.json",
+    "publishStatus": "not-authorized"
+  },
+  "obsidian": {
+    "action": "not-required",
+    "reason": "이번 슬라이스는 Process·Task·Unit 업무 계약을 바꾸지 않은 표현 리팩터링이다. 구현 원칙과 WHY는 rpa-design Receipt에 기록됐고 RPA 업무 정본은 기존 rpa-map이 유지된다."
+  },
+  "sources": [
+    ".www/evidence/2026-09-08-rpa-gmbkorea/linear-readback.json",
+    "docs/planning/linear-development/ISSUE_CONTRACT.yaml",
+    ".www/evidence/2026-09-20-gmbkorea-readability/rpa-design-receipt.json"
+  ]
+}

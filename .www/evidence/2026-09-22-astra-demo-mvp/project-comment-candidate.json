@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-ASTRA-DEMO-MVP-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:9546aa46bf2646d393eb75c78c2f5b808edc063a:dirty",
+  "intent": "Astra 전체 MVP 화면을 합성 데이터로 순회하는 /demo 구현 경과를 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "/demo 입력 시 Chat·Dashboard·Usage·Context·Cache·Workflow·Plan 7개 화면에 대표 합성 데이터를 표시하도록 구현했다.",
+      "Demo 상태에서 R/E로 이전·다음 화면을 순환하고 Esc로 진입 전 화면과 최신 live snapshot을 복구하도록 연결했다.",
+      "Demo가 활성화된 동안 live snapshot과 usage polling 결과는 별도 보관하고 승인 UI 및 외부 Workbench dispatch가 발생하지 않도록 격리했다.",
+      "모든 Demo 화면과 하단 안내에 DEMO DATA provenance를 유지하고 /demo 명령을 Astra autocomplete에 추가했다."
+    ],
+    "impacts": [
+      "실제 계측 데이터가 충분하지 않은 상태에서도 Figma 기반 MVP 정보 구조와 화면 간 흐름을 한 세션에서 검토할 수 있다.",
+      "합성값을 live telemetry로 오인하거나 Demo 조작이 실제 세션을 변경하는 위험을 막는다."
+    ],
+    "categories": ["feature", "verification"],
+    "verification": [
+      "bun test test/astra-shell.test.ts --test-name-pattern '/demo presents': 1 pass, 0 fail, 35 assertions.",
+      "bun test test/astra-shell.test.ts test/astra-ui.test.ts test/astra-ui-preview.test.ts: 77 pass, 0 fail, 2,067 assertions.",
+      "bun test test/architecture.test.ts: 13 pass, 0 fail, 1,800 assertions.",
+      "bunx tsc --noEmit와 대상 git diff --check가 통과했다.",
+      "변경 범위에서 test.skip·test.only와 새 TODO 자리표시가 없음을 확인했다.",
+      "독립 읽기 전용 재검토에서 live 데이터 비노출, 승인 UI 복구, 스크롤, usage 합계 정합성을 확인했다."
+    ],
+    "connections": [
+      "Linear issue: WOO-913",
+      "Figma: Q7kGUdqiaQRJI8CZlPMRX7 section 50:609",
+      "Evidence: .www/evidence/2026-09-22-astra-demo-mvp",
+      "Branch: ui/workbench-visual-polish"
+    ]
+  },
+  "links": {
+    "issue": "https://linear.app/woo-world/issue/WOO-913/workbench-monitoring-figma-5화면의-계측-의미와-정보-구조를-일치시킨다",
+    "figma": "https://www.figma.com/design/Q7kGUdqiaQRJI8CZlPMRX7/제목-없음?node-id=50-609&m=dev",
+    "candidateEvidence": ".www/evidence/2026-09-22-astra-demo-mvp"
+  },
+  "expectedBefore": {
+    "latestCommentId": "d600d032-9485-4d8c-a375-406a568e15de"
+  },
+  "validation": [
+    {
+      "id": "issue-readback",
+      "status": "pass",
+      "evidence": "기존 publish Receipt에서 WOO-913이 WOO-674 하위의 현재 Figma Monitoring 구현 이슈임을 재사용했다."
+    },
+    {
+      "id": "external-write-boundary",
+      "status": "pass",
+      "evidence": "이번 단계에서는 Candidate만 준비하며 별도 승인 전 Linear에 게시하지 않는다."
+    }
+  ],
+  "candidateDigest": "95872235a70c6c2d91a5eaef8238ae2ac5929085f99f7353d3fe848e84bf6624"
+}

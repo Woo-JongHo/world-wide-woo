@@ -1,0 +1,96 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-ASTRA-FIGMA-READINESS-ISSUE",
+  "kind": "linear-issue",
+  "sourceRevision": "git:9546aa46bf2646d393eb75c78c2f5b808edc063a:dirty",
+  "intent": "Figma의 ASTRA Monitoring 다섯 화면을 실제 관측값과 구분 가능한 정보 구조로 구현하고 시각 수락 근거를 남긴다",
+  "target": {
+    "workspaceId": "b7b91489-dd9b-4fb7-b958-822d5dc577e0",
+    "teamId": "95f279f5-cd73-49b6-a10e-b6cdab1e6d58",
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "parentId": "WOO-674",
+    "desiredState": "Todo",
+    "desiredMilestoneId": "193948f7-2a11-4110-a143-360d83f2a076",
+    "desiredLabels": ["TUI", "UX", "Improvement"],
+    "desiredRelatedTo": ["WOO-912", "WOO-680", "WOO-712", "WOO-714", "WOO-910"]
+  },
+  "content": {
+    "title": "[Workbench Monitoring] Figma 5화면의 계측 의미와 정보 구조를 일치시킨다",
+    "purpose": "Usage·Context·Cache·Workflow·Dashboard가 Figma의 정보 계층을 따르면서도 전체 Context 점유율을 MCP 점유율처럼 보이게 하거나 관측되지 않은 예시 수치를 실제 계측으로 오해시키는 문제를 없앤다.",
+    "included": [
+      "Figma section 50:609의 다섯 화면을 기능, 값의 원천, 시각 표현, 구현 불가 항목으로 분리하고 화면별 projection을 observed·derived·unavailable 상태로 정의한다.",
+      "Context 전체 점유율과 Skills·MCP·Notes 같은 loaded capability 개수를 분리하고 percent와 meter가 같은 분모를 사용하게 한다.",
+      "Usage provider quota, Cache layer telemetry, Workflow request·delegation, Dashboard session summary를 실제 Workbench 계약에 연결한다.",
+      "header·body·rail·footer와 160×42, 120×32, 80×24의 열·행 예산 및 축약 순서를 고정한다.",
+      "Figma 원본과 실제 TUI 캡처를 대조하고 panel 순서·rail 비율·색 역할·overflow를 수락 근거로 남긴다."
+    ],
+    "excluded": [
+      "Figma 예시 수치를 실제 provider·session·cache 값으로 복제하는 작업",
+      "현재 원천이 제공하지 않는 per-source Context token, input/output/cached token 분해, cache 24시간 원인 이력, OS system load를 추정하는 작업",
+      "터미널에서 sub-pixel spacing, 정확한 font metric, 1px rule을 픽셀 단위로 복제하는 작업",
+      "WOO-912가 소유하는 기존 모드·모델·HUD·Sidebar 라벨 정리를 다시 정의하는 작업"
+    ],
+    "done": [
+      "모든 표시 숫자에 source와 계산식이 있고 count·percentage·capacity·status가 같은 meter 의미로 섞이지 않는다.",
+      "Context 화면에서 MCP 서버 수와 전체 Context 점유율이 별도 영역과 라벨로 표현되며 source별 token 기여량은 관측 전까지 bar로 그리지 않는다.",
+      "다섯 화면의 large viewport 첫 정보 계층이 Figma와 대응하고 120×32와 80×24에서 필수 정보와 조작 경로가 유지된다.",
+      "실제 TUI 캡처와 Figma 캡처의 차이, 구현 불가 항목, 미관측 상태가 Evidence에 기록된다.",
+      "관련 행동·구조·golden 테스트, TypeScript, architecture, diff 검사가 통과하고 TODO 자리표시·test.skip·test.only가 없다."
+    ],
+    "connections": [
+      "Parent: WOO-674 — Workbench 대화·계획·상태 통합",
+      "Related: WOO-912 — 기존 Workbench UI 표기 정리",
+      "Related: WOO-680 — 반응형 Layout과 focus",
+      "Related: WOO-712, WOO-714 — 관측 범위와 사용량 계산",
+      "Related: WOO-910 — Request Runtime과 Workflow 상태",
+      "Figma: Q7kGUdqiaQRJI8CZlPMRX7 section 50:609",
+      "Audit: docs/audit/2026-09-22-astra-figma-implementation-readiness.md",
+      "Branch: ui/workbench-visual-polish"
+    ]
+  },
+  "links": {
+    "parent": "https://linear.app/woo-world/issue/WOO-674/workbench-대화와-계획을-읽고-입력과-상태를-통제한다",
+    "closest": "https://linear.app/woo-world/issue/WOO-912/workbench-ui-모드모델계획구독-잔여-표기를-정리한다",
+    "figma": "https://www.figma.com/design/Q7kGUdqiaQRJI8CZlPMRX7/제목-없음?node-id=50-609&m=dev",
+    "audit": "docs/audit/2026-09-22-astra-figma-implementation-readiness.md"
+  },
+  "expectedBefore": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "parent": {
+      "id": "WOO-674",
+      "uuid": "4674a1dc-ba01-4007-9803-3346a1f83dcc",
+      "status": "In Progress"
+    },
+    "matchingIssue": null,
+    "closestIssue": {
+      "id": "WOO-912",
+      "uuid": "14a3c6f0-3055-4c44-80fc-52a002b96f20",
+      "status": "In Progress",
+      "scopeDifference": "모드·모델·HUD·Sidebar 표시 정리이며 새 capability와 별도 설계는 제외한다"
+    },
+    "observedAt": "2026-09-22T15:08:49+09:00"
+  },
+  "validation": [
+    {
+      "id": "linear-duplicate-search",
+      "status": "pass",
+      "evidence": "World Wide Woo의 Figma·Astra·모니터링·Context·Usage·Cache·Workflow·Dashboard 이슈와 WOO-674 직계 하위를 조회했다. WOO-912는 표시 정리만 소유하고 새 capability를 제외하여 동일 수락 단위가 아니다."
+    },
+    {
+      "id": "parent-fit",
+      "status": "pass",
+      "evidence": "WOO-674가 Workbench의 context·usage·연결·실행 상태 의미를 혼동하지 않는 통합 계약을 소유하므로 다섯 monitoring surface의 직접 부모로 적합하다."
+    },
+    {
+      "id": "figma-code-audit",
+      "status": "pass",
+      "evidence": "Figma 50:610, 50:967, 50:1403, 50:1986, 50:2169의 design context와 현재 feature·core·test를 대조해 기능·원천·시각 표현·불가 항목을 감사 문서에 기록했다."
+    },
+    {
+      "id": "candidate-scope",
+      "status": "pass",
+      "evidence": "이 Candidate는 구현 완료를 주장하지 않고, 실제 캡처·golden·행동 검증과 독립 리뷰를 완료 조건으로 남긴다."
+    }
+  ],
+  "candidateDigest": "4b083f26d7331e69ac676ad5850edde06dfd54e0a94272ea4a15a52bc5e9f17e"
+}

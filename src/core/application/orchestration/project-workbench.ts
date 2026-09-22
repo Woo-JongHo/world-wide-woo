@@ -104,6 +104,7 @@ import {
 	questionForTurn,
 	resolveCompletedTurnNoteScope,
 } from "../work/completed-turn-note-scope.js";
+import type { CacheLayerId, CacheLayerObservation } from "../../domain/observability/cache-telemetry.js";
 
 const LIVE_ACTIVITY_TAIL_CHARACTER_LIMIT = 32 * 1024 - 128;
 const ASSISTANT_DRAFT_TAIL_CHARACTER_LIMIT = 28 * 1024 - 128;
@@ -159,9 +160,23 @@ interface DurableNoteProjection {
 	readonly notes: readonly WorkbenchTNote[];
 }
 
+interface CacheAccessTelemetry {
+	hits: number;
+	misses: number;
+	evictions: number;
+	totalMissLatencyMs: number;
+	lastAccessedAt: string | null;
+}
+
+function emptyCacheAccessTelemetry(): CacheAccessTelemetry {
+	return { hits: 0, misses: 0, evictions: 0, totalMissLatencyMs: 0, lastAccessedAt: null };
+}
+
 export interface WorkbenchActivityJournal {
 	append(input: ProjectActivityInput): Promise<ProjectActivityAppendResult>;
 	readAll(projectId: string): Promise<ProjectActivity[]>;
+	/** Optional read-only observation supplied by a bound persistence adapter. */
+	cacheObservation?(): CacheLayerObservation | null;
 	/** True once the journal owns a Native thread stream; appends fail before that. */
 	hasBoundThread?(): boolean;
 	/** Allows only durable request intake events before a Native thread exists. */
@@ -258,6 +273,7 @@ export interface ProjectWorkbenchOptions {
 /** @codeId 0002 */
 export class ProjectWorkbench {
 	private requestCache: { length: number; threadId: string | null; records: readonly RequestRuntimeRecord[] } = { length: -1, threadId: null, records: [] };
+	private readonly contextProjectionCacheTelemetry = emptyCacheAccessTelemetry();
 	private requestProjectionQueue: Promise<void> = Promise.resolve();
 	private requestProjectionKeys = new Map<string, string>();
 	private readonly contextComposer: ContextComposer;
@@ -299,6 +315,7 @@ export class ProjectWorkbench {
 	private selectedModel: NativeThreadStart["model"];
 	private modelCatalog = fallbackNativeModelCatalog();
 	private modelRefresh: Promise<NativeModelCatalog> | null = null;
+	private readonly modelCatalogCacheTelemetry = emptyCacheAccessTelemetry();
 	private selectedEffort: NativeThreadStart["effort"];
 	private effectiveModel: string;
 	private effectiveEffort: string | null;
@@ -340,6 +357,7 @@ export class ProjectWorkbench {
 	private actionResult: WorkbenchActionResult | null = null;
 	private mcpServers: readonly WorkbenchMcpServer[] = Object.freeze([]);
 	private linearDashboard: LinearProjectDashboard = EMPTY_LINEAR_PROJECT_DASHBOARD;
+	private readonly dashboardDataCacheTelemetry = emptyCacheAccessTelemetry();
 	private readonly chatQueue: WorkbenchChatQueueItem[] = [];
 	private durableActivityProjection: DurableActivityProjection = {
 		sourceLength: -1,
@@ -454,15 +472,22 @@ export class ProjectWorkbench {
 
 	/** Refresh at startup and whenever the user opens model selection. Coalesce concurrent reads. */
 	public refreshModels(): Promise<NativeModelCatalog> {
-		if (this.modelRefresh) return this.modelRefresh;
+		if (this.modelRefresh) {
+			this.recordCacheHit(this.modelCatalogCacheTelemetry);
+			return this.modelRefresh;
+		}
 		this.modelRefresh = (async () => {
+			const startedAt = performance.now();
 			try {
 				if (!this.native.listModels) throw new Error("이 실행기는 Native 모델 조회를 지원하지 않습니다.");
 				const models = await this.native.listModels();
 				if (!models.length) throw new Error("Native 모델 목록이 비어 있습니다.");
+				const replacedNativeCatalog = this.modelCatalog.source === "native";
 				this.modelCatalog = { models: immutable(models), source: "native", checkedAt: new Date().toISOString(), error: null };
+				this.recordCacheMiss(this.modelCatalogCacheTelemetry, performance.now() - startedAt, replacedNativeCatalog);
 			} catch (error) {
 				this.modelCatalog = { ...this.modelCatalog, error: errorMessage(error) };
+				this.recordCacheMiss(this.modelCatalogCacheTelemetry, performance.now() - startedAt, false);
 			}
 			if (!this.closed) this.publish(this.current?.phase ?? "loading");
 			return this.modelCatalog;
@@ -762,12 +787,15 @@ export class ProjectWorkbench {
 	private refreshLinearDashboard(threadId: string): void {
 		const dashboard = this.options.linearDashboard;
 		if (!dashboard) return;
+		const startedAt = performance.now();
 		void dashboard.refresh(threadId).then((snapshot) => {
 			if (this.closed || this.threadId !== threadId) return;
+			this.recordCacheMiss(this.dashboardDataCacheTelemetry, performance.now() - startedAt, this.linearDashboard.fetchedAt !== null);
 			this.linearDashboard = snapshot;
 			this.publish();
 		}).catch((error) => {
 			if (this.closed || this.threadId !== threadId) return;
+			this.recordCacheMiss(this.dashboardDataCacheTelemetry, performance.now() - startedAt, false);
 			this.linearDashboard = this.linearDashboard.fetchedAt
 				? { ...this.linearDashboard, state: "stale", error: errorMessage(error) }
 				: { ...EMPTY_LINEAR_PROJECT_DASHBOARD, projectName: this.linearDashboard.projectName, error: errorMessage(error) };
@@ -2225,12 +2253,16 @@ export class ProjectWorkbench {
 		const request = [...requestRuntime].reverse().find(r => r.turnId === (this.activeTurnId ?? this.selectedPlanTurnId)) ?? requestRuntime.at(-1);
 		const todo = request ? projectRequestTodo(request, this.todo?.ownerSessionId ?? this.threadId ?? "pending", this.activities.length)
 			: workFlow.source?.authority === "native-checklist" && executionRun ? this.projectExecutionTodo(executionRun, workFlow) : null;
+		const modelCatalog = this.projectModelCatalog();
+		const linearDashboard = this.options.linearDashboard ? this.projectLinearDashboard() : undefined;
+		const cacheObservations = this.cacheObservations();
 		return deepFreeze({
 			...(this.planActivityNarration && this.narrationContext()
 				? this.planActivityNarration.snapshot(this.narrationContext()!.stepId)
 				: { planActivities: [], planActivityStatus: this.options.narrator ? "pending" as const : "disabled" as const }),
 			requestRuntime,
-			modelCatalog: this.modelCatalog,
+			cacheObservations,
+			modelCatalog,
 			projectId: this.options.projectId,
 			revision: this.revision,
 			journalSequence: this.activities.at(-1)?.sequence ?? 0,
@@ -2254,7 +2286,7 @@ export class ProjectWorkbench {
 				sourceRevision: this.options.skillRegistry.sourceRevision,
 				digest: this.options.skillRegistry.digest,
 			} : undefined,
-			linearDashboard: this.options.linearDashboard ? this.linearDashboard : undefined,
+			linearDashboard,
 			wooEntry: this.options.wooEntry?.snapshot ?? null,
 			threadId: this.threadId,
 			activeTurnId: this.activeTurnId && executionRun && !["completed", "failed", "interrupted"].includes(executionRun.phase)
@@ -2301,10 +2333,72 @@ export class ProjectWorkbench {
 	}
 
 	private projectDelegation(): ReturnType<typeof projectNativeDelegation> {
-		if (this.delegationCache?.length === this.activities.length && this.delegationCache.threadId === this.threadId) return this.delegationCache.value;
+		if (this.delegationCache?.length === this.activities.length && this.delegationCache.threadId === this.threadId) {
+			this.recordCacheHit(this.contextProjectionCacheTelemetry);
+			return this.delegationCache.value;
+		}
+		const startedAt = performance.now();
 		const value = this.threadId ? projectNativeDelegation(this.activities, this.threadId) : [];
+		this.recordCacheMiss(this.contextProjectionCacheTelemetry, performance.now() - startedAt, this.delegationCache !== null);
 		this.delegationCache = { length: this.activities.length, threadId: this.threadId, value };
 		return value;
+	}
+
+	private cacheObservations(): readonly CacheLayerObservation[] {
+		const observations: CacheLayerObservation[] = [
+			this.cacheObservation(
+				"context-projection",
+				(this.requestCache.length >= 0 ? 1 : 0) + (this.delegationCache ? 1 : 0),
+				this.contextProjectionCacheTelemetry,
+			),
+			this.cacheObservation("model-catalog", this.modelCatalog.models.length, this.modelCatalogCacheTelemetry, this.modelCatalog.error ? "stale" : "ready"),
+		];
+		if (this.options.linearDashboard && this.linearDashboard.fetchedAt !== null) {
+			observations.push(this.cacheObservation(
+				"dashboard-data",
+				1,
+				this.dashboardDataCacheTelemetry,
+				this.linearDashboard.state === "ready" ? "ready" : "stale",
+			));
+		}
+		const sessionRead = this.journal.cacheObservation?.();
+		if (sessionRead) observations.push(sessionRead);
+		return observations;
+	}
+
+	private projectModelCatalog(): NativeModelCatalog {
+		return this.modelCatalog;
+	}
+
+	private projectLinearDashboard(): LinearProjectDashboard {
+		this.recordCacheHit(this.dashboardDataCacheTelemetry);
+		return this.linearDashboard;
+	}
+
+	private cacheObservation(id: CacheLayerId, entries: number, telemetry: CacheAccessTelemetry, state: "ready" | "stale" = "ready"): CacheLayerObservation {
+		return {
+			id,
+			state,
+			entries,
+			logicalBytes: null,
+			hits: telemetry.hits,
+			misses: telemetry.misses,
+			evictions: telemetry.evictions,
+			latencyMs: telemetry.misses > 0 ? telemetry.totalMissLatencyMs / telemetry.misses : null,
+			lastAccessedAt: telemetry.lastAccessedAt,
+		};
+	}
+
+	private recordCacheHit(telemetry: CacheAccessTelemetry): void {
+		telemetry.hits += 1;
+		telemetry.lastAccessedAt = new Date().toISOString();
+	}
+
+	private recordCacheMiss(telemetry: CacheAccessTelemetry, latencyMs: number, evicted: boolean): void {
+		telemetry.misses += 1;
+		telemetry.totalMissLatencyMs += latencyMs;
+		if (evicted) telemetry.evictions += 1;
+		telemetry.lastAccessedAt = new Date().toISOString();
 	}
 
 	private projectDurableActivities(): DurableActivityProjection {
@@ -2446,9 +2540,14 @@ export class ProjectWorkbench {
 	}
 
 	private requestRecords(): readonly RequestRuntimeRecord[] {
-		if (this.requestCache.length !== this.activities.length || this.requestCache.threadId !== this.threadId) {
-			this.requestCache = { length: this.activities.length, threadId: this.threadId, records: projectRequestRuntime(this.activities, this.threadId) };
+		if (this.requestCache.length === this.activities.length && this.requestCache.threadId === this.threadId) {
+			this.recordCacheHit(this.contextProjectionCacheTelemetry);
+			return this.requestCache.records;
 		}
+		const startedAt = performance.now();
+		const records = projectRequestRuntime(this.activities, this.threadId);
+		this.recordCacheMiss(this.contextProjectionCacheTelemetry, performance.now() - startedAt, this.requestCache.length >= 0);
+		this.requestCache = { length: this.activities.length, threadId: this.threadId, records };
 		return this.requestCache.records;
 	}
 

@@ -24,8 +24,40 @@ export function nativeThreadJournalKey(threadId: string): string {
 	return `native-${digestActivitySource(threadId).slice("sha256:".length, "sha256:".length + 48)}`;
 }
 
+export interface ActivityJournalStoreOptions {
+	/** Bound the retained per-session journal states for this journal directory. */
+	readonly maxCachedStates?: number;
+	/** Injected only for deterministic cache-observation tests. */
+	readonly now?: () => Date;
+}
+
+/** Read-only cache facts for one opaque project or Native-thread journal stream. */
+export interface ActivityJournalCacheTelemetry {
+	readonly projectId: string;
+	readonly state: "ready" | "stale" | "unobserved";
+	readonly entries: number | null;
+	readonly logicalBytes: number | null;
+	readonly hits: number | null;
+	readonly misses: number | null;
+	readonly reloads: number | null;
+	readonly evictions: number | null;
+	readonly lastAccessedAt: string | null;
+}
+
 export class ActivityJournalStore {
-	public constructor(private readonly directory: string) {}
+	private readonly maxCachedStates: number;
+	private readonly now: () => Date;
+
+	public constructor(
+		private readonly directory: string,
+		options: ActivityJournalStoreOptions = {},
+	) {
+		this.maxCachedStates = options.maxCachedStates ?? 64;
+		if (!Number.isSafeInteger(this.maxCachedStates) || this.maxCachedStates < 1) {
+			throw new Error("Activity journal cache capacity must be a positive integer");
+		}
+		this.now = options.now ?? (() => new Date());
+	}
 
 	public append(input: ProjectActivityInput): Promise<ProjectActivityAppendResult> {
 		return this.serialize(input.projectId, async () => {
@@ -65,6 +97,34 @@ export class ActivityJournalStore {
 		return this.serialize(projectId, () => this.readAllUnchecked(projectId));
 	}
 
+	/**
+	 * Reports only the named project/thread stream. Reading this never retains,
+	 * reloads, or otherwise changes the cache.
+	 */
+	public cacheTelemetry(projectId: string): ActivityJournalCacheTelemetry {
+		this.assertProjectId(projectId);
+		const path = this.projectPath(projectId);
+		const state = journalStates.get(path);
+		const metrics = journalCacheMetrics.get(path);
+		if (!metrics) {
+			return {
+				projectId, state: "unobserved", entries: null, logicalBytes: null,
+				hits: null, misses: null, reloads: null, evictions: null, lastAccessedAt: null,
+			};
+		}
+		return {
+			projectId,
+			state: state ? "ready" : "stale",
+			entries: state ? state.activities.length : null,
+			logicalBytes: state ? state.fileSize : null,
+			hits: metrics.hits,
+			misses: metrics.misses,
+			reloads: metrics.reloads,
+			evictions: metrics.evictions,
+			lastAccessedAt: metrics.lastAccessedAt,
+		};
+	}
+
 	/** Validates the deterministic stream key used by thread-bound composition. */
 	public static assertNativeThreadJournalKey(key: string): void {
 		if (!threadJournalKeyPattern.test(key)) throw new Error("Invalid native thread journal key");
@@ -83,21 +143,29 @@ export class ActivityJournalStore {
 	}
 
 	private async cachedState(projectId: string): Promise<JournalState> {
+		return this.resolveCachedState(projectId, true);
+	}
+
+	private async resolveCachedState(projectId: string, discardCrashResidue: boolean): Promise<JournalState> {
 		const path = this.projectPath(projectId);
 		const cached = journalStates.get(path);
 		const fileSize = await stat(path).then((value) => value.size).catch((error: NodeJS.ErrnoException) => {
 			if (error.code === "ENOENT") return 0;
 			throw error;
 		});
-		if (cached && cached.fileSize === fileSize) return cached;
-		const state = await this.loadState(projectId, true);
-		journalStates.set(path, state);
+		if (cached && cached.fileSize === fileSize) {
+			this.recordCacheAccess(path, "hit");
+			this.retainState(path, cached);
+			return cached;
+		}
+		this.recordCacheAccess(path, "miss", !!cached);
+		const state = await this.loadState(projectId, discardCrashResidue);
+		this.retainState(path, state);
 		return state;
 	}
 
 	private async readAllUnchecked(projectId: string): Promise<ProjectActivity[]> {
-		const state = await this.loadState(projectId, false);
-		journalStates.set(this.projectPath(projectId), state);
+		const state = await this.resolveCachedState(projectId, false);
 		return [...state.activities];
 	}
 
@@ -170,6 +238,32 @@ export class ActivityJournalStore {
 			await handle.close();
 		}
 	}
+
+	private recordCacheAccess(path: string, result: "hit" | "miss", reloaded = false): void {
+		const metrics = journalCacheMetrics.get(path) ?? {
+			hits: 0, misses: 0, reloads: 0, evictions: 0, lastAccessedAt: null,
+		};
+		metrics[result === "hit" ? "hits" : "misses"] += 1;
+		if (reloaded) metrics.reloads += 1;
+		metrics.lastAccessedAt = this.now().toISOString();
+		journalCacheMetrics.set(path, metrics);
+	}
+
+	private retainState(path: string, state: JournalState): void {
+		const paths = journalStatePathsByDirectory.get(this.directory) ?? new Set<string>();
+		journalStatePathsByDirectory.set(this.directory, paths);
+		paths.delete(path);
+		paths.add(path);
+		journalStates.set(path, state);
+		while (paths.size > this.maxCachedStates) {
+			const oldestPath = paths.values().next().value;
+			if (!oldestPath) break;
+			paths.delete(oldestPath);
+			journalStates.delete(oldestPath);
+			const metrics = journalCacheMetrics.get(oldestPath);
+			if (metrics) metrics.evictions += 1;
+		}
+	}
 }
 
 interface JournalState {
@@ -178,8 +272,18 @@ interface JournalState {
 	terminalObservations: Map<string, ProjectActivity>;
 }
 
+interface JournalCacheMetrics {
+	hits: number;
+	misses: number;
+	reloads: number;
+	evictions: number;
+	lastAccessedAt: string | null;
+}
+
 const queues = new Map<string, Promise<unknown>>();
 const journalStates = new Map<string, JournalState>();
+const journalStatePathsByDirectory = new Map<string, Set<string>>();
+const journalCacheMetrics = new Map<string, JournalCacheMetrics>();
 
 function createJournalState(activities: ProjectActivity[], fileSize: number): JournalState {
 	const terminalObservations = new Map<string, ProjectActivity>();

@@ -111,9 +111,19 @@ export interface UsageSnapshot {
 	issue?: UsageIssue;
 }
 
+/** `UsageService`가 실제 보유한 마지막 성공 snapshot 캐시의 읽기 전용 관측값이다. */
+export interface UsageSnapshotCacheMetrics {
+	readonly entries: number;
+	readonly hits: number;
+	readonly misses: number;
+	readonly evictions: number;
+	readonly lastAccessedAt: string | null;
+}
+
 export interface UsageMonitor {
 	refresh(): Promise<readonly UsageSnapshot[]>;
 	startPolling(listener: (snapshots: readonly UsageSnapshot[]) => void, intervalMs?: number): () => void;
+	cacheMetrics(): UsageSnapshotCacheMetrics;
 }
 
 export interface ObservabilityHistory {

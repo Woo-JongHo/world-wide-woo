@@ -12,6 +12,26 @@ function createStore(): { directory: string; store: ActivityJournalStore } {
 	return { directory, store: new ActivityJournalStore(directory) };
 }
 
+function activityLine(input: {
+	projectId: string;
+	sequence: number;
+	source: string;
+}): string {
+	return JSON.stringify({
+		schemaVersion: 1,
+		id: crypto.randomUUID(),
+		projectId: input.projectId,
+		sequence: input.sequence,
+		recordedAt: new Date().toISOString(),
+		kind: "progress",
+		phase: "updated",
+		provider: "openai-codex",
+		nativeRefs: {},
+		sourceDigest: digestActivitySource(input.source),
+		payload: { source: input.source },
+	});
+}
+
 afterEach(async () => {
 	await Promise.all(temporaryDirectories.splice(0).map((directory) => rm(directory, { recursive: true, force: true })));
 });
@@ -147,6 +167,73 @@ describe("ActivityJournalStore", () => {
 
 		expect(historicalRecordParses).toBe(0);
 		expect((await store.readAll("cached")).at(-1)?.sequence).toBe(200);
+	});
+
+	test("reports a project-scoped Session Read cache hit with its retained journal size", async () => {
+		const { directory, store } = createStore();
+		const input = (source: string) => ({
+			projectId: "session-read",
+			kind: "progress" as const,
+			phase: "updated" as const,
+			provider: "openai-codex",
+			nativeRefs: {},
+			sourceDigest: digestActivitySource(source),
+			payload: { source },
+		});
+		await store.append(input("first"));
+		await store.append(input("second"));
+		expect((await store.readAll("session-read")).map(activity => activity.sequence)).toEqual([1, 2]);
+
+		const telemetry = store.cacheTelemetry("session-read");
+		expect(telemetry).toMatchObject({
+			projectId: "session-read",
+			state: "ready",
+			entries: 2,
+			logicalBytes: Buffer.byteLength(await readFile(join(directory, "session-read.jsonl"))),
+			hits: 2,
+			misses: 1,
+			reloads: 0,
+			evictions: 0,
+		});
+		expect(telemetry.lastAccessedAt).toEqual(expect.any(String));
+	});
+
+	test("reloads a changed project journal without attributing it to another session", async () => {
+		const { directory, store } = createStore();
+		await store.append({
+			projectId: "reloaded", kind: "progress", phase: "updated", provider: "openai-codex",
+			nativeRefs: {}, sourceDigest: digestActivitySource("first"), payload: { source: "first" },
+		});
+		await appendFile(join(directory, "reloaded.jsonl"), `${activityLine({ projectId: "reloaded", sequence: 2, source: "external" })}\n`);
+
+		expect((await store.readAll("reloaded")).map(activity => activity.sequence)).toEqual([1, 2]);
+		expect(store.cacheTelemetry("reloaded")).toMatchObject({
+			state: "ready", entries: 2, hits: 0, misses: 2, reloads: 1, evictions: 0,
+		});
+		expect(store.cacheTelemetry("other-session")).toEqual({
+			projectId: "other-session", state: "unobserved", entries: null, logicalBytes: null,
+			hits: null, misses: null, reloads: null, evictions: null, lastAccessedAt: null,
+		});
+	});
+
+	test("evicts only the least-recently-used session cache state and retains its scoped eviction telemetry", async () => {
+		const { directory } = createStore();
+		const store = new ActivityJournalStore(directory, { maxCachedStates: 1 });
+		for (const projectId of ["first-session", "second-session"]) {
+			await store.append({
+				projectId, kind: "progress", phase: "updated", provider: "openai-codex",
+				nativeRefs: {}, sourceDigest: digestActivitySource(projectId), payload: {},
+			});
+		}
+
+		expect(store.cacheTelemetry("first-session")).toMatchObject({
+			projectId: "first-session", state: "stale", entries: null, logicalBytes: null,
+			hits: 0, misses: 1, reloads: 0, evictions: 1,
+		});
+		expect(store.cacheTelemetry("second-session")).toMatchObject({
+			projectId: "second-session", state: "ready", entries: 1,
+			hits: 0, misses: 1, reloads: 0, evictions: 0,
+		});
 	});
 
 	test("replays a native-thread stream in a fresh store and still rejects a durable sequence gap", async () => {

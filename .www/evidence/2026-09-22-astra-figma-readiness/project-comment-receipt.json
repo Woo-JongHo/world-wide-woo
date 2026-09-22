@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "1.0",
+  "receiptId": "astra-figma-readiness-project-comment-20260922",
+  "candidateId": "ARTIFACT-CANDIDATE-ASTRA-FIGMA-READINESS-COMMENT",
+  "skill": {
+    "name": "woo-linear-publish",
+    "version": "1.0"
+  },
+  "capability": "linear-project-comment.publish",
+  "status": "succeeded",
+  "stage": "verify",
+  "actor": {
+    "kind": "codex"
+  },
+  "context": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "verifiedAt": "2026-09-22T06:27:32Z"
+  },
+  "input": {
+    "candidateDigest": "61a6b309d48adc23d4d51ec58431499d0f33fa1191bfc1cb22fe6008014fc399",
+    "expectedLatestCommentId": "187d0883-9013-4bcd-b11a-fc8d33343a26"
+  },
+  "authorization": {
+    "actor": "user",
+    "scope": "승인된 Linear 이슈·Project Comment·Obsidian 정본 게시"
+  },
+  "execution": {
+    "tool": "linear-woo.save_comment",
+    "completedAt": "2026-09-22T06:25:10Z"
+  },
+  "result": {
+    "id": "d600d032-9485-4d8c-a375-406a568e15de",
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "validation": [
+    {
+      "id": "latest-comment-preflight",
+      "status": "pass",
+      "evidence": "게시 직전 최신 Comment ID가 Candidate expectedBefore와 일치했다."
+    },
+    {
+      "id": "comment-read-back",
+      "status": "pass",
+      "evidence": "새 Comment ID, 작성자, 본문을 Project Activity에서 재조회해 승인된 렌더와 일치함을 확인했다."
+    }
+  ],
+  "failure": null
+}

@@ -20,10 +20,11 @@ import type { TNoteDraft } from "../../../core/domain/work/t-notes.js";
 import type { WorkbenchModelSelection } from "../../../core/domain/work/workbench.js";
 import type { WorkFlowProjection } from "../../../core/domain/work/index.js";
 import type { ProjectActivity } from "../../../core/domain/execution/project-activity.js";
+import type { CacheLayerObservation } from "../../../core/domain/observability/cache-telemetry.js";
 import type { RequestRuntimeRecord } from "../../../core/domain/execution/request-runtime";
 import { CanonicalPromotionService } from "../../../core/application/work/canonical-promotion.js";
 import { ReviewService } from "../../../core/application/review/review-service.js";
-import { digestActivitySource, ActivityJournalStore, nativeThreadJournalKey } from "../persistence/activity-journal-store.js";
+import { digestActivitySource, ActivityJournalStore, nativeThreadJournalKey, type ActivityJournalCacheTelemetry } from "../persistence/activity-journal-store.js";
 import { FileTraceStore } from "../persistence/trace-store.js";
 import { FileRequestProjectionStore } from "../persistence/request-projection-store";
 import { createNativeHarness, type ExecutionLane, type NativeHarnessSelection } from "../execution/factory.js";
@@ -388,6 +389,31 @@ export class ThreadBoundActivityJournal implements WorkbenchActivityJournal {
 
 	public readAll(_projectId: string): Promise<ProjectActivity[]> {
 		return this.streamId ? this.journal.readAll(this.streamId) : this.intakeStreamId ? this.journal.readAll(this.intakeStreamId) : Promise.resolve([]);
+	}
+
+	public cacheObservation(): CacheLayerObservation | null {
+		const telemetry = this.readCacheTelemetry();
+		if (!telemetry || telemetry.state === "unobserved") return null;
+		return {
+			id: "session-read",
+			state: telemetry.state,
+			entries: telemetry.entries,
+			logicalBytes: telemetry.logicalBytes,
+			hits: telemetry.hits,
+			misses: telemetry.misses,
+			evictions: telemetry.evictions,
+			latencyMs: null,
+			lastAccessedAt: telemetry.lastAccessedAt,
+		};
+	}
+
+	private readCacheTelemetry(): ActivityJournalCacheTelemetry | null {
+		const projectId = this.streamId ?? this.intakeStreamId;
+		if (!projectId) return null;
+		const source = this.journal as WorkbenchActivityJournal & {
+			cacheTelemetry?(projectId: string): ActivityJournalCacheTelemetry;
+		};
+		return source.cacheTelemetry?.(projectId) ?? null;
 	}
 
 	private requireStreamId(): string {

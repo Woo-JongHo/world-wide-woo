@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "1.0",
+  "receiptId": "astra-demo-mvp-obsidian-20260922",
+  "candidateId": "ARTIFACT-CANDIDATE-ASTRA-DEMO-MVP-CANONICAL",
+  "skill": {
+    "name": "woo-obsidian-publish",
+    "version": "1.0"
+  },
+  "capability": "obsidian-canonical.publish",
+  "status": "succeeded",
+  "stage": "verify",
+  "actor": {
+    "kind": "codex"
+  },
+  "context": {
+    "relativePath": "Workbench/Workbench — 대화와 계획을 통제한다.md",
+    "verifiedAt": "2026-09-22T06:44:36Z"
+  },
+  "input": {
+    "candidateDigest": "eca8f5d9b0e0a39cd5851606f2e762a273a4aee300584ed6bcc1328641011524",
+    "expectedBeforeDigest": "sha256:a303f5a598577171ea1b29e4ce82e758cda40358b645f01077d92eeaf698a1ab"
+  },
+  "authorization": {
+    "actor": "user",
+    "scope": "Astra Demo MVP Project Comment와 Obsidian 정본 Candidate 게시"
+  },
+  "execution": {
+    "tool": "filesystem replace-approved canonical",
+    "completedAt": "2026-09-22T06:44:36Z"
+  },
+  "result": {
+    "documentId": "742cd6b6-37d9-4f64-a96d-273f4cfb4bea",
+    "linear": "WOO-674",
+    "digest": "sha256:cbd85c35c5af930186b485c7016aa211f7a85b998ce1ad16ce3a1b3c15eb42dc",
+    "readBack": true
+  },
+  "validation": [
+    {
+      "id": "render-byte-read-back",
+      "status": "pass",
+      "evidence": "Vault 대상과 승인된 렌더의 SHA-256 및 전체 bytes가 일치한다."
+    },
+    {
+      "id": "target-contract",
+      "status": "pass",
+      "evidence": "WOO-674 범위 obsidian:check에서 path·Properties·14절·wiki-link를 검사했고 대상 digest cbd85c35...를 read-back했다."
+    }
+  ],
+  "failure": null
+}

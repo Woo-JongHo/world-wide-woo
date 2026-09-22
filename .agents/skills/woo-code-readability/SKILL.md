@@ -10,6 +10,7 @@ description: 99_www의 TypeScript에서 긴 예외 요소를 구조적으로 간
 ## 구조 간결화 우선
 
 - 최상위 목적은 정렬이 아니라 **같은 역할을 같은 형태로 읽게 하는 통일성**이다.
+- 사용자가 이미 정본에 가깝다고 수락한 파일은 수정 대상이 아니라 기준 샘플이다. 그 파일의 `import`, `:`, `=>`, `case` 축을 다른 파일에 적용하며, 별도 요청 없이 기준 파일을 재설계하지 않는다.
 - 통일성은 모든 행을 가장 긴 행처럼 늘리는 것이 아니라, 같은 역할에서 불필요한 차이를 제거해 같은 최소 구성을 갖게 하는 것이다.
 - 먼저 반복 행의 최소 공통형을 찾는다. 이름만 다른 정상 행들이 공유하는 구조가 그 표의 기본형이다.
 - 정렬 전에 반복 행을 길게 만드는 예외 요소를 찾는다.
@@ -43,16 +44,24 @@ description: 99_www의 TypeScript에서 긴 예외 요소를 구조적으로 간
 - `void`, `string`, `boolean`처럼 이미 짧고 명확한 primitive에는 별칭을 만들지 않는다.
 - 긴 복합 타입에 독립된 의미가 있을 때만 짧고 구체적인 이름을 붙이고 `/** JSDoc */`으로 원래 구조와 부재 의미를 설명한다.
 - 문자열 리터럴과 우측 `//`는 타입 hover 설명이 아니다. editor hover 계약은 TypeScript LSP 응답으로 검증한다.
+- 비공개 로컬 타입 별칭 여러 개가 연속될 때는 `type / 이름 / = / 실제 타입 / ; / // 설명` 표로 묶을 수 있다. 이 우측 설명은 소스 탐색용이며 hover 계약으로 간주하지 않는다.
+- exported 타입이나 공개 optional 속성처럼 소비자가 hover 설명을 필요로 하는 선언은 계속 선언 바로 앞의 `/** JSDoc */`을 사용한다.
 
 ## 엑셀식 코드 그리드
 
 - 한 반복 구문은 하나의 표다.
+- `// Run`, `// List`, `// Select`, `// Write`처럼 역할 구획이 나뉘면 각 구획은 독립된 표이며 서로의 최장값을 폭 기준으로 공유하지 않는다.
 - 같은 역할의 선언이나 실행은 각각 한 행이다.
 - 식별자, 구분자, 키워드, 타입, 실행문, 설명은 비교 가능한 열과 셀이다.
 - `( )`, `{ }`, `< >` 안에 다시 반복 구조가 있으면 그 셀 안에 하위 표를 만든다.
-- 셀 데이터는 기본적으로 여는 문법 경계에서 한 칸 뒤에 왼쪽 정렬한다. 열을 맞추기 위한 남는 공백은 데이터 뒤에 둔다.
-- 가운데·오른쪽 정렬은 수치처럼 비교 효용이 명확한 셀에만 예외적으로 사용한다. 감싸는 기호가 있다는 이유만으로 내용을 가운데 정렬하지 않는다.
+- 표형 정렬은 같은 역할의 비교 가능한 행이 3개 이상 연속될 때 적용한다. 두 행은 사용자가 비교 효용을 확인한 경우에만 표로 만든다.
+- 공개 Port처럼 JSDoc·optional capability·서로 다른 lifecycle 책임이 섞인 계약은 한 표로 보지 않는다. JSDoc이나 빈 줄로 끊긴 행은 별도 의미 단위이며, 반환 타입의 닫는 `>`를 맞추기 위한 내부 공백을 넣지 않는다.
+- 120열은 새 정렬을 만들 때 구조 분리를 검토하는 신호이지 정본을 해체하는 상한이 아니다. 사용자가 수락한 기존 그리드의 문법 축은 폭과 관계없이 보존한다.
+- 기능·함수 이름과 실행 셀은 왼쪽 정렬한다. 반복 함수 표의 `( )` 내부 폭은 실제 최장 인자값으로 다시 계산하고, 짧은 인자값만 그 최소 폭 안에서 가운데 정렬한다.
+- 빈 `()`와 배열 표식 `[]`는 붙여 쓴다.
 - 열 폭은 해당 표의 실제 데이터로 계산하고 남는 공백은 선택한 정렬 방식에 따라 배치한다.
+- 우측 `//` 설명은 같은 선언 표에서 한 열로 맞추되, 앞의 타입 셀을 늘리지 않고 문장 종결자 뒤의 바깥 여백으로 맞춘다.
+- production 행의 마지막 함수 호출은 시작 열까지만 맞춘다. 호출 길이와 관계없이 종결 `;` 뒤 한 칸만 두고 `}`로 닫으며, 닫는 중괄호를 맞추기 위한 공백은 넣지 않는다.
 
 ## 역할
 
@@ -65,6 +74,7 @@ description: 99_www의 TypeScript에서 긴 예외 요소를 구조적으로 간
 1. `pwd`, `git status --short --branch`로 위치와 기존 변경을 확인한다.
 2. 모듈·경로·의존 경계를 건드리면 루트 `LAYERS.md`를 읽는다.
 3. [가독성 계약](references/readability-contract.md)에서 확정 규칙과 폐기 규칙을 모두 읽는다.
+   역할별 TypeScript 표를 다루면 [TypeScript 그리드 템플릿](references/typescript-grid-template.md)도 읽는다.
 4. 대상 파일의 호출자·테스트·동적 import를 좁게 조회해 행동 기준선을 잡는다.
 5. 계약의 `열 정렬 검사 단계` 순서대로 최외곽 문법 경계를 먼저 고정하고, 반복되는 내부 구문은 그다음에 맞춘다.
 
@@ -89,14 +99,16 @@ bun .agents/skills/woo-code-readability/scripts/measure-layout.ts src/cli.ts \
 ```
 
 `--expect 'from=41|//=146'`처럼 기대 열을 주면 불일치 시 실패한다. 같은 토큰이 여러 번 나오면 `:#2`처럼 occurrence를 지정한다.
-`--left-anchor`는 비어 있지 않은 `( )`, `{ }`, `< >` 셀의 내용이 여는 경계에서 정확히 한 칸 뒤에 시작하는지 검사한다. 구조 분해처럼 두 번째 경계를 검사할 때는 `{#2`를 사용한다.
+`--left-anchor`는 왼쪽 정렬이 계약인 실행 셀의 시작 열을 검사할 때만 사용한다. 구조 분해처럼 두 번째 경계를 검사할 때는 `{#2`를 사용한다.
+`--center-cell '(#1|<#1'`은 선택한 줄 범위에서 실제 최장 값으로 최소 내부 폭을 계산하고, 각 비어 있지 않은 셀의 양쪽 여백 차가 최대 한 칸인지 검사한다. 서로 다른 역할 구획은 줄 범위를 나눠 각각 실행한다.
+`--compact-before '}#2'`는 마지막 실행문의 `;`와 닫는 `}` 사이가 정확히 한 칸인지 검사한다. production 행의 마지막 함수값 길이를 맞추는 공백이 남으면 실패한다.
 
 이름 있는 타입과 공개 optional 속성의 hover 설명은 TypeScript 7 LSP로 검사한다.
 
 ```bash
 node .agents/skills/woo-code-readability/scripts/inspect-hover.mjs \
-  .www/scratchpad/2026-09-20-code-readability/variants/CLI\(3\).TS \
-  AppOptions RouterOptions SessionList ThreadList ThreadSelection
+  .agents/skills/woo-code-readability/fixtures/hover-contract.ts \
+  CompactResult HoverOptions StoredOptions
 ```
 
 `inspect-hover.mjs`는 TypeScript LSP의 document symbol에서 실제 선언을 찾은 뒤 hover를 요청한다. 타입뿐 아니라 `resumeThreadId` 같은 속성의 JSDoc도 검사할 수 있다. 같은 이름의 선언이 둘 이상이면 모호한 요청을 실패시키므로 소스 순서에 따라 `resumeThreadId#1` 같이 선택한다. JSDoc이 없으면 함수 시그니처만 보였더라도 검사는 실패한다.
@@ -124,6 +136,6 @@ bun .agents/skills/woo-code-readability/scripts/audit-optional-types.ts --max-er
 - 같은 역할의 토큰은 실측 열이 일치한다.
 - 제거 가능한 타입 단언과 중복된 부재 표현이 남지 않고, 이름을 붙인 타입과 문서화가 필요한 optional 속성은 hover 설명이 검증된다.
 - 생략과 명시적 `undefined`가 같은 상태라면 호출부는 속성 생략 하나로 통일되며, `exactOptionalPropertyTypes` 전체 오류 수는 근거 없이 늘어나지 않는다.
-- 확정되지 않은 가운데 정렬이나 과도한 공백을 확산하지 않는다.
+- 비교 행이 2개 미만인 새 표나, 정본에 없는 과도한 공백을 확산하지 않는다.
 - `bun run check`, 대상 행동 테스트, 필요한 `test/architecture.test.ts`, `git diff --check`가 통과한다.
 - 변경 파일에서 `TODO`, `test.skip`, `test.only`를 직접 확인한다.

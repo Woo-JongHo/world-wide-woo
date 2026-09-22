@@ -1,0 +1,108 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-PROJECT-COMMENT-20260920-GMBKOREA-READABILITY",
+  "kind": "linear-project-comment",
+  "sourceRevision": "6972397929c6e27daa50aff18d6266223ab65513",
+  "intent": "GMBKOREA RPA 코드의 행렬형 가독성 정제 착수와 첫 FTA 배선 슬라이스를 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "projectUrl": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff"
+  },
+  "content": {
+    "changes": [
+      "chacada의 Helix QAC와 FTA 원산지 source revision, rpa-map, 테스트와 메일·외부 쓰기 경계를 읽기 전용으로 고정했다",
+      "업무 ID와 실행 순서를 유지하면서 반복 선언을 행, 역할 필드를 열로 표현하는 가독성 설계 원칙을 Receipt로 확정했다",
+      "FTA run.py의 36개 Unit 주소와 실행 함수를 typed tuple 행렬로 정제하고 영향 테스트를 실행했다",
+      "FTA 신청개요의 신청세관·신청인 구분을 상태 키·항목명·CSS·입력값 4열 행렬로 통합하고 기존 Unit 진입점을 유지했다",
+      "Helix 실행 준비의 네 모드별 폴더·파일·쓰기 대상·선택 입력을 SetupSources 단일 행렬로 통합하고 기존 조회 함수 계약을 유지했다",
+      "Helix MISRA·Secure Coding의 그룹 통계를 count·total·elapsed·ok 네 열의 GroupStats 생산 패턴으로 통일했다",
+      "FTA 물품내역의 국가별 원산지 기준·중량 단위·선택 비율을 CountryItemRules 단일 행렬로 통합하고 화면 테스트의 재수출 monkeypatch 경계를 교정했다",
+      "FTA 공통사항의 선적일자·출항일자·선박명과 송품장번호·발행일을 항목명·CSS·값·누락 사유 TextInput 행으로 정제했다",
+      "FTA 수출물품 행의 FOB·총중량·중량 단위·선택 비율을 항목명·CSS·화면값 행렬로 정제했다",
+      "Helix Metric의 Excel 열 번호·원천 키·숫자 변환 규칙을 MetricColumn 행렬로 통합해 스타일·로그·셀 기입이 같은 표를 사용하게 했다",
+      "FTA 첨부 계획의 서류구분·경로·표시명을 AttachmentInput 불변 행으로 바꾸고 실행부와 테스트가 명명된 열을 사용하게 했다",
+      "FTA 수출물품의 항목명·CSS·화면값을 ItemTextInput 불변 행으로 바꾸어 위치 튜플의 열 의미를 이름으로 노출했다",
+      "Helix 고객 메일의 내부 키·표시명·선별 키워드를 MailSummarySection 불변 행으로 바꾸고 기존 파이프라인 순서를 유지했다",
+      "FTA 결과 메일의 항목·값·상태·흐림 여부를 core FieldRow 불변 행으로 통합해 Task 생산자와 HTML 렌더러가 같은 명명 열을 사용하게 했다",
+      "FTA C/NO 탐색 범위·정규식·판정 방법을 CnoCase 불변 행으로 바꾸고 비테스트 코드의 잔여 다열 위치 튜플 후보를 0건으로 정리했다",
+      "FTA 테스트의 재수출 monkeypatch 경계를 실제 구현·조회 표면으로 통일하고 rpa-map Unit 이름 기대를 정본과 맞췄다",
+      "Helix 결과표와 FTA 물품표에 식별·설명 왼쪽, 상태·순서 가운데, 수치·시간 오른쪽 정렬 계약을 명시하고 렌더링 테스트로 고정했다"
+    ],
+    "impacts": [
+      "GMBKOREA RPA 코드를 업무 의미 변경 없이 같은 시각 패턴으로 비교·검토할 수 있는 첫 기준선이 생겼다",
+      "UNI-PASS 입력, SMTP 발송, NAS·고객 데이터 쓰기를 수행하지 않고 후속 리팩터링의 안전 경계를 고정했다"
+    ],
+    "categories": [
+      "refactor",
+      "verification"
+    ],
+    "verification": [
+      "FTA run.py 문법 검사 통과",
+      "FTA pipeline wiring·codemap 영향 테스트 34개 통과",
+      "FTA 신청개요·Unit 배선·임시저장 영향 테스트 33개 통과",
+      "Helix 각 변경 뒤 전체 단위 테스트 324개와 subtest 72개 통과",
+      "FTA 물품 화면·등록·계산·xlsx·중량 관련 테스트 89개 통과",
+      "FTA 공통사항·제조자·수입자·수출증빙·임시저장 관련 테스트 113개 통과",
+      "FTA 물품 화면 관련 테스트가 국가별 필드 행 검증 2개를 포함해 91개 통과",
+      "Helix 전체 단위 테스트 326개와 subtest 72개 통과, 임시 workbook 열 매핑 read-back 통과",
+      "FTA 첨부 행 변경 뒤 공통사항·제조자·수입자·수출증빙·임시저장 관련 테스트 113개 통과",
+      "FTA 수출물품 명명 행 변경 뒤 물품 화면·등록·계산·xlsx·중량 관련 테스트 91개 통과",
+      "Helix 메일 요약 집중 테스트 44개 및 전체 단위 테스트 326개와 subtest 72개 통과",
+      "FTA 메일 필드·본문·발송 경계·코드맵 테스트 74개 통과",
+      "FTA 인보이스·파이프라인·송품장 행 테스트 48개 통과",
+      "FTA 전체 테스트 442개 통과, 기존 _02_extract_co DeprecationWarning 5건",
+      "Helix 전체 단위 테스트 327개와 subtest 72개 통과, 결과표 정렬 렌더링 검증 포함",
+      "Claude Opus 읽기 전용 최종 감사는 주간 한도 도달로 미실행이며 낮은 모델로 대체하지 않음",
+      "Intake·Design·Build Receipt digest 재계산 일치"
+    ],
+    "connections": [
+      "WOO-847",
+      "WOO-848",
+      "WOO-851",
+      ".www/evidence/2026-09-20-gmbkorea-readability/rpa-intake-receipt.json",
+      ".www/evidence/2026-09-20-gmbkorea-readability/rpa-design-receipt.json",
+      ".www/evidence/2026-09-20-gmbkorea-readability/rpa-build-fta-pipeline-receipt.json",
+      ".www/evidence/2026-09-20-gmbkorea-readability/rpa-build-fta-overview-matrix-receipt.json",
+      ".www/evidence/2026-09-20-gmbkorea-readability/rpa-build-helix-setup-matrix-receipt.json",
+      ".www/evidence/2026-09-20-gmbkorea-readability/rpa-build-helix-collection-stats-receipt.json",
+      ".www/evidence/2026-09-20-gmbkorea-readability/rpa-build-fta-country-rules-receipt.json",
+      ".www/evidence/2026-09-20-gmbkorea-readability/rpa-build-fta-common-fields-receipt.json",
+      ".www/evidence/2026-09-20-gmbkorea-readability/rpa-build-fta-product-fields-receipt.json",
+      ".www/evidence/2026-09-20-gmbkorea-readability/rpa-build-helix-metric-columns-receipt.json",
+      ".www/evidence/2026-09-20-gmbkorea-readability/rpa-build-fta-attachment-rows-receipt.json",
+      ".www/evidence/2026-09-20-gmbkorea-readability/rpa-build-fta-item-input-rows-receipt.json",
+      ".www/evidence/2026-09-20-gmbkorea-readability/rpa-build-helix-mail-summary-rows-receipt.json",
+      ".www/evidence/2026-09-20-gmbkorea-readability/rpa-build-fta-mail-field-rows-receipt.json",
+      ".www/evidence/2026-09-20-gmbkorea-readability/rpa-build-fta-cno-and-suite-receipt.json",
+      ".www/evidence/2026-09-20-gmbkorea-readability/independent-review-blocker.json",
+      ".www/evidence/2026-09-20-gmbkorea-readability/rpa-build-output-alignment-receipt.json",
+      ".www/evidence/2026-09-20-gmbkorea-readability/completion-audit.json"
+    ]
+  },
+  "links": {
+    "project": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff",
+    "linear": "https://linear.app/woo-world/issue/WOO-847/rpa-gmbkorea-4개-업무를-processtaskunit-계약으로-정형화한다",
+    "evidence": ".www/evidence/2026-09-20-gmbkorea-readability/"
+  },
+  "expectedBefore": {
+    "latestCommentId": null
+  },
+  "validation": [
+    {
+      "id": "ISSUE_REUSE",
+      "status": "pass",
+      "evidence": "2026-09-08 Linear readback에서 WOO-847과 자식 WOO-848·WOO-851이 같은 RPA 정형화 수락 단위를 소유함을 확인했다"
+    },
+    {
+      "id": "AUTOMATED_CHECKS",
+      "status": "pass",
+      "evidence": "FTA 전체 테스트 442개와 Helix 전체 단위 테스트 327개·subtest 72개 및 변경 모듈 문법 검사를 통과했다"
+    },
+    {
+      "id": "PROJECT_ACTIVITY_READBACK",
+      "status": "not-run",
+      "evidence": "현재 세션에 지정된 linear-woo 조회 도구가 없어 최신 Project Activity comment ID를 재조회하지 못했다. 게시 전 재조회가 필요하다."
+    }
+  ],
+  "candidateDigest": "8ae006ff67327e6231e4af9c45fc49b1b3883f1e13846b978916df80762a0c57"
+}

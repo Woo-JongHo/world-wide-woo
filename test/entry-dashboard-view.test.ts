@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import chalk from "chalk";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import { EntryDashboardView, WwwDashboardView } from "../src/adapters/inbound/tui/features/dashboard/entry-dashboard-view";
+import { AstraDashboardRail, EntryDashboardView, WwwDashboardView } from "../src/adapters/inbound/tui/features/dashboard/entry-dashboard-view";
 import { a } from "../src/adapters/inbound/tui/foundation/theme/astra-theme";
 import { colors } from "../src/adapters/inbound/tui/foundation/theme/theme";
 import type { LinearProjectDashboard } from "../src/core/domain/work/linear-dashboard";
@@ -41,13 +41,62 @@ describe("EntryDashboardView", () => {
 		const snapshot = astraFixture("working");
 		snapshot.sessionGoal = { text: "현재 요청을 검증한다", sourceActivityId: "request", updatedAt: "2026-09-11T09:42:00.000Z" };
 		const output = stripTerminalSequences(new WwwDashboardView(() => snapshot).render(100).join("\n"));
-		expect(output).toContain("WWW Dashboard");
-		expect(output).toContain("현재 Workbench snapshot");
-		expect(output).toContain("작업 진행 중");
-		expect(output).toContain("thread preview-thread · revision 1");
+		expect(output).toContain("SESSION OVERVIEW");
+		expect(output).toContain("ACTIVITY EVENTS");
+		expect(output).toContain("working");
+		expect(output).toContain("astra-preview · preview-thread");
+		expect(output).toContain("revision 1");
+		expect(output).toContain("SYSTEM MODULE ROUTER");
+		expect(output).toContain("CONTEXT");
+		expect(output).toContain("14%");
 		expect(output).toContain("재개 시나리오를 테스트하는 중");
-		expect(output).toContain("목표 · 현재 요청을 검증한다");
-		expect(output).toContain("대화 2 · 대기 0 · 활동 6");
+		expect(output).toContain("현재 요청을 검증한다");
+		expect(output).toContain("TOKEN ALLOCATION");
+		expect(output).toContain("ACTIVITY HEATMAP");
+		expect(output).toContain("message");
+		expect(output).toContain("EVENTS");
+		expect(output).toContain("INPUT / OUTPUT / CACHE");
+		expect(output).toContain("┌");
+		expect(output).toContain("┘");
+	});
+
+	test("uses only observed cache access counts and keeps compact dashboard rows bounded", () => {
+		const snapshot = { ...astraFixture("ready"), cacheObservations: [{
+			id: "context-projection" as const, entries: 1, logicalBytes: null,
+			hits: 9, misses: 1, evictions: 0, latencyMs: 2, lastAccessedAt: "2026-09-11T09:42:00.000Z",
+		}] };
+		const wide = stripTerminalSequences(new WwwDashboardView(() => snapshot).render(120).join("\n"));
+		expect(wide).toContain("90% hit");
+		expect(wide).toContain("9/10 accesses");
+
+		for (const width of [36, 60, 78, 81, 90]) {
+			const compact = new WwwDashboardView(() => snapshot).render(width);
+			expect(stripTerminalSequences(compact.join("\n"))).toMatch(/session overview/iu);
+			for (const row of compact) expect(visibleWidth(row)).toBeLessThanOrEqual(width);
+		}
+	});
+
+	test("keeps token proportion and activity heatmap landmarks when telemetry is unavailable", () => {
+		const snapshot = { ...astraFixture("ready"), contextUsage: null, sessionUsage: undefined, activities: [] };
+		const output = stripTerminalSequences(new WwwDashboardView(() => snapshot).render(80).join("\n"));
+		expect(output).toContain("TOKEN ALLOCATION / PROPORTION");
+		expect(output).toContain("INPUT / OUTPUT / CACHE");
+		expect(output).toContain("ACTIVITY HEATMAP");
+		expect(output).toContain("recordedAt unavailable");
+		expect(output).not.toContain("last 24h · observed");
+	});
+
+	test("keeps the dashboard rail snapshot-backed and bounded in wide and compact panes", () => {
+		const snapshot = astraFixture("working");
+		for (const width of [24, 48]) {
+			const rows = new AstraDashboardRail(() => snapshot).render(width);
+			const output = stripTerminalSequences(rows.join("\n"));
+			expect(output).toContain("Session context");
+			expect(output).toContain("Session state");
+			expect(output).not.toMatch(/system load/iu);
+			expect(output).toContain("/cache");
+			for (const row of rows) expect(visibleWidth(row)).toBeLessThanOrEqual(width);
+		}
 	});
 
 	test("renders the project pulse in the requested information order", () => {

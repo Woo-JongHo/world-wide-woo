@@ -1,0 +1,75 @@
+{
+  "schemaVersion": "1.0",
+  "receiptId": "a84275be-4505-4632-a2cc-34c9a5ad8756",
+  "runId": "857c8a52-16bb-407d-88b8-65fb41edec32",
+  "candidateId": "ARTIFACT-CANDIDATE-CLI-READABILITY",
+  "skill": {
+    "name": "woo-linear-publish",
+    "version": "1.0"
+  },
+  "capability": "linear-issue.publish",
+  "intentId": null,
+  "status": "succeeded",
+  "stage": "verify",
+  "actor": {
+    "kind": "codex"
+  },
+  "context": {
+    "workspaceId": "b7b91489-dd9b-4fb7-b958-822d5dc577e0",
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "sourceRevision": "git:ce7731454c09c4ca5df4413f9f223be3eaea960c:dirty",
+    "verifiedAt": "2026-09-21T03:34:20Z"
+  },
+  "input": {
+    "candidateDigest": "36ad19b195e043eed575b4ed8ac46f5b5bda8ab4c17011ca5e2eeb82866de03e"
+  },
+  "decision": {
+    "outcome": "publish",
+    "reason": "사용자가 승인한 Candidate의 현재 프로젝트·부모·Milestone·직계 하위·중복 상태가 expectedBefore와 일치했다."
+  },
+  "validation": [
+    {
+      "id": "candidate-current-state",
+      "status": "pass",
+      "evidence": "artifact-control validate --actual-before 통과"
+    },
+    {
+      "id": "target-read-back",
+      "status": "pass",
+      "evidence": "WOO-911 제목·본문 절·상태·라벨·Project·parentId·Milestone·relatedTo 재조회 일치"
+    },
+    {
+      "id": "parent-project-read-back",
+      "status": "pass",
+      "evidence": "WOO-672와 World Wide Woo 프로젝트 UUID 및 v0.2.0 Milestone 재조회 일치"
+    },
+    {
+      "id": "hierarchy-scope",
+      "status": "pass",
+      "evidence": "linear-contract.ts에는 WOO-672 System 범위가 없어 자동 scope gate는 적용할 수 없었고, parentId와 완전한 직계 하위 목록을 직접 재조회해 검증했다."
+    }
+  ],
+  "authorization": {
+    "candidateDigest": "36ad19b195e043eed575b4ed8ac46f5b5bda8ab4c17011ca5e2eeb82866de03e",
+    "actor": "user",
+    "scope": "Linear Issue 1건 생성"
+  },
+  "execution": {
+    "tool": "linear-woo.save_issue",
+    "completedAt": "2026-09-21T03:33:58.803Z"
+  },
+  "result": {
+    "id": "WOO-911",
+    "uuid": "b00b02eb-2d80-4b10-9c9a-a29db4f1a74d",
+    "url": "https://linear.app/woo-world/issue/WOO-911/코드-실행-흐름을-역할별-최소-구조와-측정-가능한-열로-정리한다",
+    "status": "Backlog"
+  },
+  "failure": null,
+  "evidence": [
+    ".www/evidence/2026-09-21-cli-readability/linear-issue-candidate.json",
+    ".www/evidence/2026-09-21-cli-readability/linear-issue-readback.json",
+    "linear:WOO-911"
+  ],
+  "nextCapabilities": ["linear-project-comment.publish"],
+  "receiptDigest": "b0d20df07d7947fa2b4164eb44688f85a3885c4a13c3ad7bf5206408077171cf"
+}

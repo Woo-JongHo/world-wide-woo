@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "1.0",
+  "receiptId": "astra-demo-mvp-project-comment-20260922",
+  "candidateId": "ARTIFACT-CANDIDATE-ASTRA-DEMO-MVP-COMMENT",
+  "skill": {
+    "name": "woo-linear-publish",
+    "version": "1.0"
+  },
+  "capability": "linear-project-comment.publish",
+  "status": "succeeded",
+  "stage": "verify",
+  "actor": {
+    "kind": "codex"
+  },
+  "context": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "verifiedAt": "2026-09-22T06:44:36Z"
+  },
+  "input": {
+    "candidateDigest": "95872235a70c6c2d91a5eaef8238ae2ac5929085f99f7353d3fe848e84bf6624",
+    "expectedLatestCommentId": "d600d032-9485-4d8c-a375-406a568e15de",
+    "renderedBodyDigest": "sha256:ed19cda55eef3789a6c8e0ea2eca5d6b55cbe63983869f1cbbdcbe3c1be3ac2d"
+  },
+  "authorization": {
+    "actor": "user",
+    "scope": "Astra Demo MVP Project Comment와 Obsidian 정본 Candidate 게시"
+  },
+  "execution": {
+    "tool": "linear-woo.save_comment",
+    "completedAt": "2026-09-22T06:43:39Z"
+  },
+  "result": {
+    "id": "1c9c3c89-562a-4705-9c6e-3dac2e978948",
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "author": "우종호"
+  },
+  "validation": [
+    {
+      "id": "latest-comment-preflight",
+      "status": "pass",
+      "evidence": "게시 직전 최신 Comment ID가 Candidate expectedBefore의 d600d032-9485-4d8c-a375-406a568e15de와 일치했다."
+    },
+    {
+      "id": "comment-read-back",
+      "status": "pass",
+      "evidence": "새 Comment ID, 작성자, 본문과 연결을 Project Activity에서 재조회해 승인된 렌더와 일치함을 확인했다."
+    }
+  ],
+  "failure": null
+}

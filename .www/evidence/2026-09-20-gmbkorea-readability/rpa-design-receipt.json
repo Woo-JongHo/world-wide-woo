@@ -1,0 +1,90 @@
+{
+  "schemaVersion": "1.0",
+  "receiptId": "dacea107-8543-437f-971b-2b8fd3ceec0e",
+  "runId": "8b9e65b9-fe4b-4132-a48c-ed9a61519977",
+  "candidateId": null,
+  "skill": {
+    "name": "rpa-map",
+    "version": "1.0"
+  },
+  "capability": "RPA-DESIGN",
+  "intentId": null,
+  "status": "succeeded",
+  "stage": "classify",
+  "actor": {
+    "kind": "codex",
+    "host": "chacada"
+  },
+  "context": {
+    "designedAt": "2026-09-20T14:14:06Z",
+    "intakeReceipt": "11965b33-59fd-4b6e-9699-12273b6ac324"
+  },
+  "input": {
+    "objective": "업무 의미를 보존하면서 반복 배선과 데이터 선언을 행렬형 코드로 정형화한다.",
+    "sourceRevision": {
+      "helix": "524813e3770a04f47cc2b94fada1d7657ecc6605",
+      "fta": "1b7a79ba57fb144be3c517c64d587f6e4f9fe16d"
+    }
+  },
+  "decision": {
+    "contractChange": false,
+    "identityPolicy": "기존 Process·Task·Unit ID와 실행 sequence를 유지한다.",
+    "visualPolicy": [
+      "반복 실행 선언은 행, 역할 필드는 열로 표현한다.",
+      "먼저 중복 구조와 불필요한 래퍼를 줄이고 남은 열만 최소 폭으로 정렬한다.",
+      "텍스트와 코드 참조는 왼쪽, 수치와 고정 폭 상태는 비교 효용이 있을 때만 오른쪽 또는 중앙 정렬한다.",
+      "행렬 밖의 복잡한 분기와 외부 쓰기 정책은 이름 있는 함수와 기존 Unit 계약에 둔다."
+    ],
+    "implementationSequence": [
+      "FTA run.py의 Unit 배선표를 불변·타입 명시 행렬로 정제한다.",
+      "FTA의 큰 Task 파일에서 동일 역할 상수·필드·판정표를 수직 슬라이스별로 추출한다.",
+      "Helix run.py 명령 배선과 Task 내부 반복표에 같은 패턴을 적용한다.",
+      "각 슬라이스마다 기존 단위·배선 테스트와 정적 검사를 실행한다."
+    ],
+    "safetyBoundary": "UNI-PASS 입력, SMTP 발송, NAS·운영 파일 쓰기는 실행하지 않는다."
+  },
+  "validation": [
+    {
+      "check": "stable identities",
+      "status": "passed",
+      "detail": "기존 rpa-map의 p1.tN.uN 주소를 변경하지 않는다."
+    },
+    {
+      "check": "source traceability",
+      "status": "passed",
+      "detail": "첫 변경은 FTA p1 전체 Unit 배선을 소유하는 run.py로 추적된다."
+    },
+    {
+      "check": "external-write isolation",
+      "status": "passed",
+      "detail": "검증은 수집·정적·fixture 테스트만 사용한다."
+    }
+  ],
+  "authorization": {
+    "source": "user",
+    "scope": "코드 구조와 내용 변경을 포함한 지속적 가독성 정제"
+  },
+  "execution": {
+    "writes": [],
+    "externalActions": []
+  },
+  "result": {
+    "processIds": [
+      "HelixQAC:p1",
+      "FTA원산지:p1"
+    ],
+    "firstBuildUnit": "FTA원산지:p1 pipeline wiring",
+    "readyForBuild": true
+  },
+  "failure": null,
+  "evidence": [
+    {
+      "path": ".www/evidence/2026-09-20-gmbkorea-readability/rpa-intake-receipt.json",
+      "sha256": "5d837069d34888b9cff135b279f21a05882a6ca7809221b0f1df037c6c6572de"
+    }
+  ],
+  "nextCapabilities": [
+    "RPA-BUILD"
+  ],
+  "receiptDigest": "2b384234ba8336656198cd54187be3ff8143141c35e6706b9bc674cd52587221"
+}

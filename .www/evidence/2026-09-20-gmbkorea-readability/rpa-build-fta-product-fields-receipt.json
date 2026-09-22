@@ -1,0 +1,93 @@
+{
+  "schemaVersion": "1.0",
+  "receiptId": "b762fb13-b0dd-4fda-a57b-8d2b1dfc7e5a",
+  "runId": "83686753-768f-4917-b6a7-887689e2460d",
+  "candidateId": null,
+  "skill": {
+    "name": "rpa-build",
+    "version": "1.0"
+  },
+  "capability": "RPA-BUILD",
+  "intentId": null,
+  "status": "succeeded",
+  "stage": "execute",
+  "actor": {
+    "kind": "codex",
+    "host": "chacada"
+  },
+  "context": {
+    "completedAt": "2026-09-20T14:55:11Z",
+    "designReceipt": "dacea107-8543-437f-971b-2b8fd3ceec0e"
+  },
+  "input": {
+    "repository": "/mnt/c/Users/woo/woo/00_project/05_GMBKOREA/RPA/판매관리팀/FTA원산지",
+    "branch": "feat/t7-u6-u9-common",
+    "sourceRevision": "1b7a79ba57fb144be3c517c64d587f6e4f9fe16d",
+    "processId": "FTA원산지:p1",
+    "scope": "p1.t8 수출물품 행의 숫자·단위 입력"
+  },
+  "decision": {
+    "pattern": "항목명·CSS·화면값을 행으로 두고 FOB·총중량·단위·선택 비율을 순서대로 반복 처리",
+    "behaviorChange": false,
+    "identityChange": false,
+    "conditionalColumn": "국내부가가치비율 행은 CountryItemRules.domestic_ratio가 있는 국가에서만 추가"
+  },
+  "validation": [
+    {
+      "check": "python syntax",
+      "status": "passed",
+      "detail": "Windows Python 3.14 py_compile 통과"
+    },
+    {
+      "check": "items regression",
+      "status": "passed",
+      "detail": "물품 화면·등록·계산·xlsx·중량 관련 테스트 91개 통과"
+    },
+    {
+      "check": "country field matrix",
+      "status": "passed",
+      "detail": "중국은 제품번호·FOB·총중량·KG, 인도는 같은 열에 KGS·비율 40 행이 추가됨을 테스트로 고정"
+    },
+    {
+      "check": "placeholder scan",
+      "status": "passed",
+      "detail": "두 변경 파일에서 TODO·FIXME·skip·only 없음"
+    }
+  ],
+  "authorization": {
+    "source": "user",
+    "scope": "Helix QAC와 FTA 코드를 구조 변경 포함 행렬형 가독성으로 정제"
+  },
+  "execution": {
+    "writes": [
+      "/mnt/c/Users/woo/woo/00_project/05_GMBKOREA/RPA/판매관리팀/FTA원산지/task/_08_unipass_items/task.py",
+      "/mnt/c/Users/woo/woo/00_project/05_GMBKOREA/RPA/판매관리팀/FTA원산지/tests/test_items_screen_rules.py"
+    ],
+    "externalActions": [],
+    "externalSystemsInvoked": false
+  },
+  "result": {
+    "changed": [
+      "FOB·총중량·중량 단위를 정렬된 3행 입력 행렬로 변환",
+      "인도의 국내부가가치비율을 같은 행렬의 조건부 행으로 결합",
+      "중국·인도별 실제 화면 입력 열과 순서를 테스트로 고정"
+    ],
+    "outputSha256": {
+      "task/_08_unipass_items/task.py": "e12c072224de71f6414b1483aa07b9017a9e4ad65aa05d756806f845d7530374",
+      "tests/test_items_screen_rules.py": "e4f6a58fbb8c5bac7ac8f4bbbc01dd7107feb3a8543eb1b6f9d91e1cd81fed4e"
+    },
+    "nextSlice": "Helix Metric의 Excel 열·헤더 매핑 또는 FTA 첨부 행 계획"
+  },
+  "failure": null,
+  "evidence": [
+    {
+      "command": "C:\\Python314\\python.exe -m pytest -q tests/test_items_screen_rules.py tests/test_items_check_all.py tests/test_items_workflow_characterization.py tests/test_items_xlsx_characterization.py tests/test_probe_weight.py",
+      "result": "91 passed in 2.09s"
+    }
+  ],
+  "nextCapabilities": [
+    "RPA-TEST",
+    "RPA-BUILD"
+  ],
+  "receiptDigest": "49b366e43f05201e58364f40ab2e2fbbc6273a1b979e041d97109df8458a0175"
+}

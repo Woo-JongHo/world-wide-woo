@@ -1,5 +1,6 @@
 import { Markdown, truncateToWidth, visibleWidth, type Component, type ScrollRowSource } from "@earendil-works/pi-tui";
 import type { WorkbenchSnapshot } from "../../../../../core/domain/work/workbench";
+import type { TranscriptCacheMetrics } from "../../../../../core/domain/observability/cache-telemetry";
 import type { ProjectActivity } from "../../../../../core/domain/execution/project-activity";
 import { sanitizeCompletedAssistantResponse, sanitizePartialAssistantResponse } from "../../../../../core/domain/review/redaction";
 import { boundedPublicProjection } from "./bounded-public-projection";
@@ -214,25 +215,7 @@ interface TranscriptRowCacheEntry {
 	readonly logicalBytes: number;
 }
 
-export interface AstraTranscriptCacheMetrics {
-	readonly durableBlockCount: number;
-	readonly volatileBlockCount: number;
-	readonly markdownEntries: number;
-	readonly rowEntries: number;
-	readonly rowLogicalBytes: number;
-	readonly widthStates: number;
-	readonly widthMetadataLogicalBytes: number;
-	readonly exactCountBuilds: number;
-	readonly exactCountBuildMs: number;
-	readonly requestedRows: number;
-	readonly requestedMaterializationMs: number;
-	readonly renderedBlocks: number;
-	readonly durableGraphBuilds: number;
-	readonly durableGraphBuildMs: number;
-	readonly durableGenerationNoopReuses: number;
-	readonly durableCountReusedBlocks: number;
-	readonly durableCountRenderedBlocks: number;
-}
+export type AstraTranscriptCacheMetrics = TranscriptCacheMetrics;
 
 const ASTRA_TRANSCRIPT_CACHE_MAX_LOGICAL_BYTES = 8 * 1024 * 1024;
 const ASTRA_TRANSCRIPT_CACHE_ENTRY_OVERHEAD = 64;
@@ -372,6 +355,8 @@ export class AstraTranscriptView implements Component {
 		exactCountBuilds: 0, exactCountBuildMs: 0, requestedRows: 0, requestedMaterializationMs: 0, renderedBlocks: 0,
 		durableGraphBuilds: 0, durableGraphBuildMs: 0, durableGenerationNoopReuses: 0,
 		durableCountReusedBlocks: 0, durableCountRenderedBlocks: 0,
+		rowCacheHits: 0, rowCacheMisses: 0, rowCacheEvictions: 0,
+		widthCacheHits: 0, widthCacheMisses: 0,
 	};
 	public expanded = false;
 	constructor(private snapshot: WorkbenchSnapshot) {}
@@ -426,6 +411,11 @@ export class AstraTranscriptView implements Component {
 			durableGenerationNoopReuses: this.counters.durableGenerationNoopReuses,
 			durableCountReusedBlocks: this.counters.durableCountReusedBlocks,
 			durableCountRenderedBlocks: this.counters.durableCountRenderedBlocks,
+			rowCacheHits: this.counters.rowCacheHits,
+			rowCacheMisses: this.counters.rowCacheMisses,
+			rowCacheEvictions: this.counters.rowCacheEvictions,
+			widthCacheHits: this.counters.widthCacheHits,
+			widthCacheMisses: this.counters.widthCacheMisses,
 		};
 	}
 	private md(key: string, text: string, width: number, ink = a.text): string[] {
@@ -669,10 +659,12 @@ export class AstraTranscriptView implements Component {
 		const key = `${generation.id}:${width}:${blockIndex}`;
 		const cached = this.rowCache.get(key);
 		if (cached) {
+			this.counters.rowCacheHits += 1;
 			this.rowCache.delete(key);
 			this.rowCache.set(key, cached);
 			return cached.rows;
 		}
+		this.counters.rowCacheMisses += 1;
 		this.counters.renderedBlocks += 1;
 		if (countBuild && generation.kind === "durable") this.counters.durableCountRenderedBlocks += 1;
 		const rows = generation.blocks[blockIndex]!.render(width);
@@ -683,6 +675,7 @@ export class AstraTranscriptView implements Component {
 			const oldest = this.rowCache.get(oldestKey)!;
 			this.rowCache.delete(oldestKey);
 			this.rowCacheLogicalBytes -= oldest.logicalBytes;
+			this.counters.rowCacheEvictions += 1;
 		}
 		if (logicalBytes <= ASTRA_TRANSCRIPT_CACHE_MAX_LOGICAL_BYTES) {
 			const entry = { rows: [...rows], logicalBytes };
@@ -695,10 +688,12 @@ export class AstraTranscriptView implements Component {
 	private widthIndex(generation: TranscriptGeneration, width: number, retainRows = false): TranscriptWidthIndex {
 		const cached = generation.widths.get(width);
 		if (cached) {
+			this.counters.widthCacheHits += 1;
 			generation.widths.delete(width);
 			generation.widths.set(width, cached);
 			return cached;
 		}
+		this.counters.widthCacheMisses += 1;
 		this.counters.exactCountBuilds += 1;
 		const startedAt = performance.now();
 		const counts = generation.blocks.map((_, index) => this.renderBlock(generation, index, width, retainRows, true).length);

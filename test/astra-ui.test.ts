@@ -9,7 +9,9 @@ import { AstraTranscriptView, astraConversationLabels, astraExecutionIsLive, ast
 import { AstraPlanView } from "../src/adapters/inbound/tui/features/plan/astra-plan-view";
 import { AstraWorkflowView } from "../src/adapters/inbound/tui/features/workflow/astra-workflow-view";
 import { AstraContextView } from "../src/adapters/inbound/tui/features/context/astra-context-view";
-import { AstraCacheView } from "../src/adapters/inbound/tui/features/cache/astra-cache-view";
+import { AstraCacheRail, AstraCacheView } from "../src/adapters/inbound/tui/features/cache/astra-cache-view";
+import { WwwDashboardView } from "../src/adapters/inbound/tui/features/dashboard/entry-dashboard-view";
+import { composeCacheTelemetry } from "../src/core/domain/observability/cache-telemetry";
 import { AstraHistoryView } from "../src/adapters/inbound/tui/features/session/astra-history-view";
 import { AstraStatsView } from "../src/adapters/inbound/tui/features/stats/astra-stats-view";
 import { projectObservabilityDashboard } from "../src/core/domain/observability/observability-dashboard";
@@ -232,31 +234,105 @@ describe("Astra execution console", () => {
 		expect(top.slice(1, -2)).toEqual(child.render(80).slice(1, -2));
 		expect(composer.render(40).every(row => visibleWidth(row) <= 40)).toBe(true);
 	});
-	test("Context dashboard exposes loaded capabilities, free space and memory without hidden payloads", () => {
+	test("Context dashboard follows the spectrometer layout at wide and compact widths without inventing token slices", () => {
 		const s = astraFixture();
 		s.skillInventory = { count: 2, names: ["woo-entry", "woo-code-readability"], sourceRevision: "git:fixture", digest: "a".repeat(64) };
-		const output = stripTerminalSequences(new AstraContextView(() => s).render(80).join("\n"));
-		expect(output).toContain("Context Dashboard");
-		expect(output).toContain("Free Space");
-		expect(output).toContain("Skills  2");
-		expect(output).toContain("woo-entry");
-		expect(output).toContain("MCP");
-		expect(output).toContain("Memory");
+		const wide = new AstraContextView(() => s).render(120).map(stripTerminalSequences);
+		const wideOutput = wide.join("\n");
+		expect(wideOutput).toContain("Context Dashboard");
+		for (const label of ["TOTAL CAPACITY", "USED TOKENS", "FREE SPACE", "COMPRESSION", "LAST RETRIEV", "ACTIVE MODEL", "EFFORT CONFIG"]) expect(wideOutput).toContain(label);
+		expect(wideOutput).toContain("CONTEXT ACCUMULATION SPECTROMETER");
+		expect(wideOutput).toContain("LOADED CAPABILITIES & SESSION INPUTS");
+		expect(wideOutput).toContain("Skills  2");
+		expect(wideOutput).toContain("woo-entry");
+		expect(wideOutput).toContain("MCP");
+		expect(wideOutput).toContain("Memory");
+		expect(wideOutput).toContain("token allocation unobserved");
+		expect(wide.every(row => visibleWidth(row) <= 120)).toBe(true);
+		const compact = new AstraContextView(() => s).render(60).map(stripTerminalSequences);
+		expect(compact.join("\n")).toContain("Context Dashboard");
+		expect(compact.join("\n")).toContain("Free Space");
+		expect(compact.every(row => visibleWidth(row) <= 60)).toBe(true);
 	});
-	test("Cache dashboard renders bounded occupancy and live reuse diagnostics", () => {
-		const output = stripTerminalSequences(new AstraCacheView(() => ({
-			durableBlockCount: 12, volatileBlockCount: 2, markdownEntries: 4, rowEntries: 24,
-			rowLogicalBytes: 1024, widthStates: 3, widthMetadataLogicalBytes: 2048,
-			exactCountBuilds: 2, exactCountBuildMs: 1.5, requestedRows: 80,
-			requestedMaterializationMs: 2.5, renderedBlocks: 16, durableGraphBuilds: 3,
-			durableGraphBuildMs: 4.5, durableGenerationNoopReuses: 7,
-			durableCountReusedBlocks: 9, durableCountRenderedBlocks: 1,
-		})).render(80).join("\n"));
-		expect(output).toContain("Cache Dashboard");
-		expect(output).toContain("Reuse  90%");
-		expect(output).toContain("1.0 KiB / 8.00 MiB");
-		expect(output).toContain("Durable graph");
-		expect(output).toContain("Materialized");
+	test("Context occupancy meter and label share the whole-window ratio even with stale snapshot percent", () => {
+		const snapshot = astraFixture();
+		snapshot.contextUsage = { usedTokens: 100_000, contextWindow: 200_000, percent: 46.8 };
+		for (const width of [60, 80, 120]) {
+			const rows = new AstraContextView(() => snapshot).render(width).map(stripTerminalSequences);
+			const meter = rows.find(row => row.includes("█"))!;
+			const filled = [...meter].filter(cell => cell === "█").length;
+			const empty = [...meter].filter(cell => cell === "░").length;
+			expect(Math.abs(filled - empty)).toBeLessThanOrEqual(1);
+			expect(rows.join("\n")).toMatch(/OVERALL CONTEXT OCCUPANCY\s+50%/u);
+			expect(rows.every(row => visibleWidth(row) <= width)).toBe(true);
+		}
+	});
+	test("Context preserves Figma lower analysis landmarks in an 80-column main pane with the rail visible", () => {
+		const snapshot = astraFixture();
+		snapshot.skillInventory = { count: 2, names: ["woo-entry", "woo-code-readability"], sourceRevision: "git:fixture", digest: "b".repeat(64) };
+		snapshot.mcpServers = [{ name: "figma", enabled: true, status: "connected", tools: ["get_design_context"] }];
+		const mainRows = new AstraContextView(() => snapshot).render(80).map(stripTerminalSequences);
+		const main = mainRows.join("\n");
+		for (const landmark of [
+			"CONTEXT COMPOSITION BREAKDOWN",
+			"CONTEXT CHANGE ACTIVITY",
+			"CONTEXT DIAGNOSTICS EVENT GRID",
+			"SYSTEM DEPENDENCY MAP",
+			"CONTEXT INSIGHTS",
+			"TOP ITEMS BY SIZE",
+			"STATE CHANGE ALERTS",
+		]) expect(main).toContain(landmark);
+		expect(main).toMatch(/source token shares are not\s+reported/u);
+		expect(main).toContain("OVERALL CONTEXT OCCUPANCY");
+		expect(main).toContain("SOURCE TOKEN ALLOCATION");
+		expect(main).toContain("Source token allocation unavailable");
+		expect(main).not.toMatch(/(?:SYS|CONV|SKILL|MCP|MEM|WORK|RUNT)[^\n]*░/u);
+		expect(main).not.toMatch(/MCP[^\n]*64%/u);
+		expect(main).toContain("per-item context byte sizes for ranking");
+		expect(main).toContain("No Native context-change event feed");
+		expect(mainRows.every(row => visibleWidth(row) <= 80)).toBe(true);
+
+		const workspace = new AstraWorkspace(() => snapshot, () => []);
+		workspace.show("context");
+		const frame = renderLayoutFrame(workspace.component, 120, 100, () => {});
+		const workspaceOutput = frame.lines.map(stripTerminalSequences).join("\n");
+		for (const railHeading of ["LOADED SKILLS", "MCP SERVERS", "STORAGE METRICS"]) expect(workspaceOutput).toContain(railHeading);
+		expect(workspaceOutput).toContain("[2 UNITS]");
+		expect(workspaceOutput).toContain("ACTIVE");
+		expect(workspaceOutput).toContain("ONLINE");
+		expect(workspaceOutput).toContain("CONTEXT COMPOSITION BREAKDOWN");
+		expect(frame.lines.every(row => visibleWidth(row) <= 120)).toBe(true);
+	});
+	test("Cache dashboard renders logical byte distribution and live reuse diagnostics", () => {
+		const telemetry = composeCacheTelemetry({
+			collectedAt: "2026-09-22T00:00:00.000Z",
+			observations: [{ id: "render", entries: 24, logicalBytes: 1024, hits: 9, misses: 1, evictions: 2, latencyMs: 1.5, lastAccessedAt: null }],
+		});
+		const output = stripTerminalSequences(new AstraCacheView(() => telemetry).render(60).join("\n"));
+		expect(output).toContain("Cache Controller");
+		expect(output).toContain("AGI Workbench 7 layers");
+		for (const label of ["Transcript", "Render", "Context Projection", "Usage Snapshot", "Model Catalog", "Dashboard Data", "Session Read"]) expect(output).toContain(label);
+		expect(output).toContain("1.0 KiB");
+		expect(output).toContain("90%");
+		expect(output).toContain("unobserved");
+		for (const label of ["Logical byte distribution", "Hit / Miss & Eviction Trends", "Access Heatmap", "Miss Diagnostics", "Telemetry Flow"]) expect(output).toContain(label);
+		expect(output).toContain("100% of observed bytes");
+		expect(output).toContain("Capacity limit unavailable");
+		expect(output).not.toContain("Occupancy");
+		expect(output).toContain("Cycle trend unavailable");
+		expect(output).toContain("Access timestamp buckets are not collected.");
+		expect(output).toContain("TTL, cold-start, invalidation, and upstream causes are not");
+		expect(output).toContain("observed layers → cache telemetry snapshot → Cache dashboard");
+		const wide = new AstraCacheView(() => telemetry).render(120).map(stripTerminalSequences);
+		expect(wide.join("\n")).toContain("CACHE SLICE");
+		expect(wide.join("\n")).toContain("LAST ACCESS");
+		expect(wide.every(row => visibleWidth(row) <= 120)).toBe(true);
+		const compact = new AstraCacheView(() => telemetry).render(60).map(stripTerminalSequences);
+		expect(compact.every(row => visibleWidth(row) <= 60)).toBe(true);
+		const rail = stripTerminalSequences(new AstraCacheRail(() => telemetry).render(38).join("\n"));
+		expect(rail).toContain("6 unobserved");
+		expect(rail).toContain("Force eviction purge");
+		expect(rail).toContain("24-hour trend");
 	});
 	test("Context quota details reject non-finite percentages and clamp out-of-range values", () => {
 		const usage: UsageSnapshot[] = [{ provider: "openai-codex", state: "ready", fetchedAt: 1, limits: [NaN, Infinity, -5, 120].map((remainingPercent, i) => ({ label: `limit${i}`, remainingPercent, status: "unknown" })) }];
@@ -268,7 +344,7 @@ describe("Astra execution console", () => {
 		const s = astraFixture(); s.contextUsage = { ...s.contextUsage!, percent };
 		const context = stripTerminalSequences(new AstraContextView(() => s).render(80).join("\n"));
 		expect(context).not.toMatch(/NaN|Infinity|-5%|120%/u);
-		expect(context).toContain(Number.isFinite(percent) ? `${Math.max(0, Math.min(100, percent))}%` : "–");
+		expect(context).toMatch(/OVERALL CONTEXT OCCUPANCY\s+14%/u);
 	});
 	test("quota remains readable at 80 columns, with stale and missing values distinguished", () => {
 		const usage: UsageSnapshot[] = [
@@ -294,14 +370,14 @@ describe("Astra execution console", () => {
 		expect(text).not.toMatch(/구독 잔여|\bleft\b|\breset\b/u);
 		expect(text).toContain("Codex"); expect(text).toContain("62%");
 		expect(text).toContain("Claude"); expect(text).toContain("9%");
-		expect(text).toContain("Antigravi…"); expect(text).toContain("login");
+		expect(text).toContain("Antigravity"); expect(text).toContain("login");
 		for (const width of [20, 40, 80, 120, 200]) {
 			const rendered = hud.render(width);
 			expect(rendered.every(row => visibleWidth(row) <= width)).toBe(true);
 		}
 		const wide = stripTerminalSequences(hud.render(200).join("\n"));
 		expect(wide).toContain("Codex"); expect(wide).toContain("62%");
-		expect(wide).toContain("Antigravi…"); expect(wide).toContain("login");
+		expect(wide).toContain("Antigravity"); expect(wide).toContain("login");
 		s.permissionMode = "all";
 		s.pendingApproval = { requestId: 1, callbackId: null, kind: "command", params: {}, refs: {}, availableDecisions: ["accept", "decline"] };
 		const pending = stripTerminalSequences(hud.render(200).join("\n"));
@@ -325,12 +401,17 @@ describe("Astra execution console", () => {
 		const rows = astraQuotaHudRows(usage, 120, now, false);
 		const plain = rows.map(stripTerminalSequences);
 		expect(rows).toHaveLength(3);
-		for (const provider of ["Codex", "Claude", "Antigravi…", "Z.AI"]) expect(plain[0]).toContain(provider);
+		for (const provider of ["Codex", "Claude", "Antigravity", "Z.AI"]) expect(plain[0]).toContain(provider);
+		expect(plain[0]!.indexOf("Claude") - plain[0]!.indexOf("Codex")).toBe(18);
 		expect(plain[1]).toContain("7d overall");
-		expect(plain[1]).toContain("88% 2h 00m");
+		expect(plain[1]).toContain("[  88% 2h 00m  ]");
 		expect(plain[2]).toContain("5h session");
-		expect(plain[2]).toContain("42% 1h 28m");
+		expect(plain[2]).toContain("[  42% 1h 28m  ]");
 		expect(rows.join("\n")).toContain("\x1b[48;2;");
+		expect((rows[1]!.match(/\x1b\[48;2;/gu) ?? []).length).toBeGreaterThanOrEqual(4);
+		expect((rows[2]!.match(/\x1b\[48;2;/gu) ?? []).length).toBeGreaterThanOrEqual(5);
+		expect(astraPalette.codex).toBe(astraPalette.text);
+		expect(astraPalette.claude).toBe(astraPalette.active);
 
 		const snapshot = astraFixture();
 		const hud = new AstraHud(() => snapshot, () => usage, false);
@@ -496,6 +577,44 @@ describe("Astra execution console", () => {
 		s.delegation = [{ sourceThreadId: s.threadId ?? "thread", turnId: s.activeTurnId ?? "turn", activityIds: ["agent-activity"], itemIds: ["agent-item"], tasks: [{ ref: "agent-ref", id: "agent-1", attempt: 1, parentId: s.threadId, parentRef: null, role: "reviewer", status: "running", task: "Workflow 결과를 검토한다", model: "gpt-5.6-sol", reasoningEffort: "high", activities: [], result: null }] }];
 		const output = stripTerminalSequences(new AstraWorkflowView(() => s).render(100).join("\n"));
 		for (const value of ["Workflow", "Workflow 화면을 만든다", "EXECUTE · running", "Subagents", "reviewer", "Workflow 결과를 검토한다"]) expect(output).toContain(value);
+	});
+	test("Workflow는 넓은 카드와 좁은 행에서 현재 Turn의 7단계와 실제 위임만 투영한다", () => {
+		const s = astraFixture("ready");
+		s.activeTurnId = "live-turn";
+		const statuses = ["completed", "completed", "completed", "running", "pending", "pending", "pending"] as const;
+		s.requestRuntime = [{
+			schemaVersion: 1, protocolVersion: 2, requestId: "current-request", threadId: s.threadId, turnId: s.activeTurnId,
+			objective: "현재 Request의 실제 실행", status: "running", attempt: 2, previousAttempts: [], deliveries: [], requiredDeliveries: [], events: [], startedAt: "2026-09-22T00:00:00Z", completedAt: null, issues: [], actions: [],
+			stages: ["UNDERSTAND", "DECOMPOSE", "GROUND", "DECIDE", "EXECUTE", "VERIFY", "DELIVER"].map((id, index) => ({ id, status: statuses[index]!, goal: `${id} 근거`, input: [], owner: "orchestrator", model: null, agents: [], tools: [], output: null, evidence: [], decision: null, skipReason: null, startedAt: null, completedAt: null, next: null, evidenceAfterSequence: 0, tasks: [] })),
+		}] as unknown as WorkbenchSnapshot["requestRuntime"];
+		s.delegation = [{ sourceThreadId: s.threadId ?? "thread", turnId: s.activeTurnId ?? "turn", activityIds: ["a"], itemIds: ["i"], tasks: [{ ref: "worker-ref", id: "worker-1", attempt: 1, parentId: s.threadId, parentRef: null, role: "verifier", status: "running", task: "실제 검증 실행", model: "gpt-5.6-sol", reasoningEffort: "high", activities: [], result: null }] }];
+		const view = new AstraWorkflowView(() => s);
+		const wide = view.render(120);
+		const compact = view.render(52);
+		const railWidth = view.render(80);
+		for (const rows of [wide, compact]) expect(rows.every(row => visibleWidth(row) <= (rows === wide ? 120 : 52))).toBe(true);
+		const wideText = stripTerminalSequences(wide.join("\n"));
+		const compactText = stripTerminalSequences(compact.join("\n"));
+		for (const text of [wideText, compactText]) for (const value of ["UNDERSTAND · completed", "DELIVER · pending", "verifier", "실제 검증 실행"]) expect(text).toContain(value);
+		expect(wideText).toContain("7-STAGE REQUEST");
+		expect(compactText).toContain("Goal");
+		const railText = stripTerminalSequences(railWidth.join("\n"));
+		for (const landmark of ["Subagents · delegation relationship tree", "Parallel execution pipeline", "Active work queue & retry counts", "Subagent state matrix", "State change event log"]) expect(railText).toContain(landmark);
+		expect(railText).toContain("unavailable");
+		expect(railWidth.every(row => visibleWidth(row) <= 80)).toBe(true);
+
+		const workspace = new AstraWorkspace(() => s, () => []);
+		workspace.show("workflow");
+		const workspaceFrame = renderLayoutFrame(workspace.component, 120, 100, () => {}).lines;
+		const workspaceText = stripTerminalSequences(workspaceFrame.join("\n"));
+		expect(workspaceText).toContain("Workflow overview");
+		expect(workspaceText).toContain("Active process");
+		expect(workspaceFrame.every(row => visibleWidth(row) <= 120)).toBe(true);
+
+		s.requestRuntime = [{ ...s.requestRuntime![0]!, turnId: "previous-turn", objective: "이전 Request를 보이면 안 된다" }];
+		const stale = stripTerminalSequences(view.render(100).join("\n"));
+		expect(stale).toContain("현재 Turn에 연결된 Request 관측이 없습니다.");
+		expect(stale).not.toContain("이전 Request를 보이면 안 된다");
 	});
 	test("question summaries live inside ZChat rather than a separate slash screen", () => {
 		const s = astraFixture("ready"); s.tnotes = [{ id: "n1", title: "대시보드 안 뜨는 이유", summary: "질문: 대시보드 안 뜨는 이유\nReason: 시작 경로와 요구가 충돌했습니다.\nProposal: 시작 화면에 로고를 함께 표시하는 방향을 선택했습니다.\nAction: 시작 화면 조립과 회귀 테스트를 변경했습니다.\nResult: 코드와 문서를 동기화했고 GitHub와 Linear는 변경하지 않았습니다.\nTest:\nTotal 1/2\n01. bun test test/astra-ui.test.ts : 1.2s · passed\n02. bun test test/project-workbench.test.ts : 0.8s · failed", updatedAt: "2026-09-11T00:00:00Z", sourceActivityIds: ["request"] }];
@@ -665,6 +784,72 @@ describe("Astra execution console", () => {
 		const plan = renderLayoutFrame(workspace.component, width, height, () => {}).lines.join("\n");
 		expect(plan).toContain("Plan"); expect(plan).toContain("중복 이벤트");
 	});
+	test("Cache keeps lower analysis landmarks in the actual 120-column workspace and hides its rail compactly", () => {
+		const snapshot = astraFixture();
+		const workspace = new AstraWorkspace(() => snapshot, () => []);
+		workspace.show("cache");
+		const frame = renderLayoutFrame(workspace.component, 120, 60, () => {});
+		const cacheWide = stripTerminalSequences(frame.lines.join("\n"));
+		expect(cacheWide).toContain("CACHE SLICE");
+		expect(cacheWide).toContain("LAST AC");
+		expect(cacheWide).toContain("Cache health");
+		expect(cacheWide).toContain("Cache actions");
+		const railLine = frame.lines.map(stripTerminalSequences).find(line => line.includes("Cache health"));
+		expect(railLine?.indexOf("Cache health")).toBeGreaterThanOrEqual(80);
+		expect(frame.lines.every(row => visibleWidth(row) <= 120)).toBe(true);
+		workspace.scrolls.cache.scrollBy(200);
+		const lowerFrame = renderLayoutFrame(workspace.component, 120, 60, () => {});
+		const lower = stripTerminalSequences(lowerFrame.lines.join("\n"));
+		for (const label of ["Logical byte distribution", "Hit / Miss & Eviction Trends", "Access Heatmap", "Miss Diagnostics", "Telemetry Flow"]) expect(lower).toContain(label);
+		const compactFrame = renderLayoutFrame(workspace.component, 80, 24, () => {});
+		const compact = stripTerminalSequences(compactFrame.lines.join("\n"));
+		expect(compact).not.toContain("Cache health");
+		expect(compactFrame.lines.every(row => visibleWidth(row) <= 80)).toBe(true);
+	});
+	test("Usage keeps every Figma lower hierarchy panel in the actual 120-column workspace rail split", () => {
+		const snapshot = astraFixture();
+		snapshot.sessionUsage = {
+			totalTokens: 1_500,
+			observedTotalTokens: 1_500,
+			unattributedTokens: 100,
+			models: [{ model: "gpt-5.6-sol", effort: "high", interactiveRootTurns: 2, interactiveTokens: 1_200, detachedInvocations: 1, detachedTokens: 300, totalTokens: 1_500 }],
+			observationCoverage: { interactive: true, detached: true },
+		};
+		const usage: UsageSnapshot[] = [{ provider: "openai-codex", state: "ready", fetchedAt: 1, limits: [{ label: "7 days", remainingPercent: 62, status: "ok" }] }];
+		const workspace = new AstraWorkspace(() => snapshot, () => usage);
+		workspace.show("usage");
+		const frame = renderLayoutFrame(workspace.component, 120, 60, () => {});
+		const wide = stripTerminalSequences(frame.lines.join("\n"));
+		for (const label of ["Model Telemetry", "Provider Availability Window", "Workbench Metrics"]) expect(wide).toContain(label);
+		const railLine = frame.lines.map(stripTerminalSequences).find(line => line.includes("Workbench Metrics"));
+		expect(railLine?.indexOf("Workbench Metrics")).toBeGreaterThanOrEqual(80);
+		expect(frame.lines.every(row => visibleWidth(row) <= 120)).toBe(true);
+		workspace.scrolls.usage.scrollBy(200);
+		const lowerFrame = renderLayoutFrame(workspace.component, 120, 60, () => {});
+		const lower = stripTerminalSequences(lowerFrame.lines.join("\n"));
+		for (const label of ["Model Effort Distribution", "Provider Load Ratio", "Token Consumption Matrix", "Performance Trend"]) expect(lower).toContain(label);
+		const compactFrame = renderLayoutFrame(workspace.component, 80, 24, () => {});
+		const compact = stripTerminalSequences(compactFrame.lines.join("\n"));
+		expect(compact).not.toContain("Workbench Metrics");
+		expect(compactFrame.lines.every(row => visibleWidth(row) <= 80)).toBe(true);
+	});
+	test("Dashboard keeps summary, router, proportion, and heatmap panels in the actual 120-column workspace rail split", () => {
+		const snapshot = astraFixture("working");
+		const workspace = new AstraWorkspace(
+			() => snapshot,
+			() => [],
+			height => height,
+			Date.now,
+			false,
+			null,
+			new WwwDashboardView(() => snapshot),
+		);
+		workspace.show("dashboard");
+		const frame = renderLayoutFrame(workspace.component, 120, 60, () => {});
+		const output = stripTerminalSequences(frame.lines.join("\n"));
+		for (const landmark of ["SESSION", "EVENTS", "TOKENS", "CONTEXT", "HEALTH", "SYSTEM MODULE ROUTER", "TOKEN ALLOCATION / PROPORTION", "INPUT / OUTPUT / CACHE", "ACTIVITY HEATMAP", "Session context"]) expect(output).toContain(landmark);
+		expect(frame.lines.every(row => visibleWidth(row) <= 120)).toBe(true);
+	});
 	test("keeps newlines, code, draft and the latest tool visible without raw reasoning", () => {
 		const s = { ...astraFixture(), draft: "검증 결과:\n\n```ts\nconst seen = new Set();\n```", reasoningDraft: "PRIVATE_REASONING_SENTINEL" };
 		const view = new AstraTranscriptView(s); view.expanded = true;
@@ -704,6 +889,9 @@ describe("Astra execution console", () => {
 		expect(output).toContain("! bun test"); expect(output).toContain("exit 1"); expect(output).toContain("REGRESSION_FAILURE"); expect(output).toContain("/source tool-1");
 	});
 	test("searching commands does not execute them and includes retained workflows", () => {
+		for (const name of ["dashboard", "history", "cache", "usage"]) {
+			expect(ASTRA_COMMANDS.some(command => command.name === name)).toBe(true);
+		}
 		const chosen: string[] = []; const palette = new AstraCommandPalette(c => chosen.push(c), () => {}, () => {});
 		palette.handleInput("promote"); expect(chosen).toHaveLength(0);
 		expect(palette.render(70).join("\n")).toContain("/promote");

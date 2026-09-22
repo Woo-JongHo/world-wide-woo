@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "1.0",
+  "receiptId": "dce946c2-d26b-4a88-80bc-f33d56cbeec1",
+  "runId": "2f6fb070-ee0a-4ca8-8300-3fdc918e12e1",
+  "candidateId": null,
+  "skill": {
+    "name": "rpa-build",
+    "version": "1.0"
+  },
+  "capability": "RPA-BUILD",
+  "intentId": null,
+  "status": "succeeded",
+  "stage": "execute",
+  "actor": {
+    "kind": "codex",
+    "host": "chacada"
+  },
+  "context": {
+    "completedAt": "2026-09-20T14:43:40Z",
+    "designReceipt": "dacea107-8543-437f-971b-2b8fd3ceec0e"
+  },
+  "input": {
+    "repository": "/mnt/c/Users/woo/woo/00_project/05_GMBKOREA/RPA",
+    "branch": "main",
+    "sourceRevision": "524813e3770a04f47cc2b94fada1d7657ecc6605",
+    "processId": "HelixQAC:p1",
+    "scope": "p1.t1 실행 준비의 모드별 입력·쓰기 계약"
+  },
+  "decision": {
+    "pattern": "모드·필수 폴더·필수 파일·쓰기 대상·선택 입력을 frozen dataclass 행으로 둔 단일 tuple 행렬",
+    "behaviorChange": false,
+    "identityChange": false,
+    "compatibility": "기존 _folder_sources·_file_sources·_optional_metric_template·_write_targets_for 반환형 유지"
+  },
+  "validation": [
+    {
+      "check": "python syntax",
+      "status": "passed",
+      "detail": "격리 WSL Python 3.12 py_compile 통과"
+    },
+    {
+      "check": "Helix unit regression",
+      "status": "passed",
+      "detail": "tests/unit 전체 324개와 subtest 72개 통과"
+    },
+    {
+      "check": "external safety",
+      "status": "passed",
+      "detail": "Windows taskkill 경로를 피하려 WSL에서 실행했고 SMTP autouse 가드를 유지했으며 브라우저 통합 수집은 실행하지 않음"
+    },
+    {
+      "check": "placeholder scan",
+      "status": "passed-with-existing-exception",
+      "detail": "새 TODO·FIXME·skip·only 없음. test_setup.py의 기존 pytest.mark.skipif 1건은 Windows에서 POSIX 권한 재현을 제외하는 플랫폼 조건이며 WSL 검증에서는 실제 실행됨"
+    }
+  ],
+  "authorization": {
+    "source": "user",
+    "scope": "Helix QAC와 FTA 코드를 구조 변경 포함 행렬형 가독성으로 정제"
+  },
+  "execution": {
+    "writes": [
+      "/mnt/c/Users/woo/woo/00_project/05_GMBKOREA/RPA/제어설계검증/14_HelixQAC/task/_01_setup.py",
+      "/mnt/c/Users/woo/woo/00_project/05_GMBKOREA/RPA/제어설계검증/14_HelixQAC/tests/unit/test_setup.py"
+    ],
+    "externalActions": [],
+    "externalSystemsInvoked": false
+  },
+  "result": {
+    "changed": [
+      "SetupSources 불변 행 타입 추가",
+      "세 개의 중복 모드 사전을 네 행짜리 _source_matrix로 통합",
+      "기존 조회 함수들을 단일 행렬의 열 투영으로 단순화",
+      "모드별 전체 행을 특성화 테스트로 고정"
+    ],
+    "outputSha256": {
+      "task/_01_setup.py": "47bb7b4a8cd8d1f73d97516116c8930f8a58dba562a68e44dbde2a6a3a251744",
+      "tests/unit/test_setup.py": "ba22a0f830b095825f0df16ed0d1aaf4d5e690e183143d68d49a7c03cb010cc9"
+    },
+    "nextSlice": "Helix 수집 범주·심각도 선언 또는 FTA 다음 화면 입력 행렬"
+  },
+  "failure": null,
+  "evidence": [
+    {
+      "command": "/tmp/gmb-readability-venv/bin/python -m pytest -q tests/unit",
+      "result": "324 passed, 72 subtests passed in 8.80s"
+    }
+  ],
+  "nextCapabilities": [
+    "RPA-TEST",
+    "RPA-BUILD"
+  ],
+  "receiptDigest": "d8b14ec455aec57c447c5b363578c01e291906fcf73356104f46dbcb84d04a07"
+}

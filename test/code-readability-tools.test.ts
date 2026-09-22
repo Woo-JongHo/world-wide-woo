@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 const root   = resolve(import.meta.dir, "..");
 const uncertaintyScript = resolve(root, ".agents/skills/woo-code-readability/scripts/audit-type-uncertainty.ts");
 const hoverScript       = resolve(root, ".agents/skills/woo-code-readability/scripts/inspect-hover.mjs");
+const layoutScript      = resolve(root, ".agents/skills/woo-code-readability/scripts/measure-layout.ts");
 
 function audit(file: string): { exitCode: number; output: string } {
 	const result = Bun.spawnSync(["bun", uncertaintyScript, "--file", file], {
@@ -23,6 +24,23 @@ function hover(...symbols: string[]): { exitCode: number; output: string } {
 		hoverScript,
 		".agents/skills/woo-code-readability/fixtures/hover-contract.ts",
 		...symbols,
+	], {
+		cwd    : root,
+		stdout : "pipe",
+		stderr : "pipe",
+	});
+	return {
+		exitCode : result.exitCode,
+		output   : `${result.stdout.toString()}${result.stderr.toString()}`,
+	};
+}
+
+function layout(...args: string[]): { exitCode: number; output: string } {
+	const result = Bun.spawnSync([
+		"bun",
+		layoutScript,
+		".agents/skills/woo-code-readability/fixtures/layout-contract.ts",
+		...args,
 	], {
 		cwd    : root,
 		stdout : "pipe",
@@ -86,5 +104,31 @@ describe("code readability hover inspector", () => {
 
 		expect(result.exitCode).toBe(1);
 		expect(result.output).toContain("hover documentation missing: MissingDocumentation");
+	});
+});
+
+describe("code readability layout inspector", () => {
+	test("accepts the minimum shared cell width and centered shorter values", () => {
+		const result = layout("--lines", "2-3", "--center-cell", "(#1");
+
+		expect(result.exitCode).toBe(0);
+		expect(result.output).toContain("center(()=ok");
+	});
+
+	test("rejects cells padded wider than their longest actual value", () => {
+		const result = layout("--lines", "7-8", "--center-cell", "(#1");
+
+		expect(result.exitCode).toBe(1);
+		expect(result.output).toContain("center(()=fail:width=");
+	});
+
+	test("accepts one space after the final semicolon and rejects alignment padding", () => {
+		const compact = layout("--lines", "12-13", "--compact-before", "}#1");
+		const padded  = layout("--lines", "17", "--compact-before", "}#1");
+
+		expect(compact.exitCode).toBe(0);
+		expect(compact.output).toContain("compact-before(})=ok");
+		expect(padded.exitCode).toBe(1);
+		expect(padded.output).toContain("compact-before(})=fail");
 	});
 });

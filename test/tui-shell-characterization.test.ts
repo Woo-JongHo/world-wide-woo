@@ -204,6 +204,7 @@ function startShell(initial: WorkbenchSnapshot): ShellHarness {
 		usage: {
 			async refresh() { return []; },
 			startPolling(next) { next([]); return () => { usagePolling += 1; }; },
+			cacheMetrics: () => ({ entries: 0, hits: 0, misses: 0, evictions: 0, lastAccessedAt: null }),
 		},
 		auth: {
 			methods: () => [],

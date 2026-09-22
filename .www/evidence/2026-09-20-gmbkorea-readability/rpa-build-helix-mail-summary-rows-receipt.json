@@ -1,0 +1,95 @@
+{
+  "schemaVersion": "1.0",
+  "receiptId": "a3e0bf0a-f395-4766-b85f-669d24c68944",
+  "runId": "8ab8760f-ee89-4e19-8df2-4e01cac3cf43",
+  "candidateId": null,
+  "skill": {
+    "name": "rpa-build",
+    "version": "1.0"
+  },
+  "capability": "RPA-BUILD",
+  "intentId": null,
+  "status": "succeeded",
+  "stage": "execute",
+  "actor": {
+    "kind": "codex",
+    "host": "chacada"
+  },
+  "context": {
+    "completedAt": "2026-09-20T15:19:33Z",
+    "designReceipt": "dacea107-8543-437f-971b-2b8fd3ceec0e"
+  },
+  "input": {
+    "repository": "/mnt/c/Users/woo/woo/00_project/05_GMBKOREA/RPA/제어설계검증/14_HelixQAC",
+    "branch": "main",
+    "sourceRevision": "524813e3770a04f47cc2b94fada1d7657ecc6605",
+    "processId": "HelixQAC:p1",
+    "scope": "고객 메일의 MISRA·Secure Coding·Metric 요약 계획"
+  },
+  "decision": {
+    "pattern": "내부 키·표시명·선별 키워드를 MailSummarySection의 명명된 세 열로 두고 파이프라인 순서대로 반복 처리",
+    "behaviorChange": false,
+    "identityChange": false,
+    "ordering": "Misra → Secure → Metric 기존 순서 유지"
+  },
+  "validation": [
+    {
+      "check": "python syntax",
+      "status": "passed",
+      "detail": "원격 WSL venv py_compile 통과"
+    },
+    {
+      "check": "focused report regression",
+      "status": "passed",
+      "detail": "메일·실행 트리·입력 정리 관련 테스트 44개 통과"
+    },
+    {
+      "check": "full unit regression",
+      "status": "passed",
+      "detail": "Helix 전체 단위 테스트 326개와 subtest 72개 통과"
+    },
+    {
+      "check": "placeholder scan",
+      "status": "passed",
+      "detail": "변경 파일에서 TODO·FIXME·skip·only 없음"
+    }
+  ],
+  "authorization": {
+    "source": "user",
+    "scope": "Helix QAC와 FTA 코드를 구조 변경 포함 행렬형 가독성으로 정제"
+  },
+  "execution": {
+    "writes": [
+      "/mnt/c/Users/woo/woo/00_project/05_GMBKOREA/RPA/제어설계검증/14_HelixQAC/core/util/report.py"
+    ],
+    "externalActions": [],
+    "externalSystemsInvoked": false
+  },
+  "result": {
+    "changed": [
+      "위치 의미에 의존하던 메일 요약 계획 튜플을 MailSummarySection 불변 행으로 교체",
+      "요약 생성부가 key·label·keyword 명명 열을 직접 읽도록 변경",
+      "고객 메일의 섹션 순서·표시명·선별 동작을 유지"
+    ],
+    "outputSha256": {
+      "core/util/report.py": "b5b88d1ced4a6651d6b94250a269bbdb85d42af44f9b9fdb480dfa6eb821d379"
+    },
+    "nextSlice": "FTA 메일 표시 행 계약 또는 잔여 위치 튜플 감사"
+  },
+  "failure": null,
+  "evidence": [
+    {
+      "command": "/tmp/gmb-readability-venv/bin/python -m pytest -q tests/unit/test_run_tree.py tests/unit/test_input_archive.py tests/unit/test_mail_separation.py",
+      "result": "44 passed in 1.06s"
+    },
+    {
+      "command": "/tmp/gmb-readability-venv/bin/python -m pytest -q tests/unit",
+      "result": "326 passed, 72 subtests passed in 8.74s"
+    }
+  ],
+  "nextCapabilities": [
+    "RPA-TEST",
+    "RPA-BUILD"
+  ],
+  "receiptDigest": "0a90fdf76d6e8f887864f9e4d12e45b4d3f50aec7cf8a1a2e868a79d55cc0b66"
+}

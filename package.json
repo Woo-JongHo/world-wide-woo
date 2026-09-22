@@ -8,6 +8,7 @@
 	},
 	"scripts": {
 		"start": "bun src/cli.ts",
+		"astra:preview": "bun scripts/astra-ui-preview.ts",
 		"check": "tsc --noEmit",
 		"test": "bun test",
 		"release:gate": "bun scripts/release-gate.ts",

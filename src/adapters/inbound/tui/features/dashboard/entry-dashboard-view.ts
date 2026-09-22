@@ -1,6 +1,10 @@
 import { truncateToWidth, visibleWidth, wrapTextWithAnsi, type Component } from "@earendil-works/pi-tui";
+import type { ProjectActivity } from "../../../../../core/domain/execution/project-activity";
 import type { LinearDashboardComment, LinearDashboardIssue, LinearProjectDashboard } from "../../../../../core/domain/work/linear-dashboard";
 import type { WorkbenchSnapshot } from "../../../../../core/domain/work/workbench";
+import { monitoringCard, monitoringColumns, monitoringMeter, monitoringPanel, monitoringWidths } from "../../foundation/layout/astra-monitoring-layout";
+import { a, number, pair, prose, railSection, section as astraSection } from "../../foundation/theme/astra-theme";
+import { runtimeModeLabel, workbenchEffortLabel, workbenchModelLabel } from "../../foundation/labels";
 import { colors } from "../../foundation/theme/theme";
 
 function fit(text: string, width: number): string {
@@ -79,6 +83,77 @@ function snapshotPhase(phase: WorkbenchSnapshot["phase"]): string {
 	return ({ loading: "초기화 중", ready: "준비됨", working: "작업 진행 중", error: "오류", closed: "종료됨" })[phase];
 }
 
+function dashboardHealth(snapshot: WorkbenchSnapshot, blockedTodos: number): string {
+	if (snapshot.error) return "ERROR";
+	if (blockedTodos > 0) return "BLOCKED";
+	if (snapshot.phase === "loading") return "LOADING";
+	if (snapshot.phase === "closed") return "CLOSED";
+	return "NOMINAL";
+}
+
+function cacheSummary(snapshot: WorkbenchSnapshot): { readonly value: string; readonly detail: string } {
+	const layers = snapshot.cacheObservations ?? [];
+	const totals = layers.reduce((accumulator, layer) => ({
+		hits: accumulator.hits + (layer.hits ?? 0),
+		misses: accumulator.misses + (layer.misses ?? 0),
+		observed: accumulator.observed + (layer.hits !== null || layer.misses !== null ? 1 : 0),
+	}), { hits: 0, misses: 0, observed: 0 });
+	const requests = totals.hits + totals.misses;
+	if (totals.observed === 0 || requests === 0) return { value: "미관측", detail: totals.observed ? "accesses not observed" : "no observed layers" };
+	return { value: `${Math.round(totals.hits / requests * 100)}% hit`, detail: `${number(totals.hits)}/${number(requests)} accesses` };
+}
+
+type ActivityBucket = "message" | "tool" | "flow";
+
+function activityBucket(activity: ProjectActivity): ActivityBucket {
+	if (activity.kind === "message") return "message";
+	if (activity.kind === "tool") return "tool";
+	return "flow";
+}
+
+/** Twelve two-hour cells ending at the latest durable activity, never a synthetic timeline. */
+function observedActivityMatrix(activities: readonly ProjectActivity[]): Readonly<Record<ActivityBucket, readonly number[]>> | null {
+	const dated = activities.flatMap(activity => {
+		const timestamp = Date.parse(activity.recordedAt);
+		return Number.isFinite(timestamp) ? [{ activity, timestamp }] : [];
+	});
+	if (dated.length === 0) return null;
+	const columns = 12;
+	const intervalMs = 2 * 60 * 60 * 1_000;
+	const latest = Math.max(...dated.map(entry => entry.timestamp));
+	const start = latest - columns * intervalMs;
+	const matrix: Record<ActivityBucket, number[]> = {
+		message: Array.from({ length: columns }, () => 0),
+		tool: Array.from({ length: columns }, () => 0),
+		flow: Array.from({ length: columns }, () => 0),
+	};
+	for (const entry of dated) {
+		if (entry.timestamp < start || entry.timestamp > latest) continue;
+		const column = Math.min(columns - 1, Math.max(0, Math.floor((entry.timestamp - start) / intervalMs)));
+		matrix[activityBucket(entry.activity)][column]! += 1;
+	}
+	return matrix;
+}
+
+function activityPanelRows(activities: readonly ProjectActivity[]): { readonly meta: string; readonly rows: readonly string[] } {
+	const matrix = observedActivityMatrix(activities);
+	if (!matrix) return { meta: "unavailable", rows: [a.muted("recordedAt unavailable"), a.muted("time distribution unavailable")] };
+	const cell = (value: number): string => value >= 3 ? a.active("■") : value === 2 ? a.attention("■") : value === 1 ? a.response("■") : a.rule("·");
+	return {
+		meta: "last 24h · observed",
+		rows: [
+		...(["message", "tool", "flow"] as const).map(kind => a.muted(`${kind.padEnd(7, " ")} `) + matrix[kind].map(cell).join("")),
+		a.muted("T-24h      T-12h        latest activity"),
+		],
+	};
+}
+
+function monitoringSplitWidths(width: number): readonly [number, number] {
+	const gap = 1;
+	const right = Math.max(24, Math.floor((width - gap) * 0.38));
+	return [Math.max(1, width - gap - right), right];
+}
+
 /** First Astra screen. Every operational value comes from the current Workbench snapshot. */
 export class WwwDashboardView implements Component {
 	public constructor(private readonly getSnapshot: () => WorkbenchSnapshot) {}
@@ -86,7 +161,6 @@ export class WwwDashboardView implements Component {
 	public invalidate(): void {}
 
 	public render(width: number): string[] {
-		const contentWidth = Math.max(1, width);
 		const snapshot = this.getSnapshot();
 		const workflow = snapshot.workFlow;
 		const todo = snapshot.todo;
@@ -94,29 +168,105 @@ export class WwwDashboardView implements Component {
 		const todoBlocked = todo?.items.filter(item => item.status === "blocked").length ?? 0;
 		const live = snapshot.liveActivity ? snapshotText(snapshot.liveActivity.text, "관측된 현재 작업 없음") : null;
 		const project = snapshot.linearDashboard;
-		const rows: string[] = [
-			colors.text("WWW Dashboard"),
-			colors.muted("현재 Workbench snapshot"),
-			"",
-			section("SESSION"),
-			colors.text(snapshotPhase(snapshot.phase)),
-			colors.muted(`thread ${snapshotText(snapshot.threadId, "새 세션")} · revision ${snapshot.revision}`),
-			"",
-			section("NOW"),
-			live ? colors.accent(live) : colors.muted("현재 실행 중인 작업이 없습니다."),
-			snapshot.sessionGoal ? colors.text(`목표 · ${snapshotText(snapshot.sessionGoal.text, "목표 없음")}`) : colors.muted("세션 목표가 아직 없습니다."),
-			"",
-			section("WORK"),
-			colors.text(`대화 ${snapshot.chat.length} · 대기 ${snapshot.chatQueue.length} · 활동 ${snapshot.activities.length}`),
-			colors.text(`계획 ${workflow.completedCount}/${workflow.steps.length} · Todo ${todoCompleted}/${todo?.items.length ?? 0}`),
-			"",
-			section("HEALTH"),
-			snapshot.pendingApproval ? colors.warning("승인 결정 대기") : colors.success("승인 대기 없음"),
-			todoBlocked > 0 ? colors.warning(`차단된 Todo ${todoBlocked}`) : colors.muted("차단된 Todo 없음"),
-			snapshot.error ? colors.error(`오류 · ${snapshotText(snapshot.error, "알 수 없는 오류")}`) : colors.muted("오류 없음"),
-			project ? colors.muted(`Linear · ${snapshotText(project.projectName, "연결된 프로젝트")} · ${project.state}`) : colors.muted("Linear Dashboard 미연결"),
+		const context = snapshot.contextUsage;
+		const sessionTokens = snapshot.sessionUsage?.observedTotalTokens;
+		const contextPercent = context ? Math.round(Math.max(0, Math.min(100, context.percent))) : null;
+		const health = dashboardHealth(snapshot, todoBlocked);
+		const cache = cacheSummary(snapshot);
+		const compactSummary = width < 92;
+		const summary = [
+			[compactSummary ? "Session" : "Active session", snapshotText(snapshot.threadId, "새 세션"), `revision ${snapshot.revision}`],
+			[compactSummary ? "Events" : "Activity events", number(snapshot.activities.length), live ? "working" : snapshotPhase(snapshot.phase)],
+			[compactSummary ? "Tokens" : "Session tokens", sessionTokens == null ? "미관측" : number(sessionTokens), "observed total"],
+			[compactSummary ? "Context" : "Context space", contextPercent == null ? "미관측" : `${contextPercent}%`, context ? `${number(context.usedTokens)} / ${number(context.contextWindow)}` : "연결 대기"],
+			[compactSummary ? "Health" : "System health", health, snapshot.error ? "error observed" : todoBlocked ? `${todoBlocked} blocked` : "no blocking signal"],
+		] as const;
+		if (width < 58) {
+			const boundedLive = live ? truncateToWidth(live, Math.max(12, width - 10)) : "현재 실행 중인 작업이 없습니다.";
+			return [
+				...astraSection("Session Overview", width, snapshotPhase(snapshot.phase), a.active),
+				...summary.map(([title, value, detail]) => pair(title, `${value} · ${detail}`, width)),
+				...astraSection("Now", width, live ? "working" : "idle", live ? a.active : a.muted),
+				live ? a.active(boundedLive) : a.muted(boundedLive),
+				snapshot.sessionGoal ? a.text(`Goal · ${snapshotText(snapshot.sessionGoal.text, "목표 없음")}`) : a.muted("Goal이 아직 없습니다."),
+				pair("ACTIVITY EVENTS", number(snapshot.activities.length), width),
+			].flatMap(row => prose(row, width));
+		}
+
+		const summaryWidths = monitoringWidths(width, 5);
+		const routerWidths = monitoringWidths(width, 4);
+		const routerCards = [
+			monitoringCard({ title: "/context", value: contextPercent == null ? "미관측" : `${contextPercent}%`, detail: context ? `${number(context.usedTokens)} / ${number(context.contextWindow)}` : "usage unavailable" }, routerWidths[0]!),
+			monitoringCard({ title: "/cache", value: cache.value, detail: cache.detail }, routerWidths[1]!),
+			monitoringCard({ title: "/usage", value: sessionTokens == null ? "미관측" : number(sessionTokens), detail: "observed session tokens" }, routerWidths[2]!),
+			monitoringCard({ title: "/workflow", value: `${workflow.completedCount}/${workflow.steps.length}`, detail: workflow.steps.length ? "tracked steps" : "no steps" }, routerWidths[3]!),
 		];
-		return rows.flatMap(row => wrapTextWithAnsi(fit(row, contentWidth), contentWidth));
+		const goal = snapshot.sessionGoal ? snapshotText(snapshot.sessionGoal.text, "목표 없음") : "Goal이 아직 없습니다.";
+		const liveSummary = live ? truncateToWidth(live, Math.max(16, width - 14)) : "현재 실행 중인 작업이 없습니다.";
+		const [tokenPanelWidth, activityPanelWidth] = monitoringSplitWidths(width);
+		const tokenInnerWidth = Math.max(1, tokenPanelWidth - 2);
+		const activity = activityPanelRows(snapshot.activities);
+		const tokenPanel = monitoringPanel({
+			title: "TOKEN ALLOCATION / PROPORTION",
+			meta: contextPercent == null ? "unavailable" : `context ${contextPercent}%`,
+			rows: [
+				pair("CONTEXT WINDOW", context ? `${number(context.usedTokens)} / ${number(context.contextWindow)}` : "unavailable", tokenInnerWidth),
+				context ? monitoringMeter(context.usedTokens, context.contextWindow, Math.max(4, tokenInnerWidth), a.response) : a.muted("context meter unavailable"),
+				pair("SESSION TOKENS", sessionTokens == null ? "unavailable" : `${number(sessionTokens)} observed`, tokenInnerWidth),
+				a.muted("INPUT / OUTPUT / CACHE · unavailable"),
+			],
+		}, tokenPanelWidth);
+		const activityPanel = monitoringPanel({
+			title: "ACTIVITY HEATMAP",
+			meta: activity.meta,
+			rows: [
+				...activity.rows,
+				pair("EVENTS", `message ${snapshot.activities.filter(item => item.kind === "message").length} · tool ${snapshot.activities.filter(item => item.kind === "tool").length} · flow ${snapshot.activities.filter(item => item.kind !== "message" && item.kind !== "tool").length}`, Math.max(1, activityPanelWidth - 2)),
+			],
+		}, activityPanelWidth);
+		return [
+			pair(a.strong("SESSION OVERVIEW"), `${snapshot.projectId} · ${snapshotText(snapshot.threadId, "새 세션")}`, width),
+			...monitoringColumns(summary.map(([title, value, detail], index) => monitoringCard({ title, value, detail }, summaryWidths[index]!)), summaryWidths),
+			"",
+			pair(a.active("SYSTEM MODULE ROUTER"), runtimeModeLabel(snapshot.permissionMode, snapshot.collaborationMode), width),
+			...monitoringColumns(routerCards, routerWidths),
+			"",
+			pair("NOW", liveSummary, width),
+			pair("GOAL", goal, width),
+			...monitoringColumns([tokenPanel, activityPanel], [tokenPanelWidth, activityPanelWidth]),
+			pair("LINEAR", project ? `${snapshotText(project.projectName, "연결된 프로젝트")} · ${project.state}` : "미연결", width),
+		].map(row => fit(row, width));
+	}
+}
+
+export class AstraDashboardRail implements Component {
+	public constructor(private readonly getSnapshot: () => WorkbenchSnapshot) {}
+	public invalidate(): void {}
+	public render(width: number): string[] {
+		const snapshot = this.getSnapshot();
+		const context = snapshot.contextUsage;
+		const enabledMcp = snapshot.mcpServers.filter(server => server.enabled).length;
+		const rows = [
+			...railSection("Session context", width, snapshotPhase(snapshot.phase), a.response),
+			pair("Project", snapshot.projectId, width),
+			pair("Thread", snapshotText(snapshot.threadId, "새 세션"), width),
+			pair("Model", workbenchModelLabel(snapshot.activeModel ?? snapshot.model), width),
+			pair("Effort", workbenchEffortLabel(snapshot.effort), width),
+			pair("Context", context ? `${number(context.usedTokens)} / ${number(context.contextWindow)}` : "미관측", width),
+			pair("Skills", snapshot.skillInventory ? number(snapshot.skillInventory.count) : "미관측", width),
+			pair("MCP", `${enabledMcp}/${snapshot.mcpServers.length}`, width),
+			...railSection("Session state", width),
+			pair("Queue", snapshot.chatQueue.length ? a.active(number(snapshot.chatQueue.length)) : a.muted("0"), width),
+			pair("Approvals", snapshot.pendingApproval ? a.attention("1 waiting") : a.success("none"), width),
+			pair("Recording", snapshot.recordingReadOnly ? a.attention("read-only") : a.success("writable"), width),
+			...(context ? [a.caption("Context occupancy"), monitoringMeter(context.usedTokens, context.contextWindow, Math.max(8, width - 2), a.response)] : [a.muted("Context occupancy · 미관측")]),
+			...railSection("Navigate", width),
+			a.muted("/context  컨텍스트"),
+			a.muted("/cache    캐시"),
+			a.muted("/usage    사용량"),
+			a.muted("/workflow 워크플로"),
+		];
+		return rows.flatMap(row => prose(row, width));
 	}
 }
 
@@ -165,7 +315,10 @@ export class EntryDashboardView implements Component {
 		rows.push(section("UPDATE"), ...updateRows(dashboard, contentWidth));
 		rows.push(section("ACTIVITY"), ...commentRows(dashboard, contentWidth, this.now()));
 		rows.push(section("RECENT"));
-		const recent = [...issues].filter(issue => issue.updatedAt).sort((left, right) => Date.parse(right.updatedAt!) - Date.parse(left.updatedAt!)).slice(0, 4);
+		const recent = [...issues]
+			.filter((issue): issue is LinearDashboardIssue & { updatedAt: string } => Boolean(issue.updatedAt))
+			.sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt))
+			.slice(0, 4);
 		if (recent.length > 0) {
 			for (const issue of recent) rows.push(...wrapTextWithAnsi(`${clock(issue.updatedAt)}  ${issue.id}  ${issue.title}`, contentWidth));
 		} else rows.push(colors.muted("  최근 갱신 이슈가 없습니다."));

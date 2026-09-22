@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0",
+  "checkedAt": "2026-09-20T16:42:52Z",
+  "review": {
+    "provider": "Claude",
+    "model": "opus",
+    "mode": "read-only",
+    "scope": "chacada의 Helix QAC·FTA 원산지 행렬형 가독성 변경 전체 diff"
+  },
+  "status": "not-run",
+  "reason": "Claude CLI weekly limit reached; resets 4am Asia/Seoul",
+  "blockedAudit": {
+    "consecutiveGoalTurns": 3,
+    "latestAttemptAt": "2026-09-20T16:42:52Z",
+    "latestExitCode": 1,
+    "latestOutput": "You've hit your weekly limit · resets 4am (Asia/Seoul)"
+  },
+  "fallback": "not-used",
+  "fallbackReason": "프로젝트 규율은 반박·최종 감사에서 Opus 고정이며 사용 불가 시 낮은 모델 자동 대체를 금지한다.",
+  "writes": [],
+  "nextAction": "한도 초기화 뒤 동일 범위를 Opus 읽기 전용으로 재감사하고 findings를 Receipt에 결속한다."
+}

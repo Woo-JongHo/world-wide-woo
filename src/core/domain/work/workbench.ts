@@ -10,6 +10,7 @@ import type { ActivitySelectionResult } from "./trace-selection.js";
 import type { LinearProjectDashboard } from "./linear-dashboard.js";
 import type { PerformanceProjection } from "./performance.js";
 import type { NativeDelegatedTask, NativeDelegationProjection } from "./delegation.js";
+import type { CacheLayerObservation } from "../observability/cache-telemetry.js";
 
 export type WorkbenchPhase = "loading" | "ready" | "working" | "error" | "closed";
 export type WorkbenchPermissionMode = "manual" | "all";
@@ -150,6 +151,8 @@ export interface WorkbenchSkillInventory {
 export interface WorkbenchSnapshot {
 	readonly planActivities?: readonly PlanActivity[];
 	readonly planActivityStatus?: "disabled" | "pending" | "ready" | "unavailable";
+	/** Actual session cache observations; absent layers remain explicitly unobserved. */
+	readonly cacheObservations?: readonly CacheLayerObservation[];
 	modelCatalog?: import("../execution/model-settings").NativeModelCatalog;
 	/** Seven-stage protocol history, projected from the durable Activity journal. */
 	requestRuntime?: readonly RequestRuntimeRecord[];

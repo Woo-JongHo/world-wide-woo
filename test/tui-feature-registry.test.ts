@@ -17,7 +17,7 @@ const EXPECTED_COUNTS = {
 	"TUI-F006": 3,
 	"TUI-F007": 3,
 	"TUI-F008": 2,
-	"TUI-F009": 1,
+	"TUI-F009": 2,
 	"TUI-F010": 1,
 	"TUI-F011": 1,
 	"TUI-F012": 1,
@@ -57,6 +57,7 @@ const EXPECTED_TITLES = {
 	"TUI-F008-U01": "Session Review·Diagnostics",
 	"TUI-F008-U02": "Request 통계 상세 조사",
 	"TUI-F009-U01": "Provider 잔여량·Context HUD",
+	"TUI-F009-U02": "Provider·Session Usage Dashboard",
 	"TUI-F010-U01": "프로젝트 구조·진척도 Map",
 	"TUI-F011-U01": "세션 Context·권한·도구·위임 현황",
 	"TUI-F012-U01": "질문별 검증 계획·근거 보기",
@@ -71,9 +72,9 @@ const EXPECTED_TITLES = {
 } as const satisfies Partial<Record<TuiFeatureUnitId, string>>;
 
 describe("TUI feature Unit catalog", () => {
-	test("contains the 18 features and exact 38 inventoried Units", () => {
+	test("contains the 18 features and exact 39 inventoried Units", () => {
 		expect(TUI_FEATURES).toHaveLength(18);
-		expect(TUI_FEATURE_UNITS).toHaveLength(38);
+		expect(TUI_FEATURE_UNITS).toHaveLength(39);
 		expect(Object.fromEntries(TUI_FEATURE_UNITS.map((unit) => [unit.id, unit.title]))).toEqual(EXPECTED_TITLES);
 	});
 

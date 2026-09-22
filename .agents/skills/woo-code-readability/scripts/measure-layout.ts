@@ -87,9 +87,18 @@ function leftAnchorError(line: string, spec: LeftAnchorSpec): string | undefined
 	return undefined;
 }
 
+function cellContent(line: string, spec: LeftAnchorSpec): string | undefined {
+	const openingIndex = tokenIndex(line, spec);
+	if (openingIndex === undefined) return undefined;
+	const contentStart = openingIndex + spec.token.length;
+	const closingIndex = line.indexOf(spec.closingToken, contentStart);
+	if (closingIndex < 0) return undefined;
+	return line.slice(contentStart, closingIndex);
+}
+
 const filePath = process.argv[2];
 if (!filePath || filePath.startsWith("--")) {
-	throw new Error("사용법: measure-layout.ts <file> [--lines 1,3-8] [--tokens 'from|//#1'] [--expect 'from=41|//=146'] [--left-anchor '{#1|(#1|<#1']");
+	throw new Error("사용법: measure-layout.ts <file> [--lines 1,3-8] [--tokens 'from|//#1'] [--expect 'from=41|//=146'] [--left-anchor '{#1|(#1|<#1'] [--center-cell '(#1|<#1'] [--compact-before '}#2']");
 }
 
 const source     : string           = readFileSync(filePath, "utf8");
@@ -103,6 +112,14 @@ const leftAnchorSpecs: readonly LeftAnchorSpec[] = (argument("--left-anchor") ??
 	.split("|")
 	.filter(Boolean)
 	.map(parseLeftAnchorSpec);
+const centerCellSpecs: readonly LeftAnchorSpec[] = (argument("--center-cell") ?? "")
+	.split("|")
+	.filter(Boolean)
+	.map(parseLeftAnchorSpec);
+const compactBeforeSpecs: readonly TokenSpec[] = (argument("--compact-before") ?? "")
+	.split("|")
+	.filter(Boolean)
+	.map(parseTokenSpec);
 const expected = new Map(
 	(argument("--expect") ?? "")
 		.split("|")
@@ -116,6 +133,13 @@ const expected = new Map(
 
 let failed = false;
 const observedLeftAnchors = new Set<string>();
+const centerWidths = new Map(centerCellSpecs.map(spec => {
+	const contents = [...lineFilter]
+		.map(lineNumber => cellContent(sourceLines[lineNumber - 1] ?? "", spec))
+		.filter((content): content is string => content !== undefined && content.trim().length > 0);
+	const maxContentWidth = Math.max(0, ...contents.map(content => displayWidth(content.trim())));
+	return [`${spec.token}#${spec.occurrence}`, maxContentWidth] as const;
+}));
 for (const lineNumber of [...lineFilter].sort((left, right) => left - right)) {
 	const line = sourceLines[lineNumber - 1] ?? "";
 	const measurements = tokenSpecs.flatMap(spec => {
@@ -134,7 +158,30 @@ for (const lineNumber of [...lineFilter].sort((left, right) => left - right)) {
 		if (error) failed = true;
 		return [`left(${label})=${error ? `fail:${error}` : "ok"}`];
 	});
-	const results = [...measurements, ...anchorMeasurements];
+	const centerMeasurements = centerCellSpecs.flatMap(spec => {
+		const content = cellContent(line, spec);
+		if (content === undefined || content.trim().length === 0) return [];
+		const expectedWidth = centerWidths.get(`${spec.token}#${spec.occurrence}`) ?? 0;
+		const value = content.trim();
+		const valueStart = content.indexOf(value);
+		const leftWidth = displayWidth(content.slice(0, valueStart));
+		const rightWidth = displayWidth(content.slice(valueStart + value.length));
+		const cellWidth = displayWidth(content);
+		const centered = Math.abs(leftWidth - rightWidth) <= 1;
+		const minimal = cellWidth === expectedWidth;
+		if (!centered || !minimal) failed = true;
+		const label = `${spec.token}${spec.occurrence === 1 ? "" : `#${spec.occurrence}`}`;
+		return [`center(${label})=${centered && minimal ? "ok" : `fail:width=${cellWidth}/${expectedWidth},padding=${leftWidth}/${rightWidth}`}`];
+	});
+	const compactMeasurements = compactBeforeSpecs.flatMap(spec => {
+		const index = tokenIndex(line, spec);
+		if (index === undefined) return [];
+		const compact = line.slice(0, index).endsWith("; ");
+		if (!compact) failed = true;
+		const label = `${spec.token}${spec.occurrence === 1 ? "" : `#${spec.occurrence}`}`;
+		return [`compact-before(${label})=${compact ? "ok" : "fail:종결 세미콜론 뒤 한 칸이 아닙니다"}`];
+	});
+	const results = [...measurements, ...anchorMeasurements, ...centerMeasurements, ...compactMeasurements];
 	if (results.length > 0) console.log(`${String(lineNumber).padStart(4)}  ${results.join("  ")}  ${line.trim()}`);
 }
 

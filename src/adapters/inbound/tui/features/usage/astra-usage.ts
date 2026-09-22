@@ -72,12 +72,11 @@ function quotaBar(limit: UsageLimitSnapshot | undefined, state: string, width: n
 		? Math.round(Math.max(0, Math.min(100, limit.remainingPercent))) : null;
 	const reset = limit ? resetIn(limit.resetsAt, now) : "";
 	const value = percent === null ? state : `${percent}%${reset ? ` ${reset}` : ""}`;
-	const label = value.length > size ? value.slice(0, Math.max(1, size - 1)) + "…" : value;
-	const centered = label.padStart(label.length + Math.max(0, Math.floor((size - label.length) / 2))).padEnd(size);
-	const filled = percent === null ? 0 : Math.round(percent / 100 * size);
-	return Array.from(centered).map((character, index) => index < filled
-		? chalk.bgHex(color).hex("#101419").bold(character)
-		: chalk.bgHex(astraPalette.rule).hex(astraPalette.text)(character)).join("");
+	const innerSize = Math.max(1, size - 2);
+	const label = value.length > innerSize ? value.slice(0, Math.max(1, innerSize - 1)) + "…" : value;
+	const centered = `[${label.padStart(label.length + Math.max(0, Math.floor((innerSize - label.length) / 2))).padEnd(innerSize)}]`;
+	const filled = percent === null ? 0 : Math.round(size * percent / 100);
+	return `${chalk.bgHex(color).hex("#101419").bold(centered.slice(0, filled))}${chalk.bgHex(astraPalette.rule).hex(astraPalette.text)(centered.slice(filled))}`;
 }
 
 /** A provider header plus two quota rows form a compact matrix. */
@@ -88,7 +87,7 @@ export function astraQuotaHudRows(snapshots: readonly UsageSnapshot[], width: nu
 	const logoEnabled = showLogos && getCapabilities().images === "kitty";
 	const prefixWidth = Math.max(...labels.map(label => visibleWidth(label))) + 2;
 	const segmentWidth = Math.floor((width - prefixWidth - 6) / quotaProviders.length);
-	const nameWidth = Math.max(3, Math.min(10, segmentWidth));
+	const nameWidth = Math.max(3, Math.min(16, segmentWidth));
 	const header = `${" ".repeat(prefixWidth)}${quotaProviders.map(([, name, ink], index) => {
 		const token = logoEnabled ? logoTokens[index]! : name;
 		return a[ink](fit(token, nameWidth));

@@ -279,4 +279,61 @@ describe("UsageService", () => {
 		expect(recovered[1].stale).toBeUndefined();
 		expect(recovered[1].issue).toBeUndefined();
 	});
+
+	test("reports actual Usage Snapshot cache reuse, stale fallback, and credential-removal eviction", async () => {
+		let now = 10_000;
+		let limited = false;
+		const entries: Record<string, Credential | undefined> = { anthropic: oauth() };
+		const service = new UsageService(
+			store(entries),
+			models,
+			async () => limited
+				? new Response("", { status: 429 })
+				: response({ account_id: "account", email: "account@example.com", five_hour: { utilization: 25 } }),
+			() => now,
+			async () => undefined,
+			noAntigravity,
+		);
+
+		await service.refresh();
+		expect(service.cacheMetrics()).toEqual({
+			entries: 1,
+			hits: 0,
+			misses: 1,
+			evictions: 0,
+			lastAccessedAt: null,
+		});
+
+		now = 20_000;
+		await service.refresh();
+		expect(service.cacheMetrics()).toEqual({
+			entries: 1,
+			hits: 1,
+			misses: 1,
+			evictions: 0,
+			lastAccessedAt: "1970-01-01T00:00:20.000Z",
+		});
+
+		now = 310_001;
+		limited = true;
+		await service.refresh();
+		expect(service.cacheMetrics()).toEqual({
+			entries: 1,
+			hits: 2,
+			misses: 2,
+			evictions: 0,
+			lastAccessedAt: "1970-01-01T00:05:10.001Z",
+		});
+
+		entries.anthropic = undefined;
+		now = 320_000;
+		await service.refresh();
+		expect(service.cacheMetrics()).toEqual({
+			entries: 0,
+			hits: 2,
+			misses: 2,
+			evictions: 1,
+			lastAccessedAt: "1970-01-01T00:05:10.001Z",
+		});
+	});
 });

@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "1.0",
+  "receiptId": "6930671d-df99-429b-99e7-6108dbfb4ec5",
+  "runId": "fc246ec2-003e-4cf7-84d7-0a14d8c3d4a9",
+  "candidateId": null,
+  "skill": {
+    "name": "rpa-build",
+    "version": "1.0"
+  },
+  "capability": "RPA-BUILD",
+  "intentId": null,
+  "status": "succeeded",
+  "stage": "execute",
+  "actor": {
+    "kind": "codex",
+    "host": "chacada"
+  },
+  "context": {
+    "completedAt": "2026-09-20T14:58:00Z",
+    "designReceipt": "dacea107-8543-437f-971b-2b8fd3ceec0e"
+  },
+  "input": {
+    "repository": "/mnt/c/Users/woo/woo/00_project/05_GMBKOREA/RPA",
+    "branch": "main",
+    "sourceRevision": "524813e3770a04f47cc2b94fada1d7657ecc6605",
+    "processId": "HelixQAC:p1",
+    "scope": "p1.t5 Metric Excel 출력 열 매핑"
+  },
+  "decision": {
+    "pattern": "Excel 열 번호·원천 키·숫자 변환 여부를 MetricColumn 불변 행으로 둔 단일 tuple 행렬",
+    "behaviorChange": false,
+    "identityChange": false,
+    "singleSource": "스타일 범위·배치 로그·셀 기입이 모두 같은 열 행렬에서 파생"
+  },
+  "validation": [
+    {
+      "check": "python syntax",
+      "status": "passed",
+      "detail": "격리 WSL Python 3.12 py_compile 통과"
+    },
+    {
+      "check": "Helix unit regression",
+      "status": "passed",
+      "detail": "tests/unit 전체 326개와 subtest 72개 통과"
+    },
+    {
+      "check": "real workbook mapping",
+      "status": "passed",
+      "detail": "임시 xlsx에 경로·함수·두 수치 값을 행렬 열에 쓰고 문자열과 숫자 변환 결과를 read-back"
+    },
+    {
+      "check": "placeholder scan",
+      "status": "passed",
+      "detail": "두 변경 파일에서 TODO·FIXME·skip·only 없음"
+    }
+  ],
+  "authorization": {
+    "source": "user",
+    "scope": "Helix QAC와 FTA 코드를 구조 변경 포함 행렬형 가독성으로 정제"
+  },
+  "execution": {
+    "writes": [
+      "/mnt/c/Users/woo/woo/00_project/05_GMBKOREA/RPA/제어설계검증/14_HelixQAC/task/_05_metric.py",
+      "/mnt/c/Users/woo/woo/00_project/05_GMBKOREA/RPA/제어설계검증/14_HelixQAC/tests/unit/test_metric_flow.py"
+    ],
+    "externalActions": [],
+    "externalSystemsInvoked": false
+  },
+  "result": {
+    "changed": [
+      "MetricColumn 불변 행 타입과 _metric_columns 행렬 추가",
+      "경로·함수·수치 열의 스타일 범위와 배치 로그를 행렬에서 파생",
+      "셀 기입 루프가 행렬의 source_key와 numeric 규칙만 순회하도록 단순화",
+      "실제 임시 workbook read-back 테스트 추가"
+    ],
+    "outputSha256": {
+      "task/_05_metric.py": "eebdc71094ac96a86cd6b0fe8c8d2ce0294a2fd86e107f4edf68658f571d0e5f",
+      "tests/unit/test_metric_flow.py": "c09868a092528290e883dbdeaaeb75c6fcbe13fbfc8accf459f433e99678f097"
+    },
+    "nextSlice": "FTA 첨부 행 계획 또는 Helix 결과 리포트 열 매핑"
+  },
+  "failure": null,
+  "evidence": [
+    {
+      "command": "/tmp/gmb-readability-venv/bin/python -m pytest -q tests/unit",
+      "result": "326 passed, 72 subtests passed in 8.72s"
+    }
+  ],
+  "nextCapabilities": [
+    "RPA-TEST",
+    "RPA-BUILD"
+  ],
+  "receiptDigest": "aec53f3ac8d7e6356a737504e949a73a745a39e9588c6c16612a1679563b6640"
+}

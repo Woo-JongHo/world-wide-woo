@@ -1,0 +1,75 @@
+{
+  "schemaVersion": "1.0",
+  "candidateId": "ARTIFACT-CANDIDATE-NATIVE-TURN-STALL",
+  "kind": "github-issue",
+  "sourceRevision": "git:ce7731454c09c4ca5df4413f9f223be3eaea960c:dirty",
+  "intent": "Native turn의 장시간 무관측 정체가 무기한 실행 중으로 남는 문제를 추적한다",
+  "target": {
+    "repository": "Woo-JongHo/world-wide-woo",
+    "repositoryUrl": "https://github.com/Woo-JongHo/world-wide-woo",
+    "defaultBranch": "main"
+  },
+  "content": {
+    "issueType": "bug",
+    "title": "Native turn의 이벤트가 끊기면 Workbench가 무기한 실행 중으로 남는다",
+    "statement": "Codex App Server 프로세스와 연결이 살아 있는 상태에서 시작된 Native turn의 후속 이벤트가 끊기면, Workbench가 정체를 감지하지 못하고 `Working · terminal 관측 대기`를 무기한 표시한다.",
+    "details": [
+      "2026-09-21 실제 www 세션에서 `src/cli.ts` 편집 직전 turn이 19분 이상 `Working · terminal 관측 대기`에 머물렀다.",
+      "해당 세션 transcript에는 task_started 3건과 task_complete 2건이 있으며, 마지막 turn은 10:11:06의 완료된 reasoning 뒤 tool call·오류·task_complete 없이 끝난다.",
+      "www, codex app-server, codex-code-mode-host 프로세스는 모두 살아 있었고 세션 파일은 더 이상 갱신되지 않았다.",
+      "동일 transcript를 세 번 판독해 미완료 task 1건과 동일한 마지막 이벤트를 확인했다.",
+      "CodexAppServer의 30초 timeout은 initialize와 turn/start 같은 요청 응답에만 적용되며, 이미 시작된 turn이 terminal notification을 보내지 않는 상태에는 timeout이나 watchdog이 확인되지 않았다.",
+      "Linear WOO-710이 3분 이상 terminal event 무관측과 복구 안내 책임을 이미 소유하므로 이번 관찰은 해당 이슈의 회귀 증거로 결속한다.",
+      "기존 #35는 요청이 실행으로 전환되기 전에 멈춘 문제이고, 이번 관찰은 여러 공개 응답과 도구 실행 뒤 새 turn이 종료 이벤트 없이 정체된다는 차이가 있다.",
+      "현재 증거만으로 Codex 내부 turn 생성 정체와 App Server 알림 유실 중 어느 쪽이 직접 원인인지는 확정되지 않았다."
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-710/도구-실행-종료가-지연되어-입력이-멈추는-상태를-복구한다"
+  },
+  "expectedBefore": {
+    "repository": {
+      "nameWithOwner": "Woo-JongHo/world-wide-woo",
+      "url": "https://github.com/Woo-JongHo/world-wide-woo",
+      "defaultBranch": "main"
+    },
+    "issueCount": 25,
+    "possibleDuplicates": [
+      {
+        "number": 35,
+        "title": "요청이 분석 시작 상태에 머물러 실행으로 전환되지 않는다",
+        "state": "CLOSED",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/35"
+      },
+      {
+        "number": 9,
+        "title": "승인 대기 상태가 계속 작업 중인 것처럼 보인다",
+        "state": "CLOSED",
+        "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/9"
+      }
+    ]
+  },
+  "validation": [
+    {
+      "id": "live-session-observation",
+      "status": "pass",
+      "evidence": "cmux 화면에서 19분 이상 Working · terminal 관측 대기를 확인했고 관련 프로세스가 살아 있는 상태를 ps로 확인했다."
+    },
+    {
+      "id": "transcript-reproduction",
+      "status": "pass",
+      "evidence": "실행 중 app-server가 연 session transcript를 세 번 판독해 task_started 3건, task_complete 2건, 마지막 기록 2026-09-21T01:11:06.270Z response_item/reasoning을 동일하게 확인했다."
+    },
+    {
+      "id": "source-boundary-inspection",
+      "status": "pass",
+      "evidence": "CodexAppServer의 request timeout과 Workbench의 turn terminal event 의존 경계를 소스에서 대조해 시작된 turn의 장시간 무관측 감지가 없음을 확인했다."
+    },
+    {
+      "id": "github-issue-search",
+      "status": "pass",
+      "evidence": "gh issue list --state all로 25건을 확인하고 #35와 #9를 본문까지 대조했으며 이번 terminal event 정체와 의미가 같은 Issue를 찾지 못했다."
+    }
+  ],
+  "candidateDigest": "3001785c7c31526733461e41c00d1f61767bcf360492db69795e8bb8dc27f8b3"
+}

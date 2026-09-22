@@ -1,0 +1,93 @@
+{
+  "schemaVersion": "1.0",
+  "receiptId": "a30765ef-6751-4b46-85bb-6e4524e335c5",
+  "runId": "99da3faa-d109-4be5-95e8-92f648a873b5",
+  "candidateId": null,
+  "skill": {
+    "name": "rpa-build",
+    "version": "1.0"
+  },
+  "capability": "RPA-BUILD",
+  "intentId": null,
+  "status": "succeeded",
+  "stage": "execute",
+  "actor": {
+    "kind": "codex",
+    "host": "chacada"
+  },
+  "context": {
+    "completedAt": "2026-09-20T14:46:00Z",
+    "designReceipt": "dacea107-8543-437f-971b-2b8fd3ceec0e"
+  },
+  "input": {
+    "repository": "/mnt/c/Users/woo/woo/00_project/05_GMBKOREA/RPA",
+    "branch": "main",
+    "sourceRevision": "524813e3770a04f47cc2b94fada1d7657ecc6605",
+    "processId": "HelixQAC:p1",
+    "scope": "p1.t3 MISRA와 p1.t4 Secure Coding의 그룹 통계 생산"
+  },
+  "decision": {
+    "pattern": "count·total·elapsed·ok 네 열을 GroupStats TypedDict 생성자로 고정",
+    "behaviorChange": false,
+    "identityChange": false,
+    "boundary": "성공·부분·실패 판정 정책은 각 Task가 계속 별도로 소유"
+  },
+  "validation": [
+    {
+      "check": "python syntax",
+      "status": "passed",
+      "detail": "격리 WSL Python 3.12 py_compile 통과"
+    },
+    {
+      "check": "Helix unit regression",
+      "status": "passed",
+      "detail": "tests/unit 전체 324개와 subtest 72개 통과"
+    },
+    {
+      "check": "static type tool",
+      "status": "not-run",
+      "detail": "pyright 실행 파일이 설치되어 있지 않고 npx --no-install도 로컬 패키지를 찾지 못해 새 설치 없이 중단"
+    },
+    {
+      "check": "placeholder scan",
+      "status": "passed",
+      "detail": "두 변경 파일에서 TODO·FIXME·skip·only 없음"
+    }
+  ],
+  "authorization": {
+    "source": "user",
+    "scope": "Helix QAC와 FTA 코드를 구조 변경 포함 행렬형 가독성으로 정제"
+  },
+  "execution": {
+    "writes": [
+      "/mnt/c/Users/woo/woo/00_project/05_GMBKOREA/RPA/제어설계검증/14_HelixQAC/task/_03_misra.py",
+      "/mnt/c/Users/woo/woo/00_project/05_GMBKOREA/RPA/제어설계검증/14_HelixQAC/task/_04_secure.py"
+    ],
+    "externalActions": [],
+    "externalSystemsInvoked": false
+  },
+  "result": {
+    "changed": [
+      "MISRA와 Secure Coding의 stats 변수를 dict[str, GroupStats]로 명시",
+      "성공·실패·누락 통계 다섯 생산 지점을 같은 네 열 생성 패턴으로 통일",
+      "수집 행과 오류 행 컬렉션의 타입을 함께 명시"
+    ],
+    "outputSha256": {
+      "task/_03_misra.py": "8bf48276c115e3a77445f0cc5355c0b042934574d64eeb3cd5262d332574be31",
+      "task/_04_secure.py": "3a1ebae2c081c34c50bf91bc5ccc8c303412c57b0b9c0dd068a710f085765e7b"
+    },
+    "nextSlice": "FTA의 반복 화면 입력·판정 행렬 또는 Helix Metric 열 매핑"
+  },
+  "failure": null,
+  "evidence": [
+    {
+      "command": "/tmp/gmb-readability-venv/bin/python -m pytest -q tests/unit",
+      "result": "324 passed, 72 subtests passed in 8.69s"
+    }
+  ],
+  "nextCapabilities": [
+    "RPA-TEST",
+    "RPA-BUILD"
+  ],
+  "receiptDigest": "eb324118e25b5d79973be907e89f37b2d1f281dc581de2837326453fb256ac5b"
+}

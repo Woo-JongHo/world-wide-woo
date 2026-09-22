@@ -496,6 +496,9 @@ test("durable graph, exact-count repair, requested-row paint telemetry는 단계
 	const afterIndex = view.cacheMetrics();
 	expect(source.rows(0, Math.min(4, source.rowCount))).toHaveLength(Math.min(4, source.rowCount));
 	const afterPaint = view.cacheMetrics();
+	const reused = view.scrollRows(80);
+	expect(reused.rows(0, Math.min(4, reused.rowCount))).toHaveLength(Math.min(4, reused.rowCount));
+	const afterReuse = view.cacheMetrics();
 
 	for (const value of [afterIndex.durableGraphBuildMs, afterIndex.exactCountBuildMs, afterPaint.requestedMaterializationMs]) expect(Number.isFinite(value)).toBe(true);
 	expect(afterIndex.durableGraphBuilds - before.durableGraphBuilds).toBe(1);
@@ -505,4 +508,7 @@ test("durable graph, exact-count repair, requested-row paint telemetry는 단계
 	expect(afterPaint.durableGraphBuildMs).toBe(afterIndex.durableGraphBuildMs);
 	expect(afterPaint.exactCountBuildMs).toBe(afterIndex.exactCountBuildMs);
 	expect(afterPaint.requestedMaterializationMs).toBeGreaterThanOrEqual(afterIndex.requestedMaterializationMs);
+	expect(afterReuse.widthCacheHits).toBeGreaterThan(afterPaint.widthCacheHits);
+	expect(afterReuse.rowCacheHits).toBeGreaterThan(afterPaint.rowCacheHits);
+	expect(afterReuse.rowCacheMisses).toBe(afterPaint.rowCacheMisses);
 });

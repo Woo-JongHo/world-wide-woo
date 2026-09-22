@@ -63,6 +63,7 @@ import { AstraTestView, projectAstraTestView } from "../features/test/astra-test
 import { requestRuntimeMotionActive, requestRuntimeRows } from "../features/monitoring/request-runtime-view";
 import { AstraCommandPalette, AstraComposer, AstraExecutionHeading, AstraHeader, AstraHud, AstraInset, AstraNotice, AstraSheet, AstraViewSwitcher, AstraWorkspace, ASTRA_COMMANDS, ASTRA_KEYMAP, ASTRA_KEYS, ASTRA_SCROLL_KEYS, astraPageLabel, matchesAstraAction, matchesAstraKey, type AstraPage } from "./astra-surface";
 import { astraExecutionIsLive, astraNowLabel } from "../features/chat/astra-execution";
+import { ASTRA_DEMO_PAGES, createAstraDemoState } from "../features/demo/astra-demo";
 import { a, astraColors, astraEditorTheme } from "../foundation/theme/astra-theme";
 import type { UsageSnapshot } from "../../../../core/ports";
 import {
@@ -90,6 +91,8 @@ import {
 
 export interface ProjectWorkbenchShellDependencies {
 	design?: "astra";
+	/** Preview/test seam; production sessions continue to open Chat. */
+	initialAstraPage?: AstraPage;
 	terminal?: Terminal;
 	workbench: ProjectWorkbench;
 	development?: DevelopmentService;
@@ -296,8 +299,15 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	const terminalBackgroundEnabled = dependencies.design === "astra" && process.env.NO_COLOR === undefined;
 	const applyTerminalBackground = (): void => { if (terminalBackgroundEnabled) terminal.write(tuiBackgroundSequence()); };
 	const resetTerminalBackground = (): void => { if (terminalBackgroundEnabled) terminal.write(tuiBackgroundResetSequence()); };
-	let snapshot = workbench.snapshot;
-	let usageSnapshots: readonly UsageSnapshot[] = [];
+	let liveSnapshot = workbench.snapshot;
+	let snapshot = liveSnapshot;
+	let liveUsageSnapshots: readonly UsageSnapshot[] = [];
+	let usageSnapshots: readonly UsageSnapshot[] = liveUsageSnapshots;
+	let demoMode = false;
+	let demoIndex = 0;
+	let demoReturnPage: AstraPage = "execution";
+	let demoReturnDraft = "";
+	let synchronizeSnapshotUi = (): void => undefined;
 	const astraMotion = process.env.ASTRA_REDUCED_MOTION !== "1" && process.env.NO_COLOR === undefined;
 	// pi-tui visibility callbacks receive the whole terminal, even in nested
 	// stacks. Reserve the real composer/HUD chrome before showing side content.
@@ -327,8 +337,10 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		new WwwDashboardView(() => snapshot),
 		astraExecutionHeading,
 		threeBodyLab ?? undefined,
+		{},
+		() => dependencies.usage.cacheMetrics(),
 	) : null;
-	astra?.show("execution");
+	astra?.show(dependencies.initialAstraPage ?? "execution");
 	const status = astra ? new AstraNotice() : new StatusLine(WORKBENCH_STATUS_NOTICE);
 	const entryDashboard = new EntryDashboardView(() => snapshot.linearDashboard);
 	const chat = astra?.transcript ?? new WorkbenchChatView(snapshot, entryDashboard, {
@@ -444,7 +456,6 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	const root = new VStack([
 		...(astra ? [
 			{ component: new AstraHeader(() => snapshot, () => navigation.mode === "workbench" ? astraPageLabel(astra.page) : navigation.mode === "monitor" ? "Activity" : navigation.mode, cwd), basis: 2, minSize: 1, maxSize: 2, visible: ({ height }: { height: number }) => height >= 12 },
-			{ component: new AstraExecutionHeading(() => snapshot, () => navigation.mode !== "workbench" || astra.page !== "execution" || !editor.focused ? "Esc 돌아가기" : null, Date.now, astraMotion), basis: 2, minSize: 2, maxSize: 2, visible: ({ height }: { height: number }) => height >= 12 && astra.page !== "dashboard" && astra.page !== "execution" },
 		] : []),
 		{ component: activeView, basis: 0, grow: 1, shrink: 1, minSize: 1 },
 		{ component: composerFrame, basis: "auto", shrink: 1, minSize: 3 },
@@ -464,9 +475,12 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		tui.requestRender();
 	});
 	const stopUsagePolling = usage.startPolling((snapshots) => {
-		usageSnapshots = snapshots;
-		usageStrip.update(snapshots);
-		tui.requestRender();
+		liveUsageSnapshots = snapshots;
+		if (!demoMode) {
+			usageSnapshots = snapshots;
+			usageStrip.update(snapshots);
+			tui.requestRender();
+		}
 	});
 	const developmentMapPolling = new DevelopmentMapPollingLifecycle(dependencies.developmentMapSource, (next) => {
 		developmentMapSnapshot = next;
@@ -494,6 +508,38 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		if (wasLab && page !== "lab") threeBodyLab?.deactivate();
 		if (page === "lab") threeBodyLab?.activate(() => tui.requestRender());
 		status.setNotice("");
+		tui.requestRender();
+	};
+	const demoNotice = (): string => `DEMO DATA · ${demoIndex + 1}/${ASTRA_DEMO_PAGES.length} ${astraPageLabel(ASTRA_DEMO_PAGES[demoIndex]!)} · R 이전 · E 다음 · Esc 종료`;
+	const showDemoPage = (index: number): void => {
+		demoIndex = (index + ASTRA_DEMO_PAGES.length) % ASTRA_DEMO_PAGES.length;
+		showAstraPage(ASTRA_DEMO_PAGES[demoIndex]!, true);
+		status.setNotice(demoNotice());
+		tui.requestRender();
+	};
+	const enterDemo = (): void => {
+		if (!astra || demoMode) return;
+		demoMode = true;
+		demoReturnPage = astra.page;
+		demoReturnDraft = editor.getText();
+		const demo = createAstraDemoState(liveSnapshot);
+		snapshot = demo.snapshot;
+		usageSnapshots = demo.usage;
+		editor.setText("");
+		chat.update(snapshot);
+		usageStrip.update(usageSnapshots);
+		showDemoPage(0);
+	};
+	const exitDemo = (): void => {
+		if (!astra || !demoMode) return;
+		demoMode = false;
+		snapshot = liveSnapshot;
+		usageSnapshots = liveUsageSnapshots;
+		chat.update(snapshot);
+		usageStrip.update(usageSnapshots);
+		editor.setText(demoReturnDraft);
+		showAstraPage(demoReturnPage, demoReturnPage !== "execution");
+		synchronizeSnapshotUi();
 		tui.requestRender();
 	};
 	closeThreeBodyLab = () => showAstraPage("execution", false);
@@ -753,7 +799,23 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		tui.setFocus(panel);
 		tui.requestRender();
 	};
+	synchronizeSnapshotUi = (): void => {
+		if (snapshot.pendingApproval && (!astra || lastAutoApprovalId !== snapshot.pendingApproval.requestId)) {
+			lastAutoApprovalId = snapshot.pendingApproval.requestId;
+			openApproval(snapshot.pendingApproval);
+			status.setNotice(astra ? "채팅 영역에 승인 선택을 열었습니다. ↑↓ 또는 숫자로 선택하세요." : "승인 선택 화면을 열었습니다. ↑↓ 또는 숫자로 선택하세요.");
+		} else if (!snapshot.pendingApproval) {
+			lastAutoApprovalId = null;
+			if (astra) closeInlineApproval();
+			else if (overlayKind === "approval") closeOverlay();
+		}
+		chat.syncActivity(workbenchActivityIndicator(snapshot), () => tui.requestRender());
+	};
 	const handleLocal = async (text: string): Promise<boolean> => {
+		if (astra && text.trim().toLowerCase() === "/demo") {
+			enterDemo();
+			return true;
+		}
 		if (text.trim() === "/three-body") {
 			if (astra) {
 				showAstraPage("lab");
@@ -762,8 +824,27 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 			tui.requestRender();
 			return true;
 		}
+		if (astra && text.trim() === "/dashboard") { showAstraPage("dashboard"); return true; }
+		if (astra && text.trim() === "/history") {
+			await enterObservability("dashboard");
+			status.setNotice("History · 이전 Session과 Project 관측");
+			tui.requestRender();
+			return true;
+		}
 		if (astra && text.trim() === "/context") { showAstraPage("context"); return true; }
 		if (astra && text.trim() === "/cache") { showAstraPage("cache"); return true; }
+		if (astra && text.trim() === "/usage") {
+			showAstraPage("usage");
+			try {
+				usageSnapshots = await usage.refresh();
+				usageStrip.update(usageSnapshots);
+				tui.requestRender();
+			} catch (error) {
+				status.setNotice(`Usage 갱신 실패 · 마지막 관측을 유지합니다: ${error instanceof Error ? error.message : String(error)}`);
+				tui.requestRender();
+			}
+			return true;
+		}
 		if (astra && text.trim() === "/approval") {
 			if (snapshot.pendingApproval) openApproval(snapshot.pendingApproval);
 			else status.setNotice("대기 중인 승인 요청이 없습니다.");
@@ -1050,19 +1131,12 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	/** @linear WOO-694 */
 	editor.onSubmit = submitComposer;
 	unsubscribe = workbench.subscribe((next) => {
-		const urgency = workbenchRenderUrgency(snapshot, next);
-		const refreshTelemetry = snapshot.phase === "working" && next.phase !== "working";
+		const urgency = workbenchRenderUrgency(liveSnapshot, next);
+		const refreshTelemetry = liveSnapshot.phase === "working" && next.phase !== "working";
+		liveSnapshot = next;
+		if (demoMode) return;
 		snapshot = next;
-		if (snapshot.pendingApproval && (!astra || lastAutoApprovalId !== snapshot.pendingApproval.requestId)) {
-			lastAutoApprovalId = snapshot.pendingApproval.requestId;
-			openApproval(snapshot.pendingApproval);
-			status.setNotice(astra ? "채팅 영역에 승인 선택을 열었습니다. ↑↓ 또는 숫자로 선택하세요." : "승인 선택 화면을 열었습니다. ↑↓ 또는 숫자로 선택하세요.");
-		} else if (!snapshot.pendingApproval) {
-			lastAutoApprovalId = null;
-			if (astra) closeInlineApproval();
-			else if (overlayKind === "approval") closeOverlay();
-		}
-		chat.syncActivity(workbenchActivityIndicator(snapshot), () => tui.requestRender());
+		synchronizeSnapshotUi();
 		if (refreshTelemetry) telemetry.refresh();
 		workbenchRenders.request(urgency);
 	});
@@ -1099,6 +1173,23 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 			return undefined;
 		}
 		if (astra && !loginPrompt) {
+			if (demoMode) {
+				if (matchesKey(data, Key.escape)) { exitDemo(); return { consume: true }; }
+				if (data.toLowerCase() === "e") { showDemoPage(demoIndex + 1); return { consume: true }; }
+				if (data.toLowerCase() === "r") { showDemoPage(demoIndex - 1); return { consume: true }; }
+				const scroll = navigation.currentScroll();
+				const matchesScroll = (keys: readonly string[]) => keys.some(key => matchesAstraKey(data, key));
+				const delta = matchesScroll(ASTRA_SCROLL_KEYS.down) ? 1 : matchesScroll(ASTRA_SCROLL_KEYS.up) ? -1
+					: matchesScroll(ASTRA_SCROLL_KEYS.pageDown) ? Math.max(1, scroll.viewportHeight - 2) : matchesScroll(ASTRA_SCROLL_KEYS.pageUp) ? -Math.max(1, scroll.viewportHeight - 2) : 0;
+				if (delta) { scroll.scrollBy(delta); tui.requestRender(); return { consume: true }; }
+				if (matchesScroll(ASTRA_SCROLL_KEYS.home)) { scroll.scrollToStart(); tui.requestRender(); return { consume: true }; }
+				if (matchesScroll(ASTRA_SCROLL_KEYS.end)) { scroll.scrollToEnd(); tui.requestRender(); return { consume: true }; }
+				if (!matchesKey(data, Key.ctrl("c")) && !matchesKey(data, Key.ctrl("d"))) {
+					status.setNotice(demoNotice());
+					tui.requestRender();
+					return { consume: true };
+				}
+			}
 			if (astra.page === "lab") {
 				if (matchesKey(data, Key.escape)) {
 					showAstraPage("execution", false);

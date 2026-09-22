@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "1.0",
+  "receiptId": "astra-figma-readiness-linear-issue-20260922",
+  "candidateId": "ARTIFACT-CANDIDATE-ASTRA-FIGMA-READINESS-ISSUE",
+  "skill": {
+    "name": "woo-linear-publish",
+    "version": "1.0"
+  },
+  "capability": "linear-issue.publish",
+  "status": "succeeded",
+  "stage": "verify",
+  "actor": {
+    "kind": "codex"
+  },
+  "context": {
+    "workspaceId": "b7b91489-dd9b-4fb7-b958-822d5dc577e0",
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "verifiedAt": "2026-09-22T06:27:32Z"
+  },
+  "input": {
+    "candidateDigest": "4b083f26d7331e69ac676ad5850edde06dfd54e0a94272ea4a15a52bc5e9f17e"
+  },
+  "authorization": {
+    "actor": "user",
+    "scope": "승인된 Linear 이슈·Project Comment·Obsidian 정본 게시"
+  },
+  "execution": {
+    "tool": "linear-woo.save_issue",
+    "completedAt": "2026-09-22T06:25:02Z"
+  },
+  "result": {
+    "id": "WOO-913",
+    "uuid": "8367530b-1a29-4983-994b-c2bf61ac687e",
+    "url": "https://linear.app/woo-world/issue/WOO-913/workbench-monitoring-figma-5화면의-계측-의미와-정보-구조를-일치시킨다",
+    "status": "Todo",
+    "parentId": "WOO-674",
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "validation": [
+    {
+      "id": "target-read-back",
+      "status": "pass",
+      "evidence": "WOO-913 제목·본문·상태·라벨·Milestone·Project·parentId·relatedTo를 재조회해 Candidate와 일치함을 확인했다."
+    },
+    {
+      "id": "parent-read-back",
+      "status": "pass",
+      "evidence": "WOO-674 UUID와 World Wide Woo Project 연결을 재조회했다."
+    }
+  ],
+  "failure": null
+}

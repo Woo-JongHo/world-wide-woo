@@ -1,23 +1,26 @@
 import { CURSOR_MARKER, HStack, VStack, ScrollView, Key, matchesKey, stripTerminalSequences, truncateToWidth, visibleWidth, type Component, type Editor, type ScrollRowSource } from "@earendil-works/pi-tui";
 import type { WorkbenchSnapshot } from "../../../../core/domain/work/workbench";
-import type { UsageSnapshot } from "../../../../core/ports";
+import type { UsageSnapshot, UsageSnapshotCacheMetrics } from "../../../../core/ports";
 import { ChatScrollView } from "../features/chat/chat-scroll.view";
 import { AstraTranscriptView, executionHeading, astraExecutionIsLive, astraNowLabel, hasVisibleAstraContent } from "../features/chat/astra-execution";
-import { AstraContextView } from "../features/context/astra-context-view";
-import { AstraCacheView } from "../features/cache/astra-cache-view";
+import { AstraContextRail, AstraContextView } from "../features/context/astra-context-view";
+import { AstraCacheRail, AstraCacheView } from "../features/cache/astra-cache-view";
+import { projectWorkbenchCacheTelemetry } from "../features/cache/cache-telemetry-projection";
+import { AstraDashboardRail } from "../features/dashboard/entry-dashboard-view";
 import { AstraPlanView, type PlanRuntimePresentation } from "../features/plan/astra-plan-view";
 import { threeBodyOrbitFrame } from "../features/chat/three-body-orbit";
-import { AstraWorkflowView } from "../features/workflow/astra-workflow-view";
+import { AstraWorkflowRail, AstraWorkflowView } from "../features/workflow/astra-workflow-view";
 import { WORKBENCH_SLASH_COMMANDS } from "../commands/slash-commands";
 import { a, astraFlowText, astraPulse, duration, fit, oneLine, pair, prose, safe, section } from "../foundation/theme/astra-theme";
 import { astraQuotaHudRows } from "../features/usage/astra-usage";
+import { AstraUsageRail, AstraUsageView } from "../features/usage/astra-usage-view";
 import { runtimeModeLabel, workbenchEffortLabel, workbenchModelLabel } from "../foundation/labels";
 import { componentScrollRows } from "../foundation/rendering/scroll-row-source";
 import { ASTRA_HELP_ACTIONS, ASTRA_KEYMAP, ASTRA_KEYS, ASTRA_VIEWS } from "../foundation/keyboard/astra-keymap";
 
 export { ASTRA_DOC_EXTRA, ASTRA_HELP_ACTIONS, ASTRA_KEYMAP, ASTRA_KEYS, ASTRA_SCROLL_KEYS, ASTRA_VIEWS, matchesAstraAction, matchesAstraKey } from "../foundation/keyboard/astra-keymap";
 
-export type AstraPage = "dashboard" | "execution" | "plan" | "workflow" | "context" | "cache" | "help" | "lab";
+export type AstraPage = "dashboard" | "execution" | "plan" | "workflow" | "context" | "cache" | "usage" | "help" | "lab";
 export const ASTRA_PAGE_LABELS: Readonly<Record<AstraPage, string>> = {
 	dashboard: "Dashboard",
 	execution: "Chat",
@@ -25,14 +28,18 @@ export const ASTRA_PAGE_LABELS: Readonly<Record<AstraPage, string>> = {
 	workflow: "Workflow",
 	context: "Context",
 	cache: "Cache",
+	usage: "Usage",
 	help: "Help",
 	lab: "Three Body Lab",
 };
 export function astraPageLabel(page: AstraPage): string { return ASTRA_PAGE_LABELS[page]; }
-const ASTRA_DESCRIPTIONS: Record<string, string> = { chat: "실행·질문 요약 타임라인", todo: "Plan · Activity · Next", workflow: "Request 단계·Subagent 위임 관측", test: "질문별 검증 목적·검사·근거", help: "Astra 명령과 키보드 이동", source: "선택한 Activity의 Trace · Source", dashboard: "이전 세션 탐색", monitor: "현재 Activity·Runtime 관측" };
+const ASTRA_DESCRIPTIONS: Record<string, string> = { chat: "실행·질문 요약 타임라인", todo: "Plan · Activity · Next", workflow: "Request 단계·Subagent 위임 관측", test: "질문별 검증 목적·검사·근거", help: "Astra 명령과 키보드 이동", source: "선택한 Activity의 Trace · Source", dashboard: "현재 Session Overview", usage: "Provider quota·세션 token 상세", monitor: "현재 Activity·Runtime 관측" };
 export const ASTRA_COMMANDS = [...WORKBENCH_SLASH_COMMANDS.filter(command => command.name !== "tnotes" && command.name !== "tnote").map(command => ({ ...command, description: ASTRA_DESCRIPTIONS[command.name] ?? command.description })),
 	{ name: "context", description: "세션·권한·사용량·MCP·위임 작업" },
+	{ name: "history", description: "이전 Session·Project 관측 이력" },
+	{ name: "usage", description: "Provider quota·세션 token 상세" },
 	{ name: "approval", description: "보류한 승인 요청 다시 읽기 · 결정하지 않음" },
+	{ name: "demo", description: "MVP 합성 데이터로 전체 화면 순회 · R/E 이동 · Esc 종료" },
 	{ name: "work", description: "Issue 연결·기록 상태·Obsidian checkpoint/open" },
 ];
 // Per retained generation, not total heap/RSS: old and new maps may coexist
@@ -136,13 +143,29 @@ export class AstraWorkspace {
 		dashboard: Component = new HelpView(),
 		executionHeading: Component | null = null,
 		lab: Component = new HelpView(),
+		sidebars: Partial<Readonly<Record<AstraPage, Component>>> = {},
+		usageCacheMetrics: () => UsageSnapshotCacheMetrics | undefined = () => undefined,
 	) {
 		this.transcript = new AstraTranscriptView(get());
+		const cacheTelemetry = () => projectWorkbenchCacheTelemetry({
+			transcript: this.transcript.cacheMetrics(),
+			observations: get().cacheObservations,
+			usage: usageCacheMetrics(),
+			collectedAt: new Date(clock()).toISOString(),
+		});
 		const scroll = (component: Component) => new ScrollView(new AstraInset(component), { follow: "none", primary: true, overscroll: "contain", scrollbar: "auto", scrollbarStyle: a.rule });
 		this.scrolls = {
 			dashboard: scroll(dashboard),
 			execution: new ChatScrollView(new AstraInset(this.transcript), { follow: "end", primary: true, overscroll: "contain", scrollbar: "auto", scrollbarStyle: a.rule }),
-			plan: scroll(new AstraPlanView(get, false, clock, motion, runtimePresentation)), workflow: scroll(new AstraWorkflowView(get)), context: scroll(new AstraContextView(get, usage)), cache: scroll(new AstraCacheView(() => this.transcript.cacheMetrics())), help: scroll(new HelpView()), lab: scroll(lab),
+			plan: scroll(new AstraPlanView(get, false, clock, motion, runtimePresentation)), workflow: scroll(new AstraWorkflowView(get)), context: scroll(new AstraContextView(get, usage)), cache: scroll(new AstraCacheView(cacheTelemetry)), usage: scroll(new AstraUsageView(get, usage)), help: scroll(new HelpView()), lab: scroll(lab),
+		};
+		const pageSidebars: Partial<Readonly<Record<AstraPage, Component>>> = {
+			dashboard: new AstraDashboardRail(get),
+			workflow: new AstraWorkflowRail(get),
+			context: new AstraContextRail(get),
+			cache: new AstraCacheRail(cacheTelemetry),
+			usage: new AstraUsageRail(get, usage),
+			...sidebars,
 		};
 		const sidePlan = new AstraInset(new AstraPlanView(get, true, clock, motion, runtimePresentation), 1);
 		const sideScroll = new ScrollView(sidePlan, { follow: "none", overscroll: "contain", scrollbar: "auto", scrollbarStyle: a.rule });
@@ -170,7 +193,17 @@ export class AstraWorkspace {
 				return visible;
 			} },
 		]);
-		this.component = new VStack((Object.keys(this.scrolls) as AstraPage[]).map(page => ({ component: page === "execution" ? execution : this.scrolls[page], basis: 0, grow: 1, minSize: 1, visible: () => this.page === page })));
+		const pageComponent = (page: AstraPage): Component => {
+			if (page === "execution") return execution;
+			const sidebar = pageSidebars[page];
+			if (!sidebar) return this.scrolls[page];
+			const sideScroll = new ScrollView(new AstraInset(sidebar, 1), { follow: "none", overscroll: "contain", scrollbar: "auto", scrollbarStyle: a.rule });
+			return new HStack([
+				{ component: this.scrolls[page], basis: 0, grow: 1, minSize: 1 },
+				{ component: sideScroll, basis: 38, minSize: 34, maxSize: 44, visible: ({ width, height }) => this.sidebarEnabled && width >= 112 && bodyHeight(height, width, true) >= 18 },
+			]);
+		};
+		this.component = new VStack((Object.keys(this.scrolls) as AstraPage[]).map(page => ({ component: pageComponent(page), basis: 0, grow: 1, minSize: 1, visible: () => this.page === page })));
 	}
 	get currentScroll(): ScrollView { return this.scrolls[this.page]; }
 	show(page: AstraPage): void { this.page = page; }
@@ -215,7 +248,9 @@ export class AstraExecutionHeading implements Component {
 		const progress = astraExecutionIsLive(s) && !s.draft
 			? workingStatusLine(s, now, this.motion)
 			: completedTiming ? a.caption(completedTiming) : "";
-		const detail = `${a.caption(heading.detail)}${progress ? `  ${progress}` : ""}`;
+		const request = turnId ? [...(s.requestRuntime ?? [])].reverse().find(candidate => candidate.turnId === turnId) : s.requestRuntime?.at(-1);
+		const stages = request ? `Stages ${request.stages.filter(stage => stage.status === "completed" || stage.status === "skipped").length}/${request.stages.length}` : "";
+		const detail = `${stages ? `${a.plan(stages)}  ` : ""}${a.caption(heading.detail)}${progress ? `  ${progress}` : ""}`;
 		return [fit(`  ${ink("▎")} ${pair(ink(heading.state) + "  " + a.strong(heading.title), a.muted(hint), width - 6)}`, width), fit(`    ${detail}${s.chatQueue.length ? `  ${a.active(`+${s.chatQueue.length} 대기`)}` : ""}`, width)];
 	}
 }

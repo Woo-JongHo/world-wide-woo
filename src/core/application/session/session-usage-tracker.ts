@@ -1,7 +1,6 @@
 import type { NativeHarnessEvent } from "../../domain/execution/native-session.js";
 import type { WorkbenchContextUsage, WorkbenchModelUsage, WorkbenchSessionUsage } from "../../domain/work/workbench.js";
 import type { SessionModelUsageSource } from "./session-model-usage.js";
-const NATIVE_CONTEXT_BASELINE_TOKENS = 12_000;
 
 /** Session-local accounting for executor and detached model usage observations. */
 export class SessionUsageTracker {
@@ -92,9 +91,8 @@ export class SessionUsageTracker {
 function projectContextUsage(params: Readonly<Record<string, unknown>>): WorkbenchContextUsage | null {
 	const tokenUsage = record(params.tokenUsage); const last = record(tokenUsage?.last); const usedTokens = last?.totalTokens; const contextWindow = tokenUsage?.modelContextWindow;
 	if (typeof usedTokens !== "number" || !Number.isFinite(usedTokens) || usedTokens < 0 || typeof contextWindow !== "number" || !Number.isFinite(contextWindow) || contextWindow <= 0) return null;
-	const effectiveWindow = Math.max(1, contextWindow - NATIVE_CONTEXT_BASELINE_TOKENS);
-	const effectiveUsed = Math.max(0, usedTokens - NATIVE_CONTEXT_BASELINE_TOKENS);
-	return Object.freeze({ usedTokens, contextWindow, percent: Math.min(100, Math.round((effectiveUsed / effectiveWindow) * 1_000) / 10) });
+	// Occupancy includes every reported token, using the same window as the UI meter.
+	return Object.freeze({ usedTokens, contextWindow, percent: Math.min(100, Math.round((usedTokens / contextWindow) * 1_000) / 10) });
 }
 function projectThreadTotalTokens(params: Readonly<Record<string, unknown>>): number | null { const value = record(record(params.tokenUsage)?.total)?.totalTokens; return typeof value === "number" && Number.isFinite(value) && value >= 0 ? Math.floor(value) : null; }
 function record(value: unknown): Record<string, unknown> | null { return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null; }

@@ -1,0 +1,141 @@
+{
+  "schemaVersion": "1.0",
+  "receiptId": "630328b6-698c-4cee-8754-4b9653049ab3",
+  "runId": "d9c079a8-4247-45fc-bb56-19837b22e7f2",
+  "candidateId": null,
+  "skill": {
+    "name": "rpa-intake",
+    "version": "1.0"
+  },
+  "capability": "RPA-INTAKE",
+  "intentId": null,
+  "status": "uncertain",
+  "stage": "observe",
+  "actor": {
+    "kind": "codex",
+    "host": "chacada"
+  },
+  "context": {
+    "observedAt": "2026-09-20T21:06:20Z",
+    "workspace": "/mnt/c/Users/woo/woo/00_project/05_GMBKOREA",
+    "customer": "GMBKOREA",
+    "purpose": "내부망 RPA 대시보드 설계 전 사실 수집"
+  },
+  "input": {
+    "objective": "GMBKOREA의 RPA 실행 상태를 내부망 대시보드로 보여주기 위한 설계 깊이, 요청 자료, 규모를 판정한다.",
+    "repositories": [
+      {
+        "name": "gmb-forex",
+        "path": "/mnt/c/Users/woo/woo/00_project/05_GMBKOREA/gmb-forex",
+        "branch": "main",
+        "revision": "65a4243a279ff0dc4a61ddf1de3046a66172feff",
+        "dirty": true
+      },
+      {
+        "name": "gmb-fta",
+        "path": "/mnt/c/Users/woo/woo/00_project/05_GMBKOREA/gmb-fta",
+        "branch": "main",
+        "revision": "e466ea06cdae73adefd77307cb500d777160bfed",
+        "dirty": true
+      },
+      {
+        "name": "gmb-helixqac",
+        "path": "/mnt/c/Users/woo/woo/00_project/05_GMBKOREA/gmb-helixqac",
+        "branch": "main",
+        "revision": "addf50e9f03221539a1be5ee3251208ac783be57",
+        "dirty": true
+      },
+      {
+        "name": "gmb-vectorcast",
+        "path": "/mnt/c/Users/woo/woo/00_project/05_GMBKOREA/gmb-vectorcast",
+        "branch": "main",
+        "revision": "da8fb82f5186909ce3bffa9ec394da0b8794c9f9",
+        "dirty": true
+      }
+    ]
+  },
+  "decision": {
+    "classification": "brownfield-read-only-dashboard",
+    "scope": "medium",
+    "facts": [
+      "네 RPA 모두 사람용 로그·메일·산출물은 있으나 공통 기계 판독 상태 계약은 없다.",
+      "외화입금·Helix QAC·VectorCast에는 담당자용 또는 NAS 로그가 있고 FTA에는 담당자용 요약이 아직 없다.",
+      "FTA는 후반 Task와 결과 통보가 미완성이라고 rpa-map과 로그 가이드에 기록돼 있다.",
+      "chacada Windows에서 내부망 후보 주소와 listener는 확인됐지만 대시보드 서비스와 GMB 예약 작업은 확인되지 않았다.",
+      "01_Dashboard/design-mvp에는 재사용 가능한 설계·소스가 없었다."
+    ],
+    "unknowns": [
+      "Git 저장소와 실제 운영 배포본의 일치 여부",
+      "실제 실행 스케줄러와 실행 계정",
+      "사용자·인증·DNS·TLS·방화벽 정책",
+      "업무 지표 산식과 이력 보존 기간",
+      "민감정보를 제거한 정상·부분·실패 실행 표본"
+    ],
+    "recommendation": "1차는 각 RPA의 원자적 run-summary.json과 읽기 전용 UI로 제한한다. 제어 기능은 별도 대형 범위로 분리한다."
+  },
+  "validation": [
+    {
+      "check": "source revisions",
+      "status": "passed",
+      "detail": "네 저장소의 절대 경로, branch, HEAD, dirty 여부를 원격에서 조회했다."
+    },
+    {
+      "check": "map-log-test boundaries",
+      "status": "passed",
+      "detail": "각 저장소의 rpa-map, 설정·경로, 로그 가이드와 테스트 개수를 대조했다."
+    },
+    {
+      "check": "operational run truth",
+      "status": "not-run",
+      "detail": "실제 스케줄러, 배포본, NAS 접근, 운영 실행은 확인하지 않았다."
+    },
+    {
+      "check": "customer-data exclusion",
+      "status": "passed",
+      "detail": ".env, 자격증명, 고객 원문, 대형 실행 로그 내용은 수집하지 않았다."
+    }
+  ],
+  "authorization": null,
+  "execution": {
+    "writes": [
+      "/mnt/c/Users/woo/woo/00_project/05_GMBKOREA/01_Dashboard/docs/GMBKOREA-internal-dashboard-design-draft.md"
+    ],
+    "externalActions": [],
+    "notes": "원격 RPA 저장소와 운영 시스템은 변경하지 않았다. 대시보드 프로세스도 시작하지 않았다."
+  },
+  "result": {
+    "sourceRevisionFixed": true,
+    "commonStatusContractPresent": false,
+    "safeToDraft": true,
+    "safeToImplement": false,
+    "draftSha256": "760683ef9b420740f6ae5f63182d2c87bb2b3c173b3f9e55bc30514b8789b0ec"
+  },
+  "failure": null,
+  "evidence": [
+    {
+      "path": "/mnt/c/Users/woo/woo/00_project/05_GMBKOREA/gmb-forex/rpa-map.yaml",
+      "sha256": "11babef2962d4b2c2fffe93acd48e88119471cabbc67861f708f5982f03ec39a"
+    },
+    {
+      "path": "/mnt/c/Users/woo/woo/00_project/05_GMBKOREA/gmb-fta/rpa-map.yaml",
+      "sha256": "8d16d168be010674a7302b2bcafc663366ffc7460db52d862dd02b45bfa44f4a"
+    },
+    {
+      "path": "/mnt/c/Users/woo/woo/00_project/05_GMBKOREA/gmb-helixqac/rpa-map.yaml",
+      "sha256": "13a31d11e156452fb705834e632963a2cd163a026475284656e5911dcc2f3e0b"
+    },
+    {
+      "path": "/mnt/c/Users/woo/woo/00_project/05_GMBKOREA/gmb-vectorcast/rpa-map.yaml",
+      "sha256": "7bf54b9541c9650b0e3505cb8c7141d89c7cdd9a52f3a8be65b3f49d18a8e938"
+    },
+    {
+      "path": "/mnt/c/Users/woo/woo/00_project/05_GMBKOREA/01_Dashboard/docs/GMBKOREA-internal-dashboard-design-draft.md",
+      "sha256": "760683ef9b420740f6ae5f63182d2c87bb2b3c173b3f9e55bc30514b8789b0ec"
+    }
+  ],
+  "nextCapabilities": [
+    "RPA-DESIGN",
+    "RPA-BUILD"
+  ],
+  "receiptDigest": "f8d65f41cb6846905014fa53a22ec298e68bfe61df5e2e32284f43571554f9b1"
+}

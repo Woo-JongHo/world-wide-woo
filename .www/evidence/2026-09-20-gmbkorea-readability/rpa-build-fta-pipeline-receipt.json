@@ -1,0 +1,92 @@
+{
+  "schemaVersion": "1.0",
+  "receiptId": "7aa83a2f-4b56-4381-8a79-0fe6d8524133",
+  "runId": "92b37af8-f0de-44ec-9d96-40530813c5b3",
+  "candidateId": null,
+  "skill": {
+    "name": "rpa-build",
+    "version": "1.0"
+  },
+  "capability": "RPA-BUILD",
+  "intentId": null,
+  "status": "succeeded",
+  "stage": "execute",
+  "actor": {
+    "kind": "codex",
+    "host": "chacada"
+  },
+  "context": {
+    "completedAt": "2026-09-20T14:18:15Z",
+    "designReceipt": "dacea107-8543-437f-971b-2b8fd3ceec0e"
+  },
+  "input": {
+    "repository": "/mnt/c/Users/woo/woo/00_project/05_GMBKOREA/RPA/판매관리팀/FTA원산지",
+    "branch": "feat/t7-u6-u9-common",
+    "sourceRevision": "1b7a79ba57fb144be3c517c64d587f6e4f9fe16d",
+    "processId": "FTA원산지:p1",
+    "scope": "run.py Unit pipeline wiring"
+  },
+  "decision": {
+    "pattern": "Unit 주소를 행, 실행 함수를 두 번째 열로 둔 불변 typed tuple",
+    "behaviorChange": false,
+    "identityChange": false
+  },
+  "validation": [
+    {
+      "check": "python syntax",
+      "status": "passed",
+      "detail": "Windows Python 3.14와 WSL Python 3.12에서 run.py py_compile 통과"
+    },
+    {
+      "check": "pipeline and codemap regression",
+      "status": "passed",
+      "detail": "영향 범위 테스트 34개 통과"
+    },
+    {
+      "check": "pre-existing mail tests",
+      "status": "failed",
+      "detail": "전체 선택 36개 중 기존 mail monkeypatch 경계 테스트 2개 실패. 두 테스트는 _pipeline을 자체 lambda로 교체하므로 이번 변경 경로를 사용하지 않는다."
+    },
+    {
+      "check": "placeholder scan",
+      "status": "passed",
+      "detail": "변경 파일과 직접 테스트에서 TODO·skip·only 없음"
+    }
+  ],
+  "authorization": {
+    "source": "user",
+    "scope": "코드 구조와 내용을 바꾸어 행렬형 가독성 정제"
+  },
+  "execution": {
+    "writes": [
+      "/mnt/c/Users/woo/woo/00_project/05_GMBKOREA/RPA/판매관리팀/FTA원산지/run.py"
+    ],
+    "externalActions": [],
+    "externalSystemsInvoked": false
+  },
+  "result": {
+    "changed": [
+      "PipelineStep 타입 별칭 추가",
+      "_pipeline 반환 타입을 명시",
+      "36개 Unit 배선을 tuple 행렬과 정렬된 두 열로 변환"
+    ],
+    "outputSha256": "bc34c156fa3bc4c30c87be7d1e37597feaa673a6a03bb84e172645f0e39f4c78",
+    "nextSlice": "FTA 대형 Task의 반복 필드·판정표 추출"
+  },
+  "failure": null,
+  "evidence": [
+    {
+      "path": "/mnt/c/Users/woo/woo/00_project/05_GMBKOREA/RPA/판매관리팀/FTA원산지/run.py",
+      "sha256": "bc34c156fa3bc4c30c87be7d1e37597feaa673a6a03bb84e172645f0e39f4c78"
+    },
+    {
+      "command": "C:\\Python314\\python.exe -m pytest -q tests/test_pipeline_wiring.py tests/test_codemap.py -k <known-mail-exclusions>",
+      "result": "34 passed, 2 deselected"
+    }
+  ],
+  "nextCapabilities": [
+    "RPA-TEST",
+    "RPA-BUILD"
+  ],
+  "receiptDigest": "2c83e8950729320898b4f12c81013b7cab9d9e3b7550b6c36913dc4370d65168"
+}

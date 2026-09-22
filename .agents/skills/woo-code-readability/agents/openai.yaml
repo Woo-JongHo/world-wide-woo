@@ -1,5 +1,4 @@
 interface:
   display_name: "WWW Code Readability"
-  short_description: "한 파일씩 표형 가독성을 조사·적용·검증합니다"
-  default_prompt: "$woo-code-readability로 TypeScript 파일 하나를 검사하고 사용자의 가독성 규칙을 적용해줘."
-
+  short_description: "역할별 최소 폭과 표형 가독성을 한 파일씩 검증합니다"
+  default_prompt: "$woo-code-readability로 TypeScript 파일 하나를 역할별 독립 표로 검사하고 최소 폭·가운데 정렬까지 검증해줘."

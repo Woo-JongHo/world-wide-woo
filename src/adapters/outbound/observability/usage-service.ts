@@ -5,6 +5,7 @@ import type { Credential, CredentialStore } from "@earendil-works/pi-ai";
 import type {
 	UsageLimitSnapshot,
 	UsageMonitor,
+	UsageSnapshotCacheMetrics,
 	UsageIssue,
 	UsageIssueKind,
 	UsageProviderId,
@@ -107,6 +108,10 @@ export class UsageService implements UsageMonitor {
 	private listener: UsageListener | undefined;
 	private readonly lastReady = new Map<UsageProviderId, UsageSnapshot>();
 	private readonly backoff = new Map<UsageProviderId, ProviderBackoff>();
+	private cacheHits = 0;
+	private cacheMisses = 0;
+	private cacheEvictions = 0;
+	private lastCacheAccessedAt: number | undefined;
 
 	constructor(
 		private readonly credentials: CredentialStore,
@@ -123,6 +128,16 @@ export class UsageService implements UsageMonitor {
 			this.activeRefresh = undefined;
 		});
 		return this.activeRefresh;
+	}
+
+	cacheMetrics(): UsageSnapshotCacheMetrics {
+		return {
+			entries: this.lastReady.size,
+			hits: this.cacheHits,
+			misses: this.cacheMisses,
+			evictions: this.cacheEvictions,
+			lastAccessedAt: this.lastCacheAccessedAt === undefined ? null : new Date(this.lastCacheAccessedAt).toISOString(),
+		};
 	}
 
 	startPolling(listener: UsageListener, intervalMs = 30_000): () => void {
@@ -159,10 +174,11 @@ export class UsageService implements UsageMonitor {
 	private async fetchProvider(provider: UsageProviderId): Promise<UsageSnapshot> {
 		if (provider === "openai-codex" && this.nativeCodexUsage) {
 			try {
+				this.recordCacheMiss();
 				const native = await this.nativeCodexUsage();
 				if (native.provider !== provider) throw new Error("Native Codex usage returned the wrong provider");
 				if (native.state === "ready") this.lastReady.set(provider, native);
-				else this.lastReady.delete(provider);
+				else this.clearProviderState(provider);
 				this.backoff.delete(provider);
 				return native;
 			} catch {
@@ -202,6 +218,7 @@ export class UsageService implements UsageMonitor {
 					: undefined;
 			const adapterProvider = provider;
 			if (provider === "zai") {
+				this.recordCacheMiss();
 				const limits = await fetchZaiCodingPlanUsage(credential, this.observedFetch(observation));
 				if (!limits) return this.recordFailure(provider, observation);
 				const ready = snapshot(provider, "ready", limits.map(normalizeLimit), this.now());
@@ -219,12 +236,13 @@ export class UsageService implements UsageMonitor {
 			}
 			const cached = this.lastReady.get(provider);
 			if (provider === "anthropic" && cached && this.now() - cached.fetchedAt < CLAUDE_SUCCESS_TTL_MS) {
-				return { ...cached, limits: cached.limits.map(limit => ({ ...limit })) };
+				return this.reuseSnapshot(cached);
 			}
 			const waiting = this.backoff.get(provider);
 			if (waiting?.issue.retryAt && waiting.issue.retryAt > this.now()) {
 				return this.degradedSnapshot(provider, waiting.issue);
 			}
+			this.recordCacheMiss();
 			const observedFetch = this.observedFetch(observation);
 			const report = await adapter.fetchUsage(
 				{ provider: adapterProvider, credential },
@@ -274,15 +292,24 @@ export class UsageService implements UsageMonitor {
 		const lastReady = this.lastReady.get(provider);
 		if (!lastReady) return { ...snapshot(provider, "error", [], this.now()), issue };
 		return {
-			...lastReady,
-			limits: lastReady.limits.map(limit => ({ ...limit })),
+			...this.reuseSnapshot(lastReady),
 			stale: true,
 			issue,
 		};
 	}
 
 	private clearProviderState(provider: UsageProviderId): void {
-		this.lastReady.delete(provider);
+		if (this.lastReady.delete(provider)) this.cacheEvictions++;
 		this.backoff.delete(provider);
+	}
+
+	private recordCacheMiss(): void {
+		this.cacheMisses++;
+	}
+
+	private reuseSnapshot(cached: UsageSnapshot): UsageSnapshot {
+		this.cacheHits++;
+		this.lastCacheAccessedAt = this.now();
+		return { ...cached, limits: cached.limits.map(limit => ({ ...limit })) };
 	}
 }

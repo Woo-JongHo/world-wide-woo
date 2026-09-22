@@ -17,8 +17,8 @@ export const astraPalette = {
 	get plan() { return palette.amber; },
 	get note() { return palette.orange; },
 	get info() { return getActiveTuiTheme() === "tokyo-night" ? palette.blue : "#8EC07C"; },
-	get codex() { return palette.orange; },
-	get claude() { return palette.red; },
+	get codex() { return palette.foreground; },
+	get claude() { return palette.orange; },
 	get gemini() { return palette.teal; },
 	get zai() { return getActiveTuiTheme() === "tokyo-night" ? palette.steel : "#D3869B"; },
 	get success() { return palette.success; },
@@ -136,6 +136,19 @@ export function prose(text: string, width: number, indent = 0): string[] {
 }
 export function section(label: string, width: number, meta = "", ink: AstraInk = a.text, metaInk: AstraInk = a.muted): string[] {
 	return ["", pair(astraTitle(label, ink), metaInk(meta), width), a.rule("─".repeat(Math.min(20, Math.max(0, width)))), ""];
+}
+/** A compact sidebar landmark; rails do not spend vertical space on blank gutters. */
+export function railSection(label: string, width: number, meta = "", ink: AstraInk = a.text): string[] {
+	return [pair(astraTitle(label, ink), a.muted(meta), width), a.rule("─".repeat(Math.min(16, Math.max(0, width))))];
+}
+/** A bounded, cell-based gauge for observed ratios. */
+export function astraMeter(value: number, total: number, width = 18, ink: AstraInk = a.active): string {
+	const cells = Math.max(0, Math.floor(width));
+	const ratio = total > 0 && Number.isFinite(value) && Number.isFinite(total)
+		? Math.max(0, Math.min(1, value / total))
+		: 0;
+	const filled = Math.round(cells * ratio);
+	return `${ink("━".repeat(filled))}${a.rule("━".repeat(cells - filled))}`;
 }
 export function mark(state: string): string {
 	if (["failed", "error", "blocked"].includes(state)) return a.failure("!");

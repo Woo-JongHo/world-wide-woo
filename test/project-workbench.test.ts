@@ -152,6 +152,7 @@ class FakeNativeHarness implements ExecutorPort {
 	mcpEnableInputs: Array<{ name: string; enabled: boolean }> = [];
 	mcpReloadCalls = 0;
 	compactThreadIds: string[] = [];
+	listModelCalls = 0;
 	async startThread(input: NativeThreadStart): Promise<NativeThreadSnapshot> {
 		this.startThreadCalls += 1;
 		this.startThreadInputs.push(input);
@@ -170,6 +171,13 @@ class FakeNativeHarness implements ExecutorPort {
 		return { id: this.readThreadId ?? input.threadId, value: this.readValue };
 	}
 	async listThreads(_input: NativeThreadList): Promise<readonly NativeThreadSummary[]> { return []; }
+	async listModels() {
+		this.listModelCalls += 1;
+		return [
+			{ model: "gpt-5.6-sol", displayName: "GPT-5.6 Sol", efforts: ["high"] as const, defaultEffort: "high" as const },
+			{ model: "gpt-5.6-terra", displayName: "GPT-5.6 Terra", efforts: ["medium", "high"] as const, defaultEffort: "medium" as const },
+		];
+	}
 	async startTurn(input: NativeTurnStart): Promise<NativeTurnSnapshot> {
 		this.startTurnCalls += 1;
 		this.startTurnInputs.push(input);
@@ -456,6 +464,7 @@ describe("ProjectWorkbench", () => {
 		expect(refreshedThreadId).toBe("thread-1");
 		expect(workbench.snapshot.phase).toBe("ready");
 		expect(workbench.snapshot.linearDashboard?.state).toBe("loading");
+		expect(workbench.snapshot.cacheObservations?.some(layer => layer.id === "dashboard-data")).toBe(false);
 
 		resolveDashboard?.({
 			state: "ready",
@@ -470,6 +479,7 @@ describe("ProjectWorkbench", () => {
 		await Bun.sleep(0);
 		expect(workbench.snapshot.linearDashboard?.state).toBe("ready");
 		expect(workbench.snapshot.linearDashboard?.projectName).toBe("World Wide Woo");
+		expect(workbench.snapshot.cacheObservations?.find(layer => layer.id === "dashboard-data")).toMatchObject({ state: "ready", entries: 1 });
 		await workbench.close();
 	});
 
@@ -480,6 +490,77 @@ describe("ProjectWorkbench", () => {
 		});
 		await workbench.waitUntilReady();
 		expect(workbench.snapshot.linearDashboard).toBeUndefined();
+		expect(workbench.snapshot.cacheObservations?.find(layer => layer.id === "dashboard-data")).toBeUndefined();
+		await workbench.close();
+	});
+
+	test("reports a connected Dashboard snapshot miss and subsequent reuse", async () => {
+		let refreshCount = 0;
+		const workbench = new ProjectWorkbench(new FakeNativeHarness(), new MemoryJournal(), {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+			linearDashboard: { refresh: async () => {
+				refreshCount += 1;
+				return {
+					state: "ready" as const,
+					projectName: "World Wide Woo",
+					fetchedAt: "2026-09-22T00:00:00.000Z",
+					issues: [], update: null, comments: [], milestones: [], error: null,
+				};
+			} },
+		});
+		await ready(workbench);
+		await Bun.sleep(0);
+		const before = workbench.snapshot.cacheObservations?.find(layer => layer.id === "dashboard-data");
+		expect(before).toMatchObject({ state: "ready", entries: 1, misses: 1, evictions: 0 });
+
+		await workbench.dispatch({ type: "session.mode", mode: "plan" });
+		const after = workbench.snapshot.cacheObservations?.find(layer => layer.id === "dashboard-data");
+		expect(refreshCount).toBe(1);
+		expect(after?.hits).toBeGreaterThan(before?.hits ?? 0);
+		expect(after?.misses).toBe(before?.misses);
+		await workbench.close();
+	});
+
+	test("reports request and delegation projection cache reuse through the public snapshot", async () => {
+		const workbench = new ProjectWorkbench(new FakeNativeHarness(), new MemoryJournal(), {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+		});
+		await ready(workbench);
+		const before = workbench.snapshot.cacheObservations?.find(layer => layer.id === "context-projection");
+		expect(before).toMatchObject({ state: "ready", entries: 2 });
+
+		await workbench.dispatch({ type: "session.mode", mode: "plan" });
+		const after = workbench.snapshot.cacheObservations?.find(layer => layer.id === "context-projection");
+		expect(after?.hits).toBeGreaterThan(before?.hits ?? 0);
+		expect(after?.misses).toBe(before?.misses);
+		expect(after?.evictions).toBe(before?.evictions);
+		await workbench.close();
+	});
+
+	test("coalesces concurrent Native model catalog refreshes as one session-cache miss", async () => {
+		const native = new FakeNativeHarness();
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
+			projectId: "sample-project",
+			cwd: "/workspace/sample",
+		});
+		await ready(workbench);
+		const listModelCallsBefore = native.listModelCalls;
+		const before = workbench.snapshot.cacheObservations?.find(layer => layer.id === "model-catalog");
+		expect(before).toMatchObject({ state: "ready" });
+		await workbench.dispatch({ type: "session.mode", mode: "plan" });
+		const afterUnrelatedPublish = workbench.snapshot.cacheObservations?.find(layer => layer.id === "model-catalog");
+		expect(afterUnrelatedPublish?.hits).toBe(before?.hits);
+
+		const first = workbench.refreshModels();
+		const second = workbench.refreshModels();
+		await Promise.all([first, second]);
+		const after = workbench.snapshot.cacheObservations?.find(layer => layer.id === "model-catalog");
+		expect(native.listModelCalls).toBe(listModelCallsBefore + 1);
+		expect(after?.misses).toBe((before?.misses ?? 0) + 1);
+		expect(after?.hits).toBeGreaterThan(before?.hits ?? 0);
+		expect(after?.entries).toBe(2);
 		await workbench.close();
 	});
 
@@ -508,6 +589,7 @@ describe("ProjectWorkbench", () => {
 			error: "temporary Linear failure",
 			issues: [{ id: "WOO-907" }],
 		});
+		expect(workbench.snapshot.cacheObservations?.find(layer => layer.id === "dashboard-data")).toMatchObject({ state: "stale", entries: 1, evictions: 0 });
 		await workbench.close();
 	});
 
@@ -2071,7 +2153,7 @@ describe("ProjectWorkbench", () => {
 		expect(workbench.snapshot).toMatchObject({
 			model: "gpt-5.6-sol",
 			effort: "low",
-			contextUsage: { usedTokens: 25_840, contextWindow: 258_400, percent: 5.6 },
+			contextUsage: { usedTokens: 25_840, contextWindow: 258_400, percent: 10 },
 			sessionUsage: {
 				totalTokens: 25_840,
 				unattributedTokens: 0,
@@ -2097,7 +2179,7 @@ describe("ProjectWorkbench", () => {
 		expect(workbench.snapshot.contextUsage).toEqual({
 			usedTokens: 25_840,
 			contextWindow: 258_400,
-			percent: 5.6,
+			percent: 10,
 		});
 		expect(workbench.snapshot.sessionUsage).toEqual(rootUsage);
 
@@ -2118,7 +2200,7 @@ describe("ProjectWorkbench", () => {
 		expect(workbench.snapshot.contextUsage).toEqual({
 			usedTokens: 25_840,
 			contextWindow: 258_400,
-			percent: 5.6,
+			percent: 10,
 		});
 		expect(workbench.snapshot.sessionUsage).toEqual({
 			totalTokens: 38_760,

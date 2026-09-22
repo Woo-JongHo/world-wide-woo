@@ -61,6 +61,20 @@ test("pre-thread intake survives startup failure and is adopted once with proven
 	} finally { await rm(dir, { recursive: true, force: true }); }
 });
 
+test("bound Session Read telemetry reaches the public Workbench cache snapshot", async () => {
+	const dir = await mkdtemp(join(tmpdir(), "www-session-read-cache-"));
+	try {
+		const journal = new ThreadBoundActivityJournal(new ActivityJournalStore(dir));
+		await journal.bindThread("cache-thread");
+		await journal.readAll("ignored");
+		const workbench = new ProjectWorkbench(new FakeNative([]), journal, { projectId: "p", cwd: dir });
+		await workbench.waitUntilReady();
+		expect(workbench.snapshot.cacheObservations?.find(layer => layer.id === "session-read"))
+			.toMatchObject({ state: "ready", entries: 0, hits: 1, misses: 1, evictions: 0 });
+		await workbench.close();
+	} finally { await rm(dir, { recursive: true, force: true }); }
+});
+
 class MemoryTodoStore implements TodoStore {
 	async read() { return null; }
 	async compareAndSwap() { return "written" as const; }

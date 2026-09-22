@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "1.0",
+  "auditedAt": "2026-09-20T16:41:41Z",
+  "objective": "chacada의 GMBKOREA Helix QAC와 FTA 원산지 코드를 행렬형 시각 구조와 의미 기반 정렬로 간결하고 정형화하며 검증",
+  "overallStatus": "blocked",
+  "requirements": [
+    {
+      "id": "NAMED_MATRIX_ROWS",
+      "status": "proved",
+      "evidence": [
+        "Helix SetupSources·GroupStats·MetricColumn·MailSummarySection",
+        "FTA PipelineStep·StaticSelectField·CountryItemRules·TextInput·AttachmentInput·ItemTextInput·FieldRow·CnoCase",
+        "두 저장소 비테스트 Python AST 감사에서 2행 이상·3열 이상 위치 튜플 후보 0건"
+      ]
+    },
+    {
+      "id": "SEMANTIC_ALIGNMENT",
+      "status": "proved",
+      "evidence": [
+        "Helix 결과표: 식별·설명 왼쪽, 순서·상태 가운데, 건수·시간 오른쪽",
+        "FTA 물품표: 식별 열 왼쪽, 금액·비율·중량 오른쪽",
+        ".www/evidence/2026-09-20-gmbkorea-readability/rpa-build-output-alignment-receipt.json"
+      ]
+    },
+    {
+      "id": "BEHAVIOR_PRESERVATION",
+      "status": "proved-for-safe-test-surface",
+      "evidence": [
+        "Helix tests/unit: 327 passed, 72 subtests passed",
+        "FTA tests: 442 passed",
+        "변경 파일의 TODO·FIXME·skip·only 표식 없음"
+      ],
+      "limits": "실제 Helix 서버·UNI-PASS·SMTP·NAS를 호출하는 운영 E2E는 안전 경계상 실행하지 않음"
+    },
+    {
+      "id": "EXTERNAL_WRITE_SAFETY",
+      "status": "proved",
+      "evidence": [
+        "모든 Build Receipt의 externalSystemsInvoked=false",
+        "검증은 fixture·mock·임시 workbook·로컬 HTML 조립에 한정"
+      ]
+    },
+    {
+      "id": "INDEPENDENT_REVIEW",
+      "status": "missing",
+      "evidence": [
+        ".www/evidence/2026-09-20-gmbkorea-readability/independent-review-blocker.json"
+      ],
+      "reason": "필수 Claude Opus 읽기 전용 감사가 주간 한도로 미실행"
+    },
+    {
+      "id": "PROJECT_RECORDING",
+      "status": "candidate-only",
+      "evidence": [
+        "기존 Linear WOO-847·WOO-848·WOO-851 재사용",
+        ".www/evidence/2026-09-20-gmbkorea-readability/project-comment-candidate.json"
+      ],
+      "reason": "외부 게시 승인을 받지 않았고 현재 세션에 linear-woo read-back 도구가 없음"
+    }
+  ],
+  "completionDecision": "독립 Opus 감사가 연속 3개 목표 턴에서 주간 한도로 미실행되어 완료를 주장할 수 없다. 코드·자동검증·안전 요구는 현재 증거로 충족하며, 한도 초기화가 필요한 외부 상태 blocker다.",
+  "auditDigest": "e252b27bb063747689c28093c9bd6bebb76bdbb87f0aa897b00121da3cf083e1"
+}
