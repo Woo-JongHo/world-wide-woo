@@ -1,0 +1,29 @@
+{
+  "issue": "WOO-913",
+  "bindingEvidence": ".www/evidence/2026-09-22-astra-figma-readiness/linear-issue-receipt.json",
+  "projectComment": {
+    "candidate": "project-comment-candidate.json",
+    "digest": "19dcf0429c5e4b67967db3b864eb68a1727326894ddfa77d05cac335654f4f24",
+    "published": false,
+    "state": "draft-awaiting-remote-freshness"
+  },
+  "obsidian": {
+    "required": false,
+    "reason": "기존 startup의 표시만 교체하며 public 데이터 의미·Native 상태·Demo/Live·영속 계약은 유지한다. 퍼센트 없는 import 대기 표시이므로 새로운 제품 상태나 진행률 계약을 추가하지 않는다.",
+    "evidence": [
+      "src/cli.ts: writeAstraBootstrap, loadAstraModule",
+      "test/cli.test.ts: paints and clears a www loading bar before production modules load"
+    ]
+  },
+  "authorization": false,
+  "remoteReadBack": false,
+  "git": {
+    "commit": "954f6b3721350447daa9708a87f102ee536896fb",
+    "paths": [
+      "src/cli.ts",
+      "test/cli.test.ts"
+    ],
+    "receipt": ".www/receipts/commit/954f6b3721350447daa9708a87f102ee536896fb.json",
+    "pushed": false
+  }
+}

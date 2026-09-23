@@ -42,7 +42,7 @@ export type CliDependencies = CLIDependencies;
 //  NAME               : KIND  ( PARAMETERS      ) => { PRELUDE                      const { IMPORT NAME         } = await import("MODULE PATH                                                 "); ACTION TARGET                                    }
 const productionDependencies: CLIDependencies = {
 	runApp             : async (options) => { writeWorkbenchBootstrap();   const { runApp              } = await import("@/app");                                                        await  runApp(options); },
-	runAstra           : async (options) => {                              const { runAstra            } = await loadAstraModule();                                                       await  runAstra(options); },
+	runAstra           : async (options) => {                              const { runAstra            } = await loadAstraModule();                                                      await  runAstra(options); },
 	runRouter          : async (options) => { writeRouterBootstrap();      const { runLegacyRouter     } = await import("@/legacy-router-app");                                          await  runLegacyRouter(options); },
 	runAuth            : async ( args  ) => {                              const { runAuth             } = await import("@/app");                                                        await  runAuth(args); },
 	runWorkflow        : async ( args  ) => {                              const { runLocalWorkflowCli } = await import("@/adapters/outbound/development/local-workflow-cli");           return runLocalWorkflowCli(args, process.cwd()); },

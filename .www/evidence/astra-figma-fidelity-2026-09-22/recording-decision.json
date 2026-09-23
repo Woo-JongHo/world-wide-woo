@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "issue": {
+    "id": "WOO-913",
+    "uuid": "8367530b-1a29-4983-994b-c2bf61ac687e",
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "evidence": ".www/evidence/2026-09-22-astra-figma-readiness/linear-issue-receipt.json",
+    "currentReadBack": false
+  },
+  "projectComment": {
+    "candidate": ".www/evidence/astra-figma-fidelity-2026-09-22/project-comment-candidate.json",
+    "digest": "7ea1d903e872c6654fb5522d11ab0a01803da21cdfe2a36517f245a5a0a7bb82",
+    "state": "draft-awaiting-current-readback",
+    "historicalLatestCommentId": "1c9c3c89-562a-4705-9c6e-3dac2e978948",
+    "freshnessVerified": false,
+    "duplicatesChecked": false,
+    "authorized": false,
+    "published": false
+  },
+  "obsidian": {
+    "required": false,
+    "reason": "DEC-WORKBENCH-002/003의 관측 의미와 DEC-WORKBENCH-004의 synthetic-only shell-local presentation 계약 안에서 시각 구성과 회귀 검증을 보강했다. WHY·public data 계약·지속 identity·외부 쓰기 경계를 바꾸지 않았다.",
+    "evidence": [
+      ".www/evidence/2026-09-22-astra-demo-mvp/obsidian-canonical-candidate.json",
+      ".www/evidence/2026-09-22-astra-demo-mvp/obsidian-publish-receipt.json"
+    ]
+  },
+  "blocking": "지정 linear-woo 도구가 현재 세션에 없어 최신 대상·Project Activity 조회가 불가능하다. 현재 상태 대조 후 Candidate를 갱신하고 승인된 한 건만 게시해야 한다."
+}

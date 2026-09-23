@@ -1,3 +1,6 @@
 allowBuilds:
-  '@google/genai': set this to true or false
-  protobufjs: set this to true or false
+  '@google/genai': false
+  protobufjs: false
+
+patchedDependencies:
+  '@earendil-works/pi-tui@0.84.4': patches/@earendil-works%2Fpi-tui@0.84.4.patch

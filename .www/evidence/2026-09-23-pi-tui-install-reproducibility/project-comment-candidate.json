@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-PI-TUI-INSTALL-REPRODUCIBILITY",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:954f6b3721350447daa9708a87f102ee536896fb:dirty",
+  "intent": "WOO-689 lazy-row 구현의 Bun·pnpm 설치 재현성을 복구한 경과를 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "pi-tui lazy-row patch가 Bun 최상위 설치본에는 적용됐지만 pnpm 가상 저장소에는 적용되지 않아 TypeScript가 구버전 선언을 읽는 원인을 확인했다.",
+      "pnpm workspace에 pi-tui patchedDependencies를 명시하고 불필요한 Google·protobuf 설치 스크립트를 false로 고정했다.",
+      "pnpm lockfile에 patch hash를 결박해 Bun과 pnpm 설치 경로가 같은 lazy-row 구현과 타입 선언을 사용하게 했다."
+    ],
+    "impacts": [
+      "새 설치나 혼합 package-manager 환경에서도 ScrollRowSource 타입과 실제 lazy viewport 구현이 어긋나지 않는다.",
+      "WOO-689의 긴 transcript 성능 회귀 검증을 의존성 설치 방식과 무관하게 재현할 수 있다."
+    ],
+    "categories": ["fix", "verification"],
+    "verification": [
+      "bun run check: exit 0.",
+      "bun test test/architecture.test.ts: 13 pass, 0 fail.",
+      "bun test: 1442 pass, 0 fail, 18488 assertions, 162 files.",
+      "lazy-row 집중 회귀 34 pass, 0 fail이며 실제 AstraWorkspace가 viewport 범위만 요청한다."
+    ],
+    "connections": [
+      "Linear issue: WOO-689 · UUID ae15b7ba-fd9d-4319-a186-201e6177c8a6",
+      "Code: pnpm-workspace.yaml · pnpm-lock.yaml · patches/@earendil-works%2Fpi-tui@0.84.4.patch",
+      "Performance contract: docs/ASTRA_PERFORMANCE.md",
+      "Evidence: .www/evidence/2026-09-23-pi-tui-install-reproducibility",
+      "Branch: dev · HEAD 954f6b3721350447daa9708a87f102ee536896fb · uncommitted"
+    ]
+  },
+  "links": {
+    "issue": "https://linear.app/woo-world/issue/WOO-689/message-04-긴-결과를-안정적으로-탐색한다",
+    "performanceContract": "docs/ASTRA_PERFORMANCE.md",
+    "candidateEvidence": ".www/evidence/2026-09-23-pi-tui-install-reproducibility"
+  },
+  "expectedBefore": {
+    "latestCommentId": "1c9c3c89-562a-4705-9c6e-3dac2e978948"
+  },
+  "validation": [
+    {
+      "id": "local-issue-binding",
+      "status": "pass",
+      "evidence": "저장된 Linear read-back에서 WOO-689가 5,000개 메시지 성능, resize, scroll cache와 실제 TUI 검증을 소유함을 확인했다. 현재 원격 최신성 확인을 뜻하지 않는다."
+    },
+    {
+      "id": "local-implementation-evidence",
+      "status": "pass",
+      "evidence": "혼합 설치 재현 뒤 workspace patch mapping을 추가하고 typecheck, architecture, lazy-row 집중 회귀와 전체 suite를 통과했다."
+    },
+    {
+      "id": "canonical-decision",
+      "status": "pass",
+      "evidence": "기존 lazy-row exact viewport 계약과 WOO-689 범위를 변경하지 않고 package-manager별 patch 적용을 재현 가능하게 한 수정이므로 새 Obsidian 결정은 필요하지 않다."
+    },
+    {
+      "id": "external-write-boundary",
+      "status": "pass",
+      "evidence": "지정 linear-woo 도구가 현재 세션에 없어 원격 Activity 최신성은 게시 직전에 재조회해야 하며, 별도 사용자 승인 전 외부 쓰기는 수행하지 않는다."
+    }
+  ],
+  "candidateDigest": "e34c51e45c90cbd0ec449843f452c8d19b943d2928bead61339237b47d44edbd"
+}

@@ -1,0 +1,20 @@
+{
+  "issue": "WOO-913",
+  "issueReceipt": ".www/evidence/2026-09-22-astra-figma-readiness/linear-issue-receipt.json",
+  "projectComment": {
+    "path": ".www/evidence/astra-readability-axes-2026-09-22/project-comment-candidate.json",
+    "digest": "827a24facafb4ac24e32ce760a78969079c0aaaecb6a3fc95c872f85c8a402ce",
+    "published": false
+  },
+  "obsidian": {
+    "path": ".www/evidence/astra-readability-axes-2026-09-22/obsidian-canonical-candidate.json",
+    "digest": "baa13c18f10a8c0697755c0c15eaa61f941efa70cb3b413360995bf8f1533cf0",
+    "state": "draft-needs-latest-source-merge",
+    "published": false
+  },
+  "approval": false,
+  "blockers": [
+    "linear-woo unavailable; remote duplicate check not run",
+    "latest Vault source not read; canonical draft not publishable"
+  ]
+}

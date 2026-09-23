@@ -1,0 +1,623 @@
+diff --git a/src/adapters/inbound/tui/features/context/astra-context-view.ts b/src/adapters/inbound/tui/features/context/astra-context-view.ts
+index c5e7e9b..ef10b4c 100644
+--- a/src/adapters/inbound/tui/features/context/astra-context-view.ts
++++ b/src/adapters/inbound/tui/features/context/astra-context-view.ts
+@@ -5,6 +5,7 @@ import type { UsageSnapshot } from "../../../../../core/ports";
+ import { monitoringCard, monitoringColumns, monitoringMeter, monitoringWidths } from "../../foundation/layout/astra-monitoring-layout";
+ import { a, astraMarkdownTheme, astraMeter, fit, mark, number, pair, prose, railSection, safe, section } from "../../foundation/theme/astra-theme";
+ import { runtimeModeLabel, workbenchEffortLabel, workbenchModelLabel } from "../../foundation/labels";
++import { syntheticContextRows, syntheticStorageRows } from "./astra-context-catalog";
+ 
+ function document(rows: string[], width: number): string[] { return rows.flatMap(row => prose(row, width)); }
+ function kv(label: string, value: unknown): string { return `${a.muted(fit(label, 20))} ${a.text(safe(value ?? "—"))}`; }
+@@ -204,7 +205,7 @@ function requestRuntimeRows(request: RequestRuntimeRecord, width: number): strin
+ }
+ 
+ export class AstraContextView implements Component {
+-	constructor(private readonly get: () => WorkbenchSnapshot, private readonly usage: () => readonly UsageSnapshot[] = () => [], private readonly source = false) {}
++	constructor(private readonly get: () => WorkbenchSnapshot, private readonly usage: () => readonly UsageSnapshot[] = () => [], private readonly source = false, private readonly synthetic: () => boolean = () => false) {}
+ 	invalidate(): void {}
+ 	render(width: number): string[] {
+ 		const s = this.get();
+@@ -216,16 +217,19 @@ export class AstraContextView implements Component {
+ 			else rows.push(a.muted("/source latest 또는 /source <activity-id>로 관측을 선택하세요."));
+ 			return document(rows, width);
+ 		}
++		const catalog = this.synthetic() ? syntheticContextRows(s, width) : [];
+ 		const metrics = contextMetrics(s);
+ 		const skills = s.skillInventory;
+ 		const enabledMcp = s.mcpServers.filter(server => server.enabled).length;
+ 		const memoryItems = s.chat.length + s.activities.length + s.tnotes.length;
+ 		const rows = [
++			...(catalog.length ? catalog : [
+ 			...section("Context Dashboard", width, s.phase, a.active),
+ 			pair(`${a.strong(workbenchModelLabel(s.activeModel ?? s.model))}  ${a.active(workbenchEffortLabel(s.effort))}`, `${runtimeModeLabel(s.permissionMode, s.collaborationMode)}  ·  ${s.threadId ? "thread 연결" : "thread 대기"}`, width),
+ 			...contextSummaryRows(s, width),
+ 			...contextSpectrometerRows(s, width),
+ 			...contextAnalysisRows(s, width),
++			]),
+ 			...section("Context Ledger", width, metrics.percent == null ? "– used" : `${metrics.percent}% used`),
+ 			pair(`Skills  ${skills?.count ?? "미관측"}`, `MCP  ${enabledMcp}/${s.mcpServers.length}`, width),
+ 			pair(`Memory  ${number(memoryItems)} items`, `Chat ${s.chat.length}  ·  Activity ${s.activities.length}  ·  Note ${s.tnotes.length}`, width),
+@@ -271,7 +275,7 @@ export class AstraContextView implements Component {
+ }
+ 
+ export class AstraContextRail implements Component {
+-	constructor(private readonly get: () => WorkbenchSnapshot) {}
++	constructor(private readonly get: () => WorkbenchSnapshot, private readonly synthetic: () => boolean = () => false) {}
+ 	invalidate(): void {}
+ 	render(width: number): string[] {
+ 		const snapshot = this.get();
+@@ -291,6 +295,7 @@ export class AstraContextRail implements Component {
+ 			rows.push(a.muted(`  ${server.tools.length} tools · ${safe(server.status)}`));
+ 		}
+ 		if (snapshot.mcpServers.length > 4) rows.push(a.muted(`+${snapshot.mcpServers.length - 4} more`));
++		if (this.synthetic()) return document([...rows, ...syntheticStorageRows(width)], width);
+ 		rows.push(...railSection("■ STORAGE METRICS", width, "observed", a.active));
+ 		rows.push(pair("CONTEXT WINDOW", metrics.used == null || metrics.total == null ? "미관측" : `${number(metrics.used)}/${number(metrics.total)}`, width));
+ 		rows.push(metrics.used == null || metrics.total == null ? a.rule("━".repeat(Math.max(4, width - 2))) : astraMeter(metrics.used, metrics.total, Math.max(4, width - 2), a.active));
+diff --git a/src/adapters/inbound/tui/features/demo/astra-demo.ts b/src/adapters/inbound/tui/features/demo/astra-demo.ts
+index c1929a6..b2f6d35 100644
+--- a/src/adapters/inbound/tui/features/demo/astra-demo.ts
++++ b/src/adapters/inbound/tui/features/demo/astra-demo.ts
+@@ -53,7 +53,7 @@ export function createAstraDemoState(_base: WorkbenchSnapshot, clock = Date.now)
+ 		projectId: "astra-demo", revision: 1, journalSequence: activities.length, phase: "working", threadId: "demo-thread", activeTurnId: "demo-turn",
+ 		model: "gpt-6-astra", activeModel: "gpt-6-astra", effort: "low", permissionMode: "manual", collaborationMode: "manual",
+ 		sessionGoal: { text: "DEMO DATA · synthetic fixtures · not live telemetry", sourceActivityId: "demo-request", updatedAt: new Date(now).toISOString() },
+-		contextUsage: { usedTokens: 128_400, contextWindow: 200_000, percent: 64.2 },
++		contextUsage: { usedTokens: 1_230_000, contextWindow: 1_500_000, percent: 82 },
+ 		sessionUsage: {
+ 			totalTokens: 189_500, observedTotalTokens: 189_500, unattributedTokens: 3_200,
+ 			models: [
+diff --git a/src/adapters/inbound/tui/features/usage/astra-usage.ts b/src/adapters/inbound/tui/features/usage/astra-usage.ts
+index d622069..d6dd69b 100644
+--- a/src/adapters/inbound/tui/features/usage/astra-usage.ts
++++ b/src/adapters/inbound/tui/features/usage/astra-usage.ts
+@@ -75,8 +75,9 @@ function quotaBar(limit: UsageLimitSnapshot | undefined, state: string, width: n
+ 	const innerSize = Math.max(1, size - 2);
+ 	const label = value.length > innerSize ? value.slice(0, Math.max(1, innerSize - 1)) + "…" : value;
+ 	const centered = `[${label.padStart(label.length + Math.max(0, Math.floor((innerSize - label.length) / 2))).padEnd(innerSize)}]`;
+-	const filled = percent === null ? 0 : Math.round(size * percent / 100);
+-	return `${chalk.bgHex(color).hex("#101419").bold(centered.slice(0, filled))}${chalk.bgHex(astraPalette.rule).hex(astraPalette.text)(centered.slice(filled))}`;
++	const filled = percent === null ? 0 : Math.round(innerSize * percent / 100);
++	const empty = chalk.bgHex(astraPalette.rule).hex(astraPalette.text);
++	return `${empty(centered[0]!)}${chalk.bgHex(color).hex("#101419").bold(centered.slice(1, 1 + filled))}${empty(centered.slice(1 + filled))}`;
+ }
+ 
+ /** A provider header plus two quota rows form a compact matrix. */
+diff --git a/src/adapters/inbound/tui/features/workflow/astra-workflow-view.ts b/src/adapters/inbound/tui/features/workflow/astra-workflow-view.ts
+index b2b5c25..a563f96 100644
+--- a/src/adapters/inbound/tui/features/workflow/astra-workflow-view.ts
++++ b/src/adapters/inbound/tui/features/workflow/astra-workflow-view.ts
+@@ -12,7 +12,7 @@ function statusInk(status: ObservedStatus): (text: string) => string {
+ 	if (status === "running") return a.active;
+ 	if (status === "completed") return a.success;
+ 	if (status === "cancelled" || status === "unknown") return a.muted;
+-	return a.text;
++	return a.cream;
+ }
+ 
+ function currentRequest(snapshot: WorkbenchSnapshot): RequestRuntimeRecord | undefined {
+@@ -36,7 +36,7 @@ function taskTotals(projections: readonly NativeDelegationProjection[]): { total
+ 	const tasks = projections.flatMap(projection => projection.tasks);
+ 	return {
+ 		total: tasks.length,
+-		active: tasks.filter(task => task.status === "running" || task.status === "pending").length,
++		active: tasks.filter(task => task.status === "running").length,
+ 		failed: tasks.filter(task => task.status === "failed").length,
+ 	};
+ }
+@@ -50,7 +50,7 @@ function summaryRows(request: RequestRuntimeRecord | undefined, projections: rea
+ 	const stageTotal = request?.stages.length ?? 0;
+ 	const stageDone = settledStageCount(request);
+ 	if (width < 72) return [
+-		...section("Workflow overview", width, request?.status ?? "미관측", a.plan),
++		...railSection("Workflow overview", width, request?.status ?? "미관측", a.active),
+ 		pair("Goal", request ? oneLine(request.objective, 320) : "미관측", width),
+ 		pair("Stages", request ? `${stageDone}/${stageTotal}` : "미관측", width),
+ 		pair("Subagents", totals.total ? `${totals.active} active / ${totals.total}` : "미관측", width),
+@@ -64,8 +64,8 @@ function summaryRows(request: RequestRuntimeRecord | undefined, projections: rea
+ 	];
+ 	const widths = monitoringWidths(width, cards.length, 1);
+ 	return [
+-		...section("Workflow overview", width, request?.status ?? "미관측", a.plan),
+-		...monitoringColumns(cards.map((card, index) => monitoringCard(card, widths[index]!)), widths),
++		...railSection("Workflow overview", width, request?.status ?? "미관측", a.active),
++		...monitoringColumns(cards.map((card, index) => monitoringCard({ ...card, value: a.cream(card.value) }, widths[index]!)), widths),
+ 	];
+ }
+ 
+@@ -84,11 +84,40 @@ function requestPipelineRows(request: RequestRuntimeRecord | undefined, width: n
+ 	return rows;
+ }
+ 
++function compactWorkflowRows(request: RequestRuntimeRecord | undefined, projections: readonly NativeDelegationProjection[], width: number): string[] {
++	if (width < 96) return [];
++	const widths = monitoringWidths(width, 2, 1);
++	const pipelineWidth = widths[0]!;
++	const agentsWidth = widths[1]!;
++	const pipeline = request
++		? workflowPanel("7-stage pipeline", `${settledStageCount(request)}/${request.stages.length}`, a.active, request.stages.map(stage =>
++			pair(safe(stage.id, 24), statusInk(stage.status)(`${mark(stage.status)} ${stage.status}`), Math.max(1, pipelineWidth - 2))), pipelineWidth)
++		: workflowPanel("7-stage pipeline", "unavailable", a.active, [a.muted("현재 Turn의 Request가 없습니다.")], pipelineWidth);
++	const tasks = projections.flatMap(projection => projection.tasks);
++	const visibleTasks = tasks.slice(0, 7);
++	const agentRows = visibleTasks.flatMap(task => {
++		const latest = [...task.activities].reverse().find(activity => activity.message)?.message ?? task.result;
++		const detail = [task.model, task.reasoningEffort, task.task, latest].filter(Boolean).join(" · ");
++		return [
++			pair(statusInk(task.status)(safe(task.role ?? task.id, 28)), statusInk(task.status)(`${mark(task.status)} ${task.status}`), Math.max(1, agentsWidth - 2)),
++			a.muted(fit(oneLine(detail || "detail unavailable", 1200), Math.max(1, agentsWidth - 4))),
++		];
++	});
++	if (tasks.length > visibleTasks.length) agentRows.push(a.muted(`… ${tasks.length - visibleTasks.length} delegated tasks hidden`));
++	const agents = tasks.length
++		? workflowPanel("Role status comparison", `${tasks.length} delegated`, a.active, agentRows, agentsWidth)
++		: workflowPanel("Role status comparison", "unavailable", a.active, [a.muted("관측된 Native Subagent가 없습니다.")], agentsWidth);
++	return [
++		...monitoringColumns([pipeline, agents], widths),
++		pair(a.info("Telemetry availability"), a.muted("queue unavailable · state matrix unavailable"), width),
++	];
++}
++
+ function agentDetails(task: NativeDelegatedTask, width: number, indent = 0): string[] {
+ 	const title = task.role ?? task.id;
+ 	const details = [task.model, task.reasoningEffort].filter(Boolean).join(" · ");
+ 	const rows = prose(statusInk(task.status)(`${mark(task.status)} ${safe(title)} · ${task.status}`), width, indent);
+-	if (task.task) rows.push(...prose(a.text(safe(task.task, 1200)), width, indent + 2));
++	if (task.task) rows.push(...prose(a.cream(safe(task.task, 1200)), width, indent + 2));
+ 	if (details) rows.push(...prose(a.muted(details), width, indent + 2));
+ 	const latest = [...task.activities].reverse().find(activity => activity.message)?.message ?? task.result;
+ 	if (latest) rows.push(...prose(a.muted(safe(latest, 500)), width, indent + 2));
+@@ -152,6 +181,7 @@ export class AstraWorkflowView implements Component {
+ 		const projections = currentDelegations(snapshot, request);
+ 		return [
+ 			...summaryRows(request, projections, width),
++			...compactWorkflowRows(request, projections, width),
+ 			...nodeGraphRows(projections, width),
+ 			...requestPipelineRows(request, width),
+ 			...laneRows(projections, width),
+@@ -170,16 +200,20 @@ export class AstraWorkflowRail implements Component {
+ 		const current = currentRequest(snapshot);
+ 		const projections = currentDelegations(snapshot, current);
+ 		const totals = taskTotals(projections);
++		const tasks = projections.flatMap(projection => projection.tasks);
+ 		const rows = [
+-			...railSection("Active process", width, current?.status ?? "미관측", a.tool),
++			...railSection("Active process", width, current?.status ?? "미관측", a.active),
+ 			pair("Requests", number(requests.length), width),
+ 			pair("Stages", current ? `${settledStageCount(current)}/${current.stages.length}` : "미관측", width),
+ 			pair("Agents", totals.total ? number(totals.total) : "미관측", width),
+ 			pair("Active", totals.total ? a.active(number(totals.active)) : a.muted("미관측"), width),
+ 			pair("Failed", totals.total ? totals.failed ? a.failure(number(totals.failed)) : a.success("0") : a.muted("미관측"), width),
+-			...railSection("Goal", width),
++			...(current?.stages.map(stage => pair(statusInk(stage.status)(mark(stage.status)), safe(stage.id, 28), width)) ?? [a.muted("7-stage request unavailable")]),
++			...railSection("Agents", width, totals.total ? `${totals.active} active` : "unavailable", a.active),
++			...tasks.slice(0, 3).map(task => pair(statusInk(task.status)(safe(task.role ?? task.id, 22)), statusInk(task.status)(task.status), width)),
++			...railSection("Goal", width, "", a.active),
+ 			snapshot.sessionGoal ? safe(snapshot.sessionGoal.text, 600) : a.muted("Goal이 아직 없습니다."),
+-			...railSection("Navigate", width),
++			...railSection("Navigate", width, "", a.active),
+ 			a.muted("/todo      Plan"),
+ 			a.muted("/context   실행 근거"),
+ 			a.muted("/dashboard 세션 개요"),
+diff --git a/src/adapters/inbound/tui/foundation/theme/astra-theme.ts b/src/adapters/inbound/tui/foundation/theme/astra-theme.ts
+index 733a388..e00cce9 100644
+--- a/src/adapters/inbound/tui/foundation/theme/astra-theme.ts
++++ b/src/adapters/inbound/tui/foundation/theme/astra-theme.ts
+@@ -5,6 +5,7 @@ import { getActiveTuiTheme, palette } from "./theme";
+ /** Figma reference inks for the default Gruvbox and the Tokyo Night theme. */
+ export const astraPalette = {
+ 	get text() { return palette.foreground; },
++	get cream() { return getActiveTuiTheme() === "gruvbox" ? "#fbf1c7" : palette.foreground; },
+ 	get secondary() { return palette.steel; },
+ 	get muted() { return palette.muted; },
+ 	get rule() { return palette.border; },
+@@ -26,7 +27,7 @@ export const astraPalette = {
+ type AstraPaletteKey = keyof typeof astraPalette;
+ const astraInk = (key: AstraPaletteKey): AstraInk => text => chalk.hex(astraPalette[key])(text);
+ export const a = {
+-	text: astraInk("text"), answer: chalk.white, secondary: astraInk("secondary"), muted: astraInk("muted"), rule: astraInk("rule"),
++	text: astraInk("text"), cream: astraInk("cream"), answer: chalk.white, secondary: astraInk("secondary"), muted: astraInk("muted"), rule: astraInk("rule"),
+ 	caption: (text: string) => chalk.italic(astraInk("muted")(text)),
+ 	active: astraInk("active"), attention: astraInk("attention"), failure: astraInk("failure"),
+ 	request: astraInk("request"), response: astraInk("response"), tool: astraInk("tool"),
+diff --git a/src/adapters/inbound/tui/shell/astra-surface.ts b/src/adapters/inbound/tui/shell/astra-surface.ts
+index 4553a73..674354d 100644
+--- a/src/adapters/inbound/tui/shell/astra-surface.ts
++++ b/src/adapters/inbound/tui/shell/astra-surface.ts
+@@ -145,6 +145,7 @@ export class AstraWorkspace {
+ 		lab: Component = new HelpView(),
+ 		sidebars: Partial<Readonly<Record<AstraPage, Component>>> = {},
+ 		usageCacheMetrics: () => UsageSnapshotCacheMetrics | undefined = () => undefined,
++		synthetic: () => boolean = () => false,
+ 	) {
+ 		this.transcript = new AstraTranscriptView(get());
+ 		const cacheTelemetry = () => projectWorkbenchCacheTelemetry({
+@@ -157,12 +158,12 @@ export class AstraWorkspace {
+ 		this.scrolls = {
+ 			dashboard: scroll(dashboard),
+ 			execution: new ChatScrollView(new AstraInset(this.transcript), { follow: "end", primary: true, overscroll: "contain", scrollbar: "auto", scrollbarStyle: a.rule }),
+-			plan: scroll(new AstraPlanView(get, false, clock, motion, runtimePresentation)), workflow: scroll(new AstraWorkflowView(get)), context: scroll(new AstraContextView(get, usage)), cache: scroll(new AstraCacheView(cacheTelemetry)), usage: scroll(new AstraUsageView(get, usage)), help: scroll(new HelpView()), lab: scroll(lab),
++			plan: scroll(new AstraPlanView(get, false, clock, motion, runtimePresentation)), workflow: scroll(new AstraWorkflowView(get)), context: scroll(new AstraContextView(get, usage, false, synthetic)), cache: scroll(new AstraCacheView(cacheTelemetry)), usage: scroll(new AstraUsageView(get, usage)), help: scroll(new HelpView()), lab: scroll(lab),
+ 		};
+ 		const pageSidebars: Partial<Readonly<Record<AstraPage, Component>>> = {
+ 			dashboard: new AstraDashboardRail(get),
+ 			workflow: new AstraWorkflowRail(get),
+-			context: new AstraContextRail(get),
++			context: new AstraContextRail(get, synthetic),
+ 			cache: new AstraCacheRail(cacheTelemetry),
+ 			usage: new AstraUsageRail(get, usage),
+ 			...sidebars,
+diff --git a/src/adapters/inbound/tui/shell/workbench-shell.ts b/src/adapters/inbound/tui/shell/workbench-shell.ts
+index dc2371e..e9db9dc 100644
+--- a/src/adapters/inbound/tui/shell/workbench-shell.ts
++++ b/src/adapters/inbound/tui/shell/workbench-shell.ts
+@@ -339,6 +339,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
+ 		threeBodyLab ?? undefined,
+ 		{},
+ 		() => dependencies.usage.cacheMetrics(),
++		() => demoMode,
+ 	) : null;
+ 	astra?.show(dependencies.initialAstraPage ?? "execution");
+ 	const status = astra ? new AstraNotice() : new StatusLine(WORKBENCH_STATUS_NOTICE);
+diff --git a/test/astra-shell.test.ts b/test/astra-shell.test.ts
+index 0bd9e6c..af932f6 100644
+--- a/test/astra-shell.test.ts
++++ b/test/astra-shell.test.ts
+@@ -202,16 +202,20 @@ test("/demo presents synthetic MVP pages with R/E navigation and restores live s
+ 		expect(frame()).toContain("+2 대기");
+ 		terminal.columns = 80; terminal.rows = 24; terminal.resize(); await tick();
+ 		expect(frame()).toContain("Stages");
+-		terminal.columns = 120; terminal.rows = 36; terminal.resize(); await tick();
++		terminal.columns = 160; terminal.rows = 48; terminal.resize(); await tick();
+ 		expect(frame()).not.toContain("LIVE_PRIVATE_REASONING_SENTINEL");
+ 		terminal.input("E"); await tick(); expect(frame()).toContain("SESSION OVERVIEW"); expect(frame()).toContain("Queue"); expect(frame()).toContain("2"); expect(frame()).toContain("1 waiting");
+ 		terminal.input("E"); await tick(); expect(frame()).toContain("Active Providers Telemetry");
+ 		terminal.input("E"); await tick(); expect(frame()).toContain("CONTEXT ACCUMULATION SPECTROMETER");
+ 		expect(frame()).not.toContain("LIVE_PRIVATE_PROJECT_SENTINEL");
+ 		expect(frame()).toContain("LOADED SKILLS"); expect(frame()).toContain("STORAGE METRICS");
++		for (const label of ["CONTEXT COMPOSITION BREAKDOWN", "CONTEXT CHANGE ACTIVITY", "DIAGNOSTIC EVENT AGGREGATES", "TOP ITEMS BY SIZE", "STATE CHANGE ALERTS", "synthetic fixtures", "T-8"]) expect(frame()).toContain(label);
++		terminal.input("R"); await tick(); expect(frame()).toContain("Active Providers Telemetry");
++		terminal.input("E"); await tick(); expect(frame()).toContain("CONTEXT CHANGE ACTIVITY");
+ 		terminal.input("G"); await tick(); expect(frame()).toContain("계획 연결 근거");
+ 		terminal.input("E"); await tick(); expect(frame()).toContain("Cache Controller");
+ 		terminal.input("E"); await tick(); expect(frame()).toContain("Workflow overview"); expect(frame()).toContain("Failed"); expect(frame()).toContain("1");
++		for (const label of ["UNDERSTAND", "DECOMPOSE", "GROUND", "DECIDE", "EXECUTE", "VERIFY", "DELIVER", "reviewer", "researcher", "auditor"]) expect(frame()).toContain(label);
+ 		terminal.input("E"); await tick(); expect(frame()).toContain("Plan"); expect(frame()).toContain("Next"); expect(frame()).toContain("2개");
+ 		terminal.input("E"); await tick(); expect(frame()).toContain("Chat");
+ 		terminal.input("R"); await tick(); expect(frame()).toContain("Plan");
+@@ -225,6 +229,13 @@ test("/demo presents synthetic MVP pages with R/E navigation and restores live s
+ 		expect(frame()).toContain("LIVE RESTORED");
+ 		expect(frame()).toContain("DEMO_EXIT_APPROVAL");
+ 		expect(frame()).not.toContain("DEMO DATA");
++		terminal.input("\x03"); await tick(); // Close the restored approval sheet before navigating Live.
++		snapshot = { ...snapshot, revision: 78, pendingApproval: null };
++		listener(snapshot); await tick();
++		terminal.input("\x07"); terminal.input("7"); await tick();
++		terminal.input("g"); await tick(); // Context retains the earlier Demo end-of-page scroll position.
++		expect(frame()).toContain("Source token allocation unavailable");
++		expect(frame()).not.toContain("CONV growing");
+ 		expect(commands).toHaveLength(0);
+ 	} finally {
+ 		if (!terminal.stopped) { terminal.input("\x03"); terminal.input("\x03"); await tick(); }
+diff --git a/src/adapters/inbound/tui/features/context/astra-context-catalog.ts b/src/adapters/inbound/tui/features/context/astra-context-catalog.ts
+new file mode 100644
+index 0000000..0e9013d
+--- /dev/null
++++ b/src/adapters/inbound/tui/features/context/astra-context-catalog.ts
+@@ -0,0 +1,138 @@
++import chalk from "chalk";
++import type { WorkbenchSnapshot } from "../../../../../core/domain/work/workbench";
++import { monitoringColumns, monitoringWidths } from "../../foundation/layout/astra-monitoring-layout";
++import { a, astraPalette, fit, pair, safe, type AstraInk } from "../../foundation/theme/astra-theme";
++import { getActiveTuiTheme, palette } from "../../foundation/theme/theme";
++import { workbenchEffortLabel, workbenchModelLabel } from "../../foundation/labels";
++
++// Presentation-only fixtures. The shell must explicitly opt in; snapshot labels never enable them.
++const sources = [
++	{ code: "SYS", mb: 4, color: "tool" }, { code: "CONV", mb: 20, color: "text" },
++	{ code: "SKILL", mb: 3, color: "success" }, { code: "MCP", mb: 2, color: "response" },
++	{ code: "MEM", mb: 1, color: "attention" }, { code: "WORK", mb: 6, color: "info" },
++	{ code: "RUNT", mb: 2, color: "active" }, { code: "NOTE", mb: 1, color: "muted" },
++	{ code: "TOOL", mb: 1, color: "failure" },
++] as const;
++const capacityMB = 48;
++const usedMB = sources.reduce((sum, source) => sum + source.mb, 0);
++function sourceColor(color: typeof sources[number]["color"]): string {
++	if (color === "text") return astraPalette.cream;
++	if (color === "failure" && getActiveTuiTheme() === "gruvbox") return "#af3a03";
++	return astraPalette[color];
++}
++const foreground = a.cream;
++
++/** Two borders, no blank gutters: bounded native cells retain the reference's panel density. */
++function panel(title: string, rows: string[], width: number): string[] {
++	const inner = Math.max(1, width - 2);
++	const body = rows.map(row => `${a.rule("│")}${chalk.bgHex(palette.panel)(fit(row, inner))}${a.rule("│")}`);
++	return [fit(`${a.rule("┌")}${a.active(title)}${a.rule("─".repeat(Math.max(0, inner - title.length)) + "┐")}`, width), ...body, a.rule(`└${"─".repeat(inner)}┘`)];
++}
++function meter(value: number, total: number, width: number, ink: AstraInk, solid = false): string {
++	const fill = Math.round(width * value / total);
++	return ink((solid ? "█" : "━").repeat(fill)) + a.rule((solid ? "░" : "━").repeat(width - fill));
++}
++function summary(snapshot: WorkbenchSnapshot, width: number): string[] {
++	const cards: readonly [string, string, AstraInk][] = [
++		["TOTAL CAPACITY", `${capacityMB.toFixed(1)} MB`, a.muted],
++		["USED TOKENS", "1.23M / 1.5M", foreground],
++		["FREE SPACE", "8 MB (16.7%)", a.success],
++		["COMPRESSION", "8:1 OPTIMIZED", a.info],
++		["LAST RETRIEVAL", "42s AGO", a.tool],
++		["ACTIVE MODEL", workbenchModelLabel(snapshot.activeModel ?? snapshot.model), a.active],
++		["EFFORT CONFIG", workbenchEffortLabel(snapshot.effort), a.response],
++	];
++	if (width < 108) return cards.map(([title, value, ink]) => pair(a.muted(title), ink(value), width));
++	const widths = monitoringWidths(width, cards.length);
++	return monitoringColumns(cards.map(([title, value, ink], index) => panel(title, [ink(value)], widths[index]!)), widths);
++}
++function spectrometer(width: number): string[] {
++	const inner = width - 2;
++	let boundary = 0, cumulative = 0;
++	const bar = sources.map(source => {
++		cumulative += source.mb;
++		const next = Math.round(inner * cumulative / capacityMB), cells = next - boundary;
++		boundary = next;
++		const label = cells >= source.code.length ? source.code.padStart(Math.floor((cells + source.code.length) / 2)).padEnd(cells) : " ".repeat(cells);
++		return chalk.bgHex(sourceColor(source.color)).hex(palette.background)(label);
++	}).join("") + chalk.bgHex(palette.border)(" ".repeat(inner - boundary));
++	return panel("CONTEXT ACCUMULATION SPECTROMETER", [
++		pair(a.muted("synthetic source sizes · MB"), foreground(`${usedMB} / ${capacityMB} MB`), inner),
++		bar,
++		fit(sources.map(source => chalk.hex(sourceColor(source.color))(`${source.code} ${source.mb}`)).join(" · ") + a.muted(" · FREE 8"), inner),
++	], width);
++}
++function composition(width: number): string[] {
++	const barWidth = Math.max(4, width - 23);
++	return [a.active("■ CONTEXT COMPOSITION BREAKDOWN"), ...sources.map(source =>
++		`${chalk.hex(sourceColor(source.color))(source.code.padEnd(5))} ${meter(source.mb, capacityMB, barWidth, chalk.hex(sourceColor(source.color)), true)} ${foreground(`${String(source.mb).padStart(2)} MB`)} ${a.muted(`${(source.mb / capacityMB * 100).toFixed(1).padStart(4)}%`)}`)];
++}
++// Eight independent synthetic turns: each stack is added/updated/compressed/removed KB.
++const turns = [[30, 14, 8, 6], [38, 12, 10, 4], [28, 16, 6, 8], [44, 10, 12, 6], [36, 18, 10, 4], [48, 12, 8, 6], [40, 14, 12, 4], [50, 16, 8, 6]] as const;
++function activity(width: number): string[] {
++	const cellWidth = Math.max(3, Math.min(6, Math.floor((width - 4) / turns.length)));
++	const inks = [a.success, a.tool, a.active, a.failure];
++	const rows = [a.active("■ CONTEXT CHANGE ACTIVITY"), a.muted("KB / TURN · synthetic · last 8 turns")];
++	for (let level = 4; level > 0; level--) {
++		const columns = turns.map(values => {
++			const threshold = (level - 0.5) * 20;
++			let sum = 0;
++			const color = values.findIndex(value => { sum += value; return threshold <= sum; });
++			return color < 0 ? a.rule("·".repeat(cellWidth - 1)) + " " : inks[color]!("█".repeat(cellWidth - 1)) + " ";
++		});
++		rows.push(`${a.muted(String(level * 20).padStart(2))} ${columns.join("")}`);
++	}
++	rows.push(a.muted("   " + turns.map((_, index) => `T-${8 - index}`.padEnd(cellWidth)).join("")));
++	rows.push(`${a.success("+ Added")} ${a.tool("~ Updated")} ${a.active("↓ Compressed")} ${a.failure("− Removed")}`);
++	return rows;
++}
++function diagnostics(width: number): string[] {
++	return [a.active("■ DIAGNOSTIC EVENT AGGREGATES"),
++		pair(a.tool("■ SYSTEM INIT"), foreground("1 event · OK"), width),
++		pair(a.response("■ MCP SYNC"), foreground("3 events · OK"), width),
++		pair(a.attention("■ MEMORY EVICTIONS"), a.success("2 keys · −14 KB"), width),
++		pair(a.active("■ RUNTIME COMPILE"), foreground("114 entries · OK"), width),
++		pair(a.success("■ EVICTION RISK"), a.success("NONE NOW"), width)];
++}
++function dependencies(snapshot: WorkbenchSnapshot, width: number): string[] {
++	const skills = snapshot.skillInventory;
++	const servers = snapshot.mcpServers;
++	const agents = (snapshot.delegation ?? []).flatMap(projection => projection.tasks);
++	return [a.active("■ SYSTEM DEPENDENCY MAP"), a.active("                 ASTRA CORE"),
++		pair(a.success(`├ Skills · ${skills?.count ?? 0} loaded`), a.response(`MCP · ${servers.filter(server => server.enabled).length} enabled`), width),
++		...Array.from({ length: 4 }, (_, index) => pair(foreground(`│ ${safe(skills?.names[index] ?? "")}`), a.response(safe(servers[index]?.name ?? "")), width)),
++		a.tool(`└ Agents · ${agents.length} · ${agents.filter(agent => agent.status === "running").length} running`),
++		pair(a.muted("Memory zones"), a.info("83% / 13% / 22%"), width),
++		a.muted("occupancy / swap / cache · synthetic")];
++}
++function insights(width: number): string[] {
++	return [a.active("■ TOP ITEMS BY SIZE"),
++		pair(foreground("01 CONV / message-thread"), a.attention("20 MB ▲"), width),
++		pair(foreground("02 WORK / artifacts-cache"), a.info("6 MB"), width),
++		pair(foreground("03 SYS / system-prompt"), a.tool("4 MB"), width),
++		pair(foreground("04 SKILL / loaded-catalog"), a.success("3 MB"), width),
++		a.rule("─".repeat(width)), a.active("■ STATE CHANGE ALERTS"),
++		a.attention("! CONV growing · +2.1 MB/cycle avg"),
++		a.success("✓ 2 stale MEM keys evicted · 14 KB freed"),
++		a.tool("i Free space below 20% · monitor advised")];
++}
++
++export function syntheticContextRows(snapshot: WorkbenchSnapshot, width: number): string[] {
++	const widths = [Math.floor((width - 1) * 0.57), width - 1 - Math.floor((width - 1) * 0.57)];
++	const analysis = (left: number, right: number): string[][] => [
++		panel("SOURCE ANALYSIS · synthetic", [...composition(left - 2), ...activity(left - 2), ...diagnostics(left - 2)], left),
++		panel("CONTEXT INSIGHTS · synthetic", [...dependencies(snapshot, right - 2), ...insights(right - 2)], right),
++	];
++	return [
++		...summary(snapshot, width),
++		a.muted("DEMO DATA · synthetic fixtures · not live telemetry"),
++		...spectrometer(width),
++		...(width >= 108 ? monitoringColumns(analysis(widths[0]!, widths[1]!), widths) : analysis(width, width).flat()),
++	].map(row => fit(row, width));
++}
++export function syntheticStorageRows(width: number): string[] {
++	return [a.active("■ STORAGE METRICS"), a.muted("synthetic fixtures · not live"),
++		pair("MEMORY OCCUPANCY", "40960/49152 KB", width), meter(40, 48, width, a.active),
++		pair("VIRTUAL SWAP", "2144/16384 KB", width), meter(2144, 16384, width, a.success),
++		pair("PERSISTENT CACHE", "14280/65536 KB", width), meter(14280, 65536, width, a.tool)];
++}
+diff --git a/test/astra-context-fidelity.test.ts b/test/astra-context-fidelity.test.ts
+new file mode 100644
+index 0000000..f411ae3
+--- /dev/null
++++ b/test/astra-context-fidelity.test.ts
+@@ -0,0 +1,48 @@
++import { expect, test } from "bun:test";
++import chalk from "chalk";
++import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
++import { renderLayoutFrame } from "@earendil-works/pi-tui/dist/layout.js";
++import { AstraWorkspace } from "../src/adapters/inbound/tui/shell/astra-surface";
++import { AstraContextView } from "../src/adapters/inbound/tui/features/context/astra-context-view";
++import { createAstraDemoState } from "../src/adapters/inbound/tui/features/demo/astra-demo";
++import { astraFixture } from "./fixtures/astra-snapshot";
++
++test.each([160, 200])("Demo Context catalog is visible in the first %i x 36 workspace viewport", width => {
++	const demo = createAstraDemoState(astraFixture(), () => 0);
++	const workspace = new AstraWorkspace(() => demo.snapshot, () => demo.usage, undefined, () => 0, false, null, undefined, undefined, undefined, {}, undefined, () => true);
++	workspace.show("context");
++	const rows = renderLayoutFrame(workspace.component, width, 36, () => {}).lines;
++	const text = rows.map(stripTerminalSequences).join("\n");
++	for (const label of ["TOTAL CAPACITY", "USED TOKENS", "FREE SPACE", "COMPRESSION", "LAST RETRIEVAL", "ACTIVE MODEL", "EFFORT CONFIG", "CONTEXT ACCUMULATION SPECTROMETER", "CONTEXT COMPOSITION BREAKDOWN", "CONTEXT CHANGE ACTIVITY", "DIAGNOSTIC EVENT AGGREGATES", "SYSTEM DEPENDENCY MAP", "TOP ITEMS BY SIZE", "STATE CHANGE ALERTS", "LOADED SKILLS", "MCP SERVERS", "STORAGE METRICS", "synthetic fixtures", "not live telemetry", "T-8", "T-1"]) expect(text).toContain(label);
++	expect(rows.every(row => visibleWidth(row) <= width)).toBe(true);
++});
++
++test("Demo spectrometer uses multiple source colors and proportional cells; Live never opts in from snapshot text", () => {
++	const before = chalk.level;
++	chalk.level = 3;
++	try {
++		const snapshot = createAstraDemoState(astraFixture()).snapshot;
++		const rows = new AstraContextView(() => snapshot, undefined, false, () => true).render(118);
++		const bar = rows.find(row => stripTerminalSequences(row).includes("SYS") && stripTerminalSequences(row).includes("CONV") && row.includes("48;2;"))!;
++		expect(bar).toBeDefined();
++		expect(new Set(bar.match(/\x1b\[48;2;\d+;\d+;\d+m/gu)).size).toBeGreaterThanOrEqual(7);
++		const sys = bar.match(/\x1b\[48;2;131;165;152m(?:\x1b\[[0-9;]*m)*([^\x1b]*)/u)!;
++		const conv = bar.match(/\x1b\[48;2;251;241;199m(?:\x1b\[[0-9;]*m)*([^\x1b]*)/u)!;
++		expect(visibleWidth(sys[1]!)).toBe(Math.round(116 * 4 / 48));
++		expect(visibleWidth(conv[1]!)).toBe(Math.round(116 * 24 / 48) - Math.round(116 * 4 / 48));
++		const composition = rows.map(stripTerminalSequences).find(row => row.includes("CONV") && row.includes("41.7%"))!;
++		expect(composition).toContain("█");
++		expect(composition).toContain("░");
++		const live = stripTerminalSequences(new AstraContextView(() => snapshot).render(118).join("\n"));
++		expect(live).toContain("Source token allocation unavailable");
++		expect(live).not.toContain("CONV growing");
++		expect(live).not.toMatch(/MCP[^\n]*64%/u);
++	} finally { chalk.level = before; }
++});
++
++test.each([40, 60, 80, 118])("Demo Context remains bounded and scrollable at %i columns", width => {
++	const demo = createAstraDemoState(astraFixture());
++	const rows = new AstraContextView(() => demo.snapshot, undefined, false, () => true).render(width);
++	expect(rows.every(row => visibleWidth(row) <= width)).toBe(true);
++	expect(stripTerminalSequences(rows.join("\n"))).toContain("CONTEXT CHANGE ACTIVITY");
++});
+diff --git a/test/astra-provider-meter-fidelity.test.ts b/test/astra-provider-meter-fidelity.test.ts
+new file mode 100644
+index 0000000..a3d7727
+--- /dev/null
++++ b/test/astra-provider-meter-fidelity.test.ts
+@@ -0,0 +1,38 @@
++import { expect, test } from "bun:test";
++import { stripTerminalSequences } from "@earendil-works/pi-tui";
++import chalk from "chalk";
++import { astraQuotaHudRows } from "../src/adapters/inbound/tui/features/usage/astra-usage";
++import type { UsageSnapshot } from "../src/core/ports";
++
++test("provider meter stays compact and fills its interior by remaining percent", () => {
++	const level = chalk.level;
++	chalk.level = 3;
++	try {
++		const now = Date.parse("2026-09-22T00:00:00Z");
++		const usage: UsageSnapshot[] = [{
++			provider: "openai-codex",
++			state: "ready",
++			fetchedAt: now,
++			limits: [{
++				label: "5 hours",
++				remainingPercent: 42,
++				resetsAt: now + (6 * 60 + 33) * 60_000,
++				status: "ok",
++			}],
++		}];
++
++		const row = astraQuotaHudRows(usage, 120, now, false)[2]!;
++		const plain = stripTerminalSequences(row);
++		expect(plain).toContain("[  42% 6h 33m  ]");
++
++		const meterStart = plain.indexOf("[");
++		const meterEnd = plain.indexOf("]", meterStart) + 1;
++		const meter = plain.slice(meterStart, meterEnd);
++		expect(meter).toHaveLength(16);
++
++		const coloredRuns = [...row.matchAll(/\x1b\[48;2;[^m]+m\x1b\[38;2;[^m]+m\x1b\[1m([^\x1b]*)/gu)];
++		expect(coloredRuns[0]?.[1]).toHaveLength(Math.round((meter.length - 2) * 0.42));
++	} finally {
++		chalk.level = level;
++	}
++});
+diff --git a/test/astra-workflow-fidelity.test.ts b/test/astra-workflow-fidelity.test.ts
+new file mode 100644
+index 0000000..d3535e8
+--- /dev/null
++++ b/test/astra-workflow-fidelity.test.ts
+@@ -0,0 +1,72 @@
++import { expect, test } from "bun:test";
++import { renderLayoutFrame } from "@earendil-works/pi-tui/dist/layout.js";
++import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
++import chalk from "chalk";
++import { AstraWorkspace } from "../src/adapters/inbound/tui/shell/astra-surface";
++import { AstraWorkflowView } from "../src/adapters/inbound/tui/features/workflow/astra-workflow-view";
++import { a } from "../src/adapters/inbound/tui/foundation/theme/astra-theme";
++import { REQUEST_STAGES, type RequestRuntimeRecord } from "../src/core/domain/execution/request-runtime";
++import { astraFixture } from "./fixtures/astra-snapshot";
++
++test("Workflow의 160열 첫 viewport에 7단계와 역할별 위임 상태가 함께 보인다", () => {
++	const snapshot = astraFixture("working");
++	const stageStatuses = ["completed", "completed", "completed", "running", "pending", "pending", "pending"] as const;
++	const request: RequestRuntimeRecord = {
++		schemaVersion: 1, protocolVersion: 2, requestId: "request-density", threadId: snapshot.threadId,
++		turnId: snapshot.activeTurnId, objective: "첫 화면에서 Workflow 전체를 비교한다", status: "running", attempt: 1,
++		previousAttempts: [], deliveries: [], requiredDeliveries: [], events: [], startedAt: "2026-09-22T00:00:00Z",
++		completedAt: null, issues: [], actions: [],
++		stages: REQUEST_STAGES.map((id, index) => ({
++			id, status: stageStatuses[index]!, goal: `${id} 공개 근거`, input: [], owner: "orchestrator", model: null,
++			agents: [], tools: [], output: null, evidence: [], decision: null, skipReason: null, startedAt: null,
++			completedAt: null, next: null, evidenceAfterSequence: 0, tasks: [],
++		})),
++	};
++	snapshot.requestRuntime = [request];
++	snapshot.delegation = [{
++		sourceThreadId: snapshot.threadId!, turnId: snapshot.activeTurnId!, activityIds: [], itemIds: [],
++		tasks: [
++			{ ref: "review", id: "agent-review", attempt: 1, parentId: snapshot.threadId, parentRef: null, role: "reviewer", status: "running", task: "변경 검토", model: "gpt-5.6-sol", reasoningEffort: "high", activities: [], result: null },
++			{ ref: "research", id: "agent-research", attempt: 1, parentId: snapshot.threadId, parentRef: null, role: "researcher", status: "completed", task: "근거 조사", model: "gpt-5.6-terra", reasoningEffort: "medium", activities: [], result: "조사 완료" },
++			{ ref: "audit", id: "agent-audit", attempt: 1, parentId: snapshot.threadId, parentRef: null, role: "auditor", status: "failed", task: "최종 감사", model: "claude-fable-5", reasoningEffort: "high", activities: [], result: "감사 실패" },
++		],
++	}];
++
++	const workspace = new AstraWorkspace(() => snapshot, () => []);
++	workspace.show("workflow");
++	const rows = renderLayoutFrame(workspace.component, 160, 35, () => undefined).lines;
++	const firstViewport = stripTerminalSequences(rows.join("\n"));
++	for (const stage of REQUEST_STAGES)
++		expect(firstViewport).toContain(stage);
++	for (const comparison of ["reviewer", "running", "researcher", "completed", "auditor", "failed"])
++		expect(firstViewport).toContain(comparison);
++	for (const detail of ["gpt-5.6-sol", "high", "변경 검토", "조사 완료"])
++		expect(firstViewport).toContain(detail);
++	expect(firstViewport).toContain("unavailable");
++	expect(rows).toHaveLength(35);
++	expect(rows.every(row => visibleWidth(row) <= 160)).toBe(true);
++
++	const level = chalk.level;
++	chalk.level = 3;
++	try {
++		const colored = new AstraWorkflowView(() => snapshot).render(120);
++		expect(colored.find(row => stripTerminalSequences(row).includes("7-stage pipeline"))).toContain(a.active("7-stage pipeline"));
++		expect(colored.find(row => stripTerminalSequences(row).includes("Role status comparison"))).toContain(a.active("Role status comparison"));
++		expect(colored.find(row => stripTerminalSequences(row).includes("researcher"))).toContain(a.success("researcher"));
++	} finally { chalk.level = level; }
++
++	const projection = snapshot.delegation[0]!;
++	const template = projection.tasks[0]!;
++	snapshot.delegation = [{
++		...projection,
++		tasks: [...projection.tasks, ...Array.from({ length: 5 }, (_, index) => ({
++			...template, ref: `overflow-${index}`, id: `overflow-${index}`, role: `worker-${index}`,
++		}))],
++	}];
++	const overflow = stripTerminalSequences(new AstraWorkflowView(() => snapshot).render(120).join("\n"));
++	expect(overflow).toContain("… 1 delegated tasks hidden");
++	snapshot.delegation = [{ ...projection, tasks: [{ ...template, status: "pending" }] }];
++	const pending = stripTerminalSequences(new AstraWorkflowView(() => snapshot).render(120).join("\n"));
++	expect(pending).toContain("0 active / 1");
++	expect(pending).toContain("pending");
++});

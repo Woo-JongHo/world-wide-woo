@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-AGENT-RESOURCE-VISIBILITY",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:a953dc8aae13573f1c92772efe747008a31940a4:dirty",
+  "intent": "에이전트 자원 사용 설명 중심으로 전환하는 Usage 첫 변경",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "Usage 본문을 모델별 사용량·직접 대화/분리 실행·구독 잔여 순서로 재구성했다. Demo와 Live가 동일한 renderer를 사용한다.",
+      "데이터 없는 하루 추이·성능·provider load 패널을 기본 화면에서 제거했다. 작업별 귀속 미확인과 관측 범위를 명시한다.",
+      "커밋 준비 중 shell의 오래된 Cache/Workflow 데모 기대값을 현재 화면의 slice·stage·lane 검증으로 갱신했다. live 복귀와 입력 보존 검증은 유지했다."
+    ],
+    "impacts": [
+      "사용자가 에이전트의 자원 사용을 확인하는 목적에 맞추며 실행 경로를 업무나 사용 목적이라고 추정하지 않는다.",
+      "Context·Cache와 선택형 상세 패널은 이번 Usage 단일 파일 검토 이후의 미구현 범위다."
+    ],
+    "categories": [
+      "improvement",
+      "refactor",
+      "verification"
+    ],
+    "verification": [
+      "Usage 새 요구 테스트 red 확인 후 green. astra-usage-view·astra-usage-fidelity·astra-ui·architecture: 최종 95 pass, 0 fail, 3390 assertions.",
+      "bun run check 및 git diff --check 통과. 모델 열 정의의 콜론·쉼표·중괄호 좌표 일치; 계산 블록 등호 23열·26열.",
+      "읽기 전용 검토의 부분 관측 TOTAL 혼동을 OBSERVED로 교정하고 양방향 부분 관측 회귀를 추가했다. 원문: .www/scratchpad/usage-visibility-review.md.",
+      "실제 터미널 육안 확인과 반대 provider 최종 감사는 미실행. Context·Cache는 미변경이며 전체 완료 아님.",
+      "shell 회귀 갱신 후 전체 테스트: 1433 pass, 0 fail, 18461 assertions, 162 files. 타입 검사 및 diff 검사 통과."
+    ],
+    "connections": [
+      "WOO-913 기존 local Receipt binding; 현재 원격 미조회",
+      "src/adapters/inbound/tui/features/usage/astra-usage-view.ts",
+      "test/astra-usage-fidelity.test.ts",
+      ".www/evidence/agent-resource-visibility-2026-09-22/"
+    ]
+  },
+  "links": {
+    "issue": "https://linear.app/woo-world/issue/WOO-913/workbench-monitoring-figma-5화면의-계측-의미와-정보-구조를-일치시킨다",
+    "figma": "https://www.figma.com/design/Q7kGUdqiaQRJI8CZlPMRX7?node-id=50-967",
+    "candidateEvidence": ".www/evidence/astra-context-grid-2026-09-22",
+    "promptContract": "docs/design/figma-context-cache-dashboard-prompt.md"
+  },
+  "expectedBefore": null,
+  "validation": [
+    {
+      "id": "local-issue-binding",
+      "status": "pass",
+      "evidence": "기존 linear-issue-receipt.json의 WOO-913 UUID와 project UUID 확인"
+    },
+    {
+      "id": "remote-freshness",
+      "status": "not-run",
+      "evidence": "지정 linear-woo 도구 미노출. 최신 Activity 중복 확인과 게시 전 상태 대조 필요"
+    }
+  ],
+  "candidateDigest": "80119437dee4b04c96747a7c6a9987993d72ff229f2b4fed4045e1ddb0646358"
+}

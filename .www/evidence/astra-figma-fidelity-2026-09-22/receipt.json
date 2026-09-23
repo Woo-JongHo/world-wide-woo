@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "issue": "WOO-913",
+  "branch": "dev",
+  "head": "a953dc8aae13573f1c92772efe747008a31940a4",
+  "verifiedAt": "2026-09-22T08:24:56.987690+00:00",
+  "figma": {
+    "fileKey": "Q7kGUdqiaQRJI8CZlPMRX7",
+    "nodeId": "50:967",
+    "method": "get_design_context"
+  },
+  "viewports": {
+    "contextWorkspace": [
+      [
+        160,
+        36
+      ],
+      [
+        200,
+        36
+      ]
+    ],
+    "workflowWorkspace": [
+      [
+        160,
+        35
+      ]
+    ],
+    "shellDemo": [
+      160,
+      48
+    ],
+    "compactContextWidths": [
+      40,
+      60,
+      80
+    ]
+  },
+  "checks": {
+    "typecheck": "pass",
+    "related": {
+      "pass": 98,
+      "fail": 0
+    },
+    "full": {
+      "pass": 1393,
+      "fail": 0,
+      "files": 159
+    },
+    "diffWhitespace": "pass",
+    "newPlaceholders": 0
+  },
+  "review": {
+    "codexIndependent": "two findings fixed and rechecked",
+    "crossProvider": "Claude Sonnet 5 unavailable: OAuth session expired; Fable audit not run"
+  },
+  "linear": {
+    "requestedServer": "linear-woo",
+    "sessionToolAvailable": false,
+    "connectionReverified": false
+  },
+  "committed": false,
+  "userExistingChange": ".www/workbench.yaml (untouched)",
+  "files": [
+    {
+      "path": "src/adapters/inbound/tui/features/context/astra-context-view.ts",
+      "sha256": "63ec7d8e2a08e6fbc010abcf7881e07f281dd26e3bf08350c86dc6e32d9a720f"
+    },
+    {
+      "path": "src/adapters/inbound/tui/features/demo/astra-demo.ts",
+      "sha256": "1beecccc73bbeb69e9d23b6f2a7855426ab85688e4def94b2935ec180b30798b"
+    },
+    {
+      "path": "src/adapters/inbound/tui/features/usage/astra-usage.ts",
+      "sha256": "5b0e117a85119f5ffa4dfdd4bd113b109b747951ec2762f8fcffdf54a4a63de9"
+    },
+    {
+      "path": "src/adapters/inbound/tui/features/workflow/astra-workflow-view.ts",
+      "sha256": "54dbca8fed00d275de79db5a80894445c9cad46cf732a08137236cd7c8368cc8"
+    },
+    {
+      "path": "src/adapters/inbound/tui/foundation/theme/astra-theme.ts",
+      "sha256": "7daa7595355eabf52157ce27c86c50901941f30f7e37fff91076e989499237df"
+    },
+    {
+      "path": "src/adapters/inbound/tui/shell/astra-surface.ts",
+      "sha256": "06260e786b44a952bd26d45b4a6b9521cc3c915a86a95521822d3c9a920379be"
+    },
+    {
+      "path": "src/adapters/inbound/tui/shell/workbench-shell.ts",
+      "sha256": "96f676f23c0ef59b279a56a9d20c0b98c05528a8a6ce0a356d07127e21cc49de"
+    },
+    {
+      "path": "test/astra-shell.test.ts",
+      "sha256": "e3d2920ff9c9bcc2e66271751527b67780636794e1f9517f5ca300ac226c1199"
+    },
+    {
+      "path": "src/adapters/inbound/tui/features/context/astra-context-catalog.ts",
+      "sha256": "d8f5d5e24a00e1b00f9cab8a7eb23a533918f39ca957c6b5892ce1e29d930e26"
+    },
+    {
+      "path": "test/astra-context-fidelity.test.ts",
+      "sha256": "b487ca06058c091cf58d27073314761bda6b0aaaf5cfe6d00853ec5a770bc27e"
+    },
+    {
+      "path": "test/astra-provider-meter-fidelity.test.ts",
+      "sha256": "39ee0aefdad90b2c9f0aa7ed19696bd6ac1d2246aee10d64301603af599013fe"
+    },
+    {
+      "path": "test/astra-workflow-fidelity.test.ts",
+      "sha256": "8d53c3cce0b7ccddd3db33fe142a35b0074f53e8d0ffb81a5d4eb0fe350b37ce"
+    }
+  ]
+}

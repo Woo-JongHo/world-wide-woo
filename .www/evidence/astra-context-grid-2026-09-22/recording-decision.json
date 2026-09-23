@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "issue": {
+    "id": "WOO-913",
+    "uuid": "8367530b-1a29-4983-994b-c2bf61ac687e",
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "evidence": ".www/evidence/2026-09-22-astra-figma-readiness/linear-issue-receipt.json",
+    "currentReadBack": false
+  },
+  "projectComment": {
+    "candidate": ".www/evidence/astra-context-grid-2026-09-22/project-comment-candidate.json",
+    "digest": "779ed8546600feddefc63a0960c2316ab2cd5bdf004592c583b466b1b124651d",
+    "state": "draft-awaiting-current-readback",
+    "freshnessVerified": false,
+    "duplicatesChecked": false,
+    "authorized": false,
+    "published": false
+  },
+  "obsidian": {
+    "required": false,
+    "reason": "기존 WOO-913의 Figma 이식과 synthetic-only 계약 안에서 내부 표 renderer, 페이지별 프롬프트 구조, 코드 가독성 검사 규칙을 구체화했다. 제품 WHY·공개 데이터 계약·지속 identity·외부 쓰기 경계는 바뀌지 않았다.",
+    "evidence": [
+      "docs/design/2026-09-22-astra-monitoring-figma-execution-plan.md",
+      "docs/design/figma-context-cache-dashboard-prompt.md"
+    ]
+  },
+  "blocking": "현재 세션에 linear-woo 도구가 없어 최신 Project Activity 중복 조회와 게시 read-back을 수행할 수 없다."
+}

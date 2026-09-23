@@ -1,0 +1,34 @@
+{
+  "issue": "WOO-913",
+  "issueReceipt": ".www/evidence/2026-09-22-astra-figma-readiness/linear-issue-receipt.json",
+  "projectComment": {
+    "candidate": ".www/evidence/agent-resource-visibility-2026-09-22/project-comment-candidate.json",
+    "digest": "80119437dee4b04c96747a7c6a9987993d72ff229f2b4fed4045e1ddb0646358",
+    "published": false
+  },
+  "canonical": {
+    "candidate": ".www/evidence/agent-resource-visibility-2026-09-22/obsidian-canonical-candidate.json",
+    "digest": "26eb4c416e71313375383e2d5ed2eb50d9c90d360a6654b84623c00c60890ba0",
+    "published": false,
+    "requiresLatestSourceMerge": true
+  },
+  "scope": "Usage UI first slice only; Context Cache pending",
+  "approval": false,
+  "additionalVerification": {
+    "usageFinal": "astra-usage-view, astra-usage-fidelity, astra-ui, architecture: 95 pass / 0 fail / 3390 assertions",
+    "readabilityReview": ".www/scratchpad/usage-visibility-review.md; partial coverage TOTAL ambiguity corrected to OBSERVED and regression tested; old Usage expectations updated",
+    "shell": "기존 제목 불일치 수정 후 전체 1433 pass / 0 fail / 18461 assertions",
+    "visualAcceptance": "not-run",
+    "crossProviderAudit": "not-run"
+  },
+  "recordingState": "local-candidates-prepared-not-published",
+  "publishBlockers": [
+    "linear-woo 도구 미노출: 최신 Activity 및 중복 확인 미실행",
+    "최신 Vault bytes·digest 확인 및 기존 변경 병합 필요",
+    "이번 Candidate별 게시 승인 없음"
+  ],
+  "canonicalFollowup": {
+    "required": false,
+    "reason": "이번 후속 변경은 기존 구현에 맞는 shell 회귀 기대값 교정과 이미 준비된 로딩바의 Git 기록이다. 새 제품 WHY·데이터 계약 변경 없음. 이전 정본 개정 초안은 별도로 유지한다."
+  }
+}

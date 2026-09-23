@@ -1,0 +1,13 @@
+{
+  "filesScanned": 12,
+  "matches": [
+    {
+      "file": "src/adapters/inbound/tui/shell/workbench-shell.ts",
+      "line": 430,
+      "text": "() => [\"TODO\", todoPanelTimestamp(snapshot.todo?.updatedAt)].filter(Boolean).join(\" \"),",
+      "preexisting": true,
+      "classification": "existing TODO panel label"
+    }
+  ],
+  "newPlaceholders": 0
+}
