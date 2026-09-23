@@ -1,5 +1,6 @@
 import type { UsageCredential, UsageFetchContext, UsageLimit } from "@gajae-code/ai/core";
 import { claudeUsageProvider } from "@gajae-code/ai/usage/claude";
+import { antigravityUsageProvider } from "@gajae-code/ai/usage/google-antigravity";
 import { openaiCodexUsageProvider } from "@gajae-code/ai/usage/openai-codex";
 import type { Credential, CredentialStore } from "@earendil-works/pi-ai";
 import type {
@@ -186,8 +187,31 @@ export class UsageService implements UsageMonitor {
 			}
 		}
 		if (provider === "google" && await this.antigravity.configured()) {
-			this.clearProviderState(provider);
-			return snapshot(provider, "unsupported");
+			if (!this.antigravity.usageCredential) {
+				this.clearProviderState(provider);
+				return snapshot(provider, "unsupported");
+			}
+			const waiting = this.backoff.get(provider);
+			if (waiting?.issue.retryAt && waiting.issue.retryAt > this.now()) {
+				return this.degradedSnapshot(provider, waiting.issue);
+			}
+			const observation: FetchObservation = { networkFailure: false };
+			try {
+				const credential = await this.antigravity.usageCredential();
+				if (!credential) return this.recordFailure(provider, observation);
+				this.recordCacheMiss();
+				const report = await antigravityUsageProvider.fetchUsage(
+					{ provider: "google-antigravity", credential },
+					{ fetch: this.observedFetch(observation) as typeof fetch, retryWait: this.retryWait },
+				);
+				if (!report) return this.recordFailure(provider, observation);
+				const ready = snapshot(provider, "ready", report.limits.map(normalizeLimit), this.now());
+				this.lastReady.set(provider, ready);
+				this.backoff.delete(provider);
+				return ready;
+			} catch {
+				return this.recordFailure(provider, observation);
+			}
 		}
 		const observation: FetchObservation = { networkFailure: false };
 		// Registry startup and credential refresh happen before any quota request.  A transient

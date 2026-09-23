@@ -146,6 +146,107 @@ describe("UsageService", () => {
 		expect(JSON.stringify(snapshots)).not.toContain("secret");
 	});
 
+	test("Antigravity 로컬 구독의 모델별 quota를 Google 사용량으로 조회한다", async () => {
+		let googleRequests = 0;
+		const service = new UsageService(
+			store({}),
+			models,
+			async url => {
+				if (!String(url).includes("fetchAvailableModels")) return response({});
+				googleRequests++;
+				return response({ models: {
+					"gemini-pro": {
+						displayName: "Gemini Pro",
+						quotaInfo: { remainingFraction: 0.72, resetTime: "2030-01-01T00:00:00Z" },
+					},
+				} });
+			},
+			Date.now,
+			undefined,
+			{
+				configured: async () => true,
+				usageCredential: async () => ({
+					type: "oauth",
+					accessToken: "google-access-secret",
+					projectId: "google-project",
+					expiresAt: Date.now() + 60_000,
+				}),
+			},
+		);
+
+		const google = (await service.refresh()).find(item => item.provider === "google");
+		expect(googleRequests).toBe(1);
+		expect(google).toMatchObject({
+			state: "ready",
+			limits: [expect.objectContaining({ label: "Gemini Pro", remainingPercent: 72 })],
+		});
+		expect(JSON.stringify(google)).not.toContain("secret");
+	});
+
+	test("Antigravity quota 실패 뒤 polling backoff 동안 credential과 provider를 다시 호출하지 않는다", async () => {
+		let now = 1_000;
+		let credentialReads = 0;
+		let googleRequests = 0;
+		const service = new UsageService(
+			store({}),
+			models,
+			async url => {
+				if (String(url).includes("fetchAvailableModels")) googleRequests++;
+				return new Response("", { status: 429 });
+			},
+			() => now,
+			undefined,
+			{
+				configured: async () => true,
+				usageCredential: async () => {
+					credentialReads++;
+					return { type: "oauth", accessToken: "secret", projectId: "project", expiresAt: Date.now() + 60_000 };
+				},
+			},
+		);
+
+		const first = (await service.refresh()).find(item => item.provider === "google");
+		expect(first).toMatchObject({ state: "error", issue: { kind: "rate-limit" } });
+		expect({ credentialReads, googleRequests }).toEqual({ credentialReads: 1, googleRequests: 1 });
+
+		now += 30_000;
+		const second = (await service.refresh()).find(item => item.provider === "google");
+		expect(second).toMatchObject({ state: "error", issue: { kind: "rate-limit" } });
+		expect({ credentialReads, googleRequests }).toEqual({ credentialReads: 1, googleRequests: 1 });
+	});
+
+	test("Antigravity project 발견 실패도 로그인 해제로 오인하지 않고 backoff한다", async () => {
+		let now = 1_000;
+		let credentialReads = 0;
+		const service = new UsageService(
+			store({}), models, async () => response({}), () => now, undefined,
+			{
+				configured: async () => true,
+				usageCredential: async () => { credentialReads++; return undefined; },
+			},
+		);
+
+		const first = (await service.refresh()).find(item => item.provider === "google");
+		expect(first).toMatchObject({ state: "error", issue: { kind: "provider" } });
+		now += 30_000;
+		const second = (await service.refresh()).find(item => item.provider === "google");
+		expect(second).toMatchObject({ state: "error", issue: { kind: "provider" } });
+		expect(credentialReads).toBe(1);
+	});
+
+	test("Antigravity quota network failure를 provider failure와 구분한다", async () => {
+		const service = new UsageService(
+			store({}), models, async () => { throw new Error("offline"); }, Date.now, undefined,
+			{
+				configured: async () => true,
+				usageCredential: async () => ({ type: "oauth", accessToken: "secret", projectId: "project" }),
+			},
+		);
+
+		const google = (await service.refresh()).find(item => item.provider === "google");
+		expect(google).toMatchObject({ state: "error", issue: { kind: "network" } });
+	});
+
 	test("coalesces concurrent refreshes and stops future polling", async () => {
 		let fetches = 0;
 		let release!: () => void;
