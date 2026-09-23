@@ -34,6 +34,109 @@ function create(a: ProjectActivity, id: string): RequestRuntimeRecord {
 		deliveries: [], requiredDeliveries: [], events: [], startedAt: a.recordedAt, completedAt: null, issues: [], actions: [] };
 }
 
+type ReplayState = {
+	requests: Map<string, RequestRuntimeRecord>;
+	submitted: Map<string, number>;
+	approvals: Map<string, { stage: RequestStage; id: unknown }>;
+};
+
+function sameTurnRequests(state: ReplayState, a: ProjectActivity): RequestRuntimeRecord[] {
+	return [...state.requests.values()].filter(r => {
+		const submittedAt = state.submitted.get(r.requestId);
+		return r.turnId !== null
+			&& r.turnId === a.nativeRefs.turnId
+			&& r.threadId === a.nativeRefs.threadId
+			&& submittedAt !== undefined
+			&& a.sequence >= submittedAt;
+	});
+}
+
+function deliveryRequirement(r: RequestRuntimeRecord, a: ProjectActivity, state: ReplayState): { target: string; artifact: string } | null {
+	const { target, artifact } = a.payload;
+	if (a.payload.authority !== "runtime" || r.protocolVersion !== 2 || r.completedAt) return null;
+	if (settled(r.stages[6]!) || state.approvals.has(r.requestId) || r.actions.some(action => action.status === "unconfirmed")) return null;
+	if (r.requiredDeliveries.length >= 32) return null;
+	if (typeof target !== "string" || !target.trim() || target === "chat" || target.length > 400) return null;
+	if (typeof artifact !== "string" || !artifact.trim() || artifact.length > 4000) return null;
+	return { target, artifact };
+}
+
+function applyDeliveryRequirement(r: RequestRuntimeRecord, a: ProjectActivity, state: ReplayState): void {
+	const requirement = deliveryRequirement(r, a, state);
+	if (!requirement) {
+		reject(r, a, "필수 전달 등록은 활성 요청에서 정확한 대상과 artifact가 필요합니다.");
+		return;
+	}
+	const { target, artifact } = requirement;
+	if (r.requiredDeliveries.some(delivery => delivery.target === target && delivery.artifact === artifact)) return;
+	r.requiredDeliveries = [...r.requiredDeliveries, { target, artifact }];
+	event(r, a, "delivery.required", "DELIVER", `${target}: ${artifact}`);
+}
+
+function applyReplan(r: RequestRuntimeRecord, a: ProjectActivity, state: ReplayState): void {
+	const fromStage = REQUEST_STAGES.find(stage => stage === a.payload.stage);
+	const index = fromStage ? REQUEST_STAGES.indexOf(fromStage) : -1;
+	const replanStage = r.stages[index];
+	const reason = a.payload.reason;
+	const invalid = a.payload.authority !== "runtime"
+		|| r.protocolVersion !== 2
+		|| r.completedAt !== null
+		|| state.approvals.has(r.requestId)
+		|| r.actions.some(action => action.status === "unconfirmed")
+		|| r.attempt >= 32
+		|| index < 0
+		|| typeof reason !== "string"
+		|| !reason.trim()
+		|| reason.length > 4000
+		|| !replanStage
+		|| replanStage.status === "pending"
+		|| r.stages.slice(0, index).some(stage => !settled(stage));
+	if (invalid || typeof reason !== "string") {
+		reject(r, a, "재계획은 활성 요청의 시작된 단계에만 가능하며 이유·승인 해소·실행 정합이 필요합니다.");
+		return;
+	}
+	if (!fromStage) return;
+	r.previousAttempts = [...r.previousAttempts, { attempt: r.attempt, fromStage, reason, activityId: a.id, stages: structuredClone(r.stages), deliveries: structuredClone(r.deliveries) }];
+	r.attempt++;
+	r.stages = r.stages.map((stage, stageIndex) => stageIndex < index ? stage : {
+		...stage,
+		status: stageIndex === index ? "running" : "pending",
+		output: null,
+		evidence: [],
+		decision: null,
+		skipReason: null,
+		startedAt: stageIndex === index ? a.recordedAt : null,
+		completedAt: null,
+		evidenceAfterSequence: a.sequence,
+		tasks: stage.tasks.map(task => ({ ...task, status: "pending" })),
+	});
+	// Retrying only delivery preserves already confirmed destinations; changing work invalidates acceptance.
+	if (index < REQUEST_STAGES.indexOf("DELIVER")) r.deliveries = [];
+	r.status = "running";
+	event(r, a, "request.replanned", fromStage, reason);
+	event(r, a, "stage.started", fromStage);
+}
+
+function applyRuntimeAction(r: RequestRuntimeRecord, a: ProjectActivity, method: string): void {
+	const recoverable = !r.completedAt
+		|| a.payload.hostRecovery === true
+		&& a.payload.reconciliation === true
+		&& ["runtime/action-completed", "runtime/action-reconciliation"].includes(method);
+	if (!recoverable || a.payload.authority !== "runtime") return;
+	const preparedStage = REQUEST_STAGES.find(stage => stage === a.payload.stage);
+	if (!r.completedAt && method === "runtime/action-prepared" && typeof a.payload.operationId === "string" && typeof a.payload.capability === "string" && preparedStage && !r.actions.some(action => action.operationId === a.payload.operationId)) {
+		r.actions = [...r.actions, { operationId: a.payload.operationId, stage: preparedStage, capability: a.payload.capability, status: "unconfirmed", preparedActivityId: a.id, receiptActivityId: null }];
+		event(r, a, "action.prepared", preparedStage, a.payload.operationId);
+	}
+	const action = r.actions.find(candidate => candidate.preparedActivityId === a.payload.preparedActivityId && candidate.operationId === a.payload.operationId && candidate.capability === a.payload.capability && candidate.stage === a.payload.stage && candidate.status === "unconfirmed");
+	if (action && method === "runtime/action-completed") {
+		const status = a.phase === "completed" ? a.payload.reconciliation === true ? "reconciled" : "completed" : "failed";
+		r.actions = r.actions.map(candidate => candidate === action ? { ...candidate, status, receiptActivityId: a.id } : candidate);
+		event(r, a, status === "reconciled" ? "action.reconciled" : status === "failed" ? "action.failed" : "action.completed", action.stage, action.operationId);
+	}
+	if (action && method === "runtime/action-reconciliation") event(r, a, "action.reconciliation-failed", action.stage, action.operationId);
+}
+
 function resolveEvidence(refs: readonly string[], r: RequestRuntimeRecord, source: ProjectActivity, journal: readonly ProjectActivity[]): RequestEvidence[] | null {
 	const result: RequestEvidence[] = [];
 	const submittedAt = journal.find(a => a.payload.method === "request/submitted" && a.payload.requestId === r.requestId && a.nativeRefs.threadId === r.threadId)?.sequence ?? source.sequence;
@@ -128,6 +231,7 @@ export function projectRequestRuntime(journal: readonly ProjectActivity[], threa
 	const requests = new Map<string, RequestRuntimeRecord>();
 	const submitted = new Map<string, number>();
 	const approvals = new Map<string, { stage: RequestStage; id: unknown }>();
+	const state = { requests, submitted, approvals };
 	const protocolIds = new Set(activities.filter(a => [1, 2].includes(Number(a.payload.protocolVersion)) && a.payload.method === "request/submitted").map(a => a.payload.requestId));
 	// Bind before replay: Native may emit notifications before startTurn resolves.
 	for (const a of activities) {
@@ -163,46 +267,16 @@ export function projectRequestRuntime(journal: readonly ProjectActivity[], threa
 			}
 			continue;
 		}
-		const sameTurn = [...requests.values()].filter(r => r.turnId && r.turnId === a.nativeRefs.turnId && r.threadId === a.nativeRefs.threadId && a.sequence >= submitted.get(r.requestId)!);
+		const sameTurn = sameTurnRequests(state, a);
 		if (method === "runtime/delivery-required" && direct && sameTurn.includes(direct)) {
-			const { target, artifact } = a.payload;
-			if (a.payload.authority !== "runtime" || direct.protocolVersion !== 2 || direct.completedAt || settled(direct.stages[6]!) || approvals.has(direct.requestId) || direct.actions.some(x => x.status === "unconfirmed") || direct.requiredDeliveries.length >= 32 || typeof target !== "string" || !target.trim() || target === "chat" || target.length > 400 || typeof artifact !== "string" || !artifact.trim() || artifact.length > 4000) reject(direct, a, "필수 전달 등록은 활성 요청에서 정확한 대상과 artifact가 필요합니다.");
-			else if (!direct.requiredDeliveries.some(d => d.target === target && d.artifact === artifact)) {
-				direct.requiredDeliveries = [...direct.requiredDeliveries, { target, artifact }];
-				event(direct, a, "delivery.required", "DELIVER", `${target}: ${artifact}`);
-			}
+			applyDeliveryRequirement(direct, a, state);
 			continue;
 		}
 		if (method === "runtime/replan" && direct && sameTurn.includes(direct)) {
-			const index = REQUEST_STAGES.indexOf(a.payload.stage as RequestStage["id"]);
-			const reason = a.payload.reason;
-			if (a.payload.authority !== "runtime" || direct.protocolVersion !== 2 || direct.completedAt || approvals.has(direct.requestId) || direct.actions.some(x => x.status === "unconfirmed") || direct.attempt >= 32 || index < 0 || typeof reason !== "string" || !reason.trim() || reason.length > 4000 || direct.stages[index]!.status === "pending" || direct.stages.slice(0, index).some(s => !settled(s))) {
-				reject(direct, a, "재계획은 활성 요청의 시작된 단계에만 가능하며 이유·승인 해소·실행 정합이 필요합니다.");
-			} else {
-				direct.previousAttempts = [...direct.previousAttempts, { attempt: direct.attempt, fromStage: REQUEST_STAGES[index]!, reason, activityId: a.id, stages: structuredClone(direct.stages), deliveries: structuredClone(direct.deliveries) }];
-				direct.attempt++;
-				direct.stages = direct.stages.map((s, i) => i < index ? s : { ...s, status: i === index ? "running" : "pending", output: null, evidence: [], decision: null, skipReason: null, startedAt: i === index ? a.recordedAt : null, completedAt: null, evidenceAfterSequence: a.sequence, tasks: s.tasks.map(t => ({ ...t, status: "pending" })) });
-				// Retrying only delivery preserves already confirmed destinations; changing work invalidates acceptance.
-				if (index < REQUEST_STAGES.indexOf("DELIVER")) direct.deliveries = [];
-				direct.status = "running";
-				event(direct, a, "request.replanned", REQUEST_STAGES[index]!, reason);
-				event(direct, a, "stage.started", REQUEST_STAGES[index]!);
-			}
+			applyReplan(direct, a, state);
 			continue;
 		}
-		if (direct && sameTurn.includes(direct) && (!direct.completedAt || a.payload.hostRecovery === true && a.payload.reconciliation === true && ["runtime/action-completed", "runtime/action-reconciliation"].includes(method)) && a.payload.authority === "runtime") {
-			if (!direct.completedAt && method === "runtime/action-prepared" && typeof a.payload.operationId === "string" && typeof a.payload.capability === "string" && REQUEST_STAGES.includes(a.payload.stage as never) && !direct.actions.some(x => x.operationId === a.payload.operationId)) {
-				direct.actions = [...direct.actions, { operationId: a.payload.operationId, stage: a.payload.stage as RequestStage["id"], capability: a.payload.capability, status: "unconfirmed", preparedActivityId: a.id, receiptActivityId: null }];
-				event(direct, a, "action.prepared", a.payload.stage as RequestStage["id"], a.payload.operationId);
-			}
-			const action = direct.actions.find(x => x.preparedActivityId === a.payload.preparedActivityId && x.operationId === a.payload.operationId && x.capability === a.payload.capability && x.stage === a.payload.stage && x.status === "unconfirmed");
-			if (action && method === "runtime/action-completed") {
-				const status = a.phase === "completed" ? a.payload.reconciliation === true ? "reconciled" : "completed" : "failed";
-				direct.actions = direct.actions.map(x => x === action ? { ...x, status, receiptActivityId: a.id } : x);
-				event(direct, a, status === "reconciled" ? "action.reconciled" : status === "failed" ? "action.failed" : "action.completed", action.stage, action.operationId);
-			}
-			if (action && method === "runtime/action-reconciliation") event(direct, a, "action.reconciliation-failed", action.stage, action.operationId);
-		}
+		if (direct && sameTurn.includes(direct)) applyRuntimeAction(direct, a, method);
 		const message = publicMessage(a);
 		const controlReport = method === "runtime/stage-report" && a.payload.authority === "runtime";
 		if (controlReport || message?.startsWith(REQUEST_REPORT_PREFIX)) {
