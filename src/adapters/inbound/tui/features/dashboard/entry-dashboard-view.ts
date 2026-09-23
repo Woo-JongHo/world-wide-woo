@@ -6,6 +6,7 @@ import { monitoringCard, monitoringColumns, monitoringMeter, monitoringPanel, mo
 import { a, number, pair, prose, railSection, section as astraSection } from "../../foundation/theme/astra-theme";
 import { runtimeModeLabel, workbenchEffortLabel, workbenchModelLabel } from "../../foundation/labels";
 import { colors } from "../../foundation/theme/theme";
+import { syntheticDashboardRail, syntheticDashboardRows } from "./astra-dashboard-catalog";
 
 function fit(text: string, width: number): string {
 	if (width <= 0) return "";
@@ -156,12 +157,16 @@ function monitoringSplitWidths(width: number): readonly [number, number] {
 
 /** First Astra screen. Every operational value comes from the current Workbench snapshot. */
 export class WwwDashboardView implements Component {
-	public constructor(private readonly getSnapshot: () => WorkbenchSnapshot) {}
+	public constructor(
+		private readonly getSnapshot: () => WorkbenchSnapshot,
+		private readonly showSyntheticCatalog: () => boolean = () => false,
+	) {}
 
 	public invalidate(): void {}
 
 	public render(width: number): string[] {
 		const snapshot = this.getSnapshot();
+		if (this.showSyntheticCatalog()) return syntheticDashboardRows(snapshot, width);
 		const workflow = snapshot.workFlow;
 		const todo = snapshot.todo;
 		const todoCompleted = todo?.items.filter(item => item.status === "completed").length ?? 0;
@@ -240,10 +245,14 @@ export class WwwDashboardView implements Component {
 }
 
 export class AstraDashboardRail implements Component {
-	public constructor(private readonly getSnapshot: () => WorkbenchSnapshot) {}
+	public constructor(
+		private readonly getSnapshot: () => WorkbenchSnapshot,
+		private readonly showSyntheticCatalog: () => boolean = () => false,
+	) {}
 	public invalidate(): void {}
 	public render(width: number): string[] {
 		const snapshot = this.getSnapshot();
+		if (this.showSyntheticCatalog()) return syntheticDashboardRail(snapshot, width);
 		const context = snapshot.contextUsage;
 		const enabledMcp = snapshot.mcpServers.filter(server => server.enabled).length;
 		const rows = [

@@ -75,8 +75,9 @@ function quotaBar(limit: UsageLimitSnapshot | undefined, state: string, width: n
 	const innerSize = Math.max(1, size - 2);
 	const label = value.length > innerSize ? value.slice(0, Math.max(1, innerSize - 1)) + "…" : value;
 	const centered = `[${label.padStart(label.length + Math.max(0, Math.floor((innerSize - label.length) / 2))).padEnd(innerSize)}]`;
-	const filled = percent === null ? 0 : Math.round(size * percent / 100);
-	return `${chalk.bgHex(color).hex("#101419").bold(centered.slice(0, filled))}${chalk.bgHex(astraPalette.rule).hex(astraPalette.text)(centered.slice(filled))}`;
+	const filled = percent === null ? 0 : Math.round(innerSize * percent / 100);
+	const empty = chalk.bgHex(astraPalette.rule).hex(astraPalette.text);
+	return `${empty(centered[0]!)}${chalk.bgHex(color).hex("#101419").bold(centered.slice(1, 1 + filled))}${empty(centered.slice(1 + filled))}`;
 }
 
 /** A provider header plus two quota rows form a compact matrix. */

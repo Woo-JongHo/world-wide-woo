@@ -5,6 +5,7 @@ import type { UsageSnapshot } from "../../../../../core/ports";
 import { monitoringCard, monitoringColumns, monitoringMeter, monitoringWidths } from "../../foundation/layout/astra-monitoring-layout";
 import { a, astraMarkdownTheme, astraMeter, fit, mark, number, pair, prose, railSection, safe, section } from "../../foundation/theme/astra-theme";
 import { runtimeModeLabel, workbenchEffortLabel, workbenchModelLabel } from "../../foundation/labels";
+import { syntheticContextRows, syntheticStorageRows } from "./astra-context-catalog";
 
 function document(rows: string[], width: number): string[] { return rows.flatMap(row => prose(row, width)); }
 function kv(label: string, value: unknown): string { return `${a.muted(fit(label, 20))} ${a.text(safe(value ?? "—"))}`; }
@@ -204,7 +205,7 @@ function requestRuntimeRows(request: RequestRuntimeRecord, width: number): strin
 }
 
 export class AstraContextView implements Component {
-	constructor(private readonly get: () => WorkbenchSnapshot, private readonly usage: () => readonly UsageSnapshot[] = () => [], private readonly source = false) {}
+	constructor(private readonly get: () => WorkbenchSnapshot, private readonly usage: () => readonly UsageSnapshot[] = () => [], private readonly source = false, private readonly synthetic: () => boolean = () => false) {}
 	invalidate(): void {}
 	render(width: number): string[] {
 		const s = this.get();
@@ -216,6 +217,8 @@ export class AstraContextView implements Component {
 			else rows.push(a.muted("/source latest 또는 /source <activity-id>로 관측을 선택하세요."));
 			return document(rows, width);
 		}
+		const catalog = this.synthetic() ? syntheticContextRows(s, width) : [];
+		if (catalog.length) return document(catalog, width);
 		const metrics = contextMetrics(s);
 		const skills = s.skillInventory;
 		const enabledMcp = s.mcpServers.filter(server => server.enabled).length;
@@ -271,7 +274,7 @@ export class AstraContextView implements Component {
 }
 
 export class AstraContextRail implements Component {
-	constructor(private readonly get: () => WorkbenchSnapshot) {}
+	constructor(private readonly get: () => WorkbenchSnapshot, private readonly synthetic: () => boolean = () => false) {}
 	invalidate(): void {}
 	render(width: number): string[] {
 		const snapshot = this.get();
@@ -291,6 +294,7 @@ export class AstraContextRail implements Component {
 			rows.push(a.muted(`  ${server.tools.length} tools · ${safe(server.status)}`));
 		}
 		if (snapshot.mcpServers.length > 4) rows.push(a.muted(`+${snapshot.mcpServers.length - 4} more`));
+		if (this.synthetic()) return document([...rows, ...syntheticStorageRows(width)], width);
 		rows.push(...railSection("■ STORAGE METRICS", width, "observed", a.active));
 		rows.push(pair("CONTEXT WINDOW", metrics.used == null || metrics.total == null ? "미관측" : `${number(metrics.used)}/${number(metrics.total)}`, width));
 		rows.push(metrics.used == null || metrics.total == null ? a.rule("━".repeat(Math.max(4, width - 2))) : astraMeter(metrics.used, metrics.total, Math.max(4, width - 2), a.active));

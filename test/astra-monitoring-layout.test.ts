@@ -6,6 +6,7 @@ import {
 	monitoringMatrix,
 	monitoringPanel,
 	monitoringQueue,
+	monitoringTable,
 	monitoringUnavailablePanel,
 } from "../src/adapters/inbound/tui/foundation/layout/astra-monitoring-layout";
 
@@ -40,5 +41,28 @@ describe("astra monitoring layout", () => {
 		expect(output).toContain("flow data 미관측");
 		expect(output).toContain("diagnostic data 미관측");
 		expect(stripTerminalSequences(monitoringQueue([], 52).join("\n"))).toContain("queue empty");
+	});
+
+	test("renders page-defined columns on stable shared axes", () => {
+		const rows = monitoringTable({
+			columns: [
+				{ heading: "SOURCE", minWidth: 7 },
+				{ heading: "DISTRIBUTION", minWidth: 12, weight: 1 },
+				{ heading: "SIZE", minWidth: 6, align: "right" },
+				{ heading: "SHARE", minWidth: 6, align: "right" },
+			],
+			rows: [
+				["SYS", "████", "4 MB", "8.3%"],
+				["CONV", "████████████", "20 MB", "41.7%"],
+			],
+		}, 52);
+		const plain = rows.map(stripTerminalSequences);
+		expect(plain).toHaveLength(4);
+		expect(["SOURCE", "DISTRIBUTION", "SIZE", "SHARE"].map(label => plain[0]!.indexOf(label))).toEqual([0, 9, 40, 47]);
+		expect(plain[2]!.indexOf("MB")).toBe(42);
+		expect(plain[3]!.indexOf("MB")).toBe(42);
+		expect(plain[2]!.indexOf("%")).toBe(51);
+		expect(plain[3]!.indexOf("%")).toBe(51);
+		expect(rows.every(row => visibleWidth(row) === 52)).toBe(true);
 	});
 });

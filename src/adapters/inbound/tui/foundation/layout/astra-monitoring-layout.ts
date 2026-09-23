@@ -1,5 +1,7 @@
 import { a, fit, oneLine, pair, type AstraInk } from "../theme/astra-theme";
-import { visibleWidth } from "@earendil-works/pi-tui";
+import chalk from "chalk";
+import { palette } from "../theme/theme";
+import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 
 export interface MonitoringCard {
 	readonly title: string;
@@ -19,6 +21,19 @@ export interface MonitoringPanel {
 /** A table-like projection. Empty data stays explicitly unobserved. */
 export interface MonitoringMatrix {
 	readonly columns: readonly string[];
+	readonly rows: readonly (readonly string[])[];
+	readonly emptyLabel?: string;
+}
+
+export interface MonitoringTableColumn {
+	readonly heading: string;
+	readonly minWidth: number;
+	readonly weight?: number;
+	readonly align?: "left" | "right";
+}
+
+export interface MonitoringTable {
+	readonly columns: readonly MonitoringTableColumn[];
 	readonly rows: readonly (readonly string[])[];
 	readonly emptyLabel?: string;
 }
@@ -44,10 +59,66 @@ export interface MonitoringDiagnostic {
 
 function paneWidth(width: number): number { return Math.max(1, Math.floor(width)); }
 function panelCell(value: string, width: number): string {
-	const clipped = fit(value.replace(/\s+/gu, " "), width);
+	const clipped = fit(value.replace(/[\r\n\t]/gu, " "), width);
 	return clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)));
 }
 function cell(value: string, width: number): string { return fit(value.replace(/\s+/gu, " "), Math.max(1, width)); }
+
+/** Dense instrument panel: two border rows, fixed cell width, theme-owned surface. */
+export function monitoringCompactPanel(title: string, rows: readonly string[], width: number): string[] {
+	if (width < 3) return rows.map(row => fit(row, width));
+	const inner = width - 2;
+	const label = truncateToWidth(oneLine(title), inner, "…", false);
+	return [
+		a.rule("┌") + a.active(label) + a.rule("─".repeat(inner - visibleWidth(label)) + "┐"),
+		...rows.map(row => a.rule("│") + chalk.bgHex(palette.panel)(fit(row, inner)) + a.rule("│")),
+		a.rule("└" + "─".repeat(inner) + "┘"),
+	];
+}
+
+/** Equal-width sample buckets; supplied values alone determine column height. */
+export function monitoringBars(values: readonly number[], width: number, height = 3, ink: AstraInk = a.success): string[] {
+	if (!values.length || width < 1) return [];
+	const visible = values.slice(0, width);
+	const widths = monitoringWidths(width, visible.length, 0);
+	const peak = Math.max(1, ...visible);
+	return Array.from({ length: height }, (_, row) => visible.map((value, index) => {
+		const cells = widths[index] ?? 1;
+		const filled = value / peak * height >= height - row - 0.5;
+		return (filled ? ink : a.rule)((filled ? "█" : "░").repeat(Math.max(1, cells - 1))) + (cells > 1 ? " " : "");
+	}).join(""));
+}
+function alignedCell(value: string, width: number, align: "left" | "right" = "left"): string {
+	const clipped = truncateToWidth(value.replace(/\s+/gu, " "), width, "…", false);
+	const padding = " ".repeat(Math.max(0, width - visibleWidth(clipped)));
+	return align === "right" ? padding + clipped : clipped + padding;
+}
+
+/** Render a page-defined table while keeping every row on the same terminal axes. */
+export function monitoringTable(table: MonitoringTable, width: number): string[] {
+	const outer = paneWidth(width);
+	if (!table.columns.length || !table.rows.length) return [alignedCell(a.muted(table.emptyLabel ?? "table data 미관측"), outer)];
+	const gapWidth = Math.max(0, table.columns.length - 1) * 2;
+	const minimums = table.columns.map(column => Math.max(1, Math.floor(column.minWidth)));
+	const available = Math.max(table.columns.length, outer - gapWidth);
+	const minimumTotal = minimums.reduce((total, value) => total + value, 0);
+	const extra = Math.max(0, available - minimumTotal);
+	const weights = table.columns.map(column => Math.max(0, column.weight ?? 0));
+	const weightTotal = weights.reduce((total, value) => total + value, 0);
+	const additions = weights.map(weight => weightTotal > 0 ? Math.floor(extra * weight / weightTotal) : 0);
+	let remainder = extra - additions.reduce((total, value) => total + value, 0);
+	for (let index = 0; remainder > 0 && index < additions.length; index++) {
+		if ((weights[index] ?? 0) <= 0) continue;
+		additions[index] = (additions[index] ?? 0) + 1;
+		remainder--;
+	}
+	const widths = minimums.map((minimum, index) => minimum + (additions[index] ?? 0));
+	if (weightTotal <= 0 && widths.length) widths[widths.length - 1] = (widths.at(-1) ?? 1) + extra;
+	const row = (values: readonly string[]): string => fit(table.columns.map((column, index) =>
+		alignedCell(values[index] ?? "—", widths[index] ?? 1, column.align),
+	).join("  "), outer);
+	return [row(table.columns.map(column => a.muted(column.heading))), a.rule("─".repeat(outer)), ...table.rows.map(row)];
+}
 
 /**
  * Wraps a fixed amount of already-bounded content in an explicit titled panel.

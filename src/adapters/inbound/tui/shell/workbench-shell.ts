@@ -334,11 +334,12 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		Date.now,
 		astraMotion,
 		{ motionActive: requestRuntimeMotionActive, rows: requestRuntimeRows },
-		new WwwDashboardView(() => snapshot),
+		new WwwDashboardView(() => snapshot, () => demoMode),
 		astraExecutionHeading,
 		threeBodyLab ?? undefined,
 		{},
 		() => dependencies.usage.cacheMetrics(),
+		() => demoMode,
 	) : null;
 	astra?.show(dependencies.initialAstraPage ?? "execution");
 	const status = astra ? new AstraNotice() : new StatusLine(WORKBENCH_STATUS_NOTICE);

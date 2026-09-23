@@ -22,17 +22,14 @@ describe("AstraUsageView", () => {
 		}];
 		const output = stripTerminalSequences(new AstraUsageView(() => snapshot, () => usage).render(120).join("\n"));
 		expect(output).not.toContain("Usage Dashboard");
-		expect(output).toContain("Active Providers Telemetry");
+		expect(output).toContain("모델별 사용 내역");
 		for (const provider of ["CODEX", "CLAUDE", "ANTIGRAVITY", "Z.AI"]) expect(output).toContain(provider);
 		expect(output).toContain("gpt-5.6-sol");
 		expect(output).toContain("62% 남음");
-		expect(output).toContain("████");
-		expect(output).toContain("░░░░");
-		expect(output).toContain("high 100% · 1.5K");
-		for (const heading of ["MODEL NAME", "EFFORT", "REQUEST", "INPUT / OUTPUT / CACHED TOKENS", "EXEC TIME", "RECENT USE", "SUPPORTED EFFORTS"]) expect(output).toContain(heading);
-		for (const panel of ["Provider Availability Window", "Time Until Renewal", "Model Effort Distribution", "Token Trend", "Today vs Session", "Provider Load Ratio", "Token Consumption Matrix", "Input / Output Ratio", "Performance Trend"]) expect(output).toContain(panel);
-		expect(output).toContain("provider attribution");
-		expect(output).toContain("Token Trend · unavailable");
+		for (const heading of ["MODEL", "EFFORT", "DIRECT", "DETACHED", "OBSERVED"]) expect(output).toContain(heading);
+		for (const value of ["1.2K", "300", "1.5K"]) expect(output).toContain(value);
+		expect(output).toContain("작업별 귀속 미확인");
+		expect(output).not.toContain("Token Trend");
 	});
 
 	test("keeps unobserved state explicit and every row within the pane", () => {
@@ -41,7 +38,7 @@ describe("AstraUsageView", () => {
 			const output = stripTerminalSequences(rows.join("\n"));
 			expect(output).not.toContain("Usage Dashboard");
 			expect(output).toContain("미관측");
-			for (const panel of ["Provider Availability", "Model Effort Distribution", "Token Consumption Matrix", "Performance Trend"]) expect(output).toContain(panel);
+			for (const panel of ["모델별 사용 내역", "어디에 사용했나", "구독 잔여 한도"]) expect(output).toContain(panel);
 			expect(rows.every(row => visibleWidth(row) <= width)).toBe(true);
 		}
 	});
@@ -63,13 +60,12 @@ describe("AstraUsageView", () => {
 		expect(wideText).toContain("┌");
 		expect(wideText).toContain("Claude");
 		expect(wideText).toContain("84% 남음");
-		expect(wideText).toContain("████");
 		expect(compactText).toContain("provider snapshot 없음");
 		for (const rows of [wide, compact]) expect(rows.every(row => visibleWidth(row) <= (rows === wide ? 120 : 60))).toBe(true);
 		const rail = stripTerminalSequences(new AstraUsageRail(() => snapshot, () => usage).render(38).join("\n"));
-		expect(rail).toContain("Workbench Metrics");
-		expect(rail).toContain("Time Window Performance");
-		expect(rail).toContain("System Hints");
+		expect(rail).toContain("관측 범위");
+		expect(rail).toContain("아직 알 수 없는 것");
+		expect(rail).toContain("오래된 한도 정보");
 		expect(rail).toContain("미관측");
 	});
 });

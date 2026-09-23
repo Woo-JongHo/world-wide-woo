@@ -53,7 +53,7 @@ export function createAstraDemoState(_base: WorkbenchSnapshot, clock = Date.now)
 		projectId: "astra-demo", revision: 1, journalSequence: activities.length, phase: "working", threadId: "demo-thread", activeTurnId: "demo-turn",
 		model: "gpt-6-astra", activeModel: "gpt-6-astra", effort: "low", permissionMode: "manual", collaborationMode: "manual",
 		sessionGoal: { text: "DEMO DATA · synthetic fixtures · not live telemetry", sourceActivityId: "demo-request", updatedAt: new Date(now).toISOString() },
-		contextUsage: { usedTokens: 128_400, contextWindow: 200_000, percent: 64.2 },
+		contextUsage: { usedTokens: 1_230_000, contextWindow: 1_500_000, percent: 82 },
 		sessionUsage: {
 			totalTokens: 189_500, observedTotalTokens: 189_500, unattributedTokens: 3_200,
 			models: [

@@ -806,7 +806,7 @@ describe("Astra execution console", () => {
 		expect(compact).not.toContain("Cache health");
 		expect(compactFrame.lines.every(row => visibleWidth(row) <= 80)).toBe(true);
 	});
-	test("Usage keeps every Figma lower hierarchy panel in the actual 120-column workspace rail split", () => {
+	test("Usage shows model use and observation limits in the actual workspace", () => {
 		const snapshot = astraFixture();
 		snapshot.sessionUsage = {
 			totalTokens: 1_500,
@@ -820,17 +820,15 @@ describe("Astra execution console", () => {
 		workspace.show("usage");
 		const frame = renderLayoutFrame(workspace.component, 120, 60, () => {});
 		const wide = stripTerminalSequences(frame.lines.join("\n"));
-		for (const label of ["Model Telemetry", "Provider Availability Window", "Workbench Metrics"]) expect(wide).toContain(label);
-		const railLine = frame.lines.map(stripTerminalSequences).find(line => line.includes("Workbench Metrics"));
-		expect(railLine?.indexOf("Workbench Metrics")).toBeGreaterThanOrEqual(80);
+		for (const label of ["모델별 사용 내역", "구독 잔여 한도", "관측 범위"]) expect(wide).toContain(label);
 		expect(frame.lines.every(row => visibleWidth(row) <= 120)).toBe(true);
 		workspace.scrolls.usage.scrollBy(200);
 		const lowerFrame = renderLayoutFrame(workspace.component, 120, 60, () => {});
 		const lower = stripTerminalSequences(lowerFrame.lines.join("\n"));
-		for (const label of ["Model Effort Distribution", "Provider Load Ratio", "Token Consumption Matrix", "Performance Trend"]) expect(lower).toContain(label);
+		for (const label of ["Provider Load Ratio", "Performance Trend"]) expect(lower).not.toContain(label);
 		const compactFrame = renderLayoutFrame(workspace.component, 80, 24, () => {});
 		const compact = stripTerminalSequences(compactFrame.lines.join("\n"));
-		expect(compact).not.toContain("Workbench Metrics");
+		expect(compact).not.toContain("아직 알 수 없는 것");
 		expect(compactFrame.lines.every(row => visibleWidth(row) <= 80)).toBe(true);
 	});
 	test("Dashboard keeps summary, router, proportion, and heatmap panels in the actual 120-column workspace rail split", () => {

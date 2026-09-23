@@ -202,16 +202,21 @@ test("/demo presents synthetic MVP pages with R/E navigation and restores live s
 		expect(frame()).toContain("+2 대기");
 		terminal.columns = 80; terminal.rows = 24; terminal.resize(); await tick();
 		expect(frame()).toContain("Stages");
-		terminal.columns = 120; terminal.rows = 36; terminal.resize(); await tick();
+		terminal.columns = 160; terminal.rows = 48; terminal.resize(); await tick();
 		expect(frame()).not.toContain("LIVE_PRIVATE_REASONING_SENTINEL");
-		terminal.input("E"); await tick(); expect(frame()).toContain("SESSION OVERVIEW"); expect(frame()).toContain("Queue"); expect(frame()).toContain("2"); expect(frame()).toContain("1 waiting");
-		terminal.input("E"); await tick(); expect(frame()).toContain("Active Providers Telemetry");
+		terminal.input("E"); await tick(); expect(frame()).toContain("ACTIVE SESSION ID"); expect(frame()).toContain("TOKEN ALLOCATION TRENDS"); expect(frame()).toContain("SESSION EVENT AGGREGATES");
+		terminal.input("E"); await tick(); expect(frame()).toContain("모델별 사용 내역");
 		terminal.input("E"); await tick(); expect(frame()).toContain("CONTEXT ACCUMULATION SPECTROMETER");
 		expect(frame()).not.toContain("LIVE_PRIVATE_PROJECT_SENTINEL");
 		expect(frame()).toContain("LOADED SKILLS"); expect(frame()).toContain("STORAGE METRICS");
-		terminal.input("G"); await tick(); expect(frame()).toContain("계획 연결 근거");
-		terminal.input("E"); await tick(); expect(frame()).toContain("Cache Controller");
-		terminal.input("E"); await tick(); expect(frame()).toContain("Workflow overview"); expect(frame()).toContain("Failed"); expect(frame()).toContain("1");
+		for (const label of ["CONTEXT COMPOSITION BREAKDOWN", "CONTEXT CHANGE ACTIVITY", "DIAGNOSTIC EVENT AGGREGATES", "TOP ITEMS BY SIZE", "STATE CHANGE ALERTS", "synthetic fixtures", "T-8"]) expect(frame()).toContain(label);
+		terminal.input("R"); await tick(); expect(frame()).toContain("모델별 사용 내역");
+		terminal.input("E"); await tick(); expect(frame()).toContain("CONTEXT CHANGE ACTIVITY");
+		terminal.input("G"); await tick(); expect(frame()).toContain("DIAGNOSTIC EVENT AGGREGATES");
+		expect(frame()).not.toContain("계획 연결 근거");
+		terminal.input("E"); await tick(); expect(frame()).toContain("CACHE SLICES");
+		terminal.input("E"); await tick(); expect(frame()).toContain("7-stage request pipeline"); expect(frame()).toContain("5 ACTIVE / 8 TOTAL");
+		for (const label of ["UNDERSTAND", "DECOMPOSE", "GROUND", "DECIDE", "EXECUTE", "VERIFY", "DELIVER", "LANE_A", "LANE_B", "LANE_C"]) expect(frame()).toContain(label);
 		terminal.input("E"); await tick(); expect(frame()).toContain("Plan"); expect(frame()).toContain("Next"); expect(frame()).toContain("2개");
 		terminal.input("E"); await tick(); expect(frame()).toContain("Chat");
 		terminal.input("R"); await tick(); expect(frame()).toContain("Plan");
@@ -225,6 +230,13 @@ test("/demo presents synthetic MVP pages with R/E navigation and restores live s
 		expect(frame()).toContain("LIVE RESTORED");
 		expect(frame()).toContain("DEMO_EXIT_APPROVAL");
 		expect(frame()).not.toContain("DEMO DATA");
+		terminal.input("\x03"); await tick(); // Close the restored approval sheet before navigating Live.
+		snapshot = { ...snapshot, revision: 78, pendingApproval: null };
+		listener(snapshot); await tick();
+		terminal.input("\x07"); terminal.input("7"); await tick();
+		terminal.input("g"); await tick(); // Context retains the earlier Demo end-of-page scroll position.
+		expect(frame()).toContain("Source token allocation unavailable");
+		expect(frame()).not.toContain("CONV growing");
 		expect(commands).toHaveLength(0);
 	} finally {
 		if (!terminal.stopped) { terminal.input("\x03"); terminal.input("\x03"); await tick(); }
@@ -346,7 +358,7 @@ test("execution heading belongs only to the execution page", async () => {
 			auth: { methods: () => [], status: async provider => ({ state: "configured", provider, type: "oauth", source: "test" }), login: async () => { throw new Error("not requested"); }, logout: async () => {} },
 		});
 		await tick();
-		expect(frame()).toContain("Active Providers Telemetry");
+		expect(frame()).toContain("모델별 사용 내역");
 		expect(frame()).not.toContain("▎ 실행 중");
 		terminal.input("\t"); terminal.input("\x1b"); await tick();
 		expect(frame()).toContain("▎ 실행 중");

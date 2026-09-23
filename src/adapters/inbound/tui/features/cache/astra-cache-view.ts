@@ -2,6 +2,7 @@ import type { Component } from "@earendil-works/pi-tui";
 import type { CacheLayerTelemetry, CacheTelemetrySnapshot } from "../../../../../core/domain/observability/cache-telemetry";
 import { monitoringCard, monitoringColumns, monitoringMeter, monitoringWidths } from "../../foundation/layout/astra-monitoring-layout";
 import { a, fit, number, pair, prose, railSection, section } from "../../foundation/theme/astra-theme";
+import { syntheticCacheRailRows, syntheticCacheRows } from "./astra-cache-catalog";
 
 function bytes(value: number | null): string {
 	if (value === null) return "미관측";
@@ -127,9 +128,10 @@ function telemetryFlowPanel(layers: readonly CacheLayerTelemetry[], width: numbe
 }
 
 export class AstraCacheView implements Component {
-	constructor(private readonly get: () => CacheTelemetrySnapshot) {}
+	constructor(private readonly get: () => CacheTelemetrySnapshot, private readonly isDemo: () => boolean = () => false) {}
 	invalidate(): void {}
 	render(width: number): string[] {
+		if (this.isDemo()) return syntheticCacheRows(width);
 		const cache = this.get();
 		const observedRates = cache.layers.filter(layer => layer.hits !== null && layer.misses !== null);
 		const hits = observedRates.reduce((sum, layer) => sum + layer.hits!, 0);
@@ -159,9 +161,10 @@ export class AstraCacheView implements Component {
 }
 
 export class AstraCacheRail implements Component {
-	constructor(private readonly get: () => CacheTelemetrySnapshot) {}
+	constructor(private readonly get: () => CacheTelemetrySnapshot, private readonly isDemo: () => boolean = () => false) {}
 	invalidate(): void {}
 	render(width: number): string[] {
+		if (this.isDemo()) return syntheticCacheRailRows(width);
 		const cache = this.get();
 		const stale = cache.layers.filter(layer => layer.state === "stale");
 		const missing = cache.layers.filter(layer => layer.state === "unobserved");

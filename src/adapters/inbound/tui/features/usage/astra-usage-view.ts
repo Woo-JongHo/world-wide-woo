@@ -1,15 +1,15 @@
 import type { Component } from "@earendil-works/pi-tui";
 import type { WorkbenchSnapshot } from "../../../../../core/domain/work/workbench";
 import type { UsageLimitSnapshot, UsageSnapshot } from "../../../../../core/ports";
-import { monitoringCard, monitoringColumns, monitoringMatrix, monitoringMeter, monitoringPanel, monitoringUnavailablePanel, monitoringWidths, type MonitoringCard } from "../../foundation/layout/astra-monitoring-layout";
+import { monitoringCard, monitoringColumns, monitoringPanel, monitoringTable, monitoringWidths, type MonitoringCard } from "../../foundation/layout/astra-monitoring-layout";
 import { a, fit, number, pair, prose, railSection, safe, section } from "../../foundation/theme/astra-theme";
 
 const PROVIDERS = ["openai-codex", "anthropic", "google", "zai"] as const;
 const PROVIDER_LABELS: Readonly<Record<UsageSnapshot["provider"], string>> = {
-	"openai-codex": "Codex",
-	anthropic: "Claude",
-	google: "Antigravity",
-	zai: "Z.AI",
+	"openai-codex" : "Codex",
+	anthropic     : "Claude",
+	google        : "Antigravity",
+	zai           : "Z.AI",
 };
 
 function observedPercent(limit: UsageLimitSnapshot): number | null {
@@ -21,12 +21,6 @@ function observedPercent(limit: UsageLimitSnapshot): number | null {
 function resetLabel(timestamp: number | undefined): string {
 	if (typeof timestamp !== "number" || !Number.isFinite(timestamp)) return "미관측";
 	return new Date(timestamp).toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false });
-}
-
-function contextLabel(snapshot: WorkbenchSnapshot): string {
-	const percent = snapshot.contextUsage?.percent;
-	if (typeof percent !== "number" || !Number.isFinite(percent)) return "미관측";
-	return `${Math.round(Math.max(0, Math.min(100, percent)))}%`;
 }
 
 function providerCard(provider: UsageSnapshot["provider"], snapshot: UsageSnapshot | undefined): MonitoringCard {
@@ -57,192 +51,99 @@ function providerCards(providers: readonly UsageSnapshot[], width: number): stri
 
 function modelRows(snapshot: WorkbenchSnapshot, width: number): string[] {
 	const session = snapshot.sessionUsage;
-	const legend = [
-		a.muted("MODEL NAME · EFFORT · REQUEST · EXEC TIME"),
-		a.muted("INPUT / OUTPUT / CACHED TOKENS · RECENT USE · SUPPORTED EFFORTS"),
-	];
-	if (!session?.models.length) return [...legend, a.muted("model telemetry 미관측")];
-	const rows = session.models.flatMap(model => {
-		const interactiveTurns = Math.max(0, Number.isFinite(model.interactiveRootTurns) ? model.interactiveRootTurns : 0);
-		const detachedCalls = Math.max(0, Number.isFinite(model.detachedInvocations) ? model.detachedInvocations : 0);
-		const totalTokens = Math.max(0, Number.isFinite(model.totalTokens) ? model.totalTokens : 0);
-		return [
-			pair(`${a.strong(safe(model.model, 38))} · ${a.active(model.effort ? safe(model.effort, 16) : "미관측")}`, `${number(interactiveTurns + detachedCalls)} requests`, width),
-			pair(`tokens ${number(totalTokens)} total · I/O/cached 미관측`, "exec · recent · supported 미관측", width),
-		];
-	});
-	return [...legend, ...rows, a.caption("Native는 현재 token 총량만 관측하며 input/output/cached 분해와 시간 축을 제공하지 않습니다.")];
+	if (!session?.models.length) return [a.muted("모델 사용 내역 미관측 · 관측 기준선이 필요합니다.")];
+
+	const columns = [
+		{ heading : "MODEL"   , minWidth : 18, weight : 1, align : "left"  },
+		{ heading : "EFFORT"  , minWidth :  6, weight : 0, align : "left"  },
+		{ heading : "DIRECT"  , minWidth :  8, weight : 0, align : "right" },
+		{ heading : "DETACHED", minWidth :  8, weight : 0, align : "right" },
+		{ heading : "OBSERVED", minWidth :  8, weight : 0, align : "right" },
+	] as const;
+	const rows = session.models.map(model => [
+		safe(model.model, 48),
+		safe(model.effort ?? "미관측", 16),
+		session.observationCoverage.interactive ? number(model.interactiveTokens) : "미관측",
+		session.observationCoverage.detached ? number(model.detachedTokens) : "미관측",
+		number(model.totalTokens),
+	]);
+	if (width < 66) return rows.flatMap(row => [
+		fit(`${row[0]} · ${row[1]}`, width),
+		fit(`직접 ${row[2]} · 분리 ${row[3]} · 관측 ${row[4]}`, width),
+	]);
+	return monitoringTable({ columns, rows }, width);
 }
 
-function providerAvailabilityRows(providers: readonly UsageSnapshot[], width: number): string[] {
-	const contentWidth = Math.max(1, width - 2);
-	const labelWidth = Math.min(12, Math.max(7, Math.floor(contentWidth * 0.22)));
-	const valueWidth = 5;
-	const meterWidth = Math.max(4, contentWidth - labelWidth - valueWidth - 3);
-	return PROVIDERS.flatMap(provider => {
-		const snapshot = providers.find(candidate => candidate.provider === provider);
-		if (!snapshot?.limits.length) return [pair(PROVIDER_LABELS[provider], "미관측", contentWidth)];
-		return snapshot.limits.slice(0, 2).map((limit, index) => {
-			const percent = observedPercent(limit);
-			const label = index === 0 ? PROVIDER_LABELS[provider].padEnd(labelWidth) : " ".repeat(labelWidth);
-			if (percent === null) return fit(`${label}  ${a.muted("미관측")}`, contentWidth);
-			const ink = index === 0 ? a.success : a.info;
-			return fit(`${label}  ${monitoringMeter(percent, 100, meterWidth, ink)} ${a.muted(`${Math.round(percent)}%`.padStart(valueWidth))}`, contentWidth);
-		});
-	});
-}
-
-function effortDistributionRows(snapshot: WorkbenchSnapshot, width: number): string[] {
-	const models = snapshot.sessionUsage?.models ?? [];
-	if (!models.length) return [a.muted("미관측 · model effort telemetry 없음")];
-	const totals = new Map<string, number>();
-	for (const model of models) {
-		const effort = model.effort || "미관측";
-		totals.set(effort, (totals.get(effort) ?? 0) + Math.max(0, Number.isFinite(model.totalTokens) ? model.totalTokens : 0));
-	}
-	const totalTokens = [...totals.values()].reduce((total, tokens) => total + tokens, 0);
-	if (totalTokens <= 0) return [a.muted("미관측 · effort token telemetry가 0입니다.")];
-	const contentWidth = Math.max(1, width - 2);
-	const segmentInks = [a.failure, a.active, a.attention, a.info] as const;
-	const ordered = [...totals].sort((left, right) => right[1] - left[1]);
-	const meterWidth = Math.max(4, contentWidth);
-	let remainingCells = meterWidth;
-	const segments = ordered.map(([effort, tokens], index) => {
-		const cells = index === ordered.length - 1 ? remainingCells : Math.min(remainingCells, Math.round(meterWidth * tokens / totalTokens));
-		remainingCells -= cells;
-		return (segmentInks[index % segmentInks.length] ?? a.info)("█".repeat(Math.max(0, cells)));
-	});
-	const legend = ordered.map(([effort, tokens], index) => {
-		const percent = Math.round(tokens / totalTokens * 100);
-		const marker = (segmentInks[index % segmentInks.length] ?? a.info)("■");
-		return `${marker} ${safe(effort, 16)} ${percent}% · ${number(tokens)}`;
-	});
-	return [segments.join(""), ...legend];
-}
-
-function tokenMatrixRows(snapshot: WorkbenchSnapshot, width: number): string[] | null {
+function attributionRows(snapshot: WorkbenchSnapshot, width: number): string[] {
 	const session = snapshot.sessionUsage;
-	if (!session || session.observedTotalTokens == null) return null;
-	const interactiveTokens = session.models.reduce((total, model) => total + Math.max(0, Number.isFinite(model.interactiveTokens) ? model.interactiveTokens : 0), 0);
-	const detachedTokens = session.models.reduce((total, model) => total + Math.max(0, Number.isFinite(model.detachedTokens) ? model.detachedTokens : 0), 0);
-	return monitoringMatrix({
-		columns: ["SCOPE", "TOKENS", "SOURCE"],
-		rows: [
-			["Session", number(Math.max(0, session.observedTotalTokens)), "observed"],
-			["Interactive", number(interactiveTokens), "observed"],
-			["Detached", number(detachedTokens), "observed"],
-			["Unattributed", number(Math.max(0, session.unattributedTokens)), "remainder"],
-		],
-	}, Math.max(1, width - 2), 6);
-}
-
-function leftAnalysis(providers: readonly UsageSnapshot[], width: number): string[] {
+	if (!session) return [a.muted("세션 사용량 미관측")];
+	const interactive = session.models.reduce((sum, model) => sum + model.interactiveTokens, 0);
+	const detached    = session.models.reduce((sum, model) => sum + model.detachedTokens, 0);
+	const unassigned  = session.unattributedTokens;
 	return [
-		...monitoringPanel({ title: "Provider Availability Window", meta: `${providers.length}/4 observed`, ink: a.note }, providerAvailabilityRows(providers, width), width),
-		...monitoringPanel({ title: "Time Until Renewal", meta: "provider supplied", ink: a.active }, [
-			...PROVIDERS.map(provider => {
-				const limit = providers.find(candidate => candidate.provider === provider)?.limits[0];
-				return pair(PROVIDER_LABELS[provider], limit ? resetLabel(limit.resetsAt) : "미관측", Math.max(1, width - 2));
-			}),
-			a.caption("정확한 remaining duration은 Native에서 미관측"),
-		], width),
+		pair("직접 대화", session.observationCoverage.interactive ? `${number(interactive)} tokens` : "미관측", width),
+		pair("분리 실행", session.observationCoverage.detached ? `${number(detached)} tokens` : "미관측", width),
+		pair("모델 귀속 미확인", session.observedTotalTokens === null ? "미관측" : `${number(unassigned)} tokens`, width),
+		a.muted("작업별 귀속 미확인 · 업무·사용 목적 연결이 아직 없습니다."),
 	];
-}
-
-function middleAnalysis(snapshot: WorkbenchSnapshot, width: number): string[] {
-	const sessionTokens = snapshot.sessionUsage?.observedTotalTokens;
-	return [
-		...monitoringPanel({ title: "Model Effort Distribution", meta: snapshot.sessionUsage ? "observed" : "미관측", ink: a.active }, effortDistributionRows(snapshot, width), width),
-		...monitoringUnavailablePanel("Token Trend", "time bucket token telemetry가 없습니다.", width),
-		...monitoringPanel({ title: "Today vs Session", meta: "mixed coverage", ink: a.note }, [
-			pair("Today", "미관측", Math.max(1, width - 2)),
-			pair("Session", sessionTokens == null ? "미관측" : `${number(sessionTokens)} tokens`, Math.max(1, width - 2)),
-		], width),
-	];
-}
-
-function rightAnalysis(snapshot: WorkbenchSnapshot, width: number): string[] {
-	const matrix = tokenMatrixRows(snapshot, width);
-	return [
-		...monitoringUnavailablePanel("Provider Load Ratio", "model usage에 provider attribution이 없습니다.", width),
-		...(matrix
-			? monitoringPanel({ title: "Token Consumption Matrix", meta: "observed total", ink: a.active }, matrix, width)
-			: monitoringUnavailablePanel("Token Consumption Matrix", "session token baseline이 없습니다.", width)),
-		...monitoringUnavailablePanel("Input / Output Ratio", "input/output token 분해가 없습니다.", width),
-		...monitoringUnavailablePanel("Performance Trend", "request duration과 time bucket telemetry가 없습니다.", width),
-	];
-}
-
-function analysisWorkspace(snapshot: WorkbenchSnapshot, providers: readonly UsageSnapshot[], width: number): string[] {
-	// The standard desktop shell leaves roughly 100 columns after the metrics rail.
-	// Keep the Figma three-column analysis hierarchy at that width, and stack only
-	// when each panel would become too narrow to communicate its state.
-	if (width < 96) return [
-		...leftAnalysis(providers, width),
-		...middleAnalysis(snapshot, width),
-		...rightAnalysis(snapshot, width),
-	];
-	const widths = monitoringWidths(width, 3);
-	return monitoringColumns([
-		leftAnalysis(providers, widths[0] ?? 1),
-		middleAnalysis(snapshot, widths[1] ?? 1),
-		rightAnalysis(snapshot, widths[2] ?? 1),
-	], widths);
 }
 
 export class AstraUsageView implements Component {
 	constructor(
-		private readonly get: () => WorkbenchSnapshot,
-		private readonly usage: () => readonly UsageSnapshot[],
+		private readonly get       : () => WorkbenchSnapshot,
+		private readonly usage     : () => readonly UsageSnapshot[],
+		private readonly synthetic : () => boolean = () => false,
 	) {}
 	invalidate(): void {}
 	render(width: number): string[] {
-		const snapshot = this.get();
-		const providers = this.usage();
+		const snapshot   = this.get();
+		const providers  = this.usage();
+		const innerWidth = Math.max(1, width - 2);
 		const rows = [
-			...section("Active Providers Telemetry", width, `${providers.length}/4 observed`, a.active),
+			...(this.synthetic() ? [a.attention("DEMO DATA · 합성 예시 · 실제 사용 기록 아님")] : []),
+			...section("모델별 사용 내역", width, width >= 66 ? "현재 프로세스 관측 범위" : "", a.active),
+			a.muted("단위: tokens · 직접 대화와 분리 실행은 실행 경로이며 업무 분류가 아닙니다."),
+			a.muted("OBSERVED = 관측 합계 · 미관측 경로의 사용량은 포함하지 않습니다."),
+			...modelRows(snapshot, width),
+			...monitoringPanel({ title: "어디에 사용했나", ink: a.info }, attributionRows(snapshot, innerWidth), width),
+			...section("구독 잔여 한도", width, "토큰 사용량과 별도 지표", a.active),
 			...providerCards(providers, width),
-			...monitoringPanel({ title: "Model Telemetry", meta: snapshot.sessionUsage ? `${snapshot.sessionUsage.models.length} models observed` : "미관측", ink: a.active }, modelRows(snapshot, Math.max(1, width - 2)), width),
-			...section("Usage Analysis", width, "Native telemetry", a.note),
-			...analysisWorkspace(snapshot, providers, width),
+			...PROVIDERS.flatMap(provider => {
+				const current = providers.find(candidate => candidate.provider === provider);
+				return (current?.limits ?? []).map(limit => pair(
+					`${PROVIDER_LABELS[provider]} · ${safe(limit.label, 24)}`,
+					`리셋 ${resetLabel(limit.resetsAt)}`,
+					width,
+				));
+			}),
 		];
-		if (!providers.length) rows.push(a.muted("/usage로 provider quota를 조회합니다."));
 		return rows.flatMap(row => prose(fit(row, width), width));
 	}
 }
 
 export class AstraUsageRail implements Component {
 	constructor(
-		private readonly get: () => WorkbenchSnapshot,
-		private readonly usage: () => readonly UsageSnapshot[],
+		private readonly get       : () => WorkbenchSnapshot,
+		private readonly usage     : () => readonly UsageSnapshot[],
+		private readonly synthetic : () => boolean = () => false,
 	) {}
 	invalidate(): void {}
 	render(width: number): string[] {
-		const snapshot = this.get();
-		const session = snapshot.sessionUsage;
-		const providers = this.usage();
+		const session = this.get().sessionUsage;
+		const stale = this.usage().filter(provider => provider.stale);
 		const rows = [
-			...railSection("Workbench Metrics", width, session?.observedTotalTokens == null ? "미관측" : "session observed", a.active),
-			pair("Today requests", "미관측", width),
-			pair("Session uptime", "미관측", width),
-			pair("Avg response", "미관측", width),
-			pair("Session tokens", session?.observedTotalTokens == null ? "미관측" : number(session.observedTotalTokens), width),
-			pair("Context", contextLabel(snapshot), width),
-			...railSection("Time Window Performance", width, "미관측", a.note),
-			a.muted("1h   미관측  ░░░░░░░░"),
-			a.muted("24h  미관측  ░░░░░░░░"),
-			a.muted("7d   미관측  ░░░░░░░░"),
-			...railSection("Provider pulse", width, `${providers.length}/4 observed`, a.active),
-			...PROVIDERS.map(provider => {
-				const current = providers.find(candidate => candidate.provider === provider);
-				const percent = current?.limits[0] ? observedPercent(current.limits[0]) : null;
-				const ink = provider === "openai-codex" ? a.codex : provider === "anthropic" ? a.claude : provider === "google" ? a.gemini : a.zai;
-				return pair(ink(PROVIDER_LABELS[provider]), percent === null ? a.muted(current?.state ?? "미관측") : ink(`${Math.round(percent)}%`), width);
-			}),
-			...railSection("System Hints", width, "read-only", a.note),
-			a.muted("/usage  provider quota 새로고침"),
-			a.muted("I/O token·duration은 Native 미관측"),
-			a.muted("stale provider는 마지막 관측값"),
+			...railSection("관측 범위", width),
+			...(this.synthetic() ? [a.attention("DEMO DATA · 합성 예시")] : []),
+			pair("직접 대화", session?.observationCoverage.interactive ? "관측됨" : "미관측", width),
+			pair("분리 실행", session?.observationCoverage.detached ? "관측됨" : "미관측", width),
+			a.muted("프로세스 연결 이후의 사용량입니다."),
+			a.muted("과거 전체 대화·하루 합계가 아닙니다."),
+			...railSection("아직 알 수 없는 것", width),
+			a.muted("작업별 귀속 · 조사/구현/검증 목적"),
+			a.muted("입력/출력/캐시 토큰 상세"),
+			...railSection("확인이 필요한 상태", width),
+			...stale.map(provider => a.attention(`${PROVIDER_LABELS[provider.provider]} · 오래된 한도 정보`)),
+			a.muted("/usage · 구독 한도 조회"),
 		];
 		return rows.flatMap(row => prose(fit(row, width), width));
 	}

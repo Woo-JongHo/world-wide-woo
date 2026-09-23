@@ -5,6 +5,7 @@ import { getActiveTuiTheme, palette } from "./theme";
 /** Figma reference inks for the default Gruvbox and the Tokyo Night theme. */
 export const astraPalette = {
 	get text() { return palette.foreground; },
+	get cream() { return getActiveTuiTheme() === "gruvbox" ? "#fbf1c7" : palette.foreground; },
 	get secondary() { return palette.steel; },
 	get muted() { return palette.muted; },
 	get rule() { return palette.border; },
@@ -26,7 +27,7 @@ export const astraPalette = {
 type AstraPaletteKey = keyof typeof astraPalette;
 const astraInk = (key: AstraPaletteKey): AstraInk => text => chalk.hex(astraPalette[key])(text);
 export const a = {
-	text: astraInk("text"), answer: chalk.white, secondary: astraInk("secondary"), muted: astraInk("muted"), rule: astraInk("rule"),
+	text: astraInk("text"), cream: astraInk("cream"), answer: chalk.white, secondary: astraInk("secondary"), muted: astraInk("muted"), rule: astraInk("rule"),
 	caption: (text: string) => chalk.italic(astraInk("muted")(text)),
 	active: astraInk("active"), attention: astraInk("attention"), failure: astraInk("failure"),
 	request: astraInk("request"), response: astraInk("response"), tool: astraInk("tool"),

@@ -145,6 +145,7 @@ export class AstraWorkspace {
 		lab: Component = new HelpView(),
 		sidebars: Partial<Readonly<Record<AstraPage, Component>>> = {},
 		usageCacheMetrics: () => UsageSnapshotCacheMetrics | undefined = () => undefined,
+		synthetic: () => boolean = () => false,
 	) {
 		this.transcript = new AstraTranscriptView(get());
 		const cacheTelemetry = () => projectWorkbenchCacheTelemetry({
@@ -155,16 +156,22 @@ export class AstraWorkspace {
 		});
 		const scroll = (component: Component) => new ScrollView(new AstraInset(component), { follow: "none", primary: true, overscroll: "contain", scrollbar: "auto", scrollbarStyle: a.rule });
 		this.scrolls = {
-			dashboard: scroll(dashboard),
-			execution: new ChatScrollView(new AstraInset(this.transcript), { follow: "end", primary: true, overscroll: "contain", scrollbar: "auto", scrollbarStyle: a.rule }),
-			plan: scroll(new AstraPlanView(get, false, clock, motion, runtimePresentation)), workflow: scroll(new AstraWorkflowView(get)), context: scroll(new AstraContextView(get, usage)), cache: scroll(new AstraCacheView(cacheTelemetry)), usage: scroll(new AstraUsageView(get, usage)), help: scroll(new HelpView()), lab: scroll(lab),
+			dashboard : scroll(dashboard),
+			execution : new ChatScrollView(new AstraInset(this.transcript), { follow: "end", primary: true, overscroll: "contain", scrollbar: "auto", scrollbarStyle: a.rule }),
+			plan      : scroll(new AstraPlanView    (get, false, clock, motion, runtimePresentation)),
+			workflow  : scroll(new AstraWorkflowView(get, synthetic)),
+			context   : scroll(new AstraContextView (get, usage, false, synthetic)),
+			cache     : scroll(new AstraCacheView   (cacheTelemetry, synthetic)),
+			usage     : scroll(new AstraUsageView   (get, usage, synthetic)),
+			help      : scroll(new HelpView()),
+			lab       : scroll(lab),
 		};
 		const pageSidebars: Partial<Readonly<Record<AstraPage, Component>>> = {
-			dashboard: new AstraDashboardRail(get),
-			workflow: new AstraWorkflowRail(get),
-			context: new AstraContextRail(get),
-			cache: new AstraCacheRail(cacheTelemetry),
-			usage: new AstraUsageRail(get, usage),
+			dashboard : new AstraDashboardRail(get, synthetic),
+			workflow  : new AstraWorkflowRail (get, synthetic),
+			context   : new AstraContextRail  (get, synthetic),
+			cache     : new AstraCacheRail    (cacheTelemetry, synthetic),
+			usage     : new AstraUsageRail    (get, usage, synthetic),
 			...sidebars,
 		};
 		const sidePlan = new AstraInset(new AstraPlanView(get, true, clock, motion, runtimePresentation), 1);

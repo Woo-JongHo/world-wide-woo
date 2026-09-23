@@ -2,8 +2,9 @@ import type { Component } from "@earendil-works/pi-tui";
 import type { RequestRuntimeRecord, RequestStageStatus } from "../../../../../core/domain/execution/request-runtime";
 import type { NativeDelegatedTask, NativeDelegationProjection } from "../../../../../core/domain/work";
 import type { WorkbenchSnapshot } from "../../../../../core/domain/work/workbench";
-import { monitoringCard, monitoringColumns, monitoringMeter, monitoringPanel, monitoringUnavailablePanel, monitoringWidths } from "../../foundation/layout/astra-monitoring-layout";
+import { monitoringCard, monitoringColumns, monitoringCompactPanel, monitoringMeter, monitoringPanel, monitoringUnavailablePanel, monitoringWidths } from "../../foundation/layout/astra-monitoring-layout";
 import { a, fit, mark, number, oneLine, pair, prose, railSection, safe, section } from "../../foundation/theme/astra-theme";
+import { workflowDemoRail, workflowDemoRows } from "./astra-workflow-catalog";
 
 type ObservedStatus = RequestStageStatus | NativeDelegatedTask["status"];
 
@@ -12,7 +13,7 @@ function statusInk(status: ObservedStatus): (text: string) => string {
 	if (status === "running") return a.active;
 	if (status === "completed") return a.success;
 	if (status === "cancelled" || status === "unknown") return a.muted;
-	return a.text;
+	return a.cream;
 }
 
 function currentRequest(snapshot: WorkbenchSnapshot): RequestRuntimeRecord | undefined {
@@ -36,7 +37,7 @@ function taskTotals(projections: readonly NativeDelegationProjection[]): { total
 	const tasks = projections.flatMap(projection => projection.tasks);
 	return {
 		total: tasks.length,
-		active: tasks.filter(task => task.status === "running" || task.status === "pending").length,
+		active: tasks.filter(task => task.status === "running").length,
 		failed: tasks.filter(task => task.status === "failed").length,
 	};
 }
@@ -50,7 +51,7 @@ function summaryRows(request: RequestRuntimeRecord | undefined, projections: rea
 	const stageTotal = request?.stages.length ?? 0;
 	const stageDone = settledStageCount(request);
 	if (width < 72) return [
-		...section("Workflow overview", width, request?.status ?? "미관측", a.plan),
+		...railSection("Workflow overview", width, request?.status ?? "미관측", a.active),
 		pair("Goal", request ? oneLine(request.objective, 320) : "미관측", width),
 		pair("Stages", request ? `${stageDone}/${stageTotal}` : "미관측", width),
 		pair("Subagents", totals.total ? `${totals.active} active / ${totals.total}` : "미관측", width),
@@ -64,8 +65,8 @@ function summaryRows(request: RequestRuntimeRecord | undefined, projections: rea
 	];
 	const widths = monitoringWidths(width, cards.length, 1);
 	return [
-		...section("Workflow overview", width, request?.status ?? "미관측", a.plan),
-		...monitoringColumns(cards.map((card, index) => monitoringCard(card, widths[index]!)), widths),
+		...railSection("Workflow overview", width, request?.status ?? "미관측", a.active),
+		...monitoringColumns(cards.map((card, index) => monitoringCard({ ...card, value: a.cream(card.value) }, widths[index]!)), widths),
 	];
 }
 
@@ -84,11 +85,40 @@ function requestPipelineRows(request: RequestRuntimeRecord | undefined, width: n
 	return rows;
 }
 
+function compactWorkflowRows(request: RequestRuntimeRecord | undefined, projections: readonly NativeDelegationProjection[], width: number): string[] {
+	if (width < 96) return [];
+	const widths = monitoringWidths(width, 2, 1);
+	const pipelineWidth = widths[0]!;
+	const agentsWidth = widths[1]!;
+	const pipeline = request
+		? workflowPanel("7-stage pipeline", `${settledStageCount(request)}/${request.stages.length}`, a.active, request.stages.map(stage =>
+			pair(safe(stage.id, 24), statusInk(stage.status)(`${mark(stage.status)} ${stage.status}`), Math.max(1, pipelineWidth - 2))), pipelineWidth)
+		: workflowPanel("7-stage pipeline", "unavailable", a.active, [a.muted("현재 Turn의 Request가 없습니다.")], pipelineWidth);
+	const tasks = projections.flatMap(projection => projection.tasks);
+	const visibleTasks = tasks.slice(0, 7);
+	const agentRows = visibleTasks.flatMap(task => {
+		const latest = [...task.activities].reverse().find(activity => activity.message)?.message ?? task.result;
+		const detail = [task.model, task.reasoningEffort, task.task, latest].filter(Boolean).join(" · ");
+		return [
+			pair(statusInk(task.status)(safe(task.role ?? task.id, 28)), statusInk(task.status)(`${mark(task.status)} ${task.status}`), Math.max(1, agentsWidth - 2)),
+			a.muted(fit(oneLine(detail || "detail unavailable", 1200), Math.max(1, agentsWidth - 4))),
+		];
+	});
+	if (tasks.length > visibleTasks.length) agentRows.push(a.muted(`… ${tasks.length - visibleTasks.length} delegated tasks hidden`));
+	const agents = tasks.length
+		? workflowPanel("Role status comparison", `${tasks.length} delegated`, a.active, agentRows, agentsWidth)
+		: workflowPanel("Role status comparison", "unavailable", a.active, [a.muted("관측된 Native Subagent가 없습니다.")], agentsWidth);
+	return [
+		...monitoringColumns([pipeline, agents], widths),
+		pair(a.info("Telemetry availability"), a.muted("queue unavailable · state matrix unavailable"), width),
+	];
+}
+
 function agentDetails(task: NativeDelegatedTask, width: number, indent = 0): string[] {
 	const title = task.role ?? task.id;
 	const details = [task.model, task.reasoningEffort].filter(Boolean).join(" · ");
 	const rows = prose(statusInk(task.status)(`${mark(task.status)} ${safe(title)} · ${task.status}`), width, indent);
-	if (task.task) rows.push(...prose(a.text(safe(task.task, 1200)), width, indent + 2));
+	if (task.task) rows.push(...prose(a.cream(safe(task.task, 1200)), width, indent + 2));
 	if (details) rows.push(...prose(a.muted(details), width, indent + 2));
 	const latest = [...task.activities].reverse().find(activity => activity.message)?.message ?? task.result;
 	if (latest) rows.push(...prose(a.muted(safe(latest, 500)), width, indent + 2));
@@ -144,14 +174,20 @@ function stateRows(projections: readonly NativeDelegationProjection[], width: nu
 
 /** Read-only projection of seven-stage Request protocol and observed native delegation. */
 export class AstraWorkflowView implements Component {
-	constructor(private readonly get: () => WorkbenchSnapshot) {}
+	constructor(private readonly get: () => WorkbenchSnapshot, private readonly isDemo: () => boolean = () => false) {}
 	invalidate(): void {}
 	render(width: number): string[] {
 		const snapshot = this.get();
 		const request = currentRequest(snapshot);
 		const projections = currentDelegations(snapshot, request);
+		if (this.isDemo()) {
+			const stages = request?.stages.map(stage => statusInk(stage.status)(`${mark(stage.status)} ${stage.id}`)).join("  ");
+			const pipeline = monitoringCompactPanel("7-stage request pipeline", prose(stages ?? a.muted("미관측"), Math.max(1, width - 2)), width);
+			return [...pipeline, ...workflowDemoRows(width)];
+		}
 		return [
 			...summaryRows(request, projections, width),
+			...compactWorkflowRows(request, projections, width),
 			...nodeGraphRows(projections, width),
 			...requestPipelineRows(request, width),
 			...laneRows(projections, width),
@@ -162,24 +198,29 @@ export class AstraWorkflowView implements Component {
 }
 
 export class AstraWorkflowRail implements Component {
-	constructor(private readonly get: () => WorkbenchSnapshot) {}
+	constructor(private readonly get: () => WorkbenchSnapshot, private readonly isDemo: () => boolean = () => false) {}
 	invalidate(): void {}
 	render(width: number): string[] {
+		if (this.isDemo()) return workflowDemoRail(width);
 		const snapshot = this.get();
 		const requests = snapshot.requestRuntime ?? [];
 		const current = currentRequest(snapshot);
 		const projections = currentDelegations(snapshot, current);
 		const totals = taskTotals(projections);
+		const tasks = projections.flatMap(projection => projection.tasks);
 		const rows = [
-			...railSection("Active process", width, current?.status ?? "미관측", a.tool),
+			...railSection("Active process", width, current?.status ?? "미관측", a.active),
 			pair("Requests", number(requests.length), width),
 			pair("Stages", current ? `${settledStageCount(current)}/${current.stages.length}` : "미관측", width),
 			pair("Agents", totals.total ? number(totals.total) : "미관측", width),
 			pair("Active", totals.total ? a.active(number(totals.active)) : a.muted("미관측"), width),
 			pair("Failed", totals.total ? totals.failed ? a.failure(number(totals.failed)) : a.success("0") : a.muted("미관측"), width),
-			...railSection("Goal", width),
+			...(current?.stages.map(stage => pair(statusInk(stage.status)(mark(stage.status)), safe(stage.id, 28), width)) ?? [a.muted("7-stage request unavailable")]),
+			...railSection("Agents", width, totals.total ? `${totals.active} active` : "unavailable", a.active),
+			...tasks.slice(0, 3).map(task => pair(statusInk(task.status)(safe(task.role ?? task.id, 22)), statusInk(task.status)(task.status), width)),
+			...railSection("Goal", width, "", a.active),
 			snapshot.sessionGoal ? safe(snapshot.sessionGoal.text, 600) : a.muted("Goal이 아직 없습니다."),
-			...railSection("Navigate", width),
+			...railSection("Navigate", width, "", a.active),
 			a.muted("/todo      Plan"),
 			a.muted("/context   실행 근거"),
 			a.muted("/dashboard 세션 개요"),
