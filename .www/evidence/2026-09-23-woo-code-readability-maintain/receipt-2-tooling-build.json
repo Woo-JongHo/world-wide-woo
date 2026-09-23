@@ -1,0 +1,219 @@
+{
+  "schemaVersion": "1.0",
+  "receiptId": "9e41e059-bd5d-4158-99dc-5db6a6b41f29",
+  "runId": "d6548346-43b2-4efd-9240-f727b18fcf5d",
+  "candidateId": null,
+  "skill": {
+    "name": "woo-code-readability",
+    "version": "1.1"
+  },
+  "capability": "CODE-READABILITY-TOOLING-BUILD",
+  "intentId": null,
+  "status": "succeeded",
+  "stage": "verify",
+  "actor": {
+    "kind": "claude-code",
+    "model": "claude-sonnet-5"
+  },
+  "context": {
+    "repo": "99_www",
+    "branch": "dev",
+    "updatedAt": "2026-09-23T00:00:00Z"
+  },
+  "input": {
+    "objective": "이전 CODE-READABILITY-MAINTAIN 영수증의 nextCapabilities를 이어받아, 언어별 스크립트 폴더(scripts/common, scripts/typescript)와 번호 매긴 파이프라인(01~05)을 실제 코드로 만든다. 핵심은 텍스트 indexOf 대신 TypeScript 7 AST로 경계 토큰을 판정해 삼항연산자 : 와 속성/객체 리터럴 : 을 서로 다른 그룹으로 가르는 것이다."
+  },
+  "decision": {
+    "facts": [
+      "TypeScript 7(typescript@7.0.2)의 typescript/unstable/ast는 getChildren()이 없어 구두점 토큰이 named field로 없는 경우(콜론·콤마·세미콜론)가 있다.",
+      "typescript/unstable/ast/scanner의 skipTrivia로 주변 노드 경계 사이의 gap에서 실제 토큰 위치를 찾으면 문자열·주석 안의 동일 문자와 충돌하지 않는다 — 이 방식은 probe.ts로 실제 리포 파일에 대해 실행해 검증했다.",
+      "같은 SyntaxKind의 연속 형제 노드로 행을 묶는 것만으로 삼항연산자 콜론과 속성/객체 콜론이 서로 다른 그룹에 들어간다 — 별도의 role 교차검증 로직이 필요 없다.",
+      "같은 SyntaxKind 그룹도 아직 후보일 뿐이다: declare const 하나짜리와 여러 줄 객체 리터럴 대입이 우연히 같은 VariableStatement로 묶일 수 있어, 실제 표 여부는 여전히 사람이 '기본형 기록' 단계로 판단해야 한다."
+    ],
+    "changes": [
+      {
+        "kind": "dir-create",
+        "ref": "scripts/common/, scripts/typescript/",
+        "summary": "언어 무관 유틸과 TypeScript 전용 도구를 분리하는 폴더를 만들었다."
+      },
+      {
+        "kind": "file-create",
+        "ref": "scripts/common/display-width.ts",
+        "summary": "measure-layout.ts의 tab/한글 폭 계산 유틸을 언어 무관 모듈로 분리했다(아직 소비자는 measure-layout.ts 자체, 04에서 재사용 예정)."
+      },
+      {
+        "kind": "file-create",
+        "ref": "scripts/typescript/grid-tokens.ts",
+        "summary": "colonOf/semicolonOf/commasOf/bracketsOf로 토큰→AST 역할 매핑을 코드로 구현했다. md 규칙이 아니라 코드로 판정한다."
+      },
+      {
+        "kind": "file-create",
+        "ref": "scripts/typescript/load-source-file.ts",
+        "summary": "02/03이 중복 구현했던 API 로딩 보일러플레이트를 01(신규)이 재사용하도록 공용 로더로 뺐다. 02/03 자체는 손대지 않았다."
+      },
+      {
+        "kind": "file-create",
+        "ref": "scripts/typescript/01_group-regions.ts",
+        "summary": "STEP1 그룹 확정 CLI. SourceFile/Block/Interface/Class members/ObjectLiteral/ArrayLiteral/CallExpression을 재귀 탐색해 같은 SyntaxKind 연속 구간을 표 후보로 보고한다."
+      },
+      {
+        "kind": "rename",
+        "ref": "scripts/audit-type-uncertainty.ts -> scripts/typescript/02_audit-type-uncertainty.ts",
+        "summary": "번호 파이프라인에 맞춰 이동, usage 문자열만 갱신."
+      },
+      {
+        "kind": "rename",
+        "ref": "scripts/audit-optional-types.ts -> scripts/typescript/03_audit-optional-types.ts",
+        "summary": "번호 파이프라인에 맞춰 이동, 내용 변경 없음."
+      },
+      {
+        "kind": "rename",
+        "ref": "scripts/inspect-hover.mjs -> scripts/typescript/05_inspect-hover.mjs",
+        "summary": "번호 파이프라인에 맞춰 이동, usage 문자열만 갱신."
+      },
+      {
+        "kind": "doc-update",
+        "ref": "SKILL.md#자동 검사",
+        "summary": "STEP1~5로 재구성하고 새 경로·01 사용법·04 미구현 상태를 명시했다."
+      },
+      {
+        "kind": "doc-update",
+        "ref": ".claude/agents/readability-inspector.md, .codex/agents/readability-inspector.toml",
+        "summary": "두 실행 파일 모두 STEP1(01_group-regions.ts) 호출과 새 경로를 반영했다."
+      },
+      {
+        "kind": "test-add",
+        "ref": "test/code-readability-tools.test.ts",
+        "summary": "region grouper describe 블록 3개 추가, 기존 3개 스크립트 경로 갱신. fixtures/grid-regions.ts 신설."
+      }
+    ],
+    "unknowns": [
+      "04_measure-columns.ts(01의 그룹 출력 + grid-tokens.ts로 자동 열 측정)는 아직 없다. 그때까지 measure-layout.ts를 수동 플래그로 계속 쓴다.",
+      "grid-tokens.ts는 함수 매개변수 목록의 여는/닫는 괄호는 다루지 않는다(함수 종류별로 괄호 앞 경계가 달라 범위를 좁혔다).",
+      "01의 '같은 SyntaxKind' 그룹은 후보일 뿐 최종 표 판정이 아니다 — 사람이 기본형을 확인해야 한다."
+    ]
+  },
+  "validation": [
+    {
+      "check": "typecheck (scratch tsconfig, strict)",
+      "status": "passed",
+      "detail": "bunx tsc --noEmit --strict --allowImportingTsExtensions로 새 4개 .ts 파일을 검사해 오류 0건."
+    },
+    {
+      "check": "bun test test/code-readability-tools.test.ts",
+      "status": "passed",
+      "detail": "11 pass / 0 fail, 43 expect() calls (기존 8개 + region grouper 신규 3개)."
+    },
+    {
+      "check": "bun test test/architecture.test.ts",
+      "status": "passed",
+      "detail": "13 pass / 0 fail, 1849 expect() calls."
+    },
+    {
+      "check": "git diff --check",
+      "status": "passed",
+      "detail": "공백 충돌 없음."
+    },
+    {
+      "check": "bun run check",
+      "status": "uncertain",
+      "detail": "src/adapters 쪽 @earendil-works/pi-tui 관련 기존 오류가 있으나 이번 변경 파일(.agents/skills, test/code-readability-tools.test.ts)과 무관함을 확인했다. 이 변경 이전에도 존재하던 실패다."
+    }
+  ],
+  "authorization": null,
+  "execution": {
+    "writes": [
+      ".agents/skills/woo-code-readability/scripts/common/display-width.ts",
+      ".agents/skills/woo-code-readability/scripts/typescript/grid-tokens.ts",
+      ".agents/skills/woo-code-readability/scripts/typescript/load-source-file.ts",
+      ".agents/skills/woo-code-readability/scripts/typescript/01_group-regions.ts",
+      ".agents/skills/woo-code-readability/scripts/typescript/02_audit-type-uncertainty.ts",
+      ".agents/skills/woo-code-readability/scripts/typescript/03_audit-optional-types.ts",
+      ".agents/skills/woo-code-readability/scripts/typescript/05_inspect-hover.mjs",
+      ".agents/skills/woo-code-readability/fixtures/grid-regions.ts",
+      ".agents/skills/woo-code-readability/SKILL.md",
+      ".claude/agents/readability-inspector.md",
+      ".codex/agents/readability-inspector.toml",
+      "test/code-readability-tools.test.ts"
+    ],
+    "externalActions": [],
+    "notes": "제품 코드(src/)는 건드리지 않았다. scripts/measure-layout.ts는 이번 라운드에서 이동·삭제하지 않았다(04로 대체 시 별도 라운드)."
+  },
+  "result": {
+    "filesCreated": [
+      ".agents/skills/woo-code-readability/scripts/common/display-width.ts",
+      ".agents/skills/woo-code-readability/scripts/typescript/grid-tokens.ts",
+      ".agents/skills/woo-code-readability/scripts/typescript/load-source-file.ts",
+      ".agents/skills/woo-code-readability/scripts/typescript/01_group-regions.ts",
+      ".agents/skills/woo-code-readability/fixtures/grid-regions.ts"
+    ],
+    "filesRenamed": [
+      "scripts/audit-type-uncertainty.ts -> scripts/typescript/02_audit-type-uncertainty.ts",
+      "scripts/audit-optional-types.ts -> scripts/typescript/03_audit-optional-types.ts",
+      "scripts/inspect-hover.mjs -> scripts/typescript/05_inspect-hover.mjs"
+    ],
+    "filesModified": [
+      ".agents/skills/woo-code-readability/SKILL.md",
+      ".claude/agents/readability-inspector.md",
+      ".codex/agents/readability-inspector.toml",
+      "test/code-readability-tools.test.ts"
+    ],
+    "testsAdded": 3,
+    "testsPassing": 11
+  },
+  "failure": null,
+  "evidence": [
+    {
+      "path": ".agents/skills/woo-code-readability/scripts/common/display-width.ts",
+      "sha256": "8bfa106dbdc029bc66c6677f30c623a62709357f276d47065a9cec5863bece71"
+    },
+    {
+      "path": ".agents/skills/woo-code-readability/scripts/typescript/grid-tokens.ts",
+      "sha256": "4a13a21cb3aa624b02d24cccd66d09fc3ceb4b36e2c12de33cd2ef266f81b971"
+    },
+    {
+      "path": ".agents/skills/woo-code-readability/scripts/typescript/load-source-file.ts",
+      "sha256": "ae8f9e3613e2f1f2541c54b2c5c1543c7b30f4b663bf516338c23631d0b7cd1c"
+    },
+    {
+      "path": ".agents/skills/woo-code-readability/scripts/typescript/01_group-regions.ts",
+      "sha256": "11e616a9d47403678a7c6cba51f4de994885a14ea3e311c8f03d384663fcc44d"
+    },
+    {
+      "path": ".agents/skills/woo-code-readability/scripts/typescript/02_audit-type-uncertainty.ts",
+      "sha256": "45c7c8010cfcdf447ffcc6deac66a7800927059aaf0fa35292a7eaebc6f4f841"
+    },
+    {
+      "path": ".agents/skills/woo-code-readability/scripts/typescript/03_audit-optional-types.ts",
+      "sha256": "527dcd237e4600e93d6325ab4fc26b174b04faf623170027fff2f38a0f28f95e"
+    },
+    {
+      "path": ".agents/skills/woo-code-readability/scripts/typescript/05_inspect-hover.mjs",
+      "sha256": "864bfe6aa3e1c5aab8d4d6bb41b58e9bf91b381aa354f24f00b4ece1ca66df04"
+    },
+    {
+      "path": ".agents/skills/woo-code-readability/fixtures/grid-regions.ts",
+      "sha256": "7023dc1187aec3989c18e20d595b207678ec3f698e16170e98d15fd8a793bcad"
+    },
+    {
+      "path": ".agents/skills/woo-code-readability/SKILL.md",
+      "sha256": "02814655efd1f86017f8e11c38868bc93e6ca58adcd3c7a920fb01c91673c9e1"
+    },
+    {
+      "path": ".claude/agents/readability-inspector.md",
+      "sha256": "81e7e720ee77efac75dad22d8d4f3374c0fa509946881b6a4ca9172e51d8bea9"
+    },
+    {
+      "path": ".codex/agents/readability-inspector.toml",
+      "sha256": "04b4634e0407667d781eec4e91be688726a033acb812c999ff48936b58f38558"
+    },
+    {
+      "path": "test/code-readability-tools.test.ts",
+      "sha256": "e2acb3ce0a857cad57d9e60e9078d0f61767c94e90cf11b0445acfa28c27111f"
+    }
+  ],
+  "nextCapabilities": [
+    "CODE-READABILITY-MEASURE-COLUMNS"
+  ],
+  "receiptDigest": "cf79bbd98b3e19d6a93654d4b7d48909af836fb5aba98093ef75945d5646a4b1"
+}

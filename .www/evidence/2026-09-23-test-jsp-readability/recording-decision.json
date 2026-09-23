@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "issue": {
+    "id": "WOO-911",
+    "uuid": "b00b02eb-2d80-4b10-9c9a-a29db4f1a74d",
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "evidence": ".www/evidence/2026-09-21-cli-readability/linear-issue-readback.json",
+    "currentReadBack": false,
+    "newCandidateRequired": false,
+    "reason": "함수 호출의 표형 열 정렬은 WOO-911의 기존 목적·포함 범위·완료 조건과 같은 수락 단위다."
+  },
+  "projectComment": {
+    "candidate": ".www/evidence/2026-09-23-test-jsp-readability/project-comment-candidate.json",
+    "digest": "3c816413d9c9f74f1ccdb71b93dc318ed22fcb0d785e6d2cbfc51f0fae435ce7",
+    "state": "draft-awaiting-current-readback-and-approval",
+    "freshnessVerified": false,
+    "duplicatesChecked": false,
+    "authorized": false,
+    "published": false
+  },
+  "obsidian": {
+    "required": false,
+    "reason": "더미 비교 파일의 내부 표현만 추가했으며 제품 WHY·공개 API·schema·identity·외부 쓰기 경계는 바뀌지 않았다.",
+    "evidence": [
+      "src/test.jsp"
+    ]
+  },
+  "blocking": "현재 세션에 linear-woo 도구가 없어 최신 Project Activity와 WOO-911 상태를 재조회하거나 게시 read-back을 수행할 수 없다."
+}

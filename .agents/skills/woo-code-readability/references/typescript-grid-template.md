@@ -51,6 +51,46 @@ runShort : async (value) => { const { run } = await import("module"); return run
 runLong  : async (value) => { const { run } = await import("module"); return run(value, "extra"); },
 ```
 
+## 객체 배열 열 명세
+
+표현 기본값을 생략해 행마다 셀 수가 달라지게 두지 않는다. 열 명세와 데이터 행은 분리한다.
+
+```ts
+const columns = [
+	{ heading : "SOURCE"      , minWidth : 7, weight : 0, align : "left"  },
+	{ heading : "DISTRIBUTION", minWidth : 4, weight : 1, align : "left"  },
+	{ heading : "SIZE"        , minWidth : 6, weight : 0, align : "right" },
+	{ heading : "SHARE"       , minWidth : 6, weight : 0, align : "right" },
+] as const;
+const rows = sources.map(source => [
+	source.code,
+	source.distribution,
+	source.size,
+	source.share,
+]);
+
+return renderTable({ columns, rows }, width);
+```
+
+이 표는 `{`, 네 개의 `:`, 세 개의 속성 구분 `,`, `}`가 각각 같은 열이어야 한다. 속성 생략이 실제 계약 차이라면 기본값을 채우지 말고 그 행을 다른 표로 분리한다.
+
+## 등록 객체와 지역 계산
+
+```ts
+const rails = {
+    dashboard : new DashboardRail(get, synthetic),
+    workflow  : new WorkflowRail (get, synthetic),
+    context   : new ContextRail  (get, synthetic),
+};
+
+const widths = columnWidths(width);
+const left   = (widths[0] ?? width) - 2;
+const middle = (widths[1] ?? width) - 2;
+const right  = (widths[2] ?? width) - 2;
+```
+
+등록 객체는 `:`·`new`·인자 시작을, 선언 블록은 `=`·계산식 시작을 측정한다. 생성자의 서로 다른 필수 인자는 유지하며, 한 행에 여러 등록 항목을 몰아넣지 않는다.
+
 ## 검증
 
 역할 구획을 한 번에 섞지 말고 각 줄 범위를 따로 검사한다.

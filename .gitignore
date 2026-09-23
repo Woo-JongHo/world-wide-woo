@@ -6,7 +6,8 @@ coverage/
 *.log
 .DS_Store
 .gjc/
-.claude/
+.claude/*
+!.claude/agents/
 .zcode/
 .video_agent/
 .scratch-*

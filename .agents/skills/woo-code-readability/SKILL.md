@@ -36,7 +36,7 @@ description: 99_www의 TypeScript에서 긴 예외 요소를 구조적으로 간
 ## 타입 명료성
 
 - `?`, `null`, `undefined`, `!`, `as`를 불확실성 표식으로 함께 조사한다.
-- 대상 파일의 문법 표식은 먼저 `bun .agents/skills/woo-code-readability/scripts/audit-type-uncertainty.ts --file <대상 파일>`로 추출한다. 이 검사기는 논리 부정 `!`과 조건 연산자 `?` 대신 optional 선언·`null`·`undefined`·non-null assertion·definite assignment·`as`·angle-bracket assertion만 AST로 분리한다.
+- 대상 파일의 문법 표식은 먼저 `bun .agents/skills/woo-code-readability/scripts/typescript/02_audit-type-uncertainty.ts --file <대상 파일>`로 추출한다. 이 검사기는 논리 부정 `!`과 조건 연산자 `?` 대신 optional 선언·`null`·`undefined`·non-null assertion·definite assignment·`as`·angle-bracket assertion만 AST로 분리한다.
 - 생략이 실제 입력 계약이면 `?`를 유지하고, 함수 진입 뒤 가능한 한 빨리 구체 타입으로 좁힌다.
 - `exactOptionalPropertyTypes`가 꺼져 있으면 `property?: T`가 명시적 `property: undefined`도 허용한다. 호출부에서 속성 생략과 명시적 `undefined`를 따로 조사하고, 같은 의미라면 속성 자체를 생략하는 형태로 통일한다.
 - 공개·경계 인터페이스에 유지한 `?`의 생략 의미가 이름만으로 분명하지 않으면 속성 바로 앞에 짧은 `/** JSDoc */`을 두고 property hover로 확인한다.
@@ -49,6 +49,7 @@ description: 99_www의 TypeScript에서 긴 예외 요소를 구조적으로 간
 
 ## 엑셀식 코드 그리드
 
+- 기능 구현 중에도 변경한 반복 블록마다 [가독성 계약](references/readability-contract.md)의 `열 기준점`을 먼저 정하고 실측한다. 최종 정리 단계로 미루거나 객체 배열만 검사한 뒤 파일 전체에 적용했다고 보고하지 않는다.
 - 한 반복 구문은 하나의 표다.
 - `// Run`, `// List`, `// Select`, `// Write`처럼 역할 구획이 나뉘면 각 구획은 독립된 표이며 서로의 최장값을 폭 기준으로 공유하지 않는다.
 - 같은 역할의 선언이나 실행은 각각 한 행이다.
@@ -62,10 +63,12 @@ description: 99_www의 TypeScript에서 긴 예외 요소를 구조적으로 간
 - 열 폭은 해당 표의 실제 데이터로 계산하고 남는 공백은 선택한 정렬 방식에 따라 배치한다.
 - 우측 `//` 설명은 같은 선언 표에서 한 열로 맞추되, 앞의 타입 셀을 늘리지 않고 문장 종결자 뒤의 바깥 여백으로 맞춘다.
 - production 행의 마지막 함수 호출은 시작 열까지만 맞춘다. 호출 길이와 관계없이 종결 `;` 뒤 한 칸만 두고 `}`로 닫으며, 닫는 중괄호를 맞추기 위한 공백은 넣지 않는다.
+- 객체 배열이 열 정의처럼 쓰이면 각 객체를 한 행으로 보고 `{`, 속성명, `:`, 값, `,`, `}`를 열로 측정한다. 같은 의미의 기본값을 생략한 선택 속성 때문에 행 구조가 달라질 때는 먼저 명시적 기본값으로 정규화한 뒤 정렬한다.
+- 열 명세와 데이터 생성은 서로 다른 표다. 중첩 객체 안에 함께 넣지 말고 `columns`, `rows`처럼 이름 있는 지역 값으로 분리한 뒤 소비 지점에서는 축약해 전달한다.
 
 ## 역할
 
-- `readability_inspector` 에이전트는 제품 파일 하나를 읽기 전용으로 조사한다.
+- 검사자는 제품 파일 하나를 읽기 전용으로 조사한다. Claude Code에서는 서브에이전트 `readability-inspector`(정의: `.claude/agents/readability-inspector.md`, Write/Edit/NotebookEdit 금지)로, Codex에서는 `.codex/agents/readability-inspector.toml`(`sandbox_mode = "read-only"`)로 위임한다. 두 정의 모두 이 SKILL.md를 매뉴얼로 참조하므로 규칙 변경은 이 파일에서만 한다.
 - 주 에이전트는 조사 결과를 검토하고 제품 파일 하나만 저작·검증한다.
 - 검사 에이전트가 자기 산출물을 승인하거나 제품 코드를 수정하게 하지 않는다.
 
@@ -83,13 +86,40 @@ description: 99_www의 TypeScript에서 긴 예외 요소를 구조적으로 간
 1. 현재 대상 파일 하나의 후보 diff를 작성한다.
 2. 가장 좁은 타입 검사·행동 테스트·아키텍처 검사를 실행한다.
 3. 사용자에게 실제 코드와 실측 열을 보여주고 피드백을 기다린다.
-4. 기다리는 동안 다음 후보 파일 하나는 `readability_inspector`로 읽기 전용 조사할 수 있다.
+4. 기다리는 동안 다음 후보 파일 하나는 `readability-inspector` 서브에이전트로 읽기 전용 조사할 수 있다.
 5. 다음 파일은 현재 파일의 규칙이 수락된 뒤에만 수정한다. 제품 파일 둘을 동시에 저작하지 않는다.
 6. 거절된 실험은 즉시 되돌리고 계약의 폐기 규칙에 남긴다.
 
 ## 자동 검사
 
-열 정렬을 주장하기 전에 다음 스크립트로 탭과 한글 표시 폭을 포함한 화면 열을 측정한다.
+스크립트는 언어별 폴더로 나뉜다. `scripts/common/`은 언어 무관 유틸(표시 폭 계산 등)만 두고, `scripts/typescript/`는 TypeScript AST·LSP 전용 도구를 번호 순서(01→05)로 둔다. 새 언어가 추가되면 `scripts/<언어>/`가 형제로 생긴다.
+
+**STEP1 — 그룹 확정.** 정렬을 주장하기 전에 먼저 AST로 "같은 표로 묶을 수 있는 연속 행"을 찾는다. 텍스트 위치가 아니라 SyntaxKind가 같은 형제 노드만 묶으므로 삼항연산자 `:`와 속성/객체 리터럴 `:`처럼 문자는 같아도 역할이 다른 토큰은 애초에 다른 그룹으로 갈린다.
+
+```bash
+bun .agents/skills/woo-code-readability/scripts/typescript/01_group-regions.ts --file <대상 파일> [--min-rows 2]
+```
+
+출력의 각 줄은 `줄범위 컨테이너 SyntaxKind rows=행수 table|pair axes=경계축`이다. `rows>=3`이면 `table`, `rows==2`면 `pair`(사용자가 비교 효용을 확인한 경우에만 표로 승격) — 둘 다 아직 **후보**다. 같은 SyntaxKind라는 사실만 확인했을 뿐, `declare const x: boolean;`과 여러 줄짜리 `export const y = { ... };`처럼 겉모습이 크게 다른 행이 우연히 같은 SyntaxKind로 묶일 수 있다. 후보를 실제 표로 볼지는 계약의 "기본형 기록"·"예외 요소 판정" 단계대로 내용을 읽고 판단한다. `axes`는 그 그룹에 실제로 존재하는 경계 축(`type-annotation-colon`, `object-literal-colon`, `ternary-colon`, `call-arg-comma`, `array-comma`, `object-comma`, `statement-semicolon`)이다.
+
+**STEP2 — 타입 불확실성.** 타입 불확실성 문법 목록은 TypeScript 7 AST로 추출한다.
+
+```bash
+bun .agents/skills/woo-code-readability/scripts/typescript/02_audit-type-uncertainty.ts --file <대상 파일>
+```
+
+출력은 자동 제거 목록이 아니다. 각 항목을 정의·호출자·테스트로 `유지 / 경계에서 정규화 / 제거`로 판정한다.
+
+**STEP3 — optional 게이트.** optional 계약을 저장소 전체에서 엄격화할 준비 상태는 다음 감사기로 검사한다.
+
+```bash
+bun .agents/skills/woo-code-readability/scripts/typescript/03_audit-optional-types.ts
+bun .agents/skills/woo-code-readability/scripts/typescript/03_audit-optional-types.ts --max-errors <현재 기준선> --file <대상 파일>
+```
+
+기본 실행은 오류가 하나라도 있으면 실패하는 최종 게이트다. 마이그레이션 중에는 `--max-errors <현재 기준선>`을 지정해 오류가 늘면 실패하고 줄거나 유지되면 통과하게 한다. `--file`은 전역 판정을 바꾸지 않고 지정한 파일의 행·열·오류 코드·진단 문장을 별도로 보여 준다. 이 근거로 현재 제품 파일의 명시적 `undefined` 전달부터 정리한다. 전체 오류가 0이고 관련 행동 테스트가 통과한 뒤에만 `tsconfig.json`의 지속 게이트로 활성화한다. 단지 오류를 없애려고 모든 optional 타입에 `| undefined`를 추가하지 않는다.
+
+**STEP4 — 열 실측.** 01이 확정한 그룹 안에서 탭과 한글 표시 폭을 포함한 실제 화면 열을 측정한다. `04_measure-columns.ts`(01의 그룹 출력을 받아 자동 측정)는 아직 구현 전이라, 그때까지는 기존 `measure-layout.ts`를 수동 플래그로 계속 쓴다.
 
 ```bash
 bun .agents/skills/woo-code-readability/scripts/measure-layout.ts src/cli.ts \
@@ -103,32 +133,19 @@ bun .agents/skills/woo-code-readability/scripts/measure-layout.ts src/cli.ts \
 `--center-cell '(#1|<#1'`은 선택한 줄 범위에서 실제 최장 값으로 최소 내부 폭을 계산하고, 각 비어 있지 않은 셀의 양쪽 여백 차가 최대 한 칸인지 검사한다. 서로 다른 역할 구획은 줄 범위를 나눠 각각 실행한다.
 `--compact-before '}#2'`는 마지막 실행문의 `;`와 닫는 `}` 사이가 정확히 한 칸인지 검사한다. production 행의 마지막 함수값 길이를 맞추는 공백이 남으면 실패한다.
 
-이름 있는 타입과 공개 optional 속성의 hover 설명은 TypeScript 7 LSP로 검사한다.
+**STEP5 — hover 검증.** 이름 있는 타입과 공개 optional 속성의 hover 설명은 TypeScript 7 LSP로 검사한다. 이름/JSDoc을 새로 붙였을 때만 도는 조건부 마지막 단계다.
 
 ```bash
-node .agents/skills/woo-code-readability/scripts/inspect-hover.mjs \
+node .agents/skills/woo-code-readability/scripts/typescript/05_inspect-hover.mjs \
   .agents/skills/woo-code-readability/fixtures/hover-contract.ts \
   CompactResult HoverOptions StoredOptions
 ```
 
-`inspect-hover.mjs`는 TypeScript LSP의 document symbol에서 실제 선언을 찾은 뒤 hover를 요청한다. 타입뿐 아니라 `resumeThreadId` 같은 속성의 JSDoc도 검사할 수 있다. 같은 이름의 선언이 둘 이상이면 모호한 요청을 실패시키므로 소스 순서에 따라 `resumeThreadId#1` 같이 선택한다. JSDoc이 없으면 함수 시그니처만 보였더라도 검사는 실패한다.
+`05_inspect-hover.mjs`는 TypeScript LSP의 document symbol에서 실제 선언을 찾은 뒤 hover를 요청한다. 타입뿐 아니라 `resumeThreadId` 같은 속성의 JSDoc도 검사할 수 있다. 같은 이름의 선언이 둘 이상이면 모호한 요청을 실패시키므로 소스 순서에 따라 `resumeThreadId#1` 같이 선택한다. JSDoc이 없으면 함수 시그니처만 보였더라도 검사는 실패한다.
 
-타입 불확실성 문법 목록은 TypeScript 7 AST로 추출한다.
+## 스킬 정의 변경 Receipt
 
-```bash
-bun .agents/skills/woo-code-readability/scripts/audit-type-uncertainty.ts --file <대상 파일>
-```
-
-출력은 자동 제거 목록이 아니다. 각 항목을 정의·호출자·테스트로 `유지 / 경계에서 정규화 / 제거`로 판정한다.
-
-optional 계약을 저장소 전체에서 엄격화할 준비 상태는 다음 감사기로 검사한다.
-
-```bash
-bun .agents/skills/woo-code-readability/scripts/audit-optional-types.ts
-bun .agents/skills/woo-code-readability/scripts/audit-optional-types.ts --max-errors <현재 기준선> --file <대상 파일>
-```
-
-기본 실행은 오류가 하나라도 있으면 실패하는 최종 게이트다. 마이그레이션 중에는 `--max-errors <현재 기준선>`을 지정해 오류가 늘면 실패하고 줄거나 유지되면 통과하게 한다. `--file`은 전역 판정을 바꾸지 않고 지정한 파일의 행·열·오류 코드·진단 문장을 별도로 보여 준다. 이 근거로 현재 제품 파일의 명시적 `undefined` 전달부터 정리한다. 전체 오류가 0이고 관련 행동 테스트가 통과한 뒤에만 `tsconfig.json`의 지속 게이트로 활성화한다. 단지 오류를 없애려고 모든 optional 타입에 `| undefined`를 추가하지 않는다.
+이 스킬 자체(SKILL.md, references/, scripts/, `.claude/agents/`, `.codex/agents/`)를 바꾸면 제품 파일 검증과 별개로 [Woo Receipt](../../../schemas/woo-receipt.schema.json)를 남긴다. capability는 `CODE-READABILITY-MAINTAIN`, `receiptDigest`는 `src/core/commit/commit-governance.ts`의 `canonicalJson`/`sha256`으로 계산하며, 파일은 `.www/evidence/<날짜>-woo-code-readability-maintain/receipt.json`에 둔다. `decision.changes`에 각 변경을 `kind`(rule-add/agent-create/doc-update 등)·`ref`·`summary`로 남기고, 아직 코드로 옮기지 못한 항목은 `decision.unknowns`와 `nextCapabilities`에 남겨 다음 세션이 이어받게 한다. 제품 파일 검사 자체의 Receipt(예: `CODE-READABILITY-INSPECT`)는 별도 범위이며 이 절의 대상이 아니다.
 
 ## 완료 기준
 

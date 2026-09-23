@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-TEST-JSP-READABILITY-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:954f6b3721350447daa9708a87f102ee536896fb:dirty",
+  "intent": "함수 인자가 많은 한 줄 호출의 정렬 전후 가독성 비교 예시를 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "src/test.jsp에 주문 더미 데이터를 받는 createOrderRow 함수와 동일 데이터 3건을 추가했다.",
+      "각 함수 호출을 한 줄로 유지하면서 일반 공백 형태와 인자 열 정렬 형태를 함께 배치했다."
+    ],
+    "impacts": [
+      "함수 인자가 많은 반복 호출에서 한 줄 compact 표현과 표형 열 정렬의 위아래 비교 효용을 같은 데이터로 확인할 수 있다."
+    ],
+    "categories": [
+      "improvement",
+      "verification"
+    ],
+    "verification": [
+      "node --check < src/test.jsp로 JavaScript 문법을 확인했다.",
+      "measure-layout.ts로 정렬된 세 호출의 닫는 괄호가 모두 119열인지 실측했다.",
+      "git diff --check를 통과했고 변경 파일에서 TODO·test.skip·test.only가 발견되지 않았다."
+    ],
+    "connections": [
+      "Linear issue: WOO-911 · UUID b00b02eb-2d80-4b10-9c9a-a29db4f1a74d",
+      "Code: src/test.jsp",
+      "Evidence: .www/evidence/2026-09-23-test-jsp-readability",
+      "Branch: dev · HEAD 954f6b3721350447daa9708a87f102ee536896fb · uncommitted"
+    ]
+  },
+  "links": {
+    "issue": "https://linear.app/woo-world/issue/WOO-911/코드-실행-흐름을-역할별-최소-구조와-측정-가능한-열로-정리한다",
+    "code": "src/test.jsp",
+    "candidateEvidence": ".www/evidence/2026-09-23-test-jsp-readability"
+  },
+  "expectedBefore": {
+    "latestCommentId": "1c9c3c89-562a-4705-9c6e-3dac2e978948"
+  },
+  "validation": [
+    {
+      "id": "local-issue-binding",
+      "status": "pass",
+      "evidence": "WOO-911의 게시 Receipt와 read-back에서 동일한 코드 가독성 수락 단위와 Project ID를 확인했다. 현재 원격 재조회를 의미하지 않는다."
+    },
+    {
+      "id": "local-change-verification",
+      "status": "pass",
+      "evidence": "JavaScript 문법, 세 호출의 119열 닫는 괄호, diff 공백 및 미완성 표식을 현재 워크트리에서 확인했다."
+    },
+    {
+      "id": "draft-only-boundary",
+      "status": "pass",
+      "evidence": "최신 Project Activity 재조회와 사용자 게시 승인 전에는 외부 쓰기를 수행하지 않는다."
+    }
+  ],
+  "candidateDigest": "3c816413d9c9f74f1ccdb71b93dc318ed22fcb0d785e6d2cbfc51f0fae435ce7"
+}

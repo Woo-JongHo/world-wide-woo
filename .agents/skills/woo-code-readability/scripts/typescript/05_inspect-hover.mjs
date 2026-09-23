@@ -10,7 +10,7 @@ const targetArgument = process.argv[2];
 const symbolArguments = process.argv.slice(3);
 
 if (!targetArgument || symbolArguments.length === 0) {
-	throw new Error("usage: inspect-hover.mjs <file> <symbol[#occurrence]> [symbol[#occurrence] ...]");
+	throw new Error("usage: 05_inspect-hover.mjs <file> <symbol[#occurrence]> [symbol[#occurrence] ...]");
 }
 
 function repositoryFile(value) {

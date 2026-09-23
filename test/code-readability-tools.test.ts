@@ -2,9 +2,10 @@ import { describe, expect, test } from "bun:test";
 import { resolve } from "node:path";
 
 const root   = resolve(import.meta.dir, "..");
-const uncertaintyScript = resolve(root, ".agents/skills/woo-code-readability/scripts/audit-type-uncertainty.ts");
-const hoverScript       = resolve(root, ".agents/skills/woo-code-readability/scripts/inspect-hover.mjs");
+const uncertaintyScript = resolve(root, ".agents/skills/woo-code-readability/scripts/typescript/02_audit-type-uncertainty.ts");
+const hoverScript       = resolve(root, ".agents/skills/woo-code-readability/scripts/typescript/05_inspect-hover.mjs");
 const layoutScript      = resolve(root, ".agents/skills/woo-code-readability/scripts/measure-layout.ts");
+const regionsScript     = resolve(root, ".agents/skills/woo-code-readability/scripts/typescript/01_group-regions.ts");
 
 function audit(file: string): { exitCode: number; output: string } {
 	const result = Bun.spawnSync(["bun", uncertaintyScript, "--file", file], {
@@ -24,6 +25,24 @@ function hover(...symbols: string[]): { exitCode: number; output: string } {
 		hoverScript,
 		".agents/skills/woo-code-readability/fixtures/hover-contract.ts",
 		...symbols,
+	], {
+		cwd    : root,
+		stdout : "pipe",
+		stderr : "pipe",
+	});
+	return {
+		exitCode : result.exitCode,
+		output   : `${result.stdout.toString()}${result.stderr.toString()}`,
+	};
+}
+
+function regions(...args: string[]): { exitCode: number; output: string } {
+	const result = Bun.spawnSync([
+		"bun",
+		regionsScript,
+		"--file",
+		".agents/skills/woo-code-readability/fixtures/grid-regions.ts",
+		...args,
 	], {
 		cwd    : root,
 		stdout : "pipe",
@@ -104,6 +123,32 @@ describe("code readability hover inspector", () => {
 
 		expect(result.exitCode).toBe(1);
 		expect(result.output).toContain("hover documentation missing: MissingDocumentation");
+	});
+});
+
+describe("code readability region grouper", () => {
+	test("groups sibling declarations by AST kind instead of text position", () => {
+		const result = regions();
+
+		expect(result.exitCode).toBe(0);
+		expect(result.output).toContain("members    PropertySignature        rows= 3  table axes=type-annotation-colon");
+		expect(result.output).toContain("properties PropertyAssignment       rows= 3  table axes=object-literal-colon,object-comma");
+		expect(result.output).toContain("elements   Identifier               rows= 3  table axes=array-comma");
+		expect(result.output).toContain("arguments  Identifier               rows= 3  table axes=call-arg-comma");
+	});
+
+	test("separates ternary colons into their own group instead of joining property or object-literal colons", () => {
+		const result = regions();
+
+		expect(result.exitCode).toBe(0);
+		expect(result.output).toContain("arguments  ConditionalExpression    rows= 3  table axes=ternary-colon,call-arg-comma");
+	});
+
+	test("raises min-row threshold to drop pair-sized candidates", () => {
+		const result = regions("--min-rows", "4");
+
+		expect(result.exitCode).toBe(0);
+		expect(result.output).not.toContain("rows= 3");
 	});
 });
 

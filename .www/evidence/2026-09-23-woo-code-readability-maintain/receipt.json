@@ -1,0 +1,113 @@
+{
+  "schemaVersion": "1.0",
+  "receiptId": "a5e2b593-ca72-4877-a631-5f142e12152a",
+  "runId": "2849439f-037b-409a-849d-7102b059af26",
+  "candidateId": null,
+  "skill": {
+    "name": "woo-code-readability",
+    "version": "1.0"
+  },
+  "capability": "CODE-READABILITY-MAINTAIN",
+  "intentId": null,
+  "status": "succeeded",
+  "stage": "execute",
+  "actor": {
+    "kind": "claude-code",
+    "model": "claude-sonnet-5"
+  },
+  "context": {
+    "repo": "99_www",
+    "branch": "dev",
+    "updatedAt": "2026-09-23T00:00:00Z"
+  },
+  "input": {
+    "objective": "woo-code-readability 스킬 정의를 사용자 피드백으로 갱신한다: 검사자 역할을 Claude Code 서브에이전트로 실제화하고, 세미콜론 정렬·단독 문장 압축 규칙을 확정 규칙에 추가한다."
+  },
+  "decision": {
+    "facts": [
+      "readability_inspector 역할이 SKILL.md에 서술만 있고 Claude Code에서 tool 권한으로 강제되지 않았다.",
+      "measure-layout.ts는 AST가 아니라 텍스트 indexOf 스캔이라 문자열/삼항연산자 안 토큰과 충돌해 열 계산이 부정확했다.",
+      "AST로 판단 가능한 경계 분류(예: 삼항연산자 : vs 속성 :)는 md 규칙이 아니라 checker 코드(boundary map)로 옮기기로 했다."
+    ],
+    "changes": [
+      {
+        "kind": "agent-create",
+        "ref": ".claude/agents/readability-inspector.md",
+        "summary": "Write/Edit/NotebookEdit/Agent/ExitPlanMode를 금지한 부서 전용 읽기 전용 검사 서브에이전트를 신설했다."
+      },
+      {
+        "kind": "rule-add",
+        "ref": "references/readability-contract.md#35",
+        "summary": "종결 ;도 다른 열과 동일하게 실제 최장 값 기준으로 정렬한다(기존 '바로 붙인다' 규칙을 부분 반전)."
+      },
+      {
+        "kind": "rule-add",
+        "ref": "references/readability-contract.md#36",
+        "summary": "비교 대상 행이 3개 미만인 단독 문장은 세로로 쪼개지 않고 압축된 한 줄을 우선한다."
+      },
+      {
+        "kind": "doc-update",
+        "ref": "SKILL.md#역할",
+        "summary": "검사자 정의를 Claude Code(readability-inspector.md)·Codex(readability-inspector.toml) 두 실행 파일로 명시했다."
+      }
+    ],
+    "unknowns": [
+      "scripts/typescript/01_group-regions.ts 등 번호 매긴 스크립트 파이프라인은 설계만 됐고 아직 코드로 존재하지 않는다.",
+      "grid-tokens.ts(토큰→AST 역할 매핑표)도 아직 작성 전이다."
+    ]
+  },
+  "validation": [
+    {
+      "check": "claude-code subagent frontmatter spec",
+      "status": "passed",
+      "detail": "claude-code-guide 서브에이전트로 .claude/agents/*.md 필드(tools/disallowedTools 등) 스펙을 확인한 뒤 작성했다."
+    },
+    {
+      "check": "기존 규칙과의 모순 여부",
+      "status": "passed",
+      "detail": "규칙 9(화살표 함수 본문의 ; 뒤 공백 금지)는 35번 규칙 범위에서 명시적으로 제외해 충돌을 피했다."
+    }
+  ],
+  "authorization": null,
+  "execution": {
+    "writes": [
+      ".claude/agents/readability-inspector.md",
+      ".agents/skills/woo-code-readability/SKILL.md",
+      ".agents/skills/woo-code-readability/references/readability-contract.md"
+    ],
+    "externalActions": [],
+    "notes": "제품 코드(src/)는 건드리지 않았다. 전부 스킬/에이전트 정의 파일이다."
+  },
+  "result": {
+    "rulesAdded": [
+      35,
+      36
+    ],
+    "filesCreated": [
+      ".claude/agents/readability-inspector.md"
+    ],
+    "filesModified": [
+      ".agents/skills/woo-code-readability/SKILL.md",
+      ".agents/skills/woo-code-readability/references/readability-contract.md"
+    ]
+  },
+  "failure": null,
+  "evidence": [
+    {
+      "path": ".claude/agents/readability-inspector.md",
+      "sha256": "297cef4ef2848ac852cf79b71a5d5f2f0d05c2fa06ba43f896ead360e69576fa"
+    },
+    {
+      "path": ".agents/skills/woo-code-readability/SKILL.md",
+      "sha256": "478b81b818acce7f1e9be8bec6a7b0a25ac1735dac9306e185c77d79b18405b2"
+    },
+    {
+      "path": ".agents/skills/woo-code-readability/references/readability-contract.md",
+      "sha256": "47d283f8e6b87e3419e20f141b70af0d7bf51297439d62166bd96c5e00b4ef14"
+    }
+  ],
+  "nextCapabilities": [
+    "CODE-READABILITY-TOOLING-BUILD"
+  ],
+  "receiptDigest": "412f32bdfa2fa8a705b6d918d310872dcdcd20c599acb57f1b292b6d01845288"
+}
