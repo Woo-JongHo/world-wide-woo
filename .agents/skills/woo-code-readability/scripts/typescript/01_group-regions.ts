@@ -36,13 +36,13 @@ interface Group {
 }
 
 function rowContainersOf(node: Node): readonly RowContainer[] {
-	if (isSourceFile(node)) return [{ label: "statements", rows: node.statements }];
-	if (isBlock(node)) return [{ label: "statements", rows: node.statements }];
-	if (isInterfaceDeclaration(node)) return [{ label: "members", rows: node.members }];
-	if (isClassDeclaration(node)) return [{ label: "members", rows: node.members }];
+	if (isSourceFile             (node)) return [{ label: "statements", rows: node.statements }];
+	if (isBlock                  (node)) return [{ label: "statements", rows: node.statements }];
+	if (isInterfaceDeclaration   (node)) return [{ label: "members"   , rows: node.members    }];
+	if (isClassDeclaration       (node)) return [{ label: "members"   , rows: node.members    }];
 	if (isObjectLiteralExpression(node)) return [{ label: "properties", rows: node.properties }];
-	if (isArrayLiteralExpression(node)) return [{ label: "elements", rows: node.elements }];
-	if (isCallExpression(node)) return [{ label: "arguments", rows: node.arguments }];
+	if (isArrayLiteralExpression (node)) return [{ label: "elements"  , rows: node.elements   }];
+	if (isCallExpression         (node)) return [{ label: "arguments" , rows: node.arguments  }];
 	return [];
 }
 

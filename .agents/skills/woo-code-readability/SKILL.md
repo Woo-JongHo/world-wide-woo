@@ -92,7 +92,25 @@ description: 99_www의 TypeScript에서 긴 예외 요소를 구조적으로 간
 
 ## 자동 검사
 
-스크립트는 언어별 폴더로 나뉜다. `scripts/common/`은 언어 무관 유틸(표시 폭 계산 등)만 두고, `scripts/typescript/`는 TypeScript AST·LSP 전용 도구를 번호 순서(01→05)로 둔다. 새 언어가 추가되면 `scripts/<언어>/`가 형제로 생긴다.
+스크립트는 언어별 폴더로 나뉜다. `scripts/common/`은 언어 무관 유틸(표시 폭 계산 등)만 두고, `scripts/typescript/`는 TypeScript AST·LSP 전용 도구를 번호 순서(00→06)로 둔다. 새 언어가 추가되면 `scripts/<언어>/`가 형제로 생긴다.
+
+**STEP0 — import 선언 정규화.** 제품 파일의 본문 표를 검사하기 전에 선언부를 먼저 통일한다. 값과 타입이 한 named import에 섞이면 값 선언과 `import type` 선언으로 분리한다. named specifier가 하나면 항상 한 줄로 두고, 둘 이상은 완성된 한 줄의 표시 폭이 120 이하일 때 한 줄로 접는다. 120을 넘을 때만 항목별 여러 줄로 내리며 닫는 `}`와 `from`은 같은 줄에 둔다. 같은 선언 블록의 한 줄 import들은 실제 최장 선언부를 기준으로 `from` 시작 열을 맞춘다. type-only import는 런타임 의존성이 아니므로 값 import와 구조를 섞지 않는다.
+
+```bash
+bun .agents/skills/woo-code-readability/scripts/typescript/00_normalize-imports.ts src/**/*.ts test/**/*.ts
+bun .agents/skills/woo-code-readability/scripts/typescript/00_normalize-imports.ts --write <대상 파일>...
+```
+
+첫 명령은 변경이 필요한 파일이 있으면 실패하고 목록을 출력한다. `--write`는 import 선언부만 기계적으로 정규화하며 이후 TypeScript·아키텍처·행동 검증을 반드시 실행한다.
+
+**STEP6 — 안전한 표 경계 정렬.** 선언·인터페이스·클래스 멤버의 연속 3행 이상 표는 `:`와 종결 `;`를 실제 최장 값 기준으로 맞춘다. 인터페이스나 클래스 멤버가 한 물리 행에 둘 이상 압축돼 있으면 정렬 전에 실패시켜 “한 선언 한 행” 누락을 숨기지 않는다. 객체 행 표는 같은 shape가 연속될 때만 `{`·`:`·`,`·`}` 경계를 맞춘다. 조건식, `for` 헤더, 빈 문장, 한 줄 실행 블록, JSDoc·빈 줄로 끊긴 행은 대상에서 제외한다.
+
+```bash
+bun .agents/skills/woo-code-readability/scripts/typescript/06_align-tables.ts --file <대상 파일>
+bun .agents/skills/woo-code-readability/scripts/typescript/06_align-tables.ts --file <대상 파일> --write
+```
+
+첫 명령은 안전한 표와 불일치 수를 보고하고 불일치가 있으면 실패한다. 파일 내용을 읽어 표의 역할이 같은지 확인한 뒤에만 `--write`를 사용하고, 다시 실행해 `misaligned=0`을 증명한다.
 
 **STEP1 — 그룹 확정.** 정렬을 주장하기 전에 먼저 AST로 "같은 표로 묶을 수 있는 연속 행"을 찾는다. 텍스트 위치가 아니라 SyntaxKind가 같은 형제 노드만 묶으므로 삼항연산자 `:`와 속성/객체 리터럴 `:`처럼 문자는 같아도 역할이 다른 토큰은 애초에 다른 그룹으로 갈린다.
 
