@@ -1,12 +1,8 @@
-import {
-	ProcessTerminal,
-	SelectList,
-	TuiAltScreen,
-	type Component,
-} from "@earendil-works/pi-tui";
-import type { NativeThreadSummary } from "../../../../../core/domain/execution/native-session";
-import { colors, selectListTheme } from "../../foundation/theme/theme";
-import { a, astraEditorTheme, fit, safe } from "../../foundation/theme/astra-theme";
+import { ProcessTerminal, SelectList, TuiAltScreen } from "@earendil-works/pi-tui";
+import type { Component }                            from "@earendil-works/pi-tui";
+import type { NativeThreadSummary }                  from "@/core/domain/execution/native-session";
+import { colors, selectListTheme }                   from "@/adapters/inbound/tui/foundation/theme/theme";
+import { a, astraEditorTheme, fit, safe }            from "@/adapters/inbound/tui/foundation/theme/astra-theme";
 
 function threadPreview(thread: NativeThreadSummary): string {
 	return thread.preview.replace(/\s+/gu, " ").trim() || "(미리보기 없음)";
@@ -28,9 +24,9 @@ export class NativeThreadPicker implements Component {
 	) {
 		this.list = new SelectList(
 			threads.map(thread => ({
-				value: thread.id,
-				label: design ? safe(threadPreview(thread)) : threadPreview(thread),
-				description: design ? safe(threadDescription(thread)) : threadDescription(thread),
+				value       : thread.id,
+				label       : design ? safe(threadPreview(thread)) : threadPreview(thread),
+				description : design ? safe(threadDescription(thread)) : threadDescription(thread),
 			})),
 			Math.min(10, Math.max(1, threads.length)),
 			design ? astraEditorTheme.selectList : selectListTheme,

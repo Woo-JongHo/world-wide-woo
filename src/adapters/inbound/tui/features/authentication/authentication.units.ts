@@ -1,4 +1,4 @@
-import type { TuiFeatureUnitDescriptor } from "../feature.types";
+import type { TuiFeatureUnitDescriptor } from "@/adapters/inbound/tui/features/feature.types";
 
 export const authenticationUnits = [
 	{ id: "TUI-F014-U01", featureId: "TUI-F014", key: "provider-login", title: "Provider 로그인·인증 방식 선택", status: "active" },

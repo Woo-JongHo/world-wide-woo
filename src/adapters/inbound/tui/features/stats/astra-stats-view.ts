@@ -1,7 +1,18 @@
-import type { Component } from "@earendil-works/pi-tui";
-import type { ObservabilitySessionSummary } from "../../../../../core/domain/observability/observability-dashboard";
-import type { SessionStatsSnapshot } from "../../../../../core/domain/observability/session-stats";
-import { a, duration, fit, mark, number, oneLine, pair, prose, safe, section } from "../../foundation/theme/astra-theme";
+import type { Component }                   from "@earendil-works/pi-tui";
+import type { ObservabilitySessionSummary } from "@/core/domain/observability/observability-dashboard";
+import type { SessionStatsSnapshot }        from "@/core/domain/observability/session-stats";
+import {
+	a,
+	duration,
+	fit,
+	mark,
+	number,
+	oneLine,
+	pair,
+	prose,
+	safe,
+	section,
+} from "@/adapters/inbound/tui/foundation/theme/astra-theme";
 
 function document(rows: string[], width: number): string[] { return rows.flatMap(row => prose(row, width)); }
 function kv(label: string, value: unknown): string { return `${a.muted(fit(label, 20))} ${a.text(safe(value ?? "—"))}`; }

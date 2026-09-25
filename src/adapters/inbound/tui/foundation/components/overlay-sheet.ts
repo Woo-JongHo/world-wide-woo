@@ -1,5 +1,6 @@
-import { truncateToWidth, visibleWidth, type Component } from "@earendil-works/pi-tui";
-import { colors } from "../theme/theme";
+import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
+import type { Component }                from "@earendil-works/pi-tui";
+import { colors }                        from "@/adapters/inbound/tui/foundation/theme/theme";
 
 function fit(text: string, width: number): string {
 	const clipped = truncateToWidth(text, Math.max(0, width));

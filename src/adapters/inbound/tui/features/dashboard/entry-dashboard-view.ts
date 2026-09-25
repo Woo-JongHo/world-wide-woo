@@ -1,12 +1,34 @@
-import { truncateToWidth, visibleWidth, wrapTextWithAnsi, type Component } from "@earendil-works/pi-tui";
-import type { ProjectActivity } from "../../../../../core/domain/execution/project-activity";
-import type { LinearDashboardComment, LinearDashboardIssue, LinearProjectDashboard } from "../../../../../core/domain/work/linear-dashboard";
-import type { WorkbenchSnapshot } from "../../../../../core/domain/work/workbench";
-import { monitoringCard, monitoringColumns, monitoringMeter, monitoringPanel, monitoringWidths } from "../../foundation/layout/astra-monitoring-layout";
-import { a, number, pair, prose, railSection, section as astraSection } from "../../foundation/theme/astra-theme";
-import { runtimeModeLabel, workbenchEffortLabel, workbenchModelLabel } from "../../foundation/labels";
-import { colors } from "../../foundation/theme/theme";
-import { syntheticDashboardRail, syntheticDashboardRows } from "./astra-dashboard-catalog";
+import { truncateToWidth, visibleWidth, wrapTextWithAnsi }             from "@earendil-works/pi-tui";
+import type { Component }                                              from "@earendil-works/pi-tui";
+import type { ProjectActivity }                                        from "@/core/domain/execution/project-activity";
+import type {
+	LinearDashboardComment,
+	LinearDashboardIssue,
+	LinearProjectDashboard,
+} from "@/core/domain/work/linear-dashboard";
+import type { WorkbenchSnapshot }                                      from "@/core/domain/work/workbench";
+import {
+	monitoringCard,
+	monitoringColumns,
+	monitoringMeter,
+	monitoringPanel,
+	monitoringWidths,
+} from "@/adapters/inbound/tui/foundation/layout/astra-monitoring-layout";
+import {
+	a,
+	duration,
+	number,
+	pair,
+	prose,
+	railSection,
+	section as astraSection,
+} from "@/adapters/inbound/tui/foundation/theme/astra-theme";
+import { runtimeModeLabel, workbenchEffortLabel, workbenchModelLabel } from "@/adapters/inbound/tui/foundation/labels";
+import { colors }                                                      from "@/adapters/inbound/tui/foundation/theme/theme";
+import {
+	syntheticDashboardRail,
+	syntheticDashboardRows,
+} from "@/adapters/inbound/tui/features/dashboard/astra-dashboard-catalog";
 
 function fit(text: string, width: number): string {
 	if (width <= 0) return "";
@@ -95,9 +117,9 @@ function dashboardHealth(snapshot: WorkbenchSnapshot, blockedTodos: number): str
 function cacheSummary(snapshot: WorkbenchSnapshot): { readonly value: string; readonly detail: string } {
 	const layers = snapshot.cacheObservations ?? [];
 	const totals = layers.reduce((accumulator, layer) => ({
-		hits: accumulator.hits + (layer.hits ?? 0),
-		misses: accumulator.misses + (layer.misses ?? 0),
-		observed: accumulator.observed + (layer.hits !== null || layer.misses !== null ? 1 : 0),
+		hits     : accumulator.hits + (layer.hits ?? 0),
+		misses   : accumulator.misses + (layer.misses ?? 0),
+		observed : accumulator.observed + (layer.hits !== null || layer.misses !== null ? 1 : 0),
 	}), { hits: 0, misses: 0, observed: 0 });
 	const requests = totals.hits + totals.misses;
 	if (totals.observed === 0 || requests === 0) return { value: "미관측", detail: totals.observed ? "accesses not observed" : "no observed layers" };
@@ -119,19 +141,19 @@ function observedActivityMatrix(activities: readonly ProjectActivity[]): Readonl
 		return Number.isFinite(timestamp) ? [{ activity, timestamp }] : [];
 	});
 	if (dated.length === 0) return null;
-	const columns = 12;
-	const intervalMs = 2 * 60 * 60 * 1_000;
-	const latest = Math.max(...dated.map(entry => entry.timestamp));
-	const start = latest - columns * intervalMs;
+	const columns    = 12                                               ;
+	const intervalMs = 2 * 60 * 60 * 1_000                              ;
+	const latest     = Math.max(...dated.map(entry => entry.timestamp)) ;
+	const start      = latest - columns * intervalMs                    ;
 	const matrix: Record<ActivityBucket, number[]> = {
-		message: Array.from({ length: columns }, () => 0),
-		tool: Array.from({ length: columns }, () => 0),
-		flow: Array.from({ length: columns }, () => 0),
+		message : Array.from({ length: columns }, () => 0),
+		tool    : Array.from({ length: columns }, () => 0),
+		flow    : Array.from({ length: columns }, () => 0),
 	};
 	for (const entry of dated) {
 		if (entry.timestamp < start || entry.timestamp > latest) continue;
 		const column = Math.min(columns - 1, Math.max(0, Math.floor((entry.timestamp - start) / intervalMs)));
-		matrix[activityBucket(entry.activity)][column]! += 1;
+		matrix[activityBucket(entry.activity)][column] += 1;
 	}
 	return matrix;
 }
@@ -155,6 +177,20 @@ function monitoringSplitWidths(width: number): readonly [number, number] {
 	return [Math.max(1, width - gap - right), right];
 }
 
+function layerPerformanceRows(snapshot: WorkbenchSnapshot, width: number): string[] {
+	const telemetry = snapshot.layerPerformance;
+	if (!telemetry || telemetry.window.traceCount === 0) return [pair("LAYER PERFORMANCE", "미관측", width)];
+	const observed = Object.entries(telemetry.window.layers).flatMap(([layerId, value]) => [
+		...(value.wait.p95 === null ? [] : [{ layerId, phase: "wait", p95: value.wait.p95 }]),
+		...(value.work.p95 === null ? [] : [{ layerId, phase: "work", p95: value.work.p95 }]),
+	]);
+	const slowest = observed.sort((left, right) => right.p95 - left.p95)[0];
+	return [
+		pair("OBSERVED TRACES", `${telemetry.window.traceCount} traces · ${telemetry.window.errorCount} trace failures`, width),
+		pair("SLOWEST P95", slowest ? `${slowest.layerId} ${slowest.phase} · ${duration(slowest.p95)}` : "미관측", width),
+	];
+}
+
 /** First Astra screen. Every operational value comes from the current Workbench snapshot. */
 export class WwwDashboardView implements Component {
 	public constructor(
@@ -167,18 +203,18 @@ export class WwwDashboardView implements Component {
 	public render(width: number): string[] {
 		const snapshot = this.getSnapshot();
 		if (this.showSyntheticCatalog()) return syntheticDashboardRows(snapshot, width);
-		const workflow = snapshot.workFlow;
-		const todo = snapshot.todo;
-		const todoCompleted = todo?.items.filter(item => item.status === "completed").length ?? 0;
-		const todoBlocked = todo?.items.filter(item => item.status === "blocked").length ?? 0;
-		const live = snapshot.liveActivity ? snapshotText(snapshot.liveActivity.text, "관측된 현재 작업 없음") : null;
-		const project = snapshot.linearDashboard;
-		const context = snapshot.contextUsage;
-		const sessionTokens = snapshot.sessionUsage?.observedTotalTokens;
-		const contextPercent = context ? Math.round(Math.max(0, Math.min(100, context.percent))) : null;
-		const health = dashboardHealth(snapshot, todoBlocked);
-		const cache = cacheSummary(snapshot);
-		const compactSummary = width < 92;
+		const workflow       = snapshot.workFlow                                                                                ;
+		const todo           = snapshot.todo                                                                                    ;
+		const todoCompleted  = todo?.items.filter(item => item.status === "completed").length ?? 0                              ;
+		const todoBlocked    = todo?.items.filter(item => item.status === "blocked").length ?? 0                                ;
+		const live           = snapshot.liveActivity ? snapshotText(snapshot.liveActivity.text, "관측된 현재 작업 없음") : null ;
+		const project        = snapshot.linearDashboard                                                                         ;
+		const context        = snapshot.contextUsage                                                                            ;
+		const sessionTokens  = snapshot.sessionUsage?.observedTotalTokens                                                       ;
+		const contextPercent = context ? Math.round(Math.max(0, Math.min(100, context.percent))) : null                         ;
+		const health         = dashboardHealth(snapshot, todoBlocked)                                                           ;
+		const cache          = cacheSummary(snapshot)                                                                           ;
+		const compactSummary = width < 92                                                                                       ;
 		const summary = [
 			[compactSummary ? "Session" : "Active session", snapshotText(snapshot.threadId, "새 세션"), `revision ${snapshot.revision}`],
 			[compactSummary ? "Events" : "Activity events", number(snapshot.activities.length), live ? "working" : snapshotPhase(snapshot.phase)],
@@ -198,19 +234,25 @@ export class WwwDashboardView implements Component {
 			].flatMap(row => prose(row, width));
 		}
 
-		const summaryWidths = monitoringWidths(width, 5);
-		const routerWidths = monitoringWidths(width, 4);
+		const summaryWidths = monitoringWidths(width, 5)                                                                         ;
+		const routerWidths  = monitoringWidths(width, 4)                                                                         ;
+		const contextValue  = contextPercent == null ? "미관측" : `${contextPercent}%`                                           ;
+		const contextDetail = context ? `${number(context.usedTokens)} / ${number(context.contextWindow)}` : "usage unavailable" ;
+		const usageValue    = sessionTokens == null ? "미관측" : number(sessionTokens)                                           ;
 		const routerCards = [
-			monitoringCard({ title: "/context", value: contextPercent == null ? "미관측" : `${contextPercent}%`, detail: context ? `${number(context.usedTokens)} / ${number(context.contextWindow)}` : "usage unavailable" }, routerWidths[0]!),
-			monitoringCard({ title: "/cache", value: cache.value, detail: cache.detail }, routerWidths[1]!),
-			monitoringCard({ title: "/usage", value: sessionTokens == null ? "미관측" : number(sessionTokens), detail: "observed session tokens" }, routerWidths[2]!),
-			monitoringCard({ title: "/workflow", value: `${workflow.completedCount}/${workflow.steps.length}`, detail: workflow.steps.length ? "tracked steps" : "no steps" }, routerWidths[3]!),
+			monitoringCard({ title: "/context", value: contextValue, detail: contextDetail }, routerWidths[0]),
+			monitoringCard({ title: "/cache", value: cache.value, detail: cache.detail }, routerWidths[1]),
+			monitoringCard({ title: "/usage", value: usageValue, detail: "observed session tokens" }, routerWidths[2]),
+			monitoringCard({ title: "/workflow", value: `${workflow.completedCount}/${workflow.steps.length}`, detail: workflow.steps.length ? "tracked steps" : "no steps" }, routerWidths[3]),
 		];
 		const goal = snapshot.sessionGoal ? snapshotText(snapshot.sessionGoal.text, "목표 없음") : "Goal이 아직 없습니다.";
 		const liveSummary = live ? truncateToWidth(live, Math.max(16, width - 14)) : "현재 실행 중인 작업이 없습니다.";
 		const [tokenPanelWidth, activityPanelWidth] = monitoringSplitWidths(width);
-		const tokenInnerWidth = Math.max(1, tokenPanelWidth - 2);
-		const activity = activityPanelRows(snapshot.activities);
+		const tokenInnerWidth = Math.max(1, tokenPanelWidth - 2)                                                           ;
+		const activity        = activityPanelRows(snapshot.activities)                                                     ;
+		const messageCount    = snapshot.activities.filter(item => item.kind === "message").length                         ;
+		const toolCount       = snapshot.activities.filter(item => item.kind === "tool").length                            ;
+		const flowCount       = snapshot.activities.filter(item => item.kind !== "message" && item.kind !== "tool").length ;
 		const tokenPanel = monitoringPanel({
 			title: "TOKEN ALLOCATION / PROPORTION",
 			meta: contextPercent == null ? "unavailable" : `context ${contextPercent}%`,
@@ -226,18 +268,19 @@ export class WwwDashboardView implements Component {
 			meta: activity.meta,
 			rows: [
 				...activity.rows,
-				pair("EVENTS", `message ${snapshot.activities.filter(item => item.kind === "message").length} · tool ${snapshot.activities.filter(item => item.kind === "tool").length} · flow ${snapshot.activities.filter(item => item.kind !== "message" && item.kind !== "tool").length}`, Math.max(1, activityPanelWidth - 2)),
+				pair("EVENTS", `message ${messageCount} · tool ${toolCount} · flow ${flowCount}`, Math.max(1, activityPanelWidth - 2)),
 			],
 		}, activityPanelWidth);
 		return [
 			pair(a.strong("SESSION OVERVIEW"), `${snapshot.projectId} · ${snapshotText(snapshot.threadId, "새 세션")}`, width),
-			...monitoringColumns(summary.map(([title, value, detail], index) => monitoringCard({ title, value, detail }, summaryWidths[index]!)), summaryWidths),
+			...monitoringColumns(summary.map(([title, value, detail], index) => monitoringCard({ title, value, detail }, summaryWidths[index])), summaryWidths),
 			"",
 			pair(a.active("SYSTEM MODULE ROUTER"), runtimeModeLabel(snapshot.permissionMode, snapshot.collaborationMode), width),
 			...monitoringColumns(routerCards, routerWidths),
 			"",
 			pair("NOW", liveSummary, width),
 			pair("GOAL", goal, width),
+			...layerPerformanceRows(snapshot, width),
 			...monitoringColumns([tokenPanel, activityPanel], [tokenPanelWidth, activityPanelWidth]),
 			pair("LINEAR", project ? `${snapshotText(project.projectName, "연결된 프로젝트")} · ${project.state}` : "미연결", width),
 		].map(row => fit(row, width));
@@ -289,10 +332,10 @@ export class EntryDashboardView implements Component {
 	public invalidate(): void {}
 
 	public render(width: number): string[] {
-		const contentWidth = Math.max(1, width);
-		const dashboard = this.getDashboard();
-		const projectName = dashboard?.projectName ?? "Linear 프로젝트";
-		const rows: string[] = [colors.secondary(`DASHBOARD · ${projectName}`)];
+		const contentWidth    = Math.max(1, width)                               ;
+		const dashboard       = this.getDashboard()                              ;
+		const projectName     = dashboard?.projectName ?? "Linear 프로젝트"      ;
+		const rows : string[] = [colors.secondary(`DASHBOARD · ${projectName}`)] ;
 		if (!dashboard || dashboard.state === "loading") {
 			rows.push(section("NOW"), colors.accent("연결 중"));
 			rows.push(...wrapTextWithAnsi("열린 이슈·최신 Update·Comment·마일스톤을 가져오는 중입니다.", contentWidth));
@@ -305,9 +348,9 @@ export class EntryDashboardView implements Component {
 			return rows;
 		}
 
-		const issues = dashboard.issues;
-		const current = issues.find(isInProgress) ?? issues[0];
-		const next = issues.filter(issue => issue !== current).slice(0, 3);
+		const issues  = dashboard.issues                                      ;
+		const current = issues.find(isInProgress) ?? issues[0]                ;
+		const next    = issues.filter(issue => issue !== current).slice(0, 3) ;
 		if (dashboard.state === "stale") {
 			rows.push(colors.warning("갱신 실패 · 마지막 성공 값"));
 			if (dashboard.error) rows.push(...wrapTextWithAnsi(`  실패 이유 · ${dashboard.error}`, contentWidth));
@@ -333,9 +376,11 @@ export class EntryDashboardView implements Component {
 		} else rows.push(colors.muted("  최근 갱신 이슈가 없습니다."));
 
 		rows.push(section("HEALTH"));
-		const blocked = issues.filter(issue => /blocked|차단/iu.test(issue.status)).length;
-		const stale = dashboard.state === "stale" ? 1 : 0;
-		rows.push(`${blocked > 0 || stale > 0 ? colors.warning("!") : colors.success("✓")} ${colors.muted(`blocked ${blocked > 0 ? blocked : "—"} · stale ${stale}`)}`);
+		const blocked = issues.filter(issue => /blocked|차단/iu.test(issue.status)).length      ;
+		const stale   = dashboard.state === "stale" ? 1 : 0                                     ;
+		const marker  = blocked > 0 || stale > 0 ? colors.warning("!") : colors.success("✓")    ;
+		const summary = colors.muted(`blocked ${blocked > 0 ? blocked : "—"} · stale ${stale}`) ;
+		rows.push(`${marker} ${summary}`);
 		rows.push(colors.muted(`synced ${clock(dashboard.fetchedAt)}`));
 		return rows.flatMap(row => wrapTextWithAnsi(fit(row, contentWidth), contentWidth));
 	}

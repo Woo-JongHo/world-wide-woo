@@ -1,11 +1,31 @@
-import { Markdown, type Component } from "@earendil-works/pi-tui";
-import type { RequestRuntimeRecord } from "../../../../../core/domain/execution/request-runtime";
-import type { WorkbenchSnapshot } from "../../../../../core/domain/work/workbench";
-import type { UsageSnapshot } from "../../../../../core/ports";
-import { monitoringCard, monitoringColumns, monitoringMeter, monitoringWidths } from "../../foundation/layout/astra-monitoring-layout";
-import { a, astraMarkdownTheme, astraMeter, fit, mark, number, pair, prose, railSection, safe, section } from "../../foundation/theme/astra-theme";
-import { runtimeModeLabel, workbenchEffortLabel, workbenchModelLabel } from "../../foundation/labels";
-import { syntheticContextRows, syntheticStorageRows } from "./astra-context-catalog";
+import { Markdown }                                                    from "@earendil-works/pi-tui";
+import type { Component }                                              from "@earendil-works/pi-tui";
+import type { RequestRuntimeRecord }                                   from "@/core/domain/execution/request-runtime";
+import type { WorkbenchSnapshot }                                      from "@/core/domain/work/workbench";
+import type { UsageSnapshot }                                          from "@/core/ports";
+import {
+	monitoringCard,
+	monitoringColumns,
+	monitoringWidths,
+} from "@/adapters/inbound/tui/foundation/layout/astra-monitoring-layout";
+import {
+	a,
+	astraMarkdownTheme,
+	astraMeter,
+	fit,
+	mark,
+	number,
+	pair,
+	prose,
+	railSection,
+	safe,
+	section,
+} from "@/adapters/inbound/tui/foundation/theme/astra-theme";
+import { runtimeModeLabel, workbenchEffortLabel, workbenchModelLabel } from "@/adapters/inbound/tui/foundation/labels";
+import {
+	syntheticContextRows,
+	syntheticStorageRows,
+} from "@/adapters/inbound/tui/features/context/astra-context-catalog";
 
 function document(rows: string[], width: number): string[] { return rows.flatMap(row => prose(row, width)); }
 function kv(label: string, value: unknown): string { return `${a.muted(fit(label, 20))} ${a.text(safe(value ?? "—"))}`; }
@@ -27,13 +47,17 @@ function usagePercent(percent: number | undefined): string {
 }
 
 function contextMetrics(snapshot: WorkbenchSnapshot): {
-	readonly used: number | null;
-	readonly total: number | null;
-	readonly free: number | null;
-	readonly percent: number | null;
+	readonly used    : number | null ;
+	readonly total   : number | null ;
+	readonly free    : number | null ;
+	readonly percent : number | null ;
 } {
 	const usage = snapshot.contextUsage;
-	if (!usage || !Number.isFinite(usage.usedTokens) || !Number.isFinite(usage.contextWindow) || usage.usedTokens < 0 || usage.contextWindow <= 0) {
+	if (!usage
+		|| !Number.isFinite(usage.usedTokens)
+		|| !Number.isFinite(usage.contextWindow)
+		|| usage.usedTokens < 0
+		|| usage.contextWindow <= 0) {
 		return { used: null, total: null, free: null, percent: null };
 	}
 	const used = Math.min(usage.usedTokens, usage.contextWindow);
@@ -47,10 +71,10 @@ function contextMetrics(snapshot: WorkbenchSnapshot): {
 }
 
 function contextInputRows(snapshot: WorkbenchSnapshot, width: number): string[] {
-	const skills = snapshot.skillInventory;
-	const enabledMcp = snapshot.mcpServers.filter(server => server.enabled).length;
-	const workflowSteps = snapshot.workFlow.steps.length;
-	const runtime = snapshot.liveActivity ? "1 observed" : "미관측";
+	const skills        = snapshot.skillInventory                                     ;
+	const enabledMcp    = snapshot.mcpServers.filter(server => server.enabled).length ;
+	const workflowSteps = snapshot.workFlow.steps.length                              ;
+	const runtime       = snapshot.liveActivity ? "1 observed" : "미관측"             ;
 	const inputs: readonly [string, string, string][] = [
 		["SYS", "System", "token allocation 미관측"],
 		["CONV", "Conversation", `${snapshot.chat.length} messages`],
@@ -61,7 +85,7 @@ function contextInputRows(snapshot: WorkbenchSnapshot, width: number): string[] 
 		["RUNT", "Runtime", runtime],
 	];
 	return inputs.map(([code, label, detail], index) => {
-		const ink = [a.info, a.text, a.success, a.response, a.attention, a.request, a.active][index]!;
+		const ink = [a.info, a.text, a.success, a.response, a.attention, a.request, a.active][index];
 		return pair(`${ink("■")} ${a.strong(code)}  ${label}`, a.muted(detail), width);
 	});
 }
@@ -70,32 +94,29 @@ function contextSummaryRows(snapshot: WorkbenchSnapshot, width: number): string[
 	const metrics = contextMetrics(snapshot);
 	const model = workbenchModelLabel(snapshot.activeModel ?? snapshot.model);
 	const cards = [
-		{ title: "Total Capacity", value: metrics.total == null ? "미관측" : `${number(metrics.total)} tokens`, detail: metrics.total == null ? "native telemetry" : "context window" },
-		{ title: "Used Tokens", value: metrics.used == null ? "미관측" : `${number(metrics.used)} tokens`, detail: metrics.percent == null ? "– occupancy" : `${metrics.percent}% occupied` },
-		{ title: "Free Space", value: metrics.free == null ? "미관측" : `${number(metrics.free)} tokens`, detail: metrics.percent == null ? "– available" : `${100 - metrics.percent}% available` },
-		{ title: "Compression", value: "미관측", detail: "no native metric" },
-		{ title: "Last Retrieval", value: "미관측", detail: "timestamp unavailable" },
-		{ title: "Active Model", value: model, detail: snapshot.activeModel ? "in-flight turn" : "selected model" },
-		{ title: "Effort Config", value: workbenchEffortLabel(snapshot.effort), detail: snapshot.effort ? "session setting" : "미관측" },
+		{ title : "Total Capacity" , value : metrics.total == null ? "미관측" : `${number(metrics.total)} tokens` , detail : metrics.total == null ? "native telemetry" : "context window"                   },
+		{ title : "Used Tokens"    , value : metrics.used == null ? "미관측" : `${number(metrics.used)} tokens`   , detail : metrics.percent == null ? "– occupancy" : `${metrics.percent}% occupied`        },
+		{ title : "Free Space"     , value : metrics.free == null ? "미관측" : `${number(metrics.free)} tokens`   , detail : metrics.percent == null ? "– available" : `${100 - metrics.percent}% available` },
+		{ title : "Compression"    , value : "미관측"                                                             , detail : "no native metric"                                                              },
+		{ title : "Last Retrieval" , value : "미관측"                                                             , detail : "timestamp unavailable"                                                         },
+		{ title : "Active Model"   , value : model                                                                , detail : snapshot.activeModel ? "in-flight turn" : "selected model"                      },
+		{ title : "Effort Config"  , value : workbenchEffortLabel(snapshot.effort)                                , detail : snapshot.effort ? "session setting" : "미관측"                                  },
 	] as const;
 	if (width >= 108) {
 		const widths = monitoringWidths(width, cards.length);
-		return monitoringColumns(cards.map((card, index) => monitoringCard(card, widths[index]!)), widths);
+		return monitoringColumns(cards.map((card, index) => monitoringCard(card, widths[index])), widths);
 	}
 	return cards.map(card => pair(card.title, `${card.value} · ${card.detail}`, width));
 }
 
 function contextSpectrometerRows(snapshot: WorkbenchSnapshot, width: number): string[] {
 	const metrics = contextMetrics(snapshot);
-	const meterWidth = Math.max(10, width - 2);
 	const status = metrics.used == null || metrics.total == null
 		? "Context token telemetry unavailable"
 		: `Total Used: ${number(metrics.used)} / ${number(metrics.total)} tokens`;
 	return [
 		...section("CONTEXT ACCUMULATION SPECTROMETER", width, status, a.response),
-		metrics.used == null || metrics.total == null
-			? a.rule("░".repeat(meterWidth))
-			: monitoringMeter(metrics.used, metrics.total, meterWidth, a.active),
+		contextOccupancyCells(metrics.percent, width),
 		pair("OVERALL CONTEXT OCCUPANCY", metrics.percent == null ? "unavailable" : `${metrics.percent}%`, width),
 		a.caption("Whole native context window · includes system tokens"),
 		"",
@@ -103,6 +124,14 @@ function contextSpectrometerRows(snapshot: WorkbenchSnapshot, width: number): st
 		a.caption("Enabled MCP servers and loaded Skills are counts, not token shares."),
 		...contextInputRows(snapshot, width),
 	];
+}
+
+/** Equal cells visualize only whole-window occupancy; they never imply source attribution. */
+function contextOccupancyCells(percent: number | null, width: number): string {
+	const count = Math.max(3, Math.min(20, Math.floor((width + 1) / 4)));
+	if (percent === null) return Array.from({ length: count }, () => a.rule("[ ]")).join(" ");
+	const filled = Math.round(count * percent / 100);
+	return Array.from({ length: count }, (_, index) => index < filled ? `[${a.active("■")}]` : a.rule("[ ]")).join(" ");
 }
 
 /** The Figma composition panel has no Native per-source token telemetry yet. */
@@ -132,19 +161,19 @@ function contextActivityRows(snapshot: WorkbenchSnapshot, width: number): string
 }
 
 function contextDiagnosticsRows(snapshot: WorkbenchSnapshot, width: number): string[] {
-	const metrics = contextMetrics(snapshot);
-	const tasks = (snapshot.delegation ?? []).flatMap(group => group.tasks);
-	const enabledMcp = snapshot.mcpServers.filter(server => server.enabled).length;
+	const metrics    = contextMetrics(snapshot)                                    ;
+	const tasks      = (snapshot.delegation ?? []).flatMap(group => group.tasks)   ;
+	const enabledMcp = snapshot.mcpServers.filter(server => server.enabled).length ;
 	const cards = [
-		{ title: "Context", value: metrics.used == null ? "UNAVAILABLE" : "OBSERVED", detail: metrics.used == null || metrics.total == null ? "native telemetry" : `${number(metrics.used)}/${number(metrics.total)}` },
-		{ title: "Activities", value: `${snapshot.activities.length}`, detail: "durable observed" },
-		{ title: "Skills", value: snapshot.skillInventory ? `${snapshot.skillInventory.count}` : "UNAVAILABLE", detail: snapshot.skillInventory ? "inventory loaded" : "inventory absent" },
-		{ title: "MCP / Agents", value: `${enabledMcp}/${snapshot.mcpServers.length}`, detail: `${tasks.length} agent tasks` },
+		{ title : "Context"      , value : metrics.used == null ? "UNAVAILABLE" : "OBSERVED"                            , detail : metrics.used == null || metrics.total == null ? "native telemetry" : `${number(metrics.used)}/${number(metrics.total)}` },
+		{ title : "Activities"   , value : `${snapshot.activities.length}`                                              , detail : "durable observed"                                                                                                      },
+		{ title : "Skills"       , value : snapshot.skillInventory ? `${snapshot.skillInventory.count}` : "UNAVAILABLE" , detail : snapshot.skillInventory ? "inventory loaded" : "inventory absent"                                                       },
+		{ title : "MCP / Agents" , value : `${enabledMcp}/${snapshot.mcpServers.length}`                                , detail : `${tasks.length} agent tasks`                                                                                           },
 	] as const;
 	const rows = section("CONTEXT DIAGNOSTICS EVENT GRID", width, "current snapshot", a.attention);
 	if (width >= 72) {
 		const widths = monitoringWidths(width, cards.length);
-		rows.push(...monitoringColumns(cards.map((card, index) => monitoringCard(card, widths[index]!)), widths));
+		rows.push(...monitoringColumns(cards.map((card, index) => monitoringCard(card, widths[index])), widths));
 		return rows;
 	}
 	for (const card of cards) rows.push(pair(card.title, `${card.value} · ${card.detail}`, width));
@@ -152,10 +181,10 @@ function contextDiagnosticsRows(snapshot: WorkbenchSnapshot, width: number): str
 }
 
 function contextDependencyRows(snapshot: WorkbenchSnapshot, width: number): string[] {
-	const skills = snapshot.skillInventory;
-	const tasks = (snapshot.delegation ?? []).flatMap(group => group.tasks);
-	const metrics = contextMetrics(snapshot);
-	const rows = section("SYSTEM DEPENDENCY MAP", width, "observed graph", a.info);
+	const skills  = snapshot.skillInventory                                           ;
+	const tasks   = (snapshot.delegation ?? []).flatMap(group => group.tasks)         ;
+	const metrics = contextMetrics(snapshot)                                          ;
+	const rows    = section("SYSTEM DEPENDENCY MAP", width, "observed graph", a.info) ;
 	rows.push(a.strong("ASTRA CORE"));
 	rows.push(pair("├─ Skills", skills ? `${skills.count} loaded` : "unavailable", width));
 	if (skills?.names.length) for (const name of skills.names.slice(0, 4)) rows.push(a.muted(`│  • ${safe(name)}`));
@@ -219,10 +248,10 @@ export class AstraContextView implements Component {
 		}
 		const catalog = this.synthetic() ? syntheticContextRows(s, width) : [];
 		if (catalog.length) return document(catalog, width);
-		const metrics = contextMetrics(s);
-		const skills = s.skillInventory;
-		const enabledMcp = s.mcpServers.filter(server => server.enabled).length;
-		const memoryItems = s.chat.length + s.activities.length + s.tnotes.length;
+		const metrics     = contextMetrics(s)                                     ;
+		const skills      = s.skillInventory                                      ;
+		const enabledMcp  = s.mcpServers.filter(server => server.enabled).length  ;
+		const memoryItems = s.chat.length + s.activities.length + s.tnotes.length ;
 		const rows = [
 			...section("Context Dashboard", width, s.phase, a.active),
 			pair(`${a.strong(workbenchModelLabel(s.activeModel ?? s.model))}  ${a.active(workbenchEffortLabel(s.effort))}`, `${runtimeModeLabel(s.permissionMode, s.collaborationMode)}  ·  ${s.threadId ? "thread 연결" : "thread 대기"}`, width),
@@ -277,12 +306,12 @@ export class AstraContextRail implements Component {
 	constructor(private readonly get: () => WorkbenchSnapshot, private readonly synthetic: () => boolean = () => false) {}
 	invalidate(): void {}
 	render(width: number): string[] {
-		const snapshot = this.get();
-		const enabled = snapshot.mcpServers.filter(server => server.enabled);
-		const skills = snapshot.skillInventory;
-		const metrics = contextMetrics(snapshot);
-		const cacheBytes = (snapshot.cacheObservations ?? []).reduce((total, item) => total + (item.logicalBytes ?? 0), 0);
-		const rows = [...railSection("■ LOADED SKILLS", width, skills ? `[${skills.count} UNITS]` : "미관측", a.active)];
+		const snapshot   = this.get()                                                                                          ;
+		const enabled    = snapshot.mcpServers.filter(server => server.enabled)                                                ;
+		const skills     = snapshot.skillInventory                                                                             ;
+		const metrics    = contextMetrics(snapshot)                                                                            ;
+		const cacheBytes = (snapshot.cacheObservations ?? []).reduce((total, item) => total + (item.logicalBytes ?? 0), 0)     ;
+		const rows       = [...railSection("■ LOADED SKILLS", width, skills ? `[${skills.count} UNITS]` : "미관측", a.active)] ;
 		if (!skills?.names.length) rows.push(a.muted("Loaded skill inventory unavailable"));
 		for (const name of skills?.names.slice(0, 6) ?? []) rows.push(pair(a.text(safe(name)), a.success("✓ ACTIVE"), width));
 		if (skills && skills.names.length > 6) rows.push(a.muted(`+${skills.names.length - 6} more`));

@@ -1,8 +1,11 @@
-import { Key, matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi, type Component } from "@earendil-works/pi-tui";
-import type { NativeApprovalRequest } from "../../../../../core/domain/execution/native-session";
-import { workbenchApprovalDecisions, workbenchExternalMutationCandidates, type WorkbenchApprovalDecision, type WorkbenchExternalMutationKind } from "../../../../../core/domain/work/workbench";
-import { colors, type TuiColors } from "../../foundation/theme/theme";
-import { projectApprovalRequest } from "./approval-presentation";
+import { Key, matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
+import type { Component }                                                   from "@earendil-works/pi-tui";
+import type { NativeApprovalRequest }                                       from "@/core/domain/execution/native-session";
+import { workbenchApprovalDecisions, workbenchExternalMutationCandidates }  from "@/core/domain/work/workbench";
+import type { WorkbenchApprovalDecision, WorkbenchExternalMutationKind }    from "@/core/domain/work/workbench";
+import { colors }                                                           from "@/adapters/inbound/tui/foundation/theme/theme";
+import type { TuiColors }                                                   from "@/adapters/inbound/tui/foundation/theme/theme";
+import { projectApprovalRequest }                                           from "@/adapters/inbound/tui/features/approval/approval-presentation";
 
 function decisionLabel(decision: WorkbenchApprovalDecision): string {
 	if (decision === "accept") return "승인";
@@ -26,9 +29,9 @@ function fit(text: string, width: number): string {
  * than an inferred intent.  `/approve` and its siblings remain a second entrance.
  */
 export class ApprovalOverlay implements Component {
-	private readonly decisions: readonly WorkbenchApprovalDecision[];
-	private selected = 0;
-	private resolving = false;
+	private readonly decisions: readonly WorkbenchApprovalDecision[] ;
+	private selected  = 0                                            ;
+	private resolving = false                                        ;
 
 	public constructor(
 		private readonly request: NativeApprovalRequest,

@@ -1,6 +1,7 @@
-import { truncateToWidth, visibleWidth, type Component } from "@earendil-works/pi-tui";
-import type { RuntimeMonitorProjection, RuntimeMonitorState } from "../../../../../core/domain/observability/runtime-monitor.js";
-import { colors } from "../../foundation/theme/theme.js";
+import { truncateToWidth, visibleWidth }                      from "@earendil-works/pi-tui";
+import type { Component }                                     from "@earendil-works/pi-tui";
+import type { RuntimeMonitorProjection, RuntimeMonitorState } from "@/core/domain/observability/runtime-monitor.js";
+import { colors }                                             from "@/adapters/inbound/tui/foundation/theme/theme.js";
 
 const MAX_VIEW_WIDTH = 156;
 
@@ -13,9 +14,9 @@ export class RuntimeMonitorView implements Component {
 	public invalidate(): void {}
 
 	public render(width: number): string[] {
-		const size = Math.max(1, Math.min(MAX_VIEW_WIDTH, width));
-		const data = this.getMonitor();
-		const rows: string[] = [colors.accent("WORLD WIDE WOO · LIVE MONITOR"), stateLine(data), rule(size)];
+		const size            = Math.max(1, Math.min(MAX_VIEW_WIDTH, width))                                  ;
+		const data            = this.getMonitor()                                                             ;
+		const rows : string[] = [colors.accent("WORLD WIDE WOO · LIVE MONITOR"), stateLine(data), rule(size)] ;
 		if (data.requestRuntime) {
 			rows.push(`REQUEST ${data.requestRuntime.requestId}`);
 			for (const stage of data.requestRuntime.stages) rows.push(`${stage.id.padEnd(11)} ${stage.status}${stage.skipReason ? ` · ${stage.skipReason}` : ""}`);

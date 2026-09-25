@@ -1,4 +1,4 @@
-import type { TuiFeatureUnitDescriptor } from "../feature.types";
+import type { TuiFeatureUnitDescriptor } from "@/adapters/inbound/tui/features/feature.types";
 
 export const dashboardUnits = [
 	{ id: "TUI-F001-U01", featureId: "TUI-F001", key: "entry-project-summary", title: "첫 진입 프로젝트 요약", status: "active" },

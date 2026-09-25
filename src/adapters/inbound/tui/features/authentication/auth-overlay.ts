@@ -1,22 +1,24 @@
-import open from "open";
+import open                                        from "open";
+import { Key, matchesKey, stripTerminalSequences } from "@earendil-works/pi-tui";
+import type { Component }                          from "@earendil-works/pi-tui";
+import type { AuthEvent, AuthPrompt, AuthType }    from "@earendil-works/pi-ai";
+import type { AuthController, ProviderAuthState }  from "@/core/ports";
+import { PROVIDERS }                               from "@/core/domain/execution/model-settings";
+import type { Provider }                           from "@/core/domain/execution/model-settings";
+import { colors }                                  from "@/adapters/inbound/tui/foundation/theme/theme";
+import type { TuiColors }                          from "@/adapters/inbound/tui/foundation/theme/theme";
 import {
-	Key,
-	matchesKey,
-	stripTerminalSequences,
-	type Component,
-} from "@earendil-works/pi-tui";
-import type { AuthEvent, AuthPrompt, AuthType } from "@earendil-works/pi-ai";
-import type { AuthController, ProviderAuthState } from "../../../../../core/ports";
-import { PROVIDERS, type Provider } from "../../../../../core/domain/execution/model-settings";
-import { colors, type TuiColors } from "../../foundation/theme/theme";
-import { renderAuthFlowOverlayView, renderLoginOverlayView, subscriptionKeyHelp } from "./auth-overlay-view";
+	renderAuthFlowOverlayView,
+	renderLoginOverlayView,
+	subscriptionKeyHelp,
+} from "@/adapters/inbound/tui/features/authentication/auth-overlay-view";
 
-export { GEMINI_API_KEY_URL, ZAI_API_KEY_URL } from "./auth-overlay-view";
+export { GEMINI_API_KEY_URL, ZAI_API_KEY_URL } from "@/adapters/inbound/tui/features/authentication/auth-overlay-view";
 
 type PendingPrompt = {
-	prompt: AuthPrompt;
-	value: string;
-	selected: number;
+	prompt   : AuthPrompt ;
+	value    : string     ;
+	selected : number     ;
 	resolve(value: string): void;
 	reject(error: Error): void;
 	removeAbort?: () => void;
@@ -28,10 +30,10 @@ type OpenExternal = (target: string) => Promise<unknown>;
 
 /** Owns the complete provider-picker → authentication flow in one keyboard surface. */
 export class LoginOverlay implements Component {
-	private readonly statuses = new Map<Provider, LoginStatus>();
-	private selected = 0;
-	private flow: AuthFlowOverlay | null = null;
-	private generation = 0;
+	private readonly statuses            = new Map<Provider, LoginStatus>() ;
+	private selected                     = 0                                ;
+	private flow: AuthFlowOverlay | null = null                             ;
+	private generation                   = 0                                ;
 
 	constructor(
 		private readonly auth: AuthController,
@@ -76,9 +78,9 @@ export class LoginOverlay implements Component {
 	render(width: number): string[] {
 		if (this.flow) return this.flow.render(width);
 		return renderLoginOverlayView({
-			providers: this.providers,
-			selected: this.selected,
-			statusLabels: new Map(this.providers.map(provider => [provider, this.statusLabel(provider)])),
+			providers    : this.providers,
+			selected     : this.selected,
+			statusLabels : new Map(this.providers.map(provider => [provider, this.statusLabel(provider)])),
 		}, width, this.ui);
 	}
 
@@ -123,10 +125,10 @@ export class LoginOverlay implements Component {
 }
 
 export class AuthFlowOverlay implements Component {
-	private readonly controller = new AbortController();
-	private readonly lines: string[] = [];
-	private pending: PendingPrompt | null = null;
-	private done = false;
+	private readonly controller                   = new AbortController() ;
+	private readonly lines : string[]             = []                    ;
+	private pending        : PendingPrompt | null = null                  ;
+	private done                                  = false                 ;
 
 	constructor(
 		private readonly provider: Provider,
@@ -147,10 +149,10 @@ export class AuthFlowOverlay implements Component {
 
 	render(width: number): string[] {
 		return renderAuthFlowOverlayView({
-			provider: this.provider,
-			lines: this.lines,
-			pending: this.pending,
-			done: this.done,
+			provider : this.provider,
+			lines    : this.lines,
+			pending  : this.pending,
+			done     : this.done,
 		}, width, this.ui);
 	}
 
@@ -216,9 +218,9 @@ export class AuthFlowOverlay implements Component {
 					})),
 				});
 			const status = await this.auth.login(this.provider, method as AuthType, {
-				signal: this.controller.signal,
-				prompt: (prompt) => this.ask(prompt),
-				notify: (event) => this.notify(event),
+				signal : this.controller.signal,
+				prompt : (prompt) => this.ask(prompt),
+				notify : (event) => this.notify(event),
 			});
 			this.lines.push(this.ui.success("로그인이 완료되었습니다."));
 			await this.onAuthenticated(status);

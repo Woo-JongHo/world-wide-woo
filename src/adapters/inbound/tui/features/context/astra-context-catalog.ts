@@ -1,9 +1,14 @@
-import chalk from "chalk";
-import type { WorkbenchSnapshot } from "../../../../../core/domain/work/workbench";
-import { monitoringColumns, monitoringTable, monitoringWidths } from "../../foundation/layout/astra-monitoring-layout";
-import { a, astraPalette, fit, pair, safe, type AstraInk } from "../../foundation/theme/astra-theme";
-import { getActiveTuiTheme, palette } from "../../foundation/theme/theme";
-import { workbenchEffortLabel, workbenchModelLabel } from "../../foundation/labels";
+import chalk                                         from "chalk";
+import type { WorkbenchSnapshot }                    from "@/core/domain/work/workbench";
+import {
+	monitoringColumns,
+	monitoringTable,
+	monitoringWidths,
+} from "@/adapters/inbound/tui/foundation/layout/astra-monitoring-layout";
+import { a, astraPalette, fit, pair, safe }          from "@/adapters/inbound/tui/foundation/theme/astra-theme";
+import type { AstraInk }                             from "@/adapters/inbound/tui/foundation/theme/astra-theme";
+import { getActiveTuiTheme, palette }                from "@/adapters/inbound/tui/foundation/theme/theme";
+import { workbenchEffortLabel, workbenchModelLabel } from "@/adapters/inbound/tui/foundation/labels";
 
 // Presentation-only fixtures. The shell must explicitly opt in; snapshot labels never enable them.
 const sources = [
@@ -44,7 +49,7 @@ function summary(snapshot: WorkbenchSnapshot, width: number): string[] {
 	];
 	if (width < 108) return cards.map(([title, value, ink]) => pair(a.muted(title), ink(value), width));
 	const widths = monitoringWidths(width, cards.length);
-	return monitoringColumns(cards.map(([title, value, ink], index) => panel(title, [ink(value)], widths[index]!)), widths);
+	return monitoringColumns(cards.map(([title, value, ink], index) => panel(title, [ink(value)], widths[index])), widths);
 }
 function spectrometer(width: number): string[] {
 	const inner = width - 2;
@@ -65,10 +70,10 @@ function spectrometer(width: number): string[] {
 function composition(width: number): string[] {
 	const barWidth = Math.max(4, width - 25);
 	const columns = [
-		{ heading : "SOURCE"      , minWidth : 7, weight : 0, align : "left"  },
-		{ heading : "DISTRIBUTION", minWidth : 4, weight : 1, align : "left"  },
-		{ heading : "SIZE"        , minWidth : 6, weight : 0, align : "right" },
-		{ heading : "SHARE"       , minWidth : 6, weight : 0, align : "right" },
+		{ heading : "SOURCE"       , minWidth : 7 , weight : 0 , align : "left"  },
+		{ heading : "DISTRIBUTION" , minWidth : 4 , weight : 1 , align : "left"  },
+		{ heading : "SIZE"         , minWidth : 6 , weight : 0 , align : "right" },
+		{ heading : "SHARE"        , minWidth : 6 , weight : 0 , align : "right" },
 	] as const;
 	const rows = sources.map(source => [
 		chalk.hex(sourceColor(source.color))(source.code),
@@ -84,15 +89,15 @@ function composition(width: number): string[] {
 // Eight independent synthetic turns: each stack is added/updated/compressed/removed KB.
 const turns = [[30, 14, 8, 6], [38, 12, 10, 4], [28, 16, 6, 8], [44, 10, 12, 6], [36, 18, 10, 4], [48, 12, 8, 6], [40, 14, 12, 4], [50, 16, 8, 6]] as const;
 function activity(width: number): string[] {
-	const cellWidth = Math.max(3, Math.min(6, Math.floor((width - 4) / turns.length)));
-	const inks = [a.success, a.tool, a.active, a.failure];
-	const rows = [a.active("■ CONTEXT CHANGE ACTIVITY"), a.muted("KB / TURN · synthetic · last 8 turns")];
+	const cellWidth = Math.max(3, Math.min(6, Math.floor((width - 4) / turns.length)))                         ;
+	const inks      = [a.success, a.tool, a.active, a.failure]                                                 ;
+	const rows      = [a.active("■ CONTEXT CHANGE ACTIVITY"), a.muted("KB / TURN · synthetic · last 8 turns")] ;
 	for (let level = 4; level > 0; level--) {
 		const columns = turns.map(values => {
-			const threshold = (level - 0.5) * 20;
-			let sum = 0;
-			const color = values.findIndex(value => { sum += value; return threshold <= sum; });
-			return color < 0 ? a.rule("·".repeat(cellWidth - 1)) + " " : inks[color]!("█".repeat(cellWidth - 1)) + " ";
+			const threshold = (level - 0.5) * 20                                                    ;
+			let sum         = 0                                                                     ;
+			const color     = values.findIndex(value => { sum += value; return threshold <= sum; }) ;
+			return color < 0 ? a.rule("·".repeat(cellWidth - 1)) + " " : inks[color]("█".repeat(cellWidth - 1)) + " ";
 		});
 		rows.push(`${a.muted(String(level * 20).padStart(2))} ${columns.join("")}`);
 	}
@@ -102,10 +107,10 @@ function activity(width: number): string[] {
 }
 function diagnostics(width: number): string[] {
 	const columns = [
-		{ heading : "EVENT" , minWidth : 18, weight : 1, align : "left"  },
-		{ heading : "COUNT" , minWidth :  5, weight : 0, align : "right" },
-		{ heading : "CHANGE", minWidth :  6, weight : 0, align : "right" },
-		{ heading : "STATE" , minWidth :  8, weight : 0, align : "left"  },
+		{ heading : "EVENT"  , minWidth : 18 , weight : 1 , align : "left"  },
+		{ heading : "COUNT"  , minWidth : 5  , weight : 0 , align : "right" },
+		{ heading : "CHANGE" , minWidth : 6  , weight : 0 , align : "right" },
+		{ heading : "STATE"  , minWidth : 8  , weight : 0 , align : "left"  },
 	] as const;
 	const rows = [
 		[ a.tool("■ SYSTEM INIT")          , "1"  , "—"     , foreground("OK")      ],
@@ -117,9 +122,9 @@ function diagnostics(width: number): string[] {
 	return [a.active("■ DIAGNOSTIC EVENT AGGREGATES"), ...monitoringTable({ columns, rows }, width).slice(2)];
 }
 function dependencies(snapshot: WorkbenchSnapshot, width: number): string[] {
-	const skills = snapshot.skillInventory;
-	const servers = snapshot.mcpServers;
-	const agents = (snapshot.delegation ?? []).flatMap(projection => projection.tasks);
+	const skills  = snapshot.skillInventory                                             ;
+	const servers = snapshot.mcpServers                                                 ;
+	const agents  = (snapshot.delegation ?? []).flatMap(projection => projection.tasks) ;
 	const columns = [
 		{ heading : "SKILLS", minWidth : 12, weight : 1, align : "left" },
 		{ heading : "MCP"   , minWidth : 10, weight : 1, align : "left" },
@@ -137,10 +142,10 @@ function dependencies(snapshot: WorkbenchSnapshot, width: number): string[] {
 }
 function insights(width: number): string[] {
 	const columns = [
-		{ heading : "#"    , minWidth :  2, weight : 0, align : "left"  },
-		{ heading : "ITEM" , minWidth : 12, weight : 1, align : "left"  },
-		{ heading : "SIZE" , minWidth :  5, weight : 0, align : "right" },
-		{ heading : "STATE", minWidth :  5, weight : 0, align : "left"  },
+		{ heading : "#"     , minWidth : 2  , weight : 0 , align : "left"  },
+		{ heading : "ITEM"  , minWidth : 12 , weight : 1 , align : "left"  },
+		{ heading : "SIZE"  , minWidth : 5  , weight : 0 , align : "right" },
+		{ heading : "STATE" , minWidth : 5  , weight : 0 , align : "left"  },
 	] as const;
 	const rows = [
 		[ "01", foreground("CONV / message-thread") , a.attention("20 MB"), a.attention("LARGE") ],
@@ -157,7 +162,7 @@ function insights(width: number): string[] {
 }
 
 export function syntheticContextRows(snapshot: WorkbenchSnapshot, width: number): string[] {
-	const widths = [Math.floor((width - 1) * 0.57), width - 1 - Math.floor((width - 1) * 0.57)];
+	const widths: [number, number] = [Math.floor((width - 1) * 0.57), width - 1 - Math.floor((width - 1) * 0.57)];
 	const analysis = (left: number, right: number): string[][] => [
 		panel("SOURCE ANALYSIS · synthetic", [...composition(left - 2), ...activity(left - 2), ...diagnostics(left - 2)], left),
 		panel("CONTEXT INSIGHTS · synthetic", [...dependencies(snapshot, right - 2), ...insights(right - 2)], right),
@@ -166,7 +171,7 @@ export function syntheticContextRows(snapshot: WorkbenchSnapshot, width: number)
 		...summary(snapshot, width),
 		a.muted("DEMO DATA · synthetic fixtures · not live telemetry"),
 		...spectrometer(width),
-		...(width >= 108 ? monitoringColumns(analysis(widths[0]!, widths[1]!), widths) : analysis(width, width).flat()),
+		...(width >= 108 ? monitoringColumns(analysis(widths[0], widths[1]), widths) : analysis(width, width).flat()),
 	].map(row => fit(row, width));
 }
 export function syntheticStorageRows(width: number): string[] {

@@ -1,18 +1,16 @@
-import type { SlashCommand } from "@earendil-works/pi-tui";
+import type { SlashCommand }                                      from "@earendil-works/pi-tui";
 import {
 	EFFORTS,
 	nativeModelNames,
 	nativeModelEfforts,
-	type NativeModelCatalog,
 	modelEfforts,
 	MODELS,
 	PROVIDERS,
-	type Effort,
-	type Provider,
-	type WwwSettings,
-} from "../../../../core/domain/execution/model-settings";
-import { nextTuiTheme, TUI_THEME_OPTIONS, type TuiThemeName } from "../foundation/theme/theme";
-import { workbenchEffortLabel } from "../foundation/labels";
+} from "@/core/domain/execution/model-settings";
+import type { NativeModelCatalog, Effort, Provider, WwwSettings } from "@/core/domain/execution/model-settings";
+import { nextTuiTheme, TUI_THEME_OPTIONS }                        from "@/adapters/inbound/tui/foundation/theme/theme";
+import type { TuiThemeName }                                      from "@/adapters/inbound/tui/foundation/theme/theme";
+import { workbenchEffortLabel }                                   from "@/adapters/inbound/tui/foundation/labels";
 
 export type ShellCommand =
 	| { type: "model.select" }
@@ -37,8 +35,8 @@ export type ShellCommandConcurrency = "local-read" | "async-read" | "mutation" |
 
 export function shellCommandConcurrency(command: ShellCommand): ShellCommandConcurrency {
 	switch (command.type) {
-		case "status":
-		case "monitoring":
+		case "status"         :
+		case "monitoring"     :
 		case "planning.status":
 		case "help":
 			return "local-read";
@@ -46,12 +44,12 @@ export function shellCommandConcurrency(command: ShellCommand): ShellCommandConc
 		case "repository.commits":
 		case "repository.issues":
 			return "async-read";
-		case "model.select":
-		case "model.set":
-		case "auth.select":
-		case "auth.login":
-		case "auth.logout":
-		case "effort.set":
+		case "model.select"        :
+		case "model.set"           :
+		case "auth.select"         :
+		case "auth.login"          :
+		case "auth.logout"         :
+		case "effort.set"          :
 		case "planning.epic.create":
 		case "planning.story.create":
 			return "mutation";
@@ -64,9 +62,9 @@ export function shellCommandConcurrency(command: ShellCommand): ShellCommandConc
 
 const modelItems = PROVIDERS.flatMap((provider) =>
 	MODELS[provider].map((model) => ({
-		value: `${provider}/${model}`,
-		label: `${provider}/${model}`,
-		description: "Router 모델",
+		value       : `${provider}/${model}`,
+		label       : `${provider}/${model}`,
+		description : "Router 모델",
 	})),
 );
 
@@ -97,17 +95,17 @@ export const SLASH_COMMANDS: SlashCommand[] = [
 		argumentHint: "<low|medium|high|ultra>",
 		getArgumentCompletions: () => EFFORTS.map((effort) => ({ value: effort, label: effort })),
 	},
-	{ name: "usage", description: "Codex·Claude 사용량 즉시 갱신" },
-	{ name: "status", description: "현재 Router·인증·세션 상태" },
-	{ name: "monitor", description: "실시간 Session·Turn·Tool·Todo 관측" },
-	{ name: "dashboard", description: "Monitoring Dashboard 열기" },
-	{ name: "planning", description: "Project Planning catalog 상태" },
-	{ name: "epic", description: "새 Epic 초안 저장", argumentHint: "<title> :: <goal>" },
-	{ name: "story", description: "새 Story 초안 저장", argumentHint: "<EP-ID> <title> [--supersedes ST-ID] :: <acceptance>" },
-	{ name: "commits", description: "Git 작업 트리와 최근 Commit" },
-	{ name: "issues", description: "현재 저장소의 열린 GitHub Issue" },
-	{ name: "help", description: "WWW Shell 명령 안내" },
-	{ name: "exit", description: "세션을 안전하게 종료" },
+	{ name : "usage"     , description : "Codex·Claude 사용량 즉시 갱신"                                                              },
+	{ name : "status"    , description : "현재 Router·인증·세션 상태"                                                                 },
+	{ name : "monitor"   , description : "실시간 Session·Turn·Tool·Todo 관측"                                                         },
+	{ name : "dashboard" , description : "Monitoring Dashboard 열기"                                                                  },
+	{ name : "planning"  , description : "Project Planning catalog 상태"                                                              },
+	{ name : "epic"      , description : "새 Epic 초안 저장"  , argumentHint : "<title> :: <goal>"                                    },
+	{ name : "story"     , description : "새 Story 초안 저장" , argumentHint : "<EP-ID> <title> [--supersedes ST-ID] :: <acceptance>" },
+	{ name : "commits"   , description : "Git 작업 트리와 최근 Commit"                                                                },
+	{ name : "issues"    , description : "현재 저장소의 열린 GitHub Issue"                                                            },
+	{ name : "help"      , description : "WWW Shell 명령 안내"                                                                        },
+	{ name : "exit"      , description : "세션을 안전하게 종료"                                                                       },
 ];
 
 export type WorkbenchShellCommand =
@@ -165,17 +163,17 @@ export const WORKBENCH_SLASH_COMMANDS: SlashCommand[] = [
 			return modelEfforts("openai-codex", model.replace(/^openai-codex\//u, "")).filter(effort => effort.startsWith(query)).map(effort => ({ value: `${model} ${effort}`, label: workbenchEffortLabel(effort), description: effort === "ultra" ? "Codex 자동 위임 포함" : "추론 강도" }));
 		},
 	},
-	{ name: "login", description: "Provider OAuth·API key 로그인", argumentHint: "[provider]" },
-	{ name: "logout", description: "Provider 인증 삭제", argumentHint: "<provider>" },
-	{ name: "chat", description: "Chat pane 안내" },
-	{ name: "dashboard", description: "전체 Session·Project 관측 Dashboard" },
-	{ name: "monitor", description: "현재 Runtime·Request·Tool Live Monitor" },
-	{ name: "map", description: "전체 개발 구조와 진척도 Map 열기" },
-	{ name: "stats", description: "Session review와 request investigation 열기", argumentHint: "[diagnostics|latest|#n]" },
-	{ name: "test", description: "현재 세션의 질문별 검증 목적·검사·근거" },
-	{ name: "three-body", description: "Orbiting Pair / Guardian 삼체 물리 실험실 열기" },
-	{ name: "tnotes", description: "완료된 질문별 Note pane 안내" },
-	{ name: "todo", description: "레거시 Todo.md 읽기 전용 migration view" },
+	{ name : "login"      , description : "Provider OAuth·API key 로그인"               , argumentHint : "[provider]"              },
+	{ name : "logout"     , description : "Provider 인증 삭제"                          , argumentHint : "<provider>"              },
+	{ name : "chat"       , description : "Chat pane 안내"                                                                         },
+	{ name : "dashboard"  , description : "전체 Session·Project 관측 Dashboard"                                                    },
+	{ name : "monitor"    , description : "현재 Runtime·Request·Tool Live Monitor"                                                 },
+	{ name : "map"        , description : "전체 개발 구조와 진척도 Map 열기"                                                       },
+	{ name : "stats"      , description : "Session review와 request investigation 열기" , argumentHint : "[diagnostics|latest|#n]" },
+	{ name : "test"       , description : "현재 세션의 질문별 검증 목적·검사·근거"                                                 },
+	{ name : "three-body" , description : "Orbiting Pair / Guardian 삼체 물리 실험실 열기"                                         },
+	{ name : "tnotes"     , description : "완료된 질문별 Note pane 안내"                                                           },
+	{ name : "todo"       , description : "레거시 Todo.md 읽기 전용 migration view"                                                },
 	{
 		name: "permission",
 		description: "Native 권한 범위 전환",
@@ -194,23 +192,23 @@ export const WORKBENCH_SLASH_COMMANDS: SlashCommand[] = [
 			{ value: "plan", label: "plan mode", description: "계획 중심 모드" },
 		],
 	},
-	{ name: "goal", description: "장기 작업 Goal 설정·조회", argumentHint: "[목표 문장]" },
-	{ name: "woo-entry", description: "WES 현재 상태와 다음 작업 다시 읽기" },
-	{ name: "source", description: "Monitor에서 Activity Source 선택", argumentHint: "<activity-id|latest|clear>" },
-	{ name: "trace", description: "Monitor에서 선택 Plan에 결속된 정확한 Activity Trace 선택", argumentHint: "<activity-id>" },
-	{ name: "reconcile", description: "종료된 Runtime 작업의 현재 결과만 재조회 · 동작 재실행 없음", argumentHint: "<request-id> <operation-id>" },
-	{ name: "agents", description: "위임 트리 또는 선택한 에이전트의 공개 수행 관찰", argumentHint: "[agent-ref|clear]" },
-	{ name: "tnote", description: "마지막 질문 또는 선택 범위를 종료 보고서로 요약", argumentHint: "[range <start-sequence> <end-sequence>]" },
-	{ name: "promote", description: "Note 정본 반영: diff 확인 후 사람 승인", argumentHint: "<tnote|confirm> <note-id|token>" },
-	{ name: "review", description: "공개 분류 Note의 외부 검토 미리보기·송신", argumentHint: "<preview|send> …" },
-	{ name: "approve", description: "대기 중인 native 요청 승인" },
-	{ name: "approve-session", description: "현재 세션 동안 native 요청 승인" },
-	{ name: "decline", description: "대기 중인 native 요청 거절" },
-	{ name: "cancel", description: "현재 native turn 중단" },
-	{ name: "clear", description: "Chat 화면만 비우기 · 기록과 Native thread 유지" },
-	{ name: "compact", description: "현재 Native thread 컨텍스트 압축" },
-	{ name: "cache", description: "렌더 캐시 구성·점유·재사용 Dashboard" },
-	{ name: "mcp", description: "MCP 서버 상태·활성화·재시작", argumentHint: "status | enable <name> | disable <name> | reload" },
+	{ name : "goal"            , description : "장기 작업 Goal 설정·조회"                                    , argumentHint : "[목표 문장]"                                      },
+	{ name : "woo-entry"       , description : "WES 현재 상태와 다음 작업 다시 읽기"                                                                                             },
+	{ name : "source"          , description : "Monitor에서 Activity Source 선택"                            , argumentHint : "<activity-id|latest|clear>"                       },
+	{ name : "trace"           , description : "Monitor에서 선택 Plan에 결속된 정확한 Activity Trace 선택"   , argumentHint : "<activity-id>"                                    },
+	{ name : "reconcile"       , description : "종료된 Runtime 작업의 현재 결과만 재조회 · 동작 재실행 없음" , argumentHint : "<request-id> <operation-id>"                      },
+	{ name : "agents"          , description : "위임 트리 또는 선택한 에이전트의 공개 수행 관찰"             , argumentHint : "[agent-ref|clear]"                                },
+	{ name : "tnote"           , description : "마지막 질문 또는 선택 범위를 종료 보고서로 요약"             , argumentHint : "[range <start-sequence> <end-sequence>]"          },
+	{ name : "promote"         , description : "Note 정본 반영: diff 확인 후 사람 승인"                      , argumentHint : "<tnote|confirm> <note-id|token>"                  },
+	{ name : "review"          , description : "공개 분류 Note의 외부 검토 미리보기·송신"                    , argumentHint : "<preview|send> …"                                 },
+	{ name : "approve"         , description : "대기 중인 native 요청 승인"                                                                                                      },
+	{ name : "approve-session" , description : "현재 세션 동안 native 요청 승인"                                                                                                 },
+	{ name : "decline"         , description : "대기 중인 native 요청 거절"                                                                                                      },
+	{ name : "cancel"          , description : "현재 native turn 중단"                                                                                                           },
+	{ name : "clear"           , description : "Chat 화면만 비우기 · 기록과 Native thread 유지"                                                                                  },
+	{ name : "compact"         , description : "현재 Native thread 컨텍스트 압축"                                                                                                },
+	{ name : "cache"           , description : "렌더 캐시 구성·점유·재사용 Dashboard"                                                                                            },
+	{ name : "mcp"             , description : "MCP 서버 상태·활성화·재시작"                                 , argumentHint : "status | enable <name> | disable <name> | reload" },
 	{
 		name: "theme",
 		description: "기본 UI 테마 전환",
@@ -364,12 +362,12 @@ function parseReviewCommand(trimmed: string): WorkbenchShellCommand {
 			: { type: "error", message: "사용법: /review send <digest>" };
 	}
 	if (action !== "preview") return { type: "error", message: "사용법: /review preview <opus|gemini> public <note-id> :: <request> | /review send <digest>" };
-	const separator = body.indexOf("::");
-	const header = separator < 0 ? [] : body.slice(0, separator).trim().split(/\s+/u);
-	const request = separator < 0 ? "" : body.slice(separator + 2).trim();
-	const provider = header[1];
-	const classification = header[2];
-	const noteId = header[3];
+	const separator      = body.indexOf("::")                                                 ;
+	const header         = separator < 0 ? [] : body.slice(0, separator).trim().split(/\s+/u) ;
+	const request        = separator < 0 ? "" : body.slice(separator + 2).trim()              ;
+	const provider       = header[1]                                                          ;
+	const classification = header[2]                                                          ;
+	const noteId         = header[3]                                                          ;
 	return (provider === "opus" || provider === "gemini") && classification === "public" && noteId && request && header.length === 4
 		? { type: "review.preview", provider: provider === "opus" ? "anthropic" : "google", noteId, request }
 		: { type: "error", message: "사용법: /review preview <opus|gemini> public <note-id> :: <request>" };
@@ -428,29 +426,32 @@ export function parseShellCommand(text: string, current: WwwSettings): ShellComm
 	if (name === "monitor" || name === "dashboard") return { type: "monitoring" };
 	if (name === "planning") return { type: "planning.status" };
 	if (name === "epic") {
-		const body = trimmed.slice("/epic".length).trim();
-		const separator = body.indexOf("::");
-		const title = separator < 0 ? "" : body.slice(0, separator).trim();
-		const goal = separator < 0 ? "" : body.slice(separator + 2).trim();
+		const body      = trimmed.slice("/epic".length).trim()                  ;
+		const separator = body.indexOf("::")                                    ;
+		const title     = separator < 0 ? "" : body.slice(0, separator).trim()  ;
+		const goal      = separator < 0 ? "" : body.slice(separator + 2).trim() ;
 		return title && goal
 			? { type: "planning.epic.create", title, goal }
 			: { type: "error", message: "사용법: /epic <title> :: <goal>" };
 	}
 	if (name === "story") {
-		const body = trimmed.slice("/story".length).trim();
-		const separator = body.indexOf("::");
-		const header = separator < 0 ? "" : body.slice(0, separator).trim();
-		const acceptance = separator < 0 ? "" : body.slice(separator + 2).trim();
-		const parts = header.split(/\s+/u).filter(Boolean);
-		const epicId = parts.shift() ?? "";
-		const supersedesAt = parts.indexOf("--supersedes");
-		let supersedes: string | null = null;
+		const body                     = trimmed.slice("/story".length).trim()                 ;
+		const separator                = body.indexOf("::")                                    ;
+		const header                   = separator < 0 ? "" : body.slice(0, separator).trim()  ;
+		const acceptance               = separator < 0 ? "" : body.slice(separator + 2).trim() ;
+		const parts                    = header.split(/\s+/u).filter(Boolean)                  ;
+		const epicId                   = parts.shift() ?? ""                                   ;
+		const supersedesAt             = parts.indexOf("--supersedes")                         ;
+		let supersedes : string | null = null                                                  ;
 		if (supersedesAt >= 0) {
 			supersedes = parts[supersedesAt + 1] ?? null;
 			parts.splice(supersedesAt, 2);
 		}
 		const title = parts.join(" ");
-		if (!/^EP-\d{3}$/u.test(epicId) || !title || !acceptance || (supersedesAt >= 0 && !/^ST-\d{3}-\d{2}$/u.test(supersedes ?? ""))) {
+		if (!/^EP-\d{3}$/u.test(epicId)
+			|| !title
+			|| !acceptance
+			|| (supersedesAt >= 0 && !/^ST-\d{3}-\d{2}$/u.test(supersedes ?? ""))) {
 			return { type: "error", message: "사용법: /story <EP-ID> <title> [--supersedes ST-ID] :: <acceptance>" };
 		}
 		return { type: "planning.story.create", epicId, title, acceptance, supersedes };

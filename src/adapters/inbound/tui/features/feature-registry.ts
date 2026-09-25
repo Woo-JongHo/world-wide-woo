@@ -1,27 +1,27 @@
-import { approvalFeature } from "./approval/approval.feature";
-import { authenticationFeature } from "./authentication/authentication.feature";
-import { CHAT_FEATURE } from "./chat/chat.feature";
-import { cacheFeature } from "./cache/cache.feature";
-import { contextFeature } from "./context/context.feature";
-import { dashboardFeature } from "./dashboard/dashboard.feature";
-import { modelSelectionFeature } from "./model-selection/model-selection.feature";
-import { monitoringFeature } from "./monitoring/monitoring.feature";
-import { PLAN_FEATURE } from "./plan/plan.feature";
-import { projectMapFeature } from "./project-map/project-map.feature";
-import { repositoryFeature } from "./repository/repository.feature";
-import { sessionFeature } from "./session/session.feature";
-import { statsFeature } from "./stats/stats.feature";
-import { testFeature } from "./test/test.feature";
-import { TNOTE_FEATURE } from "./tnote/tnote.feature";
-import { TRACE_FEATURE } from "./trace/trace.feature";
-import { usageFeature } from "./usage/usage.feature";
-import { workflowFeature } from "./workflow/workflow.feature";
+import { approvalFeature }       from "@/adapters/inbound/tui/features/approval/approval.feature";
+import { authenticationFeature } from "@/adapters/inbound/tui/features/authentication/authentication.feature";
+import { CHAT_FEATURE }          from "@/adapters/inbound/tui/features/chat/chat.feature";
+import { cacheFeature }          from "@/adapters/inbound/tui/features/cache/cache.feature";
+import { contextFeature }        from "@/adapters/inbound/tui/features/context/context.feature";
+import { dashboardFeature }      from "@/adapters/inbound/tui/features/dashboard/dashboard.feature";
+import { modelSelectionFeature } from "@/adapters/inbound/tui/features/model-selection/model-selection.feature";
+import { monitoringFeature }     from "@/adapters/inbound/tui/features/monitoring/monitoring.feature";
+import { PLAN_FEATURE }          from "@/adapters/inbound/tui/features/plan/plan.feature";
+import { projectMapFeature }     from "@/adapters/inbound/tui/features/project-map/project-map.feature";
+import { repositoryFeature }     from "@/adapters/inbound/tui/features/repository/repository.feature";
+import { sessionFeature }        from "@/adapters/inbound/tui/features/session/session.feature";
+import { statsFeature }          from "@/adapters/inbound/tui/features/stats/stats.feature";
+import { testFeature }           from "@/adapters/inbound/tui/features/test/test.feature";
+import { TNOTE_FEATURE }         from "@/adapters/inbound/tui/features/tnote/tnote.feature";
+import { TRACE_FEATURE }         from "@/adapters/inbound/tui/features/trace/trace.feature";
+import { usageFeature }          from "@/adapters/inbound/tui/features/usage/usage.feature";
+import { workflowFeature }       from "@/adapters/inbound/tui/features/workflow/workflow.feature";
 import type {
 	TuiFeatureDescriptor,
 	TuiFeatureId,
 	TuiFeatureUnitDescriptor,
 	TuiFeatureUnitId,
-} from "./feature.types";
+} from "@/adapters/inbound/tui/features/feature.types";
 
 /** Static capability catalog. Runtime component construction remains in the shell. */
 export const TUI_FEATURES = Object.freeze([

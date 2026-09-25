@@ -1,28 +1,28 @@
 import { stripTerminalSequences, truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
-import type { AuthPrompt } from "@earendil-works/pi-ai";
-import type { Provider } from "../../../../../core/domain/execution/model-settings";
-import type { TuiColors } from "../../foundation/theme/theme";
+import type { AuthPrompt }                                                         from "@earendil-works/pi-ai";
+import type { Provider }                                                           from "@/core/domain/execution/model-settings";
+import type { TuiColors }                                                          from "@/adapters/inbound/tui/foundation/theme/theme";
 
 export const GEMINI_API_KEY_URL = "https://aistudio.google.com/app/apikey";
 export const ZAI_API_KEY_URL = "https://z.ai/manage-apikey/apikey-list";
 
 export interface AuthPromptViewState {
-	readonly prompt: AuthPrompt;
-	readonly value: string;
-	readonly selected: number;
+	readonly prompt   : AuthPrompt ;
+	readonly value    : string     ;
+	readonly selected : number     ;
 }
 
 export interface LoginOverlayViewState {
-	readonly providers: readonly Provider[];
-	readonly selected: number;
-	readonly statusLabels: ReadonlyMap<Provider, string>;
+	readonly providers    : readonly Provider[]           ;
+	readonly selected     : number                        ;
+	readonly statusLabels : ReadonlyMap<Provider, string> ;
 }
 
 export interface AuthFlowOverlayViewState {
-	readonly provider: Provider;
-	readonly lines: readonly string[];
-	readonly pending: AuthPromptViewState | null;
-	readonly done: boolean;
+	readonly provider : Provider                   ;
+	readonly lines    : readonly string[]          ;
+	readonly pending  : AuthPromptViewState | null ;
+	readonly done     : boolean                    ;
 }
 
 function fit(text: string, width: number): string {
@@ -88,10 +88,10 @@ export function subscriptionKeyHelp(provider: Provider, promptType: AuthPrompt["
 
 function providerLabel(provider: Provider): string {
 	return ({
-		"openai-codex": "ChatGPT Plus/Pro (Codex Subscription)",
-		anthropic: "Anthropic (Claude Pro/Max)",
-		openai: "OpenAI API",
-		google: "Antigravity (로컬 Google 구독)",
-		zai: "Z.AI GLM Coding Plan (구독 API 키)",
+		"openai-codex" : "ChatGPT Plus/Pro (Codex Subscription)",
+		anthropic      : "Anthropic (Claude Pro/Max)",
+		openai         : "OpenAI API",
+		google         : "Antigravity (로컬 Google 구독)",
+		zai            : "Z.AI GLM Coding Plan (구독 API 키)",
 	})[provider];
 }

@@ -1,11 +1,19 @@
-import { truncateToWidth, type Component } from "@earendil-works/pi-tui";
-import type { ProjectActivity } from "../../../../../core/domain/execution/project-activity";
-import { sanitizeTerminalTextExcerpt } from "../../../../../core/domain/execution/terminal";
-import { projectNativeDelegation, type NativeDelegatedTask, type NativeDelegationProjection, type NativeDelegationStatus } from "../../../../../core/domain/work";
-import { colors } from "../../foundation/theme/theme";
+import { truncateToWidth }                                                              from "@earendil-works/pi-tui";
+import type { Component }                                                               from "@earendil-works/pi-tui";
+import type { ProjectActivity }                                                         from "@/core/domain/execution/project-activity";
+import { sanitizeTerminalTextExcerpt }                                                  from "@/core/domain/execution/terminal";
+import { projectNativeDelegation }                                                      from "@/core/domain/work";
+import type { NativeDelegatedTask, NativeDelegationProjection, NativeDelegationStatus } from "@/core/domain/work";
+import { colors }                                                                       from "@/adapters/inbound/tui/foundation/theme/theme";
 
 const LIMIT = 360;
-export interface WorkbenchDelegationSection { readonly anchorActivityId: string; readonly activityIds: readonly string[]; readonly attribution: "observed"; readonly source: { readonly turnId: string; readonly itemIds: readonly string[] }; readonly rows: readonly string[]; }
+export interface WorkbenchDelegationSection {
+	readonly anchorActivityId : string                                                           ;
+	readonly activityIds      : readonly string[]                                                ;
+	readonly attribution      : "observed"                                                       ;
+	readonly source           : { readonly turnId: string; readonly itemIds: readonly string[] } ;
+	readonly rows             : readonly string[]                                                ;
+}
 
 /** Compatibility adapter; snapshots should pass their already-computed projection to renderDelegationSections. */
 export function projectWorkbenchDelegationSections(activities: readonly ProjectActivity[], goal: string, rootThreadId: string | null, width: number): readonly WorkbenchDelegationSection[] {
@@ -78,7 +86,8 @@ function depthFirstTasks(tasks: readonly NativeDelegatedTask[]): readonly { task
 	const roots = tasks.filter((task) => !task.parentRef || !refs.has(task.parentRef));
 	const rows: { task: NativeDelegatedTask; prefix: string; last: boolean; ordinal: number }[] = [], visited = new Set<string>();
 	let ordinal = 0;
-	const visit = (task: NativeDelegatedTask, prefix: string, last: boolean): void => { if (visited.has(task.ref)) return; visited.add(task.ref); rows.push({ task, prefix, last, ordinal: ++ordinal }); const owned = children.get(task.ref) ?? []; owned.forEach((child, index) => visit(child, `${prefix}${last ? "   " : "│  "}`, index === owned.length - 1)); };
+	const visit = (task: NativeDelegatedTask, prefix: string, last: boolean): void => { if (visited.has(task.ref)) return; visited.add(task.ref); rows.push({ task, prefix, last, ordinal: ++ordinal });
+	const owned = children.get(task.ref) ?? []; owned.forEach((child, index) => visit(child, `${prefix}${last ? "   " : "│  "}`, index === owned.length - 1)); };
 	roots.forEach((task, index) => visit(task, "", index === roots.length - 1));
 	for (const task of tasks) if (!visited.has(task.ref)) visit(task, "", true);
 	return rows;

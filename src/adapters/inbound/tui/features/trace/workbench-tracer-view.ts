@@ -1,9 +1,10 @@
-import { truncateToWidth, visibleWidth, wrapTextWithAnsi, type Component } from "@earendil-works/pi-tui";
-import type { ProjectActivity } from "../../../../../core/domain/execution/project-activity";
-import type { SemanticWorkStep } from "../../../../../core/domain/work/workflow-projection";
-import type { WorkbenchSnapshot } from "../../../../../core/domain/work/workbench";
-import type { NativeDelegatedTask } from "../../../../../core/domain/work";
-import { colors } from "../../foundation/theme/theme";
+import { truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
+import type { Component }                                  from "@earendil-works/pi-tui";
+import type { ProjectActivity }                            from "@/core/domain/execution/project-activity";
+import type { SemanticWorkStep }                           from "@/core/domain/work/workflow-projection";
+import type { WorkbenchSnapshot }                          from "@/core/domain/work/workbench";
+import type { NativeDelegatedTask }                        from "@/core/domain/work";
+import { colors }                                          from "@/adapters/inbound/tui/foundation/theme/theme";
 
 const TRACER_LABELS = { flow: "FLOW", now: "NOW", health: "HEALTH" } as const;
 
@@ -37,10 +38,10 @@ function stepElapsed(step: SemanticWorkStep, activities: ReadonlyMap<string, Pro
 }
 
 function alignedStep(step: SemanticWorkStep, elapsed: string, width: number): string {
-	const prefix = `${stepMarker(step.status)} `;
-	const tail = ` ${colors.muted(elapsed)}`;
-	const titleWidth = Math.max(1, width - visibleWidth(prefix) - visibleWidth(tail));
-	const title = truncateToWidth(step.title, titleWidth);
+	const prefix     = `${stepMarker(step.status)} `                                  ;
+	const tail       = ` ${colors.muted(elapsed)}`                                    ;
+	const titleWidth = Math.max(1, width - visibleWidth(prefix) - visibleWidth(tail)) ;
+	const title      = truncateToWidth(step.title, titleWidth)                        ;
 	return `${prefix}${title}${" ".repeat(Math.max(0, width - visibleWidth(prefix) - visibleWidth(title) - visibleWidth(tail)))}${tail}`;
 }
 
@@ -70,9 +71,9 @@ export class WorkbenchTracerView implements Component {
 	public invalidate(): void {}
 
 	public render(width: number): string[] {
-		const snapshot = this.getSnapshot();
-		const contentWidth = Math.max(1, width);
-		const workflow = snapshot.workFlow;
+		const snapshot     = this.getSnapshot() ;
+		const contentWidth = Math.max(1, width) ;
+		const workflow     = snapshot.workFlow  ;
 		const showEntryDashboard = snapshot.chat.length === 0 && snapshot.activities.length === 0
 			&& !snapshot.activeTurnId && !snapshot.actionResult && !workflow.source;
 		if (showEntryDashboard && snapshot.linearDashboard?.state === "loading") return [
@@ -106,9 +107,9 @@ export class WorkbenchTracerView implements Component {
 			return [...rows.flatMap(row => wrapTextWithAnsi(row, contentWidth)), ...delegationRows(snapshot, contentWidth, this.delegationPresentation)];
 		}
 
-		const activities = new Map(snapshot.activities.map(activity => [activity.id, activity]));
-		const active = workflow.steps.find(step => step.status === "running") ?? null;
-		const focus = active ?? workflow.steps.at(-1) ?? null;
+		const activities = new Map(snapshot.activities.map(activity => [activity.id, activity])) ;
+		const active     = workflow.steps.find(step => step.status === "running") ?? null        ;
+		const focus      = active ?? workflow.steps.at(-1) ?? null                               ;
 		const rows: string[] = [
 			...(performance ? [colors.secondary(performance.workContext ? `맡긴 일 · ${performance.workContext.goal}` : "독립 수행")] : []),
 			colors.warm(`${TRACER_LABELS.flow} · ${(active?.title ?? workflow.goal) || "공개 실행"}`),
@@ -140,9 +141,9 @@ function delegationRows(snapshot: WorkbenchSnapshot, width: number, presentation
 }
 
 function performanceHealthRows(snapshot: WorkbenchSnapshot): string[] {
-	const performance = snapshot.performance;
-	const verification = performance?.verification ?? "not-verified";
-	const labels = { "not-verified": "미검증", passed: "통과", failed: "실패", uncertain: "불확실" };
+	const performance  = snapshot.performance                                                              ;
+	const verification = performance?.verification ?? "not-verified"                                       ;
+	const labels       = { "not-verified": "미검증", passed: "통과", failed: "실패", uncertain: "불확실" } ;
 	return [
 		...(snapshot.configurationSource ? [colors.muted(`정책 · ${snapshot.configurationSource === "project-yaml" ? ".www/workbench.yaml" : "기본값(fallback)"}`)] : []),
 		colors.muted(`검증 · ${labels[verification]}${snapshot.evaluationRequired && verification === "not-verified" ? " · 검증 필요" : ""}${snapshot.recordingReadOnly ? " · 기록 진단 전용" : ""}`),

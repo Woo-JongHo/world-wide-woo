@@ -1,7 +1,8 @@
-import { wrapTextWithAnsi, type Component } from "@earendil-works/pi-tui";
-import type { WorkbenchSnapshot } from "../../../../../core/domain/work/workbench";
-import { colors } from "../../foundation/theme/theme";
-import { DEFAULT_TNOTE_DISPLAY } from "../../../../../core/domain/execution/workbench-config";
+import { wrapTextWithAnsi }       from "@earendil-works/pi-tui";
+import type { Component }         from "@earendil-works/pi-tui";
+import type { WorkbenchSnapshot } from "@/core/domain/work/workbench";
+import { colors }                 from "@/adapters/inbound/tui/foundation/theme/theme";
+import { DEFAULT_TNOTE_DISPLAY }  from "@/core/domain/execution/workbench-config";
 
 const OMISSION = "… 이전 완료 질문 %d개 생략 · 최근 %d개 표시 …";
 
@@ -10,13 +11,13 @@ export class TNotesSourceView implements Component {
 	constructor(private readonly getSnapshot: () => WorkbenchSnapshot) {}
 	invalidate(): void {}
 	render(width: number): string[] {
-		const snapshot = this.getSnapshot();
-		const rows: string[] = [];
-		const visibleLimit = snapshot.tnoteVisibleLimit ?? DEFAULT_TNOTE_DISPLAY.tnoteVisibleLimit;
-		const summaryMaxChars = snapshot.tnoteSummaryMaxChars ?? DEFAULT_TNOTE_DISPLAY.tnoteSummaryMaxChars;
-		const summaryMaxLines = snapshot.tnoteSummaryMaxLines ?? DEFAULT_TNOTE_DISPLAY.tnoteSummaryMaxLines;
-		const omittedTNotes = Math.max(0, snapshot.tnotes.length - visibleLimit);
-		const visibleTNotes = snapshot.tnotes.slice(-visibleLimit);
+		const snapshot        = this.getSnapshot()                                                          ;
+		const rows : string[] = []                                                                          ;
+		const visibleLimit    = snapshot.tnoteVisibleLimit ?? DEFAULT_TNOTE_DISPLAY.tnoteVisibleLimit       ;
+		const summaryMaxChars = snapshot.tnoteSummaryMaxChars ?? DEFAULT_TNOTE_DISPLAY.tnoteSummaryMaxChars ;
+		const summaryMaxLines = snapshot.tnoteSummaryMaxLines ?? DEFAULT_TNOTE_DISPLAY.tnoteSummaryMaxLines ;
+		const omittedTNotes   = Math.max(0, snapshot.tnotes.length - visibleLimit)                          ;
+		const visibleTNotes   = snapshot.tnotes.slice(-visibleLimit)                                        ;
 		if (omittedTNotes > 0) {
 			rows.push(colors.muted(OMISSION.replace("%d", String(omittedTNotes)).replace("%d", String(visibleTNotes.length))));
 		}
@@ -35,9 +36,9 @@ export class TNotesSourceView implements Component {
 }
 
 function boundedSummary(summary: string, maximumChars: number, maximumLines: number): { text: string; omitted: boolean } {
-	const clipped = summary.slice(0, maximumChars);
-	const lines = clipped.split(/\r?\n/u);
-	const text = lines.slice(0, maximumLines).join("\n");
+	const clipped = summary.slice(0, maximumChars)          ;
+	const lines   = clipped.split(/\r?\n/u)                 ;
+	const text    = lines.slice(0, maximumLines).join("\n") ;
 	return { text, omitted: clipped.length < summary.length || lines.length > maximumLines };
 }
 

@@ -2,12 +2,14 @@
  * Temporary compatibility home for Monitoring while the execution UI is split
  * into feature-owned modules. The Monitoring feature integrator moves this file.
  */
-import { wrapTextWithAnsi, type Component } from "@earendil-works/pi-tui";
-import type { ProjectActivity } from "../../../../../core/domain/execution/project-activity";
-import { sanitizeTerminalTextExcerpt } from "../../../../../core/domain/execution/terminal";
-import { projectNativeDelegation, type SemanticWorkStep, type WorkStepStatus } from "../../../../../core/domain/work";
-import type { WorkbenchSnapshot } from "../../../../../core/domain/work/workbench";
-import { colors } from "../../foundation/theme/theme";
+import { wrapTextWithAnsi }                      from "@earendil-works/pi-tui";
+import type { Component }                        from "@earendil-works/pi-tui";
+import type { ProjectActivity }                  from "@/core/domain/execution/project-activity";
+import { sanitizeTerminalTextExcerpt }           from "@/core/domain/execution/terminal";
+import { projectNativeDelegation }               from "@/core/domain/work";
+import type { SemanticWorkStep, WorkStepStatus } from "@/core/domain/work";
+import type { WorkbenchSnapshot }                from "@/core/domain/work/workbench";
+import { colors }                                from "@/adapters/inbound/tui/foundation/theme/theme";
 
 const PUBLIC_SOURCE_OMISSION = "… 공개 Source 일부 생략 …";
 

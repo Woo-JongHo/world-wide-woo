@@ -1,27 +1,28 @@
-import { homedir } from "node:os";
-import type { CommandStatus } from "../../../../../core/domain/execution/output";
-import { isReasoningActivityPayload, type ProjectActivity } from "../../../../../core/domain/execution/project-activity";
-import { sanitizeTerminalTextExcerpt } from "../../../../../core/domain/execution/terminal";
-import type { WorkbenchLiveActivity } from "../../../../../core/domain/work/workbench";
-import type { WorkStepNarration } from "../../../../../core/domain/work";
-import { highlightStructured, structuredOutput } from "./work-step-output-renderer";
-import { CHAT_PUBLIC_OUTPUT_MAX_CHARS } from "./chat-output-policy";
+import { homedir }                               from "node:os";
+import type { CommandStatus }                    from "@/core/domain/execution/output";
+import { isReasoningActivityPayload }            from "@/core/domain/execution/project-activity";
+import type { ProjectActivity }                  from "@/core/domain/execution/project-activity";
+import { sanitizeTerminalTextExcerpt }           from "@/core/domain/execution/terminal";
+import type { WorkbenchLiveActivity }            from "@/core/domain/work/workbench";
+import type { WorkStepNarration }                from "@/core/domain/work";
+import { highlightStructured, structuredOutput } from "@/adapters/inbound/tui/features/chat/work-step-output-renderer";
+import { CHAT_PUBLIC_OUTPUT_MAX_CHARS }          from "@/adapters/inbound/tui/features/chat/chat-output-policy";
 
 export interface WorkStepProjectionOptions {
-	activity?: ProjectActivity;
-	liveActivity?: WorkbenchLiveActivity;
-	status?: CommandStatus;
-	narration?: WorkStepNarration;
+	activity?     : ProjectActivity       ;
+	liveActivity? : WorkbenchLiveActivity ;
+	status?       : CommandStatus         ;
+	narration?    : WorkStepNarration     ;
 }
 
 export interface PublicStepProjection {
-	what: string;
-	why: string;
-	command?: string;
-	exitCode?: number;
-	durationMs?: number;
-	input: readonly string[];
-	output: readonly string[];
+	what        : string            ;
+	why         : string            ;
+	command?    : string            ;
+	exitCode?   : number            ;
+	durationMs? : number            ;
+	input       : readonly string[] ;
+	output      : readonly string[] ;
 }
 
 interface Field {
@@ -48,10 +49,12 @@ export function projectNativePathText(value: string, projectCwd?: string, home =
 	return replacePathPrefix(withProject, home, "~");
 }
 
+function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
+	return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
 function record(value: unknown): Readonly<Record<string, unknown>> | undefined {
-	return value && typeof value === "object" && !Array.isArray(value)
-		? value as Readonly<Record<string, unknown>>
-		: undefined;
+	return isRecord(value) ? value : undefined;
 }
 
 function firstValue(sources: readonly (Readonly<Record<string, unknown>> | undefined)[], keys: readonly string[]): unknown {
@@ -159,29 +162,34 @@ function toolLabel(sources: readonly (Readonly<Record<string, unknown>> | undefi
 }
 
 export function projectWorkStep(options: WorkStepProjectionOptions): PublicStepProjection {
-	const payload = options.activity?.payload;
-	const params = record(payload?.params);
-	const item = record(params?.item);
-	const sources = [item, params, payload] as const;
-	const method = options.liveActivity?.method ?? stringValue(payload?.method) ?? "native-tool";
-	const normalized = `${method} ${stringValue(item?.type) ?? ""}`.toLowerCase();
-	const rawCommand = stringValue(firstValue(sources, ["command", "cmd"]));
-	const cwd = stringValue(firstValue(sources, ["cwd", "workingDirectory"]));
-	const command = rawCommand && projectNativePathText(rawCommand, cwd);
-	const args = firstValue(sources, ["arguments", "args", "input"]);
-	const argumentRecord = record(args);
-	const mcpResult = normalized.includes("mcptoolcall") ? record(item?.result) : undefined;
-	const mcpOutput = mcpResult?.structuredContent ?? mcpContent(mcpResult?.content);
-	const exitCode = numberValue(firstValue(sources, ["exitCode"]));
-	const durationMs = numberValue(firstValue(sources, ["durationMs"]));
-	const rawPath = stringValue(firstValue([...sources, argumentRecord], ["path", "filePath", "targetPath"]));
-	const path = rawPath && projectNativePathText(rawPath, cwd);
-	const query = stringValue(firstValue(sources, ["query", "searchQuery", "pattern"]));
-	const isCommand = command !== undefined || normalized.includes("command") || normalized.includes("bash") || normalized.includes("shell");
-	const isFileChange = options.activity?.kind === "file-change" || options.liveActivity?.kind === "file-change" || normalized.includes("filechange");
-	const isSearch = query !== undefined || normalized.includes("search") || normalized.includes("query");
-	const isRead = path !== undefined && (normalized.includes("read") || normalized.includes("get"));
-	const tool = toolLabel(sources, method);
+	const payload        = options.activity?.payload                                                                 ;
+	const params         = record(payload?.params)                                                                   ;
+	const item           = record(params?.item)                                                                      ;
+	const sources        = [item, params, payload]                                                                   ;
+	const method         = options.liveActivity?.method ?? stringValue(payload?.method) ?? "native-tool"             ;
+	const normalized     = `${method} ${stringValue(item?.type) ?? ""}`.toLowerCase()                                ;
+	const rawCommand     = stringValue(firstValue(sources, ["command", "cmd"]))                                      ;
+	const cwd            = stringValue(firstValue(sources, ["cwd", "workingDirectory"]))                             ;
+	const command        = rawCommand && projectNativePathText(rawCommand, cwd)                                      ;
+	const args           = firstValue(sources, ["arguments", "args", "input"])                                       ;
+	const argumentRecord = record(args)                                                                              ;
+	const mcpResult      = normalized.includes("mcptoolcall") ? record(item?.result) : undefined                     ;
+	const mcpOutput      = mcpResult?.structuredContent ?? mcpContent(mcpResult?.content)                            ;
+	const exitCode       = numberValue(firstValue(sources, ["exitCode"]))                                            ;
+	const durationMs     = numberValue(firstValue(sources, ["durationMs"]))                                          ;
+	const rawPath        = stringValue(firstValue([...sources, argumentRecord], ["path", "filePath", "targetPath"])) ;
+	const path           = rawPath && projectNativePathText(rawPath, cwd)                                            ;
+	const query          = stringValue(firstValue(sources, ["query", "searchQuery", "pattern"]))                     ;
+	const isCommand      = (
+		command !== undefined
+		|| normalized.includes("command")
+		|| normalized.includes("bash")
+		|| normalized.includes("shell")
+	)        ;
+	const isFileChange = options.activity?.kind === "file-change" || options.liveActivity?.kind === "file-change" || normalized.includes("filechange") ;
+	const isSearch     = query !== undefined || normalized.includes("search") || normalized.includes("query")                                          ;
+	const isRead       = path !== undefined && (normalized.includes("read") || normalized.includes("get"))                                             ;
+	const tool         = toolLabel(sources, method)                                                                                                    ;
 
 	const what = isCommand
 		? `명령 실행${command ? ` · ${command.replace(/\s+/gu, " ")}` : ""}`
@@ -208,13 +216,14 @@ export function projectWorkStep(options: WorkStepProjectionOptions): PublicStepP
 		if (mcpOutput !== undefined) {
 			outputFields.push({ label: "output", value: mcpOutput });
 		} else {
-			for (const [label, keys] of [
+			const outputFieldKeys: ReadonlyArray<readonly [string, readonly string[]]> = [
 				["output", ["aggregatedOutput", "output", "stdout", "content"]],
 				["stderr", ["stderr"]],
 				["result", ["result", "changes", "diff"]],
 				["error", ["error", "message"]],
 				["exit", ["exitCode"]],
-			] as const) {
+			];
+			for (const [label, keys] of outputFieldKeys) {
 				const value = firstValue(sources, keys);
 				if (value !== undefined) outputFields.push({ label, value });
 			}
@@ -226,7 +235,11 @@ export function projectWorkStep(options: WorkStepProjectionOptions): PublicStepP
 
 	const status = resolveWorkStepStatus(options);
 	const projected: PublicStepProjection = {
-		what, why, command, exitCode, durationMs,
+		what,
+		why,
+		...(command ? { command } : {}),
+		...(exitCode === undefined ? {} : { exitCode }),
+		...(durationMs === undefined ? {} : { durationMs }),
 		input: inputFields.length > 0
 			? inputFields.map(({ label, value }) => `${label}: ${displayValue(value, cwd)}`)
 			: ["공개 입력 없음"],
@@ -249,7 +262,7 @@ export function projectWorkStep(options: WorkStepProjectionOptions): PublicStepP
 		.find((value): value is string => Boolean(value));
 	return {
 		...projected,
-		command: narratedCommand ? projectNativePathText(narratedCommand, cwd) : projected.command,
+		...(narratedCommand ? { command: projectNativePathText(narratedCommand, cwd) } : {}),
 		what: projectNativePathText(options.narration.what, cwd),
 		why: projectNativePathText(options.narration.why ?? "", cwd),
 		input: options.narration.inputSummary.length > 0
@@ -260,11 +273,11 @@ export function projectWorkStep(options: WorkStepProjectionOptions): PublicStepP
 
 export function workStepActionLabel(options: WorkStepProjectionOptions): "Bash" | "Edit" | "Tool" {
 	if (options.activity?.kind === "file-change" || options.liveActivity?.kind === "file-change") return "Edit";
-	const payload = options.activity?.payload;
-	const params = record(payload?.params);
-	const item = record(params?.item);
-	const nativeType = stringValue(item?.type) ?? "";
-	const method = options.liveActivity?.method ?? stringValue(payload?.method) ?? "";
+	const payload    = options.activity?.payload                                          ;
+	const params     = record(payload?.params)                                            ;
+	const item       = record(params?.item)                                               ;
+	const nativeType = stringValue(item?.type) ?? ""                                      ;
+	const method     = options.liveActivity?.method ?? stringValue(payload?.method) ?? "" ;
 	if (/command|bash|shell/iu.test(`${nativeType} ${method}`)) return "Bash";
 	return "Tool";
 }

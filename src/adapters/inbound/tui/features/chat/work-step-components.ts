@@ -1,34 +1,34 @@
-import type { Component } from "@earendil-works/pi-tui";
-import type { CommandStatus } from "../../../../../core/domain/execution/output";
-import type { ProjectActivity, ProjectActivityKind } from "../../../../../core/domain/execution/project-activity";
-import type { WorkbenchLiveActivity } from "../../../../../core/domain/work/workbench";
-import type { WorkStepNarration } from "../../../../../core/domain/work";
-import { colors, semantic } from "../../foundation/theme/theme";
-import { CHAT_PUBLIC_OUTPUT_MAX_CHARS } from "./chat-output-policy";
+import type { Component }                            from "@earendil-works/pi-tui";
+import type { CommandStatus }                        from "@/core/domain/execution/output";
+import type { ProjectActivity, ProjectActivityKind } from "@/core/domain/execution/project-activity";
+import type { WorkbenchLiveActivity }                from "@/core/domain/work/workbench";
+import type { WorkStepNarration }                    from "@/core/domain/work";
+import { colors, semantic }                          from "@/adapters/inbound/tui/foundation/theme/theme";
+import { CHAT_PUBLIC_OUTPUT_MAX_CHARS }              from "@/adapters/inbound/tui/features/chat/chat-output-policy";
 import {
 	boundedExecutionRows,
 	fitExecutionText,
 	renderBashExecutionBlock,
 	renderExecutionLine,
 	workStepStatusPresentation,
-} from "./work-step-output-renderer";
+} from "@/adapters/inbound/tui/features/chat/work-step-output-renderer";
 import {
 	projectWorkStep,
 	resolveWorkStepStatus,
 	workStepActionLabel,
-	type WorkStepProjectionOptions,
-} from "./work-step-public-projection";
+} from "@/adapters/inbound/tui/features/chat/work-step-public-projection";
+import type { WorkStepProjectionOptions }            from "@/adapters/inbound/tui/features/chat/work-step-public-projection";
 
-const INPUT_MAX_LINES = 4;
-const INPUT_MAX_CHARS = 1_200;
-const OUTPUT_MAX_LINES = 10;
+const INPUT_MAX_LINES  = 4     ;
+const INPUT_MAX_CHARS  = 1_200 ;
+const OUTPUT_MAX_LINES = 10    ;
 
 interface WorkStepCardOptions extends WorkStepProjectionOptions {
-	stepNumber: number;
-	activity?: ProjectActivity;
-	liveActivity?: WorkbenchLiveActivity;
-	status?: CommandStatus;
-	narration?: WorkStepNarration;
+	stepNumber    : number                ;
+	activity?     : ProjectActivity       ;
+	liveActivity? : WorkbenchLiveActivity ;
+	status?       : CommandStatus         ;
+	narration?    : WorkStepNarration     ;
 }
 
 export interface ObservationCardOptions {
@@ -47,9 +47,9 @@ export class WorkStepCard implements Component {
 	invalidate(): void {}
 
 	render(width: number): string[] {
-		const projected = projectWorkStep(this.options);
-		const status = resolveWorkStepStatus(this.options);
-		const presentation = workStepStatusPresentation(status);
+		const projected    = projectWorkStep(this.options)       ;
+		const status       = resolveWorkStepStatus(this.options) ;
+		const presentation = workStepStatusPresentation(status)  ;
 		if (width < 4) return [fitExecutionText(`단계 ${this.options.stepNumber} · ${presentation.label}`, width)];
 		if (projected.command) {
 			return [
@@ -57,9 +57,9 @@ export class WorkStepCard implements Component {
 				...renderBashExecutionBlock(projected, status, width),
 			];
 		}
-		const contentWidth = width - 4;
-		const input = boundedExecutionRows(projected.input, contentWidth, INPUT_MAX_LINES, INPUT_MAX_CHARS, false, "입력");
-		const output = boundedExecutionRows(projected.output, contentWidth, OUTPUT_MAX_LINES, CHAT_PUBLIC_OUTPUT_MAX_CHARS, true, "출력");
+		const contentWidth = width - 4                                                                                                          ;
+		const input        = boundedExecutionRows(projected.input, contentWidth, INPUT_MAX_LINES, INPUT_MAX_CHARS, false, "입력")               ;
+		const output       = boundedExecutionRows(projected.output, contentWidth, OUTPUT_MAX_LINES, CHAT_PUBLIC_OUTPUT_MAX_CHARS, true, "출력") ;
 		const rows = [
 			`${semantic.assistantLabel(`단계 ${this.options.stepNumber}`)} · ${presentation.text}`,
 			colors.success(projected.what),
@@ -85,12 +85,12 @@ export class ObservationCard implements Component {
 	invalidate(): void {}
 
 	render(width: number): string[] {
-		const stepOptions: WorkStepCardOptions = { stepNumber: 0, ...this.options };
-		const projected = projectWorkStep(stepOptions);
-		const status = resolveWorkStepStatus(stepOptions);
-		const presentation = workStepStatusPresentation(status);
-		const label = activityLabel(this.options, projected.command, stepOptions);
-		const header = `${presentation.symbol} ${colors.text(label)} ${colors.muted(`· ${presentation.label}`)}`;
+		const stepOptions : WorkStepCardOptions = { stepNumber: 0, ...this.options }                                                        ;
+		const projected                         = projectWorkStep(stepOptions)                                                              ;
+		const status                            = resolveWorkStepStatus(stepOptions)                                                        ;
+		const presentation                      = workStepStatusPresentation(status)                                                        ;
+		const label                             = activityLabel(this.options, projected.command, stepOptions)                               ;
+		const header                            = `${presentation.symbol} ${colors.text(label)} ${colors.muted(`· ${presentation.label}`)}` ;
 		if (projected.command) {
 			return [presentation.surface(fitExecutionText(` ${header}`, width)), ...renderBashExecutionBlock(projected, status, width)];
 		}

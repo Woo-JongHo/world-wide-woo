@@ -1,7 +1,15 @@
-import chalk from "chalk";
-import type { WorkbenchSnapshot } from "../../../../../core/domain/work/workbench";
-import { monitoringColumns, monitoringCompactPanel, monitoringMeter, monitoringPanel, monitoringTable, monitoringWidths } from "../../foundation/layout/astra-monitoring-layout";
-import { a, astraPalette, fit, pair, type AstraInk } from "../../foundation/theme/astra-theme";
+import chalk                          from "chalk";
+import type { WorkbenchSnapshot }     from "@/core/domain/work/workbench";
+import {
+	monitoringColumns,
+	monitoringCompactPanel,
+	monitoringMeter,
+	monitoringPanel,
+	monitoringTable,
+	monitoringWidths,
+} from "@/adapters/inbound/tui/foundation/layout/astra-monitoring-layout";
+import { a, astraPalette, fit, pair } from "@/adapters/inbound/tui/foundation/theme/astra-theme";
+import type { AstraInk }              from "@/adapters/inbound/tui/foundation/theme/astra-theme";
 
 /** Figma 50:2169 presentation fixtures, enabled only by the shell's explicit demo flag. */
 export function syntheticDashboardRows(snapshot: WorkbenchSnapshot, width: number): string[] {
@@ -15,11 +23,11 @@ export function syntheticDashboardRows(snapshot: WorkbenchSnapshot, width: numbe
 	const cards = summaries.map(([title, value, ink]) => ({ title, value, ink }));
 	const summaryWidths = monitoringWidths(width, cards.length);
 	const summary = width >= 100
-		? monitoringColumns(cards.map((card, index) => monitoringCompactPanel(a.muted(card.title), [card.ink(card.value)], summaryWidths[index]!)), summaryWidths)
+		? monitoringColumns(cards.map((card, index) => monitoringCompactPanel(a.muted(card.title), [card.ink(card.value)], summaryWidths[index])), summaryWidths)
 		: cards.map(card => pair(a.muted(card.title), card.ink(card.value), width));
-	const left = width >= 100 ? Math.floor((width - 1) * 0.65) : width;
-	const right = width >= 100 ? width - left - 1 : width;
-	const panels = [tokenPanel(left), heatmapPanel(right)];
+	const left   = width >= 100 ? Math.floor((width - 1) * 0.65) : width ;
+	const right  = width >= 100 ? width - left - 1 : width               ;
+	const panels = [tokenPanel(left), heatmapPanel(right)]               ;
 	return [
 		...summary,
 		a.muted("DEMO DATA · synthetic fixtures · not live telemetry"),
@@ -65,7 +73,7 @@ function moduleRouter(width: number): string[] {
 	const inner = Math.max(1, width - 2);
 	const widths = monitoringWidths(inner, modules.length);
 	const rows = width >= 100
-		? monitoringColumns(modules.map(([title, detail, action, ink], index) => monitoringCompactPanel(ink(title), [a.muted(detail), a.cream(`» ${action}`)], widths[index]!)), widths)
+		? monitoringColumns(modules.map(([title, detail, action, ink], index) => monitoringCompactPanel(ink(title), [a.muted(detail), a.cream(`» ${action}`)], widths[index])), widths)
 		: modules.map(([title, detail, , ink]) => pair(ink(title), a.cream(detail), inner));
 	return monitoringCompactPanel(a.active("SYSTEM INTEGRATED MODULE ROUTER & SESSION HEALTH MAP"), rows, width);
 }
@@ -87,9 +95,9 @@ function tokenPanel(width: number): string[] {
 		return ink("█".repeat(cells));
 	}).join("") + a.rule("░".repeat(inner - boundary));
 	const columns = [
-		{ heading : "SOURCE", minWidth : 6, weight : 0, align : "left"  },
-		{ heading : "SHARE" , minWidth : 4, weight : 1, align : "left"  },
-		{ heading : "%"     , minWidth : 3, weight : 0, align : "right" },
+		{ heading : "SOURCE" , minWidth : 6 , weight : 0 , align : "left"  },
+		{ heading : "SHARE"  , minWidth : 4 , weight : 1 , align : "left"  },
+		{ heading : "%"      , minWidth : 3 , weight : 0 , align : "right" },
 	] as const;
 	const barWidth = Math.max(4, inner - 13);
 	const rows = sources.map(([label, share, ink]) => [a.muted(label), monitoringMeter(share, 100, barWidth, ink), ink(`${share}%`)]);
@@ -110,9 +118,9 @@ function heatmapPanel(width: number): string[] {
 		[ 3, 1, 0, 1, 3, 1, 0, 1, 3, 1, 0, 1 ],
 		[ 4, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0 ],
 	];
-	const colors = [astraPalette.rule, astraPalette.success, astraPalette.attention, astraPalette.tool, astraPalette.active];
-	const cellWidth = Math.max(1, Math.floor((inner - 11) / 12));
-	const heatmap = matrix.map(row => row.map(value => chalk.bgHex(colors[value]!)(" ".repeat(cellWidth))).join(" "));
+	const colors    = [astraPalette.rule, astraPalette.success, astraPalette.attention, astraPalette.tool, astraPalette.active] ;
+	const cellWidth = Math.max(1, Math.floor((inner - 11) / 12))                                                                ;
+	const heatmap   = matrix.map(row => row.map(value => chalk.bgHex(colors[value])(" ".repeat(cellWidth))).join(" "))          ;
 	return monitoringCompactPanel(a.active("ACCESS FREQUENCY HEATMAP"), [
 		...heatmap,
 		pair(a.muted("T-24H       T-12H"), a.active("NOW"), inner),

@@ -1,13 +1,13 @@
-import { truncateToWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
-import type { WorkbenchSnapshot } from "../../../../../core/domain/work/workbench";
-import { activityGradientFrame, colors, semantic } from "../../foundation/theme/theme";
-import { isVisibleWorkStep } from "./work-step-card";
+import { truncateToWidth, wrapTextWithAnsi }       from "@earendil-works/pi-tui";
+import type { WorkbenchSnapshot }                  from "@/core/domain/work/workbench";
+import { activityGradientFrame, colors, semantic } from "@/adapters/inbound/tui/foundation/theme/theme";
+import { isVisibleWorkStep }                       from "@/adapters/inbound/tui/features/chat/work-step-card";
 
 export interface ChatActivityIndicator {
-	readonly message: string;
-	readonly hint?: string;
-	readonly frames: readonly string[];
-	readonly intervalMs: number;
+	readonly message    : string            ;
+	readonly hint?      : string            ;
+	readonly frames     : readonly string[] ;
+	readonly intervalMs : number            ;
 }
 
 interface ActivityRenderCallbacks {
@@ -38,9 +38,9 @@ export function matchingLiveActivity(
 
 /** Owns projection and scheduling for the transient Chat activity indicator. */
 export class ChatLiveActivity {
-	private indicator: ChatActivityIndicator | null = null;
-	private frame = 0;
-	private timer: ReturnType<typeof setInterval> | null = null;
+	private indicator : ChatActivityIndicator | null          = null ;
+	private frame                                             = 0    ;
+	private timer     : ReturnType<typeof setInterval> | null = null ;
 
 	get visible(): boolean {
 		return this.indicator !== null;
@@ -77,9 +77,9 @@ export class ChatLiveActivity {
 
 	render(width: number): string[] {
 		if (!this.indicator) return [];
-		const contentWidth = Math.max(1, width);
-		const rows: string[] = [];
-		const frame = this.indicator.frames[this.frame % Math.max(1, this.indicator.frames.length)] ?? "·";
+		const contentWidth    = Math.max(1, width)                                                                   ;
+		const rows : string[] = []                                                                                   ;
+		const frame           = this.indicator.frames[this.frame % Math.max(1, this.indicator.frames.length)] ?? "·" ;
 		if (contentWidth <= 2) {
 			rows.push(truncateToWidth(`${colors.accent(frame)} ${this.indicator.message}`, contentWidth));
 		} else {

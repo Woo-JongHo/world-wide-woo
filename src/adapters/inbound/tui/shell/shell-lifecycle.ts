@@ -10,18 +10,18 @@ export async function settleWithin(operation: Promise<unknown>, timeoutMs: numbe
 }
 
 export interface ShellLifecycleDependencies {
-	readonly cancelPrompt: () => void;
-	readonly dismissOverlay: () => void;
-	readonly announceClosing: () => void;
-	readonly unsubscribe: () => void;
-	readonly stopPolling: readonly (() => void)[];
-	readonly timers: readonly (ReturnType<typeof setInterval> | null)[];
-	readonly disposables: readonly { dispose(): void }[];
-	readonly saveDraft?: () => Promise<void>;
-	readonly closeWorkbench: () => Promise<void>;
-	readonly releaseSessionLease?: () => Promise<void>;
-	readonly stopTerminal: () => void;
-	readonly timeoutMs?: number;
+	readonly cancelPrompt         : () => void                                         ;
+	readonly dismissOverlay       : () => void                                         ;
+	readonly announceClosing      : () => void                                         ;
+	readonly unsubscribe          : () => void                                         ;
+	readonly stopPolling          : readonly (() => void)[]                            ;
+	readonly timers               : readonly (ReturnType<typeof setInterval> | null)[] ;
+	readonly disposables          : readonly { dispose(): void }[]                     ;
+	readonly saveDraft?           : () => Promise<void>                                ;
+	readonly closeWorkbench       : () => Promise<void>                                ;
+	readonly releaseSessionLease? : () => Promise<void>                                ;
+	readonly stopTerminal         : () => void                                         ;
+	readonly timeoutMs?           : number                                             ;
 }
 
 /** Owns idempotent shell shutdown and the order in which interactive resources are released. */

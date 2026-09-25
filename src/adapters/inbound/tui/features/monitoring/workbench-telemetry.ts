@@ -1,21 +1,16 @@
-import { truncateToWidth, visibleWidth, type Component } from "@earendil-works/pi-tui";
-import type { WorkbenchGitTelemetry, WorkbenchGitTelemetryReader } from "../../../../../core/ports/index.js";
-import type { WorkbenchContextUsage, WorkbenchSessionUsage, WorkbenchSnapshot } from "../../../../../core/domain/work/workbench";
-import { colors } from "../../foundation/theme/theme";
+import { truncateToWidth, visibleWidth }                           from "@earendil-works/pi-tui";
+import type { Component }                                          from "@earendil-works/pi-tui";
+import type { WorkbenchGitTelemetry, WorkbenchGitTelemetryReader } from "@/core/ports/index.js";
+import { colors }                                                  from "@/adapters/inbound/tui/foundation/theme/theme";
 
-export { workbenchModelLabel } from "../../foundation/labels";
-import { workbenchModelLabel } from "../../foundation/labels";
+export { workbenchModelLabel } from "@/adapters/inbound/tui/foundation/labels";
+import { workbenchModelLabel } from "@/adapters/inbound/tui/foundation/labels";
 
 export interface WorkbenchTelemetrySource {
-	readonly model?: string;
-	readonly effort?: string | null;
-	readonly contextUsage?: WorkbenchContextUsage | null;
-	readonly sessionUsage?: WorkbenchSessionUsage;
-	readonly git: WorkbenchGitTelemetry | null;
-	readonly cwd: string;
-	readonly home: string;
+	readonly git  : WorkbenchGitTelemetry | null ;
+	readonly cwd  : string                       ;
+	readonly home : string                       ;
 }
-
 
 function projectPath(cwd: string, home: string): string {
 	if (cwd === home) return "~";
@@ -43,12 +38,11 @@ export function formatWorkbenchTelemetry(source: WorkbenchTelemetrySource, width
 }
 
 export class WorkbenchTelemetryLine implements Component {
-	private git: WorkbenchGitTelemetry | null = null;
-	private refreshing = false;
-	private disposed = false;
+	private git: WorkbenchGitTelemetry | null = null  ;
+	private refreshing                        = false ;
+	private disposed                          = false ;
 
 	constructor(
-		private readonly snapshot: () => WorkbenchSnapshot,
 		private readonly cwd: string,
 		private readonly requestRender: () => void,
 		private readonly gitSource?: WorkbenchGitTelemetryReader,
@@ -73,15 +67,10 @@ export class WorkbenchTelemetryLine implements Component {
 	invalidate(): void {}
 
 	render(width: number): string[] {
-		const snapshot = this.snapshot();
 		const source = {
-			model: snapshot.model,
-			effort: snapshot.effort,
-			contextUsage: snapshot.contextUsage,
-			sessionUsage: snapshot.sessionUsage,
-			git: this.git,
-			cwd: this.cwd,
-			home: this.home,
+			git  : this.git,
+			cwd  : this.cwd,
+			home : this.home,
 		};
 		const line = formatWorkbenchTelemetry(source, width);
 		return [line + " ".repeat(Math.max(0, width - visibleWidth(line)))];

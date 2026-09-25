@@ -1,12 +1,12 @@
-import { Markdown, truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
-import { sanitizeTerminalTextExcerpt, sanitizeTerminalTextUnbounded } from "../../../../../core/domain/execution/terminal";
-import { sanitizeCompletedAssistantResponse, sanitizePartialAssistantResponse } from "../../../../../core/domain/review/redaction";
-import type { WorkbenchSnapshot } from "../../../../../core/domain/work/workbench";
-import { colors, markdownTheme, semantic } from "../../foundation/theme/theme";
+import { Markdown, truncateToWidth, visibleWidth, wrapTextWithAnsi }            from "@earendil-works/pi-tui";
+import { sanitizeTerminalTextExcerpt, sanitizeTerminalTextUnbounded }           from "@/core/domain/execution/terminal";
+import { sanitizeCompletedAssistantResponse, sanitizePartialAssistantResponse } from "@/core/domain/review/redaction";
+import type { WorkbenchSnapshot }                                               from "@/core/domain/work/workbench";
+import { colors, markdownTheme, semantic }                                      from "@/adapters/inbound/tui/foundation/theme/theme";
 
-const WORKBENCH_MARKDOWN_MAX_CHARS = 16 * 1024;
-const WORKBENCH_MARKDOWN_MAX_LINES = 120;
-const WORKBENCH_MARKDOWN_OMISSION = "… 응답 일부 생략 …";
+const WORKBENCH_MARKDOWN_MAX_CHARS = 16 * 1024            ;
+const WORKBENCH_MARKDOWN_MAX_LINES = 120                  ;
+const WORKBENCH_MARKDOWN_OMISSION  = "… 응답 일부 생략 …" ;
 
 export function boundedWorkbenchMarkdown(text: string): string {
 	let candidate = text;
@@ -17,11 +17,11 @@ export function boundedWorkbenchMarkdown(text: string): string {
 	}
 	const lines = candidate.split(/\r?\n/u);
 	if (lines.length <= WORKBENCH_MARKDOWN_MAX_LINES) return candidate;
-	const headLineCount = Math.floor((WORKBENCH_MARKDOWN_MAX_LINES - 1) / 2);
-	const tailLineCount = WORKBENCH_MARKDOWN_MAX_LINES - headLineCount - 1;
-	let head = lines.slice(0, headLineCount).join("\n");
-	let tail = lines.slice(-tailLineCount).join("\n");
-	const contentBudget = WORKBENCH_MARKDOWN_MAX_CHARS - WORKBENCH_MARKDOWN_OMISSION.length - 2;
+	const headLineCount = Math.floor((WORKBENCH_MARKDOWN_MAX_LINES - 1) / 2)                    ;
+	const tailLineCount = WORKBENCH_MARKDOWN_MAX_LINES - headLineCount - 1                      ;
+	let head            = lines.slice(0, headLineCount).join("\n")                              ;
+	let tail            = lines.slice(-tailLineCount).join("\n")                                ;
+	const contentBudget = WORKBENCH_MARKDOWN_MAX_CHARS - WORKBENCH_MARKDOWN_OMISSION.length - 2 ;
 	if (head.length + tail.length > contentBudget) {
 		const headBudget = Math.floor(contentBudget / 2);
 		head = head.slice(0, headBudget);
@@ -43,12 +43,12 @@ function publicText(value: unknown, limit = 160): string | null {
 
 /** Projects durable user/assistant messages and streaming assistant drafts to terminal rows. */
 export class ChatMessageRenderer {
-	private readonly markdown = new Map<string, Markdown>();
-	private readonly markdownInput = new Map<string, string>();
-	private readonly markdownSource = new Map<string, string>();
-	private readonly draftMarkdown = new Markdown("", 0, 0, markdownTheme);
-	private draftInput = "";
-	private draftSource = "";
+	private readonly markdown       = new Map<string, Markdown>()           ;
+	private readonly markdownInput  = new Map<string, string>()             ;
+	private readonly markdownSource = new Map<string, string>()             ;
+	private readonly draftMarkdown  = new Markdown("", 0, 0, markdownTheme) ;
+	private draftInput              = ""                                    ;
+	private draftSource             = ""                                    ;
 
 	update(snapshot: WorkbenchSnapshot): void {
 		const visibleAssistantIds = new Set<string>();
@@ -102,10 +102,10 @@ export class ChatMessageRenderer {
 	}
 
 	render(message: WorkbenchSnapshot["chat"][number], width: number): string[] {
-		const contentWidth = Math.max(1, width);
-		const runtimeRole: unknown = message.role;
-		const runtimeStatus: unknown = message.status;
-		const content = typeof message.content === "string" ? message.content : "[잘못된 메시지 본문]";
+		const contentWidth            = Math.max(1, width)                                                             ;
+		const runtimeRole   : unknown = message.role                                                                   ;
+		const runtimeStatus : unknown = message.status                                                                 ;
+		const content                 = typeof message.content === "string" ? message.content : "[잘못된 메시지 본문]" ;
 		if (message.role === "user") {
 			const label = message.status === "failed" ? semantic.toolFailed("전송 실패")
 				: message.status === "cancelled" ? semantic.toolCancelled("전송 중단")

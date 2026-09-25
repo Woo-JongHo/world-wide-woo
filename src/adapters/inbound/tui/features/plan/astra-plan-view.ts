@@ -1,8 +1,8 @@
-import type { Component } from "@earendil-works/pi-tui";
-import type { RequestRuntimeRecord } from "../../../../../core/domain/execution/request-runtime";
-import type { WorkbenchSnapshot } from "../../../../../core/domain/work/workbench";
-import { a, fit, prose, safe, section } from "../../foundation/theme/astra-theme";
-import { statusCardRows } from "../../foundation/components/status-card";
+import type { Component }               from "@earendil-works/pi-tui";
+import type { RequestRuntimeRecord }    from "@/core/domain/execution/request-runtime";
+import type { WorkbenchSnapshot }       from "@/core/domain/work/workbench";
+import { a, fit, prose, safe, section } from "@/adapters/inbound/tui/foundation/theme/astra-theme";
+import { statusCardRows }               from "@/adapters/inbound/tui/foundation/components/status-card";
 
 export interface PlanRuntimePresentation {
 	readonly motionActive: (request: Pick<RequestRuntimeRecord, "status" | "completedAt">, now: number) => boolean;
@@ -25,9 +25,9 @@ function planRows(snapshot: WorkbenchSnapshot, width: number, compact: boolean):
 }
 
 function activityRows(snapshot: WorkbenchSnapshot, width: number, compact = false): string[] {
-	const turnId = snapshot.activeTurnId ?? snapshot.workFlow.source?.turnId ?? snapshot.requestRuntime?.at(-1)?.turnId;
-	const entries = [...(snapshot.planActivities ?? [])].filter(item => item.turnId === turnId).sort((left, right) => left.sequence - right.sequence).slice(-5);
-	const rows = [...section("Activity", width, entries.length ? `최근 ${entries.length}개` : "", a.info)];
+	const turnId  = snapshot.activeTurnId ?? snapshot.workFlow.source?.turnId ?? snapshot.requestRuntime?.at(-1)?.turnId                                        ;
+	const entries = [...(snapshot.planActivities ?? [])].filter(item => item.turnId === turnId).sort((left, right) => left.sequence - right.sequence).slice(-5) ;
+	const rows    = [...section("Activity", width, entries.length ? `최근 ${entries.length}개` : "", a.info)]                                                   ;
 	for (const item of entries) rows.push(...statusCardRows(safe(item.summary, 600), item.status, width));
 	if (!entries.length) {
 		const message = snapshot.planActivityStatus === "pending" ? "현재 단계의 작업 내용을 정리하는 중입니다."
@@ -57,13 +57,16 @@ export class AstraPlanView implements Component {
 	) {}
 	invalidate(): void {}
 	render(width: number): string[] {
-		const s = this.get();
-		const turnId = s.activeTurnId ?? s.workFlow.source?.turnId;
-		const request = turnId ? [...(s.requestRuntime ?? [])].reverse().find(r => r.turnId === turnId) : s.requestRuntime?.at(-1);
-		if (request && this.runtimePresentation && Array.isArray(request.stages) && request.stages.length > 0) {
-			const now = this.clock();
-			const frame = this.motion && this.runtimePresentation.motionActive(request, now) ? Math.floor(now / 120) : 8;
-			const rows = this.runtimePresentation.rows(request, width, this.compact, frame, s.chatQueue.map(item => item.content), activityRows(s, width, this.compact));
+		const s       = this.get()                                                                                                 ;
+		const turnId  = s.activeTurnId ?? s.workFlow.source?.turnId                                                                ;
+		const request = turnId ? [...(s.requestRuntime ?? [])].reverse().find(r => r.turnId === turnId) : s.requestRuntime?.at(-1) ;
+		if (request
+			&& this.runtimePresentation
+			&& Array.isArray(request.stages)
+			&& request.stages.length > 0) {
+			const now   = this.clock()                                                                                                                                    ;
+			const frame = this.motion && this.runtimePresentation.motionActive(request, now) ? Math.floor(now / 120) : 8                                                  ;
+			const rows  = this.runtimePresentation.rows(request, width, this.compact, frame, s.chatQueue.map(item => item.content), activityRows(s, width, this.compact)) ;
 			return (this.compact && rows[0] === "" ? rows.slice(1) : rows).map(row => fit(row, width));
 		}
 		const rows = [...planRows(s, width, this.compact), ...activityRows(s, width, this.compact), ...proposalRows(s, width)];

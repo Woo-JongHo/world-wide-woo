@@ -1,15 +1,14 @@
-import {
-	Key,
-	matchesKey,
-	stripTerminalSequences,
-	type Component,
-} from "@earendil-works/pi-tui";
-import type { ProviderAuthState } from "../../../../../core/ports";
-import { EFFORTS, MODELS, PROVIDERS, type Effort, type Provider, type WwwSettings } from "../../../../../core/domain/execution/model-settings";
-import { colors, semantic, type TuiColors } from "../../foundation/theme/theme";
-import { nativeModelNames, nativeModelEfforts, type NativeModelCatalog } from "../../../../../core/domain/execution/model-settings";
-import { renderModelPickerView } from "./model-picker-view";
-import { workbenchEffortLabel, workbenchModelLabel } from "../../foundation/labels";
+import { Key, matchesKey, stripTerminalSequences }   from "@earendil-works/pi-tui";
+import type { Component }                            from "@earendil-works/pi-tui";
+import type { ProviderAuthState }                    from "@/core/ports";
+import { EFFORTS, MODELS, PROVIDERS }                from "@/core/domain/execution/model-settings";
+import type { Effort, Provider, WwwSettings }        from "@/core/domain/execution/model-settings";
+import { colors, semantic }                          from "@/adapters/inbound/tui/foundation/theme/theme";
+import type { TuiColors }                            from "@/adapters/inbound/tui/foundation/theme/theme";
+import { nativeModelNames, nativeModelEfforts }      from "@/core/domain/execution/model-settings";
+import type { NativeModelCatalog }                   from "@/core/domain/execution/model-settings";
+import { renderModelPickerView }                     from "@/adapters/inbound/tui/features/model-selection/model-picker-view";
+import { workbenchEffortLabel, workbenchModelLabel } from "@/adapters/inbound/tui/foundation/labels";
 
 type ModelPickerStep = "provider" | "model" | "effort" | "confirm";
 type AuthStatus = ProviderAuthState | { state: "pending"; provider: Provider };
@@ -18,46 +17,46 @@ export type ModelPickerAuthStatus = (provider: Provider) => Promise<ProviderAuth
 export type ModelPickerApply = (settings: WwwSettings) => Promise<void>;
 
 export interface ModelPickerOptions {
-	providers?: readonly Provider[];
-	startAtModel?: boolean;
-	colors?: TuiColors;
-	appearance?: "astra";
-	nativeCodex?: boolean;
-	catalog?: NativeModelCatalog;
-	loadCatalog?: () => Promise<NativeModelCatalog>;
-	maxVisibleOptions?: () => number;
+	providers?         : readonly Provider[]               ;
+	startAtModel?      : boolean                           ;
+	colors?            : TuiColors                         ;
+	appearance?        : "astra"                           ;
+	nativeCodex?       : boolean                           ;
+	catalog?           : NativeModelCatalog                ;
+	loadCatalog?       : () => Promise<NativeModelCatalog> ;
+	maxVisibleOptions? : () => number                      ;
 }
 
 const STEP_LABEL: Record<ModelPickerStep, string> = {
-	provider: "공급자",
-	model: "모델",
-	effort: "추론",
-	confirm: "확인",
+	provider : "공급자",
+	model    : "모델",
+	effort   : "추론",
+	confirm  : "확인",
 };
 
 const effortColor: Record<Effort, (text: string) => string> = {
-	low: semantic.effortLow,
-	medium: semantic.effortMedium,
-	high: semantic.effortHigh,
-	ultra: semantic.effortUltra,
-	xhigh: semantic.effortHigh,
-	max: semantic.effortUltra,
+	low    : semantic.effortLow,
+	medium : semantic.effortMedium,
+	high   : semantic.effortHigh,
+	ultra  : semantic.effortUltra,
+	xhigh  : semantic.effortHigh,
+	max    : semantic.effortUltra,
 };
 
 /** Provider → model → effort → confirmation picker. Persistence and authentication stay caller-owned. */
 export class ModelPickerOverlay implements Component {
-	private readonly auth = new Map<Provider, AuthStatus>();
-	private readonly providers: readonly Provider[];
-	private readonly providerStepVisible: boolean;
-	private staged: WwwSettings;
-	private step: ModelPickerStep = "provider";
-	private selected: number;
-	private error: string | null = null;
-	private applying = false;
-	private lookupGeneration = 0;
-	private readonly ui: TuiColors;
-	private catalog?: NativeModelCatalog;
-	private loadingModels = false;
+	private readonly auth                                  = new Map<Provider, AuthStatus>() ;
+	private readonly providers           : readonly Provider[]                               ;
+	private readonly providerStepVisible : boolean                                           ;
+	private staged                       : WwwSettings                                       ;
+	private step                         : ModelPickerStep = "provider"                      ;
+	private selected                     : number                                            ;
+	private error                        : string | null   = null                            ;
+	private applying                                       = false                           ;
+	private lookupGeneration                               = 0                               ;
+	private readonly ui                  : TuiColors                                         ;
+	private catalog                      : NativeModelCatalog | undefined                    ;
+	private loadingModels                                  = false                           ;
 
 	constructor(
 		private readonly current: WwwSettings,
@@ -74,15 +73,15 @@ export class ModelPickerOverlay implements Component {
 		this.catalog = options.catalog;
 		const requestedProviders = options.providers?.length ? options.providers : PROVIDERS;
 		this.providers = requestedProviders.filter((provider, index) => requestedProviders.indexOf(provider) === index);
-		const provider = this.providers.includes(initial.provider) ? initial.provider : this.providers[0] ?? initial.provider;
-		const models = this.models(provider);
-		const model = (models as readonly string[]).includes(initial.model) ? initial.model : models[0];
+		const provider = this.providers.includes(initial.provider) ? initial.provider : this.providers[0] ?? initial.provider ;
+		const models   = this.models(provider)                                                                                ;
+		const model    = models.includes(initial.model) ? initial.model : models[0] ?? initial.model                          ;
 		this.staged = { ...initial, provider, model };
 		if (!this.efforts().includes(this.staged.effort)) this.staged.effort = this.defaultEffort();
 		this.providerStepVisible = !(options.startAtModel === true && this.providers.length === 1);
 		this.step = resumeAtConfirmation ? "confirm" : this.providerStepVisible ? "provider" : "model";
 		this.selected = this.step === "model"
-			? Math.max(0, (models as readonly string[]).indexOf(model))
+			? Math.max(0, models.indexOf(model))
 			: Math.max(0, this.providers.indexOf(provider));
 		for (const provider of this.providers) this.auth.set(provider, { state: "pending", provider });
 	}
@@ -95,7 +94,7 @@ export class ModelPickerOverlay implements Component {
 				if (generation !== this.lookupGeneration) return;
 				this.catalog = catalog;
 				const models = this.models(this.staged.provider);
-				if (!models.includes(this.staged.model)) this.staged.model = models[0]!;
+				if (!models.includes(this.staged.model)) this.staged.model = models[0] ?? this.staged.model;
 				if (!this.efforts().includes(this.staged.effort)) this.staged.effort = this.defaultEffort();
 				this.selected = Math.max(0, models.indexOf(this.staged.model));
 			}, () => { this.error = "모델 조회 실패 · 기존 목록을 유지합니다."; }).finally(() => {
@@ -129,16 +128,16 @@ export class ModelPickerOverlay implements Component {
 
 	render(width: number): string[] {
 		return renderModelPickerView({
-			appearance: this.options.appearance,
-			nativeCodex: this.options.nativeCodex === true,
-			current: this.current,
-			staged: this.staged,
-			breadcrumb: this.breadcrumb(),
-			catalogNotice: this.catalogNotice(),
-			rows: this.visibleRows(),
-			error: this.error,
-			applying: this.applying,
-			confirmation: this.step === "confirm",
+			nativeCodex   : this.options.nativeCodex === true,
+			current       : this.current,
+			staged        : this.staged,
+			breadcrumb    : this.breadcrumb(),
+			catalogNotice : this.catalogNotice(),
+			rows          : this.visibleRows(),
+			error         : this.error,
+			applying      : this.applying,
+			confirmation  : this.step === "confirm",
+			...(this.options.appearance === "astra" ? { appearance: "astra" } : {}),
 		}, width, this.ui);
 	}
 
@@ -223,9 +222,9 @@ export class ModelPickerOverlay implements Component {
 		if (this.step === "effort") return this.efforts().length;
 		return 1;
 	}
-	private efforts(): readonly Effort[] { return this.options.nativeCodex ? nativeModelEfforts(this.staged.model, this.catalog) : EFFORTS; }
-	private defaultEffort(): Effort { return this.catalog?.models.find(entry => entry.model === this.staged.model)?.defaultEffort ?? "medium"; }
-	private models(provider: Provider): readonly string[] { return this.options.nativeCodex && provider === "openai-codex" ? nativeModelNames(this.catalog) : MODELS[provider]; }
+	private efforts      ()                  : readonly Effort[] { return this.options.nativeCodex ? nativeModelEfforts(this.staged.model, this.catalog) : EFFORTS; }
+	private defaultEffort()                  : Effort { return this.catalog?.models.find(entry => entry.model === this.staged.model)?.defaultEffort ?? "medium"; }
+	private models       (provider: Provider): readonly string[] { return this.options.nativeCodex && provider === "openai-codex" ? nativeModelNames(this.catalog) : MODELS[provider]; }
 	private catalogNotice(): string {
 		if (this.loadingModels) return "Native 모델 목록 갱신 중…";
 		if (this.catalog?.error) return "조회 실패 · 기존 목록 유지 · 다시 열면 재시도";
@@ -236,17 +235,18 @@ export class ModelPickerOverlay implements Component {
 	private forward(): void | Promise<void> {
 		this.error = null;
 		if (this.step === "provider") {
-			const provider = this.providers[this.selected];
-			const models = this.models(provider);
-			const model = (models as readonly string[]).includes(this.staged.model) ? this.staged.model : models[0];
-			this.staged = { ...this.staged, provider, model };
-			this.step = "model";
-			this.selected = Math.max(0, (models as readonly string[]).indexOf(model));
+			const provider = this.providers[this.selected]                                                           ;
+			const models   = this.models(provider)                                                                   ;
+			const model    = models.includes(this.staged.model) ? this.staged.model : models[0] ?? this.staged.model ;
+			this.staged   = { ...this.staged, provider, model } ;
+			this.step     = "model"                             ;
+			this.selected = Math.max(0, models.indexOf(model))  ;
 			this.requestRender();
 			return;
 		}
 		if (this.step === "model") {
-			this.staged = { ...this.staged, model: this.models(this.staged.provider)[this.selected]! };
+			const model = this.models(this.staged.provider)[this.selected] ?? this.staged.model;
+			this.staged = { ...this.staged, model };
 			if (!this.efforts().includes(this.staged.effort)) this.staged.effort = this.defaultEffort();
 			this.step = "effort";
 			this.selected = Math.max(0, this.efforts().indexOf(this.staged.effort));
@@ -254,9 +254,10 @@ export class ModelPickerOverlay implements Component {
 			return;
 		}
 		if (this.step === "effort") {
-			this.staged = { ...this.staged, effort: this.efforts()[this.selected]! };
-			this.step = "confirm";
-			this.selected = 0;
+			const effort = this.efforts()[this.selected] ?? this.defaultEffort();
+			this.staged   = { ...this.staged, effort } ;
+			this.step     = "confirm"                  ;
+			this.selected = 0                          ;
 			this.requestRender();
 			return;
 		}

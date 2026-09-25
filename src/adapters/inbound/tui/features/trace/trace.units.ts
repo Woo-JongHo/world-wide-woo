@@ -1,4 +1,4 @@
-import type { TuiFeatureUnitDescriptor } from "../feature.types";
+import type { TuiFeatureUnitDescriptor } from "@/adapters/inbound/tui/features/feature.types";
 
 export const traceUnits = [
 	{ id: "TUI-F005-U01", featureId: "TUI-F005", key: "plan-execution-flow-tracer", title: "Plan·실행 Flow Tracer", status: "active" },

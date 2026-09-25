@@ -1,15 +1,31 @@
-import type { Component } from "@earendil-works/pi-tui";
-import type { WorkbenchSnapshot } from "../../../../../core/domain/work/workbench";
-import type { UsageLimitSnapshot, UsageSnapshot } from "../../../../../core/ports";
-import { monitoringCard, monitoringColumns, monitoringPanel, monitoringTable, monitoringWidths, type MonitoringCard } from "../../foundation/layout/astra-monitoring-layout";
-import { a, fit, number, pair, prose, railSection, safe, section } from "../../foundation/theme/astra-theme";
+import type { Component }                         from "@earendil-works/pi-tui";
+import type { WorkbenchSnapshot }                 from "@/core/domain/work/workbench";
+import type { UsageLimitSnapshot, UsageSnapshot } from "@/core/ports";
+import {
+	monitoringCard,
+	monitoringColumns,
+	monitoringPanel,
+	monitoringTable,
+	monitoringWidths,
+} from "@/adapters/inbound/tui/foundation/layout/astra-monitoring-layout";
+import type { MonitoringCard }                    from "@/adapters/inbound/tui/foundation/layout/astra-monitoring-layout";
+import {
+	a,
+	fit,
+	number,
+	pair,
+	prose,
+	railSection,
+	safe,
+	section,
+} from "@/adapters/inbound/tui/foundation/theme/astra-theme";
 
 const PROVIDERS = ["openai-codex", "anthropic", "google", "zai"] as const;
 const PROVIDER_LABELS: Readonly<Record<UsageSnapshot["provider"], string>> = {
 	"openai-codex" : "Codex",
-	anthropic     : "Claude",
-	google        : "Antigravity",
-	zai           : "Z.AI",
+	anthropic      : "Claude",
+	google         : "Antigravity",
+	zai            : "Z.AI",
 };
 
 function observedPercent(limit: UsageLimitSnapshot): number | null {
@@ -25,14 +41,14 @@ function resetLabel(timestamp: number | undefined): string {
 
 function providerCard(provider: UsageSnapshot["provider"], snapshot: UsageSnapshot | undefined): MonitoringCard {
 	if (!snapshot) return { title: PROVIDER_LABELS[provider], value: "미관측", detail: "provider snapshot 없음" };
-	const limit = snapshot.limits[0];
-	const remaining = limit ? observedPercent(limit) : null;
-	const state = `${snapshot.state}${snapshot.stale ? " · stale" : ""}`;
+	const limit     = snapshot.limits[0]                                     ;
+	const remaining = limit ? observedPercent(limit) : null                  ;
+	const state     = `${snapshot.state}${snapshot.stale ? " · stale" : ""}` ;
 	if (!limit) return { title: PROVIDER_LABELS[provider], value: state, detail: "quota 미관측" };
 	return {
-		title: PROVIDER_LABELS[provider],
-		value: remaining === null ? state : `${Math.round(remaining)}% 남음`,
-		detail: `${safe(limit.label, 42)} · ${state}`,
+		title  : PROVIDER_LABELS[provider],
+		value  : remaining === null ? state : `${Math.round(remaining)}% 남음`,
+		detail : `${safe(limit.label, 42)} · ${state}`,
 	};
 }
 
@@ -54,11 +70,11 @@ function modelRows(snapshot: WorkbenchSnapshot, width: number): string[] {
 	if (!session?.models.length) return [a.muted("모델 사용 내역 미관측 · 관측 기준선이 필요합니다.")];
 
 	const columns = [
-		{ heading : "MODEL"   , minWidth : 18, weight : 1, align : "left"  },
-		{ heading : "EFFORT"  , minWidth :  6, weight : 0, align : "left"  },
-		{ heading : "DIRECT"  , minWidth :  8, weight : 0, align : "right" },
-		{ heading : "DETACHED", minWidth :  8, weight : 0, align : "right" },
-		{ heading : "OBSERVED", minWidth :  8, weight : 0, align : "right" },
+		{ heading : "MODEL"    , minWidth : 18 , weight : 1 , align : "left"  },
+		{ heading : "EFFORT"   , minWidth : 6  , weight : 0 , align : "left"  },
+		{ heading : "DIRECT"   , minWidth : 8  , weight : 0 , align : "right" },
+		{ heading : "DETACHED" , minWidth : 8  , weight : 0 , align : "right" },
+		{ heading : "OBSERVED" , minWidth : 8  , weight : 0 , align : "right" },
 	] as const;
 	const rows = session.models.map(model => [
 		safe(model.model, 48),
@@ -77,9 +93,9 @@ function modelRows(snapshot: WorkbenchSnapshot, width: number): string[] {
 function attributionRows(snapshot: WorkbenchSnapshot, width: number): string[] {
 	const session = snapshot.sessionUsage;
 	if (!session) return [a.muted("세션 사용량 미관측")];
-	const interactive = session.models.reduce((sum, model) => sum + model.interactiveTokens, 0);
-	const detached    = session.models.reduce((sum, model) => sum + model.detachedTokens, 0);
-	const unassigned  = session.unattributedTokens;
+	const interactive = session.models.reduce((sum, model) => sum + model.interactiveTokens, 0) ;
+	const detached    = session.models.reduce((sum, model) => sum + model.detachedTokens, 0)    ;
+	const unassigned  = session.unattributedTokens                                              ;
 	return [
 		pair("직접 대화", session.observationCoverage.interactive ? `${number(interactive)} tokens` : "미관측", width),
 		pair("분리 실행", session.observationCoverage.detached ? `${number(detached)} tokens` : "미관측", width),
@@ -96,9 +112,9 @@ export class AstraUsageView implements Component {
 	) {}
 	invalidate(): void {}
 	render(width: number): string[] {
-		const snapshot   = this.get();
-		const providers  = this.usage();
-		const innerWidth = Math.max(1, width - 2);
+		const snapshot   = this.get()             ;
+		const providers  = this.usage()           ;
+		const innerWidth = Math.max(1, width - 2) ;
 		const rows = [
 			...(this.synthetic() ? [a.attention("DEMO DATA · 합성 예시 · 실제 사용 기록 아님")] : []),
 			...section("모델별 사용 내역", width, width >= 66 ? "현재 프로세스 관측 범위" : "", a.active),

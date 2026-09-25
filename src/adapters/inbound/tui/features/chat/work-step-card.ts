@@ -4,7 +4,7 @@ export {
 	WorkStepCard,
 	isVisibleWorkStep,
 	type ObservationCardOptions,
-} from "./work-step-components";
+} from "@/adapters/inbound/tui/features/chat/work-step-components";
 export {
 	executionLineTone,
 	highlightStructured,
@@ -12,5 +12,5 @@ export {
 	structuredOutput,
 	type ExecutionLineTone,
 	type StructuredLanguage,
-} from "./work-step-output-renderer";
-export { projectNativePathText, publicPayloadProjection } from "./work-step-public-projection";
+} from "@/adapters/inbound/tui/features/chat/work-step-output-renderer";
+export { projectNativePathText, publicPayloadProjection } from "@/adapters/inbound/tui/features/chat/work-step-public-projection";

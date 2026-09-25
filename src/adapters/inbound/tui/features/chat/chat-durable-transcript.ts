@@ -1,23 +1,27 @@
-import { truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
-import type { WorkbenchSnapshot } from "../../../../../core/domain/work/workbench";
-import { classifyWorkActivity, type SemanticWorkStep, type WorkStepStatus } from "../../../../../core/domain/work";
-import { boundedPublicProjection } from "./bounded-public-projection";
-import { colors, semantic } from "../../foundation/theme/theme";
-import { isVisibleWorkStep, ObservationCard, WorkStepCard } from "./work-step-card";
-import { projectWorkbenchDelegationSections, renderDelegationSections } from "./delegation-tree-view";
-import { matchingLiveActivity } from "./chat-live-activity";
-import { boundedWorkbenchMarkdown } from "./chat-message-renderer";
-import { publicTimelineActivityRows } from "./chat-public-lifecycle";
+import { truncateToWidth, visibleWidth, wrapTextWithAnsi }  from "@earendil-works/pi-tui";
+import type { WorkbenchSnapshot }                           from "@/core/domain/work/workbench";
+import { classifyWorkActivity }                             from "@/core/domain/work";
+import type { SemanticWorkStep, WorkStepStatus }            from "@/core/domain/work";
+import { boundedPublicProjection }                          from "@/adapters/inbound/tui/features/chat/bounded-public-projection";
+import { colors, semantic }                                 from "@/adapters/inbound/tui/foundation/theme/theme";
+import { isVisibleWorkStep, ObservationCard, WorkStepCard } from "@/adapters/inbound/tui/features/chat/work-step-card";
+import {
+	projectWorkbenchDelegationSections,
+	renderDelegationSections,
+} from "@/adapters/inbound/tui/features/chat/delegation-tree-view";
+import { matchingLiveActivity }                             from "@/adapters/inbound/tui/features/chat/chat-live-activity";
+import { boundedWorkbenchMarkdown }                         from "@/adapters/inbound/tui/features/chat/chat-message-renderer";
+import { publicTimelineActivityRows }                       from "@/adapters/inbound/tui/features/chat/chat-public-lifecycle";
 
 export interface ChatApprovalPresentation {
 	readonly render: (snapshot: WorkbenchSnapshot, width: number) => readonly string[];
 }
 
 export interface DurableMessagePresentation {
-	readonly update: (snapshot: WorkbenchSnapshot) => void;
-	readonly invalidate: () => void;
-	readonly render: (message: WorkbenchSnapshot["chat"][number], width: number) => string[];
-	readonly renderDraft: (width: number) => string[];
+	readonly update      : (snapshot: WorkbenchSnapshot) => void                                   ;
+	readonly invalidate  : () => void                                                              ;
+	readonly render      : (message: WorkbenchSnapshot["chat"][number], width: number) => string[] ;
+	readonly renderDraft : (width: number) => string[]                                             ;
 }
 
 const WORKBENCH_STEP_CACHE_LIMIT = 512;
@@ -39,6 +43,15 @@ function transcriptRows(rows: readonly string[], width: number): string[] {
 function activityOwnerKey(activity: WorkbenchSnapshot["activities"][number]): string {
 	const { threadId, turnId, itemId } = activity.nativeRefs;
 	return itemId ? `${threadId ?? ""}\0${turnId ?? ""}\0${itemId}` : `activity\0${activity.id}`;
+}
+
+function isActivityPayload(value: unknown): value is Readonly<Record<string, unknown>> {
+	return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function boundedActivity(activity: WorkbenchSnapshot["activities"][number]): WorkbenchSnapshot["activities"][number] {
+	const payload = boundedPublicProjection(activity.payload).value;
+	return { ...activity, payload: isActivityPayload(payload) ? payload : {} };
 }
 
 /** Assembles durable Chat messages, lifecycle events, execution cards, and notices in journal order. */
@@ -65,13 +78,13 @@ export class ChatDurableTranscript {
 	}
 
 	render(width: number, activityIndicatorVisible: boolean): string[] {
-		const contentWidth = Math.max(1, width);
-		const activities = this.snapshot.activities;
-		const activityById = new Map(activities.map((activity) => [activity.id, activity]));
-		const messages = new Map(this.snapshot.chat.map((message) => [message.activityId, message]));
-		const projectedSteps = this.snapshot.workFlow.steps;
-		const stepByLastActivity = new Map<string, SemanticWorkStep>();
-		const stepByActivity = new Map<string, SemanticWorkStep>();
+		const contentWidth       = Math.max(1, width)                                                          ;
+		const activities         = this.snapshot.activities                                                    ;
+		const activityById       = new Map(activities.map((activity) => [activity.id, activity]))              ;
+		const messages           = new Map(this.snapshot.chat.map((message) => [message.activityId, message])) ;
+		const projectedSteps     = this.snapshot.workFlow.steps                                                ;
+		const stepByLastActivity = new Map<string, SemanticWorkStep>()                                         ;
+		const stepByActivity     = new Map<string, SemanticWorkStep>()                                         ;
 		for (const step of projectedSteps) {
 			for (const activityId of step.activityIds) stepByActivity.set(activityId, step);
 			const lastVisibleActivityId = [...step.activityIds].reverse().find((id) => activityById.has(id));
@@ -142,12 +155,12 @@ export class ChatDurableTranscript {
 				rows.push(...this.renderStepCard(step, contentWidth, activity, live), "");
 			} else if (observationActivityIds.has(activity.id)) {
 				const live = matchingLiveActivity(this.snapshot.liveActivity, activity);
-				const projectedActivity = {
-					...activity,
-					payload: boundedPublicProjection(activity.payload).value as typeof activity.payload,
-				};
+				const projectedActivity = boundedActivity(activity);
 				rows.push(
-					...new ObservationCard({ activity: projectedActivity, liveActivity: live }).render(contentWidth),
+					...new ObservationCard({
+						activity: projectedActivity,
+						...(live ? { liveActivity: live } : {}),
+					}).render(contentWidth),
 					...wrapTextWithAnsi(colors.muted(`Source · /source ${activity.id}`), contentWidth),
 					"",
 				);
@@ -155,16 +168,14 @@ export class ChatDurableTranscript {
 				isVisibleWorkStep(activity.kind)
 				&& lastVisibleActivityByItem.get(activityOwnerKey(activity)) === activity.id
 			) {
-				const live = matchingLiveActivity(this.snapshot.liveActivity, activity);
-				const projectedActivity = {
-					...activity,
-					payload: boundedPublicProjection(activity.payload).value as typeof activity.payload,
-				};
+				const live              = matchingLiveActivity(this.snapshot.liveActivity, activity) ;
+				const projectedActivity = boundedActivity(activity)                                  ;
+				const parentStep        = stepByActivity.get(activity.id)                            ;
 				rows.push(...new ObservationCard({
 					activity: projectedActivity,
-					liveActivity: live,
 					mode: "action",
-					parentStepNumber: stepByActivity.get(activity.id)?.number,
+					...(live ? { liveActivity: live } : {}),
+					...(parentStep ? { parentStepNumber: parentStep.number } : {}),
 				}).render(contentWidth), ...wrapTextWithAnsi(colors.muted(`Source · /source ${activity.id}`), contentWidth), "");
 			}
 		}
@@ -215,8 +226,9 @@ export class ChatDurableTranscript {
 				colors.muted(`조치 · ${action}`),
 			], contentWidth, semantic.noticeSurface), "");
 		}
-		if (["blocked", "reconciling", "unknown"].includes(this.snapshot.executionRun?.phase ?? "")) {
-			const phase = this.snapshot.executionRun!.phase;
+		const executionRun = this.snapshot.executionRun;
+		if (executionRun && ["blocked", "reconciling", "unknown"].includes(executionRun.phase)) {
+			const phase = executionRun.phase;
 			const detail = phase === "blocked"
 				? "도구 또는 작업이 실패했습니다. 복구 관측 또는 권한 있는 종료 관측을 기다립니다."
 				: phase === "reconciling"
@@ -278,16 +290,13 @@ export class ChatDurableTranscript {
 			const cached = this.stepRows.get(key);
 			if (cached) return cached;
 		}
-		const projectedActivity = activity ? {
-			...activity,
-			payload: boundedPublicProjection(activity.payload).value as typeof activity.payload,
-		} : undefined;
+		const projectedActivity = activity ? boundedActivity(activity) : undefined;
 		const options = {
-			stepNumber: step.number,
-			activity: projectedActivity,
-			liveActivity,
-			status: commandStatus(step.status),
-			narration: step.narration,
+			stepNumber : step.number,
+			status     : commandStatus(step.status),
+			narration  : step.narration,
+			...(projectedActivity ? { activity: projectedActivity } : {}),
+			...(liveActivity ? { liveActivity } : {}),
 		};
 		const traceSource = step.association
 			? step.association.sources.flatMap(source => wrapTextWithAnsi(colors.muted(

@@ -1,14 +1,20 @@
 import {
-	monitoringCard, monitoringColumns, monitoringCompactPanel, monitoringMeter, monitoringTable, monitoringWidths,
-} from "../../foundation/layout/astra-monitoring-layout";
-import { a, fit, pair, type AstraInk } from "../../foundation/theme/astra-theme";
+	monitoringCard,
+	monitoringColumns,
+	monitoringCompactPanel,
+	monitoringMeter,
+	monitoringTable,
+	monitoringWidths,
+} from "@/adapters/inbound/tui/foundation/layout/astra-monitoring-layout";
+import { a, fit, pair }  from "@/adapters/inbound/tui/foundation/theme/astra-theme";
+import type { AstraInk } from "@/adapters/inbound/tui/foundation/theme/astra-theme";
 
 /** Figma 50:1986. Synthetic display values are accessible only through the explicit demo path. */
 const demoLanes = [
-	{ name : "LANE_A", percent : 72, state : "ACTIVE", ink : a.active  },
-	{ name : "LANE_B", percent : 41, state : "LOADED", ink : a.tool    },
-	{ name : "LANE_C", percent : 95, state : "SYNC"  , ink : a.success },
-	{ name : "LANE_D", percent : 11, state : "BLOCK" , ink : a.failure },
+	{ name : "LANE_A" , percent : 72 , state : "ACTIVE" , ink : a.active  },
+	{ name : "LANE_B" , percent : 41 , state : "LOADED" , ink : a.tool    },
+	{ name : "LANE_C" , percent : 95 , state : "SYNC"   , ink : a.success },
+	{ name : "LANE_D" , percent : 11 , state : "BLOCK"  , ink : a.failure },
 ];
 
 function panel(title: string, rows: readonly string[], width: number): string[] {
@@ -17,11 +23,11 @@ function panel(title: string, rows: readonly string[], width: number): string[] 
 
 function summary(width: number): string[] {
 	const cards = [
-		{ title : "Active goal"     , value : "AUTH & MEMORY PROFILE", detail : "redesign in progress", ink : a.cream     },
-		{ title : "Delegated agents", value : "5 ACTIVE / 8 TOTAL"   , detail : "3 waiting"           , ink : a.tool      },
-		{ title : "Elapsed time"    , value : "02h 45m 12s"          , detail : "sample duration"     , ink : a.success   },
-		{ title : "Context budget"  , value : "12.3% USED"           , detail : "87.7% remaining"     , ink : a.response  },
-		{ title : "Stalled events"  , value : "0 CRITICAL"           , detail : "2 watched"           , ink : a.attention },
+		{ title : "Active goal"      , value : "AUTH & MEMORY PROFILE" , detail : "redesign in progress" , ink : a.cream     },
+		{ title : "Delegated agents" , value : "5 ACTIVE / 8 TOTAL"    , detail : "3 waiting"            , ink : a.tool      },
+		{ title : "Elapsed time"     , value : "02h 45m 12s"           , detail : "sample duration"      , ink : a.success   },
+		{ title : "Context budget"   , value : "12.3% USED"            , detail : "87.7% remaining"      , ink : a.response  },
+		{ title : "Stalled events"   , value : "0 CRITICAL"            , detail : "2 watched"            , ink : a.attention },
 	];
 	const count = width >= 100 ? 5 : width >= 60 ? 3 : 1;
 	return Array.from({ length: Math.ceil(cards.length / count) }, (_, index) => {
@@ -59,9 +65,9 @@ function relationshipTree(width: number): string[] {
 	const parent = [...Array<string>(2).fill(""), ...node("■ PARENT", "ASTRA-CORE", "Claude 3.5 Sonnet", a.active, nodeWidth)];
 	const delegate = [...Array<string>(2).fill(""), ...node("» DELEGATE", "subagent-auth-eval", "Status: RUNNING", a.tool, nodeWidth)];
 	const rows = Array.from({ length: branch.length }, (_, index) => {
-		const parentLink = index === 3 ? a.active("───") : "   ";
-		const branchLink = index === 1 ? a.success("┌──") : index === 5 ? a.attention("└──") : index === 3 ? a.tool("┤  ") : index > 1 && index < 5 ? a.rule("│  ") : "   ";
-		const targetLink = index === 1 ? a.success("───") : index === 5 ? a.attention("───") : "   ";
+		const parentLink = index === 3 ? a.active("───") : "   "                                                                                                            ;
+		const branchLink = index === 1 ? a.success("┌──") : index === 5 ? a.attention("└──") : index === 3 ? a.tool("┤  ") : index > 1 && index < 5 ? a.rule("│  ") : "   " ;
+		const targetLink = index === 1 ? a.success("───") : index === 5 ? a.attention("───") : "   "                                                                        ;
 		return fit(parent[index] ?? "", nodeWidth) + parentLink + fit(delegate[index] ?? "", nodeWidth) + branchLink
 			+ fit(branch[index] ?? "", nodeWidth) + targetLink + fit(targets[index] ?? "", nodeWidth);
 	});
@@ -71,18 +77,18 @@ function relationshipTree(width: number): string[] {
 function execution(width: number): string[] {
 	const inner = Math.max(1, width - 2);
 	const columns = [
-		{ heading : "LANE" , minWidth : 6, weight : 0, align : "left" },
-		{ heading : "LOAD" , minWidth : 4, weight : 1, align : "left" },
-		{ heading : "STATE", minWidth : 6, weight : 0, align : "left" },
+		{ heading : "LANE"  , minWidth : 6 , weight : 0 , align : "left" },
+		{ heading : "LOAD"  , minWidth : 4 , weight : 1 , align : "left" },
+		{ heading : "STATE" , minWidth : 6 , weight : 0 , align : "left" },
 	] as const;
 	const barWidth = Math.max(4, inner - 16);
 	const rows = demoLanes.map(lane => [
 		a.muted(lane.name), monitoringMeter(lane.percent, 100, barWidth, lane.ink), lane.ink(lane.state),
 	]);
 	const queueColumns = [
-		{ heading : "TASK" , minWidth : 8, weight : 1, align : "left"  },
-		{ heading : "RETRY", minWidth : 5, weight : 0, align : "right" },
-		{ heading : "STATE", minWidth : 8, weight : 0, align : "left"  },
+		{ heading : "TASK"  , minWidth : 8 , weight : 1 , align : "left"  },
+		{ heading : "RETRY" , minWidth : 5 , weight : 0 , align : "right" },
+		{ heading : "STATE" , minWidth : 8 , weight : 0 , align : "left"  },
 	] as const;
 	const queueRows = [
 		[ a.cream("parse-user-payload"  ), a.success("0/3"  ), a.tool("EXEC"      ) ],
@@ -97,10 +103,10 @@ function execution(width: number): string[] {
 
 function stateMatrix(width: number): string[] {
 	const columns = [
-		{ heading : "ID"   , minWidth : 2, weight : 0, align : "right" },
-		{ heading : "AGENT", minWidth : 6, weight : 1, align : "left"  },
-		{ heading : "AGE"  , minWidth : 4, weight : 0, align : "right" },
-		{ heading : "STATE", minWidth : 5, weight : 0, align : "left"  },
+		{ heading : "ID"    , minWidth : 2 , weight : 0 , align : "right" },
+		{ heading : "AGENT" , minWidth : 6 , weight : 1 , align : "left"  },
+		{ heading : "AGE"   , minWidth : 4 , weight : 0 , align : "right" },
+		{ heading : "STATE" , minWidth : 5 , weight : 0 , align : "left"  },
 	] as const;
 	const rows = [
 		[ "01", a.cream("auth-eval"     ), "12s" , a.success("RUN ›") ],

@@ -1,21 +1,24 @@
-import {
-	stripTerminalSequences,
-	truncateToWidth,
-	visibleWidth,
-	wrapTextWithAnsi,
-	type Component,
-} from "@earendil-works/pi-tui";
+import { stripTerminalSequences, truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
+import type { Component }                                                          from "@earendil-works/pi-tui";
 import type {
 	CommandResultSnapshot,
 	CommandStatus,
 	CompletionReport,
 	DiffResultSnapshot,
 	GenericToolResultSnapshot,
-} from "../../../../../core/domain/execution/output";
-import { sanitizeTerminalTextExcerpt } from "../../../../../core/domain/execution/terminal";
-import { colors, semantic } from "../../foundation/theme/theme";
-import { highlightStructured, projectNativePathText, renderExecutionLine, structuredOutput } from "./work-step-card";
-import { CHAT_PUBLIC_OUTPUT_MAX_CHARS, workStepStatusPresentation } from "./chat-output-policy";
+} from "@/core/domain/execution/output";
+import { sanitizeTerminalTextExcerpt }                                             from "@/core/domain/execution/terminal";
+import { colors, semantic }                                                        from "@/adapters/inbound/tui/foundation/theme/theme";
+import {
+	highlightStructured,
+	projectNativePathText,
+	renderExecutionLine,
+	structuredOutput,
+} from "@/adapters/inbound/tui/features/chat/work-step-card";
+import {
+	CHAT_PUBLIC_OUTPUT_MAX_CHARS,
+	workStepStatusPresentation,
+} from "@/adapters/inbound/tui/features/chat/chat-output-policy";
 
 function clean(value: string): string {
 	return stripTerminalSequences(value)
@@ -73,9 +76,9 @@ function boundedLines(output: string, maximum: number): { lines: string[]; omitt
 }
 
 function boundedDisplayLines(output: string, language: string | undefined, maximum: number): { lines: string[]; omitted: number } {
-	const plain = clean(output);
-	const allLines = plain.split("\n");
-	const selected = maximum > 0 ? allLines.slice(-maximum).join("\n") : "";
+	const plain    = clean(output)                                          ;
+	const allLines = plain.split("\n")                                      ;
+	const selected = maximum > 0 ? allLines.slice(-maximum).join("\n") : "" ;
 	// Bound unstyled text first: highlighter ANSI bytes must never consume the display budget.
 	const bounded = clean(sanitizeTerminalTextExcerpt(selected, CHAT_PUBLIC_OUTPUT_MAX_CHARS, "tail"));
 	const lines = language
@@ -141,10 +144,10 @@ export class GenericToolResultCard implements Component {
 	invalidate(): void {}
 
 	render(width: number): string[] {
-		const contentWidth = Math.max(1, width - 4);
-		const safeInput = clean(this.snapshot.input);
-		const structuredInput = structuredOutput("", safeInput);
-		const input = structuredInput.value;
+		const contentWidth    = Math.max(1, width - 4)          ;
+		const safeInput       = clean(this.snapshot.input)      ;
+		const structuredInput = structuredOutput("", safeInput) ;
+		const input           = structuredInput.value           ;
 		const inputLines = structuredInput.language === "json"
 			? highlightStructured(input, "json")
 			: input.split("\n");
@@ -176,9 +179,9 @@ export class DiffResultCard implements Component {
 	invalidate(): void {}
 
 	render(width: number): string[] {
-		const contentWidth = Math.max(1, width - 4);
-		const rows = [`${semantic.assistantLabel(clean(this.snapshot.title) || "Diff")} · ${statusLabel(this.snapshot.status)}`];
-		const diff = boundedLines(this.snapshot.diff, Math.max(0, this.maxDiffLines));
+		const contentWidth = Math.max(1, width - 4)                                                                                      ;
+		const rows         = [`${semantic.assistantLabel(clean(this.snapshot.title) || "Diff")} · ${statusLabel(this.snapshot.status)}`] ;
+		const diff         = boundedLines(this.snapshot.diff, Math.max(0, this.maxDiffLines))                                            ;
 		if (diff.omitted > 0) rows.push(colors.muted(`… ${diff.omitted} earlier lines omitted`));
 		for (const line of diff.lines) {
 			const cleanLine = clean(line);

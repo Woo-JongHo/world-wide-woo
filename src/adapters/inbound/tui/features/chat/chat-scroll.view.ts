@@ -1,9 +1,10 @@
-import { ScrollView, stripTerminalSequences, type Component, type ScrollRowSource, type ScrollViewOptions } from "@earendil-works/pi-tui";
+import { ScrollView, stripTerminalSequences }                 from "@earendil-works/pi-tui";
+import type { Component, ScrollRowSource, ScrollViewOptions } from "@earendil-works/pi-tui";
 import type {
 	DashboardPrimaryScrollFactory,
 	DashboardScrollOptions,
-} from "../../foundation/layout/dashboard-layout";
-import { componentScrollRows } from "../../foundation/rendering/scroll-row-source";
+} from "@/adapters/inbound/tui/foundation/layout/dashboard-layout";
+import { componentScrollRows }                                from "@/adapters/inbound/tui/foundation/rendering/scroll-row-source";
 
 type ReadingPosition =
 	| { follow: true }
@@ -17,11 +18,11 @@ function normalizedRow(row: string): string {
 /** @Unit Code-003 */
 /** @codeId 0003 */
 export class ChatScrollView extends ScrollView {
-	private observedContentHeight = 0;
-	private renderedRows: string[] = [];
-	private logicalRows: ScrollRowSource | undefined;
-	private pendingPosition: ReadingPosition | undefined;
-	private renderedWidth: number | undefined;
+	private observedContentHeight      = 0                ;
+	private renderedRows    : string[] = []               ;
+	private logicalRows     : ScrollRowSource | undefined ;
+	private pendingPosition : ReadingPosition | undefined ;
+	private renderedWidth   : number | undefined          ;
 	constructor(private readonly content: Component, options: ScrollViewOptions = {}) {
 		super(content, options);
 	}
@@ -31,9 +32,9 @@ export class ChatScrollView extends ScrollView {
 		const available = Math.max(0, Math.min(4, (this.logicalRows?.rowCount ?? this.renderedRows.length) - this.scrollTop));
 		const rows = this.logicalRows ? this.logicalRows.rows(this.scrollTop, available) : this.renderedRows.slice(this.scrollTop, this.scrollTop + 4);
 		return {
-			follow: false,
-			anchor: rows.map(normalizedRow).join("").slice(0, 80),
-			fraction: this.observedContentHeight <= 1 ? 0 : this.scrollTop / (this.observedContentHeight - 1),
+			follow   : false,
+			anchor   : rows.map(normalizedRow).join("").slice(0, 80),
+			fraction : this.observedContentHeight <= 1 ? 0 : this.scrollTop / (this.observedContentHeight - 1),
 		};
 	}
 
@@ -76,9 +77,9 @@ export class ChatScrollView extends ScrollView {
 				const chunkSize = 256;
 				let found = false;
 				for (let start = 0; start < this.logicalRows.rowCount; start += chunkSize) {
-					const rows = this.logicalRows.rows(start, Math.min(chunkSize + 3, this.logicalRows.rowCount - start));
-					const normalized = rows.map(normalizedRow);
-					const offset = normalized.join("").indexOf(needle);
+					const rows       = this.logicalRows.rows(start, Math.min(chunkSize + 3, this.logicalRows.rowCount - start)) ;
+					const normalized = rows.map(normalizedRow)                                                                  ;
+					const offset     = normalized.join("").indexOf(needle)                                                      ;
 					if (offset < 0) continue;
 					let consumed = 0;
 					const local = normalized.findIndex(row => { consumed += row.length; return consumed > offset; });

@@ -1,4 +1,4 @@
-import type { TuiFeatureUnitDescriptor } from "../feature.types";
+import type { TuiFeatureUnitDescriptor } from "@/adapters/inbound/tui/features/feature.types";
 
 export const repositoryUnits = [
 	{ id: "TUI-F016-U01", featureId: "TUI-F016", key: "git-activity", title: "Git 작업 트리·Commit 조회", status: "legacy" },

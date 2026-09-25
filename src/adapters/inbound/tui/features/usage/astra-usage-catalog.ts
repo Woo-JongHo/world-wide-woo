@@ -1,13 +1,20 @@
-import type { UsageSnapshot } from "../../../../../core/ports";
-import { monitoringBars, monitoringColumns, monitoringCompactPanel, monitoringMeter, monitoringTable, monitoringWidths } from "../../foundation/layout/astra-monitoring-layout";
-import { a, fit, pair } from "../../foundation/theme/astra-theme";
+import type { UsageSnapshot } from "@/core/ports";
+import {
+	monitoringBars,
+	monitoringColumns,
+	monitoringCompactPanel,
+	monitoringMeter,
+	monitoringTable,
+	monitoringWidths,
+} from "@/adapters/inbound/tui/foundation/layout/astra-monitoring-layout";
+import { a, fit, pair }       from "@/adapters/inbound/tui/foundation/theme/astra-theme";
 
 // Presentation fixtures only: enabled by the shell's explicit Demo state.
 const providers = [
-	{ id : "openai-codex", label : "Codex"      , ink : a.codex  },
-	{ id : "anthropic"   , label : "Claude"     , ink : a.claude },
-	{ id : "google"      , label : "Antigravity", ink : a.gemini },
-	{ id : "zai"         , label : "Z.AI"       , ink : a.zai    },
+	{ id : "openai-codex" , label : "Codex"       , ink : a.codex  },
+	{ id : "anthropic"    , label : "Claude"      , ink : a.claude },
+	{ id : "google"       , label : "Antigravity" , ink : a.gemini },
+	{ id : "zai"          , label : "Z.AI"        , ink : a.zai    },
 ] as const;
 
 function heading(title: string, width: number): string[] {
@@ -17,10 +24,10 @@ function heading(title: string, width: number): string[] {
 function providerStrip(usage: readonly UsageSnapshot[], width: number): string[] {
 	const widths = monitoringWidths(width, width >= 96 ? 4 : 1);
 	const cards = providers.map((provider, index) => {
-		const size = widths[index] ?? width;
-		const quota = usage.find(item => item.provider === provider.id);
-		const remaining = quota?.limits[0]?.remainingPercent;
-		const label = remaining == null ? "미관측" : `${remaining}% remaining`;
+		const size      = widths[index] ?? width                                   ;
+		const quota     = usage.find(item => item.provider === provider.id)        ;
+		const remaining = quota?.limits[0]?.remainingPercent                       ;
+		const label     = remaining == null ? "미관측" : `${remaining}% remaining` ;
 		const rows = [
 			provider.ink(label),
 			remaining == null ? a.muted("quota unavailable") : monitoringMeter(remaining, 100, Math.max(4, size - 2), provider.ink),
@@ -33,12 +40,12 @@ function providerStrip(usage: readonly UsageSnapshot[], width: number): string[]
 
 function modelTable(width: number): string[] {
 	const columns = [
-		{ heading : "MODEL"       , minWidth : 19, weight : 1, align : "left"  },
-		{ heading : "EFFORT"      , minWidth :  6, weight : 0, align : "left"  },
-		{ heading : "CALLS"       , minWidth :  5, weight : 0, align : "right" },
-		{ heading : "IN/OUT/CACHE", minWidth : 17, weight : 1, align : "right" },
-		{ heading : "TIME"        , minWidth :  5, weight : 0, align : "right" },
-		{ heading : "RECENT"      , minWidth :  6, weight : 0, align : "right" },
+		{ heading : "MODEL"        , minWidth : 19 , weight : 1 , align : "left"  },
+		{ heading : "EFFORT"       , minWidth : 6  , weight : 0 , align : "left"  },
+		{ heading : "CALLS"        , minWidth : 5  , weight : 0 , align : "right" },
+		{ heading : "IN/OUT/CACHE" , minWidth : 17 , weight : 1 , align : "right" },
+		{ heading : "TIME"         , minWidth : 5  , weight : 0 , align : "right" },
+		{ heading : "RECENT"       , minWidth : 6  , weight : 0 , align : "right" },
 	] as const;
 	const rows = [
 		[ "Codex-Instruct-v4"  , a.active("Middle"), "1420", "14.2M/8.1M/4.1M", "0.24s", "3s"  ],
@@ -66,10 +73,10 @@ function availability(usage: readonly UsageSnapshot[], width: number): string[] 
 }
 
 export function syntheticUsageRows(usage: readonly UsageSnapshot[], width: number): string[] {
-	const widths = monitoringWidths(width, width >= 96 ? 3 : 1);
-	const left   = (widths[0] ?? width) - 2;
-	const middle = (widths[1] ?? width) - 2;
-	const right  = (widths[2] ?? width) - 2;
+	const widths = monitoringWidths(width, width >= 96 ? 3 : 1) ;
+	const left   = (widths[0] ?? width) - 2                     ;
+	const middle = (widths[1] ?? width) - 2                     ;
+	const right  = (widths[2] ?? width) - 2                     ;
 
 	const columns = [
 		monitoringCompactPanel("Provider Availability Window", [

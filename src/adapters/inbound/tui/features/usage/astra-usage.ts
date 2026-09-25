@@ -1,19 +1,20 @@
-import { readFileSync } from "node:fs";
+import { readFileSync }                                                from "node:fs";
 import { allocateImageId, encodeKitty, getCapabilities, visibleWidth } from "@earendil-works/pi-tui";
-import type { UsageLimitSnapshot, UsageSnapshot } from "../../../../../core/ports";
-import chalk from "chalk";
-import { a, astraPalette, fit } from "../../foundation/theme/astra-theme";
+import type { UsageLimitSnapshot, UsageSnapshot }                      from "@/core/ports";
+import chalk                                                           from "chalk";
+import { a, astraPalette, fit }                                        from "@/adapters/inbound/tui/foundation/theme/astra-theme";
 
-const logoAssets = ["openai", "claude", "gemini", "zai"] as const;
-const logoTokens = ["\uE001 ", "\uE002 ", "\uE003 ", "\uE004 "] as const;
-const logoSequences = new Map<number, string | null>();
+const logoAssets    = ["openai", "claude", "gemini", "zai"] as const        ;
+const logoTokens    = ["\uE001 ", "\uE002 ", "\uE003 ", "\uE004 "] as const ;
+const logoSequences = new Map<number, string | null>()                      ;
 
 /** A fixed two-cell, one-row placement; files and encoding are cached locally.
  * Raw Kitty commands intentionally bypass pi-tui's single-image-per-line cache.
  * The host clears placements on redraw and all image data at shutdown.
  */
 function logoSequence(index: number): string | null {
-	if (logoSequences.has(index)) return logoSequences.get(index)!;
+	const cached = logoSequences.get(index);
+	if (cached !== undefined) return cached;
 	try {
 		const data = readFileSync(new URL(`./assets/${logoAssets[index]}.png`, import.meta.url));
 		const sequence = encodeKitty(data.toString("base64"), { columns: 2, rows: 1, imageId: allocateImageId(), moveCursor: false });
@@ -34,10 +35,10 @@ function limitText(limit: UsageLimitSnapshot): string {
 
 function resetIn(timestamp: number | undefined, now: number): string {
 	if (!timestamp || !Number.isFinite(timestamp)) return "";
-	const totalMinutes = Math.max(0, Math.ceil((timestamp - now) / 60_000));
-	const days = Math.floor(totalMinutes / 1_440);
-	const hours = Math.floor((totalMinutes % 1_440) / 60);
-	const minutes = totalMinutes % 60;
+	const totalMinutes = Math.max(0, Math.ceil((timestamp - now) / 60_000)) ;
+	const days         = Math.floor(totalMinutes / 1_440)                   ;
+	const hours        = Math.floor((totalMinutes % 1_440) / 60)            ;
+	const minutes      = totalMinutes % 60                                  ;
 	if (days > 0) return `${days}d ${hours}h`;
 	if (hours > 0) return `${hours}h ${String(minutes).padStart(2, "0")}m`;
 	return `${minutes}m`;
@@ -70,27 +71,27 @@ function quotaBar(limit: UsageLimitSnapshot | undefined, state: string, width: n
 	const size = Math.max(3, width);
 	const percent = typeof limit?.remainingPercent === "number" && Number.isFinite(limit.remainingPercent)
 		? Math.round(Math.max(0, Math.min(100, limit.remainingPercent))) : null;
-	const reset = limit ? resetIn(limit.resetsAt, now) : "";
-	const value = percent === null ? state : `${percent}%${reset ? ` ${reset}` : ""}`;
-	const innerSize = Math.max(1, size - 2);
-	const label = value.length > innerSize ? value.slice(0, Math.max(1, innerSize - 1)) + "…" : value;
-	const centered = `[${label.padStart(label.length + Math.max(0, Math.floor((innerSize - label.length) / 2))).padEnd(innerSize)}]`;
-	const filled = percent === null ? 0 : Math.round(innerSize * percent / 100);
-	const empty = chalk.bgHex(astraPalette.rule).hex(astraPalette.text);
-	return `${empty(centered[0]!)}${chalk.bgHex(color).hex("#101419").bold(centered.slice(1, 1 + filled))}${empty(centered.slice(1 + filled))}`;
+	const reset     = limit ? resetIn(limit.resetsAt, now) : ""                                                                       ;
+	const value     = percent === null ? state : `${percent}%${reset ? ` ${reset}` : ""}`                                             ;
+	const innerSize = Math.max(1, size - 2)                                                                                           ;
+	const label     = value.length > innerSize ? value.slice(0, Math.max(1, innerSize - 1)) + "…" : value                             ;
+	const centered  = `[${label.padStart(label.length + Math.max(0, Math.floor((innerSize - label.length) / 2))).padEnd(innerSize)}]` ;
+	const filled    = percent === null ? 0 : Math.round(innerSize * percent / 100)                                                    ;
+	const empty     = chalk.bgHex(astraPalette.rule).hex(astraPalette.text)                                                           ;
+	return `${empty(centered[0])}${chalk.bgHex(color).hex("#101419").bold(centered.slice(1, 1 + filled))}${empty(centered.slice(1 + filled))}`;
 }
 
 /** A provider header plus two quota rows form a compact matrix. */
 export function astraQuotaHudRows(snapshots: readonly UsageSnapshot[], width: number, now = Date.now(), showLogos = false, sessionWidth = width): string[] {
 	if (width <= 0) return [];
-	const labels = ["7d overall", "5h session"] as const;
-	const windows = ["overall", "session"] as const;
-	const logoEnabled = showLogos && getCapabilities().images === "kitty";
-	const prefixWidth = Math.max(...labels.map(label => visibleWidth(label))) + 2;
-	const segmentWidth = Math.floor((width - prefixWidth - 6) / quotaProviders.length);
-	const nameWidth = Math.max(3, Math.min(16, segmentWidth));
+	const labels       = ["7d overall", "5h session"] as const                         ;
+	const windows      = ["overall", "session"] as const                               ;
+	const logoEnabled  = showLogos && getCapabilities().images === "kitty"             ;
+	const prefixWidth  = Math.max(...labels.map(label => visibleWidth(label))) + 2     ;
+	const segmentWidth = Math.floor((width - prefixWidth - 6) / quotaProviders.length) ;
+	const nameWidth    = Math.max(3, Math.min(16, segmentWidth))                       ;
 	const header = `${" ".repeat(prefixWidth)}${quotaProviders.map(([, name, ink], index) => {
-		const token = logoEnabled ? logoTokens[index]! : name;
+		const token = logoEnabled ? logoTokens[index] : name;
 		return a[ink](fit(token, nameWidth));
 	}).join("  ")}`;
 	const rows = windows.map((window, rowIndex) => {
@@ -118,9 +119,9 @@ export function astraQuotaHudRows(snapshots: readonly UsageSnapshot[], width: nu
 
 /** Account quota, never a dollar estimate. Detailed limits remain in /context; observed reset countdowns stay compact here. */
 export function astraUsageLines(snapshots: readonly UsageSnapshot[], width: number, model = "", now = Date.now(), showLogos = false, preservePrefix = false): string[] {
-	const providers = [["openai-codex", "Codex"], ["anthropic", "Claude"], ["google", "Antigravity"], ["zai", "Z.AI"]] as const;
-	const logos = showLogos && getCapabilities().images === "kitty";
-	const availableLogos = providers.map((_, index) => logos ? logoSequence(index) : null);
+	const providers      = [["openai-codex", "Codex"], ["anthropic", "Claude"], ["google", "Antigravity"], ["zai", "Z.AI"]] as const ;
+	const logos          = showLogos && getCapabilities().images === "kitty"                                                         ;
+	const availableLogos = providers.map((_, index) => logos ? logoSequence(index) : null)                                           ;
 	const finish = (line: string): string => {
 		let output = fit(line, width);
 		for (const [index, token] of logoTokens.entries()) {
@@ -133,35 +134,35 @@ export function astraUsageLines(snapshots: readonly UsageSnapshot[], width: numb
 	const providerInk = { "openai-codex": a.codex, anthropic: a.claude, google: a.gemini, zai: a.zai } as const;
 	const active = /^claude/u.test(model) ? "anthropic" : /^gemini/u.test(model) ? "google" : /^glm-/u.test(model) ? "zai" : "openai-codex";
 	const segment = ([id, name]: typeof providers[number], compact = false): string => {
-		const s = snapshots.find(s => s.provider === id);
-		const state = !s || s.state === "loading" ? "확인 중" : s.state === "auth-required" ? "로그인 필요" : s.state === "unsupported" ? id === "google" ? "연결됨" : "미지원" : s.state === "ready" ? "—" : "조회 실패";
-		const limits = s?.limits.filter(l => typeof l.remainingPercent === "number" && Number.isFinite(l.remainingPercent)) ?? [];
-		const isWeekly = (limit: UsageLimitSnapshot) => /(?:7\s*(?:days?|d)\b|1\s*week\b|weekly|week|주간|주일)/iu.test(limit.label);
-		const isFiveHour = (limit: UsageLimitSnapshot) => /(?:5\s*(?:hours?|h)\b|5시간)/iu.test(limit.label);
-		const isTier = (limit: UsageLimitSnapshot) => /spark|opus|sonnet/iu.test(limit.label);
-		const weekly = limits.find(limit => isWeekly(limit) && !isTier(limit));
-		const fiveHour = limits.find(limit => isFiveHour(limit) && !isTier(limit));
-		const preferred = weekly ?? limits[0];
-		const compactState = !s || s.state === "loading" ? "…" : s.state === "auth-required" ? "login" : s.state === "unsupported" ? "off" : s.state === "ready" ? "—" : "!";
-		const hasBothWindows = (id === "anthropic" || id === "zai") && weekly && fiveHour;
+		const s              = snapshots.find(s => s.provider === id)                                                                                                                                                              ;
+		const state          = !s || s.state === "loading" ? "확인 중" : s.state === "auth-required" ? "로그인 필요" : s.state === "unsupported" ? id === "google" ? "연결됨" : "미지원" : s.state === "ready" ? "—" : "조회 실패" ;
+		const limits         = s?.limits.filter(l => typeof l.remainingPercent === "number" && Number.isFinite(l.remainingPercent)) ?? []                                                                                          ;
+		const isWeekly       = (limit: UsageLimitSnapshot) => /(?:7\s*(?:days?|d)\b|1\s*week\b|weekly|week|주간|주일)/iu.test(limit.label)                                                                                         ;
+		const isFiveHour     = (limit: UsageLimitSnapshot) => /(?:5\s*(?:hours?|h)\b|5시간)/iu.test(limit.label)                                                                                                                   ;
+		const isTier         = (limit: UsageLimitSnapshot) => /spark|opus|sonnet/iu.test(limit.label)                                                                                                                              ;
+		const weekly         = limits.find(limit => isWeekly(limit) && !isTier(limit))                                                                                                                                             ;
+		const fiveHour       = limits.find(limit => isFiveHour(limit) && !isTier(limit))                                                                                                                                           ;
+		const preferred      = weekly ?? limits[0]                                                                                                                                                                                 ;
+		const compactState   = !s || s.state === "loading" ? "…" : s.state === "auth-required" ? "login" : s.state === "unsupported" ? "off" : s.state === "ready" ? "—" : "!"                                                     ;
+		const hasBothWindows = (id === "anthropic" || id === "zai") && weekly && fiveHour                                                                                                                                          ;
 		const values = hasBothWindows && (s?.state === "ready" || s?.stale)
 			? `7d · ${remainingText(weekly, now)}  5h · ${remainingText(fiveHour, now)}`
 			: preferred && (s?.state === "ready" || s?.stale)
 				? remainingText(preferred, now)
 			: a.muted(compact ? compactState : state);
-		const index = providers.findIndex(([providerId]) => providerId === id);
-		const label = availableLogos[index] ? logoTokens[index]! : name;
-		const provider = providerInk[id](id === active ? `▸${label}` : label);
+		const index    = providers.findIndex(([providerId]) => providerId === id) ;
+		const label    = availableLogos[index] ? logoTokens[index] : name         ;
+		const provider = providerInk[id](id === active ? `▸${label}` : label)     ;
 		return `${provider} ${values}${s?.stale ? a.attention("*") : ""}`;
 	};
 	const minimalSegment = ([id, name]: typeof providers[number]): string => {
-		const s = snapshots.find(snapshot => snapshot.provider === id);
-		const limit = s?.limits.find(item => typeof item.remainingPercent === "number" && Number.isFinite(item.remainingPercent));
-		const state = !s || s.state === "loading" ? "…" : s.state === "auth-required" ? "login" : s.state === "unsupported" ? id === "google" ? "연결됨" : "off" : s.state === "ready" ? "—" : "!";
-		const value = limit ? limitText(limit) : a.muted(state);
-		const index = providers.findIndex(([providerId]) => providerId === id);
-		const label = availableLogos[index] ? logoTokens[index]! : name;
-		const provider = providerInk[id](id === active ? `▸${label}` : label);
+		const s        = snapshots.find(snapshot => snapshot.provider === id)                                                                                                                         ;
+		const limit    = s?.limits.find(item => typeof item.remainingPercent === "number" && Number.isFinite(item.remainingPercent))                                                                  ;
+		const state    = !s || s.state === "loading" ? "…" : s.state === "auth-required" ? "login" : s.state === "unsupported" ? id === "google" ? "연결됨" : "off" : s.state === "ready" ? "—" : "!" ;
+		const value    = limit ? limitText(limit) : a.muted(state)                                                                                                                                    ;
+		const index    = providers.findIndex(([providerId]) => providerId === id)                                                                                                                     ;
+		const label    = availableLogos[index] ? logoTokens[index] : name                                                                                                                             ;
+		const provider = providerInk[id](id === active ? `▸${label}` : label)                                                                                                                         ;
 		return `${provider} ${value}${s?.stale ? a.attention("*") : ""}`;
 	};
 	const prefix = "";

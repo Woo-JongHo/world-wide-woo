@@ -1,60 +1,61 @@
-import { a, fit, oneLine, pair, type AstraInk } from "../theme/astra-theme";
-import chalk from "chalk";
-import { palette } from "../theme/theme";
+import { a, fit, oneLine, pair }         from "@/adapters/inbound/tui/foundation/theme/astra-theme";
+import type { AstraInk }                 from "@/adapters/inbound/tui/foundation/theme/astra-theme";
+import chalk                             from "chalk";
+import { palette }                       from "@/adapters/inbound/tui/foundation/theme/theme";
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 
 export interface MonitoringCard {
-	readonly title: string;
-	readonly value: string;
-	readonly detail: string;
+	readonly title  : string ;
+	readonly value  : string ;
+	readonly detail : string ;
 }
 
 /** A reusable terminal-native container for bounded monitoring content. */
 export interface MonitoringPanel {
 	readonly title: string;
 	/** Kept for the original two-argument panel API. */
-	readonly rows?: readonly string[];
-	readonly meta?: string;
-	readonly ink?: AstraInk;
+	readonly rows? : readonly string[] ;
+	readonly meta? : string            ;
+	readonly ink?  : AstraInk          ;
 }
 
 /** A table-like projection. Empty data stays explicitly unobserved. */
 export interface MonitoringMatrix {
-	readonly columns: readonly string[];
-	readonly rows: readonly (readonly string[])[];
-	readonly emptyLabel?: string;
+	readonly columns     : readonly string[]              ;
+	readonly rows        : readonly (readonly string[])[] ;
+	readonly emptyLabel? : string                         ;
 }
 
 export interface MonitoringTableColumn {
-	readonly heading: string;
-	readonly minWidth: number;
-	readonly weight?: number;
-	readonly align?: "left" | "right";
+	readonly heading  : string           ;
+	readonly minWidth : number           ;
+	readonly weight?  : number           ;
+	readonly align?   : "left" | "right" ;
 }
 
 export interface MonitoringTable {
-	readonly columns: readonly MonitoringTableColumn[];
-	readonly rows: readonly (readonly string[])[];
-	readonly emptyLabel?: string;
+	readonly columns     : readonly MonitoringTableColumn[] ;
+	readonly rows        : readonly (readonly string[])[]   ;
+	readonly emptyLabel? : string                           ;
 }
 
 export interface MonitoringFlowStep {
-	readonly label: string;
-	readonly detail?: string;
-	readonly ink?: AstraInk;
+	readonly label   : string   ;
+	readonly detail? : string   ;
+	readonly ink?    : AstraInk ;
 }
 
 export interface MonitoringQueueItem {
-	readonly label: string;
-	readonly state?: string;
-	readonly detail?: string;
-	readonly ink?: AstraInk;
+	readonly label   : string   ;
+	readonly state?  : string   ;
+	readonly detail? : string   ;
+	readonly ink?    : AstraInk ;
 }
 
 export interface MonitoringDiagnostic {
-	readonly label: string;
-	readonly value: string;
-	readonly ink?: AstraInk;
+	readonly label : string   ;
+	readonly value : string   ;
+	readonly ink?  : AstraInk ;
 }
 
 function paneWidth(width: number): number { return Math.max(1, Math.floor(width)); }
@@ -79,9 +80,9 @@ export function monitoringCompactPanel(title: string, rows: readonly string[], w
 /** Equal-width sample buckets; supplied values alone determine column height. */
 export function monitoringBars(values: readonly number[], width: number, height = 3, ink: AstraInk = a.success): string[] {
 	if (!values.length || width < 1) return [];
-	const visible = values.slice(0, width);
-	const widths = monitoringWidths(width, visible.length, 0);
-	const peak = Math.max(1, ...visible);
+	const visible = values.slice(0, width)                     ;
+	const widths  = monitoringWidths(width, visible.length, 0) ;
+	const peak    = Math.max(1, ...visible)                    ;
 	return Array.from({ length: height }, (_, row) => visible.map((value, index) => {
 		const cells = widths[index] ?? 1;
 		const filled = value / peak * height >= height - row - 0.5;
@@ -98,15 +99,15 @@ function alignedCell(value: string, width: number, align: "left" | "right" = "le
 export function monitoringTable(table: MonitoringTable, width: number): string[] {
 	const outer = paneWidth(width);
 	if (!table.columns.length || !table.rows.length) return [alignedCell(a.muted(table.emptyLabel ?? "table data 미관측"), outer)];
-	const gapWidth = Math.max(0, table.columns.length - 1) * 2;
-	const minimums = table.columns.map(column => Math.max(1, Math.floor(column.minWidth)));
-	const available = Math.max(table.columns.length, outer - gapWidth);
-	const minimumTotal = minimums.reduce((total, value) => total + value, 0);
-	const extra = Math.max(0, available - minimumTotal);
-	const weights = table.columns.map(column => Math.max(0, column.weight ?? 0));
-	const weightTotal = weights.reduce((total, value) => total + value, 0);
-	const additions = weights.map(weight => weightTotal > 0 ? Math.floor(extra * weight / weightTotal) : 0);
-	let remainder = extra - additions.reduce((total, value) => total + value, 0);
+	const gapWidth     = Math.max(0, table.columns.length - 1) * 2                                             ;
+	const minimums     = table.columns.map(column => Math.max(1, Math.floor(column.minWidth)))                 ;
+	const available    = Math.max(table.columns.length, outer - gapWidth)                                      ;
+	const minimumTotal = minimums.reduce((total, value) => total + value, 0)                                   ;
+	const extra        = Math.max(0, available - minimumTotal)                                                 ;
+	const weights      = table.columns.map(column => Math.max(0, column.weight ?? 0))                          ;
+	const weightTotal  = weights.reduce((total, value) => total + value, 0)                                    ;
+	const additions    = weights.map(weight => weightTotal > 0 ? Math.floor(extra * weight / weightTotal) : 0) ;
+	let remainder      = extra - additions.reduce((total, value) => total + value, 0)                          ;
 	for (let index = 0; remainder > 0 && index < additions.length; index++) {
 		if ((weights[index] ?? 0) <= 0) continue;
 		additions[index] = (additions[index] ?? 0) + 1;
@@ -127,14 +128,14 @@ export function monitoringTable(table: MonitoringTable, width: number): string[]
 export function monitoringPanel(panel: MonitoringPanel, width: number): string[];
 export function monitoringPanel(panel: MonitoringPanel, rows: readonly string[], width: number): string[];
 export function monitoringPanel(panel: MonitoringPanel, rowsOrWidth: readonly string[] | number, suppliedWidth?: number): string[] {
-	const rows = typeof rowsOrWidth === "number" ? panel.rows ?? [] : rowsOrWidth;
-	const width = typeof rowsOrWidth === "number" ? rowsOrWidth : suppliedWidth ?? 1;
-	const outer = paneWidth(width);
+	const rows  = typeof rowsOrWidth === "number" ? panel.rows ?? [] : rowsOrWidth   ;
+	const width = typeof rowsOrWidth === "number" ? rowsOrWidth : suppliedWidth ?? 1 ;
+	const outer = paneWidth(width)                                                   ;
 	if (outer < 3) return rows.map(row => fit(row, outer));
-	const inner = outer - 2;
-	const title = panel.ink?.(oneLine(panel.title)) ?? a.strong(oneLine(panel.title));
-	const meta = panel.meta ? `${a.muted(" · ")}${a.muted(oneLine(panel.meta))}` : "";
-	const header = visibleWidth(title) + visibleWidth(meta) <= inner ? `${title}${meta}` : title;
+	const inner  = outer - 2                                                                     ;
+	const title  = panel.ink?.(oneLine(panel.title)) ?? a.strong(oneLine(panel.title))           ;
+	const meta   = panel.meta ? `${a.muted(" · ")}${a.muted(oneLine(panel.meta))}` : ""          ;
+	const header = visibleWidth(title) + visibleWidth(meta) <= inner ? `${title}${meta}` : title ;
 	return [
 		a.rule(`┌${"─".repeat(inner)}┐`),
 		`${a.rule("│")}${panelCell(header, inner)}${a.rule("│")}`,
@@ -161,9 +162,9 @@ export function monitoringMatrix(matrix: MonitoringMatrix, width: number, maxRow
 			return cell(ink?.(text) ?? text, widths[index] ?? 1);
 		})
 		.join(" ");
-	const limit = Math.max(1, Math.floor(maxRows));
-	const visible = matrix.rows.slice(0, limit);
-	const rows = [line(matrix.columns, a.muted), a.rule("─".repeat(outer))];
+	const limit   = Math.max(1, Math.floor(maxRows))                           ;
+	const visible = matrix.rows.slice(0, limit)                                ;
+	const rows    = [line(matrix.columns, a.muted), a.rule("─".repeat(outer))] ;
 	for (const row of visible) rows.push(line(matrix.columns.map((_, index) => row[index] ?? "—")));
 	if (matrix.rows.length > visible.length) rows.push(a.muted(`… ${matrix.rows.length - visible.length} additional rows not shown`));
 	return rows.map(row => fit(row, outer));
@@ -173,9 +174,9 @@ export function monitoringMatrix(matrix: MonitoringMatrix, width: number, maxRow
 export function monitoringFlow(steps: readonly MonitoringFlowStep[], width: number, maxSteps = 6): string[] {
 	const outer = paneWidth(width);
 	if (!steps.length) return [a.muted("flow data 미관측")];
-	const visible = steps.slice(0, Math.max(1, Math.floor(maxSteps)));
-	const summary = visible.map((step, index) => `${step.ink?.(String(index + 1)) ?? a.muted(String(index + 1))} ${step.ink?.(oneLine(step.label)) ?? oneLine(step.label)}`).join(a.rule("  →  "));
-	const details = visible.flatMap(step => step.detail ? [a.muted(`· ${oneLine(step.label)}  ${oneLine(step.detail)}`)] : []);
+	const visible = steps.slice(0, Math.max(1, Math.floor(maxSteps)))                                                                                                                              ;
+	const summary = visible.map((step, index) => `${step.ink?.(String(index + 1)) ?? a.muted(String(index + 1))} ${step.ink?.(oneLine(step.label)) ?? oneLine(step.label)}`).join(a.rule("  →  ")) ;
+	const details = visible.flatMap(step => step.detail ? [a.muted(`· ${oneLine(step.label)}  ${oneLine(step.detail)}`)] : [])                                                                     ;
 	if (steps.length > visible.length) details.push(a.muted(`… ${steps.length - visible.length} additional steps not shown`));
 	return [fit(summary, outer), ...details.map(row => fit(row, outer))];
 }
@@ -232,8 +233,8 @@ export function monitoringColumns(cards: readonly string[][], widths: readonly n
 
 /** Shared bordered analysis panel for the Figma monitoring lower workspace. */
 export function monitoringMeter(value: number, total: number, width: number, ink: AstraInk = a.active): string {
-	const cells = Math.max(4, width);
-	const ratio = total > 0 ? Math.max(0, Math.min(1, value / total)) : 0;
-	const filled = Math.round(cells * ratio);
+	const cells  = Math.max(4, width)                                      ;
+	const ratio  = total > 0 ? Math.max(0, Math.min(1, value / total)) : 0 ;
+	const filled = Math.round(cells * ratio)                               ;
 	return ink("█".repeat(filled)) + a.rule("░".repeat(cells - filled));
 }

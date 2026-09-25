@@ -1,6 +1,7 @@
-import type { WorkbenchCommandReceipt, WorkbenchSnapshot } from "../../../../core/domain/work/workbench";
-import { CODEX_EFFORTS, DEFAULT_SETTINGS, PROVIDERS, type Effort, type Provider, type WwwSettings } from "../../../../core/domain/execution/model-settings";
-import { DEFAULT_WORKBENCH_CONFIG } from "../../../../core/domain/execution/workbench-config";
+import type { WorkbenchCommandReceipt, WorkbenchSnapshot } from "@/core/domain/work/workbench";
+import { CODEX_EFFORTS, DEFAULT_SETTINGS, PROVIDERS }      from "@/core/domain/execution/model-settings";
+import type { Effort, Provider, WwwSettings }              from "@/core/domain/execution/model-settings";
+import { DEFAULT_WORKBENCH_CONFIG }                        from "@/core/domain/execution/workbench-config";
 
 export function workbenchReceiptNotice(receipt: WorkbenchCommandReceipt): string {
 	if (receipt.state === "accepted") return receipt.message || "";

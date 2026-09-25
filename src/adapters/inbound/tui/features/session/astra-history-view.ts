@@ -1,7 +1,7 @@
-import type { Component } from "@earendil-works/pi-tui";
-import type { ObservabilityDashboard } from "../../../../../core/domain/observability/observability-dashboard";
-import { a, fit, number, pair, prose, safe, section } from "../../foundation/theme/astra-theme";
-import { dashboardSessionWindow } from "./dashboard-session-window";
+import type { Component }                             from "@earendil-works/pi-tui";
+import type { ObservabilityDashboard }                from "@/core/domain/observability/observability-dashboard";
+import { a, fit, number, pair, prose, safe, section } from "@/adapters/inbound/tui/foundation/theme/astra-theme";
+import { dashboardSessionWindow }                     from "@/adapters/inbound/tui/features/session/dashboard-session-window";
 
 function document(rows: string[], width: number): string[] { return rows.flatMap(row => prose(row, width)); }
 function kv(label: string, value: unknown): string { return `${a.muted(fit(label, 20))} ${a.text(safe(value ?? "—"))}`; }
@@ -10,9 +10,9 @@ export class AstraHistoryView implements Component {
 	constructor(private readonly get: () => ObservabilityDashboard, private readonly selected: () => number, private readonly bodyHeight: () => number = () => 12) {}
 	invalidate(): void {}
 	render(width: number): string[] {
-		const d = this.get();
-		const window = dashboardSessionWindow(d.recentSessions.length, this.selected(), Math.max(1, Math.min(8, this.bodyHeight() - 7)));
-		const rows = [pair(a.strong("세션 기록"), a.muted(d.coverage.state), width), "", `${number(d.sessions.active)} 실행    ${number(d.sessions.completed)} 완료    ${number(d.sessions.failures)} 실패`, a.muted(`↑↓ 선택 / Enter 세션 검토   ${window.start + (d.recentSessions.length ? 1 : 0)}–${window.end}/${d.recentSessions.length}`), ""];
+		const d      = this.get()                                                                                                                                                                                                                                                                                                                       ;
+		const window = dashboardSessionWindow(d.recentSessions.length, this.selected(), Math.max(1, Math.min(8, this.bodyHeight() - 7)))                                                                                                                                                                                                                ;
+		const rows   = [pair(a.strong("세션 기록"), a.muted(d.coverage.state), width), "", `${number(d.sessions.active)} 실행    ${number(d.sessions.completed)} 완료    ${number(d.sessions.failures)} 실패`, a.muted(`↑↓ 선택 / Enter 세션 검토   ${window.start + (d.recentSessions.length ? 1 : 0)}–${window.end}/${d.recentSessions.length}`), ""] ;
 		for (let index = window.start; index < window.end; index++) {
 			const session = d.recentSessions[index]!;
 			const row = fit(`${index === window.selectedIndex ? "›" : " "} ${fit(session.result, 10)} ${safe(session.sessionId)}`, width);

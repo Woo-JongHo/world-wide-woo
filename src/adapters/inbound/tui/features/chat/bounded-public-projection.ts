@@ -1,11 +1,11 @@
-import { sanitizeTerminalTextExcerpt } from "../../../../../core/domain/execution/terminal";
-import { isReasoningActivityPayload } from "../../../../../core/domain/execution/project-activity";
+import { sanitizeTerminalTextExcerpt } from "@/core/domain/execution/terminal";
+import { isReasoningActivityPayload }  from "@/core/domain/execution/project-activity";
 
-const MAX_TOTAL_TEXT_CHARS = 10_000;
-const MAX_STRING_CHARS = 2_400;
-const MAX_DEPTH = 5;
-const MAX_COLLECTION_ITEMS = 40;
-const MAX_TOTAL_ITEMS = 100;
+const MAX_TOTAL_TEXT_CHARS = 10_000 ;
+const MAX_STRING_CHARS     = 2_400  ;
+const MAX_DEPTH            = 5      ;
+const MAX_COLLECTION_ITEMS = 40     ;
+const MAX_TOTAL_ITEMS      = 100    ;
 
 export const PUBLIC_SOURCE_OMISSION = "… 공개 Source 일부 생략 …";
 
@@ -15,9 +15,9 @@ export interface BoundedPublicProjection {
 }
 
 interface ProjectionState {
-	remainingChars: number;
-	remainingItems: number;
-	omitted: boolean;
+	remainingChars : number  ;
+	remainingItems : number  ;
+	omitted        : boolean ;
 }
 
 function hiddenKey(key: string): boolean {
@@ -73,9 +73,9 @@ function boundedString(value: string, state: ProjectionState): string {
 		candidate = safeValue;
 	} else {
 		state.omitted = true;
-		const contentBudget = Math.max(0, available - PUBLIC_SOURCE_OMISSION.length - 2);
-		const headLength = Math.ceil(contentBudget / 2);
-		const tailLength = contentBudget - headLength;
+		const contentBudget = Math.max(0, available - PUBLIC_SOURCE_OMISSION.length - 2) ;
+		const headLength    = Math.ceil(contentBudget / 2)                               ;
+		const tailLength    = contentBudget - headLength                                 ;
 		const [head, tail] = removeCutTokenFragments(
 			safeValue.slice(0, headLength),
 			tailLength > 0 ? safeValue.slice(-tailLength) : "",
@@ -114,10 +114,10 @@ function project(value: unknown, state: ProjectionState, depth: number): unknown
 		return { classification: "reasoning", content: "[비공개 내용 생략]" };
 	}
 
-	const result: Record<string, unknown> = {};
-	const entries = Object.entries(value as Readonly<Record<string, unknown>>);
-	let accepted = 0;
-	let visitedAll = true;
+	const result : Record<string, unknown> = {}                                                         ;
+	const entries                          = Object.entries(value as Readonly<Record<string, unknown>>) ;
+	let accepted                           = 0                                                          ;
+	let visitedAll                         = true                                                       ;
 	for (const [key, item] of entries) {
 		if (key.length > 120) {
 			state.omitted = true;
@@ -145,9 +145,9 @@ function project(value: unknown, state: ProjectionState, depth: number): unknown
  */
 export function boundedPublicProjection(value: unknown): BoundedPublicProjection {
 	const state: ProjectionState = {
-		remainingChars: MAX_TOTAL_TEXT_CHARS,
-		remainingItems: MAX_TOTAL_ITEMS,
-		omitted: false,
+		remainingChars : MAX_TOTAL_TEXT_CHARS,
+		remainingItems : MAX_TOTAL_ITEMS,
+		omitted        : false,
 	};
 	return { value: project(value, state, 0), omitted: state.omitted };
 }

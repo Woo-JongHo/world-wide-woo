@@ -1,10 +1,29 @@
-import type { Component } from "@earendil-works/pi-tui";
-import type { RequestRuntimeRecord, RequestStageStatus } from "../../../../../core/domain/execution/request-runtime";
-import type { NativeDelegatedTask, NativeDelegationProjection } from "../../../../../core/domain/work";
-import type { WorkbenchSnapshot } from "../../../../../core/domain/work/workbench";
-import { monitoringCard, monitoringColumns, monitoringCompactPanel, monitoringMeter, monitoringPanel, monitoringUnavailablePanel, monitoringWidths } from "../../foundation/layout/astra-monitoring-layout";
-import { a, fit, mark, number, oneLine, pair, prose, railSection, safe, section } from "../../foundation/theme/astra-theme";
-import { workflowDemoRail, workflowDemoRows } from "./astra-workflow-catalog";
+import type { Component }                                       from "@earendil-works/pi-tui";
+import type { RequestRuntimeRecord, RequestStageStatus }        from "@/core/domain/execution/request-runtime";
+import type { NativeDelegatedTask, NativeDelegationProjection } from "@/core/domain/work";
+import type { WorkbenchSnapshot }                               from "@/core/domain/work/workbench";
+import {
+	monitoringCard,
+	monitoringColumns,
+	monitoringCompactPanel,
+	monitoringMeter,
+	monitoringPanel,
+	monitoringUnavailablePanel,
+	monitoringWidths,
+} from "@/adapters/inbound/tui/foundation/layout/astra-monitoring-layout";
+import {
+	a,
+	fit,
+	mark,
+	number,
+	oneLine,
+	pair,
+	prose,
+	railSection,
+	safe,
+	section,
+} from "@/adapters/inbound/tui/foundation/theme/astra-theme";
+import { workflowDemoRail, workflowDemoRows }                   from "@/adapters/inbound/tui/features/workflow/astra-workflow-catalog";
 
 type ObservedStatus = RequestStageStatus | NativeDelegatedTask["status"];
 
@@ -36,9 +55,9 @@ function settledStageCount(request: RequestRuntimeRecord | undefined): number {
 function taskTotals(projections: readonly NativeDelegationProjection[]): { total: number; active: number; failed: number } {
 	const tasks = projections.flatMap(projection => projection.tasks);
 	return {
-		total: tasks.length,
-		active: tasks.filter(task => task.status === "running").length,
-		failed: tasks.filter(task => task.status === "failed").length,
+		total  : tasks.length,
+		active : tasks.filter(task => task.status === "running").length,
+		failed : tasks.filter(task => task.status === "failed").length,
 	};
 }
 
@@ -47,9 +66,9 @@ function workflowPanel(title: string, meta: string, ink: typeof a.tool, rows: re
 }
 
 function summaryRows(request: RequestRuntimeRecord | undefined, projections: readonly NativeDelegationProjection[], width: number): string[] {
-	const totals = taskTotals(projections);
-	const stageTotal = request?.stages.length ?? 0;
-	const stageDone = settledStageCount(request);
+	const totals     = taskTotals(projections)     ;
+	const stageTotal = request?.stages.length ?? 0 ;
+	const stageDone  = settledStageCount(request)  ;
 	if (width < 72) return [
 		...railSection("Workflow overview", width, request?.status ?? "미관측", a.active),
 		pair("Goal", request ? oneLine(request.objective, 320) : "미관측", width),
@@ -58,10 +77,10 @@ function summaryRows(request: RequestRuntimeRecord | undefined, projections: rea
 		pair("Failed", totals.total ? number(totals.failed) : "미관측", width),
 	];
 	const cards = [
-		{ title: "Active goal", value: request ? oneLine(request.objective, 90) : "미관측", detail: request ? `${mark(request.status)} ${request.status}` : "request 없음" },
-		{ title: "7-stage request", value: request ? `${stageDone}/${stageTotal} settled` : "미관측", detail: request ? `${mark(request.status)} ${request.status}` : "관측 없음" },
-		{ title: "Delegated agents", value: totals.total ? `${totals.active} active / ${totals.total}` : "미관측", detail: totals.total ? `${totals.failed} failed` : "위임 없음" },
-		{ title: "Attempt", value: request ? `#${request.attempt}` : "미관측", detail: request?.requestId ? safe(request.requestId, 56) : "request 없음" },
+		{ title : "Active goal"      , value : request ? oneLine(request.objective, 90) : "미관측"                   , detail : request ? `${mark(request.status)} ${request.status}` : "request 없음" },
+		{ title : "7-stage request"  , value : request ? `${stageDone}/${stageTotal} settled` : "미관측"             , detail : request ? `${mark(request.status)} ${request.status}` : "관측 없음"    },
+		{ title : "Delegated agents" , value : totals.total ? `${totals.active} active / ${totals.total}` : "미관측" , detail : totals.total ? `${totals.failed} failed` : "위임 없음"                 },
+		{ title : "Attempt"          , value : request ? `#${request.attempt}` : "미관측"                            , detail : request?.requestId ? safe(request.requestId, 56) : "request 없음"      },
 	];
 	const widths = monitoringWidths(width, cards.length, 1);
 	return [
@@ -87,9 +106,9 @@ function requestPipelineRows(request: RequestRuntimeRecord | undefined, width: n
 
 function compactWorkflowRows(request: RequestRuntimeRecord | undefined, projections: readonly NativeDelegationProjection[], width: number): string[] {
 	if (width < 96) return [];
-	const widths = monitoringWidths(width, 2, 1);
-	const pipelineWidth = widths[0]!;
-	const agentsWidth = widths[1]!;
+	const widths        = monitoringWidths(width, 2, 1) ;
+	const pipelineWidth = widths[0]!                    ;
+	const agentsWidth   = widths[1]!                    ;
 	const pipeline = request
 		? workflowPanel("7-stage pipeline", `${settledStageCount(request)}/${request.stages.length}`, a.active, request.stages.map(stage =>
 			pair(safe(stage.id, 24), statusInk(stage.status)(`${mark(stage.status)} ${stage.status}`), Math.max(1, pipelineWidth - 2))), pipelineWidth)
@@ -115,9 +134,9 @@ function compactWorkflowRows(request: RequestRuntimeRecord | undefined, projecti
 }
 
 function agentDetails(task: NativeDelegatedTask, width: number, indent = 0): string[] {
-	const title = task.role ?? task.id;
-	const details = [task.model, task.reasoningEffort].filter(Boolean).join(" · ");
-	const rows = prose(statusInk(task.status)(`${mark(task.status)} ${safe(title)} · ${task.status}`), width, indent);
+	const title   = task.role ?? task.id                                                                                 ;
+	const details = [task.model, task.reasoningEffort].filter(Boolean).join(" · ")                                       ;
+	const rows    = prose(statusInk(task.status)(`${mark(task.status)} ${safe(title)} · ${task.status}`), width, indent) ;
 	if (task.task) rows.push(...prose(a.cream(safe(task.task, 1200)), width, indent + 2));
 	if (details) rows.push(...prose(a.muted(details), width, indent + 2));
 	const latest = [...task.activities].reverse().find(activity => activity.message)?.message ?? task.result;
@@ -143,9 +162,9 @@ function nodeGraphRows(projections: readonly NativeDelegationProjection[], width
 }
 
 function laneRows(projections: readonly NativeDelegationProjection[], width: number): string[] {
-	const tasks = projections.flatMap(projection => projection.tasks);
-	const totals = taskTotals(projections);
-	const rows: string[] = [];
+	const tasks           = projections.flatMap(projection => projection.tasks) ;
+	const totals          = taskTotals(projections)                             ;
+	const rows : string[] = []                                                  ;
 	if (!tasks.length) return monitoringUnavailablePanel("Parallel execution pipeline", "관측된 Native Subagent lane이 없습니다.", width);
 	for (const [index, task] of tasks.entries()) {
 		const lane = `LANE_${String(index + 1).padStart(2, "0")}`;
@@ -177,9 +196,9 @@ export class AstraWorkflowView implements Component {
 	constructor(private readonly get: () => WorkbenchSnapshot, private readonly isDemo: () => boolean = () => false) {}
 	invalidate(): void {}
 	render(width: number): string[] {
-		const snapshot = this.get();
-		const request = currentRequest(snapshot);
-		const projections = currentDelegations(snapshot, request);
+		const snapshot    = this.get()                            ;
+		const request     = currentRequest(snapshot)              ;
+		const projections = currentDelegations(snapshot, request) ;
 		if (this.isDemo()) {
 			const stages = request?.stages.map(stage => statusInk(stage.status)(`${mark(stage.status)} ${stage.id}`)).join("  ");
 			const pipeline = monitoringCompactPanel("7-stage request pipeline", prose(stages ?? a.muted("미관측"), Math.max(1, width - 2)), width);
@@ -202,12 +221,12 @@ export class AstraWorkflowRail implements Component {
 	invalidate(): void {}
 	render(width: number): string[] {
 		if (this.isDemo()) return workflowDemoRail(width);
-		const snapshot = this.get();
-		const requests = snapshot.requestRuntime ?? [];
-		const current = currentRequest(snapshot);
-		const projections = currentDelegations(snapshot, current);
-		const totals = taskTotals(projections);
-		const tasks = projections.flatMap(projection => projection.tasks);
+		const snapshot    = this.get()                                          ;
+		const requests    = snapshot.requestRuntime ?? []                       ;
+		const current     = currentRequest(snapshot)                            ;
+		const projections = currentDelegations(snapshot, current)               ;
+		const totals      = taskTotals(projections)                             ;
+		const tasks       = projections.flatMap(projection => projection.tasks) ;
 		const rows = [
 			...railSection("Active process", width, current?.status ?? "미관측", a.active),
 			pair("Requests", number(requests.length), width),

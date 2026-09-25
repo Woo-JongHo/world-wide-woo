@@ -1,17 +1,17 @@
+import { truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
+import type { Component }                                  from "@earendil-works/pi-tui";
+import chalk                                               from "chalk";
+import type { ProjectActivity }                            from "@/core/domain/execution/project-activity";
+import { todoProgress }                                    from "@/core/domain/work/todos";
+import type { TodoDocument, TodoItem }                     from "@/core/domain/work/todos";
+import type { WorkFlowProjection }                         from "@/core/domain/work";
+import type { WorkbenchTodoSyncState }                     from "@/core/domain/work/workbench";
+import type { LinearProjectDashboard }                     from "@/core/domain/work/linear-dashboard";
+import { colors }                                          from "@/adapters/inbound/tui/foundation/theme/theme";
 import {
-	truncateToWidth,
-	visibleWidth,
-	wrapTextWithAnsi,
-	type Component,
-} from "@earendil-works/pi-tui";
-import chalk from "chalk";
-import type { ProjectActivity } from "../../../../../core/domain/execution/project-activity";
-import { todoProgress, type TodoDocument, type TodoItem } from "../../../../../core/domain/work/todos";
-import type { WorkFlowProjection } from "../../../../../core/domain/work";
-import type { WorkbenchTodoSyncState } from "../../../../../core/domain/work/workbench";
-import type { LinearProjectDashboard } from "../../../../../core/domain/work/linear-dashboard";
-import { colors } from "../../foundation/theme/theme";
-import { DASHBOARD_PANEL_SYSTEM, dashboardProgressCells } from "../../foundation/layout/dashboard-panel-system";
+	DASHBOARD_PANEL_SYSTEM,
+	dashboardProgressCells,
+} from "@/adapters/inbound/tui/foundation/layout/dashboard-panel-system";
 
 function fit(text: string, width: number): string {
 	if (width <= 0) return "";
@@ -37,10 +37,10 @@ export class StatusLine implements Component {
 }
 
 export interface WorkspaceTodoLiveContext {
-	readonly activeTurnId: string | null;
-	readonly activities: readonly ProjectActivity[];
-	readonly workFlow: WorkFlowProjection;
-	readonly hasConversation?: boolean;
+	readonly activeTurnId     : string | null              ;
+	readonly activities       : readonly ProjectActivity[] ;
+	readonly workFlow         : WorkFlowProjection         ;
+	readonly hasConversation? : boolean                    ;
 	/** Session Goal is shown until a Native Plan becomes the Todo source. */
 	readonly goal?: string | null;
 	readonly sync?: WorkbenchTodoSyncState;
@@ -60,9 +60,9 @@ export class WorkspaceTodoView implements Component {
 	constructor(
 		private readonly todo: () => TodoDocument | null,
 		private readonly live: () => WorkspaceTodoLiveContext = () => ({
-			activeTurnId: null,
-			activities: [],
-			workFlow: emptyWorkFlow(),
+			activeTurnId : null,
+			activities   : [],
+			workFlow     : emptyWorkFlow(),
 		}),
 		private readonly linearDashboard: () => LinearProjectDashboard | undefined = () => undefined,
 	) {}
@@ -154,16 +154,16 @@ function syncRows(sync: WorkbenchTodoSyncState | undefined, width: number): stri
 
 function emptyWorkFlow(): WorkFlowProjection {
 	return {
-		source: null,
-		retirements: [],
-		orphans: [],
-		rejections: [],
-		goal: "",
-		steps: [],
-		completedCount: 0,
-		currentStepNumber: null,
-		observationCount: 0,
-		summary: "",
+		source            : null,
+		retirements       : [],
+		orphans           : [],
+		rejections        : [],
+		goal              : "",
+		steps             : [],
+		completedCount    : 0,
+		currentStepNumber : null,
+		observationCount  : 0,
+		summary           : "",
 	};
 }
 
@@ -181,10 +181,10 @@ function todoItemRows(
 	width: number,
 	indent: string,
 ): string[] {
-	const marker = todoMarker(status);
-	const firstPrefix = `${indent}${marker} `;
-	const continuationPrefix = " ".repeat(visibleWidth(firstPrefix));
-	const available = Math.max(1, width - visibleWidth(firstPrefix));
+	const marker             = todoMarker(status)                             ;
+	const firstPrefix        = `${indent}${marker} `                          ;
+	const continuationPrefix = " ".repeat(visibleWidth(firstPrefix))          ;
+	const available          = Math.max(1, width - visibleWidth(firstPrefix)) ;
 	const color = status === "in_progress" ? colors.highlight
 		: status === "completed" ? colors.success
 			: status === "blocked" ? colors.error : colors.text;
@@ -193,8 +193,8 @@ function todoItemRows(
 }
 
 function todoProgressRail(completed: number, total: number, width: number): string {
-	const cells = dashboardProgressCells(width);
-	const filled = total > 0 ? Math.round((completed / total) * cells) : 0;
-	const empty = Math.max(0, cells - filled);
+	const cells  = dashboardProgressCells(width)                           ;
+	const filled = total > 0 ? Math.round((completed / total) * cells) : 0 ;
+	const empty  = Math.max(0, cells - filled)                             ;
 	return chalk.bgHex("#11d6e8")(" ".repeat(filled)) + chalk.bgHex("#173039")(" ".repeat(empty));
 }

@@ -1,6 +1,6 @@
-import type { Component } from "@earendil-works/pi-tui";
-import type { DevelopmentMapEpic, DevelopmentMapSnapshot } from "../../../../../core/domain/development/development-map";
-import { a, mark, prose, safe, section } from "../../foundation/theme/astra-theme";
+import type { Component }                                  from "@earendil-works/pi-tui";
+import type { DevelopmentMapEpic, DevelopmentMapSnapshot } from "@/core/domain/development/development-map";
+import { a, mark, prose, safe, section }                   from "@/adapters/inbound/tui/foundation/theme/astra-theme";
 
 function document(rows: string[], width: number): string[] { return rows.flatMap(row => prose(row, width)); }
 

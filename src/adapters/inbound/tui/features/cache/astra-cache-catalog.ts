@@ -1,16 +1,24 @@
-import chalk from "chalk";
-import { monitoringBars, monitoringColumns, monitoringCompactPanel, monitoringMeter, monitoringTable, monitoringWidths } from "../../foundation/layout/astra-monitoring-layout";
-import { a, fit, pair, type AstraInk } from "../../foundation/theme/astra-theme";
+import chalk             from "chalk";
+import {
+	monitoringBars,
+	monitoringColumns,
+	monitoringCompactPanel,
+	monitoringMeter,
+	monitoringTable,
+	monitoringWidths,
+} from "@/adapters/inbound/tui/foundation/layout/astra-monitoring-layout";
+import { a, fit, pair }  from "@/adapters/inbound/tui/foundation/theme/astra-theme";
+import type { AstraInk } from "@/adapters/inbound/tui/foundation/theme/astra-theme";
 
 // Figma 50:1403 presentation fixtures; only the explicit demo switch enables these values.
 const slices = [
-	{ name : "Transcript"       , entries :  142, used : 32.4, limit :  64, hit :  96.4, access : "1.2s", ttl : "59m", state : "SAFE"       , ink : a.cream     },
-	{ name : "Render"           , entries :   84, used : 14.1, limit :  32, hit :  91.2, access : "4.5s", ttl : "12m", state : "SAFE"       , ink : a.tool      },
-	{ name : "Context Proj"     , entries :   12, used : 48.0, limit : 128, hit :  98.9, access : "0.1s", ttl : "4h" , state : "PROTECTED"  , ink : a.response  },
-	{ name : "Usage Snapshot"   , entries : 1142, used :  8.2, limit :  16, hit :  84.2, access : "14s" , ttl : "2m" , state : "EVICT_READY", ink : a.attention },
-	{ name : "Model Catalog"    , entries :    4, used :  0.4, limit :   4, hit : 100.0, access : "1h"  , ttl : "24h", state : "IMMUTABLE"  , ink : a.success   },
-	{ name : "Dashboard Data"   , entries :  310, used :  6.3, limit :  16, hit :  89.5, access : "3.2s", ttl : "5m" , state : "SAFE"       , ink : a.info      },
-	{ name : "Session Read"     , entries :  512, used : 33.0, limit : 256, hit :  97.1, access : "0.8s", ttl : "30m", state : "SAFE"       , ink : a.active    },
+	{ name : "Transcript"     , entries : 142  , used : 32.4 , limit : 64  , hit : 96.4  , access : "1.2s" , ttl : "59m" , state : "SAFE"        , ink : a.cream     },
+	{ name : "Render"         , entries : 84   , used : 14.1 , limit : 32  , hit : 91.2  , access : "4.5s" , ttl : "12m" , state : "SAFE"        , ink : a.tool      },
+	{ name : "Context Proj"   , entries : 12   , used : 48.0 , limit : 128 , hit : 98.9  , access : "0.1s" , ttl : "4h"  , state : "PROTECTED"   , ink : a.response  },
+	{ name : "Usage Snapshot" , entries : 1142 , used : 8.2  , limit : 16  , hit : 84.2  , access : "14s"  , ttl : "2m"  , state : "EVICT_READY" , ink : a.attention },
+	{ name : "Model Catalog"  , entries : 4    , used : 0.4  , limit : 4   , hit : 100.0 , access : "1h"   , ttl : "24h" , state : "IMMUTABLE"   , ink : a.success   },
+	{ name : "Dashboard Data" , entries : 310  , used : 6.3  , limit : 16  , hit : 89.5  , access : "3.2s" , ttl : "5m"  , state : "SAFE"        , ink : a.info      },
+	{ name : "Session Read"   , entries : 512  , used : 33.0 , limit : 256 , hit : 97.1  , access : "0.8s" , ttl : "30m" , state : "SAFE"        , ink : a.active    },
 ] as const;
 const eviction = [12, 10, 8, 14, 16, 20, 24, 22, 18, 14, 12, 10, 8, 4, 6, 8, 12, 10];
 
@@ -62,14 +70,14 @@ function summary(width: number): string[] {
 
 function sliceGrid(width: number): string[] {
 	const columns = [
-		{ heading : "CACHE SLICE", minWidth : 14, weight : 1, align : "left"  },
-		{ heading : "ENTRIES"    , minWidth :  7, weight : 0, align : "right" },
-		{ heading : "USAGE/LIMIT", minWidth : 12, weight : 0, align : "right" },
-		{ heading : "HIT / MISS" , minWidth : 14, weight : 1, align : "left"  },
-		{ heading : "ACCESS"     , minWidth :  6, weight : 0, align : "right" },
-		{ heading : "TTL"        , minWidth :  4, weight : 0, align : "right" },
-		{ heading : "STALE"      , minWidth :  5, weight : 0, align : "left"  },
-		{ heading : "EVICT STATE", minWidth : 11, weight : 0, align : "left"  },
+		{ heading : "CACHE SLICE" , minWidth : 14 , weight : 1 , align : "left"  },
+		{ heading : "ENTRIES"     , minWidth : 7  , weight : 0 , align : "right" },
+		{ heading : "USAGE/LIMIT" , minWidth : 12 , weight : 0 , align : "right" },
+		{ heading : "HIT / MISS"  , minWidth : 14 , weight : 1 , align : "left"  },
+		{ heading : "ACCESS"      , minWidth : 6  , weight : 0 , align : "right" },
+		{ heading : "TTL"         , minWidth : 4  , weight : 0 , align : "right" },
+		{ heading : "STALE"       , minWidth : 5  , weight : 0 , align : "left"  },
+		{ heading : "EVICT STATE" , minWidth : 11 , weight : 0 , align : "left"  },
 	] as const;
 	const rows = slices.map(slice => [
 		slice.ink(slice.name), String(slice.entries), `${slice.used.toFixed(1)}/${slice.limit} MB`,
@@ -84,9 +92,9 @@ function sliceGrid(width: number): string[] {
 
 function occupancy(width: number): string[] {
 	const columns = [
-		{ heading : "SLICE", minWidth : 10, weight : 0, align : "left"  },
-		{ heading : "USED" , minWidth :  4, weight : 1, align : "left"  },
-		{ heading : "MB"   , minWidth :  5, weight : 0, align : "right" },
+		{ heading : "SLICE" , minWidth : 10 , weight : 0 , align : "left"  },
+		{ heading : "USED"  , minWidth : 4  , weight : 1 , align : "left"  },
+		{ heading : "MB"    , minWidth : 5  , weight : 0 , align : "right" },
 	] as const;
 	const rows = slices.map(slice => [slice.ink(slice.name), monitoringMeter(slice.used, slice.limit, Math.max(4, width - 21), slice.ink), slice.used.toFixed(1)]);
 	return monitoringCompactPanel("CACHE OCCUPANCY DISTRIBUTION", [
@@ -139,9 +147,9 @@ function trends(width: number): string[] {
 
 function diagnostics(width: number): string[] {
 	const columns = [
-		{ heading : "CAUSE" , minWidth : 16, weight : 1, align : "left"  },
-		{ heading : "COUNT" , minWidth :  5, weight : 0, align : "right" },
-		{ heading : "STATE" , minWidth :  4, weight : 0, align : "left"  },
+		{ heading : "CAUSE" , minWidth : 16 , weight : 1 , align : "left"  },
+		{ heading : "COUNT" , minWidth : 5  , weight : 0 , align : "right" },
+		{ heading : "STATE" , minWidth : 4  , weight : 0 , align : "left"  },
 	] as const;
 	const rows = [
 		[ a.attention("TTL EXPIRATION"), "7", a.attention("HIGH") ],
@@ -159,9 +167,9 @@ function diagnostics(width: number): string[] {
 
 function flow(width: number): string[] {
 	const columns = [
-		{ heading : "SOURCE", minWidth :  6, weight : 1, align : "left" },
-		{ heading : "CACHE" , minWidth :  9, weight : 1, align : "left" },
-		{ heading : "TARGET", minWidth :  7, weight : 1, align : "left" },
+		{ heading : "SOURCE" , minWidth : 6 , weight : 1 , align : "left" },
+		{ heading : "CACHE"  , minWidth : 9 , weight : 1 , align : "left" },
+		{ heading : "TARGET" , minWidth : 7 , weight : 1 , align : "left" },
 	] as const;
 	const rows = [
 		[ a.cream("SQLite"), a.cream("Transcript"), a.active("Core")     ],

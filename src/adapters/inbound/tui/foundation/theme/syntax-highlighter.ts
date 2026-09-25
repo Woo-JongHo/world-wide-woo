@@ -16,17 +16,17 @@ function loadNativeSyntaxHighlighter(): NativeSyntaxHighlighter {
 }
 
 export interface SyntaxPalette {
-	comment: string;
-	keyword: string;
-	function: string;
-	variable: string;
-	string: string;
-	number: string;
-	type: string;
-	operator: string;
-	punctuation: string;
-	inserted: string;
-	deleted: string;
+	comment     : string ;
+	keyword     : string ;
+	function    : string ;
+	variable    : string ;
+	string      : string ;
+	number      : string ;
+	type        : string ;
+	operator    : string ;
+	punctuation : string ;
+	inserted    : string ;
+	deleted     : string ;
 }
 
 /** Replaceable Markdown syntax-coloring interface; it never owns transcript data. */
@@ -44,17 +44,17 @@ function foregroundAnsi(hex: string): string {
 
 function nativeColors(palette: SyntaxPalette): HighlightColors {
 	return {
-		comment: foregroundAnsi(palette.comment),
-		keyword: foregroundAnsi(palette.keyword),
-		function: foregroundAnsi(palette.function),
-		variable: foregroundAnsi(palette.variable),
-		string: foregroundAnsi(palette.string),
-		number: foregroundAnsi(palette.number),
-		type: foregroundAnsi(palette.type),
-		operator: foregroundAnsi(palette.operator),
-		punctuation: foregroundAnsi(palette.punctuation),
-		inserted: foregroundAnsi(palette.inserted),
-		deleted: foregroundAnsi(palette.deleted),
+		comment     : foregroundAnsi(palette.comment),
+		keyword     : foregroundAnsi(palette.keyword),
+		function    : foregroundAnsi(palette.function),
+		variable    : foregroundAnsi(palette.variable),
+		string      : foregroundAnsi(palette.string),
+		number      : foregroundAnsi(palette.number),
+		type        : foregroundAnsi(palette.type),
+		operator    : foregroundAnsi(palette.operator),
+		punctuation : foregroundAnsi(palette.punctuation),
+		inserted    : foregroundAnsi(palette.inserted),
+		deleted     : foregroundAnsi(palette.deleted),
 	};
 }
 
@@ -69,9 +69,9 @@ function exceedsHighlightBudget(code: string): boolean {
 
 /** @linear WOO-686 WOO-691 */
 export function createNativeSyntaxHighlightPlugin(palette: SyntaxPalette): SyntaxHighlightPlugin {
-	const colors = nativeColors(palette);
-	const plainColor = foregroundAnsi(palette.variable);
-	const plain = (code: string) => code.split("\n").map((line) => `${plainColor}${line}\u001b[39m`);
+	const colors     = nativeColors(palette)                                                              ;
+	const plainColor = foregroundAnsi(palette.variable)                                                   ;
+	const plain      = (code: string) => code.split("\n").map((line) => `${plainColor}${line}\u001b[39m`) ;
 	return {
 		name: "gajae-native-tree-sitter",
 		supports(language) {

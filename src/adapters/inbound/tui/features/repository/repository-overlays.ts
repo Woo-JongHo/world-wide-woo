@@ -1,7 +1,8 @@
-import { Key, matchesKey, wrapTextWithAnsi, type Component } from "@earendil-works/pi-tui";
-import type { RepositoryInsights } from "../../../../../core/ports";
-import type { CommitSummary, IssueSummary, RepositorySnapshot } from "../../../../../core/domain/development/repository";
-import { colors } from "../../foundation/theme/theme";
+import { Key, matchesKey, wrapTextWithAnsi }                    from "@earendil-works/pi-tui";
+import type { Component }                                       from "@earendil-works/pi-tui";
+import type { RepositoryInsights }                              from "@/core/ports";
+import type { CommitSummary, IssueSummary, RepositorySnapshot } from "@/core/domain/development/repository";
+import { colors }                                               from "@/adapters/inbound/tui/foundation/theme/theme";
 
 type RepositoryPanelState =
 	| { status: "loading" }

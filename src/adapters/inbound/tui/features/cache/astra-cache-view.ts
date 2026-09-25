@@ -1,8 +1,13 @@
-import type { Component } from "@earendil-works/pi-tui";
-import type { CacheLayerTelemetry, CacheTelemetrySnapshot } from "../../../../../core/domain/observability/cache-telemetry";
-import { monitoringCard, monitoringColumns, monitoringMeter, monitoringWidths } from "../../foundation/layout/astra-monitoring-layout";
-import { a, fit, number, pair, prose, railSection, section } from "../../foundation/theme/astra-theme";
-import { syntheticCacheRailRows, syntheticCacheRows } from "./astra-cache-catalog";
+import type { Component }                                    from "@earendil-works/pi-tui";
+import type { CacheLayerTelemetry, CacheTelemetrySnapshot }  from "@/core/domain/observability/cache-telemetry";
+import {
+	monitoringCard,
+	monitoringColumns,
+	monitoringMeter,
+	monitoringWidths,
+} from "@/adapters/inbound/tui/foundation/layout/astra-monitoring-layout";
+import { a, fit, number, pair, prose, railSection, section } from "@/adapters/inbound/tui/foundation/theme/astra-theme";
+import { syntheticCacheRailRows, syntheticCacheRows }        from "@/adapters/inbound/tui/features/cache/astra-cache-catalog";
 
 function bytes(value: number | null): string {
 	if (value === null) return "미관측";
@@ -31,19 +36,19 @@ function layerRows(layer: CacheLayerTelemetry, width: number): string[] {
 
 function summaryRows(cache: CacheTelemetrySnapshot, hitRate: number | null, observed: number, width: number): string[] {
 	const cards = [
-		{ title: "Entries", value: count(cache.totals.entries), detail: "observed cache records" },
-		{ title: "Logical size", value: bytes(cache.totals.logicalBytes), detail: "known retained bytes" },
-		{ title: "Hit rate", value: hitRate === null ? "미관측" : `${hitRate}%`, detail: "observed hits / access" },
-		{ title: "Misses", value: count(cache.totals.misses), detail: "owner cache misses" },
-		{ title: "Evictions", value: count(cache.totals.evictions), detail: "observed replacements" },
-		{ title: "Coverage", value: `${observed}/7`, detail: "instrumented layers" },
+		{ title : "Entries"      , value : count(cache.totals.entries)                 , detail : "observed cache records" },
+		{ title : "Logical size" , value : bytes(cache.totals.logicalBytes)            , detail : "known retained bytes"   },
+		{ title : "Hit rate"     , value : hitRate === null ? "미관측" : `${hitRate}%` , detail : "observed hits / access" },
+		{ title : "Misses"       , value : count(cache.totals.misses)                  , detail : "owner cache misses"     },
+		{ title : "Evictions"    , value : count(cache.totals.evictions)               , detail : "observed replacements"  },
+		{ title : "Coverage"     , value : `${observed}/7`                             , detail : "instrumented layers"    },
 	];
 	const countPerRow = width >= 108 ? 3 : width >= 64 ? 2 : 1;
 	const rows: string[] = [];
 	for (let index = 0; index < cards.length; index += countPerRow) {
 		const group = cards.slice(index, index + countPerRow);
 		const widths = monitoringWidths(width, group.length);
-		rows.push(...monitoringColumns(group.map((card, cardIndex) => monitoringCard(card, widths[cardIndex]!)), widths));
+		rows.push(...monitoringColumns(group.map((card, cardIndex) => monitoringCard(card, widths[cardIndex])), widths));
 	}
 	return rows;
 }
@@ -51,7 +56,7 @@ function summaryRows(cache: CacheTelemetrySnapshot, hitRate: number | null, obse
 function cacheGrid(layers: readonly CacheLayerTelemetry[], width: number): string[] {
 	if (width < 78) return layers.flatMap(layer => layerRows(layer, width));
 	const widths = [18, 7, 10, 6, 7, width - 70, 5, 10];
-	const row = (cells: readonly string[]) => cells.map((cell, index) => fit(cell, widths[index]!)).join(" ");
+	const row = (cells: readonly string[]) => cells.map((cell, index) => fit(cell, widths[index])).join(" ");
 	return [
 		a.muted(row(["CACHE SLICE", "ENTRIES", "USAGE", "HIT", "MISS", "LAST ACCESS", "TTL", "STATUS"])),
 		a.rule("─".repeat(Math.min(width, widths.reduce((sum, value) => sum + value, 0) + widths.length - 1))),
@@ -68,9 +73,9 @@ function observedTotal(layers: readonly CacheLayerTelemetry[], key: "logicalByte
 }
 
 function logicalByteDistributionPanel(layers: readonly CacheLayerTelemetry[], width: number): string[] {
-	const byteLayers = layers.filter((layer): layer is CacheLayerTelemetry & { logicalBytes: number } => layer.logicalBytes !== null);
-	const total = observedTotal(layers, "logicalBytes");
-	const rows = [...section("Logical byte distribution", width, total === null ? "unavailable" : "observed byte shares", a.active)];
+	const byteLayers = layers.filter((layer): layer is CacheLayerTelemetry & { logicalBytes: number } => layer.logicalBytes !== null)      ;
+	const total      = observedTotal(layers, "logicalBytes")                                                                               ;
+	const rows       = [...section("Logical byte distribution", width, total === null ? "unavailable" : "observed byte shares", a.active)] ;
 	rows.push(a.caption("Capacity limit unavailable · shares are not utilization."));
 	if (total === null || byteLayers.length === 0) return [...rows, a.muted("Logical-byte source unavailable for every cache layer.")];
 	rows.push(pair("Observed logical bytes", bytes(total), width));
@@ -83,10 +88,10 @@ function logicalByteDistributionPanel(layers: readonly CacheLayerTelemetry[], wi
 }
 
 function hitMissEvictionPanel(layers: readonly CacheLayerTelemetry[], width: number): string[] {
-	const hits = observedTotal(layers, "hits");
-	const misses = observedTotal(layers, "misses");
-	const evictions = observedTotal(layers, "evictions");
-	const rows = [...section("Hit / Miss & Eviction Trends", width, "aggregate only", a.active)];
+	const hits      = observedTotal(layers, "hits")                                                   ;
+	const misses    = observedTotal(layers, "misses")                                                 ;
+	const evictions = observedTotal(layers, "evictions")                                              ;
+	const rows      = [...section("Hit / Miss & Eviction Trends", width, "aggregate only", a.active)] ;
 	if (hits === null || misses === null) rows.push(a.muted("Hit / miss aggregate unavailable."));
 	else {
 		rows.push(pair("Observed access", `${number(hits)} hit · ${number(misses)} miss`, width));
@@ -132,12 +137,12 @@ export class AstraCacheView implements Component {
 	invalidate(): void {}
 	render(width: number): string[] {
 		if (this.isDemo()) return syntheticCacheRows(width);
-		const cache = this.get();
-		const observedRates = cache.layers.filter(layer => layer.hits !== null && layer.misses !== null);
-		const hits = observedRates.reduce((sum, layer) => sum + layer.hits!, 0);
-		const misses = observedRates.reduce((sum, layer) => sum + layer.misses!, 0);
-		const hitRate = hits + misses > 0 ? Math.round(hits / (hits + misses) * 100) : null;
-		const observed = cache.layers.filter(layer => layer.state !== "unobserved").length;
+		const cache         = this.get()                                                                                                                      ;
+		const observedRates = cache.layers.flatMap(layer => layer.hits !== null && layer.misses !== null ? [{ hits: layer.hits, misses: layer.misses }] : []) ;
+		const hits          = observedRates.reduce((sum, layer) => sum + layer.hits, 0)                                                                       ;
+		const misses        = observedRates.reduce((sum, layer) => sum + layer.misses, 0)                                                                     ;
+		const hitRate       = hits + misses > 0 ? Math.round(hits / (hits + misses) * 100) : null                                                             ;
+		const observed      = cache.layers.filter(layer => layer.state !== "unobserved").length                                                               ;
 		const rows = [
 			...section("Cache Controller", width, `${observed}/7 observed`),
 			...summaryRows(cache, hitRate, observed, width),
@@ -165,11 +170,11 @@ export class AstraCacheRail implements Component {
 	invalidate(): void {}
 	render(width: number): string[] {
 		if (this.isDemo()) return syntheticCacheRailRows(width);
-		const cache = this.get();
-		const stale = cache.layers.filter(layer => layer.state === "stale");
-		const missing = cache.layers.filter(layer => layer.state === "unobserved");
-		const health = stale.length ? `${stale.length} stale` : missing.length ? `${missing.length} unobserved` : "nominal";
-		const healthInk = stale.length ? a.attention : missing.length ? a.muted : a.success;
+		const cache     = this.get()                                                                                           ;
+		const stale     = cache.layers.filter(layer => layer.state === "stale")                                                ;
+		const missing   = cache.layers.filter(layer => layer.state === "unobserved")                                           ;
+		const health    = stale.length ? `${stale.length} stale` : missing.length ? `${missing.length} unobserved` : "nominal" ;
+		const healthInk = stale.length ? a.attention : missing.length ? a.muted : a.success                                    ;
 		const rows = [
 			...railSection("Cache health", width, health, healthInk),
 			pair("Layers", `${cache.layers.length}`, width),

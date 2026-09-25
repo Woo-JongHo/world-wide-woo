@@ -1,7 +1,8 @@
-import { Key, matchesKey, truncateToWidth, wrapTextWithAnsi, type Component } from "@earendil-works/pi-tui";
-import type { MonitoringSource } from "../../../../../core/application/session/session-monitor";
-import type { MonitoringSnapshot, MonitoringTool } from "../../../../../core/domain/observability/monitoring";
-import { colors, semantic } from "../../foundation/theme/theme";
+import { Key, matchesKey, truncateToWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
+import type { Component }                                     from "@earendil-works/pi-tui";
+import type { MonitoringSource }                              from "@/core/application/session/session-monitor";
+import type { MonitoringSnapshot, MonitoringTool }            from "@/core/domain/observability/monitoring";
+import { colors, semantic }                                   from "@/adapters/inbound/tui/foundation/theme/theme";
 
 type ObservedStatus = "RUNNING" | "COMPLETED" | "FAILED" | "CANCELLED" | "UNKNOWN";
 
@@ -73,9 +74,9 @@ export class MonitoringOverlay implements Component {
 	invalidate(): void {}
 
 	render(width: number): string[] {
-		const snapshot = this.snapshot;
-		const age = Math.max(0, this.now() - snapshot.updatedAt);
-		const latestStatus = toolStatus(snapshot.tools.latest);
+		const snapshot     = this.snapshot                                ;
+		const age          = Math.max(0, this.now() - snapshot.updatedAt) ;
+		const latestStatus = toolStatus(snapshot.tools.latest)            ;
 		const active = snapshot.tools.active
 			? `${snapshot.tools.active.name} · ${statusText("RUNNING")}`
 			: colors.muted("관측된 실행 없음");

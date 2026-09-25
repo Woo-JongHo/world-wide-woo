@@ -1,26 +1,15 @@
-import {
-	SelectList,
-	SettingsList,
-	type Component,
-	type SettingItem,
-	type SettingsListTheme,
-} from "@earendil-works/pi-tui";
-import {
-	EFFORTS,
-	MODELS,
-	PROVIDERS,
-	type Effort,
-	type Provider,
-	type WwwSettings,
-} from "../../../../core/domain/execution/model-settings";
-import { colors, selectListTheme } from "../foundation/theme/theme";
+import { SelectList, SettingsList }                       from "@earendil-works/pi-tui";
+import type { Component, SettingItem, SettingsListTheme } from "@earendil-works/pi-tui";
+import { EFFORTS, MODELS, PROVIDERS }                     from "@/core/domain/execution/model-settings";
+import type { Effort, Provider, WwwSettings }             from "@/core/domain/execution/model-settings";
+import { colors, selectListTheme }                        from "@/adapters/inbound/tui/foundation/theme/theme";
 
 const settingsTheme: SettingsListTheme = {
-	label: (text, active) => active ? colors.accent(text) : text,
-	value: (text, active) => active ? colors.selected(` ${text} `) : text,
-	description: colors.muted,
-	cursor: colors.accent("●"),
-	hint: colors.muted,
+	label       : (text, active) => active ? colors.accent(text) : text,
+	value       : (text, active) => active ? colors.selected(` ${text} `) : text,
+	description : colors.muted,
+	cursor      : colors.accent("●"),
+	hint        : colors.muted,
 };
 
 export class LoginProviderOverlay implements Component {
@@ -28,11 +17,11 @@ export class LoginProviderOverlay implements Component {
 
 	constructor(onSelect: (provider: Provider) => void, onCancel: () => void) {
 		const descriptions: Record<Provider, string> = {
-			"openai-codex": "ChatGPT Plus/Pro 구독 · OAuth · 사용량 지원",
-			anthropic: "Claude Pro/Max OAuth 또는 Anthropic API 키",
-			openai: "OpenAI API 키",
-			google: "Gemini API 키",
-			zai: "Z.AI Coding API 키",
+			"openai-codex" : "ChatGPT Plus/Pro 구독 · OAuth · 사용량 지원",
+			anthropic      : "Claude Pro/Max OAuth 또는 Anthropic API 키",
+			openai         : "OpenAI API 키",
+			google         : "Gemini API 키",
+			zai            : "Z.AI Coding API 키",
 		};
 		this.list = new SelectList(
 			PROVIDERS.map((provider) => ({ value: provider, label: provider, description: descriptions[provider] })),

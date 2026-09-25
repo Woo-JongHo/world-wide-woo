@@ -1,7 +1,11 @@
-import { truncateToWidth, visibleWidth, type Component } from "@earendil-works/pi-tui";
-import type { ObservabilityDashboard, ObservabilitySessionSummary } from "../../../../../core/domain/observability/observability-dashboard.js";
-import { dashboardSessionWindow } from "./dashboard-session-window.js";
-import { colors } from "../../foundation/theme/theme.js";
+import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
+import type { Component }                from "@earendil-works/pi-tui";
+import type {
+	ObservabilityDashboard,
+	ObservabilitySessionSummary,
+} from "@/core/domain/observability/observability-dashboard.js";
+import { dashboardSessionWindow }        from "@/adapters/inbound/tui/features/session/dashboard-session-window.js";
+import { colors }                        from "@/adapters/inbound/tui/foundation/theme/theme.js";
 
 /** @linear WOO-676 */
 export class ObservabilityDashboardView implements Component {
@@ -11,10 +15,10 @@ export class ObservabilityDashboardView implements Component {
 	) {}
 	public invalidate(): void {}
 	public render(width: number): string[] {
-		const size = Math.max(1, Math.min(156, width));
-		const data = this.getDashboard();
-		const selection = dashboardSessionWindow(data.recentSessions.length, this.getSelectedIndex());
-		const rows: string[] = [colors.accent("WORLD WIDE WOO · DASHBOARD"), colors.muted(coverage(data)), colors.muted(coverageCounts(data)), rule(size)];
+		const size            = Math.max(1, Math.min(156, width))                                                                                           ;
+		const data            = this.getDashboard()                                                                                                         ;
+		const selection       = dashboardSessionWindow(data.recentSessions.length, this.getSelectedIndex())                                                 ;
+		const rows : string[] = [colors.accent("WORLD WIDE WOO · DASHBOARD"), colors.muted(coverage(data)), colors.muted(coverageCounts(data)), rule(size)] ;
 		rows.push(...cells([
 			["ACTIVE", metric(data.sessions.active)], ["COMPLETED", metric(data.sessions.completed)],
 			["ATTR TOKENS", compact(data.usage.totalTokens)], ["FAILURE EVENTS", metric(data.sessions.failures)],
@@ -23,9 +27,9 @@ export class ObservabilityDashboardView implements Component {
 		section(rows, "MODEL USAGE / WORK · ATTRIBUTED", size);
 		if (!data.usage.models.length) rows.push(colors.muted("Model work usage not observed in the local journal."));
 		for (const model of data.usage.models) {
-			const share = data.usage.totalTokens ? Math.round(model.totalTokens / data.usage.totalTokens * 100) : 0;
-			const suffix = `${share}%  ${compact(model.totalTokens)}`;
-			const barWidth = Math.max(6, size - 30 - visibleWidth(suffix));
+			const share    = data.usage.totalTokens ? Math.round(model.totalTokens / data.usage.totalTokens * 100) : 0 ;
+			const suffix   = `${share}%  ${compact(model.totalTokens)}`                                                ;
+			const barWidth = Math.max(6, size - 30 - visibleWidth(suffix))                                             ;
 			rows.push(`${pad([model.model, model.effort].filter(Boolean).join(" · "), 20)} ${bar(share, barWidth)}  ${suffix}`);
 		}
 		section(rows, "HEALTH / TREND", size);

@@ -1,8 +1,8 @@
 import { stripTerminalSequences, truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
-import { parseAllDocuments, stringify, visit } from "yaml";
-import type { CommandStatus } from "../../../../../core/domain/execution/output";
-import { sanitizeTerminalTextExcerpt } from "../../../../../core/domain/execution/terminal";
-import { colors, semantic, syntaxHighlightPlugin } from "../../foundation/theme/theme";
+import { parseAllDocuments, stringify, visit }                                     from "yaml";
+import type { CommandStatus }                                                      from "@/core/domain/execution/output";
+import { sanitizeTerminalTextExcerpt }                                             from "@/core/domain/execution/terminal";
+import { colors, semantic, syntaxHighlightPlugin }                                 from "@/adapters/inbound/tui/foundation/theme/theme";
 import {
 	CHAT_PUBLIC_OUTPUT_MAX_CHARS,
 	CHAT_STRUCTURED_DISPLAY_MAX_BYTES,
@@ -10,10 +10,10 @@ import {
 	CHAT_TERMINAL_OUTPUT_CHUNK_LINES,
 	workStepStatusPresentation,
 	workStepStatusSymbol,
-	type WorkStepStatusPresentation,
-} from "./chat-output-policy";
+} from "@/adapters/inbound/tui/features/chat/chat-output-policy";
+import type { WorkStepStatusPresentation }                                         from "@/adapters/inbound/tui/features/chat/chat-output-policy";
 
-export { workStepStatusPresentation, type WorkStepStatusPresentation } from "./chat-output-policy";
+export { workStepStatusPresentation, type WorkStepStatusPresentation } from "@/adapters/inbound/tui/features/chat/chat-output-policy";
 
 const BASH_OUTPUT_MAX_LINES = CHAT_TERMINAL_OUTPUT_CHUNK_LINES;
 const BASH_SPINNER = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"] as const;
@@ -25,12 +25,12 @@ export type ExecutionLineTone =
 export type StructuredLanguage = "bash" | "json" | "yaml" | "markdown";
 
 interface BashExecutionProjection {
-	what: string;
-	why: string;
-	command?: string;
-	exitCode?: number;
-	durationMs?: number;
-	output: readonly string[];
+	what        : string            ;
+	why         : string            ;
+	command?    : string            ;
+	exitCode?   : number            ;
+	durationMs? : number            ;
+	output      : readonly string[] ;
 }
 
 function clean(value: string): string {
@@ -189,11 +189,11 @@ function bashStatusSymbol(status: CommandStatus): string {
 }
 
 function bashBar(left: "┌" | "├", right: "┐" | "┤", label: string, width: number, border: (text: string) => string): string {
-	const leftPart = border(`${left}───`);
-	const rightPart = border(right);
-	const available = Math.max(0, width - visibleWidth(leftPart) - visibleWidth(rightPart));
-	const renderedLabel = truncateToWidth(` ${label} `, available);
-	const fill = Math.max(0, width - visibleWidth(leftPart) - visibleWidth(renderedLabel) - visibleWidth(rightPart));
+	const leftPart      = border(`${left}───`)                                                                                ;
+	const rightPart     = border(right)                                                                                       ;
+	const available     = Math.max(0, width - visibleWidth(leftPart) - visibleWidth(rightPart))                               ;
+	const renderedLabel = truncateToWidth(` ${label} `, available)                                                            ;
+	const fill          = Math.max(0, width - visibleWidth(leftPart) - visibleWidth(renderedLabel) - visibleWidth(rightPart)) ;
 	return `${leftPart}${renderedLabel}${border("─".repeat(fill))}${rightPart}`;
 }
 
@@ -226,13 +226,13 @@ export function renderBashExecutionBlock(projected: BashExecutionProjection, sta
 	const border = status === "running" || status === "pending" ? colors.accent
 		: status === "failed" ? colors.error
 			: status === "cancelled" ? colors.warning : colors.muted;
-	const presentation = workStepStatusPresentation(status);
-	const surface = presentation.surface;
-	const statusSymbol = status === "running" ? presentation.border(bashStatusSymbol(status)) : presentation.symbol;
-	const header = `${statusSymbol} ${colors.secondary("Bash")}`;
-	const commandRows = wrapTextWithAnsi(`${colors.muted("$")} ${highlightedSource(projected.command, "bash")}`, width - 4);
-	const outputRows = bashOutputLines(projected, width).map((line) => renderExecutionLine(line, "output"));
-	const metadata: string[] = [];
+	const presentation        = workStepStatusPresentation(status)                                                                  ;
+	const surface             = presentation.surface                                                                                ;
+	const statusSymbol        = status === "running" ? presentation.border(bashStatusSymbol(status)) : presentation.symbol          ;
+	const header              = `${statusSymbol} ${colors.secondary("Bash")}`                                                       ;
+	const commandRows         = wrapTextWithAnsi(`${colors.muted("$")} ${highlightedSource(projected.command, "bash")}`, width - 4) ;
+	const outputRows          = bashOutputLines(projected, width).map((line) => renderExecutionLine(line, "output"))                ;
+	const metadata : string[] = []                                                                                                  ;
 	if (projected.exitCode !== undefined) metadata.push(`Exit: ${projected.exitCode}`);
 	if (projected.durationMs !== undefined) metadata.push(`Duration: ${Math.max(0, Math.round(projected.durationMs))}ms`);
 	const rows = [

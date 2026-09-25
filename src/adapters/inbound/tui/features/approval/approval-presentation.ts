@@ -1,21 +1,19 @@
-import { wrapTextWithAnsi } from "@earendil-works/pi-tui";
-import {
-	projectBackgroundWorkState,
-	type BackgroundWorkState,
-	type NativeApprovalRequest,
-} from "../../../../../core/domain/execution/native-session";
-import { sanitizeTerminalTextExcerpt } from "../../../../../core/domain/execution/terminal";
-import { workbenchApprovalDecisions, type WorkbenchSnapshot } from "../../../../../core/domain/work/workbench";
-import { colors } from "../../foundation/theme/theme";
+import { wrapTextWithAnsi }                                from "@earendil-works/pi-tui";
+import { projectBackgroundWorkState }                      from "@/core/domain/execution/native-session";
+import type { BackgroundWorkState, NativeApprovalRequest } from "@/core/domain/execution/native-session";
+import { sanitizeTerminalTextExcerpt }                     from "@/core/domain/execution/terminal";
+import { workbenchApprovalDecisions }                      from "@/core/domain/work/workbench";
+import type { WorkbenchSnapshot }                          from "@/core/domain/work/workbench";
+import { colors }                                          from "@/adapters/inbound/tui/foundation/theme/theme";
 
 const APPROVAL_DETAIL_MAX_CHARS = 200;
 
 export interface ApprovalRequestPresentation {
-	readonly kind: string;
-	readonly detailLabel: string;
-	readonly detail: string;
-	readonly reason: string;
-	readonly cwd: string | null;
+	readonly kind        : string        ;
+	readonly detailLabel : string        ;
+	readonly detail      : string        ;
+	readonly reason      : string        ;
+	readonly cwd         : string | null ;
 }
 
 export function approvalKindLabel(kind: NativeApprovalRequest["kind"]): string {
@@ -48,11 +46,11 @@ export function approvalDetailLabel(request: NativeApprovalRequest): string {
 export function projectApprovalRequest(request: NativeApprovalRequest): ApprovalRequestPresentation {
 	const fallback = approvalFallback(request);
 	return {
-		kind: approvalKindLabel(request.kind),
-		detailLabel: approvalDetailLabel(request),
-		detail: approvalParamText(request, "command") ?? fallback,
-		reason: approvalParamText(request, "reason") ?? fallback,
-		cwd: approvalParamText(request, "cwd"),
+		kind        : approvalKindLabel(request.kind),
+		detailLabel : approvalDetailLabel(request),
+		detail      : approvalParamText(request, "command") ?? fallback,
+		reason      : approvalParamText(request, "reason") ?? fallback,
+		cwd         : approvalParamText(request, "cwd"),
 	};
 }
 

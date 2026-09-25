@@ -1,7 +1,10 @@
-import type { Component } from "@earendil-works/pi-tui";
-import type { RuntimeMonitorProjection } from "../../../../../core/domain/observability/runtime-monitor";
-import { a, duration, fit, prose, safe, section } from "../../foundation/theme/astra-theme";
-import { requestRuntimeMotionActive, requestRuntimeRows } from "./request-runtime-view";
+import type { Component }                         from "@earendil-works/pi-tui";
+import type { RuntimeMonitorProjection }          from "@/core/domain/observability/runtime-monitor";
+import { a, duration, fit, prose, safe, section } from "@/adapters/inbound/tui/foundation/theme/astra-theme";
+import {
+	requestRuntimeMotionActive,
+	requestRuntimeRows,
+} from "@/adapters/inbound/tui/features/monitoring/request-runtime-view";
 
 function document(rows: string[], width: number): string[] { return rows.flatMap(row => prose(row, width)); }
 function kv(label: string, value: unknown): string { return `${a.muted(fit(label, 20))} ${a.text(safe(value ?? "—"))}`; }
@@ -26,6 +29,17 @@ export class AstraMonitorView implements Component {
 		if (m.currentTool) rows.push(kv("도구 관측 경과", monitorAge(m.currentTool.elapsed)));
 		if (m.approval?.pending) rows.push(kv("승인 관측 경과", monitorAge(m.approval.elapsed)));
 		if (m.skillRun) rows.push(...section("Skill 실행", width), ...prose(a.muted(safe(JSON.stringify(m.skillRun, null, 2), 10_000)), width));
+		if (m.layerPerformance?.current) {
+			const trace = m.layerPerformance.current;
+			rows.push(...section("Layer Performance", width, `${trace.state} · ${trace.totalMs === null ? "total 미관측" : duration(trace.totalMs)}`));
+			for (const layer of trace.layers) {
+				const wait = layer.waitMs === null ? "미관측" : duration(layer.waitMs);
+				const work = layer.workMs === null ? "미관측" : duration(layer.workMs);
+				rows.push(kv(layer.layerId, `wait ${wait} · work ${work}${layer.failed ? " · 실패" : ""}`));
+			}
+			const window = m.layerPerformance.window;
+			rows.push(kv("Window", `${window.traceCount} traces · ${window.errorCount} trace failures`));
+		}
 		rows.push(...section("최근 이벤트", width, `${m.recentEvents.length}개`));
 		for (const event of m.recentEvents) rows.push(`${a.muted(safe(event.recordedAt.slice(11, 19)))}  ${a.active(safe(event.kind.toLowerCase()))}`, `  ${safe(event.label)}`, a.muted(`  /source ${safe(event.activityId)}`), "");
 		if (!m.recentEvents.length) rows.push(a.muted("실행 이벤트가 아직 관측되지 않았습니다."));

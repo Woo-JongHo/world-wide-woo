@@ -1,19 +1,19 @@
 import { stripTerminalSequences, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
-import type { WwwSettings } from "../../../../../core/domain/execution/model-settings";
-import type { TuiColors } from "../../foundation/theme/theme";
-import { workbenchEffortLabel, workbenchModelLabel } from "../../foundation/labels";
+import type { WwwSettings }                                      from "@/core/domain/execution/model-settings";
+import type { TuiColors }                                        from "@/adapters/inbound/tui/foundation/theme/theme";
+import { workbenchEffortLabel, workbenchModelLabel }             from "@/adapters/inbound/tui/foundation/labels";
 
 export interface ModelPickerViewState {
-	readonly appearance?: "astra";
-	readonly nativeCodex: boolean;
-	readonly current: WwwSettings;
-	readonly staged: WwwSettings;
-	readonly breadcrumb: string;
-	readonly catalogNotice: string;
-	readonly rows: readonly string[];
-	readonly error: string | null;
-	readonly applying: boolean;
-	readonly confirmation: boolean;
+	readonly appearance?   : "astra"           ;
+	readonly nativeCodex   : boolean           ;
+	readonly current       : WwwSettings       ;
+	readonly staged        : WwwSettings       ;
+	readonly breadcrumb    : string            ;
+	readonly catalogNotice : string            ;
+	readonly rows          : readonly string[] ;
+	readonly error         : string | null     ;
+	readonly applying      : boolean           ;
+	readonly confirmation  : boolean           ;
 }
 
 function fit(text: string, width: number): string {

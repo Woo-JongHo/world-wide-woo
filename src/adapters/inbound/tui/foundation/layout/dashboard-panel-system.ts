@@ -3,9 +3,9 @@
  * hierarchy, rather than decorating individual views ad hoc.
  */
 export const DASHBOARD_PANEL_SYSTEM = Object.freeze({
-	heading: Object.freeze({ minimumLeadingRule: 3, preferredLeadingRule: 8 }),
-	todo: Object.freeze({ title: "TODO", progressCells: 10, completed: "✓", active: "▶", pending: "○", blocked: "◆" }),
-	tracer: Object.freeze({ title: "TRACER", flow: "FLOW", now: "NOW", health: "HEALTH" }),
+	heading : Object.freeze({ minimumLeadingRule: 3, preferredLeadingRule: 8 }),
+	todo    : Object.freeze({ title: "TODO", progressCells: 10, completed: "✓", active: "▶", pending: "○", blocked: "◆" }),
+	tracer  : Object.freeze({ title: "TRACER", flow: "FLOW", now: "NOW", health: "HEALTH" }),
 });
 
 export function dashboardProgressCells(width: number): number {

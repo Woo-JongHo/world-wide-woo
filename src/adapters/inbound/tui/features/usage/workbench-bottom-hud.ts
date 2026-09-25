@@ -1,4 +1,5 @@
-import { truncateToWidth, visibleWidth, type Component } from "@earendil-works/pi-tui";
+import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
+import type { Component }                from "@earendil-works/pi-tui";
 
 /** One shared row reserved for provider quota. */
 /** @Unit Code-010 */

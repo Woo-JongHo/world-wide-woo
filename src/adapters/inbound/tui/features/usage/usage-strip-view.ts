@@ -1,22 +1,23 @@
-import { truncateToWidth, visibleWidth, type Component } from "@earendil-works/pi-tui";
-import type { UsageLimitSnapshot, UsageSnapshot } from "../../../../../core/ports";
-import type { WorkbenchContextUsage, WorkbenchModelUsage } from "../../../../../core/domain/work/workbench";
-import chalk from "chalk";
-import { WORKBENCH_HUD_SYSTEM, compactTokenCount } from "./workbench-hud-system";
-import { runtimeModeLabel } from "../../foundation/labels";
-import { colors, palette } from "../../foundation/theme/theme";
+import { truncateToWidth, visibleWidth }                   from "@earendil-works/pi-tui";
+import type { Component }                                  from "@earendil-works/pi-tui";
+import type { UsageLimitSnapshot, UsageSnapshot }          from "@/core/ports";
+import type { WorkbenchContextUsage, WorkbenchModelUsage } from "@/core/domain/work/workbench";
+import chalk                                               from "chalk";
+import { WORKBENCH_HUD_SYSTEM, compactTokenCount }         from "@/adapters/inbound/tui/features/usage/workbench-hud-system";
+import { runtimeModeLabel }                                from "@/adapters/inbound/tui/foundation/labels";
+import { colors, palette }                                 from "@/adapters/inbound/tui/foundation/theme/theme";
 
 type ProviderLabel = "Codex" | "Claude" | "Antigravity" | "Z.AI";
 
 export interface UsageStripSession {
-	readonly models: readonly WorkbenchModelUsage[];
-	readonly activeModel?: string;
-	readonly effort?: string | null;
-	readonly contextUsage?: WorkbenchContextUsage | null;
-	readonly collaborationMode?: "manual" | "plan";
-	readonly permissionMode?: "manual" | "all";
-	readonly showUsage?: boolean;
-	readonly showContext?: boolean;
+	readonly models             : readonly WorkbenchModelUsage[] ;
+	readonly activeModel?       : string                         ;
+	readonly effort?            : string | null                  ;
+	readonly contextUsage?      : WorkbenchContextUsage | null   ;
+	readonly collaborationMode? : "manual" | "plan"              ;
+	readonly permissionMode?    : "manual" | "all"               ;
+	readonly showUsage?         : boolean                        ;
+	readonly showContext?       : boolean                        ;
 }
 
 function fit(text: string, width: number): string {
@@ -27,10 +28,10 @@ function fit(text: string, width: number): string {
 
 function resetIn(timestamp: number | undefined, now = Date.now()): string {
 	if (!timestamp || !Number.isFinite(timestamp)) return "";
-	const totalMinutes = Math.max(0, Math.ceil((timestamp - now) / 60_000));
-	const days = Math.floor(totalMinutes / 1_440);
-	const hours = Math.floor((totalMinutes % 1_440) / 60);
-	const minutes = totalMinutes % 60;
+	const totalMinutes = Math.max(0, Math.ceil((timestamp - now) / 60_000)) ;
+	const days         = Math.floor(totalMinutes / 1_440)                   ;
+	const hours        = Math.floor((totalMinutes % 1_440) / 60)            ;
+	const minutes      = totalMinutes % 60                                  ;
 	if (days > 0) return `${days}d ${hours}h`;
 	if (hours > 0) return `${hours}h ${String(minutes).padStart(2, "0")}m`;
 	return `${minutes}m`;
@@ -135,9 +136,9 @@ function runtimeMode(session: UsageStripSession | null | undefined): string {
 /** A single measured-telemetry row below the composer. */
 export class UsageStripView implements Component {
 	private snapshots: readonly UsageSnapshot[] = [
-		{ provider: "openai-codex", state: "loading", fetchedAt: Date.now(), limits: [] },
-		{ provider: "anthropic", state: "loading", fetchedAt: Date.now(), limits: [] },
-		{ provider: "google", state: "loading", fetchedAt: Date.now(), limits: [] },
+		{ provider : "openai-codex" , state : "loading" , fetchedAt : Date.now() , limits : [] },
+		{ provider : "anthropic"    , state : "loading" , fetchedAt : Date.now() , limits : [] },
+		{ provider : "google"       , state : "loading" , fetchedAt : Date.now() , limits : [] },
 	];
 
 	public constructor(private readonly session?: () => UsageStripSession | null | undefined) {}
@@ -147,13 +148,13 @@ export class UsageStripView implements Component {
 
 	public render(width: number): string[] {
 		if (width <= 0) return [];
-		const session = this.session?.();
-		const now = Date.now();
-		const codex = this.snapshots.find((snapshot) => snapshot.provider === "openai-codex");
-		const claude = this.snapshots.find((snapshot) => snapshot.provider === "anthropic");
-		const gemini = this.snapshots.find((snapshot) => snapshot.provider === "google");
-		const zai = this.snapshots.find((snapshot) => snapshot.provider === "zai");
-		const showZai = (zai !== undefined && zai.state !== "auth-required") || /^glm-/iu.test(session?.activeModel ?? "");
+		const session = this.session?.()                                                                                   ;
+		const now     = Date.now()                                                                                         ;
+		const codex   = this.snapshots.find((snapshot) => snapshot.provider === "openai-codex")                            ;
+		const claude  = this.snapshots.find((snapshot) => snapshot.provider === "anthropic")                               ;
+		const gemini  = this.snapshots.find((snapshot) => snapshot.provider === "google")                                  ;
+		const zai     = this.snapshots.find((snapshot) => snapshot.provider === "zai")                                     ;
+		const showZai = (zai !== undefined && zai.state !== "auth-required") || /^glm-/iu.test(session?.activeModel ?? "") ;
 		const line = [
 			runtimeMode(session),
 			...(session?.showUsage === false ? [] : [

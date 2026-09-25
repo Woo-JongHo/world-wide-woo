@@ -1,23 +1,18 @@
-import {
-	Markdown,
-	truncateToWidth,
-	visibleWidth,
-	wrapTextWithAnsi,
-	type Component,
-} from "@earendil-works/pi-tui";
-import type { SessionSnapshot } from "../../../../core/application/session/session-runtime";
-import type { Effort } from "../../../../core/domain/execution/model-settings";
-import { BashResultCard, GenericToolResultCard } from "../features/chat/result-cards";
-import { colors, gradientLines, markdownTheme, semantic } from "../foundation/theme/theme";
-export { UsageStripView } from "../features/usage/usage-strip-view";
+import { Markdown, truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
+import type { Component }                                            from "@earendil-works/pi-tui";
+import type { SessionSnapshot }                                      from "@/core/application/session/session-runtime";
+import type { Effort }                                               from "@/core/domain/execution/model-settings";
+import { BashResultCard, GenericToolResultCard }                     from "@/adapters/inbound/tui/features/chat/result-cards";
+import { colors, gradientLines, markdownTheme, semantic }            from "@/adapters/inbound/tui/foundation/theme/theme";
+export { UsageStripView } from "@/adapters/inbound/tui/features/usage/usage-strip-view";
 
 export const EFFORT_LABEL: Record<Effort, string> = {
-	low: "낮음",
-	medium: "보통",
-	high: "높음",
-	xhigh: "매우 높음",
-	max: "최대",
-	ultra: "최고",
+	low    : "낮음",
+	medium : "보통",
+	high   : "높음",
+	xhigh  : "매우 높음",
+	max    : "최대",
+	ultra  : "최고",
 };
 
 const LANDMARK = [
@@ -102,12 +97,12 @@ function transcriptEntryPriority(entry: TranscriptEntry): number {
 }
 
 export class TranscriptView implements Component {
-	private snapshot: SessionSnapshot;
-	private readonly markdownByTurn = new Map<string, Markdown>();
-	private readonly draft = new Markdown("", 0, 0, markdownTheme);
-	private projectionKey = "";
-	private readonly stableRowsByWidth = new Map<number, string[]>();
-	private readonly entryRowsByWidth = new Map<number, Map<string, { key: string; rows: string[] }>>();
+	private snapshot: SessionSnapshot                                                                    ;
+	private readonly markdownByTurn    = new Map<string, Markdown>()                                     ;
+	private readonly draft             = new Markdown("", 0, 0, markdownTheme)                           ;
+	private projectionKey              = ""                                                              ;
+	private readonly stableRowsByWidth = new Map<number, string[]>()                                     ;
+	private readonly entryRowsByWidth  = new Map<number, Map<string, { key: string; rows: string[] }>>() ;
 
 	constructor(initial: SessionSnapshot) {
 		this.snapshot = initial;
@@ -252,16 +247,16 @@ export class TranscriptView implements Component {
 	}
 
 	private renderWelcome(width: number): string[] {
-		const settings = this.snapshot.settings;
-		const auth = this.snapshot.auth;
-		const authConfigured = auth?.configured ?? false;
+		const settings       = this.snapshot.settings    ;
+		const auth           = this.snapshot.auth        ;
+		const authConfigured = auth?.configured ?? false ;
 		const authPill = this.pill(
 			authConfigured ? `인증됨 · ${auth?.source ?? settings.provider}` : "인증 필요",
 			authConfigured ? colors.success : colors.warning,
 		);
-		const modelPill = this.pill(`${settings.provider} · ${settings.model}`, colors.highlight);
-		const effortPill = this.pill(`추론 ${EFFORT_LABEL[settings.effort]}`, colors.secondary);
-		const rows: string[] = [""];
+		const modelPill       = this.pill(`${settings.provider} · ${settings.model}`, colors.highlight) ;
+		const effortPill      = this.pill(`추론 ${EFFORT_LABEL[settings.effort]}`, colors.secondary)    ;
+		const rows : string[] = [""]                                                                    ;
 		if (width >= 21) rows.push(...gradientLines(LANDMARK).map((line) => center(line, width)), "");
 		rows.push(
 			center(colors.accent("WWW · World Wide Woo"), width),

@@ -7,9 +7,8 @@ import {
 	VStack,
 	isViewportTUI,
 	matchesKey,
-	type OverlayHandle,
-	type Terminal,
 } from "@earendil-works/pi-tui";
+import type { OverlayHandle, Terminal }                    from "@earendil-works/pi-tui";
 import type {
 	AuthController,
 	ComposerDraftController,
@@ -17,63 +16,63 @@ import type {
 	RouterSettingsController,
 	TodoController,
 	UsageMonitor,
-} from "../../../../core/ports";
-import type { SessionRuntime } from "../../../../core/application/session/session-runtime";
-import type { SessionMonitor } from "../../../../core/application/session/session-monitor";
-import type { PlanningService } from "../../../../core/application/work/planning-service";
-import { MODELS, type WwwSettings } from "../../../../core/domain/execution/model-settings";
-import { todoProgress } from "../../../../core/domain/work/todos";
-import { sanitizeTerminalText } from "../../../../core/domain/execution/terminal";
-import { AuthFlowOverlay } from "../features/authentication/auth-overlay";
-import { createDashboardLayout } from "../foundation/layout/dashboard-layout";
+} from "@/core/ports";
+import type { SessionRuntime }                             from "@/core/application/session/session-runtime";
+import type { SessionMonitor }                             from "@/core/application/session/session-monitor";
+import type { PlanningService }                            from "@/core/application/work/planning-service";
+import { MODELS }                                          from "@/core/domain/execution/model-settings";
+import type { WwwSettings }                                from "@/core/domain/execution/model-settings";
+import { todoProgress }                                    from "@/core/domain/work/todos";
+import { sanitizeTerminalText }                            from "@/core/domain/execution/terminal";
+import { AuthFlowOverlay }                                 from "@/adapters/inbound/tui/features/authentication/auth-overlay";
+import { createDashboardLayout }                           from "@/adapters/inbound/tui/foundation/layout/dashboard-layout";
+import { RouterModelView, TranscriptView, UsageStripView } from "@/adapters/inbound/tui/legacy/legacy-dashboard-views";
+import { StatusLine, WorkspaceTodoView }                   from "@/adapters/inbound/tui/features/dashboard/shared-dashboard-views";
+import { OverlaySheet }                                    from "@/adapters/inbound/tui/foundation/components/overlay-sheet";
 import {
-	RouterModelView,
-	TranscriptView,
-	UsageStripView,
-} from "./legacy-dashboard-views";
-import { StatusLine, WorkspaceTodoView } from "../features/dashboard/shared-dashboard-views";
-import { OverlaySheet } from "../foundation/components/overlay-sheet";
-import { IssueListOverlay, RepositoryActivityOverlay } from "../features/repository/repository-overlays";
-import { LoginProviderOverlay } from "./router-overlays";
-import { ModelPickerOverlay } from "../features/model-selection/model-picker-overlay";
-import { MonitoringOverlay } from "../features/monitoring/monitoring-overlay";
-import { RenderScheduler } from "../foundation/rendering/render-scheduler";
+	IssueListOverlay,
+	RepositoryActivityOverlay,
+} from "@/adapters/inbound/tui/features/repository/repository-overlays";
+import { LoginProviderOverlay }                            from "@/adapters/inbound/tui/legacy/router-overlays";
+import { ModelPickerOverlay }                              from "@/adapters/inbound/tui/features/model-selection/model-picker-overlay";
+import { MonitoringOverlay }                               from "@/adapters/inbound/tui/features/monitoring/monitoring-overlay";
+import { RenderScheduler }                                 from "@/adapters/inbound/tui/foundation/rendering/render-scheduler";
 import {
 	parseShellCommand,
 	parseTerminalCommand,
 	shellCommandConcurrency,
 	SLASH_COMMANDS,
-} from "../commands/slash-commands";
-import { settleWithin } from "../shell/shell-lifecycle";
-import { colors, editorTheme } from "../foundation/theme/theme";
-import { ExitKeyPolicy } from "../shell/exit-key-policy";
+} from "@/adapters/inbound/tui/commands/slash-commands";
+import { settleWithin }                                    from "@/adapters/inbound/tui/shell/shell-lifecycle";
+import { colors, editorTheme }                             from "@/adapters/inbound/tui/foundation/theme/theme";
+import { ExitKeyPolicy }                                   from "@/adapters/inbound/tui/shell/exit-key-policy";
 
 const LEGACY_STATUS_NOTICE = "호환 Router · Native 기능 제한 · /model · /login · /usage · Ctrl+D 종료";
 
 export interface TuiShellDependencies {
-	terminal?: Terminal;
-	runtime: SessionRuntime;
-	auth: AuthController;
-	usage: UsageMonitor;
-	routerSettings: RouterSettingsController;
-	repository: RepositoryInsights;
-	composerDraft: ComposerDraftController;
-	releaseSessionLease: () => Promise<void>;
-	todos: TodoController;
-	monitor: SessionMonitor;
-	planning: PlanningService;
+	terminal?           : Terminal                 ;
+	runtime             : SessionRuntime           ;
+	auth                : AuthController           ;
+	usage               : UsageMonitor             ;
+	routerSettings      : RouterSettingsController ;
+	repository          : RepositoryInsights       ;
+	composerDraft       : ComposerDraftController  ;
+	releaseSessionLease : () => Promise<void>      ;
+	todos               : TodoController           ;
+	monitor             : SessionMonitor           ;
+	planning            : PlanningService          ;
 }
 
 export function runTuiShell(dependencies: TuiShellDependencies): void {
 	const { runtime, auth, usage, routerSettings, repository, composerDraft, releaseSessionLease, todos, monitor, planning } = dependencies;
-	const tui = new TuiAltScreen(dependencies.terminal ?? new ProcessTerminal(), true);
-	let snapshot = runtime.snapshot;
-	let todoSnapshot = todos.snapshot;
-	const status = new StatusLine(LEGACY_STATUS_NOTICE);
-	const usageStrip = new UsageStripView();
-	const routerModel = new RouterModelView(() => snapshot);
-	const workspaceTodo = new WorkspaceTodoView(() => todoSnapshot);
-	const transcript = new TranscriptView(snapshot);
+	const tui           = new TuiAltScreen(dependencies.terminal ?? new ProcessTerminal(), true) ;
+	let snapshot        = runtime.snapshot                                                       ;
+	let todoSnapshot    = todos.snapshot                                                         ;
+	const status        = new StatusLine(LEGACY_STATUS_NOTICE)                                   ;
+	const usageStrip    = new UsageStripView()                                                   ;
+	const routerModel   = new RouterModelView(() => snapshot)                                    ;
+	const workspaceTodo = new WorkspaceTodoView(() => todoSnapshot)                              ;
+	const transcript    = new TranscriptView(snapshot)                                           ;
 	const dashboard = createDashboardLayout(
 		() => `🐙 WWW · ${snapshot.settings.provider}/${snapshot.settings.model} · ${
 			snapshot.phase === "streaming"
@@ -88,23 +87,23 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 	editor.setAutocompleteProvider(new CombinedAutocompleteProvider(SLASH_COMMANDS, process.cwd()));
 	if (composerDraft.initialText) editor.setText(composerDraft.initialText);
 	const root = new VStack([
-		{ component: dashboard.component, basis: 0, grow: 1, shrink: 1, minSize: 1 },
-		{ component: usageStrip, basis: 1, minSize: 1, maxSize: 1 },
-		{ component: editor, basis: "auto", shrink: 1, minSize: 3 },
-		{ component: status, basis: 1, minSize: 1, maxSize: 1, visible: ({ height }) => height >= 6 },
+		{ component : dashboard.component , basis : 0      , grow    : 1 , shrink  : 1 , minSize : 1                           },
+		{ component : usageStrip          , basis : 1      , minSize : 1 , maxSize : 1                                         },
+		{ component : editor              , basis : "auto" , shrink  : 1 , minSize : 3                                         },
+		{ component : status              , basis : 1      , minSize : 1 , maxSize : 1 , visible : ({ height }) => height >= 6 },
 	]);
 
-	let overlay: OverlayHandle | null = null;
-	let shuttingDown = false;
-	let pendingModelSettings: WwwSettings | null = null;
-	let clearedExitDraft: string | null = null;
-	let clearedExitDraftTimer: ReturnType<typeof setTimeout> | undefined;
-	let overlayHandlesInterrupt = false;
-	let overlayMutationLocked = false;
-	let monitoringOverlay: MonitoringOverlay | null = null;
-	let settingsMutationInFlight = false;
-	const exitKeys = new ExitKeyPolicy();
-	let unsubscribeRuntime = () => {};
+	let overlay               : OverlayHandle | null     = null                ;
+	let shuttingDown                                     = false               ;
+	let pendingModelSettings  : WwwSettings | null       = null                ;
+	let clearedExitDraft      : string | null            = null                ;
+	let clearedExitDraftTimer : ReturnType<typeof setTimeout> | undefined      ;
+	let overlayHandlesInterrupt                          = false               ;
+	let overlayMutationLocked                            = false               ;
+	let monitoringOverlay     : MonitoringOverlay | null = null                ;
+	let settingsMutationInFlight                         = false               ;
+	const exitKeys                                       = new ExitKeyPolicy() ;
+	let unsubscribeRuntime                               = () => {}            ;
 	const unsubscribeTodo = todos.subscribe((next) => {
 		todoSnapshot = next;
 		tui.requestRender();
@@ -122,10 +121,10 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 		if (!overlay || overlay !== expected) return false;
 		overlay.hide();
 		monitoringOverlay?.stop();
-		monitoringOverlay = null;
-		overlay = null;
-		overlayHandlesInterrupt = false;
-		overlayMutationLocked = false;
+		monitoringOverlay       = null  ;
+		overlay                 = null  ;
+		overlayHandlesInterrupt = false ;
+		overlayMutationLocked   = false ;
 		tui.setFocus(editor);
 		return true;
 	};

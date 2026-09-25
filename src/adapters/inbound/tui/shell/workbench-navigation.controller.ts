@@ -1,10 +1,11 @@
-import { ScrollView, VStack, type Component } from "@earendil-works/pi-tui";
-import type { DevelopmentMapSnapshot } from "../../../../core/domain/development/development-map";
-import type { AstraPage } from "./astra-surface";
+import { ScrollView, VStack }          from "@earendil-works/pi-tui";
+import type { Component }              from "@earendil-works/pi-tui";
+import type { DevelopmentMapSnapshot } from "@/core/domain/development/development-map";
+import type { AstraPage }              from "@/adapters/inbound/tui/shell/astra-surface";
 
-export type WorkbenchBaseViewMode = "workbench";
-export type ObservabilityViewMode = "stats" | "dashboard" | "monitor";
-export type WorkbenchViewMode = WorkbenchBaseViewMode | ObservabilityViewMode | "map" | "source" | "test";
+export type WorkbenchBaseViewMode = "workbench"                                                               ;
+export type ObservabilityViewMode = "stats" | "dashboard" | "monitor"                                         ;
+export type WorkbenchViewMode     = WorkbenchBaseViewMode | ObservabilityViewMode | "map" | "source" | "test" ;
 
 export function workbenchViewModeCommand(text: string): WorkbenchViewMode | null {
 	const command = text.trim().toLowerCase();
@@ -83,10 +84,10 @@ export class DevelopmentMapPollingLifecycle {
 /** A stable layout slot whose active component and keyboard owner can change without rebuilding the root. */
 export class ComponentSlot implements Component {
 	public constructor(private current: Component) {}
-	public set(component: Component): void { this.current = component; }
-	public invalidate(): void { this.current.invalidate(); }
-	public render(width: number): string[] { return this.current.render(width); }
-	public handleInput(data: string): void { this.current.handleInput?.(data); }
+	public set        (component: Component): void { this.current = component; }
+	public invalidate ()                    : void { this.current.invalidate(); }
+	public render     (width: number       ): string[] { return this.current.render(width); }
+	public handleInput(data: string        ): void { this.current.handleInput?.(data); }
 }
 
 export function createWorkbenchViewHost(
@@ -100,24 +101,24 @@ export function createWorkbenchViewHost(
 	test?: Component,
 ): Component {
 	return new VStack([
-		{ component: workbench, basis: 0, grow: 1, shrink: 1, minSize: 1, visible: () => getMode() === "workbench" },
-		{ component: dashboard, basis: 0, grow: 1, shrink: 1, minSize: 1, visible: () => getMode() === "dashboard" },
-		{ component: monitor, basis: 0, grow: 1, shrink: 1, minSize: 1, visible: () => getMode() === "monitor" },
-		{ component: source, basis: 0, grow: 1, shrink: 1, minSize: 1, visible: () => getMode() === "source" },
-		{ component: map, basis: 0, grow: 1, shrink: 1, minSize: 1, visible: () => getMode() === "map" },
-		{ component: stats, basis: 0, grow: 1, shrink: 1, minSize: 1, visible: () => getMode() === "stats" },
-		{ component: test ?? workbench, basis: 0, grow: 1, shrink: 1, minSize: 1, visible: () => getMode() === "test" },
+		{ component : workbench         , basis : 0 , grow : 1 , shrink : 1 , minSize : 1 , visible : () => getMode() === "workbench" },
+		{ component : dashboard         , basis : 0 , grow : 1 , shrink : 1 , minSize : 1 , visible : () => getMode() === "dashboard" },
+		{ component : monitor           , basis : 0 , grow : 1 , shrink : 1 , minSize : 1 , visible : () => getMode() === "monitor"   },
+		{ component : source            , basis : 0 , grow : 1 , shrink : 1 , minSize : 1 , visible : () => getMode() === "source"    },
+		{ component : map               , basis : 0 , grow : 1 , shrink : 1 , minSize : 1 , visible : () => getMode() === "map"       },
+		{ component : stats             , basis : 0 , grow : 1 , shrink : 1 , minSize : 1 , visible : () => getMode() === "stats"     },
+		{ component : test ?? workbench , basis : 0 , grow : 1 , shrink : 1 , minSize : 1 , visible : () => getMode() === "test"      },
 	]);
 }
 
 interface NavigationTargets {
-	readonly editor: Component;
-	readonly dashboard: ScrollView;
-	readonly monitor: ScrollView;
-	readonly source: ScrollView;
-	readonly map: ScrollView;
-	readonly stats: ScrollView;
-	readonly test: ScrollView;
+	readonly editor    : Component  ;
+	readonly dashboard : ScrollView ;
+	readonly monitor   : ScrollView ;
+	readonly source    : ScrollView ;
+	readonly map       : ScrollView ;
+	readonly stats     : ScrollView ;
+	readonly test      : ScrollView ;
 }
 
 interface AstraNavigationSurface {
@@ -128,9 +129,9 @@ interface AstraNavigationSurface {
 
 /** Owns view-mode transitions, map polling, browse state, and the focus target chosen by each transition. */
 export class WorkbenchNavigationController {
-	private currentMode: WorkbenchViewMode;
-	private astraBrowse = false;
-	private observabilityBrowse = false;
+	private currentMode: WorkbenchViewMode ;
+	private astraBrowse         = false    ;
+	private observabilityBrowse = false    ;
 
 	public constructor(
 		initialMode: WorkbenchViewMode,

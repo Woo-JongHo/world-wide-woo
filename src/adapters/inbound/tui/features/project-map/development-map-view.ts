@@ -1,7 +1,8 @@
-import { truncateToWidth, visibleWidth, wrapTextWithAnsi, type Component } from "@earendil-works/pi-tui";
-import type { DevelopmentMapEpic, DevelopmentMapSnapshot } from "../../../../../core/domain/development/development-map.js";
-import { sanitizeTerminalTextUnbounded } from "../../../../../core/domain/execution/terminal.js";
-import { colors } from "../../foundation/theme/theme.js";
+import { truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
+import type { Component }                                  from "@earendil-works/pi-tui";
+import type { DevelopmentMapEpic, DevelopmentMapSnapshot } from "@/core/domain/development/development-map.js";
+import { sanitizeTerminalTextUnbounded }                   from "@/core/domain/execution/terminal.js";
+import { colors }                                          from "@/adapters/inbound/tui/foundation/theme/theme.js";
 
 const SOURCE_TEXT_MAX_WIDTH = 72;
 
@@ -9,11 +10,11 @@ export class DevelopmentMapView implements Component {
 	public constructor(private readonly source: () => DevelopmentMapSnapshot) {}
 	public invalidate(): void {}
 	public render(width: number): string[] {
-		const snapshot = this.source();
-		const epics = [...snapshot.initiatives.flatMap(item => item.epics), ...snapshot.unlinkedEpics];
-		const stories = epics.flatMap(item => item.stories);
-		const accepted = stories.filter(item => item.status === "accepted").length;
-		const sourceAvailable = snapshot.sourceHealth.state === "available" || snapshot.sourceHealth.state === "stale";
+		const snapshot        = this.source()                                                                          ;
+		const epics           = [...snapshot.initiatives.flatMap(item => item.epics), ...snapshot.unlinkedEpics]       ;
+		const stories         = epics.flatMap(item => item.stories)                                                    ;
+		const accepted        = stories.filter(item => item.status === "accepted").length                              ;
+		const sourceAvailable = snapshot.sourceHealth.state === "available" || snapshot.sourceHealth.state === "stale" ;
 		const lines = [
 			colors.accent(" WORLD WIDE WOO / DEVELOPMENT MAP"),
 			colors.muted(` Planning revision ${snapshot.revision} · ${snapshot.sourceHealth.state} · read-only projection${snapshot.sourceHealth.error ? ` · ${sourceText(snapshot.sourceHealth.error)}` : ""}`),

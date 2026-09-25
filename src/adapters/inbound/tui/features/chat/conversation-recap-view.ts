@@ -1,7 +1,7 @@
-import { wrapTextWithAnsi } from "@earendil-works/pi-tui";
-import { currentConversationRecap } from "../../../../../core/application/work/conversation-recap.js";
-import type { WorkbenchSnapshot } from "../../../../../core/domain/work/workbench.js";
-import { a, fit, section } from "../../foundation/theme/astra-theme.js";
+import { wrapTextWithAnsi }         from "@earendil-works/pi-tui";
+import { currentConversationRecap } from "@/core/application/work/conversation-recap.js";
+import type { WorkbenchSnapshot }   from "@/core/domain/work/workbench.js";
+import { a, fit, section }          from "@/adapters/inbound/tui/foundation/theme/astra-theme.js";
 
 /**
  * Renders the bounded public recap inside Chat's existing expanded transcript.

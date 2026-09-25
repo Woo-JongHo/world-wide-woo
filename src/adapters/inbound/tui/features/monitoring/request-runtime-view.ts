@@ -1,23 +1,24 @@
-import chalk from "chalk";
-import { visibleWidth } from "@earendil-works/pi-tui";
-import type { RequestRuntimeRecord } from "../../../../../core/domain/execution/request-runtime";
-import { a, fit, prose, safe, section } from "../../foundation/theme/astra-theme";
-import { statusCardRows } from "../../foundation/components/status-card";
+import chalk                            from "chalk";
+import { visibleWidth }                 from "@earendil-works/pi-tui";
+import type { RequestRuntimeRecord }    from "@/core/domain/execution/request-runtime";
+import { a, fit, prose, safe, section } from "@/adapters/inbound/tui/foundation/theme/astra-theme";
+import { statusCardRows }               from "@/adapters/inbound/tui/foundation/components/status-card";
 
-const statusGradient = {
-	pending: { base: [72, 75, 92], peak: [170, 174, 196] },
-	running: { base: [67, 72, 122], peak: [168, 177, 255] },
-	completed: { base: [43, 91, 75], peak: [119, 191, 163] },
-} as const;
+type StatusGradient = { readonly base: readonly [number, number, number]; readonly peak: readonly [number, number, number] };
+const statusGradient: Partial<Record<RequestRuntimeRecord["status"], StatusGradient>> = {
+	pending   : { base: [72, 75, 92], peak: [170, 174, 196] },
+	running   : { base: [67, 72, 122], peak: [168, 177, 255] },
+	completed : { base: [43, 91, 75], peak: [119, 191, 163] },
+};
 
 export function requestStatusGradient(status: RequestRuntimeRecord["status"], text: string, frame = 8): string {
-	const palette = statusGradient[status as keyof typeof statusGradient];
+	const palette = statusGradient[status];
 	if (!palette) return (status === "failed" ? a.failure : status === "blocked" ? a.attention : a.muted)(text);
 	const characters = Array.from(text);
 	return characters.map((character, column) => {
 		const light = Math.max(0, 1 - Math.abs(column - frame % (characters.length + 6) + 3) / 4);
-		const rgb = palette.base.map((channel, index) => Math.round(channel + (palette.peak[index]! - channel) * light));
-		return chalk.rgb(rgb[0]!, rgb[1]!, rgb[2]!)(character);
+		const rgb = palette.base.map((channel, index) => Math.round(channel + (palette.peak[index] - channel) * light));
+		return chalk.rgb(rgb[0], rgb[1], rgb[2])(character);
 	}).join("");
 }
 

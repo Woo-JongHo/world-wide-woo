@@ -15,20 +15,20 @@ export type TuiFeatureStatus = "active" | "retired";
 export type TuiFeatureUnitStatus = "active" | "legacy" | "unwired" | "retired";
 
 export interface TuiFeatureUnitDescriptor {
-	readonly id: TuiFeatureUnitId;
-	readonly featureId: TuiFeatureId;
-	readonly key: string;
-	readonly title: string;
-	readonly status: TuiFeatureUnitStatus;
+	readonly id        : TuiFeatureUnitId     ;
+	readonly featureId : TuiFeatureId         ;
+	readonly key       : string               ;
+	readonly title     : string               ;
+	readonly status    : TuiFeatureUnitStatus ;
 }
 
 export interface TuiFeatureDescriptor {
-	readonly id: TuiFeatureId;
-	readonly key: string;
-	readonly title: string;
-	readonly order: number;
-	readonly kind: TuiFeatureKind;
-	readonly route?: string;
-	readonly status: TuiFeatureStatus;
-	readonly units: readonly TuiFeatureUnitDescriptor[];
+	readonly id     : TuiFeatureId                        ;
+	readonly key    : string                              ;
+	readonly title  : string                              ;
+	readonly order  : number                              ;
+	readonly kind   : TuiFeatureKind                      ;
+	readonly route? : string                              ;
+	readonly status : TuiFeatureStatus                    ;
+	readonly units  : readonly TuiFeatureUnitDescriptor[] ;
 }

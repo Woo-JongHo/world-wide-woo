@@ -1,7 +1,7 @@
-import { wrapTextWithAnsi } from "@earendil-works/pi-tui";
-import { sanitizeTerminalTextExcerpt } from "../../../../../core/domain/execution/terminal";
-import type { WorkbenchSnapshot } from "../../../../../core/domain/work/workbench";
-import { colors, semantic } from "../../foundation/theme/theme";
+import { wrapTextWithAnsi }            from "@earendil-works/pi-tui";
+import { sanitizeTerminalTextExcerpt } from "@/core/domain/execution/terminal";
+import type { WorkbenchSnapshot }      from "@/core/domain/work/workbench";
+import { colors, semantic }            from "@/adapters/inbound/tui/foundation/theme/theme";
 
 function publicRecord(value: unknown): Readonly<Record<string, unknown>> | null {
 	return value && typeof value === "object" && !Array.isArray(value)
@@ -19,10 +19,10 @@ export function publicTimelineActivityRows(
 	activity: WorkbenchSnapshot["activities"][number],
 	width: number,
 ): string[] | null {
-	const method = publicText(activity.payload.method)?.toLowerCase() ?? "";
-	const params = publicRecord(activity.payload.params);
-	const item = publicRecord(params?.item);
-	const itemType = publicText(item?.type)?.toLowerCase() ?? "";
+	const method   = publicText(activity.payload.method)?.toLowerCase() ?? "" ;
+	const params   = publicRecord(activity.payload.params)                    ;
+	const item     = publicRecord(params?.item)                               ;
+	const itemType = publicText(item?.type)?.toLowerCase() ?? ""              ;
 	if (method === "turn/plan/updated") {
 		const plan = Array.isArray(params?.plan) ? params.plan : [];
 		const entries = plan.flatMap((value) => {
@@ -40,12 +40,12 @@ export function publicTimelineActivityRows(
 	}
 	if (itemType === "contextcompaction") return [colors.muted("컨텍스트가 자동으로 압축됨")];
 	if (itemType === "collabtoolcall" || itemType === "collabagenttoolcall") {
-		const prompt = publicText(item?.prompt, 120)?.split(/\r?\n/u)[0];
-		const tool = publicText(item?.tool, 80);
-		const label = prompt || tool || "서브에이전트";
-		const nativeStatus = publicText(item?.status)?.toLowerCase() ?? "";
-		const failed = activity.phase === "failed" || nativeStatus === "failed" || nativeStatus === "errored";
-		const interrupted = activity.phase === "cancelled" || nativeStatus === "interrupted";
+		const prompt       = publicText(item?.prompt, 120)?.split(/\r?\n/u)[0]                                      ;
+		const tool         = publicText(item?.tool, 80)                                                             ;
+		const label        = prompt || tool || "서브에이전트"                                                       ;
+		const nativeStatus = publicText(item?.status)?.toLowerCase() ?? ""                                          ;
+		const failed       = activity.phase === "failed" || nativeStatus === "failed" || nativeStatus === "errored" ;
+		const interrupted  = activity.phase === "cancelled" || nativeStatus === "interrupted"                       ;
 		const running = activity.phase === "started" || activity.phase === "updated"
 			|| nativeStatus === "inprogress" || nativeStatus === "running";
 		const state = failed ? "작업 실패" : interrupted ? "작업 중단됨" : running ? "작업 시작됨" : "작업 완료됨";

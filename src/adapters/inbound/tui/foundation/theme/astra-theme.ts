@@ -1,6 +1,7 @@
-import chalk from "chalk";
-import { truncateToWidth, visibleWidth, wrapTextWithAnsi, type EditorTheme, type MarkdownTheme } from "@earendil-works/pi-tui";
-import { getActiveTuiTheme, palette } from "./theme";
+import chalk                                               from "chalk";
+import { truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
+import type { EditorTheme, MarkdownTheme }                 from "@earendil-works/pi-tui";
+import { getActiveTuiTheme, palette }                      from "@/adapters/inbound/tui/foundation/theme/theme";
 
 /** Figma reference inks for the default Gruvbox and the Tokyo Night theme. */
 export const astraPalette = {
@@ -75,12 +76,12 @@ function boundedTerminalText(value: string, maximum: number): string {
 	if (Array.from(value).length <= maximum) return sanitizeTerminalText(value);
 	const markerLength = Array.from(TRUNCATION_MARKER).length;
 	if (maximum <= markerLength) return takeHead(TRUNCATION_MARKER, maximum);
-	const contentBudget = maximum - markerLength;
-	const headBudget = Math.ceil(contentBudget / 2);
-	const tailBudget = contentBudget - headBudget;
-	const head = sanitizeTerminalText(takeHead(value, headBudget + BOUNDARY_CONTEXT_CODE_POINTS));
-	const rawTail = takeTail(value, tailBudget + BOUNDARY_CONTEXT_CODE_POINTS);
-	const tail = sanitizeTerminalText(rawTail).replace(/^\S+/u, "");
+	const contentBudget = maximum - markerLength                                                           ;
+	const headBudget    = Math.ceil(contentBudget / 2)                                                     ;
+	const tailBudget    = contentBudget - headBudget                                                       ;
+	const head          = sanitizeTerminalText(takeHead(value, headBudget + BOUNDARY_CONTEXT_CODE_POINTS)) ;
+	const rawTail       = takeTail(value, tailBudget + BOUNDARY_CONTEXT_CODE_POINTS)                       ;
+	const tail          = sanitizeTerminalText(rawTail).replace(/^\S+/u, "")                               ;
 	return `${takeHead(head, headBudget)}${TRUNCATION_MARKER}${takeTail(tail, tailBudget)}`;
 }
 /** A compact typographic landmark; color belongs to the label, not the body. */
@@ -90,8 +91,8 @@ export function astraPulse(frame: number, width = 12): string {
 	const base = [60, 56, 54], peak = [254, 128, 25];
 	return Array.from({ length: width }, (_, column) => {
 		const light = Math.max(0, 1 - Math.abs(column - frame % (width + 6) + 3) / 4);
-		const rgb = base.map((channel, i) => Math.round(channel + (peak[i]! - channel) * light));
-		return chalk.rgb(rgb[0]!, rgb[1]!, rgb[2]!)("━");
+		const rgb = base.map((channel, i) => Math.round(channel + (peak[i] - channel) * light));
+		return chalk.rgb(rgb[0], rgb[1], rgb[2])("━");
 	}).join("");
 }
 /** A restrained moving gradient for persistent, user-authored header context. */
@@ -100,8 +101,8 @@ export function astraFlowText(text: string, frame = 0): string {
 	const start = [254, 128, 25], end = [211, 134, 155];
 	return characters.map((character, index) => {
 		const wave = (Math.sin((index + frame) / 4) + 1) / 2;
-		const rgb = start.map((channel, channelIndex) => Math.round(channel + (end[channelIndex]! - channel) * wave));
-		return chalk.rgb(rgb[0]!, rgb[1]!, rgb[2]!)(character);
+		const rgb = start.map((channel, channelIndex) => Math.round(channel + (end[channelIndex] - channel) * wave));
+		return chalk.rgb(rgb[0], rgb[1], rgb[2])(character);
 	}).join("");
 }
 /** Compatible semantic roles for the existing authentication/model state machines. */
@@ -164,9 +165,9 @@ export function number(value: number | null | undefined): string {
 }
 export function duration(ms: number | null | undefined): string {
 	if (ms == null || !Number.isFinite(ms)) return "—";
-	const totalSeconds = Math.max(0, Math.floor(ms / 1000));
-	const hours = Math.floor(totalSeconds / 3600);
-	const minutes = Math.floor(totalSeconds % 3600 / 60);
-	const seconds = totalSeconds % 60;
+	const totalSeconds = Math.max(0, Math.floor(ms / 1000))   ;
+	const hours        = Math.floor(totalSeconds / 3600)      ;
+	const minutes      = Math.floor(totalSeconds % 3600 / 60) ;
+	const seconds      = totalSeconds % 60                    ;
 	return [hours ? `${hours}h` : "", hours || minutes ? `${minutes}m` : "", `${seconds}s`].filter(Boolean).join(" ");
 }

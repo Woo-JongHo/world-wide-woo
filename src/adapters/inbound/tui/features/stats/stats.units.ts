@@ -1,4 +1,4 @@
-import type { TuiFeatureUnitDescriptor } from "../feature.types";
+import type { TuiFeatureUnitDescriptor } from "@/adapters/inbound/tui/features/feature.types";
 
 export const statsUnits = [
 	{ id: "TUI-F008-U01", featureId: "TUI-F008", key: "session-review-diagnostics", title: "Session Review·Diagnostics", status: "active" },

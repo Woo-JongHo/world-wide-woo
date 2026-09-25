@@ -1,12 +1,10 @@
-import { truncateToWidth, visibleWidth, type Component } from "@earendil-works/pi-tui";
-import {
-	HIERARCHICAL_TRIPLE_PRESET,
-	ThreeBodySimulation,
-	type ThreeBodySnapshot,
-	type Vector2,
-} from "../../../../../core/domain/work/three-body-simulation";
-import { colors } from "../../foundation/theme/theme";
-import { renderThreeBodyBrailleFrame, type ThreeBodyTrail } from "./three-body-braille";
+import { truncateToWidth, visibleWidth }                   from "@earendil-works/pi-tui";
+import type { Component }                                  from "@earendil-works/pi-tui";
+import { HIERARCHICAL_TRIPLE_PRESET, ThreeBodySimulation } from "@/core/domain/work/three-body-simulation";
+import type { ThreeBodySnapshot, Vector2 }                 from "@/core/domain/work/three-body-simulation";
+import { colors }                                          from "@/adapters/inbound/tui/foundation/theme/theme";
+import { renderThreeBodyBrailleFrame }                     from "@/adapters/inbound/tui/features/chat/three-body-braille";
+import type { ThreeBodyTrail }                             from "@/adapters/inbound/tui/features/chat/three-body-braille";
 
 export interface ThreeBodyLabOptions {
 	readonly viewportHeight?: () => number;
@@ -23,15 +21,19 @@ function fit(text: string, width: number): string {
 }
 
 function referenceTrail(): readonly ThreeBodyTrail[] {
-	const simulation = ThreeBodySimulation.fromPreset(HIERARCHICAL_TRIPLE_PRESET);
-	const points = new Map<string, Vector2[]>(HIERARCHICAL_TRIPLE_PRESET.bodies.map(body => [body.id, []]));
-	const sampleStep = 0.02;
+	const simulation = ThreeBodySimulation.fromPreset(HIERARCHICAL_TRIPLE_PRESET)                               ;
+	const points     = new Map<string, Vector2[]>(HIERARCHICAL_TRIPLE_PRESET.bodies.map(body => [body.id, []])) ;
+	const sampleStep = 0.02                                                                                     ;
 	for (let elapsed = 0; elapsed <= HIERARCHICAL_TRIPLE_PRESET.referenceDuration; elapsed += sampleStep) {
 		const snapshot = simulation.snapshot();
-		for (const body of snapshot.bodies) points.get(body.id)!.push(body.position);
+		for (const body of snapshot.bodies) {
+			const trail = points.get(body.id);
+			if (!trail) throw new Error(`Unknown simulation body: ${body.id}`);
+			trail.push(body.position);
+		}
 		simulation.advance(Math.min(sampleStep, Math.max(0, HIERARCHICAL_TRIPLE_PRESET.referenceDuration - elapsed)));
 	}
-	return HIERARCHICAL_TRIPLE_PRESET.bodies.map(body => ({ bodyId: body.id, points: points.get(body.id)! }));
+	return HIERARCHICAL_TRIPLE_PRESET.bodies.map(body => ({ bodyId: body.id, points: points.get(body.id) ?? [] }));
 }
 
 const HIERARCHICAL_REFERENCE_TRAIL = referenceTrail();
@@ -67,15 +69,15 @@ function bodyRows(snapshot: ThreeBodySnapshot, width: number): string[] {
 
 /** Interactive TUI surface backed by the actual nonlinear three-body ODE. */
 export class ThreeBodyLabView implements Component {
-	private simulation = ThreeBodySimulation.fromPreset(HIERARCHICAL_TRIPLE_PRESET);
-	private paused = false;
-	private showTrail = true;
-	private speedIndex = SPEEDS.indexOf(4);
-	private timer: ReturnType<typeof setInterval> | null = null;
-	private previousFrameAt = 0;
-	private requestRender: (() => void) | null = null;
-	private readonly viewportHeight: () => number;
-	private readonly onClose: () => void;
+	private simulation                                                      = ThreeBodySimulation.fromPreset(HIERARCHICAL_TRIPLE_PRESET) ;
+	private paused                                                          = false                                                      ;
+	private showTrail                                                       = true                                                       ;
+	private speedIndex                                                      = SPEEDS.indexOf(4)                                          ;
+	private timer                   : ReturnType<typeof setInterval> | null = null                                                       ;
+	private previousFrameAt                                                 = 0                                                          ;
+	private requestRender           : (() => void) | null                   = null                                                       ;
+	private readonly viewportHeight : () => number                                                                                       ;
+	private readonly onClose        : () => void                                                                                         ;
 
 	constructor(options: ThreeBodyLabOptions = {}) {
 		this.viewportHeight = options.viewportHeight ?? (() => 24);
@@ -111,7 +113,7 @@ export class ThreeBodyLabView implements Component {
 
 	advanceElapsed(elapsedMs: number): void {
 		if (this.paused || !Number.isFinite(elapsedMs) || elapsedMs <= 0) return;
-		this.simulation.advance(elapsedMs / 1_000 * SPEEDS[this.speedIndex]!);
+		this.simulation.advance(elapsedMs / 1_000 * SPEEDS[this.speedIndex]);
 	}
 
 	handleInput(data: string): boolean {
@@ -129,20 +131,20 @@ export class ThreeBodyLabView implements Component {
 	}
 
 	render(requestedWidth: number): string[] {
-		const width = Math.max(1, Math.floor(requestedWidth));
-		const height = Math.max(10, Math.floor(this.viewportHeight()));
-		const wide = width >= 64 && height >= 20;
-		const fixedRows = wide ? 12 : 8;
-		const orbitHeight = Math.max(3, height - fixedRows);
-		const snapshot = this.simulation.snapshot();
-		const state = this.paused ? colors.warning("PAUSED") : colors.success("RUNNING");
-		const title = fit(` THREE BODY LAB  ·  ORBITING PAIR / GUARDIAN  ·  ${state}`, width);
-		const subtitle = fit(" r̈ᵢ = G Σⱼ≠ᵢ mⱼ(rⱼ−rᵢ)/|rⱼ−rᵢ|³  ·  Velocity Verlet  ·  Braille 2×4", width);
+		const width       = Math.max(1, Math.floor(requestedWidth))                                            ;
+		const height      = Math.max(10, Math.floor(this.viewportHeight()))                                    ;
+		const wide        = width >= 64 && height >= 20                                                        ;
+		const fixedRows   = wide ? 12 : 8                                                                      ;
+		const orbitHeight = Math.max(3, height - fixedRows)                                                    ;
+		const snapshot    = this.simulation.snapshot()                                                         ;
+		const state       = this.paused ? colors.warning("PAUSED") : colors.success("RUNNING")                 ;
+		const title       = fit(` THREE BODY LAB  ·  ORBITING PAIR / GUARDIAN  ·  ${state}`, width)            ;
+		const subtitle    = fit(" r̈ᵢ = G Σⱼ≠ᵢ mⱼ(rⱼ−rᵢ)/|rⱼ−rᵢ|³  ·  Velocity Verlet  ·  Braille 2×4", width) ;
 		const frame = renderThreeBodyBrailleFrame(snapshot, {
-			width: Math.max(1, width - 4),
-			height: orbitHeight,
-			trails: HIERARCHICAL_REFERENCE_TRAIL,
-			showTrail: this.showTrail,
+			width     : Math.max(1, width - 4),
+			height    : orbitHeight,
+			trails    : HIERARCHICAL_REFERENCE_TRAIL,
+			showTrail : this.showTrail,
 		});
 		const rows = [
 			colors.accent(title),
@@ -152,7 +154,7 @@ export class ThreeBodyLabView implements Component {
 			topRule(width),
 			...frame.map(row => width < 4 ? fit(row, width) : `${colors.border("│")} ${fit(row, width - 4)} ${colors.border("│")}`),
 			bottomRule(width),
-			...metricRows(snapshot, SPEEDS[this.speedIndex]!, width),
+			...metricRows(snapshot, SPEEDS[this.speedIndex], width),
 			...(wide ? bodyRows(snapshot, width) : []),
 		];
 		return rows.slice(0, height);

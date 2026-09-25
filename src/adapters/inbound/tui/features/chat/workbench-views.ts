@@ -1,26 +1,28 @@
 /** @linear WOO-679 WOO-683 WOO-686 WOO-687 WOO-688 WOO-689 */
-import type { Component } from "@earendil-works/pi-tui";
-import type { WorkbenchSnapshot } from "../../../../../core/domain/work/workbench";
-import { ChatDurableTranscript, type ChatApprovalPresentation } from "./chat-durable-transcript";
-import { ChatLiveActivity, type ChatActivityIndicator } from "./chat-live-activity";
-import { ChatMessageRenderer } from "./chat-message-renderer";
-import { isVisibleWorkStep } from "./work-step-card";
-import { WorkbenchWelcomeView } from "./workbench-welcome";
+import type { Component }                from "@earendil-works/pi-tui";
+import type { WorkbenchSnapshot }        from "@/core/domain/work/workbench";
+import { ChatDurableTranscript }         from "@/adapters/inbound/tui/features/chat/chat-durable-transcript";
+import type { ChatApprovalPresentation } from "@/adapters/inbound/tui/features/chat/chat-durable-transcript";
+import { ChatLiveActivity }              from "@/adapters/inbound/tui/features/chat/chat-live-activity";
+import type { ChatActivityIndicator }    from "@/adapters/inbound/tui/features/chat/chat-live-activity";
+import { ChatMessageRenderer }           from "@/adapters/inbound/tui/features/chat/chat-message-renderer";
+import { isVisibleWorkStep }             from "@/adapters/inbound/tui/features/chat/work-step-card";
+import { WorkbenchWelcomeView }          from "@/adapters/inbound/tui/features/chat/workbench-welcome";
 
-export type { ChatApprovalPresentation } from "./chat-durable-transcript";
+export type { ChatApprovalPresentation } from "@/adapters/inbound/tui/features/chat/chat-durable-transcript";
 
 /** Chat projection for the native ProjectWorkbench, including existing tool cards. */
 /** @Unit Code-001 */
 /** @codeId 0001 */
 export class WorkbenchChatView implements Component {
-	private snapshot: WorkbenchSnapshot;
-	private readonly welcome = new WorkbenchWelcomeView();
-	private readonly messages = new ChatMessageRenderer();
-	private readonly transcript: ChatDurableTranscript;
-	private readonly liveActivity = new ChatLiveActivity();
-	private cachedSnapshot: WorkbenchSnapshot | null = null;
-	private cachedWidth = -1;
-	private cachedRows: string[] | null = null;
+	private snapshot            : WorkbenchSnapshot                                     ;
+	private readonly welcome                               = new WorkbenchWelcomeView() ;
+	private readonly messages                              = new ChatMessageRenderer()  ;
+	private readonly transcript : ChatDurableTranscript                                 ;
+	private readonly liveActivity                          = new ChatLiveActivity()     ;
+	private cachedSnapshot      : WorkbenchSnapshot | null = null                       ;
+	private cachedWidth                                    = -1                         ;
+	private cachedRows          : string[] | null          = null                       ;
 	/** `cachedRows`에서 activity indicator가 시작하는 행. 본문은 spinner tick에 다시 투영하지 않는다. */
 	private cachedActivityRowsStart = -1;
 
@@ -31,10 +33,10 @@ export class WorkbenchChatView implements Component {
 	) {
 		this.snapshot = snapshot;
 		this.transcript = new ChatDurableTranscript(snapshot, {
-			update: value => this.messages.update(value),
-			invalidate: () => this.messages.invalidate(),
-			render: (message, width) => this.renderMessage(message, width),
-			renderDraft: width => this.messages.renderDraft(width),
+			update      : value => this.messages.update(value),
+			invalidate  : () => this.messages.invalidate(),
+			render      : (message, width) => this.renderMessage(message, width),
+			renderDraft : width => this.messages.renderDraft(width),
 		}, approvalPresentation);
 		this.update(snapshot);
 	}
@@ -91,15 +93,18 @@ export class WorkbenchChatView implements Component {
 		const rows = this.transcript.render(contentWidth, this.liveActivity.visible);
 		this.cachedActivityRowsStart = rows.length;
 		rows.push(...this.liveActivity.render(contentWidth));
-		this.cachedSnapshot = this.snapshot;
-		this.cachedWidth = contentWidth;
-		this.cachedRows = rows;
+		this.cachedSnapshot = this.snapshot ;
+		this.cachedWidth    = contentWidth  ;
+		this.cachedRows     = rows          ;
 		return rows;
 	}
 
 	/** @linear WOO-689 */
 	private refreshCachedActivityRows(): void {
-		if (!this.cachedRows || this.cachedSnapshot !== this.snapshot || this.cachedWidth < 1 || this.cachedActivityRowsStart < 0) return;
+		if (!this.cachedRows
+			|| this.cachedSnapshot !== this.snapshot
+			|| this.cachedWidth < 1
+			|| this.cachedActivityRowsStart < 0) return;
 		this.cachedRows = [
 			...this.cachedRows.slice(0, this.cachedActivityRowsStart),
 			...this.liveActivity.render(this.cachedWidth),

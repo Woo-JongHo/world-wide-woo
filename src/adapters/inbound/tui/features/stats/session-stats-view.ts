@@ -1,8 +1,9 @@
-import { truncateToWidth, visibleWidth, wrapTextWithAnsi, type Component } from "@earendil-works/pi-tui";
-import type { RequestReview, SessionStatsSnapshot } from "../../../../../core/domain/observability/session-stats.js";
-import type { ObservabilitySessionSummary } from "../../../../../core/domain/observability/observability-dashboard.js";
-import { colors } from "../../foundation/theme/theme.js";
-import { workbenchModelLabel } from "../../foundation/labels";
+import { truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
+import type { Component }                                  from "@earendil-works/pi-tui";
+import type { RequestReview, SessionStatsSnapshot }        from "@/core/domain/observability/session-stats.js";
+import type { ObservabilitySessionSummary }                from "@/core/domain/observability/observability-dashboard.js";
+import { colors }                                          from "@/adapters/inbound/tui/foundation/theme/theme.js";
+import { workbenchModelLabel }                             from "@/adapters/inbound/tui/foundation/labels";
 
 type StatsTarget = "session" | "diagnostics" | "latest" | number;
 type LineWriter = (value?: string) => void;
@@ -17,13 +18,13 @@ export class SessionStatsView implements Component {
 	) {}
 	public invalidate(): void {}
 	public render(width: number): string[] {
-		const viewportWidth = Math.max(1, width);
-		const safeWidth = Math.min(156, viewportWidth);
-		const stats = this.getStats();
-		const target = this.getTarget();
-		const rows: string[] = [];
-		const line: LineWriter = (value = "") => rows.push(...wrapTextWithAnsi(value, safeWidth));
-		const historical = this.getHistoricalSession();
+		const viewportWidth     = Math.max(1, width)                                               ;
+		const safeWidth         = Math.min(156, viewportWidth)                                     ;
+		const stats             = this.getStats()                                                  ;
+		const target            = this.getTarget()                                                 ;
+		const rows : string[]   = []                                                               ;
+		const line : LineWriter = (value = "") => rows.push(...wrapTextWithAnsi(value, safeWidth)) ;
+		const historical        = this.getHistoricalSession()                                      ;
 		if (target === "session" && historical) this.renderHistorical(line, historical, safeWidth);
 		else if (target === "diagnostics") this.renderDiagnostics(line, stats, safeWidth);
 		else if (target === "latest" || typeof target === "number") this.renderRequest(line, stats, target, safeWidth);
@@ -74,12 +75,12 @@ export class SessionStatsView implements Component {
 			: "0 observed tokens across recorded model namespaces."));
 		else if (stats.modelUsage.length === 0) line(colors.muted("No model-attributed usage rows observed."));
 		for (const usage of stats.modelUsage) {
-			const share = totalTokens !== null && totalTokens > 0 ? Math.round((usage.totalTokens / totalTokens) * 100) : null;
-			const count = usage.namespace === "interactive" ? usage.interactiveRootTurns : usage.detachedInvocations;
-			const unit = usage.namespace === "interactive" ? "turns" : "calls";
-			const labelWidth = width < 70 ? 10 : 20;
-			const suffix = `${share === null ? "—" : `${share}%`}  ${compactNumber(usage.totalTokens)}  ${count} ${unit}`;
-			const barWidth = Math.max(6, width - labelWidth - visibleWidth(suffix) - 4);
+			const share      = totalTokens !== null && totalTokens > 0 ? Math.round((usage.totalTokens / totalTokens) * 100) : null ;
+			const count      = usage.namespace === "interactive" ? usage.interactiveRootTurns : usage.detachedInvocations           ;
+			const unit       = usage.namespace === "interactive" ? "turns" : "calls"                                                ;
+			const labelWidth = width < 70 ? 10 : 20                                                                                 ;
+			const suffix     = `${share === null ? "—" : `${share}%`}  ${compactNumber(usage.totalTokens)}  ${count} ${unit}`       ;
+			const barWidth   = Math.max(6, width - labelWidth - visibleWidth(suffix) - 4)                                           ;
 			line(`${pad(modelLabel(usage.model), labelWidth)} ${usageBar(share, barWidth)}  ${colors.accent(suffix)}`);
 		}
 		if (stats.unattributedUsage) line(colors.warning(`! Unattributed · ${compactNumber(stats.unattributedUsage.totalTokens)}`));
@@ -134,12 +135,12 @@ function rootOutcomesText(stats: SessionStatsSnapshot): string {
 }
 function stateText(stats: SessionStatsSnapshot): string {
 	switch (stats.state) {
-		case "empty": return colors.muted("EMPTY");
-		case "active": return colors.warning("ACTIVE");
-		case "failed": return colors.error("FAILED");
+		case "empty"    : return colors.muted  ("EMPTY");
+		case "active"   : return colors.warning("ACTIVE");
+		case "failed"   : return colors.error  ("FAILED");
 		case "cancelled": return colors.warning("CANCELLED");
 		case "completed": return colors.success("OBSERVED COMPLETED");
-		case "observed": return colors.muted("OBSERVED");
+		case "observed" : return colors.muted  ("OBSERVED");
 	}
 }
 function coverageText(coverage: SessionStatsSnapshot["coverage"]): string { return coverage.replaceAll("-", " "); }
@@ -161,9 +162,9 @@ function metricCells(items: readonly (readonly [string, string, string])[], widt
 }
 function requestHeader(width: number): string[] { return [width < 110 ? "#   REQUEST                         STATUS      TIME" : "#   REQUEST                                      STATUS       MODEL             TIME"]; }
 function requestTableRow(request: RequestReview, width: number, selected = false): string {
-	const status = request.lifecycle === "completed" ? colors.success("✓ done") : request.lifecycle === "failed" ? colors.error("✗ fail") : colors.warning(request.lifecycle);
-	const ordinal = String(request.ordinal).padStart(2, "0");
-	const marker = selected ? colors.accent("▶") : " ";
+	const status  = request.lifecycle === "completed" ? colors.success("✓ done") : request.lifecycle === "failed" ? colors.error("✗ fail") : colors.warning(request.lifecycle) ;
+	const ordinal = String(request.ordinal).padStart(2, "0")                                                                                                                   ;
+	const marker  = selected ? colors.accent("▶") : " "                                                                                                                        ;
 	if (width < 110) return `${marker}${ordinal}  ${pad(requestLabel(request), 29)}  ${pad(status, 10)}  ${pad(duration(request.observedElapsedMs), 8)}`;
 	return `${marker}${ordinal}  ${pad(requestLabel(request), 43)}  ${pad(status, 11)}  ${pad(modelLabel(request.models.at(0) ?? "—"), 14)}  ${pad(duration(request.observedElapsedMs), 8)}`;
 }

@@ -4,11 +4,11 @@ interface WorkbenchRenderState {
 	readonly phase: string;
 	readonly journalSequence: number;
 	readonly executionRun?: {
-		readonly runId: string;
-		readonly phase: string;
-		readonly activeActivity: { readonly id: string } | null;
-		readonly receipt: { readonly receiptId: string; readonly receiptDigest: string } | null;
-		readonly checkpoint: { readonly digest: string };
+		readonly runId          : string                                                                ;
+		readonly phase          : string                                                                ;
+		readonly activeActivity : { readonly id: string } | null                                        ;
+		readonly receipt        : { readonly receiptId: string; readonly receiptDigest: string } | null ;
+		readonly checkpoint     : { readonly digest: string }                                           ;
 	} | null;
 }
 
@@ -33,9 +33,9 @@ export function workbenchRenderUrgency(
 		? "streaming" : "immediate";
 }
 
-type TimerToken = ReturnType<typeof setTimeout>;
-type ScheduleTimer = (callback: () => void, delayMs: number) => TimerToken;
-type CancelTimer = (token: TimerToken) => void;
+type TimerToken    = ReturnType<typeof setTimeout>                         ;
+type ScheduleTimer = (callback: () => void, delayMs: number) => TimerToken ;
+type CancelTimer   = (token: TimerToken) => void                           ;
 
 /**
  * Coalesces token-delta repaints while guaranteeing an immediate terminal frame.
@@ -43,12 +43,12 @@ type CancelTimer = (token: TimerToken) => void;
  * schedules its projection.
  */
 export class RenderScheduler {
-	private lastRenderAt: number | undefined;
-	private timer: TimerToken | undefined;
-	private pending = false;
-	private immediatePending = false;
-	private inputPending = false;
-	private disposed = false;
+	private lastRenderAt : number | undefined     ;
+	private timer        : TimerToken | undefined ;
+	private pending          = false              ;
+	private immediatePending = false              ;
+	private inputPending     = false              ;
+	private disposed         = false              ;
 
 	constructor(
 		private readonly renderNow: () => void,
@@ -114,16 +114,16 @@ export class RenderScheduler {
 			this.cancel(this.timer);
 			this.timer = undefined;
 		}
-		this.pending = false;
-		this.immediatePending = false;
-		this.lastRenderAt = this.now();
+		this.pending          = false      ;
+		this.immediatePending = false      ;
+		this.lastRenderAt     = this.now() ;
 		this.renderNow();
 	}
 
 	dispose(): void {
-		this.disposed = true;
-		this.pending = false;
-		this.immediatePending = false;
+		this.disposed         = true  ;
+		this.pending          = false ;
+		this.immediatePending = false ;
 		if (this.timer !== undefined) this.cancel(this.timer);
 		this.timer = undefined;
 	}
