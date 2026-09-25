@@ -5,7 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 patchedDependencies:
-  '@earendil-works/pi-tui@0.84.4': e79dd59f5a8e04f655c57d2caa1731682e8ad643b2dbcac5ed6e6a0a06742be1
+  '@earendil-works/pi-tui@0.84.4': 1a6c2d29664c864dd627fa8f175afbcd2d65b4998262c0e35355884fce4dda38
 
 importers:
 
@@ -19,7 +19,7 @@ importers:
         version: 0.84.4(ws@8.21.3)(zod@4.4.3)
       '@earendil-works/pi-tui':
         specifier: 0.84.4
-        version: 0.84.4(patch_hash=e79dd59f5a8e04f655c57d2caa1731682e8ad643b2dbcac5ed6e6a0a06742be1)
+        version: 0.84.4(patch_hash=1a6c2d29664c864dd627fa8f175afbcd2d65b4998262c0e35355884fce4dda38)
       '@gajae-code/ai':
         specifier: 0.15.6
         version: 0.15.6(@aws-sdk/credential-provider-node@3.972.82)(@smithy/signature-v4@5.7.3)(ws@8.21.3)
@@ -1269,7 +1269,7 @@ snapshots:
       '@earendil-works/pi-ai': 0.84.4(ws@8.21.3)(zod@4.4.3)
       '@earendil-works/pi-client': 0.84.4
       '@earendil-works/pi-protocol': 0.84.4
-      '@earendil-works/pi-tui': 0.84.4(patch_hash=e79dd59f5a8e04f655c57d2caa1731682e8ad643b2dbcac5ed6e6a0a06742be1)
+      '@earendil-works/pi-tui': 0.84.4(patch_hash=1a6c2d29664c864dd627fa8f175afbcd2d65b4998262c0e35355884fce4dda38)
       '@silvia-odwyer/photon-node': 0.3.4
       chalk: 5.6.2
       cross-spawn: 7.0.6
@@ -1301,7 +1301,7 @@ snapshots:
 
   '@earendil-works/pi-telemetry@0.84.4': {}
 
-  '@earendil-works/pi-tui@0.84.4(patch_hash=e79dd59f5a8e04f655c57d2caa1731682e8ad643b2dbcac5ed6e6a0a06742be1)':
+  '@earendil-works/pi-tui@0.84.4(patch_hash=1a6c2d29664c864dd627fa8f175afbcd2d65b4998262c0e35355884fce4dda38)':
     dependencies:
       get-east-asian-width: 1.6.0
       marked: 18.0.5

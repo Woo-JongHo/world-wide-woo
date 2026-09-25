@@ -103,7 +103,7 @@ index d6daf16e4df7a99172b2d62803e1ca6fc6c6fd33..0e8facc9a757bc628a48594c54310e03
          if (this.scrollbar !== "auto" || this.contentHeight <= this.currentViewportHeight)
              return;
 diff --git a/dist/index.d.ts b/dist/index.d.ts
-index cc05e9679cec9dd6a748f73595004dc7203d2716..8b9acfd0adca839418dd0a9bd429bc195aa5c262 100644
+index cc05e9679cec9dd6a748f73595004dc7203d2716..5cf7be5669ed7ec251b3e56bb0ace8074385b548 100644
 --- a/dist/index.d.ts
 +++ b/dist/index.d.ts
 @@ -25,6 +25,7 @@ export { ProcessTerminal, type Terminal } from "./terminal.ts";
@@ -115,7 +115,7 @@ index cc05e9679cec9dd6a748f73595004dc7203d2716..8b9acfd0adca839418dd0a9bd429bc19
  export { TuiMainScreen, type TuiMainScreenRenderState } from "./tui-main-screen.ts";
  export { getOsc8LinkAtColumn, sliceByColumn, stripTerminalSequences, truncateToWidth, visibleWidth, wrapTextWithAnsi, } from "./utils.ts";
 diff --git a/dist/index.js b/dist/index.js
-index ecc0bd54a55b2c9e0213cfd5553e61262b54c57c..4c7e986b49cb7a1cd206f4ea529c46b9b8d9f875 100644
+index ecc0bd54a55b2c9e0213cfd5553e61262b54c57c..5d1e7ff91988de43e431bd15204ed12a55cdf59f 100644
 --- a/dist/index.js
 +++ b/dist/index.js
 @@ -35,6 +35,7 @@ export { parseOsc11BackgroundColor, parseTerminalColorSchemeReport, } from "./te
@@ -157,7 +157,7 @@ index e031103f84d5fbb8d9007b00cb4940bbee046c41..ce56918036bfff803c482ded215a28b2
  }
  export interface LayoutFrame {
 diff --git a/dist/layout.js b/dist/layout.js
-index 6661b31cfacfef8e3385fd12da9626e851d97e96..49ca7d3f467969ed5eb8d5cb7f2e54ab3f0368c5 100644
+index 6661b31cfacfef8e3385fd12da9626e851d97e96..3528427ade94395661a8b30dd48196ce700df4aa 100644
 --- a/dist/layout.js
 +++ b/dist/layout.js
 @@ -1,5 +1,6 @@
@@ -167,7 +167,7 @@ index 6661b31cfacfef8e3385fd12da9626e851d97e96..49ca7d3f467969ed5eb8d5cb7f2e54ab
  import { cropKittyImageLine, getKittyImageMetadata, isImageLine } from "./terminal-image.js";
  import { CURSOR_MARKER, compositeTuiLine } from "./tui.js";
  import { extractAnsiCode, getGraphemeCellRange, sliceByColumn, visibleWidth } from "./utils.js";
-@@ -25,10 +26,37 @@ function renderCached(context, component, width) {
+@@ -25,10 +26,44 @@ function renderCached(context, component, width) {
      }
      return lines;
  }
@@ -196,6 +196,13 @@ index 6661b31cfacfef8e3385fd12da9626e851d97e96..49ca7d3f467969ed5eb8d5cb7f2e54ab
 +        if (source)
 +            return getScrollRowCount(source);
 +    }
++    if (node?.type === "vstack") {
++        const entries = visibleStackEntries(node.entries, context.viewport);
++        const gapTotal = Math.max(0, entries.length - 1) * node.gap;
++        return entries.reduce((sum, entry) => sum + (typeof entry.basis === "number"
++            ? entry.basis
++            : measureHeight(context, entry.component, width)), gapTotal);
++    }
      return renderCached(context, component, width).length;
  }
  function measureWidth(context, component, width) {
@@ -205,7 +212,7 @@ index 6661b31cfacfef8e3385fd12da9626e851d97e96..49ca7d3f467969ed5eb8d5cb7f2e54ab
      return renderCached(context, component, width).reduce((max, line) => Math.max(max, visibleWidth(line)), 0);
  }
  function withParent(box, parent) {
-@@ -68,8 +96,43 @@ function layoutComponent(context, component, x, y, width, height, clip) {
+@@ -68,8 +103,43 @@ function layoutComponent(context, component, x, y, width, height, clip) {
          };
      }
      if (node.type === "scroll") {
@@ -250,7 +257,7 @@ index 6661b31cfacfef8e3385fd12da9626e851d97e96..49ca7d3f467969ed5eb8d5cb7f2e54ab
          const childBox = layoutComponent(context, node.component, x, y - previousScrollTop, contentWidth, undefined, clip);
          const contentHeight = childBox.rect.height;
          const viewportHeight = height === undefined ? contentHeight : Math.max(0, Math.floor(height));
-@@ -87,6 +150,7 @@ function layoutComponent(context, component, x, y, width, height, clip) {
+@@ -87,6 +157,7 @@ function layoutComponent(context, component, x, y, width, height, clip) {
              children: [childBox],
              scrollView,
              scrollContentLines: renderCached(context, node.component, contentWidth),
@@ -258,7 +265,7 @@ index 6661b31cfacfef8e3385fd12da9626e851d97e96..49ca7d3f467969ed5eb8d5cb7f2e54ab
              layer: 0,
          };
          childBox.parent = box;
-@@ -181,7 +245,7 @@ function styleScrollbarCell(line, column, totalWidth, style) {
+@@ -181,7 +252,7 @@ function styleScrollbarCell(line, column, totalWidth, style) {
  export function getScrollbarGeometry(box) {
      if (!box.scrollView?.isScrollbarVisible || box.rect.width <= 0 || box.rect.height <= 0)
          return undefined;
@@ -267,7 +274,7 @@ index 6661b31cfacfef8e3385fd12da9626e851d97e96..49ca7d3f467969ed5eb8d5cb7f2e54ab
      const trackHeight = box.rect.height;
      const minThumbHeight = Math.min(2, trackHeight);
      const thumbHeight = Math.max(minThumbHeight, Math.min(trackHeight, Math.round((trackHeight * trackHeight) / contentHeight)));
-@@ -243,22 +307,36 @@ function paintBox(box, screen, totalWidth) {
+@@ -243,22 +314,36 @@ function paintBox(box, screen, totalWidth) {
      }
      for (const child of box.children)
          paintBox(child, screen, totalWidth);
@@ -318,7 +325,7 @@ index 6661b31cfacfef8e3385fd12da9626e851d97e96..49ca7d3f467969ed5eb8d5cb7f2e54ab
          }
      }
      paintScrollbar(box, screen, totalWidth);
-@@ -269,6 +347,7 @@ export function renderLayoutFrame(root, width, height, requestRender) {
+@@ -269,6 +354,7 @@ export function renderLayoutFrame(root, width, height, requestRender) {
      const context = {
          viewport: { width: safeWidth, height: safeHeight },
          renderCache: new Map(),
@@ -403,7 +410,7 @@ index 0000000000000000000000000000000000000000..3890b3cbab4d3350ca555f59e7d6dccd
 +    return source;
 +}
 diff --git a/dist/tui-alt-screen.js b/dist/tui-alt-screen.js
-index 8bfcffd4dd99653930ec0a88055c18e14943e363..acfaf6f67eff3f27710c5c85143723dc488db30d 100644
+index 8bfcffd4dd99653930ec0a88055c18e14943e363..8f22894ecdad5a4932bb5278f43f6ff96a843ac7 100644
 --- a/dist/tui-alt-screen.js
 +++ b/dist/tui-alt-screen.js
 @@ -4,6 +4,7 @@ import { ScrollView } from "./components/scroll-view.js";
@@ -533,3 +540,321 @@ index 8bfcffd4dd99653930ec0a88055c18e14943e363..acfaf6f67eff3f27710c5c85143723dc
              const columns = this.getSelectionColumns(line, row, selection);
              lines.push(stripTerminalSequences(sliceByColumn(line, columns.start, Math.max(0, columns.end - columns.start), true)).trimEnd());
          }
+@@ -1129,9 +1162,17 @@ export class TuiAltScreen extends TuiBase {
+         const width = Math.max(1, this.terminal.columns);
+         const height = Math.max(1, this.terminal.rows);
+         const root = this.layoutRoot ?? this.implicitScrollView;
+-        let nextLayout = renderLayoutFrame(root, width, height, () => this.requestRender());
+-        if (this.refreshSearch(nextLayout)) {
++        this.observeRenderPhase("layout-materialize", "started");
++        let nextLayout;
++        try {
+             nextLayout = renderLayoutFrame(root, width, height, () => this.requestRender());
++            if (this.refreshSearch(nextLayout)) {
++                nextLayout = renderLayoutFrame(root, width, height, () => this.requestRender());
++            }
++        }
++        catch (error) {
++            this.observeRenderPhase("layout-materialize", "failed");
++            throw error;
+         }
+         let screen = nextLayout.lines.map((line) => line.replace(OSC133_ZONE_PREFIX, ""));
+         screen = this.applySearchHighlights(screen, nextLayout);
+@@ -1181,7 +1222,16 @@ export class TuiAltScreen extends TuiBase {
+             buffer += "\x1b[?25l";
+         }
+         buffer += END_SYNCHRONIZED_OUTPUT;
+-        this.terminal.write(buffer);
++        this.observeRenderPhase("layout-materialize", "completed");
++        this.observeRenderPhase("terminal-write", "started");
++        try {
++            this.terminal.write(buffer);
++        }
++        catch (error) {
++            this.observeRenderPhase("terminal-write", "failed");
++            throw error;
++        }
++        this.observeRenderPhase("terminal-write", "completed");
+         this.previousScreen = screen;
+         this.previousScreenWidth = width;
+         this.previousScreenHeight = height;
+diff --git a/dist/tui.d.ts b/dist/tui.d.ts
+index 5b9b224586c313d8e3d42c9a2f0f05b7a1107f40..fe10902edf79211ec2db9cfd204df2237b2ccdd0 100644
+--- a/dist/tui.d.ts
++++ b/dist/tui.d.ts
+@@ -186,6 +186,7 @@ export declare abstract class TuiBase extends Container implements TUI {
+     private inputListeners;
+     /** Global callback for debug key (Shift+Ctrl+D). Called before input is forwarded to focused component. */
+     onDebug?: () => void;
++    private renderObserver;
+     private renderRequested;
+     private immediateRenderScheduled;
+     private renderTimer;
+@@ -221,6 +222,8 @@ export declare abstract class TuiBase extends Container implements TUI {
+      * When false, empty rows remain (reduces redraws on slower terminals).
+      */
+     setClearOnShrink(enabled: boolean): void;
++    setRenderObserver(observer: ((phase: "layout-materialize" | "terminal-write", boundary: "started" | "completed" | "failed") => void) | undefined): void;
++    protected observeRenderPhase(phase: "layout-materialize" | "terminal-write", boundary: "started" | "completed" | "failed"): void;
+     getFocusedComponent(): Component | null;
+     setFocus(component: Component | null): void;
+     private setFocusInternal;
+diff --git a/dist/tui.js b/dist/tui.js
+index 94adbdcffd98b770d34ee55771f57ec8004df2eb..929ae056ea04aef83c34bf546522c8d46f8e1b0e 100644
+--- a/dist/tui.js
++++ b/dist/tui.js
+@@ -103,6 +103,7 @@ export class TuiBase extends Container {
+     inputListeners = new Set();
+     /** Global callback for debug key (Shift+Ctrl+D). Called before input is forwarded to focused component. */
+     onDebug;
++    renderObserver;
+     renderRequested = false;
+     immediateRenderScheduled = false;
+     renderTimer;
+@@ -163,6 +164,12 @@ export class TuiBase extends Container {
+     setClearOnShrink(enabled) {
+         this.clearOnShrink = enabled;
+     }
++    setRenderObserver(observer) {
++        this.renderObserver = observer;
++    }
++    observeRenderPhase(phase, boundary) {
++        this.renderObserver?.(phase, boundary);
++    }
+     getFocusedComponent() {
+         return this.focusedComponent;
+     }
+diff --git a/dist/utils.js b/dist/utils.js
+--- a/dist/utils.js
++++ b/dist/utils.js
+@@ -52,6 +52,47 @@
+     }
+     return true;
+ }
++// Conservative code-unit fast path. Return -1 for surrogates, combining marks,
++// controls, and every unverified code point so callers retain grapheme fallback.
++// Box Drawing is width 1 here, matching the existing grapheme-width result.
++function simpleTerminalCodeUnitWidth(code) {
++    if ((code >= 0x20 && code <= 0x7e) || (code >= 0x2500 && code <= 0x257f))
++        return 1;
++    if ((code >= 0xac00 && code <= 0xd7a3) ||
++        (code >= 0x3400 && code <= 0x4dbf) ||
++        (code >= 0x4e00 && code <= 0x9fff))
++        return 2;
++    return -1;
++}
++function simpleTerminalWidth(str) {
++    let width = 0;
++    for (let i = 0; i < str.length; i++) {
++        const code = str.charCodeAt(i);
++        const charWidth = simpleTerminalCodeUnitWidth(code);
++        if (charWidth < 0)
++            return -1;
++        width += charWidth;
++    }
++    return width;
++}
++function simpleTerminalWidthWithAnsi(str) {
++    let width = 0;
++    let i = 0;
++    while (i < str.length) {
++        const ansi = extractAnsiCode(str, i);
++        if (ansi) {
++            i += ansi.length;
++            continue;
++        }
++        const code = str.charCodeAt(i);
++        const charWidth = simpleTerminalCodeUnitWidth(code);
++        if (charWidth < 0)
++            return -1;
++        width += charWidth;
++        i++;
++    }
++    return width;
++}
+ function truncateFragmentToWidth(text, maxWidth) {
+     if (maxWidth <= 0 || text.length === 0) {
+         return { text: "", width: 0 };
+@@ -209,6 +247,10 @@
+     if (isPrintableAscii(str)) {
+         return str.length;
+     }
++    const simpleWidth = simpleTerminalWidth(str);
++    if (simpleWidth >= 0) {
++        return simpleWidth;
++    }
+     // Check cache
+     const cached = widthCache.get(str);
+     if (cached !== undefined) {
+@@ -678,6 +720,33 @@
+  * Split text into words while keeping ANSI codes attached.
+  */
+ function splitIntoTokensWithAnsi(text) {
++    if (simpleTerminalWidth(text) >= 0) {
++        const tokens = [];
++        let current = "";
++        let currentKind = null;
++        const flush = () => {
++            if (current)
++                tokens.push(current);
++            current = "";
++            currentKind = null;
++        };
++        for (let i = 0; i < text.length; i++) {
++            const char = text[i];
++            const code = text.charCodeAt(i);
++            if (simpleTerminalCodeUnitWidth(code) === 2) {
++                flush();
++                tokens.push(char);
++                continue;
++            }
++            const kind = char === " " ? "space" : "word";
++            if (current && currentKind !== kind)
++                flush();
++            currentKind = kind;
++            current += char;
++        }
++        flush();
++        return tokens;
++    }
+     const tokens = [];
+     let current = "";
+     let pendingAnsi = ""; // ANSI codes waiting to be attached to next visible content
+@@ -774,11 +843,84 @@
+         updateTrackerFromText(inputLine, tracker);
+     }
+     return result.length > 0 ? result : [""];
++}
++function wrapSimpleTerminalLine(line, width) {
++    const wrapped = [];
++    let currentLine = "";
++    let currentWidth = 0;
++    const accept = (token, tokenWidth, whitespace) => {
++        if (tokenWidth > width && !whitespace) {
++            if (currentLine) {
++                wrapped.push(currentLine.trimEnd());
++                currentLine = "";
++                currentWidth = 0;
++            }
++            let chunk = "";
++            let chunkWidth = 0;
++            for (let i = 0; i < token.length; i++) {
++                const charWidth = simpleTerminalCodeUnitWidth(token.charCodeAt(i));
++                if (chunkWidth + charWidth > width) {
++                    wrapped.push(chunk);
++                    chunk = "";
++                    chunkWidth = 0;
++                }
++                chunk += token[i];
++                chunkWidth += charWidth;
++            }
++            currentLine = chunk;
++            currentWidth = chunkWidth;
++            return;
++        }
++        if (currentWidth + tokenWidth > width && currentWidth > 0) {
++            wrapped.push(currentLine.trimEnd());
++            if (whitespace) {
++                currentLine = "";
++                currentWidth = 0;
++            }
++            else {
++                currentLine = token;
++                currentWidth = tokenWidth;
++            }
++            return;
++        }
++        currentLine += token;
++        currentWidth += tokenWidth;
++    };
++    let i = 0;
++    while (i < line.length) {
++        const charWidth = simpleTerminalCodeUnitWidth(line.charCodeAt(i));
++        if (charWidth === 2) {
++            accept(line[i], 2, false);
++            i++;
++            continue;
++        }
++        const whitespace = line[i] === " ";
++        let end = i + 1;
++        while (end < line.length) {
++            const nextWidth = simpleTerminalCodeUnitWidth(line.charCodeAt(end));
++            if (nextWidth === 2 || (line[end] === " ") !== whitespace)
++                break;
++            end++;
++        }
++        accept(line.slice(i, end), end - i, whitespace);
++        i = end;
++    }
++    if (currentLine)
++        wrapped.push(currentLine.trimEnd());
++    return wrapped.length > 0 ? wrapped : [""];
+ }
+ function wrapSingleLine(line, width) {
+     if (!line) {
+         return [""];
+     }
++    if (Number.isInteger(width) && width >= 2) {
++        // ANSI and complex Unicode make simpleTerminalWidth return -1, preserving
++        // the tracker- and grapheme-aware wrapper below.
++        const simpleWidth = simpleTerminalWidth(line);
++        if (simpleWidth >= 0) {
++            return simpleWidth <= width ? [line] : wrapSimpleTerminalLine(line, width);
++        }
++    }
+     const visibleLength = visibleWidth(line);
+     if (visibleLength <= width) {
+         return [line];
+@@ -974,6 +1043,52 @@
+         }
+         const targetWidth = maxWidth - ellipsisWidth;
+         return finalizeTruncatedResult(text.slice(0, targetWidth), targetWidth, ellipsis, ellipsisWidth, maxWidth, pad);
++    }
++    const simpleWidth = simpleTerminalWidth(text);
++    if (simpleWidth >= 0) {
++        if (simpleWidth <= maxWidth) {
++            return pad ? text + " ".repeat(maxWidth - simpleWidth) : text;
++        }
++        const targetWidth = maxWidth - ellipsisWidth;
++        let result = "";
++        let resultWidth = 0;
++        for (let i = 0; i < text.length; i++) {
++            const code = text.charCodeAt(i);
++            const charWidth = simpleTerminalCodeUnitWidth(code);
++            if (resultWidth + charWidth > targetWidth)
++                break;
++            result += text[i];
++            resultWidth += charWidth;
++        }
++        return finalizeTruncatedResult(result, resultWidth, ellipsis, ellipsisWidth, maxWidth, pad);
+     }
++    const ansiSimpleWidth = simpleTerminalWidthWithAnsi(text);
++    if (ansiSimpleWidth >= 0) {
++        if (ansiSimpleWidth <= maxWidth) {
++            return pad ? text + " ".repeat(maxWidth - ansiSimpleWidth) : text;
++        }
++        const targetWidth = maxWidth - ellipsisWidth;
++        let result = "";
++        let pendingAnsi = "";
++        let resultWidth = 0;
++        let i = 0;
++        while (i < text.length) {
++            const ansi = extractAnsiCode(text, i);
++            if (ansi) {
++                pendingAnsi += ansi.code;
++                i += ansi.length;
++                continue;
++            }
++            const code = text.charCodeAt(i);
++            const charWidth = simpleTerminalCodeUnitWidth(code);
++            if (resultWidth + charWidth > targetWidth)
++                break;
++            result += pendingAnsi + text[i];
++            pendingAnsi = "";
++            resultWidth += charWidth;
++            i++;
++        }
++        return finalizeTruncatedResult(result, resultWidth, ellipsis, ellipsisWidth, maxWidth, pad);
++    }
+     const targetWidth = maxWidth - ellipsisWidth;
+     let result = "";

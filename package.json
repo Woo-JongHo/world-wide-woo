@@ -1,6 +1,6 @@
 {
 	"name": "world-wide-woo",
-	"version": "0.0.18",
+	"version": "0.0.19",
 	"private": true,
 	"type": "module",
 	"bin": {
@@ -46,6 +46,6 @@
 		"typescript": "7.0.2"
 	},
 	"patchedDependencies": {
-		"@earendil-works/pi-tui@0.84.4": "patches/@earendil-works%2Fpi-tui@0.84.4.patch"
+		"@earendil-works/pi-tui@0.84.4": "patches/@earendil-works__pi-tui@0.84.4.patch"
 	}
 }

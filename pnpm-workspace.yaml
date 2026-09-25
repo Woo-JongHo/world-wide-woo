@@ -3,4 +3,4 @@ allowBuilds:
   protobufjs: false
 
 patchedDependencies:
-  '@earendil-works/pi-tui@0.84.4': patches/@earendil-works%2Fpi-tui@0.84.4.patch
+  '@earendil-works/pi-tui@0.84.4': patches/@earendil-works__pi-tui@0.84.4.patch
