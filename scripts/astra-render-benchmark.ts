@@ -8,7 +8,7 @@ import { astraFixture } from "../test/fixtures/astra-snapshot";
 import { projectWorkFlow } from "../src/core/domain/work";
 import type { ProjectWorkbench } from "../src/core/application/orchestration/project-workbench";
 import { fit } from "../src/adapters/inbound/tui/foundation/theme/astra-theme";
-import { AstraInset, AstraWorkspace } from "../src/adapters/inbound/tui/shell/astra-surface";
+import { AstraExecutionHeading, AstraInset, AstraWorkspace } from "../src/adapters/inbound/tui/shell/astra-surface";
 import { runProjectWorkbenchShell } from "../src/adapters/inbound/tui/shell/workbench-shell";
 
 chalk.level = 3;
@@ -48,59 +48,94 @@ function measurePaired(left: (i: number) => void, right: (i: number) => void, n:
   }
   return { left: distribution(leftSamples), right: distribution(rightSamples) };
 }
+function deepFreeze<T>(value: T): T {
+  if (!value || typeof value !== "object" || Object.isFrozen(value)) return value;
+  Object.freeze(value);
+  for (const child of Object.values(value as Record<string, unknown>)) deepFreeze(child);
+  return value;
+}
 function fixture(count: number) {
-  const snapshot = astraFixture("ready");
-  const prototype = snapshot.activities[0]!;
-  snapshot.activities = Array.from({ length: count }, (_, i) => ({ ...prototype, id: `a-${i}`, sequence: i + 1,
+  const base = astraFixture("ready");
+  const prototype = base.activities[0]!;
+  const activities = Array.from({ length: count }, (_, i) => ({ ...prototype, id: `a-${i}`, sequence: i + 1,
     nativeRefs: { threadId: "perf", turnId: `turn-${i}`, itemId: `m-${i}` },
     payload: { role: i % 2 === 0 ? "user" : "assistant", text: `메시지 ${i}: 화면에 표시되는 문장과 **강조**, 코드 \`value\`의 렌더링을 확인합니다.\n\n두 번째 문단입니다.` } }));
-  snapshot.chat = snapshot.activities.map((a, i) => ({ id: `m-${i}`, activityId: a.id,
-    role: i % 2 === 0 ? "user" as const : "assistant" as const, content: String(a.payload.text), status: "completed" as const }));
-  snapshot.threadId = "perf"; snapshot.workFlow = projectWorkFlow([]); snapshot.journalSequence = count;
+  const chat = activities.map((activity, i) => ({ id: `m-${i}`, activityId: activity.id,
+    role: i % 2 === 0 ? "user" as const : "assistant" as const, content: String(activity.payload.text), status: "completed" as const }));
+  const snapshot = deepFreeze({
+    ...base,
+    threadId: "perf",
+    activities,
+    chat,
+    workFlow: projectWorkFlow([]),
+    journalSequence: count,
+  });
+  assert(Object.isFrozen(snapshot) && Object.isFrozen(snapshot.activities) && Object.isFrozen(snapshot.chat));
 	return snapshot;
+}
+
+function bodyWorkspace(get: () => ReturnType<typeof fixture>) {
+  const clock = () => Date.parse("2026-09-24T09:42:10.000Z");
+  return new AstraWorkspace(
+    get,
+    () => [],
+    height => height,
+    clock,
+    false,
+    null,
+    undefined,
+    new AstraExecutionHeading(get, undefined, clock, false),
+  );
 }
 
 function measureDurableFirstFrame(count: number, kind: "append" | "journal-bump") {
 	let snapshot = fixture(count);
-	const workspace = new AstraWorkspace(() => snapshot, () => []);
+	const workspace = bodyWorkspace(() => snapshot);
 	const layout = () => renderLayoutFrame(workspace.component, 80, 24, () => {});
 	layout();
 	const sampleCount = Math.min(repetitions, 5);
-	const advance = (iteration: number) => {
+	const prepare = (iteration: number) => {
 		if (kind === "journal-bump") {
-			snapshot = { ...snapshot, journalSequence: snapshot.journalSequence + 1 };
+			return deepFreeze({ ...snapshot, journalSequence: snapshot.journalSequence + 1 });
 		} else {
 			const sequence = snapshot.activities.length + 1;
 			const id = `durable-benchmark-${iteration}-${sequence}`;
 			const role = sequence % 2 === 0 ? "assistant" as const : "user" as const;
 			const content = `durable append ${iteration} 한글 👩🏽‍💻 e\u0301\n\n정확한 첫 frame count를 측정합니다.`;
 			const prototype = snapshot.activities.at(-1)!;
-			const activity = {
+			const activity = deepFreeze({
 				...prototype,
 				id: `activity-${id}`,
 				sequence,
 				nativeRefs: { threadId: "perf", turnId: `turn-${id}`, itemId: id },
 				payload: { role, text: content },
-			};
-			snapshot = {
+			});
+			const message = deepFreeze({ id, activityId: activity.id, role, content, status: "completed" as const });
+			const next = deepFreeze({
 				...snapshot,
 				revision: snapshot.revision + 1,
 				journalSequence: snapshot.journalSequence + 1,
 				activities: [...snapshot.activities, activity],
-				chat: [...snapshot.chat, { id, activityId: activity.id, role, content, status: "completed" as const }],
-			};
+				chat: [...snapshot.chat, message],
+			});
+			assert(Object.isFrozen(activity) && Object.isFrozen(message) && Object.isFrozen(next.activities) && Object.isFrozen(next.chat));
+			return next;
 		}
+	};
+	const advance = (next: ReturnType<typeof fixture>) => {
+		snapshot = next;
 		workspace.transcript.update(snapshot);
 		assert.equal(layout().lines.length, 24);
 	};
-	for (let i = -3; i < 0; i++) advance(i);
+	for (let i = -3; i < 0; i++) advance(prepare(i));
 	const before = workspace.transcript.cacheMetrics();
 	const rssBefore = process.memoryUsage().rss;
 	const samples: number[] = [];
 	for (let i = 0; i < sampleCount; i++) {
 		budget();
+		const next = prepare(i);
 		const at = performance.now();
-		advance(i);
+		advance(next);
 		samples.push(performance.now() - at);
 	}
 	const after = workspace.transcript.cacheMetrics();
@@ -179,11 +214,11 @@ function runFocusedVerification() {
 
 /** Retain at most one recent frame; benchmark output must not itself grow with history. */
 class MemoryTerminal implements Terminal {
-  columns = 80; rows = 24; kittyProtocolActive = false; stopped = false; output = ""; writes = 0;
+  columns = 80; rows = 24; kittyProtocolActive = false; started = false; stopped = false; output = ""; writes = 0;
   input: (data: string) => void = () => { throw new Error("terminal not started"); };
   resize: () => void = () => {};
   onFrame?: () => void;
-  start(input: (data: string) => void, resize: () => void) { this.input = input; this.resize = resize; }
+  start(input: (data: string) => void, resize: () => void) { this.started = true; this.input = input; this.resize = resize; }
   stop() { this.stopped = true; }
   async drainInput() { this.input = () => {}; }
   write(data: string) {
@@ -206,25 +241,37 @@ class MemoryTerminal implements Terminal {
   }
 }
 const tick = () => new Promise(resolve => setTimeout(resolve, 40));
+async function waitForOutput(terminal: MemoryTerminal, marker: string, timeoutMs = 10_000) {
+	const deadline = performance.now() + timeoutMs;
+	while (!terminal.output.includes(marker) && performance.now() < deadline) await new Promise(resolve => setTimeout(resolve, 10));
+	assert(terminal.output.includes(marker), "latest streaming draft was not painted within the bounded wait");
+}
 const results = [];
 for (const count of counts) {
   let snapshot = fixture(count);
-  const workspace = new AstraWorkspace(() => snapshot, () => []);
+  const workspace = bodyWorkspace(() => snapshot);
   const layout = () => renderLayoutFrame(workspace.component, 80, 24, () => {});
   const coldStart = performance.now(); layout(); const coldBodyMs = performance.now() - coldStart;
   const coldLazy = metricDelta(workspace.transcript.cacheMetrics());
   const warmBody = measure(() => { assert.equal(layout().lines.length, 24); });
+  const draftSnapshots = Array.from({ length: repetitions + 3 }, (_, index) => deepFreeze({
+    ...snapshot, phase: "working" as const, draft: `응답 작성 중 ${index - 3}. ` + "길이가 고정된 본문입니다. ".repeat(50),
+  }));
   const draftBody = measure(i => {
-    snapshot = { ...snapshot, phase: "working", draft: `응답 작성 중 ${i}. ` + "길이가 고정된 본문입니다. ".repeat(50) };
+    snapshot = draftSnapshots[i + 3]!;
     workspace.transcript.update(snapshot); layout();
   });
   const draftBytes = Buffer.byteLength(snapshot.draft);
+  const longDraftRepetitions = Math.min(repetitions, 20);
+  const longDraftSnapshots = Array.from({ length: longDraftRepetitions + 3 }, (_, index) => deepFreeze({
+    ...snapshot, draft: `응답 작성 중 ${index - 3}. ` + "길이가 고정된 본문입니다. ".repeat(1000),
+  }));
   const longDraftBody = measure(i => {
-    snapshot = { ...snapshot, draft: `응답 작성 중 ${i}. ` + "길이가 고정된 본문입니다. ".repeat(1000) };
+    snapshot = longDraftSnapshots[i + 3]!;
     workspace.transcript.update(snapshot); layout();
-  }, Math.min(repetitions, 20));
+  }, longDraftRepetitions);
   const longDraftBytes = Buffer.byteLength(snapshot.draft);
-  snapshot = { ...snapshot, phase: "ready", draft: "" }; workspace.transcript.update(snapshot);
+  snapshot = deepFreeze({ ...snapshot, phase: "ready" as const, draft: "" }); workspace.transcript.update(snapshot);
   const beforeUnseen = workspace.transcript.cacheMetrics();
   const unseenWidthStartedAt = performance.now();
   assert.equal(renderLayoutFrame(workspace.component, 120, 24, () => {}).lines.length, 24);
@@ -246,10 +293,13 @@ for (const count of counts) {
 
   snapshot = fixture(count);
   const terminal = new MemoryTerminal(); let submitted = ""; let closed = false;
-  const workbench = { snapshot, subscribe(fn: (value: typeof snapshot) => void) { fn(snapshot); return () => {}; },
+  let publishSnapshot: (value: typeof snapshot) => void = () => { throw new Error("production shell subscription not installed"); };
+  const workbench = { snapshot, subscribe(fn: (value: typeof snapshot) => void) { publishSnapshot = fn; fn(snapshot); return () => { publishSnapshot = () => {}; }; },
     async dispatch(command: { type: string; text?: string }) { if (command.type === "chat.send") submitted = command.text!; return { state: "rejected", commandId: "bench", reason: "offline replay" }; },
     async close() { closed = true; } } as unknown as ProjectWorkbench;
-  let memoryTerminalInput, idleWrites;
+  let memoryTerminalInput, streamingDraftBytes, streamingMemoryTerminalInput, idleWrites;
+  let replayFailed = false;
+  let replayError: unknown;
   try {
     runProjectWorkbenchShell({ design: "astra", terminal, cwd: "/benchmark/astra", workbench,
       usage: { async refresh() { return []; }, startPolling(fn) { fn([]); return () => {}; } },
@@ -266,20 +316,59 @@ for (const count of counts) {
     }
     memoryTerminalInput = distribution(samples);
     terminal.input("\r"); await tick(); assert.equal(submitted, text, "input was dropped or duplicated");
-  } finally {
-    terminal.input("\x03"); terminal.input("\x03"); await tick();
-    assert(closed && terminal.stopped, "production shell did not close cleanly");
+		const streamingMarker = (index: number) => `STREAM_FRAME_${index}_PAINTED`;
+		const streamingSnapshots = Array.from({ length: repetitions }, (_, index) => deepFreeze({
+			...snapshot,
+			revision: snapshot.revision + index + 1,
+			phase: "working" as const,
+			draft: `streaming ${index}. ` + "길이가 고정된 본문입니다. ".repeat(1000) + `\n\n${streamingMarker(index)}`,
+		}));
+		streamingDraftBytes = Buffer.byteLength(streamingSnapshots.at(-1)!.draft);
+		const streamingSamples: number[] = [];
+		let streamingText = "";
+		for (let i = 0; i < repetitions; i++) {
+			budget();
+			const character = i % 2 ? "라" : "다";
+			streamingText += character;
+			streamingSamples.push(await terminal.frame(() => {
+				snapshot = streamingSnapshots[i]!;
+				publishSnapshot(snapshot);
+				terminal.input(character);
+			}));
+		}
+		streamingMemoryTerminalInput = distribution(streamingSamples);
+		await waitForOutput(terminal, streamingMarker(repetitions - 1));
+		terminal.input("\r"); await tick();
+		assert.equal(submitted, text + streamingText, "streaming input was dropped or duplicated");
+  } catch (error) {
+    replayFailed = true;
+    replayError = error;
   }
+  let cleanupFailed = false;
+  let cleanupError: unknown;
+  try {
+    if (terminal.started) {
+      terminal.input("\x03"); terminal.input("\x03"); await tick();
+      assert(closed && terminal.stopped, "production shell did not close cleanly");
+    }
+  } catch (error) {
+    cleanupFailed = true;
+    cleanupError = error;
+  }
+	if (replayFailed && cleanupFailed) throw new AggregateError([replayError, cleanupError], "production shell replay and cleanup both failed", { cause: replayError });
+	if (replayFailed) throw replayError;
+	if (cleanupFailed) throw cleanupError;
 	const result = { count, columns: 80, rows: 24, coldBodyMs, warmBody, draftBytes, draftBody, longDraftBytes, longDraftBody,
 		coldLazy, unseenWidthBodyMs, unseenWidthLazy, resizeBody: resize, warmRepeatedResizeBody, warmRepeatedResizeLazy,
 		retainedLazyResources, durableAppendFirstFrame, journalBumpFirstFrame,
-		memoryTerminalInput, idleWrites, memory: process.memoryUsage() };
+		memoryTerminalInput, streamingDraftBytes, streamingMemoryTerminalInput, idleWrites, memory: process.memoryUsage() };
   results.push(result); console.log(JSON.stringify(result));
 }
 // Run microbenchmarks after actual body/shell scenarios so coldBodyMs remains the first layout.
 const focusedVerification = runFocusedVerification();
 const failing = results.filter(r => r.warmBody.p95 > 16 || r.draftBody.p95 > 32 || r.longDraftBody.p95 > 32
   || r.memoryTerminalInput!.p95 > 50 || r.memoryTerminalInput!.p99 > 100 || r.idleWrites !== 0
+	|| r.streamingMemoryTerminalInput!.p95 > 50 || r.streamingMemoryTerminalInput!.p99 > 100
   || resizeBudgetMs !== null && r.warmRepeatedResizeBody.p95 > resizeBudgetMs);
 const failingChecks = [
   ...(focusedVerification.fitPadding.p50Ratio > 1.35 ? ["fit-padding-single-pass"] : []),
@@ -287,8 +376,9 @@ const failingChecks = [
 ];
 const report = { verdict: failing.length || failingChecks.length ? "RED" : "GREEN", failingCounts: failing.map(r => r.count), failingChecks, bun: Bun.version, sourceRevision,
 	durationMs: performance.now() - began, focusedVerification, results,
-	scope: "Actual Astra body + production shell, with non-overlapping durable graph-build, exact count-build/repair, and requested-row materialization counters from the public transcript resource surface. Warm body/draft/resize repeat with durable history and references unchanged; durable append and journal-bump are separately measured diagnostic first frames. MemoryTerminal input to synchronized frame write. No PTY/terminal pixel/backpressure/provider/snapshot projection. Cold body is not cold process startup. p99 is descriptive at small sample sizes. Not Native parity.",
+	scope: "Actual Astra body with AstraExecutionHeading + production shell, with deeply frozen production-contract snapshots and non-overlapping durable graph-build, exact count-build/repair, and requested-row materialization counters from the public transcript resource surface. Fixture construction/freezing is outside frame timing. Warm body and short/long draft repeat with immutable durable history and references unchanged; cold/unseen-width and durable append/journal-bump are separately measured first frames across configured history sizes. memoryTerminalInput measures ready-state input to synchronized frame write. streamingMemoryTerminalInput publishes one immutable ~37KB working-draft update and then measures the prioritized input's first synchronized frame while that scheduled stream update may still be pending; it does not claim newest-draft paint latency. A separate untimed bounded assertion requires the final unique draft marker to be painted. Intentional working animation is excluded from idleWrites. No PTY/terminal pixel/backpressure/provider/snapshot projection. Cold body is not cold process startup. p99 is descriptive at small sample sizes. Not Native parity.",
   criteria: { fitPaddingP50Ratio: 1.35, insetMovedRepeatedP50Ratio: .35, warmBodyP95Ms: 16, draftBodyP95Ms: 32, longDraftBodyP95Ms: 32, memoryTerminalInputP95Ms: 50, memoryTerminalInputP99Ms: 100, idleWrites: 0,
+		streamingMemoryTerminalInputP95Ms: 50, streamingMemoryTerminalInputP99Ms: 100,
     warmRepeatedResizeBodyP95Ms: resizeBudgetMs } };
 if (process.env.ASTRA_BENCH_OUTPUT) await writeFile(process.env.ASTRA_BENCH_OUTPUT, JSON.stringify(report, null, 2) + "\n");
 console.log(JSON.stringify({ ...report, results: undefined }));

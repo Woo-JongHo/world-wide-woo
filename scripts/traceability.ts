@@ -19,6 +19,14 @@ export function resolveVaultRoot(projectRoot: string, _vaultId: string, explicit
 	return resolve(explicit ?? process.env.WWW_OBSIDIAN_VAULT_ROOT ?? join(projectRoot, ".www/vault"));
 }
 const argument = (argv: readonly string[], name: string) => { const index = argv.indexOf(name); return index < 0 ? undefined : argv[index + 1]; };
+const vaultScope = (argv: readonly string[]) => {
+	const specRoot = argument(argv, "--spec-root");
+	const requiredLinearIds = argument(argv, "--linear-ids")?.split(",").map(value => value.trim()).filter(Boolean);
+	return {
+		...(specRoot === undefined ? {} : { specRoot }),
+		...(requiredLinearIds === undefined ? {} : { requiredLinearIds }),
+	};
+};
 const ledgerPath = (root: string) => resolve(root, ".www/control-ledger/traceability-v3.json");
 const loadLedger = (root: string) => JSON.parse(readFileSync(ledgerPath(root), "utf8")) as TraceabilityLedger;
 const containedPath = (root: string, value: string | undefined, name: string): string => {
@@ -156,6 +164,7 @@ const writeImmutableJson = (path: string, value: unknown): void => {
 export async function runTraceability(argv = process.argv.slice(2)): Promise<string> {
 	const projectRoot = resolve(argument(argv, "--project-root") ?? resolve(import.meta.dir, ".."));
 	const command = argv[0] ?? "check";
+	const selectedVaultScope = vaultScope(argv);
 	if (command === "--help" || command === "help") return [
 		"Usage: bun scripts/traceability.ts <command> [options]",
 		"",
@@ -171,7 +180,7 @@ export async function runTraceability(argv = process.argv.slice(2)): Promise<str
 	if (command === "note-migration-preview") {
 		const vaultRoot = resolveVaultRoot(projectRoot, "", argument(argv, "--vault-root"));
 		const bytes = readFileSync(ledgerPath(projectRoot), "utf8");
-		const preview = createObsidianLedgerMigrationPreview(bytes, vaultRoot, { specRoot: argument(argv, "--spec-root"), requiredLinearIds: argument(argv, "--linear-ids")?.split(",").map(value => value.trim()).filter(Boolean), projectRoot });
+		const preview = createObsidianLedgerMigrationPreview(bytes, vaultRoot, { ...selectedVaultScope, projectRoot });
 		const output = argument(argv, "--out");
 		if (output) writeFileSync(containedPath(projectRoot, output, "migration-preview-output"), `${JSON.stringify(preview, null, 2)}\n`, { flag: "wx" });
 		return JSON.stringify(preview, null, 2);
@@ -181,7 +190,7 @@ export async function runTraceability(argv = process.argv.slice(2)): Promise<str
 		const previewPath = containedPath(projectRoot, argument(argv, "--preview"), "migration-preview");
 		const digest = argument(argv, "--digest");
 		if (!digest) throw new Error("MIGRATION_ACCEPTED_DIGEST_REQUIRED");
-		const result = applyObsidianLedgerMigrationPreview({ ledgerPath: ledgerPath(projectRoot), vaultRoot, preview: JSON.parse(readFileSync(previewPath, "utf8")) as ObsidianLedgerMigrationPreview, acceptedDigest: digest, inspect: { specRoot: argument(argv, "--spec-root"), requiredLinearIds: argument(argv, "--linear-ids")?.split(",").map(value => value.trim()).filter(Boolean) } });
+		const result = applyObsidianLedgerMigrationPreview({ ledgerPath: ledgerPath(projectRoot), vaultRoot, preview: JSON.parse(readFileSync(previewPath, "utf8")) as ObsidianLedgerMigrationPreview, acceptedDigest: digest, inspect: selectedVaultScope });
 		return JSON.stringify({
 			operation: "ledger-migration-apply", ledger: { status: "applied", payloadDigest: result.payloadDigest },
 			vaultRename: { status: "unchanged-separate-operation" }, sqliteRebuild: { status: "pending" },
@@ -257,8 +266,14 @@ export async function runTraceability(argv = process.argv.slice(2)): Promise<str
 		else writeFileSync(mapPath, rendered);
 		return `Development Map current: ${ledger.entities.filter(entity => entity.kind === "issue").length} issues`;
 	}
-	const requiredVaultLinearIds = argument(argv, "--linear-ids")?.split(",").map(value => value.trim()).filter(Boolean);
-	const storeOptions = { projectRoot, dataRoot: argument(argv, "--data-root"), vaultRoot: resolveVaultRoot(projectRoot, "", argument(argv, "--vault-root")), vaultSpecRoot: argument(argv, "--spec-root"), requiredVaultLinearIds };
+	const dataRoot = argument(argv, "--data-root");
+	const storeOptions = {
+		projectRoot,
+		vaultRoot: resolveVaultRoot(projectRoot, "", argument(argv, "--vault-root")),
+		...(dataRoot === undefined ? {} : { dataRoot }),
+		...(selectedVaultScope.specRoot === undefined ? {} : { vaultSpecRoot: selectedVaultScope.specRoot }),
+		...(selectedVaultScope.requiredLinearIds === undefined ? {} : { requiredVaultLinearIds: selectedVaultScope.requiredLinearIds }),
+	};
 	if (command === "rebuild") { const store = new DevelopmentStore(storeOptions); try { return JSON.stringify(store.rebuildTraceability()); } finally { store.close(); } }
 	if (command === "query") {
 		const [kind, id] = argv.slice(1) as ["spec" | "acceptance" | "test" | "exception", string];
@@ -322,23 +337,34 @@ export async function runTraceability(argv = process.argv.slice(2)): Promise<str
 			throw new Error("VAULT_EXPORT_BYTE_DIGEST_MISMATCH");
 		}
 	}
-	const canonicalDocuments = inspectObsidianVault(actualVaultRoot, { specRoot: argument(argv, "--spec-root"), requiredLinearIds: requiredVaultLinearIds }).snapshot.documents;
+	const canonicalDocuments = inspectObsidianVault(actualVaultRoot, selectedVaultScope).snapshot.documents;
 	const coverageErrors = validateVaultExportCoverage(ledger, canonicalDocuments.map(document => document.documentId), seenVaultNotes);
 	if (coverageErrors.length) throw new Error(coverageErrors.join("\n"));
 	const errors = await validateTraceability({
 		projectRoot,
 		ledger,
 		vaultRoot: actualVaultRoot,
-		specRoot: argument(argv, "--spec-root"),
-		requiredLinearIds: requiredVaultLinearIds,
+		...selectedVaultScope,
 		linearSnapshot: linearSnapshot.issues ?? [],
 	});
 	if (errors.length) throw new Error(errors.join("\n"));
 	const temp = mkdtempSync(join(tmpdir(), "www-traceability-check-"));
 	try {
-		const store = new DevelopmentStore({ projectRoot, dataRoot: temp, vaultRoot: actualVaultRoot, vaultSpecRoot: argument(argv, "--spec-root"), requiredVaultLinearIds }); const first = store.rebuildTraceability(); store.close();
+		const store = new DevelopmentStore({
+			projectRoot,
+			dataRoot: temp,
+			vaultRoot: actualVaultRoot,
+			...(selectedVaultScope.specRoot === undefined ? {} : { vaultSpecRoot: selectedVaultScope.specRoot }),
+			...(selectedVaultScope.requiredLinearIds === undefined ? {} : { requiredVaultLinearIds: selectedVaultScope.requiredLinearIds }),
+		}); const first = store.rebuildTraceability(); store.close();
 		for (const suffix of ["", "-wal", "-shm"]) rmSync(join(temp, "development", `index.sqlite${suffix}`), { force: true });
-		const rebuilt = new DevelopmentStore({ projectRoot, dataRoot: temp, vaultRoot: actualVaultRoot, vaultSpecRoot: argument(argv, "--spec-root"), requiredVaultLinearIds }); const second = rebuilt.rebuildTraceability(); rebuilt.close();
+		const rebuilt = new DevelopmentStore({
+			projectRoot,
+			dataRoot: temp,
+			vaultRoot: actualVaultRoot,
+			...(selectedVaultScope.specRoot === undefined ? {} : { vaultSpecRoot: selectedVaultScope.specRoot }),
+			...(selectedVaultScope.requiredLinearIds === undefined ? {} : { requiredVaultLinearIds: selectedVaultScope.requiredLinearIds }),
+		}); const second = rebuilt.rebuildTraceability(); rebuilt.close();
 		if (first.logicalDigest !== second.logicalDigest || first.rowDigest !== second.rowDigest) throw new Error("SQLite rebuild digest mismatch");
 		return `Traceability OK: ${ledger.entities.length} entities, ${ledger.edges.length} edges, digest ${first.logicalDigest}`;
 	} finally { rmSync(temp, { recursive: true, force: true }); }
