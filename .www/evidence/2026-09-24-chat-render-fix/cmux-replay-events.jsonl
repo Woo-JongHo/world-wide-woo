@@ -1,0 +1,4 @@
+{"event":"started","pid":85185,"at":"2026-09-24T04:29:18.224Z","scope":"Synthetic 1000-message production shell in CMux; no provider, no pixel timing."}
+{"at":"2026-09-24T04:31:31.353Z","event":"stream-complete","updates":180}
+{"at":"2026-09-24T04:31:43.994Z","event":"command","command":{"type":"chat.send","text":"QA915","delivery":"queue"}}
+{"at":"2026-09-24T04:31:53.552Z","event":"closed"}

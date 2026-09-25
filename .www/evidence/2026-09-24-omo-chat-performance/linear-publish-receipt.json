@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "1.0",
+  "capability": "linear.publish",
+  "recordedAt": "2026-09-24T08:33:24+09:00",
+  "approvalBasis": "사용자가 `.omo`와 Chat 수정도 Linear에 올리라고 명시적으로 지시했다. 승인 UI는 현재 실행 모드에서 unavailable이어서 이 명시 지시를 두 Candidate의 게시 승인으로 적용했다.",
+  "issue": {
+    "candidateId": "ARTIFACT-CANDIDATE-AGENT-EVIDENCE-ROOT",
+    "candidateDigest": "d2e5a540898426fd2bca51c1c6950afc3094455deba4fe5f33575578aeb37b54",
+    "id": "WOO-914",
+    "uuid": "254e2509-050c-4adc-a289-6ebcd2cadc87",
+    "url": "https://linear.app/woo-world/issue/WOO-914/agent-산출물이-저장소의-evidence-정본-경로를-따르게-한다",
+    "parentId": "WOO-748",
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "milestone": "v0.2.0 — System & Workflow Foundation",
+    "status": "Todo",
+    "labels": ["System", "Reliability", "Bug"],
+    "relatedTo": ["WOO-697"],
+    "readBack": "pass"
+  },
+  "projectComment": {
+    "candidateId": "ARTIFACT-CANDIDATE-OMO-CHAT-PERFORMANCE",
+    "candidateDigest": "a890cc83a540c7a75d9251148e7405e58a68a0911a927674794f3bf0418bad75",
+    "id": "30f00db1-c05a-4d67-a730-a03f589c46e9",
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "author": "우종호",
+    "connections": ["WOO-689", "WOO-748", "WOO-914"],
+    "readBack": "pass"
+  },
+  "result": "pass"
+}

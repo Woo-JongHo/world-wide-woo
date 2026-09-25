@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "1.0",
+  "recordedAt": "2026-09-25T00:20:00+09:00",
+  "scope": "woo-code-readability kind registry and authoring-axis contract",
+  "changedFiles": [
+    ".agents/skills/woo-code-readability/SKILL.md",
+    ".agents/skills/woo-code-readability/references/readability-contract.md",
+    ".agents/skills/woo-code-readability/references/typescript-grid-template.md",
+    ".agents/skills/woo-code-readability/scripts/typescript/06_align-tables.ts",
+    ".agents/skills/woo-code-readability/scripts/typescript/grid-kinds.ts",
+    ".agents/skills/woo-code-readability/fixtures/table-kinds.ts",
+    "AGENTS.md",
+    "test/code-readability-tools.test.ts",
+    "src/adapters/outbound/development/development-store.ts",
+    "src/adapters/inbound/tui/foundation/rendering/render-scheduler.ts",
+    "test/astra-monitoring-layout.test.ts"
+  ],
+  "issueBinding": {
+    "decision": "reuse-existing",
+    "identifier": "WOO-911",
+    "uuid": "b00b02eb-2d80-4b10-9c9a-a29db4f1a74d",
+    "reason": "Linear 본문이 결정론적 가독성 측정기와 제품 TypeScript 적용 범위를 이미 소유하며, 현재 변경은 그 범위의 종류 등록부와 작성 축 계약 확장이다.",
+    "duplicateSearch": "World Wide Woo 프로젝트에서 Readability로 재조회했으며 WOO-911 외 중복 이슈를 찾지 못했다."
+  },
+  "projectActivity": {
+    "candidate": ".www/evidence/2026-09-24-woo-code-readability-maintain-registry/project-comment-candidate.json",
+    "latestCommentIdBeforeCandidate": "1196a23e-1f9f-4bff-b6c8-83f5a1a4e5ab",
+    "state": "candidate-prepared",
+    "externalWrite": "not-performed"
+  },
+  "obsidian": {
+    "required": false,
+    "reason": "기존 WOO-911 가독성 방법론 계약과 그 계약을 적용한 순수 줄맞춤·회귀 테스트 변경이며 제품 WHY, 공개 API, 도메인 identity, persistence schema를 새로 만들거나 되돌리기 어려운 제품 계약을 변경하지 않는다."
+  },
+  "verification": {
+    "check": "pass — bun run check",
+    "readabilityTest": "pass — bun test test/code-readability-tools.test.ts (27 pass, 0 fail, 221 expect)",
+    "developmentStoreTest": "pass — bun test test/development-store.test.ts (7 pass, 0 fail, 34 expect)",
+    "fullRegression": "pass — bun test (1491 pass, 0 fail, 19354 expect, 173 files)",
+    "stagedDiffCheck": "pass — git diff --cached --check",
+    "commitReadiness": "pending — Readability 후보는 132개 전체 파일 stage·digest·검증을 마쳤고, Workbench·증적 변경은 별도 후보로 분리했다."
+  }
+}

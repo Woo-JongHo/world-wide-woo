@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "1.0",
+  "receiptId": "d94a1c25-8e63-4b07-a2f1-5c4b9e07d3a8",
+  "runId": "842de416-1427-4b3e-af13-abde7e1cfe24",
+  "candidateId": "ARTIFACT-CANDIDATE-READABILITY-ASSERTION-FOLLOWUP",
+  "skill": { "name": "woo-code-readability", "version": "1.1" },
+  "capability": "CODE-READABILITY-ASSERTION-FOLLOWUP",
+  "intentId": null,
+  "status": "succeeded",
+  "stage": "verify",
+  "actor": { "kind": "zcode", "model": "glm-5.3-flash" },
+  "context": { "repo": "99_www", "branch": "dev", "updatedAt": "2026-09-25T00:00:00+09:00", "batch": 3 },
+  "input": { "objective": "감사 랭킹 잔여 nna≥3 파일 중 배치 3(astra-surface, astra-context-catalog, request-runtime-view)를 검사자→저작→게이트 흐름으로 처리한다." },
+  "decision": {
+    "facts": [
+      "배치 3 파일 3개의 non-null assertion 13건이 모두 0이 됐다.",
+      "astra-surface는 Composer 하단 레일의 이중 단언을 findIndex 이후 재조회 비교로 풀었고(rail의 null과 빈 문자열 구분 보존), executionActivitySummary의 params 접근을 isRecord 술어로 정규해 as 2건을 제거했다. 성능 테스트 대상 경로라 활동당 할당은 추가하지 않았다.",
+      "request-runtime-view는 statusGradient에 Partial<Record> 주석을 붙여 status 캐스트를 제거하고 L15 가드를 검사기에게 의미 있게 만들었다.",
+      "astra-surface의 Object.keys(as AstraPage[]) 1건은 Record<AstraPage,ScrollView> 전체성에 의존하는 검증된 경계라 판정 유지했다."
+    ],
+    "changes": [
+      { "kind": "assertion-removal", "ref": "src/adapters/inbound/tui/shell/astra-surface.ts", "summary": "무기능 ! 4건 제거, 레일 재조회로 아우터 ! 제거, isRecord 가드로 payload.params 접근 as 2건 제거. 렌더 출력 불변." },
+      { "kind": "assertion-removal", "ref": "src/adapters/inbound/tui/features/context/astra-context-catalog.ts", "summary": "무기능 ! 4건 제거, syntheticContextRows 폭 배열을 [number, number] 튜플 계약으로 정규화. as const 6건은 판정 유지." },
+      { "kind": "boundary-normalization", "ref": "src/adapters/inbound/tui/features/monitoring/request-runtime-view.ts", "summary": "statusGradient를 Partial<Record<RequestRuntimeStatus, StatusGradient>>로 선언해 keyof 캐스트 제거, 튜플·배열 무기능 ! 4건 제거." }
+    ],
+    "unknowns": [
+      "잔여 nna≥3: obsidian-ledger-migration(3/16), request-test-workspace(3/9), skill-run(3/6), session-stats(3/4), t-note-service(4/1), three-body-lab(4/1), local-workflow-service(4/0), labels(4/0), astra-cache-view(4/0), astra-demo(3/2), astra-context-view(3/2), request-runtime(3/1), astra-dashboard-catalog(3/1), trace-selection(3/0), three-body-orbit(3/0).",
+      "astra-surface의 120열 초과 75행과 L105 IIFE 슬롯 등 규칙 39 후보는 렌더 문자열이 테스트로 고정돼 이번 배치에서 건드리지 않았다."
+    ]
+  },
+  "validation": [
+    { "check": "bun run check", "status": "passed", "detail": "tsc --noEmit exit 0" },
+    { "check": "06_align-tables.ts --file (astra-surface, request-runtime-view)", "status": "passed", "detail": "misaligned=0 edits=0" },
+    { "check": "targeted behavior tests", "status": "passed", "detail": "astra surface·inset·lazy·heading·ui·keymap 96 · context-fidelity 11 · request-runtime/controller/plan 36 — all 0 fail" },
+    { "check": "bun test (중간 전체 회귀, 배치 2 직후)", "status": "passed", "detail": "1492 pass, 0 fail, 173 files" },
+    { "check": "git diff --check", "status": "passed", "detail": "exit 0" }
+  ],
+  "authorization": null,
+  "execution": {
+    "writes": [
+      "src/adapters/inbound/tui/shell/astra-surface.ts",
+      "src/adapters/inbound/tui/features/context/astra-context-catalog.ts",
+      "src/adapters/inbound/tui/features/monitoring/request-runtime-view.ts",
+      ".www/evidence/2026-09-25-readability-assertion-followup/receipt-batch3.json"
+    ]
+  }
+}

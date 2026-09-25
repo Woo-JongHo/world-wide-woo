@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "1.0",
+  "recordedAt": "2026-09-24T00:00:00+09:00",
+  "issue": {
+    "id": "WOO-693",
+    "uuid": "559c8b06-e8dd-4061-8d10-d719be0524a8",
+    "decision": "reuse-existing"
+  },
+  "projectActivity": {
+    "decision": "candidate-prepared",
+    "path": ".www/evidence/2026-09-24-report-request-summary/project-comment-candidate.json",
+    "published": false,
+    "reason": "REPORT 생성·표시 계약과 검증 결과가 바뀌어 작업 단위 Activity 기록 대상이다."
+  },
+  "obsidian": {
+    "decision": "candidate-prepared",
+    "path": ".www/evidence/2026-09-24-report-request-summary/obsidian-canonical-candidate.json",
+    "published": false,
+    "reason": "WOO-693에 기존 schema v2 상세 정본이 없음을 확인해 최초 canonical document Candidate를 준비했다."
+  },
+  "externalWrites": {
+    "performed": false,
+    "reason": "사용자 승인에 결박되는 publish 단계는 수행하지 않았다."
+  }
+}

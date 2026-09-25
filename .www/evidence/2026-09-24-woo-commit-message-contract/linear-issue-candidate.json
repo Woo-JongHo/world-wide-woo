@@ -1,0 +1,69 @@
+{
+  "schemaVersion": "1.0",
+  "candidateId": "ARTIFACT-CANDIDATE-WOO-COMMIT-MESSAGE-CONTRACT-ISSUE",
+  "kind": "linear-issue",
+  "sourceRevision": "git:ca775998641d284738cd87c50d2593f689b6c86c:dirty",
+  "intent": "커밋 메시지에서 업무 맥락과 검증 근거를 복원하는 계약을 추적한다",
+  "target": {
+    "workspaceId": "b7b91489-dd9b-4fb7-b958-822d5dc577e0",
+    "teamId": "95f279f5-cd73-49b6-a10e-b6cdab1e6d58",
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "parentId": "67c571a6-f8ff-4cc3-a2a1-7278f14ddc7b",
+    "milestoneId": "11c54a66-8b02-497b-b462-c273141a440c",
+    "labels": ["System", "Reliability", "Improvement"]
+  },
+  "content": {
+    "title": "커밋에서 업무 결정과 실제 검증을 복원한다",
+    "purpose": "짧은 결과 제목과 이유·검증 두 줄만으로는 이전 동작의 양면성, 선택한 범위, 의도적으로 제외한 동작을 복원할 수 없는 문제를 막는다.",
+    "included": [
+      "제목에 실제 업무·모듈 소유자와 완성된 결과를 기록한다.",
+      "비자명한 변경은 문제와 이전 동작, 이번 결정, 비선택 사유 순으로 본문을 작성한다.",
+      "본문 마지막에 관측 가능한 문제를 Fixes로, 실제 통과한 검증만 Verified로 기록한다."
+    ],
+    "excluded": [
+      "Conventional Commit 유형 접두어 도입",
+      "Push·PR·Merge 자동 실행",
+      "작은 기계적 변경에 의미 없는 본문을 강제하는 것"
+    ],
+    "done": [
+      "woo-commit 스킬이 업무 소유자 접두어와 결과 제목을 구분해 안내한다.",
+      "비자명한 변경 예시가 문제 역사, 결정, 비선택 사유, Fixes, Verified를 모두 포함한다.",
+      "Verified에는 실제 실행한 검증만 기록하도록 명시한다."
+    ],
+    "connections": [
+      "Historical parent: WOO-747 · UUID 67c571a6-f8ff-4cc3-a2a1-7278f14ddc7b",
+      "Code: .agents/skills/woo-commit/SKILL.md",
+      "Evidence: .www/evidence/2026-09-24-woo-commit-message-contract"
+    ]
+  },
+  "links": {
+    "parentEvidence": ".www/evidence/2026-09-08-woo-commit-control-plane/linear-before.json",
+    "evidence": ".www/evidence/2026-09-24-woo-commit-message-contract"
+  },
+  "expectedBefore": {
+    "parent": {
+      "id": "WOO-747",
+      "uuid": "67c571a6-f8ff-4cc3-a2a1-7278f14ddc7b"
+    },
+    "matchingIssue": null,
+    "freshness": "historical-local-evidence; remote read blocked by connection mismatch"
+  },
+  "validation": [
+    {
+      "id": "historical-parent-evidence",
+      "status": "pass",
+      "evidence": "2026-09-08 Linear readback가 WOO-747의 UUID, Project, Milestone을 보존한다. 현재 원격 상태는 게시 전 다시 확인해야 한다."
+    },
+    {
+      "id": "local-duplicate-search",
+      "status": "pass",
+      "evidence": "로컬 Evidence와 문서에서 같은 커밋 메시지 복원 계약의 게시된 이슈를 찾지 못했고 WOO-844 표기는 리뷰 프롬프트에만 남아 있다."
+    },
+    {
+      "id": "design-triage",
+      "status": "pass",
+      "evidence": "기존 commit control의 WHY·capability·외부 쓰기 경계를 바꾸지 않는 메시지 작성 규칙 구체화이므로 Obsidian Candidate는 필요하지 않다."
+    }
+  ],
+  "candidateDigest": "fe962c92d7dfa1459e96e9ef912a5d3a59ef6e87c4b10aad862ded4413a91fca"
+}

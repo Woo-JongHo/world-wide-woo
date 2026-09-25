@@ -1,0 +1,22 @@
+{
+  "recordedAt": "2026-09-24",
+  "changedFiles": [
+    ".agents/skills/woo-commit/SKILL.md"
+  ],
+  "issueBinding": {
+    "id": null,
+    "decision": "과거 Evidence의 WOO-844 표지는 현재 Linear 연결에서 확인되지 않아 신규 Issue Candidate를 준비했다. 게시 전 workspace와 부모를 재확인한다.",
+    "candidate": ".www/evidence/2026-09-24-woo-commit-message-contract/linear-issue-candidate.json",
+    "source": ".www/evidence/2026-09-08-woo-commit-control-plane/linear-draft.json"
+  },
+  "projectActivity": {
+    "candidate": ".www/evidence/2026-09-24-woo-commit-message-contract/project-comment-candidate.json",
+    "state": "prepared-not-published",
+    "publicationGuard": "게시 직전 최신 Project Activity를 다시 읽고 expectedBefore를 갱신한 뒤 별도 사용자 승인을 받아야 한다"
+  },
+  "obsidian": {
+    "required": false,
+    "reason": "기존 commit control WHY와 capability를 유지하고 메시지 작성 규칙만 구체화했다."
+  },
+  "externalWrites": "none"
+}

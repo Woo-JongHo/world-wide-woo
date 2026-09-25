@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-CHAT-RENDER-SYSTEM-DIAGNOSIS",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:ca775998641d284738cd87c50d2593f689b6c86c:dirty",
+  "intent": "채팅 지연의 시스템 부하·렌더 경로·측정 공백을 구분한 후속 진단을 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "CMux의 www 프로세스와 자식 검사 작업을 확인하고 채팅 이벤트→snapshot→렌더→터미널 흐름을 진단 문서로 정리했다. 제품 코드는 변경하지 않았다.",
+      "8코어 머신의 load average 111과 www 자식 작업의 8병렬 TypeScript 검사를 관측했다. 사용자 증상과의 인과 및 기여율은 미확인이다.",
+      "기존 벤치 fixture의 불변성 조건 차이를 확인했다. 같은 1,000개 메시지 대조에서 깊은 불변 fixture는 draft 갱신 시 과거 block 재계산 계수가 증가하지 않았다."
+    ],
+    "impacts": [
+      "시스템 부하·긴 본문 계산·벤치 조건을 구분해 부분 최적화 결과를 전체 앱 성능 수락으로 오인하지 않게 한다.",
+      "긴 본문 불변 fixture에서 frame 160~211ms를 재현했지만 공유 머신 부하를 통제하지 않았으며 실제 CMux 입력·스크롤 지연 해결을 주장하지 않는다."
+    ],
+    "categories": [
+      "verification",
+      "operations"
+    ],
+    "verification": [
+      "ASTRA_BENCH_REPS=5 ASTRA_BENCH_COUNTS=1000 bun scripts/astra-render-benchmark.ts: exit 1 / RED. 가변 fixture 결과를 실사용 streaming 회귀로 직접 귀속하지 않는다.",
+      "minimal.ts의 가변/불변 1,000개 fixture 및 불변 긴 본문 대조: 과거 block 계수와 count-build/materialization 시간을 분리 기록했다.",
+      "CMux 화면 조회는 접근 정책으로 거절됐다. 실행 중 revision과 최근 변경 전후 인과는 미확인이다. Opus 문서 감사 REVISE 지적을 반영했으며 수정본 독립 PASS는 미수행이다."
+    ],
+    "connections": [
+      "Linear: https://linear.app/woo-world/issue/WOO-689",
+      "Audit: docs/audit/2026-09-24-chat-render-system-diagnosis.md",
+      "Evidence: .www/evidence/2026-09-24-chat-render-system-diagnosis",
+      "Related prior Project Comment: 30f00db1-c05a-4d67-a730-a03f589c46e9 (앞선 dense-layout 수정 기록; 이번 작업은 별도 후속 진단)"
+    ]
+  },
+  "links": {
+    "issue": "https://linear.app/woo-world/issue/WOO-689",
+    "audit": "docs/audit/2026-09-24-chat-render-system-diagnosis.md",
+    "evidence": ".www/evidence/2026-09-24-chat-render-system-diagnosis"
+  },
+  "expectedBefore": {
+    "latestCommentId": "30f00db1-c05a-4d67-a730-a03f589c46e9"
+  },
+  "validation": [
+    {
+      "id": "issue-binding",
+      "status": "pass",
+      "evidence": "WOO-689 UUID ae15b7ba-fd9d-4319-a186-201e6177c8a6, World Wide Woo, Done를 원격 확인. 기존 긴 draft·초기 렌더·실제 세션 성능 미검증 범위의 후속 진단이며 상태는 변경하지 않는다."
+    },
+    {
+      "id": "activity-duplicate",
+      "status": "pass",
+      "evidence": "최신 Project Comment 10건을 조회해 이번 진단 이전 기록까지 대조했다. 같은 진단 문서의 기록은 없다. 이전 페이지는 이번 신규 작업보다 과거여서 추가 조회하지 않았다."
+    },
+    {
+      "id": "design-triage",
+      "status": "pass",
+      "evidence": "관측과 미확인 범위 및 후속 조사 제안만 기록한다. 제품 WHY·공개 계약·설계 결정을 채택하거나 변경하지 않아 Obsidian Candidate는 만들지 않는다."
+    }
+  ],
+  "candidateDigest": "4ab9e3aebc21b681c26f14818e911aef1acc7600a08a99249686517601be1ff2"
+}

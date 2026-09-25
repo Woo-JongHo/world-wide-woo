@@ -1,0 +1,28 @@
+{
+  "observedAt": "2026-09-24T07:00:26.190296+00:00",
+  "authorization": "진행 중인 작업이 끝난 뒤 재시작",
+  "precondition": "CMux 실행 종료 15:27:52, Plan 3/3, Next 없음 확인",
+  "oldPid": 86770,
+  "oldExit": "Ctrl+D 정상 종료 및 ps 부재 확인",
+  "newPid": 36300,
+  "newStartedLocal": "2026-09-24 15:57:39 Asia/Seoul",
+  "command": "www --resume 01a0d09b-39d6-7c91-9360-e423113cb54b",
+  "head": "868ce9bb15231d47650cb67f2704b2ce8507f313",
+  "dirty": true,
+  "observations": [
+    "기존 완료 대화와 마지막 보고 복원",
+    "Home 첫 요청 표시",
+    "PageDown 다음 과거 대화 표시",
+    "End 마지막 완료 보고 복귀",
+    "Tab 입력 모드 복원"
+  ],
+  "limits": [
+    "실제 terminal pixel latency 미계측",
+    "첫 paint535.24ms는 별도 MemoryTerminal 재현 값",
+    "장시간 실사용 증상 해소 미확정"
+  ],
+  "sourceHashes": {
+    "src/adapters/inbound/tui/shell/astra-surface.ts": "b0f046dfde5891c5bcd6aa44d81e27b4c7fce03ceeb5abe3e9e736dc2ecc3ed3",
+    "node_modules/@earendil-works/pi-tui/dist/utils.js": "dbf2ab56bf0080c017d45b3037f02ac712d766be94b9493d20f8ff520bb0c8a9"
+  }
+}

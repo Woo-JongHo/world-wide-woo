@@ -1,0 +1,148 @@
+{
+  "records": 6236,
+  "messages": 252,
+  "projectionMs": 20.67862500000001,
+  "coldFull": {
+    "totalMs": 629.627959,
+    "headingMs": 44.35695799999999,
+    "transcriptSetupMs": 563.1136670000001,
+    "transcriptRowsMs": 7.494625000000042,
+    "otherLayoutAndSidebarMs": 14.66270899999995,
+    "requestedRows": 46,
+    "renderedBlocks": 888
+  },
+  "warmFull": {
+    "totalMs": {
+      "samples": 10,
+      "p50": 3.873958000000016,
+      "p95": 5.966042000000016,
+      "max": 5.966042000000016
+    },
+    "headingMs": {
+      "samples": 10,
+      "p50": 0.22262499999999363,
+      "p95": 0.42658300000005056,
+      "max": 0.42658300000005056
+    },
+    "transcriptSetupMs": {
+      "samples": 10,
+      "p50": 0.20766699999990124,
+      "p95": 0.49441699999999855,
+      "max": 0.49441699999999855
+    },
+    "transcriptRowsMs": {
+      "samples": 10,
+      "p50": 0.049792000000138614,
+      "p95": 0.08712600000012571,
+      "max": 0.08712600000012571
+    },
+    "otherLayoutAndSidebarMs": {
+      "samples": 10,
+      "p50": 3.399416000000315,
+      "p95": 5.098124999999982,
+      "max": 5.098124999999982
+    },
+    "requestedRows": {
+      "samples": 10,
+      "p50": 46,
+      "p95": 46,
+      "max": 46
+    },
+    "renderedBlocks": {
+      "samples": 10,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+    }
+  },
+  "coldNoSidebar": {
+    "totalMs": 356.69525,
+    "headingMs": 0.2562919999999167,
+    "transcriptSetupMs": 350.8567079999999,
+    "transcriptRowsMs": 4.577749000000267,
+    "otherLayoutAndSidebarMs": 1.004500999999891,
+    "requestedRows": 46,
+    "renderedBlocks": 888
+  },
+  "warmNoSidebar": {
+    "totalMs": {
+      "samples": 5,
+      "p50": 1.3984579999998914,
+      "p95": 1.4801669999999376,
+      "max": 1.4801669999999376
+    },
+    "headingMs": {
+      "samples": 5,
+      "p50": 0.2551660000001448,
+      "p95": 0.3069160000000011,
+      "max": 0.3069160000000011
+    },
+    "transcriptSetupMs": {
+      "samples": 5,
+      "p50": 0.18641699999989214,
+      "p95": 0.19270799999981136,
+      "max": 0.19270799999981136
+    },
+    "transcriptRowsMs": {
+      "samples": 5,
+      "p50": 0.02720699999986209,
+      "p95": 0.035998999999947046,
+      "max": 0.035998999999947046
+    },
+    "otherLayoutAndSidebarMs": {
+      "samples": 5,
+      "p50": 0.8716270000002169,
+      "p95": 1.016334999999799,
+      "max": 1.016334999999799
+    },
+    "requestedRows": {
+      "samples": 5,
+      "p50": 46,
+      "p95": 46,
+      "max": 46
+    },
+    "renderedBlocks": {
+      "samples": 5,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+    }
+  },
+  "directHeadingMs": {
+    "samples": 20,
+    "p50": 0.1594159999999647,
+    "p95": 0.32654100000013386,
+    "max": 0.500208000000157
+  },
+  "memoizedImmutableHeadingLookupMs": {
+    "samples": 20,
+    "p50": 0.00016699999991942605,
+    "p95": 0.00045799999998052954,
+    "max": 0.003249999999979991
+  },
+  "localeFormatting": {
+    "operationsPerSample": 500,
+    "toLocaleTimeStringMs": {
+      "samples": 10,
+      "p50": 25.343875000000025,
+      "p95": 36.260583,
+      "max": 36.260583
+    },
+    "sharedIntlFormatterMs": {
+      "samples": 10,
+      "p50": 0.5963749999998527,
+      "p95": 0.9803750000000946,
+      "max": 0.9803750000000946
+    }
+  },
+  "scope": {
+    "recordLimit": 6236,
+    "warmFullFrames": 10,
+    "warmNoSidebarFrames": 5,
+    "directHeadingSamples": 20,
+    "immutableSnapshot": true,
+    "rawContentEmitted": false,
+    "snapshotProjectionIncludedInFrames": false,
+    "terminalOrPtyIncluded": false
+  }
+}

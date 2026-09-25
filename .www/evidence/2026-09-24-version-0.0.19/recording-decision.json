@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "1.0",
+  "recordedAt": "2026-09-25T00:45:00+09:00",
+  "scope": "0.0.19 Linear Comment·Project Update 기록 판정",
+  "issueBinding": {
+    "decision": "reuse-existing",
+    "identifier": "WOO-912",
+    "uuid": "14a3c6f0-3055-4c44-80fc-52a002b96f20",
+    "title": "[Workbench UI] 모드·모델·계획·구독 잔여 표기를 정리한다",
+    "status": "In Progress",
+    "reason": "0.0.19 버전 표기와 Workbench UI 변경을 이미 소유하는 이슈이며 신규 중복 이슈가 아니다."
+  },
+  "projectActivity": {
+    "latestUpdateBefore": {
+      "id": "864ec8bd-eff1-47fe-81fb-4062b1f06681",
+      "version": "0.0.18",
+      "health": "atRisk"
+    },
+    "latestCommentBefore": "1196a23e-1f9f-4bff-b6c8-83f5a1a4e5ab",
+    "commentCandidate": ".www/evidence/2026-09-24-version-0.0.19/project-comment-candidate.json",
+    "commentState": "candidate-prepared",
+    "commentExternalWrite": "not-performed",
+    "commentReason": "Candidate는 준비·검증됐지만 외부 Comment 게시 승인이 아직 없었다."
+  },
+  "projectUpdate": {
+    "version": "0.0.19",
+    "state": "blocked-on-comment",
+    "reason": "woo-linear-version-update는 직전 Update 이후 실제 Project Comment를 sourceCommentIds로 종합해야 하므로, 0.0.19 Comment 게시·read-back 뒤에 Update Candidate를 만들고 게시해야 한다.",
+    "latestUpdateId": "864ec8bd-eff1-47fe-81fb-4062b1f06681"
+  },
+  "obsidian": {
+    "required": false,
+    "reason": "이번 기록은 기존 package version·Workbench UI 표현과 Linear Activity 게시 상태를 정리하며 새 WHY·공개 API·도메인 identity·persistence schema를 만들지 않는다."
+  },
+  "verification": {
+    "candidate": "Artifact Candidate OK: linear-project-comment ARTIFACT-CANDIDATE-VERSION-0-0-19",
+    "issueReadback": "WOO-912 In Progress, 2026-09-25 재조회",
+    "activityReadback": "latest Comment 1196a23e-1f9f-4bff-b6c8-83f5a1a4e5ab; latest Update 0.0.18",
+    "externalWrites": "not-performed"
+  }
+}

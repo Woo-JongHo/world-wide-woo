@@ -1,0 +1,194 @@
+{
+  "schemaVersion": "1.0",
+  "receiptId": "1543e8780896475ead56e9327ecaa7f4",
+  "runId": "a82f828d-62ad-43ad-afc9-8befc2008113",
+  "capability": "CODE-READABILITY-MAINTAIN",
+  "status": "succeeded",
+  "stage": "verify",
+  "actor": {
+    "kind": "zcode",
+    "model": "GLM-5.3-Flash"
+  },
+  "context": {
+    "repo": "99_www",
+    "branch": "dev",
+    "updatedAt": "2026-09-24T19:30:00+09:00"
+  },
+  "input": {
+    "objective": "woo-code-readability STEP6를 종류 등록부(kind registry) 구조로 확장한다"
+  },
+  "decision": {
+    "facts": [
+      "표 행 종류 10종(declaration, declaration-equals, type-alias, method-signature, interface-members, class-members, class-method, enum-member, case-clause, object-rows, registration)을 grid-kinds.ts 등록부로 분리했다.",
+      "축을 간격(최소 한 칸 여백)과 삽입(기존 열 보존)으로 나눠 멱등 정렬을 증명했다: 정렬된 표 재실행 시 edits=0.",
+      "한 물리 줄에 압축된 인터페이스 멤버 표는 compressed= 카운트로 보고하고 --write로도 수정하지 않는다.",
+      "STEP0 import 규칙을 단일 specifier 항상 한 줄, 120열 이하 한 줄 접기, } from 같은 줄로 바꾸고 저장소 전체 484파일에 적용해 changed=0 errors=0을 증명했다.",
+      "작성 시점(AGENTS.md·계약 문서)과 완료 시점(00·06 검사)의 두 시점 잠금을 문서·테스트로 고정했다."
+    ],
+    "changes": [
+      {
+        "kind": "tool-add",
+        "ref": ".agents/skills/woo-code-readability/scripts/typescript/grid-kinds.ts",
+        "summary": "표 행 종류·축 등록부와 runsOf 공용 그룹핑을 추가했다."
+      },
+      {
+        "kind": "tool-format-update",
+        "ref": ".agents/skills/woo-code-readability/scripts/typescript/06_align-tables.ts",
+        "summary": "등록부 기반 정렬기로 재작성하고 --explain 진단과 compressed fail-closed 게이트를 추가했다."
+      },
+      {
+        "kind": "tool-format-update",
+        "ref": ".agents/skills/woo-code-readability/scripts/typescript/00_normalize-imports.ts",
+        "summary": "단일 specifier·120열 규칙과 개별 행 종결자 보존을 적용했다."
+      },
+      {
+        "kind": "doc-update",
+        "ref": ".agents/skills/woo-code-readability/SKILL.md",
+        "summary": "STEP6를 종류 등록부 절차(01 종류→02 축→03 등록)로 갱신하고 STEP0 규칙을 반영했다."
+      },
+      {
+        "kind": "fixture-add",
+        "ref": ".agents/skills/woo-code-readability/fixtures/table-kinds.ts",
+        "summary": "method·alias·declaration·registration·enum·case 표 픽스처를 추가했다."
+      },
+      {
+        "kind": "format-fix",
+        "ref": "src/adapters/outbound/development/development-store.ts",
+        "summary": "제품 파일 표 7곳의 equals·semicolon·paren 축을 최소 폭으로 정렬했다."
+      },
+      {
+        "kind": "rule-add",
+        "ref": ".agents/skills/woo-code-readability/scripts/typescript/grid-kinds.ts#KIND_AXES",
+        "summary": "종류별 간격·삽입 축 계약을 등록부로 단일 기준화했다."
+      },
+      {
+        "kind": "doc-update",
+        "ref": ".agents/skills/woo-code-readability/references/readability-contract.md",
+        "summary": "작성 시 축 계약 절을 추가해 프롬프트 시점과 검사 시점이 같은 표를 보게 했다."
+      },
+      {
+        "kind": "doc-update",
+        "ref": ".agents/skills/woo-code-readability/references/typescript-grid-template.md",
+        "summary": "예시를 검사기 출력과 일치시키고 메서드·선언·enum·case 표를 추가했다."
+      },
+      {
+        "kind": "rule-add",
+        "ref": "AGENTS.md",
+        "summary": "TypeScript 작성 시 축 계약 적용과 완료 전 00·06 검사 증명을 워크스페이스 진입 규칙으로 추가했다."
+      },
+      {
+        "kind": "tool-format-update",
+        "ref": "test/code-readability-tools.test.ts",
+        "summary": "문서·등록부 동기화 테스트를 추가해 계약 drift를 실패시킨다."
+      },
+      {
+        "kind": "rule-add",
+        "ref": ".agents/skills/woo-code-readability/scripts/typescript/grid-kinds.ts#tail",
+        "summary": "객체 행 닫는 } 뒤 꼬리(, ; ) as const)를 삽입 축으로 등록하고 as const 래퍼 언랩으로 감지를 넓혔다."
+      },
+      {
+        "kind": "rule-add",
+        "ref": ".agents/skills/woo-code-readability/references/readability-contract.md#38-39",
+        "summary": "가드 조건 3 초과 시 여러 줄 if·early return과 조건자 추출(38), 기능 슬롯의 익명 삼항 인라인 금지(39)를 확정 규칙으로 추가했다."
+      },
+      {
+        "kind": "format-fix",
+        "ref": "src/adapters/outbound/workspace/pinned-file-capabilities.ts",
+        "summary": "규칙 38·39를 적용해 거대 조건식과 인라인 삼항 기능 슬롯을 이름 있는 지역 함수와 여러 줄 가드로 재구성했다(동작 불변, 76개 관련 테스트 통과)."
+      },
+      {
+        "kind": "doc-update",
+        "ref": ".www/scratchpad/zcode-readability-followup/condition-inventory.txt",
+        "summary": "논리 조건 사슬 재고: 552줄, 3 조건 이상 191, 4 이상 66, 6 이상 16. 최대 12 조건."
+      },
+      {
+        "kind": "rule-add",
+        "ref": ".agents/skills/woo-code-readability/scripts/typescript/grid-kinds.ts#type-members",
+        "summary": "type X = { ... } 타입 리터럴 멤버 표를 type-members 종류로 등록해 interface/class 멤버와 같은 축 계약을 적용했다. 전역 41파일의 새 표가 정렬됐다."
+      },
+      {
+        "kind": "format-fix",
+        "ref": "src/core/commit/commit-governance.ts#CommitCandidate.axes",
+        "summary": "압축된 axes 멤버를 이름 있는 CommitAxes 인터페이스로 추출해 17행 표를 단일 형태로 유지했다(규칙 37·14)."
+      },
+      {
+        "kind": "format-fix",
+        "ref": "src/core/runtime/execution-run.ts#normalizeProjectActivity",
+        "summary": "한 행 다중 속성 반환 객체를 한 속성 한 행으로 나누고 : 를 정렬, 중복 ?? unknown을 지역 값으로 뽑았다(규칙 37·중복 표현 제거)."
+      },
+      {
+        "kind": "format-fix",
+        "ref": "src/adapters + src/core 12 files",
+        "summary": "6 조건 이상 논리 사슬 15줄을 규칙 38로 정리했다: 여러 줄 if·early return, 조건자 추출(isWorkbenchExternalMutationKind·isValidDelivery·canActOn·canRecoverFrom), 값 나열은 집합 상수(PROPAGATED_ENV_KEYS·PUBLICATION_KINDS)로 교체. 6 조건 이상 잔여 0."
+      },
+      {
+        "kind": "tool-add",
+        "ref": ".agents/skills/woo-code-readability/scripts/typescript/07_wrap-conditions.ts",
+        "summary": "한 행 4 조건 이상 논리 사슬을 규칙 38 형태로 감는 STEP7 자동 래퍼를 추가했다. 전역 66파일에 적용해 6 조건 이상 한 행 사슬을 0으로 만들었다. ts7 원격 노드에서 node.parent가 신뢰 불가하여 순회 시 조상을 전달하는 방식으로 구현했다."
+      },
+      {
+        "kind": "rule-add",
+        "ref": ".agents/skills/woo-code-readability/scripts/typescript/08_function-map.ts",
+        "summary": "함수 지도(GROUP|FUNCTION|INPUT|RETURN|CALLS|ROLE) 규칙으로 계약 31을 전환하고 지도-선언 drift 검사기와 scaffold를 추가했다. case 행 축 call-paren·return-tail도 등록했다."
+      },
+      {
+        "kind": "rule-add",
+        "ref": ".agents/skills/woo-code-readability/scripts/typescript/grid-kinds.ts#assignments",
+        "summary": "this.x = y; 대입문 표를 assignments 종류로 등록(=·; 간격 축). 전역 35파일의 대입문 표가 정렬됐고 cli.ts에 첫 함수 지도를 작성해 08 검사 errors=0을 증명했다."
+      },
+      {
+        "kind": "tool-format-update",
+        "ref": ".agents/skills/woo-code-readability/scripts/typescript/08_function-map.ts",
+        "summary": "함수 지도 표의 | 열 정렬을 검사·--write로 정규화하고(한글 표시 폭 반영), drift 루프가 cells 구조를 읽도록 수정했다. 마지막 열 패딩 제거로 줄 끝 공백을 방지했다."
+      }
+    ],
+    "unknowns": [
+      "전역 06 검사는 파일마다 TS 프로젝트를 로드해 수 분이 걸린다. 측정 성능(프로젝트 로딩 재사용)은 다음 튜닝 후보다.",
+      "등록 객체 실행식 시작 축(value)과 enum comma의 제품 파일 적용 범위는 사용자 선택 대기 중이다."
+    ]
+  },
+  "validation": [
+    {
+      "check": "bun test test/code-readability-tools.test.ts",
+      "status": "passed",
+      "detail": "26 pass / 0 fail / 10.07s"
+    },
+    {
+      "check": "bun test test/development-store.test.ts",
+      "status": "passed",
+      "detail": "7 pass / 0 fail"
+    },
+    {
+      "check": "bun run check",
+      "status": "passed",
+      "detail": "tsc --noEmit 오류 0"
+    },
+    {
+      "check": "00_normalize-imports.ts 전체 검사",
+      "status": "passed",
+      "detail": "files=484 changed=0 errors=0"
+    },
+    {
+      "check": "bun test test/code-readability-tools.test.ts (축 계약 동기화 포함)",
+      "status": "passed",
+      "detail": "27 pass / 0 fail"
+    }
+  ],
+  "evidence": [],
+  "result": {
+    "filesModified": [
+      ".agents/skills/woo-code-readability/scripts/typescript/grid-kinds.ts",
+      ".agents/skills/woo-code-readability/scripts/typescript/06_align-tables.ts",
+      ".agents/skills/woo-code-readability/scripts/typescript/00_normalize-imports.ts",
+      ".agents/skills/woo-code-readability/SKILL.md",
+      "src/adapters/outbound/development/development-store.ts"
+    ],
+    "behaviorChanged": false
+  },
+  "failure": null,
+  "nextCapabilities": [
+    "CODE-READABILITY-MEASURE-PERF",
+    "CODE-READABILITY-REGISTRATION-ROLLOUT"
+  ],
+  "receiptDigest": "a7ed6b739add2155348903ea17e488c303d86102fba3b9fe22055a0d7c0d3b26"
+}

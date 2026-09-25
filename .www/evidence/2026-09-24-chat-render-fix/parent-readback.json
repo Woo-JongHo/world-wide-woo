@@ -1,0 +1,80 @@
+{
+  "id": "WOO-679",
+  "uuid": "885c2115-0821-4df6-a954-3a23923f1209",
+  "title": "[Chat] 대화·실행·결과를 읽기 좋은 하나의 흐름으로 보여준다",
+  "description": "## 목적\n\n사용자가 질문부터 답변·실행 결과·요약까지 한 흐름에서 읽고 필요한 근거를 다시 찾는다.\n\n## 결과\n\n대화 주체와 상태가 구분되고, 중단·재개 뒤에도 같은 대화의 순서와 읽던 위치가 유지된다.\n\n## 범위\n\n### 포함\n\n* Chat 본문과 실행 결과의 읽기 흐름\n* 진행·완료·중단 상태와 재개\n* Source 이동과 thread 범위 요약\n\n### 제외\n\n* Todo·Tracer·Layout 전체 기능의 수락\n* v0.1.0 공개 배포 판정\n\n## 완료 조건\n\n- [ ] 하위 01\\~10, 예외 처리, 테스트가 각각 한 책임으로 연결된다.\n- [ ] 중단·재개 뒤 대화 내용과 대상이 섞이거나 중복되지 않는다.\n- [ ] 실제 TUI 검증 근거와 남은 미검증 범위를 구분한다.\n\n## 연결\n\n* Code-ID: Code-001, Code-002, Code-003, Code-004, Code-005\n* GitHub: <pull-request id=\"fc0ef858-7e57-4dbb-956f-b4445c3eb78e\" href=\"https://linear.app/woo-world/review/chat-흐름을-보완하고-code-id로-개발-기록을-연결한다-dead0bfcaf84\">Woo-JongHo/world-wide-woo#46</pull-request>\n* Obsidian: [상세 기록](<obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FTraceability%2FWOO-679.md>)",
+  "projectMilestone": {
+    "id": "193948f7-2a11-4110-a143-360d83f2a076",
+    "name": "v0.1.0 — First Public Release"
+  },
+  "priority": {
+    "value": 0,
+    "name": "No priority"
+  },
+  "url": "https://linear.app/woo-world/issue/WOO-679/chat-대화실행결과를-읽기-좋은-하나의-흐름으로-보여준다",
+  "gitBranchName": "jonghowoo33/woo-679-chat-대화실행결과를-읽기-좋은-하나의-흐름으로",
+  "createdAt": "2026-09-04T02:18:46.194Z",
+  "updatedAt": "2026-09-24T04:08:42.120Z",
+  "archivedAt": null,
+  "completedAt": null,
+  "startedAt": "2026-09-04T02:18:46.227Z",
+  "canceledAt": null,
+  "dueDate": null,
+  "slaStartedAt": null,
+  "slaMediumRiskAt": null,
+  "slaHighRiskAt": null,
+  "slaBreachesAt": null,
+  "status": "In Progress",
+  "statusType": "started",
+  "labels": [
+    "UX",
+    "Chat",
+    "Improvement",
+    "TUI"
+  ],
+  "attachments": [
+    {
+      "id": "2c894cdf-2cef-426c-bdbd-8b46f0740188",
+      "title": "Chat 개발 기록을 Linear와 PR로 연결한다 (WOO-679)",
+      "subtitle": null,
+      "url": "https://github.com/Woo-JongHo/world-wide-woo/pull/38"
+    }
+  ],
+  "documents": [],
+  "stateHistory": [
+    {
+      "state": {
+        "id": "04aa2aac-1687-4b10-b225-14197c925233",
+        "name": "In Progress",
+        "type": "started"
+      },
+      "startedAt": "2026-09-04T02:18:46.194Z",
+      "endedAt": "2026-09-07T07:40:14.916Z"
+    },
+    {
+      "state": {
+        "id": "292309fa-c6fe-4cd2-9996-d9f482235e64",
+        "name": "Done",
+        "type": "completed"
+      },
+      "startedAt": "2026-09-07T07:40:14.916Z",
+      "endedAt": "2026-09-07T08:15:34.856Z"
+    },
+    {
+      "state": {
+        "id": "04aa2aac-1687-4b10-b225-14197c925233",
+        "name": "In Progress",
+        "type": "started"
+      },
+      "startedAt": "2026-09-07T08:15:34.856Z",
+      "endedAt": null
+    }
+  ],
+  "createdBy": "우종호",
+  "createdById": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+  "project": "World Wide Woo",
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "parentId": "WOO-674",
+  "team": "Woo-World",
+  "teamId": "95f279f5-cd73-49b6-a10e-b6cdab1e6d58"
+}

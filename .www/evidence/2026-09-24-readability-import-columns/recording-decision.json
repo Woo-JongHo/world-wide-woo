@@ -1,0 +1,19 @@
+{
+  "recordedAt": "2026-09-24",
+  "issueBinding": {
+    "status": "confirmed",
+    "issueId": "WOO-911",
+    "issueUuid": "b00b02eb-2d80-4b10-9c9a-a29db4f1a74d",
+    "reason": "전체 TypeScript의 선언 통일성과 측정 가능한 열 정렬을 소유하는 기존 수락 단위와 동일하다."
+  },
+  "projectActivity": {
+    "status": "candidate-prepared",
+    "candidate": ".www/evidence/2026-09-24-readability-import-columns/project-comment-candidate.json",
+    "published": false
+  },
+  "obsidian": {
+    "required": false,
+    "reason": "제품 WHY·공개 API·새 도메인 계약이 아니라 기존 Readability 방법 계약의 누락을 보완했다."
+  },
+  "externalWrites": "사용자 항목별 승인 전에는 수행하지 않는다."
+}

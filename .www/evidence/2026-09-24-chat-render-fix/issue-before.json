@@ -1,0 +1,39 @@
+{
+  "observedAt": "2026-09-24T12:51:15+09:00",
+  "project": {
+    "id": "P-WOO-15",
+    "uuid": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "name": "World Wide Woo",
+    "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff"
+  },
+  "parent": {
+    "id": "WOO-679",
+    "uuid": "885c2115-0821-4df6-a954-3a23923f1209",
+    "title": "[Chat] 대화·실행·결과를 읽기 좋은 하나의 흐름으로 보여준다",
+    "status": "In Progress",
+    "parentId": "WOO-674",
+    "milestone": "v0.1.0 — First Public Release"
+  },
+  "closestExisting": {
+    "id": "WOO-689",
+    "uuid": "ae15b7ba-fd9d-4319-a186-201e6177c8a6",
+    "title": "04. 긴 결과를 안정적으로 탐색한다",
+    "status": "Done",
+    "parentId": "WOO-679",
+    "milestone": "v0.1.0 — First Public Release",
+    "includedSummary": "durable transcript graph/count repair와 exact height·scroll 계약",
+    "excludedSummary": "초기 렌더·긴 draft·실제 provider·IME·terminal pixel/backpressure·사용자 WWW session"
+  },
+  "directChildren": [
+    "WOO-686", "WOO-687", "WOO-688", "WOO-689", "WOO-690", "WOO-691", "WOO-692",
+    "WOO-718", "WOO-719", "WOO-720", "WOO-753", "WOO-754", "WOO-843", "WOO-909",
+    "WOO-683", "WOO-684", "WOO-685", "WOO-693", "WOO-694"
+  ],
+  "duplicateSearch": {
+    "queries": ["렌더링", "성능"],
+    "includedArchived": true,
+    "hasNextPage": false,
+    "matches": ["WOO-689", "WOO-843", "WOO-845", "WOO-707", "WOO-690", "WOO-688"],
+    "sameAcceptanceUnit": null
+  }
+}

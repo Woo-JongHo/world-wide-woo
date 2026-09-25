@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "1.0",
+  "status": "succeeded",
+  "candidateId": "ARTIFACT-CANDIDATE-CHAT-LONG-DRAFT-RENDER-FIX",
+  "candidateDigest": "cc8d5689104637bc22218f0239ba915f9893747d557b96e15d76a3b1915a2bb0",
+  "authorization": "2026-09-24 사용자: 이슈올리고 바로 해결까지 쭉 밀자",
+  "issueId": "WOO-915",
+  "issueUuid": "9eb3b7f7-7197-4215-b864-d04d403c310d",
+  "url": "https://linear.app/woo-world/issue/WOO-915/11-긴-채팅-draft의-반복-렌더-지연을-제거한다",
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "parentId": "WOO-679",
+  "milestoneId": "193948f7-2a11-4110-a143-360d83f2a076",
+  "state": "In Progress",
+  "readBackAt": "2026-09-24T04:09:21.034Z",
+  "checks": {
+    "descriptionNormalizedExact": true,
+    "title": true,
+    "project": true,
+    "parent": true,
+    "milestone": true
+  },
+  "normalization": "Only Linear rich-text serialization: bullet *, embedded issue links, escaped brackets, angle-bracket link destinations and final newline.",
+  "hierarchy": "Candidate-specific delta passed (zero new errors); six pre-existing sibling issues retain contract drift."
+}

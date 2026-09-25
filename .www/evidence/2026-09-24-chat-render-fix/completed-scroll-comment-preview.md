@@ -1,0 +1,30 @@
+## 변경
+
+- WOO-915를 생성·read-back하고 긴 draft의 width/token/ANSI clip/선형 wrap 및 immutable heading 캐시를 구현했다. append에서 검증된 frozen node를 재사용하며 함수·순환 실패 graph의 잘못된 cache 신뢰를 막았다.
+- 생산 조건의 깊은 불변 fixture와 실제 heading으로 벤치를 교정했다. stream pending 중 입력 우선 frame과 마지막 draft marker 출력 검사를 추가했다. 기존 성능 기준은 유지했다.
+- 사용자 증상을 응답 완료 후 표시·스크롤로 구체화하고 실제 완료영수증까지5,683 records/244 messages를 고정해 정적 탐색·키입력→write·합성 완료전환을 분리 측정했다. 추가 제품 코드는 변경하지 않았다.
+
+## 영향
+
+- 긴 답변의 반복 계산을 줄이고 실제 불변 데이터의 재사용 경로를 회귀 검사한다. 복잡한 Unicode는 기존 출력 경로를 유지한다.
+- 수정 코드의 합성 벤치와 독립 감사는 통과했다. 기존 www에서 새 별도 작업이 실행 중이어서 재시작하지 않았다. WOO-915는 In Progress이며 live 사용자 세션 전체 해결을 주장하지 않는다.
+- 앞선 streaming GREEN을 완료 후 전체 사용자 증상의 수락으로 사용하지 않는다. 원인 기여는 미결이며 진행 중 작업과 대기 요청 종료 후 재시작한다.
+
+## 분류
+
+Fix · Validation
+
+## 검증
+
+- 최종 1,000-message benchmark GREEN: long draft p95 11.14ms(20 samples), ready input 3.72ms, pending-stream input 우선 frame 9.59ms(각50 samples), ready idle writes0. 입력 frame은 최신 draft 표시 latency가 아니며 마지막 고유 draft marker 출력은 별도로 확인했다.
+- source manifest 5c2cd0cb8e6c29a8ee1c08914848dee3264aad4ed651c1dde7822b038a90c603 전후 변화0. 최종 통합58 pass/0 fail/6,160 assertions. utils 원본 oracle16,148 byte 비교, typecheck, frozen install 통과.
+- Claude Opus5 정적 재감사: 정확성 blocker 없음·적용 가능. E1의 count/sample/idle 필드는 원본 JSONL과 합친 full artifact에서 확인. 추가 function guard 별도 PASS.
+- CMux 새 프로세스의 offline production shell에서 긴 응답 중 한국어 입력·스크롤 및 완료 후 Home/End·dispatch·정상 종료 확인. 원래 live www는 재시작 직전 새 작업이 시작된 것을 확인해 유지했다. provider/PTY/pixel 지연은 미계측.
+- 완료 history renderer widep953.93ms; 실제 shell PageUp20회p9524.16ms이며 scrollTop 방향과 Home/End 상태를 단언했다. cold535.24ms 별도. 합성 완료전환5표본 중앙18.92ms/최대43.46ms, 기존durable784개 재사용/신규1개 count. 실제 provider/PTY/pixel은 제외한다.
+- Opus 추가 감사: 제한된 진단 관측 수용, 전체미결. 두5683-record digest는 마지막newline 차이뿐임을 원본 prefix로 대조했다. 원래 www는 여전히 진행 중이라 재시작하지 않았다.
+
+## 연결
+
+- Linear: https://linear.app/woo-world/issue/WOO-915
+- Audit: docs/audit/2026-09-24-chat-render-fix.md
+- Evidence: .www/evidence/2026-09-24-chat-render-fix

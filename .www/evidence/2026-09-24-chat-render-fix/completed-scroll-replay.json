@@ -1,0 +1,698 @@
+{
+  "records": 6236,
+  "messages": 252,
+  "projectionMs": 58.38341700000001,
+  "viewports": [
+    {
+      "width": 150,
+      "height": 44,
+      "coldEnd": {
+        "wallMs": 3213.696417,
+        "cpuMs": 1963.402,
+        "scrollTop": 4046,
+        "followingEnd": true,
+        "cache": {
+          "exactCountBuilds": 2,
+          "exactCountBuildMs": 2633.616083,
+          "requestedRows": 46,
+          "requestedMaterializationMs": 31.103751000000102,
+          "renderedBlocks": 888,
+          "durableGraphBuilds": 1,
+          "durableGraphBuildMs": 0.016707999999880485,
+          "durableGenerationNoopReuses": 0,
+          "durableCountReusedBlocks": 0,
+          "durableCountRenderedBlocks": 867,
+          "rowCacheHits": 1,
+          "rowCacheMisses": 888,
+          "rowCacheEvictions": 0,
+          "widthCacheHits": 2,
+          "widthCacheMisses": 2
+        }
+      },
+      "warmEnd": {
+        "wallMs": {
+          "samples": 3,
+          "p50": 56.526540999999725,
+          "p95": 103.60674999999992,
+          "p99": 103.60674999999992,
+          "max": 103.60674999999992
+        },
+        "cpuMs": {
+          "samples": 3,
+          "p50": 16.531,
+          "p95": 29.433,
+          "p99": 29.433,
+          "max": 29.433
+        },
+        "scrollTop": {
+          "first": 4046,
+          "last": 4046
+        },
+        "followingEnd": {
+          "first": true,
+          "last": true
+        },
+        "cacheTotals": {
+          "exactCountBuilds": 0,
+          "exactCountBuildMs": 0,
+          "requestedRows": 138,
+          "requestedMaterializationMs": 1.4827910000003612,
+          "renderedBlocks": 0,
+          "durableGraphBuilds": 0,
+          "durableGraphBuildMs": 0,
+          "durableGenerationNoopReuses": 0,
+          "durableCountReusedBlocks": 0,
+          "durableCountRenderedBlocks": 0,
+          "rowCacheHits": 66,
+          "rowCacheMisses": 0,
+          "rowCacheEvictions": 0,
+          "widthCacheHits": 12,
+          "widthCacheMisses": 0
+        }
+      },
+      "firstEarlier": {
+        "wallMs": 115.65970799999968,
+        "cpuMs": 32.473,
+        "scrollTop": 4006,
+        "followingEnd": false,
+        "cache": {
+          "exactCountBuilds": 0,
+          "exactCountBuildMs": 0,
+          "requestedRows": 48,
+          "requestedMaterializationMs": 14.187832999999955,
+          "renderedBlocks": 8,
+          "durableGraphBuilds": 0,
+          "durableGraphBuildMs": 0,
+          "durableGenerationNoopReuses": 0,
+          "durableCountReusedBlocks": 0,
+          "durableCountRenderedBlocks": 0,
+          "rowCacheHits": 4,
+          "rowCacheMisses": 8,
+          "rowCacheEvictions": 0,
+          "widthCacheHits": 4,
+          "widthCacheMisses": 0
+        }
+      },
+      "repeatedEarlier": {
+        "wallMs": {
+          "samples": 20,
+          "p50": 13.21191700000054,
+          "p95": 34.16566700000021,
+          "p99": 35.39866700000039,
+          "max": 35.39866700000039
+        },
+        "cpuMs": {
+          "samples": 20,
+          "p50": 12.443,
+          "p95": 25.05,
+          "p99": 27.555,
+          "max": 27.555
+        },
+        "scrollTop": {
+          "first": 4006,
+          "last": 4006
+        },
+        "followingEnd": {
+          "first": false,
+          "last": false
+        },
+        "cacheTotals": {
+          "exactCountBuilds": 0,
+          "exactCountBuildMs": 0,
+          "requestedRows": 960,
+          "requestedMaterializationMs": 9.334916000000703,
+          "renderedBlocks": 0,
+          "durableGraphBuilds": 0,
+          "durableGraphBuildMs": 0,
+          "durableGenerationNoopReuses": 0,
+          "durableCountReusedBlocks": 0,
+          "durableCountRenderedBlocks": 0,
+          "rowCacheHits": 240,
+          "rowCacheMisses": 0,
+          "rowCacheEvictions": 0,
+          "widthCacheHits": 80,
+          "widthCacheMisses": 0
+        }
+      },
+      "sequentialUp": {
+        "wallMs": {
+          "samples": 20,
+          "p50": 18.079333000000588,
+          "p95": 35.4238749999995,
+          "p99": 72.37704200000007,
+          "max": 72.37704200000007
+        },
+        "cpuMs": {
+          "samples": 20,
+          "p50": 10.221,
+          "p95": 15.662,
+          "p99": 17.795,
+          "max": 17.795
+        },
+        "scrollTop": {
+          "first": 4005,
+          "last": 3986
+        },
+        "followingEnd": {
+          "first": false,
+          "last": false
+        },
+        "cacheTotals": {
+          "exactCountBuilds": 0,
+          "exactCountBuildMs": 0,
+          "requestedRows": 960,
+          "requestedMaterializationMs": 16.608960999999,
+          "renderedBlocks": 13,
+          "durableGraphBuilds": 0,
+          "durableGraphBuildMs": 0,
+          "durableGenerationNoopReuses": 0,
+          "durableCountReusedBlocks": 0,
+          "durableCountRenderedBlocks": 0,
+          "rowCacheHits": 312,
+          "rowCacheMisses": 13,
+          "rowCacheEvictions": 0,
+          "widthCacheHits": 80,
+          "widthCacheMisses": 0
+        }
+      },
+      "sequentialDown": {
+        "wallMs": {
+          "samples": 20,
+          "p50": 16.948708999999326,
+          "p95": 53.70166600000084,
+          "p99": 63.246917000000394,
+          "max": 63.246917000000394
+        },
+        "cpuMs": {
+          "samples": 20,
+          "p50": 11.263,
+          "p95": 14.794,
+          "p99": 16.129,
+          "max": 16.129
+        },
+        "scrollTop": {
+          "first": 3987,
+          "last": 4006
+        },
+        "followingEnd": {
+          "first": false,
+          "last": false
+        },
+        "cacheTotals": {
+          "exactCountBuilds": 0,
+          "exactCountBuildMs": 0,
+          "requestedRows": 960,
+          "requestedMaterializationMs": 3.0100439999996524,
+          "renderedBlocks": 0,
+          "durableGraphBuilds": 0,
+          "durableGraphBuildMs": 0,
+          "durableGenerationNoopReuses": 0,
+          "durableCountReusedBlocks": 0,
+          "durableCountRenderedBlocks": 0,
+          "rowCacheHits": 318,
+          "rowCacheMisses": 0,
+          "rowCacheEvictions": 0,
+          "widthCacheHits": 80,
+          "widthCacheMisses": 0
+        }
+      },
+      "home": {
+        "wallMs": {
+          "samples": 10,
+          "p50": 11.070292000000336,
+          "p95": 67.80354199999965,
+          "p99": 67.80354199999965,
+          "max": 67.80354199999965
+        },
+        "cpuMs": {
+          "samples": 10,
+          "p50": 9.569,
+          "p95": 58.998,
+          "p99": 58.998,
+          "max": 58.998
+        },
+        "scrollTop": {
+          "first": 0,
+          "last": 0
+        },
+        "followingEnd": {
+          "first": false,
+          "last": false
+        },
+        "cacheTotals": {
+          "exactCountBuilds": 0,
+          "exactCountBuildMs": 0,
+          "requestedRows": 440,
+          "requestedMaterializationMs": 31.254751000000397,
+          "renderedBlocks": 11,
+          "durableGraphBuilds": 0,
+          "durableGraphBuildMs": 0,
+          "durableGenerationNoopReuses": 0,
+          "durableCountReusedBlocks": 0,
+          "durableCountRenderedBlocks": 0,
+          "rowCacheHits": 99,
+          "rowCacheMisses": 11,
+          "rowCacheEvictions": 0,
+          "widthCacheHits": 40,
+          "widthCacheMisses": 0
+        }
+      },
+      "end": {
+        "wallMs": {
+          "samples": 10,
+          "p50": 10.306916999999885,
+          "p95": 19.647667000000183,
+          "p99": 19.647667000000183,
+          "max": 19.647667000000183
+        },
+        "cpuMs": {
+          "samples": 10,
+          "p50": 9.054,
+          "p95": 12.233,
+          "p99": 12.233,
+          "max": 12.233
+        },
+        "scrollTop": {
+          "first": 4046,
+          "last": 4046
+        },
+        "followingEnd": {
+          "first": true,
+          "last": true
+        },
+        "cacheTotals": {
+          "exactCountBuilds": 0,
+          "exactCountBuildMs": 0,
+          "requestedRows": 460,
+          "requestedMaterializationMs": 0.6766689999976734,
+          "renderedBlocks": 0,
+          "durableGraphBuilds": 0,
+          "durableGraphBuildMs": 0,
+          "durableGenerationNoopReuses": 0,
+          "durableCountReusedBlocks": 0,
+          "durableCountRenderedBlocks": 0,
+          "rowCacheHits": 220,
+          "rowCacheMisses": 0,
+          "rowCacheEvictions": 0,
+          "widthCacheHits": 40,
+          "widthCacheMisses": 0
+        }
+      },
+      "repeatedEnd": {
+        "wallMs": {
+          "samples": 20,
+          "p50": 13.534832999999708,
+          "p95": 24.26116600000023,
+          "p99": 24.78454200000033,
+          "max": 24.78454200000033
+        },
+        "cpuMs": {
+          "samples": 20,
+          "p50": 8.509,
+          "p95": 12.851,
+          "p99": 13.937,
+          "max": 13.937
+        },
+        "scrollTop": {
+          "first": 4046,
+          "last": 4046
+        },
+        "followingEnd": {
+          "first": true,
+          "last": true
+        },
+        "cacheTotals": {
+          "exactCountBuilds": 0,
+          "exactCountBuildMs": 0,
+          "requestedRows": 920,
+          "requestedMaterializationMs": 2.088619000003746,
+          "renderedBlocks": 0,
+          "durableGraphBuilds": 0,
+          "durableGraphBuildMs": 0,
+          "durableGenerationNoopReuses": 0,
+          "durableCountReusedBlocks": 0,
+          "durableCountRenderedBlocks": 0,
+          "rowCacheHits": 440,
+          "rowCacheMisses": 0,
+          "rowCacheEvictions": 0,
+          "widthCacheHits": 80,
+          "widthCacheMisses": 0
+        }
+      },
+      "scrollP95": 115.65970799999968,
+      "verdict": "RED"
+    },
+    {
+      "width": 80,
+      "height": 24,
+      "coldEnd": {
+        "wallMs": 2544.102083999999,
+        "cpuMs": 1229.634,
+        "scrollTop": 4576,
+        "followingEnd": true,
+        "cache": {
+          "exactCountBuilds": 2,
+          "exactCountBuildMs": 2356.974625,
+          "requestedRows": 26,
+          "requestedMaterializationMs": 24.434708000000683,
+          "renderedBlocks": 882,
+          "durableGraphBuilds": 1,
+          "durableGraphBuildMs": 0.007834000000002561,
+          "durableGenerationNoopReuses": 0,
+          "durableCountReusedBlocks": 0,
+          "durableCountRenderedBlocks": 867,
+          "rowCacheHits": 1,
+          "rowCacheMisses": 882,
+          "rowCacheEvictions": 0,
+          "widthCacheHits": 2,
+          "widthCacheMisses": 2
+        }
+      },
+      "warmEnd": {
+        "wallMs": {
+          "samples": 3,
+          "p50": 7.16254200000003,
+          "p95": 7.289584000000104,
+          "p99": 7.289584000000104,
+          "max": 7.289584000000104
+        },
+        "cpuMs": {
+          "samples": 3,
+          "p50": 3.725,
+          "p95": 4.737,
+          "p99": 4.737,
+          "max": 4.737
+        },
+        "scrollTop": {
+          "first": 4576,
+          "last": 4576
+        },
+        "followingEnd": {
+          "first": true,
+          "last": true
+        },
+        "cacheTotals": {
+          "exactCountBuilds": 0,
+          "exactCountBuildMs": 0,
+          "requestedRows": 78,
+          "requestedMaterializationMs": 0.16245700000035868,
+          "renderedBlocks": 0,
+          "durableGraphBuilds": 0,
+          "durableGraphBuildMs": 0,
+          "durableGenerationNoopReuses": 0,
+          "durableCountReusedBlocks": 0,
+          "durableCountRenderedBlocks": 0,
+          "rowCacheHits": 48,
+          "rowCacheMisses": 0,
+          "rowCacheEvictions": 0,
+          "widthCacheHits": 12,
+          "widthCacheMisses": 0
+        }
+      },
+      "firstEarlier": {
+        "wallMs": 11.848792000000685,
+        "cpuMs": 6.234,
+        "scrollTop": 4556,
+        "followingEnd": false,
+        "cache": {
+          "exactCountBuilds": 0,
+          "exactCountBuildMs": 0,
+          "requestedRows": 28,
+          "requestedMaterializationMs": 3.826833999999508,
+          "renderedBlocks": 6,
+          "durableGraphBuilds": 0,
+          "durableGraphBuildMs": 0,
+          "durableGenerationNoopReuses": 0,
+          "durableCountReusedBlocks": 0,
+          "durableCountRenderedBlocks": 0,
+          "rowCacheHits": 3,
+          "rowCacheMisses": 6,
+          "rowCacheEvictions": 0,
+          "widthCacheHits": 4,
+          "widthCacheMisses": 0
+        }
+      },
+      "repeatedEarlier": {
+        "wallMs": {
+          "samples": 20,
+          "p50": 5.4690410000002885,
+          "p95": 27.430500000000393,
+          "p99": 41.33912500000042,
+          "max": 41.33912500000042
+        },
+        "cpuMs": {
+          "samples": 20,
+          "p50": 2.561,
+          "p95": 4.001,
+          "p99": 5.013,
+          "max": 5.013
+        },
+        "scrollTop": {
+          "first": 4556,
+          "last": 4556
+        },
+        "followingEnd": {
+          "first": false,
+          "last": false
+        },
+        "cacheTotals": {
+          "exactCountBuilds": 0,
+          "exactCountBuildMs": 0,
+          "requestedRows": 560,
+          "requestedMaterializationMs": 1.4914600000047358,
+          "renderedBlocks": 0,
+          "durableGraphBuilds": 0,
+          "durableGraphBuildMs": 0,
+          "durableGenerationNoopReuses": 0,
+          "durableCountReusedBlocks": 0,
+          "durableCountRenderedBlocks": 0,
+          "rowCacheHits": 180,
+          "rowCacheMisses": 0,
+          "rowCacheEvictions": 0,
+          "widthCacheHits": 80,
+          "widthCacheMisses": 0
+        }
+      },
+      "sequentialUp": {
+        "wallMs": {
+          "samples": 20,
+          "p50": 2.9179579999999987,
+          "p95": 18.09125000000131,
+          "p99": 33.191500000000815,
+          "max": 33.191500000000815
+        },
+        "cpuMs": {
+          "samples": 20,
+          "p50": 2.627,
+          "p95": 10.084,
+          "p99": 17.079,
+          "max": 17.079
+        },
+        "scrollTop": {
+          "first": 4555,
+          "last": 4536
+        },
+        "followingEnd": {
+          "first": false,
+          "last": false
+        },
+        "cacheTotals": {
+          "exactCountBuilds": 0,
+          "exactCountBuildMs": 0,
+          "requestedRows": 560,
+          "requestedMaterializationMs": 10.560753000010664,
+          "renderedBlocks": 4,
+          "durableGraphBuilds": 0,
+          "durableGraphBuildMs": 0,
+          "durableGenerationNoopReuses": 0,
+          "durableCountReusedBlocks": 0,
+          "durableCountRenderedBlocks": 0,
+          "rowCacheHits": 128,
+          "rowCacheMisses": 4,
+          "rowCacheEvictions": 0,
+          "widthCacheHits": 80,
+          "widthCacheMisses": 0
+        }
+      },
+      "sequentialDown": {
+        "wallMs": {
+          "samples": 20,
+          "p50": 3.877542000000176,
+          "p95": 21.318584000000556,
+          "p99": 42.4285830000008,
+          "max": 42.4285830000008
+        },
+        "cpuMs": {
+          "samples": 20,
+          "p50": 2.378,
+          "p95": 5.607,
+          "p99": 11.203,
+          "max": 11.203
+        },
+        "scrollTop": {
+          "first": 4537,
+          "last": 4556
+        },
+        "followingEnd": {
+          "first": false,
+          "last": false
+        },
+        "cacheTotals": {
+          "exactCountBuilds": 0,
+          "exactCountBuildMs": 0,
+          "requestedRows": 560,
+          "requestedMaterializationMs": 1.1214210000052844,
+          "renderedBlocks": 0,
+          "durableGraphBuilds": 0,
+          "durableGraphBuildMs": 0,
+          "durableGenerationNoopReuses": 0,
+          "durableCountReusedBlocks": 0,
+          "durableCountRenderedBlocks": 0,
+          "rowCacheHits": 134,
+          "rowCacheMisses": 0,
+          "rowCacheEvictions": 0,
+          "widthCacheHits": 80,
+          "widthCacheMisses": 0
+        }
+      },
+      "home": {
+        "wallMs": {
+          "samples": 10,
+          "p50": 3.887749999999869,
+          "p95": 25.532208000000537,
+          "p99": 25.532208000000537,
+          "max": 25.532208000000537
+        },
+        "cpuMs": {
+          "samples": 10,
+          "p50": 2.498,
+          "p95": 11.772,
+          "p99": 11.772,
+          "max": 11.772
+        },
+        "scrollTop": {
+          "first": 0,
+          "last": 0
+        },
+        "followingEnd": {
+          "first": false,
+          "last": false
+        },
+        "cacheTotals": {
+          "exactCountBuilds": 0,
+          "exactCountBuildMs": 0,
+          "requestedRows": 240,
+          "requestedMaterializationMs": 16.396083999998154,
+          "renderedBlocks": 6,
+          "durableGraphBuilds": 0,
+          "durableGraphBuildMs": 0,
+          "durableGenerationNoopReuses": 0,
+          "durableCountReusedBlocks": 0,
+          "durableCountRenderedBlocks": 0,
+          "rowCacheHits": 54,
+          "rowCacheMisses": 6,
+          "rowCacheEvictions": 0,
+          "widthCacheHits": 40,
+          "widthCacheMisses": 0
+        }
+      },
+      "end": {
+        "wallMs": {
+          "samples": 10,
+          "p50": 3.9127499999995052,
+          "p95": 11.507709000001341,
+          "p99": 11.507709000001341,
+          "max": 11.507709000001341
+        },
+        "cpuMs": {
+          "samples": 10,
+          "p50": 2.593,
+          "p95": 4.087,
+          "p99": 4.087,
+          "max": 4.087
+        },
+        "scrollTop": {
+          "first": 4576,
+          "last": 4576
+        },
+        "followingEnd": {
+          "first": true,
+          "last": true
+        },
+        "cacheTotals": {
+          "exactCountBuilds": 0,
+          "exactCountBuildMs": 0,
+          "requestedRows": 260,
+          "requestedMaterializationMs": 0.9862070000017411,
+          "renderedBlocks": 0,
+          "durableGraphBuilds": 0,
+          "durableGraphBuildMs": 0,
+          "durableGenerationNoopReuses": 0,
+          "durableCountReusedBlocks": 0,
+          "durableCountRenderedBlocks": 0,
+          "rowCacheHits": 160,
+          "rowCacheMisses": 0,
+          "rowCacheEvictions": 0,
+          "widthCacheHits": 40,
+          "widthCacheMisses": 0
+        }
+      },
+      "repeatedEnd": {
+        "wallMs": {
+          "samples": 20,
+          "p50": 3.3410000000003492,
+          "p95": 8.923291999999492,
+          "p99": 16.27941699999974,
+          "max": 16.27941699999974
+        },
+        "cpuMs": {
+          "samples": 20,
+          "p50": 2.51,
+          "p95": 5.587,
+          "p99": 6.749,
+          "max": 6.749
+        },
+        "scrollTop": {
+          "first": 4576,
+          "last": 4576
+        },
+        "followingEnd": {
+          "first": true,
+          "last": true
+        },
+        "cacheTotals": {
+          "exactCountBuilds": 0,
+          "exactCountBuildMs": 0,
+          "requestedRows": 520,
+          "requestedMaterializationMs": 1.440707999998267,
+          "renderedBlocks": 0,
+          "durableGraphBuilds": 0,
+          "durableGraphBuildMs": 0,
+          "durableGenerationNoopReuses": 0,
+          "durableCountReusedBlocks": 0,
+          "durableCountRenderedBlocks": 0,
+          "rowCacheHits": 320,
+          "rowCacheMisses": 0,
+          "rowCacheEvictions": 0,
+          "widthCacheHits": 80,
+          "widthCacheMisses": 0
+        }
+      },
+      "scrollP95": 25.532208000000537,
+      "verdict": "GREEN"
+    }
+  ],
+  "verdict": "RED",
+  "criteria": {
+    "diagnosticScrollFrameP95Ms": 32
+  },
+  "scope": {
+    "completedImmutableSnapshot": true,
+    "sourceReadCount": 1,
+    "rawContentEmitted": false,
+    "productionAstraWorkspaceAndLayout": true,
+    "providerIncluded": false,
+    "snapshotProducerIncluded": false,
+    "terminalOrPtyIncluded": false
+  }
+}

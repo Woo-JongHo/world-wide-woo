@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "1.0",
+  "receiptId": "b66ef554-600e-4c1a-aa41-5a1ded49db45",
+  "runId": "ed285091-98d8-4bbb-8a6c-4b9d987fcd35",
+  "candidateId": "ARTIFACT-CANDIDATE-ZCODE-READABILITY-REFACTOR",
+  "skill": { "name": "woo-code-readability", "version": "1.1" },
+  "capability": "CODE-READABILITY-REPOSITORY-WAVES",
+  "intentId": null,
+  "status": "succeeded",
+  "stage": "verify",
+  "actor": { "kind": "zcode+codex", "model": "glm-5.3-max+gpt-5" },
+  "context": { "repo": "99_www", "branch": "dev", "updatedAt": "2026-09-24T00:00:00+09:00" },
+  "input": { "objective": "ZCode에 제품 TypeScript Readability 리팩터링을 맡기고 Codex와 Opus가 결과를 인수 검증한다." },
+  "decision": {
+    "facts": [
+      "ZCode는 초기 482개 TypeScript를 조사하고 제품 파일 14개를 실제 수정했다.",
+      "14개 파일의 STEP2 불확실성 표식은 442건에서 318건으로 124건 감소했다.",
+      "경계 파싱과 도메인 불변식에 결속된 단언은 보존했다."
+    ],
+    "changes": [
+      { "kind": "repository-refactor", "ref": "src/**", "summary": "반복 타입·판별 구조·단계 목표·불필요한 non-null 단언을 14개 제품 파일에서 정리했다." },
+      { "kind": "declaration-normalization", "ref": "test/astra-execution-heading-performance.test.ts", "summary": "새 성능 테스트의 import 선언을 기존 STEP0 계약으로 정규화했다." },
+      { "kind": "declaration-normalization", "ref": "test/pi-tui-text-render-performance.test.ts", "summary": "새 성능 테스트의 import 선언을 기존 STEP0 계약으로 정규화했다." }
+    ],
+    "unknowns": [
+      "delegation.ts, astra-keymap.ts, octopus-scan.ts의 의미 결속 단언은 후속 도메인 판단 대상이다.",
+      "현재 dirty diff에 섞인 T-note와 Artifact 기능 계약 변경은 별도 작업 소유자가 수락해야 한다."
+    ]
+  },
+  "validation": [
+    { "check": "00_normalize-imports.ts src/** test/**", "status": "passed", "detail": "484 files, changed 0, errors 0" },
+    { "check": "bunx tsc --noEmit", "status": "passed", "detail": "exit 0" },
+    { "check": "bun test test/architecture.test.ts", "status": "passed", "detail": "13 pass, 0 fail" },
+    { "check": "git diff --check", "status": "passed", "detail": "exit 0" },
+    { "check": "bun test", "status": "passed", "detail": "1473 pass, 0 fail, 19186 assertions, 173 files" },
+    { "check": "Claude Opus 5 adversarial audit", "status": "passed", "detail": "APPROVE, blocking 0" }
+  ],
+  "authorization": null,
+  "execution": {
+    "writes": [
+      "14 product TypeScript files",
+      "2 performance test import declarations",
+      "docs/audit/2026-09-24-zcode-readability-refactor.md",
+      ".www/evidence/2026-09-24-zcode-readability-refactor"
+    ],
+    "externalActions": ["ZCode GLM-5.3 Max implementation session", "Claude Opus 5 read-only audit"],
+    "notes": "WOO-911에 결속했다. Project Comment는 Candidate만 준비하고 게시하지 않았다."
+  },
+  "result": { "productFilesModified": 14, "uncertaintyBefore": 442, "uncertaintyAfter": 318, "uncertaintyRemoved": 124 },
+  "failure": null,
+  "evidence": [
+    { "path": "docs/audit/2026-09-24-zcode-readability-refactor.md", "sha256": "da10b337451139e7c3345067875cc74b347edfc3f0d19ebe75e9d81565d7db3d" }
+  ],
+  "nextCapabilities": ["CODE-READABILITY-REPOSITORY-WAVES"],
+  "receiptDigest": "pending-local-evidence"
+}

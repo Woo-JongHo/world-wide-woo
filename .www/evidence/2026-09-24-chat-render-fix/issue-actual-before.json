@@ -1,0 +1,15 @@
+{
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "parent": {
+    "id": "WOO-679",
+    "uuid": "885c2115-0821-4df6-a954-3a23923f1209",
+    "status": "In Progress",
+    "milestone": "v0.1.0 — First Public Release"
+  },
+  "closestExisting": {
+    "id": "WOO-689",
+    "status": "Done"
+  },
+  "matchingIssue": null,
+  "observedAt": "2026-09-24T12:51:15+09:00"
+}

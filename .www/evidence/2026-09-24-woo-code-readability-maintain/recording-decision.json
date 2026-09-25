@@ -1,0 +1,18 @@
+{
+  "recordedAt": "2026-09-24",
+  "issueBinding": {
+    "status": "confirmed",
+    "issueId": "WOO-911",
+    "reason": "결정론적 측정기, 전체 TypeScript 검사와 @ alias 통일을 소유하는 기존 이슈 범위와 정확히 일치한다."
+  },
+  "projectActivity": {
+    "status": "candidate-prepared",
+    "candidate": ".www/evidence/2026-09-24-woo-code-readability-maintain/project-comment-candidate.json",
+    "published": false
+  },
+  "obsidian": {
+    "required": false,
+    "reason": "제품 WHY·공개 API·schema·도메인 결정은 바뀌지 않았고 기존 Readability 표현 규칙을 검사기 자체에 적용했다."
+  },
+  "externalWrites": "사용자 항목별 승인 전에는 수행하지 않는다."
+}

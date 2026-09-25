@@ -1,0 +1,67 @@
+{
+  "task": "WOO-915 채팅 렌더 전체 경로 진단과 수정",
+  "issue": {
+    "id": "WOO-915",
+    "uuid": "9eb3b7f7-7197-4215-b864-d04d403c310d",
+    "state": "In Progress",
+    "receipt": "issue-publish-receipt.json"
+  },
+  "projectComment": {
+    "id": "1196a23e-1f9f-4bff-b6c8-83f5a1a4e5ab",
+    "status": "published-read-back-exact",
+    "receipt": "project-comment-final-publish-receipt.json",
+    "candidate": "project-comment-final-candidate.json"
+  },
+  "obsidian": {
+    "decision": "not-required",
+    "reason": "기존 exact height·scroll anchor·내용 보존·mutable caller 계약 내부의 구현 최적화와 벤치 오차 수정이다. 신규 capability, 제품 WHY, 공개 계약, 되돌리기 어려운 설계 결정을 채택하지 않았다. 관측과 제한은 docs/audit에 보존한다."
+  },
+  "scope": [
+    "docs/audit/2026-09-24-chat-render-system-diagnosis.md",
+    "docs/audit/2026-09-24-chat-render-fix.md",
+    "patches/@earendil-works__pi-tui@0.84.4.patch (utils additions and context prefix repair only)",
+    "pnpm-lock.yaml (patch hash)",
+    "scripts/astra-render-benchmark.ts",
+    "src/adapters/inbound/tui/shell/astra-surface.ts (execution heading only)",
+    "src/core/domain/development/artifact-control.ts (optional paired result/behavior)",
+    "test/pi-tui-text-render-performance.test.ts",
+    "test/astra-execution-heading-performance.test.ts",
+    "test/artifact-control.test.ts (six-section compatibility tests)",
+    ".www/control-ledger/traceability.json (WOO-915 links only)"
+  ],
+  "remaining": [
+    "장시간 실사용 및 실제 terminal pixel 지연 확인; 새 Project Comment 갱신 후보 승인 대기"
+  ],
+  "unrelatedChanges": "동시 진행 중인 가독성 작업 변경은 이 기록의 소유 범위가 아니다. 커밋·push는 실행하지 않았다.",
+  "independentAudit": {
+    "model": "claude-opus-5",
+    "code": "no correctness blockers, safe to apply",
+    "evidenceCheck": "E1 confirmed in raw benchmark JSONL and consolidated full artifact",
+    "lastDelta": "function guard PASS"
+  },
+  "tests": {
+    "latestIntegration": "58 pass / 0 fail / 6160 assertions",
+    "benchmark": "기존 고정 소스 benchmark GREEN; 최신 dirty 소스로 live 재시작 및 탐색 기능 확인"
+  },
+  "completedScrollFollowup": {
+    "userClarification": "응답은 끝났는데 채팅 화면 표시·스크롤이 느림",
+    "binding": "WOO-915 In Progress",
+    "recording": "기존 게시 Comment의 Audit/Evidence 링크가 같은 작업의 추가 진단을 가리킨다. 원인·계약 결정 및 완료 판정을 새로 게시하지 않는다.",
+    "scope": "정적 완료 history, 실제 키 라우팅, 합성 완료 전환의 별도 측정",
+    "liveRestartAuthorization": "사용자: 진행 중인 작업이 끝난 뒤 재시작",
+    "remaining": "재시작 완료; 실제 pixel 지연 및 장시간 실사용 해소 미확정",
+    "audit": "Claude Opus5: limited diagnostic claims acceptable; overall unresolved. Canonical corpus newline cross-check passed.",
+    "evidence": [
+      "completed-scroll-receipt-5683.json",
+      "completed-shell-verified-5683.json",
+      "completed-transition-replay.json",
+      "completed-transition-report.md",
+      "opus-completed-followup-review.md",
+      "completed-corpus-crosscheck.json",
+      "live-restart-verification.json"
+    ],
+    "productCodeChanged": false,
+    "commentCandidate": "applied-render-comment-candidate.json",
+    "commentPublication": "prepared-only; 기존 게시 Comment와 연결된 audit/evidence에 관측 누적. 새 외부 쓰기 없음."
+  }
+}

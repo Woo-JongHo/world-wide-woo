@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "1.0",
+  "receiptId": "b21c7f44-5a10-4c62-9e8d-3f0a71d2c9b4",
+  "runId": "842de416-1427-4b3e-af13-abde7e1cfe24",
+  "candidateId": "ARTIFACT-CANDIDATE-READABILITY-ASSERTION-FOLLOWUP",
+  "skill": { "name": "woo-code-readability", "version": "1.1" },
+  "capability": "CODE-READABILITY-ASSERTION-FOLLOWUP",
+  "intentId": null,
+  "status": "succeeded",
+  "stage": "verify",
+  "actor": { "kind": "zcode", "model": "glm-5.3-flash" },
+  "context": { "repo": "99_www", "branch": "dev", "updatedAt": "2026-09-25T00:00:00+09:00", "batch": 2 },
+  "input": { "objective": "감사 랭킹 잔여 nna≥3 파일 중 배치 2(todo-ledger, astra-usage, repository-insights)를 검사자→저작→게이트 흐름으로 처리한다." },
+  "decision": {
+    "facts": [
+      "배치 2 파일 3개의 non-null assertion 15건이 모두 0이 됐다.",
+      "repository-insights는 as 4건 전수 제거: JSON 경계를 isRecord 타입 술어로, 라벨 파싱을 labelName 헬퍼로, state를 결정적 매핑으로 정규화했다.",
+      "todo-ledger는 isNativePlanSource를 타입 술어로 전환해 flow.source! 2건을 제거하고 recordEvidence의 죽은 방어 코드와 3단 삼항을 정리했다.",
+      "단일 파일 규칙(계약 규칙 1)으로 todo-ledger의 TodoStore 포트 capability 캐스트 2건과 transition 브랜치 상관 단언 2건은 판정 유지로 기록했다 — 포트 정규화와 콜백 분리는 별도 소유 변경이다."
+    ],
+    "changes": [
+      { "kind": "assertion-removal", "ref": "src/core/application/work/todo-ledger.ts", "summary": "무기능 ! 3건 제거, 검증 함수의 NativePlanSource 반환 전환, 죽은 방어 코드 제거, recordEvidence 3단 삼항을 조기 반환 행으로 분해, 179열 동기 가드를 다중 행으로 분리(규칙 38)." },
+      { "kind": "assertion-removal", "ref": "src/adapters/inbound/tui/features/usage/astra-usage.ts", "summary": "로고 캐시 has+get! 이중 조회를 get+undefined 비교로 정규화하고 무기능 ! 4건을 제거했다. as const 7건은 전부 판정 유지." },
+      { "kind": "boundary-normalization", "ref": "src/adapters/outbound/git/repository-insights.ts", "summary": "limit 가드의 undefined 검사 추가, porcelain 파서 무기능 ! 4건 제거, gh 이슈 파싱을 isRecord/labelName 술어와 state 결정적 매핑으로 재작성해 as 4건을 제거했다." }
+    ],
+    "unknowns": [
+      "잔여 nna≥3: astra-surface(5/3), astra-context-catalog(4/6), request-runtime-view(4/2), t-note-service(4/1), three-body-lab(4/1), local-workflow-service(4/0), labels(4/0), astra-cache-view(4/0), request-test-workspace(3/9), skill-run(3/6), session-stats(3/4), astra-demo(3/2), astra-context-view(3/2), obsidian-ledger-migration(3/16), request-runtime(3/1), astra-dashboard-catalog(3/1), trace-selection(3/0), three-body-orbit(3/0).",
+      "todo-ledger TodoStore 포트에 watch/lastConflictSource/readSource 정규화하면 capability 캐스트 2건이 소멸한다 — ports와 FileTodoStore·테스트 더블을 함께 건드리는 별도 소유 변경.",
+      "astra-usage의 상태 문자열 4중 삼항 체인과 120열 초과 44행은 테스트 고정 문자열이 많아 이번 배치에서 건드리지 않았다."
+    ]
+  },
+  "validation": [
+    { "check": "bun run check", "status": "passed", "detail": "tsc --noEmit exit 0" },
+    { "check": "06_align-tables.ts --file (3 changed files)", "status": "passed", "detail": "misaligned=0 edits=0" },
+    { "check": "targeted behavior tests", "status": "passed", "detail": "todo-ledger 23 + native-plan-wiring 14 · astra usage/ui/logos 73 · repository-insights 5 — all 0 fail" },
+    { "check": "git diff --check", "status": "passed", "detail": "exit 0" }
+  ],
+  "authorization": null,
+  "execution": {
+    "writes": [
+      "src/core/application/work/todo-ledger.ts",
+      "src/adapters/inbound/tui/features/usage/astra-usage.ts",
+      "src/adapters/outbound/git/repository-insights.ts",
+      ".www/evidence/2026-09-25-readability-assertion-followup/receipt-batch2.json"
+    ]
+  }
+}

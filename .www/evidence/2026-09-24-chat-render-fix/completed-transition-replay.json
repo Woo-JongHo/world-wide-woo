@@ -1,0 +1,126 @@
+{
+  "boundary": {
+    "postRecords": 5683,
+    "preRecords": 5674,
+    "completionRecord": 5675,
+    "preMessages": 243,
+    "postMessages": 244,
+    "prePrefixDigest": "sha256:c34e12ade7dc8e238824a5f4213eb642564db9c267d03c22c2115e2f5c26fee4",
+    "postPrefixDigest": "sha256:d24e21fb746fb042946e53c4791a98367c7214cdf975befe6d557d3ab5e0eff2",
+    "finalBodyCharacters": 280
+  },
+  "loadavg": {
+    "before": [
+      4.27587890625,
+      6.9326171875,
+      8.86865234375
+    ],
+    "after": [
+      4.33349609375,
+      6.900390625,
+      8.845703125
+    ]
+  },
+  "viewports": [
+    {
+      "width": 150,
+      "height": 44,
+      "wallMs": {
+        "samples": 5,
+        "min": 14.611417000000074,
+        "median": 18.92254200000002,
+        "max": 43.45733400000006
+      },
+      "updateMs": {
+        "samples": 5,
+        "min": 0.0030419999998230196,
+        "median": 0.004791999999952168,
+        "max": 0.047584000000028936
+      },
+      "layoutMs": {
+        "samples": 5,
+        "min": 14.60808400000019,
+        "median": 18.91775000000007,
+        "max": 43.40975000000003
+      },
+      "cpuMs": {
+        "samples": 5,
+        "min": 19.324,
+        "median": 27.101,
+        "max": 40.649
+      },
+      "cacheTotals": {
+        "exactCountBuilds": 5,
+        "exactCountBuildMs": 5.268414000000007,
+        "requestedRows": 230,
+        "requestedMaterializationMs": 15.3960000000003,
+        "renderedBlocks": 35,
+        "durableGraphBuilds": 5,
+        "durableGraphBuildMs": 34.826585000000364,
+        "durableGenerationNoopReuses": 0,
+        "durableCountReusedBlocks": 3920,
+        "durableCountRenderedBlocks": 5,
+        "rowCacheHits": 5,
+        "rowCacheMisses": 30,
+        "rowCacheEvictions": 0,
+        "widthCacheHits": 15,
+        "widthCacheMisses": 5
+      }
+    },
+    {
+      "width": 80,
+      "height": 24,
+      "wallMs": {
+        "samples": 5,
+        "min": 12.35674999999992,
+        "median": 12.958749999999782,
+        "max": 20.797000000000025
+      },
+      "updateMs": {
+        "samples": 5,
+        "min": 0.002124999999978172,
+        "median": 0.002957999999580352,
+        "max": 0.005291999999826658
+      },
+      "layoutMs": {
+        "samples": 5,
+        "min": 12.351458000000093,
+        "median": 12.955625000000055,
+        "max": 20.79479100000026
+      },
+      "cpuMs": {
+        "samples": 5,
+        "min": 13.301,
+        "median": 14.469,
+        "max": 21.2
+      },
+      "cacheTotals": {
+        "exactCountBuilds": 5,
+        "exactCountBuildMs": 3.3232509999998,
+        "requestedRows": 130,
+        "requestedMaterializationMs": 10.227832000000035,
+        "renderedBlocks": 25,
+        "durableGraphBuilds": 5,
+        "durableGraphBuildMs": 30.30021000000079,
+        "durableGenerationNoopReuses": 0,
+        "durableCountReusedBlocks": 3920,
+        "durableCountRenderedBlocks": 5,
+        "rowCacheHits": 5,
+        "rowCacheMisses": 20,
+        "rowCacheEvictions": 0,
+        "widthCacheHits": 15,
+        "widthCacheMisses": 5
+      }
+    }
+  ],
+  "scope": {
+    "repetitionsPerViewport": 5,
+    "freshWorkspacePerRepetition": true,
+    "preCompletionDraftSynthesizedFromFinalBody": true,
+    "capturedActualProducerEventLatency": false,
+    "productionTranscriptUpdateAndLayout": true,
+    "rawContentEmitted": false,
+    "providerTerminalPtyOrPixelsIncluded": false,
+    "descriptiveOnlyNoAcceptanceGate": true
+  }
+}

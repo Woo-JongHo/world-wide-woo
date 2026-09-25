@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "1.0",
+  "receiptId": "c72db4c3-1f9f-47cf-a253-53ec02fb8e67",
+  "runId": "249191a2-f58a-40e5-8f16-4f1fb6169aca",
+  "candidateId": "ARTIFACT-CANDIDATE-READABILITY-IMPORT-DECLARATIONS",
+  "skill": { "name": "woo-code-readability", "version": "1.1" },
+  "capability": "CODE-READABILITY-IMPORT-DECLARATIONS",
+  "intentId": null,
+  "status": "succeeded",
+  "stage": "verify",
+  "actor": { "kind": "codex", "model": "gpt-5" },
+  "context": { "repo": "99_www", "branch": "dev", "updatedAt": "2026-09-24T00:00:00+09:00" },
+  "input": { "objective": "전체 TypeScript import 선언의 value/type 분리, 여러 줄 기준, from 열을 통일하고 Readability 스킬이 이를 반복 검증하게 한다." },
+  "decision": {
+    "facts": [
+      "초기 482개 TypeScript 파일에서 혼합 type specifier import 187개와 한 줄 from 열 불일치 파일 337개를 확인했다.",
+      "기존 스킬은 runtime/type 구분과 @ 별칭만 선언했고 import 전용 정규화 단계와 고정점 검사가 없었다.",
+      "Claude Opus 5의 두 차례 반박 감사에서 정규식 경계, 주석, side-effect import, UTF-16 인덱스와 숫자 식별자 결함을 발견해 수정했다."
+    ],
+    "changes": [
+      { "kind": "tooling", "ref": ".agents/skills/woo-code-readability/scripts/typescript/00_normalize-imports.ts", "summary": "선언부 단위 value/type 분리, 120열 wrap, from 정렬과 fail-closed 검사를 추가했다." },
+      { "kind": "contract", "ref": ".agents/skills/woo-code-readability/SKILL.md", "summary": "제품 본문 검사 전 STEP0 import 선언 정규화를 의무화했다." },
+      { "kind": "repository-normalization", "ref": "src/** and test/**", "summary": "482개 TypeScript 파일의 import 선언을 동일 계약으로 정규화했다." }
+    ],
+    "unknowns": []
+  },
+  "validation": [
+    { "check": "00_normalize-imports.ts src/** test/**", "status": "passed", "detail": "files=482 changed=0 errors=0" },
+    { "check": "bun test test/code-readability-tools.test.ts", "status": "passed", "detail": "15 pass / 0 fail / 69 expect() calls" },
+    { "check": "bunx tsc --noEmit", "status": "passed", "detail": "exit 0" },
+    { "check": "bun test", "status": "passed", "detail": "1459 pass / 0 fail / 19122 expect() calls / 171 files" },
+    { "check": "Claude Opus 5 adversarial audit", "status": "passed", "detail": "세 차례 REVISE finding을 수정했고 최종 재게이트에서 APPROVE, blocking/high 잔여 0건 판정을 받았다." }
+  ],
+  "authorization": null,
+  "execution": {
+    "writes": [
+      ".agents/skills/woo-code-readability/scripts/typescript/00_normalize-imports.ts",
+      ".agents/skills/woo-code-readability/SKILL.md",
+      ".agents/skills/woo-code-readability/references/readability-contract.md",
+      "src/**/*.ts(x)",
+      "test/**/*.ts(x)",
+      ".www/evidence/2026-09-24-readability-import-declarations"
+    ],
+    "externalActions": [],
+    "notes": "Linear WOO-911에 결속했다. Project Comment는 Candidate만 준비하고 게시하지 않았다."
+  },
+  "result": { "filesAudited": 482, "mixedImportsRemaining": 0, "normalizerChanged": 0, "normalizerErrors": 0 },
+  "failure": null,
+  "evidence": [],
+  "nextCapabilities": ["CODE-READABILITY-REPOSITORY-WAVES"],
+  "receiptDigest": "pending-local-evidence"
+}

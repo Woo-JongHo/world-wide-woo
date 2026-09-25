@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "1.0",
+  "receiptId": "b944272e-5955-4539-8e48-ea0cc78f06eb",
+  "runId": "a838154b-6d29-477a-9544-755725cd8879",
+  "candidateId": "ARTIFACT-CANDIDATE-READABILITY-IMPORT-COLUMNS",
+  "skill": { "name": "woo-code-readability", "version": "1.1" },
+  "capability": "CODE-READABILITY-IMPORT-COLUMNS",
+  "intentId": null,
+  "status": "succeeded",
+  "stage": "verify",
+  "actor": { "kind": "zcode+codex+claude", "model": "glm-5.3-max+gpt-5+opus" },
+  "context": { "repo": "99_www", "branch": "dev", "updatedAt": "2026-09-24T14:45:00+09:00" },
+  "input": { "objective": "단일 import와 from 열, 선언 표의 콜론과 세미콜론 정렬 계약을 저장소 전체에 적용한다." },
+  "decision": {
+    "facts": [
+      "484개 TypeScript import 선언이 새 계약의 고정점에 도달했다.",
+      "초기 대량 출력에서 사라진 import 종결 세미콜론 265개를 Opus가 발견해 전부 복구했다.",
+      "DevelopmentStore의 안전한 2개 표는 misaligned=0이다."
+    ],
+    "changes": [
+      { "kind": "import-normalization", "ref": "src/**, test/**", "summary": "단일 specifier 한 줄, 120열 경계, } from 동일 행, from 열과 종결자를 통일했다." },
+      { "kind": "readability-tool", "ref": ".agents/skills/woo-code-readability/scripts/typescript/06_align-tables.ts", "summary": "AST-safe 선언·객체 표 정렬기를 추가했다." },
+      { "kind": "contract", "ref": ".agents/skills/woo-code-readability", "summary": "규칙과 fail-close 회귀 fixture를 추가했다." }
+    ],
+    "unknowns": []
+  },
+  "validation": [
+    { "check": "00_normalize-imports.ts src/** test/**", "status": "passed", "detail": "484 files, changed 0, errors 0" },
+    { "check": "semicolon-free named imports", "status": "passed", "detail": "0 matches" },
+    { "check": "06_align-tables.ts DevelopmentStore", "status": "passed", "detail": "2 groups, misaligned 0" },
+    { "check": "bunx tsc --noEmit", "status": "passed", "detail": "exit 0" },
+    { "check": "bun test test/code-readability-tools.test.ts", "status": "passed", "detail": "23 pass, 0 fail, 121 assertions" },
+    { "check": "bun test", "status": "passed", "detail": "1487 pass, 0 fail, 19251 assertions, 173 files" },
+    { "check": "Claude Opus adversarial audit", "status": "passed", "detail": "code items 1-4 confirmed; missing evidence supplied by this receipt" }
+  ],
+  "authorization": null,
+  "execution": {
+    "writes": ["import declarations under src/test", "Readability skill and tools", "DevelopmentStore safe tables", "local evidence"],
+    "externalActions": ["ZCode GLM-5.3 Max implementation", "Claude Opus read-only audits"],
+    "notes": "WOO-911에 결속했다. Project Comment는 Candidate만 준비하고 게시하지 않았다."
+  },
+  "result": { "typescriptFiles": 484, "missingSemicolonsRestored": 265, "expandedInterfaceFiles": 20, "focusedTests": 23, "fullTests": 1487 },
+  "failure": null,
+  "evidence": [
+    { "path": "docs/audit/2026-09-24-readability-import-columns.md", "sha256": "e7133ef2f36b0c9bbe2b6b781f95e5e960d3e300ba95f4ee5eba16713b977c4b" }
+  ],
+  "nextCapabilities": ["CODE-READABILITY-REPOSITORY-WAVES"],
+  "receiptDigest": "pending-local-evidence"
+}

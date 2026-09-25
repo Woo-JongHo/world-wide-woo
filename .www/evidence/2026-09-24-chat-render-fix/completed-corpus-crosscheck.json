@@ -1,0 +1,7 @@
+{
+  "records": 5683,
+  "withoutTrailingNewlineSha256": "62eb326434d48e6cd55cf26207131d43855b23bb28fa8a1d4d2a60414c79c29f",
+  "canonicalTrailingNewlineSha256": "d24e21fb746fb042946e53c4791a98367c7214cdf975befe6d557d3ab5e0eff2",
+  "matchesShellAndTransitionArtifacts": true,
+  "difference": "Exactly one final newline; same first5683 source records; raw content not retained"
+}

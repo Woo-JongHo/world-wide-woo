@@ -1148,6 +1148,28 @@
     {
       "kind": "code",
       "id": "src/core/commit/commit-governance.ts"
+    },
+    {
+      "kind": "linear-issue",
+      "id": "WOO-915",
+      "uuid": "9eb3b7f7-7197-4215-b864-d04d403c310d",
+      "url": "https://linear.app/woo-world/issue/WOO-915/11-긴-채팅-draft의-반복-렌더-지연을-제거한다"
+    },
+    {
+      "kind": "test",
+      "id": "test/pi-tui-text-render-performance.test.ts"
+    },
+    {
+      "kind": "test",
+      "id": "test/astra-execution-heading-performance.test.ts"
+    },
+    {
+      "kind": "code",
+      "id": "src/adapters/inbound/tui/shell/astra-surface.ts"
+    },
+    {
+      "kind": "evidence",
+      "id": ".www/evidence/2026-09-24-chat-render-fix/issue-publish-receipt.json"
     }
   ],
   "links": [
@@ -3845,6 +3867,58 @@
       "to": {
         "kind": "code",
         "id": "src/core/commit/commit-governance.ts"
+      }
+    },
+    {
+      "from": {
+        "kind": "test",
+        "id": "test/pi-tui-text-render-performance.test.ts"
+      },
+      "relation": "verifies",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-915",
+        "uuid": "9eb3b7f7-7197-4215-b864-d04d403c310d",
+        "url": "https://linear.app/woo-world/issue/WOO-915/11-긴-채팅-draft의-반복-렌더-지연을-제거한다"
+      }
+    },
+    {
+      "from": {
+        "kind": "test",
+        "id": "test/astra-execution-heading-performance.test.ts"
+      },
+      "relation": "verifies",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-915",
+        "uuid": "9eb3b7f7-7197-4215-b864-d04d403c310d",
+        "url": "https://linear.app/woo-world/issue/WOO-915/11-긴-채팅-draft의-반복-렌더-지연을-제거한다"
+      }
+    },
+    {
+      "from": {
+        "kind": "linear-issue",
+        "id": "WOO-915",
+        "uuid": "9eb3b7f7-7197-4215-b864-d04d403c310d",
+        "url": "https://linear.app/woo-world/issue/WOO-915/11-긴-채팅-draft의-반복-렌더-지연을-제거한다"
+      },
+      "relation": "implements",
+      "to": {
+        "kind": "code",
+        "id": "src/adapters/inbound/tui/shell/astra-surface.ts"
+      }
+    },
+    {
+      "from": {
+        "kind": "evidence",
+        "id": ".www/evidence/2026-09-24-chat-render-fix/issue-publish-receipt.json"
+      },
+      "relation": "evidences",
+      "to": {
+        "kind": "linear-issue",
+        "id": "WOO-915",
+        "uuid": "9eb3b7f7-7197-4215-b864-d04d403c310d",
+        "url": "https://linear.app/woo-world/issue/WOO-915/11-긴-채팅-draft의-반복-렌더-지연을-제거한다"
       }
     }
   ]

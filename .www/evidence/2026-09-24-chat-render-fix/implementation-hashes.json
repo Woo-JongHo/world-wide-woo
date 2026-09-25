@@ -1,0 +1,12 @@
+{
+  "scope": "Post-verification hashes; not a before/after source stability proof",
+  "sha256": {
+    "patches/@earendil-works__pi-tui@0.84.4.patch": "f70d66424bb23c75d663ba6c98da8b5f13f2f9904cc0f659aa96b5d5e2a41d9c",
+    "pnpm-lock.yaml": "0194bf7a3c8dd5137bce21b04f4f36cdc337cc20d61d5c2af5c174b22f7aad3b",
+    "scripts/astra-render-benchmark.ts": "8adff3f20f40a13140294c3ba0e3d2c570015948a2d34e064bace3462edc2d93",
+    "src/adapters/inbound/tui/shell/astra-surface.ts": "3b31af800696580afbdd10b4c41042994e509c966d580c52cc9a7588543c73c4",
+    "src/core/domain/development/artifact-control.ts": "b4ed20cd3f30f02ee3782702da7ffef3d5ad7dec868e8a570bd67ed4a9318833",
+    "test/pi-tui-text-render-performance.test.ts": "cbe2e07618934544d5d81bcd85e7e9b0d633063d650160445496754e0a8fdcf9",
+    "test/astra-execution-heading-performance.test.ts": "1505d6230cbcbca2bb2d51be4fb9adc37ad5130f49daf0b2cc798be528047160"
+  }
+}

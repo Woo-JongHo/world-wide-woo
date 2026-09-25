@@ -1,0 +1,10 @@
+{
+  "scope": "Captured after measurements; does not establish running process revision or freeze concurrent edits during measurements",
+  "files": {
+    "src/adapters/inbound/tui/features/chat/astra-execution.ts": "1bafb62213c40e5b6d9144a06e4adfaace265ca738ae4993adefd3f807e9181e",
+    "src/adapters/inbound/tui/features/chat/astra-transcript-cache.ts": "832e5c0ad3962f58f38e157194f671898360a4156382dc461bb9f653373d7722",
+    "src/core/application/orchestration/project-workbench.ts": "df8bfea5294fb10c0ee777a6d6626b83f475630a3d225cf4f6abc5f848fedced",
+    "scripts/astra-render-benchmark.ts": "915b00624fee71579b1a3eb1f23487a221837f6dbc98dc3de6a28d52b06c7279",
+    ".www/scratchpad/2026-09-24-render-diagnosis/minimal.ts": "c9fb95301718ac8a8d00cdc508c3efb79aa619f37a0a8a0860e74e20fd28738e"
+  }
+}

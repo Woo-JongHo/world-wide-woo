@@ -1,0 +1,353 @@
+{
+  "verdict": "RED",
+  "failingCounts": [
+    1000
+  ],
+  "failingChecks": [],
+  "bun": "1.4.0",
+  "sourceRevision": "not-provided",
+  "durationMs": 87912.616792,
+  "focusedVerification": {
+    "fitPadding": {
+      "production": {
+        "samples": 5,
+        "p50": 96.13654200000747,
+        "p95": 125.48845799999253,
+        "p99": 125.48845799999253,
+        "max": 125.48845799999253,
+        "rawMs": [
+          79.50470800000767,
+          96.13654200000747,
+          83.39812500000698,
+          111.74324999999953,
+          125.48845799999253
+        ]
+      },
+      "delegated": {
+        "samples": 5,
+        "p50": 99.05762500000128,
+        "p95": 110.35691699999734,
+        "p99": 110.35691699999734,
+        "max": 110.35691699999734,
+        "rawMs": [
+          99.05762500000128,
+          88.71712499999558,
+          110.35691699999734,
+          89.94895800000813,
+          107.15233300000546
+        ]
+      },
+      "p50Ratio": 0.9705112756338165
+    },
+    "movedRepeated": {
+      "cached": {
+        "samples": 5,
+        "p50": 4.879749999992782,
+        "p95": 7.058042000004207,
+        "p99": 7.058042000004207,
+        "max": 7.058042000004207,
+        "rawMs": [
+          5.257500000006985,
+          7.058042000004207,
+          2.885207999992417,
+          4.879749999992782,
+          2.2382090000028256
+        ]
+      },
+      "uncached": {
+        "samples": 5,
+        "p50": 288.32991700001,
+        "p95": 612.3905830000003,
+        "p99": 612.3905830000003,
+        "max": 612.3905830000003,
+        "rawMs": [
+          612.3905830000003,
+          288.32991700001,
+          274.2087499999907,
+          284.0450839999976,
+          304.48308299999917
+        ]
+      },
+      "p50Ratio": 0.01692418896646307
+    }
+  },
+  "results": [
+    {
+      "count": 1000,
+      "columns": 80,
+      "rows": 24,
+      "coldBodyMs": 2629.657125,
+      "warmBody": {
+        "samples": 5,
+        "p50": 3.150666999999885,
+        "p95": 10.058875000000171,
+        "p99": 10.058875000000171,
+        "max": 10.058875000000171,
+        "rawMs": [
+          3.150666999999885,
+          1.419499999999971,
+          2.972291000000041,
+          6.326082999999926,
+          10.058875000000171
+        ]
+      },
+      "draftBytes": 1871,
+      "draftBody": {
+        "samples": 5,
+        "p50": 5313.294667000002,
+        "p95": 7820.083709000002,
+        "p99": 7820.083709000002,
+        "max": 7820.083709000002,
+        "rawMs": [
+          3239.164499999999,
+          5313.294667000002,
+          4837.560708000001,
+          5879.999958,
+          7820.083709000002
+        ]
+      },
+      "longDraftBytes": 37021,
+      "longDraftBody": {
+        "samples": 5,
+        "p50": 1883.4425829999964,
+        "p95": 1937.5276249999952,
+        "p99": 1937.5276249999952,
+        "max": 1937.5276249999952,
+        "rawMs": [
+          1322.5999589999992,
+          1508.306540999998,
+          1937.5276249999952,
+          1916.6849589999983,
+          1883.4425829999964
+        ]
+      },
+      "coldLazy": {
+        "exactCountBuilds": 2,
+        "exactCountBuildMs": 2594.388833,
+        "requestedRows": 28,
+        "requestedMaterializationMs": 8.341583999999784,
+        "renderedBlocks": 1004,
+        "durableGraphBuilds": 1,
+        "durableGraphBuildMs": 0.020999999999958163,
+        "durableGenerationNoopReuses": 0,
+        "durableCountReusedBlocks": 0,
+        "durableCountRenderedBlocks": 1000,
+        "retainedDurableBlocks": 1000,
+        "retainedVolatileBlocks": 0,
+        "retainedMarkdownEntries": 1000,
+        "retainedRowEntries": 4,
+        "retainedRowLogicalBytes": 5324,
+        "retainedWidthStates": 2,
+        "retainedWidthMetadataLogicalBytes": 16144
+      },
+      "unseenWidthBodyMs": 2648.551040999999,
+      "unseenWidthLazy": {
+        "exactCountBuilds": 2,
+        "exactCountBuildMs": 2585.6359989999983,
+        "requestedRows": 28,
+        "requestedMaterializationMs": 4.40087499999936,
+        "renderedBlocks": 2005,
+        "durableGraphBuilds": 1,
+        "durableGraphBuildMs": 8.084540999996534,
+        "durableGenerationNoopReuses": 0,
+        "durableCountReusedBlocks": 0,
+        "durableCountRenderedBlocks": 2000,
+        "retainedDurableBlocks": 1000,
+        "retainedVolatileBlocks": 0,
+        "retainedMarkdownEntries": 1000,
+        "retainedRowEntries": 5,
+        "retainedRowLogicalBytes": 6248,
+        "retainedWidthStates": 3,
+        "retainedWidthMetadataLogicalBytes": 32216
+      },
+      "resizeBody": {
+        "samples": 6,
+        "p50": 1.9987079999991693,
+        "p95": 19.511957999995502,
+        "p99": 19.511957999995502,
+        "max": 19.511957999995502,
+        "rawMs": [
+          1.9987079999991693,
+          8.675167000001238,
+          1.5420420000009472,
+          19.511957999995502,
+          1.6086249999934807,
+          14.037583999997878
+        ]
+      },
+      "warmRepeatedResizeBody": {
+        "samples": 5,
+        "p50": 3.002874999998312,
+        "p95": 16.180500000002212,
+        "p99": 16.180500000002212,
+        "max": 16.180500000002212,
+        "rawMs": [
+          1.5504579999978887,
+          16.180500000002212,
+          3.002874999998312,
+          9.552125000001979,
+          2.1005000000004657
+        ]
+      },
+      "warmRepeatedResizeLazy": {
+        "exactCountBuilds": 0,
+        "exactCountBuildMs": 0,
+        "requestedRows": 224,
+        "requestedMaterializationMs": 0.46945600001345156,
+        "renderedBlocks": 0,
+        "durableGraphBuilds": 0,
+        "durableGraphBuildMs": 0,
+        "durableGenerationNoopReuses": 0,
+        "durableCountReusedBlocks": 0,
+        "durableCountRenderedBlocks": 0,
+        "retainedDurableBlocks": 1000,
+        "retainedVolatileBlocks": 0,
+        "retainedMarkdownEntries": 1000,
+        "retainedRowEntries": 9,
+        "retainedRowLogicalBytes": 11572,
+        "retainedWidthStates": 4,
+        "retainedWidthMetadataLogicalBytes": 32288
+      },
+      "retainedLazyResources": {
+        "durableBlockCount": 1000,
+        "volatileBlockCount": 0,
+        "markdownEntries": 1000,
+        "rowEntries": 9,
+        "rowLogicalBytes": 11572,
+        "widthStates": 4,
+        "widthMetadataLogicalBytes": 32288,
+        "exactCountBuilds": 21,
+        "exactCountBuildMs": 51682.88678999999,
+        "requestedRows": 1260,
+        "requestedMaterializationMs": 73.75812500004076,
+        "renderedBlocks": 19037,
+        "durableGraphBuilds": 18,
+        "durableGraphBuildMs": 316.8966629999916,
+        "durableGenerationNoopReuses": 0,
+        "durableCountReusedBlocks": 0,
+        "durableCountRenderedBlocks": 19000,
+        "rowCacheHits": 175,
+        "rowCacheMisses": 2037,
+        "rowCacheEvictions": 0,
+        "widthCacheHits": 159,
+        "widthCacheMisses": 21
+      },
+      "durableAppendFirstFrame": {
+        "definition": "Append one completed durable chat/activity pair, update transcript, then time its first 80x24 renderLayoutFrame.",
+        "target": "Diagnostic only: expose exact-count rebuild cost; no acceptance threshold is assigned.",
+        "body": {
+          "samples": 5,
+          "p50": 1668.8998330000031,
+          "p95": 1824.7857500000027,
+          "p99": 1824.7857500000027,
+          "max": 1824.7857500000027,
+          "rawMs": [
+            1576.2125000000015,
+            1374.3878330000007,
+            1824.7857500000027,
+            1668.8998330000031,
+            1722.5976250000022
+          ]
+        },
+        "lazy": {
+          "exactCountBuilds": 0,
+          "exactCountBuildMs": 8040.533125000002,
+          "requestedRows": 140,
+          "requestedMaterializationMs": 39.85470900000655,
+          "renderedBlocks": 5055,
+          "durableGraphBuilds": 5,
+          "durableGraphBuildMs": 39.32304299998941,
+          "durableGenerationNoopReuses": 0,
+          "durableCountReusedBlocks": 0,
+          "durableCountRenderedBlocks": 5030,
+          "retainedDurableBlocks": 1008,
+          "retainedVolatileBlocks": 0,
+          "retainedMarkdownEntries": 1008,
+          "retainedRowEntries": 5,
+          "retainedRowLogicalBytes": 5992,
+          "retainedWidthStates": 2,
+          "retainedWidthMetadataLogicalBytes": 16272
+        },
+        "memory": {
+          "rssBefore": 77922304,
+          "rssAfter": 77398016
+        }
+      },
+      "journalBumpFirstFrame": {
+        "definition": "Change only journalSequence with durable arrays reference-identical, update transcript, then time its first 80x24 renderLayoutFrame.",
+        "target": "Diagnostic only: expose exact-count rebuild cost; no acceptance threshold is assigned.",
+        "body": {
+          "samples": 5,
+          "p50": 1634.1347079999978,
+          "p95": 1712.8188340000052,
+          "p99": 1712.8188340000052,
+          "max": 1712.8188340000052,
+          "rawMs": [
+            1175.296457999997,
+            1458.9398329999967,
+            1712.8188340000052,
+            1634.1347079999978,
+            1656.925166999994
+          ]
+        },
+        "lazy": {
+          "exactCountBuilds": 0,
+          "exactCountBuildMs": 7539.758709000016,
+          "requestedRows": 140,
+          "requestedMaterializationMs": 29.883249999998952,
+          "renderedBlocks": 5020,
+          "durableGraphBuilds": 5,
+          "durableGraphBuildMs": 35.787415999977384,
+          "durableGenerationNoopReuses": 0,
+          "durableCountReusedBlocks": 0,
+          "durableCountRenderedBlocks": 5000,
+          "retainedDurableBlocks": 1000,
+          "retainedVolatileBlocks": 0,
+          "retainedMarkdownEntries": 1000,
+          "retainedRowEntries": 4,
+          "retainedRowLogicalBytes": 5324,
+          "retainedWidthStates": 2,
+          "retainedWidthMetadataLogicalBytes": 16144
+        },
+        "memory": {
+          "rssBefore": 68927488,
+          "rssAfter": 68173824
+        }
+      },
+      "memoryTerminalInput": {
+        "samples": 5,
+        "p50": 9.29666599999473,
+        "p95": 24.241915999999037,
+        "p99": 24.241915999999037,
+        "max": 24.241915999999037,
+        "rawMs": [
+          24.241915999999037,
+          13.177500000005239,
+          9.29666599999473,
+          8.762000000002445,
+          7.732209000008879
+        ]
+      },
+      "idleWrites": 0,
+      "memory": {
+        "rss": 103972864,
+        "heapTotal": 37782528,
+        "heapUsed": 16772336,
+        "external": 5491854,
+        "arrayBuffers": 0
+      }
+    }
+  ],
+  "scope": "Actual Astra body + production shell, with non-overlapping durable graph-build, exact count-build/repair, and requested-row materialization counters from the public transcript resource surface. Warm body/draft/resize repeat with durable history and references unchanged; durable append and journal-bump are separately measured diagnostic first frames. MemoryTerminal input to synchronized frame write. No PTY/terminal pixel/backpressure/provider/snapshot projection. Cold body is not cold process startup. p99 is descriptive at small sample sizes. Not Native parity.",
+  "criteria": {
+    "fitPaddingP50Ratio": 1.35,
+    "insetMovedRepeatedP50Ratio": 0.35,
+    "warmBodyP95Ms": 16,
+    "draftBodyP95Ms": 32,
+    "longDraftBodyP95Ms": 32,
+    "memoryTerminalInputP95Ms": 50,
+    "memoryTerminalInputP99Ms": 100,
+    "idleWrites": 0,
+    "warmRepeatedResizeBodyP95Ms": null
+  }
+}

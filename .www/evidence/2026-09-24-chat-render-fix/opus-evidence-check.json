@@ -1,0 +1,17 @@
+{
+  "review": "opus-followup-review.md",
+  "item": "E1",
+  "status": "pass",
+  "source": "benchmark-audited.json first per-count row",
+  "counts": [
+    1000
+  ],
+  "warmSamples": [
+    50
+  ],
+  "idleWrites": [
+    0
+  ],
+  "normalizedArtifact": "benchmark-final-full.json",
+  "note": "Reviewer input omitted per-count JSONL rows; actual existing raw artifact contains them. Consolidated without rerun."
+}

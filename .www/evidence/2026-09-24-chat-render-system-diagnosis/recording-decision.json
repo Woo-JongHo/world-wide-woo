@@ -1,0 +1,28 @@
+{
+  "recordedAt": "2026-09-24T08:58:34.675187+09:00",
+  "changedFiles": [
+    "docs/audit/2026-09-24-chat-render-system-diagnosis.md"
+  ],
+  "documentSha256": "25f8c6268dfcecc74c7b0b98d74b71f985cbe950ed5c8e0e174c1565a5711793",
+  "issueBinding": {
+    "id": "WOO-689",
+    "uuid": "ae15b7ba-fd9d-4319-a186-201e6177c8a6",
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "observedStatus": "Done",
+    "decision": "기존 성능 계약의 후속 진단으로 결속; 신규 이슈·본문·상태 변경 불필요",
+    "source": "linear-woo get_issue 원격 조회 및 기존 .www/evidence/2026-09-24-omo-chat-performance/recording-decision.json"
+  },
+  "projectActivity": {
+    "candidate": ".www/evidence/2026-09-24-chat-render-system-diagnosis/project-comment-candidate.json",
+    "candidateDigest": "4ab9e3aebc21b681c26f14818e911aef1acc7600a08a99249686517601be1ff2",
+    "state": "published",
+    "validation": "artifact:control validate/render passed",
+    "commentId": "8771bace-b25c-4708-a5be-a4c2d3ce977e",
+    "receipt": ".www/evidence/2026-09-24-chat-render-system-diagnosis/project-comment-publish-receipt.json"
+  },
+  "obsidian": {
+    "required": false,
+    "reason": "조사 결과·미확인 범위와 후속 측정 제안만 작성했다. WHY·제품 계약·설계 선택을 변경하거나 채택하지 않았다. 추정 높이 등 향후 구조 결정은 별도 설계 검토 대상이다."
+  },
+  "externalWrites": "사용자의 2026-09-24 후속 게시·해결 지시로 Comment 게시 및 정확한 본문 read-back 완료"
+}

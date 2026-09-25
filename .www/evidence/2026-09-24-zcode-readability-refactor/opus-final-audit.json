@@ -1,0 +1,16 @@
+{
+  "model": "claude-opus-5",
+  "mode": "read-only",
+  "verdict": "APPROVE",
+  "blockingFindings": 0,
+  "highScopeFindings": [
+    "t-note-service.ts의 Note 포맷 계약 변경은 현재 전체 diff에 있으나 ZCode worklog상 이번 리팩터링 저작 범위가 아니다.",
+    "artifact-control.ts의 linear-issue 결과·동작 절 계약 변경은 현재 전체 diff에 있으나 ZCode worklog상 이번 리팩터링 저작 범위가 아니다."
+  ],
+  "nonBlocking": [
+    "선언 표의 종결 열까지 맞출지 계약 적용 강도를 후속 wave에서 정할 수 있다.",
+    "artifact-control.ts 라벨 상수의 위치와 120열 초과는 후속 정리 후보이다.",
+    "t-note-service.ts의 five-field JSDoc은 별도 기능 변경 소유자가 교정해야 한다."
+  ],
+  "sessionId": "e8999293-ab6f-4567-97f3-63faca569a14"
+}

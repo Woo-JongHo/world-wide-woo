@@ -1,0 +1,32 @@
+Artifact Candidate validation:
+- artifact:control validate: PASS
+- rendered preview equals issue-preview.md: PASS
+- issue-preview.md equals NEW-CHAT-11 draft description: PASS
+- rendered headings: 목적 -> 결과 -> 범위 -> 동작 -> 완료 조건 -> 연결
+
+Candidate-specific Linear contract delta:
+- Command: import parseSnapshot/loadLinearContract/validate from scripts/linear-contract.ts, validate live snapshot before and after NEW-CHAT-11 draft, compare error sets.
+- Before errors: 28
+- After errors: 28
+- Added errors: 0
+- Removed errors: 0
+- Result: NEW-CHAT-11 adds no contract error and passes its own title/body/parent/metadata validation.
+
+Full live Chat gate:
+- Command: bun scripts/linear-contract.ts .www/evidence/2026-09-24-chat-render-fix/issue-contract-snapshot.json .www/evidence/2026-09-24-chat-render-fix/issue-contract-draft.json --scope Chat
+- Exit: 1
+- WOO-689: missing 결과/동작 and valid Code-ID/Obsidian connection.
+- WOO-718: unfilled template marker.
+- WOO-753: missing 동작/연결 and valid Code-ID/Obsidian connection.
+- WOO-754: missing 동작/연결 and valid Code-ID/Obsidian connection.
+- WOO-843: missing 범위/동작 and valid Code-ID/Obsidian connection.
+- WOO-909: missing 결과/동작 and valid Code-ID/Obsidian connection.
+
+The six existing issues are unchanged. Their drift remains separate from the new issue publication candidate.
+
+Compatibility change verification:
+- bun test test/artifact-control.test.ts
+- 9 pass, 0 fail
+- Existing 4-section Linear issue render has an exact-output regression test.
+- Detailed 6-section render validates result/behavior and heading order.
+- A candidate that supplies only result or only behavior is rejected.

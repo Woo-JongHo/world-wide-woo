@@ -1,0 +1,18 @@
+{
+  "recordedAt": "2026-09-24",
+  "issueBinding": {
+    "status": "confirmed",
+    "issueId": "WOO-911",
+    "reason": "전체 TypeScript 가독성 규칙과 결정론적 검사기를 소유하는 기존 이슈 범위에 import 선언 정규화를 결속했다."
+  },
+  "projectActivity": {
+    "status": "candidate-prepared",
+    "candidate": ".www/evidence/2026-09-24-readability-import-declarations/project-comment-candidate.json",
+    "published": false
+  },
+  "obsidian": {
+    "required": false,
+    "reason": "제품 WHY·공개 API·도메인 계약은 바뀌지 않았고 Readability 실행 계약과 검사기만 구체화했다."
+  },
+  "externalWrites": "사용자 항목별 승인 전에는 수행하지 않는다."
+}

@@ -1,0 +1,100 @@
+{
+  "schemaVersion": "1.0",
+  "receiptId": "d68f93c7-6e9d-41c2-8f8d-5b5ee8c111db",
+  "runId": "e201c955-5314-47b3-b256-5a48110175c3",
+  "candidateId": null,
+  "skill": {
+    "name": "woo-code-readability",
+    "version": "1.1"
+  },
+  "capability": "CODE-READABILITY-MAINTAIN",
+  "intentId": null,
+  "status": "succeeded",
+  "stage": "verify",
+  "actor": {
+    "kind": "codex",
+    "model": "gpt-5"
+  },
+  "context": {
+    "repo": "99_www",
+    "branch": "dev",
+    "updatedAt": "2026-09-24T00:00:00+09:00"
+  },
+  "input": {
+    "objective": "01_group-regions.ts의 rowContainersOf를 같은 역할의 predicate·괄호·객체 셀을 세로 비교할 수 있는 행렬형 표기로 통일한다."
+  },
+  "decision": {
+    "facts": [
+      "rowContainersOf의 7개 if 문은 Node predicate와 반환 RowContainer만 달라지는 동일 역할의 연속 행이다.",
+      "표시 열 실측에서 7행의 여는 괄호 8, 닫는 괄호 39, 첫 콜론 57, 첫 콤마 71이 일치했다.",
+      "import와 interface 세미콜론 앞의 임의 패딩 및 trailing whitespace는 해당 표의 실제 데이터가 아니므로 제거했다."
+    ],
+    "changes": [
+      {
+        "kind": "tool-format-update",
+        "ref": ".agents/skills/woo-code-readability/scripts/typescript/01_group-regions.ts#rowContainersOf",
+        "summary": "7개 RowContainer 판정 행의 predicate 괄호와 반환 객체의 label·rows 축을 최소 폭으로 정렬했다."
+      },
+      {
+        "kind": "format-fix",
+        "ref": ".agents/skills/woo-code-readability/scripts/typescript/01_group-regions.ts",
+        "summary": "불완전한 import·세미콜론 패딩과 trailing whitespace를 제거했다."
+      }
+    ],
+    "unknowns": [
+      "저장소 전체 TypeScript 480개에 대한 파일별 Readability 적용 범위는 사용자 선택 대기 중이다.",
+      "전체 도구 테스트의 hover 검사 1건은 FSEvents watcher context canceled로 한 차례 실패했으며 직전 실행에서는 11/11 통과했다."
+    ]
+  },
+  "validation": [
+    {
+      "check": "bun test test/code-readability-tools.test.ts --test-name-pattern 'code readability region grouper'",
+      "status": "passed",
+      "detail": "3 pass / 0 fail / 9 expect() calls."
+    },
+    {
+      "check": "measure-layout.ts --lines 38-45 --tokens '(#1|)#1|:#1|,#1'",
+      "status": "passed",
+      "detail": "7개 판정 행에서 (=8, )=39, :=57, ,=71로 일치했다."
+    },
+    {
+      "check": "git diff --check -- 01_group-regions.ts",
+      "status": "passed",
+      "detail": "공백 오류가 없다."
+    },
+    {
+      "check": "bun test test/code-readability-tools.test.ts",
+      "status": "uncertain",
+      "detail": "10 pass / 1 fail. hover inspector subprocess가 FSEvents watcher context canceled로 종료됐다. 같은 변경 전 직전 실행은 11/11 통과했고 변경 대상 region grouper는 별도 재실행에서 통과했다."
+    }
+  ],
+  "authorization": null,
+  "execution": {
+    "writes": [
+      ".agents/skills/woo-code-readability/scripts/typescript/01_group-regions.ts",
+      ".www/evidence/2026-09-24-woo-code-readability-maintain/receipt.json",
+      ".www/evidence/2026-09-24-woo-code-readability-maintain/project-comment-candidate.json",
+      ".www/evidence/2026-09-24-woo-code-readability-maintain/recording-decision.json"
+    ],
+    "externalActions": [],
+    "notes": "Linear WOO-911과 결속했다. Project Comment는 Candidate만 준비하며 사용자 승인 전 게시하지 않는다."
+  },
+  "result": {
+    "fileModified": ".agents/skills/woo-code-readability/scripts/typescript/01_group-regions.ts",
+    "alignedRows": 7,
+    "directTestsPassing": 3,
+    "behaviorChanged": false
+  },
+  "failure": null,
+  "evidence": [
+    {
+      "path": ".agents/skills/woo-code-readability/scripts/typescript/01_group-regions.ts",
+      "sha256": "9afc8a975e11b3d809c3ae92fed6c00bede31272d0f90b3042187948196b9538"
+    }
+  ],
+  "nextCapabilities": [
+    "CODE-READABILITY-MEASURE-COLUMNS",
+    "CODE-READABILITY-REPOSITORY-WAVES"
+  ],
+  "receiptDigest": "e4c1cbd7c8a1d54633eff625ba93ceb61130a5cb9571266955c565d1dbd1faa0"
+}

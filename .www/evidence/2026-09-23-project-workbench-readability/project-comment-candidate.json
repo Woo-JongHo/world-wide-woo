@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-CODE-READABILITY-COMPLETION",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:ca775998641d284738cd87c50d2593f689b6c86c:dirty",
+  "intent": "WOO-688·WOO-690·WOO-691의 동작 계약을 보존하면서 전체 TypeScript 역할 경계와 가독성 게이트를 정리한 결과를 기록한다",
+  "target": { "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db" },
+  "content": {
+    "changes": [
+      "ProjectWorkbench를 3062줄에서 1437줄로 축소하고 Native lifecycle·thread·journal·workflow/Todo·TNote/narration·command·cache/projection 책임을 독립 모듈로 분리했다.",
+      "Workbench shell을 1349줄에서 550줄로 축소하고 presentation·command routing·overlay·input routing을 분리했다.",
+      "Session runtime·Astra transcript cache·Codex app server protocol/transport를 역할별로 분리하고 대형 Workbench 테스트 191개를 capability별 파일로 재배치했다.",
+      "저장소 전체 exactOptionalPropertyTypes 오류를 98건에서 0건으로 줄이고 tsconfig 지속 게이트를 활성화했다."
+    ],
+    "impacts": [
+      "공개 API와 이벤트 순서를 유지하면서 각 lifecycle·projection·transport 책임을 독립적으로 읽고 검증할 수 있다.",
+      "optional 속성의 생략과 명시적 undefined가 구분되며 이후 회귀는 기본 타입 검사에서 차단된다.",
+      "테스트 수와 assertion을 유지한 채 대형 테스트 파일의 탐색 단위를 capability 수준으로 줄였다."
+    ],
+    "categories": ["refactor", "verification"],
+    "verification": [
+      "bun run check: exit 0.",
+      "exactOptionalPropertyTypes audit: 0 errors.",
+      "bun test test/architecture.test.ts: 13 pass, 0 fail.",
+      "bun test: 1449 pass, 0 fail, 18739 assertions, 170 files.",
+      "git diff --check: exit 0."
+    ],
+    "connections": [
+      "Linear issues: WOO-688 · WOO-690 · WOO-691",
+      "Code: project-workbench and extracted coordinators",
+      "Code: workbench-shell and extracted controllers",
+      "Evidence: .www/evidence/2026-09-23-project-workbench-readability",
+      "Branch: dev · HEAD ca775998641d284738cd87c50d2593f689b6c86c · uncommitted"
+    ]
+  },
+  "links": {
+    "issue": "https://linear.app/woo-world/issue/WOO-688/message-03-답변-생성완료중단-과정을-보여준다",
+    "relatedIssue": "https://linear.app/woo-world/issue/WOO-690/message-05-재개-뒤에도-대화-순서와-대상을-유지한다",
+    "candidateEvidence": ".www/evidence/2026-09-23-project-workbench-readability"
+  },
+  "expectedBefore": { "latestCommentId": "1c9c3c89-562a-4705-9c6e-3dac2e978948" },
+  "validation": [
+    { "id": "local-issue-binding", "status": "pass", "evidence": "추적성 원장과 대표 소스·테스트 주석에서 WOO-688·WOO-690·WOO-691 결속을 확인했다." },
+    { "id": "local-implementation-evidence", "status": "pass", "evidence": "타입·optional·아키텍처·전체 회귀·diff 검사가 모두 통과했다." },
+    { "id": "canonical-decision", "status": "pass", "evidence": "기존 identity·재개·부분 응답 보존·공개 API 계약을 바꾸지 않은 내부 리팩터링이므로 새 Obsidian WHY·계약·결정은 필요하지 않다." },
+    { "id": "external-write-boundary", "status": "pass", "evidence": "별도 사용자 승인 전에는 Linear Activity를 게시하지 않으며 게시 직전에 현재 Activity를 재조회해야 한다." }
+  ]
+}

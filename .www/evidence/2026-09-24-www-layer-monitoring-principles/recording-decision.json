@@ -1,0 +1,32 @@
+{
+  "recordedAt": "2026-09-24",
+  "changedFiles": [
+    "docs/research/2026-09-24-www-layer-monitoring-principles.md",
+    "src/core/domain/observability/layer-performance.ts",
+    "src/core/application/orchestration/project-workbench.ts",
+    "src/adapters/inbound/tui/shell/workbench-shell.ts",
+    "src/adapters/inbound/tui/features/monitoring/astra-monitor-view.ts",
+    "src/adapters/inbound/tui/features/dashboard/entry-dashboard-view.ts",
+    "src/adapters/inbound/tui/features/context/astra-context-view.ts",
+    "test/layer-performance.test.ts"
+  ],
+  "issueBinding": {
+    "id": "WOO-913",
+    "uuid": "8367530b-1a29-4983-994b-c2bf61ac687e",
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "evidence": ".www/evidence/2026-09-22-astra-figma-readiness/linear-issue-receipt.json",
+    "decision": "기존 Monitoring Figma 5화면의 계측 의미와 정보 구조 책임을 확장하므로 새 이슈를 만들지 않는다."
+  },
+  "projectActivity": {
+    "candidate": ".www/evidence/2026-09-24-www-layer-monitoring-principles/project-comment-candidate.json",
+    "state": "prepared-not-published",
+    "publicationGuard": "게시 직전 최신 Activity 중복 조회와 사용자 승인이 필요하다."
+  },
+  "obsidian": {
+    "required": true,
+    "candidate": ".www/evidence/2026-09-24-www-layer-monitoring-principles/obsidian-canonical-candidate.json",
+    "state": "draft-not-published",
+    "reason": "7계층 identity, timing schema, Golden Signals, unknown·synthetic 정책은 새 capability와 고비용 계약이다."
+  },
+  "externalWrites": "none"
+}

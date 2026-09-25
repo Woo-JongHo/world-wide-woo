@@ -1,0 +1,70 @@
+{
+  "id": "WOO-915",
+  "uuid": "9eb3b7f7-7197-4215-b864-d04d403c310d",
+  "title": "11. 긴 채팅 draft의 반복 렌더 지연을 제거한다",
+  "description": "# 11. 긴 채팅 draft의 반복 렌더 지연을 제거한다\n\n## 목적\n\n긴 답변이 생성되는 동안 같은 draft의 행 수와 본문을 매 frame 반복 계산해 입력·스크롤·출력이 멈추는 문제를 production-like benchmark로 고정하고 renderer 병목을 제거한다.\n\n## 결과\n\n긴 답변이 생성되는 동안 steady frame과 입력 처리가 기존 성능 기준 안에 머물고, 사용자는 읽던 위치를 잃지 않고 입력·스크롤을 계속한다.\n\n## 범위\n\n### 포함\n\n* 실제 snapshot과 같은 깊은 불변 조건의 production-like benchmark로 긴 draft steady update 비용을 재현한다.\n* 긴 draft의 count·layout hot path를 계측해 반복 계산 범위를 줄이고 가시 출력과 exact height를 보존한다.\n* steady draft frame 32ms와 입력 처리 50ms 기준을 변경하지 않고 회귀 게이트로 검증한다.\n* cold render와 resize 비용은 steady update와 분리해 수치·병목·남은 미검증 범위를 기록한다.\n* 실제 CMux 세션에서 긴 응답 중 입력·스크롤과 완료 후 탐색 동작을 확인한다.\n\n### 제외\n\n* 측정 없이 특정 최근 변경이나 CMux 자체를 원인으로 단정하는 일\n* 정확한 스크롤 높이 계약 검토 없이 추정 높이 또는 progressive height를 도입하는 일\n* <issue id=\"ae15b7ba-fd9d-4319-a186-201e6177c8a6\" href=\"https://linear.app/woo-world/issue/WOO-689/04-긴-결과를-안정적으로-탐색한다\">WOO-689</issue>에서 완료한 durable transcript graph/count repair를 같은 완료로 다시 기록하는 일\n* provider 수신부터 terminal pixel 표시까지 전 구간 계측 체계를 이번 수정의 필수 구현으로 만드는 일\n* 동시 전수 검사의 프로젝트 재사용·병렬 예산 변경을 renderer 수정의 완료 조건으로 묶는 일\n* 미계측 terminal pixel latency를 개선됐다고 단정하는 일\n\n## 동작\n\n* 실제 snapshot과 같은 깊은 불변 fixture로 긴 draft의 steady update를 재생한다.\n* 변하지 않은 완료 block은 재사용하고 변경된 draft에 필요한 count·layout만 계산한다.\n* 가시 출력·exact height·scroll anchor·follow-tail을 기준 출력과 대조한다.\n* cold render와 resize 결과는 steady update 결과와 분리해 기록한다.\n* 같은 시나리오를 실제 CMux에서 입력·스크롤·완료 후 탐색으로 확인한다.\n\n## 완료 조건\n\n* 고정한 production-like 긴 draft steady 시나리오가 frame p95 32ms 이하이고 입력 처리 p95 50ms 이하를 모두 충족한다.\n* 긴 draft 갱신에서 변하지 않은 완료 block을 다시 계산하지 않고 가시 출력·exact height·scroll anchor·follow-tail이 기준 출력과 동등하다.\n* cold render와 resize는 steady 기준 통과를 대신하지 않으며 측정값·지배 비용·후속 최적화 필요 여부가 별도로 기록된다.\n* 실제 CMux에서 긴 응답 생성 중 입력·스크롤과 완료 후 탐색이 동작하고, 미계측 pixel latency는 수락 근거에서 제외된다.\n* 변경 파일에 자리표시 구현과 test.skip·test.only가 없고 관련 행동·성능·회귀 검사가 통과한다.\n\n## 연결\n\n* Parent: <issue id=\"885c2115-0821-4df6-a954-3a23923f1209\" href=\"https://linear.app/woo-world/issue/WOO-679/chat-대화실행결과를-읽기-좋은-하나의-흐름으로-보여준다\">WOO-679</issue> \\[Chat\\] 대화·실행·결과를 읽기 좋은 하나의 흐름으로 보여준다\n* Related: <issue id=\"ae15b7ba-fd9d-4319-a186-201e6177c8a6\" href=\"https://linear.app/woo-world/issue/WOO-689/04-긴-결과를-안정적으로-탐색한다\">WOO-689</issue> 긴 결과의 durable transcript 재구축 최적화\n* Related: <issue id=\"9e3c1872-b80e-4016-b24f-5e2adc9c7320\" href=\"https://linear.app/woo-world/issue/WOO-680/layout-화면-크기가-달라져도-읽던-위치와-입력-흐름을-유지한다\">WOO-680</issue> 폭 변경과 scroll anchor 계약\n* Code-ID: Code-001, Code-003\n* Obsidian: [WOO-679 Chat 상세 정본](<obsidian://open?vault=5521cc40c75eb293&file=01_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F99_WWW%2F01_%EB%AC%B8%EC%84%9C%2FTraceability%2FWOO-679.md>)\n* Evidence: docs/audit/2026-09-24-chat-render-system-diagnosis.md · .www/evidence/2026-09-24-chat-render-fix",
+  "projectMilestone": {
+    "id": "193948f7-2a11-4110-a143-360d83f2a076",
+    "name": "v0.1.0 — First Public Release"
+  },
+  "priority": {
+    "value": 0,
+    "name": "No priority"
+  },
+  "url": "https://linear.app/woo-world/issue/WOO-915/11-긴-채팅-draft의-반복-렌더-지연을-제거한다",
+  "gitBranchName": "jonghowoo33/woo-915-11-긴-채팅-draft의-반복-렌더-지연을-제거한다",
+  "createdAt": "2026-09-24T04:08:42.120Z",
+  "updatedAt": "2026-09-24T04:08:42.120Z",
+  "archivedAt": null,
+  "completedAt": null,
+  "startedAt": "2026-09-24T04:08:42.233Z",
+  "canceledAt": null,
+  "dueDate": null,
+  "slaStartedAt": null,
+  "slaMediumRiskAt": null,
+  "slaHighRiskAt": null,
+  "slaBreachesAt": null,
+  "status": "In Progress",
+  "statusType": "started",
+  "labels": [
+    "TUI",
+    "Chat",
+    "perf",
+    "Bug"
+  ],
+  "attachments": [],
+  "documents": [],
+  "stateHistory": [
+    {
+      "state": {
+        "id": "04aa2aac-1687-4b10-b225-14197c925233",
+        "name": "In Progress",
+        "type": "started"
+      },
+      "startedAt": "2026-09-24T04:08:42.120Z",
+      "endedAt": null
+    }
+  ],
+  "createdBy": "우종호",
+  "createdById": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+  "project": "World Wide Woo",
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "parentId": "WOO-679",
+  "team": "Woo-World",
+  "teamId": "95f279f5-cd73-49b6-a10e-b6cdab1e6d58",
+  "relations": {
+    "blocks": [],
+    "blockedBy": [],
+    "relatedTo": [
+      {
+        "id": "WOO-689",
+        "title": "04. 긴 결과를 안정적으로 탐색한다"
+      },
+      {
+        "id": "WOO-680",
+        "title": "[Layout] 화면 크기가 달라져도 읽던 위치와 입력 흐름을 유지한다"
+      }
+    ],
+    "duplicateOf": null
+  }
+}

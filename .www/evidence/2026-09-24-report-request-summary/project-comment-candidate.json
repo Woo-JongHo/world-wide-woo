@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-REPORT-REQUEST-SUMMARY-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:ca775998641d284738cd87c50d2593f689b6c86c:dirty",
+  "intent": "WOO-693의 완료 REPORT를 요청 전체의 질문·Plan·과정·결론 구조로 개선한 작업을 기록한다",
+  "target": { "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db" },
+  "content": {
+    "changes": [
+      "새 T-note 생성 계약을 질문·Plan·과정·결론의 네 필드로 변경했다.",
+      "Astra REPORT 화면도 같은 순서로 표시하고 시스템이 관측한 Test는 결론 뒤 보조 근거로 유지했다.",
+      "기존 5필드와 3필드 기록은 재생 호환으로 읽되 새 생성 결과로는 수락하지 않도록 분리했다.",
+      "ASTRA_EXECUTION_CONSOLE 문서를 새 REPORT 계약과 동기화했다."
+    ],
+    "impacts": [
+      "사용자는 완료 REPORT에서 자신의 질문, 세운 계획, 실제 과정, 도달한 결론을 한 흐름으로 읽는다.",
+      "과거 저장 기록은 깨지지 않으며 새 기록만 request-report-v2 계약을 따른다."
+    ],
+    "categories": ["improvement"],
+    "verification": [
+      "REPORT 관련 집중 테스트 160건과 TypeScript noEmit, git diff --check가 통과했다.",
+      "전체 회귀 1455건, assertion 18989건이 모두 통과했다."
+    ],
+    "connections": [
+      "Linear: WOO-693 · UUID 559c8b06-e8dd-4061-8d10-d719be0524a8",
+      "Code: src/core/application/work/t-note-service.ts, src/core/application/orchestration/workbench-artifacts.ts",
+      "UI: src/adapters/inbound/tui/features/chat/astra-execution.ts",
+      "Contract: docs/ASTRA_EXECUTION_CONSOLE.md",
+      "Obsidian Candidate: .www/evidence/2026-09-24-report-request-summary/obsidian-canonical-candidate.json"
+    ]
+  },
+  "links": {
+    "issue": "https://linear.app/woo-world/issue/WOO-693/완료된-질문과-결과를-t-note에-보존하고-다시-찾는다",
+    "evidence": ".www/evidence/2026-09-24-report-request-summary"
+  },
+  "expectedBefore": { "latestCommentId": "30f00db1-c05a-4d67-a730-a03f589c46e9" },
+  "validation": [
+    { "id": "issue-binding", "status": "pass", "evidence": "traceability ledger에서 WOO-693의 UUID와 T-note 보존 책임을 확인했다." },
+    { "id": "regression", "status": "pass", "evidence": "집중 160건과 전체 1455건이 실패 없이 통과했다." },
+    { "id": "publication-boundary", "status": "pass", "evidence": "Candidate만 준비하며 Linear 게시 전 최신 Activity 재조회와 별도 사용자 승인이 필요하다." }
+  ],
+  "candidateDigest": "9a13acc60ce74afe682ba18ed4ecd8e20c33b05bd0eaba7e15bebfdadc94d465"
+}

@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "1.0",
+  "recordedAt": "2026-09-24T20:35:00+09:00",
+  "scope": "현재 dirty Workbench 통합 변경의 WOO 기록 판정",
+  "issueBindings": [
+    { "id": "WOO-689", "reason": "Chat 렌더·출력 성능과 durable transcript 경계" },
+    { "id": "WOO-907", "reason": "Workbench Dashboard·HUD·인증·사용량 화면" },
+    { "id": "WOO-911", "reason": "제품 TypeScript Readability 계약과 적용" },
+    { "id": "WOO-913", "reason": "관측 계층과 Figma monitoring 의미 계약" },
+    { "id": "WOO-915", "reason": "Chat render/cache 후속 수정과 검증" }
+  ],
+  "linearReadback": {
+    "checkedAt": "2026-09-24T20:35:00+09:00",
+    "issues": {
+      "WOO-689": "04. 긴 결과를 안정적으로 탐색한다",
+      "WOO-907": "연결된 Linear 프로젝트를 입장 Dashboard에서 요약한다",
+      "WOO-911": "코드 실행 흐름을 역할별 최소 구조와 측정 가능한 열로 정리한다",
+      "WOO-913": "[Workbench Monitoring] Figma 5화면의 계측 의미와 정보 구조를 일치시킨다",
+      "WOO-915": "11. 긴 채팅 draft의 반복 렌더 지연을 제거한다"
+    },
+    "newIssueCandidate": "not-required"
+  },
+  "newIssue": {
+    "required": false,
+    "reason": "현재 경로별 변경은 위 기존 이슈의 수락 단위를 합친 통합 대기 상태이며, 중복 신규 이슈를 만들지 않는다."
+  },
+  "projectActivity": {
+    "candidate": ".www/evidence/2026-09-24-workbench-integration/project-comment-candidate.json",
+    "latestCommentIdBeforeCandidate": "1196a23e-1f9f-4bff-b6c8-83f5a1a4e5ab",
+    "state": "candidate-prepared",
+    "externalWrite": "not-performed",
+    "reason": "기존 개별 Comment·Receipt를 대체하지 않는 현재 커밋 대기 통합 요약이다."
+  },
+  "obsidian": {
+    "required": true,
+    "existingCandidate": ".www/evidence/2026-09-24-www-layer-monitoring-principles/obsidian-canonical-candidate.json",
+    "reason": "7계층 관측 identity·timing·unknown 정책은 고비용 계약이며 기존 Obsidian Candidate가 이미 준비돼 있다. 새 경쟁 정본은 만들지 않는다."
+  },
+  "existingEvidence": [
+    ".www/evidence/2026-09-24-chat-render-fix/recording-decision.json",
+    ".www/evidence/2026-09-24-www-layer-monitoring-principles/recording-decision.json",
+    ".www/evidence/2026-09-24-woo-code-readability-maintain-registry/recording-decision.json",
+    ".www/evidence/2026-09-24-zcode-readability-refactor/recording-decision.json"
+  ],
+  "verification": {
+    "typecheck": "pass — bun run check",
+    "fullRegression": "pass — bun test (1491 pass, 0 fail, 19354 expect, 173 files)",
+    "stagedDiffCheck": "pass — git diff --cached --check before purpose split",
+    "commitReadiness": "pending — woo-commit 후보별 stage boundary·human authorization이 아직 남아 있다."
+  }
+}

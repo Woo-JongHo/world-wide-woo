@@ -1,0 +1,14 @@
+{
+  "recordedAt": "2026-09-24T08:31:10+09:00",
+  "issueBinding": {
+    "chat": "WOO-689",
+    "agentEvidenceRoot": "새 Linear issue Candidate를 WOO-748 하위로 준비"
+  },
+  "projectActivity": "두 수정과 검증을 linear-project-comment Candidate 1건으로 준비",
+  "obsidian": {
+    "required": false,
+    "reason": "제품 WHY·공개 API·schema·권위 경계 변경이 아니라 기존 저장소 Evidence 경로 계약 및 Chat 성능 계약을 지키도록 내부 구현을 교정한 작업이다."
+  },
+  "externalWrites": "사용자의 Linear 게시 명시 지시에 따라 WOO-914 생성과 Project Activity Comment 게시를 수행했고 원격 read-back을 통과했다.",
+  "receipt": ".www/evidence/2026-09-24-omo-chat-performance/linear-publish-receipt.json"
+}

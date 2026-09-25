@@ -1,0 +1,18 @@
+{
+  "recordedAt": "2026-09-24",
+  "issueBinding": {
+    "status": "confirmed",
+    "issueId": "WOO-911",
+    "reason": "전체 TypeScript의 역할별 최소 구조, 타입 불확실성 조사, 측정 가능한 열 정렬을 소유하는 기존 수락 단위와 동일하다."
+  },
+  "projectActivity": {
+    "status": "candidate-prepared",
+    "candidate": ".www/evidence/2026-09-24-zcode-readability-refactor/project-comment-candidate.json",
+    "published": false
+  },
+  "obsidian": {
+    "required": false,
+    "reason": "제품 WHY·공개 API·새 도메인 계약을 결정하지 않고 기존 Readability 계약을 제품 코드에 적용했다."
+  },
+  "externalWrites": "사용자 항목별 승인 전에는 수행하지 않는다."
+}

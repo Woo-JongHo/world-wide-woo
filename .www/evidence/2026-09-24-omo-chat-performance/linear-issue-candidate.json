@@ -1,0 +1,81 @@
+{
+  "schemaVersion": "1.0",
+  "candidateId": "ARTIFACT-CANDIDATE-AGENT-EVIDENCE-ROOT",
+  "kind": "linear-issue",
+  "sourceRevision": "git:ca775998641d284738cd87c50d2593f689b6c86c:dirty",
+  "intent": "Agent 산출물이 저장소의 정본 Evidence 경로를 따르게 한다",
+  "target": {
+    "workspaceId": "b7b91489-dd9b-4fb7-b958-822d5dc577e0",
+    "teamId": "95f279f5-cd73-49b6-a10e-b6cdab1e6d58",
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "parentId": "95dfdccb-d2dc-4605-92de-bd90402fad1f",
+    "milestoneId": "11c54a66-8b02-497b-b462-c273141a440c",
+    "labels": ["System", "Reliability", "Bug"]
+  },
+  "content": {
+    "title": "Agent 산출물이 저장소의 Evidence 정본 경로를 따르게 한다",
+    "purpose": "전역 Agent 지시가 `.omo/evidence`를 fallback으로 강제해 저장소 계약과 다른 숨김 경로에 감사·검증 산출물이 반복 생성되는 결함을 막는다.",
+    "included": [
+      "전역 LazyCodex Agent 7종이 호출자가 지정한 경로 또는 저장소 AGENTS.md의 Evidence root를 사용한다.",
+      "99_www에서는 Receipt·이슈 후보·read-back 기록을 `.www/evidence`에만 생성한다.",
+      "저장소가 명시적으로 선언하지 않은 `.omo` 경로를 Agent가 임의 생성하지 않는다.",
+      "gitignore 방어 규칙으로 새 `.omo` 작업 산출물이 Git 변경에 재유입되지 않게 한다."
+    ],
+    "excluded": [
+      "기존에 Git으로 추적 중인 과거 `.omo` 기록의 일괄 삭제 또는 이관",
+      "다른 저장소의 Evidence root를 하나의 절대 경로로 통일하는 작업",
+      "Linear·Obsidian·GitHub 외부 게시를 승인 없이 수행하는 작업"
+    ],
+    "done": [
+      "전역 Agent 설정에서 `.omo/evidence` fallback 강제가 발견되지 않는다.",
+      "99_www의 새 untracked `.omo` 산출물이 Git 상태에 나타나지 않는다.",
+      "Agent가 저장소 AGENTS.md를 읽어 `.www/evidence`를 선택하는 규칙이 7개 역할에 동일하게 적용된다.",
+      "기존 추적 파일은 자동 삭제하지 않고 보존 범위를 명시한다."
+    ],
+    "connections": [
+      "Parent: WOO-748 [Agents] 의도와 위험에 맞는 실행 주체를 조정한다",
+      "Related: WOO-697 선택한 개발 업무의 대화와 테스트를 기록한다",
+      "Code: /Users/jonghoPro/.codex/agents/lazycodex-*.toml · .gitignore",
+      "Evidence: .www/evidence/2026-09-24-omo-chat-performance"
+    ]
+  },
+  "links": {
+    "parent": "https://linear.app/woo-world/issue/WOO-748/agents-의도와-위험에-맞는-실행-주체를-조정한다",
+    "related": "https://linear.app/woo-world/issue/WOO-697/03-선택한-개발-업무의-대화와-테스트를-기록한다"
+  },
+  "expectedBefore": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "parent": {
+      "id": "WOO-748",
+      "uuid": "95dfdccb-d2dc-4605-92de-bd90402fad1f",
+      "status": "Todo",
+      "milestone": "v0.2.0 — System & Workflow Foundation"
+    },
+    "directChildren": ["WOO-847"],
+    "matchingIssue": null,
+    "observedAt": "2026-09-24T08:31:10+09:00"
+  },
+  "validation": [
+    {
+      "id": "linear-duplicate-search",
+      "status": "pass",
+      "evidence": "World Wide Woo의 활성·완료·보관 이슈를 `.omo`, Evidence path, 산출물 위치, Agent 증거 경로로 조회했으며 같은 수락 단위를 찾지 못했다."
+    },
+    {
+      "id": "parent-sibling-readback",
+      "status": "pass",
+      "evidence": "WOO-748 본문·Milestone과 직계 하위 WOO-847을 재조회해 공통 Agent 경로 선택 결함이 WOO-748의 독립 하위 결과임을 확인했다."
+    },
+    {
+      "id": "implementation-verification",
+      "status": "pass",
+      "evidence": "전역 LazyCodex Agent 7종에서 `.omo/evidence` 강제 문구가 사라졌고 99_www의 `.gitignore`에 `/.omo/` 방어 규칙이 적용됐다."
+    },
+    {
+      "id": "design-triage",
+      "status": "pass",
+      "evidence": "제품 capability·공개 API·schema를 바꾸지 않는 내부 Agent 경로 결함 수정이므로 별도 Obsidian 정본은 필요하지 않다."
+    }
+  ],
+  "candidateDigest": "d2e5a540898426fd2bca51c1c6950afc3094455deba4fe5f33575578aeb37b54"
+}

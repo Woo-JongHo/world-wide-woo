@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-OMO-CHAT-PERFORMANCE",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:ca775998641d284738cd87c50d2593f689b6c86c:dirty",
+  "intent": "Agent Evidence 경로 결함과 Chat dense render 병목을 수정한 경과를 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "전역 LazyCodex Agent 7종의 `.omo/evidence` 강제 fallback을 제거하고 호출자 지정 경로 또는 저장소 AGENTS.md의 Evidence root를 사용하게 했다.",
+      "99_www에 `/.omo/` ignore 방어를 추가해 새 임시 산출물이 Git 변경과 커밋 후보에 반복 유입되지 않게 했다.",
+      "Chat 생산 레이아웃의 중첩 VStack 높이 측정이 매 frame 전체 transcript를 dense render하던 원인을 pi-tui의 재귀 측정으로 수정했다.",
+      "실제 AstraExecutionHeading을 포함한 생산 레이아웃 회귀 테스트를 추가하고 Bun·pnpm이 같은 pi-tui patch를 사용하도록 lockfile과 patchedDependencies를 고정했다."
+    ],
+    "impacts": [
+      "Agent 감사·검증 산출물이 저장소 정본인 `.www/evidence`로 수렴하며 `.omo`가 다시 변경 목록을 오염시키는 경로를 차단한다.",
+      "13,623개 activity와 740개 Chat 메시지 조건에서 최초 frame은 약 978ms에서 298ms, 이후 frame은 128~189ms에서 2.7~8.5ms로 감소했다.",
+      "frame당 요청 행은 약 7,292개에서 38개로 줄었고 reading anchor와 Plan rail 정렬 계약은 보존됐다."
+    ],
+    "categories": ["fix", "verification"],
+    "verification": [
+      "전역 Agent 설정 7종의 `.omo/evidence` 및 `otherwise under .omo` 검색 결과가 0건이다.",
+      "생산 레이아웃 benchmark에서 steady frame 2.7~8.5ms와 frame당 38행 요청을 확인했다.",
+      "Chat 집중 회귀 90 pass, 0 fail, 6,554 assertions를 확인했다.",
+      "bun run check, optional audit, architecture 13/13, git diff --check가 통과했다.",
+      "전체 bun test: 1,450 pass, 0 fail, 18,740 assertions, 170 files."
+    ],
+    "connections": [
+      "Linear Chat: WOO-689 · UUID ae15b7ba-fd9d-4319-a186-201e6177c8a6",
+      "Linear Agent parent: WOO-748 · UUID 95dfdccb-d2dc-4605-92de-bd90402fad1f",
+      "Linear Agent evidence root: WOO-914 · UUID 254e2509-050c-4adc-a289-6ebcd2cadc87",
+      "Code: patches/@earendil-works__pi-tui@0.84.4.patch · test/astra-transcript-cache.test.ts · .gitignore",
+      "Evidence: .www/evidence/2026-09-24-omo-chat-performance",
+      "Branch: dev · HEAD ca775998641d284738cd87c50d2593f689b6c86c · uncommitted"
+    ]
+  },
+  "links": {
+    "chatIssue": "https://linear.app/woo-world/issue/WOO-689/04-긴-결과를-안정적으로-탐색한다",
+    "agentParent": "https://linear.app/woo-world/issue/WOO-748/agents-의도와-위험에-맞는-실행-주체를-조정한다",
+    "agentEvidenceIssue": "https://linear.app/woo-world/issue/WOO-914/agent-산출물이-저장소의-evidence-정본-경로를-따르게-한다",
+    "candidateEvidence": ".www/evidence/2026-09-24-omo-chat-performance"
+  },
+  "expectedBefore": {
+    "latestCommentId": "1c9c3c89-562a-4705-9c6e-3dac2e978948"
+  },
+  "validation": [
+    {
+      "id": "remote-issue-binding",
+      "status": "pass",
+      "evidence": "Linear에서 WOO-689 본문과 WOO-748 본문·직계 하위·Milestone을 2026-09-24에 재조회했다."
+    },
+    {
+      "id": "remote-activity-readback",
+      "status": "pass",
+      "evidence": "World Wide Woo Project Activity의 최신 Comment ID가 1c9c3c89-562a-4705-9c6e-3dac2e978948임을 확인했고 같은 작업 기록은 없었다."
+    },
+    {
+      "id": "local-verification",
+      "status": "pass",
+      "evidence": "실제 대형 journal 조건의 before/after benchmark와 집중·전체 회귀, typecheck, architecture, diff 검사를 통과했다."
+    },
+    {
+      "id": "canonical-decision",
+      "status": "pass",
+      "evidence": "제품 WHY·공개 계약을 바꾸지 않고 기존 Evidence 경로 계약과 WOO-689 성능 계약을 준수하도록 구현을 교정했으므로 새 Obsidian Candidate는 만들지 않는다."
+    }
+  ],
+  "candidateDigest": "a890cc83a540c7a75d9251148e7405e58a68a0911a927674794f3bf0418bad75"
+}

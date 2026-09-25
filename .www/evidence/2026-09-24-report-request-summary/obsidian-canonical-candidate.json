@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-WOO-693-TNOTE-CANONICAL",
+  "kind": "obsidian-canonical",
+  "sourceRevision": "worktree:ca775998641d284738cd87c50d2593f689b6c86c:dirty",
+  "intent": "WOO-693 T-note가 완료된 요청 전체를 질문·Plan·과정·결론 REPORT로 보존하는 계약을 최초 schema v2 정본으로 기록한다",
+  "target": {
+    "relativePath": "Workbench/T-note — 완료된 요청의 질문과 결과를 보존한다.md"
+  },
+  "content": {
+    "properties": {
+      "document_id": "39a90cde-b9fe-4169-a90b-e15edefd35ff",
+      "linear": "WOO-693",
+      "record_type": "detailed-canonical",
+      "schema_version": 2,
+      "status": "active",
+      "acceptance": "pass",
+      "domain": "Workbench",
+      "capability": "T-note",
+      "parent": "[[Workbench — 대화와 계획을 통제한다]]",
+      "related": ["[[Tracer — Todo의 내부 실행 과정을 세션별로 실시간 확인한다]]"],
+      "spec_ids": [],
+      "code_ids": [],
+      "test_ids": ["TEST-TNOTE-001", "TEST-TNOTE-002", "TEST-TNOTE-003"],
+      "exception_ids": ["EXC-TNOTE-001", "EXC-TNOTE-002"],
+      "decision_ids": ["DEC-TNOTE-001"],
+      "tags": ["www/spec", "domain/workbench", "capability/t-note", "status/pass"],
+      "source_revision": "worktree:ca775998641d284738cd87c50d2593f689b6c86c:dirty",
+      "updated_at": "2026-09-24T00:00:00+09:00"
+    },
+    "sections": {
+      "1. Intent": "### 사용자 문제\n\n완료된 요청을 다시 볼 때 질문과 최종 답만으로는 어떤 계획을 세웠고 실제로 어떤 과정을 거쳤는지 알기 어렵다.\n\n### 기대 결과\n\n각 완료 Turn은 사용자의 질문, 세운 Plan, 실제 과정, 도달한 결론을 하나의 지속적인 REPORT로 남긴다.\n\n### Reference\n\nLinear WOO-693과 Astra Execution Console의 완료 질문 기록을 따른다.",
+      "2. Scope": "### In Scope\n\n- 완료된 한 thread/turn의 REPORT 생성·검증·저장·재생\n- 질문·Plan·과정·결론의 의미와 순서\n- 시스템 관측 Test의 보조 첨부\n- 과거 5필드·3필드 기록의 읽기 호환\n\n### Out of Scope\n\n- 진행 중 Plan과 Todo 상태\n- raw Source 본문 복제\n- 결과의 업무 수락 판정\n\n### Boundary\n\n모델은 네 의미 필드만 작성한다. Test는 완료된 외부 실행 관측에서 시스템이 붙이며 Source 원문은 Tracer가 소유한다.",
+      "3. Desired Behavior": "### Scenario DB-001 · 완료 요청을 REPORT로 남긴다\n\n**Given** 같은 thread/turn의 질문과 완료 관측이 있다.\n\n**When** T-note 생성기가 완료 범위를 요약한다.\n\n**Then** 질문→Plan→과정→결론 순서의 비어 있지 않은 REPORT 한 건을 저장한다.\n\n### Scenario DB-002 · 과거 기록을 다시 읽는다\n\n**Given** 저장된 옛 5필드 또는 3필드 T-note가 있다.\n\n**When** Astra가 기록을 재생한다.\n\n**Then** 과거 기록은 읽을 수 있지만 새 생성 계약으로 수락하거나 다시 쓰지 않는다.",
+      "4. Domain Contract": "### INV-001\n\n새 REPORT는 질문·Plan·과정·결론을 정확히 한 번씩 비어 있지 않게 가진다.\n\n### INV-002\n\n질문은 완료 범위의 사용자 질문과 일치해야 하며 다른 turn의 활동을 섞지 않는다.\n\n### INV-003\n\nTest는 모델 생성문이 아니라 시스템이 관측한 완료 검증에서만 첨부한다.\n\n### 용어\n\n| 용어 | 정의 |\n|---|---|\n| 질문 | 사용자가 해당 Turn에서 요청한 내용 |\n| Plan | 요청을 해결하기 위해 세운 접근과 순서 |\n| 과정 | 실제로 수행한 조사·변경·검증 |\n| 결론 | 도달한 결과와 관측된 변경 상태 |\n| Test | 시스템이 붙인 검증 관측 |",
+      "5. State Model": "### 상태\n\n| State | 의미 |\n|---|---|\n| pending | 완료 Turn을 아직 요약하지 않음 |\n| generating | 격리된 생성기가 REPORT 작성 중 |\n| stored | 검증된 REPORT가 append-only 저장됨 |\n| deferred | 생성 또는 저장 실패로 기록이 보류됨 |\n\n### 상태 전이\n\n| From | Event / Condition | To | 비고 |\n|---|---|---|---|\n| pending | 완료 범위 확정 | generating | 진행 중 범위는 거절 |\n| generating | 계약 검증과 저장 성공 | stored | 한 Turn당 한 건 |\n| generating | 생성·검증·저장 실패 | deferred | 완료 기록으로 표시하지 않음 |\n| deferred | 재개 뒤 동일 범위 재시도 성공 | stored | 중복 생성 금지 |",
+      "6. Data & Runtime Flow": "```text\nCompleted thread/turn activities\n        ↓\nBounded redacted packet\n        ↓\nDetached T-note generator\n        ↓\nCanonical contract validation\n        ↓\nAppend-only T-note store\n        ↓\nAstra REPORT + Source link\n```\n\n### Ownership\n\n| State / Data | Owner | Writer | Reader |\n|---|---|---|---|\n| activity range | ProjectWorkbench | activity journal | TNoteService |\n| REPORT text | TNoteService | detached generator + validator | T-note store, Astra |\n| Test appendix | TNoteService | observed verification projector | Astra |\n| raw evidence | Tracer / Source | activity journal | Source view |",
+      "7. Identity & Persistence Contract": "### Identity\n\n| 대상 | ID | 생성 주체 | 유지 범위 |\n|---|---|---|---|\n| T-note | note id | T-note service | 저장·재개 |\n| source | threadId + turnId + sourceActivityIds | Workbench journal | 생성·표시·재개 |\n\n### Persistence\n\n검증된 REPORT만 append-only store에 저장한다.\n\n### Resume\n\n재시작 뒤 저장된 note와 source identity를 그대로 읽고, 실패한 완료 범위만 재조정한다.\n\n### Idempotency / Concurrency\n\n같은 thread/turn 완료 범위에는 한 기록만 허용하며 중복 completed 관측은 새 note를 만들지 않는다.",
+      "8. Integration Contract": "```text\nChat completed turn\n └─ T-note REPORT (WOO-693)\n     ├─ Test observation\n     └─ Source activity → Tracer (WOO-681)\n```\n\n현재 실행 Plan은 T-note의 과거 Plan과 별개다. 과거 REPORT의 Plan을 현재 Todo 또는 Plan rail로 승격하지 않는다.",
+      "9. Failure & Recovery Contract": "| ID | Failure | Detection | User-visible State | Recovery | Preserve |\n|---|---|---|---|---|---|\n| EXC-TNOTE-001 | 생성 결과가 네 필드 계약 또는 질문 일치를 위반 | canonical validator 실패 | 자동 생성 보류 | 동일 완료 범위 재시도 | source range와 기존 notes |\n| EXC-TNOTE-002 | 저장 실패 또는 종료 중단 | append receipt 부재 | 완료 번호를 저장 성공처럼 표시하지 않음 | 재시작 reconcile | 기존 append-only 기록과 source identity |",
+      "10. Acceptance Contract": "| AC-ID | Acceptance Criterion | Test-ID | Evidence | Status |\n|---|---|---|---|---|\n| AC-TNOTE-001 | 새 REPORT가 질문·Plan·과정·결론을 순서대로 생성·검증한다. | TEST-TNOTE-001 | test/t-notes.test.ts | PASS |\n| AC-TNOTE-002 | Astra가 네 필드와 결론 뒤 Test를 폭 경계 안에서 표시한다. | TEST-TNOTE-002 | test/astra-ui.test.ts | PASS |\n| AC-TNOTE-003 | 생성 실패·재시작·중복 완료에서도 한 Turn당 한 기록과 source identity를 유지한다. | TEST-TNOTE-003 | test/project-workbench-recording.test.ts | PASS |",
+      "11. Verification Strategy": "| Test-ID | 검증 대상 | 방법 | 연결 계약 |\n|---|---|---|---|\n| TEST-TNOTE-001 | 새 포맷 수락, 구형 생성 거절, 과거 재생 호환, Test 관측 첨부 | Unit | INV-001, INV-003, AC-TNOTE-001 |\n| TEST-TNOTE-002 | REPORT 필드 순서, 색상, 좁은 폭, Source 연결 | TUI integration | AC-TNOTE-002 |\n| TEST-TNOTE-003 | 완료 범위, exactly-once, 실패 후 재개 | Workbench integration | INV-002, EXC-TNOTE-001, EXC-TNOTE-002 |",
+      "12. Implementation Map": "| Responsibility | Module / Component | Code-ID |\n|---|---|---|\n| 생성 지시와 완료 범위 | src/core/application/orchestration/workbench-artifacts.ts | — |\n| 파싱·검증·저장 경계 | src/core/application/work/t-note-service.ts | — |\n| REPORT 화면 | src/adapters/inbound/tui/features/chat/astra-execution.ts | — |\n| 제품 설명 계약 | docs/ASTRA_EXECUTION_CONSOLE.md | — |",
+      "13. Current State & Gaps": "### Implemented\n\n- 새 네 필드 REPORT 생성·검증·표시\n- 시스템 관측 Test 첨부\n- 옛 5필드·3필드 읽기 호환\n- 완료 범위와 append-only 저장 회귀\n\n### Partial\n\n실제 장기 세션에서 사용자가 REPORT 품질을 수락한 별도 수동 Evidence는 없다.\n\n### Gap\n\n| GAP-ID | 관련 Contract | 내용 | Linear |\n|---|---|---|---|\n| GAP-TNOTE-001 | AC-TNOTE-002 | 실제 Native 장기 세션의 사용자 수락 캡처가 없다. | WOO-693 |",
+      "14. Decisions & Evidence": "### Open Design Questions\n\n없음.\n\n### Decisions\n\n#### DEC-TNOTE-001 · REPORT는 요청 전체의 네 단계 흐름이다\n\n**Status**\n\napproved\n\n**Decision**\n\n새 REPORT를 질문→Plan→과정→결론으로 생성하고 Test는 결론 뒤의 시스템 관측으로 둔다.\n\n**Why**\n\nReason·Proposal·Action·Result는 요청 전체의 계획과 수행 흐름을 분절했고, 사용자가 자신의 질문에서 결론까지 따라가기 어려웠다.\n\n**Alternatives**\n\n기존 5필드 유지와 Test를 과정 중간에 두는 안은 요청한 읽기 순서를 깨므로 채택하지 않았다.\n\n**Cost of Wrong**\n\n요약 품질이 떨어질 수 있으나 저장 포맷 파서와 화면 변경으로 되돌릴 수 있고 과거 기록은 보존된다.\n\n**Impact**\n\nINV-TNOTE-001, AC-TNOTE-001, AC-TNOTE-002와 생성·표시 계약이 바뀐다.\n\n**Decision Authority**\n\n2026-09-24 사용자 요청과 전체 회귀 결과.\n\n### Evidence\n\n| Date | Evidence | Covers |\n|---|---|---|\n| 2026-09-24 | .www/evidence/2026-09-24-report-request-summary/project-comment-preview.md | AC-TNOTE-001, AC-TNOTE-002, AC-TNOTE-003 |",
+      "Change Log": "| Date | Change | Reason |\n|---|---|---|\n| 2026-09-24 | WOO-693의 최초 schema v2 상세 정본 Candidate 작성 | 기존 capability에 상세 정본이 없었고 REPORT 의미 계약이 네 단계로 변경됨 |"
+    }
+  },
+  "links": {
+    "linear": "WOO-693",
+    "evidence": ".www/evidence/2026-09-24-report-request-summary",
+    "contract": "docs/ASTRA_EXECUTION_CONSOLE.md"
+  },
+  "expectedBefore": { "digest": null },
+  "validation": [
+    { "id": "canonical-absence", "status": "pass", "evidence": "traceability ledger와 기존 Obsidian Candidate/read-back에서 WOO-693 schema v2 상세 정본이 없음을 확인했다." },
+    { "id": "contract-tests", "status": "pass", "evidence": "REPORT 집중 테스트 160건과 전체 회귀 1455건이 통과했다." },
+    { "id": "publication-boundary", "status": "pass", "evidence": "Candidate만 준비하며 Vault 게시와 read-back은 사용자 승인 전 수행하지 않는다." }
+  ],
+  "candidateDigest": "67bb876ee6a67f4bf5a98b4478d6171689d4845fe8db6585d2269a3de952f0ec"
+}

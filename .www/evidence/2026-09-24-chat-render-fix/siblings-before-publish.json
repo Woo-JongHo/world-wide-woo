@@ -1,0 +1,210 @@
+{
+  "issues": [
+    {
+      "id": "WOO-689",
+      "uuid": "ae15b7ba-fd9d-4319-a186-201e6177c8a6",
+      "title": "04. 긴 결과를 안정적으로 탐색한다",
+      "parentId": "WOO-679",
+      "status": "Done",
+      "projectMilestone": {
+        "id": "193948f7-2a11-4110-a143-360d83f2a076",
+        "name": "v0.1.0 — First Public Release"
+      }
+    },
+    {
+      "id": "WOO-843",
+      "uuid": "62bbb891-5308-4113-8962-a47975c140e2",
+      "title": "완료 요약을 실제 결과와 최종 검증 상태로 압축한다",
+      "parentId": "WOO-679",
+      "status": "In Progress"
+    },
+    {
+      "id": "WOO-718",
+      "uuid": "5712cc2e-af70-4209-88b1-e4155f776f41",
+      "title": "08. 대화·실행·결과를 하나의 흐름으로 연결한다",
+      "parentId": "WOO-679",
+      "status": "In Progress",
+      "projectMilestone": {
+        "id": "193948f7-2a11-4110-a143-360d83f2a076",
+        "name": "v0.1.0 — First Public Release"
+      }
+    },
+    {
+      "id": "WOO-909",
+      "uuid": "6e44496c-9282-4fc7-96dc-bc5bca77b340",
+      "title": "Chat slash UI에서 MCP·Clear·Context 압축을 조작한다",
+      "parentId": "WOO-679",
+      "status": "Todo",
+      "projectMilestone": {
+        "id": "193948f7-2a11-4110-a143-360d83f2a076",
+        "name": "v0.1.0 — First Public Release"
+      }
+    },
+    {
+      "id": "WOO-753",
+      "uuid": "da2df544-9303-412a-aa1c-129bc9fb54bd",
+      "title": "09. 실행 중인 작업 문구에 흐르는 그라데이션을 표시한다",
+      "parentId": "WOO-679",
+      "status": "In Progress",
+      "projectMilestone": {
+        "id": "193948f7-2a11-4110-a143-360d83f2a076",
+        "name": "v0.1.0 — First Public Release"
+      }
+    },
+    {
+      "id": "WOO-754",
+      "uuid": "fb0034f8-188f-4b39-8303-202d53eddae8",
+      "title": "10. 활성 입력창 테두리에 은은한 빛의 흐름을 표시한다",
+      "parentId": "WOO-679",
+      "status": "In Progress",
+      "projectMilestone": {
+        "id": "193948f7-2a11-4110-a143-360d83f2a076",
+        "name": "v0.1.0 — First Public Release"
+      }
+    },
+    {
+      "id": "WOO-720",
+      "uuid": "624b9fed-50cb-4ff5-8535-47fbcc33b199",
+      "title": "테스트",
+      "parentId": "WOO-679",
+      "status": "Done",
+      "projectMilestone": {
+        "id": "193948f7-2a11-4110-a143-360d83f2a076",
+        "name": "v0.1.0 — First Public Release"
+      }
+    },
+    {
+      "id": "WOO-719",
+      "uuid": "a57ff328-a352-499d-ab99-09a84a2d87fb",
+      "title": "예외 처리",
+      "parentId": "WOO-679",
+      "status": "Done",
+      "projectMilestone": {
+        "id": "193948f7-2a11-4110-a143-360d83f2a076",
+        "name": "v0.1.0 — First Public Release"
+      }
+    },
+    {
+      "id": "WOO-692",
+      "uuid": "917b170a-05f5-422a-b05f-779efb3043ca",
+      "title": "07. 실제 TUI에서 가독성과 상태 전환을 검증한다",
+      "parentId": "WOO-679",
+      "status": "Done",
+      "projectMilestone": {
+        "id": "193948f7-2a11-4110-a143-360d83f2a076",
+        "name": "v0.1.0 — First Public Release"
+      }
+    },
+    {
+      "id": "WOO-691",
+      "uuid": "9a3e3ee8-ea42-4278-9cda-f711b9ba83a6",
+      "title": "06. 비정상 응답에서도 내용을 보존하고 복구를 안내한다",
+      "parentId": "WOO-679",
+      "status": "Done",
+      "projectMilestone": {
+        "id": "193948f7-2a11-4110-a143-360d83f2a076",
+        "name": "v0.1.0 — First Public Release"
+      }
+    },
+    {
+      "id": "WOO-690",
+      "uuid": "a417df98-8479-4222-b7e8-170ea4230f97",
+      "title": "05. 재개 뒤에도 대화 순서와 대상을 유지한다",
+      "parentId": "WOO-679",
+      "status": "Done",
+      "projectMilestone": {
+        "id": "193948f7-2a11-4110-a143-360d83f2a076",
+        "name": "v0.1.0 — First Public Release"
+      }
+    },
+    {
+      "id": "WOO-688",
+      "uuid": "6336cca1-a828-45b9-ac62-cbaa3b35b7d8",
+      "title": "03. 답변 생성·완료·중단 과정을 보여준다",
+      "parentId": "WOO-679",
+      "status": "Done",
+      "projectMilestone": {
+        "id": "193948f7-2a11-4110-a143-360d83f2a076",
+        "name": "v0.1.0 — First Public Release"
+      }
+    },
+    {
+      "id": "WOO-687",
+      "uuid": "243e8918-446b-4a4e-b124-e0d6f830a2f6",
+      "title": "02. 대화 주체와 진행 상태를 한눈에 구분한다",
+      "parentId": "WOO-679",
+      "status": "Done",
+      "projectMilestone": {
+        "id": "193948f7-2a11-4110-a143-360d83f2a076",
+        "name": "v0.1.0 — First Public Release"
+      }
+    },
+    {
+      "id": "WOO-686",
+      "uuid": "b034049b-a9c1-4515-8e7f-27e0ecc1e542",
+      "title": "01. 문서와 코드를 읽기 쉽게 표시한다",
+      "parentId": "WOO-679",
+      "status": "Done",
+      "projectMilestone": {
+        "id": "193948f7-2a11-4110-a143-360d83f2a076",
+        "name": "v0.1.0 — First Public Release"
+      }
+    },
+    {
+      "id": "WOO-683",
+      "uuid": "ea233806-8926-4e7f-90b1-8328f3f874d4",
+      "title": "Message — 대화의 내용과 상태를 편하게 읽는다",
+      "parentId": "WOO-679",
+      "status": "In Progress",
+      "projectMilestone": {
+        "id": "193948f7-2a11-4110-a143-360d83f2a076",
+        "name": "v0.1.0 — First Public Release"
+      }
+    },
+    {
+      "id": "WOO-684",
+      "uuid": "4b2b8c9c-ba0f-4f9c-9cd9-15af279a02f0",
+      "title": "Chat — Git Bash 입력·출력·상태를 읽기 좋게 표시한다",
+      "parentId": "WOO-679",
+      "status": "Canceled",
+      "projectMilestone": {
+        "id": "193948f7-2a11-4110-a143-360d83f2a076",
+        "name": "v0.1.0 — First Public Release"
+      }
+    },
+    {
+      "id": "WOO-694",
+      "uuid": "c0d21b4d-3dd0-44b6-9fb7-f2f938add0a8",
+      "title": "입력·전송·중단과 세션 설정을 예측 가능하게 조작한다",
+      "parentId": "WOO-679",
+      "status": "Canceled",
+      "projectMilestone": {
+        "id": "193948f7-2a11-4110-a143-360d83f2a076",
+        "name": "v0.1.0 — First Public Release"
+      }
+    },
+    {
+      "id": "WOO-693",
+      "uuid": "559c8b06-e8dd-4061-8d10-d719be0524a8",
+      "title": "완료된 질문과 결과를 T-note에 보존하고 다시 찾는다",
+      "parentId": "WOO-679",
+      "status": "Canceled",
+      "projectMilestone": {
+        "id": "193948f7-2a11-4110-a143-360d83f2a076",
+        "name": "v0.1.0 — First Public Release"
+      }
+    },
+    {
+      "id": "WOO-685",
+      "uuid": "23ebaabc-fc96-4807-8d5d-4bcff200bc82",
+      "title": "Completion",
+      "parentId": "WOO-679",
+      "status": "Canceled",
+      "projectMilestone": {
+        "id": "193948f7-2a11-4110-a143-360d83f2a076",
+        "name": "v0.1.0 — First Public Release"
+      }
+    }
+  ],
+  "hasNextPage": false
+}
