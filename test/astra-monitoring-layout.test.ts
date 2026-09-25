@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test }               from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
 import {
 	monitoringDiagnostics,
@@ -46,10 +46,10 @@ describe("astra monitoring layout", () => {
 	test("renders page-defined columns on stable shared axes", () => {
 		const rows = monitoringTable({
 			columns: [
-				{ heading: "SOURCE", minWidth: 7 },
-				{ heading: "DISTRIBUTION", minWidth: 12, weight: 1 },
-				{ heading: "SIZE", minWidth: 6, align: "right" },
-				{ heading: "SHARE", minWidth: 6, align: "right" },
+				{ heading : "SOURCE"       , minWidth : 7                     },
+				{ heading : "DISTRIBUTION" , minWidth : 12 , weight : 1       },
+				{ heading : "SIZE"         , minWidth : 6  , align  : "right" },
+				{ heading : "SHARE"        , minWidth : 6  , align  : "right" },
 			],
 			rows: [
 				["SYS", "████", "4 MB", "8.3%"],

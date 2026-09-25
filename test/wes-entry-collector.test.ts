@@ -1,19 +1,19 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test }        from "bun:test";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
-import { WesEntryCollector } from "../src/adapters/outbound/execution/wes-entry-collector";
+import { tmpdir }                        from "node:os";
+import { join, resolve }                 from "node:path";
+import { WesEntryCollector }             from "../src/adapters/outbound/execution/wes-entry-collector";
 
-const config = "workspace_root: ~/wes\n";
-const system = "authority:\n  wes_entry_runner: hooks/wes_entry.py\n";
-const testRoot = resolve("/Users/test/wes");
-const testRunner = join(testRoot, "hooks", "wes_entry.py");
-const json = JSON.stringify({ kind: "wes-entry-snapshot", status: { branch: "main" }, git: {}, authority: {}, signals: [{ kind: "upstream-missing" }], next_actions: [{ id: "WI-1" }] });
+const config     = "workspace_root: ~/wes\n"                                                                                                                                                   ;
+const system     = "authority:\n  wes_entry_runner: hooks/wes_entry.py\n"                                                                                                                      ;
+const testRoot   = resolve("/Users/test/wes")                                                                                                                                                  ;
+const testRunner = join(testRoot, "hooks", "wes_entry.py")                                                                                                                                     ;
+const json       = JSON.stringify({ kind: "wes-entry-snapshot", status: { branch: "main" }, git: {}, authority: {}, signals: [{ kind: "upstream-missing" }], next_actions: [{ id: "WI-1" }] }) ;
 describe("WesEntryCollector", () => {
 	test("uses configured safe runner once and preserves signals", async () => {
-		const calls: string[][] = [];
-		const collector = new WesEntryCollector({ configPath: "/config", readText: async path => path === "/config" ? config : system, realpath: async path => path.includes("hooks") ? testRunner : testRoot, runner: async (_command, args) => { calls.push([...args]); return { exitCode: 0, stdout: json, stderr: "" }; } });
-		const result = await collector.collect();
+		const calls: string[][] = []                                                                                                                                                                                                                                                                                                     ;
+		const collector         = new WesEntryCollector({ configPath: "/config", readText: async path => path === "/config" ? config : system, realpath: async path => path.includes("hooks") ? testRunner : testRoot, runner: async (_command, args) => { calls.push([...args]); return { exitCode: 0, stdout: json, stderr: "" }; } }) ;
+		const result            = await collector.collect()                                                                                                                                                                                                                                                                              ;
 		expect(calls).toEqual([[testRunner, "--root", testRoot]]);
 		expect(result.payload.signals).toEqual([{ kind: "upstream-missing" }]);
 	});
@@ -36,9 +36,9 @@ describe("WesEntryCollector", () => {
 	});
 
 	test("default system runner times out and fails closed", async () => {
-		const root = await mkdtemp(join(tmpdir(), "woo-entry-timeout-"));
-		const configPath = join(root, "woo.yaml");
-		const hooks = join(root, "hooks");
+		const root       = await mkdtemp(join(tmpdir(), "woo-entry-timeout-")) ;
+		const configPath = join(root, "woo.yaml")                              ;
+		const hooks      = join(root, "hooks")                                 ;
 		try {
 			await mkdir(hooks);
 			await writeFile(configPath, `workspace_root: ${root}\n`);
@@ -57,9 +57,9 @@ function fakeCollector(
 	runner: (command: string, args: readonly string[]) => Promise<{ exitCode: number; stdout: string; stderr: string }>,
 ): WesEntryCollector {
 	return new WesEntryCollector({
-		configPath: "/config",
-		readText: async path => path === "/config" ? config : `authority:\n  wes_entry_runner: ${runnerPath}\n`,
-		realpath: async path => path.includes("hooks") ? testRunner : testRoot,
-		runner: async (command, args) => runner(command, args),
+		configPath : "/config",
+		readText   : async path => path === "/config" ? config : `authority:\n  wes_entry_runner: ${runnerPath}\n`,
+		realpath   : async path => path.includes("hooks") ? testRunner : testRoot,
+		runner     : async (command, args) => runner(command, args),
 	});
 }

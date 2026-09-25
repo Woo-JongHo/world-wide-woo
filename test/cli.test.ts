@@ -1,7 +1,8 @@
-import { describe, expect, test } from "bun:test";
-import type { RunAppOptions } from "../src/app";
-import { runCli, writeAstraBootstrap, writeRouterBootstrap, type CliDependencies } from "../src/cli";
-import type { NativeThreadSummary } from "../src/core/domain/execution/native-session";
+import { describe, expect, test }                            from "bun:test";
+import type { RunAppOptions }                                from "../src/app";
+import { runCli, writeAstraBootstrap, writeRouterBootstrap } from "../src/cli";
+import type { CliDependencies }                              from "../src/cli";
+import type { NativeThreadSummary }                          from "../src/core/domain/execution/native-session";
 
 const threads: readonly NativeThreadSummary[] = [{
 	id: "thread-2",
@@ -19,26 +20,26 @@ const threads: readonly NativeThreadSummary[] = [{
 
 function fakeDependencies() {
 	const calls = {
-		app: [] as RunAppOptions[],
-		astra: [] as RunAppOptions[],
-		router: [] as Array<{ resumeSessionId?: string }>,
-		listed: 0,
-		picked: [] as Array<readonly NativeThreadSummary[]>,
-		out: [] as string[],
-		error: [] as string[],
+		app    : [] as RunAppOptions[],
+		astra  : [] as RunAppOptions[],
+		router : [] as Array<{ resumeSessionId?: string }>,
+		listed : 0,
+		picked : [] as Array<readonly NativeThreadSummary[]>,
+		out    : [] as string[],
+		error  : [] as string[],
 	};
 	const dependencies: CliDependencies = {
-		runApp: async (options = {}) => { calls.app.push(options); },
-		runAstra: async (options = {}) => { calls.astra.push(options); },
-		runRouter: async (options = {}) => { calls.router.push(options); },
-		runAuth: async () => undefined,
-		runDevelopment: async () => "",
-		runWorkflow: async () => "",
-		listSessions: async () => [],
-		listNativeThreads: async () => { calls.listed += 1; return threads; },
-		selectNativeThread: async items => { calls.picked.push(items); return items[1]?.id ?? null; },
-		writeOut: (value) => { calls.out.push(value); },
-		writeError: (value) => { calls.error.push(value); },
+		runApp             : async (options = {}) => { calls.app.push(options); },
+		runAstra           : async (options = {}) => { calls.astra.push(options); },
+		runRouter          : async (options = {}) => { calls.router.push(options); },
+		runAuth            : async () => undefined,
+		runDevelopment     : async () => "",
+		runWorkflow        : async () => "",
+		listSessions       : async () => [],
+		listNativeThreads  : async () => { calls.listed += 1; return threads; },
+		selectNativeThread : async items => { calls.picked.push(items); return items[1]?.id ?? null; },
+		writeOut           : (value) => { calls.out.push(value); },
+		writeError         : (value) => { calls.error.push(value); },
 	};
 	return { calls, dependencies };
 }
@@ -56,7 +57,7 @@ describe("WWW CLI session entry", () => {
 		const writes: string[] = [];
 		const stop = writeAstraBootstrap(value => writes.push(value), true);
 		try {
-			expect(writes).toEqual(["\r\x1b[2Kwww [███░░░░░░░░░░░░]"]);
+			expect(writes).toEqual(["\r\x1b[2Kwww v0.0.19 [███░░░░░░░░░░░░]"]);
 			await new Promise(resolve => setTimeout(resolve, 180));
 			expect(writes.length).toBeGreaterThan(1);
 			expect(writes[1]).not.toBe(writes[0]);
@@ -82,7 +83,7 @@ describe("WWW CLI session entry", () => {
 	test("reports the package release version", async () => {
 		const { calls, dependencies } = fakeDependencies();
 		expect(await runCli(["--version"], dependencies)).toBe(0);
-		expect(calls.out).toEqual(["0.0.18"]);
+		expect(calls.out).toEqual(["0.0.19"]);
 		expect(calls.app).toEqual([]);
 	});
 

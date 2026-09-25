@@ -1,26 +1,27 @@
-import { describe, expect, test } from "bun:test";
-import { RequestRuntimePolicy, type RequestRuntimeMode } from "../src/core/application/orchestration/request-runtime-mode.js";
+import { describe, expect, test }  from "bun:test";
+import { RequestRuntimePolicy }    from "../src/core/application/orchestration/request-runtime-mode.js";
+import type { RequestRuntimeMode } from "../src/core/application/orchestration/request-runtime-mode.js";
 
 describe("RequestRuntimePolicy", () => {
 	const cases: readonly {
-		mode: RequestRuntimeMode;
-		goal: boolean;
-		expected: RequestRuntimeMode;
+		mode     : RequestRuntimeMode ;
+		goal     : boolean            ;
+		expected : RequestRuntimeMode ;
 	}[] = [
-		{ mode: "off", goal: false, expected: "off" },
-		{ mode: "off", goal: true, expected: "observe" },
-		{ mode: "observe", goal: false, expected: "observe" },
-		{ mode: "observe", goal: true, expected: "observe" },
-		{ mode: "broker", goal: false, expected: "broker" },
-		{ mode: "broker", goal: true, expected: "broker" },
+		{ mode : "off"     , goal : false , expected : "off"     },
+		{ mode : "off"     , goal : true  , expected : "observe" },
+		{ mode : "observe" , goal : false , expected : "observe" },
+		{ mode : "observe" , goal : true  , expected : "observe" },
+		{ mode : "broker"  , goal : false , expected : "broker"  },
+		{ mode : "broker"  , goal : true  , expected : "broker"  },
 	];
 
 	for (const item of cases) {
 		test(`${item.mode} + goal=${item.goal} -> ${item.expected}`, () => {
 			const policy = new RequestRuntimePolicy({
-				mode: item.mode,
-				capabilitiesConfigured: item.mode === "broker",
-				resuming: false,
+				mode                   : item.mode,
+				capabilitiesConfigured : item.mode === "broker",
+				resuming               : false,
 			});
 			expect(policy.modeForRequest(item.goal)).toBe(item.expected);
 			expect(policy.manages(item.goal)).toBe(item.expected !== "off");

@@ -1,15 +1,15 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { readFileSync }           from "node:fs";
+import { resolve }                from "node:path";
 
-const read = (path: string) => readFileSync(resolve(import.meta.dir, "..", path), "utf8");
-const template = read("docs/planning/linear-development/OBSIDIAN_TEMPLATE.md");
-const contract = read("docs/planning/linear-development/OBSIDIAN_CANONICAL_CONTRACT.md");
-const skill = read(".agents/skills/development-traceability/SKILL.md");
-const designContract = read("docs/workflows/DESIGN_DOCUMENT_CONTRACT.md");
-const productWorkflow = read("docs/workflows/PRODUCT_WORKFLOW.md");
-const authoringSkill = read(".agents/skills/woo-obsidian-canonical/SKILL.md");
-const issueIntakeSkill = read(".agents/skills/woo-linear-issue-intake/SKILL.md");
+const read             = (path: string) => readFileSync(resolve(import.meta.dir, "..", path), "utf8") ;
+const template         = read("docs/planning/linear-development/OBSIDIAN_TEMPLATE.md")                ;
+const contract         = read("docs/planning/linear-development/OBSIDIAN_CANONICAL_CONTRACT.md")      ;
+const skill            = read(".agents/skills/development-traceability/SKILL.md")                     ;
+const designContract   = read("docs/workflows/DESIGN_DOCUMENT_CONTRACT.md")                           ;
+const productWorkflow  = read("docs/workflows/PRODUCT_WORKFLOW.md")                                   ;
+const authoringSkill   = read(".agents/skills/woo-obsidian-canonical/SKILL.md")                       ;
+const issueIntakeSkill = read(".agents/skills/woo-linear-issue-intake/SKILL.md")                      ;
 
 describe("Obsidian schema v2 documentation contract", () => {
 	test("defines a human-readable filename and Properties as the relationship authority", () => {

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import type { ProjectActivity } from "../src/core/domain/execution/project-activity";
+import type { ProjectActivity }   from "../src/core/domain/execution/project-activity";
 import type { ExecutionRunState } from "../src/core/domain/execution/execution-run-contract";
-import { projectPerformance } from "../src/core/domain/work/performance";
+import { projectPerformance }     from "../src/core/domain/work/performance";
 
 const activity = (sequence: number, id: string, turnId: string | undefined, method: string, payload: Record<string, unknown> = {}, phase: ProjectActivity["phase"] = "completed", kind: ProjectActivity["kind"] = "progress", itemId = id): ProjectActivity => ({
 	schemaVersion: 1, id, projectId: "project", sequence, recordedAt: `2026-09-10T00:00:0${sequence}.000Z`, kind, phase, provider: "native",

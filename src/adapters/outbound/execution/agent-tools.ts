@@ -1,22 +1,22 @@
-import { lstat, realpath, readdir, readFile, stat } from "node:fs/promises";
-import { homedir } from "node:os";
-import { isAbsolute, relative, resolve, sep } from "node:path";
-import { Type } from "typebox";
-import type { AgentTool, AgentToolExecution, TodoController } from "../../../core/ports";
-import type { CommandResultSnapshot, GenericToolResultSnapshot } from "../../../core/domain/execution/output";
+import { lstat, realpath, readdir, readFile, stat }              from "node:fs/promises";
+import { homedir }                                               from "node:os";
+import { isAbsolute, relative, resolve, sep }                    from "node:path";
+import { Type }                                                  from "typebox";
+import type { AgentTool, AgentToolExecution, TodoController }    from "@/core/ports";
+import type { CommandResultSnapshot, GenericToolResultSnapshot } from "@/core/domain/execution/output";
 
-const MAX_FILE_BYTES = 256 * 1024;
-const MAX_OUTPUT_BYTES = 64 * 1024;
-const MAX_DIRECTORY_ENTRIES = 500;
-const MAX_SEARCH_RESULTS = 200;
-const TIMEOUT_MS = 10_000;
+const MAX_FILE_BYTES        = 256 * 1024 ;
+const MAX_OUTPUT_BYTES      = 64 * 1024  ;
+const MAX_DIRECTORY_ENTRIES = 500        ;
+const MAX_SEARCH_RESULTS    = 200        ;
+const TIMEOUT_MS            = 10_000     ;
 
 const reason = Type.Optional(Type.String({ maxLength: 160 }));
 const readParameters = Type.Object({ path: Type.String({ minLength: 1 }), reason });
 const searchParameters = Type.Object({
-	pattern: Type.String({ minLength: 1, maxLength: 1_000 }),
-	path: Type.Optional(Type.String({ minLength: 1 })),
-	regex: Type.Optional(Type.Boolean()),
+	pattern : Type.String({ minLength: 1, maxLength: 1_000 }),
+	path    : Type.Optional(Type.String({ minLength: 1 })),
+	regex   : Type.Optional(Type.Boolean()),
 	reason,
 });
 const bashParameters = Type.Object({
@@ -39,13 +39,13 @@ const todoParameters = Type.Object({
 		Type.Literal("block"),
 		Type.Literal("reopen"),
 	]),
-	title: Type.Optional(Type.String({ minLength: 1, maxLength: 120 })),
-	storyId: Type.Optional(Type.String({ minLength: 1, maxLength: 64 })),
-	items: Type.Optional(Type.Array(Type.String({ minLength: 1, maxLength: 120 }), { minItems: 1, maxItems: 12 })),
-	itemId: Type.Optional(Type.String({ minLength: 1, maxLength: 64 })),
-	content: Type.Optional(Type.String({ minLength: 1, maxLength: 120 })),
-	details: Type.Optional(Type.Array(Type.String({ minLength: 1, maxLength: 120 }), { minItems: 1, maxItems: 8 })),
-	placement: Type.Optional(Type.Union([Type.Literal("now"), Type.Literal("after")])),
+	title     : Type.Optional(Type.String({ minLength: 1, maxLength: 120 })),
+	storyId   : Type.Optional(Type.String({ minLength: 1, maxLength: 64 })),
+	items     : Type.Optional(Type.Array(Type.String({ minLength: 1, maxLength: 120 }), { minItems: 1, maxItems: 12 })),
+	itemId    : Type.Optional(Type.String({ minLength: 1, maxLength: 64 })),
+	content   : Type.Optional(Type.String({ minLength: 1, maxLength: 120 })),
+	details   : Type.Optional(Type.Array(Type.String({ minLength: 1, maxLength: 120 }), { minItems: 1, maxItems: 8 })),
+	placement : Type.Optional(Type.Union([Type.Literal("now"), Type.Literal("after")])),
 	reason,
 });
 
@@ -96,11 +96,11 @@ function createSearchTool(root: string): AgentTool {
 		execute: async (arguments_, signal) => {
 			const startedAt = Date.now();
 			try {
-				const pattern = stringArgument(arguments_, "pattern");
-				const requestedPath = optionalStringArgument(arguments_, "path") ?? ".";
-				const target = await projectPath(root, requestedPath);
-				const regex = arguments_.regex === true;
-				const output = await searchProject(root, target, pattern, regex, signal);
+				const pattern       = stringArgument(arguments_, "pattern")                     ;
+				const requestedPath = optionalStringArgument(arguments_, "path") ?? "."         ;
+				const target        = await projectPath(root, requestedPath)                    ;
+				const regex         = arguments_.regex === true                                 ;
+				const output        = await searchProject(root, target, pattern, regex, signal) ;
 				return generic("search", `${regex ? "regex" : "literal"}: ${pattern}`, output || "No matches.", startedAt);
 			} catch (error) { return genericError("search", arguments_, error, startedAt, signal); }
 		},
@@ -111,9 +111,9 @@ function createBashTool(root: string): AgentTool {
 	return {
 		definition: { name: "bash", description: "Run an allowlisted read-only command in the project root.", parameters: bashParameters },
 		execute: async (arguments_, signal) => {
-			const startedAt = Date.now();
-			const command = typeof arguments_.command === "string" ? arguments_.command : "";
-			const args = Array.isArray(arguments_.args) && arguments_.args.every((value) => typeof value === "string") ? arguments_.args : [];
+			const startedAt = Date.now()                                                                                                           ;
+			const command   = typeof arguments_.command === "string" ? arguments_.command : ""                                                     ;
+			const args      = Array.isArray(arguments_.args) && arguments_.args.every((value) => typeof value === "string") ? arguments_.args : [] ;
 			try {
 				if (arguments_.args !== undefined && args.length !== (arguments_.args as unknown[]).length) throw new Error("Command arguments must be strings.");
 				validateCommand(command, args);
@@ -137,9 +137,9 @@ function createBashTool(root: string): AgentTool {
 function createSshConfigTool(configPath: string): AgentTool {
 	return {
 		definition: {
-			name: "ssh_config",
-			description: "Resolve hostname, user, and port for one SSH alias without executing ssh, Match exec, Include, or network commands.",
-			parameters: sshConfigParameters,
+			name        : "ssh_config",
+			description : "Resolve hostname, user, and port for one SSH alias without executing ssh, Match exec, Include, or network commands.",
+			parameters  : sshConfigParameters,
 		},
 		execute: async (arguments_, signal) => {
 			const startedAt = Date.now();
@@ -226,9 +226,9 @@ function createTodoTool(todos: TodoController): AgentTool {
 
 async function projectPath(root: string, path: string): Promise<string> {
 	if (!isAbsolute(path) && path.split(/[\\/]+/).includes("..")) throw new Error("Path must remain inside the project root.");
-	const realRoot = await realpath(root);
-	const target = isAbsolute(path) ? path : resolve(root, path);
-	const realTarget = await realpath(target);
+	const realRoot   = await realpath(root)                          ;
+	const target     = isAbsolute(path) ? path : resolve(root, path) ;
+	const realTarget = await realpath(target)                        ;
 	if (relative(realRoot, realTarget) === "" || !relative(realRoot, realTarget).startsWith(`..${sep}`) && relative(realRoot, realTarget) !== "..") return realTarget;
 	throw new Error("Path must remain inside the project root.");
 }
@@ -256,9 +256,9 @@ async function searchProject(
 	regex: boolean,
 	signal: AbortSignal,
 ): Promise<string> {
-	const matcher = regex ? new RegExp(pattern, "u") : null;
-	const matches: string[] = [];
-	const ignoredDirectories = new Set([".git", "node_modules", "dist", "coverage"]);
+	const matcher            = regex ? new RegExp(pattern, "u") : null               ;
+	const matches : string[] = []                                                    ;
+	const ignoredDirectories = new Set([".git", "node_modules", "dist", "coverage"]) ;
 	const visit = async (path: string): Promise<void> => {
 		if (signal.aborted) throw signal.reason ?? new Error("Search aborted.");
 		if (matches.length >= MAX_SEARCH_RESULTS) return;
@@ -300,10 +300,10 @@ async function searchProject(
 }
 
 async function resolveSshAlias(configPath: string, host: string): Promise<string> {
-	const content = new TextDecoder("utf-8", { fatal: true }).decode(await readFile(configPath));
-	const values = new Map<string, string>();
-	let active = true;
-	let matchedHostBlock = false;
+	const content        = new TextDecoder("utf-8", { fatal: true }).decode(await readFile(configPath)) ;
+	const values         = new Map<string, string>()                                                    ;
+	let active           = true                                                                         ;
+	let matchedHostBlock = false                                                                        ;
 	for (const rawLine of content.split("\n")) {
 		const line = rawLine.trim();
 		if (!line || line.startsWith("#")) continue;
@@ -324,9 +324,9 @@ async function resolveSshAlias(configPath: string, host: string): Promise<string
 		values.set(key, value.split(/\s+#/u)[0]?.trim() ?? "");
 	}
 	if (!matchedHostBlock) throw new Error(`SSH alias not found: ${host}`);
-	const hostname = values.get("hostname") ?? host;
-	const user = values.get("user");
-	const port = values.get("port");
+	const hostname = values.get("hostname") ?? host ;
+	const user     = values.get("user")             ;
+	const port     = values.get("port")             ;
 	return [`host ${host}`, `hostname ${hostname}`, user ? `user ${user}` : "", port ? `port ${port}` : ""]
 		.filter(Boolean)
 		.join("\n");
@@ -382,23 +382,23 @@ function isReadOnlyGitArguments(args: readonly string[]): boolean {
 
 async function run(command: string, args: string[], cwd: string, signal: AbortSignal): Promise<{ stdout: string; stderr: string; output: string; exitCode: number | undefined; error?: string }> {
 	if (signal.aborted) return { stdout: "", stderr: "", output: "", exitCode: undefined, error: "Command aborted." };
-	const controller = new AbortController();
-	const timeout = setTimeout(() => controller.abort(new Error("Command timed out.")), TIMEOUT_MS);
-	const abort = () => controller.abort(signal.reason);
+	const controller = new AbortController()                                                           ;
+	const timeout    = setTimeout(() => controller.abort(new Error("Command timed out.")), TIMEOUT_MS) ;
+	const abort      = () => controller.abort(signal.reason)                                           ;
 	signal.addEventListener("abort", abort, { once: true });
 	try {
 		const env = command === "git"
 			? {
 				...process.env,
-				GIT_OPTIONAL_LOCKS: "0",
-				GIT_PAGER: "cat",
-				GIT_CONFIG_NOSYSTEM: "1",
-				GIT_CONFIG_GLOBAL: "/dev/null",
-				GIT_CONFIG_COUNT: "2",
-				GIT_CONFIG_KEY_0: "core.fsmonitor",
-				GIT_CONFIG_VALUE_0: "false",
-				GIT_CONFIG_KEY_1: "log.showSignature",
-				GIT_CONFIG_VALUE_1: "false",
+				GIT_OPTIONAL_LOCKS  : "0",
+				GIT_PAGER           : "cat",
+				GIT_CONFIG_NOSYSTEM : "1",
+				GIT_CONFIG_GLOBAL   : "/dev/null",
+				GIT_CONFIG_COUNT    : "2",
+				GIT_CONFIG_KEY_0    : "core.fsmonitor",
+				GIT_CONFIG_VALUE_0  : "false",
+				GIT_CONFIG_KEY_1    : "log.showSignature",
+				GIT_CONFIG_VALUE_1  : "false",
 			}
 			: process.env;
 		const child = Bun.spawn([command, ...args], { cwd, env, stdout: "pipe", stderr: "pipe", signal: controller.signal });

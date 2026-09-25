@@ -1,7 +1,7 @@
-import { readFile } from "node:fs/promises";
-import { homedir } from "node:os";
-import { join } from "node:path";
-import type { UsageCredential } from "@gajae-code/ai/core";
+import { readFile }                from "node:fs/promises";
+import { homedir }                 from "node:os";
+import { join }                    from "node:path";
+import type { UsageCredential }    from "@gajae-code/ai/core";
 import { getAntigravityUserAgent } from "@gajae-code/ai/providers/google-gemini-headers";
 import {
 	ANTIGRAVITY_LOAD_CODE_ASSIST_METADATA,
@@ -25,24 +25,21 @@ function hasToken(value: unknown): boolean {
 
 interface AntigravityTokenFile {
 	token?: {
-		access_token?: string;
-		refresh_token?: string;
-		expiry?: string;
+		access_token?  : string ;
+		refresh_token? : string ;
+		expiry?        : string ;
 	};
-}
-
-interface LoadCodeAssistResponse {
-	cloudaicompanionProject?: string | { id?: string };
 }
 
 const CLOUD_CODE_ENDPOINT = "https://cloudcode-pa.googleapis.com";
 const EXPIRY_SKEW_MS = 5 * 60_000;
 type UsageFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
-function projectId(value: LoadCodeAssistResponse["cloudaicompanionProject"]): string | undefined {
+function projectId(value: unknown): string | undefined {
 	if (typeof value === "string" && value.length > 0) return value;
 	if (typeof value !== "object" || value === null) return undefined;
-	return typeof value.id === "string" && value.id.length > 0 ? value.id : undefined;
+	if (!("id" in value) || typeof value.id !== "string" || value.id.length === 0) return undefined;
+	return value.id;
 }
 
 /**
@@ -77,21 +74,21 @@ export class SystemAntigravityLocalAuthSource implements AntigravityLocalAuthSou
 		const stored = await this.tokenFile();
 		const token = stored?.token;
 		if (!token?.access_token) return undefined;
-		const storedExpiry = token.expiry ? Date.parse(token.expiry) : Number.NaN;
-		let accessToken = token.access_token;
-		let refreshToken = token.refresh_token;
-		let expiresAt = Number.isFinite(storedExpiry) ? storedExpiry : undefined;
+		const storedExpiry = token.expiry ? Date.parse(token.expiry) : Number.NaN     ;
+		let accessToken    = token.access_token                                       ;
+		let refreshToken   = token.refresh_token                                      ;
+		let expiresAt      = Number.isFinite(storedExpiry) ? storedExpiry : undefined ;
 		if (!expiresAt || expiresAt <= Date.now() + EXPIRY_SKEW_MS) {
 			if (!refreshToken) return undefined;
 			const refreshed = await refreshAntigravityToken(refreshToken, "");
-			accessToken = refreshed.access;
-			refreshToken = refreshed.refresh;
-			expiresAt = refreshed.expires;
+			accessToken  = refreshed.access  ;
+			refreshToken = refreshed.refresh ;
+			expiresAt    = refreshed.expires ;
 		}
 		const headers = {
-			Authorization: `Bearer ${accessToken}`,
-			"Content-Type": "application/json",
-			"User-Agent": getAntigravityUserAgent(),
+			Authorization  : `Bearer ${accessToken}`,
+			"Content-Type" : "application/json",
+			"User-Agent"   : getAntigravityUserAgent(),
 		};
 		const response = await this.fetchImpl(`${CLOUD_CODE_ENDPOINT}/v1internal:loadCodeAssist`, {
 			method: "POST",
@@ -102,13 +99,17 @@ export class SystemAntigravityLocalAuthSource implements AntigravityLocalAuthSou
 			await response.arrayBuffer().catch(() => undefined);
 			return undefined;
 		}
-		const load = await response.json() as LoadCodeAssistResponse;
-		const discoveredProject = projectId(load.cloudaicompanionProject);
+		const load: unknown = await response.json();
+		const discoveredProject = projectId(
+			typeof load === "object" && load !== null && "cloudaicompanionProject" in load
+				? load.cloudaicompanionProject
+				: undefined,
+		);
 		if (!discoveredProject) return undefined;
 		this.cachedUsageCredential = {
 			type: "oauth",
 			accessToken,
-			refreshToken,
+			...(refreshToken ? { refreshToken } : {}),
 			expiresAt,
 			projectId: discoveredProject,
 		};

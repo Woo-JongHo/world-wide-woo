@@ -1,9 +1,9 @@
-import { randomUUID } from "node:crypto";
+import { randomUUID }                           from "node:crypto";
 import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
-import { afterEach, describe, expect, test } from "bun:test";
-import { SessionEventStore } from "../src/adapters/outbound/persistence/session-store.js";
+import { join }                                 from "node:path";
+import { tmpdir }                               from "node:os";
+import { afterEach, describe, expect, test }    from "bun:test";
+import { SessionEventStore }                    from "../src/adapters/outbound/persistence/session-store.js";
 
 const temporaryDirectories: string[] = [];
 
@@ -18,17 +18,17 @@ function storedEvent(sessionId: string) {
 		schemaVersion: 1,
 		id: randomUUID(),
 		sessionId,
-		sequence: 1,
-		timestamp: "2026-01-01T00:00:00.000Z",
-		category: "system",
-		type: "session.started",
-		status: "passed",
-		title: "Created",
-		body: "",
-		correlationId: null,
-		turnId: null,
-		itemId: null,
-		metadata: {},
+		sequence      : 1,
+		timestamp     : "2026-01-01T00:00:00.000Z",
+		category      : "system",
+		type          : "session.started",
+		status        : "passed",
+		title         : "Created",
+		body          : "",
+		correlationId : null,
+		turnId        : null,
+		itemId        : null,
+		metadata      : {},
 	};
 }
 
@@ -43,20 +43,20 @@ describe("SessionEventStore", () => {
 		const appended = await Promise.all(
 			Array.from({ length: 20 }, (_, index) =>
 				store.append(sessionId, {
-					category: "action",
-					type: "turn.started",
-					status: "pending",
-					title: `event ${index}`,
-					body: String(index),
+					category : "action",
+					type     : "turn.started",
+					status   : "pending",
+					title    : `event ${index}`,
+					body     : String(index),
 				}),
 			),
 		);
 
 		expect(appended[0]).toMatchObject({
-			correlationId: null,
-			turnId: null,
-			itemId: null,
-			metadata: {},
+			correlationId : null,
+			turnId        : null,
+			itemId        : null,
+			metadata      : {},
 		});
 		expect(appended.map((event) => event.sequence)).toEqual(Array.from({ length: 20 }, (_, index) => index + 1));
 		expect((await store.readAll(sessionId)).map((event) => event.sequence)).toEqual(Array.from({ length: 20 }, (_, index) => index + 1));
@@ -66,13 +66,13 @@ describe("SessionEventStore", () => {
 		const { directory, store } = await createStore();
 		const sessionId = randomUUID();
 		const event = await store.append(sessionId, {
-			category: "evidence",
-			type: "command.output",
-			status: "passed",
-			title: "한글 제목",
-			body: "line one\nline two",
-			correlationId: "operation-7",
-			metadata: { exitCode: 0, nested: { preserved: true } },
+			category      : "evidence",
+			type          : "command.output",
+			status        : "passed",
+			title         : "한글 제목",
+			body          : "line one\nline two",
+			correlationId : "operation-7",
+			metadata      : { exitCode: 0, nested: { preserved: true } },
 		});
 
 		expect(await store.readAll(sessionId)).toEqual([event]);

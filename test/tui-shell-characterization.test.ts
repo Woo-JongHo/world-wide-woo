@@ -1,47 +1,52 @@
-import { describe, expect, test } from "bun:test";
-import type { Terminal } from "@earendil-works/pi-tui";
-import type { ProjectWorkbench } from "../src/core/application/orchestration/project-workbench";
-import type { WorkbenchCommand, WorkbenchCommandReceipt, WorkbenchListener, WorkbenchSnapshot } from "../src/core/domain/work/workbench";
+import { describe, expect, test }   from "bun:test";
+import type { Terminal }            from "@earendil-works/pi-tui";
+import type { ProjectWorkbench }    from "../src/core/application/orchestration/project-workbench";
+import type {
+	WorkbenchCommand,
+	WorkbenchCommandReceipt,
+	WorkbenchListener,
+	WorkbenchSnapshot,
+} from "../src/core/domain/work/workbench";
 import { runProjectWorkbenchShell } from "../src/adapters/inbound/tui/shell/workbench-shell";
-import { ShellLifecycle } from "../src/adapters/inbound/tui/shell/shell-lifecycle";
-import { astraFixture } from "./fixtures/astra-snapshot";
+import { ShellLifecycle }           from "../src/adapters/inbound/tui/shell/shell-lifecycle";
+import { astraFixture }             from "./fixtures/astra-snapshot";
 
 class CharacterizationTerminal implements Terminal {
-	columns = 100;
-	rows = 30;
-	kittyProtocolActive = false;
-	output = "";
-	stopped = false;
-	input: (data: string) => void = () => { throw new Error("terminal not started"); };
-	resize: () => void = () => { throw new Error("terminal not started"); };
-	start(input: (data: string) => void, resize: () => void): void { this.input = input; this.resize = resize; }
-	stop(): void { this.stopped = true; }
-	async drainInput(): Promise<void> { this.input = () => undefined; }
-	write(data: string): void { this.output += data; }
-	moveBy(): void {}
-	hideCursor(): void {}
-	showCursor(): void {}
-	clearLine(): void {}
-	clearFromCursor(): void {}
-	clearScreen(): void {}
-	setTitle(): void {}
-	setProgress(): void {}
+	columns                         = 100                                                ;
+	rows                            = 30                                                 ;
+	kittyProtocolActive             = false                                              ;
+	output                          = ""                                                 ;
+	stopped                         = false                                              ;
+	input  : (data: string) => void = () => { throw new Error("terminal not started"); } ;
+	resize : () => void             = () => { throw new Error("terminal not started"); } ;
+	start           (input: (data: string) => void, resize: () => void): void { this.input = input; this.resize = resize; }
+	stop            ()                                                 : void { this.stopped = true; }
+	async drainInput()                                                 : Promise<void> { this.input = () => undefined; }
+	write           (data: string                                     ): void { this.output += data; }
+	moveBy          ()                                                 : void {}
+	hideCursor      ()                                                 : void {}
+	showCursor      ()                                                 : void {}
+	clearLine       ()                                                 : void {}
+	clearFromCursor ()                                                 : void {}
+	clearScreen     ()                                                 : void {}
+	setTitle        ()                                                 : void {}
+	setProgress     ()                                                 : void {}
 }
 
 interface ShellHarness {
 	readonly terminal: CharacterizationTerminal;
 	readonly commands: WorkbenchCommand[];
 	readonly disposed: {
-		readonly closed: number;
-		readonly unsubscribed: number;
-		readonly usagePolling: number;
-		readonly developmentPolling: number;
-		readonly lease: number;
-		readonly savedDrafts: readonly string[];
+		readonly closed             : number            ;
+		readonly unsubscribed       : number            ;
+		readonly usagePolling       : number            ;
+		readonly developmentPolling : number            ;
+		readonly lease              : number            ;
+		readonly savedDrafts        : readonly string[] ;
 	};
-	emit(snapshot: WorkbenchSnapshot): void;
-	submit(text: string): Promise<void>;
-	shutdown(): Promise<void>;
+	emit    (snapshot: WorkbenchSnapshot): void;
+	submit  (text: string               ): Promise<void>;
+	shutdown()                           : Promise<void>;
 }
 
 describe("runProjectWorkbenchShell characterization", () => {
@@ -75,12 +80,12 @@ describe("runProjectWorkbenchShell characterization", () => {
 		const pending = {
 			...astraFixture("ready"),
 			pendingApproval: {
-				requestId: 91,
-				callbackId: null,
-				kind: "command" as const,
-				refs: {},
-				availableDecisions: ["accept", "decline"] as const,
-				params: { command: "bun test" },
+				requestId          : 91,
+				callbackId         : null,
+				kind               : "command" as const,
+				refs               : {},
+				availableDecisions : ["accept", "decline"] as const,
+				params             : { command: "bun test" },
 			},
 		};
 		const shell = startShell(pending);
@@ -127,12 +132,12 @@ describe("runProjectWorkbenchShell characterization", () => {
 		await shell.shutdown();
 
 		expect(shell.disposed).toEqual({
-			closed: 1,
-			unsubscribed: 1,
-			usagePolling: 1,
-			developmentPolling: 1,
-			lease: 1,
-			savedDrafts: [""],
+			closed             : 1,
+			unsubscribed       : 1,
+			usagePolling       : 1,
+			developmentPolling : 1,
+			lease              : 1,
+			savedDrafts        : [""],
 		});
 		expect(shell.terminal.stopped).toBe(true);
 	});
@@ -140,21 +145,21 @@ describe("runProjectWorkbenchShell characterization", () => {
 	test("releases shell resources once in the established shutdown order", async () => {
 		const events: string[] = [];
 		const lifecycle = new ShellLifecycle({
-			cancelPrompt: () => events.push("prompt"),
-			dismissOverlay: () => events.push("overlay"),
-			announceClosing: () => events.push("notice"),
-			unsubscribe: () => events.push("subscription"),
-			stopPolling: [() => events.push("usage"), () => events.push("development")],
-			timers: [],
+			cancelPrompt    : () => events.push("prompt"),
+			dismissOverlay  : () => events.push("overlay"),
+			announceClosing : () => events.push("notice"),
+			unsubscribe     : () => events.push("subscription"),
+			stopPolling     : [() => events.push("usage"), () => events.push("development")],
+			timers          : [],
 			disposables: [
-				{ dispose: () => events.push("renders") },
-				{ dispose: () => events.push("telemetry") },
-				{ dispose: () => events.push("chat") },
+				{ dispose : () => events.push("renders")   },
+				{ dispose : () => events.push("telemetry") },
+				{ dispose : () => events.push("chat")      },
 			],
-			saveDraft: async () => { events.push("draft"); },
-			closeWorkbench: async () => { events.push("workbench"); },
-			releaseSessionLease: async () => { events.push("lease"); },
-			stopTerminal: () => events.push("terminal"),
+			saveDraft           : async () => { events.push("draft"); },
+			closeWorkbench      : async () => { events.push("workbench"); },
+			releaseSessionLease : async () => { events.push("lease"); },
+			stopTerminal        : () => events.push("terminal"),
 		});
 
 		await Promise.all([lifecycle.shutdown(), lifecycle.shutdown()]);
@@ -168,16 +173,16 @@ describe("runProjectWorkbenchShell characterization", () => {
 });
 
 function startShell(initial: WorkbenchSnapshot): ShellHarness {
-	const terminal = new CharacterizationTerminal();
-	const commands: WorkbenchCommand[] = [];
-	let snapshot = initial;
-	let listener: WorkbenchListener = () => undefined;
-	let closed = 0;
-	let unsubscribed = 0;
-	let usagePolling = 0;
-	let developmentPolling = 0;
-	let lease = 0;
-	const savedDrafts: string[] = [];
+	const terminal                         = new CharacterizationTerminal() ;
+	const commands    : WorkbenchCommand[] = []                             ;
+	let snapshot                           = initial                        ;
+	let listener      : WorkbenchListener  = () => undefined                ;
+	let closed                             = 0                              ;
+	let unsubscribed                       = 0                              ;
+	let usagePolling                       = 0                              ;
+	let developmentPolling                 = 0                              ;
+	let lease                              = 0                              ;
+	const savedDrafts : string[]           = []                             ;
 	const workbench = {
 		get snapshot() { return snapshot; },
 		subscribe(next: WorkbenchListener) {
@@ -207,18 +212,18 @@ function startShell(initial: WorkbenchSnapshot): ShellHarness {
 			cacheMetrics: () => ({ entries: 0, hits: 0, misses: 0, evictions: 0, lastAccessedAt: null }),
 		},
 		auth: {
-			methods: () => [],
-			status: async provider => ({ state: "configured", provider, type: "oauth", source: "test" }),
-			login: async () => { throw new Error("not requested"); },
-			logout: async () => undefined,
+			methods : () => [],
+			status  : async provider => ({ state: "configured", provider, type: "oauth", source: "test" }),
+			login   : async () => { throw new Error("not requested"); },
+			logout  : async () => undefined,
 		},
 		developmentMapSource: {
 			startPolling() { return () => { developmentPolling += 1; }; },
 		},
 		composerDraft: {
-			initialText: "",
-			save: async text => { savedDrafts.push(text); },
-			clear: async () => undefined,
+			initialText : "",
+			save        : async text => { savedDrafts.push(text); },
+			clear       : async () => undefined,
 		},
 		releaseSessionLease: async () => { lease += 1; },
 	});

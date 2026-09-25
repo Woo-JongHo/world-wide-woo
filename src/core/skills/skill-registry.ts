@@ -1,17 +1,17 @@
 export interface SkillDescriptor {
-	readonly name: string;
-	readonly description: string;
-	readonly path: string;
-	readonly digest: string;
-	readonly sourceRevision: string;
+	readonly name           : string ;
+	readonly description    : string ;
+	readonly path           : string ;
+	readonly digest         : string ;
+	readonly sourceRevision : string ;
 }
 
 export interface SkillRegistrySnapshot {
-	readonly schemaVersion: 1;
-	readonly root: string;
-	readonly sourceRevision: string;
-	readonly skills: readonly SkillDescriptor[];
-	readonly digest: string;
+	readonly schemaVersion  : 1                          ;
+	readonly root           : string                     ;
+	readonly sourceRevision : string                     ;
+	readonly skills         : readonly SkillDescriptor[] ;
+	readonly digest         : string                     ;
 }
 
 export interface SkillRegistryPort {

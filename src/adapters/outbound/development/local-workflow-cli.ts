@@ -1,4 +1,4 @@
-import { createLocalWorkflow } from "./local-workflow.js";
+import { createLocalWorkflow } from "@/adapters/outbound/development/local-workflow.js";
 export async function runLocalWorkflowCli(args: readonly string[], root: string): Promise<string> {
  const [command, id] = args;
  if (args.length !== 2 || !id || !["check", "show", "resume"].includes(command ?? "")) throw new Error("사용법: www workflow check <RPA-ID> | show <Run-ID> | resume <Run-ID>");

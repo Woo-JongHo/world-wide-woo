@@ -1,7 +1,14 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
-import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import { WorkbenchWelcomeView, workbenchWelcomeLogoFrame } from "../src/adapters/inbound/tui/features/chat/workbench-welcome";
-import { OCTOPUS_INTRO_DURATION_MS, OCTOPUS_INTRO_TURNS, octopusScanFrame } from "../src/adapters/inbound/tui/features/chat/octopus-scan";
+import { stripTerminalSequences, visibleWidth }                 from "@earendil-works/pi-tui";
+import {
+	WorkbenchWelcomeView,
+	workbenchWelcomeLogoFrame,
+} from "../src/adapters/inbound/tui/features/chat/workbench-welcome";
+import {
+	OCTOPUS_INTRO_DURATION_MS,
+	OCTOPUS_INTRO_TURNS,
+	octopusScanFrame,
+} from "../src/adapters/inbound/tui/features/chat/octopus-scan";
 
 describe("workbench welcome intro", () => {
 	let noColor: string | undefined, reducedMotion: string | undefined;
@@ -11,9 +18,9 @@ describe("workbench welcome intro", () => {
 		if (reducedMotion === undefined) delete process.env.ASTRA_REDUCED_MOTION; else process.env.ASTRA_REDUCED_MOTION = reducedMotion;
 	});
 	test("sweeps a stable WWW wordmark through distinct gradient frames", () => {
-		const opening = workbenchWelcomeLogoFrame(0).join("\n");
-		const moving = workbenchWelcomeLogoFrame(900).join("\n");
-		const resting = workbenchWelcomeLogoFrame(2_400).join("\n");
+		const opening = workbenchWelcomeLogoFrame(0).join("\n")     ;
+		const moving  = workbenchWelcomeLogoFrame(900).join("\n")   ;
+		const resting = workbenchWelcomeLogoFrame(2_400).join("\n") ;
 
 		expect(opening).not.toBe(moving);
 		expect(moving).not.toBe(resting);
@@ -29,6 +36,7 @@ describe("workbench welcome intro", () => {
 		expect(output).not.toContain("GUARDIAN");
 		expect(output).toContain("/three-body");
 		expect(output).toContain("🐙 Wooni · Native Project Workbench");
+		expect(output).toContain("v0.0.19");
 		expect(output).not.toContain("WOONI");
 		expect(output).not.toContain("wooni@worldwide:~$");
 		expect(output).not.toContain("Three Body");

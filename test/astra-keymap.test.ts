@@ -1,8 +1,16 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { ASTRA_DOC_EXTRA, ASTRA_HELP_ACTIONS, ASTRA_KEYMAP, ASTRA_KEYS, ASTRA_SCROLL_KEYS, ASTRA_VIEWS, type AstraKeyAction } from "../src/adapters/inbound/tui/foundation/keyboard/astra-keymap";
-import { HelpView } from "../src/adapters/inbound/tui/shell/astra-surface";
+import { readFileSync }           from "node:fs";
+import { join }                   from "node:path";
+import {
+	ASTRA_DOC_EXTRA,
+	ASTRA_HELP_ACTIONS,
+	ASTRA_KEYMAP,
+	ASTRA_KEYS,
+	ASTRA_SCROLL_KEYS,
+	ASTRA_VIEWS,
+} from "../src/adapters/inbound/tui/foundation/keyboard/astra-keymap";
+import type { AstraKeyAction }    from "../src/adapters/inbound/tui/foundation/keyboard/astra-keymap";
+import { HelpView }               from "../src/adapters/inbound/tui/shell/astra-surface";
 
 const actions = Object.keys(ASTRA_KEYMAP) as AstraKeyAction[];
 

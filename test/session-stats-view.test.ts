@@ -1,10 +1,10 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test }               from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import type { ProjectActivity } from "../src/core/domain/execution/project-activity";
-import type { SessionStatsSnapshot } from "../src/core/domain/observability/session-stats";
-import { projectSessionStats } from "../src/core/domain/observability/session-stats";
-import type { WorkbenchSnapshot } from "../src/core/domain/work/workbench";
-import { SessionStatsView } from "../src/adapters/inbound/tui/features/stats/session-stats-view";
+import type { ProjectActivity }                 from "../src/core/domain/execution/project-activity";
+import type { SessionStatsSnapshot }            from "../src/core/domain/observability/session-stats";
+import { projectSessionStats }                  from "../src/core/domain/observability/session-stats";
+import type { WorkbenchSnapshot }               from "../src/core/domain/work/workbench";
+import { SessionStatsView }                     from "../src/adapters/inbound/tui/features/stats/session-stats-view";
 
 const longPrompt = "Implement review dashboard with a very long raw prompt that must never wrap into a conversation transcript or occupy several dashboard rows";
 const request = { ordinal: 1, requestId: "hidden-id", turnId: "turn-1", excerpt: longPrompt, excerptSourceActivityId: "activity-1", lifecycle: "completed", observedElapsedMs: 30_000, models: ["gpt-5.4-sol"], sourceActivityIds: ["activity-1"] } as const;
@@ -20,17 +20,17 @@ const stats: SessionStatsSnapshot = {
 
 function projectedStats(methods: readonly string[], partial = false): SessionStatsSnapshot {
 	const activities = methods.map((method, index): ProjectActivity => ({
-		schemaVersion: 1,
-		id: `activity-${index}`,
-		projectId: "project",
-		sequence: index + 1,
-		recordedAt: `2026-09-07T00:00:${String(index).padStart(2, "0")}.000Z`,
-		kind: "progress",
-		phase: method.endsWith("started") ? "started" : method.includes("failed") ? "failed" : method.includes("cancelled") ? "cancelled" : "completed",
-		provider: "openai-codex",
-		nativeRefs: { threadId: "thread", turnId: `turn-${index}` },
-		sourceDigest: `sha256:${String(index).padEnd(64, "0")}`,
-		payload: { method },
+		schemaVersion : 1,
+		id            : `activity-${index}`,
+		projectId     : "project",
+		sequence      : index + 1,
+		recordedAt    : `2026-09-07T00:00:${String(index).padStart(2, "0")}.000Z`,
+		kind          : "progress",
+		phase         : method.endsWith("started") ? "started" : method.includes("failed") ? "failed" : method.includes("cancelled") ? "cancelled" : "completed",
+		provider      : "openai-codex",
+		nativeRefs    : { threadId: "thread", turnId: `turn-${index}` },
+		sourceDigest  : `sha256:${String(index).padEnd(64, "0")}`,
+		payload       : { method },
 	}));
 	return projectSessionStats({
 		projectId: "project", threadId: "thread", phase: "ready", activities,
@@ -112,10 +112,10 @@ describe("session stats view", () => {
 	});
 
 	test.each([40, 80, 120])("keeps every root outcome count above the first rule at %d columns", width => {
-		const mixed = projectedStats(["turn/completed", "turn/failed", "turn/cancelled", "turn/started"]);
-		const rows = new SessionStatsView(() => mixed).render(width).map(stripTerminalSequences);
-		const firstRule = rows.findIndex(row => /^─+$/u.test(row));
-		const header = rows.slice(0, firstRule).join(" ").replace(/\s+/gu, " ");
+		const mixed     = projectedStats(["turn/completed", "turn/failed", "turn/cancelled", "turn/started"]) ;
+		const rows      = new SessionStatsView(() => mixed).render(width).map(stripTerminalSequences)         ;
+		const firstRule = rows.findIndex(row => /^─+$/u.test(row))                                            ;
+		const header    = rows.slice(0, firstRule).join(" ").replace(/\s+/gu, " ")                            ;
 		expect(header).toContain("ROOT OUTCOMES · completed 1 · failed 1 · cancelled 1 · active 1 · boundary-only 0");
 		for (const row of rows) expect(visibleWidth(row)).toBeLessThanOrEqual(width);
 	});

@@ -1,24 +1,24 @@
-import type { SkillRegistrySnapshot } from "../skills/skill-registry.js";
+import type { SkillRegistrySnapshot } from "@/core/skills/skill-registry.js";
 
 export type RpaIntent = "new-development" | "test" | "maintenance" | "reconcile" | "monitor";
 
 export interface RpaScenario {
-	readonly schemaVersion: 1;
-	readonly intent: RpaIntent;
-	readonly processId: string | null;
-	readonly taskId: string | null;
-	readonly unitIds: readonly string[];
-	readonly skillNames: readonly string[];
-	readonly registryDigest: string;
-	readonly requiresProcessDefinition: boolean;
+	readonly schemaVersion             : 1                 ;
+	readonly intent                    : RpaIntent         ;
+	readonly processId                 : string | null     ;
+	readonly taskId                    : string | null     ;
+	readonly unitIds                   : readonly string[] ;
+	readonly skillNames                : readonly string[] ;
+	readonly registryDigest            : string            ;
+	readonly requiresProcessDefinition : boolean           ;
 }
 
 const CHAINS: Record<RpaIntent, readonly string[]> = {
-	"new-development": ["rpa-intake", "rpa-map", "rpa-build", "rpa-safety", "rpa-publish", "rpa-reconcile"],
-	test: ["rpa-safety", "rpa-publish", "rpa-reconcile"],
-	maintenance: ["rpa-intake", "rpa-maintenance", "rpa-safety", "rpa-publish", "rpa-reconcile"],
-	reconcile: ["rpa-reconcile"],
-	monitor: [],
+	"new-development" : ["rpa-intake", "rpa-map", "rpa-build", "rpa-safety", "rpa-publish", "rpa-reconcile"],
+	test              : ["rpa-safety", "rpa-publish", "rpa-reconcile"],
+	maintenance       : ["rpa-intake", "rpa-maintenance", "rpa-safety", "rpa-publish", "rpa-reconcile"],
+	reconcile         : ["rpa-reconcile"],
+	monitor           : [],
 };
 
 export function classifyRpaIntent(text: string): RpaIntent | null {
@@ -34,9 +34,9 @@ export function classifyRpaIntent(text: string): RpaIntent | null {
 }
 
 export function planRpaScenario(input: { intent: RpaIntent; registry: SkillRegistrySnapshot; processId?: string; taskId?: string; unitIds?: readonly string[] }): RpaScenario {
-	const chain = CHAINS[input.intent];
-	const available = new Set(input.registry.skills.map(skill => skill.name));
-	const missing = chain.filter(name => !available.has(name));
+	const chain     = CHAINS[input.intent]                                    ;
+	const available = new Set(input.registry.skills.map(skill => skill.name)) ;
+	const missing   = chain.filter(name => !available.has(name))              ;
 	if (missing.length) throw new Error(`RPA_SKILL_MISSING: ${missing.join(", ")}`);
 	const processId = input.processId?.trim() || null;
 	if (processId && !/^RPA-[A-Z0-9]+(?:-[A-Z0-9]+)*$/u.test(processId)) throw new Error("RPA_PROCESS_ID_INVALID");

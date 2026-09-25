@@ -6,7 +6,11 @@ export function observedElapsedMs(startedAt: string | null, endedAt: string | nu
 }
 
 export function observedCompletionPercent(completed: number, total: number): number | null {
-	if (!Number.isSafeInteger(completed) || !Number.isSafeInteger(total) || completed < 0 || total <= 0 || completed > total) return null;
+	if (!Number.isSafeInteger(completed)
+		|| !Number.isSafeInteger(total)
+		|| completed < 0
+		|| total <= 0
+		|| completed > total) return null;
 	return Math.round((completed / total) * 10_000) / 100;
 }
 

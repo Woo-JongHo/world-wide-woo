@@ -1,5 +1,5 @@
-import { REQUEST_STAGES } from "../../domain/execution/request-runtime";
-import type { NativeAdditionalContextEntry } from "../../domain/execution/native-session";
+import { REQUEST_STAGES }                    from "@/core/domain/execution/request-runtime";
+import type { NativeAdditionalContextEntry } from "@/core/domain/execution/native-session";
 
 /** Public results and plans; Native retains its own private reasoning and workers. */
 export function requestProtocolContext(requestId: string, version: 1 | 2 = 1): NativeAdditionalContextEntry {
@@ -22,9 +22,9 @@ export function requestProtocolContext(requestId: string, version: 1 | 2 = 1): N
 			"If no action or external check is needed, skip EXECUTE/VERIFY with an honest reason. Tool names do not dictate stages. Respect existing permissions for every external mutation.",
 			"For DELIVER report running then provide the normal final answer. WWW records chat delivery. External deliveries need target, artifact and actual tool/read-back evidence. Never claim a publication without a real result.",
 		],
-		example: { requestId, stage: "UNDERSTAND", status: "completed", summary: "Public intent, constraints and success", input: ["user request"], agents: [], tools: [], evidence: [] },
-		planShape: [{ stage: "VERIFY", tasks: [{ id: "blackbox", title: "Run the real user command", status: "pending", dependsOn: [], verification: { kind: "black-box", purpose: "Prove the requested behavior through the public interface" } }] }],
-		decisionShape: { decision: "public choice", rationale: "brief justification", selectedApproach: "approach", rejectedAlternatives: [], executionPlan: ["action"] },
-		deliveryShape: { target: "linear | github | obsidian | files | another target", artifact: "actual identity", evidence: ["actual item ID"] },
+		example       : { requestId, stage: "UNDERSTAND", status: "completed", summary: "Public intent, constraints and success", input: ["user request"], agents: [], tools: [], evidence: [] },
+		planShape     : [{ stage: "VERIFY", tasks: [{ id: "blackbox", title: "Run the real user command", status: "pending", dependsOn: [], verification: { kind: "black-box", purpose: "Prove the requested behavior through the public interface" } }] }],
+		decisionShape : { decision: "public choice", rationale: "brief justification", selectedApproach: "approach", rejectedAlternatives: [], executionPlan: ["action"] },
+		deliveryShape : { target: "linear | github | obsidian | files | another target", artifact: "actual identity", evidence: ["actual item ID"] },
 	}) };
 }

@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test }    from "bun:test";
 import { McpLinearProjectDashboard } from "../src/adapters/outbound/workspace/linear-project-dashboard";
 
 describe("McpLinearProjectDashboard", () => {
@@ -20,12 +20,12 @@ describe("McpLinearProjectDashboard", () => {
 
 		const result = await dashboard.refresh("thread-1");
 		expect(result).toMatchObject({
-			state: "ready",
-			projectName: "World Wide Woo",
-			issues: [{ id: "WOO-907", title: "입장 Dashboard" }],
-			update: { body: "진행 중" },
-			comments: [{ id: "comment-1", body: "활동 기록", author: "우종호" }],
-			milestones: [{ name: "v0.1.0", targetDate: "2026-09-30" }],
+			state       : "ready",
+			projectName : "World Wide Woo",
+			issues      : [{ id: "WOO-907", title: "입장 Dashboard" }],
+			update      : { body: "진행 중" },
+			comments    : [{ id: "comment-1", body: "활동 기록", author: "우종호" }],
+			milestones  : [{ name: "v0.1.0", targetDate: "2026-09-30" }],
 		});
 		expect(calls.map(call => call.tool).sort()).toEqual(["get_status_updates", "list_comments", "list_issues", "list_milestones"]);
 		expect(calls.find(call => call.tool === "get_status_updates")?.arguments).toEqual({

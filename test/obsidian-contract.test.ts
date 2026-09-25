@@ -1,35 +1,40 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { execFileSync } from "node:child_process";
+import { afterEach, describe, expect, test }                                       from "bun:test";
+import { execFileSync }                                                            from "node:child_process";
 import { mkdtempSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { stringify } from "yaml";
-import { OBSIDIAN_SECTIONS, validateObsidianDocument } from "../src/core/domain/development/obsidian-contract.js";
-import { applyObsidianSyncPreview, compareObsidianSnapshots, createObsidianSyncPreview, inspectObsidianVault } from "../src/adapters/outbound/development/obsidian-contract.js";
-import { runObsidianContractCli } from "../src/adapters/outbound/development/obsidian-contract-cli.js";
+import { tmpdir }                                                                  from "node:os";
+import { join }                                                                    from "node:path";
+import { stringify }                                                               from "yaml";
+import { OBSIDIAN_SECTIONS, validateObsidianDocument }                             from "../src/core/domain/development/obsidian-contract.js";
+import {
+	applyObsidianSyncPreview,
+	compareObsidianSnapshots,
+	createObsidianSyncPreview,
+	inspectObsidianVault,
+} from "../src/adapters/outbound/development/obsidian-contract.js";
+import { runObsidianContractCli }                                                  from "../src/adapters/outbound/development/obsidian-contract-cli.js";
 
 const roots: string[] = [];
 afterEach(() => { for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }); });
 
 const properties = (overrides: Record<string, unknown> = {}) => ({
-	document_id: "4d194c50-d2ba-4cee-a74a-b9fb1db10e18",
-	linear: "WOO-682",
-	record_type: "detailed-canonical",
-	schema_version: 2,
-	status: "draft",
-	acceptance: "not-tested",
-	domain: "Workbench",
-	capability: "Todo",
-	parent: null,
-	related: [],
-	spec_ids: ["TODO-001"],
-	code_ids: ["Code-011"],
-	test_ids: ["TEST-031"],
-	exception_ids: ["EXC-014"],
-	decision_ids: ["DEC-001"],
-	tags: ["www/spec", "domain/workbench", "capability/todo"],
-	updated_at: "2026-09-08T12:00:00+09:00",
-	source_revision: `worktree:${"a".repeat(40)}:dirty`,
+	document_id     : "4d194c50-d2ba-4cee-a74a-b9fb1db10e18",
+	linear          : "WOO-682",
+	record_type     : "detailed-canonical",
+	schema_version  : 2,
+	status          : "draft",
+	acceptance      : "not-tested",
+	domain          : "Workbench",
+	capability      : "Todo",
+	parent          : null,
+	related         : [],
+	spec_ids        : ["TODO-001"],
+	code_ids        : ["Code-011"],
+	test_ids        : ["TEST-031"],
+	exception_ids   : ["EXC-014"],
+	decision_ids    : ["DEC-001"],
+	tags            : ["www/spec", "domain/workbench", "capability/todo"],
+	updated_at      : "2026-09-08T12:00:00+09:00",
+	source_revision : `worktree:${"a".repeat(40)}:dirty`,
 	...overrides,
 });
 
@@ -54,9 +59,9 @@ describe("Obsidian detailed-canonical schema v2", () => {
 
 	test("blocks invalid IDs, inline relationship text, section drift, and machine-oriented filenames", () => {
 		const result = validateObsidianDocument({
-			relativePath: "WOO-682.md",
-			properties: properties({ document_id: "WOO-682", parent: "Workbench parent", code_ids: ["011"] }),
-			body: body("Message", "WOO-999 구현", OBSIDIAN_SECTIONS.slice(0, -1)),
+			relativePath : "WOO-682.md",
+			properties   : properties({ document_id: "WOO-682", parent: "Workbench parent", code_ids: ["011"] }),
+			body         : body("Message", "WOO-999 구현", OBSIDIAN_SECTIONS.slice(0, -1)),
 		});
 		expect(result.issues.map(item => item.code)).toContain("PROPERTY_INVALID");
 		expect(result.issues.map(item => item.code)).toContain("HEADING_INVALID");
@@ -143,11 +148,11 @@ describe("Obsidian vault drift and exact-digest sync", () => {
 	test("accepts the documented bun run check and sync preview command shapes", () => {
 		const root = vault(); put(root, "Workbench/Todo — AI 계획을 세션별로 확인한다.md", markdown());
 		const renameRoot = vault(); put(renameRoot, "Legacy/WOO-682.md", markdown());
-		const cwd = join(import.meta.dir, "..");
-		const previewPath = join(renameRoot, "preview.json");
-		const checked = JSON.parse(execFileSync("bun", ["run", "obsidian:check", "--", "--vault", root], { cwd, encoding: "utf8" }));
-		const previewed = JSON.parse(execFileSync("bun", ["run", "obsidian:sync", "--", "preview", "--vault", renameRoot, "--out", previewPath], { cwd, encoding: "utf8" }));
-		const applied = JSON.parse(execFileSync("bun", ["run", "obsidian:sync", "--", "apply", "--vault", renameRoot, "--preview", previewPath, "--digest", previewed.digest], { cwd, encoding: "utf8" }));
+		const cwd         = join(import.meta.dir, "..")                                                                                                                                                        ;
+		const previewPath = join(renameRoot, "preview.json")                                                                                                                                                   ;
+		const checked     = JSON.parse(execFileSync("bun", ["run", "obsidian:check", "--", "--vault", root], { cwd, encoding: "utf8" }))                                                                       ;
+		const previewed   = JSON.parse(execFileSync("bun", ["run", "obsidian:sync", "--", "preview", "--vault", renameRoot, "--out", previewPath], { cwd, encoding: "utf8" }))                                 ;
+		const applied     = JSON.parse(execFileSync("bun", ["run", "obsidian:sync", "--", "apply", "--vault", renameRoot, "--preview", previewPath, "--digest", previewed.digest], { cwd, encoding: "utf8" })) ;
 		expect(checked.documents).toHaveLength(1);
 		expect(previewed.actions).toHaveLength(1);
 		expect(applied.documents[0]?.path).toBe("Workbench/Todo — AI 계획을 세션별로 확인한다.md");

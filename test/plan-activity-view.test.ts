@@ -1,14 +1,17 @@
-import { describe, expect, test } from "bun:test";
-import chalk from "chalk";
+import { describe, expect, test }               from "bun:test";
+import chalk                                    from "chalk";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import { getScrollViewsAt, renderLayoutFrame } from "@earendil-works/pi-tui/dist/layout.js";
-import { astraFixture } from "./fixtures/astra-snapshot";
-import { AstraPlanView } from "../src/adapters/inbound/tui/features/plan/astra-plan-view";
-import { astraNowLabel, executionHeading } from "../src/adapters/inbound/tui/features/chat/astra-execution";
-import { requestRuntimeMotionActive, requestRuntimeRows } from "../src/adapters/inbound/tui/features/monitoring/request-runtime-view";
-import { statusCardRows } from "../src/adapters/inbound/tui/foundation/components/status-card";
-import { REQUEST_STAGES } from "../src/core/domain/execution/request-runtime";
-import { AstraWorkspace } from "../src/adapters/inbound/tui/shell/astra-surface";
+import { getScrollViewsAt, renderLayoutFrame }  from "@earendil-works/pi-tui/dist/layout.js";
+import { astraFixture }                         from "./fixtures/astra-snapshot";
+import { AstraPlanView }                        from "../src/adapters/inbound/tui/features/plan/astra-plan-view";
+import { astraNowLabel, executionHeading }      from "../src/adapters/inbound/tui/features/chat/astra-execution";
+import {
+	requestRuntimeMotionActive,
+	requestRuntimeRows,
+} from "../src/adapters/inbound/tui/features/monitoring/request-runtime-view";
+import { statusCardRows }                       from "../src/adapters/inbound/tui/foundation/components/status-card";
+import { REQUEST_STAGES }                       from "../src/core/domain/execution/request-runtime";
+import { AstraWorkspace }                       from "../src/adapters/inbound/tui/shell/astra-surface";
 import type { PlanActivity, WorkbenchSnapshot } from "../src/core/domain/work/workbench";
 
 function activity(index: number): PlanActivity {
@@ -23,9 +26,9 @@ describe("interpreted Plan activity and cards", () => {
 		};
 		snapshot.liveActivity = { kind: "tool", method: "item/started", text: "item/started", nativeRefs: { turnId: "preview-turn" } };
 		for (const compact of [true, false]) {
-			const view = new AstraPlanView(() => snapshot, compact);
-			const text = stripTerminalSequences(view.render(80).join("\n"));
-			const feed = text.slice(text.indexOf("Activity"), text.indexOf("Next"));
+			const view = new AstraPlanView(() => snapshot, compact)                 ;
+			const text = stripTerminalSequences(view.render(80).join("\n"))         ;
+			const feed = text.slice(text.indexOf("Activity"), text.indexOf("Next")) ;
 			expect(feed).toContain("╭");
 			expect(feed).toContain("│검사");
 			expect(feed).toContain("최근 5개");
@@ -47,9 +50,9 @@ describe("interpreted Plan activity and cards", () => {
 			requiredDeliveries: [], deliveries: [], actions: [], issues: [], events: [],
 			stages: REQUEST_STAGES.map((id, index) => ({ id, status: index < 4 ? "completed" as const : index === 4 ? "running" as const : "pending" as const, goal: index === 4 ? "회귀 테스트와 독립 검토" : `${id} 작업`, input: [], owner: "orchestrator" as const, model: null, agents: [], tools: [], output: index === 4 ? "item/started" : null, evidence: [], decision: null, skipReason: null, startedAt: null, completedAt: null, next: REQUEST_STAGES[index + 1] ?? null, evidenceAfterSequence: 0, tasks: [] })),
 		}];
-		const presentation = { motionActive: requestRuntimeMotionActive, rows: requestRuntimeRows };
-		const rows = new AstraPlanView(() => snapshot, true, Date.now, false, presentation).render(40);
-		const text = stripTerminalSequences(rows.join("\n"));
+		const presentation = { motionActive: requestRuntimeMotionActive, rows: requestRuntimeRows }            ;
+		const rows         = new AstraPlanView(() => snapshot, true, Date.now, false, presentation).render(40) ;
+		const text         = stripTerminalSequences(rows.join("\n"))                                           ;
 		expect(text).not.toContain("진행 중");
 		expect(text).not.toContain("Goal");
 		expect(text).not.toContain("표시 동작 확인");
@@ -67,9 +70,9 @@ describe("interpreted Plan activity and cards", () => {
 		expect(page).toContain("│검사 1의");
 		expect(text).toContain("│검사 1의");
 
-		const workspace = new AstraWorkspace(() => snapshot, () => [], height => height, () => 2400, false, presentation);
-		const layout = (width: number, height: number) => renderLayoutFrame(workspace.component, width, height, () => {}).lines.map(stripTerminalSequences);
-		const tall = layout(120, 56);
+		const workspace = new AstraWorkspace(() => snapshot, () => [], height => height, () => 2400, false, presentation)                                      ;
+		const layout    = (width: number, height: number) => renderLayoutFrame(workspace.component, width, height, () => {}).lines.map(stripTerminalSequences) ;
+		const tall      = layout(120, 56)                                                                                                                      ;
 		for (const stage of REQUEST_STAGES) expect(tall.join("\n")).toContain(stage);
 		expect(tall.join("\n")).not.toContain("Three Body");
 		expect(workspace.hasVisibleSidebarOrbit).toBe(false);
@@ -106,21 +109,21 @@ describe("interpreted Plan activity and cards", () => {
 
 	test("the sidebar orbit appears only on the first empty entry and disappears after content starts", () => {
 		let snapshot = astraFixture("ready");
-		snapshot.chat = [];
-		snapshot.activities = [];
-		snapshot.actionResult = null;
-		snapshot.pendingApproval = null;
-		snapshot.executionRun = null;
-		snapshot.reasoningSummaryDraft = undefined;
-		snapshot.reasoningDraft = "";
-		snapshot.draft = "";
-		snapshot.error = null;
-		snapshot.requestRuntime = [];
-		snapshot.workFlow = { ...snapshot.workFlow, steps: [] };
-		let now = 0;
-		const workspace = new AstraWorkspace(() => snapshot, () => [], height => height, () => now, true);
-		const frame = () => renderLayoutFrame(workspace.component, 120, 32, () => {});
-		const first = frame().lines.slice(-8).map(stripTerminalSequences).join("\n");
+		snapshot.chat            = []   ;
+		snapshot.activities      = []   ;
+		snapshot.actionResult    = null ;
+		snapshot.pendingApproval = null ;
+		snapshot.executionRun    = null ;
+		delete snapshot.reasoningSummaryDraft;
+		snapshot.reasoningDraft = ""                                  ;
+		snapshot.draft          = ""                                  ;
+		snapshot.error          = null                                ;
+		snapshot.requestRuntime = []                                  ;
+		snapshot.workFlow       = { ...snapshot.workFlow, steps: [] } ;
+		let now         = 0                                                                               ;
+		const workspace = new AstraWorkspace(() => snapshot, () => [], height => height, () => now, true) ;
+		const frame     = () => renderLayoutFrame(workspace.component, 120, 32, () => {})                 ;
+		const first     = frame().lines.slice(-8).map(stripTerminalSequences).join("\n")                  ;
 		now = 1000;
 		expect(frame().lines.slice(-8).map(stripTerminalSequences).join("\n")).not.toBe(first);
 		snapshot = { ...snapshot, chat: [{ id: "started", activityId: "request", role: "user", content: "작업 시작", status: "completed" }], planActivities: Array.from({ length: 5 }, (_, index) => ({ ...activity(index), summary: "카드의 세부 내용이 길어져도 끝까지 읽을 수 있어야 합니다. ".repeat(4) })) };

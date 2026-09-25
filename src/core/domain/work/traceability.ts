@@ -28,44 +28,47 @@ export type WorkReference =
 	| LinearIssueReference;
 
 export interface WorkTraceabilityLink {
-	readonly from: WorkReference;
-	readonly relation: "implements" | "verifies" | "evidences" | "tracks" | "originated-from";
-	readonly to: WorkReference;
+	readonly from     : WorkReference                                                          ;
+	readonly relation : "implements" | "verifies" | "evidences" | "tracks" | "originated-from" ;
+	readonly to       : WorkReference                                                          ;
 }
 
 /** Thin relation manifest. It intentionally stores no title, description, status, or acceptance text. */
 export interface WorkTraceabilityManifest {
-	readonly schemaVersion: 1;
-	readonly references: readonly WorkReference[];
-	readonly links: readonly WorkTraceabilityLink[];
+	readonly schemaVersion : 1                               ;
+	readonly references    : readonly WorkReference[]        ;
+	readonly links         : readonly WorkTraceabilityLink[] ;
 }
 
 const relationEndpoints: Readonly<Record<
 	WorkTraceabilityLink["relation"],
 	readonly [from: readonly WorkReferenceKind[], to: readonly WorkReferenceKind[]]
 >> = {
-	implements: [["initiative", "epic", "story", "linear-issue"], ["code"]],
-	tracks: [["initiative", "epic", "story"], ["epic", "story", "linear-issue"]],
-	verifies: [["test", "evidence"], ["epic", "story", "linear-issue", "code"]],
-	evidences: [["evidence"], ["epic", "story", "linear-issue", "code"]],
-	"originated-from": [["project-activity"], ["native"]],
+	implements        : [["initiative", "epic", "story", "linear-issue"], ["code"]],
+	tracks            : [["initiative", "epic", "story"], ["epic", "story", "linear-issue"]],
+	verifies          : [["test", "evidence"], ["epic", "story", "linear-issue", "code"]],
+	evidences         : [["evidence"], ["epic", "story", "linear-issue", "code"]],
+	"originated-from" : [["project-activity"], ["native"]],
 };
 
 const patterns: Readonly<Record<WorkReferenceKind, RegExp>> = {
-	initiative: /^INIT-\d{3,}$/u,
-	epic: /^EP-\d{3,}$/u,
-	story: /^ST-\d{3,}-\d{2,}$/u,
-	"linear-issue": /^WOO-\d+$/u,
-	"project-activity": /^[^\s]+$/u,
-	native: /^[^\s]+$/u,
-	code: /^src\/.+\.ts$/u,
-	test: /^test\/.+\.ts$/u,
-	evidence: /^\.www\/evidence\/.+\.(?:json|md)$/u,
+	initiative         : /^INIT-\d{3,}$/u,
+	epic               : /^EP-\d{3,}$/u,
+	story              : /^ST-\d{3,}-\d{2,}$/u,
+	"linear-issue"     : /^WOO-\d+$/u,
+	"project-activity" : /^[^\s]+$/u,
+	native             : /^[^\s]+$/u,
+	code               : /^src\/.+\.ts$/u,
+	test               : /^test\/.+\.ts$/u,
+	evidence           : /^\.www\/evidence\/.+\.(?:json|md)$/u,
 };
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
 
 export function parseWorkTraceabilityManifest(value: unknown): WorkTraceabilityManifest {
-	if (!isRecord(value) || value.schemaVersion !== 1 || !Array.isArray(value.references) || !Array.isArray(value.links)) {
+	if (!isRecord(value)
+		|| value.schemaVersion !== 1
+		|| !Array.isArray(value.references)
+		|| !Array.isArray(value.links)) {
 		throw new Error("Invalid work traceability manifest");
 	}
 	const references = value.references.map(parseReference);
@@ -118,9 +121,9 @@ function parseLink(value: unknown): WorkTraceabilityLink {
 	if (!["implements", "verifies", "evidences", "tracks", "originated-from"].includes(String(relation))) {
 		throw new Error(`Invalid work traceability relation: ${String(relation)}`);
 	}
-	const typedRelation = relation as WorkTraceabilityLink["relation"];
-	const from = parseReference(value.from);
-	const to = parseReference(value.to);
+	const typedRelation = relation as WorkTraceabilityLink["relation"] ;
+	const from          = parseReference(value.from)                   ;
+	const to            = parseReference(value.to)                     ;
 	const [allowedFrom, allowedTo] = relationEndpoints[typedRelation];
 	if (!allowedFrom.includes(from.kind) || !allowedTo.includes(to.kind)) {
 		throw new Error(`Invalid ${typedRelation} direction: ${from.kind} -> ${to.kind}`);

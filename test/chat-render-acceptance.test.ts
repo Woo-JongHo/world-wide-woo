@@ -1,9 +1,9 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test }               from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import type { WorkbenchSnapshot } from "../src/core/domain/work/workbench";
-import { projectWorkFlow } from "../src/core/domain/work";
-import { ChatMessageRenderer } from "../src/adapters/inbound/tui/features/chat/chat-message-renderer";
-import { WorkbenchChatView } from "../src/adapters/inbound/tui/features/chat/workbench-views";
+import type { WorkbenchSnapshot }               from "../src/core/domain/work/workbench";
+import { projectWorkFlow }                      from "../src/core/domain/work";
+import { ChatMessageRenderer }                  from "../src/adapters/inbound/tui/features/chat/chat-message-renderer";
+import { WorkbenchChatView }                    from "../src/adapters/inbound/tui/features/chat/workbench-views";
 
 function activity(id: string, sequence: number, turnId: string, itemId = id) {
 	return {
@@ -38,9 +38,9 @@ describe("Chat renderer completion", () => {
 			`const value = "safe";${String.fromCharCode(27)}[31m`,
 			"```",
 		].join("\n");
-		const snapshot = fixture({ chat: [{ id: "first", role: "assistant", content, activityId: "first", status: "completed" }] });
-		const rows = new WorkbenchChatView(snapshot).render(width);
-		const plain = stripTerminalSequences(rows.join("\n"));
+		const snapshot = fixture({ chat: [{ id: "first", role: "assistant", content, activityId: "first", status: "completed" }] }) ;
+		const rows     = new WorkbenchChatView(snapshot).render(width)                                                              ;
+		const plain    = stripTerminalSequences(rows.join("\n"))                                                                    ;
 		expect(plain).toContain("제목");
 		expect(plain).toContain("항목 강조");
 		expect(plain).toContain("const value");
@@ -54,9 +54,9 @@ describe("Chat renderer completion", () => {
 		const snapshot = fixture({
 			activities,
 			chat: [
-				{ id: "bad-role", role: "alien", content: "<analysis>PRIVATE</analysis>\n<answer>역할 오류 본문</answer>", activityId: "bad-role", status: "completed" },
-				{ id: "bad-status", role: "assistant", content: "상태 오류 본문", activityId: "bad-status", status: "mystery" },
-				{ id: "after", role: "assistant", content: "다음 메시지 보존", activityId: "after", status: "completed" },
+				{ id : "bad-role"   , role : "alien"     , content : "<analysis>PRIVATE</analysis>\n<answer>역할 오류 본문</answer>" , activityId : "bad-role"   , status : "completed" },
+				{ id : "bad-status" , role : "assistant" , content : "상태 오류 본문"                                                , activityId : "bad-status" , status : "mystery"   },
+				{ id : "after"      , role : "assistant" , content : "다음 메시지 보존"                                              , activityId : "after"      , status : "completed" },
 			] as unknown as WorkbenchSnapshot["chat"],
 		});
 		const output = stripTerminalSequences(new WorkbenchChatView(snapshot).render(80).join("\n"));
@@ -92,9 +92,9 @@ describe("Chat renderer completion", () => {
 		const first = { ...activity("tool-a", 1, "turn-a", "shared"), kind: "tool" as const, payload: { command: "first-command" } };
 		const second = { ...activity("tool-b", 2, "turn-b", "shared"), kind: "tool" as const, payload: { command: "second-command" } };
 		const snapshot = fixture({
-			activities: [first, second],
-			chat: [{ id: "optimistic", role: "user", content: "실행", activityId: "pending", status: "streaming" }],
-			workFlow: projectWorkFlow([]),
+			activities : [first, second],
+			chat       : [{ id: "optimistic", role: "user", content: "실행", activityId: "pending", status: "streaming" }],
+			workFlow   : projectWorkFlow([]),
 		});
 		const output = stripTerminalSequences(new WorkbenchChatView(snapshot).render(80).join("\n"));
 		expect(output).toContain("first-command");

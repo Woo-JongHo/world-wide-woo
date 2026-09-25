@@ -1,6 +1,7 @@
-import { expect, test } from "bun:test";
-import { stripTerminalSequences, truncateToWidth, visibleWidth, type Component } from "@earendil-works/pi-tui";
-import { AstraInset } from "../src/adapters/inbound/tui/shell/astra-surface";
+import { expect, test }                                          from "bun:test";
+import { stripTerminalSequences, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
+import type { Component }                                        from "@earendil-works/pi-tui";
+import { AstraInset }                                            from "../src/adapters/inbound/tui/shell/astra-surface";
 
 class MutableRows implements Component {
 	invalidations = 0;
@@ -36,10 +37,10 @@ test("같은 자식 배열에서 행이 이동해도 새 순서의 바이트 출
 });
 
 test("같은 자식 배열의 내부 변경을 감지하고 반환 배열 변경으로 캐시가 오염되지 않는다", () => {
-	const child = new MutableRows(["고정 행 👩🏽‍💻", "\u001b[31m이전 ANSI 행\u001b[39m"]);
-	const inset = new AstraInset(child);
-	const first = inset.render(24);
-	const expectedFirst = first.slice();
+	const child         = new MutableRows(["고정 행 👩🏽‍💻", "\u001b[31m이전 ANSI 행\u001b[39m"]) ;
+	const inset         = new AstraInset(child)                                                 ;
+	const first         = inset.render(24)                                                      ;
+	const expectedFirst = first.slice()                                                         ;
 
 	first[0] = "호출자가 바꾼 행";
 	expect(inset.render(24)).toEqual(expectedFirst);
@@ -53,9 +54,9 @@ test("같은 자식 배열의 내부 변경을 감지하고 반환 배열 변경
 });
 
 test("width와 padding 전환 및 invalidate 뒤에도 원본 바이트 출력을 유지한다", () => {
-	const source = ["한글 👩🏽‍💻 e\u0301", "\u001b[38;2;95;174;255m색상 행\u001b[39m"];
-	const child = new MutableRows(source.slice());
-	const inset = new AstraInset(child, 2);
+	const source = ["한글 👩🏽‍💻 e\u0301", "\u001b[38;2;95;174;255m색상 행\u001b[39m"] ;
+	const child  = new MutableRows(source.slice())                                   ;
+	const inset  = new AstraInset(child, 2)                                          ;
 
 	for (const width of [5, 9, 40, 12, 40]) {
 		const expected = uncached(source, width);
@@ -71,9 +72,9 @@ test("width와 padding 전환 및 invalidate 뒤에도 원본 바이트 출력�
 test("보존 cache는 entry/논리 byte 상한과 마지막 generation만 유지한다", () => {
 	// Deliberate white-box exception: retention is a private Resource invariant.
 	// Public output cannot distinguish bounded storage, while heap/RSS includes child arrays and GC timing.
-	const child = new MutableRows(Array.from({ length: 20_000 }, (_, i) => `행 ${i}`));
-	const inset = new AstraInset(child, 0);
-	const retained = () => [...((inset as unknown as { cache?: { rows: ReadonlyMap<string, { source: string; rendered: string; logicalBytes: number }> } }).cache?.rows.values() ?? [])];
+	const child    = new MutableRows(Array.from({ length: 20_000 }, (_, i) => `행 ${i}`))                                                                                                ;
+	const inset    = new AstraInset(child, 0)                                                                                                                                            ;
+	const retained = () => [...((inset as unknown as { cache?: { rows: ReadonlyMap<string, { source: string; rendered: string; logicalBytes: number }> } }).cache?.rows.values() ?? [])] ;
 	const assertBound = () => {
 		expect(retained().length).toBeLessThanOrEqual(16_384);
 		expect(retained().reduce((sum, row) => sum + (row.source.length + row.rendered.length) * 2 + 32, 0)).toBeLessThanOrEqual(8 * 1024 * 1024);

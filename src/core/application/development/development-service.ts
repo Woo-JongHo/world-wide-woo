@@ -1,10 +1,10 @@
-import type { ProjectActivity } from "../../domain/execution/project-activity";
+import type { ProjectActivity } from "@/core/domain/execution/project-activity";
 
 /** UI and capture boundary; adapters own storage, execution and URI opening. */
 export interface DevelopmentServicePorts {
-	execute(args: readonly string[]): Promise<string>;
-	capture(activity: ProjectActivity): void;
-	checkpoint(requestId: string): Promise<string>;
+	execute   (args: readonly string[]  ): Promise<string>;
+	capture   (activity: ProjectActivity): void;
+	checkpoint(requestId: string        ): Promise<string>;
 	prepareCheckpoint?(requestId: string): () => Promise<string>;
 	close?(): void;
 }

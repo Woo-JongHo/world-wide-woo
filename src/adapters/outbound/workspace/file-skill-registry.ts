@@ -1,9 +1,9 @@
-import { createHash } from "node:crypto";
-import { lstat, readFile, readdir, realpath } from "node:fs/promises";
-import { join, relative, resolve } from "node:path";
-import YAML from "yaml";
-import type { SkillDescriptor, SkillRegistryPort, SkillRegistrySnapshot } from "../../../core/skills/skill-registry.js";
-import { validateSkillRegistry } from "../../../core/skills/skill-registry.js";
+import { createHash }                                                     from "node:crypto";
+import { lstat, readFile, readdir, realpath }                             from "node:fs/promises";
+import { join, relative, resolve }                                        from "node:path";
+import YAML                                                               from "yaml";
+import type { SkillDescriptor, SkillRegistryPort, SkillRegistrySnapshot } from "@/core/skills/skill-registry.js";
+import { validateSkillRegistry }                                          from "@/core/skills/skill-registry.js";
 
 const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
 
@@ -12,9 +12,9 @@ export class FileSkillRegistry implements SkillRegistryPort {
 
 	async load(): Promise<SkillRegistrySnapshot> {
 		const root = resolve(this.projectRoot, ".agents/skills"), canonicalRoot = await realpath(root);
-		const entries = await readdir(canonicalRoot, { withFileTypes: true });
-		const sourceRevision = this.revision();
-		const skills: SkillDescriptor[] = [];
+		const entries                    = await readdir(canonicalRoot, { withFileTypes: true }) ;
+		const sourceRevision             = this.revision()                                       ;
+		const skills : SkillDescriptor[] = []                                                    ;
 		for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
 			if (!entry.isDirectory() || entry.isSymbolicLink()) continue;
 			const path = join(canonicalRoot, entry.name, "SKILL.md");
@@ -27,9 +27,9 @@ export class FileSkillRegistry implements SkillRegistryPort {
 			if (metadata.name !== entry.name || typeof metadata.description !== "string") throw new Error(`SKILL_METADATA_INVALID: ${entry.name}`);
 			skills.push(Object.freeze({ name: entry.name, description: metadata.description, path: `.agents/skills/${entry.name}/SKILL.md`, digest: sha256(bytes), sourceRevision }));
 		}
-		const unsigned = { schemaVersion: 1 as const, root: ".agents/skills", sourceRevision, skills: Object.freeze(skills) };
-		const snapshot = Object.freeze({ ...unsigned, digest: sha256(JSON.stringify(unsigned)) });
-		const errors = validateSkillRegistry(snapshot);
+		const unsigned = { schemaVersion: 1 as const, root: ".agents/skills", sourceRevision, skills: Object.freeze(skills) } ;
+		const snapshot = Object.freeze({ ...unsigned, digest: sha256(JSON.stringify(unsigned)) })                             ;
+		const errors   = validateSkillRegistry(snapshot)                                                                      ;
 		if (errors.length) throw new Error(errors.join("\n"));
 		return snapshot;
 	}

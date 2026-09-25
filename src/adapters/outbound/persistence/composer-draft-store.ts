@@ -1,17 +1,17 @@
-import { createHash, randomUUID } from "node:crypto";
+import { createHash, randomUUID }                                 from "node:crypto";
 import { chmod, mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
-import { homedir } from "node:os";
-import { join, resolve } from "node:path";
-import type { ComposerDraftController } from "../../../core/ports";
+import { homedir }                                                from "node:os";
+import { join, resolve }                                          from "node:path";
+import type { ComposerDraftController }                           from "@/core/ports";
 
 const SCHEMA_VERSION = 1;
 const MAX_TEXT_BYTES = 64 * 1024;
 
 interface StoredDraft {
-	schemaVersion: number;
-	projectKey: string;
-	text: string;
-	updatedAt: string;
+	schemaVersion : number ;
+	projectKey    : string ;
+	text          : string ;
+	updatedAt     : string ;
 }
 
 interface LoadedDraft {
@@ -58,9 +58,9 @@ export class FileComposerDraftController implements ComposerDraftController {
 		sessionId: string,
 		directory = draftDirectory(),
 	): Promise<FileComposerDraftController> {
-		const projectKey = digest(resolve(projectPath));
-		const loaded = await this.loadLatest(directory, projectKey);
-		const path = join(directory, `${projectKey}-${digest(sessionId)}-${randomUUID()}.json`);
+		const projectKey = digest(resolve(projectPath))                                               ;
+		const loaded     = await this.loadLatest(directory, projectKey)                               ;
+		const path       = join(directory, `${projectKey}-${digest(sessionId)}-${randomUUID()}.json`) ;
 		return new FileComposerDraftController(loaded?.stored.text ?? "", projectKey, directory, path, loaded);
 	}
 

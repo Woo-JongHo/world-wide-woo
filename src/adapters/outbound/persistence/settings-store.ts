@@ -1,13 +1,10 @@
-import { randomUUID } from "node:crypto";
+import { randomUUID }                                          from "node:crypto";
 import { chmod, mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
-import { homedir } from "node:os";
-import { dirname, join } from "node:path";
-import type { AtomicSettingsRepository } from "../../../core/ports";
-import {
-	DEFAULT_SETTINGS,
-	normalizeSettings,
-	type WwwSettings,
-} from "../../../core/domain/execution/model-settings";
+import { homedir }                                             from "node:os";
+import { dirname, join }                                       from "node:path";
+import type { AtomicSettingsRepository }                       from "@/core/ports";
+import { DEFAULT_SETTINGS, normalizeSettings }                 from "@/core/domain/execution/model-settings";
+import type { WwwSettings }                                    from "@/core/domain/execution/model-settings";
 
 export function settingsPath(env: NodeJS.ProcessEnv = process.env): string {
 	const configRoot = env.WWW_CONFIG_DIR ?? join(homedir(), ".config", "www");

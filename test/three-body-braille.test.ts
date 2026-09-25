@@ -1,7 +1,9 @@
-import { describe, expect, test } from "bun:test";
-import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import { HIERARCHICAL_TRIPLE_PRESET, ThreeBodySimulation, type Vector2 } from "../src/core/domain/work/three-body-simulation";
-import { renderThreeBodyBrailleFrame, type ThreeBodyTrail } from "../src/adapters/inbound/tui/features/chat/three-body-braille";
+import { describe, expect, test }                          from "bun:test";
+import { stripTerminalSequences, visibleWidth }            from "@earendil-works/pi-tui";
+import { HIERARCHICAL_TRIPLE_PRESET, ThreeBodySimulation } from "../src/core/domain/work/three-body-simulation";
+import type { Vector2 }                                    from "../src/core/domain/work/three-body-simulation";
+import { renderThreeBodyBrailleFrame }                     from "../src/adapters/inbound/tui/features/chat/three-body-braille";
+import type { ThreeBodyTrail }                             from "../src/adapters/inbound/tui/features/chat/three-body-braille";
 
 function referenceTrail(): readonly ThreeBodyTrail[] {
 	const simulation = ThreeBodySimulation.fromPreset(HIERARCHICAL_TRIPLE_PRESET);
@@ -19,10 +21,10 @@ describe("three-body Braille renderer", () => {
 		const simulation = ThreeBodySimulation.fromPreset(HIERARCHICAL_TRIPLE_PRESET);
 		simulation.advance(1.8);
 		const rows = renderThreeBodyBrailleFrame(simulation.snapshot(), {
-			width: 52,
-			height: 12,
-			trails: referenceTrail(),
-			showTrail: true,
+			width     : 52,
+			height    : 12,
+			trails    : referenceTrail(),
+			showTrail : true,
 		});
 		const plain = rows.map(stripTerminalSequences);
 

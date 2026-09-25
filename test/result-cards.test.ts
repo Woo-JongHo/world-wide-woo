@@ -1,21 +1,30 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test }               from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import type { CommandResultSnapshot, DiffResultSnapshot, GenericToolResultSnapshot } from "../src/core/domain/execution/output";
-import { BashResultCard, CompletionSummaryCard, DiffResultCard, GenericToolResultCard } from "../src/adapters/inbound/tui/features/chat/result-cards";
-import { semantic } from "../src/adapters/inbound/tui/foundation/theme/theme";
+import type {
+	CommandResultSnapshot,
+	DiffResultSnapshot,
+	GenericToolResultSnapshot,
+} from "../src/core/domain/execution/output";
+import {
+	BashResultCard,
+	CompletionSummaryCard,
+	DiffResultCard,
+	GenericToolResultCard,
+} from "../src/adapters/inbound/tui/features/chat/result-cards";
+import { semantic }                             from "../src/adapters/inbound/tui/foundation/theme/theme";
 
 function snapshot(overrides: Partial<CommandResultSnapshot> = {}): CommandResultSnapshot {
 	return {
-		id: "command-1",
-		shell: "bash",
-		command: "printf hello",
-		cwd: "/workspace",
-		status: "passed",
-		stdout: "hello",
-		stderr: "",
-		startedAt: 1,
-		durationMs: 12,
-		exitCode: 0,
+		id         : "command-1",
+		shell      : "bash",
+		command    : "printf hello",
+		cwd        : "/workspace",
+		status     : "passed",
+		stdout     : "hello",
+		stderr     : "",
+		startedAt  : 1,
+		durationMs : 12,
+		exitCode   : 0,
 		...overrides,
 	};
 }
@@ -23,11 +32,11 @@ function snapshot(overrides: Partial<CommandResultSnapshot> = {}): CommandResult
 describe("BashResultCard", () => {
 	test("renders every lifecycle status with its themed label", () => {
 		const expected = {
-			pending: semantic.toolPending("PENDING"),
-			running: semantic.toolRunning("RUNNING"),
-			passed: semantic.toolPassed("PASSED"),
-			failed: semantic.toolFailed("FAILED"),
-			cancelled: semantic.toolCancelled("CANCELLED"),
+			pending   : semantic.toolPending("PENDING"),
+			running   : semantic.toolRunning("RUNNING"),
+			passed    : semantic.toolPassed("PASSED"),
+			failed    : semantic.toolFailed("FAILED"),
+			cancelled : semantic.toolCancelled("CANCELLED"),
 		};
 		for (const status of ["pending", "running", "passed", "failed", "cancelled"] as const) {
 			const lines = new BashResultCard(snapshot({ status })).render(100);
@@ -37,11 +46,11 @@ describe("BashResultCard", () => {
 
 	test("groups stdout and stderr and shows failed exit details", () => {
 		const lines = new BashResultCard(snapshot({
-			status: "failed",
-			stdout: "normal output",
-			stderr: "failure output",
-			exitCode: 17,
-			durationMs: 320,
+			status     : "failed",
+			stdout     : "normal output",
+			stderr     : "failure output",
+			exitCode   : 17,
+			durationMs : 320,
 		})).render(100);
 		const text = stripTerminalSequences(lines.join("\n"));
 		expect(text).toContain("stdout");
@@ -53,10 +62,10 @@ describe("BashResultCard", () => {
 
 	test("limits output lines and removes terminal controls", () => {
 		const lines = new BashResultCard(snapshot({
-			command: "echo \u001b[31munsafe\u001b[0m\u0007",
-			cwd: "/tmp/\u001b]8;;https://example.test\u0007bad\u001b]8;;\u0007",
-			stdout: "one\ntwo\nthree",
-			stderr: "four",
+			command : "echo \u001b[31munsafe\u001b[0m\u0007",
+			cwd     : "/tmp/\u001b]8;;https://example.test\u0007bad\u001b]8;;\u0007",
+			stdout  : "one\ntwo\nthree",
+			stderr  : "four",
 		}), 2).render(100);
 		const text = stripTerminalSequences(lines.join("\n"));
 		expect(text).toContain("… 2 earlier lines omitted");
@@ -101,14 +110,14 @@ describe("BashResultCard", () => {
 
 function generic(overrides: Partial<GenericToolResultSnapshot> = {}): GenericToolResultSnapshot {
 	return {
-		id: "tool-1",
-		toolName: "unknown-tool",
-		status: "passed",
-		input: "{\"query\":\"안녕하세요\"}",
-		output: "one\ntwo\nthree",
-		startedAt: 1,
-		durationMs: 24,
-		error: undefined,
+		id         : "tool-1",
+		toolName   : "unknown-tool",
+		status     : "passed",
+		input      : "{\"query\":\"안녕하세요\"}",
+		output     : "one\ntwo\nthree",
+		startedAt  : 1,
+		durationMs : 24,
+		error      : undefined,
 		...overrides,
 	};
 }
@@ -116,9 +125,9 @@ function generic(overrides: Partial<GenericToolResultSnapshot> = {}): GenericToo
 describe("GenericToolResultCard", () => {
 	test("keeps generic tool cards focused on their own input and output", () => {
 		const text = stripTerminalSequences(new GenericToolResultCard(generic({
-			toolName: "Read",
-			input: "src/app.ts",
-			output: "export const app = true;",
+			toolName : "Read",
+			input    : "src/app.ts",
+			output   : "export const app = true;",
 		})).render(100).join("\n"));
 
 		expect(text).toContain("Read · PASSED");
@@ -131,9 +140,9 @@ describe("GenericToolResultCard", () => {
 		for (const status of ["pending", "running", "passed", "failed", "cancelled"] as const) {
 			const text = stripTerminalSequences(new GenericToolResultCard(generic({
 				status,
-				input: "unsafe=\u001b[31mnope\u001b[0m\u0007 {\"api_key\":\"supersecretvalue\"}",
-				output: "bad\u0007output sk-proj-abcdefghijklmnopqrstuvwxyz",
-				error: status === "failed" ? "실패" : undefined,
+				input  : "unsafe=\u001b[31mnope\u001b[0m\u0007 {\"api_key\":\"supersecretvalue\"}",
+				output : "bad\u0007output sk-proj-abcdefghijklmnopqrstuvwxyz",
+				error  : status === "failed" ? "실패" : undefined,
 			})).render(100).join("\n"));
 			expect(text).toContain(status.toUpperCase());
 			expect(text).toContain("입력:");
@@ -159,9 +168,9 @@ describe("GenericToolResultCard", () => {
 			input: "{\"path\":\"report.json\",\"query\":{\"value\":1}}",
 			output: "{\"outer\":{\"answer\":42}}",
 		});
-		const before = structuredClone(value);
-		const rendered = new GenericToolResultCard(value).render(100).join("\n");
-		const text = stripTerminalSequences(rendered);
+		const before   = structuredClone(value)                                  ;
+		const rendered = new GenericToolResultCard(value).render(100).join("\n") ;
+		const text     = stripTerminalSequences(rendered)                        ;
 		expect(rendered).toContain("\u001b[");
 		expect(text).toContain('  "query": {');
 		expect(text).toContain('  "outer": {');
@@ -242,13 +251,13 @@ describe("GenericToolResultCard", () => {
 describe("DiffResultCard", () => {
 	test("distinguishes added, removed, and context lines without color", () => {
 		const snapshot: DiffResultSnapshot = {
-			id: "diff-1",
-			title: "변경사항",
-			status: "passed",
-			diff: "\u001b[32m+ added\u001b[0m\n- removed\u0007\n context",
-			startedAt: 1,
-			durationMs: undefined,
-			error: undefined,
+			id         : "diff-1",
+			title      : "변경사항",
+			status     : "passed",
+			diff       : "\u001b[32m+ added\u001b[0m\n- removed\u0007\n context",
+			startedAt  : 1,
+			durationMs : undefined,
+			error      : undefined,
 		};
 		for (const width of [40, 100]) {
 			const lines = new DiffResultCard(snapshot).render(width);
@@ -271,9 +280,9 @@ describe("CompletionSummaryCard", () => {
 		const report = {
 			title: "완료 요약",
 			sections: [
-				{ title: "구현", bullets: ["카드를 추가했습니다"] },
-				{ title: "UX", bullets: ["진행 상태를 구분했습니다"] },
-				{ title: "문서", bullets: ["사용법을 기록했습니다"] },
+				{ title : "구현" , bullets : ["카드를 추가했습니다"]      },
+				{ title : "UX"   , bullets : ["진행 상태를 구분했습니다"] },
+				{ title : "문서" , bullets : ["사용법을 기록했습니다"]    },
 			],
 			verification: ["bun test test/result-cards.test.ts"],
 		};

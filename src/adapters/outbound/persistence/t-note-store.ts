@@ -1,8 +1,9 @@
-import { createHash } from "node:crypto";
-import { chmod, lstat, mkdir, open, readFile } from "node:fs/promises";
-import { join } from "node:path";
-import { createTNoteDraft, validateTNoteDraft, type TNoteDraft, type TNoteDraftInput } from "../../../core/domain/work/t-notes.js";
-import type { TNoteDraftStore } from "../../../core/application/work/t-note-service.js";
+import { createHash }                           from "node:crypto";
+import { chmod, lstat, mkdir, open, readFile }  from "node:fs/promises";
+import { join }                                 from "node:path";
+import { createTNoteDraft, validateTNoteDraft } from "@/core/domain/work/t-notes.js";
+import type { TNoteDraft, TNoteDraftInput }     from "@/core/domain/work/t-notes.js";
+import type { TNoteDraftStore }                 from "@/core/application/work/t-note-service.js";
 
 const STORE_FILE = "t-notes.jsonl";
 const queues = new Map<string, Promise<unknown>>();
@@ -40,9 +41,9 @@ export class FileTNoteStore implements TNoteDraftStore {
 			if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
 			throw error;
 		}
-		const endedCleanly = content.endsWith("\n");
-		const lines = content.split("\n");
-		const tail = endedCleanly ? undefined : lines.pop();
+		const endedCleanly = content.endsWith("\n")                 ;
+		const lines        = content.split("\n")                    ;
+		const tail         = endedCleanly ? undefined : lines.pop() ;
 		if (endedCleanly) lines.pop();
 		const drafts = lines.map((line, index) => this.parseDraft(line, index + 1));
 		if (tail === undefined || tail === "") return drafts;

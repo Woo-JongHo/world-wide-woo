@@ -1,22 +1,22 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test }           from "bun:test";
 import type { Credential, CredentialStore } from "@earendil-works/pi-ai";
-import { UsageService } from "../src/adapters/outbound/observability/usage-service";
+import { UsageService }                     from "../src/adapters/outbound/observability/usage-service";
 
 function store(entries: Record<string, Credential | undefined>): CredentialStore {
 	return {
-		read: async provider => entries[provider],
-		list: async () => [],
-		modify: async () => undefined,
-		delete: async () => undefined,
+		read   : async provider => entries[provider],
+		list   : async () => [],
+		modify : async () => undefined,
+		delete : async () => undefined,
 	};
 }
 
 const oauth = (access = "access-secret"): Credential => ({
 	type: "oauth",
 	access,
-	refresh: "refresh-secret",
-	expires: Date.now() + 60_000,
-	metadataSecret: "must-not-leak",
+	refresh        : "refresh-secret",
+	expires        : Date.now() + 60_000,
+	metadataSecret : "must-not-leak",
 });
 
 function response(payload: unknown): Response {
@@ -40,10 +40,10 @@ describe("UsageService", () => {
 			undefined,
 			noAntigravity,
 			async () => ({
-				provider: "openai-codex",
-				state: "ready",
-				fetchedAt: 1,
-				limits: [{ label: "Codex 7 Days", remainingPercent: 64, status: "ok" }],
+				provider  : "openai-codex",
+				state     : "ready",
+				fetchedAt : 1,
+				limits    : [{ label: "Codex 7 Days", remainingPercent: 64, status: "ok" }],
 			}),
 		);
 
@@ -65,14 +65,14 @@ describe("UsageService", () => {
 		const snapshots = await service.refresh();
 		expect(requests).toBe(2);
 		expect(snapshots[0]).toMatchObject({
-			provider: "openai-codex",
-			state: "ready",
-			limits: expect.arrayContaining([expect.objectContaining({ usedPercent: 20, remainingPercent: 80 })]),
+			provider : "openai-codex",
+			state    : "ready",
+			limits   : expect.arrayContaining([expect.objectContaining({ usedPercent: 20, remainingPercent: 80 })]),
 		});
 		expect(snapshots[1]).toMatchObject({
-			provider: "anthropic",
-			state: "ready",
-			limits: expect.arrayContaining([expect.objectContaining({ usedPercent: 25, remainingPercent: 75 })]),
+			provider : "anthropic",
+			state    : "ready",
+			limits   : expect.arrayContaining([expect.objectContaining({ usedPercent: 25, remainingPercent: 75 })]),
 		});
 		expect(JSON.stringify(snapshots)).not.toContain("secret");
 		expect(JSON.stringify(snapshots)).not.toContain("account");
@@ -85,10 +85,10 @@ describe("UsageService", () => {
 			return response({});
 		}, Date.now, undefined, noAntigravity);
 		expect(await service.refresh()).toMatchObject([
-			{ provider: "openai-codex", state: "auth-required", limits: [] },
-			{ provider: "anthropic", state: "unsupported", limits: [] },
-			{ provider: "google", state: "auth-required", limits: [] },
-			{ provider: "zai", state: "auth-required", limits: [] },
+			{ provider : "openai-codex" , state : "auth-required" , limits : [] },
+			{ provider : "anthropic"    , state : "unsupported"   , limits : [] },
+			{ provider : "google"       , state : "auth-required" , limits : [] },
+			{ provider : "zai"          , state : "auth-required" , limits : [] },
 		]);
 		expect(fetches).toBe(0);
 	});
@@ -166,10 +166,10 @@ describe("UsageService", () => {
 			{
 				configured: async () => true,
 				usageCredential: async () => ({
-					type: "oauth",
-					accessToken: "google-access-secret",
-					projectId: "google-project",
-					expiresAt: Date.now() + 60_000,
+					type        : "oauth",
+					accessToken : "google-access-secret",
+					projectId   : "google-project",
+					expiresAt   : Date.now() + 60_000,
 				}),
 			},
 		);
@@ -184,9 +184,9 @@ describe("UsageService", () => {
 	});
 
 	test("Antigravity quota 실패 뒤 polling backoff 동안 credential과 provider를 다시 호출하지 않는다", async () => {
-		let now = 1_000;
-		let credentialReads = 0;
-		let googleRequests = 0;
+		let now             = 1_000 ;
+		let credentialReads = 0     ;
+		let googleRequests  = 0     ;
 		const service = new UsageService(
 			store({}),
 			models,
@@ -324,10 +324,10 @@ describe("UsageService", () => {
 
 		const first = await service.refresh();
 		expect(first[1]).toMatchObject({
-			provider: "anthropic",
-			state: "error",
-			limits: [],
-			issue: { kind: "rate-limit", retryAt: 121_000 },
+			provider : "anthropic",
+			state    : "error",
+			limits   : [],
+			issue    : { kind: "rate-limit", retryAt: 121_000 },
 		});
 		expect(fetches).toBe(3);
 
@@ -338,9 +338,9 @@ describe("UsageService", () => {
 	});
 
 	test("keeps the last successful Claude limits visibly stale during a 429", async () => {
-		let now = 10_000;
-		let limited = false;
-		let fetches = 0;
+		let now     = 10_000 ;
+		let limited = false  ;
+		let fetches = 0      ;
 		const service = new UsageService(
 			store({ anthropic: oauth() }),
 			models,
@@ -366,11 +366,11 @@ describe("UsageService", () => {
 		now = 310_001;
 		const stale = await service.refresh();
 		expect(stale[1]).toMatchObject({
-			state: "ready",
-			stale: true,
-			fetchedAt: 10_000,
-			issue: { kind: "rate-limit" },
-			limits: expect.arrayContaining([expect.objectContaining({ remainingPercent: 75 })]),
+			state     : "ready",
+			stale     : true,
+			fetchedAt : 10_000,
+			issue     : { kind: "rate-limit" },
+			limits    : expect.arrayContaining([expect.objectContaining({ remainingPercent: 75 })]),
 		});
 
 		limited = false;
@@ -382,9 +382,9 @@ describe("UsageService", () => {
 	});
 
 	test("reports actual Usage Snapshot cache reuse, stale fallback, and credential-removal eviction", async () => {
-		let now = 10_000;
-		let limited = false;
-		const entries: Record<string, Credential | undefined> = { anthropic: oauth() };
+		let now                                               = 10_000                 ;
+		let limited                                           = false                  ;
+		const entries: Record<string, Credential | undefined> = { anthropic: oauth() } ;
 		const service = new UsageService(
 			store(entries),
 			models,
@@ -398,43 +398,43 @@ describe("UsageService", () => {
 
 		await service.refresh();
 		expect(service.cacheMetrics()).toEqual({
-			entries: 1,
-			hits: 0,
-			misses: 1,
-			evictions: 0,
-			lastAccessedAt: null,
+			entries        : 1,
+			hits           : 0,
+			misses         : 1,
+			evictions      : 0,
+			lastAccessedAt : null,
 		});
 
 		now = 20_000;
 		await service.refresh();
 		expect(service.cacheMetrics()).toEqual({
-			entries: 1,
-			hits: 1,
-			misses: 1,
-			evictions: 0,
-			lastAccessedAt: "1970-01-01T00:00:20.000Z",
+			entries        : 1,
+			hits           : 1,
+			misses         : 1,
+			evictions      : 0,
+			lastAccessedAt : "1970-01-01T00:00:20.000Z",
 		});
 
 		now = 310_001;
 		limited = true;
 		await service.refresh();
 		expect(service.cacheMetrics()).toEqual({
-			entries: 1,
-			hits: 2,
-			misses: 2,
-			evictions: 0,
-			lastAccessedAt: "1970-01-01T00:05:10.001Z",
+			entries        : 1,
+			hits           : 2,
+			misses         : 2,
+			evictions      : 0,
+			lastAccessedAt : "1970-01-01T00:05:10.001Z",
 		});
 
 		entries.anthropic = undefined;
 		now = 320_000;
 		await service.refresh();
 		expect(service.cacheMetrics()).toEqual({
-			entries: 0,
-			hits: 2,
-			misses: 2,
-			evictions: 1,
-			lastAccessedAt: "1970-01-01T00:05:10.001Z",
+			entries        : 0,
+			hits           : 2,
+			misses         : 2,
+			evictions      : 1,
+			lastAccessedAt : "1970-01-01T00:05:10.001Z",
 		});
 	});
 });

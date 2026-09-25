@@ -1,14 +1,17 @@
-import { createHash, randomUUID } from "node:crypto";
-import {
-	createTNotePacket,
-	sanitizeTNoteText,
-	type TNoteActivitySource,
-	type TNoteDraft,
-	type TNoteDraftInput,
-	type TNoteSourceActivity,
-	type TNoteSourceRange,
-} from "../../domain/work/t-notes.js";
-import { assertDetachedPolicy, type DetachedGenerationPolicy, type DetachedTextGenerator } from "../orchestration/detached-text-generator.js";
+import { createHash, randomUUID }               from "node:crypto";
+import { createTNotePacket, sanitizeTNoteText } from "@/core/domain/work/t-notes.js";
+import type {
+	TNoteActivitySource,
+	TNoteDraft,
+	TNoteDraftInput,
+	TNoteSourceActivity,
+	TNoteSourceRange,
+} from "@/core/domain/work/t-notes.js";
+import { assertDetachedPolicy }                 from "@/core/application/orchestration/detached-text-generator.js";
+import type {
+	DetachedGenerationPolicy,
+	DetachedTextGenerator,
+} from "@/core/application/orchestration/detached-text-generator.js";
 
 export interface TNoteDraftStore {
 	append(input: TNoteDraftInput): Promise<TNoteDraft>;
@@ -16,10 +19,10 @@ export interface TNoteDraftStore {
 }
 
 export interface CreateTNoteInput {
-	readonly projectId: string;
-	readonly range: TNoteSourceRange;
-	readonly activities: readonly TNoteActivitySource[];
-	readonly instruction: string;
+	readonly projectId   : string                         ;
+	readonly range       : TNoteSourceRange               ;
+	readonly activities  : readonly TNoteActivitySource[] ;
+	readonly instruction : string                         ;
 	/** Generated 질문 must exactly match this normalized completed question. */
 	readonly expectedQuestion: string;
 }
@@ -37,9 +40,9 @@ export class TNoteService {
 		if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("Invalid Note request");
 		const instruction = sanitizeTNoteText(input.instruction, 4 * 1024);
 		if (instruction.length === 0) throw new Error("Invalid Note instruction");
-		const packet = createTNotePacket(input.projectId, input.range, input.activities, this.clock().toISOString(), digest);
-		const policy: DetachedGenerationPolicy = Object.freeze({ cwd: "", noTools: true, network: false, readOnly: true, ephemeral: true });
-		const result = await this.generator.generate(Object.freeze({ packet, instruction, policy }), signal);
+		const packet                            = createTNotePacket(input.projectId, input.range, input.activities, this.clock().toISOString(), digest) ;
+		const policy : DetachedGenerationPolicy = Object.freeze({ cwd: "", noTools: true, network: false, readOnly: true, ephemeral: true })            ;
+		const result                            = await this.generator.generate(Object.freeze({ packet, instruction, policy }), signal)                 ;
 		assertDetachedPolicy(policy, result?.isolation);
 		const text = result.text;
 		if (typeof text !== "string" || text.length === 0 || new TextEncoder().encode(text).byteLength > 64 * 1024) {
@@ -70,19 +73,19 @@ export interface CanonicalTNoteValidation {
 }
 
 export interface CanonicalTNoteReport {
-	readonly question: string;
-	readonly reason: string;
-	readonly proposal: string;
-	readonly action: string;
-	readonly result: string;
+	readonly question   : string                                    ;
+	readonly plan       : string                                    ;
+	readonly process    : string                                    ;
+	readonly conclusion : string                                    ;
+	readonly version    : "request-report-v2" | "legacy-five-field" ;
 	/** Runtime-observed test summary appended after detached generation succeeds. */
 	readonly test?: string;
 }
 
 export interface LegacyCanonicalTNote {
-	readonly question: string;
-	readonly why: string;
-	readonly result: string;
+	readonly question : string ;
+	readonly why      : string ;
+	readonly result   : string ;
 }
 
 export function parseCanonicalTNoteReport(text: string): CanonicalTNoteReport | null {
@@ -90,15 +93,17 @@ export function parseCanonicalTNoteReport(text: string): CanonicalTNoteReport | 
 	if (testParts.length > 1) return null;
 	const test = testParts[0]?.trim();
 	if (testParts.length === 1 && !test) return null;
-	const match = /^질문:[ \t]*(\S(?:[^\r\n]*\S)?)\r?\nReason:[ \t]*(\S(?:[^\r\n]*\S)?)\r?\nProposal:[ \t]*(\S(?:[^\r\n]*\S)?)\r?\nAction:[ \t]*(\S(?:[^\r\n]*\S)?)\r?\nResult:[ \t]*(\S(?:[^\r\n]*\S)?)$/u.exec(reportText ?? "");
-	if (!match) return null;
-	return Object.freeze({ question: match[1]!, reason: match[2]!, proposal: match[3]!, action: match[4]!, result: match[5]!, ...(test ? { test } : {}) });
+	const current = /^질문:[ \t]*(\S(?:[^\r\n]*\S)?)\r?\nPlan:[ \t]*(\S(?:[^\r\n]*\S)?)\r?\n과정:[ \t]*(\S(?:[^\r\n]*\S)?)\r?\n결론:[ \t]*(\S(?:[^\r\n]*\S)?)$/u.exec(reportText ?? "");
+	if (current) return Object.freeze({ question: current[1], plan: current[2], process: current[3], conclusion: current[4], version: "request-report-v2", ...(test ? { test } : {}) });
+	const previous = /^질문:[ \t]*(\S(?:[^\r\n]*\S)?)\r?\nReason:[ \t]*(\S(?:[^\r\n]*\S)?)\r?\nProposal:[ \t]*(\S(?:[^\r\n]*\S)?)\r?\nAction:[ \t]*(\S(?:[^\r\n]*\S)?)\r?\nResult:[ \t]*(\S(?:[^\r\n]*\S)?)$/u.exec(reportText ?? "");
+	if (!previous) return null;
+	return Object.freeze({ question: previous[1], plan: `${previous[2]} ${previous[3]}`, process: previous[4], conclusion: previous[5], version: "legacy-five-field", ...(test ? { test } : {}) });
 }
 
 export function parseLegacyCanonicalTNote(text: string): LegacyCanonicalTNote | null {
 	const match = /^질문:[ \t]*(\S(?:[^\r\n]*\S)?)\r?\n왜:[ \t]*(\S(?:[^\r\n]*\S)?)\r?\n결과:[ \t]*(\S(?:[^\r\n]*\S)?)$/u.exec(text.trim());
 	if (!match) return null;
-	return Object.freeze({ question: match[1]!, why: match[2]!, result: match[3]! });
+	return Object.freeze({ question: match[1], why: match[2], result: match[3] });
 }
 
 /** New generation is five-field; allowLegacy is only for replaying older injected sources. */
@@ -110,19 +115,20 @@ export function validateCanonicalTNote(
 	const report = parseCanonicalTNoteReport(text);
 	const legacy = options.allowLegacy ? parseLegacyCanonicalTNote(text) : null;
 	if (!report && !legacy) return { valid: false, reason: "Detached generator returned malformed Note text" };
+	if (report?.version === "legacy-five-field" && !options.allowLegacy) return { valid: false, reason: "Detached generator returned legacy Note text" };
 	if (report?.test && !options.allowRuntimeTestSummary) return { valid: false, reason: "Detached generator must not generate the runtime Test summary" };
-	const question = report?.question ?? legacy!.question;
+	const question = report?.question ?? legacy?.question;
 	if (question !== expectedQuestion) return { valid: false, reason: "Detached generator returned mismatched Note question" };
 	const fields = report
-		? [report.reason, report.proposal, report.action, report.result]
-		: [legacy!.why, legacy!.result];
+		? [report.plan, report.process, report.conclusion]
+		: legacy ? [legacy.why, legacy.result] : [];
 	if (fields.some(hasRawEvidence)) {
 		return { valid: false, reason: "Detached generator returned prohibited raw evidence" };
 	}
 	if (fields.some(field => /(?:숨은 사고|chain[ -]?of[ -]?thought)/iu.test(field))) {
 		return { valid: false, reason: "Detached generator returned hidden reasoning" };
 	}
-	const completedAction = report ? `${report.action}\n${report.result}` : legacy!.result;
+	const completedAction = report ? `${report.process}\n${report.conclusion}` : legacy?.result ?? "";
 	if (/(?:다음 할 일|(?:내일|추후|후속|다음에|이후|곧|계속).{0,24}(?:하겠습니다|합니다|할 예정|할 계획|진행하겠습니다|진행합니다|처리하겠습니다|처리합니다|검토하겠습니다|검토합니다|수정하겠습니다|수정합니다|배포하겠습니다|배포합니다)|(?:하겠습니다|합니다|할 예정|할 계획|진행하겠습니다|진행합니다|처리하겠습니다|처리합니다|검토하겠습니다|검토합니다|수정하겠습니다|수정합니다|배포하겠습니다|배포합니다).{0,24}(?:내일|추후|후속|다음에|이후|곧|계속))/u.test(completedAction)) {
 		return { valid: false, reason: "Detached generator returned future action" };
 	}
@@ -132,9 +138,9 @@ export function validateCanonicalTNote(
 type TestStatus = "passed" | "failed" | "unknown";
 
 interface TestObservation {
-	readonly command: string;
-	readonly durationMs: number | null;
-	readonly status: TestStatus;
+	readonly command    : string        ;
+	readonly durationMs : number | null ;
+	readonly status     : TestStatus    ;
 }
 
 /** Test evidence is derived from the completed external-runtime activity packet, never generated prose. */

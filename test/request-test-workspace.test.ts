@@ -1,10 +1,14 @@
-import { expect, test } from "bun:test";
-import { stripTerminalSequences } from "@earendil-works/pi-tui";
+import { expect, test }                from "bun:test";
+import { stripTerminalSequences }      from "@earendil-works/pi-tui";
 import { projectRequestTestWorkspace } from "../src/core/domain/observability/request-test-workspace";
-import type { ProjectActivity } from "../src/core/domain/execution/project-activity";
-import type { RequestRuntimeRecord } from "../src/core/domain/execution/request-runtime";
-import { AstraTestView, projectAstraTestView, renderAstraTestView } from "../src/adapters/inbound/tui/features/test/astra-test-view";
-import { astraFixture } from "./fixtures/astra-snapshot";
+import type { ProjectActivity }        from "../src/core/domain/execution/project-activity";
+import type { RequestRuntimeRecord }   from "../src/core/domain/execution/request-runtime";
+import {
+	AstraTestView,
+	projectAstraTestView,
+	renderAstraTestView,
+} from "../src/adapters/inbound/tui/features/test/astra-test-view";
+import { astraFixture }                from "./fixtures/astra-snapshot";
 
 const activity = (id: string, sequence: number, command: string, exitCode: number): ProjectActivity => ({ schemaVersion: 1, id, projectId: "p", sequence, recordedAt: `2026-09-12T00:00:0${sequence}Z`, kind: "tool", phase: "completed", provider: "openai-codex", nativeRefs: { threadId: "t", turnId: "turn", itemId: id }, sourceDigest: `sha256:${"a".repeat(64)}`, payload: { method: "item/completed", params: { item: { type: "commandExecution", command, exitCode } } } });
 function request(): RequestRuntimeRecord {

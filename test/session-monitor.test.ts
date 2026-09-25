@@ -1,8 +1,8 @@
-import { describe, expect, test } from "bun:test";
-import { SessionMonitor } from "../src/core/application/session/session-monitor";
-import type { TodoController } from "../src/core/ports";
+import { describe, expect, test }               from "bun:test";
+import { SessionMonitor }                       from "../src/core/application/session/session-monitor";
+import type { TodoController }                  from "../src/core/ports";
 import type { SessionRuntime, SessionSnapshot } from "../src/core/application/session/session-runtime";
-import type { TodoDocument } from "../src/core/domain/work/todos";
+import type { TodoDocument }                    from "../src/core/domain/work/todos";
 
 function session(overrides: Partial<SessionSnapshot> = {}): SessionSnapshot {
 	return {
@@ -30,10 +30,10 @@ function todo(items: TodoDocument["items"]): TodoDocument {
 
 describe("SessionMonitor", () => {
 	test("aggregates initial, streaming, and completed session state without raw content", () => {
-		const runtimeState = observable(session());
-		const todoState = observable<TodoDocument | null>(null);
-		let now = 1_000;
-		const monitor = new SessionMonitor(runtimeState as unknown as SessionRuntime, todoState as unknown as TodoController, () => now);
+		const runtimeState = observable(session())                                                                                            ;
+		const todoState    = observable<TodoDocument | null>(null)                                                                            ;
+		let now            = 1_000                                                                                                            ;
+		const monitor      = new SessionMonitor(runtimeState as unknown as SessionRuntime, todoState as unknown as TodoController, () => now) ;
 
 		expect(monitor.snapshot).toMatchObject({ sessionId: "session-1", phase: "starting", elapsedMs: 0, turns: { user: 0, assistant: 0, cancelled: 0 } });
 		now = 1_250;
@@ -51,10 +51,10 @@ describe("SessionMonitor", () => {
 	});
 
 	test("projects Todo progress and isolates broken listeners", () => {
-		const runtimeState = observable(session());
-		const todoState = observable<TodoDocument | null>(null);
-		const monitor = new SessionMonitor(runtimeState as unknown as SessionRuntime, todoState as unknown as TodoController, () => 10);
-		const observed: number[] = [];
+		const runtimeState       = observable(session())                                                                                           ;
+		const todoState          = observable<TodoDocument | null>(null)                                                                           ;
+		const monitor            = new SessionMonitor(runtimeState as unknown as SessionRuntime, todoState as unknown as TodoController, () => 10) ;
+		const observed: number[] = []                                                                                                              ;
 		monitor.subscribe(() => { throw new Error("broken"); });
 		monitor.subscribe(snapshot => observed.push(snapshot.todo.completed));
 		todoState.emit(todo([
@@ -62,19 +62,19 @@ describe("SessionMonitor", () => {
 			{ id: "two", content: "active task", status: "in_progress", evidenceIds: [], details: [] },
 		]));
 		expect(monitor.snapshot.todo).toEqual({
-			completed: 1,
-			total: 2,
-			detailCompleted: 0,
-			detailTotal: 0,
-			activeContent: "active task",
+			completed       : 1,
+			total           : 2,
+			detailCompleted : 0,
+			detailTotal     : 0,
+			activeContent   : "active task",
 		});
 		expect(observed).toEqual([0, 1]);
 	});
 
 	test("stops receiving runtime and Todo updates after disposal", () => {
-		const runtimeState = observable(session());
-		const todoState = observable<TodoDocument | null>(null);
-		const monitor = new SessionMonitor(runtimeState as unknown as SessionRuntime, todoState as unknown as TodoController, () => 10);
+		const runtimeState = observable(session())                                                                                           ;
+		const todoState    = observable<TodoDocument | null>(null)                                                                           ;
+		const monitor      = new SessionMonitor(runtimeState as unknown as SessionRuntime, todoState as unknown as TodoController, () => 10) ;
 		monitor.dispose();
 		runtimeState.emit(session({ phase: "error" }));
 		todoState.emit(todo([{ id: "one", content: "active", status: "in_progress", evidenceIds: [], details: [] }]));

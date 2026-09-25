@@ -1,6 +1,6 @@
-import { expect, test } from "bun:test";
+import { expect, test }                  from "bun:test";
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
-import { fit } from "../src/adapters/inbound/tui/foundation/theme/astra-theme";
+import { fit }                           from "../src/adapters/inbound/tui/foundation/theme/astra-theme";
 
 function legacyFit(value: string, width: number): string {
 	if (width <= 0) return "";

@@ -4,7 +4,7 @@ import {
 	formatWorkbenchTelemetry,
 	workbenchModelLabel,
 } from "../src/adapters/inbound/tui/features/monitoring/workbench-telemetry";
-import { parseGitTelemetry } from "../src/adapters/outbound/git/git-telemetry-source";
+import { parseGitTelemetry }      from "../src/adapters/outbound/git/git-telemetry-source";
 
 describe("workbench telemetry rail", () => {
 	test("uses readable provider and family casing for model labels", () => {
@@ -17,19 +17,9 @@ describe("workbench telemetry rail", () => {
 
 	test("renders only Git state and project path; Context belongs to the usage strip", () => {
 		const output = stripTerminalSequences(formatWorkbenchTelemetry({
-			model: "gpt-5.6-sol",
-			effort: "low",
-			contextUsage: { usedTokens: 8_785, contextWindow: 258_400, percent: 3.4 },
-			sessionUsage: {
-				totalTokens: 25_840,
-				observedTotalTokens: 25_840,
-				unattributedTokens: 0,
-				models: [{ model: "gpt-5.6-sol", effort: "low", interactiveRootTurns: 1, interactiveTokens: 25_840, detachedInvocations: 0, detachedTokens: 0, totalTokens: 25_840 }],
-				observationCoverage: { interactive: true, detached: false },
-			},
-			git: { branch: "main", staged: 0, unstaged: 0, untracked: 2 },
-			cwd: "/Users/tester/woo/00_project/99_www",
-			home: "/Users/tester",
+			git  : { branch: "main", staged: 0, unstaged: 0, untracked: 2 },
+			cwd  : "/Users/tester/woo/00_project/99_www",
+			home : "/Users/tester",
 		}, 160));
 
 		expect(output).toContain("⑂ main ?2");
@@ -40,9 +30,9 @@ describe("workbench telemetry rail", () => {
 
 	test("uses explicit unknown markers before Git arrives", () => {
 		const output = stripTerminalSequences(formatWorkbenchTelemetry({
-			git: null,
-			cwd: "/work/project",
-			home: "/Users/tester",
+			git  : null,
+			cwd  : "/work/project",
+			home : "/Users/tester",
 		}, 100));
 
 		expect(output).toContain("⑂ –");
@@ -50,10 +40,10 @@ describe("workbench telemetry rail", () => {
 
 	test("normalizes an unborn Git branch without exposing the porcelain sentence", () => {
 		expect(parseGitTelemetry("## No commits yet on main\n?? .www/\n")).toEqual({
-			branch: "main",
-			staged: 0,
-			unstaged: 0,
-			untracked: 1,
+			branch    : "main",
+			staged    : 0,
+			unstaged  : 0,
+			untracked : 1,
 		});
 	});
 });

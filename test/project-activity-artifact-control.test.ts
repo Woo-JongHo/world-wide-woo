@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { artifactCandidateDigest, renderArtifactCandidate, validateArtifactCandidate, type ArtifactCandidate } from "../src/core/domain/development/artifact-control";
+import {
+	artifactCandidateDigest,
+	renderArtifactCandidate,
+	validateArtifactCandidate,
+} from "../src/core/domain/development/artifact-control";
+import type { ArtifactCandidate } from "../src/core/domain/development/artifact-control";
 
 function sign(candidate: Omit<ArtifactCandidate, "candidateDigest">): ArtifactCandidate {
 	return { ...candidate, candidateDigest: artifactCandidateDigest(candidate) };

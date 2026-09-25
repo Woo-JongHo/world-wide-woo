@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { access, readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { access, readFile }       from "node:fs/promises";
+import { join }                   from "node:path";
 
 function ids(markdown: string, pattern: RegExp): string[] {
 	return [...markdown.matchAll(pattern)].map(match => match[1]!).filter(Boolean);

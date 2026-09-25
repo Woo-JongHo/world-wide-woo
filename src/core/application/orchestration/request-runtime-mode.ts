@@ -1,9 +1,9 @@
 export type RequestRuntimeMode = "off" | "observe" | "broker";
 
 export interface RequestRuntimePolicyOptions {
-	readonly mode?: RequestRuntimeMode;
-	readonly capabilitiesConfigured: boolean;
-	readonly resuming: boolean;
+	readonly mode?                  : RequestRuntimeMode ;
+	readonly capabilitiesConfigured : boolean            ;
+	readonly resuming               : boolean            ;
 }
 
 /**

@@ -1,12 +1,20 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { execFileSync, spawnSync } from "node:child_process";
+import { afterEach, describe, expect, test }                                                     from "bun:test";
+import { execFileSync, spawnSync }                                                               from "node:child_process";
 import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import type { CommitCandidate, CommitPolicy } from "../src/core/commit/commit-governance";
-import { candidateDigest, CommitControlPlane } from "../src/core/commit/commit-governance";
-import { assertCandidateMatchesWorktree, assertStagedBoundary, authorize, candidateContentDigest, changedPaths, executeCommit, stagedPaths } from "../src/adapters/outbound/git/git-commit-control";
-import { CommitReceiptStore } from "../src/adapters/outbound/persistence/commit-receipt-store";
+import { tmpdir }                                                                                from "node:os";
+import { join }                                                                                  from "node:path";
+import type { CommitCandidate, CommitPolicy }                                                    from "../src/core/commit/commit-governance";
+import { candidateDigest, CommitControlPlane }                                                   from "../src/core/commit/commit-governance";
+import {
+	assertCandidateMatchesWorktree,
+	assertStagedBoundary,
+	authorize,
+	candidateContentDigest,
+	changedPaths,
+	executeCommit,
+	stagedPaths,
+} from "../src/adapters/outbound/git/git-commit-control";
+import { CommitReceiptStore }                                                                    from "../src/adapters/outbound/persistence/commit-receipt-store";
 
 const policy: CommitPolicy = { messageProfile: "korean-result", subjectMaxLength: 72, subjectSoftLength: 50, requireScope: true, requireType: true, requireHumanAuthorization: true, fullFileStagingOnly: true, protectedBranches: ["dev", "main"], allowedTypes: ["feat", "fix", "perf", "refactor", "test", "docs", "build", "ci", "chore", "revert"], scopes: { commit: "커밋" } };
 function candidate(overrides: Partial<CommitCandidate> = {}): CommitCandidate {
@@ -59,7 +67,7 @@ describe("staged boundary", () => {
 		const root = mkdtempSync(join(tmpdir(), "woo-commit-e2e-")); roots.push(root);
 		for (const directory of ["src/core/commit", "src/adapters/outbound/git", "scripts", ".woo", ".githooks", ".www/runtime/commit", ".www/control-ledger/development"]) mkdirSync(join(root, directory), { recursive: true });
 		const project = join(import.meta.dir, "..");
-		for (const path of ["src/core/commit/commit-governance.ts", "src/adapters/outbound/git/git-commit-control.ts", "scripts/woo-commit.ts", ".woo/project.yaml", ".githooks/pre-commit", ".githooks/prepare-commit-msg", ".githooks/commit-msg", ".githooks/post-commit", ".githooks/pre-push"]) copyFileSync(join(project, path), join(root, path));
+		for (const path of ["tsconfig.json", "src/core/commit/commit-governance.ts", "src/adapters/outbound/git/git-commit-control.ts", "scripts/woo-commit.ts", ".woo/project.yaml", ".githooks/pre-commit", ".githooks/prepare-commit-msg", ".githooks/commit-msg", ".githooks/post-commit", ".githooks/pre-push"]) copyFileSync(join(project, path), join(root, path));
 		const projectId = "11111111-1111-4111-8111-111111111111";
 		writeFileSync(join(root, ".www/control-ledger/development/project.json"), JSON.stringify({ schemaVersion: 1, id: projectId }));
 		execFileSync("chmod", ["+x", ...["pre-commit", "prepare-commit-msg", "commit-msg", "post-commit", "pre-push"].map(name => join(root, ".githooks", name))]);
@@ -117,10 +125,10 @@ describe("staged boundary", () => {
 		execFileSync("git", ["-C", root, "add", "before.txt"]);
 		execFileSync("git", ["-C", root, "commit", "-qm", "base"]);
 		renameSync(join(root, "before.txt"), join(root, "after.txt"));
-		const paths = ["after.txt", "before.txt"];
-		const head = execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
-		const value = candidate({ baseHead: head, paths, contentDigest: candidateContentDigest(root, paths) });
-		const candidatePath = join(root, ".www/runtime/commit/candidate.json");
+		const paths         = ["after.txt", "before.txt"]                                                              ;
+		const head          = execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim()      ;
+		const value         = candidate({ baseHead: head, paths, contentDigest: candidateContentDigest(root, paths) }) ;
+		const candidatePath = join(root, ".www/runtime/commit/candidate.json")                                         ;
 		writeFileSync(candidatePath, JSON.stringify(value));
 		const result = executeCommit(root, candidatePath, authorize(root, value, "Woo Test"), policy);
 		const receipt = JSON.parse(readFileSync(result.receipt, "utf8")) as { result: { files: string[] } };

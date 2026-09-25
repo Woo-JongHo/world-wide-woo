@@ -1,19 +1,25 @@
-import { describe, expect, test } from "bun:test";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { TodoIdentityCollisionError, TodoLedger, TodoNativeSourceError, TodoWriteConflictError } from "../src/core/application/work/todo-ledger.js";
-import type { SessionEvent, SessionEventInput } from "../src/core/domain/execution/session-events";
-import { renderTodoMarkdown, type TodoDocument } from "../src/core/domain/work/todos";
+import { describe, expect, test }                    from "bun:test";
+import { mkdtemp, rm, writeFile }                    from "node:fs/promises";
+import { tmpdir }                                    from "node:os";
+import { join }                                      from "node:path";
+import {
+	TodoIdentityCollisionError,
+	TodoLedger,
+	TodoNativeSourceError,
+	TodoWriteConflictError,
+} from "../src/core/application/work/todo-ledger.js";
+import type { SessionEvent, SessionEventInput }      from "../src/core/domain/execution/session-events";
+import { renderTodoMarkdown }                        from "../src/core/domain/work/todos";
+import type { TodoDocument }                         from "../src/core/domain/work/todos";
 import type { SemanticWorkStep, WorkFlowProjection } from "../src/core/domain/work";
-import type { SessionRepository, TodoStore } from "../src/core/ports";
-import { FileTodoStore } from "../src/adapters/outbound/persistence/todo-store.js";
+import type { SessionRepository, TodoStore }         from "../src/core/ports";
+import { FileTodoStore }                             from "../src/adapters/outbound/persistence/todo-store.js";
 
 class MemoryTodoStore implements TodoStore {
-	public document: TodoDocument | null = null;
-	public conflict = false;
-	public source: string | null = null;
-	public compareAndSwapCalls = 0;
+	public document : TodoDocument | null = null  ;
+	public conflict                       = false ;
+	public source   : string | null       = null  ;
+	public compareAndSwapCalls            = 0     ;
 	public async read(): Promise<TodoDocument | null> { return this.document; }
 	public async readSource(): Promise<string | null> { return this.source; }
 	public async compareAndSwap(expected: number | null, next: TodoDocument): Promise<"written" | "conflict"> {
@@ -57,10 +63,10 @@ function nativeIdentity(value: string): SemanticWorkStep["identity"] {
 
 function nativeRevision(value: string): SemanticWorkStep["currentRevision"] {
 	return {
-		sourceRevisionKeyDigest: value,
-		activityId: `activity-${value}`,
-		sequence: 1,
-		sourceDigest: `sha256:${value}`,
+		sourceRevisionKeyDigest : value,
+		activityId              : `activity-${value}`,
+		sequence                : 1,
+		sourceDigest            : `sha256:${value}`,
 	};
 }
 
@@ -75,14 +81,14 @@ function nativeStep(
 		id: identity.value,
 		identity,
 		currentRevision,
-		reconciliation: { kind: "minted", evidence: { kind: "mint", tokenDigest: identityValue, sourceRevisionOrdinal: 1, sourcePosition: index } },
-		association: null,
-		number: index + 1,
-		title: `Step ${index + 1}`,
-		status: index === 0 ? "running" : "pending",
-		activityIds: [],
-		observationCount: 0,
-		narration: { what: `Step ${index + 1}`, inputSummary: [], source: "plan" },
+		reconciliation   : { kind: "minted", evidence: { kind: "mint", tokenDigest: identityValue, sourceRevisionOrdinal: 1, sourcePosition: index } },
+		association      : null,
+		number           : index + 1,
+		title            : `Step ${index + 1}`,
+		status           : index === 0 ? "running" : "pending",
+		activityIds      : [],
+		observationCount : 0,
+		narration        : { what: `Step ${index + 1}`, inputSummary: [], source: "plan" },
 		...overrides,
 	};
 }
@@ -91,22 +97,22 @@ function nativeFlow(identities: readonly string[]): WorkFlowProjection {
 	const revision = nativeRevision("f".repeat(64));
 	return {
 		source: {
-			kind: "native-plan-derived",
-			authority: "native-checklist",
-			expectedThreadKeyDigest: "f".repeat(64),
-			turnId: "turn-native",
-			currentRevision: revision,
-			algorithm: "dplan-v1",
+			kind                    : "native-plan-derived",
+			authority               : "native-checklist",
+			expectedThreadKeyDigest : "f".repeat(64),
+			turnId                  : "turn-native",
+			currentRevision         : revision,
+			algorithm               : "dplan-v1",
 		},
-		retirements: [],
-		orphans: [],
-		rejections: [],
-		goal: "Native plan",
-		steps: identities.map((identity, index) => ({ ...nativeStep(identity, index), currentRevision: revision })),
-		completedCount: 0,
-		currentStepNumber: 1,
-		observationCount: 0,
-		summary: "",
+		retirements       : [],
+		orphans           : [],
+		rejections        : [],
+		goal              : "Native plan",
+		steps             : identities.map((identity, index) => ({ ...nativeStep(identity, index), currentRevision: revision })),
+		completedCount    : 0,
+		currentStepNumber : 1,
+		observationCount  : 0,
+		summary           : "",
 	};
 }
 
@@ -120,21 +126,21 @@ describe("TodoLedger", () => {
 			...runningBase,
 			goal: "Native 계획을 Todo로 반영한다",
 			steps: [nativeStep("a".repeat(64), 0, {
-				title: "계획 자동 동기화",
-				status: "running",
-				activityIds: ["activity-1"],
+				title       : "계획 자동 동기화",
+				status      : "running",
+				activityIds : ["activity-1"],
 				narration: {
-					what: "Todo 저장 경계를 연결합니다.",
-					why: "진행 상황을 코드가 아닌 문장으로 보여주기 위해서입니다.",
-					inputSummary: ["command: sed -n '1,200p' src/application/todo-ledger.ts"],
-					source: "model",
+					what         : "Todo 저장 경계를 연결합니다.",
+					why          : "진행 상황을 코드가 아닌 문장으로 보여주기 위해서입니다.",
+					inputSummary : ["command: sed -n '1,200p' src/application/todo-ledger.ts"],
+					source       : "model",
 				},
 				currentRevision: runningBase.source!.currentRevision,
 			}), nativeStep("b".repeat(64), 1, {
-				title: "동기화 결과 검증",
-				status: "pending",
-				narration: { what: "동기화 결과 검증", inputSummary: [], source: "plan" },
-				currentRevision: runningBase.source!.currentRevision,
+				title           : "동기화 결과 검증",
+				status          : "pending",
+				narration       : { what: "동기화 결과 검증", inputSummary: [], source: "plan" },
+				currentRevision : runningBase.source!.currentRevision,
 			})],
 			summary: "2단계 중 0단계를 완료했고, 현재 1단계를 진행하고 있습니다.",
 		};
@@ -152,17 +158,17 @@ describe("TodoLedger", () => {
 		expect(first.items[0]?.details).toEqual([]);
 		expect(first.items[0]?.evidenceIds).toEqual(["activity-1"]);
 		expect(first.source).toMatchObject({
-			kind: "native-plan",
-			turnId: "turn-native",
-			input: { activityId: "request-activity", requestId: "request-1" },
-			rootExecution: { model: "gpt-5.6-sol", agentId: null, threadId: "thread-native", runId: "turn-native" },
+			kind          : "native-plan",
+			turnId        : "turn-native",
+			input         : { activityId: "request-activity", requestId: "request-1" },
+			rootExecution : { model: "gpt-5.6-sol", agentId: null, threadId: "thread-native", runId: "turn-native" },
 		});
 		expect(first.items[0]?.source).toMatchObject({
-			kind: "native-plan-item",
-			identity: "a".repeat(64),
-			originRevision: running.steps[0]?.identity.originRevision,
-			currentRevision: running.steps[0]?.currentRevision,
-			executions: [{ model: "gpt-5.6-sol", runId: "turn-native" }],
+			kind            : "native-plan-item",
+			identity        : "a".repeat(64),
+			originRevision  : running.steps[0]?.identity.originRevision,
+			currentRevision : running.steps[0]?.currentRevision,
+			executions      : [{ model: "gpt-5.6-sol", runId: "turn-native" }],
 		});
 
 		const unchanged = await syncNativePlan(running, {
@@ -238,9 +244,9 @@ describe("TodoLedger", () => {
 	test("enriches the same Plan revision when its observed input reference arrives later", async () => {
 		const fixture = ledger();
 		await fixture.ledger.initialize();
-		const flow = nativeFlow(["a".repeat(64)]);
-		const rootExecution = { provider: null, model: null, agentId: null, threadId: "thread-native", runId: "turn-native" };
-		const first = await fixture.ledger.syncNativePlan(flow, { input: null, rootExecution });
+		const flow          = nativeFlow(["a".repeat(64)])                                                                    ;
+		const rootExecution = { provider: null, model: null, agentId: null, threadId: "thread-native", runId: "turn-native" } ;
+		const first         = await fixture.ledger.syncNativePlan(flow, { input: null, rootExecution })                       ;
 		const enriched = await fixture.ledger.syncNativePlan(flow, {
 			input: { activityId: "request-activity", requestId: "request-1", sourceDigest: `sha256:${"1".repeat(64)}` },
 			rootExecution,
@@ -248,9 +254,9 @@ describe("TodoLedger", () => {
 
 		expect(enriched.revision).toBe(first.revision + 1);
 		expect(enriched.source?.input).toEqual({
-			activityId: "request-activity",
-			requestId: "request-1",
-			sourceDigest: `sha256:${"1".repeat(64)}`,
+			activityId   : "request-activity",
+			requestId    : "request-1",
+			sourceDigest : `sha256:${"1".repeat(64)}`,
 		});
 	});
 
@@ -263,25 +269,25 @@ describe("TodoLedger", () => {
 			...coarseBase,
 			goal: "bun test src/application/todo-ledger.ts",
 			steps: [nativeStep("c".repeat(64), 0, {
-				title: "src/application/todo-ledger.ts 변경",
-				status: "running",
-				narration: { what: "command: bun test --filter todo", why: null as unknown as string, inputSummary: [], source: "model" },
+				title     : "src/application/todo-ledger.ts 변경",
+				status    : "running",
+				narration : { what: "command: bun test --filter todo", why: null as unknown as string, inputSummary: [], source: "model" },
 			}), nativeStep("d".repeat(64), 1, {
-				title: "args: {\"path\":\"src/domain/work-steps.ts\"}",
-				status: "pending",
-				narration: { what: "src/domain/work-steps.ts 변경", inputSummary: [], source: "fallback" },
+				title     : "args: {\"path\":\"src/domain/work-steps.ts\"}",
+				status    : "pending",
+				narration : { what: "src/domain/work-steps.ts 변경", inputSummary: [], source: "fallback" },
 			}), nativeStep("e".repeat(64), 2, {
-				title: "apply_patch src/domain/work-steps.ts",
-				status: "pending",
-				narration: { what: "args: --path src/domain/work-steps.ts", why: "path: src/domain/work-steps.ts", inputSummary: [], source: "fallback" },
+				title     : "apply_patch src/domain/work-steps.ts",
+				status    : "pending",
+				narration : { what: "args: --path src/domain/work-steps.ts", why: "path: src/domain/work-steps.ts", inputSummary: [], source: "fallback" },
 			}), nativeStep("f".repeat(64), 3, {
 				title: "todo-ledger.ts 수정",
 				status: "pending",
 				narration: {
-					what: "검증 전에 `bun test --filter todo`를 실행합니다.",
-					why: "package.json 변경이 필요한지 확인합니다.",
-					inputSummary: [],
-					source: "model",
+					what         : "검증 전에 `bun test --filter todo`를 실행합니다.",
+					why          : "package.json 변경이 필요한지 확인합니다.",
+					inputSummary : [],
+					source       : "model",
 				},
 			})].map((step) => ({ ...step, currentRevision: coarseBase.source!.currentRevision })),
 			summary: "",
@@ -300,11 +306,11 @@ describe("TodoLedger", () => {
 	test("keeps deterministic Native Todo IDs across insertion, reorder, edit, and replay", async () => {
 		const fixture = ledger();
 		await fixture.ledger.initialize();
-		const alpha = "a".repeat(64);
-		const beta = "b".repeat(64);
-		const gamma = "c".repeat(64);
-		const first = await fixture.ledger.syncNativePlan(nativeFlow([alpha, beta]));
-		const inserted = await fixture.ledger.syncNativePlan(nativeFlow([gamma, beta, alpha]));
+		const alpha    = "a".repeat(64)                                                        ;
+		const beta     = "b".repeat(64)                                                        ;
+		const gamma    = "c".repeat(64)                                                        ;
+		const first    = await fixture.ledger.syncNativePlan(nativeFlow([alpha, beta]))        ;
+		const inserted = await fixture.ledger.syncNativePlan(nativeFlow([gamma, beta, alpha])) ;
 		const editedFlow: WorkFlowProjection = {
 			...nativeFlow([gamma, beta, alpha]),
 			steps: nativeFlow([gamma, beta, alpha]).steps.map((step, index) =>
@@ -325,11 +331,11 @@ describe("TodoLedger", () => {
 	test("rejects invalid identities and truncated-prefix collisions before writes or events", async () => {
 		const fixture = ledger();
 		await fixture.ledger.initialize();
-		const valid = "a".repeat(64);
-		const baseline = await fixture.ledger.syncNativePlan(nativeFlow([valid]));
-		const prefix = "b".repeat(48);
-		const colliding = nativeFlow([`${prefix}${"c".repeat(16)}`, `${prefix}${"d".repeat(16)}`]);
-		const baselineCasCalls = fixture.store.compareAndSwapCalls;
+		const valid            = "a".repeat(64)                                                           ;
+		const baseline         = await fixture.ledger.syncNativePlan(nativeFlow([valid]))                 ;
+		const prefix           = "b".repeat(48)                                                           ;
+		const colliding        = nativeFlow([`${prefix}${"c".repeat(16)}`, `${prefix}${"d".repeat(16)}`]) ;
+		const baselineCasCalls = fixture.store.compareAndSwapCalls                                        ;
 
 		await expect(fixture.ledger.syncNativePlan(colliding)).rejects.toEqual(expect.objectContaining({
 			name: "TodoIdentityCollisionError",
@@ -348,9 +354,9 @@ describe("TodoLedger", () => {
 	test("fails closed for missing or forged Native source authority before writes or events", async () => {
 		const fixture = ledger();
 		await fixture.ledger.initialize();
-		const valid = "a".repeat(64);
-		const baseline = await fixture.ledger.syncNativePlan(nativeFlow([valid]));
-		const source = nativeFlow([valid]).source!;
+		const valid    = "a".repeat(64)                                           ;
+		const baseline = await fixture.ledger.syncNativePlan(nativeFlow([valid])) ;
+		const source   = nativeFlow([valid]).source!                              ;
 		const forgedSources: readonly unknown[] = [
 			null,
 			{ ...source, kind: "forged" },
@@ -548,18 +554,18 @@ describe("TodoLedger", () => {
 	});
 
 	test("reflects a debounced external file edit in the live ledger snapshot", async () => {
-		const directory = await mkdtemp(join(tmpdir(), "www-todo-ledger-watch-"));
-		const path = join(directory, "Todo.md");
-		const ledger = new TodoLedger("session-1", new FileTodoStore(path), new MemoryEvents());
+		const directory = await mkdtemp(join(tmpdir(), "www-todo-ledger-watch-"))                  ;
+		const path      = join(directory, "Todo.md")                                               ;
+		const ledger    = new TodoLedger("session-1", new FileTodoStore(path), new MemoryEvents()) ;
 		try {
 			await ledger.initialize();
 			const created = await ledger.create("Local", ["one"]);
 			await Bun.sleep(100);
 			await writeFile(path, renderTodoMarkdown({
 				...created,
-				revision: 1,
-				title: "Edited in Obsidian",
-				updatedAt: "2026-08-31T08:01:00.000Z",
+				revision  : 1,
+				title     : "Edited in Obsidian",
+				updatedAt : "2026-08-31T08:01:00.000Z",
 			}));
 			await Bun.sleep(140);
 			expect(ledger.snapshot?.title).toBe("Edited in Obsidian");

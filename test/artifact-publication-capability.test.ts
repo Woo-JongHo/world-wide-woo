@@ -1,22 +1,23 @@
-import { expect, test } from "bun:test";
-import { artifactCandidateDigest, renderArtifactCandidate, type ArtifactCandidate } from "../src/core/domain/development/artifact-control";
-import { artifactPublicationCapability } from "../src/core/application/orchestration/artifact-publication-capability";
-import { GitHubArtifactPublication } from "../src/adapters/outbound/development/github-artifact-publication";
-import type { RequestActionIntent } from "../src/core/ports/execution/request-action-port";
-import { McpLinearArtifactPublication } from "../src/adapters/outbound/development/linear-artifact-publication";
-import { ObsidianArtifactPublication } from "../src/adapters/outbound/development/obsidian-artifact-publication";
-import { OBSIDIAN_SECTIONS } from "../src/core/domain/development/obsidian-contract";
-import { createHash } from "node:crypto";
+import { expect, test }                                        from "bun:test";
+import { artifactCandidateDigest, renderArtifactCandidate }    from "../src/core/domain/development/artifact-control";
+import type { ArtifactCandidate }                              from "../src/core/domain/development/artifact-control";
+import { artifactPublicationCapability }                       from "../src/core/application/orchestration/artifact-publication-capability";
+import { GitHubArtifactPublication }                           from "../src/adapters/outbound/development/github-artifact-publication";
+import type { RequestActionIntent }                            from "../src/core/ports/execution/request-action-port";
+import { McpLinearArtifactPublication }                        from "../src/adapters/outbound/development/linear-artifact-publication";
+import { ObsidianArtifactPublication }                         from "../src/adapters/outbound/development/obsidian-artifact-publication";
+import { OBSIDIAN_SECTIONS }                                   from "../src/core/domain/development/obsidian-contract";
+import { createHash }                                          from "node:crypto";
 import { mkdtemp, realpath, writeFile, readFile, rm, symlink } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { tmpdir }                                              from "node:os";
+import { join }                                                from "node:path";
 
 function fixture() {
 	const candidate: ArtifactCandidate = { schemaVersion: "1.0", candidateId: "ARTIFACT-CANDIDATE-TEST-PUBLISH", kind: "github-issue", sourceRevision: "fixture:1", intent: "테스트 대상의 본문을 갱신한다", target: { repository: "fixture/repo", issue: 7 }, content: { issueType: "bug", title: "진행 상태를 고친다", statement: "상태 표시가 잘못되었다", details: ["테스트 fixture의 상태 확인"] }, links: {}, expectedBefore: { title: "before", body: "before", updatedAt: "revision-1" }, validation: [{ id: "fixture", status: "pass", evidence: "simulated fixture approval, not a remote receipt" }], candidateDigest: "" };
 	candidate.candidateDigest = artifactCandidateDigest(candidate);
-	let state = { number: 7, html_url: "https://github.com/fixture/repo/issues/7", title: "before", body: "before", updated_at: "revision-1" };
-	const calls: { method: string; body?: string | null }[] = [];
-	let loseResponse = false;
+	let state                                               = { number: 7, html_url: "https://github.com/fixture/repo/issues/7", title: "before", body: "before", updated_at: "revision-1" } ;
+	const calls: { method: string; body?: string | null }[] = []                                                                                                                             ;
+	let loseResponse                                        = false                                                                                                                          ;
 	const request = (async (url: string, options: RequestInit) => {
 		expect(url).toBe("https://api.github.com/repos/fixture/repo/issues/7");
 		expect(options.redirect).toBe("error");
@@ -30,9 +31,9 @@ function fixture() {
 		}
 		return new Response(JSON.stringify(state), { status: 200 });
 	}) as unknown as typeof fetch;
-	const port = new GitHubArtifactPublication(async () => "fixture-secret", request);
-	const intent: RequestActionIntent = { requestId: "r", operationId: "publish", stage: "DELIVER", capability: port.capabilityId, expectedRevision: 7, arguments: { candidateId: candidate.candidateId } };
-	const capability = artifactPublicationCapability(port, [candidate], [{ requestId: "r", operationId: "publish", expectedRevision: 7, candidateDigest: candidate.candidateDigest }]);
+	const port                        = new GitHubArtifactPublication(async () => "fixture-secret", request)                                                                                                ;
+	const intent: RequestActionIntent = { requestId: "r", operationId: "publish", stage: "DELIVER", capability: port.capabilityId, expectedRevision: 7, arguments: { candidateId: candidate.candidateId } } ;
+	const capability                  = artifactPublicationCapability(port, [candidate], [{ requestId: "r", operationId: "publish", expectedRevision: 7, candidateDigest: candidate.candidateDigest }])     ;
 	return { candidate, capability, port, intent, calls, drift: () => { state.title = "changed externally"; }, lose: () => { loseResponse = true; } };
 }
 
@@ -102,9 +103,9 @@ test("Obsidian publishes a complete canonical artifact with read-back and reject
 		const candidate: ArtifactCandidate = { ...fixture().candidate, kind: "obsidian-canonical", target: { relativePath: "record.md" }, content: { properties: { title: "Runtime 기록", schema: 2 }, sections: Object.fromEntries(OBSIDIAN_SECTIONS.map(s => [s, "테스트 fixture의 실제 게시 내용"])) }, expectedBefore: { digest: `sha256:${createHash("sha256").update("before").digest("hex")}` } };
 		candidate.candidateDigest = artifactCandidateDigest(candidate);
 		const port = new ObsidianArtifactPublication(dir), cap = artifactPublicationCapability(port, [candidate], []);
-		const intent = { ...fixture().intent, capability: cap.id, arguments: { candidateId: candidate.candidateId } };
-		const signal = new AbortController().signal;
-		const result = await cap.execute(intent, signal, { intent });
+		const intent = { ...fixture().intent, capability: cap.id, arguments: { candidateId: candidate.candidateId } } ;
+		const signal = new AbortController().signal                                                                   ;
+		const result = await cap.execute(intent, signal, { intent })                                                  ;
 		expect(result.outcome).toBe("passed"); expect(result.delivery?.artifact).toBe(path);
 		expect(await readFile(path, "utf8")).toBe(renderArtifactCandidate(candidate));
 		expect((await cap.reconciliation!.readBack(cap.reconciliation!.prepare(intent), signal)).confirmed).toBe(true);

@@ -1,17 +1,23 @@
-import { describe, expect, test } from "bun:test";
-import { ProjectWorkbench, type WorkbenchActivityJournal } from "../src/core/application/orchestration/project-workbench.js";
-import type { SessionRepository, TodoStore } from "../src/core/ports/index.js";
-import { TodoLedger } from "../src/core/application/work/todo-ledger.js";
+import { describe, expect, test }               from "bun:test";
+import { ProjectWorkbench }                     from "../src/core/application/orchestration/project-workbench.js";
+import type { WorkbenchActivityJournal }        from "../src/core/application/orchestration/project-workbench.js";
+import type { SessionRepository, TodoStore }    from "../src/core/ports/index.js";
+import { TodoLedger }                           from "../src/core/application/work/todo-ledger.js";
 import type { SessionEvent, SessionEventInput } from "../src/core/domain/execution/session-events.js";
-import type { ProjectActivity, ProjectActivityAppendResult, ProjectActivityInput } from "../src/core/domain/execution/project-activity.js";
-import type { TodoDocument, TodoItemStatus } from "../src/core/domain/work/todos.js";
-import { CodexAppServer, type JsonLineTransport } from "../src/adapters/outbound/execution/codex-app-server.js";
+import type {
+	ProjectActivity,
+	ProjectActivityAppendResult,
+	ProjectActivityInput,
+} from "../src/core/domain/execution/project-activity.js";
+import type { TodoDocument, TodoItemStatus }    from "../src/core/domain/work/todos.js";
+import { CodexAppServer }                       from "../src/adapters/outbound/execution/codex-app-server.js";
+import type { JsonLineTransport }               from "../src/adapters/outbound/execution/codex-app-server.js";
 
 class FakeJsonLineTransport implements JsonLineTransport {
-	public readonly sent: Array<Record<string, unknown>> = [];
-	public readonly responses = new Map<string, unknown[]>();
-	private readonly lineListeners = new Set<(line: string) => void>();
-	private readonly closeListeners = new Set<(error?: Error) => void>();
+	public readonly sent: Array<Record<string, unknown>> = []                                 ;
+	public readonly responses                            = new Map<string, unknown[]>()       ;
+	private readonly lineListeners                       = new Set<(line: string) => void>()  ;
+	private readonly closeListeners                      = new Set<(error?: Error) => void>() ;
 
 	public async send(line: string): Promise<void> {
 		const message = JSON.parse(line) as Record<string, unknown>;
@@ -49,10 +55,10 @@ class MemoryJournal implements WorkbenchActivityJournal {
 	public async append(input: ProjectActivityInput): Promise<ProjectActivityAppendResult> {
 		const activity: ProjectActivity = {
 			...input,
-			schemaVersion: 1,
-			id: `activity-${++this.sequence}`,
-			sequence: this.sequence,
-			recordedAt: new Date(1_700_000_000_000 + this.sequence).toISOString(),
+			schemaVersion : 1,
+			id            : `activity-${++this.sequence}`,
+			sequence      : this.sequence,
+			recordedAt    : new Date(1_700_000_000_000 + this.sequence).toISOString(),
 		};
 		this.records.push(activity);
 		return { activity, appended: true };
@@ -103,9 +109,9 @@ async function waitFor(assertion: () => void, attempts = 80): Promise<void> {
 	throw lastError;
 }
 
-const runtimeTodoStageIds = ["understand", "decompose", "ground", "decide", "execute", "verify", "deliver"] as const;
-const blockedRuntimeTodoStatuses = ["blocked", "blocked", "blocked", "blocked", "blocked", "blocked", "blocked"] as const;
-const activeRuntimeTodoStatuses = ["in_progress", "pending", "pending", "pending", "pending", "pending", "pending"] as const;
+const runtimeTodoStageIds        = ["understand", "decompose", "ground", "decide", "execute", "verify", "deliver"] as const   ;
+const blockedRuntimeTodoStatuses = ["blocked", "blocked", "blocked", "blocked", "blocked", "blocked", "blocked"] as const     ;
+const activeRuntimeTodoStatuses  = ["in_progress", "pending", "pending", "pending", "pending", "pending", "pending"] as const ;
 
 function expectRuntimeTodo(todo: TodoDocument | null, statuses: readonly TodoItemStatus[]): void {
 	expect(todo?.items.map(({ id, status }) => ({ id, status }))).toEqual(
@@ -122,10 +128,10 @@ describe("Native Plan and Runtime Todo boundaries", () => {
 			{ turn: { id: "turn-plan", items: [] } },
 			{ turn: { id: "turn-execute", items: [] } },
 		]);
-		const server = await CodexAppServer.connectTransport(transport);
-		const journal = new MemoryJournal();
-		const store = new MemoryTodoStore();
-		const ledger = new TodoLedger("public-plan-fallback", store, new MemoryEvents(), () => new Date("2026-09-07T00:00:00.000Z"));
+		const server  = await CodexAppServer.connectTransport(transport)                                                              ;
+		const journal = new MemoryJournal()                                                                                           ;
+		const store   = new MemoryTodoStore()                                                                                         ;
+		const ledger  = new TodoLedger("public-plan-fallback", store, new MemoryEvents(), () => new Date("2026-09-07T00:00:00.000Z")) ;
 		await ledger.initialize();
 		const todos = Object.assign(ledger, { importLegacy: async (): Promise<string | null> => null });
 		const workbench = new ProjectWorkbench(server, journal, {
@@ -144,26 +150,26 @@ describe("Native Plan and Runtime Todo boundaries", () => {
 					threadId: "thread-root",
 					turnId: "turn-plan",
 					item: {
-						id: "answer-plan",
-						type: "agentMessage",
-						text: "3단계 Plan입니다.\n\n1. 현재 상태를 확인합니다.\n2. 필요한 변경을 적용합니다.\n3. 결과를 검증합니다.\n\n파일은 수정하지 않겠습니다.",
+						id   : "answer-plan",
+						type : "agentMessage",
+						text : "3단계 Plan입니다.\n\n1. 현재 상태를 확인합니다.\n2. 필요한 변경을 적용합니다.\n3. 결과를 검증합니다.\n\n파일은 수정하지 않겠습니다.",
 					},
 				},
 			});
 			transport.emit({
 				method: "item/completed",
 				params: {
-					threadId: "thread-root",
-					turnId: "turn-plan",
-					item: { id: "plan-action", type: "commandExecution", command: "cat README.md package.json" },
+					threadId : "thread-root",
+					turnId   : "turn-plan",
+					item     : { id: "plan-action", type: "commandExecution", command: "cat README.md package.json" },
 				},
 			});
 			transport.emit({
 				method: "item/completed",
 				params: {
-					threadId: "thread-root",
-					turnId: "turn-plan",
-					item: { id: "final-answer", type: "agentMessage", text: "제품 이름과 버전이 일치합니다." },
+					threadId : "thread-root",
+					turnId   : "turn-plan",
+					item     : { id: "final-answer", type: "agentMessage", text: "제품 이름과 버전이 일치합니다." },
 				},
 			});
 			transport.emit({
@@ -178,10 +184,10 @@ describe("Native Plan and Runtime Todo boundaries", () => {
 
 			const fallback = journal.records.find((activity) => activity.payload.method === "turn/plan/public-fallback");
 			expect(fallback).toMatchObject({
-				kind: "progress",
-				phase: "completed",
-				nativeRefs: { threadId: "thread-root", turnId: "turn-plan", itemId: "public-plan-fallback:turn-plan" },
-				payload: { source: "public-assistant-response" },
+				kind       : "progress",
+				phase      : "completed",
+				nativeRefs : { threadId: "thread-root", turnId: "turn-plan", itemId: "public-plan-fallback:turn-plan" },
+				payload    : { source: "public-assistant-response" },
 			});
 			expect(journal.records.some((activity) => activity.payload.source === "public-user-request")).toBe(false);
 			const planTurnAction = journal.records.find((activity) => activity.nativeRefs.itemId === "plan-action");
@@ -197,9 +203,9 @@ describe("Native Plan and Runtime Todo boundaries", () => {
 			transport.emit({
 				method: "item/completed",
 				params: {
-					threadId: "thread-root",
-					turnId: "turn-execute",
-					item: { id: "manual-action", type: "commandExecution", command: "apply_patch target.ts" },
+					threadId : "thread-root",
+					turnId   : "turn-execute",
+					item     : { id: "manual-action", type: "commandExecution", command: "apply_patch target.ts" },
 				},
 			});
 			await waitFor(() => expect(journal.records.some(activity => activity.nativeRefs.itemId === "manual-action")).toBe(true));
@@ -218,15 +224,15 @@ describe("Native Plan and Runtime Todo boundaries", () => {
 		transport.responses.set("mcpServerStatus/list", [{ data: [], nextCursor: null }]);
 		transport.responses.set("thread/start", [{ thread: { id: "thread-root", turns: [] } }]);
 		transport.responses.set("turn/start", [{ turn: { id: "turn-plan", items: [] } }]);
-		const server = await CodexAppServer.connectTransport(transport);
-		const journal = new MemoryJournal();
-		const store = new MemoryTodoStore();
-		const ledger = new TodoLedger("structured-plan-priority", store, new MemoryEvents());
+		const server  = await CodexAppServer.connectTransport(transport)                      ;
+		const journal = new MemoryJournal()                                                   ;
+		const store   = new MemoryTodoStore()                                                 ;
+		const ledger  = new TodoLedger("structured-plan-priority", store, new MemoryEvents()) ;
 		await ledger.initialize();
 		const workbench = new ProjectWorkbench(server, journal, {
-			projectId: "structured-plan-priority",
-			cwd: "/workspace/structured-plan-priority",
-			todos: Object.assign(ledger, { importLegacy: async (): Promise<string | null> => null }),
+			projectId : "structured-plan-priority",
+			cwd       : "/workspace/structured-plan-priority",
+			todos     : Object.assign(ledger, { importLegacy: async (): Promise<string | null> => null }),
 		});
 		try {
 			await waitFor(() => expect(workbench.snapshot.phase).toBe("ready"));
@@ -235,17 +241,17 @@ describe("Native Plan and Runtime Todo boundaries", () => {
 			transport.emit({
 				method: "turn/plan/updated",
 				params: {
-					threadId: "thread-root",
-					turnId: "turn-plan",
-					plan: [{ step: "Native 계획", status: "inProgress" }, { step: "Native 검증", status: "pending" }],
+					threadId : "thread-root",
+					turnId   : "turn-plan",
+					plan     : [{ step: "Native 계획", status: "inProgress" }, { step: "Native 검증", status: "pending" }],
 				},
 			});
 			transport.emit({
 				method: "item/completed",
 				params: {
-					threadId: "thread-root",
-					turnId: "turn-plan",
-					item: { id: "answer-plan", type: "agentMessage", text: "계획입니다.\n1. 공개 목록 A\n2. 공개 목록 B" },
+					threadId : "thread-root",
+					turnId   : "turn-plan",
+					item     : { id: "answer-plan", type: "agentMessage", text: "계획입니다.\n1. 공개 목록 A\n2. 공개 목록 B" },
 				},
 			});
 			transport.emit({
@@ -266,15 +272,15 @@ describe("Native Plan and Runtime Todo boundaries", () => {
 		transport.responses.set("mcpServerStatus/list", [{ data: [], nextCursor: null }]);
 		transport.responses.set("thread/start", [{ thread: { id: "thread-root", turns: [] } }]);
 		transport.responses.set("turn/start", [{ turn: { id: "turn-plan", items: [] } }]);
-		const server = await CodexAppServer.connectTransport(transport);
-		const journal = new MemoryJournal();
-		const store = new MemoryTodoStore();
-		const ledger = new TodoLedger("missing-plan-body", store, new MemoryEvents());
+		const server  = await CodexAppServer.connectTransport(transport)               ;
+		const journal = new MemoryJournal()                                            ;
+		const store   = new MemoryTodoStore()                                          ;
+		const ledger  = new TodoLedger("missing-plan-body", store, new MemoryEvents()) ;
 		await ledger.initialize();
 		const workbench = new ProjectWorkbench(server, journal, {
-			projectId: "missing-plan-body",
-			cwd: "/workspace/missing-plan-body",
-			todos: Object.assign(ledger, { importLegacy: async (): Promise<string | null> => null }),
+			projectId : "missing-plan-body",
+			cwd       : "/workspace/missing-plan-body",
+			todos     : Object.assign(ledger, { importLegacy: async (): Promise<string | null> => null }),
 		});
 		try {
 			await waitFor(() => expect(workbench.snapshot.phase).toBe("ready"));
@@ -283,9 +289,9 @@ describe("Native Plan and Runtime Todo boundaries", () => {
 			transport.emit({
 				method: "item/completed",
 				params: {
-					threadId: "thread-root",
-					turnId: "turn-plan",
-					item: { id: "observed-command", type: "commandExecution", command: "rg --files src" },
+					threadId : "thread-root",
+					turnId   : "turn-plan",
+					item     : { id: "observed-command", type: "commandExecution", command: "rg --files src" },
 				},
 			});
 			transport.emit({
@@ -308,15 +314,15 @@ describe("Native Plan and Runtime Todo boundaries", () => {
 		transport.responses.set("mcpServerStatus/list", [{ data: [], nextCursor: null }]);
 		transport.responses.set("thread/start", [{ thread: { id: "thread-root", turns: [] } }]);
 		transport.responses.set("turn/start", [{ turn: { id: "turn-test2", items: [] } }]);
-		const server = await CodexAppServer.connectTransport(transport);
-		const journal = new MemoryJournal();
-		const store = new MemoryTodoStore();
-		const ledger = new TodoLedger("test2-heading-plan", store, new MemoryEvents());
+		const server  = await CodexAppServer.connectTransport(transport)                ;
+		const journal = new MemoryJournal()                                             ;
+		const store   = new MemoryTodoStore()                                           ;
+		const ledger  = new TodoLedger("test2-heading-plan", store, new MemoryEvents()) ;
 		await ledger.initialize();
 		const workbench = new ProjectWorkbench(server, journal, {
-			projectId: "test2-heading-plan",
-			cwd: "/workspace/test2-heading-plan",
-			todos: Object.assign(ledger, { importLegacy: async (): Promise<string | null> => null }),
+			projectId : "test2-heading-plan",
+			cwd       : "/workspace/test2-heading-plan",
+			todos     : Object.assign(ledger, { importLegacy: async (): Promise<string | null> => null }),
 		});
 		try {
 			await waitFor(() => expect(workbench.snapshot.phase).toBe("ready"));
@@ -358,9 +364,9 @@ describe("Native Plan and Runtime Todo boundaries", () => {
 
 			await waitFor(() => expect(workbench.snapshot.workFlow.steps).toHaveLength(3));
 			expect(workbench.snapshot.workFlow.steps.map(({ title, status }) => ({ title, status }))).toEqual([
-				{ title: "값 추출", status: "running" },
-				{ title: "의미 비교", status: "pending" },
-				{ title: "결과 보고", status: "pending" },
+				{ title : "값 추출"   , status : "running" },
+				{ title : "의미 비교" , status : "pending" },
+				{ title : "결과 보고" , status : "pending" },
 			]);
 			expectRuntimeTodo(ledger.snapshot, blockedRuntimeTodoStatuses);
 			expect(journal.records.some((activity) => activity.payload.source === "public-user-request")).toBe(false);
@@ -381,15 +387,15 @@ describe("Native Plan and Runtime Todo boundaries", () => {
 		transport.responses.set("mcpServerStatus/list", [{ data: [], nextCursor: null }]);
 		transport.responses.set("thread/start", [{ thread: { id: "thread-root", turns: [] } }]);
 		transport.responses.set("turn/start", [{ turn: { id: "turn-test2-list", items: [] } }]);
-		const server = await CodexAppServer.connectTransport(transport);
-		const journal = new MemoryJournal();
-		const store = new MemoryTodoStore();
-		const ledger = new TodoLedger("test2-numbered-list-plan", store, new MemoryEvents());
+		const server  = await CodexAppServer.connectTransport(transport)                      ;
+		const journal = new MemoryJournal()                                                   ;
+		const store   = new MemoryTodoStore()                                                 ;
+		const ledger  = new TodoLedger("test2-numbered-list-plan", store, new MemoryEvents()) ;
 		await ledger.initialize();
 		const workbench = new ProjectWorkbench(server, journal, {
-			projectId: "test2-numbered-list-plan",
-			cwd: "/workspace/test2-numbered-list-plan",
-			todos: Object.assign(ledger, { importLegacy: async (): Promise<string | null> => null }),
+			projectId : "test2-numbered-list-plan",
+			cwd       : "/workspace/test2-numbered-list-plan",
+			todos     : Object.assign(ledger, { importLegacy: async (): Promise<string | null> => null }),
 		});
 		try {
 			await waitFor(() => expect(workbench.snapshot.phase).toBe("ready"));
@@ -424,9 +430,9 @@ describe("Native Plan and Runtime Todo boundaries", () => {
 
 			await waitFor(() => expect(workbench.snapshot.workFlow.steps).toHaveLength(3));
 			expect(workbench.snapshot.workFlow.steps.map(({ title, status }) => ({ title, status }))).toEqual([
-				{ title: "README.md에서 제품명과 버전 관련 표현을 추출한다.", status: "running" },
-				{ title: "package.json에서 패키지명과 현재 버전을 추출해 대조한다.", status: "pending" },
-				{ title: "제품명 일치 여부와 버전 표현의 의미 차이를 보고한다.", status: "pending" },
+				{ title : "README.md에서 제품명과 버전 관련 표현을 추출한다."        , status : "running" },
+				{ title : "package.json에서 패키지명과 현재 버전을 추출해 대조한다." , status : "pending" },
+				{ title : "제품명 일치 여부와 버전 표현의 의미 차이를 보고한다."     , status : "pending" },
 			]);
 			expectRuntimeTodo(ledger.snapshot, blockedRuntimeTodoStatuses);
 			expect(workbench.snapshot.workFlow.steps.map((step) => step.title)).not.toContain("3단계");
@@ -441,15 +447,15 @@ describe("Native Plan and Runtime Todo boundaries", () => {
 		transport.responses.set("mcpServerStatus/list", [{ data: [], nextCursor: null }]);
 		transport.responses.set("thread/start", [{ thread: { id: "thread-root", turns: [] } }]);
 		transport.responses.set("turn/start", [{ turn: { id: "turn-test2-top-level", items: [] } }]);
-		const server = await CodexAppServer.connectTransport(transport);
-		const journal = new MemoryJournal();
-		const store = new MemoryTodoStore();
-		const ledger = new TodoLedger("test2-top-level-numbered-plan", store, new MemoryEvents());
+		const server  = await CodexAppServer.connectTransport(transport)                           ;
+		const journal = new MemoryJournal()                                                        ;
+		const store   = new MemoryTodoStore()                                                      ;
+		const ledger  = new TodoLedger("test2-top-level-numbered-plan", store, new MemoryEvents()) ;
 		await ledger.initialize();
 		const workbench = new ProjectWorkbench(server, journal, {
-			projectId: "test2-top-level-numbered-plan",
-			cwd: "/workspace/test2-top-level-numbered-plan",
-			todos: Object.assign(ledger, { importLegacy: async (): Promise<string | null> => null }),
+			projectId : "test2-top-level-numbered-plan",
+			cwd       : "/workspace/test2-top-level-numbered-plan",
+			todos     : Object.assign(ledger, { importLegacy: async (): Promise<string | null> => null }),
 		});
 		try {
 			await waitFor(() => expect(workbench.snapshot.phase).toBe("ready"));
@@ -488,9 +494,9 @@ describe("Native Plan and Runtime Todo boundaries", () => {
 
 			await waitFor(() => expect(workbench.snapshot.workFlow.steps).toHaveLength(3));
 			expect(workbench.snapshot.workFlow.steps.map(({ title, status }) => ({ title, status }))).toEqual([
-				{ title: "표기 추출", status: "running" },
-				{ title: "의미 비교", status: "pending" },
-				{ title: "결과 정리", status: "pending" },
+				{ title : "표기 추출" , status : "running" },
+				{ title : "의미 비교" , status : "pending" },
+				{ title : "결과 정리" , status : "pending" },
 			]);
 			expectRuntimeTodo(ledger.snapshot, blockedRuntimeTodoStatuses);
 			expect(workbench.snapshot.workFlow.steps.map((step) => step.title)).not.toContain(expect.stringContaining("README:"));
@@ -515,15 +521,15 @@ describe("Native Plan and Runtime Todo boundaries", () => {
 		transport.responses.set("mcpServerStatus/list", [{ data: [], nextCursor: null }]);
 		transport.responses.set("thread/start", [{ thread: { id: "thread-root", turns: [] } }]);
 		transport.responses.set("turn/start", [{ turn: { id: "turn-guard", items: [] } }]);
-		const server = await CodexAppServer.connectTransport(transport);
-		const journal = new MemoryJournal();
-		const store = new MemoryTodoStore();
-		const ledger = new TodoLedger("missing-plan-guard", store, new MemoryEvents());
+		const server  = await CodexAppServer.connectTransport(transport)                ;
+		const journal = new MemoryJournal()                                             ;
+		const store   = new MemoryTodoStore()                                           ;
+		const ledger  = new TodoLedger("missing-plan-guard", store, new MemoryEvents()) ;
 		await ledger.initialize();
 		const workbench = new ProjectWorkbench(server, journal, {
-			projectId: "missing-plan-guard",
-			cwd: "/workspace/missing-plan-guard",
-			todos: Object.assign(ledger, { importLegacy: async (): Promise<string | null> => null }),
+			projectId : "missing-plan-guard",
+			cwd       : "/workspace/missing-plan-guard",
+			todos     : Object.assign(ledger, { importLegacy: async (): Promise<string | null> => null }),
 		});
 		try {
 			await waitFor(() => expect(workbench.snapshot.phase).toBe("ready"));
@@ -533,9 +539,9 @@ describe("Native Plan and Runtime Todo boundaries", () => {
 				transport.emit({
 					method: "item/completed",
 					params: {
-						threadId: "thread-root",
-						turnId: "turn-guard",
-						item: { id: "guard-command", type: "commandExecution", command: "pwd" },
+						threadId : "thread-root",
+						turnId   : "turn-guard",
+						item     : { id: "guard-command", type: "commandExecution", command: "pwd" },
 					},
 				});
 			}
@@ -561,15 +567,15 @@ describe("Native Plan and Runtime Todo boundaries", () => {
 		transport.responses.set("mcpServerStatus/list", [{ data: [], nextCursor: null }]);
 		transport.responses.set("thread/start", [{ thread: { id: "thread-root", turns: [] } }]);
 		transport.responses.set("turn/start", [{ turn: { id: "turn-plan", items: [] } }]);
-		const server = await CodexAppServer.connectTransport(transport);
-		const journal = new MemoryJournal();
-		const store = new MemoryTodoStore();
-		const ledger = new TodoLedger("fallback-negative", store, new MemoryEvents());
+		const server  = await CodexAppServer.connectTransport(transport)               ;
+		const journal = new MemoryJournal()                                            ;
+		const store   = new MemoryTodoStore()                                          ;
+		const ledger  = new TodoLedger("fallback-negative", store, new MemoryEvents()) ;
 		await ledger.initialize();
 		const workbench = new ProjectWorkbench(server, journal, {
-			projectId: "fallback-negative",
-			cwd: "/workspace/fallback-negative",
-			todos: Object.assign(ledger, { importLegacy: async (): Promise<string | null> => null }),
+			projectId : "fallback-negative",
+			cwd       : "/workspace/fallback-negative",
+			todos     : Object.assign(ledger, { importLegacy: async (): Promise<string | null> => null }),
 		});
 		try {
 			await waitFor(() => expect(workbench.snapshot.phase).toBe("ready"));
@@ -599,10 +605,10 @@ describe("Native Plan and Runtime Todo boundaries", () => {
 			{ turn: { id: "turn-root", items: [] } },
 			{ turn: { id: "turn-child", items: [] } },
 		]);
-		const server = await CodexAppServer.connectTransport(transport);
-		const journal = new MemoryJournal();
-		const store = new MemoryTodoStore();
-		const ledger = new TodoLedger("native-plan-wiring", store, new MemoryEvents(), () => new Date("2026-09-02T00:00:00.000Z"));
+		const server  = await CodexAppServer.connectTransport(transport)                                                            ;
+		const journal = new MemoryJournal()                                                                                         ;
+		const store   = new MemoryTodoStore()                                                                                       ;
+		const ledger  = new TodoLedger("native-plan-wiring", store, new MemoryEvents(), () => new Date("2026-09-02T00:00:00.000Z")) ;
 		await ledger.initialize();
 		const todos = Object.assign(ledger, { importLegacy: async (): Promise<string | null> => null });
 		const workbench = new ProjectWorkbench(server, journal, {
@@ -625,9 +631,9 @@ describe("Native Plan and Runtime Todo boundaries", () => {
 					threadId: "thread-root",
 					turnId: "turn-root",
 					item: {
-						id: "plan-root",
-						type: "plan",
-						text: "1. [in progress] root plan\n2. [pending] verify result\n3. [completed] record result\n4. [failed] failed result\n5. [cancelled] cancelled result",
+						id   : "plan-root",
+						type : "plan",
+						text : "1. [in progress] root plan\n2. [pending] verify result\n3. [completed] record result\n4. [failed] failed result\n5. [cancelled] cancelled result",
 					},
 				},
 			});
@@ -635,11 +641,11 @@ describe("Native Plan and Runtime Todo boundaries", () => {
 				expect(workbench.snapshot.workFlow).toMatchObject({
 					source: { turnId: "turn-root", algorithm: "dplan-v1" },
 					steps: [
-						{ title: "root plan", status: "running" },
-						{ title: "verify result", status: "pending" },
-						{ title: "record result", status: "completed" },
-						{ title: "failed result", status: "failed" },
-						{ title: "cancelled result", status: "cancelled" },
+						{ title : "root plan"        , status : "running"   },
+						{ title : "verify result"    , status : "pending"   },
+						{ title : "record result"    , status : "completed" },
+						{ title : "failed result"    , status : "failed"    },
+						{ title : "cancelled result" , status : "cancelled" },
 					],
 				});
 				expectRuntimeTodo(ledger.snapshot, activeRuntimeTodoStatuses);
@@ -670,12 +676,12 @@ describe("Native Plan and Runtime Todo boundaries", () => {
 			});
 			await waitFor(() => {
 				expect(workbench.snapshot.workFlow.steps.map(({ title, status }) => ({ title, status }))).toEqual([
-					{ title: "README.md 읽기", status: "completed" },
-					{ title: "현재 디렉터리 확인", status: "completed" },
-					{ title: "후속 작업 대기", status: "pending" },
-					{ title: "검증 실행", status: "running" },
-					{ title: "실패 사례 기록", status: "failed" },
-					{ title: "취소 사례 기록", status: "cancelled" },
+					{ title : "README.md 읽기"     , status : "completed" },
+					{ title : "현재 디렉터리 확인" , status : "completed" },
+					{ title : "후속 작업 대기"     , status : "pending"   },
+					{ title : "검증 실행"          , status : "running"   },
+					{ title : "실패 사례 기록"     , status : "failed"    },
+					{ title : "취소 사례 기록"     , status : "cancelled" },
 				]);
 				expectRuntimeTodo(ledger.snapshot, activeRuntimeTodoStatuses);
 			});
@@ -689,9 +695,9 @@ describe("Native Plan and Runtime Todo boundaries", () => {
 				params: {
 					turnId: "turn-root",
 					item: {
-						id: "plan-item-root",
-						type: "plan",
-						text: "## Plan\n1. [completed] README.md 읽기\n   - 상세 bullet은 무시한다.\n* **구현하기** — in progress",
+						id   : "plan-item-root",
+						type : "plan",
+						text : "## Plan\n1. [completed] README.md 읽기\n   - 상세 bullet은 무시한다.\n* **구현하기** — in progress",
 					},
 				},
 			});
@@ -703,9 +709,9 @@ describe("Native Plan and Runtime Todo boundaries", () => {
 				expect(ledger.snapshot?.revision).toBe(stableTodoRevision);
 				expectRuntimeTodo(ledger.snapshot, activeRuntimeTodoStatuses);
 			});
-			const markdownSteps = workbench.snapshot.workFlow.steps;
-			const markdownTodo = ledger.snapshot!;
-			const writesBeforeMalformedPlan = store.compareAndSwapCalls;
+			const markdownSteps             = workbench.snapshot.workFlow.steps ;
+			const markdownTodo              = ledger.snapshot!                  ;
+			const writesBeforeMalformedPlan = store.compareAndSwapCalls         ;
 
 			transport.emit({
 				method: "item/completed",
@@ -725,17 +731,17 @@ describe("Native Plan and Runtime Todo boundaries", () => {
 			transport.emit({
 				method: "item/completed",
 				params: {
-					threadId: "thread-root",
-					turnId: "turn-root",
-					item: { id: "plan-malformed", type: "plan", text: "arbitrary unmarked instructions" },
+					threadId : "thread-root",
+					turnId   : "turn-root",
+					item     : { id: "plan-malformed", type: "plan", text: "arbitrary unmarked instructions" },
 				},
 			});
 			transport.emit({
 				method: "item/completed",
 				params: {
-					threadId: "thread-root",
-					turnId: "turn-root",
-					item: { id: "plan-empty", type: "plan", text: "  \n" },
+					threadId : "thread-root",
+					turnId   : "turn-root",
+					item     : { id: "plan-empty", type: "plan", text: "  \n" },
 				},
 			});
 
@@ -744,9 +750,9 @@ describe("Native Plan and Runtime Todo boundaries", () => {
 			transport.emit({
 				method: "item/completed",
 				params: {
-					threadId: "thread-child",
-					turnId: "turn-child",
-					item: { id: "plan-child", type: "plan", text: "1. [in progress] child plan" },
+					threadId : "thread-child",
+					turnId   : "turn-child",
+					item     : { id: "plan-child", type: "plan", text: "1. [in progress] child plan" },
 				},
 			});
 			transport.emit({
@@ -767,9 +773,9 @@ describe("Native Plan and Runtime Todo boundaries", () => {
 			transport.emit({
 				method: "item/completed",
 				params: {
-					threadId: "thread-root",
-					turnId: "turn-unknown",
-					item: { id: "plan-unknown", type: "plan", text: "1. [in progress] unknown plan" },
+					threadId : "thread-root",
+					turnId   : "turn-unknown",
+					item     : { id: "plan-unknown", type: "plan", text: "1. [in progress] unknown plan" },
 				},
 			});
 			transport.emit({

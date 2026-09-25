@@ -1,19 +1,25 @@
-import { afterEach, expect, test } from "bun:test";
+import { afterEach, expect, test }       from "bun:test";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { planRpaScenario } from "../src/core/agents/rpa-agent";
-import { authorizeSkillStep, beginSkillStep, finishSkillStep, requestSkillAuthorization, startSkillRun } from "../src/core/workflows/skill-run";
-import { FileSkillRunStore } from "../src/adapters/outbound/persistence/skill-run-store";
+import { tmpdir }                        from "node:os";
+import { join }                          from "node:path";
+import { planRpaScenario }               from "../src/core/agents/rpa-agent";
+import {
+	authorizeSkillStep,
+	beginSkillStep,
+	finishSkillStep,
+	requestSkillAuthorization,
+	startSkillRun,
+} from "../src/core/workflows/skill-run";
+import { FileSkillRunStore }             from "../src/adapters/outbound/persistence/skill-run-store";
 
 const roots: string[] = [];
 afterEach(async () => { await Promise.all(roots.splice(0).map(root => rm(root, { recursive: true, force: true }))); });
 async function fixture() {
  const root = await mkdtemp(join(tmpdir(), "skill-store-")); roots.push(root);
- const scenario = planRpaScenario({ intent: "reconcile", processId: "RPA-TEST", registry: { schemaVersion: 1, root: ".agents/skills", sourceRevision: "git:test", digest: "a".repeat(64), skills: [{ name: "rpa-reconcile", description: "reconcile", path: ".agents/skills/rpa-reconcile/SKILL.md", digest: "b".repeat(64), sourceRevision: "git:test" }] } });
- const initial = startSkillRun(scenario);
- const running = beginSkillStep(initial);
- const store = new FileSkillRunStore(root);
+ const scenario = planRpaScenario({ intent: "reconcile", processId: "RPA-TEST", registry: { schemaVersion: 1, root: ".agents/skills", sourceRevision: "git:test", digest: "a".repeat(64), skills: [{ name: "rpa-reconcile", description: "reconcile", path: ".agents/skills/rpa-reconcile/SKILL.md", digest: "b".repeat(64), sourceRevision: "git:test" }] } }) ;
+ const initial  = startSkillRun(scenario)                                                                                                                                                                                                                                                                                                                       ;
+ const running  = beginSkillStep(initial)                                                                                                                                                                                                                                                                                                                       ;
+ const store    = new FileSkillRunStore(root)                                                                                                                                                                                                                                                                                                                   ;
  await store.write(initial); await store.write(running, initial.revision);
  return { root, store, running };
 }
@@ -32,9 +38,9 @@ test("Receipt projection 저장 실패에도 재시작 후 상태와 Receipt를 
 
 test("독립 프로세스 둘이 같은 revision에서 저장하면 하나만 수락한다", async () => {
  const { root, running } = await fixture();
- const modulePath = join(import.meta.dir, "../src/adapters/outbound/persistence/skill-run-store.ts");
- const workflowPath = join(import.meta.dir, "../src/core/workflows/skill-run.ts");
- const worker = join(root, "worker.ts");
+ const modulePath   = join(import.meta.dir, "../src/adapters/outbound/persistence/skill-run-store.ts") ;
+ const workflowPath = join(import.meta.dir, "../src/core/workflows/skill-run.ts")                      ;
+ const worker       = join(root, "worker.ts")                                                          ;
  await writeFile(worker, `import { FileSkillRunStore } from ${JSON.stringify(modulePath)};
  import { finishSkillStep } from ${JSON.stringify(workflowPath)};
  const store = new FileSkillRunStore(process.argv[2]);
@@ -44,9 +50,9 @@ test("독립 프로세스 둘이 같은 revision에서 저장하면 하나만 �
  try { const result = finishSkillStep(state, process.argv[4], ["process outcome"]); await store.commitStep(result.state, result.receipt, state.revision); console.log("accepted"); }
  catch (error) { console.log(error.message); }
  `);
- const children = ["failed", "blocked"].map(stage => Bun.spawn([process.execPath, worker, root, running.runId, stage], { stdin: "pipe", stdout: "pipe", stderr: "pipe" }));
- const readers = children.map(child => child.stdout.getReader());
- const ready = await Promise.all(readers.map(reader => reader.read()));
+ const children = ["failed", "blocked"].map(stage => Bun.spawn([process.execPath, worker, root, running.runId, stage], { stdin: "pipe", stdout: "pipe", stderr: "pipe" })) ;
+ const readers  = children.map(child => child.stdout.getReader())                                                                                                          ;
+ const ready    = await Promise.all(readers.map(reader => reader.read()))                                                                                                  ;
  expect(ready.every(value => new TextDecoder().decode(value.value).includes("ready"))).toBeTrue();
  children.forEach(child => { child.stdin.write("go\n"); child.stdin.end(); });
  const output = await Promise.all(readers.map(async reader => { let text = ""; for (;;) { const chunk = await reader.read(); if (chunk.done) return text; text += new TextDecoder().decode(chunk.value); } }));

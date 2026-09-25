@@ -1,13 +1,14 @@
-import { stat } from "node:fs/promises";
-import { basename, isAbsolute } from "node:path";
-import type { TerminalCommandExecutor } from "../../../core/ports";
-import { sanitizeTerminalText, type TerminalCommandResult, type TerminalCommandUpdate } from "../../../core/domain/execution/terminal";
+import { stat }                                              from "node:fs/promises";
+import { basename, isAbsolute }                              from "node:path";
+import type { TerminalCommandExecutor }                      from "@/core/ports";
+import { sanitizeTerminalText }                              from "@/core/domain/execution/terminal";
+import type { TerminalCommandResult, TerminalCommandUpdate } from "@/core/domain/execution/terminal";
 
-const MAX_COMMAND_CODE_POINTS = 8_192;
-const MAX_RAW_OUTPUT_BYTES = 256 * 1024;
-const DEFAULT_TIMEOUT_MS = 5 * 60 * 1_000;
-const DEFAULT_KILL_GRACE_MS = 1_000;
-const DEFAULT_SNAPSHOT_CODE_POINTS = 32 * 1024;
+const MAX_COMMAND_CODE_POINTS      = 8_192          ;
+const MAX_RAW_OUTPUT_BYTES         = 256 * 1024     ;
+const DEFAULT_TIMEOUT_MS           = 5 * 60 * 1_000 ;
+const DEFAULT_KILL_GRACE_MS        = 1_000          ;
+const DEFAULT_SNAPSHOT_CODE_POINTS = 32 * 1024      ;
 
 export class TerminalCommandRejectedError extends Error {
 	constructor() {
@@ -17,9 +18,9 @@ export class TerminalCommandRejectedError extends Error {
 }
 
 export interface LocalTerminalCommandExecutorOptions {
-	timeoutMs?: number;
-	killGraceMs?: number;
-	snapshotCodePoints?: number;
+	timeoutMs?          : number ;
+	killGraceMs?        : number ;
+	snapshotCodePoints? : number ;
 }
 
 function appendTail(previous: Uint8Array<ArrayBufferLike>, next: Uint8Array<ArrayBufferLike>): Uint8Array<ArrayBufferLike> {
@@ -31,15 +32,17 @@ function appendTail(previous: Uint8Array<ArrayBufferLike>, next: Uint8Array<Arra
 	return combined;
 }
 
+const PROPAGATED_ENV_KEYS = new Set(["PATH", "HOME", "USER", "SHELL", "TMPDIR", "TERM", "COLORTERM", "LANG"]);
+
 function safeEnvironment(): Record<string, string> {
 	const environment: Record<string, string> = {
-		GIT_PAGER: "cat",
-		PAGER: "cat",
-		NO_COLOR: "1",
+		GIT_PAGER : "cat",
+		PAGER     : "cat",
+		NO_COLOR  : "1",
 	};
 	for (const [key, value] of Object.entries(process.env)) {
 		if (value === undefined) continue;
-		if (key === "PATH" || key === "HOME" || key === "USER" || key === "SHELL" || key === "TMPDIR" || key === "TERM" || key === "COLORTERM" || key === "LANG" || key.startsWith("LC_")) environment[key] = value;
+		if (PROPAGATED_ENV_KEYS.has(key) || key.startsWith("LC_")) environment[key] = value;
 	}
 	return environment;
 }
@@ -57,14 +60,14 @@ async function validate(command: string, cwd: string): Promise<void> {
 
 /** Non-interactive executor for commands directly submitted by the user. */
 export class LocalTerminalCommandExecutor implements TerminalCommandExecutor {
-	private readonly timeoutMs: number;
-	private readonly killGraceMs: number;
-	private readonly snapshotCodePoints: number;
+	private readonly timeoutMs          : number ;
+	private readonly killGraceMs        : number ;
+	private readonly snapshotCodePoints : number ;
 
 	constructor(options: LocalTerminalCommandExecutorOptions = {}) {
-		this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-		this.killGraceMs = options.killGraceMs ?? DEFAULT_KILL_GRACE_MS;
-		this.snapshotCodePoints = options.snapshotCodePoints ?? DEFAULT_SNAPSHOT_CODE_POINTS;
+		this.timeoutMs          = options.timeoutMs ?? DEFAULT_TIMEOUT_MS                    ;
+		this.killGraceMs        = options.killGraceMs ?? DEFAULT_KILL_GRACE_MS               ;
+		this.snapshotCodePoints = options.snapshotCodePoints ?? DEFAULT_SNAPSHOT_CODE_POINTS ;
 	}
 
 	async execute(command: string, cwd: string, signal: AbortSignal, onUpdate: (update: TerminalCommandUpdate) => void): Promise<TerminalCommandResult> {
@@ -78,11 +81,11 @@ export class LocalTerminalCommandExecutor implements TerminalCommandExecutor {
 			const loginShell = ["bash", "zsh"].includes(basename(shell));
 			child = Bun.spawn([shell, ...(loginShell ? ["-l", "-s"] : ["-s"])], {
 				cwd,
-				env: safeEnvironment(),
-				stdin: "pipe",
-				stdout: "pipe",
-				stderr: "pipe",
-				detached: true,
+				env      : safeEnvironment(),
+				stdin    : "pipe",
+				stdout   : "pipe",
+				stderr   : "pipe",
+				detached : true,
 			});
 			const stdin = child.stdin;
 			if (!stdin || typeof stdin === "number") throw new Error("Terminal command stdin is unavailable.");
@@ -93,14 +96,14 @@ export class LocalTerminalCommandExecutor implements TerminalCommandExecutor {
 			return { stdout: "", stderr: "Unable to start terminal command.", exitCode: null, durationMs: Math.round(performance.now() - startedAt), cancelled: false, timedOut: false };
 		}
 
-		let stdout: Uint8Array<ArrayBufferLike> = new Uint8Array();
-		let stderr: Uint8Array<ArrayBufferLike> = new Uint8Array();
-		let cancelled = false;
-		let timedOut = false;
-		let killTimer: ReturnType<typeof setTimeout> | undefined;
-		let windowsKill: Promise<void> | undefined;
-		const outputReaders = new Set<ReadableStreamDefaultReader<Uint8Array<ArrayBufferLike>>>();
-		const decoder = new TextDecoder();
+		let stdout      : Uint8Array<ArrayBufferLike> = new Uint8Array()                                                    ;
+		let stderr      : Uint8Array<ArrayBufferLike> = new Uint8Array()                                                    ;
+		let cancelled                                 = false                                                               ;
+		let timedOut                                  = false                                                               ;
+		let killTimer   : ReturnType<typeof setTimeout> | undefined                                                         ;
+		let windowsKill : Promise<void> | undefined                                                                         ;
+		const outputReaders                           = new Set<ReadableStreamDefaultReader<Uint8Array<ArrayBufferLike>>>() ;
+		const decoder                                 = new TextDecoder()                                                   ;
 		const update = () => {
 			try {
 				onUpdate({
@@ -119,9 +122,9 @@ export class LocalTerminalCommandExecutor implements TerminalCommandExecutor {
 			if (windowsKill) return;
 			try {
 				const killer = Bun.spawn(["taskkill.exe", "/PID", String(child.pid), "/T", "/F"], {
-					stdin: "ignore",
-					stdout: "ignore",
-					stderr: "ignore",
+					stdin  : "ignore",
+					stdout : "ignore",
+					stderr : "ignore",
 				});
 				windowsKill = killer.exited.then((exitCode) => {
 					if (exitCode !== 0) try { child.kill("SIGKILL"); } catch { /* already exited */ }
@@ -172,10 +175,10 @@ export class LocalTerminalCommandExecutor implements TerminalCommandExecutor {
 				drain(child.stderr, value => { stderr = appendTail(stderr, value); }),
 			]);
 			const result: TerminalCommandResult = {
-				stdout: sanitizeTerminalText(decoder.decode(stdout), this.snapshotCodePoints),
-				stderr: sanitizeTerminalText(decoder.decode(stderr), this.snapshotCodePoints),
-				exitCode: cancelled || timedOut ? null : exitCode,
-				durationMs: Math.round(performance.now() - startedAt),
+				stdout     : sanitizeTerminalText(decoder.decode(stdout), this.snapshotCodePoints),
+				stderr     : sanitizeTerminalText(decoder.decode(stderr), this.snapshotCodePoints),
+				exitCode   : cancelled || timedOut ? null : exitCode,
+				durationMs : Math.round(performance.now() - startedAt),
 				cancelled,
 				timedOut,
 			};

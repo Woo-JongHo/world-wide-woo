@@ -1,9 +1,9 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { Database } from "bun:sqlite";
+import { afterEach, describe, expect, test }             from "bun:test";
+import { Database }                                      from "bun:sqlite";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { syncLocalUnitRegistry } from "../src/adapters/outbound/development/local-unit-registry.js";
+import { tmpdir }                                        from "node:os";
+import { join }                                          from "node:path";
+import { syncLocalUnitRegistry }                         from "../src/adapters/outbound/development/local-unit-registry.js";
 
 const roots: string[] = [];
 afterEach(() => { for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }); });
@@ -16,9 +16,9 @@ function fixture(): { root: string; data: string } {
 	mkdirSync(join(root, "src"), { recursive: true });
 	writeFileSync(join(root, "src/chat.ts"), "const route = /^\\/stats\\s+#(\\d+)$/u;\nconst title = `# 질문 ${route.source}`;\nexport class ChatView { render() {} }\n");
 	writeFileSync(join(root, ".www/control-ledger/traceability-v3.json"), JSON.stringify({
-		schemaVersion: 3,
-		projectId: "11111111-1111-4111-8111-111111111111",
-		entities: [{ ref: "issue:WOO-1", kind: "issue", id: "WOO-1" }, { ref: "note:WOO-1", kind: "note", id: "WOO-1" }],
+		schemaVersion : 3,
+		projectId     : "11111111-1111-4111-8111-111111111111",
+		entities      : [{ ref: "issue:WOO-1", kind: "issue", id: "WOO-1" }, { ref: "note:WOO-1", kind: "note", id: "WOO-1" }],
 	}));
 	writeFileSync(join(root, ".woo/units.yaml"), `schemaVersion: 1\nunits:\n  - id: Code-001\n    name: Chat\n    code:\n      path: src/chat.ts\n      symbol: ChatView\n      members: [render]\n    linear: [WOO-1]\n    obsidian: Chat.md\n`);
 	return { root, data };

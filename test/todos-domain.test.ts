@@ -1,41 +1,48 @@
 import { describe, expect, test } from "bun:test";
-import { parseTodoMarkdown, patchTodoMarkdown, renderTodoMarkdown, todoDetailProgress, todoProgress, validateTodoDocument } from "../src/core/domain/work/todos.js";
+import {
+	parseTodoMarkdown,
+	patchTodoMarkdown,
+	renderTodoMarkdown,
+	todoDetailProgress,
+	todoProgress,
+	validateTodoDocument,
+} from "../src/core/domain/work/todos.js";
 
 const document = {
-	version: 1 as const,
-	revision: 4,
-	ownerSessionId: "session_1",
-	storyId: "story_1",
-	title: "Release work",
+	version        : 1 as const,
+	revision       : 4,
+	ownerSessionId : "session_1",
+	storyId        : "story_1",
+	title          : "Release work",
 	items: [
-		{ id: "one", content: "Ship this", status: "completed" as const, evidenceIds: ["evt_1"], details: [] },
-		{ id: "two", content: "Review this", status: "in_progress" as const, evidenceIds: [], details: [{ id: "two_detail", content: "Check release notes", status: "in_progress" as const, evidenceIds: ["evt_2"] }] },
-		{ id: "three", content: "Wait on input", status: "blocked" as const, evidenceIds: [], details: [] },
+		{ id : "one"   , content : "Ship this"     , status : "completed" as const   , evidenceIds : ["evt_1"] , details : []                                                                                                             },
+		{ id : "two"   , content : "Review this"   , status : "in_progress" as const , evidenceIds : []        , details : [{ id: "two_detail", content: "Check release notes", status: "in_progress" as const, evidenceIds: ["evt_2"] }] },
+		{ id : "three" , content : "Wait on input" , status : "blocked" as const     , evidenceIds : []        , details : []                                                                                                             },
 	],
 	updatedAt: "2026-08-31T07:55:00.000Z",
 };
 
 const nativeSource = {
-	kind: "native-plan" as const,
-	threadKeyDigest: "a".repeat(64),
-	turnId: "turn-1",
+	kind            : "native-plan" as const,
+	threadKeyDigest : "a".repeat(64),
+	turnId          : "turn-1",
 	input: {
-		activityId: "request-activity-1",
-		requestId: "request-1",
-		sourceDigest: `sha256:${"b".repeat(64)}`,
+		activityId   : "request-activity-1",
+		requestId    : "request-1",
+		sourceDigest : `sha256:${"b".repeat(64)}`,
 	},
 	planRevision: {
-		sourceRevisionKeyDigest: "c".repeat(64),
-		activityId: "plan-activity-1",
-		sequence: 7,
-		sourceDigest: `sha256:${"d".repeat(64)}`,
+		sourceRevisionKeyDigest : "c".repeat(64),
+		activityId              : "plan-activity-1",
+		sequence                : 7,
+		sourceDigest            : `sha256:${"d".repeat(64)}`,
 	},
 	rootExecution: {
-		provider: null,
-		model: "gpt-5.6-sol",
-		agentId: null,
-		threadId: "thread-1",
-		runId: "turn-1",
+		provider : null,
+		model    : "gpt-5.6-sol",
+		agentId  : null,
+		threadId : "thread-1",
+		runId    : "turn-1",
 	},
 };
 
@@ -48,11 +55,11 @@ describe("todo domain", () => {
 				...document.items[0],
 				id: `native-${"e".repeat(48)}`,
 				source: {
-					kind: "native-plan-item",
-					identity: "e".repeat(64),
-					originRevision: nativeSource.planRevision,
-					currentRevision: nativeSource.planRevision,
-					executions: [nativeSource.rootExecution],
+					kind            : "native-plan-item",
+					identity        : "e".repeat(64),
+					originRevision  : nativeSource.planRevision,
+					currentRevision : nativeSource.planRevision,
+					executions      : [nativeSource.rootExecution],
 				},
 			}],
 		});
@@ -97,9 +104,9 @@ describe("todo domain", () => {
 			.replaceAll("\n", "\r\n");
 		const next = validateTodoDocument({
 			...document,
-			revision: 5,
-			title: "Release work updated",
-			items: document.items.map(item => item.id === "three" ? { ...item, content: "Wait for approval" } : item),
+			revision : 5,
+			title    : "Release work updated",
+			items    : document.items.map(item => item.id === "three" ? { ...item, content: "Wait for approval" } : item),
 		});
 		const patched = patchTodoMarkdown(source, next);
 		expect(patched).toContain("> Obsidian note\r\n\r\n- [ ] human checkbox\r\n");
@@ -113,9 +120,9 @@ describe("todo domain", () => {
 			.replace("\n\n", "\r\n> keep CRLF\n- [ ] human checkbox\r\n");
 		const next = validateTodoDocument({
 			...document,
-			revision: 5,
-			title: "Release work updated",
-			items: document.items.map(item => item.id === "three" ? { ...item, content: "Wait for approval" } : item),
+			revision : 5,
+			title    : "Release work updated",
+			items    : document.items.map(item => item.id === "three" ? { ...item, content: "Wait for approval" } : item),
 		});
 		const patched = patchTodoMarkdown(source, next);
 		expect(source).toContain("> keep CRLF\n- [ ] human checkbox\r\n");
@@ -180,11 +187,11 @@ describe("todo domain", () => {
 				...document.items[0],
 				id: `native-${"e".repeat(48)}`,
 				source: {
-					kind: "native-plan-item",
-					identity: "e".repeat(64),
-					originRevision: nativeSource.planRevision,
-					currentRevision: nativeSource.planRevision,
-					executions: [nativeSource.rootExecution],
+					kind            : "native-plan-item",
+					identity        : "e".repeat(64),
+					originRevision  : nativeSource.planRevision,
+					currentRevision : nativeSource.planRevision,
+					executions      : [nativeSource.rootExecution],
 				},
 			}],
 		};

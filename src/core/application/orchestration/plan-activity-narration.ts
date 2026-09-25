@@ -1,19 +1,31 @@
-import { isReasoningActivityPayload, type ProjectActivity } from "../../domain/execution/project-activity.js";
-import { redactForExternalReview } from "../../domain/review/redaction.js";
-import { sanitizeTerminalTextExcerpt } from "../../domain/execution/terminal.js";
-import type { PlanActivity } from "../../domain/work/workbench.js";
-import type { ActivityNarrationResult, ActivityNarrator } from "./activity-narrator.js";
+import { isReasoningActivityPayload }                     from "@/core/domain/execution/project-activity.js";
+import type { ProjectActivity }                           from "@/core/domain/execution/project-activity.js";
+import { redactForExternalReview }                        from "@/core/domain/review/redaction.js";
+import { sanitizeTerminalTextExcerpt }                    from "@/core/domain/execution/terminal.js";
+import type { PlanActivity }                              from "@/core/domain/work/workbench.js";
+import type { ActivityNarrationResult, ActivityNarrator } from "@/core/application/orchestration/activity-narrator.js";
 
-export interface PlanActivityContext { turnId: string; stepId: string; stepTitle: string; goal: string }
-interface Entry { activity: PlanActivity; input: string; goal: string; result?: ActivityNarrationResult; failed?: boolean }
+export interface PlanActivityContext {
+	turnId    : string ;
+	stepId    : string ;
+	stepTitle : string ;
+	goal: string
+}
+interface Entry {
+	activity : PlanActivity            ;
+	input    : string                  ;
+	goal     : string                  ;
+	result?  : ActivityNarrationResult ;
+	failed?: boolean
+}
 
 /** Serial, bounded interpretation queue. Native observations remain the status authority. */
 export class PlanActivityNarration {
-	private entries = new Map<string, Entry>();
-	private queue = new Set<string>();
-	private busy = false;
-	private turnId: string | null = null;
-	private activeCall?: AbortController;
+	private entries                     = new Map<string, Entry>() ;
+	private queue                       = new Set<string>()        ;
+	private busy                        = false                    ;
+	private turnId      : string | null = null                     ;
+	private activeCall? : AbortController                          ;
 	public constructor(private readonly narrator: ActivityNarrator, private readonly signal: AbortSignal, private readonly changed: (stepId: string, result?: ActivityNarrationResult) => void, private readonly timeoutMs = 30_000) {}
 
 	public select(turnId: string | null): void {
@@ -26,10 +38,10 @@ export class PlanActivityNarration {
 
 	public observe(observation: ProjectActivity, context: PlanActivityContext): void {
 		if (observation.nativeRefs.turnId !== this.turnId || context.turnId !== this.turnId) return;
-		const id = `${context.turnId}:${observation.nativeRefs.itemId ?? observation.id}`;
-		const previous = this.entries.get(id);
-		const item = actionItem(observation);
-		const status = item.status === "failed" || (typeof item.exitCode === "number" && item.exitCode !== 0) ? "failed" : observation.phase === "started" || observation.phase === "updated" ? "running" : observation.phase;
+		const id       = `${context.turnId}:${observation.nativeRefs.itemId ?? observation.id}`                                                                                                                                 ;
+		const previous = this.entries.get(id)                                                                                                                                                                                   ;
+		const item     = actionItem(observation)                                                                                                                                                                                ;
+		const status   = item.status === "failed" || (typeof item.exitCode === "number" && item.exitCode !== 0) ? "failed" : observation.phase === "started" || observation.phase === "updated" ? "running" : observation.phase ;
 		if (previous) {
 			previous.activity = { ...previous.activity, status };
 			return;
@@ -82,9 +94,9 @@ export class PlanActivityNarration {
 	private async narrate(entry: Entry): Promise<ActivityNarrationResult> {
 		const timeout = new AbortController();
 		this.activeCall = timeout;
-		const signal = AbortSignal.any([this.signal, timeout.signal]);
-		let timer: ReturnType<typeof setTimeout> | undefined;
-		let onAbort: (() => void) | undefined;
+		const signal = AbortSignal.any([this.signal, timeout.signal]) ;
+		let timer   : ReturnType<typeof setTimeout> | undefined       ;
+		let onAbort : (() => void) | undefined                        ;
 		try {
 			return await Promise.race([
 				this.narrator.narrate({ goal: entry.goal, stepTitle: safe(entry.activity.stepTitle), inputSummary: [entry.input] }, signal),
@@ -98,7 +110,7 @@ export class PlanActivityNarration {
 		} finally {
 			clearTimeout(timer);
 			if (onAbort) signal.removeEventListener("abort", onAbort);
-			if (this.activeCall === timeout) this.activeCall = undefined;
+			if (this.activeCall === timeout) delete this.activeCall;
 		}
 	}
 }

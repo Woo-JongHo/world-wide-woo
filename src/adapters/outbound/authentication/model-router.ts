@@ -1,22 +1,21 @@
-import {
-	clampThinkingLevel,
-	createModels,
-	type Api,
-	type Context,
-	type Model,
-	type Models,
-	type ModelsSimpleStreamOptions,
-	type AssistantMessageEventStream,
-	type CredentialStore,
+import { clampThinkingLevel, createModels }  from "@earendil-works/pi-ai";
+import type {
+	Api,
+	Context,
+	Model,
+	Models,
+	ModelsSimpleStreamOptions,
+	AssistantMessageEventStream,
+	CredentialStore,
 } from "@earendil-works/pi-ai";
-import { registerBunOAuthFlows } from "@earendil-works/pi-ai/bun-oauth";
-import { anthropicProvider } from "@earendil-works/pi-ai/providers/anthropic";
-import { googleProvider } from "@earendil-works/pi-ai/providers/google";
-import { openaiProvider } from "@earendil-works/pi-ai/providers/openai";
-import { openaiCodexProvider } from "@earendil-works/pi-ai/providers/openai-codex";
-import { zaiProvider } from "@earendil-works/pi-ai/providers/zai";
-import type { ModelAuthStatus, ModelClient } from "../../../core/ports";
-import type { Effort, WwwSettings } from "../../../core/domain/execution/model-settings";
+import { registerBunOAuthFlows }             from "@earendil-works/pi-ai/bun-oauth";
+import { anthropicProvider }                 from "@earendil-works/pi-ai/providers/anthropic";
+import { googleProvider }                    from "@earendil-works/pi-ai/providers/google";
+import { openaiProvider }                    from "@earendil-works/pi-ai/providers/openai";
+import { openaiCodexProvider }               from "@earendil-works/pi-ai/providers/openai-codex";
+import { zaiProvider }                       from "@earendil-works/pi-ai/providers/zai";
+import type { ModelAuthStatus, ModelClient } from "@/core/ports";
+import type { Effort, WwwSettings }          from "@/core/domain/execution/model-settings";
 
 // pi-ai keeps Node-only OAuth flows behind runtime imports for browser builds.
 // Standalone Bun binaries need the package's static loader registration.
@@ -25,12 +24,12 @@ registerBunOAuthFlows();
 type ModelRegistry = Pick<Models, "checkAuth" | "getModel" | "streamSimple">;
 
 const REASONING_LEVEL = {
-	low: "low",
-	medium: "medium",
-	high: "high",
-	xhigh: "xhigh",
-	max: "max",
-	ultra: "max",
+	low    : "low",
+	medium : "medium",
+	high   : "high",
+	xhigh  : "xhigh",
+	max    : "max",
+	ultra  : "max",
 } as const;
 
 export class ModelRouteError extends Error {
@@ -48,7 +47,7 @@ export interface ModelRoute {
 }
 
 export function createModelRegistry(credentials?: CredentialStore): Models {
-	const models = createModels({ credentials });
+	const models = createModels(credentials ? { credentials } : {});
 	models.setProvider(openaiCodexProvider());
 	models.setProvider(openaiProvider());
 	models.setProvider(anthropicProvider());
@@ -62,9 +61,12 @@ export class ModelRouter implements ModelClient {
 
 	async checkAuth(settings: Pick<WwwSettings, "provider">): Promise<ModelAuthStatus> {
 		const auth = await this.models.checkAuth(settings.provider);
-		return auth
-			? { configured: true, source: auth.source, type: auth.type }
-			: { configured: false };
+		if (!auth) return { configured: false };
+		return {
+			configured: true,
+			...(auth.source ? { source: auth.source } : {}),
+			type: auth.type,
+		};
 	}
 
 	resolve(settings: WwwSettings, signal?: AbortSignal): ModelRoute {
@@ -72,7 +74,7 @@ export class ModelRouter implements ModelClient {
 		if (!model) throw new ModelRouteError(settings.provider, settings.model);
 
 		const reasoning = clampThinkingLevel(model, REASONING_LEVEL[settings.effort]);
-		const options: ModelsSimpleStreamOptions = { signal };
+		const options: ModelsSimpleStreamOptions = signal ? { signal } : {};
 		if (reasoning !== "off") options.reasoning = reasoning;
 		return { model, options };
 	}

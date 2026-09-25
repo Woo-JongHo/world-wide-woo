@@ -1,17 +1,57 @@
 import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync } from 'node:fs';
-import { homedir } from 'node:os';
-import { join, resolve } from 'node:path';
-import { developmentDigest, writeDevelopmentArtifact } from './development-snapshot.js';
+import { homedir }                                                                   from 'node:os';
+import { join, resolve }                                                             from 'node:path';
+import { developmentDigest, writeDevelopmentArtifact }                               from '@/adapters/outbound/development/development-snapshot.js';
 
 /** @linear WOO-698 */
-export interface DevelopmentVaultRequest {
-  requestId: string; priorDocumentId?: string; codeLinks?: { label: string; url: string }[]; projectId: string; runId: string; title: string; summary?: string; unitIds: string[];
-  issues: { id: string; uuid: string; url?: string }[];
-  records: { id: string; body: string; kind?: string; metadata?: Record<string, unknown> }[];
-  tests?: { id: string; status: string; command: string; output: string; snapshot?: unknown }[];
+export interface DevelopmentVaultCodeLink {
+	label: string;
+	url  : string;
 }
-export interface DevelopmentVaultReceipt { documentId: string; path: string; digest: string; requestId: string; uri: string }
-interface DevelopmentVaultDoneReceipt { documentId: string; requestId: string; inputDigest: string; digest: string }
+export interface DevelopmentVaultIssue {
+	id   : string ;
+	uuid : string ;
+	url? : string ;
+}
+export interface DevelopmentVaultRecord {
+	id        : string                  ;
+	body      : string                  ;
+	kind?     : string                  ;
+	metadata? : Record<string, unknown> ;
+}
+export interface DevelopmentVaultTest {
+	id        : string  ;
+	status    : string  ;
+	command   : string  ;
+	output    : string  ;
+	snapshot? : unknown ;
+}
+export interface DevelopmentVaultRequest {
+	requestId        : string                     ;
+	priorDocumentId? : string                     ;
+	codeLinks?       : DevelopmentVaultCodeLink[] ;
+	projectId        : string                     ;
+	runId            : string                     ;
+	title            : string                     ;
+	summary?         : string                     ;
+	unitIds          : string[]                   ;
+	issues           : DevelopmentVaultIssue[]    ;
+	records          : DevelopmentVaultRecord[]   ;
+	tests?           : DevelopmentVaultTest[]     ;
+}
+export interface DevelopmentVaultReceipt {
+	documentId : string ;
+	path       : string ;
+	digest     : string ;
+	requestId  : string ;
+	uri        : string ;
+}
+interface DevelopmentVaultDoneReceipt {
+	documentId  : string ;
+	requestId   : string ;
+	inputDigest : string ;
+	digest      : string ;
+}
 export function developmentVaultRoot(): string { return resolve(process.env.WWW_DEVELOPMENT_VAULT || join(homedir(), 'woo', '03_WWW_Development')); }
 function uuidFor(value: string): string {
   const h = developmentDigest(value);
@@ -40,16 +80,19 @@ export function resolveDevelopmentDocument(documentId: string, vaultRoot = devel
 }
 export function exportDevelopmentVault(request: DevelopmentVaultRequest, options: { vaultRoot?: string; outboxRoot?: string } = {}): DevelopmentVaultReceipt {
   if (!request.requestId || !request.projectId || !request.runId) throw new Error('Request, project and run IDs are required');
-  const identity = `${request.projectId}\0${request.runId}\0${request.requestId}`;
-  const documentId = uuidFor(identity); const inputDigest = developmentDigest(JSON.stringify(request));
+  const identity    = `${request.projectId}\0${request.runId}\0${request.requestId}` ;
+  const documentId  = uuidFor(identity)                                              ;
+  const inputDigest = developmentDigest(JSON.stringify(request))                     ;
   if (options.outboxRoot) persistDevelopmentVaultRequest(request, options.outboxRoot);
   const root = resolve(options.vaultRoot || developmentVaultRoot()); mkdirSync(root, { recursive: true });
   if (realpathSync(root) !== root) throw new Error('Vault root must not be a symlink');
-  const rawDir = safeDirectory(root, 'Raw'); const notes = safeDirectory(root, 'Development');
-  const state = safeDirectory(root, '.www'); const receipts = safeDirectory(state, 'receipts');
-  const receiptPath = join(receipts, `${documentId}.json`);
-  const donePath = options.outboxRoot ? join(options.outboxRoot, `${documentId}.done.json`) : undefined;
-  const uri = (path: string) => `obsidian://open?path=${encodeURIComponent(path)}`;
+  const rawDir      = safeDirectory(root, 'Raw')                                                           ;
+  const notes       = safeDirectory(root, 'Development')                                                   ;
+  const state       = safeDirectory(root, '.www')                                                          ;
+  const receipts    = safeDirectory(state, 'receipts')                                                     ;
+  const receiptPath = join(receipts, `${documentId}.json`)                                                 ;
+  const donePath    = options.outboxRoot ? join(options.outboxRoot, `${documentId}.done.json`) : undefined ;
+  const uri         = (path: string) => `obsidian://open?path=${encodeURIComponent(path)}`                 ;
   if (donePath && existsSync(donePath)) validateDoneReceipt(donePath, { documentId, requestId: request.requestId, inputDigest }, root);
   if (existsSync(receiptPath)) {
     if (!lstatSync(receiptPath).isFile() || lstatSync(receiptPath).isSymbolicLink()) throw new Error('Unsafe export receipt');
@@ -61,7 +104,8 @@ export function exportDevelopmentVault(request: DevelopmentVaultRequest, options
     if (donePath) writeDevelopmentArtifact(donePath, JSON.stringify({ documentId, requestId: request.requestId, inputDigest, digest: result.digest }) + '\n');
     return result;
   }
-  const raw = JSON.stringify(request, null, 2) + '\n'; const rawDigest = developmentDigest(raw);
+  const raw = JSON.stringify(request, null, 2) + '\n';
+  const rawDigest = developmentDigest(raw);
   const rawPath = join(rawDir, `${rawDigest}.json`); writeDevelopmentArtifact(rawPath, raw);
   const q = JSON.stringify;
   const note = [
@@ -133,7 +177,8 @@ function snapshotSummary(value: unknown): string {
 }
 /** Replay persisted requests, preserving their captured content rather than reading a newer run context. */
 export function replayDevelopmentVault(outboxRoot: string, options: { vaultRoot?: string } = {}): { receipts: DevelopmentVaultReceipt[]; failures: { requestPath: string; error: string }[] } {
-  const receipts: DevelopmentVaultReceipt[] = []; const failures: { requestPath: string; error: string }[] = [];
+  const receipts: DevelopmentVaultReceipt[] = [];
+  const failures: { requestPath: string; error: string }[] = [];
   if (!existsSync(outboxRoot)) return { receipts, failures };
   for (const entry of readdirSync(outboxRoot).filter((name) => name.endsWith('.request.json')).sort()) {
     const requestPath = join(outboxRoot, entry);

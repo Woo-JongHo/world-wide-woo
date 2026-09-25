@@ -34,11 +34,11 @@ const CUSTOMER_IDENTIFIER_PATTERNS: readonly RegExp[] = [
 	/\b(?:phone|tel|telephone|mobile|연락처|전화(?:번호)?)\b\s*[:=#]?\s*\+?\d{8,15}\b/giu,
 ];
 
-const COMPLETION_ENVELOPE_LINE = /^\s*<(\/?)(analysis|results|files|answer|next_steps)\s*>\s*$/iu;
-const COMPLETION_ENVELOPE_SECTION = /^\s*<(analysis|results|files|answer|next_steps)\s*>(.*?)<\/\1\s*>\s*$/iu;
-const COMPLETION_ENVELOPE_OPEN_PREFIX = /^\s*<(analysis|results|files|answer|next_steps)\s*>(.*)$/iu;
-const COMPLETION_ENVELOPE_CLOSE_SUFFIX = /^(.*?)<\/(analysis|results|files|answer|next_steps)\s*>\s*$/iu;
-const FENCE_OPEN = /^ {0,3}(`{3,}|~{3,})/u;
+const COMPLETION_ENVELOPE_LINE         = /^\s*<(\/?)(analysis|results|files|answer|next_steps)\s*>\s*$/iu          ;
+const COMPLETION_ENVELOPE_SECTION      = /^\s*<(analysis|results|files|answer|next_steps)\s*>(.*?)<\/\1\s*>\s*$/iu ;
+const COMPLETION_ENVELOPE_OPEN_PREFIX  = /^\s*<(analysis|results|files|answer|next_steps)\s*>(.*)$/iu              ;
+const COMPLETION_ENVELOPE_CLOSE_SUFFIX = /^(.*?)<\/(analysis|results|files|answer|next_steps)\s*>\s*$/iu           ;
+const FENCE_OPEN                       = /^ {0,3}(`{3,}|~{3,})/u                                                   ;
 
 /**
  * Keeps only the public answer from a completed Assistant response envelope.
@@ -47,11 +47,11 @@ const FENCE_OPEN = /^ {0,3}(`{3,}|~{3,})/u;
  */
 export function sanitizeCompletedAssistantResponse(value: string): string {
 	if (typeof value !== "string") throw new Error("Assistant response must be a string");
-	let activeSection: string | null = null;
-	let fence: { marker: string; length: number } | null = null;
-	let answerCount = 0;
-	let sawEnvelope = false;
-	const answer: string[] = [];
+	let activeSection : string | null                             = null  ;
+	let fence         : { marker: string; length: number } | null = null  ;
+	let answerCount                                               = 0     ;
+	let sawEnvelope                                               = false ;
+	const answer      : string[]                                  = []    ;
 	for (const line of value.split(/\r?\n/u)) {
 		if (fence) {
 			if (new RegExp(`^ {0,3}${fence.marker}{${fence.length},}\\s*$`, "u").test(line)) fence = null;
@@ -61,7 +61,7 @@ export function sanitizeCompletedAssistantResponse(value: string): string {
 		const openedFence = line.match(FENCE_OPEN)?.[1];
 		if (openedFence) {
 			if (!activeSection) return value;
-			fence = { marker: openedFence[0]!, length: openedFence.length };
+			fence = { marker: openedFence[0], length: openedFence.length };
 			if (activeSection === "answer") answer.push(line);
 			continue;
 		}
@@ -69,16 +69,16 @@ export function sanitizeCompletedAssistantResponse(value: string): string {
 		if (section) {
 			if (activeSection) return value;
 			sawEnvelope = true;
-			if (section[1]!.toLowerCase() === "answer") {
+			if (section[1].toLowerCase() === "answer") {
 				answerCount += 1;
-				answer.push(section[2]!);
+				answer.push(section[2]);
 			}
 			continue;
 		}
 		const tag = line.match(COMPLETION_ENVELOPE_LINE);
 		if (tag) {
 			sawEnvelope = true;
-			const name = tag[2]!.toLowerCase();
+			const name = tag[2].toLowerCase();
 			if (tag[1] === "/") {
 				if (activeSection !== name) return value;
 				activeSection = null;
@@ -103,12 +103,12 @@ export function sanitizeCompletedAssistantResponse(value: string): string {
  */
 export function sanitizePartialAssistantResponse(value: string): string {
 	if (typeof value !== "string") throw new Error("Assistant response must be a string");
-	let activeSection: string | null = null;
-	let fence: { marker: string; length: number } | null = null;
-	let answerCount = 0;
-	let sawEnvelope = false;
-	const answer: string[] = [];
-	const projectedAnswer = (): string => answerCount === 1 ? answer.join("\n").trim() : "";
+	let activeSection : string | null                             = null                                                            ;
+	let fence         : { marker: string; length: number } | null = null                                                            ;
+	let answerCount                                               = 0                                                               ;
+	let sawEnvelope                                               = false                                                           ;
+	const answer      : string[]                                  = []                                                              ;
+	const projectedAnswer                                         = (): string => answerCount === 1 ? answer.join("\n").trim() : "" ;
 	for (const line of value.split(/\r?\n/u)) {
 		if (fence) {
 			if (new RegExp(`^ {0,3}${fence.marker}{${fence.length},}\\s*$`, "u").test(line)) fence = null;
@@ -118,7 +118,7 @@ export function sanitizePartialAssistantResponse(value: string): string {
 		const openedFence = line.match(FENCE_OPEN)?.[1];
 		if (openedFence) {
 			if (!activeSection) return sawEnvelope ? projectedAnswer() : value;
-			fence = { marker: openedFence[0]!, length: openedFence.length };
+			fence = { marker: openedFence[0], length: openedFence.length };
 			if (activeSection === "answer") answer.push(line);
 			continue;
 		}
@@ -126,23 +126,23 @@ export function sanitizePartialAssistantResponse(value: string): string {
 		if (section) {
 			if (activeSection) return projectedAnswer();
 			sawEnvelope = true;
-			if (section[1]!.toLowerCase() === "answer") {
+			if (section[1].toLowerCase() === "answer") {
 				answerCount += 1;
-				answer.push(section[2]!);
+				answer.push(section[2]);
 			}
 			continue;
 		}
 		const closeSuffix = line.match(COMPLETION_ENVELOPE_CLOSE_SUFFIX);
 		if (closeSuffix && activeSection) {
-			if (activeSection !== closeSuffix[2]!.toLowerCase()) return projectedAnswer();
-			if (activeSection === "answer") answer.push(closeSuffix[1]!);
+			if (activeSection !== closeSuffix[2].toLowerCase()) return projectedAnswer();
+			if (activeSection === "answer") answer.push(closeSuffix[1]);
 			activeSection = null;
 			continue;
 		}
 		const tag = line.match(COMPLETION_ENVELOPE_LINE);
 		if (tag) {
 			sawEnvelope = true;
-			const name = tag[2]!.toLowerCase();
+			const name = tag[2].toLowerCase();
 			if (tag[1] === "/") {
 				if (activeSection !== name) return projectedAnswer();
 				activeSection = null;
@@ -157,10 +157,10 @@ export function sanitizePartialAssistantResponse(value: string): string {
 		if (openPrefix) {
 			if (activeSection) return projectedAnswer();
 			sawEnvelope = true;
-			activeSection = openPrefix[1]!.toLowerCase();
+			activeSection = openPrefix[1].toLowerCase();
 			if (activeSection === "answer") {
 				answerCount += 1;
-				answer.push(openPrefix[2]!);
+				answer.push(openPrefix[2]);
 			}
 			continue;
 		}
@@ -179,9 +179,9 @@ export function redactForExternalReview(value: string): ReviewRedactionResult {
 	if (typeof value !== "string") throw new Error("Review text must be a string");
 	let text = stripControls(value);
 	const findings: ReviewRedactionFinding[] = [];
-	text = redact(text, SECRET_PATTERNS, "secret", findings);
-	text = redact(text, LOCAL_PATH_PATTERNS, "local-path", findings);
-	text = redact(text, CUSTOMER_IDENTIFIER_PATTERNS, "customer-identifier", findings);
+	text = redact(text, SECRET_PATTERNS, "secret", findings)                           ;
+	text = redact(text, LOCAL_PATH_PATTERNS, "local-path", findings)                   ;
+	text = redact(text, CUSTOMER_IDENTIFIER_PATTERNS, "customer-identifier", findings) ;
 	return Object.freeze({
 		text,
 		findings: Object.freeze(findings.map(finding => Object.freeze({ ...finding }))),

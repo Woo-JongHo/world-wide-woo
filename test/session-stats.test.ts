@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import type { ProjectActivity } from "../src/core/domain/execution/project-activity";
+import type { ProjectActivity }   from "../src/core/domain/execution/project-activity";
 import type { WorkbenchSnapshot } from "../src/core/domain/work/workbench";
-import { projectSessionStats } from "../src/core/domain/observability/session-stats";
+import { projectSessionStats }    from "../src/core/domain/observability/session-stats";
 
 function activity(input: { id: string; sequence: number; method: string; kind?: ProjectActivity["kind"]; phase?: ProjectActivity["phase"]; turnId?: string; itemId?: string; payload?: Record<string, unknown>; approvalRequestId?: string }): ProjectActivity {
-	return { schemaVersion: 1, id: input.id, projectId: "project", sequence: input.sequence, recordedAt: `2026-09-03T00:00:${String(input.sequence).padStart(2, "0")}.000Z`, kind: input.kind ?? "progress", phase: input.phase ?? "updated", provider: "openai-codex", nativeRefs: { threadId: "thread", turnId: input.turnId, itemId: input.itemId, approvalRequestId: input.approvalRequestId }, sourceDigest: `sha256:${input.id.padEnd(64, "0").slice(0, 64)}`, payload: { method: input.method, ...input.payload } };
+	return { schemaVersion: 1, id: input.id, projectId: "project", sequence: input.sequence, recordedAt: `2026-09-03T00:00:${String(input.sequence).padStart(2, "0")}.000Z`, kind: input.kind ?? "progress", phase: input.phase ?? "updated", provider: "openai-codex", nativeRefs: { threadId: "thread", ...(input.turnId === undefined ? {} : { turnId: input.turnId }), ...(input.itemId === undefined ? {} : { itemId: input.itemId }), ...(input.approvalRequestId === undefined ? {} : { approvalRequestId: input.approvalRequestId }) }, sourceDigest: `sha256:${input.id.padEnd(64, "0").slice(0, 64)}`, payload: { method: input.method, ...input.payload } };
 }
 function snapshot(activities: ProjectActivity[], extra: Record<string, unknown> = {}): WorkbenchSnapshot { return { projectId: "project", threadId: "thread", phase: "ready", activities, sessionGoal: null, tnotes: [], workFlow: { goal: null, currentStepNumber: null, steps: [] }, ...extra } as unknown as WorkbenchSnapshot; }
 function request(id: string, sequence: number, suffix: string, payload: Record<string, unknown> = {}): ProjectActivity { return activity({ id: `${id}-${suffix}`, sequence, method: `request/${suffix}`, itemId: id, payload: { requestId: id, ...payload } }); }
@@ -80,10 +80,10 @@ describe("session review projection", () => {
 
 		expect(stats.state).toBe("failed");
 		expect(stats.lifecycle).toMatchObject({
-			rootTurns: 3,
-			completedRootTurns: 1,
-			failedRootTurns: 1,
-			cancelledRootTurns: 1,
+			rootTurns          : 3,
+			completedRootTurns : 1,
+			failedRootTurns    : 1,
+			cancelledRootTurns : 1,
 		});
 		expect(stats.performance).toMatchObject({
 			averageCompletedRootTurnMs: 1_000,
@@ -169,15 +169,15 @@ describe("session review projection", () => {
 		expect(stats.lifecycle.rootTurns).toBe(2);
 		expect(stats.observedTotalTokens).toBe(1_000);
 		expect(stats.performance).toMatchObject({
-			averageCompletedRootTurnMs: 4_500,
-			completedRootTurnDurationObservations: 2,
-			pairedToolTimeMs: 1_000,
-			pairedToolObservations: 1,
-			averageApprovalWaitMs: 1_000,
-			pairedApprovalWaitObservations: 1,
-			averageFirstOutputMs: 1_000,
-			firstOutputObservations: 1,
-			interactiveTokensPerCompletedRootTurn: 50,
+			averageCompletedRootTurnMs            : 4_500,
+			completedRootTurnDurationObservations : 2,
+			pairedToolTimeMs                      : 1_000,
+			pairedToolObservations                : 1,
+			averageApprovalWaitMs                 : 1_000,
+			pairedApprovalWaitObservations        : 1,
+			averageFirstOutputMs                  : 1_000,
+			firstOutputObservations               : 1,
+			interactiveTokensPerCompletedRootTurn : 50,
 		});
 		expect(stats.modelUsage).toEqual([
 			expect.objectContaining({ namespace: "interactive", interactiveRootTurns: 2, totalTokens: 100 }),

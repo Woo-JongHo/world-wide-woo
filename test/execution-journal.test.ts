@@ -1,9 +1,13 @@
-import { createHash } from "node:crypto";
+import { createHash }             from "node:crypto";
 import { describe, expect, test } from "bun:test";
-import legacy from "./fixtures/legacy-execution-receipt.json";
-import type { ProjectActivity } from "../src/core/domain/execution/project-activity";
-import { createExecutionRun, normalizeProjectActivity, replayV2ExecutionRunForVerification } from "../src/core/runtime/execution-run";
-import { ExecutionJournal } from "../src/core/application/orchestration/execution-journal";
+import legacy                     from "./fixtures/legacy-execution-receipt.json";
+import type { ProjectActivity }   from "../src/core/domain/execution/project-activity";
+import {
+	createExecutionRun,
+	normalizeProjectActivity,
+	replayV2ExecutionRunForVerification,
+} from "../src/core/runtime/execution-run";
+import { ExecutionJournal }       from "../src/core/application/orchestration/execution-journal";
 
 const hash = { sha256Hex: (input: Uint8Array) => createHash("sha256").update(input).digest("hex") };
 const canonical = (value: unknown) => JSON.stringify(value);
@@ -42,17 +46,17 @@ describe("ExecutionJournal", () => {
 		const source = [activity(1, "start", "turn/started", "started"), activity(2, "terminal", "turn/completed")];
 		const live = new ExecutionJournal(hash, canonical);
 		for (let index = 0; index < source.length; index++) live.observe(source[index]!, source.slice(0, index + 1));
-		const receipt = live.get("thread:turn")!.receipt!;
-		const latePlan = activity(3, "late-plan", "turn/plan/updated", "completed", { params: { plan: [{ step: "후행 계획", status: "inProgress" }] } });
-		const restored = new ExecutionJournal(hash, canonical);
+		const receipt  = live.get("thread:turn")!.receipt!                                                                                               ;
+		const latePlan = activity(3, "late-plan", "turn/plan/updated", "completed", { params: { plan: [{ step: "후행 계획", status: "inProgress" }] } }) ;
+		const restored = new ExecutionJournal(hash, canonical)                                                                                           ;
 		expect(restored.restore([...source, latePlan, receiptActivity(receipt, 4)])).toEqual([]);
 		expect(restored.get("thread:turn")?.receipt).toEqual(receipt);
 	});
 
 	test("does not let a future Plan revision alter an earlier replay event", () => {
-		const source = [activity(1, "start", "turn/started", "started"), activity(2, "terminal", "turn/completed")];
-		const future = activity(3, "future-plan", "turn/plan/updated", "completed", { params: { plan: [{ step: "미래 계획", status: "inProgress" }] } });
-		const live = new ExecutionJournal(hash, canonical);
+		const source = [activity(1, "start", "turn/started", "started"), activity(2, "terminal", "turn/completed")]                                      ;
+		const future = activity(3, "future-plan", "turn/plan/updated", "completed", { params: { plan: [{ step: "미래 계획", status: "inProgress" }] } }) ;
+		const live   = new ExecutionJournal(hash, canonical)                                                                                             ;
 		live.observe(source[0]!, [...source, future]);
 		expect(live.get("thread:turn")?.tasks).toEqual([]);
 		live.observe(source[1]!, [...source, future]);
@@ -60,10 +64,10 @@ describe("ExecutionJournal", () => {
 	});
 
 	test("authenticates fixed v2 and versionless receipts without rewriting bytes", () => {
-		const source = [activity(1, "start", "turn/started", "started"), activity(2, "terminal", "turn/completed")];
-		const initial = createExecutionRun({ runId: "thread:turn", threadId: "thread", turnId: "turn", hash });
-		const v2 = replayV2ExecutionRunForVerification(initial, source.map(normalizeProjectActivity), hash).receipt!;
-		const v2Journal = new ExecutionJournal(hash, canonical);
+		const source    = [activity(1, "start", "turn/started", "started"), activity(2, "terminal", "turn/completed")]      ;
+		const initial   = createExecutionRun({ runId: "thread:turn", threadId: "thread", turnId: "turn", hash })            ;
+		const v2        = replayV2ExecutionRunForVerification(initial, source.map(normalizeProjectActivity), hash).receipt! ;
+		const v2Journal = new ExecutionJournal(hash, canonical)                                                             ;
 		expect(v2Journal.restore([...source, receiptActivity(v2, 3)])).toEqual([]);
 		expect(canonical(v2Journal.get("thread:turn")?.receipt)).toBe(canonical(v2));
 

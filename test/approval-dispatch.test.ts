@@ -1,23 +1,26 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test }                               from "bun:test";
 import {
 	ApprovalDeliveryUncertainError,
 	ApprovalResponseDispatcher,
 	dispatchApprovalResponse,
-	type ApprovalResponseObservation,
 } from "../src/core/application/orchestration/approval-dispatch.js";
+import type { ApprovalResponseObservation }                     from "../src/core/application/orchestration/approval-dispatch.js";
 import type { NativeApprovalRequest, NativeApprovalResolution } from "../src/core/domain/execution/native-session.js";
-import { ActivityJournalStore, digestActivitySource } from "../src/adapters/outbound/persistence/activity-journal-store.js";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import {
+	ActivityJournalStore,
+	digestActivitySource,
+} from "../src/adapters/outbound/persistence/activity-journal-store.js";
+import { mkdtemp, rm }                                          from "node:fs/promises";
+import { tmpdir }                                               from "node:os";
+import { join }                                                 from "node:path";
 
 const request: NativeApprovalRequest = {
-	requestId: 17,
-	callbackId: "callback-17",
-	kind: "permissions",
-	refs: { threadId: "thread-1", turnId: "turn-1" },
-	availableDecisions: [],
-	params: { command: "dangerous" },
+	requestId          : 17,
+	callbackId         : "callback-17",
+	kind               : "permissions",
+	refs               : { threadId: "thread-1", turnId: "turn-1" },
+	availableDecisions : [],
+	params             : { command: "dangerous" },
 };
 
 const digestSource = (source: string): string => `digest:${source}`;
@@ -28,9 +31,9 @@ describe("dispatchApprovalResponse", () => {
 		const observations: ApprovalResponseObservation[] = [];
 		const order: string[] = [];
 		let releasePreparation!: () => void;
-		const preparation = new Promise<void>((resolve) => { releasePreparation = resolve; });
-		const response = { permissions: { filesystem: { write: true } }, scope: "turn" as const, strictAutoReview: false };
-		const transmissions: NativeApprovalResolution[] = [];
+		const preparation                               = new Promise<void>((resolve) => { releasePreparation = resolve; })                                 ;
+		const response                                  = { permissions: { filesystem: { write: true } }, scope: "turn" as const, strictAutoReview: false } ;
+		const transmissions: NativeApprovalResolution[] = []                                                                                                ;
 		const dispatch = dispatchApprovalResponse({ commandId: "command-1", request, response }, {
 			digestSource,
 			serializeEvidence,
@@ -131,9 +134,9 @@ describe("dispatchApprovalResponse", () => {
 	});
 
 	test("restores prepared and dispatched interlocks after restart until a resolved observation", async () => {
-		let sends = 0;
-		const observations: ApprovalResponseObservation[] = [];
-		const dependencies = { digestSource, serializeEvidence, record: async (entry: ApprovalResponseObservation) => { observations.push(entry); }, respondToApproval: async () => { sends += 1; } };
+		let sends                                         = 0                                                                                                                                                                        ;
+		const observations: ApprovalResponseObservation[] = []                                                                                                                                                                       ;
+		const dependencies                                = { digestSource, serializeEvidence, record: async (entry: ApprovalResponseObservation) => { observations.push(entry); }, respondToApproval: async () => { sends += 1; } } ;
 		await new ApprovalResponseDispatcher(dependencies).dispatch({ commandId: "before-restart", request, response: { decision: "accept" } });
 		const resumed = new ApprovalResponseDispatcher(dependencies);
 		resumed.restoreInterlocks(observations);
@@ -159,13 +162,13 @@ describe("dispatchApprovalResponse", () => {
 	});
 
 	test("does not relock when dispatched audit follows an early Native resolution", async () => {
-		let sends = 0;
-		const dispatcher = new ApprovalResponseDispatcher({ digestSource, serializeEvidence, record: async () => undefined, respondToApproval: async () => { sends += 1; } });
-		const refs = { threadId: "thread-1", turnId: "turn-1", approvalRequestId: 17, approvalCallbackId: "callback-17" };
+		let sends        = 0                                                                                                                                                  ;
+		const dispatcher = new ApprovalResponseDispatcher({ digestSource, serializeEvidence, record: async () => undefined, respondToApproval: async () => { sends += 1; } }) ;
+		const refs       = { threadId: "thread-1", turnId: "turn-1", approvalRequestId: 17, approvalCallbackId: "callback-17" }                                               ;
 		dispatcher.restoreInterlocks([
-			{ nativeRefs: refs, payload: { operation: "approval/response-prepared" } },
-			{ nativeRefs: refs, payload: { eventType: "approval-resolved" } },
-			{ nativeRefs: refs, payload: { operation: "approval/response-delivered" } },
+			{ nativeRefs : refs , payload : { operation: "approval/response-prepared" }  },
+			{ nativeRefs : refs , payload : { eventType: "approval-resolved" }           },
+			{ nativeRefs : refs , payload : { operation: "approval/response-delivered" } },
 		]);
 		expect((await dispatcher.dispatch({ commandId: "after-early-resolved", request, response: { decision: "decline" } })).state).toBe("delivered");
 		expect(sends).toBe(1);
@@ -174,9 +177,9 @@ describe("dispatchApprovalResponse", () => {
 	test("keeps terminal delivery observations distinct in the real journal deduplicator", async () => {
 		const directory = await mkdtemp(join(tmpdir(), "www-approval-audit-"));
 		try {
-			const store = new ActivityJournalStore(directory);
-			const record = async (entry: ApprovalResponseObservation) => { await store.append({ ...entry, projectId: "approval-audit", provider: "openai-codex" }); };
-			const dependencies = { digestSource: digestActivitySource, serializeEvidence, record, respondToApproval: async () => undefined };
+			const store        = new ActivityJournalStore(directory)                                                                                                        ;
+			const record       = async (entry: ApprovalResponseObservation) => { await store.append({ ...entry, projectId: "approval-audit", provider: "openai-codex" }); } ;
+			const dependencies = { digestSource: digestActivitySource, serializeEvidence, record, respondToApproval: async () => undefined }                                ;
 			await dispatchApprovalResponse({ commandId: "command-a", request, response: { decision: "decline" } }, dependencies);
 			await dispatchApprovalResponse({ commandId: "command-b", request, response: { decision: "decline" } }, dependencies);
 			const delivered = (await store.readAll("approval-audit")).filter(entry => entry.payload.operation === "approval/response-delivered");
@@ -191,9 +194,9 @@ describe("dispatchApprovalResponse", () => {
 		const observations: ApprovalResponseObservation[] = [];
 		const result = await dispatchApprovalResponse({ commandId: "command-6", request, response: { decision: "decline" } }, {
 			digestSource,
-			serializeEvidence: (value) => ({ value: String(value).slice(0, 8), omitted: String(value).length > 8 }),
-			record: async (entry) => { observations.push(entry); },
-			respondToApproval: async () => { throw new Error("secret-token-and-a-very-long-transport-message"); },
+			serializeEvidence : (value) => ({ value: String(value).slice(0, 8), omitted: String(value).length > 8 }),
+			record            : async (entry) => { observations.push(entry); },
+			respondToApproval : async () => { throw new Error("secret-token-and-a-very-long-transport-message"); },
 		});
 		expect(result).toMatchObject({ state: "uncertain", reason: "secret-t" });
 		expect(observations[1]?.payload.reason).toBe("secret-t");

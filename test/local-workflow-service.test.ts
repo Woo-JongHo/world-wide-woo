@@ -1,13 +1,13 @@
-import { afterEach, expect, test } from "bun:test";
+import { afterEach, expect, test }                                                   from "bun:test";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, copyFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { resolve, join } from "node:path";
-import { createLocalWorkflow } from "../src/adapters/outbound/development/local-workflow";
-import { FileSkillRunStore } from "../src/adapters/outbound/persistence/skill-run-store";
-import { FileSkillRegistry } from "../src/adapters/outbound/workspace/file-skill-registry";
-import { startSkillRun, beginSkillStep } from "../src/core/workflows/skill-run";
-import { planRpaScenario } from "../src/core/agents/rpa-agent";
-import { verifyLocalWorkflow } from "../src/adapters/outbound/development/local-workflow-verifier";
+import { tmpdir }                                                                    from "node:os";
+import { resolve, join }                                                             from "node:path";
+import { createLocalWorkflow }                                                       from "../src/adapters/outbound/development/local-workflow";
+import { FileSkillRunStore }                                                         from "../src/adapters/outbound/persistence/skill-run-store";
+import { FileSkillRegistry }                                                         from "../src/adapters/outbound/workspace/file-skill-registry";
+import { startSkillRun, beginSkillStep }                                             from "../src/core/workflows/skill-run";
+import { planRpaScenario }                                                           from "../src/core/agents/rpa-agent";
+import { verifyLocalWorkflow }                                                       from "../src/adapters/outbound/development/local-workflow-verifier";
 const roots: string[] = [];
 afterEach(() => {for (const root of roots.splice(0)) rmSync(root,{recursive:true,force:true});});
 function fixture(name: string) {
@@ -72,18 +72,18 @@ test("완료한 Run은 입력 변경 후 재개 성공으로 재사용하지 않
 });
 test("full legacy 기록은 로컬 검사 통과로 표시하지 않는다", async()=>{
  const root=fixture("legacy"); const service=createLocalWorkflow(root);
- const result=await service.run("RPA-FIXTURE");
- const store=new FileSkillRunStore(join(root,".www"));
- const legacy={...result.state,runId:"legacy-full",scope:"full"};
+ const result =await service.run("RPA-FIXTURE")                   ;
+ const store  =new FileSkillRunStore(join(root,".www"))           ;
+ const legacy ={...result.state,runId:"legacy-full",scope:"full"} ;
  writeFileSync(store.statePath(legacy.runId),JSON.stringify(legacy));
  await expect(service.inspect(legacy.runId)).rejects.toThrow("로컬 검사 Run");
 });
 
 test("로컬 완료 상태만 있고 검증 Receipt가 없으면 통과 표시를 거절한다", async()=>{
  const root=fixture("missing-receipt"); const service=createLocalWorkflow(root);
- const result=await service.run("RPA-FIXTURE");
- const store=new FileSkillRunStore(join(root,".www"));
- const legacy={...result.state,runId:"legacy-local"};
+ const result =await service.run("RPA-FIXTURE")         ;
+ const store  =new FileSkillRunStore(join(root,".www")) ;
+ const legacy ={...result.state,runId:"legacy-local"}   ;
  writeFileSync(store.statePath(legacy.runId),JSON.stringify(legacy));
  await expect(service.inspect(legacy.runId)).rejects.toThrow("검증 Receipt");
 });

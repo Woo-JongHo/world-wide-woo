@@ -1,8 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import chalk from "chalk";
-import { AstraTranscriptView } from "../src/adapters/inbound/tui/features/chat/astra-execution";
-import { getActiveTuiTheme, setActiveTuiTheme, tuiBackgroundResetSequence, tuiBackgroundSequence } from "../src/adapters/inbound/tui/foundation/theme/theme";
-import { astraFixture } from "./fixtures/astra-snapshot";
+import chalk                      from "chalk";
+import { AstraTranscriptView }    from "../src/adapters/inbound/tui/features/chat/astra-execution";
+import {
+	getActiveTuiTheme,
+	setActiveTuiTheme,
+	tuiBackgroundResetSequence,
+	tuiBackgroundSequence,
+} from "../src/adapters/inbound/tui/foundation/theme/theme";
+import { astraFixture }           from "./fixtures/astra-snapshot";
 
 describe("Astra theme render cache boundary", () => {
 	test("repaints cached transcript rows after a theme change", () => {

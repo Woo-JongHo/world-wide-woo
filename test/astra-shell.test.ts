@@ -1,28 +1,30 @@
-import { expect, spyOn, test } from "bun:test";
-import { TuiAltScreen, stripTerminalSequences, visibleWidth, type Component, type Terminal } from "@earendil-works/pi-tui";
-import { getScrollViewBox, renderLayoutFrame } from "@earendil-works/pi-tui/dist/layout.js";
-import type { ProjectWorkbench } from "../src/core/application/orchestration/project-workbench";
+import { expect, spyOn, test }                                               from "bun:test";
+import { TuiAltScreen, stripTerminalSequences, visibleWidth }                from "@earendil-works/pi-tui";
+import type { Component, Terminal }                                          from "@earendil-works/pi-tui";
+import { getScrollViewBox, renderLayoutFrame }                               from "@earendil-works/pi-tui/dist/layout.js";
+import type { ProjectWorkbench }                                             from "../src/core/application/orchestration/project-workbench";
 import type { WorkbenchCommand, WorkbenchCommandReceipt, WorkbenchListener } from "../src/core/domain/work/workbench";
-import { runProjectWorkbenchShell } from "../src/adapters/inbound/tui/shell/workbench-shell";
-import { runCli, type CliDependencies } from "../src/cli";
-import { astraFixture } from "./fixtures/astra-snapshot";
+import { runProjectWorkbenchShell }                                          from "../src/adapters/inbound/tui/shell/workbench-shell";
+import { runCli }                                                            from "../src/cli";
+import type { CliDependencies }                                              from "../src/cli";
+import { astraFixture }                                                      from "./fixtures/astra-snapshot";
 
 class MemoryTerminal implements Terminal {
 	columns = 80; rows = 24; kittyProtocolActive = false; output = ""; stopped = false;
 	input: (data: string) => void = () => { throw new Error("terminal not started"); };
 	resize: () => void = () => { throw new Error("terminal not started"); };
-	start(input: (data: string) => void, resize: () => void): void { this.input = input; this.resize = resize; }
-	stop(): void { this.stopped = true; }
-	async drainInput(): Promise<void> { this.input = () => {}; }
-	write(data: string): void { this.output += data; }
-	moveBy(n: number): void { this.write(`\x1b[${Math.abs(n)}${n > 0 ? "B" : "A"}`); }
-	hideCursor(): void { this.write("\x1b[?25l"); }
-	showCursor(): void { this.write("\x1b[?25h"); }
-	clearLine(): void { this.write("\x1b[2K"); }
-	clearFromCursor(): void { this.write("\x1b[J"); }
-	clearScreen(): void { this.write("\x1b[2J"); }
-	setTitle(title: string): void { this.write(`\x1b]0;${title}\x07`); }
-	setProgress(active: boolean): void { this.write(active ? "\x1b]9;4;3\x07" : "\x1b]9;4;0\x07"); }
+	start           (input: (data: string) => void, resize: () => void): void { this.input = input; this.resize = resize; }
+	stop            ()                                                 : void { this.stopped = true; }
+	async drainInput()                                                 : Promise<void> { this.input = () => {}; }
+	write           (data: string                                     ): void { this.output += data; }
+	moveBy          (n: number                                        ): void { this.write(`\x1b[${Math.abs(n)}${n > 0 ? "B" : "A"}`); }
+	hideCursor      ()                                                 : void { this.write("\x1b[?25l"); }
+	showCursor      ()                                                 : void { this.write("\x1b[?25h"); }
+	clearLine       ()                                                 : void { this.write("\x1b[2K"); }
+	clearFromCursor ()                                                 : void { this.write("\x1b[J"); }
+	clearScreen     ()                                                 : void { this.write("\x1b[2J"); }
+	setTitle        (title: string                                    ): void { this.write(`\x1b]0;${title}\x07`); }
+	setProgress     (active: boolean                                  ): void { this.write(active ? "\x1b]9;4;3\x07" : "\x1b]9;4;0\x07"); }
 }
 const tick = () => new Promise(resolve => setTimeout(resolve, 40));
 
@@ -47,10 +49,10 @@ test("production Astra shell routes navigation, rejection, approval and shutdown
 		async close() { closed = true; },
 	} as unknown as ProjectWorkbench;
 	runProjectWorkbenchShell({ design: "astra", terminal, cwd: "/test/astra", workbench: wb,
-		usage: { async refresh() { return []; }, startPolling(fn) { fn([]); return () => {}; }, cacheMetrics: () => ({ entries: 0, hits: 0, misses: 0, evictions: 0, lastAccessedAt: null }) },
-		auth: { methods: () => [], status: async provider => ({ state: "configured", provider, type: "oauth", source: "test fixture" }), login: async () => { throw new Error("not requested"); }, logout: async () => {} },
-		composerDraft: { initialText: "", save: async text => { saved = text; }, clear: async () => { saved = ""; } },
-		releaseSessionLease: async () => { released = true; },
+		usage               : { async refresh() { return []; }, startPolling(fn) { fn([]); return () => {}; }, cacheMetrics: () => ({ entries: 0, hits: 0, misses: 0, evictions: 0, lastAccessedAt: null }) },
+		auth                : { methods: () => [], status: async provider => ({ state: "configured", provider, type: "oauth", source: "test fixture" }), login: async () => { throw new Error("not requested"); }, logout: async () => {} },
+		composerDraft       : { initialText: "", save: async text => { saved = text; }, clear: async () => { saved = ""; } },
+		releaseSessionLease : async () => { released = true; },
 	});
 	const submit = async (text: string) => { terminal.input(text); terminal.input("\r"); await tick(); };
 	try {
@@ -181,9 +183,9 @@ test("/demo presents synthetic MVP pages with R/E navigation and restores live s
 		async dispatch(command: WorkbenchCommand) { commands.push(command); return { state: "accepted", commandId: "unexpected" }; },
 		async close() {},
 	} as unknown as ProjectWorkbench;
-	let root: Component | undefined;
-	const original = TuiAltScreen.prototype.setLayoutRoot;
-	const capture = spyOn(TuiAltScreen.prototype, "setLayoutRoot").mockImplementation(function(this: TuiAltScreen, component) { root = component; original.call(this, component); });
+	let root: Component | undefined                                                                                                                                                   ;
+	const original = TuiAltScreen.prototype.setLayoutRoot                                                                                                                             ;
+	const capture  = spyOn(TuiAltScreen.prototype, "setLayoutRoot").mockImplementation(function(this: TuiAltScreen, component) { root = component; original.call(this, component); }) ;
 	const frame = () => {
 		expect(root).toBeDefined();
 		return renderLayoutFrame(root!, terminal.columns, terminal.rows, () => {}).lines.map(stripTerminalSequences).join("\n");
@@ -245,10 +247,10 @@ test("/demo presents synthetic MVP pages with R/E navigation and restores live s
 });
 
 test("ESC commits a focused follow-up as an explicit Queue delivery while a turn is working", async () => {
-	const terminal = new MemoryTerminal();
-	let snapshot = astraFixture("ready");
-	let listener: WorkbenchListener = () => {};
-	const commands: WorkbenchCommand[] = [];
+	const terminal                      = new MemoryTerminal()  ;
+	let snapshot                        = astraFixture("ready") ;
+	let listener   : WorkbenchListener  = () => {}              ;
+	const commands : WorkbenchCommand[] = []                    ;
 	const wb = {
 		get snapshot() { return snapshot; },
 		subscribe(fn: WorkbenchListener) { listener = fn; fn(snapshot); return () => {}; },
@@ -280,11 +282,11 @@ test("the production layout keeps autocomplete selections and multiline rails vi
 	const terminal = new MemoryTerminal(), snapshot = astraFixture("ready");
 	const usageSnapshots = [{ provider: "openai-codex" as const, state: "ready" as const, fetchedAt: 1, limits: [{ label: "7 days", remainingPercent: 62, status: "ok" as const }] }];
 	snapshot.tnotes = [{ id: "layout-note", title: "Layout note", summary: "QUESTION_PREVIEW_SENTINEL", updatedAt: "2026-09-12T00:00:00Z", sourceActivityIds: [] }];
-	const wb = { snapshot, subscribe(fn: WorkbenchListener) { fn(snapshot); return () => {}; }, async close() {} } as unknown as ProjectWorkbench;
-	let root: Component | undefined;
-	let transcriptWidth: number | undefined;
-	const original = TuiAltScreen.prototype.setLayoutRoot;
-	const capture = spyOn(TuiAltScreen.prototype, "setLayoutRoot").mockImplementation(function(this: TuiAltScreen, component) { root = component; original.call(this, component); });
+	const wb       = { snapshot, subscribe(fn: WorkbenchListener) { fn(snapshot); return () => {}; }, async close() {} } as unknown as ProjectWorkbench                               ;
+	let root            : Component | undefined                                                                                                                                       ;
+	let transcriptWidth : number | undefined                                                                                                                                          ;
+	const original = TuiAltScreen.prototype.setLayoutRoot                                                                                                                             ;
+	const capture  = spyOn(TuiAltScreen.prototype, "setLayoutRoot").mockImplementation(function(this: TuiAltScreen, component) { root = component; original.call(this, component); }) ;
 	const frame = () => {
 		expect(root).toBeDefined();
 		const layout = renderLayoutFrame(root!, terminal.columns, terminal.rows, () => {});
@@ -343,11 +345,11 @@ test("the production layout keeps autocomplete selections and multiline rails vi
 test("execution heading belongs only to the execution page", async () => {
 	const terminal = new MemoryTerminal();
 	terminal.columns = 120; terminal.rows = 32;
-	const snapshot = astraFixture("working");
-	const wb = { snapshot, subscribe(fn: WorkbenchListener) { fn(snapshot); return () => {}; }, async dispatch() { return { state: "accepted", commandId: "ok" }; }, async close() {} } as unknown as ProjectWorkbench;
-	let root: Component | undefined;
-	const original = TuiAltScreen.prototype.setLayoutRoot;
-	const capture = spyOn(TuiAltScreen.prototype, "setLayoutRoot").mockImplementation(function(this: TuiAltScreen, component) { root = component; original.call(this, component); });
+	const snapshot = astraFixture("working")                                                                                                                                                                                 ;
+	const wb       = { snapshot, subscribe(fn: WorkbenchListener) { fn(snapshot); return () => {}; }, async dispatch() { return { state: "accepted", commandId: "ok" }; }, async close() {} } as unknown as ProjectWorkbench ;
+	let root: Component | undefined                                                                                                                                                                                          ;
+	const original = TuiAltScreen.prototype.setLayoutRoot                                                                                                                                                                    ;
+	const capture  = spyOn(TuiAltScreen.prototype, "setLayoutRoot").mockImplementation(function(this: TuiAltScreen, component) { root = component; original.call(this, component); })                                        ;
 	const frame = () => {
 		expect(root).toBeDefined();
 		return renderLayoutFrame(root!, terminal.columns, terminal.rows, () => {}).lines.map(stripTerminalSequences).join("\n");

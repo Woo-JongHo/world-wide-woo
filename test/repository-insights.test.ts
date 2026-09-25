@@ -1,8 +1,6 @@
-import { describe, expect, test } from "bun:test";
-import {
-	GitHubRepositoryInsights,
-	type RepositoryCommandRunner,
-} from "../src/adapters/outbound/git/repository-insights";
+import { describe, expect, test }       from "bun:test";
+import { GitHubRepositoryInsights }     from "../src/adapters/outbound/git/repository-insights";
+import type { RepositoryCommandRunner } from "../src/adapters/outbound/git/repository-insights";
 
 const commit = "a".repeat(40);
 
@@ -34,17 +32,17 @@ describe("repository insights", () => {
 		const insights = new GitHubRepositoryInsights("/start", mock.run, 1234);
 
 		expect(await insights.snapshot()).toEqual({
-			root: "/repo",
-			branch: "feature/한글",
-			upstream: "origin/feature/한글",
-			ahead: 3,
-			behind: 2,
+			root     : "/repo",
+			branch   : "feature/한글",
+			upstream : "origin/feature/한글",
+			ahead    : 3,
+			behind   : 2,
 			changedFiles: [
-				{ path: "staged.ts", kind: "modified", staged: true, unstaged: false, untracked: false },
-				{ path: "unstaged.ts", kind: "modified", staged: false, unstaged: true, untracked: false },
-				{ path: "새 파일.ts", kind: "untracked", staged: false, unstaged: false, untracked: true },
-				{ path: "deleted.ts", kind: "deleted", staged: false, unstaged: true, untracked: false },
-				{ path: "renamed.ts", previousPath: "old-name.ts", kind: "renamed", staged: true, unstaged: false, untracked: false },
+				{ path : "staged.ts"   , kind         : "modified"    , staged : true      , unstaged : false , untracked : false                   },
+				{ path : "unstaged.ts" , kind         : "modified"    , staged : false     , unstaged : true  , untracked : false                   },
+				{ path : "새 파일.ts"  , kind         : "untracked"   , staged : false     , unstaged : false , untracked : true                    },
+				{ path : "deleted.ts"  , kind         : "deleted"     , staged : false     , unstaged : true  , untracked : false                   },
+				{ path : "renamed.ts"  , previousPath : "old-name.ts" , kind   : "renamed" , staged   : true  , unstaged  : false, untracked: false },
 			],
 			head: { id: commit, shortId: commit.slice(0, 7), subject: "latest", author: "Ada", authoredAt: "2026-08-31T00:00:00Z" },
 		});

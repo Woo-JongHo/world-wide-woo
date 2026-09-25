@@ -1,9 +1,9 @@
-import { test, expect } from "bun:test";
+import { test, expect }                                  from "bun:test";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { execFileSync } from "node:child_process";
-import { validateCodeIds, validateCodeLinks } from "../scripts/code-id";
+import { tmpdir }                                        from "node:os";
+import { join }                                          from "node:path";
+import { execFileSync }                                  from "node:child_process";
+import { validateCodeIds, validateCodeLinks }            from "../scripts/code-id";
 
 test("Code-ID는 문자열 예시를 선언으로 세지 않고 실제 선언·노트·중복을 대조한다", async () => {
   const root = mkdtempSync(join(tmpdir(), "www-code-id-"));

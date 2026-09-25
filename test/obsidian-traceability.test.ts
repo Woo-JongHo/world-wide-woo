@@ -1,15 +1,22 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test }                           from "bun:test";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import YAML from "yaml";
-import type { ObsidianCanonicalProperties } from "../src/core/domain/development/obsidian-contract.js";
-import type { TraceabilityLedgerV3, TraceabilityRef } from "../src/core/domain/development/development-traceability.js";
-import { DevelopmentStore } from "../src/adapters/outbound/development/development-store.js";
-import { canonicalDigest, sha256, validateRegistryEnvelope } from "../src/adapters/outbound/development/development-traceability-contract.js";
-import { inspectObsidianTraceability } from "../src/adapters/outbound/development/traceability-validator.js";
-import { applyObsidianLedgerMigrationPreview, createObsidianLedgerMigrationPreview } from "../src/adapters/outbound/development/obsidian-ledger-migration.js";
-import { runTraceability, validateVaultExportCoverage } from "../scripts/traceability.js";
+import { tmpdir }                                                      from "node:os";
+import { dirname, join, resolve }                                      from "node:path";
+import YAML                                                            from "yaml";
+import type { ObsidianCanonicalProperties }                            from "../src/core/domain/development/obsidian-contract.js";
+import type { TraceabilityLedgerV3, TraceabilityRef }                  from "../src/core/domain/development/development-traceability.js";
+import { DevelopmentStore }                                            from "../src/adapters/outbound/development/development-store.js";
+import {
+	canonicalDigest,
+	sha256,
+	validateRegistryEnvelope,
+} from "../src/adapters/outbound/development/development-traceability-contract.js";
+import { inspectObsidianTraceability }                                 from "../src/adapters/outbound/development/traceability-validator.js";
+import {
+	applyObsidianLedgerMigrationPreview,
+	createObsidianLedgerMigrationPreview,
+} from "../src/adapters/outbound/development/obsidian-ledger-migration.js";
+import { runTraceability, validateVaultExportCoverage }                from "../scripts/traceability.js";
 
 const roots: string[] = [];
 afterEach(() => { for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }); });
@@ -21,7 +28,19 @@ const sections = [
 	"12. Implementation Map", "13. Current State & Gaps", "14. Decisions & Evidence", "Change Log",
 ];
 
-interface NoteInput { id: string; linear: string; capability: string; title: string; parent?: string; related?: string[]; specIds?: string[]; codeIds?: string[]; testIds?: string[]; exceptionIds?: string[]; decisionIds?: string[] }
+interface NoteInput {
+	id            : string   ;
+	linear        : string   ;
+	capability    : string   ;
+	title         : string   ;
+	parent?       : string   ;
+	related?      : string[] ;
+	specIds?      : string[] ;
+	codeIds?      : string[] ;
+	testIds?      : string[] ;
+	exceptionIds? : string[] ;
+	decisionIds?  : string[] ;
+}
 function note(input: NoteInput): { path: string; content: string } {
 	const properties: ObsidianCanonicalProperties = {
 		document_id: input.id, linear: input.linear, record_type: "detailed-canonical", schema_version: 2,
@@ -49,16 +68,16 @@ function fixture() {
 	const ledger: TraceabilityLedgerV3 = {
 		schemaVersion: 3, projectId: "00000000-0000-4000-8000-000000000002", tombstones: [], migrations: [], payloadDigest: "",
 		entities: [
-			{ ref: "issue:WOO-682", kind: "issue", id: "WOO-682" },
-			{ ref: "issue:WOO-681", kind: "issue", id: "WOO-681" },
-			{ ref: `note:${todoId()}`, kind: "note", id: todoId(), source: { path: todo.path, digest: sha256(todo.content) } },
-			{ ref: `note:${tracerId()}`, kind: "note", id: tracerId(), source: { path: tracer.path, digest: sha256(tracer.content) } },
+			{ ref : "issue:WOO-682"      , kind : "issue" , id : "WOO-682"                                                                   },
+			{ ref : "issue:WOO-681"      , kind : "issue" , id : "WOO-681"                                                                   },
+			{ ref : `note:${todoId()}`   , kind : "note"  , id : todoId()   , source : { path: todo.path, digest: sha256(todo.content) }     },
+			{ ref : `note:${tracerId()}` , kind : "note"  , id : tracerId() , source : { path: tracer.path, digest: sha256(tracer.content) } },
 		],
 		edges: [
-			{ from: "issue:WOO-682", relation: "detailed-by", to: `note:${todoId()}` },
-			{ from: "issue:WOO-681", relation: "detailed-by", to: `note:${tracerId()}` },
-			{ from: `note:${todoId()}`, relation: "related-to", to: `note:${tracerId()}` },
-			{ from: `note:${todoId()}`, relation: "parent-of", to: `note:${tracerId()}` },
+			{ from : "issue:WOO-682"    , relation : "detailed-by" , to : `note:${todoId()}`   },
+			{ from : "issue:WOO-681"    , relation : "detailed-by" , to : `note:${tracerId()}` },
+			{ from : `note:${todoId()}` , relation : "related-to"  , to : `note:${tracerId()}` },
+			{ from : `note:${todoId()}` , relation : "parent-of"   , to : `note:${tracerId()}` },
 		],
 	};
 	const { payloadDigest: _, ...body } = ledger; ledger.payloadDigest = canonicalDigest(body);
@@ -77,9 +96,9 @@ describe("Obsidian authoring source traceability", () => {
 	});
 
 	test("previews legacy replacement and a missing WOO-674 note before digest-bound apply", async () => {
-		const value = fixture();
-		const workbenchId = "33333333-3333-4333-8333-333333333333";
-		const workbench = note({ id: workbenchId, linear: "WOO-674", capability: "Workbench", title: "대화와 계획을 통제한다" });
+		const value       = fixture()                                                                                              ;
+		const workbenchId = "33333333-3333-4333-8333-333333333333"                                                                 ;
+		const workbench   = note({ id: workbenchId, linear: "WOO-674", capability: "Workbench", title: "대화와 계획을 통제한다" }) ;
 		writeNote(value.vaultRoot, workbench);
 		const legacy = JSON.parse(JSON.stringify(value.ledger)) as TraceabilityLedgerV3;
 		// Binary SQLite ordering puts the legacy uppercase note before the
@@ -139,9 +158,9 @@ describe("Obsidian authoring source traceability", () => {
 	});
 
 	test("requires exactly one canonical detailed note for selected Linear issues", () => {
-		const value = fixture();
-		const snapshot = [{ id: "WOO-682" }, { id: "WOO-681" }, { id: "WOO-999" }];
-		const full = inspectObsidianTraceability({ vaultRoot: value.vaultRoot, ledger: value.ledger, linearSnapshot: snapshot });
+		const value    = fixture()                                                                                                   ;
+		const snapshot = [{ id: "WOO-682" }, { id: "WOO-681" }, { id: "WOO-999" }]                                                   ;
+		const full     = inspectObsidianTraceability({ vaultRoot: value.vaultRoot, ledger: value.ledger, linearSnapshot: snapshot }) ;
 		expect(full.errors).toContain("LINEAR_DETAILED_BY_EXACTLY_ONE_REQUIRED:WOO-999:0");
 		const scoped = inspectObsidianTraceability({ vaultRoot: value.vaultRoot, ledger: value.ledger, specRoot: "Workbench", linearSnapshot: snapshot });
 		expect(scoped.errors.some(error => error.includes("WOO-999"))).toBe(false);
@@ -153,11 +172,11 @@ describe("Obsidian authoring source traceability", () => {
 	});
 
 	test("orders canonical note UUIDs with SQLite binary collation", () => {
-		const value = fixture();
-		const upperId = "B0000000-0000-4000-8000-000000000001";
-		const lowerId = "a0000000-0000-4000-8000-000000000002";
-		const upper = note({ id: upperId, linear: "WOO-900", capability: "Upper", title: "대문자 UUID 정렬을 확인한다" });
-		const lower = note({ id: lowerId, linear: "WOO-901", capability: "Lower", title: "소문자 UUID 정렬을 확인한다" });
+		const value   = fixture()                                                                                           ;
+		const upperId = "B0000000-0000-4000-8000-000000000001"                                                              ;
+		const lowerId = "a0000000-0000-4000-8000-000000000002"                                                              ;
+		const upper   = note({ id: upperId, linear: "WOO-900", capability: "Upper", title: "대문자 UUID 정렬을 확인한다" }) ;
+		const lower   = note({ id: lowerId, linear: "WOO-901", capability: "Lower", title: "소문자 UUID 정렬을 확인한다" }) ;
 		writeNote(value.vaultRoot, upper); writeNote(value.vaultRoot, lower);
 		value.ledger.entities.push(
 			{ ref: "issue:WOO-900", kind: "issue", id: "WOO-900" },
@@ -233,9 +252,9 @@ describe("Obsidian authoring source traceability", () => {
 		const firstStore = new DevelopmentStore({ projectRoot: value.projectRoot, dataRoot: value.dataRoot, vaultRoot: value.vaultRoot });
 		expect(() => firstStore.rebuildTraceability()).toThrow("OBSIDIAN_NOTE_DOCUMENT_MISSING");
 		firstStore.close();
-		const scopedStore = new DevelopmentStore({ projectRoot: value.projectRoot, dataRoot: value.dataRoot, vaultRoot: value.vaultRoot, vaultSpecRoot: "Workbench" });
-		const first = scopedStore.rebuildTraceability();
-		const drift = scopedStore.traceabilityDrift();
+		const scopedStore = new DevelopmentStore({ projectRoot: value.projectRoot, dataRoot: value.dataRoot, vaultRoot: value.vaultRoot, vaultSpecRoot: "Workbench" }) ;
+		const first       = scopedStore.rebuildTraceability()                                                                                                          ;
+		const drift       = scopedStore.traceabilityDrift()                                                                                                            ;
 		expect(drift.notes).toEqual([]);
 		expect(drift.logicalDigest).toBe(first.logicalDigest);
 		const indexPath = scopedStore.indexPath; scopedStore.close();

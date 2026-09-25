@@ -13,10 +13,10 @@ import type {
 	NativeTurnStart,
 	NativeTurnSteer,
 	NativeTurnSteerResult,
-} from "../../domain/execution/native-session.js";
-import type { RuntimeToolDefinition, RuntimeToolHandler } from "./runtime-tool-port";
-import type { NativeModelOption } from "../../domain/execution/model-settings";
-import type { UsageSnapshot } from "../index.js";
+} from "@/core/domain/execution/native-session.js";
+import type { RuntimeToolDefinition, RuntimeToolHandler } from "@/core/ports/execution/runtime-tool-port";
+import type { NativeModelOption }                         from "@/core/domain/execution/model-settings";
+import type { UsageSnapshot }                             from "@/core/ports/index.js";
 
 /** Application-owned semantic boundary around a native model session host. */
 export interface ExecutorPort {
@@ -25,15 +25,15 @@ export interface ExecutorPort {
 	readAccountUsage?(): Promise<UsageSnapshot>;
 	/** Register before thread creation; does not imply strict isolation support. */
 	registerRuntimeTools?(definitions: readonly RuntimeToolDefinition[], handler: RuntimeToolHandler): () => void;
-	startThread(input: NativeThreadStart): Promise<NativeThreadSnapshot>;
+	startThread (input: NativeThreadStart ): Promise<NativeThreadSnapshot>;
 	resumeThread(input: NativeThreadResume): Promise<NativeThreadSnapshot>;
-	readThread(input: NativeThreadRead): Promise<NativeThreadSnapshot>;
-	listThreads(input: NativeThreadList): Promise<readonly NativeThreadSummary[]>;
+	readThread  (input: NativeThreadRead  ): Promise<NativeThreadSnapshot>;
+	listThreads (input: NativeThreadList  ): Promise<readonly NativeThreadSummary[]>;
 	compactThread?(input: NativeThreadCompact): Promise<void>;
 	startTurn(input: NativeTurnStart): Promise<NativeTurnSnapshot>;
 	steerTurn?(input: NativeTurnSteer): Promise<NativeTurnSteerResult>;
-	interruptTurn(input: NativeTurnInterrupt): Promise<void>;
-	respondToApproval(input: NativeApprovalResolution): Promise<void>;
-	subscribe(listener: (event: NativeHarnessEvent) => void): () => void;
-	close(): Promise<void>;
+	interruptTurn    (input: NativeTurnInterrupt                   ): Promise<void>;
+	respondToApproval(input: NativeApprovalResolution              ): Promise<void>;
+	subscribe        (listener: (event: NativeHarnessEvent) => void): () => void;
+	close            ()                                             : Promise<void>;
 }

@@ -1,22 +1,27 @@
-import type { NativeHarnessEvent } from "../../domain/execution/native-session.js";
-import type { WorkbenchContextUsage, WorkbenchModelUsage, WorkbenchSessionUsage } from "../../domain/work/workbench.js";
-import type { SessionModelUsageSource } from "./session-model-usage.js";
+import type { NativeHarnessEvent }      from "@/core/domain/execution/native-session.js";
+import type {
+	WorkbenchContextUsage,
+	WorkbenchModelUsage,
+	WorkbenchSessionUsage,
+} from "@/core/domain/work/workbench.js";
+import type { SessionModelUsageSource } from "@/core/application/session/session-model-usage.js";
 
 /** Session-local accounting for executor and detached model usage observations. */
 export class SessionUsageTracker {
-	private contextUsageValue: WorkbenchContextUsage | null = null;
-	private observedThreadTotalTokens: number | null;
-	private interactiveUsageObserved = false;
-	private readonly turnModels = new Map<string, { model: string; effort: string | null }>();
-	private readonly observedTurns = new Set<string>();
-	private readonly modelUsage = new Map<string, WorkbenchModelUsage>();
-	private readonly pendingByTurn = new Map<string, number>();
-	private unattributedTokens = 0;
+	private contextUsageValue         : WorkbenchContextUsage | null = null                                                        ;
+	private observedThreadTotalTokens : number | null                                                                              ;
+	private interactiveUsageObserved                                 = false                                                       ;
+	private readonly turnModels                                      = new Map<string, { model: string; effort: string | null }>() ;
+	private readonly observedTurns                                   = new Set<string>()                                           ;
+	private readonly modelUsage                                      = new Map<string, WorkbenchModelUsage>()                      ;
+	private readonly pendingByTurn                                   = new Map<string, number>()                                   ;
+	private unattributedTokens                                       = 0                                                           ;
 
 	public constructor(resumed = false) { this.observedThreadTotalTokens = resumed ? null : 0; }
 	public get contextUsage(): WorkbenchContextUsage | null { return this.contextUsageValue; }
-	public hasTurn(turnId: string): boolean { return this.turnModels.has(turnId); }
-	public modelFor(turnId: string): string | null { return this.turnModels.get(turnId)?.model ?? null; }
+	public hasTurn          (turnId: string): boolean { return this.turnModels.has(turnId); }
+	public modelFor         (turnId: string): string | null { return this.turnModels.get(turnId)?.model ?? null; }
+	public invalidateContext()              : void { this.contextUsageValue = null; }
 
 	public observe(event: Extract<NativeHarnessEvent, { type: "notification" }>, threadId: string | null, contextTurnId: string | null): void {
 		if (event.refs.threadId && threadId && event.refs.threadId !== threadId) return;
@@ -25,9 +30,9 @@ export class SessionUsageTracker {
 			let delta = 0;
 			if (this.observedThreadTotalTokens === null) this.observedThreadTotalTokens = totalTokens;
 			else if (totalTokens >= this.observedThreadTotalTokens) {
-				this.interactiveUsageObserved = true;
-				delta = totalTokens - this.observedThreadTotalTokens;
-				this.observedThreadTotalTokens = totalTokens;
+				this.interactiveUsageObserved  = true                                         ;
+				delta                          = totalTokens - this.observedThreadTotalTokens ;
+				this.observedThreadTotalTokens = totalTokens                                  ;
 			}
 			if (delta > 0) this.attribute(event.refs.turnId, delta);
 		}
@@ -50,16 +55,16 @@ export class SessionUsageTracker {
 			const current = merged.get(key);
 			merged.set(key, {
 				model: usage.model, effort: usage.effort,
-				interactiveRootTurns: (current?.interactiveRootTurns ?? 0) + usage.interactiveRootTurns,
-				interactiveTokens: (current?.interactiveTokens ?? 0) + usage.interactiveTokens,
-				detachedInvocations: (current?.detachedInvocations ?? 0) + usage.detachedInvocations,
-				detachedTokens: (current?.detachedTokens ?? 0) + usage.detachedTokens,
-				totalTokens: (current?.totalTokens ?? 0) + usage.totalTokens,
+				interactiveRootTurns : (current?.interactiveRootTurns ?? 0) + usage.interactiveRootTurns,
+				interactiveTokens    : (current?.interactiveTokens ?? 0) + usage.interactiveTokens,
+				detachedInvocations  : (current?.detachedInvocations ?? 0) + usage.detachedInvocations,
+				detachedTokens       : (current?.detachedTokens ?? 0) + usage.detachedTokens,
+				totalTokens          : (current?.totalTokens ?? 0) + usage.totalTokens,
 			});
 		}
-		const models = [...merged.values()].sort((left, right) => right.totalTokens - left.totalTokens || left.model.localeCompare(right.model));
-		const totalTokens = models.reduce((sum, usage) => sum + usage.totalTokens, 0) + this.unattributedTokens;
-		const detachedUsageObserved = models.some(usage => usage.detachedInvocations > 0);
+		const models                = [...merged.values()].sort((left, right) => right.totalTokens - left.totalTokens || left.model.localeCompare(right.model)) ;
+		const totalTokens           = models.reduce((sum, usage) => sum + usage.totalTokens, 0) + this.unattributedTokens                                       ;
+		const detachedUsageObserved = models.some(usage => usage.detachedInvocations > 0)                                                                       ;
 		return {
 			totalTokens,
 			observedTotalTokens: this.interactiveUsageObserved || detachedUsageObserved ? totalTokens : null,
@@ -80,17 +85,25 @@ export class SessionUsageTracker {
 	}
 
 	private add(turnId: string, model: string, effort: string | null, delta: number): void {
-		const key = `${model}\u0000${effort ?? ""}`;
-		const current = this.modelUsage.get(key) ?? { model, effort, interactiveRootTurns: 0, interactiveTokens: 0, detachedInvocations: 0, detachedTokens: 0, totalTokens: 0 };
-		const first = !this.observedTurns.has(turnId);
+		const key     = `${model}\u0000${effort ?? ""}`                                                                                                                         ;
+		const current = this.modelUsage.get(key) ?? { model, effort, interactiveRootTurns: 0, interactiveTokens: 0, detachedInvocations: 0, detachedTokens: 0, totalTokens: 0 } ;
+		const first   = !this.observedTurns.has(turnId)                                                                                                                         ;
 		if (first) this.observedTurns.add(turnId);
 		this.modelUsage.set(key, { ...current, interactiveRootTurns: current.interactiveRootTurns + (first ? 1 : 0), interactiveTokens: current.interactiveTokens + delta, totalTokens: current.totalTokens + delta });
 	}
 }
 
 function projectContextUsage(params: Readonly<Record<string, unknown>>): WorkbenchContextUsage | null {
-	const tokenUsage = record(params.tokenUsage); const last = record(tokenUsage?.last); const usedTokens = last?.totalTokens; const contextWindow = tokenUsage?.modelContextWindow;
-	if (typeof usedTokens !== "number" || !Number.isFinite(usedTokens) || usedTokens < 0 || typeof contextWindow !== "number" || !Number.isFinite(contextWindow) || contextWindow <= 0) return null;
+	const tokenUsage    = record(params.tokenUsage)      ;
+	const last          = record(tokenUsage?.last)       ;
+	const usedTokens    = last?.totalTokens              ;
+	const contextWindow = tokenUsage?.modelContextWindow ;
+	if (typeof usedTokens !== "number"
+		|| !Number.isFinite(usedTokens)
+		|| usedTokens < 0
+		|| typeof contextWindow !== "number"
+		|| !Number.isFinite(contextWindow)
+		|| contextWindow <= 0) return null;
 	// Occupancy includes every reported token, using the same window as the UI meter.
 	return Object.freeze({ usedTokens, contextWindow, percent: Math.min(100, Math.round((usedTokens / contextWindow) * 1_000) / 10) });
 }

@@ -1,26 +1,36 @@
-import { expect, test } from "bun:test";
-import { mkdtemp, mkdir, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { stripTerminalSequences } from "@earendil-works/pi-tui";
-import { CodexAppServer, type JsonLineTransport } from "../src/adapters/outbound/execution/codex-app-server";
-import { ProjectWorkbench, type WorkbenchActivityJournal } from "../src/core/application/orchestration/project-workbench";
-import { fallbackNativeModelCatalog, type NativeModelCatalog, type WwwSettings } from "../src/core/domain/execution/model-settings";
-import { loadWorkbenchConfig, saveWorkbenchExecutionSelection } from "../src/adapters/outbound/workspace/workbench-config";
-import { ModelPickerOverlay } from "../src/adapters/inbound/tui/features/model-selection/model-picker-overlay";
-import { AstraSheet } from "../src/adapters/inbound/tui/shell/astra-surface";
-import { parseWorkbenchShellCommand, withNativeModelCompletions, WORKBENCH_SLASH_COMMANDS } from "../src/adapters/inbound/tui/commands/slash-commands";
-import { workbenchModelSettings } from "../src/adapters/inbound/tui/shell/workbench-input.controller";
+import { expect, test }                         from "bun:test";
+import { mkdtemp, mkdir, rm }                   from "node:fs/promises";
+import { tmpdir }                               from "node:os";
+import { join }                                 from "node:path";
+import { stripTerminalSequences }               from "@earendil-works/pi-tui";
+import { CodexAppServer }                       from "../src/adapters/outbound/execution/codex-app-server";
+import type { JsonLineTransport }               from "../src/adapters/outbound/execution/codex-app-server";
+import { ProjectWorkbench }                     from "../src/core/application/orchestration/project-workbench";
+import type { WorkbenchActivityJournal }        from "../src/core/application/orchestration/project-workbench";
+import { fallbackNativeModelCatalog }           from "../src/core/domain/execution/model-settings";
+import type { NativeModelCatalog, WwwSettings } from "../src/core/domain/execution/model-settings";
+import {
+	loadWorkbenchConfig,
+	saveWorkbenchExecutionSelection,
+} from "../src/adapters/outbound/workspace/workbench-config";
+import { ModelPickerOverlay }                   from "../src/adapters/inbound/tui/features/model-selection/model-picker-overlay";
+import { AstraSheet }                           from "../src/adapters/inbound/tui/shell/astra-surface";
+import {
+	parseWorkbenchShellCommand,
+	withNativeModelCompletions,
+	WORKBENCH_SLASH_COMMANDS,
+} from "../src/adapters/inbound/tui/commands/slash-commands";
+import { workbenchModelSettings }               from "../src/adapters/inbound/tui/shell/workbench-input.controller";
 
 const futureModel = "native-future-fixture";
 function row(model: string, efforts = ["high", "ultra"]) {
 	return { model, displayName: model, hidden: false, supportedReasoningEfforts: efforts.map(reasoningEffort => ({ reasoningEffort })), defaultReasoningEffort: "high" };
 }
 class CatalogTransport implements JsonLineTransport {
-	requests: Array<{ id?: number; method: string; params?: any }> = [];
-	private listeners = new Set<(line: string) => void>();
-	page: (params: any) => unknown = () => ({ data: [row(futureModel)], nextCursor: null });
-	stallModels = false;
+	requests : Array<{ id?: number; method: string; params?: any }> = []                                                     ;
+	private listeners                                               = new Set<(line: string) => void>()                      ;
+	page     : (params: any) => unknown                             = () => ({ data: [row(futureModel)], nextCursor: null }) ;
+	stallModels                                                     = false                                                  ;
 	async send(line: string) {
 		const request = JSON.parse(line); this.requests.push(request);
 		if (request.id === undefined) return;
@@ -31,8 +41,8 @@ class CatalogTransport implements JsonLineTransport {
 			: request.method === "turn/start" ? { turn: { id: "future-turn", status: "inProgress", items: [] } } : {};
 		queueMicrotask(() => this.listeners.forEach(listener => listener(JSON.stringify({ id: request.id, result }))));
 	}
-	onLine(listener: (line: string) => void) { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; }
-	onClose() { return () => {}; }
+	onLine     (listener: (line: string) => void) { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; }
+	onClose    () { return () => {}; }
 	async close() { this.listeners.clear(); }
 }
 function journal(): WorkbenchActivityJournal {
@@ -146,20 +156,20 @@ test("a newly discovered model crosses completion, command, picker, persistence,
 });
 
 test("a long refreshed model list keeps the selected last item visible in a small Astra sheet", async () => {
-	const catalog: NativeModelCatalog = { source: "native", checkedAt: "2026-09-12T00:00:00Z", error: null, models: Array.from({ length: 30 }, (_, index) => ({ model: `fixture-${index}`, displayName: `fixture-${index}`, efforts: ["high"], defaultEffort: "high" })) };
-	const current: WwwSettings = { provider: "openai-codex", model: "fixture-29", effort: "high" };
-	const picker = new ModelPickerOverlay(current, async provider => ({ state: "configured", provider, source: "fixture", type: "oauth" }), () => {}, async () => {}, () => {}, () => {}, current, false, { providers: ["openai-codex"], startAtModel: true, nativeCodex: true, appearance: "astra", catalog });
-	const sheet = new AstraSheet(picker, () => 12, { followSelection: true });
-	const rendered = stripTerminalSequences(sheet.render(76).join("\n"));
+	const catalog : NativeModelCatalog = { source: "native", checkedAt: "2026-09-12T00:00:00Z", error: null, models: Array.from({ length: 30 }, (_, index) => ({ model: `fixture-${index}`, displayName: `fixture-${index}`, efforts: ["high"], defaultEffort: "high" })) }                                                           ;
+	const current : WwwSettings        = { provider: "openai-codex", model: "fixture-29", effort: "high" }                                                                                                                                                                                                                            ;
+	const picker                       = new ModelPickerOverlay(current, async provider => ({ state: "configured", provider, source: "fixture", type: "oauth" }), () => {}, async () => {}, () => {}, () => {}, current, false, { providers: ["openai-codex"], startAtModel: true, nativeCodex: true, appearance: "astra", catalog }) ;
+	const sheet                        = new AstraSheet(picker, () => 12, { followSelection: true })                                                                                                                                                                                                                                  ;
+	const rendered                     = stripTerminalSequences(sheet.render(76).join("\n"))                                                                                                                                                                                                                                          ;
 	expect(rendered).toMatch(/›\s+Fixture 29/u);
 });
 
 test.each(["astra", "workbench"])("%s bounds long option lists and wraps selection without hiding it at 80x24", appearance => {
-	const catalog: NativeModelCatalog = { source: "native", checkedAt: null, error: null, models: Array.from({ length: 30 }, (_, index) => ({ model: `fixture-${index}`, displayName: `fixture-${index}`, efforts: ["high"], defaultEffort: "high" })) };
-	const current: WwwSettings = { provider: "openai-codex", model: "fixture-29", effort: "high" };
-	const picker = new ModelPickerOverlay(current, async provider => ({ state: "configured", provider, source: "fixture", type: "oauth" }), () => {}, async () => {}, () => {}, () => {}, current, false, { providers: ["openai-codex"], startAtModel: true, nativeCodex: true, ...(appearance === "astra" ? { appearance: "astra" as const } : {}), catalog, maxVisibleOptions: () => 4 });
-	const lines = picker.render(46);
-	const plain = stripTerminalSequences(lines.join("\n"));
+	const catalog : NativeModelCatalog = { source: "native", checkedAt: null, error: null, models: Array.from({ length: 30 }, (_, index) => ({ model: `fixture-${index}`, displayName: `fixture-${index}`, efforts: ["high"], defaultEffort: "high" })) }                                                                                                                                                         ;
+	const current : WwwSettings        = { provider: "openai-codex", model: "fixture-29", effort: "high" }                                                                                                                                                                                                                                                                                                        ;
+	const picker                       = new ModelPickerOverlay(current, async provider => ({ state: "configured", provider, source: "fixture", type: "oauth" }), () => {}, async () => {}, () => {}, () => {}, current, false, { providers: ["openai-codex"], startAtModel: true, nativeCodex: true, ...(appearance === "astra" ? { appearance: "astra" as const } : {}), catalog, maxVisibleOptions: () => 4 }) ;
+	const lines                        = picker.render(46)                                                                                                                                                                                                                                                                                                                                                        ;
+	const plain                        = stripTerminalSequences(lines.join("\n"))                                                                                                                                                                                                                                                                                                                                 ;
 	// Includes room for wrapper borders inside a 70%-height overlay.
 		expect(lines.length + 2).toBeLessThanOrEqual(Math.floor(24 * 0.7));
 		expect(plain).toMatch(/›\s+Fixture 29/u);

@@ -1,20 +1,27 @@
 import { readdir, readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join }              from "node:path";
 import type {
 	DevelopmentMapEpic,
 	DevelopmentMapInitiative,
 	DevelopmentMapRelation,
 	DevelopmentMapSnapshot,
 	DevelopmentMapStory,
-} from "../../../core/domain/development/development-map.js";
+} from "@/core/domain/development/development-map.js";
 
-interface CatalogEpic { id: string; title: string }
-interface CatalogStory { id: string; epicId: string; title: string }
-interface InitiativeManifest {
+interface CatalogEpic {
 	id: string;
-	title?: string;
-	status?: string;
-	artifacts?: Array<{ id: string; kind: string }>;
+	title: string
+}
+interface CatalogStory {
+	id: string;
+	epicId: string;
+	title: string
+}
+interface InitiativeManifest {
+	id         : string                              ;
+	title?     : string                              ;
+	status?    : string                              ;
+	artifacts? : Array<{ id: string; kind: string }> ;
 }
 
 const UNLINKED = Object.freeze({ state: "unlinked", references: Object.freeze([]), nextTransition: "Authoritative relation has not been recorded." } satisfies DevelopmentMapRelation);
@@ -37,9 +44,9 @@ export class FileDevelopmentMapSource {
 		const planningRoot = join(this.root, ".www", "planning");
 		const events = await readJsonLines(join(planningRoot, "catalog.jsonl"));
 		validateCatalog(events);
-		const epics = new Map<string, CatalogEpic>();
-		const stories = new Map<string, CatalogStory[]>();
-		let revision = 0;
+		const epics   = new Map<string, CatalogEpic>()    ;
+		const stories = new Map<string, CatalogStory[]>() ;
+		let revision  = 0                                 ;
 		for (const event of events) {
 			revision = Math.max(revision, numberValue(event.revision));
 			const artifact = objectValue(event.artifact);
@@ -52,9 +59,9 @@ export class FileDevelopmentMapSource {
 				if (story.id && story.epicId) stories.set(story.epicId, [...(stories.get(story.epicId) ?? []), story]);
 			}
 		}
-		const evidenceNames = await readdir(join(this.root, ".www", "evidence"));
-		const legacyStories = await readLegacyStories(join(this.root, ".www", "Stories.md"));
-		const legacyEpics = await readLegacyEpics(join(this.root, ".www", "Epics.md"));
+		const evidenceNames = await readdir(join(this.root, ".www", "evidence"))             ;
+		const legacyStories = await readLegacyStories(join(this.root, ".www", "Stories.md")) ;
+		const legacyEpics   = await readLegacyEpics(join(this.root, ".www", "Epics.md"))     ;
 		for (const epic of legacyEpics.values()) if (!epics.has(epic.id)) epics.set(epic.id, epic);
 		for (const story of legacyStories.values()) {
 			const existing = stories.get(story.epicId) ?? [];
@@ -70,24 +77,31 @@ export class FileDevelopmentMapSource {
 		});
 		return Object.freeze({
 			revision,
-			observedAt: new Date().toISOString(),
-			sourceHealth: Object.freeze({ state: "available" }),
-			initiatives: Object.freeze(initiatives),
-			unlinkedEpics: Object.freeze([...epics.keys()].filter(id => !linkedEpicIds.has(id)).sort().map(id => projectEpic(id, epics, stories, evidenceNames, legacyEpics, legacyStories))),
+			observedAt    : new Date().toISOString(),
+			sourceHealth  : Object.freeze({ state: "available" }),
+			initiatives   : Object.freeze(initiatives),
+			unlinkedEpics : Object.freeze([...epics.keys()].filter(id => !linkedEpicIds.has(id)).sort().map(id => projectEpic(id, epics, stories, evidenceNames, legacyEpics, legacyStories))),
 		});
 	}
 
 	public startPolling(listener: (snapshot: DevelopmentMapSnapshot) => void, intervalMs = 1_000): () => void {
-		let stopped = false;
-		let refreshing = false;
-		let fingerprint = "";
-		let lastValid: DevelopmentMapSnapshot | null = null;
+		let stopped                                   = false ;
+		let refreshing                                = false ;
+		let fingerprint                               = ""    ;
+		let lastValid : DevelopmentMapSnapshot | null = null  ;
 		const refresh = async () => {
 			if (stopped || refreshing) return;
 			refreshing = true;
 			try {
 				const snapshot = await this.read();
-				const next = snapshot.sourceHealth.state === "available" ? snapshot : lastValid ? Object.freeze({ ...lastValid, observedAt: snapshot.observedAt, sourceHealth: Object.freeze({ state: "stale", error: snapshot.sourceHealth.error }) }) : snapshot;
+				const staleSourceHealth = snapshot.sourceHealth.error
+					? Object.freeze({ state: "stale" as const, error: snapshot.sourceHealth.error })
+					: Object.freeze({ state: "stale" as const });
+				const next = snapshot.sourceHealth.state === "available"
+					? snapshot
+					: lastValid
+						? Object.freeze({ ...lastValid, observedAt: snapshot.observedAt, sourceHealth: staleSourceHealth })
+						: snapshot;
 				if (snapshot.sourceHealth.state === "available") lastValid = snapshot;
 				const nextFingerprint = JSON.stringify([next.revision, next.initiatives, next.unlinkedEpics, next.sourceHealth]);
 				if (!stopped && nextFingerprint !== fingerprint) { fingerprint = nextFingerprint; listener(next); }
@@ -105,13 +119,13 @@ function emptySnapshot(): Omit<DevelopmentMapSnapshot, "sourceHealth"> {
 function projectEpic(id: string, epics: Map<string, CatalogEpic>, stories: Map<string, CatalogStory[]>, evidenceNames: readonly string[], legacyEpics: Map<string, CatalogEpic & { status: string }>, legacyStories: Map<string, CatalogStory & { status: DevelopmentMapStory["status"] }>): DevelopmentMapEpic {
 	const epic = epics.get(id);
 	return { id, title: epic?.title ?? "Catalog 미등록", status: legacyEpics.get(id)?.status ?? "drafted", stories: (stories.get(id) ?? []).map(story => ({
-		id: story.id,
-		title: story.title,
-		status: legacyStories.get(story.id)?.status ?? "drafted",
+		id     : story.id,
+		title  : story.title,
+		status : legacyStories.get(story.id)?.status ?? "drafted",
 		relations: Object.freeze({
-			run: UNLINKED,
-			todo: UNLINKED,
-			evidence: Object.freeze({ state: "unknown", references: Object.freeze(evidenceNames.filter(name => name.startsWith(story.id)).sort().map(name => `.www/evidence/${name}`)), nextTransition: "Record an authoritative Story-to-Evidence relation." }),
+			run      : UNLINKED,
+			todo     : UNLINKED,
+			evidence : Object.freeze({ state: "unknown", references: Object.freeze(evidenceNames.filter(name => name.startsWith(story.id)).sort().map(name => `.www/evidence/${name}`)), nextTransition: "Record an authoritative Story-to-Evidence relation." }),
 		}),
 	})) };
 }
@@ -188,19 +202,20 @@ function validArtifactIdentity(kind: string, id: string): boolean {
 	return false;
 }
 async function readLegacyEpics(path: string): Promise<Map<string, CatalogEpic & { status: string }>> {
-	const text = await readFile(path, "utf8").catch(error => isMissing(error) ? "" : Promise.reject(error));
-	const epics = new Map<string, CatalogEpic & { status: string }>(); let current: (CatalogEpic & { status: string }) | null = null;
+	const text                                              = await readFile(path, "utf8").catch(error => isMissing(error) ? "" : Promise.reject(error)) ;
+	const epics                                             = new Map<string, CatalogEpic & { status: string }>()                                        ;
+	let current : (CatalogEpic & { status: string }) | null = null                                                                                       ;
 	for (const line of text.split(/\r?\n/u)) {
 		const heading = line.match(/^## (EP-\d{3})\s+[—-]\s+(.+)$/u);
-		if (heading) { current = { id: heading[1]!, title: heading[2]!.trim(), status: "unknown" }; epics.set(current.id, current); }
-		const status = line.match(/^- 상태:\s*(.+)$/u); if (current && status) current.status = status[1]!.trim();
+		if (heading) { current = { id: heading[1], title: heading[2].trim(), status: "unknown" }; epics.set(current.id, current); }
+		const status = line.match(/^- 상태:\s*(.+)$/u); if (current && status) current.status = status[1].trim();
 	}
 	return epics;
 }
 async function readLegacyStories(path: string): Promise<Map<string, CatalogStory & { status: DevelopmentMapStory["status"] }>> {
 	const text = await readFile(path, "utf8").catch(error => isMissing(error) ? "" : Promise.reject(error));
 	const stories = new Map<string, CatalogStory & { status: DevelopmentMapStory["status"] }>();
-	for (const match of text.matchAll(/^- \[([ xX])\] (ST-(\d{3})-\d{2})\s+(.+)$/gmu)) stories.set(match[2]!, { id: match[2]!, epicId: `EP-${match[3]!}`, title: match[4]!.trim(), status: match[1] === " " ? "pending" : "legacy-completed" });
+	for (const match of text.matchAll(/^- \[([ xX])\] (ST-(\d{3})-\d{2})\s+(.+)$/gmu)) stories.set(match[2], { id: match[2], epicId: `EP-${match[3]}`, title: match[4].trim(), status: match[1] === " " ? "pending" : "legacy-completed" });
 	return stories;
 }
 function objectValue(value: unknown): Record<string, unknown> { return value && typeof value === "object" ? value as Record<string, unknown> : {}; }

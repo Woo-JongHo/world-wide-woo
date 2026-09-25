@@ -1,9 +1,9 @@
-import { mkdtemp, readFile } from "node:fs/promises";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
-import { describe, expect, test } from "bun:test";
+import { mkdtemp, readFile }                  from "node:fs/promises";
+import { join }                               from "node:path";
+import { tmpdir }                             from "node:os";
+import { describe, expect, test }             from "bun:test";
 import { FileTraceStore, renderSessionTrace } from "../src/adapters/outbound/persistence/trace-store";
-import type { ProjectActivity } from "../src/core/domain/execution/project-activity";
+import type { ProjectActivity }               from "../src/core/domain/execution/project-activity";
 
 function activity(sequence: number, kind: ProjectActivity["kind"], phase: ProjectActivity["phase"]): ProjectActivity {
 	return {
@@ -25,9 +25,9 @@ describe("session Tracer.md projection", () => {
 	});
 
 	test("atomically replaces the session projection", async () => {
-		const root = await mkdtemp(join(tmpdir(), "www-trace-"));
-		const path = join(root, "native-session", "Tracer.md");
-		const store = new FileTraceStore(path);
+		const root  = await mkdtemp(join(tmpdir(), "www-trace-")) ;
+		const path  = join(root, "native-session", "Tracer.md")   ;
+		const store = new FileTraceStore(path)                    ;
 		await store.replace([activity(1, "approval", "failed")]);
 		expect(await readFile(path, "utf8")).toContain("- [!] 1. approval · failed · activity-1");
 		await store.append(activity(2, "tool", "completed"));

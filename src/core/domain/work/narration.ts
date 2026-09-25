@@ -1,17 +1,17 @@
 export interface WorkNarration {
-	id: string;
-	turnId: string;
-	toolCallId: string;
-	timestamp: string;
-	label: string;
-	step: number;
-	action: string;
-	reason: string;
+	id         : string ;
+	turnId     : string ;
+	toolCallId : string ;
+	timestamp  : string ;
+	label      : string ;
+	step       : number ;
+	action     : string ;
+	reason     : string ;
 }
 
-const CONTROL_OR_ANSI = /\u001B(?:\[[0-?]*[ -/]*[@-~]|\][\s\S]*?(?:\u0007|\u001B\\))|[\u0000-\u0008\u000B-\u001F\u007F-\u009F]/gu;
-const SECRET_VALUE = /((?:--)?(?:authorization|api[_-]?key|token|password|secret)\s*(?:=|:)\s*|(?:--)?(?:authorization|api[_-]?key|token|password|secret)\s+)(?:Bearer\s+)?(?:"[^"]*"|'[^']*'|[^\s,;"']+)/giu;
-const JSON_SECRET = /("(?:authorization|api[_-]?key|token|password|secret)"\s*:\s*)("[^"]*"|'[^']*'|[^,}\]\s]+)/giu;
+const CONTROL_OR_ANSI = /\u001B(?:\[[0-?]*[ -/]*[@-~]|\][\s\S]*?(?:\u0007|\u001B\\))|[\u0000-\u0008\u000B-\u001F\u007F-\u009F]/gu                                                                                ;
+const SECRET_VALUE    = /((?:--)?(?:authorization|api[_-]?key|token|password|secret)\s*(?:=|:)\s*|(?:--)?(?:authorization|api[_-]?key|token|password|secret)\s+)(?:Bearer\s+)?(?:"[^"]*"|'[^']*'|[^\s,;"']+)/giu ;
+const JSON_SECRET     = /("(?:authorization|api[_-]?key|token|password|secret)"\s*:\s*)("[^"]*"|'[^']*'|[^,}\]\s]+)/giu                                                                                          ;
 
 function value(arguments_: Record<string, unknown>, key: string): string {
 	const candidate = arguments_[key];

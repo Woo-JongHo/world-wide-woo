@@ -1,40 +1,66 @@
-import { createHash } from "node:crypto";
+import { createHash }                                                           from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync } from "node:fs";
-import { basename, dirname, join, relative, resolve, sep } from "node:path";
-import { parse } from "yaml";
-import { obsidianWikiTarget, validateObsidianDocument, type ObsidianContractIssue, type ObsidianDocumentContract } from "../../../core/domain/development/obsidian-contract.js";
+import { basename, dirname, join, relative, resolve, sep }                      from "node:path";
+import { parse }                                                                from "yaml";
+import { obsidianWikiTarget, validateObsidianDocument }                         from "@/core/domain/development/obsidian-contract.js";
+import type { ObsidianContractIssue, ObsidianDocumentContract }                 from "@/core/domain/development/obsidian-contract.js";
 
-export interface ObsidianVaultDocument extends ObsidianDocumentContract { digest: string }
-export interface ObsidianVaultSnapshot { schemaVersion: 2; documents: { documentId: string; path: string; digest: string }[] }
-export interface ObsidianDrift { documentId: string; kind: "renamed" | "content-changed" | "added" | "removed"; before?: string; after?: string }
-export interface ObsidianRenameAction { kind: "rename"; documentId: string; from: string; to: string; sourceDigest: string }
-export interface ObsidianSyncPreview { schemaVersion: 2; vaultDigest: string; actions: ObsidianRenameAction[]; issues: ObsidianContractIssue[]; digest: string }
+export interface ObsidianVaultDocument extends ObsidianDocumentContract {
+	digest: string
+}
+export interface ObsidianVaultSnapshot {
+	schemaVersion: 2;
+	documents: { documentId: string; path: string; digest: string }[]
+}
+export interface ObsidianDrift {
+	documentId : string                                              ;
+	kind       : "renamed" | "content-changed" | "added" | "removed" ;
+	before?    : string                                              ;
+	after?: string
+}
+export interface ObsidianRenameAction {
+	kind       : "rename" ;
+	documentId : string   ;
+	from       : string   ;
+	to         : string   ;
+	sourceDigest: string
+}
+export interface ObsidianSyncPreview {
+	schemaVersion : 2                       ;
+	vaultDigest   : string                  ;
+	actions       : ObsidianRenameAction[]  ;
+	issues        : ObsidianContractIssue[] ;
+	digest: string
+}
 export interface ObsidianInspectOptions {
 	specRoot?: string;
 	/** Linear issues that must each have exactly one canonical note in this inspection scope. */
 	requiredLinearIds?: readonly string[];
 }
 
-const sha256 = (value: string): string => createHash("sha256").update(value).digest("hex");
-const canonical = (value: unknown): string => JSON.stringify(value, (_key, item) => item && typeof item === "object" && !Array.isArray(item) ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => a.localeCompare(b))) : item);
-const previewDigest = (value: Omit<ObsidianSyncPreview, "digest">): string => sha256(canonical(value));
+const sha256        = (value: string): string => createHash("sha256").update(value).digest("hex")                                                                                                                                          ;
+const canonical     = (value: unknown): string => JSON.stringify(value, (_key, item) => item && typeof item === "object" && !Array.isArray(item) ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => a.localeCompare(b))) : item) ;
+const previewDigest = (value: Omit<ObsidianSyncPreview, "digest">): string => sha256(canonical(value))                                                                                                                                     ;
 
 function splitMarkdown(raw: string): { properties: Record<string, unknown>; body: string; parseError?: string } {
 	const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/);
 	if (!match) return { properties: {}, body: raw };
+	const frontmatter = match[1];
+	const body = match[2];
+	if (frontmatter === undefined || body === undefined) return { properties: {}, body: raw };
 	try {
-		const properties = parse(match[1]!);
-		return { properties: properties && typeof properties === "object" && !Array.isArray(properties) ? properties : {}, body: match[2]! };
+		const properties = parse(frontmatter);
+		return { properties: properties && typeof properties === "object" && !Array.isArray(properties) ? properties : {}, body };
 	} catch (error) {
-		return { properties: {}, body: match[2]!, parseError: error instanceof Error ? error.message : String(error) };
+		return { properties: {}, body, parseError: error instanceof Error ? error.message : String(error) };
 	}
 }
 
 function hasCanonicalMarker(raw: string): boolean {
 	if (!raw.startsWith("---\n") && !raw.startsWith("---\r\n")) return false;
-	const firstLineEnd = raw.indexOf("\n") + 1;
-	const closing = raw.slice(firstLineEnd).search(/^---\s*$/m);
-	const frontmatter = closing < 0 ? raw.slice(firstLineEnd) : raw.slice(firstLineEnd, firstLineEnd + closing);
+	const firstLineEnd = raw.indexOf("\n") + 1                                                                   ;
+	const closing      = raw.slice(firstLineEnd).search(/^---\s*$/m)                                             ;
+	const frontmatter  = closing < 0 ? raw.slice(firstLineEnd) : raw.slice(firstLineEnd, firstLineEnd + closing) ;
 	return /^record_type:\s*["']?detailed-canonical["']?\s*(?:#.*)?$/m.test(frontmatter);
 }
 
@@ -56,30 +82,35 @@ function inside(root: string, relativePath: string): string {
 }
 
 export function inspectObsidianVault(vaultRoot: string, options: ObsidianInspectOptions = {}): { documents: ObsidianVaultDocument[]; issues: ObsidianContractIssue[]; snapshot: ObsidianVaultSnapshot } {
-	const traversalIssues: ObsidianContractIssue[] = [];
-	const specRoot = options.specRoot ? inside(vaultRoot, options.specRoot) : vaultRoot;
-	const specRootRelative = relative(vaultRoot, specRoot).replaceAll(sep, "/");
-	const normalizedSpecRoot = specRootRelative || undefined;
-	const allMarkdown = walkMarkdown(vaultRoot, vaultRoot, [], false);
+	const traversalIssues : ObsidianContractIssue[] = []                                                                 ;
+	const specRoot                                  = options.specRoot ? inside(vaultRoot, options.specRoot) : vaultRoot ;
+	const specRootRelative                          = relative(vaultRoot, specRoot).replaceAll(sep, "/")                 ;
+	const normalizedSpecRoot                        = specRootRelative || undefined                                      ;
+	const allMarkdown                               = walkMarkdown(vaultRoot, vaultRoot, [], false)                      ;
 	const documents = walkMarkdown(vaultRoot, specRoot, traversalIssues, true).flatMap(absolute => {
-		const raw = readFileSync(absolute, "utf8");
-		const relativePath = relative(vaultRoot, absolute).replaceAll(sep, "/");
-		const parsed = splitMarkdown(raw);
+		const raw          = readFileSync(absolute, "utf8")                     ;
+		const relativePath = relative(vaultRoot, absolute).replaceAll(sep, "/") ;
+		const parsed       = splitMarkdown(raw)                                 ;
 		if (parsed.properties.record_type !== "detailed-canonical" && !hasCanonicalMarker(raw)) return [];
-		const domain = typeof parsed.properties.domain === "string" ? parsed.properties.domain : undefined;
-		const pathWithinSpec = relative(specRoot, absolute).replaceAll(sep, "/");
-		const validationPath = normalizedSpecRoot && domain && basename(specRoot) === domain ? `${domain}/${pathWithinSpec}` : pathWithinSpec;
-		const contract = validateObsidianDocument({ relativePath: validationPath, properties: parsed.properties, body: parsed.body });
+		const domain         = typeof parsed.properties.domain === "string" ? parsed.properties.domain : undefined                            ;
+		const pathWithinSpec = relative(specRoot, absolute).replaceAll(sep, "/")                                                              ;
+		const validationPath = normalizedSpecRoot && domain && basename(specRoot) === domain ? `${domain}/${pathWithinSpec}` : pathWithinSpec ;
+		const contract       = validateObsidianDocument({ relativePath: validationPath, properties: parsed.properties, body: parsed.body })   ;
 		const targetPath = contract.targetPath && normalizedSpecRoot
 			? basename(specRoot) === domain ? `${normalizedSpecRoot}/${contract.targetPath.slice(`${domain}/`.length)}` : `${normalizedSpecRoot}/${contract.targetPath}`
 			: contract.targetPath;
 		const parseIssues = parsed.parseError ? [{ code: "FRONTMATTER_INVALID" as const, message: `YAML frontmatter를 파싱할 수 없습니다: ${parsed.parseError}`, path: relativePath, blocking: true as const }] : [];
-		return [{ ...contract, relativePath, targetPath,
-			issues: [...parseIssues, ...contract.issues.map(problem => ({ ...problem, path: relativePath }))], digest: sha256(raw) }];
+		return [{
+			...contract,
+			relativePath,
+			...(targetPath ? { targetPath } : {}),
+			issues: [...parseIssues, ...contract.issues.map(problem => ({ ...problem, path: relativePath }))],
+			digest: sha256(raw),
+		}];
 	});
-	const issues = [...traversalIssues, ...documents.flatMap(document => document.issues)];
-	const byDocument = new Map<string, ObsidianVaultDocument[]>();
-	const byLinear = new Map<string, ObsidianVaultDocument[]>();
+	const issues     = [...traversalIssues, ...documents.flatMap(document => document.issues)] ;
+	const byDocument = new Map<string, ObsidianVaultDocument[]>()                              ;
+	const byLinear   = new Map<string, ObsidianVaultDocument[]>()                              ;
 	for (const document of documents) {
 		if (document.documentId) byDocument.set(document.documentId, [...(byDocument.get(document.documentId) ?? []), document]);
 		if (document.linearId) byLinear.set(document.linearId, [...(byLinear.get(document.linearId) ?? []), document]);
@@ -91,34 +122,54 @@ export function inspectObsidianVault(vaultRoot: string, options: ObsidianInspect
 		if (matches.length !== 1) issues.push({ code: "LINEAR_CANONICAL_COUNT_INVALID", message: `Linear ${id} 상세 정본은 정확히 하나여야 합니다. 현재 ${matches.length}개입니다.`, path: normalizedSpecRoot ?? ".", blocking: true });
 	}
 	const linkTargets = new Map<string, number>();
-	for (const absolute of allMarkdown) { const path = relative(vaultRoot, absolute).replaceAll(sep, "/"); for (const target of new Set([path.replace(/\.md$/, ""), path.split("/").at(-1)!.replace(/\.md$/, "")])) linkTargets.set(target, (linkTargets.get(target) ?? 0) + 1); }
+	for (const absolute of allMarkdown) {
+		const path     = relative(vaultRoot, absolute).replaceAll(sep, "/") ;
+		const filename = path.split("/").at(-1)                             ;
+		const targets  = [path.replace(/\.md$/, "")]                        ;
+		if (filename) targets.push(filename.replace(/\.md$/, ""));
+		for (const target of new Set(targets)) linkTargets.set(target, (linkTargets.get(target) ?? 0) + 1);
+	}
 	for (const document of documents) for (const link of [document.properties?.parent, ...(document.properties?.related ?? [])]) {
 		if (!link) continue;
 		const target = obsidianWikiTarget(link);
 		if (target && !linkTargets.has(target)) issues.push({ code: "WIKILINK_BROKEN", message: `연결 문서를 찾을 수 없습니다: ${target}`, path: document.relativePath, blocking: true });
 		else if (target && (linkTargets.get(target) ?? 0) > 1 && !target.includes("/")) issues.push({ code: "WIKILINK_AMBIGUOUS", message: `동명 문서가 있어 경로가 필요합니다: ${target}`, path: document.relativePath, blocking: true });
 	}
-	const snapshot = { schemaVersion: 2 as const, documents: documents.filter(document => document.documentId).map(document => ({ documentId: document.documentId!, path: document.relativePath, digest: document.digest })).sort((a, b) => a.documentId.localeCompare(b.documentId)) };
+	const snapshotDocuments = documents.flatMap(document => {
+		if (!document.documentId) return [];
+		return [{ documentId: document.documentId, path: document.relativePath, digest: document.digest }];
+	});
+	const snapshot = {
+		schemaVersion: 2 as const,
+		documents: snapshotDocuments.sort((a, b) => a.documentId.localeCompare(b.documentId)),
+	};
 	return { documents, issues, snapshot };
 }
 
 export function compareObsidianSnapshots(before: ObsidianVaultSnapshot, after: ObsidianVaultSnapshot): ObsidianDrift[] {
-	const left = new Map(before.documents.map(document => [document.documentId, document]));
-	const right = new Map(after.documents.map(document => [document.documentId, document]));
-	const drifts: ObsidianDrift[] = [];
+	const left                     = new Map(before.documents.map(document => [document.documentId, document])) ;
+	const right                    = new Map(after.documents.map(document => [document.documentId, document]))  ;
+	const drifts : ObsidianDrift[] = []                                                                         ;
 	for (const id of [...new Set([...left.keys(), ...right.keys()])].sort()) {
 		const a = left.get(id), b = right.get(id);
-		if (!a) drifts.push({ documentId: id, kind: "added", after: b!.path });
-		else if (!b) drifts.push({ documentId: id, kind: "removed", before: a.path });
-		else { if (a.path !== b.path) drifts.push({ documentId: id, kind: "renamed", before: a.path, after: b.path }); if (a.digest !== b.digest) drifts.push({ documentId: id, kind: "content-changed", before: a.digest, after: b.digest }); }
+		if (!a && b) drifts.push({ documentId: id, kind: "added", after: b.path });
+		else if (a && !b) drifts.push({ documentId: id, kind: "removed", before: a.path });
+		else if (a && b) {
+			if (a.path !== b.path) drifts.push({ documentId: id, kind: "renamed", before: a.path, after: b.path });
+			if (a.digest !== b.digest) drifts.push({ documentId: id, kind: "content-changed", before: a.digest, after: b.digest });
+		}
 	}
 	return drifts;
 }
 
 export function createObsidianSyncPreview(vaultRoot: string, options: ObsidianInspectOptions = {}): ObsidianSyncPreview {
 	const inspected = inspectObsidianVault(vaultRoot, options);
-	const actions = inspected.documents.filter(document => document.documentId && document.targetPath && document.relativePath !== document.targetPath)
-		.map(document => ({ kind: "rename" as const, documentId: document.documentId!, from: document.relativePath, to: document.targetPath!, sourceDigest: document.digest })).sort((a, b) => a.documentId.localeCompare(b.documentId));
+	const actions = inspected.documents
+		.flatMap(document => {
+			if (!document.documentId || !document.targetPath || document.relativePath === document.targetPath) return [];
+			return [{ kind: "rename" as const, documentId: document.documentId, from: document.relativePath, to: document.targetPath, sourceDigest: document.digest }];
+		})
+		.sort((a, b) => a.documentId.localeCompare(b.documentId));
 	const vaultDigest = sha256(canonical(inspected.snapshot));
 	const material = { schemaVersion: 2 as const, vaultDigest, actions, issues: inspected.issues };
 	return { ...material, digest: previewDigest(material) };

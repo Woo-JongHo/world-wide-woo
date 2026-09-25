@@ -1,18 +1,22 @@
-import { expect, test } from "bun:test";
-import { renderLayoutFrame } from "@earendil-works/pi-tui/dist/layout.js";
+import { expect, test }                         from "bun:test";
+import { renderLayoutFrame }                    from "@earendil-works/pi-tui/dist/layout.js";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import chalk from "chalk";
-import { AstraWorkspace } from "../src/adapters/inbound/tui/shell/astra-surface";
-import { AstraWorkflowRail, AstraWorkflowView } from "../src/adapters/inbound/tui/features/workflow/astra-workflow-view";
-import { a } from "../src/adapters/inbound/tui/foundation/theme/astra-theme";
-import { REQUEST_STAGES, type RequestRuntimeRecord } from "../src/core/domain/execution/request-runtime";
-import { astraFixture } from "./fixtures/astra-snapshot";
+import chalk                                    from "chalk";
+import { AstraWorkspace }                       from "../src/adapters/inbound/tui/shell/astra-surface";
+import {
+	AstraWorkflowRail,
+	AstraWorkflowView,
+} from "../src/adapters/inbound/tui/features/workflow/astra-workflow-view";
+import { a }                                    from "../src/adapters/inbound/tui/foundation/theme/astra-theme";
+import { REQUEST_STAGES }                       from "../src/core/domain/execution/request-runtime";
+import type { RequestRuntimeRecord }            from "../src/core/domain/execution/request-runtime";
+import { astraFixture }                         from "./fixtures/astra-snapshot";
 
 test("Workflow 데모는 Figma 관계 트리와 두 열 실행 패널을 정렬하고 live에 샘플을 섞지 않는다", () => {
-	const snapshot = astraFixture("working");
-	const view = new AstraWorkflowView(() => snapshot, () => true);
-	const rows = view.render(130).map(stripTerminalSequences);
-	const matrixHeader = rows.find(row => row.includes("Parallel execution pipeline"));
+	const snapshot     = astraFixture("working")                                       ;
+	const view         = new AstraWorkflowView(() => snapshot, () => true)             ;
+	const rows         = view.render(130).map(stripTerminalSequences)                  ;
+	const matrixHeader = rows.find(row => row.includes("Parallel execution pipeline")) ;
 	expect(matrixHeader).toContain("Subagent state matrix");
 	const queueHeader = rows.find(row => row.includes("Active work queue & retry counts"));
 	expect(queueHeader).toContain("State change event log");
@@ -51,9 +55,9 @@ test("Workflow의 160열 첫 viewport에 7단계와 역할별 위임 상태가 �
 	snapshot.delegation = [{
 		sourceThreadId: snapshot.threadId!, turnId: snapshot.activeTurnId!, activityIds: [], itemIds: [],
 		tasks: [
-			{ ref: "review", id: "agent-review", attempt: 1, parentId: snapshot.threadId, parentRef: null, role: "reviewer", status: "running", task: "변경 검토", model: "gpt-5.6-sol", reasoningEffort: "high", activities: [], result: null },
-			{ ref: "research", id: "agent-research", attempt: 1, parentId: snapshot.threadId, parentRef: null, role: "researcher", status: "completed", task: "근거 조사", model: "gpt-5.6-terra", reasoningEffort: "medium", activities: [], result: "조사 완료" },
-			{ ref: "audit", id: "agent-audit", attempt: 1, parentId: snapshot.threadId, parentRef: null, role: "auditor", status: "failed", task: "최종 감사", model: "claude-fable-5", reasoningEffort: "high", activities: [], result: "감사 실패" },
+			{ ref : "review"   , id : "agent-review"   , attempt : 1 , parentId : snapshot.threadId , parentRef : null , role : "reviewer"   , status : "running"   , task : "변경 검토" , model : "gpt-5.6-sol"    , reasoningEffort : "high"   , activities : [] , result : null        },
+			{ ref : "research" , id : "agent-research" , attempt : 1 , parentId : snapshot.threadId , parentRef : null , role : "researcher" , status : "completed" , task : "근거 조사" , model : "gpt-5.6-terra"  , reasoningEffort : "medium" , activities : [] , result : "조사 완료" },
+			{ ref : "audit"    , id : "agent-audit"    , attempt : 1 , parentId : snapshot.threadId , parentRef : null , role : "auditor"    , status : "failed"    , task : "최종 감사" , model : "claude-fable-5" , reasoningEffort : "high"   , activities : [] , result : "감사 실패" },
 		],
 	}];
 

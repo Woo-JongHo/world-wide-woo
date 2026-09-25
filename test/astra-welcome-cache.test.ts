@@ -1,16 +1,16 @@
 import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences } from "@earendil-works/pi-tui";
-import { AstraTranscriptView } from "../src/adapters/inbound/tui/features/chat/astra-execution";
-import { astraFixture } from "./fixtures/astra-snapshot";
+import { AstraTranscriptView }    from "../src/adapters/inbound/tui/features/chat/astra-execution";
+import { astraFixture }           from "./fixtures/astra-snapshot";
 
 describe("Astra welcome animation cache boundary", () => {
 	test("repaints the welcome octopus after a timer tick", async () => {
 		const noColor = process.env.NO_COLOR, reducedMotion = process.env.ASTRA_REDUCED_MOTION;
 		delete process.env.NO_COLOR; delete process.env.ASTRA_REDUCED_MOTION;
 		const snapshot = astraFixture("loading");
-		snapshot.chat = [];
-		snapshot.activities = [];
-		snapshot.workFlow = { ...snapshot.workFlow, steps: [], completedCount: 0 };
+		snapshot.chat       = []                                                     ;
+		snapshot.activities = []                                                     ;
+		snapshot.workFlow   = { ...snapshot.workFlow, steps: [], completedCount: 0 } ;
 		const view = new AstraTranscriptView(snapshot);
 		view.playWelcomeIntro(() => undefined);
 		try {

@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
-import { SystemAntigravityLocalAuthSource } from "../src/adapters/outbound/authentication/antigravity-local-auth.js";
+import { mkdtemp, mkdir, rm, writeFile }     from "node:fs/promises";
+import { join }                              from "node:path";
+import { tmpdir }                            from "node:os";
+import { SystemAntigravityLocalAuthSource }  from "../src/adapters/outbound/authentication/antigravity-local-auth.js";
 
 const homes: string[] = [];
 
@@ -17,9 +17,9 @@ async function tokenHome(): Promise<string> {
 	await mkdir(directory, { recursive: true });
 	await writeFile(join(directory, "antigravity-oauth-token"), JSON.stringify({
 		token: {
-			access_token: "access-secret",
-			refresh_token: "refresh-secret",
-			expiry: new Date(Date.now() + 60 * 60_000).toISOString(),
+			access_token  : "access-secret",
+			refresh_token : "refresh-secret",
+			expiry        : new Date(Date.now() + 60 * 60_000).toISOString(),
 		},
 	}));
 	return home;

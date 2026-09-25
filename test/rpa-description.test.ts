@@ -1,13 +1,13 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test }                           from "bun:test";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { tmpdir }                                           from "node:os";
+import { join, resolve }                                    from "node:path";
 import {
 	renderRpaProject,
 	renderRpaTask,
 	validateRpaDescriptionMap,
-	type RpaDescriptionMap,
 } from "../src/core/domain/development/rpa-description";
+import type { RpaDescriptionMap }                           from "../src/core/domain/development/rpa-description";
 
 const fixturePath = resolve(import.meta.dir, "fixtures/rpa-description-map.json");
 
@@ -39,9 +39,9 @@ describe("RPA description map validation", () => {
 		expect(validateRpaDescriptionMap(malformed)).toContain("map.project.wbs.startDate: must be a real YYYY-MM-DD date");
 
 		const reversed = mutableFixture();
-		reversed.project.wbs.baselineDate = "2026-08-04";
-		reversed.project.wbs.startDate = "2026-08-03";
-		reversed.project.wbs.endDate = "2026-08-02";
+		reversed.project.wbs.baselineDate = "2026-08-04" ;
+		reversed.project.wbs.startDate    = "2026-08-03" ;
+		reversed.project.wbs.endDate      = "2026-08-02" ;
 		const errors = validateRpaDescriptionMap(reversed);
 		expect(errors).toContain("map.project.wbs: startDate must be on or before endDate");
 	});
@@ -64,10 +64,10 @@ describe("RPA description map validation", () => {
 	test("rejects broken Unit, Step, code, exception-test cross-references", () => {
 		const map = mutableFixture();
 		const task = map.tasks[1];
-		task.units[0].steps[0].codeSymbols = ["missingSymbol"];
-		task.tests[0].unitId = "RPA-UNIT-MISSING";
-		task.tests[1].stepId = "STEP-MISSING";
-		task.exceptions[0].testIds = ["TEST-DEMO-PASS", "TEST-MISSING"];
+		task.units[0].steps[0].codeSymbols = ["missingSymbol"]                  ;
+		task.tests[0].unitId               = "RPA-UNIT-MISSING"                 ;
+		task.tests[1].stepId               = "STEP-MISSING"                     ;
+		task.exceptions[0].testIds         = ["TEST-DEMO-PASS", "TEST-MISSING"] ;
 		const errors = validateRpaDescriptionMap(map).join("\n");
 		expect(errors).toContain("unknown code symbol 'missingSymbol'");
 		expect(errors).toContain("unknown unit 'RPA-UNIT-MISSING'");
@@ -99,9 +99,9 @@ describe("RPA description map validation", () => {
 
 describe("RPA Linear description rendering", () => {
 	test("derives counts and sorts Task and Step rows by sequence", () => {
-		const map = fixture();
-		const before = JSON.stringify(map);
-		const project = renderRpaProject(map);
+		const map     = fixture()             ;
+		const before  = JSON.stringify(map)   ;
+		const project = renderRpaProject(map) ;
 		expect(project.indexOf("RPA-TASK-01")).toBeLessThan(project.indexOf("RPA-TASK-02"));
 		expect(project).toContain("| Task 수 | 2 |");
 		expect(project).toContain("| 1 | 가상 정산 검증 | RPA-TASK-01 | 가상 입력의 합계와 형식을 검증한다. | 검증된 가상 정산 결과 | [Linear](<https://linear.example.invalid/issue/RPA-TASK-01>) | 1 | 2 | 1 | 2 |");
@@ -158,9 +158,9 @@ describe("rpa-description CLI", () => {
 		expect(validate.exitCode).toBe(0);
 		expect(validate.stdout.toString()).toContain("RPA 설명 map 검증 통과");
 
-		const rendered = renderRpaProject(fixture());
-		const directory = mkdtempSync(join(tmpdir(), "rpa-description-"));
-		const actualPath = join(directory, "actual.md");
+		const rendered   = renderRpaProject(fixture())                     ;
+		const directory  = mkdtempSync(join(tmpdir(), "rpa-description-")) ;
+		const actualPath = join(directory, "actual.md")                    ;
 		try {
 			writeFileSync(actualPath, rendered.replace(/\n/gu, "\r\n") + "\r\n");
 			const current = Bun.spawnSync(["bun", "scripts/rpa-description.ts", "check", "--map", fixturePath, "--surface", "project", "--actual", actualPath], { cwd: resolve(import.meta.dir, "..") });

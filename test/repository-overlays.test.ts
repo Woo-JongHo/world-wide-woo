@@ -1,18 +1,21 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test }               from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import type { RepositoryInsights } from "../src/core/ports";
-import { OverlaySheet } from "../src/adapters/inbound/tui/foundation/components/overlay-sheet";
-import { IssueListOverlay, RepositoryActivityOverlay } from "../src/adapters/inbound/tui/features/repository/repository-overlays";
+import type { RepositoryInsights }              from "../src/core/ports";
+import { OverlaySheet }                         from "../src/adapters/inbound/tui/foundation/components/overlay-sheet";
+import {
+	IssueListOverlay,
+	RepositoryActivityOverlay,
+} from "../src/adapters/inbound/tui/features/repository/repository-overlays";
 
 const repository: RepositoryInsights = {
 	snapshot: async () => ({
-		root: "/workspace/www",
-		branch: "main",
-		upstream: "origin/main",
-		ahead: 1,
-		behind: 0,
-		changedFiles: [{ path: "src/한글.ts", kind: "modified", staged: false, unstaged: true, untracked: false }],
-		head: { id: "a".repeat(40), shortId: "abc1234", subject: "fix: current", author: "Woo", authoredAt: "2026-08-31T00:00:00Z" },
+		root         : "/workspace/www",
+		branch       : "main",
+		upstream     : "origin/main",
+		ahead        : 1,
+		behind       : 0,
+		changedFiles : [{ path: "src/한글.ts", kind: "modified", staged: false, unstaged: true, untracked: false }],
+		head         : { id: "a".repeat(40), shortId: "abc1234", subject: "fix: current", author: "Woo", authoredAt: "2026-08-31T00:00:00Z" },
 	}),
 	recentCommits: async () => [
 		{ id: "a".repeat(40), shortId: "abc1234", subject: "fix: current", author: "Woo", authoredAt: "2026-08-31T00:00:00Z" },

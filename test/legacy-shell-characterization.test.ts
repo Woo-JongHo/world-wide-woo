@@ -1,16 +1,17 @@
-import { describe, expect, test } from "bun:test";
-import { type Terminal } from "@earendil-works/pi-tui";
-import type { SessionSnapshot } from "../src/core/application/session/session-runtime";
-import { runTuiShell, type TuiShellDependencies } from "../src/adapters/inbound/tui/legacy/legacy-session-shell";
+import { describe, expect, test }    from "bun:test";
+import type { Terminal }             from "@earendil-works/pi-tui";
+import type { SessionSnapshot }      from "../src/core/application/session/session-runtime";
+import { runTuiShell }               from "../src/adapters/inbound/tui/legacy/legacy-session-shell";
+import type { TuiShellDependencies } from "../src/adapters/inbound/tui/legacy/legacy-session-shell";
 
 class MemoryTerminal implements Terminal {
-	columns = 80;
-	rows = 24;
-	kittyProtocolActive = false;
-	output = "";
-	stopped = false;
-	input: (data: string) => void = () => { throw new Error("terminal not started"); };
-	resize: () => void = () => { throw new Error("terminal not started"); };
+	columns                         = 80                                                 ;
+	rows                            = 24                                                 ;
+	kittyProtocolActive             = false                                              ;
+	output                          = ""                                                 ;
+	stopped                         = false                                              ;
+	input  : (data: string) => void = () => { throw new Error("terminal not started"); } ;
+	resize : () => void             = () => { throw new Error("terminal not started"); } ;
 
 	constructor(private readonly onStop: () => void = () => {}) {}
 
@@ -24,38 +25,38 @@ class MemoryTerminal implements Terminal {
 		this.onStop();
 	}
 
-	async drainInput(): Promise<void> { this.input = () => {}; }
-	write(data: string): void { this.output += data; }
-	moveBy(n: number): void { this.write(`\x1b[${Math.abs(n)}${n > 0 ? "B" : "A"}`); }
-	hideCursor(): void { this.write("\x1b[?25l"); }
-	showCursor(): void { this.write("\x1b[?25h"); }
-	clearLine(): void { this.write("\x1b[2K"); }
-	clearFromCursor(): void { this.write("\x1b[J"); }
-	clearScreen(): void { this.write("\x1b[2J"); }
-	setTitle(title: string): void { this.write(`\x1b]0;${title}\x07`); }
-	setProgress(active: boolean): void { this.write(active ? "\x1b]9;4;3\x07" : "\x1b]9;4;0\x07"); }
+	async drainInput()                                                                                 : Promise<void> { this.input = () => {}; }
+	write           (data: string                                 )                                    : void { this.output += data; }
+	moveBy          (n: number                                    )                                    : void { this.write(`\x1b[${Math.abs(n)}${n > 0 ? "B" : "A"}`); }
+	hideCursor      ()                                                                                 : void { this.write("\x1b[?25l"); }
+	showCursor      ()                                                                                 : void { this.write("\x1b[?25h"); }
+	clearLine       ()                                                                                 : void { this.write("\x1b[2K"); }
+	clearFromCursor ()                                                                                 : void { this.write("\x1b[J"); }
+	clearScreen     ()                                                                                 : void { this.write("\x1b[2J"); }
+	setTitle        (title: string                                )                                    : void { this.write(`\x1b]0;${title}\x07`); }
+	setProgress     (active: boolean                              )                                    : void { this.write(active ? "\x1b]9;4;3\x07" : "\x1b]9;4;0\x07"); }
 }
 
 const readySnapshot: SessionSnapshot = {
-	id: "legacy-session",
-	phase: "ready",
-	turns: [],
-	draft: "",
-	error: null,
-	auth: { configured: true, source: "fixture" },
-	settings: { provider: "openai-codex", model: "gpt-5.6-terra", effort: "high" },
-	cwd: "/test/legacy",
-	projectName: "legacy fixture",
-	projectRoot: "/test/legacy",
-	activity: null,
-	tools: [],
-	narrations: [],
+	id          : "legacy-session",
+	phase       : "ready",
+	turns       : [],
+	draft       : "",
+	error       : null,
+	auth        : { configured: true, source: "fixture" },
+	settings    : { provider: "openai-codex", model: "gpt-5.6-terra", effort: "high" },
+	cwd         : "/test/legacy",
+	projectName : "legacy fixture",
+	projectRoot : "/test/legacy",
+	activity    : null,
+	tools       : [],
+	narrations  : [],
 };
 
 function shellFixture(snapshot: SessionSnapshot = readySnapshot) {
-	const events: string[] = [];
-	let aborts = 0;
-	const terminal = new MemoryTerminal(() => events.push("terminal.stop"));
+	const events: string[] = []                                                     ;
+	let aborts             = 0                                                      ;
+	const terminal         = new MemoryTerminal(() => events.push("terminal.stop")) ;
 	const runtime = {
 		id: snapshot.id,
 		get snapshot() { return snapshot; },
@@ -74,10 +75,10 @@ function shellFixture(snapshot: SessionSnapshot = readySnapshot) {
 		terminal,
 		runtime,
 		auth: {
-			methods: () => [],
-			status: async (provider: string) => ({ state: "configured", provider, type: "oauth", source: "fixture" }),
-			login: async () => { throw new Error("not requested"); },
-			logout: async () => {},
+			methods : () => [],
+			status  : async (provider: string) => ({ state: "configured", provider, type: "oauth", source: "fixture" }),
+			login   : async () => { throw new Error("not requested"); },
+			logout  : async () => {},
 		},
 		usage: {
 			async refresh() { return []; },

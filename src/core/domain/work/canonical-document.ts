@@ -12,9 +12,9 @@ export interface CanonicalDocumentSource {
 }
 
 export interface CanonicalDocumentProvenance {
-	readonly sessionId: string;
-	readonly capturedAt: string;
-	readonly turnId?: string;
+	readonly sessionId  : string ;
+	readonly capturedAt : string ;
+	readonly turnId?    : string ;
 }
 
 export interface CanonicalDocumentRedaction {
@@ -25,27 +25,27 @@ export interface CanonicalDocumentRedaction {
 
 /** Narrow portable contract shared by Todo and Note drafts. */
 export interface CanonicalDocumentDraft {
-	readonly schemaVersion: typeof CANONICAL_DOCUMENT_SCHEMA_VERSION;
-	readonly kind: CanonicalDocumentKind;
-	readonly body: string;
-	readonly source: CanonicalDocumentSource;
-	readonly provenance: CanonicalDocumentProvenance;
-	readonly redaction: CanonicalDocumentRedaction;
-	readonly target: CanonicalDocumentTarget;
+	readonly schemaVersion : typeof CANONICAL_DOCUMENT_SCHEMA_VERSION ;
+	readonly kind          : CanonicalDocumentKind                    ;
+	readonly body          : string                                   ;
+	readonly source        : CanonicalDocumentSource                  ;
+	readonly provenance    : CanonicalDocumentProvenance              ;
+	readonly redaction     : CanonicalDocumentRedaction               ;
+	readonly target        : CanonicalDocumentTarget                  ;
 }
 
 export interface CanonicalDocumentDraftInput {
-	readonly kind: CanonicalDocumentKind;
-	readonly body: string;
-	readonly source: { readonly id: string; readonly body: string };
-	readonly provenance: CanonicalDocumentProvenance;
+	readonly kind       : CanonicalDocumentKind                          ;
+	readonly body       : string                                         ;
+	readonly source     : { readonly id: string; readonly body: string } ;
+	readonly provenance : CanonicalDocumentProvenance                    ;
 }
 
-const MAX_MARKDOWN_CHARACTERS = 256 * 1024;
-const SHA256 = /^[a-f0-9]{64}$/u;
-const IDENTIFIER = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u;
-const SAFE_NOTE_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/u;
-const TNOTE_TARGET = /^\.www\/vault\/t-notes\/([A-Za-z0-9][A-Za-z0-9._-]{0,63})\.md$/u;
+const MAX_MARKDOWN_CHARACTERS = 256 * 1024                                                        ;
+const SHA256                  = /^[a-f0-9]{64}$/u                                                 ;
+const IDENTIFIER              = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u                            ;
+const SAFE_NOTE_ID            = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/u                              ;
+const TNOTE_TARGET            = /^\.www\/vault\/t-notes\/([A-Za-z0-9][A-Za-z0-9._-]{0,63})\.md$/u ;
 
 export function targetForCanonicalDocument(kind: CanonicalDocumentKind, sourceId?: string): CanonicalDocumentTarget {
 	if (kind === "todo") return ".www/vault/Todo.md";
@@ -61,10 +61,16 @@ export function assertCanonicalDocumentDraft(value: CanonicalDocumentDraft): voi
 	if (typeof value.body !== "string" || value.body.length > MAX_MARKDOWN_CHARACTERS || /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/u.test(value.body)) {
 		throw new Error("정본 문서 본문이 유효하지 않거나 너무 큽니다.");
 	}
-	if (!value.source || value.source.kind !== value.kind || !isIdentifier(value.source.id) || !isDigest(value.source.digest)) {
+	if (!value.source
+		|| value.source.kind !== value.kind
+		|| !isIdentifier(value.source.id)
+		|| !isDigest(value.source.digest)) {
 		throw new Error("정본 문서 source가 유효하지 않습니다.");
 	}
-	if (!value.provenance || !isIdentifier(value.provenance.sessionId) || !isIsoDate(value.provenance.capturedAt) || (value.provenance.turnId !== undefined && !isIdentifier(value.provenance.turnId))) {
+	if (!value.provenance
+		|| !isIdentifier(value.provenance.sessionId)
+		|| !isIsoDate(value.provenance.capturedAt)
+		|| (value.provenance.turnId !== undefined && !isIdentifier(value.provenance.turnId))) {
 		throw new Error("정본 문서 provenance가 유효하지 않습니다.");
 	}
 	if (!value.redaction || value.redaction.policy !== "www-v1" || !isDigest(value.redaction.bodyDigest)) {
@@ -76,9 +82,9 @@ export function assertCanonicalDocumentDraft(value: CanonicalDocumentDraft): voi
 /** A compact, deterministic preview for the human approval surface. */
 export function canonicalMarkdownDiff(before: string, after: string): string {
 	if (before === after) return "";
-	const beforeLines = before.split("\n");
-	const afterLines = after.split("\n");
-	let start = 0;
+	const beforeLines = before.split("\n") ;
+	const afterLines  = after.split("\n")  ;
+	let start         = 0                  ;
 	while (start < beforeLines.length && start < afterLines.length && beforeLines[start] === afterLines[start]) start += 1;
 	let beforeEnd = beforeLines.length;
 	let afterEnd = afterLines.length;

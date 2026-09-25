@@ -1,15 +1,16 @@
-import { describe, expect, test } from "bun:test";
-import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import type { ProjectActivity } from "../src/core/domain/execution/project-activity";
-import { REQUEST_STAGES, parseRequestStageReport, type RequestStageReport } from "../src/core/domain/execution/request-runtime";
-import { projectRequestRuntime } from "../src/core/runtime/request-runtime";
-import { projectRequestTodo } from "../src/core/domain/work/request-projections";
+import { describe, expect, test }                                      from "bun:test";
+import { mkdtemp, readdir, readFile, rm }                              from "node:fs/promises";
+import { tmpdir }                                                      from "node:os";
+import { join }                                                        from "node:path";
+import type { ProjectActivity }                                        from "../src/core/domain/execution/project-activity";
+import { REQUEST_STAGES, parseRequestStageReport }                     from "../src/core/domain/execution/request-runtime";
+import type { RequestStageReport }                                     from "../src/core/domain/execution/request-runtime";
+import { projectRequestRuntime }                                       from "../src/core/runtime/request-runtime";
+import { projectRequestTodo }                                          from "../src/core/domain/work/request-projections";
 import { parseTodoMarkdown, renderTodoMarkdown, validateTodoDocument } from "../src/core/domain/work/todos";
-import { FileRequestProjectionStore } from "../src/adapters/outbound/persistence/request-projection-store";
-import { requestRuntimeRows } from "../src/adapters/inbound/tui/features/monitoring/request-runtime-view";
-import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
+import { FileRequestProjectionStore }                                  from "../src/adapters/outbound/persistence/request-projection-store";
+import { requestRuntimeRows }                                          from "../src/adapters/inbound/tui/features/monitoring/request-runtime-view";
+import { stripTerminalSequences, visibleWidth }                        from "@earendil-works/pi-tui";
 
 function fixture() {
 	const journal: ProjectActivity[] = [];
@@ -50,9 +51,9 @@ describe("seven-stage request runtime", () => {
 	test("VERIFY rejects failed, foreign and prose-only evidence", () => {
 		const f = fixture();
 		for (const stage of REQUEST_STAGES.slice(0, 5)) f.report(stage, "skipped");
-		const failed = f.append({ params: { item: { command: "test", exitCode: 1 } } }, "tool");
-		const foreign = f.append({ params: { item: { exitCode: 0 } } }, "tool", { threadId: "elsewhere", turnId: "turn-1" });
-		const prose = f.append({ role: "assistant", text: "검증 성공이라고 말하기만 함" }, "message");
+		const failed  = f.append({ params: { item: { command: "test", exitCode: 1 } } }, "tool")                             ;
+		const foreign = f.append({ params: { item: { exitCode: 0 } } }, "tool", { threadId: "elsewhere", turnId: "turn-1" }) ;
+		const prose   = f.append({ role: "assistant", text: "검증 성공이라고 말하기만 함" }, "message")                      ;
 		for (const ref of [failed.id, foreign.id, prose.id]) f.report("VERIFY", "completed", { evidence: [ref] });
 		expect(f.result().stages[5]?.status).toBe("pending");
 		expect(f.result().issues).toHaveLength(3);
@@ -137,9 +138,9 @@ describe("seven-stage request runtime", () => {
 		expect(progress).not.toContain("Bash");
 	});
 	test("settled stage rail distinguishes skipped stages from completed stages", () => {
-		const base = fixture().result();
-		const stages = base.stages.map((stage, index) => ({ ...stage, status: index ? "skipped" as const : "completed" as const }));
-		const waiting = stripTerminalSequences(requestRuntimeRows({ ...base, stages }, 100).join("\n"));
+		const base    = fixture().result()                                                                                           ;
+		const stages  = base.stages.map((stage, index) => ({ ...stage, status: index ? "skipped" as const : "completed" as const })) ;
+		const waiting = stripTerminalSequences(requestRuntimeRows({ ...base, stages }, 100).join("\n"))                              ;
 		expect(waiting).not.toContain("기존 구조에 Runtime 구현");
 		expect(waiting).not.toContain("╭ 완료");
 		expect(waiting).toContain("✓ UNDERSTAND");
@@ -150,10 +151,10 @@ describe("seven-stage request runtime", () => {
 		expect(complete).not.toContain("모든 단계가 완료");
 	});
 	test("stage rail preserves concurrent running and failed stages at compact widths", () => {
-		const base = fixture().result();
-		const request = { ...base, stages: base.stages.map(stage => ({ ...stage, status: stage.id === "EXECUTE" ? "failed" as const : stage.id === "DELIVER" ? "running" as const : "completed" as const })) };
-		const plain = stripTerminalSequences(requestRuntimeRows(request, 100).join("\n"));
-		const progress = plain.slice(0, plain.indexOf("Activity"));
+		const base     = fixture().result()                                                                                                                                                                     ;
+		const request  = { ...base, stages: base.stages.map(stage => ({ ...stage, status: stage.id === "EXECUTE" ? "failed" as const : stage.id === "DELIVER" ? "running" as const : "completed" as const })) } ;
+		const plain    = stripTerminalSequences(requestRuntimeRows(request, 100).join("\n"))                                                                                                                    ;
+		const progress = plain.slice(0, plain.indexOf("Activity"))                                                                                                                                              ;
 		expect(progress).toContain("! EXECUTE");
 		expect(progress).toContain("› DELIVER");
 		expect(progress).not.toContain("╭ 진행 중");
@@ -167,10 +168,10 @@ describe("seven-stage request runtime", () => {
 		expect(plan).toContain("대상별 결과와");
 	});
 	test("Next looks toward the next input instead of remaining Plan tasks", () => {
-		const base = fixture().result();
-		const stages = base.stages.map(stage => ({ ...stage, tasks: [{ id: stage.id, title: "완료한 세부 계획", status: "completed" as const, dependsOn: [] }] }));
-		const plain = stripTerminalSequences(requestRuntimeRows({ ...base, stages }, 80).join("\n"));
-		const proposal = plain.slice(plain.indexOf("Next"));
+		const base     = fixture().result()                                                                                                                          ;
+		const stages   = base.stages.map(stage => ({ ...stage, tasks: [{ id: stage.id, title: "완료한 세부 계획", status: "completed" as const, dependsOn: [] }] })) ;
+		const plain    = stripTerminalSequences(requestRuntimeRows({ ...base, stages }, 80).join("\n"))                                                              ;
+		const proposal = plain.slice(plain.indexOf("Next"))                                                                                                          ;
 		expect(proposal).toContain("없음");
 		expect(proposal).not.toContain("완료한 세부 계획");
 		expect(proposal).toContain("다음 입력 제안이 없습니다.");

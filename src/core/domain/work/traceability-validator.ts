@@ -1,8 +1,5 @@
-import {
-	isRepositoryPathReference,
-	parseWorkTraceabilityManifest,
-	type WorkTraceabilityManifest,
-} from "./traceability.js";
+import { isRepositoryPathReference, parseWorkTraceabilityManifest } from "@/core/domain/work/traceability.js";
+import type { WorkTraceabilityManifest }                            from "@/core/domain/work/traceability.js";
 
 export interface WorkTraceabilityPathProbe {
 	exists(repoRelativePath: string): Promise<boolean>;

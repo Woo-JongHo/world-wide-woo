@@ -1,53 +1,72 @@
 import { existsSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, relative, resolve } from "node:path";
-import type { ExceptionContract, RegistryEnvelope, SpecContract, TestContract, TraceabilityEdge, TraceabilityLedger, TraceabilityRef } from "../../../core/domain/development/development-traceability.js";
-import { obsidianWikiTarget } from "../../../core/domain/development/obsidian-contract.js";
-import { canonicalDigest, sha256, validateLedger, validateRegistryEnvelope } from "./development-traceability-contract.js";
-import { inspectObsidianVault, type ObsidianInspectOptions, type ObsidianVaultDocument } from "./obsidian-contract.js";
+import { dirname, relative, resolve }                                  from "node:path";
+import type {
+	ExceptionContract,
+	RegistryEnvelope,
+	SpecContract,
+	TestContract,
+	TraceabilityEdge,
+	TraceabilityLedger,
+	TraceabilityRef,
+} from "@/core/domain/development/development-traceability.js";
+import { obsidianWikiTarget }                                          from "@/core/domain/development/obsidian-contract.js";
+import {
+	canonicalDigest,
+	sha256,
+	validateLedger,
+	validateRegistryEnvelope,
+} from "@/adapters/outbound/development/development-traceability-contract.js";
+import { inspectObsidianVault }                                        from "@/adapters/outbound/development/obsidian-contract.js";
+import type {
+	ObsidianInspectOptions,
+	ObsidianVaultDocument,
+} from "@/adapters/outbound/development/obsidian-contract.js";
 
 export interface ObsidianLedgerMigrationAction {
-	kind: "create" | "replace" | "refresh";
-	createsIssue: boolean;
-	linearId: string;
-	from?: TraceabilityRef;
-	to: TraceabilityRef;
-	path: string;
-	digest: string;
+	kind         : "create" | "replace" | "refresh" ;
+	createsIssue : boolean                          ;
+	linearId     : string                           ;
+	from?        : TraceabilityRef                  ;
+	to           : TraceabilityRef                  ;
+	path         : string                           ;
+	digest       : string                           ;
 }
 
 export interface ObsidianLedgerMigrationPreview {
-	schemaVersion: 1;
-	sourceLedgerDigest: string;
-	vaultDigest: string;
-	actions: ObsidianLedgerMigrationAction[];
-	candidate: TraceabilityLedger;
-	digest: string;
+	schemaVersion      : 1                               ;
+	sourceLedgerDigest : string                          ;
+	vaultDigest        : string                          ;
+	actions            : ObsidianLedgerMigrationAction[] ;
+	candidate          : TraceabilityLedger              ;
+	digest             : string                          ;
 	workflow: {
-		vaultRename: "separate-preview-required";
-		ledgerMigration: "previewed";
-		sqliteRebuild: "pending-after-ledger-apply";
-		linearUriUpdate: "separate-draft-readback-required";
+		vaultRename     : "separate-preview-required"        ;
+		ledgerMigration : "previewed"                        ;
+		sqliteRebuild   : "pending-after-ledger-apply"       ;
+		linearUriUpdate : "separate-draft-readback-required" ;
 	};
 }
 
-interface ObsidianLedgerMigrationOptions extends ObsidianInspectOptions { projectRoot?: string }
+interface ObsidianLedgerMigrationOptions extends ObsidianInspectOptions {
+	projectRoot?: string
+}
 
 const withoutDigest = <T extends { digest: string }>(value: T): Omit<T, "digest"> => {
 	const { digest: _, ...body } = value;
 	return body;
 };
-const previewDigest = (value: Omit<ObsidianLedgerMigrationPreview, "digest">): string => canonicalDigest(value);
-const edgeKey = (edge: TraceabilityEdge): string => `${edge.from}|${edge.relation}|${edge.to}`;
-const cloneLedger = (ledger: TraceabilityLedger): TraceabilityLedger => JSON.parse(JSON.stringify(ledger)) as TraceabilityLedger;
+const previewDigest = (value: Omit<ObsidianLedgerMigrationPreview, "digest">): string => canonicalDigest(value) ;
+const edgeKey       = (edge: TraceabilityEdge): string => `${edge.from}|${edge.relation}|${edge.to}`            ;
+const cloneLedger   = (ledger: TraceabilityLedger): TraceabilityLedger => structuredClone(ledger)               ;
 const canonicalDocuments = (documents: readonly ObsidianVaultDocument[]) => documents.filter((document): document is ObsidianVaultDocument & {
-	documentId: string;
-	linearId: string;
-	properties: NonNullable<ObsidianVaultDocument["properties"]>;
+	documentId : string                                           ;
+	linearId   : string                                           ;
+	properties : NonNullable<ObsidianVaultDocument["properties"]> ;
 } => Boolean(document.documentId && document.linearId && document.properties));
 
 function aliases(document: ObsidianVaultDocument): string[] {
 	const path = document.relativePath.replace(/\.md$/u, "");
-	return [path, path.split("/").at(-1)!];
+	return [path, path.split("/").at(-1) ?? path];
 }
 
 const registryDirectory = { spec: "specs", "test-contract": "tests", exception: "exceptions", decision: "decisions" } as const;
@@ -59,10 +78,11 @@ function importDeclaredRegistry(candidate: TraceabilityLedger, projectRoot: stri
 	if (!projectRoot) throw new Error(`OBSIDIAN_PROPERTY_ENTITY_MISSING:${kind}:${id}`);
 	const path = resolve(projectRoot, `.www/control-ledger/registry/${registryDirectory[kind]}/${id}.json`);
 	if (!existsSync(path)) throw new Error(`OBSIDIAN_PROPERTY_REGISTRY_MISSING:${kind}:${id}`);
-	const bytes = readFileSync(path);
-	const envelope = JSON.parse(bytes.toString("utf8")) as RegistryEnvelope<SpecContract & TestContract & ExceptionContract>;
-	const errors = validateRegistryEnvelope(envelope);
+	const bytes    = readFileSync(path)                                                                                      ;
+	const envelope = JSON.parse(bytes.toString("utf8")) as RegistryEnvelope<SpecContract & TestContract & ExceptionContract> ;
+	const errors   = validateRegistryEnvelope(envelope)                                                                      ;
 	if (errors.length || envelope.kind !== kind || envelope.id !== id) throw new Error(`OBSIDIAN_PROPERTY_REGISTRY_INVALID:${kind}:${id}:${errors.join(",")}`);
+	// `${RegistryKind}:${id}@v${version}` 형태는 TraceabilityRef 유니언 패턴과 구조가 달라 경계 변환 1건이 필요하다.
 	const ref = `${kind}:${id}@v${envelope.version}` as TraceabilityRef;
 	candidate.entities.push({ ref, kind, id, version: envelope.version, immutable: true, source: { path: relative(projectRoot, path).replaceAll("\\", "/"), digest: sha256(bytes) } });
 	return ref;
@@ -74,16 +94,16 @@ export function createObsidianLedgerMigrationPreview(
 	vaultRoot: string,
 	options: ObsidianLedgerMigrationOptions = {},
 ): ObsidianLedgerMigrationPreview {
-	const ledger = JSON.parse(ledgerBytes) as TraceabilityLedger;
-	const inspected = inspectObsidianVault(vaultRoot, options);
-	const blocking = inspected.issues.filter(problem => problem.code !== "PATH_DRIFT");
+	const ledger    = JSON.parse(ledgerBytes) as TraceabilityLedger                     ;
+	const inspected = inspectObsidianVault(vaultRoot, options)                          ;
+	const blocking  = inspected.issues.filter(problem => problem.code !== "PATH_DRIFT") ;
 	if (blocking.length) throw new Error(`OBSIDIAN_CONTRACT_BLOCKED:${blocking.map(problem => `${problem.code}:${problem.path}`).join(",")}`);
 	const documents = canonicalDocuments(inspected.documents);
 	if (!documents.length) throw new Error("OBSIDIAN_CANONICAL_DOCUMENT_REQUIRED");
-	const candidate = cloneLedger(ledger);
-	const replacements = new Map<TraceabilityRef, TraceabilityRef>();
-	const actions: ObsidianLedgerMigrationAction[] = [];
-	const declaredRefs = new Map<string, TraceabilityRef>();
+	const candidate                                 = cloneLedger(ledger)                         ;
+	const replacements                              = new Map<TraceabilityRef, TraceabilityRef>() ;
+	const actions : ObsidianLedgerMigrationAction[] = []                                          ;
+	const declaredRefs                              = new Map<string, TraceabilityRef>()          ;
 	const resolveDeclared = (kind: RegistryKind | "unit", id: string): TraceabilityRef => {
 		const key = `${kind}:${id}`;
 		const cached = declaredRefs.get(key);
@@ -96,7 +116,7 @@ export function createObsidianLedgerMigrationPreview(
 		return ref;
 	};
 	for (const document of documents) {
-		const issueRef = `issue:${document.linearId}` as TraceabilityRef;
+		const issueRef: TraceabilityRef = `issue:${document.linearId}`;
 		const detailEdges = candidate.edges.filter(edge => edge.from === issueRef && edge.relation === "detailed-by");
 		if (detailEdges.length > 1) throw new Error(`OBSIDIAN_LINEAR_DETAIL_EDGE_UNIQUE_REQUIRED:${issueRef}`);
 		const createsIssue = !candidate.entities.some(entity => entity.ref === issueRef && entity.kind === "issue");
@@ -104,7 +124,7 @@ export function createObsidianLedgerMigrationPreview(
 		const from = detailEdges[0]?.to;
 		const old = from ? candidate.entities.find(entity => entity.ref === from) : undefined;
 		if (from && (!old || old.kind !== "note")) throw new Error(`OBSIDIAN_LEGACY_NOTE_MISSING:${from}`);
-		const to = `note:${document.documentId}` as TraceabilityRef;
+		const to: TraceabilityRef = `note:${document.documentId}`;
 		const collision = candidate.entities.find(entity => entity.ref === to && entity.ref !== from);
 		if (collision) throw new Error(`OBSIDIAN_DOCUMENT_ID_COLLISION:${to}`);
 		if (from) replacements.set(from, to);
@@ -117,7 +137,11 @@ export function createObsidianLedgerMigrationPreview(
 	}
 	for (const action of actions) {
 		const value = { ref: action.to, kind: "note" as const, id: action.to.slice("note:".length), source: { path: action.path, digest: action.digest } };
-		if (action.from) candidate.entities[candidate.entities.findIndex(entity => entity.ref === action.from)] = value;
+		if (action.from) {
+			const replaced = candidate.entities.findIndex(entity => entity.ref === action.from);
+			if (replaced < 0) throw new Error(`OBSIDIAN_LEGACY_NOTE_MISSING:${action.from}`);
+			candidate.entities[replaced] = value;
+		}
 		else {
 			candidate.entities.push(value);
 			candidate.edges.push({ from: `issue:${action.linearId}`, relation: "detailed-by", to: action.to });
@@ -139,7 +163,7 @@ export function createObsidianLedgerMigrationPreview(
 	const byAlias = new Map<string, typeof documents>();
 	for (const document of documents) for (const alias of aliases(document)) byAlias.set(alias, [...(byAlias.get(alias) ?? []), document]);
 	for (const document of documents) {
-		const from = `note:${document.documentId}` as TraceabilityRef;
+		const from: TraceabilityRef = `note:${document.documentId}`;
 		const propertyRefs = [
 			...document.properties.spec_ids.map(id => resolveDeclared("spec", id)),
 			...document.properties.code_ids.map(id => resolveDeclared("unit", id)),
@@ -155,19 +179,24 @@ export function createObsidianLedgerMigrationPreview(
 			for (const decisionId of document.properties.decision_ids) candidate.edges.push({ from: specRef, relation: "decided-by", to: resolveDeclared("decision", decisionId) });
 		}
 		for (const exceptionId of document.properties.exception_ids) {
-			const exceptionRef = resolveDeclared("exception", exceptionId);
-			const exceptionEntity = candidate.entities.find(entity => entity.ref === exceptionRef)!;
-			const exceptionEnvelope = JSON.parse(readFileSync(resolve(options.projectRoot!, exceptionEntity.source!.path), "utf8")) as RegistryEnvelope<ExceptionContract>;
+			const exceptionRef      = resolveDeclared("exception", exceptionId)                                              ;
+			const exceptionEntity   = candidate.entities.find(entity => entity.ref === exceptionRef)          ;
+			if (!exceptionEntity) throw new Error(`OBSIDIAN_PROPERTY_ENTITY_MISSING:${exceptionRef}`);
+			if (!options.projectRoot) throw new Error(`OBSIDIAN_PROPERTY_PROJECT_ROOT_REQUIRED:${exceptionRef}`);
+			const sourcePath         = exceptionEntity.source?.path                                           ;
+			if (!sourcePath) throw new Error(`OBSIDIAN_PROPERTY_SOURCE_PATH_MISSING:${exceptionRef}`);
+			const exceptionEnvelope = JSON.parse(readFileSync(resolve(options.projectRoot, sourcePath), "utf8")) as RegistryEnvelope<ExceptionContract> ;
 			for (const testId of exceptionEnvelope.payload.testIds) candidate.edges.push({ from: exceptionRef, relation: "verified-by", to: resolveDeclared("test-contract", testId) });
 		}
 		const links: Array<{ relation: "parent-of" | "related-to"; value: string; parent: boolean }> = [];
 		if (document.properties.parent) links.push({ relation: "parent-of", value: document.properties.parent, parent: true });
 		for (const value of document.properties.related) links.push({ relation: "related-to", value, parent: false });
 		for (const link of links) {
-			const target = obsidianWikiTarget(link.value);
-			const matches = target ? byAlias.get(target) ?? [] : [];
-			if (matches.length !== 1) continue; // navigation notes are not detailed-canonical ledger nodes
-			const other = `note:${matches[0]!.documentId}` as TraceabilityRef;
+			const target  = obsidianWikiTarget(link.value)                ;
+			const matches = target ? byAlias.get(target) ?? [] : []       ;
+			const match   = matches.length === 1 ? matches[0] : undefined ;
+			if (!match) continue; // navigation notes are not detailed-canonical ledger nodes
+			const other: TraceabilityRef = `note:${match.documentId}`;
 			candidate.edges.push(link.parent
 				? { from: other, relation: link.relation, to: from }
 				: { from, relation: link.relation, to: other });
@@ -182,24 +211,24 @@ export function createObsidianLedgerMigrationPreview(
 	candidate.payloadDigest = canonicalDigest(candidateBody);
 	const ledgerErrors = validateLedger(candidate);
 	if (ledgerErrors.length) throw new Error(`OBSIDIAN_LEDGER_CANDIDATE_INVALID:${ledgerErrors.join(",")}`);
-	const material = {
-		schemaVersion: 1 as const,
-		sourceLedgerDigest: sha256(ledgerBytes),
-		vaultDigest: canonicalDigest(inspected.snapshot),
-		actions: actions.sort((left, right) => left.linearId.localeCompare(right.linearId)),
+	const material: Omit<ObsidianLedgerMigrationPreview, "digest"> = {
+		schemaVersion      : 1,
+		sourceLedgerDigest : sha256(ledgerBytes),
+		vaultDigest        : canonicalDigest(inspected.snapshot),
+		actions            : actions.sort((left, right) => left.linearId.localeCompare(right.linearId)),
 		candidate,
-		workflow: { vaultRename: "separate-preview-required" as const, ledgerMigration: "previewed" as const, sqliteRebuild: "pending-after-ledger-apply" as const, linearUriUpdate: "separate-draft-readback-required" as const },
+		workflow: { vaultRename: "separate-preview-required", ledgerMigration: "previewed", sqliteRebuild: "pending-after-ledger-apply", linearUriUpdate: "separate-draft-readback-required" },
 	};
 	return { ...material, digest: previewDigest(material) };
 }
 
 /** Apply only the reviewed candidate bound to the exact current ledger and Vault snapshot. */
 export function applyObsidianLedgerMigrationPreview(options: {
-	ledgerPath: string;
-	vaultRoot: string;
-	preview: ObsidianLedgerMigrationPreview;
-	acceptedDigest: string;
-	inspect?: ObsidianInspectOptions;
+	ledgerPath     : string                         ;
+	vaultRoot      : string                         ;
+	preview        : ObsidianLedgerMigrationPreview ;
+	acceptedDigest : string                         ;
+	inspect?       : ObsidianInspectOptions         ;
 }): TraceabilityLedger {
 	if (options.preview.digest !== options.acceptedDigest || options.preview.digest !== previewDigest(withoutDigest(options.preview))) throw new Error("PREVIEW_DIGEST_MISMATCH");
 	const currentBytes = readFileSync(options.ledgerPath, "utf8");

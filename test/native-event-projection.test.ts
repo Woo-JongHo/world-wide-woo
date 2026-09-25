@@ -1,21 +1,18 @@
-import { describe, expect, test } from "bun:test";
-import type { NativeHarnessEvent } from "../src/core/domain/execution/native-session";
-import {
-	nativeTurnLifecycle,
-	projectNativeEvent,
-} from "../src/core/application/orchestration/native-event-projection";
+import { describe, expect, test }                  from "bun:test";
+import type { NativeHarnessEvent }                 from "../src/core/domain/execution/native-session";
+import { nativeTurnLifecycle, projectNativeEvent } from "../src/core/application/orchestration/native-event-projection";
 
 describe("native event projection", () => {
 	test("redacts completed reasoning while retaining only a bounded public summary", () => {
 		const event: NativeHarnessEvent = {
-			type: "notification",
-			method: "item/completed",
-			refs: { threadId: "thread-1", turnId: "turn-1", itemId: "reasoning-1" },
+			type   : "notification",
+			method : "item/completed",
+			refs   : { threadId: "thread-1", turnId: "turn-1", itemId: "reasoning-1" },
 			params: {
 				item: {
-					type: "reasoning",
-					summary: ["Public planning summary"],
-					content: ["private chain of thought"],
+					type    : "reasoning",
+					summary : ["Public planning summary"],
+					content : ["private chain of thought"],
 				},
 			},
 		};
@@ -28,9 +25,9 @@ describe("native event projection", () => {
 				kind: "progress",
 				phase: "completed",
 				payload: {
-					classification: "reasoning",
-					redacted: true,
-					publicSummary: "Public planning summary",
+					classification : "reasoning",
+					redacted       : true,
+					publicSummary  : "Public planning summary",
 				},
 			},
 			assistantMessage: false,
@@ -45,10 +42,10 @@ describe("native event projection", () => {
 		};
 		for (let depth = 0; depth < 10; depth += 1) nested = { child: nested };
 		const projection = projectNativeEvent({
-			type: "notification",
-			method: "item/completed",
-			refs: { threadId: "thread-1", turnId: "turn-1", itemId: "command-1" },
-			params: { item: { type: "commandExecution", output: nested }, many: Array.from({ length: 200 }, (_, index) => index) },
+			type   : "notification",
+			method : "item/completed",
+			refs   : { threadId: "thread-1", turnId: "turn-1", itemId: "command-1" },
+			params : { item: { type: "commandExecution", output: nested }, many: Array.from({ length: 200 }, (_, index) => index) },
 		});
 
 		expect(projection.type).toBe("durable");
@@ -66,10 +63,10 @@ describe("native event projection", () => {
 		[{ status: { type: "cancelled" } }, "cancelled"],
 	] as const)("maps nested turn completion status %o to %s", (turn, phase) => {
 		const projection = projectNativeEvent({
-			type: "notification",
-			method: "turn/completed",
-			refs: { threadId: "thread-1", turnId: "turn-1" },
-			params: { turn },
+			type   : "notification",
+			method : "turn/completed",
+			refs   : { threadId: "thread-1", turnId: "turn-1" },
+			params : { turn },
 		});
 		expect(projection.type).toBe("durable");
 		if (projection.type !== "durable") return;
@@ -83,10 +80,10 @@ describe("native event projection", () => {
 		["agentMessage", true],
 	] as const)("classifies %s assistant ownership conservatively", (type, assistantMessage) => {
 		const projection = projectNativeEvent({
-			type: "notification",
-			method: "item/completed",
-			refs: { threadId: "thread-1", turnId: "turn-1", itemId: "message-1" },
-			params: { item: { type, text: "content" } },
+			type   : "notification",
+			method : "item/completed",
+			refs   : { threadId: "thread-1", turnId: "turn-1", itemId: "message-1" },
+			params : { item: { type, text: "content" } },
 		});
 		expect(projection).toMatchObject({ type: "durable", assistantMessage });
 	});

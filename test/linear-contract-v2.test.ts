@@ -1,7 +1,7 @@
-import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-import YAML from "yaml";
+import { describe, expect, test }  from "bun:test";
+import { readFileSync }            from "node:fs";
+import { resolve }                 from "node:path";
+import YAML                        from "yaml";
 import { parseSnapshot, validate } from "../scripts/linear-contract";
 
 const contract = YAML.parse(readFileSync(resolve(import.meta.dir, "../docs/planning/linear-development/ISSUE_CONTRACT.yaml"), "utf8"));

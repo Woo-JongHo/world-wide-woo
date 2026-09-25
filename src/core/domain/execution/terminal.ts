@@ -4,10 +4,10 @@ export interface TerminalCommandUpdate {
 }
 
 export interface TerminalCommandResult extends TerminalCommandUpdate {
-	exitCode: number | null;
-	durationMs: number;
-	cancelled: boolean;
-	timedOut: boolean;
+	exitCode   : number | null ;
+	durationMs : number        ;
+	cancelled  : boolean       ;
+	timedOut   : boolean       ;
 }
 
 const TRUNCATION_MARKER = "…[output truncated]\n";
@@ -45,7 +45,10 @@ function takeTailCodePoints(value: string, maximum: number): string {
 		if (index > 0) {
 			const codeUnit = value.charCodeAt(index);
 			const previous = value.charCodeAt(index - 1);
-			if (codeUnit >= 0xdc00 && codeUnit <= 0xdfff && previous >= 0xd800 && previous <= 0xdbff) index -= 1;
+			if (codeUnit >= 0xdc00
+				&& codeUnit <= 0xdfff
+				&& previous >= 0xd800
+				&& previous <= 0xdbff) index -= 1;
 		}
 		count += 1;
 	}
@@ -105,19 +108,19 @@ export function sanitizeTerminalTextExcerpt(
 		return `${takeHeadCodePoints(safeHead, contentBudget)}${TRUNCATION_MARKER}`;
 	}
 	if (mode === "tail") {
-		const rawTail = takeTailCodePoints(value, contentBudget + BOUNDARY_CONTEXT_CODE_POINTS);
-		const tailWasCut = rawTail.length < value.length;
-		const safeTail = sanitizeTerminalTextUnbounded(rawTail);
-		const visibleTail = tailWasCut ? discardCutTailToken(safeTail) : safeTail;
+		const rawTail     = takeTailCodePoints(value, contentBudget + BOUNDARY_CONTEXT_CODE_POINTS) ;
+		const tailWasCut  = rawTail.length < value.length                                           ;
+		const safeTail    = sanitizeTerminalTextUnbounded(rawTail)                                  ;
+		const visibleTail = tailWasCut ? discardCutTailToken(safeTail) : safeTail                   ;
 		return `${TRUNCATION_MARKER}${takeTailCodePoints(visibleTail, contentBudget)}`;
 	}
-	const headBudget = Math.ceil(contentBudget / 2);
-	const tailBudget = contentBudget - headBudget;
-	const safeHead = sanitizeTerminalTextUnbounded(takeHeadCodePoints(value, headBudget + BOUNDARY_CONTEXT_CODE_POINTS));
-	const rawTail = takeTailCodePoints(value, tailBudget + BOUNDARY_CONTEXT_CODE_POINTS);
-	const tailWasCut = rawTail.length < value.length;
-	const safeTail = sanitizeTerminalTextUnbounded(rawTail);
-	const visibleTail = tailWasCut ? discardCutTailToken(safeTail) : safeTail;
+	const headBudget  = Math.ceil(contentBudget / 2)                                                                        ;
+	const tailBudget  = contentBudget - headBudget                                                                          ;
+	const safeHead    = sanitizeTerminalTextUnbounded(takeHeadCodePoints(value, headBudget + BOUNDARY_CONTEXT_CODE_POINTS)) ;
+	const rawTail     = takeTailCodePoints(value, tailBudget + BOUNDARY_CONTEXT_CODE_POINTS)                                ;
+	const tailWasCut  = rawTail.length < value.length                                                                       ;
+	const safeTail    = sanitizeTerminalTextUnbounded(rawTail)                                                              ;
+	const visibleTail = tailWasCut ? discardCutTailToken(safeTail) : safeTail                                               ;
 	return `${takeHeadCodePoints(safeHead, headBudget)}${TRUNCATION_MARKER}${takeTailCodePoints(visibleTail, tailBudget)}`;
 }
 

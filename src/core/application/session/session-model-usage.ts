@@ -1,9 +1,9 @@
-import type { WorkbenchModelUsage } from "../../domain/work/workbench.js";
+import type { WorkbenchModelUsage } from "@/core/domain/work/workbench.js";
 
 export interface SessionModelUsageObservation {
-	readonly model: string;
-	readonly effort: string | null;
-	readonly totalTokens: number;
+	readonly model       : string        ;
+	readonly effort      : string | null ;
+	readonly totalTokens : number        ;
 }
 
 export interface SessionModelUsageSource {
@@ -25,17 +25,17 @@ export class SessionModelUsageAccumulator implements SessionModelUsageSource {
 	public observe(observation: SessionModelUsageObservation): void {
 		if (typeof observation.model !== "string" || observation.model.trim().length === 0) throw new Error("Session usage model is required");
 		if (!Number.isSafeInteger(observation.totalTokens) || observation.totalTokens < 0) throw new Error("Session usage tokens must be a non-negative integer");
-		const effort = observation.effort ?? null;
-		const key = `${observation.model}\u0000${effort ?? ""}`;
-		const current = this.usage.get(key);
+		const effort  = observation.effort ?? null                  ;
+		const key     = `${observation.model}\u0000${effort ?? ""}` ;
+		const current = this.usage.get(key)                         ;
 		this.usage.set(key, Object.freeze({
 			model: observation.model,
 			effort,
-			interactiveRootTurns: 0,
-			interactiveTokens: 0,
-			detachedInvocations: (current?.detachedInvocations ?? 0) + 1,
-			detachedTokens: (current?.detachedTokens ?? 0) + observation.totalTokens,
-			totalTokens: (current?.totalTokens ?? 0) + observation.totalTokens,
+			interactiveRootTurns : 0,
+			interactiveTokens    : 0,
+			detachedInvocations  : (current?.detachedInvocations ?? 0) + 1,
+			detachedTokens       : (current?.detachedTokens ?? 0) + observation.totalTokens,
+			totalTokens          : (current?.totalTokens ?? 0) + observation.totalTokens,
 		}));
 		for (const listener of this.listeners) {
 			try { listener(); } catch { /* Telemetry observers cannot break generation. */ }

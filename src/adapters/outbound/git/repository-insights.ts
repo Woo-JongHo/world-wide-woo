@@ -1,4 +1,4 @@
-import type { RepositoryInsights } from "../../../core/ports";
+import type { RepositoryInsights } from "@/core/ports";
 import type {
 	ChangedFile,
 	ChangedFileKind,
@@ -6,16 +6,16 @@ import type {
 	IssueState,
 	IssueSummary,
 	RepositorySnapshot,
-} from "../../../core/domain/development/repository";
+} from "@/core/domain/development/repository";
 
-const DEFAULT_LIMIT = 20;
-const MAX_LIMIT = 100;
-const STDERR_LIMIT = 240;
+const DEFAULT_LIMIT = 20  ;
+const MAX_LIMIT     = 100 ;
+const STDERR_LIMIT  = 240 ;
 
 type CommandResult = {
-	exitCode: number;
-	stdout: string;
-	stderr: string;
+	exitCode : number ;
+	stdout   : string ;
+	stderr   : string ;
 };
 
 export type RepositoryCommandRunner = (
@@ -32,8 +32,8 @@ export class RepositoryInsightsError extends Error {
 }
 
 function limit(value: number | undefined): number {
-	if (!Number.isFinite(value)) return DEFAULT_LIMIT;
-	return Math.max(1, Math.min(MAX_LIMIT, Math.floor(value!)));
+	if (value === undefined || !Number.isFinite(value)) return DEFAULT_LIMIT;
+	return Math.max(1, Math.min(MAX_LIMIT, Math.floor(value)));
 }
 
 function safeStderr(stderr: string): string {
@@ -56,9 +56,9 @@ async function systemRunner(
 	options: { cwd: string; timeoutMs: number },
 ): Promise<CommandResult> {
 	const process = Bun.spawn([command, ...args], {
-		cwd: options.cwd,
-		stdout: "pipe",
-		stderr: "pipe",
+		cwd    : options.cwd,
+		stdout : "pipe",
+		stderr : "pipe",
 	});
 	let timedOut = false;
 	const timer = setTimeout(() => {
@@ -92,19 +92,24 @@ export function parseChangedFiles(output: string): ChangedFile[] {
 	const fields = output.split("\0");
 	const files: ChangedFile[] = [];
 	for (let index = 0; index < fields.length - 1; index += 1) {
-		const entry = fields[index]!;
+		const entry = fields[index];
 		if (entry.length < 4 || entry[2] !== " ") continue;
-		const indexStatus = entry[0]!;
-		const worktreeStatus = entry[1]!;
-		const renamed = indexStatus === "R" || worktreeStatus === "R" || indexStatus === "C" || worktreeStatus === "C";
+		const indexStatus    = entry[0]                                                                                       ;
+		const worktreeStatus = entry[1]                                                                                       ;
+		const renamed        = (
+			indexStatus === "R"
+			|| worktreeStatus === "R"
+			|| indexStatus === "C"
+			|| worktreeStatus === "C"
+		) ;
 		const file: ChangedFile = {
-			path: entry.slice(3),
-			kind: fileKind(indexStatus, worktreeStatus),
-			staged: indexStatus !== " " && indexStatus !== "?",
-			unstaged: worktreeStatus !== " " && worktreeStatus !== "?",
-			untracked: indexStatus === "?" && worktreeStatus === "?",
+			path      : entry.slice(3),
+			kind      : fileKind(indexStatus, worktreeStatus),
+			staged    : indexStatus !== " " && indexStatus !== "?",
+			unstaged  : worktreeStatus !== " " && worktreeStatus !== "?",
+			untracked : indexStatus === "?" && worktreeStatus === "?",
 		};
-		if (renamed && index + 1 < fields.length) file.previousPath = fields[++index]!;
+		if (renamed && index + 1 < fields.length) file.previousPath = fields[++index];
 		files.push(file);
 	}
 	return files;
@@ -114,26 +119,39 @@ function parseCommits(output: string): CommitSummary[] {
 	return output.split("\0").flatMap((record): CommitSummary[] => {
 		if (!record) return [];
 		const [id, shortId, subject, author, authoredAt] = record.split("\x1f");
-		if (!id || !shortId || subject === undefined || author === undefined || !authoredAt) return [];
+		if (!id
+			|| !shortId
+			|| subject === undefined
+			|| author === undefined
+			|| !authoredAt) return [];
 		return [{ id, shortId, subject, author, authoredAt }];
 	});
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null;
+}
+
+function labelName(label: unknown): string | undefined {
+	if (!isRecord(label)) return undefined;
+	const name = label.name;
+	return typeof name === "string" ? name : undefined;
 }
 
 function parseIssues(output: string): IssueSummary[] {
 	const parsed: unknown = JSON.parse(output);
 	if (!Array.isArray(parsed)) throw new RepositoryInsightsError("gh returned invalid issue data");
 	return parsed.flatMap((issue): IssueSummary[] => {
-		if (!issue || typeof issue !== "object") return [];
-		const value = issue as Record<string, unknown>;
+		if (!isRecord(issue)) return [];
 		if (
-			typeof value.number !== "number" || typeof value.title !== "string" ||
-			(value.state !== "OPEN" && value.state !== "CLOSED") || typeof value.updatedAt !== "string" || typeof value.url !== "string"
+			typeof issue.number !== "number" || typeof issue.title !== "string" ||
+			(issue.state !== "OPEN" && issue.state !== "CLOSED") || typeof issue.updatedAt !== "string" || typeof issue.url !== "string"
 		) return [];
-		const labels = Array.isArray(value.labels)
-			? value.labels.flatMap(label => label && typeof label === "object" && typeof (label as Record<string, unknown>).name === "string"
-				? [(label as Record<string, string>).name] : [])
+		const labels = Array.isArray(issue.labels)
+			? issue.labels.flatMap(label => { const name = labelName(label); return name ? [name] : []; })
 			: [];
-		return [{ number: value.number, title: value.title, state: value.state.toLowerCase() as IssueState, labels, updatedAt: value.updatedAt, url: value.url }];
+		const state: IssueState = issue.state === "OPEN" ? "open" : "closed";
+		return [{ number: issue.number, title: issue.title, state, labels, updatedAt: issue.updatedAt, url: issue.url }];
 	});
 }
 
@@ -146,20 +164,22 @@ export class GitHubRepositoryInsights implements RepositoryInsights {
 	) {}
 
 	async snapshot(): Promise<RepositorySnapshot> {
-		const root = (await this.git(this.workingDirectory, ["rev-parse", "--show-toplevel"])).trim();
-		const branch = (await this.git(root, ["branch", "--show-current"])).trim();
-		const changedFiles = parseChangedFiles(await this.git(root, ["-c", "core.quotepath=false", "status", "--porcelain=v1", "-z"]));
-		const upstream = await this.optionalGit(root, ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"]);
-		const counts = upstream ? (await this.git(root, ["rev-list", "--left-right", "--count", `HEAD...${upstream.trim()}`])).trim().split(/\s+/) : [];
-		const head = await this.optionalGit(root, ["log", "-1", "--format=%H%x1f%h%x1f%s%x1f%an%x1f%aI", "-z"]);
+		const root         = (await this.git(this.workingDirectory, ["rev-parse", "--show-toplevel"])).trim()                                                  ;
+		const branch       = (await this.git(root, ["branch", "--show-current"])).trim()                                                                       ;
+		const changedFiles = parseChangedFiles(await this.git(root, ["-c", "core.quotepath=false", "status", "--porcelain=v1", "-z"]))                         ;
+		const upstream     = await this.optionalGit(root, ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"])                                ;
+		const upstreamName = upstream?.trim() || null                                                                                                          ;
+		const counts       = upstreamName ? (await this.git(root, ["rev-list", "--left-right", "--count", `HEAD...${upstreamName}`])).trim().split(/\s+/) : [] ;
+		const head         = await this.optionalGit(root, ["log", "-1", "--format=%H%x1f%h%x1f%s%x1f%an%x1f%aI", "-z"])                                        ;
+		const headCommit   = head ? parseCommits(head)[0] : undefined                                                                                          ;
 		return {
 			root,
 			branch,
-			upstream: upstream?.trim() || undefined,
+			...(upstreamName ? { upstream: upstreamName } : {}),
 			ahead: Number.parseInt(counts[0] ?? "0", 10) || 0,
 			behind: Number.parseInt(counts[1] ?? "0", 10) || 0,
 			changedFiles,
-			head: head ? parseCommits(head)[0] : undefined,
+			...(headCommit ? { head: headCommit } : {}),
 		};
 	}
 

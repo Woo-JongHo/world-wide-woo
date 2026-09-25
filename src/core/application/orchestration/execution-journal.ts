@@ -1,6 +1,13 @@
-import type { ProjectActivity } from "../../domain/execution/project-activity.js";
-import type { ExecutionHash, ExecutionRunState } from "../../domain/execution/execution-run-contract.js";
-import { createExecutionRun, normalizeProjectActivity, reduceExecutionRun, replayExecutionRun, replayLegacyExecutionRunForVerification, replayV2ExecutionRunForVerification } from "../../runtime/execution-run.js";
+import type { ProjectActivity }                  from "@/core/domain/execution/project-activity.js";
+import type { ExecutionHash, ExecutionRunState } from "@/core/domain/execution/execution-run-contract.js";
+import {
+	createExecutionRun,
+	normalizeProjectActivity,
+	reduceExecutionRun,
+	replayExecutionRun,
+	replayLegacyExecutionRunForVerification,
+	replayV2ExecutionRunForVerification,
+} from "@/core/runtime/execution-run.js";
 
 /** Owns execution replay and receipt authentication, independent of the workbench UI. */
 export class ExecutionJournal {
@@ -10,9 +17,9 @@ export class ExecutionJournal {
 	values(): IterableIterator<ExecutionRunState> { return this.runs.values(); }
 	observe(activity: ProjectActivity, journal: readonly ProjectActivity[]): { state: ExecutionRunState; accepted: boolean } | null {
 		if (!activity.nativeRefs.threadId || !activity.nativeRefs.turnId) return null;
-		const event = normalizeProjectActivity(activity);
-		const current = this.runs.get(event.runId) ?? createExecutionRun({ runId: event.runId, threadId: event.threadId, turnId: event.turnId, hash: this.hash });
-		const reduction = reduceExecutionRun(current, event, this.hash, { journalActivities: journal });
+		const event     = normalizeProjectActivity(activity)                                                                                                        ;
+		const current   = this.runs.get(event.runId) ?? createExecutionRun({ runId: event.runId, threadId: event.threadId, turnId: event.turnId, hash: this.hash }) ;
+		const reduction = reduceExecutionRun(current, event, this.hash, { journalActivities: journal })                                                             ;
 		this.runs.set(event.runId, reduction.state);
 		return reduction;
 	}
@@ -30,15 +37,15 @@ export class ExecutionJournal {
 				restored.add(runId);
 				const version = stored.algorithmVersion;
 				if (version !== undefined && version !== 2 && version !== 3 || version === undefined && stored.commandResults !== undefined) throw new Error("지원하지 않는 실행 Receipt 버전입니다.");
-				const terminalSource = asRecord(stored.terminalSource);
-				const terminalSequence = terminalSource?.sequence;
-				const terminal = Number.isSafeInteger(terminalSequence) ? journal.find(candidate => candidate.sequence === terminalSequence) : undefined;
+				const terminalSource   = asRecord(stored.terminalSource)                                                                                         ;
+				const terminalSequence = terminalSource?.sequence                                                                                                ;
+				const terminal         = Number.isSafeInteger(terminalSequence) ? journal.find(candidate => candidate.sequence === terminalSequence) : undefined ;
 				if (!terminal || terminal.sequence >= activity.sequence || terminal.id !== terminalSource?.id || terminal.sourceDigest !== terminalSource?.sourceDigest
 					|| terminal.nativeRefs.threadId !== threadId || terminal.nativeRefs.turnId !== turnId) throw new Error("저장된 실행 Receipt의 종료 원본을 확인할 수 없습니다.");
-				const prefix = journal.filter(candidate => candidate.sequence <= terminal.sequence);
-				const observations = prefix.filter(candidate => candidate.nativeRefs.threadId === threadId && candidate.nativeRefs.turnId === turnId && candidate.payload.method !== "execution/completion-receipt");
-				const initial = createExecutionRun({ runId, threadId, turnId, hash: this.hash });
-				const events = observations.map(normalizeProjectActivity);
+				const prefix       = journal.filter(candidate => candidate.sequence <= terminal.sequence)                                                                                                            ;
+				const observations = prefix.filter(candidate => candidate.nativeRefs.threadId === threadId && candidate.nativeRefs.turnId === turnId && candidate.payload.method !== "execution/completion-receipt") ;
+				const initial      = createExecutionRun({ runId, threadId, turnId, hash: this.hash })                                                                                                                ;
+				const events       = observations.map(normalizeProjectActivity)                                                                                                                                      ;
 				const run = version === undefined ? replayLegacyExecutionRunForVerification(initial, events, this.hash)
 					: version === 2 ? replayV2ExecutionRunForVerification(initial, events, this.hash)
 						: replayExecutionRun(initial, events, this.hash, { journalActivities: prefix });

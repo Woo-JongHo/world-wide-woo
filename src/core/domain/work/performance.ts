@@ -1,32 +1,33 @@
-import { isReasoningActivityPayload, type ProjectActivity } from "../execution/project-activity.js";
-import type { ExecutionRunState } from "../execution/execution-run-contract.js";
-import { sanitizeTerminalTextExcerpt } from "../execution/terminal.js";
-import type { WorkFlowProjection } from "./workflow-projection.js";
+import { isReasoningActivityPayload }  from "@/core/domain/execution/project-activity.js";
+import type { ProjectActivity }        from "@/core/domain/execution/project-activity.js";
+import type { ExecutionRunState }      from "@/core/domain/execution/execution-run-contract.js";
+import { sanitizeTerminalTextExcerpt } from "@/core/domain/execution/terminal.js";
+import type { WorkFlowProjection }     from "@/core/domain/work/workflow-projection.js";
 
 /** A goal belongs to an observed request, never implicitly to every turn in a session. */
 export interface AssignedWorkContext {
-	readonly goal: string;
-	readonly goalActivityId: string;
-	readonly threadId: string;
-	readonly turnId: string;
+	readonly goal           : string ;
+	readonly goalActivityId : string ;
+	readonly threadId       : string ;
+	readonly turnId         : string ;
 }
 
 export interface PerformanceProjection {
-	readonly execution: { readonly threadId: string; readonly turnId: string; readonly runId: string } | null;
-	readonly workContext: AssignedWorkContext | null;
-	readonly request: { readonly text: string; readonly activityId: string } | null;
-	readonly state: ExecutionRunState["phase"] | "idle";
-	readonly verification: "not-verified" | "passed" | "failed" | "uncertain";
-	readonly planProgress: { readonly completed: number; readonly total: number } | null;
-	readonly lastObservation: { readonly activityId: string; readonly recordedAt: string; readonly label: string; readonly phase: ProjectActivity["phase"] } | null;
-	readonly health: { readonly observedRetries: number; readonly observedFailures: number; readonly unassociatedActivities: number };
+	readonly execution       : { readonly threadId: string; readonly turnId: string; readonly runId: string } | null                                                 ;
+	readonly workContext     : AssignedWorkContext | null                                                                                                            ;
+	readonly request         : { readonly text: string; readonly activityId: string } | null                                                                         ;
+	readonly state           : ExecutionRunState["phase"] | "idle"                                                                                                   ;
+	readonly verification    : "not-verified" | "passed" | "failed" | "uncertain"                                                                                    ;
+	readonly planProgress    : { readonly completed: number; readonly total: number } | null                                                                         ;
+	readonly lastObservation : { readonly activityId: string; readonly recordedAt: string; readonly label: string; readonly phase: ProjectActivity["phase"] } | null ;
+	readonly health          : { readonly observedRetries: number; readonly observedFailures: number; readonly unassociatedActivities: number }                      ;
 }
 
 /** The common read model for standalone and assigned work. It does not create tasks. */
 export function projectPerformance(input: {
-	readonly activities: readonly ProjectActivity[];
-	readonly run: ExecutionRunState | null;
-	readonly flow: WorkFlowProjection;
+	readonly activities : readonly ProjectActivity[] ;
+	readonly run        : ExecutionRunState | null   ;
+	readonly flow       : WorkFlowProjection         ;
 }): PerformanceProjection {
 	const { run, flow } = input;
 	const activities = run ? input.activities.filter(activity => activity.nativeRefs.threadId === run.threadId && activity.nativeRefs.turnId === run.turnId) : [];
@@ -43,19 +44,19 @@ export function projectPerformance(input: {
 	const last = visible.at(-1);
 	const verification = run?.receipt?.verification ?? [];
 	return {
-		execution: run ? { threadId: run.threadId, turnId: run.turnId, runId: run.runId } : null,
-		workContext: run && goal ? { goal: publicText(String(goal.payload.text)), goalActivityId: goal.id, threadId: run.threadId, turnId: run.turnId } : null,
-		request: request ? { text: publicText(String(request.payload.text)), activityId: request.id } : null,
-		state: run?.phase ?? "idle",
+		execution   : run ? { threadId: run.threadId, turnId: run.turnId, runId: run.runId } : null,
+		workContext : run && goal ? { goal: publicText(String(goal.payload.text)), goalActivityId: goal.id, threadId: run.threadId, turnId: run.turnId } : null,
+		request     : request ? { text: publicText(String(request.payload.text)), activityId: request.id } : null,
+		state       : run?.phase ?? "idle",
 		verification: verification.some(check => check.status === "failed") ? "failed"
 			: verification.length === 0 ? "not-verified"
 				: verification.every(check => check.status === "passed") ? "passed" : "uncertain",
 		planProgress: flow.source?.authority === "native-checklist" ? { completed: flow.completedCount, total: flow.steps.length } : null,
 		lastObservation: last ? { activityId: last.id, recordedAt: last.recordedAt, label: observationLabel(last), phase: last.phase } : null,
 		health: {
-			observedRetries: activities.filter(activity => /(?:^|\/)retry(?:\/|$)/u.test(String(activity.payload.method ?? "")) || record(activity.payload.params)?.retryOf !== undefined).length,
-			observedFailures: activities.filter(isExecutionFailure).length,
-			unassociatedActivities: flow.orphans.length,
+			observedRetries        : activities.filter(activity => /(?:^|\/)retry(?:\/|$)/u.test(String(activity.payload.method ?? "")) || record(activity.payload.params)?.retryOf !== undefined).length,
+			observedFailures       : activities.filter(isExecutionFailure).length,
+			unassociatedActivities : flow.orphans.length,
 		},
 	};
 }

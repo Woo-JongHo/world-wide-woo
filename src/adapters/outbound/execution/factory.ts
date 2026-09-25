@@ -1,9 +1,15 @@
-import { homedir } from "node:os";
-import { join } from "node:path";
+import { homedir }               from "node:os";
+import { join }                  from "node:path";
 import type { AssistantMessage } from "@earendil-works/pi-ai/compat";
-import type { ExecutorPort } from "../../../core/ports/execution/executor-port.js";
-import { CodexAppServer } from "./codex-app-server.js";
-import { PiHarness, type PiHarnessSdk, type PiSession, type PiSessionEvent, type PiSessionInput } from "./pi-harness.js";
+import type { ExecutorPort }     from "@/core/ports/execution/executor-port.js";
+import { CodexAppServer }        from "@/adapters/outbound/execution/codex-app-server.js";
+import { PiHarness }             from "@/adapters/outbound/execution/pi-harness.js";
+import type {
+	PiHarnessSdk,
+	PiSession,
+	PiSessionEvent,
+	PiSessionInput,
+} from "@/adapters/outbound/execution/pi-harness.js";
 
 export type ExecutionLane = "codex" | "pi";
 
@@ -18,13 +24,13 @@ export function buildPiExecutionSystemPrompt(cwd: string): string {
 }
 
 export interface NativeHarnessSelection {
-	readonly executionLane?: ExecutionLane;
-	readonly provider: string;
-	readonly model: string;
-	readonly effort: string;
-	readonly systemPrompt?: string;
-	readonly connectCodex?: (input: Readonly<{ provider: string; model: string; effort: string }>) => Promise<ExecutorPort>;
-	readonly createPi?: (input: Readonly<{ provider: string; model: string; effort: string }>) => Promise<ExecutorPort>;
+	readonly executionLane? : ExecutionLane                                                                                   ;
+	readonly provider       : string                                                                                          ;
+	readonly model          : string                                                                                          ;
+	readonly effort         : string                                                                                          ;
+	readonly systemPrompt?  : string                                                                                          ;
+	readonly connectCodex?  : (input: Readonly<{ provider: string; model: string; effort: string }>) => Promise<ExecutorPort> ;
+	readonly createPi?      : (input: Readonly<{ provider: string; model: string; effort: string }>) => Promise<ExecutorPort> ;
 }
 
 export async function createNativeHarness(input: NativeHarnessSelection): Promise<ExecutorPort> {
@@ -63,29 +69,29 @@ export function createProductionPiHarnessSdk(
 ): PiHarnessSdk {
 	return {
 		async createSession(input: PiSessionInput): Promise<PiSession> {
-			const bindings = await loadBindings();
-			const runtime = await bindings.createRuntime();
-			const model = runtime.getModel(input.provider, input.model);
+			const bindings = await loadBindings()                          ;
+			const runtime  = await bindings.createRuntime()                ;
+			const model    = runtime.getModel(input.provider, input.model) ;
 			if (!model) throw new Error(`Pi model is unavailable: ${input.provider}/${input.model}`);
 			if (!runtime.hasConfiguredAuth(input.provider)) throw new Error(`Pi authentication is unavailable: ${input.provider}`);
 			const resourceLoader = bindings.createResourceLoader({
-				cwd: input.cwd,
-				agentDir: join(homedir(), ".pi", "agent"),
-				noExtensions: true,
-				noSkills: true,
-				noPromptTemplates: true,
-				noThemes: true,
-				noContextFiles: true,
-				systemPrompt: input.systemPrompt,
+				cwd               : input.cwd,
+				agentDir          : join(homedir(), ".pi", "agent"),
+				noExtensions      : true,
+				noSkills          : true,
+				noPromptTemplates : true,
+				noThemes          : true,
+				noContextFiles    : true,
+				systemPrompt      : input.systemPrompt,
 			});
 			await resourceLoader.reload();
 			const session = await bindings.createSession({
 				cwd: input.cwd,
 				modelRuntime: runtime,
 				model,
-				thinkingLevel: normalizeThinkingLevel(input.effort),
-				noTools: "all",
-				tools: [],
+				thinkingLevel : normalizeThinkingLevel(input.effort),
+				noTools       : "all",
+				tools         : [],
 				resourceLoader,
 				sessionManager: bindings.inMemorySession(input.cwd),
 			});
@@ -121,15 +127,20 @@ function isAssistantMessage(message: unknown): message is AssistantMessage {
 async function productionPiBindings(): Promise<PiSdkBindings> {
 	const sdk = await import("@earendil-works/pi-coding-agent");
 	return {
-		createRuntime: () => sdk.ModelRuntime.create({ allowModelNetwork: false }),
-		createResourceLoader: input => new sdk.DefaultResourceLoader(input as unknown as ConstructorParameters<typeof sdk.DefaultResourceLoader>[0]),
-		createSession: async input => (await sdk.createAgentSession(input as Parameters<typeof sdk.createAgentSession>[0])).session,
-		inMemorySession: cwd => sdk.SessionManager.inMemory(cwd),
+		createRuntime        : () => sdk.ModelRuntime.create({ allowModelNetwork: false }),
+		createResourceLoader : input => new sdk.DefaultResourceLoader(input as unknown as ConstructorParameters<typeof sdk.DefaultResourceLoader>[0]),
+		createSession        : async input => (await sdk.createAgentSession(input as Parameters<typeof sdk.createAgentSession>[0])).session,
+		inMemorySession      : cwd => sdk.SessionManager.inMemory(cwd),
 	};
 }
 
 function normalizeThinkingLevel(effort: string): "off" | "minimal" | "low" | "medium" | "high" | "xhigh" {
 	if (effort === "ultra") return "xhigh";
-	if (effort === "off" || effort === "minimal" || effort === "low" || effort === "medium" || effort === "high" || effort === "xhigh") return effort;
+	if (effort === "off"
+		|| effort === "minimal"
+		|| effort === "low"
+		|| effort === "medium"
+		|| effort === "high"
+		|| effort === "xhigh") return effort;
 	throw new Error(`Pi reasoning effort is unsupported: ${effort}`);
 }

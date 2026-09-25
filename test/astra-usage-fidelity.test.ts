@@ -1,10 +1,10 @@
-import { expect, test } from "bun:test";
+import { expect, test }                         from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import { renderLayoutFrame } from "@earendil-works/pi-tui/dist/layout.js";
-import { AstraWorkspace } from "../src/adapters/inbound/tui/shell/astra-surface";
-import { AstraUsageView } from "../src/adapters/inbound/tui/features/usage/astra-usage-view";
-import { createAstraDemoState } from "../src/adapters/inbound/tui/features/demo/astra-demo";
-import { astraFixture } from "./fixtures/astra-snapshot";
+import { renderLayoutFrame }                    from "@earendil-works/pi-tui/dist/layout.js";
+import { AstraWorkspace }                       from "../src/adapters/inbound/tui/shell/astra-surface";
+import { AstraUsageView }                       from "../src/adapters/inbound/tui/features/usage/astra-usage-view";
+import { createAstraDemoState }                 from "../src/adapters/inbound/tui/features/demo/astra-demo";
+import { astraFixture }                         from "./fixtures/astra-snapshot";
 
 test.each([160, 200])("Usage explains resource use in the first %i x 36 workspace", width => {
 	const demo = createAstraDemoState(astraFixture(), () => 0);

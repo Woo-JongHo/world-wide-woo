@@ -11,24 +11,24 @@ import {
 } from "../src/core/application/work/completed-turn-note-scope";
 
 function activity(input: {
-	id: string;
-	sequence: number;
-	kind?: ProjectActivityKind;
-	phase?: ProjectActivityPhase;
-	threadId?: string;
-	turnId?: string;
-	itemId?: string;
-	payload: Readonly<Record<string, unknown>>;
+	id        : string                            ;
+	sequence  : number                            ;
+	kind?     : ProjectActivityKind               ;
+	phase?    : ProjectActivityPhase              ;
+	threadId? : string                            ;
+	turnId?   : string                            ;
+	itemId?   : string                            ;
+	payload   : Readonly<Record<string, unknown>> ;
 }): ProjectActivity {
 	return {
-		schemaVersion: 1,
-		id: input.id,
-		projectId: "project-1",
-		sequence: input.sequence,
-		recordedAt: new Date(1_700_000_000_000 + input.sequence).toISOString(),
-		kind: input.kind ?? "progress",
-		phase: input.phase ?? "updated",
-		provider: "openai-codex",
+		schemaVersion : 1,
+		id            : input.id,
+		projectId     : "project-1",
+		sequence      : input.sequence,
+		recordedAt    : new Date(1_700_000_000_000 + input.sequence).toISOString(),
+		kind          : input.kind ?? "progress",
+		phase         : input.phase ?? "updated",
+		provider      : "openai-codex",
 		nativeRefs: {
 			...(input.threadId ? { threadId: input.threadId } : {}),
 			...(input.turnId ? { turnId: input.turnId } : {}),
@@ -55,10 +55,10 @@ function completedTurn(
 
 describe("completed turn note scope", () => {
 	test("selects one completed turn and excludes interleaved foreign-thread activity", () => {
-		const target = completedTurn("turn-1", 1, "무엇을 확인했나요?");
-		const foreign = activity({ id: "foreign", sequence: 3, kind: "tool", threadId: "thread-2", turnId: "foreign-turn", payload: { method: "item/completed" } });
-		const activities = [target[0]!, target[1]!, foreign, ...target.slice(2).map((item) => ({ ...item, sequence: item.sequence + 1 }))];
-		const before = structuredClone(activities);
+		const target     = completedTurn("turn-1", 1, "무엇을 확인했나요?")                                                                                            ;
+		const foreign    = activity({ id: "foreign", sequence: 3, kind: "tool", threadId: "thread-2", turnId: "foreign-turn", payload: { method: "item/completed" } }) ;
+		const activities = [target[0]!, target[1]!, foreign, ...target.slice(2).map((item) => ({ ...item, sequence: item.sequence + 1 }))]                             ;
+		const before     = structuredClone(activities)                                                                                                                 ;
 
 		const scope = resolveCompletedTurnNoteScope(activities, { type: "turn", turnId: "turn-1" });
 		expect(scope?.question).toBe("무엇을 확인했나요?");
@@ -88,18 +88,18 @@ describe("completed turn note scope", () => {
 	});
 
 	test("latest chooses the most recent valid completion", () => {
-		const first = completedTurn("turn-1", 1, "첫 질문");
-		const second = completedTurn("turn-2", 5, "둘째 질문");
-		const scope = resolveCompletedTurnNoteScope([...first, ...second], { type: "latest" });
+		const first  = completedTurn("turn-1", 1, "첫 질문")                                    ;
+		const second = completedTurn("turn-2", 5, "둘째 질문")                                  ;
+		const scope  = resolveCompletedTurnNoteScope([...first, ...second], { type: "latest" }) ;
 		expect(scope?.question).toBe("둘째 질문");
 		expect(scope?.activities.at(-1)?.id).toBe("turn-2-terminal");
 	});
 
 	test("finds the owning question despite a foreign outbound question and repeated item id", () => {
-		const target = completedTurn("turn-1", 1, "소유 질문");
-		const foreign = activity({ id: "foreign-question", sequence: 2, kind: "message", phase: "completed", threadId: "thread-2", itemId: "same-item", payload: { direction: "outbound", text: "다른 질문" } });
-		const shifted = target.slice(1).map((item) => ({ ...item, sequence: item.sequence + 1 }));
-		const activities = [target[0]!, foreign, ...shifted];
+		const target     = completedTurn("turn-1", 1, "소유 질문")                                                                                                                                                  ;
+		const foreign    = activity({ id: "foreign-question", sequence: 2, kind: "message", phase: "completed", threadId: "thread-2", itemId: "same-item", payload: { direction: "outbound", text: "다른 질문" } }) ;
+		const shifted    = target.slice(1).map((item) => ({ ...item, sequence: item.sequence + 1 }))                                                                                                                ;
+		const activities = [target[0]!, foreign, ...shifted]                                                                                                                                                        ;
 
 		expect(questionForTurn(activities, "turn-1")).toBe("소유 질문");
 		expect(resolveCompletedTurnNoteScope(activities, { type: "turn", turnId: "turn-1" })?.question).toBe("소유 질문");
@@ -117,11 +117,10 @@ describe("completed turn note scope", () => {
 		const activities = Array.from({ length: 205 }, (_, index) => activity({
 			id: `activity-${index + 1}`,
 			sequence: index + 1,
-			kind: index === 180 ? "message" : undefined,
-			phase: index === 180 ? "completed" : undefined,
-			threadId: "thread-1",
-			turnId: "turn-1",
-			payload: index === 180 ? { role: "assistant", text: "최종 응답" } : { method: `event-${index + 1}` },
+			...(index === 180 ? { kind: "message" as const, phase: "completed" as const } : {}),
+			threadId : "thread-1",
+			turnId   : "turn-1",
+			payload  : index === 180 ? { role: "assistant", text: "최종 응답" } : { method: `event-${index + 1}` },
 		}));
 		const before = structuredClone(activities);
 		const sampled = boundCompletedTurnNoteActivities(activities, 100);
@@ -137,10 +136,10 @@ describe("completed turn note scope", () => {
 	});
 
 	test("normalizes, redacts, and bounds the question without mutating its activity", () => {
-		const question = `  password=scope-secret   ${"긴 질문 ".repeat(300)} https://user:url-secret@example.com/end  `;
-		const activities = completedTurn("turn-1", 1, question);
-		const before = structuredClone(activities);
-		const result = questionForTurn(activities, "turn-1") ?? "";
+		const question   = `  password=scope-secret   ${"긴 질문 ".repeat(300)} https://user:url-secret@example.com/end  ` ;
+		const activities = completedTurn("turn-1", 1, question)                                                            ;
+		const before     = structuredClone(activities)                                                                     ;
+		const result     = questionForTurn(activities, "turn-1") ?? ""                                                     ;
 
 		expect(result.length).toBeLessThanOrEqual(800);
 		expect(result).not.toContain("scope-secret");

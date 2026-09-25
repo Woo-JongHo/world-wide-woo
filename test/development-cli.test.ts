@@ -1,13 +1,17 @@
-import { execFileSync } from "node:child_process";
-import { afterEach, expect, test } from "bun:test";
+import { execFileSync }                                                              from "node:child_process";
+import { afterEach, expect, test }                                                   from "bun:test";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, realpathSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { createDevelopmentService, runDevelopmentCli } from "../src/adapters/outbound/development/development-cli";
-import { executeDevelopmentShellCommand, DevelopmentService } from "../src/core/application/development/development-service";
-import { DevelopmentStore } from "../src/adapters/outbound/development/development-store";
-import type { ProjectActivity } from "../src/core/domain/execution/project-activity";
-import { runCli, type CliDependencies } from "../src/cli";
+import { tmpdir }                                                                    from "node:os";
+import { join }                                                                      from "node:path";
+import { createDevelopmentService, runDevelopmentCli }                               from "../src/adapters/outbound/development/development-cli";
+import {
+	executeDevelopmentShellCommand,
+	DevelopmentService,
+} from "../src/core/application/development/development-service";
+import { DevelopmentStore }                                                          from "../src/adapters/outbound/development/development-store";
+import type { ProjectActivity }                                                      from "../src/core/domain/execution/project-activity";
+import { runCli }                                                                    from "../src/cli";
+import type { CliDependencies }                                                      from "../src/cli";
 const directories: string[] = [];
 afterEach(() => { for (const dir of directories.splice(0)) rmSync(dir, { recursive:true, force:true }); });
 function fixture() {
@@ -49,17 +53,17 @@ test("CLI preserves test argv help/version and shell metacharacters without top-
  const args=["test","run","--","bun","--version","a; echo secret", "$(echo x)"];
  let seen:string[]=[]; const out:string[]=[];
  const deps: CliDependencies = {
-  runApp: async () => {},
-  runAstra: async () => {},
-  runRouter: async () => {},
-  runAuth: async () => {},
-  runDevelopment: async (value:string[]) => {seen=value;return "ok";},
-  runWorkflow: async () => "",
-  listSessions: async () => [],
-  listNativeThreads: async () => [],
-  selectNativeThread: async () => null,
-  writeOut: (s:string) => out.push(s),
-  writeError: (s:string) => {throw new Error(s);},
+  runApp             : async () => {},
+  runAstra           : async () => {},
+  runRouter          : async () => {},
+  runAuth            : async () => {},
+  runDevelopment     : async (value:string[]) => {seen=value;return "ok";},
+  runWorkflow        : async () => "",
+  listSessions       : async () => [],
+  listNativeThreads  : async () => [],
+  selectNativeThread : async () => null,
+  writeOut           : (s:string) => out.push(s),
+  writeError         : (s:string) => {throw new Error(s);},
  };
  expect(await runCli(["development",...args],deps)).toBe(0); expect(seen).toEqual(args); expect(out).toEqual(["ok"]);
 });

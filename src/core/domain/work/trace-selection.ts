@@ -1,13 +1,13 @@
-import type { ProjectActivity, ProjectActivityNativeRefs } from "../execution/project-activity.js";
-import type { WorkFlowProjection } from "./index.js";
+import type { ProjectActivity, ProjectActivityNativeRefs } from "@/core/domain/execution/project-activity.js";
+import type { WorkFlowProjection }                         from "@/core/domain/work/index.js";
 
 export interface TraceSelectionCoverage {
-	readonly mode: "fresh" | "partial-local-journal";
-	readonly processAttachedAt: string;
-	readonly priorProviderHistoryHydrated: false;
-	readonly observedActivityCount: number;
-	readonly observedSequenceFrom: number | null;
-	readonly observedSequenceThrough: number | null;
+	readonly mode                         : "fresh" | "partial-local-journal" ;
+	readonly processAttachedAt            : string                            ;
+	readonly priorProviderHistoryHydrated : false                             ;
+	readonly observedActivityCount        : number                            ;
+	readonly observedSequenceFrom         : number | null                     ;
+	readonly observedSequenceThrough      : number | null                     ;
 }
 
 export type TraceSelectionFailureCode =
@@ -24,19 +24,19 @@ export type TraceSelectionFailureCode =
 	| "ambiguous_plan_association";
 
 export interface TraceSelectionFailure {
-	readonly code: TraceSelectionFailureCode;
-	readonly activityId: string;
-	readonly expected?: Readonly<ProjectActivityNativeRefs>;
-	readonly actual?: Readonly<ProjectActivityNativeRefs>;
+	readonly code       : TraceSelectionFailureCode           ;
+	readonly activityId : string                              ;
+	readonly expected?  : Readonly<ProjectActivityNativeRefs> ;
+	readonly actual?    : Readonly<ProjectActivityNativeRefs> ;
 }
 
 export type ActivitySelectionResult = {
 	readonly state: "selected";
 	readonly identity: {
-		readonly activityId: string;
-		readonly threadId: string | null;
-		readonly turnId: string | null;
-		readonly itemId: string | null;
+		readonly activityId : string        ;
+		readonly threadId   : string | null ;
+		readonly turnId     : string | null ;
+		readonly itemId     : string | null ;
 	};
 	readonly attribution: {
 		readonly identity: "observed";
@@ -45,22 +45,22 @@ export type ActivitySelectionResult = {
 	readonly planItemId: string | null;
 	readonly coverage: TraceSelectionCoverage;
 } | {
-	readonly state: "failed";
-	readonly failure: TraceSelectionFailure;
-	readonly coverage: TraceSelectionCoverage;
+	readonly state    : "failed"               ;
+	readonly failure  : TraceSelectionFailure  ;
+	readonly coverage : TraceSelectionCoverage ;
 };
 
 export interface SelectionCoverageInput {
-	readonly mode: "fresh" | "partial-local-journal";
-	readonly processAttachedAt: string;
-	readonly priorProviderHistoryHydrated: false;
+	readonly mode                         : "fresh" | "partial-local-journal" ;
+	readonly processAttachedAt            : string                            ;
+	readonly priorProviderHistoryHydrated : false                             ;
 }
 
 export interface ActivitySelectionInput {
-	readonly activityId: string;
-	readonly activities: readonly ProjectActivity[];
-	readonly currentThreadId: string | null;
-	readonly resumeCoverage: SelectionCoverageInput;
+	readonly activityId      : string                     ;
+	readonly activities      : readonly ProjectActivity[] ;
+	readonly currentThreadId : string | null              ;
+	readonly resumeCoverage  : SelectionCoverageInput     ;
 }
 
 export interface TraceSelectionInput extends ActivitySelectionInput {
@@ -83,7 +83,7 @@ export function resolveActivitySelection(input: ActivitySelectionInput): Activit
 		);
 	}
 	if (matches.length !== 1) return failed(input.activityId, "duplicate_activity_id", coverage);
-	const activity = matches[0]!;
+	const activity = matches[0];
 	if (input.currentThreadId && activity.nativeRefs.threadId !== input.currentThreadId) {
 		return failed(input.activityId, "thread_mismatch", coverage, { threadId: input.currentThreadId }, activity.nativeRefs);
 	}
@@ -95,7 +95,8 @@ export function resolveTraceSelection(input: TraceSelectionInput): ActivitySelec
 	const direct = resolveActivitySelection(input);
 	if (direct.state === "failed") return direct;
 	const coverage = direct.coverage;
-	const activity = input.activities.find((candidate) => candidate.id === input.activityId)!;
+	const activity = input.activities.find((candidate) => candidate.id === input.activityId);
+	if (!activity) return failed(input.activityId, "activity_not_found", coverage);
 	if (!input.currentThreadId) return failed(input.activityId, "no_execution_context", coverage);
 	if (!input.workFlow.source) return failed(input.activityId, "plan_unavailable", coverage);
 	if (!activity.nativeRefs.turnId) {
@@ -119,13 +120,13 @@ export function resolveTraceSelection(input: TraceSelectionInput): ActivitySelec
 	));
 	if (associatedSteps.length === 0) {
 		return failed(input.activityId, "plan_membership_mismatch", coverage, {
-			threadId: input.currentThreadId,
-			turnId: input.workFlow.source.turnId,
-			itemId: activity.nativeRefs.itemId,
+			threadId : input.currentThreadId,
+			turnId   : input.workFlow.source.turnId,
+			itemId   : activity.nativeRefs.itemId,
 		}, activity.nativeRefs);
 	}
 	if (associatedSteps.length !== 1) return failed(input.activityId, "ambiguous_plan_association", coverage);
-	return selected(activity, coverage, associatedSteps[0]!.id, "inferred");
+	return selected(activity, coverage, associatedSteps[0].id, "inferred");
 }
 
 function selectionCoverage(input: ActivitySelectionInput): TraceSelectionCoverage {
@@ -135,9 +136,9 @@ function selectionCoverage(input: ActivitySelectionInput): TraceSelectionCoverag
 	const sequences = observed.map((activity) => activity.sequence);
 	return Object.freeze({
 		...input.resumeCoverage,
-		observedActivityCount: observed.length,
-		observedSequenceFrom: sequences.length ? Math.min(...sequences) : null,
-		observedSequenceThrough: sequences.length ? Math.max(...sequences) : null,
+		observedActivityCount   : observed.length,
+		observedSequenceFrom    : sequences.length ? Math.min(...sequences) : null,
+		observedSequenceThrough : sequences.length ? Math.max(...sequences) : null,
 	});
 }
 
@@ -150,10 +151,10 @@ function selected(
 	return Object.freeze({
 		state: "selected",
 		identity: Object.freeze({
-			activityId: activity.id,
-			threadId: activity.nativeRefs.threadId ?? null,
-			turnId: activity.nativeRefs.turnId ?? null,
-			itemId: activity.nativeRefs.itemId ?? null,
+			activityId : activity.id,
+			threadId   : activity.nativeRefs.threadId ?? null,
+			turnId     : activity.nativeRefs.turnId ?? null,
+			itemId     : activity.nativeRefs.itemId ?? null,
 		}),
 		attribution: Object.freeze({ identity: "observed", planAssociation }),
 		planItemId,

@@ -1,9 +1,9 @@
 import { mock } from "bun:test";
 
-let moduleLoads = 0;
-let supportsCalls = 0;
-let highlightCalls = 0;
-const highlightLanguages: Array<string | undefined> = [];
+let moduleLoads                                     = 0  ;
+let supportsCalls                                   = 0  ;
+let highlightCalls                                  = 0  ;
+const highlightLanguages: Array<string | undefined> = [] ;
 
 mock.module("@gajae-code/natives", () => {
 	moduleLoads++;
@@ -40,17 +40,17 @@ try {
 	assertCount(moduleLoads, 0, "module import loaded the native adapter");
 
 	const plugin = createNativeSyntaxHighlightPlugin({
-		comment: "#111111",
-		keyword: "#222222",
-		function: "#333333",
-		variable: "#444444",
-		string: "#555555",
-		number: "#666666",
-		type: "#777777",
-		operator: "#888888",
-		punctuation: "#999999",
-		inserted: "#aaaaaa",
-		deleted: "#bbbbbb",
+		comment     : "#111111",
+		keyword     : "#222222",
+		function    : "#333333",
+		variable    : "#444444",
+		string      : "#555555",
+		number      : "#666666",
+		type        : "#777777",
+		operator    : "#888888",
+		punctuation : "#999999",
+		inserted    : "#aaaaaa",
+		deleted     : "#bbbbbb",
 	});
 	assertCount(moduleLoads, 0, "plugin creation loaded the native adapter");
 

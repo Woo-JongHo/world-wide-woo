@@ -1,7 +1,13 @@
-import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { artifactCandidateDigest, renderArtifactCandidate, validateArtifactCandidate, type ArtifactCandidate } from "../src/core/domain/development/artifact-control";
-import { renderRpaProject, renderRpaTask, type RpaDescriptionMap } from "../src/core/domain/development/rpa-description";
+import { describe, expect, test }          from "bun:test";
+import { readFileSync }                    from "node:fs";
+import {
+	artifactCandidateDigest,
+	renderArtifactCandidate,
+	validateArtifactCandidate,
+} from "../src/core/domain/development/artifact-control";
+import type { ArtifactCandidate }          from "../src/core/domain/development/artifact-control";
+import { renderRpaProject, renderRpaTask } from "../src/core/domain/development/rpa-description";
+import type { RpaDescriptionMap }          from "../src/core/domain/development/rpa-description";
 
 function fixture(): RpaDescriptionMap {
 	return JSON.parse(readFileSync(new URL("./fixtures/rpa-description-map.json", import.meta.url), "utf8"));
@@ -16,17 +22,17 @@ function candidate(surface: "project" | "task"): ArtifactCandidate {
 	const map = fixture();
 	const task = map.tasks[0]!;
 	return sign({
-		schemaVersion: "1.0",
-		candidateId: "ARTIFACT-CANDIDATE-RPA-TEMPLATE-TEST",
-		kind: surface === "project" ? "linear-project" : "linear-issue",
-		sourceRevision: map.project.mapRef.revision,
-		intent: "가상 RPA Description의 고정 템플릿 경로를 검증한다",
-		target: { projectId: map.project.id, ...(surface === "task" ? { issueUrl: task.issueUrl } : {}) },
-		content: surface === "project" ? { profile: "rpa-project-v1", map } : { profile: "rpa-task-v1", map, taskId: task.id },
-		links: {},
-		expectedBefore: { description: "기존 가상 본문" },
-		validation: [{ id: "FIXTURE", status: "pass", evidence: "가상 입력의 구조 검증; 실제 업무 수락이 아님" }],
-		candidateDigest: "",
+		schemaVersion   : "1.0",
+		candidateId     : "ARTIFACT-CANDIDATE-RPA-TEMPLATE-TEST",
+		kind            : surface === "project" ? "linear-project" : "linear-issue",
+		sourceRevision  : map.project.mapRef.revision,
+		intent          : "가상 RPA Description의 고정 템플릿 경로를 검증한다",
+		target          : { projectId: map.project.id, ...(surface === "task" ? { issueUrl: task.issueUrl } : {}) },
+		content         : surface === "project" ? { profile: "rpa-project-v1", map } : { profile: "rpa-task-v1", map, taskId: task.id },
+		links           : {},
+		expectedBefore  : { description: "기존 가상 본문" },
+		validation      : [{ id: "FIXTURE", status: "pass", evidence: "가상 입력의 구조 검증; 실제 업무 수락이 아님" }],
+		candidateDigest : "",
 	});
 }
 
@@ -42,9 +48,9 @@ describe("RPA Description Artifact 경로", () => {
 
 	test("유효한 map이어도 다른 대상과 revision으로 게시할 수 없다", () => {
 		const c = candidate("task");
-		c.target.projectId = "another-project";
-		c.target.issueUrl = "https://linear.app/woo-world/issue/WOO-999999";
-		c.sourceRevision = "another-revision";
+		c.target.projectId = "another-project"                               ;
+		c.target.issueUrl  = "https://linear.app/woo-world/issue/WOO-999999" ;
+		c.sourceRevision   = "another-revision"                              ;
 		const errors = validateArtifactCandidate(sign(c));
 		for (const key of ["rpa.target.projectId", "rpa.target.issueUrl", "rpa.sourceRevision"]) expect(errors.some(error => error.startsWith(key))).toBeTrue();
 	});

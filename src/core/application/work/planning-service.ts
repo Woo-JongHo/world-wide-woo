@@ -1,9 +1,9 @@
-import type { PlanningEpic, PlanningSnapshot, PlanningStory } from "../../domain/work/planning.js";
+import type { PlanningEpic, PlanningSnapshot, PlanningStory } from "@/core/domain/work/planning.js";
 
 export interface PlanningCatalogStore {
-	read(): Promise<PlanningSnapshot>;
-	createEpic(title: string, goal: string): Promise<{ snapshot: PlanningSnapshot; epic: PlanningEpic }>;
-	createStory(epicId: string, title: string, acceptance: string, supersedes?: string | null): Promise<{ snapshot: PlanningSnapshot; story: PlanningStory }>;
+	read       ()                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   : Promise<PlanningSnapshot>;
+	createEpic (title: string, goal: string                                                                                                                                                                                                                                                                                                            )                                                                                                                                                                                                                                                                                                            : Promise<{ snapshot: PlanningSnapshot; epic: PlanningEpic }>;
+	createStory(epicId: string, title: string, acceptance: string, supersedes?: string | null                                                                                                                                                                                                                                                          )                                                                                                                                                                                                                                                                                                            : Promise<{ snapshot: PlanningSnapshot; story: PlanningStory }>;
 }
 
 export class PlanningService {

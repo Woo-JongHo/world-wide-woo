@@ -1,11 +1,7 @@
-import type {
-	AuthInteraction,
-	AuthType,
-	Models,
-} from "@earendil-works/pi-ai";
-import type { AuthController, ProviderAuthState } from "../../../core/ports";
-import type { Provider } from "../../../core/domain/execution/model-settings";
-import { isInvalidOAuthRefresh } from "./oauth-refresh-error.js";
+import type { AuthInteraction, AuthType, Models } from "@earendil-works/pi-ai";
+import type { AuthController, ProviderAuthState } from "@/core/ports";
+import type { Provider }                          from "@/core/domain/execution/model-settings";
+import { isInvalidOAuthRefresh }                  from "@/adapters/outbound/authentication/oauth-refresh-error.js";
 
 export class AuthService implements AuthController {
 	constructor(private readonly models: Pick<Models, "checkAuth" | "getProvider" | "login" | "logout">) {}
@@ -13,15 +9,15 @@ export class AuthService implements AuthController {
 	methods(provider: Provider): AuthType[] {
 		const auth = this.models.getProvider(provider)?.auth;
 		if (!auth) return [];
-		return [
-			...(auth.oauth ? ["oauth" as const] : []),
-			...(auth.apiKey?.login ? ["api_key" as const] : []),
-		];
+		const methods: AuthType[] = [];
+		if (auth.oauth) methods.push("oauth");
+		if (auth.apiKey?.login) methods.push("api_key");
+		return methods;
 	}
 
 	async status(provider: Provider, signal?: AbortSignal): Promise<ProviderAuthState> {
 		try {
-			const auth = await this.models.checkAuth(provider, { signal });
+			const auth = await this.models.checkAuth(provider, signal ? { signal } : {});
 			return auth
 				? { state: "configured", provider, source: auth.source ?? auth.type, type: auth.type }
 				: { state: "required", provider };
@@ -40,6 +36,6 @@ export class AuthService implements AuthController {
 	}
 
 	async logout(provider: Provider, signal?: AbortSignal): Promise<void> {
-		await this.models.logout(provider, { signal });
+		await this.models.logout(provider, signal ? { signal } : {});
 	}
 }

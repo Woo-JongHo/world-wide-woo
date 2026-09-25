@@ -1,22 +1,9 @@
-import { describe, expect, test } from "bun:test";
-import {
-	HStack,
-	ScrollView,
-	TuiAltScreen,
-	getScrollRowCount,
-	readScrollRows,
-	type Component,
-	type ScrollContent,
-	type ScrollRowSource,
-	type Terminal,
-} from "@earendil-works/pi-tui";
-import { findAltScreenSearchMatches } from "@earendil-works/pi-tui/dist/alt-screen-search.js";
-import {
-	getScrollbarGeometry,
-	getScrollViewBox,
-	renderLayoutFrame,
-} from "@earendil-works/pi-tui/dist/layout.js";
-import { encodeKitty, registerKittyImageMetadata } from "@earendil-works/pi-tui/dist/terminal-image.js";
+import { describe, expect, test }                                              from "bun:test";
+import { HStack, ScrollView, TuiAltScreen, getScrollRowCount, readScrollRows } from "@earendil-works/pi-tui";
+import type { Component, ScrollContent, ScrollRowSource, Terminal }            from "@earendil-works/pi-tui";
+import { findAltScreenSearchMatches }                                          from "@earendil-works/pi-tui/dist/alt-screen-search.js";
+import { getScrollbarGeometry, getScrollViewBox, renderLayoutFrame }           from "@earendil-works/pi-tui/dist/layout.js";
+import { encodeKitty, registerKittyImageMetadata }                             from "@earendil-works/pi-tui/dist/terminal-image.js";
 
 const PROMPT = "\x1b]133;A\x07";
 
@@ -52,24 +39,24 @@ class PreparingScrollView extends ScrollView {
 }
 
 class CaptureTerminal implements Terminal {
-	public columns = 30;
-	public rows = 6;
-	public output = "";
-	public kittyProtocolActive = false;
-	private inputHandler: (data: string) => void = () => {};
-	public start(input: (data: string) => void): void { this.inputHandler = input; }
-	public stop(): void {}
-	public input(data: string): void { this.inputHandler(data); }
-	public async drainInput(): Promise<void> {}
-	public write(data: string): void { this.output += data; }
-	public moveBy(): void {}
-	public hideCursor(): void {}
-	public showCursor(): void {}
-	public clearLine(): void {}
-	public clearFromCursor(): void {}
-	public clearScreen(): void {}
-	public setTitle(): void {}
-	public setProgress(): void {}
+	public columns                               = 30       ;
+	public rows                                  = 6        ;
+	public output                                = ""       ;
+	public kittyProtocolActive                   = false    ;
+	private inputHandler: (data: string) => void = () => {} ;
+	public start           (input: (data: string) => void): void { this.inputHandler = input; }
+	public stop            ()                             : void {}
+	public input           (data: string                 ): void { this.inputHandler(data); }
+	public async drainInput()                             : Promise<void> {}
+	public write           (data: string                 ): void { this.output += data; }
+	public moveBy          ()                             : void {}
+	public hideCursor      ()                             : void {}
+	public showCursor      ()                             : void {}
+	public clearLine       ()                             : void {}
+	public clearFromCursor ()                             : void {}
+	public clearScreen     ()                             : void {}
+	public setTitle        ()                             : void {}
+	public setProgress     ()                             : void {}
 }
 
 function frameFor(content: Component, scroll: ScrollView, width = 24, height = 6) {
@@ -84,9 +71,9 @@ describe("pi-tui lazy scroll row source", () => {
 			if (index === 1) return "\x1b]8;;https://example.com\x07link\x1b]8;;\x07";
 			return `row-${String(index).padStart(2, "0")}`;
 		});
-		const denseScroll = new ScrollView(new DenseRows(rows), { scrollbar: "always" });
-		const lazyContent = new LazyRows(rows);
-		const lazyScroll = new PreparingScrollView(lazyContent, { scrollbar: "always" });
+		const denseScroll = new ScrollView(new DenseRows(rows), { scrollbar: "always" })  ;
+		const lazyContent = new LazyRows(rows)                                            ;
+		const lazyScroll  = new PreparingScrollView(lazyContent, { scrollbar: "always" }) ;
 
 		let dense = frameFor(new DenseRows(rows), denseScroll);
 		let lazy = frameFor(lazyContent, lazyScroll);
@@ -110,19 +97,19 @@ describe("pi-tui lazy scroll row source", () => {
 		expect(lazyContent.renderCalls).toBe(0);
 		expect(lazyScroll.prepareCalls).toEqual([23, 23]);
 		expect(lazyContent.requests).toEqual([
-			{ start: 0, count: 8 },
-			{ start: 38, count: 10 },
-			{ start: 38, count: 2 },
+			{ start : 0  , count : 8  },
+			{ start : 38 , count : 10 },
+			{ start : 38 , count : 2  },
 		]);
 	});
 
 	test("keeps narrow and wide frames plus a clipped Kitty image boundary byte-identical", () => {
 		const textRows = ["\x1b[32m한글🙂e\u0301\x1b[0m", "", "\x1b]8;;https://example.com\x07link\x1b]8;;\x07", "tail"];
 		for (const width of [1, 40, 80, 120]) {
-			const denseContent = new DenseRows(textRows);
-			const lazyContent = new LazyRows(textRows);
-			const denseScroll = new ScrollView(denseContent);
-			const lazyScroll = new PreparingScrollView(lazyContent);
+			const denseContent = new DenseRows(textRows)              ;
+			const lazyContent  = new LazyRows(textRows)               ;
+			const denseScroll  = new ScrollView(denseContent)         ;
+			const lazyScroll   = new PreparingScrollView(lazyContent) ;
 			expect(frameFor(lazyContent, lazyScroll, width, 3).lines).toEqual(
 				frameFor(denseContent, denseScroll, width, 3).lines,
 			);
@@ -130,11 +117,11 @@ describe("pi-tui lazy scroll row source", () => {
 		}
 
 		registerKittyImageMetadata({ imageId: 991, columns: 4, rows: 3, widthPx: 36, heightPx: 54 });
-		const imageRows = [encodeKitty("aGVsbG8=", { imageId: 991, columns: 4, rows: 3 }), "", "", "after"];
-		const denseContent = new DenseRows(imageRows);
-		const lazyContent = new LazyRows(imageRows);
-		const denseScroll = new ScrollView(denseContent);
-		const lazyScroll = new PreparingScrollView(lazyContent);
+		const imageRows    = [encodeKitty("aGVsbG8=", { imageId: 991, columns: 4, rows: 3 }), "", "", "after"] ;
+		const denseContent = new DenseRows(imageRows)                                                          ;
+		const lazyContent  = new LazyRows(imageRows)                                                           ;
+		const denseScroll  = new ScrollView(denseContent)                                                      ;
+		const lazyScroll   = new PreparingScrollView(lazyContent)                                              ;
 		frameFor(denseContent, denseScroll, 20, 2);
 		frameFor(lazyContent, lazyScroll, 20, 2);
 		denseScroll.scrollTo(1, { disableFollow: true });
@@ -170,11 +157,11 @@ describe("pi-tui lazy scroll row source", () => {
 	});
 
 	test("preserves dense follow, disable-follow, append, and viewport-resize state", () => {
-		const rows = Array.from({ length: 30 }, (_, index) => `row-${index}`);
-		const denseContent = new DenseRows(rows);
-		const lazyContent = new LazyRows(rows);
-		const denseScroll = new ScrollView(denseContent, { follow: "end", scrollbar: "always" });
-		const lazyScroll = new PreparingScrollView(lazyContent, { follow: "end", scrollbar: "always" });
+		const rows         = Array.from({ length: 30 }, (_, index) => `row-${index}`)                     ;
+		const denseContent = new DenseRows(rows)                                                          ;
+		const lazyContent  = new LazyRows(rows)                                                           ;
+		const denseScroll  = new ScrollView(denseContent, { follow: "end", scrollbar: "always" })         ;
+		const lazyScroll   = new PreparingScrollView(lazyContent, { follow: "end", scrollbar: "always" }) ;
 		const compare = (height: number) => {
 			const dense = frameFor(denseContent, denseScroll, 24, height);
 			const lazy = frameFor(lazyContent, lazyScroll, 24, height);
@@ -213,10 +200,10 @@ describe("pi-tui lazy scroll row source", () => {
 			if (index === 510) return "needle 한글🙂";
 			return `row-${String(index).padStart(3, "0")}`;
 		});
-		const content = new LazyRows(rows);
-		const scroll = new PreparingScrollView(content, { primary: true, scrollbar: "always" });
-		const terminal = new CaptureTerminal();
-		let copied = "";
+		const content  = new LazyRows(rows)                                                       ;
+		const scroll   = new PreparingScrollView(content, { primary: true, scrollbar: "always" }) ;
+		const terminal = new CaptureTerminal()                                                    ;
+		let copied     = ""                                                                       ;
 		const tui = new TuiAltScreen(terminal, false, undefined, {
 			copySelection: async text => { copied = text; return true; },
 		});
@@ -275,9 +262,9 @@ describe("pi-tui lazy scroll row source", () => {
 			primary: true,
 			overscroll: "chain",
 		});
-		const contained = new ScrollView(new DenseRows(["contained"]), { overscroll: "contain" });
-		const terminal = new CaptureTerminal();
-		const tui = new TuiAltScreen(terminal, false, undefined, { wheelScrollLines: 1 });
+		const contained = new ScrollView(new DenseRows(["contained"]), { overscroll: "contain" }) ;
+		const terminal  = new CaptureTerminal()                                                   ;
+		const tui       = new TuiAltScreen(terminal, false, undefined, { wheelScrollLines: 1 })   ;
 		tui.setLayoutRoot(new HStack([
 			{ component: primary, basis: 15, minSize: 15, maxSize: 15 },
 			{ component: contained, basis: 15, minSize: 15, maxSize: 15 },

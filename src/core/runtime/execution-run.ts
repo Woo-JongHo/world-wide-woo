@@ -1,6 +1,6 @@
-import type { ProjectActivity } from "../domain/execution/project-activity.js";
-import type { TodoItem } from "../domain/work/todos.js";
-import { projectWorkFlow } from "../domain/work/workflow-projection.js";
+import type { ProjectActivity } from "@/core/domain/execution/project-activity.js";
+import type { TodoItem }        from "@/core/domain/work/todos.js";
+import { projectWorkFlow }      from "@/core/domain/work/workflow-projection.js";
 import type {
 	ExecutionRunId,
 	RuntimeEventKind,
@@ -19,8 +19,8 @@ import type {
 	CompletionRemaining,
 	ExecutionCheckpoint,
 	ExecutionRunState,
-	ExecutionRunReduction
-} from "../domain/execution/execution-run-contract.js";
+	ExecutionRunReduction,
+} from "@/core/domain/execution/execution-run-contract.js";
 export type {
 	ExecutionRunId,
 	RuntimeEventKind,
@@ -40,12 +40,12 @@ export type {
 	ExecutionCheckpoint,
 	ExecutionRunState,
 	ExecutionRunReduction
-} from "../domain/execution/execution-run-contract.js";
+} from "@/core/domain/execution/execution-run-contract.js";
 
-const encoder = new TextEncoder();
-const frame = (value: unknown): Uint8Array => encoder.encode(JSON.stringify(value));
-const digest = (hash: ExecutionHash, value: unknown) => hash.sha256Hex(frame(value));
-const terminal = (phase: ExecutionRunPhase) => phase === "completed" || phase === "failed" || phase === "interrupted";
+const encoder  = new TextEncoder()                                                                                    ;
+const frame    = (value: unknown): Uint8Array => encoder.encode(JSON.stringify(value))                                ;
+const digest   = (hash: ExecutionHash, value: unknown) => hash.sha256Hex(frame(value))                                ;
+const terminal = (phase: ExecutionRunPhase) => phase === "completed" || phase === "failed" || phase === "interrupted" ;
 
 export interface ExecutionRunReductionContext {
 	/** Complete append-only journal, including foreign/root turns, for dplan-v1 integrity and turn boundaries. */
@@ -62,15 +62,23 @@ export function createExecutionRun(input: { runId: ExecutionRunId; threadId: str
 }
 
 export function normalizeProjectActivity(activity: ProjectActivity): RuntimeEvent {
-	const method = stringValue(activity.payload.method);
+	const method      = stringValue(activity.payload.method)                                                        ;
+	const runSequence = typeof activity.payload.runSequence === "number" ? activity.payload.runSequence : undefined ;
+	const threadId    = activity.nativeRefs.threadId ?? "unknown"                                                   ;
+	const turnId      = activity.nativeRefs.turnId ?? "unknown"                                                     ;
+
 	return {
-		kind: eventKind(activity, method), durability: "durable", runId: `${activity.nativeRefs.threadId ?? "unknown"}:${activity.nativeRefs.turnId ?? "unknown"}`,
-		threadId: activity.nativeRefs.threadId ?? "unknown", turnId: activity.nativeRefs.turnId ?? "unknown", activity,
-		id: activity.id,
-		sequence: activity.sequence,
-		runSequence: typeof activity.payload.runSequence === "number" ? activity.payload.runSequence : undefined,
-		sourceDigest: activity.sourceDigest,
-		payload: activity.payload,
+		kind       : eventKind(activity, method),
+		durability : "durable",
+		runId      : `${threadId}:${turnId}`,
+		threadId,
+		turnId,
+		activity,
+		id           : activity.id,
+		sequence     : activity.sequence,
+		...(runSequence === undefined ? {} : { runSequence }),
+		sourceDigest : activity.sourceDigest,
+		payload      : activity.payload,
 	};
 }
 
@@ -87,9 +95,9 @@ function reduceExecutionRunVersion(state: ExecutionRunState, event: RuntimeEvent
 		&& event.runSequence !== state.lastRunSequence + 1) {
 		const next = checkpoint({
 			...state,
-			phase: "reconciling",
-			waitReason: "gap",
-			rejectedEventIds: [...state.rejectedEventIds, event.id],
+			phase            : "reconciling",
+			waitReason       : "gap",
+			rejectedEventIds : [...state.rejectedEventIds, event.id],
 		}, hash);
 		return { state: next, accepted: false, reason: "gap" };
 	}
@@ -97,11 +105,11 @@ function reduceExecutionRunVersion(state: ExecutionRunState, event: RuntimeEvent
 	// root/child runs legitimately occupy values between two observations for
 	// this run; only duplicate ids are meaningful without a dedicated run
 	// ordinal. Journal continuity remains validated by the full-journal adapter.
-	const activity = event.activity;
-	const method = stringValue(event.payload?.method ?? activity?.payload.method);
-	const nextActivities = activity ? [...state.activities, activity] : state.activities;
-	const auditOnly = version === 3 && method.startsWith("governance/");
-	const approvalResolved = version === 3 && activity?.kind === "approval" && activity.payload.eventType === "approval-resolved";
+	const activity         = event.activity                                                                                       ;
+	const method           = stringValue(event.payload?.method ?? activity?.payload.method)                                       ;
+	const nextActivities   = activity ? [...state.activities, activity] : state.activities                                        ;
+	const auditOnly        = version === 3 && method.startsWith("governance/")                                                    ;
+	const approvalResolved = version === 3 && activity?.kind === "approval" && activity.payload.eventType === "approval-resolved" ;
 	let phase = auditOnly ? state.phase : state.phase === "reconciling" ? "reconciling"
 		: approvalResolved ? state.phase === "waiting" ? "executing" : state.phase : nextPhase(state.phase, event, method);
 	let objective = state.objective;
@@ -109,10 +117,10 @@ function reduceExecutionRunVersion(state: ExecutionRunState, event: RuntimeEvent
 	const taskResult = version === 3
 		? context ? projectPlanTasks(state, activity, context.journalActivities, hash) : state.tasks
 		: reduceTask(state.tasks, event, activity, method, hash, version);
-	const evidence = activity ? [...state.evidence, evidenceFor(activity, method)] : state.evidence;
-	const activeActivity = auditOnly ? state.activeActivity : activity ? projectActivity(activity, method) : state.activeActivity;
-	const base = { ...state, phase, waitReason: auditOnly ? state.waitReason : phase === "waiting" ? "approval" as const : null, objective, tasks: taskResult, evidence, activities: nextActivities, activeActivity, lastSequence: activity?.sequence ?? state.lastSequence, lastRunSequence: event.runSequence ?? state.lastRunSequence ?? null };
-	let next = checkpoint(base, hash);
+	const evidence       = activity ? [...state.evidence, evidenceFor(activity, method)] : state.evidence                                                                                                                                                                                                                                                    ;
+	const activeActivity = auditOnly ? state.activeActivity : activity ? projectActivity(activity, method) : state.activeActivity                                                                                                                                                                                                                            ;
+	const base           = { ...state, phase, waitReason: auditOnly ? state.waitReason : phase === "waiting" ? "approval" as const : null, objective, tasks: taskResult, evidence, activities: nextActivities, activeActivity, lastSequence: activity?.sequence ?? state.lastSequence, lastRunSequence: event.runSequence ?? state.lastRunSequence ?? null } ;
+	let next             = checkpoint(base, hash)                                                                                                                                                                                                                                                                                                            ;
 	if (isTerminal(event, activity, method) && phase !== "reconciling") {
 		const status = terminalStatus(event, activity, method);
 		phase = status === "cancelled" ? "interrupted" : status;
@@ -172,9 +180,9 @@ function nextPhase(current: ExecutionRunPhase, event: RuntimeEvent, method: stri
 	return current;
 }
 function projectPlanTasks(state: ExecutionRunState, activity: ProjectActivity | undefined, journal: readonly ProjectActivity[], hash: ExecutionHash): readonly ExecutionTask[] {
-	const throughSequence = activity?.sequence;
-	const prefix = throughSequence === undefined ? journal : journal.filter(candidate => candidate.sequence <= throughSequence);
-	const activities = activity && !prefix.some(candidate => candidate.id === activity.id) ? [...prefix, activity] : prefix;
+	const throughSequence = activity?.sequence                                                                                           ;
+	const prefix          = throughSequence === undefined ? journal : journal.filter(candidate => candidate.sequence <= throughSequence) ;
+	const activities      = activity && !prefix.some(candidate => candidate.id === activity.id) ? [...prefix, activity] : prefix         ;
 	const projection = projectWorkFlow(activities, new Map(), {
 		expectedThreadKey: state.threadId,
 		selectedTurnId: state.turnId,
@@ -183,12 +191,12 @@ function projectPlanTasks(state: ExecutionRunState, activity: ProjectActivity | 
 	if (!projection.source || projection.rejections.length > 0) return state.tasks;
 	if (projection.source.authority !== "native-checklist") return [];
 	return projection.steps.map(step => ({
-		id: step.identity.value,
-		title: step.title,
-		status: step.status,
-		activityIds: step.association?.activityIds ?? [],
-		observationActivityIds: step.association?.observationActivityIds ?? [],
-		sourceRevisionKeyDigest: step.currentRevision.sourceRevisionKeyDigest,
+		id                      : step.identity.value,
+		title                   : step.title,
+		status                  : step.status,
+		activityIds             : step.association?.activityIds ?? [],
+		observationActivityIds  : step.association?.observationActivityIds ?? [],
+		sourceRevisionKeyDigest : step.currentRevision.sourceRevisionKeyDigest,
 	}));
 }
 
@@ -212,10 +220,10 @@ function reduceTask(tasks: readonly ExecutionTask[], event: RuntimeEvent, activi
 	}
 	const itemId = activity?.nativeRefs.itemId ?? stringValue(event.payload?.itemId);
 	if (!itemId) return tasks;
-	const existing = tasks.find(task => task.id === itemId);
-	const status = activity?.phase === "failed" ? "failed" : activity?.phase === "cancelled" ? "cancelled" : activity?.phase === "completed" ? "completed" : "running" as const;
-	const title = stringValue(activity?.payload.title ?? event.payload?.title) || method || itemId;
-	const planTask = tasks.find(task => task.id.startsWith("plan:") && (task.status === "running" || task.status === "pending"));
+	const existing = tasks.find(task => task.id === itemId)                                                                                                                       ;
+	const status   = activity?.phase === "failed" ? "failed" : activity?.phase === "cancelled" ? "cancelled" : activity?.phase === "completed" ? "completed" : "running" as const ;
+	const title    = stringValue(activity?.payload.title ?? event.payload?.title) || method || itemId                                                                             ;
+	const planTask = tasks.find(task => task.id.startsWith("plan:") && (task.status === "running" || task.status === "pending"))                                                  ;
 	if (planTask) {
 		return tasks.map(task => task.id === planTask.id
 			? { ...task, ...(version === 1 ? { status: status === "completed" && task.status === "pending" ? "pending" as const : status } : {}), activityIds: activity ? [...task.activityIds, activity.id] : task.activityIds }
@@ -251,17 +259,17 @@ function receiptFor(run: ExecutionRunState, activity: ProjectActivity, status: C
 	const activities = new Map(run.activities.map(observation => [observation.id, observation]));
 	const changed = evidenceRefs.flatMap((evidence) => {
 		if (evidence.kind !== "change") return [];
-		const payload = receiptFields(activities.get(evidence.activityId)?.payload);
-		const ref = stringValue(payload.ref ?? payload.path ?? payload.file);
-		const summary = stringValue(payload.summary ?? payload.text ?? payload.title);
+		const payload = receiptFields(activities.get(evidence.activityId)?.payload)   ;
+		const ref     = stringValue(payload.ref ?? payload.path ?? payload.file)      ;
+		const summary = stringValue(payload.summary ?? payload.text ?? payload.title) ;
 		return ref && summary ? [{ kind: stringValue(payload.changeKind ?? payload.kind) || "file-change", ref, summary }] : [];
 	});
 	const verification: CompletionVerification[] = evidenceRefs.flatMap((evidence) => {
 		if (evidence.kind !== "verification") return [];
-		const payload = receiptFields(activities.get(evidence.activityId)?.payload);
-		const command = stringValue(payload.command);
-		const exitCode = typeof payload.exitCode === "number" ? payload.exitCode : null;
-		const result = stringValue(payload.result ?? payload.text ?? payload.summary) || (exitCode === null ? "" : `exit code ${exitCode}`);
+		const payload  = receiptFields(activities.get(evidence.activityId)?.payload)                                                          ;
+		const command  = stringValue(payload.command)                                                                                         ;
+		const exitCode = typeof payload.exitCode === "number" ? payload.exitCode : null                                                       ;
+		const result   = stringValue(payload.result ?? payload.text ?? payload.summary) || (exitCode === null ? "" : `exit code ${exitCode}`) ;
 		if (!command || !result) return [];
 		return [{ command, status: verificationStatus(payload, evidence, exitCode), result, evidenceRefs: [evidence.activityId] }];
 	});
@@ -279,10 +287,10 @@ function receiptFor(run: ExecutionRunState, activity: ProjectActivity, status: C
 	const remaining = run.tasks
 		.filter(task => task.status === "pending" || task.status === "running" || task.status === "failed" || task.status === "cancelled")
 		.map(task => ({ summary: task.title, blocking: task.status === "failed" || task.status === "cancelled" }));
-	const terminalSource = { id: activity.id, sequence: activity.sequence, sourceDigest: activity.sourceDigest };
-	const receiptId = digest(hash, ["completion-receipt-v1", run.runId, terminalSource]);
-	const versioned = version === 1 ? {} : { algorithmVersion: version, ...(commandResults.length ? { commandResults } : {}) };
-	const bare = { receiptId, runId: run.runId, threadId: run.threadId, turnId: run.turnId, status, objective: run.objective, changed, verification, ...versioned, evidenceRefs, remaining, completedAt: activity.recordedAt, terminalSource, checkpointDigest: run.checkpoint.digest };
+	const terminalSource = { id: activity.id, sequence: activity.sequence, sourceDigest: activity.sourceDigest }                                                                                                                                                                                  ;
+	const receiptId      = digest(hash, ["completion-receipt-v1", run.runId, terminalSource])                                                                                                                                                                                                     ;
+	const versioned      = version === 1 ? {} : { algorithmVersion: version, ...(commandResults.length ? { commandResults } : {}) }                                                                                                                                                               ;
+	const bare           = { receiptId, runId: run.runId, threadId: run.threadId, turnId: run.turnId, status, objective: run.objective, changed, verification, ...versioned, evidenceRefs, remaining, completedAt: activity.recordedAt, terminalSource, checkpointDigest: run.checkpoint.digest } ;
 	return { ...bare, receiptDigest: digest(hash, bare) };
 }
 function stringValue(value: unknown): string { return typeof value === "string" ? value : ""; }
@@ -302,7 +310,10 @@ function verificationStatus(
 	exitCode: number | null,
 ): CompletionVerification["status"] {
 	const explicit = stringValue(payload.status ?? payload.outcome).trim().toLowerCase();
-	if (explicit === "passed" || explicit === "pass" || explicit === "success" || explicit === "succeeded") return "passed";
+	if (explicit === "passed"
+		|| explicit === "pass"
+		|| explicit === "success"
+		|| explicit === "succeeded") return "passed";
 	if (explicit === "failed" || explicit === "fail" || explicit === "error") return "failed";
 	if (explicit === "skipped" || explicit === "skip") return "skipped";
 	if (explicit === "unknown") return "unknown";

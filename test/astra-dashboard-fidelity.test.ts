@@ -1,16 +1,19 @@
-import { expect, test } from "bun:test";
-import chalk from "chalk";
+import { expect, test }                         from "bun:test";
+import chalk                                    from "chalk";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import { AstraDashboardRail, WwwDashboardView } from "../src/adapters/inbound/tui/features/dashboard/entry-dashboard-view";
-import { astraFixture } from "./fixtures/astra-snapshot";
-import { renderLayoutFrame } from "@earendil-works/pi-tui/dist/layout.js";
-import { AstraWorkspace } from "../src/adapters/inbound/tui/shell/astra-surface";
-import { createAstraDemoState } from "../src/adapters/inbound/tui/features/demo/astra-demo";
+import {
+	AstraDashboardRail,
+	WwwDashboardView,
+} from "../src/adapters/inbound/tui/features/dashboard/entry-dashboard-view";
+import { astraFixture }                         from "./fixtures/astra-snapshot";
+import { renderLayoutFrame }                    from "@earendil-works/pi-tui/dist/layout.js";
+import { AstraWorkspace }                       from "../src/adapters/inbound/tui/shell/astra-surface";
+import { createAstraDemoState }                 from "../src/adapters/inbound/tui/features/demo/astra-demo";
 
 test.each([160, 200])("Dashboard fits its lower analysis and rail in the first %i by 36 viewport", width => {
-	const demo = createAstraDemoState(astraFixture());
-	const dashboard = new WwwDashboardView(() => demo.snapshot, () => true);
-	const workspace = new AstraWorkspace(() => demo.snapshot, () => demo.usage, undefined, () => 0, false, null, dashboard, undefined, undefined, {}, undefined, () => true);
+	const demo      = createAstraDemoState(astraFixture())                                                                                                                   ;
+	const dashboard = new WwwDashboardView(() => demo.snapshot, () => true)                                                                                                  ;
+	const workspace = new AstraWorkspace(() => demo.snapshot, () => demo.usage, undefined, () => 0, false, null, dashboard, undefined, undefined, {}, undefined, () => true) ;
 	workspace.show("dashboard");
 	const rows = renderLayoutFrame(workspace.component, width, 36, () => {}).lines;
 	const text = rows.map(stripTerminalSequences).join("\n");
@@ -19,9 +22,9 @@ test.each([160, 200])("Dashboard fits its lower analysis and rail in the first %
 });
 
 test.each([100, 118, 160, 200])("Dashboard Figma catalog keeps panels and fixed meter axes within %i cells", width => {
-	const rows = new WwwDashboardView(astraFixture, () => true).render(width);
-	const plain = rows.map(stripTerminalSequences);
-	const text = plain.join("\n");
+	const rows  = new WwwDashboardView(astraFixture, () => true).render(width) ;
+	const plain = rows.map(stripTerminalSequences)                             ;
+	const text  = plain.join("\n")                                             ;
 	for (const title of ["ACTIVE SESSION ID", "TOTAL REQUESTS", "SESSION TOKENS", "ELAPSED TIME", "SYSTEMS HEALTH", "SYSTEM INTEGRATED MODULE ROUTER", "TOKEN ALLOCATION TRENDS", "ACCESS FREQUENCY HEATMAP", "SESSION EVENT AGGREGATES"]) expect(text).toContain(title);
 	expect(rows.every(row => visibleWidth(row) === width)).toBe(true);
 	expect(rows.length).toBeLessThanOrEqual(30);

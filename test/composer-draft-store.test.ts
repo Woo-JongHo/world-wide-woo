@@ -1,8 +1,8 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test }                      from "bun:test";
 import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { FileComposerDraftController } from "../src/adapters/outbound/persistence/composer-draft-store";
+import { tmpdir }                                                 from "node:os";
+import { join }                                                   from "node:path";
+import { FileComposerDraftController }                            from "../src/adapters/outbound/persistence/composer-draft-store";
 
 const directories: string[] = [];
 afterEach(async () => {
@@ -85,10 +85,10 @@ describe("file composer draft controller", () => {
 		await writeFile(
 			join(directory, file),
 			JSON.stringify({
-				schemaVersion: 1,
-				projectKey: "another-project",
-				text: "draft",
-				updatedAt: new Date().toISOString(),
+				schemaVersion : 1,
+				projectKey    : "another-project",
+				text          : "draft",
+				updatedAt     : new Date().toISOString(),
 			}),
 		);
 		await expect(FileComposerDraftController.create("/projects/one", "session-1", directory)).rejects.toThrow("일치하지");
@@ -108,9 +108,9 @@ describe("file composer draft controller", () => {
 	});
 
 	test("keeps concurrent session drafts isolated and restores the newest", async () => {
-		const directory = await draftDirectory();
-		const first = await FileComposerDraftController.create("/projects/one", "session-1", directory);
-		const second = await FileComposerDraftController.create("/projects/one", "session-2", directory);
+		const directory = await draftDirectory()                                                            ;
+		const first     = await FileComposerDraftController.create("/projects/one", "session-1", directory) ;
+		const second    = await FileComposerDraftController.create("/projects/one", "session-2", directory) ;
 		await first.save("first");
 		await Bun.sleep(2);
 		await second.save("second");

@@ -1,22 +1,26 @@
-import type { ProjectActivity } from "../execution/project-activity";
-import type { RequestRuntimeRecord, RequestStageStatus, RequestTestKind } from "../execution/request-runtime";
+import type { ProjectActivity } from "@/core/domain/execution/project-activity";
+import type {
+	RequestRuntimeRecord,
+	RequestStageStatus,
+	RequestTestKind,
+} from "@/core/domain/execution/request-runtime";
 
 export type RequestTestStatus = "running" | "passed" | "failed" | "blocked" | "skipped" | "planned" | "unknown";
 export interface RequestTestCheck {
-	readonly id: string;
-	readonly kind: RequestTestKind;
-	readonly title: string;
-	readonly purpose: string;
-	readonly status: RequestTestStatus;
-	readonly command: string | null;
-	readonly evidenceActivityId: string | null;
+	readonly id                 : string            ;
+	readonly kind               : RequestTestKind   ;
+	readonly title              : string            ;
+	readonly purpose            : string            ;
+	readonly status             : RequestTestStatus ;
+	readonly command            : string | null     ;
+	readonly evidenceActivityId : string | null     ;
 }
 export interface RequestTestGroup {
-	readonly requestId: string;
-	readonly question: string;
-	readonly status: RequestTestStatus;
-	readonly rationale: string;
-	readonly checks: readonly RequestTestCheck[];
+	readonly requestId : string                      ;
+	readonly question  : string                      ;
+	readonly status    : RequestTestStatus           ;
+	readonly rationale : string                      ;
+	readonly checks    : readonly RequestTestCheck[] ;
 }
 export interface RequestTestWorkspace {
 	readonly groups: readonly RequestTestGroup[];
@@ -55,26 +59,39 @@ export function projectRequestTestWorkspace(input: {
 	readonly requests?: readonly RequestRuntimeRecord[];
 	readonly activities: readonly ProjectActivity[];
 }): RequestTestWorkspace {
-	const activities = [...input.activities].sort((left, right) => left.sequence - right.sequence);
-	const byId = new Map(activities.map(activity => [activity.id, activity]));
-	const groups: RequestTestGroup[] = [];
+	const activities                  = [...input.activities].sort((left, right) => left.sequence - right.sequence) ;
+	const byId                        = new Map(activities.map(activity => [activity.id, activity]))                ;
+	const groups : RequestTestGroup[] = []                                                                          ;
 	for (const request of input.requests ?? []) {
-		const verify = request.stages.find(stage => stage.id === "VERIFY")!;
-		const evidenceChecks = verify.evidence.map(evidence => {
+		const verify = request.stages.find(stage => stage.id === "VERIFY");
+		if (!verify) continue;
+		const evidenceChecks: RequestTestCheck[] = verify.evidence.map(evidence => {
 			const activity = byId.get(evidence.activityId);
-			return { id: evidence.activityId, kind: kindOf(commandOf(activity)), title: commandOf(activity) ?? "검증 Evidence", purpose: verify.output ?? "검증 목적이 Runtime에 기록되지 않음", status: activity ? terminal(activity) : evidence.status === "passed" ? "passed" as const : evidence.status === "failed" ? "failed" as const : "unknown" as const, command: commandOf(activity), evidenceActivityId: evidence.activityId };
+			const command  = commandOf(activity);
+			return { id: evidence.activityId, kind: kindOf(command), title: command ?? "검증 Evidence", purpose: verify.output ?? "검증 목적이 Runtime에 기록되지 않음", status: activity ? terminal(activity) : evidence.status === "passed" ? "passed" : evidence.status === "failed" ? "failed" : "unknown", command, evidenceActivityId: evidence.activityId };
 		});
 		const evidenceIds = new Set(evidenceChecks.map(check => check.evidenceActivityId));
-		const taskChecks = verify.tasks.map(task => ({ id: task.id, kind: task.verification?.kind ?? "unclassified" as const, title: task.title, purpose: task.verification?.purpose ?? verify.output ?? "검증 목표가 계획에 기록되지 않았습니다.", status: task.status === "completed" ? "unknown" as const : task.status === "blocked" ? "blocked" as const : task.status === "running" ? "running" as const : "planned" as const, command: null, evidenceActivityId: null }));
-		const turnChecks = activities.filter(activity => activity.nativeRefs.turnId === request.turnId && testLike(activity) && !evidenceIds.has(activity.id)).map(activity => ({ id: activity.id, kind: kindOf(commandOf(activity)), title: commandOf(activity)!, purpose: verify.output ?? "검증 목적이 Runtime에 기록되지 않음", status: terminal(activity), command: commandOf(activity), evidenceActivityId: activity.id }));
+		const taskChecks: RequestTestCheck[] = verify.tasks.map(task => ({ id: task.id, kind: task.verification?.kind ?? "unclassified", title: task.title, purpose: task.verification?.purpose ?? verify.output ?? "검증 목표가 계획에 기록되지 않았습니다.", status: task.status === "completed" ? "unknown" : task.status === "blocked" ? "blocked" : task.status === "running" ? "running" : "planned", command: null, evidenceActivityId: null }));
+		const turnChecks: RequestTestCheck[] = activities.flatMap(activity => {
+			if (activity.nativeRefs.turnId !== request.turnId || !testLike(activity) || evidenceIds.has(activity.id)) return [];
+			const command = commandOf(activity);
+			if (!command) return [];
+			return [{ id: activity.id, kind: kindOf(command), title: command, purpose: verify.output ?? "검증 목적이 Runtime에 기록되지 않음", status: terminal(activity), command, evidenceActivityId: activity.id }];
+		});
 		groups.push({ requestId: request.requestId, question: request.objective, status: stageStatus(verify.status), rationale: verify.output ?? (verify.status === "pending" ? "검증 계획이 아직 확정되지 않았습니다." : verify.skipReason ?? "검증 목적이 Runtime에 기록되지 않았습니다."), checks: [...taskChecks, ...evidenceChecks, ...turnChecks] });
 	}
 	if (!groups.length) {
 		const requests = activities.filter(activity => activity.kind === "message" && activity.phase === "completed" && (activity.payload.role === "user" || activity.payload.direction === "outbound"));
 		for (const [index, request] of requests.entries()) {
 			const end = requests[index + 1]?.sequence ?? Number.POSITIVE_INFINITY;
-			const checks = activities.filter(activity => activity.sequence > request.sequence && activity.sequence < end && testLike(activity)).map(activity => ({ id: activity.id, kind: kindOf(commandOf(activity)), title: commandOf(activity)!, purpose: "검증 목적이 Runtime에 기록되지 않았습니다.", status: terminal(activity), command: commandOf(activity), evidenceActivityId: activity.id }));
-			groups.push({ requestId: request.id, question: String(request.payload.text ?? "질문 원문 미관측"), status: checks.some(check => check.status === "failed") ? "failed" : checks.some(check => check.status === "running") ? "running" : checks.length && checks.every(check => check.status === "passed") ? "passed" : "unknown", rationale: checks.length ? "과거 실행에서 테스트 명령은 관측됐지만 VERIFY 이유는 기록되지 않았습니다." : "이 질문에 연결된 테스트를 관측하지 못했습니다.", checks });
+			const checks: RequestTestCheck[] = activities.flatMap(activity => {
+				if (activity.sequence <= request.sequence || activity.sequence >= end || !testLike(activity)) return [];
+				const command = commandOf(activity);
+				if (!command) return [];
+				return [{ id: activity.id, kind: kindOf(command), title: command, purpose: "검증 목적이 Runtime에 기록되지 않았습니다.", status: terminal(activity), command, evidenceActivityId: activity.id }];
+			});
+			const status: RequestTestStatus = checks.some(check => check.status === "failed") ? "failed" : checks.some(check => check.status === "running") ? "running" : checks.length && checks.every(check => check.status === "passed") ? "passed" : "unknown";
+			groups.push({ requestId: request.id, question: String(request.payload.text ?? "질문 원문 미관측"), status, rationale: checks.length ? "과거 실행에서 테스트 명령은 관측됐지만 VERIFY 이유는 기록되지 않았습니다." : "이 질문에 연결된 테스트를 관측하지 못했습니다.", checks });
 		}
 	}
 	const totals = emptyTotals();

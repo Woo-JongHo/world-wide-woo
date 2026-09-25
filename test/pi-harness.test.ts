@@ -1,12 +1,15 @@
-import { describe, expect, test } from "bun:test";
-import { PiHarness, type PiHarnessSdk, type PiSession } from "../src/adapters/outbound/execution/pi-harness.js";
-import { createNativeHarness, createProductionPiHarnessSdk, type PiSdkBindings } from "../src/adapters/outbound/execution/factory.js";
-import { assertPhaseANativeHarnessContract, assertPhaseATerminalContract, type NativeHarnessContractFixture } from "./native-harness.contract.js";
+import { describe, expect, test }                                          from "bun:test";
+import { PiHarness }                                                       from "../src/adapters/outbound/execution/pi-harness.js";
+import type { PiHarnessSdk, PiSession }                                    from "../src/adapters/outbound/execution/pi-harness.js";
+import { createNativeHarness, createProductionPiHarnessSdk }               from "../src/adapters/outbound/execution/factory.js";
+import type { PiSdkBindings }                                              from "../src/adapters/outbound/execution/factory.js";
+import { assertPhaseANativeHarnessContract, assertPhaseATerminalContract } from "./native-harness.contract.js";
+import type { NativeHarnessContractFixture }                               from "./native-harness.contract.js";
 
 class Deferred<T> {
-	public readonly promise: Promise<T>;
-	public resolve!: (value: T) => void;
-	public reject!: (error: Error) => void;
+	public readonly promise : Promise<T>             ;
+	public resolve!         : (value: T) => void     ;
+	public reject!          : (error: Error) => void ;
 	public constructor() {
 		this.promise = new Promise<T>((resolve, reject) => {
 			this.resolve = resolve;
@@ -20,13 +23,13 @@ type SessionEvent =
 	| { type: "reasoning-delta"; text: string };
 
 class FakePiSession implements PiSession {
-	public readonly promptResult = new Deferred<void>();
-	public readonly listeners = new Set<(event: SessionEvent) => void>();
-	public abortCalls = 0;
-	public promptCalls: string[] = [];
-	public prompt(text: string): Promise<void> { this.promptCalls.push(text); return this.promptResult.promise; }
-	public abort(): void { this.abortCalls += 1; }
-	public inspect(): Readonly<Record<string, unknown>> { return { messages: this.promptCalls }; }
+	public readonly promptResult = new Deferred<void>()                     ;
+	public readonly listeners    = new Set<(event: SessionEvent) => void>() ;
+	public abortCalls            = 0                                        ;
+	public promptCalls: string[] = []                                       ;
+	public prompt (text: string): Promise<void> { this.promptCalls.push(text); return this.promptResult.promise; }
+	public abort  ()            : void { this.abortCalls += 1; }
+	public inspect()            : Readonly<Record<string, unknown>> { return { messages: this.promptCalls }; }
 	public subscribe(listener: (event: SessionEvent) => void): () => void {
 		this.listeners.add(listener);
 		return () => this.listeners.delete(listener);
@@ -53,17 +56,17 @@ function fixture(): Promise<NativeHarnessContractFixture> {
 			sdk.sessions[0]?.emit({ type: "text-delta", text });
 			sdk.sessions[0]?.promptResult.resolve();
 		},
-		settleFailure: (error = new Error("Pi failed")) => sdk.sessions[0]?.promptResult.reject(error),
-		settleInterrupted: () => sdk.sessions[0]?.promptResult.reject(new DOMException("Interrupted", "AbortError")),
-		emitReasoning: text => sdk.sessions[0]?.emit({ type: "reasoning-delta", text }),
+		settleFailure     : (error = new Error("Pi failed")) => sdk.sessions[0]?.promptResult.reject(error),
+		settleInterrupted : () => sdk.sessions[0]?.promptResult.reject(new DOMException("Interrupted", "AbortError")),
+		emitReasoning     : text => sdk.sessions[0]?.emit({ type: "reasoning-delta", text }),
 	});
 }
 
 describe("PiHarness Phase A native compatibility", () => {
 	test("passes WWW request context into the Pi prompt instead of silently dropping it", async () => {
-		const sdk = new FakePiSdk();
-		const harness = new PiHarness({ sdk, provider: "openai-codex", model: "gpt-5.6-sol", effort: "high", systemPrompt: "WWW" });
-		const thread = await harness.startThread({ cwd: "/tmp" });
+		const sdk     = new FakePiSdk()                                                                                             ;
+		const harness = new PiHarness({ sdk, provider: "openai-codex", model: "gpt-5.6-sol", effort: "high", systemPrompt: "WWW" }) ;
+		const thread  = await harness.startThread({ cwd: "/tmp" })                                                                  ;
 		await harness.startTurn({ threadId: thread.id, text: "요청", additionalContext: { www_request_runtime: { kind: "application", value: "seven-stage-template" } } });
 		await Bun.sleep(5);
 		expect(sdk.sessions[0]?.promptCalls).toEqual(["요청\n\nseven-stage-template"]);
@@ -80,9 +83,9 @@ describe("PiHarness Phase A native compatibility", () => {
 	});
 
 	test("interrupts the active session and emits one interrupted terminal", async () => {
-		const sdk = new FakePiSdk();
-		const harness = new PiHarness({ sdk, provider: "openai-codex", model: "gpt-5.6-sol", effort: "low", systemPrompt: "WWW system prompt" });
-		const events: string[] = [];
+		const sdk              = new FakePiSdk()                                                                                                          ;
+		const harness          = new PiHarness({ sdk, provider: "openai-codex", model: "gpt-5.6-sol", effort: "low", systemPrompt: "WWW system prompt" }) ;
+		const events: string[] = []                                                                                                                       ;
 		harness.subscribe(event => {
 			if (event.type === "notification") events.push(event.method);
 		});
@@ -97,9 +100,9 @@ describe("PiHarness Phase A native compatibility", () => {
 	});
 
 	test("keeps an interrupted terminal when Pi resolves its prompt after abort", async () => {
-		const sdk = new FakePiSdk();
-		const harness = new PiHarness({ sdk, provider: "openai-codex", model: "gpt-5.6-sol", effort: "low", systemPrompt: "WWW system prompt" });
-		const events: string[] = [];
+		const sdk              = new FakePiSdk()                                                                                                          ;
+		const harness          = new PiHarness({ sdk, provider: "openai-codex", model: "gpt-5.6-sol", effort: "low", systemPrompt: "WWW system prompt" }) ;
+		const events: string[] = []                                                                                                                       ;
 		harness.subscribe(event => { if (event.type === "notification") events.push(event.method); });
 		const thread = await harness.startThread({ cwd: "/workspace" });
 		const turn = await harness.startTurn({ threadId: thread.id, text: "stop" });
@@ -111,9 +114,9 @@ describe("PiHarness Phase A native compatibility", () => {
 	});
 
 	test("interrupts before deferred Pi startup without issuing the prompt", async () => {
-		const sdk = new FakePiSdk();
-		const harness = new PiHarness({ sdk, provider: "openai-codex", model: "gpt-5.6-sol", effort: "low", systemPrompt: "WWW system prompt" });
-		const events: string[] = [];
+		const sdk              = new FakePiSdk()                                                                                                          ;
+		const harness          = new PiHarness({ sdk, provider: "openai-codex", model: "gpt-5.6-sol", effort: "low", systemPrompt: "WWW system prompt" }) ;
+		const events: string[] = []                                                                                                                       ;
 		harness.subscribe(event => { if (event.type === "notification") events.push(event.method); });
 		const thread = await harness.startThread({ cwd: "/workspace" });
 		const turn = await harness.startTurn({ threadId: thread.id, text: "must not run" });
@@ -124,10 +127,10 @@ describe("PiHarness Phase A native compatibility", () => {
 	});
 
 	test("rejects a concurrent turn and inspects only the current in-memory session", async () => {
-		const sdk = new FakePiSdk();
-		const harness = new PiHarness({ sdk, provider: "anthropic", model: "claude-sonnet", effort: "medium", systemPrompt: "WWW system prompt" });
-		const thread = await harness.startThread({ cwd: "/workspace" });
-		const receipt = await harness.startTurn({ threadId: thread.id, text: "first" });
+		const sdk     = new FakePiSdk()                                                                                                            ;
+		const harness = new PiHarness({ sdk, provider: "anthropic", model: "claude-sonnet", effort: "medium", systemPrompt: "WWW system prompt" }) ;
+		const thread  = await harness.startThread({ cwd: "/workspace" })                                                                           ;
+		const receipt = await harness.startTurn({ threadId: thread.id, text: "first" })                                                            ;
 		await Bun.sleep(5);
 		await expect(harness.startTurn({ threadId: thread.id, text: "second" })).rejects.toThrow("active");
 		expect(await harness.readThread({ threadId: thread.id, includeTurns: true })).toMatchObject({
@@ -160,16 +163,16 @@ describe("PiHarness Phase A native compatibility", () => {
 		const harness = new PiHarness({ sdk, provider: "anthropic", model: "claude-sonnet", effort: "high", systemPrompt: "WWW-owned prompt" });
 		await harness.startThread({ cwd: "/workspace" });
 		expect(sdk.createInputs).toEqual([expect.objectContaining({
-			cwd: "/workspace",
-			provider: "anthropic",
-			model: "claude-sonnet",
-			effort: "high",
-			systemPrompt: "WWW-owned prompt",
-			noTools: "all",
-			noExtensions: true,
-			noSkills: true,
-			noPromptTemplates: true,
-			noContextFiles: true,
+			cwd               : "/workspace",
+			provider          : "anthropic",
+			model             : "claude-sonnet",
+			effort            : "high",
+			systemPrompt      : "WWW-owned prompt",
+			noTools           : "all",
+			noExtensions      : true,
+			noSkills          : true,
+			noPromptTemplates : true,
+			noContextFiles    : true,
 		})]);
 	});
 
@@ -200,11 +203,11 @@ describe("PiHarness Phase A native compatibility", () => {
 	});
 
 	test("drives model resolution, restrictions, and public event mapping through the SDK seam", async () => {
-		let sessionInput: Readonly<Record<string, unknown>> | undefined;
-		let resourceInput: Readonly<Record<string, unknown>> | undefined;
-		let sdkListener: ((event: any) => void) | undefined;
-		const sdkMessages: unknown[] = [];
-		let nextMessage: unknown;
+		let sessionInput  : Readonly<Record<string, unknown>> | undefined ;
+		let resourceInput : Readonly<Record<string, unknown>> | undefined ;
+		let sdkListener   : ((event: any) => void) | undefined            ;
+		const sdkMessages : unknown[] = []                                ;
+		let nextMessage   : unknown                                       ;
 		const bindings: PiSdkBindings = {
 			createRuntime: async () => ({
 				getModel: (provider, model) => provider === "anthropic" && model === "claude-sonnet" ? { id: model } : undefined,
@@ -217,12 +220,12 @@ describe("PiHarness Phase A native compatibility", () => {
 			createSession: async input => {
 				sessionInput = input;
 				return {
-					prompt: async () => { if (nextMessage) sdkMessages.push(nextMessage); },
-					abort: async () => undefined,
-					dispose: () => undefined,
-					state: { messages: sdkMessages },
-					isStreaming: false,
-					subscribe: listener => { sdkListener = listener; return () => undefined; },
+					prompt      : async () => { if (nextMessage) sdkMessages.push(nextMessage); },
+					abort       : async () => undefined,
+					dispose     : () => undefined,
+					state       : { messages: sdkMessages },
+					isStreaming : false,
+					subscribe   : listener => { sdkListener = listener; return () => undefined; },
 				};
 			},
 			inMemorySession: cwd => ({ cwd, persistence: false }),
@@ -254,10 +257,10 @@ describe("PiHarness Phase A native compatibility", () => {
 
 	test("requires WWW-owned instructions before constructing the production Pi lane", async () => {
 		await expect(createNativeHarness({
-			executionLane: "pi",
-			provider: "anthropic",
-			model: "claude-sonnet",
-			effort: "high",
+			executionLane : "pi",
+			provider      : "anthropic",
+			model         : "claude-sonnet",
+			effort        : "high",
 		})).rejects.toThrow("WWW-owned system prompt");
 	});
 });

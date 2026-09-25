@@ -1,36 +1,45 @@
-import { expect, test } from "bun:test";
+import { expect, test }                                              from "bun:test";
 import {
 	Markdown,
 	getScrollRowCount,
 	readScrollRows,
 	stripTerminalSequences,
 	truncateToWidth,
-	type Component,
-	type ScrollRowSource,
 } from "@earendil-works/pi-tui";
+import type { Component, ScrollRowSource }                           from "@earendil-works/pi-tui";
 import { getScrollViewBox, getScrollbarGeometry, renderLayoutFrame } from "@earendil-works/pi-tui/dist/layout.js";
-import { AstraTranscriptView, astraConversationLabels } from "../src/adapters/inbound/tui/features/chat/astra-execution";
-import { ChatScrollView } from "../src/adapters/inbound/tui/features/chat/chat-scroll.view";
-import { AstraInset, AstraWorkspace } from "../src/adapters/inbound/tui/shell/astra-surface";
-import { a, astraMarkdownTheme, astraTitle, fit, pair, safe } from "../src/adapters/inbound/tui/foundation/theme/astra-theme";
-import { astraFixture } from "./fixtures/astra-snapshot";
+import {
+	AstraTranscriptView,
+	astraConversationLabels,
+} from "../src/adapters/inbound/tui/features/chat/astra-execution";
+import { ChatScrollView }                                            from "../src/adapters/inbound/tui/features/chat/chat-scroll.view";
+import { AstraInset, AstraWorkspace }                                from "../src/adapters/inbound/tui/shell/astra-surface";
+import {
+	a,
+	astraMarkdownTheme,
+	astraTitle,
+	fit,
+	pair,
+	safe,
+} from "../src/adapters/inbound/tui/foundation/theme/astra-theme";
+import { astraFixture }                                              from "./fixtures/astra-snapshot";
 
 function history(count: number) {
 	const snapshot = astraFixture("ready");
 	const activity = snapshot.activities[0]!;
 	snapshot.chat = Array.from({ length: count }, (_, index) => ({
-		id: `message-${index}`,
-		activityId: `activity-${index}`,
-		role: index % 2 ? "assistant" as const : "user" as const,
-		content: `marker-${index} 한글 👩🏽‍💻 e\u0301\n두 번째 줄 ${"wrap ".repeat(index % 7)}`,
-		status: "completed" as const,
+		id         : `message-${index}`,
+		activityId : `activity-${index}`,
+		role       : index % 2 ? "assistant" as const : "user" as const,
+		content    : `marker-${index} 한글 👩🏽‍💻 e\u0301\n두 번째 줄 ${"wrap ".repeat(index % 7)}`,
+		status     : "completed" as const,
 	}));
 	snapshot.activities = snapshot.chat.map((message, index) => ({
 		...activity,
-		id: message.activityId,
-		sequence: index + 1,
-		nativeRefs: { threadId: "lazy-thread", turnId: `turn-${index}`, itemId: message.id },
-		payload: { role: message.role, text: message.content },
+		id         : message.activityId,
+		sequence   : index + 1,
+		nativeRefs : { threadId: "lazy-thread", turnId: `turn-${index}`, itemId: message.id },
+		payload    : { role: message.role, text: message.content },
 	}));
 	snapshot.threadId = "lazy-thread";
 	snapshot.journalSequence = snapshot.activities.length;
@@ -63,18 +72,18 @@ function immutableLargeBodyHistory(count: number, bodyBytes = 4 * 1024) {
 function responseFrameOracle(label: string, status: string, bodyRows: readonly string[], width: number): string[] {
 	const title = astraTitle(label, a.response);
 	if (width < 5) return ["", pair(title, a.muted(status), width), ...bodyRows, ""].map(row => fit(row, width));
-	const inside = width - 2;
-	const heading = truncateToWidth(` ${title}${status ? `  ${a.muted(status)}` : ""} `, width - 2, "…");
-	const body = bodyRows.map(row => `${a.rule("│")} ${fit(row, inside)}`);
+	const inside  = width - 2                                                                            ;
+	const heading = truncateToWidth(` ${title}${status ? `  ${a.muted(status)}` : ""} `, width - 2, "…") ;
+	const body    = bodyRows.map(row => `${a.rule("│")} ${fit(row, inside)}`)                            ;
 	return ["", fit(heading, width), ...body, ""].map(row => fit(row, width));
 }
 
 /** Independent dense composition for this message-only fixture. */
 function denseOracle(snapshot: ReturnType<typeof history>, insetWidth: number): string[] {
-	const transcriptWidth = insetWidth > 8 ? insetWidth - 4 : insetWidth;
-	const labels = astraConversationLabels(snapshot.chat);
-	const byActivity = new Map(snapshot.chat.map(message => [message.activityId, message]));
-	const rows: string[] = [];
+	const transcriptWidth = insetWidth > 8 ? insetWidth - 4 : insetWidth                         ;
+	const labels          = astraConversationLabels(snapshot.chat)                               ;
+	const byActivity      = new Map(snapshot.chat.map(message => [message.activityId, message])) ;
+	const rows: string[]  = []                                                                   ;
 	for (const activity of snapshot.activities) {
 		const message = byActivity.get(activity.id)!;
 		const ink = message.role === "user" ? a.request : a.response;
@@ -112,13 +121,13 @@ test("실제 AstraWorkspace frame은 dense oracle과 같고 viewport 범위만 �
 		};
 	};
 
-	const frame = renderLayoutFrame(workspace.component, 80, 20, () => undefined);
-	const scroll = workspace.scrolls.execution;
-	const box = getScrollViewBox(frame, scroll)!;
+	const frame  = renderLayoutFrame(workspace.component, 80, 20, () => undefined) ;
+	const scroll = workspace.scrolls.execution                                     ;
+	const box    = getScrollViewBox(frame, scroll)!                                ;
 	expect(box.scrollContent).toBeDefined();
-	const frameRequests = requests.slice();
-	const full = readScrollRows(box.scrollContent!, 0, box.children[0]!.rect.height);
-	const dense = denseOracle(snapshot, box.children[0]!.rect.width);
+	const frameRequests = requests.slice()                                                    ;
+	const full          = readScrollRows(box.scrollContent!, 0, box.children[0]!.rect.height) ;
+	const dense         = denseOracle(snapshot, box.children[0]!.rect.width)                  ;
 
 	expect(full).toEqual(dense);
 	expect(frameRequests.length).toBeGreaterThan(0);
@@ -135,11 +144,11 @@ test("실제 AstraWorkspace frame은 새 volatile draft를 count와 paint 사이
 	snapshot = { ...snapshot, phase: "working", draft };
 	workspace.transcript.update(snapshot);
 
-	const frame = renderLayoutFrame(workspace.component, 80, 20, () => undefined);
-	const box = getScrollViewBox(frame, workspace.scrolls.execution)!;
-	const after = workspace.transcript.cacheMetrics();
-	const full = readScrollRows(box.scrollContent!, 0, getScrollRowCount(box.scrollContent!));
-	const dense = new AstraInset(new AstraTranscriptView(snapshot)).render(box.children[0]!.rect.width);
+	const frame = renderLayoutFrame(workspace.component, 80, 20, () => undefined)                       ;
+	const box   = getScrollViewBox(frame, workspace.scrolls.execution)!                                 ;
+	const after = workspace.transcript.cacheMetrics()                                                   ;
+	const full  = readScrollRows(box.scrollContent!, 0, getScrollRowCount(box.scrollContent!))          ;
+	const dense = new AstraInset(new AstraTranscriptView(snapshot)).render(box.children[0]!.rect.width) ;
 
 	expect(full).toEqual(dense);
 	expect(stripTerminalSequences(frame.lines.join("\n"))).toContain("긴 문단");
@@ -155,11 +164,11 @@ test("두 폭을 방문한 immutable large-body history의 durable append는 기
 	renderLayoutFrame(workspace.component, 120, 24, () => undefined);
 	const before = workspace.transcript.cacheMetrics();
 
-	const content = "large-body-append-marker 한글 👩🏽‍💻 e\u0301";
-	const sequence = snapshot.activities.length + 1;
-	const id = `message-${sequence}`;
-	const activityId = `activity-${sequence}`;
-	const prototype = snapshot.activities.at(-1)!;
+	const content    = "large-body-append-marker 한글 👩🏽‍💻 e\u0301" ;
+	const sequence   = snapshot.activities.length + 1               ;
+	const id         = `message-${sequence}`                        ;
+	const activityId = `activity-${sequence}`                       ;
+	const prototype  = snapshot.activities.at(-1)!                  ;
 	const activity = {
 		...prototype,
 		id: activityId,
@@ -169,20 +178,20 @@ test("두 폭을 방문한 immutable large-body history의 durable append는 기
 	} as const;
 	snapshot = deepFreezeFixture({
 		...snapshot,
-		revision: snapshot.revision + 1,
-		journalSequence: sequence,
-		activities: [...snapshot.activities, activity],
-		chat: [...snapshot.chat, { id, activityId, role: "assistant" as const, content, status: "completed" as const }],
+		revision        : snapshot.revision + 1,
+		journalSequence : sequence,
+		activities      : [...snapshot.activities, activity],
+		chat            : [...snapshot.chat, { id, activityId, role: "assistant" as const, content, status: "completed" as const }],
 	});
 	workspace.transcript.update(snapshot);
 
-	const frame = renderLayoutFrame(workspace.component, 80, 24, () => undefined);
-	const box = getScrollViewBox(frame, workspace.scrolls.execution)!;
-	const afterFirstFrame = workspace.transcript.cacheMetrics();
-	const rowCount = getScrollRowCount(box.scrollContent!);
-	const full = readScrollRows(box.scrollContent!, 0, rowCount);
-	const freshPublicReference = new AstraInset(new AstraTranscriptView(snapshot)).render(box.children[0]!.rect.width);
-	const plain = stripTerminalSequences(full.join("\n"));
+	const frame                = renderLayoutFrame(workspace.component, 80, 24, () => undefined)                       ;
+	const box                  = getScrollViewBox(frame, workspace.scrolls.execution)!                                 ;
+	const afterFirstFrame      = workspace.transcript.cacheMetrics()                                                   ;
+	const rowCount             = getScrollRowCount(box.scrollContent!)                                                 ;
+	const full                 = readScrollRows(box.scrollContent!, 0, rowCount)                                       ;
+	const freshPublicReference = new AstraInset(new AstraTranscriptView(snapshot)).render(box.children[0]!.rect.width) ;
+	const plain                = stripTerminalSequences(full.join("\n"))                                               ;
 
 	expect(full).toEqual(freshPublicReference);
 	expect(box.children[0]!.rect.height).toBe(rowCount);
@@ -248,9 +257,9 @@ test("exact height는 follow-tail, disable-follow와 scrollbar geometry를 유�
 	let snapshot = history(300);
 	const workspace = new AstraWorkspace(() => snapshot, () => []);
 	workspace.toggleSidebar();
-	const scroll = workspace.scrolls.execution;
-	let frame = renderLayoutFrame(workspace.component, 80, 20, () => undefined);
-	let box = getScrollViewBox(frame, scroll)!;
+	const scroll = workspace.scrolls.execution                                     ;
+	let frame    = renderLayoutFrame(workspace.component, 80, 20, () => undefined) ;
+	let box      = getScrollViewBox(frame, scroll)!                                ;
 	expect(box.children[0]!.rect.height).toBe(getScrollRowCount(box.scrollContent!));
 	expect(scroll.scrollTop).toBe(box.children[0]!.rect.height - box.rect.height);
 
@@ -305,9 +314,9 @@ test("중복 본문 anchor는 실제 dense와 lazy frame에서 같은 first-matc
 		invalidate: () => denseTranscript.invalidate(),
 		render: width => denseTranscript.render(width),
 	};
-	const options = { follow: "end" as const, primary: true, overscroll: "contain" as const, scrollbar: "auto" as const };
-	const lazyScroll = new ChatScrollView(new AstraInset(lazyTranscript), options);
-	const denseScroll = new ChatScrollView(new AstraInset(denseCompatibility), options);
+	const options     = { follow: "end" as const, primary: true, overscroll: "contain" as const, scrollbar: "auto" as const } ;
+	const lazyScroll  = new ChatScrollView(new AstraInset(lazyTranscript), options)                                           ;
+	const denseScroll = new ChatScrollView(new AstraInset(denseCompatibility), options)                                       ;
 
 	renderLayoutFrame(lazyScroll, 120, 20, () => undefined);
 	renderLayoutFrame(denseScroll, 120, 20, () => undefined);
@@ -331,16 +340,16 @@ test("과거를 읽을 때 volatile draft handoff는 marker와 disable-follow를
 	const scroll = workspace.scrolls.execution;
 	renderLayoutFrame(workspace.component, 120, 20, () => undefined);
 	scroll.scrollTo(120, { disableFollow: true });
-	const beforeFrame = renderLayoutFrame(workspace.component, 120, 20, () => undefined);
-	const marker = /marker-\d+/u.exec(beforeFrame.lines.map(stripTerminalSequences).join("\n"))?.[0];
-	const beforeTop = scroll.scrollTop;
-	const beforeMetrics = workspace.transcript.cacheMetrics();
+	const beforeFrame   = renderLayoutFrame(workspace.component, 120, 20, () => undefined)                  ;
+	const marker        = /marker-\d+/u.exec(beforeFrame.lines.map(stripTerminalSequences).join("\n"))?.[0] ;
+	const beforeTop     = scroll.scrollTop                                                                  ;
+	const beforeMetrics = workspace.transcript.cacheMetrics()                                               ;
 	snapshot = { ...snapshot, phase: "working", draft: "새 응답 👩🏽‍💻 e\u0301\n\n```ts\nconst partial = true;" + " tail".repeat(1_000) };
 	workspace.transcript.update(snapshot);
 
-	const afterFrame = renderLayoutFrame(workspace.component, 120, 20, () => undefined);
-	const afterMetrics = workspace.transcript.cacheMetrics();
-	const visible = afterFrame.lines.map(stripTerminalSequences).join("\n");
+	const afterFrame   = renderLayoutFrame(workspace.component, 120, 20, () => undefined) ;
+	const afterMetrics = workspace.transcript.cacheMetrics()                              ;
+	const visible      = afterFrame.lines.map(stripTerminalSequences).join("\n")          ;
 
 	expect(marker).toBeDefined();
 	expect(visible).toContain(marker!);

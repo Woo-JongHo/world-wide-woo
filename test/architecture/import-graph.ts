@@ -1,7 +1,11 @@
-import { readFile } from "node:fs/promises";
+import { readFile }                 from "node:fs/promises";
 import { dirname, join, normalize } from "node:path";
 
-export interface SourceNode { readonly path: string; readonly text: string; readonly imports: readonly string[] }
+export interface SourceNode {
+	readonly path    : string            ;
+	readonly text    : string            ;
+	readonly imports : readonly string[] ;
+}
 
 export async function loadSourceGraph(root = "src"): Promise<ReadonlyMap<string, SourceNode>> {
 	const raw: Array<{ path: string; text: string }> = [];
@@ -33,10 +37,10 @@ export function reachableSources(graph: ReadonlyMap<string, SourceNode>, entry: 
 export function layer(path: string): string { return path.split("/")[0] ?? path; }
 
 export function relativeCycles(graph: ReadonlyMap<string, SourceNode>): string[][] {
-	const cycles: string[][] = [];
-	const visited = new Set<string>();
-	const active = new Set<string>();
-	const stack: string[] = [];
+	const cycles : string[][] = []                ;
+	const visited             = new Set<string>() ;
+	const active              = new Set<string>() ;
+	const stack  : string[]   = []                ;
 	const visit = (path: string): void => {
 		if (active.has(path)) { const start = stack.indexOf(path); cycles.push([...stack.slice(start), path]); return; }
 		if (visited.has(path)) return;

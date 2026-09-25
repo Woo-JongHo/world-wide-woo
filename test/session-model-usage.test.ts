@@ -1,11 +1,11 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test }       from "bun:test";
 import { SessionModelUsageAccumulator } from "../src/core/application/session/session-model-usage";
 
 describe("SessionModelUsageAccumulator", () => {
 	test("aggregates detached model calls and publishes immutable session snapshots", () => {
-		const usage = new SessionModelUsageAccumulator();
-		let notifications = 0;
-		const unsubscribe = usage.subscribe(() => { notifications += 1; });
+		const usage       = new SessionModelUsageAccumulator()             ;
+		let notifications = 0                                              ;
+		const unsubscribe = usage.subscribe(() => { notifications += 1; }) ;
 
 		usage.observe({ model: "gpt-5.6-luna", effort: null, totalTokens: 1_200 });
 		usage.observe({ model: "gpt-5.6-luna", effort: null, totalTokens: 800 });

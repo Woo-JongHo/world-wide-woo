@@ -4,11 +4,13 @@ import {
 	assertCanonicalDocumentDraft,
 	canonicalMarkdownDiff,
 	targetForCanonicalDocument,
-	type CanonicalDocumentDraft,
-	type CanonicalDocumentDraftInput,
-	type CanonicalDocumentTarget,
-} from "../../domain/work/canonical-document";
-import { sanitizeTerminalText } from "../../domain/execution/terminal";
+} from "@/core/domain/work/canonical-document";
+import type {
+	CanonicalDocumentDraft,
+	CanonicalDocumentDraftInput,
+	CanonicalDocumentTarget,
+} from "@/core/domain/work/canonical-document";
+import { sanitizeTerminalText }   from "@/core/domain/execution/terminal";
 
 export interface StoredCanonicalDocument {
 	readonly body: string;
@@ -26,34 +28,34 @@ export interface CanonicalDocumentStore {
 }
 
 export interface AcceptedCanonicalPromotion {
-	readonly status: "accepted";
-	readonly gitState: "uncommitted";
-	readonly token: string;
-	readonly acceptedAt: string;
-	readonly acceptedBy: string;
-	readonly target: CanonicalDocumentTarget;
-	readonly beforeDigest: string;
-	readonly afterDigest: string;
-	readonly diff: string;
+	readonly status       : "accepted"              ;
+	readonly gitState     : "uncommitted"           ;
+	readonly token        : string                  ;
+	readonly acceptedAt   : string                  ;
+	readonly acceptedBy   : string                  ;
+	readonly target       : CanonicalDocumentTarget ;
+	readonly beforeDigest : string                  ;
+	readonly afterDigest  : string                  ;
+	readonly diff         : string                  ;
 }
 
 export interface PromotedCanonicalPromotion {
-	readonly status: "promoted";
-	readonly gitState: "uncommitted";
-	readonly target: CanonicalDocumentTarget;
-	readonly beforeDigest: string;
-	readonly afterDigest: string;
-	readonly diff: string;
+	readonly status       : "promoted"              ;
+	readonly gitState     : "uncommitted"           ;
+	readonly target       : CanonicalDocumentTarget ;
+	readonly beforeDigest : string                  ;
+	readonly afterDigest  : string                  ;
+	readonly diff         : string                  ;
 }
 
 export interface StaleCanonicalPromotion {
-	readonly status: "stale";
-	readonly gitState: "uncommitted";
-	readonly reason: "unknown-token" | "draft-changed" | "target-changed";
-	readonly target: CanonicalDocumentTarget;
-	readonly beforeDigest: string;
-	readonly afterDigest: string;
-	readonly diff: string;
+	readonly status       : "stale"                                              ;
+	readonly gitState     : "uncommitted"                                        ;
+	readonly reason       : "unknown-token" | "draft-changed" | "target-changed" ;
+	readonly target       : CanonicalDocumentTarget                              ;
+	readonly beforeDigest : string                                               ;
+	readonly afterDigest  : string                                               ;
+	readonly diff         : string                                               ;
 }
 
 export type CanonicalPromotionResult = AcceptedCanonicalPromotion | PromotedCanonicalPromotion | StaleCanonicalPromotion;
@@ -64,10 +66,10 @@ interface PendingAcceptance {
 }
 
 interface CanonicalDocumentFingerprint {
-	readonly bodyDigest: string;
-	readonly sourceDigest: string;
-	readonly targetDigest: string;
-	readonly digest: string;
+	readonly bodyDigest   : string ;
+	readonly sourceDigest : string ;
+	readonly targetDigest : string ;
+	readonly digest       : string ;
 }
 
 /**
@@ -93,10 +95,10 @@ export class CanonicalPromotionService {
 			token,
 			acceptedAt: new Date().toISOString(),
 			acceptedBy,
-			target: draft.target,
-			beforeDigest: current.digest,
-			afterDigest: digestCanonicalDocument(draft.body),
-			diff: canonicalMarkdownDiff(current.body, draft.body),
+			target       : draft.target,
+			beforeDigest : current.digest,
+			afterDigest  : digestCanonicalDocument(draft.body),
+			diff         : canonicalMarkdownDiff(current.body, draft.body),
 		};
 	}
 
@@ -118,12 +120,12 @@ export class CanonicalPromotionService {
 		if (write.status === "conflict") return stale("target-changed", draft.target, write.document.body, write.document.digest, draft.body);
 		this.pending.delete(token);
 		return {
-			status: "promoted",
-			gitState: "uncommitted",
-			target: draft.target,
-			beforeDigest: current.digest,
-			afterDigest: write.document.digest,
-			diff: canonicalMarkdownDiff(current.body, write.document.body),
+			status       : "promoted",
+			gitState     : "uncommitted",
+			target       : draft.target,
+			beforeDigest : current.digest,
+			afterDigest  : write.document.digest,
+			diff         : canonicalMarkdownDiff(current.body, write.document.body),
 		};
 	}
 }
@@ -136,10 +138,10 @@ export function createCanonicalDocumentDraft(input: CanonicalDocumentDraftInput)
 		schemaVersion: CANONICAL_DOCUMENT_SCHEMA_VERSION,
 		kind: input.kind,
 		body,
-		source: { id: input.source.id, kind: input.kind, digest: digestCanonicalDocument(input.source.body) },
-		provenance: input.provenance,
-		redaction: { policy: "www-v1", bodyDigest: digestCanonicalDocument(body) },
-		target: targetForCanonicalDocument(input.kind, input.source.id),
+		source     : { id: input.source.id, kind: input.kind, digest: digestCanonicalDocument(input.source.body) },
+		provenance : input.provenance,
+		redaction  : { policy: "www-v1", bodyDigest: digestCanonicalDocument(body) },
+		target     : targetForCanonicalDocument(input.kind, input.source.id),
 	};
 	assertPromotionDraft(draft);
 	return draft;
@@ -152,9 +154,9 @@ export function digestCanonicalDocument(value: string): string {
 export function fingerprintCanonicalDocument(draft: CanonicalDocumentDraft, targetDigest: string): CanonicalDocumentFingerprint {
 	assertPromotionDraft(draft);
 	if (!isDigest(targetDigest)) throw new Error("대상 문서 digest가 유효하지 않습니다.");
-	const bodyDigest = digestCanonicalDocument(draft.body);
-	const sourceDigest = draft.source.digest;
-	const digest = digestCanonicalDocument(`${bodyDigest}\n${sourceDigest}\n${targetDigest}\n${draft.target}`);
+	const bodyDigest   = digestCanonicalDocument(draft.body)                                                         ;
+	const sourceDigest = draft.source.digest                                                                         ;
+	const digest       = digestCanonicalDocument(`${bodyDigest}\n${sourceDigest}\n${targetDigest}\n${draft.target}`) ;
 	return { bodyDigest, sourceDigest, targetDigest, digest };
 }
 

@@ -1,5 +1,5 @@
-import type { NativeThreadSummary } from "../../../core/domain/execution/native-session.js";
-import { CodexAppServer } from "../execution/codex-app-server.js";
+import type { NativeThreadSummary } from "@/core/domain/execution/native-session.js";
+import { CodexAppServer }           from "@/adapters/outbound/execution/codex-app-server.js";
 
 /** Native thread 목록의 정본은 App Server다. 로컬 activity journal은 사용하지 않는다. */
 export async function listNativeThreads(cwd = process.cwd(), limit = 20): Promise<readonly NativeThreadSummary[]> {

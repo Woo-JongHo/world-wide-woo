@@ -1,6 +1,7 @@
-import { describe, expect, test } from "bun:test";
-import type { ProjectActivity } from "../src/core/domain/execution/project-activity";
-import { type DplanHash, DplanIdentityCollisionError, projectWorkFlow } from "../src/core/domain/work";
+import { describe, expect, test }                       from "bun:test";
+import type { ProjectActivity }                         from "../src/core/domain/execution/project-activity";
+import { DplanIdentityCollisionError, projectWorkFlow } from "../src/core/domain/work";
+import type { DplanHash }                               from "../src/core/domain/work";
 
 const hash: DplanHash = {
 	sha256Hex: (input) => new Bun.CryptoHasher("sha256").update(input).digest("hex"),
@@ -13,17 +14,17 @@ function activity(
 	refs: Record<string, string> = {},
 ): ProjectActivity {
 	return {
-		schemaVersion: 1,
-		id: `a-${sequence}`,
-		projectId: "p",
+		schemaVersion : 1,
+		id            : `a-${sequence}`,
+		projectId     : "p",
 		sequence,
-		recordedAt: "2026-09-01T00:00:00.000Z",
-		kind: method === "item/completed" ? "file-change" : "progress",
-		phase: "completed",
-		provider: "native",
-		nativeRefs: { threadId: "thread-1", turnId: "turn-1", ...refs },
-		sourceDigest: `sha256:${String(sequence).padStart(64, "0")}`,
-		payload: { method, ...payload },
+		recordedAt   : "2026-09-01T00:00:00.000Z",
+		kind         : method === "item/completed" ? "file-change" : "progress",
+		phase        : "completed",
+		provider     : "native",
+		nativeRefs   : { threadId: "thread-1", turnId: "turn-1", ...refs },
+		sourceDigest : `sha256:${String(sequence).padStart(64, "0")}`,
+		payload      : { method, ...payload },
 	};
 }
 function plan(sequence: number, entries: readonly Record<string, unknown>[], refs: Record<string, string> = {}) {
@@ -63,18 +64,18 @@ describe("dplan-v1", () => {
 		], new Map(), input);
 
 		expect(result.steps.map(({ title, status }) => ({ title, status }))).toEqual([
-			{ title: "README.md 읽기", status: "completed" },
-			{ title: "구현하기", status: "running" },
-			{ title: "검증 대기", status: "pending" },
-			{ title: "실패 확인", status: "failed" },
-			{ title: "취소 확인", status: "cancelled" },
-			{ title: "한국어 대기", status: "pending" },
-			{ title: "한국어 진행", status: "running" },
-			{ title: "한국어 실패", status: "failed" },
-			{ title: "한국어 취소", status: "cancelled" },
-			{ title: "bracket prefix", status: "completed" },
-			{ title: "bracket suffix", status: "pending" },
-			{ title: "plain numbered title", status: "running" },
+			{ title : "README.md 읽기"       , status : "completed" },
+			{ title : "구현하기"             , status : "running"   },
+			{ title : "검증 대기"            , status : "pending"   },
+			{ title : "실패 확인"            , status : "failed"    },
+			{ title : "취소 확인"            , status : "cancelled" },
+			{ title : "한국어 대기"          , status : "pending"   },
+			{ title : "한국어 진행"          , status : "running"   },
+			{ title : "한국어 실패"          , status : "failed"    },
+			{ title : "한국어 취소"          , status : "cancelled" },
+			{ title : "bracket prefix"       , status : "completed" },
+			{ title : "bracket suffix"       , status : "pending"   },
+			{ title : "plain numbered title" , status : "running"   },
 		]);
 	});
 	test("parses top-level bullets with numbered entries in document order", () => {
@@ -92,12 +93,12 @@ describe("dplan-v1", () => {
 		], new Map(), input);
 
 		expect(result.steps.map(({ number, title, status }) => ({ number, title, status }))).toEqual([
-			{ number: 1, title: "첫 bullet", status: "completed" },
-			{ number: 2, title: "첫 numbered", status: "running" },
-			{ number: 3, title: "둘째 bullet", status: "completed" },
-			{ number: 4, title: "셋째 bullet", status: "pending" },
-			{ number: 5, title: "넷째 bullet", status: "failed" },
-			{ number: 6, title: "둘째 numbered", status: "cancelled" },
+			{ number : 1 , title : "첫 bullet"     , status : "completed" },
+			{ number : 2 , title : "첫 numbered"   , status : "running"   },
+			{ number : 3 , title : "둘째 bullet"   , status : "completed" },
+			{ number : 4 , title : "셋째 bullet"   , status : "pending"   },
+			{ number : 5 , title : "넷째 bullet"   , status : "failed"    },
+			{ number : 6 , title : "둘째 numbered" , status : "cancelled" },
 		]);
 	});
 	test.each([2, 12])("accepts %i plain numbered Native steps only beneath an explicit plan heading", (count) => {
@@ -128,9 +129,9 @@ describe("dplan-v1", () => {
 		], new Map(), input);
 
 		expect(result.steps.map(({ title, status }) => ({ title, status }))).toEqual([
-			{ title: "표기 추출", status: "running" },
-			{ title: "의미 비교", status: "pending" },
-			{ title: "결과 정리", status: "pending" },
+			{ title : "표기 추출" , status : "running" },
+			{ title : "의미 비교" , status : "pending" },
+			{ title : "결과 정리" , status : "pending" },
 		]);
 	});
 	test.each([
@@ -286,9 +287,9 @@ describe("dplan-v1", () => {
 			input,
 		);
 		expect(result.steps[0]!.association).toEqual({
-			attribution: "inferred",
-			activityIds: ["a-3", "a-5"],
-			observationActivityIds: [],
+			attribution            : "inferred",
+			activityIds            : ["a-3", "a-5"],
+			observationActivityIds : [],
 			sources: [
 				{
 					turnId: "turn-1",
@@ -391,9 +392,9 @@ describe("dplan-v1", () => {
 		const result = projectWorkFlow(
 			[start(), plan(2, [{ step: "A", status: "inProgress" }]), activity(3, "item/completed", { params: { item: {} } }), {
 				...observation,
-				sequence: 4,
-				id: "a-4",
-				sourceDigest: `sha256:${"4".padStart(64, "0")}`,
+				sequence     : 4,
+				id           : "a-4",
+				sourceDigest : `sha256:${"4".padStart(64, "0")}`,
 			}, plan(5, [])],
 			new Map(),
 			input,
@@ -401,18 +402,18 @@ describe("dplan-v1", () => {
 		expect(result.retirements[0]).toMatchObject({ reason: "deleted" });
 		expect(result.orphans).toEqual(expect.arrayContaining([
 			expect.objectContaining({
-				activityId: "a-3",
-				activityKind: "action",
-				reason: "deleted",
-				priorIdentity: result.retirements[0]!.identity.value,
-				currentRevision: result.retirements[0]!.retiredBy,
+				activityId      : "a-3",
+				activityKind    : "action",
+				reason          : "deleted",
+				priorIdentity   : result.retirements[0]!.identity.value,
+				currentRevision : result.retirements[0]!.retiredBy,
 			}),
 			expect.objectContaining({
-				activityId: "a-4",
-				activityKind: "observation",
-				reason: "deleted",
-				priorIdentity: result.retirements[0]!.identity.value,
-				currentRevision: result.retirements[0]!.retiredBy,
+				activityId      : "a-4",
+				activityKind    : "observation",
+				reason          : "deleted",
+				priorIdentity   : result.retirements[0]!.identity.value,
+				currentRevision : result.retirements[0]!.retiredBy,
 			}),
 		]));
 	});
@@ -493,9 +494,9 @@ describe("dplan-v1", () => {
 	test("uses the selected turn's outbound request as the public goal", () => {
 		const message = {
 			...activity(1, "message"),
-			kind: "message" as const,
-			payload: { method: "message", direction: "outbound", text: "선택된 목표" },
-			sourceDigest: `sha256:${"1".padStart(64, "0")}`,
+			kind         : "message" as const,
+			payload      : { method: "message", direction: "outbound", text: "선택된 목표" },
+			sourceDigest : `sha256:${"1".padStart(64, "0")}`,
 		};
 		const result = projectWorkFlow(
 			[
@@ -509,9 +510,9 @@ describe("dplan-v1", () => {
 		expect(result.goal).toBe("선택된 목표");
 	});
 	test("requires the selected turn start to match the expected thread", () => {
-		const foreignStart = { ...start(), nativeRefs: { threadId: "foreign", turnId: "turn-1" } };
-		const localPlan = plan(2, [{ step: "A", status: "inProgress" }]);
-		const result = projectWorkFlow([foreignStart, localPlan], new Map(), input);
+		const foreignStart = { ...start(), nativeRefs: { threadId: "foreign", turnId: "turn-1" } } ;
+		const localPlan    = plan(2, [{ step: "A", status: "inProgress" }])                        ;
+		const result       = projectWorkFlow([foreignStart, localPlan], new Map(), input)          ;
 
 		expect(result.source).toBeNull();
 		expect(result.steps).toEqual([]);
@@ -539,24 +540,24 @@ describe("dplan-v1", () => {
 	test("uses only the selected turn's preceding outbound request and sanitizes it", () => {
 		const earlier = {
 			...activity(1, "message"),
-			kind: "message" as const,
-			payload: { method: "message", direction: "outbound", text: "/private/secret" },
-			sourceDigest: `sha256:${"1".padStart(64, "0")}`,
+			kind         : "message" as const,
+			payload      : { method: "message", direction: "outbound", text: "/private/secret" },
+			sourceDigest : `sha256:${"1".padStart(64, "0")}`,
 		};
 		const selectedStart = { ...start(), sequence: 2, id: "a-2", sourceDigest: `sha256:${"2".padStart(64, "0")}` };
 		const selectedPlan = plan(3, [{ step: "A", status: "inProgress" }]);
 		const foreignStart = {
 			...start(),
-			sequence: 4,
-			id: "a-4",
-			nativeRefs: { threadId: "thread-1", turnId: "turn-2" },
-			sourceDigest: `sha256:${"4".padStart(64, "0")}`,
+			sequence     : 4,
+			id           : "a-4",
+			nativeRefs   : { threadId: "thread-1", turnId: "turn-2" },
+			sourceDigest : `sha256:${"4".padStart(64, "0")}`,
 		};
 		const sensitive = {
 			...activity(5, "message"),
-			kind: "message" as const,
-			payload: { method: "message", direction: "outbound", text: "/private/secret" },
-			sourceDigest: `sha256:${"5".padStart(64, "0")}`,
+			kind         : "message" as const,
+			payload      : { method: "message", direction: "outbound", text: "/private/secret" },
+			sourceDigest : `sha256:${"5".padStart(64, "0")}`,
 		};
 		const result = projectWorkFlow([earlier, selectedStart, selectedPlan, foreignStart, sensitive], new Map(), input);
 		expect(result.goal).not.toContain("/private/secret");
@@ -566,10 +567,10 @@ describe("dplan-v1", () => {
 		const repeated = { ...start(), sequence: 3, id: "a-3", sourceDigest: `sha256:${"3".padStart(64, "0")}` };
 		const foreign = {
 			...start(),
-			sequence: 4,
-			id: "a-4",
-			nativeRefs: { threadId: "foreign", turnId: "foreign-turn" },
-			sourceDigest: `sha256:${"4".padStart(64, "0")}`,
+			sequence     : 4,
+			id           : "a-4",
+			nativeRefs   : { threadId: "foreign", turnId: "foreign-turn" },
+			sourceDigest : `sha256:${"4".padStart(64, "0")}`,
 		};
 		const result = projectWorkFlow(
 			[

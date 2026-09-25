@@ -1,20 +1,25 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test }               from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import type { Models } from "@earendil-works/pi-ai";
-import { AuthFlowOverlay, GEMINI_API_KEY_URL, LoginOverlay, ZAI_API_KEY_URL } from "../src/adapters/inbound/tui/features/authentication/auth-overlay";
-import { AuthService } from "../src/adapters/outbound/authentication/auth-service";
+import type { Models }                          from "@earendil-works/pi-ai";
+import {
+	AuthFlowOverlay,
+	GEMINI_API_KEY_URL,
+	LoginOverlay,
+	ZAI_API_KEY_URL,
+} from "../src/adapters/inbound/tui/features/authentication/auth-overlay";
+import { AuthService }                          from "../src/adapters/outbound/authentication/auth-service";
 
 function fakeAuthModels(): Pick<Models, "checkAuth" | "getProvider" | "login" | "logout"> {
 	let configured = false;
 	return {
 		checkAuth: async () => configured ? { type: "api_key", source: "WWW 인증 저장소" } : undefined,
 		getProvider: () => ({
-			id: "openai",
-			name: "OpenAI",
-			auth: { apiKey: { name: "API key", login: async () => ({ type: "api_key", key: "unused" }), resolve: async () => undefined } },
-			getModels: () => [],
-			stream: () => { throw new Error("not used"); },
-			streamSimple: () => { throw new Error("not used"); },
+			id           : "openai",
+			name         : "OpenAI",
+			auth         : { apiKey: { name: "API key", login: async () => ({ type: "api_key", key: "unused" }), resolve: async () => undefined } },
+			getModels    : () => [],
+			stream       : () => { throw new Error("not used"); },
+			streamSimple : () => { throw new Error("not used"); },
 		}),
 		login: async (_provider, _type, interaction) => {
 			const key = await interaction.prompt({ type: "secret", message: "API 키" });

@@ -1,13 +1,37 @@
-import { isReasoningActivityPayload, type ProjectActivity } from "../domain/execution/project-activity";
-import { REQUEST_STAGES, REQUEST_REPORT_PREFIX, parseRequestStageReport, type RequestRuntimeRecord, type RequestStage, type RequestStageReport, type RequestEvidence, type RequestLifecycleEvent } from "../domain/execution/request-runtime";
+import { isReasoningActivityPayload } from "@/core/domain/execution/project-activity";
+import type { ProjectActivity }       from "@/core/domain/execution/project-activity";
+import {
+	REQUEST_STAGES,
+	REQUEST_REPORT_PREFIX,
+	parseRequestStageReport,
+} from "@/core/domain/execution/request-runtime";
+import type {
+	RequestRuntimeRecord,
+	RequestStage,
+	RequestStageId,
+	RequestStageReport,
+	RequestEvidence,
+	RequestLifecycleEvent,
+} from "@/core/domain/execution/request-runtime";
 
-const record = (v: unknown): Record<string, unknown> => v && typeof v === "object" && !Array.isArray(v) ? v as Record<string, unknown> : {};
-const settled = (s: RequestStage) => s.status === "completed" || s.status === "skipped";
-const delivered = (r: RequestRuntimeRecord, deliveries = r.deliveries) => r.requiredDeliveries.every(required => deliveries.some(d => d.target === required.target && d.artifact === required.artifact));
-const goals = ["사용자의 목표·제약·성공 조건", "작업·의존성·병렬 가능성", "판단의 실제 근거", "결정·이유·실행 계획", "실제 수행 결과", "결과와 성공 조건의 대조", "대상별 결과와 근거 전달"];
+const record    = (v: unknown): Record<string, unknown> => v && typeof v === "object" && !Array.isArray(v) ? v as Record<string, unknown> : {}                                                           ;
+const settled   = (s: RequestStage) => s.status === "completed" || s.status === "skipped"                                                                                                                ;
+const delivered = (r: RequestRuntimeRecord, deliveries = r.deliveries) => r.requiredDeliveries.every(required => deliveries.some(d => d.target === required.target && d.artifact === required.artifact)) ;
+const stageGoals: Record<RequestStageId, string> = {
+	UNDERSTAND : "사용자의 목표·제약·성공 조건",
+	DECOMPOSE  : "작업·의존성·병렬 가능성",
+	GROUND     : "판단의 실제 근거",
+	DECIDE     : "결정·이유·실행 계획",
+	EXECUTE    : "실제 수행 결과",
+	VERIFY     : "결과와 성공 조건의 대조",
+	DELIVER    : "대상별 결과와 근거 전달",
+};
 
 function publicMessage(a: ProjectActivity): string | null {
-	if (a.kind !== "message" || a.phase !== "completed" || a.payload.finalObservation === "missing" || isReasoningActivityPayload(a.payload)) return null;
+	if (a.kind !== "message"
+		|| a.phase !== "completed"
+		|| a.payload.finalObservation === "missing"
+		|| isReasoningActivityPayload(a.payload)) return null;
 	const p = a.payload, params = record(p.params), item = record(params.item);
 	if (p.direction === "outbound" || p.role === "user" || (p.role !== "assistant" && item.type !== "agentMessage")) return null;
 	return typeof p.text === "string" ? p.text : typeof item.text === "string" ? item.text : null;
@@ -30,14 +54,14 @@ function reject(r: RequestRuntimeRecord, a: ProjectActivity, reason: string): vo
 function create(a: ProjectActivity, id: string): RequestRuntimeRecord {
 	return { schemaVersion: 1, protocolVersion: a.payload.protocolVersion === 2 ? 2 : 1, requestId: id, threadId: a.nativeRefs.threadId ?? null, turnId: null,
 		objective: typeof a.payload.text === "string" ? a.payload.text : "요청 원문은 연결된 Activity에서 확인",
-		status: "pending", attempt: 1, previousAttempts: [], stages: REQUEST_STAGES.map((id, i) => ({ id, status: "pending", goal: goals[i]!, input: [], owner: "orchestrator", model: null, agents: [], tools: [], tasks: [], output: null, evidence: [], decision: null, skipReason: null, startedAt: null, completedAt: null, next: REQUEST_STAGES[i + 1] ?? null, evidenceAfterSequence: 0 })),
+		status: "pending", attempt: 1, previousAttempts: [], stages: REQUEST_STAGES.map((id, i) => ({ id, status: "pending", goal: stageGoals[id], input: [], owner: "orchestrator", model: null, agents: [], tools: [], tasks: [], output: null, evidence: [], decision: null, skipReason: null, startedAt: null, completedAt: null, next: REQUEST_STAGES[i + 1] ?? null, evidenceAfterSequence: 0 })),
 		deliveries: [], requiredDeliveries: [], events: [], startedAt: a.recordedAt, completedAt: null, issues: [], actions: [] };
 }
 
 type ReplayState = {
-	requests: Map<string, RequestRuntimeRecord>;
-	submitted: Map<string, number>;
-	approvals: Map<string, { stage: RequestStage; id: unknown }>;
+	requests  : Map<string, RequestRuntimeRecord>                 ;
+	submitted : Map<string, number>                               ;
+	approvals : Map<string, { stage: RequestStage; id: unknown }> ;
 };
 
 function sameTurnRequests(state: ReplayState, a: ProjectActivity): RequestRuntimeRecord[] {
@@ -54,9 +78,12 @@ function sameTurnRequests(state: ReplayState, a: ProjectActivity): RequestRuntim
 function deliveryRequirement(r: RequestRuntimeRecord, a: ProjectActivity, state: ReplayState): { target: string; artifact: string } | null {
 	const { target, artifact } = a.payload;
 	if (a.payload.authority !== "runtime" || r.protocolVersion !== 2 || r.completedAt) return null;
-	if (settled(r.stages[6]!) || state.approvals.has(r.requestId) || r.actions.some(action => action.status === "unconfirmed")) return null;
+	if (settled(r.stages[6]) || state.approvals.has(r.requestId) || r.actions.some(action => action.status === "unconfirmed")) return null;
 	if (r.requiredDeliveries.length >= 32) return null;
-	if (typeof target !== "string" || !target.trim() || target === "chat" || target.length > 400) return null;
+	if (typeof target !== "string"
+		|| !target.trim()
+		|| target === "chat"
+		|| target.length > 400) return null;
 	if (typeof artifact !== "string" || !artifact.trim() || artifact.length > 4000) return null;
 	return { target, artifact };
 }
@@ -74,10 +101,10 @@ function applyDeliveryRequirement(r: RequestRuntimeRecord, a: ProjectActivity, s
 }
 
 function applyReplan(r: RequestRuntimeRecord, a: ProjectActivity, state: ReplayState): void {
-	const fromStage = REQUEST_STAGES.find(stage => stage === a.payload.stage);
-	const index = fromStage ? REQUEST_STAGES.indexOf(fromStage) : -1;
-	const replanStage = r.stages[index];
-	const reason = a.payload.reason;
+	const fromStage   = REQUEST_STAGES.find(stage => stage === a.payload.stage) ;
+	const index       = fromStage ? REQUEST_STAGES.indexOf(fromStage) : -1      ;
+	const replanStage = r.stages[index]                                         ;
+	const reason      = a.payload.reason                                        ;
 	const invalid = a.payload.authority !== "runtime"
 		|| r.protocolVersion !== 2
 		|| r.completedAt !== null
@@ -100,15 +127,15 @@ function applyReplan(r: RequestRuntimeRecord, a: ProjectActivity, state: ReplayS
 	r.attempt++;
 	r.stages = r.stages.map((stage, stageIndex) => stageIndex < index ? stage : {
 		...stage,
-		status: stageIndex === index ? "running" : "pending",
-		output: null,
-		evidence: [],
-		decision: null,
-		skipReason: null,
-		startedAt: stageIndex === index ? a.recordedAt : null,
-		completedAt: null,
-		evidenceAfterSequence: a.sequence,
-		tasks: stage.tasks.map(task => ({ ...task, status: "pending" })),
+		status                : stageIndex === index ? "running" : "pending",
+		output                : null,
+		evidence              : [],
+		decision              : null,
+		skipReason            : null,
+		startedAt             : stageIndex === index ? a.recordedAt : null,
+		completedAt           : null,
+		evidenceAfterSequence : a.sequence,
+		tasks                 : stage.tasks.map(task => ({ ...task, status: "pending" })),
 	});
 	// Retrying only delivery preserves already confirmed destinations; changing work invalidates acceptance.
 	if (index < REQUEST_STAGES.indexOf("DELIVER")) r.deliveries = [];
@@ -124,7 +151,12 @@ function applyRuntimeAction(r: RequestRuntimeRecord, a: ProjectActivity, method:
 		&& ["runtime/action-completed", "runtime/action-reconciliation"].includes(method);
 	if (!recoverable || a.payload.authority !== "runtime") return;
 	const preparedStage = REQUEST_STAGES.find(stage => stage === a.payload.stage);
-	if (!r.completedAt && method === "runtime/action-prepared" && typeof a.payload.operationId === "string" && typeof a.payload.capability === "string" && preparedStage && !r.actions.some(action => action.operationId === a.payload.operationId)) {
+	if (!r.completedAt
+		&& method === "runtime/action-prepared"
+		&& typeof a.payload.operationId === "string"
+		&& typeof a.payload.capability === "string"
+		&& preparedStage
+		&& !r.actions.some(action => action.operationId === a.payload.operationId)) {
 		r.actions = [...r.actions, { operationId: a.payload.operationId, stage: preparedStage, capability: a.payload.capability, status: "unconfirmed", preparedActivityId: a.id, receiptActivityId: null }];
 		event(r, a, "action.prepared", preparedStage, a.payload.operationId);
 	}
@@ -153,7 +185,7 @@ function resolveEvidence(refs: readonly string[], r: RequestRuntimeRecord, sourc
 
 function applyReport(r: RequestRuntimeRecord, report: RequestStageReport, a: ProjectActivity, journal: readonly ProjectActivity[]): void {
 	if (r.completedAt) { reject(r, a, "종료된 Request의 Stage를 변경할 수 없습니다."); return; }
-	const index = REQUEST_STAGES.indexOf(report.stage), stage = r.stages[index]!;
+	const index = REQUEST_STAGES.indexOf(report.stage), stage = r.stages[index];
 	if (r.protocolVersion === 2 && ["failed", "blocked"].includes(stage.status) && ["running", "completed"].includes(report.status)) { reject(r, a, "실패/차단 단계의 새 시도는 runtime replan으로 시작하세요."); return; }
 	if (r.stages.slice(0, index).some(s => !settled(s)) || settled(stage)) { reject(r, a, "앞 단계의 완료/생략 또는 현재 단계의 재시도 상태를 확인하세요."); return; }
 	if (r.protocolVersion === 2 && report.status === "skipped" && journal.some(source => source.sequence < a.sequence && source.sequence > stage.evidenceAfterSequence && source.payload.method === "runtime/action-prepared" && source.payload.authority === "runtime" && source.payload.requestId === r.requestId && source.payload.stage === stage.id)) { reject(r, a, "실제 작업을 시작한 단계는 생략으로 감출 수 없습니다. 결과를 기록하거나 재계획하세요."); return; }
@@ -169,12 +201,13 @@ function applyReport(r: RequestRuntimeRecord, report: RequestStageReport, a: Pro
 	}
 	const deliveries = [];
 	for (const p of report.plan ?? []) {
-		const target = r.stages.find(s => s.id === p.stage)!;
+		const target = r.stages.find(s => s.id === p.stage);
+		if (!target) { reject(r, a, `Native 계획의 단계를 알 수 없습니다: ${p.stage}`); return; }
 		if (settled(target) || p.stage !== report.stage && !["DECOMPOSE", "DECIDE"].includes(report.stage)) { reject(r, a, "Native 계획은 현재 단계 또는 DECOMPOSE/DECIDE에서 미완료 단계에만 배치합니다."); return; }
 	}
-	const planned = r.stages.map(s => ({ ...s, tasks: report.plan?.find(p => p.stage === s.id)?.tasks ?? s.tasks }));
-	const tasks = planned.flatMap(s => s.tasks.map(t => ({ ...t, stage: s.id })));
-	const byId = new Map(tasks.map(t => [t.id, t]));
+	const planned = r.stages.map(s => ({ ...s, tasks: report.plan?.find(p => p.stage === s.id)?.tasks ?? s.tasks })) ;
+	const tasks   = planned.flatMap(s => s.tasks.map(t => ({ ...t, stage: s.id })))                                  ;
+	const byId    = new Map(tasks.map(t => [t.id, t]))                                                               ;
 	const visiting = new Set<string>(), visited = new Set<string>();
 	const cyclic = (id: string): boolean => {
 		if (visiting.has(id)) return true;
@@ -183,7 +216,7 @@ function applyReport(r: RequestRuntimeRecord, report: RequestStageReport, a: Pro
 		for (const dependency of byId.get(id)?.dependsOn ?? []) if (!byId.has(dependency) || cyclic(dependency)) return true;
 		visiting.delete(id); visited.add(id); return false;
 	};
-	if (byId.size !== tasks.length || tasks.some(t => cyclic(t.id) || t.dependsOn.some(id => REQUEST_STAGES.indexOf(byId.get(id)!.stage) > REQUEST_STAGES.indexOf(t.stage)))) {
+	if (byId.size !== tasks.length || tasks.some(t => cyclic(t.id) || t.dependsOn.some(id => { const dependency = byId.get(id); return !dependency || REQUEST_STAGES.indexOf(dependency.stage) > REQUEST_STAGES.indexOf(t.stage); }))) {
 		reject(r, a, "Task ID는 요청 안에서 고유해야 하며 의존성은 존재하고 순환/후속 단계 참조가 없어야 합니다."); return;
 	}
 	for (const p of report.plan ?? []) {
@@ -191,7 +224,7 @@ function applyReport(r: RequestRuntimeRecord, report: RequestStageReport, a: Pro
 			reject(r, a, "후속 단계는 pending으로 계획하며 선행 Task 완료 후 실행합니다."); return;
 		}
 	}
-	if (report.status === "completed" && planned[index]!.tasks.some(t => t.status !== "completed")) { reject(r, a, "단계 완료 전에 하위 Todo를 완료하거나 단계 생략 이유를 기록해야 합니다."); return; }
+	if (report.status === "completed" && planned[index].tasks.some(t => t.status !== "completed")) { reject(r, a, "단계 완료 전에 하위 Todo를 완료하거나 단계 생략 이유를 기록해야 합니다."); return; }
 	for (const d of report.deliveries ?? []) {
 		const resolved = resolveEvidence(d.evidence, r, a, journal);
 		if (report.stage !== "DELIVER" || !resolved?.length || resolved.some(e => e.status === "failed" || e.sequence <= stage.evidenceAfterSequence)) { reject(r, a, "전달 기록에는 DELIVER 단계와 현재 시도의 성공한 관측 근거가 필요합니다."); return; }
@@ -206,14 +239,14 @@ function applyReport(r: RequestRuntimeRecord, report: RequestStageReport, a: Pro
 			if (stage.id === "EXECUTE") event(r, a, "execution.started", stage.id);
 		}
 	}
-	stage.status = report.status;
-	stage.output = report.summary;
-	stage.input = report.input ?? stage.input;
-	stage.agents = report.agents ?? stage.agents;
-	stage.tools = report.tools ?? stage.tools;
-	stage.evidence = [...stage.evidence, ...refs.filter(e => !stage.evidence.some(old => old.activityId === e.activityId))];
-	stage.decision = report.decision ?? stage.decision;
-	for (const p of report.plan ?? []) r.stages.find(s => s.id === p.stage)!.tasks = p.tasks;
+	stage.status   = report.status                                                                                          ;
+	stage.output   = report.summary                                                                                         ;
+	stage.input    = report.input ?? stage.input                                                                            ;
+	stage.agents   = report.agents ?? stage.agents                                                                          ;
+	stage.tools    = report.tools ?? stage.tools                                                                            ;
+	stage.evidence = [...stage.evidence, ...refs.filter(e => !stage.evidence.some(old => old.activityId === e.activityId))] ;
+	stage.decision = report.decision ?? stage.decision                                                                      ;
+	for (const p of report.plan ?? []) { const target = r.stages.find(s => s.id === p.stage); if (!target) continue; target.tasks = p.tasks; }
 	stage.skipReason = report.status === "skipped" ? report.summary : null;
 	stage.completedAt = settled(stage) ? a.recordedAt : null;
 	if (report.status !== "running") event(r, a, `stage.${report.status}`, stage.id, report.status === "skipped" ? report.summary : null);
@@ -227,12 +260,12 @@ function applyReport(r: RequestRuntimeRecord, report: RequestStageReport, a: Pro
 
 /** Same append-only Activity journal is the record. No second database or provider state machine. */
 export function projectRequestRuntime(journal: readonly ProjectActivity[], threadId: string | null): readonly RequestRuntimeRecord[] {
-	const activities = [...new Map(journal.map(a => [a.id, a])).values()].sort((a, b) => a.sequence - b.sequence);
-	const requests = new Map<string, RequestRuntimeRecord>();
-	const submitted = new Map<string, number>();
-	const approvals = new Map<string, { stage: RequestStage; id: unknown }>();
-	const state = { requests, submitted, approvals };
-	const protocolIds = new Set(activities.filter(a => [1, 2].includes(Number(a.payload.protocolVersion)) && a.payload.method === "request/submitted").map(a => a.payload.requestId));
+	const activities  = [...new Map(journal.map(a => [a.id, a])).values()].sort((a, b) => a.sequence - b.sequence)                                                                    ;
+	const requests    = new Map<string, RequestRuntimeRecord>()                                                                                                                       ;
+	const submitted   = new Map<string, number>()                                                                                                                                     ;
+	const approvals   = new Map<string, { stage: RequestStage; id: unknown }>()                                                                                                       ;
+	const state       = { requests, submitted, approvals }                                                                                                                            ;
+	const protocolIds = new Set(activities.filter(a => [1, 2].includes(Number(a.payload.protocolVersion)) && a.payload.method === "request/submitted").map(a => a.payload.requestId)) ;
 	// Bind before replay: Native may emit notifications before startTurn resolves.
 	for (const a of activities) {
 		if (threadId && a.nativeRefs.threadId !== threadId) continue;
@@ -252,17 +285,19 @@ export function projectRequestRuntime(journal: readonly ProjectActivity[], threa
 		const direct = typeof a.payload.requestId === "string" ? requests.get(a.payload.requestId) : undefined;
 		if (direct && method.startsWith("request/")) {
 			if (method === "request/submitted") event(direct, a, "request.started");
-			if (method === "request/started" && direct.stages[0]!.status === "pending") {
-				direct.stages[0]!.status = "running"; direct.stages[0]!.startedAt = a.recordedAt;
-				direct.stages[0]!.input = [direct.objective]; direct.status = "running";
+			if (method === "request/started" && direct.stages[0].status === "pending") {
+				const firstStage = direct.stages[0];
+				firstStage.status = "running"; firstStage.startedAt = a.recordedAt;
+				firstStage.input = [direct.objective]; direct.status = "running";
 				event(direct, a, "stage.started", "UNDERSTAND");
 			}
 			if (method === "request/failed" || method === "request/uncertain") {
-				direct.status = method === "request/failed" ? "failed" : "blocked";
-				direct.stages[0]!.status = direct.status;
-				direct.stages[0]!.output = method === "request/failed" ? "Native 요청 전송 실패" : "Native 요청 수신 미확인";
+				const firstStage = direct.stages[0];
+				direct.status     = method === "request/failed" ? "failed" : "blocked"                                ;
+				firstStage.status = direct.status                                                                     ;
+				firstStage.output = method === "request/failed" ? "Native 요청 전송 실패" : "Native 요청 수신 미확인" ;
 				if (method === "request/failed") direct.completedAt = a.recordedAt;
-				event(direct, a, direct.status === "failed" ? "stage.failed" : "stage.blocked", "UNDERSTAND", direct.stages[0]!.output);
+				event(direct, a, direct.status === "failed" ? "stage.failed" : "stage.blocked", "UNDERSTAND", firstStage.output);
 				event(direct, a, direct.status === "failed" ? "request.failed" : "request.blocked");
 			}
 			continue;
@@ -277,14 +312,18 @@ export function projectRequestRuntime(journal: readonly ProjectActivity[], threa
 			continue;
 		}
 		if (direct && sameTurn.includes(direct)) applyRuntimeAction(direct, a, method);
-		const message = publicMessage(a);
-		const controlReport = method === "runtime/stage-report" && a.payload.authority === "runtime";
-		if (controlReport || message?.startsWith(REQUEST_REPORT_PREFIX)) {
-			const report = parseRequestStageReport(controlReport ? REQUEST_REPORT_PREFIX + JSON.stringify(a.payload.report) : message!);
+		const message       = publicMessage(a)                                                                   ;
+		const controlReport = method === "runtime/stage-report" && a.payload.authority === "runtime"             ;
+		const reportSource  = controlReport ? REQUEST_REPORT_PREFIX + JSON.stringify(a.payload.report) : message ;
+		if (reportSource && (controlReport || reportSource.startsWith(REQUEST_REPORT_PREFIX))) {
+			const report = parseRequestStageReport(reportSource);
 			const r = report ? sameTurn.find(r => r.requestId === report.requestId) ?? sameTurn.at(-1) : sameTurn.at(-1);
 			if (r?.protocolVersion === 2 && !controlReport) reject(r, a, "runtime.propose 도구로 Stage 전환을 요청해야 합니다.");
 			else if (r?.actions.some(x => x.status === "unconfirmed")) reject(r, a, "실행 결과 미확인: read-back Receipt 확보 전에는 Stage를 진행할 수 없습니다.");
-			else if (r && approvals.has(r.requestId) && report && !["blocked", "failed"].includes(report.status)) reject(r, a, "승인 요청 처리 전에는 Stage를 진행할 수 없습니다.");
+			else if (r
+				&& approvals.has(r.requestId)
+				&& report
+				&& !["blocked", "failed"].includes(report.status)) reject(r, a, "승인 요청 처리 전에는 Stage를 진행할 수 없습니다.");
 			else if (r && report && r.requestId === report.requestId) applyReport(r, report, a, activities);
 			else if (r) reject(r, a, "공개 Stage 보고 형식이 올바르지 않습니다.");
 			continue;
@@ -305,8 +344,14 @@ export function projectRequestRuntime(journal: readonly ProjectActivity[], threa
 				const stage = r.stages.find(s => s.status === "running");
 				if (stage) stage.evidence = [...stage.evidence.filter(e => e.activityId !== a.id), evidence(a)];
 			}
-			if (r === sameTurn.at(-1) && message && delivered(r) && !r.actions.some(x => x.status === "unconfirmed") && record(record(a.payload.params).item).phase !== "commentary" && r.stages.slice(0, 6).every(settled) && r.stages[6]!.tasks.every(t => t.status === "completed")) {
-				const stage = r.stages[6]!;
+			if (r === sameTurn.at(-1)
+				&& message
+				&& delivered(r)
+				&& !r.actions.some(x => x.status === "unconfirmed")
+				&& record(record(a.payload.params).item).phase !== "commentary"
+				&& r.stages.slice(0, 6).every(settled)
+				&& r.stages[6].tasks.every(t => t.status === "completed")) {
+				const stage = r.stages[6];
 				if (!settled(stage)) applyReport(r, { requestId: r.requestId, stage: "DELIVER", status: "running", summary: "사용자 응답 전달" }, a, activities);
 				const wasSettled = settled(stage);
 				if (!wasSettled) { stage.status = "completed"; stage.output = message; stage.completedAt = a.recordedAt; event(r, a, "stage.completed", "DELIVER"); }

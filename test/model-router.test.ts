@@ -7,13 +7,18 @@ import type {
 	Models,
 	ModelsSimpleStreamOptions,
 } from "@earendil-works/pi-ai";
-import { ModelRouteError, ModelRouter, createModelRegistry, reasoningLevel } from "../src/adapters/outbound/authentication/model-router";
-import type { WwwSettings } from "../src/core/domain/execution/model-settings";
+import {
+	ModelRouteError,
+	ModelRouter,
+	createModelRegistry,
+	reasoningLevel,
+} from "../src/adapters/outbound/authentication/model-router";
+import type { WwwSettings }       from "../src/core/domain/execution/model-settings";
 
 const settings: WwwSettings = {
-	provider: "openai",
-	model: "gpt-5.4",
-	effort: "ultra",
+	provider : "openai",
+	model    : "gpt-5.4",
+	effort   : "ultra",
 };
 
 describe("ModelRouter", () => {
@@ -33,10 +38,10 @@ describe("ModelRouter", () => {
 	});
 
 	test("routes a stream with normalized reasoning and abort signal", () => {
-		const model = createModelRegistry().getModel("openai", "gpt-5.4") as Model<Api>;
-		const signal = new AbortController().signal;
-		let receivedOptions: ModelsSimpleStreamOptions | undefined;
-		const stream = {} as AssistantMessageEventStream;
+		const model  = createModelRegistry().getModel("openai", "gpt-5.4") as Model<Api> ;
+		const signal = new AbortController().signal                                      ;
+		let receivedOptions: ModelsSimpleStreamOptions | undefined                       ;
+		const stream = {} as AssistantMessageEventStream                                 ;
 		const registry: Pick<Models, "checkAuth" | "getModel" | "streamSimple"> = {
 			checkAuth: async () => ({ type: "api_key", source: "테스트" }),
 			getModel: () => model,
@@ -68,15 +73,15 @@ describe("ModelRouter", () => {
 	test("reports whether provider authentication is configured", async () => {
 		const model = createModelRegistry().getModel("openai", "gpt-5.4") as Model<Api>;
 		const registry: Pick<Models, "checkAuth" | "getModel" | "streamSimple"> = {
-			checkAuth: async () => ({ type: "api_key", source: "OPENAI_API_KEY" }),
-			getModel: () => model,
-			streamSimple: () => ({} as AssistantMessageEventStream),
+			checkAuth    : async () => ({ type: "api_key", source: "OPENAI_API_KEY" }),
+			getModel     : () => model,
+			streamSimple : () => ({} as AssistantMessageEventStream),
 		};
 
 		await expect(new ModelRouter(registry).checkAuth(settings)).resolves.toEqual({
-			configured: true,
-			source: "OPENAI_API_KEY",
-			type: "api_key",
+			configured : true,
+			source     : "OPENAI_API_KEY",
+			type       : "api_key",
 		});
 	});
 

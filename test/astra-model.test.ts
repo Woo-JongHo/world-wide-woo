@@ -1,18 +1,28 @@
-import { expect, test } from "bun:test";
-import { mkdtemp, mkdir, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { expect, test }                                         from "bun:test";
+import { mkdtemp, mkdir, rm }                                   from "node:fs/promises";
+import { tmpdir }                                               from "node:os";
+import { join }                                                 from "node:path";
 import { CombinedAutocompleteProvider, stripTerminalSequences } from "@earendil-works/pi-tui";
-import { DEFAULT_SETTINGS, modelEfforts, normalizeSettings, type Effort, type WwwSettings } from "../src/core/domain/execution/model-settings";
-import { DEFAULT_WORKBENCH_CONFIG } from "../src/core/domain/execution/workbench-config";
-import { loadWorkbenchConfig, saveWorkbenchExecutionSelection } from "../src/adapters/outbound/workspace/workbench-config";
-import { parseShellCommand, parseWorkbenchShellCommand, WORKBENCH_SLASH_COMMANDS } from "../src/adapters/inbound/tui/commands/slash-commands";
-import { workbenchModelSettings } from "../src/adapters/inbound/tui/shell/workbench-input.controller";
-import { AstraSheet } from "../src/adapters/inbound/tui/shell/astra-surface";
-import { ModelPickerOverlay } from "../src/adapters/inbound/tui/features/model-selection/model-picker-overlay";
-import { CodexAppServer, type JsonLineTransport } from "../src/adapters/outbound/execution/codex-app-server";
-import { ProjectWorkbench, type WorkbenchActivityJournal } from "../src/core/application/orchestration/project-workbench";
-import type { ProjectActivity, ProjectActivityInput } from "../src/core/domain/execution/project-activity";
+import { DEFAULT_SETTINGS, modelEfforts, normalizeSettings }    from "../src/core/domain/execution/model-settings";
+import type { Effort, WwwSettings }                             from "../src/core/domain/execution/model-settings";
+import { DEFAULT_WORKBENCH_CONFIG }                             from "../src/core/domain/execution/workbench-config";
+import {
+	loadWorkbenchConfig,
+	saveWorkbenchExecutionSelection,
+} from "../src/adapters/outbound/workspace/workbench-config";
+import {
+	parseShellCommand,
+	parseWorkbenchShellCommand,
+	WORKBENCH_SLASH_COMMANDS,
+} from "../src/adapters/inbound/tui/commands/slash-commands";
+import { workbenchModelSettings }                               from "../src/adapters/inbound/tui/shell/workbench-input.controller";
+import { AstraSheet }                                           from "../src/adapters/inbound/tui/shell/astra-surface";
+import { ModelPickerOverlay }                                   from "../src/adapters/inbound/tui/features/model-selection/model-picker-overlay";
+import { CodexAppServer }                                       from "../src/adapters/outbound/execution/codex-app-server";
+import type { JsonLineTransport }                               from "../src/adapters/outbound/execution/codex-app-server";
+import { ProjectWorkbench }                                     from "../src/core/application/orchestration/project-workbench";
+import type { WorkbenchActivityJournal }                        from "../src/core/application/orchestration/project-workbench";
+import type { ProjectActivity, ProjectActivityInput }           from "../src/core/domain/execution/project-activity";
 
 test("Astra model selections survive YAML reload without changing workload defaults", async () => {
 	const root = await mkdtemp(join(tmpdir(), "astra-model-")); await mkdir(join(root, ".www"));
@@ -34,9 +44,9 @@ test("Astra model selections survive YAML reload without changing workload defau
 });
 
 test("the picker applies Astra max explicitly and keeps Ultra distinct", async () => {
-	let applied: WwwSettings | undefined;
-	const current: WwwSettings = { provider: "openai-codex", model: "gpt-5.6-sol", effort: "medium" };
-	const picker = new ModelPickerOverlay(current, async provider => ({ state: "configured", provider, source: "fixture", type: "oauth" }), () => {}, async value => { applied = value; }, () => {}, () => {}, { ...current, model: "gpt-6-astra" }, false, { providers: ["openai-codex"], startAtModel: true, appearance: "astra", nativeCodex: true });
+	let applied   : WwwSettings | undefined                                                                                                                                                                                                                                                                                                                             ;
+	const current : WwwSettings = { provider: "openai-codex", model: "gpt-5.6-sol", effort: "medium" }                                                                                                                                                                                                                                                                  ;
+	const picker                = new ModelPickerOverlay(current, async provider => ({ state: "configured", provider, source: "fixture", type: "oauth" }), () => {}, async value => { applied = value; }, () => {}, () => {}, { ...current, model: "gpt-6-astra" }, false, { providers: ["openai-codex"], startAtModel: true, appearance: "astra", nativeCodex: true }) ;
 	picker.start(); await Bun.sleep(0); picker.handleInput("\r");
 	expect(picker.render(80).join("\n")).toContain("자동 위임 포함");
 	for (let i = 0; i < 3; i++) picker.handleInput("\x1b[B");
@@ -56,9 +66,9 @@ test("actual argument completion retains model identity for every native effort"
 			expect(parseWorkbenchShellCommand(completed.lines[0]!)?.type).toBe("model.set");
 		}
 	}
-	const input = "/model gpt-6-astra ma";
-	const result = await provider.getSuggestions([input], 0, input.length, { signal: new AbortController().signal });
-	const completed = provider.applyCompletion([input], 0, input.length, result!.items[0]!, result!.prefix);
+	const input     = "/model gpt-6-astra ma"                                                                           ;
+	const result    = await provider.getSuggestions([input], 0, input.length, { signal: new AbortController().signal }) ;
+	const completed = provider.applyCompletion([input], 0, input.length, result!.items[0]!, result!.prefix)             ;
 		expect(completed.lines[0]).toBe("/model gpt-6-astra max");
 });
 
@@ -99,17 +109,17 @@ class NativeModelTransport implements JsonLineTransport {
 			: message.method === "mcpServerStatus/list" ? { data: [], nextCursor: null } : {};
 		queueMicrotask(() => { for (const listener of this.listeners) listener(JSON.stringify({ id: message.id, result })); });
 	}
-	onLine(listener: (line: string) => void) { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; }
-	onClose() { return () => {}; }
+	onLine     (listener: (line: string) => void) { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; }
+	onClose    () { return () => {}; }
 	async close() { this.listeners.clear(); }
 }
 
 test.each(["xhigh", "max", "ultra"] as Effort[])("Workbench passes Astra %s to Native without aliasing or changing a running model", async effort => {
 	const transport = new NativeModelTransport(), native = await CodexAppServer.connectTransport(transport);
-	const activities: ProjectActivity[] = [];
-	const journal: WorkbenchActivityJournal = { readAll: async () => activities, async append(input: ProjectActivityInput) { const activity = { ...input, schemaVersion: 1 as const, id: `m-${activities.length}`, sequence: activities.length + 1, recordedAt: new Date().toISOString() }; activities.push(activity); return { activity, appended: true }; } };
-	const persisted: unknown[] = [];
-	const workbench = new ProjectWorkbench(native, journal, { projectId: "fixture", cwd: "/fixture", model: "gpt-5.6-sol", effort: "medium", persistModelSelection: async s => { persisted.push(s); } });
+	const activities : ProjectActivity[]        = []                                                                                                                                                                                                                                                                                                                ;
+	const journal    : WorkbenchActivityJournal = { readAll: async () => activities, async append(input: ProjectActivityInput) { const activity = { ...input, schemaVersion: 1 as const, id: `m-${activities.length}`, sequence: activities.length + 1, recordedAt: new Date().toISOString() }; activities.push(activity); return { activity, appended: true }; } } ;
+	const persisted  : unknown[]                = []                                                                                                                                                                                                                                                                                                                ;
+	const workbench                             = new ProjectWorkbench(native, journal, { projectId: "fixture", cwd: "/fixture", model: "gpt-5.6-sol", effort: "medium", persistModelSelection: async s => { persisted.push(s); } })                                                                                                                                ;
 	try {
 		if (workbench.snapshot.phase === "loading") await new Promise<void>(resolve => { const stop = workbench.subscribe(s => { if (s.phase !== "loading") { stop(); resolve(); } }); });
 		expect(workbench.snapshot.error).toBeNull(); expect(workbench.snapshot.phase).toBe("ready");

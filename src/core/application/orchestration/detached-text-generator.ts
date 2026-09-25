@@ -1,19 +1,19 @@
-import type { TNoteModelProvenance, TNotePacket } from "../../domain/work/t-notes.js";
+import type { TNoteModelProvenance, TNotePacket } from "@/core/domain/work/t-notes.js";
 
 /** Required isolation contract for a detached summary request. */
 export interface DetachedGenerationPolicy {
 	/** The adapter creates an empty temporary cwd; callers can never supply a project path. */
-	readonly cwd: "";
-	readonly noTools: true;
-	readonly network: false;
-	readonly readOnly: true;
-	readonly ephemeral: true;
+	readonly cwd       : ""    ;
+	readonly noTools   : true  ;
+	readonly network   : false ;
+	readonly readOnly  : true  ;
+	readonly ephemeral : true  ;
 }
 
 export interface DetachedTextGenerationRequest {
-	readonly packet: TNotePacket;
-	readonly instruction: string;
-	readonly policy: DetachedGenerationPolicy;
+	readonly packet      : TNotePacket              ;
+	readonly instruction : string                   ;
+	readonly policy      : DetachedGenerationPolicy ;
 }
 
 /**
@@ -27,11 +27,11 @@ export interface DetachedTextGenerator {
 		readonly provenance: TNoteModelProvenance;
 		/** Instrumented adapter observation, not an unverified echo of the request. */
 		readonly isolation: {
-			readonly appliedPolicy: DetachedGenerationPolicy;
-			readonly projectRootVisible: false;
-			readonly toolCalls: 0;
-			readonly networkCalls: 0;
-			readonly filesystemWrites: 0;
+			readonly appliedPolicy      : DetachedGenerationPolicy ;
+			readonly projectRootVisible : false                    ;
+			readonly toolCalls          : 0                        ;
+			readonly networkCalls       : 0                        ;
+			readonly filesystemWrites   : 0                        ;
 		};
 	}>;
 }

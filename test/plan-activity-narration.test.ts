@@ -1,7 +1,7 @@
-import { expect, test } from "bun:test";
-import { PlanActivityNarration } from "../src/core/application/orchestration/plan-activity-narration";
+import { expect, test }                 from "bun:test";
+import { PlanActivityNarration }        from "../src/core/application/orchestration/plan-activity-narration";
 import type { ActivityNarrationResult } from "../src/core/application/orchestration/activity-narrator";
-import type { ProjectActivity } from "../src/core/domain/execution/project-activity";
+import type { ProjectActivity }         from "../src/core/domain/execution/project-activity";
 
 const context = { turnId: "turn-1", stepId: "verify", stepTitle: "회귀 테스트와 독립 검토", goal: "표시 동작 확인" };
 function observation(sequence: number, itemId = `item-${sequence}`, phase: ProjectActivity["phase"] = "started", turnId = "turn-1"): ProjectActivity {

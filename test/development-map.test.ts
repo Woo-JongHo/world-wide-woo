@@ -1,10 +1,10 @@
-import { describe, expect, test } from "bun:test";
-import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { stripTerminalSequences } from "@earendil-works/pi-tui";
-import { FileDevelopmentMapSource } from "../src/adapters/outbound/development/development-map-source";
-import { DevelopmentMapView } from "../src/adapters/inbound/tui/features/project-map/development-map-view";
+import { describe, expect, test }         from "bun:test";
+import { mkdtemp, mkdir, writeFile }      from "node:fs/promises";
+import { tmpdir }                         from "node:os";
+import { join }                           from "node:path";
+import { stripTerminalSequences }         from "@earendil-works/pi-tui";
+import { FileDevelopmentMapSource }       from "../src/adapters/outbound/development/development-map-source";
+import { DevelopmentMapView }             from "../src/adapters/inbound/tui/features/project-map/development-map-view";
 import { DevelopmentMapPollingLifecycle } from "../src/adapters/inbound/tui/shell/workbench-navigation.controller";
 
 describe("development map", () => {
@@ -31,9 +31,9 @@ describe("development map", () => {
 		expect(snapshot.initiatives[0]?.epics[0]?.stories[0]).toMatchObject({
 			id: "ST-010-01", status: "drafted",
 			relations: {
-				run: { state: "unlinked" },
-				todo: { state: "unlinked" },
-				evidence: { state: "unknown", references: [".www/evidence/ST-010-01.md"] },
+				run      : { state: "unlinked" },
+				todo     : { state: "unlinked" },
+				evidence : { state: "unknown", references: [".www/evidence/ST-010-01.md"] },
 			},
 		});
 		expect(snapshot.unlinkedEpics.map(epic => epic.id)).toEqual(["EP-002", "EP-011"]);
@@ -139,9 +139,9 @@ describe("development map", () => {
 		const root = await mkdtemp(join(tmpdir(), "www-development-map-invalid-"));
 		await mkdir(join(root, ".www/planning"), { recursive: true });
 		await writeFile(join(root, ".www/planning/catalog.jsonl"), JSON.stringify({
-			revision: 2,
-			type: "story.created",
-			artifact: { id: "ST-010-01", epicId: "EP-010", title: "고아 Story" },
+			revision : 2,
+			type     : "story.created",
+			artifact : { id: "ST-010-01", epicId: "EP-010", title: "고아 Story" },
 		}));
 		const snapshot = await new FileDevelopmentMapSource(root).read();
 		expect(snapshot.sourceHealth.state).toBe("invalid");
@@ -155,9 +155,9 @@ describe("development map", () => {
 	test("marks malformed Initiative identity and unknown Epic references invalid", async () => {
 		for (const manifest of [
 			{},
-			{ id: "INIT-001", title: "잘못된 관계", artifacts: [{ id: "EP-999", kind: "epic" }] },
-			{ id: "INIT-001", title: "알 수 없는 종류", artifacts: [{ id: "garbage", kind: "unknown" }] },
-			{ id: "INIT-001", title: "종류 불일치", artifacts: [{ id: "EP-010", kind: "story" }] },
+			{ id : "INIT-001" , title : "잘못된 관계"     , artifacts : [{ id: "EP-999", kind: "epic" }]     },
+			{ id : "INIT-001" , title : "알 수 없는 종류" , artifacts : [{ id: "garbage", kind: "unknown" }] },
+			{ id : "INIT-001" , title : "종류 불일치"     , artifacts : [{ id: "EP-010", kind: "story" }]    },
 		]) {
 			const root = await mkdtemp(join(tmpdir(), "www-development-map-invalid-manifest-"));
 			await mkdir(join(root, ".www/planning/001-invalid"), { recursive: true });

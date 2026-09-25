@@ -1,8 +1,9 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test }               from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import type { ProviderAuthState } from "../src/core/ports";
-import type { Provider, WwwSettings } from "../src/core/domain/execution/model-settings";
-import { ModelPickerOverlay, type ModelPickerOptions } from "../src/adapters/inbound/tui/features/model-selection/model-picker-overlay";
+import type { ProviderAuthState }               from "../src/core/ports";
+import type { Provider, WwwSettings }           from "../src/core/domain/execution/model-settings";
+import { ModelPickerOverlay }                   from "../src/adapters/inbound/tui/features/model-selection/model-picker-overlay";
+import type { ModelPickerOptions }              from "../src/adapters/inbound/tui/features/model-selection/model-picker-overlay";
 
 const current: WwwSettings = { provider: "openai-codex", model: "gpt-5.6-sol", effort: "ultra" };
 
@@ -15,13 +16,13 @@ function auth(state: ProviderAuthState["state"] = "configured"): (provider: Prov
 }
 
 function overlay(options: {
-	authStatus?: (provider: Provider) => Promise<ProviderAuthState>;
-	onApply?: (settings: WwwSettings) => Promise<void>;
-	onRequireAuth?: (settings: WwwSettings) => void;
-	onClose?: () => void;
-	initial?: WwwSettings;
-	resumeAtConfirmation?: boolean;
-	pickerOptions?: ModelPickerOptions;
+	authStatus?           : (provider: Provider) => Promise<ProviderAuthState> ;
+	onApply?              : (settings: WwwSettings) => Promise<void>           ;
+	onRequireAuth?        : (settings: WwwSettings) => void                    ;
+	onClose?              : () => void                                         ;
+	initial?              : WwwSettings                                        ;
+	resumeAtConfirmation? : boolean                                            ;
+	pickerOptions?        : ModelPickerOptions                                 ;
 } = {}): ModelPickerOverlay {
 	return new ModelPickerOverlay(
 		current,
@@ -151,9 +152,9 @@ describe("ModelPickerOverlay hierarchy", () => {
 		let required: WwwSettings | undefined;
 		let applied = false;
 		const picker = overlay({
-			authStatus: auth("required"),
-			onApply: async () => { applied = true; },
-			onRequireAuth: settings => { required = settings; },
+			authStatus    : auth("required"),
+			onApply       : async () => { applied = true; },
+			onRequireAuth : settings => { required = settings; },
 		});
 		picker.start();
 		await Bun.sleep(0);
@@ -179,9 +180,9 @@ describe("ModelPickerOverlay hierarchy", () => {
 
 	test("does not let Esc disguise an in-flight apply as cancellation", async () => {
 		let resolveApply!: () => void;
-		const applying = new Promise<void>(resolve => { resolveApply = resolve; });
-		let closed = false;
-		const picker = overlay({ onApply: () => applying, onClose: () => { closed = true; } });
+		const applying = new Promise<void>(resolve => { resolveApply = resolve; })               ;
+		let closed     = false                                                                   ;
+		const picker   = overlay({ onApply: () => applying, onClose: () => { closed = true; } }) ;
 		picker.start();
 		await Bun.sleep(0);
 		for (let step = 0; step < 4; step++) picker.handleInput("\r");
@@ -207,18 +208,18 @@ describe("ModelPickerOverlay hierarchy", () => {
 	});
 
 	test("restores a staged selection after auth without changing the current header", () => {
-		const initial: WwwSettings = { provider: "google", model: "gemini-3-flash-preview", effort: "low" };
-		const picker = overlay({ initial, resumeAtConfirmation: true });
-		const output = text(picker);
+		const initial: WwwSettings = { provider: "google", model: "gemini-3-flash-preview", effort: "low" } ;
+		const picker               = overlay({ initial, resumeAtConfirmation: true })                       ;
+		const output               = text(picker)                                                           ;
 		expect(output).toContain("현재: openai-codex / GPT-5.6-Sol / Ultra");
 		expect(output).toContain("선택: google / Gemini 3 Flash Preview / Low");
 		expect(output).toContain("[확인]");
 	});
 
 	test("Esc discards every hierarchy level and all lines fit 40 columns", () => {
-		let closed = false;
-		let applied = false;
-		const picker = overlay({ onApply: async () => { applied = true; }, onClose: () => { closed = true; } });
+		let closed   = false                                                                                    ;
+		let applied  = false                                                                                    ;
+		const picker = overlay({ onApply: async () => { applied = true; }, onClose: () => { closed = true; } }) ;
 		picker.handleInput("\x1b[B");
 		picker.handleInput("\r");
 		picker.handleInput("\u001b");

@@ -10,9 +10,9 @@ test("loads the native adapter synchronously only across the supports/highlight 
 	]);
 	expect(exitCode, stderr).toBe(0);
 	expect(JSON.parse(stdout)).toEqual({
-		moduleLoads: 1,
-		supportsCalls: 4,
-		highlightCalls: 3,
-		highlightLanguages: ["typescript", null, "typescript"],
+		moduleLoads        : 1,
+		supportsCalls      : 4,
+		highlightCalls     : 3,
+		highlightLanguages : ["typescript", null, "typescript"],
 	});
 });

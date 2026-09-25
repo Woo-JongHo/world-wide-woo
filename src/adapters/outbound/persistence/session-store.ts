@@ -1,25 +1,18 @@
 import { randomUUID } from "node:crypto";
 
-import {
-	chmod,
-	mkdir,
-	open,
-	readFile,
-	readdir,
-	stat,
-} from "node:fs/promises";
+import { chmod, mkdir, open, readFile, readdir, stat } from "node:fs/promises";
 
-import { homedir       } from "node:os";
+import { homedir }       from "node:os";
 import { dirname, join } from "node:path";
 
 import {
 	SESSION_EVENT_CATEGORIES,
 	SESSION_EVENT_STATUSES,
 	SESSION_EVENT_TYPES,
-} from "../../../core/domain/execution/session-events.js";
+} from "@/core/domain/execution/session-events.js";
 
-import type { SessionEvent, SessionEventInput } from "../../../core/domain/execution/session-events.js";
-import type { RecentSessionSummary            } from "../../../core/ports";
+import type { SessionEvent, SessionEventInput } from "@/core/domain/execution/session-events.js";
+import type { RecentSessionSummary }            from "@/core/ports";
 
 const DEFAULT_SESSION_DIRECTORY = join(homedir(), ".local", "share", "www", "sessions");
 const sessionIdPattern          = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
@@ -199,4 +192,9 @@ function isRecord    ( value : unknown ) : value is Record< string, unknown > { 
 function errorMessage( error : unknown ) : string                             { return error instanceof Error ? error.message : String(error); }
 
 function hasStringMember( values : readonly string[], value : unknown ) : boolean { return typeof value === "string" && values.includes(value); }
-function isNodeErrorCode( error  : unknown,          code   : string  ) : boolean { return typeof error === "object" && error !== null && "code" in error && error.code === code; }
+function isNodeErrorCode( error  : unknown,          code   : string  ) : boolean { return (
+	typeof error === "object"
+	&& error !== null
+	&& "code" in error
+	&& error.code === code
+); }

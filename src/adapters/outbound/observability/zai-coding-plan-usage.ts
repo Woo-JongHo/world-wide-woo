@@ -1,22 +1,22 @@
 import type { UsageCredential, UsageLimit, UsageWindow } from "@gajae-code/ai/core";
 
-const HOUR_MS = 60 * 60 * 1_000;
-const DAY_MS = 24 * HOUR_MS;
-const WEEK_MS = 7 * DAY_MS;
+const HOUR_MS = 60 * 60 * 1_000 ;
+const DAY_MS  = 24 * HOUR_MS    ;
+const WEEK_MS = 7 * DAY_MS      ;
 // upstream OpenCode status plugin의 UA 문자열을 그대로 쓰지 않고 WWW 자체 식별자로 조회한다.
 const ZAI_USAGE_USER_AGENT = "world-wide-woo-usage/1.0";
 
 type UsageFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
 interface QuotaLimit {
-	type?: unknown;
-	usage?: unknown;
-	currentValue?: unknown;
-	percentage?: unknown;
-	remaining?: unknown;
-	nextResetTime?: unknown;
-	unit?: unknown;
-	number?: unknown;
+	type?          : unknown ;
+	usage?         : unknown ;
+	currentValue?  : unknown ;
+	percentage?    : unknown ;
+	remaining?     : unknown ;
+	nextResetTime? : unknown ;
+	unit?          : unknown ;
+	number?        : unknown ;
 }
 
 function number(value: unknown): number | undefined {
@@ -40,7 +40,8 @@ function status(used: number | undefined): "ok" | "warning" | "exhausted" | unde
 }
 
 function quotaWindow(item: QuotaLimit): UsageWindow {
-	const count = number(item.number) !== undefined && number(item.number)! > 0 ? number(item.number)! : 1;
+	const quantity = number(item.number);
+	const count = quantity !== undefined && quantity > 0 ? quantity : 1;
 	if (item.unit === 3) return { id: `${count}h`, label: `${count} Hour${count === 1 ? "" : "s"}`, durationMs: count * HOUR_MS };
 	if (item.unit === 4) return { id: `${count}d`, label: `${count} Day${count === 1 ? "" : "s"}`, durationMs: count * DAY_MS };
 	if (item.unit === 6) return { id: "1w", label: "Weekly", durationMs: WEEK_MS };
@@ -49,25 +50,35 @@ function quotaWindow(item: QuotaLimit): UsageWindow {
 }
 
 function parseLimit(value: unknown, index: number): UsageLimit | undefined {
-	if (typeof value !== "object" || value === null) return undefined;
-	const item = value as QuotaLimit;
+	if (!isRecord(value)) return undefined;
+	const item: QuotaLimit = value;
 	if (typeof item.type !== "string" || !["TOKENS_LIMIT", "TIME_LIMIT", "CREDIT_LIMIT"].includes(item.type)) return undefined;
-	const used = number(item.currentValue);
-	const limit = number(item.usage);
-	const usedFraction = fraction(number(item.percentage), used, limit);
-	const unit = item.type === "TOKENS_LIMIT" ? "tokens" : item.type === "TIME_LIMIT" ? "requests" : "unknown";
-	const window = quotaWindow(item);
-	const kind = item.type === "TOKENS_LIMIT" ? "Token" : item.type === "TIME_LIMIT" ? "Request" : "Credit";
-	const label = `Z.AI ${window.label} ${kind} Quota`;
-	const id = `${item.type.toLowerCase()}:${window.id}:${index}`;
-	const next = resetAt(item.nextResetTime);
+	const used              = number(item.currentValue)                                                                     ;
+	const limit             = number(item.usage)                                                                            ;
+	const usedFraction      = fraction(number(item.percentage), used, limit)                                                ;
+	const unit              = item.type === "TOKENS_LIMIT" ? "tokens" : item.type === "TIME_LIMIT" ? "requests" : "unknown" ;
+	const window            = quotaWindow(item)                                                                             ;
+	const kind              = item.type === "TOKENS_LIMIT" ? "Token" : item.type === "TIME_LIMIT" ? "Request" : "Credit"    ;
+	const label             = `Z.AI ${window.label} ${kind} Quota`                                                          ;
+	const id                = `${item.type.toLowerCase()}:${window.id}:${index}`                                            ;
+	const next              = resetAt(item.nextResetTime)                                                                   ;
+	const remaining         = number(item.remaining)                                                                        ;
+	const remainingFraction = usedFraction === undefined ? undefined : 1 - usedFraction                                     ;
+	const usageStatus       = status(usedFraction)                                                                          ;
 	return {
 		id: `zai:${id}`,
 		label,
 		scope: { provider: "zai", windowId: window.id, shared: true },
 		window: next === undefined ? window : { ...window, resetsAt: next },
-		amount: { used, limit, remaining: number(item.remaining), usedFraction, remainingFraction: usedFraction === undefined ? undefined : 1 - usedFraction, unit },
-		status: status(usedFraction),
+		amount: {
+			...(used === undefined ? {} : { used }),
+			...(limit === undefined ? {} : { limit }),
+			...(remaining === undefined ? {} : { remaining }),
+			...(usedFraction === undefined ? {} : { usedFraction }),
+			...(remainingFraction === undefined ? {} : { remainingFraction }),
+			unit,
+		},
+		...(usageStatus === undefined ? {} : { status: usageStatus }),
 	};
 }
 
@@ -78,8 +89,17 @@ export async function fetchZaiCodingPlanUsage(credential: UsageCredential, fetch
 		headers: { Authorization: credential.apiKey, "Content-Type": "application/json", "User-Agent": ZAI_USAGE_USER_AGENT },
 	});
 	if (!response.ok) return null;
-	const payload = await response.json() as { success?: unknown; data?: { limits?: unknown } };
-	if (payload.success !== true || !Array.isArray(payload.data?.limits)) return null;
+	const payload: unknown = await response.json();
+	if (
+		!isRecord(payload)
+		|| payload.success !== true
+		|| !isRecord(payload.data)
+		|| !Array.isArray(payload.data.limits)
+	) return null;
 	const limits = payload.data.limits.map(parseLimit).filter((limit): limit is UsageLimit => limit !== undefined);
 	return limits.length > 0 ? limits : null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return value !== null && typeof value === "object";
 }

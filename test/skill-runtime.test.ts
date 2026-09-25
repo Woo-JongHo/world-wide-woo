@@ -1,13 +1,20 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { execFileSync } from "node:child_process";
+import { afterEach, describe, expect, test }                           from "bun:test";
+import { execFileSync }                                                from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { classifyRpaIntent, planRpaScenario } from "../src/core/agents/rpa-agent";
-import type { SkillRegistrySnapshot } from "../src/core/skills/skill-registry";
-import { FileSkillRegistry } from "../src/adapters/outbound/workspace/file-skill-registry";
-import { authorizeSkillStep, beginSkillStep, finishSkillStep, requestSkillAuthorization, skillRunMonitor, startSkillRun } from "../src/core/workflows/skill-run";
-import { FileSkillRunStore } from "../src/adapters/outbound/persistence/skill-run-store";
+import { tmpdir }                                                      from "node:os";
+import { join }                                                        from "node:path";
+import { classifyRpaIntent, planRpaScenario }                          from "../src/core/agents/rpa-agent";
+import type { SkillRegistrySnapshot }                                  from "../src/core/skills/skill-registry";
+import { FileSkillRegistry }                                           from "../src/adapters/outbound/workspace/file-skill-registry";
+import {
+	authorizeSkillStep,
+	beginSkillStep,
+	finishSkillStep,
+	requestSkillAuthorization,
+	skillRunMonitor,
+	startSkillRun,
+} from "../src/core/workflows/skill-run";
+import { FileSkillRunStore }                                           from "../src/adapters/outbound/persistence/skill-run-store";
 
 const roots: string[] = [];
 afterEach(() => { for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }); });
@@ -35,9 +42,9 @@ describe("RPA Agent runtime", () => {
 	});
 
 	test("Skill Run이 순서, stale 승인, evidence와 Receipt를 강제한다", () => {
-		const scenario = planRpaScenario({ intent: "reconcile", registry: registry(), processId: "RPA-GMB-FTA" });
-		const runId = "00000000-0000-4000-8000-000000000001";
-		let state = beginSkillStep({ ...startSkillRun(scenario, runId, "local-preflight"), subjectDigest: "e".repeat(64) });
+		const scenario = planRpaScenario({ intent: "reconcile", registry: registry(), processId: "RPA-GMB-FTA" })                ;
+		const runId    = "00000000-0000-4000-8000-000000000001"                                                                  ;
+		let state      = beginSkillStep({ ...startSkillRun(scenario, runId, "local-preflight"), subjectDigest: "e".repeat(64) }) ;
 		state = requestSkillAuthorization(state, { id: "ARTIFACT-CANDIDATE-1", digest: "c".repeat(64) }, ["candidate validated"]);
 		expect(() => authorizeSkillStep(state, "d".repeat(64), "user")).toThrow("SKILL_AUTH_STALE");
 		state = authorizeSkillStep(state, "c".repeat(64), "user");
@@ -49,10 +56,10 @@ describe("RPA Agent runtime", () => {
 
 	test("상태 CAS와 Receipt 저장·조회를 run 경계 안에서 수행한다", async () => {
 		const root = mkdtempSync(join(tmpdir(), "woo-skill-run-")); roots.push(root);
-		const runId = "00000000-0000-4000-8000-000000000002";
-		const store = new FileSkillRunStore(root);
-		const scenario = planRpaScenario({ intent: "reconcile", registry: registry(), processId: "RPA-GMB-FTA" });
-		const initial = { ...startSkillRun(scenario, runId, "local-preflight"), subjectDigest: "e".repeat(64) };
+		const runId    = "00000000-0000-4000-8000-000000000002"                                                   ;
+		const store    = new FileSkillRunStore(root)                                                              ;
+		const scenario = planRpaScenario({ intent: "reconcile", registry: registry(), processId: "RPA-GMB-FTA" }) ;
+		const initial  = { ...startSkillRun(scenario, runId, "local-preflight"), subjectDigest: "e".repeat(64) }  ;
 		await store.write(initial);
 		const running = beginSkillStep(initial);
 		await store.write(running, initial.revision);

@@ -1,14 +1,28 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync }                                               from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
-import { randomUUID } from "node:crypto";
-import type { CommitCandidate, CommitPolicy } from "../../../core/commit/commit-governance.js";
-import { candidateDigest, canonicalJson, CommitControlPlane, sha256 } from "../../../core/commit/commit-governance.js";
+import { dirname, join, resolve }                                     from "node:path";
+import { randomUUID }                                                 from "node:crypto";
+import type { CommitCandidate, CommitPolicy }                         from "@/core/commit/commit-governance.js";
+import { candidateDigest, canonicalJson, CommitControlPlane, sha256 } from "@/core/commit/commit-governance.js";
 
-export interface CommitAuthorization { schemaVersion: 1; candidateId: string; candidateDigest: string; actor: string; authorizedAt: string }
-export interface ActiveCommit { candidatePath: string; authorizationPath: string; messagePath: string; candidateDigest: string }
+export interface CommitAuthorization {
+	schemaVersion   : 1      ;
+	candidateId     : string ;
+	candidateDigest : string ;
+	actor           : string ;
+	authorizedAt: string
+}
+export interface ActiveCommit {
+	candidatePath     : string ;
+	authorizationPath : string ;
+	messagePath       : string ;
+	candidateDigest: string
+}
 
-interface DevelopmentProjectIdentity { schemaVersion: 1; id: string }
+interface DevelopmentProjectIdentity {
+	schemaVersion: 1;
+	id: string
+}
 
 function commitProjectId(root: string): string {
 	const path = join(root, ".www/control-ledger/development/project.json");
@@ -83,7 +97,11 @@ export function authorize(root: string, candidate: CommitCandidate, actor: strin
 
 export function loadAuthorization(path: string, candidate: CommitCandidate): CommitAuthorization {
 	const value = JSON.parse(readFileSync(path, "utf8")) as CommitAuthorization;
-	if (value.schemaVersion !== 1 || value.candidateId !== candidate.id || value.candidateDigest !== candidateDigest(candidate) || !value.actor || Number.isNaN(Date.parse(value.authorizedAt))) throw new Error("COMMIT_AUTH_STALE: 승인이 현재 Candidate와 다릅니다.");
+	if (value.schemaVersion !== 1
+		|| value.candidateId !== candidate.id
+		|| value.candidateDigest !== candidateDigest(candidate)
+		|| !value.actor
+		|| Number.isNaN(Date.parse(value.authorizedAt))) throw new Error("COMMIT_AUTH_STALE: 승인이 현재 Candidate와 다릅니다.");
 	return value;
 }
 
@@ -111,9 +129,9 @@ export function writeReceipt(root: string, candidate: CommitCandidate, authoriza
 }
 
 export function writeFailureReceipt(root: string, error: unknown, stage = "execute"): string {
-	const message = error instanceof Error ? error.message : String(error);
-	const match = /^([A-Z][A-Z0-9_]+):\s*(.*)$/su.exec(message);
-	const now = new Date().toISOString();
+	const message = error instanceof Error ? error.message : String(error) ;
+	const match   = /^([A-Z][A-Z0-9_]+):\s*(.*)$/su.exec(message)          ;
+	const now     = new Date().toISOString()                               ;
 	const receipt: Record<string, unknown> = {
 		schemaVersion: "1.0", receiptId: randomUUID(), runId: randomUUID(), candidateId: null,
 		skill: { name: "woo-commit", version: "0.1.0" }, capability: "commit", intentId: null,
@@ -129,9 +147,9 @@ export function writeFailureReceipt(root: string, error: unknown, stage = "execu
 }
 
 export function verifyRecordedCommit(root: string, candidate: CommitCandidate, message: string, commit = "HEAD"): string {
-	const sha = String(git(root, ["rev-parse", commit])).trim();
-	const object = git(root, ["cat-file", "commit", sha], "buffer") as Buffer;
-	const boundary = object.indexOf(Buffer.from("\n\n"));
+	const sha      = String(git(root, ["rev-parse", commit])).trim()            ;
+	const object   = git(root, ["cat-file", "commit", sha], "buffer") as Buffer ;
+	const boundary = object.indexOf(Buffer.from("\n\n"))                        ;
 	if (boundary < 0) throw new Error("COMMIT_POST_VERIFY_FAILED: commit object에 메시지 경계가 없습니다.");
 	const actualMessage = object.subarray(boundary + 2).toString("utf8");
 	if (actualMessage !== message) throw new Error("COMMIT_POST_VERIFY_FAILED: commit message가 Candidate와 다릅니다.");
@@ -142,9 +160,10 @@ export function verifyRecordedCommit(root: string, candidate: CommitCandidate, m
 
 export function executeCommit(root: string, candidatePath: string, authorizationPath: string, policy: CommitPolicy): { sha: string; receipt: string } {
 	assertRepositoryReady(root);
-	const projectId = commitProjectId(root);
-	const candidate = JSON.parse(readFileSync(candidatePath, "utf8")) as CommitCandidate;
-	const control = new CommitControlPlane(policy); const errors = control.validate(candidate, true); if (errors.length) throw new Error(errors.join("\n"));
+	const projectId = commitProjectId(root)                                              ;
+	const candidate = JSON.parse(readFileSync(candidatePath, "utf8")) as CommitCandidate ;
+	const control   = new CommitControlPlane(policy)                                     ;
+	const errors = control.validate(candidate, true); if (errors.length) throw new Error(errors.join("\n"));
 	assertCandidateMatchesWorktree(root, candidate); const authorization = loadAuthorization(authorizationPath, candidate);
 	const tracked = new Set((git(root, ["ls-files", "-z"], "buffer") as Buffer).toString("utf8").split("\0").filter(Boolean));
 	const updates = candidate.paths.filter(path => tracked.has(path));
@@ -154,7 +173,8 @@ export function executeCommit(root: string, candidatePath: string, authorization
 	if (additions.length) git(root, ["add", "--", ...additions]);
 	assertStagedBoundary(root, candidate);
 	const directory = join(root, ".www/runtime/commit"); mkdirSync(directory, { recursive: true });
-	const messagePath = join(directory, `${candidate.id}.message.txt`); const message = control.render(candidate); writeFileSync(messagePath, message);
+	const messagePath = join(directory, `${candidate.id}.message.txt`);
+	const message = control.render(candidate); writeFileSync(messagePath, message);
 	const activePath = activeCommitPath(root); mkdirSync(dirname(activePath), { recursive: true });
 	writeFileSync(activePath, `${JSON.stringify({ candidatePath: resolve(candidatePath), authorizationPath: resolve(authorizationPath), messagePath, candidateDigest: candidateDigest(candidate) }, null, 2)}\n`, { mode: 0o600 });
 	try { git(root, ["commit", "--cleanup=verbatim", "-F", messagePath]); }

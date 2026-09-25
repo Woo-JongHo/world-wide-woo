@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { RenderScheduler, workbenchRenderUrgency } from "../src/adapters/inbound/tui/foundation/rendering/render-scheduler";
+import {
+	RenderScheduler,
+	workbenchRenderUrgency,
+} from "../src/adapters/inbound/tui/foundation/rendering/render-scheduler";
 
 describe("RenderScheduler", () => {
 	test("defaults streaming updates to a 32ms responsiveness budget", () => {
@@ -30,10 +33,10 @@ describe("RenderScheduler", () => {
 	});
 
 	test("coalesces token deltas to a 64ms trailing render", () => {
-		let now = 0;
-		let renders = 0;
-		let scheduled: (() => void) | undefined;
-		let scheduledDelay = -1;
+		let now            = 0                  ;
+		let renders        = 0                  ;
+		let scheduled: (() => void) | undefined ;
+		let scheduledDelay = -1                 ;
 		const scheduler = new RenderScheduler(
 			() => { renders += 1; },
 			64,
@@ -61,9 +64,9 @@ describe("RenderScheduler", () => {
 	});
 
 	test("flushes terminal state immediately and cancels a stale timer", () => {
-		let now = 0;
-		let renders = 0;
-		let cancelled = 0;
+		let now       = 0 ;
+		let renders   = 0 ;
+		let cancelled = 0 ;
 		const scheduler = new RenderScheduler(
 			() => { renders += 1; },
 			64,

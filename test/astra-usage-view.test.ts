@@ -1,18 +1,18 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test }               from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import { AstraUsageRail, AstraUsageView } from "../src/adapters/inbound/tui/features/usage/astra-usage-view";
-import type { UsageSnapshot } from "../src/core/ports";
-import { astraFixture } from "./fixtures/astra-snapshot";
+import { AstraUsageRail, AstraUsageView }       from "../src/adapters/inbound/tui/features/usage/astra-usage-view";
+import type { UsageSnapshot }                   from "../src/core/ports";
+import { astraFixture }                         from "./fixtures/astra-snapshot";
 
 describe("AstraUsageView", () => {
 	test("shows only observed session and provider usage", () => {
 		const snapshot = astraFixture();
 		snapshot.sessionUsage = {
-			totalTokens: 1_500,
-			observedTotalTokens: 1_500,
-			unattributedTokens: 100,
-			models: [{ model: "gpt-5.6-sol", effort: "high", interactiveRootTurns: 2, interactiveTokens: 1_200, detachedInvocations: 1, detachedTokens: 300, totalTokens: 1_500 }],
-			observationCoverage: { interactive: true, detached: true },
+			totalTokens         : 1_500,
+			observedTotalTokens : 1_500,
+			unattributedTokens  : 100,
+			models              : [{ model: "gpt-5.6-sol", effort: "high", interactiveRootTurns: 2, interactiveTokens: 1_200, detachedInvocations: 1, detachedTokens: 300, totalTokens: 1_500 }],
+			observationCoverage : { interactive: true, detached: true },
 		};
 		const usage: UsageSnapshot[] = [{
 			provider: "openai-codex",
@@ -52,11 +52,11 @@ describe("AstraUsageView", () => {
 			fetchedAt: 1,
 			limits: [{ label: "Claude 7 Day", remainingPercent: 84, status: "ok" }],
 		}];
-		const view = new AstraUsageView(() => snapshot, () => usage);
-		const wide = view.render(120);
-		const compact = view.render(60);
-		const wideText = stripTerminalSequences(wide.join("\n"));
-		const compactText = stripTerminalSequences(compact.join("\n"));
+		const view        = new AstraUsageView(() => snapshot, () => usage) ;
+		const wide        = view.render(120)                                ;
+		const compact     = view.render(60)                                 ;
+		const wideText    = stripTerminalSequences(wide.join("\n"))         ;
+		const compactText = stripTerminalSequences(compact.join("\n"))      ;
 		expect(wideText).toContain("┌");
 		expect(wideText).toContain("Claude");
 		expect(wideText).toContain("84% 남음");

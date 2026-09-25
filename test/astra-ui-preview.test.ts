@@ -1,7 +1,7 @@
-import { expect, test } from "bun:test";
+import { expect, test }           from "bun:test";
 import { stripTerminalSequences } from "@earendil-works/pi-tui";
-import { previewCwd, snapshot } from "../scripts/astra-ui-preview";
-import { AstraHeader } from "../src/adapters/inbound/tui/shell/astra-surface";
+import { previewCwd, snapshot }   from "../scripts/astra-ui-preview";
+import { AstraHeader }            from "../src/adapters/inbound/tui/shell/astra-surface";
 
 test("offline preview labels fixture provenance on every page header", () => {
 	for (const page of ["Dashboard", "Context", "Usage", "Cache", "Workflow"]) {

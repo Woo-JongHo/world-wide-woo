@@ -1,31 +1,31 @@
-import { createHash, randomUUID } from "node:crypto";
+import { createHash, randomUUID }                                         from "node:crypto";
 import { link, mkdir, open, readFile, readdir, realpath, rename, unlink } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
-import type { SkillRunReceipt, SkillRunState } from "../../../core/workflows/skill-run.js";
-import { verifySkillRunReceipt } from "../../../core/workflows/skill-run.js";
+import { dirname, resolve }                                               from "node:path";
+import type { SkillRunReceipt, SkillRunState }                            from "@/core/workflows/skill-run.js";
+import { verifySkillRunReceipt }                                          from "@/core/workflows/skill-run.js";
 
 interface Commit {
- readonly schemaVersion: 1;
- readonly sequence: number;
- readonly rootDigest: string;
- readonly state: SkillRunState;
- readonly receipts: readonly SkillRunReceipt[];
+ readonly schemaVersion : 1                          ;
+ readonly sequence      : number                     ;
+ readonly rootDigest    : string                     ;
+ readonly state         : SkillRunState              ;
+ readonly receipts      : readonly SkillRunReceipt[] ;
 }
 
 /** Immutable JSON commits are authoritative; legacy paths are repairable exports. */
 export class FileSkillRunStore {
  constructor(private readonly root: string) {}
- statePath(runId: string): string { return resolve(this.root, "runtime/skills", `${safeId(runId)}.json`); }
- receiptPath(receipt: SkillRunReceipt): string { return resolve(this.root, "receipts/skills", safeId(receipt.runId), `${safeId(receipt.receiptId)}.json`); }
- private commitsPath(runId: string): string { return resolve(this.root, "runtime/skills/commits", safeId(runId)); }
+ statePath          (runId: string           ): string { return resolve(this.root, "runtime/skills", `${safeId(runId)}.json`); }
+ receiptPath        (receipt: SkillRunReceipt): string { return resolve(this.root, "receipts/skills", safeId(receipt.runId), `${safeId(receipt.receiptId)}.json`); }
+ private commitsPath(runId: string           ): string { return resolve(this.root, "runtime/skills/commits", safeId(runId)); }
  private async binding(): Promise<string> {
   return createHash("sha256").update(await realpath(this.root)).digest("hex");
  }
  private async current(runId: string): Promise<Commit | null> {
   safeId(runId);
-  const names = await readdir(this.commitsPath(runId)).catch(error => missing(error) ? [] : Promise.reject(error));
-  const sequences = names.filter(name => /^\d{16}\.json$/u.test(name)).sort();
-  const latest = sequences.at(-1);
+  const names     = await readdir(this.commitsPath(runId)).catch(error => missing(error) ? [] : Promise.reject(error)) ;
+  const sequences = names.filter(name => /^\d{16}\.json$/u.test(name)).sort()                                          ;
+  const latest    = sequences.at(-1)                                                                                   ;
   if (latest) {
    const commit = JSON.parse(await readFile(resolve(this.commitsPath(runId), latest), "utf8")) as Commit;
    if (commit.schemaVersion !== 1 || commit.sequence !== Number(latest.slice(0, -5)) || commit.state.runId !== runId) throw new Error("SKILL_RUN_COMMIT_INVALID");
@@ -84,11 +84,11 @@ export class FileSkillRunStore {
   if (receipt.runId !== state.runId || receipt.execution.revision !== expectedRevision) throw new Error("SKILL_RECEIPT_STATE_MISMATCH");
   await this.mutate(state.runId, current => {
    this.checkRevision(current, state, expectedRevision);
-   const previous = current!.state;
-   const activeIndex = previous.activeIndex;
-   const active = activeIndex === null ? undefined : previous.steps[activeIndex];
-   const next = activeIndex === null ? undefined : state.steps[activeIndex];
-   const expectedStage = receipt.status === "succeeded" ? (state.steps.some(step => step.status === "pending") ? "ready" : "completed") : receipt.status;
+   const previous      = current!.state                                                                                                                  ;
+   const activeIndex   = previous.activeIndex                                                                                                            ;
+   const active        = activeIndex === null ? undefined : previous.steps[activeIndex]                                                                  ;
+   const next          = activeIndex === null ? undefined : state.steps[activeIndex]                                                                     ;
+   const expectedStage = receipt.status === "succeeded" ? (state.steps.some(step => step.status === "pending") ? "ready" : "completed") : receipt.status ;
    if (!["running", "execute"].includes(previous.stage) || !active || !next
     || active.skill !== receipt.skill.name || next.status !== receipt.status
     || state.activeIndex !== null || state.stage !== expectedStage
@@ -129,12 +129,12 @@ export class FileSkillRunStore {
   const directory = this.commitsPath(runId);
   await mkdir(directory, { recursive: true, mode: 0o700 });
   for (;;) {
-   const current = await this.current(runId);
-   const value = update(current);
-   const commit: Commit = { schemaVersion: 1, sequence: (current?.sequence ?? 0) + 1, rootDigest: await this.binding(), ...value };
-   const temporary = resolve(directory, `.${randomUUID()}.tmp`);
-   const target = resolve(directory, `${String(commit.sequence).padStart(16, "0")}.json`);
-   const handle = await open(temporary, "wx", 0o600);
+   const current         = await this.current(runId)                                                                                ;
+   const value           = update(current)                                                                                          ;
+   const commit : Commit = { schemaVersion: 1, sequence: (current?.sequence ?? 0) + 1, rootDigest: await this.binding(), ...value } ;
+   const temporary       = resolve(directory, `.${randomUUID()}.tmp`)                                                               ;
+   const target          = resolve(directory, `${String(commit.sequence).padStart(16, "0")}.json`)                                  ;
+   const handle          = await open(temporary, "wx", 0o600)                                                                       ;
    try { await handle.writeFile(`${JSON.stringify(commit)}\n`); await handle.sync(); } finally { await handle.close(); }
    let published = false;
    try {

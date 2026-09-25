@@ -1,6 +1,7 @@
-import { describe, expect, test } from "bun:test";
-import { stripTerminalSequences, type Component } from "@earendil-works/pi-tui";
-import { renderLayoutFrame } from "@earendil-works/pi-tui/dist/layout.js";
+import { describe, expect, test }                                         from "bun:test";
+import { stripTerminalSequences }                                         from "@earendil-works/pi-tui";
+import type { Component }                                                 from "@earendil-works/pi-tui";
+import { renderLayoutFrame }                                              from "@earendil-works/pi-tui/dist/layout.js";
 import {
 	workbenchActivityIndicator,
 	composerModelHeader,
@@ -27,18 +28,21 @@ import {
 	workbenchStatsTargetCommand,
 	workbenchViewModeCommand,
 } from "../src/adapters/inbound/tui/shell/workbench-navigation.controller";
-import { RenderScheduler } from "../src/adapters/inbound/tui/foundation/rendering/render-scheduler";
-import { composerBorderColor, composerBorderHex } from "../src/adapters/inbound/tui/foundation/theme/theme";
+import { RenderScheduler }                                                from "../src/adapters/inbound/tui/foundation/rendering/render-scheduler";
+import { composerBorderColor, composerBorderHex }                         from "../src/adapters/inbound/tui/foundation/theme/theme";
 import { workbenchApprovalIdentity, workbenchExternalMutationCandidates } from "../src/core/domain/work/workbench";
-import { createDashboardLayout } from "../src/adapters/inbound/tui/foundation/layout/dashboard-layout";
-import { parseWorkbenchShellCommand, WORKBENCH_SLASH_COMMANDS } from "../src/adapters/inbound/tui/commands/slash-commands";
+import { createDashboardLayout }                                          from "../src/adapters/inbound/tui/foundation/layout/dashboard-layout";
+import {
+	parseWorkbenchShellCommand,
+	WORKBENCH_SLASH_COMMANDS,
+} from "../src/adapters/inbound/tui/commands/slash-commands";
 
 const workingSnapshot = {
-	phase: "working",
-	pendingApproval: null,
-	activities: [],
-	draft: "",
-	reasoningDraft: "",
+	phase           : "working",
+	pendingApproval : null,
+	activities      : [],
+	draft           : "",
+	reasoningDraft  : "",
 	chat: [
 		{ role: "user", content: "현재 디렉터리 구조를 확인해줘" },
 		{ role: "assistant", content: "현재 디렉터리 구조를 직접 확인하겠습니다." },
@@ -48,9 +52,9 @@ const workingSnapshot = {
 
 describe("native workbench shell receipt policy", () => {
 	test("replaces the Composer slot without rebuilding it", () => {
-		const first = { invalidate() {}, render: () => ["composer"], handleInput() {} };
-		const second = { invalidate() {}, render: () => ["login"], handleInput() {} };
-		const slot = new ComponentSlot(first);
+		const first  = { invalidate() {}, render: () => ["composer"], handleInput() {} } ;
+		const second = { invalidate() {}, render: () => ["login"], handleInput() {} }    ;
+		const slot   = new ComponentSlot(first)                                          ;
 		expect(slot.render(80)).toEqual(["composer"]);
 		slot.set(second);
 		expect(slot.render(80)).toEqual(["login"]);
@@ -69,9 +73,9 @@ describe("native workbench shell receipt policy", () => {
 
 	test("places the active model and effort on the composer edge", () => {
 		const header = stripTerminalSequences(composerModelHeader({
-			model: "gpt-5.6-terra",
-			activeModel: "gpt-5.6-sol",
-			effort: "low",
+			model       : "gpt-5.6-terra",
+			activeModel : "gpt-5.6-sol",
+			effort      : "low",
 		}, 40));
 		expect(header).toContain("GPT-5.6-Sol · Low");
 		expect(header).toMatch(/^╭─ /u);
@@ -115,10 +119,10 @@ describe("native workbench shell receipt policy", () => {
 	});
 
 	test("preserves ordered editor input while streaming frames remain coalesced", async () => {
-		let now = 0;
-		let renders = 0;
-		let scheduled: (() => void) | undefined;
-		let draft = "";
+		let now     = 0                         ;
+		let renders = 0                         ;
+		let scheduled: (() => void) | undefined ;
+		let draft   = ""                        ;
 		const scheduler = new RenderScheduler(
 			() => { renders += 1; },
 			64,
@@ -148,11 +152,11 @@ describe("native workbench shell receipt policy", () => {
 
 	test("binds an external mutation approval identity to the exact candidate payload", () => {
 		const approval = {
-			requestId: "approval-1",
-			callbackId: "callback-1",
-			kind: "command",
-			refs: {},
-			availableDecisions: ["accept"],
+			requestId          : "approval-1",
+			callbackId         : "callback-1",
+			kind               : "command",
+			refs               : {},
+			availableDecisions : ["accept"],
 			params: {
 				externalMutationCandidates: [{
 					kind: "commit",
@@ -227,13 +231,13 @@ describe("native workbench shell receipt policy", () => {
 			{ color: value => value, component: text("dashboard-trace") },
 			{ color: value => value, component: text("dashboard-todo") },
 		);
-		const aggregate = text("aggregate-dashboard");
-		const monitor = text("live-monitor");
-		const map = text("INIT-001 → EP-010 → ST-010-01");
-		const stats = text("PURPOSE · ACTION · RESULT");
-		const source = text("source-detail");
-		let mode: "workbench" | "dashboard" | "monitor" | "source" | "map" | "stats" = "workbench";
-		const host = createWorkbenchViewHost(() => mode, dashboard.component, aggregate, monitor, source, map, stats);
+		const aggregate                                                              = text("aggregate-dashboard")                                                                      ;
+		const monitor                                                                = text("live-monitor")                                                                             ;
+		const map                                                                    = text("INIT-001 → EP-010 → ST-010-01")                                                            ;
+		const stats                                                                  = text("PURPOSE · ACTION · RESULT")                                                                ;
+		const source                                                                 = text("source-detail")                                                                            ;
+		let mode: "workbench" | "dashboard" | "monitor" | "source" | "map" | "stats" = "workbench"                                                                                      ;
+		const host                                                                   = createWorkbenchViewHost(() => mode, dashboard.component, aggregate, monitor, source, map, stats) ;
 
 		let frame = renderLayoutFrame(host, 120, 24, () => undefined);
 		expect(frame.primaryScrollView).toBe(dashboard.leftScroll);
@@ -258,27 +262,27 @@ describe("native workbench shell receipt policy", () => {
 
 	test("preserves native model identity even before the catalog recognizes it", () => {
 		expect(workbenchModelSettings({ model: "gpt-5.6-terra", effort: "high" })).toEqual({
-			provider: "openai-codex",
-			model: "gpt-5.6-terra",
-			effort: "high",
+			provider : "openai-codex",
+			model    : "gpt-5.6-terra",
+			effort   : "high",
 		});
 		expect(workbenchModelSettings({ model: "unknown", effort: null })).toEqual({
-			provider: "openai-codex",
-			model: "unknown",
-			effort: "medium",
+			provider : "openai-codex",
+			model    : "unknown",
+			effort   : "medium",
 		});
 	});
 
 	test("places the native model and effort in the frame title", () => {
 		const title = workbenchFrameTitle({
-			projectId: "project-123",
-			phase: "ready",
-			model: "gpt-5.6-sol",
-			effort: "ultra",
-			collaborationMode: "manual",
-			permissionMode: "manual",
-			chatQueue: [],
-			pendingApproval: null,
+			projectId         : "project-123",
+			phase             : "ready",
+			model             : "gpt-5.6-sol",
+			effort            : "ultra",
+			collaborationMode : "manual",
+			permissionMode    : "manual",
+			chatQueue         : [],
+			pendingApproval   : null,
 		});
 
 		expect(title).toBe("🐙 WWW · project-123 · GPT-5.6-Sol · Ultra · ready · manual mode");
@@ -286,15 +290,15 @@ describe("native workbench shell receipt policy", () => {
 
 	test("names the model the running turn uses, not a selection that applies to the next one", () => {
 		const title = workbenchFrameTitle({
-			projectId: "project-123",
-			phase: "working",
-			model: "gpt-5.6-luna",
-			activeModel: "gpt-5.6-sol",
-			effort: "ultra",
-			collaborationMode: "manual",
-			permissionMode: "manual",
-			chatQueue: [],
-			pendingApproval: null,
+			projectId         : "project-123",
+			phase             : "working",
+			model             : "gpt-5.6-luna",
+			activeModel       : "gpt-5.6-sol",
+			effort            : "ultra",
+			collaborationMode : "manual",
+			permissionMode    : "manual",
+			chatQueue         : [],
+			pendingApproval   : null,
 		});
 
 		expect(title).toContain("GPT-5.6-Sol");
@@ -336,9 +340,9 @@ describe("native workbench shell receipt policy", () => {
 			workFlow: {
 				currentStepNumber: 2,
 				steps: [
-					{ number: 1, title: "기준 확인" },
-					{ number: 2, title: "입출력 UX 정리" },
-					{ number: 3, title: "검증" },
+					{ number : 1 , title : "기준 확인"      },
+					{ number : 2 , title : "입출력 UX 정리" },
+					{ number : 3 , title : "검증"           },
 				],
 			},
 		});
@@ -356,9 +360,9 @@ describe("native workbench shell receipt policy", () => {
 			workFlow: {
 				currentStepNumber: 2,
 				steps: [
-					{ number: 1, title: "기준 확인" },
-					{ number: 2, title: "입출력 UX 정리" },
-					{ number: 3, title: "검증" },
+					{ number : 1 , title : "기준 확인"      },
+					{ number : 2 , title : "입출력 UX 정리" },
+					{ number : 3 , title : "검증"           },
 				],
 			},
 		});
@@ -385,9 +389,9 @@ describe("native workbench shell receipt policy", () => {
 			workFlow: {
 				currentStepNumber: null,
 				steps: [
-					{ number: 1, title: "기준 확인" },
-					{ number: 2, title: "입출력 UX 정리" },
-					{ number: 3, title: "검증" },
+					{ number : 1 , title : "기준 확인"      },
+					{ number : 2 , title : "입출력 UX 정리" },
+					{ number : 3 , title : "검증"           },
 				],
 			},
 		});
@@ -398,9 +402,9 @@ describe("native workbench shell receipt policy", () => {
 	test("keeps the current step while adding the public Native reasoning summary", () => {
 		const indicator = workbenchActivityIndicator({
 			...workingSnapshot,
-			chat: [{ role: "user", content: "테마를 조정해줘" }],
-			reasoningDraft: "raw reasoning hidden",
-			reasoningSummaryDraft: "Planning semantic color token adjustments ⟦esc⟧",
+			chat                  : [{ role: "user", content: "테마를 조정해줘" }],
+			reasoningDraft        : "raw reasoning hidden",
+			reasoningSummaryDraft : "Planning semantic color token adjustments ⟦esc⟧",
 			workFlow: {
 				currentStepNumber: 1,
 				steps: [{ number: 1, title: "테마 조정" }],
@@ -415,9 +419,9 @@ describe("native workbench shell receipt policy", () => {
 	test("keeps a no-plan live action visible alongside its public reasoning summary", () => {
 		const indicator = workbenchActivityIndicator({
 			...workingSnapshot,
-			chat: [{ role: "user", content: "테스트를 실행해줘" }],
-			reasoningDraft: "raw reasoning hidden",
-			reasoningSummaryDraft: "회귀 범위를 확인하는 중",
+			chat                  : [{ role: "user", content: "테스트를 실행해줘" }],
+			reasoningDraft        : "raw reasoning hidden",
+			reasoningSummaryDraft : "회귀 범위를 확인하는 중",
 			liveActivity: {
 				method: "item/commandExecution/outputDelta",
 				kind: "tool",
@@ -457,10 +461,10 @@ describe("native workbench shell receipt policy", () => {
 			...workingSnapshot,
 			activeTurnId: "turn-1",
 			liveActivity: {
-				method: "item/started",
-				kind: "tool",
-				text: "Tool",
-				nativeRefs: { threadId: "thread-1", turnId: "turn-1", itemId: "tool-1" },
+				method     : "item/started",
+				kind       : "tool",
+				text       : "Tool",
+				nativeRefs : { threadId: "thread-1", turnId: "turn-1", itemId: "tool-1" },
 			},
 			activities: [{
 				recordedAt: startedAt,
@@ -514,10 +518,10 @@ describe("native workbench shell receipt policy", () => {
 
 	test("points an uncertain native send to the explicit reconciliation command", () => {
 		const uncertain = {
-			state: "uncertain",
-			commandId: "chat-4",
-			reason: "Native turn/start 요청의 수신 여부를 확인할 수 없습니다.",
-			resolution: "manual-reconcile",
+			state      : "uncertain",
+			commandId  : "chat-4",
+			reason     : "Native turn/start 요청의 수신 여부를 확인할 수 없습니다.",
+			resolution : "manual-reconcile",
 		} as const;
 		expect(workbenchReceiptClearsComposer(uncertain)).toBe(true);
 		expect(workbenchReceiptNotice(uncertain)).toContain("/cancel로 서버 상태를 확인하세요");

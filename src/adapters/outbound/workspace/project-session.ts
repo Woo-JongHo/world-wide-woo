@@ -1,31 +1,32 @@
 import { join } from "node:path";
 
-import { SessionMonitor  } from "../../../core/application/session/session-monitor";
-import { SessionRuntime  } from "../../../core/application/session/session-runtime";
-import { PlanningService } from "../../../core/application/work/planning-service";
-import { TodoLedger      } from "../../../core/application/work/todo-ledger";
+import { SessionMonitor }  from "@/core/application/session/session-monitor";
+import { SessionRuntime }  from "@/core/application/session/session-runtime";
+import { PlanningService } from "@/core/application/work/planning-service";
+import { TodoLedger }      from "@/core/application/work/todo-ledger";
 
-import { createProjectAgentTools      } from "../execution/agent-tools";
-import { LocalTerminalCommandExecutor } from "../execution/terminal-command-executor";
+import { createProjectAgentTools }      from "@/adapters/outbound/execution/agent-tools";
+import { LocalTerminalCommandExecutor } from "@/adapters/outbound/execution/terminal-command-executor";
 
-import { FilePlanningStore                } from "../persistence/planning-store";
-import { SessionEventStore                } from "../persistence/session-store";
-import { FileTodoStore, migrateLegacyTodo } from "../persistence/todo-store";
+import { FilePlanningStore }                from "@/adapters/outbound/persistence/planning-store";
+import { SessionEventStore }                from "@/adapters/outbound/persistence/session-store";
+import { FileTodoStore, migrateLegacyTodo } from "@/adapters/outbound/persistence/todo-store";
 
-import { FileProjectWorkspace, type ProjectWorkspace } from "./project-workspace";
-import { loadWorkbenchConfig                         } from "./workbench-config.js";
+import { FileProjectWorkspace }  from "@/adapters/outbound/workspace/project-workspace";
+import type { ProjectWorkspace } from "@/adapters/outbound/workspace/project-workspace";
+import { loadWorkbenchConfig }   from "@/adapters/outbound/workspace/workbench-config.js";
 
-import type { WwwSettings } from "../../../core/domain/execution/model-settings";
+import type { WwwSettings } from "@/core/domain/execution/model-settings";
 
-import type { ModelClient, RecentSessionSummary, TodoController } from "../../../core/ports";
+import type { ModelClient, RecentSessionSummary, TodoController } from "@/core/ports";
 
 /** Legacy Router가 TUI에 넘기는 project session 자원과 종료 책임이다. */
 export interface ProjectSessionBundle {
-	workspace           : ProjectWorkspace;
-	runtime             : SessionRuntime;
-	todos               : TodoController;
-	monitor             : SessionMonitor;
-	planning            : PlanningService;
+	workspace : ProjectWorkspace ;
+	runtime   : SessionRuntime   ;
+	todos     : TodoController   ;
+	monitor   : SessionMonitor   ;
+	planning  : PlanningService  ;
 	/** TUI가 종료한 뒤 session writer lease를 반납한다. 반복 호출은 최초 호출만 효과가 있다. */
 	releaseSessionLease : () => Promise< void >;
 }
@@ -40,12 +41,12 @@ export async function createProjectSession(
 	model               : ModelClient,
 	requestedSessionId ?: string,
 ): Promise< ProjectSessionBundle > {
-	const workspace = await FileProjectWorkspace.open(cwd);
-	const config    = await loadWorkbenchConfig(workspace.root);
-	const sessions  = new SessionEventStore(workspace.sessionsDirectory);
-	const resume    = requestedSessionId !== undefined;
-	const sessionId = requestedSessionId ?? crypto.randomUUID();
-	const lease     = await FileProjectWorkspace.acquireSessionLease(workspace, sessionId);
+	const workspace = await FileProjectWorkspace.open(cwd)                                 ;
+	const config    = await loadWorkbenchConfig(workspace.root)                            ;
+	const sessions  = new SessionEventStore(workspace.sessionsDirectory)                   ;
+	const resume    = requestedSessionId !== undefined                                     ;
+	const sessionId = requestedSessionId ?? crypto.randomUUID()                            ;
+	const lease     = await FileProjectWorkspace.acquireSessionLease(workspace, sessionId) ;
 
 	try {
 		await migrateLegacyTodo(workspace.legacyTodoPath, workspace.todosDirectory);
@@ -57,9 +58,9 @@ export async function createProjectSession(
 		);
 		await todos.initialize();
 
-		const planning         = new PlanningService(new FilePlanningStore(workspace.directory));
-		const planningSnapshot = await planning.initialize();
-		const tools            = createProjectAgentTools(workspace.root, { todos });
+		const planning         = new PlanningService(new FilePlanningStore(workspace.directory)) ;
+		const planningSnapshot = await planning.initialize()                                     ;
+		const tools            = createProjectAgentTools(workspace.root, { todos })              ;
 		const runtime          = new SessionRuntime(
 			settings,
 			model,

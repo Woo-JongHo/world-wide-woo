@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import YAML from "yaml";
+import { readFileSync }           from "node:fs";
+import { join }                   from "node:path";
+import YAML                       from "yaml";
 
 const root = join(import.meta.dir, "..");
 const form = (name: string) => YAML.parse(readFileSync(join(root, ".github/ISSUE_TEMPLATE", name), "utf8")) as { title: string; labels: string[]; body: Array<{ type: string; id?: string; validations?: { required?: boolean } }> };

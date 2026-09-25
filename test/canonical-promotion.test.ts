@@ -1,9 +1,17 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test }                from "bun:test";
 import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { basename, dirname, join } from "node:path";
-import { CanonicalPromotionService, createCanonicalDocumentDraft, digestCanonicalDocument, fingerprintCanonicalDocument } from "../src/core/application/work/canonical-promotion";
-import { canonicalTemporaryPath, FileCanonicalDocumentStore } from "../src/adapters/outbound/persistence/canonical-document-store";
+import { tmpdir }                                           from "node:os";
+import { basename, dirname, join }                          from "node:path";
+import {
+	CanonicalPromotionService,
+	createCanonicalDocumentDraft,
+	digestCanonicalDocument,
+	fingerprintCanonicalDocument,
+} from "../src/core/application/work/canonical-promotion";
+import {
+	canonicalTemporaryPath,
+	FileCanonicalDocumentStore,
+} from "../src/adapters/outbound/persistence/canonical-document-store";
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -34,9 +42,9 @@ describe("human-gated canonical promotion", () => {
 	});
 
 	test("accepts then atomically promotes an approved Todo draft without git operations", async () => {
-		const root = await project();
-		const service = new CanonicalPromotionService(new FileCanonicalDocumentStore(root));
-		const accepted = await service.accept(draft(), "jongho");
+		const root     = await project()                                                     ;
+		const service  = new CanonicalPromotionService(new FileCanonicalDocumentStore(root)) ;
+		const accepted = await service.accept(draft(), "jongho")                             ;
 		expect(accepted.status).toBe("accepted");
 		expect(accepted.token).toContain(fingerprintCanonicalDocument(draft(), digestCanonicalDocument("")).digest);
 		expect(accepted.diff).toContain("+ # 오늘의 작업".replace("+ ", "+"));
@@ -46,13 +54,13 @@ describe("human-gated canonical promotion", () => {
 	});
 
 	test("requires new approval when body, source, or target state becomes stale", async () => {
-		const root = await project();
-		const store = new FileCanonicalDocumentStore(root);
-		const service = new CanonicalPromotionService(store);
-		const original = draft();
-		const accepted = await service.accept(original, "jongho");
-		const changedSource = { ...original, source: { ...original.source, digest: digestCanonicalDocument("changed source") } };
-		const sourceStale = await service.promote(changedSource, accepted.token);
+		const root          = await project()                                                                                    ;
+		const store         = new FileCanonicalDocumentStore(root)                                                               ;
+		const service       = new CanonicalPromotionService(store)                                                               ;
+		const original      = draft()                                                                                            ;
+		const accepted      = await service.accept(original, "jongho")                                                           ;
+		const changedSource = { ...original, source: { ...original.source, digest: digestCanonicalDocument("changed source") } } ;
+		const sourceStale   = await service.promote(changedSource, accepted.token)                                               ;
 		expect(sourceStale).toMatchObject({ status: "stale", reason: "draft-changed" });
 
 		const targetAccepted = await service.accept(original, "jongho");
@@ -66,10 +74,10 @@ describe("human-gated canonical promotion", () => {
 		const root = await project();
 		const service = new CanonicalPromotionService(new FileCanonicalDocumentStore(root));
 		const note = createCanonicalDocumentDraft({
-			kind: "tnote",
-			body: "# 결정\n\nApp Server를 사용한다.",
-			source: { id: "decision-20260901", body: "assistant session excerpt" },
-			provenance: { sessionId: "session-1", capturedAt: "2026-09-01T00:00:00.000Z" },
+			kind       : "tnote",
+			body       : "# 결정\n\nApp Server를 사용한다.",
+			source     : { id: "decision-20260901", body: "assistant session excerpt" },
+			provenance : { sessionId: "session-1", capturedAt: "2026-09-01T00:00:00.000Z" },
 		});
 		expect(note.target).toBe(".www/vault/t-notes/decision-20260901.md");
 		const accepted = await service.accept(note, "jongho");

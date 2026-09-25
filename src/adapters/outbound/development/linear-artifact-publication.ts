@@ -1,7 +1,7 @@
-import { createHash } from "node:crypto";
-import type { ArtifactCandidate } from "../../../core/domain/development/artifact-control";
-import type { ArtifactPublicationPort } from "../../../core/ports/execution/artifact-publication-port";
-import type { LinearMcpToolCaller } from "../workspace/linear-project-dashboard";
+import { createHash }                   from "node:crypto";
+import type { ArtifactCandidate }       from "@/core/domain/development/artifact-control";
+import type { ArtifactPublicationPort } from "@/core/ports/execution/artifact-publication-port";
+import type { LinearMcpToolCaller }     from "@/adapters/outbound/workspace/linear-project-dashboard";
 
 /** Existing issue content only; pinned project, workspace and immutable issue UUID. */
 export class McpLinearArtifactPublication implements ArtifactPublicationPort {
@@ -11,7 +11,11 @@ export class McpLinearArtifactPublication implements ArtifactPublicationPort {
 	}
 	identity(candidate: ArtifactCandidate) {
 		const { issueId, projectId } = candidate.target;
-		if (candidate.kind !== "linear-issue" || Object.keys(candidate.target).some(k => !["issueId", "projectId"].includes(k)) || projectId !== this.config.projectId || typeof issueId !== "string" || !/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/iu.test(issueId)) throw new Error("LINEAR_TARGET_DENIED");
+		if (candidate.kind !== "linear-issue"
+			|| Object.keys(candidate.target).some(k => !["issueId", "projectId"].includes(k))
+			|| projectId !== this.config.projectId
+			|| typeof issueId !== "string"
+			|| !/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/iu.test(issueId)) throw new Error("LINEAR_TARGET_DENIED");
 		return { target: "linear", artifact: `linear:issue:${issueId}` };
 	}
 	private async call(tool: string, args: Record<string, unknown>, signal: AbortSignal): Promise<Record<string, unknown>> {
@@ -28,7 +32,17 @@ export class McpLinearArtifactPublication implements ArtifactPublicationPort {
 	private async read(candidate: ArtifactCandidate, signal: AbortSignal) {
 		this.identity(candidate);
 		const result = await this.call("get_issue", { id: candidate.target.issueId }, signal);
-		if ((result.uuid ?? result.id) !== candidate.target.issueId || result.projectId !== this.config.projectId || typeof result.url !== "string" || !result.url.startsWith(`${this.config.workspaceUrl}/issue/`) || typeof result.title !== "string" || typeof result.description !== "string" && result.description !== null || typeof result.updatedAt !== "string") throw new Error("LINEAR_RESPONSE_IDENTITY_MISMATCH");
+		if (
+			(result.uuid ?? result.id) !== candidate.target.issueId ||
+			result.projectId !== this.config.projectId ||
+			typeof result.url !== "string" ||
+			!result.url.startsWith(`${this.config.workspaceUrl}/issue/`) ||
+			typeof result.title !== "string" ||
+			(typeof result.description !== "string" && result.description !== null) ||
+			typeof result.updatedAt !== "string"
+		) {
+			throw new Error("LINEAR_RESPONSE_IDENTITY_MISMATCH");
+		}
 		return result;
 	}
 	async readBefore(candidate: ArtifactCandidate, signal: AbortSignal): Promise<unknown> {

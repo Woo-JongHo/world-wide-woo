@@ -1,9 +1,9 @@
-import { expect, test } from "bun:test";
+import { expect, test }                                  from "bun:test";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { execFileSync } from "node:child_process";
-import { scanDevelopmentCode } from "../src/adapters/outbound/development/development-code-scanner";
+import { tmpdir }                                        from "node:os";
+import { join }                                          from "node:path";
+import { execFileSync }                                  from "node:child_process";
+import { scanDevelopmentCode }                           from "../src/adapters/outbound/development/development-code-scanner";
 
 test("annotation scanner ignores strings and keeps declarations separate without inferring edges", () => {
  const root = mkdtempSync(join(tmpdir(), "www-annotations-"));

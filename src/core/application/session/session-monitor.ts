@@ -1,8 +1,10 @@
-import type { MonitoringSnapshot, MonitoringTool } from "../../domain/observability/monitoring";
-import { todoDetailProgress, todoProgress, type TodoDocument } from "../../domain/work/todos";
-import type { ToolResultSnapshot } from "../../domain/execution/output";
-import { SessionRuntime, type SessionSnapshot } from "./session-runtime";
-import type { TodoController } from "../../ports/index.js";
+import type { MonitoringSnapshot, MonitoringTool } from "@/core/domain/observability/monitoring";
+import { todoDetailProgress, todoProgress }        from "@/core/domain/work/todos";
+import type { TodoDocument }                       from "@/core/domain/work/todos";
+import type { ToolResultSnapshot }                 from "@/core/domain/execution/output";
+import { SessionRuntime }                          from "@/core/application/session/session-runtime";
+import type { SessionSnapshot }                    from "@/core/application/session/session-runtime";
+import type { TodoController }                     from "@/core/ports/index.js";
 
 export type MonitoringListener = (snapshot: MonitoringSnapshot) => void;
 export interface MonitoringSource {
@@ -12,24 +14,24 @@ export interface MonitoringSource {
 
 /** Read-only projection of session and Todo state for monitoring surfaces. */
 export class SessionMonitor implements MonitoringSource {
-	private readonly listeners = new Set<MonitoringListener>();
-	private readonly startedAt: number;
-	private runtimeSnapshot: SessionSnapshot;
-	private todoSnapshot: TodoDocument | null;
-	private current: MonitoringSnapshot;
-	private readonly unsubscribeRuntime: () => void;
-	private readonly unsubscribeTodo: () => void;
-	private disposed = false;
+	private readonly listeners = new Set<MonitoringListener>() ;
+	private readonly startedAt          : number               ;
+	private runtimeSnapshot             : SessionSnapshot      ;
+	private todoSnapshot                : TodoDocument | null  ;
+	private current                     : MonitoringSnapshot   ;
+	private readonly unsubscribeRuntime : () => void           ;
+	private readonly unsubscribeTodo    : () => void           ;
+	private disposed           = false                         ;
 
 	public constructor(
 		runtime: SessionRuntime,
 		todos: TodoController,
 		private readonly now: () => number = Date.now,
 	) {
-		this.startedAt = this.now();
-		this.runtimeSnapshot = runtime.snapshot;
-		this.todoSnapshot = todos.snapshot;
-		this.current = this.project(this.startedAt);
+		this.startedAt       = this.now()                   ;
+		this.runtimeSnapshot = runtime.snapshot             ;
+		this.todoSnapshot    = todos.snapshot               ;
+		this.current         = this.project(this.startedAt) ;
 		this.unsubscribeRuntime = runtime.subscribe((snapshot) => {
 			if (!this.disposed) this.updateRuntime(snapshot);
 		});
@@ -89,30 +91,30 @@ export class SessionMonitor implements MonitoringSource {
 			turns[turn.role] += 1;
 			if (turn.outcome === "cancelled") turns.cancelled += 1;
 		}
-		const tools = toolSummary(runtime.tools);
-		const progress = this.todoSnapshot ? todoProgress(this.todoSnapshot) : { completed: 0, total: 0 };
-		const detailProgress = this.todoSnapshot ? todoDetailProgress(this.todoSnapshot) : { completed: 0, total: 0 };
-		const activeItem = this.todoSnapshot?.items.find(item => item.status === "in_progress");
-		const activeContent = activeItem?.details.find(detail => detail.status === "in_progress")?.content ?? activeItem?.content ?? null;
+		const tools          = toolSummary(runtime.tools)                                                                                  ;
+		const progress       = this.todoSnapshot ? todoProgress(this.todoSnapshot) : { completed: 0, total: 0 }                            ;
+		const detailProgress = this.todoSnapshot ? todoDetailProgress(this.todoSnapshot) : { completed: 0, total: 0 }                      ;
+		const activeItem     = this.todoSnapshot?.items.find(item => item.status === "in_progress")                                        ;
+		const activeContent  = activeItem?.details.find(detail => detail.status === "in_progress")?.content ?? activeItem?.content ?? null ;
 		return Object.freeze({
-			sessionId: runtime.id,
-			projectName: runtime.projectName,
-			cwd: runtime.cwd,
-			provider: runtime.settings.provider,
-			model: runtime.settings.model,
-			effort: runtime.settings.effort,
-			phase: runtime.phase,
-			activityLabel: runtime.activity?.label ?? null,
-			startedAt: this.startedAt,
+			sessionId     : runtime.id,
+			projectName   : runtime.projectName,
+			cwd           : runtime.cwd,
+			provider      : runtime.settings.provider,
+			model         : runtime.settings.model,
+			effort        : runtime.settings.effort,
+			phase         : runtime.phase,
+			activityLabel : runtime.activity?.label ?? null,
+			startedAt     : this.startedAt,
 			updatedAt,
 			elapsedMs: Math.max(0, updatedAt - this.startedAt),
 			turns: Object.freeze(turns),
 			tools,
 			todo: Object.freeze({
-				completed: progress.completed,
-				total: progress.total,
-				detailCompleted: detailProgress.completed,
-				detailTotal: detailProgress.total,
+				completed       : progress.completed,
+				total           : progress.total,
+				detailCompleted : detailProgress.completed,
+				detailTotal     : detailProgress.total,
 				activeContent,
 			}),
 		});
@@ -120,9 +122,9 @@ export class SessionMonitor implements MonitoringSource {
 }
 
 function toolSummary(snapshots: readonly ToolResultSnapshot[]): MonitoringSnapshot["tools"] {
-	const totals = { running: 0, passed: 0, failed: 0, cancelled: 0 };
-	let active: MonitoringTool | null = null;
-	let latest: MonitoringTool | null = null;
+	const totals                       = { running: 0, passed: 0, failed: 0, cancelled: 0 } ;
+	let active : MonitoringTool | null = null                                               ;
+	let latest : MonitoringTool | null = null                                               ;
 	for (const snapshot of snapshots) {
 		const tool = Object.freeze({ name: "shell" in snapshot ? snapshot.shell : snapshot.toolName, status: snapshot.status });
 		latest = tool;

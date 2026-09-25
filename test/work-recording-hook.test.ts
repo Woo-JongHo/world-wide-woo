@@ -1,9 +1,18 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { basename, dirname, join, resolve } from "node:path";
-import { evaluateWorkRecordingGate } from "../src/core/domain/development/work-recording-gate";
+import { execFileSync, spawnSync }           from "node:child_process";
+import {
+	existsSync,
+	mkdtempSync,
+	mkdirSync,
+	readFileSync,
+	readdirSync,
+	rmSync,
+	symlinkSync,
+	writeFileSync,
+} from "node:fs";
+import { tmpdir }                            from "node:os";
+import { basename, dirname, join, resolve }  from "node:path";
+import { evaluateWorkRecordingGate }         from "../src/core/domain/development/work-recording-gate";
 
 const roots: string[] = [];
 const hook = resolve(import.meta.dir, "../scripts/work-recording-hook.ts");
@@ -20,9 +29,9 @@ describe("work recording gate", () => {
 			changedPaths: [],
 		});
 		const changed = evaluateWorkRecordingGate({
-			before: same,
-			after: { entries: { "existing.ts": "after", ".www/runtime/session.json": "noise" } },
-			stopHookActive: false,
+			before         : same,
+			after          : { entries: { "existing.ts": "after", ".www/runtime/session.json": "noise" } },
+			stopHookActive : false,
 		});
 		expect(changed).toMatchObject({ state: "continue", changedPaths: ["existing.ts"] });
 	});

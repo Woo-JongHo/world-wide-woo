@@ -7,7 +7,7 @@ import {
 	SLASH_COMMANDS,
 	WORKBENCH_SLASH_COMMANDS,
 } from "../src/adapters/inbound/tui/commands/slash-commands";
-import type { WwwSettings } from "../src/core/domain/execution/model-settings";
+import type { WwwSettings }       from "../src/core/domain/execution/model-settings";
 
 const current: WwwSettings = { provider: "openai", model: "gpt-5.4", effort: "high" };
 
@@ -45,16 +45,16 @@ describe("WWW slash commands", () => {
 		expect(parseShellCommand("/dashboard", current)).toEqual({ type: "monitoring" });
 		expect(parseShellCommand("/planning", current)).toEqual({ type: "planning.status" });
 		expect(parseShellCommand("/epic Safe edits :: Preview and approve every edit", current)).toEqual({
-			type: "planning.epic.create",
-			title: "Safe edits",
-			goal: "Preview and approve every edit",
+			type  : "planning.epic.create",
+			title : "Safe edits",
+			goal  : "Preview and approve every edit",
 		});
 		expect(parseShellCommand("/story EP-010 Approval flow --supersedes ST-010-01 :: User approves before mutation", current)).toEqual({
-			type: "planning.story.create",
-			epicId: "EP-010",
-			title: "Approval flow",
-			acceptance: "User approves before mutation",
-			supersedes: "ST-010-01",
+			type       : "planning.story.create",
+			epicId     : "EP-010",
+			title      : "Approval flow",
+			acceptance : "User approves before mutation",
+			supersedes : "ST-010-01",
 		});
 		expect(parseShellCommand("/commits", current)).toEqual({ type: "repository.commits" });
 		expect(parseShellCommand("/issues", current)).toEqual({ type: "repository.issues" });
@@ -155,12 +155,12 @@ describe("WWW slash commands", () => {
 		]);
 		const effortCompletions = await modelCommand?.getArgumentCompletions?.("gpt-5.6-terra ");
 		expect(effortCompletions).toEqual([
-			{ value: "gpt-5.6-terra low", label: "Low", description: "추론 강도" },
-			{ value: "gpt-5.6-terra medium", label: "Middle", description: "추론 강도" },
-			{ value: "gpt-5.6-terra high", label: "High", description: "추론 강도" },
-			{ value: "gpt-5.6-terra xhigh", label: "xHigh", description: "추론 강도" },
-			{ value: "gpt-5.6-terra max", label: "Max", description: "추론 강도" },
-			{ value: "gpt-5.6-terra ultra", label: "Ultra", description: "Codex 자동 위임 포함" },
+			{ value : "gpt-5.6-terra low"    , label : "Low"    , description : "추론 강도"            },
+			{ value : "gpt-5.6-terra medium" , label : "Middle" , description : "추론 강도"            },
+			{ value : "gpt-5.6-terra high"   , label : "High"   , description : "추론 강도"            },
+			{ value : "gpt-5.6-terra xhigh"  , label : "xHigh"  , description : "추론 강도"            },
+			{ value : "gpt-5.6-terra max"    , label : "Max"    , description : "추론 강도"            },
+			{ value : "gpt-5.6-terra ultra"  , label : "Ultra"  , description : "Codex 자동 위임 포함" },
 		]);
 		expect(SLASH_COMMANDS.map((command) => command.name)).toEqual([
 			"model",

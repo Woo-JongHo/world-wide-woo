@@ -1,18 +1,20 @@
-import { createHash, randomUUID } from "node:crypto";
+import { createHash, randomUUID }                       from "node:crypto";
 import { chmod, mkdir, open, readFile, stat, truncate } from "node:fs/promises";
-import { join } from "node:path";
+import { join }                                         from "node:path";
 import {
 	PROJECT_ACTIVITY_KINDS,
 	PROJECT_ACTIVITY_PHASES,
 	isTerminalActivityPhase,
-	type ProjectActivity,
-	type ProjectActivityAppendResult,
-	type ProjectActivityInput,
-} from "../../../core/domain/execution/project-activity.js";
+} from "@/core/domain/execution/project-activity.js";
+import type {
+	ProjectActivity,
+	ProjectActivityAppendResult,
+	ProjectActivityInput,
+} from "@/core/domain/execution/project-activity.js";
 
-const projectIdPattern = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
-const sha256Pattern = /^sha256:[a-f0-9]{64}$/;
-const threadJournalKeyPattern = /^native-[a-f0-9]{48}$/;
+const projectIdPattern        = /^[A-Za-z0-9][A-Za-z0-9_-]*$/ ;
+const sha256Pattern           = /^sha256:[a-f0-9]{64}$/       ;
+const threadJournalKeyPattern = /^native-[a-f0-9]{48}$/       ;
 
 export function digestActivitySource(source: string | Uint8Array): string {
 	return `sha256:${createHash("sha256").update(source).digest("hex")}`;
@@ -33,15 +35,15 @@ export interface ActivityJournalStoreOptions {
 
 /** Read-only cache facts for one opaque project or Native-thread journal stream. */
 export interface ActivityJournalCacheTelemetry {
-	readonly projectId: string;
-	readonly state: "ready" | "stale" | "unobserved";
-	readonly entries: number | null;
-	readonly logicalBytes: number | null;
-	readonly hits: number | null;
-	readonly misses: number | null;
-	readonly reloads: number | null;
-	readonly evictions: number | null;
-	readonly lastAccessedAt: string | null;
+	readonly projectId      : string                           ;
+	readonly state          : "ready" | "stale" | "unobserved" ;
+	readonly entries        : number | null                    ;
+	readonly logicalBytes   : number | null                    ;
+	readonly hits           : number | null                    ;
+	readonly misses         : number | null                    ;
+	readonly reloads        : number | null                    ;
+	readonly evictions      : number | null                    ;
+	readonly lastAccessedAt : string | null                    ;
 }
 
 export class ActivityJournalStore {
@@ -70,17 +72,17 @@ export class ActivityJournalStore {
 
 			const sequence = state.activities.length === 0 ? 1 : state.activities[state.activities.length - 1].sequence + 1;
 			const activity: ProjectActivity = {
-				schemaVersion: 1,
-				id: randomUUID(),
-				projectId: input.projectId,
+				schemaVersion : 1,
+				id            : randomUUID(),
+				projectId     : input.projectId,
 				sequence,
-				recordedAt: new Date().toISOString(),
-				kind: input.kind,
-				phase: input.phase,
-				provider: input.provider,
-				nativeRefs: input.nativeRefs,
-				sourceDigest: input.sourceDigest,
-				payload: input.payload,
+				recordedAt   : new Date().toISOString(),
+				kind         : input.kind,
+				phase        : input.phase,
+				provider     : input.provider,
+				nativeRefs   : input.nativeRefs,
+				sourceDigest : input.sourceDigest,
+				payload      : input.payload,
 			};
 			const line = JSON.stringify(activity);
 			await this.appendLine(input.projectId, line, state.fileSize > 0);
@@ -103,9 +105,9 @@ export class ActivityJournalStore {
 	 */
 	public cacheTelemetry(projectId: string): ActivityJournalCacheTelemetry {
 		this.assertProjectId(projectId);
-		const path = this.projectPath(projectId);
-		const state = journalStates.get(path);
-		const metrics = journalCacheMetrics.get(path);
+		const path    = this.projectPath(projectId)   ;
+		const state   = journalStates.get(path)       ;
+		const metrics = journalCacheMetrics.get(path) ;
 		if (!metrics) {
 			return {
 				projectId, state: "unobserved", entries: null, logicalBytes: null,
@@ -114,14 +116,14 @@ export class ActivityJournalStore {
 		}
 		return {
 			projectId,
-			state: state ? "ready" : "stale",
-			entries: state ? state.activities.length : null,
-			logicalBytes: state ? state.fileSize : null,
-			hits: metrics.hits,
-			misses: metrics.misses,
-			reloads: metrics.reloads,
-			evictions: metrics.evictions,
-			lastAccessedAt: metrics.lastAccessedAt,
+			state          : state ? "ready" : "stale",
+			entries        : state ? state.activities.length : null,
+			logicalBytes   : state ? state.fileSize : null,
+			hits           : metrics.hits,
+			misses         : metrics.misses,
+			reloads        : metrics.reloads,
+			evictions      : metrics.evictions,
+			lastAccessedAt : metrics.lastAccessedAt,
 		};
 	}
 
@@ -132,9 +134,9 @@ export class ActivityJournalStore {
 
 	private serialize<T>(projectId: string, operation: () => Promise<T>): Promise<T> {
 		this.assertProjectId(projectId);
-		const key = this.projectPath(projectId);
-		const previous = queues.get(key) ?? Promise.resolve();
-		const current = previous.catch(() => undefined).then(operation);
+		const key      = this.projectPath(projectId)                     ;
+		const previous = queues.get(key) ?? Promise.resolve()            ;
+		const current  = previous.catch(() => undefined).then(operation) ;
 		queues.set(key, current);
 		void current.finally(() => {
 			if (queues.get(key) === current) queues.delete(key);
@@ -178,10 +180,10 @@ export class ActivityJournalStore {
 			throw error;
 		}
 
-		const hasTerminatingNewline = content.length === 0 || content[content.length - 1] === 0x0a;
-		const finalNewline = hasTerminatingNewline ? content.length - 1 : content.lastIndexOf(0x0a);
-		const validBytes = hasTerminatingNewline ? content.length : finalNewline + 1;
-		const lines = content.subarray(0, validBytes).toString("utf8").split("\n");
+		const hasTerminatingNewline = content.length === 0 || content[content.length - 1] === 0x0a           ;
+		const finalNewline          = hasTerminatingNewline ? content.length - 1 : content.lastIndexOf(0x0a) ;
+		const validBytes            = hasTerminatingNewline ? content.length : finalNewline + 1              ;
+		const lines                 = content.subarray(0, validBytes).toString("utf8").split("\n")           ;
 		if (hasTerminatingNewline) lines.pop();
 		else if (lines[lines.length - 1] === "") lines.pop();
 
@@ -267,23 +269,23 @@ export class ActivityJournalStore {
 }
 
 interface JournalState {
-	activities: ProjectActivity[];
-	fileSize: number;
-	terminalObservations: Map<string, ProjectActivity>;
+	activities           : ProjectActivity[]            ;
+	fileSize             : number                       ;
+	terminalObservations : Map<string, ProjectActivity> ;
 }
 
 interface JournalCacheMetrics {
-	hits: number;
-	misses: number;
-	reloads: number;
-	evictions: number;
-	lastAccessedAt: string | null;
+	hits           : number        ;
+	misses         : number        ;
+	reloads        : number        ;
+	evictions      : number        ;
+	lastAccessedAt : string | null ;
 }
 
-const queues = new Map<string, Promise<unknown>>();
-const journalStates = new Map<string, JournalState>();
-const journalStatePathsByDirectory = new Map<string, Set<string>>();
-const journalCacheMetrics = new Map<string, JournalCacheMetrics>();
+const queues                       = new Map<string, Promise<unknown>>()    ;
+const journalStates                = new Map<string, JournalState>()        ;
+const journalStatePathsByDirectory = new Map<string, Set<string>>()         ;
+const journalCacheMetrics          = new Map<string, JournalCacheMetrics>() ;
 
 function createJournalState(activities: ProjectActivity[], fileSize: number): JournalState {
 	const terminalObservations = new Map<string, ProjectActivity>();

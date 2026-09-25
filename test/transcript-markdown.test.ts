@@ -1,23 +1,23 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test }               from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import type { SessionSnapshot } from "../src/core/application/session/session-runtime";
-import { TranscriptView } from "../src/adapters/inbound/tui/legacy/legacy-dashboard-views";
+import type { SessionSnapshot }                 from "../src/core/application/session/session-runtime";
+import { TranscriptView }                       from "../src/adapters/inbound/tui/legacy/legacy-dashboard-views";
 
 function snapshot(overrides: Partial<SessionSnapshot> = {}): SessionSnapshot {
 	return {
-		id: "markdown-test",
-		phase: "ready",
-		turns: [],
-		draft: "",
-		error: null,
-		auth: { configured: true, source: "OAuth", type: "oauth" },
-		settings: { provider: "anthropic", model: "claude-opus-4-6", effort: "high" },
-		cwd: "/workspace/project",
-		projectName: "project",
-		projectRoot: "/workspace/project",
-		activity: null,
-		tools: [],
-		narrations: [],
+		id          : "markdown-test",
+		phase       : "ready",
+		turns       : [],
+		draft       : "",
+		error       : null,
+		auth        : { configured: true, source: "OAuth", type: "oauth" },
+		settings    : { provider: "anthropic", model: "claude-opus-4-6", effort: "high" },
+		cwd         : "/workspace/project",
+		projectName : "project",
+		projectRoot : "/workspace/project",
+		activity    : null,
+		tools       : [],
+		narrations  : [],
 		...overrides,
 	};
 }
@@ -52,10 +52,10 @@ describe("TranscriptView Markdown", () => {
 
 	test("keeps partial streaming code colored and width-safe", () => {
 		const view = new TranscriptView(snapshot({
-			phase: "streaming",
-			turns: [{ id: "user-1", role: "user", content: "코드를 작성해줘", timestamp: 1 }],
-			draft: PYTHON.slice(0, -3),
-			activity: { kind: "thinking", label: "모델 추론 중" },
+			phase    : "streaming",
+			turns    : [{ id: "user-1", role: "user", content: "코드를 작성해줘", timestamp: 1 }],
+			draft    : PYTHON.slice(0, -3),
+			activity : { kind: "thinking", label: "모델 추론 중" },
 		}));
 		const lines = view.render(40);
 		const output = lines.join("\n");
@@ -171,10 +171,10 @@ describe("TranscriptView Markdown", () => {
 
 	test("keeps a long unchanged transcript on one cached row projection", () => {
 		const turns = Array.from({ length: 600 }, (_, index) => ({
-			id: `long-${index}`,
-			role: index % 2 === 0 ? "user" as const : "assistant" as const,
-			content: `긴 Transcript ${index} `.repeat(3),
-			timestamp: index,
+			id        : `long-${index}`,
+			role      : index % 2 === 0 ? "user" as const : "assistant" as const,
+			content   : `긴 Transcript ${index} `.repeat(3),
+			timestamp : index,
 		}));
 		const view = new TranscriptView(snapshot({ turns }));
 		const rows = view.render(100);

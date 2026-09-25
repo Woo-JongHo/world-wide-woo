@@ -1,16 +1,17 @@
-import { readFile, realpath } from "node:fs/promises";
-import { homedir } from "node:os";
-import { isAbsolute, relative, resolve, sep } from "node:path";
-import { parse } from "yaml";
-import { normalizeWooEntryPayload, type WooEntryCollection, type WooEntryCollector } from "../../../core/application/orchestration/woo-entry.js";
+import { readFile, realpath }                         from "node:fs/promises";
+import { homedir }                                    from "node:os";
+import { isAbsolute, relative, resolve, sep }         from "node:path";
+import { parse }                                      from "yaml";
+import { normalizeWooEntryPayload }                   from "@/core/application/orchestration/woo-entry.js";
+import type { WooEntryCollection, WooEntryCollector } from "@/core/application/orchestration/woo-entry.js";
 
 const OUTPUT_LIMIT = 16 * 1024;
 const TIMEOUT_MS = 10_000;
 
 export interface WesEntryProcessResult {
-	readonly exitCode: number;
-	readonly stdout: string;
-	readonly stderr: string;
+	readonly exitCode : number ;
+	readonly stdout   : string ;
+	readonly stderr   : string ;
 }
 
 export type WesEntryProcessRunner = (
@@ -20,29 +21,29 @@ export type WesEntryProcessRunner = (
 ) => Promise<WesEntryProcessResult>;
 
 export interface WesEntryCollectorOptions {
-	readonly configPath?: string;
-	readonly readText?: (path: string) => Promise<string>;
-	readonly realpath?: (path: string) => Promise<string>;
-	readonly runner?: WesEntryProcessRunner;
-	readonly timeoutMs?: number;
-	readonly outputLimit?: number;
+	readonly configPath?  : string                            ;
+	readonly readText?    : (path: string) => Promise<string> ;
+	readonly realpath?    : (path: string) => Promise<string> ;
+	readonly runner?      : WesEntryProcessRunner             ;
+	readonly timeoutMs?   : number                            ;
+	readonly outputLimit? : number                            ;
 }
 
 /** Local-only adapter for the canonical WES runner configured in ~/.codex/woo.yaml. */
 export class WesEntryCollector implements WooEntryCollector {
-	private readonly configPath: string;
-	private readonly readText: (path: string) => Promise<string>;
-	private readonly resolveRealpath: (path: string) => Promise<string>;
-	private readonly run: WesEntryProcessRunner;
-	private readonly timeoutMs: number;
-	private readonly outputLimit: number;
+	private readonly configPath      : string                            ;
+	private readonly readText        : (path: string) => Promise<string> ;
+	private readonly resolveRealpath : (path: string) => Promise<string> ;
+	private readonly run             : WesEntryProcessRunner             ;
+	private readonly timeoutMs       : number                            ;
+	private readonly outputLimit     : number                            ;
 	constructor(options: WesEntryCollectorOptions = {}) {
-		this.configPath = options.configPath ?? resolve(homedir(), ".codex", "woo.yaml");
-		this.readText = options.readText ?? ((path) => readFile(path, "utf8"));
-		this.resolveRealpath = options.realpath ?? realpath;
-		this.run = options.runner ?? systemRunner;
-		this.timeoutMs = options.timeoutMs ?? TIMEOUT_MS;
-		this.outputLimit = options.outputLimit ?? OUTPUT_LIMIT;
+		this.configPath      = options.configPath ?? resolve(homedir(), ".codex", "woo.yaml") ;
+		this.readText        = options.readText ?? ((path) => readFile(path, "utf8"))         ;
+		this.resolveRealpath = options.realpath ?? realpath                                   ;
+		this.run             = options.runner ?? systemRunner                                 ;
+		this.timeoutMs       = options.timeoutMs ?? TIMEOUT_MS                                ;
+		this.outputLimit     = options.outputLimit ?? OUTPUT_LIMIT                            ;
 	}
 	async collect(): Promise<WooEntryCollection> {
 		try {
@@ -51,18 +52,18 @@ export class WesEntryCollector implements WooEntryCollector {
 			if (typeof configuredRoot !== "string" || !configuredRoot.trim()) {
 				throw new WesEntryCollectorError("WES configuration has no workspace_root.");
 			}
-			const root = await this.resolveRealpath(expandHome(configuredRoot.trim()));
-			const system = mapping(parse(await this.readText(resolve(root, "system.yaml"))), "system manifest");
-			const authority = mapping(system.authority, "system authority");
+			const root      = await this.resolveRealpath(expandHome(configuredRoot.trim()))                        ;
+			const system    = mapping(parse(await this.readText(resolve(root, "system.yaml"))), "system manifest") ;
+			const authority = mapping(system.authority, "system authority")                                        ;
 			if (typeof authority.wes_entry_runner !== "string" || !authority.wes_entry_runner.trim()) {
 				throw new WesEntryCollectorError("WES system manifest has no entry runner.");
 			}
 			const configuredRunner = authority.wes_entry_runner.trim();
 			const runner = await safeRunner(root, configuredRunner, this.resolveRealpath);
 			const result = await this.run("python3", [runner, "--root", root], {
-				cwd: root,
-				timeoutMs: this.timeoutMs,
-				outputLimit: this.outputLimit,
+				cwd         : root,
+				timeoutMs   : this.timeoutMs,
+				outputLimit : this.outputLimit,
 			});
 			if (result.stdout.length > this.outputLimit || result.stderr.length > this.outputLimit) throw new WesEntryCollectorError("WES entry runner exceeded its output budget.");
 			if (result.exitCode !== 0) throw new WesEntryCollectorError("WES entry runner reported BLOCKED.");
@@ -109,7 +110,10 @@ async function safeRunner(
 	}
 	const runner = await resolveRealpath(resolve(root, configured));
 	const rel = relative(root, runner);
-	if (!rel || rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
+	if (!rel
+		|| rel === ".."
+		|| rel.startsWith(`..${sep}`)
+		|| isAbsolute(rel)) {
 		throw new WesEntryCollectorError("WES entry runner path is unsafe.");
 	}
 	return runner;
@@ -155,9 +159,9 @@ async function readBounded(
 	limit: number,
 	onOverflow: () => void,
 ): Promise<{ text: string; overflow: boolean }> {
-	const reader = stream.getReader();
-	const chunks: Uint8Array[] = [];
-	let size = 0;
+	const reader                = stream.getReader() ;
+	const chunks : Uint8Array[] = []                 ;
+	let size                    = 0                  ;
 	for (;;) {
 		const { done, value } = await reader.read();
 		if (done) break;

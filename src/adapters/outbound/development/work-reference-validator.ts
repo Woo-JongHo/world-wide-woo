@@ -1,6 +1,7 @@
-import { realpath, stat } from "node:fs/promises";
+import { realpath, stat }                from "node:fs/promises";
 import { isAbsolute, relative, resolve } from "node:path";
-import { isRepositoryPathReference, type WorkTraceabilityManifest } from "../../../core/domain/work/traceability.js";
+import { isRepositoryPathReference }     from "@/core/domain/work/traceability.js";
+import type { WorkTraceabilityManifest } from "@/core/domain/work/traceability.js";
 
 /** Repository-backed work references are checked before any Map projection is accepted. */
 export async function assertRepositoryReferencesExist(manifest: WorkTraceabilityManifest, projectRoot: string): Promise<void> {

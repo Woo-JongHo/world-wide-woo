@@ -1,5 +1,5 @@
-import { describe, expect, test } from "bun:test";
-import { stat } from "node:fs/promises";
+import { describe, expect, test }                                   from "bun:test";
+import { stat }                                                     from "node:fs/promises";
 import { layer, loadSourceGraph, reachableSources, relativeCycles } from "./architecture/import-graph";
 
 describe("source architecture", () => {
@@ -99,10 +99,11 @@ describe("source architecture", () => {
 	test("keeps concrete executor adapters independent", async () => {
 		const graph = await loadSourceGraph();
 		for (const source of graph.values()) {
-			if (!/^adapters\/outbound\/execution\/(?:codex-app-server|pi-harness)\.ts$/u.test(source.path)) continue;
+			const family = executionAdapterFamily(source.path);
+			if (!family) continue;
 			for (const dependency of source.imports) {
 				if (!dependency.startsWith("adapters/outbound/execution/")) continue;
-				expect(dependency, `${source.path} -> ${dependency}`).toBe(source.path);
+				expect(executionAdapterFamily(dependency), `${source.path} -> ${dependency}`).toBe(family);
 			}
 		}
 	});
@@ -149,4 +150,10 @@ async function exists(path: string): Promise<boolean> {
 		if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
 		throw error;
 	}
+}
+
+function executionAdapterFamily(path: string): "codex" | "pi" | null {
+	if (/^adapters\/outbound\/execution\/codex-app-server(?:-[^/]+)?\.ts$/u.test(path)) return "codex";
+	if (path === "adapters/outbound/execution/pi-harness.ts") return "pi";
+	return null;
 }

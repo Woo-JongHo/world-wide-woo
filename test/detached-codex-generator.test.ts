@@ -1,8 +1,22 @@
-import { describe, expect, test } from "bun:test";
-import type { Api, AssistantMessage, AssistantMessageEventStream, Context, Model, ModelsSimpleStreamOptions } from "@earendil-works/pi-ai";
-import type { DetachedGenerationPolicy, DetachedTextGenerationRequest } from "../src/core/application/orchestration/detached-text-generator";
-import { DETACHED_CODEX_PROVIDER, PiDetachedCodexGenerator, type PiDetachedCodexModels } from "../src/adapters/outbound/execution/detached-codex-generator";
-import { createTNotePacket } from "../src/core/domain/work/t-notes";
+import { describe, expect, test }     from "bun:test";
+import type {
+	Api,
+	AssistantMessage,
+	AssistantMessageEventStream,
+	Context,
+	Model,
+	ModelsSimpleStreamOptions,
+} from "@earendil-works/pi-ai";
+import type {
+	DetachedGenerationPolicy,
+	DetachedTextGenerationRequest,
+} from "../src/core/application/orchestration/detached-text-generator";
+import {
+	DETACHED_CODEX_PROVIDER,
+	PiDetachedCodexGenerator,
+} from "../src/adapters/outbound/execution/detached-codex-generator";
+import type { PiDetachedCodexModels } from "../src/adapters/outbound/execution/detached-codex-generator";
+import { createTNotePacket }          from "../src/core/domain/work/t-notes";
 
 const policy: DetachedGenerationPolicy = Object.freeze({ cwd: "", noTools: true, network: false, readOnly: true, ephemeral: true });
 const packet = createTNotePacket("project-1", { startSequence: 1, endSequence: 1 }, [{
@@ -17,9 +31,9 @@ function response(content: AssistantMessage["content"], stopReason: AssistantMes
 
 describe("PiDetachedCodexGenerator", () => {
 	test("sends one stable packet-only context without tools or cwd and records structural isolation", async () => {
-		let requestedModel: { provider: string; modelId: string } | undefined;
-		let dispatched: { context: Context; options: ModelsSimpleStreamOptions | undefined } | undefined;
-		const observedUsage: unknown[] = [];
+		let requestedModel  : { provider: string; modelId: string } | undefined                                ;
+		let dispatched      : { context: Context; options: ModelsSimpleStreamOptions | undefined } | undefined ;
+		const observedUsage : unknown[] = []                                                                   ;
 		const models: PiDetachedCodexModels = {
 			getModel: (provider, id) => {
 				requestedModel = { provider, modelId: id };

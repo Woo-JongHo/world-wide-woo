@@ -1,20 +1,20 @@
-import { describe, expect, test } from "bun:test";
-import { mkdtemp, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { createModels } from "@earendil-works/pi-ai";
-import { fauxAssistantMessage, fauxProvider, fauxToolCall } from "@earendil-works/pi-ai/providers/faux";
-import { Type } from "typebox";
-import type { WwwSettings } from "../src/core/domain/execution/model-settings";
-import { ModelRouter } from "../src/adapters/outbound/authentication/model-router";
-import { buildSessionSystemPrompt, SessionRuntime } from "../src/core/application/session/session-runtime";
-import { SessionEventStore } from "../src/adapters/outbound/persistence/session-store";
+import { describe, expect, test }                               from "bun:test";
+import { mkdtemp, writeFile }                                   from "node:fs/promises";
+import { tmpdir }                                               from "node:os";
+import { join }                                                 from "node:path";
+import { createModels }                                         from "@earendil-works/pi-ai";
+import { fauxAssistantMessage, fauxProvider, fauxToolCall }     from "@earendil-works/pi-ai/providers/faux";
+import { Type }                                                 from "typebox";
+import type { WwwSettings }                                     from "../src/core/domain/execution/model-settings";
+import { ModelRouter }                                          from "../src/adapters/outbound/authentication/model-router";
+import { buildSessionSystemPrompt, SessionRuntime }             from "../src/core/application/session/session-runtime";
+import { SessionEventStore }                                    from "../src/adapters/outbound/persistence/session-store";
 import type { AgentTool, ModelClient, TerminalCommandExecutor } from "../src/core/ports";
-import { TodoLedger } from "../src/core/application/work/todo-ledger";
-import { createProjectAgentTools } from "../src/adapters/outbound/execution/agent-tools";
-import { FileTodoStore } from "../src/adapters/outbound/persistence/todo-store";
-import { createPlanningSnapshot } from "../src/core/domain/work/planning";
-import type { TerminalCommandResult } from "../src/core/domain/execution/terminal";
+import { TodoLedger }                                           from "../src/core/application/work/todo-ledger";
+import { createProjectAgentTools }                              from "../src/adapters/outbound/execution/agent-tools";
+import { FileTodoStore }                                        from "../src/adapters/outbound/persistence/todo-store";
+import { createPlanningSnapshot }                               from "../src/core/domain/work/planning";
+import type { TerminalCommandResult }                           from "../src/core/domain/execution/terminal";
 
 const settings: WwwSettings = { provider: "openai", model: "gpt-5.4", effort: "high" };
 
@@ -32,9 +32,9 @@ async function runtimeWithTerminal(executor: TerminalCommandExecutor, sessionId 
 	const faux = fauxProvider({ provider: "openai", models: [{ id: "gpt-5.4", reasoning: true }] });
 	const models = createModels();
 	models.setProvider(faux.provider);
-	const router = new ModelRouter(models);
-	const directory = await mkdtemp(join(tmpdir(), "www-runtime-terminal-"));
-	const store = new SessionEventStore(directory);
+	const router    = new ModelRouter(models)                                ;
+	const directory = await mkdtemp(join(tmpdir(), "www-runtime-terminal-")) ;
+	const store     = new SessionEventStore(directory)                       ;
 	const runtime = new SessionRuntime(
 		settings,
 		router,
@@ -52,9 +52,9 @@ async function runtimeWithTerminal(executor: TerminalCommandExecutor, sessionId 
 describe("SessionRuntime", () => {
 	test("streams a response while preserving a replayable event trail", async () => {
 		const { runtime, store } = await runtimeWithResponse("진행됐습니다.");
-		const phases: string[] = [];
-		const drafts: string[] = [];
-		const activities: string[] = [];
+		const phases     : string[] = [] ;
+		const drafts     : string[] = [] ;
+		const activities : string[] = [] ;
 		runtime.subscribe((snapshot) => {
 			phases.push(snapshot.phase);
 			if (snapshot.draft) drafts.push(snapshot.draft);
@@ -87,9 +87,9 @@ describe("SessionRuntime", () => {
 
 	test("grounds location questions in the exact active workspace path", async () => {
 		const faux = fauxProvider({
-			provider: "openai",
-			models: [{ id: "gpt-5.4", reasoning: true }],
-			tokensPerSecond: 100_000,
+			provider        : "openai",
+			models          : [{ id: "gpt-5.4", reasoning: true }],
+			tokensPerSecond : 100_000,
 		});
 		faux.setResponses([fauxAssistantMessage("/workspace/world-wide-woo")]);
 		const models = createModels();
@@ -155,12 +155,12 @@ describe("SessionRuntime", () => {
 				onUpdate({ stdout: "first line\n", stderr: "" });
 				onUpdate({ stdout: "first line\ntoken=secret-value\n", stderr: "" });
 				return {
-					stdout: "first line\ntoken=secret-value\n",
-					stderr: "",
-					exitCode: 0,
-					durationMs: 4,
-					cancelled: false,
-					timedOut: false,
+					stdout     : "first line\ntoken=secret-value\n",
+					stderr     : "",
+					exitCode   : 0,
+					durationMs : 4,
+					cancelled  : false,
+					timedOut   : false,
 				};
 			},
 		};
@@ -173,11 +173,11 @@ describe("SessionRuntime", () => {
 		]);
 		expect(runtime.snapshot.tools).toEqual([
 			expect.objectContaining({
-				shell: "bash",
-				command: "printf token=[redacted]",
-				status: "passed",
-				stdout: "first line\ntoken=[redacted]\n",
-				exitCode: 0,
+				shell    : "bash",
+				command  : "printf token=[redacted]",
+				status   : "passed",
+				stdout   : "first line\ntoken=[redacted]\n",
+				exitCode : 0,
 			}),
 		]);
 		expect(runtime.snapshot.narrations[0]?.label).toBe("명령 실행 · printf token=[REDACTED]");
@@ -215,12 +215,12 @@ describe("SessionRuntime", () => {
 			execute(_command, _cwd, signal): Promise<TerminalCommandResult> {
 				return new Promise(resolve => {
 					const cancelled = () => resolve({
-						stdout: "",
-						stderr: "",
-						exitCode: null,
-						durationMs: 1,
-						cancelled: true,
-						timedOut: false,
+						stdout     : "",
+						stderr     : "",
+						exitCode   : null,
+						durationMs : 1,
+						cancelled  : true,
+						timedOut   : false,
 					});
 					if (signal.aborted) cancelled();
 					else signal.addEventListener("abort", cancelled, { once: true });
@@ -239,16 +239,16 @@ describe("SessionRuntime", () => {
 
 	test("commits a cancelled assistant item without polluting model context", async () => {
 		const faux = fauxProvider({
-			provider: "openai",
-			models: [{ id: "gpt-5.4", reasoning: true }],
-			tokensPerSecond: 20,
+			provider        : "openai",
+			models          : [{ id: "gpt-5.4", reasoning: true }],
+			tokensPerSecond : 20,
 		});
 		faux.setResponses([fauxAssistantMessage("중단 전까지 보존해야 하는 충분히 긴 응답입니다.")]);
 		const models = createModels();
 		models.setProvider(faux.provider);
-		const directory = await mkdtemp(join(tmpdir(), "www-runtime-cancel-"));
-		const store = new SessionEventStore(directory);
-		const runtime = new SessionRuntime(settings, new ModelRouter(models), store, { cwd: "/workspace/project" }, "cancel-test");
+		const directory = await mkdtemp(join(tmpdir(), "www-runtime-cancel-"))                                                       ;
+		const store     = new SessionEventStore(directory)                                                                           ;
+		const runtime   = new SessionRuntime(settings, new ModelRouter(models), store, { cwd: "/workspace/project" }, "cancel-test") ;
 		await runtime.initialize();
 
 		let resolveDraft!: () => void;
@@ -276,9 +276,9 @@ describe("SessionRuntime", () => {
 
 	test("executes a real tool call, returns its result to the model, and persists the card", async () => {
 		const faux = fauxProvider({
-			provider: "openai",
-			models: [{ id: "gpt-5.4", reasoning: true }],
-			tokensPerSecond: 100_000,
+			provider        : "openai",
+			models          : [{ id: "gpt-5.4", reasoning: true }],
+			tokensPerSecond : 100_000,
 		});
 		faux.setResponses([
 			fauxAssistantMessage(
@@ -287,9 +287,9 @@ describe("SessionRuntime", () => {
 			),
 			(context) => {
 				expect(context.messages.at(-1)).toMatchObject({
-					role: "toolResult",
-					toolCallId: "tool-read",
-					isError: false,
+					role       : "toolResult",
+					toolCallId : "tool-read",
+					isError    : false,
 				});
 				return fauxAssistantMessage("src/app.ts를 읽었습니다.", { timestamp: 30 });
 			},
@@ -300,22 +300,22 @@ describe("SessionRuntime", () => {
 		const store = new SessionEventStore(directory);
 		const tool: AgentTool = {
 			definition: {
-				name: "read",
-				description: "프로젝트 파일 읽기",
-				parameters: Type.Object({ path: Type.String() }),
+				name        : "read",
+				description : "프로젝트 파일 읽기",
+				parameters  : Type.Object({ path: Type.String() }),
 			},
 			execute: async (arguments_) => ({
 				modelContent: "export async function main() {}",
 				isError: false,
 				snapshot: {
-					id: "adapter-id",
-					toolName: "read",
-					status: "passed",
-					input: JSON.stringify(arguments_),
-					output: "export async function main() {}",
-					startedAt: 20,
-					durationMs: 2,
-					error: undefined,
+					id         : "adapter-id",
+					toolName   : "read",
+					status     : "passed",
+					input      : JSON.stringify(arguments_),
+					output     : "export async function main() {}",
+					startedAt  : 20,
+					durationMs : 2,
+					error      : undefined,
 				},
 			}),
 		};
@@ -363,9 +363,9 @@ describe("SessionRuntime", () => {
 
 	test("records safe narration labels only for attempted tools", async () => {
 		const faux = fauxProvider({
-			provider: "openai",
-			models: [{ id: "gpt-5.4", reasoning: true }],
-			tokensPerSecond: 100_000,
+			provider        : "openai",
+			models          : [{ id: "gpt-5.4", reasoning: true }],
+			tokensPerSecond : 100_000,
 		});
 		faux.setResponses([
 			fauxAssistantMessage([
@@ -404,10 +404,10 @@ describe("SessionRuntime", () => {
 			"unknown_tool 실행",
 		]);
 		expect(runtime.snapshot.narrations.map(({ step, action, reason }) => ({ step, action, reason }))).toEqual([
-			{ step: 1, action: "파일 확인 · src/app.ts", reason: "API token=[REDACTED] 없이 파일 구조를 확인" },
-			{ step: 2, action: "코드 검색 · SessionRuntime", reason: "관련 구현 위치 탐색" },
-			{ step: 3, action: "명령 실행 · git status --token [REDACTED] -H Authorization: [REDACTED]", reason: "실제 상태 확인" },
-			{ step: 4, action: "unknown_tool 실행", reason: "요청된 도구 실행" },
+			{ step : 1 , action : "파일 확인 · src/app.ts"                                                 , reason : "API token=[REDACTED] 없이 파일 구조를 확인" },
+			{ step : 2 , action : "코드 검색 · SessionRuntime"                                             , reason : "관련 구현 위치 탐색"                        },
+			{ step : 3 , action : "명령 실행 · git status --token [REDACTED] -H Authorization: [REDACTED]" , reason : "실제 상태 확인"                             },
+			{ step : 4 , action : "unknown_tool 실행"                                                      , reason : "요청된 도구 실행"                           },
 		]);
 		expect(JSON.stringify((await store.readAll("narration-labels")).filter(event => event.type === "narration.recorded")))
 			.not.toContain("secret-value");
@@ -415,9 +415,9 @@ describe("SessionRuntime", () => {
 
 	test("appends a bounded observed learning summary after a multi-tool turn without duplicating structured answers", async () => {
 		const faux = fauxProvider({
-			provider: "openai",
-			models: [{ id: "gpt-5.4", reasoning: true }],
-			tokensPerSecond: 100_000,
+			provider        : "openai",
+			models          : [{ id: "gpt-5.4", reasoning: true }],
+			tokensPerSecond : 100_000,
 		});
 		faux.setResponses([
 			fauxAssistantMessage([
@@ -431,9 +431,9 @@ describe("SessionRuntime", () => {
 		const tool = (name: string): AgentTool => ({
 			definition: { name, description: name, parameters: Type.Object({}) },
 			execute: async () => ({
-				modelContent: "ok",
-				isError: false,
-				snapshot: { id: crypto.randomUUID(), toolName: name, status: "passed", input: "", output: "", startedAt: 1, durationMs: 1, error: undefined },
+				modelContent : "ok",
+				isError      : false,
+				snapshot     : { id: crypto.randomUUID(), toolName: name, status: "passed", input: "", output: "", startedAt: 1, durationMs: 1, error: undefined },
 			}),
 		});
 		const store = new SessionEventStore(await mkdtemp(join(tmpdir(), "www-runtime-summary-")));
@@ -484,9 +484,9 @@ describe("SessionRuntime", () => {
 
 	test("retries a transient overloaded provider response before failing the turn", async () => {
 		const faux = fauxProvider({
-			provider: "openai",
-			models: [{ id: "gpt-5.4", reasoning: true }],
-			tokensPerSecond: 100_000,
+			provider        : "openai",
+			models          : [{ id: "gpt-5.4", reasoning: true }],
+			tokensPerSecond : 100_000,
 		});
 		faux.setResponses([
 			fauxAssistantMessage("", { stopReason: "error", errorMessage: "Our servers are currently overloaded." }),
@@ -510,9 +510,9 @@ describe("SessionRuntime", () => {
 
 	test("writes terminal tool results for every parallel call when aborted", async () => {
 		const faux = fauxProvider({
-			provider: "openai",
-			models: [{ id: "gpt-5.4", reasoning: true }],
-			tokensPerSecond: 100_000,
+			provider        : "openai",
+			models          : [{ id: "gpt-5.4", reasoning: true }],
+			tokensPerSecond : 100_000,
 		});
 		faux.setResponses([
 			fauxAssistantMessage([
@@ -530,14 +530,14 @@ describe("SessionRuntime", () => {
 					modelContent: "취소됨",
 					isError: true,
 					snapshot: {
-						id: "adapter",
-						toolName: "read",
-						status: "cancelled",
-						input: JSON.stringify(arguments_),
-						output: "",
-						startedAt: Date.now(),
-						durationMs: 0,
-						error: "취소됨",
+						id         : "adapter",
+						toolName   : "read",
+						status     : "cancelled",
+						input      : JSON.stringify(arguments_),
+						output     : "",
+						startedAt  : Date.now(),
+						durationMs : 0,
+						error      : "취소됨",
 					},
 				});
 				if (signal.aborted) finish();
@@ -577,9 +577,9 @@ describe("SessionRuntime", () => {
 
 	test("drops an incomplete persisted tool round from resumed model context", async () => {
 		const faux = fauxProvider({
-			provider: "openai",
-			models: [{ id: "gpt-5.4", reasoning: true }],
-			tokensPerSecond: 100_000,
+			provider        : "openai",
+			models          : [{ id: "gpt-5.4", reasoning: true }],
+			tokensPerSecond : 100_000,
 		});
 		faux.setResponses([
 			(context) => {
@@ -641,16 +641,16 @@ describe("SessionRuntime", () => {
 
 	test("drives a thin project Todo from model intent through real tool evidence", async () => {
 		const faux = fauxProvider({
-			provider: "openai",
-			models: [{ id: "gpt-5.4", reasoning: true }],
-			tokensPerSecond: 100_000,
+			provider        : "openai",
+			models          : [{ id: "gpt-5.4", reasoning: true }],
+			tokensPerSecond : 100_000,
 		});
 		faux.setResponses([
 			fauxAssistantMessage([fauxToolCall("todo_write", {
-				operation: "init",
-				title: "Todo 기능",
-				storyId: "ST-001",
-				items: ["파일 확인", "Pane 연결", "검증"],
+				operation : "init",
+				title     : "Todo 기능",
+				storyId   : "ST-001",
+				items     : ["파일 확인", "Pane 연결", "검증"],
 			}, { id: "todo-init" })], { stopReason: "toolUse" }),
 			fauxAssistantMessage([fauxToolCall("todo_write", {
 				operation: "start",

@@ -1,5 +1,5 @@
-import { describe, expect, test } from "bun:test";
-import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
+import { describe, expect, test }                   from "bun:test";
+import { stripTerminalSequences, visibleWidth }     from "@earendil-works/pi-tui";
 import { threeBodyOrbitFrame, threeBodyOrbitLabel } from "../src/adapters/inbound/tui/features/chat/three-body-orbit";
 
 describe("three-body welcome orbit", () => {

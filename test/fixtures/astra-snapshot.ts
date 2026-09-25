@@ -1,6 +1,6 @@
 import type { WorkbenchSnapshot } from "../../src/core/domain/work/workbench";
-import type { ProjectActivity } from "../../src/core/domain/execution/project-activity";
-import { projectWorkFlow } from "../../src/core/domain/work";
+import type { ProjectActivity }   from "../../src/core/domain/execution/project-activity";
+import { projectWorkFlow }        from "../../src/core/domain/work";
 
 /** Synthetic screen fixture; no provider calls, credentials, filesystem mutation, or fabricated live metrics. */
 export function astraFixture(phase: WorkbenchSnapshot["phase"] = "working"): WorkbenchSnapshot {

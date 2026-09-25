@@ -1,11 +1,11 @@
-import { describe, expect, test } from "bun:test";
-import {
-	deriveVerificationVerdict,
-	type RegistryEnvelope,
-	type TraceabilityLedgerV3,
-	type VerificationReceipt,
+import { describe, expect, test }                    from "bun:test";
+import { deriveVerificationVerdict }                 from "../src/core/domain/development/development-traceability";
+import type {
+	RegistryEnvelope,
+	TraceabilityLedgerV3,
+	VerificationReceipt,
 } from "../src/core/domain/development/development-traceability";
-import type { CompletionReceipt } from "../src/core/runtime/execution-run";
+import type { CompletionReceipt }                    from "../src/core/runtime/execution-run";
 import {
 	canonicalDigest,
 	migrateTraceabilityV2ToV3,
@@ -13,8 +13,8 @@ import {
 	validateRegistryEnvelope,
 	validateTraceabilityLedgerV3,
 	validateVerificationReceipt,
-	type VerificationReceiptCompletionContext,
 } from "../src/adapters/outbound/development/development-traceability-contract";
+import type { VerificationReceiptCompletionContext } from "../src/adapters/outbound/development/development-traceability-contract";
 
 const digest = <T extends object>(value: T): string => {
 	const { payloadDigest: _, ...body } = value as unknown as Record<string, unknown>;
@@ -24,34 +24,34 @@ function ledger(): TraceabilityLedgerV3 {
 	const result: TraceabilityLedgerV3 = {
 		schemaVersion: 3, projectId: "project", tombstones: [], migrations: [], payloadDigest: "",
 		entities: [
-			{ ref: "spec:CHAT-001@v1", kind: "spec", id: "CHAT-001", version: 1 },
-			{ ref: "acceptance:CHAT-001/A-01@v1", kind: "acceptance", id: "CHAT-001/A-01", version: 1 },
-			{ ref: "test-contract:TEST-031@v1", kind: "test-contract", id: "TEST-031", version: 1 },
-			{ ref: "exception:EXC-014@v1", kind: "exception", id: "EXC-014", version: 1 },
-			{ ref: "test-contract:TEST-032@v1", kind: "test-contract", id: "TEST-032", version: 1 },
-			{ ref: "receipt:VR-001", kind: "receipt", id: "VR-001", immutable: true, source: { path: ".www/evidence/receipt.json", digest: "a".repeat(64) } },
-			{ ref: "evidence:EV-001", kind: "evidence", id: "EV-001", immutable: true, source: { path: ".www/evidence/receipt.json", digest: "a".repeat(64) } },
-			{ ref: "git-revision:git:abc", kind: "git-revision", id: "git:abc" },
+			{ ref : "spec:CHAT-001@v1"            , kind : "spec"          , id : "CHAT-001"      , version   : 1                                                                              },
+			{ ref : "acceptance:CHAT-001/A-01@v1" , kind : "acceptance"    , id : "CHAT-001/A-01" , version   : 1                                                                              },
+			{ ref : "test-contract:TEST-031@v1"   , kind : "test-contract" , id : "TEST-031"      , version   : 1                                                                              },
+			{ ref : "exception:EXC-014@v1"        , kind : "exception"     , id : "EXC-014"       , version   : 1                                                                              },
+			{ ref : "test-contract:TEST-032@v1"   , kind : "test-contract" , id : "TEST-032"      , version   : 1                                                                              },
+			{ ref : "receipt:VR-001"              , kind : "receipt"       , id : "VR-001"        , immutable : true , source : { path: ".www/evidence/receipt.json", digest: "a".repeat(64) } },
+			{ ref : "evidence:EV-001"             , kind : "evidence"      , id : "EV-001"        , immutable : true , source : { path: ".www/evidence/receipt.json", digest: "a".repeat(64) } },
+			{ ref : "git-revision:git:abc"        , kind : "git-revision"  , id : "git:abc"                                                                                                    },
 		],
 		edges: [
-			{ from: "spec:CHAT-001@v1", relation: "has-acceptance", to: "acceptance:CHAT-001/A-01@v1" },
-			{ from: "acceptance:CHAT-001/A-01@v1", relation: "verified-by", to: "test-contract:TEST-031@v1" },
-			{ from: "spec:CHAT-001@v1", relation: "excepted-by", to: "exception:EXC-014@v1" },
-			{ from: "exception:EXC-014@v1", relation: "verified-by", to: "test-contract:TEST-032@v1" },
-			{ from: "receipt:VR-001", relation: "executes", to: "test-contract:TEST-031@v1" },
-			{ from: "receipt:VR-001", relation: "covers", to: "acceptance:CHAT-001/A-01@v1" },
-			{ from: "receipt:VR-001", relation: "evidenced-by", to: "evidence:EV-001" },
-			{ from: "receipt:VR-001", relation: "at-revision", to: "git-revision:git:abc" },
+			{ from : "spec:CHAT-001@v1"            , relation : "has-acceptance" , to : "acceptance:CHAT-001/A-01@v1" },
+			{ from : "acceptance:CHAT-001/A-01@v1" , relation : "verified-by"    , to : "test-contract:TEST-031@v1"   },
+			{ from : "spec:CHAT-001@v1"            , relation : "excepted-by"    , to : "exception:EXC-014@v1"        },
+			{ from : "exception:EXC-014@v1"        , relation : "verified-by"    , to : "test-contract:TEST-032@v1"   },
+			{ from : "receipt:VR-001"              , relation : "executes"       , to : "test-contract:TEST-031@v1"   },
+			{ from : "receipt:VR-001"              , relation : "covers"         , to : "acceptance:CHAT-001/A-01@v1" },
+			{ from : "receipt:VR-001"              , relation : "evidenced-by"   , to : "evidence:EV-001"             },
+			{ from : "receipt:VR-001"              , relation : "at-revision"    , to : "git-revision:git:abc"        },
 		],
 	}; result.payloadDigest = digest(result); return result;
 }
 function receipt(): VerificationReceipt {
 	const value: VerificationReceipt = {
 		schemaVersion: 3, id: "VR-001", immutable: true, sourceRevision: "git:abc", verdict: "pass", payloadDigest: "",
-		acceptanceCoverage: [{ acceptanceRef: "acceptance:CHAT-001/A-01@v1", testRef: "test-contract:TEST-031@v1", status: "pass" }],
-		exceptionCoverage: ["detect", "control", "recovery"].map(stage => ({ exceptionRef: "exception:EXC-014@v1", stage: stage as "detect" | "control" | "recovery", testRef: "test-contract:TEST-032@v1", status: "pass" })),
-		evidence: [{ id: "EV-001", path: ".www/evidence/receipt.json", sha256: "a".repeat(64), immutable: true }],
-		completion: { runId: "run", checkpointDigest: "b".repeat(64), status: "completed", evidenceRefs: ["EV-001"] },
+		acceptanceCoverage : [{ acceptanceRef: "acceptance:CHAT-001/A-01@v1", testRef: "test-contract:TEST-031@v1", status: "pass" }],
+		exceptionCoverage  : ["detect", "control", "recovery"].map(stage => ({ exceptionRef: "exception:EXC-014@v1", stage: stage as "detect" | "control" | "recovery", testRef: "test-contract:TEST-032@v1", status: "pass" })),
+		evidence           : [{ id: "EV-001", path: ".www/evidence/receipt.json", sha256: "a".repeat(64), immutable: true }],
+		completion         : { runId: "run", checkpointDigest: "b".repeat(64), status: "completed", evidenceRefs: ["EV-001"] },
 	}; value.payloadDigest = digest(value); return value;
 }
 
@@ -88,9 +88,9 @@ describe("traceability v3 contracts", () => {
 	test("preserves distinct exception test mappings by stage", () => {
 		const value = receipt();
 		value.exceptionCoverage = [
-			{ exceptionRef: "exception:EXC-014@v1", stage: "detect", testRef: "test-contract:TEST-031@v1", status: "pass" },
-			{ exceptionRef: "exception:EXC-014@v1", stage: "control", testRef: "test-contract:TEST-032@v1", status: "blocked" },
-			{ exceptionRef: "exception:EXC-014@v1", stage: "recovery", testRef: "test-contract:TEST-032@v1", status: "unknown" },
+			{ exceptionRef : "exception:EXC-014@v1" , stage : "detect"   , testRef : "test-contract:TEST-031@v1" , status : "pass"    },
+			{ exceptionRef : "exception:EXC-014@v1" , stage : "control"  , testRef : "test-contract:TEST-032@v1" , status : "blocked" },
+			{ exceptionRef : "exception:EXC-014@v1" , stage : "recovery" , testRef : "test-contract:TEST-032@v1" , status : "unknown" },
 		];
 		value.verdict = "blocked"; value.payloadDigest = digest(value);
 		expect(validateVerificationReceipt(value)).toEqual([]);

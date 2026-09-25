@@ -1,8 +1,8 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test }   from "bun:test";
 import { mkdir, mkdtemp, rm, stat, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
-import { FileCredentialStore } from "../src/adapters/outbound/authentication/credential-store";
+import { tmpdir }                              from "node:os";
+import { dirname, join }                       from "node:path";
+import { FileCredentialStore }                 from "../src/adapters/outbound/authentication/credential-store";
 
 const directories: string[] = [];
 afterEach(async () => {

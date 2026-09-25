@@ -28,9 +28,9 @@ export function changedWorkRecordingPaths(
 }
 
 export function evaluateWorkRecordingGate(input: {
-	readonly before: WorkRecordingSnapshot;
-	readonly after: WorkRecordingSnapshot;
-	readonly stopHookActive: boolean;
+	readonly before         : WorkRecordingSnapshot ;
+	readonly after          : WorkRecordingSnapshot ;
+	readonly stopHookActive : boolean               ;
 }): WorkRecordingGateDecision {
 	const changedPaths = changedWorkRecordingPaths(input.before, input.after);
 	if (input.stopHookActive || changedPaths.length === 0) return { state: "clear", changedPaths };

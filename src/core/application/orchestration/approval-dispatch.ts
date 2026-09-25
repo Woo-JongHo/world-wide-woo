@@ -3,8 +3,8 @@ import type {
 	NativeApprovalResolution,
 	NativeApprovalResponse,
 	NativeRefs,
-} from "../../domain/execution/native-session.js";
-import type { ProjectActivityPhase } from "../../domain/execution/project-activity.js";
+} from "@/core/domain/execution/native-session.js";
+import type { ProjectActivityPhase } from "@/core/domain/execution/project-activity.js";
 
 export type ApprovalResponseMethod =
 	| "governance/decision-prepared"
@@ -22,20 +22,20 @@ export interface ApprovalEvidenceProjection {
 }
 
 export interface ApprovalResponseObservation {
-	readonly kind: "progress";
-	readonly phase: ProjectActivityPhase;
-	readonly nativeRefs: NativeRefs;
-	readonly sourceDigest: string;
-	readonly payload: Readonly<Record<string, unknown>>;
+	readonly kind         : "progress"                        ;
+	readonly phase        : ProjectActivityPhase              ;
+	readonly nativeRefs   : NativeRefs                        ;
+	readonly sourceDigest : string                            ;
+	readonly payload      : Readonly<Record<string, unknown>> ;
 }
 
 export interface ApprovalDispatchDependencies {
 	/** Produces a bounded, sanitized journal projection. It must not mutate its input. */
 	readonly serializeEvidence: (value: unknown) => ApprovalEvidenceProjection;
 	/** Digests the complete canonical source, before evidence bounding or redaction. */
-	readonly digestSource: (source: string) => string;
-	readonly record: (observation: ApprovalResponseObservation) => Promise<void>;
-	readonly respondToApproval: (resolution: NativeApprovalResolution) => Promise<void>;
+	readonly digestSource      : (source: string) => string                                  ;
+	readonly record            : (observation: ApprovalResponseObservation) => Promise<void> ;
+	readonly respondToApproval : (resolution: NativeApprovalResolution) => Promise<void>     ;
 }
 
 export type ApprovalDispatchResult =
@@ -59,16 +59,16 @@ export class ApprovalResponseDispatcher {
 	public constructor(private readonly dependencies: ApprovalDispatchDependencies) {}
 
 	public async dispatch(input: {
-		readonly commandId: string;
-		readonly request: NativeApprovalRequest;
-		readonly response: NativeApprovalResponse;
+		readonly commandId : string                 ;
+		readonly request   : NativeApprovalRequest  ;
+		readonly response  : NativeApprovalResponse ;
 	}): Promise<ApprovalDispatchResult> {
 		const key = requestIdentity(input.request);
 		if (this.interlocked.has(key)) {
 			throw new ApprovalDeliveryUncertainError({
-				state: "uncertain",
-				responseDigest: this.dependencies.digestSource(canonicalJson(input.response)),
-				reason: "이 승인 요청에는 이미 전달 시도가 있어 Native resolved 확인 전 재전송할 수 없습니다.",
+				state          : "uncertain",
+				responseDigest : this.dependencies.digestSource(canonicalJson(input.response)),
+				reason         : "이 승인 요청에는 이미 전달 시도가 있어 Native resolved 확인 전 재전송할 수 없습니다.",
 			});
 		}
 		this.interlocked.add(key);
@@ -134,19 +134,19 @@ export class ApprovalResponseDispatcher {
  */
 export async function dispatchApprovalResponse(
 	input: {
-		readonly commandId: string;
-		readonly request: NativeApprovalRequest;
-		readonly response: NativeApprovalResponse;
+		readonly commandId : string                 ;
+		readonly request   : NativeApprovalRequest  ;
+		readonly response  : NativeApprovalResponse ;
 	},
 	dependencies: ApprovalDispatchDependencies,
 ): Promise<ApprovalDispatchResult> {
-	const request = immutable(input.request);
-	const response = immutable(input.response);
-	const requestSource = canonicalJson(request);
-	const responseSource = canonicalJson(response);
-	const requestDigest = dependencies.digestSource(requestSource);
-	const responseDigest = dependencies.digestSource(responseSource);
-	const responseEvidence = immutable(dependencies.serializeEvidence(response));
+	const request          = immutable(input.request)                            ;
+	const response         = immutable(input.response)                           ;
+	const requestSource    = canonicalJson(request)                              ;
+	const responseSource   = canonicalJson(response)                             ;
+	const requestDigest    = dependencies.digestSource(requestSource)            ;
+	const responseDigest   = dependencies.digestSource(responseSource)           ;
+	const responseEvidence = immutable(dependencies.serializeEvidence(response)) ;
 	const refs = immutable({
 		...request.refs,
 		approvalRequestId: request.requestId,

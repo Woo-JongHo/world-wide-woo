@@ -1,23 +1,23 @@
 import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences } from "@earendil-works/pi-tui";
-import type { ProjectActivity } from "../src/core/domain/execution/project-activity";
+import type { ProjectActivity }   from "../src/core/domain/execution/project-activity";
 import type { WorkbenchSnapshot } from "../src/core/domain/work/workbench";
-import { projectWorkFlow } from "../src/core/domain/work";
-import { WorkbenchChatView } from "../src/adapters/inbound/tui/features/chat/workbench-views";
+import { projectWorkFlow }        from "../src/core/domain/work";
+import { WorkbenchChatView }      from "../src/adapters/inbound/tui/features/chat/workbench-views";
 
 function startup(sequence: number, server: string, status: string): ProjectActivity {
 	return {
-		schemaVersion: 1,
-		id: `startup-${sequence}`,
-		projectId: "sample-project",
+		schemaVersion : 1,
+		id            : `startup-${sequence}`,
+		projectId     : "sample-project",
 		sequence,
-		recordedAt: `2026-09-01T23:${String(sequence).padStart(2, "0")}:00.000Z`,
-		kind: "progress",
-		phase: "updated",
-		provider: "openai-codex",
-		nativeRefs: { threadId: "thread-root" },
-		sourceDigest: `sha256:${String(sequence).padStart(64, "0")}`,
-		payload: { method: "mcpServer/startupStatus/updated", params: { name: server, status } },
+		recordedAt   : `2026-09-01T23:${String(sequence).padStart(2, "0")}:00.000Z`,
+		kind         : "progress",
+		phase        : "updated",
+		provider     : "openai-codex",
+		nativeRefs   : { threadId: "thread-root" },
+		sourceDigest : `sha256:${String(sequence).padStart(64, "0")}`,
+		payload      : { method: "mcpServer/startupStatus/updated", params: { name: server, status } },
 	};
 }
 

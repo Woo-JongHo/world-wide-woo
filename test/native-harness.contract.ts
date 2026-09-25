@@ -1,13 +1,13 @@
-import { expect } from "bun:test";
-import type { ExecutorPort } from "../src/core/ports/execution/executor-port.js";
+import { expect }                  from "bun:test";
+import type { ExecutorPort }       from "../src/core/ports/execution/executor-port.js";
 import type { NativeHarnessEvent } from "../src/core/domain/execution/native-session.js";
 
 export interface NativeHarnessContractFixture {
 	readonly harness: ExecutorPort;
-	settleSuccess(text?: string): void;
-	settleFailure(error?: Error): void;
-	settleInterrupted(): void;
-	emitReasoning(text: string): void;
+	settleSuccess    (text?: string): void;
+	settleFailure    (error?: Error): void;
+	settleInterrupted()             : void;
+	emitReasoning    (text: string ): void;
 }
 
 export async function assertPhaseANativeHarnessContract(create: () => Promise<NativeHarnessContractFixture>): Promise<void> {
@@ -32,15 +32,15 @@ export async function assertPhaseANativeHarnessContract(create: () => Promise<Na
 		"turn/completed",
 	]);
 	expect(events[1]).toEqual({
-		type: "notification",
-		method: "item/agentMessage/delta",
-		refs: { threadId: thread.id, turnId: receipt.id, itemId: `pi-message-${receipt.id}` },
-		params: { delta: "visible answer" },
+		type   : "notification",
+		method : "item/agentMessage/delta",
+		refs   : { threadId: thread.id, turnId: receipt.id, itemId: `pi-message-${receipt.id}` },
+		params : { delta: "visible answer" },
 	});
 	expect(events[2]).toMatchObject({
-		type: "notification",
-		method: "item/completed",
-		params: { item: { type: "agentMessage", text: "visible answer" } },
+		type   : "notification",
+		method : "item/completed",
+		params : { item: { type: "agentMessage", text: "visible answer" } },
 	});
 	expect(events.some(event => JSON.stringify(event).includes("hidden reasoning"))).toBe(false);
 

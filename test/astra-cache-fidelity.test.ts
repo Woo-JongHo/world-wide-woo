@@ -1,8 +1,8 @@
-import { expect, test } from "bun:test";
-import chalk from "chalk";
+import { expect, test }                         from "bun:test";
+import chalk                                    from "chalk";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import { composeCacheTelemetry } from "../src/core/domain/observability/cache-telemetry";
-import { AstraCacheRail, AstraCacheView } from "../src/adapters/inbound/tui/features/cache/astra-cache-view";
+import { composeCacheTelemetry }                from "../src/core/domain/observability/cache-telemetry";
+import { AstraCacheRail, AstraCacheView }       from "../src/adapters/inbound/tui/features/cache/astra-cache-view";
 
 const emptyCache = () => composeCacheTelemetry({ collectedAt: "2026-09-22T00:00:00Z", observations: [] });
 
@@ -17,9 +17,9 @@ test.each([118, 160, 200])("Cache demo exposes every reference panel in 36 rows 
 });
 
 test("Cache slice hit bars and state values share fixed axes", () => {
-	const rows = new AstraCacheView(emptyCache, () => true).render(160).map(stripTerminalSequences);
-	const start = rows.findIndex(row => row.includes("CACHE SLICES"));
-	const slices = rows.slice(start + 3, start + 10);
+	const rows   = new AstraCacheView(emptyCache, () => true).render(160).map(stripTerminalSequences) ;
+	const start  = rows.findIndex(row => row.includes("CACHE SLICES"))                                ;
+	const slices = rows.slice(start + 3, start + 10)                                                  ;
 	expect(slices).toHaveLength(7);
 	expect(new Set(slices.map(row => row.indexOf("█"))).size).toBe(1);
 	expect(new Set(slices.map(row => row.search(/SAFE|PROTECTED|EVICT_READY|IMMUTABLE/u))).size).toBe(1);

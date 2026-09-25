@@ -1,9 +1,12 @@
 import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { describe, expect, test } from "bun:test";
-import { sanitizeTerminalText } from "../src/core/domain/execution/terminal";
-import { LocalTerminalCommandExecutor, TerminalCommandRejectedError } from "../src/adapters/outbound/execution/terminal-command-executor";
+import { tmpdir }                    from "node:os";
+import { join }                      from "node:path";
+import { describe, expect, test }    from "bun:test";
+import { sanitizeTerminalText }      from "../src/core/domain/execution/terminal";
+import {
+	LocalTerminalCommandExecutor,
+	TerminalCommandRejectedError,
+} from "../src/adapters/outbound/execution/terminal-command-executor";
 
 async function fixture(): Promise<string> {
 	return mkdtemp(join(tmpdir(), "www-terminal-"));
@@ -17,9 +20,9 @@ function run(command: string, cwd: string, options: ConstructorParameters<typeof
 
 describe("LocalTerminalCommandExecutor", () => {
 	test("captures stdout, stderr, exit status, and shell pipes", async () => {
-		const cwd = await fixture();
-		const execution = run("printf 'one\\ntwo\\n' | wc -l; printf err >&2; exit 7", cwd);
-		const result = await execution.result;
+		const cwd       = await fixture()                                                   ;
+		const execution = run("printf 'one\\ntwo\\n' | wc -l; printf err >&2; exit 7", cwd) ;
+		const result    = await execution.result                                            ;
 		expect(result).toMatchObject({ stderr: "err", exitCode: 7, cancelled: false, timedOut: false });
 		expect(result.stdout.trim()).toBe("2");
 		expect(execution.updates.at(-1)?.stdout.trim()).toBe("2");

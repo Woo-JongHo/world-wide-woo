@@ -1,9 +1,9 @@
-import { readdir, readFile } from "node:fs/promises";
-import type { Dirent } from "node:fs";
-import { join } from "node:path";
-import type { ObservabilityActivityStream } from "../../../core/domain/observability/observability-dashboard.js";
-import type { ProjectActivity } from "../../../core/domain/execution/project-activity.js";
-import type { ObservabilityHistory, ObservabilityHistoryReader } from "../../../core/ports/index.js";
+import { readdir, readFile }                                     from "node:fs/promises";
+import type { Dirent }                                           from "node:fs";
+import { join }                                                  from "node:path";
+import type { ObservabilityActivityStream }                      from "@/core/domain/observability/observability-dashboard.js";
+import type { ProjectActivity }                                  from "@/core/domain/execution/project-activity.js";
+import type { ObservabilityHistory, ObservabilityHistoryReader } from "@/core/ports/index.js";
 
 export const OBSERVABILITY_HISTORY_STREAM_LIMIT = 64;
 export const OBSERVABILITY_HISTORY_ACTIVITY_LIMIT = 5_000;
@@ -16,19 +16,19 @@ export class ObservabilityHistorySource implements ObservabilityHistoryReader {
 	) {}
 
 	public async read(): Promise<ObservabilityHistory> {
-		const streamLimit = positiveLimit(this.limits.streams, OBSERVABILITY_HISTORY_STREAM_LIMIT);
-		const activityLimit = positiveLimit(this.limits.activitiesPerStream, OBSERVABILITY_HISTORY_ACTIVITY_LIMIT);
-		let names: string[];
+		const streamLimit   = positiveLimit(this.limits.streams, OBSERVABILITY_HISTORY_STREAM_LIMIT)               ;
+		const activityLimit = positiveLimit(this.limits.activitiesPerStream, OBSERVABILITY_HISTORY_ACTIVITY_LIMIT) ;
+		let names: string[]                                                                                        ;
 		try { names = await listJsonl(this.activityDirectory); }
 		catch (error) {
 			if ((error as NodeJS.ErrnoException).code === "ENOENT") return emptyHistory();
 			throw error;
 		}
-		const selected = names.slice(0, streamLimit);
-		const streams = await Promise.all(selected.map(name => this.readStream(name, activityLimit)));
-		const activities = streams.flatMap(stream => stream.activities);
-		const observed = activities.map(activity => activity.recordedAt).filter(isTimestamp).sort();
-		const malformed = streams.some(stream => (stream.malformedLines ?? 0) > 0);
+		const selected   = names.slice(0, streamLimit)                                                   ;
+		const streams    = await Promise.all(selected.map(name => this.readStream(name, activityLimit))) ;
+		const activities = streams.flatMap(stream => stream.activities)                                  ;
+		const observed   = activities.map(activity => activity.recordedAt).filter(isTimestamp).sort()    ;
+		const malformed  = streams.some(stream => (stream.malformedLines ?? 0) > 0)                      ;
 		return Object.freeze({
 			coverage: Object.freeze({ state: streams.length === 0 ? "unknown" : malformed || names.length > selected.length ? "partial-local-journal" : "observed", observedFrom: observed[0] ?? null, observedUntil: observed.at(-1) ?? null, streamsRead: streams.length, skippedStreams: names.length - selected.length }),
 			streams: Object.freeze(streams),
@@ -36,10 +36,10 @@ export class ObservabilityHistorySource implements ObservabilityHistoryReader {
 	}
 
 	private async readStream(name: string, activityLimit: number): Promise<ObservabilityActivityStream> {
-		const content = await readFile(join(this.activityDirectory, name), "utf8");
-		const complete = content.endsWith("\n") ? content.slice(0, -1).split("\n") : content.slice(0, Math.max(0, content.lastIndexOf("\n"))).split("\n");
-		let malformedLines = content.endsWith("\n") ? 0 : content.length > 0 ? 1 : 0;
-		const activities: ProjectActivity[] = [];
+		const content                        = await readFile(join(this.activityDirectory, name), "utf8")                                                                       ;
+		const complete                       = content.endsWith("\n") ? content.slice(0, -1).split("\n") : content.slice(0, Math.max(0, content.lastIndexOf("\n"))).split("\n") ;
+		let malformedLines                   = content.endsWith("\n") ? 0 : content.length > 0 ? 1 : 0                                                                          ;
+		const activities : ProjectActivity[] = []                                                                                                                               ;
 		for (const line of complete) {
 			if (!line) continue;
 			try {
@@ -74,6 +74,20 @@ function isTimestamp(value: string): boolean { return Number.isFinite(Date.parse
 function isProjectActivity(value: unknown): value is ProjectActivity {
 	if (!value || typeof value !== "object" || Array.isArray(value)) return false;
 	const activity = value as Record<string, unknown>;
-	return activity.schemaVersion === 1 && typeof activity.id === "string" && typeof activity.projectId === "string" && typeof activity.sequence === "number" && Number.isSafeInteger(activity.sequence) && activity.sequence > 0 && typeof activity.recordedAt === "string" && typeof activity.kind === "string" && typeof activity.phase === "string" && typeof activity.provider === "string" && record(activity.nativeRefs) && typeof activity.sourceDigest === "string" && record(activity.payload);
+	return (
+		activity.schemaVersion === 1 &&
+		typeof activity.id === "string" &&
+		typeof activity.projectId === "string" &&
+		typeof activity.sequence === "number" &&
+		Number.isSafeInteger(activity.sequence) &&
+		activity.sequence > 0 &&
+		typeof activity.recordedAt === "string" &&
+		typeof activity.kind === "string" &&
+		typeof activity.phase === "string" &&
+		typeof activity.provider === "string" &&
+		record(activity.nativeRefs) &&
+		typeof activity.sourceDigest === "string" &&
+		record(activity.payload)
+	);
 }
 function record(value: unknown): value is Record<string, unknown> { return !!value && typeof value === "object" && !Array.isArray(value); }

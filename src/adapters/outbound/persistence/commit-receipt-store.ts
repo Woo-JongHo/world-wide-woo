@@ -1,7 +1,7 @@
-import { Database } from "bun:sqlite";
+import { Database }                              from "bun:sqlite";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
-import { canonicalJson, sha256 } from "../../../core/commit/commit-governance.js";
+import { join, resolve }                         from "node:path";
+import { canonicalJson, sha256 }                 from "@/core/commit/commit-governance.js";
 
 type Receipt = Record<string, unknown> & { schemaVersion: string; receiptId: string; runId: string; capability: string; status: string; stage: string; receiptDigest: string; result?: { commitSha?: string } | null };
 
@@ -15,7 +15,12 @@ function receiptFiles(root: string): string[] {
 	return files.sort();
 }
 function validateReceipt(receipt: Receipt): void {
-	if (receipt.schemaVersion !== "1.0" || !receipt.receiptId || !receipt.runId || receipt.capability !== "commit" || !receipt.status || !receipt.stage) throw new Error("Invalid commit Receipt envelope");
+	if (receipt.schemaVersion !== "1.0"
+		|| !receipt.receiptId
+		|| !receipt.runId
+		|| receipt.capability !== "commit"
+		|| !receipt.status
+		|| !receipt.stage) throw new Error("Invalid commit Receipt envelope");
 	const { receiptDigest, ...payload } = receipt;
 	if (!/^[0-9a-f]{64}$/u.test(receiptDigest) || receiptDigest !== sha256(canonicalJson(payload))) throw new Error(`Receipt digest mismatch: ${receipt.receiptId}`);
 }

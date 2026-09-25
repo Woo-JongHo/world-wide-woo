@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test }               from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
 import {
 	CONVERSATION_RECAP_MAX_ENTRIES,
@@ -6,9 +6,9 @@ import {
 	CONVERSATION_RECAP_MAX_TOTAL_CODE_POINTS,
 	projectConversationRecap,
 } from "../src/core/domain/work/conversation-recap.js";
-import { currentConversationRecap } from "../src/core/application/work/conversation-recap.js";
-import { conversationRecapRows } from "../src/adapters/inbound/tui/features/chat/conversation-recap-view.js";
-import type { WorkbenchChatMessage } from "../src/core/domain/work/workbench.js";
+import { currentConversationRecap }             from "../src/core/application/work/conversation-recap.js";
+import { conversationRecapRows }                from "../src/adapters/inbound/tui/features/chat/conversation-recap-view.js";
+import type { WorkbenchChatMessage }            from "../src/core/domain/work/workbench.js";
 
 function message(id: string, role: WorkbenchChatMessage["role"], content: string): WorkbenchChatMessage {
 	return { id, role, content, activityId: `activity-${id}`, status: "completed" };
@@ -50,9 +50,9 @@ describe("Conversation Recap", () => {
 	});
 
 	test("renders the recap as bounded TUI rows and stays hidden until explicitly expanded", async () => {
-		const messages = [message("u1", "user", "현재 기능을 확인해줘"), message("a1", "assistant", "확인 결과는 안전합니다.")];
-		const rows = conversationRecapRows({ chat: messages }, 40);
-		const plain = stripTerminalSequences(rows.join("\n"));
+		const messages = [message("u1", "user", "현재 기능을 확인해줘"), message("a1", "assistant", "확인 결과는 안전합니다.")] ;
+		const rows     = conversationRecapRows({ chat: messages }, 40)                                                          ;
+		const plain    = stripTerminalSequences(rows.join("\n"))                                                                ;
 
 		expect(plain).toContain("Conversation Recap");
 		expect(plain).toContain("현재 기능을 확인해줘");

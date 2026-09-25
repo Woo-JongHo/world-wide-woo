@@ -1,11 +1,11 @@
-import { expect, test } from "bun:test";
-import chalk from "chalk";
+import { expect, test }                         from "bun:test";
+import chalk                                    from "chalk";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import { renderLayoutFrame } from "@earendil-works/pi-tui/dist/layout.js";
-import { AstraWorkspace } from "../src/adapters/inbound/tui/shell/astra-surface";
-import { AstraContextView } from "../src/adapters/inbound/tui/features/context/astra-context-view";
-import { createAstraDemoState } from "../src/adapters/inbound/tui/features/demo/astra-demo";
-import { astraFixture } from "./fixtures/astra-snapshot";
+import { renderLayoutFrame }                    from "@earendil-works/pi-tui/dist/layout.js";
+import { AstraWorkspace }                       from "../src/adapters/inbound/tui/shell/astra-surface";
+import { AstraContextView }                     from "../src/adapters/inbound/tui/features/context/astra-context-view";
+import { createAstraDemoState }                 from "../src/adapters/inbound/tui/features/demo/astra-demo";
+import { astraFixture }                         from "./fixtures/astra-snapshot";
 
 test.each([160, 200])("Demo Context catalog is visible in the first %i x 36 workspace viewport", width => {
 	const demo = createAstraDemoState(astraFixture(), () => 0);
@@ -21,9 +21,9 @@ test("Demo spectrometer uses multiple source colors and proportional cells; Live
 	const before = chalk.level;
 	chalk.level = 3;
 	try {
-		const snapshot = createAstraDemoState(astraFixture()).snapshot;
-		const rows = new AstraContextView(() => snapshot, undefined, false, () => true).render(118);
-		const bar = rows.find(row => stripTerminalSequences(row).includes("SYS") && stripTerminalSequences(row).includes("CONV") && row.includes("48;2;"))!;
+		const snapshot = createAstraDemoState(astraFixture()).snapshot                                                                                           ;
+		const rows     = new AstraContextView(() => snapshot, undefined, false, () => true).render(118)                                                          ;
+		const bar      = rows.find(row => stripTerminalSequences(row).includes("SYS") && stripTerminalSequences(row).includes("CONV") && row.includes("48;2;"))! ;
 		expect(bar).toBeDefined();
 		expect(new Set(bar.match(/\x1b\[48;2;\d+;\d+;\d+m/gu)).size).toBeGreaterThanOrEqual(7);
 		const sys = bar.match(/\x1b\[48;2;131;165;152m(?:\x1b\[[0-9;]*m)*([^\x1b]*)/u)!;
@@ -58,13 +58,13 @@ test("Demo Context renders only the Figma catalog instead of appending the live 
 });
 
 test("Demo Context composition uses one shared table axis for every source", () => {
-	const demo = createAstraDemoState(astraFixture());
-	const rows = new AstraContextView(() => demo.snapshot, () => demo.usage, false, () => true).render(160).map(stripTerminalSequences);
-	const header = rows.find(row => row.includes("DISTRIBUTION") && row.includes("SHARE"));
+	const demo   = createAstraDemoState(astraFixture())                                                                                   ;
+	const rows   = new AstraContextView(() => demo.snapshot, () => demo.usage, false, () => true).render(160).map(stripTerminalSequences) ;
+	const header = rows.find(row => row.includes("DISTRIBUTION") && row.includes("SHARE"))                                                ;
 	expect(header).toBeDefined();
-	const start = rows.findIndex(row => row.includes("CONTEXT COMPOSITION BREAKDOWN"));
-	const end = rows.findIndex((row, index) => index > start && row.includes("CONTEXT CHANGE ACTIVITY"));
-	const sourceRows = rows.slice(start, end).filter(row => /^│(?:SYS|CONV|SKILL|MCP|MEM|WORK|RUNT|NOTE|TOOL)\s/u.test(row));
+	const start      = rows.findIndex(row => row.includes("CONTEXT COMPOSITION BREAKDOWN"))                                  ;
+	const end        = rows.findIndex((row, index) => index > start && row.includes("CONTEXT CHANGE ACTIVITY"))              ;
+	const sourceRows = rows.slice(start, end).filter(row => /^│(?:SYS|CONV|SKILL|MCP|MEM|WORK|RUNT|NOTE|TOOL)\s/u.test(row)) ;
 	expect(sourceRows).toHaveLength(9);
 	const sizeAxis = header!.indexOf("SIZE");
 	const shareAxis = header!.indexOf("SHARE");
@@ -72,9 +72,9 @@ test("Demo Context composition uses one shared table axis for every source", () 
 });
 
 test.each([118, 160])("Demo Context diagnostic and ranking values share axes at %i columns", width => {
-	const demo = createAstraDemoState(astraFixture());
-	const rows = new AstraContextView(() => demo.snapshot, () => demo.usage, false, () => true).render(width).map(stripTerminalSequences);
-	const diagnostics = rows.filter(row => /■ (SYSTEM INIT|MCP SYNC|MEMORY EVICTIONS|RUNTIME COMPILE|EVICTION RISK)/u.test(row));
+	const demo        = createAstraDemoState(astraFixture())                                                                                     ;
+	const rows        = new AstraContextView(() => demo.snapshot, () => demo.usage, false, () => true).render(width).map(stripTerminalSequences) ;
+	const diagnostics = rows.filter(row => /■ (SYSTEM INIT|MCP SYNC|MEMORY EVICTIONS|RUNTIME COMPILE|EVICTION RISK)/u.test(row))                 ;
 	expect(diagnostics).toHaveLength(5);
 	const stateColumns = diagnostics.map(row => visibleWidth(row.slice(0, row.search(/OK|FREED|NONE NOW/u))));
 	expect(new Set(stateColumns).size).toBe(1);

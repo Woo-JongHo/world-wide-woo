@@ -1,36 +1,39 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test }               from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import type { ObservabilityDashboard, ObservabilitySessionSummary } from "../src/core/domain/observability/observability-dashboard";
-import { dashboardSessionWindow } from "../src/adapters/inbound/tui/features/session/dashboard-session-window";
-import { ObservabilityDashboardView } from "../src/adapters/inbound/tui/features/session/observability-dashboard-view";
+import type {
+	ObservabilityDashboard,
+	ObservabilitySessionSummary,
+} from "../src/core/domain/observability/observability-dashboard";
+import { dashboardSessionWindow }               from "../src/adapters/inbound/tui/features/session/dashboard-session-window";
+import { ObservabilityDashboardView }           from "../src/adapters/inbound/tui/features/session/observability-dashboard-view";
 
 const session = (index: number): ObservabilitySessionSummary => ({
-	sessionId: `session-${String(index).padStart(2, "0")}`,
-	projectId: `project-${index}`,
-	boundary: "observed",
-	startedAt: "2026-09-07T00:00:00.000Z",
-	endedAt: index === 11 ? null : "2026-09-07T00:01:00.000Z",
-	result: index === 11 ? "active" : "completed",
-	failures: 0,
-	retries: 0,
+	sessionId : `session-${String(index).padStart(2, "0")}`,
+	projectId : `project-${index}`,
+	boundary  : "observed",
+	startedAt : "2026-09-07T00:00:00.000Z",
+	endedAt   : index === 11 ? null : "2026-09-07T00:01:00.000Z",
+	result    : index === 11 ? "active" : "completed",
+	failures  : 0,
+	retries   : 0,
 	usage: index === 11 ? {
-		totalTokens: 120,
-		observedTotalTokens: 120,
-		unattributedTokens: 0,
-		observationCoverage: { interactive: true, detached: false },
-		models: [{ model: "gpt-5.6-sol", effort: "medium", interactiveRootTurns: 1, interactiveTokens: 120, detachedInvocations: 0, detachedTokens: 0, totalTokens: 120 }],
+		totalTokens         : 120,
+		observedTotalTokens : 120,
+		unattributedTokens  : 0,
+		observationCoverage : { interactive: true, detached: false },
+		models              : [{ model: "gpt-5.6-sol", effort: "medium", interactiveRootTurns: 1, interactiveTokens: 120, detachedInvocations: 0, detachedTokens: 0, totalTokens: 120 }],
 	} : null,
 });
 
 function dashboard(state: ObservabilityDashboard["coverage"]["state"] = "observed"): ObservabilityDashboard {
 	return {
-		coverage: { state, observedFrom: state === "unknown" ? null : "2026-09-06T00:00:00.000Z", observedUntil: state === "unknown" ? null : "2026-09-07T00:00:00.000Z", streamsRead: state === "unknown" ? 0 : 12, skippedStreams: state === "partial-local-journal" ? 2 : 0 },
-		sessions: { active: 1, completed: 11, failures: 0 },
-		usage: { totalTokens: 120, models: [{ model: "gpt-5.6-sol", effort: "medium", totalTokens: 120, interactiveRootTurns: 1, detachedInvocations: 0 }] },
-		health: { completionPercent: 100, retries: 0, failures: 0 },
-		trend: { available: false, buckets: [] },
-		attention: [],
-		recentSessions: Array.from({ length: 12 }, (_, index) => session(index)),
+		coverage       : { state, observedFrom: state === "unknown" ? null : "2026-09-06T00:00:00.000Z", observedUntil: state === "unknown" ? null : "2026-09-07T00:00:00.000Z", streamsRead: state === "unknown" ? 0 : 12, skippedStreams: state === "partial-local-journal" ? 2 : 0 },
+		sessions       : { active: 1, completed: 11, failures: 0 },
+		usage          : { totalTokens: 120, models: [{ model: "gpt-5.6-sol", effort: "medium", totalTokens: 120, interactiveRootTurns: 1, detachedInvocations: 0 }] },
+		health         : { completionPercent: 100, retries: 0, failures: 0 },
+		trend          : { available: false, buckets: [] },
+		attention      : [],
+		recentSessions : Array.from({ length: 12 }, (_, index) => session(index)),
 	};
 }
 

@@ -1,13 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import type { AuthController } from "../src/core/ports/index.js";
+import type { AuthController }    from "../src/core/ports/index.js";
 import { ProviderAuthController } from "../src/adapters/outbound/authentication/antigravity-auth.js";
 
 function base(): AuthController {
 	return {
-		methods: () => ["api_key"],
-		status: async provider => ({ state: "required", provider }),
-		login: async (provider, type) => ({ state: "configured", provider, source: "base", type }),
-		logout: async () => undefined,
+		methods : () => ["api_key"],
+		status  : async provider => ({ state: "required", provider }),
+		login   : async (provider, type) => ({ state: "configured", provider, source: "base", type }),
+		logout  : async () => undefined,
 	};
 }
 

@@ -1,19 +1,19 @@
-import { Database } from "bun:sqlite";
-import { afterEach, describe, expect, test } from "bun:test";
+import { Database }                                                                 from "bun:sqlite";
+import { afterEach, describe, expect, test }                                        from "bun:test";
 import { mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
-import { DevelopmentStore } from "../src/adapters/outbound/development/development-store.js";
+import { tmpdir }                                                                   from "node:os";
+import { join, resolve }                                                            from "node:path";
+import { DevelopmentStore }                                                         from "../src/adapters/outbound/development/development-store.js";
 
 /** @linear WOO-696 */
 const roots: string[] = [];
 afterEach(() => { for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }); });
 function fixture() {
  const root = mkdtempSync(join(tmpdir(), "www-development-test-")); roots.push(root);
- const options = { projectRoot: join(root, "project"), dataRoot: join(root, "data") };
- const store = new DevelopmentStore(options);
- const unit = store.registerUnit({ name: "Message" });
- const issue = { id: "WOO-683", uuid: "83a6ac75-5383-4323-850d-93f0677ae8a1", url: "https://linear.app/woo/issue/WOO-683/message" };
+ const options = { projectRoot: join(root, "project"), dataRoot: join(root, "data") }                                                 ;
+ const store   = new DevelopmentStore(options)                                                                                        ;
+ const unit    = store.registerUnit({ name: "Message" })                                                                              ;
+ const issue   = { id: "WOO-683", uuid: "83a6ac75-5383-4323-850d-93f0677ae8a1", url: "https://linear.app/woo/issue/WOO-683/message" } ;
  store.linkIssue({ unitId: unit.id, issue });
  store.bindRun({ runId: "run-a", issueIds: [issue.id], unitIds: [unit.id] });
  return { root, options, store, unit, issue };

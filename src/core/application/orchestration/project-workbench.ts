@@ -1,175 +1,110 @@
 /** @linear WOO-688 WOO-690 WOO-691 */
-import { createHash, randomUUID } from "node:crypto";
-import type { ExecutorPort } from "../../ports/execution/executor-port.js";
-import { createCanonicalDocumentDraft, type CanonicalPromotionService } from "../work/canonical-promotion.js";
-import type { ReviewService } from "../review/review-service.js";
-import type { ActivityNarrator } from "./activity-narrator.js";
-import { PlanActivityNarration } from "./plan-activity-narration.js";
-import type { SessionModelUsageSource } from "../session/session-model-usage.js";
-import { TodoWriteConflictError } from "../work/todo-ledger.js";
-import type { WooEntry } from "./woo-entry.js";
-import type { SkillRegistrySnapshot } from "../../skills/skill-registry.js";
-import { ContextComposer } from "./context-composer.js";
-import { requestProtocolContext } from "./request-protocol";
-import { RequestController, REQUEST_RUNTIME_TOOLS } from "./request-controller";
-import type { RequestActionApproval, RequestActionCapability } from "../../ports/execution/request-action-port";
-import type { RuntimeToolCall } from "../../ports/execution/runtime-tool-port";
-import { RequestRuntimePolicy, type RequestRuntimeMode } from "./request-runtime-mode.js";
-import { projectRequestRuntime } from "../../runtime/request-runtime";
-import { projectRequestTodo } from "../../domain/work/request-projections";
-import { REQUEST_REPORT_PREFIX, type RequestRuntimeRecord } from "../../domain/execution/request-runtime";
-import type { RequestProjectionPort } from "../../ports/execution/request-projection-port";
-import { ApprovalResponseDispatcher } from "./approval-dispatch.js";
-import { SessionUsageTracker } from "../session/session-usage-tracker.js";
+import { AsyncLocalStorage }                                          from "node:async_hooks";
+import { createHash, randomUUID }                                     from "node:crypto";
+import type { ExecutorPort }                                          from "@/core/ports/execution/executor-port.js";
+import type { CanonicalPromotionService }                             from "@/core/application/work/canonical-promotion.js";
+import type { ReviewService }                                         from "@/core/application/review/review-service.js";
+import type { ActivityNarrator }                                      from "@/core/application/orchestration/activity-narrator.js";
+import type { SessionModelUsageSource }                               from "@/core/application/session/session-model-usage.js";
+import { TodoWriteConflictError }                                     from "@/core/application/work/todo-ledger.js";
+import type { WooEntry }                                              from "@/core/application/orchestration/woo-entry.js";
+import type { SkillRegistrySnapshot }                                 from "@/core/skills/skill-registry.js";
+import { ContextComposer }                                            from "@/core/application/orchestration/context-composer.js";
+import { requestProtocolContext }                                     from "@/core/application/orchestration/request-protocol";
+import { RequestController, REQUEST_RUNTIME_TOOLS }                   from "@/core/application/orchestration/request-controller";
+import type { RequestActionApproval, RequestActionCapability }        from "@/core/ports/execution/request-action-port";
+import type { RuntimeToolCall }                                       from "@/core/ports/execution/runtime-tool-port";
+import { RequestRuntimePolicy }                                       from "@/core/application/orchestration/request-runtime-mode.js";
+import type { RequestRuntimeMode }                                    from "@/core/application/orchestration/request-runtime-mode.js";
+import { REQUEST_REPORT_PREFIX }                                      from "@/core/domain/execution/request-runtime";
+import type { RequestRuntimeRecord }                                  from "@/core/domain/execution/request-runtime";
+import type { RequestProjectionPort }                                 from "@/core/ports/execution/request-projection-port";
+import { ApprovalResponseDispatcher }                                 from "@/core/application/orchestration/approval-dispatch.js";
+import { SessionUsageTracker }                                        from "@/core/application/session/session-usage-tracker.js";
 import type {
 	BackgroundWorkState,
 	NativeApprovalPolicy,
 	NativeApprovalRequest,
-	NativeCollaborationMode,
-	NativeHarnessEvent,
 	NativeRefs,
 	NativeSandboxMode,
-	NativeSandboxPolicy,
 	NativeThreadStart,
 	NativeUncertainOperation,
-} from "../../domain/execution/native-session.js";
-import { projectBackgroundWorkState } from "../../domain/execution/native-session.js";
-import { fallbackNativeModelCatalog, nativeModelNames, nativeModelEfforts, type NativeModelCatalog } from "../../domain/execution/model-settings.js";
+} from "@/core/domain/execution/native-session.js";
+import { projectBackgroundWorkState }                                 from "@/core/domain/execution/native-session.js";
 import {
-	isTerminalActivityPhase,
-	type ProjectActivity,
-	type ProjectActivityAppendResult,
-	type ProjectActivityInput,
-	type ProjectActivityKind,
-	type ProjectActivityPhase,
-} from "../../domain/execution/project-activity.js";
-import { sanitizePartialAssistantResponse } from "../../domain/review/redaction.js";
-import { sanitizeTerminalTextExcerpt, sanitizeTerminalTextUnbounded } from "../../domain/execution/terminal.js";
-import type { TodoDocument, TodoNativePlanBinding } from "../../domain/work/todos.js";
-import type { CanonicalDocumentDraft } from "../../domain/work/canonical-document.js";
-import type { ReviewPacket, ReviewProvider } from "../../domain/review/review.js";
-import {
-	projectWorkFlow,
-	projectWorkFlowFromExecutionRun,
-	type DplanHash,
-	type WorkFlowProjectionInput,
-	type WorkFlowProjection,
-	type WorkStepNarration,
-} from "../../domain/work/index.js";
-import {
-	projectExecutionActivity,
-	type ExecutionRunState,
-} from "../../runtime/execution-run.js";
-import {
-	MAX_TNOTE_SOURCE_ACTIVITIES,
-	projectTNoteCompletionIndex,
-	projectActivityToTNoteSource,
-	type TNoteActivitySource,
-	type TNoteDraft,
-	type TNoteSourceRange,
-} from "../../domain/work/t-notes.js";
-import { validateCanonicalTNote } from "../work/t-note-service.js";
+	fallbackNativeModelCatalog,
+	nativeModelNames,
+	nativeModelEfforts,
+} from "@/core/domain/execution/model-settings.js";
+import type { NativeModelCatalog }                                    from "@/core/domain/execution/model-settings.js";
+import { isTerminalActivityPhase }                                    from "@/core/domain/execution/project-activity.js";
+import type {
+	ProjectActivity,
+	ProjectActivityAppendResult,
+	ProjectActivityInput,
+	ProjectActivityKind,
+	ProjectActivityPhase,
+} from "@/core/domain/execution/project-activity.js";
+import { sanitizeTerminalTextExcerpt, sanitizeTerminalTextUnbounded } from "@/core/domain/execution/terminal.js";
+import type { TodoDocument, TodoNativePlanBinding }                   from "@/core/domain/work/todos.js";
+import type { DplanHash, WorkFlowProjection }                         from "@/core/domain/work/index.js";
+import { projectExecutionActivity }                                   from "@/core/runtime/execution-run.js";
+import type { ExecutionRunState }                                     from "@/core/runtime/execution-run.js";
+import type { TNoteActivitySource, TNoteDraft, TNoteSourceRange }     from "@/core/domain/work/t-notes.js";
 import type {
 	WorkbenchChatMessage,
-	WorkbenchChatQueueItem,
 	WorkbenchActionResult,
 	WorkbenchCollaborationMode,
 	WorkbenchCommand,
 	WorkbenchCommandReceipt,
 	WorkbenchListener,
-	WorkbenchLiveActivity,
 	WorkbenchMcpServer,
 	WorkbenchModelSelection,
 	WorkbenchPermissionMode,
-	WorkbenchResumeCoverage,
 	WorkbenchSessionGoal,
 	WorkbenchSnapshot,
-	WorkbenchTNote,
-	WorkbenchTodoSyncState,
-} from "../../domain/work/workbench.js";
-import { workbenchApprovalDecisions } from "../../domain/work/workbench.js";
-import { resolveActivitySelection, resolveTraceSelection, type ActivitySelectionResult } from "../../domain/work/trace-selection.js";
-import { EMPTY_LINEAR_PROJECT_DASHBOARD, type LinearProjectDashboard } from "../../domain/work/linear-dashboard.js";
-import { projectPerformance } from "../../domain/work/performance.js";
-import { ExecutionJournal } from "./execution-journal.js";
-import { projectNativeDelegation } from "../../domain/work/delegation.js";
+} from "@/core/domain/work/workbench.js";
+import { workbenchApprovalDecisions }                                 from "@/core/domain/work/workbench.js";
+import { resolveActivitySelection, resolveTraceSelection }            from "@/core/domain/work/trace-selection.js";
+import type { ActivitySelectionResult }                               from "@/core/domain/work/trace-selection.js";
+import { EMPTY_LINEAR_PROJECT_DASHBOARD }                             from "@/core/domain/work/linear-dashboard.js";
+import type { LinearProjectDashboard }                                from "@/core/domain/work/linear-dashboard.js";
+import { projectPerformance }                                         from "@/core/domain/work/performance.js";
+import { projectNativeEvidence }                                      from "@/core/application/orchestration/native-event-projection.js";
+import type { CacheLayerObservation }                                 from "@/core/domain/observability/cache-telemetry.js";
+import { LayerPerformanceRecorder }                                   from "@/core/domain/observability/layer-performance.js";
+import type {
+	PerformanceBoundary,
+	PerformanceLayerId,
+	PerformanceTrace,
+	PerformanceWindow,
+} from "@/core/domain/observability/layer-performance.js";
 import {
-	nativeTurnLifecycle,
-	projectNativeEvent,
-	projectNativeEvidence,
-	type NativeEventDeltaProjection,
-} from "./native-event-projection.js";
-import {
-	boundCompletedTurnNoteActivities,
-	questionForTurn,
-	resolveCompletedTurnNoteScope,
-} from "../work/completed-turn-note-scope.js";
-import type { CacheLayerId, CacheLayerObservation } from "../../domain/observability/cache-telemetry.js";
+	SESSION_GOAL_CHARACTER_LIMIT,
+	projectSessionGoal,
+	record,
+	stableJson,
+} from "@/core/application/orchestration/workbench-projections.js";
+import { NativeStreamProjection }                                     from "@/core/application/orchestration/native-stream-projection.js";
+import { WorkbenchDurableProjection }                                 from "@/core/application/orchestration/workbench-durable-projection.js";
+import { NativeTurnCoordinator }                                      from "@/core/application/orchestration/native-turn-coordinator.js";
+import type { BlockedChatDeliveryState }                              from "@/core/application/orchestration/native-turn-coordinator.js";
+import { WorkbenchCommandHandlers }                                   from "@/core/application/orchestration/workbench-command-handlers.js";
+import type { WorkbenchMcpManagement }                                from "@/core/application/orchestration/workbench-command-handlers.js";
+import { NativeEventLifecycle }                                       from "@/core/application/orchestration/native-event-lifecycle.js";
+import { WorkbenchCacheProjection }                                   from "@/core/application/orchestration/workbench-cache-projection.js";
+import { WorkbenchWorkflowCoordinator }                               from "@/core/application/orchestration/workbench-workflow-coordinator.js";
+import { WorkbenchJournalCoordinator }                                from "@/core/application/orchestration/workbench-journal-coordinator.js";
+import { WorkbenchNoteNarration }                                     from "@/core/application/orchestration/workbench-note-narration.js";
+import { WorkbenchThreadLifecycle }                                   from "@/core/application/orchestration/workbench-thread-lifecycle.js";
 
-const LIVE_ACTIVITY_TAIL_CHARACTER_LIMIT = 32 * 1024 - 128;
-const ASSISTANT_DRAFT_TAIL_CHARACTER_LIMIT = 28 * 1024 - 128;
-const REASONING_DRAFT_TAIL_CHARACTER_LIMIT = 16 * 1024 - 128;
 const dplanHash: DplanHash = {
 	sha256Hex: (input) => createHash("sha256").update(input).digest("hex"),
 };
-const executionHash = dplanHash;
 const WORKBENCH_ACTION_RESULT_CHARACTER_LIMIT = 12 * 1024;
-
-const SESSION_GOAL_MARKER = /^SESSION_GOAL:[ \t]*(\S(?:[^\r\n]*\S)?)$/u;
-const SESSION_GOAL_CHARACTER_LIMIT = 160;
-
-interface McpManagementPort {
-	listMcpServers(): Promise<readonly WorkbenchMcpServer[]>;
-	setMcpServerEnabled(name: string, enabled: boolean): Promise<void>;
-	reloadMcpServers(): Promise<void>;
-}
 
 interface ThreadCompactionPort {
 	compactThread(input: { threadId: string }): Promise<void>;
-}
-
-interface BoundedTextProjection {
-	readonly tail: string;
-	readonly omittedCharacters: number;
-}
-
-interface StreamingTextProjection {
-	readonly identity: string;
-	readonly state: BoundedTextProjection;
-	readonly text: string;
-}
-
-interface TerminalProjectionScope {
-	readonly itemScoped: boolean;
-	readonly completedIdentity: string | null;
-	readonly terminalTurn: boolean;
-	readonly refs: NativeRefs;
-}
-
-interface DurableActivityProjection {
-	readonly sourceLength: number;
-	readonly rootThreadId: string | null;
-	readonly activityCount: number;
-	readonly activities: readonly ProjectActivity[];
-	readonly chat: readonly WorkbenchChatMessage[];
-}
-
-interface DurableNoteProjection {
-	readonly sourceLength: number;
-	readonly activitySourceLength: number;
-	readonly notes: readonly WorkbenchTNote[];
-}
-
-interface CacheAccessTelemetry {
-	hits: number;
-	misses: number;
-	evictions: number;
-	totalMissLatencyMs: number;
-	lastAccessedAt: string | null;
-}
-
-function emptyCacheAccessTelemetry(): CacheAccessTelemetry {
-	return { hits: 0, misses: 0, evictions: 0, totalMissLatencyMs: 0, lastAccessedAt: null };
 }
 
 export interface WorkbenchActivityJournal {
@@ -191,15 +126,15 @@ export interface WorkbenchTodoSource {
 	/** Optional Native-plan mirror. It must never block the interactive Chat path. */
 	syncNativePlan?(flow: WorkFlowProjection, binding: TodoNativePlanBinding): Promise<TodoDocument>;
 	syncRequestRuntime?(request: RequestRuntimeRecord): Promise<TodoDocument>;
-	create(title: string, items: readonly string[], storyId?: string): Promise<TodoDocument>;
-	add(content: string, placement: "now" | "after"): Promise<TodoDocument>;
-	addDetails(itemId: string, details: readonly string[]): Promise<TodoDocument>;
-	start(itemId: string): Promise<TodoDocument>;
-	complete(itemId: string): Promise<TodoDocument>;
-	block(itemId: string): Promise<TodoDocument>;
-	reopen(itemId: string): Promise<TodoDocument>;
-	recordEvidence(evidenceId: string): Promise<TodoDocument | null>;
-	importLegacy(): Promise<string | null>;
+	create        (title: string, items: readonly string[], storyId?: string): Promise<TodoDocument>;
+	add           (content: string, placement: "now" | "after"              ): Promise<TodoDocument>;
+	addDetails    (itemId: string, details: readonly string[]               ): Promise<TodoDocument>;
+	start         (itemId: string                                           ): Promise<TodoDocument>;
+	complete      (itemId: string                                           ): Promise<TodoDocument>;
+	block         (itemId: string                                           ): Promise<TodoDocument>;
+	reopen        (itemId: string                                           ): Promise<TodoDocument>;
+	recordEvidence(evidenceId: string                                       ): Promise<TodoDocument | null>;
+	importLegacy  ()                                                         : Promise<string | null>;
 }
 
 export interface WorkbenchTNoteSource {
@@ -208,11 +143,11 @@ export interface WorkbenchTNoteSource {
 	readAll(projectId: string): Promise<readonly TNoteDraft[]>;
 	/** The adapter/generator owns its isolated cwd; Workbench never supplies the project root. */
 	create(input: {
-		projectId: string;
-		range: TNoteSourceRange;
-		activities: readonly TNoteActivitySource[];
-		instruction: string;
-		expectedQuestion: string;
+		projectId        : string                         ;
+		range            : TNoteSourceRange               ;
+		activities       : readonly TNoteActivitySource[] ;
+		instruction      : string                         ;
+		expectedQuestion : string                         ;
 	}, signal?: AbortSignal): Promise<TNoteDraft>;
 }
 
@@ -232,37 +167,37 @@ export interface ProjectWorkbenchOptions {
 	developmentObserver?: { capture(activity: ProjectActivity): void | Promise<void> };
 	projectId: string;
 	/** Local, per-process journal namespace. Defaults to the project identity. */
-	activityJournalProjectId?: string;
-	provider?: string;
-	cwd: string;
-	model?: NativeThreadStart["model"];
-	effort?: NativeThreadStart["effort"];
-	approvalPolicy?: NativeThreadStart["approvalPolicy"];
-	sandbox?: NativeThreadStart["sandbox"];
-	resumeThreadId?: string;
+	activityJournalProjectId? : string                              ;
+	provider?                 : string                              ;
+	cwd                       : string                              ;
+	model?                    : NativeThreadStart["model"]          ;
+	effort?                   : NativeThreadStart["effort"]         ;
+	approvalPolicy?           : NativeThreadStart["approvalPolicy"] ;
+	sandbox?                  : NativeThreadStart["sandbox"]        ;
+	resumeThreadId?           : string                              ;
 	/** Acquires the caller-owned writable lease before resuming a thread. */
-	acquireThreadLease?: (threadId: string) => Promise<void>;
-	todos?: WorkbenchTodoSource;
-	tnotes?: WorkbenchTNoteSource;
-	promotions?: CanonicalPromotionService;
-	reviews?: ReviewService;
-	narrator?: ActivityNarrator;
-	wooEntry?: WooEntry;
+	acquireThreadLease? : (threadId: string) => Promise<void> ;
+	todos?              : WorkbenchTodoSource                 ;
+	tnotes?             : WorkbenchTNoteSource                ;
+	promotions?         : CanonicalPromotionService           ;
+	reviews?            : ReviewService                       ;
+	narrator?           : ActivityNarrator                    ;
+	wooEntry?           : WooEntry                            ;
 	/** Revision-bound local Skill inventory supplied to every Native turn. */
-	skillRegistry?: SkillRegistrySnapshot;
-	auxiliaryUsage?: SessionModelUsageSource;
-	persistModelSelection?: (selection: WorkbenchModelSelection, catalog: NativeModelCatalog) => Promise<void>;
+	skillRegistry?         : SkillRegistrySnapshot                                                              ;
+	auxiliaryUsage?        : SessionModelUsageSource                                                            ;
+	persistModelSelection? : (selection: WorkbenchModelSelection, catalog: NativeModelCatalog) => Promise<void> ;
 	/** Read-only connected Linear project source, called only through the owned Native thread. */
-	linearDashboard?: { refresh(threadId: string): Promise<LinearProjectDashboard> };
-	contextCharacterLimit?: number;
-	delegationDetailActivities?: number;
-	evaluationRequired?: boolean;
-	configurationSource?: "project-yaml" | "defaults";
-	tnoteVisibleLimit?: number;
-	tnoteSummaryMaxChars?: number;
-	tnoteSummaryMaxLines?: number;
-	hud?: { readonly showUsage: boolean; readonly showContext: boolean };
-	slash?: { readonly mcp: boolean; readonly clear: boolean; readonly compact: boolean };
+	linearDashboard?            : { refresh(threadId: string): Promise<LinearProjectDashboard> }                ;
+	contextCharacterLimit?      : number                                                                        ;
+	delegationDetailActivities? : number                                                                        ;
+	evaluationRequired?         : boolean                                                                       ;
+	configurationSource?        : "project-yaml" | "defaults"                                                   ;
+	tnoteVisibleLimit?          : number                                                                        ;
+	tnoteSummaryMaxChars?       : number                                                                        ;
+	tnoteSummaryMaxLines?       : number                                                                        ;
+	hud?                        : { readonly showUsage: boolean; readonly showContext: boolean }                ;
+	slash?                      : { readonly mcp: boolean; readonly clear: boolean; readonly compact: boolean } ;
 }
 
 /** @Unit Code-002 */
@@ -272,130 +207,71 @@ export interface ProjectWorkbenchOptions {
  */
 /** @codeId 0002 */
 export class ProjectWorkbench {
-	private requestCache: { length: number; threadId: string | null; records: readonly RequestRuntimeRecord[] } = { length: -1, threadId: null, records: [] };
-	private readonly contextProjectionCacheTelemetry = emptyCacheAccessTelemetry();
-	private requestProjectionQueue: Promise<void> = Promise.resolve();
-	private requestProjectionKeys = new Map<string, string>();
-	private readonly contextComposer: ContextComposer;
-	private readonly listeners = new Set<WorkbenchListener>();
-	private readonly activities: ProjectActivity[] = [];
-	private readonly visibleActivities: ProjectActivity[] = [];
-	private readonly preThreadChat = new Map<string, WorkbenchChatMessage>();
-	private readonly notes: WorkbenchTNote[] = [];
-	private readonly terminalTurns = new Set<string>();
-	private readonly terminalItems = new Set<string>();
-	private readonly noteDrafts = new Map<string, TNoteDraft>();
-	private readonly completionOrdinals = new Map<string, number>();
-	private readonly collaborationModeByTurnId = new Map<string, WorkbenchCollaborationMode>();
-	private readonly threadOwnersByTurnId = new Map<string, Set<string>>();
-	private readonly turnOwnersByThreadItemId = new Map<string, Set<string>>();
-	private readonly promotionDrafts = new Map<string, CanonicalDocumentDraft>();
-	private readonly reviewPreviews = new Map<string, { provider: ReviewProvider; packet: ReviewPacket }>();
-	private readonly stepNarrations = new Map<string, WorkStepNarration>();
-	private planActivityNarration?: PlanActivityNarration;
-	private narrationObservedSequence = 0;
-	private readonly narrationAbort = new AbortController();
-	private narrationRevision = 0;
-	private workFlowProjection: {
-		sourceLength: number;
-		narrationRevision: number;
-		authorityKey: string | null;
-		value: WorkFlowProjection;
-	} = {
-		sourceLength: -1,
-		narrationRevision: -1,
-		authorityKey: null,
-		value: projectWorkFlow([]),
-	};
-	private selectedActivityId: string | null = null;
-	private selectedAgentRef: string | null = null;
-	private delegationCache: { length: number; threadId: string | null; value: ReturnType<typeof projectNativeDelegation> } | null = null;
-	private recordingReadOnly = false;
-	private pendingApproval: NativeApprovalRequest | null = null;
-	private selectedModel: NativeThreadStart["model"];
-	private modelCatalog = fallbackNativeModelCatalog();
-	private modelRefresh: Promise<NativeModelCatalog> | null = null;
-	private readonly modelCatalogCacheTelemetry = emptyCacheAccessTelemetry();
-	private selectedEffort: NativeThreadStart["effort"];
-	private effectiveModel: string;
-	private effectiveEffort: string | null;
-	private permissionMode: WorkbenchPermissionMode;
-	private collaborationMode: WorkbenchCollaborationMode = "manual";
-	private approvalPolicy: NativeApprovalPolicy;
-	private sandbox: NativeSandboxMode;
-	private sessionGoal: WorkbenchSessionGoal | null = null;
-	private contextTurnId: string | null = null;
-	private readonly usageTracker: SessionUsageTracker;
-	private readonly firstOutputObservedTurns = new Set<string>();
-	private readonly processAttachedAt = new Date().toISOString();
-	private threadId: string | null = null;
-	private activeTurnId: string | null = null;
-	private readonly executionRuns = new ExecutionJournal(executionHash, stableJson);
+	private readonly layerPerformance                                       = new LayerPerformanceRecorder()          ;
+	private readonly performanceTraceContext                                = new AsyncLocalStorage<string>()         ;
+	private performanceTraceSequence                                        = 0                                       ;
+	private readonly cacheProjection                                        = new WorkbenchCacheProjection()          ;
+	private readonly contextComposer   : ContextComposer                                                              ;
+	private readonly listeners                                              = new Set<WorkbenchListener>()            ;
+	private readonly activities        : ProjectActivity[]                  = []                                      ;
+	private readonly visibleActivities : ProjectActivity[]                  = []                                      ;
+	private readonly preThreadChat                                          = new Map<string, WorkbenchChatMessage>() ;
+	private selectedActivityId         : string | null                      = null                                    ;
+	private selectedAgentRef           : string | null                      = null                                    ;
+	private recordingReadOnly                                               = false                                   ;
+	private pendingApproval            : NativeApprovalRequest | null       = null                                    ;
+	private selectedModel              : NativeThreadStart["model"]                                                   ;
+	private modelCatalog                                                    = fallbackNativeModelCatalog()            ;
+	private modelRefresh               : Promise<NativeModelCatalog> | null = null                                    ;
+	private selectedEffort             : NativeThreadStart["effort"]                                                  ;
+	private effectiveModel             : string                                                                       ;
+	private effectiveEffort            : string | null                                                                ;
+	private permissionMode             : WorkbenchPermissionMode                                                      ;
+	private collaborationMode          : WorkbenchCollaborationMode         = "manual"                                ;
+	private approvalPolicy             : NativeApprovalPolicy                                                         ;
+	private sandbox                    : NativeSandboxMode                                                            ;
+	private sessionGoal                : WorkbenchSessionGoal | null        = null                                    ;
+	private contextTurnId              : string | null                      = null                                    ;
+	private readonly usageTracker      : SessionUsageTracker                                                          ;
+	private readonly processAttachedAt                                      = new Date().toISOString()                ;
+	private threadId                   : string | null                      = null                                    ;
+	private activeTurnId               : string | null                      = null                                    ;
 	/** Last explicitly selected root turn; remains plan authority after terminal completion. */
 	private selectedPlanTurnId: string | null = null;
 	/** A submitted root question can update the public goal before Native confirms its turn id. */
-	private pendingPlanGoalActivityId: string | null = null;
-	private todo: TodoDocument | null;
-	private todoSync: WorkbenchTodoSyncState = { state: "idle", lastConfirmedAt: null, message: null };
-	private error: string | null = null;
-	private developmentRecordingError: string | null = null;
-	private draft = "";
-	private reasoningDraft = "";
-	private reasoningSummaryDraft = "";
-	private draftIdentity: string | null = null;
-	private reasoningIdentity: string | null = null;
-	private reasoningSummaryIdentity: string | null = null;
-	private draftNativeRefs: NativeRefs | null = null;
-	private reasoningNativeRefs: NativeRefs | null = null;
-	private reasoningSummaryNativeRefs: NativeRefs | null = null;
-	private draftProjection = emptyBoundedTextProjection();
-	private draftEnvelopeClipped = false;
-	private reasoningProjection = emptyBoundedTextProjection();
-	private reasoningSummaryProjection = emptyBoundedTextProjection();
-	private liveActivity: WorkbenchLiveActivity | null = null;
-	private liveActivityProjection = emptyBoundedTextProjection();
-	private actionResult: WorkbenchActionResult | null = null;
-	private mcpServers: readonly WorkbenchMcpServer[] = Object.freeze([]);
-	private linearDashboard: LinearProjectDashboard = EMPTY_LINEAR_PROJECT_DASHBOARD;
-	private readonly dashboardDataCacheTelemetry = emptyCacheAccessTelemetry();
-	private readonly chatQueue: WorkbenchChatQueueItem[] = [];
-	private durableActivityProjection: DurableActivityProjection = {
-		sourceLength: -1,
-		rootThreadId: null,
-		activityCount: 0,
-		activities: Object.freeze([]),
-		chat: Object.freeze([]),
-	};
-	private visibleThreadId: string | null = null;
-	private visibleAfterSequence = 0;
-	private readonly automaticTNoteTurns = new Set<string>();
-	/** A failed detached note is retried after restart or manually, never by duplicate terminal events in this session. */
-	private readonly failedAutomaticTNoteTurns = new Set<string>();
-	private readonly tnoteInFlight = new Map<string, Promise<TNoteDraft>>();
-	private durableNoteProjection: DurableNoteProjection = {
-		sourceLength: -1,
-		activitySourceLength: -1,
-		notes: Object.freeze([]),
-	};
-	private chatDeliveryBlocked = false;
-	private blockedChat: { id: string; content: string } | null = null;
-	private closed = false;
-	private revision = 0;
-	private current: WorkbenchSnapshot;
-	private eventQueue: Promise<void> = Promise.resolve();
-	private commandQueue: Promise<void> = Promise.resolve();
-	private todoSyncQueue: Promise<void> = Promise.resolve();
-	private tnoteQueue: Promise<void> = Promise.resolve();
-	private readonly ready: Promise<void>;
-	private readonly approvalDispatcher: ApprovalResponseDispatcher;
-	private readonly requestController: RequestController;
-	private readonly unregisterRuntimeTools: () => void;
-	private runtimePendingApproval = false;
-	private runtimeApproval: { id: string; resolve(accepted: boolean): void } | null = null;
-	private readonly requestRuntimePolicy: RequestRuntimePolicy;
-	private readonly unsubscribeNative: () => void;
-	private readonly unsubscribeTodo: () => void;
-	private readonly unsubscribeAuxiliaryUsage: () => void;
+	private pendingPlanGoalActivityId          : string | null                                           = null                             ;
+	private todo                               : TodoDocument | null                                                                        ;
+	private error                              : string | null                                           = null                             ;
+	private developmentRecordingError          : string | null                                           = null                             ;
+	private readonly nativeStream                                                                        = new NativeStreamProjection()     ;
+	private actionResult                       : WorkbenchActionResult | null                            = null                             ;
+	private mcpServers                         : readonly WorkbenchMcpServer[]                           = Object.freeze([])                ;
+	private linearDashboard                    : LinearProjectDashboard                                  = EMPTY_LINEAR_PROJECT_DASHBOARD   ;
+	private readonly nativeTurn                                                                          = new NativeTurnCoordinator()      ;
+	private readonly durableProjection                                                                   = new WorkbenchDurableProjection() ;
+	private visibleThreadId                    : string | null                                           = null                             ;
+	private visibleAfterSequence                                                                         = 0                                ;
+	private closed                                                                                       = false                            ;
+	private revision                                                                                     = 0                                ;
+	private current                            : WorkbenchSnapshot                                                                          ;
+	private eventQueue                         : Promise<void>                                           = Promise.resolve()                ;
+	private commandQueue                       : Promise<void>                                           = Promise.resolve()                ;
+	private readonly ready                     : Promise<void>                                                                              ;
+	private readonly approvalDispatcher        : ApprovalResponseDispatcher                                                                 ;
+	private readonly requestController         : RequestController                                                                          ;
+	private readonly unregisterRuntimeTools    : () => void                                                                                 ;
+	private runtimePendingApproval                                                                       = false                            ;
+	private runtimeApproval                    : { id: string; resolve(accepted: boolean): void } | null = null                             ;
+	private readonly requestRuntimePolicy      : RequestRuntimePolicy                                                                       ;
+	private readonly workflow                  : WorkbenchWorkflowCoordinator                                                               ;
+	private readonly activityJournal           : WorkbenchJournalCoordinator                                                                ;
+	private readonly noteNarration             : WorkbenchNoteNarration                                                                     ;
+	private readonly threadLifecycle           : WorkbenchThreadLifecycle                                                                   ;
+	private readonly commandHandlers           : WorkbenchCommandHandlers                                                                   ;
+	private readonly nativeEvents              : NativeEventLifecycle                                                                       ;
+	private readonly unsubscribeNative         : () => void                                                                                 ;
+	private readonly unsubscribeTodo           : () => void                                                                                 ;
+	private readonly unsubscribeAuxiliaryUsage : () => void                                                                                 ;
 
 	public constructor(
 		private readonly native: ExecutorPort,
@@ -404,7 +280,7 @@ export class ProjectWorkbench {
 	) {
 		if (options.requestCapabilities !== undefined && !native.registerRuntimeTools) throw new Error("선택한 실행기는 Runtime tool request/response를 지원하지 않습니다.");
 		this.requestRuntimePolicy = new RequestRuntimePolicy({
-			mode: options.requestRuntimeMode,
+			...(options.requestRuntimeMode === undefined ? {} : { mode: options.requestRuntimeMode }),
 			capabilitiesConfigured: options.requestCapabilities !== undefined,
 			resuming: options.resumeThreadId !== undefined,
 		});
@@ -412,11 +288,11 @@ export class ProjectWorkbench {
 		this.requestController = new RequestController({
 			activities: () => this.activities,
 			digest: digestSource,
-			capabilities: options.requestCapabilities,
-			requestApproval: (call, approval, signal) => this.requestActionApproval(call, approval, signal),
-			canAct: call => !this.closed && !this.recordingReadOnly && !this.runtimePendingApproval && !this.pendingApproval && !this.chatDeliveryBlocked && this.threadId === call.threadId && this.activeTurnId === call.turnId,
-			canRecover: call => !this.closed && !this.recordingReadOnly && !this.runtimePendingApproval && !this.pendingApproval && !this.activeTurnId && !this.chatDeliveryBlocked && this.threadId === call.threadId,
-			append: (call, kind, phase, payload) => this.appendActivity(kind, phase, { threadId: call.threadId, turnId: call.turnId, itemId: call.callId }, payload, true),
+			...(options.requestCapabilities === undefined ? {} : { capabilities: options.requestCapabilities }),
+			requestApproval : (call, approval, signal) => this.requestActionApproval(call, approval, signal),
+			canAct          : call => this.canActOn(call),
+			canRecover      : call => this.canRecoverFrom(call),
+			append          : (call, kind, phase, payload) => this.appendActivity(kind, phase, { threadId: call.threadId, turnId: call.turnId, itemId: call.callId }, payload, true),
 		});
 		this.unregisterRuntimeTools = (this.requestRuntimePolicy.brokered ? native.registerRuntimeTools?.(REQUEST_RUNTIME_TOOLS, async call => {
 			await this.ready;
@@ -431,35 +307,165 @@ export class ProjectWorkbench {
 			record: async (entry) => { await this.appendActivity(entry.kind, entry.phase, entry.nativeRefs, entry.payload, true, entry.sourceDigest); },
 			respondToApproval: (resolution) => this.native.respondToApproval(resolution),
 		});
-		this.selectedModel = options.model;
-		this.selectedEffort = options.effort;
-		this.effectiveModel = options.model ?? "codex";
-		this.effectiveEffort = options.effort ?? null;
+		this.selectedModel   = options.model            ;
+		this.selectedEffort  = options.effort           ;
+		this.effectiveModel  = options.model ?? "codex" ;
+		this.effectiveEffort = options.effort ?? null   ;
 		this.linearDashboard = options.linearDashboard
 			? { ...EMPTY_LINEAR_PROJECT_DASHBOARD, state: "loading", error: null }
 			: EMPTY_LINEAR_PROJECT_DASHBOARD;
 		this.usageTracker = new SessionUsageTracker(Boolean(options.resumeThreadId));
-		this.permissionMode = options.approvalPolicy === "never" && options.sandbox === "danger-full-access" ? "all" : "manual";
-		this.approvalPolicy = options.approvalPolicy ?? "on-request";
-		this.sandbox = options.sandbox ?? "workspace-write";
-		this.todo = immutable(options.todos?.snapshot ?? null);
-		if (this.todo) this.todoSync = immutable({ state: "confirmed", lastConfirmedAt: this.todo.updatedAt, message: null });
+		this.nativeEvents = new NativeEventLifecycle({
+			closed             : () => this.closed,
+			recordingReadOnly  : () => this.recordingReadOnly,
+			hasBoundThread     : () => this.journal.hasBoundThread?.(),
+			pendingApproval    : () => this.pendingApproval,
+			setPendingApproval : approval => { this.pendingApproval = approval; },
+			confirmApproval    : approval => this.approvalDispatcher.confirmNativeResolved(approval),
+			threadId           : () => this.threadId,
+			setThreadId        : threadId => { this.threadId = threadId; },
+			activeTurnId       : () => this.activeTurnId,
+			contextTurnId      : () => this.contextTurnId,
+			setActiveTurnId    : turnId => { this.activeTurnId = turnId; },
+			selectPlanTurn     : turnId => { this.selectedPlanTurnId = turnId; },
+			setContextTurn     : turnId => this.setContextTurn(turnId),
+			collaborationMode  : () => this.collaborationMode,
+			effectiveModel     : () => this.effectiveModel,
+			effectiveEffort    : () => this.effectiveEffort,
+			usageTracker       : this.usageTracker,
+			nativeTurn         : this.nativeTurn,
+			nativeStream       : this.nativeStream,
+			activities         : () => this.activities,
+			visibleActivities  : () => this.visibleActivities,
+			appendActivity     : (kind, phase, refs, payload, publish, sourceDigest) => this.appendActivity(kind, phase, refs, payload, publish, sourceDigest),
+			setSessionGoal     : goal => { this.sessionGoal = goal; },
+			clearError         : () => { this.error = null; },
+			publish            : () => this.publish(),
+			scheduleTNote      : turnId => this.noteNarration.scheduleAutomatic(turnId),
+			drainChatQueue     : () => this.drainChatQueue(),
+		});
+		this.permissionMode = options.approvalPolicy === "never" && options.sandbox === "danger-full-access" ? "all" : "manual" ;
+		this.approvalPolicy = options.approvalPolicy ?? "on-request"                                                            ;
+		this.sandbox        = options.sandbox ?? "workspace-write"                                                              ;
+		this.todo           = immutable(options.todos?.snapshot ?? null)                                                        ;
+		this.activityJournal = new WorkbenchJournalCoordinator({
+			projectId: options.projectId,
+			...(options.activityJournalProjectId === undefined ? {} : { activityJournalProjectId: options.activityJournalProjectId }),
+			...(options.provider === undefined ? {} : { provider: options.provider }),
+			...(options.developmentObserver === undefined ? {} : { developmentObserver: options.developmentObserver }),
+			journal,
+			activities           : this.activities,
+			visibleActivities    : this.visibleActivities,
+			visibleThreadId      : () => this.visibleThreadId,
+			visibleAfterSequence : () => this.visibleAfterSequence,
+			selectedTurn         : () => ({ threadId: this.threadId, turnId: this.activeTurnId ?? this.selectedPlanTurnId }),
+			onAdded: activity => {
+				this.workflow.invalidateFlow();
+				this.noteNarration.scheduleNarrations();
+				if (this.isActivityVisible(activity)) this.workflow.scheduleNativeTodoSync(activity);
+			},
+			onDurable                    : activity => this.nativeEvents.observeDurableActivity(activity),
+			setDevelopmentRecordingError : message => { this.developmentRecordingError = message; },
+			publish                      : () => this.publish(),
+		});
+		this.workflow = new WorkbenchWorkflowCoordinator({
+			hash: dplanHash,
+			...(options.requestProjection === undefined ? {} : { requestProjection: options.requestProjection }),
+			...(options.todos === undefined ? {} : { todos: options.todos }),
+			cache                     : this.cacheProjection,
+			activities                : () => this.activities,
+			threadId                  : () => this.threadId,
+			activeTurnId              : () => this.activeTurnId,
+			selectedPlanTurnId        : () => this.selectedPlanTurnId,
+			pendingPlanGoalActivityId : () => this.pendingPlanGoalActivityId,
+			selectedExecutionRun      : () => this.selectedExecutionRun(),
+			stepNarrations            : () => this.noteNarration.stepNarrations,
+			narrationRevision         : () => this.noteNarration.revision,
+			todo                      : () => this.todo,
+			setTodo                   : todo => { this.todo = todo; },
+			setError                  : message => { this.error = message; },
+			setActionResult           : result => { this.actionResult = result; },
+			publish                   : () => this.publish(),
+			processAttachedAt         : this.processAttachedAt,
+		});
+		this.noteNarration = new WorkbenchNoteNarration({
+			projectId: options.projectId,
+			...(options.tnotes === undefined ? {} : { source: options.tnotes }),
+			...(options.narrator === undefined ? {} : { narrator: options.narrator }),
+			activities                : () => this.activities,
+			visibleActivities         : () => this.visibleActivities,
+			threadId                  : () => this.threadId,
+			activeTurnId              : () => this.activeTurnId,
+			selectedPlanTurnId        : () => this.selectedPlanTurnId,
+			pendingPlanGoalActivityId : () => this.pendingPlanGoalActivityId,
+			requestRecords            : () => this.workflow.records(),
+			currentFlow               : () => this.workflow.currentFlow(),
+			invalidateFlow            : () => this.workflow.invalidateFlow(),
+			scheduleNarratedTodoSync  : () => this.workflow.scheduleNarratedTodoSync(),
+			bindTodoThread            : threadId => this.bindTodoThread(threadId),
+			closed                    : () => this.closed,
+			actionResult              : () => this.actionResult,
+			clearActionResult         : () => { this.actionResult = null; },
+			setActionResult           : (kind, title, body, digest) => this.setActionResult(kind, title, body, digest),
+			publish                   : () => this.publish(),
+		});
+		this.threadLifecycle = new WorkbenchThreadLifecycle(native, this.nativeTurn, {
+			cwd            : options.cwd,
+			model          : () => this.selectedModel,
+			effort         : () => this.selectedEffort,
+			approvalPolicy : () => this.approvalPolicy,
+			sandbox        : () => this.sandbox,
+			acquireLease   : threadId => options.acquireThreadLease?.(threadId) ?? Promise.resolve(),
+			bindSources    : threadId => this.noteNarration.bindThread(threadId),
+			closed         : () => this.closed,
+		});
+		this.commandHandlers = new WorkbenchCommandHandlers({
+			projectId: options.projectId,
+			mcp: () => this.mcpManagement(),
+			...(options.wooEntry === undefined ? {} : { wooEntry: options.wooEntry }),
+			...(options.todos === undefined ? {} : { todos: options.todos }),
+			...(options.promotions === undefined ? {} : { promotions: options.promotions }),
+			...(options.reviews === undefined ? {} : { reviews: options.reviews }),
+			note               : noteId => this.noteNarration.note(noteId),
+			activities         : () => this.activities,
+			hasRuntimeRequests : () => this.workflow.records().length > 0,
+			setMcpServers      : servers => { this.mcpServers = immutable(servers); },
+			setActionResult    : (kind, title, body, digest) => this.setActionResult(kind, title, body, digest),
+			publish            : () => this.publish(),
+		});
+		this.workflow.confirmTodo(this.todo);
 		this.current = this.makeSnapshot("loading");
 		this.ready = this.initialize();
 		this.unsubscribeNative = native.subscribe((event) => {
+			const traceScope = event.type === "notification"
+				? event.refs.turnId ?? event.refs.threadId ?? event.refs.itemId ?? `native-${this.revision}`
+				: event.type === "approval-requested"
+					? event.approval.refs.turnId ?? event.approval.refs.threadId ?? `approval-${event.approval.requestId}`
+					: event.refs.turnId ?? event.refs.threadId ?? `approval-${event.requestId}`;
+			const traceId = `${traceScope}:event-${++this.performanceTraceSequence}`;
+			const receivedAt = performance.now();
+			this.observeLayerPerformance(traceId, "native-receive", "queued", receivedAt);
+			this.observeLayerPerformance(traceId, "native-receive", "started", receivedAt);
 			if (event.type === "approval-requested" && event.approval.refs.threadId === this.threadId) { this.runtimePendingApproval = true; this.requestController.interrupt(); }
-			if (event.type === "notification" && event.refs.threadId === this.threadId && event.refs.turnId === this.activeTurnId && /^turn\/(completed|failed|interrupted|cancelled|canceled)$/u.test(event.method)) this.requestController.interrupt(event.refs.threadId, event.refs.turnId);
+			if (event.type === "notification"
+				&& event.refs.threadId === this.threadId
+				&& event.refs.turnId === this.activeTurnId
+				&& /^turn\/(completed|failed|interrupted|cancelled|canceled)$/u.test(event.method)) this.requestController.interrupt(event.refs.threadId, event.refs.turnId);
+			this.observeLayerPerformance(traceId, "native-receive", "completed", performance.now());
+			this.observeLayerPerformance(traceId, "event-queue", "queued", receivedAt);
 			this.eventQueue = this.eventQueue
 				.then(() => this.ready)
-				.then(() => this.recordNativeEvent(event))
+				.then(() => this.performanceTraceContext.run(traceId, () => {
+					this.observeLayerPerformance(traceId, "event-queue", "started");
+					return this.nativeEvents.record(event);
+				}))
+				.then(() => this.observeLayerPerformance(traceId, "event-queue", "completed"))
 				.then(() => { this.runtimePendingApproval = !!this.pendingApproval; })
-				.catch((error) => this.fail(error));
+				.catch((error) => { this.observeLayerPerformance(traceId, "event-queue", "failed"); this.fail(error); });
 		});
 		this.unsubscribeTodo = options.todos?.subscribe((todo) => {
 			this.todo = immutable(todo);
-			if (todo && this.todoSync.state !== "blocked") {
-				this.todoSync = immutable({ state: "confirmed", lastConfirmedAt: todo.updatedAt, message: null });
-			}
+			this.workflow.confirmTodo(todo);
 			this.publish();
 		}) ?? (() => undefined);
 		this.unsubscribeAuxiliaryUsage = options.auxiliaryUsage?.subscribe(() => this.publish()) ?? (() => undefined);
@@ -470,10 +476,22 @@ export class ProjectWorkbench {
 		return this.current;
 	}
 
+	public observeLayerPerformance(traceId: string, layerId: PerformanceLayerId, boundary: PerformanceBoundary, atMs = performance.now()): void {
+		this.layerPerformance.observe({ traceId, layerId, boundary, atMs });
+	}
+
+	public currentPerformanceTraceId(): string | null {
+		return this.performanceTraceContext.getStore() ?? null;
+	}
+
+	public layerPerformanceSnapshot(): { readonly current: PerformanceTrace | null; readonly window: PerformanceWindow } {
+		return Object.freeze({ current: this.layerPerformance.latest(), window: this.layerPerformance.window() });
+	}
+
 	/** Refresh at startup and whenever the user opens model selection. Coalesce concurrent reads. */
 	public refreshModels(): Promise<NativeModelCatalog> {
 		if (this.modelRefresh) {
-			this.recordCacheHit(this.modelCatalogCacheTelemetry);
+			this.cacheProjection.hit("model");
 			return this.modelRefresh;
 		}
 		this.modelRefresh = (async () => {
@@ -484,10 +502,10 @@ export class ProjectWorkbench {
 				if (!models.length) throw new Error("Native 모델 목록이 비어 있습니다.");
 				const replacedNativeCatalog = this.modelCatalog.source === "native";
 				this.modelCatalog = { models: immutable(models), source: "native", checkedAt: new Date().toISOString(), error: null };
-				this.recordCacheMiss(this.modelCatalogCacheTelemetry, performance.now() - startedAt, replacedNativeCatalog);
+				this.cacheProjection.miss("model", performance.now() - startedAt, replacedNativeCatalog);
 			} catch (error) {
 				this.modelCatalog = { ...this.modelCatalog, error: errorMessage(error) };
-				this.recordCacheMiss(this.modelCatalogCacheTelemetry, performance.now() - startedAt, false);
+				this.cacheProjection.miss("model", performance.now() - startedAt, false);
 			}
 			if (!this.closed) this.publish(this.current?.phase ?? "loading");
 			return this.modelCatalog;
@@ -521,7 +539,11 @@ export class ProjectWorkbench {
 		// The tool awaiting this decision owns eventQueue. Never queue its resolver behind it.
 		if (command.type === "approval.resolve" && typeof command.requestId === "string" && command.requestId.startsWith("runtime-")) {
 			const commandId = randomUUID();
-			if (this.closed || !this.runtimeApproval || command.requestId !== this.runtimeApproval.id || !("decision" in command.response) || !["accept", "decline", "cancel"].includes(command.response.decision as string)) return Promise.resolve({ state: "rejected", commandId, reason: "현재 Runtime 단일 작업 승인과 일치하지 않습니다." });
+			if (this.closed
+				|| !this.runtimeApproval
+				|| command.requestId !== this.runtimeApproval.id
+				|| !("decision" in command.response)
+				|| !["accept", "decline", "cancel"].includes(command.response.decision as string)) return Promise.resolve({ state: "rejected", commandId, reason: "현재 Runtime 단일 작업 승인과 일치하지 않습니다." });
 			this.runtimeApproval.resolve(command.response.decision === "accept");
 			return Promise.resolve({ state: "accepted", commandId });
 		}
@@ -532,8 +554,37 @@ export class ProjectWorkbench {
 		return operation;
 	}
 
+	private canActOn(call: RuntimeToolCall): boolean {
+		return (
+			!this.closed &&
+			!this.recordingReadOnly &&
+			!this.runtimePendingApproval &&
+			!this.pendingApproval &&
+			!this.nativeTurn.deliveryBlocked &&
+			this.threadId === call.threadId &&
+			this.activeTurnId === call.turnId
+		);
+	}
+
+	private canRecoverFrom(call: RuntimeToolCall): boolean {
+		return (
+			!this.closed &&
+			!this.recordingReadOnly &&
+			!this.runtimePendingApproval &&
+			!this.pendingApproval &&
+			!this.activeTurnId &&
+			!this.nativeTurn.deliveryBlocked &&
+			this.threadId === call.threadId
+		);
+	}
+
 	private requestActionApproval(call: RuntimeToolCall, approval: RequestActionApproval, signal: AbortSignal): Promise<boolean> {
-		if (signal.aborted || this.closed || this.pendingApproval || this.runtimeApproval || this.threadId !== call.threadId || this.activeTurnId !== call.turnId) return Promise.resolve(false);
+		if (signal.aborted
+			|| this.closed
+			|| this.pendingApproval
+			|| this.runtimeApproval
+			|| this.threadId !== call.threadId
+			|| this.activeTurnId !== call.turnId) return Promise.resolve(false);
 		return new Promise(resolve => {
 			let done = false;
 			const finish = (accepted: boolean) => {
@@ -580,48 +631,39 @@ export class ProjectWorkbench {
 			if (this.recordingReadOnly && !["activity.select", "trace.select", "agent.select"].includes(command.type)) {
 				return { state: "rejected", commandId, reason: "기록 무결성 문제로 읽기 전용 진단 중입니다. 실행·수정은 허용되지 않습니다." };
 			}
-				switch (command.type) {
-				case "workflow.check":
-				case "workflow.resume":
-				case "workflow.show": return await this.runLocalWorkflow(commandId, command);
-				case "activity.select": return this.selectActivity(commandId, command.activityId);
-				case "trace.select": return this.selectTraceActivity(commandId, command.activityId);
-				case "agent.select": return this.selectAgent(commandId, command.agentRef);
-				case "session.permission": return this.configurePermission(commandId, command.mode);
-				case "session.mode": return this.configureCollaboration(commandId, command.mode);
-				case "session.model": return await this.configureModel(commandId, command.selection);
-				case "goal.set": return await this.setGoal(commandId, command.text);
-				case "mcp.refresh": return await this.refreshMcpServers(commandId);
-				case "mcp.enable": return await this.setMcpServerEnabled(commandId, command.name, true);
-				case "mcp.disable": return await this.setMcpServerEnabled(commandId, command.name, false);
-				case "mcp.reload": return await this.reloadMcpServers(commandId);
-				case "woo-entry.refresh": return await this.refreshWooEntry(commandId);
-				case "tnote.capture-session": return await this.captureSessionNote(commandId);
-				case "tnote.capture": return await this.captureNote(commandId, command.activityIds);
-				case "tnote.capture-range": return await this.captureNoteRange(commandId, command.startSequence, command.endSequence);
-				case "chat.send": return await this.sendChat(commandId, command.text, false, command.delivery);
-				case "chat.cancel": return await this.cancelChat(commandId);
-				case "chat.clear": return this.clearChatProjection(commandId);
-				case "thread.compact": return await this.compactThread(commandId);
-				case "approval.resolve": return await this.resolveApproval(commandId, command);
+			const handled = await this.commandHandlers.dispatch(commandId, command);
+			if (handled) return handled;
+			switch (command.type) {
+				case "workflow.check"       :
+				case "workflow.resume"      :
+				case "workflow.show"        : return await this.runLocalWorkflow            (commandId, command);
+				case "activity.select"      : return this.selectActivity                    (commandId, command.activityId);
+				case "trace.select"         : return this.selectTraceActivity               (commandId, command.activityId);
+				case "agent.select"         : return this.selectAgent                       (commandId, command.agentRef);
+				case "session.permission"   : return this.configurePermission               (commandId, command.mode);
+				case "session.mode"         : return this.configureCollaboration            (commandId, command.mode);
+				case "session.model"        : return await this.configureModel              (commandId, command.selection);
+				case "goal.set"             : return await this.setGoal                     (commandId, command.text);
+				case "tnote.capture-session": return await this.noteNarration.captureSession(commandId);
+				case "tnote.capture"        : return await this.noteNarration.capture       (commandId, command.activityIds);
+				case "tnote.capture-range"  : return await this.noteNarration.captureRange  (commandId, command.startSequence, command.endSequence);
+				case "chat.send"            : return await this.sendChat                    (commandId, command.text, false, command.delivery);
+				case "chat.cancel"          : return await this.cancelChat                  (commandId);
+				case "chat.clear"           : return this.clearChatProjection               (commandId);
+				case "thread.compact"       : return await this.compactThread               (commandId);
+				case "approval.resolve"     : return await this.resolveApproval             (commandId, command);
 				case "runtime.reconcile": {
-					const request = this.requestRecords().find(r => r.requestId === command.requestId);
-					if (!this.requestRuntimePolicy.brokered || !request?.threadId || !request.turnId || this.activeTurnId) return { state: "rejected", commandId, reason: "Runtime 정산은 연결된 요청의 turn이 종료된 뒤에만 가능합니다." };
+					const request = this.workflow.records().find(r => r.requestId === command.requestId);
+					if (!this.requestRuntimePolicy.brokered
+						|| !request?.threadId
+						|| !request.turnId
+						|| this.activeTurnId) return { state: "rejected", commandId, reason: "Runtime 정산은 연결된 요청의 turn이 종료된 뒤에만 가능합니다." };
 					const result = await this.requestController.recover({ tool: "www_runtime_reconcile", threadId: request.threadId, turnId: request.turnId, callId: commandId, arguments: { requestId: request.requestId, operationId: command.operationId } });
 					if (result.success) await this.drainChatQueue();
 					return result.success ? { state: "accepted", commandId, message: "기록된 대상의 현재 상태를 확인했습니다. 원래 동작은 재실행하지 않았습니다." } : { state: "rejected", commandId, reason: result.text };
 				}
-				case "todo.create": return await this.mutateTodo(commandId, "Todo 생성", () => this.requireTodos().create(command.title, command.items, command.storyId));
-				case "todo.add": return await this.mutateTodo(commandId, "Todo 항목 추가", () => this.requireTodos().add(command.content, command.placement));
-				case "todo.details": return await this.mutateTodo(commandId, "Todo 세부 항목 추가", () => this.requireTodos().addDetails(command.itemId, command.details));
-				case "todo.transition": return await this.transitionTodo(commandId, command.action, command.itemId);
-				case "todo.evidence": return await this.recordTodoEvidence(commandId, command.activityId);
-				case "todo.import-legacy": return await this.importLegacyTodo(commandId);
-				case "promotion.accept": return await this.acceptPromotion(commandId, command.noteId, command.acceptedBy);
-				case "promotion.confirm": return await this.confirmPromotion(commandId, command.token);
-				case "review.preview": return await this.previewReview(commandId, command.provider, command.noteId, command.request, command.confirmedPublic);
-				case "review.send": return await this.sendReview(commandId, command.digest);
 			}
+			throw new Error("지원하지 않는 Workbench 명령입니다.");
 		} catch (error) {
 			if (error instanceof TodoWriteConflictError) {
 				this.setActionResult("todo", "Todo 동시 편집 충돌", stableJson({ currentSource: error.currentSource, pending: error.pending }));
@@ -644,15 +686,14 @@ export class ProjectWorkbench {
 		this.closed = true;
 		this.requestController.interrupt();
 		this.unregisterRuntimeTools();
-		this.narrationAbort.abort();
+		this.noteNarration.close();
 		this.unsubscribeNative();
 		this.unsubscribeTodo();
 		this.unsubscribeAuxiliaryUsage();
 		await this.commandQueue.catch(() => undefined);
 		await this.eventQueue.catch(() => undefined);
-		await this.todoSyncQueue.catch(() => undefined);
-		await this.requestProjectionQueue.catch(() => undefined);
-		await this.tnoteQueue.catch(() => undefined);
+		await this.workflow.wait();
+		await this.noteNarration.wait();
 		await this.native.close();
 		this.publish("closed");
 		this.listeners.clear();
@@ -660,27 +701,22 @@ export class ProjectWorkbench {
 
 	private async initialize(): Promise<void> {
 		const [activities] = await Promise.all([
-			this.journal.readAll(this.activityJournalProjectId()),
+			this.journal.readAll(this.activityJournal.projectId),
 			this.refreshModels(),
 			this.options.wooEntry?.refresh() ?? Promise.resolve(null),
-			this.mcpManagement()?.listMcpServers().then((servers) => { this.mcpServers = immutable(servers); }) ?? Promise.resolve(),
+			this.commandHandlers.loadMcpServers(),
 		]);
 		for (const activity of activities) {
 			const durableActivity = immutable(activity);
 			this.activities.push(durableActivity);
-			this.reduceExecutionActivity(durableActivity);
-			this.rememberNativeRefs(durableActivity.nativeRefs);
-			this.rememberTerminalTurn(durableActivity);
-			this.rememberTerminalItem(durableActivity);
-			if (durableActivity.payload.method === "turn/first-output-observed" && durableActivity.nativeRefs.turnId) {
-				this.firstOutputObservedTurns.add(durableActivity.nativeRefs.turnId);
-			}
+			this.activityJournal.observe(durableActivity);
+			this.nativeEvents.restore(durableActivity);
 		}
-		const recordingIssues = this.executionRuns.restore(this.activities);
+		const recordingIssues = this.activityJournal.restore(this.activities);
 		if (recordingIssues.length) {
-			this.recordingReadOnly = true;
-			this.threadId = this.options.resumeThreadId ?? this.threadId;
-			this.visibleThreadId = this.threadId;
+			this.recordingReadOnly = true                                         ;
+			this.threadId          = this.options.resumeThreadId ?? this.threadId ;
+			this.visibleThreadId   = this.threadId                                ;
 			this.visibleActivities.push(...this.activities.filter(activity => !this.threadId || activity.nativeRefs.threadId === this.threadId));
 			this.selectedPlanTurnId = [...this.visibleActivities].reverse().find(activity => activity.nativeRefs.turnId)?.nativeRefs.turnId ?? null;
 			this.error = `읽기 전용 기록 진단: ${recordingIssues.join("\n")}`;
@@ -690,28 +726,15 @@ export class ProjectWorkbench {
 		this.approvalDispatcher.restoreInterlocks(this.activities);
 		// A crash can leave a durable terminal observation without its derived
 		// receipt. Rebuild before repairing it; receipt identity makes replay safe.
-		for (const run of this.executionRuns.values()) {
-			if (run.receipt && !this.hasCompletionReceipt(run)) await this.appendExecutionReceipt(run);
+		for (const run of this.activityJournal.values()) {
+			if (run.receipt && !this.activityJournal.hasCompletionReceipt(run)) await this.activityJournal.appendCompletionReceipt(run);
 		}
 		this.visibleAfterSequence = this.activities.at(-1)?.sequence ?? 0;
 		// Historical events cannot safely inherit the currently selected stage.
-		this.narrationObservedSequence = this.visibleAfterSequence;
-		if (this.options.tnotes && !this.options.tnotes.bindThread) await this.loadBoundTNotes();
+		this.noteNarration.setObservedSequence(this.visibleAfterSequence);
+		if (this.options.tnotes && !this.options.tnotes.bindThread) await this.noteNarration.loadBoundNotes();
 		if (this.options.resumeThreadId) {
-			await this.options.acquireThreadLease?.(this.options.resumeThreadId);
-			const resumed = await this.native.resumeThread({
-				threadId: this.options.resumeThreadId,
-				cwd: this.options.cwd,
-				model: this.selectedModel,
-				effort: this.selectedEffort ?? undefined,
-				approvalPolicy: this.approvalPolicy,
-				sandbox: this.sandbox,
-				excludeTurns: true,
-			});
-			if (resumed.id !== this.options.resumeThreadId) {
-				throw new Error(`Native 재개가 요청한 thread ${this.options.resumeThreadId} 대신 ${resumed.id}를 반환했습니다.`);
-			}
-			await this.bindThreadSources(resumed.id);
+			const { resumed, read, delivery } = await this.threadLifecycle.resume(this.options.resumeThreadId);
 			this.applyThreadSettings(resumed);
 			this.visibleThreadId = resumed.id;
 			this.visibleActivities.push(...this.activities.filter(activity => activity.nativeRefs.threadId === resumed.id));
@@ -720,37 +743,29 @@ export class ProjectWorkbench {
 				&& (activity.payload.method === "turn/start" || activity.payload.method === "turn/started")
 				&& typeof activity.nativeRefs.turnId === "string",
 			)?.nativeRefs.turnId ?? null;
-			this.invalidateWorkFlow();
-			this.scheduleNarrations();
-			const read = await this.native.readThread({ threadId: resumed.id, includeTurns: true });
-			if (read.id !== resumed.id) {
-				throw new Error(`Native thread 조회가 재개한 thread ${resumed.id} 대신 ${read.id}를 반환했습니다.`);
-			}
-			const delivery = blockedChatDeliveryState(read.value);
-			if (delivery.state === "unknown") {
-				throw new Error("재개한 native thread의 현재 turn 상태를 안전하게 판독할 수 없습니다.");
-			}
+			this.workflow.invalidateFlow();
+			this.noteNarration.scheduleNarrations();
 			this.threadId = read.id;
-			const resumedTodoFlow = this.projectCurrentWorkFlow();
-			const syncResumedTodo = this.requestRecords().length ? undefined : this.options.todos?.syncNativePlan?.bind(this.options.todos);
+			const resumedTodoFlow = this.workflow.currentFlow();
+			const syncResumedTodo = this.workflow.records().length ? undefined : this.options.todos?.syncNativePlan?.bind(this.options.todos);
 			if (
 				syncResumedTodo
 				&& (!this.todo || this.todo.items.length === 0 || this.todo.source !== undefined)
 				&& resumedTodoFlow.source
 				&& resumedTodoFlow.steps.length > 0
 			) {
-				this.enqueueNativeTodoSync(syncResumedTodo, resumedTodoFlow);
+				this.workflow.enqueueNativeTodoSync(syncResumedTodo, resumedTodoFlow);
 			}
 			await this.appendActivity("progress", "completed", { threadId: read.id }, {
-				method: "thread/resume-local-reconciled",
-				historyHydrated: false,
-				nativeState: delivery.state,
+				method          : "thread/resume-local-reconciled",
+				historyHydrated : false,
+				nativeState     : delivery.state,
 			}, false);
 			if (delivery.state === "in-progress") {
 				this.activeTurnId = delivery.turnId;
-				this.rememberNativeRefs({ threadId: read.id, turnId: delivery.turnId });
+				this.nativeEvents.rememberNativeRefs({ threadId: read.id, turnId: delivery.turnId });
 				this.selectedPlanTurnId = delivery.turnId;
-				this.contextTurnId = delivery.turnId;
+				this.setContextTurn(delivery.turnId);
 				this.usageTracker.bindTurn(delivery.turnId, this.effectiveModel, this.effectiveEffort);
 				await this.appendActivity("progress", "started", {
 					threadId: read.id,
@@ -765,22 +780,15 @@ export class ProjectWorkbench {
 		// Native thread before rendering the entry screen rather than inventing a
 		// thread id or delaying the first Linear summary until Chat is sent.
 		if (this.options.linearDashboard && !this.threadId) {
-			const thread = await this.native.startThread({
-				cwd: this.options.cwd, model: this.selectedModel, effort: this.selectedEffort ?? undefined,
-				approvalPolicy: this.approvalPolicy, sandbox: this.sandbox,
-			});
-			if (this.closed) return;
-			await this.options.acquireThreadLease?.(thread.id);
-			if (this.closed) return;
-			await this.bindThreadSources(thread.id);
-			if (this.closed) return;
+			const thread = await this.threadLifecycle.startForDashboard();
+			if (!thread) return;
 			this.threadId = thread.id;
 			this.applyThreadSettings(thread);
 		}
 		if (this.options.linearDashboard && this.threadId) this.refreshLinearDashboard(this.threadId);
 		if (this.closed) return;
 		this.sessionGoal = projectSessionGoal(this.visibleActivities);
-		this.reconcileAutomaticTNotes();
+		this.noteNarration.reconcileAutomatic();
 		this.publish("ready");
 	}
 
@@ -790,12 +798,12 @@ export class ProjectWorkbench {
 		const startedAt = performance.now();
 		void dashboard.refresh(threadId).then((snapshot) => {
 			if (this.closed || this.threadId !== threadId) return;
-			this.recordCacheMiss(this.dashboardDataCacheTelemetry, performance.now() - startedAt, this.linearDashboard.fetchedAt !== null);
+			this.cacheProjection.miss("dashboard", performance.now() - startedAt, this.linearDashboard.fetchedAt !== null);
 			this.linearDashboard = snapshot;
 			this.publish();
 		}).catch((error) => {
 			if (this.closed || this.threadId !== threadId) return;
-			this.recordCacheMiss(this.dashboardDataCacheTelemetry, performance.now() - startedAt, false);
+			this.cacheProjection.miss("dashboard", performance.now() - startedAt, false);
 			this.linearDashboard = this.linearDashboard.fetchedAt
 				? { ...this.linearDashboard, state: "stale", error: errorMessage(error) }
 				: { ...EMPTY_LINEAR_PROJECT_DASHBOARD, projectName: this.linearDashboard.projectName, error: errorMessage(error) };
@@ -807,22 +815,30 @@ export class ProjectWorkbench {
 		const text = sanitizeTerminalTextUnbounded(rawText).trim();
 		if (!text) return { state: "rejected", commandId, reason: "보낼 메시지가 비어 있습니다." };
 		if (this.requestRuntimePolicy.brokered && !this.activeTurnId) {
-			const unresolved = this.requestRecords().find(r => r.actions.some(a => a.status === "unconfirmed"));
+			const unresolved = this.workflow.records().find(r => r.actions.some(a => a.status === "unconfirmed"));
 			const action = unresolved?.actions.find(a => a.status === "unconfirmed");
 			if (unresolved && action) return { state: "rejected", commandId, reason: `이전 실행 결과를 먼저 정산하세요: /reconcile ${unresolved.requestId} ${action.operationId}` };
 		}
-		if (delivery !== "queue" && this.requestProtocolVersion() !== 2 && this.activeTurnId && this.threadId && !this.chatDeliveryBlocked && this.native.steerTurn) {
+		if (delivery !== "queue"
+			&& this.requestProtocolVersion() !== 2
+			&& this.activeTurnId
+			&& this.threadId
+			&& !this.nativeTurn.deliveryBlocked
+			&& this.native.steerTurn) {
 			const sent = await this.steerChatTurn(text, commandId, this.threadId, this.activeTurnId, goal);
 			return { state: "accepted", commandId, activitySequence: sent.sequence };
 		}
-		if (this.activeTurnId || this.pendingApproval || this.chatQueue.length > 0 || this.chatDeliveryBlocked) {
+		if (this.activeTurnId
+			|| this.pendingApproval
+			|| this.nativeTurn.queue.length > 0
+			|| this.nativeTurn.deliveryBlocked) {
 			if (this.requestRuntimePolicy.manages(goal)) {
 				await this.appendRequestObservation("request/submitted", commandId, this.threadId ?? undefined, text);
 				await this.appendRequestObservation("request/queued", commandId, this.threadId ?? undefined, text);
 			}
-			this.chatQueue.push({ id: commandId, content: text, queuedAt: new Date().toISOString(), ...(goal ? { goal: true } : {}) });
+			const position = this.nativeTurn.enqueue({ id: commandId, content: text, queuedAt: new Date().toISOString(), ...(goal ? { goal: true } : {}) });
 			this.publish();
-			return { state: "queued", commandId, position: this.chatQueue.length };
+			return { state: "queued", commandId, position };
 		}
 		const sent = await this.startChatTurn(text, commandId, false, goal);
 		return { state: "accepted", commandId, activitySequence: sent.sequence };
@@ -847,20 +863,22 @@ export class ProjectWorkbench {
 		turnId: string,
 		goal = false,
 	): Promise<ProjectActivity> {
-		const managedRequest = this.requestRuntimePolicy.manages(goal);
-		const messagePayload = { direction: "outbound", role: "user", text, ...(goal ? { goal: true } : {}) } as const;
-		const messageRefs = { threadId, turnId, itemId: localMessageId };
-		const outboundSourceDigest = digestSource(stableJson(messagePayload));
-		const sent = await this.appendActivity("message", "started", messageRefs, messagePayload, false, outboundSourceDigest);
+		const steerTurn = this.native.steerTurn;
+		if (!steerTurn) throw new Error("이 실행기는 진행 중인 Native turn 조향을 지원하지 않습니다.");
+		const managedRequest       = this.requestRuntimePolicy.manages(goal)                                                                   ;
+		const messagePayload       = { direction: "outbound", role: "user", text, ...(goal ? { goal: true } : {}) } as const                   ;
+		const messageRefs          = { threadId, turnId, itemId: localMessageId }                                                              ;
+		const outboundSourceDigest = digestSource(stableJson(messagePayload))                                                                  ;
+		const sent                 = await this.appendActivity("message", "started", messageRefs, messagePayload, false, outboundSourceDigest) ;
 		if (managedRequest) await this.appendRequestObservation("request/submitted", localMessageId, threadId, text, outboundSourceDigest, turnId);
 		this.publish();
 		try {
-			await this.native.steerTurn!({
+			await steerTurn(this.nativeTurn.steerInput({
 				threadId,
-				expectedTurnId: turnId,
-				clientUserMessageId: localMessageId,
+				turnId,
+				messageId: localMessageId,
 				text: managedRequest ? `${text}\n\n${requestProtocolContext(localMessageId, this.requestProtocolVersion()).value}` : text,
-			});
+			}));
 		} catch (error) {
 			if (managedRequest) await this.appendRequestObservation(
 				isUncertain(error) ? "request/uncertain" : "request/failed",
@@ -901,29 +919,27 @@ export class ProjectWorkbench {
 		} as const;
 		if (!this.threadId) {
 			this.preThreadChat.set(localMessageId, {
-				id: localMessageId,
-				role: "user",
-				content: text,
-				activityId: localMessageId,
-				status: "streaming",
+				id         : localMessageId,
+				role       : "user",
+				content    : text,
+				activityId : localMessageId,
+				status     : "streaming",
 			});
 			this.publish();
 			let thread: Awaited<ReturnType<ExecutorPort["startThread"]>>;
 			try {
-				thread = await this.native.startThread({
-					cwd: this.options.cwd,
-					model: this.selectedModel,
-					effort: this.selectedEffort ?? undefined,
-					approvalPolicy: this.approvalPolicy,
-					sandbox: this.sandbox,
-				});
+				thread = await this.native.startThread(this.nativeTurn.threadInput({
+					cwd            : this.options.cwd,
+					model          : this.selectedModel,
+					effort         : this.selectedEffort,
+					approvalPolicy : this.approvalPolicy,
+					sandbox        : this.sandbox,
+				}));
 			} catch (error) {
 				if (intake) await this.appendRequestObservation(isUncertain(error) ? "request/uncertain" : "request/failed", localMessageId, undefined, text);
-				this.preThreadChat.set(localMessageId, {
-					...this.preThreadChat.get(localMessageId)!,
-					status: "failed",
-				});
-				if (queued && this.chatQueue[0]?.id === localMessageId) this.chatQueue.shift();
+				const pendingMessage = this.preThreadChat.get(localMessageId);
+				if (pendingMessage) this.preThreadChat.set(localMessageId, { ...pendingMessage, status: "failed" });
+				if (queued) this.nativeTurn.shiftHeadIf(localMessageId);
 				this.publish();
 				throw error;
 			}
@@ -931,39 +947,39 @@ export class ProjectWorkbench {
 			await this.options.acquireThreadLease?.(thread.id);
 			if (intake) {
 				// The thread journal adopts intake receipts with new sequence/identity and provenance.
-				const adopted = await this.journal.readAll(this.activityJournalProjectId());
-				const sourceIds = new Set(adopted.map(a => a.payload.intakeActivityId));
-				const merged = [...new Map([...this.activities.filter(a => !sourceIds.has(a.id)), ...adopted].map(a => [a.id, immutable(a)])).values()].sort((a, b) => a.sequence - b.sequence);
+				const adopted   = await this.journal.readAll(this.activityJournal.projectId)                                                                                                       ;
+				const sourceIds = new Set(adopted.map(a => a.payload.intakeActivityId))                                                                                                            ;
+				const merged    = [...new Map([...this.activities.filter(a => !sourceIds.has(a.id)), ...adopted].map(a => [a.id, immutable(a)])).values()].sort((a, b) => a.sequence - b.sequence) ;
 				this.activities.splice(0, this.activities.length, ...merged);
-				this.requestCache = { ...this.requestCache, length: -1 };
+				this.workflow.invalidateRequests();
 			}
-			await this.bindThreadSources(thread.id);
+			await this.noteNarration.bindThread(thread.id);
 			this.applyThreadSettings(thread);
 			await this.appendActivity("progress", "completed", { threadId: thread.id }, {
 				method: "thread/start",
 				thread: thread.value,
 			});
 		}
-		const messageRefs = { threadId: this.threadId, itemId: localMessageId };
-		const outboundSourceDigest = digestSource(stableJson(messagePayload));
-		const sent = await this.appendActivity("message", "started", messageRefs, messagePayload, false, outboundSourceDigest);
+		const messageRefs          = { threadId: this.threadId, itemId: localMessageId }                                                       ;
+		const outboundSourceDigest = digestSource(stableJson(messagePayload))                                                                  ;
+		const sent                 = await this.appendActivity("message", "started", messageRefs, messagePayload, false, outboundSourceDigest) ;
 		if (managedRequest && !queued && !intake) await this.appendRequestObservation("request/submitted", localMessageId, this.threadId, text, outboundSourceDigest);
 		this.preThreadChat.delete(localMessageId);
 		this.pendingPlanGoalActivityId = sent.id;
-		this.invalidateWorkFlow();
+		this.workflow.invalidateFlow();
 		this.publish();
 		let turn: Awaited<ReturnType<ExecutorPort["startTurn"]>>;
 		try {
-			const turnInput = {
+			const turnInput = this.nativeTurn.turnInput({
 				threadId: this.threadId,
 				text,
-				cwd: this.options.cwd,
-				model: this.selectedModel,
-				effort: this.selectedEffort ?? undefined,
-				approvalPolicy: this.approvalPolicy,
-				sandboxPolicy: this.currentSandboxPolicy(),
-				collaborationMode: this.currentNativeCollaborationMode(goal),
-			};
+				cwd               : this.options.cwd,
+				model             : this.selectedModel,
+				effort            : this.selectedEffort,
+				approvalPolicy    : this.approvalPolicy,
+				sandboxPolicy     : this.nativeTurn.sandboxPolicy(this.permissionMode, this.options.cwd),
+				collaborationMode : this.nativeTurn.collaboration(this.collaborationMode, this.effectiveModel, this.effectiveEffort, goal),
+			});
 			turn = await this.native.startTurn(this.contextComposer.compose(
 				managedRequest
 					? { ...turnInput, additionalContext: { www_request_runtime: requestProtocolContext(localMessageId, this.requestProtocolVersion()) } }
@@ -973,16 +989,15 @@ export class ProjectWorkbench {
 			));
 		} catch (error) {
 			this.pendingPlanGoalActivityId = null;
-			this.invalidateWorkFlow();
+			this.workflow.invalidateFlow();
 			if (isUncertain(error)) {
-				this.chatDeliveryBlocked = true;
-				this.blockedChat = { id: localMessageId, content: text };
+				this.nativeTurn.markUncertain({ id: localMessageId, content: text });
 				if (managedRequest) await this.appendRequestObservation("request/uncertain", localMessageId, this.threadId, text, outboundSourceDigest);
 				await this.appendActivity("message", "failed", messageRefs, {
 					...messagePayload,
 					error: "Native가 메시지를 수신했는지 확인할 수 없습니다. 자동 재시도하지 않습니다.",
 				});
-				if (queued && this.chatQueue[0]?.id === localMessageId) this.chatQueue.shift();
+				if (queued) this.nativeTurn.shiftHeadIf(localMessageId);
 				throw error;
 			}
 			if (managedRequest) await this.appendRequestObservation("request/failed", localMessageId, this.threadId, text, outboundSourceDigest);
@@ -990,21 +1005,20 @@ export class ProjectWorkbench {
 				...messagePayload,
 				error: errorMessage(error),
 			}, false);
-			if (queued && this.chatQueue[0]?.id === localMessageId) this.chatQueue.shift();
+			if (queued) this.nativeTurn.shiftHeadIf(localMessageId);
 			this.publish();
 			throw error;
 		}
 		this.usageTracker.bindTurn(turn.id, this.effectiveModel, this.effectiveEffort);
-		this.rememberNativeRefs({ threadId: this.threadId, turnId: turn.id });
-		this.contextTurnId = turn.id;
+		this.nativeEvents.rememberNativeRefs({ threadId: this.threadId, turnId: turn.id });
+		this.setContextTurn(turn.id);
 		this.activeTurnId = turn.id;
 		this.selectedPlanTurnId = turn.id;
-		this.collaborationModeByTurnId.set(turn.id, this.collaborationMode);
+		this.nativeEvents.rememberTurnCollaboration(turn.id, this.collaborationMode);
 		this.pendingPlanGoalActivityId = null;
-		this.invalidateWorkFlow();
-		this.chatDeliveryBlocked = false;
-		this.blockedChat = null;
-		if (queued && this.chatQueue[0]?.id === localMessageId) this.chatQueue.shift();
+		this.workflow.invalidateFlow();
+		this.nativeTurn.clearUncertain();
+		if (queued) this.nativeTurn.shiftHeadIf(localMessageId);
 		const completed = await this.appendActivity("message", "completed", messageRefs, messagePayload);
 		if (goal) this.sessionGoal = { text, sourceActivityId: completed.id, updatedAt: completed.recordedAt };
 		if (managedRequest) await this.appendRequestObservation("request/started", localMessageId, this.threadId, text, outboundSourceDigest, turn.id, {
@@ -1028,7 +1042,7 @@ export class ProjectWorkbench {
 		model?: { readonly model: string; readonly effort: string | null },
 	): Promise<ProjectActivity> {
 		return this.appendActivity("progress", method === "request/failed" || method === "request/uncertain" ? "failed" : "started", {
-			threadId,
+			...(threadId === undefined ? {} : { threadId }),
 			itemId: requestId,
 			...(turnId ? { turnId } : {}),
 		}, { method, requestId, text, protocolVersion: this.requestProtocolVersion(), ...(model ?? {}) }, false, sourceDigest);
@@ -1041,29 +1055,29 @@ export class ProjectWorkbench {
 	}
 
 	private async drainChatQueue(): Promise<void> {
-		while (!this.closed && !this.activeTurnId && !this.pendingApproval && !this.chatDeliveryBlocked && !(this.requestRuntimePolicy.brokered && this.requestRecords().some(r => r.actions.some(a => a.status === "unconfirmed")) )) {
-			const next = this.chatQueue[0];
+		while (!this.closed && !this.activeTurnId && !this.pendingApproval && !this.nativeTurn.deliveryBlocked && !(this.requestRuntimePolicy.brokered && this.workflow.records().some(r => r.actions.some(a => a.status === "unconfirmed")) )) {
+			const next = this.nativeTurn.head;
 			if (!next) return;
 			try {
 				await this.startChatTurn(next.content, next.id, true, next.goal === true);
 				return;
 			} catch (error) {
-				if (isUncertain(error) || this.chatQueue[0]?.id === next.id) throw error;
+				if (isUncertain(error) || this.nativeTurn.head?.id === next.id) throw error;
 			}
 		}
 	}
 
 	private async cancelChat(commandId: string): Promise<WorkbenchCommandReceipt> {
 		this.requestController.interrupt(this.threadId ?? undefined, this.activeTurnId ?? undefined);
-		if (this.chatDeliveryBlocked && this.blockedChat) {
-			const abandoned = this.blockedChat;
+		if (this.nativeTurn.deliveryBlocked && this.nativeTurn.blockedChat) {
+			const abandoned = this.nativeTurn.blockedChat;
 			if (!this.threadId) {
 				return { state: "rejected", commandId, reason: "불확정 전송을 정합할 native thread가 없습니다." };
 			}
 			let delivery: BlockedChatDeliveryState;
 			try {
 				const thread = await this.native.readThread({ threadId: this.threadId, includeTurns: true });
-				delivery = blockedChatDeliveryState(thread.value);
+				delivery = this.nativeTurn.deliveryState(thread.value);
 			} catch (error) {
 				return {
 					state: "rejected",
@@ -1078,14 +1092,13 @@ export class ProjectWorkbench {
 					reason: "Native thread 상태를 안전하게 판독할 수 없습니다. 대기열을 유지했으며 /cancel로 다시 확인할 수 있습니다.",
 				};
 			}
-			this.chatDeliveryBlocked = false;
-			this.blockedChat = null;
+			this.nativeTurn.clearUncertain();
 			this.error = null;
-			if (this.chatQueue[0]?.id === abandoned.id) this.chatQueue.shift();
+			this.nativeTurn.shiftHeadIf(abandoned.id);
 			if (delivery.state === "in-progress") {
 				this.activeTurnId = delivery.turnId;
 				this.selectedPlanTurnId = delivery.turnId;
-				this.contextTurnId = delivery.turnId;
+				this.setContextTurn(delivery.turnId);
 				this.usageTracker.bindTurn(delivery.turnId, this.effectiveModel, this.effectiveEffort);
 				await this.appendActivity("progress", "started", {
 					threadId: this.threadId,
@@ -1098,9 +1111,9 @@ export class ProjectWorkbench {
 					threadId: this.threadId,
 					itemId: abandoned.id,
 				}, {
-					direction: "outbound",
-					role: "user",
-					text: abandoned.content,
+					direction : "outbound",
+					role      : "user",
+					text      : abandoned.content,
 				}, false);
 				this.publish();
 				await this.native.interruptTurn({ threadId: this.threadId, turnId: delivery.turnId });
@@ -1114,10 +1127,10 @@ export class ProjectWorkbench {
 				threadId: this.threadId ?? undefined,
 				itemId: abandoned.id,
 			}, {
-				direction: "outbound",
-				role: "user",
-				text: abandoned.content,
-				reason: "사용자가 수신 여부 불명확 전송을 포기했습니다.",
+				direction : "outbound",
+				role      : "user",
+				text      : abandoned.content,
+				reason    : "사용자가 수신 여부 불명확 전송을 포기했습니다.",
 			}, false);
 			this.publish();
 			await this.drainChatQueue();
@@ -1136,21 +1149,21 @@ export class ProjectWorkbench {
 
 	/** Clears the screen projection only; append-only records and provider history stay intact. */
 	private clearChatProjection(commandId: string): WorkbenchCommandReceipt {
-		if (this.activeTurnId || this.pendingApproval || this.chatDeliveryBlocked) {
+		if (this.activeTurnId || this.pendingApproval || this.nativeTurn.deliveryBlocked) {
 			return { state: "rejected", commandId, reason: "실행·승인·수신 대조 중에는 Chat을 비울 수 없습니다." };
 		}
 		this.visibleActivities.splice(0);
-		this.visibleThreadId = null;
-		this.visibleAfterSequence = this.activities.at(-1)?.sequence ?? 0;
-		this.selectedActivityId = null;
-		this.sessionGoal = null;
+		this.visibleThreadId      = null                                  ;
+		this.visibleAfterSequence = this.activities.at(-1)?.sequence ?? 0 ;
+		this.selectedActivityId   = null                                  ;
+		this.sessionGoal          = null                                  ;
 		this.publish();
 		return { state: "accepted", commandId, message: "Chat 화면을 비웠습니다. 기록과 Native thread는 유지됩니다." };
 	}
 
 	private async compactThread(commandId: string): Promise<WorkbenchCommandReceipt> {
 		if (!this.threadId) return { state: "rejected", commandId, reason: "압축할 Native thread가 없습니다." };
-		if (this.activeTurnId || this.pendingApproval || this.chatDeliveryBlocked) {
+		if (this.activeTurnId || this.pendingApproval || this.nativeTurn.deliveryBlocked) {
 			return { state: "rejected", commandId, reason: "실행·승인·수신 대조가 끝난 뒤 컨텍스트를 압축할 수 있습니다." };
 		}
 		const candidate = this.native as Partial<ThreadCompactionPort>;
@@ -1159,10 +1172,10 @@ export class ProjectWorkbench {
 		}
 		await candidate.compactThread({ threadId: this.threadId });
 		this.actionResult = immutable({
-			kind: "notice",
-			title: "Context",
-			body: "Native thread 컨텍스트 압축을 시작했습니다.",
-			createdAt: new Date().toISOString(),
+			kind      : "notice",
+			title     : "Context",
+			body      : "Native thread 컨텍스트 압축을 시작했습니다.",
+			createdAt : new Date().toISOString(),
 		});
 		this.publish();
 		return { state: "accepted", commandId };
@@ -1185,10 +1198,12 @@ export class ProjectWorkbench {
 
 	private selectAgent(commandId: string, agentRef: string | null): WorkbenchCommandReceipt {
 		if (agentRef !== null) {
-			const matches = this.projectDelegation().flatMap(entry => entry.tasks)
+			const matches = this.cacheProjection.delegation(this.activities, this.threadId).flatMap(entry => entry.tasks)
 				.filter(task => task.ref === agentRef || task.id === agentRef);
 			if (matches.length !== 1) return { state: "rejected", commandId, reason: "현재 수행에 속한 에이전트의 고유 Ref를 선택하세요." };
-			this.selectedAgentRef = matches[0]!.ref;
+			const match = matches[0];
+			if (!match) return { state: "rejected", commandId, reason: "현재 수행에 속한 에이전트를 확인할 수 없습니다." };
+			this.selectedAgentRef = match.ref;
 		} else this.selectedAgentRef = null;
 		this.publish();
 		return { state: "accepted", commandId };
@@ -1203,9 +1218,9 @@ export class ProjectWorkbench {
 		}
 		const selection = resolveActivitySelection({
 			activityId,
-			activities: this.activities,
-			currentThreadId: this.threadId,
-			resumeCoverage: this.resumeCoverage(),
+			activities      : this.activities,
+			currentThreadId : this.threadId,
+			resumeCoverage  : this.nativeTurn.resumeCoverage(Boolean(this.options.resumeThreadId), this.processAttachedAt),
 		});
 		if (selection.state === "failed") return this.rejectedSelection(commandId, selection);
 		this.selectedActivityId = activityId;
@@ -1216,10 +1231,10 @@ export class ProjectWorkbench {
 	private selectTraceActivity(commandId: string, activityId: string): WorkbenchCommandReceipt {
 		const selection = resolveTraceSelection({
 			activityId,
-			activities: this.activities,
-			currentThreadId: this.threadId,
-			workFlow: this.projectCurrentWorkFlow(),
-			resumeCoverage: this.resumeCoverage(),
+			activities      : this.activities,
+			currentThreadId : this.threadId,
+			workFlow        : this.workflow.currentFlow(),
+			resumeCoverage  : this.nativeTurn.resumeCoverage(Boolean(this.options.resumeThreadId), this.processAttachedAt),
 		});
 		if (selection.state === "failed") return this.rejectedSelection(commandId, selection);
 		this.selectedActivityId = selection.identity.activityId;
@@ -1239,18 +1254,10 @@ export class ProjectWorkbench {
 		};
 	}
 
-	private resumeCoverage(): WorkbenchResumeCoverage {
-		return {
-			mode: this.options.resumeThreadId ? "partial-local-journal" : "fresh",
-			processAttachedAt: this.processAttachedAt,
-			priorProviderHistoryHydrated: false,
-		};
-	}
-
 	private configurePermission(commandId: string, mode: WorkbenchPermissionMode): WorkbenchCommandReceipt {
-		this.permissionMode = mode;
-		this.approvalPolicy = mode === "all" ? "never" : "on-request";
-		this.sandbox = mode === "all" ? "danger-full-access" : "workspace-write";
+		this.permissionMode = mode                                                      ;
+		this.approvalPolicy = mode === "all" ? "never" : "on-request"                   ;
+		this.sandbox        = mode === "all" ? "danger-full-access" : "workspace-write" ;
 		this.publish();
 		return {
 			state: "accepted",
@@ -1284,14 +1291,14 @@ export class ProjectWorkbench {
 		if (selection.model === this.selectedModel && selection.effort === this.selectedEffort) {
 			return { state: "accepted", commandId, message: `이미 ${selection.model} · 추론 ${selection.effort}을 사용 중입니다.` };
 		}
-		if (this.activeTurnId || this.chatQueue.length > 0 || this.chatDeliveryBlocked) {
+		if (this.activeTurnId || this.nativeTurn.queue.length > 0 || this.nativeTurn.deliveryBlocked) {
 			return { state: "rejected", commandId, reason: "응답 또는 대기 메시지를 처리하는 중에는 모델을 변경할 수 없습니다." };
 		}
 		await this.options.persistModelSelection?.(selection, this.modelCatalog);
-		this.selectedModel = selection.model;
-		this.selectedEffort = selection.effort;
-		this.effectiveModel = selection.model;
-		this.effectiveEffort = selection.effort;
+		this.selectedModel   = selection.model  ;
+		this.selectedEffort  = selection.effort ;
+		this.effectiveModel  = selection.model  ;
+		this.effectiveEffort = selection.effort ;
 		this.publish();
 		return {
 			state: "accepted",
@@ -1300,367 +1307,13 @@ export class ProjectWorkbench {
 		};
 	}
 
-	private mcpManagement(): McpManagementPort | null {
-		const candidate = this.native as Partial<McpManagementPort>;
+	private mcpManagement(): WorkbenchMcpManagement | null {
+		const candidate = this.native as Partial<WorkbenchMcpManagement>;
 		return typeof candidate.listMcpServers === "function"
 			&& typeof candidate.setMcpServerEnabled === "function"
 			&& typeof candidate.reloadMcpServers === "function"
-			? candidate as McpManagementPort
+			? candidate as WorkbenchMcpManagement
 			: null;
-	}
-
-	private requireMcpManagement(): McpManagementPort {
-		const management = this.mcpManagement();
-		if (!management) throw new Error("연결된 App Server는 MCP 서버 관리를 지원하지 않습니다.");
-		return management;
-	}
-
-	private async refreshMcpServers(commandId: string): Promise<WorkbenchCommandReceipt> {
-		this.mcpServers = immutable(await this.requireMcpManagement().listMcpServers());
-		this.publish();
-		return { state: "accepted", commandId };
-	}
-
-	private async setMcpServerEnabled(commandId: string, name: string, enabled: boolean): Promise<WorkbenchCommandReceipt> {
-		const management = this.requireMcpManagement();
-		await management.setMcpServerEnabled(name, enabled);
-		this.mcpServers = immutable(await management.listMcpServers());
-		this.publish();
-		return { state: "accepted", commandId };
-	}
-
-	private async reloadMcpServers(commandId: string): Promise<WorkbenchCommandReceipt> {
-		const management = this.requireMcpManagement();
-		await management.reloadMcpServers();
-		this.mcpServers = immutable(await management.listMcpServers());
-		this.publish();
-		return { state: "accepted", commandId };
-	}
-
-
-	private async refreshWooEntry(commandId: string): Promise<WorkbenchCommandReceipt> {
-		const entry = this.options.wooEntry;
-		if (!entry) return { state: "rejected", commandId, reason: "woo-entry가 이 세션에 연결되지 않았습니다." };
-		const snapshot = await entry.refresh();
-		this.publish();
-		if (snapshot.state === "blocked") {
-			return { state: "rejected", commandId, reason: `woo-entry BLOCKED: ${snapshot.reason}` };
-		}
-		if (snapshot.state === "loading") {
-			return { state: "rejected", commandId, reason: "woo-entry 수집이 아직 끝나지 않았습니다." };
-		}
-		const signalCount = snapshot.payload.signals.length;
-		return {
-			state: "accepted",
-			commandId,
-			message: signalCount > 0
-				? `woo-entry를 갱신했습니다 · signal ${signalCount}개`
-				: "woo-entry를 갱신했습니다.",
-		};
-	}
-
-	private currentSandboxPolicy(): NativeSandboxPolicy {
-		if (this.permissionMode === "all") return { type: "dangerFullAccess" };
-		return {
-			type: "workspaceWrite",
-			writableRoots: [this.options.cwd],
-			networkAccess: true,
-			excludeTmpdirEnvVar: false,
-			excludeSlashTmp: false,
-		};
-	}
-
-	private currentNativeCollaborationMode(goal = false): NativeCollaborationMode {
-		const planMode = this.collaborationMode === "plan";
-		return {
-			mode: planMode ? "plan" : "default",
-			settings: {
-				model: this.effectiveModel,
-				reasoning_effort: this.effectiveEffort,
-				developer_instructions: [
-					...(planMode ? [
-						"plan mode에서는 실행용 update_plan을 호출하지 마세요.",
-						"사용자가 검토할 계획 문서를 공개 응답으로 작성하고, 아직 실행하지 마세요.",
-					] : [
-						"여러 단계가 필요한 실행 작업이면 실행 전에 update_plan으로 간결한 체크리스트를 등록하고 실제 진행에 맞춰 상태를 갱신하세요.",
-						"단순 질문이나 한 단계 작업에는 계획을 만들지 마세요.",
-						"묶인 도구 실행 전에는 공개 commentary로 한국어 목적을 설명하고, 결과 뒤에는 확인한 관측을 짧게 설명하세요.",
-						"도구 성공이나 turn 종료만으로 계획 항목을 완료 처리하지 말고, 해당 단계의 결과를 확인한 뒤 native 계획 상태를 변경하세요.",
-					]),
-					...(goal ? [
-						"이 요청은 사용자가 정한 Goal입니다. 먼저 Goal을 실행 가능한 Native Plan으로 분해하고, 관측된 Plan을 Todo로 동기화한 뒤 각 단계를 실행하세요.",
-					] : []),
-				].join(" "),
-			},
-		};
-	}
-
-	private async captureNote(
-		commandId: string,
-		activityIds: readonly string[],
-	): Promise<WorkbenchCommandReceipt> {
-		if (!this.options.tnotes) return { state: "rejected", commandId, reason: "Notes 저장소가 연결되지 않았습니다." };
-		const uniqueIds = [...new Set(activityIds)];
-		if (uniqueIds.length === 0 || uniqueIds.some((id) => !this.activities.some((activity) => activity.id === id))) {
-			return { state: "rejected", commandId, reason: "Note의 source activity를 확인할 수 없습니다." };
-		}
-		const selected = this.activities.filter((activity) => uniqueIds.includes(activity.id))
-			.sort((left, right) => left.sequence - right.sequence);
-		const scope = resolveCompletedTurnNoteScope(selected, { type: "exact-selection" });
-		if (!scope) return { state: "rejected", commandId, reason: "Note는 완료된 질문 하나의 전체 turn 범위여야 합니다." };
-		const request = this.tnoteRequest(scope.activities);
-		let existing = request.turnId ? this.noteForTurn(request.turnId) : undefined;
-		if (existing) return { state: "accepted", commandId, message: `Note #${existing.sequence}을 사용합니다.` };
-		if (request.turnId && this.automaticTNoteTurns.has(request.turnId)) {
-			await this.tnoteQueue;
-			existing = this.noteForTurn(request.turnId);
-			if (existing) return { state: "accepted", commandId, message: `Note #${existing.sequence}을 사용합니다.` };
-		}
-		const draft = await this.createTNote(request, request.turnId);
-		if (!validateCanonicalTNote(draft.text, request.input.expectedQuestion, { allowLegacy: true, allowRuntimeTestSummary: true }).valid) {
-			return { state: "rejected", commandId, reason: "Note 생성 결과 형식이 올바르지 않습니다." };
-		}
-		this.noteDrafts.set(draft.id, draft);
-		this.notes.push(immutable(projectTNote(draft)));
-		this.setActionResult("tnote", `Note #${draft.sequence}`, draft.text, draft.packet.digest);
-		return { state: "accepted", commandId, message: `Note #${draft.sequence}을 만들었습니다.` };
-	}
-
-	private async captureSessionNote(commandId: string): Promise<WorkbenchCommandReceipt> {
-		const scope = resolveCompletedTurnNoteScope(this.visibleActivities, { type: "latest" });
-		if (!scope) return { state: "rejected", commandId, reason: "요약할 완료된 질문이 없습니다." };
-		return this.captureNote(
-			commandId,
-			scope.activities.map((activity) => activity.id),
-		);
-	}
-
-	private async captureNoteRange(
-		commandId: string,
-		startSequence: number,
-		endSequence: number,
-	): Promise<WorkbenchCommandReceipt> {
-		if (!Number.isSafeInteger(startSequence) || !Number.isSafeInteger(endSequence) || startSequence < 1 || endSequence < startSequence) {
-			return { state: "rejected", commandId, reason: "Note sequence 범위가 올바르지 않습니다." };
-		}
-		const selected = this.activities.filter((activity) => activity.sequence >= startSequence && activity.sequence <= endSequence);
-		if (selected.length !== endSequence - startSequence + 1 || selected[0]?.sequence !== startSequence || selected.at(-1)?.sequence !== endSequence) {
-			return { state: "rejected", commandId, reason: "요청한 Note sequence 범위가 activity journal에서 연속되지 않습니다." };
-		}
-		return this.captureNote(commandId, selected.map((activity) => activity.id));
-	}
-
-	private tnoteRequest(selected: readonly ProjectActivity[]): {
-		readonly turnId: string;
-		readonly input: Parameters<WorkbenchTNoteSource["create"]>[0];
-	} {
-		const turnId = selected.at(-1)!.nativeRefs.turnId!;
-		const scope = resolveCompletedTurnNoteScope(selected, { type: "turn", turnId })!;
-		const question = scope.question;
-		const terminalActivity = selected.at(-1)!;
-		const packetActivities = boundCompletedTurnNoteActivities(selected, MAX_TNOTE_SOURCE_ACTIVITIES);
-		const threadId = terminalActivity.nativeRefs.threadId!;
-		const number = this.completionOrdinal(threadId, turnId);
-		return {
-			turnId,
-			input: {
-				projectId: this.options.projectId,
-				range: { startSequence: selected[0]!.sequence, endSequence: selected.at(-1)!.sequence },
-				activities: packetActivities.map((activity) => ({
-					...projectActivityToTNoteSource(activity),
-					...(activity.id === terminalActivity.id ? {
-						completion: { threadId, turnId, number, terminalActivityId: terminalActivity.id },
-					} : {}),
-				})),
-				instruction: turnTNoteInstruction(question),
-				expectedQuestion: question,
-			},
-		};
-	}
-
-	private completionOrdinal(threadId: string, turnId: string): number {
-		const key = `${threadId}:${turnId}`;
-		const reserved = this.completionOrdinals.get(key);
-		if (reserved) return reserved;
-		const durableMaximum = [...this.noteDrafts.values()]
-			.map((note) => note.packet.completion)
-			.filter((completion): completion is NonNullable<typeof completion> => completion?.threadId === threadId)
-			.reduce((maximum, completion) => Math.max(maximum, completion.number), 0);
-		const visibleMaximum = projectTNoteCompletionIndex(
-			this.visibleActivities,
-			[...this.noteDrafts.values()].map((note) => ({
-				id: note.id,
-				sourceActivityIds: note.packet.activities.map((activity) => activity.id),
-				completion: note.packet.completion,
-			})),
-		).filter((completion) => completion.threadId === threadId && completion.turnId !== turnId)
-			.reduce((maximum, completion) => Math.max(maximum, completion.number), 0);
-		const number = Math.max(durableMaximum, visibleMaximum) + 1;
-		this.completionOrdinals.set(key, number);
-		return number;
-	}
-
-	private async createTNote(
-		request: ReturnType<ProjectWorkbench["tnoteRequest"]>,
-		turnId?: string,
-	): Promise<TNoteDraft> {
-		if (!this.options.tnotes) throw new Error("Notes 저장소가 연결되지 않았습니다.");
-		if (turnId) {
-			const inFlight = this.tnoteInFlight.get(turnId);
-			if (inFlight) return inFlight;
-			this.automaticTNoteTurns.add(turnId);
-			const pending = this.options.tnotes.create(request.input, this.narrationAbort.signal);
-			this.tnoteInFlight.set(turnId, pending);
-			try { return await pending; } finally {
-				this.tnoteInFlight.delete(turnId);
-				this.automaticTNoteTurns.delete(turnId);
-			}
-		}
-		return this.options.tnotes.create(request.input, this.narrationAbort.signal);
-	}
-
-	private noteForTurn(turnId: string): TNoteDraft | undefined {
-		const scope = resolveCompletedTurnNoteScope(this.visibleActivities, { type: "turn", turnId });
-		const terminalActivityId = scope?.activities.at(-1)?.id;
-		return terminalActivityId
-			? [...this.noteDrafts.values()].find((note) => note.packet.activities.some((activity) => activity.id === terminalActivityId))
-			: undefined;
-	}
-
-	private async mutateTodo(
-		commandId: string,
-		title: string,
-		operation: () => Promise<TodoDocument>,
-	): Promise<WorkbenchCommandReceipt> {
-		if (this.requestRecords().length) return { state: "rejected", commandId, reason: "이 Todo는 Request Runtime의 7단계 기록입니다. 입력창에서 단계의 하위 작업 변경을 요청하세요." };
-		const document = await operation();
-		this.setActionResult("todo", title, todoResultBody(document));
-		return { state: "accepted", commandId, message: title };
-	}
-
-	private async transitionTodo(
-		commandId: string,
-		action: "start" | "complete" | "block" | "reopen",
-		itemId: string,
-	): Promise<WorkbenchCommandReceipt> {
-		const todos = this.requireTodos();
-		return this.mutateTodo(commandId, `Todo ${action}: ${itemId}`, () => todos[action](itemId));
-	}
-
-	private async recordTodoEvidence(commandId: string, activityId: string): Promise<WorkbenchCommandReceipt> {
-		if (this.requestRecords().length) return { state: "rejected", commandId, reason: "Runtime Evidence는 Native 단계 보고와 실제 Activity 참조로 연결합니다." };
-		if (!this.activities.some((activity) => activity.id === activityId)) {
-			return { state: "rejected", commandId, reason: `Evidence activity를 찾을 수 없습니다: ${activityId}` };
-		}
-		const document = await this.requireTodos().recordEvidence(activityId);
-		if (!document) return { state: "rejected", commandId, reason: "증거를 연결할 진행 중 Todo가 없습니다." };
-		this.setActionResult("todo", "Todo 증거 연결", todoResultBody(document));
-		return { state: "accepted", commandId, message: `${activityId} 증거를 연결했습니다.` };
-	}
-
-	private async importLegacyTodo(commandId: string): Promise<WorkbenchCommandReceipt> {
-		const imported = await this.requireTodos().importLegacy();
-		if (!imported) return { state: "rejected", commandId, reason: "가져올 legacy Todo가 없거나 정본 Todo가 이미 존재합니다." };
-		this.setActionResult("todo", "Legacy Todo 가져오기", imported);
-		return { state: "accepted", commandId, message: "Legacy Todo를 비파괴 방식으로 가져왔습니다." };
-	}
-
-	private async acceptPromotion(commandId: string, noteId: string, acceptedBy: string): Promise<WorkbenchCommandReceipt> {
-		const promotions = this.options.promotions;
-		if (!promotions) return { state: "rejected", commandId, reason: "정본 승격 서비스가 연결되지 않았습니다." };
-		const note = this.noteDrafts.get(noteId);
-		if (!note) return { state: "rejected", commandId, reason: `Note를 찾을 수 없습니다: ${noteId}` };
-		const draft = canonicalTNoteDraft(note, this.options.projectId);
-		const accepted = await promotions.accept(draft, acceptedBy);
-		this.promotionDrafts.set(accepted.token, draft);
-		this.setActionResult(
-			"promotion",
-			`승격 승인 대기: ${accepted.target}`,
-			`${accepted.diff}\n\n확인 토큰: ${accepted.token}`,
-			accepted.afterDigest,
-		);
-		return { state: "accepted", commandId, message: "diff를 확인한 뒤 one-time token으로 승격을 확정하세요." };
-	}
-
-	private async confirmPromotion(commandId: string, token: string): Promise<WorkbenchCommandReceipt> {
-		const promotions = this.options.promotions;
-		if (!promotions) return { state: "rejected", commandId, reason: "정본 승격 서비스가 연결되지 않았습니다." };
-		const draft = this.promotionDrafts.get(token);
-		if (!draft) return { state: "rejected", commandId, reason: "알 수 없거나 이미 사용한 승격 토큰입니다." };
-		const promoted = await promotions.promote(draft, token);
-		if (promoted.status === "promoted") this.promotionDrafts.delete(token);
-		this.setActionResult(
-			"promotion",
-			promoted.status === "promoted" ? `정본 승격 완료: ${promoted.target}` : `승격 재승인 필요: ${promoted.reason}`,
-			promoted.diff,
-			promoted.afterDigest,
-		);
-		if (promoted.status !== "promoted") return { state: "rejected", commandId, reason: `승격 초안이 오래되었습니다: ${promoted.reason}` };
-		return { state: "accepted", commandId, message: "정본 파일에 기록했습니다. Git 상태는 uncommitted입니다." };
-	}
-
-	private async previewReview(
-		commandId: string,
-		provider: ReviewProvider,
-		noteId: string,
-		request: string,
-		confirmedPublic: true,
-	): Promise<WorkbenchCommandReceipt> {
-		const reviews = this.options.reviews;
-		if (!reviews) return { state: "rejected", commandId, reason: "외부 리뷰 서비스가 연결되지 않았습니다." };
-		if (confirmedPublic !== true) return { state: "rejected", commandId, reason: "Note를 public으로 명시 확인해야 합니다." };
-		const note = this.noteDrafts.get(noteId);
-		if (!note) return { state: "rejected", commandId, reason: `Note를 찾을 수 없습니다: ${noteId}` };
-		const preview = reviews.preview({
-			purpose: { value: `Note ${note.id} 독립 검토`, sensitivity: "public" },
-			request: { value: request, sensitivity: "public" },
-			context: { value: note.text, sensitivity: "public" },
-		});
-		this.reviewPreviews.set(preview.packet.digest, { provider, packet: preview.packet });
-		this.setActionResult("review", `${provider} 전송 미리보기`, stableJson(preview.packet), preview.packet.digest);
-		return { state: "accepted", commandId, message: "표시된 exact digest를 승인해 전송하세요." };
-	}
-
-	private async sendReview(commandId: string, digest: string): Promise<WorkbenchCommandReceipt> {
-		const reviews = this.options.reviews;
-		if (!reviews) return { state: "rejected", commandId, reason: "외부 리뷰 서비스가 연결되지 않았습니다." };
-		const preview = this.reviewPreviews.get(digest);
-		if (!preview) return { state: "rejected", commandId, reason: "승인할 리뷰 preview digest를 찾을 수 없습니다." };
-		const delivery = await reviews.send({ packet: preview.packet, acceptedDigest: digest, provider: preview.provider });
-		this.reviewPreviews.delete(digest);
-		this.setActionResult(
-			"review",
-			`${delivery.provider}/${delivery.model} 검토 결과`,
-			`${delivery.result}\n\nprovenance: ${stableJson({ packetDigest: delivery.packetDigest, resultDigest: delivery.resultDigest, version: delivery.version, sentAt: delivery.sentAt, receivedAt: delivery.receivedAt })}`,
-			delivery.resultDigest,
-		);
-		return { state: "accepted", commandId, message: "독립 리뷰 결과와 provenance를 저장했습니다." };
-	}
-
-	private requireTodos(): WorkbenchTodoSource {
-		if (!this.options.todos) throw new Error("Todo 저장소가 연결되지 않았습니다.");
-		return this.options.todos;
-	}
-
-	private async bindThreadSources(threadId: string): Promise<void> {
-		await this.options.tnotes?.bindThread?.(threadId);
-		await this.loadBoundTNotes();
-		await this.bindTodoThread(threadId);
-	}
-
-	private async loadBoundTNotes(): Promise<void> {
-		if (!this.options.tnotes) return;
-		const notes = await this.options.tnotes.readAll(this.options.projectId);
-		for (const note of notes) {
-			this.noteDrafts.set(note.id, note);
-			if (note.packet.completion) {
-				this.completionOrdinals.set(
-					`${note.packet.completion.threadId}:${note.packet.completion.turnId}`,
-					note.packet.completion.number,
-				);
-			}
-			this.notes.push(immutable(projectTNote(note)));
-		}
 	}
 
 	private async bindTodoThread(threadId: string): Promise<void> {
@@ -1673,7 +1326,7 @@ export class ProjectWorkbench {
 	private async runLocalWorkflow(commandId: string, command: Extract<WorkbenchCommand, { type: "workflow.check" | "workflow.resume" | "workflow.show" }>): Promise<WorkbenchCommandReceipt> {
 		const service = this.options.localWorkflow;
 		if (!service) return { state: "rejected", commandId, reason: "로컬 Workflow 검사가 연결되지 않았습니다." };
-		if (command.type !== "workflow.show" && (this.activeTurnId || this.pendingApproval || this.chatDeliveryBlocked)) {
+		if (command.type !== "workflow.show" && (this.activeTurnId || this.pendingApproval || this.nativeTurn.deliveryBlocked)) {
 			return { state: "rejected", commandId, reason: "Native 실행이 종료되고 전송 상태가 확인된 뒤 로컬 Workflow를 실행하세요." };
 		}
 		const result = command.type === "workflow.check" ? await service.run(command.processId)
@@ -1693,346 +1346,6 @@ export class ProjectWorkbench {
 		this.publish();
 	}
 
-	/** @linear WOO-688 WOO-690 */
-	private async recordNativeEvent(event: NativeHarnessEvent): Promise<void> {
-		if (this.closed || this.recordingReadOnly) return;
-		// A shared App Server can emit for threads this workbench does not own, and the journal
-		// stays unbound until this session adopts its own thread.  Such an event has no stream to
-		// land in; journaling it would fail the whole session on an internal invariant.
-		if (this.journal.hasBoundThread?.() === false) return;
-		if (event.type === "approval-resolved" && this.pendingApproval?.requestId === event.requestId
-			&& (!event.refs.threadId || event.refs.threadId === this.pendingApproval.refs.threadId)) {
-			event = { ...event, refs: { ...this.pendingApproval.refs, ...event.refs, approvalCallbackId: this.pendingApproval.callbackId } };
-		}
-		if (event.type === "notification") {
-			const refs = this.normalizeNativeRefs(event.refs);
-			if (refs !== event.refs) event = { ...event, refs };
-			this.rememberNativeRefs(event.refs);
-		}
-		const projection = projectNativeEvent(event);
-		const eventBelongsToRootThread = event.type !== "notification"
-			|| this.isRootThreadEvent(event.refs.threadId);
-		if (eventBelongsToRootThread && event.type === "notification" && event.method === "thread/tokenUsage/updated") {
-			this.usageTracker.observe(event, this.threadId, this.contextTurnId);
-		}
-		if (projection.type === "delta") {
-			if (eventBelongsToRootThread) await this.applyDelta(projection);
-			return;
-		}
-		const { lifecycle, observation } = projection;
-		const sourceDigest = digestSource(stableJson(event));
-		const terminalItemCandidate = event.type === "notification" && Boolean(event.refs.itemId)
-			&& isTerminalActivityPhase(observation.phase);
-		if (terminalItemCandidate && event.type === "notification" && projection.assistantMessage
-			&& !nativeItemIdentity(event.refs)) return;
-		const terminalItemObservation = terminalItemCandidate && Boolean(nativeItemIdentity(observation.refs));
-		if (terminalItemObservation && event.type === "notification" && this.hasTerminalItem(event.refs)) return;
-		const completedActiveTurn = eventBelongsToRootThread && lifecycle === "terminal" && event.type === "notification" &&
-			event.refs.turnId === this.activeTurnId;
-		const completedSummaryCheckpoint = completedActiveTurn && event.type === "notification" &&
-			event.method.toLowerCase() === "turn/completed" && observation.phase === "completed";
-		const terminalItemMissingMessage = event.type === "notification"
-			&& eventBelongsToRootThread
-			&& terminalItemObservation
-			&& projection.assistantMessage
-			&& activityText(observation.payload).trim().length === 0;
-		if (terminalItemMissingMessage && event.type === "notification") {
-			await this.preserveUnfinalizedAssistantResponse(event, observation.phase);
-		}
-		if (completedActiveTurn && event.type === "notification") {
-			await this.preserveUnfinalizedAssistantResponse(event, observation.phase);
-		}
-		await this.appendActivity(
-			observation.kind,
-			observation.phase,
-			observation.refs,
-			observation.payload,
-			false,
-			sourceDigest,
-		);
-		if (completedSummaryCheckpoint && event.type === "notification" && event.refs.threadId && event.refs.turnId) {
-			await this.projectPublicPlanFallback(event.refs.threadId, event.refs.turnId);
-		}
-		const projectedGoal = projectSessionGoal(this.visibleActivities);
-		if (projectedGoal) this.sessionGoal = projectedGoal;
-		if (event.type === "approval-requested" && this.isRootThreadEvent(event.approval.refs.threadId)) {
-			this.pendingApproval = immutable(event.approval);
-		}
-		const approvalResolved = event.type === "approval-resolved" && this.pendingApproval?.requestId === event.requestId
-			&& event.refs.threadId === this.pendingApproval.refs.threadId;
-		if (approvalResolved && this.pendingApproval) {
-			this.approvalDispatcher.confirmNativeResolved(this.pendingApproval);
-			this.pendingApproval = null;
-		}
-		if (event.type === "notification") {
-			const lateStartForTerminalTurn = lifecycle === "started" && event.refs.turnId
-				? this.hasTerminalTurn(event.refs.threadId ?? this.threadId ?? undefined, event.refs.turnId)
-				: false;
-			if (eventBelongsToRootThread && lifecycle === "started" && event.refs.turnId && !lateStartForTerminalTurn) {
-				const reconciledChat = this.blockedChat;
-				this.activeTurnId = event.refs.turnId;
-				this.selectedPlanTurnId = event.refs.turnId;
-				this.contextTurnId = event.refs.turnId;
-				if (!this.collaborationModeByTurnId.has(event.refs.turnId)) {
-					this.collaborationModeByTurnId.set(event.refs.turnId, this.collaborationMode);
-				}
-				if (!this.usageTracker.hasTurn(event.refs.turnId)) {
-					this.usageTracker.bindTurn(event.refs.turnId, this.effectiveModel, this.effectiveEffort);
-				}
-				this.chatDeliveryBlocked = false;
-				if (reconciledChat) this.error = null;
-				if (reconciledChat && this.chatQueue[0]?.id === reconciledChat.id) this.chatQueue.shift();
-				this.blockedChat = null;
-				if (reconciledChat) {
-					await this.appendActivity("message", "completed", {
-						threadId: event.refs.threadId ?? this.threadId ?? undefined,
-						itemId: reconciledChat.id,
-					}, {
-						direction: "outbound",
-						role: "user",
-						text: reconciledChat.content,
-					}, false);
-				}
-			}
-			if (eventBelongsToRootThread && lifecycle === "terminal" && event.refs.turnId === this.activeTurnId) this.activeTurnId = null;
-		}
-		const eventPhase = event.type === "notification" ? observation.phase : null;
-		const clearsTerminalProjection = eventPhase === "completed" || lifecycle === "terminal"
-			|| Boolean(event.type === "notification" && event.refs.itemId && eventPhase && isTerminalActivityPhase(eventPhase));
-		if (eventBelongsToRootThread && event.type === "notification" && clearsTerminalProjection) {
-			const completedIdentity = nativeItemIdentity(event.refs);
-			const itemScopedTerminal = Boolean(event.refs.itemId);
-			const terminalScope: TerminalProjectionScope = {
-				itemScoped: itemScopedTerminal,
-				completedIdentity,
-				terminalTurn: lifecycle === "terminal",
-				refs: event.refs,
-			};
-			if (shouldClearTerminalProjection(this.draftIdentity, this.draftNativeRefs, terminalScope)) {
-				this.draft = "";
-				this.draftIdentity = null;
-				this.draftNativeRefs = null;
-				this.draftProjection = emptyBoundedTextProjection();
-				this.draftEnvelopeClipped = false;
-			}
-			if (shouldClearTerminalProjection(this.reasoningIdentity, this.reasoningNativeRefs, terminalScope)) {
-				this.reasoningDraft = "";
-				this.reasoningIdentity = null;
-				this.reasoningNativeRefs = null;
-				this.reasoningProjection = emptyBoundedTextProjection();
-			}
-			if (shouldClearTerminalProjection(this.reasoningSummaryIdentity, this.reasoningSummaryNativeRefs, terminalScope)) {
-				this.reasoningSummaryDraft = "";
-				this.reasoningSummaryIdentity = null;
-				this.reasoningSummaryNativeRefs = null;
-				this.reasoningSummaryProjection = emptyBoundedTextProjection();
-			}
-			const liveActivityIdentity = this.liveActivity ? nativeItemIdentity(this.liveActivity.nativeRefs) : null;
-			if (shouldClearTerminalProjection(liveActivityIdentity, this.liveActivity?.nativeRefs ?? null, terminalScope)) {
-				this.liveActivity = null;
-				this.liveActivityProjection = emptyBoundedTextProjection();
-			}
-		}
-		const refs = event.type === "approval-requested" ? event.approval.refs : event.refs;
-		this.reconcileNativeState(refs.threadId ?? this.threadId ?? undefined);
-		this.publish();
-		if (completedSummaryCheckpoint && event.type === "notification" && event.refs.turnId) {
-			this.scheduleAutomaticTNote(event.refs.turnId);
-		}
-		if (completedActiveTurn || approvalResolved) await this.drainChatQueue();
-	}
-
-	private async projectPublicPlanFallback(threadId: string, turnId: string): Promise<void> {
-		if (this.collaborationModeByTurnId.get(turnId) !== "plan") return;
-		const sameTurn = this.activities.filter((activity) =>
-			activity.nativeRefs.threadId === threadId && activity.nativeRefs.turnId === turnId);
-		if (sameTurn.some(isStructuredPlanActivity) || sameTurn.some(isPublicPlanFallbackActivity)) return;
-		const assistants = sameTurn.slice().reverse().filter((activity) =>
-			activity.kind === "message"
-			&& activity.phase === "completed"
-			&& isAssistantMessageActivity(activity)
-			&& activity.payload.finalObservation !== "missing"
-			&& activityText(activity.payload).trim().length > 0);
-		const request = sameTurn.find((activity) => activity.payload.method === "request/started");
-		const requestId = typeof request?.payload.requestId === "string" ? request.payload.requestId : null;
-		const outbound = requestId ? this.activities.slice().reverse().find((activity) =>
-			activity.nativeRefs.threadId === threadId
-			&& activity.nativeRefs.itemId === requestId
-			&& activity.payload.direction === "outbound"
-			&& typeof activity.payload.text === "string") : undefined;
-		const requestText = typeof outbound?.payload.text === "string" ? outbound.payload.text : "";
-		const candidate = assistants.map((assistant) => ({
-			assistant,
-			entries: publicNumberedPlanEntries(activityText(assistant.payload), requestText),
-		})).find((value) => value.entries !== null);
-		if (!candidate?.entries) {
-			return;
-		}
-		const { assistant, entries } = candidate;
-		const refs = {
-			threadId,
-			turnId,
-			itemId: `public-plan-fallback:${turnId}`,
-		};
-		const payload = {
-			method: "turn/plan/public-fallback",
-			source: "public-assistant-response",
-			sourceActivityId: assistant.id,
-			sourceItemId: assistant.nativeRefs.itemId ?? null,
-			params: { plan: entries },
-		};
-		await this.appendActivity("progress", "completed", refs, payload, false, digestSource(stableJson({ refs, payload })));
-	}
-
-	/**
-	 * Notes describe one completed user question at a time. Generation stays
-	 * on a detached queue so it cannot delay the next native Chat turn.
-	 */
-	private scheduleAutomaticTNote(turnId: string): void {
-		if (!this.options.tnotes || this.closed || this.narrationAbort.signal.aborted || this.automaticTNoteTurns.has(turnId) || this.failedAutomaticTNoteTurns.has(turnId)) return;
-		const scope = resolveCompletedTurnNoteScope(this.visibleActivities, { type: "turn", turnId });
-		if (!scope || this.hasTNoteFor(scope.activities)) return;
-		this.automaticTNoteTurns.add(turnId);
-		const request = this.tnoteRequest(scope.activities);
-		// The detached writer deliberately does not block the next chat turn.  Make that
-		// delay explicit instead of leaving a completed turn looking as though its report
-		// was dropped.
-		this.setActionResult("tnote", "완료 보고 작성 중", "요청은 완료되었습니다. 검증 근거를 포함한 Report를 Chat 타임라인에 저장하고 있습니다.");
-		this.tnoteQueue = this.tnoteQueue
-			.catch(() => undefined)
-			.then(async () => {
-				try {
-					const draft = await this.createTNote(request, turnId);
-					if (this.closed || this.narrationAbort.signal.aborted) return;
-					if (!validateCanonicalTNote(draft.text, request.input.expectedQuestion, { allowLegacy: true, allowRuntimeTestSummary: true }).valid) {
-						throw new Error("Note 생성 결과 형식이 올바르지 않습니다.");
-					}
-					this.noteDrafts.set(draft.id, draft);
-					this.notes.push(immutable(projectTNote(draft)));
-					this.failedAutomaticTNoteTurns.delete(turnId);
-					this.setActionResult("tnote", `완료 보고 #${draft.sequence}`, "검증 근거를 포함한 Report를 Chat 타임라인에 저장했습니다.");
-				} catch {
-					if (this.closed || this.narrationAbort.signal.aborted) return;
-					this.failedAutomaticTNoteTurns.add(turnId);
-					if (this.actionResult?.kind === "tnote" && this.actionResult.title === "완료 보고 작성 중") {
-						this.actionResult = null;
-						this.publish();
-					}
-				} finally {
-					this.automaticTNoteTurns.delete(turnId);
-				}
-			});
-	}
-
-	private reconcileAutomaticTNotes(): void {
-		const turnIds = new Set<string>();
-		for (const activity of this.visibleActivities) {
-			if (activity.payload.method === "turn/completed" && activity.phase === "completed" && activity.nativeRefs.turnId) {
-				turnIds.add(activity.nativeRefs.turnId);
-			}
-		}
-		for (const turnId of turnIds) this.scheduleAutomaticTNote(turnId);
-	}
-
-	private hasTNoteFor(activities: readonly ProjectActivity[]): boolean {
-		const terminalActivityId = activities.at(-1)?.id;
-		return Boolean(terminalActivityId && [...this.noteDrafts.values()]
-			.some((note) => note.packet.activities.some((activity) => activity.id === terminalActivityId)));
-	}
-
-	/** @linear WOO-688 */
-	private async applyDelta(event: NativeEventDeltaProjection): Promise<void> {
-		if (event.refs.threadId) this.threadId = event.refs.threadId;
-		const delta = event.text;
-		const itemIdentity = nativeItemIdentity(event.refs);
-		if (event.refs.turnId && (this.hasTerminalTurn(event.refs.threadId, event.refs.turnId) || this.hasTerminalItem(event.refs))) return;
-		if (event.channel === "assistant" && delta.trim().length > 0 && event.refs.turnId &&
-			this.usageTracker.hasTurn(event.refs.turnId) &&
-			!this.firstOutputObservedTurns.has(event.refs.turnId)) {
-			await this.appendActivity("progress", "completed", {
-				threadId: event.refs.threadId ?? this.threadId ?? undefined,
-				turnId: event.refs.turnId,
-			}, { method: "turn/first-output-observed" }, false, digestSource(stableJson({
-				method: "turn/first-output-observed",
-				refs: { threadId: event.refs.threadId, turnId: event.refs.turnId },
-			})));
-			this.firstOutputObservedTurns.add(event.refs.turnId);
-		}
-		if (!itemIdentity) {
-			this.publish();
-			return;
-		}
-		if (event.channel === "reasoning-summary") {
-			const projection = projectStreamingText(
-				this.reasoningSummaryIdentity,
-				itemIdentity,
-				this.reasoningSummaryProjection,
-				delta,
-				REASONING_DRAFT_TAIL_CHARACTER_LIMIT,
-			);
-			this.reasoningSummaryIdentity = projection.identity;
-			this.reasoningSummaryNativeRefs = event.refs;
-			this.reasoningSummaryProjection = projection.state;
-			this.reasoningSummaryDraft = projection.text;
-		} else if (event.channel === "reasoning") {
-			const projection = projectStreamingText(
-				this.reasoningIdentity,
-				itemIdentity,
-				this.reasoningProjection,
-				delta,
-				REASONING_DRAFT_TAIL_CHARACTER_LIMIT,
-			);
-			this.reasoningIdentity = projection.identity;
-			this.reasoningNativeRefs = event.refs;
-			this.reasoningProjection = projection.state;
-			this.reasoningDraft = projection.text;
-		} else if (event.channel === "assistant") {
-			if (itemIdentity && this.draftIdentity && itemIdentity !== this.draftIdentity) {
-				this.draftProjection = emptyBoundedTextProjection();
-				this.draftEnvelopeClipped = false;
-			}
-			this.draftIdentity = itemIdentity ?? this.draftIdentity;
-			this.draftNativeRefs = event.refs;
-			const candidate = this.draftProjection.tail + delta;
-			const projection = appendBoundedText(this.draftProjection, delta, ASSISTANT_DRAFT_TAIL_CHARACTER_LIMIT);
-			// Sanitize before clipping: losing a private envelope opener must never turn
-			// its tail into public prose. Keep the last known public fragment until final.
-			if (!this.draftEnvelopeClipped) {
-				const publicText = sanitizePartialAssistantResponse(candidate);
-				const isEnvelope = /^\s*<(?:analysis|results|files|answer|next_steps)\s*>/iu.test(candidate);
-				this.draft = isEnvelope
-					? appendBoundedText(emptyBoundedTextProjection(), publicText, ASSISTANT_DRAFT_TAIL_CHARACTER_LIMIT).text
-					: projection.text;
-				if (isEnvelope && projection.state.omittedCharacters > 0) {
-					this.draftEnvelopeClipped = true;
-					this.draft += "\n… 응답 앞부분이 생략되어 이후 공개 본문 표시를 보류합니다 …";
-				}
-			}
-			this.draftProjection = projection.state;
-		} else {
-			const continuesSameActivity = this.liveActivity?.method === event.method &&
-				this.liveActivity.nativeRefs.threadId === event.refs.threadId &&
-				this.liveActivity.nativeRefs.itemId === event.refs.itemId &&
-				this.liveActivity.nativeRefs.turnId === event.refs.turnId;
-			if (!continuesSameActivity) {
-				this.liveActivityProjection = emptyBoundedTextProjection();
-			}
-			const projection = appendBoundedText(
-				this.liveActivityProjection,
-				delta,
-				LIVE_ACTIVITY_TAIL_CHARACTER_LIMIT,
-			);
-			this.liveActivityProjection = projection.state;
-			this.liveActivity = {
-				method: event.method,
-				kind: event.activityKind === "message" ? "progress" : event.activityKind,
-				text: projection.text,
-				nativeRefs: event.refs,
-			};
-		}
-		this.publish();
-	}
-
 	private async appendActivity(
 		kind: ProjectActivityKind,
 		phase: ProjectActivityPhase,
@@ -2041,114 +1354,11 @@ export class ProjectWorkbench {
 		publish = true,
 		sourceDigest?: string,
 	): Promise<ProjectActivity> {
-		const digest = sourceDigest ?? digestSource(stableJson({ kind, phase, nativeRefs, payload }));
-		const result = await this.journal.append({
-			projectId: this.activityJournalProjectId(),
-			kind,
-			phase,
-			provider: this.options.provider ?? "openai-codex",
-			nativeRefs,
-			sourceDigest: digest,
-			payload,
-		});
-		const durableActivity = immutable(result.activity);
-		if (result.appended && this.options.developmentObserver) {
-			try {
-				await this.options.developmentObserver.capture(durableActivity);
-			} catch (error) {
-				// A recording failure must not turn a successful Native operation into a failure.
-				this.developmentRecordingError = errorMessage(error);
-			}
-		}
-		const added = result.appended || !this.activities.some((activity) => activity.id === result.activity.id);
-		if (added) {
-			this.activities.push(durableActivity);
-			const reduction = this.reduceExecutionActivity(durableActivity);
-			const visible = this.isActivityVisible(durableActivity);
-			if (visible) this.visibleActivities.push(durableActivity);
-			this.invalidateWorkFlow();
-			this.scheduleNarrations();
-			if (visible) this.scheduleNativeTodoSync(durableActivity);
-			if (reduction?.accepted && reduction.state.receipt && !this.hasCompletionReceipt(reduction.state)) {
-				await this.appendExecutionReceipt(reduction.state);
-			}
-		}
-		this.rememberTerminalTurn(durableActivity);
-		this.rememberTerminalItem(durableActivity);
-		if (publish) this.publish();
-		return durableActivity;
-	}
-
-
-	private reduceExecutionActivity(activity: ProjectActivity): { state: ExecutionRunState; accepted: boolean } | null {
-		return this.executionRuns.observe(activity, this.activities);
-	}
-
-	private hasCompletionReceipt(run: ExecutionRunState): boolean {
-		return this.activities.some((activity) => activity.payload.method === "execution/completion-receipt"
-			&& activity.nativeRefs.threadId === run.threadId
-			&& activity.nativeRefs.turnId === run.turnId
-			&& activity.payload.receiptId === run.receipt?.receiptId);
-	}
-
-	private async appendExecutionReceipt(run: ExecutionRunState): Promise<void> {
-		const receipt = run.receipt;
-		if (!receipt || this.hasCompletionReceipt(run)) return;
-		const nativeRefs = { threadId: run.threadId, turnId: run.turnId };
-		const payload = {
-			method: "execution/completion-receipt", receiptId: receipt.receiptId,
-			receiptDigest: receipt.receiptDigest, checkpointDigest: receipt.checkpointDigest, receipt,
-		};
-		await this.appendActivity(
-			"progress",
-			"completed",
-			nativeRefs,
-			payload,
-			false,
-			digestSource(stableJson({ kind: "progress", phase: "completed", nativeRefs, payload })),
-		);
+		return this.activityJournal.append(kind, phase, nativeRefs, payload, publish, sourceDigest);
 	}
 
 	private selectedExecutionRun(): ExecutionRunState | null {
-		const turnId = this.activeTurnId ?? this.selectedPlanTurnId;
-		return this.threadId && turnId ? this.executionRuns.get(`${this.threadId}:${turnId}`) ?? null : null;
-	}
-
-	private activityJournalProjectId(): string {
-		return this.options.activityJournalProjectId ?? this.options.projectId;
-	}
-
-	private reconcileNativeState(threadId: string | undefined): void {
-		if (!threadId) return;
-		if (this.threadId && this.threadId !== threadId) return;
-		const currentActiveTurnId = this.threadId === threadId ? this.activeTurnId : null;
-		this.threadId = threadId;
-		this.activeTurnId = currentActiveTurnId && !this.hasTerminalTurn(threadId, currentActiveTurnId)
-			? currentActiveTurnId
-			: null;
-	}
-
-	private isRootThreadEvent(threadId: string | undefined): boolean {
-		return Boolean(threadId && (!this.threadId || threadId === this.threadId));
-	}
-
-	private normalizeNativeRefs(refs: NativeRefs): NativeRefs {
-		let threadId = refs.threadId;
-		let turnId = refs.turnId;
-		if (!threadId && turnId) threadId = soleValue(this.threadOwnersByTurnId.get(turnId));
-		if (threadId && !turnId && refs.itemId) {
-			turnId = soleValue(this.turnOwnersByThreadItemId.get(threadItemKey(threadId, refs.itemId)));
-		}
-		if (threadId === refs.threadId && turnId === refs.turnId) return refs;
-		return { ...refs, ...(threadId ? { threadId } : {}), ...(turnId ? { turnId } : {}) };
-	}
-
-	private rememberNativeRefs(refs: NativeRefs): void {
-		if (!refs.threadId || !refs.turnId) return;
-		addOwner(this.threadOwnersByTurnId, refs.turnId, refs.threadId);
-		if (refs.itemId) {
-			addOwner(this.turnOwnersByThreadItemId, threadItemKey(refs.threadId, refs.itemId), refs.turnId);
-		}
+		return this.activityJournal.selected();
 	}
 
 	private applyThreadSettings(thread: { model?: string; effort?: string | null }): void {
@@ -2156,65 +1366,9 @@ export class ProjectWorkbench {
 		if (thread.effort !== undefined) this.effectiveEffort = thread.effort;
 	}
 
-	private hasTerminalTurn(threadId: string | undefined, turnId: string): boolean {
-		if (!threadId) return false;
-		return this.terminalTurns.has(turnKey(threadId, turnId));
-	}
-
-	private rememberTerminalTurn(activity: ProjectActivity): void {
-		const method = typeof activity.payload.method === "string" ? activity.payload.method : "";
-		if (nativeTurnLifecycle(method) !== "terminal") return;
-		const { threadId, turnId } = activity.nativeRefs;
-		if (threadId && turnId) this.terminalTurns.add(turnKey(threadId, turnId));
-	}
-
-	private hasTerminalItem(refs: NativeRefs): boolean {
-		const identity = nativeItemIdentity(refs);
-		return Boolean(identity && this.terminalItems.has(identity));
-	}
-
-	private rememberTerminalItem(activity: ProjectActivity): void {
-		if (!isTerminalActivityPhase(activity.phase)) return;
-		const identity = nativeItemIdentity(activity.nativeRefs);
-		if (identity) this.terminalItems.add(identity);
-	}
-
-	/** @linear WOO-688 */
-	private async preserveUnfinalizedAssistantResponse(
-		event: Extract<NativeHarnessEvent, { type: "notification" }>,
-		phase: ProjectActivityPhase,
-	): Promise<void> {
-		const { threadId, turnId } = event.refs;
-		if (!threadId || !turnId || this.hasTerminalTurn(threadId, turnId)) return;
-		const matchingDraft = this.draft.trim().length > 0 && sameTurnOwner(this.draftNativeRefs, event.refs);
-		const targetRefs = matchingDraft && this.draftNativeRefs ? this.draftNativeRefs : event.refs;
-		const targetIdentity = nativeItemIdentity(targetRefs);
-		const hasTerminalMessage = this.visibleActivities.some((activity) =>
-			activity.kind === "message"
-			&& activity.nativeRefs.threadId === threadId
-			&& activity.nativeRefs.turnId === turnId
-			&& isAssistantMessageActivity(activity)
-			&& isTerminalActivityPhase(activity.phase)
-			&& activityText(activity.payload).trim().length > 0
-			&& (targetIdentity ? nativeItemIdentity(activity.nativeRefs) === targetIdentity : true));
-		if (hasTerminalMessage) return;
-
-		const text = matchingDraft ? this.draft : missingAssistantResponseNotice(phase);
-		const itemId = matchingDraft && this.draftNativeRefs?.itemId
-			? this.draftNativeRefs.itemId
-			: event.refs.itemId ?? `local-missing-final:${turnId}`;
-		const refs = { threadId, turnId, itemId };
-		const payload = {
-			method: "turn/final-message-observation-missing",
-			role: "assistant",
-			text,
-			partial: matchingDraft,
-			finalObservation: "missing",
-			observationScope: matchingDraft ? "bounded-local-delta" : "local-lifecycle",
-			presentation: matchingDraft ? "partial-response" : "terminal-status-notice",
-			terminalMethod: event.method,
-		};
-		await this.appendActivity("message", phase, refs, payload, false, digestSource(stableJson({ refs, payload })));
+	private setContextTurn(turnId: string | null): void {
+		if (this.contextTurnId !== turnId) this.usageTracker.invalidateContext();
+		this.contextTurnId = turnId;
 	}
 
 	private isActivityVisible(activity: ProjectActivity): boolean {
@@ -2229,729 +1383,132 @@ export class ProjectWorkbench {
 	}
 
 	private publish(phase?: WorkbenchSnapshot["phase"]): void {
+		const traceId = this.performanceTraceContext.getStore() ?? null;
+		if (traceId) {
+			this.observeLayerPerformance(traceId, "state-projection", "queued");
+			this.observeLayerPerformance(traceId, "state-projection", "started");
+		}
 		if (phase !== "loading") this.revision += 1;
-		this.current = this.makeSnapshot(phase ?? (this.error ? "error" : this.activeTurnId || this.pendingApproval ? "working" : "ready"));
+		try {
+			this.current = this.makeSnapshot(phase ?? (this.error ? "error" : this.activeTurnId || this.pendingApproval ? "working" : "ready"));
+		} catch (error) {
+			if (traceId) this.observeLayerPerformance(traceId, "state-projection", "failed");
+			throw error;
+		}
+		if (traceId) {
+			this.observeLayerPerformance(traceId, "state-projection", "completed");
+			this.observeLayerPerformance(traceId, "snapshot-publish", "queued");
+			this.observeLayerPerformance(traceId, "snapshot-publish", "started");
+		}
 		for (const listener of this.listeners) {
 			try { listener(this.current); } catch { /* observers cannot corrupt durable state */ }
 		}
+		if (traceId) this.observeLayerPerformance(traceId, "snapshot-publish", "completed");
 	}
 
 	private makeSnapshot(phase: WorkbenchSnapshot["phase"]): WorkbenchSnapshot {
-		this.scheduleNarrations();
-		const durable = this.projectDurableActivities();
-		const executionRun = this.selectedExecutionRun();
-		const executionActivity = executionRun ? projectExecutionActivity(executionRun) : null;
-		const workFlow = this.projectCurrentWorkFlow();
-		const delegation = this.projectDelegation();
+		this.noteNarration.scheduleNarrations();
+		const stream            = this.nativeStream.snapshot                                               ;
+		const durable           = this.durableProjection.activities(this.visibleActivities, this.threadId) ;
+		const executionRun      = this.selectedExecutionRun()                                              ;
+		const executionActivity = executionRun ? projectExecutionActivity(executionRun) : null             ;
+		const workFlow          = this.workflow.currentFlow()                                              ;
+		const delegation        = this.cacheProjection.delegation(this.activities, this.threadId)          ;
 		// New requests always use the seven-stage template. Legacy sessions retain
 		// their Native Plan projection; stages are never inferred retroactively.
-		const allRequestRuntime = this.requestRecords();
+		const allRequestRuntime = this.workflow.records();
 		const selectedRequestTurnId = this.activeTurnId ?? this.selectedPlanTurnId;
 		const requestRuntime = this.requestRuntimePolicy.mode !== "off"
 			? allRequestRuntime
 			: allRequestRuntime.filter(request => request.turnId === selectedRequestTurnId);
-		const request = [...requestRuntime].reverse().find(r => r.turnId === (this.activeTurnId ?? this.selectedPlanTurnId)) ?? requestRuntime.at(-1);
-		const todo = request ? projectRequestTodo(request, this.todo?.ownerSessionId ?? this.threadId ?? "pending", this.activities.length)
-			: workFlow.source?.authority === "native-checklist" && executionRun ? this.projectExecutionTodo(executionRun, workFlow) : null;
-		const modelCatalog = this.projectModelCatalog();
-		const linearDashboard = this.options.linearDashboard ? this.projectLinearDashboard() : undefined;
-		const cacheObservations = this.cacheObservations();
+		const request         = [...requestRuntime].reverse().find(r => r.turnId === (this.activeTurnId ?? this.selectedPlanTurnId)) ?? requestRuntime.at(-1) ;
+		const todo            = this.workflow.projectedTodo(executionRun, workFlow)                                                                           ;
+		const modelCatalog    = this.modelCatalog                                                                                                             ;
+		const linearDashboard = this.options.linearDashboard ? this.linearDashboard : undefined                                                               ;
+		if (linearDashboard) this.cacheProjection.hit("dashboard");
+		const cacheObservations = this.cacheProjection.observations({
+			requestCached      : this.workflow.requestCached,
+			modelEntries       : this.modelCatalog.models.length,
+			modelStale         : Boolean(this.modelCatalog.error),
+			dashboardConnected : Boolean(this.options.linearDashboard),
+			dashboardReady     : this.linearDashboard.state === "ready",
+			dashboardFetched   : this.linearDashboard.fetchedAt !== null,
+			journal            : this.journal.cacheObservation?.() ?? null,
+		});
 		return deepFreeze({
-			...(this.planActivityNarration && this.narrationContext()
-				? this.planActivityNarration.snapshot(this.narrationContext()!.stepId)
-				: { planActivities: [], planActivityStatus: this.options.narrator ? "pending" as const : "disabled" as const }),
+			...this.noteNarration.planSnapshot(),
 			requestRuntime,
 			cacheObservations,
 			modelCatalog,
-			projectId: this.options.projectId,
-			revision: this.revision,
-			journalSequence: this.activities.at(-1)?.sequence ?? 0,
+			projectId       : this.options.projectId,
+			revision        : this.revision,
+			journalSequence : this.activities.at(-1)?.sequence ?? 0,
 			phase,
 			model: this.effectiveModel,
 			// A model switch takes effect on the next turn, so the running turn keeps the model it
 			// was started with.  Reporting the selection here would name a model that is not
 			// producing the output on screen.
-			activeModel: (this.activeTurnId ? this.usageTracker.modelFor(this.activeTurnId) : undefined) ?? this.effectiveModel,
-			effort: this.effectiveEffort,
-			contextUsage: this.usageTracker.contextUsage,
-			sessionUsage: this.usageTracker.snapshot(this.options.auxiliaryUsage),
-			resumeCoverage: this.resumeCoverage(),
-			sessionGoal: this.sessionGoal,
-			permissionMode: this.permissionMode,
-			collaborationMode: this.collaborationMode,
-			mcpServers: this.mcpServers,
-			skillInventory: this.options.skillRegistry ? {
-				count: this.options.skillRegistry.skills.length,
-				names: this.options.skillRegistry.skills.map(skill => skill.name),
-				sourceRevision: this.options.skillRegistry.sourceRevision,
-				digest: this.options.skillRegistry.digest,
-			} : undefined,
-			linearDashboard,
+			activeModel       : (this.activeTurnId ? this.usageTracker.modelFor(this.activeTurnId) : undefined) ?? this.effectiveModel,
+			effort            : this.effectiveEffort,
+			contextUsage      : this.usageTracker.contextUsage,
+			sessionUsage      : this.usageTracker.snapshot(this.options.auxiliaryUsage),
+			resumeCoverage    : this.nativeTurn.resumeCoverage(Boolean(this.options.resumeThreadId), this.processAttachedAt),
+			sessionGoal       : this.sessionGoal,
+			permissionMode    : this.permissionMode,
+			collaborationMode : this.collaborationMode,
+			mcpServers        : this.mcpServers,
+			...(this.options.skillRegistry ? { skillInventory: {
+				count          : this.options.skillRegistry.skills.length,
+				names          : this.options.skillRegistry.skills.map(skill => skill.name),
+				sourceRevision : this.options.skillRegistry.sourceRevision,
+				digest         : this.options.skillRegistry.digest,
+			} } : {}),
+			...(linearDashboard === undefined ? {} : { linearDashboard }),
 			wooEntry: this.options.wooEntry?.snapshot ?? null,
 			threadId: this.threadId,
 			activeTurnId: this.activeTurnId && executionRun && !["completed", "failed", "interrupted"].includes(executionRun.phase)
 				? executionRun.turnId
 				: null,
-			executionRun: executionRun ? immutable(executionRun) : null,
-			performance: projectPerformance({ activities: this.activities, run: executionRun, flow: workFlow }),
-			recordingReadOnly: this.recordingReadOnly,
+			executionRun      : executionRun ? immutable(executionRun) : null,
+			performance       : projectPerformance({ activities: this.activities, run: executionRun, flow: workFlow }),
+			recordingReadOnly : this.recordingReadOnly,
 			delegation,
 			selectedAgentRef: this.selectedAgentRef,
 			selectedAgentDetail: delegation.flatMap(entry => entry.tasks).find(task => task.ref === this.selectedAgentRef) ?? null,
-			delegationDetailActivities: this.options.delegationDetailActivities,
-			evaluationRequired: this.options.evaluationRequired,
-			configurationSource: this.options.configurationSource,
-			tnoteVisibleLimit: this.options.tnoteVisibleLimit,
-			tnoteSummaryMaxChars: this.options.tnoteSummaryMaxChars,
-			tnoteSummaryMaxLines: this.options.tnoteSummaryMaxLines,
-			hud: this.options.hud,
-			slash: this.options.slash,
-			activityCount: durable.activityCount,
-			activities: durable.activities,
-			selectedActivityId: this.selectedActivityId,
-			pendingApproval: this.pendingApproval,
-			chat: this.projectChat(durable.chat),
-			chatQueue: immutable(this.chatQueue),
-			draft: this.draft.startsWith(REQUEST_REPORT_PREFIX) ? "" : this.draft,
-			reasoningDraft: this.reasoningDraft,
-			reasoningSummaryDraft: this.reasoningSummaryDraft,
+			...(this.options.delegationDetailActivities === undefined ? {} : { delegationDetailActivities: this.options.delegationDetailActivities }),
+			...(this.options.evaluationRequired === undefined ? {} : { evaluationRequired: this.options.evaluationRequired }),
+			...(this.options.configurationSource === undefined ? {} : { configurationSource: this.options.configurationSource }),
+			...(this.options.tnoteVisibleLimit === undefined ? {} : { tnoteVisibleLimit: this.options.tnoteVisibleLimit }),
+			...(this.options.tnoteSummaryMaxChars === undefined ? {} : { tnoteSummaryMaxChars: this.options.tnoteSummaryMaxChars }),
+			...(this.options.tnoteSummaryMaxLines === undefined ? {} : { tnoteSummaryMaxLines: this.options.tnoteSummaryMaxLines }),
+			...(this.options.hud === undefined ? {} : { hud: this.options.hud }),
+			...(this.options.slash === undefined ? {} : { slash: this.options.slash }),
+			activityCount         : durable.activityCount,
+			activities            : durable.activities,
+			selectedActivityId    : this.selectedActivityId,
+			pendingApproval       : this.pendingApproval,
+			chat                  : this.durableProjection.chat(durable.chat, this.preThreadChat, this.threadId),
+			chatQueue             : immutable(this.nativeTurn.queue),
+			draft                 : stream.draft.startsWith(REQUEST_REPORT_PREFIX) ? "" : stream.draft,
+			reasoningDraft        : stream.reasoningDraft,
+			reasoningSummaryDraft : stream.reasoningSummaryDraft,
 			liveActivity: immutable(executionActivity && executionRun ? {
-				method: executionActivity.method,
-				kind: executionActivity.kind,
-				text: executionActivity.text,
-				nativeRefs: { threadId: executionRun.threadId, turnId: executionRun.turnId, itemId: executionActivity.id },
-			} : this.liveActivity),
+				method     : executionActivity.method,
+				kind       : executionActivity.kind,
+				text       : executionActivity.text,
+				nativeRefs : { threadId: executionRun.threadId, turnId: executionRun.turnId, itemId: executionActivity.id },
+			} : stream.liveActivity),
 			workFlow,
-			tnotes: this.projectDurableNotes(),
+			tnotes: this.durableProjection.notes(this.noteNarration.notes, this.visibleActivities),
 			todo,
-			todoSync: this.todoSync,
-			actionResult: this.actionResult,
-			deliveryUncertain: this.chatDeliveryBlocked && this.blockedChat !== null,
-			error: this.error,
-			developmentRecordingError: this.developmentRecordingError,
+			todoSync                  : this.workflow.todoSync,
+			actionResult              : this.actionResult,
+			deliveryUncertain         : this.nativeTurn.deliveryBlocked,
+			error                     : this.error,
+			developmentRecordingError : this.developmentRecordingError,
 		});
 	}
 
-	private projectDelegation(): ReturnType<typeof projectNativeDelegation> {
-		if (this.delegationCache?.length === this.activities.length && this.delegationCache.threadId === this.threadId) {
-			this.recordCacheHit(this.contextProjectionCacheTelemetry);
-			return this.delegationCache.value;
-		}
-		const startedAt = performance.now();
-		const value = this.threadId ? projectNativeDelegation(this.activities, this.threadId) : [];
-		this.recordCacheMiss(this.contextProjectionCacheTelemetry, performance.now() - startedAt, this.delegationCache !== null);
-		this.delegationCache = { length: this.activities.length, threadId: this.threadId, value };
-		return value;
-	}
-
-	private cacheObservations(): readonly CacheLayerObservation[] {
-		const observations: CacheLayerObservation[] = [
-			this.cacheObservation(
-				"context-projection",
-				(this.requestCache.length >= 0 ? 1 : 0) + (this.delegationCache ? 1 : 0),
-				this.contextProjectionCacheTelemetry,
-			),
-			this.cacheObservation("model-catalog", this.modelCatalog.models.length, this.modelCatalogCacheTelemetry, this.modelCatalog.error ? "stale" : "ready"),
-		];
-		if (this.options.linearDashboard && this.linearDashboard.fetchedAt !== null) {
-			observations.push(this.cacheObservation(
-				"dashboard-data",
-				1,
-				this.dashboardDataCacheTelemetry,
-				this.linearDashboard.state === "ready" ? "ready" : "stale",
-			));
-		}
-		const sessionRead = this.journal.cacheObservation?.();
-		if (sessionRead) observations.push(sessionRead);
-		return observations;
-	}
-
-	private projectModelCatalog(): NativeModelCatalog {
-		return this.modelCatalog;
-	}
-
-	private projectLinearDashboard(): LinearProjectDashboard {
-		this.recordCacheHit(this.dashboardDataCacheTelemetry);
-		return this.linearDashboard;
-	}
-
-	private cacheObservation(id: CacheLayerId, entries: number, telemetry: CacheAccessTelemetry, state: "ready" | "stale" = "ready"): CacheLayerObservation {
-		return {
-			id,
-			state,
-			entries,
-			logicalBytes: null,
-			hits: telemetry.hits,
-			misses: telemetry.misses,
-			evictions: telemetry.evictions,
-			latencyMs: telemetry.misses > 0 ? telemetry.totalMissLatencyMs / telemetry.misses : null,
-			lastAccessedAt: telemetry.lastAccessedAt,
-		};
-	}
-
-	private recordCacheHit(telemetry: CacheAccessTelemetry): void {
-		telemetry.hits += 1;
-		telemetry.lastAccessedAt = new Date().toISOString();
-	}
-
-	private recordCacheMiss(telemetry: CacheAccessTelemetry, latencyMs: number, evicted: boolean): void {
-		telemetry.misses += 1;
-		telemetry.totalMissLatencyMs += latencyMs;
-		if (evicted) telemetry.evictions += 1;
-		telemetry.lastAccessedAt = new Date().toISOString();
-	}
-
-	private projectDurableActivities(): DurableActivityProjection {
-		if (this.durableActivityProjection.sourceLength === this.visibleActivities.length
-			&& this.durableActivityProjection.rootThreadId === this.threadId) {
-			return this.durableActivityProjection;
-		}
-		const activities = Object.freeze([...this.visibleActivities]);
-		this.durableActivityProjection = {
-			sourceLength: this.visibleActivities.length,
-			rootThreadId: this.threadId,
-			activityCount: this.visibleActivities.length,
-			activities,
-			chat: deepFreeze(projectChat(activities, this.threadId)),
-		};
-		return this.durableActivityProjection;
-	}
-
-	private projectChat(durable: readonly WorkbenchChatMessage[]): readonly WorkbenchChatMessage[] {
-		if (this.preThreadChat.size === 0) return durable;
-		const messages = new Map(durable.map(message => [message.id, message]));
-		for (const message of this.preThreadChat.values()) {
-			// Durable acceptance owns the row even while the request observation is still being written.
-			if (this.threadId && messages.has(threadItemKey(this.threadId, message.id))) continue;
-			messages.set(message.id, message);
-		}
-		return Object.freeze([...messages.values()]);
-	}
-
-	private projectDurableNotes(): readonly WorkbenchTNote[] {
-		if (this.durableNoteProjection.sourceLength === this.notes.length
-			&& this.durableNoteProjection.activitySourceLength === this.visibleActivities.length) {
-			return this.durableNoteProjection.notes;
-		}
-		const current = this.currentSessionNotes();
-		this.durableNoteProjection = {
-			sourceLength: this.notes.length,
-			activitySourceLength: this.visibleActivities.length,
-			notes: Object.freeze([...current]),
-		};
-		return this.durableNoteProjection.notes;
-	}
-
-	private currentSessionNotes(): readonly WorkbenchTNote[] {
-		const activityIds = new Set(this.visibleActivities.map((activity) => activity.id));
-		const notes = this.notes.filter((note) => note.sourceActivityIds.some((id) => activityIds.has(id)));
-		const completionOrder = new Map(projectTNoteCompletionIndex(this.visibleActivities, notes)
-			.flatMap((completion) => completion.noteId ? [[completion.noteId, completion.number] as const] : []));
-		return [...notes].sort((left, right) =>
-			(completionOrder.get(left.id) ?? Number.MAX_SAFE_INTEGER) - (completionOrder.get(right.id) ?? Number.MAX_SAFE_INTEGER)
-			|| left.id.localeCompare(right.id));
-	}
-
-	private projectCurrentWorkFlow(): WorkFlowProjection {
-		const input = this.currentPlanProjectionInput();
-		const run = this.selectedExecutionRun();
-		const authorityKey = input
-			? stableJson([
-				"kind" in input ? "pending-goal" : "selected-root-turn",
-				input.expectedThreadKey,
-				!("kind" in input) ? input.selectedTurnId : null,
-				this.pendingPlanGoalActivityId,
-			])
-			: null;
-		if (this.workFlowProjection.sourceLength === this.activities.length
-			&& this.workFlowProjection.narrationRevision === this.narrationRevision
-			&& this.workFlowProjection.authorityKey === authorityKey) {
-			return this.workFlowProjection.value;
-		}
-		// Dplan validates the complete append-only journal for sequence integrity.
-		// Keep child activity out of the visible transcript, but retain it here so a
-		// root action after a child event does not look like a forged sequence gap.
-		const source = this.activities;
-		const projection = run
-			? projectWorkFlowFromExecutionRun(run, this.stepNarrations, input, source)
-			: projectWorkFlow(source, this.stepNarrations, input);
-		const pendingGoal = this.pendingPlanGoalActivityId && this.threadId && input && !("kind" in input)
-			? projectWorkFlow(source, new Map(), { kind: "pending-goal", expectedThreadKey: this.threadId, hash: dplanHash }).goal
-			: null;
-		this.workFlowProjection = {
-			sourceLength: this.activities.length,
-			narrationRevision: this.narrationRevision,
-			authorityKey,
-			value: pendingGoal ? { ...projection, goal: pendingGoal } : projection,
-		};
-		return this.workFlowProjection.value;
-	}
-
-	private projectExecutionTodo(run: ExecutionRunState, flow: WorkFlowProjection): TodoDocument {
-		const previous = this.todo;
-		return immutable({
-			version: 1,
-			revision: previous?.revision ?? 0,
-			ownerSessionId: previous?.ownerSessionId ?? run.threadId,
-			storyId: previous?.storyId ?? null,
-			title: run.objective,
-			items: flow.steps.map(step => ({
-				id: step.id,
-				content: step.title,
-				status: step.status === "running" ? "in_progress" as const
-					: step.status === "failed" || step.status === "cancelled" ? "blocked" as const : step.status,
-				evidenceIds: step.activityIds,
-				details: [],
-			})),
-			updatedAt: run.activities.at(-1)?.recordedAt ?? previous?.updatedAt ?? this.processAttachedAt,
-			...(previous?.source ? { source: previous.source } : {}),
-		});
-	}
-
-	private currentPlanProjectionInput(): WorkFlowProjectionInput | undefined {
-		if (!this.threadId) return undefined;
-		if (!this.selectedPlanTurnId) return { kind: "pending-goal", expectedThreadKey: this.threadId, hash: dplanHash };
-		return { expectedThreadKey: this.threadId, selectedTurnId: this.selectedPlanTurnId, hash: dplanHash };
-	}
-
-	private invalidateWorkFlow(): void {
-		this.workFlowProjection.sourceLength = -1;
-	}
-
-	private scheduleNativeTodoSync(activity: ProjectActivity): void {
-		if (this.requestRecords().length) { this.scheduleRequestProjections(); return; }
-		const todos = this.options.todos;
-		const sync = todos?.syncNativePlan?.bind(todos);
-		if (!sync) return;
-		const flow = this.projectCurrentWorkFlow();
-		const source = flow.source;
-		if (!source || source.authority !== "native-checklist" || source.turnId !== this.activeTurnId) return;
-		if (activity.nativeRefs.threadId !== this.threadId || activity.nativeRefs.turnId !== source.turnId) return;
-		const method = typeof activity.payload.method === "string" ? activity.payload.method : "";
-		const item = typeof activity.payload.params === "object" && activity.payload.params !== null
-			? (activity.payload.params as { item?: { type?: unknown } }).item
-			: undefined;
-		const isPlanActivity = method === "turn/plan/updated" || method === "item/completed"
-			&& typeof item?.type === "string" && item.type.toLowerCase() === "plan";
-		const updatesPlan = isPlanActivity && source.currentRevision.activityId === activity.id;
-		const contributesExecution = flow.steps.some((step) => step.activityIds.includes(activity.id));
-		if (!updatesPlan && !contributesExecution) return;
-		this.enqueueNativeTodoSync(sync, flow);
-	}
-
-	private requestRecords(): readonly RequestRuntimeRecord[] {
-		if (this.requestCache.length === this.activities.length && this.requestCache.threadId === this.threadId) {
-			this.recordCacheHit(this.contextProjectionCacheTelemetry);
-			return this.requestCache.records;
-		}
-		const startedAt = performance.now();
-		const records = projectRequestRuntime(this.activities, this.threadId);
-		this.recordCacheMiss(this.contextProjectionCacheTelemetry, performance.now() - startedAt, this.requestCache.length >= 0);
-		this.requestCache = { length: this.activities.length, threadId: this.threadId, records };
-		return this.requestCache.records;
-	}
-
-	private scheduleRequestProjections(): void {
-		const records = this.requestRecords();
-		const selected = [...records].reverse().find(r => r.turnId === this.activeTurnId && r.turnId !== null) ?? records.at(-1);
-		for (const request of records) {
-			const key = JSON.stringify(request);
-			if (this.requestProjectionKeys.get(request.requestId) === key) continue;
-			this.requestProjectionKeys.set(request.requestId, key);
-			if (this.options.requestProjection) this.requestProjectionQueue = this.requestProjectionQueue.then(async () => {
-				try { await this.options.requestProjection!.capture(request); }
-				catch { this.requestProjectionKeys.delete(request.requestId); this.error = "Request Projection 저장 실패: 원본 Activity journal은 유지됩니다."; this.publish(); }
-			});
-			if (request === selected && this.options.todos?.syncRequestRuntime) {
-				this.todoSync = immutable({ state: "syncing", lastConfirmedAt: this.todoSync.lastConfirmedAt, message: null });
-				this.todoSyncQueue = this.todoSyncQueue.catch(() => undefined).then(async () => {
-					try {
-						const document = await this.options.todos!.syncRequestRuntime!(request);
-						this.todo = immutable(document);
-						this.todoSync = immutable({ state: "confirmed", lastConfirmedAt: document.updatedAt, message: null });
-					} catch {
-						this.requestProjectionKeys.delete(request.requestId);
-						this.todoSync = immutable({ state: "blocked", lastConfirmedAt: this.todoSync.lastConfirmedAt, message: "7단계 Todo 저장 실패. 대화는 계속되며 다음 관측에서 재시도합니다." });
-					}
-					this.publish();
-				});
-			}
-		}
-	}
-
-	private scheduleNarratedTodoSync(): void {
-		if (this.requestRecords().length) return;
-		const todos = this.options.todos;
-		const sync = todos?.syncNativePlan?.bind(todos);
-		if (!sync) return;
-		const flow = this.projectCurrentWorkFlow();
-		if (!flow.source || flow.source.authority !== "native-checklist" || flow.source.turnId !== this.activeTurnId || flow.steps.length === 0) return;
-		this.enqueueNativeTodoSync(sync, flow);
-	}
-
-	private enqueueNativeTodoSync(
-		sync: NonNullable<WorkbenchTodoSource["syncNativePlan"]>,
-		flow: WorkFlowProjection,
-	): void {
-		const binding = this.nativeTodoBinding(flow);
-		this.todoSync = immutable({
-			state: "syncing",
-			lastConfirmedAt: this.todoSync.lastConfirmedAt ?? this.todo?.updatedAt ?? null,
-			message: null,
-		});
-		this.publish();
-		this.todoSyncQueue = this.todoSyncQueue
-			.catch(() => undefined)
-			.then(async () => {
-				try {
-					const document = await sync(flow, binding);
-					this.todoSync = immutable({ state: "confirmed", lastConfirmedAt: document.updatedAt, message: null });
-					this.publish();
-				} catch (error) {
-					const body = error instanceof TodoWriteConflictError
-						? "다른 편집과 충돌했습니다. 저장된 내용을 유지하며 다음 계획 관측 때 다시 확인합니다."
-						: "계획을 저장하지 못했습니다. 대화는 계속되며 다음 계획 관측 때 다시 시도합니다.";
-					this.todoSync = immutable({
-						state: "blocked",
-						lastConfirmedAt: this.todoSync.lastConfirmedAt ?? this.todo?.updatedAt ?? null,
-						message: body,
-					});
-					this.actionResult = immutable({
-						kind: "todo",
-						title: "Todo 자동 동기화 보류",
-						body: sanitizeTerminalTextExcerpt(body, WORKBENCH_ACTION_RESULT_CHARACTER_LIMIT, "head-tail"),
-						createdAt: new Date().toISOString(),
-					});
-					this.publish();
-				}
-			});
-	}
-
-	/** @linear WOO-702 Uses only turn-bound journal observations for durable model/input references. */
-	private nativeTodoBinding(flow: WorkFlowProjection): TodoNativePlanBinding {
-		const source = flow.source;
-		if (!source) throw new Error("Native plan source authority is required for Todo binding");
-		const request = [...this.activities].reverse().find((activity) =>
-			activity.nativeRefs.threadId === this.threadId
-			&& activity.nativeRefs.turnId === source.turnId
-			&& activity.payload.method === "request/started"
-			&& typeof activity.payload.requestId === "string"
-		);
-		const model = typeof request?.payload.model === "string" && request.payload.model.trim()
-			? request.payload.model
-			: null;
-		return {
-			input: request ? {
-				activityId: request.id,
-				requestId: request.payload.requestId as string,
-				sourceDigest: request.sourceDigest,
-			} : null,
-			rootExecution: {
-				provider: null,
-				model,
-				agentId: null,
-				threadId: this.threadId,
-				runId: source.turnId,
-			},
-		};
-	}
-
-	private scheduleNarrations(): void {
-		const narrator = this.options.narrator;
-		if (!narrator || this.closed || this.narrationAbort.signal.aborted) return;
-		this.planActivityNarration ??= new PlanActivityNarration(narrator, this.narrationAbort.signal, (stepId, result) => {
-			if (result) {
-				this.stepNarrations.set(stepId, immutable({
-					what: result.what,
-					...(result.why ? { why: result.why } : {}),
-					inputSummary: result.inputSummary,
-					source: "model" as const,
-				}));
-				this.narrationRevision += 1;
-				this.invalidateWorkFlow();
-				this.scheduleNarratedTodoSync();
-			}
-			this.publish();
-		});
-		this.planActivityNarration.select(this.activeTurnId ?? this.selectedPlanTurnId);
-		const context = this.narrationContext();
-		for (const activity of this.activities) {
-			if (activity.sequence <= this.narrationObservedSequence) continue;
-			this.narrationObservedSequence = activity.sequence;
-			if (context && activity.nativeRefs.threadId === this.threadId) this.planActivityNarration.observe(activity, context);
-		}
-	}
-
-	private narrationContext() {
-		const turnId = this.activeTurnId ?? this.selectedPlanTurnId;
-		if (!turnId || this.pendingPlanGoalActivityId) return undefined;
-		const request = this.requestRecords().find(record => record.turnId === turnId && record.threadId === this.threadId);
-		if (request) {
-			const stage = request.stages.find(stage => stage.status === "running") ?? [...request.stages].reverse().find(stage => stage.status !== "pending");
-			return stage ? { turnId, stepId: stage.id, stepTitle: stage.goal, goal: request.objective } : undefined;
-		}
-		const flow = this.projectCurrentWorkFlow();
-		const step = flow.steps.find(step => step.status === "running") ?? [...flow.steps].reverse().find(step => step.status !== "pending");
-		return step ? { turnId, stepId: step.id, stepTitle: step.title, goal: flow.goal } : undefined;
-	}
-}
-
-// Recap and live Native Plan/Activity/Next projection remain intentionally
-// outside Note generation until the Note contract is redesigned.
-function turnTNoteInstruction(question: string): string {
-	return [
-		"완료된 질문 하나를 종료 보고서 Note로 정리하세요.",
-		`질문: ${question}`,
-		"관찰 가능한 대화와 실행만 근거로 삼고 숨은 사고과정은 추측하지 마세요.",
-		"처음 보는 사람도 이해하도록 전문용어를 풀고, 각 항목은 한두 문장으로 짧게 쓰세요.",
-		"파일 목록·원시 로그·다음 할 일은 넣지 마세요. 관측하지 못한 변경은 추정하지 마세요.",
-		"Action에는 실제 수행만 쓰고, 수행하지 않았다면 수행하지 않았다고 밝히세요.",
-		"Result에는 바뀐 것, 검증, 문서 동기화, GitHub와 Linear 변경 여부를 관측된 범위에서 요약하세요.",
-		"출력은 다음 다섯 줄 형식을 정확히 지키세요:",
-		`질문: ${question}`,
-		"Reason: 이 질문을 다룬 이유와 확인된 원인 또는 판단 근거",
-		"Proposal: 제안하거나 선택한 해결 방향",
-		"Action: 실제로 수행한 조사, 변경, 검증 또는 외부 작업",
-		"Result: 최종 결과와 코드·문서·GitHub·Linear의 실제 변경 상태",
-	].join("\n");
-}
-
-function projectSessionGoal(activities: readonly ProjectActivity[]): WorkbenchSessionGoal | null {
-	for (let index = activities.length - 1; index >= 0; index -= 1) {
-		const activity = activities[index]!;
-		if (activity.kind !== "message" || activity.phase !== "completed" || activity.payload.direction === "outbound") continue;
-		const text = sessionGoalMarker(activityText(activity.payload));
-		if (!text || !activity.nativeRefs.turnId) continue;
-		const question = questionForTurn(activities, activity.nativeRefs.turnId);
-		if (!question || !isSessionGoalRequest(question)) continue;
-		return { text, sourceActivityId: activity.id, updatedAt: activity.recordedAt };
-	}
-	for (let index = activities.length - 1; index >= 0; index -= 1) {
-		const activity = activities[index]!;
-		if (activity.kind !== "message" || activity.phase !== "completed" || activity.payload.goal !== true) continue;
-		const text = activityText(activity.payload).trim();
-		if (!text || text.length > SESSION_GOAL_CHARACTER_LIMIT) continue;
-		return { text, sourceActivityId: activity.id, updatedAt: activity.recordedAt };
-	}
-	return null;
-}
-
-function isSessionGoalRequest(question: string): boolean {
-	return /^\$session-goal(?:[ \t]+|$)/u.test(question);
-}
-
-function sessionGoalMarker(text: string): string | null {
-	const match = SESSION_GOAL_MARKER.exec(text);
-	const goal = match?.[1];
-	if (!goal || goal.length > SESSION_GOAL_CHARACTER_LIMIT) return null;
-	return goal;
-}
-
-function projectTNote(draft: TNoteDraft): WorkbenchTNote {
-	const question = /^질문:\s*(.+)$/imu.exec(draft.text)?.[1]?.trim();
-	const note = {
-		id: draft.id,
-		title: question
-			? sanitizeTerminalTextExcerpt(question, 160, "head-tail")
-			: "현재 세션 대화 요약",
-		summary: draft.text,
-		sourceActivityIds: draft.packet.activities.map((activity) => activity.id),
-		...(draft.packet.completion ? { completion: draft.packet.completion } : {}),
-		updatedAt: draft.createdAt,
-	};
-	return note;
-}
-
-function canonicalTNoteDraft(draft: TNoteDraft, sessionId: string): CanonicalDocumentDraft {
-	const source = stableJson(draft);
-	return createCanonicalDocumentDraft({
-		kind: "tnote",
-		body: `# 질문 요약 #${draft.sequence}\n\n${draft.text}`,
-		source: { id: draft.id, body: source },
-		provenance: { sessionId, capturedAt: draft.createdAt },
-	});
-}
-
-function todoResultBody(document: TodoDocument): string {
-	return stableJson({ revision: document.revision, title: document.title, items: document.items });
-}
-
-function isAssistantMessageActivity(activity: ProjectActivity): boolean {
-	if (activity.payload.role === "assistant") return true;
-	if (activity.payload.role === "user" || activity.payload.direction === "outbound") return false;
-	const params = record(activity.payload.params);
-	const itemType = String(record(params?.item)?.type ?? "").replace(/[-_]/gu, "").toLowerCase();
-	const method = typeof activity.payload.method === "string" ? activity.payload.method.toLowerCase() : "";
-	return itemType === "agentmessage" || method.startsWith("item/agentmessage/");
-}
-
-function isStructuredPlanActivity(activity: ProjectActivity): boolean {
-	if (activity.payload.method === "turn/plan/updated") return true;
-	if (activity.payload.method !== "item/completed") return false;
-	const item = record(record(activity.payload.params)?.item);
-	return typeof item?.type === "string" && item.type.toLowerCase() === "plan";
-}
-
-function isPublicPlanFallbackActivity(activity: ProjectActivity): boolean {
-	return activity.payload.method === "turn/plan/public-fallback"
-		&& activity.payload.source === "public-assistant-response";
-}
-
-function publicNumberedPlanEntries(
-	text: string,
-	requestText: string,
-): ReadonlyArray<{ readonly step: string; readonly status: "inProgress" | "pending" }> | null {
-	const publicText = sanitizeTerminalTextUnbounded(text).replace(/\r\n?/gu, "\n").trim();
-	if (!publicText || [...publicText].length > 12_000 || /```/u.test(publicText)) return null;
-	const preamble = publicText.split("\n").find((line) => line.trim() && !/^\s*\d+[.)]\s+/u.test(line)) ?? "";
-	if (!/(?:계획|단계|순서|절차|진행|실행|작업|plan|steps?|procedure|workflow)/iu.test(`${requestText}\n${preamble}`)) return null;
-	const entries: Array<{ step: string; status: "inProgress" | "pending" }> = [];
-	let started = false;
-	let ended = false;
-	let introLines = 0;
-	for (const line of publicText.split("\n")) {
-		if (!line.trim()) continue;
-		const numbered = /^\s*(\d+)[.)]\s+(.+?)\s*$/u.exec(line);
-		if (!numbered) {
-			if (!started && introLines < 4 && !/^\s*[-*+]\s+/u.test(line)) {
-				introLines += 1;
-				continue;
-			}
-			if (started) {
-				ended = true;
-				continue;
-			}
-			return null;
-		}
-		if (ended) return null;
-		started = true;
-		const ordinal = Number(numbered[1]);
-		const step = numbered[2]!.trim().replace(/^\*\*(.+)\*\*$/u, "$1").trim();
-		if (ordinal !== entries.length + 1 || !step || [...step].length > 240 || entries.length >= 12) return null;
-		entries.push({ step, status: entries.length === 0 ? "inProgress" : "pending" });
-	}
-	return entries.length >= 2 ? entries : null;
-}
-
-function missingAssistantResponseNotice(phase: ProjectActivityPhase): string {
-	if (phase === "cancelled") return "답변 본문을 받기 전에 작업이 중단되었습니다.";
-	if (phase === "failed") return "답변 본문을 받기 전에 작업이 실패했습니다.";
-	return "최종 답변 본문을 받지 못했습니다.";
-}
-
-/** @linear WOO-690 WOO-691 */
-function projectChat(activities: readonly ProjectActivity[], rootThreadId: string | null): WorkbenchChatMessage[] {
-	const messages = new Map<string, WorkbenchChatMessage>();
-	for (const activity of activities) {
-		if (activity.kind !== "message") continue;
-		if (rootThreadId && activity.nativeRefs.threadId !== rootThreadId) continue;
-		const payload = record(activity.payload);
-		const role = payload ? chatMessageRole(payload) : null;
-		const status = chatMessageStatus(activity, payload);
-		const text = payload ? activityText(payload) : "";
-		// Empty lifecycle markers are not malformed bubbles; terminal absence is
-		// represented by preserveUnfinalizedAssistantResponse for the same identity.
-		if (role && !text) continue;
-		if (!role || !status || !text) {
-			const key = `invalid-message:${activity.id}`;
-			messages.set(key, {
-				id: key,
-				role: "system",
-				content: "이 메시지 기록은 형식을 확인할 수 없어 표시하지 않았습니다.",
-				activityId: activity.id,
-				status: "failed",
-			});
-			continue;
-		}
-		const key = role === "user" && activity.nativeRefs.threadId && activity.nativeRefs.itemId
-			? threadItemKey(activity.nativeRefs.threadId, activity.nativeRefs.itemId)
-			: nativeItemIdentity(activity.nativeRefs) ?? `activity:${activity.id}`;
-		const previous = messages.get(key);
-		messages.set(key, {
-			id: key,
-			role,
-			content: previous && status === "streaming" ? `${previous.content}${text}` : text,
-			activityId: activity.id,
-			status,
-			...(activity.payload.finalObservation === "missing" ? { partial: activity.payload.partial === true } : {}),
-		});
-	}
-	return [...messages.values()].filter(message => message.role !== "assistant" || !message.content.startsWith(REQUEST_REPORT_PREFIX));
-}
-
-function chatMessageRole(payload: Readonly<Record<string, unknown>>): WorkbenchChatMessage["role"] | null {
-	if (payload.role === "user" || payload.direction === "outbound") return "user";
-	if (payload.role === "assistant") return "assistant";
-	if (payload.role !== undefined || payload.direction !== undefined) return null;
-	const params = record(payload.params);
-	const itemType = String(record(params?.item)?.type ?? "").replace(/[-_]/gu, "").toLowerCase();
-	if (itemType === "usermessage") return "user";
-	const method = typeof payload.method === "string" ? payload.method.replace(/[-_]/gu, "").toLowerCase() : "";
-	if (itemType === "agentmessage" || method.startsWith("item/agentmessage/")) return "assistant";
-	return null;
-}
-
-function chatMessageStatus(
-	activity: ProjectActivity,
-	payload: Readonly<Record<string, unknown>> | null,
-): WorkbenchChatMessage["status"] | null {
-	if (!payload) return null;
-	if (activity.phase === "completed" && payload.finalObservation === "missing") return "incomplete";
-	if (activity.phase === "failed") return "failed";
-	if (activity.phase === "cancelled") return "cancelled";
-	if (activity.phase === "completed") return "completed";
-	if (activity.phase === "started" || activity.phase === "updated") return "streaming";
-	return null;
-}
-
-function nativeItemIdentity(refs: NativeRefs): string | null {
-	if (!refs.threadId || !refs.turnId || !refs.itemId) return null;
-	return stableJson({
-		threadId: refs.threadId,
-		turnId: refs.turnId,
-		itemId: refs.itemId,
-	});
-}
-
-function sameTurnOwner(left: NativeRefs | null, right: NativeRefs): boolean {
-	return Boolean(left?.threadId && left.turnId && right.threadId && right.turnId
-		&& left.threadId === right.threadId && left.turnId === right.turnId);
-}
-
-function threadItemKey(threadId: string, itemId: string): string {
-	return stableJson({ threadId, itemId });
-}
-
-function addOwner(owners: Map<string, Set<string>>, key: string, owner: string): void {
-	const values = owners.get(key) ?? new Set<string>();
-	values.add(owner);
-	owners.set(key, values);
-}
-
-function soleValue(values: ReadonlySet<string> | undefined): string | undefined {
-	return values?.size === 1 ? values.values().next().value : undefined;
-}
-
-function activityText(payload: Readonly<Record<string, unknown>>): string {
-	for (const candidate of [payload.text, payload.message, payload.delta]) {
-		if (typeof candidate === "string") return candidate;
-	}
-	const params = record(payload.params);
-	const item = record(params?.item);
-	for (const candidate of [params?.text, params?.message, params?.delta, item?.text, item?.content]) {
-		if (typeof candidate === "string") return candidate;
-	}
-	return "";
-}
-
-function stableJson(value: unknown): string {
-	if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
-	if (value && typeof value === "object") {
-		return `{${Object.entries(value as Record<string, unknown>)
-			.sort(([left], [right]) => left.localeCompare(right))
-			.map(([key, item]) => `${JSON.stringify(key)}:${stableJson(item)}`).join(",")}}`;
-	}
-	return JSON.stringify(value) ?? "null";
 }
 
 function digestSource(source: string): string {
@@ -2976,10 +1533,6 @@ function deepFreeze<T>(value: T): T {
 	return value;
 }
 
-function record(value: unknown): Record<string, unknown> | null {
-	return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
-}
-
 function isUncertain(error: unknown): error is NativeUncertainOperation {
 	if (!error || typeof error !== "object" || Array.isArray(error)) return false;
 	const value = error as Partial<NativeUncertainOperation>;
@@ -2987,76 +1540,7 @@ function isUncertain(error: unknown): error is NativeUncertainOperation {
 		typeof value.method === "string" && (typeof value.requestId === "string" || typeof value.requestId === "number");
 }
 
-type BlockedChatDeliveryState =
-	| { readonly state: "in-progress"; readonly turnId: string }
-	| { readonly state: "idle" }
-	| { readonly state: "unknown" };
-
-function blockedChatDeliveryState(value: Readonly<Record<string, unknown>>): BlockedChatDeliveryState {
-	const status = record(value.status);
-	const turns = value.turns;
-	if (!status || typeof status.type !== "string" || !Array.isArray(turns)) return { state: "unknown" };
-	if (status.type === "idle") return { state: "idle" };
-	for (let index = turns.length - 1; index >= 0; index -= 1) {
-		const turn = record(turns[index]);
-		if (!turn) continue;
-		const turnStatus = typeof turn.status === "string" ? turn.status : record(turn.status)?.type;
-		if (turnStatus !== "inProgress") continue;
-		return typeof turn.id === "string" && turn.id ? { state: "in-progress", turnId: turn.id } : { state: "unknown" };
-	}
-	return { state: "unknown" };
-}
-
-function turnKey(threadId: string, turnId: string): string {
-	return `${threadId}\u0000${turnId}`;
-}
-
 function errorMessage(error: unknown): string {
 	if (isUncertain(error)) return `Native ${error.method} 요청의 수신 여부가 불명확합니다. 수동 정합 전에는 자동 재시도하지 않습니다.`;
 	return error instanceof Error ? error.message : String(error);
-}
-
-function emptyBoundedTextProjection(): BoundedTextProjection {
-	return { tail: "", omittedCharacters: 0 };
-}
-
-function projectStreamingText(
-	currentIdentity: string | null,
-	nextIdentity: string,
-	current: BoundedTextProjection,
-	delta: string,
-	characterLimit: number,
-): StreamingTextProjection {
-	const state = currentIdentity && currentIdentity !== nextIdentity
-		? emptyBoundedTextProjection()
-		: current;
-	const projection = appendBoundedText(state, delta, characterLimit);
-	return { identity: nextIdentity, ...projection };
-}
-
-function shouldClearTerminalProjection(
-	identity: string | null,
-	refs: NativeRefs | null,
-	scope: TerminalProjectionScope,
-): boolean {
-	if (scope.itemScoped) return Boolean(scope.completedIdentity && scope.completedIdentity === identity);
-	if (scope.terminalTurn) return sameTurnOwner(refs, scope.refs);
-	return true;
-}
-
-function appendBoundedText(
-	current: BoundedTextProjection,
-	delta: string,
-	tailCharacterLimit: number,
-): { state: BoundedTextProjection; text: string } {
-	let tail = `${current.tail}${delta}`;
-	let omittedCharacters = current.omittedCharacters;
-	if (tail.length > tailCharacterLimit) {
-		omittedCharacters += tail.length - tailCharacterLimit;
-		tail = tail.slice(-tailCharacterLimit);
-	}
-	return {
-		state: { tail, omittedCharacters },
-		text: omittedCharacters > 0 ? `… 이전 출력 ${omittedCharacters}자 생략\n${tail}` : tail,
-	};
 }

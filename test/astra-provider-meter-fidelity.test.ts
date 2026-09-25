@@ -1,8 +1,8 @@
-import { expect, test } from "bun:test";
+import { expect, test }           from "bun:test";
 import { stripTerminalSequences } from "@earendil-works/pi-tui";
-import chalk from "chalk";
-import { astraQuotaHudRows } from "../src/adapters/inbound/tui/features/usage/astra-usage";
-import type { UsageSnapshot } from "../src/core/ports";
+import chalk                      from "chalk";
+import { astraQuotaHudRows }      from "../src/adapters/inbound/tui/features/usage/astra-usage";
+import type { UsageSnapshot }     from "../src/core/ports";
 
 test("provider meter stays compact and fills its interior by remaining percent", () => {
 	const level = chalk.level;
@@ -25,9 +25,9 @@ test("provider meter stays compact and fills its interior by remaining percent",
 		const plain = stripTerminalSequences(row);
 		expect(plain).toContain("[  42% 6h 33m  ]");
 
-		const meterStart = plain.indexOf("[");
-		const meterEnd = plain.indexOf("]", meterStart) + 1;
-		const meter = plain.slice(meterStart, meterEnd);
+		const meterStart = plain.indexOf("[")                 ;
+		const meterEnd   = plain.indexOf("]", meterStart) + 1 ;
+		const meter      = plain.slice(meterStart, meterEnd)  ;
 		expect(meter).toHaveLength(16);
 
 		const coloredRuns = [...row.matchAll(/\x1b\[48;2;[^m]+m\x1b\[38;2;[^m]+m\x1b\[1m([^\x1b]*)/gu)];

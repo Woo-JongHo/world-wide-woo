@@ -1,12 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import { WooEntry, type WooEntryCollector } from "../src/core/application/orchestration/woo-entry";
+import { WooEntry }               from "../src/core/application/orchestration/woo-entry";
+import type { WooEntryCollector } from "../src/core/application/orchestration/woo-entry";
 
 const payload = {
-	status: { branch: "main" },
-	git: { head: "abc" },
-	authority: { writer_id: "woo" },
-	signals: [{ kind: "stale-revision" }],
-	nextActions: [{ id: "WI-1" }],
+	status      : { branch: "main" },
+	git         : { head: "abc" },
+	authority   : { writer_id: "woo" },
+	signals     : [{ kind: "stale-revision" }],
+	nextActions : [{ id: "WI-1" }],
 };
 describe("WooEntry", () => {
 	test("merges stable policy and untrusted snapshot without losing turn fields", async () => {
@@ -20,10 +21,10 @@ describe("WooEntry", () => {
 		expect(turn.additionalContext?.woo_entry_snapshot?.value).toContain("stale-revision");
 	});
 	test("coalesces concurrent refresh and atomically replaces ready state with blocked", async () => {
-		let calls = 0;
-		let fail = false;
-		const collector: WooEntryCollector = { collect: async () => { calls++; if (fail) throw new Error("runner failed"); return { source: { root: "/wes", runner: "hooks/wes_entry.py" }, payload }; } };
-		const entry = new WooEntry(collector);
+		let calls                          = 0                                                                                                                                                             ;
+		let fail                           = false                                                                                                                                                         ;
+		const collector: WooEntryCollector = { collect: async () => { calls++; if (fail) throw new Error("runner failed"); return { source: { root: "/wes", runner: "hooks/wes_entry.py" }, payload }; } } ;
+		const entry                        = new WooEntry(collector)                                                                                                                                       ;
 		await Promise.all([entry.refresh(), entry.refresh()]);
 		expect(calls).toBe(1);
 		fail = true;

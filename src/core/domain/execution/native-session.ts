@@ -7,11 +7,11 @@ export type NativeRequestId = string | number;
 export type BackgroundWorkState = "none" | "active" | "unknown";
 
 export interface NativeCollaborationLifecycle {
-	readonly id?: unknown;
-	readonly tool?: unknown;
-	readonly status?: unknown;
-	readonly receiverThreadIds?: unknown;
-	readonly agentsStates?: unknown;
+	readonly id?                : unknown ;
+	readonly tool?              : unknown ;
+	readonly status?            : unknown ;
+	readonly receiverThreadIds? : unknown ;
+	readonly agentsStates?      : unknown ;
 }
 
 /**
@@ -22,10 +22,10 @@ export interface NativeCollaborationLifecycle {
 export function projectBackgroundWorkState(
 	lifecycles: readonly NativeCollaborationLifecycle[],
 ): BackgroundWorkState {
-	const children = new Set<string>();
-	const states = new Map<string, string>();
-	let sawLifecycle = false;
-	const latest = new Map<string, NativeCollaborationLifecycle>();
+	const children   = new Set<string>()                               ;
+	const states     = new Map<string, string>()                       ;
+	let sawLifecycle = false                                           ;
+	const latest     = new Map<string, NativeCollaborationLifecycle>() ;
 	for (const [index, lifecycle] of lifecycles.entries()) {
 		const id = typeof lifecycle.id === "string" && lifecycle.id.trim() ? lifecycle.id : `anonymous:${index}`;
 		latest.set(id, lifecycle);
@@ -35,7 +35,10 @@ export function projectBackgroundWorkState(
 		sawLifecycle = true;
 		for (const child of nativeLifecycleIds(lifecycle.receiverThreadIds)) children.add(child);
 		const status = normalizeNativeLifecycleName(lifecycle.status);
-		if (status === "inprogress" || status === "pending" || status === "queued" || !terminalLifecycleStatus(status)) {
+		if (status === "inprogress"
+			|| status === "pending"
+			|| status === "queued"
+			|| !terminalLifecycleStatus(status)) {
 			return "active";
 		}
 		const snapshot = nativeLifecycleRecord(lifecycle.agentsStates);
@@ -76,11 +79,11 @@ function terminalLifecycleStatus(status: string): boolean {
 }
 
 export interface NativeRefs {
-	threadId?: string;
-	turnId?: string;
-	itemId?: string;
-	approvalRequestId?: NativeRequestId;
-	approvalCallbackId?: string | null;
+	threadId?           : string          ;
+	turnId?             : string          ;
+	itemId?             : string          ;
+	approvalRequestId?  : NativeRequestId ;
+	approvalCallbackId? : string | null   ;
 	/** @deprecated JSON-RPC approval request id; use approvalRequestId. */
 	approvalId?: NativeRequestId;
 }
@@ -91,11 +94,11 @@ export type NativeApprovalPolicy =
 	| "never"
 	| {
 		granular: {
-			sandbox_approval: boolean;
-			rules: boolean;
-			skill_approval: boolean;
-			request_permissions: boolean;
-			mcp_elicitations: boolean;
+			sandbox_approval    : boolean ;
+			rules               : boolean ;
+			skill_approval      : boolean ;
+			request_permissions : boolean ;
+			mcp_elicitations    : boolean ;
 		};
 	};
 
@@ -104,19 +107,19 @@ export type NativeSandboxMode = "read-only" | "workspace-write" | "danger-full-a
 export type NativeSandboxPolicy =
 	| { readonly type: "dangerFullAccess" }
 	| {
-		readonly type: "workspaceWrite";
-		readonly writableRoots: readonly string[];
-		readonly networkAccess: boolean;
-		readonly excludeTmpdirEnvVar: boolean;
-		readonly excludeSlashTmp: boolean;
+		readonly type                : "workspaceWrite"  ;
+		readonly writableRoots       : readonly string[] ;
+		readonly networkAccess       : boolean           ;
+		readonly excludeTmpdirEnvVar : boolean           ;
+		readonly excludeSlashTmp     : boolean           ;
 	};
 
 export interface NativeCollaborationMode {
 	readonly mode: "plan" | "default";
 	readonly settings: {
-		readonly model: string;
-		readonly reasoning_effort: string | null;
-		readonly developer_instructions: string | null;
+		readonly model                  : string        ;
+		readonly reasoning_effort       : string | null ;
+		readonly developer_instructions : string | null ;
 	};
 }
 
@@ -138,28 +141,28 @@ export interface NativeThreadSnapshot {
 }
 
 export interface NativeTurnSnapshot {
-	id: string;
-	threadId: string;
-	value: Readonly<Record<string, unknown>>;
+	id       : string                            ;
+	threadId : string                            ;
+	value    : Readonly<Record<string, unknown>> ;
 }
 
 export interface NativeThreadStart {
-	cwd: string;
-	model?: string;
-	effort?: string;
-	approvalPolicy?: NativeApprovalPolicy;
-	sandbox?: NativeSandboxMode;
-	ephemeral?: boolean;
+	cwd             : string               ;
+	model?          : string               ;
+	effort?         : string               ;
+	approvalPolicy? : NativeApprovalPolicy ;
+	sandbox?        : NativeSandboxMode    ;
+	ephemeral?      : boolean              ;
 }
 
 export interface NativeThreadResume {
-	threadId: string;
-	cwd?: string;
-	model?: string;
-	effort?: string;
-	approvalPolicy?: NativeApprovalPolicy;
-	sandbox?: NativeSandboxMode;
-	excludeTurns?: boolean;
+	threadId        : string               ;
+	cwd?            : string               ;
+	model?          : string               ;
+	effort?         : string               ;
+	approvalPolicy? : NativeApprovalPolicy ;
+	sandbox?        : NativeSandboxMode    ;
+	excludeTurns?   : boolean              ;
 }
 
 export interface NativeThreadRead {
@@ -182,22 +185,22 @@ export type NativeThreadStatus = "notLoaded" | "idle" | "systemError" | "active"
 export interface NativeThreadSummary {
 	id: string;
 	/** Unix timestamp in seconds, as owned by Codex App Server. */
-	updatedAt: number;
-	cwd: string;
-	preview: string;
-	status: NativeThreadStatus;
+	updatedAt : number             ;
+	cwd       : string             ;
+	preview   : string             ;
+	status    : NativeThreadStatus ;
 }
 
 export interface NativeTurnStart {
-	threadId: string;
-	text: string;
-	cwd?: string;
-	model?: string;
-	effort?: string;
-	approvalPolicy?: NativeApprovalPolicy;
-	sandboxPolicy?: NativeSandboxPolicy;
-	collaborationMode?: NativeCollaborationMode;
-	additionalContext?: NativeAdditionalContext;
+	threadId           : string                  ;
+	text               : string                  ;
+	cwd?               : string                  ;
+	model?             : string                  ;
+	effort?            : string                  ;
+	approvalPolicy?    : NativeApprovalPolicy    ;
+	sandboxPolicy?     : NativeSandboxPolicy     ;
+	collaborationMode? : NativeCollaborationMode ;
+	additionalContext? : NativeAdditionalContext ;
 }
 
 export interface NativeTurnInterrupt {
@@ -206,10 +209,10 @@ export interface NativeTurnInterrupt {
 }
 
 export interface NativeTurnSteer {
-	threadId: string;
-	expectedTurnId: string;
-	text: string;
-	clientUserMessageId: string;
+	threadId            : string ;
+	expectedTurnId      : string ;
+	text                : string ;
+	clientUserMessageId : string ;
 }
 
 export interface NativeTurnSteerResult {
@@ -222,12 +225,12 @@ export type NativeApprovalDecision = "accept" | "acceptForSession" | "decline" |
 export interface NativeApprovalRequest {
 	requestId: NativeRequestId;
 	/** @deprecated JSON-RPC request id alias retained for existing consumers. */
-	id?: NativeRequestId;
-	callbackId: string | null;
-	kind: NativeApprovalKind;
-	refs: NativeRefs;
-	availableDecisions: readonly NativeApprovalDecision[];
-	params: Readonly<Record<string, unknown>>;
+	id?                : NativeRequestId                   ;
+	callbackId         : string | null                     ;
+	kind               : NativeApprovalKind                ;
+	refs               : NativeRefs                        ;
+	availableDecisions : readonly NativeApprovalDecision[] ;
+	params             : Readonly<Record<string, unknown>> ;
 }
 
 export type NativeApprovalResponse =
@@ -238,9 +241,9 @@ export type NativeApprovalResponse =
 	 */
 	| { decision: NativeApprovalDecision }
 	| {
-		permissions: Readonly<Record<string, unknown>>;
-		scope: "turn" | "session";
-		strictAutoReview?: boolean;
+		permissions       : Readonly<Record<string, unknown>> ;
+		scope             : "turn" | "session"                ;
+		strictAutoReview? : boolean                           ;
 	};
 
 export type NativeApprovalResolution =
@@ -253,8 +256,8 @@ export type NativeHarnessEvent =
 	| { type: "approval-resolved"; requestId: NativeRequestId; approvalId: NativeRequestId; refs: NativeRefs };
 
 export interface NativeUncertainOperation {
-	state: "uncertain";
-	resolution: "manual-reconcile";
-	method: string;
-	requestId: NativeRequestId;
+	state      : "uncertain"        ;
+	resolution : "manual-reconcile" ;
+	method     : string             ;
+	requestId  : NativeRequestId    ;
 }

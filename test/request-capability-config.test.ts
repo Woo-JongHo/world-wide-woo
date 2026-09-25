@@ -1,9 +1,9 @@
-import { expect, test } from "bun:test";
+import { expect, test }                     from "bun:test";
 import { mkdtemp, realpath, writeFile, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { loadRequestCapabilityConfig } from "../src/adapters/outbound/workspace/request-capability-config";
-import type { ExecutorPort } from "../src/core/ports/execution/executor-port";
+import { tmpdir }                           from "node:os";
+import { join }                             from "node:path";
+import { loadRequestCapabilityConfig }      from "../src/adapters/outbound/workspace/request-capability-config";
+import type { ExecutorPort }                from "../src/core/ports/execution/executor-port";
 
 test("Runtime config snapshots explicit files once, exposes their argument contract and defaults to no write grant", async () => {
 	const root = await realpath(await mkdtemp(join(tmpdir(), "www-runtime-config-")));

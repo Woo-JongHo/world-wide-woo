@@ -1,28 +1,26 @@
-import { createHash } from "node:crypto";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import type { Context, Models, ModelsSimpleStreamOptions } from "@earendil-works/pi-ai";
-import {
-	reviewPacketInput,
-	stableJson,
-	verifyReviewPacket,
-	type ReviewAdapter,
-	type ReviewDelivery,
-	type ReviewDigester,
-	type ReviewGenerationClient,
-	type ReviewPacket,
-	type ReviewProvider,
-	type ReviewUsage,
-} from "../../../core/domain/review/review";
-import { redactForExternalReview } from "../../../core/domain/review/redaction";
-import type { SessionModelUsageObservation } from "../../../core/application/session/session-model-usage.js";
+import { createHash }                                        from "node:crypto";
+import { mkdtemp, rm }                                       from "node:fs/promises";
+import { tmpdir }                                            from "node:os";
+import { join }                                              from "node:path";
+import type { Context, Models, ModelsSimpleStreamOptions }   from "@earendil-works/pi-ai";
+import { reviewPacketInput, stableJson, verifyReviewPacket } from "@/core/domain/review/review";
+import type {
+	ReviewAdapter,
+	ReviewDelivery,
+	ReviewDigester,
+	ReviewGenerationClient,
+	ReviewPacket,
+	ReviewProvider,
+	ReviewUsage,
+} from "@/core/domain/review/review";
+import { redactForExternalReview }                           from "@/core/domain/review/redaction";
+import type { SessionModelUsageObservation }                 from "@/core/application/session/session-model-usage.js";
 
-export const CLAUDE_OPUS_REVIEW_MODEL = "claude-opus-5";
-export const GEMINI_REVIEW_MODEL = "gemini-3.1-pro-preview";
-export const CLAUDE_CLI_REVIEW_INPUT_LIMIT = 32 * 1024;
-export const CLAUDE_CLI_REVIEW_OUTPUT_LIMIT = 64 * 1024;
-export const CLAUDE_CLI_REVIEW_TIMEOUT_MS = 60_000;
+export const CLAUDE_OPUS_REVIEW_MODEL       = "claude-opus-5"          ;
+export const GEMINI_REVIEW_MODEL            = "gemini-3.1-pro-preview" ;
+export const CLAUDE_CLI_REVIEW_INPUT_LIMIT  = 32 * 1024                ;
+export const CLAUDE_CLI_REVIEW_OUTPUT_LIMIT = 64 * 1024                ;
+export const CLAUDE_CLI_REVIEW_TIMEOUT_MS   = 60_000                   ;
 
 const MODEL_ALIASES: Readonly<Record<ReviewProvider, Readonly<Record<string, string>>>> = Object.freeze({
 	anthropic: Object.freeze({ "claude-opus": CLAUDE_OPUS_REVIEW_MODEL, [CLAUDE_OPUS_REVIEW_MODEL]: CLAUDE_OPUS_REVIEW_MODEL }),
@@ -63,21 +61,24 @@ export class PiReviewGenerationClient implements ReviewGenerationClient {
 		private readonly observeUsage?: (observation: SessionModelUsageObservation) => void,
 	) {}
 
-	async generate(request: import("../../../core/domain/review/review").ReviewGenerationRequest): Promise<string> {
+	async generate(request: import("@/core/domain/review/review").ReviewGenerationRequest): Promise<string> {
 		assertDetachedRequest(request);
 		const model = this.models.getModel(request.provider, request.model);
 		if (!model) throw new Error(`Review model is not available: ${request.provider}/${request.model}`);
 		const context: Context = {
-			systemPrompt: "You are an independent read-only reviewer. Review only the supplied redacted packet. Do not call tools, access files, infer omitted project data, or request credentials.",
-			messages: [{ role: "user", content: request.input, timestamp: Date.now() }],
-			tools: [],
+			systemPrompt : "You are an independent read-only reviewer. Review only the supplied redacted packet. Do not call tools, access files, infer omitted project data, or request credentials.",
+			messages     : [{ role: "user", content: request.input, timestamp: Date.now() }],
+			tools        : [],
 		};
-		const options: ModelsSimpleStreamOptions = { toolChoice: "none" };
-		const stream = this.models.streamSimple(model, context, options);
-		const response = await stream.result();
-		const totalTokens = response.usage?.totalTokens;
-		if (this.observeUsage && Number.isSafeInteger(totalTokens) && (totalTokens ?? -1) >= 0) {
-			try { this.observeUsage({ model: request.model, effort: null, totalTokens: totalTokens! }); } catch { /* Telemetry cannot invalidate a review response. */ }
+		const options : ModelsSimpleStreamOptions = { toolChoice: "none" }                            ;
+		const stream                              = this.models.streamSimple(model, context, options) ;
+		const response                            = await stream.result()                             ;
+		const totalTokens                         = response.usage?.totalTokens                       ;
+		const observedTokens = typeof totalTokens === "number" && Number.isSafeInteger(totalTokens) && totalTokens >= 0
+			? totalTokens
+			: null;
+		if (this.observeUsage && observedTokens !== null) {
+			try { this.observeUsage({ model: request.model, effort: null, totalTokens: observedTokens }); } catch { /* Telemetry cannot invalidate a review response. */ }
 		}
 		if (response.stopReason === "toolUse" || response.content.some(block => block.type === "toolCall")) {
 			throw new Error("Review providers may not return tool calls");
@@ -108,14 +109,15 @@ export class ProviderReviewAdapter implements ReviewAdapter {
 
 	async review(packet: ReviewPacket): Promise<ReviewDelivery> {
 		verifyReviewPacket(packet, this.digest);
-		const sentAt = this.clock().toISOString();
-		const input = reviewPacketInput(packet, this.digest);
+		const sentAt     = this.clock().toISOString()             ;
+		const input      = reviewPacketInput(packet, this.digest) ;
+		const tools : [] = []                                     ;
 		const result = await this.client.generate(Object.freeze({
-			provider: this.provider,
-			model: this.model,
-			version: this.version,
-			cwd: "",
-			tools: [] as [],
+			provider : this.provider,
+			model    : this.model,
+			version  : this.version,
+			cwd      : "",
+			tools,
 			readOnly: true,
 			networkAccess: "provider-api-only",
 			input,
@@ -125,11 +127,11 @@ export class ProviderReviewAdapter implements ReviewAdapter {
 		const safeResult = redactForExternalReview(result).text;
 		const receivedAt = this.clock().toISOString();
 		return Object.freeze({
-			provider: this.provider,
-			model: this.model,
-			version: this.version,
-			transport: "provider-api",
-			packetDigest: packet.digest,
+			provider     : this.provider,
+			model        : this.model,
+			version      : this.version,
+			transport    : "provider-api",
+			packetDigest : packet.digest,
 			sentAt,
 			receivedAt,
 			result: safeResult,
@@ -148,10 +150,10 @@ export class ClaudeCliReviewError extends Error {
 }
 
 export interface ClaudeCliProcessResult {
-	readonly exitCode: number;
-	readonly stdout: string;
-	readonly stderr: string;
-	readonly timedOut?: boolean;
+	readonly exitCode  : number  ;
+	readonly stdout    : string  ;
+	readonly stderr    : string  ;
+	readonly timedOut? : boolean ;
 }
 
 export type ClaudeCliProcessRunner = (
@@ -161,30 +163,30 @@ export type ClaudeCliProcessRunner = (
 ) => Promise<ClaudeCliProcessResult>;
 
 export interface ClaudeCliReviewAdapterOptions {
-	readonly command?: string;
-	readonly timeoutMs?: number;
-	readonly inputLimit?: number;
-	readonly outputLimit?: number;
-	readonly runner?: ClaudeCliProcessRunner;
-	readonly makeTempDirectory?: () => Promise<string>;
-	readonly removeDirectory?: (path: string) => Promise<void>;
-	readonly clock?: () => Date;
+	readonly command?           : string                          ;
+	readonly timeoutMs?         : number                          ;
+	readonly inputLimit?        : number                          ;
+	readonly outputLimit?       : number                          ;
+	readonly runner?            : ClaudeCliProcessRunner          ;
+	readonly makeTempDirectory? : () => Promise<string>           ;
+	readonly removeDirectory?   : (path: string) => Promise<void> ;
+	readonly clock?             : () => Date                      ;
 }
 
 export interface ClaudeCliSubprocess {
-	readonly pid: number;
-	readonly stdin: { write(input: string): unknown; end(): unknown };
-	readonly stdout: ReadableStream<Uint8Array>;
-	readonly stderr: ReadableStream<Uint8Array>;
-	readonly exited: Promise<number>;
+	readonly pid    : number                                            ;
+	readonly stdin  : { write(input: string): unknown; end(): unknown } ;
+	readonly stdout : ReadableStream<Uint8Array>                        ;
+	readonly stderr : ReadableStream<Uint8Array>                        ;
+	readonly exited : Promise<number>                                   ;
 	kill(signal?: NodeJS.Signals): void;
 }
 
 export interface ClaudeCliSystemRunnerDependencies {
-	spawn(command: string, args: readonly string[], cwd: string): ClaudeCliSubprocess;
-	killProcessGroup(pid: number, signal: NodeJS.Signals): void;
-	setTimer(callback: () => void, ms: number): ReturnType<typeof setTimeout>;
-	clearTimer(timer: ReturnType<typeof setTimeout>): void;
+	spawn           (command: string, args: readonly string[], cwd: string): ClaudeCliSubprocess;
+	killProcessGroup(pid: number, signal: NodeJS.Signals                  ): void;
+	setTimer        (callback: () => void, ms: number                     ): ReturnType<typeof setTimeout>;
+	clearTimer      (timer: ReturnType<typeof setTimeout>                 ): void;
 }
 
 /**
@@ -193,15 +195,15 @@ export interface ClaudeCliSystemRunnerDependencies {
  * appropriate, preserving unambiguous packet delivery evidence.
  */
 export class ClaudeCliReviewAdapter implements ReviewAdapter {
-	readonly provider = "anthropic" as const;
-	private readonly command: string;
-	private readonly timeoutMs: number;
-	private readonly inputLimit: number;
-	private readonly outputLimit: number;
-	private readonly run: ClaudeCliProcessRunner;
-	private readonly makeTempDirectory: () => Promise<string>;
-	private readonly removeDirectory: (path: string) => Promise<void>;
-	private readonly clock: () => Date;
+	readonly provider                  : ReviewProvider = "anthropic"    ;
+	private readonly command           : string                          ;
+	private readonly timeoutMs         : number                          ;
+	private readonly inputLimit        : number                          ;
+	private readonly outputLimit       : number                          ;
+	private readonly run               : ClaudeCliProcessRunner          ;
+	private readonly makeTempDirectory : () => Promise<string>           ;
+	private readonly removeDirectory   : (path: string) => Promise<void> ;
+	private readonly clock             : () => Date                      ;
 
 	constructor(
 		readonly model: string,
@@ -212,15 +214,20 @@ export class ClaudeCliReviewAdapter implements ReviewAdapter {
 	) {
 		if (resolveModel("anthropic", model) !== model) throw new Error("Unsupported anthropic review model");
 		if (typeof cliVersion === "string" && cliVersion.trim().length === 0) throw new Error("Claude CLI version is required");
-		this.command = options.command ?? "claude";
-		this.timeoutMs = options.timeoutMs ?? CLAUDE_CLI_REVIEW_TIMEOUT_MS;
-		this.inputLimit = options.inputLimit ?? CLAUDE_CLI_REVIEW_INPUT_LIMIT;
-		this.outputLimit = options.outputLimit ?? CLAUDE_CLI_REVIEW_OUTPUT_LIMIT;
-		if (!Number.isSafeInteger(this.timeoutMs) || this.timeoutMs <= 0 || !Number.isSafeInteger(this.inputLimit) || this.inputLimit <= 0 || !Number.isSafeInteger(this.outputLimit) || this.outputLimit <= 0) throw new Error("Claude CLI review bounds must be positive integers");
-		this.run = options.runner ?? systemClaudeCliRunner;
-		this.makeTempDirectory = options.makeTempDirectory ?? (() => mkdtemp(join(tmpdir(), "www-claude-review-")));
-		this.removeDirectory = options.removeDirectory ?? (path => rm(path, { recursive: true, force: true }));
-		this.clock = options.clock ?? (() => new Date());
+		this.command     = options.command ?? "claude"                           ;
+		this.timeoutMs   = options.timeoutMs ?? CLAUDE_CLI_REVIEW_TIMEOUT_MS     ;
+		this.inputLimit  = options.inputLimit ?? CLAUDE_CLI_REVIEW_INPUT_LIMIT   ;
+		this.outputLimit = options.outputLimit ?? CLAUDE_CLI_REVIEW_OUTPUT_LIMIT ;
+		if (!Number.isSafeInteger(this.timeoutMs)
+			|| this.timeoutMs <= 0
+			|| !Number.isSafeInteger(this.inputLimit)
+			|| this.inputLimit <= 0
+			|| !Number.isSafeInteger(this.outputLimit)
+			|| this.outputLimit <= 0) throw new Error("Claude CLI review bounds must be positive integers");
+		this.run               = options.runner ?? systemClaudeCliRunner                                            ;
+		this.makeTempDirectory = options.makeTempDirectory ?? (() => mkdtemp(join(tmpdir(), "www-claude-review-"))) ;
+		this.removeDirectory   = options.removeDirectory ?? (path => rm(path, { recursive: true, force: true }))    ;
+		this.clock             = options.clock ?? (() => new Date())                                                ;
 	}
 
 	get version(): string {
@@ -235,9 +242,9 @@ export class ClaudeCliReviewAdapter implements ReviewAdapter {
 		verifyReviewPacket(packet, this.digest);
 		const input = reviewPacketInput(packet, this.digest);
 		if (Buffer.byteLength(input, "utf8") > this.inputLimit) throw new ClaudeCliReviewError("process", "Claude CLI review input exceeds its budget");
-		const version = this.version;
-		const cwd = await this.makeTempDirectory();
-		const sentAt = this.clock().toISOString();
+		const version = this.version                   ;
+		const cwd     = await this.makeTempDirectory() ;
+		const sentAt  = this.clock().toISOString()     ;
 		try {
 			const response = await this.run(this.command, [
 				"--print", "--output-format", "json", "--model", this.model,
@@ -246,13 +253,13 @@ export class ClaudeCliReviewAdapter implements ReviewAdapter {
 			if (response.timedOut) throw new ClaudeCliReviewError("timeout", "Claude CLI review timed out");
 			if (Buffer.byteLength(response.stdout, "utf8") > this.outputLimit || Buffer.byteLength(response.stderr, "utf8") > this.outputLimit) throw new ClaudeCliReviewError("process", "Claude CLI review output exceeds its budget");
 			if (response.exitCode !== 0) throw classifyClaudeCliFailure(response.stderr || response.stdout);
-			const parsed = parseClaudeCliResult(response.stdout);
-			const safeResult = redactForExternalReview(parsed.result).text;
-			const receivedAt = this.clock().toISOString();
+			const parsed     = parseClaudeCliResult(response.stdout)       ;
+			const safeResult = redactForExternalReview(parsed.result).text ;
+			const receivedAt = this.clock().toISOString()                  ;
 			return Object.freeze({
 				provider: this.provider, model: this.model, version, transport: "claude-cli",
 				packetDigest: packet.digest, sentAt, receivedAt, result: safeResult, resultDigest: this.digest(safeResult),
-				usage: parsed.usage,
+				...(parsed.usage ? { usage: parsed.usage } : {}),
 			});
 		} finally {
 			await this.removeDirectory(cwd);
@@ -263,27 +270,34 @@ export class ClaudeCliReviewAdapter implements ReviewAdapter {
 function parseClaudeCliResult(stdout: string): { result: string; usage?: ReviewUsage } {
 	let value: unknown;
 	try { value = JSON.parse(stdout); } catch { throw new ClaudeCliReviewError("malformed-json", "Claude CLI returned malformed JSON"); }
-	if (!value || typeof value !== "object" || typeof (value as { result?: unknown }).result !== "string") {
+	if (!isRecord(value) || typeof value.result !== "string") {
 		throw new ClaudeCliReviewError("malformed-json", "Claude CLI JSON has no text result");
 	}
-	const usage = observedUsage((value as { usage?: unknown }).usage);
-	return usage ? { result: (value as { result: string }).result, usage } : { result: (value as { result: string }).result };
+	const usage = observedUsage(value.usage);
+	return usage ? { result: value.result, usage } : { result: value.result };
 }
 
 function observedUsage(value: unknown): ReviewUsage | undefined {
-	if (!value || typeof value !== "object") return undefined;
-	const source = value as Record<string, unknown>;
-	const usage: ReviewUsage = {
-		inputTokens: token(source.input_tokens),
-		outputTokens: token(source.output_tokens),
-		cacheCreationInputTokens: token(source.cache_creation_input_tokens),
-		cacheReadInputTokens: token(source.cache_read_input_tokens),
+	if (!isRecord(value)) return undefined;
+	const inputTokens              = token(value.input_tokens)                ;
+	const outputTokens             = token(value.output_tokens)               ;
+	const cacheCreationInputTokens = token(value.cache_creation_input_tokens) ;
+	const cacheReadInputTokens     = token(value.cache_read_input_tokens)     ;
+	if ([inputTokens, outputTokens, cacheCreationInputTokens, cacheReadInputTokens].every(count => count === undefined)) return undefined;
+	return {
+		...(inputTokens === undefined ? {} : { inputTokens }),
+		...(outputTokens === undefined ? {} : { outputTokens }),
+		...(cacheCreationInputTokens === undefined ? {} : { cacheCreationInputTokens }),
+		...(cacheReadInputTokens === undefined ? {} : { cacheReadInputTokens }),
 	};
-	return Object.values(usage).some(count => count !== undefined) ? usage : undefined;
 }
 
 function token(value: unknown): number | undefined {
-	return Number.isSafeInteger(value) && (value as number) >= 0 ? value as number : undefined;
+	return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? value : undefined;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return value !== null && typeof value === "object";
 }
 
 function classifyClaudeCliFailure(output: string): ClaudeCliReviewError {
@@ -297,9 +311,9 @@ const SYSTEM_CLAUDE_CLI_RUNNER_DEPENDENCIES: ClaudeCliSystemRunnerDependencies =
 	spawn: (command, args, cwd) => Bun.spawn([command, ...args], {
 		cwd, stdin: "pipe", stdout: "pipe", stderr: "pipe", detached: true,
 	}),
-	killProcessGroup: (pid, signal) => process.kill(-pid, signal),
-	setTimer: (callback, ms) => setTimeout(callback, ms),
-	clearTimer: timer => clearTimeout(timer),
+	killProcessGroup : (pid, signal) => process.kill(-pid, signal),
+	setTimer         : (callback, ms) => setTimeout(callback, ms),
+	clearTimer       : timer => clearTimeout(timer),
 };
 
 /**
@@ -351,9 +365,9 @@ async function readCappedClaudeCliStream(
 	limit: number,
 	onLimit: () => void,
 ): Promise<string> {
-	const reader = stream.getReader();
-	const chunks: Uint8Array[] = [];
-	let size = 0;
+	const reader                = stream.getReader() ;
+	const chunks : Uint8Array[] = []                 ;
+	let size                    = 0                  ;
 	try {
 		for (;;) {
 			const next = await reader.read();
@@ -380,9 +394,9 @@ async function readCappedClaudeCliStream(
 }
 
 function concatClaudeCliChunks(chunks: readonly Uint8Array[]): Uint8Array {
-	const size = chunks.reduce((total, chunk) => total + chunk.byteLength, 0);
-	const output = new Uint8Array(size);
-	let offset = 0;
+	const size   = chunks.reduce((total, chunk) => total + chunk.byteLength, 0) ;
+	const output = new Uint8Array(size)                                         ;
+	let offset   = 0                                                            ;
 	for (const chunk of chunks) {
 		output.set(chunk, offset);
 		offset += chunk.byteLength;
@@ -430,9 +444,9 @@ export function installedClaudeCliVersion(command = "claude"): string {
 }
 
 function createAdapter(provider: ReviewProvider, selection: ReviewModelSelection | undefined, client: ReviewGenerationClient, digest: ReviewDigester): ProviderReviewAdapter {
-	const fallback = provider === "anthropic" ? CLAUDE_OPUS_REVIEW_MODEL : GEMINI_REVIEW_MODEL;
-	const model = resolveModel(provider, selection?.model ?? fallback);
-	const version = selection?.version ?? model;
+	const fallback = provider === "anthropic" ? CLAUDE_OPUS_REVIEW_MODEL : GEMINI_REVIEW_MODEL ;
+	const model    = resolveModel(provider, selection?.model ?? fallback)                      ;
+	const version  = selection?.version ?? model                                               ;
 	return new ProviderReviewAdapter(provider, model, version, client, digest);
 }
 
@@ -442,22 +456,25 @@ function resolveModel(provider: ReviewProvider, requested: string): string {
 	return resolved;
 }
 
-function assertDetachedRequest(request: import("../../../core/domain/review/review").ReviewGenerationRequest): void {
-	if (request.cwd !== "" || request.readOnly !== true || request.networkAccess !== "provider-api-only" || request.tools.length !== 0) {
+function assertDetachedRequest(request: import("@/core/domain/review/review").ReviewGenerationRequest): void {
+	if (request.cwd !== ""
+		|| request.readOnly !== true
+		|| request.networkAccess !== "provider-api-only"
+		|| request.tools.length !== 0) {
 		throw new Error("Review generation request is not detached");
 	}
 }
 
 export function immutableReviewRecord(value: ReviewDelivery): string {
 	return stableJson({
-		provider: value.provider,
-		model: value.model,
-		version: value.version,
+		provider : value.provider,
+		model    : value.model,
+		version  : value.version,
 		...(value.transport ? { transport: value.transport } : {}),
-		packetDigest: value.packetDigest,
-		resultDigest: value.resultDigest,
-		sentAt: value.sentAt,
-		receivedAt: value.receivedAt,
+		packetDigest : value.packetDigest,
+		resultDigest : value.resultDigest,
+		sentAt       : value.sentAt,
+		receivedAt   : value.receivedAt,
 		...(value.usage ? { usage: value.usage } : {}),
 	});
 }

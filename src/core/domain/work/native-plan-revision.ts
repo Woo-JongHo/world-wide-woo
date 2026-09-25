@@ -1,4 +1,4 @@
-import type { ProjectActivity } from "../execution/project-activity.js";
+import type { ProjectActivity } from "@/core/domain/execution/project-activity.js";
 
 export type WorkStepStatus =
 	| "pending"
@@ -35,6 +35,10 @@ interface RawPlanEntry {
 	readonly status: unknown;
 }
 
+type RawPlanRead =
+	| { readonly entries: readonly RawPlanEntry[]; readonly error?: undefined }
+	| { readonly error: NativePlanRevisionValidationCode; readonly entries?: undefined };
+
 /** Recognizes and fail-closed decodes one provider activity without hashing or presentation. */
 export function readNativePlanRevision(
 	activity: ProjectActivity,
@@ -45,7 +49,7 @@ export function readNativePlanRevision(
 		return { kind: "invalid-plan-revision", code: parsed.error };
 	}
 	const entries: NativePlanRevisionEntry[] = [];
-	for (const value of parsed.entries!) {
+	for (const value of parsed.entries) {
 		const identityText = canonicalIdentityText(value.step);
 		if ([...value.step].length > 4_096 || !identityText) {
 			return { kind: "invalid-plan-revision", code: "blank_entry" };
@@ -71,7 +75,7 @@ function isPlanRevision(activity: ProjectActivity): boolean {
 
 function rawPlanEntries(
 	activity: ProjectActivity,
-): { entries?: RawPlanEntry[]; error?: NativePlanRevisionValidationCode } {
+): RawPlanRead {
 	const params = record(activity.payload.params);
 	if (
 		activity.payload.method === "turn/plan/updated" ||
@@ -86,8 +90,8 @@ function rawPlanEntries(
 		}
 		return {
 			entries: values.map((entry) => ({
-				step: entry!.step as string,
-				status: entry!.status,
+				step: entry?.step as string,
+				status: entry?.status,
 			})),
 		};
 	}
@@ -104,24 +108,24 @@ function rawPlanEntries(
 		if (number !== headingNumber + 1) return { error: "non_string_entry" };
 		headingNumber = number;
 		numberedHeadings.push({
-			step: markdownPlanTitle(heading[2]!),
+			step: markdownPlanTitle(heading[2]),
 			status: numberedHeadings.length === 0 ? "inProgress" : "pending",
 		});
 	}
 	if (numberedHeadings.length > 0) return { entries: numberedHeadings };
 	const plainNumbered = nativePlainNumberedPlanBlock(item.text);
 	if (plainNumbered) return { entries: plainNumbered };
-	const entries: RawPlanEntry[] = [];
-	let numberedCount = 0;
-	let precedingStep: "numbered" | "bullet" | undefined;
+	const entries     : RawPlanEntry[] = []               ;
+	let numberedCount                  = 0                ;
+	let precedingStep : "numbered" | "bullet" | undefined ;
 	for (const line of item.text.replace(/\r\n?/gu, "\n").split("\n")) {
 		if (!line.trim() || /^\s*#{1,6}\s+/u.test(line)) {
 			precedingStep = undefined;
 			continue;
 		}
-		const numbered = /^(\d+)\.\s+(.+?)\s*$/u.exec(line);
-		const bullet = /^[-*+]\s+(.+?)\s*$/u.exec(line);
-		const indentedBullet = /^([ ]+)[-*+]\s+.+?\s*$/u.exec(line);
+		const numbered       = /^(\d+)\.\s+(.+?)\s*$/u.exec(line)   ;
+		const bullet         = /^[-*+]\s+(.+?)\s*$/u.exec(line)     ;
+		const indentedBullet = /^([ ]+)[-*+]\s+.+?\s*$/u.exec(line) ;
 		if (indentedBullet) {
 			if (precedingStep !== "numbered") return { error: "non_string_entry" };
 			continue;
@@ -132,7 +136,7 @@ function rawPlanEntries(
 			if (number !== numberedCount + 1) return { error: "non_string_entry" };
 			numberedCount = number;
 		}
-		const value = numbered?.[2] ?? bullet![1]!;
+		const value = numbered?.[2] ?? bullet![1];
 		const explicit = markdownPlanEntry(value);
 		if (!explicit) return { error: "non_string_entry" };
 		const status = markdownPlanStatus(explicit.status);
@@ -161,7 +165,7 @@ function nativePlainNumberedPlanBlock(text: string): RawPlanEntry[] | undefined 
 		if (!numbered) return undefined;
 		const number = Number(numbered[1]);
 		if (number !== entries.length + 1 || number > 12) return undefined;
-		const value = numbered[2]!;
+		const value = numbered[2];
 		const explicit = markdownPlanEntry(value);
 		if (explicit && markdownPlanStatus(explicit.status)) return undefined;
 		entries.push({
@@ -176,19 +180,19 @@ function nativePlainNumberedPlanBlock(text: string): RawPlanEntry[] | undefined 
 function markdownPlanEntry(
 	value: string,
 ): { step: string; status: string } | undefined {
-	const outerBold = /^(?:\*\*|__)(.*)(?:\*\*|__)$/u.exec(value.trim());
-	const candidate = outerBold?.[1]?.trim() ?? value;
-	const prefix = /^\[([^\]]+)\]\s+(.+)$/u.exec(candidate);
+	const outerBold = /^(?:\*\*|__)(.*)(?:\*\*|__)$/u.exec(value.trim()) ;
+	const candidate = outerBold?.[1]?.trim() ?? value                    ;
+	const prefix    = /^\[([^\]]+)\]\s+(.+)$/u.exec(candidate)           ;
 	if (prefix) {
-		return { step: markdownPlanTitle(prefix[2]!), status: prefix[1]! };
+		return { step: markdownPlanTitle(prefix[2]), status: prefix[1] };
 	}
 	const suffix = /^(.+?)\s+\[([^\]]+)\]$/u.exec(candidate);
 	if (suffix) {
-		return { step: markdownPlanTitle(suffix[1]!), status: suffix[2]! };
+		return { step: markdownPlanTitle(suffix[1]), status: suffix[2] };
 	}
 	const separated = /^(.+?)\s+[—-]\s+(.+)$/u.exec(candidate);
 	if (separated) {
-		return { step: markdownPlanTitle(separated[1]!), status: separated[2]! };
+		return { step: markdownPlanTitle(separated[1]), status: separated[2] };
 	}
 	return undefined;
 }

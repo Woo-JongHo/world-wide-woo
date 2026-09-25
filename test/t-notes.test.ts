@@ -1,10 +1,10 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { appendFile, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { TNoteService, validateCanonicalTNote } from "../src/core/application/work/t-note-service.js";
-import type { DetachedTextGenerator } from "../src/core/application/orchestration/detached-text-generator.js";
-import { FileTNoteStore } from "../src/adapters/outbound/persistence/t-note-store.js";
+import { afterEach, describe, expect, test }               from "bun:test";
+import { appendFile, mkdtemp, readFile, rm, writeFile }    from "node:fs/promises";
+import { tmpdir }                                          from "node:os";
+import { join }                                            from "node:path";
+import { TNoteService, validateCanonicalTNote }            from "../src/core/application/work/t-note-service.js";
+import type { DetachedTextGenerator }                      from "../src/core/application/orchestration/detached-text-generator.js";
+import { FileTNoteStore }                                  from "../src/adapters/outbound/persistence/t-note-store.js";
 import { createTNotePacket, projectActivityToTNoteSource } from "../src/core/domain/work/t-notes.js";
 
 const directories: string[] = [];
@@ -20,20 +20,23 @@ const policy = { cwd: "" as const, noTools: true as const, network: false as con
 const generator: DetachedTextGenerator = {
 	async generate(request) {
 		expect(request.policy).toEqual(policy);
-		return { text: "질문: 무엇을 확인했나\nReason: 선택한 활동의 결과를 보존해야 했습니다.\nProposal: 완료된 질문을 간결한 보고서로 정리했습니다.\nAction: 선택 범위와 검증 결과를 확인했습니다.\nResult: 검증이 통과했고 외부 기록은 변경하지 않았습니다.", provenance: { provider: "anthropic", model: "claude-opus", version: "2026-09-01" }, isolation: { appliedPolicy: policy, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 } };
+		return { text: "질문: 무엇을 확인했나\nPlan: 선택한 활동의 결과를 보존해야 했습니다. 완료된 질문을 간결한 보고서로 정리했습니다.\n과정: 선택 범위와 검증 결과를 확인했습니다.\n결론: 검증이 통과했고 외부 기록은 변경하지 않았습니다.", provenance: { provider: "anthropic", model: "claude-opus", version: "2026-09-01" }, isolation: { appliedPolicy: policy, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 } };
 	},
 };
 
 describe("Note service", () => {
-	test("accepts the completed-question report contract and rejects the legacy generation shape", () => {
+	test("accepts the request-wide report contract and rejects legacy generation shapes", () => {
 		const report = [
 			"질문: HUD가 두 줄인 원인을 확인해줘",
-			"Reason: 사용자 요구와 현재 렌더 계약이 충돌했습니다.",
-			"Proposal: 모델과 구독 상태를 한 행으로 합치는 방향을 선택했습니다.",
-			"Action: 렌더 계약과 회귀 테스트를 변경했습니다.",
-			"Result: 코드와 문서를 동기화했고 GitHub와 Linear는 변경하지 않았습니다.",
+			"Plan: 현재 렌더 계약을 확인하고 모델과 구독 상태를 한 행으로 합치는 순서를 세웠습니다.",
+			"과정: 렌더 계약을 조사하고 구현과 회귀 테스트를 차례로 변경했습니다.",
+			"결론: 코드와 문서를 동기화했고 GitHub와 Linear는 변경하지 않았습니다.",
 		].join("\n");
 		expect(validateCanonicalTNote(report, "HUD가 두 줄인 원인을 확인해줘")).toEqual({ valid: true, reason: "" });
+		expect(validateCanonicalTNote(
+			"질문: HUD가 두 줄인 원인을 확인해줘\nReason: 이전 원인입니다.\nProposal: 이전 제안입니다.\nAction: 이전 행동입니다.\nResult: 이전 결과입니다.",
+			"HUD가 두 줄인 원인을 확인해줘",
+		).valid).toBe(false);
 		expect(validateCanonicalTNote(
 			"질문: HUD가 두 줄인 원인을 확인해줘\n왜: 이전 형식입니다.\n결과: 이전 결과입니다.",
 			"HUD가 두 줄인 원인을 확인해줘",
@@ -50,13 +53,13 @@ describe("Note service", () => {
 
 	test("fits large valid source activities into one packet without losing their identities", () => {
 		const activities = Array.from({ length: 8 }, (_, index) => ({
-			id: `activity-${index + 1}`,
-			projectId: "project-1",
-			sequence: index + 1,
-			occurredAt: "2026-09-01T00:00:00.000Z",
-			kind: "tool.completed",
-			title: `활동 ${index + 1}`,
-			body: "관측".repeat(16_384),
+			id         : `activity-${index + 1}`,
+			projectId  : "project-1",
+			sequence   : index + 1,
+			occurredAt : "2026-09-01T00:00:00.000Z",
+			kind       : "tool.completed",
+			title      : `활동 ${index + 1}`,
+			body       : "관측".repeat(16_384),
 		}));
 		const packet = createTNotePacket(
 			"project-1",
@@ -73,13 +76,13 @@ describe("Note service", () => {
 
 	test("keeps packet digests stable when the aggregate fit cuts through a redaction marker", async () => {
 		const activities = Array.from({ length: 10 }, (_, index) => ({
-			id: `activity-${index + 1}`,
-			projectId: "project-1",
-			sequence: index + 1,
-			occurredAt: "2026-09-01T00:00:00.000Z",
-			kind: "tool.completed",
-			title: "관측",
-			body: `${"x".repeat(26_080)} customer: secret-value ${"x".repeat(6_000)}`,
+			id         : `activity-${index + 1}`,
+			projectId  : "project-1",
+			sequence   : index + 1,
+			occurredAt : "2026-09-01T00:00:00.000Z",
+			kind       : "tool.completed",
+			title      : "관측",
+			body       : `${"x".repeat(26_080)} customer: secret-value ${"x".repeat(6_000)}`,
 		}));
 		const packet = createTNotePacket(
 			"project-1",
@@ -93,7 +96,7 @@ describe("Note service", () => {
 			id: "tnote-marker-boundary",
 			createdAt: "2026-09-01T00:01:00.000Z",
 			packet,
-			text: "질문: 무엇을 확인했나\nReason: 경계를 확인했습니다.\nProposal: 안정적인 packet을 유지합니다.\nAction: digest를 재검증했습니다.\nResult: 기록을 저장했습니다.",
+			text: "질문: 무엇을 확인했나\nPlan: 경계를 확인했습니다. 안정적인 packet을 유지합니다.\n과정: digest를 재검증했습니다.\n결론: 기록을 저장했습니다.",
 			provenance: { provider: "test", model: "test", version: "test" },
 		});
 		expect(await draftStore.readAll("project-1")).toHaveLength(1);
@@ -104,9 +107,9 @@ describe("Note service", () => {
 		const draftStore = await store();
 		const service = new TNoteService(generator, draftStore, () => new Date("2026-09-01T00:00:00.000Z"), () => "tnote-1");
 		const note = await service.create({
-			projectId: "project-1",
-			expectedQuestion: "무엇을 확인했나",
-			range: { startSequence: 3, endSequence: 4 },
+			projectId        : "project-1",
+			expectedQuestion : "무엇을 확인했나",
+			range            : { startSequence: 3, endSequence: 4 },
 			activities: [
 				{ id: "act-3", projectId: "project-1", sequence: 3, occurredAt: "2026-09-01T00:00:00.000Z", kind: "assistant", title: "결과", body: "token=secret-value /Users/customer-X/acme customer=Acme", nativeRefs: ["thread-1", "item-3"] },
 				{ id: "act-4", projectId: "project-1", sequence: 4, occurredAt: "2026-09-01T00:01:00.000Z", kind: "tool", title: "검증", body: "통과", nativeRefs: ["item-4"] },
@@ -129,14 +132,14 @@ describe("Note service", () => {
 		const draftStore = await store();
 		const service = new TNoteService(generator, draftStore, () => new Date("2026-09-01T00:00:00.000Z"), () => "tnote-test-summary");
 		const note = await service.create({
-			projectId: "project-1",
-			expectedQuestion: "무엇을 확인했나",
-			range: { startSequence: 1, endSequence: 4 },
+			projectId        : "project-1",
+			expectedQuestion : "무엇을 확인했나",
+			range            : { startSequence: 1, endSequence: 4 },
 			activities: [
-				{ id: "act-1", projectId: "project-1", sequence: 1, occurredAt: "2026-09-01T00:00:00.000Z", kind: "tool.completed", title: "검증", body: JSON.stringify({ params: { item: { type: "commandExecution", command: "bun test test/astra-ui.test.ts", durationMs: 1200, exitCode: 0 } } }) },
-				{ id: "act-2", projectId: "project-1", sequence: 2, occurredAt: "2026-09-01T00:00:01.000Z", kind: "tool.completed", title: "검증", body: JSON.stringify({ params: { item: { type: "commandExecution", command: "pnpm test test/project-workbench.test.ts", durationMs: 375, exitCode: 1 } } }) },
-				{ id: "act-3", projectId: "project-1", sequence: 3, occurredAt: "2026-09-01T00:00:02.000Z", kind: "tool.completed", title: "탐색", body: JSON.stringify({ params: { item: { type: "commandExecution", command: "rg Note src", durationMs: 40, exitCode: 0 } } }) },
-				{ id: "act-4", projectId: "project-1", sequence: 4, occurredAt: "2026-09-01T00:00:03.000Z", kind: "progress.completed", title: "완료", body: "{}" },
+				{ id : "act-1" , projectId : "project-1" , sequence : 1 , occurredAt : "2026-09-01T00:00:00.000Z" , kind : "tool.completed"     , title : "검증" , body : JSON.stringify({ params: { item: { type: "commandExecution", command: "bun test test/astra-ui.test.ts", durationMs: 1200, exitCode: 0 } } })          },
+				{ id : "act-2" , projectId : "project-1" , sequence : 2 , occurredAt : "2026-09-01T00:00:01.000Z" , kind : "tool.completed"     , title : "검증" , body : JSON.stringify({ params: { item: { type: "commandExecution", command: "pnpm test test/project-workbench.test.ts", durationMs: 375, exitCode: 1 } } }) },
+				{ id : "act-3" , projectId : "project-1" , sequence : 3 , occurredAt : "2026-09-01T00:00:02.000Z" , kind : "tool.completed"     , title : "탐색" , body : JSON.stringify({ params: { item: { type: "commandExecution", command: "rg Note src", durationMs: 40, exitCode: 0 } } })                               },
+				{ id : "act-4" , projectId : "project-1" , sequence : 4 , occurredAt : "2026-09-01T00:00:03.000Z" , kind : "progress.completed" , title : "완료" , body : "{}"                                                                                                                                                  },
 			],
 			instruction: "요약",
 		});
@@ -149,16 +152,16 @@ describe("Note service", () => {
 		const capturingGenerator: DetachedTextGenerator = {
 			async generate(request) {
 				dispatchedInstruction = request.instruction;
-				return { text: "질문: Git과 Bash\nReason: 출력 상태를 확인해야 했습니다.\nProposal: 관측된 출력만 보고서로 정리했습니다.\nAction: 출력과 표시 결과를 확인했습니다.\nResult: 표시를 검증했고 외부 기록은 변경하지 않았습니다.", provenance: { provider: "openai-codex", model: "gpt-5.6-luna", version: "gpt-5.6-luna" }, isolation: { appliedPolicy: policy, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 } };
+				return { text: "질문: Git과 Bash\nPlan: 출력 상태를 확인해야 했습니다. 관측된 출력만 보고서로 정리했습니다.\n과정: 출력과 표시 결과를 확인했습니다.\n결론: 표시를 검증했고 외부 기록은 변경하지 않았습니다.", provenance: { provider: "openai-codex", model: "gpt-5.6-luna", version: "gpt-5.6-luna" }, isolation: { appliedPolicy: policy, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 } };
 			},
 		};
 		const service = new TNoteService(capturingGenerator, draftStore, () => new Date("2026-09-01T00:00:00.000Z"), () => "tnote-safe-instruction");
 		await service.create({
-			projectId: "project-1",
-			expectedQuestion: "Git과 Bash",
-			range: { startSequence: 1, endSequence: 1 },
-			activities: [{ id: "act-1", projectId: "project-1", sequence: 1, occurredAt: "2026-09-01T00:00:00.000Z", kind: "message", title: "질문", body: "Git/Bash와 /Users/example/private를 확인" }],
-			instruction: "Git/Bash와 /Users/example/private를 질문별로 정리",
+			projectId        : "project-1",
+			expectedQuestion : "Git과 Bash",
+			range            : { startSequence: 1, endSequence: 1 },
+			activities       : [{ id: "act-1", projectId: "project-1", sequence: 1, occurredAt: "2026-09-01T00:00:00.000Z", kind: "message", title: "질문", body: "Git/Bash와 /Users/example/private를 확인" }],
+			instruction      : "Git/Bash와 /Users/example/private를 질문별로 정리",
 		});
 
 		expect(dispatchedInstruction).toContain("[redacted:local-path]");
@@ -178,9 +181,9 @@ describe("Note service", () => {
 		const draftStore = await store();
 		const service = new TNoteService(generator, draftStore);
 		const note = await service.create({
-			projectId: "project-1",
-			expectedQuestion: "무엇을 확인했나",
-			range: { startSequence: 3, endSequence: 9 },
+			projectId        : "project-1",
+			expectedQuestion : "무엇을 확인했나",
+			range            : { startSequence: 3, endSequence: 9 },
 			activities: [
 				{ id: "act-3", projectId: "project-1", sequence: 3, occurredAt: "2026-09-01T00:00:00.000Z", kind: "message", title: "질문", body: "질문" },
 				{ id: "act-9", projectId: "project-1", sequence: 9, occurredAt: "2026-09-01T00:01:00.000Z", kind: "progress", title: "완료", body: "완료" },
@@ -199,16 +202,16 @@ describe("Note service", () => {
 				attempts += 1;
 				if (attempts === 1) throw new Error("temporary generation failure");
 				return {
-					text: "질문: 첫 thread 질문\nReason: 실패한 생성 작업을 복구해야 했습니다.\nProposal: 완료된 turn만 다시 요약했습니다.\nAction: 완료 범위를 다시 확인하고 생성을 재시도했습니다.\nResult: 재시작 뒤 보고서를 저장했고 외부 기록은 변경하지 않았습니다.",
-					provenance: { provider: "test", model: "test", version: "test" },
-					isolation: { appliedPolicy: policy, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 },
+					text       : "질문: 첫 thread 질문\nPlan: 실패한 생성 작업을 복구해야 했습니다. 완료된 turn만 다시 요약했습니다.\n과정: 완료 범위를 다시 확인하고 생성을 재시도했습니다.\n결론: 재시작 뒤 보고서를 저장했고 외부 기록은 변경하지 않았습니다.",
+					provenance : { provider: "test", model: "test", version: "test" },
+					isolation  : { appliedPolicy: policy, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 },
 				};
 			},
 		};
 		const input = {
-			projectId: "project-1",
-			expectedQuestion: "첫 thread 질문",
-			range: { startSequence: 1, endSequence: 5 },
+			projectId        : "project-1",
+			expectedQuestion : "첫 thread 질문",
+			range            : { startSequence: 1, endSequence: 5 },
 			activities: [
 				{ id: "thread-1-question", projectId: "project-1", sequence: 1, occurredAt: "2026-09-01T00:00:00.000Z", kind: "message", title: "질문", body: "첫 thread 질문" },
 				{ id: "thread-1-complete", projectId: "project-1", sequence: 5, occurredAt: "2026-09-01T00:01:00.000Z", kind: "progress", title: "완료", body: "완료" },
@@ -230,23 +233,23 @@ describe("Note service", () => {
 
 	test("removes native identifiers inside a non-reasoning event payload", () => {
 		const source = projectActivityToTNoteSource({
-			schemaVersion: 1,
-			id: "activity-2",
-			projectId: "project-1",
-			sequence: 2,
-			recordedAt: "2026-09-01T00:00:00.000Z",
-			kind: "tool",
-			phase: "completed",
-			provider: "openai-codex",
-			nativeRefs: { threadId: "thread-ref-2", turnId: "turn-ref-2", itemId: "item-ref-2" },
-			sourceDigest: "b".repeat(64),
+			schemaVersion : 1,
+			id            : "activity-2",
+			projectId     : "project-1",
+			sequence      : 2,
+			recordedAt    : "2026-09-01T00:00:00.000Z",
+			kind          : "tool",
+			phase         : "completed",
+			provider      : "openai-codex",
+			nativeRefs    : { threadId: "thread-ref-2", turnId: "turn-ref-2", itemId: "item-ref-2" },
+			sourceDigest  : "b".repeat(64),
 			payload: {
 				params: {
-					threadId: "thread-payload-2",
-					thread_id: "thread-snake-2",
-					turn: { id: "turn-payload-2" },
-					item: { id: "item-payload-2", type: "command", content: "보존할 도구 결과" },
-					native_refs: { item_id: "item-snake-2" },
+					threadId    : "thread-payload-2",
+					thread_id   : "thread-snake-2",
+					turn        : { id: "turn-payload-2" },
+					item        : { id: "item-payload-2", type: "command", content: "보존할 도구 결과" },
+					native_refs : { item_id: "item-snake-2" },
 				},
 			},
 		});
@@ -259,16 +262,16 @@ describe("Note service", () => {
 
 	test("removes nested native reasoning bodies and all native references before they enter a Note packet", () => {
 		const source = projectActivityToTNoteSource({
-			schemaVersion: 1,
-			id: "reasoning-1",
-			projectId: "project-1",
-			sequence: 1,
-			recordedAt: "2026-09-01T00:00:00.000Z",
-			kind: "progress",
-			phase: "completed",
-			provider: "openai-codex",
-			nativeRefs: { threadId: "thread-1", itemId: "reasoning-item-1" },
-			sourceDigest: "b".repeat(64),
+			schemaVersion : 1,
+			id            : "reasoning-1",
+			projectId     : "project-1",
+			sequence      : 1,
+			recordedAt    : "2026-09-01T00:00:00.000Z",
+			kind          : "progress",
+			phase         : "completed",
+			provider      : "openai-codex",
+			nativeRefs    : { threadId: "thread-1", itemId: "reasoning-item-1" },
+			sourceDigest  : "b".repeat(64),
 			payload: {
 				method: "item/completed",
 				params: {
@@ -293,10 +296,10 @@ describe("Note service", () => {
 	});
 
 	test("truncates only a final crash residue while rejecting an invalid middle record", async () => {
-		const draftStore = await store();
-		const service = new TNoteService(generator, draftStore, () => new Date("2026-09-01T00:00:00.000Z"), () => "tnote-tail");
-		const note = await service.create({ projectId: "project-1", expectedQuestion: "무엇을 확인했나", range: { startSequence: 1, endSequence: 1 }, activities: [{ id: "act-1", projectId: "project-1", sequence: 1, occurredAt: "2026-09-01T00:00:00.000Z", kind: "tool", title: "검증", body: "통과" }], instruction: "요약" });
-		const path = join((draftStore as unknown as { directory: string }).directory, "t-notes.jsonl");
+		const draftStore = await store()                                                                                                                                                                                                                                                                                                  ;
+		const service    = new TNoteService(generator, draftStore, () => new Date("2026-09-01T00:00:00.000Z"), () => "tnote-tail")                                                                                                                                                                                                        ;
+		const note       = await service.create({ projectId: "project-1", expectedQuestion: "무엇을 확인했나", range: { startSequence: 1, endSequence: 1 }, activities: [{ id: "act-1", projectId: "project-1", sequence: 1, occurredAt: "2026-09-01T00:00:00.000Z", kind: "tool", title: "검증", body: "통과" }], instruction: "요약" }) ;
+		const path       = join((draftStore as unknown as { directory: string }).directory, "t-notes.jsonl")                                                                                                                                                                                                                              ;
 		await appendFile(path, "{\"schemaVersion\":");
 		expect(await draftStore.readAll("project-1")).toEqual([note]);
 		expect(await readFile(path, "utf8")).toBe(`${JSON.stringify(note)}\n`);

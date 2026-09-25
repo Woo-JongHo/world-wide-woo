@@ -1,7 +1,12 @@
 import type { Context, Models, ModelsSimpleStreamOptions } from "@earendil-works/pi-ai";
-import { validateTNotePacket, type TNoteModelProvenance } from "../../../core/domain/work/t-notes";
-import type { DetachedGenerationPolicy, DetachedTextGenerationRequest, DetachedTextGenerator } from "../../../core/application/orchestration/detached-text-generator";
-import type { SessionModelUsageObservation } from "../../../core/application/session/session-model-usage.js";
+import { validateTNotePacket }                             from "@/core/domain/work/t-notes";
+import type { TNoteModelProvenance }                       from "@/core/domain/work/t-notes";
+import type {
+	DetachedGenerationPolicy,
+	DetachedTextGenerationRequest,
+	DetachedTextGenerator,
+} from "@/core/application/orchestration/detached-text-generator";
+import type { SessionModelUsageObservation }               from "@/core/application/session/session-model-usage.js";
 
 export const DETACHED_CODEX_PROVIDER = "openai-codex";
 
@@ -30,11 +35,11 @@ export class PiDetachedCodexGenerator implements DetachedTextGenerator {
 		readonly text: string;
 		readonly provenance: TNoteModelProvenance;
 		readonly isolation: {
-			readonly appliedPolicy: DetachedGenerationPolicy;
-			readonly projectRootVisible: false;
-			readonly toolCalls: 0;
-			readonly networkCalls: 0;
-			readonly filesystemWrites: 0;
+			readonly appliedPolicy      : DetachedGenerationPolicy ;
+			readonly projectRootVisible : false                    ;
+			readonly toolCalls          : 0                        ;
+			readonly networkCalls       : 0                        ;
+			readonly filesystemWrites   : 0                        ;
 		};
 	}> {
 		assertPacketOnlyRequest(request);
@@ -42,11 +47,14 @@ export class PiDetachedCodexGenerator implements DetachedTextGenerator {
 		if (!model) throw new Error(`Detached Codex model is not available: ${DETACHED_CODEX_PROVIDER}/${this.modelId}`);
 
 		const context: Context = {
-			systemPrompt: "You create a concise Korean Note from only the supplied immutable packet and instruction. Explain it so a person seeing the work for the first time can understand it. Include execution details only when they directly explain the answer. Never expose hidden chain-of-thought, infer omitted project data, copy raw logs, add future Todo items, or call tools. Follow the requested output shape exactly and return text only.",
-			messages: [{ role: "user", content: detachedInput(request), timestamp: Date.now() }],
-			tools: [],
+			systemPrompt : "You create a concise Korean Note from only the supplied immutable packet and instruction. Explain it so a person seeing the work for the first time can understand it. Include execution details only when they directly explain the answer. Never expose hidden chain-of-thought, infer omitted project data, copy raw logs, add future Todo items, or call tools. Follow the requested output shape exactly and return text only.",
+			messages     : [{ role: "user", content: detachedInput(request), timestamp: Date.now() }],
+			tools        : [],
 		};
-		const options: ModelsSimpleStreamOptions = Object.freeze({ toolChoice: "none", signal });
+		const options: ModelsSimpleStreamOptions = Object.freeze({
+			toolChoice: "none",
+			...(signal ? { signal } : {}),
+		});
 		const response = await this.models.streamSimple(model, context, options).result();
 		recordUsage(response.usage?.totalTokens, this.modelId, this.observeUsage);
 		if (response.stopReason === "toolUse" || response.content.some(block => block.type === "toolCall")) {
@@ -60,11 +68,11 @@ export class PiDetachedCodexGenerator implements DetachedTextGenerator {
 			text: response.content.filter(block => block.type === "text").map(block => block.text).join(""),
 			provenance: Object.freeze({ provider: DETACHED_CODEX_PROVIDER, model: this.modelId, version: this.version }),
 			isolation: Object.freeze({
-				appliedPolicy: freezePolicy(request.policy),
-				projectRootVisible: false,
-				toolCalls: 0,
-				networkCalls: 0,
-				filesystemWrites: 0,
+				appliedPolicy      : freezePolicy(request.policy),
+				projectRootVisible : false,
+				toolCalls          : 0,
+				networkCalls       : 0,
+				filesystemWrites   : 0,
 			}),
 		});
 	}
@@ -76,9 +84,17 @@ function recordUsage(totalTokens: number | undefined, model: string, observer: (
 }
 
 function assertPacketOnlyRequest(request: DetachedTextGenerationRequest): void {
-	if (!request || typeof request !== "object" || !nonEmptyText(request.instruction) || utf8Bytes(request.instruction) > 4 * 1024) throw new Error("Detached Codex request is invalid");
+	if (!request
+		|| typeof request !== "object"
+		|| !nonEmptyText(request.instruction)
+		|| utf8Bytes(request.instruction) > 4 * 1024) throw new Error("Detached Codex request is invalid");
 	const policy = request.policy;
-	if (!policy || policy.cwd !== "" || policy.noTools !== true || policy.network !== false || policy.readOnly !== true || policy.ephemeral !== true) {
+	if (!policy
+		|| policy.cwd !== ""
+		|| policy.noTools !== true
+		|| policy.network !== false
+		|| policy.readOnly !== true
+		|| policy.ephemeral !== true) {
 		throw new Error("Detached Codex request is not packet-only");
 	}
 	// Validation also bounds and copies the packet; the caller's immutable input is never mutated.

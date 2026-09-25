@@ -1,64 +1,70 @@
-import type { NativeApprovalDecision, NativeApprovalRequest, NativeApprovalResponse, NativeRefs } from "../execution/native-session.js";
-import type { Effort } from "../execution/model-settings.js";
-import type { ProjectActivity } from "../execution/project-activity.js";
-import type { TodoDocument } from "./todos.js";
-import type { ReviewProvider } from "../review/review.js";
-import type { WorkFlowProjection } from "./index.js";
-import type { ExecutionRunState } from "../execution/execution-run-contract.js";
-import type { RequestRuntimeRecord } from "../execution/request-runtime";
-import type { ActivitySelectionResult } from "./trace-selection.js";
-import type { LinearProjectDashboard } from "./linear-dashboard.js";
-import type { PerformanceProjection } from "./performance.js";
-import type { NativeDelegatedTask, NativeDelegationProjection } from "./delegation.js";
-import type { CacheLayerObservation } from "../observability/cache-telemetry.js";
+import type {
+	NativeApprovalDecision,
+	NativeApprovalRequest,
+	NativeApprovalResponse,
+	NativeRefs,
+} from "@/core/domain/execution/native-session.js";
+import type { Effort }                                          from "@/core/domain/execution/model-settings.js";
+import type { ProjectActivity }                                 from "@/core/domain/execution/project-activity.js";
+import type { TodoDocument }                                    from "@/core/domain/work/todos.js";
+import type { ReviewProvider }                                  from "@/core/domain/review/review.js";
+import type { WorkFlowProjection }                              from "@/core/domain/work/index.js";
+import type { ExecutionRunState }                               from "@/core/domain/execution/execution-run-contract.js";
+import type { RequestRuntimeRecord }                            from "@/core/domain/execution/request-runtime";
+import type { ActivitySelectionResult }                         from "@/core/domain/work/trace-selection.js";
+import type { LinearProjectDashboard }                          from "@/core/domain/work/linear-dashboard.js";
+import type { PerformanceProjection }                           from "@/core/domain/work/performance.js";
+import type { NativeDelegatedTask, NativeDelegationProjection } from "@/core/domain/work/delegation.js";
+import type { CacheLayerObservation }                           from "@/core/domain/observability/cache-telemetry.js";
+import type { PerformanceTrace, PerformanceWindow }             from "@/core/domain/observability/layer-performance.js";
 
-export type WorkbenchPhase = "loading" | "ready" | "working" | "error" | "closed";
-export type WorkbenchPermissionMode = "manual" | "all";
-export type WorkbenchCollaborationMode = "manual" | "plan";
+export type WorkbenchPhase             = "loading" | "ready" | "working" | "error" | "closed" ;
+export type WorkbenchPermissionMode    = "manual" | "all"                                     ;
+export type WorkbenchCollaborationMode = "manual" | "plan"                                    ;
 
 export interface WorkbenchTodoSyncState {
-	readonly state: "idle" | "syncing" | "confirmed" | "blocked";
-	readonly lastConfirmedAt: string | null;
-	readonly message: string | null;
+	readonly state           : "idle" | "syncing" | "confirmed" | "blocked" ;
+	readonly lastConfirmedAt : string | null                                ;
+	readonly message         : string | null                                ;
 }
 
 export interface WorkbenchChatMessage {
-	id: string;
-	role: "user" | "assistant" | "system";
-	content: string;
-	activityId: string;
-	status: "streaming" | "completed" | "incomplete" | "failed" | "cancelled";
+	id         : string                                                            ;
+	role       : "user" | "assistant" | "system"                                   ;
+	content    : string                                                            ;
+	activityId : string                                                            ;
+	status     : "streaming" | "completed" | "incomplete" | "failed" | "cancelled" ;
 	/** True when an incomplete terminal message preserves text observed from deltas. */
 	partial?: boolean;
 }
 
 export interface WorkbenchChatQueueItem {
-	readonly id: string;
-	readonly content: string;
-	readonly queuedAt: string;
+	readonly id       : string ;
+	readonly content  : string ;
+	readonly queuedAt : string ;
 	/** A Goal request remains identifiable when it waits behind an active turn. */
 	readonly goal?: boolean;
 }
 
 export interface WorkbenchTNote {
-	id: string;
-	title: string;
-	summary: string;
-	sourceActivityIds: readonly string[];
-	updatedAt: string;
+	id                : string            ;
+	title             : string            ;
+	summary           : string            ;
+	sourceActivityIds : readonly string[] ;
+	updatedAt         : string            ;
 }
 
 export interface WorkbenchLiveActivity {
-	method: string;
-	kind: "tool" | "progress" | "file-change" | "approval";
-	text: string;
-	nativeRefs: NativeRefs;
+	method     : string                                           ;
+	kind       : "tool" | "progress" | "file-change" | "approval" ;
+	text       : string                                           ;
+	nativeRefs : NativeRefs                                       ;
 }
 
 export interface WorkbenchContextUsage {
-	readonly usedTokens: number;
-	readonly contextWindow: number;
-	readonly percent: number;
+	readonly usedTokens    : number ;
+	readonly contextWindow : number ;
+	readonly percent       : number ;
 }
 
 export interface WorkbenchModelUsage {
@@ -68,9 +74,9 @@ export interface WorkbenchModelUsage {
 	readonly interactiveRootTurns: number;
 	readonly interactiveTokens: number;
 	/** Detached model invocations owned by this WWW process. */
-	readonly detachedInvocations: number;
-	readonly detachedTokens: number;
-	readonly totalTokens: number;
+	readonly detachedInvocations : number ;
+	readonly detachedTokens      : number ;
+	readonly totalTokens         : number ;
 }
 
 /** Tokens observed after this WWW process attached; this is not subscription quota. */
@@ -81,9 +87,9 @@ export interface WorkbenchSessionUsage {
 	 * baseline until a second cumulative Native reading arrives, so that state is
 	 * null rather than an observed zero.
 	 */
-	readonly observedTotalTokens: number | null;
-	readonly unattributedTokens: number;
-	readonly models: readonly WorkbenchModelUsage[];
+	readonly observedTotalTokens : number | null                  ;
+	readonly unattributedTokens  : number                         ;
+	readonly models              : readonly WorkbenchModelUsage[] ;
 	readonly observationCoverage: {
 		/** At least one comparable Native cumulative usage reading was observed after the session baseline. */
 		readonly interactive: boolean;
@@ -93,21 +99,21 @@ export interface WorkbenchSessionUsage {
 }
 
 export interface WorkbenchSessionGoal {
-	readonly text: string;
-	readonly sourceActivityId: string;
-	readonly updatedAt: string;
+	readonly text             : string ;
+	readonly sourceActivityId : string ;
+	readonly updatedAt        : string ;
 }
 
 export interface WorkbenchWooEntrySnapshot {
-	readonly state: "loading" | "ready" | "blocked";
-	readonly revision: number;
-	readonly collectedAt: string | null;
+	readonly state       : "loading" | "ready" | "blocked" ;
+	readonly revision    : number                          ;
+	readonly collectedAt : string | null                   ;
 }
 
 export interface WorkbenchResumeCoverage {
-	readonly mode: "fresh" | "partial-local-journal";
-	readonly processAttachedAt: string;
-	readonly priorProviderHistoryHydrated: false;
+	readonly mode                         : "fresh" | "partial-local-journal" ;
+	readonly processAttachedAt            : string                            ;
+	readonly priorProviderHistoryHydrated : false                             ;
 }
 
 export interface WorkbenchModelSelection {
@@ -117,35 +123,35 @@ export interface WorkbenchModelSelection {
 
 /** MCP configuration state reported by the native App Server, separate from tool activity. */
 export interface WorkbenchMcpServer {
-	readonly name: string;
-	readonly enabled: boolean;
-	readonly status: string;
-	readonly tools: readonly string[];
+	readonly name    : string            ;
+	readonly enabled : boolean           ;
+	readonly status  : string            ;
+	readonly tools   : readonly string[] ;
 }
 
 export interface WorkbenchActionResult {
-	readonly kind: "todo" | "tnote" | "promotion" | "review" | "workflow" | "notice";
-	readonly title: string;
-	readonly body: string;
-	readonly digest?: string;
-	readonly createdAt: string;
+	readonly kind      : "todo" | "tnote" | "promotion" | "review" | "workflow" | "notice" ;
+	readonly title     : string                                                            ;
+	readonly body      : string                                                            ;
+	readonly digest?   : string                                                            ;
+	readonly createdAt : string                                                            ;
 }
 
 export interface PlanActivity {
-	readonly id: string;
-	readonly turnId: string;
-	readonly stepId: string;
-	readonly stepTitle: string;
-	readonly summary: string;
-	readonly status: "running" | "completed" | "failed" | "cancelled";
-	readonly sequence: number;
+	readonly id        : string                                           ;
+	readonly turnId    : string                                           ;
+	readonly stepId    : string                                           ;
+	readonly stepTitle : string                                           ;
+	readonly summary   : string                                           ;
+	readonly status    : "running" | "completed" | "failed" | "cancelled" ;
+	readonly sequence  : number                                           ;
 }
 
 export interface WorkbenchSkillInventory {
-	readonly count: number;
-	readonly names: readonly string[];
-	readonly sourceRevision: string;
-	readonly digest: string;
+	readonly count          : number            ;
+	readonly names          : readonly string[] ;
+	readonly sourceRevision : string            ;
+	readonly digest         : string            ;
 }
 
 export interface WorkbenchSnapshot {
@@ -153,7 +159,9 @@ export interface WorkbenchSnapshot {
 	readonly planActivityStatus?: "disabled" | "pending" | "ready" | "unavailable";
 	/** Actual session cache observations; absent layers remain explicitly unobserved. */
 	readonly cacheObservations?: readonly CacheLayerObservation[];
-	modelCatalog?: import("../execution/model-settings").NativeModelCatalog;
+	/** In-process seven-layer timing; absent until a Native event establishes a trace. */
+	readonly layerPerformance?: { readonly current: PerformanceTrace | null; readonly window: PerformanceWindow };
+	modelCatalog?: import("@/core/domain/execution/model-settings").NativeModelCatalog;
 	/** Seven-stage protocol history, projected from the durable Activity journal. */
 	requestRuntime?: readonly RequestRuntimeRecord[];
 	projectId: string;
@@ -165,53 +173,53 @@ export interface WorkbenchSnapshot {
 	/** Effective Native thread settings and latest context telemetry. */
 	model?: string;
 	/** Model the in-flight turn actually runs on; falls back to the selected model when idle. */
-	activeModel?: string;
-	effort?: string | null;
-	contextUsage?: WorkbenchContextUsage | null;
-	sessionUsage?: WorkbenchSessionUsage;
-	resumeCoverage?: WorkbenchResumeCoverage;
-	sessionGoal?: WorkbenchSessionGoal | null;
-	permissionMode?: WorkbenchPermissionMode;
-	collaborationMode?: WorkbenchCollaborationMode;
-	mcpServers: readonly WorkbenchMcpServer[];
-	skillInventory?: WorkbenchSkillInventory;
-	linearDashboard?: LinearProjectDashboard;
-	wooEntry?: WorkbenchWooEntrySnapshot | null;
-	threadId: string | null;
-	activeTurnId: string | null;
+	activeModel?       : string                           ;
+	effort?            : string | null                    ;
+	contextUsage?      : WorkbenchContextUsage | null     ;
+	sessionUsage?      : WorkbenchSessionUsage            ;
+	resumeCoverage?    : WorkbenchResumeCoverage          ;
+	sessionGoal?       : WorkbenchSessionGoal | null      ;
+	permissionMode?    : WorkbenchPermissionMode          ;
+	collaborationMode? : WorkbenchCollaborationMode       ;
+	mcpServers         : readonly WorkbenchMcpServer[]    ;
+	skillInventory?    : WorkbenchSkillInventory          ;
+	linearDashboard?   : LinearProjectDashboard           ;
+	wooEntry?          : WorkbenchWooEntrySnapshot | null ;
+	threadId           : string | null                    ;
+	activeTurnId       : string | null                    ;
 	/** Canonical reducer state for the selected root execution, when available. */
 	executionRun?: ExecutionRunState | null;
 	/** Shared observation model; a standalone execution has no assigned work context. */
-	performance?: PerformanceProjection;
-	delegation?: readonly NativeDelegationProjection[];
-	selectedAgentRef?: string | null;
-	selectedAgentDetail?: NativeDelegatedTask | null;
-	delegationDetailActivities?: number;
-	evaluationRequired?: boolean;
-	configurationSource?: "project-yaml" | "defaults";
-	tnoteVisibleLimit?: number;
-	tnoteSummaryMaxChars?: number;
-	tnoteSummaryMaxLines?: number;
-	hud?: { readonly showUsage: boolean; readonly showContext: boolean };
-	slash?: { readonly mcp: boolean; readonly clear: boolean; readonly compact: boolean };
+	performance?                : PerformanceProjection                                                         ;
+	delegation?                 : readonly NativeDelegationProjection[]                                         ;
+	selectedAgentRef?           : string | null                                                                 ;
+	selectedAgentDetail?        : NativeDelegatedTask | null                                                    ;
+	delegationDetailActivities? : number                                                                        ;
+	evaluationRequired?         : boolean                                                                       ;
+	configurationSource?        : "project-yaml" | "defaults"                                                   ;
+	tnoteVisibleLimit?          : number                                                                        ;
+	tnoteSummaryMaxChars?       : number                                                                        ;
+	tnoteSummaryMaxLines?       : number                                                                        ;
+	hud?                        : { readonly showUsage: boolean; readonly showContext: boolean }                ;
+	slash?                      : { readonly mcp: boolean; readonly clear: boolean; readonly compact: boolean } ;
 	/** Corrupt receipts stay available for read-only diagnosis, never for resuming execution. */
 	recordingReadOnly?: boolean;
 	/** Total durable activities in the current Native session. */
-	activityCount?: number;
-	activities: readonly ProjectActivity[];
-	selectedActivityId: string | null;
-	pendingApproval: NativeApprovalRequest | null;
-	chat: readonly WorkbenchChatMessage[];
-	chatQueue: readonly WorkbenchChatQueueItem[];
-	draft: string;
-	reasoningDraft: string;
+	activityCount?     : number                            ;
+	activities         : readonly ProjectActivity[]        ;
+	selectedActivityId : string | null                     ;
+	pendingApproval    : NativeApprovalRequest | null      ;
+	chat               : readonly WorkbenchChatMessage[]   ;
+	chatQueue          : readonly WorkbenchChatQueueItem[] ;
+	draft              : string                            ;
+	reasoningDraft     : string                            ;
 	/** Public App Server reasoning summary; raw reasoningDraft is never rendered. */
 	reasoningSummaryDraft?: string;
 	liveActivity: WorkbenchLiveActivity | null;
 	/** Derived live execution brief; Native activities and plan status remain authoritative. */
-	workFlow: WorkFlowProjection;
-	tnotes: readonly WorkbenchTNote[];
-	todo: TodoDocument | null;
+	workFlow : WorkFlowProjection        ;
+	tnotes   : readonly WorkbenchTNote[] ;
+	todo     : TodoDocument | null       ;
 	/** Durable Todo mirror health; Chat execution continues while this is blocked. */
 	todoSync?: WorkbenchTodoSyncState;
 	actionResult: WorkbenchActionResult | null;
@@ -278,14 +286,20 @@ export type WorkbenchExternalMutationKind = "commit" | "push" | "issue" | "linea
  * after any part of the candidate changes.
  */
 export interface WorkbenchExternalMutationCandidate {
-	readonly identity: string;
-	readonly kind: WorkbenchExternalMutationKind;
-	readonly target: string;
-	readonly content: string;
-	readonly currentState: string;
-	readonly scope: string;
-	readonly status: string;
-	readonly payload: Readonly<Record<string, unknown>>;
+	readonly identity     : string                            ;
+	readonly kind         : WorkbenchExternalMutationKind     ;
+	readonly target       : string                            ;
+	readonly content      : string                            ;
+	readonly currentState : string                            ;
+	readonly scope        : string                            ;
+	readonly status       : string                            ;
+	readonly payload      : Readonly<Record<string, unknown>> ;
+}
+
+const PUBLICATION_KINDS = new Set<string>(["commit", "push", "issue", "linear-issue", "linear-project-comment", "linear-project-update", "obsidian-canonical", "github-pr"]);
+
+function isWorkbenchExternalMutationKind(kind: unknown): kind is WorkbenchExternalMutationKind {
+	return typeof kind === "string" && PUBLICATION_KINDS.has(kind);
 }
 
 export function workbenchExternalMutationCandidates(request: NativeApprovalRequest): readonly WorkbenchExternalMutationCandidate[] {
@@ -293,15 +307,15 @@ export function workbenchExternalMutationCandidates(request: NativeApprovalReque
 	if (!Array.isArray(raw)) return [];
 	return Object.freeze(raw.flatMap((value, index) => {
 		if (!value || typeof value !== "object" || Array.isArray(value)) return [];
-		const candidate = value as Readonly<Record<string, unknown>>;
-		const kind = candidate.kind;
-		const target = candidate.target;
-		const content = candidate.content;
-		const currentState = candidate.currentState;
-		const scope = candidate.scope;
-		const status = candidate.status;
-		const payload = candidate.payload;
-		if ((kind !== "commit" && kind !== "push" && kind !== "issue" && kind !== "linear-issue" && kind !== "linear-project-comment" && kind !== "linear-project-update" && kind !== "obsidian-canonical" && kind !== "github-pr")
+		const candidate    = value as Readonly<Record<string, unknown>> ;
+		const kind         = candidate.kind                             ;
+		const target       = candidate.target                           ;
+		const content      = candidate.content                          ;
+		const currentState = candidate.currentState                     ;
+		const scope        = candidate.scope                            ;
+		const status       = candidate.status                           ;
+		const payload      = candidate.payload                          ;
+		if (!isWorkbenchExternalMutationKind(kind)
 			|| typeof target !== "string" || typeof content !== "string" || typeof currentState !== "string"
 			|| typeof scope !== "string" || typeof status !== "string"
 			|| !payload || typeof payload !== "object" || Array.isArray(payload)) return [];
@@ -316,11 +330,11 @@ export function workbenchExternalMutationCandidates(request: NativeApprovalReque
 /** Identity of the complete approval payload, including each mutation candidate. */
 export function workbenchApprovalIdentity(request: NativeApprovalRequest): string {
 	return mutationIdentity({
-		requestId: request.requestId,
-		callbackId: request.callbackId,
-		kind: request.kind,
-		params: request.params,
-		candidates: workbenchExternalMutationCandidates(request).map(candidate => candidate.identity),
+		requestId  : request.requestId,
+		callbackId : request.callbackId,
+		kind       : request.kind,
+		params     : request.params,
+		candidates : workbenchExternalMutationCandidates(request).map(candidate => candidate.identity),
 	});
 }
 
@@ -354,9 +368,9 @@ function immutableMutationValue(value: unknown): unknown {
 
 /** Preserves adapter-advertised choices; legacy requests get the safe v0.1 set. */
 export function workbenchApprovalDecisions(request: NativeApprovalRequest): readonly WorkbenchApprovalDecision[] {
-	const direct = (request as NativeApprovalRequest & { availableDecisions?: unknown }).availableDecisions;
-	const nested = request.params.availableDecisions;
-	const value = Array.isArray(direct) ? direct : Array.isArray(nested) ? nested : null;
+	const direct = (request as NativeApprovalRequest & { availableDecisions?: unknown }).availableDecisions ;
+	const nested = request.params.availableDecisions                                                        ;
+	const value  = Array.isArray(direct) ? direct : Array.isArray(nested) ? nested : null                   ;
 	if (!value) return request.kind === "permissions" ? ["decline"] : ["accept", "acceptForSession", "decline"];
 	return value.filter((decision): decision is WorkbenchApprovalDecision =>
 		decision === "accept" || decision === "acceptForSession" || decision === "decline" || decision === "cancel" ||

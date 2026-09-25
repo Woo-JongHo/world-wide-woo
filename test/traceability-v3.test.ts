@@ -1,15 +1,19 @@
-import legacyJournal from "./fixtures/legacy-execution-receipt.json";
-import { afterEach, describe, expect, test } from "bun:test";
+import legacyJournal                                                                from "./fixtures/legacy-execution-receipt.json";
+import { afterEach, describe, expect, test }                                        from "bun:test";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
-import type { TraceabilityLedgerV3 } from "../src/core/domain/development/development-traceability.js";
-import type { ProjectActivity } from "../src/core/domain/execution/project-activity.js";
-import { createExecutionRun, normalizeProjectActivity, replayExecutionRun } from "../src/core/runtime/execution-run.js";
-import { DevelopmentStore } from "../src/adapters/outbound/development/development-store.js";
-import { canonicalDigest, requiredCoverageFromRegistries, sha256 } from "../src/adapters/outbound/development/development-traceability-contract.js";
-import { validateTraceability } from "../src/adapters/outbound/development/traceability-validator.js";
-import { runTraceability, selectedCompletionReceipt } from "../scripts/traceability.js";
+import { tmpdir }                                                                   from "node:os";
+import { join, resolve }                                                            from "node:path";
+import type { TraceabilityLedgerV3 }                                                from "../src/core/domain/development/development-traceability.js";
+import type { ProjectActivity }                                                     from "../src/core/domain/execution/project-activity.js";
+import { createExecutionRun, normalizeProjectActivity, replayExecutionRun }         from "../src/core/runtime/execution-run.js";
+import { DevelopmentStore }                                                         from "../src/adapters/outbound/development/development-store.js";
+import {
+	canonicalDigest,
+	requiredCoverageFromRegistries,
+	sha256,
+} from "../src/adapters/outbound/development/development-traceability-contract.js";
+import { validateTraceability }                                                     from "../src/adapters/outbound/development/traceability-validator.js";
+import { runTraceability, selectedCompletionReceipt }                               from "../scripts/traceability.js";
 
 const roots: string[] = [];
 afterEach(() => {
@@ -28,10 +32,10 @@ describe("receipt-scoped registry authority", () => {
 				schemaVersion: 3 as const,
 				kind: "spec" as const,
 				id,
-				version: 1,
-				immutable: true as const,
-				payload: { acceptances: [{ id: "A-01", purpose: id, risk: "scope leak", pass: "isolated", required: true }] },
-				payloadDigest: "",
+				version       : 1,
+				immutable     : true as const,
+				payload       : { acceptances: [{ id: "A-01", purpose: id, risk: "scope leak", pass: "isolated", required: true }] },
+				payloadDigest : "",
 			};
 			const { payloadDigest: _, ...body } = envelope;
 			envelope.payloadDigest = canonicalDigest(body);
@@ -47,9 +51,9 @@ describe("receipt-scoped registry authority", () => {
 			projectId: "00000000-0000-4000-8000-000000000002",
 			entities,
 			edges,
-			tombstones: [],
-			migrations: [],
-			payloadDigest: "",
+			tombstones    : [],
+			migrations    : [],
+			payloadDigest : "",
 		};
 		return { root, ledger };
 	}
@@ -143,9 +147,9 @@ describe("runtime receipt journal authentication", () => {
 			runtimeActivity(1, "command", "thread", "turn", { method: "item/completed", params: { item: { type: "commandExecution", command: "bun test", exitCode: 1, aggregatedOutput: "1 fail" } } }, "failed"),
 			runtimeActivity(2, "terminal", "thread", "turn", { method: "turn/completed" }, "completed"),
 		];
-		const hash = { sha256Hex: (input: Uint8Array) => sha256(Buffer.from(input)) };
-		const receipt = replayExecutionRun(createExecutionRun({ runId: "thread:turn", threadId: "thread", turnId: "turn", hash }), activities.map(normalizeProjectActivity), hash).receipt!;
-		const journal = (value: unknown) => [...activities, runtimeActivity(3, "receipt", "thread", "turn", { method: "execution/completion-receipt", receipt: value }, "completed")].map(item => JSON.stringify(item)).join("\n");
+		const hash    = { sha256Hex: (input: Uint8Array) => sha256(Buffer.from(input)) }                                                                                                                                           ;
+		const receipt = replayExecutionRun(createExecutionRun({ runId: "thread:turn", threadId: "thread", turnId: "turn", hash }), activities.map(normalizeProjectActivity), hash).receipt!                                        ;
+		const journal = (value: unknown) => [...activities, runtimeActivity(3, "receipt", "thread", "turn", { method: "execution/completion-receipt", receipt: value }, "completed")].map(item => JSON.stringify(item)).join("\n") ;
 		expect(selectedCompletionReceipt(journal(receipt), receipt.receiptId)).toEqual(receipt);
 		expect(receipt.algorithmVersion).toBe(3);
 		expect(() => selectedCompletionReceipt(journal({ ...receipt, algorithmVersion: undefined }), receipt.receiptId)).toThrow("JOURNAL_COMPLETION_RECEIPT_VERSION_INVALID");
@@ -169,10 +173,10 @@ describe("runtime receipt journal authentication", () => {
 
 describe("traceability v3 SQLite projection", () => {
 	test("rebuilds identical logical and row digests after deleting SQLite", () => {
-		const root = dataRoot();
-		const firstStore = new DevelopmentStore({ projectRoot: resolve("."), dataRoot: root });
-		const first = firstStore.rebuildTraceability();
-		const indexPath = firstStore.indexPath;
+		const root       = dataRoot()                                                          ;
+		const firstStore = new DevelopmentStore({ projectRoot: resolve("."), dataRoot: root }) ;
+		const first      = firstStore.rebuildTraceability()                                    ;
+		const indexPath  = firstStore.indexPath                                                ;
 		firstStore.close();
 		for (const suffix of ["", "-wal", "-shm"]) rmSync(`${indexPath}${suffix}`, { force: true });
 
@@ -187,10 +191,10 @@ describe("traceability v3 SQLite projection", () => {
 	});
 
 	test("projects current receipts from aligned source digests and deterministic coverage", () => {
-		const root = dataRoot();
-		const store = new DevelopmentStore({ projectRoot: resolve("."), dataRoot: root });
-		const rebuilt = store.rebuildTraceability();
-		const coverage = store.coverageForSpec("CHAT-001");
+		const root     = dataRoot()                                                          ;
+		const store    = new DevelopmentStore({ projectRoot: resolve("."), dataRoot: root }) ;
+		const rebuilt  = store.rebuildTraceability()                                         ;
+		const coverage = store.coverageForSpec("CHAT-001")                                   ;
 		expect(coverage.logicalDigest).toBe(rebuilt.logicalDigest);
 		expect(coverage.acceptances).toEqual([
 			expect.objectContaining({ acceptanceRef: "acceptance:CHAT-001/A-01@v1", status: "pass" }),
@@ -204,9 +208,9 @@ describe("traceability v3 SQLite projection", () => {
 	});
 
 	test("projects a contained runtime receipt through the production CLI into validated evidence and store queries", async () => {
-		const root = dataRoot();
-		const evidence = ".www/evidence/runtime-proof.txt";
-		const output = ".www/evidence/VR-RUNTIME-001/verification-receipt.json";
+		const root     = dataRoot()                                               ;
+		const evidence = ".www/evidence/runtime-proof.txt"                        ;
+		const output   = ".www/evidence/VR-RUNTIME-001/verification-receipt.json" ;
 		mkdirSync(join(root, ".www/control-ledger"), { recursive: true });
 		mkdirSync(join(root, ".www/control-ledger/registry/specs"), { recursive: true });
 		mkdirSync(join(root, ".www/control-ledger/registry/tests"), { recursive: true });
@@ -219,28 +223,28 @@ describe("traceability v3 SQLite projection", () => {
 		const testEnvelope = { schemaVersion: 3 as const, kind: "test-contract" as const, id: "RUNTIME-TEST", version: 1, immutable: true as const, payload: { purpose: "project runtime receipt", risk: "invalid evidence", pass: "validated receipt", acceptanceIds: ["RUNTIME/A-01"] }, payloadDigest: "" };
 		const { payloadDigest: _testDigest, ...testBody } = testEnvelope;
 		testEnvelope.payloadDigest = canonicalDigest(testBody);
-		const specPath = ".www/control-ledger/registry/specs/CHAT-001.json";
-		const testPath = ".www/control-ledger/registry/tests/RUNTIME-TEST.json";
-		const specContent = JSON.stringify(specEnvelope);
-		const testContent = JSON.stringify(testEnvelope);
+		const specPath    = ".www/control-ledger/registry/specs/CHAT-001.json"     ;
+		const testPath    = ".www/control-ledger/registry/tests/RUNTIME-TEST.json" ;
+		const specContent = JSON.stringify(specEnvelope)                           ;
+		const testContent = JSON.stringify(testEnvelope)                           ;
 		writeFileSync(join(root, specPath), specContent);
 		writeFileSync(join(root, testPath), testContent);
 		const ledger: TraceabilityLedgerV3 = {
 			schemaVersion: 3, projectId: "00000000-0000-4000-8000-000000000001", tombstones: [], migrations: [], payloadDigest: "",
 			entities: [
-				{ ref: "spec:CHAT-001@v1", kind: "spec", id: "CHAT-001", version: 1, source: { path: specPath, digest: sha256(specContent) } },
-				{ ref: "acceptance:CHAT-001/A-01@v1", kind: "acceptance", id: "CHAT-001/A-01", version: 1 },
-				{ ref: "test-contract:RUNTIME-TEST@v1", kind: "test-contract", id: "RUNTIME-TEST", version: 1, source: { path: testPath, digest: sha256(testContent) } },
-				{ ref: "receipt:VR-RUNTIME-001", kind: "receipt", id: "VR-RUNTIME-001", immutable: true, source: { path: output, digest: "d".repeat(64) } },
-				{ ref: "git-revision:git:runtime", kind: "git-revision", id: "git:runtime" },
+				{ ref : "spec:CHAT-001@v1"              , kind : "spec"          , id : "CHAT-001"       , version   : 1    , source : { path: specPath, digest: sha256(specContent) } },
+				{ ref : "acceptance:CHAT-001/A-01@v1"   , kind : "acceptance"    , id : "CHAT-001/A-01"  , version   : 1                                                               },
+				{ ref : "test-contract:RUNTIME-TEST@v1" , kind : "test-contract" , id : "RUNTIME-TEST"   , version   : 1    , source : { path: testPath, digest: sha256(testContent) } },
+				{ ref : "receipt:VR-RUNTIME-001"        , kind : "receipt"       , id : "VR-RUNTIME-001" , immutable : true , source : { path: output, digest: "d".repeat(64) }        },
+				{ ref : "git-revision:git:runtime"      , kind : "git-revision"  , id : "git:runtime"                                                                                  },
 			],
 			edges: [
-				{ from: "spec:CHAT-001@v1", relation: "has-acceptance", to: "acceptance:CHAT-001/A-01@v1" },
-				{ from: "acceptance:CHAT-001/A-01@v1", relation: "verified-by", to: "test-contract:RUNTIME-TEST@v1" },
-				{ from: "receipt:VR-RUNTIME-001", relation: "covers", to: "acceptance:CHAT-001/A-01@v1" },
-				{ from: "receipt:VR-RUNTIME-001", relation: "executes", to: "test-contract:RUNTIME-TEST@v1" },
-				{ from: "receipt:VR-RUNTIME-001", relation: "produced", to: "evidence:EV-RUNTIME-001" },
-				{ from: "receipt:VR-RUNTIME-001", relation: "at-revision", to: "git-revision:git:runtime" },
+				{ from : "spec:CHAT-001@v1"            , relation : "has-acceptance" , to : "acceptance:CHAT-001/A-01@v1"   },
+				{ from : "acceptance:CHAT-001/A-01@v1" , relation : "verified-by"    , to : "test-contract:RUNTIME-TEST@v1" },
+				{ from : "receipt:VR-RUNTIME-001"      , relation : "covers"         , to : "acceptance:CHAT-001/A-01@v1"   },
+				{ from : "receipt:VR-RUNTIME-001"      , relation : "executes"       , to : "test-contract:RUNTIME-TEST@v1" },
+				{ from : "receipt:VR-RUNTIME-001"      , relation : "produced"       , to : "evidence:EV-RUNTIME-001"       },
+				{ from : "receipt:VR-RUNTIME-001"      , relation : "at-revision"    , to : "git-revision:git:runtime"      },
 			],
 		};
 		ledger.entities.push({ ref: "evidence:EV-RUNTIME-001", kind: "evidence", id: "EV-RUNTIME-001", immutable: true, source: { path: evidence, digest: evidenceDigest } });

@@ -1,10 +1,10 @@
-import type { NativeTurnStart } from "../../domain/execution/native-session.js";
+import type { NativeTurnStart } from "@/core/domain/execution/native-session.js";
 
-const CONTEXT_LIMIT = 3_500;
-const POLICY_CONTEXT_KEY = "woo_entry_policy";
-const SNAPSHOT_CONTEXT_KEY = "woo_entry_snapshot";
-const MAX_DEPTH = 12;
-const MAX_ITEMS = 128;
+const CONTEXT_LIMIT        = 3_500                ;
+const POLICY_CONTEXT_KEY   = "woo_entry_policy"   ;
+const SNAPSHOT_CONTEXT_KEY = "woo_entry_snapshot" ;
+const MAX_DEPTH            = 12                   ;
+const MAX_ITEMS            = 128                  ;
 
 export interface WooEntryJsonObject {
 	readonly [key: string]: WooEntryJson;
@@ -13,11 +13,11 @@ export interface WooEntryJsonObject {
 export type WooEntryJson = null | boolean | number | string | readonly WooEntryJson[] | WooEntryJsonObject;
 
 export interface WooEntryPayload {
-	readonly status: Readonly<Record<string, WooEntryJson>>;
-	readonly git: Readonly<Record<string, WooEntryJson>>;
-	readonly authority: Readonly<Record<string, WooEntryJson>>;
-	readonly signals: readonly Readonly<Record<string, WooEntryJson>>[];
-	readonly nextActions: readonly Readonly<Record<string, WooEntryJson>>[];
+	readonly status      : Readonly<Record<string, WooEntryJson>>            ;
+	readonly git         : Readonly<Record<string, WooEntryJson>>            ;
+	readonly authority   : Readonly<Record<string, WooEntryJson>>            ;
+	readonly signals     : readonly Readonly<Record<string, WooEntryJson>>[] ;
+	readonly nextActions : readonly Readonly<Record<string, WooEntryJson>>[] ;
 }
 
 export interface WooEntrySource {
@@ -42,10 +42,10 @@ export type WooEntrySnapshot =
 /** Keeps only a fresh, bounded WES snapshot; a failed refresh atomically blocks it. */
 export class WooEntry {
 	private current: WooEntrySnapshot = Object.freeze({
-		state: "loading",
-		revision: 0,
-		collectedAt: null,
-		source: null,
+		state       : "loading",
+		revision    : 0,
+		collectedAt : null,
+		source      : null,
 	});
 	private inFlight: Promise<WooEntrySnapshot> | undefined;
 
@@ -107,28 +107,33 @@ export class WooEntry {
 export function normalizeWooEntryPayload(value: unknown): WooEntryPayload {
 	if (!isRecord(value)) throw new Error("WES entry snapshot must be an object.");
 	const payload = Object.freeze({
-		status: normalizeRecord(value.status, "status"),
-		git: normalizeRecord(value.git, "git"),
-		authority: normalizeRecord(value.authority, "authority"),
-		signals: normalizeList(value.signals, "signals"),
-		nextActions: normalizeList(value.next_actions ?? value.nextActions, "next_actions"),
+		status      : normalizeRecord(value.status, "status"),
+		git         : normalizeRecord(value.git, "git"),
+		authority   : normalizeRecord(value.authority, "authority"),
+		signals     : normalizeList(value.signals, "signals"),
+		nextActions : normalizeList(value.next_actions ?? value.nextActions, "next_actions"),
 	});
 	assertBudget({
-		state: "ready",
-		revision: 1,
-		collectedAt: "2000-01-01T00:00:00.000Z",
-		source: { root: "/wes", runner: "hooks/wes_entry.py" },
-		status: payload.status,
-		git: payload.git,
-		authority: payload.authority,
-		signals: payload.signals,
-		next_actions: payload.nextActions,
+		state        : "ready",
+		revision     : 1,
+		collectedAt  : "2000-01-01T00:00:00.000Z",
+		source       : { root: "/wes", runner: "hooks/wes_entry.py" },
+		status       : payload.status,
+		git          : payload.git,
+		authority    : payload.authority,
+		signals      : payload.signals,
+		next_actions : payload.nextActions,
 	});
 	return payload;
 }
 
 function validateCollection(value: unknown): WooEntryCollection {
-	if (!isRecord(value) || !isRecord(value.source) || typeof value.source.root !== "string" || !value.source.root || typeof value.source.runner !== "string" || !value.source.runner) {
+	if (!isRecord(value)
+		|| !isRecord(value.source)
+		|| typeof value.source.root !== "string"
+		|| !value.source.root
+		|| typeof value.source.runner !== "string"
+		|| !value.source.runner) {
 		throw new Error("WES entry collector returned an invalid collection.");
 	}
 	return Object.freeze({
@@ -140,23 +145,23 @@ function validateCollection(value: unknown): WooEntryCollection {
 function toContextSnapshot(snapshot: WooEntrySnapshot): WooEntryJson {
 	if (snapshot.state === "ready") {
 		return {
-			state: snapshot.state,
-			revision: snapshot.revision,
-			collectedAt: snapshot.collectedAt,
-			source: { root: snapshot.source.root, runner: snapshot.source.runner },
-			status: snapshot.payload.status,
-			git: snapshot.payload.git,
-			authority: snapshot.payload.authority,
-			signals: snapshot.payload.signals,
-			next_actions: snapshot.payload.nextActions,
+			state        : snapshot.state,
+			revision     : snapshot.revision,
+			collectedAt  : snapshot.collectedAt,
+			source       : { root: snapshot.source.root, runner: snapshot.source.runner },
+			status       : snapshot.payload.status,
+			git          : snapshot.payload.git,
+			authority    : snapshot.payload.authority,
+			signals      : snapshot.payload.signals,
+			next_actions : snapshot.payload.nextActions,
 		};
 	}
 	if (snapshot.state === "blocked") {
 		return {
-			state: snapshot.state,
-			revision: snapshot.revision,
-			collectedAt: snapshot.collectedAt,
-			reason: snapshot.reason,
+			state       : snapshot.state,
+			revision    : snapshot.revision,
+			collectedAt : snapshot.collectedAt,
+			reason      : snapshot.reason,
 		};
 	}
 	return { state: snapshot.state, revision: snapshot.revision };

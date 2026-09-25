@@ -1,8 +1,8 @@
-import { afterEach, expect, test } from "bun:test";
+import { afterEach, expect, test }                                    from "bun:test";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, symlinkSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { verifyLocalWorkflow } from "../src/adapters/outbound/development/local-workflow-verifier";
+import { tmpdir }                                                     from "node:os";
+import { join }                                                       from "node:path";
+import { verifyLocalWorkflow }                                        from "../src/adapters/outbound/development/local-workflow-verifier";
 
 const roots: string[] = [];
 afterEach(() => { for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }); });

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { ProjectActivity } from "../src/core/domain/execution/project-activity";
+import type { ProjectActivity }   from "../src/core/domain/execution/project-activity";
 import {
 	createExecutionRun,
 	executionCheckpointDigest,
@@ -19,6 +19,14 @@ const initial = () => createExecutionRun({ runId: "thread:turn", threadId: "thre
 const reduce = (state: ReturnType<typeof initial>, value: ProjectActivity) => reduceExecutionRun(state, normalizeProjectActivity(value), hash);
 
 describe("ExecutionRun reducer", () => {
+	test("omits absent run sequence from normalized events", () => {
+		const withoutRunSequence = normalizeProjectActivity(activity(1, "turn/started"));
+		const withRunSequence = normalizeProjectActivity(activity(2, "turn/started", "started", "progress", 7));
+
+		expect(Object.hasOwn(withoutRunSequence, "runSequence")).toBe(false);
+		expect(withRunSequence.runSequence).toBe(7);
+	});
+
 	test("keeps approval waiting through write-ahead and uncertain audit observations", () => {
 		let state = reduce(initial(), activity(1, "approval/requested", "started", "approval")).state;
 		expect(state.phase).toBe("waiting");
@@ -50,9 +58,9 @@ describe("ExecutionRun reducer", () => {
 	});
 
 	test("creates failed, cancelled, and interrupted receipts only from terminal evidence", () => {
-		const failed = reduce(initial(), activity(1, "turn/failed", "failed")).state;
-		const cancelled = reduce(initial(), activity(1, "turn/cancelled", "cancelled")).state;
-		const interrupted = reduce(initial(), activity(1, "turn/interrupted", "cancelled")).state;
+		const failed      = reduce(initial(), activity(1, "turn/failed", "failed")).state         ;
+		const cancelled   = reduce(initial(), activity(1, "turn/cancelled", "cancelled")).state   ;
+		const interrupted = reduce(initial(), activity(1, "turn/interrupted", "cancelled")).state ;
 		expect(failed.receipt?.status).toBe("failed");
 		expect(cancelled.receipt?.status).toBe("cancelled");
 		expect(interrupted.receipt?.status).toBe("interrupted");
@@ -140,10 +148,10 @@ describe("ExecutionRun reducer", () => {
 			const state = reduceExecutionRun(values.at(-1) ?? initial(), normalizeProjectActivity(item), hash, { journalActivities: journal.slice(0, index + 1) }).state;
 			return [...values, state];
 		}, []);
-		const before = states[2]!;
-		const reordered = states[3]!;
-		const final = states[5]!;
-		const a = before.tasks.find(task => task.title === "A")!;
+		const before    = states[2]!                                     ;
+		const reordered = states[3]!                                     ;
+		const final     = states[5]!                                     ;
+		const a         = before.tasks.find(task => task.title === "A")! ;
 		expect(reordered.tasks.find(task => task.title === "A")?.id).toBe(a.id);
 		expect(reordered.tasks.find(task => task.title === "A")?.activityIds).toEqual(["a-3"]);
 		expect(reordered.tasks.find(task => task.title === "B")?.activityIds).toEqual([]);
@@ -187,9 +195,9 @@ describe("ExecutionRun reducer", () => {
 	});
 
 	test("keeps v2 replay byte-stable while live receipts use algorithmVersion 3", () => {
-		const events = [activity(1, "turn/started", "started"), activity(2, "turn/completed")].map(normalizeProjectActivity);
-		const v2 = replayV2ExecutionRunForVerification(initial(), events, hash);
-		const live = replayExecutionRun(initial(), events, hash, { journalActivities: events.map(event => event.activity!) });
+		const events = [activity(1, "turn/started", "started"), activity(2, "turn/completed")].map(normalizeProjectActivity)    ;
+		const v2     = replayV2ExecutionRunForVerification(initial(), events, hash)                                             ;
+		const live   = replayExecutionRun(initial(), events, hash, { journalActivities: events.map(event => event.activity!) }) ;
 		expect(v2.receipt?.algorithmVersion).toBe(2);
 		expect(live.receipt?.algorithmVersion).toBe(3);
 		expect(JSON.stringify(replayV2ExecutionRunForVerification(initial(), events, hash).receipt)).toBe(JSON.stringify(v2.receipt));

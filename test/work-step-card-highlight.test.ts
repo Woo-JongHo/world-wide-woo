@@ -1,15 +1,16 @@
-import { describe, expect, test } from "bun:test";
-import { homedir } from "node:os";
+import { describe, expect, test }               from "bun:test";
+import { homedir }                              from "node:os";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import type { ProjectActivity } from "../src/core/domain/execution/project-activity";
-import { projectWorkFlow, type DplanHash } from "../src/core/domain/work";
+import type { ProjectActivity }                 from "../src/core/domain/execution/project-activity";
+import { projectWorkFlow }                      from "../src/core/domain/work";
+import type { DplanHash }                       from "../src/core/domain/work";
 import {
 	executionLineTone,
 	ObservationCard,
 	projectNativePathText,
 	WorkStepCard,
 } from "../src/adapters/inbound/tui/features/chat/work-step-card";
-import { BashResultCard } from "../src/adapters/inbound/tui/features/chat/result-cards";
+import { BashResultCard }                       from "../src/adapters/inbound/tui/features/chat/result-cards";
 
 const THREAD = "thread-highlight";
 const TURN = "turn-highlight";
@@ -19,25 +20,25 @@ const hash: DplanHash = {
 
 function commandActivity(output: string, sequence = 3): ProjectActivity {
 	return {
-		schemaVersion: 1,
-		id: "command-highlight",
-		projectId: "sample-project",
+		schemaVersion : 1,
+		id            : "command-highlight",
+		projectId     : "sample-project",
 		sequence,
-		recordedAt: "2026-09-01T00:00:00.000Z",
-		kind: "tool",
-		phase: "completed",
-		provider: "openai-codex",
-		nativeRefs: { threadId: THREAD, turnId: TURN, itemId: "command-1" },
-		sourceDigest: `sha256:${String(sequence).padStart(64, "0")}`,
+		recordedAt   : "2026-09-01T00:00:00.000Z",
+		kind         : "tool",
+		phase        : "completed",
+		provider     : "openai-codex",
+		nativeRefs   : { threadId: THREAD, turnId: TURN, itemId: "command-1" },
+		sourceDigest : `sha256:${String(sequence).padStart(64, "0")}`,
 		payload: {
 			method: "item/completed",
 			params: {
 				item: {
-					type: "commandExecution",
-					command: "bun test --filter 'work step'",
-					cwd: "/workspace/sample",
-					aggregatedOutput: output,
-					exitCode: 0,
+					type             : "commandExecution",
+					command          : "bun test --filter 'work step'",
+					cwd              : "/workspace/sample",
+					aggregatedOutput : output,
+					exitCode         : 0,
 				},
 			},
 		},
@@ -46,16 +47,16 @@ function commandActivity(output: string, sequence = 3): ProjectActivity {
 
 function fileChangeActivity(): ProjectActivity {
 	return {
-		schemaVersion: 1,
-		id: "file-change-highlight",
-		projectId: "sample-project",
-		sequence: 3,
-		recordedAt: "2026-09-01T00:00:00.000Z",
-		kind: "file-change",
-		phase: "completed",
-		provider: "openai-codex",
-		nativeRefs: { threadId: THREAD, turnId: TURN, itemId: "edit-1" },
-		sourceDigest: `sha256:${"3".padStart(64, "0")}`,
+		schemaVersion : 1,
+		id            : "file-change-highlight",
+		projectId     : "sample-project",
+		sequence      : 3,
+		recordedAt    : "2026-09-01T00:00:00.000Z",
+		kind          : "file-change",
+		phase         : "completed",
+		provider      : "openai-codex",
+		nativeRefs    : { threadId: THREAD, turnId: TURN, itemId: "edit-1" },
+		sourceDigest  : `sha256:${"3".padStart(64, "0")}`,
 		payload: {
 			method: "item/completed",
 			params: {
@@ -70,16 +71,16 @@ function fileChangeActivity(): ProjectActivity {
 
 function toolActivity(): ProjectActivity {
 	return {
-		schemaVersion: 1,
-		id: "tool-highlight",
-		projectId: "sample-project",
-		sequence: 3,
-		recordedAt: "2026-09-01T00:00:00.000Z",
-		kind: "tool",
-		phase: "completed",
-		provider: "openai-codex",
-		nativeRefs: { threadId: THREAD, turnId: TURN, itemId: "tool-1" },
-		sourceDigest: `sha256:${"3".padStart(64, "0")}`,
+		schemaVersion : 1,
+		id            : "tool-highlight",
+		projectId     : "sample-project",
+		sequence      : 3,
+		recordedAt    : "2026-09-01T00:00:00.000Z",
+		kind          : "tool",
+		phase         : "completed",
+		provider      : "openai-codex",
+		nativeRefs    : { threadId: THREAD, turnId: TURN, itemId: "tool-1" },
+		sourceDigest  : `sha256:${"3".padStart(64, "0")}`,
 		payload: {
 			method: "item/completed",
 			params: { item: { type: "webSearch", query: "UX" } },
@@ -89,16 +90,16 @@ function toolActivity(): ProjectActivity {
 
 function structuredToolActivity(output: string, path = "result.json"): ProjectActivity {
 	return {
-		schemaVersion: 1,
-		id: "structured-tool-highlight",
-		projectId: "sample-project",
-		sequence: 4,
-		recordedAt: "2026-09-01T00:00:00.000Z",
-		kind: "tool",
-		phase: "completed",
-		provider: "openai-codex",
-		nativeRefs: { threadId: THREAD, turnId: TURN, itemId: "structured-tool-1" },
-		sourceDigest: `sha256:${"4".padStart(64, "0")}`,
+		schemaVersion : 1,
+		id            : "structured-tool-highlight",
+		projectId     : "sample-project",
+		sequence      : 4,
+		recordedAt    : "2026-09-01T00:00:00.000Z",
+		kind          : "tool",
+		phase         : "completed",
+		provider      : "openai-codex",
+		nativeRefs    : { threadId: THREAD, turnId: TURN, itemId: "structured-tool-1" },
+		sourceDigest  : `sha256:${"4".padStart(64, "0")}`,
 		payload: {
 			method: "item/completed",
 			params: { item: { type: "mcpToolCall", path, output } },
@@ -189,10 +190,10 @@ describe("WorkStepCard executor highlighting", () => {
 			stepNumber: 1,
 			activity,
 			narration: {
-				what: `검증 ${project}/src/app.ts`,
-				why: `결과 ${project}/src/app.ts를 확인합니다.`,
-				inputSummary: [`command: bun test ${project}/test/work-step-card-highlight.test.ts`],
-				source: "model",
+				what         : `검증 ${project}/src/app.ts`,
+				why          : `결과 ${project}/src/app.ts를 확인합니다.`,
+				inputSummary : [`command: bun test ${project}/test/work-step-card-highlight.test.ts`],
+				source       : "model",
 			},
 		}).render(120).join("\n"));
 
@@ -206,10 +207,10 @@ describe("WorkStepCard executor highlighting", () => {
 	});
 
 	test("projects project, home, sibling, outside, false-prefix, and Windows paths on component boundaries", () => {
-		const home = "/Users/ada";
-		const project = "/Users/ada/woo/www";
-		const windowsHome = "C:\\Users\\ada";
-		const windowsProject = "C:\\Users\\ada\\woo\\www";
+		const home           = "/Users/ada"               ;
+		const project        = "/Users/ada/woo/www"       ;
+		const windowsHome    = "C:\\Users\\ada"           ;
+		const windowsProject = "C:\\Users\\ada\\woo\\www" ;
 		const cases = [
 			{ value: `${project}/src/app.ts`, cwd: project, home, expected: "$PROJECT/src/app.ts" },
 			{ value: `${home}/notes/todo.md`, cwd: project, home, expected: "~/notes/todo.md" },
@@ -227,16 +228,16 @@ describe("WorkStepCard executor highlighting", () => {
 	test("uses the same path projection at the Bash result-card boundary without mutating its snapshot", () => {
 		const project = `${homedir()}/very-long-project`;
 		const snapshot = {
-			id: "path-projection",
-			shell: "bash" as const,
-			command: `bun test ${project}/test/work-step-card-highlight.test.ts`,
-			cwd: project,
-			status: "passed" as const,
-			stdout: `${project}/src/app.ts`,
-			stderr: "",
-			startedAt: undefined,
-			durationMs: undefined,
-			exitCode: 0,
+			id         : "path-projection",
+			shell      : "bash" as const,
+			command    : `bun test ${project}/test/work-step-card-highlight.test.ts`,
+			cwd        : project,
+			status     : "passed" as const,
+			stdout     : `${project}/src/app.ts`,
+			stderr     : "",
+			startedAt  : undefined,
+			durationMs : undefined,
+			exitCode   : 0,
 		};
 		const text = stripTerminalSequences(new BashResultCard(snapshot).render(120).join("\n"));
 
@@ -247,10 +248,10 @@ describe("WorkStepCard executor highlighting", () => {
 	});
 
 	test("projects file-change and read what paths without narration while preserving raw activities", () => {
-		const project = `${homedir()}/very-long-project`;
-		const file = `${project}/src/app.ts`;
-		const fileChange = fileChangeActivity();
-		const fileItem = (fileChange.payload.params as { item: Record<string, unknown> }).item;
+		const project    = `${homedir()}/very-long-project`                                      ;
+		const file       = `${project}/src/app.ts`                                               ;
+		const fileChange = fileChangeActivity()                                                  ;
+		const fileItem   = (fileChange.payload.params as { item: Record<string, unknown> }).item ;
 		fileItem.cwd = project;
 		fileItem.path = file;
 		const read = toolActivity();
@@ -280,19 +281,19 @@ describe("WorkStepCard executor highlighting", () => {
 	});
 
 	test("keeps direct work and why text without a repeated what label", () => {
-		const source = workflowActivities("line 1\nline 2");
-		const input = planInput(source);
-		const initial = projectWorkFlow(source, new Map(), input);
+		const source  = workflowActivities("line 1\nline 2")      ;
+		const input   = planInput(source)                         ;
+		const initial = projectWorkFlow(source, new Map(), input) ;
 		const flow = projectWorkFlow(source, new Map([[initial.steps[0]!.id, {
-			what: "검증 명령의 결과를 확인합니다.",
-			why: "완료 상태를 신뢰할 수 있는지 판단하기 위해서입니다.",
-			inputSummary: [],
-			source: "model" as const,
+			what         : "검증 명령의 결과를 확인합니다.",
+			why          : "완료 상태를 신뢰할 수 있는지 판단하기 위해서입니다.",
+			inputSummary : [],
+			source       : "model" as const,
 		}]]), input);
 		const rendered = stripTerminalSequences(new WorkStepCard({
-			stepNumber: 7,
-			activity: source.at(-1)!,
-			narration: flow.steps[0]!.narration,
+			stepNumber : 7,
+			activity   : source.at(-1)!,
+			narration  : flow.steps[0]!.narration,
 		}).render(88).join("\n"));
 
 		expect(rendered).toContain("단계 7 · PASSED");
@@ -301,10 +302,10 @@ describe("WorkStepCard executor highlighting", () => {
 		expect(rendered).toContain("왜 하는지: 완료 상태를 신뢰할 수 있는지 판단하기 위해서입니다.");
 		expect(rendered).toContain("$ bun test --filter 'work step'");
 		expect(rendered).toContain("line 1");
-		const lines = rendered.split("\n").map((line) => line.trimEnd());
-		const what = lines.indexOf("검증 명령의 결과를 확인합니다.");
-		const why = lines.indexOf("왜 하는지: 완료 상태를 신뢰할 수 있는지 판단하기 위해서입니다.");
-		const bash = lines.findIndex((line) => line.startsWith("┌─── ✔ Bash "));
+		const lines = rendered.split("\n").map((line) => line.trimEnd())                              ;
+		const what  = lines.indexOf("검증 명령의 결과를 확인합니다.")                                 ;
+		const why   = lines.indexOf("왜 하는지: 완료 상태를 신뢰할 수 있는지 판단하기 위해서입니다.") ;
+		const bash  = lines.findIndex((line) => line.startsWith("┌─── ✔ Bash "))                      ;
 		expect(what).toBe(bash - 2);
 		expect(why).toBe(bash - 1);
 	});
@@ -360,10 +361,10 @@ describe("WorkStepCard executor highlighting", () => {
 		const base = structuredToolActivity("", "ignored.txt");
 		const activity = { ...base, payload: { ...base.payload, params: {
 			item: {
-				type: "mcpToolCall",
-				server: "filesystem",
-				tool: "read_file",
-				arguments: { path: "report.json", authorization: "Bearer secret-value" },
+				type      : "mcpToolCall",
+				server    : "filesystem",
+				tool      : "read_file",
+				arguments : { path: "report.json", authorization: "Bearer secret-value" },
 				result: {
 					content: [{ type: "text", text: "{\"fallback\":true}" }],
 					structuredContent: { answer: 42, api_key: "secret-value" },
@@ -385,9 +386,9 @@ describe("WorkStepCard executor highlighting", () => {
 		const base = structuredToolActivity("", "ignored.txt");
 		const activity = { ...base, payload: { ...base.payload, params: {
 			item: {
-				type: "mcpToolCall",
-				arguments: { path: "config.yaml" },
-				result: { content: [{ type: "text", text: "service:\n  enabled: true" }] },
+				type      : "mcpToolCall",
+				arguments : { path: "config.yaml" },
+				result    : { content: [{ type: "text", text: "service:\n  enabled: true" }] },
 			},
 		} } };
 
@@ -401,32 +402,32 @@ describe("WorkStepCard executor highlighting", () => {
 	});
 
 	test("keeps a semantic reason while narrator work is pending or has failed", () => {
-		const source = workflowActivities("completed");
-		const input = planInput(source);
-		const initial = projectWorkFlow(source, new Map(), input);
+		const source  = workflowActivities("completed")           ;
+		const input   = planInput(source)                         ;
+		const initial = projectWorkFlow(source, new Map(), input) ;
 		const flow = projectWorkFlow(source, new Map([[initial.steps[0]!.id, {
-			what: "변경 결과 검증",
-			why: "요청을 안전하게 처리하고 결과를 확인하기 위해서입니다.",
-			inputSummary: [],
-			source: "fallback",
+			what         : "변경 결과 검증",
+			why          : "요청을 안전하게 처리하고 결과를 확인하기 위해서입니다.",
+			inputSummary : [],
+			source       : "fallback",
 		}]]), input);
 
 		expect(flow.steps[0]?.narration).toMatchObject({
-			what: "변경 결과 검증",
-			why: "요청을 안전하게 처리하고 결과를 확인하기 위해서입니다.",
-			source: "fallback",
+			what   : "변경 결과 검증",
+			why    : "요청을 안전하게 처리하고 결과를 확인하기 위해서입니다.",
+			source : "fallback",
 		});
 	});
 
 	test("rejects inline commands and filename-only narrator text", () => {
-		const source = workflowActivities("completed");
-		const input = planInput(source);
-		const initial = projectWorkFlow(source, new Map(), input);
+		const source  = workflowActivities("completed")           ;
+		const input   = planInput(source)                         ;
+		const initial = projectWorkFlow(source, new Map(), input) ;
 		const narrated = projectWorkFlow(source, new Map([[initial.steps[0]!.id, {
-			what: "먼저 `git status --short`를 실행합니다.",
-			why: "work-steps.ts 변경을 검토하기 위해서입니다.",
-			inputSummary: [],
-			source: "model" as const,
+			what         : "먼저 `git status --short`를 실행합니다.",
+			why          : "work-steps.ts 변경을 검토하기 위해서입니다.",
+			inputSummary : [],
+			source       : "model" as const,
 		}]]), input);
 
 		expect(narrated.steps[0]?.narration).toMatchObject({

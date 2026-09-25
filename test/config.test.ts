@@ -1,9 +1,9 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test }      from "bun:test";
 import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
-import { DEFAULT_SETTINGS, normalizeSettings } from "../src/core/domain/execution/model-settings";
-import { FileSettingsStore } from "../src/adapters/outbound/persistence/settings-store";
+import { tmpdir }                                 from "node:os";
+import { dirname, join }                          from "node:path";
+import { DEFAULT_SETTINGS, normalizeSettings }    from "../src/core/domain/execution/model-settings";
+import { FileSettingsStore }                      from "../src/adapters/outbound/persistence/settings-store";
 
 const paths: string[] = [];
 afterEach(async () => {
@@ -27,16 +27,16 @@ describe("model settings", () => {
 
 	test("rejects a model that belongs to another provider", () => {
 		expect(normalizeSettings({ provider: "anthropic", model: "gpt-5.4", effort: "high" })).toEqual({
-			provider: "anthropic",
-			model: "claude-opus-4-6",
-			effort: "high",
+			provider : "anthropic",
+			model    : "claude-opus-4-6",
+			effort   : "high",
 		});
 	});
 
 	test("saves and loads a valid selection", async () => {
-		const path = await temporarySettingsPath();
-		const settings = { provider: "google", model: "gemini-3-flash-preview", effort: "medium" } as const;
-		const store = new FileSettingsStore(path);
+		const path     = await temporarySettingsPath()                                                      ;
+		const settings = { provider: "google", model: "gemini-3-flash-preview", effort: "medium" } as const ;
+		const store    = new FileSettingsStore(path)                                                        ;
 		await store.save(settings);
 		expect(await store.load()).toEqual(settings);
 		expect(JSON.parse(await readFile(path, "utf8"))).toEqual(settings);

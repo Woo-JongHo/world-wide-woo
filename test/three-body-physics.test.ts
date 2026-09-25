@@ -1,8 +1,5 @@
-import { describe, expect, test } from "bun:test";
-import {
-	HIERARCHICAL_TRIPLE_PRESET,
-	ThreeBodySimulation,
-} from "../src/core/domain/work/three-body-simulation";
+import { describe, expect, test }                          from "bun:test";
+import { HIERARCHICAL_TRIPLE_PRESET, ThreeBodySimulation } from "../src/core/domain/work/three-body-simulation";
 
 describe("three-body physics", () => {
 	test("starts from the configured hierarchical triple state", () => {

@@ -1,32 +1,40 @@
-import { Database } from "bun:sqlite";
-import { createHash } from "node:crypto";
+import { Database }                                                    from "bun:sqlite";
+import { createHash }                                                  from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, realpathSync, statSync } from "node:fs";
-import { homedir } from "node:os";
-import { dirname, extname, isAbsolute, join, relative, resolve } from "node:path";
-import * as ts from "typescript/unstable/ast";
-import YAML from "yaml";
+import { homedir }                                                     from "node:os";
+import { dirname, extname, isAbsolute, join, relative, resolve }       from "node:path";
+import * as ts                                                         from "typescript/unstable/ast";
+import YAML                                                            from "yaml";
 
 export interface LocalUnit {
-	id: string;
-	name: string;
-	code: { path: string; symbol: string; members?: string[] };
-	linear: string[];
-	obsidian?: string;
+	id        : string                                               ;
+	name      : string                                               ;
+	code      : { path: string; symbol: string; members?: string[] } ;
+	linear    : string[]                                             ;
+	obsidian? : string                                               ;
 }
 
-export interface LocalUnitManifest { schemaVersion: 1; units: LocalUnit[] }
-export interface LocalUnitSyncResult { units: number; links: number; digest: string; indexPath: string }
+export interface LocalUnitManifest {
+	schemaVersion: 1;
+	units: LocalUnit[]
+}
+export interface LocalUnitSyncResult {
+	units  : number ;
+	links  : number ;
+	digest : string ;
+	indexPath: string
+}
 
 interface TraceabilityLedger {
-	projectId?: string;
-	issues?: Array<{ id?: string }>;
-	entities?: Array<{ kind?: string; id?: string }>;
+	projectId? : string                                ;
+	issues?    : Array<{ id?: string }>                ;
+	entities?  : Array<{ kind?: string; id?: string }> ;
 }
 
 interface NamedDeclaration {
-	name: string;
-	kind: "class" | "function" | "interface" | "type";
-	members: Set<string>;
+	name    : string                                      ;
+	kind    : "class" | "function" | "interface" | "type" ;
+	members : Set<string>                                 ;
 }
 
 const digest = (value: string): string => createHash("sha256").update(value).digest("hex");
@@ -70,17 +78,17 @@ function containedFile(root: string, localPath: string): string | undefined {
 	if (!localPath || isAbsolute(localPath) || localPath.split(/[\\/]/u).includes("..")) return undefined;
 	const path = resolve(root, localPath);
 	if (!existsSync(path) || !statSync(path).isFile()) return undefined;
-	const canonicalRoot = realpathSync(root);
-	const canonicalPath = realpathSync(path);
-	const offset = relative(canonicalRoot, canonicalPath);
+	const canonicalRoot = realpathSync(root)                     ;
+	const canonicalPath = realpathSync(path)                     ;
+	const offset        = relative(canonicalRoot, canonicalPath) ;
 	if (offset === ".." || offset.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`) || isAbsolute(offset)) return undefined;
 	return canonicalPath;
 }
 
 export function validateLocalUnitManifest(projectRoot: string, manifest: LocalUnitManifest, obsidianRoot?: string): string[] {
-	const errors: string[] = [];
-	const ids = new Set<string>();
-	const owners = new Set<string>();
+	const errors : string[] = []                ;
+	const ids               = new Set<string>() ;
+	const owners            = new Set<string>() ;
 	const { issueIds } = loadLedger(projectRoot);
 	for (const unit of manifest.units) {
 		if (!/^Code-\d{3}$/u.test(unit.id)) errors.push(`${unit.id}: Code-NNN 형식이어야 합니다.`);
@@ -118,15 +126,15 @@ export function validateLocalUnitManifest(projectRoot: string, manifest: LocalUn
 }
 
 function scanNamedDeclarations(source: string): NamedDeclaration[] {
-	const scanner = ts.createScanner(true, ts.LanguageVariant.Standard, source);
-	const declarations: NamedDeclaration[] = [];
-	let depth = 0;
-	let pending: NamedDeclaration["kind"] | undefined;
-	let activeClass: NamedDeclaration | undefined;
-	let possibleMember: string | undefined;
-	const templateDepths: number[] = [];
-	let previousEnd = -1;
-	let previousToken: ts.SyntaxKind | undefined;
+	const scanner                             = ts.createScanner(true, ts.LanguageVariant.Standard, source) ;
+	const declarations   : NamedDeclaration[] = []                                                          ;
+	let depth                                 = 0                                                           ;
+	let pending          : NamedDeclaration["kind"] | undefined                                             ;
+	let activeClass      : NamedDeclaration | undefined                                                     ;
+	let possibleMember   : string | undefined                                                               ;
+	const templateDepths : number[]           = []                                                          ;
+	let previousEnd                           = -1                                                          ;
+	let previousToken    : ts.SyntaxKind | undefined                                                        ;
 
 	for (let token = scanner.scan(); token !== ts.SyntaxKind.EndOfFile; token = scanner.scan()) {
 		if (scanner.getTokenEnd() <= previousEnd) throw new Error(`TYPE_SCRIPT_SCAN_STALLED: offset ${scanner.getTokenStart()}`);
@@ -219,14 +227,14 @@ function normalizedUnit(unit: LocalUnit): LocalUnit {
 }
 
 export function syncLocalUnitRegistry(options: { projectRoot: string; dataRoot?: string; obsidianRoot?: string; checkOnly?: boolean }): LocalUnitSyncResult {
-	const projectRoot = resolve(options.projectRoot);
-	const manifest = loadLocalUnitManifest(projectRoot);
-	const errors = validateLocalUnitManifest(projectRoot, manifest, options.obsidianRoot);
+	const projectRoot = resolve(options.projectRoot)                                           ;
+	const manifest    = loadLocalUnitManifest(projectRoot)                                     ;
+	const errors      = validateLocalUnitManifest(projectRoot, manifest, options.obsidianRoot) ;
 	if (errors.length) throw new Error(errors.join("\n"));
-	const ledger = loadLedger(projectRoot);
-	const indexPath = join(resolve(options.dataRoot ?? process.env.WWW_DATA_DIR ?? join(homedir(), ".local/share/www")), "development/index.sqlite");
-	const units = manifest.units.map(normalizedUnit).sort((left, right) => left.id.localeCompare(right.id));
-	const valueDigest = digest(canonical({ schemaVersion: manifest.schemaVersion, units }));
+	const ledger      = loadLedger(projectRoot)                                                                                                        ;
+	const indexPath   = join(resolve(options.dataRoot ?? process.env.WWW_DATA_DIR ?? join(homedir(), ".local/share/www")), "development/index.sqlite") ;
+	const units       = manifest.units.map(normalizedUnit).sort((left, right) => left.id.localeCompare(right.id))                                      ;
+	const valueDigest = digest(canonical({ schemaVersion: manifest.schemaVersion, units }))                                                            ;
 	if (!options.checkOnly) {
 		mkdirSync(dirname(indexPath), { recursive: true, mode: 0o700 });
 		const db = new Database(indexPath, { create: true, strict: true });

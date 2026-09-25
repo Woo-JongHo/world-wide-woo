@@ -1,8 +1,8 @@
 import type { UsageCredential, UsageFetchContext, UsageLimit } from "@gajae-code/ai/core";
-import { claudeUsageProvider } from "@gajae-code/ai/usage/claude";
-import { antigravityUsageProvider } from "@gajae-code/ai/usage/google-antigravity";
-import { openaiCodexUsageProvider } from "@gajae-code/ai/usage/openai-codex";
-import type { Credential, CredentialStore } from "@earendil-works/pi-ai";
+import { claudeUsageProvider }                                 from "@gajae-code/ai/usage/claude";
+import { antigravityUsageProvider }                            from "@gajae-code/ai/usage/google-antigravity";
+import { openaiCodexUsageProvider }                            from "@gajae-code/ai/usage/openai-codex";
+import type { Credential, CredentialStore }                    from "@earendil-works/pi-ai";
 import type {
 	UsageLimitSnapshot,
 	UsageMonitor,
@@ -12,10 +12,11 @@ import type {
 	UsageProviderId,
 	UsageSnapshot,
 	UsageState,
-} from "../../../core/ports";
-import { SystemAntigravityLocalAuthSource, type AntigravityLocalAuthSource } from "../authentication/antigravity-local-auth.js";
-import { isInvalidOAuthRefresh } from "../authentication/oauth-refresh-error.js";
-import { fetchZaiCodingPlanUsage } from "./zai-coding-plan-usage.js";
+} from "@/core/ports";
+import { SystemAntigravityLocalAuthSource }                    from "@/adapters/outbound/authentication/antigravity-local-auth.js";
+import type { AntigravityLocalAuthSource }                     from "@/adapters/outbound/authentication/antigravity-local-auth.js";
+import { isInvalidOAuthRefresh }                               from "@/adapters/outbound/authentication/oauth-refresh-error.js";
+import { fetchZaiCodingPlanUsage }                             from "@/adapters/outbound/observability/zai-coding-plan-usage.js";
 
 export type UsageListener = (snapshots: readonly UsageSnapshot[]) => void;
 
@@ -25,15 +26,15 @@ type AuthRegistry = {
 };
 type UsageFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
-const PROVIDERS: readonly UsageProviderId[] = ["openai-codex", "anthropic", "google", "zai"];
-const BASE_BACKOFF_MS = 30_000;
-const MAX_BACKOFF_MS = 5 * 60_000;
-const CLAUDE_SUCCESS_TTL_MS = 5 * 60_000;
+const PROVIDERS : readonly UsageProviderId[] = ["openai-codex", "anthropic", "google", "zai"] ;
+const BASE_BACKOFF_MS                        = 30_000                                         ;
+const MAX_BACKOFF_MS                         = 5 * 60_000                                     ;
+const CLAUDE_SUCCESS_TTL_MS                  = 5 * 60_000                                     ;
 
 interface FetchObservation {
-	status?: number;
-	networkFailure: boolean;
-	retryAt?: number;
+	status?        : number  ;
+	networkFailure : boolean ;
+	retryAt?       : number  ;
 }
 
 interface ProviderBackoff {
@@ -42,14 +43,19 @@ interface ProviderBackoff {
 }
 
 function asUsageCredential(credential: Credential): UsageCredential {
-	if (credential.type === "api_key") return { type: "api_key", apiKey: credential.key };
+	if (credential.type === "api_key") {
+		return {
+			type: "api_key",
+			...(credential.key ? { apiKey: credential.key } : {}),
+		};
+	}
 	const { type: _type, access, refresh, expires, ...metadata } = credential;
 	return {
-		type: "oauth",
-		accessToken: access,
-		refreshToken: refresh,
-		expiresAt: expires,
-		metadata: Object.keys(metadata).length === 0 ? undefined : metadata,
+		type         : "oauth",
+		accessToken  : access,
+		refreshToken : refresh,
+		expiresAt    : expires,
+		...(Object.keys(metadata).length === 0 ? {} : { metadata }),
 	};
 }
 
@@ -65,11 +71,14 @@ function normalizeLimit(limit: UsageLimit): UsageLimitSnapshot {
 			: undefined);
 	const remainingFraction = limit.amount.remainingFraction ??
 		(typeof usedFraction === "number" ? 1 - usedFraction : undefined);
+	const usedPercent      = percent(usedFraction)      ;
+	const remainingPercent = percent(remainingFraction) ;
+	const resetsAt         = limit.window?.resetsAt     ;
 	return {
 		label: limit.label,
-		usedPercent: percent(usedFraction),
-		remainingPercent: percent(remainingFraction),
-		resetsAt: limit.window?.resetsAt,
+		...(usedPercent === undefined ? {} : { usedPercent }),
+		...(remainingPercent === undefined ? {} : { remainingPercent }),
+		...(resetsAt === undefined ? {} : { resetsAt }),
 		status: limit.status ?? "unknown",
 	};
 }
@@ -104,15 +113,15 @@ function issueKind(observation: FetchObservation): UsageIssueKind {
  * Only display-safe snapshots leave this service.
  */
 export class UsageService implements UsageMonitor {
-	private activeRefresh: Promise<readonly UsageSnapshot[]> | undefined;
-	private pollTimer: ReturnType<typeof setInterval> | undefined;
-	private listener: UsageListener | undefined;
-	private readonly lastReady = new Map<UsageProviderId, UsageSnapshot>();
-	private readonly backoff = new Map<UsageProviderId, ProviderBackoff>();
-	private cacheHits = 0;
-	private cacheMisses = 0;
-	private cacheEvictions = 0;
-	private lastCacheAccessedAt: number | undefined;
+	private activeRefresh       : Promise<readonly UsageSnapshot[]> | undefined ;
+	private pollTimer           : ReturnType<typeof setInterval> | undefined    ;
+	private listener            : UsageListener | undefined                     ;
+	private readonly lastReady = new Map<UsageProviderId, UsageSnapshot>()      ;
+	private readonly backoff   = new Map<UsageProviderId, ProviderBackoff>()    ;
+	private cacheHits          = 0                                              ;
+	private cacheMisses        = 0                                              ;
+	private cacheEvictions     = 0                                              ;
+	private lastCacheAccessedAt : number | undefined                            ;
 
 	constructor(
 		private readonly credentials: CredentialStore,
@@ -133,11 +142,11 @@ export class UsageService implements UsageMonitor {
 
 	cacheMetrics(): UsageSnapshotCacheMetrics {
 		return {
-			entries: this.lastReady.size,
-			hits: this.cacheHits,
-			misses: this.cacheMisses,
-			evictions: this.cacheEvictions,
-			lastAccessedAt: this.lastCacheAccessedAt === undefined ? null : new Date(this.lastCacheAccessedAt).toISOString(),
+			entries        : this.lastReady.size,
+			hits           : this.cacheHits,
+			misses         : this.cacheMisses,
+			evictions      : this.cacheEvictions,
+			lastAccessedAt : this.lastCacheAccessedAt === undefined ? null : new Date(this.lastCacheAccessedAt).toISOString(),
 		};
 	}
 
@@ -202,7 +211,7 @@ export class UsageService implements UsageMonitor {
 				this.recordCacheMiss();
 				const report = await antigravityUsageProvider.fetchUsage(
 					{ provider: "google-antigravity", credential },
-					{ fetch: this.observedFetch(observation) as typeof fetch, retryWait: this.retryWait },
+					this.fetchContext(observation),
 				);
 				if (!report) return this.recordFailure(provider, observation);
 				const ready = snapshot(provider, "ready", report.limits.map(normalizeLimit), this.now());
@@ -267,10 +276,9 @@ export class UsageService implements UsageMonitor {
 				return this.degradedSnapshot(provider, waiting.issue);
 			}
 			this.recordCacheMiss();
-			const observedFetch = this.observedFetch(observation);
 			const report = await adapter.fetchUsage(
 				{ provider: adapterProvider, credential },
-				{ fetch: observedFetch as typeof fetch, retryWait: this.retryWait },
+				this.fetchContext(observation),
 			);
 			if (!report) return this.recordFailure(provider, observation);
 			const ready = snapshot(provider, "ready", report.limits.map(normalizeLimit), this.now());
@@ -299,11 +307,23 @@ export class UsageService implements UsageMonitor {
 		};
 	}
 
+	private fetchContext(observation: FetchObservation): UsageFetchContext {
+		const fetchImpl = this.observedFetch(observation);
+		const fetch = Object.assign(
+			(input: RequestInfo | URL, init?: RequestInit) => fetchImpl(input, init),
+			{ preconnect: globalThis.fetch.preconnect },
+		);
+		return {
+			fetch,
+			...(this.retryWait ? { retryWait: this.retryWait } : {}),
+		};
+	}
+
 	private recordFailure(provider: UsageProviderId, observation: FetchObservation): UsageSnapshot {
-		const previous = this.backoff.get(provider);
-		const failures = (previous?.failures ?? 0) + 1;
-		const kind = issueKind(observation);
-		const exponentialDelay = Math.min(MAX_BACKOFF_MS, BASE_BACKOFF_MS * 2 ** Math.min(failures, 4));
+		const previous         = this.backoff.get(provider)                                             ;
+		const failures         = (previous?.failures ?? 0) + 1                                          ;
+		const kind             = issueKind(observation)                                                 ;
+		const exponentialDelay = Math.min(MAX_BACKOFF_MS, BASE_BACKOFF_MS * 2 ** Math.min(failures, 4)) ;
 		const issue: UsageIssue = {
 			kind,
 			retryAt: Math.max(observation.retryAt ?? 0, this.now() + exponentialDelay),

@@ -1,7 +1,7 @@
-import { randomUUID } from "node:crypto";
+import { randomUUID }                                      from "node:crypto";
 import { appendFile, chmod, mkdir, rename, rm, writeFile } from "node:fs/promises";
-import { dirname } from "node:path";
-import type { ProjectActivity } from "../../../core/domain/execution/project-activity";
+import { dirname }                                         from "node:path";
+import type { ProjectActivity }                            from "@/core/domain/execution/project-activity";
 
 export function renderSessionTrace(activities: readonly ProjectActivity[]): string {
 	const ordered = [...activities].sort((left, right) => left.sequence - right.sequence);

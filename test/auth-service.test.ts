@@ -1,17 +1,17 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test }       from "bun:test";
 import type { AuthInteraction, Models } from "@earendil-works/pi-ai";
-import { AuthService } from "../src/adapters/outbound/authentication/auth-service";
+import { AuthService }                  from "../src/adapters/outbound/authentication/auth-service";
 
 function fakeModels(overrides: Partial<Pick<Models, "checkAuth" | "getProvider" | "login" | "logout">> = {}): Pick<Models, "checkAuth" | "getProvider" | "login" | "logout"> {
 	return {
 		checkAuth: async () => undefined,
 		getProvider: () => ({
-			id: "test",
-			name: "Test",
-			auth: { apiKey: { name: "API key", login: async () => ({ type: "api_key", key: "stored" }), resolve: async () => undefined } },
-			getModels: () => [],
-			stream: () => { throw new Error("not used"); },
-			streamSimple: () => { throw new Error("not used"); },
+			id           : "test",
+			name         : "Test",
+			auth         : { apiKey: { name: "API key", login: async () => ({ type: "api_key", key: "stored" }), resolve: async () => undefined } },
+			getModels    : () => [],
+			stream       : () => { throw new Error("not used"); },
+			streamSimple : () => { throw new Error("not used"); },
 		}),
 		login: async () => ({ type: "api_key", key: "stored" }),
 		logout: async () => undefined,
@@ -30,10 +30,10 @@ describe("AuthService", () => {
 			checkAuth: async () => ({ type: "api_key", source: "OPENAI_API_KEY" }),
 		}));
 		await expect(configured.status("openai")).resolves.toEqual({
-			state: "configured",
-			provider: "openai",
-			source: "OPENAI_API_KEY",
-			type: "api_key",
+			state    : "configured",
+			provider : "openai",
+			source   : "OPENAI_API_KEY",
+			type     : "api_key",
 		});
 		await expect(new AuthService(fakeModels()).status("anthropic")).resolves.toEqual({
 			state: "required",

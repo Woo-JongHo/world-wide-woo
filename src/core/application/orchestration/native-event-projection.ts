@@ -1,34 +1,28 @@
-import type {
-	NativeHarnessEvent,
-	NativeRefs,
-} from "../../domain/execution/native-session.js";
-import {
-	isReasoningActivityPayload,
-	type ProjectActivityKind,
-	type ProjectActivityPhase,
-} from "../../domain/execution/project-activity.js";
-import { sanitizeTerminalTextExcerpt, sanitizeTerminalTextUnbounded } from "../../domain/execution/terminal.js";
+import type { NativeHarnessEvent, NativeRefs }                        from "@/core/domain/execution/native-session.js";
+import { isReasoningActivityPayload }                                 from "@/core/domain/execution/project-activity.js";
+import type { ProjectActivityKind, ProjectActivityPhase }             from "@/core/domain/execution/project-activity.js";
+import { sanitizeTerminalTextExcerpt, sanitizeTerminalTextUnbounded } from "@/core/domain/execution/terminal.js";
 
-const JOURNAL_NATIVE_TEXT_CHARACTER_LIMIT = 32 * 1024;
-const JOURNAL_NATIVE_MAX_DEPTH = 8;
-const JOURNAL_NATIVE_MAX_ITEMS = 128;
-const JOURNAL_NATIVE_MAX_COLLECTION_ITEMS = 64;
-const JOURNAL_NATIVE_OMISSION = "[journal observation omitted]";
-const REASONING_SUMMARY_CHARACTER_LIMIT = 16 * 1024 - 128;
+const JOURNAL_NATIVE_TEXT_CHARACTER_LIMIT = 32 * 1024                       ;
+const JOURNAL_NATIVE_MAX_DEPTH            = 8                               ;
+const JOURNAL_NATIVE_MAX_ITEMS            = 128                             ;
+const JOURNAL_NATIVE_MAX_COLLECTION_ITEMS = 64                              ;
+const JOURNAL_NATIVE_OMISSION             = "[journal observation omitted]" ;
+const REASONING_SUMMARY_CHARACTER_LIMIT   = 16 * 1024 - 128                 ;
 
 interface JournalNativeProjectionState {
-	remainingCharacters: number;
-	remainingItems: number;
-	omitted: boolean;
+	remainingCharacters : number  ;
+	remainingItems      : number  ;
+	omitted             : boolean ;
 }
 
 export type NativeEventDeltaProjection = {
-	readonly type: "delta";
-	readonly method: string;
-	readonly refs: NativeRefs;
-	readonly text: string;
-	readonly channel: "assistant" | "reasoning" | "reasoning-summary" | "activity";
-	readonly activityKind: ProjectActivityKind;
+	readonly type         : "delta"                                                      ;
+	readonly method       : string                                                       ;
+	readonly refs         : NativeRefs                                                   ;
+	readonly text         : string                                                       ;
+	readonly channel      : "assistant" | "reasoning" | "reasoning-summary" | "activity" ;
+	readonly activityKind : ProjectActivityKind                                          ;
 };
 
 export type NativeEventProjection =
@@ -36,10 +30,10 @@ export type NativeEventProjection =
 	| {
 		readonly type: "durable";
 		readonly observation: {
-			readonly kind: ProjectActivityKind;
-			readonly phase: ProjectActivityPhase;
-			readonly refs: NativeRefs;
-			readonly payload: Readonly<Record<string, unknown>>;
+			readonly kind    : ProjectActivityKind               ;
+			readonly phase   : ProjectActivityPhase              ;
+			readonly refs    : NativeRefs                        ;
+			readonly payload : Readonly<Record<string, unknown>> ;
 		};
 		readonly lifecycle: "started" | "terminal" | null;
 		readonly assistantMessage: boolean;
@@ -49,11 +43,11 @@ export function projectNativeEvent(event: NativeHarnessEvent): NativeEventProjec
 	if (event.type === "notification" && event.method.toLowerCase().includes("delta")) {
 		const activityKind = nativeActivityKind(event.method, event.params);
 		return {
-			type: "delta",
-			method: event.method,
-			refs: event.refs,
-			text: nativeEventText(event.params),
-			channel: nativeDeltaChannel(event.method, activityKind),
+			type    : "delta",
+			method  : event.method,
+			refs    : event.refs,
+			text    : nativeEventText(event.params),
+			channel : nativeDeltaChannel(event.method, activityKind),
 			activityKind,
 		};
 	}
@@ -69,9 +63,9 @@ export function projectNativeEvent(event: NativeHarnessEvent): NativeEventProjec
 
 export function projectNativeEvidence(value: unknown): { readonly value: unknown; readonly omitted: boolean } {
 	const state: JournalNativeProjectionState = {
-		remainingCharacters: JOURNAL_NATIVE_TEXT_CHARACTER_LIMIT,
-		remainingItems: JOURNAL_NATIVE_MAX_ITEMS,
-		omitted: false,
+		remainingCharacters : JOURNAL_NATIVE_TEXT_CHARACTER_LIMIT,
+		remainingItems      : JOURNAL_NATIVE_MAX_ITEMS,
+		omitted             : false,
 	};
 	return { value: projectJournalNativeValue(value, state, 0), omitted: state.omitted };
 }
@@ -88,9 +82,9 @@ function nativeObservation(event: NativeHarnessEvent): Extract<NativeEventProjec
 	if (event.type === "approval-requested") {
 		const params = projectNativeEvidence(event.approval.params);
 		return {
-			kind: "approval",
-			phase: "started",
-			refs: event.approval.refs,
+			kind  : "approval",
+			phase : "started",
+			refs  : event.approval.refs,
 			payload: {
 				eventType: event.type,
 				approval: { ...event.approval, params: params.value },
@@ -100,10 +94,10 @@ function nativeObservation(event: NativeHarnessEvent): Extract<NativeEventProjec
 	}
 	if (event.type === "approval-resolved") {
 		return {
-			kind: "approval",
-			phase: "completed",
-			refs: { ...event.refs, approvalRequestId: event.requestId },
-			payload: { eventType: event.type, requestId: event.requestId },
+			kind    : "approval",
+			phase   : "completed",
+			refs    : { ...event.refs, approvalRequestId: event.requestId },
+			payload : { eventType: event.type, requestId: event.requestId },
 		};
 	}
 
@@ -111,30 +105,30 @@ function nativeObservation(event: NativeHarnessEvent): Extract<NativeEventProjec
 	if (isReasoningActivityPayload(rawPayload)) {
 		const publicSummary = nativeReasoningSummary(event.params);
 		return {
-			kind: nativeActivityKind(event.method, event.params),
-			phase: nativeActivityPhase(event.method, event.params),
-			refs: event.refs,
+			kind  : nativeActivityKind(event.method, event.params),
+			phase : nativeActivityPhase(event.method, event.params),
+			refs  : event.refs,
 			payload: {
-				eventType: event.type,
-				method: event.method,
-				classification: "reasoning",
-				redacted: true,
+				eventType      : event.type,
+				method         : event.method,
+				classification : "reasoning",
+				redacted       : true,
 				...(publicSummary ? { publicSummary } : {}),
 			},
 		};
 	}
 
-	const kind = nativeActivityKind(event.method, event.params);
-	const publicMessage = kind === "message" ? nativeEventText(event.params) : "";
-	const params = projectNativeEvidence(event.params);
+	const kind          = nativeActivityKind(event.method, event.params)          ;
+	const publicMessage = kind === "message" ? nativeEventText(event.params) : "" ;
+	const params        = projectNativeEvidence(event.params)                     ;
 	return {
 		kind,
 		phase: nativeActivityPhase(event.method, event.params),
 		refs: event.refs,
 		payload: {
-			eventType: event.type,
-			method: event.method,
-			params: params.value,
+			eventType : event.type,
+			method    : event.method,
+			params    : params.value,
 			...(publicMessage ? { text: sanitizeTerminalTextUnbounded(publicMessage) } : {}),
 			...(params.omitted ? { observationTruncated: true } : {}),
 		},
@@ -166,9 +160,9 @@ function nativeDeltaChannel(
 }
 
 function nativeActivityKind(method: string, params: Readonly<Record<string, unknown>>): ProjectActivityKind {
-	const normalized = method.toLowerCase();
-	const itemType = String(record(params.item)?.type ?? "").toLowerCase();
-	const itemScoped = normalized.startsWith("item/");
+	const normalized = method.toLowerCase()                                  ;
+	const itemType   = String(record(params.item)?.type ?? "").toLowerCase() ;
+	const itemScoped = normalized.startsWith("item/")                        ;
 	if (itemType.includes("message") || itemScoped && normalized.includes("message")) return "message";
 	if (itemType.includes("command") || itemType.includes("tool") || itemType.includes("mcp") ||
 		itemScoped && (normalized.includes("command") || normalized.includes("tool") || normalized.includes("mcp"))) return "tool";
@@ -180,9 +174,9 @@ function nativeActivityKind(method: string, params: Readonly<Record<string, unkn
 function nativeActivityPhase(method: string, params?: Readonly<Record<string, unknown>>): ProjectActivityPhase {
 	const normalized = method.toLowerCase();
 	if (normalized === "turn/completed") {
-		const turn = record(params?.turn);
-		const status = typeof turn?.status === "string" ? turn.status : record(turn?.status)?.type;
-		const nativeStatus = typeof status === "string" ? status.replace(/[-_]/gu, "").toLowerCase() : "";
+		const turn         = record(params?.turn)                                                         ;
+		const status       = typeof turn?.status === "string" ? turn.status : record(turn?.status)?.type  ;
+		const nativeStatus = typeof status === "string" ? status.replace(/[-_]/gu, "").toLowerCase() : "" ;
 		if (nativeStatus === "failed" || nativeStatus === "errored" || nativeStatus === "error") return "failed";
 		if (nativeStatus === "cancelled" || nativeStatus === "canceled" || nativeStatus === "interrupted") return "cancelled";
 	}

@@ -1,14 +1,18 @@
 import { describe, expect, test } from "bun:test";
 import type { JsonLineTransport } from "../src/adapters/outbound/execution/codex-app-server.js";
-import { CodexAppServer, NativeOperationUncertainError, StdioJsonLineTransport } from "../src/adapters/outbound/execution/codex-app-server.js";
+import {
+	CodexAppServer,
+	NativeOperationUncertainError,
+	StdioJsonLineTransport,
+} from "../src/adapters/outbound/execution/codex-app-server.js";
 
 class FakeJsonLineTransport implements JsonLineTransport {
-	public readonly sent: Array<Record<string, unknown>> = [];
-	public responseFor = new Map<string, unknown>();
-	public responseQueueFor = new Map<string, unknown[]>();
-	public hold = new Set<string>();
-	private readonly lineListeners = new Set<(line: string) => void>();
-	private readonly closeListeners = new Set<(error?: Error) => void>();
+	public readonly sent: Array<Record<string, unknown>> = []                                 ;
+	public responseFor                                   = new Map<string, unknown>()         ;
+	public responseQueueFor                              = new Map<string, unknown[]>()       ;
+	public hold                                          = new Set<string>()                  ;
+	private readonly lineListeners                       = new Set<(line: string) => void>()  ;
+	private readonly closeListeners                      = new Set<(error?: Error) => void>() ;
 
 	public async send(line: string): Promise<void> {
 		const message = JSON.parse(line) as Record<string, unknown>;
@@ -59,10 +63,10 @@ describe("CodexAppServer", () => {
 		});
 		transport.responseFor.set("account/rateLimits/read", {
 			rateLimits: {
-				limitId: "codex",
-				limitName: null,
-				primary: { usedPercent: 25, windowDurationMins: 300, resetsAt: 1_800_000_000 },
-				secondary: { usedPercent: 40, windowDurationMins: 10_080, resetsAt: 1_800_604_800 },
+				limitId   : "codex",
+				limitName : null,
+				primary   : { usedPercent: 25, windowDurationMins: 300, resetsAt: 1_800_000_000 },
+				secondary : { usedPercent: 40, windowDurationMins: 10_080, resetsAt: 1_800_604_800 },
 			},
 		});
 
@@ -87,9 +91,9 @@ describe("CodexAppServer", () => {
 		const { server, transport } = await connectedFake();
 		transport.responseFor.set("account/read", { account: null, requiresOpenaiAuth: true });
 		await expect(server.readAccountUsage()).resolves.toMatchObject({
-			provider: "openai-codex",
-			state: "auth-required",
-			limits: [],
+			provider : "openai-codex",
+			state    : "auth-required",
+			limits   : [],
 		});
 		expect(transport.sent.some(message => message.method === "account/rateLimits/read")).toBe(false);
 		await server.close();
@@ -162,21 +166,21 @@ describe("CodexAppServer", () => {
 			id: "mcp-approval-1",
 			method: "mcpServer/elicitation/request",
 			params: {
-				threadId: "thread-native-1",
-				turnId: "turn-native-1",
-				serverName: "linear-woo",
-				mode: "form",
-				message: 'Allow the linear-woo MCP server to run tool "save_comment"?',
-				requestedSchema: { type: "object", properties: {} },
-				_meta: { codex_approval_kind: "mcp_tool_call", tool_title: "Save comment" },
+				threadId        : "thread-native-1",
+				turnId          : "turn-native-1",
+				serverName      : "linear-woo",
+				mode            : "form",
+				message         : 'Allow the linear-woo MCP server to run tool "save_comment"?',
+				requestedSchema : { type: "object", properties: {} },
+				_meta           : { codex_approval_kind: "mcp_tool_call", tool_title: "Save comment" },
 			},
 		});
 		expect(events.at(-1)).toEqual(expect.objectContaining({
 			type: "approval-requested",
 			approval: expect.objectContaining({
-				requestId: "mcp-approval-1",
-				kind: "mcp-tool",
-				availableDecisions: ["accept", "decline", "cancel"],
+				requestId          : "mcp-approval-1",
+				kind               : "mcp-tool",
+				availableDecisions : ["accept", "decline", "cancel"],
 			}),
 		}));
 
@@ -199,21 +203,21 @@ describe("CodexAppServer", () => {
 			id: 0,
 			method: "item/fileChange/requestApproval",
 			params: {
-				threadId: "thread-native-1",
-				turnId: "turn-native-1",
-				itemId: "item-native-1",
-				startedAtMs: 1_788_849_280_280,
-				reason: null,
-				grantRoot: null,
+				threadId    : "thread-native-1",
+				turnId      : "turn-native-1",
+				itemId      : "item-native-1",
+				startedAtMs : 1_788_849_280_280,
+				reason      : null,
+				grantRoot   : null,
 			},
 		});
 
 		expect(events.at(-1)).toEqual(expect.objectContaining({
 			type: "approval-requested",
 			approval: expect.objectContaining({
-				requestId: 0,
-				kind: "file-change",
-				availableDecisions: ["accept", "acceptForSession", "decline", "cancel"],
+				requestId          : 0,
+				kind               : "file-change",
+				availableDecisions : ["accept", "acceptForSession", "decline", "cancel"],
 			}),
 		}));
 
@@ -258,9 +262,9 @@ describe("CodexAppServer", () => {
 				id: 2,
 				method: "config/value/write",
 				params: {
-					keyPath: 'mcp_servers."team.\\"alpha\\\\beta".enabled',
-					value: false,
-					mergeStrategy: "upsert",
+					keyPath       : 'mcp_servers."team.\\"alpha\\\\beta".enabled',
+					value         : false,
+					mergeStrategy : "upsert",
 				},
 			},
 			{ id: 3, method: "config/mcpServer/reload" },
@@ -275,9 +279,9 @@ describe("CodexAppServer", () => {
 		const { server, transport } = await connectedFake();
 		await server.compactThread({ threadId: "thread-native-1" });
 		expect(transport.sent.at(-1)).toEqual({
-			id: 2,
-			method: "thread/compact/start",
-			params: { threadId: "thread-native-1" },
+			id     : 2,
+			method : "thread/compact/start",
+			params : { threadId: "thread-native-1" },
 		});
 		await server.close();
 	});
@@ -300,7 +304,7 @@ describe("CodexAppServer", () => {
 				id: 1,
 				method: "initialize",
 				params: {
-					clientInfo: { name: "www", title: "World Wide Woo", version: "0.0.18" },
+					clientInfo: { name: "www", title: "World Wide Woo", version: "0.0.19" },
 					capabilities: { experimentalApi: true, requestAttestation: false },
 				},
 			},
@@ -308,9 +312,9 @@ describe("CodexAppServer", () => {
 		]);
 
 		transport.responseFor.set("thread/start", {
-			thread: { id: "thread-native-1", turns: [] },
-			model: "gpt-5.6-sol",
-			reasoningEffort: "low",
+			thread          : { id: "thread-native-1", turns: [] },
+			model           : "gpt-5.6-sol",
+			reasoningEffort : "low",
 		});
 		transport.responseFor.set("thread/resume", { thread: { id: "thread-native-1", turns: [] } });
 		transport.responseFor.set("thread/read", { thread: { id: "thread-native-1", turns: [{ id: "turn-native-0" }] } });
@@ -332,9 +336,9 @@ describe("CodexAppServer", () => {
 		const startedThread = await server.startThread({ cwd: "/workspace", model: "gpt-5.6-sol", effort: "low" });
 		expect(startedThread).toMatchObject({ id: "thread-native-1", model: "gpt-5.6-sol", effort: "low" });
 		expect(transport.sent.find((message) => message.method === "thread/start")?.params).toEqual({
-			cwd: "/workspace",
-			model: "gpt-5.6-sol",
-			config: { model_reasoning_effort: "low", tools: { update_plan: { enabled: true } } },
+			cwd    : "/workspace",
+			model  : "gpt-5.6-sol",
+			config : { model_reasoning_effort: "low", tools: { update_plan: { enabled: true } } },
 		});
 		expect((await server.resumeThread({ threadId: "thread-native-1" })).id).toBe("thread-native-1");
 		expect((await server.readThread({ threadId: "thread-native-1", includeTurns: true })).value.turns).toEqual([
@@ -348,17 +352,17 @@ describe("CodexAppServer", () => {
 			status: "idle",
 		}]);
 		expect(transport.sent.find((message) => message.method === "thread/list")?.params).toEqual({
-			cwd: "/workspace",
-			limit: 20,
-			sortKey: "updated_at",
-			sortDirection: "desc",
+			cwd           : "/workspace",
+			limit         : 20,
+			sortKey       : "updated_at",
+			sortDirection : "desc",
 		});
 			expect((await server.startTurn({
-			threadId: "thread-native-1",
-			text: "hello",
-			effort: "low",
-			approvalPolicy: "never",
-			sandboxPolicy: { type: "dangerFullAccess" },
+			threadId       : "thread-native-1",
+			text           : "hello",
+			effort         : "low",
+			approvalPolicy : "never",
+			sandboxPolicy  : { type: "dangerFullAccess" },
 			collaborationMode: {
 				mode: "plan",
 				settings: { model: "gpt-5.6-sol", reasoning_effort: "low", developer_instructions: null },
@@ -369,11 +373,11 @@ describe("CodexAppServer", () => {
 			},
 		})).id).toBe("turn-native-1");
 		expect(transport.sent.find((message) => message.method === "turn/start")?.params).toEqual({
-			threadId: "thread-native-1",
-			input: [{ type: "text", text: "hello" }],
-			effort: "low",
-			approvalPolicy: "never",
-			sandboxPolicy: { type: "dangerFullAccess" },
+			threadId       : "thread-native-1",
+			input          : [{ type: "text", text: "hello" }],
+			effort         : "low",
+			approvalPolicy : "never",
+			sandboxPolicy  : { type: "dangerFullAccess" },
 			collaborationMode: {
 				mode: "plan",
 				settings: { model: "gpt-5.6-sol", reasoning_effort: "low", developer_instructions: null },
@@ -384,16 +388,16 @@ describe("CodexAppServer", () => {
 			},
 		});
 		expect(await server.steerTurn({
-			threadId: "thread-native-1",
-			expectedTurnId: "turn-native-1",
-			clientUserMessageId: "message-local-2",
-			text: "지금 방향을 바꿔줘",
+			threadId            : "thread-native-1",
+			expectedTurnId      : "turn-native-1",
+			clientUserMessageId : "message-local-2",
+			text                : "지금 방향을 바꿔줘",
 		})).toEqual({ turnId: "turn-native-1" });
 		expect(transport.sent.find((message) => message.method === "turn/steer")?.params).toEqual({
-			threadId: "thread-native-1",
-			expectedTurnId: "turn-native-1",
-			clientUserMessageId: "message-local-2",
-			input: [{ type: "text", text: "지금 방향을 바꿔줘" }],
+			threadId            : "thread-native-1",
+			expectedTurnId      : "turn-native-1",
+			clientUserMessageId : "message-local-2",
+			input               : [{ type: "text", text: "지금 방향을 바꿔줘" }],
 		});
 
 		const events: unknown[] = [];
@@ -407,45 +411,45 @@ describe("CodexAppServer", () => {
 		transport.emit({
 			method: "item/updated",
 			params: {
-				threadId: "thread-native-1",
-				turnId: "turn-native-1",
-				id: "delegation-native-1",
-				type: "collabAgentToolCall",
-				tool: "spawnAgent",
-				receiverThreadIds: ["agent-native-1"],
+				threadId          : "thread-native-1",
+				turnId            : "turn-native-1",
+				id                : "delegation-native-1",
+				type              : "collabAgentToolCall",
+				tool              : "spawnAgent",
+				receiverThreadIds : ["agent-native-1"],
 			},
 		});
 		transport.emit({
 			id: "approval-rpc-1",
 			method: "item/commandExecution/requestApproval",
 			params: {
-				threadId: "thread-native-1",
-				turnId: "turn-native-1",
-				itemId: "item-native-1",
-				approvalId: "callback-1",
-				availableDecisions: ["accept", "decline"],
+				threadId           : "thread-native-1",
+				turnId             : "turn-native-1",
+				itemId             : "item-native-1",
+				approvalId         : "callback-1",
+				availableDecisions : ["accept", "decline"],
 			},
 		});
 		expect(events).toEqual([
 			expect.objectContaining({
-				type: "notification",
-				method: "thread/started",
-				refs: { threadId: "thread-native-1" },
+				type   : "notification",
+				method : "thread/started",
+				refs   : { threadId: "thread-native-1" },
 			}),
 			expect.objectContaining({
-				type: "notification",
-				method: "turn/started",
-				refs: { threadId: "thread-native-1", turnId: "turn-native-1" },
+				type   : "notification",
+				method : "turn/started",
+				refs   : { threadId: "thread-native-1", turnId: "turn-native-1" },
 			}),
 			expect.objectContaining({
-				type: "notification",
-				method: "item/completed",
-				refs: { threadId: "thread-native-1", turnId: "turn-native-1", itemId: "item-native-1" },
+				type   : "notification",
+				method : "item/completed",
+				refs   : { threadId: "thread-native-1", turnId: "turn-native-1", itemId: "item-native-1" },
 			}),
 			expect.objectContaining({
-				type: "notification",
-				method: "item/updated",
-				refs: { threadId: "thread-native-1", turnId: "turn-native-1", itemId: "delegation-native-1" },
+				type   : "notification",
+				method : "item/updated",
+				refs   : { threadId: "thread-native-1", turnId: "turn-native-1", itemId: "delegation-native-1" },
 				params: expect.objectContaining({
 					type: "collabAgentToolCall",
 					receiverThreadIds: ["agent-native-1"],
@@ -457,11 +461,11 @@ describe("CodexAppServer", () => {
 					requestId: "approval-rpc-1",
 					callbackId: "callback-1",
 					refs: expect.objectContaining({
-						threadId: "thread-native-1",
-						turnId: "turn-native-1",
-						itemId: "item-native-1",
-						approvalRequestId: "approval-rpc-1",
-						approvalCallbackId: "callback-1",
+						threadId           : "thread-native-1",
+						turnId             : "turn-native-1",
+						itemId             : "item-native-1",
+						approvalRequestId  : "approval-rpc-1",
+						approvalCallbackId : "callback-1",
 					}),
 					availableDecisions: ["accept", "decline"],
 					params: expect.objectContaining({ approvalId: "callback-1" }),
@@ -496,9 +500,9 @@ describe("CodexAppServer", () => {
 
 		await expect(turn).rejects.toBeInstanceOf(NativeOperationUncertainError);
 		await expect(turn).rejects.toMatchObject({
-			state: "uncertain",
-			resolution: "manual-reconcile",
-			method: "turn/start",
+			state      : "uncertain",
+			resolution : "manual-reconcile",
+			method     : "turn/start",
 		});
 		expect(transport.sent.filter((message) => message.method === "turn/start")).toHaveLength(1);
 	});
@@ -540,9 +544,9 @@ describe("CodexAppServer", () => {
 		expect(refsFor("turn-read")).toEqual({ threadId: "thread-read", turnId: "turn-read" });
 		expect(refsFor("turn-unknown")).toEqual({ turnId: "turn-unknown" });
 		expect(events.at(-1)).toMatchObject({
-			type: "notification",
-			method: "turn/plan/updated",
-			refs: { threadId: "thread-explicit", turnId: "turn-root" },
+			type   : "notification",
+			method : "turn/plan/updated",
+			refs   : { threadId: "thread-explicit", turnId: "turn-root" },
 		});
 		await server.close();
 	});
@@ -569,12 +573,12 @@ describe("CodexAppServer", () => {
 		transport.hold.add("turn/start");
 
 		await expect(server.startTurn({
-			threadId: "thread-1",
-			text: "continue",
-			cwd: "/workspace",
-			model: "gpt-5.4",
-			approvalPolicy: "on-request",
-			sandboxPolicy: { type: "workspaceWrite", writableRoots: ["/workspace"], networkAccess: false, excludeTmpdirEnvVar: false, excludeSlashTmp: false },
+			threadId       : "thread-1",
+			text           : "continue",
+			cwd            : "/workspace",
+			model          : "gpt-5.4",
+			approvalPolicy : "on-request",
+			sandboxPolicy  : { type: "workspaceWrite", writableRoots: ["/workspace"], networkAccess: false, excludeTmpdirEnvVar: false, excludeSlashTmp: false },
 		})).rejects.toBeInstanceOf(NativeOperationUncertainError);
 		await server.close();
 	});

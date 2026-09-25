@@ -1,5 +1,5 @@
-import { describe, expect, test } from "bun:test";
-import { composeCacheTelemetry } from "../src/core/domain/observability/cache-telemetry";
+import { describe, expect, test }         from "bun:test";
+import { composeCacheTelemetry }          from "../src/core/domain/observability/cache-telemetry";
 import { projectWorkbenchCacheTelemetry } from "../src/adapters/inbound/tui/features/cache/cache-telemetry-projection";
 
 describe("Cache telemetry", () => {

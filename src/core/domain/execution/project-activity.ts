@@ -5,11 +5,11 @@ export type ProjectActivityKind = (typeof PROJECT_ACTIVITY_KINDS)[number];
 export type ProjectActivityPhase = (typeof PROJECT_ACTIVITY_PHASES)[number];
 
 export interface ProjectActivityNativeRefs {
-	threadId?: string;
-	turnId?: string;
-	itemId?: string;
-	approvalRequestId?: string | number;
-	approvalCallbackId?: string | null;
+	threadId?           : string          ;
+	turnId?             : string          ;
+	itemId?             : string          ;
+	approvalRequestId?  : string | number ;
+	approvalCallbackId? : string | null   ;
 	/** @deprecated JSON-RPC approval request id; use approvalRequestId. */
 	approvalId?: string | number;
 }
@@ -20,17 +20,17 @@ export interface ProjectActivityNativeRefs {
  * session and must not be used to reconstruct provider state.
  */
 export interface ProjectActivity {
-	schemaVersion: 1;
-	id: string;
-	projectId: string;
-	sequence: number;
-	recordedAt: string;
-	kind: ProjectActivityKind;
-	phase: ProjectActivityPhase;
-	provider: string;
-	nativeRefs: ProjectActivityNativeRefs;
-	sourceDigest: string;
-	payload: Readonly<Record<string, unknown>>;
+	schemaVersion : 1                                 ;
+	id            : string                            ;
+	projectId     : string                            ;
+	sequence      : number                            ;
+	recordedAt    : string                            ;
+	kind          : ProjectActivityKind               ;
+	phase         : ProjectActivityPhase              ;
+	provider      : string                            ;
+	nativeRefs    : ProjectActivityNativeRefs         ;
+	sourceDigest  : string                            ;
+	payload       : Readonly<Record<string, unknown>> ;
 }
 
 export type ProjectActivityInput = Omit<ProjectActivity, "schemaVersion" | "id" | "sequence" | "recordedAt">;
@@ -40,9 +40,9 @@ export interface ProjectActivityAppendResult {
 	appended: boolean;
 }
 
-const MAX_REASONING_ENVELOPE_DEPTH = 8;
-const MAX_REASONING_ENVELOPE_NODES = 512;
-const MAX_REASONING_ENVELOPE_ENTRIES = 64;
+const MAX_REASONING_ENVELOPE_DEPTH   = 8   ;
+const MAX_REASONING_ENVELOPE_NODES   = 512 ;
+const MAX_REASONING_ENVELOPE_ENTRIES = 64  ;
 
 export function isTerminalActivityPhase(phase: ProjectActivityPhase): boolean {
 	return phase === "completed" || phase === "failed" || phase === "cancelled";

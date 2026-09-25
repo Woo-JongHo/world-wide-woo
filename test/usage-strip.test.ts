@@ -1,15 +1,15 @@
-import { expect, test } from "bun:test";
+import { expect, test }                         from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import { UsageStripView } from "../src/adapters/inbound/tui/features/usage/usage-strip-view";
+import { UsageStripView }                       from "../src/adapters/inbound/tui/features/usage/usage-strip-view";
 
 const now = Date.now();
 
 function readyUsage() {
 	const view = new UsageStripView(() => ({
-		models: [],
-		contextUsage: { usedTokens: 92_400, contextWindow: 200_000, percent: 46.2 },
-		collaborationMode: "manual",
-		permissionMode: "manual",
+		models            : [],
+		contextUsage      : { usedTokens: 92_400, contextWindow: 200_000, percent: 46.2 },
+		collaborationMode : "manual",
+		permissionMode    : "manual",
 	}));
 	view.update([
 		{ provider: "openai-codex", state: "ready", fetchedAt: now, limits: [{ label: "7 days", remainingPercent: 80, resetsAt: now + 7 * 86_400_000, status: "ok" }] },
@@ -79,9 +79,9 @@ test("ready 상태에 사용량 값이 없으면 대시를 표시한다", () => 
 test("loading auth-required unsupported 상태만 짧은 상태 문구를 사용한다", () => {
 	const view = new UsageStripView();
 	view.update([
-		{ provider: "openai-codex", state: "auth-required", fetchedAt: 1, limits: [] },
-		{ provider: "anthropic", state: "unsupported", fetchedAt: 1, limits: [] },
-		{ provider: "google", state: "auth-required", fetchedAt: 1, limits: [] },
+		{ provider : "openai-codex" , state : "auth-required" , fetchedAt : 1 , limits : [] },
+		{ provider : "anthropic"    , state : "unsupported"   , fetchedAt : 1 , limits : [] },
+		{ provider : "google"       , state : "auth-required" , fetchedAt : 1 , limits : [] },
 	]);
 	const line = stripTerminalSequences(view.render(120)[0]!);
 	expect(line).toContain("Codex 로그인 필요");
@@ -97,11 +97,11 @@ test("Antigravity 로컬 세션은 쿼터를 재사용하지 않고 연결됨으
 
 test("YAML HUD 정책으로 측정 사용량과 Context를 각각 숨긴다", () => {
 	const view = new UsageStripView(() => ({
-		models: [],
-		contextUsage: { usedTokens: 10_000, contextWindow: 20_000, percent: 50 },
-		permissionMode: "manual",
-		showUsage: false,
-		showContext: false,
+		models         : [],
+		contextUsage   : { usedTokens: 10_000, contextWindow: 20_000, percent: 50 },
+		permissionMode : "manual",
+		showUsage      : false,
+		showContext    : false,
 	}));
 	view.update([{ provider: "openai-codex", state: "ready", fetchedAt: now, limits: [{ label: "7 days", remainingPercent: 80, status: "ok" }] }]);
 	const line = stripTerminalSequences(view.render(120)[0]!);

@@ -9,20 +9,20 @@ export {
 	type WorkReferenceKind,
 	type WorkTraceabilityLink,
 	type WorkTraceabilityManifest,
-} from "./traceability.js";
+} from "@/core/domain/work/traceability.js";
 export {
 	validateWorkTraceabilityManifest,
 	type WorkTraceabilityPathProbe,
-} from "./traceability-validator.js";
+} from "@/core/domain/work/traceability-validator.js";
 export {
 	classifyWorkActivity,
 	type WorkActivityClass,
-} from "./activity-classification.js";
+} from "@/core/domain/work/activity-classification.js";
 export {
 	projectNativeDelegation,
 	type NativeDelegatedTask,
 	type NativeDelegationActivity,
 	type NativeDelegationProjection,
 	type NativeDelegationStatus,
-} from "./delegation.js";
-export * from "./workflow-projection.js";
+} from "@/core/domain/work/delegation.js";
+export * from "@/core/domain/work/workflow-projection.js";

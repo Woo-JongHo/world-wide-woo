@@ -1,17 +1,17 @@
-import      { runTuiShell                           } from "@/adapters/inbound/tui/legacy/legacy-session-shell";
+import { runTuiShell } from "@/adapters/inbound/tui/legacy/legacy-session-shell";
 
-import      { AuthService                           } from "@/adapters/outbound/authentication/auth-service";
-import      { FileCredentialStore                   } from "@/adapters/outbound/authentication/credential-store";
-import      { ModelRouter, createModelRegistry      } from "@/adapters/outbound/authentication/model-router";
-import      { GitHubRepositoryInsights              } from "@/adapters/outbound/git/repository-insights";
-import      { UsageService                          } from "@/adapters/outbound/observability/usage-service";
-import      { FileComposerDraftController           } from "@/adapters/outbound/persistence/composer-draft-store";
-import      { FileSettingsStore, routerSettingsPath } from "@/adapters/outbound/persistence/settings-store";
-import      { createProjectSession                  } from "@/adapters/outbound/workspace/project-session";
+import { AuthService }                           from "@/adapters/outbound/authentication/auth-service";
+import { FileCredentialStore }                   from "@/adapters/outbound/authentication/credential-store";
+import { ModelRouter, createModelRegistry }      from "@/adapters/outbound/authentication/model-router";
+import { GitHubRepositoryInsights }              from "@/adapters/outbound/git/repository-insights";
+import { UsageService }                          from "@/adapters/outbound/observability/usage-service";
+import { FileComposerDraftController }           from "@/adapters/outbound/persistence/composer-draft-store";
+import { FileSettingsStore, routerSettingsPath } from "@/adapters/outbound/persistence/settings-store";
+import { createProjectSession }                  from "@/adapters/outbound/workspace/project-session";
 
-import      { RouterService, reconcileInitialRouter } from "@/core/application/routing/router-service";
+import { RouterService, reconcileInitialRouter } from "@/core/application/routing/router-service";
 
-import type { TuiShellDependencies                  } from "@/adapters/inbound/tui/legacy/legacy-session-shell";
+import type { TuiShellDependencies } from "@/adapters/inbound/tui/legacy/legacy-session-shell";
 
 /** Legacy SessionRuntime Router를 조립하고 TUI에 전달하는 선택 입력이다. */
 export interface RunLegacyRouterOptions {
@@ -36,7 +36,7 @@ const productionDependencies: LegacyRouterAppDependencies = {
 	cwd                   : () => process.cwd(),
 	createSettingsStore   : () => new FileSettingsStore(routerSettingsPath()),
 	createCredentialStore : () => new FileCredentialStore(),
-	runShell              :       runTuiShell,
+	runShell              : runTuiShell,
 };
 
 /** 호환 Legacy Router 진입점이다. 기본 실행은 Native Codex Workbench가 소유한다. */
@@ -44,12 +44,12 @@ export async function runLegacyRouter(
 	options      : RunLegacyRouterOptions      = {},
 	dependencies : LegacyRouterAppDependencies = productionDependencies,
 ): Promise< void > {
-	const cwd           = dependencies.cwd();
-	const settingsStore = dependencies.createSettingsStore();
-	const credentials   = dependencies.createCredentialStore();
-	const registry      = createModelRegistry(credentials);
-	const modelRouter   = new ModelRouter(registry);
-	const settings      = await reconcileInitialRouter(await settingsStore.load(), modelRouter, settingsStore);
+	const cwd           = dependencies.cwd()                                                                   ;
+	const settingsStore = dependencies.createSettingsStore()                                                   ;
+	const credentials   = dependencies.createCredentialStore()                                                 ;
+	const registry      = createModelRegistry(credentials)                                                     ;
+	const modelRouter   = new ModelRouter(registry)                                                            ;
+	const settings      = await reconcileInitialRouter(await settingsStore.load(), modelRouter, settingsStore) ;
 	const project       = await createProjectSession(
 		cwd,
 		settings,

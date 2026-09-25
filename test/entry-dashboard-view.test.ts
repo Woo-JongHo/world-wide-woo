@@ -1,21 +1,25 @@
-import { describe, expect, test } from "bun:test";
-import chalk from "chalk";
+import { describe, expect, test }               from "bun:test";
+import chalk                                    from "chalk";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import { AstraDashboardRail, EntryDashboardView, WwwDashboardView } from "../src/adapters/inbound/tui/features/dashboard/entry-dashboard-view";
-import { a } from "../src/adapters/inbound/tui/foundation/theme/astra-theme";
-import { colors } from "../src/adapters/inbound/tui/foundation/theme/theme";
-import type { LinearProjectDashboard } from "../src/core/domain/work/linear-dashboard";
-import { astraFixture } from "./fixtures/astra-snapshot";
+import {
+	AstraDashboardRail,
+	EntryDashboardView,
+	WwwDashboardView,
+} from "../src/adapters/inbound/tui/features/dashboard/entry-dashboard-view";
+import { a }                                    from "../src/adapters/inbound/tui/foundation/theme/astra-theme";
+import { colors }                               from "../src/adapters/inbound/tui/foundation/theme/theme";
+import type { LinearProjectDashboard }          from "../src/core/domain/work/linear-dashboard";
+import { astraFixture }                         from "./fixtures/astra-snapshot";
 
 const dashboard: LinearProjectDashboard = {
-	state: "ready",
-	projectName: "World Wide Woo",
-	fetchedAt: "2026-09-10T09:29:00.000Z",
+	state       : "ready",
+	projectName : "World Wide Woo",
+	fetchedAt   : "2026-09-10T09:29:00.000Z",
 	issues: [
-		{ id: "WOO-679", title: "[Chat] 대화·실행·결과를 읽기 좋은 하나의 흐름으로 보여준다", status: "In Progress", statusType: "started", dueDate: null, updatedAt: "2026-09-10T09:11:00.000Z" },
-		{ id: "WOO-907", title: "연결된 Linear 프로젝트를 입장 Dashboard에서 요약한다", status: "Backlog", statusType: "backlog", dueDate: null, updatedAt: "2026-09-10T09:27:00.000Z" },
-		{ id: "WOO-909", title: "Chat slash UI에서 MCP·Clear·Context 압축을 조작한다", status: "Backlog", statusType: "backlog", dueDate: null, updatedAt: "2026-09-10T09:26:00.000Z" },
-		{ id: "WOO-845", title: "실행 상태를 하나의 계약으로 수렴시켜 Todo·진행·완료를 일치시킨다", status: "Backlog", statusType: "backlog", dueDate: null, updatedAt: "2026-09-10T09:25:00.000Z" },
+		{ id : "WOO-679" , title : "[Chat] 대화·실행·결과를 읽기 좋은 하나의 흐름으로 보여준다"       , status : "In Progress" , statusType : "started" , dueDate : null , updatedAt : "2026-09-10T09:11:00.000Z" },
+		{ id : "WOO-907" , title : "연결된 Linear 프로젝트를 입장 Dashboard에서 요약한다"             , status : "Backlog"     , statusType : "backlog" , dueDate : null , updatedAt : "2026-09-10T09:27:00.000Z" },
+		{ id : "WOO-909" , title : "Chat slash UI에서 MCP·Clear·Context 압축을 조작한다"              , status : "Backlog"     , statusType : "backlog" , dueDate : null , updatedAt : "2026-09-10T09:26:00.000Z" },
+		{ id : "WOO-845" , title : "실행 상태를 하나의 계약으로 수렴시켜 Todo·진행·완료를 일치시킨다" , status : "Backlog"     , statusType : "backlog" , dueDate : null , updatedAt : "2026-09-10T09:25:00.000Z" },
 	],
 	update: { body: "# 09/10 · Chat 실행 관측 구조 정리\n\n- Todo → Flow → Now → Health로 계층 재정의\n- Tracer의 raw execution 노출 제거", createdAt: "2026-09-10T09:20:00.000Z" },
 	comments: [
@@ -77,7 +81,7 @@ describe("EntryDashboardView", () => {
 	});
 
 	test("keeps token proportion and activity heatmap landmarks when telemetry is unavailable", () => {
-		const snapshot = { ...astraFixture("ready"), contextUsage: null, sessionUsage: undefined, activities: [] };
+		const snapshot = { ...astraFixture("ready"), contextUsage: null, activities: [] };
 		const output = stripTerminalSequences(new WwwDashboardView(() => snapshot).render(80).join("\n"));
 		expect(output).toContain("TOKEN ALLOCATION / PROPORTION");
 		expect(output).toContain("INPUT / OUTPUT / CACHE");

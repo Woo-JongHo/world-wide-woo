@@ -1,6 +1,6 @@
-import { createHash } from "node:crypto";
-import type { ArtifactCandidate } from "../../../core/domain/development/artifact-control";
-import type { ArtifactPublicationPort } from "../../../core/ports/execution/artifact-publication-port";
+import { createHash }                   from "node:crypto";
+import type { ArtifactCandidate }       from "@/core/domain/development/artifact-control";
+import type { ArtifactPublicationPort } from "@/core/ports/execution/artifact-publication-port";
 
 /** Existing issue title/body only. No creates, labels, state changes, commit, push or merge. */
 export class GitHubArtifactPublication implements ArtifactPublicationPort {
@@ -8,7 +8,12 @@ export class GitHubArtifactPublication implements ArtifactPublicationPort {
 	constructor(private readonly token: () => Promise<string>, private readonly request: typeof fetch = fetch) {}
 	identity(candidate: ArtifactCandidate): { target: string; artifact: string } {
 		const { repository, issue } = candidate.target;
-		if (candidate.kind !== "github-issue" || Object.keys(candidate.target).some(k => !["repository", "issue"].includes(k)) || typeof repository !== "string" || !/^[A-Za-z0-9][A-Za-z0-9_.-]*\/[A-Za-z0-9][A-Za-z0-9_.-]*$/u.test(repository) || !Number.isSafeInteger(issue) || Number(issue) < 1) throw new Error("GITHUB_TARGET_DENIED");
+		if (candidate.kind !== "github-issue"
+			|| Object.keys(candidate.target).some(k => !["repository", "issue"].includes(k))
+			|| typeof repository !== "string"
+			|| !/^[A-Za-z0-9][A-Za-z0-9_.-]*\/[A-Za-z0-9][A-Za-z0-9_.-]*$/u.test(repository)
+			|| !Number.isSafeInteger(issue)
+			|| Number(issue) < 1) throw new Error("GITHUB_TARGET_DENIED");
 		return { target: "github", artifact: `https://github.com/${repository}/issues/${issue}` };
 	}
 	private async call(candidate: ArtifactCandidate, signal: AbortSignal, body?: string): Promise<Record<string, unknown>> {
@@ -22,7 +27,17 @@ export class GitHubArtifactPublication implements ArtifactPublicationPort {
 		});
 		if (!response.ok) throw new Error(`GITHUB_HTTP_${response.status}`);
 		const result = await response.json() as Record<string, unknown>;
-		if (!result || result.number !== candidate.target.issue || result.html_url !== this.identity(candidate).artifact || typeof result.title !== "string" || typeof result.body !== "string" && result.body !== null || typeof result.updated_at !== "string" || result.pull_request !== undefined) throw new Error("GITHUB_RESPONSE_IDENTITY_MISMATCH");
+		if (
+			!result ||
+			result.number !== candidate.target.issue ||
+			result.html_url !== this.identity(candidate).artifact ||
+			typeof result.title !== "string" ||
+			(typeof result.body !== "string" && result.body !== null) ||
+			typeof result.updated_at !== "string" ||
+			result.pull_request !== undefined
+		) {
+			throw new Error("GITHUB_RESPONSE_IDENTITY_MISMATCH");
+		}
 		return result;
 	}
 	async readBefore(candidate: ArtifactCandidate, signal: AbortSignal): Promise<unknown> {

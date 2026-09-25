@@ -1,10 +1,15 @@
-import { describe, expect, test } from "bun:test";
-import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
+import { describe, expect, test }                     from "bun:test";
+import { stripTerminalSequences, visibleWidth }       from "@earendil-works/pi-tui";
 import type { ProjectActivity, ProjectActivityPhase } from "../src/core/domain/execution/project-activity";
-import type { WorkbenchSnapshot } from "../src/core/domain/work/workbench";
-import { projectNativeDelegation, projectWorkFlow, type DplanHash } from "../src/core/domain/work";
-import { projectWorkbenchDelegationSections, renderDelegationDetail, renderDelegationSummary } from "../src/adapters/inbound/tui/features/chat/delegation-tree-view";
-import { WorkbenchChatView } from "../src/adapters/inbound/tui/features/chat/workbench-views";
+import type { WorkbenchSnapshot }                     from "../src/core/domain/work/workbench";
+import { projectNativeDelegation, projectWorkFlow }   from "../src/core/domain/work";
+import type { DplanHash }                             from "../src/core/domain/work";
+import {
+	projectWorkbenchDelegationSections,
+	renderDelegationDetail,
+	renderDelegationSummary,
+} from "../src/adapters/inbound/tui/features/chat/delegation-tree-view";
+import { WorkbenchChatView }                          from "../src/adapters/inbound/tui/features/chat/workbench-views";
 
 const ROOT_THREAD = "thread-root";
 const TURN = "turn-delegation";
@@ -28,78 +33,78 @@ function collabActivity(
 		recordedAt: `2026-09-01T23:${String(10 + sequence).padStart(2, "0")}:00.000Z`,
 		kind: item.type === "subAgentActivity" ? "progress" : "tool",
 		phase,
-		provider: "openai-codex",
-		nativeRefs: { threadId, turnId, itemId: typeof item.id === "string" ? item.id : id },
-		sourceDigest: `sha256:${String(sequence).padStart(64, "0")}`,
-		payload: { method: phase === "started" ? "item/started" : "item/completed", params: { item } },
+		provider     : "openai-codex",
+		nativeRefs   : { threadId, turnId, itemId: typeof item.id === "string" ? item.id : id },
+		sourceDigest : `sha256:${String(sequence).padStart(64, "0")}`,
+		payload      : { method: phase === "started" ? "item/started" : "item/completed", params: { item } },
 	};
 }
 
 function collaborationActivities(): readonly ProjectActivity[] {
 	return [
 		collabActivity(1, "spawn-core-start", {
-			type: "collabAgentToolCall",
-			id: "spawn-core",
-			tool: "spawnAgent",
-			status: "inProgress",
-			senderThreadId: ROOT_THREAD,
-			receiverThreadIds: ["thread-core"],
-			prompt: "SessionGoal and Note contracts\nDo not edit unrelated files.",
-			model: "openai-codex/gpt-5.6-terra",
-			reasoningEffort: "high",
-			agentsStates: { "thread-core": { status: "running", message: null } },
+			type              : "collabAgentToolCall",
+			id                : "spawn-core",
+			tool              : "spawnAgent",
+			status            : "inProgress",
+			senderThreadId    : ROOT_THREAD,
+			receiverThreadIds : ["thread-core"],
+			prompt            : "SessionGoal and Note contracts\nDo not edit unrelated files.",
+			model             : "openai-codex/gpt-5.6-terra",
+			reasoningEffort   : "high",
+			agentsStates      : { "thread-core": { status: "running", message: null } },
 		}, "started"),
 		collabActivity(2, "spawn-core-done", {
-			type: "collabAgentToolCall",
-			id: "spawn-core",
-			tool: "spawnAgent",
-			status: "completed",
-			senderThreadId: ROOT_THREAD,
-			receiverThreadIds: ["thread-core"],
-			prompt: "SessionGoal and Note contracts",
-			model: "openai-codex/gpt-5.6-terra",
-			reasoningEffort: "high",
-			agentsStates: { "thread-core": { status: "running", message: "apply_patch" } },
+			type              : "collabAgentToolCall",
+			id                : "spawn-core",
+			tool              : "spawnAgent",
+			status            : "completed",
+			senderThreadId    : ROOT_THREAD,
+			receiverThreadIds : ["thread-core"],
+			prompt            : "SessionGoal and Note contracts",
+			model             : "openai-codex/gpt-5.6-terra",
+			reasoningEffort   : "high",
+			agentsStates      : { "thread-core": { status: "running", message: "apply_patch" } },
 		}),
 		collabActivity(3, "path-core", {
 			type: "subAgentActivity", id: "path-core", kind: "started",
 			agentThreadId: "thread-core", agentPath: "/root/CoreContracts",
 		}),
 		collabActivity(4, "spawn-todo", {
-			type: "collabAgentToolCall",
-			id: "spawn-todo",
-			tool: "spawnAgent",
-			status: "completed",
-			senderThreadId: ROOT_THREAD,
-			receiverThreadIds: ["thread-todo"],
-			prompt: "Todo what why enforcement",
-			model: "openai-codex/gpt-5.6-terra",
-			reasoningEffort: "high",
-			agentsStates: { "thread-todo": { status: "completed", message: "focused tests passed" } },
+			type              : "collabAgentToolCall",
+			id                : "spawn-todo",
+			tool              : "spawnAgent",
+			status            : "completed",
+			senderThreadId    : ROOT_THREAD,
+			receiverThreadIds : ["thread-todo"],
+			prompt            : "Todo what why enforcement",
+			model             : "openai-codex/gpt-5.6-terra",
+			reasoningEffort   : "high",
+			agentsStates      : { "thread-todo": { status: "completed", message: "focused tests passed" } },
 		}),
 		collabActivity(5, "path-todo", {
 			type: "subAgentActivity", id: "path-todo", kind: "completed",
 			agentThreadId: "thread-todo", agentPath: "/root/TodoContract",
 		}),
 		collabActivity(6, "irc-out", {
-			type: "collabAgentToolCall",
-			id: "irc-out",
-			tool: "sendMessage",
-			status: "completed",
-			senderThreadId: ROOT_THREAD,
-			receiverThreadIds: ["thread-core"],
-			prompt: "계약별 부정 테스트까지 결과에 포함하세요.",
-			agentsStates: { "thread-core": { status: "running", message: "apply_patch" } },
+			type              : "collabAgentToolCall",
+			id                : "irc-out",
+			tool              : "sendMessage",
+			status            : "completed",
+			senderThreadId    : ROOT_THREAD,
+			receiverThreadIds : ["thread-core"],
+			prompt            : "계약별 부정 테스트까지 결과에 포함하세요.",
+			agentsStates      : { "thread-core": { status: "running", message: "apply_patch" } },
 		}),
 		collabActivity(7, "irc-in", {
-			type: "collabAgentToolCall",
-			id: "irc-in",
-			tool: "sendMessage",
-			status: "completed",
-			senderThreadId: "thread-todo",
-			receiverThreadIds: [ROOT_THREAD],
-			prompt: "집중 테스트가 통과했습니다.",
-			agentsStates: { "thread-todo": { status: "completed", message: "focused tests passed" } },
+			type              : "collabAgentToolCall",
+			id                : "irc-in",
+			tool              : "sendMessage",
+			status            : "completed",
+			senderThreadId    : "thread-todo",
+			receiverThreadIds : [ROOT_THREAD],
+			prompt            : "집중 테스트가 통과했습니다.",
+			agentsStates      : { "thread-todo": { status: "completed", message: "focused tests passed" } },
 		}, "completed", "thread-todo"),
 	];
 }
@@ -199,9 +204,9 @@ describe("Gajae-style delegation tree", () => {
 				senderThreadId: ROOT_THREAD, receiverThreadIds: ["queued", "failed", "cancelled"],
 				prompt: "Run focused checks", settings: { model: "gpt-5.6-terra", reasoning_effort: "medium" },
 				agentsStates: {
-					queued: { status: "queued", message: "waiting" },
-					failed: { status: "failed", message: "tool error" },
-					cancelled: { status: "cancelled", message: "cancelled by parent" },
+					queued    : { status: "queued", message: "waiting" },
+					failed    : { status: "failed", message: "tool error" },
+					cancelled : { status: "cancelled", message: "cancelled by parent" },
 				},
 			}),
 			collabActivity(2, "queued-path", {
@@ -213,9 +218,9 @@ describe("Gajae-style delegation tree", () => {
 				senderThreadId: ROOT_THREAD, receiverThreadIds: ["queued", "failed", "cancelled"],
 				prompt: "Run focused checks", settings: { model: "gpt-5.6-terra", reasoning_effort: "medium" },
 				agentsStates: {
-					queued: { status: "completed", message: "passed" },
-					failed: { status: "failed", message: "tool error" },
-					cancelled: { status: "cancelled", message: "cancelled by parent" },
+					queued    : { status: "completed", message: "passed" },
+					failed    : { status: "failed", message: "tool error" },
+					cancelled : { status: "cancelled", message: "cancelled by parent" },
 				},
 			}),
 		];
@@ -272,12 +277,12 @@ describe("Gajae-style delegation tree", () => {
 		const projection = projectNativeDelegation(activities);
 		expect(projection).toHaveLength(1);
 		expect(projection[0]!.tasks).toEqual([expect.objectContaining({
-			id: "agent-native",
-			parentId: ROOT_THREAD,
-			status: "completed",
-			task: "Audit event attribution",
-			model: "gpt-5.6-terra",
-			reasoningEffort: "medium",
+			id              : "agent-native",
+			parentId        : ROOT_THREAD,
+			status          : "completed",
+			task            : "Audit event attribution",
+			model           : "gpt-5.6-terra",
+			reasoningEffort : "medium",
 			activities: [
 				expect.objectContaining({ itemId: "spawn-native", message: "Collecting lifecycle events" }),
 				expect.objectContaining({ itemId: "subagent-native", message: "Projection verified" }),
@@ -392,26 +397,26 @@ describe("Gajae-style delegation tree", () => {
 	test("renders the grouped tree in Chat instead of the old one-line collaboration notice", () => {
 		const activities = collaborationActivities();
 		const snapshot: WorkbenchSnapshot = {
-			projectId: "sample-project",
-			revision: 1,
-			journalSequence: 7,
-			phase: "working",
-			mcpServers: [],
-			threadId: ROOT_THREAD,
-			activeTurnId: TURN,
+			projectId       : "sample-project",
+			revision        : 1,
+			journalSequence : 7,
+			phase           : "working",
+			mcpServers      : [],
+			threadId        : ROOT_THREAD,
+			activeTurnId    : TURN,
 			activities,
-			selectedActivityId: null,
-			pendingApproval: null,
-			chat: [],
-			chatQueue: [],
-			draft: "",
-			reasoningDraft: "",
-			liveActivity: null,
-			workFlow: workFlowFor(activities),
-			tnotes: [],
-			todo: null,
-			actionResult: null,
-			error: null,
+			selectedActivityId : null,
+			pendingApproval    : null,
+			chat               : [],
+			chatQueue          : [],
+			draft              : "",
+			reasoningDraft     : "",
+			liveActivity       : null,
+			workFlow           : workFlowFor(activities),
+			tnotes             : [],
+			todo               : null,
+			actionResult       : null,
+			error              : null,
 		};
 		const output = stripTerminalSequences(new WorkbenchChatView(snapshot).render(72).join("\n"));
 		expect(output).toContain("Task: executor");
@@ -427,10 +432,10 @@ describe("Gajae-style delegation tree", () => {
 		const observed = collaborationActivities().slice(0, 2);
 		const missingItemRef = {
 			...observed[0]!,
-			id: "missing-item-ref",
-			sequence: 8,
-			nativeRefs: { threadId: ROOT_THREAD, turnId: TURN },
-			sourceDigest: `sha256:${"8".padStart(64, "0")}`,
+			id           : "missing-item-ref",
+			sequence     : 8,
+			nativeRefs   : { threadId: ROOT_THREAD, turnId: TURN },
+			sourceDigest : `sha256:${"8".padStart(64, "0")}`,
 		};
 		const sections = projectWorkbenchDelegationSections(
 			[missingItemRef, ...observed],
@@ -451,14 +456,14 @@ describe("Gajae-style delegation tree", () => {
 
 	test("keeps a failed spawn visible before the server assigns a receiver thread", () => {
 		const activities = [collabActivity(1, "spawn-failed", {
-			type: "collabAgentToolCall",
-			id: "spawn-failed",
-			tool: "spawnAgent",
-			status: "failed",
-			senderThreadId: ROOT_THREAD,
-			receiverThreadIds: [],
-			prompt: "Presentation QA agent",
-			agentsStates: {},
+			type              : "collabAgentToolCall",
+			id                : "spawn-failed",
+			tool              : "spawnAgent",
+			status            : "failed",
+			senderThreadId    : ROOT_THREAD,
+			receiverThreadIds : [],
+			prompt            : "Presentation QA agent",
+			agentsStates      : {},
 		})];
 		const snapshot: WorkbenchSnapshot = {
 			projectId: "sample-project", revision: 1, journalSequence: 1, phase: "working",

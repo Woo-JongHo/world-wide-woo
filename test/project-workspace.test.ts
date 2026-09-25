@@ -1,9 +1,9 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test }                                                  from "bun:test";
 import { lstat, mkdtemp, mkdir, readFile, realpath, rm, stat, symlink, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { basename, join } from "node:path";
-import { FileProjectWorkspace } from "../src/adapters/outbound/workspace/project-workspace";
-import { FileTodoStore } from "../src/adapters/outbound/persistence/todo-store";
+import { tmpdir }                                                                  from "node:os";
+import { basename, join }                                                          from "node:path";
+import { FileProjectWorkspace }                                                    from "../src/adapters/outbound/workspace/project-workspace";
+import { FileTodoStore }                                                           from "../src/adapters/outbound/persistence/todo-store";
 
 async function temporaryDirectory(): Promise<string> {
 	return mkdtemp(join(tmpdir(), "www-workspace-"));
@@ -46,9 +46,9 @@ describe("FileProjectWorkspace", () => {
 	});
 
 	test("is idempotent and preserves a valid manifest", async () => {
-		const root = await temporaryDirectory();
-		const first = await FileProjectWorkspace.open(root);
-		const manifest = '{\n  "schemaVersion": 1,\n  "name": "renamed",\n  "createdAt": "2026-08-31T00:00:00.000Z"\n}\n';
+		const root     = await temporaryDirectory()                                                                       ;
+		const first    = await FileProjectWorkspace.open(root)                                                            ;
+		const manifest = '{\n  "schemaVersion": 1,\n  "name": "renamed",\n  "createdAt": "2026-08-31T00:00:00.000Z"\n}\n' ;
 		await writeFile(first.manifestPath, manifest);
 
 		const second = await FileProjectWorkspace.open(root);
@@ -104,31 +104,31 @@ describe("FileProjectWorkspace", () => {
 		await initializeGit(root);
 		const workspace = await FileProjectWorkspace.open(root);
 		await new FileTodoStore(workspace.canonicalTodoPath).compareAndSwap(null, {
-			version: 1,
-			revision: 0,
-			ownerSessionId: "session-1",
-			storyId: null,
-			title: "Tracked Todo",
-			items: [{ id: "work", content: "Ship", status: "pending", evidenceIds: [], details: [] }],
-			updatedAt: "2026-09-01T00:00:00.000Z",
+			version        : 1,
+			revision       : 0,
+			ownerSessionId : "session-1",
+			storyId        : null,
+			title          : "Tracked Todo",
+			items          : [{ id: "work", content: "Ship", status: "pending", evidenceIds: [], details: [] }],
+			updatedAt      : "2026-09-01T00:00:00.000Z",
 		});
 		await writeFile(workspace.legacyTodoPath, "legacy local source\n");
 		const ignored = Bun.spawn(["git", "check-ignore", "--quiet", ".www/vault/Todo.md"], {
-			cwd: root,
-			stdout: "ignore",
-			stderr: "ignore",
+			cwd    : root,
+			stdout : "ignore",
+			stderr : "ignore",
 		});
 		expect(await ignored.exited).not.toBe(0);
 		const legacyIgnored = Bun.spawn(["git", "check-ignore", "--quiet", ".www/Todo.md"], {
-			cwd: root,
-			stdout: "ignore",
-			stderr: "ignore",
+			cwd    : root,
+			stdout : "ignore",
+			stderr : "ignore",
 		});
 		expect(await legacyIgnored.exited).toBe(0);
 		const status = Bun.spawn(["git", "status", "--short", "--untracked-files=all", "--", ".www"], {
-			cwd: root,
-			stdout: "pipe",
-			stderr: "pipe",
+			cwd    : root,
+			stdout : "pipe",
+			stderr : "pipe",
 		});
 		const output = await new Response(status.stdout).text();
 		expect(output).toContain(".www/vault/Todo.md");

@@ -1,19 +1,15 @@
-import type {
-	Context,
-	Models,
-	ModelsSimpleStreamOptions,
-} from "@earendil-works/pi-ai";
+import type { Context, Models, ModelsSimpleStreamOptions } from "@earendil-works/pi-ai";
 import type {
 	ActivityNarrationRequest,
 	ActivityNarrationResult,
 	ActivityNarrator,
-} from "../../../core/application/orchestration/activity-narrator.js";
-import { redactForExternalReview } from "../../../core/domain/review/redaction.js";
-import { sanitizeTerminalTextExcerpt } from "../../../core/domain/execution/terminal.js";
+} from "@/core/application/orchestration/activity-narrator.js";
+import { redactForExternalReview }                         from "@/core/domain/review/redaction.js";
+import { sanitizeTerminalTextExcerpt }                     from "@/core/domain/execution/terminal.js";
 
-const MAX_REQUEST_BYTES = 8 * 1024;
-const MAX_RESULT_TEXT = 600;
-const MAX_INPUT_ITEMS = 4;
+const MAX_REQUEST_BYTES = 8 * 1024 ;
+const MAX_RESULT_TEXT   = 600      ;
+const MAX_INPUT_ITEMS   = 4        ;
 
 export const ACTIVITY_NARRATOR_PROVIDER = "openai-codex";
 export const ACTIVITY_NARRATOR_MODEL = "gpt-5.6-luna";
@@ -44,10 +40,10 @@ export class PiActivityNarrator implements ActivityNarrator {
 			tools: [],
 		};
 		const options: ModelsSimpleStreamOptions = Object.freeze({
-			toolChoice: "none",
-			reasoning: "minimal",
-			maxTokens: 240,
-			signal,
+			toolChoice : "none",
+			reasoning  : "minimal",
+			maxTokens  : 240,
+			...(signal ? { signal } : {}),
 		});
 		const response = await this.models.streamSimple(model, context, options).result();
 		if (response.stopReason === "toolUse" || response.content.some((block) => block.type === "toolCall")) {
@@ -63,9 +59,9 @@ export class PiActivityNarrator implements ActivityNarrator {
 
 function narrationInput(request: ActivityNarrationRequest): string {
 	if (!request || typeof request !== "object" || Array.isArray(request)) throw new Error("Activity Narrator 요청이 올바르지 않습니다.");
-	const goal = safeText(request.goal);
-	const stepTitle = safeText(request.stepTitle);
-	const inputSummary = request.inputSummary.slice(0, MAX_INPUT_ITEMS).map(safeText).filter(Boolean);
+	const goal         = safeText(request.goal)                                                       ;
+	const stepTitle    = safeText(request.stepTitle)                                                  ;
+	const inputSummary = request.inputSummary.slice(0, MAX_INPUT_ITEMS).map(safeText).filter(Boolean) ;
 	if (!goal || !stepTitle) throw new Error("Activity Narrator의 목표와 단계가 필요합니다.");
 	const input = stableJson({ goal, inputSummary, schemaVersion: 1, stepTitle });
 	if (new TextEncoder().encode(input).byteLength > MAX_REQUEST_BYTES) throw new Error("Activity Narrator 요청이 너무 큽니다.");

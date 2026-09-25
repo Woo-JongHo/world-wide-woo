@@ -1,4 +1,4 @@
-import type { ProjectActivity } from "../execution/project-activity.js";
+import type { ProjectActivity } from "@/core/domain/execution/project-activity.js";
 
 export type WorkActivityClass = "observation" | "action" | "control";
 

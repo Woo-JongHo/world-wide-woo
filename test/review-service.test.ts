@@ -1,13 +1,32 @@
-import { describe, expect, test } from "bun:test";
-import { afterEach } from "bun:test";
-import { mkdtemp, readdir, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import type { Api, AssistantMessage, AssistantMessageEventStream, Context, Model, ModelsSimpleStreamOptions } from "@earendil-works/pi-ai";
-import { ReviewService } from "../src/core/application/review/review-service";
-import { createReviewPacket } from "../src/core/domain/review/review";
-import { redactForExternalReview } from "../src/core/domain/review/redaction";
-import { CLAUDE_OPUS_REVIEW_MODEL, CLAUDE_CLI_REVIEW_INPUT_LIMIT, ClaudeCliReviewAdapter, ClaudeCliReviewError, GEMINI_REVIEW_MODEL, PiReviewGenerationClient, ProviderReviewAdapter, createProductionReviewAdapters, createReviewAdapters, createSystemClaudeCliRunner, sha256ReviewDigest } from "../src/adapters/outbound/review/review-adapters";
+import { describe, expect, test }    from "bun:test";
+import { afterEach }                 from "bun:test";
+import { mkdtemp, readdir, rm }      from "node:fs/promises";
+import { tmpdir }                    from "node:os";
+import { join }                      from "node:path";
+import type {
+	Api,
+	AssistantMessage,
+	AssistantMessageEventStream,
+	Context,
+	Model,
+	ModelsSimpleStreamOptions,
+} from "@earendil-works/pi-ai";
+import { ReviewService }             from "../src/core/application/review/review-service";
+import { createReviewPacket }        from "../src/core/domain/review/review";
+import { redactForExternalReview }   from "../src/core/domain/review/redaction";
+import {
+	CLAUDE_OPUS_REVIEW_MODEL,
+	CLAUDE_CLI_REVIEW_INPUT_LIMIT,
+	ClaudeCliReviewAdapter,
+	ClaudeCliReviewError,
+	GEMINI_REVIEW_MODEL,
+	PiReviewGenerationClient,
+	ProviderReviewAdapter,
+	createProductionReviewAdapters,
+	createReviewAdapters,
+	createSystemClaudeCliRunner,
+	sha256ReviewDigest,
+} from "../src/adapters/outbound/review/review-adapters";
 import { FileReviewProvenanceStore } from "../src/adapters/outbound/review/review-store";
 
 const directories: string[] = [];
@@ -17,10 +36,10 @@ const publicText = (value: string) => ({ value, sensitivity: "public" as const }
 describe("external review boundary", () => {
 	test("redacts paths, credentials, and customer identifiers before making an immutable preview", () => {
 		const preview = createReviewPacket({
-			createdAt: "2026-09-01T00:00:00.000Z",
-			purpose: publicText("RPA 검토"),
-			request: publicText("token=very-secret customer_id=ACME-42 /Users/jonghoPro/private/client.csv"),
-			context: publicText("담당자 alice@example.com, ../customer/run.log, AKIA1234567890ABCDEF"),
+			createdAt : "2026-09-01T00:00:00.000Z",
+			purpose   : publicText("RPA 검토"),
+			request   : publicText("token=very-secret customer_id=ACME-42 /Users/jonghoPro/private/client.csv"),
+			context   : publicText("담당자 alice@example.com, ../customer/run.log, AKIA1234567890ABCDEF"),
 		}, sha256ReviewDigest);
 		const encoded = JSON.stringify(preview.packet);
 		for (const forbidden of ["very-secret", "ACME-42", "/Users/", "alice@example.com", "../customer", "AKIA"]) expect(encoded).not.toContain(forbidden);
@@ -57,9 +76,9 @@ describe("external review boundary", () => {
 			return () => times.shift() ?? new Date("2026-09-01T01:00:03.000Z");
 		})());
 		const root = await mkdtemp(join(tmpdir(), "www-review-")); directories.push(root);
-		const store = new FileReviewProvenanceStore(join(root, "review-provenance.jsonl"));
-		const service = new ReviewService(new Map([["anthropic", adapter]]), sha256ReviewDigest, store);
-		const preview = service.preview({ purpose: publicText("review"), request: publicText("검토 /private/client.txt"), createdAt: "2026-09-01T00:00:00.000Z" });
+		const store   = new FileReviewProvenanceStore(join(root, "review-provenance.jsonl"))                                                                       ;
+		const service = new ReviewService(new Map([["anthropic", adapter]]), sha256ReviewDigest, store)                                                            ;
+		const preview = service.preview({ purpose: publicText("review"), request: publicText("검토 /private/client.txt"), createdAt: "2026-09-01T00:00:00.000Z" }) ;
 		await expect(service.send({ packet: preview.packet, acceptedDigest: "wrong", provider: "anthropic" })).rejects.toThrow("exact preview digest");
 		expect(calls).toHaveLength(0);
 		const delivery = await service.send({ packet: preview.packet, acceptedDigest: preview.packet.digest, provider: "anthropic" });
@@ -75,9 +94,9 @@ describe("external review boundary", () => {
 	});
 
 	test("factory isolates anthropic and google review adapters from the chat router", async () => {
-		const calls: unknown[] = [];
-		const adapters = createReviewAdapters({ generate: async request => { calls.push(request); return "done"; } }, { anthropic: { model: "claude-opus", version: "opus-v" }, google: { model: "gemini", version: "gemini-v" } });
-		const packet = createReviewPacket({ purpose: publicText("review"), request: publicText("only this"), createdAt: "2026-09-01T00:00:00.000Z" }, sha256ReviewDigest).packet;
+		const calls: unknown[] = []                                                                                                                                                                                                         ;
+		const adapters         = createReviewAdapters({ generate: async request => { calls.push(request); return "done"; } }, { anthropic: { model: "claude-opus", version: "opus-v" }, google: { model: "gemini", version: "gemini-v" } }) ;
+		const packet           = createReviewPacket({ purpose: publicText("review"), request: publicText("only this"), createdAt: "2026-09-01T00:00:00.000Z" }, sha256ReviewDigest).packet                                                  ;
 		await adapters.get("anthropic")!.review(packet);
 		await adapters.get("google")!.review(packet);
 		expect(calls).toEqual([
@@ -87,10 +106,10 @@ describe("external review boundary", () => {
 	});
 
 	test("Pi production bridge uses a fresh tool-free packet-only context and rejects tool output", async () => {
-		const model = {} as Model<Api>;
-		let observed: { context: Context; options: ModelsSimpleStreamOptions } | undefined;
-		const observedUsage: unknown[] = [];
-		const response = { role: "assistant", content: [{ type: "text", text: "독립 검토" }], stopReason: "stop", usage: { totalTokens: 4_321 } } as AssistantMessage;
+		const model                     = {} as Model<Api>                                                                                                                             ;
+		let observed        : { context: Context; options: ModelsSimpleStreamOptions } | undefined                                                                                     ;
+		const observedUsage : unknown[] = []                                                                                                                                           ;
+		const response                  = { role: "assistant", content: [{ type: "text", text: "독립 검토" }], stopReason: "stop", usage: { totalTokens: 4_321 } } as AssistantMessage ;
 		const client = new PiReviewGenerationClient({
 			getModel: (provider, id) => provider === "anthropic" && id === CLAUDE_OPUS_REVIEW_MODEL ? model : undefined,
 			streamSimple: (_model, context, options) => {
@@ -128,9 +147,9 @@ describe("external review boundary", () => {
 		const packet = createReviewPacket({ purpose: publicText("review"), request: publicText("packet only"), createdAt: "2026-09-01T00:00:00.000Z" }, sha256ReviewDigest).packet;
 		const delivery = await adapter.review(packet);
 		expect(calls).toEqual([expect.objectContaining({
-			command: "claude",
-			args: ["--print", "--output-format", "json", "--model", CLAUDE_OPUS_REVIEW_MODEL, "--tools", "", "--no-session-persistence"],
-			options: expect.objectContaining({ cwd: expect.stringContaining("www-empty-review-cwd-"), timeoutMs: 60_000, outputLimit: 64 * 1024 }),
+			command : "claude",
+			args    : ["--print", "--output-format", "json", "--model", CLAUDE_OPUS_REVIEW_MODEL, "--tools", "", "--no-session-persistence"],
+			options : expect.objectContaining({ cwd: expect.stringContaining("www-empty-review-cwd-"), timeoutMs: 60_000, outputLimit: 64 * 1024 }),
 		})]);
 		const input = (calls[0] as { options: { input: string } }).options.input;
 		expect(Buffer.byteLength(input, "utf8")).toBeLessThanOrEqual(CLAUDE_CLI_REVIEW_INPUT_LIMIT);
@@ -155,17 +174,17 @@ describe("external review boundary", () => {
 		] as const) {
 			let calls = 0;
 			const adapter = new ClaudeCliReviewAdapter(CLAUDE_OPUS_REVIEW_MODEL, "2.1.3", sha256ReviewDigest, {
-				makeTempDirectory: async () => "/tmp/empty-review-cwd",
-				removeDirectory: async () => {},
-				runner: async () => { calls++; return response; },
+				makeTempDirectory : async () => "/tmp/empty-review-cwd",
+				removeDirectory   : async () => {},
+				runner            : async () => { calls++; return response; },
 			});
 			await expect(adapter.review(packet)).rejects.toMatchObject({ name: "ClaudeCliReviewError", code });
 			expect(calls).toBe(1);
 		}
 		const oversized = new ClaudeCliReviewAdapter(CLAUDE_OPUS_REVIEW_MODEL, "2.1.3", sha256ReviewDigest, {
-			makeTempDirectory: async () => "/tmp/should-not-run",
-			removeDirectory: async () => {},
-			runner: async () => ({ exitCode: 0, stdout: "x".repeat(64 * 1024 + 1), stderr: "" }),
+			makeTempDirectory : async () => "/tmp/should-not-run",
+			removeDirectory   : async () => {},
+			runner            : async () => ({ exitCode: 0, stdout: "x".repeat(64 * 1024 + 1), stderr: "" }),
 		});
 		await expect(oversized.review(packet)).rejects.toMatchObject({ code: "process" });
 	});
@@ -180,9 +199,9 @@ describe("external review boundary", () => {
 		const adapters = createProductionReviewAdapters(
 			{ generate: async () => { throw new Error("Provider API must not be called"); } },
 			{ claudeCliVersion: "claude 2.1.3", claudeCli: {
-				makeTempDirectory: async () => "/tmp/production-claude",
-				removeDirectory: async () => {},
-				runner: async () => ({ exitCode: 1, stdout: "", stderr: "Not logged in" }),
+				makeTempDirectory : async () => "/tmp/production-claude",
+				removeDirectory   : async () => {},
+				runner            : async () => ({ exitCode: 1, stdout: "", stderr: "Not logged in" }),
 			} },
 		);
 		const adapter = adapters.get("anthropic")!;
@@ -218,16 +237,16 @@ describe("external review boundary", () => {
 		const killed: string[] = [];
 		const runner = createSystemClaudeCliRunner({
 			spawn: () => ({
-				pid: 42,
-				stdin: { write: () => undefined, end: () => undefined },
-				stdout: new ReadableStream({ start(controller) { controller.enqueue(new TextEncoder().encode("abcdef")); } }),
-				stderr: new ReadableStream({ start(controller) { controller.close(); } }),
-				exited: new Promise<number>(resolve => { resolveExit = resolve; }),
-				kill: signal => { killed.push(`child:${signal}`); resolveExit(143); },
+				pid    : 42,
+				stdin  : { write: () => undefined, end: () => undefined },
+				stdout : new ReadableStream({ start(controller) { controller.enqueue(new TextEncoder().encode("abcdef")); } }),
+				stderr : new ReadableStream({ start(controller) { controller.close(); } }),
+				exited : new Promise<number>(resolve => { resolveExit = resolve; }),
+				kill   : signal => { killed.push(`child:${signal}`); resolveExit(143); },
 			}),
-			killProcessGroup: (_pid, signal) => { killed.push(`group:${signal}`); resolveExit(143); },
-			setTimer: () => 0 as unknown as ReturnType<typeof setTimeout>,
-			clearTimer: () => {},
+			killProcessGroup : (_pid, signal) => { killed.push(`group:${signal}`); resolveExit(143); },
+			setTimer         : () => 0 as unknown as ReturnType<typeof setTimeout>,
+			clearTimer       : () => {},
 		});
 		const result = await runner("claude", [], { cwd: "/tmp", input: "", timeoutMs: 1_000, outputLimit: 4 });
 		expect(result.stdout).toHaveLength(5);
@@ -239,12 +258,12 @@ describe("external review boundary", () => {
 		const killed: string[] = [];
 		const runner = createSystemClaudeCliRunner({
 			spawn: () => ({
-				pid: 43,
-				stdin: { write: () => undefined, end: () => undefined },
-				stdout: new ReadableStream({ start(controller) { controller.close(); } }),
-				stderr: new ReadableStream({ start(controller) { controller.close(); } }),
-				exited: new Promise<number>(resolve => { resolveExit = resolve; }),
-				kill: signal => { killed.push(`child:${signal}`); resolveExit(143); },
+				pid    : 43,
+				stdin  : { write: () => undefined, end: () => undefined },
+				stdout : new ReadableStream({ start(controller) { controller.close(); } }),
+				stderr : new ReadableStream({ start(controller) { controller.close(); } }),
+				exited : new Promise<number>(resolve => { resolveExit = resolve; }),
+				kill   : signal => { killed.push(`child:${signal}`); resolveExit(143); },
 			}),
 			killProcessGroup: (_pid, signal) => { killed.push(`group:${signal}`); resolveExit(143); },
 			setTimer: callback => {

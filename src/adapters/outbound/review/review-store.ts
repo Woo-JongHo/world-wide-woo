@@ -1,7 +1,7 @@
 import { appendFile, chmod, lstat, mkdir, readFile } from "node:fs/promises";
-import { dirname } from "node:path";
-import type { ReviewProvenanceStore } from "../../../core/application/review/review-service";
-import type { ReviewProvenance, ReviewProvider } from "../../../core/domain/review/review";
+import { dirname }                                   from "node:path";
+import type { ReviewProvenanceStore }                from "@/core/application/review/review-service";
+import type { ReviewProvenance, ReviewProvider }     from "@/core/domain/review/review";
 
 /** Append-only, local provenance journal. Its path is deliberately supplied by composition. */
 export class FileReviewProvenanceStore implements ReviewProvenanceStore {
@@ -56,4 +56,9 @@ function validateRecord(value: ReviewProvenance): void {
 }
 
 function isDigest(value: string): boolean { return /^[a-f0-9]{64}$/u.test(value); }
-function isMissing(error: unknown): boolean { return typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT"; }
+function isMissing(error: unknown): boolean { return (
+	typeof error === "object"
+	&& error !== null
+	&& "code" in error
+	&& error.code === "ENOENT"
+); }

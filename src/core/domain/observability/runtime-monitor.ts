@@ -1,5 +1,6 @@
-import type { ProjectActivity } from "../execution/project-activity.js";
-import type { WorkbenchSnapshot } from "../work/workbench.js";
+import type { ProjectActivity }                     from "@/core/domain/execution/project-activity.js";
+import type { WorkbenchSnapshot }                   from "@/core/domain/work/workbench.js";
+import type { PerformanceTrace, PerformanceWindow } from "@/core/domain/observability/layer-performance.js";
 
 const EVENT_LIMIT = 12;
 const LABEL_LIMIT = 160;
@@ -14,47 +15,48 @@ export interface RuntimeMonitorElapsed {
 }
 
 export interface RuntimeMonitorEvent {
-	readonly kind: RuntimeMonitorEventKind;
-	readonly activityId: string;
-	readonly recordedAt: string;
-	readonly label: string;
+	readonly kind       : RuntimeMonitorEventKind ;
+	readonly activityId : string                  ;
+	readonly recordedAt : string                  ;
+	readonly label      : string                  ;
 }
 
 export interface RuntimeMonitorProjection {
-	readonly requestRuntime?: NonNullable<WorkbenchSnapshot["requestRuntime"]>[number];
-	readonly state: RuntimeMonitorState;
-	readonly activeRequest: { readonly label: string; readonly sourceActivityId: string; readonly elapsed: RuntimeMonitorElapsed } | null;
-	readonly model: string | null;
-	readonly agent: string | null;
-	readonly currentTool: { readonly label: string; readonly sourceActivityId: string; readonly elapsed: RuntimeMonitorElapsed } | null;
-	readonly approval: { readonly pending: boolean; readonly sourceActivityId: string | null; readonly elapsed: RuntimeMonitorElapsed | null } | null;
-	readonly retryCount: number;
-	readonly failureCount: number;
-	readonly sourceActivityIds: readonly string[];
-	readonly recentEvents: readonly RuntimeMonitorEvent[];
-	readonly skillRun: { readonly runId: string; readonly skill: string | null; readonly stage: string; readonly processId: string | null; readonly taskId: string | null; readonly candidateId: string | null; readonly receiptId: string | null } | null;
+	readonly requestRuntime?   : NonNullable<WorkbenchSnapshot["requestRuntime"]>[number]                                                                                                                                                                            ;
+	readonly state             : RuntimeMonitorState                                                                                                                                                                                                                 ;
+	readonly activeRequest     : { readonly label: string; readonly sourceActivityId: string; readonly elapsed: RuntimeMonitorElapsed } | null                                                                                                                       ;
+	readonly model             : string | null                                                                                                                                                                                                                       ;
+	readonly agent             : string | null                                                                                                                                                                                                                       ;
+	readonly currentTool       : { readonly label: string; readonly sourceActivityId: string; readonly elapsed: RuntimeMonitorElapsed } | null                                                                                                                       ;
+	readonly approval          : { readonly pending: boolean; readonly sourceActivityId: string | null; readonly elapsed: RuntimeMonitorElapsed | null } | null                                                                                                      ;
+	readonly retryCount        : number                                                                                                                                                                                                                              ;
+	readonly failureCount      : number                                                                                                                                                                                                                              ;
+	readonly sourceActivityIds : readonly string[]                                                                                                                                                                                                                   ;
+	readonly recentEvents      : readonly RuntimeMonitorEvent[]                                                                                                                                                                                                      ;
+	readonly skillRun          : { readonly runId: string; readonly skill: string | null; readonly stage: string; readonly processId: string | null; readonly taskId: string | null; readonly candidateId: string | null; readonly receiptId: string | null } | null ;
+	readonly layerPerformance? : { readonly current: PerformanceTrace | null; readonly window: PerformanceWindow }                                                                                                                                                   ;
 }
 
 /**
  * Projects only facts already observed by the current snapshot and journal. It deliberately
  * does not use wall-clock time, timers, subscriptions, progress estimates, or raw payloads.
  */
-export function projectRuntimeMonitor(snapshot: WorkbenchSnapshot, activities: readonly ProjectActivity[] = snapshot.activities): RuntimeMonitorProjection {
+export function projectRuntimeMonitor(snapshot: WorkbenchSnapshot, activities: readonly ProjectActivity[] = snapshot.activities, layerPerformance = snapshot.layerPerformance): RuntimeMonitorProjection {
 	const ordered = [...activities].sort((left, right) => left.sequence - right.sequence || left.id.localeCompare(right.id));
 	const activeLifecycle = snapshot.phase === "working" || snapshot.activeTurnId !== null || snapshot.pendingApproval !== null
 		? ordered
 		: [];
-	const request = latestActive(activeLifecycle, isRequestStart, isRequestTerminal, activity => requestIdentity(activity));
-	const tool = latestActive(activeLifecycle, isToolStart, isToolTerminal, activity => itemIdentity(activity));
-	const agent = latestActive(activeLifecycle, isAgentStart, isAgentTerminal, activity => itemIdentity(activity));
-	const execution = latestActive(activeLifecycle, isExecutionStart, isExecutionTerminal, activity => activity.nativeRefs.turnId ?? activity.id);
-	const approvalActivity = latest(activeLifecycle.filter(isApproval));
-	const waitActivity = latestActive(activeLifecycle, isWaitStart, isWaitTerminal, activity => itemIdentity(activity));
-	const failures = ordered.filter(isFailure);
-	const lastFailure = latest(failures);
-	const lastCompleted = latest(ordered.filter(isCompletion));
-	const hasCurrentFailure = snapshot.error !== null || (lastFailure !== undefined && (lastCompleted === undefined || later(lastFailure, lastCompleted)));
-	const approvalPending = snapshot.pendingApproval !== null || (approvalActivity !== undefined && !approvalResolvedAfter(ordered, approvalActivity));
+	const request           = latestActive(activeLifecycle, isRequestStart, isRequestTerminal, activity => requestIdentity(activity))                      ;
+	const tool              = latestActive(activeLifecycle, isToolStart, isToolTerminal, activity => itemIdentity(activity))                               ;
+	const agent             = latestActive(activeLifecycle, isAgentStart, isAgentTerminal, activity => itemIdentity(activity))                             ;
+	const execution         = latestActive(activeLifecycle, isExecutionStart, isExecutionTerminal, activity => activity.nativeRefs.turnId ?? activity.id)  ;
+	const approvalActivity  = latest(activeLifecycle.filter(isApproval))                                                                                   ;
+	const waitActivity      = latestActive(activeLifecycle, isWaitStart, isWaitTerminal, activity => itemIdentity(activity))                               ;
+	const failures          = ordered.filter(isFailure)                                                                                                    ;
+	const lastFailure       = latest(failures)                                                                                                             ;
+	const lastCompleted     = latest(ordered.filter(isCompletion))                                                                                         ;
+	const hasCurrentFailure = snapshot.error !== null || (lastFailure !== undefined && (lastCompleted === undefined || later(lastFailure, lastCompleted))) ;
+	const approvalPending   = snapshot.pendingApproval !== null || (approvalActivity !== undefined && !approvalResolvedAfter(ordered, approvalActivity))   ;
 	const state: RuntimeMonitorState = hasCurrentFailure ? "failed"
 		: approvalPending ? (snapshot.pendingApproval ? "blocked" : "waiting")
 		: tool ? "running"
@@ -64,22 +66,23 @@ export function projectRuntimeMonitor(snapshot: WorkbenchSnapshot, activities: r
 	const sourceActivityIds = unique([
 		request?.id, tool?.id, agent?.id, execution?.id, waitActivity?.id, approvalActivity?.id, lastFailure?.id, lastCompleted?.id,
 	]);
-	const skillRun = latest(ordered.filter(isSkillRun));
-	const skillPayload = skillRun ? record(skillRun.payload.skillRun) ?? skillRun.payload : null;
-	const requestRuntime = [...(snapshot.requestRuntime ?? [])].reverse().find(r => r.turnId === snapshot.activeTurnId && r.turnId !== null) ?? snapshot.requestRuntime?.at(-1);
+	const skillRun       = latest(ordered.filter(isSkillRun))                                                                                                                   ;
+	const skillPayload   = skillRun ? record(skillRun.payload.skillRun) ?? skillRun.payload : null                                                                              ;
+	const requestRuntime = [...(snapshot.requestRuntime ?? [])].reverse().find(r => r.turnId === snapshot.activeTurnId && r.turnId !== null) ?? snapshot.requestRuntime?.at(-1) ;
 	return Object.freeze({
-		requestRuntime,
-		state: requestRuntime && ["blocked", "failed"].includes(requestRuntime.status) ? requestRuntime.status as "blocked" | "failed" : state,
-		activeRequest: request ? Object.freeze({ label: requestLabel(request), sourceActivityId: request.id, elapsed: elapsedFrom(request) }) : null,
-		model: modelFor(snapshot, execution, request),
-		agent: agentFor(agent ?? execution),
-		currentTool: tool ? Object.freeze({ label: toolLabel(tool), sourceActivityId: tool.id, elapsed: elapsedFrom(tool) }) : null,
-		approval: approvalPending ? Object.freeze({ pending: snapshot.pendingApproval !== null, sourceActivityId: approvalActivity?.id ?? null, elapsed: approvalActivity ? elapsedFrom(approvalActivity) : null }) : null,
-		retryCount: ordered.filter(isRetry).length,
-		failureCount: failures.length + (snapshot.error !== null && failures.length === 0 ? 1 : 0),
-		sourceActivityIds: Object.freeze(sourceActivityIds),
-		recentEvents: Object.freeze(ordered.flatMap(semanticEvent).slice(-EVENT_LIMIT)),
-		skillRun: skillPayload && stringValue(skillPayload.runId) ? Object.freeze({ runId: stringValue(skillPayload.runId)!, skill: stringValue(skillPayload.skill), stage: stringValue(skillPayload.stage) ?? "unknown", processId: stringValue(skillPayload.processId), taskId: stringValue(skillPayload.taskId), candidateId: stringValue(skillPayload.candidateId), receiptId: stringValue(skillPayload.receiptId) }) : null,
+		...(layerPerformance ? { layerPerformance } : {}),
+		...(requestRuntime ? { requestRuntime } : {}),
+		state             : requestRuntime && ["blocked", "failed"].includes(requestRuntime.status) ? requestRuntime.status as "blocked" | "failed" : state,
+		activeRequest     : request ? Object.freeze({ label: requestLabel(request), sourceActivityId: request.id, elapsed: elapsedFrom(request) }) : null,
+		model             : modelFor(snapshot, execution, request),
+		agent             : agentFor(agent ?? execution),
+		currentTool       : tool ? Object.freeze({ label: toolLabel(tool), sourceActivityId: tool.id, elapsed: elapsedFrom(tool) }) : null,
+		approval          : approvalPending ? Object.freeze({ pending: snapshot.pendingApproval !== null, sourceActivityId: approvalActivity?.id ?? null, elapsed: approvalActivity ? elapsedFrom(approvalActivity) : null }) : null,
+		retryCount        : ordered.filter(isRetry).length,
+		failureCount      : failures.length + (snapshot.error !== null && failures.length === 0 ? 1 : 0),
+		sourceActivityIds : Object.freeze(sourceActivityIds),
+		recentEvents      : Object.freeze(ordered.flatMap(semanticEvent).slice(-EVENT_LIMIT)),
+		skillRun          : skillPayload && stringValue(skillPayload.runId) ? Object.freeze({ runId: stringValue(skillPayload.runId)!, skill: stringValue(skillPayload.skill), stage: stringValue(skillPayload.stage) ?? "unknown", processId: stringValue(skillPayload.processId), taskId: stringValue(skillPayload.taskId), candidateId: stringValue(skillPayload.candidateId), receiptId: stringValue(skillPayload.receiptId) }) : null,
 	});
 }
 
@@ -139,7 +142,12 @@ function isAgentTerminal(activity: ProjectActivity): boolean { return isAgent(ac
 function isTool(activity: ProjectActivity): boolean { return !isAgent(activity) && (activity.kind === "tool" || Boolean(stringValue(item(activity)?.tool))); }
 function isToolStart(activity: ProjectActivity): boolean { return isTool(activity) && (activity.phase === "started" || /item\/started$/u.test(method(activity))); }
 function isToolTerminal(activity: ProjectActivity): boolean { return isTool(activity) && (activity.phase === "completed" || activity.phase === "failed" || activity.phase === "cancelled"); }
-function isApproval(activity: ProjectActivity): boolean { return activity.kind === "approval" || /approval/u.test(method(activity)) || activity.payload.eventType === "approval-requested" || activity.payload.eventType === "approval-resolved"; }
+function isApproval(activity: ProjectActivity): boolean { return (
+	activity.kind === "approval"
+	|| /approval/u.test(method(activity))
+	|| activity.payload.eventType === "approval-requested"
+	|| activity.payload.eventType === "approval-resolved"
+); }
 function isWait(activity: ProjectActivity): boolean { return stringValue(item(activity)?.tool)?.toLowerCase() === "wait" || /(?:^|\/)wait(?:\/|$)/u.test(method(activity)); }
 function isWaitStart(activity: ProjectActivity): boolean { return isWait(activity) && activity.phase === "started"; }
 function isWaitTerminal(activity: ProjectActivity): boolean { return isWait(activity) && (activity.phase === "completed" || activity.phase === "failed" || activity.phase === "cancelled"); }
@@ -147,7 +155,21 @@ function isRetry(activity: ProjectActivity): boolean { return /retry/u.test(meth
 function isCompaction(activity: ProjectActivity): boolean { return /compact/u.test(method(activity)); }
 function isOutput(activity: ProjectActivity): boolean { return method(activity) === "turn/first-output-observed" || (activity.kind === "message" && activity.payload.role === "assistant"); }
 function isSkillRun(activity: ProjectActivity): boolean { return method(activity).startsWith("skill/") || record(activity.payload.skillRun) !== null; }
-function isFailure(activity: ProjectActivity): boolean { const params = record(activity.payload.params); const status = stringValue(activity.payload.status) ?? stringValue(params?.status) ?? stringValue(item(activity)?.status); const exitCode = activity.payload.exitCode ?? params?.exitCode ?? item(activity)?.exitCode; return activity.phase === "failed" || status === "failed" || status === "error" || activity.payload.error != null || params?.error != null || item(activity)?.error != null || (typeof exitCode === "number" && exitCode !== 0); }
+function isFailure(activity: ProjectActivity): boolean {
+	const params   = record(activity.payload.params)                                                                            ;
+	const status   = stringValue(activity.payload.status) ?? stringValue(params?.status) ?? stringValue(item(activity)?.status) ;
+	const exitCode = activity.payload.exitCode ?? params?.exitCode ?? item(activity)?.exitCode                                  ;
+
+	return (
+		activity.phase === "failed" ||
+		status === "failed" ||
+		status === "error" ||
+		activity.payload.error != null ||
+		params?.error != null ||
+		item(activity)?.error != null ||
+		(typeof exitCode === "number" && exitCode !== 0)
+	);
+}
 function approvalResolvedAfter(activities: readonly ProjectActivity[], approval: ProjectActivity): boolean { return activities.some(activity => later(activity, approval) && (activity.payload.eventType === "approval-resolved" || (isApproval(activity) && activity.phase === "completed"))); }
 function requestLabel(activity: ProjectActivity): string { return line(stringValue(activity.payload.label) ?? stringValue(activity.payload.title) ?? "Request"); }
 function toolLabel(activity: ProjectActivity): string { return line(stringValue(item(activity)?.tool) ?? stringValue(item(activity)?.type) ?? stringValue(activity.payload.tool) ?? "Tool"); }

@@ -1,8 +1,12 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test }          from "bun:test";
 import { appendFile, mkdir, readFile, rm, writeFile } from "node:fs/promises";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
-import { ActivityJournalStore, digestActivitySource, nativeThreadJournalKey } from "../src/adapters/outbound/persistence/activity-journal-store.js";
+import { join }                                       from "node:path";
+import { tmpdir }                                     from "node:os";
+import {
+	ActivityJournalStore,
+	digestActivitySource,
+	nativeThreadJournalKey,
+} from "../src/adapters/outbound/persistence/activity-journal-store.js";
 
 const temporaryDirectories: string[] = [];
 
@@ -13,22 +17,22 @@ function createStore(): { directory: string; store: ActivityJournalStore } {
 }
 
 function activityLine(input: {
-	projectId: string;
-	sequence: number;
-	source: string;
+	projectId : string ;
+	sequence  : number ;
+	source    : string ;
 }): string {
 	return JSON.stringify({
-		schemaVersion: 1,
-		id: crypto.randomUUID(),
-		projectId: input.projectId,
-		sequence: input.sequence,
-		recordedAt: new Date().toISOString(),
-		kind: "progress",
-		phase: "updated",
-		provider: "openai-codex",
-		nativeRefs: {},
-		sourceDigest: digestActivitySource(input.source),
-		payload: { source: input.source },
+		schemaVersion : 1,
+		id            : crypto.randomUUID(),
+		projectId     : input.projectId,
+		sequence      : input.sequence,
+		recordedAt    : new Date().toISOString(),
+		kind          : "progress",
+		phase         : "updated",
+		provider      : "openai-codex",
+		nativeRefs    : {},
+		sourceDigest  : digestActivitySource(input.source),
+		payload       : { source: input.source },
 	});
 }
 
@@ -41,23 +45,23 @@ describe("ActivityJournalStore", () => {
 		const { store } = createStore();
 		const sourceDigest = digestActivitySource('{"method":"item/completed","itemId":"item-1"}');
 		const inputs = Array.from({ length: 8 }, (_, index) => ({
-			projectId: "project-1",
-			kind: "progress" as const,
-			phase: "updated" as const,
-			provider: "openai-codex",
-			nativeRefs: { threadId: "thread-1", turnId: "turn-1", itemId: `item-${index}` },
-			sourceDigest: digestActivitySource(`progress-${index}`),
-			payload: { index },
+			projectId    : "project-1",
+			kind         : "progress" as const,
+			phase        : "updated" as const,
+			provider     : "openai-codex",
+			nativeRefs   : { threadId: "thread-1", turnId: "turn-1", itemId: `item-${index}` },
+			sourceDigest : digestActivitySource(`progress-${index}`),
+			payload      : { index },
 		}));
 		const appended = await Promise.all(inputs.map((input) => store.append(input)));
 		expect(appended.map((result) => result.activity.sequence)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
 
 		const terminal = {
-			projectId: "project-1",
-			kind: "tool" as const,
-			phase: "completed" as const,
-			provider: "openai-codex",
-			nativeRefs: { threadId: "thread-1", turnId: "turn-1", itemId: "item-1" },
+			projectId  : "project-1",
+			kind       : "tool" as const,
+			phase      : "completed" as const,
+			provider   : "openai-codex",
+			nativeRefs : { threadId: "thread-1", turnId: "turn-1", itemId: "item-1" },
 			sourceDigest,
 			payload: { exitCode: 0 },
 		};
@@ -76,24 +80,24 @@ describe("ActivityJournalStore", () => {
 	test("discards only an unterminated final crash residue and rejects middle corruption or sequence gaps", async () => {
 		const { directory, store } = createStore();
 		await store.append({
-			projectId: "recoverable",
-			kind: "message",
-			phase: "completed",
-			provider: "openai-codex",
-			nativeRefs: { threadId: "thread-1", turnId: "turn-1", itemId: "message-1" },
-			sourceDigest: digestActivitySource("message-1"),
-			payload: { text: "done" },
+			projectId    : "recoverable",
+			kind         : "message",
+			phase        : "completed",
+			provider     : "openai-codex",
+			nativeRefs   : { threadId: "thread-1", turnId: "turn-1", itemId: "message-1" },
+			sourceDigest : digestActivitySource("message-1"),
+			payload      : { text: "done" },
 		});
 		await appendFile(join(directory, "recoverable.jsonl"), '{"schemaVersion":1');
 		expect(await store.readAll("recoverable")).toHaveLength(1);
 		await store.append({
-			projectId: "recoverable",
-			kind: "progress",
-			phase: "updated",
-			provider: "openai-codex",
-			nativeRefs: { threadId: "thread-1", turnId: "turn-2" },
-			sourceDigest: digestActivitySource("turn-2"),
-			payload: {},
+			projectId    : "recoverable",
+			kind         : "progress",
+			phase        : "updated",
+			provider     : "openai-codex",
+			nativeRefs   : { threadId: "thread-1", turnId: "turn-2" },
+			sourceDigest : digestActivitySource("turn-2"),
+			payload      : {},
 		});
 		expect(await store.readAll("recoverable")).toHaveLength(2);
 		expect(await readFile(join(directory, "recoverable.jsonl"), "utf8")).toContain('"sequence":2');
@@ -103,17 +107,17 @@ describe("ActivityJournalStore", () => {
 		await expect(store.readAll("corrupt")).rejects.toThrow("line 1 for corrupt");
 
 		const valid = (sequence: number) => JSON.stringify({
-			schemaVersion: 1,
-			id: crypto.randomUUID(),
-			projectId: "gap",
+			schemaVersion : 1,
+			id            : crypto.randomUUID(),
+			projectId     : "gap",
 			sequence,
-			recordedAt: new Date().toISOString(),
-			kind: "progress",
-			phase: "updated",
-			provider: "openai-codex",
-			nativeRefs: {},
-			sourceDigest: digestActivitySource(String(sequence)),
-			payload: {},
+			recordedAt   : new Date().toISOString(),
+			kind         : "progress",
+			phase        : "updated",
+			provider     : "openai-codex",
+			nativeRefs   : {},
+			sourceDigest : digestActivitySource(String(sequence)),
+			payload      : {},
 		});
 		await writeFile(join(directory, "gap.jsonl"), `${valid(1)}\n${valid(3)}\n`);
 		await expect(store.readAll("gap")).rejects.toThrow("sequence at line 2 for gap");
@@ -125,13 +129,13 @@ describe("ActivityJournalStore", () => {
 		const results = await Promise.all(Array.from({ length: 40 }, (_, index) => {
 			const store = index % 2 === 0 ? firstStore : secondStore;
 			return store.append({
-				projectId: "shared",
-				kind: "progress",
-				phase: "updated",
-				provider: "openai-codex",
-				nativeRefs: { threadId: `thread-${index % 2}`, itemId: `item-${index}` },
-				sourceDigest: digestActivitySource(`shared-${index}`),
-				payload: { index },
+				projectId    : "shared",
+				kind         : "progress",
+				phase        : "updated",
+				provider     : "openai-codex",
+				nativeRefs   : { threadId: `thread-${index % 2}`, itemId: `item-${index}` },
+				sourceDigest : digestActivitySource(`shared-${index}`),
+				payload      : { index },
 			});
 		}));
 		expect(results.map((result) => result.activity.sequence)).toEqual(Array.from({ length: 40 }, (_, index) => index + 1));
@@ -143,13 +147,13 @@ describe("ActivityJournalStore", () => {
 	test("does not re-read and parse the complete journal on every append", async () => {
 		const { store } = createStore();
 		const input = (index: number) => ({
-			projectId: "cached",
-			kind: "progress" as const,
-			phase: "updated" as const,
-			provider: "openai-codex",
-			nativeRefs: { itemId: `item-${index}` },
-			sourceDigest: digestActivitySource(`cached-${index}`),
-			payload: { index, text: "x".repeat(4_096) },
+			projectId    : "cached",
+			kind         : "progress" as const,
+			phase        : "updated" as const,
+			provider     : "openai-codex",
+			nativeRefs   : { itemId: `item-${index}` },
+			sourceDigest : digestActivitySource(`cached-${index}`),
+			payload      : { index, text: "x".repeat(4_096) },
 		});
 		for (let index = 0; index < 100; index += 1) await store.append(input(index));
 
@@ -172,13 +176,13 @@ describe("ActivityJournalStore", () => {
 	test("reports a project-scoped Session Read cache hit with its retained journal size", async () => {
 		const { directory, store } = createStore();
 		const input = (source: string) => ({
-			projectId: "session-read",
-			kind: "progress" as const,
-			phase: "updated" as const,
-			provider: "openai-codex",
-			nativeRefs: {},
-			sourceDigest: digestActivitySource(source),
-			payload: { source },
+			projectId    : "session-read",
+			kind         : "progress" as const,
+			phase        : "updated" as const,
+			provider     : "openai-codex",
+			nativeRefs   : {},
+			sourceDigest : digestActivitySource(source),
+			payload      : { source },
 		});
 		await store.append(input("first"));
 		await store.append(input("second"));
@@ -186,14 +190,14 @@ describe("ActivityJournalStore", () => {
 
 		const telemetry = store.cacheTelemetry("session-read");
 		expect(telemetry).toMatchObject({
-			projectId: "session-read",
-			state: "ready",
-			entries: 2,
-			logicalBytes: Buffer.byteLength(await readFile(join(directory, "session-read.jsonl"))),
-			hits: 2,
-			misses: 1,
-			reloads: 0,
-			evictions: 0,
+			projectId    : "session-read",
+			state        : "ready",
+			entries      : 2,
+			logicalBytes : Buffer.byteLength(await readFile(join(directory, "session-read.jsonl"))),
+			hits         : 2,
+			misses       : 1,
+			reloads      : 0,
+			evictions    : 0,
 		});
 		expect(telemetry.lastAccessedAt).toEqual(expect.any(String));
 	});

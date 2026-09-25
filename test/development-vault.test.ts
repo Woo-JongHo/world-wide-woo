@@ -1,8 +1,13 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test }                                                                   from 'bun:test';
 import { mkdtempSync, readFileSync, writeFileSync, renameSync, copyFileSync, rmSync, realpathSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { exportDevelopmentVault, replayDevelopmentVault, resolveDevelopmentDocument, type DevelopmentVaultRequest } from '../src/adapters/outbound/development/development-vault.js';
+import { tmpdir }                                                                                   from 'node:os';
+import { join }                                                                                     from 'node:path';
+import {
+	exportDevelopmentVault,
+	replayDevelopmentVault,
+	resolveDevelopmentDocument,
+} from '../src/adapters/outbound/development/development-vault.js';
+import type { DevelopmentVaultRequest }                                                             from '../src/adapters/outbound/development/development-vault.js';
 /** @linear WOO-698 */
 const request: DevelopmentVaultRequest = { requestId: 'checkpoint-1', projectId: 'p', runId: 'r', title: 'Message 개발', unitIds: ['u'], issues: [{ id: 'WOO-683', uuid: 'uuid' }], records: [{ id: 'record-1', body: '공개 대화', metadata: { source: 'test' } }] };
 describe('development Vault', () => {
@@ -38,14 +43,14 @@ test('replay validates forged done receipts and the existing exported document',
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'www-vault-replay-')));
   const vaultRoot = join(root, 'vault'); const outboxRoot = join(root, 'outbox');
   try {
-    const receipt = exportDevelopmentVault(request, { vaultRoot, outboxRoot });
-    const donePath = join(outboxRoot, `${receipt.documentId}.done.json`);
-    const done = JSON.parse(readFileSync(donePath, 'utf8'));
+    const receipt  = exportDevelopmentVault(request, { vaultRoot, outboxRoot }) ;
+    const donePath = join(outboxRoot, `${receipt.documentId}.done.json`)        ;
+    const done     = JSON.parse(readFileSync(donePath, 'utf8'))                 ;
     expect(replayDevelopmentVault(outboxRoot, { vaultRoot }).receipts).toHaveLength(1);
     for (const forgedIdentity of [
-      { documentId: '00000000-0000-0000-0000-000000000000' },
-      { requestId: 'forged' },
-      { inputDigest: 'forged' },
+      { documentId  : '00000000-0000-0000-0000-000000000000' },
+      { requestId   : 'forged'                               },
+      { inputDigest : 'forged'                               },
     ]) {
       writeFileSync(donePath, JSON.stringify({ ...done, ...forgedIdentity }) + '\n');
       const forged = replayDevelopmentVault(outboxRoot, { vaultRoot });

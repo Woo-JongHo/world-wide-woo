@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { projectRuntimeMonitor } from "../src/core/domain/observability/runtime-monitor.js";
-import type { ProjectActivity } from "../src/core/domain/execution/project-activity.js";
+import { projectRuntimeMonitor }  from "../src/core/domain/observability/runtime-monitor.js";
+import type { ProjectActivity }   from "../src/core/domain/execution/project-activity.js";
 import type { WorkbenchSnapshot } from "../src/core/domain/work/workbench.js";
 
 function activity(sequence: number, method: string, options: Partial<ProjectActivity> & { payload?: Record<string, unknown> } = {}): ProjectActivity {

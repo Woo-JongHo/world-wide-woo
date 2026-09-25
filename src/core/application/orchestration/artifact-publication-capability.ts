@@ -1,12 +1,13 @@
-import { renderArtifactCandidate, validateArtifactCandidate, type ArtifactCandidate } from "../../domain/development/artifact-control";
-import type { ArtifactPublicationPort } from "../../ports/execution/artifact-publication-port";
-import type { RequestActionCapability, RequestActionIntent } from "../../ports/execution/request-action-port";
+import { renderArtifactCandidate, validateArtifactCandidate } from "@/core/domain/development/artifact-control";
+import type { ArtifactCandidate }                             from "@/core/domain/development/artifact-control";
+import type { ArtifactPublicationPort }                       from "@/core/ports/execution/artifact-publication-port";
+import type { RequestActionCapability, RequestActionIntent }  from "@/core/ports/execution/request-action-port";
 
 export interface ArtifactPublicationPermit {
-	readonly requestId: string;
-	readonly operationId: string;
-	readonly expectedRevision: number;
-	readonly candidateDigest: string;
+	readonly requestId        : string ;
+	readonly operationId      : string ;
+	readonly expectedRevision : number ;
+	readonly candidateDigest  : string ;
 }
 
 /** Stage policy stays in RequestController; existing Artifact Control owns publication content. */
@@ -33,10 +34,10 @@ export function artifactPublicationCapability(
 	};
 	return {
 		id: port.capabilityId, effect: "publish",
-		description: "Publish one host-pinned Artifact Candidate after one-action approval, stale-before check and read-back. Does not grant arbitrary remote mutations.",
-		inputSchema: { type: "object", properties: { candidateId: { type: "string", enum: pinned.map(c => c.candidateId) } }, required: ["candidateId"], additionalProperties: false },
-		authorize: async intent => { const candidate = candidateFor(intent); return !!candidate && allowed(intent, candidate); },
-		approvalPreview: async intent => { const candidate = candidateFor(intent); return candidate ? { summary: `Publish ${port.identity(candidate).artifact}`, detail: `Candidate ${candidate.candidateId}\nDigest ${candidate.candidateDigest}\n${renderArtifactCandidate(candidate)}` } : null; },
+		description     : "Publish one host-pinned Artifact Candidate after one-action approval, stale-before check and read-back. Does not grant arbitrary remote mutations.",
+		inputSchema     : { type: "object", properties: { candidateId: { type: "string", enum: pinned.map(c => c.candidateId) } }, required: ["candidateId"], additionalProperties: false },
+		authorize       : async intent => { const candidate = candidateFor(intent); return !!candidate && allowed(intent, candidate); },
+		approvalPreview : async intent => { const candidate = candidateFor(intent); return candidate ? { summary: `Publish ${port.identity(candidate).artifact}`, detail: `Candidate ${candidate.candidateId}\nDigest ${candidate.candidateDigest}\n${renderArtifactCandidate(candidate)}` } : null; },
 		reconciliation: {
 			prepare: intent => { const candidate = candidateFor(intent); if (!candidate) throw new Error("CANDIDATE_UNAVAILABLE"); return { candidateId: candidate.candidateId, candidateDigest: candidate.candidateDigest }; },
 			readBack: async (descriptor, signal) => {

@@ -1,5 +1,10 @@
-import { readFileSync, writeFileSync } from "node:fs";
-import { applyObsidianSyncPreview, createObsidianSyncPreview, inspectObsidianVault, type ObsidianSyncPreview } from "./obsidian-contract.js";
+import { readFileSync, writeFileSync }                      from "node:fs";
+import {
+	applyObsidianSyncPreview,
+	createObsidianSyncPreview,
+	inspectObsidianVault,
+} from "@/adapters/outbound/development/obsidian-contract.js";
+import type { ObsidianInspectOptions, ObsidianSyncPreview } from "@/adapters/outbound/development/obsidian-contract.js";
 
 function parseOptions(args: string[], allowed: readonly string[]): Record<string, string | undefined> {
 	const result: Record<string, string | undefined> = {};
@@ -19,7 +24,12 @@ export function runObsidianContractCli(args: string[]): unknown {
 	const allowed = command === "check" ? ["--vault", "--spec-root", "--linear-ids"] : command === "preview" ? ["--vault", "--spec-root", "--linear-ids", "--out"] : command === "apply" ? ["--vault", "--spec-root", "--linear-ids", "--preview", "--digest"] : [];
 	const parsed = parseOptions(args, allowed), vault = parsed["--vault"];
 	if (parsed["--spec-root"] && !parsed["--linear-ids"]) throw new Error("--spec-root를 사용하면 --linear-ids로 필수 Linear 이슈를 선언해야 합니다.");
-	const options = { specRoot: parsed["--spec-root"], requiredLinearIds: parsed["--linear-ids"]?.split(",").map(value => value.trim()).filter(Boolean) };
+	const specRoot = parsed["--spec-root"];
+	const requiredLinearIds = parsed["--linear-ids"]?.split(",").map(value => value.trim()).filter(Boolean);
+	const options: ObsidianInspectOptions = {
+		...(specRoot ? { specRoot } : {}),
+		...(requiredLinearIds ? { requiredLinearIds } : {}),
+	};
 	if (!vault) throw new Error("사용법: obsidian:check|preview|apply --vault <path>");
 	if (command === "check") {
 		const result = inspectObsidianVault(vault, options);

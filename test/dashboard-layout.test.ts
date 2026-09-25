@@ -1,8 +1,9 @@
-import { describe, expect, test } from "bun:test";
-import { stripTerminalSequences, visibleWidth, type Component } from "@earendil-works/pi-tui";
-import { renderLayoutFrame } from "@earendil-works/pi-tui/dist/layout.js";
-import type { LayoutBox } from "@earendil-works/pi-tui/dist/layout.js";
-import { createDashboardLayout } from "../src/adapters/inbound/tui/foundation/layout/dashboard-layout";
+import { describe, expect, test }               from "bun:test";
+import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
+import type { Component }                       from "@earendil-works/pi-tui";
+import { renderLayoutFrame }                    from "@earendil-works/pi-tui/dist/layout.js";
+import type { LayoutBox }                       from "@earendil-works/pi-tui/dist/layout.js";
+import { createDashboardLayout }                from "../src/adapters/inbound/tui/foundation/layout/dashboard-layout";
 
 class Lines implements Component {
 	constructor(private readonly lines: string[]) {}
@@ -70,9 +71,9 @@ describe("dashboard layout", () => {
 	});
 
 	test("places the Tracer title on the split rule without adding a second heading row", () => {
-		const frame = renderLayoutFrame(dashboard().component, 120, 30, () => undefined);
-		const lines = frame.lines.map(stripTerminalSequences);
-		const tracerRows = lines.filter(line => line.includes("TRACER"));
+		const frame      = renderLayoutFrame(dashboard().component, 120, 30, () => undefined) ;
+		const lines      = frame.lines.map(stripTerminalSequences)                            ;
+		const tracerRows = lines.filter(line => line.includes("TRACER"))                      ;
 		expect(tracerRows).toHaveLength(1);
 		expect(tracerRows[0]).toMatch(/─+ TRACER ─+/u);
 	});
@@ -95,9 +96,9 @@ describe("dashboard layout", () => {
 	});
 
 	test("reuses section rows when a child returns the same stable projection", () => {
-		const layout = dashboard();
-		const first = layout.leftScroll.render(80);
-		const second = layout.leftScroll.render(80);
+		const layout = dashboard()                  ;
+		const first  = layout.leftScroll.render(80) ;
+		const second = layout.leftScroll.render(80) ;
 		expect(second).toBe(first);
 		expect(layout.leftScroll.render(70)).not.toBe(first);
 	});

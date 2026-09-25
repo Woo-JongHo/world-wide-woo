@@ -1,7 +1,7 @@
-import { chmod, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
-import { homedir } from "node:os";
-import { dirname, join } from "node:path";
-import { randomUUID } from "node:crypto";
+import { chmod, mkdir, readFile, rename, rm, writeFile }                          from "node:fs/promises";
+import { homedir }                                                                from "node:os";
+import { dirname, join }                                                          from "node:path";
+import { randomUUID }                                                             from "node:crypto";
 import type { AuthOperationOptions, Credential, CredentialInfo, CredentialStore } from "@earendil-works/pi-ai";
 
 const DEFAULT_CREDENTIAL_PATH = join(homedir(), ".config", "www", "auth.json");
@@ -25,7 +25,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function isCredential(value: unknown): value is Credential {
 	if (!isRecord(value)) return false;
 	if (value.type === "api_key") return value.key === undefined || typeof value.key === "string";
-	return value.type === "oauth" && typeof value.refresh === "string" && typeof value.access === "string" && typeof value.expires === "number";
+	return (
+		value.type === "oauth"
+		&& typeof value.refresh === "string"
+		&& typeof value.access === "string"
+		&& typeof value.expires === "number"
+	);
 }
 
 function parseCredentials(text: string, path: string): Credentials {
@@ -66,9 +71,9 @@ export class FileCredentialStore implements CredentialStore {
 		throwIfAborted(options?.signal);
 		return await this.enqueue(async () => {
 			throwIfAborted(options?.signal);
-			const credentials = await this.load();
-			const current = Object.hasOwn(credentials, providerId) ? credentials[providerId] : undefined;
-			const updated = await fn(current);
+			const credentials = await this.load()                                                            ;
+			const current     = Object.hasOwn(credentials, providerId) ? credentials[providerId] : undefined ;
+			const updated     = await fn(current)                                                            ;
 			if (updated === undefined) return current;
 			if (!isCredential(updated)) throw new Error("Credential store refused invalid credential data");
 			credentials[providerId] = updated;

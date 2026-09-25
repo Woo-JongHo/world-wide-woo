@@ -1,50 +1,70 @@
-import { createLocalWorkflow } from "../development/local-workflow.js";
-import type { DevelopmentService } from "../../../core/application/development/development-service";
-import { createDevelopmentService } from "../development/development-cli";
-import { randomUUID } from "node:crypto";
-import { join } from "node:path";
-import { stat } from "node:fs/promises";
-import { McpLinearProjectDashboard } from "./linear-project-dashboard.js";
-import { ProjectWorkbench, type ProjectWorkbenchOptions, type WorkbenchActivityJournal, type WorkbenchTNoteSource, type WorkbenchTodoSource } from "../../../core/application/orchestration/project-workbench.js";
-import type { ExecutorPort } from "../../../core/ports/execution/executor-port.js";
-import type { ComposerDraftController, SessionRepository, TodoStore, UsageMonitor } from "../../../core/ports/index.js";
-import { TNoteService } from "../../../core/application/work/t-note-service.js";
-import type { ActivityNarrator } from "../../../core/application/orchestration/activity-narrator.js";
-import { WooEntry } from "../../../core/application/orchestration/woo-entry.js";
-import { SessionModelUsageAccumulator, type SessionModelUsageObservation } from "../../../core/application/session/session-model-usage.js";
-import { FileSkillRegistry } from "./file-skill-registry.js";
-import type { SkillRegistrySnapshot } from "../../../core/skills/skill-registry.js";
-import { TodoLedger } from "../../../core/application/work/todo-ledger.js";
-import type { TodoDocument, TodoNativePlanBinding } from "../../../core/domain/work/todos.js";
-import type { TNoteDraft } from "../../../core/domain/work/t-notes.js";
-import type { WorkbenchModelSelection } from "../../../core/domain/work/workbench.js";
-import type { WorkFlowProjection } from "../../../core/domain/work/index.js";
-import type { ProjectActivity } from "../../../core/domain/execution/project-activity.js";
-import type { CacheLayerObservation } from "../../../core/domain/observability/cache-telemetry.js";
-import type { RequestRuntimeRecord } from "../../../core/domain/execution/request-runtime";
-import { CanonicalPromotionService } from "../../../core/application/work/canonical-promotion.js";
-import { ReviewService } from "../../../core/application/review/review-service.js";
-import { digestActivitySource, ActivityJournalStore, nativeThreadJournalKey, type ActivityJournalCacheTelemetry } from "../persistence/activity-journal-store.js";
-import { FileTraceStore } from "../persistence/trace-store.js";
-import { FileRequestProjectionStore } from "../persistence/request-projection-store";
-import { createNativeHarness, type ExecutionLane, type NativeHarnessSelection } from "../execution/factory.js";
-import { FileComposerDraftController } from "../persistence/composer-draft-store.js";
-import { PiDetachedCodexGenerator } from "../execution/detached-codex-generator.js";
-import { PiActivityNarrator } from "../execution/pi-activity-narrator.js";
-import { FileCredentialStore } from "../authentication/credential-store.js";
-import { createModelRegistry } from "../authentication/model-router.js";
-import { FileProjectWorkspace, type ProjectWorkspace, type SessionLease } from "./project-workspace.js";
-import { SessionEventStore } from "../persistence/session-store.js";
-import { FileTNoteStore } from "../persistence/t-note-store.js";
-import { FileTodoStore, importLegacyTodo } from "../persistence/todo-store.js";
-import { FileCanonicalDocumentStore } from "../persistence/canonical-document-store.js";
-import { createProductionReviewAdapters, installedClaudeCliVersion, PiReviewGenerationClient, sha256ReviewDigest } from "../review/review-adapters.js";
-import { FileReviewProvenanceStore } from "../review/review-store.js";
-import { UsageService } from "../observability/usage-service.js";
-import { WesEntryCollector } from "../execution/wes-entry-collector.js";
-import { loadWorkbenchConfigWithSource } from "./workbench-config.js";
-import { DEFAULT_WORKBENCH_CONFIG, type WorkbenchConfig } from "../../../core/domain/execution/workbench-config.js";
-import type { RequestRuntimeMode } from "../../../core/application/orchestration/request-runtime-mode.js";
+import { createLocalWorkflow }                                                      from "@/adapters/outbound/development/local-workflow.js";
+import type { DevelopmentService }                                                  from "@/core/application/development/development-service";
+import { createDevelopmentService }                                                 from "@/adapters/outbound/development/development-cli";
+import { randomUUID }                                                               from "node:crypto";
+import { join }                                                                     from "node:path";
+import { stat }                                                                     from "node:fs/promises";
+import { McpLinearProjectDashboard }                                                from "@/adapters/outbound/workspace/linear-project-dashboard.js";
+import { ProjectWorkbench }                                                         from "@/core/application/orchestration/project-workbench.js";
+import type {
+	ProjectWorkbenchOptions,
+	WorkbenchActivityJournal,
+	WorkbenchTNoteSource,
+	WorkbenchTodoSource,
+} from "@/core/application/orchestration/project-workbench.js";
+import type { ExecutorPort }                                                        from "@/core/ports/execution/executor-port.js";
+import type { ComposerDraftController, SessionRepository, TodoStore, UsageMonitor } from "@/core/ports/index.js";
+import { TNoteService }                                                             from "@/core/application/work/t-note-service.js";
+import type { ActivityNarrator }                                                    from "@/core/application/orchestration/activity-narrator.js";
+import { WooEntry }                                                                 from "@/core/application/orchestration/woo-entry.js";
+import { SessionModelUsageAccumulator }                                             from "@/core/application/session/session-model-usage.js";
+import type { SessionModelUsageObservation }                                        from "@/core/application/session/session-model-usage.js";
+import { FileSkillRegistry }                                                        from "@/adapters/outbound/workspace/file-skill-registry.js";
+import type { SkillRegistrySnapshot }                                               from "@/core/skills/skill-registry.js";
+import { TodoLedger }                                                               from "@/core/application/work/todo-ledger.js";
+import type { TodoDocument, TodoNativePlanBinding }                                 from "@/core/domain/work/todos.js";
+import type { TNoteDraft }                                                          from "@/core/domain/work/t-notes.js";
+import type { WorkbenchModelSelection }                                             from "@/core/domain/work/workbench.js";
+import type { WorkFlowProjection }                                                  from "@/core/domain/work/index.js";
+import type { ProjectActivity }                                                     from "@/core/domain/execution/project-activity.js";
+import type { CacheLayerObservation }                                               from "@/core/domain/observability/cache-telemetry.js";
+import type { RequestRuntimeRecord }                                                from "@/core/domain/execution/request-runtime";
+import { CanonicalPromotionService }                                                from "@/core/application/work/canonical-promotion.js";
+import { ReviewService }                                                            from "@/core/application/review/review-service.js";
+import {
+	digestActivitySource,
+	ActivityJournalStore,
+	nativeThreadJournalKey,
+} from "@/adapters/outbound/persistence/activity-journal-store.js";
+import type { ActivityJournalCacheTelemetry }                                       from "@/adapters/outbound/persistence/activity-journal-store.js";
+import { FileTraceStore }                                                           from "@/adapters/outbound/persistence/trace-store.js";
+import { FileRequestProjectionStore }                                               from "@/adapters/outbound/persistence/request-projection-store";
+import { createNativeHarness }                                                      from "@/adapters/outbound/execution/factory.js";
+import type { ExecutionLane, NativeHarnessSelection }                               from "@/adapters/outbound/execution/factory.js";
+import { FileComposerDraftController }                                              from "@/adapters/outbound/persistence/composer-draft-store.js";
+import { PiDetachedCodexGenerator }                                                 from "@/adapters/outbound/execution/detached-codex-generator.js";
+import { PiActivityNarrator }                                                       from "@/adapters/outbound/execution/pi-activity-narrator.js";
+import { FileCredentialStore }                                                      from "@/adapters/outbound/authentication/credential-store.js";
+import { createModelRegistry }                                                      from "@/adapters/outbound/authentication/model-router.js";
+import { FileProjectWorkspace }                                                     from "@/adapters/outbound/workspace/project-workspace.js";
+import type { ProjectWorkspace, SessionLease }                                      from "@/adapters/outbound/workspace/project-workspace.js";
+import { SessionEventStore }                                                        from "@/adapters/outbound/persistence/session-store.js";
+import { FileTNoteStore }                                                           from "@/adapters/outbound/persistence/t-note-store.js";
+import { FileTodoStore, importLegacyTodo }                                          from "@/adapters/outbound/persistence/todo-store.js";
+import { FileCanonicalDocumentStore }                                               from "@/adapters/outbound/persistence/canonical-document-store.js";
+import {
+	createProductionReviewAdapters,
+	installedClaudeCliVersion,
+	PiReviewGenerationClient,
+	sha256ReviewDigest,
+} from "@/adapters/outbound/review/review-adapters.js";
+import { FileReviewProvenanceStore }                                                from "@/adapters/outbound/review/review-store.js";
+import { UsageService }                                                             from "@/adapters/outbound/observability/usage-service.js";
+import { WesEntryCollector }                                                        from "@/adapters/outbound/execution/wes-entry-collector.js";
+import { loadWorkbenchConfigWithSource }                                            from "@/adapters/outbound/workspace/workbench-config.js";
+import { DEFAULT_WORKBENCH_CONFIG }                                                 from "@/core/domain/execution/workbench-config.js";
+import type { WorkbenchConfig }                                                     from "@/core/domain/execution/workbench-config.js";
+import type { RequestRuntimeMode }                                                  from "@/core/application/orchestration/request-runtime-mode.js";
 
 const WORKBENCH_RUN_PREFIX = "workbench";
 /** Compatibility export; the source of truth is the validated config default. */
@@ -52,30 +72,30 @@ export const DEFAULT_TNOTE_MODEL = DEFAULT_WORKBENCH_CONFIG.tnote.model;
 
 export interface ProjectWorkbenchSessionOptions {
 	/** Opt-in brokered tools; callers must provide explicit capability authority. Not strict isolation. */
-	requestCapabilities?: ProjectWorkbenchOptions["requestCapabilities"];
-	requestCapabilityFactory?: (native: ExecutorPort, threadId: () => string | null) => NonNullable<ProjectWorkbenchOptions["requestCapabilities"]>;
-	requestRuntimeMode?: RequestRuntimeMode;
-	resumeThreadId?: string;
-	executionLane?: ExecutionLane;
-	provider?: string;
+	requestCapabilities?      : ProjectWorkbenchOptions["requestCapabilities"]                                                                       ;
+	requestCapabilityFactory? : (native: ExecutorPort, threadId: () => string | null) => NonNullable<ProjectWorkbenchOptions["requestCapabilities"]> ;
+	requestRuntimeMode?       : RequestRuntimeMode                                                                                                   ;
+	resumeThreadId?           : string                                                                                                               ;
+	executionLane?            : ExecutionLane                                                                                                        ;
+	provider?                 : string                                                                                                               ;
 	/** WWW-owned instructions for the optional embedded Pi execution lane. */
-	systemPrompt?: string;
-	model?: string;
-	effort?: string;
+	systemPrompt? : string ;
+	model?        : string ;
+	effort?       : string ;
 	/** Opt in to local WES policy collection and Chat context injection. */
 	enableWooEntry?: boolean;
 	/** Refined plan activity is enabled by default; explicit false disables auxiliary interpretation. */
 	enableActivityNarrator?: boolean;
-	persistModelSelection?: (selection: WorkbenchModelSelection, catalog: import("../../../core/domain/execution/model-settings").NativeModelCatalog) => Promise<void>;
+	persistModelSelection?: (selection: WorkbenchModelSelection, catalog: import("@/core/domain/execution/model-settings").NativeModelCatalog) => Promise<void>;
 }
 
 export interface ProjectWorkbenchSession {
-	workspace: ProjectWorkspace;
-	projectId: string;
-	workbench: ProjectWorkbench;
-	development?: DevelopmentService;
-	composerDraft: ComposerDraftController;
-	usage: UsageMonitor;
+	workspace     : ProjectWorkspace        ;
+	projectId     : string                  ;
+	workbench     : ProjectWorkbench        ;
+	development?  : DevelopmentService      ;
+	composerDraft : ComposerDraftController ;
+	usage         : UsageMonitor            ;
 	/** Called by the TUI after it has closed the workbench. */
 	releaseSessionLease(): Promise<void>;
 	/** Safe for errors before the TUI owns shutdown. */
@@ -88,31 +108,31 @@ export interface ProjectWorkbenchSession {
  */
 export interface ProjectWorkbenchSessionFactories {
 	createLocalWorkflow?(root: string): NonNullable<ProjectWorkbenchOptions["localWorkflow"]>;
-	openWorkspace(cwd: string): Promise<ProjectWorkspace>;
+	openWorkspace     (cwd: string                            ): Promise<ProjectWorkspace>;
 	acquireWriterLease(workspace: ProjectWorkspace, id: string): Promise<SessionLease>;
-	connectNative(input: NativeHarnessSelection): Promise<ExecutorPort>;
-	createJournal(directory: string): WorkbenchActivityJournal;
+	connectNative     (input: NativeHarnessSelection          ): Promise<ExecutorPort>;
+	createJournal     (directory: string                      ): WorkbenchActivityJournal;
 	createRequestProjection?(directory: string): NonNullable<ProjectWorkbenchOptions["requestProjection"]>;
-	createTodoStore(path: string): TodoStore;
-	createTodoLedger(sessionId: string, store: TodoStore, events: SessionRepository): TodoLedger;
-	importLegacyTodo(legacyPath: string, targetPath: string): Promise<string | null>;
-	createSessionEvents(directory: string): SessionRepository;
-	createTNoteSource(directory: string, model: string, observeUsage?: (observation: SessionModelUsageObservation) => void): WorkbenchTNoteSource;
+	createTodoStore    (path: string                                                                                        ): TodoStore;
+	createTodoLedger   (sessionId: string, store: TodoStore, events: SessionRepository                                      ): TodoLedger;
+	importLegacyTodo   (legacyPath: string, targetPath: string                                                              ): Promise<string | null>;
+	createSessionEvents(directory: string                                                                                   ): SessionRepository;
+	createTNoteSource  (directory: string, model: string, observeUsage?: (observation: SessionModelUsageObservation) => void): WorkbenchTNoteSource;
 	createActivityNarrator?(model: string): ActivityNarrator;
-	createPromotionService(root: string): CanonicalPromotionService;
-	createReviewService(runtimeDirectory: string, observeUsage?: (observation: SessionModelUsageObservation) => void, config?: WorkbenchConfig): ReviewService;
-	createWorkbench(native: ExecutorPort, journal: WorkbenchActivityJournal, options: ProjectWorkbenchOptions): ProjectWorkbench;
-	createComposerDraft(root: string, sessionId: string, directory: string): Promise<ComposerDraftController>;
-	createUsageMonitor(native: ExecutorPort): UsageMonitor;
-	createWooEntry(): WooEntry;
-	loadSkillRegistry(root: string): Promise<SkillRegistrySnapshot | undefined>;
+	createPromotionService(root: string                                                                                                          ): CanonicalPromotionService;
+	createReviewService   (runtimeDirectory: string, observeUsage?: (observation: SessionModelUsageObservation) => void, config?: WorkbenchConfig): ReviewService;
+	createWorkbench       (native: ExecutorPort, journal: WorkbenchActivityJournal, options: ProjectWorkbenchOptions                             ): ProjectWorkbench;
+	createComposerDraft   (root: string, sessionId: string, directory: string                                                                    ): Promise<ComposerDraftController>;
+	createUsageMonitor    (native: ExecutorPort                                                                                                  ): UsageMonitor;
+	createWooEntry        ()                                                                                                                      : WooEntry;
+	loadSkillRegistry     (root: string                                                                                                          ): Promise<SkillRegistrySnapshot | undefined>;
 	createDevelopment?(root: string, runId: string): DevelopmentService;
 }
 
 interface WorkbenchExecutionSelection {
-	readonly provider: string;
-	readonly model: string;
-	readonly effort: string;
+	readonly provider : string ;
+	readonly model    : string ;
+	readonly effort   : string ;
 }
 
 function resolveExecutionSelection(
@@ -123,21 +143,67 @@ function resolveExecutionSelection(
 		throw new Error("Pi execution lane requires explicit provider, model, and effort");
 	}
 	return {
-		provider: options.provider ?? config.execution.provider,
-		model: options.model ?? config.execution.model,
-		effort: options.effort ?? config.execution.effort,
+		provider : options.provider ?? config.execution.provider,
+		model    : options.model ?? config.execution.model,
+		effort   : options.effort ?? config.execution.effort,
+	};
+}
+
+function nativeHarnessSelection(
+	options: ProjectWorkbenchSessionOptions,
+	execution: WorkbenchExecutionSelection,
+): NativeHarnessSelection {
+	return {
+		...execution,
+		...(options.executionLane === undefined ? {} : { executionLane: options.executionLane }),
+		...(options.systemPrompt === undefined ? {} : { systemPrompt: options.systemPrompt }),
+	};
+}
+
+function reviewAdapterOptions(config: WorkbenchConfig): Parameters<typeof createProductionReviewAdapters>[1] {
+	return {
+		claudeCliVersion: installedClaudeCliVersion,
+		// Claude is optional until its review transport is explicitly used.
+		...(config.review.provider === "anthropic" ? { anthropic: { model: config.review.model } } : {}),
+		...(config.review.provider === "google" ? { google: { model: config.review.model } } : {}),
+	};
+}
+
+function nativeAccountUsageReader(
+	native: ExecutorPort,
+): (() => ReturnType<NonNullable<ExecutorPort["readAccountUsage"]>>) | undefined {
+	const readAccountUsage = native.readAccountUsage;
+	return readAccountUsage === undefined ? undefined : () => readAccountUsage.call(native);
+}
+
+function localWorkflowOptions(
+	createLocalWorkflow: ProjectWorkbenchSessionFactories["createLocalWorkflow"],
+	root: string,
+): Pick<ProjectWorkbenchOptions, "localWorkflow"> {
+	if (createLocalWorkflow === undefined) return {};
+	let workflow: NonNullable<ProjectWorkbenchOptions["localWorkflow"]> | undefined;
+	const getWorkflow = (): NonNullable<ProjectWorkbenchOptions["localWorkflow"]> => {
+		workflow ??= createLocalWorkflow(root);
+		return workflow;
+	};
+	return {
+		localWorkflow: {
+			run     : processId => getWorkflow().run(processId),
+			resume  : runId => getWorkflow().resume(runId),
+			inspect : runId => getWorkflow().inspect(runId),
+		},
 	};
 }
 
 const productionFactories: ProjectWorkbenchSessionFactories = {
 	createLocalWorkflow,
-	openWorkspace: FileProjectWorkspace.open,
-	acquireWriterLease: FileProjectWorkspace.acquireSessionLease,
-	connectNative: createNativeHarness,
-	createJournal: (directory) => new ActivityJournalStore(directory),
-	createRequestProjection: directory => new FileRequestProjectionStore(join(directory, "requests")),
-	createTodoStore: (path) => new FileTodoStore(path),
-	createTodoLedger: (sessionId, store, events) => new TodoLedger(sessionId, store, events),
+	openWorkspace           : FileProjectWorkspace.open,
+	acquireWriterLease      : FileProjectWorkspace.acquireSessionLease,
+	connectNative           : createNativeHarness,
+	createJournal           : (directory) => new ActivityJournalStore(directory),
+	createRequestProjection : directory => new FileRequestProjectionStore(join(directory, "requests")),
+	createTodoStore         : (path) => new FileTodoStore(path),
+	createTodoLedger        : (sessionId, store, events) => new TodoLedger(sessionId, store, events),
 	importLegacyTodo,
 	createSessionEvents: (directory) => new SessionEventStore(directory),
 	createTNoteSource: (directory, model, observeUsage) => {
@@ -150,12 +216,10 @@ const productionFactories: ProjectWorkbenchSessionFactories = {
 	createReviewService: (runtimeDirectory, observeUsage, config = DEFAULT_WORKBENCH_CONFIG) => {
 		const registry = createModelRegistry(new FileCredentialStore());
 		return new ReviewService(
-			createProductionReviewAdapters(new PiReviewGenerationClient(registry, observeUsage), {
-				// Claude is optional until its review transport is explicitly used.
-				anthropic: config.review.provider === "anthropic" ? { model: config.review.model } : undefined,
-				google: config.review.provider === "google" ? { model: config.review.model } : undefined,
-				claudeCliVersion: installedClaudeCliVersion,
-			}),
+			createProductionReviewAdapters(
+				new PiReviewGenerationClient(registry, observeUsage),
+				reviewAdapterOptions(config),
+			),
 			sha256ReviewDigest,
 			new FileReviewProvenanceStore(join(runtimeDirectory, "review-provenance.jsonl")),
 		);
@@ -172,12 +236,12 @@ const productionFactories: ProjectWorkbenchSessionFactories = {
 			Date.now,
 			undefined,
 			undefined,
-			typeof native.readAccountUsage === "function" ? () => native.readAccountUsage!() : undefined,
+			nativeAccountUsageReader(native),
 		);
 	},
-	createWooEntry: () => new WooEntry(new WesEntryCollector()),
-	loadSkillRegistry: async (root) => await existingDirectory(join(root, ".agents/skills")) ? new FileSkillRegistry(root).load() : undefined,
-	createDevelopment: (projectRoot, runId) => createDevelopmentService({ projectRoot, runId }),
+	createWooEntry    : () => new WooEntry(new WesEntryCollector()),
+	loadSkillRegistry : async (root) => await existingDirectory(join(root, ".agents/skills")) ? new FileSkillRegistry(root).load() : undefined,
+	createDevelopment : (projectRoot, runId) => createDevelopmentService({ projectRoot, runId }),
 };
 
 /**
@@ -189,16 +253,16 @@ export async function createProjectWorkbenchSession(
 	options: ProjectWorkbenchSessionOptions = {},
 	overrides: Partial<ProjectWorkbenchSessionFactories> = {},
 ): Promise<ProjectWorkbenchSession> {
-	const factories = { ...productionFactories, ...overrides };
-	const workspace = await factories.openWorkspace(cwd);
-	const runId = `${WORKBENCH_RUN_PREFIX}-${randomUUID()}`;
-	const lease = await factories.acquireWriterLease(workspace, runId);
-	let threadLease: SessionLease | undefined;
-	let native: ExecutorPort | undefined;
-	let todos: ThreadScopedTodoSource | undefined;
-	let workbench: ProjectWorkbench | undefined;
-	let development: DevelopmentService | undefined;
-	let released = false;
+	const factories = { ...productionFactories, ...overrides }             ;
+	const workspace = await factories.openWorkspace(cwd)                   ;
+	const runId     = `${WORKBENCH_RUN_PREFIX}-${randomUUID()}`            ;
+	const lease     = await factories.acquireWriterLease(workspace, runId) ;
+	let threadLease : SessionLease | undefined                             ;
+	let native      : ExecutorPort | undefined                             ;
+	let todos       : ThreadScopedTodoSource | undefined                   ;
+	let workbench   : ProjectWorkbench | undefined                         ;
+	let development : DevelopmentService | undefined                       ;
+	let released    = false                                                ;
 	const release = async (): Promise<void> => {
 		if (released) return;
 		released = true;
@@ -210,66 +274,57 @@ export async function createProjectWorkbenchSession(
 		}
 	};
 	try {
-		const projectId = scopedProjectId(workspace.root);
-		const loadedConfig = await loadWorkbenchConfigWithSource(workspace.root);
-		const config = loadedConfig.config;
-		const traceRoot = await existingDirectory(workspace.todosDirectory) ? workspace.todosDirectory : undefined;
+		const projectId    = scopedProjectId(workspace.root)                                                          ;
+		const loadedConfig = await loadWorkbenchConfigWithSource(workspace.root)                                      ;
+		const config       = loadedConfig.config                                                                      ;
+		const traceRoot    = await existingDirectory(workspace.todosDirectory) ? workspace.todosDirectory : undefined ;
 		const journal = new ThreadBoundActivityJournal(
 			factories.createJournal(join(workspace.runtimeDirectory, "activity")),
 			traceRoot,
 			options.resumeThreadId ? undefined : `request-intake-${runId}`,
 		);
 		if (options.resumeThreadId) await journal.bindThread(options.resumeThreadId);
-		todos = new ThreadScopedTodoSource(workspace, factories);
-		const auxiliaryUsage = new SessionModelUsageAccumulator();
-		const observeAuxiliaryUsage = (observation: SessionModelUsageObservation): void => auxiliaryUsage.observe(observation);
-		const execution = resolveExecutionSelection(options, config);
-		native = await factories.connectNative({
-			executionLane: options.executionLane,
-			...execution,
-			systemPrompt: options.systemPrompt,
-		});
+		const todoSource = new ThreadScopedTodoSource(workspace, factories);
+		todos = todoSource;
+		const auxiliaryUsage        = new SessionModelUsageAccumulator()                                                       ;
+		const observeAuxiliaryUsage = (observation: SessionModelUsageObservation): void => auxiliaryUsage.observe(observation) ;
+		const execution             = resolveExecutionSelection(options, config)                                               ;
+		const connectedNative       = await factories.connectNative(nativeHarnessSelection(options, execution))                ;
+		native = connectedNative;
 		const tnotes = new ThreadScopedTNoteSource(
 			factories.createTNoteSource(workspace.draftsDirectory, config.tnote.model, observeAuxiliaryUsage),
 		);
 		const narrator = options.enableActivityNarrator !== false ? factories.createActivityNarrator?.(config.narrator.model) : undefined;
 		// WES is an optional local policy source. Ordinary Chat sessions must not
 		// collect it or expose a WES loading/blocked state.
-		const wooEntry = options.enableWooEntry ? factories.createWooEntry() : undefined;
-		const skillRegistry = await factories.loadSkillRegistry(workspace.root);
-		const linearDashboard = await createLinearDashboard(native, config.linear);
+		const wooEntry        = options.enableWooEntry ? factories.createWooEntry() : undefined ;
+		const skillRegistry   = await factories.loadSkillRegistry(workspace.root)               ;
+		const linearDashboard = await createLinearDashboard(connectedNative, config.linear)     ;
 		development = factories.createDevelopment?.(workspace.root, runId);
-		let localWorkflow: ProjectWorkbenchOptions["localWorkflow"];
-		const getLocalWorkflow = () => localWorkflow ??= factories.createLocalWorkflow!(workspace.root);
-	workbench = factories.createWorkbench(native, journal, {
-			requestCapabilities: options.requestCapabilityFactory?.(native, () => workbench?.snapshot.threadId ?? null) ?? options.requestCapabilities,
-				requestRuntimeMode: options.requestRuntimeMode,
-			requestProjection: factories.createRequestProjection?.(workspace.runtimeDirectory),
-			localWorkflow: factories.createLocalWorkflow ? {
-				run: processId => getLocalWorkflow().run(processId),
-				resume: runId => getLocalWorkflow().resume(runId),
-				inspect: runId => getLocalWorkflow().inspect(runId),
-			} : undefined,
-			developmentObserver: development ? { capture: activity => development!.observe(activity) } : undefined,
+		const activeDevelopment = development;
+		const localWorkflow = localWorkflowOptions(factories.createLocalWorkflow, workspace.root);
+		const requestCapabilities = options.requestCapabilityFactory?.(
+			connectedNative,
+			() => workbench?.snapshot.threadId ?? null,
+		) ?? options.requestCapabilities;
+		const workbenchOptions: ProjectWorkbenchOptions = {
 			projectId,
-			provider: execution.provider,
-			cwd: workspace.root,
-			model: execution.model,
-			effort: execution.effort,
-			contextCharacterLimit: config.limits.contextCharacters,
-			delegationDetailActivities: config.delegation.detailActivities,
-			evaluationRequired: config.evaluation.requireVerification,
-			configurationSource: loadedConfig.source,
-			tnoteVisibleLimit: config.display.tnoteVisibleLimit,
-			tnoteSummaryMaxChars: config.display.tnoteSummaryMaxChars,
-			tnoteSummaryMaxLines: config.display.tnoteSummaryMaxLines,
-			hud: config.hud,
-			slash: config.slash,
-			activityJournalProjectId: runId,
-			persistModelSelection: options.persistModelSelection,
-			approvalPolicy: config.execution.approvalPolicy,
-			sandbox: config.execution.sandbox,
-			resumeThreadId: options.resumeThreadId,
+			provider                   : execution.provider,
+			cwd                        : workspace.root,
+			model                      : execution.model,
+			effort                     : execution.effort,
+			contextCharacterLimit      : config.limits.contextCharacters,
+			delegationDetailActivities : config.delegation.detailActivities,
+			evaluationRequired         : config.evaluation.requireVerification,
+			configurationSource        : loadedConfig.source,
+			tnoteVisibleLimit          : config.display.tnoteVisibleLimit,
+			tnoteSummaryMaxChars       : config.display.tnoteSummaryMaxChars,
+			tnoteSummaryMaxLines       : config.display.tnoteSummaryMaxLines,
+			hud                        : config.hud,
+			slash                      : config.slash,
+			activityJournalProjectId   : runId,
+			approvalPolicy             : config.execution.approvalPolicy,
+			sandbox                    : config.execution.sandbox,
 			acquireThreadLease: async (threadId) => {
 				// Bind before the lease.  Native emits for the thread as soon as `thread/start`
 				// resolves, so a bind placed after the lock I/O leaves a window in which an
@@ -280,24 +335,39 @@ export async function createProjectWorkbenchSession(
 				if (threadLease) return;
 				threadLease = await factories.acquireWriterLease(workspace, scopedTodoSessionId(threadId));
 			},
-			todos,
+			todos: todoSource,
 			tnotes,
-			narrator,
-			wooEntry,
-			skillRegistry,
 			promotions: factories.createPromotionService(workspace.root),
 			reviews: factories.createReviewService(workspace.runtimeDirectory, observeAuxiliaryUsage, config),
 			auxiliaryUsage,
-			linearDashboard,
-		});
-		await workbench.waitUntilReady();
+			...(requestCapabilities === undefined ? {} : { requestCapabilities }),
+			...(options.requestRuntimeMode === undefined ? {} : { requestRuntimeMode: options.requestRuntimeMode }),
+			...(factories.createRequestProjection === undefined
+				? {}
+				: { requestProjection: factories.createRequestProjection(workspace.runtimeDirectory) }),
+			...localWorkflow,
+			...(activeDevelopment === undefined
+				? {}
+				: { developmentObserver: { capture: activity => activeDevelopment.observe(activity) } }),
+			...(options.persistModelSelection === undefined
+				? {}
+				: { persistModelSelection: options.persistModelSelection }),
+			...(options.resumeThreadId === undefined ? {} : { resumeThreadId: options.resumeThreadId }),
+			...(narrator === undefined ? {} : { narrator }),
+			...(wooEntry === undefined ? {} : { wooEntry }),
+			...(skillRegistry === undefined ? {} : { skillRegistry }),
+			...(linearDashboard === undefined ? {} : { linearDashboard }),
+		};
+		const activeWorkbench = factories.createWorkbench(connectedNative, journal, workbenchOptions);
+		workbench = activeWorkbench;
+		await activeWorkbench.waitUntilReady();
 		const composerDraft = await factories.createComposerDraft(workspace.root, runId, workspace.draftsDirectory);
-		const usage = factories.createUsageMonitor(native);
+		const usage = factories.createUsageMonitor(connectedNative);
 		return {
 			workspace,
 			projectId,
-			workbench,
-			development,
+			workbench: activeWorkbench,
+			...(activeDevelopment === undefined ? {} : { development: activeDevelopment }),
 			composerDraft,
 			usage,
 			releaseSessionLease: release,
@@ -380,7 +450,12 @@ export class ThreadBoundActivityJournal implements WorkbenchActivityJournal {
 	}
 
 	public async append(input: Parameters<WorkbenchActivityJournal["append"]>[0]): ReturnType<WorkbenchActivityJournal["append"]> {
-		if (!this.streamId && this.intakeStreamId && input.kind === "progress" && /^request\/(submitted|failed|uncertain)$/u.test(String(input.payload.method)) && !input.nativeRefs.threadId && typeof input.payload.requestId === "string") return this.journal.append({ ...input, projectId: this.intakeStreamId });
+		if (!this.streamId
+			&& this.intakeStreamId
+			&& input.kind === "progress"
+			&& /^request\/(submitted|failed|uncertain)$/u.test(String(input.payload.method))
+			&& !input.nativeRefs.threadId
+			&& typeof input.payload.requestId === "string") return this.journal.append({ ...input, projectId: this.intakeStreamId });
 		const streamId = this.requireStreamId();
 		const result = await this.journal.append({ ...input, projectId: streamId });
 		if (this.trace && result.appended) await this.trace.append(result.activity);
@@ -395,15 +470,15 @@ export class ThreadBoundActivityJournal implements WorkbenchActivityJournal {
 		const telemetry = this.readCacheTelemetry();
 		if (!telemetry || telemetry.state === "unobserved") return null;
 		return {
-			id: "session-read",
-			state: telemetry.state,
-			entries: telemetry.entries,
-			logicalBytes: telemetry.logicalBytes,
-			hits: telemetry.hits,
-			misses: telemetry.misses,
-			evictions: telemetry.evictions,
-			latencyMs: null,
-			lastAccessedAt: telemetry.lastAccessedAt,
+			id             : "session-read",
+			state          : telemetry.state,
+			entries        : telemetry.entries,
+			logicalBytes   : telemetry.logicalBytes,
+			hits           : telemetry.hits,
+			misses         : telemetry.misses,
+			evictions      : telemetry.evictions,
+			latencyMs      : null,
+			lastAccessedAt : telemetry.lastAccessedAt,
 		};
 	}
 
@@ -461,12 +536,12 @@ class ThreadScopedTNoteSource implements WorkbenchTNoteSource {
 }
 
 class ThreadScopedTodoSource implements WorkbenchTodoSource {
-	private ledger: TodoLedger | null = null;
-	private sessionId: string | null = null;
-	private todoPath: string | null = null;
-	private ledgerSubscription: (() => void) | null = null;
-	private readonly listeners = new Set<(snapshot: TodoDocument | null) => void>();
-	private binding: Promise<void> = Promise.resolve();
+	private ledger             : TodoLedger | null   = null                                               ;
+	private sessionId          : string | null       = null                                               ;
+	private todoPath           : string | null       = null                                               ;
+	private ledgerSubscription : (() => void) | null = null                                               ;
+	private readonly listeners                       = new Set<(snapshot: TodoDocument | null) => void>() ;
+	private binding            : Promise<void>       = Promise.resolve()                                  ;
 
 	public constructor(
 		private readonly workspace: ProjectWorkspace,
@@ -486,19 +561,19 @@ class ThreadScopedTodoSource implements WorkbenchTodoSource {
 				this.factories.createTodoStore(todoPath),
 				this.factories.createSessionEvents(this.workspace.sessionsDirectory),
 			);
-			this.sessionId = sessionId;
-			this.todoPath = todoPath;
-			this.ledger = ledger;
-			this.ledgerSubscription = ledger.subscribe((snapshot) => this.emit(snapshot));
+			this.sessionId          = sessionId                                           ;
+			this.todoPath           = todoPath                                            ;
+			this.ledger             = ledger                                              ;
+			this.ledgerSubscription = ledger.subscribe((snapshot) => this.emit(snapshot)) ;
 			try {
 				await ledger.initialize();
 			} catch (error) {
 				this.ledgerSubscription?.();
 				ledger.dispose();
-				this.ledgerSubscription = null;
-				this.ledger = null;
-				this.sessionId = null;
-				this.todoPath = null;
+				this.ledgerSubscription = null ;
+				this.ledger             = null ;
+				this.sessionId          = null ;
+				this.todoPath           = null ;
 				throw error;
 			}
 		});
@@ -519,19 +594,19 @@ class ThreadScopedTodoSource implements WorkbenchTodoSource {
 	public syncRequestRuntime(request: RequestRuntimeRecord): Promise<TodoDocument> {
 		return this.requireLedger().syncRequestRuntime(request);
 	}
-	public create(title: string, items: readonly string[], storyId?: string): Promise<TodoDocument> { return this.requireLedger().create(title, items, storyId); }
-	public add(content: string, placement: "now" | "after"): Promise<TodoDocument> { return this.requireLedger().add(content, placement); }
-	public addDetails(itemId: string, details: readonly string[]): Promise<TodoDocument> { return this.requireLedger().addDetails(itemId, details); }
-	public start(itemId: string): Promise<TodoDocument> { return this.requireLedger().start(itemId); }
-	public complete(itemId: string): Promise<TodoDocument> { return this.requireLedger().complete(itemId); }
-	public block(itemId: string): Promise<TodoDocument> { return this.requireLedger().block(itemId); }
-	public reopen(itemId: string): Promise<TodoDocument> { return this.requireLedger().reopen(itemId); }
-	public recordEvidence(evidenceId: string): Promise<TodoDocument | null> { return this.requireLedger().recordEvidence(evidenceId); }
+	public create        (title: string, items: readonly string[], storyId?: string): Promise<TodoDocument> { return this.requireLedger().create(title, items, storyId); }
+	public add           (content: string, placement: "now" | "after"              ): Promise<TodoDocument> { return this.requireLedger().add(content, placement); }
+	public addDetails    (itemId: string, details: readonly string[]               ): Promise<TodoDocument> { return this.requireLedger().addDetails(itemId, details); }
+	public start         (itemId: string                                           ): Promise<TodoDocument> { return this.requireLedger().start(itemId); }
+	public complete      (itemId: string                                           ): Promise<TodoDocument> { return this.requireLedger().complete(itemId); }
+	public block         (itemId: string                                           ): Promise<TodoDocument> { return this.requireLedger().block(itemId); }
+	public reopen        (itemId: string                                           ): Promise<TodoDocument> { return this.requireLedger().reopen(itemId); }
+	public recordEvidence(evidenceId: string                                       ): Promise<TodoDocument | null> { return this.requireLedger().recordEvidence(evidenceId); }
 
 	public async importLegacy(): Promise<string | null> {
-		const ledger = this.requireLedger();
-		const todoPath = this.todoPath!;
-		const imported = await this.factories.importLegacyTodo(this.workspace.legacyTodoPath, todoPath);
+		const ledger   = this.requireLedger()                                                           ;
+		const todoPath = this.requireTodoPath()                                                         ;
+		const imported = await this.factories.importLegacyTodo(this.workspace.legacyTodoPath, todoPath) ;
 		if (imported) await ledger.initialize();
 		return imported;
 	}
@@ -547,6 +622,11 @@ class ThreadScopedTodoSource implements WorkbenchTodoSource {
 	private requireLedger(): TodoLedger {
 		if (!this.ledger) throw new Error("Todo는 첫 질문으로 Native 세션이 시작된 뒤 사용할 수 있습니다.");
 		return this.ledger;
+	}
+
+	private requireTodoPath(): string {
+		if (!this.todoPath) throw new Error("Todo 경로는 Native 세션이 시작된 뒤 사용할 수 있습니다.");
+		return this.todoPath;
 	}
 
 	private emit(snapshot: TodoDocument | null): void {

@@ -4,68 +4,67 @@ import {
 	modelEfforts,
 	MODELS,
 	PROVIDERS,
-	type Effort,
-	type Provider,
-} from "./model-settings.js";
-import type { NativeApprovalPolicy, NativeSandboxMode } from "./native-session.js";
+} from "@/core/domain/execution/model-settings.js";
+import type { Effort, Provider }                        from "@/core/domain/execution/model-settings.js";
+import type { NativeApprovalPolicy, NativeSandboxMode } from "@/core/domain/execution/native-session.js";
 
 /** Validated, immutable project configuration. Runtime state never belongs here. */
 export interface WorkbenchConfig {
 	readonly schemaVersion: 1;
 	readonly execution: {
-		readonly provider: Provider;
-		readonly model: string;
-		readonly effort: Effort;
-		readonly approvalPolicy: NativeApprovalPolicy;
-		readonly sandbox: NativeSandboxMode;
+		readonly provider       : Provider             ;
+		readonly model          : string               ;
+		readonly effort         : Effort               ;
+		readonly approvalPolicy : NativeApprovalPolicy ;
+		readonly sandbox        : NativeSandboxMode    ;
 	};
-	readonly tnote: { readonly model: string };
-	readonly narrator: { readonly model: string };
-	readonly limits: { readonly contextCharacters: number };
-	readonly retry: { readonly enabled: boolean; readonly maxRetries: number; readonly baseDelayMs: number };
-	readonly delegation: { readonly detailActivities: number };
-	readonly evaluation: { readonly requireVerification: boolean };
-	readonly orchestration: { readonly maxAgentRounds: number };
+	readonly tnote         : { readonly model: string }                                                               ;
+	readonly narrator      : { readonly model: string }                                                               ;
+	readonly limits        : { readonly contextCharacters: number }                                                   ;
+	readonly retry         : { readonly enabled: boolean; readonly maxRetries: number; readonly baseDelayMs: number } ;
+	readonly delegation    : { readonly detailActivities: number }                                                    ;
+	readonly evaluation    : { readonly requireVerification: boolean }                                                ;
+	readonly orchestration : { readonly maxAgentRounds: number }                                                      ;
 	/** Detached review lane; this is deliberately separate from interactive execution. */
 	readonly review: { readonly provider: "anthropic" | "google"; readonly model: string };
 	readonly display: {
-		readonly tnoteVisibleLimit: number;
-		readonly tnoteSummaryMaxChars: number;
-		readonly tnoteSummaryMaxLines: number;
+		readonly tnoteVisibleLimit    : number ;
+		readonly tnoteSummaryMaxChars : number ;
+		readonly tnoteSummaryMaxLines : number ;
 	};
 	/** HUD visibility is policy, not a compile-time terminal constant. */
-	readonly hud: { readonly showUsage: boolean; readonly showContext: boolean };
-	readonly slash: { readonly mcp: boolean; readonly clear: boolean; readonly compact: boolean };
-	readonly linear: { readonly server: string; readonly projectId: string; readonly projectName: string } | null;
+	readonly hud    : { readonly showUsage: boolean; readonly showContext: boolean }                               ;
+	readonly slash  : { readonly mcp: boolean; readonly clear: boolean; readonly compact: boolean }                ;
+	readonly linear : { readonly server: string; readonly projectId: string; readonly projectName: string } | null ;
 }
 
 export const DEFAULT_TNOTE_DISPLAY = Object.freeze({
-	tnoteVisibleLimit: 20,
-	tnoteSummaryMaxChars: 2_048,
-	tnoteSummaryMaxLines: 24,
+	tnoteVisibleLimit    : 20,
+	tnoteSummaryMaxChars : 2_048,
+	tnoteSummaryMaxLines : 24,
 });
 
 export const DEFAULT_WORKBENCH_CONFIG: WorkbenchConfig = Object.freeze({
 	schemaVersion: 1,
 	execution: Object.freeze({
-		provider: DEFAULT_SETTINGS.provider,
-		model: DEFAULT_SETTINGS.model,
-		effort: "medium",
-		approvalPolicy: "on-request",
-		sandbox: "workspace-write",
+		provider       : DEFAULT_SETTINGS.provider,
+		model          : DEFAULT_SETTINGS.model,
+		effort         : "medium",
+		approvalPolicy : "on-request",
+		sandbox        : "workspace-write",
 	}),
-	tnote: Object.freeze({ model: "gpt-5.6-luna" }),
-	narrator: Object.freeze({ model: "gpt-5.6-luna" }),
-	limits: Object.freeze({ contextCharacters: 4_000 }),
-	retry: Object.freeze({ enabled: true, maxRetries: 2, baseDelayMs: 500 }),
-	delegation: Object.freeze({ detailActivities: 8 }),
-	evaluation: Object.freeze({ requireVerification: true }),
-	orchestration: Object.freeze({ maxAgentRounds: 24 }),
-	review: Object.freeze({ provider: "anthropic", model: "claude-opus" }),
-	display: DEFAULT_TNOTE_DISPLAY,
-	hud: Object.freeze({ showUsage: true, showContext: true }),
-	slash: Object.freeze({ mcp: true, clear: true, compact: true }),
-	linear: null,
+	tnote         : Object.freeze({ model: "gpt-5.6-luna" }),
+	narrator      : Object.freeze({ model: "gpt-5.6-luna" }),
+	limits        : Object.freeze({ contextCharacters: 4_000 }),
+	retry         : Object.freeze({ enabled: true, maxRetries: 2, baseDelayMs: 500 }),
+	delegation    : Object.freeze({ detailActivities: 8 }),
+	evaluation    : Object.freeze({ requireVerification: true }),
+	orchestration : Object.freeze({ maxAgentRounds: 24 }),
+	review        : Object.freeze({ provider: "anthropic", model: "claude-opus" }),
+	display       : DEFAULT_TNOTE_DISPLAY,
+	hud           : Object.freeze({ showUsage: true, showContext: true }),
+	slash         : Object.freeze({ mcp: true, clear: true, compact: true }),
+	linear        : null,
 });
 
 export function normalizeWorkbenchConfig(value: unknown): WorkbenchConfig {
@@ -76,36 +75,36 @@ export function normalizeWorkbenchConfig(value: unknown): WorkbenchConfig {
 	const provider = PROVIDERS.includes(execution?.provider as Provider) ? execution!.provider as Provider : DEFAULT_WORKBENCH_CONFIG.execution.provider;
 	const models = MODELS[provider] as readonly string[];
 	// YAML loading preserves Native identity. Capability validation belongs to the connected host.
-	const nativeIdentity = provider === "openai-codex" && (execution?.provider === undefined || execution.provider === "openai-codex");
-	const model = typeof execution?.model === "string" && (nativeIdentity ? /^[\w./:-]+$/u.test(execution.model) : models.includes(execution.model)) ? execution.model : (models[0] ?? DEFAULT_SETTINGS.model);
-	const efforts = provider === "openai-codex" ? CODEX_EFFORTS : modelEfforts(provider, model);
-	const effort = efforts.includes(execution?.effort as Effort) ? execution!.effort as Effort : DEFAULT_WORKBENCH_CONFIG.execution.effort;
+	const nativeIdentity = provider === "openai-codex" && (execution?.provider === undefined || execution.provider === "openai-codex")                                                                                  ;
+	const model          = typeof execution?.model === "string" && (nativeIdentity ? /^[\w./:-]+$/u.test(execution.model) : models.includes(execution.model)) ? execution.model : (models[0] ?? DEFAULT_SETTINGS.model) ;
+	const efforts        = provider === "openai-codex" ? CODEX_EFFORTS : modelEfforts(provider, model)                                                                                                                  ;
+	const effort         = efforts.includes(execution?.effort as Effort) ? execution!.effort as Effort : DEFAULT_WORKBENCH_CONFIG.execution.effort                                                                      ;
 	const approvalPolicy = execution?.approvalPolicy === "untrusted" || execution?.approvalPolicy === "on-request" || execution?.approvalPolicy === "never"
 		? execution.approvalPolicy : DEFAULT_WORKBENCH_CONFIG.execution.approvalPolicy;
 	const sandbox = execution?.sandbox === "read-only" || execution?.sandbox === "workspace-write" || execution?.sandbox === "danger-full-access"
 		? execution.sandbox : DEFAULT_WORKBENCH_CONFIG.execution.sandbox;
 	return Object.freeze({
-		schemaVersion: 1,
-		execution: Object.freeze({ provider, model, effort, approvalPolicy, sandbox }),
-		tnote: Object.freeze({ model: validTNoteModel(tnote) }),
-		narrator: Object.freeze({ model: validTNoteModel(narrator) }),
-		limits: Object.freeze({ contextCharacters: positiveInt(limits?.contextCharacters, DEFAULT_WORKBENCH_CONFIG.limits.contextCharacters) }),
-		retry: Object.freeze({ enabled: retry?.enabled !== false, maxRetries: boundedInt(retry?.maxRetries, 2, 0, 8), baseDelayMs: boundedInt(retry?.baseDelayMs, 500, 0, 60_000) }),
-		delegation: Object.freeze({ detailActivities: boundedInt(delegation?.detailActivities, 8, 0, 32) }),
-		evaluation: Object.freeze({ requireVerification: evaluation?.requireVerification !== false }),
-		orchestration: Object.freeze({ maxAgentRounds: boundedInt(orchestration?.maxAgentRounds, 24, 1, 64) }),
+		schemaVersion : 1,
+		execution     : Object.freeze({ provider, model, effort, approvalPolicy, sandbox }),
+		tnote         : Object.freeze({ model: validTNoteModel(tnote) }),
+		narrator      : Object.freeze({ model: validTNoteModel(narrator) }),
+		limits        : Object.freeze({ contextCharacters: positiveInt(limits?.contextCharacters, DEFAULT_WORKBENCH_CONFIG.limits.contextCharacters) }),
+		retry         : Object.freeze({ enabled: retry?.enabled !== false, maxRetries: boundedInt(retry?.maxRetries, 2, 0, 8), baseDelayMs: boundedInt(retry?.baseDelayMs, 500, 0, 60_000) }),
+		delegation    : Object.freeze({ detailActivities: boundedInt(delegation?.detailActivities, 8, 0, 32) }),
+		evaluation    : Object.freeze({ requireVerification: evaluation?.requireVerification !== false }),
+		orchestration : Object.freeze({ maxAgentRounds: boundedInt(orchestration?.maxAgentRounds, 24, 1, 64) }),
 		review: Object.freeze({
 			provider: review?.provider === "google" ? "google" : "anthropic",
 			model: validReviewModel(review),
 		}),
 		display: Object.freeze({
-			tnoteVisibleLimit: boundedInt(display?.tnoteVisibleLimit, DEFAULT_TNOTE_DISPLAY.tnoteVisibleLimit, 0, 100),
-			tnoteSummaryMaxChars: boundedInt(display?.tnoteSummaryMaxChars, DEFAULT_TNOTE_DISPLAY.tnoteSummaryMaxChars, 256, 8_192),
-			tnoteSummaryMaxLines: boundedInt(display?.tnoteSummaryMaxLines, DEFAULT_TNOTE_DISPLAY.tnoteSummaryMaxLines, 4, 80),
+			tnoteVisibleLimit    : boundedInt(display?.tnoteVisibleLimit, DEFAULT_TNOTE_DISPLAY.tnoteVisibleLimit, 0, 100),
+			tnoteSummaryMaxChars : boundedInt(display?.tnoteSummaryMaxChars, DEFAULT_TNOTE_DISPLAY.tnoteSummaryMaxChars, 256, 8_192),
+			tnoteSummaryMaxLines : boundedInt(display?.tnoteSummaryMaxLines, DEFAULT_TNOTE_DISPLAY.tnoteSummaryMaxLines, 4, 80),
 		}),
-		hud: Object.freeze({ showUsage: hud?.showUsage !== false, showContext: hud?.showContext !== false }),
-		slash: Object.freeze({ mcp: slash?.mcp !== false, clear: slash?.clear !== false, compact: slash?.compact !== false }),
-		linear: validLinearConfig(linear),
+		hud    : Object.freeze({ showUsage: hud?.showUsage !== false, showContext: hud?.showContext !== false }),
+		slash  : Object.freeze({ mcp: slash?.mcp !== false, clear: slash?.clear !== false, compact: slash?.compact !== false }),
+		linear : validLinearConfig(linear),
 	});
 }
 
@@ -131,6 +130,11 @@ function validTNoteModel(tnote: Readonly<Record<string, unknown>> | undefined): 
 }
 
 function validLinearConfig(linear: Readonly<Record<string, unknown>> | undefined): WorkbenchConfig["linear"] {
-	if (typeof linear?.server !== "string" || !linear.server.trim() || typeof linear.projectId !== "string" || !linear.projectId.trim() || typeof linear.projectName !== "string" || !linear.projectName.trim()) return null;
+	if (typeof linear?.server !== "string"
+		|| !linear.server.trim()
+		|| typeof linear.projectId !== "string"
+		|| !linear.projectId.trim()
+		|| typeof linear.projectName !== "string"
+		|| !linear.projectName.trim()) return null;
 	return Object.freeze({ server: linear.server.trim(), projectId: linear.projectId.trim(), projectName: linear.projectName.trim() });
 }

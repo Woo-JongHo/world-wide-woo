@@ -1,14 +1,15 @@
-import { readFile, realpath } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
-import { validateArtifactCandidate, type ArtifactCandidate } from "../../../core/domain/development/artifact-control";
-import { artifactPublicationCapability } from "../../../core/application/orchestration/artifact-publication-capability";
-import type { RequestActionCapability } from "../../../core/ports/execution/request-action-port";
-import type { ExecutorPort } from "../../../core/ports/execution/executor-port";
-import { GitHubArtifactPublication } from "../development/github-artifact-publication";
-import { McpLinearArtifactPublication } from "../development/linear-artifact-publication";
-import { ObsidianArtifactPublication } from "../development/obsidian-artifact-publication";
-import { pinnedFileCapabilities } from "./pinned-file-capabilities";
-import type { LinearMcpToolCaller } from "./linear-project-dashboard";
+import { readFile, realpath }            from "node:fs/promises";
+import { dirname, resolve }              from "node:path";
+import { validateArtifactCandidate }     from "@/core/domain/development/artifact-control";
+import type { ArtifactCandidate }        from "@/core/domain/development/artifact-control";
+import { artifactPublicationCapability } from "@/core/application/orchestration/artifact-publication-capability";
+import type { RequestActionCapability }  from "@/core/ports/execution/request-action-port";
+import type { ExecutorPort }             from "@/core/ports/execution/executor-port";
+import { GitHubArtifactPublication }     from "@/adapters/outbound/development/github-artifact-publication";
+import { McpLinearArtifactPublication }  from "@/adapters/outbound/development/linear-artifact-publication";
+import { ObsidianArtifactPublication }   from "@/adapters/outbound/development/obsidian-artifact-publication";
+import { pinnedFileCapabilities }        from "@/adapters/outbound/workspace/pinned-file-capabilities";
+import type { LinearMcpToolCaller }      from "@/adapters/outbound/workspace/linear-project-dashboard";
 
 const object = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
 /** Explicit host input, snapshotted once before Native starts. Never loaded from model output. */

@@ -1,4 +1,5 @@
-import { redactForExternalReview, type ReviewRedactionFinding } from "./redaction";
+import { redactForExternalReview }     from "@/core/domain/review/redaction";
+import type { ReviewRedactionFinding } from "@/core/domain/review/redaction";
 
 export const REVIEW_PACKET_VERSION = 1;
 
@@ -12,19 +13,19 @@ export interface ClassifiedReviewText {
 }
 
 export interface ReviewPacketInput {
-	readonly purpose: ClassifiedReviewText;
-	readonly request: ClassifiedReviewText;
-	readonly context?: ClassifiedReviewText;
-	readonly createdAt?: string;
+	readonly purpose    : ClassifiedReviewText ;
+	readonly request    : ClassifiedReviewText ;
+	readonly context?   : ClassifiedReviewText ;
+	readonly createdAt? : string               ;
 }
 
 export interface ReviewPacket {
-	readonly schemaVersion: typeof REVIEW_PACKET_VERSION;
-	readonly createdAt: string;
-	readonly purpose: string;
-	readonly request: string;
-	readonly context: string;
-	readonly digest: string;
+	readonly schemaVersion : typeof REVIEW_PACKET_VERSION ;
+	readonly createdAt     : string                       ;
+	readonly purpose       : string                       ;
+	readonly request       : string                       ;
+	readonly context       : string                       ;
+	readonly digest        : string                       ;
 }
 
 export interface ReviewPacketPreview {
@@ -36,15 +37,15 @@ export interface ReviewPacketPreview {
 export type ReviewDigester = (value: string) => string;
 
 export interface ReviewGenerationRequest {
-	readonly provider: ReviewProvider;
-	readonly model: string;
-	readonly version: string;
-	readonly cwd: "";
-	readonly tools: readonly [];
-	readonly readOnly: true;
-	readonly networkAccess: "provider-api-only";
-	readonly input: string;
-	readonly packetDigest: string;
+	readonly provider      : ReviewProvider      ;
+	readonly model         : string              ;
+	readonly version       : string              ;
+	readonly cwd           : ""                  ;
+	readonly tools         : readonly []         ;
+	readonly readOnly      : true                ;
+	readonly networkAccess : "provider-api-only" ;
+	readonly input         : string              ;
+	readonly packetDigest  : string              ;
 }
 
 export interface ReviewGenerationClient {
@@ -52,57 +53,57 @@ export interface ReviewGenerationClient {
 }
 
 export interface ReviewAdapter {
-	readonly provider: ReviewProvider;
-	readonly model: string;
-	readonly version: string;
+	readonly provider : ReviewProvider ;
+	readonly model    : string         ;
+	readonly version  : string         ;
 	review(packet: ReviewPacket): Promise<ReviewDelivery>;
 }
 
 export interface ReviewDelivery {
-	readonly provider: ReviewProvider;
-	readonly model: string;
-	readonly version: string;
-	readonly transport?: "provider-api" | "claude-cli";
-	readonly packetDigest: string;
-	readonly sentAt: string;
-	readonly receivedAt: string;
-	readonly result: string;
-	readonly resultDigest: string;
-	readonly usage?: ReviewUsage;
+	readonly provider     : ReviewProvider                ;
+	readonly model        : string                        ;
+	readonly version      : string                        ;
+	readonly transport?   : "provider-api" | "claude-cli" ;
+	readonly packetDigest : string                        ;
+	readonly sentAt       : string                        ;
+	readonly receivedAt   : string                        ;
+	readonly result       : string                        ;
+	readonly resultDigest : string                        ;
+	readonly usage?       : ReviewUsage                   ;
 }
 
 /** Usage is recorded only when the selected transport actually reports it. */
 export interface ReviewUsage {
-	readonly inputTokens?: number;
-	readonly outputTokens?: number;
-	readonly cacheCreationInputTokens?: number;
-	readonly cacheReadInputTokens?: number;
+	readonly inputTokens?              : number ;
+	readonly outputTokens?             : number ;
+	readonly cacheCreationInputTokens? : number ;
+	readonly cacheReadInputTokens?     : number ;
 }
 
 export interface ReviewProvenance {
-	readonly provider: ReviewProvider;
-	readonly model: string;
-	readonly version: string;
-	readonly transport?: "provider-api" | "claude-cli";
-	readonly packetDigest: string;
-	readonly resultDigest: string;
-	readonly sentAt: string;
-	readonly receivedAt: string;
-	readonly usage?: ReviewUsage;
+	readonly provider     : ReviewProvider                ;
+	readonly model        : string                        ;
+	readonly version      : string                        ;
+	readonly transport?   : "provider-api" | "claude-cli" ;
+	readonly packetDigest : string                        ;
+	readonly resultDigest : string                        ;
+	readonly sentAt       : string                        ;
+	readonly receivedAt   : string                        ;
+	readonly usage?       : ReviewUsage                   ;
 }
 
 export function createReviewPacket(input: ReviewPacketInput, digest: ReviewDigester): ReviewPacketPreview {
-	const purpose = publicProjection(input.purpose, "purpose");
-	const request = publicProjection(input.request, "request");
-	const context = publicProjection(input.context ?? { value: "", sensitivity: "public" }, "context", true);
-	const createdAt = input.createdAt ?? new Date().toISOString();
+	const purpose   = publicProjection(input.purpose, "purpose")                                               ;
+	const request   = publicProjection(input.request, "request")                                               ;
+	const context   = publicProjection(input.context ?? { value: "", sensitivity: "public" }, "context", true) ;
+	const createdAt = input.createdAt ?? new Date().toISOString()                                              ;
 	if (Number.isNaN(Date.parse(createdAt))) throw new Error("Review packet createdAt must be an ISO timestamp");
 	const body: Omit<ReviewPacket, "digest"> = {
 		schemaVersion: REVIEW_PACKET_VERSION,
 		createdAt,
-		purpose: purpose.text,
-		request: request.text,
-		context: context.text,
+		purpose : purpose.text,
+		request : request.text,
+		context : context.text,
 	};
 	const packet: ReviewPacket = deepFreeze({ ...body, digest: digest(stableJson(body)) });
 	if (!isDigest(packet.digest)) throw new Error("Review packet digest is invalid");
@@ -119,11 +120,11 @@ export function verifyReviewPacket(packet: ReviewPacket, digest: ReviewDigester)
 		if (redacted.findings.length > 0) throw new Error("Review packet contains unredacted sensitive data");
 	}
 	const body = {
-		schemaVersion: packet.schemaVersion,
-		createdAt: packet.createdAt,
-		purpose: packet.purpose,
-		request: packet.request,
-		context: packet.context,
+		schemaVersion : packet.schemaVersion,
+		createdAt     : packet.createdAt,
+		purpose       : packet.purpose,
+		request       : packet.request,
+		context       : packet.context,
 	};
 	if (packet.digest !== digest(stableJson(body))) throw new Error("Review packet digest does not match its contents");
 }
@@ -131,11 +132,11 @@ export function verifyReviewPacket(packet: ReviewPacket, digest: ReviewDigester)
 export function reviewPacketInput(packet: ReviewPacket, digest: ReviewDigester): string {
 	verifyReviewPacket(packet, digest);
 	return JSON.stringify({
-		packetVersion: packet.schemaVersion,
-		packetDigest: packet.digest,
-		purpose: packet.purpose,
-		request: packet.request,
-		context: packet.context,
+		packetVersion : packet.schemaVersion,
+		packetDigest  : packet.digest,
+		purpose       : packet.purpose,
+		request       : packet.request,
+		context       : packet.context,
 	});
 }
 

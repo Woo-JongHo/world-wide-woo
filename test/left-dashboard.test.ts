@@ -1,23 +1,23 @@
 import { describe, expect, test } from "bun:test";
-import { visibleWidth } from "@earendil-works/pi-tui";
-import type { SessionSnapshot } from "../src/core/application/session/session-runtime";
-import { TranscriptView } from "../src/adapters/inbound/tui/legacy/legacy-dashboard-views";
-import { gradientLines } from "../src/adapters/inbound/tui/foundation/theme/theme";
+import { visibleWidth }           from "@earendil-works/pi-tui";
+import type { SessionSnapshot }   from "../src/core/application/session/session-runtime";
+import { TranscriptView }         from "../src/adapters/inbound/tui/legacy/legacy-dashboard-views";
+import { gradientLines }          from "../src/adapters/inbound/tui/foundation/theme/theme";
 
 const snapshot: SessionSnapshot = {
-	id: "design-test",
-	phase: "ready",
-	turns: [],
-	draft: "",
-	error: null,
-	auth: { configured: true, source: "OAuth", type: "oauth" },
-	settings: { provider: "openai-codex", model: "gpt-5.4", effort: "ultra" },
-	cwd: "/workspace/project",
-	projectName: "project",
-	projectRoot: "/workspace/project",
-	activity: null,
-	tools: [],
-	narrations: [],
+	id          : "design-test",
+	phase       : "ready",
+	turns       : [],
+	draft       : "",
+	error       : null,
+	auth        : { configured: true, source: "OAuth", type: "oauth" },
+	settings    : { provider: "openai-codex", model: "gpt-5.4", effort: "ultra" },
+	cwd         : "/workspace/project",
+	projectName : "project",
+	projectRoot : "/workspace/project",
+	activity    : null,
+	tools       : [],
+	narrations  : [],
 };
 
 describe("WWW left welcome", () => {

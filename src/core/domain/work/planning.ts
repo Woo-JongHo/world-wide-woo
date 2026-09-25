@@ -1,23 +1,23 @@
 export interface PlanningEpic {
-	readonly id: string;
-	readonly title: string;
-	readonly goal: string;
-	readonly createdAt: string;
+	readonly id        : string ;
+	readonly title     : string ;
+	readonly goal      : string ;
+	readonly createdAt : string ;
 }
 
 export interface PlanningStory {
-	readonly id: string;
-	readonly epicId: string;
-	readonly title: string;
-	readonly acceptance: string;
-	readonly createdAt: string;
-	readonly supersedes: string | null;
+	readonly id         : string        ;
+	readonly epicId     : string        ;
+	readonly title      : string        ;
+	readonly acceptance : string        ;
+	readonly createdAt  : string        ;
+	readonly supersedes : string | null ;
 }
 
 export interface PlanningSnapshot {
-	readonly revision: number;
-	readonly epics: readonly PlanningEpic[];
-	readonly stories: readonly PlanningStory[];
+	readonly revision : number                   ;
+	readonly epics    : readonly PlanningEpic[]  ;
+	readonly stories  : readonly PlanningStory[] ;
 }
 
 export const EPIC_ID = /^EP-\d{3}$/;
@@ -70,12 +70,16 @@ export function validatePlanningSnapshot(snapshot: Pick<PlanningSnapshot, "revis
 		if (story.supersedes === null) continue;
 		const target = stories.get(story.supersedes);
 		const targetIndex = snapshot.stories.findIndex(candidate => candidate.id === story.supersedes);
-		if (!target || target.epicId !== story.epicId || target.id === story.id || targetIndex >= index) {
+		if (!target
+			|| target.epicId !== story.epicId
+			|| target.id === story.id
+			|| targetIndex >= index) {
 			throw new Error(`Invalid planning story supersedes relation: ${story.id}`);
 		}
 	}
 	for (const story of snapshot.stories) {
-		const seen = new Set<string>(); let current: PlanningStory | undefined = story;
+		const seen = new Set<string>();
+		let current: PlanningStory | undefined = story;
 		while (current?.supersedes !== null && current !== undefined) {
 			if (seen.has(current.id)) throw new Error("Planning story supersedes cycle");
 			seen.add(current.id); current = stories.get(current.supersedes);

@@ -1,40 +1,71 @@
-import { describe, expect, test } from "bun:test";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { codexInteractiveModel } from "../src/app.js";
-import type { ExecutorPort } from "../src/core/ports/execution/executor-port.js";
-import { ProjectWorkbench, type ProjectWorkbenchOptions, type WorkbenchActivityJournal } from "../src/core/application/orchestration/project-workbench.js";
-import { WooEntry } from "../src/core/application/orchestration/woo-entry.js";
-import type { SessionRepository, TodoStore } from "../src/core/ports/index.js";
+import { describe, expect, test }             from "bun:test";
+import { mkdtemp, readFile, rm }              from "node:fs/promises";
+import { tmpdir }                             from "node:os";
+import { join }                               from "node:path";
+import { codexInteractiveModel }              from "../src/app.js";
+import type { ExecutorPort }                  from "../src/core/ports/execution/executor-port.js";
+import { ProjectWorkbench }                   from "../src/core/application/orchestration/project-workbench.js";
+import type {
+	ProjectWorkbenchOptions,
+	WorkbenchActivityJournal,
+} from "../src/core/application/orchestration/project-workbench.js";
+import { WooEntry }                           from "../src/core/application/orchestration/woo-entry.js";
+import type { SessionRepository, TodoStore }  from "../src/core/ports/index.js";
 import { TodoLedger, TodoWriteConflictError } from "../src/core/application/work/todo-ledger";
-import { ReviewService } from "../src/core/application/review/review-service";
+import { ReviewService }                      from "../src/core/application/review/review-service";
 
-import type { NativeApprovalResolution, NativeHarnessEvent, NativeThreadList, NativeThreadRead, NativeThreadResume, NativeThreadSnapshot, NativeThreadStart, NativeThreadSummary, NativeTurnInterrupt, NativeTurnSnapshot, NativeTurnStart, NativeTurnSteer, NativeTurnSteerResult } from "../src/core/domain/execution/native-session.js";
-import type { ProjectActivity, ProjectActivityAppendResult, ProjectActivityInput } from "../src/core/domain/execution/project-activity.js";
-import { createProjectWorkbenchSession, scopedProjectId, scopedTodoSessionId, ThreadBoundActivityJournal, type ProjectWorkbenchSessionFactories } from "../src/adapters/outbound/workspace/project-workbench-session.js";
-import type { ProjectWorkspace } from "../src/adapters/outbound/workspace/project-workspace.js";
-import { ActivityJournalStore, nativeThreadJournalKey } from "../src/adapters/outbound/persistence/activity-journal-store.js";
-import { projectRequestRuntime } from "../src/core/runtime/request-runtime";
-import { createNativeHarness } from "../src/adapters/outbound/execution/factory.js";
-import { sha256ReviewDigest } from "../src/adapters/outbound/review/review-adapters.js";
-import type { SkillRegistrySnapshot } from "../src/core/skills/skill-registry.js";
+import type {
+	NativeApprovalResolution,
+	NativeHarnessEvent,
+	NativeThreadList,
+	NativeThreadRead,
+	NativeThreadResume,
+	NativeThreadSnapshot,
+	NativeThreadStart,
+	NativeThreadSummary,
+	NativeTurnInterrupt,
+	NativeTurnSnapshot,
+	NativeTurnStart,
+	NativeTurnSteer,
+	NativeTurnSteerResult,
+} from "../src/core/domain/execution/native-session.js";
+import type {
+	ProjectActivity,
+	ProjectActivityAppendResult,
+	ProjectActivityInput,
+} from "../src/core/domain/execution/project-activity.js";
+import {
+	createProjectWorkbenchSession,
+	scopedProjectId,
+	scopedTodoSessionId,
+	ThreadBoundActivityJournal,
+} from "../src/adapters/outbound/workspace/project-workbench-session.js";
+import type { ProjectWorkbenchSessionFactories } from "../src/adapters/outbound/workspace/project-workbench-session.js";
+import type { ProjectWorkspace }                 from "../src/adapters/outbound/workspace/project-workspace.js";
+import {
+	ActivityJournalStore,
+	nativeThreadJournalKey,
+} from "../src/adapters/outbound/persistence/activity-journal-store.js";
+import { projectRequestRuntime }                 from "../src/core/runtime/request-runtime";
+import { createNativeHarness }                   from "../src/adapters/outbound/execution/factory.js";
+import { sha256ReviewDigest }                    from "../src/adapters/outbound/review/review-adapters.js";
+import type { SkillRegistrySnapshot }            from "../src/core/skills/skill-registry.js";
 
 const testSkillRegistry: SkillRegistrySnapshot = Object.freeze({
-	schemaVersion: 1,
-	root: ".agents/skills",
-	sourceRevision: "git:test",
-	digest: "a".repeat(64),
-	skills: Object.freeze([{ name: "rpa-intake", description: "test", path: ".agents/skills/rpa-intake/SKILL.md", digest: "b".repeat(64), sourceRevision: "git:test" }]),
+	schemaVersion  : 1,
+	root           : ".agents/skills",
+	sourceRevision : "git:test",
+	digest         : "a".repeat(64),
+	skills         : Object.freeze([{ name: "rpa-intake", description: "test", path: ".agents/skills/rpa-intake/SKILL.md", digest: "b".repeat(64), sourceRevision: "git:test" }]),
 });
 const loadTestSkillRegistry = async (): Promise<SkillRegistrySnapshot> => testSkillRegistry;
 
 test("pre-thread intake survives startup failure and is adopted once with provenance into the Native journal", async () => {
 	const dir = await mkdtemp(join(tmpdir(), "www-request-intake-"));
 	try {
-		const store = new ActivityJournalStore(dir);
-		const journal = new ThreadBoundActivityJournal(store, undefined, "request-intake-fixture");
-		const failed = new FakeNative([]);
+		const store   = new ActivityJournalStore(dir)                                              ;
+		const journal = new ThreadBoundActivityJournal(store, undefined, "request-intake-fixture") ;
+		const failed  = new FakeNative([])                                                         ;
 		failed.startThread = async () => { throw new Error("fixture native start failure"); };
 		const first = new ProjectWorkbench(failed, journal, { projectId: "p", cwd: dir });
 		const response = await first.dispatch({ type: "chat.send", text: "첫 접수" });
@@ -121,34 +152,34 @@ class FakeNative implements ExecutorPort {
 	async startTurn(_input: NativeTurnStart): Promise<NativeTurnSnapshot> {
 		setTimeout(() => {
 			this.listener?.({
-				type: "notification",
-				method: "turn/plan/updated",
-				refs: { threadId: "thread", turnId: "turn" },
-				params: { plan: [{ step: "세션 Todo 시작", status: "inProgress" }] },
+				type   : "notification",
+				method : "turn/plan/updated",
+				refs   : { threadId: "thread", turnId: "turn" },
+				params : { plan: [{ step: "세션 Todo 시작", status: "inProgress" }] },
 			});
 		});
 		return { id: "turn", threadId: "thread", value: {} };
 	}
-	async steerTurn(input: NativeTurnSteer): Promise<NativeTurnSteerResult> { return { turnId: input.expectedTurnId }; }
-	async interruptTurn(_input: NativeTurnInterrupt): Promise<void> {}
-	async respondToApproval(_input: NativeApprovalResolution): Promise<void> {}
-	subscribe(listener: (event: NativeHarnessEvent) => void): () => void { this.listener = listener; return () => { this.listener = undefined; }; }
-	emit(event: NativeHarnessEvent): void { this.listener?.(event); }
-	async close(): Promise<void> { this.order.push("native.close"); }
+	async steerTurn        (input: NativeTurnSteer                       ): Promise<NativeTurnSteerResult> { return { turnId: input.expectedTurnId }; }
+	async interruptTurn    (_input: NativeTurnInterrupt                  ): Promise<void> {}
+	async respondToApproval(_input: NativeApprovalResolution             ): Promise<void> {}
+	subscribe              (listener: (event: NativeHarnessEvent) => void): () => void { this.listener = listener; return () => { this.listener = undefined; }; }
+	emit                   (event: NativeHarnessEvent                    ): void { this.listener?.(event); }
+	async close            ()                                             : Promise<void> { this.order.push("native.close"); }
 }
 
 const workspace: ProjectWorkspace = {
-	name: "sample",
-	root: "/workspace/sample",
-	directory: "/workspace/sample/.www",
-	sessionsDirectory: "/workspace/sample/.www/sessions",
-	draftsDirectory: "/workspace/sample/.www/drafts",
-	runtimeDirectory: "/workspace/sample/.www/runtime",
-	todosDirectory: "/workspace/sample/.www/todos",
-	vaultDirectory: "/workspace/sample/.www/vault",
-	canonicalTodoPath: "/workspace/sample/.www/vault/Todo.md",
-	legacyTodoPath: "/workspace/sample/.www/Todo.md",
-	manifestPath: "/workspace/sample/.www/project.json",
+	name              : "sample",
+	root              : "/workspace/sample",
+	directory         : "/workspace/sample/.www",
+	sessionsDirectory : "/workspace/sample/.www/sessions",
+	draftsDirectory   : "/workspace/sample/.www/drafts",
+	runtimeDirectory  : "/workspace/sample/.www/runtime",
+	todosDirectory    : "/workspace/sample/.www/todos",
+	vaultDirectory    : "/workspace/sample/.www/vault",
+	canonicalTodoPath : "/workspace/sample/.www/vault/Todo.md",
+	legacyTodoPath    : "/workspace/sample/.www/Todo.md",
+	manifestPath      : "/workspace/sample/.www/project.json",
 };
 
 function workspaceAt(root: string): ProjectWorkspace {
@@ -157,14 +188,14 @@ function workspaceAt(root: string): ProjectWorkspace {
 		...workspace,
 		root,
 		directory,
-		sessionsDirectory: join(directory, "sessions"),
-		draftsDirectory: join(directory, "drafts"),
-		runtimeDirectory: join(directory, "runtime"),
-		todosDirectory: join(directory, "todos"),
-		vaultDirectory: join(directory, "vault"),
-		canonicalTodoPath: join(directory, "vault", "Todo.md"),
-		legacyTodoPath: join(directory, "Todo.md"),
-		manifestPath: join(directory, "project.json"),
+		sessionsDirectory : join(directory, "sessions"),
+		draftsDirectory   : join(directory, "drafts"),
+		runtimeDirectory  : join(directory, "runtime"),
+		todosDirectory    : join(directory, "todos"),
+		vaultDirectory    : join(directory, "vault"),
+		canonicalTodoPath : join(directory, "vault", "Todo.md"),
+		legacyTodoPath    : join(directory, "Todo.md"),
+		manifestPath      : join(directory, "project.json"),
 	};
 }
 
@@ -179,17 +210,17 @@ function memoryWooEntry(): WooEntry {
 
 describe("createProjectWorkbenchSession", () => {
 	test("selects Codex by default and forwards an explicit Pi lane independently from provider, model, and effort", async () => {
-		const codex = new FakeNative([]);
-		const pi = new FakeNative([]);
-		const codexInputs: unknown[] = [];
-		const piInputs: unknown[] = [];
+		const codex                   = new FakeNative([]) ;
+		const pi                      = new FakeNative([]) ;
+		const codexInputs : unknown[] = []                 ;
+		const piInputs    : unknown[] = []                 ;
 
 		await expect(createNativeHarness({
-			connectCodex: async input => { codexInputs.push(input); return codex; },
-			createPi: async input => { piInputs.push(input); return pi; },
-			provider: "openai-codex",
-			model: "gpt-5.6-sol",
-			effort: "medium",
+			connectCodex : async input => { codexInputs.push(input); return codex; },
+			createPi     : async input => { piInputs.push(input); return pi; },
+			provider     : "openai-codex",
+			model        : "gpt-5.6-sol",
+			effort       : "medium",
 		})).resolves.toBe(codex);
 		expect(codexInputs).toEqual([{
 			provider: "openai-codex",
@@ -199,12 +230,12 @@ describe("createProjectWorkbenchSession", () => {
 		expect(piInputs).toEqual([]);
 
 		await expect(createNativeHarness({
-			executionLane: "pi",
-			connectCodex: async input => { codexInputs.push(input); return codex; },
-			createPi: async input => { piInputs.push(input); return pi; },
-			provider: "anthropic",
-			model: "claude-sonnet",
-			effort: "high",
+			executionLane : "pi",
+			connectCodex  : async input => { codexInputs.push(input); return codex; },
+			createPi      : async input => { piInputs.push(input); return pi; },
+			provider      : "anthropic",
+			model         : "claude-sonnet",
+			effort        : "high",
 		})).resolves.toBe(pi);
 		expect(piInputs).toEqual([{
 			provider: "anthropic",
@@ -227,13 +258,13 @@ describe("createProjectWorkbenchSession", () => {
 			},
 		});
 		await expect(journal.append({
-			projectId: "unbound",
-			kind: "progress",
-			phase: "completed",
-			provider: "native",
-			nativeRefs: { threadId: "forged-thread" },
-			sourceDigest: `sha256:${"1".padStart(64, "0")}`,
-			payload: { method: "thread/start" },
+			projectId    : "unbound",
+			kind         : "progress",
+			phase        : "completed",
+			provider     : "native",
+			nativeRefs   : { threadId: "forged-thread" },
+			sourceDigest : `sha256:${"1".padStart(64, "0")}`,
+			payload      : { method: "thread/start" },
 		})).rejects.toThrow("Native thread에 묶인 뒤에만");
 		expect(appends).toBe(0);
 		await expect(journal.readAll("unbound")).resolves.toEqual([]);
@@ -272,20 +303,20 @@ describe("createProjectWorkbenchSession", () => {
 	});
 
 	test("uses the production composer factory with its static class receiver intact", async () => {
-		const root = await mkdtemp(join(tmpdir(), "www-workbench-composer-"));
-		const temporaryWorkspace = workspaceAt(root);
-		const order: string[] = [];
+		const root               = await mkdtemp(join(tmpdir(), "www-workbench-composer-")) ;
+		const temporaryWorkspace = workspaceAt(root)                                        ;
+		const order: string[]    = []                                                       ;
 		try {
 			const session = await createProjectWorkbenchSession(root, {}, {
-				openWorkspace: async () => temporaryWorkspace,
-				acquireWriterLease: async () => ({ release: async () => { order.push("lease.release"); } }),
-				connectNative: async () => new FakeNative(order),
-				createJournal: () => new MemoryJournal(),
-				createTodoStore: () => new MemoryTodoStore(),
-				createSessionEvents: () => new MemoryEvents(),
-				createTNoteSource: () => ({ readAll: async () => [], create: async () => { throw new Error("not used"); } }),
-				createReviewService: () => new ReviewService(new Map(), sha256ReviewDigest),
-				createWooEntry: memoryWooEntry,
+				openWorkspace       : async () => temporaryWorkspace,
+				acquireWriterLease  : async () => ({ release: async () => { order.push("lease.release"); } }),
+				connectNative       : async () => new FakeNative(order),
+				createJournal       : () => new MemoryJournal(),
+				createTodoStore     : () => new MemoryTodoStore(),
+				createSessionEvents : () => new MemoryEvents(),
+				createTNoteSource   : () => ({ readAll: async () => [], create: async () => { throw new Error("not used"); } }),
+				createReviewService : () => new ReviewService(new Map(), sha256ReviewDigest),
+				createWooEntry      : memoryWooEntry,
 			});
 			expect(session.composerDraft.initialText).toBe("");
 			await session.close();
@@ -296,10 +327,10 @@ describe("createProjectWorkbenchSession", () => {
 	});
 
 	test("uses distinct run-local leases and one shared unbound journal without pre-bind Note I/O", async () => {
-		const leaseIds: string[] = [];
-		const journalPaths: string[] = [];
-		let reads = 0;
-		let narratorCreations = 0;
+		const leaseIds     : string[] = [] ;
+		const journalPaths : string[] = [] ;
+		let reads                     = 0  ;
+		let narratorCreations         = 0  ;
 		const factories: Partial<ProjectWorkbenchSessionFactories> = {
 			createActivityNarrator: () => { narratorCreations += 1; return { narrate: async () => ({ what: "검증합니다.", inputSummary: [] }) }; },
 			openWorkspace: async () => workspace,
@@ -348,11 +379,11 @@ describe("createProjectWorkbenchSession", () => {
 				native.resumeThread = async (input) => { resumes += 1; return resume(input); };
 				return native;
 			},
-			createJournal: () => new MemoryJournal(),
-			createTodoStore: () => new MemoryTodoStore(),
-			createSessionEvents: () => new MemoryEvents(),
-			createTNoteSource: () => ({ readAll: async () => [], create: async () => { throw new Error("not used"); } }),
-			createComposerDraft: async () => ({ initialText: "", save: async () => undefined, clear: async () => undefined }),
+			createJournal       : () => new MemoryJournal(),
+			createTodoStore     : () => new MemoryTodoStore(),
+			createSessionEvents : () => new MemoryEvents(),
+			createTNoteSource   : () => ({ readAll: async () => [], create: async () => { throw new Error("not used"); } }),
+			createComposerDraft : async () => ({ initialText: "", save: async () => undefined, clear: async () => undefined }),
 		};
 		const first = await createProjectWorkbenchSession("/ignored", { resumeThreadId: "thread" }, factories);
 		await first.workbench.dispatch({ type: "session.mode", mode: "manual" });
@@ -364,9 +395,9 @@ describe("createProjectWorkbenchSession", () => {
 	});
 
 	test("prebinds two close/reopen resume sessions to the same native journal before Native resume", async () => {
-		const order: string[] = [];
-		const streamReads: string[] = [];
-		const resumeReconciliations: ProjectActivityInput[] = [];
+		const order                 : string[]               = [] ;
+		const streamReads           : string[]               = [] ;
+		const resumeReconciliations : ProjectActivityInput[] = [] ;
 		const activity = (sequence: number, method: string, refs: Record<string, string>, payload: Record<string, unknown> = {}) => ({
 			schemaVersion: 1 as const, id: `a-${sequence}`, projectId: nativeThreadJournalKey("thread"), sequence,
 			recordedAt: new Date(0).toISOString(), kind: method === "item/completed" ? "file-change" as const : "progress" as const,
@@ -394,11 +425,11 @@ describe("createProjectWorkbenchSession", () => {
 				native.resumeThread = async (input) => { order.push("native.resume"); return { id: input.threadId, value: {} }; };
 				return native;
 			},
-			createJournal: () => shared,
-			createTodoStore: () => new MemoryTodoStore(),
-			createSessionEvents: () => new MemoryEvents(),
-			createTNoteSource: () => ({ readAll: async () => [], create: async () => { throw new Error("not used"); } }),
-			createComposerDraft: async () => ({ initialText: "", save: async () => undefined, clear: async () => undefined }),
+			createJournal       : () => shared,
+			createTodoStore     : () => new MemoryTodoStore(),
+			createSessionEvents : () => new MemoryEvents(),
+			createTNoteSource   : () => ({ readAll: async () => [], create: async () => { throw new Error("not used"); } }),
+			createComposerDraft : async () => ({ initialText: "", save: async () => undefined, clear: async () => undefined }),
 		};
 		const first = await createProjectWorkbenchSession("/ignored", { resumeThreadId: "thread" }, factories);
 		expect(first.workbench.snapshot.workFlow).toMatchObject({ source: { turnId: "root-turn" }, steps: [{ title: "root plan" }], rejections: [{ code: "source_turn_mismatch" }], orphans: [{ reason: "source_mismatch" }] });
@@ -434,11 +465,11 @@ describe("createProjectWorkbenchSession", () => {
 		};
 		const syncCalls = new Map<TrackingTodoStore, number>();
 		const open = async (store: TrackingTodoStore) => createProjectWorkbenchSession("/ignored", { resumeThreadId: "thread" }, {
-			openWorkspace: async () => workspace,
-			acquireWriterLease: async () => ({ release: async () => undefined }),
-			connectNative: async () => new FakeNative([]),
-			createJournal: () => journal,
-			createTodoStore: () => store,
+			openWorkspace      : async () => workspace,
+			acquireWriterLease : async () => ({ release: async () => undefined }),
+			connectNative      : async () => new FakeNative([]),
+			createJournal      : () => journal,
+			createTodoStore    : () => store,
 			createTodoLedger: (sessionId, todoStore, events) => {
 				const ledger = new TodoLedger(sessionId, todoStore, events);
 				const syncNativePlan = ledger.syncNativePlan.bind(ledger);
@@ -448,9 +479,9 @@ describe("createProjectWorkbenchSession", () => {
 				};
 				return ledger;
 			},
-			createSessionEvents: () => new MemoryEvents(),
-			createTNoteSource: () => ({ readAll: async () => [], create: async () => { throw new Error("not used"); } }),
-			createComposerDraft: async () => ({ initialText: "", save: async () => undefined, clear: async () => undefined }),
+			createSessionEvents : () => new MemoryEvents(),
+			createTNoteSource   : () => ({ readAll: async () => [], create: async () => { throw new Error("not used"); } }),
+			createComposerDraft : async () => ({ initialText: "", save: async () => undefined, clear: async () => undefined }),
 		});
 
 		const emptyTodo = { version: 1 as const, revision: 0, updatedAt: new Date(0).toISOString(), ownerSessionId: scopedTodoSessionId("thread"), storyId: null, title: "비어 있는 Todo", items: [] };
@@ -459,9 +490,9 @@ describe("createProjectWorkbenchSession", () => {
 			await session.close();
 			expect(store.document).toMatchObject({ title: "현재 요청을 처리합니다.", items: [{ content: "resumed root plan", status: "in_progress" }] });
 			expect(store.document?.source).toMatchObject({
-				turnId: "root-turn",
-				input: null,
-				rootExecution: { model: null, agentId: null, threadId: "thread", runId: "root-turn" },
+				turnId        : "root-turn",
+				input         : null,
+				rootExecution : { model: null, agentId: null, threadId: "thread", runId: "root-turn" },
 			});
 			expect(store.writes).toBe(1);
 			expect(syncCalls.get(store)).toBe(1);
@@ -487,17 +518,17 @@ describe("createProjectWorkbenchSession", () => {
 
 	test("refreshes an older source-bound Todo on resume while keeping unobserved model and agent unknown", async () => {
 		const activity = (sequence: number, method: string, payload: Record<string, unknown> = {}) => ({
-			schemaVersion: 1 as const,
-			id: `resume-source-${sequence}`,
-			projectId: nativeThreadJournalKey("thread"),
+			schemaVersion : 1 as const,
+			id            : `resume-source-${sequence}`,
+			projectId     : nativeThreadJournalKey("thread"),
 			sequence,
-			recordedAt: new Date(0).toISOString(),
-			kind: "progress" as const,
-			phase: "completed" as const,
-			provider: "native",
-			nativeRefs: { threadId: "thread", turnId: "root-turn" },
-			sourceDigest: `sha256:${String(sequence).padStart(64, "0")}`,
-			payload: { method, ...payload },
+			recordedAt   : new Date(0).toISOString(),
+			kind         : "progress" as const,
+			phase        : "completed" as const,
+			provider     : "native",
+			nativeRefs   : { threadId: "thread", turnId: "root-turn" },
+			sourceDigest : `sha256:${String(sequence).padStart(64, "0")}`,
+			payload      : { method, ...payload },
 		});
 		const persisted = [
 			activity(1, "turn/started"),
@@ -512,22 +543,22 @@ describe("createProjectWorkbenchSession", () => {
 			resumeThreadId: "thread",
 			model: "currently-selected-but-unobserved",
 		}, {
-			openWorkspace: async () => workspace,
-			acquireWriterLease: async () => ({ release: async () => undefined }),
-			connectNative: async () => new FakeNative([]),
-			createJournal: () => journal,
-			createTodoStore: () => store,
-			createSessionEvents: () => new MemoryEvents(),
-			createTNoteSource: () => ({ readAll: async () => [], create: async () => { throw new Error("not used"); } }),
-			createComposerDraft: async () => ({ initialText: "", save: async () => undefined, clear: async () => undefined }),
+			openWorkspace       : async () => workspace,
+			acquireWriterLease  : async () => ({ release: async () => undefined }),
+			connectNative       : async () => new FakeNative([]),
+			createJournal       : () => journal,
+			createTodoStore     : () => store,
+			createSessionEvents : () => new MemoryEvents(),
+			createTNoteSource   : () => ({ readAll: async () => [], create: async () => { throw new Error("not used"); } }),
+			createComposerDraft : async () => ({ initialText: "", save: async () => undefined, clear: async () => undefined }),
 		});
 
 		const first = await open();
 		await first.close();
 		expect(store.document).toMatchObject({
-			title: "현재 요청을 처리합니다.",
-			items: [{ content: "옛 계획" }],
-			source: { planRevision: { sequence: 2 }, rootExecution: { model: null, agentId: null } },
+			title  : "현재 요청을 처리합니다.",
+			items  : [{ content: "옛 계획" }],
+			source : { planRevision: { sequence: 2 }, rootExecution: { model: null, agentId: null } },
 		});
 
 		persisted.push(activity(3, "turn/plan/updated", { params: { plan: [{ step: "재개할 최신 계획", status: "inProgress" }] } }));
@@ -550,17 +581,17 @@ describe("createProjectWorkbenchSession", () => {
 			method: string,
 			payload: Record<string, unknown> = {},
 		): ProjectActivity => ({
-			schemaVersion: 1,
-			id: `${threadId}-activity-${sequence}`,
-			projectId: nativeThreadJournalKey(threadId),
+			schemaVersion : 1,
+			id            : `${threadId}-activity-${sequence}`,
+			projectId     : nativeThreadJournalKey(threadId),
 			sequence,
 			recordedAt: new Date(0).toISOString(),
 			kind,
-			phase: "completed",
-			provider: "native",
-			nativeRefs: { threadId, turnId, ...(method === "request/started" ? { itemId: `${threadId}-request` } : {}) },
-			sourceDigest: `sha256:${String(sequence).padStart(64, threadId === "thread-a" ? "a" : "b")}`,
-			payload: { method, ...payload },
+			phase        : "completed",
+			provider     : "native",
+			nativeRefs   : { threadId, turnId, ...(method === "request/started" ? { itemId: `${threadId}-request` } : {}) },
+			sourceDigest : `sha256:${String(sequence).padStart(64, threadId === "thread-a" ? "a" : "b")}`,
+			payload      : { method, ...payload },
 		});
 		const histories = new Map(["thread-a", "thread-b"].map((threadId, index) => {
 			const turnId = `turn-${index + 1}`;
@@ -577,18 +608,18 @@ describe("createProjectWorkbenchSession", () => {
 			readAll: async (projectId) => [...(histories.get(projectId) ?? [])],
 		};
 		const factories: Partial<ProjectWorkbenchSessionFactories> = {
-			openWorkspace: async () => workspace,
-			acquireWriterLease: async () => ({ release: async () => undefined }),
-			connectNative: async () => new FakeNative([]),
-			createJournal: () => journal,
+			openWorkspace      : async () => workspace,
+			acquireWriterLease : async () => ({ release: async () => undefined }),
+			connectNative      : async () => new FakeNative([]),
+			createJournal      : () => journal,
 			createTodoStore: (path) => {
 				const store = new TrackingTodoStore(null);
 				stores.set(path, store);
 				return store;
 			},
-			createSessionEvents: () => new MemoryEvents(),
-			createTNoteSource: () => ({ readAll: async () => [], create: async () => { throw new Error("not used"); } }),
-			createComposerDraft: async () => ({ initialText: "", save: async () => undefined, clear: async () => undefined }),
+			createSessionEvents : () => new MemoryEvents(),
+			createTNoteSource   : () => ({ readAll: async () => [], create: async () => { throw new Error("not used"); } }),
+			createComposerDraft : async () => ({ initialText: "", save: async () => undefined, clear: async () => undefined }),
 		};
 
 		for (const threadId of ["thread-a", "thread-b"]) {
@@ -629,16 +660,16 @@ describe("createProjectWorkbenchSession", () => {
 		const rejected = await open((ledger) => { ledger.syncNativePlan = async () => { throw new Error("sync rejected"); }; });
 		await rejected.close();
 		expect(rejected.workbench.snapshot.actionResult).toMatchObject({
-			kind: "todo",
-			title: "Todo 자동 동기화 보류",
-			body: "계획을 저장하지 못했습니다. 대화는 계속되며 다음 계획 관측 때 다시 시도합니다.",
+			kind  : "todo",
+			title : "Todo 자동 동기화 보류",
+			body  : "계획을 저장하지 못했습니다. 대화는 계속되며 다음 계획 관측 때 다시 시도합니다.",
 		});
 		const conflicted = await open((ledger) => { ledger.syncNativePlan = async () => { throw new TodoWriteConflictError(null, { version: 1, revision: 0, updatedAt: new Date(0).toISOString(), ownerSessionId: scopedTodoSessionId("thread"), storyId: null, title: "pending", items: [] }, null); }; });
 		await conflicted.close();
 		expect(conflicted.workbench.snapshot.actionResult).toMatchObject({
-			kind: "todo",
-			title: "Todo 자동 동기화 보류",
-			body: "다른 편집과 충돌했습니다. 저장된 내용을 유지하며 다음 계획 관측 때 다시 확인합니다.",
+			kind  : "todo",
+			title : "Todo 자동 동기화 보류",
+			body  : "다른 편집과 충돌했습니다. 저장된 내용을 유지하며 다음 계획 관측 때 다시 확인합니다.",
 		});
 	});
 
@@ -667,11 +698,11 @@ describe("createProjectWorkbenchSession", () => {
 				native.readThread = async (input) => ({ id: input.threadId, value: { status: { type: "inProgress" }, turns: [{ id: "root-turn", status: "inProgress" }] } });
 				return native;
 			},
-			createJournal: () => journal,
-			createTodoStore: () => new MemoryTodoStore(),
-			createSessionEvents: () => new MemoryEvents(),
-			createTNoteSource: () => ({ readAll: async () => [], create: async () => { throw new Error("not used"); } }),
-			createComposerDraft: async () => ({ initialText: "", save: async () => undefined, clear: async () => undefined }),
+			createJournal       : () => journal,
+			createTodoStore     : () => new MemoryTodoStore(),
+			createSessionEvents : () => new MemoryEvents(),
+			createTNoteSource   : () => ({ readAll: async () => [], create: async () => { throw new Error("not used"); } }),
+			createComposerDraft : async () => ({ initialText: "", save: async () => undefined, clear: async () => undefined }),
 		});
 		const identity = session.workbench.snapshot.workFlow.steps[0]!.id;
 		native!.emit({ type: "notification", method: "turn/started", refs: { threadId: "thread", turnId: "root-turn" }, params: {} });
@@ -688,18 +719,18 @@ describe("createProjectWorkbenchSession", () => {
 	});
 
 	test("wires one native writer to thread-scoped Todo, private activity/drafts, and deterministic project identity", async () => {
-		const order: string[] = [];
-		const observed: { workflowRoot?: string; workflowCreated?: number; todoPath?: string; journalPath?: string; draftPath?: string; tnoteModel?: string; options?: ProjectWorkbenchOptions; noteInput?: Parameters<NonNullable<ProjectWorkbenchOptions["tnotes"]>["create"]>[0] } = {};
-		let ledger: TodoLedger | undefined;
+		const order    : string[]                                                                                                                                                                                                                                                      = [] ;
+		const observed : { workflowRoot?: string; workflowCreated?: number; todoPath?: string; journalPath?: string; draftPath?: string; tnoteModel?: string; options?: ProjectWorkbenchOptions; noteInput?: Parameters<NonNullable<ProjectWorkbenchOptions["tnotes"]>["create"]>[0] } = {} ;
+		let ledger     : TodoLedger | undefined                                                                                                                                                                                                                                             ;
 		const factories: Partial<ProjectWorkbenchSessionFactories> = {
 			openWorkspace: async () => workspace,
 			acquireWriterLease: async (_workspace, id) => {
 				expect(id).toMatch(/^(workbench-|native-)/u);
 				return { release: async () => { order.push("lease.release"); } };
 			},
-			connectNative: async () => new FakeNative(order),
-			createJournal: (path) => { observed.journalPath = path; return new MemoryJournal(); },
-			createTodoStore: (path) => { observed.todoPath = path; return new MemoryTodoStore(); },
+			connectNative   : async () => new FakeNative(order),
+			createJournal   : (path) => { observed.journalPath = path; return new MemoryJournal(); },
+			createTodoStore : (path) => { observed.todoPath = path; return new MemoryTodoStore(); },
 			createTodoLedger: (sessionId, store, events) => {
 				ledger = new TodoLedger(sessionId, store, events);
 				const dispose = ledger.dispose.bind(ledger);
@@ -727,9 +758,9 @@ describe("createProjectWorkbenchSession", () => {
 		const persistModelSelection = async () => undefined;
 
 		const session = await createProjectWorkbenchSession("/ignored", {
-			resumeThreadId: "opaque-native-id",
-			model: "gpt-5.6-sol",
-			effort: "low",
+			resumeThreadId : "opaque-native-id",
+			model          : "gpt-5.6-sol",
+			effort         : "low",
 			persistModelSelection,
 		}, factories);
 		await session.workbench.dispatch({ type: "session.mode", mode: "manual" });
@@ -744,25 +775,25 @@ describe("createProjectWorkbenchSession", () => {
 		expect(observed.draftPath).toBe(workspace.draftsDirectory);
 		expect(observed.tnoteModel).toBe("gpt-5.6-luna");
 		expect(observed.options).toMatchObject({
-			provider: "openai-codex",
-			cwd: workspace.root,
-			model: "gpt-5.6-sol",
-			effort: "low",
-			resumeThreadId: "opaque-native-id",
-			approvalPolicy: "on-request",
-			sandbox: "workspace-write",
+			provider       : "openai-codex",
+			cwd            : workspace.root,
+			model          : "gpt-5.6-sol",
+			effort         : "low",
+			resumeThreadId : "opaque-native-id",
+			approvalPolicy : "on-request",
+			sandbox        : "workspace-write",
 		});
 		expect(observed.options?.todos).toEqual(expect.objectContaining({
-			syncNativePlan: expect.any(Function),
-			create: expect.any(Function),
-			add: expect.any(Function),
-			addDetails: expect.any(Function),
-			start: expect.any(Function),
-			complete: expect.any(Function),
-			block: expect.any(Function),
-			reopen: expect.any(Function),
-			recordEvidence: expect.any(Function),
-			importLegacy: expect.any(Function),
+			syncNativePlan : expect.any(Function),
+			create         : expect.any(Function),
+			add            : expect.any(Function),
+			addDetails     : expect.any(Function),
+			start          : expect.any(Function),
+			complete       : expect.any(Function),
+			block          : expect.any(Function),
+			reopen         : expect.any(Function),
+			recordEvidence : expect.any(Function),
+			importLegacy   : expect.any(Function),
 		}));
 		expect(observed.options?.promotions).toBeDefined();
 		expect(observed.options?.reviews).toBeDefined();
@@ -785,13 +816,13 @@ describe("createProjectWorkbenchSession", () => {
 		const observed: ProjectWorkbenchOptions[] = [];
 		let createdWooEntry = 0;
 		const factories: Partial<ProjectWorkbenchSessionFactories> = {
-			openWorkspace: async () => workspace,
-			acquireWriterLease: async () => ({ release: async () => undefined }),
-			connectNative: async () => new FakeNative([]),
-			createJournal: () => new MemoryJournal(),
-			createTodoStore: () => new MemoryTodoStore(),
-			createSessionEvents: () => new MemoryEvents(),
-			createTNoteSource: () => ({ readAll: async () => [], create: async () => { throw new Error("not used"); } }),
+			openWorkspace       : async () => workspace,
+			acquireWriterLease  : async () => ({ release: async () => undefined }),
+			connectNative       : async () => new FakeNative([]),
+			createJournal       : () => new MemoryJournal(),
+			createTodoStore     : () => new MemoryTodoStore(),
+			createSessionEvents : () => new MemoryEvents(),
+			createTNoteSource   : () => ({ readAll: async () => [], create: async () => { throw new Error("not used"); } }),
 			createWorkbench: (native, journal, options) => {
 				observed.push(options);
 				return new ProjectWorkbench(native, journal, options);
@@ -816,15 +847,15 @@ describe("createProjectWorkbenchSession", () => {
 	});
 
 	test("binds a fresh workbench Todo before seven-stage Runtime sync", async () => {
-		const order: string[] = [];
-		const todoPaths: string[] = [];
-		let nativePlanSyncCalls = 0;
+		const order     : string[] = [] ;
+		const todoPaths : string[] = [] ;
+		let nativePlanSyncCalls    = 0  ;
 		const session = await createProjectWorkbenchSession("/ignored", {}, {
-			openWorkspace: async () => workspace,
-			acquireWriterLease: async () => ({ release: async () => { order.push("lease.release"); } }),
-			connectNative: async () => new FakeNative(order),
-			createJournal: () => new MemoryJournal(),
-			createTodoStore: (path) => { todoPaths.push(path); return new MemoryTodoStore(); },
+			openWorkspace      : async () => workspace,
+			acquireWriterLease : async () => ({ release: async () => { order.push("lease.release"); } }),
+			connectNative      : async () => new FakeNative(order),
+			createJournal      : () => new MemoryJournal(),
+			createTodoStore    : (path) => { todoPaths.push(path); return new MemoryTodoStore(); },
 			createTodoLedger: (sessionId, store, events) => {
 				const ledger = new TodoLedger(sessionId, store, events);
 				const syncNativePlan = ledger.syncRequestRuntime.bind(ledger);
@@ -834,10 +865,10 @@ describe("createProjectWorkbenchSession", () => {
 				};
 				return ledger;
 			},
-			createSessionEvents: () => new MemoryEvents(),
-			createTNoteSource: () => ({ readAll: async () => [], create: async () => { throw new Error("not used"); } }),
-			createComposerDraft: async () => ({ initialText: "", save: async () => undefined, clear: async () => undefined }),
-			createWooEntry: memoryWooEntry,
+			createSessionEvents : () => new MemoryEvents(),
+			createTNoteSource   : () => ({ readAll: async () => [], create: async () => { throw new Error("not used"); } }),
+			createComposerDraft : async () => ({ initialText: "", save: async () => undefined, clear: async () => undefined }),
+			createWooEntry      : memoryWooEntry,
 		});
 
 		await session.workbench.dispatch({ type: "session.mode", mode: "manual" });

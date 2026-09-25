@@ -1,29 +1,48 @@
-import { createHash } from "node:crypto";
-import { closeSync, constants, fstatSync, lstatSync, mkdirSync, mkdtempSync, openSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { dirname, isAbsolute, join, resolve } from "node:path";
-import { loadLocalUnitManifest, validateLocalUnitManifest, type LocalUnitManifest } from "./local-unit-registry";
+import { createHash }                                       from "node:crypto";
+import {
+	closeSync,
+	constants,
+	fstatSync,
+	lstatSync,
+	mkdirSync,
+	mkdtempSync,
+	openSync,
+	readFileSync,
+	realpathSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
+import { tmpdir }                                           from "node:os";
+import { dirname, isAbsolute, join, resolve }               from "node:path";
+import { loadLocalUnitManifest, validateLocalUnitManifest } from "@/adapters/outbound/development/local-unit-registry";
+import type { LocalUnitManifest }                           from "@/adapters/outbound/development/local-unit-registry";
 
 export interface LocalWorkflowVerification {
- status: "passed" | "failed" | "uncertain";
- subjectDigest: string;
- evidence: readonly string[];
- issues: readonly string[];
- checkedAt: string;
+ status        : "passed" | "failed" | "uncertain" ;
+ subjectDigest : string                            ;
+ evidence      : readonly string[]                 ;
+ issues        : readonly string[]                 ;
+ checkedAt     : string                            ;
 }
 interface Snapshot {
- root: string;
- files: Map<string, Buffer>;
- manifest: LocalUnitManifest;
- skippedNotes: string[];
- digest: string;
+ root         : string              ;
+ files        : Map<string, Buffer> ;
+ manifest     : LocalUnitManifest   ;
+ skippedNotes : string[]            ;
+ digest       : string              ;
 }
-const hash = (value: string | Buffer) => createHash("sha256").update(value).digest("hex");
-const manifestPath = ".woo/units.yaml";
-const ledgerPaths = [".www/control-ledger/traceability-v3.json", ".www/control-ledger/traceability-v2.json"];
+const hash         = (value: string | Buffer) => createHash("sha256").update(value).digest("hex")             ;
+const manifestPath = ".woo/units.yaml"                                                                        ;
+const ledgerPaths  = [".www/control-ledger/traceability-v3.json", ".www/control-ledger/traceability-v2.json"] ;
 
 function partsOf(path: string): string[] {
- if (!path || isAbsolute(path) || path.includes("\\") || path.includes("\0") || path.split("/").some(part => !part || part === "." || part === "..")) {
+ if (
+  !path ||
+  isAbsolute(path) ||
+  path.includes("\\") ||
+  path.includes("\0") ||
+  path.split("/").some(part => !part || part === "." || part === "..")
+ ) {
   throw new Error(`LOCAL_WORKFLOW_PATH_INVALID: ${path}`);
  }
  return path.split("/");
@@ -49,10 +68,16 @@ function readContained(root: string, path: string, optional = false): Buffer | u
  try {
   const stat = fstatSync(descriptor);
   if (!stat.isFile()) throw new Error(`LOCAL_WORKFLOW_INPUT_NOT_FILE: ${path}`);
-  const data = readFileSync(descriptor);
-  const after = lstatSync(current);
-  const handleAfter = fstatSync(descriptor);
-  if (after.isSymbolicLink() || after.ino !== stat.ino || after.dev !== stat.dev || after.size !== stat.size || after.mtimeMs !== stat.mtimeMs || handleAfter.size !== stat.size || handleAfter.mtimeMs !== stat.mtimeMs) {
+  const data        = readFileSync(descriptor) ;
+  const after       = lstatSync(current)       ;
+  const handleAfter = fstatSync(descriptor)    ;
+  if (after.isSymbolicLink()
+	|| after.ino !== stat.ino
+	|| after.dev !== stat.dev
+	|| after.size !== stat.size
+	|| after.mtimeMs !== stat.mtimeMs
+	|| handleAfter.size !== stat.size
+	|| handleAfter.mtimeMs !== stat.mtimeMs) {
    throw new Error(`LOCAL_WORKFLOW_SOURCE_CHANGED: ${path}`);
   }
   return data;
@@ -99,9 +124,9 @@ function snapshot(root: string, stagingRoot: string): Snapshot {
  * subjects. A detected change during verification returns uncertain.
  */
 export async function verifyLocalWorkflow(projectRoot: string, expected?: { subjectDigest: string }): Promise<LocalWorkflowVerification> {
- let subjectDigest = hash(JSON.stringify({ root: resolve(projectRoot), unavailable: true }));
- let before: Snapshot | undefined;
- const stagingRoot = mkdtempSync(join(tmpdir(), "www-local-preflight-"));
+ let subjectDigest = hash(JSON.stringify({ root: resolve(projectRoot), unavailable: true })) ;
+ let before: Snapshot | undefined                                                            ;
+ const stagingRoot = mkdtempSync(join(tmpdir(), "www-local-preflight-"))                     ;
  const result = (status: LocalWorkflowVerification["status"], issues: string[]): LocalWorkflowVerification => ({
   status, subjectDigest, issues, checkedAt: new Date().toISOString(),
   evidence: before ? [...before.files].sort(([a], [b]) => a.localeCompare(b)).map(([path, bytes]) => `local-readback:${path}:sha256:${hash(bytes)}`).concat(before.skippedNotes.map(path => `local-scope-excluded:obsidian:${path}`)) : [],
@@ -109,7 +134,14 @@ export async function verifyLocalWorkflow(projectRoot: string, expected?: { subj
  try {
   const root = realpathSync(projectRoot);
   before = snapshot(root, join(stagingRoot, "before")); subjectDigest = before.digest;
-  const localManifest = { ...before.manifest, units: before.manifest.units.map(unit => before!.skippedNotes.includes(unit.obsidian ?? "") ? { ...unit, obsidian: undefined } : unit) };
+	const localManifest = {
+		...before.manifest,
+		units: before.manifest.units.map(unit => {
+			if (!before?.skippedNotes.includes(unit.obsidian ?? "")) return unit;
+			const { obsidian: _skippedObsidian, ...unitWithoutObsidian } = unit;
+			return unitWithoutObsidian;
+		}),
+	};
   const issues = validateLocalUnitManifest(join(stagingRoot, "before"), localManifest, join(stagingRoot, "before"));
   // Yield once so concurrent edits are observed by the second read-back.
   await Promise.resolve();

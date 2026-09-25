@@ -1,8 +1,8 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test }                               from "bun:test";
 import { access, mkdtemp, lstat, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { FilePlanningStore } from "../src/adapters/outbound/persistence/planning-store.js";
+import { tmpdir }                                                          from "node:os";
+import { join }                                                            from "node:path";
+import { FilePlanningStore }                                               from "../src/adapters/outbound/persistence/planning-store.js";
 
 const directories: string[] = [];
 afterEach(async () => { await Promise.all(directories.splice(0).map((path) => rm(path, { recursive: true, force: true }))); });
@@ -40,10 +40,10 @@ describe("FilePlanningStore", () => {
 		const root = await workspace();
 		const script = `import { FilePlanningStore } from "./src/adapters/outbound/persistence/planning-store.ts"; await new FilePlanningStore(process.env.PLANNING_ROOT).createEpic(process.argv[1], "Goal");`;
 		const children = ["First", "Second"].map(title => Bun.spawn(["bun", "-e", script, title], {
-			cwd: process.cwd(),
-			env: { ...process.env, PLANNING_ROOT: root },
-			stdout: "ignore",
-			stderr: "pipe",
+			cwd    : process.cwd(),
+			env    : { ...process.env, PLANNING_ROOT: root },
+			stdout : "ignore",
+			stderr : "pipe",
 		}));
 		expect(await Promise.all(children.map(child => child.exited))).toEqual([0, 0]);
 		expect((await new FilePlanningStore(root).read()).epics.map(epic => epic.id)).toEqual(["EP-001", "EP-002"]);
@@ -62,9 +62,9 @@ describe("FilePlanningStore", () => {
 	});
 	test("records only backward same-Epic supersedes relations", async () => {
 		const root = await workspace(); const store = new FilePlanningStore(root);
-		const epic = (await store.createEpic("Epic", "Goal")).epic;
-		const original = (await store.createStory(epic.id, "Original", "A")).story;
-		const replacement = (await store.createStory(epic.id, "Replacement", "B", original.id)).story;
+		const epic        = (await store.createEpic("Epic", "Goal")).epic                             ;
+		const original    = (await store.createStory(epic.id, "Original", "A")).story                 ;
+		const replacement = (await store.createStory(epic.id, "Replacement", "B", original.id)).story ;
 		expect(replacement.supersedes).toBe(original.id);
 		await expect(store.createStory(epic.id, "Missing", "C", "ST-001-99")).rejects.toThrow("supersedes relation");
 		const otherEpic = (await store.createEpic("Other", "Goal")).epic;
@@ -89,10 +89,10 @@ describe("FilePlanningStore", () => {
 		const root = await workspace();
 		await mkdir(join(root, "planning"), { recursive: true });
 		await writeFile(join(root, "planning", "catalog.jsonl"), `${JSON.stringify({
-			schemaVersion: 1,
-			revision: 2,
-			type: "epic.created",
-			artifact: { id: "EP-001", title: "Epic", goal: "Goal", createdAt: "2026-08-31T11:24:24.000Z" },
+			schemaVersion : 1,
+			revision      : 2,
+			type          : "epic.created",
+			artifact      : { id: "EP-001", title: "Epic", goal: "Goal", createdAt: "2026-08-31T11:24:24.000Z" },
 		})}\n`);
 		await expect(new FilePlanningStore(root).read()).rejects.toThrow("revision sequence");
 		await writeFile(join(root, "planning", "catalog.jsonl"), "");

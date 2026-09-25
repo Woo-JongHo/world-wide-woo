@@ -1,93 +1,93 @@
 export interface RpaDescriptionMap {
-	schemaVersion: "1.0";
-	project: RpaProject;
-	tasks: RpaTask[];
+	schemaVersion : "1.0"      ;
+	project       : RpaProject ;
+	tasks         : RpaTask[]  ;
 }
 
 export interface RpaProject {
-	id: string;
-	name: string;
-	customer: string;
-	department: string;
-	purpose: string;
-	systems: string[];
-	repository: string;
-	processId: string;
-	mapRef: { path: string; revision: string };
+	id         : string                             ;
+	name       : string                             ;
+	customer   : string                             ;
+	department : string                             ;
+	purpose    : string                             ;
+	systems    : string[]                           ;
+	repository : string                             ;
+	processId  : string                             ;
+	mapRef     : { path: string; revision: string } ;
 	wbs: {
-		reference: string;
-		revision: string;
-		baselineDate: string;
-		startDate: string;
-		endDate: string;
+		reference    : string ;
+		revision     : string ;
+		baselineDate : string ;
+		startDate    : string ;
+		endDate      : string ;
 	};
 }
 
 export interface RpaTask {
-	id: string;
-	name: string;
-	sequence: number;
-	issueUrl: string;
-	purpose: string;
-	output: string;
-	units: RpaUnit[];
-	exceptions: RpaException[];
-	tests: RpaTest[];
+	id         : string         ;
+	name       : string         ;
+	sequence   : number         ;
+	issueUrl   : string         ;
+	purpose    : string         ;
+	output     : string         ;
+	units      : RpaUnit[]      ;
+	exceptions : RpaException[] ;
+	tests      : RpaTest[]      ;
 }
 
 export interface RpaUnit {
-	id: string;
-	name: string;
-	sequence: number;
-	responsibility: string;
-	input: string;
-	output: string;
-	technology: { name: string; purpose: string }[];
-	code: { path: string; symbol: string; explanation: string }[];
-	sideEffects: string;
-	approval: string;
-	rerunPolicy: string;
-	steps: RpaStep[];
+	id             : string                                                  ;
+	name           : string                                                  ;
+	sequence       : number                                                  ;
+	responsibility : string                                                  ;
+	input          : string                                                  ;
+	output         : string                                                  ;
+	technology     : { name: string; purpose: string }[]                     ;
+	code           : { path: string; symbol: string; explanation: string }[] ;
+	sideEffects    : string                                                  ;
+	approval       : string                                                  ;
+	rerunPolicy    : string                                                  ;
+	steps          : RpaStep[]                                               ;
 }
 
 export interface RpaStep {
-	id: string;
-	sequence: number;
-	action: string;
-	codeSymbols: string[];
-	output: string;
+	id          : string   ;
+	sequence    : number   ;
+	action      : string   ;
+	codeSymbols : string[] ;
+	output      : string   ;
 }
 
 export interface RpaException {
-	id: string;
-	unitId: string;
-	stepId: string | null;
-	condition: string;
-	handling: string;
-	recovery: string;
-	testIds: string[];
+	id        : string        ;
+	unitId    : string        ;
+	stepId    : string | null ;
+	condition : string        ;
+	handling  : string        ;
+	recovery  : string        ;
+	testIds   : string[]      ;
 }
 
 export type RpaTestKind = "normal" | "boundary" | "failure" | "partial-failure" | "rerun";
 export type RpaTestStatus = "passed" | "failed" | "not-run";
 
 export interface RpaTest {
-	id: string;
-	unitId: string;
-	stepId: string | null;
-	kind: RpaTestKind;
-	scenario: string;
-	expected: string;
-	status: RpaTestStatus;
-	evidence: string | null;
+	id       : string        ;
+	unitId   : string        ;
+	stepId   : string | null ;
+	kind     : RpaTestKind   ;
+	scenario : string        ;
+	expected : string        ;
+	status   : RpaTestStatus ;
+	evidence : string | null ;
 }
 
 type JsonObject = Record<string, unknown>;
 type Errors = string[];
 
-const PLACEHOLDER = /(?:\b(?:TODO|TBD|WIP)\b|^<[^<>\r\n]+>$)/iu;
-const TEST_KINDS = new Set<RpaTestKind>(["normal", "boundary", "failure", "partial-failure", "rerun"]);
-const TEST_STATUSES = new Set<RpaTestStatus>(["passed", "failed", "not-run"]);
+const PLACEHOLDER   = /(?:\b(?:TODO|TBD|WIP)\b|^<[^<>\r\n]+>$)/iu                                         ;
+const TEST_KINDS    = new Set<RpaTestKind>(["normal", "boundary", "failure", "partial-failure", "rerun"]) ;
+const TEST_STATUSES = new Set<RpaTestStatus>(["passed", "failed", "not-run"])                             ;
 
 export function validateRpaDescriptionMap(value: unknown): string[] {
 	const errors: Errors = [];
@@ -96,11 +96,11 @@ export function validateRpaDescriptionMap(value: unknown): string[] {
 	if (value.schemaVersion !== "1.0") errors.push("map.schemaVersion: must be '1.0'");
 	validateProject(value.project, errors);
 	if (!arrayValue(value.tasks, "map.tasks", errors, false)) return errors;
-	const taskIds = new Set<string>();
-	const taskSequences = new Set<number>();
-	const processUnitIds = new Set<string>();
-	const processExceptionIds = new Set<string>();
-	const processTestIds = new Set<string>();
+	const taskIds             = new Set<string>() ;
+	const taskSequences       = new Set<number>() ;
+	const processUnitIds      = new Set<string>() ;
+	const processExceptionIds = new Set<string>() ;
+	const processTestIds      = new Set<string>() ;
 	value.tasks.forEach((task, index) => {
 		validateTask(task, `map.tasks[${index}]`, errors);
 		if (!isObject(task)) return;
@@ -146,9 +146,9 @@ function validateTask(value: unknown, path: string, errors: Errors): void {
 	positiveInteger(value.sequence, `${path}.sequence`, errors);
 	if (typeof value.issueUrl === "string" && value.issueUrl.trim() && !isHttpUrl(value.issueUrl)) errors.push(`${path}.issueUrl: must be an http(s) URL`);
 	if (!arrayValue(value.units, `${path}.units`, errors, false)) return;
-	const unitIds = new Set<string>();
-	const unitSequences = new Set<number>();
-	const stepsByUnit = new Map<string, Set<string>>();
+	const unitIds       = new Set<string>()              ;
+	const unitSequences = new Set<number>()              ;
+	const stepsByUnit   = new Map<string, Set<string>>() ;
 	value.units.forEach((unit, index) => {
 		validateUnit(unit, `${path}.units[${index}]`, errors);
 		if (!isObject(unit)) return;
@@ -289,10 +289,10 @@ export function renderRpaTask(map: RpaDescriptionMap, taskId: string): string {
 	assertValid(map);
 	const task = map.tasks.find(candidate => candidate.id === taskId);
 	if (!task) throw new Error(`Task를 찾을 수 없습니다 '${taskId}'`);
-	const units = sorted(task.units);
-	const unitOrder = new Map(units.map((unit, index) => [unit.id, index]));
-	const exceptions = [...task.exceptions].sort((a, b) => compareReferences(a, b, unitOrder));
-	const tests = [...task.tests].sort((a, b) => compareReferences(a, b, unitOrder));
+	const units      = sorted(task.units)                                                      ;
+	const unitOrder  = new Map(units.map((unit, index) => [unit.id, index]))                   ;
+	const exceptions = [...task.exceptions].sort((a, b) => compareReferences(a, b, unitOrder)) ;
+	const tests      = [...task.tests].sort((a, b) => compareReferences(a, b, unitOrder))      ;
 	const lines: string[] = [
 		"## Task 정보", "",
 		table(["항목", "값"], [["Task", `${task.name} (${task.id})`], ["순서", task.sequence], ["목적", task.purpose], ["산출물", task.output], ["Unit 수", units.length], ["Step 수", countSteps(task)], ["예외 수", exceptions.length], ["테스트 수", tests.length]]),
@@ -320,7 +320,9 @@ function sorted<T extends { readonly sequence: number }>(values: readonly T[]): 
 function compareReferences(a: { unitId: string; stepId: string | null; id: string }, b: { unitId: string; stepId: string | null; id: string }, order: Map<string, number>): number {
 	return (order.get(a.unitId)! - order.get(b.unitId)!) || codepointCompare(a.stepId ?? "", b.stepId ?? "") || codepointCompare(a.id, b.id);
 }
-interface RawCell { readonly value: string; }
+interface RawCell {
+	readonly value: string;
+}
 type Cell = string | number | RawCell;
 function raw(value: string): RawCell { return { value }; }
 function table(headers: readonly string[], rows: readonly (readonly Cell[])[]): string {

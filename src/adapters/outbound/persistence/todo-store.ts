@@ -1,25 +1,17 @@
-import { randomUUID              } from "node:crypto";
-import { unwatchFile, watchFile  } from "node:fs";
+import { randomUUID }              from "node:crypto";
+import { unwatchFile, watchFile }  from "node:fs";
 import { basename, dirname, join } from "node:path";
 
-import {
-	chmod,
-	lstat,
-	mkdir,
-	open,
-	readFile,
-	rename,
-	rm,
-} from "node:fs/promises";
+import { chmod, lstat, mkdir, open, readFile, rename, rm } from "node:fs/promises";
 
 import type { Stats } from "node:fs";
 
 import { Database } from "bun:sqlite";
 
-import { parseTodoMarkdown, patchTodoMarkdown, renderTodoMarkdown } from "../../../core/domain/work/todos.js";
+import { parseTodoMarkdown, patchTodoMarkdown, renderTodoMarkdown } from "@/core/domain/work/todos.js";
 
-import type { TodoDocument     } from "../../../core/domain/work/todos.js";
-import type { TodoWriteOutcome } from "../../../core/ports";
+import type { TodoDocument }     from "@/core/domain/work/todos.js";
+import type { TodoWriteOutcome } from "@/core/ports";
 
 const queues = new Map< string, Promise< unknown > >();
 
@@ -85,10 +77,10 @@ export class FileTodoStore {
 			debounceMs ?: number;
 		} = {},
 	) : () => void {
-		const debounceMs = options.debounceMs ?? 60;
-		let timer              : ReturnType< typeof setTimeout > | undefined;
-		let closed = false;
-		let lastObservedSource : string | null | undefined;
+		const debounceMs = options.debounceMs ?? 60                          ;
+		let timer              : ReturnType< typeof setTimeout > | undefined ;
+		let closed       = false                                             ;
+		let lastObservedSource : string | null | undefined                   ;
 		const refresh = async () : Promise< void > => {
 			if (closed) return;
 			try {
@@ -229,7 +221,12 @@ function isUnsafeFile    ( error : unknown ) : boolean { return error instanceof
 function isMalformedTodo ( error : unknown ) : boolean { return error instanceof Error && error.message.startsWith("Invalid todo document:"); }
 
 function isNodeErrorCode( error : unknown, code : string ) : boolean {
-	return typeof error === "object" && error !== null && "code" in error && error.code === code;
+	return (
+		typeof error === "object"
+		&& error !== null
+		&& "code" in error
+		&& error.code === code
+	);
 }
 
 function serialize< T >(

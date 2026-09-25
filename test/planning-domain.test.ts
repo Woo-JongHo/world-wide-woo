@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test }                       from "bun:test";
 import { createPlanningSnapshot, sanitizePlanningText } from "../src/core/domain/work/planning";
 
 const createdAt = "2026-08-31T11:24:24.000Z";

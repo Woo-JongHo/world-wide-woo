@@ -1,30 +1,30 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test }               from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
 
-const UP = "\x1b[A";
-const DOWN = "\x1b[B";
-const ENTER = "\r";
-const ESC = "\x1b";
-import type { NativeApprovalRequest } from "../src/core/domain/execution/native-session";
+const UP    = "\x1b[A" ;
+const DOWN  = "\x1b[B" ;
+const ENTER = "\r"     ;
+const ESC   = "\x1b"   ;
+import type { NativeApprovalRequest }     from "../src/core/domain/execution/native-session";
 import type { WorkbenchApprovalDecision } from "../src/core/domain/work/workbench";
-import { ApprovalOverlay } from "../src/adapters/inbound/tui/features/approval/approval-overlay";
+import { ApprovalOverlay }                from "../src/adapters/inbound/tui/features/approval/approval-overlay";
 
 function request(overrides: Partial<NativeApprovalRequest> = {}): NativeApprovalRequest {
 	return {
-		requestId: 44,
-		callbackId: null,
-		kind: "command",
-		refs: { threadId: "thread-1", approvalRequestId: 44 },
-		availableDecisions: ["accept", "acceptForSession", "decline"],
-		params: { command: "rm -rf /tmp/probe-dir", reason: "명령 실행에 승인이 필요합니다.", cwd: "/workspace/sample" },
+		requestId          : 44,
+		callbackId         : null,
+		kind               : "command",
+		refs               : { threadId: "thread-1", approvalRequestId: 44 },
+		availableDecisions : ["accept", "acceptForSession", "decline"],
+		params             : { command: "rm -rf /tmp/probe-dir", reason: "명령 실행에 승인이 필요합니다.", cwd: "/workspace/sample" },
 		...overrides,
 	};
 }
 
 function overlay(overrides: Partial<NativeApprovalRequest> = {}) {
-	const decisions: WorkbenchApprovalDecision[] = [];
-	let closed = 0;
-	const panel = new ApprovalOverlay(request(overrides), () => undefined, (decision) => decisions.push(decision), () => { closed += 1; });
+	const decisions: WorkbenchApprovalDecision[] = []                                                                                                                       ;
+	let closed                                   = 0                                                                                                                        ;
+	const panel                                  = new ApprovalOverlay(request(overrides), () => undefined, (decision) => decisions.push(decision), () => { closed += 1; }) ;
 	return { panel, decisions, closed: () => closed, lines: () => panel.render(60).map(stripTerminalSequences) };
 }
 
@@ -120,9 +120,9 @@ describe("ApprovalOverlay", () => {
 		const lines = overlay({
 			params: {
 				externalMutationCandidates: [
-					{ kind: "commit", target: "main", content: "승인 화면 추가", currentState: "2 files staged", scope: "staged files only", status: "pending", payload: { message: "승인 화면 추가" } },
-					{ kind: "push", target: "origin/main", content: "abc1234", currentState: "ahead 1", scope: "one commit", status: "ready", payload: { remote: "origin", branch: "main" } },
-					{ kind: "issue", target: "owner/repo", content: "버그 보고", currentState: "new", scope: "create one issue", status: "blocked", payload: { title: "버그 보고" } },
+					{ kind : "commit" , target : "main"        , content : "승인 화면 추가" , currentState : "2 files staged" , scope : "staged files only" , status : "pending" , payload : { message: "승인 화면 추가" }        },
+					{ kind : "push"   , target : "origin/main" , content : "abc1234"        , currentState : "ahead 1"        , scope : "one commit"        , status : "ready"   , payload : { remote: "origin", branch: "main" } },
+					{ kind : "issue"  , target : "owner/repo"  , content : "버그 보고"      , currentState : "new"            , scope : "create one issue"  , status : "blocked" , payload : { title: "버그 보고" }               },
 				],
 			},
 		}).lines().join("\n");
@@ -133,11 +133,11 @@ describe("ApprovalOverlay", () => {
 
 	test("renders Linear Issue·Project Activity, Obsidian, and GitHub PR Artifact candidates", () => {
 		const lines = overlay({ params: { externalMutationCandidates: [
-			{ kind: "linear-issue", target: "WOO-901", content: "본문", currentState: "snapshot", scope: "one issue", status: "pending", payload: { candidateDigest: "a".repeat(64) } },
-			{ kind: "linear-project-comment", target: "World Wide Woo", content: "Comment 본문", currentState: "comment-1", scope: "one project comment", status: "pending", payload: { candidateDigest: "d".repeat(64) } },
-			{ kind: "linear-project-update", target: "World Wide Woo", content: "Update 본문", currentState: "update-1", scope: "one project update", status: "pending", payload: { candidateDigest: "e".repeat(64) } },
-			{ kind: "obsidian-canonical", target: "RPA/설계.md", content: "canonical bytes", currentState: "digest", scope: "one note", status: "pending", payload: { candidateDigest: "b".repeat(64) } },
-			{ kind: "github-pr", target: "owner/repo#1", content: "PR body", currentState: "head sha", scope: "one PR", status: "pending", payload: { candidateDigest: "c".repeat(64) } },
+			{ kind : "linear-issue"           , target : "WOO-901"        , content : "본문"            , currentState : "snapshot"  , scope : "one issue"           , status : "pending" , payload : { candidateDigest: "a".repeat(64) } },
+			{ kind : "linear-project-comment" , target : "World Wide Woo" , content : "Comment 본문"    , currentState : "comment-1" , scope : "one project comment" , status : "pending" , payload : { candidateDigest: "d".repeat(64) } },
+			{ kind : "linear-project-update"  , target : "World Wide Woo" , content : "Update 본문"     , currentState : "update-1"  , scope : "one project update"  , status : "pending" , payload : { candidateDigest: "e".repeat(64) } },
+			{ kind : "obsidian-canonical"     , target : "RPA/설계.md"    , content : "canonical bytes" , currentState : "digest"    , scope : "one note"            , status : "pending" , payload : { candidateDigest: "b".repeat(64) } },
+			{ kind : "github-pr"              , target : "owner/repo#1"   , content : "PR body"         , currentState : "head sha"  , scope : "one PR"              , status : "pending" , payload : { candidateDigest: "c".repeat(64) } },
 		] } }).lines().join("\n");
 		for (const label of ["Linear Issue · pending", "Linear Project Comment · pending", "Linear Project Update · pending", "Obsidian 정본 · pending", "GitHub PR · pending"]) expect(lines).toContain(label);
 	});

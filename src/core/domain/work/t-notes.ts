@@ -1,12 +1,13 @@
-import { isReasoningActivityPayload, type ProjectActivity } from "../execution/project-activity.js";
-import { redactForExternalReview } from "../review/redaction.js";
+import { isReasoningActivityPayload } from "@/core/domain/execution/project-activity.js";
+import type { ProjectActivity }       from "@/core/domain/execution/project-activity.js";
+import { redactForExternalReview }    from "@/core/domain/review/redaction.js";
 
-export const MAX_TNOTE_SOURCE_ACTIVITIES = 100;
-const MAX_ACTIVITY_BODY = 32 * 1024;
-const MAX_PACKET_BYTES = 256 * 1024;
-const MAX_NOTE_BYTES = 64 * 1024;
-const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/u;
-const DIGEST_PATTERN = /^[a-f0-9]{64}$/u;
+export const MAX_TNOTE_SOURCE_ACTIVITIES = 100                                    ;
+const MAX_ACTIVITY_BODY                  = 32 * 1024                              ;
+const MAX_PACKET_BYTES                   = 256 * 1024                             ;
+const MAX_NOTE_BYTES                     = 64 * 1024                              ;
+const ID_PATTERN                         = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/u ;
+const DIGEST_PATTERN                     = /^[a-f0-9]{64}$/u                      ;
 const NATIVE_IDENTIFIER_KEYS = new Set([
 	"id",
 	"threadid",
@@ -20,19 +21,20 @@ const NATIVE_IDENTIFIER_KEYS = new Set([
 	"sessionid",
 	"nativerefs",
 ]);
-const MAX_NATIVE_PAYLOAD_DEPTH = 8;
-const MAX_NATIVE_PAYLOAD_NODES = 128;
-const MAX_NATIVE_PAYLOAD_ENTRIES = 64;
+const MAX_NATIVE_PAYLOAD_DEPTH   = 8                 ;
+const MAX_NATIVE_PAYLOAD_NODES   = 128               ;
+const MAX_NATIVE_PAYLOAD_ENTRIES = 64                ;
+const textEncoder                = new TextEncoder() ;
 
 /** Structural input so Notes can consume the activity journal without owning it. */
 export interface TNoteActivitySource {
-	readonly id: string;
-	readonly projectId: string;
-	readonly sequence: number;
-	readonly occurredAt: string;
-	readonly kind: string;
-	readonly title: string;
-	readonly body: string;
+	readonly id         : string ;
+	readonly projectId  : string ;
+	readonly sequence   : number ;
+	readonly occurredAt : string ;
+	readonly kind       : string ;
+	readonly title      : string ;
+	readonly body       : string ;
 	/** Accepted only at the source boundary; native identifiers are never retained in a packet. */
 	readonly nativeRefs?: readonly string[];
 	/** Stable completed-turn position, retained only as packet metadata. */
@@ -45,45 +47,45 @@ export interface TNoteSourceRange {
 }
 
 export interface TNoteSourceActivity {
-	readonly id: string;
-	readonly sequence: number;
-	readonly occurredAt: string;
-	readonly kind: string;
-	readonly title: string;
-	readonly body: string;
+	readonly id         : string ;
+	readonly sequence   : number ;
+	readonly occurredAt : string ;
+	readonly kind       : string ;
+	readonly title      : string ;
+	readonly body       : string ;
 }
 
 /** Immutable, redacted source material for a detached note request. */
 export interface TNotePacket {
-	readonly schemaVersion: 1;
-	readonly projectId: string;
-	readonly range: TNoteSourceRange;
-	readonly createdAt: string;
-	readonly activities: readonly TNoteSourceActivity[];
-	readonly completion?: TNoteCompletionMetadata;
-	readonly digest: string;
+	readonly schemaVersion : 1                              ;
+	readonly projectId     : string                         ;
+	readonly range         : TNoteSourceRange               ;
+	readonly createdAt     : string                         ;
+	readonly activities    : readonly TNoteSourceActivity[] ;
+	readonly completion?   : TNoteCompletionMetadata        ;
+	readonly digest        : string                         ;
 }
 
 /** Durable identity and ordinal for one completed Native turn. */
 export interface TNoteCompletionMetadata {
-	readonly threadId: string;
-	readonly turnId: string;
-	readonly number: number;
-	readonly terminalActivityId: string;
+	readonly threadId           : string ;
+	readonly turnId             : string ;
+	readonly number             : number ;
+	readonly terminalActivityId : string ;
 }
 
 export interface TNoteModelProvenance {
-	readonly provider: string;
-	readonly model: string;
-	readonly version: string;
+	readonly provider : string ;
+	readonly model    : string ;
+	readonly version  : string ;
 }
 
 export interface TNoteDraftInput {
-	readonly id: string;
-	readonly createdAt: string;
-	readonly packet: TNotePacket;
-	readonly text: string;
-	readonly provenance: TNoteModelProvenance;
+	readonly id         : string               ;
+	readonly createdAt  : string               ;
+	readonly packet     : TNotePacket          ;
+	readonly text       : string               ;
+	readonly provenance : TNoteModelProvenance ;
 }
 
 /** Append-only persisted Note. `sequence` is assigned by the draft store. */
@@ -94,9 +96,9 @@ export interface TNoteDraft extends TNoteDraftInput {
 
 /** Public, immutable Note fields used by the Workbench transcript. */
 export interface TNoteCompletionRecord {
-	readonly id: string;
-	readonly sourceActivityIds: readonly string[];
-	readonly completion?: TNoteCompletionMetadata;
+	readonly id                : string                  ;
+	readonly sourceActivityIds : readonly string[]       ;
+	readonly completion?       : TNoteCompletionMetadata ;
 }
 
 /** Minimal journal shape needed to assign completed-question indices. */
@@ -118,12 +120,12 @@ export interface TNoteCompletionActivity {
  * completed question.
  */
 export interface TNoteCompletionIndex {
-	readonly threadId: string;
-	readonly turnId: string;
-	readonly number: number;
-	readonly terminalActivityId: string;
-	readonly noteId: string | null;
-	readonly sourceActivityIds: readonly string[];
+	readonly threadId           : string            ;
+	readonly turnId             : string            ;
+	readonly number             : number            ;
+	readonly terminalActivityId : string            ;
+	readonly noteId             : string | null     ;
+	readonly sourceActivityIds  : readonly string[] ;
 }
 
 export function projectTNoteCompletionIndex(
@@ -135,14 +137,11 @@ export function projectTNoteCompletionIndex(
 		for (const activityId of note.sourceActivityIds) notesByTerminalActivity.set(activityId, note);
 	}
 	const completed = activities
-		.filter((activity) => activity.payload.method === "turn/completed"
-			&& typeof activity.nativeRefs.threadId === "string"
-			&& typeof activity.nativeRefs.turnId === "string")
+		.filter(isCompletedTurnActivity)
 		.sort((left, right) => left.sequence - right.sequence);
 	const numbers = new Map<string, number>();
 	return Object.freeze(completed.flatMap((activity) => {
-		const threadId = activity.nativeRefs.threadId!;
-		const turnId = activity.nativeRefs.turnId!;
+		const { threadId, turnId } = activity.nativeRefs;
 		const note = notesByTerminalActivity.get(activity.id);
 		if (!note) return [];
 		const metadata = completionFor(note);
@@ -156,11 +155,22 @@ export function projectTNoteCompletionIndex(
 			threadId,
 			turnId,
 			number,
-			terminalActivityId: activity.id,
-			noteId: note.id,
-			sourceActivityIds: Object.freeze([...note.sourceActivityIds]),
+			terminalActivityId : activity.id,
+			noteId             : note.id,
+			sourceActivityIds  : Object.freeze([...note.sourceActivityIds]),
 		})];
 	}));
+}
+
+type CompletedTurnActivity = TNoteCompletionActivity & {
+	readonly nativeRefs: { readonly threadId: string; readonly turnId: string };
+	readonly payload: { readonly method: "turn/completed" };
+};
+
+function isCompletedTurnActivity(activity: TNoteCompletionActivity): activity is CompletedTurnActivity {
+	return activity.payload.method === "turn/completed"
+		&& typeof activity.nativeRefs.threadId === "string"
+		&& typeof activity.nativeRefs.turnId === "string";
 }
 
 export type TNotePacketDigest = (canonicalPacket: string) => string;
@@ -172,12 +182,12 @@ export type TNotePacketDigest = (canonicalPacket: string) => string;
  */
 export function projectActivityToTNoteSource(activity: ProjectActivity): TNoteActivitySource {
 	return {
-		id: activity.id,
-		projectId: activity.projectId,
-		sequence: activity.sequence,
-		occurredAt: activity.recordedAt,
-		kind: `${activity.kind}.${activity.phase}`,
-		title: `${activity.kind} ${activity.phase}`,
+		id         : activity.id,
+		projectId  : activity.projectId,
+		sequence   : activity.sequence,
+		occurredAt : activity.recordedAt,
+		kind       : `${activity.kind}.${activity.phase}`,
+		title      : `${activity.kind} ${activity.phase}`,
 		body: isReasoningActivityPayload(activity.payload)
 			? canonicalJson({ classification: "reasoning", content: "[redacted]" })
 			: canonicalJson(redactNativePayload(activity.payload)),
@@ -208,16 +218,19 @@ export function createTNotePacket(
 		createdAt,
 		...(completion ? { completion } : {}),
 	};
-	const fitted = fitTNotePacketActivities(base, projected);
-	const material = { ...base, activities: fitted };
-	const canonicalMaterial = canonicalJson(material);
-	const digest = calculateDigest(canonicalMaterial);
+	const fitted            = fitTNotePacketActivities(base, projected) ;
+	const material          = { ...base, activities: fitted }           ;
+	const canonicalMaterial = canonicalJson(material)                   ;
+	const digest            = calculateDigest(canonicalMaterial)        ;
 	if (typeof digest !== "string" || !DIGEST_PATTERN.test(digest)) throw new Error("Invalid Note packet digest");
 	return freezePacket({ ...material, digest });
 }
 
 export function validateTNoteDraft(value: TNoteDraft, calculateDigest?: TNotePacketDigest): TNoteDraft {
-	if (!value || typeof value !== "object" || Array.isArray(value) || value.schemaVersion !== 1) throw new Error("Invalid Note draft");
+	if (!value
+		|| typeof value !== "object"
+		|| Array.isArray(value)
+		|| value.schemaVersion !== 1) throw new Error("Invalid Note draft");
 	assertId(value.id, "Note id");
 	if (!Number.isSafeInteger(value.sequence) || value.sequence < 1) throw new Error("Invalid Note sequence");
 	assertDate(value.createdAt, "Note timestamp");
@@ -226,10 +239,10 @@ export function validateTNoteDraft(value: TNoteDraft, calculateDigest?: TNotePac
 	if (text.length === 0 || text !== value.text) throw new Error("Invalid Note text");
 	const provenance = validateProvenance(value.provenance);
 	return freezeDraft({
-		schemaVersion: 1,
-		id: value.id,
-		sequence: value.sequence,
-		createdAt: value.createdAt,
+		schemaVersion : 1,
+		id            : value.id,
+		sequence      : value.sequence,
+		createdAt     : value.createdAt,
 		packet,
 		text,
 		provenance,
@@ -237,7 +250,10 @@ export function validateTNoteDraft(value: TNoteDraft, calculateDigest?: TNotePac
 }
 
 export function validateTNotePacket(value: TNotePacket, calculateDigest?: TNotePacketDigest): TNotePacket {
-	if (!value || typeof value !== "object" || Array.isArray(value) || value.schemaVersion !== 1) throw new Error("Invalid Note packet");
+	if (!value
+		|| typeof value !== "object"
+		|| Array.isArray(value)
+		|| value.schemaVersion !== 1) throw new Error("Invalid Note packet");
 	assertId(value.projectId, "project id");
 	assertRange(value.range);
 	assertDate(value.createdAt, "packet timestamp");
@@ -249,10 +265,10 @@ export function validateTNotePacket(value: TNotePacket, calculateDigest?: TNoteP
 	if (typeof value.digest !== "string" || !DIGEST_PATTERN.test(value.digest)) throw new Error("Invalid Note packet digest");
 	const completion = completionFor(value);
 	const material = {
-		schemaVersion: 1 as const,
-		projectId: value.projectId,
-		range: { ...value.range },
-		createdAt: value.createdAt,
+		schemaVersion : 1 as const,
+		projectId     : value.projectId,
+		range         : { ...value.range },
+		createdAt     : value.createdAt,
 		activities,
 		...(completion ? { completion } : {}),
 	};
@@ -272,9 +288,9 @@ export function sanitizeTNoteText(value: string, maximumBytes: number): string {
 	if (typeof value !== "string" || !Number.isSafeInteger(maximumBytes) || maximumBytes < 1) throw new Error("Invalid Note text");
 	// Redact customer labels first: a path expression may legally contain spaces,
 	// and otherwise could consume the label while leaving its value behind.
-	const protectedTestEvidence = protectTNoteTestEvidence(redactCustomerIdentifiers(value));
-	const protectedMarkers = protectRedactionMarkers(protectedTestEvidence.text);
-	const localPathsRedacted = redactLocalPaths(protectedMarkers.text);
+	const protectedTestEvidence = protectTNoteTestEvidence(redactCustomerIdentifiers(value)) ;
+	const protectedMarkers      = protectRedactionMarkers(protectedTestEvidence.text)        ;
+	const localPathsRedacted    = redactLocalPaths(protectedMarkers.text)                    ;
 	return truncateUtf8(
 		restoreTNoteTestEvidence(
 			restoreRedactionMarkers(redactForExternalReview(localPathsRedacted).text, protectedMarkers.markers),
@@ -288,12 +304,12 @@ function projectActivity(activity: TNoteActivitySource, projectId: string, range
 	if (!activity || typeof activity !== "object" || Array.isArray(activity)) throw new Error("Invalid Note source activity");
 	if (activity.projectId !== projectId) throw new Error("Note activities must belong to one project");
 	return projectPacketActivity({
-		id: activity.id,
-		sequence: activity.sequence,
-		occurredAt: activity.occurredAt,
-		kind: activity.kind,
-		title: activity.title,
-		body: activity.body,
+		id         : activity.id,
+		sequence   : activity.sequence,
+		occurredAt : activity.occurredAt,
+		kind       : activity.kind,
+		title      : activity.title,
+		body       : activity.body,
 	}, projectId, range);
 }
 
@@ -304,15 +320,18 @@ function projectPacketActivity(activity: TNoteSourceActivity, _projectId: string
 		throw new Error("Note activity is outside the selected range");
 	}
 	assertDate(activity.occurredAt, "activity timestamp");
-	const kind = sanitizeTNoteText(activity.kind, 120);
-	const title = sanitizeTNoteText(activity.title, 2 * 1024);
-	const body = sanitizeTNoteText(activity.body, MAX_ACTIVITY_BODY);
+	const kind  = sanitizeTNoteText(activity.kind, 120)               ;
+	const title = sanitizeTNoteText(activity.title, 2 * 1024)         ;
+	const body  = sanitizeTNoteText(activity.body, MAX_ACTIVITY_BODY) ;
 	if (kind.length === 0 || title.length === 0 || body !== activity.body && body.length === 0) throw new Error("Invalid Note activity text");
 	return Object.freeze({ id: activity.id, sequence: activity.sequence, occurredAt: activity.occurredAt, kind, title, body });
 }
 
 function assertStrictlyIncreasingSequences(activities: readonly TNoteSourceActivity[], range: TNoteSourceRange): void {
-	if (activities.some((activity, index) => index > 0 && activity.sequence <= activities[index - 1]!.sequence)) {
+	if (activities.some((activity, index) => {
+		const previous = activities[index - 1];
+		return previous !== undefined && activity.sequence <= previous.sequence;
+	})) {
 		throw new Error("Note activities must be sorted with strictly increasing unique sequences");
 	}
 	if (activities[0]?.sequence !== range.startSequence || activities.at(-1)?.sequence !== range.endSequence) {
@@ -322,10 +341,15 @@ function assertStrictlyIncreasingSequences(activities: readonly TNoteSourceActiv
 
 function validateProvenance(value: TNoteModelProvenance): TNoteModelProvenance {
 	if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Invalid Note model provenance");
-	const provider = sanitizeTNoteText(value.provider, 120);
-	const model = sanitizeTNoteText(value.model, 240);
-	const version = sanitizeTNoteText(value.version, 240);
-	if (!provider || !model || !version || provider !== value.provider || model !== value.model || version !== value.version) throw new Error("Invalid Note model provenance");
+	const provider = sanitizeTNoteText(value.provider, 120) ;
+	const model    = sanitizeTNoteText(value.model, 240)    ;
+	const version  = sanitizeTNoteText(value.version, 240)  ;
+	if (!provider
+		|| !model
+		|| !version
+		|| provider !== value.provider
+		|| model !== value.model
+		|| version !== value.version) throw new Error("Invalid Note model provenance");
 	return Object.freeze({ provider, model, version });
 }
 
@@ -345,10 +369,9 @@ function assertDate(value: string, label: string): void {
 }
 
 function completionFor(value: unknown): TNoteCompletionMetadata | undefined {
-	if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
-	const completion = (value as { completion?: unknown }).completion;
-	if (!completion || typeof completion !== "object" || Array.isArray(completion)) return undefined;
-	const candidate = completion as Partial<TNoteCompletionMetadata>;
+	if (!isRecord(value)) return undefined;
+	const candidate = value.completion;
+	if (!isRecord(candidate)) return undefined;
 	const number = candidate.number;
 	if (typeof candidate.threadId !== "string" || !ID_PATTERN.test(candidate.threadId)
 		|| typeof candidate.turnId !== "string" || !ID_PATTERN.test(candidate.turnId)
@@ -367,8 +390,7 @@ function completionFor(value: unknown): TNoteCompletionMetadata | undefined {
 function canonicalJson(value: unknown): string {
 	if (value === null || typeof value !== "object") return JSON.stringify(value);
 	if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
-	const record = value as Record<string, unknown>;
-	return `{${Object.keys(record).sort().map(key => `${JSON.stringify(key)}:${canonicalJson(record[key])}`).join(",")}}`;
+	return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${canonicalJson(Reflect.get(value, key))}`).join(",")}}`;
 }
 
 /**
@@ -393,9 +415,9 @@ function fitTNotePacketActivities(
 	const minimumTextBytes = 4;
 	let titleCap = 2 * 1024;
 	if (!fits(withTextCaps(titleCap, minimumTextBytes))) {
-		let low = minimumTextBytes;
-		let high = titleCap;
-		let best = minimumTextBytes;
+		let low  = minimumTextBytes ;
+		let high = titleCap         ;
+		let best = minimumTextBytes ;
 		while (low <= high) {
 			const middle = Math.floor((low + high) / 2);
 			if (fits(withTextCaps(middle, minimumTextBytes))) {
@@ -406,9 +428,9 @@ function fitTNotePacketActivities(
 		titleCap = best;
 	}
 
-	let low = minimumTextBytes;
-	let high = MAX_ACTIVITY_BODY;
-	let fitted = withTextCaps(titleCap, minimumTextBytes);
+	let low    = minimumTextBytes                         ;
+	let high   = MAX_ACTIVITY_BODY                        ;
+	let fitted = withTextCaps(titleCap, minimumTextBytes) ;
 	if (!fits(fitted)) throw new Error("Note source packet metadata is too large");
 	while (low <= high) {
 		const middle = Math.floor((low + high) / 2);
@@ -426,7 +448,10 @@ function redactNativePayload(value: unknown): unknown {
 	const seen = new Set<object>();
 	let remainingNodes = MAX_NATIVE_PAYLOAD_NODES;
 	const project = (candidate: unknown, depth: number): unknown => {
-		if (candidate === null || typeof candidate === "string" || typeof candidate === "number" || typeof candidate === "boolean") return candidate;
+		if (candidate === null
+			|| typeof candidate === "string"
+			|| typeof candidate === "number"
+			|| typeof candidate === "boolean") return candidate;
 		if (typeof candidate !== "object" || depth > MAX_NATIVE_PAYLOAD_DEPTH || remainingNodes-- <= 0) return "[redacted:source-limit]";
 		if (seen.has(candidate)) return "[redacted:cycle]";
 		seen.add(candidate);
@@ -436,11 +461,9 @@ function redactNativePayload(value: unknown): unknown {
 			if (candidate.length > entries.length) entries.push("[redacted:source-limit]");
 			return entries;
 		}
-		const record = candidate as Readonly<Record<string, unknown>>;
 		const projected: Record<string, unknown> = {};
 		let entries = 0;
-		for (const key in record) {
-			if (!Object.prototype.hasOwnProperty.call(record, key)) continue;
+		for (const key of Object.keys(candidate)) {
 			if (entries >= MAX_NATIVE_PAYLOAD_ENTRIES) {
 				projected.omitted = "[redacted:source-limit]";
 				break;
@@ -448,7 +471,7 @@ function redactNativePayload(value: unknown): unknown {
 			entries += 1;
 			const normalizedKey = key.replace(/[-_]/gu, "").toLowerCase();
 			if (NATIVE_IDENTIFIER_KEYS.has(normalizedKey) || /reasoning|thought|analysis/iu.test(normalizedKey)) continue;
-			projected[key] = project(record[key], depth + 1);
+			projected[key] = project(Reflect.get(candidate, key), depth + 1);
 		}
 		return projected;
 	};
@@ -463,22 +486,20 @@ function freezeDraft(draft: TNoteDraft): TNoteDraft {
 	return Object.freeze({ ...draft, packet: validateTNotePacket(draft.packet), provenance: Object.freeze({ ...draft.provenance }) });
 }
 
-function utf8ByteLength(value: string): number { return new TextEncoder().encode(value).byteLength; }
+function utf8ByteLength(value: string): number { return textEncoder.encode(value).byteLength; }
 
 function truncateUtf8(value: string, maximumBytes: number): string {
 	if (utf8ByteLength(value) <= maximumBytes) return value;
-	const result: string[] = [];
-	let usedBytes = 0;
-	for (const character of value) {
-		const characterBytes = utf8ByteLength(character);
-		if (usedBytes + characterBytes > maximumBytes) break;
-		result.push(character);
-		usedBytes += characterBytes;
-	}
-	const truncated = result.join("");
-	const markerStart = truncated.lastIndexOf("[redacted");
-	const markerEnd = truncated.lastIndexOf("]");
+	const target = new Uint8Array(maximumBytes);
+	const { read } = textEncoder.encodeInto(value, target);
+	const truncated   = value.slice(0, read)               ;
+	const markerStart = truncated.lastIndexOf("[redacted") ;
+	const markerEnd   = truncated.lastIndexOf("]")         ;
 	return markerStart > markerEnd ? truncated.slice(0, markerStart) : truncated;
+}
+
+function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
+	return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 function redactCustomerIdentifiers(value: string): string {

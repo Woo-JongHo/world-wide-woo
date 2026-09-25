@@ -1,10 +1,14 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test }                             from "bun:test";
 import { DEFAULT_WORKBENCH_CONFIG, normalizeWorkbenchConfig } from "../src/core/domain/execution/workbench-config";
-import { loadWorkbenchConfig, loadWorkbenchConfigWithSource, saveWorkbenchExecutionSelection } from "../src/adapters/outbound/workspace/workbench-config";
-import { mkdtemp, readFile, writeFile, mkdir } from "node:fs/promises";
-import { parse as parseYaml } from "yaml";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import {
+	loadWorkbenchConfig,
+	loadWorkbenchConfigWithSource,
+	saveWorkbenchExecutionSelection,
+} from "../src/adapters/outbound/workspace/workbench-config";
+import { mkdtemp, readFile, writeFile, mkdir }                from "node:fs/promises";
+import { parse as parseYaml }                                 from "yaml";
+import { tmpdir }                                             from "node:os";
+import { join }                                               from "node:path";
 
 describe("Workbench YAML configuration", () => {
 	test("normalizes supported execution policy and rejects unsafe values to defaults", () => {

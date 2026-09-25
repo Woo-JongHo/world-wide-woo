@@ -1,9 +1,10 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test }                                        from "bun:test";
 import { access, lstat, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
-import { FileTodoStore, importLegacyTodo } from "../src/adapters/outbound/persistence/todo-store.js";
-import { renderTodoMarkdown, type TodoDocument } from "../src/core/domain/work/todos.js";
+import { join }                                                                     from "node:path";
+import { tmpdir }                                                                   from "node:os";
+import { FileTodoStore, importLegacyTodo }                                          from "../src/adapters/outbound/persistence/todo-store.js";
+import { renderTodoMarkdown }                                                       from "../src/core/domain/work/todos.js";
+import type { TodoDocument }                                                        from "../src/core/domain/work/todos.js";
 
 const directories: string[] = [];
 
@@ -20,19 +21,19 @@ function todo(revision: number, title = "Todo"): TodoDocument {
 
 function nativeTodo(revision: number): TodoDocument {
 	const planRevision = {
-		sourceRevisionKeyDigest: "a".repeat(64),
-		activityId: "plan-activity",
-		sequence: 3,
-		sourceDigest: `sha256:${"b".repeat(64)}`,
+		sourceRevisionKeyDigest : "a".repeat(64),
+		activityId              : "plan-activity",
+		sequence                : 3,
+		sourceDigest            : `sha256:${"b".repeat(64)}`,
 	};
 	const rootExecution = { provider: null, model: "gpt-5.6-sol", agentId: null, threadId: "thread-1", runId: "turn-1" };
 	const identity = "c".repeat(64);
 	return {
 		version: 1,
 		revision,
-		ownerSessionId: "session_1",
-		storyId: null,
-		title: "Observed Native Plan",
+		ownerSessionId : "session_1",
+		storyId        : null,
+		title          : "Observed Native Plan",
 		items: [{
 			id: `native-${identity.slice(0, 48)}`,
 			content: "Persist references",
@@ -43,10 +44,10 @@ function nativeTodo(revision: number): TodoDocument {
 		}],
 		updatedAt: "2026-08-31T07:55:00.000Z",
 		source: {
-			kind: "native-plan",
-			threadKeyDigest: "d".repeat(64),
-			turnId: "turn-1",
-			input: { activityId: "request-activity", requestId: "request-1", sourceDigest: `sha256:${"e".repeat(64)}` },
+			kind            : "native-plan",
+			threadKeyDigest : "d".repeat(64),
+			turnId          : "turn-1",
+			input           : { activityId: "request-activity", requestId: "request-1", sourceDigest: `sha256:${"e".repeat(64)}` },
 			planRevision,
 			rootExecution,
 		},
@@ -140,9 +141,9 @@ describe("FileTodoStore", () => {
 
 	test("delivers the same external source only once across separate filesystem events", async () => {
 		const { path, store } = await fixture();
-		const sources: Array<string | null> = [];
-		const source = renderTodoMarkdown(todo(1, "External final"));
-		const stop = store.watch((_document, observedSource) => { sources.push(observedSource); }, { debounceMs: 20 });
+		const sources: Array<string | null> = []                                                                                                ;
+		const source                        = renderTodoMarkdown(todo(1, "External final"))                                                     ;
+		const stop                          = store.watch((_document, observedSource) => { sources.push(observedSource); }, { debounceMs: 20 }) ;
 		try {
 			await writeFile(path, source);
 			await Bun.sleep(80);
@@ -195,9 +196,9 @@ describe("FileTodoStore", () => {
 			"-e",
 			`import { Database } from "bun:sqlite"; import { writeFile } from "node:fs/promises"; const db = new Database(process.env.DB_PATH); db.run("PRAGMA busy_timeout = 5000"); db.run("BEGIN IMMEDIATE"); await writeFile(process.env.MARKER, "locked"); await new Promise(() => {});`,
 		], {
-			env: { ...process.env, DB_PATH: databasePath, MARKER: marker },
-			stdout: "ignore",
-			stderr: "pipe",
+			env    : { ...process.env, DB_PATH: databasePath, MARKER: marker },
+			stdout : "ignore",
+			stderr : "pipe",
 		});
 		for (let attempt = 0; attempt < 100; attempt += 1) {
 			try {

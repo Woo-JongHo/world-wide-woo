@@ -1,13 +1,14 @@
-import { chmod, lstat, mkdir, open, readFile, rename, rm } from "node:fs/promises";
-import { basename, join } from "node:path";
-import { randomUUID } from "node:crypto";
-import { Database } from "bun:sqlite";
-import { createPlanningSnapshot, sanitizePlanningText, type PlanningEpic, type PlanningSnapshot, type PlanningStory } from "../../../core/domain/work/planning.js";
-import type { PlanningCatalogStore } from "../../../core/application/work/planning-service.js";
+import { chmod, lstat, mkdir, open, readFile, rename, rm }    from "node:fs/promises";
+import { basename, join }                                     from "node:path";
+import { randomUUID }                                         from "node:crypto";
+import { Database }                                           from "bun:sqlite";
+import { createPlanningSnapshot, sanitizePlanningText }       from "@/core/domain/work/planning.js";
+import type { PlanningEpic, PlanningSnapshot, PlanningStory } from "@/core/domain/work/planning.js";
+import type { PlanningCatalogStore }                          from "@/core/application/work/planning-service.js";
 
-const queues = new Map<string, Promise<unknown>>();
-const START = "<!-- www-planning-v1:start -->";
-const END = "<!-- www-planning-v1:end -->";
+const queues = new Map<string, Promise<unknown>>() ;
+const START  = "<!-- www-planning-v1:start -->"    ;
+const END    = "<!-- www-planning-v1:end -->"      ;
 type Record = { schemaVersion: 1; revision: number; type: "epic.created"; artifact: PlanningEpic } | { schemaVersion: 1; revision: number; type: "story.created"; artifact: PlanningStory };
 
 export class FilePlanningStore implements PlanningCatalogStore {
@@ -45,7 +46,8 @@ export class FilePlanningStore implements PlanningCatalogStore {
 	}
 	private async mutate<T>(operation: (snapshot: PlanningSnapshot, records: Record[]) => Promise<{ snapshot: PlanningSnapshot; records: Record[]; value: T }>): Promise<{ snapshot: PlanningSnapshot; value: T }> {
 		return this.serial(() => this.withLock(async () => {
-			const { snapshot, records } = await this.loadRecords(); const result = await operation(snapshot, records);
+			const { snapshot, records } = await this.loadRecords();
+			const result = await operation(snapshot, records);
 			await this.ensureDirectory(this.planningDirectory());
 			await this.preflightNewArtifact(result.records.at(-1)!);
 			await this.validateProjection("Epics.md");
@@ -57,7 +59,8 @@ export class FilePlanningStore implements PlanningCatalogStore {
 		}));
 	}
 	private async loadRecords(): Promise<{ snapshot: PlanningSnapshot; records: Record[] }> {
-		const path = this.catalogPath(); let raw: string;
+		const path = this.catalogPath();
+		let raw: string;
 		try { raw = await this.readSafeFile(path); await chmod(path, 0o600); } catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return { snapshot: createPlanningSnapshot(0, [], []), records: [] }; throw error; }
 		const records = raw.split("\n").filter(Boolean).map((line) => parseRecord(line));
 		for (let index = 0; index < records.length; index++) if (records[index].revision !== index + 1) throw new Error("Invalid planning catalog revision sequence");
@@ -72,7 +75,8 @@ export class FilePlanningStore implements PlanningCatalogStore {
 		} finally { db.close(); }
 	}
 	private async writeArtifact(record: Record): Promise<void> {
-		const dir = this.artifactsDirectory(); await this.ensureDirectory(dir); const path = join(dir, `${record.artifact.id}.md`);
+		const dir = this.artifactsDirectory(); await this.ensureDirectory(dir);
+		const path = join(dir, `${record.artifact.id}.md`);
 		const expected = renderArtifact(record);
 		try {
 			const existing = await this.readSafeFile(path);
@@ -115,7 +119,8 @@ export class FilePlanningStore implements PlanningCatalogStore {
 		await this.updateProjection("Stories.md", snapshot.stories.map((s) => `- ${s.id} | ${s.epicId} | ${s.title} | ${s.acceptance}${s.supersedes ? ` | supersedes ${s.supersedes}` : ""}`).join("\n"));
 	}
 	private async updateProjection(name: string, body: string): Promise<void> {
-		const path = join(this.wwwDirectory, name); let original = "";
+		const path = join(this.wwwDirectory, name);
+		let original = "";
 		try { original = await this.readSafeFile(path); } catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
 		const { start, end } = projectionMarkers(original, name);
 		const block = `${START}\n${body}\n${END}`;
@@ -127,22 +132,25 @@ export class FilePlanningStore implements PlanningCatalogStore {
 		try { projectionMarkers(await this.readSafeFile(join(this.wwwDirectory, name)), name); }
 		catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
 	}
-	private async legacyText(name: string): Promise<string> { try { return await this.readSafeFile(join(this.wwwDirectory, name)); } catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return ""; throw error; } }
-	private async atomicWrite(path: string, content: string): Promise<void> { const dir = join(path, ".."); const temp = join(dir, `.${basename(path)}.${randomUUID()}.tmp`); try { const handle = await open(temp, "wx", 0o600); try { await handle.writeFile(content); await handle.sync(); } finally { await handle.close(); } await rename(temp, path); await chmod(path, 0o600); } finally { await rm(temp, { force: true }); } }
-	private async ensureDirectory(path: string): Promise<void> { await mkdir(path, { recursive: true, mode: 0o700 }); const info = await lstat(path); if (!info.isDirectory() || info.isSymbolicLink()) throw new Error(`Unsafe planning path: ${path}`); await chmod(path, 0o700); }
-	private async assertSafeOptionalFile(path: string): Promise<void> { try { const info = await lstat(path); if (!info.isFile() || info.isSymbolicLink()) throw new Error(`Unsafe planning path: ${path}`); } catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; } }
-	private async readSafeFile(path: string): Promise<string> { await this.assertSafeOptionalFile(path); return readFile(path, "utf8"); }
+	private async legacyText            (name: string                 ): Promise<string> { try { return await this.readSafeFile(join(this.wwwDirectory, name)); } catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return ""; throw error; } }
+	private async atomicWrite           (path: string, content: string): Promise<void> { const dir = join(path, ".."); const temp = join(dir, `.${basename(path)}.${randomUUID()}.tmp`); try { const handle = await open(temp, "wx", 0o600); try { await handle.writeFile(content); await handle.sync(); } finally { await handle.close(); } await rename(temp, path); await chmod(path, 0o600); } finally { await rm(temp, { force: true }); } }
+	private async ensureDirectory       (path: string                 ): Promise<void> { await mkdir(path, { recursive: true, mode: 0o700 }); const info = await lstat(path); if (!info.isDirectory() || info.isSymbolicLink()) throw new Error(`Unsafe planning path: ${path}`); await chmod(path, 0o700); }
+	private async assertSafeOptionalFile(path: string                 ): Promise<void> { try { const info = await lstat(path); if (!info.isFile() || info.isSymbolicLink()) throw new Error(`Unsafe planning path: ${path}`); } catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; } }
+	private async readSafeFile          (path: string                 ): Promise<string> { await this.assertSafeOptionalFile(path); return readFile(path, "utf8"); }
 	private async catalogExists(): Promise<boolean> {
 		try { await this.assertSafeOptionalFile(this.catalogPath()); await lstat(this.catalogPath()); return true; }
 		catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return false; throw error; }
 	}
 	private serial<T>(operation: () => Promise<T>): Promise<T> { const key = this.wwwDirectory; const previous = queues.get(key) ?? Promise.resolve(); const current = previous.catch(() => undefined).then(operation); queues.set(key, current); void current.finally(() => { if (queues.get(key) === current) queues.delete(key); }).catch(() => undefined); return current; }
-	private planningDirectory(): string { return join(this.wwwDirectory, "planning"); }
+	private planningDirectory (): string { return join(this.wwwDirectory, "planning"); }
 	private artifactsDirectory(): string { return join(this.planningDirectory(), "artifacts"); }
-	private catalogPath(): string { return join(this.planningDirectory(), "catalog.jsonl"); }
+	private catalogPath       (): string { return join(this.planningDirectory(), "catalog.jsonl"); }
 }
 
-function parseRecord(line: string): Record { let value: unknown; try { value = JSON.parse(line); } catch { throw new Error("Invalid planning catalog JSON"); } const r = value as Partial<Record>; if (r.schemaVersion !== 1 || !Number.isSafeInteger(r.revision) || (r.type !== "epic.created" && r.type !== "story.created") || !r.artifact) throw new Error("Invalid planning catalog record"); return r as Record; }
+function parseRecord(line: string): Record { let value: unknown; try { value = JSON.parse(line); } catch { throw new Error("Invalid planning catalog JSON"); } const r = value as Partial<Record>; if (r.schemaVersion !== 1
+	|| !Number.isSafeInteger(r.revision)
+	|| (r.type !== "epic.created" && r.type !== "story.created")
+	|| !r.artifact) throw new Error("Invalid planning catalog record"); return r as Record; }
 function nextEpicId(snapshot: PlanningSnapshot, legacy: string): string { const ids = [...snapshot.epics.map((e) => e.id), ...Array.from(legacy.matchAll(/\bEP-(\d{3})\b/g), (m) => m[0])]; const max = Math.max(0, ...ids.map((id) => Number(id.slice(3)))); if (max >= 999) throw new Error("Planning epic ID space exhausted"); return `EP-${String(max + 1).padStart(3, "0")}`; }
 function nextStoryId(epicId: string, snapshot: PlanningSnapshot, legacy: string): string { const prefix = `ST-${epicId.slice(3)}-`; const ids = [...snapshot.stories.map((s) => s.id), ...Array.from(legacy.matchAll(/\bST-\d{3}-(\d{2})\b/g), (m) => m[0]).filter((id) => id.startsWith(prefix))]; const max = Math.max(0, ...ids.map((id) => Number(id.slice(-2)))); if (max >= 99) throw new Error("Planning story ID space exhausted"); return `${prefix}${String(max + 1).padStart(2, "0")}`; }
 function renderArtifact(record: Record): string {

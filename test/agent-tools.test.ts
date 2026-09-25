@@ -1,10 +1,10 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test }                               from "bun:test";
 import { access, chmod, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
-import { basename, join } from "node:path";
-import { tmpdir } from "node:os";
-import { createProjectAgentTools } from "../src/adapters/outbound/execution/agent-tools";
-import type { TodoController } from "../src/core/ports";
-import type { TodoDocument } from "../src/core/domain/work/todos";
+import { basename, join }                                                  from "node:path";
+import { tmpdir }                                                          from "node:os";
+import { createProjectAgentTools }                                         from "../src/adapters/outbound/execution/agent-tools";
+import type { TodoController }                                             from "../src/core/ports";
+import type { TodoDocument }                                               from "../src/core/domain/work/todos";
 
 const roots: string[] = [];
 afterEach(async () => { await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))); });
@@ -70,14 +70,14 @@ describe("project agent tools", () => {
 	test("fails closed for network SSH, git mutation, and shell syntax", async () => {
 		const { tools } = await fixture(); const bash = tool(tools, "bash");
 		for (const input of [
-			{ command: "ssh", args: ["localhost"] },
-			{ command: "git", args: ["commit", "-m", "x"] },
-			{ command: "git", args: ["diff", "--no-index", "/etc/passwd", "hello.txt"] },
-			{ command: "git", args: ["diff", "--textconv"] },
-			{ command: "git", args: ["branch", "publication-corruption"] },
-			{ command: "git", args: ["show", "HEAD:.env"] },
-			{ command: "git", args: ["log", "-n10", "-p"] },
-			{ command: "pwd", args: [";", "whoami"] },
+			{ command : "ssh" , args : ["localhost"]                                      },
+			{ command : "git" , args : ["commit", "-m", "x"]                              },
+			{ command : "git" , args : ["diff", "--no-index", "/etc/passwd", "hello.txt"] },
+			{ command : "git" , args : ["diff", "--textconv"]                             },
+			{ command : "git" , args : ["branch", "publication-corruption"]               },
+			{ command : "git" , args : ["show", "HEAD:.env"]                              },
+			{ command : "git" , args : ["log", "-n10", "-p"]                              },
+			{ command : "pwd" , args : [";", "whoami"]                                    },
 		]) {
 			expect((await bash.execute(input, signal())).isError).toBe(true);
 		}
@@ -176,17 +176,17 @@ describe("project agent tools", () => {
 			}],
 		};
 		const todos: TodoController = {
-			snapshot: document,
-			initialize: async () => {},
-			create: async () => document,
-			add: async () => document,
-			addDetails: async (...args) => { calls.push(args); return detailed; },
-			start: async () => document,
-			complete: async () => document,
-			block: async () => document,
-			reopen: async () => document,
-			recordEvidence: async () => document,
-			subscribe: () => () => {},
+			snapshot       : document,
+			initialize     : async () => {},
+			create         : async () => document,
+			add            : async () => document,
+			addDetails     : async (...args) => { calls.push(args); return detailed; },
+			start          : async () => document,
+			complete       : async () => document,
+			block          : async () => document,
+			reopen         : async () => document,
+			recordEvidence : async () => document,
+			subscribe      : () => () => {},
 		};
 		const tools = createProjectAgentTools(root, { todos, sshConfigPath: join(root, "ssh-config") });
 		for (const name of ["read", "search", "bash", "ssh_config", "todo_write"]) {

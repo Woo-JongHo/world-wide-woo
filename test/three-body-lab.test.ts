@@ -1,6 +1,6 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test }               from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import { ThreeBodyLabView } from "../src/adapters/inbound/tui/features/chat/three-body-lab";
+import { ThreeBodyLabView }                     from "../src/adapters/inbound/tui/features/chat/three-body-lab";
 
 function output(view: ThreeBodyLabView, width = 88): string {
 	return view.render(width).map(stripTerminalSequences).join("\n");

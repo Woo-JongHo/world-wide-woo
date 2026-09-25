@@ -1,7 +1,7 @@
-import { describe, expect, test } from "bun:test";
-import { stripTerminalSequences } from "@earendil-works/pi-tui";
+import { describe, expect, test }   from "bun:test";
+import { stripTerminalSequences }   from "@earendil-works/pi-tui";
 import type { NativeThreadSummary } from "../src/core/domain/execution/native-session";
-import { NativeThreadPicker } from "../src/adapters/inbound/tui/features/session/native-thread-picker";
+import { NativeThreadPicker }       from "../src/adapters/inbound/tui/features/session/native-thread-picker";
 
 const threads: readonly NativeThreadSummary[] = [{
 	id: "0199-thread-one",
@@ -19,9 +19,9 @@ const threads: readonly NativeThreadSummary[] = [{
 
 describe("native thread resume picker", () => {
 	test("shows project threads and returns the selected native id", () => {
-		const selected: string[] = [];
-		const picker = new NativeThreadPicker(threads, id => { selected.push(id); }, () => undefined);
-		const output = stripTerminalSequences(picker.render(100).join("\n"));
+		const selected: string[] = []                                                                             ;
+		const picker             = new NativeThreadPicker(threads, id => { selected.push(id); }, () => undefined) ;
+		const output             = stripTerminalSequences(picker.render(100).join("\n"))                          ;
 		expect(output).toContain("재개할 Codex 세션 선택");
 		expect(output).toContain("승인 화면 개선");
 		expect(output).toContain("큐 처리 구현");

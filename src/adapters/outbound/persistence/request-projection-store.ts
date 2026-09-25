@@ -1,9 +1,9 @@
-import { createHash, randomUUID } from "node:crypto";
-import { mkdir, rename, writeFile } from "node:fs/promises";
-import { join } from "node:path";
-import type { RequestProjectionPort } from "../../../core/ports/execution/request-projection-port";
-import type { RequestRuntimeRecord } from "../../../core/domain/execution/request-runtime";
-import { projectRequestDestinations } from "../../../core/domain/work/request-projections";
+import { createHash, randomUUID }     from "node:crypto";
+import { mkdir, rename, writeFile }   from "node:fs/promises";
+import { join }                       from "node:path";
+import type { RequestProjectionPort } from "@/core/ports/execution/request-projection-port";
+import type { RequestRuntimeRecord }  from "@/core/domain/execution/request-runtime";
+import { projectRequestDestinations } from "@/core/domain/work/request-projections";
 
 /** Rebuildable projection, not a second source of truth. No remote publication. */
 export class FileRequestProjectionStore implements RequestProjectionPort {

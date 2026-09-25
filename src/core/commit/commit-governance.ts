@@ -1,58 +1,68 @@
 import { createHash } from "node:crypto";
 
-export type CommitType = "feat" | "fix" | "perf" | "refactor" | "test" | "docs" | "build" | "ci" | "chore" | "revert";
-export type CommitState = "complete" | "checkpoint" | "red" | null;
-export type CommitDecision = "ready" | "split" | "not-ready";
-export type AxisResult = "pass" | "fail" | "unknown";
+export type CommitType     = "feat" | "fix" | "perf" | "refactor" | "test" | "docs" | "build" | "ci" | "chore" | "revert" ;
+export type CommitState    = "complete" | "checkpoint" | "red" | null                                                     ;
+export type CommitDecision = "ready" | "split" | "not-ready"                                                              ;
+export type AxisResult     = "pass" | "fail" | "unknown"                                                                  ;
 
-export interface CommitAxis { result: AxisResult; evidence: string }
-export interface CommitValidation {
-	id: string;
-	class: "deterministic" | "semantic" | "advisory";
-	severity: "blocking" | "warning";
-	expected: "pass" | "fail";
-	result: "pass" | "fail" | "not-run";
-	evidence: string;
-	command?: string;
+export interface CommitAxis {
+	result: AxisResult;
+	evidence: string
 }
+export interface CommitValidation {
+	id       : string                                    ;
+	class    : "deterministic" | "semantic" | "advisory" ;
+	severity : "blocking" | "warning"                    ;
+	expected : "pass" | "fail"                           ;
+	result   : "pass" | "fail" | "not-run"               ;
+	evidence : string                                    ;
+	command? : string                                    ;
+}
+export interface CommitAxes {
+	samePurpose      : CommitAxis ;
+	rollbackTogether : CommitAxis ;
+	sharedValidation : CommitAxis ;
+	oneHeadline      : CommitAxis ;
+}
+
 export interface CommitCandidate {
-	schemaVersion: "1.0";
-	id: string;
-	intent: string;
-	type: CommitType;
-	scope: string;
-	baseHead: string;
-	contentDigest: string;
-	impactedScopes?: string[];
-	state: CommitState;
-	decision: CommitDecision;
-	result: string;
-	why: string;
-	paths: string[];
-	axes: { samePurpose: CommitAxis; rollbackTogether: CommitAxis; sharedValidation: CommitAxis; oneHeadline: CommitAxis };
-	validations: CommitValidation[];
-	boundaries: string[];
-	refs: string[];
-	blockers: string[];
-	next: string | null;
-	bodyRequired?: boolean;
+	schemaVersion   : "1.0"              ;
+	id              : string             ;
+	intent          : string             ;
+	type            : CommitType         ;
+	scope           : string             ;
+	baseHead        : string             ;
+	contentDigest   : string             ;
+	impactedScopes? : string[]           ;
+	state           : CommitState        ;
+	decision        : CommitDecision     ;
+	result          : string             ;
+	why             : string             ;
+	paths           : string[]           ;
+	axes            : CommitAxes         ;
+	validations     : CommitValidation[] ;
+	boundaries      : string[]           ;
+	refs            : string[]           ;
+	blockers        : string[]           ;
+	next            : string | null      ;
+	bodyRequired?   : boolean            ;
 }
 export interface CommitPolicy {
-	messageProfile: "korean-result" | "conventional";
-	subjectMaxLength: number;
-	subjectSoftLength: number;
-	requireScope: boolean;
-	requireType: boolean;
-	requireHumanAuthorization: boolean;
-	fullFileStagingOnly: boolean;
-	protectedBranches: string[];
-	allowedTypes: CommitType[];
-	scopes: Record<string, string>;
+	messageProfile            : "korean-result" | "conventional" ;
+	subjectMaxLength          : number                           ;
+	subjectSoftLength         : number                           ;
+	requireScope              : boolean                          ;
+	requireType               : boolean                          ;
+	requireHumanAuthorization : boolean                          ;
+	fullFileStagingOnly       : boolean                          ;
+	protectedBranches         : string[]                         ;
+	allowedTypes              : CommitType[]                     ;
+	scopes                    : Record<string, string>           ;
 }
 
-const VAGUE = /^(?:update|modify|changes?|fix issue|작업|수정|정리|기타|여러 작업)$/iu;
-const ID = /^COMMIT-CANDIDATE-[A-Z0-9][A-Z0-9-]*$/u;
-const SCOPE = /^[a-z][a-z0-9-]*$/u;
+const VAGUE = /^(?:update|modify|changes?|fix issue|작업|수정|정리|기타|여러 작업)$/iu ;
+const ID    = /^COMMIT-CANDIDATE-[A-Z0-9][A-Z0-9-]*$/u                                 ;
+const SCOPE = /^[a-z][a-z0-9-]*$/u                                                     ;
 
 export function canonicalJson(value: unknown): string {
 	if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
@@ -115,7 +125,13 @@ export class CommitControlPlane {
 	}
 
 	bodyRequired(candidate: CommitCandidate): boolean {
-		return candidate.bodyRequired === true || candidate.state !== "complete" || candidate.paths.length > 1 || candidate.impactedScopes?.length !== undefined && candidate.impactedScopes.length > 0 || ["build", "ci", "revert"].includes(candidate.type);
+		return (
+			candidate.bodyRequired === true
+			|| candidate.state !== "complete"
+			|| candidate.paths.length > 1
+			|| candidate.impactedScopes?.length !== undefined && candidate.impactedScopes.length > 0
+			|| ["build", "ci", "revert"].includes(candidate.type)
+		);
 	}
 
 	render(candidate: CommitCandidate): string {

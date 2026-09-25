@@ -1,7 +1,13 @@
-import { lstat, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readFile, rename, rm, writeFile }               from "node:fs/promises";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
-import { digestCanonicalDocument, type CanonicalDocumentStore, type CanonicalWriteResult, type StoredCanonicalDocument } from "../../../core/application/work/canonical-promotion";
-import { isCanonicalDocumentTarget, type CanonicalDocumentTarget } from "../../../core/domain/work/canonical-document";
+import { digestCanonicalDocument }                                     from "@/core/application/work/canonical-promotion";
+import type {
+	CanonicalDocumentStore,
+	CanonicalWriteResult,
+	StoredCanonicalDocument,
+} from "@/core/application/work/canonical-promotion";
+import { isCanonicalDocumentTarget }                                   from "@/core/domain/work/canonical-document";
+import type { CanonicalDocumentTarget }                                from "@/core/domain/work/canonical-document";
 
 /** Filesystem store constrained to project-local, tracked Markdown under `.www/vault`. */
 export class FileCanonicalDocumentStore implements CanonicalDocumentStore {
@@ -55,7 +61,10 @@ export class FileCanonicalDocumentStore implements CanonicalDocumentStore {
 		if (isAbsolute(target) || target.includes("\\") || target.split("/").includes("..")) throw new Error("정본 문서 path traversal은 허용되지 않습니다.");
 		const path = resolve(this.root, target);
 		const local = relative(this.root, path);
-		if (!local || local.startsWith(`..${sep}`) || local === ".." || isAbsolute(local)) throw new Error("정본 문서 target이 프로젝트 밖에 있습니다.");
+		if (!local
+			|| local.startsWith(`..${sep}`)
+			|| local === ".."
+			|| isAbsolute(local)) throw new Error("정본 문서 target이 프로젝트 밖에 있습니다.");
 		await this.assertNoSymlinks(target);
 		return path;
 	}

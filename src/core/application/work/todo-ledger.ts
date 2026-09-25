@@ -1,26 +1,24 @@
-import type { SessionEventInput } from "../../domain/execution/session-events";
-import {
-	MAX_TODO_EVIDENCE,
-	sanitizeTodoText,
-	validateTodoDocument,
-	type TodoDocument,
-	type TodoExecutionReference,
-	type TodoItem,
-	type TodoItemStatus,
-	type TodoNativePlanBinding,
-	type TodoNativePlanSource,
-} from "../../domain/work/todos";
-import type { SemanticWorkStep, WorkFlowProjection, WorkStepStatus } from "../../domain/work";
-import type { SessionRepository, TodoController, TodoStore } from "../../ports/index.js";
-import type { RequestRuntimeRecord } from "../../domain/execution/request-runtime";
-import { projectRequestTodo } from "../../domain/work/request-projections";
+import type { SessionEventInput }                                    from "@/core/domain/execution/session-events";
+import { MAX_TODO_EVIDENCE, sanitizeTodoText, validateTodoDocument } from "@/core/domain/work/todos";
+import type {
+	TodoDocument,
+	TodoExecutionReference,
+	TodoItem,
+	TodoItemStatus,
+	TodoNativePlanBinding,
+	TodoNativePlanSource,
+} from "@/core/domain/work/todos";
+import type { SemanticWorkStep, WorkFlowProjection, WorkStepStatus } from "@/core/domain/work";
+import type { SessionRepository, TodoController, TodoStore }         from "@/core/ports/index.js";
+import type { RequestRuntimeRecord }                                 from "@/core/domain/execution/request-runtime";
+import { projectRequestTodo }                                        from "@/core/domain/work/request-projections";
 
 /** Coordinates the project todo document with the session audit trail. */
 /** @Unit Code-011 */
 export class TodoLedger implements TodoController {
-	private current: TodoDocument | null = null;
-	private readonly listeners = new Set<(snapshot: TodoDocument | null) => void>();
-	private stopWatching: (() => void) | null = null;
+	private current      : TodoDocument | null = null                                               ;
+	private readonly listeners                 = new Set<(snapshot: TodoDocument | null) => void>() ;
+	private stopWatching : (() => void) | null = null                                               ;
 
 	public constructor(
 		private readonly sessionId: string,
@@ -55,24 +53,26 @@ export class TodoLedger implements TodoController {
 
 	public async syncRequestRuntime(request: RequestRuntimeRecord): Promise<TodoDocument> {
 		const next = projectRequestTodo(request, this.sessionId, (this.current?.revision ?? -1) + 1);
-		if (this.current?.requestId === request.requestId && JSON.stringify(this.current.items) === JSON.stringify(next.items) && this.current.title === next.title) return this.current;
+		if (this.current?.requestId === request.requestId
+			&& JSON.stringify(this.current.items) === JSON.stringify(next.items)
+			&& this.current.title === next.title) return this.current;
 		return this.commit(validateTodoDocument(next));
 	}
 
 	/** @linear WOO-702 Mirrors one observed Native input/turn/Plan revision into its session Todo.md. */
 	public async syncNativePlan(flow: WorkFlowProjection, binding?: TodoNativePlanBinding): Promise<TodoDocument> {
-		validateNativePlanSource(flow.source);
+		const validatedSource = validateNativePlanSource(flow.source);
 		const nativeSteps = flow.steps.slice(0, 12);
 		validateNativeTodoIds(nativeSteps);
-		const source = nativeTodoSource(flow.source!, binding ?? reusableNativeBinding(this.current?.source, flow.source!));
+		const source = nativeTodoSource(validatedSource, binding ?? reusableNativeBinding(this.current?.source, validatedSource));
 		if (this.current?.source && !canApplyNativeSource(this.current.source, source)) return this.current;
 		const items = nativeSteps.map((step): TodoItem => {
 			return nativeTodoItem(step, todoStatus(step.status), source.rootExecution);
 		});
 		const content = {
-			ownerSessionId: this.sessionId,
-			storyId: null,
-			title: todoNarrationText(flow.goal, "현재 요청"),
+			ownerSessionId : this.sessionId,
+			storyId        : null,
+			title          : todoNarrationText(flow.goal, "현재 요청"),
 			items,
 			source,
 		};
@@ -88,7 +88,10 @@ export class TodoLedger implements TodoController {
 					.join("; ")}`,
 			);
 		}
-		if (!Array.isArray(items) || items.length < 1 || items.length > 12 || items.some((item) => typeof item !== "string")) {
+		if (!Array.isArray(items)
+			|| items.length < 1
+			|| items.length > 12
+			|| items.some((item) => typeof item !== "string")) {
 			throw new Error("Todo items must contain between 1 and 12 strings");
 		}
 		const next = this.document({
@@ -106,7 +109,7 @@ export class TodoLedger implements TodoController {
 		if (placement !== "now" && placement !== "after") throw new Error("Todo placement must be now or after");
 		const nextNumber = document.items.reduce((highest, item) => {
 			const match = /^todo-(\d+)$/u.exec(item.id);
-			return Math.max(highest, match ? Number.parseInt(match[1]!, 10) : 0);
+			return Math.max(highest, match ? Number.parseInt(match[1], 10) : 0);
 		}, 0) + 1;
 		const item = { id: `todo-${nextNumber}`, content, status: placement === "now" ? "in_progress" as const : "pending" as const, evidenceIds: [], details: [] };
 		const activeIndex = document.items.findIndex(candidate => candidate.status === "in_progress");
@@ -126,7 +129,10 @@ export class TodoLedger implements TodoController {
 
 	public async addDetails(itemId: string, details: readonly string[]): Promise<TodoDocument> {
 		if (typeof itemId !== "string" || !isId(itemId)) throw new Error("Invalid todo item id");
-		if (!Array.isArray(details) || details.length < 1 || details.length > 8 || details.some(detail => typeof detail !== "string")) {
+		if (!Array.isArray(details)
+			|| details.length < 1
+			|| details.length > 8
+			|| details.some(detail => typeof detail !== "string")) {
 			throw new Error("Todo details must contain between 1 and 8 strings");
 		}
 		const document = this.requireCurrent();
@@ -136,7 +142,7 @@ export class TodoLedger implements TodoController {
 		if (parent.details.length + details.length > 8) throw new Error("Todo detail limit reached");
 		const nextNumber = parent.details.reduce((highest, detail) => {
 			const match = new RegExp(`^${escapeRegExp(parent.id)}-detail-(\\d+)$`, "u").exec(detail.id);
-			return Math.max(highest, match ? Number.parseInt(match[1]!, 10) : 0);
+			return Math.max(highest, match ? Number.parseInt(match[1], 10) : 0);
 		}, 0);
 		const next = this.document({
 			...document,
@@ -207,16 +213,17 @@ export class TodoLedger implements TodoController {
 		// Without a direct Native Plan item reference, evidence is safe to attach
 		// only when the current plan has one unambiguous running item.
 		if (activeItems.length !== 1) return null;
-		const active = activeItems[0]!;
-		const activeDetail = active?.details.find(detail => detail.status === "in_progress");
-		if (!active) return null;
+		const active = activeItems[0];
+		const activeDetail = active.details.find(detail => detail.status === "in_progress");
 		if (activeDetail && (activeDetail.evidenceIds.includes(evidenceId) || activeDetail.evidenceIds.length >= MAX_TODO_EVIDENCE)) return null;
 		if (!activeDetail && (active.evidenceIds.includes(evidenceId) || active.evidenceIds.length >= MAX_TODO_EVIDENCE)) return null;
 		const next = this.document({
 			...document,
-			items: document.items.map((item) => item.id !== active.id ? item : activeDetail
-				? { ...item, details: item.details.map(detail => detail.id === activeDetail.id ? { ...detail, evidenceIds: [...detail.evidenceIds, evidenceId] } : detail) }
-				: { ...item, evidenceIds: [...item.evidenceIds, evidenceId] }),
+			items: document.items.map((item) => {
+				if (item.id !== active.id) return item;
+				if (!activeDetail) return { ...item, evidenceIds: [...item.evidenceIds, evidenceId] };
+				return { ...item, details: item.details.map(detail => detail.id === activeDetail.id ? { ...detail, evidenceIds: [...detail.evidenceIds, evidenceId] } : detail) };
+			}),
 		});
 		return this.commit(next);
 	}
@@ -273,9 +280,9 @@ export class TodoLedger implements TodoController {
 	private document(value: Omit<TodoDocument, "version" | "revision" | "updatedAt"> & Partial<Pick<TodoDocument, "revision">>): TodoDocument {
 		return validateTodoDocument({
 			...value,
-			version: 1,
-			revision: (this.current?.revision ?? -1) + 1,
-			updatedAt: this.clock().toISOString(),
+			version   : 1,
+			revision  : (this.current?.revision ?? -1) + 1,
+			updatedAt : this.clock().toISOString(),
 		});
 	}
 
@@ -322,12 +329,12 @@ export class TodoNativeSourceError extends Error {
 
 function todoUpdatedEvent(document: TodoDocument): SessionEventInput {
 	return {
-		category: "todo",
-		type: "todo.updated",
-		status: "passed",
-		title: "Todo updated",
-		body: document.title,
-		metadata: { todo: JSON.parse(JSON.stringify(document)) as Record<string, unknown> },
+		category : "todo",
+		type     : "todo.updated",
+		status   : "passed",
+		title    : "Todo updated",
+		body     : document.title,
+		metadata : { todo: JSON.parse(JSON.stringify(document)) as Record<string, unknown> },
 	};
 }
 
@@ -353,29 +360,29 @@ function nativeTodoItem(step: SemanticWorkStep, status: TodoItemStatus, rootExec
 		evidenceIds,
 		details: [],
 		source: {
-			kind: "native-plan-item",
-			identity: step.identity.value,
-			originRevision: step.identity.originRevision,
-			currentRevision: step.currentRevision,
-			executions: [rootExecution],
+			kind            : "native-plan-item",
+			identity        : step.identity.value,
+			originRevision  : step.identity.originRevision,
+			currentRevision : step.currentRevision,
+			executions      : [rootExecution],
 		},
 	};
 }
 
 function nativeTodoSource(source: NonNullable<WorkFlowProjection["source"]>, binding?: TodoNativePlanBinding): TodoNativePlanSource {
 	const rootExecution = binding?.rootExecution ?? {
-		provider: null,
-		model: null,
-		agentId: null,
-		threadId: null,
-		runId: source.turnId,
+		provider : null,
+		model    : null,
+		agentId  : null,
+		threadId : null,
+		runId    : source.turnId,
 	};
 	return {
-		kind: "native-plan",
-		threadKeyDigest: source.expectedThreadKeyDigest,
-		turnId: source.turnId,
-		input: binding?.input ?? null,
-		planRevision: source.currentRevision,
+		kind            : "native-plan",
+		threadKeyDigest : source.expectedThreadKeyDigest,
+		turnId          : source.turnId,
+		input           : binding?.input ?? null,
+		planRevision    : source.currentRevision,
 		rootExecution,
 	};
 }
@@ -398,13 +405,17 @@ function canApplyNativeSource(current: TodoNativePlanSource, incoming: TodoNativ
 		&& incoming.turnId === current.turnId;
 }
 
-function validateNativePlanSource(source: WorkFlowProjection["source"]): void {
+function validateNativePlanSource(source: WorkFlowProjection["source"]): NonNullable<WorkFlowProjection["source"]> {
 	if (!isNativePlanSource(source)) throw new TodoNativeSourceError();
+	return source;
 }
 
-function isNativePlanSource(source: unknown): boolean {
+function isNativePlanSource(source: unknown): source is NonNullable<WorkFlowProjection["source"]> {
 	try {
-		if (!isRecord(source) || source.kind !== "native-plan-derived" || source.authority !== "native-checklist" || source.algorithm !== "dplan-v1") return false;
+		if (!isRecord(source)
+			|| source.kind !== "native-plan-derived"
+			|| source.authority !== "native-checklist"
+			|| source.algorithm !== "dplan-v1") return false;
 		if (!isOpaqueNativeId(source.turnId) || !isSha256Hex(source.expectedThreadKeyDigest)) return false;
 		const revision = source.currentRevision;
 		return isRecord(revision)
@@ -429,7 +440,12 @@ function isSha256Hex(value: unknown): value is string {
 }
 
 function isOpaqueNativeId(value: unknown): value is string {
-	return typeof value === "string" && value.length > 0 && value.length <= 512 && value.trim() === value;
+	return (
+		typeof value === "string"
+		&& value.length > 0
+		&& value.length <= 512
+		&& value.trim() === value
+	);
 }
 
 function validateNativeTodoIds(steps: readonly SemanticWorkStep[]): void {
