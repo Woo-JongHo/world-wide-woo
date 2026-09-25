@@ -7,6 +7,7 @@
 ## 코드 구조
 
 - 모듈을 생성·이동하거나 의존 경계를 수정할 때는 [LAYERS.md](LAYERS.md)를 읽고 `core / adapters` 정본과 아키텍처 게이트를 적용한다.
+- 제품·테스트 TypeScript를 작성하거나 반복 블록을 고칠 때는 [woo-code-readability](.agents/skills/woo-code-readability/SKILL.md)의 작성 시 축 계약([readability-contract.md](.agents/skills/woo-code-readability/references/readability-contract.md))대로 쓴다. 완료 전에 `00_normalize-imports.ts` 검사와 `06_align-tables.ts --file <대상 파일>` 검사를 통과해 증명한다.
 
 ## 산출물 위치
 

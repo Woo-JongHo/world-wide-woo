@@ -67,13 +67,15 @@
 28. `exactOptionalPropertyTypes`가 꺼진 상태의 `property?: T`는 명시적 `property: undefined`도 허용한다. 호출부에서 속성 생략과 명시적 `undefined`를 별도로 조사하고 같은 부재 의미라면 속성 생략 하나로 통일한다. 서로 다른 의미가 확인된 경우에만 `| undefined`를 명시 계약으로 유지한다.
 29. optional 엄격화는 `audit-optional-types.ts`를 읽기 전용 마이그레이션 게이트로 먼저 실행한다. 기본 실행은 오류 0건을 요구하고, `--max-errors <현재 기준선>`은 오류 증가를 실패시킨다. `--file <대상 파일>`은 전역 판정을 유지하면서 그 파일의 행·열·오류 코드·진단 문장을 별도로 보고한다. 전체 0건과 관련 행동 테스트를 확인한 뒤에만 `tsconfig.json`에 활성화하며, 일괄적으로 `| undefined`를 덧붙여 통과시키지 않는다.
 30. 불확실성 감사의 모수는 `audit-type-uncertainty.ts --file <대상 파일>`이 TypeScript AST에서 추출한다. optional 속성·매개변수·메서드·튜플·타입, `null`, `undefined`, non-null assertion, definite assignment, `as`, angle-bracket assertion을 서로 다른 종류로 보고한다. 논리 부정과 조건 연산자는 목록에 포함하지 않으며, 출력을 자동 제거 목록으로 간주하지 않고 정의·호출자·테스트로 각각 판정한다.
-31. 저장소 전체 흐름 지도는 `docs/`의 감사 문서가 소유한다. 제품 파일에 수동 함수 지도나 그 구조를 고정하는 테스트를 요구하지 않는다.
+31. 기능 구현 파일은 상단에 함수 지도(`GROUP | FUNCTION | INPUT | RETURN | CALLS | ROLE`)를 둘 수 있다. FUNCTION은 파일 안 선언과 1:1이고 INPUT 개수는 매개변수와 일치해야 하며, CALLS에 적은 이름도 파일 안에 있어야 한다. 지도와 코드의 drift는 `08_function-map.ts` 검사로 잠긴다. GROUP·ROLE은 읽기 흐름의 섹션·역할을 따른다. 저장소 전체 흐름 요약은 여전히 `docs/`의 감사 문서가 소유한다.
 32. 공개 Port·Domain 계약은 compact TypeScript 표기를 기본으로 한다. JSDoc·optional capability·수명주기 책임이 섞인 메서드 목록에 역할 주석을 추가해 가짜 표를 만들거나, `Promise< >`의 닫는 `>`를 맞추려고 타입 내부를 공백으로 늘리지 않는다.
 33. 같은 역할의 객체 배열은 객체 하나를 한 행으로 취급한다. 선택 속성의 생략이 단지 표현 기본값일 뿐이면 모든 행을 동일한 속성 셀로 정규화하고 `{`, 각 `:`, 각 `,`, `}`를 실제 최장값 기준으로 맞춘다. 생략 자체가 도메인 의미이면 명시값으로 덮지 않고 별도 표로 분리한다.
 34. 객체 기반 열 명세와 그 열에 들어갈 데이터 행 생성은 독립된 표다. 복잡한 호출 인자 안에 두 표를 중첩하지 않고 각각 이름 있는 지역 값으로 분리하며, 호출부는 `{ columns, rows }`처럼 최소 구성으로 유지한다.
 35. 종결 `;`는 더 이상 예외로 붙이지 않는다. 같은 표 안에서는 다른 열과 동일하게 실제 최장 값 기준으로 열을 맞춘다. `;` 뒤에 닫는 `}`가 바로 오는 한 줄 실행 블록(규칙 9)은 별도 사례로 유지하고 이 규칙으로 덮지 않는다.
 36. 비교 대상 행이 없는 단독 문장(같은 역할의 반복이 3행 미만이라 표가 되지 않는 경우)은 세로로 쪼개 정렬하지 않는다. `if (조건) 실행() return`처럼 원래 한 줄로 읽히던 짧은 흐름은 압축된 한 줄 형태를 우선한다.
 37. 인터페이스와 클래스의 멤버 선언은 한 멤버가 한 물리 행을 소유한다. 같은 행에 여러 속성·메서드 선언을 `;`로 이어 붙여 표의 행 경계를 숨기지 않는다. 짧은 공개 계약도 이 규칙의 예외가 아니다.
+38. 가드·검증 조건이 한 행에 3개를 넘거나 120열을 넘으면 여러 줄 `if` 블록과 early return으로 행을 나누고, 연산자(`||`, `&&`)는 행 머리에 둔다. 반복되는 검사 묶음은 이름 있는 조건자(`isInScope`, `isAuthorized`)로 추출해 호출부를 읽기 순서로 유지한다.
+39. 기능 슬롯(approvalPreview·reconciliation·execute 등)을 익명 삼항식이나 조건부 스프레드 안에 인라인하지 않는다. 슬롯 하나는 이름 있는 지역 함수 하나로 추출해 위에서 아래로 읽게 하고, 조립 지점은 `...(write ? { approvalPreview, reconciliation } : {})` 최소 형태로 남긴다.
 
 ## 열 기준점
 
@@ -99,6 +101,69 @@
 9. **내용 배치**: 기능·함수 이름과 실행 셀은 왼쪽 정렬한다. 빈 `()`와 배열 표식 `[]`는 내부 공백 없이 묶는다. 객체 배열은 여는 `{`와 닫는 `}`까지 하나의 외곽 행으로 측정하고, 보존된 모든 속성의 `:`와 구분 `,`가 같은 열인지 확인한다.
 10. **초과 행 처리**: 120열을 넘는 새 행은 의미 경계 분리를 검토한다. 기준 파일의 수락된 그리드는 사용자 확인 없이 변경하지 않는다.
 11. **실측 검증**: 표시 폭과 hover 측정기로 선택한 짧은 반복 블록과 JSDoc 노출을 확인한다. 코드 실행·타입 검사·대상 테스트로 동작이 바뀌지 않았음을 확인한다.
+
+## 작성 시 축 계약 — 프롬프트와 검사의 단일 기준
+
+코드는 **쓰는 시점부터** 아래 축 열이 맞은 형태로 작성된다. 완료 전에는 검사기로 두 번째 잠금을 한다. 이 표는 `grid-kinds.ts`의 `KIND_AXES` 등록부와 1:1이며, 문서 예시와 검사기 출력이 다르면 **검사기가 기준**이다.
+
+- **간격 축(gap)** — 토큰 앞에 최소 한 칸 여백을 남긴다. 표 안에서는 실제 최장 값까지 공백으로 열을 맞춘다.
+- **삽입 축(insert)** — 기존 TypeScript 관습을 보존한다. 붙여 쓰는 토큰(`)`, `):`, `":`)을 임의로 벌리지 않고, 여백은 바깥쪽에 둔다.
+- 연속 3행 이상 같은 역할일 때만 표다. 빈 줄·주석·JSDoc은 표를 끊는다. 조건 타입 `:`, `for` 헤더 `;`, 빈 문장, 한 줄 실행 블록은 정렬 대상이 아니다.
+- 축 이름은 검사기 등록부의 식별자를 그대로 쓴다: `colon`(이름 뒤 `:`), `equals`(`=`), `semicolon`(`;`), `comma`(`,`), `comment`(우측 `//`), `open-paren`(`(`), `close-paren`(`)`), `case-colon`(case 라벨 `:`), `call-paren`(case 행 첫 호출 `(`), `return-tail`(bare `return;` 시작), `value`(실행식 시작), `close-brace`(`}`).
+
+| 종류 | 간격 축 | 삽입 축 |
+|---|---|---|
+| declaration | `:` , `;` | `//` |
+| declaration-equals (`=`이 있는 선언 표) | `:` , `=` , `;` | `//` |
+| type-alias | `=` , `;` | `//` |
+| method-signature · class-method | — | `(` , `)` , 반환 `:` , `//` |
+| interface-members · class-members · type-members (`type X = { ... }`) | `:` , `=` , `;` | `//` |
+| enum-member | `=` , `,` | `//` |
+| case-clause | — | case `:` |
+| object-rows (`{i}`는 속성 위치별) | `:{i}` , `값{i}` 시작 , `,{i}` | `}` , 꼬리 `tail`(`,` `;` `)` `as const`) |
+| registration | `:` , 실행식 시작 | — |
+| assignments (`this.x = y;` 대입문 표) | `=` , `;` | `//` |
+
+작성 예시 — 전부 검사기 `--write` 출력과 동일한 형태다:
+
+```ts
+const alpha : string  = "a"  ;
+const beta  : number  = 22   ;
+const gamma : boolean = true ;
+
+type AppOptions      = RunOptions             ;
+type SessionList     = RecentSessionSummary[] ;
+type ThreadSelection = string | null          ;
+```
+
+```ts
+	runFirst (first: string                ): Promise<void>;
+	runSecond(second: number, extra: string): void;
+	listAll  ()                             : Promise<string[]>;
+
+	dashboard : new DashboardRail(get, synthetic),
+	workflow  : new WorkflowRail(get, synthetic),
+	context   : new ContextRail(get, synthetic),
+
+	Low    = 1   ,
+	Middle = 22  ,
+	High   = 333 ,
+
+	case "a"  : return "first";
+	case "bb" : return "second";
+	case "ccc": return "third";
+```
+
+삽입 축 관습 — 코드를 어떻게 쓰든 검사기가 되돌리지 않는 것들:
+
+- 빈 매개변수는 `()`로 붙이고 `)` 정렬에서 제외하며, 여백은 괄호 밖에 둔다.
+- 반환 타입은 `): Promise<void>`처럼 `)`에 붙인다. `case "a":`의 `:`도 라벨에 붙인다.
+- 매개변수 목록이 긴 행과 짧은 행은 `)` 열을 맞추기 위해 `(` 직후·`)` 직전 내부 폭으로만 벌린다.
+
+두 시점 잠금:
+
+1. **작성 시점(프롬프트)** — LLM·사람이 코드를 쓸 때 위 표와 예시 형태로 쓴다. 에이전트 정의는 SKILL.md를 매뉴얼로 참조하므로 이 절이 곧 프롬프트다.
+2. **완료 시점(검사)** — 변경 파일마다 `00_normalize-imports.ts`(검사 모드)와 `06_align-tables.ts --file`(misaligned=0)을 통과시킨다. 두 검사를 통과 못 하는 형태를 원하면 이 계약을 먼저 고친다.
 
 ## 폐기 규칙
 

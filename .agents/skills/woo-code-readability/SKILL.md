@@ -103,14 +103,25 @@ bun .agents/skills/woo-code-readability/scripts/typescript/00_normalize-imports.
 
 첫 명령은 변경이 필요한 파일이 있으면 실패하고 목록을 출력한다. `--write`는 import 선언부만 기계적으로 정규화하며 이후 TypeScript·아키텍처·행동 검증을 반드시 실행한다.
 
-**STEP6 — 안전한 표 경계 정렬.** 선언·인터페이스·클래스 멤버의 연속 3행 이상 표는 `:`와 종결 `;`를 실제 최장 값 기준으로 맞춘다. 인터페이스나 클래스 멤버가 한 물리 행에 둘 이상 압축돼 있으면 정렬 전에 실패시켜 “한 선언 한 행” 누락을 숨기지 않는다. 객체 행 표는 같은 shape가 연속될 때만 `{`·`:`·`,`·`}` 경계를 맞춘다. 조건식, `for` 헤더, 빈 문장, 한 줄 실행 블록, JSDoc·빈 줄로 끊긴 행은 대상에서 제외한다.
+**STEP6 — 표 종류별 경계 정렬.** [종류 등록부](scripts/typescript/grid-kinds.ts)가 감지한 표 종류(declaration·declaration-equals·type-alias·method-signature·interface-members·class-members·class-method·enum-member·case-clause·object-rows·registration)마다 연속 3행 이상의 축 열을 실제 최장 값 기준으로 맞춘다. 간격 축(`이름 : 타입`, `= 값`, `값 ;`, `,`, `}`)은 최소 한 칸 여백을 남기고, 삽입 축(`(`·`)`, `):`, `case "x":`, 우측 `//`)은 기존 관습을 보존한 채 열만 맞춘다. 빈 매개변수는 `()`로 붙이고 `)` 정렬에서 제외하며 여백은 괄호 밖에 둔다. 인터페이스 멤버가 한 물리 행에 압축돼 있으면 `compressed=`로 보고하고 `--write`로도 고치지 않는다 — 행 펼치기는 구조 변경이다. 조건식, `for` 헤더, 빈 문장, 한 줄 실행 블록, JSDoc·빈 줄로 끊긴 행은 대상에서 제외한다.
 
 ```bash
-bun .agents/skills/woo-code-readability/scripts/typescript/06_align-tables.ts --file <대상 파일>
-bun .agents/skills/woo-code-readability/scripts/typescript/06_align-tables.ts --file <대상 파일> --write
+bun .agents/skills/woo-code-readability/scripts/typescript/06_align-tables.ts --file <대상 파일> [--write] [--min-rows 3] [--explain <줄번호>]
 ```
 
-첫 명령은 안전한 표와 불일치 수를 보고하고 불일치가 있으면 실패한다. 파일 내용을 읽어 표의 역할이 같은지 확인한 뒤에만 `--write`를 사용하고, 다시 실행해 `misaligned=0`을 증명한다.
+첫 명령은 표 종류·축·불일치 수를 보고하고 불일치가 있으면 실패한다. 파일 내용을 읽어 표의 역할이 같은지 확인한 뒤에만 `--write`를 사용하고, 다시 실행해 `misaligned=0`을 증명한다. 안되는 것을 발견하면 ① `--explain <줄번호>`로 종류를 판정하고 ② 빠지거나 과한 축을 가려낸 뒤 ③ `grid-kinds.ts`에 종류·축을 등록하고 `fixtures/table-kinds.ts`와 `test/code-readability-tools.test.ts`로 고정한다.
+
+**STEP7 — 조건 사슬 줄바꿈.** 한 물리 행에 조건을 4개 이상 나열한 `&&`·`||` 사슬을 규칙 38 형태의 여러 줄로 감는다(연산자는 행 머리). 줄바꿈 삽입만 하므로 괄호와 평가 순서는 보존되며, 혼합 연산자 그룹과 표 행 안의 사슬(등록 객체 화살표 등)은 자동 대상에서 제외된다 — 그것들은 규칙 38의 수동 재구성 대상이다.
+
+```bash
+bun .agents/skills/woo-code-readability/scripts/typescript/07_wrap-conditions.ts --file <대상 파일> [--write] [--min-conditions 4]
+```
+
+**STEP8 — 함수 지도 검사.** 기능 구현 파일 상단의 함수 지도(`GROUP | FUNCTION | INPUT | RETURN | CALLS | ROLE`)와 실제 선언의 drift를 검사한다. FUNCTION 1:1, INPUT 개수 일치, CALLS 존재를 확인한다. `--scaffold`로 선언을 훑은 골격을 만들 수 있다. 지도 형식은 [TypeScript 그리드 템플릿](references/typescript-grid-template.md)을 따른다.
+
+```bash
+bun .agents/skills/woo-code-readability/scripts/typescript/08_function-map.ts --file <대상 파일> [--scaffold]
+```
 
 **STEP1 — 그룹 확정.** 정렬을 주장하기 전에 먼저 AST로 "같은 표로 묶을 수 있는 연속 행"을 찾는다. 텍스트 위치가 아니라 SyntaxKind가 같은 형제 노드만 묶으므로 삼항연산자 `:`와 속성/객체 리터럴 `:`처럼 문자는 같아도 역할이 다른 토큰은 애초에 다른 그룹으로 갈린다.
 
@@ -172,5 +183,6 @@ node .agents/skills/woo-code-readability/scripts/typescript/05_inspect-hover.mjs
 - 제거 가능한 타입 단언과 중복된 부재 표현이 남지 않고, 이름을 붙인 타입과 문서화가 필요한 optional 속성은 hover 설명이 검증된다.
 - 생략과 명시적 `undefined`가 같은 상태라면 호출부는 속성 생략 하나로 통일되며, `exactOptionalPropertyTypes` 전체 오류 수는 근거 없이 늘어나지 않는다.
 - 비교 행이 2개 미만인 새 표나, 정본에 없는 과도한 공백을 확산하지 않는다.
+- 변경한 TypeScript 파일마다 두 번째 잠금을 통과한다: `00_normalize-imports.ts` 검사 모드(changed=0)와 `06_align-tables.ts --file`(misaligned=0, compressed는 0이거나 수동 확장 계획이 있다). 코드는 작성 시점에 [작성 시 축 계약](references/readability-contract.md)대로 쓰고, 검사가 이를 증명한다.
 - `bun run check`, 대상 행동 테스트, 필요한 `test/architecture.test.ts`, `git diff --check`가 통과한다.
 - 변경 파일에서 `TODO`, `test.skip`, `test.only`를 직접 확인한다.
