@@ -1,0 +1,68 @@
+{
+  "observedAt": "2026-09-25T22:26:00+09:00",
+  "revisions": {
+    "gajaeCode": "bf9d3ec15717a4df18d91bf79d16daf3326fad5c",
+    "ohMyPi": "ea8b54247afb85fa10ba784b35b54f90d7b28c7f",
+    "pi": "b3487650f6378f1b0d1643dd254445ceb4a98035"
+  },
+  "verifiedDifferences": [
+    {
+      "system": "WWW",
+      "facts": [
+        "Block-level row materialization is lazy, but a width-index miss renders every block to obtain exact heights.",
+        "The growing assistant draft is one reuse-never Markdown block.",
+        "The 32 ms scheduler coalesces paint requests only after synchronous snapshot projection.",
+        "The old live process repaints the layered Astra workspace every 120 ms while execution or decorative motion remains active."
+      ],
+      "sources": [
+        "src/adapters/inbound/tui/features/chat/astra-transcript-cache.ts",
+        "src/adapters/inbound/tui/features/chat/astra-execution.ts",
+        "src/adapters/inbound/tui/foundation/rendering/render-scheduler.ts",
+        "src/adapters/inbound/tui/shell/workbench-shell.ts"
+      ]
+    },
+    {
+      "system": "Gajae Code",
+      "facts": [
+        "Default virtual viewport reuses a stable off-screen normalized prefix and processes a visible window with overscan.",
+        "Monotonic component revisions permit subtree reuse.",
+        "Markdown has bounded render, parse, and highlight caches plus streaming throttle and highlight admission caps."
+      ],
+      "sources": [
+        "https://github.com/Yeachan-Heo/gajae-code/blob/bf9d3ec15717a4df18d91bf79d16daf3326fad5c/packages/tui/src/tui.ts#L1000-L1165",
+        "https://github.com/Yeachan-Heo/gajae-code/blob/bf9d3ec15717a4df18d91bf79d16daf3326fad5c/packages/tui/src/components/markdown.ts#L35-L205"
+      ]
+    },
+    {
+      "system": "oh-my-pi",
+      "facts": [
+        "Transcript ownership is explicit as active, settled, and committed.",
+        "Finalized semantic rows retire through monotonic acknowledged history batches while only a bounded suffix remains mutable.",
+        "Scheduling adapts to previous frame cost and defers ordinary frames under terminal output backlog."
+      ],
+      "sources": [
+        "https://github.com/can1357/oh-my-pi/blob/ea8b54247afb85fa10ba784b35b54f90d7b28c7f/docs/tui-core-renderer.md#L17-L83",
+        "https://github.com/can1357/oh-my-pi/blob/ea8b54247afb85fa10ba784b35b54f90d7b28c7f/packages/tui/src/tui.ts#L2050-L2195"
+      ]
+    },
+    {
+      "system": "pi",
+      "facts": [
+        "The full component tree renders before terminal line diffing.",
+        "Keyboard input can force an immediate frame, but the renderer has no transcript-finality lifecycle of its own."
+      ],
+      "sources": [
+        "https://github.com/earendil-works/pi/blob/b3487650f6378f1b0d1643dd254445ceb4a98035/packages/tui/src/tui-main-screen.ts#L250-L520",
+        "https://github.com/earendil-works/pi/blob/b3487650f6378f1b0d1643dd254445ceb4a98035/packages/tui/src/tui.ts#L900-L1035"
+      ]
+    }
+  ],
+  "rankedFollowups": [
+    "Stop state-independent full-workspace repaint clocks.",
+    "Make the active Markdown block append-aware with a stable completed prefix and mutable suffix.",
+    "Coalesce delta-only snapshot publication before projection while preserving immediate lifecycle transitions.",
+    "Adopt adaptive frame-cost and pending-output backpressure scheduling.",
+    "Introduce active-settled-committed transcript retirement only after resize and scroll-anchor contracts are specified."
+  ],
+  "causalityBoundary": "Live samples correlate high parent CPU with a quiescent working screen and low descendant CPU, but do not directly attribute sampled CPU stacks to a named JavaScript function or observe terminal pixel latency."
+}

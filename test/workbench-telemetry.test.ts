@@ -3,7 +3,7 @@ import { stripTerminalSequences } from "@earendil-works/pi-tui";
 import {
 	formatWorkbenchTelemetry,
 	workbenchModelLabel,
-} from "../src/adapters/inbound/tui/features/monitoring/workbench-telemetry";
+} from "../src/adapters/inbound/tui/features/monitoring/view/workbench-telemetry";
 import { parseGitTelemetry }      from "../src/adapters/outbound/git/git-telemetry-source";
 
 describe("workbench telemetry rail", () => {

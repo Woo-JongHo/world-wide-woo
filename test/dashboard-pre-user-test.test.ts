@@ -4,8 +4,8 @@ import type {
 	ObservabilityDashboard,
 	ObservabilitySessionSummary,
 } from "../src/core/domain/observability/observability-dashboard";
-import { dashboardSessionWindow }               from "../src/adapters/inbound/tui/features/session/dashboard-session-window";
-import { ObservabilityDashboardView }           from "../src/adapters/inbound/tui/features/session/observability-dashboard-view";
+import { dashboardSessionWindow }               from "../src/adapters/inbound/tui/features/session/view-model/dashboard-session-window";
+import { ObservabilityDashboardView }           from "../src/adapters/inbound/tui/features/session/view/observability-dashboard-view";
 
 const session = (index: number): ObservabilitySessionSummary => ({
 	sessionId : `session-${String(index).padStart(2, "0")}`,

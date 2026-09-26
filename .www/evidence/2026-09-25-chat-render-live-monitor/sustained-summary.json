@@ -1,0 +1,80 @@
+{
+  "monitor": {
+    "surface": "surface:1",
+    "pid": 90809,
+    "interval_seconds": 5,
+    "planned_duration_seconds": 600,
+    "sample_count": 120,
+    "stopped_early": false
+  },
+  "classification": {
+    "busy_definition": "Visible screen reported a terminal/tool running marker.",
+    "quiet_definition": "Visible screen had no terminal/tool running marker."
+  },
+  "workload_busy": {
+    "cpu_percent": {
+      "count": 119,
+      "p50": 13.5,
+      "p95": 93.66,
+      "max": 133.1
+    },
+    "rss_kb": {
+      "count": 119,
+      "p50": 295440,
+      "p95": 494190.4,
+      "max": 559360
+    },
+    "direct_child_cpu_percent": {
+      "count": 119,
+      "p50": 1.2,
+      "p95": 8.16,
+      "max": 35.6
+    },
+    "direct_child_rss_kb": {
+      "count": 119,
+      "p50": 57920,
+      "p95": 158790.4,
+      "max": 174320
+    }
+  },
+  "quiet_repaint": {
+    "cpu_percent": {
+      "count": 1,
+      "p50": 93.6,
+      "p95": 93.6,
+      "max": 93.6
+    },
+    "rss_kb": {
+      "count": 1,
+      "p50": 430032,
+      "p95": 430032,
+      "max": 430032
+    },
+    "direct_child_cpu_percent": {
+      "count": 1,
+      "p50": 10.0,
+      "p95": 10.0,
+      "max": 10.0
+    },
+    "direct_child_rss_kb": {
+      "count": 1,
+      "p50": 99520,
+      "p95": 99520,
+      "max": 99520
+    }
+  },
+  "transitions": [
+    {
+      "timestamp": "2026-09-25T22:11:43+09:00",
+      "from": "busy",
+      "to": "quiet"
+    },
+    {
+      "timestamp": "2026-09-25T22:11:48+09:00",
+      "from": "quiet",
+      "to": "busy"
+    }
+  ],
+  "pid_exit_event": null,
+  "privacy": "Screen data is reduced to coarse phase, terminal-running marker, and source identifier; chat body text is not retained."
+}

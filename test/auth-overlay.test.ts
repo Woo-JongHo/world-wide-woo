@@ -6,7 +6,7 @@ import {
 	GEMINI_API_KEY_URL,
 	LoginOverlay,
 	ZAI_API_KEY_URL,
-} from "../src/adapters/inbound/tui/features/authentication/auth-overlay";
+} from "../src/adapters/inbound/tui/features/authentication/view/auth-overlay";
 import { AuthService }                          from "../src/adapters/outbound/authentication/auth-service";
 
 function fakeAuthModels(): Pick<Models, "checkAuth" | "getProvider" | "login" | "logout"> {

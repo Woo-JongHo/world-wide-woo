@@ -18,7 +18,7 @@ import { CommitReceiptStore }                                                   
 
 const policy: CommitPolicy = { messageProfile: "korean-result", subjectMaxLength: 72, subjectSoftLength: 50, requireScope: true, requireType: true, requireHumanAuthorization: true, fullFileStagingOnly: true, protectedBranches: ["dev", "main"], allowedTypes: ["feat", "fix", "perf", "refactor", "test", "docs", "build", "ci", "chore", "revert"], scopes: { commit: "커밋" } };
 function candidate(overrides: Partial<CommitCandidate> = {}): CommitCandidate {
-	return { schemaVersion: "1.0", id: "COMMIT-CANDIDATE-TEST-1", intent: "commit control pilot", type: "feat", scope: "commit", baseHead: "1".repeat(40), contentDigest: "2".repeat(64), state: "complete", decision: "ready", result: "승인된 변경만 커밋한다", why: "직접 커밋의 규칙 우회를 막는다.", paths: ["change.txt"], axes: { samePurpose: { result: "pass", evidence: "한 목적" }, rollbackTogether: { result: "pass", evidence: "함께 복구" }, sharedValidation: { result: "pass", evidence: "한 검증" }, oneHeadline: { result: "pass", evidence: "한 제목" } }, validations: [{ id: "UNIT", class: "deterministic", severity: "blocking", expected: "pass", result: "pass", evidence: "targeted test pass" }], boundaries: ["로컬 commit만 포함"], refs: ["WOO-747", "Code-014"], blockers: [], next: null, ...overrides };
+	return { schemaVersion: "1.0", id: "COMMIT-CANDIDATE-TEST-1", intent: "commit control pilot", type: "feat", scope: "commit", baseHead: "1".repeat(40), contentDigest: "2".repeat(64), state: "complete", decision: "ready", result: "승인된 변경만 커밋한다", why: "직접 커밋의 규칙 우회를 막는다.", fixes: "승인과 다른 변경이 같은 커밋에 포함될 수 있다", verified: "targeted test pass", paths: ["change.txt"], axes: { samePurpose: { result: "pass", evidence: "한 목적" }, rollbackTogether: { result: "pass", evidence: "함께 복구" }, sharedValidation: { result: "pass", evidence: "한 검증" }, oneHeadline: { result: "pass", evidence: "한 제목" } }, validations: [{ id: "UNIT", class: "deterministic", severity: "blocking", expected: "pass", result: "pass", evidence: "targeted test pass" }], boundaries: ["로컬 commit만 포함"], refs: ["WOO-747", "Code-014"], blockers: [], next: null, ...overrides };
 }
 
 describe("woo-commit contract", () => {
@@ -31,10 +31,15 @@ describe("woo-commit contract", () => {
 		const control = new CommitControlPlane(policy), value = candidate({ paths: ["one", "two"] });
 		const message = control.render(value);
 		expect(message).toContain("이유:\n"); expect(message).toContain(candidateDigest(value));
+		expect(message.match(/^Fixes: /gmu)).toHaveLength(1);
+		expect(message.match(/^Verified: /gmu)).toHaveLength(1);
+		expect(message.trimEnd().endsWith(`Fixes: ${value.fixes}\nVerified: ${value.verified}`)).toBeTrue();
 	});
 	test("blocking 검증 실패와 모호한 결과를 차단한다", () => {
 		const control = new CommitControlPlane(policy);
 		expect(control.validate(candidate({ result: "수정" }), true)).toContain("result: 구체적인 완료 상태를 설명해야 합니다.");
+		expect(control.validate(candidate({ fixes: "" }), true)).toContain("fixes: 한 줄의 비어 있지 않은 값이어야 합니다.");
+		expect(control.validate(candidate({ verified: "" }), true)).toContain("verified: 한 줄의 비어 있지 않은 값이어야 합니다.");
 		const value = candidate(); value.validations[0]!.result = "not-run";
 		expect(control.validate(value, true).some(error => error.includes("blocking"))).toBeTrue();
 	});

@@ -10,7 +10,7 @@ import {
 	CompletionSummaryCard,
 	DiffResultCard,
 	GenericToolResultCard,
-} from "../src/adapters/inbound/tui/features/chat/result-cards";
+} from "../src/adapters/inbound/tui/features/chat/view/result-cards";
 import { semantic }                             from "../src/adapters/inbound/tui/foundation/theme/theme";
 
 function snapshot(overrides: Partial<CommandResultSnapshot> = {}): CommandResultSnapshot {

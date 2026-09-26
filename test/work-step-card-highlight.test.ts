@@ -9,8 +9,8 @@ import {
 	ObservationCard,
 	projectNativePathText,
 	WorkStepCard,
-} from "../src/adapters/inbound/tui/features/chat/work-step-card";
-import { BashResultCard }                       from "../src/adapters/inbound/tui/features/chat/result-cards";
+} from "../src/adapters/inbound/tui/features/chat/view/work-step-card";
+import { BashResultCard }                       from "../src/adapters/inbound/tui/features/chat/view/result-cards";
 
 const THREAD = "thread-highlight";
 const TURN = "turn-highlight";

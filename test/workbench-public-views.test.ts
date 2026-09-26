@@ -5,17 +5,20 @@ import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
 import chalk                                    from "chalk";
 import type { WorkbenchSnapshot }               from "../src/core/domain/work/workbench";
 import { createDashboardLayout }                from "../src/adapters/inbound/tui/foundation/layout/dashboard-layout";
-import { StatusLine, WorkspaceTodoView }        from "../src/adapters/inbound/tui/features/dashboard/shared-dashboard-views";
-import { WorkbenchChatView }                    from "../src/adapters/inbound/tui/features/chat/workbench-views";
-import { EntryDashboardView }                   from "../src/adapters/inbound/tui/features/dashboard/entry-dashboard-view";
-import { TNotesSourceView }                     from "../src/adapters/inbound/tui/features/tnote/t-notes-source-view";
-import { WorkbenchMonitorView }                 from "../src/adapters/inbound/tui/features/monitoring/workbench-monitor-view";
-import { WorkbenchTracerView }                  from "../src/adapters/inbound/tui/features/trace/workbench-tracer-view";
-import { boundedPublicProjection }              from "../src/adapters/inbound/tui/features/chat/bounded-public-projection";
+import {
+	StatusLine,
+	WorkspaceTodoView,
+} from "../src/adapters/inbound/tui/features/dashboard/view/shared-dashboard-views";
+import { WorkbenchChatView }                    from "../src/adapters/inbound/tui/features/chat/view/workbench-views";
+import { EntryDashboardView }                   from "../src/adapters/inbound/tui/features/dashboard/view/entry-dashboard-view";
+import { TNotesSourceView }                     from "../src/adapters/inbound/tui/features/tnote/view/t-notes-source-view";
+import { WorkbenchMonitorView }                 from "../src/adapters/inbound/tui/features/monitoring/view/workbench-monitor-view";
+import { WorkbenchTracerView }                  from "../src/adapters/inbound/tui/features/trace/view/workbench-tracer-view";
+import { boundedPublicProjection }              from "../src/adapters/inbound/tui/features/chat/view-model/bounded-public-projection";
 import {
 	approvalCardRows,
 	projectApprovalBackgroundState,
-} from "../src/adapters/inbound/tui/features/approval/approval-presentation";
+} from "../src/adapters/inbound/tui/features/approval/view/approval-presentation";
 import { projectWorkFlow }                      from "../src/core/domain/work";
 import type { DplanHash }                       from "../src/core/domain/work";
 

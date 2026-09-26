@@ -4,19 +4,20 @@ import type {
 	NativeApprovalResponse,
 	NativeRefs,
 } from "@/core/domain/execution/native-session.js";
-import type { Effort }                                          from "@/core/domain/execution/model-settings.js";
-import type { ProjectActivity }                                 from "@/core/domain/execution/project-activity.js";
-import type { TodoDocument }                                    from "@/core/domain/work/todos.js";
-import type { ReviewProvider }                                  from "@/core/domain/review/review.js";
-import type { WorkFlowProjection }                              from "@/core/domain/work/index.js";
-import type { ExecutionRunState }                               from "@/core/domain/execution/execution-run-contract.js";
-import type { RequestRuntimeRecord }                            from "@/core/domain/execution/request-runtime";
-import type { ActivitySelectionResult }                         from "@/core/domain/work/trace-selection.js";
-import type { LinearProjectDashboard }                          from "@/core/domain/work/linear-dashboard.js";
-import type { PerformanceProjection }                           from "@/core/domain/work/performance.js";
-import type { NativeDelegatedTask, NativeDelegationProjection } from "@/core/domain/work/delegation.js";
-import type { CacheLayerObservation }                           from "@/core/domain/observability/cache-telemetry.js";
-import type { PerformanceTrace, PerformanceWindow }             from "@/core/domain/observability/layer-performance.js";
+import type { Effort }                                                          from "@/core/domain/execution/model-settings.js";
+import type { ProjectActivity }                                                 from "@/core/domain/execution/project-activity.js";
+import type { TodoDocument }                                                    from "@/core/domain/work/todos.js";
+import type { ReviewProvider }                                                  from "@/core/domain/review/review.js";
+import type { WorkFlowProjection }                                              from "@/core/domain/work/index.js";
+import type { ExecutionRunState }                                               from "@/core/domain/execution/execution-run-contract.js";
+import type { RequestRuntimeRecord }                                            from "@/core/domain/execution/request-runtime";
+import type { ActivitySelectionResult }                                         from "@/core/domain/work/trace-selection.js";
+import type { LinearProjectDashboard }                                          from "@/core/domain/work/linear-dashboard.js";
+import type { PerformanceProjection }                                           from "@/core/domain/work/performance.js";
+import type { NativeDelegatedTask, NativeDelegationProjection }                 from "@/core/domain/work/delegation.js";
+import type { CacheLayerObservation }                                           from "@/core/domain/observability/cache-telemetry.js";
+import type { PerformanceTrace, PerformanceWindow }                             from "@/core/domain/observability/layer-performance.js";
+import type { TNoteCompletionMetadata, TNoteModelProvenance, TNoteSourceRange } from "@/core/domain/work/t-notes.js";
 
 export type WorkbenchPhase             = "loading" | "ready" | "working" | "error" | "closed" ;
 export type WorkbenchPermissionMode    = "manual" | "all"                                     ;
@@ -52,6 +53,24 @@ export interface WorkbenchTNote {
 	summary           : string            ;
 	sourceActivityIds : readonly string[] ;
 	updatedAt         : string            ;
+	/** Durable Note ordinal; older injected snapshots may omit it. */
+	sequence?         : number                           ;
+	/** Immutable Activity sequence range used to generate the Summary. */
+	sourceRange?      : TNoteSourceRange                 ;
+	/** Stable Native completed-turn identity when the stored record has it. */
+	completion?       : TNoteCompletionMetadata          ;
+	/** Detached generator identity retained with the persisted Summary. */
+	provenance?       : TNoteModelProvenance             ;
+	/** Stored Summary grammar; unknown preserves readable legacy or malformed records. */
+	format?           : "request-report-v2" | "legacy-five-field" | "legacy-three-field" | "unknown" ;
+}
+
+export interface WorkbenchTNoteReadState {
+	readonly status : "unavailable" | "loading" | "ready" | "stale" ;
+	/** Present only when the latest durable read failed. Previously loaded Notes remain visible as stale. */
+	readonly error  : string | null                                      ;
+	/** Explains why a configured read boundary is not currently readable. */
+	readonly unavailableReason? : "not-configured" | "awaiting-thread" ;
 }
 
 export interface WorkbenchLiveActivity {
@@ -219,6 +238,8 @@ export interface WorkbenchSnapshot {
 	/** Derived live execution brief; Native activities and plan status remain authoritative. */
 	workFlow : WorkFlowProjection        ;
 	tnotes   : readonly WorkbenchTNote[] ;
+	/** Health of the durable Summary/Note read boundary, independent from generation and append failures. */
+	tnoteRead?: WorkbenchTNoteReadState;
 	todo     : TodoDocument | null       ;
 	/** Durable Todo mirror health; Chat execution continues while this is blocked. */
 	todoSync?: WorkbenchTodoSyncState;

@@ -1,6 +1,6 @@
 import { createInterface }            from "node:readline/promises";
 import type { AuthEvent, AuthPrompt } from "@earendil-works/pi-ai";
-import type { AuthController }        from "@/core/ports";
+import type { AuthController }        from "@/core/ports/integration/auth-controller-port";
 import { PROVIDERS }                  from "@/core/domain/execution/model-settings";
 import type { Provider }              from "@/core/domain/execution/model-settings";
 

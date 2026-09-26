@@ -1,21 +1,26 @@
-import type { ProjectActivity }                                                from "@/core/domain/execution/project-activity.js";
-import type { RequestRuntimeRecord }                                           from "@/core/domain/execution/request-runtime.js";
-import type { WorkFlowProjection, WorkStepNarration }                          from "@/core/domain/work/index.js";
+import type { ProjectActivity }                                   from "@/core/domain/execution/project-activity.js";
+import type { RequestRuntimeRecord }                              from "@/core/domain/execution/request-runtime.js";
+import type { WorkFlowProjection, WorkStepNarration }             from "@/core/domain/work/index.js";
 import {
 	MAX_TNOTE_SOURCE_ACTIVITIES,
 	projectActivityToTNoteSource,
 	projectTNoteCompletionIndex,
 } from "@/core/domain/work/t-notes.js";
-import type { TNoteActivitySource, TNoteDraft, TNoteSourceRange }              from "@/core/domain/work/t-notes.js";
-import type { WorkbenchActionResult, WorkbenchCommandReceipt, WorkbenchTNote } from "@/core/domain/work/workbench.js";
+import type { TNoteActivitySource, TNoteDraft, TNoteSourceRange } from "@/core/domain/work/t-notes.js";
+import type {
+	WorkbenchActionResult,
+	WorkbenchCommandReceipt,
+	WorkbenchTNote,
+	WorkbenchTNoteReadState,
+} from "@/core/domain/work/workbench.js";
 import {
 	boundCompletedTurnNoteActivities,
 	resolveCompletedTurnNoteScope,
 } from "@/core/application/work/completed-turn-note-scope.js";
-import { validateCanonicalTNote }                                              from "@/core/application/work/t-note-service.js";
-import type { ActivityNarrator }                                               from "@/core/application/orchestration/activity-narrator.js";
-import { PlanActivityNarration }                                               from "@/core/application/orchestration/plan-activity-narration.js";
-import { projectTNote, turnTNoteInstruction }                                  from "@/core/application/orchestration/workbench-artifacts.js";
+import { validateCanonicalTNote }                                 from "@/core/application/work/t-note-service.js";
+import type { ActivityNarrator }                                  from "@/core/application/orchestration/activity-narrator.js";
+import { PlanActivityNarration }                                  from "@/core/application/orchestration/plan-activity-narration.js";
+import { projectTNote, turnTNoteInstruction }                     from "@/core/application/orchestration/workbench-artifacts.js";
 
 interface TNoteStore {
 	bindThread?(threadId: string): Promise<void>;
@@ -69,28 +74,80 @@ export class WorkbenchNoteNarration {
 	private planNarration?          : PlanActivityNarration                                     ;
 	private observedSequence                           = 0                                      ;
 	private revisionValue                              = 0                                      ;
+	private readStateValue          : WorkbenchTNoteReadState                                   ;
+	private readGeneration                             = 0                                      ;
+	private noteBinding             : Promise<void>    = Promise.resolve()                      ;
+	private boundThreadId           : string | null    = null                                   ;
 
-	public constructor(private readonly options: NoteNarrationOptions) {}
+	public constructor(private readonly options: NoteNarrationOptions) {
+		this.readStateValue = options.source?.bindThread
+			? Object.freeze({ status: "unavailable", error: null, unavailableReason: "awaiting-thread" })
+			: options.source
+				? Object.freeze({ status: "loading", error: null })
+				: Object.freeze({ status: "unavailable", error: null, unavailableReason: "not-configured" });
+	}
 
 	public get notes(): readonly WorkbenchTNote[] { return this.projectedNotes; }
 	public get stepNarrations(): ReadonlyMap<string, WorkStepNarration> { return this.narrations; }
 	public get revision(): number { return this.revisionValue; }
+	public get readState(): WorkbenchTNoteReadState { return this.readStateValue; }
 
 	public note               (id: string      ): TNoteDraft | undefined { return this.notesById.get(id); }
 	public setObservedSequence(sequence: number): void { this.observedSequence = sequence; }
-	public close              ()                : void { this.abort.abort(); }
+	public close              ()                : void { this.readGeneration += 1; this.abort.abort(); }
 	public async wait         ()                : Promise<void> { await this.queue.catch(() => undefined); }
 
-	public async bindThread(threadId: string): Promise<void> {
-		await this.options.source?.bindThread?.(threadId);
-		await this.loadBoundNotes();
-		await this.options.bindTodoThread(threadId);
+	public bindThread(threadId: string): Promise<void> {
+		const operation = this.noteBinding.then(async () => {
+			if (this.options.closed()) return;
+			if (!this.options.source) {
+				await this.options.bindTodoThread(threadId);
+				return;
+			}
+			if (this.boundThreadId === threadId && this.readStateValue.status === "ready") {
+				await this.options.bindTodoThread(threadId);
+				return;
+			}
+			try {
+				await this.options.source?.bindThread?.(threadId);
+			} catch (error) {
+				if (!this.options.closed() && this.boundThreadId === null) this.setReadState({
+					status : "stale",
+					error  : error instanceof Error ? error.message : String(error),
+				});
+				throw error;
+			}
+			if (this.options.closed()) return;
+			this.boundThreadId = threadId;
+			const generation = ++this.readGeneration;
+			this.setReadState({ status: "loading", error: null });
+			await this.loadBoundNotes(generation);
+			if (this.options.closed() || generation !== this.readGeneration) return;
+			await this.options.bindTodoThread(threadId);
+		});
+		this.noteBinding = operation.catch(() => undefined);
+		return operation;
 	}
 
-	public async loadBoundNotes(): Promise<void> {
+	public async loadBoundNotes(generation = ++this.readGeneration): Promise<void> {
 		if (!this.options.source) return;
-		const notes = await this.options.source.readAll(this.options.projectId);
-		for (const note of notes) this.remember(note);
+		try {
+			const notes = await this.options.source.readAll(this.options.projectId);
+			if (this.options.closed() || generation !== this.readGeneration) return;
+			for (const note of notes) this.remember(note);
+			this.setReadState({ status: "ready", error: null });
+		} catch (error) {
+			if (this.options.closed() || generation !== this.readGeneration) return;
+			this.setReadState({
+				status : "stale",
+				error  : error instanceof Error ? error.message : String(error),
+			});
+		}
+	}
+
+	private setReadState(state: WorkbenchTNoteReadState): void {
+		this.readStateValue = Object.freeze(state);
+		this.options.publish();
 	}
 
 	public async capture(commandId: string, activityIds: readonly string[]): Promise<WorkbenchCommandReceipt> {

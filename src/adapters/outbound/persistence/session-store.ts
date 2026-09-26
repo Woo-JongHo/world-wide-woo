@@ -12,7 +12,7 @@ import {
 } from "@/core/domain/execution/session-events.js";
 
 import type { SessionEvent, SessionEventInput } from "@/core/domain/execution/session-events.js";
-import type { RecentSessionSummary }            from "@/core/ports";
+import type { RecentSessionSummary }            from "@/core/ports/persistence/session-repository";
 
 const DEFAULT_SESSION_DIRECTORY = join(homedir(), ".local", "share", "www", "sessions");
 const sessionIdPattern          = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;

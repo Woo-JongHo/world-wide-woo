@@ -20,9 +20,9 @@ WOO-683의 최신 본문을 직접 조회했으며, 제외 범위가 여전히 C
 
 | 기능/작업 | 현재 코드 후보 | 목표 영역 후보 |
 | --- | --- | --- |
-| Message / WOO-683 | src/adapters/inbound/tui/features/chat/workbench-views.ts | tui/features/chat |
+| Message / WOO-683 | src/adapters/inbound/tui/features/chat/view/workbench-views.ts | tui/features/chat |
 | Layout / WOO-680 | src/adapters/inbound/tui/foundation/layout/dashboard-layout.ts | tui/foundation/layout |
-| Tracer / WOO-681 | src/adapters/inbound/tui/features/trace/workbench-tracer-view.ts | tui/features/trace |
+| Tracer / WOO-681 | src/adapters/inbound/tui/features/trace/view/workbench-tracer-view.ts | tui/features/trace |
 | Todo / WOO-682 | src/core/application/work/todo-ledger.ts, src/core/domain/work/todos.ts | system의 계획 상태 처리와 tui/todo 분리 검토 |
 | System / WOO-672 | src/core/application/orchestration/project-workbench.ts, src/adapters/outbound/execution/ | system/workbench, system/runtime |
 | 관측 기록 | src/core/domain/execution/project-activity.ts, src/adapters/outbound/persistence/activity-journal-store.ts | system/journal |

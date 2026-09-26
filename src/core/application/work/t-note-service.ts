@@ -1,5 +1,5 @@
-import { createHash, randomUUID }               from "node:crypto";
-import { createTNotePacket, sanitizeTNoteText } from "@/core/domain/work/t-notes.js";
+import { createHash, randomUUID }                                          from "node:crypto";
+import { createTNotePacket, sanitizeTNoteText, tNoteSourceIdempotencyKey } from "@/core/domain/work/t-notes.js";
 import type {
 	TNoteActivitySource,
 	TNoteDraft,
@@ -7,14 +7,23 @@ import type {
 	TNoteSourceActivity,
 	TNoteSourceRange,
 } from "@/core/domain/work/t-notes.js";
-import { assertDetachedPolicy }                 from "@/core/application/orchestration/detached-text-generator.js";
+import { assertDetachedPolicy }                                            from "@/core/application/orchestration/detached-text-generator.js";
 import type {
 	DetachedGenerationPolicy,
 	DetachedTextGenerator,
 } from "@/core/application/orchestration/detached-text-generator.js";
 
+/**
+ * provenance 보유 Summary 산출물의 append-only 내구 경계다.
+ *
+ * source idempotency key가 append identity다. 같은 immutable source capture의 append는 최초 record를 반환하며
+ * `id`와 `sequence`은 그 영구 identity/순서다. 영속 구현은 store instance와 process를
+ * 넘겨 read-dedupe-append를 원자화한다. 호출이 throw하면 Core는 read-back으로 그 source key를
+ * 대조한 뒤에만 기존 record로 복구한다.
+ */
 export interface TNoteDraftStore {
 	append(input: TNoteDraftInput): Promise<TNoteDraft>;
+	/** projectId에 속한 append 순서를 보존해 돌려준다. */
 	readAll(projectId: string): Promise<readonly TNoteDraft[]>;
 }
 
@@ -27,7 +36,25 @@ export interface CreateTNoteInput {
 	readonly expectedQuestion: string;
 }
 
-/** Coordinates a redacted activity packet with an isolated text generator and append-only draft store. */
+export type TNoteOperationFailure = "generation" | "storage" | "read";
+
+/** Stable failure classification for callers that must render generation, persistence, and read errors separately. */
+export class TNoteOperationError extends Error {
+	public constructor(
+		public readonly operation: TNoteOperationFailure,
+		message: string,
+		public readonly original: unknown,
+	) {
+		super(message);
+		this.name = "TNoteOperationError";
+	}
+}
+
+/**
+ * Activity/turn provenance를 가진 Summary 산출물을 생성·검증하고 append-only Note record로
+ * 보존한다. Summary와 Note를 휘발/영속으로 나누지 않는다: packet digest가 원본 근거이고,
+ * Note의 id·sequence가 저장 순서다.
+ */
 export class TNoteService {
 	public constructor(
 		private readonly generator: DetachedTextGenerator,
@@ -36,22 +63,34 @@ export class TNoteService {
 		private readonly idFactory: () => string = randomUUID,
 	) {}
 
+	/**
+	 * 생성·검증·append가 모두 성공해야 새 record를 반환한다. generator 또는 store 실패는
+ * 이전 Note를 바꾸지 않는다. append 응답만 유실된 경우에는 source key read-back으로
+	 * 저장된 record를 돌려준다. read-back에도 없을 때만 호출자가 실패를 보고 재시도한다.
+	 */
 	public async create(input: CreateTNoteInput, signal?: AbortSignal): Promise<TNoteDraft> {
 		if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("Invalid Note request");
 		const instruction = sanitizeTNoteText(input.instruction, 4 * 1024);
 		if (instruction.length === 0) throw new Error("Invalid Note instruction");
 		const packet                            = createTNotePacket(input.projectId, input.range, input.activities, this.clock().toISOString(), digest) ;
 		const policy : DetachedGenerationPolicy = Object.freeze({ cwd: "", noTools: true, network: false, readOnly: true, ephemeral: true })            ;
-		const result                            = await this.generator.generate(Object.freeze({ packet, instruction, policy }), signal)                 ;
-		assertDetachedPolicy(policy, result?.isolation);
-		const text = result.text;
-		if (typeof text !== "string" || text.length === 0 || new TextEncoder().encode(text).byteLength > 64 * 1024) {
-			throw new Error("Detached generator returned unsafe Note text");
+		let result   : Awaited<ReturnType<DetachedTextGenerator["generate"]>>                                                                           ;
+		try {
+			result = await this.generator.generate(Object.freeze({ packet, instruction, policy }), signal);
+			assertDetachedPolicy(policy, result?.isolation);
+			const text = result.text;
+			if (typeof text !== "string" || text.length === 0 || new TextEncoder().encode(text).byteLength > 64 * 1024) {
+				throw new Error("Detached generator returned unsafe Note text");
+			}
+			const validation = validateCanonicalTNote(text, input.expectedQuestion);
+			if (!validation.valid) throw new Error(validation.reason);
+		} catch (error) {
+			if (signal?.aborted) throw error;
+			throw operationError("generation", error);
 		}
-		const validation = validateCanonicalTNote(text, input.expectedQuestion);
-		if (!validation.valid) throw new Error(validation.reason);
+		const text = result.text;
 		const persistedText = appendObservedTestSummary(text, packet.activities);
-		return this.store.append(Object.freeze({
+		return this.appendOrRecover(Object.freeze({
 			id: this.idFactory(),
 			createdAt: this.clock().toISOString(),
 			packet,
@@ -60,9 +99,34 @@ export class TNoteService {
 		}));
 	}
 
-	public readAll(projectId: string): Promise<readonly TNoteDraft[]> {
-		return this.store.readAll(projectId);
+	public async readAll(projectId: string): Promise<readonly TNoteDraft[]> {
+		try {
+			return await this.store.readAll(projectId);
+		} catch (error) {
+			throw operationError("read", error);
+		}
 	}
+
+	private async appendOrRecover(input: TNoteDraftInput): Promise<TNoteDraft> {
+		try {
+			return await this.store.append(input);
+		} catch (appendError) {
+			try {
+				const sourceKey = tNoteSourceIdempotencyKey(input.packet);
+				const existing = (await this.store.readAll(input.packet.projectId))
+					.find(draft => tNoteSourceIdempotencyKey(draft.packet) === sourceKey);
+				if (existing) return existing;
+			} catch {
+				// The original append failure is the actionable error when read-back is unavailable.
+			}
+			throw operationError("storage", appendError);
+		}
+	}
+}
+
+function operationError(operation: TNoteOperationFailure, original: unknown): TNoteOperationError {
+	const detail = original instanceof Error ? original.message : String(original);
+	return new TNoteOperationError(operation, `Note ${operation} failed: ${detail}`, original);
 }
 
 function digest(value: string): string { return createHash("sha256").update(value, "utf8").digest("hex"); }

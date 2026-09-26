@@ -41,7 +41,7 @@ CLI 경로는 이 머신에 설치된 경로다.
 기존 명령:
 
 ```sh
-ASTRA_BENCH_REPS=5 ASTRA_BENCH_COUNTS=1000 ASTRA_BENCH_OUTPUT=.www/scratchpad/2026-09-24-render-diagnosis/baseline.json bun scripts/astra-render-benchmark.ts
+WWW_BENCH_REPS=5 WWW_BENCH_COUNTS=1000 WWW_BENCH_OUTPUT=.www/scratchpad/2026-09-24-render-diagnosis/baseline.json bun scripts/www-render-benchmark.ts
 ```
 
 약 87.9초, exit 1 / RED. 첫 body 2,630ms, 짧은 draft 3,239~7,820ms,
@@ -51,7 +51,7 @@ ASTRA_BENCH_REPS=5 ASTRA_BENCH_COUNTS=1000 ASTRA_BENCH_OUTPUT=.www/scratchpad/20
 통제하지 않았으므로 본문 길이별 속도 비교나 선형 비용 추정에 이 수치를 사용하지 않는다.
 기존 benchmark fixture는 가변 객체이고 현재 캐시는 깊은 불변성을 요구한다.
 실제 `ProjectWorkbench.makeSnapshot()`은 deepFreeze를 수행한다.
-HEAD의 기존 `astra-execution.ts`에도 같은 불변성 검사와 block 재사용 조건이 있고,
+HEAD의 기존 `www-execution.ts`에도 같은 불변성 검사와 block 재사용 조건이 있고,
 HEAD의 `project-workbench.ts`도 snapshot을 deepFreeze한다. 따라서 이 조건 차이를
 현재 미커밋 모듈 분리에서 새로 도입한 회귀라고 지목하지 않는다.
 따라서 기존 벤치는 적어도 불변성 축에서 현재 앱의 snapshot 조건과 다른 보수적 재계산 경로를 측정한다.
@@ -97,9 +97,9 @@ FROZEN=1 bun .www/scratchpad/2026-09-24-render-diagnosis/minimal.ts
 | delta→상태 | `native-event-lifecycle.ts:250` applyDelta | delta마다 publish; 첫 출력 durable 기록 경로 존재 |
 | snapshot 생성 | `project-workbench.ts:1292` publish/makeSnapshot | projection과 deepFreeze가 render scheduler보다 앞에 있음 |
 | 표시 요청 합치기 | `workbench-shell.ts:520`, `render-scheduler.ts` | streaming 32ms 스케줄, 앞단 projection 비용까지 합치지는 않음 |
-| 기록/본문 | `astra-execution.ts`, `astra-transcript-cache.ts` | durable/volatile 세대, 깊은 불변성 검증, 폭별 count index |
-| 첫 표시·새 폭 | `astra-transcript-cache.ts:349` widthIndex | 정확한 행 수를 얻기 위해 모든 해당 block을 동기 render |
-| viewport | `astra-surface.ts`, `chat-scroll.view.ts` | 가시 범위 row 요청과 anchor/follow 처리 |
+| 기록/본문 | `www-execution.ts`, `www-transcript-cache.ts` | durable/volatile 세대, 깊은 불변성 검증, 폭별 count index |
+| 첫 표시·새 폭 | `www-transcript-cache.ts:349` widthIndex | 정확한 행 수를 얻기 위해 모든 해당 block을 동기 render |
+| viewport | `www-surface.ts`, `chat-scroll.view.ts` | 가시 범위 row 요청과 anchor/follow 처리 |
 | terminal | pi-tui→Terminal.write→PTY→CMux | MemoryTerminal write까지만 기존 benchmark에 포함 |
 
 과거 기록의 viewport 가상화만으로 긴 단일 응답 block의 계산이 작아지지는 않는다.

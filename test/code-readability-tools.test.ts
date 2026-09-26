@@ -50,7 +50,7 @@ describe("code readability import declaration normalizer", () => {
 		const result = imports(
 			"src/core/application/orchestration/workbench-artifacts.ts",
 			"src/core/application/work/t-note-service.ts",
-			"src/adapters/inbound/tui/features/chat/astra-execution.ts",
+			"src/adapters/inbound/tui/features/chat/view/www-execution.ts",
 		);
 
 		expect(result.exitCode).toBe(0);

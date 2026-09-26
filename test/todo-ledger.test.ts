@@ -12,7 +12,8 @@ import type { SessionEvent, SessionEventInput }      from "../src/core/domain/ex
 import { renderTodoMarkdown }                        from "../src/core/domain/work/todos";
 import type { TodoDocument }                         from "../src/core/domain/work/todos";
 import type { SemanticWorkStep, WorkFlowProjection } from "../src/core/domain/work";
-import type { SessionRepository, TodoStore }         from "../src/core/ports";
+import type { SessionRepository }                    from "../src/core/ports/persistence/session-repository";
+import type { TodoStore }                            from "../src/core/ports/persistence/todo-store";
 import { FileTodoStore }                             from "../src/adapters/outbound/persistence/todo-store.js";
 
 class MemoryTodoStore implements TodoStore {

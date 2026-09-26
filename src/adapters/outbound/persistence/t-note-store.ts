@@ -1,23 +1,38 @@
-import { createHash }                           from "node:crypto";
-import { chmod, lstat, mkdir, open, readFile }  from "node:fs/promises";
-import { join }                                 from "node:path";
-import { createTNoteDraft, validateTNoteDraft } from "@/core/domain/work/t-notes.js";
-import type { TNoteDraft, TNoteDraftInput }     from "@/core/domain/work/t-notes.js";
-import type { TNoteDraftStore }                 from "@/core/application/work/t-note-service.js";
+import { createHash }                          from "node:crypto";
+import { chmod, lstat, mkdir, open, readFile } from "node:fs/promises";
+import { basename, dirname, join }             from "node:path";
+
+import { Database }                                                        from "bun:sqlite";
+import { createTNoteDraft, tNoteSourceIdempotencyKey, validateTNoteDraft } from "@/core/domain/work/t-notes.js";
+import type { TNoteDraft, TNoteDraftInput }                                from "@/core/domain/work/t-notes.js";
+import type { TNoteDraftStore }                                            from "@/core/application/work/t-note-service.js";
 
 const STORE_FILE = "t-notes.jsonl";
 const queues = new Map<string, Promise<unknown>>();
 
-/** Private append-only store. It never writes the active transcript or a tracked vault file. */
+/**
+ * Private append-only store. It never writes the active transcript or a tracked vault file.
+ * A source idempotency key is the identity: repeated captures of the same immutable activities
+ * return the first durable record even if packet time, generated text, model, or Note id changes.
+ * The in-process queue covers store instances in one process; a private SQLite mutex
+ * extends the read-dedupe-append critical section across processes. Thread leases remain an
+ * upstream Workbench scope guard, not the persistence lock.
+ */
 export class FileTNoteStore implements TNoteDraftStore {
 	public constructor(private readonly directory: string) {}
 
 	public append(input: TNoteDraftInput): Promise<TNoteDraft> {
 		return serialize(this.path(), async () => {
-			const all = await this.readAllUnchecked();
-			const draft = createTNoteDraft(input, all.length + 1, digest);
-			await this.appendLine(JSON.stringify(draft));
-			return draft;
+			await this.prepareDirectory();
+			return this.withDatabaseLock(async () => {
+				const all       = await this.readAllUnchecked()                                            ;
+				const sourceKey = tNoteSourceIdempotencyKey(input.packet)                                  ;
+				const existing  = all.find(draft => tNoteSourceIdempotencyKey(draft.packet) === sourceKey) ;
+				if (existing) return existing;
+				const draft = createTNoteDraft(input, all.length + 1, digest);
+				await this.appendLine(JSON.stringify(draft));
+				return draft;
+			});
 		});
 	}
 
@@ -29,6 +44,51 @@ export class FileTNoteStore implements TNoteDraftStore {
 	}
 
 	private path(): string { return join(this.directory, STORE_FILE); }
+
+	private async prepareDirectory(): Promise<void> {
+		await mkdir(this.directory, { recursive: true, mode: 0o700 });
+		const info = await lstat(this.directory);
+		if (!info.isDirectory() || info.isSymbolicLink()) throw new Error(`Unsafe Note store directory: ${this.directory}`);
+		await chmod(this.directory, 0o700);
+	}
+
+	private async withDatabaseLock<T>(operation: () => Promise<T>): Promise<T> {
+		const runtimeDirectory = basename(this.directory) === "vault"
+			? join(dirname(this.directory), "runtime")
+			: join(this.directory, "runtime");
+		await mkdir(runtimeDirectory, { recursive: true, mode: 0o700 });
+		const runtimeInfo = await lstat(runtimeDirectory);
+		if (!runtimeInfo.isDirectory() || runtimeInfo.isSymbolicLink()) throw new Error(`Unsafe Note store directory: ${runtimeDirectory}`);
+		await chmod(runtimeDirectory, 0o700);
+		const databasePath = join(runtimeDirectory, "t-note-lock.sqlite");
+		try {
+			const info = await lstat(databasePath);
+			if (!info.isFile() || info.isSymbolicLink()) throw new Error(`Unsafe Note store file: ${databasePath}`);
+		} catch (error) {
+			if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+		}
+		const database = new Database(databasePath, { create: true, strict: true });
+		try {
+			await chmod(databasePath, 0o600);
+			database.run("PRAGMA busy_timeout = 5000");
+			database.run("CREATE TABLE IF NOT EXISTS t_note_mutex (id INTEGER PRIMARY KEY, touched_at INTEGER NOT NULL)");
+			database.run("BEGIN IMMEDIATE");
+			database.run(
+				"INSERT INTO t_note_mutex (id, touched_at) VALUES (1, ?) ON CONFLICT(id) DO UPDATE SET touched_at = excluded.touched_at",
+				[Date.now()],
+			);
+			try {
+				const result = await operation();
+				database.run("COMMIT");
+				return result;
+			} catch (error) {
+				database.run("ROLLBACK");
+				throw error;
+			}
+		} finally {
+			database.close();
+		}
+	}
 
 	private async readAllUnchecked(): Promise<TNoteDraft[]> {
 		const path = this.path();
@@ -86,10 +146,7 @@ export class FileTNoteStore implements TNoteDraftStore {
 	}
 
 	private async appendLine(line: string): Promise<void> {
-		await mkdir(this.directory, { recursive: true, mode: 0o700 });
-		const info = await lstat(this.directory);
-		if (!info.isDirectory() || info.isSymbolicLink()) throw new Error(`Unsafe Note store directory: ${this.directory}`);
-		await chmod(this.directory, 0o700);
+		await this.prepareDirectory();
 		const path = this.path();
 		let existing = false;
 		try {

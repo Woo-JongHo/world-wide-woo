@@ -1,4 +1,5 @@
 import { describe, expect, test }                                   from "bun:test";
+import { readFile }                                                 from "node:fs/promises";
 import { stat }                                                     from "node:fs/promises";
 import { layer, loadSourceGraph, reachableSources, relativeCycles } from "./architecture/import-graph";
 
@@ -14,6 +15,7 @@ describe("source architecture", () => {
 		const groups: ReadonlyArray<readonly [string, ReadonlySet<string>]> = [
 			["core/domain/", new Set(["development", "execution", "observability", "review", "work"])],
 			["core/application/", new Set(["development", "orchestration", "review", "routing", "session", "work"])],
+			["core/ports/", new Set(["execution", "persistence", "integration", "observability"])],
 			["adapters/outbound/", new Set(["authentication", "development", "execution", "git", "observability", "persistence", "review", "workspace"])],
 			["adapters/inbound/tui/", new Set(["foundation", "features", "commands", "shell", "legacy"])],
 		];
@@ -21,9 +23,24 @@ describe("source architecture", () => {
 			for (const [prefix, allowed] of groups) {
 				if (!path.startsWith(prefix)) continue;
 				const group = path.slice(prefix.length).split("/")[0]!;
+				if (prefix === "core/ports/" && group === "index.ts") continue;
 				expect(group.endsWith(".ts"), `flat source: ${path}`).toBe(false);
 				expect(allowed.has(group), `unknown responsibility group: ${path}`).toBe(true);
 			}
+		}
+	});
+
+	test("keeps the core port index as a definition-free compatibility barrel", async () => {
+		const source = await readFile("src/core/ports/index.ts", "utf8");
+		expect(source).not.toMatch(/export\s+interface\s+/u);
+		expect(source).not.toMatch(/export\s+type\s+\w+\s*=/u);
+	});
+
+	test("keeps product consumers on responsibility-specific core ports", async () => {
+		const graph = await loadSourceGraph();
+		for (const source of graph.values()) {
+			if (source.path === "core/ports/index.ts") continue;
+			expect(source.imports, source.path).not.toContain("core/ports/index.ts");
 		}
 	});
 
@@ -93,6 +110,82 @@ describe("source architecture", () => {
 				if (!importedFeature) continue;
 				expect(importedFeature, `${source.path} -> ${dependency}`).toBe(feature);
 			}
+		}
+	});
+
+	test("keeps each TUI feature grouped by MVC-like adapter responsibility", async () => {
+		const graph            = await loadSourceGraph()                                       ;
+		const prefix           = "adapters/inbound/tui/features/"                              ;
+		const rootFiles        = new Set(["feature-registry.ts", "feature.types.ts"])          ;
+		const responsibilities = new Set(["controller", "registration", "view-model", "view"]) ;
+		const allowedDependencies = new Map([
+			["registration", new Set(["registration"])],
+			["view-model", new Set(["view-model"])],
+			["view", new Set(["view-model", "view"])],
+			["controller", new Set(["controller", "view-model", "view"])],
+		]);
+		const viewReadApplicationModules = new Set([
+			"core/application/orchestration/workbench-feature-reads.ts",
+			"core/application/session/session-monitor.ts",
+			"core/application/work/conversation-recap.ts",
+			"core/application/work/t-note-service.ts",
+		]);
+		for (const source of graph.values()) {
+			if (!source.path.startsWith(prefix)) continue;
+			const relative = source.path.slice(prefix.length);
+			if (!relative.includes("/")) {
+				expect(rootFiles.has(relative), `unexpected feature root file: ${source.path}`).toBe(true);
+				continue;
+			}
+			const [, responsibility, file, ...nested] = relative.split("/");
+			expect(responsibilities.has(responsibility ?? ""), `unknown feature responsibility: ${source.path}`).toBe(true);
+			expect(file, `missing feature implementation file: ${source.path}`).toBeDefined();
+			expect(nested, `nested feature responsibility: ${source.path}`).toHaveLength(0);
+			expect(responsibility, `forbidden TUI layer: ${source.path}`).not.toMatch(/^(?:model|service|repository)$/u);
+			if (/\.(?:feature|units)\.ts$/u.test(file ?? "")) {
+				expect(responsibility, `registration file outside registration/: ${source.path}`).toBe("registration");
+			}
+			if (responsibility === "view-model") {
+				const text = await readFile(`src/${source.path}`, "utf8");
+				expect(source.imports, source.path).not.toContain("@earendil-works/pi-tui");
+				expect(source.imports, source.path).not.toContain("chalk");
+				expect(source.imports.some(path => path.startsWith("adapters/inbound/tui/foundation/")), source.path).toBe(false);
+				expect(text, source.path).not.toMatch(/\\(?:x1[bB]|u001[bB]|033)/u);
+				expect(text, source.path).not.toMatch(/\bComponent\b/u);
+			}
+			if (responsibility === "view") {
+				for (const dependency of source.imports.filter(path => path.startsWith("core/application/"))) {
+					expect(viewReadApplicationModules.has(dependency), `View imported Core writer: ${source.path} -> ${dependency}`).toBe(true);
+				}
+			}
+			for (const dependency of source.imports.filter(path => path.startsWith(prefix))) {
+				const imported = dependency.slice(prefix.length).split("/");
+				if (imported.length < 3 || imported[0] !== relative.split("/")[0]) continue;
+				expect(
+					allowedDependencies.get(responsibility ?? "")?.has(imported[1] ?? ""),
+					`inverted feature responsibility: ${source.path} -> ${dependency}`,
+				).toBe(true);
+			}
+		}
+	});
+
+	test("keeps Chat, Plan, and Tracer views on their feature read projections", async () => {
+		const graph = await loadSourceGraph();
+		const contract = await readFile("src/core/application/orchestration/workbench-feature-reads.ts", "utf8");
+		expect(contract).not.toContain("Pick<WorkbenchSnapshot");
+		for (const path of [
+			"adapters/inbound/tui/features/plan/view/www-plan-view.ts",
+			"adapters/inbound/tui/features/trace/view/workbench-tracer-view.ts",
+		]) {
+			const source = graph.get(path);
+			expect(source, path).toBeDefined();
+			expect(source?.imports, path).toContain("core/application/orchestration/workbench-feature-reads.ts");
+			expect(source?.imports, path).not.toContain("core/domain/work/workbench.ts");
+		}
+		for (const source of graph.values()) {
+			if (!source.path.startsWith("adapters/inbound/tui/features/chat/")) continue;
+			const text = await readFile(`src/${source.path}`, "utf8");
+			expect(text, source.path).not.toContain("WorkbenchSnapshot");
 		}
 	});
 

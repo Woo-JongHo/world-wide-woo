@@ -1,7 +1,8 @@
 import { describe, expect, test }               from "bun:test";
 import { ProjectWorkbench }                     from "../src/core/application/orchestration/project-workbench.js";
 import type { WorkbenchActivityJournal }        from "../src/core/application/orchestration/project-workbench.js";
-import type { SessionRepository, TodoStore }    from "../src/core/ports/index.js";
+import type { SessionRepository }               from "../src/core/ports/persistence/session-repository";
+import type { TodoStore }                       from "../src/core/ports/persistence/todo-store";
 import { TodoLedger }                           from "../src/core/application/work/todo-ledger.js";
 import type { SessionEvent, SessionEventInput } from "../src/core/domain/execution/session-events.js";
 import type {

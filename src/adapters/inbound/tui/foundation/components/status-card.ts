@@ -1,5 +1,5 @@
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
-import { a, prose, safe }                from "@/adapters/inbound/tui/foundation/theme/astra-theme";
+import { a, fit, mark, prose, safe }     from "@/adapters/inbound/tui/foundation/theme/www-theme";
 import { semantic }                      from "@/adapters/inbound/tui/foundation/theme/theme";
 
 const labels: Readonly<Record<string, string>> = {
@@ -26,4 +26,23 @@ export function statusCardRows(title: string, status: string, requestedWidth: nu
 		return `${ink("│")}${content}${ink("│")}`;
 	});
 	return [top, ...body, ink(`╰${"─".repeat(width - 2)}╯`)];
+}
+
+/** Compact terminal typography for Plan surfaces; terminal cells do not expose point sizes.
+ * A bounded wrap keeps the scan fast; the `…` tail marks a kept-in-full source, not a loss. */
+export function compactStatusRows(title: string, status: string, requestedWidth: number, maximumLines = 2): string[] {
+	const width        = Math.max(0, Math.floor(requestedWidth))     ;
+	const contentWidth = Math.max(1, width - 2)                      ;
+	const wrapped      = prose(safe(title), contentWidth)            ;
+	const bounded      = wrapped.slice(0, Math.max(1, maximumLines)) ;
+	if (wrapped.length > bounded.length && bounded.length) bounded[bounded.length - 1] = withContinuationMark(bounded[bounded.length - 1]!, contentWidth);
+	const lines        = bounded.length && bounded[0] !== "" ? bounded : [a.muted("—")]   ;
+	return lines.map((line, index) => fit(`${index === 0 ? mark(status) : " "} ${a.muted(line)}`, width));
+}
+
+/** The wrapped lines are plain text, so one visible column is freed for the marker. */
+function withContinuationMark(line: string, maxWidth: number): string {
+	let characters = Array.from(line);
+	while (characters.length && visibleWidth(characters.join("")) + 1 > maxWidth) characters = characters.slice(0, -1);
+	return `${characters.join("")}…`;
 }

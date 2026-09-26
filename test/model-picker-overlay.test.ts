@@ -1,9 +1,9 @@
 import { describe, expect, test }               from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import type { ProviderAuthState }               from "../src/core/ports";
+import type { ProviderAuthState }               from "../src/core/ports/integration/auth-controller-port";
 import type { Provider, WwwSettings }           from "../src/core/domain/execution/model-settings";
-import { ModelPickerOverlay }                   from "../src/adapters/inbound/tui/features/model-selection/model-picker-overlay";
-import type { ModelPickerOptions }              from "../src/adapters/inbound/tui/features/model-selection/model-picker-overlay";
+import { ModelPickerOverlay }                   from "../src/adapters/inbound/tui/features/model-selection/view/model-picker-overlay";
+import type { ModelPickerOptions }              from "../src/adapters/inbound/tui/features/model-selection/view/model-picker-overlay";
 
 const current: WwwSettings = { provider: "openai-codex", model: "gpt-5.6-sol", effort: "ultra" };
 

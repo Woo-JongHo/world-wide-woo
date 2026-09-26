@@ -3,19 +3,19 @@ import { stripTerminalSequences, visibleWidth }                 from "@earendil-
 import {
 	WorkbenchWelcomeView,
 	workbenchWelcomeLogoFrame,
-} from "../src/adapters/inbound/tui/features/chat/workbench-welcome";
+} from "../src/adapters/inbound/tui/features/chat/view/workbench-welcome";
 import {
 	OCTOPUS_INTRO_DURATION_MS,
 	OCTOPUS_INTRO_TURNS,
 	octopusScanFrame,
-} from "../src/adapters/inbound/tui/features/chat/octopus-scan";
+} from "../src/adapters/inbound/tui/features/chat/view/octopus-scan";
 
 describe("workbench welcome intro", () => {
 	let noColor: string | undefined, reducedMotion: string | undefined;
-	beforeEach(() => { noColor = process.env.NO_COLOR; reducedMotion = process.env.ASTRA_REDUCED_MOTION; delete process.env.NO_COLOR; delete process.env.ASTRA_REDUCED_MOTION; });
+	beforeEach(() => { noColor = process.env.NO_COLOR; reducedMotion = process.env.WWW_REDUCED_MOTION; delete process.env.NO_COLOR; delete process.env.WWW_REDUCED_MOTION; });
 	afterEach(() => {
 		if (noColor === undefined) delete process.env.NO_COLOR; else process.env.NO_COLOR = noColor;
-		if (reducedMotion === undefined) delete process.env.ASTRA_REDUCED_MOTION; else process.env.ASTRA_REDUCED_MOTION = reducedMotion;
+		if (reducedMotion === undefined) delete process.env.WWW_REDUCED_MOTION; else process.env.WWW_REDUCED_MOTION = reducedMotion;
 	});
 	test("sweeps a stable WWW wordmark through distinct gradient frames", () => {
 		const opening = workbenchWelcomeLogoFrame(0).join("\n")     ;
@@ -86,7 +86,7 @@ describe("workbench welcome intro", () => {
 	});
 
 	test("reduced motion and NO_COLOR render a static octopus without scheduling animation", async () => {
-		for (const key of ["ASTRA_REDUCED_MOTION", "NO_COLOR"]) {
+		for (const key of ["WWW_REDUCED_MOTION", "NO_COLOR"]) {
 			const previous = process.env[key];
 			process.env[key] = "1";
 			let repaints = 0;

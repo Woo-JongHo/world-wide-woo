@@ -63,6 +63,15 @@ describe("NativeTurnCoordinator", () => {
 		expect(coordinator.deliveryBlocked).toBe(false);
 	});
 
+	test("instructs Native Plan generation to emit one concise sentence per item", () => {
+		const coordinator = new NativeTurnCoordinator();
+		for (const mode of ["manual", "plan"] as const) {
+			const instructions = coordinator.collaboration(mode, "gpt-5", "high").settings.developer_instructions;
+			expect(instructions).toContain("각 항목은 80자 이내의 간결한 한 문장");
+			expect(instructions).toContain("여러 행동을 나열하지 마세요");
+		}
+	});
+
 	test("reads idle, in-progress, and unknown delivery states", () => {
 		const coordinator = new NativeTurnCoordinator();
 		expect(coordinator.deliveryState({ status: { type: "idle" }, turns: [] })).toEqual({ state: "idle" });

@@ -15,9 +15,9 @@
 
 - ZCode는 482개 초기 TypeScript 파일에서 STEP1 표 후보 9,620개와 STEP2 타입 불확실성을 수집했다.
 - Wave 1에서 `development-store.ts`, `artifact-control.ts`, `development-traceability-contract.ts`, `obsidian-ledger-migration.ts`, `request-runtime.ts`, `t-note-service.ts`를 수정했다.
-- Wave 2와 후속 정리에서 `three-body-simulation.ts`, `native-plan-revision.ts`, `redaction.ts`, `completed-turn-note-scope.ts`, `three-body-braille.ts`, `astra-theme.ts`, `obsidian-contract.ts`, `development-map-source.ts`를 수정했다.
+- Wave 2와 후속 정리에서 `three-body-simulation.ts`, `native-plan-revision.ts`, `redaction.ts`, `completed-turn-note-scope.ts`, `three-body-braille.ts`, `www-theme.ts`, `obsidian-contract.ts`, `development-map-source.ts`를 수정했다.
 - 반복 인라인 타입을 이름 있는 타입으로 통일하고, 판별 유니온·타입 가드·Record 기반 단계 목표로 구조를 분명히 했다. 런타임 의미가 없는 배열·정규식 인덱스 non-null 단언을 제거했다.
-- 경계 파싱, 상단 가드, 도메인 불변식에 결속된 단언은 제거하지 않았다. `delegation.ts`, `astra-keymap.ts`, `octopus-scan.ts`의 의미 판단이 필요한 후보도 보존했다.
+- 경계 파싱, 상단 가드, 도메인 불변식에 결속된 단언은 제거하지 않았다. `delegation.ts`, `www-keymap.ts`, `octopus-scan.ts`의 의미 판단이 필요한 후보도 보존했다.
 - 자동 치환 중 `native-plan-revision.ts` 한 줄이 일시 손상됐으나 즉시 복구했고 타입 검사와 전용 테스트로 확인했다.
 - ZCode 터미널 카드가 실제 프로세스 종료 뒤 로딩 상태에 머무는 현상이 반복되어, 최종 전수 검증은 Codex가 직접 인수했다.
 - 작업 중 새로 추가된 성능 테스트 2개까지 포함해 import 선언을 다시 정규화했다.

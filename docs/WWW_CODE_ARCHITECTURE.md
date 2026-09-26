@@ -11,7 +11,7 @@ src/
 ├── core/
 │   ├── domain/
 │   ├── application/
-│   ├── ports/
+│   ├── ports/{execution,persistence,integration,observability}/
 │   ├── runtime/
 │   └── commit/
 ├── adapters/
@@ -27,8 +27,9 @@ src/
 기존 최상위 `domain/application/infrastructure/presentation`은 `core/adapters`로 이관했다.
 `tui/system/workflows`는 검토 단계의 초안이었으며 현재 목표가 아니다.
 
-평평했던 Core와 Adapter 내부는 책임 폴더로 한 단계 더 분류한다. 정확한 허용 폴더와
-배치 규칙은 `LAYERS.md`가 소유한다.
+Core Port와 TUI Feature의 책임별 물리 분류가 적용됐다. TUI Feature는 실제 책임이 있는
+`controller`, `view-model`, `view`, `registration`만 만들며 빈 역할 폴더는 두지 않는다.
+정확한 허용 폴더와 배치 규칙은 `LAYERS.md`가 소유한다.
 
 ## 책임
 
@@ -36,7 +37,10 @@ src/
 | --- | --- |
 | `core/domain` | 순수 상태, 값, invariant, projection, 실행 계약 타입 |
 | `core/application` | use case, 제품 lifecycle, 상태 조정 |
-| `core/ports` | 외부 실행·저장·조회에 필요한 계약 |
+| `core/ports/execution` | 실행 명령, request lifecycle, terminal·Todo control 계약 |
+| `core/ports/persistence` | session·settings·Todo·composer draft 저장 계약 |
+| `core/ports/integration` | model·auth·repository·Linear 연결 계약 |
+| `core/ports/observability` | usage·Git telemetry·관측 history 읽기 계약 |
 | `core/runtime` | 실행 reducer, checkpoint, completion receipt 생성 |
 | `core/commit` | commit candidate와 검증 계약 |
 | `adapters/inbound` | CLI 명령, TUI 입력·표현 |
@@ -52,6 +56,8 @@ Agent·Intent·Skill·Workflow의 실행 코드는 아직 없다. 각각 `core/a
 - Codex/Pi 실행기는 `adapters/outbound/executors`에 둔다.
 - TUI는 `adapters/inbound/tui`, 인증 CLI는 `adapters/inbound/cli`에 둔다.
 - TUI Foundation은 Feature와 Shell을 참조하지 않고, Feature 구현은 sibling Feature를 직접 참조하지 않는다.
+- TUI Controller는 사용자 의도를 Core Command로 바꾸고, ViewModel은 ANSI 없는 표시 의미를 만들며, View는 pi-tui·색상·폭·줄바꿈을 소유한다.
+- shell만 전체 `WorkbenchSnapshot`을 조립하며 Chat·Plan·Tracer·Note Feature는 좁은 readonly Projection을 소비한다.
 - TUI Shell은 정적 Feature descriptor와 개별 구현을 조립하며 중앙 registry에 동적 component factory를 두지 않는다. Feature descriptor는 같은 Feature의 readonly `TUI-F###-U##` Unit 목록을 소유하고 registry는 전체 목록·ID lookup·Feature별 lookup만 제공한다.
 - TUI Unit catalog는 사용자가 화면·명령 책임을 탐색하기 위한 metadata다. `.woo/units.yaml`이 관리하는 지속 코드 책임 `Code-###` Unit과 수명·정본이 다르므로 TUI Unit을 그 파일에 등록하지 않는다.
 - `legacy-router-app.ts`는 `www router` 호환 표면이 사용하므로 유지한다.
@@ -73,7 +79,7 @@ Agent·Intent·Skill·Workflow의 실행 코드는 아직 없다. 각각 `core/a
 
 ## 함수 책임과 정책의 소유
 
-CLI의 공개 `runCli`는 안내 출력, 명령 실행과 오류 종료를 조율한다. Astra 옵션 해석과
+CLI의 공개 `runCli`는 안내 출력, 명령 실행과 오류 종료를 조율한다. WWW 호환 alias 해석과
 재개 thread 선택은 내부 함수가 담당하며, 주입된 실행 함수의 receiver와 취소 동작을 보존한다.
 
 승인 화면은 `projectApprovalRequest`의 동일한 표시 투영을 소비한다. 종류별 라벨,

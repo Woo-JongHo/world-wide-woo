@@ -1,4 +1,4 @@
-import type { AuthController }    from "@/core/ports/index.js";
+import type { AuthController }    from "@/core/ports/integration/auth-controller-port";
 import { AuthService }            from "@/adapters/outbound/authentication/auth-service.js";
 import { FileCredentialStore }    from "@/adapters/outbound/authentication/credential-store.js";
 import { createModelRegistry }    from "@/adapters/outbound/authentication/model-router.js";

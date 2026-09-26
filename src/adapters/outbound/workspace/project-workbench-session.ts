@@ -1,70 +1,73 @@
-import { createLocalWorkflow }                                                      from "@/adapters/outbound/development/local-workflow.js";
-import type { DevelopmentService }                                                  from "@/core/application/development/development-service";
-import { createDevelopmentService }                                                 from "@/adapters/outbound/development/development-cli";
-import { randomUUID }                                                               from "node:crypto";
-import { join }                                                                     from "node:path";
-import { stat }                                                                     from "node:fs/promises";
-import { McpLinearProjectDashboard }                                                from "@/adapters/outbound/workspace/linear-project-dashboard.js";
-import { ProjectWorkbench }                                                         from "@/core/application/orchestration/project-workbench.js";
+import { createLocalWorkflow }                        from "@/adapters/outbound/development/local-workflow.js";
+import type { DevelopmentService }                    from "@/core/application/development/development-service";
+import { createDevelopmentService }                   from "@/adapters/outbound/development/development-cli";
+import { randomUUID }                                 from "node:crypto";
+import { join }                                       from "node:path";
+import { stat }                                       from "node:fs/promises";
+import { McpLinearProjectDashboard }                  from "@/adapters/outbound/workspace/linear-project-dashboard.js";
+import { ProjectWorkbench }                           from "@/core/application/orchestration/project-workbench.js";
 import type {
 	ProjectWorkbenchOptions,
 	WorkbenchActivityJournal,
 	WorkbenchTNoteSource,
 	WorkbenchTodoSource,
 } from "@/core/application/orchestration/project-workbench.js";
-import type { ExecutorPort }                                                        from "@/core/ports/execution/executor-port.js";
-import type { ComposerDraftController, SessionRepository, TodoStore, UsageMonitor } from "@/core/ports/index.js";
-import { TNoteService }                                                             from "@/core/application/work/t-note-service.js";
-import type { ActivityNarrator }                                                    from "@/core/application/orchestration/activity-narrator.js";
-import { WooEntry }                                                                 from "@/core/application/orchestration/woo-entry.js";
-import { SessionModelUsageAccumulator }                                             from "@/core/application/session/session-model-usage.js";
-import type { SessionModelUsageObservation }                                        from "@/core/application/session/session-model-usage.js";
-import { FileSkillRegistry }                                                        from "@/adapters/outbound/workspace/file-skill-registry.js";
-import type { SkillRegistrySnapshot }                                               from "@/core/skills/skill-registry.js";
-import { TodoLedger }                                                               from "@/core/application/work/todo-ledger.js";
-import type { TodoDocument, TodoNativePlanBinding }                                 from "@/core/domain/work/todos.js";
-import type { TNoteDraft }                                                          from "@/core/domain/work/t-notes.js";
-import type { WorkbenchModelSelection }                                             from "@/core/domain/work/workbench.js";
-import type { WorkFlowProjection }                                                  from "@/core/domain/work/index.js";
-import type { ProjectActivity }                                                     from "@/core/domain/execution/project-activity.js";
-import type { CacheLayerObservation }                                               from "@/core/domain/observability/cache-telemetry.js";
-import type { RequestRuntimeRecord }                                                from "@/core/domain/execution/request-runtime";
-import { CanonicalPromotionService }                                                from "@/core/application/work/canonical-promotion.js";
-import { ReviewService }                                                            from "@/core/application/review/review-service.js";
+import type { ExecutorPort }                          from "@/core/ports/execution/executor-port.js";
+import type { UsageMonitor }                          from "@/core/ports/observability/usage-monitor-port";
+import type { ComposerDraftController }               from "@/core/ports/persistence/composer-draft-port";
+import type { SessionRepository }                     from "@/core/ports/persistence/session-repository";
+import type { TodoStore }                             from "@/core/ports/persistence/todo-store";
+import { TNoteService }                               from "@/core/application/work/t-note-service.js";
+import type { ActivityNarrator }                      from "@/core/application/orchestration/activity-narrator.js";
+import { WooEntry }                                   from "@/core/application/orchestration/woo-entry.js";
+import { SessionModelUsageAccumulator }               from "@/core/application/session/session-model-usage.js";
+import type { SessionModelUsageObservation }          from "@/core/application/session/session-model-usage.js";
+import {
+	ThreadScopedActivityJournal,
+	ThreadScopedTNoteSource as CoreThreadScopedTNoteSource,
+	ThreadScopedTodoSource,
+} from "@/core/application/session/thread-scope-policy.js";
+import type { NativeThreadScope }                     from "@/core/application/session/thread-scope-policy.js";
+import { FileSkillRegistry }                          from "@/adapters/outbound/workspace/file-skill-registry.js";
+import type { SkillRegistrySnapshot }                 from "@/core/skills/skill-registry.js";
+import { TodoLedger }                                 from "@/core/application/work/todo-ledger.js";
+import type { WorkbenchModelSelection }               from "@/core/domain/work/workbench.js";
+import { CanonicalPromotionService }                  from "@/core/application/work/canonical-promotion.js";
+import { ReviewService }                              from "@/core/application/review/review-service.js";
 import {
 	digestActivitySource,
 	ActivityJournalStore,
 	nativeThreadJournalKey,
 } from "@/adapters/outbound/persistence/activity-journal-store.js";
-import type { ActivityJournalCacheTelemetry }                                       from "@/adapters/outbound/persistence/activity-journal-store.js";
-import { FileTraceStore }                                                           from "@/adapters/outbound/persistence/trace-store.js";
-import { FileRequestProjectionStore }                                               from "@/adapters/outbound/persistence/request-projection-store";
-import { createNativeHarness }                                                      from "@/adapters/outbound/execution/factory.js";
-import type { ExecutionLane, NativeHarnessSelection }                               from "@/adapters/outbound/execution/factory.js";
-import { FileComposerDraftController }                                              from "@/adapters/outbound/persistence/composer-draft-store.js";
-import { PiDetachedCodexGenerator }                                                 from "@/adapters/outbound/execution/detached-codex-generator.js";
-import { PiActivityNarrator }                                                       from "@/adapters/outbound/execution/pi-activity-narrator.js";
-import { FileCredentialStore }                                                      from "@/adapters/outbound/authentication/credential-store.js";
-import { createModelRegistry }                                                      from "@/adapters/outbound/authentication/model-router.js";
-import { FileProjectWorkspace }                                                     from "@/adapters/outbound/workspace/project-workspace.js";
-import type { ProjectWorkspace, SessionLease }                                      from "@/adapters/outbound/workspace/project-workspace.js";
-import { SessionEventStore }                                                        from "@/adapters/outbound/persistence/session-store.js";
-import { FileTNoteStore }                                                           from "@/adapters/outbound/persistence/t-note-store.js";
-import { FileTodoStore, importLegacyTodo }                                          from "@/adapters/outbound/persistence/todo-store.js";
-import { FileCanonicalDocumentStore }                                               from "@/adapters/outbound/persistence/canonical-document-store.js";
+import type { ActivityJournalCacheTelemetry }         from "@/adapters/outbound/persistence/activity-journal-store.js";
+import { FileTraceStore }                             from "@/adapters/outbound/persistence/trace-store.js";
+import { FileRequestProjectionStore }                 from "@/adapters/outbound/persistence/request-projection-store";
+import { createNativeHarness }                        from "@/adapters/outbound/execution/factory.js";
+import type { ExecutionLane, NativeHarnessSelection } from "@/adapters/outbound/execution/factory.js";
+import { FileComposerDraftController }                from "@/adapters/outbound/persistence/composer-draft-store.js";
+import { PiDetachedCodexGenerator }                   from "@/adapters/outbound/execution/detached-codex-generator.js";
+import { PiActivityNarrator }                         from "@/adapters/outbound/execution/pi-activity-narrator.js";
+import { FileCredentialStore }                        from "@/adapters/outbound/authentication/credential-store.js";
+import { createModelRegistry }                        from "@/adapters/outbound/authentication/model-router.js";
+import { FileProjectWorkspace }                       from "@/adapters/outbound/workspace/project-workspace.js";
+import type { ProjectWorkspace, SessionLease }        from "@/adapters/outbound/workspace/project-workspace.js";
+import { SessionEventStore }                          from "@/adapters/outbound/persistence/session-store.js";
+import { FileTNoteStore }                             from "@/adapters/outbound/persistence/t-note-store.js";
+import { FileTodoStore, importLegacyTodo }            from "@/adapters/outbound/persistence/todo-store.js";
+import { FileCanonicalDocumentStore }                 from "@/adapters/outbound/persistence/canonical-document-store.js";
 import {
 	createProductionReviewAdapters,
 	installedClaudeCliVersion,
 	PiReviewGenerationClient,
 	sha256ReviewDigest,
 } from "@/adapters/outbound/review/review-adapters.js";
-import { FileReviewProvenanceStore }                                                from "@/adapters/outbound/review/review-store.js";
-import { UsageService }                                                             from "@/adapters/outbound/observability/usage-service.js";
-import { WesEntryCollector }                                                        from "@/adapters/outbound/execution/wes-entry-collector.js";
-import { loadWorkbenchConfigWithSource }                                            from "@/adapters/outbound/workspace/workbench-config.js";
-import { DEFAULT_WORKBENCH_CONFIG }                                                 from "@/core/domain/execution/workbench-config.js";
-import type { WorkbenchConfig }                                                     from "@/core/domain/execution/workbench-config.js";
-import type { RequestRuntimeMode }                                                  from "@/core/application/orchestration/request-runtime-mode.js";
+import { FileReviewProvenanceStore }                  from "@/adapters/outbound/review/review-store.js";
+import { UsageService }                               from "@/adapters/outbound/observability/usage-service.js";
+import { WesEntryCollector }                          from "@/adapters/outbound/execution/wes-entry-collector.js";
+import { loadWorkbenchConfigWithSource }              from "@/adapters/outbound/workspace/workbench-config.js";
+import { DEFAULT_WORKBENCH_CONFIG }                   from "@/core/domain/execution/workbench-config.js";
+import type { WorkbenchConfig }                       from "@/core/domain/execution/workbench-config.js";
+import type { RequestRuntimeMode }                    from "@/core/application/orchestration/request-runtime-mode.js";
 
 const WORKBENCH_RUN_PREFIX = "workbench";
 /** Compatibility export; the source of truth is the validated config default. */
@@ -284,7 +287,18 @@ export async function createProjectWorkbenchSession(
 			options.resumeThreadId ? undefined : `request-intake-${runId}`,
 		);
 		if (options.resumeThreadId) await journal.bindThread(options.resumeThreadId);
-		const todoSource = new ThreadScopedTodoSource(workspace, factories);
+		const todoSource = new ThreadScopedTodoSource(resolveNativeThreadScope, scope => {
+			const todoPath = join(workspace.todosDirectory, scope.workId, "Todo.md");
+			const ledger   = factories.createTodoLedger(
+				scope.workId,
+				factories.createTodoStore(todoPath),
+				factories.createSessionEvents(workspace.sessionsDirectory),
+			);
+			return {
+				ledger,
+				importLegacy: () => factories.importLegacyTodo(workspace.legacyTodoPath, todoPath),
+			};
+		});
 		todos = todoSource;
 		const auxiliaryUsage        = new SessionModelUsageAccumulator()                                                       ;
 		const observeAuxiliaryUsage = (observation: SessionModelUsageObservation): void => auxiliaryUsage.observe(observation) ;
@@ -411,227 +425,44 @@ export function scopedTodoSessionId(nativeThreadId: string): string {
 	return `native-${digestActivitySource(nativeThreadId).slice("sha256:".length, "sha256:".length + 32)}`;
 }
 
+function resolveNativeThreadScope(threadId: string): NativeThreadScope {
+	return {
+		threadId,
+		journalId : nativeThreadJournalKey(threadId),
+		workId    : scopedTodoSessionId(threadId),
+	};
+}
+
 /**
  * The journal directory is shared by all workbench processes.  Its v1 stream
  * selection is exclusively derived from the native thread, never a run id.
  */
-export class ThreadBoundActivityJournal implements WorkbenchActivityJournal {
-	private streamId: string | null = null;
-	private trace: FileTraceStore | null = null;
-
+export class ThreadBoundActivityJournal extends ThreadScopedActivityJournal {
 	public constructor(
-		private readonly journal: WorkbenchActivityJournal,
-		private readonly traceRoot?: string,
-		private readonly intakeStreamId?: string,
-	) {}
-	public get supportsRequestIntake(): boolean { return !!this.intakeStreamId; }
-
-	public async bindThread(threadId: string): Promise<void> {
-		const streamId = nativeThreadJournalKey(threadId);
-		if (this.streamId && this.streamId !== streamId) {
-			throw new Error("활동 기록이 이미 다른 Native thread에 묶여 있습니다.");
-		}
-		this.streamId = streamId;
-		if (this.intakeStreamId) {
-			const existing = await this.journal.readAll(streamId);
-			const adopted = new Set(existing.map(a => a.payload.intakeActivityId));
-			for (const entry of await this.journal.readAll(this.intakeStreamId)) {
-				if (entry.projectId !== this.intakeStreamId) continue;
-				if (adopted.has(entry.id)) continue;
-				await this.journal.append({ ...entry, projectId: streamId, nativeRefs: { ...entry.nativeRefs, threadId }, payload: { ...entry.payload, intakeActivityId: entry.id, intakeStreamId: this.intakeStreamId, intakeRecordedAt: entry.recordedAt } });
-			}
-		}
-		if (this.traceRoot) this.trace = new FileTraceStore(join(this.traceRoot, scopedTodoSessionId(threadId), "Tracer.md"));
-		if (this.trace) await this.trace.replace(await this.journal.readAll(streamId));
-	}
-
-	public hasBoundThread(): boolean {
-		return this.streamId !== null;
-	}
-
-	public async append(input: Parameters<WorkbenchActivityJournal["append"]>[0]): ReturnType<WorkbenchActivityJournal["append"]> {
-		if (!this.streamId
-			&& this.intakeStreamId
-			&& input.kind === "progress"
-			&& /^request\/(submitted|failed|uncertain)$/u.test(String(input.payload.method))
-			&& !input.nativeRefs.threadId
-			&& typeof input.payload.requestId === "string") return this.journal.append({ ...input, projectId: this.intakeStreamId });
-		const streamId = this.requireStreamId();
-		const result = await this.journal.append({ ...input, projectId: streamId });
-		if (this.trace && result.appended) await this.trace.append(result.activity);
-		return result;
-	}
-
-	public readAll(_projectId: string): Promise<ProjectActivity[]> {
-		return this.streamId ? this.journal.readAll(this.streamId) : this.intakeStreamId ? this.journal.readAll(this.intakeStreamId) : Promise.resolve([]);
-	}
-
-	public cacheObservation(): CacheLayerObservation | null {
-		const telemetry = this.readCacheTelemetry();
-		if (!telemetry || telemetry.state === "unobserved") return null;
-		return {
-			id             : "session-read",
-			state          : telemetry.state,
-			entries        : telemetry.entries,
-			logicalBytes   : telemetry.logicalBytes,
-			hits           : telemetry.hits,
-			misses         : telemetry.misses,
-			evictions      : telemetry.evictions,
-			latencyMs      : null,
-			lastAccessedAt : telemetry.lastAccessedAt,
-		};
-	}
-
-	private readCacheTelemetry(): ActivityJournalCacheTelemetry | null {
-		const projectId = this.streamId ?? this.intakeStreamId;
-		if (!projectId) return null;
-		const source = this.journal as WorkbenchActivityJournal & {
+		journal: WorkbenchActivityJournal,
+		traceRoot?: string,
+		intakeStreamId?: string,
+	) {
+		const source = journal as WorkbenchActivityJournal & {
 			cacheTelemetry?(projectId: string): ActivityJournalCacheTelemetry;
 		};
-		return source.cacheTelemetry?.(projectId) ?? null;
-	}
-
-	private requireStreamId(): string {
-		if (!this.streamId) throw new Error("활동 기록은 Native thread에 묶인 뒤에만 추가할 수 있습니다.");
-		return this.streamId;
+		const cacheTelemetry = source.cacheTelemetry?.bind(source);
+		super(journal, resolveNativeThreadScope, {
+			...(intakeStreamId === undefined ? {} : { intakeStreamId }),
+			...(traceRoot === undefined
+				? {}
+				: { createTrace: scope => new FileTraceStore(join(traceRoot, scope.workId, "Tracer.md")) }),
+			...(cacheTelemetry === undefined
+				? {}
+				: { cacheTelemetry }),
+		});
 	}
 }
 
 /** @Unit Code-005 */
 /** @codeId 0005 */
-class ThreadScopedTNoteSource implements WorkbenchTNoteSource {
-	private projectId: string | null = null;
-
-	public constructor(private readonly source: WorkbenchTNoteSource) {}
-
-	public async bindThread(threadId: string): Promise<void> {
-		const projectId = scopedTodoSessionId(threadId);
-		if (this.projectId && this.projectId !== projectId) {
-			throw new Error("Note가 이미 다른 Native thread에 묶여 있습니다.");
-		}
-		this.projectId = projectId;
-	}
-
-	public readAll(_projectId: string): Promise<readonly TNoteDraft[]> {
-		return this.source.readAll(this.requireProjectId());
-	}
-
-	public create(
-		input: Parameters<WorkbenchTNoteSource["create"]>[0],
-		signal?: AbortSignal,
-	): ReturnType<WorkbenchTNoteSource["create"]> {
-		const projectId = this.requireProjectId();
-		// Journal records retain process-run ownership; the detached note packet is
-		// a projection scoped to this bound Native thread. Preserve source identities.
-		return this.source.create({
-			...input, projectId,
-			activities: input.activities.map((activity) => ({ ...activity, projectId })),
-		}, signal);
-	}
-
-	private requireProjectId(): string {
-		if (!this.projectId) throw new Error("Note는 Native 세션이 시작된 뒤 사용할 수 있습니다.");
-		return this.projectId;
-	}
-}
-
-class ThreadScopedTodoSource implements WorkbenchTodoSource {
-	private ledger             : TodoLedger | null   = null                                               ;
-	private sessionId          : string | null       = null                                               ;
-	private todoPath           : string | null       = null                                               ;
-	private ledgerSubscription : (() => void) | null = null                                               ;
-	private readonly listeners                       = new Set<(snapshot: TodoDocument | null) => void>() ;
-	private binding            : Promise<void>       = Promise.resolve()                                  ;
-
-	public constructor(
-		private readonly workspace: ProjectWorkspace,
-		private readonly factories: ProjectWorkbenchSessionFactories,
-	) {}
-
-	public get snapshot(): TodoDocument | null { return this.ledger?.snapshot ?? null; }
-
-	public bindThread(threadId: string): Promise<void> {
-		const sessionId = scopedTodoSessionId(threadId);
-		const operation = this.binding.then(async () => {
-			if (this.sessionId === sessionId) return;
-			if (this.sessionId) throw new Error("Todo가 이미 다른 Native thread에 묶여 있습니다.");
-			const todoPath = join(this.workspace.todosDirectory, sessionId, "Todo.md");
-			const ledger = this.factories.createTodoLedger(
-				sessionId,
-				this.factories.createTodoStore(todoPath),
-				this.factories.createSessionEvents(this.workspace.sessionsDirectory),
-			);
-			this.sessionId          = sessionId                                           ;
-			this.todoPath           = todoPath                                            ;
-			this.ledger             = ledger                                              ;
-			this.ledgerSubscription = ledger.subscribe((snapshot) => this.emit(snapshot)) ;
-			try {
-				await ledger.initialize();
-			} catch (error) {
-				this.ledgerSubscription?.();
-				ledger.dispose();
-				this.ledgerSubscription = null ;
-				this.ledger             = null ;
-				this.sessionId          = null ;
-				this.todoPath           = null ;
-				throw error;
-			}
-		});
-		this.binding = operation.catch(() => undefined);
-		return operation;
-	}
-
-	public subscribe(listener: (snapshot: TodoDocument | null) => void): () => void {
-		this.listeners.add(listener);
-		return () => this.listeners.delete(listener);
-	}
-
-	/** @linear WOO-702 Keeps the Workbench's observed input/turn binding intact at the file boundary. */
-	public syncNativePlan(flow: WorkFlowProjection, binding: TodoNativePlanBinding): Promise<TodoDocument> {
-		if (!flow.source) throw new Error("Native plan source authority is required for Todo sync");
-		return this.requireLedger().syncNativePlan(flow, binding);
-	}
-	public syncRequestRuntime(request: RequestRuntimeRecord): Promise<TodoDocument> {
-		return this.requireLedger().syncRequestRuntime(request);
-	}
-	public create        (title: string, items: readonly string[], storyId?: string): Promise<TodoDocument> { return this.requireLedger().create(title, items, storyId); }
-	public add           (content: string, placement: "now" | "after"              ): Promise<TodoDocument> { return this.requireLedger().add(content, placement); }
-	public addDetails    (itemId: string, details: readonly string[]               ): Promise<TodoDocument> { return this.requireLedger().addDetails(itemId, details); }
-	public start         (itemId: string                                           ): Promise<TodoDocument> { return this.requireLedger().start(itemId); }
-	public complete      (itemId: string                                           ): Promise<TodoDocument> { return this.requireLedger().complete(itemId); }
-	public block         (itemId: string                                           ): Promise<TodoDocument> { return this.requireLedger().block(itemId); }
-	public reopen        (itemId: string                                           ): Promise<TodoDocument> { return this.requireLedger().reopen(itemId); }
-	public recordEvidence(evidenceId: string                                       ): Promise<TodoDocument | null> { return this.requireLedger().recordEvidence(evidenceId); }
-
-	public async importLegacy(): Promise<string | null> {
-		const ledger   = this.requireLedger()                                                           ;
-		const todoPath = this.requireTodoPath()                                                         ;
-		const imported = await this.factories.importLegacyTodo(this.workspace.legacyTodoPath, todoPath) ;
-		if (imported) await ledger.initialize();
-		return imported;
-	}
-
-	public dispose(): void {
-		this.ledgerSubscription?.();
-		this.ledgerSubscription = null;
-		this.ledger?.dispose();
-		this.ledger = null;
-		this.listeners.clear();
-	}
-
-	private requireLedger(): TodoLedger {
-		if (!this.ledger) throw new Error("Todo는 첫 질문으로 Native 세션이 시작된 뒤 사용할 수 있습니다.");
-		return this.ledger;
-	}
-
-	private requireTodoPath(): string {
-		if (!this.todoPath) throw new Error("Todo 경로는 Native 세션이 시작된 뒤 사용할 수 있습니다.");
-		return this.todoPath;
-	}
-
-	private emit(snapshot: TodoDocument | null): void {
-		for (const listener of this.listeners) {
-			try { listener(snapshot); } catch { /* A view cannot break Todo state. */ }
-		}
+class ThreadScopedTNoteSource extends CoreThreadScopedTNoteSource {
+	public constructor(source: WorkbenchTNoteSource) {
+		super(source, resolveNativeThreadScope);
 	}
 }

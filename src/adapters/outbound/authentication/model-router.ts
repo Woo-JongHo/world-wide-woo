@@ -14,7 +14,7 @@ import { googleProvider }                    from "@earendil-works/pi-ai/provide
 import { openaiProvider }                    from "@earendil-works/pi-ai/providers/openai";
 import { openaiCodexProvider }               from "@earendil-works/pi-ai/providers/openai-codex";
 import { zaiProvider }                       from "@earendil-works/pi-ai/providers/zai";
-import type { ModelAuthStatus, ModelClient } from "@/core/ports";
+import type { ModelAuthStatus, ModelClient } from "@/core/ports/integration/model-client-port";
 import type { Effort, WwwSettings }          from "@/core/domain/execution/model-settings";
 
 // pi-ai keeps Node-only OAuth flows behind runtime imports for browser builds.

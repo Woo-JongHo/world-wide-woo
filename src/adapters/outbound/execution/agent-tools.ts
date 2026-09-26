@@ -2,7 +2,8 @@ import { lstat, realpath, readdir, readFile, stat }              from "node:fs/p
 import { homedir }                                               from "node:os";
 import { isAbsolute, relative, resolve, sep }                    from "node:path";
 import { Type }                                                  from "typebox";
-import type { AgentTool, AgentToolExecution, TodoController }    from "@/core/ports";
+import type { AgentTool, AgentToolExecution }                    from "@/core/ports/execution/agent-tool-port";
+import type { TodoController }                                   from "@/core/ports/execution/todo-controller-port";
 import type { CommandResultSnapshot, GenericToolResultSnapshot } from "@/core/domain/execution/output";
 
 const MAX_FILE_BYTES        = 256 * 1024 ;

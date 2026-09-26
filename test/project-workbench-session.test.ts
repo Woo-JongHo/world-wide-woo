@@ -10,7 +10,8 @@ import type {
 	WorkbenchActivityJournal,
 } from "../src/core/application/orchestration/project-workbench.js";
 import { WooEntry }                           from "../src/core/application/orchestration/woo-entry.js";
-import type { SessionRepository, TodoStore }  from "../src/core/ports/index.js";
+import type { SessionRepository }             from "../src/core/ports/persistence/session-repository";
+import type { TodoStore }                     from "../src/core/ports/persistence/todo-store";
 import { TodoLedger, TodoWriteConflictError } from "../src/core/application/work/todo-ledger";
 import { ReviewService }                      from "../src/core/application/review/review-service";
 
@@ -269,6 +270,36 @@ describe("createProjectWorkbenchSession", () => {
 		expect(appends).toBe(0);
 		await expect(journal.readAll("unbound")).resolves.toEqual([]);
 		expect(reads).toBe(0);
+	});
+
+	test("binds the Native journal before waiting for the thread writer lease", async () => {
+		let boundJournal: WorkbenchActivityJournal | undefined;
+		const order: string[] = [];
+		const session = await createProjectWorkbenchSession("/ignored", {}, {
+			openWorkspace: async () => workspace,
+			acquireWriterLease: async (_workspace, id) => {
+				if (id.startsWith("native-")) {
+					order.push("thread.bind.checked");
+					expect(boundJournal?.hasBoundThread?.()).toBe(true);
+				}
+				return { release: async () => undefined };
+			},
+			connectNative       : async () => new FakeNative(order),
+			createJournal       : () => new MemoryJournal(),
+			createTodoStore     : () => new MemoryTodoStore(),
+			createSessionEvents : () => new MemoryEvents(),
+			createTNoteSource   : () => ({ readAll: async () => [], create: async () => { throw new Error("not used"); } }),
+			createWorkbench: (native, journal, options) => {
+				boundJournal = journal;
+				return new ProjectWorkbench(native, journal, options);
+			},
+			createComposerDraft : async () => ({ initialText: "", save: async () => undefined, clear: async () => undefined }),
+		});
+
+		await session.workbench.dispatch({ type: "session.mode", mode: "manual" });
+		await session.workbench.dispatch({ type: "chat.send", text: "결속 순서를 확인해" });
+		expect(order).toContain("thread.bind.checked");
+		await session.close();
 	});
 
 	test("rebuilds the bound session Tracer.md from the canonical activity journal", async () => {

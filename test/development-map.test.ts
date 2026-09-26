@@ -4,7 +4,7 @@ import { tmpdir }                         from "node:os";
 import { join }                           from "node:path";
 import { stripTerminalSequences }         from "@earendil-works/pi-tui";
 import { FileDevelopmentMapSource }       from "../src/adapters/outbound/development/development-map-source";
-import { DevelopmentMapView }             from "../src/adapters/inbound/tui/features/project-map/development-map-view";
+import { DevelopmentMapView }             from "../src/adapters/inbound/tui/features/project-map/view/development-map-view";
 import { DevelopmentMapPollingLifecycle } from "../src/adapters/inbound/tui/shell/workbench-navigation.controller";
 
 describe("development map", () => {

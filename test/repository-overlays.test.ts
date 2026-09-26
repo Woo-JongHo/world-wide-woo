@@ -1,11 +1,11 @@
 import { describe, expect, test }               from "bun:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import type { RepositoryInsights }              from "../src/core/ports";
+import type { RepositoryInsights }              from "../src/core/ports/integration/repository-insights-port";
 import { OverlaySheet }                         from "../src/adapters/inbound/tui/foundation/components/overlay-sheet";
 import {
 	IssueListOverlay,
 	RepositoryActivityOverlay,
-} from "../src/adapters/inbound/tui/features/repository/repository-overlays";
+} from "../src/adapters/inbound/tui/features/repository/view/repository-overlays";
 
 const repository: RepositoryInsights = {
 	snapshot: async () => ({

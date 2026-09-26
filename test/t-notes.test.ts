@@ -1,11 +1,19 @@
-import { afterEach, describe, expect, test }               from "bun:test";
-import { appendFile, mkdtemp, readFile, rm, writeFile }    from "node:fs/promises";
-import { tmpdir }                                          from "node:os";
-import { join }                                            from "node:path";
-import { TNoteService, validateCanonicalTNote }            from "../src/core/application/work/t-note-service.js";
-import type { DetachedTextGenerator }                      from "../src/core/application/orchestration/detached-text-generator.js";
-import { FileTNoteStore }                                  from "../src/adapters/outbound/persistence/t-note-store.js";
-import { createTNotePacket, projectActivityToTNoteSource } from "../src/core/domain/work/t-notes.js";
+import { afterEach, describe, expect, test }            from "bun:test";
+import { appendFile, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir }                                       from "node:os";
+import { join }                                         from "node:path";
+import {
+	TNoteOperationError,
+	TNoteService,
+	validateCanonicalTNote,
+} from "../src/core/application/work/t-note-service.js";
+import type { DetachedTextGenerator }                   from "../src/core/application/orchestration/detached-text-generator.js";
+import { FileTNoteStore }                               from "../src/adapters/outbound/persistence/t-note-store.js";
+import {
+	createTNotePacket,
+	projectActivityToTNoteSource,
+	tNoteSourceIdempotencyKey,
+} from "../src/core/domain/work/t-notes.js";
 
 const directories: string[] = [];
 afterEach(async () => { await Promise.all(directories.splice(0).map(directory => rm(directory, { recursive: true, force: true }))); });
@@ -46,9 +54,9 @@ describe("Note service", () => {
 	test("preserves public test counts and repository test paths while redacting local paths", () => {
 		expect(createTNotePacket("project-1", { startSequence: 1, endSequence: 1 }, [{
 			id: "test-evidence", projectId: "project-1", sequence: 1, occurredAt: "2026-09-01T00:00:00.000Z",
-			kind: "tool.completed", title: "test", body: "Total 1/2\n01. bun test test/astra-ui.test.ts\n/Users/example/private",
+			kind: "tool.completed", title: "test", body: "Total 1/2\n01. bun test test/www-ui.test.ts\n/Users/example/private",
 		}], "2026-09-01T00:00:00.000Z", () => "a".repeat(64)).activities[0]?.body)
-			.toBe("Total 1/2\n01. bun test test/astra-ui.test.ts\n[redacted:local-path]");
+			.toBe("Total 1/2\n01. bun test test/www-ui.test.ts\n[redacted:local-path]");
 	});
 
 	test("fits large valid source activities into one packet without losing their identities", () => {
@@ -128,6 +136,125 @@ describe("Note service", () => {
 		expect(text).not.toContain("Acme");
 	});
 
+	test("serializes concurrent distinct Summary records with stable identity and append sequence", async () => {
+		const draftStore = await store();
+		const input = (id: string, sequence: number) => ({
+			id,
+			createdAt: "2026-09-01T00:00:00.000Z",
+			packet: createTNotePacket("project-1", { startSequence: sequence, endSequence: sequence }, [{
+				id: `activity-${sequence}`,
+				projectId: "project-1",
+				sequence,
+				occurredAt: "2026-09-01T00:00:00.000Z",
+				kind: "progress.completed",
+				title: "완료",
+				body: "검증 완료",
+			}], "2026-09-01T00:00:00.000Z", (value) => new Bun.CryptoHasher("sha256").update(value).digest("hex")),
+			text: `요약 ${sequence}`,
+			provenance: { provider: "test", model: "test", version: "test" },
+		});
+
+		const [first, second] = await Promise.all([
+			draftStore.append(input("summary-one", 1)),
+			draftStore.append(input("summary-two", 2)),
+		]);
+
+		expect([first, second].map(note => note.id)).toEqual(["summary-one", "summary-two"]);
+		const restored = await draftStore.readAll("project-1");
+		expect(restored.map(note => ({ id: note.id, sequence: note.sequence }))).toEqual([
+			{ id: "summary-one", sequence: 1 },
+			{ id: "summary-two", sequence: 2 },
+		]);
+		expect(restored.map(note => note.packet.digest)).toEqual([first.packet.digest, second.packet.digest]);
+		expect(tNoteSourceIdempotencyKey(first.packet)).not.toBe(tNoteSourceIdempotencyKey(second.packet));
+	});
+
+	test("returns one stored Note when separate capture and store instances append the same source concurrently", async () => {
+		const directory = await mkdtemp(join(tmpdir(), "www-tnotes-"));
+		directories.push(directory);
+		const firstStore                                      = new FileTNoteStore(directory) ;
+		const secondStore                                     = new FileTNoteStore(directory) ;
+		const packets: ReturnType<typeof createTNotePacket>[] = []                            ;
+		const firstGenerator: DetachedTextGenerator = {
+			async generate(request, signal) {
+				packets.push(request.packet);
+				return generator.generate(request, signal);
+			},
+		};
+		const secondGenerator: DetachedTextGenerator = {
+			async generate(request) {
+				packets.push(request.packet);
+				return {
+					text       : "질문: 무엇을 확인했나\nPlan: 별도 생성 시도도 같은 완료 source를 보존합니다.\n과정: 같은 활동 범위를 다시 확인했습니다.\n결론: 첫 Note record를 재사용했습니다.",
+					provenance : { provider: "test", model: "different-model", version: "different-version" },
+					isolation  : { appliedPolicy: policy, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 },
+				};
+			},
+		};
+		const request = {
+			projectId        : "project-1",
+			expectedQuestion : "무엇을 확인했나",
+			range            : { startSequence: 1, endSequence: 1 },
+			activities       : [{ id: "completed-activity", projectId: "project-1", sequence: 1, occurredAt: "2026-09-01T00:00:00.000Z", kind: "progress.completed", title: "완료", body: "검증 완료" }],
+			instruction      : "동일 packet 요약",
+		};
+		const firstCapture = new TNoteService(firstGenerator, firstStore, () => new Date("2026-09-01T00:00:00.000Z"), () => "first-attempt");
+		const secondCapture = new TNoteService(secondGenerator, secondStore, () => new Date("2026-09-01T00:01:00.000Z"), () => "retry-attempt");
+
+		const [first, second] = await Promise.all([
+			firstCapture.create(request),
+			secondCapture.create(request),
+		]);
+
+		expect(first).toEqual(second);
+		expect(await firstStore.readAll("project-1")).toEqual([first]);
+		expect(packets.map(packet => packet.digest)).not.toEqual([packets[0]?.digest, packets[0]?.digest]);
+		expect(tNoteSourceIdempotencyKey(packets[0]!)).toBe(tNoteSourceIdempotencyKey(packets[1]!));
+	});
+
+	test("recovers the persisted Note when append commits but its response fails", async () => {
+		const durableStore = await store() ;
+		let appendCalls    = 0             ;
+		let requestDigest  = ""            ;
+		const ambiguousStore = {
+			async append(input: Parameters<typeof durableStore.append>[0]) {
+				appendCalls += 1;
+				requestDigest = input.packet.digest;
+				const packet = createTNotePacket(
+					input.packet.projectId,
+					input.packet.range,
+					input.packet.activities.map(activity => ({ ...activity, projectId: input.packet.projectId })),
+					"2026-09-01T00:01:00.000Z",
+					(value) => new Bun.CryptoHasher("sha256").update(value).digest("hex"),
+				);
+				await durableStore.append({
+					...input,
+					id: "persisted-after-commit",
+					createdAt: "2026-09-01T00:01:00.000Z",
+					packet,
+					text: "질문: 무엇을 확인했나\nPlan: 저장 완료 뒤 응답 유실을 복구합니다.\n과정: 동일 source key를 다시 읽었습니다.\n결론: 기존 Note를 반환했습니다.",
+					provenance: { provider: "test", model: "persisted-model", version: "persisted-version" },
+				});
+				throw new Error("append response lost");
+			},
+			readAll(projectId: string) { return durableStore.readAll(projectId); },
+		};
+		const service = new TNoteService(generator, ambiguousStore, () => new Date("2026-09-01T00:00:00.000Z"), () => "ambiguous-note");
+
+		const note = await service.create({
+			projectId        : "project-1",
+			expectedQuestion : "무엇을 확인했나",
+			range            : { startSequence: 1, endSequence: 1 },
+			activities       : [{ id: "act-1", projectId: "project-1", sequence: 1, occurredAt: "2026-09-01T00:00:00.000Z", kind: "progress.completed", title: "완료", body: "검증 완료" }],
+			instruction      : "요약",
+		});
+
+		expect(appendCalls).toBe(1);
+		expect(note.id).toBe("persisted-after-commit");
+		expect(note.packet.digest).not.toBe(requestDigest);
+		expect(await durableStore.readAll("project-1")).toEqual([note]);
+	});
+
 	test("appends Test from completed external-runtime observations instead of generated prose", async () => {
 		const draftStore = await store();
 		const service = new TNoteService(generator, draftStore, () => new Date("2026-09-01T00:00:00.000Z"), () => "tnote-test-summary");
@@ -136,14 +263,14 @@ describe("Note service", () => {
 			expectedQuestion : "무엇을 확인했나",
 			range            : { startSequence: 1, endSequence: 4 },
 			activities: [
-				{ id : "act-1" , projectId : "project-1" , sequence : 1 , occurredAt : "2026-09-01T00:00:00.000Z" , kind : "tool.completed"     , title : "검증" , body : JSON.stringify({ params: { item: { type: "commandExecution", command: "bun test test/astra-ui.test.ts", durationMs: 1200, exitCode: 0 } } })          },
+				{ id : "act-1" , projectId : "project-1" , sequence : 1 , occurredAt : "2026-09-01T00:00:00.000Z" , kind : "tool.completed"     , title : "검증" , body : JSON.stringify({ params: { item: { type: "commandExecution", command: "bun test test/www-ui.test.ts", durationMs: 1200, exitCode: 0 } } })            },
 				{ id : "act-2" , projectId : "project-1" , sequence : 2 , occurredAt : "2026-09-01T00:00:01.000Z" , kind : "tool.completed"     , title : "검증" , body : JSON.stringify({ params: { item: { type: "commandExecution", command: "pnpm test test/project-workbench.test.ts", durationMs: 375, exitCode: 1 } } }) },
 				{ id : "act-3" , projectId : "project-1" , sequence : 3 , occurredAt : "2026-09-01T00:00:02.000Z" , kind : "tool.completed"     , title : "탐색" , body : JSON.stringify({ params: { item: { type: "commandExecution", command: "rg Note src", durationMs: 40, exitCode: 0 } } })                               },
 				{ id : "act-4" , projectId : "project-1" , sequence : 4 , occurredAt : "2026-09-01T00:00:03.000Z" , kind : "progress.completed" , title : "완료" , body : "{}"                                                                                                                                                  },
 			],
 			instruction: "요약",
 		});
-		expect(note.text).toContain("Test:\nTotal 1/2\n01. bun test test/astra-ui.test.ts : 1.2s · passed\n02. pnpm test test/project-workbench.test.ts : 0.4s · failed");
+		expect(note.text).toContain("Test:\nTotal 1/2\n01. bun test test/www-ui.test.ts : 1.2s · passed\n02. pnpm test test/project-workbench.test.ts : 0.4s · failed");
 	});
 
 	test("sanitizes a question embedded in the instruction before detached generation", async () => {
@@ -218,11 +345,31 @@ describe("Note service", () => {
 			],
 			instruction: "요약",
 		};
-		await expect(new TNoteService(recovering, draftStore).create(input)).rejects.toThrow("temporary");
+		const generationFailure = new TNoteService(recovering, draftStore).create(input);
+		await expect(generationFailure).rejects.toBeInstanceOf(TNoteOperationError);
+		await expect(generationFailure).rejects.toMatchObject({ operation: "generation" });
 		expect(await draftStore.readAll("project-1")).toEqual([]);
 		const recovered = await new TNoteService(recovering, draftStore).create(input);
 		expect(attempts).toBe(2);
 		expect(await draftStore.readAll("project-1")).toEqual([recovered]);
+	});
+
+	test("classifies storage and read failures independently from generation", async () => {
+		const failingStore = {
+			append : async () => { throw new Error("disk full"); },
+			readAll: async () => { throw new Error("disk unavailable"); },
+		};
+		const service = new TNoteService(generator, failingStore, () => new Date("2026-09-01T00:00:00.000Z"), () => "failed-note");
+		const input = {
+			projectId        : "project-1",
+			expectedQuestion : "무엇을 확인했나",
+			range            : { startSequence: 1, endSequence: 1 },
+			activities       : [{ id: "activity-1", projectId: "project-1", sequence: 1, occurredAt: "2026-09-01T00:00:00.000Z", kind: "progress.completed", title: "완료", body: "완료" }],
+			instruction      : "요약",
+		};
+
+		await expect(service.create(input)).rejects.toMatchObject({ operation: "storage" });
+		await expect(service.readAll("project-1")).rejects.toMatchObject({ operation: "read" });
 	});
 
 	test("adapts the append-only ProjectActivity journal without provider-state reconstruction", () => {

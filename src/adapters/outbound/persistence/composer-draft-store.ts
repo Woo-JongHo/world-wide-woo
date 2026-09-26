@@ -2,7 +2,7 @@ import { createHash, randomUUID }                                 from "node:cry
 import { chmod, mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
 import { homedir }                                                from "node:os";
 import { join, resolve }                                          from "node:path";
-import type { ComposerDraftController }                           from "@/core/ports";
+import type { ComposerDraftController }                           from "@/core/ports/persistence/composer-draft-port";
 
 const SCHEMA_VERSION = 1;
 const MAX_TEXT_BYTES = 64 * 1024;
@@ -39,7 +39,7 @@ function isStoredDraft(value: unknown): value is StoredDraft {
 	);
 }
 
-/** Per-session files prevent one WWW process from overwriting another process's project draft. */
+/** Persistence-only adapter; per-session files prevent one WWW process from overwriting another process's project draft. */
 export class FileComposerDraftController implements ComposerDraftController {
 	private loaded: LoadedDraft | undefined;
 

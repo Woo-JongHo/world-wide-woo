@@ -27,17 +27,17 @@
 
 | 원본 | 위치 | 관리 방식 |
 | --- | --- | --- |
-| 코드 테이블 | `ASTRA_KEYS`(F2–F9), `ASTRA_VIEWS`(Ctrl+G 1–8) — `src/adapters/inbound/tui/shell/astra-surface.ts:20-30` | 배열 상수. F키 루프(`workbench-shell.ts:1078`)만 소비 |
-| 도움말 화면 | `HelpView` — `astra-surface.ts:95-105` | 키 줄을 하드코딩, `ASTRA_VIEWS`만 재사용 |
-| 문서 | [ASTRA_EXECUTION_CONSOLE.md](../ASTRA_EXECUTION_CONSOLE.md) 46-68행 | 수동 표 |
+| 코드 테이블 | `ASTRA_KEYS`(F2–F9), `ASTRA_VIEWS`(Ctrl+G 1–8) — `src/adapters/inbound/tui/shell/www-surface.ts:20-30` | 배열 상수. F키 루프(`workbench-shell.ts:1078`)만 소비 |
+| 도움말 화면 | `HelpView` — `www-surface.ts:95-105` | 키 줄을 하드코딩, `ASTRA_VIEWS`만 재사용 |
+| 문서 | [WWW_EXECUTION_CONSOLE.md](../WWW_EXECUTION_CONSOLE.md) 46-68행 | 수동 표 |
 
 확인된 어긋남:
 
-1. **F9 누락**: 코드엔 `f9 → /test`(`astra-surface.ts:23`)가 있으나 HelpView(`:100`)와 문서(68행) 모두 "F2–F8"로 표기.
+1. **F9 누락**: 코드엔 `f9 → /test`(`www-surface.ts:23`)가 있으나 HelpView(`:100`)와 문서(68행) 모두 "F2–F8"로 표기.
 2. **Shift+Tab 미기재**: `cycleRuntimeMode`(협업·권한 모드 순환, `workbench-shell.ts:478`, `:1102`)가 HelpView·문서 어디에도 없음.
 3. **Esc 중단 조건 이중 분기**: `workbench-shell.ts:1143`(dashboard 모드 조건부 취소)과 `:1153`(작업 중 Esc 전역 취소)이 같은 `chat.cancel`을 중복 처리 — 1143은 1153의 부분집합이며 문서는 "실행 화면의 입력 상태"로만 기술.
 4. **Ctrl+C 미기재**: 오버레이 닫기·이중 눌러 종료(`:1157-1169`)가 문서 표에 없음.
-5. **키 회귀 테스트 부재**: `test/astra-shell.test.ts`에 키 관련 단정이 0건 — 리맵·충돌이 발생해도 어떤 테스트도 잡지 못한다.
+5. **키 회귀 테스트 부재**: `test/www-shell.test.ts`에 키 관련 단정이 0건 — 리맵·충돌이 발생해도 어떤 테스트도 잡지 못한다.
 
 ### 권고 (키값)
 
@@ -50,20 +50,20 @@
 
 **정합성**
 - A1 `isInvalidOAuthRefresh` 정규식 헬퍼가 `auth-service.ts:46`·`usage-service.ts:276`에 완전 중복 → 공용 헬퍼 추출. *(재확인 완료)*
-- A2 draft "Response n-m" 라벨을 `astra-execution.ts:308`과 `:480-484`가 다른 알고리즘·구분자로 이중 계산 → 라벨 헬퍼 통일.
+- A2 draft "Response n-m" 라벨을 `www-execution.ts:308`과 `:480-484`가 다른 알고리즘·구분자로 이중 계산 → 라벨 헬퍼 통일.
 - A3 `antigravity-auth.ts:10` 클래스명이 파일 역할과 다른 범용 `ProviderAuthController` → 역할명으로 개명.
-- A4 동일 라이브 상태의 한·영 라벨 혼용("Working/Esc to interrupt" vs "실행 중/Esc 중단", `astra-surface.ts:191-193` vs `astra-execution.ts:54`) → 상태 라벨 표 단일화.
+- A4 동일 라이브 상태의 한·영 라벨 혼용("Working/Esc to interrupt" vs "실행 중/Esc 중단", `www-surface.ts:191-193` vs `www-execution.ts:54`) → 상태 라벨 표 단일화.
 
 **가독성**
 - B1 `runProjectWorkbenchShell`(`workbench-shell.ts:288-1196`) 과대 — `handleLocal`만 ~270줄 if-체인(`:709-978`) → 오버레이 클러스터·명령 디스패치 분리.
-- B2 `durableBlocks`(`astra-execution.ts:393-476`) 다중 역할 클로저 + `:397-442` 탭 깊이 혼용 → 엔티티별 헬퍼 분리.
+- B2 `durableBlocks`(`www-execution.ts:393-476`) 다중 역할 클로저 + `:397-442` 탭 깊이 혼용 → 엔티티별 헬퍼 분리.
 - B3 앵커 복원 매직 넘버(`chat-scroll.view.ts:31-36`, `:72-79`의 4행 샘플·80자·`length>=16; length-=8`·`chunkSize+3` 겹침) → 상수화 + 겹침 이유 주석.
 - B4 HelpView "F2–F8" drift(위 2장 1번과 동일 건).
 
 **병합 경계**
 - C1 ModelPicker에 항상 configured인 가짜 auth 스텁 주입(`workbench-shell.ts:650`) — `source` 어휘도 `auth-service.ts:25`와 불일치.
 - C2 upstream identity 잔재: `zai-coding-plan-usage.ts:76`의 `User-Agent: "OpenCode-Status-Plugin/1.0"` 그대로 사용 → WWW UA 상수화. *(재확인 완료)*
-- C3 활동 표시 파이프라인 이중 소유: 셸이 항상 indicator를 밀지만 astra 경로는 `syncActivity(_indicator) {}` 스텁으로 폐기(`astra-execution.ts:356`).
+- C3 활동 표시 파이프라인 이중 소유: 셸이 항상 indicator를 밀지만 astra 경로는 `syncActivity(_indicator) {}` 스텁으로 폐기(`www-execution.ts:356`).
 - C4 상대 import 확장자 레인 혼용(`.js` 접미사 레인 vs 무확장자 레인 공존) — 병합 전 도구 관습이 남아 있음.
 
 ## 4. 권고 조치 순서
@@ -77,7 +77,7 @@
 
 권고 1·2차와 A1을 적용했다. 전체 스위트 1,279 pass / 0 fail, `bun run check` 통과.
 
-- 키맵 단일 원본: `src/adapters/inbound/tui/foundation/keyboard/astra-keymap.ts` 신설(동작 이름 기준 18개 바인딩), `ASTRA_KEYS`·`ASTRA_VIEWS`·HelpView·셸 전역 핸들러를 모두 파생 전환, `test/astra-keymap.test.ts` 5건(키 소유·충돌 없음·F2–F9 파생·HelpView 동기화·문서 동기화)
+- 키맵 단일 원본: `src/adapters/inbound/tui/foundation/keyboard/www-keymap.ts` 신설(동작 이름 기준 18개 바인딩), `ASTRA_KEYS`·`ASTRA_VIEWS`·HelpView·셸 전역 핸들러를 모두 파생 전환, `test/www-keymap.test.ts` 5건(키 소유·충돌 없음·F2–F9 파생·HelpView 동기화·문서 동기화)
 - 문서 표 갱신: F2–F9, Shift+Tab(협업·권한 모드 순환), Ctrl+C(중단·이중 종료) 추가
 - Esc 대시보드 조건부 취소 분기 제거 — 문서 계약(모든 상세 화면에서 돌아가기)으로 정렬, 실행 취소는 실행 화면 Esc·Ctrl+C로 유지
 - C1 `codexNativeAuthStatus` 상수+근거 주석, C2 `ZAI_USAGE_USER_AGENT` 상수, A1 `oauth-refresh-error.ts` 단일화(authentication 소유, usage-service 참조)

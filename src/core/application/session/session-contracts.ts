@@ -1,7 +1,7 @@
 import type { WwwSettings }        from "@/core/domain/execution/model-settings";
 import type { ToolResultSnapshot } from "@/core/domain/execution/output";
 import type { WorkNarration }      from "@/core/domain/work/narration";
-import type { ModelAuthStatus }    from "@/core/ports/index.js";
+import type { ModelAuthStatus }    from "@/core/ports/integration/model-client-port";
 
 export type SessionPhase = "starting" | "ready" | "streaming" | "error";
 

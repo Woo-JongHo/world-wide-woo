@@ -7,14 +7,11 @@ import type { PlanningSnapshot }                          from "@/core/domain/wo
 import type { SessionEvent }                              from "@/core/domain/execution/session-events";
 import type { CommandResultSnapshot, ToolResultSnapshot } from "@/core/domain/execution/output";
 import { sanitizeTerminalText }                           from "@/core/domain/execution/terminal";
-import type {
-	AgentTool,
-	ModelAuthStatus,
-	ModelClient,
-	SessionRepository,
-	TerminalCommandExecutor,
-	TodoController,
-} from "@/core/ports/index.js";
+import type { AgentTool }                                 from "@/core/ports/execution/agent-tool-port";
+import type { TerminalCommandExecutor }                   from "@/core/ports/execution/terminal-command-port";
+import type { TodoController }                            from "@/core/ports/execution/todo-controller-port";
+import type { ModelAuthStatus, ModelClient }              from "@/core/ports/integration/model-client-port";
+import type { SessionRepository }                         from "@/core/ports/persistence/session-repository";
 import type {
 	ConversationTurn,
 	SessionActivity,

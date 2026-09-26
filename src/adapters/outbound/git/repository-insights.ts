@@ -1,4 +1,4 @@
-import type { RepositoryInsights } from "@/core/ports";
+import type { RepositoryInsights } from "@/core/ports/integration/repository-insights-port";
 import type {
 	ChangedFile,
 	ChangedFileKind,

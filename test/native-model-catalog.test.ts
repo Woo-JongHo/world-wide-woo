@@ -13,8 +13,8 @@ import {
 	loadWorkbenchConfig,
 	saveWorkbenchExecutionSelection,
 } from "../src/adapters/outbound/workspace/workbench-config";
-import { ModelPickerOverlay }                   from "../src/adapters/inbound/tui/features/model-selection/model-picker-overlay";
-import { AstraSheet }                           from "../src/adapters/inbound/tui/shell/astra-surface";
+import { ModelPickerOverlay }                   from "../src/adapters/inbound/tui/features/model-selection/view/model-picker-overlay";
+import { WwwSheet }                             from "../src/adapters/inbound/tui/shell/www-surface";
 import {
 	parseWorkbenchShellCommand,
 	withNativeModelCompletions,
@@ -139,7 +139,7 @@ test("a newly discovered model crosses completion, command, picker, persistence,
 		const picker = new ModelPickerOverlay(current, async provider => ({ state: "configured", provider, source: "fixture", type: "oauth" }), () => {}, async settings => {
 			applied = settings;
 			expect((await workbench.dispatch({ type: "session.model", selection: settings })).state).toBe("accepted");
-		}, () => {}, () => {}, current, false, { providers: ["openai-codex"], startAtModel: true, nativeCodex: true, appearance: "astra", loadCatalog: () => workbench.refreshModels() });
+		}, () => {}, () => {}, current, false, { providers: ["openai-codex"], startAtModel: true, nativeCodex: true, appearance: "www", loadCatalog: () => workbench.refreshModels() });
 		picker.start();
 		expect(stripTerminalSequences(picker.render(76).join("\n"))).toContain("갱신 중");
 		await Bun.sleep(0);
@@ -155,21 +155,21 @@ test("a newly discovered model crosses completion, command, picker, persistence,
 	} finally { await workbench.close(); await rm(root, { recursive: true, force: true }); }
 });
 
-test("a long refreshed model list keeps the selected last item visible in a small Astra sheet", async () => {
-	const catalog : NativeModelCatalog = { source: "native", checkedAt: "2026-09-12T00:00:00Z", error: null, models: Array.from({ length: 30 }, (_, index) => ({ model: `fixture-${index}`, displayName: `fixture-${index}`, efforts: ["high"], defaultEffort: "high" })) }                                                           ;
-	const current : WwwSettings        = { provider: "openai-codex", model: "fixture-29", effort: "high" }                                                                                                                                                                                                                            ;
-	const picker                       = new ModelPickerOverlay(current, async provider => ({ state: "configured", provider, source: "fixture", type: "oauth" }), () => {}, async () => {}, () => {}, () => {}, current, false, { providers: ["openai-codex"], startAtModel: true, nativeCodex: true, appearance: "astra", catalog }) ;
-	const sheet                        = new AstraSheet(picker, () => 12, { followSelection: true })                                                                                                                                                                                                                                  ;
-	const rendered                     = stripTerminalSequences(sheet.render(76).join("\n"))                                                                                                                                                                                                                                          ;
+test("a long refreshed model list keeps the selected last item visible in a small Www sheet", async () => {
+	const catalog : NativeModelCatalog = { source: "native", checkedAt: "2026-09-12T00:00:00Z", error: null, models: Array.from({ length: 30 }, (_, index) => ({ model: `fixture-${index}`, displayName: `fixture-${index}`, efforts: ["high"], defaultEffort: "high" })) }                                                         ;
+	const current : WwwSettings        = { provider: "openai-codex", model: "fixture-29", effort: "high" }                                                                                                                                                                                                                          ;
+	const picker                       = new ModelPickerOverlay(current, async provider => ({ state: "configured", provider, source: "fixture", type: "oauth" }), () => {}, async () => {}, () => {}, () => {}, current, false, { providers: ["openai-codex"], startAtModel: true, nativeCodex: true, appearance: "www", catalog }) ;
+	const sheet                        = new WwwSheet(picker, () => 12, { followSelection: true })                                                                                                                                                                                                                                  ;
+	const rendered                     = stripTerminalSequences(sheet.render(76).join("\n"))                                                                                                                                                                                                                                        ;
 	expect(rendered).toMatch(/›\s+Fixture 29/u);
 });
 
-test.each(["astra", "workbench"])("%s bounds long option lists and wraps selection without hiding it at 80x24", appearance => {
-	const catalog : NativeModelCatalog = { source: "native", checkedAt: null, error: null, models: Array.from({ length: 30 }, (_, index) => ({ model: `fixture-${index}`, displayName: `fixture-${index}`, efforts: ["high"], defaultEffort: "high" })) }                                                                                                                                                         ;
-	const current : WwwSettings        = { provider: "openai-codex", model: "fixture-29", effort: "high" }                                                                                                                                                                                                                                                                                                        ;
-	const picker                       = new ModelPickerOverlay(current, async provider => ({ state: "configured", provider, source: "fixture", type: "oauth" }), () => {}, async () => {}, () => {}, () => {}, current, false, { providers: ["openai-codex"], startAtModel: true, nativeCodex: true, ...(appearance === "astra" ? { appearance: "astra" as const } : {}), catalog, maxVisibleOptions: () => 4 }) ;
-	const lines                        = picker.render(46)                                                                                                                                                                                                                                                                                                                                                        ;
-	const plain                        = stripTerminalSequences(lines.join("\n"))                                                                                                                                                                                                                                                                                                                                 ;
+test.each(["www", "workbench"])("%s bounds long option lists and wraps selection without hiding it at 80x24", appearance => {
+	const catalog : NativeModelCatalog = { source: "native", checkedAt: null, error: null, models: Array.from({ length: 30 }, (_, index) => ({ model: `fixture-${index}`, displayName: `fixture-${index}`, efforts: ["high"], defaultEffort: "high" })) }                                                                                                                                                     ;
+	const current : WwwSettings        = { provider: "openai-codex", model: "fixture-29", effort: "high" }                                                                                                                                                                                                                                                                                                    ;
+	const picker                       = new ModelPickerOverlay(current, async provider => ({ state: "configured", provider, source: "fixture", type: "oauth" }), () => {}, async () => {}, () => {}, () => {}, current, false, { providers: ["openai-codex"], startAtModel: true, nativeCodex: true, ...(appearance === "www" ? { appearance: "www" as const } : {}), catalog, maxVisibleOptions: () => 4 }) ;
+	const lines                        = picker.render(46)                                                                                                                                                                                                                                                                                                                                                    ;
+	const plain                        = stripTerminalSequences(lines.join("\n"))                                                                                                                                                                                                                                                                                                                             ;
 	// Includes room for wrapper borders inside a 70%-height overlay.
 		expect(lines.length + 2).toBeLessThanOrEqual(Math.floor(24 * 0.7));
 		expect(plain).toMatch(/›\s+Fixture 29/u);

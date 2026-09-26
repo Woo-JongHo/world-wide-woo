@@ -14,8 +14,11 @@ export type PerformanceBoundary = "queued" | "started" | "completed" | "failed";
 export interface PerformanceObservation {
 	readonly traceId  : string              ;
 	readonly layerId  : PerformanceLayerId  ;
+	/** For terminal-write, completed means Terminal.write returned synchronously; it does not mean OS flush. */
 	readonly boundary : PerformanceBoundary ;
 	readonly atMs     : number              ;
+	/** Shared by every event trace whose visible changes materialize in one terminal frame. */
+	readonly frameId? : string              ;
 }
 
 export interface PerformanceLayerSample {
@@ -23,13 +26,14 @@ export interface PerformanceLayerSample {
 	readonly waitMs  : number | null      ;
 	readonly workMs  : number | null      ;
 	readonly failed  : boolean            ;
+	readonly frameId : string | null      ;
 }
 
 export interface PerformanceTrace {
-	readonly traceId : string                                ;
-	readonly state   : "collecting" | "complete" | "partial" ;
-	readonly totalMs : number | null                         ;
-	readonly layers  : readonly PerformanceLayerSample[]     ;
+	readonly traceId : string                                              ;
+	readonly state   : "collecting" | "complete" | "partial" | "no-render" ;
+	readonly totalMs : number | null                                       ;
+	readonly layers  : readonly PerformanceLayerSample[]                   ;
 }
 
 export interface PerformancePercentiles {
@@ -40,8 +44,11 @@ export interface PerformancePercentiles {
 }
 
 export interface PerformanceWindow {
-	readonly traceCount: number;
-	readonly errorCount: number;
+	readonly traceCount      : number ;
+	readonly completeCount   : number ;
+	readonly noRenderCount   : number ;
+	readonly incompleteCount : number ;
+	readonly errorCount      : number ;
 	readonly layers    : Readonly<Record<PerformanceLayerId, {
 		readonly wait: PerformancePercentiles;
 		readonly work: PerformancePercentiles;
@@ -53,12 +60,14 @@ interface LayerBoundaries {
 	started?   : number ;
 	completed? : number ;
 	failed?    : number ;
+	frameId?   : string ;
 }
 
 /** Bounded, monotonic trace recorder. Invalid or duplicate boundaries are rejected. */
 export class LayerPerformanceRecorder {
-	private readonly traces = new Map<string, Map<PerformanceLayerId, LayerBoundaries>>();
-	private readonly order: string[] = [];
+	private readonly traces          = new Map<string, Map<PerformanceLayerId, LayerBoundaries>>() ;
+	private readonly noRender        = new Set<string>()                                           ;
+	private readonly order: string[] = []                                                          ;
 
 	public constructor(private readonly capacity = 128) {
 		if (!Number.isInteger(capacity) || capacity < 1) throw new Error("Layer telemetry capacity must be a positive integer.");
@@ -71,7 +80,18 @@ export class LayerPerformanceRecorder {
 		if (current[observation.boundary] !== undefined) return;
 		const previous = latestBoundary(current);
 		if (previous !== null && observation.atMs < previous) throw new Error("Layer telemetry timestamp moved backwards.");
-		layers.set(observation.layerId, { ...current, [observation.boundary]: observation.atMs });
+		if (observation.frameId && current.frameId && observation.frameId !== current.frameId) throw new Error("Layer telemetry changed terminal frame identity.");
+		layers.set(observation.layerId, {
+			...current,
+			[observation.boundary] : observation.atMs,
+			...(observation.frameId ? { frameId: observation.frameId } : {}),
+		});
+	}
+
+	/** Marks a Native event that intentionally produced no Snapshot and therefore no terminal frame. */
+	public markNoRender(traceId: string): void {
+		if (!this.traces.has(traceId)) throw new Error("Layer telemetry cannot suppress an unknown trace.");
+		this.noRender.add(traceId);
 	}
 
 	public project(traceId: string): PerformanceTrace | null {
@@ -84,7 +104,7 @@ export class LayerPerformanceRecorder {
 		const started  = trace.get("native-receive")?.started                                                   ;
 		return Object.freeze({
 			traceId,
-			state   : complete ? "complete" : ended === undefined ? "collecting" : "partial",
+			state   : complete ? "complete" : this.noRender.has(traceId) ? "no-render" : ended === undefined ? "collecting" : "partial",
 			totalMs : started !== undefined && ended !== undefined && ended >= started ? ended - started : null,
 			layers  : Object.freeze(layers),
 		});
@@ -110,9 +130,12 @@ export class LayerPerformanceRecorder {
 			return [layerId, Object.freeze({ wait: percentiles(wait), work: percentiles(work) })];
 		})) as PerformanceWindow["layers"];
 		return Object.freeze({
-			traceCount : projected.length,
-			errorCount : projected.filter(trace => trace.layers.some(layer => layer.failed)).length,
-			layers     : Object.freeze(layers),
+			traceCount      : projected.length,
+			completeCount   : projected.filter(trace => trace.state === "complete").length,
+			noRenderCount   : projected.filter(trace => trace.state === "no-render").length,
+			incompleteCount : projected.filter(trace => trace.state === "collecting" || trace.state === "partial").length,
+			errorCount      : projected.filter(trace => trace.layers.some(layer => layer.failed)).length,
+			layers          : Object.freeze(layers),
 		});
 	}
 
@@ -125,7 +148,10 @@ export class LayerPerformanceRecorder {
 		this.order.push(traceId);
 		while (this.order.length > this.capacity) {
 			const oldest = this.order.shift();
-			if (oldest) this.traces.delete(oldest);
+			if (oldest) {
+				this.traces.delete(oldest);
+				this.noRender.delete(oldest);
+			}
 		}
 		return created;
 	}
@@ -150,8 +176,9 @@ function sample(layerId: PerformanceLayerId, value: LayerBoundaries | undefined)
 	const ended = value?.completed ?? value?.failed;
 	return Object.freeze({
 		layerId,
-		waitMs : value?.queued !== undefined && value.started !== undefined ? value.started - value.queued : null,
-		workMs : value?.started !== undefined && ended !== undefined ? ended - value.started : null,
-		failed : value?.failed !== undefined,
+		waitMs  : value?.queued !== undefined && value.started !== undefined ? value.started - value.queued : null,
+		workMs  : value?.started !== undefined && ended !== undefined ? ended - value.started : null,
+		failed  : value?.failed !== undefined,
+		frameId : value?.frameId ?? null,
 	});
 }

@@ -12,7 +12,7 @@ import type {
 	UsageProviderId,
 	UsageSnapshot,
 	UsageState,
-} from "@/core/ports";
+} from "@/core/ports/observability/usage-monitor-port";
 import { SystemAntigravityLocalAuthSource }                    from "@/adapters/outbound/authentication/antigravity-local-auth.js";
 import type { AntigravityLocalAuthSource }                     from "@/adapters/outbound/authentication/antigravity-local-auth.js";
 import { isInvalidOAuthRefresh }                               from "@/adapters/outbound/authentication/oauth-refresh-error.js";

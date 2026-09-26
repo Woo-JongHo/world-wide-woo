@@ -98,7 +98,7 @@ describe("native workbench shell receipt policy", () => {
 		expect(workbenchPaneNotice("tnotes")).toContain("완료 질문 Report · Note");
 		expect(workbenchPaneNotice("tnotes")).not.toContain("Trace");
 		expect(workbenchPaneNotice("chat")).toContain("질문과 공개 응답");
-		expect(workbenchPaneNotice("todo")).toContain("현재 Plan · Activity · Next");
+		expect(workbenchPaneNotice("todo")).toContain("현재 Plan · Progress · Next");
 	});
 
 	test("selects Trace only by exact activity id and rejects mutable legacy Todo commands", () => {

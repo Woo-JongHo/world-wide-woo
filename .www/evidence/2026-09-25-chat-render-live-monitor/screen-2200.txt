@@ -1,0 +1,44 @@
+  astra  99_www / Chat                                                                                                                                                
+
+  ▎ 실행 중  상태 변경 책임을 Core로 회수하고 소유권 계약 구현                                                                   Plan                             2/9 
+    현재 작업이 진행될 때까지 기다립니다.  ━━━━━━━━━━━━  Working (1h 23m 39s · 1 terminal running)                               ────────────────────                 
+  │ .agents/skills/woo-code-readability/scripts/typescript/00_normalize-imports.ts                                           │                                        
+  │ src/adapters/outbound/persistence/t-note-store.ts src/core/application/work/t-note-service.ts test/t-notes.test.ts &&    │   ╭──────────────────────────────────╮ 
+  │ bun .agents/skills/woo-code-readability/scripts/typescript/06_align-tables.ts --file                                     │   │계획 문서와 설계 Candidate를 전체 │ 
+  │ src/adapters/outbound/persistence/t-note-store.ts && bun                                                                 │   │Hexagonal + TUI 내부 MVC 구조로 정│ 
+  │ .agents/skills/woo-code-readability/scripts/typescript/06_align-tables.ts --file                                         │   │정                                │ 
+  │ src/core/application/work/t-note-service.ts && bun                                                                       │   ╰──────────────────────────────────╯ 
+  │ .agents/skills/woo-code-readability/scripts/typescript/06_align-tables.ts --file test/t-notes.test.ts'                   │   ╭──────────────────────────────────╮ 
+  │ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── │   │S0-E 실제 Native 사건부터         │ 
+  │ … 앞 30줄 · 최신 5줄 · Ctrl+E 전체                                                                                       │   │terminal-write까지 7계층 E2E 계약 │ 
+  │     318-327  registration       rows=10  colon=26 value=28  edits=0                                                      │   │구현                              │ 
+  │     330-334  registration       rows= 5  colon=32 value=34  edits=0                                                      │   ╰──────────────────────────────────╯ 
+  │     347-356  registration       rows=10  colon=26 value=28  edits=0                                                      │   ╭──────────────────────────────────╮ 
+  │     381-384  declaration-equals rows= 4  equals=25 semicolon=330  edits=0                                                │   │상태 변경 책임을 Core로 회수하고  │ 
+  │                                                                                                                          │   │소유권 계약 구현                  │ 
+  │ exit 1  4s                                                                                                               │   ╰──────────────────────────────────╯ 
+  │ /source 1faf7812-9062-4314-aef7-ac1988d9b12f                                                                             │   ╭──────────────────────────────────╮ 
+  └──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘   │ Port 분리와 Snapshot 불변성·노출 │ 
+                                                                                                                                 │ 범위 정리                        │ 
+  ✓ /bin/zsh -lc 'bun .agents/skills/woo-code-readability/scripts/typescript/06_align-tables.ts --file test/t-notes.…   exit 0   ╰──────────────────────────────────╯ 
+  ✓ /bin/zsh -lc 'bun test test/t-notes.test.ts test/project-workbench-recording.test.ts && bun run check && bun tes…   exit 0   ╭──────────────────────────────────╮ 
+                                                                                                                                 │ Plan·Tracer·Chat의 Core          │ 
+  ┌ Bash  실행 중 ───────────────────────────────────────────────────────────────────────────────────────────────────────────┐   │ Projection과 TUI ViewModel 도입  │ 
+  │ $ /bin/zsh -lc 'bun test --max-concurrency 1 --timeout 10000 --reporter=dots'                                            │   ╰──────────────────────────────────╯ 
+  │ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── │   ╭──────────────────────────────────╮ 
+  │ 출력 대기 중                                                                                                             │   │ Summary·Note 사용자 흐름 완성    │ 
+  │ 실행 중                                                                                                                  │   ╰──────────────────────────────────╯ 
+  │ /source afefe361-cd92-4df3-8a54-38389dbc0e86                                                                             │   ╭──────────────────────────────────╮ 
+  └──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘   │ 실행 정책을 보존하며 Astra 명칭  │ 
+                                                                                                                                 │ 을 WWW로 정리                    │ 
+                                                                                                                                 ╰──────────────────────────────────╯ 
+  완료 보고 #205                                                                                                         tnote   ╭──────────────────────────────────╮ 
+  ────────────────────                                                                                                           │ 기능별 controller·view-model·    │ 
+                                                                                                                                 │ view·registration 폴더 이동      │ 
+  검증 근거를 포함한 Report를 Chat 타임라인에 저장했습니다.                                                                      ╰──────────────────────────────────╯ 
+  › GPT-5.6-Sol · Low ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+  Queue · Esc 전송                                                                                                                                                    
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+                                                                                                                                                                      
+  7d overall  [  47% 4d 18h  ]  [  29% 2d 6h   ]  [     100%     ]  [  47% 4d 11h  ]                                                                                  
+  5h session  [      —       ]  [  75% 1h 20m  ]  [      —       ]  [     100%     ]                                             bypass mode · Context 211k / 258k 82%

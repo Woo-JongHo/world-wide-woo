@@ -1,0 +1,118 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "TASK-REPORT-TUI-UX-IMPROVEMENTS",
+  "kind": "local-task-report",
+  "sourceRevision": "git:e17837f8a0a5cb226674f397b63b8c6011901670:dirty",
+  "intent": "WWW TUI UX 개선 요구 1~10의 실행 결과와 증거를 기록한다. 기존 워크트리의 대규모 리팩터링 변경은 보존했다.",
+  "recordedAt": "2026-09-26",
+  "requirements": [
+    {
+      "id": 1,
+      "title": "사이드바 항목 간 간격",
+      "status": "완료",
+      "files": ["src/adapters/inbound/tui/foundation/theme/www-theme.ts", "src/adapters/inbound/tui/features/plan/view/www-plan-view.ts", "src/adapters/inbound/tui/features/monitoring/view/request-runtime-view.ts"],
+      "decision": "joinedSections 헬퍼로 섹션 블록 사이에 정확히 한 줄의 공백을 둔다. 이전 requestRuntimeRows는 Plan→Stages 사이에 공백 2줄, Plan 뷰는 섹션 뒤 공백 제거(pop)로 리듬이 섞여 있었다.",
+      "beforeAfter": "이전: ['','Plan','──','','','Stages','──'] · 이후: ['','Plan','──','','Stages','──']. 사이드바는 스크롤 뷰라 높이 손실이 정보 손실로 이어지지 않는다.",
+      "verification": "test/plan-activity-view.test.ts, test/request-runtime.test.ts 통과. 좁은(16/24/40)·넓은(120/140) 폭 회귀 테스트 존재."
+    },
+    {
+      "id": 2,
+      "title": "글씨 크기 2pt 축소",
+      "status": "부분 (판정 + 밀도 대안)",
+      "files": ["src/adapters/inbound/tui/foundation/components/status-card.ts"],
+      "decision": "대상 화면은 터미널 TUI(pi-tui ANSI 문자 셀)이고 웹 Preview가 아니므로 pt 조정은 불가능하다. 코드에도 'terminal cells do not expose point sizes' 주석이 있다. pt를 줄였다고 주장하지 않고, 같은 효과의 밀도 대안을 적용했다: Progress 본문을 기울임 밝은 계열에서 일반 muted로 되돌려 가독 대비를 높이고, 2줄 바운드 + 말줄임 신호로 행 높이를 통일했다.",
+      "beforeAfter": "이전: a.caption(기울임+muted) 본문, 2줄 초과분 무음 잘림. 이후: a.muted 본문(세로 글꼴 높이 동일, 시각 밀도 증가), 잘림 시 … 표시.",
+      "verification": "test/www-ui.test.ts 'Progress rail rows wrap with an explicit continuation marker and keep the body upright' 통과."
+    },
+    {
+      "id": 3,
+      "title": "Progress 단계 문장 잘림",
+      "status": "완료",
+      "files": ["src/adapters/inbound/tui/foundation/components/status-card.ts", "src/adapters/inbound/tui/features/plan/view/www-plan-view.ts"],
+      "decision": "레일(사이드바)은 최대 2줄 유지, 잘릴 때 마지막 줄 끝에 … 를 붙여 잘림을 사용자에게 알린다. Plan 전체 페이지(비압축)는 최대 6줄까지 감아 원문 대부분을 노출한다. 원문 전체는 Chat 타임라인의 도구 카드(Ctrl+E 확장)와 /source <activity-id>로 접근한다. PlanActivity.id는 native itemId 기반 식별자라 /source 인자와 직접 호환되지 않는 점을 문서에 남긴다.",
+      "beforeAfter": "이전: prose 후 slice(0,2) 무음 절단(이하 손실 표시 없음). 이후: 2줄+…(레일)/6줄+…(페이지).",
+      "verification": "한글 폭: '가'x120 24열 테스트, 긴 영문 토큰은 safe/prose wrap 경로 회귀 테스트로 커버."
+    },
+    {
+      "id": 4,
+      "title": "Working 표시 끊김",
+      "status": "완료",
+      "files": ["src/adapters/inbound/tui/shell/www-surface.ts", "src/adapters/inbound/tui/shell/workbench-shell.ts"],
+      "decision": "실측 원인 2가지. (1) 단일 행을 pair()+fit()으로 조립해 오른쪽 예약 영역(⟦esc 중단⟧)이 남으면 왼쪽 Working 코어가 '…'로 중간 절단됐다. (2) wwwClock이 1초 간격이라 spinner 프레임(120ms 주기)이 조용한 working 구간에서 1초에 1칸씩 움직여 끊겨 보였다. 수정: 우선순위 boundedHeadingRow(코어 무중단, 대기 배지→상세 순으로 배치, 세그먼트 통째 드롭), 극좌표에서는 brief 코어(spinner+Working+경과), wwwClock을 live 중 120ms로 단축(motion 꺼짐·NO_COLOR에서는 1초 유지).",
+      "beforeAfter": "이전(80열): 왼쪽 내용이 '…'로 잘리고 esc 힌트는 살아 있음. 이후(18~120열): 'Working' 단어와 경과 라벨은 항상 온전, 좁을수록 낮은 우선순위 세그먼트가 통째로 생략.",
+      "verification": "test/www-ui.test.ts 'the live Working status keeps its core intact at narrow widths', 실측 NO_COLOR 60열 ' ⠸ Working (9s · 1 terminal running)  ⟦esc 중단⟧'. resize는 기존 MemoryTerminal resize 회귀 테스트로 커버."
+    },
+    {
+      "id": 5,
+      "title": "Activity → Progress 명칭 변경",
+      "status": "완료",
+      "files": ["src/adapters/inbound/tui/features/plan/view/www-plan-view.ts", "src/adapters/inbound/tui/features/monitoring/view/request-runtime-view.ts", "src/adapters/inbound/tui/features/monitoring/view/www-monitor-view.ts", "src/adapters/inbound/tui/shell/www-surface.ts", "src/adapters/inbound/tui/shell/workbench-shell.ts", "src/adapters/inbound/tui/shell/workbench-input.controller.ts", "src/adapters/inbound/tui/foundation/keyboard/www-keymap.ts", "src/adapters/inbound/tui/commands/slash-commands.ts", "src/adapters/inbound/tui/features/dashboard/view/entry-dashboard-view.ts", "src/adapters/inbound/tui/features/context/view/www-context-view.ts"],
+      "decision": "사용자 노출 라벨만 변경하고 도메인 타입(ProjectActivity, planActivities)은 유지했다. 개념 대응: 라이브 진행 스트림=Progress, durable 기록=Journal(Context 화면의 개수·선택 기록 라벨을 Journal로 이동해 혼재를 제거). <activity-id> 인자 표기는 ID 계약이라 유지했다. 레거시 비-www 화면(workbench-monitor-view)은 대상 범위에서 제외했다.",
+      "beforeAfter": "사이드바 섹션 'Activity'→'Progress', 모니터 페이지/키맵 라벨 'Activity'→'Progress', 대시보드 카드 'Activity events'→'Progress events', /source·/trace 설명을 Progress 항목 기준으로 수정.",
+      "verification": "test/request-runtime.test.ts, test/plan-activity-view.test.ts, test/www-shell.test.ts, test/workbench-shell-policy.test.ts, test/entry-dashboard-view.test.ts, test/slash-commands.test.ts, test/www-ui.test.ts 갱신·통과."
+    },
+    {
+      "id": 6,
+      "title": "하단 HUD 확장",
+      "status": "완료",
+      "files": ["src/adapters/inbound/tui/shell/www-surface.ts", "src/adapters/inbound/tui/shell/workbench-shell.ts"],
+      "decision": "WwwHud를 3행 유지한 얇은 요약 계층으로 확장했다. 3행째 = quota 마지막 셀 행(뒤 공백 패딩 제거) + Request 세그먼트(live 중 '› 도구종류', 실패 후 '! Request n/m', 그 외 침묵) + Cache 세그먼트(Cache 페이지와 동일한 projectWorkbenchCacheTelemetry 스냅샷에서 hit%·entries, stale은 'Cache N stale' attention, 미관측은 침묵) + 우측 정렬 기존 mode·Context. 좁은 폭에서는 cache→request 순으로 통째 드롭한다. 셸은 www.cacheTelemetry() 하나를 Cache 페이지와 HUD가 공유해 값 정합을 보장한다.",
+      "beforeAfter": "이전 3행째: quota 셀 + 공백 패딩 + mode·Context. 이후: quota 셀 + 'Cache 84% · 240' 등 요약 + mode·Context 우측 정렬.",
+      "verification": "test/www-ui.test.ts HUD 3개 신규 테스트(공유 projection, stale/미관측, 좁은 폭 드롭) 통과. scripts/www-render-benchmark.ts verdict GREEN(그러나 이 변경으로 usage 스텁이 포트 계약 cacheMetrics 누락을 드러내 스크립트를 보강했다)."
+    },
+    {
+      "id": 7,
+      "title": "Gajae Code 내장 슬래시 명령 조사",
+      "status": "완료 (문서)",
+      "files": ["docs/research/WWW-GAJAE-SLASH-COMMAND-MAPPING-2026-09-26.md"],
+      "decision": "Gajae 명령 목록은 Handoff 입력이 유일한 근거이고 공식 문서·실행 확인을 하지 못했다. 따라서 코드 반영은 하지 않고, 명령군별 WWW 대응 매핑표와 확인 후 판정할 후보(/handoff, /copy·/export, /retry)를 문서로 남겼다. 54개를 고정 계약으로 보지 않는다.",
+      "verification": "문서 내 WWW 측 대응은 실제 코드(slash-commands, command-router, keymap, palette) 대조로 작성."
+    },
+    {
+      "id": 8,
+      "title": "Step-by-step Progress 표시",
+      "status": "부분",
+      "files": ["src/adapters/inbound/tui/features/plan/view/www-plan-view.ts"],
+      "decision": "Progress 섹션이 누적 피드로 동작한다: 같은 요약 문장의 연속 중복은 최신 상태(✓/›/! 마크)로 병합, 레일 2줄/페이지 6줄 바운드, 원문은 … 신호와 Chat 타임라인·/source 경로로 보존. 단순 로그 덤프 없음. pending/running/completed/failed 마크는 기존 mark() 체계를 사용한다.",
+      "beforeAfter": "이전: 최근 5개가 요약 중복 그대로 쌓임. 이후: 연속 중복 병합(최신 sequence·status 유지).",
+      "verification": "test/www-ui.test.ts 'repeated Progress sentences merge into the latest status' 통과."
+    },
+    {
+      "id": 9,
+      "title": "RES/REQ 구분 강화",
+      "status": "완료",
+      "files": ["src/adapters/inbound/tui/features/chat/view/www-execution.ts"],
+      "decision": "개념 추적: REQ n = n번째 사용자 요청 메시지, RES n-m = n번째 요청에 대한 m번째 assistant 응답(wwwConversationLabels). 색상 외 단서로 REQ 라벨에 '❯' 마커, RES 프레임 제목에 '❮' 마커를 추가해 거울상 대비를 만들고, 기존 구조 차이(RES의 │ 레일·규칙 프레임, REQ의 들여쓰기 본문)와 결합했다. 글리프는 문자라 NO_COLOR에서도 유지된다.",
+      "beforeAfter": "이전: ' REQ 1' / ' RES 1-1'. 이후: ' ❯ REQ 1' / ' ❮ RES 1-1'.",
+      "verification": "test/www-ui.test.ts 'Request and Response labels keep mirrored non-color markers', test/www-transcript-cache.test.ts 고정 literal, test/www-lazy-row-integration.test.ts dense oracle 갱신·통과."
+    },
+    {
+      "id": 10,
+      "title": "기울임꼴 선택적 사용",
+      "status": "완료",
+      "files": ["src/adapters/inbound/tui/foundation/components/status-card.ts", "src/adapters/inbound/tui/shell/www-surface.ts"],
+      "decision": "감사 결과 a.caption(기울임)을 일시 상태·보조 설명·메타에만 유지하고, 본문 내용(Progress 항목)과 핵심 수치(HUD Context 사용량)에서 제거했다. 명령·오류·사용자 입력은 기울임을 쓰지 않는다(감사에서 위반 없음 확인). fallback: NO_COLOR·색 미지원 터미널에서 chalk가 스타일을 자체 비활성화하고, 기울임 미지원 터미널은 CSI 3m을 무시하므로 텍스트 손실이 없다.",
+      "beforeAfter": "이전: Progress 본문·HUD Context 수치가 기울임. 이후: muted 정체 유지, a.caption은 Working 경과·종료 시각 같은 일시·메타 정보에만 사용.",
+      "verification": "test/www-ui.test.ts 본문 무기울임(\\u001b[3m 부재) 단언 + 기존 a.caption 기울임 단언 병존 통과."
+    }
+  ],
+  "gates": [
+    "bun run check (tsc --noEmit) 통과",
+    "bun test 전체: 1569 pass, 0 fail, 180 files",
+    "00_normalize-imports: 변경 제품 파일 전부 errors=0",
+    "06_align-tables --file: 변경 제품 파일 전부 misaligned=0, edits=0",
+    "scripts/www-render-benchmark.ts verdict GREEN (warm body p95 0.96ms / budget 16ms, memoryTerminalInput p95 2.94ms / budget 50ms, idleWrites 0)"
+  ],
+  "remainingAmbiguities": [
+    "PlanActivity.id는 native itemId 기반 식별자라 /source <activity-id> 인자와 직접 호환되지 않는다. Progress 원문 접근은 Chat 타임라인 확장이 주 경로다.",
+    "Gajae Code 명령은 공식 문서·실행 확인 없이 매핑 문서로만 남겼고 코드 반영은 보류했다.",
+    "레거시 비-www 화면(workbench-monitor-view 등)의 Activity 문구는 WWW TUI 대상이 아니라 그대로 두었다.",
+    "wwwClock 120ms 갱신은 live·motion 조건에서만 발생하고 벤치마크 GREEN이지만, 저사양 터미널에서의 체감은 실기기 확인이 남아 있다."
+  ],
+  "worktreePreservation": "기존 380개 파일 리팩터링 변경을 되돌리거나 덮지 않았다. 이번 작업에서 수정한 파일은 requirements.files와 테스트 9개, 스크립트 1개뿐이다.",
+  "links": {
+    "evidence": ".www/evidence/2026-09-26-tui-ux-improvements",
+    "research": "docs/research/WWW-GAJAE-SLASH-COMMAND-MAPPING-2026-09-26.md",
+    "branch": "dev"
+  }
+}

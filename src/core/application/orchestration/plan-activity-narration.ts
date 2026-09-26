@@ -77,7 +77,7 @@ export class PlanActivityNarration {
 				try {
 					const result = await this.narrate(entry);
 					if (this.signal.aborted || this.entries.get(id) !== entry) continue;
-					const summary = safe(result.what);
+					const summary = conciseSentence(result.what);
 					if (!summary || /\b(?:item|turn)\/(?:started|completed|updated)|commandExecution|function_call|tool_call/iu.test(result.what) || summary === "[redacted:local-path]") throw new Error("Technical event is not an activity summary");
 					entry.result = { ...result, what: summary };
 					entry.activity = { ...entry.activity, summary };
@@ -116,6 +116,14 @@ export class PlanActivityNarration {
 }
 
 function safe(text: string): string { return redactForExternalReview(sanitizeTerminalTextExcerpt(text, 600, "head-tail")).text.trim(); }
+
+/** One display sentence is derived from model narration; the source Activity remains untouched. */
+function conciseSentence(text: string): string {
+	const normalized = safe(text).replace(/\s+/gu, " ").trim()                     ;
+	const sentence   = /^.*?[.!?。！？](?=\s|$)/u.exec(normalized)?.[0] ?? normalized ;
+	const characters = Array.from(sentence)                                        ;
+	return characters.length <= 120 ? sentence : `${characters.slice(0, 119).join("")}…`;
+}
 
 function publicActionInput(activity: ProjectActivity): string | null {
 	if (isReasoningActivityPayload(activity.payload) || !["tool", "file-change"].includes(activity.kind)) return null;

@@ -1,12 +1,12 @@
 import { describe, expect, test }                               from "bun:test";
 import { stripTerminalSequences }                               from "@earendil-works/pi-tui";
-import { WorkbenchTracerView }                                  from "../src/adapters/inbound/tui/features/trace/workbench-tracer-view";
+import { WorkbenchTracerView }                                  from "../src/adapters/inbound/tui/features/trace/view/workbench-tracer-view";
 import {
 	renderDelegationDetail,
 	renderDelegationSummary,
-} from "../src/adapters/inbound/tui/features/chat/delegation-tree-view";
+} from "../src/adapters/inbound/tui/features/chat/view/delegation-tree-view";
+import type { TracerFeatureProjection }                         from "../src/core/application/orchestration/workbench-feature-reads";
 import { projectWorkFlow }                                      from "../src/core/domain/work";
-import type { WorkbenchSnapshot }                               from "../src/core/domain/work/workbench";
 import type { PerformanceProjection }                           from "../src/core/domain/work/performance";
 import type { NativeDelegatedTask, NativeDelegationProjection } from "../src/core/domain/work/delegation";
 
@@ -24,34 +24,20 @@ function performance(overrides: Partial<PerformanceProjection> = {}): Performanc
 	};
 }
 
-function snapshot(overrides: Partial<WorkbenchSnapshot> = {}): WorkbenchSnapshot {
+function projection(overrides: Partial<TracerFeatureProjection> = {}): TracerFeatureProjection {
 	return {
-		projectId          : "sample-project",
-		revision           : 1,
-		journalSequence    : 2,
-		phase              : "working",
-		mcpServers         : [],
-		threadId           : "thread-root",
-		activeTurnId       : "turn-2",
-		activities         : [],
-		selectedActivityId : null,
-		pendingApproval    : null,
-		chat               : [],
-		chatQueue          : [],
-		draft              : "",
-		reasoningDraft     : "",
-		liveActivity       : null,
-		workFlow           : projectWorkFlow([]),
-		tnotes             : [],
-		todo               : null,
-		actionResult       : null,
-		error              : null,
-		performance        : performance(),
+		actionResult : null,
+		activeTurnId : "turn-2",
+		activities   : [],
+		chat         : [],
+		liveActivity : null,
+		performance  : performance(),
+		workFlow     : projectWorkFlow([]),
 		...overrides,
 	};
 }
 
-function render(value: WorkbenchSnapshot): string {
+function render(value: TracerFeatureProjection): string {
 	return stripTerminalSequences(new WorkbenchTracerView(() => value, {
 		renderSummary: renderDelegationSummary,
 		renderDetail: renderDelegationDetail,
@@ -68,7 +54,7 @@ function delegation(turnId: string, itemId: string, delegated: NativeDelegatedTa
 
 describe("WorkbenchTracerView execution surface", () => {
 	test("keeps a no-plan performance execution visible", () => {
-		const output = render(snapshot());
+		const output = render(projection());
 		expect(output).toContain("독립 수행");
 		expect(output).toContain("현재 · 수행 중");
 		expect(output).toContain("계획 없이 성능을 점검해");
@@ -76,7 +62,7 @@ describe("WorkbenchTracerView execution surface", () => {
 	});
 
 	test("shows an explicit assigned goal beside its no-plan execution", () => {
-		const output = render(snapshot({ performance: performance({
+		const output = render(projection({ performance: performance({
 			workContext: { goal: "응답 지연을 절반으로 줄인다", goalActivityId: "goal-1", threadId: "thread-root", turnId: "turn-2" },
 		}) }));
 		expect(output).toContain("맡긴 일 · 응답 지연을 절반으로 줄인다");
@@ -84,7 +70,7 @@ describe("WorkbenchTracerView execution surface", () => {
 	});
 
 	test("renders observed health counters without inventing orphan-blocked state", () => {
-		const output = render(snapshot({ performance: performance({
+		const output = render(projection({ performance: performance({
 			health: { observedRetries: 2, observedFailures: 1, unassociatedActivities: 3 },
 		}) }));
 		expect(output).toContain("관측된 재시도 2 · 실패 1 · 미연결 3");
@@ -92,8 +78,7 @@ describe("WorkbenchTracerView execution surface", () => {
 	});
 
 	test("labels retry and orphan health as unconfirmed when no performance projection exists", () => {
-		const value = snapshot({ liveActivity: { method: "item/started", kind: "tool", text: "실행 중", nativeRefs: {} } });
-		delete value.performance;
+		const { performance: _performance, ...value } = projection({ liveActivity: { method: "item/started", kind: "tool", text: "실행 중", nativeRefs: {} } });
 		const output = render(value);
 		expect(output).toContain("미연결 활동 0 · 재시도 관측 미확인");
 		expect(output).not.toContain("관측된 재시도 0");
@@ -101,7 +86,7 @@ describe("WorkbenchTracerView execution surface", () => {
 	});
 
 	test("states that completion evidence remains unverified", () => {
-		const output = render(snapshot());
+		const output = render(projection());
 		expect(output).toContain("검증 · 미검증");
 		expect(output).not.toContain("검증 · 통과");
 	});
@@ -109,9 +94,8 @@ describe("WorkbenchTracerView execution surface", () => {
 	test("aggregates delegation across turns and renders the selected exact detail", () => {
 		const first = task("agent-old", "thread-root:turn-1:agent-old:1", "completed", "이전 turn 조사");
 		const selected = task("agent-current", "thread-root:turn-2:agent-current:1", "running", "현재 turn 검증");
-		const output = render(snapshot({
+		const output = render(projection({
 			delegation          : [delegation("turn-1", "spawn-old", first), delegation("turn-2", "spawn-current", selected)],
-			selectedAgentRef    : selected.ref,
 			selectedAgentDetail : selected,
 		}));
 		expect(output).toContain("agent-old · completed");

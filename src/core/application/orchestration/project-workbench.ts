@@ -1,26 +1,59 @@
 /** @linear WOO-688 WOO-690 WOO-691 */
 import { AsyncLocalStorage }                                          from "node:async_hooks";
 import { createHash, randomUUID }                                     from "node:crypto";
-import type { ExecutorPort }                                          from "@/core/ports/execution/executor-port.js";
-import type { CanonicalPromotionService }                             from "@/core/application/work/canonical-promotion.js";
-import type { ReviewService }                                         from "@/core/application/review/review-service.js";
-import type { ActivityNarrator }                                      from "@/core/application/orchestration/activity-narrator.js";
-import type { SessionModelUsageSource }                               from "@/core/application/session/session-model-usage.js";
 import { TodoWriteConflictError }                                     from "@/core/application/work/todo-ledger.js";
-import type { WooEntry }                                              from "@/core/application/orchestration/woo-entry.js";
-import type { SkillRegistrySnapshot }                                 from "@/core/skills/skill-registry.js";
 import { ContextComposer }                                            from "@/core/application/orchestration/context-composer.js";
 import { requestProtocolContext }                                     from "@/core/application/orchestration/request-protocol";
 import { RequestController, REQUEST_RUNTIME_TOOLS }                   from "@/core/application/orchestration/request-controller";
-import type { RequestActionApproval, RequestActionCapability }        from "@/core/ports/execution/request-action-port";
-import type { RuntimeToolCall }                                       from "@/core/ports/execution/runtime-tool-port";
 import { RequestRuntimePolicy }                                       from "@/core/application/orchestration/request-runtime-mode.js";
-import type { RequestRuntimeMode }                                    from "@/core/application/orchestration/request-runtime-mode.js";
 import { REQUEST_REPORT_PREFIX }                                      from "@/core/domain/execution/request-runtime";
-import type { RequestRuntimeRecord }                                  from "@/core/domain/execution/request-runtime";
-import type { RequestProjectionPort }                                 from "@/core/ports/execution/request-projection-port";
 import { ApprovalResponseDispatcher }                                 from "@/core/application/orchestration/approval-dispatch.js";
 import { SessionUsageTracker }                                        from "@/core/application/session/session-usage-tracker.js";
+import { projectBackgroundWorkState }                                 from "@/core/domain/execution/native-session.js";
+import {
+	fallbackNativeModelCatalog,
+	nativeModelNames,
+	nativeModelEfforts,
+} from "@/core/domain/execution/model-settings.js";
+import { isTerminalActivityPhase }                                    from "@/core/domain/execution/project-activity.js";
+import { sanitizeTerminalTextExcerpt, sanitizeTerminalTextUnbounded } from "@/core/domain/execution/terminal.js";
+import { projectExecutionActivity }                                   from "@/core/runtime/execution-run.js";
+import { workbenchApprovalDecisions }                                 from "@/core/domain/work/workbench.js";
+import { resolveActivitySelection, resolveTraceSelection }            from "@/core/domain/work/trace-selection.js";
+import { EMPTY_LINEAR_PROJECT_DASHBOARD }                             from "@/core/domain/work/linear-dashboard.js";
+import { projectPerformance }                                         from "@/core/domain/work/performance.js";
+import { projectNativeEvidence }                                      from "@/core/application/orchestration/native-event-projection.js";
+import { LayerPerformanceRecorder }                                   from "@/core/domain/observability/layer-performance.js";
+import {
+	SESSION_GOAL_CHARACTER_LIMIT,
+	projectSessionGoal,
+	record,
+	stableJson,
+} from "@/core/application/orchestration/workbench-projections.js";
+import { NativeStreamProjection }                                     from "@/core/application/orchestration/native-stream-projection.js";
+import { WorkbenchDurableProjection }                                 from "@/core/application/orchestration/workbench-durable-projection.js";
+import { NativeTurnCoordinator }                                      from "@/core/application/orchestration/native-turn-coordinator.js";
+import { WorkbenchCommandHandlers }                                   from "@/core/application/orchestration/workbench-command-handlers.js";
+import { NativeEventLifecycle }                                       from "@/core/application/orchestration/native-event-lifecycle.js";
+import { WorkbenchCacheProjection }                                   from "@/core/application/orchestration/workbench-cache-projection.js";
+import { WorkbenchWorkflowCoordinator }                               from "@/core/application/orchestration/workbench-workflow-coordinator.js";
+import { WorkbenchJournalCoordinator }                                from "@/core/application/orchestration/workbench-journal-coordinator.js";
+import { WorkbenchNoteNarration }                                     from "@/core/application/orchestration/workbench-note-narration.js";
+import { WorkbenchThreadLifecycle }                                   from "@/core/application/orchestration/workbench-thread-lifecycle.js";
+
+import type { ExecutorPort }                                      from "@/core/ports/execution/executor-port.js";
+import type { CanonicalPromotionService }                         from "@/core/application/work/canonical-promotion.js";
+import type { ReviewService }                                     from "@/core/application/review/review-service.js";
+import type { ActivityNarrator }                                  from "@/core/application/orchestration/activity-narrator.js";
+import type { SessionModelUsageSource }                           from "@/core/application/session/session-model-usage.js";
+import type { WooEntry }                                          from "@/core/application/orchestration/woo-entry.js";
+import type { SkillRegistrySnapshot }                             from "@/core/skills/skill-registry.js";
+import type { RequestActionApproval, RequestActionCapability }    from "@/core/ports/execution/request-action-port";
+import type { RuntimeToolCall }                                   from "@/core/ports/execution/runtime-tool-port";
+import type { RequestRuntimeMode }                                from "@/core/application/orchestration/request-runtime-mode.js";
+import type { RequestRuntimeRecord }                              from "@/core/domain/execution/request-runtime";
+import type { RequestProjectionPort }                             from "@/core/ports/execution/request-projection-port";
+import type { LinearProjectDashboardReader }                      from "@/core/ports/integration/linear-project-dashboard-port";
 import type {
 	BackgroundWorkState,
 	NativeApprovalPolicy,
@@ -30,14 +63,7 @@ import type {
 	NativeThreadStart,
 	NativeUncertainOperation,
 } from "@/core/domain/execution/native-session.js";
-import { projectBackgroundWorkState }                                 from "@/core/domain/execution/native-session.js";
-import {
-	fallbackNativeModelCatalog,
-	nativeModelNames,
-	nativeModelEfforts,
-} from "@/core/domain/execution/model-settings.js";
-import type { NativeModelCatalog }                                    from "@/core/domain/execution/model-settings.js";
-import { isTerminalActivityPhase }                                    from "@/core/domain/execution/project-activity.js";
+import type { NativeModelCatalog }                                from "@/core/domain/execution/model-settings.js";
 import type {
 	ProjectActivity,
 	ProjectActivityAppendResult,
@@ -45,12 +71,10 @@ import type {
 	ProjectActivityKind,
 	ProjectActivityPhase,
 } from "@/core/domain/execution/project-activity.js";
-import { sanitizeTerminalTextExcerpt, sanitizeTerminalTextUnbounded } from "@/core/domain/execution/terminal.js";
-import type { TodoDocument, TodoNativePlanBinding }                   from "@/core/domain/work/todos.js";
-import type { DplanHash, WorkFlowProjection }                         from "@/core/domain/work/index.js";
-import { projectExecutionActivity }                                   from "@/core/runtime/execution-run.js";
-import type { ExecutionRunState }                                     from "@/core/runtime/execution-run.js";
-import type { TNoteActivitySource, TNoteDraft, TNoteSourceRange }     from "@/core/domain/work/t-notes.js";
+import type { TodoDocument, TodoNativePlanBinding }               from "@/core/domain/work/todos.js";
+import type { DplanHash, WorkFlowProjection }                     from "@/core/domain/work/index.js";
+import type { ExecutionRunState }                                 from "@/core/runtime/execution-run.js";
+import type { TNoteActivitySource, TNoteDraft, TNoteSourceRange } from "@/core/domain/work/t-notes.js";
 import type {
 	WorkbenchChatMessage,
 	WorkbenchActionResult,
@@ -64,39 +88,17 @@ import type {
 	WorkbenchSessionGoal,
 	WorkbenchSnapshot,
 } from "@/core/domain/work/workbench.js";
-import { workbenchApprovalDecisions }                                 from "@/core/domain/work/workbench.js";
-import { resolveActivitySelection, resolveTraceSelection }            from "@/core/domain/work/trace-selection.js";
-import type { ActivitySelectionResult }                               from "@/core/domain/work/trace-selection.js";
-import { EMPTY_LINEAR_PROJECT_DASHBOARD }                             from "@/core/domain/work/linear-dashboard.js";
-import type { LinearProjectDashboard }                                from "@/core/domain/work/linear-dashboard.js";
-import { projectPerformance }                                         from "@/core/domain/work/performance.js";
-import { projectNativeEvidence }                                      from "@/core/application/orchestration/native-event-projection.js";
-import type { CacheLayerObservation }                                 from "@/core/domain/observability/cache-telemetry.js";
-import { LayerPerformanceRecorder }                                   from "@/core/domain/observability/layer-performance.js";
+import type { ActivitySelectionResult }                           from "@/core/domain/work/trace-selection.js";
+import type { LinearProjectDashboard }                            from "@/core/domain/work/linear-dashboard.js";
+import type { CacheLayerObservation }                             from "@/core/domain/observability/cache-telemetry.js";
 import type {
 	PerformanceBoundary,
 	PerformanceLayerId,
 	PerformanceTrace,
 	PerformanceWindow,
 } from "@/core/domain/observability/layer-performance.js";
-import {
-	SESSION_GOAL_CHARACTER_LIMIT,
-	projectSessionGoal,
-	record,
-	stableJson,
-} from "@/core/application/orchestration/workbench-projections.js";
-import { NativeStreamProjection }                                     from "@/core/application/orchestration/native-stream-projection.js";
-import { WorkbenchDurableProjection }                                 from "@/core/application/orchestration/workbench-durable-projection.js";
-import { NativeTurnCoordinator }                                      from "@/core/application/orchestration/native-turn-coordinator.js";
-import type { BlockedChatDeliveryState }                              from "@/core/application/orchestration/native-turn-coordinator.js";
-import { WorkbenchCommandHandlers }                                   from "@/core/application/orchestration/workbench-command-handlers.js";
-import type { WorkbenchMcpManagement }                                from "@/core/application/orchestration/workbench-command-handlers.js";
-import { NativeEventLifecycle }                                       from "@/core/application/orchestration/native-event-lifecycle.js";
-import { WorkbenchCacheProjection }                                   from "@/core/application/orchestration/workbench-cache-projection.js";
-import { WorkbenchWorkflowCoordinator }                               from "@/core/application/orchestration/workbench-workflow-coordinator.js";
-import { WorkbenchJournalCoordinator }                                from "@/core/application/orchestration/workbench-journal-coordinator.js";
-import { WorkbenchNoteNarration }                                     from "@/core/application/orchestration/workbench-note-narration.js";
-import { WorkbenchThreadLifecycle }                                   from "@/core/application/orchestration/workbench-thread-lifecycle.js";
+import type { BlockedChatDeliveryState }                          from "@/core/application/orchestration/native-turn-coordinator.js";
+import type { WorkbenchMcpManagement }                            from "@/core/application/orchestration/workbench-command-handlers.js";
 
 const dplanHash: DplanHash = {
 	sha256Hex: (input) => createHash("sha256").update(input).digest("hex"),
@@ -119,12 +121,17 @@ export interface WorkbenchActivityJournal {
 }
 
 export interface WorkbenchTodoSource {
+	/** 마지막으로 성공한 Todo 정본이다. 자동 동기화 중간 문서는 이 snapshot으로 발행하지 않는다. */
 	readonly snapshot: TodoDocument | null;
 	subscribe(listener: (snapshot: TodoDocument | null) => void): () => void;
 	/** Binds the live board to the provider-issued Native thread identity. */
 	bindThread?(threadId: string): Promise<void>;
-	/** Optional Native-plan mirror. It must never block the interactive Chat path. */
+	/**
+	 * Optional Native-plan mirror. 최신 Native revision만 적용하고, 오래된 완료 결과는
+	 * Workbench가 버린다. 실패는 현재 Todo를 보존하며 다음 Plan 관측에서 다시 시도한다.
+	 */
 	syncNativePlan?(flow: WorkFlowProjection, binding: TodoNativePlanBinding): Promise<TodoDocument>;
+	/** Request Runtime의 requestId를 identity로 하는 seven-stage Todo mirror다. */
 	syncRequestRuntime?(request: RequestRuntimeRecord): Promise<TodoDocument>;
 	create        (title: string, items: readonly string[], storyId?: string): Promise<TodoDocument>;
 	add           (content: string, placement: "now" | "after"              ): Promise<TodoDocument>;
@@ -140,8 +147,13 @@ export interface WorkbenchTodoSource {
 export interface WorkbenchTNoteSource {
 	/** Binds Note history to the provider-issued Native thread identity. */
 	bindThread?(threadId: string): Promise<void>;
+	/** append-only Summary/Note records를 project 범위에서 회수한다. */
 	readAll(projectId: string): Promise<readonly TNoteDraft[]>;
-	/** The adapter/generator owns its isolated cwd; Workbench never supplies the project root. */
+	/**
+	 * The adapter/generator owns its isolated cwd; Workbench never supplies the project root.
+	 * 성공한 record의 packet digest와 completed-turn identity로 중복을 판정하며, 실패한
+	 * 생성만 다시 시도한다.
+	 */
 	create(input: {
 		projectId        : string                         ;
 		range            : TNoteSourceRange               ;
@@ -188,7 +200,7 @@ export interface ProjectWorkbenchOptions {
 	auxiliaryUsage?        : SessionModelUsageSource                                                            ;
 	persistModelSelection? : (selection: WorkbenchModelSelection, catalog: NativeModelCatalog) => Promise<void> ;
 	/** Read-only connected Linear project source, called only through the owned Native thread. */
-	linearDashboard?            : { refresh(threadId: string): Promise<LinearProjectDashboard> }                ;
+	linearDashboard?            : LinearProjectDashboardReader                                                  ;
 	contextCharacterLimit?      : number                                                                        ;
 	delegationDetailActivities? : number                                                                        ;
 	evaluationRequired?         : boolean                                                                       ;
@@ -209,6 +221,7 @@ export interface ProjectWorkbenchOptions {
 export class ProjectWorkbench {
 	private readonly layerPerformance                                       = new LayerPerformanceRecorder()          ;
 	private readonly performanceTraceContext                                = new AsyncLocalStorage<string>()         ;
+	private readonly publishedPerformanceTraces                             = new Set<string>()                       ;
 	private performanceTraceSequence                                        = 0                                       ;
 	private readonly cacheProjection                                        = new WorkbenchCacheProjection()          ;
 	private readonly contextComposer   : ContextComposer                                                              ;
@@ -314,36 +327,8 @@ export class ProjectWorkbench {
 		this.linearDashboard = options.linearDashboard
 			? { ...EMPTY_LINEAR_PROJECT_DASHBOARD, state: "loading", error: null }
 			: EMPTY_LINEAR_PROJECT_DASHBOARD;
-		this.usageTracker = new SessionUsageTracker(Boolean(options.resumeThreadId));
-		this.nativeEvents = new NativeEventLifecycle({
-			closed             : () => this.closed,
-			recordingReadOnly  : () => this.recordingReadOnly,
-			hasBoundThread     : () => this.journal.hasBoundThread?.(),
-			pendingApproval    : () => this.pendingApproval,
-			setPendingApproval : approval => { this.pendingApproval = approval; },
-			confirmApproval    : approval => this.approvalDispatcher.confirmNativeResolved(approval),
-			threadId           : () => this.threadId,
-			setThreadId        : threadId => { this.threadId = threadId; },
-			activeTurnId       : () => this.activeTurnId,
-			contextTurnId      : () => this.contextTurnId,
-			setActiveTurnId    : turnId => { this.activeTurnId = turnId; },
-			selectPlanTurn     : turnId => { this.selectedPlanTurnId = turnId; },
-			setContextTurn     : turnId => this.setContextTurn(turnId),
-			collaborationMode  : () => this.collaborationMode,
-			effectiveModel     : () => this.effectiveModel,
-			effectiveEffort    : () => this.effectiveEffort,
-			usageTracker       : this.usageTracker,
-			nativeTurn         : this.nativeTurn,
-			nativeStream       : this.nativeStream,
-			activities         : () => this.activities,
-			visibleActivities  : () => this.visibleActivities,
-			appendActivity     : (kind, phase, refs, payload, publish, sourceDigest) => this.appendActivity(kind, phase, refs, payload, publish, sourceDigest),
-			setSessionGoal     : goal => { this.sessionGoal = goal; },
-			clearError         : () => { this.error = null; },
-			publish            : () => this.publish(),
-			scheduleTNote      : turnId => this.noteNarration.scheduleAutomatic(turnId),
-			drainChatQueue     : () => this.drainChatQueue(),
-		});
+		this.usageTracker   = new SessionUsageTracker(Boolean(options.resumeThreadId))                                          ;
+		this.nativeEvents   = this.createNativeEventLifecycle()                                                                 ;
 		this.permissionMode = options.approvalPolicy === "never" && options.sandbox === "danger-full-access" ? "all" : "manual" ;
 		this.approvalPolicy = options.approvalPolicy ?? "on-request"                                                            ;
 		this.sandbox        = options.sandbox ?? "workspace-write"                                                              ;
@@ -455,13 +440,14 @@ export class ProjectWorkbench {
 			this.observeLayerPerformance(traceId, "event-queue", "queued", receivedAt);
 			this.eventQueue = this.eventQueue
 				.then(() => this.ready)
-				.then(() => this.performanceTraceContext.run(traceId, () => {
+				.then(() => this.performanceTraceContext.run(traceId, async () => {
 					this.observeLayerPerformance(traceId, "event-queue", "started");
-					return this.nativeEvents.record(event);
+					await this.nativeEvents.record(event);
+					if (!this.publishedPerformanceTraces.delete(traceId)) this.layerPerformance.markNoRender(traceId);
 				}))
 				.then(() => this.observeLayerPerformance(traceId, "event-queue", "completed"))
 				.then(() => { this.runtimePendingApproval = !!this.pendingApproval; })
-				.catch((error) => { this.observeLayerPerformance(traceId, "event-queue", "failed"); this.fail(error); });
+				.catch((error) => { this.publishedPerformanceTraces.delete(traceId); this.observeLayerPerformance(traceId, "event-queue", "failed"); this.fail(error); });
 		});
 		this.unsubscribeTodo = options.todos?.subscribe((todo) => {
 			this.todo = immutable(todo);
@@ -472,12 +458,53 @@ export class ProjectWorkbench {
 		void this.ready.catch((error) => this.fail(error));
 	}
 
+	private createNativeEventLifecycle(): NativeEventLifecycle {
+		return new NativeEventLifecycle({
+			// State reads — zero-argument callbacks.
+			closed            : () => this.closed,
+			recordingReadOnly : () => this.recordingReadOnly,
+			hasBoundThread    : () => this.journal.hasBoundThread?.(),
+			pendingApproval   : () => this.pendingApproval,
+			threadId          : () => this.threadId,
+			activeTurnId      : () => this.activeTurnId,
+			contextTurnId     : () => this.contextTurnId,
+			collaborationMode : () => this.collaborationMode,
+			effectiveModel    : () => this.effectiveModel,
+			effectiveEffort   : () => this.effectiveEffort,
+
+			// State writes — callbacks with arguments.
+			setPendingApproval : (approval) => { this.pendingApproval = approval; },
+			confirmApproval    : (approval) => this.approvalDispatcher.confirmNativeResolved(approval),
+			setThreadId        : (threadId) => { this.threadId = threadId; },
+			setActiveTurnId    : (turnId) => { this.activeTurnId = turnId; },
+			selectPlanTurn     : (turnId) => { this.selectedPlanTurnId = turnId; },
+			setContextTurn     : (turnId) => this.setContextTurn(turnId),
+			setSessionGoal     : (goal) => { this.sessionGoal = goal; },
+
+			// Native state collaborators.
+			usageTracker : this.usageTracker,
+			nativeTurn   : this.nativeTurn,
+			nativeStream : this.nativeStream,
+
+			// Projection reads — zero-argument callbacks.
+			activities        : () => this.activities,
+			visibleActivities : () => this.visibleActivities,
+
+			// Effects — zero-argument callbacks precede callbacks with arguments.
+			clearError     : () => { this.error = null; },
+			publish        : () => this.publish(),
+			drainChatQueue : () => this.drainChatQueue(),
+			appendActivity : (kind, phase, refs, payload, publish, sourceDigest) => this.appendActivity(kind, phase, refs, payload, publish, sourceDigest),
+			scheduleTNote  : (turnId) => this.noteNarration.scheduleAutomatic(turnId),
+		});
+	}
+
 	public get snapshot(): WorkbenchSnapshot {
 		return this.current;
 	}
 
-	public observeLayerPerformance(traceId: string, layerId: PerformanceLayerId, boundary: PerformanceBoundary, atMs = performance.now()): void {
-		this.layerPerformance.observe({ traceId, layerId, boundary, atMs });
+	public observeLayerPerformance(traceId: string, layerId: PerformanceLayerId, boundary: PerformanceBoundary, atMs = performance.now(), frameId?: string): void {
+		this.layerPerformance.observe({ traceId, layerId, boundary, atMs, ...(frameId ? { frameId } : {}) });
 	}
 
 	public currentPerformanceTraceId(): string | null {
@@ -488,8 +515,13 @@ export class ProjectWorkbench {
 		return Object.freeze({ current: this.layerPerformance.latest(), window: this.layerPerformance.window() });
 	}
 
+	public performanceTrace(traceId: string): PerformanceTrace | null {
+		return this.layerPerformance.project(traceId);
+	}
+
 	/** Refresh at startup and whenever the user opens model selection. Coalesce concurrent reads. */
 	public refreshModels(): Promise<NativeModelCatalog> {
+		if (this.closed) return Promise.resolve(this.modelCatalog);
 		if (this.modelRefresh) {
 			this.cacheProjection.hit("model");
 			return this.modelRefresh;
@@ -500,10 +532,12 @@ export class ProjectWorkbench {
 				if (!this.native.listModels) throw new Error("이 실행기는 Native 모델 조회를 지원하지 않습니다.");
 				const models = await this.native.listModels();
 				if (!models.length) throw new Error("Native 모델 목록이 비어 있습니다.");
+				if (this.closed) return this.modelCatalog;
 				const replacedNativeCatalog = this.modelCatalog.source === "native";
 				this.modelCatalog = { models: immutable(models), source: "native", checkedAt: new Date().toISOString(), error: null };
 				this.cacheProjection.miss("model", performance.now() - startedAt, replacedNativeCatalog);
 			} catch (error) {
+				if (this.closed) return this.modelCatalog;
 				this.modelCatalog = { ...this.modelCatalog, error: errorMessage(error) };
 				this.cacheProjection.miss("model", performance.now() - startedAt, false);
 			}
@@ -1384,6 +1418,7 @@ export class ProjectWorkbench {
 
 	private publish(phase?: WorkbenchSnapshot["phase"]): void {
 		const traceId = this.performanceTraceContext.getStore() ?? null;
+		if (traceId) this.publishedPerformanceTraces.add(traceId);
 		if (traceId) {
 			this.observeLayerPerformance(traceId, "state-projection", "queued");
 			this.observeLayerPerformance(traceId, "state-projection", "started");
@@ -1500,6 +1535,7 @@ export class ProjectWorkbench {
 			} : stream.liveActivity),
 			workFlow,
 			tnotes: this.durableProjection.notes(this.noteNarration.notes, this.visibleActivities),
+			tnoteRead: this.noteNarration.readState,
 			todo,
 			todoSync                  : this.workflow.todoSync,
 			actionResult              : this.actionResult,

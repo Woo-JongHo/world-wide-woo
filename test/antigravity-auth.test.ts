@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { AuthController }    from "../src/core/ports/index.js";
+import type { AuthController }    from "../src/core/ports/integration/auth-controller-port";
 import { ProviderAuthController } from "../src/adapters/outbound/authentication/antigravity-auth.js";
 
 function base(): AuthController {

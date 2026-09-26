@@ -56,6 +56,7 @@ export class WorkbenchWorkflowCoordinator {
 	private readonly requestProjectionKeys                  = new Map<string, string>()                               ;
 	private requestProjectionQueue : Promise<void>          = Promise.resolve()                                       ;
 	private todoSyncQueue          : Promise<void>          = Promise.resolve()                                       ;
+	private todoSyncRevision                                = 0                                                       ;
 	private todoSyncState          : WorkbenchTodoSyncState = { state: "idle", lastConfirmedAt: null, message: null } ;
 	private projection: {
 		sourceLength      : number             ;
@@ -190,7 +191,8 @@ export class WorkbenchWorkflowCoordinator {
 	}
 
 	public enqueueNativeTodoSync(sync: NonNullable<TodoProjectionPort["syncNativePlan"]>, flow: WorkFlowProjection): void {
-		const binding = this.nativeTodoBinding(flow);
+		const binding      = this.nativeTodoBinding(flow) ;
+		const syncRevision = ++this.todoSyncRevision      ;
 		this.todoSyncState = immutable({
 			state           : "syncing",
 			lastConfirmedAt : this.todoSyncState.lastConfirmedAt ?? this.options.todo()?.updatedAt ?? null,
@@ -200,9 +202,11 @@ export class WorkbenchWorkflowCoordinator {
 		this.todoSyncQueue = this.todoSyncQueue.catch(() => undefined).then(async () => {
 			try {
 				const document = await sync(flow, binding);
+				if (syncRevision !== this.todoSyncRevision) return;
 				this.todoSyncState = immutable({ state: "confirmed", lastConfirmedAt: document.updatedAt, message: null });
 				this.options.publish();
 			} catch (error) {
+				if (syncRevision !== this.todoSyncRevision) return;
 				const body = error instanceof TodoWriteConflictError
 					? "다른 편집과 충돌했습니다. 저장된 내용을 유지하며 다음 계획 관측 때 다시 확인합니다."
 					: "계획을 저장하지 못했습니다. 대화는 계속되며 다음 계획 관측 때 다시 시도합니다.";
@@ -214,13 +218,16 @@ export class WorkbenchWorkflowCoordinator {
 	}
 
 	private enqueueRequestTodoSync(request: RequestRuntimeRecord, sync: NonNullable<TodoProjectionPort["syncRequestRuntime"]>): void {
+		const syncRevision = ++this.todoSyncRevision;
 		this.todoSyncState = immutable({ state: "syncing", lastConfirmedAt: this.todoSyncState.lastConfirmedAt, message: null });
 		this.todoSyncQueue = this.todoSyncQueue.catch(() => undefined).then(async () => {
 			try {
 				const document = await sync(request);
+				if (syncRevision !== this.todoSyncRevision) return;
 				this.options.setTodo(immutable(document));
 				this.todoSyncState = immutable({ state: "confirmed", lastConfirmedAt: document.updatedAt, message: null });
 			} catch {
+				if (syncRevision !== this.todoSyncRevision) return;
 				this.requestProjectionKeys.delete(request.requestId);
 				this.todoSyncState = immutable({ state: "blocked", lastConfirmedAt: this.todoSyncState.lastConfirmedAt, message: "7단계 Todo 저장 실패. 대화는 계속되며 다음 관측에서 재시도합니다." });
 			}

@@ -1,0 +1,210 @@
+[
+  {
+    "timestamp": "2026-09-25T22:02:23+09:00",
+    "type": "periodic-top",
+    "sample_index": 0,
+    "top": {
+      "timestamp": "2026-09-25T22:02:23+09:00",
+      "trigger": "minute",
+      "surface_top": {
+        "cpu_percent": 67.0,
+        "memory_bytes": 1427859968,
+        "process_count": 16,
+        "kind": "surface",
+        "ref": "surface:1"
+      },
+      "top_exit_code": 0
+    }
+  },
+  {
+    "timestamp": "2026-09-25T22:03:23+09:00",
+    "type": "periodic-top",
+    "sample_index": 12,
+    "top": {
+      "timestamp": "2026-09-25T22:03:23+09:00",
+      "trigger": "minute",
+      "surface_top": {
+        "cpu_percent": 23.4,
+        "memory_bytes": 1302424064,
+        "process_count": 16,
+        "kind": "surface",
+        "ref": "surface:1"
+      },
+      "top_exit_code": 0
+    }
+  },
+  {
+    "timestamp": "2026-09-25T22:04:23+09:00",
+    "type": "periodic-top",
+    "sample_index": 24,
+    "top": {
+      "timestamp": "2026-09-25T22:04:23+09:00",
+      "trigger": "minute",
+      "surface_top": {
+        "cpu_percent": 9.2,
+        "memory_bytes": 1321085376,
+        "process_count": 16,
+        "kind": "surface",
+        "ref": "surface:1"
+      },
+      "top_exit_code": 0
+    }
+  },
+  {
+    "timestamp": "2026-09-25T22:05:23+09:00",
+    "type": "periodic-top",
+    "sample_index": 36,
+    "top": {
+      "timestamp": "2026-09-25T22:05:23+09:00",
+      "trigger": "minute",
+      "surface_top": {
+        "cpu_percent": 15.7,
+        "memory_bytes": 1930643008,
+        "process_count": 19,
+        "kind": "surface",
+        "ref": "surface:1"
+      },
+      "top_exit_code": 0
+    }
+  },
+  {
+    "timestamp": "2026-09-25T22:06:23+09:00",
+    "type": "periodic-top",
+    "sample_index": 48,
+    "top": {
+      "timestamp": "2026-09-25T22:06:23+09:00",
+      "trigger": "minute",
+      "surface_top": {
+        "cpu_percent": 16.2,
+        "memory_bytes": 1360819456,
+        "process_count": 18,
+        "kind": "surface",
+        "ref": "surface:1"
+      },
+      "top_exit_code": 0
+    }
+  },
+  {
+    "timestamp": "2026-09-25T22:07:23+09:00",
+    "type": "periodic-top",
+    "sample_index": 60,
+    "top": {
+      "timestamp": "2026-09-25T22:07:23+09:00",
+      "trigger": "minute",
+      "surface_top": {
+        "cpu_percent": 59.4,
+        "memory_bytes": 1686354176,
+        "process_count": 17,
+        "kind": "surface",
+        "ref": "surface:1"
+      },
+      "top_exit_code": 0
+    }
+  },
+  {
+    "timestamp": "2026-09-25T22:08:23+09:00",
+    "type": "periodic-top",
+    "sample_index": 72,
+    "top": {
+      "timestamp": "2026-09-25T22:08:23+09:00",
+      "trigger": "minute",
+      "surface_top": {
+        "cpu_percent": 7.3,
+        "memory_bytes": 1341499904,
+        "process_count": 16,
+        "kind": "surface",
+        "ref": "surface:1"
+      },
+      "top_exit_code": 0
+    }
+  },
+  {
+    "timestamp": "2026-09-25T22:09:23+09:00",
+    "type": "periodic-top",
+    "sample_index": 84,
+    "top": {
+      "timestamp": "2026-09-25T22:09:23+09:00",
+      "trigger": "minute",
+      "surface_top": {
+        "cpu_percent": 16.1,
+        "memory_bytes": 1447095040,
+        "process_count": 16,
+        "kind": "surface",
+        "ref": "surface:1"
+      },
+      "top_exit_code": 0
+    }
+  },
+  {
+    "timestamp": "2026-09-25T22:10:23+09:00",
+    "type": "periodic-top",
+    "sample_index": 96,
+    "top": {
+      "timestamp": "2026-09-25T22:10:23+09:00",
+      "trigger": "minute",
+      "surface_top": {
+        "cpu_percent": 17.8,
+        "memory_bytes": 1342024448,
+        "process_count": 16,
+        "kind": "surface",
+        "ref": "surface:1"
+      },
+      "top_exit_code": 0
+    }
+  },
+  {
+    "timestamp": "2026-09-25T22:11:23+09:00",
+    "type": "periodic-top",
+    "sample_index": 108,
+    "top": {
+      "timestamp": "2026-09-25T22:11:23+09:00",
+      "trigger": "minute",
+      "surface_top": {
+        "cpu_percent": 25.5,
+        "memory_bytes": 1400779456,
+        "process_count": 17,
+        "kind": "surface",
+        "ref": "surface:1"
+      },
+      "top_exit_code": 0
+    }
+  },
+  {
+    "timestamp": "2026-09-25T22:11:43+09:00",
+    "type": "state-transition",
+    "from": "busy",
+    "to": "quiet",
+    "sample_index": 112,
+    "top": {
+      "timestamp": "2026-09-25T22:11:43+09:00",
+      "trigger": "transition",
+      "surface_top": {
+        "cpu_percent": 77.8,
+        "memory_bytes": 1559884352,
+        "process_count": 17,
+        "kind": "surface",
+        "ref": "surface:1"
+      },
+      "top_exit_code": 0
+    }
+  },
+  {
+    "timestamp": "2026-09-25T22:11:48+09:00",
+    "type": "state-transition",
+    "from": "quiet",
+    "to": "busy",
+    "sample_index": 113,
+    "top": {
+      "timestamp": "2026-09-25T22:11:48+09:00",
+      "trigger": "transition",
+      "surface_top": {
+        "cpu_percent": 64.4,
+        "memory_bytes": 1407513280,
+        "process_count": 17,
+        "kind": "surface",
+        "ref": "surface:1"
+      },
+      "top_exit_code": 0
+    }
+  }
+]

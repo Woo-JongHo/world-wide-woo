@@ -1,0 +1,20 @@
+{
+  "definition": "Visible working/terminal marker remains, but nonpersistent descendants consume <=2% CPU; isolates quiescent parent-side work without claiming true idle.",
+  "all_samples": 172,
+  "quiescent_working_samples": 104,
+  "parent_cpu_percent": {
+    "count": 104,
+    "min": 5.3,
+    "p50": 20.4,
+    "p95": 95.7,
+    "max": 111.8
+  },
+  "parent_rss_kib": {
+    "count": 104,
+    "min": 93200.0,
+    "p50": 383424.0,
+    "p95": 628832.0,
+    "max": 735152.0
+  },
+  "limitation": "The old live process still runs pre-fix 120ms decorative clock and may also perform app-server/event work; terminal pixel latency and JavaScript stack attribution are unobserved."
+}

@@ -1,15 +1,18 @@
-import type { AssistantMessage, ToolCall, ToolResultMessage } from "@earendil-works/pi-ai";
-import type { ToolResultSnapshot }                            from "@/core/domain/execution/output";
-import { workNarrationLabel, workNarrationReason }            from "@/core/domain/work/narration";
-import type { WorkNarration }                                 from "@/core/domain/work/narration";
-import type { AgentTool, SessionRepository, TodoController }  from "@/core/ports/index.js";
-import type { SessionActivity }                               from "@/core/application/session/session-contracts";
+import { workNarrationLabel, workNarrationReason } from "@/core/domain/work/narration";
 import {
 	assistantMessageText,
 	displaySafe,
 	runningToolSnapshot,
 	sessionErrorMessage,
 } from "@/core/application/session/session-event-codec";
+
+import type { AssistantMessage, ToolCall, ToolResultMessage } from "@earendil-works/pi-ai";
+import type { ToolResultSnapshot }                            from "@/core/domain/execution/output";
+import type { WorkNarration }                                 from "@/core/domain/work/narration";
+import type { AgentTool, AgentToolExecution }                 from "@/core/ports/execution/agent-tool-port";
+import type { TodoController }                                from "@/core/ports/execution/todo-controller-port";
+import type { SessionRepository }                             from "@/core/ports/persistence/session-repository";
+import type { SessionActivity }                               from "@/core/application/session/session-contracts";
 
 interface SessionToolState {
 	executions      : ToolResultSnapshot[] ;
@@ -27,6 +30,29 @@ interface SessionToolExecutorOptions {
 	signal     : () => AbortSignal | undefined       ;
 	onActivity : (activity: SessionActivity) => void ;
 	onChange   : () => void                          ;
+}
+
+function failedToolExecution(
+	toolCall: ToolCall,
+	startedAt: number,
+	modelContent: string,
+	error: string,
+	status: "cancelled" | "failed",
+): AgentToolExecution {
+	return {
+		modelContent : modelContent ,
+		isError      : true         ,
+		snapshot     : {
+			id         : toolCall.id                    ,
+			toolName   : toolCall.name                  ,
+			status     : status                         ,
+			input      : displaySafe(toolCall.arguments),
+			output     : ""                             ,
+			startedAt  : startedAt                      ,
+			durationMs : Date.now() - startedAt         ,
+			error      : error                          ,
+		},
+	};
 }
 
 export class SessionToolExecutor {
@@ -51,42 +77,30 @@ export class SessionToolExecutor {
 		});
 
 		const tool = this.options.tools.find(candidate => candidate.definition.name === toolCall.name);
-		let execution;
+		let execution: AgentToolExecution;
 		try {
+			const signal = this.options.signal() ?? new AbortController().signal;
 			execution = tool
-				? await tool.execute(toolCall.arguments, this.options.signal() ?? new AbortController().signal)
-				: {
-					modelContent: `지원하지 않는 도구입니다: ${toolCall.name}`,
-					isError: true,
-					snapshot: {
-						id       : toolCall.id,
-						toolName : toolCall.name,
-						status   : "failed" as const,
-						input    : displaySafe(toolCall.arguments),
-						output   : "",
-						startedAt,
-						durationMs: Date.now() - startedAt,
-						error: "지원하지 않는 도구입니다.",
-					},
-				};
-		} catch (error) {
-			execution = {
-				modelContent: `도구 실행 실패: ${displaySafe(sessionErrorMessage(error))}`,
-				isError: true,
-				snapshot: {
-					id       : toolCall.id,
-					toolName : toolCall.name,
-					status   : this.options.signal()?.aborted ? "cancelled" as const : "failed" as const,
-					input    : displaySafe(toolCall.arguments),
-					output   : "",
+				? await tool.execute(toolCall.arguments, signal)
+				: failedToolExecution(
+					toolCall,
 					startedAt,
-					durationMs: Date.now() - startedAt,
-					error: displaySafe(sessionErrorMessage(error)),
-				},
-			};
+					`지원하지 않는 도구입니다: ${toolCall.name}`,
+					"지원하지 않는 도구입니다.",
+					"failed",
+				);
+		} catch (error) {
+			const message = displaySafe(sessionErrorMessage(error));
+			execution = failedToolExecution(
+				toolCall,
+				startedAt,
+				`도구 실행 실패: ${message}`,
+				message,
+				this.options.signal()?.aborted ? "cancelled" : "failed",
+			);
 		}
 
-		const snapshot = { ...execution.snapshot, id: toolCall.id } as ToolResultSnapshot;
+		const snapshot: ToolResultSnapshot = { ...execution.snapshot, id: toolCall.id };
 		const index = this.options.state.executions.findIndex(item => item.id === toolCall.id);
 		if (index >= 0) this.options.state.executions[index] = snapshot;
 		else this.options.state.executions.push(snapshot);

@@ -1,0 +1,119 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-WWW-STRUCTURE-REVIEW-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:e17837f8a0a5cb226674f397b63b8c6011901670:dirty",
+  "intent": "WWW 코드 구조의 현재 상태와 기능별 동일 구조 설계 검토 결과를 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "문서가 아니라 실제 src/core·src/adapters·CLI·TUI registry·architecture test를 읽어 사용자의 시스템 이해를 대조했다.",
+      "Native 관측 7계층은 제품 기능 분류가 아니라 모든 기능을 가로지르는 성능·관측 pipeline이며 마지막 두 단계는 patched pi-tui에 의존함을 확인했다.",
+      "Chat·Plan·Tracer·Summary·Note와 Monitor·Dashboard·Cache·Context의 현재 구현·누락·명칭 혼선을 상세 보고서로 정리했다.",
+      "Astra를 WWW로 단일화하되 legacy www router를 별도 제품 결정으로 보존하는 안전한 이행 순서를 작성했다.",
+      "전체는 Hexagonal 경계를 유지하고 TUI 내부는 controller·view-model·view·registration으로 탐색하는 목표 구조와 현재 파일 매핑을 추가했다.",
+      "기존 WOO-842가 제안한 src/tui·src/system·src/workflows 구조는 현재 core/adapters 정본과 충돌하므로 새 이슈가 아니라 WOO-842 개정 후보를 준비했다.",
+      "사용자 판정에 따라 실행 순서를 동작 보호 → 상태 소유권 → Port·Snapshot → Feature Interface → Summary/Note → 명칭 → 폴더 이동으로 수정했다.",
+      "Luna xhigh 네 패스로 TypeScript 305개, Feature 18개·Unit 39개, 상태 흐름, 핵심 24파일 가독성, Markdown drift를 수집하고 Sol 실행 계획을 작성했다.",
+      "Sol이 첫 작업 S0-A에서 runApp 조립 seam을 추가하고 broker·off·observe Runtime 선택표, runAstra 우선순위, 실패 시 session cleanup을 7개 행동 테스트로 고정했다.",
+      "Sonnet 독립 리뷰 지적 두 건을 테스트로 보강했고 Opus 최종 감사에서 PASS를 받았다.",
+      "S0-B에서 streaming 응답의 durable append 전 draft 유지, append 후 단일 final 정착, 모든 관찰 Snapshot의 무중복과 missing-final item identity를 공개 Workbench 경계 테스트로 고정했다.",
+      "S0-B 신규 테스트는 기존 구현에서 즉시 green이어서 제품 코드는 바꾸지 않았고, Sonnet APPROVE와 Opus PASS를 받았다.",
+      "S0-C에서 Native delta·모델 catalog·Todo·Usage 갱신 뒤에도 과거 Snapshot object graph가 변하지 않는 계약을 고정했다.",
+      "S0-D에서 close 뒤 model catalog 결과와 이전 turn의 Todo sync 결과가 현재 상태를 덮지 않도록 scope·revision guard를 구현했다.",
+      "S0-E에서 실제 Native event→terminal-write 7경계, coalesced frame identity, no-render 구분과 실제 TUI 실패 계층을 E2E로 고정했다.",
+      "S1-A에서 Activity·Note·Todo의 Native thread scope 불변식을 Core Application으로 회수하고 동시 bind·trace rebuild 경쟁을 제거했다.",
+      "S1-B에서 TUI Editor를 초안 단일 writer로 고정하고 늦은 receipt·persistence clear가 새 편집 세대를 덮거나 삭제하지 못하게 했다.",
+      "S1-C에서 Todo·Summary/Note·외부 reader의 writer·identity·revision·stale 계약을 Interface에 고정하고 Note source idempotency와 응답 유실 복구를 구현했다.",
+      "S2-A에서 Core Port를 execution·persistence·integration·observability 책임으로 분리하고 definition-free type-only 호환 barrel과 직접 import architecture gate를 적용했다.",
+      "S2-B/C에서 Plan·Tracer·Chat과 Note의 좁은 readonly Feature Projection을 실제 shell→View 소비 경로에 연결했다.",
+      "S3에서 18 Feature·39 Unit에 productGroup을 추가하고 기존 kind와 독립 분류 축으로 고정했다.",
+      "S4-A에서 /tnotes 목록·선택·provenance 상세 사용자 흐름과 awaiting-thread·stale lifecycle을 연결했다.",
+      "S5에서 Runtime 정책을 분리해 보존하면서 제품 파일·식별자·테스트·스크립트를 WWW 이름으로 정리했다.",
+      "S6에서 기능 구현을 controller 1·registration 36·view-model 7·view 60 파일로 이동하고 ViewModel의 terminal/ANSI 의존을 architecture gate로 차단했다.",
+      "LAYERS·README·운영/설계/계획/리뷰 문서와 Code-ID·traceability 경로를 최종 트리에 맞춰 동기화했다.",
+      "사용자 결정으로 Summary→Note capture는 동일 산출물 identity 등록 방식으로 고정했다.",
+      "Legacy Router는 즉시 삭제하지 않고 별도 migration과 검증을 완료한 뒤 폐기하기로 결정했다.",
+      "Native lifecycle 의존성 조립과 import·interface·object 정렬을 가독성 계약에 맞춰 보정했다.",
+      "Chat inset 축소, Composer 직전 실행 상태, 실제 Esc 중단, compact Plan·Activity 최대 2행과 Native Plan 한 문장 계약을 구현했다."
+    ],
+    "impacts": [
+      "기능을 먼저 찾고 MVC식 내부 책임에서 파일을 찾으면서 Inbound·Core·Outbound 의존 경계를 동시에 유지한다.",
+      "productGroup을 물리 상위 폴더로 만들지 않아 sibling feature import gate가 기능 간 결합을 계속 탐지한다.",
+      "Summary를 새 순수 Projection으로 중복 구현하거나 Activity를 모든 화면 상태의 유일 원천으로 오해하는 리팩터링을 막는다.",
+      "구조 리팩터링 S0-A~S6는 완료했으며 Summary→Note capture identity·review/promote, Legacy Router 결정과 Opus 최종 감사는 별도 Gap으로 남는다.",
+      "Summary 내용을 복사한 두 번째 writer를 만들지 않으며 Note는 같은 산출물의 보존·검토·승격 수명만 관리한다.",
+      "Legacy Router 폐기는 Native WWW rename과 분리된 migration 작업으로 추적한다.",
+      "Terminal의 글꼴 pt 대신 행·padding·장식을 줄여 정보 밀도를 낮추고 원본 Activity provenance는 유지한다."
+    ],
+    "categories": [
+      "improvement",
+      "refactor",
+      "verification"
+    ],
+    "verification": [
+      "bun test test/layer-performance.test.ts test/architecture.test.ts test/tui-feature-registry.test.ts: 21 pass, 0 fail, 2404 assertions",
+      "git diff --check 통과",
+      "Claude Opus 읽기 전용 교차검증: ACCEPT_WITH_CHANGES; 핵심 지적을 보고서 0절과 16절에 반영",
+      "WOO-842 read-back으로 기존 책임 이슈와 오래된 구조 목표를 확인",
+      "실제 Vault에서 Linear가 연결한 Traceability/WOO-842.md 경로가 존재하지 않음을 확인해 Obsidian 외부 쓰기를 보류",
+      "S0-A 집중 7 pass, 관련 회귀 43 pass, architecture 13 pass, TypeScript·import/grid·diff 검사 통과",
+      "S0-B 집중 회귀 61 pass, architecture 13 pass, 전체 1502 pass, TypeScript·import/grid·diff 검사 통과",
+      "S0-C 전체 1503 pass, architecture 13 pass, TypeScript·import/grid·diff 검사 통과",
+      "S0-D 관련 123 pass, 전체 1506 pass, architecture 13 pass, TypeScript·import/grid·diff 검사 통과",
+      "S0-E focused 71 pass, 전체 1513 pass, architecture 13 pass, TypeScript·import/grid·diff 검사 통과",
+      "S0-E 독립 코드 리뷰 APPROVE; Claude Opus 감사 시도는 조직 정책 403으로 판정 미반환이라 대체 없이 blocker 기록",
+      "S1-A focused·architecture·traceability 47 pass, 전체 1523 pass, 독립 재감사 APPROVE",
+      "S1-B focused 33 pass, 직렬 전체 1528 pass, architecture 13 pass, 독립 재감사 APPROVE",
+      "S1-C target 49 pass, 전체 1531 pass, architecture 13 pass, 독립 최종 재감사 APPROVE",
+      "S2-A 관련 236 pass, 전체 1533 pass, architecture 15 pass, 루트 재검증 76 pass, 독립 검토 APPROVE/WATCH",
+      "S2-B 관련 83 pass·전체 1538 pass, S2-C Chat 199 pass·전체 1540 pass, 독립 검토 CLEAR/APPROVE",
+      "S3 focused+architecture 24 pass·전체 1544 pass, 독립 검토 CLEAR/APPROVE",
+      "S4-A focused 77 pass·전체 1553 pass, terminal Note E2E 보강 후 독립 재감사 CLEAR/APPROVE",
+      "S5 전체 1554 pass·관련 재검증 83 pass, 독립 재감사 CLEAR/APPROVE",
+      "S6 architecture+registry 25 pass·3518 expectations, TypeScript·diff 통과, 독립 재검토 CLEAR/APPROVE",
+      "고정 Claude Opus 구현 최종 감사는 S0-E에서 조직 정책 403이었고 2026-09-26 전체 재시도는 claude-opus-5로 실행됐으나 5분 30초·51턴 뒤 verdict 없이 tool-use에 머물러 중단했다. 낮은 모델로 대체하지 않았다.",
+      "가독성·TUI 보정: 관련 75 pass, architecture 17 pass, lifecycle 45 pass, frame/Composer 통합 3회 연속 22 pass, TypeScript·import·표 정렬 통과."
+    ],
+    "connections": [
+      "Linear: WOO-842",
+      "Related: WOO-672, WOO-911",
+      "Report: docs/reviews/WWW_CODE_STRUCTURE_CURRENT_STATE_AND_TARGET_2026-09-25.md",
+      "Plan: docs/planning/WWW_STATE_OWNERSHIP_REFACTOR_PLAN_2026-09-25.md",
+      "Opus audit: .www/scratchpad/www-structure-opus-audit-2026-09-25.md",
+      "Evidence: .www/evidence/2026-09-25-www-code-structure-review",
+      "Phase 9 evidence: .www/scratchpad/www-refactor-plan-2026-09-25/sol-s9-docs-evidence.md",
+      "Git: e17837f8a0a5cb226674f397b63b8c6011901670 dirty worktree",
+      "Final code review: .www/evidence/s6-feature-folders-code-review.md"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-842/코드-탐색-구조를-tuisystemworkflow-책임으로-이관한다",
+    "report": "docs/reviews/WWW_CODE_STRUCTURE_CURRENT_STATE_AND_TARGET_2026-09-25.md",
+    "plan": "docs/planning/WWW_STATE_OWNERSHIP_REFACTOR_PLAN_2026-09-25.md",
+    "evidence": ".www/evidence/2026-09-25-www-code-structure-review"
+  },
+  "expectedBefore": {
+    "latestCommentId": "1196a23e-1f9f-4bff-b6c8-83f5a1a4e5ab"
+  },
+  "validation": [
+    {
+      "id": "project-comment-readback",
+      "status": "pass",
+      "evidence": "World Wide Woo Project Comment 목록을 조회해 최신 Comment ID와 동일 작업 단위의 기존 Comment 부재를 확인했다."
+    },
+    {
+      "id": "change-verification",
+      "status": "pass",
+      "evidence": "S0-A~S6 행동·architecture·전체 회귀와 독립 재검토를 완료했다. Phase 9에서 문서 계약 테스트 49건, Unit·Development Map·Candidate 3종·TypeScript·diff·current link 검사를 재검증했다."
+    },
+    {
+      "id": "publication-boundary",
+      "status": "pass",
+      "evidence": "사용자 승인 전에는 Candidate만 준비하며 Project Comment를 게시하지 않는다."
+    }
+  ],
+  "candidateDigest": "868c317750a7e0105448db65172fa98b11f7b973d18196ae9dd51a0cad4cbfb3"
+}

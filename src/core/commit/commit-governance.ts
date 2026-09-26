@@ -38,6 +38,8 @@ export interface CommitCandidate {
 	decision        : CommitDecision     ;
 	result          : string             ;
 	why             : string             ;
+	fixes           : string             ;
+	verified        : string             ;
 	paths           : string[]           ;
 	axes            : CommitAxes         ;
 	validations     : CommitValidation[] ;
@@ -85,7 +87,7 @@ export class CommitControlPlane {
 		const errors: string[] = [];
 		if (candidate.schemaVersion !== "1.0") errors.push("schemaVersion: 1.0이어야 합니다.");
 		if (!ID.test(candidate.id)) errors.push("id: COMMIT-CANDIDATE-* 형식이어야 합니다.");
-		for (const [label, value] of [["intent", candidate.intent], ["result", candidate.result], ["why", candidate.why]] as const) clean(value, label, errors);
+		for (const [label, value] of [["intent", candidate.intent], ["result", candidate.result], ["why", candidate.why], ["fixes", candidate.fixes], ["verified", candidate.verified]] as const) clean(value, label, errors);
 		if (!this.policy.allowedTypes.includes(candidate.type)) errors.push(`type: 허용되지 않은 값 ${candidate.type}`);
 		if (!SCOPE.test(candidate.scope) || !this.policy.scopes[candidate.scope]) errors.push(`scope: 등록되지 않은 경계 ${candidate.scope}`);
 		if (!/^[0-9a-f]{40}$/u.test(candidate.baseHead)) errors.push("baseHead: 40자 Git SHA가 필요합니다.");
@@ -142,6 +144,7 @@ export class CommitControlPlane {
 		for (const validation of candidate.validations) lines.push(`- ${validation.id}: ${validation.result.toUpperCase()} (예상 ${validation.expected.toUpperCase()}) — ${validation.evidence}`);
 		lines.push("", "참조:", ...candidate.refs.map(value => `- ${value}`), "", "정규화 영수증:", `- ${candidate.id} sha256:${candidateDigest(candidate)}`);
 		if (candidate.next) lines.push("", "다음:", candidate.next);
+		lines.push("", `Fixes: ${candidate.fixes}`, `Verified: ${candidate.verified}`);
 		return `${lines.join("\n")}\n`;
 	}
 }

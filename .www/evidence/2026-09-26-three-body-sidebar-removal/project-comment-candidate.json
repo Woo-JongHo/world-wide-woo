@@ -1,0 +1,67 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-THREE-BODY-SIDEBAR-REMOVAL",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:e17837f8a0a5cb226674f397b63b8c6011901670:dirty",
+  "intent": "실행 화면에서 Three Body 궤도 카드를 제거하고 실험실 기능은 유지한 결과를 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "WWW 실행 화면 우측 사이드바의 Three Body 궤도 카드와 전용 애니메이션 렌더 조건을 제거했다.",
+      "사이드바는 Plan만 렌더하도록 단순화하고 /three-body 명령과 전체 화면 Lab 기능은 유지했다.",
+      "빈 실행 화면과 활성 대화 화면 모두 Three Body 카드가 노출되지 않는 회귀 테스트로 기존 궤도 표시 테스트를 교체했다."
+    ],
+    "impacts": [
+      "실행 화면에서 제품 작업과 무관한 시각 장식이 사라지고 Plan 정보가 사이드바 전체 높이를 사용한다.",
+      "사용자는 기존 /three-body 명령으로 실험실 기능을 계속 사용할 수 있다."
+    ],
+    "categories": [
+      "improvement",
+      "verification"
+    ],
+    "verification": [
+      "bun test test/plan-activity-view.test.ts: 8 pass, 0 fail, 165 assertions.",
+      "bun run check의 tsc --noEmit 통과.",
+      "변경한 제품·테스트 파일 3개의 import 정규화와 표 정렬 검사에서 errors=0, misaligned=0.",
+      "Claude Sonnet 5 독립 리뷰는 세션 한도로 미실행했으며 .www/scratchpad/2026-09-26-three-body-sidebar-review.md에 blocker를 기록했다."
+    ],
+    "connections": [
+      "Linear: WOO-912",
+      "Code: src/adapters/inbound/tui/shell/www-surface.ts · src/adapters/inbound/tui/shell/workbench-shell.ts · test/plan-activity-view.test.ts",
+      "Evidence: .www/evidence/2026-09-26-three-body-sidebar-removal",
+      "Branch: dev · HEAD e17837f8a0a5cb226674f397b63b8c6011901670 · uncommitted"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-912/workbench-ui-모드모델계획구독-잔여-표기를-정리한다",
+    "evidence": ".www/evidence/2026-09-26-three-body-sidebar-removal"
+  },
+  "expectedBefore": {
+    "latestCommentId": "30f00db1-c05a-4d67-a730-a03f589c46e9"
+  },
+  "validation": [
+    {
+      "id": "issue-binding",
+      "status": "pass",
+      "evidence": "저장된 Linear 게시 Receipt에서 WOO-912가 World Wide Woo의 Workbench UI 표기 정리를 소유하고, 과거 Three Body 추가·수정 Activity도 WOO-912에 결속된 사실을 확인했다."
+    },
+    {
+      "id": "implementation-verification",
+      "status": "pass",
+      "evidence": "대상 행동 테스트 8개, TypeScript 검사, import 정규화와 표 정렬 검사를 실제 실행해 통과했다."
+    },
+    {
+      "id": "design-triage",
+      "status": "pass",
+      "evidence": "기존 장식 렌더 블록을 제거한 가역적 UI 조정으로 새 WHY·API·schema·권위 경계를 만들지 않아 Obsidian Candidate를 생성하지 않는다."
+    },
+    {
+      "id": "activity-baseline",
+      "status": "pass",
+      "evidence": "저장된 2026-09-24 Project Activity snapshot의 최신 Comment ID를 expectedBefore에 고정했다. 게시 전 linear-woo에서 현재 Activity를 재조회해 갱신해야 한다."
+    }
+  ],
+  "candidateDigest": "e8076396647c10ab24149e2e19a2ed2f54b1c313a1e04992492d2a22c7bfe401"
+}

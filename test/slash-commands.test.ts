@@ -138,9 +138,9 @@ describe("WWW slash commands", () => {
 		expect(WORKBENCH_SLASH_COMMANDS.map((command) => command.name)).toContain("model");
 		expect(WORKBENCH_SLASH_COMMANDS.map((command) => command.name)).toContain("stats");
 		expect(WORKBENCH_SLASH_COMMANDS.find((command) => command.name === "tnotes")?.description)
-			.toBe("완료된 질문별 Note pane 안내");
-		expect(WORKBENCH_SLASH_COMMANDS.find((command) => command.name === "source")?.description).toContain("Monitor");
-		expect(WORKBENCH_SLASH_COMMANDS.find((command) => command.name === "trace")?.description).toContain("Monitor");
+			.toBe("저장된 질문별 완료 Note 읽기");
+		expect(WORKBENCH_SLASH_COMMANDS.find((command) => command.name === "source")?.description).toContain("Progress");
+		expect(WORKBENCH_SLASH_COMMANDS.find((command) => command.name === "trace")?.description).toContain("Progress");
 		expect(WORKBENCH_SLASH_COMMANDS.map((command) => command.name)).toEqual(expect.arrayContaining(["clear", "compact", "cache", "mcp", "goal"]));
 		expect(WORKBENCH_SLASH_COMMANDS.find((command) => command.name === "theme")).toBeDefined();
 		expect(WORKBENCH_SLASH_COMMANDS.find((command) => command.name === "three-body")).toBeDefined();

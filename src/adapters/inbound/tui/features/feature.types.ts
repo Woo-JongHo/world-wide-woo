@@ -10,6 +10,9 @@ export type TuiFeatureUnitId = `${TuiFeatureId}-U${DecimalDigit}${DecimalDigit}`
 
 export type TuiFeatureKind = "page" | "embedded" | "interaction";
 
+/** Product capability classification. It does not determine a feature's physical folder or TUI kind. */
+export type TuiFeatureProductGroup = "core-work" | "observability" | "control" | "integration";
+
 export type TuiFeatureStatus = "active" | "retired";
 
 export type TuiFeatureUnitStatus = "active" | "legacy" | "unwired" | "retired";
@@ -23,12 +26,15 @@ export interface TuiFeatureUnitDescriptor {
 }
 
 export interface TuiFeatureDescriptor {
-	readonly id     : TuiFeatureId                        ;
-	readonly key    : string                              ;
-	readonly title  : string                              ;
+	readonly id    : TuiFeatureId ;
+	readonly key   : string       ;
+	readonly title : string       ;
+	/** Display sequence only; equal values are permitted and resolve by stable feature key. */
 	readonly order  : number                              ;
-	readonly kind   : TuiFeatureKind                      ;
-	readonly route? : string                              ;
-	readonly status : TuiFeatureStatus                    ;
-	readonly units  : readonly TuiFeatureUnitDescriptor[] ;
+	/** TUI display and interaction shape, independent from product capability classification. */
+	readonly kind         : TuiFeatureKind                      ;
+	readonly productGroup : TuiFeatureProductGroup              ;
+	readonly route?       : string                              ;
+	readonly status       : TuiFeatureStatus                    ;
+	readonly units        : readonly TuiFeatureUnitDescriptor[] ;
 }

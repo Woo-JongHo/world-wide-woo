@@ -63,6 +63,7 @@ export interface TNotePacket {
 	readonly createdAt     : string                         ;
 	readonly activities    : readonly TNoteSourceActivity[] ;
 	readonly completion?   : TNoteCompletionMetadata        ;
+	/** Packet-content integrity digest. It includes `createdAt` and is not a capture idempotency key. */
 	readonly digest        : string                         ;
 }
 
@@ -174,6 +175,31 @@ function isCompletedTurnActivity(activity: TNoteCompletionActivity): activity is
 }
 
 export type TNotePacketDigest = (canonicalPacket: string) => string;
+export type TNoteSourceIdempotencyKey = string;
+
+/**
+ * Stable identity of one immutable completed source capture. It intentionally excludes packet
+ * creation time, generated text, model provenance, and Note id so a retry can recover the first
+ * durable record even when those values change. This is derived on replay; schema-v1 JSONL records
+ * need no migration or additional persisted field.
+ */
+export function tNoteSourceIdempotencyKey(
+	packet: Pick<TNotePacket, "projectId" | "range" | "activities">,
+): TNoteSourceIdempotencyKey {
+	assertId(packet.projectId, "project id");
+	assertRange(packet.range);
+	if (!Array.isArray(packet.activities) || packet.activities.length < 1 || packet.activities.length > MAX_TNOTE_SOURCE_ACTIVITIES) {
+		throw new Error("Invalid Note source activities");
+	}
+	const activities = packet.activities.map(activity => projectPacketActivity(activity, packet.projectId, packet.range));
+	assertStrictlyIncreasingSequences(activities, packet.range);
+	return canonicalJson({
+		schemaVersion : 1,
+		projectId     : packet.projectId,
+		range         : { startSequence: packet.range.startSequence, endSequence: packet.range.endSequence },
+		activityIds   : activities.map(activity => activity.id),
+	});
+}
 
 /**
  * Default adapter for the replayable ProjectActivity journal. Consumers with a

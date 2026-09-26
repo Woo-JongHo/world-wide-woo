@@ -8,8 +8,8 @@ import {
 	projectWorkbenchDelegationSections,
 	renderDelegationDetail,
 	renderDelegationSummary,
-} from "../src/adapters/inbound/tui/features/chat/delegation-tree-view";
-import { WorkbenchChatView }                          from "../src/adapters/inbound/tui/features/chat/workbench-views";
+} from "../src/adapters/inbound/tui/features/chat/view/delegation-tree-view";
+import { WorkbenchChatView }                          from "../src/adapters/inbound/tui/features/chat/view/workbench-views";
 
 const ROOT_THREAD = "thread-root";
 const TURN = "turn-delegation";

@@ -3,7 +3,7 @@ import { access, chmod, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 
 import { basename, join }                                                  from "node:path";
 import { tmpdir }                                                          from "node:os";
 import { createProjectAgentTools }                                         from "../src/adapters/outbound/execution/agent-tools";
-import type { TodoController }                                             from "../src/core/ports";
+import type { TodoController }                                             from "../src/core/ports/execution/todo-controller-port";
 import type { TodoDocument }                                               from "../src/core/domain/work/todos";
 
 const roots: string[] = [];

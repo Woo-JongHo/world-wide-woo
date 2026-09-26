@@ -1,20 +1,20 @@
 import { cpus, platform, release } from "node:os";
-import { projectWorkFlow } from "../src/core/domain/work";
-import { WorkbenchChatView } from "../src/adapters/inbound/tui/features/chat/workbench-views";
+import { projectWorkFlow }         from "../src/core/domain/work";
+import { WorkbenchChatView }       from "../src/adapters/inbound/tui/features/chat/view/workbench-views";
 
 const count = 5_000;
 const activities = Array.from({ length: count }, (_, index) => ({
-	schemaVersion: 1 as const,
-	id: `activity-${index}`,
-	projectId: "chat-render-benchmark",
-	sequence: index + 1,
-	recordedAt: "2026-09-07T00:00:00.000Z",
-	kind: "message" as const,
-	phase: "completed" as const,
-	provider: "openai-codex",
-	nativeRefs: { threadId: "thread", turnId: `turn-${index}`, itemId: `message-${index}` },
-	sourceDigest: `sha256:${"a".repeat(64)}`,
-	payload: { role: "assistant", text: `message ${index}` },
+	schemaVersion : 1 as const,
+	id            : `activity-${index}`,
+	projectId     : "chat-render-benchmark",
+	sequence      : index + 1,
+	recordedAt    : "2026-09-07T00:00:00.000Z",
+	kind          : "message" as const,
+	phase         : "completed" as const,
+	provider      : "openai-codex",
+	nativeRefs    : { threadId: "thread", turnId: `turn-${index}`, itemId: `message-${index}` },
+	sourceDigest  : `sha256:${"a".repeat(64)}`,
+	payload       : { role: "assistant", text: `message ${index}` },
 }));
 const snapshot = {
 	projectId: "chat-render-benchmark", revision: 1, journalSequence: count, phase: "ready" as const,
@@ -29,11 +29,11 @@ const snapshot = {
 };
 const samples = [];
 for (let sample = 0; sample < 5; sample += 1) {
-  const start = performance.now();
-  const view = new WorkbenchChatView(snapshot);
-  const constructed = performance.now();
-  const rows = view.render(80);
-  const rendered = performance.now();
+  const start       = performance.now()               ;
+  const view        = new WorkbenchChatView(snapshot) ;
+  const constructed = performance.now()               ;
+  const rows        = view.render(80)                 ;
+  const rendered    = performance.now()               ;
   for (let frame = 0; frame < 50; frame += 1) view.render(80);
   const scrolled = performance.now();
   view.render(40);

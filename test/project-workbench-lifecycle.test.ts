@@ -43,6 +43,7 @@ import { WooEntry }                                           from "../src/core/
 import type { WooEntryCollection }                            from "../src/core/application/orchestration/woo-entry";
 import type { TodoDocument }                                  from "../src/core/domain/work/todos";
 import type { WorkFlowProjection }                            from "../src/core/domain/work";
+import type { WorkbenchSnapshot }                             from "../src/core/domain/work/workbench";
 import { ProviderReviewAdapter, sha256ReviewDigest }          from "../src/adapters/outbound/review/review-adapters";
 import { TNoteService }                                       from "../src/core/application/work/t-note-service";
 import type { DetachedTextGenerator }                         from "../src/core/application/orchestration/detached-text-generator";
@@ -325,6 +326,73 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 		await Bun.sleep(10);
 		expect(workbench.snapshot.draft).toBe("다른 turn");
 		await workbench.close();
+	});
+
+	test("settles one streaming response without an observable durable and volatile duplicate", async () => {
+		let releaseFinalAppend : () => void = () => undefined                                                   ;
+		let signalFinalAppend  : () => void = () => undefined                                                   ;
+		const finalAppendReached            = new Promise<void>((resolve) => { signalFinalAppend = resolve; })  ;
+		const finalAppendRelease            = new Promise<void>((resolve) => { releaseFinalAppend = resolve; }) ;
+		let finalAppendArmed                = false                                                             ;
+		class FinalMessageGateJournal extends MemoryJournal {
+			override async append(input: ProjectActivityInput): Promise<ProjectActivityAppendResult> {
+				if (finalAppendArmed && input.kind === "message" && input.payload.method === "item/completed") {
+					signalFinalAppend();
+					await finalAppendRelease;
+				}
+				return super.append(input);
+			}
+		}
+		const native = new FakeNativeHarness();
+		const journal = new FinalMessageGateJournal();
+		const workbench = new ProjectWorkbench(native, journal, {
+			projectId : "sample-project",
+			cwd       : "/workspace/sample",
+		});
+		const snapshots: WorkbenchSnapshot[] = [];
+		let unsubscribe: () => void = () => undefined;
+		try {
+			await ready(workbench);
+			await workbench.dispatch({ type: "chat.send", text: "streaming 요청" });
+			native.emit({
+				type   : "notification",
+				method : "item/agentMessage/delta",
+				refs   : { threadId: "thread-1", turnId: "turn-1", itemId: "stream-message" },
+				params : { delta: "작성 중 답변" },
+			});
+			await Bun.sleep(10);
+			expect(workbench.snapshot.draft).toBe("작성 중 답변");
+
+			unsubscribe = workbench.subscribe((snapshot) => { snapshots.push(snapshot); });
+			finalAppendArmed = true;
+			native.emit({
+				type   : "notification",
+				method : "item/completed",
+				refs   : { threadId: "thread-1", turnId: "turn-1", itemId: "stream-message" },
+				params : { item: { type: "agentMessage", text: "완성된 답변" } },
+			});
+			await finalAppendReached;
+			await workbench.refreshModels();
+
+			expect(workbench.snapshot.draft).toBe("작성 중 답변");
+			expect(workbench.snapshot.chat.filter((message) => message.role === "assistant")).toEqual([]);
+
+			releaseFinalAppend();
+			await Bun.sleep(10);
+
+			const assistant = workbench.snapshot.chat.filter((message) => message.role === "assistant");
+			expect(assistant).toHaveLength(1);
+			expect(assistant[0]).toMatchObject({ content: "완성된 답변", status: "completed" });
+			expect(workbench.snapshot.draft).toBe("");
+			expect(workbench.snapshot.activities.find((activity) => activity.id === assistant[0]?.activityId)?.nativeRefs)
+				.toEqual({ threadId: "thread-1", turnId: "turn-1", itemId: "stream-message" });
+			expect(snapshots.some((snapshot) => snapshot.draft.length > 0
+				&& snapshot.chat.some((message) => message.id === assistant[0]?.id))).toBe(false);
+		} finally {
+			releaseFinalAppend();
+			unsubscribe();
+			await workbench.close();
+		}
 	});
 
 	test("normalizes sparse root message refs only from an observed turn or item owner", async () => {
@@ -633,6 +701,8 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 		const assistant = workbench.snapshot.chat.filter((message) => message.role === "assistant");
 		expect(assistant).toHaveLength(1);
 		expect(assistant[0]).toMatchObject({ content: "받은 부분 답변", status: "incomplete", partial: true });
+		expect(workbench.snapshot.activities.find((activity) => activity.id === assistant[0]?.activityId)?.nativeRefs)
+			.toEqual({ threadId: "thread-1", turnId: "turn-1", itemId: "partial-message" });
 		expect(workbench.snapshot.draft).toBe("");
 		const partialIndex = journal.records.findIndex((activity) => activity.payload.finalObservation === "missing");
 		const terminalIndex = journal.records.findIndex((activity) => activity.payload.method === "turn/completed");

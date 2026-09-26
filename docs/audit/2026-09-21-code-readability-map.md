@@ -90,7 +90,7 @@ core/runtime/{execution-run,request-runtime}.ts
     ↓
 Todo · T-note · Observability · Chat projection
     ↓
-astra-execution.ts와 각 Feature view
+www-execution.ts와 각 Feature view
 ```
 
 이 흐름에서는 "명령을 받음", "Native turn을 시작함", "승인을 기다림", "이벤트를 기록함", "runtime action을 실행함", "화면용 상태로 투영함"을 구분해서 읽어야 한다. `ProjectWorkbench`, `codex-app-server`, 두 runtime reducer, `request-controller`, `astra-execution`을 한 덩어리로 축약하면 protocol version, revision, 승인 freshness, 불확실한 외부 쓰기 정산이 숨는다.
@@ -144,7 +144,7 @@ src/cli.ts
 | `core/application/orchestration/project-workbench.ts` | 2,934 | 1,087 | 339 | 479 | 4 | 기본 명령·turn·승인·runtime·projection 조정 |
 | `adapters/inbound/tui/shell/workbench-shell.ts` | 1,202 | 464 | 327 | 218 | 4 | 화면 조립·입력·명령·lifecycle |
 | `adapters/outbound/execution/codex-app-server.ts` | 854 | 274 | 285 | 112 | 4 | App Server protocol·stream·승인 변환 |
-| `adapters/inbound/tui/features/chat/astra-execution.ts` | 769 | 390 | 596 | 105 | 4 | 대화 projection·materialization·render 상태 |
+| `adapters/inbound/tui/features/chat/view/www-execution.ts` | 769 | 390 | 596 | 105 | 4 | 대화 projection·materialization·render 상태 |
 | `core/domain/observability/session-stats.ts` | 517 | 242 | 298 | 175 | 4 | 통계 집계와 다수 부재 상태 |
 | `core/application/session/session-runtime.ts` | 1,157 | 232 | 185 | 132 | 3 | Legacy event state machine과 tool loop |
 | `adapters/outbound/workspace/project-workbench-session.ts` | 529 | 113 | 311 | 113 | 3 | 리소스 조립·journal scope·lease |
@@ -177,7 +177,7 @@ src/cli.ts
 
 ### Wave 1 — 기본 Native 실행 경로
 
-우선 조사 대상은 `project-workbench.ts`, `workbench-shell.ts`, `codex-app-server.ts`, `astra-execution.ts`, `project-workbench-session.ts`, `request-controller.ts`다. 사용자 요청 한 번이 지나가는 전 구간이며 다중 신호가 가장 많이 겹친다.
+우선 조사 대상은 `project-workbench.ts`, `workbench-shell.ts`, `codex-app-server.ts`, `www-execution.ts`, `project-workbench-session.ts`, `request-controller.ts`다. 사용자 요청 한 번이 지나가는 전 구간이며 다중 신호가 가장 많이 겹친다.
 
 저작 순서는 blast radius가 작은 projection·adapter에서 시작해 shell·session 조립을 거친 뒤 orchestrator로 들어간다. `ProjectWorkbench`는 조사 우선순위는 1위지만, 외부 경계와 불변식을 먼저 확보한 뒤 수정한다. 모듈 분리가 필요해지면 단순 가독성 작업으로 넘기지 말고 `LAYERS.md`의 Core/Adapter 경계와 아키텍처 게이트를 별도로 적용한다.
 

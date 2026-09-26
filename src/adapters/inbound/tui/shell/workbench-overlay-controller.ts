@@ -1,30 +1,33 @@
 import { Key, matchesKey, TuiAltScreen, wrapTextWithAnsi } from "@earendil-works/pi-tui";
 import type { Component, OverlayHandle, Terminal }         from "@earendil-works/pi-tui";
 
-import type { ProjectWorkbench }                            from "@/core/application/orchestration/project-workbench";
-import type { Provider, WwwSettings }                       from "@/core/domain/execution/model-settings";
-import type { WorkbenchCommandReceipt, WorkbenchSnapshot }  from "@/core/domain/work/workbench";
-import type { AuthController, UsageMonitor, UsageSnapshot } from "@/core/ports";
-import { LoginOverlay }                                     from "@/adapters/inbound/tui/features/authentication/auth-overlay";
-import { ApprovalOverlay }                                  from "@/adapters/inbound/tui/features/approval/approval-overlay";
-import { ModelPickerOverlay }                               from "@/adapters/inbound/tui/features/model-selection/model-picker-overlay";
-import { ComponentSlot }                                    from "@/adapters/inbound/tui/shell/workbench-navigation.controller";
-import { AstraSheet }                                       from "@/adapters/inbound/tui/shell/astra-surface";
-import type { AstraPage, AstraWorkspace }                   from "@/adapters/inbound/tui/shell/astra-surface";
+import type { ProjectWorkbench }                           from "@/core/application/orchestration/project-workbench";
+import { projectNoteFeature }                              from "@/core/application/orchestration/workbench-feature-reads";
+import type { Provider, WwwSettings }                      from "@/core/domain/execution/model-settings";
+import type { WorkbenchCommandReceipt, WorkbenchSnapshot } from "@/core/domain/work/workbench";
+import type { AuthController }                             from "@/core/ports/integration/auth-controller-port";
+import type { UsageMonitor, UsageSnapshot }                from "@/core/ports/observability/usage-monitor-port";
+import { LoginOverlay }                                    from "@/adapters/inbound/tui/features/authentication/view/auth-overlay";
+import { ApprovalOverlay }                                 from "@/adapters/inbound/tui/features/approval/view/approval-overlay";
+import { ModelPickerOverlay }                              from "@/adapters/inbound/tui/features/model-selection/view/model-picker-overlay";
+import { TNoteBrowserController }                          from "@/adapters/inbound/tui/features/tnote/controller/tnote-browser-controller";
+import { ComponentSlot }                                   from "@/adapters/inbound/tui/shell/workbench-navigation.controller";
+import { WwwSheet }                                        from "@/adapters/inbound/tui/shell/www-surface";
+import type { WwwPage, WwwWorkspace }                      from "@/adapters/inbound/tui/shell/www-surface";
 import {
 	workbenchModelSettings,
 	workbenchReceiptNotice,
 } from "@/adapters/inbound/tui/shell/workbench-input.controller";
-import { astraColors }                                      from "@/adapters/inbound/tui/foundation/theme/astra-theme";
+import { wwwColors }                                       from "@/adapters/inbound/tui/foundation/theme/www-theme";
 
-type OverlayKind = "model" | "approval" | "development" | "commands" | "views" | "auth";
+type OverlayKind = "model" | "approval" | "development" | "commands" | "views" | "auth" | "notes";
 
 interface ShellNotice {
 	setNotice(notice: string): void;
 }
 
 export interface WorkbenchOverlayControllerDependencies {
-	readonly astra                 : AstraWorkspace | null                         ;
+	readonly www                   : WwwWorkspace | null                           ;
 	readonly terminal              : Terminal                                      ;
 	readonly tui                   : TuiAltScreen                                  ;
 	readonly editor                : Component & { setText(text: string): void }   ;
@@ -35,7 +38,7 @@ export interface WorkbenchOverlayControllerDependencies {
 	readonly usage                 : UsageMonitor                                  ;
 	readonly auth                  : AuthController                                ;
 	readonly status                : ShellNotice                                   ;
-	readonly showAstraPage         : (page: AstraPage, browse?: boolean) => void   ;
+	readonly showWwwPage           : (page: WwwPage, browse?: boolean) => void     ;
 	readonly closeTransientSurface : () => void                                    ;
 	readonly updateUsage           : (snapshots: readonly UsageSnapshot[]) => void ;
 	readonly showReceipt           : (receipt: WorkbenchCommandReceipt) => void    ;
@@ -46,7 +49,7 @@ export class WorkbenchOverlayController {
 	private overlay             : OverlayHandle | null                                                  = null  ;
 	private overlayKind         : OverlayKind | null                                                    = null  ;
 	private activeApprovalId    : NonNullable<WorkbenchSnapshot["pendingApproval"]>["requestId"] | null = null  ;
-	private inlineApprovalSheet : AstraSheet | null                                                     = null  ;
+	private inlineApprovalSheet : WwwSheet | null                                                       = null  ;
 	private inlineApprovalActive                                                                        = false ;
 	private loginPrompt         : LoginOverlay | null                                                   = null  ;
 
@@ -79,13 +82,13 @@ export class WorkbenchOverlayController {
 	}
 
 	dismissApproval(): void {
-		if (this.dependencies.astra) this.dismissInlineApproval();
+		if (this.dependencies.www) this.dismissInlineApproval();
 		else this.dismiss();
 	}
 
 	openAuthentication(provider?: Provider): void {
-		const { astra, snapshot, status, tui, usage } = this.dependencies;
-		if (astra && snapshot().pendingApproval) {
+		const { www, snapshot, status, tui, usage } = this.dependencies;
+		if (www && snapshot().pendingApproval) {
 			status.setNotice("대기 중인 승인 요청을 먼저 결정하세요.");
 			tui.requestRender();
 			return;
@@ -110,21 +113,21 @@ export class WorkbenchOverlayController {
 			() => this.closeLoginPrompt(panel),
 			provider ? [provider] : undefined,
 			undefined,
-			astra ? astraColors : undefined,
+			www ? wwwColors : undefined,
 		);
 		this.loginPrompt = panel;
-		const loginSheet = astra ? new AstraSheet(panel, () => Math.max(6, Math.floor(this.dependencies.terminal.rows * 0.8)), { followPrompt: true }) : this.dependencies.sheet(panel);
-		if (astra) {
+		const loginSheet = www ? new WwwSheet(panel, () => Math.max(6, Math.floor(this.dependencies.terminal.rows * 0.8)), { followPrompt: true }) : this.dependencies.sheet(panel);
+		if (www) {
 			this.overlay = tui.showOverlay(loginSheet, { width: "90%", minWidth: 36, maxHeight: "95%", anchor: "center", margin: 1 });
 			this.overlayKind = "auth";
 		} else this.dependencies.composerSlot.set(loginSheet);
-		tui.setFocus(astra ? loginSheet : panel);
+		tui.setFocus(www ? loginSheet : panel);
 		panel.start(provider !== undefined);
 		tui.requestRender();
 	}
 
 	openModelSettings(): void {
-		const { astra, snapshot, tui, workbench } = this.dependencies;
+		const { www, snapshot, tui, workbench } = this.dependencies;
 		if (this.overlay) return;
 		if (snapshot().phase === "working") {
 			this.dependencies.status.setNotice("현재 응답이 끝난 뒤 모델을 변경할 수 있습니다.");
@@ -150,22 +153,42 @@ export class WorkbenchOverlayController {
 				...(snapshot().modelCatalog ? { catalog: snapshot().modelCatalog } : {}),
 				loadCatalog: () => workbench.refreshModels(),
 				maxVisibleOptions: () => Math.max(1, Math.floor(this.dependencies.terminal.rows * 0.7) - 12),
-				...(astra ? { colors: astraColors, appearance: "astra" as const } : {}),
+				...(www ? { colors: wwwColors, appearance: "www" as const } : {}),
 			},
 		);
-		const modelSheet = astra ? new AstraSheet(panel, () => Math.max(6, Math.floor(this.dependencies.terminal.rows * 0.8)), { followSelection: true }) : this.dependencies.sheet(panel);
-		this.overlay = tui.showOverlay(modelSheet, { width: astra ? "84%" : "64%", minWidth: 46, maxHeight: astra ? "90%" : "70%", anchor: astra ? "center" : "bottom-center", margin: astra ? 1 : 2 });
+		const modelSheet = www ? new WwwSheet(panel, () => Math.max(6, Math.floor(this.dependencies.terminal.rows * 0.8)), { followSelection: true }) : this.dependencies.sheet(panel);
+		this.overlay = tui.showOverlay(modelSheet, { width: www ? "84%" : "64%", minWidth: 46, maxHeight: www ? "90%" : "70%", anchor: www ? "center" : "bottom-center", margin: www ? 1 : 2 });
 		this.overlayKind = "model";
-		if (astra) tui.setFocus(modelSheet);
+		if (www) tui.setFocus(modelSheet);
 		panel.start();
 	}
 
-	openApproval(request: NonNullable<WorkbenchSnapshot["pendingApproval"]>): void {
-		const { astra, tui, workbench } = this.dependencies;
-		if (astra ? this.inlineApprovalSheet && this.activeApprovalId === request.requestId : this.overlayKind === "approval") return;
-		if (astra && this.loginPrompt) { this.loginPrompt.handleInput("\x1b"); this.closeLoginPrompt(); }
+	openNotes(): void {
 		if (this.overlay) this.dismiss();
-		if (astra) this.dependencies.showAstraPage("execution");
+		const panel = new TNoteBrowserController(
+			() => projectNoteFeature(this.dependencies.snapshot()),
+			() => this.dependencies.tui.requestRender(),
+			() => this.dismiss(),
+		);
+		const noteSheet = this.dependencies.sheet(panel);
+		this.overlay = this.dependencies.tui.showOverlay(noteSheet, {
+			width     : this.dependencies.www ? "88%" : "72%",
+			minWidth  : 46,
+			maxHeight : "90%",
+			anchor    : "center",
+			margin    : 1,
+		});
+		this.overlayKind = "notes";
+		this.dependencies.tui.setFocus(this.dependencies.www ? noteSheet : panel);
+		this.dependencies.tui.requestRender();
+	}
+
+	openApproval(request: NonNullable<WorkbenchSnapshot["pendingApproval"]>): void {
+		const { www, tui, workbench } = this.dependencies;
+		if (www ? this.inlineApprovalSheet && this.activeApprovalId === request.requestId : this.overlayKind === "approval") return;
+		if (www && this.loginPrompt) { this.loginPrompt.handleInput("\x1b"); this.closeLoginPrompt(); }
+		if (this.overlay) this.dismiss();
+		if (www) this.dependencies.showWwwPage("execution");
 		const panel = new ApprovalOverlay(
 			request,
 			() => tui.requestRender(),
@@ -180,11 +203,11 @@ export class WorkbenchOverlayController {
 				});
 			},
 			() => this.dismissApproval(),
-			astra ? astraColors : undefined,
+			www ? wwwColors : undefined,
 		);
 		this.activeApprovalId = request.requestId;
-		if (astra) {
-			this.inlineApprovalSheet = new AstraSheet(panel, () => Math.max(8, Math.floor(this.dependencies.terminal.rows * 0.45)));
+		if (www) {
+			this.inlineApprovalSheet = new WwwSheet(panel, () => Math.max(8, Math.floor(this.dependencies.terminal.rows * 0.45)));
 			this.inlineApprovalActive = true;
 			this.dependencies.composerSlot.set(this.inlineApprovalSheet);
 			tui.setFocus(this.inlineApprovalSheet);
@@ -202,13 +225,13 @@ export class WorkbenchOverlayController {
 		lastAutoApprovalId: NonNullable<WorkbenchSnapshot["pendingApproval"]>["requestId"] | null,
 	): NonNullable<WorkbenchSnapshot["pendingApproval"]>["requestId"] | null {
 		const pending = this.dependencies.snapshot().pendingApproval;
-		if (pending && (!this.dependencies.astra || lastAutoApprovalId !== pending.requestId)) {
+		if (pending && (!this.dependencies.www || lastAutoApprovalId !== pending.requestId)) {
 			this.openApproval(pending);
-			this.dependencies.status.setNotice(this.dependencies.astra ? "채팅 영역에 승인 선택을 열었습니다. ↑↓ 또는 숫자로 선택하세요." : "승인 선택 화면을 열었습니다. ↑↓ 또는 숫자로 선택하세요.");
+			this.dependencies.status.setNotice(this.dependencies.www ? "채팅 영역에 승인 선택을 열었습니다. ↑↓ 또는 숫자로 선택하세요." : "승인 선택 화면을 열었습니다. ↑↓ 또는 숫자로 선택하세요.");
 			return pending.requestId;
 		}
 		if (!pending) {
-			if (this.dependencies.astra) this.dismissInlineApproval();
+			if (this.dependencies.www) this.dismissInlineApproval();
 			else if (this.overlayKind === "approval") this.dismiss();
 		}
 		return pending ? lastAutoApprovalId : null;
@@ -244,7 +267,7 @@ export class WorkbenchOverlayController {
 		return this.dependencies.workbench.dispatch({ type: "session.model", selection: { model: settings.model, effort: settings.effort } });
 	}
 
-	openAstraTransient(kind: Extract<OverlayKind, "commands" | "views">, content: Component): void {
+	openWwwTransient(kind: Extract<OverlayKind, "commands" | "views">, content: Component): void {
 		const sheet = this.dependencies.sheet(content);
 		this.overlay = this.dependencies.tui.showOverlay(sheet, { width: "86%", minWidth: 36, maxHeight: "95%", anchor: "center", margin: 1 });
 		this.overlayKind = kind;

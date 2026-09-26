@@ -1,11 +1,11 @@
 import { MODELS, PROVIDERS }   from "@/core/domain/execution/model-settings";
 import type { WwwSettings }    from "@/core/domain/execution/model-settings";
+import type { ModelClient }    from "@/core/ports/integration/model-client-port";
 import type {
 	AtomicSettingsRepository,
-	ModelClient,
 	RouterSettingsController,
 	SettingsRepository,
-} from "@/core/ports/index.js";
+} from "@/core/ports/persistence/settings-repository";
 import type { SessionRuntime } from "@/core/application/session/session-runtime";
 
 /** Serializes durable selection writes before publishing them to the active session. */

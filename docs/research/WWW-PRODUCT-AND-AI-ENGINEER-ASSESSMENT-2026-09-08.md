@@ -44,7 +44,7 @@ P1은 현재 제품의 핵심 신뢰·저장 계약을 깨뜨려 우선 수정�
 | ID | 판정 | 발생 조건과 관측 결과 | 근거 |
 |---|---|---|---|
 | TUI-01 | P1 / 통합 재현 | Native Plan 진행 중 개별 commandExecution 종료 → Todo 완료, Tracer 진행 중 | `src/core/runtime/execution-run.ts:172`, `src/core/application/orchestration/project-workbench.ts:2046`, `src/core/domain/work/workflow-projection.ts:531` |
-| TUI-02 | P1 / 통합 재현 | `bun test`, exitCode=1 뒤 turn 종료 → receipt.verification과 remaining이 빈 배열 | `src/core/runtime/execution-run.ts:183`, `:212`, `src/adapters/inbound/tui/features/chat/workbench-views.ts:584` |
+| TUI-02 | P1 / 통합 재현 | `bun test`, exitCode=1 뒤 turn 종료 → receipt.verification과 remaining이 빈 배열 | `src/core/runtime/execution-run.ts:183`, `:212`, `src/adapters/inbound/tui/features/chat/view/workbench-views.ts` |
 | TUI-03 | P2 / 같은 재현 | 일반 item/completed의 exitCode와 item 결과를 phase 판정이 반영하지 않음 | `src/core/application/orchestration/project-workbench.ts:2524` |
 | WF-01 | P1 / 함수 재현·CLI 정적 확인 | evidence=['']로 completed와 유효 digest Receipt 발급. CLI도 임의의 비어 있지 않은 참조를 실제 read-back 확인 없이 받음 | `src/core/workflows/skill-run.ts:87`, `:96`, `scripts/skill-runtime.ts:31` |
 | WF-02 | P1 / 경쟁 스케줄 재현 | 두 writer가 같은 revision을 읽으면 둘 다 성공 가능. 최종 값이 앞선 결과를 덮음 | `src/adapters/outbound/persistence/skill-run-store.ts:13` |

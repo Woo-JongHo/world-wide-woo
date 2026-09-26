@@ -2,8 +2,8 @@ import { describe, expect, test }                          from "bun:test";
 import { stripTerminalSequences, visibleWidth }            from "@earendil-works/pi-tui";
 import { HIERARCHICAL_TRIPLE_PRESET, ThreeBodySimulation } from "../src/core/domain/work/three-body-simulation";
 import type { Vector2 }                                    from "../src/core/domain/work/three-body-simulation";
-import { renderThreeBodyBrailleFrame }                     from "../src/adapters/inbound/tui/features/chat/three-body-braille";
-import type { ThreeBodyTrail }                             from "../src/adapters/inbound/tui/features/chat/three-body-braille";
+import { renderThreeBodyBrailleFrame }                     from "../src/adapters/inbound/tui/features/chat/view/three-body-braille";
+import type { ThreeBodyTrail }                             from "../src/adapters/inbound/tui/features/chat/view/three-body-braille";
 
 function referenceTrail(): readonly ThreeBodyTrail[] {
 	const simulation = ThreeBodySimulation.fromPreset(HIERARCHICAL_TRIPLE_PRESET);

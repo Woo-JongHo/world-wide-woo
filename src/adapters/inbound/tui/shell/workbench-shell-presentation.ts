@@ -7,10 +7,10 @@ import type { RuntimeMonitorProjection }          from "@/core/domain/observabil
 import type { WorkbenchSnapshot }                 from "@/core/domain/work/workbench";
 import { runtimeModeLabel, workbenchEffortLabel } from "@/adapters/inbound/tui/foundation/labels";
 import { colors }                                 from "@/adapters/inbound/tui/foundation/theme/theme";
-import type { WorkspaceTodoLiveContext }          from "@/adapters/inbound/tui/features/dashboard/shared-dashboard-views";
-import { workbenchModelLabel }                    from "@/adapters/inbound/tui/features/monitoring/workbench-telemetry";
-import { WORKBENCH_HUD_SYSTEM }                   from "@/adapters/inbound/tui/features/usage/workbench-hud-system";
-import type { UsageStripSession }                 from "@/adapters/inbound/tui/features/usage/usage-strip-view";
+import type { WorkspaceTodoLiveContext }          from "@/adapters/inbound/tui/features/dashboard/view/shared-dashboard-views";
+import { workbenchModelLabel }                    from "@/adapters/inbound/tui/features/monitoring/view/workbench-telemetry";
+import { WORKBENCH_HUD_SYSTEM }                   from "@/adapters/inbound/tui/features/usage/view-model/workbench-hud-system";
+import type { UsageStripSession }                 from "@/adapters/inbound/tui/features/usage/view/usage-strip-view";
 
 const WORKBENCH_ACTIVITY_FRAMES            = Object.freeze(["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]) ;
 const WORKBENCH_ACTIVITY_INTERVAL_MS       = 240                                                               ;

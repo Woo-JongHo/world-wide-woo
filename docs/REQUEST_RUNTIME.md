@@ -5,7 +5,9 @@ Native 전체 도구의 우회 차단까지 완성됐다는 의미는 아니다.
 
 추가된 brokered v2는 아래와 같이 v1과 분리한다. 전체 strict 구현 완료는 아니다.
 
-- `www astra --runtime-config <json>` 또는 `requestCapabilities`를 명시한 호출자는 Runtime 도구 경로를 사용한다. 기본 CLI는 관측형 v1을 유지한다. 지원 도구는 inspect/propose/act/replan/reconcile/require_delivery다.
+- `www --runtime-config <json>` 또는 `requestCapabilities`를 명시한 호출자는 brokered Runtime 도구 경로를 사용한다. 지원 도구는 inspect/propose/act/replan/reconcile/require_delivery다.
+- 일반 `www`와 `runWww()`는 Runtime을 `off`로 시작한다. 호환 프로그램 API인 `runApp()`만 별도 설정이 없을 때 관측형 `observe`를 유지한다.
+- 선택 우선순위는 명시적 capability factory/config의 `broker` → 명시한 Runtime mode → 호환 `runApp()` 기본 `observe`다. `runWww()`는 명시적으로 `off`를 전달한다.
 - Native transport가 Runtime tools를 지원하지 않으면 명시적 연결을 거절한다. v2 세션은 Chat JSON이 아니라 Runtime 도구의 공개 제안으로 전환한다.
 - RequestController가 요청/turn/현재 revision/단계/효과/Capability 승인 여부를 확인하고, 실행 준비를 저장한 뒤 Adapter를 호출한다.
 - 지정한 UTF-8 파일 읽기·교체를 제공한다. 교체는 대상·요청·operation·revision·변경 전후 digest에 결박한 단회 승인을 요구한다. 디렉터리 권한·새 파일 생성·임의 shell은 제공하지 않는다.
@@ -17,7 +19,7 @@ Native 전체 도구의 우회 차단까지 완성됐다는 의미는 아니다.
 - `bun scripts/runtime-tool-canary.ts --live`는 모델을 한 번 호출하는 명시적 호스트 수용 검사다. 임시 읽기 전용 세션에서 부작용 없는 도구를 실행하고, 호스트의 dynamicToolCall 완료 결과를 확인한다.
 - 실제 실행에서 `calls=1`, `hostAcceptedToolResult=true`, `nativeTurnTerminated=true`를 확인했다. `strictIsolationProven=false`이며 우회 차단을 증명한 결과는 아니다.
 
-아직 남은 것은 Native 전체 격리, 전체 업무 공통 입구/기본 CLI 전환, 동일 Request의 여러 turn 재개,
+아직 남은 것은 Native 전체 격리, 전체 업무 공통 입구의 broker 전환, 동일 Request의 여러 turn 재개,
 미결 intake 발견·복구 UI, 외부 서비스 자동 Outbox worker와 실제 원격 게시 E2E다.
 Pinned file Adapter는 명시적 파일 접근을 제한하지만 다른 프로세스의 동시 변경까지 막는 OS 격리 또는 원자적 CAS를 주장하지 않는다.
 
@@ -37,8 +39,15 @@ Pinned file Adapter는 명시적 파일 접근을 제한하지만 다른 프로�
 위 파일을 저장소 루트의 `runtime-config.json`으로 저장했다면:
 
 ```sh
-bun start astra --runtime-config runtime-config.json
+bun start -- --runtime-config runtime-config.json
 ```
+
+| 호환 진입점 | 상태 | Runtime 동작 |
+|---|---|---|
+| `www astra …` | deprecated compatibility alias, `www --help`에는 비노출 | 인자를 WWW 진입점으로 전달 |
+| 프로그램 API `runApp()` | 호환 API | 별도 설정이 없으면 `observe` |
+
+새 실행 안내와 자동화에는 alias가 아니라 `www`를 사용한다.
 
 `files`는 기존 파일만 허용하며 UTF-8 64KiB 상한이 있다. Native는 inspect에서 정확한 경로와 인자 스키마를 받는다.
 `candidates`에는 검증된 Artifact Candidate JSON 파일 경로를 넣는다.
@@ -160,7 +169,7 @@ Brokered v2의 불명 결과는 `www_runtime_reconcile({requestId, expectedRevis
 과거 실행 주체나 외부 게시 성공에 대한 포괄 인증이 아니다.
 
 계약 → journal 재생/전환 → Native 공개 보고 → 고정 7단계 Todo → 로컬 Projection → TUI 순으로 연결했다.
-`bun start astra` 후 `/todo`에서 단계·하위 계획, `/monitor`에서 현재 상태,
+broker 설정을 지정해 `bun start -- --runtime-config runtime-config.json`을 실행한 후 `/todo`에서 단계·하위 계획, `/monitor`에서 현재 상태,
 `/context`에서 요청별 이력·근거를 확인한다. `/source <activity-id>`는 기존 근거 탐색이다.
 
 단위 및 Workbench 통합 테스트는 보고 수락, 생략, 병렬 Task, 의존성, 잘못된 근거,

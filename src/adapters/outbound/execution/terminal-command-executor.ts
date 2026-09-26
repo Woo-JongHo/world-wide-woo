@@ -1,6 +1,6 @@
 import { stat }                                              from "node:fs/promises";
 import { basename, isAbsolute }                              from "node:path";
-import type { TerminalCommandExecutor }                      from "@/core/ports";
+import type { TerminalCommandExecutor }                      from "@/core/ports/execution/terminal-command-port";
 import { sanitizeTerminalText }                              from "@/core/domain/execution/terminal";
 import type { TerminalCommandResult, TerminalCommandUpdate } from "@/core/domain/execution/terminal";
 

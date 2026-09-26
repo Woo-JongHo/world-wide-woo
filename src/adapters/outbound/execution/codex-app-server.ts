@@ -28,7 +28,7 @@ import type {
 import { PRODUCT_VERSION }                from "@/product-version.js";
 import { CODEX_EFFORTS }                  from "@/core/domain/execution/model-settings";
 import type { Effort, NativeModelOption } from "@/core/domain/execution/model-settings";
-import type { UsageSnapshot }             from "@/core/ports/index.js";
+import type { UsageSnapshot }             from "@/core/ports/observability/usage-monitor-port";
 import {
 	approvalDecisions,
 	approvalKind,

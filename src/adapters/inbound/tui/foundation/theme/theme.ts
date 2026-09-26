@@ -69,7 +69,7 @@ const THEME_PALETTES: Record<TuiThemeName, TuiPalette> = {
 };
 
 export const TUI_THEME_OPTIONS = [
-	{ name: "gruvbox", label: "Gruvbox Astra" },
+	{ name: "gruvbox", label: "Gruvbox WWW" },
 	{ name: "tokyo-night", label: "Tokyo Night" },
 ] as const satisfies readonly { name: TuiThemeName; label: string }[];
 
@@ -88,7 +88,7 @@ export function nextTuiTheme(theme = activeTheme): TuiThemeName {
 	return TUI_THEME_OPTIONS[(index + 1) % TUI_THEME_OPTIONS.length]!.name;
 }
 
-/** Applies the active palette to the terminal canvas while the Astra UI owns the screen. */
+/** Applies the active palette to the terminal canvas while the Www UI owns the screen. */
 export function tuiBackgroundSequence(theme = activeTheme): string {
 	return `\u001B]11;${THEME_PALETTES[theme].background}\u0007`;
 }

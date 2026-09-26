@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "1.0",
+  "recordedAt": "2026-09-26T04:13:27+09:00",
+  "scope": "Three Body 실행 사이드바 카드 제거 기록 판정",
+  "issueBinding": {
+    "decision": "reuse-existing",
+    "identifier": "WOO-912",
+    "uuid": "14a3c6f0-3055-4c44-80fc-52a002b96f20",
+    "title": "[Workbench UI] 모드·모델·계획·구독 잔여 표기를 정리한다",
+    "status": "In Progress",
+    "reason": "저장된 게시 Receipt와 과거 Activity에서 Workbench UI 표기 및 Three Body 변경을 소유하는 이슈로 확인돼 새 이슈는 중복이다."
+  },
+  "projectActivity": {
+    "latestKnownCommentBefore": "30f00db1-c05a-4d67-a730-a03f589c46e9",
+    "snapshotObservedAt": "2026-09-24",
+    "commentCandidate": ".www/evidence/2026-09-26-three-body-sidebar-removal/project-comment-candidate.json",
+    "commentPreview": ".www/evidence/2026-09-26-three-body-sidebar-removal/project-comment-preview.md",
+    "commentState": "candidate-prepared",
+    "commentExternalWrite": "not-performed",
+    "commentReason": "사용자 게시 승인 전이며 정본 연결인 linear-woo 도구가 현재 세션에 없어 최신 Activity 재조회와 read-back을 수행할 수 없다."
+  },
+  "obsidian": {
+    "required": false,
+    "reason": "기존 실행 화면 장식 렌더 블록을 제거한 가역적 UI 조정으로 새 WHY·공개 API·schema·도메인 identity·권위 경계를 만들지 않는다."
+  },
+  "verification": {
+    "candidate": "Artifact Candidate OK: linear-project-comment ARTIFACT-CANDIDATE-THREE-BODY-SIDEBAR-REMOVAL",
+    "issueEvidence": "WOO-912 게시 Receipt와 Three Body 관련 Project Activity 연결 확인",
+    "implementation": "대상 테스트 8 pass, TypeScript 통과, import errors=0, table misaligned=0",
+    "independentReview": "Claude Sonnet 5 session limit로 미실행 blocker 기록",
+    "externalWrites": "not-performed"
+  }
+}

@@ -1,6 +1,6 @@
 import { describe, expect, test }               from "bun:test";
 import { SessionMonitor }                       from "../src/core/application/session/session-monitor";
-import type { TodoController }                  from "../src/core/ports";
+import type { TodoController }                  from "../src/core/ports/execution/todo-controller-port";
 import type { SessionRuntime, SessionSnapshot } from "../src/core/application/session/session-runtime";
 import type { TodoDocument }                    from "../src/core/domain/work/todos";
 

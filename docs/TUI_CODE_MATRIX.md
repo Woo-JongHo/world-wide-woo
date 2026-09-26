@@ -15,19 +15,19 @@
 
 ## 2. 조사 대상 코드 기준점
 
-현재 WWW TUI의 물리 경계는 다음과 같다. `feature-registry.ts`는 아래 16개 descriptor의 순서와 조회만 소유하고 component factory는 Shell이 조립한다.
+현재 WWW TUI의 물리 경계는 다음과 같다. `feature-registry.ts`는 18개 Feature와 39개 Unit descriptor의 순서와 조회만 소유하고 component factory는 Shell이 조립한다.
 
 | 경계 | 실제 경로 | 책임 |
 |---|---|---|
 | Foundation | `src/adapters/inbound/tui/foundation/{theme,layout,rendering,components}` | 색·Markdown theme, layout, scroll, render scheduling, overlay frame |
-| Features | `src/adapters/inbound/tui/features/<feature>` | `TUI-F001`~`TUI-F016`의 독립 view·interaction |
+| Features | `src/adapters/inbound/tui/features/<feature>/{controller,view-model,view,registration}` | `TUI-F001`~`TUI-F018`의 독립 조작·표시·등록 책임. 실제 파일이 있는 책임 폴더만 둔다. |
 | Commands | `src/adapters/inbound/tui/commands` | slash command descriptor와 parser |
 | Shell | `src/adapters/inbound/tui/shell` | 생성자 주입, navigation, input, lifecycle |
 | Legacy | `src/adapters/inbound/tui/legacy` | 명시적인 Router 호환 화면 |
 
-Feature 순서는 Dashboard, Chat, Plan, T-note, Trace, Monitor, Session, Stats, Usage, Project Map, Context, Test, Approval, Authentication, Model Selection, Repository다.
+Feature 순서는 Dashboard, Chat, Plan, Workflow, T-note, Trace, Monitor, Session, Stats, Usage, Project Map, Context, Cache, Test, Approval, Authentication, Model Selection, Repository다.
 
-Astra의 첫 화면은 `features/dashboard/entry-dashboard-view.ts`의 `WwwDashboardView`이며, 별도 캐시가 아닌 현재 `WorkbenchSnapshot`에서 세션·현재 작업·계획·Todo·승인·오류 상태를 직접 투영한다. Linear 프로젝트 요약은 같은 snapshot의 부가 정보로만 표시한다.
+WWW의 첫 화면은 `features/dashboard/view/entry-dashboard-view.ts`의 `WwwDashboardView`이며, 별도 캐시가 아닌 현재 `WorkbenchSnapshot`에서 세션·현재 작업·계획·Todo·승인·오류 상태를 직접 투영한다. Linear 프로젝트 요약은 같은 snapshot의 부가 정보로만 표시한다.
 
 | 대상 | 기준점 또는 공개 경계 | 주 코드 루트 |
 |---|---|---|
@@ -42,7 +42,7 @@ Astra의 첫 화면은 `features/dashboard/entry-dashboard-view.ts`의 `WwwDashb
 | iTerm2 | `5ff63dade30865fe9faf2ac7003971dd55c46c88` | `sources/VT100`, `sources/TerminalView`, `sources/MetalRenderer`, `sources/StatusBar` |
 | Ghostty | `e8aa098674a42e2b4ed1b8c42f4224564ad9fc1e` | `src/terminal`, `src/renderer`, `src/apprt`, `macos/Sources` |
 | Oh My Zsh | `a5ecff7560b2e26f612032c632a12c75a3048bd0` | `oh-my-zsh.sh`, `lib`, `plugins`, `themes`, `tools` |
-| WWW | 현재 저장소 main | `src/domain`, `src/application`, `src/infrastructure`, `src/adapters/inbound/tui` |
+| WWW | 현재 저장소 main | `src/core/{domain,application,ports,runtime,commit}`, `src/adapters/{inbound,outbound}` |
 
 ## 3. Terminal host와 renderer
 

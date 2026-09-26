@@ -30,7 +30,7 @@
 
 ## 최종 성능 수락
 
-`ASTRA_BENCH_REPS=50 ASTRA_BENCH_BUDGET_MS=240000 bun scripts/astra-render-benchmark.ts`, 1,000 messages / 80×24. exit0 / GREEN. 240000은 전체 harness watchdog이며 프레임 threshold가 아니다.
+`WWW_BENCH_REPS=50 WWW_BENCH_BUDGET_MS=240000 bun scripts/www-render-benchmark.ts`, 1,000 messages / 80×24. exit0 / GREEN. 240000은 전체 harness watchdog이며 프레임 threshold가 아니다.
 
 | 항목 | 표본 | p95 | p99 | 기준 |
 |---|---:|---:|---:|---|

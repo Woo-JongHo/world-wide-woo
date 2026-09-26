@@ -5,28 +5,28 @@ import { wwwHelpText }     from "@/adapters/inbound/cli/www-help"; // CLI 도움
 
 import type { RunAppOptions }          from "@/app"; // Workbench 실행 옵션
 import type { NativeThreadSummary }    from "@/core/domain/execution/native-session"; // Native thread 목록 항목
-import type { RecentSessionSummary }   from "@/core/ports"; // 레거시 세션 목록 항목
+import type { RecentSessionSummary }   from "@/core/ports/persistence/session-repository"; // 레거시 세션 목록 항목
 import type { RunLegacyRouterOptions } from "@/legacy-router-app"; // 호환 Router 실행 옵션
 
-// GROUP     | FUNCTION                 | INPUT              | RETURN                      | CALLS                                                                                                                                 | ROLE
-// BOOTSTRAP | writeWorkbenchBootstrap  | write, isTTY       | void                        | -                                                                                                                                     | Workbench 첫 화면 문구 출력
-// BOOTSTRAP | writeRouterBootstrap     | write, isTTY       | void                        | -                                                                                                                                     | Router 부팅 문구 출력
-// BOOTSTRAP | writeAstraBootstrap      | write, isTTY       | stop                        | paint, setInterval, clearInterval                                                                                                     | Astra 진행 애니메이션 시작
-// BOOTSTRAP | paint                    | -                  | void                        | write, setInterval                                                                                                                    | 진행 프레임 1장 출력
-// LOAD      | loadAstraModule          | -                  | app module                  | writeAstraBootstrap                                                                                                                   | App 모듈 적재
-// ROUTE     | isLegacySessionId        | value              | boolean                     | -                                                                                                                                     | 레거시 세션 ID 형태 판정
-// ROUTE     | writeInformationalOutput | args, dependencies | boolean                     | writeOut, wwwHelpText                                                                                                                 | help·version 즉시 출력
-// ASTRA     | parseAstraOptions        | args               | options, selectResumeThread | -                                                                                                                                     | Astra 플래그 해석
-// ASTRA     | selectResumeThread       | dependencies       | ThreadSelection             | listNativeThreads, selectNativeThread                                                                                                 | 재개 스레드 선택
-// ASTRA     | runAstraCommand          | args, dependencies | Promise                     | parseAstraOptions, selectResumeThread, runAstra                                                                                       | astra 명령 실행
-// ROUTER    | runRouterCommand         | args, dependencies | Promise                     | runRouter, isLegacySessionId                                                                                                          | router 명령 실행
-// SESSIONS  | writeSessions            | dependencies       | Promise                     | listSessions, writeOut                                                                                                                | 세션 목록 출력
-// SESSIONS  | writeThreads             | dependencies       | Promise                     | listNativeThreads, writeOut                                                                                                           | native thread 목록 출력
-// ASTRA     | resumeAstra              | args, dependencies | Promise                     | selectResumeThread, runAstra                                                                                                          | 스레드 재개
-// RUN       | dispatchCommand          | args, dependencies | Promise                     | runAstra, writeOut, runDevelopment, runAuth, runWorkflow, runAstraCommand, runRouterCommand, writeSessions, writeThreads, resumeAstra | 명령 분기
-// RUN       | runCli                   | args, dependencies | exit code                   | writeInformationalOutput, dispatchCommand, writeError                                                                                 | CLI 진입점
+// GROUP     | FUNCTION                 | INPUT              | RETURN                      | CALLS                                                                                                                           | ROLE
+// BOOTSTRAP | writeWorkbenchBootstrap  | write, isTTY       | void                        | -                                                                                                                               | Workbench 첫 화면 문구 출력
+// BOOTSTRAP | writeRouterBootstrap     | write, isTTY       | void                        | -                                                                                                                               | Router 부팅 문구 출력
+// BOOTSTRAP | writeWwwBootstrap        | write, isTTY       | stop                        | paint, setInterval, clearInterval                                                                                               | WWW 진행 애니메이션 시작
+// BOOTSTRAP | paint                    | -                  | void                        | write, setInterval                                                                                                              | 진행 프레임 1장 출력
+// LOAD      | loadWwwModule            | -                  | app module                  | writeWwwBootstrap                                                                                                               | App 모듈 적재
+// ROUTE     | isLegacySessionId        | value              | boolean                     | -                                                                                                                               | 레거시 세션 ID 형태 판정
+// ROUTE     | writeInformationalOutput | args, dependencies | boolean                     | writeOut, wwwHelpText                                                                                                           | help·version 즉시 출력
+// WWW       | parseWwwOptions          | args               | options, selectResumeThread | -                                                                                                                               | WWW 호환 alias 플래그 해석
+// WWW       | selectResumeThread       | dependencies       | ThreadSelection             | listNativeThreads, selectNativeThread                                                                                           | 재개 스레드 선택
+// WWW       | runWwwCommand            | args, dependencies | Promise                     | parseWwwOptions, selectResumeThread, runWww                                                                                     | WWW 호환 alias 실행
+// ROUTER    | runRouterCommand         | args, dependencies | Promise                     | runRouter, isLegacySessionId                                                                                                    | router 명령 실행
+// SESSIONS  | writeSessions            | dependencies       | Promise                     | listSessions, writeOut                                                                                                          | 세션 목록 출력
+// SESSIONS  | writeThreads             | dependencies       | Promise                     | listNativeThreads, writeOut                                                                                                     | native thread 목록 출력
+// WWW       | resumeWww                | args, dependencies | Promise                     | selectResumeThread, runWww                                                                                                      | 스레드 재개
+// RUN       | dispatchCommand          | args, dependencies | Promise                     | runWww, writeOut, runDevelopment, runAuth, runWorkflow, runWwwCommand, runRouterCommand, writeSessions, writeThreads, resumeWww | 명령 분기
+// RUN       | runCli                   | args, dependencies | exit code                   | writeInformationalOutput, dispatchCommand, writeError                                                                           | CLI 진입점
 
-type AppOptions      = RunAppOptions;                   // Workbench·Astra 선택 입력. 생략한 항목은 애플리케이션 기본값 사용
+type AppOptions      = RunAppOptions;                   // Workbench·WWW 선택 입력. 생략한 항목은 애플리케이션 기본값 사용
 type RouterOptions   = RunLegacyRouterOptions;          // 호환 Router 시작 입력. 세션 미지정 시 새 세션 시작
 type SessionList     = RecentSessionSummary[];          // CLI에 표시할 레거시 세션 목록
 type ThreadList      = readonly NativeThreadSummary[];  // CLI가 조회한 수정 불가능한 Native thread 목록
@@ -36,7 +36,7 @@ type ThreadSelection = string | null;                   // 선택된 Native thre
 export interface CLIDependencies {
 	// Run
 	runApp             : ( options : AppOptions    ) => Promise<void>;             // 호환 Workbench 실행
-	runAstra           : ( options : AppOptions    ) => Promise<void>;             // 기본 Astra 실행
+	runWww             : ( options : AppOptions    ) => Promise<void>;             // 기본 WWW 실행
 	runRouter          : ( options : RouterOptions ) => Promise<void>;             // Multi-provider Router 실행
 	runAuth            : ( args    : string[]      ) => Promise<void>;             // 인증 명령 실행
 	runDevelopment     : ( args    : string[]      ) => Promise<string>;           // 개발 기록 명령 실행
@@ -60,14 +60,14 @@ export type CliDependencies = CLIDependencies;
 //  NAME               : KIND  ( PARAMETERS      ) => { PRELUDE                      const { IMPORT NAME         } = await import("MODULE PATH                                                 "); ACTION TARGET                                    }
 const productionDependencies: CLIDependencies = {
 	runApp             : async (options) => { writeWorkbenchBootstrap();   const { runApp              } = await import("@/app");                                                        await  runApp(options); },
-	runAstra           : async (options) => {                              const { runAstra            } = await loadAstraModule();                                                      await  runAstra(options); },
+	runWww             : async (options) => {                              const { runWww            } = await loadWwwModule();                                                      await  runWww(options); },
 	runRouter          : async (options) => { writeRouterBootstrap();      const { runLegacyRouter     } = await import("@/legacy-router-app");                                          await  runLegacyRouter(options); },
 	runAuth            : async ( args  ) => {                              const { runAuth             } = await import("@/app");                                                        await  runAuth(args); },
 	runWorkflow        : async ( args  ) => {                              const { runLocalWorkflowCli } = await import("@/adapters/outbound/development/local-workflow-cli");           return runLocalWorkflowCli(args, process.cwd()); },
 	runDevelopment     : async ( args  ) => {                              const { runDevelopmentCli   } = await import("@/adapters/outbound/development/development-cli");              return runDevelopmentCli(args); },
 	listSessions       : async ()        => {                              const { listSessions        } = await import("@/app");                                                        return listSessions(); },
 	listNativeThreads  : async ()        => {                              const { listNativeThreads   } = await import("@/app");                                                        return listNativeThreads(); },
-	selectNativeThread : async (threads) => {                              const { selectNativeThread  } = await import("@/adapters/inbound/tui/features/session/native-thread-picker"); return selectNativeThread(threads, "astra"); },
+	selectNativeThread : async (threads) => {                              const { selectNativeThread  } = await import("@/adapters/inbound/tui/features/session/view/native-thread-picker"); return selectNativeThread(threads, "www"); },
 	writeOut           : ( value ) => console.log   (value),
 	writeError         : ( value ) => console.error (value),
 };
@@ -88,7 +88,7 @@ export function writeRouterBootstrap(
 	write("\r\x1b[2K🐙 Wooni · 호환 Multi-provider Router를 여는 중…\n");
 }
 
-export function writeAstraBootstrap(
+export function writeWwwBootstrap(
 	write : (value: string) => void = value => process.stdout.write(value),
 	isTTY : boolean                 = process.stdout.isTTY,
 ): () => void {
@@ -107,8 +107,8 @@ export function writeAstraBootstrap(
 	};
 }
 
-async function loadAstraModule(): Promise<typeof import("@/app")> {
-	const stop = writeAstraBootstrap();
+async function loadWwwModule(): Promise<typeof import("@/app")> {
+	const stop = writeWwwBootstrap();
 	try {
 		return await import("@/app");
 	} finally {
@@ -137,7 +137,7 @@ function writeInformationalOutput(
 	return false;
 }
 
-function parseAstraOptions(args: string[]): { options: AppOptions; selectResumeThread: boolean } {
+function parseWwwOptions(args: string[]): { options: AppOptions; selectResumeThread: boolean } {
 	const options : AppOptions  = {};
 	const seen    : Set<string> = new Set<string>();
 
@@ -169,7 +169,7 @@ function parseAstraOptions(args: string[]): { options: AppOptions; selectResumeT
 			options.runtimeConfig = value;
 			index += 1;
 		} else {
-			throw new Error("사용법: www astra [--resume [id]] [--execution-lane codex|pi] [--runtime-config <json>]");
+			throw new Error("사용법: www [--resume [id]] [--execution-lane codex|pi] [--runtime-config <json>]");
 		}
 	}
 
@@ -186,11 +186,11 @@ async function selectResumeThread(dependencies: CLIDependencies): Promise<Thread
 	return dependencies.selectNativeThread(threads);
 }
 
-async function runAstraCommand(
+async function runWwwCommand(
 	args         : string[],
 	dependencies : CLIDependencies,
 ): Promise<void> {
-	const parsed = parseAstraOptions(args);
+	const parsed = parseWwwOptions(args);
 
 	if (parsed.selectResumeThread) {
 		const resumeThreadId = await selectResumeThread(dependencies);
@@ -199,7 +199,7 @@ async function runAstraCommand(
 		parsed.options.resumeThreadId = resumeThreadId;
 	}
 
-	await dependencies.runAstra(parsed.options);
+	await dependencies.runWww(parsed.options);
 }
 
 async function runRouterCommand(
@@ -251,14 +251,14 @@ async function writeThreads(dependencies: CLIDependencies): Promise<void> {
 	}
 }
 
-async function resumeAstra(
+async function resumeWww(
 	args         : string[],
 	dependencies : CLIDependencies,
 ): Promise<void> {
 	const threadId = args[1] || await selectResumeThread(dependencies);
 
 	if (threadId) {
-		await dependencies.runAstra({ resumeThreadId: threadId });
+		await dependencies.runWww({ resumeThreadId: threadId });
 	}
 }
 
@@ -269,12 +269,16 @@ async function dispatchCommand(
 	const command = args[0];
 
 	if (!command) {
-		await dependencies.runAstra({});
+		await dependencies.runWww({});
 		return;
 	}
 
 	if (command === "--execution-lane" && args.length === 2 && (args[1] === "pi" || args[1] === "codex")) {
-		await dependencies.runAstra({ executionLane: args[1] });
+		await dependencies.runWww({ executionLane: args[1] });
+		return;
+	}
+	if (command === "--runtime-config") {
+		await runWwwCommand(["www", ...args], dependencies);
 		return;
 	}
 
@@ -282,11 +286,11 @@ async function dispatchCommand(
 	case "development" : dependencies.writeOut     (await dependencies.runDevelopment(args.slice(1))); return;
 	case "auth"        : await dependencies.runAuth(args.slice(1));                                    return;
 	case "workflow"    : dependencies.writeOut     (await dependencies.runWorkflow   (args.slice(1))); return;
-	case "astra"       : await runAstraCommand     (args, dependencies);                               return;
+	case "astra"       : await runWwwCommand       (args, dependencies);                               return;
 	case "router"      : await runRouterCommand    (args, dependencies);                               return;
 	case "sessions"    : await writeSessions       (dependencies);                                     return;
 	case "threads"     : await writeThreads        (dependencies);                                     return;
-	case "--resume"    : await resumeAstra         (args, dependencies);                               return;
+	case "--resume"    : await resumeWww           (args, dependencies);                               return;
 	default             : throw new Error(`알 수 없는 명령입니다: ${args.join(" ")}`);
 	}
 }

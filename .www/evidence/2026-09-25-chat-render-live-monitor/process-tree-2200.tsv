@@ -1,0 +1,51 @@
+135.1	3937808064	44	total	total		
+135.1	3937808064	44	window	window:1	total	
+135.1	3937808064	44	workspace	workspace:1	window:1	1
+135.1	3937808064	44	pane	pane:1	workspace:1	
+58.6	1197119168	12	surface	surface:3	pane:1	GJC: 14_WhenWherE 코드 리팩토링
+35.0	655463232	1	process	89557	surface:3	gjc
+1.7	196954944	1	process	89597	89557	gjc
+20.6	126618112	1	process	21877	surface:3	gjc
+1.2	94292480	1	process	21894	21877	gjc
+0.0	94980544	1	process	21917	21894	gjc
+0.0	1294912	1	process	88305	surface:3	zsh
+0.0	13601344	1	process	88307	surface:3	gitstatusd-darw
+0.0	852544	1	process	27219	surface:3	sleep
+0.0	8291328	1	process	87851	surface:3	zsh
+0.2	1573568	1	process	89555	87851	zsh
+0.0	1589888	1	process	87868	surface:3	zsh
+0.0	1606272	1	process	88304	surface:3	zsh
+55.6	889344448	13	surface	surface:4	pane:1	GJC: Chat 렌더링 버벅임 분석
+20.8	117967424	1	process	27119	surface:4	gjc
+15.0	97241600	1	process	27158	27119	gjc
+0.0	97192448	1	process	27183	27158	gjc
+19.7	540872832	1	process	3521	surface:4	gjc
+0.0	13585024	1	process	3181	surface:4	gitstatusd-darw
+0.0	4769088	1	process	27220	surface:4	cmux
+0.0	2507584	1	process	27221	surface:4	git
+0.0	852544	1	process	27218	surface:4	sleep
+0.0	8094720	1	process	2734	surface:4	zsh
+0.2	1540736	1	process	3519	2734	zsh
+0.0	1671808	1	process	2750	surface:4	zsh
+0.0	1704576	1	process	3178	surface:4	zsh
+0.0	1344064	1	process	3179	surface:4	zsh
+20.9	1851344448	19	surface	surface:1	pane:1	www
+19.2	601215680	1	process	90809	surface:1	bun
+0.5	604556928	1	process	90816	90809	codex
+0.9	238242880	1	process	26980	90816	bun
+0.0	19285696	1	process	27212	26980	bun
+0.0	291424384	1	process	27213	27212	tsc
+0.0	22759104	1	process	92344	90816	codex-code-mode
+0.0	9013184	1	process	53278	90816	node_repl
+0.0	8161024	1	process	64735	90816	node_repl
+0.0	9062208	1	process	7179	90816	node_repl
+0.0	8931328	1	process	76584	90816	node_repl
+0.0	8390464	1	process	90466	90816	node_repl
+0.0	9340864	1	process	90997	90816	node_repl
+0.0	6161792	1	process	57338	surface:1	gitstatusd-darw
+0.0	852544	1	process	27217	surface:1	sleep
+0.0	7816192	1	process	56884	surface:1	zsh
+0.2	1475200	1	process	90807	56884	zsh
+0.0	1622656	1	process	56903	surface:1	zsh
+0.0	1704576	1	process	57335	surface:1	zsh
+0.0	1327744	1	process	57336	surface:1	zsh

@@ -1,6 +1,6 @@
 import type { AuthInteraction, AuthType }         from "@earendil-works/pi-ai";
 import type { Provider }                          from "@/core/domain/execution/model-settings.js";
-import type { AuthController, ProviderAuthState } from "@/core/ports/index.js";
+import type { AuthController, ProviderAuthState } from "@/core/ports/integration/auth-controller-port";
 import { SystemAntigravityLocalAuthSource }       from "@/adapters/outbound/authentication/antigravity-local-auth.js";
 import type { AntigravityLocalAuthSource }        from "@/adapters/outbound/authentication/antigravity-local-auth.js";
 

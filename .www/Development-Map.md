@@ -1,9 +1,9 @@
 # WWW Development Map
 
-- 상태: Chat·Todo·Tracer·Stats·Code Map 개발 PR 진행 중·Opus 최종 감사 대기; Monitor·Dashboard는 이슈·설계만 보존; 2026-09-18 렌더 성능·인증 전환·산출물 정비 현황 추가
-- 기준일: 2026-09-18 (작업트리 WIP·문서 정리·이슈 후보 재확인)
-- 확인 revision: `1d7b451` + 미커밋 작업트리(렌더 성능·Antigravity 인증·zai 사용량); 이전 확인 — Stats `664c40b`; Chat `05e2829`/`e1b188b`; Todo `5bf2d53`; Tracer `2fd2405`; Code Map `4d4dd8d`
-- 확인 파일: [연결 원장](./control-ledger/traceability.json), [Chat Evidence](./evidence/2026-09-06-chat-development/assessment.md), [Stats PTY Evidence](./scratchpad/2026-09-07-stats-request-enter.md)
+- 상태: WOO-842 상태 소유권·Feature 구조 S0-A~S6 로컬 구현과 독립 리뷰 완료·외부 수락 미게시; Summary/Note capture 정책·Legacy Router 결정·Opus 구현 최종 감사 대기
+- 기준일: 2026-09-25 (dirty worktree의 WWW 구조 리팩터링 현재형 문서·Candidate 동기화)
+- 확인 revision: `e17837f8a0a5` + 미커밋 작업트리; 이전 확인 — `1d7b451` 렌더 성능·인증·사용량, Stats `664c40b`, Chat `05e2829`/`e1b188b`, Todo `5bf2d53`, Tracer `2fd2405`, Code Map `4d4dd8d`
+- 확인 파일: [WOO-842 구조 보고서](../docs/reviews/WWW_CODE_STRUCTURE_CURRENT_STATE_AND_TARGET_2026-09-25.md), [실행 계획·결과](../docs/planning/WWW_STATE_OWNERSHIP_REFACTOR_PLAN_2026-09-25.md), [연결 원장](./control-ledger/traceability.json)
 - 관련 Issue: [#26](https://github.com/Woo-JongHo/world-wide-woo/issues/26)
 
 이 문서는 제품 전체의 현재 위치와 다음 전환을 보여주는 읽기 전용 지도다. 세부 요구사항과 완료 권한은 연결된 Planning artifact와 Evidence가 소유한다.
@@ -28,13 +28,25 @@ Development Map
 
 ## 현재 제품
 
+### WOO-842 상태 소유권·기능 구조 리팩터링 — 2026-09-25
+
+이 행들은 현재 dirty worktree의 코드·테스트·독립 리뷰 관측이다. Linear WOO-842와 Obsidian 상세 정본은 Candidate만 준비했으며 게시·read-back 전이므로 원격 상태나 제품 수락으로 승격하지 않는다.
+
+| 작업 ID | 관측 상태 | 근거·연결 | 다음 전환 |
+|---|---|---|---|
+| WOO-842 · 상태 소유권 | stream→final, Snapshot 안정성, late result, Thread scope, Composer writer 계약 구현·검증 | [실행 결과](../docs/planning/WWW_STATE_OWNERSHIP_REFACTOR_PLAN_2026-09-25.md#18-실행-진행) | Candidate 승인·게시 뒤 원격 read-back |
+| WOO-842 · Port/Projection | Port 4그룹, Chat·Plan·Tracer·Note readonly Feature Projection 구현·검증 | [구조 보고서 §18](../docs/reviews/WWW_CODE_STRUCTURE_CURRENT_STATE_AND_TARGET_2026-09-25.md#18-2026-09-25-구현-완료-뒤-현재-상태) | capture identity와 review·promote 계약 결정 |
+| WOO-842 · TUI 구조 | 18 Feature·39 Unit, controller 1·view-model 7·view 60·registration 36, S6 독립 재검토 승인 | [S6 review](./evidence/s6-feature-folders-code-review.md) | 외부 수락과 traceability read-back |
+| WOO-842 · 실행면 | WWW 명칭과 Runtime matrix 보존, Legacy Router 별도 유지 | [Runtime](../docs/REQUEST_RUNTIME.md) | Router 유지·migration·폐기 중 제품 결정 |
+| WOO-842 · 최종 감사 | Sonnet 계열 독립 리뷰 완료; 고정 Opus는 조직 정책 403으로 판정 미반환 | [계획 §19](../docs/planning/WWW_STATE_OWNERSHIP_REFACTOR_PLAN_2026-09-25.md#19-현재-최종-상태와-남은-결정) | 접근 가능한 Opus 환경에서 하향 대체 없이 재실행 |
+
 ### 렌더 성능·인증 전환·산출물 정비 현황 — 2026-09-18
 
 이 섹션의 작업은 모두 미커밋 작업트리 상태이며 Story acceptance로 승격하지 않는다. Linear ID는 미연결로 표시하고 추정 연결하지 않는다.
 
 | 작업 ID | 관측 상태 | 근거·연결 | 다음 전환 |
 | --- | --- | --- | --- |
-| 미연결 · Astra 렌더 성능 | 원인 수정·벤치마크 대폭 개선 확인, 37KB 초안 게이트 RED, 독립 리뷰 수락 미회수, 커밋 미반영 | [ASTRA_PERFORMANCE](../docs/ASTRA_PERFORMANCE.md) · [벤치마크 스크립트](../scripts/astra-render-benchmark.ts) | 37KB 초안 게이트 통과 → 독립 리뷰 → 커밋·Linear 기록 |
+| 미연결 · WWW 렌더 성능 | 원인 수정·벤치마크 대폭 개선 확인, 37KB 초안 게이트 RED, 독립 리뷰 수락 미회수, 커밋 미반영 | [WWW_PERFORMANCE](../docs/WWW_PERFORMANCE.md) · [벤치마크 스크립트](../scripts/www-render-benchmark.ts) | 37KB 초안 게이트 통과 → 독립 리뷰 → 커밋·Linear 기록 |
 | 미연결 · Antigravity 인증 전환 | Gemini CLI 인증 삭제, Antigravity auth 작업트리 반영·미커밋 | [auth-service](../src/adapters/outbound/authentication/auth-service.ts) · [antigravity-auth](../src/adapters/outbound/authentication/antigravity-auth.ts) | 실측 검증 → 커밋 → Linear 기록 |
 | 미연결 · zai-coding-plan 사용량 | Claude·z.ai 주간·5시간 세션 표시 작업트리 반영·미커밋 | [zai-coding-plan-usage](../src/adapters/outbound/observability/zai-coding-plan-usage.ts) | 실측 검증 → 커밋 → Linear 기록 |
 | 미연결 · 이슈 후보 2건 | codex-app-timeout·proposal-report-separation 게시 승인 대기 | [timeout 후보](./evidence/2026-09-14-codex-app-timeout/github-issue-candidate.json) · [분리 후보](./evidence/2026-09-14-proposal-report-separation/github-issue-candidate.json) | 미리보기 승인 → 게시 → Receipt |
@@ -53,13 +65,13 @@ Development Map
 | [WOO-690](https://linear.app/woo-world/issue/WOO-690) · 재개/identity | PR #39 진행·Opus 감사 대기 | [runtime probes](./evidence/2026-09-06-chat-development/runtime-probes.json) · [PR #39](https://github.com/Woo-JongHo/world-wide-woo/pull/39) | Opus 판정 및 Linear 기록 |
 | [WOO-691](https://linear.app/woo-world/issue/WOO-691) · 예외 | 부분 구현 | 동일 Evidence | 빈/unknown/renderer 실패 처리 |
 | [WOO-692](https://linear.app/woo-world/issue/WOO-692) · 통합 수락 | 자동 검증 근거 확보·실제 TUI 미검증 | [617개 회귀 결과](./evidence/2026-09-06-chat-development/tests-baseline.log) | 실제 Native TUI 시나리오·캡처·사용자 수락 |
-| [WOO-682](https://linear.app/woo-world/issue/WOO-682) · Todo | PR #43 Ready·Terra 승인·Native resume/Opus 대기 | [PR #43](https://github.com/Woo-JongHo/world-wide-woo/pull/43) · [테스트 방법론](./vault/Development/2026-09-07-TUI-Test-Methodology.md) · [연결 원장](./control-ledger/traceability.json) | Native Plan → Todo.md → 모델 귀속의 실제 세션 증거 |
-| [WOO-681](https://linear.app/woo-world/issue/WOO-681) · Tracer | PR #44 Ready·Native 성공 경로 수동 수락 대기 | [PR #44](https://github.com/Woo-JongHo/world-wide-woo/pull/44) · [테스트 방법론](./vault/Development/2026-09-07-TUI-Test-Methodology.md) · [연결 원장](./control-ledger/traceability.json) | Todo/Chat 선택 → 같은 실행 Source 왕복 증거 |
-| [WOO-677](https://linear.app/woo-world/issue/WOO-677) · Stats | PR #41 Ready·Spark 승인·Opus 최종 대기 | [Stats PTY Evidence](./scratchpad/2026-09-07-stats-request-enter.md) · [PR #41](https://github.com/Woo-JongHo/world-wide-woo/pull/41) · [테스트 방법론](./vault/Development/2026-09-07-TUI-Test-Methodology.md) | Opus 판정 후 Linear/PR 상태 갱신 |
-| [WOO-695](https://linear.app/woo-world/issue/WOO-695) · Code Map | PR #42 Ready·Map 감사 기록 완료 | [PR #42](https://github.com/Woo-JongHo/world-wide-woo/pull/42) · [테스트 방법론](./vault/Development/2026-09-07-TUI-Test-Methodology.md) · [연결 원장](./control-ledger/traceability.json) | Unit·Linear·SQLite·Obsidian 왕복 수락 증거 |
-| [WOO-696](https://linear.app/woo-world/issue/WOO-696) · SQLite | 구현·자동 검증 완료·PR 분리 대기 | [development-store](../src/adapters/outbound/development-store.ts) · [SQLite tests](../test/development-store.test.ts) | commit/PR과 Opus 감사 |
-| [WOO-697](https://linear.app/woo-world/issue/WOO-697) · 개발 기록 | PR #45 Ready·테스트 방법론 기록 추가 | [development-service](../src/core/application/development-service.ts) · [test runner](../src/adapters/outbound/development-test-runner.ts) · [PR #45](https://github.com/Woo-JongHo/world-wide-woo/pull/45) | Linear 요약·Obsidian 상세 이중 기록 검증 |
-| [WOO-698](https://linear.app/woo-world/issue/WOO-698) · Obsidian | PR #45 Ready·상세 방법론 문서 추가 | [development-vault](../src/adapters/outbound/development-vault.ts) · [Vault tests](../test/development-vault.test.ts) · [테스트 방법론](./vault/Development/2026-09-07-TUI-Test-Methodology.md) | Linear ID·테스트 ID·증거 경로 readback |
+| [WOO-682](https://linear.app/woo-world/issue/WOO-682) · Todo | PR #43 Ready·Terra 승인·Native resume/Opus 대기 | [PR #43](https://github.com/Woo-JongHo/world-wide-woo/pull/43) · 2026-09-07 Vault 테스트 방법론(현재 저장소에 미포함) · [연결 원장](./control-ledger/traceability.json) | Native Plan → Todo.md → 모델 귀속의 실제 세션 증거 |
+| [WOO-681](https://linear.app/woo-world/issue/WOO-681) · Tracer | PR #44 Ready·Native 성공 경로 수동 수락 대기 | [PR #44](https://github.com/Woo-JongHo/world-wide-woo/pull/44) · 2026-09-07 Vault 테스트 방법론(현재 저장소에 미포함) · [연결 원장](./control-ledger/traceability.json) | Todo/Chat 선택 → 같은 실행 Source 왕복 증거 |
+| [WOO-677](https://linear.app/woo-world/issue/WOO-677) · Stats | PR #41 Ready·Spark 승인·Opus 최종 대기 | [Stats PTY Evidence](./scratchpad/2026-09-07-stats-request-enter.md) · [PR #41](https://github.com/Woo-JongHo/world-wide-woo/pull/41) · 2026-09-07 Vault 테스트 방법론(현재 저장소에 미포함) | Opus 판정 후 Linear/PR 상태 갱신 |
+| [WOO-695](https://linear.app/woo-world/issue/WOO-695) · Code Map | PR #42 Ready·Map 감사 기록 완료 | [PR #42](https://github.com/Woo-JongHo/world-wide-woo/pull/42) · 2026-09-07 Vault 테스트 방법론(현재 저장소에 미포함) · [연결 원장](./control-ledger/traceability.json) | Unit·Linear·SQLite·Obsidian 왕복 수락 증거 |
+| [WOO-696](https://linear.app/woo-world/issue/WOO-696) · SQLite | 구현·자동 검증 완료·PR 분리 대기 | [development-store](../src/adapters/outbound/development/development-store.ts) · [SQLite tests](../test/development-store.test.ts) | commit/PR과 Opus 감사 |
+| [WOO-697](https://linear.app/woo-world/issue/WOO-697) · 개발 기록 | PR #45 Ready·테스트 방법론 기록 추가 | [development-service](../src/core/application/development/development-service.ts) · [test runner](../src/adapters/outbound/development/development-test-runner.ts) · [PR #45](https://github.com/Woo-JongHo/world-wide-woo/pull/45) | Linear 요약·Obsidian 상세 이중 기록 검증 |
+| [WOO-698](https://linear.app/woo-world/issue/WOO-698) · Obsidian | PR #45 Ready·상세 방법론 문서 추가 | [development-vault](../src/adapters/outbound/development/development-vault.ts) · [Vault tests](../test/development-vault.test.ts) · 2026-09-07 Vault 테스트 방법론(현재 저장소에 미포함) | Linear ID·테스트 ID·증거 경로 readback |
 
 WOO 번호와 Linear UUID는 작업 ID다. 별도 Unit ID는 미발급이며 기존 EP/ST와 자동 동치 연결하지 않았다. 코드/테스트 연결과 관측은 [원장 안내](./control-ledger/README.md)로 탐색한다. 테스트 통과를 이슈 수락으로 승격하지 않는다. 아래 제품 전체 행은 이번 Chat 감사로 재판정하지 않았다.
 

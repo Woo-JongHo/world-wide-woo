@@ -4,7 +4,7 @@ import type { TodoDocument }                       from "@/core/domain/work/todo
 import type { ToolResultSnapshot }                 from "@/core/domain/execution/output";
 import { SessionRuntime }                          from "@/core/application/session/session-runtime";
 import type { SessionSnapshot }                    from "@/core/application/session/session-runtime";
-import type { TodoController }                     from "@/core/ports/index.js";
+import type { TodoController }                     from "@/core/ports/execution/todo-controller-port";
 
 export type MonitoringListener = (snapshot: MonitoringSnapshot) => void;
 export interface MonitoringSource {

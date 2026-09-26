@@ -25,7 +25,7 @@
 같은 테스트 묶음을 실행했을 때 맥북은 통과하지만 맥미니는 다음 두 건이 실패한다.
 
 ```text
-맥북: bun test test/workbench-config.test.ts test/astra-lazy-row-integration.test.ts
+맥북: bun test test/workbench-config.test.ts test/www-lazy-row-integration.test.ts
       14 pass, 0 fail
 
 맥미니: 같은 명령
@@ -34,7 +34,7 @@
 
 - `test/workbench-config.test.ts`: 테스트는 `gpt-6-astra`를 기대하지만 현재
   `.www/workbench.yaml`은 `gpt-5.6-sol`이다.
-- `test/astra-lazy-row-integration.test.ts`: lazy `full` frame이 dense oracle과
+- `test/www-lazy-row-integration.test.ts`: lazy `full` frame이 dense oracle과
   달라진다. lazy 결과에는 `Response` 박스가 생기고 dense 결과는 평문 응답이다.
 
 따라서 어느 쪽을 정본으로 볼지 정하지 않은 채 파일을 합치면, 한쪽의 변경을
@@ -47,7 +47,7 @@
 - 맥미니: Workflow 페이지(`TUI-F017`)·`/workflow`·Codex native usage·request
   runtime 라벨 변경
 
-대부분은 계층상 양립하지만 `astra-surface.ts`, `workbench-shell.ts`, 인증·사용량
+대부분은 계층상 양립하지만 `www-surface.ts`, `workbench-shell.ts`, 인증·사용량
 서비스, 설정 파일처럼 같은 파일을 동시에 수정한 곳이 있다. 특히 맥북의 키맵
 단일 진입점과 맥미니의 Workflow 9번 페이지를 수동으로 연결해야 한다.
 

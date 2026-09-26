@@ -1,185 +1,48 @@
-import type {
-	AssistantMessageEventStream,
-	AuthCheck,
-	AuthInteraction,
-	AuthType,
-	Context,
-	Tool,
-} from "@earendil-works/pi-ai";
-import type { SessionEvent, SessionEventInput }                             from "@/core/domain/execution/session-events";
-import type { Provider, WwwSettings }                                       from "@/core/domain/execution/model-settings";
-import type { CommitSummary, IssueState, IssueSummary, RepositorySnapshot } from "@/core/domain/development/repository";
-import type { ToolResultSnapshot }                                          from "@/core/domain/execution/output";
-import type { TerminalCommandResult, TerminalCommandUpdate }                from "@/core/domain/execution/terminal";
-import type { TodoDocument }                                                from "@/core/domain/work/todos";
-import type {
-	ObservabilityActivityStream,
-	ObservabilityCoverage,
-} from "@/core/domain/observability/observability-dashboard";
-
-export interface ModelAuthStatus {
-	configured : boolean           ;
-	source?    : string            ;
-	type?      : AuthCheck["type"] ;
-}
-
-export interface ModelClient {
-	checkAuth(settings: Pick<WwwSettings, "provider">): Promise<ModelAuthStatus>;
-	stream(settings: WwwSettings, context: Context, signal?: AbortSignal): AssistantMessageEventStream;
-}
-
-export interface AgentToolExecution {
-	modelContent : string             ;
-	isError      : boolean            ;
-	snapshot     : ToolResultSnapshot ;
-}
-
-export interface AgentTool {
-	readonly definition: Tool;
-	execute(arguments_: Record<string, unknown>, signal: AbortSignal): Promise<AgentToolExecution>;
-}
-
-/** Executes a command explicitly submitted by the user, outside the agent tool surface. */
-export interface TerminalCommandExecutor {
-	execute(
-		command: string,
-		cwd: string,
-		signal: AbortSignal,
-		onUpdate: (update: TerminalCommandUpdate) => void,
-	): Promise<TerminalCommandResult>;
-}
-
-/** Todo revision CAS 결과다. `conflict`이면 write가 수행되지 않았다. */
-export type TodoWriteOutcome = "written" | "conflict";
-
-export interface TodoStore {
-	read(): Promise<TodoDocument | null>;
-	compareAndSwap(expectedRevision: number | null, next: TodoDocument): Promise< TodoWriteOutcome >;
-}
-
-export interface TodoController {
-	readonly snapshot: TodoDocument | null;
-	initialize    ()                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  : Promise<void>;
-	create        (title: string, items: readonly string[], storyId?: string                                                                                                                                                                                                                       )                                                                                                                                                                                                                                                                  : Promise<TodoDocument>;
-	add           (content: string, placement: "now" | "after"                                                                                                                                                                                                                                     )                                                                                                                                                                                                                                                                  : Promise<TodoDocument>;
-	addDetails    (itemId: string, details: readonly string[]                                                                                                                                                                                                                                      )                                                                                                                                                                                                                                                                  : Promise<TodoDocument>;
-	start         (itemId: string                                                                                                                                                                                                                                                                  )                                                                                                                                                                                                                                                                  : Promise<TodoDocument>;
-	complete      (itemId: string                                                                                                                                                                                                                                                                  )                                                                                                                                                                                                                                                                  : Promise<TodoDocument>;
-	block         (itemId: string                                                                                                                                                                                                                                                                  )                                                                                                                                                                                                                                                                  : Promise<TodoDocument>;
-	reopen        (itemId: string                                                                                                                                                                                                                                                                  )                                                                                                                                                                                                                                                                  : Promise<TodoDocument>;
-	recordEvidence(evidenceId: string                                                                                                                                                                                                                                                              )                                                                                                                                                                                                                                                                  : Promise<TodoDocument | null>;
-	subscribe     (listener: (snapshot: TodoDocument | null) => void                                                                                                                                                                                                                               )                                                                                                                                                                                                                                                                  : () => void;
-}
-
-export interface SessionRepository {
-	append(sessionId: string, input: SessionEventInput): Promise<SessionEvent>;
-	readAll(sessionId: string): Promise<SessionEvent[]>;
-}
-
-export type ProviderAuthState =
-	| { state: "configured"; provider: Provider; source: string; type: AuthType }
-	| { state: "required"; provider: Provider }
-	| { state: "failed"; provider: Provider; message: string };
-
-export interface AuthController {
-	methods(provider: Provider                                              ): AuthType[];
-	status (provider: Provider, signal?: AbortSignal                        ): Promise<ProviderAuthState>;
-	login  (provider: Provider, type: AuthType, interaction: AuthInteraction): Promise<ProviderAuthState>;
-	logout (provider: Provider, signal?: AbortSignal                        ): Promise<void>;
-}
-
-export type UsageProviderId = "openai-codex" | "anthropic" | "google" | "zai"                 ;
-export type UsageState      = "loading" | "ready" | "auth-required" | "unsupported" | "error" ;
-export type UsageIssueKind  = "rate-limit" | "authentication" | "network" | "provider"        ;
-
-export interface UsageIssue {
-	kind: UsageIssueKind;
-	retryAt?: number;
-}
-
-export interface UsageLimitSnapshot {
-	label             : string                                     ;
-	usedPercent?      : number                                     ;
-	remainingPercent? : number                                     ;
-	resetsAt?         : number                                     ;
-	status            : "ok" | "warning" | "exhausted" | "unknown" ;
-}
-
-export interface UsageSnapshot {
-	provider  : UsageProviderId      ;
-	state     : UsageState           ;
-	fetchedAt : number               ;
-	limits    : UsageLimitSnapshot[] ;
-	stale?    : boolean              ;
-	issue?    : UsageIssue           ;
-}
-
-/** `UsageService`가 실제 보유한 마지막 성공 snapshot 캐시의 읽기 전용 관측값이다. */
-export interface UsageSnapshotCacheMetrics {
-	readonly entries        : number        ;
-	readonly hits           : number        ;
-	readonly misses         : number        ;
-	readonly evictions      : number        ;
-	readonly lastAccessedAt : string | null ;
-}
-
-export interface UsageMonitor {
-	refresh     ()                                                                            : Promise<readonly UsageSnapshot[]>;
-	startPolling(listener: (snapshots: readonly UsageSnapshot[]) => void, intervalMs?: number): () => void;
-	cacheMetrics()                                                                            : UsageSnapshotCacheMetrics;
-}
-
-export interface ObservabilityHistory {
-	readonly coverage: ObservabilityCoverage;
-	readonly streams: readonly ObservabilityActivityStream[];
-}
-
-export interface ObservabilityHistoryReader {
-	read(): Promise<ObservabilityHistory>;
-}
-
-export interface WorkbenchGitTelemetry {
-	readonly branch    : string | null ;
-	readonly staged    : number        ;
-	readonly unstaged  : number        ;
-	readonly untracked : number        ;
-}
-
-export interface WorkbenchGitTelemetryReader {
-	read(cwd: string): Promise<WorkbenchGitTelemetry | null>;
-}
-
-export interface SettingsRepository {
-	load(): Promise<WwwSettings>;
-	save(settings: WwwSettings): Promise<void>;
-}
-
-export interface AtomicSettingsRepository extends SettingsRepository {
-	/** Replaces expected with next under an interprocess lock; false means another writer won. */
-	compareAndSwap(expected: WwwSettings, next: WwwSettings): Promise<boolean>;
-}
-
-export interface ComposerDraftController {
-	readonly initialText: string;
-	save(text: string): Promise<void>;
-	clear(): Promise<void>;
-}
-
-/** 레거시 SessionRuntime 보관소에서 최근 변경된 세션을 식별한다. */
-export interface RecentSessionSummary {
-	/** 재개할 SessionRuntime의 ID다. */
-	id: string;
-	/** 세션 보관 파일의 마지막 수정 시각(ISO 8601)이다. */
-	updatedAt: string;
-}
-
-export interface RouterSettingsController {
-	update(settings: WwwSettings): Promise<void>;
-	flush(): Promise<void>;
-}
-
-export interface RepositoryInsights {
-	snapshot     ()                                                                                                                                                                                                                                                              : Promise<RepositorySnapshot>;
-	recentCommits(limit?: number                                                                                                                        )                                                                                                                        : Promise<readonly CommitSummary[]>;
-	issues       (state?: IssueState, limit?: number                                                                                                    )                                                                                                                        : Promise<readonly IssueSummary[]>;
-}
+export type { AgentTool, AgentToolExecution } from "@/core/ports/execution/agent-tool-port";
+export type { ArtifactPublicationPort } from "@/core/ports/execution/artifact-publication-port";
+export type { ExecutorPort } from "@/core/ports/execution/executor-port";
+export type {
+	RequestActionApproval,
+	RequestActionCapability,
+	RequestActionGrant,
+	RequestActionIntent,
+} from "@/core/ports/execution/request-action-port";
+export type { RequestProjectionPort } from "@/core/ports/execution/request-projection-port";
+export type {
+	RuntimeToolCall,
+	RuntimeToolDefinition,
+	RuntimeToolHandler,
+	RuntimeToolResult,
+} from "@/core/ports/execution/runtime-tool-port";
+export type { TerminalCommandExecutor } from "@/core/ports/execution/terminal-command-port";
+export type { TodoController } from "@/core/ports/execution/todo-controller-port";
+export type { AuthController, ProviderAuthState } from "@/core/ports/integration/auth-controller-port";
+export type { LinearProjectDashboardReader } from "@/core/ports/integration/linear-project-dashboard-port";
+export type { ModelAuthStatus, ModelClient } from "@/core/ports/integration/model-client-port";
+export type { RepositoryInsights } from "@/core/ports/integration/repository-insights-port";
+export type {
+	ObservabilityHistory,
+	ObservabilityHistoryReader,
+} from "@/core/ports/observability/observability-history-port";
+export type {
+	UsageIssue,
+	UsageIssueKind,
+	UsageLimitSnapshot,
+	UsageMonitor,
+	UsageProviderId,
+	UsageSnapshot,
+	UsageSnapshotCacheMetrics,
+	UsageState,
+} from "@/core/ports/observability/usage-monitor-port";
+export type {
+	WorkbenchGitTelemetry,
+	WorkbenchGitTelemetryReader,
+} from "@/core/ports/observability/workbench-git-telemetry-port";
+export type { ComposerDraftController } from "@/core/ports/persistence/composer-draft-port";
+export type { RecentSessionSummary, SessionRepository } from "@/core/ports/persistence/session-repository";
+export type {
+	AtomicSettingsRepository,
+	RouterSettingsController,
+	SettingsRepository,
+} from "@/core/ports/persistence/settings-repository";
+export type { TodoStore, TodoWriteOutcome } from "@/core/ports/persistence/todo-store";

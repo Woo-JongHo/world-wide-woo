@@ -1,6 +1,6 @@
 import { describe, expect, test }         from "bun:test";
 import { composeCacheTelemetry }          from "../src/core/domain/observability/cache-telemetry";
-import { projectWorkbenchCacheTelemetry } from "../src/adapters/inbound/tui/features/cache/cache-telemetry-projection";
+import { projectWorkbenchCacheTelemetry } from "../src/adapters/inbound/tui/features/cache/view-model/cache-telemetry-projection";
 
 describe("Cache telemetry", () => {
 	test("always exposes the seven workbench cache layers without inventing missing measurements", () => {

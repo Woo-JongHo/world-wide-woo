@@ -28,6 +28,35 @@ describe("LayerPerformanceRecorder", () => {
 		expect(trace.layers.at(-1)?.failed).toBe(true);
 	});
 
+	test("attributes layout and synchronous terminal write failures to different layers", () => {
+		const recorder = new LayerPerformanceRecorder();
+		recorder.observe({ traceId: "layout-failure", layerId: "layout-materialize", boundary: "started", atMs: 1, frameId: "frame-1" });
+		recorder.observe({ traceId: "layout-failure", layerId: "layout-materialize", boundary: "failed", atMs: 2, frameId: "frame-1" });
+		recorder.observe({ traceId: "write-failure", layerId: "terminal-write", boundary: "started", atMs: 3, frameId: "frame-2" });
+		recorder.observe({ traceId: "write-failure", layerId: "terminal-write", boundary: "failed", atMs: 4, frameId: "frame-2" });
+
+		const layout = recorder.project("layout-failure")!;
+		const write  = recorder.project("write-failure")!  ;
+		expect(layout.layers.find(layer => layer.layerId === "layout-materialize")?.failed).toBe(true);
+		expect(layout.layers.find(layer => layer.layerId === "terminal-write")?.failed).toBe(false);
+		expect(write.layers.find(layer => layer.layerId === "layout-materialize")?.failed).toBe(false);
+		expect(write.layers.find(layer => layer.layerId === "terminal-write")?.failed).toBe(true);
+	});
+
+	test("distinguishes an intentional no-render event from missing render instrumentation", () => {
+		const recorder = new LayerPerformanceRecorder();
+		recorder.observe({ traceId: "ignored", layerId: "native-receive", boundary: "started", atMs: 1 });
+		recorder.observe({ traceId: "ignored", layerId: "native-receive", boundary: "completed", atMs: 2 });
+		recorder.markNoRender("ignored");
+
+		recorder.observe({ traceId: "unwired", layerId: "native-receive", boundary: "started", atMs: 3 });
+		recorder.observe({ traceId: "unwired", layerId: "native-receive", boundary: "completed", atMs: 4 });
+
+		expect(recorder.project("ignored")?.state).toBe("no-render");
+		expect(recorder.project("unwired")?.state).toBe("collecting");
+		expect(recorder.window()).toMatchObject({ traceCount: 2, completeCount: 0, noRenderCount: 1, incompleteCount: 1, errorCount: 0 });
+	});
+
 	test("ignores duplicate boundaries, rejects backwards clocks and bounds retained traces", () => {
 		const recorder = new LayerPerformanceRecorder(1);
 		recorder.observe({ traceId: "old", layerId: "event-queue", boundary: "started", atMs: 5 });

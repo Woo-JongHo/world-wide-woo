@@ -57,6 +57,29 @@ Dashboard의 오른쪽 위는 T-note를 보여준다. 실행 상태를 자세히
 
 WWW는 모델의 hidden reasoning을 노출하지 않는다. 사용자가 확인할 수 있는 활동과 Evidence만 다룬다.
 
+### 현재 코드 구조
+
+전체 시스템은 Hexagonal 경계를 유지하고, Core가 정제한 데이터를 표시하는 TUI 내부만 MVC식 책임으로 나눈다.
+
+```text
+Inbound Adapter → Core Application + Domain ← Port ← Outbound Adapter
+
+사용자 입력 → Controller → Workbench Command → Core
+Core Projection → ViewModel → View → Terminal
+```
+
+- `core/domain` — Model과 불변식
+- `core/application` — Service/Use Case와 상태 전이
+- `core/ports/{execution,persistence,integration,observability}` — Repository·Client Interface
+- `adapters/outbound` — 파일·Native·Linear·Git 등 외부 구현
+- `adapters/inbound/tui/features/<feature>/{controller,view-model,view,registration}` — 실제 책임이 있는 폴더만 생성
+
+현재 registry는 18개 Feature와 39개 Unit을 관리한다. 물리 파일은 `controller 1 / view-model 7 / view 60 / registration 36`이며, 빈 역할 폴더로 대칭을 가장하지 않는다. 전체 `WorkbenchSnapshot`은 shell 조립에 남기되 Chat·Plan·Tracer·Note는 좁은 readonly Projection을 소비한다.
+
+Native 사건에서 terminal write까지의 7계층은 제품 기능 폴더가 아니라 모든 기능을 가로지르는 관측 pipeline이다. 자세한 배치·의존 계약은 [코드 경계](LAYERS.md), 현재 리팩터링 결과와 남은 결정은 [상태 소유권 계획](docs/planning/WWW_STATE_OWNERSHIP_REFACTOR_PLAN_2026-09-25.md)을 따른다.
+
+완료 Note의 목록·선택·상세 읽기는 연결됐다. Summary를 Note로 capture할 때의 identity와 review·promote 정책, Legacy Router 유지·폐기는 아직 별도 제품 결정이다.
+
 ## Workflow Philosophy
 
 WWW의 Workflow는 고정된 도구 순서가 아니라, 업무 유형에 필요한 Stage와 Handoff를 선택하고 각 경계의 완료 조건을 검증하는 방식이다.
@@ -147,6 +170,8 @@ Execution Observation
 - [RPA Workflow](docs/workflows/RPA_WORKFLOW.md)
 - [제품 방향과 Agent 실행 경계](docs/WWW_PRODUCT_DIRECTION.md)
 - [코드 Architecture와 migration map](docs/WWW_CODE_ARCHITECTURE.md)
+- [상태 소유권 리팩터링 결과와 남은 결정](docs/planning/WWW_STATE_OWNERSHIP_REFACTOR_PLAN_2026-09-25.md)
+- [현재 코드 구조 검토 보고서](docs/reviews/WWW_CODE_STRUCTURE_CURRENT_STATE_AND_TARGET_2026-09-25.md)
 - [Service Lifecycle의 기존 Control Plane 설계](docs/WWW_CONTROL_PLANE_PLANNING_PROPOSAL.md)
 - [오픈소스 제품과 WWW의 경계](docs/OSS_POSITIONING.md)
 - [Agent TUI 비교](docs/TUI_COMPARISON.md)

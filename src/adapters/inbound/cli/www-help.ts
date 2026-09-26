@@ -15,10 +15,9 @@ function formatHelpSection(title: string, rows: readonly HelpRow[]): string {
 }
 
 const USAGE_ROWS: readonly HelpRow[] = [
-	["www",                                             "Astra Execution Console · F2–F8 화면 · Ctrl+P 명령"],
-	["www astra [--resume [id]]",                       "Astra Execution Console · F2–F8 화면 · Ctrl+P 명령"],
-	["www astra --runtime-config <json>",               "7-Stage brokered 실행 · 파일/게시 범위 지정 · 격리 미검증"],
-	["www --execution-lane pi",                         "실험적 내장 Pi text lane으로 Astra 실행"],
+	["www",                                             "WWW Execution Console · F2–F9 화면 · Ctrl+P 명령"],
+	["www --runtime-config <json>",                     "7-Stage brokered 실행 · 파일/게시 범위 지정 · 격리 미검증"],
+	["www --execution-lane pi",                         "실험적 내장 Pi text lane으로 WWW 실행"],
 	["www router",                                      "호환 Claude·Gemini·OpenAI·Z.AI Router 실행"],
 	["",                                                "Native 승인·Sandbox·Skill은 제공하지 않음"],
 	["www router --resume <session-id>",                "기존 Router 세션 재개"],
@@ -34,7 +33,7 @@ const USAGE_ROWS: readonly HelpRow[] = [
 	["www --resume <native-thread-id>",                 "지정한 native thread 바로 재개"],
 ];
 
-const ASTRA_COMMAND_ROWS: readonly HelpRow[] = [
+const WWW_COMMAND_ROWS: readonly HelpRow[] = [
 	["/stats · /dashboard · /monitor",                  "Observability View 직접 열기"],
 	["r/R · 1/2/3 · Esc",                               "View 회전·직접 이동·Workbench 복귀"],
 	["/model [모델] [추론 강도]",                       "현재·다음 실행의 Codex 모델 변경"],
@@ -53,10 +52,10 @@ const ROUTER_COMMAND_ROWS: readonly HelpRow[] = [
 	["/usage",                                          "Codex·Claude 사용량 갱신"],
 ];
 
-/** `www --help`가 출력하는 최상위 CLI 명령과 Astra·Router 명령 카탈로그다. */
+/** `www --help`가 출력하는 최상위 CLI 명령과 WWW·Router 명령 카탈로그다. */
 const WWW_HELP_TEXT: string = [
 	formatHelpSection("사용법:", USAGE_ROWS),
-	formatHelpSection("Astra Execution Console 명령:", ASTRA_COMMAND_ROWS),
+	formatHelpSection("WWW Execution Console 명령:", WWW_COMMAND_ROWS),
 	formatHelpSection("호환 Router 명령:", ROUTER_COMMAND_ROWS),
 ].join("\n\n");
 

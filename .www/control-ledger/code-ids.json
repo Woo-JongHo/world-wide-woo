@@ -7,7 +7,7 @@
       "name": "Chat 표시",
       "locations": [
         {
-          "path": "src/adapters/inbound/tui/features/chat/workbench-views.ts",
+          "path": "src/adapters/inbound/tui/features/chat/view/workbench-views.ts",
           "symbol": "WorkbenchChatView",
           "members": [
             "update",
@@ -55,7 +55,7 @@
       "name": "Chat 읽던 위치",
       "locations": [
         {
-          "path": "src/adapters/inbound/tui/features/chat/chat-scroll.view.ts",
+          "path": "src/adapters/inbound/tui/features/chat/view/chat-scroll.view.ts",
           "symbol": "ChatScrollView"
         }
       ],

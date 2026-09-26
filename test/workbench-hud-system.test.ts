@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import {
 	compactTokenCount,
 	WORKBENCH_HUD_SYSTEM,
-} from "../src/adapters/inbound/tui/features/usage/workbench-hud-system";
+} from "../src/adapters/inbound/tui/features/usage/view-model/workbench-hud-system";
 
 test("HUD 계약은 composer 탭과 한 줄 telemetry strip의 구획을 고정한다", () => {
 	expect(WORKBENCH_HUD_SYSTEM.composer.leftCap).toBe("╭─");

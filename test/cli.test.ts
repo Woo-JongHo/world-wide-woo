@@ -1,8 +1,8 @@
-import { describe, expect, test }                            from "bun:test";
-import type { RunAppOptions }                                from "../src/app";
-import { runCli, writeAstraBootstrap, writeRouterBootstrap } from "../src/cli";
-import type { CliDependencies }                              from "../src/cli";
-import type { NativeThreadSummary }                          from "../src/core/domain/execution/native-session";
+import { describe, expect, test }                          from "bun:test";
+import type { RunAppOptions }                              from "../src/app";
+import { runCli, writeWwwBootstrap, writeRouterBootstrap } from "../src/cli";
+import type { CliDependencies }                            from "../src/cli";
+import type { NativeThreadSummary }                        from "../src/core/domain/execution/native-session";
 
 const threads: readonly NativeThreadSummary[] = [{
 	id: "thread-2",
@@ -21,7 +21,7 @@ const threads: readonly NativeThreadSummary[] = [{
 function fakeDependencies() {
 	const calls = {
 		app    : [] as RunAppOptions[],
-		astra  : [] as RunAppOptions[],
+		www    : [] as RunAppOptions[],
 		router : [] as Array<{ resumeSessionId?: string }>,
 		listed : 0,
 		picked : [] as Array<readonly NativeThreadSummary[]>,
@@ -30,7 +30,7 @@ function fakeDependencies() {
 	};
 	const dependencies: CliDependencies = {
 		runApp             : async (options = {}) => { calls.app.push(options); },
-		runAstra           : async (options = {}) => { calls.astra.push(options); },
+		runWww             : async (options = {}) => { calls.www.push(options); },
 		runRouter          : async (options = {}) => { calls.router.push(options); },
 		runAuth            : async () => undefined,
 		runDevelopment     : async () => "",
@@ -45,17 +45,22 @@ function fakeDependencies() {
 }
 
 describe("WWW CLI session entry", () => {
-	test("www astra keeps explicit Runtime scope and resume compatibility", async () => {
+	test("deprecated astra alias keeps explicit Runtime scope and resume compatibility", async () => {
 		const { calls, dependencies } = fakeDependencies();
 		expect(await runCli(["astra", "--runtime-config", "runtime.json", "--resume", "thread-2"], dependencies)).toBe(0);
-		expect(calls.astra).toEqual([{ runtimeConfig: "runtime.json", resumeThreadId: "thread-2" }]);
+		expect(calls.www).toEqual([{ runtimeConfig: "runtime.json", resumeThreadId: "thread-2" }]);
 		expect(await runCli(["astra", "--runtime-config"], dependencies)).toBe(1);
 		expect(await runCli(["astra", "--runtime-config", "one.json", "--runtime-config", "two.json"], dependencies)).toBe(1);
-		expect(calls.astra).toHaveLength(1);
+		expect(calls.www).toHaveLength(1);
+	});
+	test("plain WWW accepts an explicit Runtime config without the compatibility alias", async () => {
+		const { calls, dependencies } = fakeDependencies();
+		expect(await runCli(["--runtime-config", "runtime.json"], dependencies)).toBe(0);
+		expect(calls.www).toEqual([{ runtimeConfig: "runtime.json" }]);
 	});
 	test("paints and clears a www loading bar before production modules load", async () => {
 		const writes: string[] = [];
-		const stop = writeAstraBootstrap(value => writes.push(value), true);
+		const stop = writeWwwBootstrap(value => writes.push(value), true);
 		try {
 			expect(writes).toEqual(["\r\x1b[2Kwww v0.0.19 [███░░░░░░░░░░░░]"]);
 			await new Promise(resolve => setTimeout(resolve, 180));
@@ -68,7 +73,7 @@ describe("WWW CLI session entry", () => {
 		const count = writes.length;
 		await new Promise(resolve => setTimeout(resolve, 120));
 		expect(writes).toHaveLength(count);
-		writeAstraBootstrap(value => writes.push(value), false)();
+		writeWwwBootstrap(value => writes.push(value), false)();
 		expect(writes).toHaveLength(count);
 	});
 
@@ -91,6 +96,7 @@ describe("WWW CLI session entry", () => {
 		const { calls, dependencies } = fakeDependencies();
 		expect(await runCli(["--help"], dependencies)).toBe(0);
 		expect(calls.out[0]).toContain("www router");
+		expect(calls.out[0]).not.toContain("astra");
 		expect(calls.out[0]).toContain("Native 승인·Sandbox·Skill은 제공하지 않음");
 		expect(calls.out[0]).toContain("Claude·Gemini·OpenAI·Z.AI 모델 변경");
 	});
@@ -103,33 +109,33 @@ describe("WWW CLI session entry", () => {
 		expect(calls.router).toEqual([]);
 	});
 
-	test("opens the Astra console for plain www without listing or resuming", async () => {
+	test("opens the WWW console for plain www without listing or resuming", async () => {
 		const { calls, dependencies } = fakeDependencies();
 		expect(await runCli([], dependencies)).toBe(0);
-		expect(calls.astra).toEqual([{}]);
+		expect(calls.www).toEqual([{}]);
 		expect(calls.app).toEqual([]);
 		expect(calls.listed).toBe(0);
 		expect(calls.picked).toEqual([]);
 	});
 
-	test("invokes the Astra dependency with its receiver", async () => {
+	test("invokes the WWW dependency with its receiver", async () => {
 		const { dependencies } = fakeDependencies();
 		let receiver: unknown;
-		dependencies.runAstra = async function () { receiver = this; };
+		dependencies.runWww = async function () { receiver = this; };
 		expect(await runCli([], dependencies)).toBe(0);
 		expect(receiver).toBe(dependencies);
 	});
 
-	test("opens the experimental embedded Pi lane inside Astra", async () => {
+	test("opens the experimental embedded Pi lane inside WWW", async () => {
 		const { calls, dependencies } = fakeDependencies();
 		expect(await runCli(["--execution-lane", "pi"], dependencies)).toBe(0);
-		expect(calls.astra).toEqual([{ executionLane: "pi" }]);
+		expect(calls.www).toEqual([{ executionLane: "pi" }]);
 	});
 
-	test("accepts an explicit Codex lane inside Astra", async () => {
+	test("accepts an explicit Codex lane inside WWW", async () => {
 		const { calls, dependencies } = fakeDependencies();
 		expect(await runCli(["--execution-lane", "codex"], dependencies)).toBe(0);
-		expect(calls.astra).toEqual([{ executionLane: "codex" }]);
+		expect(calls.www).toEqual([{ executionLane: "codex" }]);
 	});
 
 	test("opens an explicit multi-provider Router session without changing the native default", async () => {
@@ -167,15 +173,15 @@ describe("WWW CLI session entry", () => {
 		expect(await runCli(["--resume"], dependencies)).toBe(0);
 		expect(calls.listed).toBe(1);
 		expect(calls.picked).toEqual([threads]);
-		expect(calls.astra).toEqual([{ resumeThreadId: "thread-1" }]);
+		expect(calls.www).toEqual([{ resumeThreadId: "thread-1" }]);
 	});
 
-	test("treats a cancelled Astra resume picker as a successful no-op", async () => {
+	test("treats a cancelled compatibility-alias resume picker as a successful no-op", async () => {
 		const { calls, dependencies } = fakeDependencies();
 		dependencies.selectNativeThread = async () => null;
 		expect(await runCli(["astra", "--resume"], dependencies)).toBe(0);
 		expect(calls.listed).toBe(1);
-		expect(calls.astra).toEqual([]);
+		expect(calls.www).toEqual([]);
 		expect(calls.error).toEqual([]);
 	});
 
@@ -184,7 +190,7 @@ describe("WWW CLI session entry", () => {
 		expect(await runCli(["--resume", "thread-direct"], dependencies)).toBe(0);
 		expect(calls.listed).toBe(0);
 		expect(calls.picked).toEqual([]);
-		expect(calls.astra).toEqual([{ resumeThreadId: "thread-direct" }]);
+		expect(calls.www).toEqual([{ resumeThreadId: "thread-direct" }]);
 	});
 
 	test("opens the resume picker for an empty explicit thread id", async () => {
@@ -192,6 +198,6 @@ describe("WWW CLI session entry", () => {
 		expect(await runCli(["--resume", ""], dependencies)).toBe(0);
 		expect(calls.listed).toBe(1);
 		expect(calls.picked).toEqual([threads]);
-		expect(calls.astra).toEqual([{ resumeThreadId: "thread-1" }]);
+		expect(calls.www).toEqual([{ resumeThreadId: "thread-1" }]);
 	});
 });

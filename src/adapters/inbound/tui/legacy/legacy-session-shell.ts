@@ -9,14 +9,12 @@ import {
 	matchesKey,
 } from "@earendil-works/pi-tui";
 import type { OverlayHandle, Terminal }                    from "@earendil-works/pi-tui";
-import type {
-	AuthController,
-	ComposerDraftController,
-	RepositoryInsights,
-	RouterSettingsController,
-	TodoController,
-	UsageMonitor,
-} from "@/core/ports";
+import type { TodoController }                             from "@/core/ports/execution/todo-controller-port";
+import type { AuthController }                             from "@/core/ports/integration/auth-controller-port";
+import type { RepositoryInsights }                         from "@/core/ports/integration/repository-insights-port";
+import type { UsageMonitor }                               from "@/core/ports/observability/usage-monitor-port";
+import type { ComposerDraftController }                    from "@/core/ports/persistence/composer-draft-port";
+import type { RouterSettingsController }                   from "@/core/ports/persistence/settings-repository";
 import type { SessionRuntime }                             from "@/core/application/session/session-runtime";
 import type { SessionMonitor }                             from "@/core/application/session/session-monitor";
 import type { PlanningService }                            from "@/core/application/work/planning-service";
@@ -24,18 +22,18 @@ import { MODELS }                                          from "@/core/domain/e
 import type { WwwSettings }                                from "@/core/domain/execution/model-settings";
 import { todoProgress }                                    from "@/core/domain/work/todos";
 import { sanitizeTerminalText }                            from "@/core/domain/execution/terminal";
-import { AuthFlowOverlay }                                 from "@/adapters/inbound/tui/features/authentication/auth-overlay";
+import { AuthFlowOverlay }                                 from "@/adapters/inbound/tui/features/authentication/view/auth-overlay";
 import { createDashboardLayout }                           from "@/adapters/inbound/tui/foundation/layout/dashboard-layout";
 import { RouterModelView, TranscriptView, UsageStripView } from "@/adapters/inbound/tui/legacy/legacy-dashboard-views";
-import { StatusLine, WorkspaceTodoView }                   from "@/adapters/inbound/tui/features/dashboard/shared-dashboard-views";
+import { StatusLine, WorkspaceTodoView }                   from "@/adapters/inbound/tui/features/dashboard/view/shared-dashboard-views";
 import { OverlaySheet }                                    from "@/adapters/inbound/tui/foundation/components/overlay-sheet";
 import {
 	IssueListOverlay,
 	RepositoryActivityOverlay,
-} from "@/adapters/inbound/tui/features/repository/repository-overlays";
+} from "@/adapters/inbound/tui/features/repository/view/repository-overlays";
 import { LoginProviderOverlay }                            from "@/adapters/inbound/tui/legacy/router-overlays";
-import { ModelPickerOverlay }                              from "@/adapters/inbound/tui/features/model-selection/model-picker-overlay";
-import { MonitoringOverlay }                               from "@/adapters/inbound/tui/features/monitoring/monitoring-overlay";
+import { ModelPickerOverlay }                              from "@/adapters/inbound/tui/features/model-selection/view/model-picker-overlay";
+import { MonitoringOverlay }                               from "@/adapters/inbound/tui/features/monitoring/view/monitoring-overlay";
 import { RenderScheduler }                                 from "@/adapters/inbound/tui/foundation/rendering/render-scheduler";
 import {
 	parseShellCommand,

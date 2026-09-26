@@ -12,7 +12,7 @@ import type {
 	NativeTurnSnapshot,
 } from "@/core/domain/execution/native-session.js";
 import { sanitizeTerminalText }    from "@/core/domain/execution/terminal.js";
-import type { UsageLimitSnapshot } from "@/core/ports/index.js";
+import type { UsageLimitSnapshot } from "@/core/ports/observability/usage-monitor-port";
 
 export interface JsonRecord {
 	[key: string]: unknown;

@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-WOO-COMMIT-MESSAGE-CONTRACT-EXECUTION",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:e17837f8a0a5cb226674f397b63b8c6011901670:dirty",
+  "intent": "woo-commit 메시지 계약을 Candidate schema와 실행기에 강제한 결과를 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "Commit Candidate에 Fixes와 Verified 값을 필수 필드로 추가했다.",
+      "validator가 두 값의 누락과 줄바꿈을 차단하고 renderer가 커밋 본문 마지막에 각각 정확히 한 번 출력하게 했다.",
+      "메시지 위치와 빈 값 거부를 commit-governance 회귀 테스트로 고정했다."
+    ],
+    "impacts": [
+      "스킬 문서와 실행기의 드리프트 때문에 승인된 커밋 메시지가 기록 계약을 위반할 수 있던 경로를 차단한다.",
+      "의미 단위 분할, 사용자 승인, 로컬 commit 전용이라는 기존 WOO-844 경계는 유지한다."
+    ],
+    "categories": [
+      "fix",
+      "verification"
+    ],
+    "verification": [
+      "bun test test/commit-governance.test.ts --reporter=dots: 10 pass, 0 fail.",
+      "bun run check의 tsc --noEmit 통과.",
+      "대상 TypeScript import 정규화와 표 정렬 검사, 스킬 quick validation, 대상 diff check 통과."
+    ],
+    "connections": [
+      "Linear: WOO-844",
+      "Code: schemas/commit-candidate.schema.json · src/core/commit/commit-governance.ts · test/commit-governance.test.ts",
+      "Evidence: .www/evidence/2026-09-26-woo-commit-message-contract",
+      "Commit Candidate: COMMIT-CANDIDATE-WOO-COMMIT-MESSAGE-CONTRACT-20260926"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-844/01-모든-commit을-승인된-후보와-검증-receipt로-실행한다",
+    "evidence": ".www/evidence/2026-09-26-woo-commit-message-contract"
+  },
+  "expectedBefore": {
+    "latestCommentId": "30f00db1-c05a-4d67-a730-a03f589c46e9"
+  },
+  "validation": [
+    {
+      "id": "issue-binding",
+      "status": "pass",
+      "evidence": "traceability-v2가 WOO-844, Code-014 Commit Control Plane, Architecture/Woo-Commit-Control-Plane.md를 연결한다."
+    },
+    {
+      "id": "implementation-verification",
+      "status": "pass",
+      "evidence": "commit-governance 행동 테스트 10개와 TypeScript, readability, skill validation, diff hygiene가 통과했다."
+    },
+    {
+      "id": "design-triage",
+      "status": "pass",
+      "evidence": "WOO-844의 기존 WHY·승인 경계·외부 쓰기 정책은 유지하고 이미 문서화된 메시지 필드를 실행기에 강제하는 결함 수정이므로 Obsidian 정본 개정은 필요하지 않다."
+    },
+    {
+      "id": "activity-baseline",
+      "status": "pass",
+      "evidence": "저장된 Project Activity snapshot의 최신 Comment ID를 expectedBefore에 고정했다. 게시 직전 원격 Activity를 재조회해야 한다."
+    }
+  ],
+  "candidateDigest": "34f48a3aeb4b1215abefba54c235fe923a059c956bc56954a28047be11b6a689"
+}

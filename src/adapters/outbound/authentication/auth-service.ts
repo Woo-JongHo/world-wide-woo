@@ -1,5 +1,5 @@
 import type { AuthInteraction, AuthType, Models } from "@earendil-works/pi-ai";
-import type { AuthController, ProviderAuthState } from "@/core/ports";
+import type { AuthController, ProviderAuthState } from "@/core/ports/integration/auth-controller-port";
 import type { Provider }                          from "@/core/domain/execution/model-settings";
 import { isInvalidOAuthRefresh }                  from "@/adapters/outbound/authentication/oauth-refresh-error.js";
 

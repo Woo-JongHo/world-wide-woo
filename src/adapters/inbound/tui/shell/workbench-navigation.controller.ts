@@ -1,7 +1,7 @@
 import { ScrollView, VStack }          from "@earendil-works/pi-tui";
 import type { Component }              from "@earendil-works/pi-tui";
 import type { DevelopmentMapSnapshot } from "@/core/domain/development/development-map";
-import type { AstraPage }              from "@/adapters/inbound/tui/shell/astra-surface";
+import type { WwwPage }                from "@/adapters/inbound/tui/shell/www-surface";
 
 export type WorkbenchBaseViewMode = "workbench"                                                               ;
 export type ObservabilityViewMode = "stats" | "dashboard" | "monitor"                                         ;
@@ -121,16 +121,16 @@ interface NavigationTargets {
 	readonly test      : ScrollView ;
 }
 
-interface AstraNavigationSurface {
-	readonly page: AstraPage;
+interface WwwNavigationSurface {
+	readonly page: WwwPage;
 	readonly currentScroll: ScrollView;
-	show(page: AstraPage): void;
+	show(page: WwwPage): void;
 }
 
 /** Owns view-mode transitions, map polling, browse state, and the focus target chosen by each transition. */
 export class WorkbenchNavigationController {
 	private currentMode: WorkbenchViewMode ;
-	private astraBrowse         = false    ;
+	private wwwBrowse           = false    ;
 	private observabilityBrowse = false    ;
 
 	public constructor(
@@ -138,36 +138,36 @@ export class WorkbenchNavigationController {
 		private readonly setFocus: (component: Component) => void,
 		private readonly targets: NavigationTargets,
 		private readonly mapPolling: DevelopmentMapPollingLifecycle,
-		private readonly astra: AstraNavigationSurface | null,
+		private readonly www: WwwNavigationSurface | null,
 	) {
 		this.currentMode = initialMode;
 	}
 
 	public get mode(): WorkbenchViewMode { return this.currentMode; }
-	public get astraBrowsing(): boolean { return this.astraBrowse; }
+	public get wwwBrowsing(): boolean { return this.wwwBrowse; }
 	public get observabilityBrowsing(): boolean { return this.observabilityBrowse; }
 
-	public showAstraPage(page: AstraPage, browse = page !== "execution"): boolean {
-		if (!this.astra) return false;
+	public showWwwPage(page: WwwPage, browse = page !== "execution"): boolean {
+		if (!this.www) return false;
 		this.changeMode("workbench");
-		this.astra.show(page);
-		this.astraBrowse = browse;
+		this.www.show(page);
+		this.wwwBrowse = browse;
 		this.observabilityBrowse = false;
-		this.setFocus(browse ? this.astra.currentScroll : this.targets.editor);
+		this.setFocus(browse ? this.www.currentScroll : this.targets.editor);
 		return true;
 	}
 
 	public openCommandView(next: WorkbenchViewMode): void {
 		if (next === "map") {
 			this.observabilityBrowse = false;
-			this.astraBrowse = Boolean(this.astra);
+			this.wwwBrowse = Boolean(this.www);
 			this.changeMode(next);
 			this.setFocus(this.targets.map);
 			return;
 		}
 		if (next === "test") {
 			this.observabilityBrowse = false;
-			this.astraBrowse = Boolean(this.astra);
+			this.wwwBrowse = Boolean(this.www);
 			this.changeMode(next);
 			this.targets.test.scrollToStart();
 			this.setFocus(this.targets.test);
@@ -183,7 +183,7 @@ export class WorkbenchNavigationController {
 	public enterObservability(next: ObservabilityViewMode): void {
 		this.changeMode(next);
 		this.observabilityBrowse = true;
-		this.astraBrowse = false;
+		this.wwwBrowse = false;
 		this.setFocus(next === "stats" ? this.targets.stats : next === "dashboard" ? this.targets.dashboard : this.targets.monitor);
 	}
 
@@ -195,25 +195,25 @@ export class WorkbenchNavigationController {
 
 	public openWorkbench(): void {
 		this.changeMode("workbench");
-		this.astraBrowse = false;
+		this.wwwBrowse = false;
 		this.observabilityBrowse = false;
 		this.setFocus(this.targets.editor);
 	}
 
 	public closeTransientSurface(): void {
-		this.astraBrowse = false;
+		this.wwwBrowse = false;
 		this.observabilityBrowse = false;
 		this.setFocus(this.targets.editor);
 	}
 
-	public toggleAstraBrowse(editorFocused: boolean): void {
-		this.astraBrowse = editorFocused;
-		this.observabilityBrowse = this.astraBrowse && isObservabilityMode(this.currentMode);
-		this.setFocus(this.astraBrowse ? this.currentScroll() : this.targets.editor);
+	public toggleWwwBrowse(editorFocused: boolean): void {
+		this.wwwBrowse = editorFocused;
+		this.observabilityBrowse = this.wwwBrowse && isObservabilityMode(this.currentMode);
+		this.setFocus(this.wwwBrowse ? this.currentScroll() : this.targets.editor);
 	}
 
-	public leaveAstraBrowse(): void {
-		this.astraBrowse = false;
+	public leaveWwwBrowse(): void {
+		this.wwwBrowse = false;
 		this.setFocus(this.targets.editor);
 	}
 
@@ -230,7 +230,7 @@ export class WorkbenchNavigationController {
 					: this.currentMode === "stats" ? this.targets.stats
 						: this.currentMode === "dashboard" ? this.targets.dashboard
 							: this.currentMode === "monitor" ? this.targets.monitor
-								: this.astra?.currentScroll ?? this.targets.source;
+								: this.www?.currentScroll ?? this.targets.source;
 	}
 
 	public dispose(): void {

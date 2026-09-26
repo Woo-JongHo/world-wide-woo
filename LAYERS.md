@@ -9,7 +9,7 @@ src/
 ├── core/
 │   ├── domain/       # development·execution·observability·review·work
 │   ├── application/  # development·orchestration·review·routing·session·work
-│   ├── ports/        # 외부 실행·저장·조회 계약
+│   ├── ports/        # execution·persistence·integration·observability 계약
 │   ├── runtime/      # 실행 상태와 receipt
 │   └── commit/       # commit control 계약
 ├── adapters/
@@ -35,18 +35,42 @@ Inbound Adapter ──→ Core ←── Outbound Adapter
 - `app.ts`가 Core 계약과 Adapter 구현을 조립한다.
 - 외부 SDK, 파일, 프로세스, 네트워크, 터미널 구현은 Adapter가 소유한다.
 
+`core/ports`는 외부 기술 이름이 아니라 Core가 요구하는 책임으로 나눈다.
+
+| Port 그룹 | 책임 |
+|---|---|
+| `execution` | 실행 명령, request lifecycle, terminal command, Todo control |
+| `persistence` | session·settings·Todo·composer draft 저장 |
+| `integration` | model·auth·repository·Linear 같은 외부 기능 조회·제어 |
+| `observability` | usage·Git telemetry·관측 history 읽기 |
+
+`core/ports/index.ts`는 선언 없는 type-only 호환 barrel이다. 새 제품 코드는 책임별 Port 파일을 직접 import한다.
+
 ## 내부 분류
 
 - Core Domain은 제품 capability, Core Application은 use case로 분류한다.
 - Inbound TUI는 사용자가 보는 화면과 조작 영역으로 분류한다.
 - `tui/foundation`은 theme·layout·rendering·공통 component만 소유하고 feature·shell을 참조하지 않는다.
-- `tui/features/<feature>`는 한 사용자 기능의 view와 interaction을 소유하며 다른 feature 구현을 직접 참조하지 않는다.
+- `tui/features/<feature>`는 한 사용자 기능의 TUI adapter를 소유하며 다른 feature 구현을 직접 참조하지 않는다.
+  실제 책임이 있는 파일만 `controller/`, `view-model/`, `view/`, `registration/` 한 단계 아래에 둔다.
+  `controller/`는 사용자 의도와 command routing, `view-model/`은 Core Projection을 ANSI 없는 표시 의미·DTO로 변환하는 일,
+  `view/`는 pi-tui Component와 색상·폭·줄바꿈을 포함한 실제 render, `registration/`은 `*.feature.ts`와 `*.units.ts` 정적 metadata를 소유한다.
+  빈 책임 폴더나 TUI 전용 `model/`, `service/`, `repository/` 계층은 만들지 않는다.
 - `tui/shell`은 feature 생성과 navigation·input·lifecycle을 조립한다. `feature-registry.ts`는 Feature와 그 하위 Unit의 정적 descriptor 조회만 제공하며 component factory나 plugin 등록을 소유하지 않는다.
 - `TUI-F###-U##` Unit은 화면과 조작을 찾기 위한 TUI metadata다. `.woo/units.yaml`의 지속 코드 책임 `Code-###` Unit과 별도이며 그 원장에 추가하지 않는다.
 - `tui/legacy`는 명시적인 호환 진입점만 소유한다.
 - Outbound Adapter는 연결하는 외부 기능의 종류로 분류한다.
 - `shared`, `common`, `utils` 폴더는 만들지 않는다. 소유 책임을 하나 선택한다.
 - `core/agents`, `core/intents`, `core/skills`, `core/workflows`는 각각 WHEN·분류·HOW·실행 순서의 예약 경계다. 실제 코드가 생길 때만 만든다.
+
+제품 Feature와 Native 관측 계층은 다른 축이다. Feature registry는 18개 Feature·39개 Unit을 `core-work | observability | control | integration`으로 분류한다. Native 사건의 성능·완료 관측은 모든 Feature를 가로질러 다음 7경계를 유지한다.
+
+```text
+native-receive → event-queue → state-projection → snapshot-publish
+               → render-schedule → layout-materialize → terminal-write
+```
+
+여러 event가 한 frame으로 합쳐질 수 있으며, 의도적인 `no-render`와 observer 누락을 구분한다. `terminal-write` 완료는 OS flush가 아니라 동기 `Terminal.write` 반환까지다.
 
 ## 배치 순서
 

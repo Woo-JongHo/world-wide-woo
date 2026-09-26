@@ -2,14 +2,14 @@ import { describe, expect, test }               from "bun:test";
 import chalk                                    from "chalk";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
 import {
-	AstraDashboardRail,
+	WwwDashboardRail,
 	EntryDashboardView,
 	WwwDashboardView,
-} from "../src/adapters/inbound/tui/features/dashboard/entry-dashboard-view";
-import { a }                                    from "../src/adapters/inbound/tui/foundation/theme/astra-theme";
+} from "../src/adapters/inbound/tui/features/dashboard/view/entry-dashboard-view";
+import { a }                                    from "../src/adapters/inbound/tui/foundation/theme/www-theme";
 import { colors }                               from "../src/adapters/inbound/tui/foundation/theme/theme";
 import type { LinearProjectDashboard }          from "../src/core/domain/work/linear-dashboard";
-import { astraFixture }                         from "./fixtures/astra-snapshot";
+import { wwwFixture }                           from "./fixtures/www-snapshot";
 
 const dashboard: LinearProjectDashboard = {
 	state       : "ready",
@@ -42,13 +42,13 @@ describe("EntryDashboardView", () => {
 	});
 
 	test("renders the WWW first screen from the current Workbench snapshot", () => {
-		const snapshot = astraFixture("working");
+		const snapshot = wwwFixture("working");
 		snapshot.sessionGoal = { text: "현재 요청을 검증한다", sourceActivityId: "request", updatedAt: "2026-09-11T09:42:00.000Z" };
 		const output = stripTerminalSequences(new WwwDashboardView(() => snapshot).render(100).join("\n"));
 		expect(output).toContain("SESSION OVERVIEW");
-		expect(output).toContain("ACTIVITY EVENTS");
+		expect(output).toContain("PROGRESS EVENTS");
 		expect(output).toContain("working");
-		expect(output).toContain("astra-preview · preview-thread");
+		expect(output).toContain("www-preview · preview-thread");
 		expect(output).toContain("revision 1");
 		expect(output).toContain("SYSTEM MODULE ROUTER");
 		expect(output).toContain("CONTEXT");
@@ -65,7 +65,7 @@ describe("EntryDashboardView", () => {
 	});
 
 	test("uses only observed cache access counts and keeps compact dashboard rows bounded", () => {
-		const snapshot = { ...astraFixture("ready"), cacheObservations: [{
+		const snapshot = { ...wwwFixture("ready"), cacheObservations: [{
 			id: "context-projection" as const, entries: 1, logicalBytes: null,
 			hits: 9, misses: 1, evictions: 0, latencyMs: 2, lastAccessedAt: "2026-09-11T09:42:00.000Z",
 		}] };
@@ -81,7 +81,7 @@ describe("EntryDashboardView", () => {
 	});
 
 	test("keeps token proportion and activity heatmap landmarks when telemetry is unavailable", () => {
-		const snapshot = { ...astraFixture("ready"), contextUsage: null, activities: [] };
+		const snapshot = { ...wwwFixture("ready"), contextUsage: null, activities: [] };
 		const output = stripTerminalSequences(new WwwDashboardView(() => snapshot).render(80).join("\n"));
 		expect(output).toContain("TOKEN ALLOCATION / PROPORTION");
 		expect(output).toContain("INPUT / OUTPUT / CACHE");
@@ -91,9 +91,9 @@ describe("EntryDashboardView", () => {
 	});
 
 	test("keeps the dashboard rail snapshot-backed and bounded in wide and compact panes", () => {
-		const snapshot = astraFixture("working");
+		const snapshot = wwwFixture("working");
 		for (const width of [24, 48]) {
-			const rows = new AstraDashboardRail(() => snapshot).render(width);
+			const rows = new WwwDashboardRail(() => snapshot).render(width);
 			const output = stripTerminalSequences(rows.join("\n"));
 			expect(output).toContain("Session context");
 			expect(output).toContain("Session state");

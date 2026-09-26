@@ -7,7 +7,7 @@ import {
 	projectConversationRecap,
 } from "../src/core/domain/work/conversation-recap.js";
 import { currentConversationRecap }             from "../src/core/application/work/conversation-recap.js";
-import { conversationRecapRows }                from "../src/adapters/inbound/tui/features/chat/conversation-recap-view.js";
+import { conversationRecapRows }                from "../src/adapters/inbound/tui/features/chat/view/conversation-recap-view.js";
 import type { WorkbenchChatMessage }            from "../src/core/domain/work/workbench.js";
 
 function message(id: string, role: WorkbenchChatMessage["role"], content: string): WorkbenchChatMessage {
@@ -59,10 +59,10 @@ describe("Conversation Recap", () => {
 		expect(plain).toContain("확인 결과는 안전합니다.");
 		expect(rows.every(row => visibleWidth(row) <= 40)).toBe(true);
 
-		const { AstraTranscriptView } = await import("../src/adapters/inbound/tui/features/chat/astra-execution.js");
-		const { astraFixture } = await import("./fixtures/astra-snapshot.js");
-		const snapshot = astraFixture("ready");
-		const view = new AstraTranscriptView(snapshot);
+		const { WwwTranscriptView } = await import("../src/adapters/inbound/tui/features/chat/view/www-execution.js");
+		const { wwwFixture } = await import("./fixtures/www-snapshot.js");
+		const snapshot = wwwFixture("ready");
+		const view = new WwwTranscriptView(snapshot);
 		expect(stripTerminalSequences(view.render(80).join("\n"))).not.toContain("Conversation Recap");
 		view.expanded = true;
 		expect(stripTerminalSequences(view.render(80).join("\n"))).toContain("Conversation Recap");

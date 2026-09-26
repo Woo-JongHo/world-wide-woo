@@ -9,7 +9,9 @@ import type {
 	TodoNativePlanSource,
 } from "@/core/domain/work/todos";
 import type { SemanticWorkStep, WorkFlowProjection, WorkStepStatus } from "@/core/domain/work";
-import type { SessionRepository, TodoController, TodoStore }         from "@/core/ports/index.js";
+import type { TodoController }                                       from "@/core/ports/execution/todo-controller-port";
+import type { SessionRepository }                                    from "@/core/ports/persistence/session-repository";
+import type { TodoStore }                                            from "@/core/ports/persistence/todo-store";
 import type { RequestRuntimeRecord }                                 from "@/core/domain/execution/request-runtime";
 import { projectRequestTodo }                                        from "@/core/domain/work/request-projections";
 

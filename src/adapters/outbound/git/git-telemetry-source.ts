@@ -1,5 +1,8 @@
-import { execFile }                                                from "node:child_process";
-import type { WorkbenchGitTelemetry, WorkbenchGitTelemetryReader } from "@/core/ports/index.js";
+import { execFile } from "node:child_process";
+import type {
+	WorkbenchGitTelemetry,
+	WorkbenchGitTelemetryReader,
+} from "@/core/ports/observability/workbench-git-telemetry-port";
 
 export class GitTelemetrySource implements WorkbenchGitTelemetryReader {
 	public read(cwd: string): Promise<WorkbenchGitTelemetry | null> {

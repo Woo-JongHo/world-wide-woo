@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { stripTerminalSequences } from "@earendil-works/pi-tui";
 import type { Component }         from "@earendil-works/pi-tui";
 import { renderLayoutFrame }      from "@earendil-works/pi-tui/dist/layout.js";
-import { createChatScrollView }   from "../src/adapters/inbound/tui/features/chat/chat-scroll.view";
+import { createChatScrollView }   from "../src/adapters/inbound/tui/features/chat/view/chat-scroll.view";
 import { createDashboardLayout }  from "../src/adapters/inbound/tui/foundation/layout/dashboard-layout";
 
 class WrappingMessages implements Component {

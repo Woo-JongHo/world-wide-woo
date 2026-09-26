@@ -54,7 +54,7 @@ test("CLI preserves test argv help/version and shell metacharacters without top-
  let seen:string[]=[]; const out:string[]=[];
  const deps: CliDependencies = {
   runApp             : async () => {},
-  runAstra           : async () => {},
+  runWww             : async () => {},
   runRouter          : async () => {},
   runAuth            : async () => {},
   runDevelopment     : async (value:string[]) => {seen=value;return "ok";},

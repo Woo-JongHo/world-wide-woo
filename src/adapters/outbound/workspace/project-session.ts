@@ -18,7 +18,9 @@ import { loadWorkbenchConfig }   from "@/adapters/outbound/workspace/workbench-c
 
 import type { WwwSettings } from "@/core/domain/execution/model-settings";
 
-import type { ModelClient, RecentSessionSummary, TodoController } from "@/core/ports";
+import type { TodoController }       from "@/core/ports/execution/todo-controller-port";
+import type { ModelClient }          from "@/core/ports/integration/model-client-port";
+import type { RecentSessionSummary } from "@/core/ports/persistence/session-repository";
 
 /** Legacy Router가 TUI에 넘기는 project session 자원과 종료 책임이다. */
 export interface ProjectSessionBundle {

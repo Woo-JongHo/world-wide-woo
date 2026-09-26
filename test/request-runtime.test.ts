@@ -9,7 +9,7 @@ import { projectRequestRuntime }                                       from "../
 import { projectRequestTodo }                                          from "../src/core/domain/work/request-projections";
 import { parseTodoMarkdown, renderTodoMarkdown, validateTodoDocument } from "../src/core/domain/work/todos";
 import { FileRequestProjectionStore }                                  from "../src/adapters/outbound/persistence/request-projection-store";
-import { requestRuntimeRows }                                          from "../src/adapters/inbound/tui/features/monitoring/request-runtime-view";
+import { requestRuntimeRows }                                          from "../src/adapters/inbound/tui/features/monitoring/view/request-runtime-view";
 import { stripTerminalSequences, visibleWidth }                        from "@earendil-works/pi-tui";
 
 function fixture() {
@@ -98,12 +98,12 @@ describe("seven-stage request runtime", () => {
 		expect(requestRows).toContain("GROUND · 사용자 제공 코드가 전체 근거");
 		expect(requestRows).toContain("✓ DELIVER");
 	});
-	test("renders Request stages, Activity, and Next input as separate layers", () => {
+	test("renders Request stages, Progress, and Next input as separate layers", () => {
 		const f = fixture();
 		f.report("UNDERSTAND");
 		f.report("DECOMPOSE", "completed", { plan: [{ stage: "EXECUTE", tasks: [{ id: "edit", title: "화면 계층 구현", status: "pending", dependsOn: [] }] }] });
 		const plain = stripTerminalSequences(requestRuntimeRows(f.result(), 80, false, 0, ["다음 입력 후보"]).join("\n"));
-		const request = plain.indexOf("Plan"), activity = plain.indexOf("Activity"), proposal = plain.indexOf("Next");
+		const request = plain.indexOf("Plan"), activity = plain.indexOf("Progress"), proposal = plain.indexOf("Next");
 		expect(plain).not.toContain("Proposal");
 		expect(request).toBeGreaterThanOrEqual(0);
 		expect(activity).toBeGreaterThan(request);
@@ -119,7 +119,7 @@ describe("seven-stage request runtime", () => {
 		expect(plain).not.toContain("관측된 동작");
 		expect(plain).not.toContain("request-1");
 	});
-	test("Activity does not repeat Native stage tasks while waiting for interpreted content", () => {
+	test("Progress does not repeat Native stage tasks while waiting for interpreted content", () => {
 		const f = fixture();
 		const base = f.result();
 		const request = {
@@ -131,7 +131,7 @@ describe("seven-stage request runtime", () => {
 			} : stage),
 		};
 		const plain = stripTerminalSequences(requestRuntimeRows(request, 80, false, 0).join("\n"));
-		const progress = plain.slice(plain.indexOf("Activity"), plain.indexOf("Next"));
+		const progress = plain.slice(plain.indexOf("Progress"), plain.indexOf("Next"));
 		expect(progress).toContain("정리된 세부 작업이 도착하면 이곳에 표시합니다.");
 		expect(progress).not.toContain("요청 범위 확인");
 		expect(progress).not.toContain("계획의 범위를 확정");
@@ -154,14 +154,14 @@ describe("seven-stage request runtime", () => {
 		const base     = fixture().result()                                                                                                                                                                     ;
 		const request  = { ...base, stages: base.stages.map(stage => ({ ...stage, status: stage.id === "EXECUTE" ? "failed" as const : stage.id === "DELIVER" ? "running" as const : "completed" as const })) } ;
 		const plain    = stripTerminalSequences(requestRuntimeRows(request, 100).join("\n"))                                                                                                                    ;
-		const progress = plain.slice(0, plain.indexOf("Activity"))                                                                                                                                              ;
+		const progress = plain.slice(0, plain.indexOf("Progress"))                                                                                                                                              ;
 		expect(progress).toContain("! EXECUTE");
 		expect(progress).toContain("› DELIVER");
 		expect(progress).not.toContain("╭ 진행 중");
 		expect(progress).toContain("대상별 결과와 근거 전달");
 		const narrow = requestRuntimeRows(request, 16, true);
 		expect(narrow.every(row => visibleWidth(row) <= 16)).toBe(true);
-		const plan = stripTerminalSequences(narrow.join("\n")).split("Activity")[0]!;
+		const plan = stripTerminalSequences(narrow.join("\n")).split("Progress")[0]!;
 		expect(plan).toContain("! EXECUTE");
 		expect(plan).toContain("› DELIVER");
 		expect(plan).not.toContain("진행 중");

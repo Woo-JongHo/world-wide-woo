@@ -1,12 +1,18 @@
-import { describe, expect, test }              from "bun:test";
+import { describe, expect, test } from "bun:test";
 import {
 	TUI_FEATURES,
 	TUI_FEATURE_UNITS,
 	TUI_RETIRED_FEATURE_UNIT_IDS,
+	tuiFeatureById,
+	tuiFeaturesByProductGroup,
 	tuiFeatureUnitById,
 	tuiFeatureUnitsByFeatureId,
 } from "../src/adapters/inbound/tui/features/feature-registry.js";
-import type { TuiFeatureId, TuiFeatureUnitId } from "../src/adapters/inbound/tui/features/feature.types.js";
+import type {
+	TuiFeatureId,
+	TuiFeatureProductGroup,
+	TuiFeatureUnitId,
+} from "../src/adapters/inbound/tui/features/feature.types.js";
 
 const EXPECTED_COUNTS = {
 	"TUI-F001" : 2,
@@ -71,11 +77,56 @@ const EXPECTED_TITLES = {
 	"TUI-F018-U01" : "렌더 캐시 구성·점유·재사용 현황",
 } as const satisfies Partial<Record<TuiFeatureUnitId, string>>;
 
+const EXPECTED_PRODUCT_GROUPS = {
+	"TUI-F001" : "core-work",
+	"TUI-F002" : "core-work",
+	"TUI-F003" : "core-work",
+	"TUI-F004" : "core-work",
+	"TUI-F005" : "observability",
+	"TUI-F006" : "observability",
+	"TUI-F007" : "control",
+	"TUI-F008" : "observability",
+	"TUI-F009" : "observability",
+	"TUI-F010" : "core-work",
+	"TUI-F011" : "control",
+	"TUI-F012" : "control",
+	"TUI-F013" : "control",
+	"TUI-F014" : "integration",
+	"TUI-F015" : "control",
+	"TUI-F016" : "integration",
+	"TUI-F017" : "core-work",
+	"TUI-F018" : "observability",
+} as const satisfies Record<TuiFeatureId, TuiFeatureProductGroup>;
+
+const EXPECTED_NON_ACTIVE_UNIT_STATUSES = {
+	"TUI-F002-U04" : "legacy",
+	"TUI-F003-U02" : "legacy",
+	"TUI-F016-U01" : "legacy",
+	"TUI-F016-U02" : "legacy",
+} as const;
+
 describe("TUI feature Unit catalog", () => {
 	test("contains the 18 features and exact 39 inventoried Units", () => {
 		expect(TUI_FEATURES).toHaveLength(18);
 		expect(TUI_FEATURE_UNITS).toHaveLength(39);
 		expect(Object.fromEntries(TUI_FEATURE_UNITS.map((unit) => [unit.id, unit.title]))).toEqual(EXPECTED_TITLES);
+	});
+
+	test("keeps product capability classification separate from page, embedded, and interaction kind", () => {
+		expect(Object.fromEntries(TUI_FEATURES.map((feature) => [feature.id, feature.productGroup]))).toEqual(EXPECTED_PRODUCT_GROUPS);
+		for (const productGroup of ["core-work", "observability", "control", "integration"] as const) {
+			expect(tuiFeaturesByProductGroup(productGroup).every((feature) => feature.productGroup === productGroup)).toBe(true);
+		}
+		expect(tuiFeatureById("TUI-F004")?.kind).toBe("embedded");
+		expect(tuiFeatureById("TUI-F005")?.kind).toBe("page");
+		expect(tuiFeatureById("TUI-F007")?.kind).toBe("interaction");
+	});
+
+	test("allows equal display order without treating it as Feature identity", () => {
+		const featuresAtOrder120 = TUI_FEATURES.filter((feature) => feature.order === 120);
+		expect(featuresAtOrder120.map((feature) => feature.id)).toEqual(["TUI-F018", "TUI-F012"]);
+		expect(featuresAtOrder120.map((feature) => feature.key)).toEqual(["cache", "test"]);
+		expect(new Set(featuresAtOrder120.map((feature) => feature.id)).size).toBe(2);
 	});
 
 	test("keeps Unit IDs unique and attached to the declared parent feature", () => {
@@ -107,5 +158,20 @@ describe("TUI feature Unit catalog", () => {
 		for (const retiredId of TUI_RETIRED_FEATURE_UNIT_IDS) {
 			expect(tuiFeatureUnitById(retiredId)).toBeUndefined();
 		}
+	});
+
+	test("preserves verified legacy and unwired Unit states until their feature flow changes", () => {
+		const nonActiveStatuses = Object.fromEntries(
+			TUI_FEATURE_UNITS
+				.filter((unit) => unit.status !== "active")
+				.map((unit) => [unit.id, unit.status]),
+		);
+		expect(nonActiveStatuses).toEqual(EXPECTED_NON_ACTIVE_UNIT_STATUSES);
+		expect(tuiFeatureUnitById("TUI-F004-U01")?.status).toBe("active");
+	});
+
+	test("keeps Trace/Tracer/Source and Report/Note descriptors as stable catalog identities", () => {
+		expect(tuiFeatureById("TUI-F005")).toMatchObject({ key: "trace", title: "Trace · Source", route: "source" });
+		expect(tuiFeatureById("TUI-F004")).toMatchObject({ key: "tnote", title: "Report · Note" });
 	});
 });

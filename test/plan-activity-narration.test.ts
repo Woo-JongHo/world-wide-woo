@@ -77,3 +77,17 @@ test("turn switch immediately releases a model that ignores abort", async () => 
 	await flush();
 	expect(queue.snapshot().planActivities[0]?.turnId).toBe("turn-2");
 });
+
+test("normalizes model narration to one concise sentence without changing source activity provenance", async () => {
+	const source = observation(1);
+	const queue = new PlanActivityNarration({
+		narrate: async () => ({ what: `첫 문장으로 작업을 설명합니다. ${"두 번째 설명은 화면 계약에 포함하지 않습니다 ".repeat(8)}`, inputSummary: [] }),
+	}, new AbortController().signal, () => {});
+	queue.select("turn-1");
+	queue.observe(source, context);
+	await flush();
+	const projected = queue.snapshot().planActivities[0];
+	expect(projected?.summary).toBe("첫 문장으로 작업을 설명합니다.");
+	expect(projected?.id).toContain(source.nativeRefs.itemId!);
+	expect(source.payload.params).toMatchObject({ item: { command: "bun test test-1.ts", output: "PRIVATE OUTPUT" } });
+});

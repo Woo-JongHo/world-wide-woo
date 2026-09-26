@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "1.0",
+  "recordedAt": "2026-09-26",
+  "scope": "woo-commit 메시지 계약과 실행기 정합 수정",
+  "issueBinding": {
+    "decision": "reuse-existing",
+    "identifier": "WOO-844",
+    "uuid": "59f49e8e-6ee2-4ab1-b902-8411d97e13a4",
+    "title": "01. 모든 commit을 승인된 후보와 검증 Receipt로 실행한다",
+    "reason": "traceability-v2에서 WOO-844가 Code-014 Commit Control Plane과 Obsidian 상세 정본에 연결되어 있어 새 이슈는 중복이다."
+  },
+  "projectActivity": {
+    "candidate": ".www/evidence/2026-09-26-woo-commit-message-contract/project-comment-candidate.json",
+    "preview": ".www/evidence/2026-09-26-woo-commit-message-contract/project-comment-preview.md",
+    "state": "prepared-not-published",
+    "publicationGuard": "게시 직전 Project Activity를 재조회하고 항목별 사용자 승인을 받은 뒤 게시·read-back한다."
+  },
+  "obsidian": {
+    "required": false,
+    "reason": "WOO-844의 WHY·승인 경계·외부 쓰기 정책은 바꾸지 않고 2026-09-24에 확정된 Fixes·Verified 메시지 규칙을 schema와 renderer에 강제하는 결함 수정이다.",
+    "evidence": [
+      ".www/evidence/2026-09-24-woo-commit-message-contract/project-comment-candidate.json",
+      ".www/control-ledger/traceability-v2.json#WOO-844",
+      "src/core/commit/commit-governance.ts"
+    ]
+  },
+  "externalWrites": "none"
+}

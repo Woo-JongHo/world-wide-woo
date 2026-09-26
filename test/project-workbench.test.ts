@@ -155,7 +155,7 @@ describe("ProjectWorkbench · Native bootstrap and planning", () => {
 		await workbench.close();
 		expect(native.handler).toBeNull();
 	});
-	test("Astra native passthrough sends the user request unchanged and projects Native state", async () => {
+	test("Www native passthrough sends the user request unchanged and projects Native state", async () => {
 		const native = new FakeNativeHarness();
 		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
 			projectId          : "sample",
@@ -170,7 +170,7 @@ describe("ProjectWorkbench · Native bootstrap and planning", () => {
 		expect(workbench.snapshot.todo).toBeNull();
 		await workbench.close();
 	});
-	test("Astra goal opts one request into the seven-stage Runtime protocol", async () => {
+	test("Www goal opts one request into the seven-stage Runtime protocol", async () => {
 		const native = new FakeNativeHarness();
 		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
 			projectId          : "sample",
@@ -864,6 +864,116 @@ describe("ProjectWorkbench · Native bootstrap and planning", () => {
 			lastConfirmedAt : "2026-09-01T00:00:00.000Z",
 			message         : null,
 		});
+		await workbench.close();
+	});
+
+	test("keeps each published Snapshot stable across Native, catalog, Todo, and usage updates", async () => {
+		let catalogRevision = 0;
+		class RefreshingNativeHarness extends FakeNativeHarness {
+			override async listModels() {
+				this.listModelCalls += 1;
+				return catalogRevision === 0
+					? [{ model: "gpt-5.6-sol", displayName: "GPT-5.6 Sol", efforts: ["high"] as const, defaultEffort: "high" as const }]
+					: [{ model: "gpt-5.6-terra", displayName: "GPT-5.6 Terra", efforts: ["medium", "high"] as const, defaultEffort: "medium" as const }];
+			}
+		}
+		const native         = new RefreshingNativeHarness() ;
+		const auxiliaryUsage = new SessionModelUsageAccumulator();
+		const createdTodo: TodoDocument = {
+			...todoDocument(2),
+			title : "새 Todo",
+			items : [{ id: "todo-2", content: "기록", status: "pending", evidenceIds: [], details: [] }],
+		};
+		const unsupported = async (): Promise<never> => { throw new Error("not used"); };
+		const todos: WorkbenchTodoSource = {
+			snapshot       : null,
+			subscribe      : () => () => undefined,
+			create         : async () => createdTodo,
+			add            : unsupported,
+			addDetails     : unsupported,
+			start          : unsupported,
+			complete       : unsupported,
+			block          : unsupported,
+			reopen         : unsupported,
+			recordEvidence : async () => null,
+			importLegacy   : async () => null,
+		};
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
+			projectId          : "sample-project",
+			cwd                : "/workspace/sample",
+			requestRuntimeMode : "off",
+			todos,
+			auxiliaryUsage,
+		});
+		await ready(workbench);
+		const snapshots: (typeof workbench.snapshot)[] = [];
+		const unsubscribe = workbench.subscribe(snapshot => { snapshots.push(snapshot); });
+		const latestSnapshot = () => {
+			const snapshot = snapshots.at(-1);
+			if (!snapshot) throw new Error("구독된 Workbench Snapshot이 없습니다.");
+			return snapshot;
+		};
+		await workbench.dispatch({ type: "chat.send", text: "이전 Snapshot을 보존해줘" });
+		const beforeDelta = latestSnapshot();
+		const firstChat = beforeDelta.chat[0];
+		if (!firstChat) throw new Error("제출한 사용자 Chat이 Snapshot에 없습니다.");
+
+		expect(beforeDelta).toBe(workbench.snapshot);
+		expect(beforeDelta.chat.map(message => message.content)).toEqual(["이전 Snapshot을 보존해줘"]);
+		expect(beforeDelta.modelCatalog?.models.map(model => model.model)).toEqual(["gpt-5.6-sol"]);
+		expect(Object.isFrozen(beforeDelta.chat)).toBe(true);
+		expect(Object.isFrozen(firstChat)).toBe(true);
+		expect(() => { firstChat.content = "외부 변조"; }).toThrow();
+
+		native.emit({
+			type   : "notification",
+			method : "item/agentMessage/delta",
+			refs   : { threadId: "thread-1", turnId: "turn-1", itemId: "snapshot-message" },
+			params : { delta: "진행 중인 Native 출력" },
+		});
+		await Bun.sleep(10);
+		const afterDelta = latestSnapshot();
+
+		expect(afterDelta).toBe(workbench.snapshot);
+		expect(afterDelta.revision).toBeGreaterThan(beforeDelta.revision);
+		expect(afterDelta.draft).toBe("진행 중인 Native 출력");
+		expect(beforeDelta.draft).toBe("");
+		expect(beforeDelta.chat.map(message => message.content)).toEqual(["이전 Snapshot을 보존해줘"]);
+
+		catalogRevision = 1;
+		await workbench.refreshModels();
+		const afterCatalogRefresh = latestSnapshot();
+
+		expect(afterCatalogRefresh).toBe(workbench.snapshot);
+		expect(afterCatalogRefresh.revision).toBeGreaterThan(afterDelta.revision);
+		expect(afterCatalogRefresh.modelCatalog?.models.map(model => model.model)).toEqual(["gpt-5.6-terra"]);
+		expect(afterDelta.modelCatalog?.models.map(model => model.model)).toEqual(["gpt-5.6-sol"]);
+		expect(afterDelta.draft).toBe("진행 중인 Native 출력");
+
+		const todoReceipt = await workbench.dispatch({ type: "todo.create", title: "새 Todo", items: ["기록"] });
+		const afterTodo = latestSnapshot();
+
+		expect(todoReceipt.state).toBe("accepted");
+		expect(afterTodo).toBe(workbench.snapshot);
+		expect(afterTodo.revision).toBeGreaterThan(afterCatalogRefresh.revision);
+		expect(afterTodo.actionResult).toMatchObject({ kind: "todo", title: "Todo 생성" });
+		expect(afterTodo.actionResult?.body).toContain("새 Todo");
+		expect(afterCatalogRefresh.actionResult).toBeNull();
+		expect(Object.isFrozen(afterTodo.actionResult)).toBe(true);
+
+		auxiliaryUsage.observe({ model: "gpt-5.6-terra", effort: "medium", totalTokens: 400 });
+		const afterUsage = latestSnapshot();
+
+		expect(afterUsage).toBe(workbench.snapshot);
+		expect(afterUsage.revision).toBeGreaterThan(afterTodo.revision);
+		expect(afterUsage.sessionUsage?.models).toContainEqual(expect.objectContaining({ model: "gpt-5.6-terra", totalTokens: 400 }));
+		expect(afterTodo.sessionUsage?.models).toEqual([]);
+		expect(afterTodo.actionResult).toMatchObject({ kind: "todo", title: "Todo 생성" });
+		expect(beforeDelta.chat.map(message => message.content)).toEqual(["이전 Snapshot을 보존해줘"]);
+		expect(beforeDelta.modelCatalog?.models.map(model => model.model)).toEqual(["gpt-5.6-sol"]);
+		expect(beforeDelta.sessionUsage?.models).toEqual([]);
+		expect(beforeDelta.actionResult).toBeNull();
+		unsubscribe();
 		await workbench.close();
 	});
 });

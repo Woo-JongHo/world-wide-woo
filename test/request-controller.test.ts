@@ -10,7 +10,7 @@ import type { RuntimeToolCall }                       from "../src/core/ports/ex
 import type { RequestActionCapability }               from "../src/core/ports/execution/request-action-port";
 import { pinnedFileCapabilities }                     from "../src/adapters/outbound/workspace/pinned-file-capabilities";
 import { projectRequestRuntime }                      from "../src/core/runtime/request-runtime";
-import { requestRuntimeRows }                         from "../src/adapters/inbound/tui/features/monitoring/request-runtime-view";
+import { requestRuntimeRows }                         from "../src/adapters/inbound/tui/features/monitoring/view/request-runtime-view";
 import { projectRequestDestinations }                 from "../src/core/domain/work/request-projections";
 import { stripTerminalSequences, visibleWidth }       from "@earendil-works/pi-tui";
 

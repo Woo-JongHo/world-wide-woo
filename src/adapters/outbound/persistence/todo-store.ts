@@ -11,7 +11,7 @@ import { Database } from "bun:sqlite";
 import { parseTodoMarkdown, patchTodoMarkdown, renderTodoMarkdown } from "@/core/domain/work/todos.js";
 
 import type { TodoDocument }     from "@/core/domain/work/todos.js";
-import type { TodoWriteOutcome } from "@/core/ports";
+import type { TodoWriteOutcome } from "@/core/ports/persistence/todo-store";
 
 const queues = new Map< string, Promise< unknown > >();
 

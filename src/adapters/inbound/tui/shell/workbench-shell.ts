@@ -12,14 +12,13 @@ import {
 	matchesKey,
 } from "@earendil-works/pi-tui";
 import type { Component, Terminal }                             from "@earendil-works/pi-tui";
-import type {
-	AuthController,
-	ComposerDraftController,
-	ObservabilityHistoryReader,
-	UsageMonitor,
-	WorkbenchGitTelemetryReader,
-} from "@/core/ports";
+import type { AuthController }                                  from "@/core/ports/integration/auth-controller-port";
+import type { ObservabilityHistoryReader }                      from "@/core/ports/observability/observability-history-port";
+import type { UsageMonitor }                                    from "@/core/ports/observability/usage-monitor-port";
+import type { WorkbenchGitTelemetryReader }                     from "@/core/ports/observability/workbench-git-telemetry-port";
+import type { ComposerDraftController }                         from "@/core/ports/persistence/composer-draft-port";
 import type { ProjectWorkbench }                                from "@/core/application/orchestration/project-workbench";
+import { projectChatFeature, projectTracerFeature }             from "@/core/application/orchestration/workbench-feature-reads";
 import { EMPTY_DEVELOPMENT_MAP }                                from "@/core/domain/development/development-map";
 import type { DevelopmentMapSnapshot }                          from "@/core/domain/development/development-map";
 import {
@@ -35,21 +34,24 @@ import {
 	StatusLine,
 	todoPanelTimestamp,
 	WorkspaceTodoView,
-} from "@/adapters/inbound/tui/features/dashboard/shared-dashboard-views";
-import { WorkbenchChatView }                                    from "@/adapters/inbound/tui/features/chat/workbench-views";
+} from "@/adapters/inbound/tui/features/dashboard/view/shared-dashboard-views";
+import { WorkbenchChatView }                                    from "@/adapters/inbound/tui/features/chat/view/workbench-views";
 import {
 	renderDelegationDetail,
 	renderDelegationSummary,
-} from "@/adapters/inbound/tui/features/chat/delegation-tree-view";
-import { ThreeBodyLabView }                                     from "@/adapters/inbound/tui/features/chat/three-body-lab";
-import { EntryDashboardView, WwwDashboardView }                 from "@/adapters/inbound/tui/features/dashboard/entry-dashboard-view";
-import { WorkbenchMonitorView }                                 from "@/adapters/inbound/tui/features/monitoring/workbench-monitor-view";
-import { WorkbenchTracerView }                                  from "@/adapters/inbound/tui/features/trace/workbench-tracer-view";
+} from "@/adapters/inbound/tui/features/chat/view/delegation-tree-view";
+import { ThreeBodyLabView }                                     from "@/adapters/inbound/tui/features/chat/view/three-body-lab";
+import {
+	EntryDashboardView,
+	WwwDashboardView,
+} from "@/adapters/inbound/tui/features/dashboard/view/entry-dashboard-view";
+import { WorkbenchMonitorView }                                 from "@/adapters/inbound/tui/features/monitoring/view/workbench-monitor-view";
+import { WorkbenchTracerView }                                  from "@/adapters/inbound/tui/features/trace/view/workbench-tracer-view";
 import { ExitKeyPolicy }                                        from "@/adapters/inbound/tui/shell/exit-key-policy";
 import {
 	approvalCardRows,
 	projectApprovalBackgroundState,
-} from "@/adapters/inbound/tui/features/approval/approval-presentation";
+} from "@/adapters/inbound/tui/features/approval/view/approval-presentation";
 import { OverlaySheet }                                         from "@/adapters/inbound/tui/foundation/components/overlay-sheet";
 import { RenderScheduler, workbenchRenderUrgency }              from "@/adapters/inbound/tui/foundation/rendering/render-scheduler";
 import { ShellLifecycle }                                       from "@/adapters/inbound/tui/shell/shell-lifecycle";
@@ -61,46 +63,46 @@ import {
 	tuiBackgroundResetSequence,
 	tuiBackgroundSequence,
 } from "@/adapters/inbound/tui/foundation/theme/theme";
-import { WorkbenchBottomHudView }                               from "@/adapters/inbound/tui/features/usage/workbench-bottom-hud";
-import { WorkbenchTelemetryLine }                               from "@/adapters/inbound/tui/features/monitoring/workbench-telemetry";
-import { UsageStripView }                                       from "@/adapters/inbound/tui/features/usage/usage-strip-view";
-import { DevelopmentMapView }                                   from "@/adapters/inbound/tui/features/project-map/development-map-view";
-import { ObservabilityDashboardView }                           from "@/adapters/inbound/tui/features/session/observability-dashboard-view";
-import { RuntimeMonitorView }                                   from "@/adapters/inbound/tui/features/monitoring/runtime-monitor-view";
-import { SessionStatsView }                                     from "@/adapters/inbound/tui/features/stats/session-stats-view";
-import { AstraContextView }                                     from "@/adapters/inbound/tui/features/context/astra-context-view";
-import { AstraHistoryView }                                     from "@/adapters/inbound/tui/features/session/astra-history-view";
-import { AstraMapView }                                         from "@/adapters/inbound/tui/features/project-map/astra-map-view";
-import { AstraMonitorView }                                     from "@/adapters/inbound/tui/features/monitoring/astra-monitor-view";
-import { AstraStatsView }                                       from "@/adapters/inbound/tui/features/stats/astra-stats-view";
-import { AstraTestView, projectAstraTestView }                  from "@/adapters/inbound/tui/features/test/astra-test-view";
+import { WorkbenchBottomHudView }                               from "@/adapters/inbound/tui/features/usage/view/workbench-bottom-hud";
+import { WorkbenchTelemetryLine }                               from "@/adapters/inbound/tui/features/monitoring/view/workbench-telemetry";
+import { UsageStripView }                                       from "@/adapters/inbound/tui/features/usage/view/usage-strip-view";
+import { DevelopmentMapView }                                   from "@/adapters/inbound/tui/features/project-map/view/development-map-view";
+import { ObservabilityDashboardView }                           from "@/adapters/inbound/tui/features/session/view/observability-dashboard-view";
+import { RuntimeMonitorView }                                   from "@/adapters/inbound/tui/features/monitoring/view/runtime-monitor-view";
+import { SessionStatsView }                                     from "@/adapters/inbound/tui/features/stats/view/session-stats-view";
+import { WwwContextView }                                       from "@/adapters/inbound/tui/features/context/view/www-context-view";
+import { WwwHistoryView }                                       from "@/adapters/inbound/tui/features/session/view/www-history-view";
+import { WwwMapView }                                           from "@/adapters/inbound/tui/features/project-map/view/www-map-view";
+import { WwwMonitorView }                                       from "@/adapters/inbound/tui/features/monitoring/view/www-monitor-view";
+import { WwwStatsView }                                         from "@/adapters/inbound/tui/features/stats/view/www-stats-view";
+import { WwwTestView, projectWwwTestView }                      from "@/adapters/inbound/tui/features/test/view/www-test-view";
 import {
 	requestRuntimeMotionActive,
 	requestRuntimeRows,
-} from "@/adapters/inbound/tui/features/monitoring/request-runtime-view";
+} from "@/adapters/inbound/tui/features/monitoring/view/request-runtime-view";
 import {
-	AstraCommandPalette,
-	AstraComposer,
-	AstraExecutionHeading,
-	AstraHeader,
-	AstraHud,
-	AstraInset,
-	AstraNotice,
-	AstraSheet,
-	AstraViewSwitcher,
-	AstraWorkspace,
-	ASTRA_COMMANDS,
-	ASTRA_KEYS,
-	ASTRA_SCROLL_KEYS,
-	astraPageLabel,
-	matchesAstraAction,
-	matchesAstraKey,
-} from "@/adapters/inbound/tui/shell/astra-surface";
-import type { AstraPage }                                       from "@/adapters/inbound/tui/shell/astra-surface";
-import { astraExecutionIsLive, astraNowLabel }                  from "@/adapters/inbound/tui/features/chat/astra-execution";
-import { ASTRA_DEMO_PAGES, createAstraDemoState }               from "@/adapters/inbound/tui/features/demo/astra-demo";
-import { a, astraColors, astraEditorTheme }                     from "@/adapters/inbound/tui/foundation/theme/astra-theme";
-import type { UsageSnapshot }                                   from "@/core/ports";
+	WwwCommandPalette,
+	WwwComposer,
+	WwwExecutionHeading,
+	WwwHeader,
+	WwwHud,
+	WwwInset,
+	WwwNotice,
+	WwwSheet,
+	WwwViewSwitcher,
+	WwwWorkspace,
+	WWW_COMMANDS,
+	WWW_KEYS,
+	WWW_SCROLL_KEYS,
+	wwwPageLabel,
+	matchesWwwAction,
+	matchesWwwKey,
+} from "@/adapters/inbound/tui/shell/www-surface";
+import type { WwwPage }                                         from "@/adapters/inbound/tui/shell/www-surface";
+import { wwwExecutionIsLive, wwwNowLabel }                      from "@/adapters/inbound/tui/features/chat/view/www-execution";
+import { WWW_DEMO_PAGES, createWwwDemoState }                   from "@/adapters/inbound/tui/features/demo/view-model/www-demo";
+import { a, wwwColors, wwwEditorTheme }                         from "@/adapters/inbound/tui/foundation/theme/www-theme";
+import type { UsageSnapshot }                                   from "@/core/ports/observability/usage-monitor-port";
 import {
 	ComponentSlot,
 	createWorkbenchViewHost,
@@ -130,6 +132,7 @@ import {
 	workbenchFrameTitle,
 } from "@/adapters/inbound/tui/shell/workbench-shell-presentation";
 import { createWorkbenchCommandRouter }                         from "@/adapters/inbound/tui/shell/workbench-command-router";
+import { ComposerDraftPersistenceQueue }                        from "@/adapters/inbound/tui/shell/composer-draft-persistence";
 import { WorkbenchOverlayController }                           from "@/adapters/inbound/tui/shell/workbench-overlay-controller";
 import { installWorkbenchInputRouting }                         from "@/adapters/inbound/tui/shell/workbench-input-routing";
 
@@ -141,15 +144,15 @@ export {
 } from "@/adapters/inbound/tui/shell/workbench-shell-presentation";
 
 export interface ProjectWorkbenchShellDependencies {
-	design?: "astra";
+	surface?: "www";
 	/** Preview/test seam; production sessions continue to open Chat. */
-	initialAstraPage? : AstraPage          ;
-	terminal?         : Terminal           ;
-	workbench         : ProjectWorkbench   ;
-	development?      : DevelopmentService ;
-	cwd?              : string             ;
-	usage             : UsageMonitor       ;
-	auth              : AuthController     ;
+	initialWwwPage? : WwwPage            ;
+	terminal?       : Terminal           ;
+	workbench       : ProjectWorkbench   ;
+	development?    : DevelopmentService ;
+	cwd?            : string             ;
+	usage           : UsageMonitor       ;
+	auth            : AuthController     ;
 	developmentMapSource?: {
 		startPolling(listener: (snapshot: DevelopmentMapSnapshot) => void, intervalMs?: number): () => void;
 	};
@@ -158,17 +161,20 @@ export interface ProjectWorkbenchShellDependencies {
 	homeDirectory?              : string                      ;
 	composerDraft?              : ComposerDraftController     ;
 	releaseSessionLease?        : () => Promise<void>         ;
+	/** Test seam for deterministic streaming-frame coalescing; production keeps the scheduler default. */
+	renderIntervalMs?           : number                      ;
 }
 
 export const WORKBENCH_STATUS_NOTICE = "";
-const COMPOSER_WELCOME_BORDER_INTERVAL_MS = 750;
+
+const COMPOSER_WELCOME_BORDER_INTERVAL_MS = 750 ;
 
 function layerTraceId(workbench: ProjectWorkbench): string | null {
 	return typeof workbench.currentPerformanceTraceId === "function" ? workbench.currentPerformanceTraceId() : null;
 }
 
-function observeLayer(workbench: ProjectWorkbench, traceId: string, layerId: "render-schedule" | "layout-materialize" | "terminal-write", boundary: "queued" | "started" | "completed" | "failed"): void {
-	if (typeof workbench.observeLayerPerformance === "function") workbench.observeLayerPerformance(traceId, layerId, boundary);
+function observeLayer(workbench: ProjectWorkbench, traceId: string, layerId: "render-schedule" | "layout-materialize" | "terminal-write", boundary: "queued" | "started" | "completed" | "failed", frameId?: string): void {
+	if (typeof workbench.observeLayerPerformance === "function") workbench.observeLayerPerformance(traceId, layerId, boundary, performance.now(), frameId);
 }
 
 /** @Unit Code-004 */
@@ -176,16 +182,26 @@ function observeLayer(workbench: ProjectWorkbench, traceId: string, layerId: "re
 /** @codeId 0004 */
 export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDependencies): void {
 	const { workbench, usage, auth, composerDraft, releaseSessionLease } = dependencies;
-	const cwd                        = dependencies.cwd ?? process.cwd()              ;
-	const terminal                   = dependencies.terminal ?? new ProcessTerminal() ;
-	const tui                        = new TuiAltScreen(terminal, true)               ;
-	let frameTraceId : string | null = null                                           ;
+	const cwd                          = dependencies.cwd ?? process.cwd()              ;
+	const terminal                     = dependencies.terminal ?? new ProcessTerminal() ;
+	const tui                          = new TuiAltScreen(terminal, true)               ;
+	let terminalFrameSequence          = 0                                              ;
+	let activeFrameId  : string | null = null                                           ;
+	let activeFrameTraceIds            = new Set<string>()                              ;
+	const pendingFrameTraceIds         = new Set<string>()                              ;
 	tui.setRenderObserver((phase, boundary) => {
-		const traceId = frameTraceId;
-		if (traceId) observeLayer(workbench, traceId, phase, boundary);
-		if (boundary === "failed" || phase === "terminal-write" && boundary === "completed") frameTraceId = null;
+		if (phase === "layout-materialize" && boundary === "started") {
+			activeFrameId = `terminal-frame-${++terminalFrameSequence}`;
+			activeFrameTraceIds = new Set(pendingFrameTraceIds);
+			pendingFrameTraceIds.clear();
+		}
+		for (const traceId of activeFrameTraceIds) observeLayer(workbench, traceId, phase, boundary, activeFrameId ?? undefined);
+		if (boundary === "failed" || phase === "terminal-write" && boundary === "completed") {
+			activeFrameId = null;
+			activeFrameTraceIds.clear();
+		}
 	});
-	const terminalBackgroundEnabled                   = dependencies.design === "astra" && process.env.NO_COLOR === undefined                        ;
+	const terminalBackgroundEnabled                   = dependencies.surface === "www" && process.env.NO_COLOR === undefined                         ;
 	const applyTerminalBackground                     = (): void => { if (terminalBackgroundEnabled) terminal.write(tuiBackgroundSequence()); }      ;
 	const resetTerminalBackground                     = (): void => { if (terminalBackgroundEnabled) terminal.write(tuiBackgroundResetSequence()); } ;
 	let liveSnapshot                                  = workbench.snapshot                                                                           ;
@@ -194,46 +210,49 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	let usageSnapshots     : readonly UsageSnapshot[] = liveUsageSnapshots                                                                           ;
 	let demoMode                                      = false                                                                                        ;
 	let demoIndex                                     = 0                                                                                            ;
-	let demoReturnPage     : AstraPage                = "execution"                                                                                  ;
+	let demoReturnPage     : WwwPage                  = "execution"                                                                                  ;
 	let demoReturnDraft                               = ""                                                                                           ;
 	let synchronizeSnapshotUi                         = (): void => undefined                                                                        ;
-	const astraMotion                                 = process.env.ASTRA_REDUCED_MOTION !== "1" && process.env.NO_COLOR === undefined               ;
+	const wwwMotion                                   = process.env.WWW_REDUCED_MOTION !== "1" && process.env.NO_COLOR === undefined                 ;
 	// pi-tui visibility callbacks receive the whole terminal, even in nested
 	// stacks. Reserve the real composer/HUD chrome before showing side content.
-	function astraBodyHeight(rows: number, columns: number, stable = false): number {
+	function wwwBodyHeight(rows: number, columns: number, stable = false): number {
 		// Keep the transcript's width stable while typing. Only the scrollable
 		// plan keeps its column; the optional note still uses the real row budget.
-		return Math.max(1, rows - (stable ? 3 : composerFrame.render(columns).length) - (rows >= 12 ? 2 : 0) - 2
+		const composerRows = stable
+			? www?.page === "execution" ? 4 : 3
+			: composerFrame instanceof WwwComposer ? composerFrame.rowCount(columns) : composerFrame.render(columns).length;
+		return Math.max(1, rows - composerRows - (rows >= 12 ? 2 : 0) - 2
 			- (rows >= 5 && (stable || status.hasNotice) ? 1 : 0) - (rows >= 7 ? 1 : 0));
 	}
-	const astraExecutionHeading = dependencies.design === "astra"
-		? new AstraExecutionHeading(() => snapshot, undefined, Date.now, astraMotion)
+	const wwwExecutionHeading = dependencies.surface === "www"
+		? new WwwExecutionHeading(() => projectChatFeature(snapshot), undefined, Date.now, wwwMotion)
 		: null;
 	let closeThreeBodyLab = (): void => undefined;
-	const threeBodyLab = dependencies.design === "astra"
+	const threeBodyLab = dependencies.surface === "www"
 		? new ThreeBodyLabView({
-			viewportHeight: () => astraBodyHeight(terminal.rows, terminal.columns),
+			viewportHeight: () => wwwBodyHeight(terminal.rows, terminal.columns),
 			onClose: () => closeThreeBodyLab(),
 		})
 		: null;
-	const astra = dependencies.design === "astra" ? new AstraWorkspace(
+	const www = dependencies.surface === "www" ? new WwwWorkspace(
 		() => snapshot,
 		() => usageSnapshots,
-		astraBodyHeight,
+		wwwBodyHeight,
 		Date.now,
-		astraMotion,
+		wwwMotion,
 		{ motionActive: requestRuntimeMotionActive, rows: requestRuntimeRows },
 		new WwwDashboardView(() => typeof workbench.layerPerformanceSnapshot === "function" ? { ...snapshot, layerPerformance: workbench.layerPerformanceSnapshot() } : snapshot, () => demoMode),
-		astraExecutionHeading,
+		null,
 		threeBodyLab ?? undefined,
 		{},
 		() => dependencies.usage.cacheMetrics(),
 		() => demoMode,
 	) : null;
-	astra?.show(dependencies.initialAstraPage ?? "execution");
-	const status = astra ? new AstraNotice() : new StatusLine(WORKBENCH_STATUS_NOTICE);
+	www?.show(dependencies.initialWwwPage ?? "execution");
+	const status = www ? new WwwNotice() : new StatusLine(WORKBENCH_STATUS_NOTICE);
 	const entryDashboard = new EntryDashboardView(() => snapshot.linearDashboard);
-	const chat = astra?.transcript ?? new WorkbenchChatView(snapshot, entryDashboard, {
+	const chat = www?.transcript ?? new WorkbenchChatView(projectChatFeature(snapshot), entryDashboard, {
 		render: (current, width) => current.pendingApproval
 			? approvalCardRows(
 				current.pendingApproval,
@@ -243,9 +262,9 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 			)
 			: [],
 	});
-	const sheet = (content: Component) => astra ? new AstraSheet(content, () => Math.max(6, Math.floor(terminal.rows * 0.8))) : new OverlaySheet(content);
+	const sheet = (content: Component) => www ? new WwwSheet(content, () => Math.max(6, Math.floor(terminal.rows * 0.8))) : new OverlaySheet(content);
 	const usageStrip = new UsageStripView(() => projectUsageStripSession(snapshot));
-	const tracer = new WorkbenchTracerView(() => snapshot, {
+	const tracer = new WorkbenchTracerView(() => projectTracerFeature(snapshot), {
 		renderSummary: renderDelegationSummary,
 		renderDetail: renderDelegationDetail,
 	});
@@ -258,52 +277,52 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	const getRuntimeMonitor = () => selectedHistoricalSession && selectedHistoricalSession.sessionId !== snapshot.threadId
 		? unavailableHistoricalMonitor()
 		: projectRuntimeMonitor(snapshot, snapshot.activities, typeof workbench.layerPerformanceSnapshot === "function" ? workbench.layerPerformanceSnapshot() : snapshot.layerPerformance);
-	const runtimeMonitorView = astra ? new AstraMonitorView(getRuntimeMonitor, Date.now, astraMotion) : new RuntimeMonitorView(getRuntimeMonitor);
-	const runtimeMonitor = new ScrollView(astra ? new AstraInset(runtimeMonitorView) : runtimeMonitorView, {
-		follow: astra ? "none" : "end", primary: true, overscroll: "contain", scrollbar: "auto", scrollbarStyle: astra ? a.rule : colors.muted,
+	const runtimeMonitorView = www ? new WwwMonitorView(getRuntimeMonitor, Date.now, wwwMotion) : new RuntimeMonitorView(getRuntimeMonitor);
+	const runtimeMonitor = new ScrollView(www ? new WwwInset(runtimeMonitorView) : runtimeMonitorView, {
+		follow: www ? "none" : "end", primary: true, overscroll: "contain", scrollbar: "auto", scrollbarStyle: www ? a.rule : colors.muted,
 	});
 	let observabilityDashboardSnapshot : ObservabilityDashboard                                  = emptyObservabilityDashboard() ;
 	let selectedDashboardSessionIndex                                                            = 0                             ;
 	let selectedHistoricalSession      : ObservabilityDashboard["recentSessions"][number] | null = null                          ;
-	const observabilityDashboardView = astra
-		? new AstraHistoryView(() => observabilityDashboardSnapshot, () => selectedDashboardSessionIndex, () => astraBodyHeight(terminal.rows, terminal.columns))
+	const observabilityDashboardView = www
+		? new WwwHistoryView(() => observabilityDashboardSnapshot, () => selectedDashboardSessionIndex, () => wwwBodyHeight(terminal.rows, terminal.columns))
 		: new ObservabilityDashboardView(() => observabilityDashboardSnapshot, () => selectedDashboardSessionIndex);
-	const observabilityDashboard = new ScrollView(astra ? new AstraInset(observabilityDashboardView) : observabilityDashboardView, {
-		follow: "none", primary: true, overscroll: "contain", scrollbar: "auto", scrollbarStyle: astra ? a.rule : colors.muted,
+	const observabilityDashboard = new ScrollView(www ? new WwwInset(observabilityDashboardView) : observabilityDashboardView, {
+		follow: "none", primary: true, overscroll: "contain", scrollbar: "auto", scrollbarStyle: www ? a.rule : colors.muted,
 	});
 	let developmentMapSnapshot: DevelopmentMapSnapshot = EMPTY_DEVELOPMENT_MAP;
-	const developmentMapView = new (astra ? AstraMapView : DevelopmentMapView)(() => developmentMapSnapshot);
-	const developmentMap = new ScrollView(astra ? new AstraInset(developmentMapView) : developmentMapView, {
+	const developmentMapView = new (www ? WwwMapView : DevelopmentMapView)(() => developmentMapSnapshot);
+	const developmentMap = new ScrollView(www ? new WwwInset(developmentMapView) : developmentMapView, {
 		follow         : "none",
 		primary        : true,
 		overscroll     : "contain",
 		scrollbar      : "auto",
-		scrollbarStyle : astra ? a.rule : colors.muted,
+		scrollbarStyle : www ? a.rule : colors.muted,
 	});
 	let statsTarget: "session" | "diagnostics" | "latest" | number = "session";
-	const sessionStatsView = new (astra ? AstraStatsView : SessionStatsView)(() => projectSessionStats(snapshot), () => statsTarget, () => selectedHistoricalSession);
-	const sessionStats = new ScrollView(astra ? new AstraInset(sessionStatsView) : sessionStatsView, {
+	const sessionStatsView = new (www ? WwwStatsView : SessionStatsView)(() => projectSessionStats(snapshot), () => statsTarget, () => selectedHistoricalSession);
+	const sessionStats = new ScrollView(www ? new WwwInset(sessionStatsView) : sessionStatsView, {
 		follow         : "none",
 		primary        : true,
 		overscroll     : "contain",
 		scrollbar      : "auto",
-		scrollbarStyle : astra ? a.rule : colors.muted,
+		scrollbarStyle : www ? a.rule : colors.muted,
 	});
-	const testWorkspaceView = new AstraTestView(() => projectAstraTestView(snapshot));
-	const testWorkspace = new ScrollView(new AstraInset(testWorkspaceView), {
-		follow: "none", primary: true, overscroll: "contain", scrollbar: "auto", scrollbarStyle: astra ? a.rule : colors.muted,
+	const testWorkspaceView = new WwwTestView(() => projectWwwTestView(snapshot));
+	const testWorkspace = new ScrollView(new WwwInset(testWorkspaceView), {
+		follow: "none", primary: true, overscroll: "contain", scrollbar: "auto", scrollbarStyle: www ? a.rule : colors.muted,
 	});
 	const telemetry = new WorkbenchTelemetryLine(cwd, () => tui.requestRender(), dependencies.gitTelemetrySource, dependencies.homeDirectory);
 	const bottomHud = new WorkbenchBottomHudView(usageStrip);
-	const dashboard = astra ? { component: astra.component } : createDashboardLayout(
+	const dashboard = www ? { component: www.component } : createDashboardLayout(
 		() => "Workbench",
 		{ color: colors.accent, component: chat },
 		{ color: colors.warm, component: todo },
 		{ title: "Tracer", color: colors.secondary, component: tracer },
 		() => ["TODO", todoPanelTimestamp(snapshot.todo?.updatedAt)].filter(Boolean).join(" "),
 	);
-	const astraSource = astra ? new ScrollView(new AstraInset(new AstraContextView(() => snapshot, () => usageSnapshots, true)), { follow: "none", primary: true, overscroll: "contain", scrollbar: "auto", scrollbarStyle: a.rule }) : null;
-	const sourceLayout = astraSource ? { component: astraSource, leftScroll: astraSource } : createDashboardLayout(
+	const wwwSource = www ? new ScrollView(new WwwInset(new WwwContextView(() => snapshot, () => usageSnapshots, true)), { follow: "none", primary: true, overscroll: "contain", scrollbar: "auto", scrollbarStyle: a.rule }) : null;
+	const sourceLayout = wwwSource ? { component: wwwSource, leftScroll: wwwSource } : createDashboardLayout(
 		() => `Source · ${workbenchFrameTitle(snapshot)}`,
 		{ color: colors.accent, component: chat },
 		{ color: colors.warm, component: todo },
@@ -321,44 +340,51 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		sessionStats,
 		testWorkspace,
 	);
-	const editor = new Editor(tui, astra ? astraEditorTheme : editorTheme, { paddingX: astra ? 2 : 1, autocompleteMaxVisible: 5 });
-	editor.setAutocompleteProvider(new CombinedAutocompleteProvider(withNativeModelCompletions(astra ? ASTRA_COMMANDS : [...WORKBENCH_SLASH_COMMANDS, {name: "work", description: "Issue 연결·기록 상태·Obsidian checkpoint/open"}], () => snapshot.modelCatalog), cwd));
+	const editor = new Editor(tui, www ? wwwEditorTheme : editorTheme, { paddingX: www ? 2 : 1, autocompleteMaxVisible: 5 });
+	editor.setAutocompleteProvider(new CombinedAutocompleteProvider(withNativeModelCompletions(www ? WWW_COMMANDS : [...WORKBENCH_SLASH_COMMANDS, {name: "work", description: "Issue 연결·기록 상태·Obsidian checkpoint/open"}], () => snapshot.modelCatalog), cwd));
 	if (composerDraft?.initialText) editor.setText(composerDraft.initialText);
-	const composerSlot                               = new ComponentSlot(editor)                                                                                                                                       ;
-	let overlays : WorkbenchOverlayController | null = null                                                                                                                                                            ;
-	const composerFrame                              = astra ? new AstraComposer(composerSlot, editor, () => snapshot, () => !overlays?.isInlineApprovalActive) : new ComposerModelFrame(composerSlot, () => snapshot) ;
+	let composerGeneration = 0;
+	editor.onChange = () => { composerGeneration += 1; };
+	const composerPersistence = composerDraft
+		? new ComposerDraftPersistenceQueue(composerDraft, () => composerGeneration, () => editor.getExpandedText())
+		: null;
+	const composerSlot                               = new ComponentSlot(editor)                                                                                                                                                                                        ;
+	let overlays : WorkbenchOverlayController | null = null                                                                                                                                                                                                             ;
+	const composerFrame                              = www ? new WwwComposer(composerSlot, editor, () => snapshot, () => !overlays?.isInlineApprovalActive, wwwExecutionHeading, () => www.page === "execution") : new ComposerModelFrame(composerSlot, () => snapshot) ;
 	const root = new VStack([
-		...(astra ? [
-			{ component: new AstraHeader(() => snapshot, () => navigation.mode === "workbench" ? astraPageLabel(astra.page) : navigation.mode === "monitor" ? "Activity" : navigation.mode, cwd), basis: 2, minSize: 1, maxSize: 2, visible: ({ height }: { height: number }) => height >= 12 },
+		...(www ? [
+			{ component: new WwwHeader(() => snapshot, () => navigation.mode === "workbench" ? wwwPageLabel(www.page) : navigation.mode === "monitor" ? "Progress" : navigation.mode, cwd), basis: 2, minSize: 1, maxSize: 2, visible: ({ height }: { height: number }) => height >= 12 },
 		] : []),
 		{ component: activeView, basis: 0, grow: 1, shrink: 1, minSize: 1 },
 		{ component: composerFrame, basis: "auto", shrink: 1, minSize: 3 },
 		{ component: status, basis: 1, minSize: 1, maxSize: 1, visible: ({ height }) => height >= 5 && status.hasNotice },
-		{ component: astra ? new AstraHud(() => snapshot, () => usageSnapshots) : bottomHud, basis: astra ? "auto" : 1, minSize: 1, maxSize: astra ? 6 : 1, visible: ({ height }) => height >= 7 },
+		{ component: www ? new WwwHud(() => snapshot, () => usageSnapshots, true, () => www.cacheTelemetry()) : bottomHud, basis: www ? "auto" : 1, minSize: 1, maxSize: www ? 6 : 1, visible: ({ height }) => height >= 7 },
 	]);
-	let lastAutoApprovalId     : NonNullable<WorkbenchSnapshot["pendingApproval"]>["requestId"] | null = null                ;
-	const exitKeys                                                                                     = new ExitKeyPolicy() ;
-	let unsubscribe            : () => void                                                            = () => undefined     ;
-	let scheduledRenderTraceId : string | null                                                         = null                ;
+	let lastAutoApprovalId : NonNullable<WorkbenchSnapshot["pendingApproval"]>["requestId"] | null = null                ;
+	const exitKeys                                                                                 = new ExitKeyPolicy() ;
+	let unsubscribe        : () => void                                                            = () => undefined     ;
+	const scheduledRenderTraceIds                                                                  = new Set<string>()   ;
 	const workbenchRenders = new RenderScheduler(() => {
-		const traceId = scheduledRenderTraceId;
-		scheduledRenderTraceId = null;
-		if (traceId) observeLayer(workbench, traceId, "render-schedule", "started");
+		const traceIds = [...scheduledRenderTraceIds];
+		scheduledRenderTraceIds.clear();
+		for (const traceId of traceIds) observeLayer(workbench, traceId, "render-schedule", "started");
 		try {
-			chat.update(snapshot);
-			frameTraceId = traceId;
-			if (traceId) {
+			chat.update(projectChatFeature(snapshot));
+			for (const traceId of traceIds) {
+				pendingFrameTraceIds.add(traceId);
 				observeLayer(workbench, traceId, "layout-materialize", "queued");
 				observeLayer(workbench, traceId, "terminal-write", "queued");
 			}
 			tui.requestRender();
-			if (traceId) observeLayer(workbench, traceId, "render-schedule", "completed");
+			for (const traceId of traceIds) observeLayer(workbench, traceId, "render-schedule", "completed");
 		} catch (error) {
-			frameTraceId = null;
-			if (traceId) observeLayer(workbench, traceId, "render-schedule", "failed");
+			for (const traceId of traceIds) {
+				pendingFrameTraceIds.delete(traceId);
+				observeLayer(workbench, traceId, "render-schedule", "failed");
+			}
 			throw error;
 		}
-	});
+	}, dependencies.renderIntervalMs);
 	const stopUsagePolling = usage.startPolling((snapshots) => {
 		liveUsageSnapshots = snapshots;
 		if (!demoMode) {
@@ -385,50 +411,50 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 			test      : testWorkspace,
 		},
 		developmentMapPolling,
-		astra,
+		www,
 	);
-	const showAstraPage = (page: AstraPage, browse = page !== "execution"): void => {
-		const wasLab = astra?.page === "lab";
-		if (!navigation.showAstraPage(page, browse)) return;
+	const showWwwPage = (page: WwwPage, browse = page !== "execution"): void => {
+		const wasLab = www?.page === "lab";
+		if (!navigation.showWwwPage(page, browse)) return;
 		if (wasLab && page !== "lab") threeBodyLab?.deactivate();
 		if (page === "lab") threeBodyLab?.activate(() => tui.requestRender());
 		status.setNotice("");
 		tui.requestRender();
 	};
-	const currentDemoPage = (): AstraPage => ASTRA_DEMO_PAGES[demoIndex] ?? "execution";
-	const demoNotice = (): string => `DEMO DATA · ${demoIndex + 1}/${ASTRA_DEMO_PAGES.length} ${astraPageLabel(currentDemoPage())} · R 이전 · E 다음 · Esc 종료`;
+	const currentDemoPage = (): WwwPage => WWW_DEMO_PAGES[demoIndex] ?? "execution";
+	const demoNotice = (): string => `DEMO DATA · ${demoIndex + 1}/${WWW_DEMO_PAGES.length} ${wwwPageLabel(currentDemoPage())} · R 이전 · E 다음 · Esc 종료`;
 	const showDemoPage = (index: number): void => {
-		demoIndex = (index + ASTRA_DEMO_PAGES.length) % ASTRA_DEMO_PAGES.length;
-		showAstraPage(currentDemoPage(), true);
+		demoIndex = (index + WWW_DEMO_PAGES.length) % WWW_DEMO_PAGES.length;
+		showWwwPage(currentDemoPage(), true);
 		status.setNotice(demoNotice());
 		tui.requestRender();
 	};
 	const enterDemo = (): void => {
-		if (!astra || demoMode) return;
+		if (!www || demoMode) return;
 		demoMode        = true             ;
-		demoReturnPage  = astra.page       ;
+		demoReturnPage  = www.page         ;
 		demoReturnDraft = editor.getText() ;
-		const demo = createAstraDemoState(liveSnapshot);
+		const demo = createWwwDemoState(liveSnapshot);
 		snapshot = demo.snapshot;
 		usageSnapshots = demo.usage;
 		editor.setText("");
-		chat.update(snapshot);
+		chat.update(projectChatFeature(snapshot));
 		usageStrip.update(usageSnapshots);
 		showDemoPage(0);
 	};
 	const exitDemo = (): void => {
-		if (!astra || !demoMode) return;
+		if (!www || !demoMode) return;
 		demoMode       = false              ;
 		snapshot       = liveSnapshot       ;
 		usageSnapshots = liveUsageSnapshots ;
-		chat.update(snapshot);
+		chat.update(projectChatFeature(snapshot));
 		usageStrip.update(usageSnapshots);
 		editor.setText(demoReturnDraft);
-		showAstraPage(demoReturnPage, demoReturnPage !== "execution");
+		showWwwPage(demoReturnPage, demoReturnPage !== "execution");
 		synchronizeSnapshotUi();
 		tui.requestRender();
 	};
-	closeThreeBodyLab = () => showAstraPage("execution", false);
+	closeThreeBodyLab = () => showWwwPage("execution", false);
 	const cycleRuntimeMode = async (): Promise<void> => {
 		const next          = nextWorkbenchRuntimeMode(snapshot)                                                    ;
 		const configuration = workbenchRuntimeConfiguration(next)                                                   ;
@@ -448,19 +474,20 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		if (navigation.mode === "monitor" && snapshot.phase === "working") tui.requestRender();
 	}, 1_000);
 	monitorClock.unref?.();
-	const astraClock = astra ? setInterval(() => {
+	// The spinner frame advances every 120ms; without motion only elapsed labels need the 1s tick.
+	const wwwClock = www ? setInterval(() => {
 		const request = snapshot.requestRuntime?.at(-1);
-		if (!lifecycle.isShuttingDown && !overlays?.hasOverlay && (astraExecutionIsLive(snapshot) || astraMotion && (astra.hasVisibleSidebarOrbit || snapshot.sessionGoal?.text || request && requestRuntimeMotionActive(request, Date.now())))) tui.requestRender();
-	// `workingStatusLine()` advances its pulse every 120ms. Repainting at 80ms
-	// computed an identical full layout roughly one third of the time, while live
-	// Native snapshots already use the 32ms RenderScheduler path below.
-	}, astraMotion ? 120 : 1_000) : null;
-	astraClock?.unref?.();
+		if (!lifecycle.isShuttingDown && !overlays?.hasOverlay && (wwwExecutionIsLive(projectChatFeature(snapshot)) || wwwMotion && request && requestRuntimeMotionActive(request, Date.now()))) tui.requestRender();
+	// Native deltas already use the 32ms scheduler below. This clock only keeps
+	// elapsed labels and live decoration fresh. A persistent session goal is
+	// static and must not keep the layered workspace repainting after completion.
+	}, wwwMotion ? 120 : 1_000) : null;
+	wwwClock?.unref?.();
 	let composerBorderFrame = 0;
 	const composerBorderClock = setInterval(() => {
 		// A border shimmer is decorative. Once a conversation exists, redraws must
 		// belong to input or Runtime state, not a perpetual cosmetic clock.
-		if (astra
+		if (www
 			|| !editor.focused
 			|| lifecycle.isShuttingDown
 			|| snapshot.phase === "working"
@@ -479,9 +506,9 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		},
 		unsubscribe : () => unsubscribe(),
 		stopPolling : [stopUsagePolling, () => navigation.dispose()],
-		timers      : [monitorClock, composerBorderClock, astraClock],
+		timers      : [monitorClock, composerBorderClock, wwwClock],
 		disposables : [workbenchRenders, telemetry, chat, ...(threeBodyLab ? [threeBodyLab] : [])],
-		...(composerDraft ? { saveDraft: () => composerDraft.save(editor.getExpandedText()) } : {}),
+		...(composerPersistence ? { saveDraft: () => composerPersistence.saveLatest() } : {}),
 		closeWorkbench: () => workbench.close(),
 		...(releaseSessionLease ? { releaseSessionLease } : {}),
 		stopTerminal: () => { tui.stop(); resetTerminalBackground(); },
@@ -517,7 +544,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		tui.requestRender();
 	};
 	overlays = new WorkbenchOverlayController({
-		astra,
+		www,
 		terminal,
 		tui,
 		editor,
@@ -528,7 +555,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		usage,
 		auth,
 		status,
-		showAstraPage,
+		showWwwPage,
 		closeTransientSurface: () => navigation.closeTransientSurface(),
 		updateUsage: (next) => {
 			usageSnapshots = next;
@@ -538,11 +565,14 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	});
 	const submitComposer = (text: string): void => {
 		if (lifecycle.isShuttingDown || !text.trim()) return;
+		const submittedGeneration = composerGeneration                                               ;
+		const composerIsUnchanged = (): boolean => composerGeneration === submittedGeneration        ;
+		const restoreSubmission   = (): void => { if (composerIsUnchanged()) editor.setText(text); } ;
 		editor.addToHistory(text);
 		void (async () => {
 			if (await handleLocal(text)) return;
 			if (snapshot.pendingApproval) {
-				editor.setText(text);
+				restoreSubmission();
 				overlays?.openApproval(snapshot.pendingApproval);
 				status.setNotice("승인 선택 화면을 열었습니다. ↑↓ 또는 숫자로 선택하세요.");
 				tui.requestRender();
@@ -550,10 +580,11 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 			}
 			const receipt = await workbench.dispatch({ type: "chat.send", text, delivery: "queue" });
 			showReceipt(receipt);
-			if (workbenchReceiptClearsComposer(receipt)) await composerDraft?.clear().catch(() => undefined);
-			else editor.setText(text);
+			if (workbenchReceiptClearsComposer(receipt)) {
+				await composerPersistence?.clearIfCurrent(submittedGeneration).catch(() => undefined);
+			} else restoreSubmission();
 		})().catch((error) => {
-			editor.setText(text);
+			restoreSubmission();
 			status.setNotice(error instanceof Error ? error.message : String(error));
 			tui.requestRender();
 		});
@@ -563,14 +594,14 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		chat.syncActivity(workbenchActivityIndicator(snapshot), () => tui.requestRender());
 	};
 	const handleLocal = createWorkbenchCommandRouter({
-		hasAstra: astra !== null,
+		hasWww: www !== null,
 		snapshot: () => snapshot,
 		workbench,
 		...(dependencies.development ? { development: dependencies.development } : {}),
 		usage,
 		auth,
 		enterDemo,
-		showAstraPage,
+		showWwwPage,
 		enterObservability,
 		updateUsage: (next) => {
 			usageSnapshots = next;
@@ -592,6 +623,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		setNotice              : (notice) => status.setNotice(notice),
 		requestRender          : () => tui.requestRender(),
 		openModelSettings      : () => overlays?.openModelSettings(),
+		openNotes              : () => overlays?.openNotes(),
 		openAuthentication     : (provider) => overlays?.openAuthentication(provider),
 		dispatchModelSelection : (settings) => overlays!.dispatchModelSelection(settings),
 		showReceipt,
@@ -601,7 +633,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	unsubscribe = workbench.subscribe((next) => {
 		const traceId = layerTraceId(workbench);
 		if (traceId) {
-			scheduledRenderTraceId = traceId;
+			scheduledRenderTraceIds.add(traceId);
 			observeLayer(workbench, traceId, "render-schedule", "queued");
 		}
 		const urgency = workbenchRenderUrgency(liveSnapshot, next);
@@ -614,8 +646,8 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		workbenchRenders.request(urgency);
 	});
 	installWorkbenchInputRouting({
-		tui, editor, workbench, workbenchRenders, lifecycle, overlays, astra, threeBodyLab, navigation,
-		snapshot: () => snapshot, handleLocal, submitComposer, showAstraPage, cycleRuntimeMode, enterObservability, status, exitKeys, shutdown, showReceipt,
+		tui, editor, workbench, workbenchRenders, lifecycle, overlays, www, threeBodyLab, navigation,
+		snapshot: () => snapshot, handleLocal, submitComposer, showWwwPage, cycleRuntimeMode, enterObservability, status, exitKeys, shutdown, showReceipt,
 		dashboard                 : () => observabilityDashboardSnapshot,
 		selectedDashboardIndex    : () => selectedDashboardSessionIndex,
 		setSelectedDashboardIndex : (index) => { selectedDashboardSessionIndex = index; },
@@ -627,7 +659,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	if (!isViewportTUI(tui)) throw new Error("현재 터미널 렌더러가 viewport layout을 지원하지 않습니다.");
 	tui.setLayoutRoot(root);
 	tui.setFocus(overlays?.focusTarget ?? editor);
-	if (astra) void refreshObservabilityDashboard().then(() => tui.requestRender());
+	if (www) void refreshObservabilityDashboard().then(() => tui.requestRender());
 	telemetry.refresh();
 	chat.syncActivity(workbenchActivityIndicator(snapshot), () => tui.requestRender());
 	chat.playWelcomeIntro(() => tui.requestRender());

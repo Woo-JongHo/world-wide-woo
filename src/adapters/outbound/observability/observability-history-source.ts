@@ -1,9 +1,12 @@
-import { readdir, readFile }                                     from "node:fs/promises";
-import type { Dirent }                                           from "node:fs";
-import { join }                                                  from "node:path";
-import type { ObservabilityActivityStream }                      from "@/core/domain/observability/observability-dashboard.js";
-import type { ProjectActivity }                                  from "@/core/domain/execution/project-activity.js";
-import type { ObservabilityHistory, ObservabilityHistoryReader } from "@/core/ports/index.js";
+import { readdir, readFile }                from "node:fs/promises";
+import type { Dirent }                      from "node:fs";
+import { join }                             from "node:path";
+import type { ObservabilityActivityStream } from "@/core/domain/observability/observability-dashboard.js";
+import type { ProjectActivity }             from "@/core/domain/execution/project-activity.js";
+import type {
+	ObservabilityHistory,
+	ObservabilityHistoryReader,
+} from "@/core/ports/observability/observability-history-port";
 
 export const OBSERVABILITY_HISTORY_STREAM_LIMIT = 64;
 export const OBSERVABILITY_HISTORY_ACTIVITY_LIMIT = 5_000;

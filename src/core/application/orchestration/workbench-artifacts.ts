@@ -1,10 +1,11 @@
-import type { CanonicalDocumentDraft }  from "@/core/domain/work/canonical-document.js";
-import type { TNoteDraft }              from "@/core/domain/work/t-notes.js";
-import type { TodoDocument }            from "@/core/domain/work/todos.js";
-import type { WorkbenchTNote }          from "@/core/domain/work/workbench.js";
-import { sanitizeTerminalTextExcerpt }  from "@/core/domain/execution/terminal.js";
-import { createCanonicalDocumentDraft } from "@/core/application/work/canonical-promotion.js";
-import { stableJson }                   from "@/core/application/orchestration/workbench-projections.js";
+import type { CanonicalDocumentDraft }                          from "@/core/domain/work/canonical-document.js";
+import type { TNoteDraft }                                      from "@/core/domain/work/t-notes.js";
+import type { TodoDocument }                                    from "@/core/domain/work/todos.js";
+import type { WorkbenchTNote }                                  from "@/core/domain/work/workbench.js";
+import { sanitizeTerminalTextExcerpt }                          from "@/core/domain/execution/terminal.js";
+import { createCanonicalDocumentDraft }                         from "@/core/application/work/canonical-promotion.js";
+import { stableJson }                                           from "@/core/application/orchestration/workbench-projections.js";
+import { parseCanonicalTNoteReport, parseLegacyCanonicalTNote } from "@/core/application/work/t-note-service.js";
 
 export function turnTNoteInstruction(question: string): string {
 	return [
@@ -25,16 +26,23 @@ export function turnTNoteInstruction(question: string): string {
 }
 
 export function projectTNote(draft: TNoteDraft): WorkbenchTNote {
-	const question = /^질문:\s*(.+)$/imu.exec(draft.text)?.[1]?.trim();
+	const report   = parseCanonicalTNoteReport(draft.text)                          ;
+	const legacy   = parseLegacyCanonicalTNote(draft.text)                          ;
+	const question = report?.question ?? legacy?.question                           ;
+	const format   = report?.version ?? (legacy ? "legacy-three-field" : "unknown") ;
 	return {
-		id: draft.id,
-		title: question
+		id       : draft.id,
+		sequence : draft.sequence,
+		title    : question
 			? sanitizeTerminalTextExcerpt(question, 160, "head-tail")
 			: "현재 세션 대화 요약",
-		summary: draft.text,
-		sourceActivityIds: draft.packet.activities.map((activity) => activity.id),
+		summary           : draft.text,
+		sourceActivityIds : draft.packet.activities.map((activity) => activity.id),
+		sourceRange       : draft.packet.range,
 		...(draft.packet.completion ? { completion: draft.packet.completion } : {}),
-		updatedAt: draft.createdAt,
+		provenance : draft.provenance,
+		format,
+		updatedAt  : draft.createdAt,
 	};
 }
 

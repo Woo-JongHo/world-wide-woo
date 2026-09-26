@@ -2,9 +2,9 @@ import { Markdown, truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@eare
 import type { Component }                                            from "@earendil-works/pi-tui";
 import type { SessionSnapshot }                                      from "@/core/application/session/session-runtime";
 import type { Effort }                                               from "@/core/domain/execution/model-settings";
-import { BashResultCard, GenericToolResultCard }                     from "@/adapters/inbound/tui/features/chat/result-cards";
+import { BashResultCard, GenericToolResultCard }                     from "@/adapters/inbound/tui/features/chat/view/result-cards";
 import { colors, gradientLines, markdownTheme, semantic }            from "@/adapters/inbound/tui/foundation/theme/theme";
-export { UsageStripView } from "@/adapters/inbound/tui/features/usage/usage-strip-view";
+export { UsageStripView } from "@/adapters/inbound/tui/features/usage/view/usage-strip-view";
 
 export const EFFORT_LABEL: Record<Effort, string> = {
 	low    : "낮음",

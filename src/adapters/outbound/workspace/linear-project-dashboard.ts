@@ -5,6 +5,7 @@ import type {
 	LinearDashboardUpdate,
 	LinearProjectDashboard,
 } from "@/core/domain/work/linear-dashboard.js";
+import type { LinearProjectDashboardReader } from "@/core/ports/integration/linear-project-dashboard-port";
 
 export interface LinearMcpToolCaller {
 	callMcpTool(input: {
@@ -26,7 +27,7 @@ export interface LinearProjectDashboardConfig {
 	readonly projectName : string ;
 }
 
-export class McpLinearProjectDashboard {
+export class McpLinearProjectDashboard implements LinearProjectDashboardReader {
 	public constructor(
 		private readonly caller: LinearMcpToolCaller,
 		private readonly config: LinearProjectDashboardConfig,

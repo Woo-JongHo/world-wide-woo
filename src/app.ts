@@ -10,34 +10,54 @@ import { loadRequestCapabilityConfig }     from "@/adapters/outbound/workspace/r
 import { saveWorkbenchExecutionSelection } from "@/adapters/outbound/workspace/workbench-config.js";
 import { DEFAULT_SETTINGS }                from "@/core/domain/execution/model-settings.js";
 
-import type { ExecutionLane }                  from "@/adapters/outbound/execution/factory.js";
-import type { ProjectWorkbenchSessionOptions } from "@/adapters/outbound/workspace/project-workbench-session.js";
-import type { WwwSettings }                    from "@/core/domain/execution/model-settings.js";
-import type { RecentSessionSummary }           from "@/core/ports";
+import type { ExecutionLane }        from "@/adapters/outbound/execution/factory.js";
+import type {
+	ProjectWorkbenchSession,
+	ProjectWorkbenchSessionOptions,
+} from "@/adapters/outbound/workspace/project-workbench-session.js";
+import type { WwwSettings }          from "@/core/domain/execution/model-settings.js";
+import type { RecentSessionSummary } from "@/core/ports/persistence/session-repository";
 
 export      { listNativeThreads               } from "@/adapters/outbound/workspace/native-thread-discovery.js";
 
-/** Workbench와 Astra 실행 입력. 생략된 속성은 새 thread와 기본 Codex runtime을 사용한다. */
+/** Native Workbench 실행 입력. 생략된 속성은 호환 surface와 관측 runtime을 사용한다. */
 export interface RunAppOptions {
 	/** 생략하면 새 Native thread를 시작한다. */
 	resumeThreadId ?: string;
 	/** 생략하면 Codex execution lane을 사용한다. */
 	executionLane  ?: ExecutionLane;
-	/** 생략하면 호환 Workbench, astra면 Astra Console을 연다. */
-	design         ?: "astra";
+	/** 생략하면 호환 Workbench, www면 현재 Native 제품 surface를 연다. */
+	surface        ?: "www";
+	/** 생략하면 호환 관측 모드다. WWW 진입점은 명시적으로 off를 선택한다. */
+	requestRuntimeMode ?: "off" | "observe";
 	/** 생략하면 외부 runtime config를 로드하지 않는다. */
 	runtimeConfig  ?: string;
 }
 
-export async function runApp(options : RunAppOptions = {}): Promise<void> {
-	const { FileSettingsStore }        = await import("@/adapters/outbound/persistence/settings-store");
-	const { runProjectWorkbenchShell } = await import("@/adapters/inbound/tui/shell/workbench-shell");
-	const settingsStore = new FileSettingsStore()          ;
-	const settings      = await settingsStore.load()       ;
+/** runApp의 외부 설정·세션·화면 경계. */
+export interface RunAppDependencies {
+	loadSettings                 ()                                                         : Promise<WwwSettings>                 ;
+	loadRequestCapabilityConfig  (path: string                                             ): ReturnType<typeof loadRequestCapabilityConfig>;
+	createProjectWorkbenchSession(cwd: string, options: ProjectWorkbenchSessionOptions     ): Promise<ProjectWorkbenchSession>   ;
+	openProjectWorkbench         (project: ProjectWorkbenchSession, options: RunAppOptions ): Promise<void>                      ;
+}
+
+const productionRunAppDependencies: RunAppDependencies = {
+	loadSettings,
+	loadRequestCapabilityConfig,
+	createProjectWorkbenchSession,
+	openProjectWorkbench,
+};
+
+export async function runApp(
+	options      : RunAppOptions      = {},
+	dependencies : RunAppDependencies = productionRunAppDependencies,
+): Promise<void> {
+	const settings      = await dependencies.loadSettings() ;
 	const executionLane = options.executionLane ?? "codex" ;
 	const requestCapabilityFactory     = options.runtimeConfig
-		? await loadRequestCapabilityConfig(options.runtimeConfig) : undefined;
-	const requestRuntimeMode          = requestCapabilityFactory ? "broker" : options.design === "astra" ? "off" : "observe";
+		? await dependencies.loadRequestCapabilityConfig(options.runtimeConfig) : undefined;
+	const requestRuntimeMode          = requestCapabilityFactory ? "broker" : options.requestRuntimeMode ?? "observe";
 	const piExecutionSelection        = executionLane === "pi"
 		? { provider: settings.provider, model: settings.model, effort: settings.effort }
 		: {};
@@ -57,30 +77,43 @@ export async function runApp(options : RunAppOptions = {}): Promise<void> {
 			await saveWorkbenchExecutionSelection(process.cwd(), next, catalog);
 		},
 	};
-	const project = await createProjectWorkbenchSession(process.cwd(), sessionOptions);
+	const project = await dependencies.createProjectWorkbenchSession(process.cwd(), sessionOptions);
 	try {
-		const { createProjectAuthController } = await import("@/adapters/outbound/authentication/project-auth");
-		runProjectWorkbenchShell({
-		workbench : project.workbench,
-		cwd       : project.workspace.root,
-		usage     : project.usage,
-		auth      : createProjectAuthController(),
-		...(options.design !== undefined ? { design: options.design } : {}),
-		developmentMapSource        : new FileDevelopmentMapSource(project.workspace.root),
-		...(project.development ? { development: project.development } : {}),
-		observabilityHistorySource : new ObservabilityHistorySource(join(project.workspace.root, ".www", "runtime", "activity")),
-			gitTelemetrySource     : new GitTelemetrySource(),
-			homeDirectory          : homedir(),
-			composerDraft          : project.composerDraft,
-			releaseSessionLease    : project.releaseSessionLease,
-		});
+		await dependencies.openProjectWorkbench(project, options);
 	} catch (error) {
 		await project.close();
 		throw error;
 	}
 }
 
-export async function runAstra(options: RunAppOptions = {}): Promise<void> { await runApp({ ...options, design: "astra" }); }
+export async function runWww(
+	options      : RunAppOptions      = {},
+	dependencies : RunAppDependencies = productionRunAppDependencies,
+): Promise<void> { await runApp({ ...options, surface: "www", requestRuntimeMode: "off" }, dependencies); }
+
+async function loadSettings(): Promise<WwwSettings> {
+	const { FileSettingsStore } = await import("@/adapters/outbound/persistence/settings-store");
+	return new FileSettingsStore().load();
+}
+
+async function openProjectWorkbench(project: ProjectWorkbenchSession, options: RunAppOptions): Promise<void> {
+	const { createProjectAuthController } = await import("@/adapters/outbound/authentication/project-auth");
+	const { runProjectWorkbenchShell }    = await import("@/adapters/inbound/tui/shell/workbench-shell");
+	runProjectWorkbenchShell({
+		workbench : project.workbench,
+		cwd       : project.workspace.root,
+		usage     : project.usage,
+		auth      : createProjectAuthController(),
+		...(options.surface !== undefined ? { surface: options.surface } : {}),
+		developmentMapSource        : new FileDevelopmentMapSource(project.workspace.root),
+		...(project.development ? { development: project.development } : {}),
+		observabilityHistorySource : new ObservabilityHistorySource(join(project.workspace.root, ".www", "runtime", "activity")),
+		gitTelemetrySource         : new GitTelemetrySource(),
+		homeDirectory              : homedir(),
+		composerDraft              : project.composerDraft,
+		releaseSessionLease        : project.releaseSessionLease,
+	});
+}
 
 export function codexInteractiveModel(settings: WwwSettings): string {
 	return settings.provider === "openai-codex" ? settings.model : DEFAULT_SETTINGS.model;

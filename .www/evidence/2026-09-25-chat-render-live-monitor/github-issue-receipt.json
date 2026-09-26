@@ -1,0 +1,69 @@
+{
+  "schemaVersion": "1.0",
+  "receiptId": "4c81df50-1bfe-4343-8e08-43ed0819b80c",
+  "runId": "78b69db0-1c99-4bc7-97a3-5749aae9301a",
+  "candidateId": "ARTIFACT-CANDIDATE-CHAT-RENDER-JANK-RECURRENCE",
+  "skill": {
+    "name": "woo-issue-intake",
+    "version": "1.0"
+  },
+  "capability": "github-issue.publish",
+  "intentId": null,
+  "status": "succeeded",
+  "stage": "verify",
+  "actor": {
+    "kind": "codex"
+  },
+  "context": {
+    "repository": "Woo-JongHo/world-wide-woo",
+    "sourceRevision": "git:e17837f8a0a5cb226674f397b63b8c6011901670:dirty",
+    "verifiedAt": "2026-09-25T17:03:50Z"
+  },
+  "input": {
+    "candidateDigest": "8526c3cb731f6f14831a82ce2a7d433ce3d9f975026a405494240b7dab388ad3",
+    "authorization": "사용자가 전체 Candidate 미리보기에 대해 진행해라고 명시했다."
+  },
+  "decision": {
+    "outcome": "publish",
+    "reason": "승인 직전 GitHub repository와 전체 Issue 수 및 관련 #12, #13, #7을 재조회했고 같은 열린 Issue가 없었다."
+  },
+  "validation": [
+    {
+      "id": "candidate",
+      "status": "pass",
+      "evidence": "artifact-control validate 통과"
+    },
+    {
+      "id": "read-back",
+      "status": "pass",
+      "evidence": "GitHub #59의 제목, bug 라벨, 본문이 승인안과 일치"
+    }
+  ],
+  "authorization": {
+    "candidateDigest": "8526c3cb731f6f14831a82ce2a7d433ce3d9f975026a405494240b7dab388ad3",
+    "actor": "user",
+    "scope": "GitHub Issue 1건 생성"
+  },
+  "execution": {
+    "command": "gh issue create",
+    "completedAt": "2026-09-25T17:03:50Z"
+  },
+  "result": {
+    "number": 59,
+    "url": "https://github.com/Woo-JongHo/world-wide-woo/issues/59",
+    "state": "OPEN",
+    "title": "장시간 Native 작업 중 Chat 전체 렌더링이 반복적으로 CPU를 포화한다",
+    "labels": [
+      "bug"
+    ]
+  },
+  "failure": null,
+  "evidence": [
+    ".www/evidence/2026-09-25-chat-render-live-monitor/github-issue-candidate.json",
+    ".www/evidence/2026-09-25-chat-render-live-monitor/sustained-summary.json",
+    ".www/evidence/2026-09-25-chat-render-live-monitor/quiescent-working-summary.json",
+    "github:Woo-JongHo/world-wide-woo#59"
+  ],
+  "nextCapabilities": [],
+  "receiptDigest": "a28f9384bd66c0b8cbc088a1ec80bf505ed1fdbb7e4b0e872ff0a94757cac56b"
+}

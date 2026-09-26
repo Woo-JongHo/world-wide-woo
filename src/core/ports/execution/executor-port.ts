@@ -16,7 +16,7 @@ import type {
 } from "@/core/domain/execution/native-session.js";
 import type { RuntimeToolDefinition, RuntimeToolHandler } from "@/core/ports/execution/runtime-tool-port";
 import type { NativeModelOption }                         from "@/core/domain/execution/model-settings";
-import type { UsageSnapshot }                             from "@/core/ports/index.js";
+import type { UsageSnapshot }                             from "@/core/ports/observability/usage-monitor-port";
 
 /** Application-owned semantic boundary around a native model session host. */
 export interface ExecutorPort {

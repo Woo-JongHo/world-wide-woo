@@ -5,10 +5,11 @@ import { nativeModelEfforts }                                      from "@/core/
 import type { Provider, WwwSettings }                              from "@/core/domain/execution/model-settings";
 import { sanitizeTerminalTextUnbounded }                           from "@/core/domain/execution/terminal";
 import type { WorkbenchCommandReceipt, WorkbenchSnapshot }         from "@/core/domain/work/workbench";
-import type { AuthController, UsageMonitor, UsageSnapshot }        from "@/core/ports";
+import type { AuthController }                                     from "@/core/ports/integration/auth-controller-port";
+import type { UsageMonitor, UsageSnapshot }                        from "@/core/ports/observability/usage-monitor-port";
 import { parseWorkbenchShellCommand, WORKBENCH_SLASH_COMMANDS }    from "@/adapters/inbound/tui/commands/slash-commands";
 import { getActiveTuiTheme, setActiveTuiTheme, TUI_THEME_OPTIONS } from "@/adapters/inbound/tui/foundation/theme/theme";
-import type { AstraPage }                                          from "@/adapters/inbound/tui/shell/astra-surface";
+import type { WwwPage }                                            from "@/adapters/inbound/tui/shell/www-surface";
 import { workbenchModelSettings, workbenchPaneNotice }             from "@/adapters/inbound/tui/shell/workbench-input.controller";
 import {
 	workbenchStatsTargetCommand,
@@ -22,14 +23,14 @@ import type {
 type StatsTarget = "session" | "diagnostics" | "latest" | number;
 
 export interface WorkbenchCommandRouterDependencies {
-	readonly hasAstra                : boolean                                                              ;
+	readonly hasWww                  : boolean                                                              ;
 	readonly snapshot                : () => WorkbenchSnapshot                                              ;
 	readonly workbench               : ProjectWorkbench                                                     ;
 	readonly development?            : DevelopmentService                                                   ;
 	readonly usage                   : UsageMonitor                                                         ;
 	readonly auth                    : AuthController                                                       ;
 	readonly enterDemo               : () => void                                                           ;
-	readonly showAstraPage           : (page: AstraPage) => void                                            ;
+	readonly showWwwPage             : (page: WwwPage) => void                                              ;
 	readonly enterObservability      : (mode: ObservabilityViewMode) => Promise<void>                       ;
 	readonly updateUsage             : (snapshots: readonly UsageSnapshot[]) => void                        ;
 	readonly openApproval            : (request: NonNullable<WorkbenchSnapshot["pendingApproval"]>) => void ;
@@ -44,6 +45,7 @@ export interface WorkbenchCommandRouterDependencies {
 	readonly setNotice               : (notice: string) => void                                             ;
 	readonly requestRender           : () => void                                                           ;
 	readonly openModelSettings       : () => void                                                           ;
+	readonly openNotes               : () => void                                                           ;
 	readonly openAuthentication      : (provider?: Provider) => void                                        ;
 	readonly dispatchModelSelection  : (settings: WwwSettings) => Promise<WorkbenchCommandReceipt>          ;
 	readonly showReceipt             : (receipt: WorkbenchCommandReceipt) => void                           ;
@@ -57,36 +59,36 @@ export function createWorkbenchCommandRouter(dependencies: WorkbenchCommandRoute
 
 	return async (text: string): Promise<boolean> => {
 		const normalized = text.trim();
-		if (dependencies.hasAstra && normalized.toLowerCase() === "/demo") {
+		if (dependencies.hasWww && normalized.toLowerCase() === "/demo") {
 			dependencies.enterDemo();
 			return true;
 		}
 		if (normalized === "/three-body") {
-			if (dependencies.hasAstra) {
-				dependencies.showAstraPage("lab");
+			if (dependencies.hasWww) {
+				dependencies.showWwwPage("lab");
 				notice("THREE BODY LAB · Space 일시정지 · Q/Esc 돌아가기");
-			} else notice("THREE BODY LAB은 Astra UI에서 사용할 수 있습니다.");
+			} else notice("THREE BODY LAB은 WWW UI에서 사용할 수 있습니다.");
 			return true;
 		}
-		if (dependencies.hasAstra && normalized === "/dashboard") {
-			dependencies.showAstraPage("dashboard");
+		if (dependencies.hasWww && normalized === "/dashboard") {
+			dependencies.showWwwPage("dashboard");
 			return true;
 		}
-		if (dependencies.hasAstra && normalized === "/history") {
+		if (dependencies.hasWww && normalized === "/history") {
 			await dependencies.enterObservability("dashboard");
 			notice("History · 이전 Session과 Project 관측");
 			return true;
 		}
-		if (dependencies.hasAstra && normalized === "/context") {
-			dependencies.showAstraPage("context");
+		if (dependencies.hasWww && normalized === "/context") {
+			dependencies.showWwwPage("context");
 			return true;
 		}
-		if (dependencies.hasAstra && normalized === "/cache") {
-			dependencies.showAstraPage("cache");
+		if (dependencies.hasWww && normalized === "/cache") {
+			dependencies.showWwwPage("cache");
 			return true;
 		}
-		if (dependencies.hasAstra && normalized === "/usage") {
-			dependencies.showAstraPage("usage");
+		if (dependencies.hasWww && normalized === "/usage") {
+			dependencies.showWwwPage("usage");
 			try {
 				dependencies.updateUsage(await dependencies.usage.refresh());
 				dependencies.requestRender();
@@ -95,7 +97,7 @@ export function createWorkbenchCommandRouter(dependencies: WorkbenchCommandRoute
 			}
 			return true;
 		}
-		if (dependencies.hasAstra && normalized === "/approval") {
+		if (dependencies.hasWww && normalized === "/approval") {
 			const approval = dependencies.snapshot().pendingApproval;
 			if (approval) dependencies.openApproval(approval);
 			else dependencies.setNotice("대기 중인 승인 요청이 없습니다.");
@@ -155,7 +157,7 @@ export function createWorkbenchCommandRouter(dependencies: WorkbenchCommandRoute
 			return true;
 		}
 		if (command.type === "help") {
-			if (dependencies.hasAstra) dependencies.showAstraPage("help");
+			if (dependencies.hasWww) dependencies.showWwwPage("help");
 			else notice(WORKBENCH_SLASH_COMMANDS.map(entry => `/${entry.name}${entry.argumentHint ? ` ${entry.argumentHint}` : ""}`).join(" · "));
 			return true;
 		}
@@ -168,8 +170,8 @@ export function createWorkbenchCommandRouter(dependencies: WorkbenchCommandRoute
 			return true;
 		}
 		if (command.type === "workflow.view") {
-			if (dependencies.hasAstra) dependencies.showAstraPage("workflow");
-			else notice("Workflow 화면은 Astra UI에서 사용할 수 있습니다.");
+			if (dependencies.hasWww) dependencies.showWwwPage("workflow");
+			else notice("Workflow 화면은 WWW UI에서 사용할 수 있습니다.");
 			return true;
 		}
 		if ((command.type === "mcp.refresh" || command.type === "mcp.reload" || command.type === "mcp.enable" || command.type === "mcp.disable") && snapshot.slash?.mcp === false) {
@@ -190,9 +192,12 @@ export function createWorkbenchCommandRouter(dependencies: WorkbenchCommandRoute
 			return true;
 		}
 		if (command.type === "pane.show") {
-			if (dependencies.hasAstra) {
-				dependencies.showAstraPage(command.pane === "todo" ? "plan" : "execution");
-				if (command.pane === "tnotes") dependencies.setNotice("질문 요약은 실행 타임라인의 각 질문 뒤에 표시됩니다.");
+			if (command.pane === "tnotes") {
+				dependencies.openNotes();
+				return true;
+			}
+			if (dependencies.hasWww) {
+				dependencies.showWwwPage(command.pane === "todo" ? "plan" : "execution");
 				dependencies.requestRender();
 				return true;
 			}
@@ -268,7 +273,7 @@ export function createWorkbenchCommandRouter(dependencies: WorkbenchCommandRoute
 			const receipt = await dependencies.workbench.dispatch(command);
 			dependencies.showReceipt(receipt);
 			if (receipt.state === "accepted") {
-				if (dependencies.hasAstra) dependencies.showAstraPage("context");
+				if (dependencies.hasWww) dependencies.showWwwPage("context");
 				else dependencies.openWorkbench();
 			}
 			return true;
