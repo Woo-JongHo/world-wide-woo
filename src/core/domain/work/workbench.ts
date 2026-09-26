@@ -62,7 +62,7 @@ export interface WorkbenchTNote {
 	/** Detached generator identity retained with the persisted Summary. */
 	provenance?       : TNoteModelProvenance             ;
 	/** Stored Summary grammar; unknown preserves readable legacy or malformed records. */
-	format?           : "request-report-v2" | "legacy-five-field" | "legacy-three-field" | "unknown" ;
+	format?           : "request-report-v3" | "request-report-v2" | "legacy-three-field" | "unknown" ;
 }
 
 export interface WorkbenchTNoteReadState {

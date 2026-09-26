@@ -65,6 +65,21 @@ import {
 	todoDocument,
 } from "./project-workbench.fixtures";
 
+function requestReport(title: string, conclusion = "요청 범위와 실제 결과를 연결했고 관측되지 않은 변경은 주장하지 않았습니다."): string {
+	return [
+		`REPORT: request-report-v3\n제목:\n${title}`,
+		"요청 목적·접근:\n완료 요청의 목적과 판단 기준을 확인하고 관측된 실행을 요청 단위로 정리했습니다.",
+		"주요 작업:\n선택 범위의 조사, 결정, 변경과 검증을 시간 순서로 확인했습니다.",
+		"장시간·차단 작업:\n관측 없음",
+		"잘된 점:\n실행 사실과 검증 결과를 분리해 기록했습니다.",
+		"모델·토큰:\n관측 없음",
+		`업무 자체평가:\n${conclusion}`,
+		"다음 유사 요청:\n초기에 관측 범위와 검증 기준을 고정하고 변경과 근거를 함께 추적합니다.",
+		"변경 상태:\n코드·문서·GitHub·Linear 변경 관측 없음",
+		"Commit·Evidence:\n관측 없음",
+	].join("\n\n");
+}
+
 describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 	test("preserves rewritten root-plan Trace while seven-stage Todo survives resume", async () => {
 		const native      = new FakeNativeHarness()                                      ;
@@ -505,11 +520,11 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 
 		expect(createCalls).toHaveLength(1);
 		expect(createCalls[0]?.range).toEqual({ startSequence: 4, endSequence: 12 });
-		expect(createCalls[0]?.instruction).toContain("질문: 이 세션의 구현과 검증을 진행해줘");
-		expect(createCalls[0]?.instruction).toContain("Plan:");
-		expect(createCalls[0]?.instruction).toContain("과정:");
-		expect(createCalls[0]?.instruction).toContain("결론:");
-		expect(createCalls[0]?.instruction).toContain("처음 보는 사람");
+		expect(createCalls[0]?.instruction).toContain("완료 요청: 이 세션의 구현과 검증을 진행해줘");
+		expect(createCalls[0]?.instruction).toContain("요청 목적·접근:");
+		expect(createCalls[0]?.instruction).toContain("장시간·차단 작업:");
+		expect(createCalls[0]?.instruction).toContain("Commit·Evidence:");
+		expect(createCalls[0]?.instruction).toContain("충분히 상세하게");
 		expect(native.startTurnCalls).toBe(2);
 		expect(workbench.snapshot.chatQueue).toEqual([]);
 		expect(workbench.snapshot.tnotes).toEqual([]);
@@ -590,8 +605,8 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 		await Bun.sleep(10);
 
 		expect(createCalls).toHaveLength(2);
-		expect(createCalls[0]?.instruction).toContain("질문: 첫 질문");
-		expect(createCalls[1]?.instruction).toContain("질문: 두 번째 질문");
+		expect(createCalls[0]?.instruction).toContain("완료 요청: 첫 질문");
+		expect(createCalls[1]?.instruction).toContain("완료 요청: 두 번째 질문");
 		expect(createCalls[1]?.instruction).not.toContain("첫 누적 요약");
 		expect(workbench.snapshot.tnotes.map((note) => note.title)).toEqual(["첫 질문", "두 번째 질문"]);
 		const resumedAndReordered = projectTNoteCompletionIndex(
@@ -719,7 +734,7 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 		const service = new TNoteService({
 			async generate() {
 				return {
-					text       : `질문: ${question}\nPlan: 문제의 원인과 영향을 이해하려고 확인했습니다. 관측된 오류를 설명하는 방향을 선택했습니다.\n과정: 관련 동작을 확인하고 설명을 정리했습니다.\n결론: 오류 원인과 해결 방법을 정리했습니다.`,
+					text       : requestReport(question),
 					provenance : { provider: "test", model: "test", version: "test" },
 					isolation  : { appliedPolicy: { cwd: "", noTools: true, network: false, readOnly: true, ephemeral: true }, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 },
 				};
@@ -744,7 +759,7 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 		const service = new TNoteService({
 			async generate() {
 				return {
-					text       : "질문: 질문\nPlan: 완료 상태를 확인했습니다. 현재 결과를 유지하기로 했습니다.\n과정: 완료 상태를 검증했습니다.\n결론: 후속 작업이나 추후 조치는 필요하지 않습니다.",
+					text       : requestReport("완료 상태 검증", "후속 작업이나 추후 조치는 필요하지 않습니다."),
 					provenance : { provider: "test", model: "test", version: "test" },
 					isolation  : { appliedPolicy: { cwd: "", noTools: true, network: false, readOnly: true, ephemeral: true }, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 },
 				};
@@ -768,7 +783,7 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 		const service = new TNoteService({
 			async generate() {
 				return {
-					text       : `질문: ${expectedQuestion}\nPlan: 문제의 영향을 이해하려고 확인했습니다. 관측 가능한 내용만 설명하기로 했습니다.\n과정: 완료된 활동을 확인했습니다.\n결론: 오류 원인을 설명했습니다.`,
+					text       : requestReport(expectedQuestion),
 					provenance : { provider: "test", model: "test", version: "test" },
 					isolation  : { appliedPolicy: { cwd: "", noTools: true, network: false, readOnly: true, ephemeral: true }, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 },
 				};
@@ -780,7 +795,7 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 				activities: [{ id: "a", projectId: "project-1", sequence: 1, occurredAt: "2026-09-01T00:00:00.000Z", kind: "message", title: "message", body: "body" }],
 				instruction: "요약", expectedQuestion,
 			});
-			expect(note.text.split("\n")[0]).toBe(`질문: ${expectedQuestion}`);
+			expect(note.text).toContain(`제목:\n${expectedQuestion}`);
 			expect((await service.readAll("project-1"))[0]?.text).toBe(note.text);
 		} finally {
 			await rm(directory, { recursive: true, force: true });
@@ -812,7 +827,7 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 		const service = new TNoteService({
 			async generate() {
 				return {
-					text       : "질문: 범위 질문\nPlan: 선택 범위를 확인할 필요가 있었습니다. 완료된 범위만 보고서로 남기기로 했습니다.\n과정: 선택 범위를 확인했습니다.\n결론: 범위 보고서를 저장했습니다.",
+					text       : requestReport("선택 범위 보고"),
 					provenance : { provider: "test", model: "test", version: "test" },
 					isolation  : { appliedPolicy: { cwd: "", noTools: true, network: false, readOnly: true, ephemeral: true }, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 },
 				};
@@ -875,7 +890,7 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 			async generate(request) {
 				generatedSourceIds = request.packet.activities.map((activity) => activity.id);
 				return {
-					text       : "질문: 긴 작업을 요약해줘\nPlan: 긴 실행의 완료 기록이 필요했습니다. 대표 활동을 보존해 보고서로 정리했습니다.\n과정: 실행 범위와 최종 결과를 확인했습니다.\n결론: Note를 저장했고 외부 기록은 변경하지 않았습니다.",
+					text       : requestReport("긴 실행 완료 보고"),
 					provenance : { provider: "test", model: "test", version: "test" },
 					isolation  : { appliedPolicy: { cwd: "", noTools: true, network: false, readOnly: true, ephemeral: true }, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 },
 				};
@@ -1076,7 +1091,7 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 				attempts += 1;
 				if (attempts === 1) throw new Error("temporary generation failure");
 				return {
-					text       : "질문: 대상 질문\nPlan: 실패한 생성을 복구해야 했습니다. 대상 turn만 다시 보고서로 만들기로 했습니다.\n과정: 대상 turn 범위를 다시 확인했습니다.\n결론: 재시작 뒤 보고서를 저장했습니다.",
+					text       : requestReport("대상 Turn 복구 보고"),
 					provenance : { provider: "test", model: "test", version: "test" },
 					isolation  : { appliedPolicy: { cwd: "", noTools: true, network: false, readOnly: true, ephemeral: true }, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 },
 				};

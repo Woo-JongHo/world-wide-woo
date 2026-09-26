@@ -735,31 +735,44 @@ describe("Www execution console", () => {
 		expect(stale).not.toContain("이전 Request를 보이면 안 된다");
 	});
 	test("question summaries live inside ZChat rather than a separate slash screen", () => {
-		const s = wwwFixture("ready"); s.tnotes = [{ id: "n1", title: "대시보드 안 뜨는 이유", summary: "질문: 대시보드 안 뜨는 이유\nPlan: 시작 경로와 요구가 충돌했습니다. 시작 화면에 로고를 함께 표시하는 방향을 선택했습니다.\n과정: 시작 화면 조립과 회귀 테스트를 변경했습니다.\n결론: 코드와 문서를 동기화했고 GitHub와 Linear는 변경하지 않았습니다.\nTest:\nTotal 1/2\n01. bun test test/www-ui.test.ts : 1.2s · passed\n02. bun test test/project-workbench.test.ts : 0.8s · failed", updatedAt: "2026-09-11T00:00:00Z", sourceActivityIds: ["request"] }];
-		const workspace = new WwwWorkspace(() => s, () => []);
-		const full = new WwwTranscriptView(s).render(80).join("\n");
-		expect(wwwTNoteMarkdown(s.tnotes[0]!)).toBe("## 대시보드 안 뜨는 이유\n\n## Report\n\n### 질문\n\n대시보드 안 뜨는 이유\n\n### Plan\n\n시작 경로와 요구가 충돌했습니다. 시작 화면에 로고를 함께 표시하는 방향을 선택했습니다.\n\n### 과정\n\n시작 화면 조립과 회귀 테스트를 변경했습니다.\n\n### 결론\n\n코드와 문서를 동기화했고 GitHub와 Linear는 변경하지 않았습니다.\n\n### Test\n\nTotal 1/2\n01. bun test test/www-ui.test.ts : 1.2s · passed\n02. bun test test/project-workbench.test.ts : 0.8s · failed");
-		expect(full).toContain("대시보드 안 뜨는 이유"); expect(full).toContain("질문"); expect(full).not.toContain("Expected outcome"); expect(full).not.toContain("PROPOSAL"); expect(full).toContain("REPORT"); expect(full).not.toContain("NEXT ACTION"); expect(full).toContain("PARTIAL · TEST 1/2"); expect(full).toContain("Plan"); expect(full).toContain("과정"); expect(full).toContain("결론"); expect(full).toContain("Test"); expect(full).toContain("Total 1/2"); expect(full).toContain("Evidence 1"); expect(full).toContain("/source request");
+		const summary = [
+			"REPORT: request-report-v3\n제목:\n대시보드 표시 문제 해결",
+			"요청 목적·접근:\n시작 경로와 요구의 충돌을 확인하고 표시 경계를 정리했습니다.",
+			"주요 작업:\n시작 화면 조립과 회귀 테스트를 변경했습니다.",
+			"장시간·차단 작업:\n초기 렌더 경로가 나뉘어 원인 확인에 시간이 걸렸습니다.",
+			"잘된 점:\n표시 계약과 검증을 함께 갱신했습니다.",
+			"모델·토큰:\ngpt-5.6-sol · 관측 토큰 12,000",
+			"업무 자체평가:\n요청 범위를 충족했고 실패한 검증 한 건은 명확히 남겼습니다.",
+			"다음 유사 요청:\n렌더 진입점과 fixture를 먼저 대조해 조사 범위를 줄입니다.",
+			"변경 상태:\n코드와 문서를 동기화했고 GitHub와 Linear는 변경하지 않았습니다.",
+			"Commit·Evidence:\nCommit 관측 없음 · Evidence request",
+		].join("\n\n") + "\nTest:\nTotal 1/2\n01. bun test test/www-ui.test.ts : 1.2s · passed\n02. bun test test/project-workbench.test.ts : 0.8s · failed";
+		const s = wwwFixture("ready"); s.tnotes = [{ id: "n1", title: "대시보드 표시 문제 해결", summary, updatedAt: "2026-09-11T00:00:00Z", sourceActivityIds: ["request"] }];
+		const workspace = new WwwWorkspace(() => s, () => [])            ;
+		const full      = new WwwTranscriptView(s).render(80).join("\n") ;
+		const markdown  = wwwTNoteMarkdown(s.tnotes[0]!)                 ;
+		expect(markdown).toContain("## 대시보드 표시 문제 해결"); expect(markdown).not.toContain("### 질문"); expect(markdown).toContain("### 장시간·차단 작업"); expect(markdown).toContain("### 모델·토큰"); expect(markdown).toContain("### 업무 자체평가"); expect(markdown).toContain("### Commit·Evidence");
+		expect(full).toContain("대시보드 표시 문제 해결"); expect(full).not.toContain("질문"); expect(full).not.toContain("Expected outcome"); expect(full).not.toContain("PROPOSAL"); expect(full).toContain("REPORT"); expect(full).not.toContain("NEXT ACTION"); expect(full).toContain("PARTIAL · TEST 1/2"); expect(full).toContain("요청 목적·접근"); expect(full).toContain("주요 작업"); expect(full).toContain("업무 자체평가"); expect(full).toContain("Test"); expect(full).toContain("Total 1/2"); expect(full).toContain("Evidence 1"); expect(full).toContain("/source request");
 		const plan = stripTerminalSequences(new WwwPlanView(() => s).render(80).join("\n"));
 		expect(plan).toContain("Plan"); expect(plan).not.toContain("PROPOSAL"); expect(plan).not.toContain("시작 화면에 로고를 함께 표시하는 방향을 선택했습니다.");
-		const plainRows  = stripTerminalSequences(full).split("\n")               ;
-		const report     = plainRows.findIndex(row => row.includes("REPORT"))     ;
-		const conclusion = plainRows.findIndex(row => row.includes("결론"))       ;
-		const question   = plainRows.findIndex(row => row.includes("질문"))       ;
-		const footer     = plainRows.findIndex(row => row.includes("Evidence 1")) ;
-		expect(report).toBeGreaterThanOrEqual(0); expect(question).toBeGreaterThan(report); expect(conclusion).toBeGreaterThan(question); expect(footer).toBeGreaterThan(conclusion);
+		const plainRows  = stripTerminalSequences(full).split("\n")                   ;
+		const report     = plainRows.findIndex(row => row.includes("REPORT"))         ;
+		const assessment = plainRows.findIndex(row => row.includes("업무 자체평가"))  ;
+		const purpose    = plainRows.findIndex(row => row.includes("요청 목적·접근")) ;
+		const footer     = plainRows.findIndex(row => row.includes("Evidence 1"))     ;
+		expect(report).toBeGreaterThanOrEqual(0); expect(purpose).toBeGreaterThan(report); expect(assessment).toBeGreaterThan(purpose); expect(footer).toBeGreaterThan(assessment);
 		for (const width of [1, 3, 4, 20, 40, 80]) {
 			const minimal = { ...s, chat: [], activities: [] };
 			for (const row of new WwwTranscriptView(minimal).render(width)) expect(visibleWidth(row)).toBeLessThanOrEqual(width);
 		}
 		const level = chalk.level; chalk.level = 3;
 		try {
-			const colored       = new WwwTranscriptView(s).render(80)                                ;
-			const planRow       = colored.find(row => stripTerminalSequences(row).includes("Plan"))! ;
-			const conclusionRow = colored.find(row => stripTerminalSequences(row).includes("결론"))! ;
-			expect(planRow).toContain(a.secondary("Plan"));
-			expect(conclusionRow).toContain(a.secondary("결론"));
-			for (const label of ["질문", "Plan", "과정", "결론", "Test"] as const) {
+			const colored    = new WwwTranscriptView(s).render(80)                                          ;
+			const purposeRow = colored.find(row => stripTerminalSequences(row).includes("요청 목적·접근"))! ;
+			const changeRow  = colored.find(row => stripTerminalSequences(row).includes("변경 상태"))!      ;
+			expect(purposeRow).toContain(a.secondary("요청 목적·접근"));
+			expect(changeRow).toContain(a.secondary("변경 상태"));
+			for (const label of ["요청 목적·접근", "주요 작업", "업무 자체평가", "변경 상태", "Test"] as const) {
 				const row = colored.find(row => stripTerminalSequences(row).includes(label!))!;
 				expect(row).toContain(label);
 				expect(row).not.toMatch(/\x1b\[(?:3[1-6]|9[0-6])m/u);

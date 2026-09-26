@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-REQUEST-REPORT-V3-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:27844d3a6d3e416646ed625e2b3f015d8adf1fc1:dirty",
+  "intent": "WOO-693의 T-note를 상세 업무 REPORT v3로 확장하고 0.0.20으로 전달한 작업을 기록한다",
+  "target": { "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db" },
+  "content": {
+    "changes": [
+      "T-note 생성·검증·표시 계약을 request-report-v3의 10개 업무 섹션으로 확장했다.",
+      "Detached narrator의 provider·model·version을 생성 본문과 분리된 provenance로 표시한다.",
+      "기존 request-report-v2와 3필드 기록은 읽기 호환으로 유지하고 package 버전을 0.0.20으로 올렸다."
+    ],
+    "impacts": [
+      "사용자는 완료 요청의 목적·주요 작업·차단 원인·모델과 토큰·평가·변경 상태·근거를 한 REPORT에서 읽을 수 있다.",
+      "관측되지 않은 값은 추정하지 않고 관측 없음으로 남으며 Test는 계속 시스템 관측만 사용한다."
+    ],
+    "categories": ["feature", "improvement"],
+    "verification": [
+      "TypeScript noEmit과 변경 TypeScript 11개 가독성 검사가 통과했다.",
+      "관련 회귀 126건과 전체 회귀 1569건, assertion 21496건이 모두 통과했다.",
+      "git diff --check와 변경 파일의 TODO·skip·only 검사가 통과했다."
+    ],
+    "connections": [
+      "Linear: WOO-693 · UUID 559c8b06-e8dd-4061-8d10-d719be0524a8",
+      "Package: 0.0.20",
+      "Contract: docs/WWW_EXECUTION_CONSOLE.md",
+      "Obsidian Candidate: .www/evidence/2026-09-26-request-report-v3/obsidian-canonical-candidate.json"
+    ]
+  },
+  "links": {
+    "issue": "https://linear.app/woo-world/issue/WOO-693/완료된-질문과-결과를-t-note에-보존하고-다시-찾는다",
+    "evidence": ".www/evidence/2026-09-26-request-report-v3"
+  },
+  "expectedBefore": { "latestCommentId": "1196a23e-1f9f-4bff-b6c8-83f5a1a4e5ab" },
+  "validation": [
+    { "id": "issue-binding", "status": "pass", "evidence": "기존 recording decision과 traceability 근거에서 WOO-693의 UUID와 T-note 책임을 확인했다." },
+    { "id": "regression", "status": "pass", "evidence": "관련 126건과 전체 1569건이 실패 없이 통과했다." },
+    { "id": "publication-boundary", "status": "pass", "evidence": "Candidate만 준비하며 게시 전 최신 Activity 재조회와 별도 사용자 승인이 필요하다." }
+  ],
+  "candidateDigest": "fa1342c31756bee0419a714fc5cbcd69e17ec8b3bdb1054242857c241f64ddac"
+}

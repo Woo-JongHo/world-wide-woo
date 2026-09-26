@@ -26,12 +26,24 @@ function sourceRows(note: WorkbenchTNote, width: number): string[] {
 
 function detailRows(note: WorkbenchTNote, width: number): string[] {
 	const report = parseCanonicalTNoteReport(note.summary);
+	if (report?.version === "request-report-v2") return [
+		colors.muted("LEGACY · 이전 질문 Report를 읽기 전용으로 표시합니다."), "",
+		...field("요청 목적·접근", report.purposeAndApproach, width),
+		...field("주요 작업", report.keyWork, width),
+		...field("업무 자체평가", report.selfAssessment, width),
+		...field("Test", report.test ?? "테스트 실행 관측 없음", width),
+		...sourceRows(note, width),
+	];
 	if (report) return [
-		...(report.version === "legacy-five-field" ? [colors.muted("LEGACY · 이전 5-field Note를 읽기 전용으로 표시합니다."), ""] : []),
-		...field("질문", report.question, width),
-		...field("Plan", report.plan, width),
-		...field("과정", report.process, width),
-		...field("결론", report.conclusion, width),
+		...field("요청 목적·접근", report.purposeAndApproach, width),
+		...field("주요 작업", report.keyWork, width),
+		...field("장시간·차단 작업", report.delaysAndBlocks, width),
+		...field("잘된 점", report.strengths, width),
+		...field("모델·토큰", report.modelAndTokens, width),
+		...field("업무 자체평가", report.selfAssessment, width),
+		...field("다음 유사 요청", report.nextApproach, width),
+		...field("변경 상태", report.changeStatus, width),
+		...field("Commit·Evidence", report.commitAndEvidence, width),
 		...field("Test", report.test ?? "테스트 실행 관측 없음", width),
 		...sourceRows(note, width),
 	];

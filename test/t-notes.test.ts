@@ -25,22 +25,33 @@ async function store(): Promise<FileTNoteStore> {
 }
 
 const policy = { cwd: "" as const, noTools: true as const, network: false as const, readOnly: true as const, ephemeral: true as const };
+
+function report(title: string): string {
+	return [
+		`REPORT: request-report-v3\n제목:\n${title}`,
+		"요청 목적·접근:\n완료 요청의 목적과 판단 기준을 확인하고 관측된 실행을 요청 단위로 정리했습니다.",
+		"주요 작업:\n선택 범위의 조사, 결정, 변경과 검증을 시간 순서로 확인했습니다.",
+		"장시간·차단 작업:\n관측 없음",
+		"잘된 점:\n실행 사실과 검증 결과를 분리해 기록했습니다.",
+		"모델·토큰:\n관측 없음",
+		"업무 자체평가:\n요청 범위와 실제 결과를 연결했고 관측되지 않은 변경은 주장하지 않았습니다.",
+		"다음 유사 요청:\n초기에 관측 범위와 검증 기준을 고정하고 변경과 근거를 함께 추적합니다.",
+		"변경 상태:\n코드·문서·GitHub·Linear 변경 관측 없음",
+		"Commit·Evidence:\n관측 없음",
+	].join("\n\n");
+}
+
 const generator: DetachedTextGenerator = {
 	async generate(request) {
 		expect(request.policy).toEqual(policy);
-		return { text: "질문: 무엇을 확인했나\nPlan: 선택한 활동의 결과를 보존해야 했습니다. 완료된 질문을 간결한 보고서로 정리했습니다.\n과정: 선택 범위와 검증 결과를 확인했습니다.\n결론: 검증이 통과했고 외부 기록은 변경하지 않았습니다.", provenance: { provider: "anthropic", model: "claude-opus", version: "2026-09-01" }, isolation: { appliedPolicy: policy, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 } };
+		return { text: report("무엇을 확인했나"), provenance: { provider: "anthropic", model: "claude-opus", version: "2026-09-01" }, isolation: { appliedPolicy: policy, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 } };
 	},
 };
 
 describe("Note service", () => {
 	test("accepts the request-wide report contract and rejects legacy generation shapes", () => {
-		const report = [
-			"질문: HUD가 두 줄인 원인을 확인해줘",
-			"Plan: 현재 렌더 계약을 확인하고 모델과 구독 상태를 한 행으로 합치는 순서를 세웠습니다.",
-			"과정: 렌더 계약을 조사하고 구현과 회귀 테스트를 차례로 변경했습니다.",
-			"결론: 코드와 문서를 동기화했고 GitHub와 Linear는 변경하지 않았습니다.",
-		].join("\n");
-		expect(validateCanonicalTNote(report, "HUD가 두 줄인 원인을 확인해줘")).toEqual({ valid: true, reason: "" });
+		const current = report("HUD 한 줄 통합 결과");
+		expect(validateCanonicalTNote(current, "HUD가 두 줄인 원인을 확인해줘")).toEqual({ valid: true, reason: "" });
 		expect(validateCanonicalTNote(
 			"질문: HUD가 두 줄인 원인을 확인해줘\nReason: 이전 원인입니다.\nProposal: 이전 제안입니다.\nAction: 이전 행동입니다.\nResult: 이전 결과입니다.",
 			"HUD가 두 줄인 원인을 확인해줘",
@@ -104,7 +115,7 @@ describe("Note service", () => {
 			id: "tnote-marker-boundary",
 			createdAt: "2026-09-01T00:01:00.000Z",
 			packet,
-			text: "질문: 무엇을 확인했나\nPlan: 경계를 확인했습니다. 안정적인 packet을 유지합니다.\n과정: digest를 재검증했습니다.\n결론: 기록을 저장했습니다.",
+			text: report("Packet 경계 검증"),
 			provenance: { provider: "test", model: "test", version: "test" },
 		});
 		expect(await draftStore.readAll("project-1")).toHaveLength(1);
@@ -185,7 +196,7 @@ describe("Note service", () => {
 			async generate(request) {
 				packets.push(request.packet);
 				return {
-					text       : "질문: 무엇을 확인했나\nPlan: 별도 생성 시도도 같은 완료 source를 보존합니다.\n과정: 같은 활동 범위를 다시 확인했습니다.\n결론: 첫 Note record를 재사용했습니다.",
+					text       : report("동시 생성 결과"),
 					provenance : { provider: "test", model: "different-model", version: "different-version" },
 					isolation  : { appliedPolicy: policy, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 },
 				};
@@ -232,7 +243,7 @@ describe("Note service", () => {
 					id: "persisted-after-commit",
 					createdAt: "2026-09-01T00:01:00.000Z",
 					packet,
-					text: "질문: 무엇을 확인했나\nPlan: 저장 완료 뒤 응답 유실을 복구합니다.\n과정: 동일 source key를 다시 읽었습니다.\n결론: 기존 Note를 반환했습니다.",
+					text: report("저장 응답 유실 복구"),
 					provenance: { provider: "test", model: "persisted-model", version: "persisted-version" },
 				});
 				throw new Error("append response lost");
@@ -279,7 +290,7 @@ describe("Note service", () => {
 		const capturingGenerator: DetachedTextGenerator = {
 			async generate(request) {
 				dispatchedInstruction = request.instruction;
-				return { text: "질문: Git과 Bash\nPlan: 출력 상태를 확인해야 했습니다. 관측된 출력만 보고서로 정리했습니다.\n과정: 출력과 표시 결과를 확인했습니다.\n결론: 표시를 검증했고 외부 기록은 변경하지 않았습니다.", provenance: { provider: "openai-codex", model: "gpt-5.6-luna", version: "gpt-5.6-luna" }, isolation: { appliedPolicy: policy, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 } };
+				return { text: report("Git과 Bash 출력 검증"), provenance: { provider: "openai-codex", model: "gpt-5.6-luna", version: "gpt-5.6-luna" }, isolation: { appliedPolicy: policy, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 } };
 			},
 		};
 		const service = new TNoteService(capturingGenerator, draftStore, () => new Date("2026-09-01T00:00:00.000Z"), () => "tnote-safe-instruction");
@@ -329,7 +340,7 @@ describe("Note service", () => {
 				attempts += 1;
 				if (attempts === 1) throw new Error("temporary generation failure");
 				return {
-					text       : "질문: 첫 thread 질문\nPlan: 실패한 생성 작업을 복구해야 했습니다. 완료된 turn만 다시 요약했습니다.\n과정: 완료 범위를 다시 확인하고 생성을 재시도했습니다.\n결론: 재시작 뒤 보고서를 저장했고 외부 기록은 변경하지 않았습니다.",
+					text       : report("실패한 생성 작업 복구"),
 					provenance : { provider: "test", model: "test", version: "test" },
 					isolation  : { appliedPolicy: policy, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 },
 				};

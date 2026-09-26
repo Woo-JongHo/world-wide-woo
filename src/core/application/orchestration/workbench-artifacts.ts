@@ -9,33 +9,60 @@ import { parseCanonicalTNoteReport, parseLegacyCanonicalTNote } from "@/core/app
 
 export function turnTNoteInstruction(question: string): string {
 	return [
-		"완료된 요청 전체를 종료 보고서 REPORT로 정리하세요.",
-		`질문: ${question}`,
-		"관찰 가능한 대화와 실행만 근거로 삼고 숨은 사고과정은 추측하지 마세요.",
-		"처음 보는 사람도 요청부터 결론까지 이어서 이해하도록 각 항목을 한두 문장으로 요약하세요.",
-		"파일 목록·원시 로그·다음 할 일은 넣지 마세요. 관측하지 못한 변경은 추정하지 마세요.",
-		"Plan에는 질문을 해결하기 위해 세운 작업 순서와 판단 기준을 쓰세요.",
-		"과정에는 실제로 거친 조사, 결정, 변경, 검증과 중요한 방향 전환만 시간 순서로 쓰세요.",
-		"결론에는 도달한 답, 바뀐 것, 검증 결과, GitHub와 Linear 변경 여부를 관측된 범위에서 요약하세요.",
-		"출력은 다음 네 줄 형식을 정확히 지키세요:",
-		`질문: ${question}`,
-		"Plan: 질문을 해결하기 위해 세운 계획과 판단 기준",
-		"과정: 실제로 거친 조사, 결정, 변경과 검증의 흐름",
-		"결론: 최종 답과 코드·문서·GitHub·Linear의 실제 변경 상태",
+		"완료된 요청 전체를 요청별 상세 업무 REPORT로 정리하세요.",
+		`완료 요청: ${question}`,
+		"관찰 가능한 대화와 실행만 근거로 삼고 숨은 사고과정을 추측하거나 쓰지 마세요.",
+		"각 항목은 충분히 상세하게 여러 줄로 쓸 수 있습니다. 관측되지 않은 사실은 반드시 `관측 없음`으로 쓰세요.",
+		"주요 작업에는 요청을 위해 의미 있었던 조사·결정·변경·검증만, 장시간·차단 작업에는 retry를 포함한 원인만 쓰세요.",
+		"모델·토큰에는 source activity로 관측된 모델과 토큰 소비만 쓰며, 관측값이 없으면 `관측 없음`으로 쓰세요.",
+		"변경 상태에는 코드·문서·GitHub·Linear 각각의 실제 변경 또는 관측 없음을 쓰고, Commit·Evidence에는 필요한 hash·근거 ID·Evidence path만 요약하세요.",
+		"파일 목록, 원시 로그, raw evidence, 근거 없는 수치, 미래 실행 약속과 다음 할 일을 넣지 마세요.",
+		"Test 섹션은 시스템이 실행 관측만 나중에 추가합니다. 절대 작성하지 마세요.",
+		"출력은 다음 canonical grammar와 필드 순서를 정확히 지키세요. 각 값은 비어 있지 않은 여러 줄 텍스트여야 합니다:",
+		"REPORT: request-report-v3",
+		"제목:",
+		"짧은 보고서 제목",
+		"",
+		"요청 목적·접근:",
+		"요청 목적과 접근 요약",
+		"",
+		"주요 작업:",
+		"의미 있었던 주요 작업",
+		"",
+		"장시간·차단 작업:",
+		"오래 걸리거나 막힌 작업과 원인, 없으면 관측 없음",
+		"",
+		"잘된 점:",
+		"잘된 점",
+		"",
+		"모델·토큰:",
+		"관측된 모델과 토큰 소비, 없으면 관측 없음",
+		"",
+		"업무 자체평가:",
+		"업무 자체평가",
+		"",
+		"다음 유사 요청:",
+		"다음 유사 요청의 접근·관리 방식; 미래 실행 약속이 아닌 재사용 기준",
+		"",
+		"변경 상태:",
+		"코드·문서·GitHub·Linear 변경 상태",
+		"",
+		"Commit·Evidence:",
+		"Commit과 Evidence 기록",
 	].join("\n");
 }
 
 export function projectTNote(draft: TNoteDraft): WorkbenchTNote {
-	const report   = parseCanonicalTNoteReport(draft.text)                          ;
-	const legacy   = parseLegacyCanonicalTNote(draft.text)                          ;
-	const question = report?.question ?? legacy?.question                           ;
-	const format   = report?.version ?? (legacy ? "legacy-three-field" : "unknown") ;
+	const report = parseCanonicalTNoteReport(draft.text)                          ;
+	const legacy = parseLegacyCanonicalTNote(draft.text)                          ;
+	const title  = report?.title ?? legacy?.question                              ;
+	const format = report?.version ?? (legacy ? "legacy-three-field" : "unknown") ;
 	return {
 		id       : draft.id,
 		sequence : draft.sequence,
-		title    : question
-			? sanitizeTerminalTextExcerpt(question, 160, "head-tail")
-			: "현재 세션 대화 요약",
+		title    : title
+			? sanitizeTerminalTextExcerpt(title, 160, "head-tail")
+			: "현재 세션 업무 보고",
 		summary           : draft.text,
 		sourceActivityIds : draft.packet.activities.map((activity) => activity.id),
 		sourceRange       : draft.packet.range,
@@ -50,7 +77,7 @@ export function canonicalTNoteDraft(draft: TNoteDraft, sessionId: string): Canon
 	const source = stableJson(draft);
 	return createCanonicalDocumentDraft({
 		kind       : "tnote",
-		body       : `# 질문 요약 #${draft.sequence}\n\n${draft.text}`,
+		body       : `# 업무 보고 #${draft.sequence}\n\n${draft.text}`,
 		source     : { id: draft.id, body: source },
 		provenance : { sessionId, capturedAt: draft.createdAt },
 	});

@@ -62,7 +62,7 @@ describe("WWW CLI session entry", () => {
 		const writes: string[] = [];
 		const stop = writeWwwBootstrap(value => writes.push(value), true);
 		try {
-			expect(writes).toEqual(["\r\x1b[2Kwww v0.0.19 [███░░░░░░░░░░░░]"]);
+			expect(writes).toEqual(["\r\x1b[2Kwww v0.0.20 [███░░░░░░░░░░░░]"]);
 			await new Promise(resolve => setTimeout(resolve, 180));
 			expect(writes.length).toBeGreaterThan(1);
 			expect(writes[1]).not.toBe(writes[0]);
@@ -88,7 +88,7 @@ describe("WWW CLI session entry", () => {
 	test("reports the package release version", async () => {
 		const { calls, dependencies } = fakeDependencies();
 		expect(await runCli(["--version"], dependencies)).toBe(0);
-		expect(calls.out).toEqual(["0.0.19"]);
+		expect(calls.out).toEqual(["0.0.20"]);
 		expect(calls.app).toEqual([]);
 	});
 

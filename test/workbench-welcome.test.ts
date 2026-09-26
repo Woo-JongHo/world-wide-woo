@@ -36,7 +36,7 @@ describe("workbench welcome intro", () => {
 		expect(output).not.toContain("GUARDIAN");
 		expect(output).toContain("/three-body");
 		expect(output).toContain("🐙 Wooni · Native Project Workbench");
-		expect(output).toContain("v0.0.19");
+		expect(output).toContain("v0.0.20");
 		expect(output).not.toContain("WOONI");
 		expect(output).not.toContain("wooni@worldwide:~$");
 		expect(output).not.toContain("Three Body");

@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "1.0",
+  "recordedAt": "2026-09-26T00:00:00+09:00",
+  "issue": {
+    "id": "WOO-693",
+    "uuid": "559c8b06-e8dd-4061-8d10-d719be0524a8",
+    "decision": "reuse-existing",
+    "reason": "같은 T-note 완료 REPORT capability의 계약 확장이므로 새 이슈는 중복이다."
+  },
+  "version": {
+    "decision": "bump-required",
+    "from": "0.0.19",
+    "to": "0.0.20",
+    "reason": "사용자가 관찰하는 REPORT 구조와 provenance가 새 capability로 전달된다."
+  },
+  "projectActivity": {
+    "decision": "candidate-prepared",
+    "path": ".www/evidence/2026-09-26-request-report-v3/project-comment-candidate.json",
+    "published": false
+  },
+  "projectUpdate": {
+    "decision": "pending-comment-publication",
+    "version": "0.0.20",
+    "reason": "Update는 승인된 Comment 게시와 sourceCommentId read-back 뒤에만 만들 수 있다."
+  },
+  "obsidian": {
+    "decision": "candidate-prepared",
+    "path": ".www/evidence/2026-09-26-request-report-v3/obsidian-canonical-candidate.json",
+    "published": false
+  },
+  "externalWrites": {
+    "performed": false,
+    "reason": "Linear와 Vault 게시 권한은 이번 커밋·push 요청에 포함되지 않는다."
+  },
+  "readbackLimit": "Linear 최신 상태는 도구 부재로 실시간 재조회하지 못했으며 마지막 로컬 근거는 2026-09-25다."
+}

@@ -32,7 +32,7 @@ export interface CreateTNoteInput {
 	readonly range       : TNoteSourceRange               ;
 	readonly activities  : readonly TNoteActivitySource[] ;
 	readonly instruction : string                         ;
-	/** Generated 질문 must exactly match this normalized completed question. */
+	/** Completed request identity supplied to the detached narrator. */
 	readonly expectedQuestion: string;
 }
 
@@ -137,11 +137,17 @@ export interface CanonicalTNoteValidation {
 }
 
 export interface CanonicalTNoteReport {
-	readonly question   : string                                    ;
-	readonly plan       : string                                    ;
-	readonly process    : string                                    ;
-	readonly conclusion : string                                    ;
-	readonly version    : "request-report-v2" | "legacy-five-field" ;
+	readonly title              : string                                    ;
+	readonly purposeAndApproach : string                                    ;
+	readonly keyWork            : string                                    ;
+	readonly delaysAndBlocks    : string                                    ;
+	readonly strengths          : string                                    ;
+	readonly modelAndTokens     : string                                    ;
+	readonly selfAssessment     : string                                    ;
+	readonly nextApproach       : string                                    ;
+	readonly changeStatus       : string                                    ;
+	readonly commitAndEvidence  : string                                    ;
+	readonly version            : "request-report-v3" | "request-report-v2" ;
 	/** Runtime-observed test summary appended after detached generation succeeds. */
 	readonly test?: string;
 }
@@ -153,15 +159,68 @@ export interface LegacyCanonicalTNote {
 }
 
 export function parseCanonicalTNoteReport(text: string): CanonicalTNoteReport | null {
-	const [reportText, ...testParts] = text.trim().split(/\r?\nTest:\r?\n/u);
+	const normalized = text.trim().replace(/\r\n/gu, "\n");
+	const [reportText, ...testParts] = normalized.split(/\nTest:\n/u);
 	if (testParts.length > 1) return null;
 	const test = testParts[0]?.trim();
 	if (testParts.length === 1 && !test) return null;
-	const current = /^질문:[ \t]*(\S(?:[^\r\n]*\S)?)\r?\nPlan:[ \t]*(\S(?:[^\r\n]*\S)?)\r?\n과정:[ \t]*(\S(?:[^\r\n]*\S)?)\r?\n결론:[ \t]*(\S(?:[^\r\n]*\S)?)$/u.exec(reportText ?? "");
-	if (current) return Object.freeze({ question: current[1], plan: current[2], process: current[3], conclusion: current[4], version: "request-report-v2", ...(test ? { test } : {}) });
-	const previous = /^질문:[ \t]*(\S(?:[^\r\n]*\S)?)\r?\nReason:[ \t]*(\S(?:[^\r\n]*\S)?)\r?\nProposal:[ \t]*(\S(?:[^\r\n]*\S)?)\r?\nAction:[ \t]*(\S(?:[^\r\n]*\S)?)\r?\nResult:[ \t]*(\S(?:[^\r\n]*\S)?)$/u.exec(reportText ?? "");
-	if (!previous) return null;
-	return Object.freeze({ question: previous[1], plan: `${previous[2]} ${previous[3]}`, process: previous[4], conclusion: previous[5], version: "legacy-five-field", ...(test ? { test } : {}) });
+	const current = parseRequestReportV3(reportText ?? "");
+	if (current) return Object.freeze({ ...current, ...(test ? { test } : {}) });
+	const previous = /^질문:[ \t]*(\S(?:[^\r\n]*\S)?)\r?\nPlan:[ \t]*(\S(?:[^\r\n]*\S)?)\r?\n과정:[ \t]*(\S(?:[^\r\n]*\S)?)\r?\n결론:[ \t]*(\S(?:[^\r\n]*\S)?)$/u.exec(reportText ?? "");
+	if (previous) return Object.freeze({
+		title              : previous[1],
+		purposeAndApproach : previous[2],
+		keyWork            : previous[3],
+		delaysAndBlocks    : "관측 없음",
+		strengths          : "관측 없음",
+		modelAndTokens     : "관측 없음",
+		selfAssessment     : previous[4],
+		nextApproach       : "관측 없음",
+		changeStatus       : previous[4],
+		commitAndEvidence  : "관측 없음",
+		version            : "request-report-v2",
+		...(test ? { test } : {}),
+	});
+	return null;
+}
+
+const REQUEST_REPORT_V3_FIELDS = [
+	["제목", "title"],
+	["요청 목적·접근", "purposeAndApproach"],
+	["주요 작업", "keyWork"],
+	["장시간·차단 작업", "delaysAndBlocks"],
+	["잘된 점", "strengths"],
+	["모델·토큰", "modelAndTokens"],
+	["업무 자체평가", "selfAssessment"],
+	["다음 유사 요청", "nextApproach"],
+	["변경 상태", "changeStatus"],
+	["Commit·Evidence", "commitAndEvidence"],
+] as const;
+
+function parseRequestReportV3(text: string): Omit<CanonicalTNoteReport, "test"> | null {
+	if (!text.startsWith("REPORT: request-report-v3\n")) return null;
+	let remainder = text.slice("REPORT: request-report-v3\n".length);
+	const fields: Record<string, string> = {};
+	for (const [index, [label, key]] of REQUEST_REPORT_V3_FIELDS.entries()) {
+		const prefix = `${label}:\n`;
+		if (!remainder.startsWith(prefix)) return null;
+		remainder = remainder.slice(prefix.length);
+		const next     = REQUEST_REPORT_V3_FIELDS[index + 1]                              ;
+		const marker   = next ? `\n\n${next[0]}:\n` : ""                                  ;
+		const boundary = marker ? remainder.indexOf(marker) : -1                          ;
+		const value    = (boundary < 0 ? remainder : remainder.slice(0, boundary)).trim() ;
+		if (!value) return null;
+		fields[key] = value;
+		remainder = boundary < 0 ? "" : remainder.slice(boundary + 2);
+	}
+	if (remainder) return null;
+	return {
+		title: fields.title, purposeAndApproach: fields.purposeAndApproach, keyWork: fields.keyWork,
+		delaysAndBlocks: fields.delaysAndBlocks, strengths: fields.strengths, modelAndTokens: fields.modelAndTokens,
+		selfAssessment: fields.selfAssessment, nextApproach: fields.nextApproach, changeStatus: fields.changeStatus,
+		commitAndEvidence: fields.commitAndEvidence,
+		version: "request-report-v3",
+	};
 }
 
 export function parseLegacyCanonicalTNote(text: string): LegacyCanonicalTNote | null {
@@ -170,7 +229,7 @@ export function parseLegacyCanonicalTNote(text: string): LegacyCanonicalTNote | 
 	return Object.freeze({ question: match[1], why: match[2], result: match[3] });
 }
 
-/** New generation is five-field; allowLegacy is only for replaying older injected sources. */
+/** New generation accepts only request-report-v3; allowLegacy is read-only replay support. */
 export function validateCanonicalTNote(
 	text: string,
 	expectedQuestion: string,
@@ -179,12 +238,11 @@ export function validateCanonicalTNote(
 	const report = parseCanonicalTNoteReport(text);
 	const legacy = options.allowLegacy ? parseLegacyCanonicalTNote(text) : null;
 	if (!report && !legacy) return { valid: false, reason: "Detached generator returned malformed Note text" };
-	if (report?.version === "legacy-five-field" && !options.allowLegacy) return { valid: false, reason: "Detached generator returned legacy Note text" };
+	if (report?.version !== "request-report-v3" && !options.allowLegacy) return { valid: false, reason: "Detached generator returned legacy Note text" };
 	if (report?.test && !options.allowRuntimeTestSummary) return { valid: false, reason: "Detached generator must not generate the runtime Test summary" };
-	const question = report?.question ?? legacy?.question;
-	if (question !== expectedQuestion) return { valid: false, reason: "Detached generator returned mismatched Note question" };
+	if (!expectedQuestion.trim()) return { valid: false, reason: "Detached generator received an invalid completed request" };
 	const fields = report
-		? [report.plan, report.process, report.conclusion]
+		? [report.title, report.purposeAndApproach, report.keyWork, report.delaysAndBlocks, report.strengths, report.modelAndTokens, report.selfAssessment, report.nextApproach, report.changeStatus, report.commitAndEvidence]
 		: legacy ? [legacy.why, legacy.result] : [];
 	if (fields.some(hasRawEvidence)) {
 		return { valid: false, reason: "Detached generator returned prohibited raw evidence" };
@@ -192,7 +250,7 @@ export function validateCanonicalTNote(
 	if (fields.some(field => /(?:숨은 사고|chain[ -]?of[ -]?thought)/iu.test(field))) {
 		return { valid: false, reason: "Detached generator returned hidden reasoning" };
 	}
-	const completedAction = report ? `${report.process}\n${report.conclusion}` : legacy?.result ?? "";
+	const completedAction = fields.join("\n");
 	if (/(?:다음 할 일|(?:내일|추후|후속|다음에|이후|곧|계속).{0,24}(?:하겠습니다|합니다|할 예정|할 계획|진행하겠습니다|진행합니다|처리하겠습니다|처리합니다|검토하겠습니다|검토합니다|수정하겠습니다|수정합니다|배포하겠습니다|배포합니다)|(?:하겠습니다|합니다|할 예정|할 계획|진행하겠습니다|진행합니다|처리하겠습니다|처리합니다|검토하겠습니다|검토합니다|수정하겠습니다|수정합니다|배포하겠습니다|배포합니다).{0,24}(?:내일|추후|후속|다음에|이후|곧|계속))/u.test(completedAction)) {
 		return { valid: false, reason: "Detached generator returned future action" };
 	}

@@ -147,21 +147,26 @@ export function wwwNowLabel(s: ChatFeatureProjection): string | null {
 }
 
 export function wwwTNoteMarkdown(item: WorkbenchTNote): string {
-	const report = parseCanonicalTNoteReport(item.summary)                                    ;
-	const legacy = parseLegacyCanonicalTNote(item.summary)                                    ;
-	const title  = oneLine(report?.question || legacy?.question || item.title || "질문 요약") ;
+	const report = parseCanonicalTNoteReport(item.summary)                                 ;
+	const legacy = parseLegacyCanonicalTNote(item.summary)                                 ;
+	const title  = oneLine(report?.title || legacy?.question || item.title || "업무 보고") ;
 	if (report) return [
 		`## ${title}`,
-		`## Report\n\n### 질문\n\n${safe(report.question, 4000)}\n\n### Plan\n\n${safe(report.plan, 4000)}\n\n### 과정\n\n${safe(report.process, 4000)}\n\n### 결론\n\n${safe(report.conclusion, 4000)}\n\n### Test\n\n${safe(report.test || "테스트 실행 관측 없음", 4000)}`,
+		`## Report\n\n### 요청 목적·접근\n\n${safe(report.purposeAndApproach, 4000)}\n\n### 주요 작업\n\n${safe(report.keyWork, 4000)}\n\n### 장시간·차단 작업\n\n${safe(report.delaysAndBlocks, 4000)}\n\n### 잘된 점\n\n${safe(report.strengths, 4000)}\n\n### 모델·토큰\n\n${safe(report.modelAndTokens, 4000)}${narratorMarkdown(item)}\n\n### 업무 자체평가\n\n${safe(report.selfAssessment, 4000)}\n\n### 다음 유사 요청\n\n${safe(report.nextApproach, 4000)}\n\n### 변경 상태\n\n${safe(report.changeStatus, 4000)}\n\n### Commit·Evidence\n\n${safe(report.commitAndEvidence, 4000)}\n\n### Test\n\n${safe(report.test || "테스트 실행 관측 없음", 4000)}`,
 	].join("\n\n");
 	if (legacy) return `## ${title}\n\n## 원인\n\n${safe(legacy.why, 4000)}\n\n## 결과\n\n${safe(legacy.result, 4000)}`;
 	return `## ${title}\n\n${safe(item.summary, 8000)}`;
 }
 
+function narratorMarkdown(item: WorkbenchTNote): string {
+	const provenance = item.provenance;
+	return provenance ? `\n\nDetached narrator: ${safe(`${provenance.provider} / ${provenance.model} / ${provenance.version}`, 4000)}` : "";
+}
+
 function tnoteTitle(item: WorkbenchTNote): string {
 	const report = parseCanonicalTNoteReport(item.summary);
 	const legacy = parseLegacyCanonicalTNote(item.summary);
-	return oneLine(report?.question || legacy?.question || item.title || "질문 요약");
+	return oneLine(report?.title || legacy?.question || item.title || "업무 보고");
 }
 
 function responseFrameRows(label: string, status: string, bodyRows: readonly string[], width: number): string[] {
@@ -191,6 +196,13 @@ function tnoteFieldRows(label: string, value: string, width: number): string[] {
 	return [a.secondary(label), ...prose(a.text(safe(value, 4000)), width), ""];
 }
 
+function narratorRows(item: WorkbenchTNote, width: number): string[] {
+	const provenance = item.provenance;
+	return provenance
+		? tnoteFieldRows("Detached narrator", `${provenance.provider} / ${provenance.model} / ${provenance.version}`, width)
+		: [];
+}
+
 function reportPanel(rows: string[], badge: string, width: number): TNotePanel {
 	return { rows: [pair(a.response("REPORT"), badge, width), "", ...rows] };
 }
@@ -208,10 +220,16 @@ function tnotePanels(item: WorkbenchTNote, width: number): TNotePanel[] | null {
 	const report = parseCanonicalTNoteReport(item.summary);
 	if (report) return [reportPanel([
 		a.caption(tnoteTitle(item)), "",
-		...tnoteFieldRows("질문", report.question, width),
-		...tnoteFieldRows("Plan", report.plan, width),
-		...tnoteFieldRows("과정", report.process, width),
-		...tnoteFieldRows("결론", report.conclusion, width),
+		...tnoteFieldRows("요청 목적·접근", report.purposeAndApproach, width),
+		...tnoteFieldRows("주요 작업", report.keyWork, width),
+		...tnoteFieldRows("장시간·차단 작업", report.delaysAndBlocks, width),
+		...tnoteFieldRows("잘된 점", report.strengths, width),
+		...tnoteFieldRows("모델·토큰", report.modelAndTokens, width),
+		...narratorRows(item, width),
+		...tnoteFieldRows("업무 자체평가", report.selfAssessment, width),
+		...tnoteFieldRows("다음 유사 요청", report.nextApproach, width),
+		...tnoteFieldRows("변경 상태", report.changeStatus, width),
+		...tnoteFieldRows("Commit·Evidence", report.commitAndEvidence, width),
 		...tnoteFieldRows("Test", report.test || "테스트 실행 관측 없음", width),
 	], reportBadge(report.test), width)];
 	const legacy = parseLegacyCanonicalTNote(item.summary);
