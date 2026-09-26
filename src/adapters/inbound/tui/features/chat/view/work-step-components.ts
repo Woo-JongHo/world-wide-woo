@@ -85,10 +85,12 @@ export class ObservationCard implements Component {
 	invalidate(): void {}
 
 	render(width: number): string[] {
-		const stepOptions : WorkStepCardOptions = { stepNumber: 0, ...this.options }                                                        ;
-		const projected                         = projectWorkStep(stepOptions)                                                              ;
-		const status                            = resolveWorkStepStatus(stepOptions)                                                        ;
-		const presentation                      = workStepStatusPresentation(status)                                                        ;
+		const stepOptions : WorkStepCardOptions = { stepNumber: 0, ...this.options }                   ;
+		const projected                         = projectWorkStep(stepOptions)                         ;
+		const status                            = resolveWorkStepStatus(stepOptions)                   ;
+		const presentation                      = workStepStatusPresentation(status)                   ;
+		const changes                           = fileChangeRows(this.options.activity, status, width) ;
+		if (changes) return changes.map((line) => presentation.surface(fitExecutionText(` ${line}`, Math.max(1, width - 1))));
 		const label                             = activityLabel(this.options, projected.command, stepOptions)                               ;
 		const header                            = `${presentation.symbol} ${colors.text(label)} ${colors.muted(`· ${presentation.label}`)}` ;
 		if (projected.command) {
@@ -101,6 +103,44 @@ export class ObservationCard implements Component {
 			.map((line) => renderExecutionLine(line, "output")));
 		return lines.map((line) => presentation.surface(` ${fitExecutionText(line, Math.max(1, width - 1))}`));
 	}
+}
+
+function fileChangeRows(activity: ProjectActivity | undefined, status: CommandStatus, width: number): string[] | null {
+	if (activity?.kind !== "file-change") return null;
+	const params  = object(activity.payload.params)                                                               ;
+	const item    = object(params?.item)                                                                          ;
+	const changes = Array.isArray(item?.changes) ? item.changes.flatMap(change => projectFileChange(change)) : [] ;
+	if (!changes.length) return null;
+	const nameWidth = Math.max(...changes.map(change => change.name.length));
+	return changes.map(change => {
+		const counts = [
+			change.added === null ? "" : colors.success(`+${change.added}`),
+			change.removed === null ? "" : colors.error(`-${change.removed}`),
+		].filter(Boolean).join("  ");
+		const row = `${fileChangeSymbol(status)} ${colors.text("CHANGE")}  ${change.name.padEnd(nameWidth)}${counts ? `  ${counts}` : ""}`;
+		return fitExecutionText(row, Math.max(1, width - 1));
+	});
+}
+
+function projectFileChange(value: unknown): { name: string; added: number | null; removed: number | null }[] {
+	const change = object(value);
+	const path   = typeof change?.path === "string" ? change.path.replace(/\\/gu, "/") : "";
+	if (!path) return [];
+	const diff    = typeof change?.diff === "string" ? change.diff.split(/\r?\n/u) : null                ;
+	const added   = diff?.filter(line => line.startsWith("+") && !line.startsWith("+++")).length ?? null ;
+	const removed = diff?.filter(line => line.startsWith("-") && !line.startsWith("---")).length ?? null ;
+	return [{ name: path.split("/").at(-1) ?? path, added, removed }];
+}
+
+function fileChangeSymbol(status: CommandStatus): string {
+	if (status === "passed") return colors.success("✓");
+	if (status === "failed") return colors.error("✕");
+	if (status === "cancelled") return colors.warning("−");
+	return colors.warning("•");
+}
+
+function object(value: unknown): Record<string, unknown> | null {
+	return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
 }
 
 function activityLabel(

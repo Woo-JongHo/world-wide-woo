@@ -62,7 +62,10 @@ function fileChangeActivity(): ProjectActivity {
 			params: {
 				item: {
 					type: "fileChange",
-					changes: [{ path: "src/app.ts", kind: "update", diff: "+ change" }],
+					changes: [
+						{ path: "src/project-workbench.ts", kind: "update", diff: "@@\n-old\n+new\n+added" },
+						{ path: "test/project-workbench-recording.test.ts", kind: "update", diff: "@@\n-old\n+new" },
+					],
 				},
 			},
 		},
@@ -154,7 +157,10 @@ describe("WorkStepCard executor highlighting", () => {
 
 		expect(bash).toContain("✔ Bash · PASSED");
 		expect(bash).toContain("│ $ bun test --filter 'work step'");
-		expect(edit).toContain("✔ Edit · PASSED");
+		expect(edit).toContain("✓ CHANGE  project-workbench.ts");
+		expect(edit).toContain("+2  -1");
+		expect(edit).toContain("✓ CHANGE  project-workbench-recording.test.ts");
+		expect(edit).not.toContain("공개 Source 일부 생략");
 		expect(tool).toContain("✔ Tool · PASSED");
 	});
 
