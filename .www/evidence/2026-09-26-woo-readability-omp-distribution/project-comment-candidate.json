@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-WOO-READABILITY-OMP-DISTRIBUTION",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:216b9d9faa09bcb19151f0f188792e8ce7113bf6:dirty",
+  "intent": "WOO-911 가독성 도구를 OMP 플러그인과 독립 CLI로 배포하는 구조 조사 결과를 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "현재 woo-code-readability의 규칙 문서, TypeScript AST/LSP 도구, fixtures, WWW 전용 운영 계약을 조사해 배포 경계를 정리했다.",
+      "Oh My Pi 공식 extension loading, skill package, marketplace 계약을 대조해 첫 배포는 상주 extension 없이 얇은 OMP skill과 독립 CLI로 구성하는 안을 제안했다.",
+      "공개 인터페이스를 check, write, explain 세 명령으로 제한하고 WWW Receipt와 에이전트 교대 규칙은 저장소 어댑터에 남기는 구조를 문서화했다.",
+      "GitHub marketplace와 npm CLI를 병행하고, OMP 생명주기 이벤트가 실제로 필요해질 때만 runtime extension을 추가하는 출시 순서를 제안했다."
+    ],
+    "impacts": [
+      "WOO-911의 검사기 구현과 WWW 운영 정책을 분리해 오픈소스 배포 범위를 판단할 수 있는 근거가 생겼다.",
+      "이번 결과는 구현이나 채택된 제품 계약이 아니라 배포 설계 제안이며, 패키지 생성과 외부 출시는 아직 수행하지 않았다."
+    ],
+    "categories": ["improvement", "verification"],
+    "verification": [
+      "로컬 woo-code-readability 디렉터리 216 KB와 스크립트 import, Bun·typescript/unstable 결합, WWW 전용 경로를 실측했다.",
+      "OMP 공식 저장소의 extension authoring, extension loading, marketplace authoring 문서로 skill-only 배포와 GitHub marketplace 설치 계약을 확인했다.",
+      "연구 문서에서 TODO, TBD, test.skip, test.only가 발견되지 않았고 파일 생성 상태를 read-back했다.",
+      "현재 세션에 linear-woo 도구가 없어 최신 Project Activity는 같은 날 성공한 마지막 로컬 read-back e781ff90-faed-4c2b-b3bb-b17ecabb36fb를 사용했다. 게시 직전 실시간 재조회가 필요하다."
+    ],
+    "connections": [
+      "Linear: WOO-911 · UUID b00b02eb-2d80-4b10-9c9a-a29db4f1a74d",
+      "Report: docs/research/2026-09-26-woo-code-readability-omp-distribution.md",
+      "Evidence: .www/evidence/2026-09-26-woo-readability-omp-distribution",
+      "Branch: dev · HEAD 216b9d9faa09bcb19151f0f188792e8ce7113bf6 · uncommitted"
+    ]
+  },
+  "links": {
+    "issue": "https://linear.app/woo-world/issue/WOO-911/코드-실행-흐름을-역할별-최소-구조와-측정-가능한-열로-정리한다",
+    "report": "docs/research/2026-09-26-woo-code-readability-omp-distribution.md",
+    "candidateEvidence": ".www/evidence/2026-09-26-woo-readability-omp-distribution"
+  },
+  "expectedBefore": {
+    "latestCommentId": "e781ff90-faed-4c2b-b3bb-b17ecabb36fb"
+  },
+  "validation": [
+    {
+      "id": "issue-binding",
+      "status": "pass",
+      "evidence": "보존된 WOO-911 read-back과 최근 Readability Candidate를 대조해 기존 이슈가 결정론적 검사기와 가독성 계약을 소유함을 확인했다. 이번 조사는 그 capability의 배포 방식 검토이므로 새 이슈를 만들지 않는다."
+    },
+    {
+      "id": "research-verification",
+      "status": "pass",
+      "evidence": "로컬 코드 결합점과 OMP 공식 문서의 skill, extension, marketplace 계약을 대조하고 출처를 연구 문서에 연결했다."
+    },
+    {
+      "id": "canonical-decision",
+      "status": "pass",
+      "evidence": "독립 CLI와 OMP skill 구조는 아직 사용자가 채택하지 않은 연구 제안이며 제품 WHY, identity, schema, 권위 경계를 변경하지 않아 Obsidian Candidate를 만들지 않았다."
+    },
+    {
+      "id": "publication-boundary",
+      "status": "pass",
+      "evidence": "Project Comment는 게시하지 않았으며 사용자 승인과 게시 직전 linear-woo Activity 재조회가 필요하다."
+    }
+  ],
+  "candidateDigest": "bf53a667ec99b81667fc80705cca0a483fc09ee2d47390dda13979ad400ab0f8"
+}

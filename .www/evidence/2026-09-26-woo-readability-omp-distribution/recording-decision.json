@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "recordedAt": "2026-09-26T00:00:00+09:00",
+  "scope": "woo-code-readability OMP distribution research",
+  "changedFiles": [
+    "docs/research/2026-09-26-woo-code-readability-omp-distribution.md"
+  ],
+  "issueBinding": {
+    "decision": "reuse-existing",
+    "identifier": "WOO-911",
+    "uuid": "b00b02eb-2d80-4b10-9c9a-a29db4f1a74d",
+    "reason": "WOO-911이 가독성 계약과 결정론적 검사기를 소유하며 이번 연구는 해당 capability의 배포 경계를 검토한다.",
+    "remoteReadback": "unavailable-current-session",
+    "localEvidence": ".www/evidence/2026-09-21-cli-readability/linear-issue-readback.json"
+  },
+  "projectActivity": {
+    "candidate": ".www/evidence/2026-09-26-woo-readability-omp-distribution/project-comment-candidate.json",
+    "latestLocalReadbackCommentId": "e781ff90-faed-4c2b-b3bb-b17ecabb36fb",
+    "state": "candidate-prepared",
+    "externalWrite": "not-performed",
+    "publishPrecondition": "linear-woo로 Project Activity를 다시 읽고 사용자 승인을 확인한다."
+  },
+  "obsidian": {
+    "required": false,
+    "reason": "문서는 채택된 계약이 아니라 배포 대안을 제시하는 연구 결과다. 새 capability 구현이나 되돌리기 어려운 identity, schema, 권위 경계 변경은 아직 시작되지 않았다."
+  }
+}

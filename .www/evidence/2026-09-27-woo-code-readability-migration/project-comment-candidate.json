@@ -1,0 +1,67 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-WOO-CODE-READABILITY-MIGRATION-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:216b9d9faa09bcb19151f0f188792e8ce7113bf6:dirty",
+  "intent": "WOO-911의 가독성 스킬을 standalone 단일 원본으로 이관한 결과를 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "woo-code-readability의 범용 SKILL.md, references, scripts, fixtures와 30개 도구 테스트를 형제 standalone 저장소 woo-readability로 이관했다.",
+      "99_www 프로젝트 경로와 Codex 전역 경로를 standalone 정본의 symlink로 전환하고, Codex 구본은 타임스탬프 백업으로 보존했다.",
+      "WWW 전용 Receipt·승인·검사자 흐름은 제품 저장소에 남기고, WWW의 기존 전체 도구 테스트는 standalone 테스트와 2개 연결 통합 테스트로 분리했다."
+    ],
+    "impacts": [
+      "동명 스킬 사본이 서로 다른 규칙과 존재하지 않는 스크립트 경로를 제공하던 drift가 제거됐다.",
+      "Codex와 99_www가 같은 실제 디렉터리와 같은 SKILL.md 해시를 읽으며, 다른 에이전트도 install.sh를 통해 같은 원본에 연결할 수 있다.",
+      "npm·GitHub·OMP marketplace 공개와 Claude·ZCode·Pi 전역 연결은 이번 작업에서 수행하지 않았다."
+    ],
+    "categories": [
+      "improvement",
+      "refactor",
+      "verification",
+      "operations"
+    ],
+    "verification": [
+      "standalone 최종 위치에서 bun test: 30 pass, 0 fail, 255 expect() calls.",
+      "99_www의 symlink 소비 경계에서 2 pass, 0 fail, 4 expect() calls; 변경 테스트 파일은 import changed=0, table misaligned=0.",
+      "quick_validate, install.sh 구문, git diff --check, 두 발견 경로 realpath·SHA-256 일치, Receipt digest 검증을 통과했다.",
+      "현재 세션에 linear-woo 도구가 없어 최신 Activity 중복 조회와 게시 read-back은 수행하지 않았다. 게시 직전 재조회와 사용자 승인이 필요하다."
+    ],
+    "connections": [
+      "Linear: WOO-911 · UUID b00b02eb-2d80-4b10-9c9a-a29db4f1a74d",
+      "Standalone: /Users/jonghoPro/woo/00_project/woo-readability",
+      "Evidence: .www/evidence/2026-09-27-woo-code-readability-migration",
+      "Research: docs/research/2026-09-26-woo-code-readability-omp-distribution.md",
+      "Branch: dev · HEAD 216b9d9faa09bcb19151f0f188792e8ce7113bf6 · uncommitted"
+    ]
+  },
+  "links": {
+    "issue": "https://linear.app/woo-world/issue/WOO-911/코드-실행-흐름을-역할별-최소-구조와-측정-가능한-열로-정리한다",
+    "evidence": ".www/evidence/2026-09-27-woo-code-readability-migration",
+    "research": "docs/research/2026-09-26-woo-code-readability-omp-distribution.md"
+  },
+  "expectedBefore": {
+    "latestCommentId": "1196a23e-1f9f-4bff-b6c8-83f5a1a4e5ab"
+  },
+  "validation": [
+    {
+      "id": "issue-binding",
+      "status": "pass",
+      "evidence": "WOO-911의 게시 Receipt와 read-back 및 2026-09-26 배포 연구 Candidate를 대조해 같은 가독성 capability와 결정론적 검사기를 소유함을 확인했다."
+    },
+    {
+      "id": "implementation-evidence",
+      "status": "pass",
+      "evidence": "standalone 30개 테스트, WWW 통합 2개 테스트, 링크·해시 read-back과 migration Receipt가 현재 파일에 보존되어 있다."
+    },
+    {
+      "id": "publication-boundary",
+      "status": "pass",
+      "evidence": "Candidate만 준비한다. expectedBefore는 마지막 로컬 read-back이며 게시 직전 linear-woo 재조회와 사용자 승인이 필요하다."
+    }
+  ],
+  "candidateDigest": "770e1c42bf7ca91e0dfef008a4761c69809292cb4e88921e973d35ca22dbf873"
+}

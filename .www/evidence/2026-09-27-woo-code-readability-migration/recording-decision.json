@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "1.0",
+  "recordedAt": "2026-09-27T02:30:00+09:00",
+  "scope": "woo-code-readability standalone migration",
+  "issueBinding": {
+    "decision": "reuse-existing",
+    "identifier": "WOO-911",
+    "uuid": "b00b02eb-2d80-4b10-9c9a-a29db4f1a74d",
+    "reason": "WOO-911이 가독성 계약과 결정론적 검사기를 소유하며, 2026-09-26 배포 연구도 같은 이슈에 결속돼 있다.",
+    "remoteReadback": "unavailable-current-session",
+    "localEvidence": ".www/evidence/2026-09-21-cli-readability/linear-issue-readback.json"
+  },
+  "projectActivity": {
+    "candidate": ".www/evidence/2026-09-27-woo-code-readability-migration/project-comment-candidate.json",
+    "preview": ".www/evidence/2026-09-27-woo-code-readability-migration/project-comment-preview.md",
+    "latestLocalReadbackCommentId": "1196a23e-1f9f-4bff-b6c8-83f5a1a4e5ab",
+    "state": "candidate-prepared",
+    "externalWrite": "not-performed",
+    "publishPrecondition": "linear-woo로 Project Activity와 WOO-911을 재조회하고 사용자 항목별 승인을 받는다."
+  },
+  "obsidian": {
+    "required": true,
+    "reason": "규칙·검사기의 권위가 99_www 내부 폴더에서 독립 저장소로 이동하고 여러 에이전트가 그 원본을 공유하므로 되돌리기 비용이 있는 저장소·권위 경계 결정이다.",
+    "candidate": ".www/evidence/2026-09-27-woo-code-readability-migration/obsidian-canonical-candidate.json",
+    "preview": ".www/evidence/2026-09-27-woo-code-readability-migration/obsidian-canonical-preview.md",
+    "state": "draft-candidate-prepared",
+    "externalWrite": "not-performed",
+    "publishPrecondition": "Vault에서 WOO-911 정본 부재와 target path를 재확인하고 사용자 항목별 승인을 받는다."
+  },
+  "publication": {
+    "linearComment": "not-approved",
+    "obsidianCanonical": "not-approved",
+    "github": "not-requested"
+  }
+}

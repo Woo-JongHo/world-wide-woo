@@ -1,0 +1,133 @@
+{
+  "schemaVersion": "1.0",
+  "receiptId": "a5598683-bbc4-4c28-a550-72d841387636",
+  "runId": "453a6a0c-e345-4024-b5ad-ed7c68b02675",
+  "candidateId": null,
+  "skill": {
+    "name": "woo-code-readability",
+    "version": "1.2"
+  },
+  "capability": "CODE-READABILITY-MAINTAIN",
+  "intentId": null,
+  "status": "succeeded",
+  "stage": "verify",
+  "actor": {
+    "kind": "codex",
+    "model": "gpt-5"
+  },
+  "context": {
+    "repo": "99_www",
+    "branch": "dev",
+    "sourceRevision": "git:216b9d9faa09bcb19151f0f188792e8ce7113bf6:dirty",
+    "updatedAt": "2026-09-27T02:15:21+09:00"
+  },
+  "input": {
+    "objective": "갈라진 woo-code-readability 사본을 standalone 저장소의 단일 원본으로 이관한다."
+  },
+  "decision": {
+    "facts": [
+      "99_www 프로젝트 스킬과 Codex 전역 스킬은 서로 다른 일반 디렉터리였다.",
+      "범용 규칙과 검사기는 standalone으로 이동하고 WWW Receipt와 승인 흐름은 제품 저장소에 남겼다.",
+      "기존 소비 경로는 symlink로 유지해 AGENTS.md와 검사자 설정의 상대 경로 계약을 보존했다."
+    ],
+    "changes": [
+      {
+        "kind": "skill-migration",
+        "ref": "../woo-readability/skills/woo-code-readability",
+        "summary": "범용 SKILL.md, references, scripts, fixtures와 독립 테스트를 standalone 저장소로 이관했다."
+      },
+      {
+        "kind": "link-update",
+        "ref": ".agents/skills/woo-code-readability",
+        "summary": "99_www의 스킬 경로를 형제 standalone 정본의 상대 symlink로 전환했다."
+      },
+      {
+        "kind": "link-update",
+        "ref": "~/.codex/skills/woo-code-readability",
+        "summary": "Codex 전역 구본을 백업하고 standalone 정본의 symlink로 전환했다."
+      },
+      {
+        "kind": "test-migration",
+        "ref": "test/code-readability-tools.test.ts",
+        "summary": "전체 도구 테스트는 standalone으로 옮기고 WWW에는 설치 경로와 저장소 경계 통합 테스트만 남겼다."
+      }
+    ],
+    "unknowns": [
+      "npm, GitHub, OMP marketplace 공개 배포는 수행하지 않았다.",
+      "Claude, ZCode, Pi 전역 경로는 기존 설치가 확인되지 않아 연결하지 않았다."
+    ]
+  },
+  "validation": [
+    {
+      "check": "bun test",
+      "status": "passed",
+      "detail": "standalone 저장소에서 30 pass / 0 fail / 255 expect() calls."
+    },
+    {
+      "check": "bun test test/code-readability-tools.test.ts",
+      "status": "passed",
+      "detail": "99_www 통합 경계에서 2 pass / 0 fail / 4 expect() calls."
+    },
+    {
+      "check": "quick_validate.py skills/woo-code-readability",
+      "status": "passed",
+      "detail": "Skill is valid."
+    },
+    {
+      "check": "00_normalize-imports.ts and 06_align-tables.ts",
+      "status": "passed",
+      "detail": "WWW 통합 테스트 파일 changed=0, misaligned=0."
+    },
+    {
+      "check": "realpath and sha256 read-back",
+      "status": "passed",
+      "detail": "프로젝트와 Codex 경로가 같은 standalone 디렉터리와 같은 SKILL.md 해시를 가리킨다."
+    }
+  ],
+  "authorization": {
+    "source": "user",
+    "message": "이관"
+  },
+  "execution": {
+    "writes": [
+      "/Users/jonghoPro/woo/00_project/woo-readability",
+      ".agents/skills/woo-code-readability",
+      "test/code-readability-tools.test.ts",
+      ".www/evidence/2026-09-27-woo-code-readability-migration/receipt.json",
+      ".www/evidence/2026-09-27-woo-code-readability-migration/project-comment-candidate.json",
+      ".www/evidence/2026-09-27-woo-code-readability-migration/project-comment-preview.md",
+      ".www/evidence/2026-09-27-woo-code-readability-migration/obsidian-canonical-candidate.json",
+      ".www/evidence/2026-09-27-woo-code-readability-migration/obsidian-canonical-preview.md",
+      ".www/evidence/2026-09-27-woo-code-readability-migration/recording-decision.json"
+    ],
+    "externalActions": [],
+    "notes": "Codex 전역 구본은 ~/.codex/skills/woo-code-readability.backup-20260926T171521Z에 보존했다. 커밋과 외부 게시를 수행하지 않았다."
+  },
+  "result": {
+    "standaloneRoot": "/Users/jonghoPro/woo/00_project/woo-readability",
+    "projectSkillTarget": "/Users/jonghoPro/woo/00_project/woo-readability/skills/woo-code-readability",
+    "codexSkillTarget": "/Users/jonghoPro/woo/00_project/woo-readability/skills/woo-code-readability",
+    "standaloneTestsPassing": 30,
+    "integrationTestsPassing": 2,
+    "behaviorChanged": false
+  },
+  "failure": null,
+  "evidence": [
+    {
+      "path": "/Users/jonghoPro/woo/00_project/woo-readability/skills/woo-code-readability/SKILL.md",
+      "sha256": "dbfe2036020dd0d90dee964bd018903f6a32854151b48fe08a945e94ff0f98cf"
+    },
+    {
+      "path": "/Users/jonghoPro/woo/00_project/woo-readability/bun.lock",
+      "sha256": "3ded951cdeb581ca13fed221f1e6094d47aa813bcb5fc06d53afc44f51ca0fce"
+    },
+    {
+      "path": "test/code-readability-tools.test.ts",
+      "sha256": "838eb3a50edbe94caf683a7ec48d5204ece916189a3e6a00b7684d43133b093e"
+    }
+  ],
+  "nextCapabilities": [
+    "CODE-READABILITY-PUBLISH"
+  ],
+  "receiptDigest": "4ee8065a2e0f2a247121430e9924072a72fd76b539a2a83eec28a02d505cdee4"
+}
