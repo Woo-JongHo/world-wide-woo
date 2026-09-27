@@ -29,16 +29,16 @@ export function requestRuntimeMotionActive(request: Pick<RequestRuntimeRecord, "
 	return Number.isFinite(elapsed) && elapsed >= 0 && elapsed < settleMs;
 }
 
-function stageInk(status: RequestRuntimeRecord["stages"][number]["status"]): (text: string) => string {
+export function stageInk(status: RequestRuntimeRecord["stages"][number]["status"]): (text: string) => string {
 	if (status === "completed") return a.success;
 	if (status === "running") return a.active;
 	if (status === "failed" || status === "blocked") return a.failure;
 	return a.muted;
 }
 
-function stageMark(status: RequestRuntimeRecord["stages"][number]["status"]): string {
+export function stageMark(status: RequestRuntimeRecord["stages"][number]["status"]): string {
 	if (status === "completed" || status === "skipped") return "✓";
-	if (status === "running") return "›";
+	if (status === "running") return "●";
 	if (status === "failed") return "×";
 	if (status === "blocked") return "Ⅱ";
 	return "○";
@@ -82,16 +82,17 @@ export function requestRuntimeRows(
 	_goal: string | null = null,
 	activityRows?: readonly string[],
 ): string[] {
-	const completed = request.stages.filter(stage => stage.status === "completed" || stage.status === "skipped").length                                                                                 ;
-	const plan      = planTaskRows(request, width)                                                                                                                                    ;
-	const stages    = section("STAGE", width, `${completed}/${request.stages.length}`, a.plan)                                                                                                         ;
+	const settled = request.stages.filter(stage => !["pending", "running"].includes(stage.status)).length ;
+	const plan    = planTaskRows(request, width)                                                          ;
+	const stages  = section("STAGE", width, `${settled}/${request.stages.length}`, a.plan)                ;
 	stages.push(...stageRailRows(request, width));
 	if (request.attempt > 1) stages.push(...prose(a.muted(`시도 ${request.attempt} · 이전 ${request.previousAttempts.length}회 기록 보존`), width));
 	const activeStage = request.stages.find(stage => stage.status === "running")
 		?? request.stages.find(stage => stage.status === "failed" || stage.status === "blocked")
 		?? request.stages.find(stage => stage.status === "pending")
 		?? request.stages.at(-1);
-	if (activeStage?.goal) stages.push(...compactStatusRows(activeStage.goal, activeStage.status, width, compact ? 1 : 2));
+	const activeSummary = activeStage && ["failed", "blocked"].includes(activeStage.status) ? activeStage.output ?? activeStage.goal : activeStage?.goal;
+	if (activeStage && activeSummary) stages.push(...compactStatusRows(activeSummary, activeStage.status, width, compact ? 1 : 2));
 	for (const stage of request.stages.filter(stage => stage.skipReason)) {
 		stages.push(...prose(a.muted(`${stage.id} · ${safe(stage.skipReason)}`), width, 2));
 	}

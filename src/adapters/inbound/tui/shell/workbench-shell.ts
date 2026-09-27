@@ -281,7 +281,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	const getRuntimeMonitor = () => selectedHistoricalSession && selectedHistoricalSession.sessionId !== snapshot.threadId
 		? unavailableHistoricalMonitor()
 		: projectRuntimeMonitor(snapshot, snapshot.activities, typeof workbench.layerPerformanceSnapshot === "function" ? workbench.layerPerformanceSnapshot() : snapshot.layerPerformance);
-	const runtimeMonitorView = www ? new WwwMonitorView(getRuntimeMonitor, Date.now, wwwMotion) : new RuntimeMonitorView(getRuntimeMonitor);
+	const runtimeMonitorView = www ? new WwwMonitorView(getRuntimeMonitor, Date.now, wwwMotion, () => snapshot) : new RuntimeMonitorView(getRuntimeMonitor);
 	const runtimeMonitor = new ScrollView(www ? new WwwInset(runtimeMonitorView) : runtimeMonitorView, {
 		follow: www ? "none" : "end", primary: true, overscroll: "contain", scrollbar: "auto", scrollbarStyle: www ? a.rule : colors.muted,
 	});

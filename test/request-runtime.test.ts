@@ -5,6 +5,7 @@ import { join }                                                        from "nod
 import type { ProjectActivity }                                        from "../src/core/domain/execution/project-activity";
 import { REQUEST_STAGES, parseRequestStageReport }                     from "../src/core/domain/execution/request-runtime";
 import type { RequestStageReport }                                     from "../src/core/domain/execution/request-runtime";
+import { requestProtocolContext }                                      from "../src/core/application/orchestration/request-protocol";
 import { projectRequestRuntime }                                       from "../src/core/runtime/request-runtime";
 import { projectRequestTodo }                                          from "../src/core/domain/work/request-projections";
 import { parseTodoMarkdown, renderTodoMarkdown, validateTodoDocument } from "../src/core/domain/work/todos";
@@ -27,6 +28,23 @@ function fixture() {
 }
 
 describe("seven-stage request runtime", () => {
+	test("the generated DELIVER shape is accepted by the public Stage parser", () => {
+		const requestId = "1f068212-edaf-4a02-8de9-fb2b48dc99d7";
+		const protocol = JSON.parse(requestProtocolContext(requestId).value) as { deliveryShape: Record<string, unknown> };
+		const message = "[www-runtime]" + JSON.stringify({
+			requestId,
+			stage   : "DELIVER",
+			status  : "completed",
+			summary : "사용자에게 결과를 전달했다.",
+			...protocol.deliveryShape,
+		});
+		expect(parseRequestStageReport(message)).toMatchObject({
+			requestId,
+			stage      : "DELIVER",
+			status     : "completed",
+			deliveries : [{ target: "linear | github | obsidian | files | another target", artifact: "actual identity", evidence: ["actual item ID"] }],
+		});
+	});
 	test("keeps historical requests legacy and scopes protocol reports to the owning request", () => {
 		const f = fixture();
 		const legacy = f.journal.map(a => ({ ...a, payload: { ...a.payload, protocolVersion: undefined } }));
@@ -34,6 +52,15 @@ describe("seven-stage request runtime", () => {
 		f.report("UNDERSTAND", "completed", { requestId: "foreign" });
 		expect(f.result().stages[0]?.status).toBe("running");
 		expect(f.result().issues).toHaveLength(1);
+	});
+	test("does not stall planning stages when descriptive evidence is not an Activity reference", () => {
+		const f = fixture();
+		f.report("UNDERSTAND", "completed", { evidence: ["git-status-dev"] });
+		expect(f.result().stages[0]?.status                                         ).toBe   ("completed"    ) ;
+		expect(f.result().stages[0]?.evidence                                       ).toEqual([]             ) ;
+		expect(stripTerminalSequences(requestRuntimeRows(f.result(), 80).join("\n"))).toMatch(/STAGE\s+1\/7/u) ;
+		f.report("DECOMPOSE", "completed", { evidence: ["plan-registered"] });
+		expect(f.result().stages[1]?.status).toBe("completed");
 	});
 	test("approval blocks reports until the exact request is resolved", () => {
 		const f = fixture();
@@ -60,9 +87,18 @@ describe("seven-stage request runtime", () => {
 	});
 	test("creates seven Todo parents before Native has authored its plan", () => {
 		const f = fixture(), todo = validateTodoDocument(projectRequestTodo(f.result(), "session-1", 0));
-		expect(todo.items.map(t => t.content)).toEqual([...REQUEST_STAGES]);
-		expect(todo.items[0]?.status).toBe("in_progress");
-		expect(parseTodoMarkdown(renderTodoMarkdown(todo))).toEqual(todo);
+		expect(todo.items.map(t => t.content)             ).toEqual([...REQUEST_STAGES]) ;
+		expect(todo.items[0]?.status                      ).toBe   ("in_progress"      ) ;
+		expect(parseTodoMarkdown(renderTodoMarkdown(todo))).toEqual(todo               ) ;
+	});
+	test("preserves the current Goal when a queued follow-up skips UNDERSTAND", () => {
+		const f = fixture();
+		f.report("UNDERSTAND", "skipped", {
+			summary : "기존 Goal을 보충하는 후속 요청이라 재해석하지 않는다.",
+			goal    : "진입 대시보드를 완성한다",
+		});
+		expect(f.result().stages[0]?.status).toBe("skipped");
+		expect(f.result().objective).toBe("진입 대시보드를 완성한다");
 	});
 	test("Native authors stage tasks; parallel work and stable dependency IDs survive projection", () => {
 		const f = fixture();
@@ -87,17 +123,17 @@ describe("seven-stage request runtime", () => {
 		f.append({ role: "assistant", text: "구현과 테스트 완료" }, "message");
 		f.append({ method: "turn/completed" });
 		const result = f.result();
-		expect(result.status).toBe("completed");
-		expect(result.objective).toBe("UNDERSTAND 공개 결과");
-		expect(result.stages[2]?.skipReason).toBe("사용자 제공 코드가 전체 근거");
-		expect(result.stages[5]?.evidence).toContainEqual(expect.objectContaining({ activityId: check.id, sourceDigest: check.sourceDigest }));
-		expect(result.deliveries[0]?.target).toBe("chat");
-		expect(projectRequestRuntime([...f.journal, ...f.journal], "thread-1")).toEqual([result]);
+		expect(result.status                                                  ).toBe          ("completed"                                                                        ) ;
+		expect(result.objective                                               ).toBe          ("UNDERSTAND 공개 결과"                                                             ) ;
+		expect(result.stages[2]?.skipReason                                   ).toBe          ("사용자 제공 코드가 전체 근거"                                                     ) ;
+		expect(result.stages[5]?.evidence                                     ).toContainEqual(expect.objectContaining({ activityId: check.id, sourceDigest: check.sourceDigest })) ;
+		expect(result.deliveries[0]?.target                                   ).toBe          ("chat"                                                                             ) ;
+		expect(projectRequestRuntime([...f.journal, ...f.journal], "thread-1")).toEqual       ([result]                                                                           ) ;
 		for (const width of [30, 80, 140]) expect(requestRuntimeRows(result, width).every(row => visibleWidth(row) <= width)).toBe(true);
 		const requestRows = stripTerminalSequences(requestRuntimeRows(result, 80).join("\n"));
-		expect(requestRows).toContain("✓ GROUND");
-		expect(requestRows).toContain("GROUND · 사용자 제공 코드가 전체 근거");
-		expect(requestRows).toContain("✓ DELIVER");
+		expect(requestRows).toContain("✓ GROUND"                             ) ;
+		expect(requestRows).toContain("GROUND · 사용자 제공 코드가 전체 근거") ;
+		expect(requestRows).toContain("✓ DELIVER"                            ) ;
 	});
 	test("renders Stage, planned work, and Progress as separate layers", () => {
 		const f = fixture();
@@ -109,22 +145,22 @@ describe("seven-stage request runtime", () => {
 		] }] });
 		const plain = stripTerminalSequences(requestRuntimeRows(f.result(), 80, false, 0, "장기 목표").join("\n"));
 		const stage = plain.indexOf("STAGE"), plan = plain.indexOf("PLAN"), activity = plain.indexOf("PROGRESS");
-		expect(plain).not.toContain("Proposal");
-		expect(plain).not.toMatch(/^GOAL(?:\s|$)/mu);
-		expect(stage).toBeGreaterThanOrEqual(0);
-		expect(plan).toBeGreaterThan(stage);
-		expect(activity).toBeGreaterThan(plan);
-		expect(plain).not.toContain("NEXT");
-		expect(plain.slice(stage, plan)).toContain("판단의 실제 근거");
+		expect(plain                   ).not.toContain             ("Proposal"        ) ;
+		expect(plain                   ).not.toMatch               (/^GOAL(?:\s|$)/mu ) ;
+		expect(stage                   )    .toBeGreaterThanOrEqual(0                 ) ;
+		expect(plan                    )    .toBeGreaterThan       (stage             ) ;
+		expect(activity                )    .toBeGreaterThan       (plan              ) ;
+		expect(plain                   ).not.toContain             ("NEXT"            ) ;
+		expect(plain.slice(stage, plan))    .toContain             ("판단의 실제 근거") ;
 		for (const stageName of REQUEST_STAGES) expect(plain.slice(stage, plan)).toContain(stageName);
-		expect(plain.slice(plan, activity)).toContain("화면 계층 구현");
-		expect(plain.slice(plan, activity)).toContain("GOAL 상태 연결");
-		expect(plain.slice(plan, activity)).toContain("병렬 가능");
-		expect(plain.slice(plan, activity)).toContain("layout, goal 이후");
-		expect(plain.slice(activity)).toContain("정리된 세부 작업이 도착하면 이곳에 표시합니다.");
-		expect(plain).not.toContain("Tool · 관련 렌더 코드를 읽는 중");
-		expect(plain).not.toContain("관측된 동작");
-		expect(plain).not.toContain("request-1");
+		expect(plain.slice(plan, activity))    .toContain("화면 계층 구현"                                ) ;
+		expect(plain.slice(plan, activity))    .toContain("GOAL 상태 연결"                                ) ;
+		expect(plain.slice(plan, activity))    .toContain("병렬 가능"                                     ) ;
+		expect(plain.slice(plan, activity))    .toContain("layout, goal 이후"                             ) ;
+		expect(plain.slice(activity)      )    .toContain("정리된 세부 작업이 도착하면 이곳에 표시합니다.") ;
+		expect(plain                      ).not.toContain("Tool · 관련 렌더 코드를 읽는 중"               ) ;
+		expect(plain                      ).not.toContain("관측된 동작"                                   ) ;
+		expect(plain                      ).not.toContain("request-1"                                     ) ;
 	});
 	test("Progress does not repeat Native stage tasks while waiting for interpreted content", () => {
 		const f = fixture();
@@ -139,20 +175,20 @@ describe("seven-stage request runtime", () => {
 		};
 		const plain = stripTerminalSequences(requestRuntimeRows(request, 80, false, 0).join("\n"));
 		const progress = plain.slice(plain.indexOf("PROGRESS"), plain.indexOf("NEXT"));
-		expect(progress).toContain("정리된 세부 작업이 도착하면 이곳에 표시합니다.");
-		expect(progress).not.toContain("요청 범위 확인");
-		expect(progress).not.toContain("계획의 범위를 확정");
-		expect(progress).not.toContain("Bash");
+		expect(progress)    .toContain("정리된 세부 작업이 도착하면 이곳에 표시합니다.") ;
+		expect(progress).not.toContain("요청 범위 확인"                                ) ;
+		expect(progress).not.toContain("계획의 범위를 확정"                            ) ;
+		expect(progress).not.toContain("Bash"                                          ) ;
 	});
 	test("settled stage rail distinguishes skipped stages from completed stages", () => {
 		const base    = fixture().result()                                                                                           ;
 		const stages  = base.stages.map((stage, index) => ({ ...stage, status: index ? "skipped" as const : "completed" as const })) ;
 		const waiting = stripTerminalSequences(requestRuntimeRows({ ...base, stages }, 100).join("\n"))                              ;
-		expect(waiting).not.toContain("기존 구조에 Runtime 구현");
-		expect(waiting).not.toContain("╭ 완료");
-		expect(waiting).toContain("✓ UNDERSTAND");
-		expect(waiting).toContain("✓ DECOMPOSE");
-		expect(waiting).not.toContain("다음 계획 단계의 시작");
+		expect(waiting).not.toContain("기존 구조에 Runtime 구현") ;
+		expect(waiting).not.toContain("╭ 완료"                  ) ;
+		expect(waiting)    .toContain("✓ UNDERSTAND"            ) ;
+		expect(waiting)    .toContain("✓ DECOMPOSE"             ) ;
+		expect(waiting).not.toContain("다음 계획 단계의 시작"   ) ;
 		const complete = stripTerminalSequences(requestRuntimeRows({ ...base, stages, status: "completed" }, 100).join("\n"));
 		expect(complete).toContain("✓ DELIVER");
 		expect(complete).not.toContain("모든 단계가 완료");
@@ -162,25 +198,25 @@ describe("seven-stage request runtime", () => {
 		const request  = { ...base, stages: base.stages.map(stage => ({ ...stage, status: stage.id === "EXECUTE" ? "failed" as const : stage.id === "DELIVER" ? "running" as const : "completed" as const })) } ;
 		const plain    = stripTerminalSequences(requestRuntimeRows(request, 100).join("\n"))                                                                                                                    ;
 		const progress = plain.slice(0, plain.indexOf("PROGRESS"))                                                                                                                                              ;
-		expect(progress).toContain("× EXECUTE");
-		expect(progress).toContain("› DELIVER");
-		expect(progress).not.toContain("╭ 진행 중");
-		expect(progress).toContain("대상별 결과와 근거 전달");
+		expect(progress)    .toContain("× EXECUTE"              ) ;
+		expect(progress)    .toContain("● DELIVER"              ) ;
+		expect(progress).not.toContain("╭ 진행 중"              ) ;
+		expect(progress)    .toContain("대상별 결과와 근거 전달") ;
 		const narrow = requestRuntimeRows(request, 16, true);
 		expect(narrow.every(row => visibleWidth(row) <= 16)).toBe(true);
 		const plan = stripTerminalSequences(narrow.join("\n")).split("Progress")[0]!;
-		expect(plan).toContain("× EXECUTE");
-		expect(plan).toContain("› DELIVER");
-		expect(plan).not.toContain("진행 중");
-		expect(plan).toContain("대상별 결과와");
+		expect(plan)    .toContain("× EXECUTE"    ) ;
+		expect(plan)    .toContain("● DELIVER"    ) ;
+		expect(plan).not.toContain("진행 중"      ) ;
+		expect(plan)    .toContain("대상별 결과와") ;
 	});
 	test("does not expose queued input as a fourth Plan layer", () => {
 		const base   = fixture().result()                                                                                                                          ;
 		const stages = base.stages.map(stage => ({ ...stage, tasks: [{ id: stage.id, title: "완료한 세부 계획", status: "completed" as const, dependsOn: [] }] })) ;
 		const plain  = stripTerminalSequences(requestRuntimeRows({ ...base, stages }, 80).join("\n"))                                                              ;
-		expect(plain).not.toContain("NEXT");
-		expect(plain).not.toContain("다음 입력 제안이 없습니다.");
-		expect(plain).toContain("완료한 세부 계획");
+		expect(plain).not.toContain("NEXT"                      ) ;
+		expect(plain).not.toContain("다음 입력 제안이 없습니다.") ;
+		expect(plain)    .toContain("완료한 세부 계획"          ) ;
 	});
 	test("rejects out-of-order, cyclic and future-running plans without partial updates", () => {
 		const f = fixture();
@@ -197,9 +233,9 @@ describe("seven-stage request runtime", () => {
 		const f = fixture();
 		f.append({ role: "assistant", classification: "reasoning", text: '[www-runtime]{"requestId":"request-1","stage":"UNDERSTAND","status":"completed","summary":"private"}' }, "message");
 		f.append({ method: "turn/completed" });
-		expect(f.result().status).toBe("blocked");
-		expect(f.result().stages.every(s => s.status === "blocked")).toBe(true);
-		expect(JSON.stringify(f.result())).not.toContain("private");
+		expect(f.result().status                                   )    .toBe     ("blocked") ;
+		expect(f.result().stages.every(s => s.status === "blocked"))    .toBe     (true     ) ;
+		expect(JSON.stringify(f.result())                          ).not.toContain("private") ;
 		expect(parseRequestStageReport('[www-runtime]{"requestId":"r","stage":"UNDERSTAND","status":"skipped","summary":""}')).toBeNull();
 		expect(parseRequestStageReport('[www-runtime]{"requestId":"r","stage":"UNDERSTAND","status":"pass","summary":"이 단계는 필요하지 않음"}')).toMatchObject({ status: "skipped", summary: "이 단계는 필요하지 않음" });
 	});
@@ -209,16 +245,22 @@ describe("seven-stage request runtime", () => {
 		const interrupted = f.append({ method: "turn/interrupted" });
 		interrupted.phase = "cancelled";
 		const result = f.result();
-		expect(result.status).toBe("blocked");
-		expect(result.stages.every(stage => stage.status === "blocked")).toBe(true);
-		expect(result.stages[0]?.output).toBe("Native 실행이 중단되었습니다.");
-		expect(result.events.at(-1)?.type).toBe("request.blocked");
+		expect(result.status                                                    ).toBe     ("blocked"                      ) ;
+		expect(result.stages.every(stage => stage.status === "blocked")         ).toBe     (true                           ) ;
+		expect(result.stages[0]?.output                                         ).toBe     ("Native 실행이 중단되었습니다.") ;
+		expect(result.events.at(-1)?.type                                       ).toBe     ("request.blocked"              ) ;
+		expect(stripTerminalSequences(requestRuntimeRows(result, 80).join("\n"))).toContain("7/7"                          ) ;
+		expect(stripTerminalSequences(requestRuntimeRows(result, 80).join("\n"))).toContain("중단"                         ) ;
 	});
 	test("accepts structured VERIFY intent only on VERIFY tasks", () => {
 		const valid = parseRequestStageReport('[www-runtime]{"requestId":"r","stage":"DECOMPOSE","status":"completed","summary":"검증 계획","plan":[{"stage":"VERIFY","tasks":[{"id":"blackbox","title":"사용자 요청부터 결과까지 실행한다","status":"pending","dependsOn":[],"verification":{"kind":"black-box","purpose":"실제 경계에서 요청이 완료되는지 확인"}}]}]}');
 		expect(valid?.plan?.[0]?.tasks[0]?.verification).toEqual({ kind: "black-box", purpose: "실제 경계에서 요청이 완료되는지 확인" });
 		expect(parseRequestStageReport('[www-runtime]{"requestId":"r","stage":"DECOMPOSE","status":"completed","summary":"잘못된 계획","plan":[{"stage":"EXECUTE","tasks":[{"id":"wrong","title":"실행 작업","status":"pending","dependsOn":[],"verification":{"kind":"black-box","purpose":"VERIFY 외부에는 둘 수 없음"}}]}]}')).toBeNull();
 		expect(parseRequestStageReport('[www-runtime]{"requestId":"r","stage":"DECOMPOSE","status":"completed","summary":"잘못된 종류","plan":[{"stage":"VERIFY","tasks":[{"id":"wrong-kind","title":"검사","status":"pending","dependsOn":[],"verification":{"kind":"mystery","purpose":"알 수 없는 종류"}}]}]}')).toBeNull();
+	});
+	test("accepts current-stage tasks as a plan shorthand", () => {
+		const parsed = parseRequestStageReport('[www-runtime]{"requestId":"r","stage":"DECOMPOSE","status":"completed","summary":"작업을 분해했다","tasks":[{"id":"runtime","title":"Runtime 상태를 고친다","status":"completed","dependsOn":[]}]}');
+		expect(parsed?.plan).toEqual([{ stage: "DECOMPOSE", tasks: [{ id: "runtime", title: "Runtime 상태를 고친다", status: "completed", dependsOn: [] }] }]);
 	});
 	test("persists canonical record and distinct destination drafts atomically", async () => {
 		const directory = await mkdtemp(join(tmpdir(), "www-request-"));
