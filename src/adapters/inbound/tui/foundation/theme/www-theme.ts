@@ -3,7 +3,7 @@ import { truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works
 import type { EditorTheme, MarkdownTheme }                 from "@earendil-works/pi-tui";
 import { getActiveTuiTheme, palette }                      from "@/adapters/inbound/tui/foundation/theme/theme";
 
-/** Figma reference inks for the default Gruvbox and the Tokyo Night theme. */
+/** Figma reference inks for the Gruvbox, Tokyo Night, GPT, and COOL themes. */
 export const wwwPalette = {
 	get text() { return palette.foreground; },
 	get cream() { return getActiveTuiTheme() === "gruvbox" ? "#fbf1c7" : palette.foreground; },
@@ -14,19 +14,49 @@ export const wwwPalette = {
 	get attention() { return palette.amber; },
 	get failure() { return palette.red; },
 	get request() { return palette.success; },
-	get response() { return getActiveTuiTheme() === "tokyo-night" ? palette.steel : "#D3869B"; },
+	get response() {
+		const theme = getActiveTuiTheme();
+		if (theme === "tokyo-night") return palette.steel;
+		if (theme === "gpt") return "#acacbe";
+		if (theme === "cool") return "#8ba7c2";
+		return "#D3869B";
+	},
 	get tool() { return palette.teal; },
 	get plan() { return palette.amber; },
 	get note() { return palette.orange; },
-	get info() { return getActiveTuiTheme() === "tokyo-night" ? palette.blue : "#8EC07C"; },
+	get info() {
+		const theme = getActiveTuiTheme();
+		if (theme === "tokyo-night") return palette.blue;
+		if (theme === "gpt") return "#19c37d";
+		if (theme === "cool") return "#34d399";
+		return "#8EC07C";
+	},
 	get codex() { return palette.foreground; },
 	get claude() { return palette.orange; },
 	get gemini() { return palette.teal; },
-	get zai() { return getActiveTuiTheme() === "tokyo-night" ? palette.steel : "#D3869B"; },
+	get zai() { return "#8b5cf6"; },
 	get success() { return palette.success; },
+	/** Figma goal-badge·breadcrumb brand accent per theme. */
+	get brand() {
+		const theme = getActiveTuiTheme();
+		if (theme === "gruvbox") return "#fe8019";
+		if (theme === "gpt") return "#10a37f";
+		if (theme === "cool") return "#38bdf8";
+		return "#57c7ff";
+	},
+	/** Figma SYS_OK green per theme. */
+	get sysOk() {
+		const theme = getActiveTuiTheme();
+		if (theme === "tokyo-night") return "#73d18b";
+		return palette.success;
+	},
 } as const;
 type WwwPaletteKey = keyof typeof wwwPalette;
 const wwwInk = (key: WwwPaletteKey): WwwInk => text => chalk.hex(wwwPalette[key])(text);
+/** The Figma goal-badge: brand background over the bar foreground. */
+export function wwwBadge(text: string): string {
+	return chalk.bgHex(wwwPalette.brand).hex(palette.background)(chalk.bold(text));
+}
 export const a = {
 	text: wwwInk("text"), cream: wwwInk("cream"), answer: chalk.white, secondary: wwwInk("secondary"), muted: wwwInk("muted"), rule: wwwInk("rule"),
 	caption: (text: string) => chalk.italic(wwwInk("muted")(text)),
@@ -34,8 +64,9 @@ export const a = {
 	request: wwwInk("request"), response: wwwInk("response"), tool: wwwInk("tool"),
 	plan: wwwInk("plan"), note: wwwInk("note"), info: wwwInk("info"), success: wwwInk("success"),
 	codex: wwwInk("codex"), claude: wwwInk("claude"), gemini: wwwInk("gemini"), zai: wwwInk("zai"),
-	strong: (text: string) => chalk.bold(wwwInk("text")(text)),
-	selected: (text: string) => chalk.bgHex(wwwPalette.rule).hex(wwwPalette.text).bold(text),
+	sysOk    : wwwInk("sysOk"),
+	strong   : (text: string) => chalk.bold(wwwInk("text")(text)),
+	selected : (text: string) => chalk.bgHex(wwwPalette.rule).hex(wwwPalette.text).bold(text),
 };
 export type WwwInk = (text: string) => string;
 

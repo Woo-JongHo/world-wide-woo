@@ -85,6 +85,7 @@ import {
 	WwwComposer,
 	WwwExecutionHeading,
 	WwwHeader,
+	WwwGoalBar,
 	WwwHud,
 	WwwInset,
 	WwwNotice,
@@ -197,10 +198,12 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 			pendingFrameTraceIds.clear();
 		}
 		for (const traceId of activeFrameTraceIds) observeLayer(workbench, traceId, phase, boundary, activeFrameId ?? undefined);
+		const refreshRenderHealth = dependencies.surface === "www" && phase === "terminal-write" && boundary === "completed" && activeFrameTraceIds.size > 0;
 		if (boundary === "failed" || phase === "terminal-write" && boundary === "completed") {
 			activeFrameId = null;
 			activeFrameTraceIds.clear();
 		}
+		if (refreshRenderHealth) queueMicrotask(() => tui.requestRender());
 	});
 	const terminalBackgroundEnabled                   = dependencies.surface === "www" && process.env.NO_COLOR === undefined                         ;
 	const applyTerminalBackground                     = (): void => { if (terminalBackgroundEnabled) terminal.write(tuiBackgroundSequence()); }      ;
@@ -355,11 +358,18 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	const root = new VStack([
 		...(www ? [
 			{ component: new WwwHeader(() => snapshot, () => navigation.mode === "workbench" ? wwwPageLabel(www.page) : navigation.mode === "monitor" ? "PROGRESS" : navigation.mode, cwd), basis: 1, minSize: 1, maxSize: 1, visible: ({ height }: { height: number }) => height >= 12 },
+		{ component: www ? new WwwGoalBar(() => snapshot) : { render: () => [""], invalidate: () => undefined }, basis: 1, minSize: 0, maxSize: 1, visible: ({ height }: { height: number }) => height >= 13 && Boolean(snapshot.sessionGoal?.text) },
 		] : []),
 		{ component: activeView, basis: 0, grow: 1, shrink: 1, minSize: 1 },
 		{ component: composerFrame, basis: "auto", shrink: 1, minSize: 3 },
 		{ component: status, basis: 1, minSize: 1, maxSize: 1, visible: ({ height }) => height >= 5 && status.hasNotice },
-		{ component: www ? new WwwHud(() => snapshot, () => usageSnapshots, true, () => www.cacheTelemetry()) : bottomHud, basis: www ? "auto" : 1, minSize: 1, maxSize: www ? 6 : 1, visible: ({ height }) => height >= 7 },
+		{ component: www ? new WwwHud(
+			() => snapshot,
+			() => usageSnapshots,
+			true,
+			() => www.cacheTelemetry(),
+			() => typeof workbench.layerPerformanceSnapshot === "function" ? workbench.layerPerformanceSnapshot() : snapshot.layerPerformance,
+		) : bottomHud, basis: www ? "auto" : 1, minSize: 1, maxSize: www ? 6 : 1, visible: ({ height }) => height >= 7 },
 	]);
 	let lastAutoApprovalId : NonNullable<WorkbenchSnapshot["pendingApproval"]>["requestId"] | null = null                ;
 	const exitKeys                                                                                 = new ExitKeyPolicy() ;
@@ -475,14 +485,11 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		if (navigation.mode === "monitor" && snapshot.phase === "working") tui.requestRender();
 	}, 1_000);
 	monitorClock.unref?.();
-	// The spinner frame advances every 120ms; without motion only elapsed labels need the 1s tick.
+	// Native deltas and the live activity component own fast updates. This clock only refreshes elapsed labels.
 	const wwwClock = www ? setInterval(() => {
 		const request = snapshot.requestRuntime?.at(-1);
 		if (!lifecycle.isShuttingDown && !overlays?.hasOverlay && (wwwExecutionIsLive(projectChatFeature(snapshot)) || wwwMotion && request && requestRuntimeMotionActive(request, Date.now()))) tui.requestRender();
-	// Native deltas already use the 32ms scheduler below. This clock only keeps
-	// elapsed labels and live decoration fresh. A persistent session goal is
-	// static and must not keep the layered workspace repainting after completion.
-	}, wwwMotion ? 120 : 1_000) : null;
+	}, 1_000) : null;
 	wwwClock?.unref?.();
 	let composerBorderFrame = 0;
 	const composerBorderClock = setInterval(() => {

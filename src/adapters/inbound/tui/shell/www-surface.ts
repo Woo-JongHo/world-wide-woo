@@ -34,7 +34,6 @@ import { WwwWorkflowRail, WwwWorkflowView }                            from "@/a
 import { WORKBENCH_SLASH_COMMANDS }                                    from "@/adapters/inbound/tui/commands/slash-commands";
 import {
 	a,
-	wwwFlowText,
 	duration,
 	fit,
 	oneLine,
@@ -42,6 +41,8 @@ import {
 	prose,
 	safe,
 	section,
+	wwwBadge,
+	wwwPalette,
 } from "@/adapters/inbound/tui/foundation/theme/www-theme";
 import { wwwQuotaHudRows }                                             from "@/adapters/inbound/tui/features/usage/view/www-usage";
 import { WwwUsageRail, WwwUsageView }                                  from "@/adapters/inbound/tui/features/usage/view/www-usage-view";
@@ -249,17 +250,32 @@ export class WwwWorkspace {
 	toggleSidebar(): boolean { this.sidebarEnabled = !this.sidebarEnabled; return this.sidebarEnabled; }
 }
 
+/** The Figma top-app-bar: `WWW / {project} / {view}` breadcrumb with system status on the right. */
 export class WwwHeader implements Component {
-	constructor(private readonly get: () => WorkbenchSnapshot, private readonly page: () => string, private readonly cwd: string, private readonly clock = Date.now, private readonly motion = true) {}
+	private readonly sessionStartedAt: number;
+	constructor(private readonly get: () => WorkbenchSnapshot, private readonly page: () => string, private readonly cwd: string, private readonly clock = Date.now, private readonly motion = true) {
+		this.sessionStartedAt = clock();
+	}
 	invalidate(): void {}
 	render(width: number): string[] {
-		const s        = this.get()                                                                               ;
-		const project  = this.cwd.split(/[\\/]/u).filter(Boolean).at(-1) ?? s.projectId                           ;
-		const identity = `${a.strong("www")}  ${a.muted(oneLine(project))} ${a.rule("/")} ${a.text(this.page())}` ;
-		const goal     = oneLine(s.sessionGoal?.text, 500)                                                        ;
-		const frame    = this.motion ? Math.floor(this.clock() / 120) : 0                                         ;
-		const goalText = goal ? wwwFlowText(`GOAL  ${goal}`, frame) : a.muted("GOAL  이해 중")                    ;
-		return [pair(`  ${goalText}`, identity, width)];
+		const s        = this.get()                                                                                                 ;
+		const project  = this.cwd.split(/[\\/]/u).filter(Boolean).at(-1) ?? s.projectId                                             ;
+		const identity = `${a.plan("WWW")} ${a.muted("/")} ${a.secondary(oneLine(project))} ${a.muted("/")} ${a.text(this.page())}` ;
+		const minutes  = Math.max(0, Math.floor((this.clock() - this.sessionStartedAt) / 60_000))                                   ;
+		const session  = minutes >= 60 ? `${Math.floor(minutes / 60)}h ${minutes % 60}m` : `${minutes}m`                            ;
+		const status   = `${a.sysOk("SYS_OK")} ${a.muted("│")} ${a.muted(`SESSION: Active (${session})`)}`                          ;
+		return [pair(identity, status, width)];
+	}
+}
+
+/** The Figma goal-bar: a brand GOAL badge followed by the session goal text. */
+export class WwwGoalBar implements Component {
+	constructor(private readonly get: () => WorkbenchSnapshot) {}
+	invalidate(): void {}
+	render(width: number): string[] {
+		const goal = oneLine(this.get().sessionGoal?.text, Math.max(0, width - 10));
+		if (!goal) return [""];
+		return [fit(` ${wwwBadge(" GOAL ")} ${a.text(goal)}`, width)];
 	}
 }
 
@@ -507,6 +523,7 @@ export class WwwHud implements Component {
 		private readonly usage: () => readonly UsageSnapshot[] = () => [],
 		private readonly showLogos = true,
 		private readonly cache: () => CacheTelemetrySnapshot | undefined = () => undefined,
+		private readonly performance: () => WorkbenchSnapshot["layerPerformance"] = () => undefined,
 	) {}
 	invalidate(): void {}
 	render(width: number): string[] {
@@ -517,24 +534,34 @@ export class WwwHud implements Component {
 		const sessionWidth = runtime ? Math.max(1, contentWidth - visibleWidth(runtime) - 2) : contentWidth        ;
 		const quota        = wwwQuotaHudRows(this.usage(), contentWidth, Date.now(), this.showLogos, sessionWidth) ;
 		// The quota grid pads its last row to sessionWidth; the padding is not content.
-		const third   = (quota[2] ?? "").replace(/\s+$/u, "") ;
-		const request = wwwHudRequestSegment(s)               ;
-		const cache   = wwwHudCacheSegment(this.cache())      ;
+		const third   = (quota[2] ?? "").replace(/\s+$/u, "")   ;
+		const render  = wwwHudRenderSegment(this.performance()) ;
+		const request = wwwHudRequestSegment(s)                 ;
+		const cache   = wwwHudCacheSegment(this.cache())        ;
 		return [
 			fit(`  ${quota[0] ?? ""}`, width),
 			fit(`  ${quota[1] ?? ""}`, width),
-			fit(`  ${wwwHudSummaryRow(third, request, cache, runtime, contentWidth)}`, width),
+			fit(`  ${wwwHudSummaryRow(third, render, request, cache, runtime, contentWidth)}`, width),
 		];
 	}
 }
 
-/** HUD left group keeps the quota grid intact; summary segments drop cache first, then request. */
-function wwwHudSummaryRow(third: string, request: string, cache: string, runtime: string, width: number): string {
-	const rows = [third, request, cache].filter(Boolean)                                                                                  ;
+/** Render health is operationally critical; overflow drops cache, request, then the quota detail. */
+function wwwHudSummaryRow(third: string, render: string, request: string, cache: string, runtime: string, width: number): string {
+	const rows = [render, third, request, cache].filter(Boolean)                                                                          ;
 	const overflow = (): boolean => visibleWidth(rows.join("  ")) + (runtime ? visibleWidth(runtime) + 2 : 0) > width                     ;
 	while (rows.length > 1 && overflow()) rows.pop()                                                                                      ;
 	const gap = runtime ? " ".repeat(Math.max(2, width - visibleWidth(rows.join("  ")) - visibleWidth(runtime))) : ""                     ;
 	return `${rows.join("  ")}${runtime ? `${gap}${runtime}` : ""}`                                                                       ;
+}
+
+/** Render latency is silent until at least one completed terminal frame has been observed. */
+function wwwHudRenderSegment(performance: WorkbenchSnapshot["layerPerformance"]): string {
+	const p95 = performance?.window.render.latency.p95;
+	if (p95 === null || p95 === undefined) return "";
+	const displayed = Math.round(p95);
+	const ink = displayed <= 32 ? a.success : displayed <= 100 ? a.attention : a.failure;
+	return ink(`Render p95 ${displayed}ms`);
 }
 
 /** Monitor essence: the live tool/agent while working, the failed request after a failure. */

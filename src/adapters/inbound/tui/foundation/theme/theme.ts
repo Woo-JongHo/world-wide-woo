@@ -2,7 +2,7 @@ import chalk                                                from "chalk";
 import type { EditorTheme, MarkdownTheme, SelectListTheme } from "@earendil-works/pi-tui";
 import { createNativeSyntaxHighlightPlugin }                from "@/adapters/inbound/tui/foundation/theme/syntax-highlighter";
 
-export type TuiThemeName = "gruvbox" | "tokyo-night";
+export type TuiThemeName = "gruvbox" | "tokyo-night" | "gpt" | "cool";
 
 export interface TuiPalette {
 	readonly foreground         : string ;
@@ -72,11 +72,59 @@ const THEME_PALETTES: Record<TuiThemeName, TuiPalette> = {
 		diffAddedSurface   : "#1d332d",
 		diffRemovedSurface : "#3b252f",
 	},
+	/** Figma WWW TUI — GPT variant: bar #0d0d0d, goal #1a1a1a, accent #10a37f. */
+	gpt: {
+		foreground         : "#ffffff",
+		background         : "#0d0d0d",
+		panel              : "#1a1a1a",
+		muted              : "#8e8ea0",
+		border             : "#2d2d30",
+		teal               : "#10a37f",
+		blue               : "#6bb6ff",
+		steel              : "#acacbe",
+		amber              : "#e5b567",
+		success            : "#19c37d",
+		red                : "#f07178",
+		orange             : "#10a37f",
+		userSurface        : "#2d2d30",
+		assistantSurface   : "#1a1a1a",
+		toolPendingSurface : "#0d0d0d",
+		toolSuccessSurface : "#1a1a1a",
+		toolErrorSurface   : "#2d2d30",
+		toolWarningSurface : "#2d2d30",
+		diffAddedSurface   : "#163a2e",
+		diffRemovedSurface : "#3a2428",
+	},
+	/** Figma WWW TUI — COOL variant: bar #0a0e1a, goal #0f1629, accent #38bdf8. */
+	cool: {
+		foreground         : "#ffffff",
+		background         : "#0a0e1a",
+		panel              : "#0f1629",
+		muted              : "#5b7a99",
+		border             : "#1e2d4a",
+		teal               : "#38bdf8",
+		blue               : "#6cb2ff",
+		steel              : "#8ba7c2",
+		amber              : "#e5b567",
+		success            : "#34d399",
+		red                : "#f07178",
+		orange             : "#38bdf8",
+		userSurface        : "#1e2d4a",
+		assistantSurface   : "#0f1629",
+		toolPendingSurface : "#0a0e1a",
+		toolSuccessSurface : "#0f1629",
+		toolErrorSurface   : "#1e2d4a",
+		toolWarningSurface : "#1e2d4a",
+		diffAddedSurface   : "#14324a",
+		diffRemovedSurface : "#3a2430",
+	},
 };
 
 export const TUI_THEME_OPTIONS = [
-	{ name: "gruvbox", label: "Gruvbox WWW" },
-	{ name: "tokyo-night", label: "Tokyo Night" },
+	{ name : "gruvbox"     , label : "Gruvbox WWW" },
+	{ name : "tokyo-night" , label : "Tokyo Night" },
+	{ name : "gpt"         , label : "GPT"         },
+	{ name : "cool"        , label : "COOL"        },
 ] as const satisfies readonly { name: TuiThemeName; label: string }[];
 
 let activeTheme: TuiThemeName = "gruvbox";

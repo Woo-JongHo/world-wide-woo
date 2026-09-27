@@ -213,7 +213,7 @@ export const WORKBENCH_SLASH_COMMANDS: SlashCommand[] = [
 	{
 		name: "theme",
 		description: "기본 UI 테마 전환",
-		argumentHint: "[gruvbox|tokyo-night]",
+		argumentHint: "[gruvbox|tokyo-night|gpt|cool]",
 		getArgumentCompletions: () => TUI_THEME_OPTIONS.map(theme => ({ value: theme.name, label: theme.name, description: theme.label })),
 	},
 	{ name: "exit", description: "Workbench를 안전하게 종료" },
@@ -227,7 +227,7 @@ export function parseWorkbenchShellCommand(text: string, catalog?: NativeModelCa
 	if (name === "theme") {
 		if (args.length === 0) return { type: "theme.set", theme: nextTuiTheme() };
 		if (args.length === 1 && TUI_THEME_OPTIONS.some(theme => theme.name === args[0])) return { type: "theme.set", theme: args[0] as TuiThemeName };
-		return { type: "error", message: "사용법: /theme [gruvbox|tokyo-night]" };
+		return { type: "error", message: "사용법: /theme [gruvbox|tokyo-night|gpt|cool]" };
 	}
 	if (name === "workflow") {
 		if (args.length === 0) return { type: "workflow.view" };
