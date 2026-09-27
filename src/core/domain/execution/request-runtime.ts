@@ -97,6 +97,7 @@ export interface RequestStageReport {
 	stage       : RequestStageId                                                               ;
 	status      : Exclude<RequestStageStatus, "pending">                                       ;
 	summary     : string                                                                       ;
+	goal?       : string                                                                       ;
 	input?      : readonly string[]                                                            ;
 	agents?     : readonly string[]                                                            ;
 	tools?      : readonly string[]                                                            ;
@@ -117,11 +118,12 @@ export function parseRequestStageReport(message: string): RequestStageReport | n
 	if (!message.startsWith(REQUEST_REPORT_PREFIX) || message.length > 24000) return null;
 	try {
 		const v: unknown = JSON.parse(message.slice(REQUEST_REPORT_PREFIX.length));
-		if (!object(v) || !only(v, ["requestId", "stage", "status", "summary", "input", "agents", "tools", "evidence", "decision", "deliveries", "plan"])) return null;
+		if (!object(v) || !only(v, ["requestId", "stage", "status", "summary", "goal", "input", "agents", "tools", "evidence", "decision", "deliveries", "plan"])) return null;
 		if (!text(v.requestId)
 			|| !REQUEST_STAGES.includes(v.stage as RequestStageId)
 			|| !["running", "completed", "skipped", "pass", "failed", "blocked"].includes(String(v.status))
 			|| !text(v.summary)) return null;
+		if (v.goal !== undefined && (!text(v.goal) || v.stage !== "UNDERSTAND")) return null;
 		for (const key of ["input", "agents", "tools", "evidence"]) if (v[key] !== undefined && !strings(v[key])) return null;
 		if (v.plan !== undefined) {
 			if (!Array.isArray(v.plan) || v.plan.length > 7) return null;

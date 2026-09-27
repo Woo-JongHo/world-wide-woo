@@ -8,6 +8,7 @@ import {
 	workbenchFrameTitle,
 } from "../src/adapters/inbound/tui/shell/workbench-shell";
 import {
+	isBareSlashCommandInput,
 	loginProviderFromInput,
 	nextWorkbenchRuntimeMode,
 	workbenchModelSettings,
@@ -51,6 +52,12 @@ const workingSnapshot = {
 } as const;
 
 describe("native workbench shell receipt policy", () => {
+	test("keeps a bare slash in the command composer instead of sending chat", () => {
+		expect(isBareSlashCommandInput("/")).toBe(true);
+		expect(isBareSlashCommandInput("  /  ")).toBe(true);
+		expect(isBareSlashCommandInput("/help")).toBe(false);
+	});
+
 	test("replaces the Composer slot without rebuilding it", () => {
 		const first  = { invalidate() {}, render: () => ["composer"], handleInput() {} } ;
 		const second = { invalidate() {}, render: () => ["login"], handleInput() {} }    ;
@@ -98,7 +105,7 @@ describe("native workbench shell receipt policy", () => {
 		expect(workbenchPaneNotice("tnotes")).toContain("완료 질문 Report · Note");
 		expect(workbenchPaneNotice("tnotes")).not.toContain("Trace");
 		expect(workbenchPaneNotice("chat")).toContain("질문과 공개 응답");
-		expect(workbenchPaneNotice("todo")).toContain("현재 Plan · Progress · Next");
+		expect(workbenchPaneNotice("todo")).toContain("현재 GOAL · PLAN · PROGRESS");
 	});
 
 	test("selects Trace only by exact activity id and rejects mutable legacy Todo commands", () => {

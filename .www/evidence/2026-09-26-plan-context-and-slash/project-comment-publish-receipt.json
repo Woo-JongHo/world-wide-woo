@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "1.0",
+  "receiptId": "bced6c89-5714-416e-b270-1c75ae1e292f",
+  "runId": "fe6e6620-fe89-4d09-bca1-c6ad621dced3",
+  "candidateId": "ARTIFACT-CANDIDATE-PLAN-CONTEXT-AND-SLASH-COMMENT",
+  "skill": { "name": "woo-linear-publish", "version": "1.0" },
+  "capability": "linear-project-comment.publish",
+  "status": "succeeded",
+  "stage": "verify",
+  "actor": { "kind": "codex" },
+  "context": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "verifiedAt": "2026-09-26T01:47:42Z"
+  },
+  "input": {
+    "candidateDigest": "9613149c7c74b4e369111f3adbc10a1d6730178c90550b3c7565169a94d663b7",
+    "expectedBeforeCommentId": "1196a23e-1f9f-4bff-b6c8-83f5a1a4e5ab"
+  },
+  "decision": null,
+  "authorization": {
+    "actor": "user",
+    "scope": "Linear Project Comment와 Obsidian WOO-700 Candidate 게시"
+  },
+  "execution": {
+    "tool": "mcp__linear_woo__save_comment",
+    "completedAt": "2026-09-26T01:45:19.450Z"
+  },
+  "result": {
+    "commentId": "9112898e-5e3d-40a7-b341-901513386512",
+    "author": "우종호",
+    "bodyExact": true,
+    "readBack": true
+  },
+  "failure": null,
+  "validation": [
+    {
+      "id": "expected-before",
+      "status": "pass",
+      "evidence": "게시 직전 최신 Comment ID가 Candidate와 일치했다."
+    },
+    {
+      "id": "body-read-back",
+      "status": "pass",
+      "evidence": "새 Comment가 최상단이며 승인 렌더 본문과 정확히 일치한다."
+    }
+  ],
+  "evidence": [
+    ".www/evidence/2026-09-26-plan-context-and-slash/project-comment-candidate.json",
+    "Linear Comment 9112898e-5e3d-40a7-b341-901513386512"
+  ],
+  "nextCapabilities": [],
+  "receiptDigest": "4ab672bd1f7b3a3d1a0d5b052037f3d50d6df3d11b09bf9abd918363b5b77686"
+}

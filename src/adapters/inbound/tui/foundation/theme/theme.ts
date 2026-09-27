@@ -23,6 +23,8 @@ export interface TuiPalette {
 	readonly toolSuccessSurface : string ;
 	readonly toolErrorSurface   : string ;
 	readonly toolWarningSurface : string ;
+	readonly diffAddedSurface   : string ;
+	readonly diffRemovedSurface : string ;
 }
 
 const THEME_PALETTES: Record<TuiThemeName, TuiPalette> = {
@@ -45,6 +47,8 @@ const THEME_PALETTES: Record<TuiThemeName, TuiPalette> = {
 	toolSuccessSurface : "#282828",
 	toolErrorSurface   : "#3c3836",
 	toolWarningSurface : "#3c3836",
+	diffAddedSurface   : "#1d3828",
+	diffRemovedSurface : "#45242a",
 	},
 	"tokyo-night": {
 		foreground         : "#ffffff",
@@ -65,6 +69,8 @@ const THEME_PALETTES: Record<TuiThemeName, TuiPalette> = {
 		toolSuccessSurface : "#1a1b26",
 		toolErrorSurface   : "#24283b",
 		toolWarningSurface : "#24283b",
+		diffAddedSurface   : "#1d332d",
+		diffRemovedSurface : "#3b252f",
 	},
 };
 
@@ -157,7 +163,14 @@ export const semantic = {
 	toolCancelled             : colors.warning,
 	diffAdded                 : colors.success,
 	diffRemoved               : colors.error,
-	diffContext               : colors.muted,
+	diffAddedMarker           : (text: string) => chalk.bold(colors.success(text)),
+	diffRemovedMarker         : (text: string) => chalk.bold(colors.error(text)),
+	diffAddedSurface          : background("diffAddedSurface", "success"),
+	diffRemovedSurface        : background("diffRemovedSurface", "red"),
+	diffHunk                  : colors.highlight,
+	diffMeta                  : colors.secondary,
+	diffOmitted               : colors.muted,
+	diffContext               : colors.text,
 	effortLow                 : colors.muted,
 	effortMedium              : colors.accent,
 	effortHigh                : colors.highlight,

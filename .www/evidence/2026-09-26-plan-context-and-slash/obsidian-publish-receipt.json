@@ -1,0 +1,65 @@
+{
+  "schemaVersion": "1.0",
+  "receiptId": "59201e3a-19cb-401a-b188-8edef04604c3",
+  "runId": "fe6e6620-fe89-4d09-bca1-c6ad621dced3",
+  "candidateId": "ARTIFACT-CANDIDATE-WOO-700-PLAN-CONTEXT",
+  "skill": { "name": "woo-obsidian-publish", "version": "1.0" },
+  "capability": "obsidian-canonical.publish",
+  "status": "failed",
+  "stage": "verify",
+  "actor": { "kind": "codex" },
+  "context": {
+    "relativePath": "Todo/WOO-700.md",
+    "verifiedAt": "2026-09-26T01:47:42Z"
+  },
+  "input": {
+    "candidateDigest": "6b4e4a62302dd90a957a9cd208e85fa25dbf79f5e8a1b0c03aba44e817ec05c5",
+    "expectedBeforeDigest": "4144a57d06689f80c3f046b806ec0a81d6154ea726184571d1cf5e7cc54f45eb"
+  },
+  "decision": null,
+  "authorization": {
+    "actor": "user",
+    "scope": "Linear Project Comment와 Obsidian WOO-700 Candidate 게시"
+  },
+  "execution": {
+    "tool": "filesystem apply_patch",
+    "completedAt": "2026-09-26T01:47:42Z"
+  },
+  "result": {
+    "candidateBytesMatchedBeforeGate": true,
+    "candidateDigestReadBack": "c35786203c287ba4d821153ef3ce0115e4d58c99db6a02e9aa5f1bb64489f173",
+    "rolledBackToLegacyContent": true,
+    "currentDigest": "a53387f5bf69b8688562d38edb1f0d54f539dd12e82be5133d26ade007e94bf5"
+  },
+  "failure": {
+    "code": "OBSIDIAN_CONTRACT_INVALID",
+    "message": "승인 Candidate의 spec_ids, H1, canonical path가 schema v2 계약을 통과하지 못했다. 원문 내용은 복원했지만 apply_patch의 EOF 개행 정규화로 게시 전 digest와 한 개행 차이가 남았다."
+  },
+  "validation": [
+    {
+      "id": "render-byte-read-back",
+      "status": "pass",
+      "evidence": "Apply 직후 Candidate preview와 Vault bytes는 SHA-256 c3578620...로 일치했다."
+    },
+    {
+      "id": "target-contract",
+      "status": "fail",
+      "evidence": "WOO-700에서 PROPERTY_INVALID(spec_ids), HEADING_INVALID, PATH_INVALID가 발생했다."
+    },
+    {
+      "id": "rollback",
+      "status": "fail",
+      "evidence": "legacy 내용은 복원했으나 EOF 빈 줄 하나가 정규화되어 원래 digest와 정확히 일치하지 않는다."
+    }
+  ],
+  "evidence": [
+    ".www/evidence/2026-09-26-plan-context-and-slash/obsidian-canonical-candidate.json",
+    ".www/evidence/2026-09-26-plan-context-and-slash/obsidian-canonical-preview.md"
+  ],
+  "nextCapabilities": [
+    "woo-obsidian-canonical",
+    "woo-obsidian-contract",
+    "woo-obsidian-publish"
+  ],
+  "receiptDigest": "211cb1794f66dd21a4eca4e73034a55e96a41b145dd9ef454bda21b8c292f767"
+}

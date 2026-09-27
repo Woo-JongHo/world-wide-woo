@@ -26,7 +26,8 @@ class MemoryTerminal implements Terminal {
 	setTitle        (title: string                                    ): void { this.write(`\x1b]0;${title}\x07`); }
 	setProgress     (active: boolean                                  ): void { this.write(active ? "\x1b]9;4;3\x07" : "\x1b]9;4;0\x07"); }
 }
-const tick = () => new Promise(resolve => setTimeout(resolve, 40));
+const BOTTOM_BORDER = /^\s*(?:─+|╰─+╯)\s*$/u;
+const tick          = () => new Promise(resolve => setTimeout(resolve, 40));
 
 test("production Www shell routes navigation, rejection, approval and shutdown through existing contracts", async () => {
 	const terminal = new MemoryTerminal();
@@ -62,7 +63,7 @@ test("production Www shell routes navigation, rejection, approval and shutdown t
 		terminal.input(" "); await tick(); expect(terminal.output.slice(labStart)).toContain("PAUSED");
 		terminal.input("t"); await tick(); expect(terminal.output.slice(labStart)).toContain("Trail off");
 		terminal.input("q"); await tick(); expect(terminal.output.slice(labStart)).toContain("REQ 1");
-		await submit("/todo"); expect(terminal.output).toContain("Plan"); expect(commands).toHaveLength(0);
+		await submit("/todo"); expect(terminal.output).toContain("PLAN"); expect(commands).toHaveLength(0);
 		terminal.input("\x1b"); await tick();
 		const legacyNotesStart = terminal.output.length;
 		await submit("/tnotes");
@@ -100,7 +101,7 @@ test("production Www shell routes navigation, rejection, approval and shutdown t
 		await submit("/Test"); expect(terminal.output.slice(testViewStart)).toContain("질문별 Test");
 		terminal.input("\x1b"); await tick();
 		const navigationStart = terminal.output.length;
-		terminal.input("\x07"); terminal.input("3"); await tick(); expect(terminal.output.slice(navigationStart)).toContain("Progress");
+		terminal.input("\x07"); terminal.input("3"); await tick(); expect(terminal.output.slice(navigationStart)).toContain("PROGRESS");
 		terminal.input("1"); await tick();
 		terminal.input("\x10"); await tick(); terminal.input("\x1b"); await tick();
 		await submit("request 1"); expect(commands.at(-1)).toEqual({ type: "chat.send", text: "request 1", delivery: "queue" });
@@ -186,7 +187,7 @@ test("Mac Control+G navigation preserves drafts, routes every page, and leaves o
 	});
 	try {
 		await tick(); terminal.input("초안"); await tick();
-		for (const [key, label] of [["2", "Plan"], ["3", "Progress"], ["4", "세션 검토"], ["5", "SESSION OVERVIEW"], ["6", "개발"], ["7", "Context"], ["8", "질문별 Test"], ["1", "Chat"]]) {
+		for (const [key, label] of [["2", "PLAN"], ["3", "PROGRESS"], ["4", "세션 검토"], ["5", "SESSION OVERVIEW"], ["6", "개발"], ["7", "Context"], ["8", "질문별 Test"], ["1", "Chat"]]) {
 			terminal.input("\x07"); await tick(); expect(terminal.output).toContain("화면 이동");
 			const start = terminal.output.length; terminal.input(key!); await tick(); expect(terminal.output.slice(start)).toContain(label!);
 		}
@@ -194,7 +195,7 @@ test("Mac Control+G navigation preserves drafts, routes every page, and leaves o
 		terminal.input("\x07"); await tick(); terminal.input("\x1b"); await tick(); terminal.input("1"); terminal.input("\r"); await tick();
 		expect(commands.at(-1)).toEqual({ type: "chat.send", text: "초안1", delivery: "queue" });
 		terminal.input("\x15"); await tick();
-		const start = terminal.output.length; terminal.input("\x1b[13~"); await tick(); expect(terminal.output.slice(start)).toContain("Plan");
+		const start = terminal.output.length; terminal.input("\x1b[13~"); await tick(); expect(terminal.output.slice(start)).toContain("PLAN");
 	} finally { terminal.input("\x03"); terminal.input("\x03"); await tick(); }
 });
 
@@ -246,9 +247,9 @@ test("/demo presents synthetic MVP pages with R/E navigation and restores live s
 		terminal.input("E"); await tick(); expect(frame()).toContain("CACHE SLICES");
 		terminal.input("E"); await tick(); expect(frame()).toContain("7-stage request pipeline"); expect(frame()).toContain("5 ACTIVE / 8 TOTAL");
 		for (const label of ["UNDERSTAND", "DECOMPOSE", "GROUND", "DECIDE", "EXECUTE", "VERIFY", "DELIVER", "LANE_A", "LANE_B", "LANE_C"]) expect(frame()).toContain(label);
-		terminal.input("E"); await tick(); expect(frame()).toContain("Plan"); expect(frame()).toContain("Next"); expect(frame()).toContain("2개");
+		terminal.input("E"); await tick(); expect(frame()).toContain("STAGE"); expect(frame()).toContain("PLAN"); expect(frame()).toContain("PROGRESS");
 		terminal.input("E"); await tick(); expect(frame()).toContain("Chat");
-		terminal.input("R"); await tick(); expect(frame()).toContain("Plan");
+		terminal.input("R"); await tick(); expect(frame()).toContain("PLAN");
 		snapshot = { ...snapshot, revision: 77,
 			sessionGoal: { text: "LIVE RESTORED", sourceActivityId: "live-goal", updatedAt: "2026-09-22T00:00:00Z" },
 			pendingApproval: { requestId: 77, callbackId: null, kind: "command", refs: {}, availableDecisions: ["accept", "decline"], params: { command: "DEMO_EXIT_APPROVAL" } },
@@ -352,7 +353,7 @@ test("the production layout keeps autocomplete selections and multiline rails vi
 		const rows = frame(), text = rows.join("\n");
 		for (let i = 0; i < 7; i++) expect(text).toContain(`line-${i}`);
 		const bottom = rows.findIndex(row => row.includes("line-6")) + 1;
-		expect(rows[bottom]).toMatch(/^\s*─+\s*$/u);
+		expect(rows[bottom]).toMatch(BOTTOM_BORDER);
 		expect(text).toContain("› GPT-5.6-Sol · High");
 		expect(text).not.toContain("여기에 작성한다.");
 		expect(text).not.toMatch(/구독 잔여|\bleft\b|\breset\b/u); expect(text).toContain("62%");

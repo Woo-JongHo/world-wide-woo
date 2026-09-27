@@ -155,7 +155,7 @@ describe("ProjectWorkbench · Native bootstrap and planning", () => {
 		await workbench.close();
 		expect(native.handler).toBeNull();
 	});
-	test("Www native passthrough sends the user request unchanged and projects Native state", async () => {
+	test("starts Runtime without copying the first user request into the session GOAL", async () => {
 		const native = new FakeNativeHarness();
 		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
 			projectId          : "sample",
@@ -165,9 +165,10 @@ describe("ProjectWorkbench · Native bootstrap and planning", () => {
 		await ready(workbench);
 		await workbench.dispatch({ type: "chat.send", text: "구조를 파악해줘" });
 		expect(native.startTurnInputs[0]?.text).toBe("구조를 파악해줘");
-		expect(native.startTurnInputs[0]?.additionalContext?.www_request_runtime).toBeUndefined();
-		expect(workbench.snapshot.requestRuntime).toEqual([]);
-		expect(workbench.snapshot.todo).toBeNull();
+		expect(native.startTurnInputs[0]?.additionalContext?.www_request_runtime?.value).toContain("UNDERSTAND");
+		expect(workbench.snapshot.sessionGoal).toBeNull();
+		expect(workbench.snapshot.requestRuntime).toHaveLength(1);
+		expect(workbench.snapshot.todo?.items.map(item => item.content)).toEqual([...REQUEST_STAGES]);
 		await workbench.close();
 	});
 	test("Www goal opts one request into the seven-stage Runtime protocol", async () => {
@@ -950,16 +951,21 @@ describe("ProjectWorkbench · Native bootstrap and planning", () => {
 		expect(afterDelta.modelCatalog?.models.map(model => model.model)).toEqual(["gpt-5.6-sol"]);
 		expect(afterDelta.draft).toBe("진행 중인 Native 출력");
 
-		const todoReceipt = await workbench.dispatch({ type: "todo.create", title: "새 Todo", items: ["기록"] });
+		native.emit({
+			type   : "notification",
+			method : "turn/plan/updated",
+			refs   : { threadId: "thread-1", turnId: "turn-1" },
+			params : { plan: [{ step: "기록", status: "inProgress" }] },
+		});
+		await Bun.sleep(10);
 		const afterTodo = latestSnapshot();
 
-		expect(todoReceipt.state).toBe("accepted");
 		expect(afterTodo).toBe(workbench.snapshot);
 		expect(afterTodo.revision).toBeGreaterThan(afterCatalogRefresh.revision);
-		expect(afterTodo.actionResult).toMatchObject({ kind: "todo", title: "Todo 생성" });
-		expect(afterTodo.actionResult?.body).toContain("새 Todo");
+		expect(afterTodo.workFlow.steps.map(step => step.title)).toContain("기록");
+		expect(afterTodo.todo?.title).toBe("이전 Snapshot을 보존해줘");
 		expect(afterCatalogRefresh.actionResult).toBeNull();
-		expect(Object.isFrozen(afterTodo.actionResult)).toBe(true);
+		expect(Object.isFrozen(afterTodo.todo)).toBe(true);
 
 		auxiliaryUsage.observe({ model: "gpt-5.6-terra", effort: "medium", totalTokens: 400 });
 		const afterUsage = latestSnapshot();
@@ -968,7 +974,7 @@ describe("ProjectWorkbench · Native bootstrap and planning", () => {
 		expect(afterUsage.revision).toBeGreaterThan(afterTodo.revision);
 		expect(afterUsage.sessionUsage?.models).toContainEqual(expect.objectContaining({ model: "gpt-5.6-terra", totalTokens: 400 }));
 		expect(afterTodo.sessionUsage?.models).toEqual([]);
-		expect(afterTodo.actionResult).toMatchObject({ kind: "todo", title: "Todo 생성" });
+		expect(afterTodo.workFlow.steps.map(step => step.title)).toContain("기록");
 		expect(beforeDelta.chat.map(message => message.content)).toEqual(["이전 Snapshot을 보존해줘"]);
 		expect(beforeDelta.modelCatalog?.models.map(model => model.model)).toEqual(["gpt-5.6-sol"]);
 		expect(beforeDelta.sessionUsage?.models).toEqual([]);

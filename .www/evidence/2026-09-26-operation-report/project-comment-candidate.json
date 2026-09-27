@@ -1,0 +1,69 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-OPERATION-REPORT-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:216b9d9faa09bcb19151f0f188792e8ce7113bf6:dirty",
+  "intent": "WOO-843의 완료 Output을 구조화된 Operation Report로 재설계한 구현과 검증을 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "Dashboard → Output의 request-report-v3를 Snapshot과 13개 운영보고서 섹션으로 구조화했다.",
+      "상태·모델·토큰·실행 지표·변경·Evidence·Test를 표 또는 고정 행으로 분리하고 wide·medium·narrow 배치를 적용했다.",
+      "Activity의 CHANGE 행에서 실제 +ADD/-DEL과 상태를 정규화해 변경 파일 표와 합계를 표시하고, 명시적으로 선택된 같은 제목의 이전 완료 실행만 비교한다.",
+      "해당 turn에서 관측된 runtime과 receipt만 결합하며 관측되지 않은 토큰·line diff·이전 실행 값은 추정하지 않는다.",
+      "기존 v2·legacy Note와 Source identity를 유지하고 /output 명령과 Dashboard Output 진입을 연결했다.",
+      "패키지 버전을 0.0.21로 올리고 배포 빌드 명령과 산출물을 검증했다."
+    ],
+    "impacts": [
+      "사용자는 최상단 Snapshot에서 전체 판정·시간·모델·토큰·테스트를 훑고 본문에서 작업·결과·근거를 추적할 수 있다.",
+      "0과 미관측, NONE·NOT RUN·NOT OBSERVED·UNKNOWN이 구분되고 raw event JSON은 기본 보고서에 노출되지 않는다."
+    ],
+    "categories": ["feature", "improvement", "verification"],
+    "verification": [
+      "bun run check: 통과.",
+      "관련 회귀 146 pass, 0 fail, 2777 expect, 7 files.",
+      "전체 회귀 1586 pass, 1 fail, 21617 expect, 181 files이며 단일 실패는 제품 assertion이 아니라 macOS FSEvents watcher context canceled 환경 오류다.",
+      "bun run build 통과, dist/cli.js --version read-back은 0.0.21이다.",
+      "변경 TypeScript import normalization changed=0, table alignment misaligned=0, git diff --check 통과.",
+      "외부 읽기 전용 교차검토기는 출력 없이 종료되어 검토 증거로 채택하지 않았다. 실제 TTY 수동 조작은 미실행."
+    ],
+    "connections": [
+      "Linear: WOO-843 · UUID 62bbb891-5308-4113-8962-a47975c140e2",
+      "Parent: WOO-679",
+      "Obsidian Candidate: .www/evidence/2026-09-26-operation-report/obsidian-canonical-candidate.json",
+      "Branch: dev · HEAD 216b9d9faa09bcb19151f0f188792e8ce7113bf6 · uncommitted"
+    ]
+  },
+  "links": {
+    "issue": "https://linear.app/woo-world/issue/WOO-843/완료-요약을-실제-결과와-최종-검증-상태로-압축한다",
+    "evidence": ".www/evidence/2026-09-26-operation-report"
+  },
+  "expectedBefore": {
+    "latestCommentId": "9112898e-5e3d-40a7-b341-901513386512"
+  },
+  "validation": [
+    {
+      "id": "issue-binding",
+      "status": "pass",
+      "evidence": "실시간 Linear read-back으로 활성 WOO-843과 부모 WOO-679의 완료 결과 표시 책임을 확인했다."
+    },
+    {
+      "id": "duplicate-decision",
+      "status": "pass",
+      "evidence": "취소된 WOO-693보다 활성 WOO-843이 현재 Operation Report의 결과·검증 표시 책임을 직접 소유하므로 새 이슈를 만들지 않는다."
+    },
+    {
+      "id": "regression",
+      "status": "pass",
+      "evidence": "관련 회귀 146 pass·0 fail, 타입·빌드·가독성·diff 검사와 번들 0.0.21 read-back을 통과했다. 전체 회귀의 단일 실패는 FSEvents 환경 오류로 분리 기록했다."
+    },
+    {
+      "id": "publication-boundary",
+      "status": "pass",
+      "evidence": "Candidate만 준비하며 게시 직전 Activity 재조회와 사용자 별도 승인이 필요하다."
+    }
+  ],
+  "candidateDigest": "7f7d7ba86bd100cdbf9ad391c809100488361a7241770bbcd496affdaffda911"
+}

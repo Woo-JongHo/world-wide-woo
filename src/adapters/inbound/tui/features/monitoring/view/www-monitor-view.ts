@@ -26,7 +26,7 @@ export class WwwMonitorView implements Component {
 	invalidate(): void {}
 	render(width: number): string[] {
 		const m = this.get();
-		const rows = section("Progress", width, m.state);
+		const rows = section("PROGRESS", width, m.state);
 		if (m.requestRuntime) {
 			const now = this.clock();
 			const frame = this.motion && requestRuntimeMotionActive(m.requestRuntime, now) ? Math.floor(now / 120) : 8;

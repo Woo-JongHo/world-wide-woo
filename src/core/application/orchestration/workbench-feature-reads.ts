@@ -54,10 +54,10 @@ export interface ChatFeatureProjection {
 /** Semantic state read by Plan; terminal layout and animation remain TUI concerns. */
 export interface PlanFeatureProjection {
 	readonly activeTurnId        : string | null                                    ;
-	readonly chatQueue           : readonly WorkbenchChatQueueItem[]                ;
 	readonly planActivities?     : readonly PlanActivity[]                          ;
 	readonly planActivityStatus? : "disabled" | "pending" | "ready" | "unavailable" ;
 	readonly requestRuntime?     : readonly RequestRuntimeRecord[]                  ;
+	readonly sessionGoal?        : WorkbenchSessionGoal | null                      ;
 	readonly workFlow            : WorkFlowProjection                               ;
 }
 
@@ -81,13 +81,23 @@ export interface TracerFeatureProjection {
 
 /** Stored Summary/Note read model. Generation and append remain separate commands and failure boundaries. */
 export interface NoteFeatureProjection {
-	readonly projectId        : string                    ;
-	readonly threadId         : string | null             ;
-	readonly notes            : readonly WorkbenchTNote[] ;
-	readonly read             : WorkbenchTNoteReadState   ;
-	readonly visibleLimit?    : number                    ;
-	readonly summaryMaxChars? : number                    ;
-	readonly summaryMaxLines? : number                    ;
+	readonly projectId : string                    ;
+	readonly threadId  : string | null             ;
+	readonly notes     : readonly WorkbenchTNote[] ;
+	readonly read      : WorkbenchTNoteReadState   ;
+	readonly runtime?         : {
+		readonly turnId       : string | null                                                                                         ;
+		readonly primaryModel : string | null                                                                                         ;
+		readonly effort       : string | null                                                                                         ;
+		readonly durationMs   : number | null                                                                                         ;
+		readonly totalTokens  : number | null                                                                                         ;
+		readonly files        : readonly { readonly kind: string; readonly ref: string; readonly summary: string }[]                  ;
+		readonly receipt      : { readonly id: string; readonly digest: string; readonly status: string } | null                      ;
+		readonly verification : readonly { readonly command: string; readonly status: "passed" | "failed" | "skipped" | "unknown" }[] ;
+	} ;
+	readonly visibleLimit?    : number ;
+	readonly summaryMaxChars? : number ;
+	readonly summaryMaxLines? : number ;
 }
 
 /** Selects Chat's read interface without creating a second state owner or copying durable identities. */
@@ -120,7 +130,7 @@ export function projectChatFeature(snapshot: WorkbenchSnapshot): ChatFeatureProj
 		...(snapshot.planActivityStatus === undefined ? {} : { planActivityStatus: snapshot.planActivityStatus }),
 		...(snapshot.reasoningSummaryDraft === undefined ? {} : { reasoningSummaryDraft: snapshot.reasoningSummaryDraft }),
 		...(snapshot.requestRuntime === undefined ? {} : { requestRuntime: snapshot.requestRuntime }),
-		...(snapshot.sessionGoal === undefined ? {} : { sessionGoal: snapshot.sessionGoal }),
+		sessionGoal : snapshot.sessionGoal ?? null,
 	});
 }
 
@@ -128,11 +138,11 @@ export function projectChatFeature(snapshot: WorkbenchSnapshot): ChatFeatureProj
 export function projectPlanFeature(snapshot: WorkbenchSnapshot): PlanFeatureProjection {
 	return Object.freeze({
 		activeTurnId : snapshot.activeTurnId,
-		chatQueue    : snapshot.chatQueue,
 		workFlow     : snapshot.workFlow,
 		...(snapshot.planActivities === undefined ? {} : { planActivities: snapshot.planActivities }),
 		...(snapshot.planActivityStatus === undefined ? {} : { planActivityStatus: snapshot.planActivityStatus }),
 		...(snapshot.requestRuntime === undefined ? {} : { requestRuntime: snapshot.requestRuntime }),
+		sessionGoal : snapshot.sessionGoal ?? null,
 	});
 }
 
@@ -158,13 +168,43 @@ export function projectTracerFeature(snapshot: WorkbenchSnapshot): TracerFeature
 
 /** Selects Note reading state without exposing composer, execution controls, or terminal presentation. */
 export function projectNoteFeature(snapshot: WorkbenchSnapshot): NoteFeatureProjection {
+	const activityTimes = snapshot.executionRun?.activities
+		.map(activity => Date.parse(activity.recordedAt))
+		.filter(Number.isFinite) ?? [];
+	const durationMs = activityTimes.length > 1
+		? Math.max(...activityTimes) - Math.min(...activityTimes)
+		: null;
+	const runModel  = lastObservedString(snapshot.executionRun?.activities ?? [], "model")                      ;
+	const runEffort = lastObservedString(snapshot.executionRun?.activities ?? [], "effort")                     ;
+	const activeRun = snapshot.activeTurnId !== null && snapshot.activeTurnId === snapshot.executionRun?.turnId ;
 	return Object.freeze({
 		projectId : snapshot.projectId,
 		threadId  : snapshot.threadId,
 		notes     : snapshot.tnotes,
 		read      : snapshot.tnoteRead ?? Object.freeze({ status: "ready", error: null }),
+		runtime: Object.freeze({
+			turnId       : snapshot.executionRun?.turnId ?? snapshot.activeTurnId ?? null,
+			primaryModel : activeRun ? snapshot.activeModel ?? runModel : runModel,
+			effort       : activeRun ? snapshot.effort ?? runEffort : runEffort,
+			durationMs,
+			// Session usage is cumulative and cannot truthfully be assigned to one completed request.
+			totalTokens  : null,
+			files        : snapshot.executionRun?.receipt?.changed ?? [],
+			receipt      : snapshot.executionRun?.receipt
+				? { id: snapshot.executionRun.receipt.receiptId, digest: snapshot.executionRun.receipt.receiptDigest, status: snapshot.executionRun.receipt.status }
+				: null,
+			verification : snapshot.executionRun?.receipt?.verification ?? [],
+		}),
 		...(snapshot.tnoteVisibleLimit === undefined ? {} : { visibleLimit: snapshot.tnoteVisibleLimit }),
 		...(snapshot.tnoteSummaryMaxChars === undefined ? {} : { summaryMaxChars: snapshot.tnoteSummaryMaxChars }),
 		...(snapshot.tnoteSummaryMaxLines === undefined ? {} : { summaryMaxLines: snapshot.tnoteSummaryMaxLines }),
 	});
+}
+
+function lastObservedString(activities: readonly ProjectActivity[], key: string): string | null {
+	for (let index = activities.length - 1; index >= 0; index -= 1) {
+		const value = activities[index]?.payload[key];
+		if (typeof value === "string" && value.trim()) return value;
+	}
+	return null;
 }

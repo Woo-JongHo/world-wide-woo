@@ -374,7 +374,7 @@ export async function createProjectWorkbenchSession(
 		};
 		const activeWorkbench = factories.createWorkbench(connectedNative, journal, workbenchOptions);
 		workbench = activeWorkbench;
-		await activeWorkbench.waitUntilReady();
+		if (options.resumeThreadId) await activeWorkbench.waitUntilReady();
 		const composerDraft = await factories.createComposerDraft(workspace.root, runId, workspace.draftsDirectory);
 		const usage = factories.createUsageMonitor(connectedNative);
 		return {

@@ -18,6 +18,7 @@ import {
 	workStepActionLabel,
 } from "@/adapters/inbound/tui/features/chat/view/work-step-public-projection";
 import type { WorkStepProjectionOptions }            from "@/adapters/inbound/tui/features/chat/view/work-step-public-projection";
+import { renderUnifiedDiff }                         from "@/adapters/inbound/tui/foundation/rendering/unified-diff-view";
 
 const INPUT_MAX_LINES  = 4     ;
 const INPUT_MAX_CHARS  = 1_200 ;
@@ -90,7 +91,7 @@ export class ObservationCard implements Component {
 		const status                            = resolveWorkStepStatus(stepOptions)                   ;
 		const presentation                      = workStepStatusPresentation(status)                   ;
 		const changes                           = fileChangeRows(this.options.activity, status, width) ;
-		if (changes) return changes.map((line) => presentation.surface(fitExecutionText(` ${line}`, Math.max(1, width - 1))));
+		if (changes) return changes;
 		const label                             = activityLabel(this.options, projected.command, stepOptions)                               ;
 		const header                            = `${presentation.symbol} ${colors.text(label)} ${colors.muted(`· ${presentation.label}`)}` ;
 		if (projected.command) {
@@ -111,25 +112,28 @@ function fileChangeRows(activity: ProjectActivity | undefined, status: CommandSt
 	const item    = object(params?.item)                                                                          ;
 	const changes = Array.isArray(item?.changes) ? item.changes.flatMap(change => projectFileChange(change)) : [] ;
 	if (!changes.length) return null;
-	const nameWidth = Math.max(...changes.map(change => change.name.length));
-	return changes.map(change => {
+	const presentation = workStepStatusPresentation(status);
+	const nameWidth    = Math.max(...changes.map(change => change.name.length));
+	return changes.flatMap(change => {
 		const counts = [
 			change.added === null ? "" : colors.success(`+${change.added}`),
 			change.removed === null ? "" : colors.error(`-${change.removed}`),
 		].filter(Boolean).join("  ");
-		const row = `${fileChangeSymbol(status)} ${colors.text("CHANGE")}  ${change.name.padEnd(nameWidth)}${counts ? `  ${counts}` : ""}`;
-		return fitExecutionText(row, Math.max(1, width - 1));
+		const state  = status === "passed" ? colors.success("done") : status === "failed" ? colors.error("failed") : colors.muted(status)                            ;
+		const row    = `${fileChangeSymbol(status)} ${colors.text("CHANGE")}  ${colors.text(change.name.padEnd(nameWidth))}${counts ? `  ${counts}` : ""}  ${state}` ;
+		const header = presentation.surface(fitExecutionText(` ${row}`, width))                                                                                      ;
+		return [header, ...renderUnifiedDiff(change.diff ?? "", width)];
 	});
 }
 
-function projectFileChange(value: unknown): { name: string; added: number | null; removed: number | null }[] {
+function projectFileChange(value: unknown): { name: string; added: number | null; removed: number | null; diff: string | null }[] {
 	const change = object(value);
 	const path   = typeof change?.path === "string" ? change.path.replace(/\\/gu, "/") : "";
 	if (!path) return [];
 	const diff    = typeof change?.diff === "string" ? change.diff.split(/\r?\n/u) : null                ;
 	const added   = diff?.filter(line => line.startsWith("+") && !line.startsWith("+++")).length ?? null ;
 	const removed = diff?.filter(line => line.startsWith("-") && !line.startsWith("---")).length ?? null ;
-	return [{ name: path.split("/").at(-1) ?? path, added, removed }];
+	return [{ name: path.split("/").at(-1) ?? path, added, removed, diff: typeof change?.diff === "string" ? change.diff : null }];
 }
 
 function fileChangeSymbol(status: CommandStatus): string {

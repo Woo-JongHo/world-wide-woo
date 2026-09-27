@@ -284,6 +284,49 @@ describe("Note service", () => {
 		expect(note.text).toContain("Test:\nTotal 1/2\n01. bun test test/www-ui.test.ts : 1.2s · passed\n02. pnpm test test/project-workbench.test.ts : 0.4s · failed");
 	});
 
+	test("appends observed CHANGE and CHECK rows without exposing absolute paths", async () => {
+		const draftStore = await store();
+		const service = new TNoteService(generator, draftStore, () => new Date("2026-09-01T00:00:00.000Z"), () => "tnote-operation-rows");
+		const note = await service.create({
+			projectId        : "project-1",
+			expectedQuestion : "무엇을 확인했나",
+			range            : { startSequence: 1, endSequence: 2 },
+			activities: [
+				{ id: "act-1", projectId: "project-1", sequence: 1, occurredAt: "2026-09-01T00:00:00.000Z", kind: "file-change.completed", title: "변경", body: JSON.stringify({ params: { item: { changes: [{ path: "project-workbench.ts", diff: "--- a\n+++ b\n-old\n+new\n+more" }] } } }) },
+				{ id: "act-2", projectId: "project-1", sequence: 2, occurredAt: "2026-09-01T00:00:01.000Z", kind: "tool.completed", title: "검증", body: JSON.stringify({ params: { item: { command: "bun test test/project-workbench.test.ts", exitCode: 0 } } }) },
+			],
+			instruction: "요약",
+		});
+
+		expect(note.text).toContain("✓ CHANGE  project-workbench.ts  +2  -1  done");
+		expect(note.text).toContain("│ -old\n│ +new\n│ +more");
+		expect(note.text).toContain("✓ CHECK   related tests  pass");
+		expect(note.text).not.toContain("/Users/");
+	});
+
+	test("counts and previews raw content when a completed file change adds a file", async () => {
+		const draftStore = await store();
+		const service = new TNoteService(generator, draftStore, () => new Date("2026-09-01T00:00:00.000Z"), () => "tnote-added-file");
+		const note = await service.create({
+			projectId        : "project-1",
+			expectedQuestion : "무엇을 변경했나",
+			range            : { startSequence: 1, endSequence: 1 },
+			activities: [{
+				id         : "act-1",
+				projectId  : "project-1",
+				sequence   : 1,
+				occurredAt : "2026-09-01T00:00:00.000Z",
+				kind       : "file-change.completed",
+				title      : "추가",
+				body       : JSON.stringify({ params: { item: { changes: [{ path: "new-file.json", kind: { type: "add" }, diff: "{\n  \"value\": true\n}\n" }] } } }),
+			}],
+			instruction: "요약",
+		});
+
+		expect(note.text).toContain("✓ CHANGE  new-file.json  +3  -0  done");
+		expect(note.text).toContain("│ +{\n│ +  \"value\": true\n│ +}");
+	});
+
 	test("sanitizes a question embedded in the instruction before detached generation", async () => {
 		const draftStore = await store();
 		let dispatchedInstruction = "";

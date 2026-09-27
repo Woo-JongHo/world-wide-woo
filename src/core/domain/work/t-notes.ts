@@ -216,8 +216,27 @@ export function projectActivityToTNoteSource(activity: ProjectActivity): TNoteAc
 		title      : `${activity.kind} ${activity.phase}`,
 		body: isReasoningActivityPayload(activity.payload)
 			? canonicalJson({ classification: "reasoning", content: "[redacted]" })
-			: canonicalJson(redactNativePayload(activity.payload)),
+			: canonicalJson(redactNativePayload(noteSafeActivityPayload(activity))),
 	};
+}
+
+function noteSafeActivityPayload(activity: ProjectActivity): unknown {
+	if (activity.kind !== "file-change") return activity.payload;
+	const payload = objectRecord(activity.payload)       ;
+	const params  = objectRecord(payload?.params)        ;
+	const item    = objectRecord(params?.item)           ;
+	if (!payload || !params || !item || !Array.isArray(item.changes)) return activity.payload;
+	const changes = item.changes.map(value => {
+		const change = objectRecord(value);
+		if (!change || typeof change.path !== "string") return value;
+		const normalized = change.path.replace(/\\/gu, "/");
+		return { ...change, path: normalized.split("/").at(-1) ?? normalized };
+	});
+	return { ...payload, params: { ...params, item: { ...item, changes } } };
+}
+
+function objectRecord(value: unknown): Record<string, unknown> | null {
+	return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
 }
 
 export function createTNotePacket(

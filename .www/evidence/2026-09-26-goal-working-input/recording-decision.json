@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "1.0",
+  "recordedAt": "2026-09-26",
+  "scope": "Workbench GOAL·PLAN·PROGRESS, Working motion, Composer border 변경",
+  "issueBinding": {
+    "decision": "reuse-existing",
+    "identifier": "WOO-674",
+    "uuid": "4674a1dc-ba01-4007-9803-3346a1f83dcc",
+    "title": "Workbench에서 대화와 계획을 읽고 입력과 상태를 통제한다",
+    "reason": "Plan의 Goal 투영, 실행 상태 표현, Composer 입력 경계는 WOO-674의 기존 Workbench 계획·상태·입력 통제 범위다.",
+    "evidence": [
+      ".www/control-ledger/traceability.json#WOO-674",
+      ".www/control-ledger/registry/decisions/DEC-WORKBENCH-001.json"
+    ],
+    "newIssueCandidateRequired": false
+  },
+  "projectActivity": {
+    "decision": "candidate-prepared",
+    "path": ".www/evidence/2026-09-26-goal-working-input/project-comment-candidate.json",
+    "digest": "d9f8124bb72b59d042e6d59156602dd92498f70a4deab764f87085bb3a2a4c01",
+    "validation": "Artifact Candidate OK: linear-project-comment ARTIFACT-CANDIDATE-GOAL-WORKING-INPUT-COMMENT",
+    "published": false
+  },
+  "obsidian": {
+    "required": false,
+    "reason": "DEC-WORKBENCH-001의 WOO-674 parent 정본, Goal identity, Native Plan ownership, 입력·상태 통제 WHY를 유지한다. 이번 변경은 그 경계 안의 가역적인 화면 순서·색상 motion·테두리 표현과 누락된 Goal 복원 경로 보강이며 새 capability, 공개 API, persistence schema, 외부 쓰기 또는 되돌리기 어려운 설계 결정을 만들지 않는다.",
+    "evidence": [
+      ".www/control-ledger/registry/decisions/DEC-WORKBENCH-001.json",
+      "src/core/application/orchestration/workbench-feature-reads.ts",
+      "src/adapters/inbound/tui/features/plan/view/www-plan-view.ts",
+      "src/adapters/inbound/tui/shell/www-surface.ts"
+    ]
+  },
+  "verification": {
+    "typecheck": "pass — bun run check",
+    "focusedRegression": "pass — 175 tests, 0 fail, 2975 assertions",
+    "diffCheck": "pass — git diff --check",
+    "readability": "pass — import changed=0; changed TypeScript table alignment misaligned=0"
+  },
+  "externalWrites": {
+    "performed": false,
+    "reason": "Linear Comment 게시와 read-back은 게시 직전 상태 재조회 및 항목별 사용자 승인이 필요하다."
+  }
+}

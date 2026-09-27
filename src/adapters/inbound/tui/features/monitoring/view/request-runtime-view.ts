@@ -1,8 +1,8 @@
-import chalk                            from "chalk";
-import { visibleWidth }                 from "@earendil-works/pi-tui";
-import type { RequestRuntimeRecord }    from "@/core/domain/execution/request-runtime";
+import chalk                                            from "chalk";
+import { visibleWidth }                                 from "@earendil-works/pi-tui";
+import type { RequestRuntimeRecord }                    from "@/core/domain/execution/request-runtime";
 import { a, fit, joinedSections, prose, safe, section } from "@/adapters/inbound/tui/foundation/theme/www-theme";
-import { compactStatusRows }            from "@/adapters/inbound/tui/foundation/components/status-card";
+import { compactStatusRows }                            from "@/adapters/inbound/tui/foundation/components/status-card";
 
 type StatusGradient = { readonly base: readonly [number, number, number]; readonly peak: readonly [number, number, number] };
 const statusGradient: Partial<Record<RequestRuntimeRecord["status"], StatusGradient>> = {
@@ -37,11 +37,11 @@ function stageInk(status: RequestRuntimeRecord["stages"][number]["status"]): (te
 }
 
 function stageMark(status: RequestRuntimeRecord["stages"][number]["status"]): string {
-	if (status === "completed") return "✓";
+	if (status === "completed" || status === "skipped") return "✓";
 	if (status === "running") return "›";
-	if (status === "failed" || status === "blocked") return "!";
-	if (status === "skipped") return "−";
-	return "·";
+	if (status === "failed") return "×";
+	if (status === "blocked") return "Ⅱ";
+	return "○";
 }
 
 function stageRailRows(request: RequestRuntimeRecord, width: number): string[] {
@@ -59,17 +59,32 @@ function stageRailRows(request: RequestRuntimeRecord, width: number): string[] {
 	return rows;
 }
 
+function planTaskRows(request: RequestRuntimeRecord, width: number): string[] {
+	const tasks = request.stages.flatMap(stage => stage.tasks.map(task => ({ ...task, stage: stage.id }))) ;
+	const rows  = [...section("PLAN", width, tasks.length ? `${tasks.filter(task => task.status === "completed").length}/${tasks.length}` : "미관측", a.plan)] ;
+	if (!tasks.length) return [...rows, ...prose(a.muted("DECOMPOSE·DECIDE에서 작업과 의존성을 정리합니다."), width)];
+	const rootsByStage = new Map<string, number>();
+	for (const task of tasks) if (!task.dependsOn.length) rootsByStage.set(task.stage, (rootsByStage.get(task.stage) ?? 0) + 1);
+	for (const task of tasks) {
+		const meta = task.dependsOn.length
+			? `${task.dependsOn.join(", ")} 이후`
+			: (rootsByStage.get(task.stage) ?? 0) > 1 ? "병렬 가능" : "독립 실행";
+		rows.push(...prose(`${stageInk(task.status)(stageMark(task.status))} ${a.text(safe(task.title))}  ${a.muted(`· ${task.stage} · ${meta}`)}`, width));
+	}
+	return rows;
+}
+
 export function requestRuntimeRows(
 	request: RequestRuntimeRecord,
 	width: number,
 	compact = false,
 	_motionFrame = 8,
-	inputProposals: readonly string[] = [],
+	_goal: string | null = null,
 	activityRows?: readonly string[],
 ): string[] {
-	const completed = request.stages.filter(stage => stage.status === "completed" || stage.status === "skipped").length ;
-	const plan      = section("Plan", width, "", a.plan)                                                                ;
-	const stages    = section("Stages", width, `${completed}/${request.stages.length}`, a.plan)                         ;
+	const completed = request.stages.filter(stage => stage.status === "completed" || stage.status === "skipped").length                                                                                 ;
+	const plan      = planTaskRows(request, width)                                                                                                                                    ;
+	const stages    = section("STAGE", width, `${completed}/${request.stages.length}`, a.plan)                                                                                                         ;
 	stages.push(...stageRailRows(request, width));
 	if (request.attempt > 1) stages.push(...prose(a.muted(`시도 ${request.attempt} · 이전 ${request.previousAttempts.length}회 기록 보존`), width));
 	const activeStage = request.stages.find(stage => stage.status === "running")
@@ -80,10 +95,7 @@ export function requestRuntimeRows(
 	for (const stage of request.stages.filter(stage => stage.skipReason)) {
 		stages.push(...prose(a.muted(`${stage.id} · ${safe(stage.skipReason)}`), width, 2));
 	}
-	const progress  = activityRows ?? [...section("Progress", width, "", a.info), ...prose(a.muted("정리된 세부 작업이 도착하면 이곳에 표시합니다."), width)] ;
-	const proposals = inputProposals.flatMap(proposal => compactStatusRows(proposal, "pending", width, compact ? 1 : 2))                                      ;
-	const next      = [...section("Next", width, inputProposals.length ? `${inputProposals.length}개` : "없음", a.request), ...proposals]                     ;
-	if (inputProposals.length === 0) next.push(...prose(a.muted("다음 입력 제안이 없습니다."), width));
+	const progress  = activityRows ?? [...section("PROGRESS", width, "", a.info), ...prose(a.muted("정리된 세부 작업이 도착하면 이곳에 표시합니다."), width)] ;
 	const issues = (compact ? request.issues.slice(-1) : request.issues).flatMap(issue => prose(a.attention(safe(issue)), width)) ;
-	return joinedSections([plan, stages, progress, next, issues]).map(row => fit(row, width));
+	return joinedSections([stages, plan, progress, issues]).map(row => fit(row, width));
 }

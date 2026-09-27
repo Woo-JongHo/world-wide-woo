@@ -11,6 +11,8 @@ import {
 	WorkStepCard,
 } from "../src/adapters/inbound/tui/features/chat/view/work-step-card";
 import { BashResultCard }                       from "../src/adapters/inbound/tui/features/chat/view/result-cards";
+import { wwwToolRows }                          from "../src/adapters/inbound/tui/features/chat/view/www-execution";
+import { classifyDiffLine }                     from "../src/adapters/inbound/tui/foundation/rendering/unified-diff-view";
 
 const THREAD = "thread-highlight";
 const TURN = "turn-highlight";
@@ -70,6 +72,26 @@ function fileChangeActivity(): ProjectActivity {
 			},
 		},
 	};
+}
+
+function semanticFileChangeActivity(): ProjectActivity {
+	const activity = fileChangeActivity();
+	const item = (activity.payload.params as { item: Record<string, unknown> }).item;
+	item.changes = [{
+		path : "project-comment-candidate.json",
+		kind : "update",
+		diff : [
+			"--- a/project-comment-candidate.json",
+			"+++ b/project-comment-candidate.json",
+			"@@ -64,3 +64,4 @@",
+			"   \"expression\": \"A+B-C\"",
+			"-  \"candidateDigest\": \"000000000000\"",
+			"+  \"candidateDigest\": \"bf53a667ec99\"",
+			"+  \"reason\": \"기존 규칙 문서를 조사했다\"",
+			"… 54 diff lines omitted",
+		].join("\n"),
+	}];
+	return activity;
 }
 
 function toolActivity(): ProjectActivity {
@@ -162,6 +184,50 @@ describe("WorkStepCard executor highlighting", () => {
 		expect(edit).toContain("✓ CHANGE  project-workbench-recording.test.ts");
 		expect(edit).not.toContain("공개 Source 일부 생략");
 		expect(tool).toContain("✔ Tool · PASSED");
+	});
+
+	test("renders semantic unified diff rows below a CHANGE header", () => {
+		const rows = new ObservationCard({
+			activity: semanticFileChangeActivity(),
+			mode: "action",
+		}).render(88);
+		const text = rows.map(row => stripTerminalSequences(row));
+
+		expect(text[0]).toContain("✓ CHANGE  project-comment-candidate.json  +2  -1  done");
+		expect(text.some(row => row.includes("│ @@ -64,3 +64,4 @@"))).toBe(true);
+		expect(text.some(row => row.includes("│ -  \"candidateDigest\": \"000000000000\""))).toBe(true);
+		expect(text.some(row => row.includes("│ +  \"candidateDigest\": \"bf53a667ec99\""))).toBe(true);
+		expect(text.some(row => row.includes("│ +  \"reason\": \"기존 규칙 문서를 조사했다\""))).toBe(true);
+		expect(text.some(row => row.includes("│    \"expression\": \"A+B-C\""))).toBe(true);
+		expect(text.some(row => row.includes("│ … 54 diff lines omitted"))).toBe(true);
+		expect(text.every(row => visibleWidth(row) === 88)).toBe(true);
+	});
+
+	test("classifies unified diff roles before rendering color", () => {
+		expect(classifyDiffLine("+++ b/test.ts").kind).toBe("meta");
+		expect(classifyDiffLine("--- a/test.ts").kind).toBe("meta");
+		expect(classifyDiffLine("@@ -1,2 +1,2 @@").kind).toBe("hunk");
+		expect(classifyDiffLine("+added").kind).toBe("addition");
+		expect(classifyDiffLine("-removed").kind).toBe("deletion");
+		expect(classifyDiffLine("  A+B-C").kind).toBe("context");
+		expect(classifyDiffLine("… 54 diff lines omitted").kind).toBe("omitted");
+	});
+
+	test("renders legacy transcript file changes as compact CHANGE rows", () => {
+		const output = stripTerminalSequences(wwwToolRows(fileChangeActivity(), 100, false).join("\n"));
+
+		expect(output).toContain("✓ ✎ Edit  project-workbench.ts");
+		expect(output).toContain("+2  -1");
+		expect(output).toContain("done");
+		expect(output).not.toContain("공개 Source 일부 생략");
+		expect(output).not.toContain("/Users/");
+	});
+
+	test("marks collapsed command executions with the Terminal icon", () => {
+		const output = stripTerminalSequences(wwwToolRows(commandActivity("12 pass"), 100, false).join("\n"));
+
+		expect(output).toContain("✓ ▣ bun test --filter 'work step'");
+		expect(output).toContain("exit 0");
 	});
 
 	test("renders native command execution with a Gajae-style Bash frame", () => {

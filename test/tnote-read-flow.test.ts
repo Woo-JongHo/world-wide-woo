@@ -32,6 +32,24 @@ const legacyNote: WorkbenchTNote = {
 	updatedAt         : "2026-09-24T00:00:00.000Z",
 };
 
+const operationNote: WorkbenchTNote = {
+	...currentNote,
+	id      : "note-operation",
+	format  : "request-report-v3",
+	summary : [
+		"REPORT: request-report-v3\n제목:\n운영보고서",
+		"요청 목적·접근:\n결과를 구조화했다.",
+		"주요 작업:\nOutput 렌더링 완료",
+		"장시간·차단 작업:\n관측 없음",
+		"잘된 점:\n기존 Note를 보존했다.",
+		"모델·토큰:\n모델명은 관측 없음.",
+		"업무 자체평가:\n전체 요청 성공",
+		"다음 유사 요청:\n동일 계약을 유지한다.",
+		"변경 상태:\nCode 변경 성공",
+		"Commit·Evidence:\nReceipt receipt-1",
+	].join("\n\n") + "\nTest:\nTotal 1/1\n01. bun test : 1s · passed",
+};
+
 function projection(
 	notes: readonly WorkbenchTNote[],
 	status: NoteFeatureProjection["read"]["status"] = "ready",
@@ -51,7 +69,17 @@ describe("completed-question Note read flow", () => {
 		const snapshot = { ...wwwFixture("ready"), tnotes: [currentNote], tnoteRead: { status: "ready" as const, error: null } };
 		const read = projectNoteFeature(snapshot);
 
-		expect(Object.keys(read).sort()).toEqual(["notes", "projectId", "read", "threadId"]);
+		expect(Object.keys(read).sort()).toEqual(["notes", "projectId", "read", "runtime", "threadId"]);
+		expect(read.runtime).toEqual({
+			turnId       : null,
+			primaryModel : null,
+			effort       : null,
+			durationMs   : null,
+			totalTokens  : null,
+			files        : [],
+			receipt      : null,
+			verification : [],
+		});
 		expect(read.notes).toBe(snapshot.tnotes);
 		expect(read.notes[0]?.sourceRange).toEqual({ startSequence: 1, endSequence: 2 });
 		expect(read.notes[0]?.completion?.turnId).toBe("turn-1");
@@ -88,6 +116,18 @@ describe("completed-question Note read flow", () => {
 		controller.handleInput("\x1b");
 		expect(closed).toBe(true);
 		expect(read.notes).toEqual([legacyNote, currentNote]);
+	});
+
+	test("opens a v3 Note as an Operation Report through the existing Output route", () => {
+		const controller = new TNoteBrowserController(() => projection([operationNote]), () => undefined, () => undefined);
+		controller.handleInput("\r");
+		const output = stripTerminalSequences(controller.render(90).join("\n"));
+
+		expect(output).toContain("OUTPUT · OPERATION REPORT");
+		expect(output).toContain("01. 요청 목적 · 접근");
+		expect(output).toContain("12. Commit · Evidence");
+		expect(output).toContain("Turn thread-1 / turn-1");
+		expect(output).not.toContain('"eventType"');
 	});
 
 	test("keeps a durable Note read failure separate from Workbench execution errors", async () => {

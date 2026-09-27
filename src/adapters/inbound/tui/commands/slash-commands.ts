@@ -172,6 +172,7 @@ export const WORKBENCH_SLASH_COMMANDS: SlashCommand[] = [
 	{ name : "stats"      , description : "Session review와 request investigation 열기" , argumentHint : "[diagnostics|latest|#n]" },
 	{ name : "test"       , description : "현재 세션의 질문별 검증 목적·검사·근거"                                                 },
 	{ name : "three-body" , description : "Orbiting Pair / Guardian 삼체 물리 실험실 열기"                                         },
+	{ name : "output"     , description : "완료된 작업의 최종 Operation Report 열기"                                               },
 	{ name : "tnotes"     , description : "저장된 질문별 완료 Note 읽기"                                                           },
 	{ name : "todo"       , description : "레거시 Todo.md 읽기 전용 migration view"                                                },
 	{
@@ -238,6 +239,7 @@ export function parseWorkbenchShellCommand(text: string, catalog?: NativeModelCa
 		return { type: "error", message: "사용법: /workflow [check <RPA-ID> | resume <RUN> | show <RUN>]" };
 	}
 	if ((name === "chat" || name === "tnotes" || name === "todo") && args.length === 0) return { type: "pane.show", pane: name };
+	if (name === "output" && args.length === 0) return { type: "pane.show", pane: "tnotes" };
 	if (name === "model") return parseWorkbenchModelCommand(args, catalog);
 	if (name === "login") {
 		if (args.length === 0) return { type: "auth.select" };

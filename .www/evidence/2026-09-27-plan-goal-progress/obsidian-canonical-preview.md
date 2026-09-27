@@ -1,0 +1,88 @@
+---
+acceptance: partial
+capability: Native Plan projection
+code_ids:
+  - Code-002
+  - Code-011
+decision_ids: []
+document_id: 911c3fc2-5576-4651-9067-811a6238608e
+domain: Todo
+exception_ids: []
+linear: WOO-700
+parent: null
+record_type: detailed-canonical
+related: []
+schema_version: 2
+source_revision: worktree:216b9d9faa09bcb19151f0f188792e8ce7113bf6:dirty
+spec_ids: []
+status: active
+tags:
+  - www/spec
+  - domain/todo
+  - capability/native-plan
+  - status/partial
+test_ids: []
+updated_at: 2026-09-27T00:00:00+09:00
+---
+
+# Native Plan projection — AI가 세운 계획을 세션별로 실시간 확인한다
+
+## 1. Intent
+
+사용자는 요청을 이해해 정리된 GOAL과 그 목표를 수행하는 STAGE·PLAN·PROGRESS를 한 화면에서 구분해 읽어야 한다. 요청 원문 자체를 목표로 오인하거나 Plan과 Stage가 겹쳐 실제 작업이 가려지면 안 된다.
+
+## 2. Scope
+
+In scope는 상단 GOAL과 identity 배치, 사이드 STAGE·PLAN·PROGRESS 계층, task 의존성·병렬 가능성, 상태 기호와 Progress 전체 본문, UNDERSTAND 결과의 Session Goal 투영이다. 수동 Plan 편집, Runtime 7단계 의미, 외부 게시와 업무 수락은 제외한다.
+
+## 3. Desired Behavior
+
+Given 새 요청이 제출됐을 때 GOAL은 이해 중으로 보이며 원문을 복사하지 않는다. UNDERSTAND가 완료되면 해석된 goal 또는 공개 summary가 상단 GOAL이 된다. 사이드는 STAGE 다음 PLAN 다음 PROGRESS를 보이고, Plan task는 선행 ID 또는 병렬 가능성을 표시하며 Progress는 스크롤로 전체 내용을 제공한다.
+
+## 4. Domain Contract
+
+INV-001: GOAL은 요청 입력과 동일 개념이 아니라 UNDERSTAND의 공개 결과다. INV-002: STAGE는 고정 Runtime 상태, PLAN은 실제 task와 의존성, PROGRESS는 해석된 활동을 소유한다. INV-003: GOAL은 헤더에만 한 번 표시한다. INV-004: skipped는 통과 의미, failed는 실패 의미를 서로 다른 기호로 표시한다.
+
+## 5. State Model
+
+GOAL은 understanding에서 interpreted로 전이하며 명시적 /goal은 기존 explicit 경로를 유지한다. Stage와 task는 pending·running·completed·skipped·failed·blocked 상태를 투영한다. 표시 기호는 completed/skipped ✓, running ›, pending ○, failed ×, blocked Ⅱ다.
+
+## 6. Data & Runtime Flow
+
+chat.send → Request Runtime 시작 → UNDERSTAND report(goal 또는 summary) → Request objective 갱신 → Workbench sessionGoal projection → Header GOAL. Stage plan entries는 RequestRuntime stages/tasks → STAGE·PLAN, interpreted activity는 PlanFeatureProjection → PROGRESS로 흐른다.
+
+## 7. Identity & Persistence Contract
+
+Request ID·turn ID·stage task ID와 dependsOn ID를 유지한다. Session Goal source는 UNDERSTAND 완료 event activityId다. 일반 outbound message의 goal=true는 Runtime 시작 신호일 수 있지만 goalText가 없으면 Session Goal 원문으로 투영하지 않는다. 명시적 goalText와 legacy $session-goal marker는 기존 호환 경계를 유지한다.
+
+## 8. Integration Contract
+
+ProjectWorkbench와 Request Runtime이 Goal 생성과 task identity를 소유한다. WwwHeader는 sessionGoal을, WwwPlanView와 request-runtime-view는 stage·task·activity projection을 읽기만 한다. queued Plan 보존 계약은 기존 WOO-700 결정을 유지한다.
+
+## 9. Failure & Recovery Contract
+
+UNDERSTAND에 별도 goal이 없으면 공개 summary를 objective로 사용한다. task 의존성이 없고 같은 stage에 독립 task가 둘 이상이면 병렬 가능으로 표시한다. Progress가 길어도 내부 줄 수로 자르지 않고 ScrollView가 viewport를 소유한다. 좁은 헤더는 왼쪽 GOAL을 먼저 맞추되 오른쪽 identity를 가능한 범위에서 유지한다.
+
+## 10. Acceptance Contract
+
+AC-PLAN-001: 사이드가 STAGE·PLAN·PROGRESS 순서이며 GOAL 섹션이 없다. AC-PLAN-002: Plan task·의존성·병렬 가능성과 통과형 상태 기호가 보인다. AC-PLAN-003: 일반 입력 직후 Session Goal은 null이고 UNDERSTAND 결과가 objective가 된다. AC-PLAN-004: Progress 긴 본문에 내부 ellipsis가 없다. 관련 자동 회귀는 PASS이며 실제 TUI 사용자 수락은 남아 있어 acceptance는 partial이다.
+
+## 11. Verification Strategy
+
+request-runtime.test.ts는 계층·task·의존성·상태 기호와 objective를, www-ui.test.ts는 GOAL·identity 헤더를, plan-activity-view.test.ts는 Progress 전체 본문을, project-workbench 테스트는 입력과 Session Goal 분리를 검증한다. 전체 suite의 비연관 async timeout은 별도 gap으로 보존한다.
+
+## 12. Implementation Map
+
+request-runtime-view.ts가 STAGE·PLAN task 표현을, www-plan-view.ts가 PROGRESS를, www-surface.ts가 Header를 소유한다. request-runtime.ts와 project-workbench.ts가 UNDERSTAND objective와 Session Goal projection을 소유하고 request-protocol.ts가 공개 report 계약을 전달한다.
+
+## 13. Current State & Gaps
+
+요청한 화면·Goal·Progress 계약과 관련 자동 검증은 구현됐다. 변경 관련 160 pass, TypeScript와 가독성 게이트가 통과했다. 전체 suite에서는 범위 밖 project-workbench-async-scope 대기 1건이 timeout이며 실제 TUI 수동 수락과 독립 감사가 남아 있다.
+
+## 14. Decisions & Evidence
+
+DEC-PLAN-GOAL-001 approved: 일반 입력을 즉시 GOAL로 쓰지 않고 UNDERSTAND 결과로 설정한다. 사용자가 요청한 문장과 시스템이 이해한 수행 목표를 구분하기 위해서다. 원문 즉시 승격 대안은 오해와 장문 입력을 목표로 고정해 기각했다. GOAL을 사이드에도 중복하는 대안은 PLAN 공간을 가리고 계층을 흐려 기각했다. 결정 권한은 2026-09-27 사용자 요청이며 Evidence는 .www/evidence/2026-09-27-plan-goal-progress다.
+
+## Change Log
+
+2026-09-26 queued Plan 유지·교체 계약을 반영했다. 2026-09-27 GOAL을 UNDERSTAND 결과로 정의하고 STAGE·PLAN·PROGRESS 화면 계층과 전체 Progress 계약을 반영했다.

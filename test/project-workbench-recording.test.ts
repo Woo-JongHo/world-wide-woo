@@ -286,6 +286,75 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 		await workbench.close();
 	});
 
+	test("keeps the prior Plan across a queued follow-up until the next Plan arrives", async () => {
+		const native    = new FakeNativeHarness()                                                                          ;
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "sample-project", cwd: "/workspace/sample" }) ;
+		await ready(workbench);
+
+		await workbench.dispatch({ type: "chat.send", text: "첫 요청" });
+		native.emit({
+			type   : "notification",
+			method : "turn/plan/updated",
+			refs   : { threadId: "thread-1", turnId: "turn-1" },
+			params : { plan: [{ step: "기존 맥락 계획", status: "inProgress" }] },
+		});
+		await Bun.sleep(10);
+
+		await workbench.dispatch({ type: "chat.send", text: "같은 맥락의 후속 요청", delivery: "queue" });
+		native.emit({ type: "notification", method: "turn/completed", refs: { threadId: "thread-1", turnId: "turn-1" }, params: {} });
+		await Bun.sleep(10);
+
+		expect(native.startTurnCalls).toBe(2);
+		expect(workbench.snapshot.workFlow.steps.map(step => step.title)).toEqual(["기존 맥락 계획"]);
+
+		native.emit({
+			type   : "notification",
+			method : "turn/plan/updated",
+			refs   : { threadId: "thread-1", turnId: "turn-2" },
+			params : { plan: [{ step: "후속 맥락 계획", status: "inProgress" }] },
+		});
+		await Bun.sleep(10);
+
+		expect(workbench.snapshot.workFlow.steps.map(step => step.title)).toEqual(["후속 맥락 계획"]);
+		await workbench.close();
+	});
+
+	test("releases a Plan-less queued turn before the following queued turn starts", async () => {
+		const native    = new FakeNativeHarness()                                                                          ;
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "sample-project", cwd: "/workspace/sample" }) ;
+		await ready(workbench);
+
+		await workbench.dispatch({ type: "chat.send", text: "첫 요청" });
+		native.emit({
+			type   : "notification",
+			method : "turn/plan/updated",
+			refs   : { threadId: "thread-1", turnId: "turn-1" },
+			params : { plan: [{ step: "계속 유지할 계획", status: "inProgress" }] },
+		});
+		await Bun.sleep(10);
+
+		await workbench.dispatch({ type: "chat.send", text: "Plan 없는 후속 요청", delivery: "queue" });
+		await workbench.dispatch({ type: "chat.send", text: "그다음 후속 요청", delivery: "queue" });
+		native.emit({ type: "notification", method: "turn/completed", refs: { threadId: "thread-1", turnId: "turn-1" }, params: {} });
+		await Bun.sleep(10);
+		native.emit({ type: "notification", method: "turn/completed", refs: { threadId: "thread-1", turnId: "turn-2" }, params: {} });
+		await Bun.sleep(10);
+
+		expect(native.startTurnCalls).toBe(3);
+		expect(workbench.snapshot.workFlow.steps.map(step => step.title)).toEqual(["계속 유지할 계획"]);
+
+		native.emit({
+			type   : "notification",
+			method : "turn/plan/updated",
+			refs   : { threadId: "thread-1", turnId: "turn-3" },
+			params : { plan: [{ step: "세 번째 계획", status: "inProgress" }] },
+		});
+		await Bun.sleep(10);
+
+		expect(workbench.snapshot.workFlow.steps.map(step => step.title)).toEqual(["세 번째 계획"]);
+		await workbench.close();
+	});
+
 	test("queues rapid chat submissions when the executor does not support steering", async () => {
 		const native    = new FakeNativeHarness()                                                                          ;
 		const journal   = new MemoryJournal()                                                                              ;

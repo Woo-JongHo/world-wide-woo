@@ -93,7 +93,7 @@ function requestPipelineRows(request: RequestRuntimeRecord | undefined, width: n
 	const rows = section("7-stage request pipeline", width, request ? `${settledStageCount(request)}/${request.stages.length}` : "미관측", a.active);
 	if (!request) return [...rows, ...prose(a.muted("현재 Turn에 연결된 Request 관측이 없습니다."), width)];
 	const meterWidth = Math.max(4, Math.min(28, width - 29));
-	rows.push(pair("Progress", monitoringMeter(settledStageCount(request), request.stages.length, meterWidth, a.active), width), "");
+	rows.push(pair("PROGRESS", monitoringMeter(settledStageCount(request), request.stages.length, meterWidth, a.active), width), "");
 	for (const stage of request.stages) {
 		const headline = `${mark(stage.status)} ${safe(stage.id, 48)} · ${stage.status}`;
 		rows.push(...prose(statusInk(stage.status)(headline), width));

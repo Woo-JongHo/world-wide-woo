@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "1.0",
+  "receiptId": "8aeadff2-2fd5-4fb4-9d9d-72ef08616052",
+  "candidateId": "ARTIFACT-CANDIDATE-PLAN-GOAL-PROGRESS-COMMENT",
+  "skill": { "name": "woo-linear-publish", "version": "1.0" },
+  "capability": "linear-project-comment.publish",
+  "status": "uncertain",
+  "stage": "verify",
+  "actor": { "kind": "codex" },
+  "context": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "verifiedAt": "2026-09-26T23:55:54Z"
+  },
+  "input": {
+    "candidateDigest": "b8441f03e1e13ca20128bfe5b9885ca3856c94720b90c6b3a8630e906cc081ac",
+    "expectedBeforeCommentId": "e781ff90-faed-4c2b-b3bb-b17ecabb36fb"
+  },
+  "authorization": {
+    "actor": "user",
+    "scope": "Linear World Wide Woo Project Activity 댓글 게시"
+  },
+  "execution": {
+    "tool": "Linear UI",
+    "completedAt": "2026-09-26T23:55:54Z"
+  },
+  "result": {
+    "commentId": null,
+    "commentUrl": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity",
+    "author": "우종호",
+    "bodyExact": true,
+    "readBack": true
+  },
+  "failure": {
+    "code": "COMMENT_ID_NOT_EXPOSED",
+    "message": "Linear Activity UI가 게시된 댓글의 고유 ID나 고유 URL을 접근성 트리에 노출하지 않았다."
+  },
+  "validation": [
+    {
+      "id": "expected-before",
+      "status": "pass",
+      "evidence": "게시 직전 최신 Comment ID가 Candidate의 expectedBefore와 일치했다."
+    },
+    {
+      "id": "body-read-back",
+      "status": "pass",
+      "evidence": "새 댓글이 Activity 최상단에 나타났고 변경·영향·분류·검증·연결 본문이 승인 Candidate와 일치했다."
+    },
+    {
+      "id": "comment-identity",
+      "status": "uncertain",
+      "evidence": "댓글 고유 ID는 UI에서 얻지 못했으며 프로젝트 Activity URL만 확인했다."
+    }
+  ],
+  "evidence": [
+    ".www/evidence/2026-09-27-plan-goal-progress/project-comment-candidate.json",
+    "Linear World Wide Woo Project Activity 최상단 댓글 read-back"
+  ],
+  "nextCapabilities": []
+}

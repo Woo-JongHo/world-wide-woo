@@ -241,6 +241,7 @@ function applyReport(r: RequestRuntimeRecord, report: RequestStageReport, a: Pro
 	}
 	stage.status   = report.status                                                                                          ;
 	stage.output   = report.summary                                                                                         ;
+	if (stage.id === "UNDERSTAND" && ["completed", "skipped"].includes(report.status)) r.objective = report.goal ?? report.summary;
 	stage.input    = report.input ?? stage.input                                                                            ;
 	stage.agents   = report.agents ?? stage.agents                                                                          ;
 	stage.tools    = report.tools ?? stage.tools                                                                            ;

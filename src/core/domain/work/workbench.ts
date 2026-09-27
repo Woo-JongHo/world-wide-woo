@@ -45,6 +45,8 @@ export interface WorkbenchChatQueueItem {
 	readonly queuedAt : string ;
 	/** A Goal request remains identifiable when it waits behind an active turn. */
 	readonly goal?: boolean;
+	/** Only an explicit `/goal` request asks Native Plan to own the Todo surface. */
+	readonly planGoal?: boolean;
 }
 
 export interface WorkbenchTNote {

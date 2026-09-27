@@ -27,6 +27,7 @@ import { LayerPerformanceRecorder }                                   from "@/co
 import {
 	SESSION_GOAL_CHARACTER_LIMIT,
 	projectSessionGoal,
+	summarizeSessionGoal,
 	record,
 	stableJson,
 } from "@/core/application/orchestration/workbench-projections.js";
@@ -166,7 +167,7 @@ export interface WorkbenchTNoteSource {
 export interface ProjectWorkbenchOptions {
 	/** Explicitly scoped capabilities. No ambient shell or publication authority. */
 	requestCapabilities?: readonly RequestActionCapability[];
-	/** Explicit session default. A /goal request promotes off to observe for that request only. */
+	/** The first request starts Runtime; an explicit /goal additionally promotes off to observe. */
 	requestRuntimeMode?: RequestRuntimeMode;
 	requestProjection?: RequestProjectionPort;
 	/** Local preflight only; the implementation owns its persisted state and receipts. */
@@ -251,6 +252,8 @@ export class ProjectWorkbench {
 	private activeTurnId               : string | null                      = null                                    ;
 	/** Last explicitly selected root turn; remains plan authority after terminal completion. */
 	private selectedPlanTurnId: string | null = null;
+	/** A queued follow-up keeps the preceding Plan until its own Native Plan arrives. */
+	private deferredPlanTurnId: string | null = null;
 	/** A submitted root question can update the public goal before Native confirms its turn id. */
 	private pendingPlanGoalActivityId          : string | null                                           = null                             ;
 	private todo                               : TodoDocument | null                                                                        ;
@@ -477,7 +480,9 @@ export class ProjectWorkbench {
 			confirmApproval    : (approval) => this.approvalDispatcher.confirmNativeResolved(approval),
 			setThreadId        : (threadId) => { this.threadId = threadId; },
 			setActiveTurnId    : (turnId) => { this.activeTurnId = turnId; },
-			selectPlanTurn     : (turnId) => { this.selectedPlanTurnId = turnId; },
+			selectPlanTurn     : (turnId) => {
+				if (this.deferredPlanTurnId !== turnId) this.selectedPlanTurnId = turnId;
+			},
 			setContextTurn     : (turnId) => this.setContextTurn(turnId),
 			setSessionGoal     : (goal) => { this.sessionGoal = goal; },
 
@@ -752,8 +757,9 @@ export class ProjectWorkbench {
 			this.threadId          = this.options.resumeThreadId ?? this.threadId ;
 			this.visibleThreadId   = this.threadId                                ;
 			this.visibleActivities.push(...this.activities.filter(activity => !this.threadId || activity.nativeRefs.threadId === this.threadId));
-			this.selectedPlanTurnId = [...this.visibleActivities].reverse().find(activity => activity.nativeRefs.turnId)?.nativeRefs.turnId ?? null;
-			this.error = `읽기 전용 기록 진단: ${recordingIssues.join("\n")}`;
+			this.selectedPlanTurnId = [...this.visibleActivities].reverse().find(activity => activity.nativeRefs.turnId)?.nativeRefs.turnId ?? null ;
+			this.sessionGoal        = projectSessionGoal(this.visibleActivities)                                                                    ;
+			this.error              = `읽기 전용 기록 진단: ${recordingIssues.join("\n")}`                                                          ;
 			this.publish("error");
 			return;
 		}
@@ -848,6 +854,8 @@ export class ProjectWorkbench {
 	private async sendChat(commandId: string, rawText: string, goal = false, delivery: "queue" | "steer" = "steer"): Promise<WorkbenchCommandReceipt> {
 		const text = sanitizeTerminalTextUnbounded(rawText).trim();
 		if (!text) return { state: "rejected", commandId, reason: "보낼 메시지가 비어 있습니다." };
+		const effectiveGoal = goal || this.sessionGoal === null;
+		const goalText      = goal ? summarizeSessionGoal(text) : undefined;
 		if (this.requestRuntimePolicy.brokered && !this.activeTurnId) {
 			const unresolved = this.workflow.records().find(r => r.actions.some(a => a.status === "unconfirmed"));
 			const action = unresolved?.actions.find(a => a.status === "unconfirmed");
@@ -859,22 +867,26 @@ export class ProjectWorkbench {
 			&& this.threadId
 			&& !this.nativeTurn.deliveryBlocked
 			&& this.native.steerTurn) {
-			const sent = await this.steerChatTurn(text, commandId, this.threadId, this.activeTurnId, goal);
+			const sent = await this.steerChatTurn(text, commandId, this.threadId, this.activeTurnId, effectiveGoal, goalText);
 			return { state: "accepted", commandId, activitySequence: sent.sequence };
 		}
 		if (this.activeTurnId
 			|| this.pendingApproval
 			|| this.nativeTurn.queue.length > 0
 			|| this.nativeTurn.deliveryBlocked) {
-			if (this.requestRuntimePolicy.manages(goal)) {
+			if (this.requestRuntimePolicy.manages(effectiveGoal)) {
 				await this.appendRequestObservation("request/submitted", commandId, this.threadId ?? undefined, text);
 				await this.appendRequestObservation("request/queued", commandId, this.threadId ?? undefined, text);
 			}
-			const position = this.nativeTurn.enqueue({ id: commandId, content: text, queuedAt: new Date().toISOString(), ...(goal ? { goal: true } : {}) });
+			const position = this.nativeTurn.enqueue({
+				id: commandId, content: text, queuedAt: new Date().toISOString(),
+				...(effectiveGoal ? { goal: true } : {}),
+				...(goal ? { planGoal: true } : {}),
+			});
 			this.publish();
 			return { state: "queued", commandId, position };
 		}
-		const sent = await this.startChatTurn(text, commandId, false, goal);
+		const sent = await this.startChatTurn(text, commandId, false, effectiveGoal, goal, goalText);
 		return { state: "accepted", commandId, activitySequence: sent.sequence };
 	}
 
@@ -896,14 +908,15 @@ export class ProjectWorkbench {
 		threadId: string,
 		turnId: string,
 		goal = false,
+		goalText?: string,
 	): Promise<ProjectActivity> {
 		const steerTurn = this.native.steerTurn;
 		if (!steerTurn) throw new Error("이 실행기는 진행 중인 Native turn 조향을 지원하지 않습니다.");
-		const managedRequest       = this.requestRuntimePolicy.manages(goal)                                                                   ;
-		const messagePayload       = { direction: "outbound", role: "user", text, ...(goal ? { goal: true } : {}) } as const                   ;
-		const messageRefs          = { threadId, turnId, itemId: localMessageId }                                                              ;
-		const outboundSourceDigest = digestSource(stableJson(messagePayload))                                                                  ;
-		const sent                 = await this.appendActivity("message", "started", messageRefs, messagePayload, false, outboundSourceDigest) ;
+		const managedRequest       = this.requestRuntimePolicy.manages(goal)                                                                                    ;
+		const messagePayload       = { direction: "outbound", role: "user", text, ...(goal ? { goal: true, ...(goalText ? { goalText } : {}) } : {}) } as const ;
+		const messageRefs          = { threadId, turnId, itemId: localMessageId }                                                                               ;
+		const outboundSourceDigest = digestSource(stableJson(messagePayload))                                                                                   ;
+		const sent                 = await this.appendActivity("message", "started", messageRefs, messagePayload, false, outboundSourceDigest)                  ;
 		if (managedRequest) await this.appendRequestObservation("request/submitted", localMessageId, threadId, text, outboundSourceDigest, turnId);
 		this.publish();
 		try {
@@ -932,7 +945,7 @@ export class ProjectWorkbench {
 			throw error;
 		}
 		const completed = await this.appendActivity("message", "completed", messageRefs, messagePayload, false, outboundSourceDigest);
-		if (goal) this.sessionGoal = { text, sourceActivityId: completed.id, updatedAt: completed.recordedAt };
+		if (goalText) this.sessionGoal = { text: goalText, sourceActivityId: completed.id, updatedAt: completed.recordedAt };
 		if (managedRequest) await this.appendRequestObservation("request/started", localMessageId, threadId, text, outboundSourceDigest, turnId, {
 			model: this.effectiveModel,
 			effort: this.effectiveEffort,
@@ -941,7 +954,7 @@ export class ProjectWorkbench {
 		return sent;
 	}
 
-	private async startChatTurn(text: string, localMessageId: string, queued = false, goal = false): Promise<ProjectActivity> {
+	private async startChatTurn(text: string, localMessageId: string, queued = false, goal = false, planGoal = goal, goalText?: string): Promise<ProjectActivity> {
 		const managedRequest = this.requestRuntimePolicy.manages(goal);
 		const intake = managedRequest && !this.threadId && this.journal.supportsRequestIntake === true;
 		if (intake) await this.appendRequestObservation("request/submitted", localMessageId, undefined, text);
@@ -949,7 +962,7 @@ export class ProjectWorkbench {
 			direction: "outbound",
 			role: "user",
 			text,
-			...(goal ? { goal: true } : {}),
+			...(goal ? { goal: true, ...(goalText ? { goalText } : {}) } : {}),
 		} as const;
 		if (!this.threadId) {
 			this.preThreadChat.set(localMessageId, {
@@ -1012,7 +1025,7 @@ export class ProjectWorkbench {
 				effort            : this.selectedEffort,
 				approvalPolicy    : this.approvalPolicy,
 				sandboxPolicy     : this.nativeTurn.sandboxPolicy(this.permissionMode, this.options.cwd),
-				collaborationMode : this.nativeTurn.collaboration(this.collaborationMode, this.effectiveModel, this.effectiveEffort, goal),
+				collaborationMode : this.nativeTurn.collaboration(this.collaborationMode, this.effectiveModel, this.effectiveEffort, planGoal),
 			});
 			turn = await this.native.startTurn(this.contextComposer.compose(
 				managedRequest
@@ -1047,14 +1060,18 @@ export class ProjectWorkbench {
 		this.nativeEvents.rememberNativeRefs({ threadId: this.threadId, turnId: turn.id });
 		this.setContextTurn(turn.id);
 		this.activeTurnId = turn.id;
-		this.selectedPlanTurnId = turn.id;
+		if (queued && this.selectedPlanTurnId) this.deferredPlanTurnId = turn.id;
+		else {
+			this.deferredPlanTurnId = null;
+			this.selectedPlanTurnId = turn.id;
+		}
 		this.nativeEvents.rememberTurnCollaboration(turn.id, this.collaborationMode);
 		this.pendingPlanGoalActivityId = null;
 		this.workflow.invalidateFlow();
 		this.nativeTurn.clearUncertain();
 		if (queued) this.nativeTurn.shiftHeadIf(localMessageId);
 		const completed = await this.appendActivity("message", "completed", messageRefs, messagePayload);
-		if (goal) this.sessionGoal = { text, sourceActivityId: completed.id, updatedAt: completed.recordedAt };
+		if (goalText) this.sessionGoal = { text: goalText, sourceActivityId: completed.id, updatedAt: completed.recordedAt };
 		if (managedRequest) await this.appendRequestObservation("request/started", localMessageId, this.threadId, text, outboundSourceDigest, turn.id, {
 			model: this.effectiveModel,
 			effort: this.effectiveEffort,
@@ -1093,7 +1110,7 @@ export class ProjectWorkbench {
 			const next = this.nativeTurn.head;
 			if (!next) return;
 			try {
-				await this.startChatTurn(next.content, next.id, true, next.goal === true);
+				await this.startChatTurn(next.content, next.id, true, next.goal === true, next.planGoal === true);
 				return;
 			} catch (error) {
 				if (isUncertain(error) || this.nativeTurn.head?.id === next.id) throw error;
@@ -1388,7 +1405,19 @@ export class ProjectWorkbench {
 		publish = true,
 		sourceDigest?: string,
 	): Promise<ProjectActivity> {
-		return this.activityJournal.append(kind, phase, nativeRefs, payload, publish, sourceDigest);
+		const activity = await this.activityJournal.append(kind, phase, nativeRefs, payload, publish, sourceDigest);
+		if (payload.method === "turn/plan/updated"
+			&& nativeRefs.turnId
+			&& nativeRefs.turnId === this.deferredPlanTurnId) {
+			this.selectedPlanTurnId = nativeRefs.turnId;
+			this.deferredPlanTurnId = null;
+			this.workflow.invalidateFlow();
+		}
+		if (/^turn\/(?:completed|failed|interrupted|cancelled|canceled)$/u.test(String(payload.method ?? ""))
+			&& nativeRefs.turnId === this.deferredPlanTurnId) {
+			this.deferredPlanTurnId = null;
+		}
+		return activity;
 	}
 
 	private selectedExecutionRun(): ExecutionRunState | null {
@@ -1456,10 +1485,12 @@ export class ProjectWorkbench {
 		const requestRuntime = this.requestRuntimePolicy.mode !== "off"
 			? allRequestRuntime
 			: allRequestRuntime.filter(request => request.turnId === selectedRequestTurnId);
-		const request         = [...requestRuntime].reverse().find(r => r.turnId === (this.activeTurnId ?? this.selectedPlanTurnId)) ?? requestRuntime.at(-1) ;
-		const todo            = this.workflow.projectedTodo(executionRun, workFlow)                                                                           ;
-		const modelCatalog    = this.modelCatalog                                                                                                             ;
-		const linearDashboard = this.options.linearDashboard ? this.linearDashboard : undefined                                                               ;
+		const request         = [...requestRuntime].reverse().find(r => r.turnId === (this.activeTurnId ?? this.selectedPlanTurnId)) ?? requestRuntime.at(-1)                       ;
+		const understood      = request?.events.filter(event => event.stage === "UNDERSTAND" && (event.type === "stage.completed" || event.type === "stage.skipped")).at(-1)        ;
+		const sessionGoal     = this.sessionGoal ?? (request && understood ? { text: request.objective, sourceActivityId: understood.activityId, updatedAt: understood.at } : null) ;
+		const todo            = this.workflow.projectedTodo(executionRun, workFlow)                                                                                                 ;
+		const modelCatalog    = this.modelCatalog                                                                                                                                   ;
+		const linearDashboard = this.options.linearDashboard ? this.linearDashboard : undefined                                                                                     ;
 		if (linearDashboard) this.cacheProjection.hit("dashboard");
 		const cacheObservations = this.cacheProjection.observations({
 			requestCached      : this.workflow.requestCached,
@@ -1483,12 +1514,12 @@ export class ProjectWorkbench {
 			// A model switch takes effect on the next turn, so the running turn keeps the model it
 			// was started with.  Reporting the selection here would name a model that is not
 			// producing the output on screen.
-			activeModel       : (this.activeTurnId ? this.usageTracker.modelFor(this.activeTurnId) : undefined) ?? this.effectiveModel,
-			effort            : this.effectiveEffort,
-			contextUsage      : this.usageTracker.contextUsage,
-			sessionUsage      : this.usageTracker.snapshot(this.options.auxiliaryUsage),
-			resumeCoverage    : this.nativeTurn.resumeCoverage(Boolean(this.options.resumeThreadId), this.processAttachedAt),
-			sessionGoal       : this.sessionGoal,
+			activeModel    : (this.activeTurnId ? this.usageTracker.modelFor(this.activeTurnId) : undefined) ?? this.effectiveModel,
+			effort         : this.effectiveEffort,
+			contextUsage   : this.usageTracker.contextUsage,
+			sessionUsage   : this.usageTracker.snapshot(this.options.auxiliaryUsage),
+			resumeCoverage : this.nativeTurn.resumeCoverage(Boolean(this.options.resumeThreadId), this.processAttachedAt),
+			sessionGoal,
 			permissionMode    : this.permissionMode,
 			collaborationMode : this.collaborationMode,
 			mcpServers        : this.mcpServers,

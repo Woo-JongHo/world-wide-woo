@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "1.0",
+  "issueBinding": {
+    "identifier": "WOO-674",
+    "uuid": "4674a1dc-ba01-4007-9803-3346a1f83dcc",
+    "title": "Workbench 대화와 계획을 읽고 입력과 상태를 통제한다",
+    "url": "https://linear.app/woo-world/issue/WOO-674/workbench-대화와-계획을-읽고-입력과-상태를-통제한다"
+  },
+  "decision": "existing-issue",
+  "reason": "같은 날 선행 Project Comment Candidate가 WOO-674를 첫 화면과 상태 통제의 소유 이슈로 확인했고 connectNative와 waitUntilReady의 화면 전 직렬 대기를 명시적인 후속 병목으로 남겼다. 이번 변경은 그 후속을 직접 해결하므로 새 이슈를 만들지 않는다.",
+  "linearVerification": {
+    "state": "local-evidence-only",
+    "source": ".www/evidence/2026-09-26-welcome-octopus-removal/project-comment-candidate.json",
+    "limitation": "현재 세션에 linear-woo 도구가 없어 원격 최신 이슈 본문과 Project Activity를 재조회하지 못했다. 게시 직전 실시간 재조회가 필요하다."
+  },
+  "obsidian": {
+    "candidateRequired": false,
+    "reason": "새 capability, 공개 API, schema, identity, persistence, 권위 경계를 바꾸지 않고 새 세션의 첫 화면 반환 시점만 비동기화한 되돌릴 수 있는 sequencing 수정이다. 재개 세션의 lease와 기록 복원 계약은 유지했다."
+  }
+}

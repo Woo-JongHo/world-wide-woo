@@ -115,6 +115,7 @@ import {
 } from "@/adapters/inbound/tui/shell/workbench-navigation.controller";
 import type { ObservabilityViewMode }                           from "@/adapters/inbound/tui/shell/workbench-navigation.controller";
 import {
+	isBareSlashCommandInput,
 	loginProviderFromInput,
 	nextWorkbenchRuntimeMode,
 	workbenchModelSettings,
@@ -353,7 +354,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	const composerFrame                              = www ? new WwwComposer(composerSlot, editor, () => snapshot, () => !overlays?.isInlineApprovalActive, wwwExecutionHeading, () => www.page === "execution") : new ComposerModelFrame(composerSlot, () => snapshot) ;
 	const root = new VStack([
 		...(www ? [
-			{ component: new WwwHeader(() => snapshot, () => navigation.mode === "workbench" ? wwwPageLabel(www.page) : navigation.mode === "monitor" ? "Progress" : navigation.mode, cwd), basis: 2, minSize: 1, maxSize: 2, visible: ({ height }: { height: number }) => height >= 12 },
+			{ component: new WwwHeader(() => snapshot, () => navigation.mode === "workbench" ? wwwPageLabel(www.page) : navigation.mode === "monitor" ? "PROGRESS" : navigation.mode, cwd), basis: 1, minSize: 1, maxSize: 1, visible: ({ height }: { height: number }) => height >= 12 },
 		] : []),
 		{ component: activeView, basis: 0, grow: 1, shrink: 1, minSize: 1 },
 		{ component: composerFrame, basis: "auto", shrink: 1, minSize: 3 },
@@ -565,6 +566,12 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	});
 	const submitComposer = (text: string): void => {
 		if (lifecycle.isShuttingDown || !text.trim()) return;
+		if (isBareSlashCommandInput(text)) {
+			editor.setText("/");
+			status.setNotice("슬래시 명령어를 선택하거나 명령 이름을 입력하세요.");
+			tui.requestRender();
+			return;
+		}
 		const submittedGeneration = composerGeneration                                               ;
 		const composerIsUnchanged = (): boolean => composerGeneration === submittedGeneration        ;
 		const restoreSubmission   = (): void => { if (composerIsUnchanged()) editor.setText(text); } ;

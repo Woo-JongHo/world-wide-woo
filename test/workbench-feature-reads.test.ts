@@ -57,14 +57,14 @@ describe("Workbench feature read projections", () => {
 
 		const allowedKeys = [
 			"activeTurnId",
-			"chatQueue",
 			"planActivities",
 			"planActivityStatus",
 			"requestRuntime",
+			"sessionGoal",
 			"workFlow",
 		];
 		expect(Object.keys(projection).every(key => allowedKeys.includes(key))).toBe(true);
-		expect(Object.keys(projection)).toEqual(expect.arrayContaining(["activeTurnId", "chatQueue", "workFlow"]));
+		expect(Object.keys(projection)).toEqual(expect.arrayContaining(["activeTurnId", "sessionGoal", "workFlow"]));
 		expect(Object.isFrozen(projection)).toBe(true);
 		expect("draft" in projection).toBe(false);
 		expect("activities" in projection).toBe(false);

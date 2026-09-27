@@ -28,7 +28,7 @@ describe("workbench welcome intro", () => {
 		expect(stripTerminalSequences(resting)).toContain("██╗");
 	});
 
-	test("shows the point-cloud Wooni in the welcome instead of the three-body orbit", () => {
+	test("shows the WWW wordmark without the point-cloud octopus", () => {
 		const view = new WorkbenchWelcomeView();
 		const output = view.render(100).map(stripTerminalSequences).join("\n");
 		expect(output).toContain("██╗");
@@ -36,13 +36,13 @@ describe("workbench welcome intro", () => {
 		expect(output).not.toContain("GUARDIAN");
 		expect(output).toContain("/three-body");
 		expect(output).toContain("🐙 Wooni · Native Project Workbench");
-		expect(output).toContain("v0.0.20");
+		expect(output).toContain("v0.0.21");
 		expect(output).not.toContain("WOONI");
 		expect(output).not.toContain("wooni@worldwide:~$");
 		expect(output).not.toContain("Three Body");
-		expect(output).toMatch(/[\u2801-\u28ff]/u);
-		expect(view.render(80, 32)).toHaveLength(32);
-		expect(view.render(80, 14)).toHaveLength(14);
+		expect(output).not.toMatch(/[\u2801-\u28ff]/u);
+		expect(view.render(80, 32).length).toBeLessThanOrEqual(32);
+		expect(view.render(80, 14).length).toBeLessThanOrEqual(14);
 	});
 
 		test("turns in depth three times and settles front-on with bounded rows at every terminal size", () => {
@@ -59,23 +59,21 @@ describe("workbench welcome intro", () => {
 		}
 	});
 
-	test("uses the extra room in a tall terminal for a larger readable expression", () => {
+	test("keeps the wordmark bounded in tall terminals", () => {
 		const view = new WorkbenchWelcomeView();
-		const artRows = (height: number) => view.render(100, height).map(stripTerminalSequences).filter(row => /[\u2801-\u28ff]/u.test(row));
-		const compact = artRows(32), expanded = artRows(40);
-		const occupiedWidth = (rows: string[]) => Math.max(...rows.map(row => visibleWidth(row.trim())));
-		expect(expanded.length).toBeGreaterThan(compact.length);
-		expect(occupiedWidth(expanded)).toBeGreaterThan(occupiedWidth(compact));
-		expect(view.render(100, 40).join("\n")).toContain("Native Project Workbench");
+		const rows = view.render(100, 40);
+		expect(rows.length).toBeLessThanOrEqual(40);
+		expect(rows.every(row => visibleWidth(row) <= 100)).toBe(true);
+		expect(rows.join("\n")).toContain("Native Project Workbench");
 	});
 
-	test("stops the intro clock after three turns and does not replay on a second entry", async () => {
+	test("stops the wordmark intro clock and does not replay on a second entry", async () => {
 		let now = 0, repaints = 0;
 		const clock = spyOn(performance, "now").mockImplementation(() => now);
 		const view = new WorkbenchWelcomeView();
 		try {
 			view.playIntro(() => repaints++);
-			now = OCTOPUS_INTRO_DURATION_MS + 1;
+			now = 2_401;
 			await Bun.sleep(65);
 			const settledRepaints = repaints;
 			view.playIntro(() => repaints++);
@@ -85,7 +83,7 @@ describe("workbench welcome intro", () => {
 		} finally { view.dispose(); clock.mockRestore(); }
 	});
 
-	test("reduced motion and NO_COLOR render a static octopus without scheduling animation", async () => {
+	test("reduced motion and NO_COLOR render a static welcome without scheduling animation", async () => {
 		for (const key of ["WWW_REDUCED_MOTION", "NO_COLOR"]) {
 			const previous = process.env[key];
 			process.env[key] = "1";

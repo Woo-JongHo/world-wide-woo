@@ -235,15 +235,16 @@ export class WwwDashboardView implements Component {
 		}
 
 		const summaryWidths = monitoringWidths(width, 5)                                                                         ;
-		const routerWidths  = monitoringWidths(width, 4)                                                                         ;
+		const routerWidths  = monitoringWidths(width, 5)                                                                         ;
 		const contextValue  = contextPercent == null ? "미관측" : `${contextPercent}%`                                           ;
 		const contextDetail = context ? `${number(context.usedTokens)} / ${number(context.contextWindow)}` : "usage unavailable" ;
 		const usageValue    = sessionTokens == null ? "미관측" : number(sessionTokens)                                           ;
 		const routerCards = [
-			monitoringCard({ title: "/context", value: contextValue, detail: contextDetail }, routerWidths[0]),
-			monitoringCard({ title: "/cache", value: cache.value, detail: cache.detail }, routerWidths[1]),
-			monitoringCard({ title: "/usage", value: usageValue, detail: "observed session tokens" }, routerWidths[2]),
-			monitoringCard({ title: "/workflow", value: `${workflow.completedCount}/${workflow.steps.length}`, detail: workflow.steps.length ? "tracked steps" : "no steps" }, routerWidths[3]),
+			monitoringCard({ title: "/output", value: `${snapshot.tnotes.length}`, detail: "operation reports" }, routerWidths[0]),
+			monitoringCard({ title: "/context", value: contextValue, detail: contextDetail }, routerWidths[1]),
+			monitoringCard({ title: "/cache", value: cache.value, detail: cache.detail }, routerWidths[2]),
+			monitoringCard({ title: "/usage", value: usageValue, detail: "observed session tokens" }, routerWidths[3]),
+			monitoringCard({ title: "/workflow", value: `${workflow.completedCount}/${workflow.steps.length}`, detail: workflow.steps.length ? "tracked steps" : "no steps" }, routerWidths[4]),
 		];
 		const goal = snapshot.sessionGoal ? snapshotText(snapshot.sessionGoal.text, "목표 없음") : "Goal이 아직 없습니다.";
 		const liveSummary = live ? truncateToWidth(live, Math.max(16, width - 14)) : "현재 실행 중인 작업이 없습니다.";

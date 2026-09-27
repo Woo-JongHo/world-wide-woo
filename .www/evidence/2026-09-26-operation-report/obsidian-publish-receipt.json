@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "1.0",
+  "receiptId": "07f9148c-b85a-4dd4-a699-70df94f371c4",
+  "runId": "operation-report-2026-09-26",
+  "candidateId": "ARTIFACT-CANDIDATE-WOO-843-OPERATION-REPORT",
+  "skill": { "name": "woo-obsidian-publish", "version": "1.0" },
+  "capability": "obsidian-canonical.publish",
+  "status": "failed",
+  "stage": "verify",
+  "actor": { "kind": "codex" },
+  "context": {
+    "relativePath": "Chat/Operation Report — 완료 결과와 근거를 구조화해 보여준다.md",
+    "verifiedAt": "2026-09-26T07:40:29Z"
+  },
+  "input": {
+    "candidateDigest": "3825caef06bfaa51f30b79980e81e2d96cae122babd8f9402b95e77441d0116c",
+    "expectedBeforeDigest": null
+  },
+  "decision": null,
+  "authorization": { "actor": "user", "scope": "Linear Project Comment와 Obsidian draft 둘 다 게시" },
+  "execution": {
+    "tool": "filesystem apply_patch",
+    "completedAt": "2026-09-26T07:40:29Z"
+  },
+  "result": {
+    "candidateBytesMatchedBeforeGate": true,
+    "candidateDigestReadBack": "adf27eca602efcf5710231ad4d4225d57dca1c735662ad8e3f25355b7a866c5b",
+    "rolledBackToAbsent": true,
+    "currentTargetExists": false
+  },
+  "failure": {
+    "code": "OBSIDIAN_CONTRACT_INVALID",
+    "message": "spec_ids의 SPEC-OPERATION-REPORT-001이 schema v2 ID 형식에 맞지 않아 게시를 복구했다."
+  },
+  "validation": [
+    { "id": "render-byte-read-back", "status": "pass", "evidence": "Apply 직후 Candidate render와 Vault bytes가 SHA-256 adf27eca...로 일치했다." },
+    { "id": "target-contract", "status": "fail", "evidence": "PROPERTY_INVALID(spec_ids)가 발생했다." },
+    { "id": "rollback", "status": "pass", "evidence": "신규 대상 파일을 제거해 게시 전의 대상 없음 상태로 복구했다." }
+  ],
+  "evidence": [
+    ".www/evidence/2026-09-26-operation-report/obsidian-canonical-candidate.json"
+  ],
+  "nextCapabilities": ["woo-obsidian-canonical", "woo-obsidian-contract", "woo-obsidian-publish"],
+  "receiptDigest": "5d401196f0f95897dfdf185bced75642ef7c2b6d6f6955f91ea8e5439b5acc73"
+}

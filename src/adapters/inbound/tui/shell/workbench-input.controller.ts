@@ -14,6 +14,10 @@ export function workbenchReceiptClearsComposer(receipt: WorkbenchCommandReceipt)
 	return receipt.state !== "rejected";
 }
 
+export function isBareSlashCommandInput(text: string): boolean {
+	return text.trim() === "/";
+}
+
 export type WorkbenchRuntimeMode = "bypass" | "manual" | "plan";
 
 export interface WorkbenchRuntimeConfiguration {
@@ -57,6 +61,6 @@ export function workbenchModelSettings(source: Pick<WorkbenchSnapshot, "model" |
 
 export function workbenchPaneNotice(pane: "chat" | "tnotes" | "todo"): string {
 	const location = pane === "chat" ? "왼쪽 Chat · 질문과 공개 응답"
-		: pane === "tnotes" ? "완료 질문 Report · Note" : "현재 Plan · Progress · Next";
+		: pane === "tnotes" ? "완료 질문 Report · Note" : "현재 GOAL · PLAN · PROGRESS";
 	return `${location} pane은 현재 화면에 계속 표시됩니다.`;
 }

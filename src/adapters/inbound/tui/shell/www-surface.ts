@@ -38,6 +38,7 @@ import {
 	duration,
 	fit,
 	oneLine,
+	pair,
 	prose,
 	safe,
 	section,
@@ -46,6 +47,7 @@ import { wwwQuotaHudRows }                                             from "@/a
 import { WwwUsageRail, WwwUsageView }                                  from "@/adapters/inbound/tui/features/usage/view/www-usage-view";
 import { runtimeModeLabel, workbenchEffortLabel, workbenchModelLabel } from "@/adapters/inbound/tui/foundation/labels";
 import { componentScrollRows }                                         from "@/adapters/inbound/tui/foundation/rendering/scroll-row-source";
+import { activityGradientFrame }                                       from "@/adapters/inbound/tui/foundation/theme/theme";
 import {
 	WWW_HELP_ACTIONS,
 	WWW_KEYMAP,
@@ -59,7 +61,7 @@ export type WwwPage = "dashboard" | "execution" | "plan" | "workflow" | "context
 export const WWW_PAGE_LABELS: Readonly<Record<WwwPage, string>> = {
 	dashboard : "Dashboard",
 	execution : "Chat",
-	plan      : "Plan",
+	plan      : "PLAN",
 	workflow  : "Workflow",
 	context   : "Context",
 	cache     : "Cache",
@@ -68,7 +70,7 @@ export const WWW_PAGE_LABELS: Readonly<Record<WwwPage, string>> = {
 	lab       : "Three Body Lab",
 };
 export function wwwPageLabel(page: WwwPage): string { return WWW_PAGE_LABELS[page]; }
-const WWW_DESCRIPTIONS: Record<string, string> = { chat: "실행·질문 요약 타임라인", todo: "Plan · Progress · Next", workflow: "Request 단계·Subagent 위임 관측", test: "질문별 검증 목적·검사·근거", help: "WWW 명령과 키보드 이동", source: "선택한 Progress 항목의 Trace · Source", dashboard: "현재 Session Overview", usage: "Provider quota·세션 token 상세", monitor: "현재 Progress·Runtime 관측" };
+const WWW_DESCRIPTIONS: Record<string, string> = { chat: "실행·질문 요약 타임라인", output: "최종 Operation Report", todo: "Goal · Plan · Progress", workflow: "Request 단계·Subagent 위임 관측", test: "질문별 검증 목적·검사·근거", help: "WWW 명령과 키보드 이동", source: "선택한 Progress 항목의 Trace · Source", dashboard: "현재 Session Overview", usage: "Provider quota·세션 token 상세", monitor: "현재 Progress·Runtime 관측" };
 export const WWW_COMMANDS = [...WORKBENCH_SLASH_COMMANDS.filter(command => command.name !== "tnotes" && command.name !== "tnote").map(command => ({ ...command, description: WWW_DESCRIPTIONS[command.name] ?? command.description })),
 	{ name: "context", description: "세션·권한·사용량·MCP·위임 작업" },
 	{ name: "history", description: "이전 Session·Project 관측 이력" },
@@ -256,8 +258,8 @@ export class WwwHeader implements Component {
 		const identity = `${a.strong("www")}  ${a.muted(oneLine(project))} ${a.rule("/")} ${a.text(this.page())}` ;
 		const goal     = oneLine(s.sessionGoal?.text, 500)                                                        ;
 		const frame    = this.motion ? Math.floor(this.clock() / 120) : 0                                         ;
-		const goalText = goal ? wwwFlowText(`Goal  ${goal}`, frame) : ""                                          ;
-		return [fit("  " + identity, width), goalText ? fit(`  ${goalText}`, width) : ""];
+		const goalText = goal ? wwwFlowText(`GOAL  ${goal}`, frame) : a.muted("GOAL  이해 중")                    ;
+		return [pair(`  ${goalText}`, identity, width)];
 	}
 }
 
@@ -360,12 +362,14 @@ function boundedHeadingRow(width: number, core: string, segments: readonly { tex
 }
 
 function workingStatusLine(snapshot: ChatFeatureProjection, summary: ExecutionActivitySummary, now: number, motion: boolean, brief = false): string {
-	const elapsed       = Number.isFinite(summary.workingStartedAt) ? duration(Math.max(0, now - summary.workingStartedAt)) : "실행 경과 계산 중"   ;
-	if (brief) return `${a.active(WWW_ACTIVITY_SPINNER[motion ? Math.floor(now / 120) % WWW_ACTIVITY_SPINNER.length : WWW_ACTIVITY_SPINNER.length - 1])} ${a.active("Working")} ${a.caption(elapsed)}`;
+	const elapsed = Number.isFinite(summary.workingStartedAt) ? duration(Math.max(0, now - summary.workingStartedAt)) : "실행 경과 계산 중" ;
+	const frame   = motion ? Math.floor(now / 120) : 0                                                                                      ;
+	const spinner = WWW_ACTIVITY_SPINNER[motion ? frame % WWW_ACTIVITY_SPINNER.length : WWW_ACTIVITY_SPINNER.length - 1]                    ;
+	const working = activityGradientFrame(`${spinner} Working`, frame)                                                                      ;
+	if (brief) return `${working} ${a.caption(elapsed)}`;
 	const terminals     = summary.observedActiveTerminals > 0 ? summary.observedActiveTerminals : snapshot.liveActivity?.kind === "tool" ? 1 : null ;
 	const terminalLabel = terminals === null ? "terminal 상태 확인 중" : `${terminals} terminal${terminals === 1 ? "" : "s"} running`               ;
-	const spinner       = WWW_ACTIVITY_SPINNER[motion ? Math.floor(now / 120) % WWW_ACTIVITY_SPINNER.length : WWW_ACTIVITY_SPINNER.length - 1]      ;
-	return `${a.active(spinner)} ${a.active("Working")} ${a.caption(`(${elapsed} · ${terminalLabel})`)}`;
+	return `${working} ${a.caption(`(${elapsed} · ${terminalLabel})`)}`;
 }
 
 const WWW_ACTIVITY_SPINNER = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"] as const;
@@ -462,11 +466,14 @@ export class WwwComposer implements Component {
 	) {}
 	invalidate(): void { this.child.invalidate(); this.activityStatus?.invalidate(); }
 	rowCount(width: number): number {
-		return this.child.render(width).length + (this.decorateEditor() && this.showActivityStatus() && this.activityStatus ? 1 : 0);
+		const childWidth = this.decorateEditor() ? Math.max(1, width - 2) : width;
+		return this.child.render(childWidth).length + (this.decorateEditor() && this.showActivityStatus() && this.activityStatus ? 1 : 0);
 	}
 	render(width: number): string[] {
-		const rows = this.child.render(width);
-		if (!this.decorateEditor()) return rows;
+		const decorate = this.decorateEditor()                        ;
+		const inside   = Math.max(1, width - 2)                       ;
+		const rows     = this.child.render(decorate ? inside : width) ;
+		if (!decorate) return rows;
 		// Editor rails may contain a scroll indicator. Match only rails (editable
 		// rows have padding), leaving text, cursor markers and autocomplete intact.
 		const rail = (row: string): string | null => /^─+(?: ([↑↓] \d+ more) )?─*$/u.exec(stripTerminalSequences(row))?.[1] ?? (/^─+$/u.test(stripTerminalSequences(row)) ? "" : null);
@@ -477,18 +484,19 @@ export class WwwComposer implements Component {
 		const model    = oneLine(workbenchModelLabel(s.activeModel ?? s.model), 48)                            ;
 		const effort   = oneLine(workbenchEffortLabel(s.effort), 16)                                           ;
 		const rawLabel = `${this.editor.focused ? "›" : "·"} ${model} · ${effort}${above ? `  ${above}` : ""}` ;
-		const label    = truncateToWidth(rawLabel, Math.max(0, width - 5), "")                                 ;
-		rows[0] = fit(`  ${ink(label)} ${ink("─".repeat(Math.max(0, width - visibleWidth(label) - 5)))}`, width);
+		const label    = truncateToWidth(rawLabel, Math.max(0, inside - 3), "")                                ;
+		rows[0] = `${ink("╭─")} ${ink(label)} ${ink("─".repeat(Math.max(0, inside - visibleWidth(label) - 3)))}${ink("╮")}`;
 		if (!this.editor.getText() && s.phase === "working" && rows[1] !== undefined) {
-			rows[1] = fit(`  ${this.editor.focused ? CURSOR_MARKER : ""}${a.muted("Queue · Esc 전송")}`, width);
+			rows[1] = fit(`${this.editor.focused ? CURSOR_MARKER : ""}${a.muted("Queue · Esc 전송")}`, inside);
 		}
 		// Preserve the Editor's row/column coordinates and its autocomplete rows.
 		const bottom = rows.findIndex((row, index) => index > 0 && rail(row) !== null);
 		const below = bottom > 0 ? rail(rows[bottom]) : null;
 		if (below !== null) {
 			const label = below ? `${below} ` : "";
-			rows[bottom] = fit(`  ${ink(label + "─".repeat(Math.max(0, width - visibleWidth(label) - 4)))}`, width);
+			rows[bottom] = `${ink("╰")}${ink(label + "─".repeat(Math.max(0, inside - visibleWidth(label))))}${ink("╯")}`;
 		}
+		for (let index = 1; index < bottom; index += 1) rows[index] = `${ink("│")}${fit(rows[index] ?? "", inside)}${ink("│")}`;
 		return [...(this.showActivityStatus() ? this.activityStatus?.render(width) ?? [] : []), ...rows];
 	}
 }

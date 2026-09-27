@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-WOO-843-OPERATION-REPORT-CHANGE-ROWS",
+  "kind": "obsidian-canonical",
+  "sourceRevision": "worktree:216b9d9faa09bcb19151f0f188792e8ce7113bf6:dirty",
+  "intent": "WOO-843 Operation Report의 관측 CHANGE CHECK 저장 및 표시 계약을 개정한다",
+  "target": { "relativePath": "Chat/Operation Report — 완료 결과와 근거를 구조화해 보여준다.md" },
+  "content": {
+    "properties": {
+      "document_id": "e4221ec6-680e-4c7b-ae2c-4972f8df094e",
+      "linear": "WOO-843",
+      "record_type": "detailed-canonical",
+      "schema_version": 2,
+      "status": "draft",
+      "acceptance": "partial",
+      "domain": "Chat",
+      "capability": "Operation Report",
+      "parent": null,
+      "related": [],
+      "spec_ids": ["OPR-001"],
+      "code_ids": [],
+      "test_ids": ["TEST-OPERATION-REPORT-001", "TEST-OPERATION-REPORT-002", "TEST-OPERATION-REPORT-003"],
+      "exception_ids": ["EXC-OPERATION-REPORT-001", "EXC-OPERATION-REPORT-002"],
+      "decision_ids": ["DEC-OPERATION-REPORT-001", "DEC-OPERATION-REPORT-002"],
+      "tags": ["www/spec", "domain/chat", "capability/operation-report", "status/draft"],
+      "source_revision": "worktree:216b9d9faa09bcb19151f0f188792e8ce7113bf6:dirty",
+      "updated_at": "2026-09-26T16:52:34+09:00"
+    },
+    "sections": {
+      "1. Intent": "사용자는 완료 Output을 AI 요약문이 아니라 운영보고서로 읽고, 전체 결과를 즉시 판정한 뒤 작업·수치·변경·근거를 순서대로 추적해야 한다. 문장은 읽고 숫자는 비교하며 상태는 훑고 근거는 상세 Source로 이어진다.",
+      "2. Scope": "In scope는 request-report-v3의 구조화 정규화, Snapshot, 작업·결과·runtime·token·metric·평가·변경·Evidence·Test 표시, 관측 CHANGE·CHECK 행과 폭별 배치다. raw event 기본 노출, 관측되지 않은 값 계산, 외부 시스템 상태 변경은 제외한다.",
+      "3. Desired Behavior": "Given 완료된 v3 Note와 같은 turn의 runtime 또는 receipt가 있을 때, When Dashboard에서 Output을 열면, Then Snapshot과 01~13 섹션을 순서대로 표시하고 관측된 값만 결합한다. file-change는 basename과 실제 +ADD/-DEL, 완료 상태를 CHANGE 행으로 표시하고 관련 테스트는 CHECK 행으로 표시한다. 데이터 없는 변경 파일 섹션은 생략하며 90열 이상은 표, 60~89열은 compact, 60열 미만은 stacked 배치를 사용한다.",
+      "4. Domain Contract": "INV-001: 전체 판정은 기존 report의 명시적 최종 평가를 보존하며 renderer가 독자적으로 바꾸지 않는다. INV-002: 0은 실제 0, 대시는 미관측, NONE은 명시적 없음, NOT RUN은 미실행 확인, NOT OBSERVED는 실행 여부 미관측, UNKNOWN은 identity 또는 값 미확인이다. INV-003: runtime은 Note completion turnId와 일치할 때만 결합한다. INV-004: 세션 누계 토큰과 line diff를 request 값으로 재분배하거나 추정하지 않는다. INV-005: CHANGE와 CHECK는 immutable activity packet의 관측값만 사용하며 렌더러 생략 문구는 보고서 데이터가 아니다.",
+      "5. State Model": "Report status는 success·partial·failed·unknown이고 보조 상태는 none·not-run·not-observed를 사용한다. CHANGE·CHECK 상태는 success·failed·unknown을 보존한다. known fact는 값과 상태를 렌더하고 absent fact는 대시 또는 명시 상태로 남긴다. width state는 wide·medium·narrow이며 내용 의미를 바꾸지 않고 행 배치만 전환한다.",
+      "6. Data & Runtime Flow": "Activity journal → redacted immutable TNote packet → detached narrative → observed CHANGE·CHECK 정규화 → stored request-report-v3 Note → Operation Report normalizer → turn identity gate → observed receipt/runtime 결합 → width-aware renderer → Dashboard Output. packet은 file-change의 basename과 diff만 보존하고 로컬 절대경로는 저장하지 않는다.",
+      "7. Identity & Persistence Contract": "Operation Report는 별도 저장 정본을 만들지 않고 기존 WorkbenchTNote id·threadId·turnId·sourceActivityIds를 유지한다. 생성 시 TNoteService가 detached narrative의 주요 작업에 같은 packet에서 관측한 CHANGE·CHECK 행을 결정적으로 추가한 뒤 저장한다. runtime과 receipt는 같은 completion turn에만 일시 결합하며 v2·legacy Note는 기존 읽기 전용 경로를 유지한다.",
+      "8. Integration Contract": "TNoteBrowserController의 기존 Dashboard → Output 진입을 유지한다. TNoteService가 저장 전 관측 행을 정규화하고, Core NoteFeatureProjection은 presentation에 필요한 같은 turn runtime만 제공한다. operation-report view-model은 저장된 행과 runtime을 구조화하며 TUI renderer는 표와 narrative를 배치한다. `/source`는 원본 상세 접근을 계속 소유한다.",
+      "9. Failure & Recovery Contract": "EXC-OPERATION-REPORT-001: Note와 runtime turn이 다르면 모델·시간·receipt·파일을 UNKNOWN 또는 미관측으로 표시하고 결합하지 않는다. EXC-OPERATION-REPORT-002: 부정문이나 0건 Test를 성공으로 승격하지 않는다. raw payload 파싱 실패, diff 부재, 비교 부재는 허구값 대신 changed 또는 미관측 상태로 남긴다. `[공개 Source 일부 생략]`과 로컬 절대경로는 기본 보고서에서 제거하되 Source identity는 보존한다.",
+      "10. Acceptance Contract": "AC-OPR-001: Snapshot과 01~13 구조에서 상태·수치·근거와 narrative가 분리된다. AC-OPR-002: model known/unknown, token zero/unknown, NOT RUN/NOT OBSERVED, receipt file/no stat, 부정 상태 표현이 구분된다. AC-OPR-003: wide·medium·narrow 모든 행이 폭을 넘지 않고 기존 v2·legacy·Source·Dashboard 진입이 유지된다. AC-OPR-004: 관측된 파일과 테스트는 중복 접두사 없이 `CHANGE basename +ADD -DEL done`과 `CHECK related tests pass`로 표시되고 renderer 생략 문구와 절대경로는 기본 화면에 나타나지 않는다. 자동 회귀는 PASS, 실제 TTY 수동 조작은 NOT TESTED라 전체 acceptance는 partial이다.",
+      "11. Verification Strategy": "TEST-OPERATION-REPORT-001은 test/operation-report-view.test.ts에서 Snapshot·status·token·model·Test·Evidence·폭·CHANGE/CHECK·생략 문구 제거를 검증한다. TEST-OPERATION-REPORT-002는 test/tnote-read-flow.test.ts와 test/t-notes.test.ts에서 Dashboard → Output, v2·legacy·Source, 관측 행 저장을 검증한다. TEST-OPERATION-REPORT-003은 test/work-step-card-highlight.test.ts, TypeScript와 빌드로 실시간 CHANGE 행과 0.0.21 산출물을 검증한다.",
+      "12. Implementation Map": "관측 행 저장은 t-note-service.ts와 t-notes.ts, 실시간 CHANGE 표시는 www-execution.ts, 정규화는 operation-report-view-model.ts, 반응형 표시는 operation-report-view.ts, 기존 routing 결합은 tnote-browser-view.ts와 tnote-browser-view-model.ts가 소유한다.",
+      "13. Current State & Gaps": "Snapshot, 13개 섹션, semantic status, runtime turn gate, receipt file·Evidence, raw JSON 제외, wide·medium·narrow 렌더링이 구현됐다. 실제 diff 기반 CHANGE 행, related tests CHECK 행, renderer 생략 문구·절대경로 차단과 0.0.21 빌드를 확인했다. 후속 관련 회귀 50 pass·0 fail과 타입·빌드 검사가 통과했다. 실제 TTY 수동 조작 Evidence와 독립 리뷰 결과는 남아 있다.",
+      "14. Decisions & Evidence": "DEC-OPERATION-REPORT-001 approved: request-report-v3 grammar는 유지하되 adapter/normalizer와 저장 전 deterministic enrichment로 구조화한다. detached narrator가 파일·수치를 추측하는 대안은 기각했다. DEC-OPERATION-REPORT-002 approved: 값이 없는 표 칸은 추정하지 않고 미관측으로 표시하며 diff가 없으면 changed만 표시한다. 로컬 절대경로와 renderer disclosure 문구를 기본 보고서에 복사하는 대안은 운영 결과와 UI 정책을 혼동하므로 기각했다. 결정 권한은 2026-09-26 사용자 요청이며 관련 회귀 50 pass, 타입·빌드와 0.0.21 read-back을 근거로 한다. 독립 리뷰 결과는 확보되지 않아 문서는 draft를 유지한다.",
+      "Change Log": "2026-09-26 WOO-843 Operation Report 구조, 데이터 진실성, 반응형 표시와 검증 계약을 최초 작성. 2026-09-26 관측 CHANGE·CHECK 저장·표시와 Source 생략 문구·절대경로 차단 계약을 추가했다."
+    }
+  },
+  "links": {
+    "linear": "WOO-843",
+    "parentLinear": "WOO-679",
+    "evidence": ".www/evidence/2026-09-26-operation-report"
+  },
+  "expectedBefore": { "digest": "3eeffee86a626fb290e908014aa88692d4a728e1a4878374fa4972beb3e0e1a4" },
+  "validation": [
+    { "id": "canonical-identity", "status": "pass", "evidence": "기존 document_id e4221ec6-680e-4c7b-ae2c-4972f8df094e와 WOO-843 연결을 유지한다." },
+    { "id": "contract-change", "status": "pass", "evidence": "저장 전 deterministic enrichment와 CHANGE CHECK 표시가 기존 persistence·behavior 계약을 변경하므로 정본 개정 대상이다." },
+    { "id": "implementation-evidence", "status": "pass", "evidence": "관련 회귀 50 pass, 타입 검사, 빌드와 dist/cli.js 0.0.21 read-back을 확인했다." },
+    { "id": "expected-before", "status": "pass", "evidence": "현재 Vault 문서 SHA-256이 3eeffee86a626fb290e908014aa88692d4a728e1a4878374fa4972beb3e0e1a4와 일치한다." },
+    { "id": "publication-boundary", "status": "pass", "evidence": "Candidate만 준비하며 사용자 승인 전 Vault 문서를 수정하지 않는다." }
+  ],
+  "candidateDigest": "bb1476cbe415bf777bc73498101a94f5d805ec3ca3cf9f4b8460b43b7f7b3229"
+}

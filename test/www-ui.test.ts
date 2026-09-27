@@ -79,7 +79,7 @@ describe("Www execution console", () => {
 		expect(lines.join("\n")).not.toContain("Ctrl+G 2 Plan");
 	});
 
-	test("shows a configured Goal only in the top header with a persistent gradient", () => {
+	test("shows uppercase GOAL on the left and right-aligns the page identity", () => {
 		const level = chalk.level; chalk.level = 3;
 		try {
 			const s = wwwFixture("ready");
@@ -87,13 +87,15 @@ describe("Www execution console", () => {
 			expect(stripTerminalSequences(withoutGoal)).toContain("www  99_www / Chat");
 			expect(stripTerminalSequences(withoutGoal)).not.toContain("Goal");
 			s.sessionGoal = { text: "사용자가 설정한 장기 목표", sourceActivityId: "goal", updatedAt: "2026-09-22" };
-			const first = new WwwHeader(() => s, () => "Chat", "/repo/99_www", () => 0).render(100).join("\n");
-			const next = new WwwHeader(() => s, () => "Chat", "/repo/99_www", () => 480).render(100).join("\n");
-			expect(stripTerminalSequences(first)).toContain("Goal  사용자가 설정한 장기 목표");
+			const first  = new WwwHeader(() => s, () => "Chat", "/repo/99_www", () => 0).render(100).join("\n")   ;
+			const next   = new WwwHeader(() => s, () => "Chat", "/repo/99_www", () => 480).render(100).join("\n") ;
+			const header = stripTerminalSequences(first).split("\n")[0]!                                          ;
+			expect(header).toContain("GOAL  사용자가 설정한 장기 목표");
+			expect(header.trimEnd().endsWith("www  99_www / Chat")).toBe(true);
 			expect(first).not.toBe(next);
-			expect(stripTerminalSequences(new WwwHeader(() => s, () => "Chat", "/repo/99_www", () => 0).render(24).join("\n"))).toContain("Goal  사용자가");
+			expect(stripTerminalSequences(new WwwHeader(() => s, () => "Chat", "/repo/99_www", () => 0).render(24).join("\n"))).toContain("GOAL  사용자가");
 			const side = stripTerminalSequences(new WwwPlanView(() => s).render(80).join("\n"));
-			expect(side).not.toContain("사용자가 설정한 장기 목표");
+		expect(side).not.toContain("사용자가 설정한 장기 목표");
 		} finally { chalk.level = level; }
 	});
 
@@ -134,15 +136,16 @@ describe("Www execution console", () => {
 	});
 	test("the Plan rail shows plan progress without individual tool activity", () => {
 		const output = stripTerminalSequences(new WwwPlanView(() => wwwFixture()).render(100).join("\n"));
-		const plan = output.indexOf("Plan"), activity = output.indexOf("Progress"), proposal = output.indexOf("Next");
-		expect(plan).toBeGreaterThanOrEqual(0);
+		const stage = output.indexOf("STAGE"), plan = output.indexOf("PLAN"), activity = output.indexOf("PROGRESS");
+		expect(stage).toBeGreaterThanOrEqual(0);
+		expect(plan).toBeGreaterThan(stage);
 		expect(activity).toBeGreaterThan(plan);
-		expect(proposal).toBeGreaterThan(activity);
+		expect(output).not.toContain("NEXT");
 		expect(output).not.toContain("Todo");
 		expect(output).not.toContain("Verify");
 		expect(output).not.toContain("PROPOSAL");
 		expect(output).not.toContain("Proposal");
-		const progress = output.slice(activity, proposal);
+		const progress = output.slice(activity);
 		expect(progress).toContain("정리된 세부 작업이 도착하면 이곳에 표시합니다.");
 		expect(progress).not.toContain("중복 이벤트 재현 및 경계 수정");
 		expect(progress).not.toContain("재개 시나리오를 테스트하는 중");
@@ -166,7 +169,7 @@ describe("Www execution console", () => {
 		expect(completed).toContain("재개 시나리오 회귀 검증");
 		s.workFlow = { ...s.workFlow, steps: s.workFlow.steps.map((step, index) => ({ ...step, status: index === 1 ? "failed" as const : step.status })) };
 		const failed = stripTerminalSequences(view.render(100).join("\n"));
-		expect(failed.slice(0, failed.indexOf("Progress"))).toContain("! 중복 이벤트");
+		expect(failed.slice(0, failed.indexOf("PROGRESS"))).toContain("! 중복 이벤트");
 		expect(failed).not.toContain("재개 시나리오를 테스트하는 중");
 	});
 	test("the progress highlight moves without implying a percentage, and stops for approval", () => {
@@ -176,6 +179,7 @@ describe("Www execution console", () => {
 			const s = wwwFixture(); let now = Date.parse("2026-09-11T09:42:10.000Z");
 			const heading = new WwwExecutionHeading(() => s, () => null, () => now);
 			const initial = heading.render(80); now += 240;
+			expect(initial[0]).toContain("\u001b[38;2;");
 			expect(heading.render(80)[0]).not.toBe(initial[0]); expect(stripTerminalSequences(initial[0]!)).toContain("Working");
 			expect(stripTerminalSequences(initial[0]!)).toMatch(/1 termina/u); expect(stripTerminalSequences(initial[0]!)).toContain("⟦esc 중단⟧");
 			expect(stripTerminalSequences(initial[0]!)).not.toContain("%");
@@ -220,8 +224,11 @@ describe("Www execution console", () => {
 		const tui = new TuiAltScreen(new ProcessTerminal()), editor = new Editor(tui, wwwEditorTheme, { paddingX: 2 });
 		editor.setText("보존할 입력"); editor.focused = true;
 		const composer = new WwwComposer(editor, editor, () => wwwFixture("ready"));
-		const focused = composer.render(80); const child = editor.render(80);
-		expect(focused.slice(1, -1)).toEqual(child.slice(1, -1));
+		const focused = composer.render(80);
+		expect(stripTerminalSequences(focused[0]!)).toMatch(/^╭─ .*─╮$/u);
+		expect(stripTerminalSequences(focused[1]!)).toMatch(/^│.*│$/u);
+		expect(stripTerminalSequences(focused.at(-1)!)).toMatch(/^╰─+╯$/u);
+		expect(stripTerminalSequences(focused.join("\n"))).toContain("보존할 입력");
 		expect(stripTerminalSequences(focused[0]!)).toContain("› GPT-5.6-Sol · High");
 		expect(stripTerminalSequences(focused[0]!)).not.toContain("여기에 작성한다.");
 		expect(stripTerminalSequences(focused[0]!)).toContain("GPT-5.6-Sol · High");
@@ -254,11 +261,11 @@ describe("Www execution console", () => {
 		snapshot.activeTurnId = null;
 		expect(stripTerminalSequences(composer.render(80).join("\n"))).not.toContain("⟦esc 중단⟧");
 	});
-	test("running Bash shows bounded live output; finished commands fold and failed output stays open", () => {
+	test("running Terminal shows bounded live output; finished commands fold and failed output stays open", () => {
 		const source = wwwFixture().activities.find(x => x.id === "tool-2")!;
 		const live = { ...source, payload: { params: { item: { command: "git status\nprintf test", aggregatedOutput: Array.from({ length: 20 }, (_, i) => `output-${i}`).join("\n") } } } };
 		const rows = wwwToolRows(live, 40, false), plain = stripTerminalSequences(rows.join("\n"));
-		expect(plain).toContain("Bash"); expect(plain).toContain("실행 중"); expect(plain).toContain("$ git status");
+		expect(plain).toContain("▣ Terminal"); expect(plain).toContain("실행 중"); expect(plain).toContain("$ git status");
 		for (let index = 15; index < 20; index += 1) expect(plain).toContain(`output-${index}`);
 		expect(plain).not.toContain("output-14"); expect(plain).toContain("최신 5줄"); expect(plain).toContain("Ctrl+E 전체"); expect(rows.every(row => visibleWidth(row) <= 40)).toBe(true);
 		const finished = { ...live, phase: "completed" as const };
@@ -276,17 +283,17 @@ describe("Www execution console", () => {
 		editor.setText(Array.from({ length: 40 }, (_, i) => `line ${i}`).join("\n")); editor.focused = true;
 		const child = { invalidate: () => editor.invalidate(), render: (width: number) => [...editor.render(width), "AUTOCOMPLETE"] };
 		const s = wwwFixture("ready"), composer = new WwwComposer(child, editor, () => s);
-		const initial = composer.render(80), raw = child.render(80);
+		const initial = composer.render(80);
 		expect(stripTerminalSequences(initial[0]!)).toContain("› GPT-5.6-Sol · High  ↑ 33 more");
-		expect(initial.slice(1, -2)).toEqual(raw.slice(1, -2)); expect(initial.at(-1)).toBe("AUTOCOMPLETE");
-		expect(stripTerminalSequences(initial.at(-2)!)).toStartWith("  ─");
+		expect(initial.slice(1, -2).every(row => /^│.*│$/u.test(stripTerminalSequences(row)))).toBe(true); expect(initial.at(-1)).toBe("AUTOCOMPLETE");
+		expect(stripTerminalSequences(initial.at(-2)!)).toMatch(/^╰─+╯$/u);
 		for (let i = 0; i < 39; i++) editor.handleInput("\x1b[A");
 		editor.focused = false;
 		const top = composer.render(80);
 		expect(stripTerminalSequences(top[0]!)).toContain("· GPT-5.6-Sol · High");
 		expect(stripTerminalSequences(top[0]!)).not.toContain("여기에 작성한다.");
 		expect(stripTerminalSequences(top.at(-2)!)).toContain("↓ 33 more");
-		expect(top.slice(1, -2)).toEqual(child.render(80).slice(1, -2));
+		expect(top.slice(1, -2).every(row => /^│.*│$/u.test(stripTerminalSequences(row)))).toBe(true);
 		expect(composer.render(40).every(row => visibleWidth(row) <= 40)).toBe(true);
 	});
 	test("Context dashboard follows the spectrometer layout at wide and compact widths without inventing token slices", () => {
@@ -569,7 +576,7 @@ describe("Www execution console", () => {
 			const transcript = new WwwTranscriptView(s).render(80).join("\n");
 		for (const label of ["REQ 1", "RES 1-1", "Notice", "질문 요약"]) expect(transcript).toContain(label);
 		expect(transcript).not.toContain("▰");
-		expect(new WwwPlanView(() => s).render(80).join("\n")).toContain("Plan");
+		expect(new WwwPlanView(() => s).render(80).join("\n")).toContain("PLAN");
 		const answerRow = transcript.split("\n").find(row => stripTerminalSequences(row).includes("기존 이벤트와 재개 이벤트가 같은 경로로 합쳐집니다."));
 		expect(answerRow).toContain("\x1b[37m");
 		expect(new Set([wwwPalette.request, wwwPalette.response, wwwPalette.tool, wwwPalette.plan, wwwPalette.note, wwwPalette.info]).size).toBe(6);
@@ -600,7 +607,7 @@ describe("Www execution console", () => {
 		const transcript = stripTerminalSequences(new WwwTranscriptView(s).render(100).join("\n"));
 		for (const label of ["REQ 1", "RES 1-1", "RES 1-2", "REQ 2", "RES 2-1"]) expect(transcript).toContain(label);
 	});
-	test("Plan shows Native steps while Next only looks toward user input", () => {
+	test("Plan shows Goal, Native steps, and Progress without a Next layer", () => {
 		const s = wwwFixture("ready");
 		const tracedStep = s.workFlow.steps[1]!;
 		s.workFlow = {
@@ -627,9 +634,10 @@ describe("Www execution console", () => {
 		};
 		s.requestRuntime = [];
 		const projected = stripTerminalSequences(new WwwPlanView(() => s).render(100).join("\n"));
-		expect(projected).toContain("Plan");
-		expect(projected).toContain("Progress");
-		expect(projected).toContain("Next");
+		expect(projected).toContain("PLAN");
+		expect(projected).toContain("PROGRESS");
+		expect(projected).not.toMatch(/^GOAL(?:\s|$)/mu);
+		expect(projected).not.toContain("NEXT");
 		expect(projected).not.toContain("Proposal");
 		expect(projected).not.toContain("Plan 세부");
 		expect(projected).not.toContain("Todo");
@@ -639,9 +647,8 @@ describe("Www execution console", () => {
 		s.todo = { ...s.todo, items: [{ id: "manual", content: "수동으로 추가한 후속 작업", status: "pending", evidenceIds: [], details: [] }] };
 		s.chatQueue = [{ id: "queued", content: "다음 입력으로 오류 로그도 확인해줘", queuedAt: "2026-09-12T00:00:01.000Z" }];
 		const manual = stripTerminalSequences(new WwwPlanView(() => s).render(100).join("\n"));
-		const proposal = manual.slice(manual.indexOf("Next"));
-		expect(proposal).toContain("다음 입력으로 오류 로그도 확인해줘");
-		expect(proposal).not.toContain("수동으로 추가한 후속 작업");
+		expect(manual).not.toContain("다음 입력으로 오류 로그도 확인해줘");
+		expect(manual).not.toContain("수동으로 추가한 후속 작업");
 	});
 	test("the real Plan presentation never substitutes a previous request for the current plan", () => {
 		const s = wwwFixture();
@@ -754,7 +761,7 @@ describe("Www execution console", () => {
 		expect(markdown).toContain("## 대시보드 표시 문제 해결"); expect(markdown).not.toContain("### 질문"); expect(markdown).toContain("### 장시간·차단 작업"); expect(markdown).toContain("### 모델·토큰"); expect(markdown).toContain("### 업무 자체평가"); expect(markdown).toContain("### Commit·Evidence");
 		expect(full).toContain("대시보드 표시 문제 해결"); expect(full).not.toContain("질문"); expect(full).not.toContain("Expected outcome"); expect(full).not.toContain("PROPOSAL"); expect(full).toContain("REPORT"); expect(full).not.toContain("NEXT ACTION"); expect(full).toContain("PARTIAL · TEST 1/2"); expect(full).toContain("요청 목적·접근"); expect(full).toContain("주요 작업"); expect(full).toContain("업무 자체평가"); expect(full).toContain("Test"); expect(full).toContain("Total 1/2"); expect(full).toContain("Evidence 1"); expect(full).toContain("/source request");
 		const plan = stripTerminalSequences(new WwwPlanView(() => s).render(80).join("\n"));
-		expect(plan).toContain("Plan"); expect(plan).not.toContain("PROPOSAL"); expect(plan).not.toContain("시작 화면에 로고를 함께 표시하는 방향을 선택했습니다.");
+		expect(plan).toContain("PLAN"); expect(plan).not.toContain("PROPOSAL"); expect(plan).not.toContain("시작 화면에 로고를 함께 표시하는 방향을 선택했습니다.");
 		const plainRows  = stripTerminalSequences(full).split("\n")                   ;
 		const report     = plainRows.findIndex(row => row.includes("REPORT"))         ;
 		const assessment = plainRows.findIndex(row => row.includes("업무 자체평가"))  ;
@@ -780,6 +787,7 @@ describe("Www execution console", () => {
 		} finally { chalk.level = level; }
 		expect(WWW_VIEWS.flat()).not.toContain("/tnotes");
 		expect(WWW_COMMANDS.some(command => command.name === "tnotes")).toBe(false);
+		expect(WWW_COMMANDS.some(command => command.name === "output")).toBe(true);
 		expect(WWW_COMMANDS.some(command => command.name === "tnote")).toBe(false);
 	});
 	test("legacy three-field Notes remain readable after the report migration", () => {
@@ -821,7 +829,7 @@ describe("Www execution console", () => {
 		const plan = stripTerminalSequences(new WwwPlanView(() => s).render(100).join("\n"));
 		expect(transcript).not.toContain("PROPOSAL");
 		expect(transcript).toContain("REPORT");
-		expect(plan).toContain("Plan");
+		expect(plan).toContain("PLAN");
 		expect(plan).not.toContain("PROPOSAL");
 		expect(plan).not.toContain("원래 관계를 복원합니다.");
 	});
@@ -913,7 +921,7 @@ describe("Www execution console", () => {
 		if (width >= 112) expect(plain).toContain("세션과 이벤트 결합 지점 확인");
 		workspace.show("plan");
 		const plan = renderLayoutFrame(workspace.component, width, height, () => {}).lines.join("\n");
-		expect(plan).toContain("Plan"); expect(plan).toContain("중복 이벤트");
+		expect(plan).toContain("PLAN"); expect(plan).toContain("중복 이벤트");
 	});
 	test("Cache keeps lower analysis landmarks in the actual 120-column workspace and hides its rail compactly", () => {
 		const snapshot = wwwFixture();
@@ -986,6 +994,16 @@ describe("Www execution console", () => {
 		expect(output).toContain("const seen = new Set();"); expect(output).toContain("bun test"); expect(output).toContain("새 이벤트 한 번만 표시");
 		expect(output).not.toContain("PRIVATE_REASONING_SENTINEL");
 	});
+	test("labels the public reasoning summary as Thought without exposing raw reasoning", () => {
+		const s      = { ...wwwFixture(), reasoningSummaryDraft: "공개 판단 요약", reasoningDraft: "PRIVATE_REASONING_SENTINEL", draft: "" } ;
+		const rows   = new WwwTranscriptView(s).render(80)                                                                                   ;
+		const output = stripTerminalSequences(rows.join("\n"))                                                                               ;
+
+		expect(output).toContain("◉ Thought");
+		expect(output).toContain("공개 판단 요약");
+		expect(output).not.toContain("PRIVATE_REASONING_SENTINEL");
+		expect(rows.every(row => visibleWidth(row) <= 80)).toBe(true);
+	});
 	test("preserves reading position across streaming and resize, then follows on End", () => {
 		let s = wwwFixture();
 		s = { ...s, chat: Array.from({ length: 40 }, (_, i) => ({ ...s.chat[0]!, id: `m${i}`, activityId: `a${i}`, content: `request ${i}\n두 번째 행`, role: "user" })) };
@@ -1015,7 +1033,7 @@ describe("Www execution console", () => {
 		const activity = wwwFixture().activities.find(x => x.id === "tool-1")!                                                                        ;
 		const failed   = { ...activity, payload: { params: { item: { command: "bun test", exitCode: 1, aggregatedOutput: "REGRESSION_FAILURE" } } } } ;
 		const output   = stripTerminalSequences(wwwToolRows(failed, 80, false).join("\n"))                                                            ;
-		expect(output).toContain("! bun test"); expect(output).toContain("exit 1"); expect(output).toContain("REGRESSION_FAILURE"); expect(output).toContain("/source tool-1");
+		expect(output).toContain("▣ Terminal"); expect(output).toContain("! bun test"); expect(output).toContain("exit 1"); expect(output).toContain("REGRESSION_FAILURE"); expect(output).toContain("/source tool-1");
 	});
 	test("searching commands does not execute them and includes retained workflows", () => {
 		for (const name of ["dashboard", "history", "cache", "usage"]) {

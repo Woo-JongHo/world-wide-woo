@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-OPERATION-REPORT-CHANGE-ROWS",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:216b9d9faa09bcb19151f0f188792e8ce7113bf6:dirty",
+  "intent": "WOO-843 Operation Report의 CHANGE CHECK 행과 Source 생략 문구 보정을 기록한다",
+  "target": { "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db" },
+  "content": {
+    "changes": [
+      "file-change를 basename·실제 diff 통계·완료 상태의 CHANGE 고정 행으로 표시하고 관련 테스트를 CHECK 행으로 추가했다.",
+      "새 request-report-v3를 저장하기 전에 immutable activity packet에서 관측한 CHANGE·CHECK 행을 주요 작업에 정규화해 넣었다.",
+      "기본 Operation Report에서 `[공개 Source 일부 생략]`과 로컬 절대경로가 노출되는 행을 제거하되 `/source` 상세 접근은 유지했다.",
+      "구조화된 CHANGE·CHECK 행에는 타임라인 번호나 상태 기호를 중복 부착하지 않도록 렌더링했다."
+    ],
+    "impacts": [
+      "사용자는 관련 변경을 `✓ CHANGE 파일 +ADD -DEL done`과 `✓ CHECK related tests pass` 형태로 즉시 확인한다.",
+      "line diff가 관측되지 않으면 숫자를 만들지 않고 changed로 표시하며, 로컬 경로와 렌더러 정책 문구는 운영보고서 내용으로 오인되지 않는다."
+    ],
+    "categories": ["fix", "improvement", "verification"],
+    "verification": [
+      "관련 회귀 50 pass, 0 fail, 236 expect를 확인했다.",
+      "bun run check와 bun run build가 통과했다.",
+      "dist/cli.js --version read-back 결과는 0.0.21이다.",
+      "변경 TypeScript import normalization과 table alignment 검사를 실행했고 TODO·test.skip·test.only가 없음을 확인했다."
+    ],
+    "connections": [
+      "Linear: WOO-843 · UUID 62bbb891-5308-4113-8962-a47975c140e2",
+      "Previous Project Comment: e781ff90-faed-4c2b-b3bb-b17ecabb36fb",
+      "Obsidian: Chat/Operation Report — 완료 결과와 근거를 구조화해 보여준다.md",
+      "Evidence: .www/evidence/2026-09-26-operation-report"
+    ]
+  },
+  "links": {
+    "issue": "https://linear.app/woo-world/issue/WOO-843/완료-요약을-실제-결과와-최종-검증-상태로-압축한다",
+    "evidence": ".www/evidence/2026-09-26-operation-report"
+  },
+  "expectedBefore": { "latestCommentId": "e781ff90-faed-4c2b-b3bb-b17ecabb36fb" },
+  "validation": [
+    { "id": "issue-binding", "status": "pass", "evidence": "기존 WOO-843이 Operation Report 결과와 검증 표시 책임을 소유한다." },
+    { "id": "duplicate-check", "status": "pass", "evidence": "Project Activity 최신 Comment를 재조회해 이번 CHANGE CHECK 후속 보정 기록이 없음을 확인했다." },
+    { "id": "verification", "status": "pass", "evidence": "관련 회귀 50 pass와 타입 검사, 빌드, 0.0.21 실행 read-back을 확인했다." },
+    { "id": "publication-boundary", "status": "pass", "evidence": "Candidate만 준비하며 사용자 승인 전 Linear에 쓰지 않는다." }
+  ],
+  "candidateDigest": "8f36aa4b4fafd7dd8d328c879d0eec456e22f2d028ae5315ff7ac9e33abba381"
+}

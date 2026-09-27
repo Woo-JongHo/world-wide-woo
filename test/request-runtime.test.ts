@@ -88,33 +88,40 @@ describe("seven-stage request runtime", () => {
 		f.append({ method: "turn/completed" });
 		const result = f.result();
 		expect(result.status).toBe("completed");
+		expect(result.objective).toBe("UNDERSTAND 공개 결과");
 		expect(result.stages[2]?.skipReason).toBe("사용자 제공 코드가 전체 근거");
 		expect(result.stages[5]?.evidence).toContainEqual(expect.objectContaining({ activityId: check.id, sourceDigest: check.sourceDigest }));
 		expect(result.deliveries[0]?.target).toBe("chat");
 		expect(projectRequestRuntime([...f.journal, ...f.journal], "thread-1")).toEqual([result]);
 		for (const width of [30, 80, 140]) expect(requestRuntimeRows(result, width).every(row => visibleWidth(row) <= width)).toBe(true);
 		const requestRows = stripTerminalSequences(requestRuntimeRows(result, 80).join("\n"));
-		expect(requestRows).toContain("− GROUND");
+		expect(requestRows).toContain("✓ GROUND");
 		expect(requestRows).toContain("GROUND · 사용자 제공 코드가 전체 근거");
 		expect(requestRows).toContain("✓ DELIVER");
 	});
-	test("renders Request stages, Progress, and Next input as separate layers", () => {
+	test("renders Stage, planned work, and Progress as separate layers", () => {
 		const f = fixture();
 		f.report("UNDERSTAND");
-		f.report("DECOMPOSE", "completed", { plan: [{ stage: "EXECUTE", tasks: [{ id: "edit", title: "화면 계층 구현", status: "pending", dependsOn: [] }] }] });
-		const plain = stripTerminalSequences(requestRuntimeRows(f.result(), 80, false, 0, ["다음 입력 후보"]).join("\n"));
-		const request = plain.indexOf("Plan"), activity = plain.indexOf("Progress"), proposal = plain.indexOf("Next");
+		f.report("DECOMPOSE", "completed", { plan: [{ stage: "EXECUTE", tasks: [
+			{ id : "layout" , title : "화면 계층 구현" , status : "pending" , dependsOn : []                 },
+			{ id : "goal"   , title : "GOAL 상태 연결" , status : "pending" , dependsOn : []                 },
+			{ id : "verify" , title : "통합 화면 검증" , status : "pending" , dependsOn : ["layout", "goal"] },
+		] }] });
+		const plain = stripTerminalSequences(requestRuntimeRows(f.result(), 80, false, 0, "장기 목표").join("\n"));
+		const stage = plain.indexOf("STAGE"), plan = plain.indexOf("PLAN"), activity = plain.indexOf("PROGRESS");
 		expect(plain).not.toContain("Proposal");
-		expect(request).toBeGreaterThanOrEqual(0);
-		expect(activity).toBeGreaterThan(request);
-		expect(proposal).toBeGreaterThan(activity);
-		expect(plain.slice(request, activity)).not.toContain("Goal");
-		expect(plain.slice(request, activity)).not.toContain("기존 구조에 Runtime 구현");
-		expect(plain.slice(request, activity)).toContain("판단의 실제 근거");
-		for (const stage of REQUEST_STAGES) expect(plain.slice(request, activity)).toContain(stage);
-		expect(plain.slice(proposal)).toContain("다음 입력 후보");
-		expect(plain.slice(proposal)).not.toContain("화면 계층 구현");
-		expect(plain.slice(activity, proposal)).toContain("정리된 세부 작업이 도착하면 이곳에 표시합니다.");
+		expect(plain).not.toMatch(/^GOAL(?:\s|$)/mu);
+		expect(stage).toBeGreaterThanOrEqual(0);
+		expect(plan).toBeGreaterThan(stage);
+		expect(activity).toBeGreaterThan(plan);
+		expect(plain).not.toContain("NEXT");
+		expect(plain.slice(stage, plan)).toContain("판단의 실제 근거");
+		for (const stageName of REQUEST_STAGES) expect(plain.slice(stage, plan)).toContain(stageName);
+		expect(plain.slice(plan, activity)).toContain("화면 계층 구현");
+		expect(plain.slice(plan, activity)).toContain("GOAL 상태 연결");
+		expect(plain.slice(plan, activity)).toContain("병렬 가능");
+		expect(plain.slice(plan, activity)).toContain("layout, goal 이후");
+		expect(plain.slice(activity)).toContain("정리된 세부 작업이 도착하면 이곳에 표시합니다.");
 		expect(plain).not.toContain("Tool · 관련 렌더 코드를 읽는 중");
 		expect(plain).not.toContain("관측된 동작");
 		expect(plain).not.toContain("request-1");
@@ -131,7 +138,7 @@ describe("seven-stage request runtime", () => {
 			} : stage),
 		};
 		const plain = stripTerminalSequences(requestRuntimeRows(request, 80, false, 0).join("\n"));
-		const progress = plain.slice(plain.indexOf("Progress"), plain.indexOf("Next"));
+		const progress = plain.slice(plain.indexOf("PROGRESS"), plain.indexOf("NEXT"));
 		expect(progress).toContain("정리된 세부 작업이 도착하면 이곳에 표시합니다.");
 		expect(progress).not.toContain("요청 범위 확인");
 		expect(progress).not.toContain("계획의 범위를 확정");
@@ -144,39 +151,36 @@ describe("seven-stage request runtime", () => {
 		expect(waiting).not.toContain("기존 구조에 Runtime 구현");
 		expect(waiting).not.toContain("╭ 완료");
 		expect(waiting).toContain("✓ UNDERSTAND");
-		expect(waiting).toContain("− DECOMPOSE");
+		expect(waiting).toContain("✓ DECOMPOSE");
 		expect(waiting).not.toContain("다음 계획 단계의 시작");
 		const complete = stripTerminalSequences(requestRuntimeRows({ ...base, stages, status: "completed" }, 100).join("\n"));
-		expect(complete).toContain("− DELIVER");
+		expect(complete).toContain("✓ DELIVER");
 		expect(complete).not.toContain("모든 단계가 완료");
 	});
 	test("stage rail preserves concurrent running and failed stages at compact widths", () => {
 		const base     = fixture().result()                                                                                                                                                                     ;
 		const request  = { ...base, stages: base.stages.map(stage => ({ ...stage, status: stage.id === "EXECUTE" ? "failed" as const : stage.id === "DELIVER" ? "running" as const : "completed" as const })) } ;
 		const plain    = stripTerminalSequences(requestRuntimeRows(request, 100).join("\n"))                                                                                                                    ;
-		const progress = plain.slice(0, plain.indexOf("Progress"))                                                                                                                                              ;
-		expect(progress).toContain("! EXECUTE");
+		const progress = plain.slice(0, plain.indexOf("PROGRESS"))                                                                                                                                              ;
+		expect(progress).toContain("× EXECUTE");
 		expect(progress).toContain("› DELIVER");
 		expect(progress).not.toContain("╭ 진행 중");
 		expect(progress).toContain("대상별 결과와 근거 전달");
 		const narrow = requestRuntimeRows(request, 16, true);
 		expect(narrow.every(row => visibleWidth(row) <= 16)).toBe(true);
 		const plan = stripTerminalSequences(narrow.join("\n")).split("Progress")[0]!;
-		expect(plan).toContain("! EXECUTE");
+		expect(plan).toContain("× EXECUTE");
 		expect(plan).toContain("› DELIVER");
 		expect(plan).not.toContain("진행 중");
 		expect(plan).toContain("대상별 결과와");
 	});
-	test("Next looks toward the next input instead of remaining Plan tasks", () => {
-		const base     = fixture().result()                                                                                                                          ;
-		const stages   = base.stages.map(stage => ({ ...stage, tasks: [{ id: stage.id, title: "완료한 세부 계획", status: "completed" as const, dependsOn: [] }] })) ;
-		const plain    = stripTerminalSequences(requestRuntimeRows({ ...base, stages }, 80).join("\n"))                                                              ;
-		const proposal = plain.slice(plain.indexOf("Next"))                                                                                                          ;
-		expect(proposal).toContain("없음");
-		expect(proposal).not.toContain("완료한 세부 계획");
-		expect(proposal).toContain("다음 입력 제안이 없습니다.");
-		const suggested = stripTerminalSequences(requestRuntimeRows(base, 80, false, 0, ["오류 로그를 함께 확인해줘"]).join("\n"));
-		expect(suggested.slice(suggested.indexOf("Next"))).toContain("오류 로그를 함께 확인해줘");
+	test("does not expose queued input as a fourth Plan layer", () => {
+		const base   = fixture().result()                                                                                                                          ;
+		const stages = base.stages.map(stage => ({ ...stage, tasks: [{ id: stage.id, title: "완료한 세부 계획", status: "completed" as const, dependsOn: [] }] })) ;
+		const plain  = stripTerminalSequences(requestRuntimeRows({ ...base, stages }, 80).join("\n"))                                                              ;
+		expect(plain).not.toContain("NEXT");
+		expect(plain).not.toContain("다음 입력 제안이 없습니다.");
+		expect(plain).toContain("완료한 세부 계획");
 	});
 	test("rejects out-of-order, cyclic and future-running plans without partial updates", () => {
 		const f = fixture();

@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-TRANSCRIPT-SEMANTIC-ICONS",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:216b9d9faa09bcb19151f0f188792e8ce7113bf6:dirty",
+  "intent": "Chat 실행 흐름의 Edit·Thought·Terminal 유형 표식 구현과 검증을 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "Chat transcript의 파일 변경, 공개 판단 요약, 명령 실행에 각각 ✎ Edit, ◉ Thought, ▣ Terminal 표식을 추가했다.",
+      "실행 중이거나 펼친 명령 프레임의 Bash 제목을 ▣ Terminal로 바꾸고 완료된 접힌 명령에도 같은 유형 아이콘을 표시했다.",
+      "Thought는 공개 reasoningSummaryDraft만 표시하고 raw reasoningDraft는 계속 숨기는 회귀 계약을 고정했다."
+    ],
+    "impacts": [
+      "사용자는 긴 실행 흐름에서 코드 변경, 판단 요약, 터미널 명령을 색상에 의존하지 않고 빠르게 구분할 수 있다.",
+      "기존 semantic diff, 명령 출력 접기, 실패 출력, 좁은 폭 제한과 비공개 reasoning 경계는 유지된다."
+    ],
+    "categories": ["improvement", "verification"],
+    "verification": [
+      "bun test test/work-step-card-highlight.test.ts test/www-ui.test.ts: 97 pass, 0 fail, 2491 expect.",
+      "bun run check: TypeScript 검사 통과.",
+      "woo-code-readability import normalization changed=0, 제품·테스트 표 정렬 misaligned=0.",
+      "변경 파일의 TODO, test.skip, test.only 검색과 git diff --check가 통과했다."
+    ],
+    "connections": [
+      "Linear: WOO-679 · Chat 대화·실행·결과를 읽기 좋은 하나의 흐름으로 보여준다",
+      "Linear: WOO-684 · Chat Git·Bash 입력·출력·상태를 읽기 좋게 표시한다",
+      "Evidence: .www/evidence/2026-09-27-transcript-semantic-icons",
+      "Branch: dev · HEAD 216b9d9faa09bcb19151f0f188792e8ce7113bf6 · uncommitted"
+    ]
+  },
+  "links": {
+    "issue": "https://linear.app/woo-world/issue/WOO-684/chat-git-bash-입력출력상태를-읽기-좋게-표시한다",
+    "evidence": ".www/evidence/2026-09-27-transcript-semantic-icons"
+  },
+  "expectedBefore": {
+    "latestCommentId": "e781ff90-faed-4c2b-b3bb-b17ecabb36fb"
+  },
+  "validation": [
+    {
+      "id": "issue-binding",
+      "status": "pass",
+      "evidence": "기존 WOO-684가 Chat의 Git·Bash 실행 표시를 직접 소유하므로 새 Linear 이슈는 중복이다."
+    },
+    {
+      "id": "privacy-boundary",
+      "status": "pass",
+      "evidence": "공개 summary 표식과 raw reasoning 비노출을 한 회귀 테스트에서 함께 확인했다."
+    },
+    {
+      "id": "publication-boundary",
+      "status": "pass",
+      "evidence": "로컬 Candidate만 준비했으며 게시 전 최신 Activity 재조회와 사용자 승인이 필요하다."
+    }
+  ],
+  "candidateDigest": "cdefe076455e6e93c0f3492fb7fafd11accd8cbeb3c9c2ac5eed7812f9dd0cfb"
+}

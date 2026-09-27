@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "1.0",
+  "recordedAt": "2026-09-26",
+  "scope": "Operation Report 줄 단위 diff preview",
+  "issueBinding": {
+    "decision": "reuse-existing",
+    "identifier": "WOO-843",
+    "uuid": "62bbb891-5308-4113-8962-a47975c140e2",
+    "reason": "활성 WOO-843이 Operation Report 결과와 검증 표시 책임을 직접 소유하며 새 capability 이슈는 중복이다.",
+    "evidence": [
+      ".www/evidence/2026-09-26-operation-report/recording-decision.json",
+      ".www/evidence/2026-09-26-operation-report/follow-up-project-comment-candidate.json"
+    ],
+    "newIssueCandidateRequired": false
+  },
+  "projectActivity": {
+    "decision": "candidate-prepared",
+    "path": ".www/evidence/2026-09-26-operation-report-diff/project-comment-candidate.json",
+    "digest": "dd30adee8caf0eed4b58d41f80fdff6d96e7fb3a1274c106f3d45a82d3a33430",
+    "validation": "Artifact Candidate OK: linear-project-comment ARTIFACT-CANDIDATE-OPERATION-REPORT-DIFF-COMMENT",
+    "published": false
+  },
+  "obsidian": {
+    "required": false,
+    "reason": "request-report-v3 schema, file-change identity, immutable source packet, 정제·크기 제한 경계를 유지한다. 기존 CHANGE 통계에 bounded presentation을 추가한 가역적 표시 개선이며 새 WHY, 공개 API, persistence schema, 외부 쓰기 계약을 만들지 않는다.",
+    "existingCanonicalEvidence": ".www/evidence/2026-09-26-operation-report/obsidian-final-publish-receipt.json"
+  },
+  "verification": {
+    "typecheck": "pass — bun run check",
+    "focusedRegression": "pass — latest 35 tests, 0 fail, 161 assertions",
+    "diffCheck": "pass — git diff --check",
+    "readability": "pass — import changed=0; changed TypeScript table alignment misaligned=0"
+  },
+  "externalWrites": {
+    "performed": false,
+    "reason": "게시 전 최신 Project Activity 재조회와 항목별 사용자 승인이 필요하다."
+  }
+}

@@ -41,16 +41,19 @@ import {
 	scopedTodoSessionId,
 	ThreadBoundActivityJournal,
 } from "../src/adapters/outbound/workspace/project-workbench-session.js";
-import type { ProjectWorkbenchSessionFactories } from "../src/adapters/outbound/workspace/project-workbench-session.js";
-import type { ProjectWorkspace }                 from "../src/adapters/outbound/workspace/project-workspace.js";
+import type {
+	ProjectWorkbenchSession,
+	ProjectWorkbenchSessionFactories,
+} from "../src/adapters/outbound/workspace/project-workbench-session.js";
+import type { ProjectWorkspace }      from "../src/adapters/outbound/workspace/project-workspace.js";
 import {
 	ActivityJournalStore,
 	nativeThreadJournalKey,
 } from "../src/adapters/outbound/persistence/activity-journal-store.js";
-import { projectRequestRuntime }                 from "../src/core/runtime/request-runtime";
-import { createNativeHarness }                   from "../src/adapters/outbound/execution/factory.js";
-import { sha256ReviewDigest }                    from "../src/adapters/outbound/review/review-adapters.js";
-import type { SkillRegistrySnapshot }            from "../src/core/skills/skill-registry.js";
+import { projectRequestRuntime }      from "../src/core/runtime/request-runtime";
+import { createNativeHarness }        from "../src/adapters/outbound/execution/factory.js";
+import { sha256ReviewDigest }         from "../src/adapters/outbound/review/review-adapters.js";
+import type { SkillRegistrySnapshot } from "../src/core/skills/skill-registry.js";
 
 const testSkillRegistry: SkillRegistrySnapshot = Object.freeze({
 	schemaVersion  : 1,
@@ -353,6 +356,42 @@ describe("createProjectWorkbenchSession", () => {
 			await session.close();
 			expect(order).toEqual(["native.close", "lease.release"]);
 		} finally {
+			await rm(root, { recursive: true, force: true });
+		}
+	});
+
+	test("returns a loading session before Native startup completes so the app can open its first screen", async () => {
+		const root                         = await mkdtemp(join(tmpdir(), "www-workbench-first-screen-")) ;
+		const temporaryWorkspace           = workspaceAt(root)                                            ;
+		let releaseStartup : () => void    = () => undefined                                              ;
+		const startupGate  : Promise<void> = new Promise((resolve) => { releaseStartup = resolve; })      ;
+		const native       : ExecutorPort  = new FakeNative([])                                           ;
+		native.listModels = async () => {
+			await startupGate;
+			throw new Error("model catalog unavailable");
+		};
+		const opening = createProjectWorkbenchSession(root, {}, {
+			openWorkspace       : async () => temporaryWorkspace,
+			acquireWriterLease  : async () => ({ release: async () => undefined }),
+			connectNative       : async () => native,
+			createJournal       : () => new MemoryJournal(),
+			createTodoStore     : () => new MemoryTodoStore(),
+			createSessionEvents : () => new MemoryEvents(),
+			createTNoteSource   : () => ({ readAll: async () => [], create: async () => { throw new Error("not used"); } }),
+			createReviewService : () => new ReviewService(new Map(), sha256ReviewDigest),
+			createWooEntry      : memoryWooEntry,
+		});
+		let early: ProjectWorkbenchSession | null = null;
+		try {
+			early = await Promise.race([
+				opening,
+				Bun.sleep(20).then(() => null),
+			]);
+			expect(early?.workbench.snapshot.phase).toBe("loading");
+		} finally {
+			releaseStartup();
+			const session = early ?? await opening;
+			await session.close();
 			await rm(root, { recursive: true, force: true });
 		}
 	});

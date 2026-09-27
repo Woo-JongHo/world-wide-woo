@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "1.0",
+  "receiptId": "7b526331-3010-4568-bb2f-4dccef5e8684",
+  "runId": "operation-report-2026-09-26",
+  "candidateId": "ARTIFACT-CANDIDATE-WOO-843-OPERATION-REPORT",
+  "skill": { "name": "woo-obsidian-publish", "version": "1.0" },
+  "capability": "obsidian-canonical.publish",
+  "status": "succeeded",
+  "stage": "verify",
+  "actor": { "kind": "codex" },
+  "context": {
+    "relativePath": "Chat/Operation Report — 완료 결과와 근거를 구조화해 보여준다.md",
+    "verifiedAt": "2026-09-26T07:43:20Z"
+  },
+  "input": {
+    "candidateDigest": "7381afe6281680542e8a9cbd039b3cbf7ba7e166d1301cb2c1a23ce830584414",
+    "expectedBeforeDigest": null
+  },
+  "decision": null,
+  "authorization": {
+    "actor": "user",
+    "scope": "교정된 Obsidian draft Candidate 재게시"
+  },
+  "execution": {
+    "tool": "filesystem apply_patch",
+    "completedAt": "2026-09-26T07:43:20Z"
+  },
+  "result": {
+    "documentId": "e4221ec6-680e-4c7b-ae2c-4972f8df094e",
+    "path": "Chat/Operation Report — 완료 결과와 근거를 구조화해 보여준다.md",
+    "bodyExact": true,
+    "readBack": true,
+    "digest": "3eeffee86a626fb290e908014aa88692d4a728e1a4878374fa4972beb3e0e1a4"
+  },
+  "failure": null,
+  "validation": [
+    {
+      "id": "render-byte-read-back",
+      "status": "pass",
+      "evidence": "Candidate render와 Vault 파일 6953 bytes가 정확히 일치한다."
+    },
+    {
+      "id": "obsidian-contract",
+      "status": "pass",
+      "evidence": "schema v2, canonical path, document_id, WOO-843, Properties와 14절 검사가 통과했다."
+    }
+  ],
+  "evidence": [
+    ".www/evidence/2026-09-26-operation-report/obsidian-canonical-candidate.json",
+    ".www/vault/Chat/Operation Report — 완료 결과와 근거를 구조화해 보여준다.md"
+  ],
+  "nextCapabilities": [],
+  "receiptDigest": "cad6fd07edbe469376679b0b9d86be5ff0c264714e13e96fce945eaca9aca72d"
+}

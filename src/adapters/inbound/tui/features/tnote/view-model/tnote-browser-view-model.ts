@@ -8,6 +8,7 @@ export interface TNoteBrowserViewModel {
 	readonly selectedIndex : number                                  ;
 	readonly status        : NoteFeatureProjection["read"]["status"] ;
 	readonly statusMessage : string                                  ;
+	readonly runtime       : NoteFeatureProjection["runtime"]        ;
 }
 
 /** Converts the Core Note read contract into selection-safe TUI state without owning stored data. */
@@ -38,5 +39,6 @@ export function projectTNoteBrowserViewModel(
 		selectedIndex : selected,
 		status        : projection.read.status,
 		statusMessage : message,
+		runtime       : projection.runtime,
 	});
 }

@@ -245,7 +245,7 @@ export function createWorkbenchCommandRouter(dependencies: WorkbenchCommandRoute
 			return true;
 		}
 		if (command.type === "goal.view") {
-			notice(snapshot.sessionGoal?.text ? `Goal · ${snapshot.sessionGoal.text}` : "설정된 Goal이 없습니다. /goal <목표 문장>으로 시작하세요.");
+			notice(snapshot.sessionGoal?.text ? `Goal · ${snapshot.sessionGoal.text}` : "아직 Goal이 없습니다. 첫 작업을 입력하면 자동으로 설정됩니다.");
 			return true;
 		}
 		if (command.type === "goal.set" || command.type === "woo-entry.refresh") {

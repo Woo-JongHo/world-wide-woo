@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-09-26T12:27:21+09:00",
+  "work": "Dashboard → Output Operation Report 재설계",
+  "linearIssue": {
+    "identifier": "WOO-843",
+    "uuid": "62bbb891-5308-4113-8962-a47975c140e2",
+    "status": "In Progress",
+    "decision": "existing-issue",
+    "reason": "활성 WOO-843이 완료 결과와 최종 검증 상태의 표시 책임을 직접 소유한다. 취소된 WOO-693이나 새 이슈를 사용하지 않는다."
+  },
+  "projectComment": {
+    "candidate": ".www/evidence/2026-09-26-operation-report/project-comment-candidate.json",
+    "digest": "7f7d7ba86bd100cdbf9ad391c809100488361a7241770bbcd496affdaffda911",
+    "validation": "pass",
+    "publication": "succeeded",
+    "commentId": "e781ff90-faed-4c2b-b3bb-b17ecabb36fb"
+  },
+  "obsidian": {
+    "required": true,
+    "reason": "Operation Report의 상태·미관측·runtime 귀속·반응형 표현 계약과 결정이 새로 정의됐다.",
+    "candidate": ".www/evidence/2026-09-26-operation-report/obsidian-canonical-candidate.json",
+    "digest": "7381afe6281680542e8a9cbd039b3cbf7ba7e166d1301cb2c1a23ce830584414",
+    "validation": "pass",
+    "publication": "succeeded",
+    "documentDigest": "3eeffee86a626fb290e908014aa88692d4a728e1a4878374fa4972beb3e0e1a4"
+  },
+  "externalWrites": {
+    "performed": true,
+    "reason": "사용자가 Linear Project Comment와 Obsidian draft 둘 다 게시를 명시 승인했다.",
+    "readBack": "linear-succeeded; obsidian-corrected-and-succeeded"
+  }
+}

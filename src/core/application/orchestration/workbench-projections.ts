@@ -9,6 +9,12 @@ const SESSION_GOAL_MARKER = /^SESSION_GOAL:[ \t]*(\S(?:[^\r\n]*\S)?)$/u;
 
 export const SESSION_GOAL_CHARACTER_LIMIT = 160;
 
+export function summarizeSessionGoal(text: string): string {
+	const characters = Array.from(sanitizeTerminalTextUnbounded(text).replace(/\s+/gu, " ").trim());
+	if (characters.length <= SESSION_GOAL_CHARACTER_LIMIT) return characters.join("");
+	return `${characters.slice(0, SESSION_GOAL_CHARACTER_LIMIT - 1).join("")}…`;
+}
+
 export function projectSessionGoal(activities: readonly ProjectActivity[]): WorkbenchSessionGoal | null {
 	for (let index = activities.length - 1; index >= 0; index -= 1) {
 		const activity = activities[index];
@@ -28,7 +34,7 @@ export function projectSessionGoal(activities: readonly ProjectActivity[]): Work
 			|| activity.kind !== "message"
 			|| activity.phase !== "completed"
 			|| activity.payload.goal !== true) continue;
-		const text = activityText(activity.payload).trim();
+		const text = (typeof activity.payload.goalText === "string" ? activity.payload.goalText : "").trim();
 		if (!text || text.length > SESSION_GOAL_CHARACTER_LIMIT) continue;
 		return { text, sourceActivityId: activity.id, updatedAt: activity.recordedAt };
 	}

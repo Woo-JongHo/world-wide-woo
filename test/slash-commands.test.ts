@@ -88,6 +88,7 @@ describe("WWW slash commands", () => {
 		expect(parseWorkbenchShellCommand("/model gpt-5.6-sol medium extra")).toMatchObject({ type: "error" });
 		expect(parseWorkbenchShellCommand("/model gpt-5.4 impossible")).toMatchObject({ type: "error" });
 		expect(parseWorkbenchShellCommand("/model anthropic/claude-sonnet-4-6")).toMatchObject({ type: "error" });
+		expect(parseWorkbenchShellCommand("/output")).toEqual({ type: "pane.show", pane: "tnotes" });
 		expect(parseWorkbenchShellCommand("/login")).toEqual({ type: "auth.select" });
 		expect(parseWorkbenchShellCommand("/login anthropic")).toEqual({ type: "auth.login", provider: "anthropic" });
 		expect(parseWorkbenchShellCommand("/logout google")).toEqual({ type: "auth.logout", provider: "google" });

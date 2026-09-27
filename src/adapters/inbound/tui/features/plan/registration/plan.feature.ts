@@ -4,7 +4,7 @@ import { planUnits }                 from "@/adapters/inbound/tui/features/plan/
 export const PLAN_FEATURE = {
 	id           : "TUI-F003",
 	key          : "plan",
-	title        : "Plan",
+	title        : "PLAN",
 	order        : 30,
 	kind         : "page",
 	productGroup : "core-work",

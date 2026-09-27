@@ -88,8 +88,9 @@ export class TNoteService {
 			if (signal?.aborted) throw error;
 			throw operationError("generation", error);
 		}
-		const text = result.text;
-		const persistedText = appendObservedTestSummary(text, packet.activities);
+		const text          = result.text                                                 ;
+		const operationText = appendObservedOperationRows(text, packet.activities)        ;
+		const persistedText = appendObservedTestSummary(operationText, packet.activities) ;
 		return this.appendOrRecover(Object.freeze({
 			id: this.idFactory(),
 			createdAt: this.clock().toISOString(),
@@ -263,6 +264,79 @@ interface TestObservation {
 	readonly command    : string        ;
 	readonly durationMs : number | null ;
 	readonly status     : TestStatus    ;
+}
+
+interface FileChangeObservation {
+	readonly name    : string            ;
+	readonly added   : number | null     ;
+	readonly deleted : number | null     ;
+	readonly diff    : readonly string[] ;
+}
+
+/** File and verification rows come from the immutable runtime packet, never narrator prose. */
+function appendObservedOperationRows(text: string, activities: readonly TNoteSourceActivity[]): string {
+	const files = activities.flatMap(fileChangeObservations) ;
+	const tests = activities.flatMap(activity => {
+		const observation = testObservation(activity);
+		return observation ? [observation] : [];
+	});
+	const rows = observedOperationRows(files, tests);
+	if (rows.length === 0) return text;
+	const report = parseCanonicalTNoteReport(text);
+	if (!report || report.version !== "request-report-v3") return text;
+	const existing = report.keyWork
+		.split(/\r?\n/u)
+		.map(line => line.trim())
+		.filter(line => line && !/공개 Source 일부 생략|^(?:│|(?:[✓△✕—]\s*)?(?:CHANGE|CHECK)\b)/iu.test(line));
+	const keyWork = [...existing, ...rows].join("\n");
+	return text.replace(/(\n주요 작업:\n)[\s\S]*?(?=\n\n장시간·차단 작업:\n)/u, `$1${keyWork}`);
+}
+
+function observedOperationRows(files: readonly FileChangeObservation[], tests: readonly TestObservation[]): readonly string[] {
+	const nameWidth = files.length > 0 ? Math.max(...files.map(file => file.name.length)) : 0;
+	const changes = files.flatMap(file => {
+		const stats = file.added === null || file.deleted === null ? "changed" : `+${file.added}  -${file.deleted}`;
+		return [`✓ CHANGE  ${file.name.padEnd(nameWidth)}  ${stats}  done`, ...file.diff.map(line => `│ ${line}`)];
+	});
+	if (tests.length === 0) return changes;
+	const status = tests.some(test => test.status === "failed") ? "✕"
+		: tests.every(test => test.status === "passed") ? "✓"
+			: "△";
+	const result = status === "✓" ? "pass" : status === "✕" ? "fail" : "unknown";
+	return [...changes, `${status} CHECK   related tests  ${result}`];
+}
+
+function fileChangeObservations(activity: TNoteSourceActivity): readonly FileChangeObservation[] {
+	if (!activity.kind.startsWith("file-change.")) return [];
+	let payload: unknown;
+	try { payload = JSON.parse(activity.body); } catch { return []; }
+	const root    = record(payload)                                  ;
+	const params  = record(root?.params)                             ;
+	const item    = record(params?.item)                             ;
+	const changes = Array.isArray(item?.changes) ? item.changes : [] ;
+	return changes.flatMap(value => {
+		const change = record(value);
+		const path   = typeof change?.path === "string" ? change.path.replace(/\\/gu, "/") : "";
+		if (!path || /\[redacted:/u.test(path)) return [];
+		const kind     = record(change?.kind)                                                  ;
+		const diff     = typeof change?.diff === "string" ? change.diff.split(/\r?\n/u) : null ;
+		const rawLines = diff?.at(-1) === "" ? diff.slice(0, -1) : diff                        ;
+		const added    = kind?.type === "add" ? rawLines?.length ?? null
+			: diff?.filter(line => line.startsWith("+") && !line.startsWith("+++")).length ?? null ;
+		const deleted = kind?.type === "add" ? 0
+			: diff?.filter(line => line.startsWith("-") && !line.startsWith("---")).length ?? null ;
+		const preview = kind?.type === "add" ? rawLines?.map(line => `+${line}`) ?? [] : diff ?? [];
+		return [{ name: path.split("/").at(-1) ?? path, added, deleted, diff: diffPreview(preview) }];
+	});
+}
+
+function diffPreview(lines: readonly string[]): readonly string[] {
+	const visible = lines
+		.filter(line => !line.startsWith("---") && !line.startsWith("+++"))
+		.map(line => sanitizeTNoteText(line, 500))
+		.filter(Boolean);
+	const preview = visible.slice(0, 12);
+	return visible.length > preview.length ? [...preview, `… ${visible.length - preview.length} diff lines omitted`] : preview;
 }
 
 /** Test evidence is derived from the completed external-runtime activity packet, never generated prose. */

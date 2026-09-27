@@ -342,14 +342,15 @@ export class WorkbenchNoteNarration {
 	private narrationContext(): { turnId: string; stepId: string; stepTitle: string; goal: string } | undefined {
 		const turnId = this.options.activeTurnId() ?? this.options.selectedPlanTurnId();
 		if (!turnId || this.options.pendingPlanGoalActivityId()) return undefined;
+		const flow = this.options.currentFlow();
+		const step = flow.steps.find(candidate => candidate.status === "running") ?? [...flow.steps].reverse().find(candidate => candidate.status !== "pending");
+		if (step) return { turnId, stepId: step.id, stepTitle: step.title, goal: flow.goal };
 		const request = this.options.requestRecords().find(record => record.turnId === turnId && record.threadId === this.options.threadId());
 		if (request) {
 			const stage = request.stages.find(candidate => candidate.status === "running") ?? [...request.stages].reverse().find(candidate => candidate.status !== "pending");
 			return stage ? { turnId, stepId: stage.id, stepTitle: stage.goal, goal: request.objective } : undefined;
 		}
-		const flow = this.options.currentFlow();
-		const step = flow.steps.find(candidate => candidate.status === "running") ?? [...flow.steps].reverse().find(candidate => candidate.status !== "pending");
-		return step ? { turnId, stepId: step.id, stepTitle: step.title, goal: flow.goal } : undefined;
+		return undefined;
 	}
 }
 

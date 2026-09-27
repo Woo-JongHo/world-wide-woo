@@ -1,10 +1,9 @@
-import { truncateToWidth, visibleWidth }               from "@earendil-works/pi-tui";
-import type { Component }                              from "@earendil-works/pi-tui";
-import { colors }                                      from "@/adapters/inbound/tui/foundation/theme/theme";
-import { OCTOPUS_INTRO_DURATION_MS, octopusScanFrame } from "@/adapters/inbound/tui/features/chat/view/octopus-scan";
-import { PRODUCT_VERSION }                             from "@/product-version";
+import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
+import type { Component }                from "@earendil-works/pi-tui";
+import { colors }                        from "@/adapters/inbound/tui/foundation/theme/theme";
+import { PRODUCT_VERSION }               from "@/product-version";
 
-const INTRO_DURATION_MS = OCTOPUS_INTRO_DURATION_MS;
+const INTRO_DURATION_MS = 2_400;
 const INTRO_FRAME_MS = 40;
 const WWW_WORDMARK = Object.freeze([
 	"██╗    ██╗██╗    ██╗██╗    ██╗",
@@ -99,10 +98,8 @@ export class WorkbenchWelcomeView implements Component {
 	render(width: number, availableHeight = Math.max(4, (process.stdout.rows || 40) - 8)): string[] {
 		if (width <= 0 || availableHeight <= 0) return [];
 		const logo = availableHeight >= 23 ? workbenchWelcomeLogoFrame(this.elapsedMs) : [];
-		const artHeight = Math.max(1, availableHeight - logo.length - 3);
 		return [
 			...logo.map((line) => centered(line, width)),
-			...octopusScanFrame(this.elapsedMs, Math.max(1, width - 2), artHeight).map((line) => centered(line, width)),
 			"",
 			centered(colors.accent(`🐙 Wooni · Native Project Workbench · v${PRODUCT_VERSION}`), width),
 			centered(colors.muted("대화 · 질문별 요약 · /three-body 물리 실험실"), width),

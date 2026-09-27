@@ -23,6 +23,7 @@ import { parseCanonicalTNoteReport, parseLegacyCanonicalTNote }                 
 import { WorkbenchWelcomeView }                                                 from "@/adapters/inbound/tui/features/chat/view/workbench-welcome";
 import { CHAT_TERMINAL_OUTPUT_CHUNK_LINES }                                     from "@/adapters/inbound/tui/features/chat/view/chat-output-policy";
 import { getActiveTuiTheme }                                                    from "@/adapters/inbound/tui/foundation/theme/theme";
+import { renderUnifiedDiff }                                                    from "@/adapters/inbound/tui/foundation/rendering/unified-diff-view";
 import { WwwTranscriptCache }                                                   from "@/adapters/inbound/tui/features/chat/view/www-transcript-cache";
 import type {
 	WwwTranscriptCacheInput,
@@ -36,6 +37,12 @@ const tnoteMarkdownTheme = {
 	...wwwMarkdownTheme,
 	heading: a.strong,
 };
+
+const TRANSCRIPT_ICON = {
+	edit     : "✎",
+	thought  : "◉",
+	terminal : "▣",
+} as const;
 
 export function record(value: unknown): Record<string, unknown> {
 	return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
@@ -574,7 +581,12 @@ export class WwwTranscriptView implements Component {
 				return responseFrameRows(`RES ${requestNumber}-${responseCount} 작성 중`, "streaming", this.md("draft", safe(sanitizePartialAssistantResponse(s.draft), 24000), contentWidth, a.answer), width);
 			} });
 		}
-		if (s.reasoningSummaryDraft && !s.draft) blocks.push({ key: "volatile:reasoning-summary", markdownKeys: [], reuse: { kind: "never" }, render: width => ["", ...prose(a.muted(safe(s.reasoningSummaryDraft, 1200)), width, 2)].map(row => fit(row, width)) });
+		if (s.reasoningSummaryDraft && !s.draft) blocks.push({ key: "volatile:reasoning-summary", markdownKeys: [], reuse: { kind: "never" }, render: width => [
+			"",
+			`${a.info(TRANSCRIPT_ICON.thought)} ${wwwTitle("Thought", a.info)}`,
+			...prose(a.muted(safe(s.reasoningSummaryDraft, 1200)), width, 2),
+			"",
+		].map(row => fit(row, width)) });
 		const actionResult = s.actionResult;
 		if (actionResult) {
 			blocks.push({ key: "volatile:action-result", markdownKeys: [], reuse: { kind: "never" }, render: width => {
@@ -638,6 +650,20 @@ export class WwwTranscriptView implements Component {
 }
 
 export function wwwToolRows(activity: ProjectActivity, width: number, expanded: boolean): string[] {
+	const observedChanges = projectObservedFileChanges(activity);
+	if (observedChanges.length > 0) {
+		const failed    = activity.phase === "failed"                                                                  ;
+		const symbol    = failed ? a.failure("✕") : activity.phase === "completed" ? a.success("✓") : a.attention("•") ;
+		const state     = failed ? "failed" : activity.phase === "completed" ? "done" : activity.phase                 ;
+		const nameWidth = Math.max(...observedChanges.map(change => change.name.length))                               ;
+		return observedChanges.flatMap(change => {
+			const stats = change.added === null || change.deleted === null
+				? "changed"
+				: `${a.success(`+${change.added}`)}  ${a.failure(`-${change.deleted}`)}`;
+			const header = fit(`${symbol} ${a.tool(`${TRANSCRIPT_ICON.edit} Edit`)}  ${a.text(change.name.padEnd(nameWidth))}  ${stats}  ${state}`, width);
+			return [header, ...renderUnifiedDiff(change.diff ?? "", width)];
+		});
+	}
 	const payload = record(boundedPublicProjection(activity.payload).value)                                                                                ;
 	const item    = record(record(payload.params).item)                                                                                                    ;
 	const kind    = oneLine(item.type || activity.kind)                                                                                                    ;
@@ -656,14 +682,15 @@ export function wwwToolRows(activity: ProjectActivity, width: number, expanded: 
 		const outputRows = prose(output || result || (running ? "출력 대기 중" : "출력 없음"), inside)                                                                                                                                ;
 		const shown      = expanded ? outputRows : outputRows.slice(-CHAT_TERMINAL_OUTPUT_CHUNK_LINES)                                                                                                                                ;
 		const meta       = [typeof item.exitCode === "number" ? `exit ${item.exitCode}` : state, typeof item.durationMs === "number" && Number.isFinite(item.durationMs) ? duration(item.durationMs) : ""].filter(Boolean).join("  ") ;
-		const label      = ` Bash  ${state} `                                                                                                                                                                                         ;
+		const label      = ` ${TRANSCRIPT_ICON.terminal} Terminal  ${state} `                                                                                                                                                         ;
 		return ["", ink(`┌${label}${"─".repeat(Math.max(0, width - visibleWidth(label) - 2))}┐`),
 			...command.map(row => body(a.text(row))), body(a.rule("─".repeat(inside))),
 			...(shown.length < outputRows.length ? [body(a.muted(`… 앞 ${outputRows.length - shown.length}줄 · 최신 ${CHAT_TERMINAL_OUTPUT_CHUNK_LINES}줄 · Ctrl+E 전체`))] : []),
 			...shown.map(row => body((failed ? a.failure : a.muted)(row))),
 			body(a.muted(meta)), body(a.muted(`/source ${safe(activity.id)}`)), ink(`└${"─".repeat(width - 2)}┘`), ""];
 	}
-	const rows = [pair(`${mark(failed ? "failed" : activity.phase)} ${a.tool(title)}`, (failed ? a.failure : a.muted)(typeof item.exitCode === "number" ? `exit ${item.exitCode}` : activity.phase), width)];
+	const activityIcon = typeof item.command === "string" ? `${a.tool(TRANSCRIPT_ICON.terminal)} ` : "";
+	const rows = [pair(`${mark(failed ? "failed" : activity.phase)} ${activityIcon}${a.tool(title)}`, (failed ? a.failure : a.muted)(typeof item.exitCode === "number" ? `exit ${item.exitCode}` : activity.phase), width)];
 	for (const change of changes) {
 		rows.push(...prose(a.text(`  ${oneLine(record(change.kind).type || change.kind || "edit")}  ${safe(change.path)}`), width));
 		if (expanded && typeof change.diff === "string") rows.push(...prose(safe(change.diff), width, 4));
@@ -671,4 +698,20 @@ export function wwwToolRows(activity: ProjectActivity, width: number, expanded: 
 	if ((expanded || failed) && (output || result)) rows.push(...prose(failed ? a.failure(output || result) : a.muted(output || result), width, 2));
 	if (expanded || failed) rows.push(...prose(a.muted(`/source ${safe(activity.id)}`), width, 2));
 	return rows;
+}
+
+function projectObservedFileChanges(activity: ProjectActivity): readonly { readonly name: string; readonly added: number | null; readonly deleted: number | null; readonly diff: string | null }[] {
+	if (activity.kind !== "file-change") return [];
+	const payload = record(activity.payload)                        ;
+	const item    = record(record(payload.params).item)             ;
+	const changes = Array.isArray(item.changes) ? item.changes : [] ;
+	return changes.flatMap(value => {
+		const change = record(value);
+		const path   = typeof change.path === "string" ? change.path.replace(/\\/gu, "/") : "";
+		if (!path) return [];
+		const diff    = typeof change.diff === "string" ? change.diff.split(/\r?\n/u) : null                 ;
+		const added   = diff?.filter(line => line.startsWith("+") && !line.startsWith("+++")).length ?? null ;
+		const deleted = diff?.filter(line => line.startsWith("-") && !line.startsWith("---")).length ?? null ;
+		return [{ name: path.split("/").at(-1) ?? path, added, deleted, diff: typeof change.diff === "string" ? change.diff : null }];
+	});
 }
