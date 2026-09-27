@@ -5,6 +5,7 @@ import { getScrollViewBox, renderLayoutFrame }                               fro
 import type { ProjectWorkbench }                                             from "../src/core/application/orchestration/project-workbench";
 import type { WorkbenchCommand, WorkbenchCommandReceipt, WorkbenchListener } from "../src/core/domain/work/workbench";
 import { runProjectWorkbenchShell }                                          from "../src/adapters/inbound/tui/shell/workbench-shell";
+import { WwwUsageView }                                                      from "../src/adapters/inbound/tui/features/usage/view/www-usage-view";
 import { runCli }                                                            from "../src/cli";
 import type { CliDependencies }                                              from "../src/cli";
 import { wwwFixture }                                                        from "./fixtures/www-snapshot";
@@ -168,11 +169,11 @@ test("WWW CLI keeps resume selection, cancellation and execution-lane semantics"
 		listNativeThreads: async () => [{ id: "selected", cwd: "/test", updatedAt: 1, preview: "", status: "idle" }],
 		selectNativeThread: async () => select, writeOut: () => {}, writeError: () => {},
 	};
-	expect(await runCli([], deps)).toBe(0);
-	expect(await runCli(["--resume"], deps)).toBe(0);
-	expect(await runCli(["--resume", "specific"], deps)).toBe(0);
-	expect(await runCli(["--execution-lane", "pi"], deps)).toBe(0);
-	expect(opened).toEqual([{}, { resumeThreadId: "selected" }, { resumeThreadId: "specific" }, { executionLane: "pi" }]);
+	expect(await runCli([], deps)                        ).toBe   (0                                                                                            ) ;
+	expect(await runCli(["--resume"], deps)              ).toBe   (0                                                                                            ) ;
+	expect(await runCli(["--resume", "specific"], deps)  ).toBe   (0                                                                                            ) ;
+	expect(await runCli(["--execution-lane", "pi"], deps)).toBe   (0                                                                                            ) ;
+	expect(opened                                        ).toEqual([{}, { resumeThreadId: "selected" }, { resumeThreadId: "specific" }, { executionLane: "pi" }]) ;
 	select = null; expect(await runCli(["--resume"], deps)).toBe(0); expect(opened).toHaveLength(4);
 	expect(await runCli(["garbage"], deps)).toBe(1); expect(opened).toHaveLength(4);
 });
@@ -225,10 +226,10 @@ test("/demo presents synthetic MVP pages with R/E navigation and restores live s
 		});
 		await tick();
 		await submit("/demo");
-		expect(frame()).toContain("DEMO DATA");
-		expect(frame()).toContain("Chat");
-		expect(frame()).toContain("Stages");
-		expect(frame()).toContain("+2 대기");
+		expect(frame()).toContain("DEMO DATA") ;
+		expect(frame()).toContain("Chat"     ) ;
+		expect(frame()).toContain("Stages"   ) ;
+		expect(frame()).toContain("+2 대기"  ) ;
 		terminal.columns = 80; terminal.rows = 24; terminal.resize(); await tick();
 		expect(frame()).toContain("승인 대기");
 		expect(frame()).not.toContain("Stages");
@@ -257,17 +258,17 @@ test("/demo presents synthetic MVP pages with R/E navigation and restores live s
 		listener(snapshot); await tick();
 		expect(frame()).not.toContain("LIVE RESTORED");
 		terminal.input("\x1b"); await tick();
-		expect(frame()).toContain("LIVE RESTORED");
-		expect(frame()).toContain("DEMO_EXIT_APPROVAL");
-		expect(frame()).not.toContain("DEMO DATA");
+		expect(frame())    .toContain("LIVE RESTORED"     ) ;
+		expect(frame())    .toContain("DEMO_EXIT_APPROVAL") ;
+		expect(frame()).not.toContain("DEMO DATA"         ) ;
 		terminal.input("\x03"); await tick(); // Close the restored approval sheet before navigating Live.
 		snapshot = { ...snapshot, revision: 78, pendingApproval: null };
 		listener(snapshot); await tick();
 		terminal.input("\x07"); terminal.input("7"); await tick();
 		terminal.input("g"); await tick(); // Context retains the earlier Demo end-of-page scroll position.
-		expect(frame()).toContain("Source token allocation unavailable");
-		expect(frame()).not.toContain("CONV growing");
-		expect(commands).toHaveLength(0);
+		expect(frame() )    .toContain   ("Source token allocation unavailable") ;
+		expect(frame() ).not.toContain   ("CONV growing"                       ) ;
+		expect(commands)    .toHaveLength(0                                    ) ;
 	} finally {
 		if (!terminal.stopped) { terminal.input("\x03"); terminal.input("\x03"); await tick(); }
 		capture.mockRestore();
@@ -353,9 +354,9 @@ test("the production layout keeps autocomplete selections and multiline rails vi
 		const rows = frame(), text = rows.join("\n");
 		for (let i = 0; i < 7; i++) expect(text).toContain(`line-${i}`);
 		const bottom = rows.findIndex(row => row.includes("line-6")) + 1;
-		expect(rows[bottom]).toMatch(BOTTOM_BORDER);
-		expect(text).toContain("› GPT-5.6-Sol · High");
-		expect(text).not.toContain("여기에 작성한다.");
+		expect(rows[bottom])    .toMatch  (BOTTOM_BORDER         ) ;
+		expect(text        )    .toContain("› GPT-5.6-Sol · High") ;
+		expect(text        ).not.toContain("여기에 작성한다."    ) ;
 		expect(text).not.toMatch(/구독 잔여|\bleft\b|\breset\b/u); expect(text).toContain("62%");
 		expect(text).not.toContain("Enter 추가 지시");
 		terminal.input("\x01"); terminal.input("\x0b"); terminal.input("/"); await tick();
@@ -395,7 +396,9 @@ test("execution heading belongs only to the execution page", async () => {
 			auth: { methods: () => [], status: async provider => ({ state: "configured", provider, type: "oauth", source: "test" }), login: async () => { throw new Error("not requested"); }, logout: async () => {} },
 		});
 		await tick();
-		expect(frame()).toContain("모델별 사용 내역");
+		expect(frame()).toContain("REQUESTS");
+		// 관측 대시보드는 32행 뷰포트보다 길어 모델 사용 섹션은 컴포넌트 레벨에서 검증한다.
+		expect(new WwwUsageView(() => snapshot, () => [], () => false).render(120).join("\n")).toContain("모델별 사용 내역");
 		expect(frame()).not.toContain("⟦esc 중단⟧");
 		terminal.input("\t"); terminal.input("\x1b"); await tick();
 		const execution = frame();

@@ -45,6 +45,8 @@ interface WorkflowCoordinatorOptions {
 	readonly setActionResult           : (result: WorkbenchActionResult) => void      ;
 	readonly publish                   : () => void                                   ;
 	readonly processAttachedAt         : string                                       ;
+	/** 요청 런타임이 이 턴의 todo를 소유하는지 — 소유 시 네이티브 체크리스트 동기화는 생략한다. */
+	readonly requestManaged?           : () => boolean                                ;
 }
 
 export class WorkbenchWorkflowCoordinator {
@@ -140,7 +142,12 @@ export class WorkbenchWorkflowCoordinator {
 	}
 
 	public scheduleNativeTodoSync(activity: ProjectActivity): void {
-		if (this.records().length) { this.scheduleRequestProjections(); return; }
+		// 요청 레코드는 프로토콜 v2에서 첫 요청마다 생기므로 존재만으로 네이티브 체크리스트
+		// 동기화를 막지 않는다. 요청 런타임이 관리 모드일 때만 요청 소유 표시로 대체한다.
+		if (this.records().length) {
+			this.scheduleRequestProjections();
+			if (this.options.requestManaged?.() !== false) return;
+		}
 		const sync = this.options.todos?.syncNativePlan?.bind(this.options.todos);
 		if (!sync) return;
 		const flow = this.currentFlow();

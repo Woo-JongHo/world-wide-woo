@@ -26,6 +26,7 @@ import { projectNativeEvidence }                                      from "@/co
 import { LayerPerformanceRecorder }                                   from "@/core/domain/observability/layer-performance.js";
 import {
 	SESSION_GOAL_CHARACTER_LIMIT,
+	activityText,
 	projectSessionGoal,
 	summarizeSessionGoal,
 	record,
@@ -375,6 +376,7 @@ export class ProjectWorkbench {
 			setActionResult           : result => { this.actionResult = result; },
 			publish                   : () => this.publish(),
 			processAttachedAt         : this.processAttachedAt,
+			requestManaged            : () => this.requestRuntimePolicy.mode !== "off",
 		});
 		this.noteNarration = new WorkbenchNoteNarration({
 			projectId: options.projectId,
@@ -1029,7 +1031,11 @@ export class ProjectWorkbench {
 			});
 			turn = await this.native.startTurn(this.contextComposer.compose(
 				managedRequest
-					? { ...turnInput, additionalContext: { www_request_runtime: requestProtocolContext(localMessageId, this.requestProtocolVersion()) } }
+					? { ...turnInput, additionalContext: { www_request_runtime: requestProtocolContext(
+						localMessageId,
+						this.requestProtocolVersion(),
+						queued ? { kind: "queued-follow-up", currentGoal: this.current.sessionGoal?.text ?? null } : undefined,
+					) } }
 					: turnInput,
 				this.options.wooEntry?.snapshot,
 				this.options.skillRegistry,
@@ -1485,12 +1491,21 @@ export class ProjectWorkbench {
 		const requestRuntime = this.requestRuntimePolicy.mode !== "off"
 			? allRequestRuntime
 			: allRequestRuntime.filter(request => request.turnId === selectedRequestTurnId);
-		const request         = [...requestRuntime].reverse().find(r => r.turnId === (this.activeTurnId ?? this.selectedPlanTurnId)) ?? requestRuntime.at(-1)                       ;
-		const understood      = request?.events.filter(event => event.stage === "UNDERSTAND" && (event.type === "stage.completed" || event.type === "stage.skipped")).at(-1)        ;
-		const sessionGoal     = this.sessionGoal ?? (request && understood ? { text: request.objective, sourceActivityId: understood.activityId, updatedAt: understood.at } : null) ;
-		const todo            = this.workflow.projectedTodo(executionRun, workFlow)                                                                                                 ;
-		const modelCatalog    = this.modelCatalog                                                                                                                                   ;
-		const linearDashboard = this.options.linearDashboard ? this.linearDashboard : undefined                                                                                     ;
+		const request        = [...requestRuntime].reverse().find(r => r.turnId === (this.activeTurnId ?? this.selectedPlanTurnId)) ?? requestRuntime.at(-1)                ;
+		const understood     = request?.events.filter(event => event.stage === "UNDERSTAND" && (event.type === "stage.completed" || event.type === "stage.skipped")).at(-1) ;
+		const requestStarted = request?.events.find(event => event.type === "request.started")                                                                              ;
+		const goalSource     = understood ?? requestStarted                                                                                                                 ;
+		// SessionGoal은 $session-goal 턴의 sole bounded 마커나 goal.set으로만 확정된다.
+		// 일반 요청의 objective는 provisional 목표가 되되, 그 턴의 응답에 SESSION_GOAL 형태
+		// 스푸프 마커가 감지되면 방어를 위해 provisional을 세우지 않는다.
+		const goalSpoofed = request ? this.visibleActivities.some(activity =>
+			activity.kind === "message" && activity.phase === "completed"
+			&& activity.nativeRefs.turnId === request.turnId
+			&& /SESSION_GOAL:/u.test(activityText(activity.payload))) : false;
+		const sessionGoal     = this.sessionGoal ?? (request && goalSource && !goalSpoofed ? { text: request.objective, sourceActivityId: goalSource.activityId, updatedAt: goalSource.at } : null) ;
+		const todo            = this.workflow.projectedTodo(executionRun, workFlow)                                                                                                                 ;
+		const modelCatalog    = this.modelCatalog                                                                                                                                                   ;
+		const linearDashboard = this.options.linearDashboard ? this.linearDashboard : undefined                                                                                                     ;
 		if (linearDashboard) this.cacheProjection.hit("dashboard");
 		const cacheObservations = this.cacheProjection.observations({
 			requestCached      : this.workflow.requestCached,
