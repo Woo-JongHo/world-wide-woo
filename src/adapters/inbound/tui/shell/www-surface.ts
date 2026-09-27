@@ -16,6 +16,8 @@ import type { ProjectActivity }                                        from "@/c
 import type { WorkbenchSnapshot }                                      from "@/core/domain/work/workbench";
 import type { UsageSnapshot, UsageSnapshotCacheMetrics }               from "@/core/ports/observability/usage-monitor-port";
 import type { CacheTelemetrySnapshot }                                 from "@/core/domain/observability/cache-telemetry";
+import type { RuntimeMonitorProjection }                               from "@/core/domain/observability/runtime-monitor";
+import { WwwMonitorView }                                              from "@/adapters/inbound/tui/features/monitoring/view/www-monitor-view";
 import { ChatScrollView }                                              from "@/adapters/inbound/tui/features/chat/view/chat-scroll.view";
 import {
 	WwwTranscriptView,
@@ -184,6 +186,7 @@ export class WwwWorkspace {
 		sidebars: Partial<Readonly<Record<WwwPage, Component>>> = {},
 		usageCacheMetrics: () => UsageSnapshotCacheMetrics | undefined = () => undefined,
 		synthetic: () => boolean = () => false,
+		getRuntimeMonitor: (() => RuntimeMonitorProjection) | null = null,
 	) {
 		const getChat = () => projectChatFeature(get());
 		this.transcript = new WwwTranscriptView(getChat());
@@ -234,6 +237,14 @@ export class WwwWorkspace {
 			} },
 		]);
 		const pageComponent = (page: WwwPage): Component => {
+			// Figma Chat 화면(142:5): 대화 우측에 RUN·PIPELINE·CURRENT PLAN·ACTIVITY·INSPECT 패널을 둔다.
+			if (page === "execution" && getRuntimeMonitor) {
+				const observabilitySide = new ScrollView(new WwwInset(new WwwMonitorView(getRuntimeMonitor, clock, motion, get), 1), { follow: "none", overscroll: "contain", scrollbar: "auto", scrollbarStyle: a.rule });
+				return new HStack([
+					{ component: this.scrolls.execution, basis: 0, grow: 1, minSize: 1 },
+					{ component: observabilitySide, basis: 38, minSize: 34, maxSize: 44, visible: ({ width, height }) => this.sidebarEnabled && width >= 112 && bodyHeight(height, width, true) >= 18 },
+				]);
+			}
 			if (page === "execution") return execution;
 			const sidebar = pageSidebars[page];
 			if (!sidebar) return this.scrolls[page];

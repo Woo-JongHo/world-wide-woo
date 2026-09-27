@@ -239,6 +239,10 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 			onClose: () => closeThreeBodyLab(),
 		})
 		: null;
+	// Chat 우측 관측 패널과 Monitor 탭이 같은 프로젝션을 공유한다(느린 바인딩은 클로저로 해결).
+	const getRuntimeMonitor = () => selectedHistoricalSession && selectedHistoricalSession.sessionId !== snapshot.threadId
+		? unavailableHistoricalMonitor()
+		: projectRuntimeMonitor(snapshot, snapshot.activities, typeof workbench.layerPerformanceSnapshot === "function" ? workbench.layerPerformanceSnapshot() : snapshot.layerPerformance);
 	const www = dependencies.surface === "www" ? new WwwWorkspace(
 		() => snapshot,
 		() => usageSnapshots,
@@ -252,6 +256,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		{},
 		() => dependencies.usage.cacheMetrics(),
 		() => demoMode,
+		getRuntimeMonitor,
 	) : null;
 	www?.show(dependencies.initialWwwPage ?? "execution");
 	const status = www ? new WwwNotice() : new StatusLine(WORKBENCH_STATUS_NOTICE);
@@ -278,9 +283,6 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		() => snapshot.linearDashboard,
 	);
 	const sourceMonitor = new WorkbenchMonitorView(() => snapshot);
-	const getRuntimeMonitor = () => selectedHistoricalSession && selectedHistoricalSession.sessionId !== snapshot.threadId
-		? unavailableHistoricalMonitor()
-		: projectRuntimeMonitor(snapshot, snapshot.activities, typeof workbench.layerPerformanceSnapshot === "function" ? workbench.layerPerformanceSnapshot() : snapshot.layerPerformance);
 	const runtimeMonitorView = www ? new WwwMonitorView(getRuntimeMonitor, Date.now, wwwMotion, () => snapshot) : new RuntimeMonitorView(getRuntimeMonitor);
 	const runtimeMonitor = new ScrollView(www ? new WwwInset(runtimeMonitorView) : runtimeMonitorView, {
 		follow: www ? "none" : "end", primary: true, overscroll: "contain", scrollbar: "auto", scrollbarStyle: www ? a.rule : colors.muted,
