@@ -152,8 +152,8 @@ describe("CodexAppServer", () => {
 			{ name: "paused", enabled: false, status: "disabled", tools: [] },
 		]);
 		expect(transport.sent.filter((message) => message.method === "mcpServerStatus/list").map((message) => message.params)).toEqual([
-			{ detail: "toolsAndAuthOnly", limit: 100 },
-			{ detail: "toolsAndAuthOnly", limit: 100, cursor: "next-page" },
+			{ cursor: undefined },
+			{ cursor: "next-page" },
 		]);
 		await server.close();
 	});
@@ -538,11 +538,11 @@ describe("CodexAppServer", () => {
 			(event as { method?: string }).method === "turn/plan/updated" &&
 			(event as { refs?: { turnId?: string } }).refs?.turnId === turnId,
 		) as { refs: Record<string, unknown> } | undefined)?.refs;
-		expect(refsFor("turn-root")).toEqual({ threadId: "thread-root", turnId: "turn-root" });
-		expect(refsFor("turn-child")).toEqual({ threadId: "thread-child", turnId: "turn-child" });
-		expect(refsFor("turn-resumed")).toEqual({ threadId: "thread-resumed", turnId: "turn-resumed" });
-		expect(refsFor("turn-read")).toEqual({ threadId: "thread-read", turnId: "turn-read" });
-		expect(refsFor("turn-unknown")).toEqual({ turnId: "turn-unknown" });
+		expect(refsFor("turn-root")   ).toEqual({ threadId: "thread-root", turnId: "turn-root" }      ) ;
+		expect(refsFor("turn-child")  ).toEqual({ threadId: "thread-child", turnId: "turn-child" }    ) ;
+		expect(refsFor("turn-resumed")).toEqual({ threadId: "thread-resumed", turnId: "turn-resumed" }) ;
+		expect(refsFor("turn-read")   ).toEqual({ threadId: "thread-read", turnId: "turn-read" }      ) ;
+		expect(refsFor("turn-unknown")).toEqual({ turnId: "turn-unknown" }                            ) ;
 		expect(events.at(-1)).toMatchObject({
 			type   : "notification",
 			method : "turn/plan/updated",
@@ -561,10 +561,10 @@ describe("CodexAppServer", () => {
 		const error = await new Promise<Error>((resolve) => {
 			transport.onClose((failure) => resolve(failure ?? new Error("missing failure")));
 		});
-		expect(error.message).toContain("exited with code 7");
-		expect(error.message).toContain("[redacted]");
-		expect(error.message).not.toContain(secret);
-		expect(Array.from(error.message).length).toBeLessThan(4_200);
+		expect(error.message                   )    .toContain   ("exited with code 7") ;
+		expect(error.message                   )    .toContain   ("[redacted]"        ) ;
+		expect(error.message                   ).not.toContain   (secret              ) ;
+		expect(Array.from(error.message).length)    .toBeLessThan(4_200               ) ;
 	});
 
 	test("fails a stalled turn start as uncertain instead of waiting forever", async () => {

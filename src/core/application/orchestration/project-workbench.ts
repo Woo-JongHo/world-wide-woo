@@ -741,11 +741,13 @@ export class ProjectWorkbench {
 	}
 
 	private async initialize(): Promise<void> {
+		// MCP 상태 조회는 codex가 모든 MCP 서버 기동을 마쳐야 응답해 수십 초가 걸릴 수 있다.
+		// 부팅을 막지 않고 백그라운드로 조회하며, 실패해도 미관측 상태로 둔다.
+		void this.commandHandlers.loadMcpServers().catch(() => undefined);
 		const [activities] = await Promise.all([
 			this.journal.readAll(this.activityJournal.projectId),
 			this.refreshModels(),
 			this.options.wooEntry?.refresh() ?? Promise.resolve(null),
-			this.commandHandlers.loadMcpServers(),
 		]);
 		for (const activity of activities) {
 			const durableActivity = immutable(activity);

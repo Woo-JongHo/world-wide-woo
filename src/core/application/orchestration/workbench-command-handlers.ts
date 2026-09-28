@@ -78,7 +78,17 @@ export class WorkbenchCommandHandlers {
 	public async loadMcpServers(): Promise<void> {
 		const management = this.dependencies.mcp();
 		if (!management) return;
-		this.dependencies.setMcpServers(await management.listMcpServers());
+		try {
+			this.dependencies.setMcpServers(await management.listMcpServers());
+		} catch {
+			// MCP 기동 지연(서버별 핸드셰이크 30s+)으로 첫 조회가 실패할 수 있다.
+			// 미관측 상태로 두고 한 차례만 재시도한다 — 실패해도 빈 목록(미관측)을 유지한다.
+			try {
+				this.dependencies.setMcpServers(await management.listMcpServers());
+			} catch {
+				this.dependencies.setMcpServers([]);
+			}
+		}
 	}
 
 	private requireMcp(): WorkbenchMcpManagement {
