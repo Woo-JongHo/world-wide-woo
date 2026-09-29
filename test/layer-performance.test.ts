@@ -12,10 +12,10 @@ describe("LayerPerformanceRecorder", () => {
 			at += 7;
 		}
 		const trace = recorder.project("turn-1")!;
-		expect(trace.state).toBe("complete");
-		expect(trace.totalMs).toBe(45);
-		expect(trace.layers).toHaveLength(7);
-		expect(trace.layers.every(layer => layer.waitMs === 2 && layer.workMs === 3)).toBe(true);
+		expect(trace.state                                                          ).toBe        ("complete") ;
+		expect(trace.totalMs                                                        ).toBe        (45        ) ;
+		expect(trace.layers                                                         ).toHaveLength(7         ) ;
+		expect(trace.layers.every(layer => layer.waitMs === 2 && layer.workMs === 3)).toBe        (true      ) ;
 	});
 
 	test("keeps missing boundaries unknown and a terminal trace partial", () => {
@@ -37,10 +37,10 @@ describe("LayerPerformanceRecorder", () => {
 
 		const layout = recorder.project("layout-failure")!;
 		const write  = recorder.project("write-failure")!  ;
-		expect(layout.layers.find(layer => layer.layerId === "layout-materialize")?.failed).toBe(true);
-		expect(layout.layers.find(layer => layer.layerId === "terminal-write")?.failed).toBe(false);
-		expect(write.layers.find(layer => layer.layerId === "layout-materialize")?.failed).toBe(false);
-		expect(write.layers.find(layer => layer.layerId === "terminal-write")?.failed).toBe(true);
+		expect(layout.layers.find(layer => layer.layerId === "layout-materialize")?.failed).toBe(true ) ;
+		expect(layout.layers.find(layer => layer.layerId === "terminal-write")?.failed    ).toBe(false) ;
+		expect(write.layers.find(layer => layer.layerId === "layout-materialize")?.failed ).toBe(false) ;
+		expect(write.layers.find(layer => layer.layerId === "terminal-write")?.failed     ).toBe(true ) ;
 	});
 
 	test("distinguishes an intentional no-render event from missing render instrumentation", () => {
@@ -52,9 +52,9 @@ describe("LayerPerformanceRecorder", () => {
 		recorder.observe({ traceId: "unwired", layerId: "native-receive", boundary: "started", atMs: 3 });
 		recorder.observe({ traceId: "unwired", layerId: "native-receive", boundary: "completed", atMs: 4 });
 
-		expect(recorder.project("ignored")?.state).toBe("no-render");
-		expect(recorder.project("unwired")?.state).toBe("collecting");
-		expect(recorder.window()).toMatchObject({ traceCount: 2, completeCount: 0, noRenderCount: 1, incompleteCount: 1, errorCount: 0 });
+		expect(recorder.project("ignored")?.state).toBe         ("no-render"                                                                             ) ;
+		expect(recorder.project("unwired")?.state).toBe         ("collecting"                                                                            ) ;
+		expect(recorder.window()                 ).toMatchObject({ traceCount: 2, completeCount: 0, noRenderCount: 1, incompleteCount: 1, errorCount: 0 }) ;
 	});
 
 	test("ignores duplicate boundaries, rejects backwards clocks and bounds retained traces", () => {
@@ -84,5 +84,41 @@ describe("LayerPerformanceRecorder", () => {
 			wait: { count: 0, p50: null, p95: null, p99: null },
 			work: { count: 0, p50: null, p95: null, p99: null },
 		});
+	});
+
+	test("groups coalesced traces by terminal frame and detects slow render latency", () => {
+		const recorder = new LayerPerformanceRecorder();
+		const render = (traceId: string, frameId: string, queuedAt: number, completedAt: number): void => {
+			recorder.observe({ traceId, layerId: "render-schedule", boundary: "queued", atMs: queuedAt });
+			recorder.observe({ traceId, layerId: "render-schedule", boundary: "started", atMs: queuedAt + 1 });
+			recorder.observe({ traceId, layerId: "render-schedule", boundary: "completed", atMs: queuedAt + 2 });
+			recorder.observe({ traceId, layerId: "layout-materialize", boundary: "started", atMs: queuedAt + 3, frameId });
+			recorder.observe({ traceId, layerId: "layout-materialize", boundary: "completed", atMs: queuedAt + 4, frameId });
+			recorder.observe({ traceId, layerId: "terminal-write", boundary: "started", atMs: completedAt - 1, frameId });
+			recorder.observe({ traceId, layerId: "terminal-write", boundary: "completed", atMs: completedAt, frameId });
+		};
+		render("coalesced-old", "frame-1", 0, 150);
+		render("coalesced-new", "frame-1", 20, 150);
+		render("fast", "frame-2", 200, 240);
+
+		expect(recorder.window().render).toEqual({
+			thresholdMs  : 100,
+			frameCount   : 2,
+			slowCount    : 1,
+			slowRate     : 50,
+			latency      : { count: 2, p50: 40, p95: 150, p99: 150 },
+			worstMs      : 150,
+			worstFrameId : "frame-1",
+		});
+	});
+
+	test("keeps failed terminal writes out of render health latency samples", () => {
+		const recorder = new LayerPerformanceRecorder();
+		recorder.observe({ traceId: "failed", layerId: "render-schedule", boundary: "queued", atMs: 0 });
+		recorder.observe({ traceId: "failed", layerId: "terminal-write", boundary: "started", atMs: 1, frameId: "frame-failed" });
+		recorder.observe({ traceId: "failed", layerId: "terminal-write", boundary: "failed", atMs: 500, frameId: "frame-failed" });
+
+		expect(recorder.project("failed")).toMatchObject({ state: "partial", renderMs: null, slowRender: false });
+		expect(recorder.window()).toMatchObject({ errorCount: 1, render: { frameCount: 0, slowCount: 0, worstMs: null } });
 	});
 });

@@ -3,7 +3,7 @@ import { mkdtemp, readdir, readFile, rm }                              from "nod
 import { tmpdir }                                                      from "node:os";
 import { join }                                                        from "node:path";
 import type { ProjectActivity }                                        from "../src/core/domain/execution/project-activity";
-import { REQUEST_STAGES, parseRequestStageReport }                     from "../src/core/domain/execution/request-runtime";
+import { REQUEST_STAGES, parseRequestCheckpointReport, parseRequestStageReport } from "../src/core/domain/execution/request-runtime";
 import type { RequestStageReport }                                     from "../src/core/domain/execution/request-runtime";
 import { requestProtocolContext }                                      from "../src/core/application/orchestration/request-protocol";
 import { projectRequestRuntime }                                       from "../src/core/runtime/request-runtime";
@@ -13,24 +13,116 @@ import { FileRequestProjectionStore }                                  from "../
 import { requestRuntimeRows }                                          from "../src/adapters/inbound/tui/features/monitoring/view/request-runtime-view";
 import { stripTerminalSequences, visibleWidth }                        from "@earendil-works/pi-tui";
 
-function fixture() {
+function fixture(protocolVersion: 1 | 2 = 1) {
 	const journal: ProjectActivity[] = [];
 	const append = (payload: Record<string, unknown>, kind: ProjectActivity["kind"] = "progress", refs = { threadId: "thread-1", turnId: "turn-1" }) => {
 		const sequence = journal.length + 1;
 		const a: ProjectActivity = { schemaVersion: 1, id: `activity-${sequence}`, sequence, recordedAt: new Date(1700000000000 + sequence).toISOString(), projectId: "www", provider: "codex", sourceDigest: `sha256:${sequence}`, nativeRefs: refs, kind, phase: "completed", payload };
 		journal.push(a); return a;
 	};
-	append({ method: "request/submitted", protocolVersion: 1, requestId: "request-1", text: "기존 구조에 Runtime 구현" });
+	append({ method: "request/submitted", protocolVersion, requestId: "request-1", text: "기존 구조에 Runtime 구현" });
 	append({ method: "request/started", requestId: "request-1", model: "native" });
 	const report = (stage: RequestStageReport["stage"], status: RequestStageReport["status"] = "completed", extra: Partial<RequestStageReport> = {}) => append({ role: "assistant", text: "[www-runtime]" + JSON.stringify({ requestId: "request-1", stage, status, summary: `${stage} 공개 결과`, ...extra }) }, "message");
+	const checkpoint = (name: "INTENT" | "WORK" | "RESULT", extra: Record<string, unknown> = {}) => append({ role: "assistant", text: "[www-runtime]" + JSON.stringify({ requestId: "request-1", checkpoint: name, summary: `${name} 공개 결과`, ...extra }) }, "message");
 	const result = () => projectRequestRuntime(journal, "thread-1")[0]!;
-	return { journal, append, report, result };
+	return { journal, append, report, checkpoint, result };
 }
 
 describe("seven-stage request runtime", () => {
+	test("observe protocol exposes three checkpoints while broker keeps seven stages", () => {
+		const observe = JSON.parse(requestProtocolContext("request-1", 1).value) as { checkpoints: string[]; instructions: string[] };
+		const broker  = JSON.parse(requestProtocolContext("request-1", 2).value) as { checkpoints?: string[]; instructions: string[] };
+		expect(observe.checkpoints).toEqual(["INTENT", "WORK", "RESULT"]);
+		expect(observe.instructions.join(" ")).toContain("three public checkpoints");
+		expect(broker.checkpoints).toBeUndefined();
+		expect(broker.instructions.join(" ")).toContain("seven stages");
+	});
+
+	test("parses the compact observe report through its small public interface", () => {
+		const parsed = parseRequestCheckpointReport('[www-runtime]{"requestId":"r","checkpoint":"WORK","summary":"근거를 확인했다","evidence":["tool-1"],"verification":["test-1"]}');
+		expect(parsed).toEqual({ requestId: "r", checkpoint: "WORK", summary: "근거를 확인했다", evidence: ["tool-1"], verification: ["test-1"] });
+		expect(parseRequestCheckpointReport('[www-runtime]{"requestId":"r","checkpoint":"UNKNOWN","summary":"잘못됨"}')).toBeNull();
+		expect(parseRequestCheckpointReport('[www-runtime]{"requestId":"r","checkpoint":"INTENT","summary":"요청 이해","goal":"문제 해결","plan":["원인 조사","동작 검증"]}')?.plan).toEqual(["원인 조사", "동작 검증"]);
+		expect(parseRequestCheckpointReport('[www-runtime]{"requestId":"r","checkpoint":"WORK","summary":"완료","plan":["늦은 계획"]}')).toBeNull();
+	});
+
+	test("shows an observe plan after UNDERSTAND and settles it with WORK", () => {
+		const f = fixture();
+		f.checkpoint("INTENT", { goal: "계획을 표시한다", plan: ["원인 조사", "회귀 검증"] });
+		const planned = f.result();
+		expect(planned.stages[0]?.status).toBe("completed");
+		expect(planned.stages[1]?.status).toBe("completed");
+		expect(planned.stages[2]?.tasks.map(task => [task.title, task.status])).toEqual([["원인 조사", "pending"], ["회귀 검증", "pending"]]);
+		expect(stripTerminalSequences(requestRuntimeRows(planned, 80).join("\n"))).toContain("원인 조사");
+		f.checkpoint("WORK");
+		expect(f.result().stages[2]?.tasks.every(task => task.status === "completed")).toBe(true);
+	});
+
+	test("projects three observe checkpoints onto the existing seven-stage record", () => {
+		const f = fixture();
+		f.checkpoint("INTENT", { goal: "가벼운 요청을 처리한다" });
+		const read = f.append({ params: { item: { exitCode: 0, command: "rg request runtime" } } }, "tool");
+		const check = f.append({ params: { item: { exitCode: 0, command: "bun test request-runtime" } } }, "tool");
+		f.checkpoint("WORK", { evidence: [read.id], verification: [check.id] });
+		f.checkpoint("RESULT");
+		f.append({ role: "assistant", text: "경량 요청 결과" }, "message");
+		f.append({ method: "turn/completed" });
+		const result = f.result();
+		expect(result.objective).toBe("가벼운 요청을 처리한다");
+		expect(result.stages.map(stage => stage.status)).toEqual(["completed", "skipped", "completed", "skipped", "completed", "completed", "completed"]);
+		expect(result.stages[4]?.evidence.map(item => item.activityId)).toEqual([read.id]);
+		expect(result.stages[5]?.evidence.map(item => item.activityId)).toEqual([check.id]);
+		expect(result.status).toBe("completed");
+	});
+
+	test("rejects compact checkpoints from the brokered protocol", () => {
+		const f = fixture(2);
+		f.checkpoint("INTENT", { goal: "엄격 실행" });
+		expect(f.result().stages[0]?.status).toBe("running");
+		expect(f.result().issues.at(-1)).toContain("runtime.propose 도구");
+	});
+
+	test("rejects invalid compact WORK evidence without partially advancing stages", () => {
+		const f = fixture();
+		f.checkpoint("INTENT", { goal: "원자적으로 처리한다" });
+		const message = f.append({ role: "assistant", text: "실행했다고 주장" }, "message");
+		const check   = f.append({ params: { item: { exitCode: 0, command: "bun test" } } }, "tool");
+		f.checkpoint("WORK", { evidence: [message.id], verification: [check.id] });
+		expect(f.result().stages.slice(2, 6).map(stage => stage.status)).toEqual(["pending", "pending", "pending", "pending"]);
+		expect(f.result().issues.at(-1)).toContain("도구 또는 파일 변경");
+	});
+
+	test("requires distinct execution and verification evidence for compact WORK", () => {
+		const f = fixture();
+		f.checkpoint("INTENT", { goal: "독립 검증한다" });
+		const tool = f.append({ params: { item: { exitCode: 0, command: "bun test" } } }, "tool");
+		f.checkpoint("WORK", { evidence: [tool.id], verification: [tool.id] });
+		expect(f.result().stages.slice(2, 6).every(stage => stage.status === "pending")).toBe(true);
+		expect(f.result().issues.at(-1)).toContain("서로 다른 Activity");
+	});
+
+	test("observe WORK accepts Native execution without a separate verification run", () => {
+		const f = fixture();
+		f.checkpoint("INTENT", { goal: "요청을 처리한다" });
+		const tool = f.append({ params: { item: { exitCode: 0, command: "inspect source" } } }, "tool");
+		f.checkpoint("WORK", { evidence: [tool.id] });
+		expect(f.result().stages[4]?.status).toBe("completed");
+		expect(f.result().stages[5]?.status).toBe("skipped");
+	});
+
+	test("rejects duplicate checkpoints and RESULT before WORK", () => {
+		const f = fixture();
+		f.checkpoint("RESULT");
+		expect(f.result().stages[6]?.status).toBe("pending");
+		f.checkpoint("INTENT", { goal: "한 번만 전환한다" });
+		f.checkpoint("INTENT", { goal: "중복" });
+		expect(f.result().stages[0]?.output).toBe("INTENT 공개 결과");
+		expect(f.result().issues).toHaveLength(2);
+	});
+
 	test("the generated DELIVER shape is accepted by the public Stage parser", () => {
 		const requestId = "1f068212-edaf-4a02-8de9-fb2b48dc99d7";
-		const protocol = JSON.parse(requestProtocolContext(requestId).value) as { deliveryShape: Record<string, unknown> };
+		const protocol = JSON.parse(requestProtocolContext(requestId, 2).value) as { deliveryShape: Record<string, unknown> };
 		const message = "[www-runtime]" + JSON.stringify({
 			requestId,
 			stage   : "DELIVER",

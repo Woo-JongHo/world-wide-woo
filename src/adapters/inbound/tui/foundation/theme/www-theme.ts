@@ -19,7 +19,7 @@ export const wwwPalette = {
 		if (theme === "tokyo-night") return palette.steel;
 		if (theme === "gpt") return "#acacbe";
 		if (theme === "cool") return "#8ba7c2";
-		return "#D3869B";
+		return palette.steel;
 	},
 	get tool() { return palette.teal; },
 	get plan() { return palette.amber; },

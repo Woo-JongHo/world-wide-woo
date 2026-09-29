@@ -12,16 +12,17 @@ const logoSequences = new Map<number, string | null>()                      ;
  * Raw Kitty commands intentionally bypass pi-tui's single-image-per-line cache.
  * The host clears placements on redraw and all image data at shutdown.
  */
-function logoSequence(index: number): string | null {
-	const cached = logoSequences.get(index);
+function logoSequence(index: number, row = 0): string | null {
+	const key = row * logoAssets.length + index;
+	const cached = logoSequences.get(key);
 	if (cached !== undefined) return cached;
 	try {
 		const data = readFileSync(new URL(`../assets/${logoAssets[index]}.png`, import.meta.url));
 		const sequence = encodeKitty(data.toString("base64"), { columns: 2, rows: 1, imageId: allocateImageId(), moveCursor: false });
-		logoSequences.set(index, sequence);
+		logoSequences.set(key, sequence);
 		return sequence;
 	} catch {
-		logoSequences.set(index, null);
+		logoSequences.set(key, null);
 		return null;
 	}
 }
@@ -56,8 +57,7 @@ function quotaLimit(snapshot: UsageSnapshot | undefined, window: "overall" | "se
 	const finite = snapshot.limits.filter(limit => typeof limit.remainingPercent === "number" && Number.isFinite(limit.remainingPercent));
 	const tier = (limit: UsageLimitSnapshot) => /spark|opus|sonnet/iu.test(limit.label);
 	if (window === "session") return finite.find(limit => /(?:5\s*(?:hours?|h)\b|5시간)/iu.test(limit.label) && !tier(limit));
-	return finite.find(limit => /(?:7\s*(?:days?|d)\b|1\s*week\b|weekly|week|주간|주일)/iu.test(limit.label) && !tier(limit))
-		?? finite.find(limit => !tier(limit));
+	return finite.find(limit => /(?:7\s*(?:days?|d)\b|1\s*week\b|weekly|week|주간|주일)/iu.test(limit.label) && !tier(limit));
 }
 
 function quotaState(snapshot: UsageSnapshot | undefined): string {
@@ -67,53 +67,47 @@ function quotaState(snapshot: UsageSnapshot | undefined): string {
 	return snapshot.state === "ready" ? "—" : "!";
 }
 
-function quotaBar(limit: UsageLimitSnapshot | undefined, state: string, width: number, color: string, now: number): string {
-	const size = Math.max(3, width);
+function quotaBar(limit: UsageLimitSnapshot | undefined, state: string, width: number, color: string, now: number, label: string, image: boolean): string {
 	const percent = typeof limit?.remainingPercent === "number" && Number.isFinite(limit.remainingPercent)
 		? Math.round(Math.max(0, Math.min(100, limit.remainingPercent))) : null;
-	const reset     = limit ? resetIn(limit.resetsAt, now) : ""                                                                       ;
-	const value     = percent === null ? state : `${percent}%${reset ? ` ${reset}` : ""}`                                             ;
-	const innerSize = Math.max(1, size - 2)                                                                                           ;
-	const label     = value.length > innerSize ? value.slice(0, Math.max(1, innerSize - 1)) + "…" : value                             ;
-	const centered  = `[${label.padStart(label.length + Math.max(0, Math.floor((innerSize - label.length) / 2))).padEnd(innerSize)}]` ;
-	const filled    = percent === null ? 0 : Math.round(innerSize * percent / 100)                                                    ;
-	const empty     = chalk.bgHex(wwwPalette.rule).hex(wwwPalette.text)                                                               ;
-	return `${empty(centered[0])}${chalk.bgHex(color).hex("#101419").bold(centered.slice(1, 1 + filled))}${empty(centered.slice(1 + filled))}`;
+	const reset = resetIn(limit?.resetsAt, now);
+	const value = percent === null ? state : `${percent}%${reset ? ` ${reset}` : ""}`;
+	const iconWidth = image ? 2 : Math.min(label.length, Math.max(1, width - 2));
+	const cells = fit(value.padEnd(width - iconWidth), width - iconWidth);
+	const filled = percent === null ? 0 : Math.round(cells.length * percent / 100);
+	const active = chalk.bgHex(color).hex("#101419").bold;
+	const empty = chalk.bgHex(wwwPalette.rule).hex(wwwPalette.text);
+	const iconColor = image || percent === null || percent === 0 ? wwwPalette.rule : color;
+	const icon = chalk.bgHex(iconColor).hex("#101419").bold(fit(label, iconWidth));
+	return `${icon}${active(cells.slice(0, filled))}${empty(cells.slice(filled))}`;
 }
 
-/** A provider header plus two quota rows form a compact matrix. */
-export function wwwQuotaHudRows(snapshots: readonly UsageSnapshot[], width: number, now = Date.now(), showLogos = false, sessionWidth = width): string[] {
+/** Separate overall and session rows keep both limits visible for every provider. */
+export function wwwQuotaHudRows(snapshots: readonly UsageSnapshot[], width: number, now = Date.now(), showLogos = false): string[] {
 	if (width <= 0) return [];
-	const labels       = ["7d overall", "5h session"] as const                         ;
-	const windows      = ["overall", "session"] as const                               ;
-	const logoEnabled  = showLogos && getCapabilities().images === "kitty"             ;
-	const prefixWidth  = Math.max(...labels.map(label => visibleWidth(label))) + 2     ;
-	const segmentWidth = Math.floor((width - prefixWidth - 6) / quotaProviders.length) ;
-	const nameWidth    = Math.max(3, Math.min(16, segmentWidth))                       ;
-	const header = `${" ".repeat(prefixWidth)}${quotaProviders.map(([, name, ink], index) => {
-		const token = logoEnabled ? logoTokens[index] : name;
-		return a[ink](fit(token, nameWidth));
-	}).join("  ")}`;
+	const logoEnabled = showLogos && getCapabilities().images === "kitty";
+	const labels = ["7d", "5h"] as const;
+	const windows = ["overall", "session"] as const;
+	const logos = windows.map((_, row) => quotaProviders.map((_, index) => logoEnabled ? logoSequence(index, row) : null));
+	const prefixWidth = 4;
+	const segmentWidth = Math.min(24, Math.max(3, Math.floor((width - prefixWidth - 6) / quotaProviders.length)));
 	const rows = windows.map((window, rowIndex) => {
-		const rowWidth = rowIndex === 0 ? width : Math.max(1, Math.min(width, sessionWidth));
-		const prefix = `${labels[rowIndex]}  `;
-		const segments = quotaProviders.map(([id, , ink]) => {
+		const segments = quotaProviders.map(([id, name, ink], index) => {
 			const snapshot = snapshots.find(candidate => candidate.provider === id);
-			return `${quotaBar(quotaLimit(snapshot, window), quotaState(snapshot), nameWidth, wwwPalette[ink], now)}${snapshot?.stale ? a.attention("*") : ""}`;
+			const image = Boolean(logos[rowIndex]?.[index]);
+			const label = image ? logoTokens[index]! : segmentWidth >= 20 ? name : name === "Antigravity" ? "Gemini" : name;
+			const bar = quotaBar(quotaLimit(snapshot, window), quotaState(snapshot), segmentWidth, wwwPalette[ink], now, label, image);
+			return `${bar}${snapshot?.stale ? a.attention("*") : ""}`;
 		}).join("  ");
-		return fit(prefix + segments, rowWidth);
+		return fit(`${labels[rowIndex].padEnd(prefixWidth)}${segments}`, width);
 	});
-	let outputHeader = fit(header, width);
-	for (const [index, token] of logoTokens.entries()) {
-		const sequence = logoEnabled ? logoSequence(index) : null;
-		outputHeader = outputHeader.replaceAll(token, `${sequence ?? ""}  `).replaceAll(token.trim(), " ");
-	}
-	return [outputHeader, ...rows].map((output, rowIndex) => {
+	return rows.map((initialRow, rowIndex) => {
+		let row = initialRow;
 		for (const [index, token] of logoTokens.entries()) {
-			const sequence = rowIndex === 0 && logoEnabled ? logoSequence(index) : null;
-			output = output.replaceAll(token, `${sequence ?? ""}  `).replaceAll(token.trim(), " ");
+			const logo = logos[rowIndex]?.[index];
+			if (logo) row = row.replaceAll(token, `${logo}  `).replaceAll(token.trim(), " ");
 		}
-		return output;
+		return row;
 	});
 }
 

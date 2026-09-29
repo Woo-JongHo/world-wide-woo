@@ -57,7 +57,7 @@ describe("WorkspaceTodoView", () => {
 				projectName : "World Wide Woo",
 				fetchedAt   : "2026-09-09T00:00:00.000Z",
 				issues      : [],
-				update      : { body: "0.1.0의 최신 변경 사항", createdAt: "2026-09-09T00:00:00.000Z" },
+				update      : { body: "0.1.0의 최신 변경 사항", version: "0.1.0", createdAt: "2026-09-09T00:00:00.000Z" },
 				comments    : [],
 				milestones  : [],
 				error       : null,
@@ -83,33 +83,33 @@ describe("WorkspaceTodoView", () => {
 
 	test("uses status markers without mixing project metadata or commands into Todo", () => {
 		const output = new WorkspaceTodoView(() => mixedTodo).render(120).join("\n");
-		expect(stripTerminalSequences(output)).toContain("1 / 4");
-		expect(output).toContain("○ 한국어 pending 작업");
-		expect(output).toContain("▶");
-		expect(output).toContain("\u001B[31m진행 중인 아주 긴 작업\u001B[0m");
-		expect(output).toContain("✓ 완료 작업");
-		expect(output).toContain("◆ 막힌 작업");
-		expect(output).toContain("├ ✓ 재현 완료");
-		expect(output).toContain("├ ▶ 캐시 구현");
-		expect(output).toContain("└ ○ 검증 예정");
-		expect(output).not.toContain("프로젝트");
-		expect(output).not.toContain("작업 위치");
-		expect(output).not.toContain("/usage");
-		expect(output).not.toContain("최근 세션");
-		expect(output).not.toContain("Map");
-		expect(output).not.toContain("Architecture");
-		expect(output).not.toContain("T-Notes");
+		expect(stripTerminalSequences(output))    .toContain("1 / 4"                                    ) ;
+		expect(output                        )    .toContain("○ 한국어 pending 작업"                    ) ;
+		expect(output                        )    .toContain("▶"                                        ) ;
+		expect(output                        )    .toContain("\u001B[31m진행 중인 아주 긴 작업\u001B[0m") ;
+		expect(output                        )    .toContain("✓ 완료 작업"                              ) ;
+		expect(output                        )    .toContain("◆ 막힌 작업"                              ) ;
+		expect(output                        )    .toContain("├ ✓ 재현 완료"                            ) ;
+		expect(output                        )    .toContain("├ ▶ 캐시 구현"                            ) ;
+		expect(output                        )    .toContain("└ ○ 검증 예정"                            ) ;
+		expect(output                        ).not.toContain("프로젝트"                                 ) ;
+		expect(output                        ).not.toContain("작업 위치"                                ) ;
+		expect(output                        ).not.toContain("/usage"                                   ) ;
+		expect(output                        ).not.toContain("최근 세션"                                ) ;
+		expect(output                        ).not.toContain("Map"                                      ) ;
+		expect(output                        ).not.toContain("Architecture"                             ) ;
+		expect(output                        ).not.toContain("T-Notes"                                  ) ;
 	});
 
 	test("uses the active item rather than an earlier pending item in compact layout", () => {
 		const output = new WorkspaceTodoView(() => mixedTodo).render(40).join("\n");
-		expect(stripTerminalSequences(output)).toContain("1 / 4");
-		expect(output).toContain("▶");
-		expect(output).toContain("└ ▶ 캐시 구현");
-		expect(output).not.toContain("○");
-		expect(output).not.toContain("✓");
-		expect(output).not.toContain("◆");
-		expect(stripTerminalSequences(output)).toContain("3개 숨김");
+		expect(stripTerminalSequences(output))    .toContain("1 / 4"        ) ;
+		expect(output                        )    .toContain("▶"            ) ;
+		expect(output                        )    .toContain("└ ▶ 캐시 구현") ;
+		expect(output                        ).not.toContain("○"            ) ;
+		expect(output                        ).not.toContain("✓"            ) ;
+		expect(output                        ).not.toContain("◆"            ) ;
+		expect(stripTerminalSequences(output))    .toContain("3개 숨김"     ) ;
 	});
 
 	test("keeps execution provenance out of the Todo checklist", () => {
@@ -175,10 +175,10 @@ describe("WorkspaceTodoView", () => {
 			() => ({ activeTurnId: "turn-1", activities, workFlow, sync: { state: "syncing", lastConfirmedAt: null, message: null } }),
 		).render(120).join("\n"));
 
-		expect(output).not.toContain("주 실행");
-		expect(output).not.toContain("gpt-5.6-terra");
-		expect(output).not.toContain("gpt-5.6-luna");
-		expect(output).toContain("저장 동기화 중 · 대화는 계속됩니다");
+		expect(output).not.toContain("주 실행"                           ) ;
+		expect(output).not.toContain("gpt-5.6-terra"                     ) ;
+		expect(output).not.toContain("gpt-5.6-luna"                      ) ;
+		expect(output)    .toContain("저장 동기화 중 · 대화는 계속됩니다") ;
 	});
 });
 

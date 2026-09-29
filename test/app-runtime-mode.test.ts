@@ -85,9 +85,9 @@ describe("runApp request Runtime composition", () => {
 
 	test("runWww with runtime config keeps WWW surface while broker capability wins", async () => {
 		const observation = await observeComposition({ runtimeConfig: "runtime.json" }, runWww);
-		expect(observation.surface).toBe("www");
-		expect(observation.sessionOptions.requestRuntimeMode).toBe("broker");
-		expect(observation.sessionOptions.requestCapabilityFactory).toBe(requestCapabilityFactory);
+		expect(observation.surface                                ).toBe("www"                   ) ;
+		expect(observation.sessionOptions.requestRuntimeMode      ).toBe("broker"                ) ;
+		expect(observation.sessionOptions.requestCapabilityFactory).toBe(requestCapabilityFactory) ;
 	});
 
 	test("WWW surface and runtime policy are independently selectable", async () => {
@@ -98,19 +98,19 @@ describe("runApp request Runtime composition", () => {
 
 	test("an unspecified runtime config and surface selects observe mode without a capability factory", async () => {
 		const observation = await observeComposition({});
-		expect(observation.sessionOptions.requestRuntimeMode).toBe("observe");
-		expect(observation.sessionOptions.executionLane).toBe("codex");
-		expect("resumeThreadId" in observation.sessionOptions).toBe(false);
-		expect("requestCapabilityFactory" in observation.sessionOptions).toBe(false);
+		expect(observation.sessionOptions.requestRuntimeMode           ).toBe("observe") ;
+		expect(observation.sessionOptions.executionLane                ).toBe("codex"  ) ;
+		expect("resumeThreadId" in observation.sessionOptions          ).toBe(false    ) ;
+		expect("requestCapabilityFactory" in observation.sessionOptions).toBe(false    ) ;
 	});
 
-	test("runWww keeps WWW off mode while forwarding resume and execution lane", async () => {
+	test("runWww enables observational Runtime while forwarding resume and execution lane", async () => {
 		const observation = await observeComposition({ resumeThreadId: "thread-1", executionLane: "pi" }, runWww);
-		expect(observation.surface).toBe("www");
-		expect(observation.sessionOptions.requestRuntimeMode).toBe("off");
-		expect(observation.sessionOptions.resumeThreadId).toBe("thread-1");
-		expect(observation.sessionOptions.executionLane).toBe("pi");
-		expect("requestCapabilityFactory" in observation.sessionOptions).toBe(false);
+		expect(observation.surface                                     ).toBe("www"     ) ;
+		expect(observation.sessionOptions.requestRuntimeMode           ).toBe("observe" ) ;
+		expect(observation.sessionOptions.resumeThreadId               ).toBe("thread-1") ;
+		expect(observation.sessionOptions.executionLane                ).toBe("pi"      ) ;
+		expect("requestCapabilityFactory" in observation.sessionOptions).toBe(false     ) ;
 	});
 
 	test("closes the created session exactly once and preserves an open failure", async () => {

@@ -38,16 +38,15 @@ describe("Www 키맵", () => {
 		expect(new Set(all).size).toBe(all.length);
 	});
 
-	test("페이지 9종이 F2–F9와 뷰 1–9를 순서대로 파생한다", () => {
-		expect(WWW_KEYS.map(([key, command]) => [key, command])).toEqual([["f2", "/chat"], ["f3", "/todo"], ["f4", "/monitor"], ["f5", "/stats"], ["f6", "/dashboard"], ["f7", "/map"], ["f8", "/context"], ["f9", "/test"]]);
-		expect(WWW_VIEWS.map(([key, command]) => [key, command])).toEqual([["1", "/chat"], ["2", "/todo"], ["3", "/monitor"], ["4", "/stats"], ["5", "/dashboard"], ["6", "/map"], ["7", "/context"], ["8", "/test"], ["9", "/workflow"]]);
+	test("기본 뷰에서 Context를 숨기고 직접 명령만 유지한다", () => {
+		expect(WWW_KEYS.map(([key, command]) => [key, command])).toEqual([["f2", "/chat"], ["f3", "/todo"], ["f4", "/monitor"], ["f5", "/stats"], ["f6", "/dashboard"], ["f7", "/map"], ["f9", "/test"]]);
+		expect(WWW_VIEWS.map(([key, command]) => [key, command])).toEqual([["1", "/chat"], ["2", "/todo"], ["3", "/monitor"], ["4", "/stats"], ["5", "/dashboard"], ["6", "/map"], ["8", "/test"], ["9", "/workflow"]]);
 	});
 
-	test("HelpView가 키맵에서 파생된다 (F9 누락 회귀 방지)", () => {
+	test("HelpView가 키맵에서 파생되고 기능키를 안내하지 않는다", () => {
 		const help = new HelpView().render(80).join("\n");
 		for (const action of WWW_HELP_ACTIONS) for (const label of WWW_KEYMAP[action].doc) expect(help).toContain(label);
-		expect(help).toContain("F2–F9");
-		expect(help).not.toContain("F2–F8");
+		expect(help).not.toMatch(/F[2-9]/u);
 	});
 
 	test("실행 콘솔 문서의 키보드 표가 키맵과 일치한다", () => {

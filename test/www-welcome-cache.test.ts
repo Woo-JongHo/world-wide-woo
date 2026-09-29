@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { WwwTranscriptView }      from "../src/adapters/inbound/tui/features/chat/view/www-execution";
 import { wwwFixture }             from "./fixtures/www-snapshot";
 
-describe("Www welcome animation cache boundary", () => {
-	test("repaints the welcome wordmark after a timer tick", async () => {
+describe("Www welcome cache boundary", () => {
+	test("keeps the idle wordmark stable after a timer tick", async () => {
 		const noColor = process.env.NO_COLOR, reducedMotion = process.env.WWW_REDUCED_MOTION;
 		delete process.env.NO_COLOR; delete process.env.WWW_REDUCED_MOTION;
 		const snapshot = wwwFixture("loading");
@@ -16,7 +16,7 @@ describe("Www welcome animation cache boundary", () => {
 			const first = view.render(80).join("\n");
 			await Bun.sleep(100);
 			const afterTick = view.render(80).join("\n");
-			expect(afterTick).not.toBe(first);
+			expect(afterTick).toBe(first);
 		} finally {
 			view.dispose();
 			if (noColor === undefined) delete process.env.NO_COLOR; else process.env.NO_COLOR = noColor;

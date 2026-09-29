@@ -1,114 +1,139 @@
-import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
+import { stripTerminalSequences, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import type { Component }                from "@earendil-works/pi-tui";
 import { colors }                        from "@/adapters/inbound/tui/foundation/theme/theme";
 import { PRODUCT_VERSION }               from "@/product-version";
+import type { OutputLanguage }           from "@/core/domain/execution/output-language";
+import type { LinearProjectDashboard }   from "@/core/domain/work/linear-dashboard";
 
-const INTRO_DURATION_MS = 2_400;
-const INTRO_FRAME_MS = 40;
-const WWW_WORDMARK = Object.freeze([
-	"██╗    ██╗██╗    ██╗██╗    ██╗",
-	"██║    ██║██║    ██║██║    ██║",
-	"██║ █╗ ██║██║ █╗ ██║██║ █╗ ██║",
-	"██║███╗██║██║███╗██║██║███╗██║",
-	"╚███╔███╔╝╚███╔███╔╝╚███╔███╔╝",
-	" ╚══╝╚══╝  ╚══╝╚══╝  ╚══╝╚══╝ ",
+const W_GLYPH = Object.freeze([
+	"██╗    ██╗",
+	"██║    ██║",
+	"██║ █╗ ██║",
+	"██║███╗██║",
+	"╚███╔███╔╝",
+	" ╚══╝╚══╝ ",
 ]);
-const STOPS: ReadonlyArray<readonly [number, number, number]> = [
-	[85, 174, 182],
-	[120, 167, 198],
-	[208, 161, 95],
-	[220, 230, 232],
-];
-
-function colorAt(position: number): readonly [number, number, number] {
-	const clamped  = Math.min(1, Math.max(0, position))             ;
-	const scaled   = clamped * (STOPS.length - 1)                   ;
-	const index    = Math.min(STOPS.length - 2, Math.floor(scaled)) ;
-	const fraction = scaled - index                                 ;
-	const from     = STOPS[index] ?? STOPS[0]!                      ;
-	const to       = STOPS[index + 1] ?? STOPS.at(-1)!              ;
-	return [
-		Math.round(from[0] + (to[0] - from[0]) * fraction),
-		Math.round(from[1] + (to[1] - from[1]) * fraction),
-		Math.round(from[2] + (to[2] - from[2]) * fraction),
-	];
-}
-
-/** A deterministic diagonal scan; the visible wordmark never changes between frames. */
-export function workbenchWelcomeLogoFrame(elapsedMs: number): string[] {
-	return artworkFrame(WWW_WORDMARK, elapsedMs);
-}
-
-function artworkFrame(artwork: readonly string[], elapsedMs: number): string[] {
-	const running  = elapsedMs < INTRO_DURATION_MS                               ;
-	const progress = running ? Math.max(0, elapsedMs) / INTRO_DURATION_MS : 1    ;
-	const fade     = running ? 0.5 + Math.min(1, progress * 5) * 0.5 : 1         ;
-	const scan     = running ? progress * 2.2 - 0.15 : -10                       ;
-	const height   = artwork.length                                              ;
-	const width    = Math.max(...artwork.map((line) => Array.from(line).length)) ;
-	return artwork.map((line, row) => Array.from(line).map((character, column) => {
-		if (character === " ") return character;
-		if (process.env.NO_COLOR !== undefined) return character;
-		const diagonal = (column + (height - row) * 1.8) / Math.max(1, width + height * 1.8) ;
-		const base     = colorAt(diagonal)                                                   ;
-		const distance = Math.abs(diagonal - (scan % 1.2))                                   ;
-		const shine    = running && distance < 0.09 ? 0.7 * (1 - distance / 0.09) : 0        ;
-		const red      = Math.min(255, Math.round(base[0] * fade + (255 - base[0]) * shine)) ;
-		const green    = Math.min(255, Math.round(base[1] * fade + (255 - base[1]) * shine)) ;
-		const blue     = Math.min(255, Math.round(base[2] * fade + (255 - base[2]) * shine)) ;
-		return `\u001b[38;2;${red};${green};${blue}m${character}\u001b[39m`;
-	}).join(""));
-}
+const RELEASE_HIGHLIGHTS: readonly (readonly [string, string])[] = Object.freeze([
+	["Run Trace", "실행 전체 경로를 관찰합니다."],
+	["Context Profiler", "반복 주입과 과도한 Context 소비를 찾습니다."],
+	["Model Usage", "모델이 어디에 배치됐는지 분석합니다."],
+]);
+const QUICK_START: readonly (readonly [string, string])[] = Object.freeze([
+	["/monitor", "실행 추적"],
+	["/context", "컨텍스트 분석"],
+	["/usage", "모델 사용 분석"],
+	["/dashboard", "전체 상태"],
+	["/cache", "캐시 분석"],
+	["Ctrl+P", "모든 명령 보기"],
+]);
+const DETAIL_WIDTH = 56;
 
 function centered(text: string, width: number): string {
 	const clipped = truncateToWidth(text, Math.max(0, width));
 	return " ".repeat(Math.max(0, Math.floor((width - visibleWidth(clipped)) / 2))) + clipped;
 }
 
+function wordmarkRow(row: string): string {
+	const gap = "  ";
+	return `${colors.accent(row)}${gap}${colors.text(row)}${gap}${colors.warning(row)}`;
+}
+
+function sectionHeader(label: string, width: number): string {
+	const title = colors.muted(label);
+	const rule  = "─".repeat(Math.max(0, width - visibleWidth(title) - 1));
+	return `${title} ${colors.border(rule)}`;
+}
+
+function releaseRows(width: number, language: OutputLanguage): string[] {
+	const highlights = language === "en" ? [
+		["Run Trace", "Observe the full execution path."],
+		["Context Profiler", "Find repeated context and excessive token use."],
+		["Model Usage", "See where each model is used."],
+	] : RELEASE_HIGHLIGHTS;
+	return [
+		sectionHeader(`WHAT'S NEW · v${PRODUCT_VERSION}`, width),
+		...highlights.flatMap(([title, description]) => [
+			`${colors.accent("+")} ${colors.text(title)}`,
+			`  ${colors.muted(description)}`,
+		]),
+		`${colors.text("Enter")}  ${colors.muted(language === "en" ? "View release notes" : "릴리즈 노트 보기")}`,
+	];
+}
+
+function quickStartRows(width: number, language: OutputLanguage): string[] {
+	const commands = language === "en" ? [
+		["/monitor", "Execution trace"], ["/context", "Context analysis"], ["/usage", "Model usage"],
+		["/dashboard", "Overview"], ["/cache", "Cache analysis"], ["Ctrl+P", "All commands"],
+	] : QUICK_START;
+	return [
+		sectionHeader("QUICK START", width),
+		...commands.map(([command, description]) => `${colors.accent(command.padEnd(14))}${colors.muted(description)}`),
+	];
+}
+
+function linearRows(dashboard: LinearProjectDashboard | undefined, language: OutputLanguage): string[] {
+	const rows = [colors.muted(language === "en" ? "OPEN LINEAR ISSUES" : "열린 LINEAR 이슈")];
+	if (!dashboard || dashboard.state === "loading") return [...rows, colors.muted("연결 중")];
+	if (dashboard.state === "unavailable") return [...rows, colors.muted("Linear 정보를 불러오지 못했습니다.")];
+	if (dashboard.state === "stale") rows.push(colors.warning("마지막 성공 값 · 갱신 실패"));
+	const issues = dashboard.issues.slice(0, 5);
+	if (issues.length === 0) return [...rows, colors.muted("열린 이슈가 없습니다.")];
+	return [...rows, ...issues.flatMap(issue => [
+		`${colors.accent(issue.id)} ${colors.text(issue.title)}`,
+		colors.muted(`  ${issue.status}${issue.updatedAt ? ` · ${issue.updatedAt.slice(0, 10)}` : ""}`),
+	])];
+}
+
+function columns(groups: readonly string[][], width: number): string[] {
+	const gap = 2;
+	const columnWidth = Math.floor((width - gap * 2) / 3);
+	if (columnWidth < 24) return groups.flatMap((group, index) => index ? ["", ...group] : group);
+	const height = Math.max(...groups.map(group => group.length));
+	return Array.from({ length: height }, (_, row) => groups.map(group => {
+		const source = process.env.NO_COLOR ? stripTerminalSequences(group[row] ?? "") : group[row] ?? "";
+		const cell = truncateToWidth(source, columnWidth);
+		return cell + " ".repeat(Math.max(0, columnWidth - visibleWidth(cell)));
+	}).join(" ".repeat(gap)));
+}
+
+/** 시간과 무관한 고정 로고 프레임. Welcome은 로딩 화면이 아니라 지속형 홈 화면이다. */
+export function workbenchWelcomeLogoFrame(_elapsedMs: number): string[] {
+	return W_GLYPH.map(wordmarkRow);
+}
+
 export class WorkbenchWelcomeView implements Component {
-	private elapsedMs                                    = INTRO_DURATION_MS ;
-	private startedAt                                    = 0                 ;
-	private timer: ReturnType<typeof setInterval> | null = null              ;
-	private played                                       = false             ;
+	private played = false;
+	constructor(
+		private readonly language: () => OutputLanguage = () => "ko",
+		private readonly dashboard: () => LinearProjectDashboard | undefined = () => undefined,
+	) {}
 
 	playIntro(requestRender: () => void): void {
 		if (this.played) return;
 		this.played = true;
-		if (process.env.WWW_REDUCED_MOTION === "1" || process.env.NO_COLOR !== undefined) {
-			requestRender();
-			return;
-		}
-		this.startedAt = performance.now();
-		this.elapsedMs = 0;
-		this.timer = setInterval(() => {
-			this.elapsedMs = performance.now() - this.startedAt;
-			if (this.elapsedMs >= INTRO_DURATION_MS) this.stop();
-			requestRender();
-		}, INTRO_FRAME_MS);
-		this.timer.unref?.();
 		requestRender();
 	}
 
-	dispose(): void {
-		this.stop();
-	}
-
+	dispose(): void {}
 	invalidate(): void {}
 
 	render(width: number, availableHeight = Math.max(4, (process.stdout.rows || 40) - 8)): string[] {
 		if (width <= 0 || availableHeight <= 0) return [];
-		const logo = availableHeight >= 23 ? workbenchWelcomeLogoFrame(this.elapsedMs) : [];
-		return [
-			...logo.map((line) => centered(line, width)),
+		const columnWidth = width >= 76 ? width : Math.min(DETAIL_WIDTH, width);
+		const details     = columns([
+			releaseRows(Math.max(24, Math.floor(width / 3) - 2), this.language()),
+			quickStartRows(Math.max(24, Math.floor(width / 3) - 2), this.language()),
+			linearRows(this.dashboard(), this.language()),
+		], width);
+		const rows        = [
+			...workbenchWelcomeLogoFrame(0),
 			"",
-			centered(colors.accent(`🐙 Wooni · Native Project Workbench · v${PRODUCT_VERSION}`), width),
-			centered(colors.muted("대화 · 질문별 요약 · /three-body 물리 실험실"), width),
-		].slice(0, Math.floor(availableHeight));
-	}
-
-	private stop(): void {
-		if (this.timer) clearInterval(this.timer);
-		this.timer = null;
-		this.elapsedMs = INTRO_DURATION_MS;
+			colors.text("Wooni · Native Project Workbench"),
+			colors.muted(`v${PRODUCT_VERSION}`),
+			...(availableHeight >= 22 ? ["", ...details, "", colors.muted(this.language() === "en" ? "TIP  Press Space to expand execution details." : "TIP  Space로 선택한 실행의 세부 정보를 펼칠 수 있습니다.")] : []),
+		];
+		return rows
+			.map(row => centered(truncateToWidth(process.env.NO_COLOR ? stripTerminalSequences(row) : row, columnWidth), width))
+			.slice(0, Math.floor(availableHeight));
 	}
 }

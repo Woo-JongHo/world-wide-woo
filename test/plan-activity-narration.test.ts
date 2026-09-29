@@ -10,7 +10,7 @@ function observation(sequence: number, itemId = `item-${sequence}`, phase: Proje
 const result = { what: "회귀 테스트로 표시 동작을 확인합니다.", inputSummary: [] };
 const flush = async () => { await Bun.sleep(0); };
 
-test("serializes calls, coalesces item lifecycle, and keeps the latest five refined actions", async () => {
+test("serializes calls, coalesces item lifecycle, and keeps one latest progress per Plan step", async () => {
 	const pending: ((result: ActivityNarrationResult) => void)[] = [];
 	let calls = 0;
 	const queue = new PlanActivityNarration({ narrate: async request => {
@@ -19,15 +19,57 @@ test("serializes calls, coalesces item lifecycle, and keeps the latest five refi
 		return await new Promise(resolve => pending.push(resolve));
 	} }, new AbortController().signal, () => {});
 	queue.select(context.turnId);
-	for (let index = 1; index <= 7; index++) queue.observe(observation(index), context);
+	for (let index = 1; index <= 7; index++) queue.observe(observation(index), { ...context, stepId: `step-${index}` });
 	queue.observe(observation(8, "item-1", "completed"), { ...context, stepId: "next" });
 	expect(calls).toBe(1);
 	pending.shift()!(result);
 	await flush();
-	expect(queue.snapshot("verify").planActivities[0]).toMatchObject({ status: "completed", stepId: "verify" });
+	expect(queue.snapshot("step-1").planActivities[0]).toMatchObject({ status: "completed", stepId: "step-1" });
 	for (let index = 0; index < 6; index++) { pending.shift()!(result); await flush(); }
 	expect(calls).toBe(7);
-	expect(queue.snapshot("verify").planActivities.map(item => item.sequence)).toEqual([3, 4, 5, 6, 7]);
+	expect(queue.snapshot().planActivities.map(item => item.sequence)).toEqual([3, 4, 5, 6, 7]);
+});
+
+test("many shell actions within one Plan item project one progress entry", async () => {
+	let index = 0;
+	const queue = new PlanActivityNarration({ narrate: async () => ({ what: `계획 단계 세부 진행 ${++index}`, inputSummary: [] }) }, new AbortController().signal, () => {});
+	queue.select(context.turnId);
+	for (let sequence = 1; sequence <= 3; sequence++) queue.observe(observation(sequence), context);
+	await Bun.sleep(0);
+	expect(queue.snapshot().planActivities).toHaveLength(1);
+	expect(queue.snapshot().planActivities[0]?.summary).toBe("계획 단계 세부 진행 3");
+});
+
+test("tool action projection keeps AI interpretations distinct from Plan progress", async () => {
+	const kinds: string[] = [];
+	const queue = new PlanActivityNarration({ narrate: async request => { kinds.push(request.kind ?? ""); return { what: `도구 행동 ${kinds.length}`, inputSummary: [] }; } }, new AbortController().signal, () => {}, 30_000, "actions");
+	queue.select(context.turnId);
+	queue.observe({ ...observation(1), payload: { params: { item: { command: "rg -n first src" } } } }, { ...context, kind: "tool-action" });
+	queue.observe({ ...observation(2), payload: { params: { item: { command: "rg -n second src" } } } }, { ...context, kind: "tool-action" });
+	await Bun.sleep(0);
+	expect(kinds).toEqual(["tool-action", "tool-action"]);
+	expect(queue.snapshot().planActivities.map(activity => activity.summary)).toEqual(["도구 행동 1", "도구 행동 2"]);
+});
+
+test("test command waits for its terminal observation and receives one evidence-bound narration", async () => {
+	const requests: { kind?: string; inputSummary: readonly string[] }[] = [];
+	const queue = new PlanActivityNarration({ narrate: async request => {
+		requests.push(request);
+		return { what: "입력 경로의 회귀 테스트를 확인합니다.", inputSummary: [] };
+	} }, new AbortController().signal, () => {}, 30_000, "actions");
+	queue.select(context.turnId);
+	const started = observation(1, "test-run");
+	queue.observe(started, { ...context, kind: "tool-action" });
+	expect(requests).toHaveLength(0);
+	queue.observe({ ...observation(2, "test-run", "completed"), payload: { params: { item: {
+		type: "commandExecution", command: "bun test test/input.test.ts", exitCode: 0,
+		aggregatedOutput: "(pass) 입력 경로를 유지한다 [1ms]\n1 pass\n0 fail",
+	} } } }, { ...context, kind: "tool-action" });
+	await flush();
+	expect(requests).toHaveLength(1);
+	expect(requests[0]?.kind).toBe("test-action");
+	expect(requests[0]?.inputSummary.join(" ")).toContain("입력 경로를 유지한다");
+	expect(queue.snapshot().planActivities[0]?.summary).toBe("입력 경로의 회귀 테스트를 확인합니다.");
 });
 
 test("discards old-turn asynchronous results and rejects raw event text without fallback", async () => {
@@ -87,7 +129,7 @@ test("normalizes model narration to one concise sentence without changing source
 	queue.observe(source, context);
 	await flush();
 	const projected = queue.snapshot().planActivities[0];
-	expect(projected?.summary).toBe("첫 문장으로 작업을 설명합니다.");
-	expect(projected?.id).toContain(source.nativeRefs.itemId!);
-	expect(source.payload.params).toMatchObject({ item: { command: "bun test test-1.ts", output: "PRIVATE OUTPUT" } });
+	expect(projected?.summary   ).toBe         ("첫 문장으로 작업을 설명합니다."                                     ) ;
+	expect(projected?.id        ).toContain    (source.nativeRefs.itemId!                                            ) ;
+	expect(source.payload.params).toMatchObject({ item: { command: "bun test test-1.ts", output: "PRIVATE OUTPUT" } }) ;
 });

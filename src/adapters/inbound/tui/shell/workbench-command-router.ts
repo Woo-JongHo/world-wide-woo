@@ -3,6 +3,7 @@ import type { DevelopmentService }                                 from "@/core/
 import type { ProjectWorkbench }                                   from "@/core/application/orchestration/project-workbench";
 import { nativeModelEfforts }                                      from "@/core/domain/execution/model-settings";
 import type { Provider, WwwSettings }                              from "@/core/domain/execution/model-settings";
+import type { OutputLanguage }                                     from "@/core/domain/execution/output-language";
 import { sanitizeTerminalTextUnbounded }                           from "@/core/domain/execution/terminal";
 import type { WorkbenchCommandReceipt, WorkbenchSnapshot }         from "@/core/domain/work/workbench";
 import type { AuthController }                                     from "@/core/ports/integration/auth-controller-port";
@@ -23,6 +24,7 @@ import type {
 type StatsTarget = "session" | "diagnostics" | "latest" | number;
 
 export interface WorkbenchCommandRouterDependencies {
+	readonly selectOutputLanguage?     : (language: OutputLanguage) => Promise<void>                        ;
 	readonly hasWww                  : boolean                                                              ;
 	readonly snapshot                : () => WorkbenchSnapshot                                              ;
 	readonly workbench               : ProjectWorkbench                                                     ;
@@ -32,6 +34,7 @@ export interface WorkbenchCommandRouterDependencies {
 	readonly enterDemo               : () => void                                                           ;
 	readonly showWwwPage             : (page: WwwPage) => void                                              ;
 	readonly enterObservability      : (mode: ObservabilityViewMode) => Promise<void>                       ;
+	readonly selectMonitorRequest    : (index: number | null) => boolean                                    ;
 	readonly updateUsage             : (snapshots: readonly UsageSnapshot[]) => void                        ;
 	readonly openApproval            : (request: NonNullable<WorkbenchSnapshot["pendingApproval"]>) => void ;
 	readonly showDevelopmentNotice   : (notice: string) => void                                             ;
@@ -59,6 +62,12 @@ export function createWorkbenchCommandRouter(dependencies: WorkbenchCommandRoute
 
 	return async (text: string): Promise<boolean> => {
 		const normalized = text.trim();
+		const languageCommand = /^\/language\s+(ko|en)$/iu.exec(normalized);
+		if (dependencies.hasWww && /^\/language(?:\s|$)/iu.test(normalized)) {
+			if (languageCommand) await dependencies.selectOutputLanguage?.(languageCommand[1]!.toLowerCase() as OutputLanguage);
+			else notice("사용법: /language ko 또는 /language en");
+			return true;
+		}
 		if (dependencies.hasWww && normalized.toLowerCase() === "/demo") {
 			dependencies.enterDemo();
 			return true;
@@ -72,6 +81,16 @@ export function createWorkbenchCommandRouter(dependencies: WorkbenchCommandRoute
 		}
 		if (dependencies.hasWww && normalized === "/dashboard") {
 			dependencies.showWwwPage("dashboard");
+			return true;
+		}
+		if (dependencies.hasWww && /^\/monitor(?:\s+#\d+)?$/u.test(normalized)) {
+			const index = normalized.match(/^\/monitor\s+#(\d+)$/u);
+			if (!dependencies.selectMonitorRequest(index ? Number(index[1]) : null)) {
+				notice("해당 질문 기록이 없습니다.");
+				return true;
+			}
+			await dependencies.enterObservability("monitor");
+			dependencies.requestRender();
 			return true;
 		}
 		if (dependencies.hasWww && normalized === "/history") {
@@ -139,7 +158,7 @@ export function createWorkbenchCommandRouter(dependencies: WorkbenchCommandRoute
 					: requestedViewMode === "map"
 						? "Development Map · 전체 구조와 진척도 · 자동 갱신"
 						: requestedViewMode === "test"
-							? "Test · 현재 세션의 질문별 검증 목적·검사·근거"
+							? "VERIFY · 실제 실행 명령과 테스트 결과"
 							: "Session Stats · 목적·행동·결과와 오케스트레이션 효율");
 			return true;
 		}

@@ -1,6 +1,7 @@
 import type { NativeTurnStart }       from "@/core/domain/execution/native-session.js";
 import type { WooEntrySnapshot }      from "@/core/application/orchestration/woo-entry.js";
 import type { SkillRegistrySnapshot } from "@/core/skills/skill-registry.js";
+import type { OutputLanguageSelection } from "@/core/domain/execution/output-language.js";
 
 const CONTEXT_POLICY_KEY  = "www_context_policy"  ;
 const CONTEXT_SOURCES_KEY = "www_context_sources" ;
@@ -16,7 +17,7 @@ export interface ContextSourceResult {
 
 /** Builds the model context independently of any display projection. */
 export class ContextComposer {
-	public constructor(private readonly contextLimit = 4_000) {}
+	public constructor(private readonly contextLimit = 4_000, private readonly outputLanguage?: OutputLanguageSelection) {}
 	compose(input: NativeTurnStart, wooEntry: WooEntrySnapshot | undefined, skillRegistry?: SkillRegistrySnapshot): NativeTurnStart {
 		const sources = [this.wooEntrySource(wooEntry), this.wwwSource(input.cwd)];
 		const context = JSON.stringify({ protocol: "www-context-composer", version: 1, sources });
@@ -33,6 +34,7 @@ export class ContextComposer {
 						instructions: [
 							"Treat context sources as read-only evidence.",
 							"Do not infer omitted source content.",
+							...(this.outputLanguage ? [this.outputLanguage.get() === "en" ? "Respond to the user in English." : "Respond to the user in Korean."] : []),
 						],
 					}),
 				},

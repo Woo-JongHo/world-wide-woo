@@ -13,7 +13,6 @@ export type WwwKeyAction =
 	| "page.stats"
 	| "page.dashboard"
 	| "page.map"
-	| "page.context"
 	| "page.test"
 	| "page.workflow"
 	| "plan.sidebar"
@@ -23,6 +22,7 @@ export type WwwKeyAction =
 	| "scroll.move"
 	| "transcript.expand"
 	| "runtime.mode.cycle"
+	| "language.cycle"
 	| "navigate.back"
 	| "interrupt.or.exit"
 	| "session.exit";
@@ -44,12 +44,11 @@ export interface WwwKeyBinding {
 export const WWW_KEYMAP: Readonly<Record<WwwKeyAction, WwwKeyBinding>> = {
 	"page.execution"  : { label: "실행 · 질문 요약", command: "/chat", functionKey: "f2", viewNumber: "1", doc: ["Ctrl+G → 1"] },
 	"page.plan"       : { label: "PLAN", command: "/todo", functionKey: "f3", viewNumber: "2", doc: ["Ctrl+G → 2"] },
-	"page.monitor"    : { label: "PROGRESS", command: "/monitor", functionKey: "f4", viewNumber: "3", doc: ["Ctrl+G → 3"] },
+	"page.monitor"    : { label: "Monitor · 실시간", command: "/monitor", functionKey: "f4", viewNumber: "3", doc: ["Ctrl+G → 3"] },
 	"page.stats"      : { label: "통계", command: "/stats", functionKey: "f5", viewNumber: "4", doc: ["Ctrl+G → 4"] },
 	"page.dashboard"  : { label: "세션", command: "/dashboard", functionKey: "f6", viewNumber: "5", doc: ["Ctrl+G → 5"] },
 	"page.map"        : { label: "개발 지도", command: "/map", functionKey: "f7", viewNumber: "6", doc: ["Ctrl+G → 6"] },
-	"page.context"    : { label: "Context · 사용량", command: "/context", functionKey: "f8", viewNumber: "7", doc: ["Ctrl+G → 7"] },
-	"page.test"       : { label: "질문별 Test", command: "/test", functionKey: "f9", viewNumber: "8", doc: ["Ctrl+G → 8"] },
+	"page.test"       : { label: "VERIFY", command: "/test", functionKey: "f9", viewNumber: "8", doc: ["Ctrl+G → 8"] },
 	"page.workflow"   : { label: "Workflow · Subagents", command: "/workflow", viewNumber: "9", doc: ["Ctrl+G → 9"] },
 	"plan.sidebar"    : { label: "넓은 실행 화면의 계획 사이드바 열기/닫기", keys: ["ctrl+b"], doc: ["Ctrl+B"] },
 	"views.switcher"  : { label: "화면 선택", keys: ["ctrl+g"], doc: ["Ctrl+G"] },
@@ -62,6 +61,7 @@ export const WWW_KEYMAP: Readonly<Record<WwwKeyAction, WwwKeyBinding>> = {
 	},
 	"transcript.expand"  : { label: "읽기 모드에서 도구 출력 펼치기/접기. 입력 중에는 기존 줄 끝 이동", keys: ["ctrl+e"], doc: ["Ctrl+E"] },
 	"runtime.mode.cycle" : { label: "협업·권한 모드 순환", keys: ["shift+tab"], doc: ["Shift+Tab"] },
+	"language.cycle"     : { label: "한국어·English 출력 전환", keys: ["f8"], doc: ["/language ko|en"] },
 	"navigate.back"      : { label: "모달·상세·읽기 상태에서 돌아가기. 실행 화면의 입력 상태에서는 현재 실행 중단", keys: ["escape"], doc: ["Esc"] },
 	"interrupt.or.exit"  : { label: "실행 중 응답 중단. 500ms 안에 다시 누르면 종료", keys: ["ctrl+c"], doc: ["Ctrl+C"] },
 	"session.exit"       : { label: "입력이 비었을 때 안전하게 종료", doc: ["Ctrl+D"] },
@@ -90,6 +90,7 @@ export const WWW_HELP_ACTIONS = [
 	"transcript.expand",
 	"plan.sidebar",
 	"runtime.mode.cycle",
+	"language.cycle",
 	"navigate.back",
 	"interrupt.or.exit",
 	"session.exit",
@@ -106,7 +107,7 @@ export const WWW_SCROLL_KEYS = {
 } as const;
 
 /** 문서 표에는 없지만 문서 본문에서 보증해야 하는 표기. */
-export const WWW_DOC_EXTRA = ["F2–F9"] as const;
+export const WWW_DOC_EXTRA = [] as const;
 
 /** KeyId 유니온에 없는 시프트 문자(G)만 raw 비교하고, 나머지는 matchesKey가 Kitty 시퀀스까지 처리한다. */
 export function matchesWwwKey(data: string, key: string): boolean {

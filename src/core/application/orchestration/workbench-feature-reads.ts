@@ -30,6 +30,7 @@ export interface ChatFeatureProjection {
 	readonly delegation?                : readonly NativeDelegationProjection[]            ;
 	readonly developmentRecordingError? : string | null                                    ;
 	readonly draft                      : string                                           ;
+	readonly draftAnchorSequence?       : number | null                                    ;
 	readonly error                      : string | null                                    ;
 	readonly executionRun?              : ExecutionRunState | null                         ;
 	readonly journalSequence            : number                                           ;
@@ -39,6 +40,7 @@ export interface ChatFeatureProjection {
 	readonly performance?               : PerformanceProjection                            ;
 	readonly phase                      : WorkbenchPhase                                   ;
 	readonly planActivities?            : readonly PlanActivity[]                          ;
+	readonly toolActions?               : readonly PlanActivity[]                          ;
 	readonly planActivityStatus?        : "disabled" | "pending" | "ready" | "unavailable" ;
 	readonly projectId                  : string                                           ;
 	readonly reasoningDraft             : string                                           ;
@@ -109,6 +111,7 @@ export function projectChatFeature(snapshot: WorkbenchSnapshot): ChatFeatureProj
 		chat               : snapshot.chat,
 		chatQueue          : snapshot.chatQueue,
 		draft              : snapshot.draft,
+		draftAnchorSequence: snapshot.draftAnchorSequence ?? null,
 		error              : snapshot.error,
 		journalSequence    : snapshot.journalSequence,
 		liveActivity       : snapshot.liveActivity,
@@ -127,6 +130,7 @@ export function projectChatFeature(snapshot: WorkbenchSnapshot): ChatFeatureProj
 		...(snapshot.linearDashboard === undefined ? {} : { linearDashboard: snapshot.linearDashboard }),
 		...(snapshot.performance === undefined ? {} : { performance: snapshot.performance }),
 		...(snapshot.planActivities === undefined ? {} : { planActivities: snapshot.planActivities }),
+		...(snapshot.toolActions === undefined ? {} : { toolActions: snapshot.toolActions }),
 		...(snapshot.planActivityStatus === undefined ? {} : { planActivityStatus: snapshot.planActivityStatus }),
 		...(snapshot.reasoningSummaryDraft === undefined ? {} : { reasoningSummaryDraft: snapshot.reasoningSummaryDraft }),
 		...(snapshot.requestRuntime === undefined ? {} : { requestRuntime: snapshot.requestRuntime }),

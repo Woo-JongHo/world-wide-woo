@@ -2,6 +2,7 @@ import { expect, test }                      from "bun:test";
 import { stripTerminalSequences }            from "@earendil-works/pi-tui";
 import { renderLayoutFrame }                 from "@earendil-works/pi-tui/dist/layout.js";
 import { WwwTranscriptView }                 from "../src/adapters/inbound/tui/features/chat/view/www-execution";
+import { projectChatFeature }                 from "../src/core/application/orchestration/workbench-feature-reads";
 import { WwwExecutionHeading, WwwWorkspace } from "../src/adapters/inbound/tui/shell/www-surface";
 import { wwwFixture }                        from "./fixtures/www-snapshot";
 
@@ -56,6 +57,44 @@ function immutableToolHistory(count: number) {
 	return deepFreezeFixture(snapshot);
 }
 
+test("24개 도구 설명 중 한 건이 도착하면 유지 중인 두 폭에서 해당 입력 카드만 다시 센다", () => {
+	const base = wwwFixture("ready");
+	const prototype = base.activities.find(activity => activity.id === "tool-1")!;
+	const activities = Array.from({ length: 24 }, (_, index) => ({
+		...prototype, id: `burst-${index}`, sequence: index + 1,
+		nativeRefs: { threadId: "burst-thread", turnId: "burst-turn", itemId: `burst-item-${index}` },
+		payload: { params: { item: { type: "commandExecution", command: `sed -n '1,125p' src/core/file-${index}.ts`, exitCode: 0 } } },
+	}));
+	const initial = deepFreezeFixture({ ...base, threadId: "burst-thread", activeTurnId: null, activities, chat: [], tnotes: [], journalSequence: 24, toolActions: [] });
+	const view = new WwwTranscriptView(initial);
+	const beforeText = stripTerminalSequences(view.render(80).join("\n"));
+	view.render(120);
+	const before = view.cacheMetrics();
+	const narration = { id: "burst-turn:burst-item-23", turnId: "burst-turn", stepId: "chat-tool-action", stepTitle: "Chat 도구 행동", summary: "마지막 소스 파일을 확인합니다.", status: "completed" as const, sequence: 24 };
+	const next = deepFreezeFixture({ ...initial, revision: initial.revision + 1, toolActions: [narration] });
+	view.update(next);
+	const afterText = stripTerminalSequences(view.render(80).join("\n"));
+	const after = view.cacheMetrics();
+	expect(beforeText).toContain("설명 준비 중");
+	expect(afterText).toContain("마지막 소스 파일을 확인합니다.");
+	expect(afterText).toContain("경로 · src/core/file-23.ts");
+	expect(after.durableCountRenderedBlocks - before.durableCountRenderedBlocks).toBe(2);
+});
+
+test("OUTPUT 문장은 도구 제목에 반복되지 않고 작성 중 문장은 시작 위치를 유지한다", () => {
+	const snapshot = wwwFixture("working");
+	snapshot.draft = "두 번째 공개 설명";
+	snapshot.draftAnchorSequence = 5;
+	const view = new WwwTranscriptView(projectChatFeature(snapshot));
+	const initial = stripTerminalSequences(view.render(100).join("\n"));
+	expect(initial.split("기존 이벤트와 재개 이벤트가 같은 경로로 합쳐집니다.")).toHaveLength(2);
+	expect(initial.indexOf("두 번째 공개 설명")).toBeLessThan(initial.indexOf("도구 작업" , initial.indexOf("두 번째 공개 설명")));
+	snapshot.draft = "두 번째 공개 설명을 이어갑니다";
+	view.update(projectChatFeature(snapshot));
+	const updated = stripTerminalSequences(view.render(100).join("\n"));
+	expect(updated.indexOf("두 번째 공개 설명을 이어갑니다")).toBeLessThan(updated.indexOf("도구 작업", updated.indexOf("두 번째 공개 설명을 이어갑니다")));
+});
+
 test("두 폭 exact index는 byte 출력을 보존하고 최근 폭 metadata만 유지한다", () => {
 	const view        = new WwwTranscriptView(wwwFixture("ready")) ;
 	const first80     = view.render(80)                            ;
@@ -64,11 +103,11 @@ test("두 폭 exact index는 byte 출력을 보존하고 최근 폭 metadata만 
 	expect(view.render(80)).toEqual(first80);
 	const exposed = view.render(80);
 	exposed[0] = "호출자가 바꾼 행";
-	expect(view.render(120)).toEqual(first120);
-	expect(view.render(80)).toEqual(first80);
-	expect(view.cacheMetrics().exactCountBuilds).toBe(afterWidths.exactCountBuilds);
-	expect(view.cacheMetrics().widthStates).toBeLessThanOrEqual(8);
-	expect(view.cacheMetrics().rowLogicalBytes).toBeLessThanOrEqual(8 * 1024 * 1024);
+	expect(view.render(120)                    ).toEqual            (first120                    ) ;
+	expect(view.render(80)                     ).toEqual            (first80                     ) ;
+	expect(view.cacheMetrics().exactCountBuilds).toBe               (afterWidths.exactCountBuilds) ;
+	expect(view.cacheMetrics().widthStates     ).toBeLessThanOrEqual(8                           ) ;
+	expect(view.cacheMetrics().rowLogicalBytes ).toBeLessThanOrEqual(8 * 1024 * 1024             ) ;
 });
 
 test("같은 thread의 동일 길이 durable 내용 변경은 이전 block을 재사용하지 않는다", () => {
@@ -91,10 +130,10 @@ test("같은 thread의 동일 길이 durable 내용 변경은 이전 block을 �
 	view.update(after);
 	const actualRows = view.render(120);
 	const actual = stripTerminalSequences(actualRows.join("\n"));
-	expect(actualRows).toEqual(new WwwTranscriptView(after).render(120));
-	expect(actual).toContain("OMEGA");
-	expect(actual).not.toContain("ALPHA");
-	expect(view.cacheMetrics().durableCountRenderedBlocks).toBeGreaterThan(beforeMetrics.durableCountRenderedBlocks);
+	expect(actualRows                                    )    .toEqual        (new WwwTranscriptView(after).render(120)) ;
+	expect(actual                                        )    .toContain      ("OMEGA"                                 ) ;
+	expect(actual                                        ).not.toContain      ("ALPHA"                                 ) ;
+	expect(view.cacheMetrics().durableCountRenderedBlocks)    .toBeGreaterThan(beforeMetrics.durableCountRenderedBlocks) ;
 });
 
 test("thread, expanded, invalidate와 dispose는 generation 자원을 정확히 폐기한다", () => {
@@ -123,9 +162,9 @@ test("5,000개 exact source를 끝까지 chunk 순회해 누락 없이 출력하
 	const rows: string[] = []                              ;
 	for (let start = 0; start < source.rowCount; start += 256) rows.push(...source.rows(start, Math.min(256, source.rowCount - start)));
 	const plain = stripTerminalSequences(rows.join("\n"));
-	expect(rows).toHaveLength(source.rowCount);
-	expect(plain).toContain("marker-0");
-	expect(plain).toContain("marker-4999");
+	expect(rows ).toHaveLength(source.rowCount) ;
+	expect(plain).toContain   ("marker-0"     ) ;
+	expect(plain).toContain   ("marker-4999"  ) ;
 	for (let index = 0; index < 5_000; index += 1) expect(plain.split(`marker-${index}:`)).toHaveLength(2);
 	expect(view.cacheMetrics().rowLogicalBytes).toBeLessThanOrEqual(8 * 1024 * 1024);
 	expect(view.cacheMetrics().widthMetadataLogicalBytes).toBeLessThanOrEqual(4 * 1024 * 1024);
@@ -153,11 +192,11 @@ test("8MiB보다 큰 volatile handoff는 보존하지 않고 exact rows로 fallb
 	const rows       = source.rows(0, source.rowCount) ;
 	const afterRows  = view.cacheMetrics()             ;
 
-	expect(rows).toHaveLength(source.rowCount);
-	expect(stripTerminalSequences(rows.join("\n"))).toContain("oversized volatile");
-	expect(afterCount.rowEntries).toBe(0);
-	expect(afterRows.renderedBlocks - before.renderedBlocks).toBe(2);
-	expect(afterRows.rowLogicalBytes).toBeLessThanOrEqual(8 * 1024 * 1024);
+	expect(rows                                            ).toHaveLength       (source.rowCount     ) ;
+	expect(stripTerminalSequences(rows.join("\n"))         ).toContain          ("oversized volatile") ;
+	expect(afterCount.rowEntries                           ).toBe               (0                   ) ;
+	expect(afterRows.renderedBlocks - before.renderedBlocks).toBe               (2                   ) ;
+	expect(afterRows.rowLogicalBytes                       ).toBeLessThanOrEqual(8 * 1024 * 1024     ) ;
 }, 30_000);
 
 test("실제 WwwWorkspace는 visited 폭의 exact index를 재사용하고 visible block만 보존한다", () => {
@@ -168,9 +207,9 @@ test("실제 WwwWorkspace는 visited 폭의 exact index를 재사용하고 visib
 	renderLayoutFrame(workspace.component, 120, 24, () => undefined);
 	const afterWidths = workspace.transcript.cacheMetrics();
 	renderLayoutFrame(workspace.component, 80, 24, () => undefined);
-	expect(workspace.transcript.cacheMetrics().exactCountBuilds).toBe(afterWidths.exactCountBuilds);
-	expect(workspace.transcript.cacheMetrics().requestedRows).toBeLessThan(snapshot.chat.length);
-	expect(workspace.transcript.cacheMetrics().rowLogicalBytes).toBeLessThanOrEqual(8 * 1024 * 1024);
+	expect(workspace.transcript.cacheMetrics().exactCountBuilds).toBe               (afterWidths.exactCountBuilds) ;
+	expect(workspace.transcript.cacheMetrics().requestedRows   ).toBeLessThan       (snapshot.chat.length        ) ;
+	expect(workspace.transcript.cacheMetrics().rowLogicalBytes ).toBeLessThanOrEqual(8 * 1024 * 1024             ) ;
 });
 
 test("production execution heading은 긴 Chat을 매 frame dense render하지 않는다", () => {
@@ -206,11 +245,11 @@ test("journal-only immutable revision은 graph와 retained-width repair를 모�
 	renderLayoutFrame(workspace.component, 80, 24, () => undefined);
 	const after = workspace.transcript.cacheMetrics();
 
-	expect(after.durableGenerationNoopReuses - before.durableGenerationNoopReuses).toBe(1);
-	expect(after.durableGraphBuilds - before.durableGraphBuilds).toBe(0);
-	expect(after.exactCountBuilds - before.exactCountBuilds).toBe(0);
-	expect(after.durableCountReusedBlocks - before.durableCountReusedBlocks).toBe(0);
-	expect(after.durableCountRenderedBlocks - before.durableCountRenderedBlocks).toBe(0);
+	expect(after.durableGenerationNoopReuses - before.durableGenerationNoopReuses).toBe(1) ;
+	expect(after.durableGraphBuilds - before.durableGraphBuilds                  ).toBe(0) ;
+	expect(after.exactCountBuilds - before.exactCountBuilds                      ).toBe(0) ;
+	expect(after.durableCountReusedBlocks - before.durableCountReusedBlocks      ).toBe(0) ;
+	expect(after.durableCountRenderedBlocks - before.durableCountRenderedBlocks  ).toBe(0) ;
 });
 
 test("한 snapshot에서 바뀐 N개 tool block은 retained 폭마다 정확히 N번만 count한다", () => {
@@ -238,10 +277,11 @@ test("한 snapshot에서 바뀐 N개 tool block은 retained 폭마다 정확히 
 	fresh.toggleSidebar();
 	const expected = renderLayoutFrame(fresh.component, 80, 24, () => undefined);
 
-	expect(frame.lines).toEqual(expected.lines);
-	expect(stripTerminalSequences(new WwwTranscriptView(snapshot).render(76).join("\n"))).toContain("changed-output-5");
-	expect(after.durableCountRenderedBlocks - before.durableCountRenderedBlocks).toBe(changedCount * 2);
-	expect(after.durableCountReusedBlocks - before.durableCountReusedBlocks).toBe(0);
+	expect(frame.lines                                                                  ).toEqual  (expected.lines    ) ;
+	const sourceView = new WwwTranscriptView(snapshot); sourceView.expanded = true;
+	expect(stripTerminalSequences(sourceView.render(76).join("\n"))).toContain("changed-output-5") ;
+	expect(after.durableCountRenderedBlocks - before.durableCountRenderedBlocks         ).toBe     (changedCount * 4  ) ;
+	expect(after.durableCountReusedBlocks - before.durableCountReusedBlocks             ).toBe     (0                 ) ;
 });
 
 test("shallow-frozen tool의 mutable grandchild는 identity count hit를 허용하지 않는다", () => {
@@ -272,13 +312,16 @@ test("shallow-frozen tool의 mutable grandchild는 identity count hit를 허용�
 	snapshot.revision += 1;
 	snapshot.journalSequence = 2;
 	view.update(snapshot);
-	const output = stripTerminalSequences(view.render(80).join("\n"));
+	view.render(80);
 	const after = view.cacheMetrics();
+	const sourceView = new WwwTranscriptView(snapshot);
+	sourceView.expanded = true;
+	const output = stripTerminalSequences(sourceView.render(80).join("\n"));
 
-	expect(output).toContain("after-command");
-	expect(output).not.toContain("before-command");
-	expect(after.durableGenerationNoopReuses - before.durableGenerationNoopReuses).toBe(0);
-	expect(after.durableCountRenderedBlocks - before.durableCountRenderedBlocks).toBe(2);
+	expect(output                                                                )    .toContain("after-command" ) ;
+	expect(output                                                                ).not.toContain("before-command") ;
+	expect(after.durableGenerationNoopReuses - before.durableGenerationNoopReuses)    .toBe     (0               ) ;
+	expect(after.durableCountRenderedBlocks - before.durableCountRenderedBlocks  )    .toBe     (4               ) ;
 });
 
 test("live Terminal은 같은 5줄 window가 바뀌면 이전 row cache를 재사용하지 않는다", () => {
@@ -294,6 +337,7 @@ test("live Terminal은 같은 5줄 window가 바뀌면 이전 row cache를 재�
 	});
 	let snapshot = makeSnapshot(0)                                    ;
 	const view   = new WwwTranscriptView(snapshot)                    ;
+	view.expanded = true;
 	const first  = stripTerminalSequences(view.render(80).join("\n")) ;
 	const before = view.cacheMetrics()                                ;
 
@@ -335,11 +379,12 @@ test("accessor와 frozen Date/Map wrapper는 immutable identity 증거가 되지
 	const accessorBefore = accessor.view.cacheMetrics();
 	accessorItem = { type: "commandExecution", command: "accessor-after", exitCode: 0 };
 	accessor.view.update(accessor.snapshot);
+	accessor.view.expanded = true;
 	const accessorOutput = stripTerminalSequences(accessor.view.render(80).join("\n"));
 	const accessorAfter = accessor.view.cacheMetrics();
-	expect(accessorOutput).toContain("accessor-after");
-	expect(accessorOutput).not.toContain("accessor-before");
-	expect(accessorAfter.durableCountRenderedBlocks - accessorBefore.durableCountRenderedBlocks).toBe(2);
+	expect(accessorOutput                                                                      )    .toContain("accessor-after" ) ;
+	expect(accessorOutput                                                                      ).not.toContain("accessor-before") ;
+	expect(accessorAfter.durableCountRenderedBlocks - accessorBefore.durableCountRenderedBlocks)    .toBe     (6                ) ;
 
 	const mutableDate = Object.freeze(new Date("2026-09-14T00:00:00.000Z"));
 	const mutableMap = Object.freeze(new Map([["state", "before"]]));
@@ -353,7 +398,7 @@ test("accessor와 frozen Date/Map wrapper는 immutable identity 증거가 되지
 	wrapper.view.update(wrapper.snapshot);
 	expect(wrapper.view.render(80)).toEqual(new WwwTranscriptView(wrapper.snapshot).render(80));
 	const wrapperAfter = wrapper.view.cacheMetrics();
-	expect(wrapperAfter.durableCountRenderedBlocks - wrapperBefore.durableCountRenderedBlocks).toBe(2);
+	expect(wrapperAfter.durableCountRenderedBlocks - wrapperBefore.durableCountRenderedBlocks).toBe(4);
 });
 
 test("Note 한 개 변경은 tool count를 재사용하고 두 retained 폭의 note만 다시 count한다", () => {
@@ -372,10 +417,10 @@ test("Note 한 개 변경은 tool count를 재사용하고 두 retained 폭의 n
 	const rows = view.render(80);
 	const after = view.cacheMetrics();
 
-	expect(rows).toEqual(new WwwTranscriptView(snapshot).render(80));
-	expect(stripTerminalSequences(rows.join("\n"))).toContain("after-note-summary");
-	expect(after.durableCountRenderedBlocks - before.durableCountRenderedBlocks).toBe(2);
-	expect(after.durableCountReusedBlocks - before.durableCountReusedBlocks).toBe(4);
+	expect(rows                                                                ).toEqual  (new WwwTranscriptView(snapshot).render(80)) ;
+	expect(stripTerminalSequences(rows.join("\n"))                             ).toContain("after-note-summary"                      ) ;
+	expect(after.durableCountRenderedBlocks - before.durableCountRenderedBlocks).toBe     (2                                         ) ;
+	expect(after.durableCountReusedBlocks - before.durableCountReusedBlocks    ).toBe     (8                                         ) ;
 });
 
 test("anchor 없는 Note는 public rows에 정확히 한 번만 나타난다", () => {
@@ -398,9 +443,9 @@ test("anchor 없는 Note는 public rows에 정확히 한 번만 나타난다", (
 	const freshRows  = new WwwTranscriptView(snapshot).render(40)    ;
 	const plain      = stripTerminalSequences(actualRows.join("\n")) ;
 
-	expect(actualRows).toEqual(freshRows);
-	expect(view.scrollRows(40).rowCount).toBe(freshRows.length);
-	expect(plain.split(marker)).toHaveLength(2);
+	expect(actualRows                  ).toEqual     (freshRows       ) ;
+	expect(view.scrollRows(40).rowCount).toBe        (freshRows.length) ;
+	expect(plain.split(marker)         ).toHaveLength(2               ) ;
 });
 
 test("8MiB shared row LRU에서 durable/volatile 경합은 exact output과 bounded 재렌더를 유지한다", () => {
@@ -413,12 +458,12 @@ test("8MiB shared row LRU에서 durable/volatile 경합은 exact output과 bound
 	const second      = source.rows(0, source.rowCount)                                                         ;
 	const afterSecond = view.cacheMetrics()                                                                     ;
 
-	expect(second).toEqual(first);
-	expect(first.some(row => stripTerminalSequences(row).includes("marker-0"))).toBe(true);
-	expect(first.some(row => stripTerminalSequences(row).includes("volatile-lru-marker"))).toBe(true);
-	expect(afterFirst.rowLogicalBytes).toBeLessThanOrEqual(8 * 1024 * 1024);
-	expect(afterSecond.rowLogicalBytes).toBeLessThanOrEqual(8 * 1024 * 1024);
-	expect(afterSecond.renderedBlocks - afterFirst.renderedBlocks).toBe(2);
+	expect(second                                                                        ).toEqual            (first          ) ;
+	expect(first.some(row => stripTerminalSequences(row).includes("marker-0"))           ).toBe               (true           ) ;
+	expect(first.some(row => stripTerminalSequences(row).includes("volatile-lru-marker"))).toBe               (true           ) ;
+	expect(afterFirst.rowLogicalBytes                                                    ).toBeLessThanOrEqual(8 * 1024 * 1024) ;
+	expect(afterSecond.rowLogicalBytes                                                   ).toBeLessThanOrEqual(8 * 1024 * 1024) ;
+	expect(afterSecond.renderedBlocks - afterFirst.renderedBlocks                        ).toBe               (2              ) ;
 }, 15_000);
 
 test("100 durable append generation 뒤에도 현재 width metadata와 shared row LRU만 남는다", () => {
@@ -448,12 +493,12 @@ test("100 durable append generation 뒤에도 현재 width metadata와 shared ro
 	const metrics = workspace.transcript.cacheMetrics();
 	const output = stripTerminalSequences(workspace.transcript.render(76).join("\n"));
 
-	expect(output).toContain("generation-marker-99");
-	expect(metrics.durableBlockCount).toBe(snapshot.chat.length);
-	expect(metrics.markdownEntries).toBeLessThanOrEqual(metrics.durableBlockCount + metrics.volatileBlockCount);
-	expect(metrics.widthStates).toBeLessThanOrEqual(8);
-	expect(metrics.widthMetadataLogicalBytes).toBeLessThanOrEqual(4 * 1024 * 1024);
-	expect(metrics.rowLogicalBytes).toBeLessThanOrEqual(8 * 1024 * 1024);
+	expect(output                           ).toContain          ("generation-marker-99"                                ) ;
+	expect(metrics.durableBlockCount        ).toBe               (snapshot.chat.length                                  ) ;
+	expect(metrics.markdownEntries          ).toBeLessThanOrEqual(metrics.durableBlockCount + metrics.volatileBlockCount) ;
+	expect(metrics.widthStates              ).toBeLessThanOrEqual(8                                                     ) ;
+	expect(metrics.widthMetadataLogicalBytes).toBeLessThanOrEqual(4 * 1024 * 1024                                       ) ;
+	expect(metrics.rowLogicalBytes          ).toBeLessThanOrEqual(8 * 1024 * 1024                                       ) ;
 });
 
 test("durable append의 ANSI 제거 byte rows는 고정 literal과 같다", () => {
@@ -485,11 +530,11 @@ test("durable append의 ANSI 제거 byte rows는 고정 literal과 같다", () =
 
 	expect(view.render(30).map(stripTerminalSequences)).toEqual([
 		"                              ",
-		"❯ REQ 1                       ",
+		"❯ INPUT 1                     ",
 		"  BYTE_GOLDEN                 ",
 		"                              ",
 		"                              ",
-		" ❮ RES 1-1                    ",
+		" ❮ OUTPUT 1-1                 ",
 		"│ APPEND_GOLDEN               ",
 		"                              ",
 	]);
@@ -522,14 +567,14 @@ test("durable graph, exact-count repair, requested-row paint telemetry는 단계
 	const afterReuse = view.cacheMetrics();
 
 	for (const value of [afterIndex.durableGraphBuildMs, afterIndex.exactCountBuildMs, afterPaint.requestedMaterializationMs]) expect(Number.isFinite(value)).toBe(true);
-	expect(afterIndex.durableGraphBuilds - before.durableGraphBuilds).toBe(1);
-	expect(afterIndex.durableGraphBuildMs).toBeGreaterThanOrEqual(before.durableGraphBuildMs);
-	expect(afterIndex.exactCountBuildMs).toBeGreaterThanOrEqual(before.exactCountBuildMs);
-	expect(afterIndex.requestedMaterializationMs).toBe(before.requestedMaterializationMs);
-	expect(afterPaint.durableGraphBuildMs).toBe(afterIndex.durableGraphBuildMs);
-	expect(afterPaint.exactCountBuildMs).toBe(afterIndex.exactCountBuildMs);
-	expect(afterPaint.requestedMaterializationMs).toBeGreaterThanOrEqual(afterIndex.requestedMaterializationMs);
-	expect(afterReuse.widthCacheHits).toBeGreaterThan(afterPaint.widthCacheHits);
-	expect(afterReuse.rowCacheHits).toBeGreaterThan(afterPaint.rowCacheHits);
-	expect(afterReuse.rowCacheMisses).toBe(afterPaint.rowCacheMisses);
+	expect(afterIndex.durableGraphBuilds - before.durableGraphBuilds).toBe                  (1                                    ) ;
+	expect(afterIndex.durableGraphBuildMs                           ).toBeGreaterThanOrEqual(before.durableGraphBuildMs           ) ;
+	expect(afterIndex.exactCountBuildMs                             ).toBeGreaterThanOrEqual(before.exactCountBuildMs             ) ;
+	expect(afterIndex.requestedMaterializationMs                    ).toBe                  (before.requestedMaterializationMs    ) ;
+	expect(afterPaint.durableGraphBuildMs                           ).toBe                  (afterIndex.durableGraphBuildMs       ) ;
+	expect(afterPaint.exactCountBuildMs                             ).toBe                  (afterIndex.exactCountBuildMs         ) ;
+	expect(afterPaint.requestedMaterializationMs                    ).toBeGreaterThanOrEqual(afterIndex.requestedMaterializationMs) ;
+	expect(afterReuse.widthCacheHits                                ).toBeGreaterThan       (afterPaint.widthCacheHits            ) ;
+	expect(afterReuse.rowCacheHits                                  ).toBeGreaterThan       (afterPaint.rowCacheHits              ) ;
+	expect(afterReuse.rowCacheMisses                                ).toBe                  (afterPaint.rowCacheMisses            ) ;
 });

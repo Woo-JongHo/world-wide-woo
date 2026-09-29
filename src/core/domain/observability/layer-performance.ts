@@ -11,6 +11,8 @@ export const PERFORMANCE_LAYER_IDS = [
 export type PerformanceLayerId = typeof PERFORMANCE_LAYER_IDS[number];
 export type PerformanceBoundary = "queued" | "started" | "completed" | "failed";
 
+export const SLOW_RENDER_THRESHOLD_MS = 100;
+
 export interface PerformanceObservation {
 	readonly traceId  : string              ;
 	readonly layerId  : PerformanceLayerId  ;
@@ -30,10 +32,12 @@ export interface PerformanceLayerSample {
 }
 
 export interface PerformanceTrace {
-	readonly traceId : string                                              ;
-	readonly state   : "collecting" | "complete" | "partial" | "no-render" ;
-	readonly totalMs : number | null                                       ;
-	readonly layers  : readonly PerformanceLayerSample[]                   ;
+	readonly traceId    : string                                              ;
+	readonly state      : "collecting" | "complete" | "partial" | "no-render" ;
+	readonly totalMs    : number | null                                       ;
+	readonly renderMs   : number | null                                       ;
+	readonly slowRender : boolean                                             ;
+	readonly layers     : readonly PerformanceLayerSample[]                   ;
 }
 
 export interface PerformancePercentiles {
@@ -49,6 +53,15 @@ export interface PerformanceWindow {
 	readonly noRenderCount   : number ;
 	readonly incompleteCount : number ;
 	readonly errorCount      : number ;
+	readonly render          : {
+		readonly thresholdMs  : number                 ;
+		readonly frameCount   : number                 ;
+		readonly slowCount    : number                 ;
+		readonly slowRate     : number                 ;
+		readonly latency      : PerformancePercentiles ;
+		readonly worstMs      : number | null          ;
+		readonly worstFrameId : string | null          ;
+	};
 	readonly layers    : Readonly<Record<PerformanceLayerId, {
 		readonly wait: PerformancePercentiles;
 		readonly work: PerformancePercentiles;
@@ -97,15 +110,20 @@ export class LayerPerformanceRecorder {
 	public project(traceId: string): PerformanceTrace | null {
 		const trace = this.traces.get(traceId);
 		if (!trace) return null;
-		const layers   = PERFORMANCE_LAYER_IDS.map(layerId => sample(layerId, trace.get(layerId)))              ;
-		const complete = layers.every(layer => layer.waitMs !== null && layer.workMs !== null && !layer.failed) ;
-		const terminal = trace.get("terminal-write")                                                            ;
-		const ended    = terminal?.completed ?? terminal?.failed                                                ;
-		const started  = trace.get("native-receive")?.started                                                   ;
+		const layers        = PERFORMANCE_LAYER_IDS.map(layerId => sample(layerId, trace.get(layerId)))                                                     ;
+		const complete      = layers.every(layer => layer.waitMs !== null && layer.workMs !== null && !layer.failed)                                        ;
+		const terminal      = trace.get("terminal-write")                                                                                                   ;
+		const ended         = terminal?.completed ?? terminal?.failed                                                                                       ;
+		const started       = trace.get("native-receive")?.started                                                                                          ;
+		const renderStarted = trace.get("render-schedule")?.queued                                                                                          ;
+		const renderEnded   = terminal?.completed                                                                                                           ;
+		const renderMs      = renderStarted !== undefined && renderEnded !== undefined && renderEnded >= renderStarted ? renderEnded - renderStarted : null ;
 		return Object.freeze({
 			traceId,
 			state   : complete ? "complete" : this.noRender.has(traceId) ? "no-render" : ended === undefined ? "collecting" : "partial",
 			totalMs : started !== undefined && ended !== undefined && ended >= started ? ended - started : null,
+			renderMs,
+			slowRender : renderMs !== null && renderMs > SLOW_RENDER_THRESHOLD_MS,
 			layers  : Object.freeze(layers),
 		});
 	}
@@ -129,12 +147,24 @@ export class LayerPerformanceRecorder {
 			const work = samples.flatMap(layer => layer.workMs === null ? [] : [layer.workMs]);
 			return [layerId, Object.freeze({ wait: percentiles(wait), work: percentiles(work) })];
 		})) as PerformanceWindow["layers"];
+		const frames     = renderFrames(projected)                                                ;
+		const slowFrames = frames.filter(frame => frame.latencyMs > SLOW_RENDER_THRESHOLD_MS)     ;
+		const worst      = [...frames].sort((left, right) => right.latencyMs - left.latencyMs)[0] ;
 		return Object.freeze({
 			traceCount      : projected.length,
 			completeCount   : projected.filter(trace => trace.state === "complete").length,
 			noRenderCount   : projected.filter(trace => trace.state === "no-render").length,
 			incompleteCount : projected.filter(trace => trace.state === "collecting" || trace.state === "partial").length,
 			errorCount      : projected.filter(trace => trace.layers.some(layer => layer.failed)).length,
+			render          : Object.freeze({
+				thresholdMs  : SLOW_RENDER_THRESHOLD_MS,
+				frameCount   : frames.length,
+				slowCount    : slowFrames.length,
+				slowRate     : frames.length ? Math.round(slowFrames.length / frames.length * 1_000) / 10 : 0,
+				latency      : percentiles(frames.map(frame => frame.latencyMs)),
+				worstMs      : worst?.latencyMs ?? null,
+				worstFrameId : worst?.frameId ?? null,
+			}),
 			layers          : Object.freeze(layers),
 		});
 	}
@@ -155,6 +185,21 @@ export class LayerPerformanceRecorder {
 		}
 		return created;
 	}
+}
+
+interface RenderFrameSample {
+	readonly frameId   : string ;
+	readonly latencyMs : number ;
+}
+
+function renderFrames(traces: readonly PerformanceTrace[]): RenderFrameSample[] {
+	const frames = new Map<string, number>();
+	for (const trace of traces) {
+		if (trace.renderMs === null) continue;
+		const frameId = trace.layers.find(layer => layer.layerId === "terminal-write")?.frameId ?? trace.traceId;
+		frames.set(frameId, Math.max(frames.get(frameId) ?? 0, trace.renderMs));
+	}
+	return [...frames].map(([frameId, latencyMs]) => Object.freeze({ frameId, latencyMs }));
 }
 
 function percentiles(values: readonly number[]): PerformancePercentiles {

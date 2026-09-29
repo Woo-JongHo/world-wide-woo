@@ -1,142 +1,170 @@
 import type { DevelopmentService } from "@/core/application/development/development-service";
 /** @linear WOO-674 WOO-727 */
-import {
-	CombinedAutocompleteProvider,
-	Editor,
-	Key,
-	ProcessTerminal,
-	ScrollView,
-	TuiAltScreen,
-	VStack,
-	isViewportTUI,
-	matchesKey,
-} from "@earendil-works/pi-tui";
-import type { Component, Terminal }                             from "@earendil-works/pi-tui";
-import type { AuthController }                                  from "@/core/ports/integration/auth-controller-port";
-import type { ObservabilityHistoryReader }                      from "@/core/ports/observability/observability-history-port";
-import type { UsageMonitor }                                    from "@/core/ports/observability/usage-monitor-port";
-import type { WorkbenchGitTelemetryReader }                     from "@/core/ports/observability/workbench-git-telemetry-port";
-import type { ComposerDraftController }                         from "@/core/ports/persistence/composer-draft-port";
-import type { ProjectWorkbench }                                from "@/core/application/orchestration/project-workbench";
-import { projectChatFeature, projectTracerFeature }             from "@/core/application/orchestration/workbench-feature-reads";
-import { EMPTY_DEVELOPMENT_MAP }                                from "@/core/domain/development/development-map";
-import type { DevelopmentMapSnapshot }                          from "@/core/domain/development/development-map";
-import {
-	projectObservabilityDashboard,
-	summarizeObservabilityStreams,
-} from "@/core/domain/observability/observability-dashboard";
-import type { ObservabilityDashboard }                          from "@/core/domain/observability/observability-dashboard";
-import { projectRuntimeMonitor }                                from "@/core/domain/observability/runtime-monitor";
-import { projectSessionStats }                                  from "@/core/domain/observability/session-stats";
-import type { WorkbenchSnapshot }                               from "@/core/domain/work/workbench";
-import { createDashboardLayout }                                from "@/adapters/inbound/tui/foundation/layout/dashboard-layout";
-import {
-	StatusLine,
-	todoPanelTimestamp,
-	WorkspaceTodoView,
-} from "@/adapters/inbound/tui/features/dashboard/view/shared-dashboard-views";
-import { WorkbenchChatView }                                    from "@/adapters/inbound/tui/features/chat/view/workbench-views";
-import {
-	renderDelegationDetail,
-	renderDelegationSummary,
-} from "@/adapters/inbound/tui/features/chat/view/delegation-tree-view";
-import { ThreeBodyLabView }                                     from "@/adapters/inbound/tui/features/chat/view/three-body-lab";
-import {
-	EntryDashboardView,
-	WwwDashboardView,
-} from "@/adapters/inbound/tui/features/dashboard/view/entry-dashboard-view";
-import { WorkbenchMonitorView }                                 from "@/adapters/inbound/tui/features/monitoring/view/workbench-monitor-view";
-import { WorkbenchTracerView }                                  from "@/adapters/inbound/tui/features/trace/view/workbench-tracer-view";
-import { ExitKeyPolicy }                                        from "@/adapters/inbound/tui/shell/exit-key-policy";
-import {
-	approvalCardRows,
-	projectApprovalBackgroundState,
-} from "@/adapters/inbound/tui/features/approval/view/approval-presentation";
-import { OverlaySheet }                                         from "@/adapters/inbound/tui/foundation/components/overlay-sheet";
-import { RenderScheduler, workbenchRenderUrgency }              from "@/adapters/inbound/tui/foundation/rendering/render-scheduler";
-import { ShellLifecycle }                                       from "@/adapters/inbound/tui/shell/shell-lifecycle";
-import { withNativeModelCompletions, WORKBENCH_SLASH_COMMANDS } from "@/adapters/inbound/tui/commands/slash-commands";
-import {
-	colors,
-	composerBorderColor,
-	editorTheme,
-	tuiBackgroundResetSequence,
-	tuiBackgroundSequence,
-} from "@/adapters/inbound/tui/foundation/theme/theme";
-import { WorkbenchBottomHudView }                               from "@/adapters/inbound/tui/features/usage/view/workbench-bottom-hud";
-import { WorkbenchTelemetryLine }                               from "@/adapters/inbound/tui/features/monitoring/view/workbench-telemetry";
-import { UsageStripView }                                       from "@/adapters/inbound/tui/features/usage/view/usage-strip-view";
-import { DevelopmentMapView }                                   from "@/adapters/inbound/tui/features/project-map/view/development-map-view";
-import { ObservabilityDashboardView }                           from "@/adapters/inbound/tui/features/session/view/observability-dashboard-view";
-import { RuntimeMonitorView }                                   from "@/adapters/inbound/tui/features/monitoring/view/runtime-monitor-view";
-import { SessionStatsView }                                     from "@/adapters/inbound/tui/features/stats/view/session-stats-view";
-import { WwwContextView }                                       from "@/adapters/inbound/tui/features/context/view/www-context-view";
-import { WwwHistoryView }                                       from "@/adapters/inbound/tui/features/session/view/www-history-view";
-import { WwwMapView }                                           from "@/adapters/inbound/tui/features/project-map/view/www-map-view";
-import { WwwMonitorView }                                       from "@/adapters/inbound/tui/features/monitoring/view/www-monitor-view";
-import { WwwStatsView }                                         from "@/adapters/inbound/tui/features/stats/view/www-stats-view";
-import { WwwTestView, projectWwwTestView }                      from "@/adapters/inbound/tui/features/test/view/www-test-view";
-import {
-	requestRuntimeMotionActive,
-	requestRuntimeRows,
-} from "@/adapters/inbound/tui/features/monitoring/view/request-runtime-view";
-import {
-	WwwCommandPalette,
-	WwwComposer,
-	WwwExecutionHeading,
-	WwwHeader,
-	WwwGoalBar,
-	WwwHud,
-	WwwInset,
-	WwwNotice,
-	WwwSheet,
-	WwwViewSwitcher,
-	WwwWorkspace,
-	WWW_COMMANDS,
-	WWW_KEYS,
-	WWW_SCROLL_KEYS,
-	wwwPageLabel,
-	matchesWwwAction,
-	matchesWwwKey,
-} from "@/adapters/inbound/tui/shell/www-surface";
-import type { WwwPage }                                         from "@/adapters/inbound/tui/shell/www-surface";
-import { wwwExecutionIsLive, wwwNowLabel }                      from "@/adapters/inbound/tui/features/chat/view/www-execution";
-import { WWW_DEMO_PAGES, createWwwDemoState }                   from "@/adapters/inbound/tui/features/demo/view-model/www-demo";
-import { a, wwwColors, wwwEditorTheme }                         from "@/adapters/inbound/tui/foundation/theme/www-theme";
-import type { UsageSnapshot }                                   from "@/core/ports/observability/usage-monitor-port";
-import {
-	ComponentSlot,
-	createWorkbenchViewHost,
-	directObservabilityView,
-	DevelopmentMapPollingLifecycle,
-	rotateObservabilityView,
-	shouldHandleObservabilityShortcut,
-	WorkbenchNavigationController,
-	workbenchDashboardSessionIndex,
-} from "@/adapters/inbound/tui/shell/workbench-navigation.controller";
-import type { ObservabilityViewMode }                           from "@/adapters/inbound/tui/shell/workbench-navigation.controller";
-import {
-	isBareSlashCommandInput,
-	loginProviderFromInput,
-	nextWorkbenchRuntimeMode,
-	workbenchModelSettings,
-	workbenchReceiptClearsComposer,
-	workbenchReceiptNotice,
-	workbenchRuntimeConfiguration,
-} from "@/adapters/inbound/tui/shell/workbench-input.controller";
-import {
-	ComposerModelFrame,
-	emptyObservabilityDashboard,
-	projectTodoLiveContext,
-	projectUsageStripSession,
-	unavailableHistoricalMonitor,
-	workbenchActivityIndicator,
-	workbenchFrameTitle,
-} from "@/adapters/inbound/tui/shell/workbench-shell-presentation";
-import { createWorkbenchCommandRouter }                         from "@/adapters/inbound/tui/shell/workbench-command-router";
-import { ComposerDraftPersistenceQueue }                        from "@/adapters/inbound/tui/shell/composer-draft-persistence";
-import { WorkbenchOverlayController }                           from "@/adapters/inbound/tui/shell/workbench-overlay-controller";
-import { installWorkbenchInputRouting }                         from "@/adapters/inbound/tui/shell/workbench-input-routing";
+import      {
+              CombinedAutocompleteProvider      ,
+              Editor                            ,
+              HStack                            ,
+              Key                               ,
+              ProcessTerminal                   ,
+              ScrollView                        ,
+              TuiAltScreen                      ,
+              VStack                            ,
+              isViewportTUI                     ,
+              matchesKey                        ,
+                                                  } from "@earendil-works/pi-tui"                                                    ;
+import type {
+              Component                         ,
+              Terminal                          ,
+                                                  } from "@earendil-works/pi-tui"                                                    ;
+import type { AuthController                      } from "@/core/ports/integration/auth-controller-port"                             ;
+import type { ObservabilityHistoryReader          } from "@/core/ports/observability/observability-history-port"                     ;
+import type { UsageMonitor                        } from "@/core/ports/observability/usage-monitor-port"                             ;
+import type { WorkbenchGitTelemetryReader         } from "@/core/ports/observability/workbench-git-telemetry-port"                   ;
+import type { ComposerDraftController             } from "@/core/ports/persistence/composer-draft-port"                              ;
+import type { ProjectWorkbench                    } from "@/core/application/orchestration/project-workbench"                        ;
+import      {
+              projectChatFeature                ,
+              projectTracerFeature              ,
+                                                  } from "@/core/application/orchestration/workbench-feature-reads"                  ;
+import      { EMPTY_DEVELOPMENT_MAP               } from "@/core/domain/development/development-map"                                 ;
+import type { DevelopmentMapSnapshot              } from "@/core/domain/development/development-map"                                 ;
+import      {
+              projectObservabilityDashboard     ,
+              summarizeObservabilityStreams     ,
+                                                  } from "@/core/domain/observability/observability-dashboard"                       ;
+import type { ObservabilityDashboard              } from "@/core/domain/observability/observability-dashboard"                       ;
+import      { projectRuntimeMonitor               } from "@/core/domain/observability/runtime-monitor"                               ;
+import      { projectSessionStats                 } from "@/core/domain/observability/session-stats"                                 ;
+import type { WorkbenchSnapshot                   } from "@/core/domain/work/workbench"                                              ;
+import { OutputLanguageSelection                  } from "@/core/domain/execution/output-language"                                  ;
+import type { OutputLanguage                       } from "@/core/domain/execution/output-language"                                  ;
+import { OutputLanguageController                 } from "@/core/application/orchestration/output-language-controller"              ;
+import      { createDashboardLayout               } from "@/adapters/inbound/tui/foundation/layout/dashboard-layout"                 ;
+import      {
+              StatusLine                        ,
+              todoPanelTimestamp                ,
+              WorkspaceTodoView                 ,
+                                                  } from "@/adapters/inbound/tui/features/dashboard/view/shared-dashboard-views"     ;
+import      { WorkbenchChatView                   } from "@/adapters/inbound/tui/features/chat/view/workbench-views"                 ;
+import      {
+              renderDelegationDetail            ,
+              renderDelegationSummary           ,
+                                                  } from "@/adapters/inbound/tui/features/chat/view/delegation-tree-view"            ;
+import      { ThreeBodyLabView                    } from "@/adapters/inbound/tui/features/chat/view/three-body-lab"                  ;
+import      {
+              EntryDashboardView                ,
+              WwwDashboardView                  ,
+                                                  } from "@/adapters/inbound/tui/features/dashboard/view/entry-dashboard-view"       ;
+import      { WorkbenchMonitorView                } from "@/adapters/inbound/tui/features/monitoring/view/workbench-monitor-view"    ;
+import      { WorkbenchTracerView                 } from "@/adapters/inbound/tui/features/trace/view/workbench-tracer-view"          ;
+import      { ExitKeyPolicy                       } from "@/adapters/inbound/tui/shell/exit-key-policy"                              ;
+import      {
+              approvalCardRows                  ,
+              projectApprovalBackgroundState    ,
+                                                  } from "@/adapters/inbound/tui/features/approval/view/approval-presentation"       ;
+import      { OverlaySheet                        } from "@/adapters/inbound/tui/foundation/components/overlay-sheet"                ;
+import      {
+              RenderScheduler                   ,
+              workbenchRenderUrgency            ,
+                                                  } from "@/adapters/inbound/tui/foundation/rendering/render-scheduler"              ;
+import      { ShellLifecycle                      } from "@/adapters/inbound/tui/shell/shell-lifecycle"                              ;
+import      {
+              withNativeModelCompletions        ,
+              WORKBENCH_SLASH_COMMANDS          ,
+                                                  } from "@/adapters/inbound/tui/commands/slash-commands"                            ;
+import      {
+              colors                            ,
+              composerBorderColor               ,
+              editorTheme                       ,
+              tuiBackgroundResetSequence        ,
+              tuiBackgroundSequence             ,
+                                                  } from "@/adapters/inbound/tui/foundation/theme/theme"                             ;
+import      { WorkbenchBottomHudView              } from "@/adapters/inbound/tui/features/usage/view/workbench-bottom-hud"           ;
+import      { WorkbenchTelemetryLine              } from "@/adapters/inbound/tui/features/monitoring/view/workbench-telemetry"       ;
+import      { UsageStripView                      } from "@/adapters/inbound/tui/features/usage/view/usage-strip-view"               ;
+import      { DevelopmentMapView                  } from "@/adapters/inbound/tui/features/project-map/view/development-map-view"     ;
+import      { ObservabilityDashboardView          } from "@/adapters/inbound/tui/features/session/view/observability-dashboard-view" ;
+import      { RuntimeMonitorView                  } from "@/adapters/inbound/tui/features/monitoring/view/runtime-monitor-view"      ;
+import      { SessionStatsView                    } from "@/adapters/inbound/tui/features/stats/view/session-stats-view"             ;
+import      { WwwContextView                      } from "@/adapters/inbound/tui/features/context/view/www-context-view"             ;
+import      { WwwHistoryView                      } from "@/adapters/inbound/tui/features/session/view/www-history-view"             ;
+import      { WwwMapView                          } from "@/adapters/inbound/tui/features/project-map/view/www-map-view"             ;
+import      { WwwMonitorView                      } from "@/adapters/inbound/tui/features/monitoring/view/www-monitor-view"          ;
+import      { WwwStatsView                        } from "@/adapters/inbound/tui/features/stats/view/www-stats-view"                 ;
+import      {
+              WwwTestView                       ,
+              projectWwwTestView                ,
+                                                  } from "@/adapters/inbound/tui/features/test/view/www-test-view"                   ;
+import      {
+              requestRuntimeMotionActive        ,
+              requestRuntimeRows                ,
+                                                  } from "@/adapters/inbound/tui/features/monitoring/view/request-runtime-view"      ;
+import      {
+              WwwCommandPalette                 ,
+              WwwComposer                       ,
+              WwwExecutionHeading               ,
+              WwwHeader                         ,
+              WwwHud                            ,
+              WwwInset                          ,
+              WwwNotice                         ,
+              WwwSheet                          ,
+              WwwViewSwitcher                   ,
+              WwwWorkspace                      ,
+              WWW_COMMANDS                      ,
+              WWW_KEYS                          ,
+              WWW_SCROLL_KEYS                   ,
+              wwwPageLabel                      ,
+              matchesWwwAction                  ,
+              matchesWwwKey                     ,
+                                                  } from "@/adapters/inbound/tui/shell/www-surface"                                  ;
+import type { WwwPage                             } from "@/adapters/inbound/tui/shell/www-surface"                                  ;
+import      {
+              wwwExecutionIsLive                ,
+              wwwNowLabel                       ,
+                                                  } from "@/adapters/inbound/tui/features/chat/view/www-execution"                   ;
+import      {
+              WWW_DEMO_PAGES                    ,
+              createWwwDemoState                ,
+                                                  } from "@/adapters/inbound/tui/features/demo/view-model/www-demo"                  ;
+import      {
+              a                                 ,
+              wwwColors                         ,
+              wwwEditorTheme                    ,
+                                                  } from "@/adapters/inbound/tui/foundation/theme/www-theme"                         ;
+import type { UsageSnapshot                       } from "@/core/ports/observability/usage-monitor-port"                             ;
+import      {
+              ComponentSlot                     ,
+              createWorkbenchViewHost           ,
+              directObservabilityView           ,
+              DevelopmentMapPollingLifecycle    ,
+              rotateObservabilityView           ,
+              shouldHandleObservabilityShortcut ,
+              WorkbenchNavigationController     ,
+              workbenchDashboardSessionIndex    ,
+                                                  } from "@/adapters/inbound/tui/shell/workbench-navigation.controller"              ;
+import type { ObservabilityViewMode               } from "@/adapters/inbound/tui/shell/workbench-navigation.controller"              ;
+import      {
+              isBareSlashCommandInput           ,
+              loginProviderFromInput            ,
+              nextWorkbenchRuntimeMode          ,
+              workbenchModelSettings            ,
+              workbenchReceiptClearsComposer    ,
+              workbenchReceiptNotice            ,
+              workbenchRuntimeConfiguration     ,
+                                                  } from "@/adapters/inbound/tui/shell/workbench-input.controller"                   ;
+import      {
+              ComposerModelFrame                ,
+              emptyObservabilityDashboard       ,
+              projectTodoLiveContext            ,
+              projectUsageStripSession          ,
+              unavailableHistoricalMonitor      ,
+              workbenchActivityIndicator        ,
+              workbenchFrameTitle               ,
+                                                  } from "@/adapters/inbound/tui/shell/workbench-shell-presentation"                 ;
+import      { createWorkbenchCommandRouter        } from "@/adapters/inbound/tui/shell/workbench-command-router"                     ;
+import      { ComposerDraftPersistenceQueue       } from "@/adapters/inbound/tui/shell/composer-draft-persistence"                   ;
+import      { WorkbenchOverlayController          } from "@/adapters/inbound/tui/shell/workbench-overlay-controller"                 ;
+import      { installWorkbenchInputRouting        } from "@/adapters/inbound/tui/shell/workbench-input-routing"                      ;
 
 export {
 	composerModelHeader,
@@ -146,7 +174,9 @@ export {
 } from "@/adapters/inbound/tui/shell/workbench-shell-presentation";
 
 export interface ProjectWorkbenchShellDependencies {
-	surface?: "www";
+	outputLanguage?     : OutputLanguageSelection                     ;
+	saveOutputLanguage? : (language: OutputLanguage) => Promise<void> ;
+	surface?            : "www"                                       ;
 	/** Preview/test seam; production sessions continue to open Chat. */
 	initialWwwPage? : WwwPage            ;
 	terminal?       : Terminal           ;
@@ -184,13 +214,14 @@ function observeLayer(workbench: ProjectWorkbench, traceId: string, layerId: "re
 /** @codeId 0004 */
 export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDependencies): void {
 	const { workbench, usage, auth, composerDraft, releaseSessionLease } = dependencies;
-	const cwd                          = dependencies.cwd ?? process.cwd()              ;
-	const terminal                     = dependencies.terminal ?? new ProcessTerminal() ;
-	const tui                          = new TuiAltScreen(terminal, true)               ;
-	let terminalFrameSequence          = 0                                              ;
-	let activeFrameId  : string | null = null                                           ;
-	let activeFrameTraceIds            = new Set<string>()                              ;
-	const pendingFrameTraceIds         = new Set<string>()                              ;
+	const outputLanguage               = dependencies.outputLanguage ?? new OutputLanguageSelection() ;
+	const cwd                          = dependencies.cwd ?? process.cwd()                            ;
+	const terminal                     = dependencies.terminal ?? new ProcessTerminal()               ;
+	const tui                          = new TuiAltScreen(terminal, true)                             ;
+	let terminalFrameSequence          = 0                                                            ;
+	let activeFrameId  : string | null = null                                                         ;
+	let activeFrameTraceIds            = new Set<string>()                                            ;
+	const pendingFrameTraceIds         = new Set<string>()                                            ;
 	tui.setRenderObserver((phase, boundary) => {
 		if (phase === "layout-materialize" && boundary === "started") {
 			activeFrameId = `terminal-frame-${++terminalFrameSequence}`;
@@ -223,14 +254,16 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	function wwwBodyHeight(rows: number, columns: number, stable = false): number {
 		// Keep the transcript's width stable while typing. Only the scrollable
 		// plan keeps its column; the optional note still uses the real row budget.
+		// Non-stable callers are Lab (no sidebar) and Monitor (input rail disabled),
+		// so their composer is intentionally measured at the full terminal width.
 		const composerRows = stable
-			? www?.page === "execution" ? 4 : 3
+			? www?.page === "execution" ? 3 + (wwwExecutionHeading?.render(columns).length ?? 1) : 3
 			: composerFrame instanceof WwwComposer ? composerFrame.rowCount(columns) : composerFrame.render(columns).length;
-		return Math.max(1, rows - composerRows - (rows >= 12 ? 2 : 0) - 2
+		return Math.max(1, rows - composerRows - (rows >= 12 ? 1 : 0) - 2
 			- (rows >= 5 && (stable || status.hasNotice) ? 1 : 0) - (rows >= 7 ? 1 : 0));
 	}
 	const wwwExecutionHeading = dependencies.surface === "www"
-		? new WwwExecutionHeading(() => projectChatFeature(snapshot), undefined, Date.now, wwwMotion)
+		? new WwwExecutionHeading(() => projectChatFeature(snapshot), undefined, Date.now, wwwMotion, () => outputLanguage.get())
 		: null;
 	let closeThreeBodyLab = (): void => undefined;
 	const threeBodyLab = dependencies.surface === "www"
@@ -239,10 +272,31 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 			onClose: () => closeThreeBodyLab(),
 		})
 		: null;
-	// Chat 우측 관측 패널과 Monitor 탭이 같은 프로젝션을 공유한다(느린 바인딩은 클로저로 해결).
-	const getRuntimeMonitor = () => selectedHistoricalSession && selectedHistoricalSession.sessionId !== snapshot.threadId
-		? unavailableHistoricalMonitor()
-		: projectRuntimeMonitor(snapshot, snapshot.activities, typeof workbench.layerPerformanceSnapshot === "function" ? workbench.layerPerformanceSnapshot() : snapshot.layerPerformance);
+	// Chat 우측 패널은 현재 요청만 본다. 전체 Monitor만 Dashboard에서 고른 기록을 읽는다.
+	let selectedMonitorRequestId: string | null = null                                                                                                                                                                                    ;
+	let selectedDashboardRequestIndex           = 0                                                                                                                                                                                       ;
+	const getLiveRuntimeMonitor                 = () => projectRuntimeMonitor(snapshot, snapshot.activities, typeof workbench.layerPerformanceSnapshot === "function" ? workbench.layerPerformanceSnapshot() : snapshot.layerPerformance) ;
+	const getMonitorSnapshot = () => {
+		if (!selectedMonitorRequestId) return snapshot;
+		const request = snapshot.requestRuntime?.find(candidate => candidate.requestId === selectedMonitorRequestId);
+		if (!request) return snapshot;
+		const { layerPerformance: _sessionPerformance, sessionUsage: _sessionUsage, contextUsage: _contextUsage, ...requestSnapshot } = snapshot;
+		return {
+			...requestSnapshot,
+			activeTurnId   : request.turnId,
+			requestRuntime : [request],
+			activities     : request.turnId ? snapshot.activities.filter(activity => activity.nativeRefs.turnId === request.turnId) : [],
+			...(snapshot.planActivities ? { planActivities: snapshot.planActivities.filter(activity => activity.turnId === request.turnId) } : {}),
+			pendingApproval: null,
+			error: null,
+		} satisfies WorkbenchSnapshot;
+	};
+	const getRuntimeMonitor = () => {
+		if (selectedHistoricalSession && selectedHistoricalSession.sessionId !== snapshot.threadId) return unavailableHistoricalMonitor();
+		if (!selectedMonitorRequestId) return getLiveRuntimeMonitor();
+		const current = getMonitorSnapshot();
+		return projectRuntimeMonitor(current, current.activities);
+	};
 	const www = dependencies.surface === "www" ? new WwwWorkspace(
 		() => snapshot,
 		() => usageSnapshots,
@@ -250,17 +304,23 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		Date.now,
 		wwwMotion,
 		{ motionActive: requestRuntimeMotionActive, rows: requestRuntimeRows },
-		new WwwDashboardView(() => typeof workbench.layerPerformanceSnapshot === "function" ? { ...snapshot, layerPerformance: workbench.layerPerformanceSnapshot() } : snapshot, () => demoMode),
+		new WwwDashboardView(() => typeof workbench.layerPerformanceSnapshot === "function" ? { ...snapshot, layerPerformance: workbench.layerPerformanceSnapshot() } : snapshot, () => demoMode, () => selectedDashboardRequestIndex),
 		null,
 		threeBodyLab ?? undefined,
 		{},
 		() => dependencies.usage.cacheMetrics(),
 		() => demoMode,
-		getRuntimeMonitor,
+		getLiveRuntimeMonitor,
+		() => outputLanguage.get(),
 	) : null;
 	www?.show(dependencies.initialWwwPage ?? "execution");
-	const status = www ? new WwwNotice() : new StatusLine(WORKBENCH_STATUS_NOTICE);
-	const entryDashboard = new EntryDashboardView(() => snapshot.linearDashboard);
+	const status         = www ? new WwwNotice() : new StatusLine(WORKBENCH_STATUS_NOTICE) ;
+	const languageController = new OutputLanguageController(outputLanguage, dependencies.saveOutputLanguage ?? (async () => undefined), language => {
+		www?.transcript.invalidate();
+		status.setNotice(language === "en" ? "Output language: English" : "출력 언어: 한국어");
+		tui.requestRender();
+	});
+	const entryDashboard = new EntryDashboardView(() => snapshot.linearDashboard)          ;
 	const chat = www?.transcript ?? new WorkbenchChatView(projectChatFeature(snapshot), entryDashboard, {
 		render: (current, width) => current.pendingApproval
 			? approvalCardRows(
@@ -271,8 +331,8 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 			)
 			: [],
 	});
-	const sheet = (content: Component) => www ? new WwwSheet(content, () => Math.max(6, Math.floor(terminal.rows * 0.8))) : new OverlaySheet(content);
-	const usageStrip = new UsageStripView(() => projectUsageStripSession(snapshot));
+	const sheet      = (content: Component) => www ? new WwwSheet(content, () => Math.max(6, Math.floor(terminal.rows * 0.8))) : new OverlaySheet(content) ;
+	const usageStrip = new UsageStripView(() => projectUsageStripSession(snapshot))                                                                        ;
 	const tracer = new WorkbenchTracerView(() => projectTracerFeature(snapshot), {
 		renderSummary: renderDelegationSummary,
 		renderDetail: renderDelegationDetail,
@@ -282,8 +342,9 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		() => projectTodoLiveContext(snapshot),
 		() => snapshot.linearDashboard,
 	);
-	const sourceMonitor = new WorkbenchMonitorView(() => snapshot);
-	const runtimeMonitorView = www ? new WwwMonitorView(getRuntimeMonitor, Date.now, wwwMotion, () => snapshot) : new RuntimeMonitorView(getRuntimeMonitor);
+	const sourceMonitor                  = new WorkbenchMonitorView(() => snapshot)                                                                                                                                                     ;
+	let selectedTestRunId: string | null = null                                                                                                                                                                                         ;
+	const runtimeMonitorView             = www ? new WwwMonitorView(getRuntimeMonitor, Date.now, wwwMotion, getMonitorSnapshot, false, () => selectedTestRunId, () => outputLanguage.get()) : new RuntimeMonitorView(getRuntimeMonitor) ;
 	const runtimeMonitor = new ScrollView(www ? new WwwInset(runtimeMonitorView) : runtimeMonitorView, {
 		follow: www ? "none" : "end", primary: true, overscroll: "contain", scrollbar: "auto", scrollbarStyle: www ? a.rule : colors.muted,
 	});
@@ -296,8 +357,8 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	const observabilityDashboard = new ScrollView(www ? new WwwInset(observabilityDashboardView) : observabilityDashboardView, {
 		follow: "none", primary: true, overscroll: "contain", scrollbar: "auto", scrollbarStyle: www ? a.rule : colors.muted,
 	});
-	let developmentMapSnapshot: DevelopmentMapSnapshot = EMPTY_DEVELOPMENT_MAP;
-	const developmentMapView = new (www ? WwwMapView : DevelopmentMapView)(() => developmentMapSnapshot);
+	let developmentMapSnapshot: DevelopmentMapSnapshot = EMPTY_DEVELOPMENT_MAP                                                     ;
+	const developmentMapView                           = new (www ? WwwMapView : DevelopmentMapView)(() => developmentMapSnapshot) ;
 	const developmentMap = new ScrollView(www ? new WwwInset(developmentMapView) : developmentMapView, {
 		follow         : "none",
 		primary        : true,
@@ -305,8 +366,8 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		scrollbar      : "auto",
 		scrollbarStyle : www ? a.rule : colors.muted,
 	});
-	let statsTarget: "session" | "diagnostics" | "latest" | number = "session";
-	const sessionStatsView = new (www ? WwwStatsView : SessionStatsView)(() => projectSessionStats(snapshot), () => statsTarget, () => selectedHistoricalSession);
+	let statsTarget: "session" | "diagnostics" | "latest" | number = "session"                                                                                                                            ;
+	const sessionStatsView                                         = new (www ? WwwStatsView : SessionStatsView)(() => projectSessionStats(snapshot), () => statsTarget, () => selectedHistoricalSession) ;
 	const sessionStats = new ScrollView(www ? new WwwInset(sessionStatsView) : sessionStatsView, {
 		follow         : "none",
 		primary        : true,
@@ -314,12 +375,16 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		scrollbar      : "auto",
 		scrollbarStyle : www ? a.rule : colors.muted,
 	});
-	const testWorkspaceView = new WwwTestView(() => projectWwwTestView(snapshot));
+	const testWorkspaceView = new WwwTestView(() => projectWwwTestView(snapshot), () => outputLanguage.get(), () => snapshot.toolActions ?? []);
 	const testWorkspace = new ScrollView(new WwwInset(testWorkspaceView), {
 		follow: "none", primary: true, overscroll: "contain", scrollbar: "auto", scrollbarStyle: www ? a.rule : colors.muted,
 	});
-	const telemetry = new WorkbenchTelemetryLine(cwd, () => tui.requestRender(), dependencies.gitTelemetrySource, dependencies.homeDirectory);
-	const bottomHud = new WorkbenchBottomHudView(usageStrip);
+	const testLayout = www ? new HStack([
+		{ component: runtimeMonitor, basis: 0, grow: 1, minSize: 1 },
+		{ component: testWorkspace, basis: 38, minSize: 34, maxSize: 44 },
+	]) : testWorkspace;
+	const telemetry = new WorkbenchTelemetryLine(cwd, () => tui.requestRender(), dependencies.gitTelemetrySource, dependencies.homeDirectory) ;
+	const bottomHud = new WorkbenchBottomHudView(usageStrip)                                                                                  ;
 	const dashboard = www ? { component: www.component } : createDashboardLayout(
 		() => "Workbench",
 		{ color: colors.accent, component: chat },
@@ -344,7 +409,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		sourceLayout.component,
 		developmentMap,
 		sessionStats,
-		testWorkspace,
+		testLayout,
 	);
 	const editor = new Editor(tui, www ? wwwEditorTheme : editorTheme, { paddingX: www ? 2 : 1, autocompleteMaxVisible: 5 });
 	editor.setAutocompleteProvider(new CombinedAutocompleteProvider(withNativeModelCompletions(www ? WWW_COMMANDS : [...WORKBENCH_SLASH_COMMANDS, {name: "work", description: "Issue 연결·기록 상태·Obsidian checkpoint/open"}], () => snapshot.modelCatalog), cwd));
@@ -359,18 +424,16 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	const composerFrame                              = www ? new WwwComposer(composerSlot, editor, () => snapshot, () => !overlays?.isInlineApprovalActive, wwwExecutionHeading, () => www.page === "execution") : new ComposerModelFrame(composerSlot, () => snapshot) ;
 	const root = new VStack([
 		...(www ? [
-			{ component: new WwwHeader(() => snapshot, () => navigation.mode === "workbench" ? wwwPageLabel(www.page) : navigation.mode === "monitor" ? "PROGRESS" : navigation.mode, cwd), basis: 1, minSize: 1, maxSize: 1, visible: ({ height }: { height: number }) => height >= 12 },
-		{ component: www ? new WwwGoalBar(() => snapshot) : { render: () => [""], invalidate: () => undefined }, basis: 1, minSize: 0, maxSize: 1, visible: ({ height }: { height: number }) => height >= 13 && Boolean(snapshot.sessionGoal?.text) },
+			{ component: new WwwHeader(() => snapshot, () => navigation.mode === "workbench" ? wwwPageLabel(www.page) : navigation.mode === "monitor" ? "Monitor" : navigation.mode, cwd, Date.now, wwwMotion, () => outputLanguage.get()), basis: 1, minSize: 1, maxSize: 1, visible: ({ height }: { height: number }) => height >= 12 },
 		] : []),
 		{ component: activeView, basis: 0, grow: 1, shrink: 1, minSize: 1 },
-		{ component: composerFrame, basis: "auto", shrink: 1, minSize: 3 },
+		{ component: www ? www.composeInput(composerFrame, () => navigation.mode === "workbench") : composerFrame, basis: "auto", shrink: 1, minSize: 3 },
 		{ component: status, basis: 1, minSize: 1, maxSize: 1, visible: ({ height }) => height >= 5 && status.hasNotice },
 		{ component: www ? new WwwHud(
 			() => snapshot,
 			() => usageSnapshots,
 			true,
 			() => www.cacheTelemetry(),
-			() => typeof workbench.layerPerformanceSnapshot === "function" ? workbench.layerPerformanceSnapshot() : snapshot.layerPerformance,
 		) : bottomHud, basis: www ? "auto" : 1, minSize: 1, maxSize: www ? 6 : 1, visible: ({ height }) => height >= 7 },
 	]);
 	let lastAutoApprovalId : NonNullable<WorkbenchSnapshot["pendingApproval"]>["requestId"] | null = null                ;
@@ -434,8 +497,8 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		status.setNotice("");
 		tui.requestRender();
 	};
-	const currentDemoPage = (): WwwPage => WWW_DEMO_PAGES[demoIndex] ?? "execution";
-	const demoNotice = (): string => `DEMO DATA · ${demoIndex + 1}/${WWW_DEMO_PAGES.length} ${wwwPageLabel(currentDemoPage())} · R 이전 · E 다음 · Esc 종료`;
+	const currentDemoPage = (): WwwPage => WWW_DEMO_PAGES[demoIndex] ?? "execution"                                                                               ;
+	const demoNotice      = (): string => `DEMO DATA · ${demoIndex + 1}/${WWW_DEMO_PAGES.length} ${wwwPageLabel(currentDemoPage())} · R 이전 · E 다음 · Esc 종료` ;
 	const showDemoPage = (index: number): void => {
 		demoIndex = (index + WWW_DEMO_PAGES.length) % WWW_DEMO_PAGES.length;
 		showWwwPage(currentDemoPage(), true);
@@ -487,11 +550,14 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		if (navigation.mode === "monitor" && snapshot.phase === "working") tui.requestRender();
 	}, 1_000);
 	monitorClock.unref?.();
-	// Native deltas and the live activity component own fast updates. This clock only refreshes elapsed labels.
+	// Drive the visible WWW animation at the same cadence as its 120ms frame.
 	const wwwClock = www ? setInterval(() => {
 		const request = snapshot.requestRuntime?.at(-1);
-		if (!lifecycle.isShuttingDown && !overlays?.hasOverlay && (wwwExecutionIsLive(projectChatFeature(snapshot)) || wwwMotion && request && requestRuntimeMotionActive(request, Date.now()))) tui.requestRender();
-	}, 1_000) : null;
+		if (lifecycle.isShuttingDown || overlays?.hasOverlay || navigation.mode !== "workbench") return;
+		const executionLive = www.page === "execution" && wwwExecutionIsLive(projectChatFeature(snapshot));
+		const runtimeMotion = wwwMotion && request && requestRuntimeMotionActive(request, Date.now());
+		if (executionLive || runtimeMotion) tui.requestRender();
+	}, wwwMotion ? 120 : 1_000) : null;
 	wwwClock?.unref?.();
 	let composerBorderFrame = 0;
 	const composerBorderClock = setInterval(() => {
@@ -547,6 +613,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	};
 	const enterObservability = async (next: ObservabilityViewMode): Promise<void> => {
 		if (next === "dashboard") await refreshObservabilityDashboard();
+		selectedTestRunId = null;
 		navigation.enterObservability(next);
 	};
 	const showReceipt = (receipt: Awaited<ReturnType<ProjectWorkbench["dispatch"]>>) => {
@@ -610,8 +677,9 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		chat.syncActivity(workbenchActivityIndicator(snapshot), () => tui.requestRender());
 	};
 	const handleLocal = createWorkbenchCommandRouter({
-		hasWww: www !== null,
-		snapshot: () => snapshot,
+		selectOutputLanguage : language => languageController.select(language),
+		hasWww               : www !== null,
+		snapshot             : () => snapshot,
 		workbench,
 		...(dependencies.development ? { development: dependencies.development } : {}),
 		usage,
@@ -619,6 +687,16 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		enterDemo,
 		showWwwPage,
 		enterObservability,
+		selectMonitorRequest: (index) => {
+			if (index === null) { selectedMonitorRequestId = null; selectedHistoricalSession = null; selectedTestRunId = null; return true; }
+			const request = [...(snapshot.requestRuntime ?? [])].filter(candidate => candidate.threadId === snapshot.threadId).reverse()[index - 1];
+			if (!request) return false;
+			selectedMonitorRequestId  = request.requestId ;
+			selectedHistoricalSession = null              ;
+			selectedTestRunId         = null              ;
+			runtimeMonitor.scrollToStart();
+			return true;
+		},
 		updateUsage: (next) => {
 			usageSnapshots = next;
 			usageStrip.update(next);
@@ -652,8 +730,12 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 			scheduledRenderTraceIds.add(traceId);
 			observeLayer(workbench, traceId, "render-schedule", "queued");
 		}
-		const urgency = workbenchRenderUrgency(liveSnapshot, next);
-		const refreshTelemetry = liveSnapshot.phase === "working" && next.phase !== "working";
+		const urgency          = workbenchRenderUrgency(liveSnapshot, next)                   ;
+		const refreshTelemetry = liveSnapshot.phase === "working" && next.phase !== "working" ;
+		if (liveSnapshot.threadId !== next.threadId) {
+			selectedMonitorRequestId = null;
+			selectedDashboardRequestIndex = 0;
+		}
 		liveSnapshot = next;
 		if (demoMode) return;
 		snapshot = next;
@@ -663,7 +745,18 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	});
 	installWorkbenchInputRouting({
 		tui, editor, workbench, workbenchRenders, lifecycle, overlays, www, threeBodyLab, navigation,
-		snapshot: () => snapshot, handleLocal, submitComposer, showWwwPage, cycleRuntimeMode, enterObservability, status, exitKeys, shutdown, showReceipt,
+		snapshot: () => snapshot, handleLocal, submitComposer, showWwwPage, cycleRuntimeMode, cycleOutputLanguage: () => languageController.cycle(), enterObservability, status, exitKeys, shutdown, showReceipt,
+		moveTestSelection         : (offset) => { testWorkspaceView.moveSelection(offset); testWorkspaceView.invalidate(); tui.requestRender(); },
+		openTestRunInMonitor      : () => { selectedTestRunId = testWorkspaceView.selectedRun?.id ?? null; navigation.enterObservability("monitor"); runtimeMonitor.scrollToStart(); tui.requestRender(); },
+		dashboardRequestSelection: (action) => {
+			const requests = (snapshot.requestRuntime ?? []).filter(request => request.threadId === snapshot.threadId);
+			if (!requests.length) return false;
+			if (action === "open") { void handleLocal(`/monitor #${selectedDashboardRequestIndex + 1}`); return true; }
+			selectedDashboardRequestIndex = Math.max(0, Math.min(requests.length - 1, selectedDashboardRequestIndex + (action === "up" ? -1 : 1)));
+			www?.scrolls.dashboard.scrollBy(action === "up" ? -1 : 1);
+			tui.requestRender();
+			return true;
+		},
 		dashboard                 : () => observabilityDashboardSnapshot,
 		selectedDashboardIndex    : () => selectedDashboardSessionIndex,
 		setSelectedDashboardIndex : (index) => { selectedDashboardSessionIndex = index; },

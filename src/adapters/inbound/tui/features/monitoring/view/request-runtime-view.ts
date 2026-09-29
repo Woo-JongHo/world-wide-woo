@@ -81,9 +81,10 @@ export function requestRuntimeRows(
 	_motionFrame = 8,
 	_goal: string | null = null,
 	activityRows?: readonly string[],
+	nativePlanRows?: readonly string[],
 ): string[] {
 	const settled = request.stages.filter(stage => !["pending", "running"].includes(stage.status)).length ;
-	const plan    = planTaskRows(request, width)                                                          ;
+	const plan    = nativePlanRows ?? planTaskRows(request, width)                                        ;
 	const stages  = section("STAGE", width, `${settled}/${request.stages.length}`, a.plan)                ;
 	stages.push(...stageRailRows(request, width));
 	if (request.attempt > 1) stages.push(...prose(a.muted(`시도 ${request.attempt} · 이전 ${request.previousAttempts.length}회 기록 보존`), width));

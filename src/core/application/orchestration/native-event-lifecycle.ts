@@ -260,7 +260,7 @@ export class NativeEventLifecycle {
 			})));
 			this.firstOutputObservedTurns.add(event.refs.turnId);
 		}
-		dependencies.nativeStream.apply(event);
+		dependencies.nativeStream.apply(event, dependencies.visibleActivities().at(-1)?.sequence ?? 0);
 		dependencies.publish();
 	}
 

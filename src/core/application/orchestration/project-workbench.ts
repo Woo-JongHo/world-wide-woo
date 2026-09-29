@@ -196,6 +196,7 @@ export interface ProjectWorkbenchOptions {
 	promotions?         : CanonicalPromotionService           ;
 	reviews?            : ReviewService                       ;
 	narrator?           : ActivityNarrator                    ;
+	outputLanguage?     : import("@/core/domain/execution/output-language.js").OutputLanguageSelection ;
 	wooEntry?           : WooEntry                            ;
 	/** Revision-bound local Skill inventory supplied to every Native turn. */
 	skillRegistry?         : SkillRegistrySnapshot                                                              ;
@@ -301,7 +302,7 @@ export class ProjectWorkbench {
 			capabilitiesConfigured: options.requestCapabilities !== undefined,
 			resuming: options.resumeThreadId !== undefined,
 		});
-		this.contextComposer = new ContextComposer(options.contextCharacterLimit);
+		this.contextComposer = new ContextComposer(options.contextCharacterLimit, options.outputLanguage);
 		this.requestController = new RequestController({
 			activities: () => this.activities,
 			digest: digestSource,
@@ -379,6 +380,7 @@ export class ProjectWorkbench {
 			requestManaged            : () => this.requestRuntimePolicy.mode !== "off",
 		});
 		this.noteNarration = new WorkbenchNoteNarration({
+			...(options.outputLanguage ? { language: () => options.outputLanguage!.get() } : {}),
 			projectId: options.projectId,
 			...(options.tnotes === undefined ? {} : { source: options.tnotes }),
 			...(options.narrator === undefined ? {} : { narrator: options.narrator }),
@@ -1029,7 +1031,7 @@ export class ProjectWorkbench {
 				effort            : this.selectedEffort,
 				approvalPolicy    : this.approvalPolicy,
 				sandboxPolicy     : this.nativeTurn.sandboxPolicy(this.permissionMode, this.options.cwd),
-				collaborationMode : this.nativeTurn.collaboration(this.collaborationMode, this.effectiveModel, this.effectiveEffort, planGoal),
+				collaborationMode : this.nativeTurn.collaboration(this.collaborationMode, this.effectiveModel, this.effectiveEffort, planGoal, this.options.outputLanguage?.get() ?? "ko"),
 			});
 			turn = await this.native.startTurn(this.contextComposer.compose(
 				managedRequest
@@ -1495,11 +1497,11 @@ export class ProjectWorkbench {
 			: allRequestRuntime.filter(request => request.turnId === selectedRequestTurnId);
 		const request        = [...requestRuntime].reverse().find(r => r.turnId === (this.activeTurnId ?? this.selectedPlanTurnId)) ?? requestRuntime.at(-1)                ;
 		const understood     = request?.events.filter(event => event.stage === "UNDERSTAND" && (event.type === "stage.completed" || event.type === "stage.skipped")).at(-1) ;
-		const requestStarted = request?.events.find(event => event.type === "request.started")                                                                              ;
-		const goalSource     = understood ?? requestStarted                                                                                                                 ;
+		const goalSource     = understood                                                                                                                                     ;
 		// SessionGoal은 $session-goal 턴의 sole bounded 마커나 goal.set으로만 확정된다.
-		// 일반 요청의 objective는 provisional 목표가 되되, 그 턴의 응답에 SESSION_GOAL 형태
-		// 스푸프 마커가 감지되면 방어를 위해 provisional을 세우지 않는다.
+		// 일반 요청의 objective는 UNDERSTAND가 완료된 뒤에만 목표가 된다.
+		// 시작 시점의 objective는 사용자 입력 원문이므로 Goal에 표시하지 않는다.
+		// 그 턴의 응답에 SESSION_GOAL 형태의 스푸프 마커가 있으면 표시하지 않는다.
 		const goalSpoofed = request ? this.visibleActivities.some(activity =>
 			activity.kind === "message" && activity.phase === "completed"
 			&& activity.nativeRefs.turnId === request.turnId
@@ -1520,6 +1522,7 @@ export class ProjectWorkbench {
 		});
 		return deepFreeze({
 			...this.noteNarration.planSnapshot(),
+			toolActions: this.noteNarration.toolActions(),
 			requestRuntime,
 			cacheObservations,
 			modelCatalog,
@@ -1573,6 +1576,7 @@ export class ProjectWorkbench {
 			chat                  : this.durableProjection.chat(durable.chat, this.preThreadChat, this.threadId),
 			chatQueue             : immutable(this.nativeTurn.queue),
 			draft                 : stream.draft.startsWith(REQUEST_REPORT_PREFIX) ? "" : stream.draft,
+			draftAnchorSequence   : stream.draftAnchorSequence,
 			reasoningDraft        : stream.reasoningDraft,
 			reasoningSummaryDraft : stream.reasoningSummaryDraft,
 			liveActivity: immutable(executionActivity && executionRun ? {

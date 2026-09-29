@@ -176,8 +176,9 @@ export interface WorkbenchSkillInventory {
 }
 
 export interface WorkbenchSnapshot {
-	readonly planActivities?: readonly PlanActivity[];
-	readonly planActivityStatus?: "disabled" | "pending" | "ready" | "unavailable";
+	readonly planActivities?     : readonly PlanActivity[]                          ;
+	readonly toolActions?        : readonly PlanActivity[]                          ;
+	readonly planActivityStatus? : "disabled" | "pending" | "ready" | "unavailable" ;
 	/** Actual session cache observations; absent layers remain explicitly unobserved. */
 	readonly cacheObservations?: readonly CacheLayerObservation[];
 	/** In-process seven-layer timing; absent until a Native event establishes a trace. */
@@ -226,14 +227,15 @@ export interface WorkbenchSnapshot {
 	/** Corrupt receipts stay available for read-only diagnosis, never for resuming execution. */
 	recordingReadOnly?: boolean;
 	/** Total durable activities in the current Native session. */
-	activityCount?     : number                            ;
-	activities         : readonly ProjectActivity[]        ;
-	selectedActivityId : string | null                     ;
-	pendingApproval    : NativeApprovalRequest | null      ;
-	chat               : readonly WorkbenchChatMessage[]   ;
-	chatQueue          : readonly WorkbenchChatQueueItem[] ;
-	draft              : string                            ;
-	reasoningDraft     : string                            ;
+	activityCount?       : number                            ;
+	activities           : readonly ProjectActivity[]        ;
+	selectedActivityId   : string | null                     ;
+	pendingApproval      : NativeApprovalRequest | null      ;
+	chat                 : readonly WorkbenchChatMessage[]   ;
+	chatQueue            : readonly WorkbenchChatQueueItem[] ;
+	draft                : string                            ;
+	draftAnchorSequence? : number | null                     ;
+	reasoningDraft       : string                            ;
 	/** Public App Server reasoning summary; raw reasoningDraft is never rendered. */
 	reasoningSummaryDraft?: string;
 	liveActivity: WorkbenchLiveActivity | null;

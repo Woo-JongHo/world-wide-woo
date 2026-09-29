@@ -308,9 +308,9 @@ export class CodexAppServer implements ExecutorPort {
 		const visitedCursors              = new Set<string>() ;
 		let cursor    : string | undefined                    ;
 		do {
+			// detail=toolsAndAuthOnly는 codex가 모든 MCP 서버 접속·열거를 시도하게 해 타임아웃을 유발한다.
+			// 서버 상태·인증 상태만 빠르게 가져오고 도구 목록은 생략한다.
 			const result = await this.request("mcpServerStatus/list", compact({
-				detail: "toolsAndAuthOnly",
-				limit: 100,
 				cursor,
 			}), false);
 			if (!isRecord(result) || !Array.isArray(result.data) ||

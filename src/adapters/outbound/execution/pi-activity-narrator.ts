@@ -6,6 +6,7 @@ import type {
 } from "@/core/application/orchestration/activity-narrator.js";
 import { redactForExternalReview }                         from "@/core/domain/review/redaction.js";
 import { sanitizeTerminalTextExcerpt }                     from "@/core/domain/execution/terminal.js";
+import type { OutputLanguage }                             from "@/core/domain/execution/output-language.js";
 
 const MAX_REQUEST_BYTES = 8 * 1024 ;
 const MAX_RESULT_TEXT   = 600      ;
@@ -21,6 +22,7 @@ export class PiActivityNarrator implements ActivityNarrator {
 	public constructor(
 		private readonly models: PiActivityNarratorModels,
 		private readonly modelId = ACTIVITY_NARRATOR_MODEL,
+		private readonly language: () => OutputLanguage = () => "ko",
 	) {}
 
 	public async narrate(request: ActivityNarrationRequest, signal?: AbortSignal): Promise<ActivityNarrationResult> {
@@ -29,12 +31,32 @@ export class PiActivityNarrator implements ActivityNarrator {
 		if (!model) throw new Error(`Activity Narrator 모델을 찾을 수 없습니다: ${ACTIVITY_NARRATOR_PROVIDER}/${this.modelId}`);
 		const context: Context = {
 			systemPrompt: [
-				"당신은 개발 실행 기록을 한국어로 짧게 해석하는 Activity Narrator입니다.",
-				"입력에 명시된 목표·단계·명령만 근거로 사용하고, 누락된 의도를 추측하지 마세요.",
-				"what은 사용자가 이해할 구체적인 한 문장, why는 근거가 있을 때만 한 문장으로 작성하세요.",
-				"stepTitle은 큰 계획 단계입니다. what에는 그 안에서 지금 수행하는 중간 규모 행동을 설명하세요. 파일 읽기, 회귀 테스트, 독립 검토도 행동입니다.",
-				"명령·경로·원시 로그를 그대로 복사하거나 item/started 같은 기술 이벤트 이름을 출력하지 마세요.",
-				"반드시 {what, why|null, inputSummary:string[]} JSON 객체 하나만 반환하세요.",
+				this.language() === "en"
+					? "You are an Activity Narrator. Briefly describe development actions in English."
+					: "당신은 개발 실행 기록의 행동을 한국어로 짧게 설명하는 Activity Narrator입니다.",
+				this.language() === "en"
+					? "Use only the supplied goal, step, and command as evidence. Do not guess omitted intent."
+					: "입력에 명시된 목표·단계·명령만 근거로 사용하고, 누락된 의도를 추측하지 마세요.",
+				this.language() === "en"
+					? "Write what as one concrete sentence. Write why only when supported by the input."
+					: "what은 사용자가 이해할 구체적인 한 문장, why는 근거가 있을 때만 한 문장으로 작성하세요.",
+				request.kind === "test-action"
+					? this.language() === "en"
+						? "This is one observed test run. Explain what behavior the command and observed test names check. State the result only if the exit code supports it. Do not infer missing cases or coverage."
+						: "이 입력은 관측된 테스트 실행 한 건입니다. 명령과 관측된 테스트 이름으로 어떤 동작을 확인하는지 설명하세요. 종료 코드가 뒷받침할 때만 결과를 말하고, 빠진 테스트나 커버리지를 추측하지 마세요."
+				: request.kind === "tool-action"
+					? this.language() === "en"
+						? "This is a Chat tool action. Describe only the action evident from the command, such as its target, query, or read range. Do not infer results or PLAN progress."
+						: "이 요청은 Chat의 도구 행동입니다. what에는 명령의 대상·검색어·읽은 범위처럼 입력에서 확인되는 행동만 자연어로 설명하세요. PLAN 진행이나 작업 결과를 추측하지 마세요."
+					: this.language() === "en"
+						? "stepTitle is a PLAN item. Describe observed progress, not a list of commands. Do not infer results from one command."
+						: "stepTitle은 PLAN 항목입니다. what에는 명령 목록이 아니라 해당 항목에서 관측된 세부 진행을 설명하세요. 단일 명령만으로 결과를 단정하지 마세요.",
+				this.language() === "en"
+					? "Do not copy commands, paths, raw logs, or technical event names such as item/started."
+					: "명령·경로·원시 로그를 그대로 복사하거나 item/started 같은 기술 이벤트 이름을 출력하지 마세요.",
+				this.language() === "en"
+					? "Return exactly one {what, why|null, inputSummary:string[]} JSON object."
+					: "반드시 {what, why|null, inputSummary:string[]} JSON 객체 하나만 반환하세요.",
 			].join(" "),
 			messages: [{ role: "user", content: input, timestamp: Date.now() }],
 			tools: [],
@@ -63,7 +85,7 @@ function narrationInput(request: ActivityNarrationRequest): string {
 	const stepTitle    = safeText(request.stepTitle)                                                  ;
 	const inputSummary = request.inputSummary.slice(0, MAX_INPUT_ITEMS).map(safeText).filter(Boolean) ;
 	if (!goal || !stepTitle) throw new Error("Activity Narrator의 목표와 단계가 필요합니다.");
-	const input = stableJson({ goal, inputSummary, schemaVersion: 1, stepTitle });
+	const input = stableJson({ goal, inputSummary, kind: request.kind ?? "plan-progress", schemaVersion: 1, stepTitle });
 	if (new TextEncoder().encode(input).byteLength > MAX_REQUEST_BYTES) throw new Error("Activity Narrator 요청이 너무 큽니다.");
 	return input;
 }

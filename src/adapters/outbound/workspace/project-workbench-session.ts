@@ -19,6 +19,8 @@ import type { SessionRepository }                     from "@/core/ports/persist
 import type { TodoStore }                             from "@/core/ports/persistence/todo-store";
 import { TNoteService }                               from "@/core/application/work/t-note-service.js";
 import type { ActivityNarrator }                      from "@/core/application/orchestration/activity-narrator.js";
+import { OutputLanguageSelection }                    from "@/core/domain/execution/output-language.js";
+import { loadOutputLanguagePreference }               from "@/adapters/outbound/workspace/output-language-preference.js";
 import { WooEntry }                                   from "@/core/application/orchestration/woo-entry.js";
 import { SessionModelUsageAccumulator }               from "@/core/application/session/session-model-usage.js";
 import type { SessionModelUsageObservation }          from "@/core/application/session/session-model-usage.js";
@@ -93,6 +95,7 @@ export interface ProjectWorkbenchSessionOptions {
 }
 
 export interface ProjectWorkbenchSession {
+	outputLanguage?: OutputLanguageSelection ;
 	workspace     : ProjectWorkspace        ;
 	projectId     : string                  ;
 	workbench     : ProjectWorkbench        ;
@@ -120,8 +123,8 @@ export interface ProjectWorkbenchSessionFactories {
 	createTodoLedger   (sessionId: string, store: TodoStore, events: SessionRepository                                      ): TodoLedger;
 	importLegacyTodo   (legacyPath: string, targetPath: string                                                              ): Promise<string | null>;
 	createSessionEvents(directory: string                                                                                   ): SessionRepository;
-	createTNoteSource  (directory: string, model: string, observeUsage?: (observation: SessionModelUsageObservation) => void): WorkbenchTNoteSource;
-	createActivityNarrator?(model: string): ActivityNarrator;
+	createTNoteSource  (directory: string, model: string, observeUsage?: (observation: SessionModelUsageObservation) => void, language?: OutputLanguageSelection): WorkbenchTNoteSource;
+	createActivityNarrator?(model: string, language?: OutputLanguageSelection): ActivityNarrator;
 	createPromotionService(root: string                                                                                                          ): CanonicalPromotionService;
 	createReviewService   (runtimeDirectory: string, observeUsage?: (observation: SessionModelUsageObservation) => void, config?: WorkbenchConfig): ReviewService;
 	createWorkbench       (native: ExecutorPort, journal: WorkbenchActivityJournal, options: ProjectWorkbenchOptions                             ): ProjectWorkbench;
@@ -209,12 +212,12 @@ const productionFactories: ProjectWorkbenchSessionFactories = {
 	createTodoLedger        : (sessionId, store, events) => new TodoLedger(sessionId, store, events),
 	importLegacyTodo,
 	createSessionEvents: (directory) => new SessionEventStore(directory),
-	createTNoteSource: (directory, model, observeUsage) => {
+	createTNoteSource: (directory, model, observeUsage, language) => {
 		const store = new FileTNoteStore(directory);
-		const generator = new PiDetachedCodexGenerator(createModelRegistry(new FileCredentialStore()), model, model, observeUsage);
-		return new TNoteService(generator, store);
+		const generator = new PiDetachedCodexGenerator(createModelRegistry(new FileCredentialStore()), model, model, observeUsage, () => language?.get() ?? "ko");
+		return new TNoteService(generator, store, undefined, undefined, () => language?.get() ?? "ko");
 	},
-	createActivityNarrator: (model) => new PiActivityNarrator(createModelRegistry(new FileCredentialStore()), model),
+	createActivityNarrator: (model, language) => new PiActivityNarrator(createModelRegistry(new FileCredentialStore()), model, () => language?.get() ?? "ko"),
 	createPromotionService: (root) => new CanonicalPromotionService(new FileCanonicalDocumentStore(root)),
 	createReviewService: (runtimeDirectory, observeUsage, config = DEFAULT_WORKBENCH_CONFIG) => {
 		const registry = createModelRegistry(new FileCredentialStore());
@@ -280,6 +283,7 @@ export async function createProjectWorkbenchSession(
 		const projectId    = scopedProjectId(workspace.root)                                                          ;
 		const loadedConfig = await loadWorkbenchConfigWithSource(workspace.root)                                      ;
 		const config       = loadedConfig.config                                                                      ;
+		const outputLanguage = new OutputLanguageSelection(await loadOutputLanguagePreference(workspace.root, config.display.language)) ;
 		const traceRoot    = await existingDirectory(workspace.todosDirectory) ? workspace.todosDirectory : undefined ;
 		const journal = new ThreadBoundActivityJournal(
 			factories.createJournal(join(workspace.runtimeDirectory, "activity")),
@@ -306,9 +310,9 @@ export async function createProjectWorkbenchSession(
 		const connectedNative       = await factories.connectNative(nativeHarnessSelection(options, execution))                ;
 		native = connectedNative;
 		const tnotes = new ThreadScopedTNoteSource(
-			factories.createTNoteSource(workspace.draftsDirectory, config.tnote.model, observeAuxiliaryUsage),
+			factories.createTNoteSource(workspace.draftsDirectory, config.tnote.model, observeAuxiliaryUsage, outputLanguage),
 		);
-		const narrator = options.enableActivityNarrator !== false ? factories.createActivityNarrator?.(config.narrator.model) : undefined;
+		const narrator = options.enableActivityNarrator !== false ? factories.createActivityNarrator?.(config.narrator.model, outputLanguage) : undefined;
 		// WES is an optional local policy source. Ordinary Chat sessions must not
 		// collect it or expose a WES loading/blocked state.
 		const wooEntry        = options.enableWooEntry ? factories.createWooEntry() : undefined ;
@@ -322,6 +326,7 @@ export async function createProjectWorkbenchSession(
 			() => workbench?.snapshot.threadId ?? null,
 		) ?? options.requestCapabilities;
 		const workbenchOptions: ProjectWorkbenchOptions = {
+			outputLanguage,
 			projectId,
 			provider                   : execution.provider,
 			cwd                        : workspace.root,
@@ -378,6 +383,7 @@ export async function createProjectWorkbenchSession(
 		const composerDraft = await factories.createComposerDraft(workspace.root, runId, workspace.draftsDirectory);
 		const usage = factories.createUsageMonitor(connectedNative);
 		return {
+			outputLanguage,
 			workspace,
 			projectId,
 			workbench: activeWorkbench,

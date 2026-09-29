@@ -6,8 +6,27 @@ import { sanitizeTerminalTextExcerpt }                          from "@/core/dom
 import { createCanonicalDocumentDraft }                         from "@/core/application/work/canonical-promotion.js";
 import { stableJson }                                           from "@/core/application/orchestration/workbench-projections.js";
 import { parseCanonicalTNoteReport, parseLegacyCanonicalTNote } from "@/core/application/work/t-note-service.js";
+import type { OutputLanguage }                                from "@/core/domain/execution/output-language.js";
 
-export function turnTNoteInstruction(question: string): string {
+export function turnTNoteInstruction(question: string, language: OutputLanguage = "ko"): string {
+	if (language === "en") return [
+		"Summarize the completed request as a detailed report in English. Use only observable conversation and execution evidence; never infer hidden reasoning.",
+		`Completed request: ${question}`,
+		"Write all field values in English. Keep the Korean field names below exactly as structural delimiters required by the report parser.",
+		"Use `Not observed` when evidence is absent. Do not copy raw logs, promise future actions, or invent file counts or test totals.",
+		"The system adds observed file changes and tests later. Do not write a Test section.",
+		"Return exactly this canonical grammar with nonempty, possibly multiline values:",
+		"REPORT: request-report-v3\n제목:\nA short report title",
+		"요청 목적·접근:\nThe request purpose and approach",
+		"주요 작업:\nMeaningful investigation, decisions, and changes",
+		"장시간·차단 작업:\nDelays, blockers, and causes, or Not observed",
+		"잘된 점:\nWhat worked well",
+		"모델·토큰:\nObserved model and token use, or Not observed",
+		"업무 자체평가:\nAn evidence-based assessment",
+		"다음 유사 요청:\nReusable approach for similar requests, without a promise",
+		"변경 상태:\nObserved code, document, GitHub, and Linear changes, or Not observed",
+		"Commit·Evidence:\nObserved hashes and evidence identifiers, or Not observed",
+	].join("\n\n");
 	return [
 		"완료된 요청 전체를 요청별 상세 업무 REPORT로 정리하세요.",
 		`완료 요청: ${question}`,

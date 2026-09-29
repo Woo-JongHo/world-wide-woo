@@ -1,8 +1,19 @@
 import { describe, expect, test }     from "bun:test";
 import { ContextComposer }            from "../src/core/application/orchestration/context-composer";
+import { OutputLanguageSelection }    from "../src/core/domain/execution/output-language";
 import type { SkillRegistrySnapshot } from "../src/core/skills/skill-registry";
 
 describe("ContextComposer Skill Registry", () => {
+	test("다음 턴의 출력 언어 지침은 현재 선택을 따른다", () => {
+		const language = new OutputLanguageSelection("en");
+		const composer = new ContextComposer(4_000, language);
+		const input = { threadId: "thread", text: "Read the file", cwd: "/workspace", approvalPolicy: "on-request" as const };
+		const english = composer.compose(input, undefined);
+		expect(english.additionalContext?.www_context_policy?.value).toContain("Respond to the user in English.");
+		language.set("ko");
+		const korean = composer.compose(input, undefined);
+		expect(korean.additionalContext?.www_context_policy?.value).toContain("Respond to the user in Korean.");
+	});
 	test("검증된 registry revision과 각 Skill digest만 application context로 주입한다", () => {
 		const registry: SkillRegistrySnapshot = {
 			schemaVersion  : 1,

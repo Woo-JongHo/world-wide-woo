@@ -1,29 +1,39 @@
-import { Editor, Key, matchesKey } from "@earendil-works/pi-tui";
-import type { TuiAltScreen }       from "@earendil-works/pi-tui";
+import      {
+              Editor                            ,
+              Key                               ,
+              matchesKey                        ,
+                                                  } from "@earendil-works/pi-tui"                                       ;
+import type { TuiAltScreen                        } from "@earendil-works/pi-tui"                                       ;
 
-import type { ProjectWorkbench }                           from "@/core/application/orchestration/project-workbench";
-import type { ObservabilityDashboard }                     from "@/core/domain/observability/observability-dashboard";
-import type { WorkbenchCommandReceipt, WorkbenchSnapshot } from "@/core/domain/work/workbench";
-import { RenderScheduler }                                 from "@/adapters/inbound/tui/foundation/rendering/render-scheduler";
-import {
-	WwwCommandPalette,
-	WwwViewSwitcher,
-	WWW_KEYS,
-	WWW_SCROLL_KEYS,
-	matchesWwwAction,
-	matchesWwwKey,
-} from "@/adapters/inbound/tui/shell/www-surface";
-import type { WwwPage, WwwWorkspace }                      from "@/adapters/inbound/tui/shell/www-surface";
-import { ExitKeyPolicy }                                   from "@/adapters/inbound/tui/shell/exit-key-policy";
-import { ShellLifecycle }                                  from "@/adapters/inbound/tui/shell/shell-lifecycle";
-import {
-	WorkbenchNavigationController,
-	directObservabilityView,
-	rotateObservabilityView,
-	shouldHandleObservabilityShortcut,
-} from "@/adapters/inbound/tui/shell/workbench-navigation.controller";
-import type { ObservabilityViewMode }                      from "@/adapters/inbound/tui/shell/workbench-navigation.controller";
-import { WorkbenchOverlayController }                      from "@/adapters/inbound/tui/shell/workbench-overlay-controller";
+import type { ProjectWorkbench                    } from "@/core/application/orchestration/project-workbench"           ;
+import type { ObservabilityDashboard              } from "@/core/domain/observability/observability-dashboard"          ;
+import type {
+              WorkbenchCommandReceipt           ,
+              WorkbenchSnapshot                 ,
+                                                  } from "@/core/domain/work/workbench"                                 ;
+import      { RenderScheduler                     } from "@/adapters/inbound/tui/foundation/rendering/render-scheduler" ;
+import      {
+              WwwCommandPalette                 ,
+              WwwViewSwitcher                   ,
+              WWW_KEYS                          ,
+              WWW_SCROLL_KEYS                   ,
+              matchesWwwAction                  ,
+              matchesWwwKey                     ,
+                                                  } from "@/adapters/inbound/tui/shell/www-surface"                     ;
+import type {
+              WwwPage                           ,
+              WwwWorkspace                      ,
+                                                  } from "@/adapters/inbound/tui/shell/www-surface"                     ;
+import      { ExitKeyPolicy                       } from "@/adapters/inbound/tui/shell/exit-key-policy"                 ;
+import      { ShellLifecycle                      } from "@/adapters/inbound/tui/shell/shell-lifecycle"                 ;
+import      {
+              WorkbenchNavigationController     ,
+              directObservabilityView           ,
+              rotateObservabilityView           ,
+              shouldHandleObservabilityShortcut ,
+                                                  } from "@/adapters/inbound/tui/shell/workbench-navigation.controller" ;
+import type { ObservabilityViewMode               } from "@/adapters/inbound/tui/shell/workbench-navigation.controller" ;
+import      { WorkbenchOverlayController          } from "@/adapters/inbound/tui/shell/workbench-overlay-controller"    ;
 
 interface ShellNotice {
 	setNotice(notice: string): void;
@@ -56,7 +66,11 @@ export interface WorkbenchInputRoutingDependencies {
 	readonly submitComposer             : (text: string) => void                                                     ;
 	readonly showWwwPage                : (page: WwwPage, browse?: boolean) => void                                  ;
 	readonly cycleRuntimeMode           : () => Promise<void>                                                        ;
+	readonly cycleOutputLanguage        : () => Promise<void>                                                        ;
 	readonly enterObservability         : (mode: ObservabilityViewMode) => Promise<void>                             ;
+	readonly moveTestSelection          : (offset: number) => void                                                   ;
+	readonly openTestRunInMonitor       : () => void                                                                 ;
+	readonly dashboardRequestSelection  : (action: "up" | "down" | "open") => boolean                         ;
 	readonly status                     : ShellNotice                                                                ;
 	readonly exitKeys                   : ExitKeyPolicy                                                              ;
 	readonly shutdown                   : () => Promise<void>                                                        ;
@@ -111,6 +125,10 @@ export function installWorkbenchInputRouting(dependencies: WorkbenchInputRouting
 			return undefined;
 		}
 		if (www && !loginPrompt) {
+			if (matchesWwwAction(data, "language.cycle")) {
+				void dependencies.cycleOutputLanguage().catch(error => { status.setNotice(error instanceof Error ? error.message : String(error)); tui.requestRender(); });
+				return { consume: true };
+			}
 			if (dependencies.demo.active()) {
 				if (matchesKey(data, Key.escape)) { dependencies.demo.exit(); return { consume: true }; }
 				if (data.toLowerCase() === "e") { dependencies.demo.next(); return { consume: true }; }
@@ -160,6 +178,18 @@ export function installWorkbenchInputRouting(dependencies: WorkbenchInputRouting
 			}
 			if (matchesWwwAction(data, "transcript.expand") && !editor.focused) { www.transcript.expanded = !www.transcript.expanded; www.transcript.invalidate(); tui.requestRender(); return { consume: true }; }
 			if (matchesWwwAction(data, "browse.toggle") && !editor.isShowingAutocomplete() && (!editor.focused || !editor.getText())) { navigation.toggleWwwBrowse(editor.focused); tui.requestRender(); return { consume: true }; }
+			if (navigation.mode === "test" && !editor.focused && (matchesKey(data, Key.enter) || data === "m" || data === "M")) {
+				dependencies.openTestRunInMonitor();
+				return { consume: true };
+			}
+			if (navigation.mode === "workbench" && www.page === "dashboard" && !editor.focused) {
+				const action = matchesKey(data, Key.up) ? "up" : matchesKey(data, Key.down) ? "down" : matchesKey(data, Key.enter) ? "open" : null;
+				if (action && dependencies.dashboardRequestSelection(action)) return { consume: true };
+			}
+			if (navigation.mode === "test" && !editor.focused && (matchesKey(data, Key.up) || matchesKey(data, Key.down))) {
+				dependencies.moveTestSelection(matchesKey(data, Key.up) ? -1 : 1);
+				return { consume: true };
+			}
 			if (matchesWwwAction(data, "navigate.back") && !editor.isShowingAutocomplete()) {
 				if (navigation.mode === "workbench" && www.page !== "execution") { dependencies.showWwwPage("execution"); return { consume: true }; }
 				if (navigation.mode === "workbench" && !editor.focused) { navigation.leaveWwwBrowse(); tui.requestRender(); return { consume: true }; }

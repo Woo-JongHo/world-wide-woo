@@ -235,6 +235,7 @@ describe("runProjectWorkbenchShell characterization", () => {
 				params : { delta: "화면에 표시" },
 			});
 			await waitFor(() => workbench.performanceTrace("turn-visible:event-1")?.state === "complete");
+			await waitFor(() => shell.terminal.output.includes("화면에 표시"));
 
 			const trace = workbench.performanceTrace("turn-visible:event-1");
 			expect(trace?.state).toBe("complete");
@@ -281,6 +282,7 @@ describe("runProjectWorkbenchShell characterization", () => {
 		const shell = startObservedShell(workbench);
 		try {
 			await settle();
+			const baselineFrames = workbench.layerPerformanceSnapshot().window.render.frameCount;
 			native.emit({ type: "notification", method: "turn/started", refs: { threadId: "thread-1", turnId: "turn-burst" }, params: {} });
 			await settle();
 			native.emit({ type: "notification", method: "item/reasoning/delta", refs: { threadId: "thread-1", turnId: "turn-burst", itemId: "reasoning-burst" }, params: { delta: "A" } });
@@ -292,10 +294,12 @@ describe("runProjectWorkbenchShell characterization", () => {
 			const second      = workbench.performanceTrace("turn-burst:event-3") ;
 			const firstFrame  = first?.layers.at(-1)?.frameId                    ;
 			const secondFrame = second?.layers.at(-1)?.frameId                   ;
-			expect(first?.state).toBe("complete");
-			expect(second?.state).toBe("complete");
-			expect(firstFrame).toMatch(/^terminal-frame-/u);
-			expect(secondFrame).toBe(firstFrame);
+			expect(first?.state ).toBe   ("complete"         ) ;
+			expect(second?.state).toBe   ("complete"         ) ;
+			expect(firstFrame   ).toMatch(/^terminal-frame-/u) ;
+			expect(secondFrame  ).toBe   (firstFrame         ) ;
+			const observedFrames = new Set([1, 2, 3].map(index => workbench.performanceTrace(`turn-burst:event-${index}`)?.layers.at(-1)?.frameId).filter(Boolean));
+			expect(workbench.layerPerformanceSnapshot().window.render.frameCount - baselineFrames).toBe(observedFrames.size);
 		} finally { await shell.shutdown(); }
 	});
 
@@ -362,10 +366,10 @@ describe("runProjectWorkbenchShell characterization", () => {
 
 		const layout = layoutRecorder.project("layout-failure")!;
 		const write  = writeRecorder.project("write-failure")!  ;
-		expect(layout.layers.find(layer => layer.layerId === "layout-materialize")?.failed).toBe(true);
-		expect(layout.layers.find(layer => layer.layerId === "terminal-write")?.failed).toBe(false);
-		expect(write.layers.find(layer => layer.layerId === "layout-materialize")?.failed).toBe(false);
-		expect(write.layers.find(layer => layer.layerId === "terminal-write")?.failed).toBe(true);
+		expect(layout.layers.find(layer => layer.layerId === "layout-materialize")?.failed).toBe(true ) ;
+		expect(layout.layers.find(layer => layer.layerId === "terminal-write")?.failed    ).toBe(false) ;
+		expect(write.layers.find(layer => layer.layerId === "layout-materialize")?.failed ).toBe(false) ;
+		expect(write.layers.find(layer => layer.layerId === "terminal-write")?.failed     ).toBe(true ) ;
 	});
 });
 
@@ -374,6 +378,7 @@ function startObservedShell(workbench: ProjectWorkbench): { readonly terminal: C
 	runProjectWorkbenchShell({
 		terminal,
 		cwd: "/test/layer-performance",
+		surface: "www",
 		workbench,
 		renderIntervalMs: 100,
 		usage: {

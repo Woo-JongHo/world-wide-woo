@@ -5,7 +5,7 @@ import { projectWorkFlow }           from "@/core/domain/work";
 import type { WorkbenchSnapshot }    from "@/core/domain/work/workbench";
 import type { UsageSnapshot }        from "@/core/ports/observability/usage-monitor-port";
 
-export const WWW_DEMO_PAGES = ["execution", "dashboard", "usage", "context", "cache", "workflow", "plan"] as const;
+export const WWW_DEMO_PAGES = ["execution", "dashboard", "usage", "workflow", "plan"] as const;
 export type WwwDemoPage = typeof WWW_DEMO_PAGES[number];
 
 export interface WwwDemoState {

@@ -49,6 +49,23 @@ const generator: DetachedTextGenerator = {
 };
 
 describe("Note service", () => {
+	test("accepts English report values under the fixed canonical field names", () => {
+		const english = [
+			"REPORT: request-report-v3\n제목:\nRequest review",
+			"요청 목적·접근:\nThe expected outcome was checked against observed actions.",
+			"주요 작업:\nReviewed the implementation and checked its behavior.",
+			"장시간·차단 작업:\nNot observed",
+			"잘된 점:\nThe observed result matched the request.",
+			"모델·토큰:\nNot observed",
+			"업무 자체평가:\nThe work stayed within the observed scope.",
+			"다음 유사 요청:\nUse the same evidence checks for similar requests.",
+			"변경 상태:\nNo code, document, GitHub, or Linear change observed.",
+			"Commit·Evidence:\nNot observed",
+		].join("\n\n");
+		expect(validateCanonicalTNote(english, "Review the request").valid).toBe(true);
+		expect(validateCanonicalTNote(english.replace("The work stayed", "I will continue. The work stayed"), "Review the request").valid).toBe(false);
+		expect(validateCanonicalTNote(english.replace("Reviewed the implementation", "Expected: 1\nReviewed the implementation"), "Review the request").valid).toBe(false);
+	});
 	test("accepts the request-wide report contract and rejects legacy generation shapes", () => {
 		const current = report("HUD 한 줄 통합 결과");
 		expect(validateCanonicalTNote(current, "HUD가 두 줄인 원인을 확인해줘")).toEqual({ valid: true, reason: "" });
@@ -88,9 +105,9 @@ describe("Note service", () => {
 			() => "b".repeat(64),
 		);
 
-		expect(packet.activities.map(activity => activity.id)).toEqual(activities.map(activity => activity.id));
-		expect(new TextEncoder().encode(JSON.stringify({ ...packet, digest: undefined })).byteLength).toBeLessThanOrEqual(256 * 1024);
-		expect(packet.activities.every(activity => activity.body.length > 0)).toBe(true);
+		expect(packet.activities.map(activity => activity.id)                                       ).toEqual            (activities.map(activity => activity.id)) ;
+		expect(new TextEncoder().encode(JSON.stringify({ ...packet, digest: undefined })).byteLength).toBeLessThanOrEqual(256 * 1024                             ) ;
+		expect(packet.activities.every(activity => activity.body.length > 0)                        ).toBe               (true                                   ) ;
 	});
 
 	test("keeps packet digests stable when the aggregate fit cuts through a redaction marker", async () => {
@@ -135,16 +152,16 @@ describe("Note service", () => {
 			],
 			instruction: "핵심만 정리",
 		});
-		expect(note.packet.activities[0]?.body).toContain("[redacted:secret]");
-		expect(note.packet.digest).toMatch(/^[a-f0-9]{64}$/u);
-		expect(Object.isFrozen(note.packet)).toBe(true);
-		expect(note.provenance).toEqual({ provider: "anthropic", model: "claude-opus", version: "2026-09-01" });
-		expect(await draftStore.readAll("project-1")).toEqual([note]);
+		expect(note.packet.activities[0]?.body      ).toContain("[redacted:secret]"                                                   ) ;
+		expect(note.packet.digest                   ).toMatch  (/^[a-f0-9]{64}$/u                                                     ) ;
+		expect(Object.isFrozen(note.packet)         ).toBe     (true                                                                  ) ;
+		expect(note.provenance                      ).toEqual  ({ provider: "anthropic", model: "claude-opus", version: "2026-09-01" }) ;
+		expect(await draftStore.readAll("project-1")).toEqual  ([note]                                                                ) ;
 		const text = await readFile(join((draftStore as unknown as { directory: string }).directory, "t-notes.jsonl"), "utf8");
-		expect(text).toContain(note.packet.digest);
-		expect(text).not.toContain("secret-value");
-		expect(text).not.toContain("customer-X");
-		expect(text).not.toContain("Acme");
+		expect(text)    .toContain(note.packet.digest) ;
+		expect(text).not.toContain("secret-value"    ) ;
+		expect(text).not.toContain("customer-X"      ) ;
+		expect(text).not.toContain("Acme"            ) ;
 	});
 
 	test("serializes concurrent distinct Summary records with stable identity and append sequence", async () => {
@@ -217,10 +234,10 @@ describe("Note service", () => {
 			secondCapture.create(request),
 		]);
 
-		expect(first).toEqual(second);
-		expect(await firstStore.readAll("project-1")).toEqual([first]);
-		expect(packets.map(packet => packet.digest)).not.toEqual([packets[0]?.digest, packets[0]?.digest]);
-		expect(tNoteSourceIdempotencyKey(packets[0]!)).toBe(tNoteSourceIdempotencyKey(packets[1]!));
+		expect(first                                 )    .toEqual(second                                  ) ;
+		expect(await firstStore.readAll("project-1") )    .toEqual([first]                                 ) ;
+		expect(packets.map(packet => packet.digest)  ).not.toEqual([packets[0]?.digest, packets[0]?.digest]) ;
+		expect(tNoteSourceIdempotencyKey(packets[0]!))    .toBe   (tNoteSourceIdempotencyKey(packets[1]!)  ) ;
 	});
 
 	test("recovers the persisted Note when append commits but its response fails", async () => {
@@ -260,10 +277,10 @@ describe("Note service", () => {
 			instruction      : "요약",
 		});
 
-		expect(appendCalls).toBe(1);
-		expect(note.id).toBe("persisted-after-commit");
-		expect(note.packet.digest).not.toBe(requestDigest);
-		expect(await durableStore.readAll("project-1")).toEqual([note]);
+		expect(appendCalls                            )    .toBe   (1                       ) ;
+		expect(note.id                                )    .toBe   ("persisted-after-commit") ;
+		expect(note.packet.digest                     ).not.toBe   (requestDigest           ) ;
+		expect(await durableStore.readAll("project-1"))    .toEqual([note]                  ) ;
 	});
 
 	test("appends Test from completed external-runtime observations instead of generated prose", async () => {
@@ -298,10 +315,10 @@ describe("Note service", () => {
 			instruction: "요약",
 		});
 
-		expect(note.text).toContain("✓ CHANGE  project-workbench.ts  +2  -1  done");
-		expect(note.text).toContain("│ -old\n│ +new\n│ +more");
-		expect(note.text).toContain("✓ CHECK   related tests  pass");
-		expect(note.text).not.toContain("/Users/");
+		expect(note.text)    .toContain("✓ CHANGE  project-workbench.ts  +2  -1  done") ;
+		expect(note.text)    .toContain("│ -old\n│ +new\n│ +more"                     ) ;
+		expect(note.text)    .toContain("✓ CHECK   related tests  pass"               ) ;
+		expect(note.text).not.toContain("/Users/"                                     ) ;
 	});
 
 	test("counts and previews raw content when a completed file change adds a file", async () => {
@@ -484,16 +501,16 @@ describe("Note service", () => {
 				},
 			},
 		});
-		expect(source.body).toContain('"classification":"reasoning"');
-		expect(source.body).not.toContain("비공개 reasoning 원문");
-		expect(source).not.toHaveProperty("nativeRefs");
+		expect(source.body)    .toContain     ('"classification":"reasoning"') ;
+		expect(source.body).not.toContain     ("비공개 reasoning 원문"       ) ;
+		expect(source     ).not.toHaveProperty("nativeRefs"                  ) ;
 
 		const packet = createTNotePacket("project-1", { startSequence: 1, endSequence: 1 }, [source], "2026-09-01T00:00:00.000Z", () => "c".repeat(64));
 		const serialized = JSON.stringify(packet);
-		expect(serialized).not.toContain("비공개 reasoning 원문");
-		expect(serialized).not.toContain("thread-1");
-		expect(serialized).not.toContain("reasoning-item-1");
-		expect(serialized).not.toContain("nativeRefs");
+		expect(serialized).not.toContain("비공개 reasoning 원문") ;
+		expect(serialized).not.toContain("thread-1"             ) ;
+		expect(serialized).not.toContain("reasoning-item-1"     ) ;
+		expect(serialized).not.toContain("nativeRefs"           ) ;
 	});
 
 	test("truncates only a final crash residue while rejecting an invalid middle record", async () => {

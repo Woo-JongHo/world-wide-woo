@@ -7,6 +7,7 @@ import type {
 	LinearProjectDashboard,
 } from "@/core/domain/work/linear-dashboard";
 import type { WorkbenchSnapshot }                                      from "@/core/domain/work/workbench";
+import { PRODUCT_VERSION }                                             from "@/product-version";
 import {
 	monitoringCard,
 	monitoringColumns,
@@ -72,7 +73,7 @@ function issueRows(issue: LinearDashboardIssue, marker: string, width: number, n
 
 function updateRows(dashboard: LinearProjectDashboard, width: number): string[] {
 	const update = dashboard.update;
-	if (!update) return [colors.muted("  Project Update가 없습니다.")];
+	if (!update || update.version !== PRODUCT_VERSION) return [colors.muted(`  게시된 v${PRODUCT_VERSION} 릴리스 노트가 없습니다.`)];
 	const body = update.body.split(/\r?\n/u).map(line => line.trim()).filter(Boolean).slice(0, 8);
 	const rows: string[] = [];
 	for (const line of body) {
@@ -196,6 +197,7 @@ export class WwwDashboardView implements Component {
 	public constructor(
 		private readonly getSnapshot: () => WorkbenchSnapshot,
 		private readonly showSyntheticCatalog: () => boolean = () => false,
+		private readonly selectedRequestIndex: () => number = () => 0,
 	) {}
 
 	public invalidate(): void {}
@@ -213,7 +215,6 @@ export class WwwDashboardView implements Component {
 		const sessionTokens  = snapshot.sessionUsage?.observedTotalTokens                                                       ;
 		const contextPercent = context ? Math.round(Math.max(0, Math.min(100, context.percent))) : null                         ;
 		const health         = dashboardHealth(snapshot, todoBlocked)                                                           ;
-		const cache          = cacheSummary(snapshot)                                                                           ;
 		const compactSummary = width < 92                                                                                       ;
 		const summary = [
 			[compactSummary ? "Session" : "Active session", snapshotText(snapshot.threadId, "새 세션"), `revision ${snapshot.revision}`],
@@ -222,6 +223,12 @@ export class WwwDashboardView implements Component {
 			[compactSummary ? "Context" : "Context space", contextPercent == null ? "미관측" : `${contextPercent}%`, context ? `${number(context.usedTokens)} / ${number(context.contextWindow)}` : "연결 대기"],
 			[compactSummary ? "Health" : "System health", health, snapshot.error ? "error observed" : todoBlocked ? `${todoBlocked} blocked` : "no blocking signal"],
 		] as const;
+		const requests = [...(snapshot.requestRuntime ?? [])].filter(request => request.threadId === snapshot.threadId).reverse();
+		const requestRows = requests.map((request, index) => {
+			const label = request.objective.trim() || request.requestId;
+			const marker = index === this.selectedRequestIndex() ? "›" : " ";
+			return pair(`${marker} /monitor #${index + 1}`, `${request.status} · ${label}`, width);
+		});
 		if (width < 58) {
 			const boundedLive = live ? truncateToWidth(live, Math.max(12, width - 10)) : "현재 실행 중인 작업이 없습니다.";
 			return [
@@ -231,18 +238,18 @@ export class WwwDashboardView implements Component {
 				live ? a.active(boundedLive) : a.muted(boundedLive),
 				snapshot.sessionGoal ? a.text(`Goal · ${snapshotText(snapshot.sessionGoal.text, "목표 없음")}`) : a.muted("Goal이 아직 없습니다."),
 				pair("ACTIVITY EVENTS", number(snapshot.activities.length), width),
+				...wwwSection("Questions", width, `${requests.length} recorded`, a.response),
+				...(requestRows.length ? requestRows : [a.muted("기록된 질문이 없습니다.")]),
 			].flatMap(row => prose(row, width));
 		}
 
 		const summaryWidths = monitoringWidths(width, 5)                                                                         ;
 		const routerWidths  = monitoringWidths(width, 5)                                                                         ;
-		const contextValue  = contextPercent == null ? "미관측" : `${contextPercent}%`                                           ;
-		const contextDetail = context ? `${number(context.usedTokens)} / ${number(context.contextWindow)}` : "usage unavailable" ;
 		const usageValue    = sessionTokens == null ? "미관측" : number(sessionTokens)                                           ;
 		const routerCards = [
 			monitoringCard({ title: "/output", value: `${snapshot.tnotes.length}`, detail: "operation reports" }, routerWidths[0]),
-			monitoringCard({ title: "/context", value: contextValue, detail: contextDetail }, routerWidths[1]),
-			monitoringCard({ title: "/cache", value: cache.value, detail: cache.detail }, routerWidths[2]),
+			monitoringCard({ title: "/monitor", value: `${requests.length}`, detail: "question records" }, routerWidths[1]),
+			monitoringCard({ title: "/test", value: "open", detail: "verification results" }, routerWidths[2]),
 			monitoringCard({ title: "/usage", value: usageValue, detail: "observed session tokens" }, routerWidths[3]),
 			monitoringCard({ title: "/workflow", value: `${workflow.completedCount}/${workflow.steps.length}`, detail: workflow.steps.length ? "tracked steps" : "no steps" }, routerWidths[4]),
 		];
@@ -281,6 +288,9 @@ export class WwwDashboardView implements Component {
 			"",
 			pair("NOW", liveSummary, width),
 			pair("GOAL", goal, width),
+			"",
+			pair(a.strong("QUESTIONS / MONITOR RECORDS"), `${requests.length} requests · ↑↓ 선택 · Enter 열기`, width),
+			...(requestRows.length ? requestRows : [a.muted("기록된 질문이 없습니다.")]),
 			...layerPerformanceRows(snapshot, width),
 			...monitoringColumns([tokenPanel, activityPanel], [tokenPanelWidth, activityPanelWidth]),
 			pair("LINEAR", project ? `${snapshotText(project.projectName, "연결된 프로젝트")} · ${project.state}` : "미연결", width),
@@ -314,8 +324,8 @@ export class WwwDashboardRail implements Component {
 			pair("Recording", snapshot.recordingReadOnly ? a.attention("read-only") : a.success("writable"), width),
 			...(context ? [a.caption("Context occupancy"), monitoringMeter(context.usedTokens, context.contextWindow, Math.max(8, width - 2), a.response)] : [a.muted("Context occupancy · 미관측")]),
 			...railSection("Navigate", width),
-			a.muted("/context  컨텍스트"),
-			a.muted("/cache    캐시"),
+			a.muted("/monitor 현재 질문"),
+			a.muted("/dashboard 질문 기록"),
 			a.muted("/usage    사용량"),
 			a.muted("/workflow 워크플로"),
 		];
@@ -338,14 +348,22 @@ export class EntryDashboardView implements Component {
 		const projectName     = dashboard?.projectName ?? "Linear 프로젝트"      ;
 		const rows : string[] = [colors.secondary(`DASHBOARD · ${projectName}`)] ;
 		if (!dashboard || dashboard.state === "loading") {
-			rows.push(section("NOW"), colors.accent("연결 중"));
+			rows.push(section("RELEASE"), colors.accent(`v${PRODUCT_VERSION}`));
+			rows.push(colors.muted("  릴리스 노트를 불러오는 중입니다."));
+			rows.push(section("PROJECT"), colors.accent("연결 중"));
 			rows.push(...wrapTextWithAnsi("열린 이슈·최신 Update·Comment·마일스톤을 가져오는 중입니다.", contentWidth));
+			rows.push(section("NOW"), colors.muted("  프로젝트 연결 대기"));
+			rows.push(section("ACTIVITY"), colors.muted("  최근 활동 연결 대기"));
 			return rows;
 		}
 		if (dashboard.state === "unavailable") {
-			rows.push(section("HEALTH"), colors.warning("! Linear Dashboard unavailable"));
+			rows.push(section("RELEASE"), colors.accent(`v${PRODUCT_VERSION}`));
+			rows.push(colors.muted(`  v${PRODUCT_VERSION} 릴리스 노트를 확인할 수 없습니다.`));
+			rows.push(section("PROJECT"), colors.warning("! Linear Dashboard unavailable"));
 			if (dashboard.error) rows.push(...wrapTextWithAnsi(`  ${dashboard.error}`, contentWidth));
 			rows.push(...wrapTextWithAnsi(colors.muted("  조치 · .www/workbench.yaml의 연결과 Linear MCP 인증을 확인하세요."), contentWidth));
+			rows.push(section("NOW"), colors.muted("  현재 작업 미관측"));
+			rows.push(section("ACTIVITY"), colors.muted("  최근 활동 미관측"));
 			return rows;
 		}
 
@@ -356,18 +374,19 @@ export class EntryDashboardView implements Component {
 			rows.push(colors.warning("갱신 실패 · 마지막 성공 값"));
 			if (dashboard.error) rows.push(...wrapTextWithAnsi(`  실패 이유 · ${dashboard.error}`, contentWidth));
 		}
-		rows.push(section("NOW"));
-		if (current) rows.push(...issueRows(current, "▶", contentWidth, this.now()));
-		else rows.push(colors.muted("  현재 진행 중인 이슈가 없습니다."));
+		rows.push(section("RELEASE"), colors.accent(`v${PRODUCT_VERSION}`), ...updateRows(dashboard, contentWidth));
 
-		rows.push(section("NEXT"));
+		rows.push(section("PROJECT"));
+		rows.push(colors.muted(`  ${projectName} · issues ${issues.length} · milestones ${dashboard.milestones.length}`));
 		if (next.length > 0) {
 			for (const issue of next) rows.push(...issueRows(issue, "○", contentWidth, this.now()));
 		} else rows.push(colors.muted("  다음 작업이 없습니다."));
 
-		rows.push(section("UPDATE"), ...updateRows(dashboard, contentWidth));
+		rows.push(section("NOW"));
+		if (current) rows.push(...issueRows(current, "▶", contentWidth, this.now()));
+		else rows.push(colors.muted("  현재 진행 중인 이슈가 없습니다."));
+
 		rows.push(section("ACTIVITY"), ...commentRows(dashboard, contentWidth, this.now()));
-		rows.push(section("RECENT"));
 		const recent = [...issues]
 			.filter((issue): issue is LinearDashboardIssue & { updatedAt: string } => Boolean(issue.updatedAt))
 			.sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt))
@@ -376,7 +395,6 @@ export class EntryDashboardView implements Component {
 			for (const issue of recent) rows.push(...wrapTextWithAnsi(`${clock(issue.updatedAt)}  ${issue.id}  ${issue.title}`, contentWidth));
 		} else rows.push(colors.muted("  최근 갱신 이슈가 없습니다."));
 
-		rows.push(section("HEALTH"));
 		const blocked = issues.filter(issue => /blocked|차단/iu.test(issue.status)).length      ;
 		const stale   = dashboard.state === "stale" ? 1 : 0                                     ;
 		const marker  = blocked > 0 || stale > 0 ? colors.warning("!") : colors.success("✓")    ;

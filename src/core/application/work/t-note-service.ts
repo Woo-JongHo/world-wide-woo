@@ -1,4 +1,5 @@
 import { createHash, randomUUID }                                          from "node:crypto";
+import type { OutputLanguage }                                             from "@/core/domain/execution/output-language.js";
 import { createTNotePacket, sanitizeTNoteText, tNoteSourceIdempotencyKey } from "@/core/domain/work/t-notes.js";
 import type {
 	TNoteActivitySource,
@@ -28,6 +29,7 @@ export interface TNoteDraftStore {
 }
 
 export interface CreateTNoteInput {
+	readonly outputLanguage?: OutputLanguage ;
 	readonly projectId   : string                         ;
 	readonly range       : TNoteSourceRange               ;
 	readonly activities  : readonly TNoteActivitySource[] ;
@@ -61,6 +63,7 @@ export class TNoteService {
 		private readonly store: TNoteDraftStore,
 		private readonly clock: () => Date = () => new Date(),
 		private readonly idFactory: () => string = randomUUID,
+		private readonly language: () => OutputLanguage = () => "ko",
 	) {}
 
 	/**
@@ -90,7 +93,7 @@ export class TNoteService {
 		}
 		const text          = result.text                                                 ;
 		const operationText = appendObservedOperationRows(text, packet.activities)        ;
-		const persistedText = appendObservedTestSummary(operationText, packet.activities) ;
+		const persistedText = appendObservedTestSummary(operationText, packet.activities, input.outputLanguage ?? this.language()) ;
 		return this.appendOrRecover(Object.freeze({
 			id: this.idFactory(),
 			createdAt: this.clock().toISOString(),
@@ -252,7 +255,7 @@ export function validateCanonicalTNote(
 		return { valid: false, reason: "Detached generator returned hidden reasoning" };
 	}
 	const completedAction = fields.join("\n");
-	if (/(?:다음 할 일|(?:내일|추후|후속|다음에|이후|곧|계속).{0,24}(?:하겠습니다|합니다|할 예정|할 계획|진행하겠습니다|진행합니다|처리하겠습니다|처리합니다|검토하겠습니다|검토합니다|수정하겠습니다|수정합니다|배포하겠습니다|배포합니다)|(?:하겠습니다|합니다|할 예정|할 계획|진행하겠습니다|진행합니다|처리하겠습니다|처리합니다|검토하겠습니다|검토합니다|수정하겠습니다|수정합니다|배포하겠습니다|배포합니다).{0,24}(?:내일|추후|후속|다음에|이후|곧|계속))/u.test(completedAction)) {
+	if (/(?:다음 할 일|(?:내일|추후|후속|다음에|이후|곧|계속).{0,24}(?:하겠습니다|합니다|할 예정|할 계획|진행하겠습니다|진행합니다|처리하겠습니다|처리합니다|검토하겠습니다|검토합니다|수정하겠습니다|수정합니다|배포하겠습니다|배포합니다)|(?:하겠습니다|합니다|할 예정|할 계획|진행하겠습니다|진행합니다|처리하겠습니다|처리합니다|검토하겠습니다|검토합니다|수정하겠습니다|배포하겠습니다|배포합니다).{0,24}(?:내일|추후|후속|다음에|이후|곧|계속)|(?:^|\n)\s*(?:I|We)\s+(?:will|plan to|intend to)\b)/iu.test(completedAction)) {
 		return { valid: false, reason: "Detached generator returned future action" };
 	}
 	return { valid: true, reason: "" };
@@ -340,7 +343,7 @@ function diffPreview(lines: readonly string[]): readonly string[] {
 }
 
 /** Test evidence is derived from the completed external-runtime activity packet, never generated prose. */
-function appendObservedTestSummary(text: string, activities: readonly TNoteSourceActivity[]): string {
+function appendObservedTestSummary(text: string, activities: readonly TNoteSourceActivity[], language: OutputLanguage): string {
 	const tests = activities.flatMap(activity => {
 		const observation = testObservation(activity);
 		return observation ? [observation] : [];
@@ -348,7 +351,7 @@ function appendObservedTestSummary(text: string, activities: readonly TNoteSourc
 	const passed = tests.filter(test => test.status === "passed").length;
 	const lines = tests.length
 		? tests.map((test, index) => `${String(index + 1).padStart(2, "0")}. ${test.command} : ${formatDuration(test.durationMs)} · ${test.status}`)
-		: ["테스트 실행 관측 없음"];
+		: [language === "en" ? "No test execution observed" : "테스트 실행 관측 없음"];
 	return `${text}\nTest:\nTotal ${passed}/${tests.length}\n${lines.join("\n")}`;
 }
 
@@ -410,5 +413,5 @@ function record(value: unknown): Readonly<Record<string, unknown>> | null {
 }
 
 function hasRawEvidence(field: string): boolean {
-	return /(?:```|(?:^|\s)(?:(?:[\w.-]+\/)*[\w.-]+\.[\w-]+)\s*(?:와|및|,)\s*(?:(?:[\w.-]+\/)*[\w.-]+\.[\w-]+)|(?:^|\s)(?:FAIL|expected|received|stdout|stderr|AssertionError|assertion|stack(?: trace)?|traceback|test result)\b)/iu.test(field);
+	return /(?:```|(?:^|\s)(?:(?:[\w.-]+\/)*[\w.-]+\.[\w-]+)\s*(?:와|및|,)\s*(?:(?:[\w.-]+\/)*[\w.-]+\.[\w-]+)|(?:^|\n)\s*(?:FAIL\b|Expected:|Received:|stdout[:\s]|stderr[:\s]|AssertionError\b|stack trace[:\s]|traceback\b|test result[:\s]))/iu.test(field);
 }

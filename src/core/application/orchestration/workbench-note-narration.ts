@@ -21,11 +21,13 @@ import { validateCanonicalTNote }                                 from "@/core/a
 import type { ActivityNarrator }                                  from "@/core/application/orchestration/activity-narrator.js";
 import { PlanActivityNarration }                                  from "@/core/application/orchestration/plan-activity-narration.js";
 import { projectTNote, turnTNoteInstruction }                     from "@/core/application/orchestration/workbench-artifacts.js";
+import type { OutputLanguage }                                    from "@/core/domain/execution/output-language.js";
 
 interface TNoteStore {
 	bindThread?(threadId: string): Promise<void>;
 	readAll(projectId: string): Promise<readonly TNoteDraft[]>;
 	create(input: {
+		outputLanguage?  : OutputLanguage                 ;
 		projectId        : string                         ;
 		range            : TNoteSourceRange               ;
 		activities       : readonly TNoteActivitySource[] ;
@@ -35,6 +37,7 @@ interface TNoteStore {
 }
 
 interface NoteNarrationOptions {
+	readonly language?                 : () => OutputLanguage                                                                        ;
 	readonly projectId                 : string                                                                                      ;
 	readonly source?                   : TNoteStore                                                                                  ;
 	readonly narrator?                 : ActivityNarrator                                                                            ;
@@ -62,22 +65,26 @@ interface TNoteRequest {
 }
 
 export class WorkbenchNoteNarration {
-	private readonly notesById                         = new Map<string, TNoteDraft>()          ;
-	private readonly projectedNotes : WorkbenchTNote[] = []                                     ;
-	private readonly completionOrdinals                = new Map<string, number>()              ;
-	private readonly automaticTurns                    = new Set<string>()                      ;
-	private readonly failedAutomaticTurns              = new Set<string>()                      ;
-	private readonly inFlight                          = new Map<string, Promise<TNoteDraft>>() ;
-	private queue                   : Promise<void>    = Promise.resolve()                      ;
-	private readonly abort                             = new AbortController()                  ;
-	private readonly narrations                        = new Map<string, WorkStepNarration>()   ;
-	private planNarration?          : PlanActivityNarration                                     ;
-	private observedSequence                           = 0                                      ;
-	private revisionValue                              = 0                                      ;
-	private readStateValue          : WorkbenchTNoteReadState                                   ;
-	private readGeneration                             = 0                                      ;
-	private noteBinding             : Promise<void>    = Promise.resolve()                      ;
-	private boundThreadId           : string | null    = null                                   ;
+	private readonly notesById                                                                                                         = new Map<string, TNoteDraft>()                                             ;
+	private readonly projectedNotes : WorkbenchTNote[]                                                                                 = []                                                                        ;
+	private readonly completionOrdinals                                                                                                = new Map<string, number>()                                                 ;
+	private readonly automaticTurns                                                                                                    = new Set<string>()                                                         ;
+	private readonly failedAutomaticTurns                                                                                              = new Set<string>()                                                         ;
+	private readonly inFlight                                                                                                          = new Map<string, Promise<TNoteDraft>>()                                    ;
+	private queue                   : Promise<void>                                                                                    = Promise.resolve()                                                         ;
+	private readonly abort                                                                                                             = new AbortController()                                                     ;
+	private readonly narrations                                                                                                        = new Map<string, WorkStepNarration>()                                      ;
+	private planNarration?          : PlanActivityNarration                                                                                                                                                        ;
+	private actionNarration?        : PlanActivityNarration                                                                                                                                                        ;
+	private actionRevision                                                                                                             = 0                                                                         ;
+	private readonly actionHistory                                                                                                     = new Map<string, import("@/core/domain/work/workbench.js").PlanActivity>() ;
+	private actionCache             : { key: string; value: readonly import("@/core/domain/work/workbench.js").PlanActivity[] } | null = null                                                                      ;
+	private observedSequence                                                                                                           = 0                                                                         ;
+	private revisionValue                                                                                                              = 0                                                                         ;
+	private readStateValue          : WorkbenchTNoteReadState                                                                                                                                                      ;
+	private readGeneration                                                                                                             = 0                                                                         ;
+	private noteBinding             : Promise<void>                                                                                    = Promise.resolve()                                                         ;
+	private boundThreadId           : string | null                                                                                    = null                                                                      ;
 
 	public constructor(private readonly options: NoteNarrationOptions) {
 		this.readStateValue = options.source?.bindThread
@@ -248,18 +255,29 @@ export class WorkbenchNoteNarration {
 			}
 			this.options.publish();
 		});
-		this.planNarration.select(this.options.activeTurnId() ?? this.options.selectedPlanTurnId());
+		const turnId = this.options.activeTurnId() ?? this.options.selectedPlanTurnId();
+		this.planNarration.select(turnId);
 		const context = this.narrationContext();
 		for (const activity of this.options.activities()) {
 			if (activity.sequence <= this.observedSequence) continue;
 			this.observedSequence = activity.sequence;
-			if (context && activity.nativeRefs.threadId === this.options.threadId()) this.planNarration.observe(activity, context);
+			if (activity.nativeRefs.threadId !== this.options.threadId()) continue;
+			if (context) this.planNarration.observe(activity, context);
 		}
+	}
+
+	public toolActions(): readonly import("@/core/domain/work/workbench.js").PlanActivity[] {
+		const key = `${this.observedSequence}:${this.actionRevision}`;
+		if (this.actionCache?.key === key) return this.actionCache.value;
+		const current = this.actionNarration?.snapshot().planActivities ?? [];
+		const value = [...new Map([...this.actionHistory.values(), ...current].map(action => [action.id, action])).values()];
+		this.actionCache = { key, value };
+		return value;
 	}
 
 	public planSnapshot(): { planActivities: readonly import("@/core/domain/work/workbench.js").PlanActivity[]; planActivityStatus: "disabled" | "pending" | "ready" | "unavailable" } {
 		const context = this.narrationContext();
-		if (this.planNarration && context) return this.planNarration.snapshot(context.stepId);
+		if (this.planNarration && context) return this.planNarration.snapshot();
 		return { planActivities: [], planActivityStatus: this.options.narrator ? "pending" : "disabled" };
 	}
 
@@ -284,8 +302,9 @@ export class WorkbenchNoteNarration {
 					...projectActivityToTNoteSource(activity),
 					...(activity.id === terminal.id ? { completion: { threadId, turnId, number, terminalActivityId: terminal.id } } : {}),
 				})),
-				instruction: turnTNoteInstruction(scope.question),
-				expectedQuestion: scope.question,
+				outputLanguage   : this.options.language?.() ?? "ko",
+				instruction      : turnTNoteInstruction(scope.question, this.options.language?.() ?? "ko"),
+				expectedQuestion : scope.question,
 			},
 		};
 	}
@@ -339,16 +358,16 @@ export class WorkbenchNoteNarration {
 		this.projectedNotes.push(immutable(projectTNote(note)));
 	}
 
-	private narrationContext(): { turnId: string; stepId: string; stepTitle: string; goal: string } | undefined {
+	private narrationContext(): { turnId: string; stepId: string; stepTitle: string; goal: string; kind: "plan-progress" } | undefined {
 		const turnId = this.options.activeTurnId() ?? this.options.selectedPlanTurnId();
 		if (!turnId || this.options.pendingPlanGoalActivityId()) return undefined;
 		const flow = this.options.currentFlow();
 		const step = flow.steps.find(candidate => candidate.status === "running") ?? [...flow.steps].reverse().find(candidate => candidate.status !== "pending");
-		if (step) return { turnId, stepId: step.id, stepTitle: step.title, goal: flow.goal };
+		if (step) return { turnId, stepId: step.id, stepTitle: step.title, goal: flow.goal, kind: "plan-progress" };
 		const request = this.options.requestRecords().find(record => record.turnId === turnId && record.threadId === this.options.threadId());
 		if (request) {
 			const stage = request.stages.find(candidate => candidate.status === "running") ?? [...request.stages].reverse().find(candidate => candidate.status !== "pending");
-			return stage ? { turnId, stepId: stage.id, stepTitle: stage.goal, goal: request.objective } : undefined;
+			return stage ? { turnId, stepId: stage.id, stepTitle: stage.goal, goal: request.objective, kind: "plan-progress" } : undefined;
 		}
 		return undefined;
 	}

@@ -10,7 +10,10 @@ describe("McpLinearProjectDashboard", () => {
 				const value = tool === "list_issues"
 					? { issues: [{ id: "WOO-907", title: "입장 Dashboard", status: "Backlog", statusType: "backlog" }] }
 					: tool === "get_status_updates"
-						? { statusUpdates: [{ body: "진행 중", createdAt: "2026-09-09T00:00:00.000Z" }] }
+						? { statusUpdates: [
+							{ body: "일반 진행 기록", createdAt: "2026-09-10T00:00:00.000Z" },
+							{ body: "v0.0.21 진행 중", createdAt: "2026-09-09T00:00:00.000Z" },
+						] }
 						: tool === "list_comments"
 							? { comments: [{ id: "comment-1", body: "활동 기록", createdAt: "2026-09-09T01:00:00.000Z", author: { name: "우종호" } }] }
 							: { milestones: [{ name: "v0.1.0", targetDate: "2026-09-30" }] };
@@ -23,13 +26,13 @@ describe("McpLinearProjectDashboard", () => {
 			state       : "ready",
 			projectName : "World Wide Woo",
 			issues      : [{ id: "WOO-907", title: "입장 Dashboard" }],
-			update      : { body: "진행 중" },
+			update      : { body: "v0.0.21 진행 중", version: "0.0.21" },
 			comments    : [{ id: "comment-1", body: "활동 기록", author: "우종호" }],
 			milestones  : [{ name: "v0.1.0", targetDate: "2026-09-30" }],
 		});
 		expect(calls.map(call => call.tool).sort()).toEqual(["get_status_updates", "list_comments", "list_issues", "list_milestones"]);
 		expect(calls.find(call => call.tool === "get_status_updates")?.arguments).toEqual({
-			project: "project-1", type: "project", limit: 1,
+			project: "project-1", type: "project", limit: 20,
 		});
 		expect(calls.find(call => call.tool === "list_milestones")?.arguments).toEqual({ project: "project-1" });
 		expect(calls.find(call => call.tool === "list_comments")?.arguments).toEqual({ projectId: "project-1", limit: 5, orderBy: "createdAt" });

@@ -7,6 +7,7 @@ import type {
 	DetachedTextGenerator,
 } from "@/core/application/orchestration/detached-text-generator";
 import type { SessionModelUsageObservation }               from "@/core/application/session/session-model-usage.js";
+import type { OutputLanguage }                              from "@/core/domain/execution/output-language.js";
 
 export const DETACHED_CODEX_PROVIDER = "openai-codex";
 
@@ -27,6 +28,7 @@ export class PiDetachedCodexGenerator implements DetachedTextGenerator {
 		private readonly modelId: string,
 		private readonly version: string = modelId,
 		private readonly observeUsage?: (observation: SessionModelUsageObservation) => void,
+		private readonly language: () => OutputLanguage = () => "ko",
 	) {
 		if (!nonEmptyText(modelId) || !nonEmptyText(version)) throw new Error("Detached Codex model and version are required");
 	}
@@ -47,7 +49,7 @@ export class PiDetachedCodexGenerator implements DetachedTextGenerator {
 		if (!model) throw new Error(`Detached Codex model is not available: ${DETACHED_CODEX_PROVIDER}/${this.modelId}`);
 
 		const context: Context = {
-			systemPrompt : "You create a concise Korean Note from only the supplied immutable packet and instruction. Explain it so a person seeing the work for the first time can understand it. Include execution details only when they directly explain the answer. Never expose hidden chain-of-thought, infer omitted project data, copy raw logs, add future Todo items, or call tools. Follow the requested output shape exactly and return text only.",
+			systemPrompt : `You create a concise ${this.language() === "en" ? "English" : "Korean"} Note from only the supplied immutable packet and instruction. Explain it so a person seeing the work for the first time can understand it. Include execution details only when they directly explain the answer. Never expose hidden chain-of-thought, infer omitted project data, copy raw logs, add future Todo items, or call tools. Follow the requested output shape exactly and return text only.`,
 			messages     : [{ role: "user", content: detachedInput(request), timestamp: Date.now() }],
 			tools        : [],
 		};

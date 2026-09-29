@@ -9,8 +9,9 @@ export interface LinearDashboardIssue {
 	readonly updatedAt?  : string | null ;
 }
 export interface LinearDashboardUpdate {
-	readonly body: string;
-	readonly createdAt: string | null;
+	readonly body      : string        ;
+	readonly version   : string | null ;
+	readonly createdAt : string | null ;
 }
 export interface LinearDashboardComment {
 	readonly id        : string        ;

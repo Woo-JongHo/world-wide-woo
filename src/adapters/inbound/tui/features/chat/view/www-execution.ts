@@ -2,6 +2,8 @@ import { Markdown, truncateToWidth, visibleWidth }                              
 import type { Component, ScrollRowSource }                                      from "@earendil-works/pi-tui";
 import type { ChatFeatureProjection }                                           from "@/core/application/orchestration/workbench-feature-reads";
 import type { ProjectActivity }                                                 from "@/core/domain/execution/project-activity";
+import type { OutputLanguage }                                                  from "@/core/domain/execution/output-language";
+import { parseRequestCheckpointReport, parseRequestStageReport }                from "@/core/domain/execution/request-runtime";
 import type { WorkbenchChatMessage, WorkbenchTNote }                            from "@/core/domain/work/workbench";
 import { sanitizeCompletedAssistantResponse, sanitizePartialAssistantResponse } from "@/core/domain/review/redaction";
 import { boundedPublicProjection }                                              from "@/adapters/inbound/tui/features/chat/view-model/bounded-public-projection";
@@ -21,6 +23,7 @@ import {
 } from "@/adapters/inbound/tui/foundation/theme/www-theme";
 import { parseCanonicalTNoteReport, parseLegacyCanonicalTNote }                 from "@/core/application/work/t-note-service";
 import { WorkbenchWelcomeView }                                                 from "@/adapters/inbound/tui/features/chat/view/workbench-welcome";
+import { semantic }                                                             from "@/adapters/inbound/tui/foundation/theme/theme";
 import { CHAT_TERMINAL_OUTPUT_CHUNK_LINES }                                     from "@/adapters/inbound/tui/features/chat/view/chat-output-policy";
 import { getActiveTuiTheme }                                                    from "@/adapters/inbound/tui/foundation/theme/theme";
 import { renderUnifiedDiff }                                                    from "@/adapters/inbound/tui/foundation/rendering/unified-diff-view";
@@ -40,7 +43,6 @@ const tnoteMarkdownTheme = {
 
 const TRANSCRIPT_ICON = {
 	edit     : "✎",
-	thought  : "◉",
 	terminal : "▣",
 } as const;
 
@@ -56,17 +58,19 @@ export function wwwConversationLabels(messages: readonly WorkbenchChatMessage[])
 		if (message.role === "user") {
 			request += 1;
 			response = 0;
-			labels.set(message.id, `REQ ${request}`);
+			labels.set(message.id, `INPUT ${request}`);
 		} else if (message.role === "assistant") {
 			response += 1;
-			labels.set(message.id, `RES ${Math.max(1, request)}-${response}`);
+			labels.set(message.id, `OUTPUT ${Math.max(1, request)}-${response}`);
 		} else labels.set(message.id, "Notice");
 	}
 	return labels;
 }
 
-function verificationLabel(value: ChatFeatureProjection["performance"]): string {
-	const labels = {
+function verificationLabel(value: ChatFeatureProjection["performance"], language: OutputLanguage): string {
+	const labels = language === "en" ? {
+		"not-verified": "not verified", passed: "verified", failed: "verification failed", uncertain: "verification uncertain",
+	} : {
 		"not-verified" : "검증 미실행",
 		passed         : "검증 통과",
 		failed         : "검증 실패",
@@ -75,32 +79,33 @@ function verificationLabel(value: ChatFeatureProjection["performance"]): string 
 	return labels[value?.verification ?? "not-verified"];
 }
 
-export function executionHeading(s: ChatFeatureProjection): { state: string; title: string; detail: string; attention: boolean } {
-	const lastRequest = [...s.chat].reverse().find(m => m.role === "user")       ;
-	const current     = s.workFlow.steps.find(step => step.status === "running") ;
-	const receipt     = s.executionRun?.receipt                                  ;
+export function executionHeading(s: ChatFeatureProjection, language: OutputLanguage = "ko"): { state: string; title: string; detail: string; attention: boolean } {
+	const label       = (ko: string, en: string): string => language === "en" ? en : ko ;
+	const lastRequest = [...s.chat].reverse().find(m => m.role === "user")              ;
+	const current     = s.workFlow.steps.find(step => step.status === "running")        ;
+	const receipt     = s.executionRun?.receipt                                         ;
 	if (s.pendingApproval) return {
-		state     : "승인 대기",
-		title     : "진행하려면 결정이 필요합니다",
+		state     : label("승인 대기", "Awaiting approval"),
+		title     : label("진행하려면 결정이 필요합니다", "A decision is needed to continue"),
 		detail    : oneLine(s.pendingApproval.params.reason || s.pendingApproval.params.command || s.pendingApproval.kind),
 		attention : true,
 	};
 	if (s.deliveryUncertain) return {
-		state     : "수신 미확인",
-		title     : "요청 수신 여부를 확인해야 합니다",
-		detail    : "/cancel로 서버 상태 확인 · 자동 재전송하지 않음",
+		state     : label("수신 미확인", "Delivery uncertain"),
+		title     : label("요청 수신 여부를 확인해야 합니다", "Check whether the request was received"),
+		detail    : label("/cancel로 서버 상태 확인 · 자동 재전송하지 않음", "Use /cancel to check server state · no automatic retry"),
 		attention : true,
 	};
 	if (s.error || s.phase === "error") return {
-		state     : "오류",
-		title     : oneLine(s.error || "실행 오류"),
-		detail    : "기록을 확인하고 다음 요청을 입력하세요",
+		state     : label("오류", "Error"),
+		title     : oneLine(s.error || label("실행 오류", "Execution error")),
+		detail    : label("기록을 확인하고 다음 요청을 입력하세요", "Review the record before sending another request"),
 		attention : true,
 	};
 	if (s.phase === "loading") return {
-		state     : "연결 중",
-		title     : "프로젝트 실행 환경을 여는 중",
-		detail    : "Native session 연결",
+		state     : label("연결 중", "Connecting"),
+		title     : label("프로젝트 실행 환경을 여는 중", "Opening the project runtime"),
+		detail    : label("Native session 연결", "Connecting native session"),
 		attention : false,
 	};
 	const turnId = s.activeTurnId ?? s.workFlow.source?.turnId;
@@ -110,7 +115,7 @@ export function executionHeading(s: ChatFeatureProjection): { state: string; tit
 		return {
 			state     : stage ? `${stage.id} · ${stage.status}` : request.status,
 			title     : oneLine(stage?.tasks.find(task => task.status === "running")?.title ?? request.objective),
-			detail    : wwwNowLabel(s) ?? "정리된 작업 내용을 기다리는 중",
+			detail    : stage ? `${stage.id} · ${stage.status}` : label("단계 상태 관측 중", "Observing stage status"),
 			attention : ["failed", "blocked"].includes(request.status),
 		};
 	}
@@ -118,9 +123,9 @@ export function executionHeading(s: ChatFeatureProjection): { state: string; tit
 		const phase = s.executionRun?.phase;
 		const waiting = ["waiting", "blocked", "reconciling", "unknown"].includes(phase ?? "");
 		return {
-			state     : waiting ? "대기" : s.draft ? "결과 작성" : "실행 중",
-			title     : oneLine(current?.title || lastRequest?.content || s.sessionGoal?.text || "요청을 확인하는 중"),
-			detail    : waiting ? "작업 진행 상태를 확인하는 중" : wwwNowLabel(s) ?? "정리된 작업 내용을 기다리는 중",
+			state     : waiting ? label("대기", "Waiting") : s.draft ? label("결과 작성", "Writing result") : label("실행 중", "Running"),
+			title     : oneLine(current?.title || lastRequest?.content || s.sessionGoal?.text || label("요청을 확인하는 중", "Reviewing the request")),
+			detail    : waiting ? label("단계 상태 대기 중", "Waiting for stage status") : label("단계 상태 관측 중", "Observing stage status"),
 			attention : waiting,
 		};
 	}
@@ -128,11 +133,11 @@ export function executionHeading(s: ChatFeatureProjection): { state: string; tit
 	const blocking    = receipt?.remaining.filter(item => item.blocking).length ?? 0                                                 ;
 	const needsReview = Boolean(blocking || s.performance?.verification === "failed" || s.performance?.verification === "uncertain") ;
 	return {
-		state: status === "failed" ? "실패" : status === "interrupted" || status === "cancelled" ? "중단됨" : status === "completed" ? needsReview ? "검토 필요" : "실행 종료" : s.chat.length ? "대기" : "준비",
-		title: oneLine(receipt?.objective || lastRequest?.content || s.sessionGoal?.text || "어떤 작업을 실행할까요?"),
+		state: status === "failed" ? label("실패", "Failed") : status === "interrupted" || status === "cancelled" ? label("중단됨", "Interrupted") : status === "completed" ? needsReview ? label("검토 필요", "Review needed") : label("실행 종료", "Completed") : s.chat.length ? label("대기", "Waiting") : label("준비", "Ready"),
+		title: oneLine(receipt?.objective || lastRequest?.content || s.sessionGoal?.text || label("어떤 작업을 실행할까요?", "What would you like to do?")),
 		detail: status
-			? `실행 ${status}  /  ${verificationLabel(s.performance)}${blocking ? ` / 필수 잔여 ${blocking}개` : ""}`
-			: s.threadId ? "세션 연결됨 · 다음 요청을 입력하세요" : "요청을 입력하면 Native 실행이 시작됩니다",
+			? `${label("실행", "Execution")} ${status}  /  ${verificationLabel(s.performance, language)}${blocking ? ` / ${label(`필수 잔여 ${blocking}개`, `${blocking} required remaining`)}` : ""}`
+			: s.threadId ? label("세션 연결됨 · 다음 요청을 입력하세요", "Session connected · enter the next request") : label("요청을 입력하면 Native 실행이 시작됩니다", "Enter a request to start native execution"),
 		attention: status === "failed" || needsReview,
 	};
 }
@@ -148,9 +153,7 @@ export function wwwNowLabel(s: ChatFeatureProjection): string | null {
 	const latest = [...(s.planActivities ?? [])].filter(item => item.turnId === turnId).sort((left, right) => left.sequence - right.sequence).at(-1);
 	if (latest) return oneLine(latest.summary);
 	if (s.draft) return "최종 응답 작성 중";
-	return s.planActivityStatus === "unavailable" ? "작업 내용을 아직 정리하지 못했습니다."
-		: s.planActivityStatus === "disabled" ? "작업 내용 요약이 꺼져 있습니다."
-		: "현재 단계의 작업 내용을 정리하는 중";
+	return null;
 }
 
 export function wwwTNoteMarkdown(item: WorkbenchTNote): string {
@@ -170,12 +173,6 @@ function narratorMarkdown(item: WorkbenchTNote): string {
 	return provenance ? `\n\nDetached narrator: ${safe(`${provenance.provider} / ${provenance.model} / ${provenance.version}`, 4000)}` : "";
 }
 
-function tnoteTitle(item: WorkbenchTNote): string {
-	const report = parseCanonicalTNoteReport(item.summary);
-	const legacy = parseLegacyCanonicalTNote(item.summary);
-	return oneLine(report?.title || legacy?.question || item.title || "업무 보고");
-}
-
 function responseFrameRows(label: string, status: string, bodyRows: readonly string[], width: number): string[] {
 	// The mirrored glyph pairs with the `❯` request marker so roles stay distinct without color.
 	const title = `${a.response("❮")} ${wwwTitle(label, a.response)}`;
@@ -186,69 +183,7 @@ function responseFrameRows(label: string, status: string, bodyRows: readonly str
 	return ["", fit(heading, width), ...body, ""].map(row => fit(row, width));
 }
 
-type TNotePanel = { readonly rows: string[] };
-
-function reportBadge(test: string | undefined): string {
-	if (!test) return a.muted("RECORDED");
-	const total = /(?:^|\n)Total\s+(\d+)\/(\d+)/u.exec(test);
-	if (!total || Number(total[2]) === 0) return a.muted("NO TEST");
-	const passed = Number(total[1]), count = Number(total[2]);
-	const failures = (test.match(/·\s*failed\b/giu) ?? []).length;
-	if (failures >= count) return a.failure(`FAILED · TEST ${passed}/${count}`);
-	if (failures > 0) return a.attention(`PARTIAL · TEST ${passed}/${count}`);
-	if (passed >= count) return a.success(`DONE · TEST ${passed}/${count}`);
-	return a.muted(`OBSERVED · TEST ${passed}/${count}`);
-}
-function tnoteFieldRows(label: string, value: string, width: number): string[] {
-	return [a.secondary(label), ...prose(a.text(safe(value, 4000)), width), ""];
-}
-
-function narratorRows(item: WorkbenchTNote, width: number): string[] {
-	const provenance = item.provenance;
-	return provenance
-		? tnoteFieldRows("Detached narrator", `${provenance.provider} / ${provenance.model} / ${provenance.version}`, width)
-		: [];
-}
-
-function reportPanel(rows: string[], badge: string, width: number): TNotePanel {
-	return { rows: [pair(a.response("REPORT"), badge, width), "", ...rows] };
-}
-
-function reportFrameRows(panel: TNotePanel, evidence: string, width: number): string[] {
-	if (width < 8) return [...panel.rows, evidence].map(row => fit(row, width));
-	const inside = width - 2;
-	const [heading, ...body] = panel.rows;
-	const header = fit(` ${heading ?? ""} `, width);
-	const frame = (row: string) => `${a.rule("│")} ${fit(row, inside)}`;
-	return ["", header, ...[...body, evidence].map(frame), ""]
-		.map(row => fit(row, width));
-}
-function tnotePanels(item: WorkbenchTNote, width: number): TNotePanel[] | null {
-	const report = parseCanonicalTNoteReport(item.summary);
-	if (report) return [reportPanel([
-		a.caption(tnoteTitle(item)), "",
-		...tnoteFieldRows("요청 목적·접근", report.purposeAndApproach, width),
-		...tnoteFieldRows("주요 작업", report.keyWork, width),
-		...tnoteFieldRows("장시간·차단 작업", report.delaysAndBlocks, width),
-		...tnoteFieldRows("잘된 점", report.strengths, width),
-		...tnoteFieldRows("모델·토큰", report.modelAndTokens, width),
-		...narratorRows(item, width),
-		...tnoteFieldRows("업무 자체평가", report.selfAssessment, width),
-		...tnoteFieldRows("다음 유사 요청", report.nextApproach, width),
-		...tnoteFieldRows("변경 상태", report.changeStatus, width),
-		...tnoteFieldRows("Commit·Evidence", report.commitAndEvidence, width),
-		...tnoteFieldRows("Test", report.test || "테스트 실행 관측 없음", width),
-	], reportBadge(report.test), width)];
-	const legacy = parseLegacyCanonicalTNote(item.summary);
-	if (legacy) return [reportPanel([
-		a.caption(tnoteTitle(item)), "",
-		...tnoteFieldRows("Result", legacy.result, width),
-		...tnoteFieldRows("Reason", legacy.why, width),
-	], a.muted("LEGACY"), width)];
-	return null;
-}
-
-type DurableTranscriptRevision = Pick<ChatFeatureProjection, "projectId" | "threadId" | "journalSequence" | "activities" | "chat" | "tnotes">;
+type DurableTranscriptRevision = Pick<ChatFeatureProjection, "projectId" | "threadId" | "journalSequence" | "activities" | "chat" | "tnotes" | "draft" | "draftAnchorSequence">;
 
 interface VolatileTranscriptRevision {
 	readonly durableEmpty              : boolean                                            ;
@@ -260,6 +195,8 @@ interface VolatileTranscriptRevision {
 	readonly error                     : ChatFeatureProjection["error"]                     ;
 	readonly developmentRecordingError : ChatFeatureProjection["developmentRecordingError"] ;
 	readonly linearDashboard           : ChatFeatureProjection["linearDashboard"]           ;
+	readonly requestRuntime            : ChatFeatureProjection["requestRuntime"]            ;
+	readonly activeTurnId              : ChatFeatureProjection["activeTurnId"]              ;
 }
 
 type ChatMessage = WorkbenchChatMessage;
@@ -360,12 +297,14 @@ function durableTimelineIndex(snapshot: ChatFeatureProjection): DurableTimelineI
 
 function durableTranscriptRevision(snapshot: ChatFeatureProjection): DurableTranscriptRevision {
 	return {
-		projectId       : snapshot.projectId,
-		threadId        : snapshot.threadId,
-		journalSequence : snapshot.journalSequence,
-		activities      : snapshot.activities,
-		chat            : snapshot.chat,
-		tnotes          : snapshot.tnotes,
+		projectId           : snapshot.projectId,
+		threadId            : snapshot.threadId,
+		journalSequence     : snapshot.journalSequence,
+		draft               : snapshot.draft,
+		draftAnchorSequence : snapshot.draftAnchorSequence ?? null,
+		activities          : snapshot.activities,
+		chat                : snapshot.chat,
+		tnotes              : snapshot.tnotes,
 	};
 }
 
@@ -377,7 +316,8 @@ function trustedDurableRevision(revision: DurableTranscriptRevision): boolean {
 
 function sameTrustedDurableReferences(left: DurableTranscriptRevision, right: DurableTranscriptRevision): boolean {
 	return left.projectId === right.projectId && left.threadId === right.threadId
-		&& left.activities === right.activities && left.chat === right.chat && left.tnotes === right.tnotes;
+		&& left.activities === right.activities && left.chat === right.chat && left.tnotes === right.tnotes
+		&& left.draft === right.draft && left.draftAnchorSequence === right.draftAnchorSequence;
 }
 
 function volatileTranscriptRevision(snapshot: ChatFeatureProjection, expanded: boolean, durableEmpty: boolean): VolatileTranscriptRevision {
@@ -396,6 +336,8 @@ function volatileTranscriptRevision(snapshot: ChatFeatureProjection, expanded: b
 		error                     : snapshot.error,
 		developmentRecordingError : snapshot.developmentRecordingError,
 		linearDashboard           : snapshot.linearDashboard,
+		requestRuntime            : snapshot.requestRuntime,
+		activeTurnId              : snapshot.activeTurnId,
 	};
 }
 
@@ -408,7 +350,9 @@ function sameVolatileTranscriptRevision(left: VolatileTranscriptRevision, right:
 		&& left.actionResult === right.actionResult
 		&& left.error === right.error
 		&& left.developmentRecordingError === right.developmentRecordingError
-		&& left.linearDashboard === right.linearDashboard;
+		&& left.linearDashboard === right.linearDashboard
+		&& left.requestRuntime === right.requestRuntime
+		&& left.activeTurnId === right.activeTurnId;
 }
 
 export function hasVisibleWwwContent(snapshot: ChatFeatureProjection): boolean {
@@ -420,14 +364,16 @@ export function hasVisibleWwwContent(snapshot: ChatFeatureProjection): boolean {
 
 /** Public transcript and tool timeline. Product welcome and raw reasoning stay outside the durable timeline. */
 export class WwwTranscriptView implements Component {
-	private readonly welcome = new WorkbenchWelcomeView()                                                      ;
-	private readonly cache   = new WwwTranscriptCache<DurableTranscriptRevision, VolatileTranscriptRevision>() ;
-	private welcomeVisible   = false                                                                           ;
-	private markdown         = new Map<string, { text: string; view: Markdown }>()                             ;
-	private snapshotVersion  = 0                                                                               ;
-	private renderedTheme    = getActiveTuiTheme()                                                             ;
-	public expanded          = false                                                                           ;
-	constructor(private snapshot: ChatFeatureProjection) {}
+	private readonly welcome: WorkbenchWelcomeView                                                            ;
+	private readonly cache  = new WwwTranscriptCache<DurableTranscriptRevision, VolatileTranscriptRevision>() ;
+	private welcomeVisible  = false                                                                           ;
+	private markdown        = new Map<string, { text: string; view: Markdown }>()                             ;
+	private snapshotVersion = 0                                                                               ;
+	private renderedTheme   = getActiveTuiTheme()                                                             ;
+	public expanded         = false                                                                           ;
+	constructor(private snapshot: ChatFeatureProjection, private readonly language: () => OutputLanguage = () => "ko") {
+		this.welcome = new WorkbenchWelcomeView(language, () => this.snapshot.linearDashboard);
+	}
 	update(snapshot: ChatFeatureProjection): void {
 		if (hasVisibleWwwContent(snapshot)) {
 			this.welcome.dispose();
@@ -468,17 +414,57 @@ export class WwwTranscriptView implements Component {
 		return rows;
 	}
 	private durableBlocks(s: ChatFeatureProjection): TranscriptBlock[] {
-		const blocks : TranscriptBlock[] = []                            ;
-		const labels                     = wwwConversationLabels(s.chat) ;
-		const timeline                   = durableTimelineIndex(s)       ;
-		const rendered                   = new Set<string>()             ;
+		const blocks      : TranscriptBlock[] = []                            ;
+		const labels                          = wwwConversationLabels(s.chat) ;
+		const timeline                        = durableTimelineIndex(s)       ;
+		const rendered                        = new Set<string>()             ;
+		let toolGroup     : ProjectActivity[] = []                            ;
+		let toolPurpose   : string | null     = null                          ;
+		let purposeTurnId : string | undefined                                ;
+		let draftInserted                     = false                         ;
+		const appendDraft = () => {
+			if (draftInserted || !s.draft) return;
+			flushTools();
+			this.appendDraftBlock(blocks, s, labels);
+			draftInserted = true;
+		};
+		const flushTools = () => {
+			if (toolGroup.length === 0) return;
+			if (toolGroup.length < 2 && !toolPurpose) {
+				this.appendToolGroupBlock(blocks, toolGroup, null);
+			}
+			else {
+				this.appendToolGroupBlock(blocks, toolGroup, toolPurpose);
+			}
+			if (this.expanded) for (const tool of toolGroup) this.appendActivityBlock(blocks, tool);
+			toolGroup = [];
+		};
 		for (const activity of s.activities) {
-			const message = timeline.messageByActivity.get(activity.id);
-			if (message) this.appendMessageBlock(blocks, rendered, labels, message);
-			else if (timeline.toolByIdentity.get(activityIdentity(activity)) === activity) this.appendActivityBlock(blocks, activity);
-			for (const note of timeline.notesByAnchor.get(activity.id) ?? []) this.appendTNoteBlock(blocks, note);
+			if (s.draftAnchorSequence !== undefined && s.draftAnchorSequence !== null && activity.sequence > s.draftAnchorSequence) appendDraft();
+			const message       = timeline.messageByActivity.get(activity.id)                          ;
+			const runtimeReport = this.runtimeSummary(s, activity)                                     ;
+			const visibleTool   = timeline.toolByIdentity.get(activityIdentity(activity)) === activity ;
+			if (visibleTool && activity.kind === "tool") {
+				if (purposeTurnId !== activity.nativeRefs.turnId) toolPurpose = null;
+				if (toolGroup.length > 0 && toolGroup[0]!.nativeRefs.turnId !== activity.nativeRefs.turnId) {
+					flushTools();
+					toolPurpose = null;
+				}
+				toolGroup.push(activity);
+			}
+			else {
+				if (runtimeReport) toolPurpose = runtimeReport.summary;
+				if (runtimeReport || message || visibleTool) flushTools();
+				if (message && !runtimeReport) {
+					this.appendMessageBlock(blocks, rendered, labels, message);
+					toolPurpose = null;
+					purposeTurnId = activity.nativeRefs.turnId;
+				} else if (visibleTool) this.appendActivityBlock(blocks, activity);
+			}
+
 		}
-		for (const note of timeline.unanchoredNotes) this.appendTNoteBlock(blocks, note);
+		flushTools();
+		appendDraft();
 		// Durable activity order is authoritative. Only a not-yet-recorded outbound
 		// request may appear optimistically before Native thread creation finishes.
 		for (const message of s.chat) {
@@ -488,36 +474,30 @@ export class WwwTranscriptView implements Component {
 		}
 		return blocks;
 	}
-	private appendTNoteBlock(blocks: TranscriptBlock[], item: TNote): void {
-		const markdownKey = `tnote:${item.id}`;
-		const renderItem = { ...item, sourceActivityIds: [...item.sourceActivityIds] };
-		blocks.push({
-			key          : markdownKey,
-			markdownKeys : [markdownKey],
-			reuse        : { kind: "tnote", immutable: isDeeplyImmutablePlainData(item), inputs: [item.id, item.title, item.summary, ...item.sourceActivityIds] },
-			render       : width => this.renderTNote(renderItem, markdownKey, width),
-		});
+	private appendDraftBlock(blocks: TranscriptBlock[], s: ChatFeatureProjection, labels: ReadonlyMap<string, string>): void {
+		const latestRequest = [...s.chat].reverse().find(message => message.role === "user")                                                                     ;
+		const requestNumber = latestRequest ? labels.get(latestRequest.id)?.replace("INPUT ", "") : "1"                                                          ;
+		const responseCount = latestRequest ? s.chat.slice(s.chat.lastIndexOf(latestRequest) + 1).filter(message => message.role === "assistant").length + 1 : 1 ;
+		blocks.push({ key: "draft", markdownKeys: ["draft"], reuse: { kind: "message", immutable: true, inputs: [s.draft, requestNumber, responseCount] }, render: width => {
+			const contentWidth = Math.max(1, width >= 5 ? width - 4 : width);
+			return responseFrameRows(`OUTPUT ${requestNumber}-${responseCount} 작성 중`, "streaming", this.md("draft", safe(sanitizePartialAssistantResponse(s.draft), 24000), contentWidth, a.answer), width);
+		} });
 	}
-	private renderTNote(item: TNote, markdownKey: string, width: number): string[] {
-		const rows : string[] = []                              ;
-		const contentWidth    = Math.max(1, width - 4)          ;
-		const source          = item.sourceActivityIds.at(-1)   ;
-		const panels          = tnotePanels(item, contentWidth) ;
-		if (!panels) {
-			rows.push("", ...this.md(markdownKey, wwwTNoteMarkdown(item), contentWidth).map(row => fit(`  ${row}`, width)), "");
-			return rows.map(row => fit(row, width));
-		}
-		const evidence = `${a.secondary(`Evidence ${item.sourceActivityIds.length}`)}${source ? `  ·  ${a.active(`/source ${safe(source)}`)}` : ""}  ·  ${a.secondary(`/promote tnote ${safe(item.id)}`)}`;
-		if (width < 6) {
-			const panelRows = panels.flatMap((panel, index) => [...(index > 0 ? [""] : []), ...panel.rows]);
-			rows.push("", ...panelRows.map(row => fit(row, width)), fit(evidence, width), "");
-			return rows.map(row => fit(row, width));
-		}
-		for (const [index, panel] of panels.entries()) {
-			if (index > 0) rows.push("");
-			rows.push(...reportFrameRows(panel, evidence, width));
-		}
-		return rows.map(row => fit(row, width));
+	private runtimeSummary(s: ChatFeatureProjection, activity: ProjectActivity): { summary: string } | null {
+		if (activity.phase !== "completed") return null;
+		const source = activity.payload.method === "runtime/stage-report" && activity.payload.authority === "runtime"
+			? `[www-runtime]${JSON.stringify(activity.payload.report)}`
+			: activity.kind === "message" && typeof activity.payload.text === "string" ? activity.payload.text : null;
+		if (!source) return null;
+		const checkpoint = parseRequestCheckpointReport(source)                ;
+		const stage      = checkpoint ? null : parseRequestStageReport(source) ;
+		const report     = checkpoint ?? stage                                 ;
+		if (!report) return null;
+		const accepted = (s.requestRuntime ?? []).some(request => request.requestId === report.requestId
+			&& request.turnId === activity.nativeRefs.turnId && request.threadId === activity.nativeRefs.threadId
+			&& request.events.some(event => event.activityId === activity.id && event.type !== "protocol.rejected"));
+		if (!accepted || stage?.status === "skipped" || checkpoint?.checkpoint === "RESULT") return null;
+		return { summary: report.summary };
 	}
 	private appendMessageBlock(
 		blocks: TranscriptBlock[],
@@ -553,12 +533,13 @@ export class WwwTranscriptView implements Component {
 		}
 		const ink = role === "user" ? a.request : a.info;
 		const label = role === "user" ? `${a.request("❯")} ${wwwTitle(labelText, ink)}` : wwwTitle(labelText, ink);
-		return [
+		const rows = [
 			"",
 			pair(label, a.muted(status === "completed" ? "" : status), width),
 			...this.md(id, safe(content, 24000), Math.max(1, width - 2), a.text).map(row => `  ${row}`),
 			"",
 		].map(row => fit(row, width));
+		return role === "user" ? rows.map(row => semantic.userSurface(row)) : rows;
 	}
 	private appendActivityBlock(blocks: TranscriptBlock[], activity: ProjectActivity): void {
 		const expanded = this.expanded;
@@ -566,27 +547,38 @@ export class WwwTranscriptView implements Component {
 			key          : `activity:${activity.id}`,
 			markdownKeys : [],
 			reuse        : { kind: "activity", immutable: isDeeplyImmutablePlainData(activity), source: activity, expanded },
-			render       : width => wwwToolRows(activity, width, expanded).map(row => fit(row, width)),
+			render       : width => wwwToolRows(activity, width, expanded, this.language()).map(row => fit(row, width)),
 		});
+	}
+	private appendToolGroupBlock(blocks: TranscriptBlock[], activities: readonly ProjectActivity[], purpose: string | null): void {
+		const group = [...activities];
+		const failed = group.filter(activity => {
+			const item = record(record(activity.payload.params).item);
+			return activity.phase === "failed" || item.status === "failed" || typeof item.exitCode === "number" && item.exitCode !== 0;
+		});
+		const title = purpose || (this.language() === "en" ? "Tool actions" : "도구 작업");
+		const state = this.language() === "en" ? `${group.length} actions${failed.length ? ` · ${failed.length} failed` : ""}` : `${group.length}건${failed.length ? ` · 실패 ${failed.length}건` : ""}`;
+		blocks.push({
+			key          : `tool-group:${group[0]!.id}`,
+			markdownKeys : [],
+			reuse        : { kind: "message", immutable: group.every(activity => isDeeplyImmutablePlainData(activity)), inputs: [...group, title, state] },
+			render       : width => [...prose(a.tool(title), width), (failed.length ? a.failure : a.muted)(state)].map(row => fit(row, width)),
+		});
+		for (const activity of group) {
+			const isFailed = failed.includes(activity);
+			blocks.push({
+				key          : `tool-group-action:${activity.id}`,
+				markdownKeys : [],
+				reuse        : { kind: "message", immutable: isDeeplyImmutablePlainData(activity), inputs: [activity, this.expanded] },
+				render: width => {
+					const card = isFailed ? wwwToolRows(activity, width, this.expanded, this.language()) : wwwToolInputRows(activity, width, this.language());
+					return card.map(row => fit(row, width));
+				},
+			});
+		}
 	}
 	private volatileBlocks(s: ChatFeatureProjection): TranscriptBlock[] {
 		const blocks: TranscriptBlock[] = [];
-		if (s.draft) {
-			const labels        = wwwConversationLabels(s.chat)                                                                                                      ;
-			const latestRequest = [...s.chat].reverse().find(message => message.role === "user")                                                                     ;
-			const requestNumber = latestRequest ? labels.get(latestRequest.id)?.replace("REQ ", "") : "1"                                                            ;
-			const responseCount = latestRequest ? s.chat.slice(s.chat.lastIndexOf(latestRequest) + 1).filter(message => message.role === "assistant").length + 1 : 1 ;
-			blocks.push({ key: "volatile:draft", markdownKeys: ["draft"], reuse: { kind: "never" }, render: width => {
-				const contentWidth = Math.max(1, width >= 5 ? width - 4 : width);
-				return responseFrameRows(`RES ${requestNumber}-${responseCount} 작성 중`, "streaming", this.md("draft", safe(sanitizePartialAssistantResponse(s.draft), 24000), contentWidth, a.answer), width);
-			} });
-		}
-		if (s.reasoningSummaryDraft && !s.draft) blocks.push({ key: "volatile:reasoning-summary", markdownKeys: [], reuse: { kind: "never" }, render: width => [
-			"",
-			`${a.info(TRANSCRIPT_ICON.thought)} ${wwwTitle("Thought", a.info)}`,
-			...prose(a.muted(safe(s.reasoningSummaryDraft, 1200)), width, 2),
-			"",
-		].map(row => fit(row, width)) });
 		const actionResult = s.actionResult;
 		if (actionResult) {
 			blocks.push({ key: "volatile:action-result", markdownKeys: [], reuse: { kind: "never" }, render: width => {
@@ -604,7 +596,9 @@ export class WwwTranscriptView implements Component {
 	private emptyBlock(s: ChatFeatureProjection): TranscriptBlock {
 		return { key: "volatile:empty", markdownKeys: [], reuse: { kind: "never" }, render: width => {
 			if (this.welcomeVisible && !hasVisibleWwwContent(s)) return this.welcome.render(width).map(row => fit(row, width));
-			const rows = ["", a.strong("실행을 맡기고, 필요한 순간 개입하세요."), "", a.muted("요청 · 도구 실행 · 결과가 이곳에 시간순으로 기록됩니다."), "", a.active("/goal") + a.muted("  작업 목표 설정"), a.active("/model") + a.muted(" 모델과 추론 강도 선택"), a.active("Ctrl+P") + a.muted(" 명령 찾기")];
+			const rows = this.language() === "en"
+				? ["", a.strong("Delegate execution and step in when needed."), "", a.muted("Requests, tool actions, and results appear here in order."), "", a.active("/goal") + a.muted("  Set a goal"), a.active("/model") + a.muted(" Choose model and reasoning"), a.active("Ctrl+P") + a.muted(" Find commands")]
+				: ["", a.strong("실행을 맡기고, 필요한 순간 개입하세요."), "", a.muted("요청 · 도구 실행 · 결과가 이곳에 시간순으로 기록됩니다."), "", a.active("/goal") + a.muted("  작업 목표 설정"), a.active("/model") + a.muted(" 모델과 추론 강도 선택"), a.active("Ctrl+P") + a.muted(" 명령 찾기")];
 			const d = s.linearDashboard;
 			if (d?.state === "ready" || d?.state === "stale") rows.push("", a.muted(`${oneLine(d.projectName)} / Linear ${d.state === "stale" ? "마지막 성공 값" : "연결됨"}`), a.muted("/context  프로젝트 갱신 · 이슈 · 마일스톤"));
 			else if (d) rows.push("", a.muted(d.state === "loading" ? "Linear 정보를 불러오는 중" : "Linear 정보를 불러오지 못했습니다"));
@@ -621,7 +615,7 @@ export class WwwTranscriptView implements Component {
 			durableRevisionTrusted     : trustedDurableRevision(durableRevision),
 			sameTrustedDurableRevision : sameTrustedDurableReferences,
 			sameDurableLifetime        : (left, right) => left.projectId === right.projectId && left.threadId === right.threadId,
-			durableRevisionChanged     : (left, right) => left.journalSequence !== right.journalSequence,
+			durableRevisionChanged     : (left, right) => left.journalSequence !== right.journalSequence || left.draft !== right.draft || left.draftAnchorSequence !== right.draftAnchorSequence,
 			buildDurableBlocks         : () => this.durableBlocks(snapshot),
 			volatileRevision           : durableEmpty => volatileTranscriptRevision(snapshot, this.expanded, durableEmpty),
 			sameVolatileRevision       : sameVolatileTranscriptRevision,
@@ -649,7 +643,7 @@ export class WwwTranscriptView implements Component {
 	}
 }
 
-export function wwwToolRows(activity: ProjectActivity, width: number, expanded: boolean): string[] {
+export function wwwToolRows(activity: ProjectActivity, width: number, expanded: boolean, language: OutputLanguage = "ko"): string[] {
 	const observedChanges = projectObservedFileChanges(activity);
 	if (observedChanges.length > 0) {
 		const failed    = activity.phase === "failed"                                                                  ;
@@ -674,20 +668,22 @@ export function wwwToolRows(activity: ProjectActivity, width: number, expanded: 
 	const running = !failed && ["started", "updated"].includes(activity.phase) && !["completed", "cancelled", "interrupted"].includes(String(item.status)) ;
 	const changes = Array.isArray(item.changes) ? item.changes.map(record) : []                                                                            ;
 	if (typeof item.command === "string" && (running || failed || expanded) && width >= 20) {
-		const ink        = failed ? a.failure : running ? a.tool : a.rule                                                                                                                                                             ;
+		const ink        = failed ? a.failure : a.tool                                                                                                                                                                                ;
 		const inside     = width - 4                                                                                                                                                                                                  ;
-		const state      = failed ? "실패" : running ? "실행 중" : activity.phase                                                                                                                                                     ;
+		const state      = failed ? language === "en" ? "failed" : "실패" : running ? language === "en" ? "running" : "실행 중" : activity.phase                                                                                      ;
 		const body       = (row: string) => `${ink("│")} ${fit(row, inside)} ${ink("│")}`                                                                                                                                             ;
 		const command    = prose(`${failed ? "!" : "$"} ${safe(item.command)}`, inside)                                                                                                                                               ;
-		const outputRows = prose(output || result || (running ? "출력 대기 중" : "출력 없음"), inside)                                                                                                                                ;
+		const outputRows = prose(output || result || (running ? language === "en" ? "Waiting for output" : "출력 대기 중" : language === "en" ? "No output" : "출력 없음"), inside)                                                   ;
 		const shown      = expanded ? outputRows : outputRows.slice(-CHAT_TERMINAL_OUTPUT_CHUNK_LINES)                                                                                                                                ;
 		const meta       = [typeof item.exitCode === "number" ? `exit ${item.exitCode}` : state, typeof item.durationMs === "number" && Number.isFinite(item.durationMs) ? duration(item.durationMs) : ""].filter(Boolean).join("  ") ;
-		const label      = ` ${TRANSCRIPT_ICON.terminal} Terminal  ${state} `                                                                                                                                                         ;
-		return ["", ink(`┌${label}${"─".repeat(Math.max(0, width - visibleWidth(label) - 2))}┐`),
-			...command.map(row => body(a.text(row))), body(a.rule("─".repeat(inside))),
-			...(shown.length < outputRows.length ? [body(a.muted(`… 앞 ${outputRows.length - shown.length}줄 · 최신 ${CHAT_TERMINAL_OUTPUT_CHUNK_LINES}줄 · Ctrl+E 전체`))] : []),
+		const label      = ` ${TRANSCRIPT_ICON.terminal} Git Bash  ${state} `                                                                                                                                                         ;
+		const header     = ink(`┌───${label}${"─".repeat(Math.max(0, width - visibleWidth(label) - 5))}┐`)                                                                                                                            ;
+		const divider    = ink(`├─── Output ${"─".repeat(Math.max(0, width - visibleWidth("├─── Output ┤")))}┤`)                                                                                                                      ;
+		return ["", header,
+			...command.map(row => body(a.text(row))), divider,
+			...(shown.length < outputRows.length ? [body(a.muted(language === "en" ? `… ${outputRows.length - shown.length} earlier lines · latest ${CHAT_TERMINAL_OUTPUT_CHUNK_LINES} lines · Ctrl+E all` : `… 앞 ${outputRows.length - shown.length}줄 · 최신 ${CHAT_TERMINAL_OUTPUT_CHUNK_LINES}줄 · Ctrl+E 전체`))] : []),
 			...shown.map(row => body((failed ? a.failure : a.muted)(row))),
-			body(a.muted(meta)), body(a.muted(`/source ${safe(activity.id)}`)), ink(`└${"─".repeat(width - 2)}┘`), ""];
+			body(a.muted(meta)), ink(`└${"─".repeat(width - 2)}┘`), ""];
 	}
 	const activityIcon = typeof item.command === "string" ? `${a.tool(TRANSCRIPT_ICON.terminal)} ` : "";
 	const rows = [pair(`${mark(failed ? "failed" : activity.phase)} ${activityIcon}${a.tool(title)}`, (failed ? a.failure : a.muted)(typeof item.exitCode === "number" ? `exit ${item.exitCode}` : activity.phase), width)];
@@ -696,7 +692,33 @@ export function wwwToolRows(activity: ProjectActivity, width: number, expanded: 
 		if (expanded && typeof change.diff === "string") rows.push(...prose(safe(change.diff), width, 4));
 	}
 	if ((expanded || failed) && (output || result)) rows.push(...prose(failed ? a.failure(output || result) : a.muted(output || result), width, 2));
-	if (expanded || failed) rows.push(...prose(a.muted(`/source ${safe(activity.id)}`), width, 2));
+	if ((expanded || failed) && typeof item.command !== "string") rows.push(...prose(a.muted(`/source ${safe(activity.id)}`), width, 2));
+	return rows;
+}
+
+function wwwToolInputRows(activity: ProjectActivity, width: number, language: OutputLanguage): string[] {
+	const payload = record(boundedPublicProjection(activity.payload).value)                 ;
+	const item    = record(record(payload.params).item)                                     ;
+	const args    = record(item.arguments)                                                  ;
+	const command = safe(item.command || args.command || item.name || item.tool || "", 600) ;
+	if (!command) return wwwToolRows(activity, width, false, language);
+	const explicitPath = typeof item.path === "string" ? item.path : typeof args.path === "string" ? args.path : "";
+	const observedPath = explicitPath || /(?:^|[\s'"(])((?:\.{1,2}\/)?(?:src|test|docs|scripts|\.agents)\/[^\s'"|;&)]+)/u.exec(command)?.[1] || "";
+	if (width < 20) return [...prose(a.tool(`${language === "en" ? "Input" : "입력"}: ${command}`), width), ...(observedPath ? prose(a.muted(`${language === "en" ? "Path" : "경로"}: ${safe(observedPath)}`), width) : [])];
+	const ink    = a.tool                                                         ;
+	const inside = width - 4                                                      ;
+	const label  = ` ${TRANSCRIPT_ICON.terminal} Git Bash `                       ;
+	const body   = (row: string) => `${ink("│")} ${fit(row, inside)} ${ink("│")}` ;
+	const rows = ["", ink(`┌───${label}${"─".repeat(Math.max(0, width - visibleWidth(label) - 5))}┐`),
+		...prose(`$ ${command}`, inside).map(row => body(a.text(row))),
+		...(observedPath ? [body(a.muted(`${language === "en" ? "Path" : "경로"} · ${safe(observedPath)}`))] : [])];
+	const output = safe(item.aggregatedOutput || item.output || payload.output || "", 8000);
+	if (output) {
+		const outputRows = prose(output, inside);
+		rows.push(ink(`├─── Output ${"─".repeat(Math.max(0, width - visibleWidth("├─── Output ┤")))}┤`),
+			...outputRows.slice(-CHAT_TERMINAL_OUTPUT_CHUNK_LINES).map(row => body(a.text(row))));
+	}
+	rows.push(ink(`└${"─".repeat(width - 2)}┘`), "");
 	return rows;
 }
 

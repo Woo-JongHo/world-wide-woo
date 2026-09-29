@@ -20,6 +20,7 @@ import {
 	WwwHeader,
 	WwwHud,
 	WwwSheet,
+	WwwStageHud,
 	WwwViewSwitcher,
 	WwwWorkspace,
 	WWW_COMMANDS,
@@ -46,6 +47,8 @@ import { WwwHistoryView }                from "../src/adapters/inbound/tui/featu
 import { WwwStatsView }                  from "../src/adapters/inbound/tui/features/stats/view/www-stats-view";
 import { projectObservabilityDashboard } from "../src/core/domain/observability/observability-dashboard";
 import { projectSessionStats }           from "../src/core/domain/observability/session-stats";
+import { projectRuntimeMonitor }          from "../src/core/domain/observability/runtime-monitor";
+import { WwwMonitorView }                 from "../src/adapters/inbound/tui/features/monitoring/view/www-monitor-view";
 import { projectPerformance }            from "../src/core/domain/work/performance";
 import { ApprovalOverlay }               from "../src/adapters/inbound/tui/features/approval/view/approval-overlay";
 import { NativeThreadPicker }            from "../src/adapters/inbound/tui/features/session/view/native-thread-picker";
@@ -64,9 +67,201 @@ import {
 	requestStatusGradient,
 } from "../src/adapters/inbound/tui/features/monitoring/view/request-runtime-view";
 import type { UsageSnapshot }            from "../src/core/ports/observability/usage-monitor-port";
+import { REQUEST_STAGES }               from "../src/core/domain/execution/request-runtime";
 
 describe("Www execution console", () => {
-	test("keeps the Chat rail compact and navigation hints hidden", () => {
+	test("stage HUD shows seven stages only for the active request", () => {
+		const snapshot = wwwFixture("working");
+		const stageHud = new WwwStageHud(() => snapshot);
+		const request = {
+			schemaVersion: 1 as const, protocolVersion: 2 as const, requestId: "request-hud", threadId: snapshot.threadId, turnId: snapshot.activeTurnId,
+			objective: "HUD 상태 표시", status: "running" as const, attempt: 1, previousAttempts: [], deliveries: [], requiredDeliveries: [], events: [],
+			startedAt: "2026-09-28T00:00:00Z", completedAt: null, issues: [], actions: [],
+			stages: REQUEST_STAGES.map((id, index) => ({ id, status: index === 0 ? "completed" as const : index === 1 ? "running" as const : "pending" as const,
+				goal: id, input: [], owner: "orchestrator" as const, model: null, agents: [], tools: [], output: null, evidence: [], decision: null,
+				skipReason: null, startedAt: null, completedAt: null, next: REQUEST_STAGES[index + 1] ?? null, evidenceAfterSequence: 0, tasks: [] })),
+		};
+		snapshot.requestRuntime = [request];
+		const heading = stripTerminalSequences(new WwwExecutionHeading(() => snapshot, () => null, () => Date.parse("2026-09-28T00:00:01Z"), false).render(120).join("\n"));
+		expect(heading).toContain("DECOMPOSE · running");
+		for (const stage of REQUEST_STAGES) expect(heading).toContain(stage);
+		const level = chalk.level; chalk.level = 3;
+		try {
+			const first = new WwwExecutionHeading(() => snapshot, () => null, () => 1_000, true).render(120);
+			const next = new WwwExecutionHeading(() => snapshot, () => null, () => 1_120, true).render(120);
+			const runningRow = (rows: string[]) => rows.find(row => stripTerminalSequences(row).includes("UNDERSTAND"))!;
+			expect(stripTerminalSequences(runningRow(first))).toBe(stripTerminalSequences(runningRow(next)));
+			expect(runningRow(first)).not.toBe(runningRow(next));
+			expect(runningRow(first)).toContain(a.success("✓"));
+		} finally { chalk.level = level; }
+		expect(heading).not.toContain("중복되는 이벤트 결합 경로");
+		const dashboard = stripTerminalSequences(new WwwDashboardView(() => snapshot).render(80).join("\n"));
+		expect(dashboard).toContain("QUESTIONS / MONITOR RECORDS");
+		expect(dashboard).toContain("/monitor #1");
+		expect(dashboard).toContain("HUD 상태 표시");
+		expect(stageHud.isVisible()).toBe(true);
+		const wide = stripTerminalSequences(stageHud.render(120).join(""));
+		for (const stage of REQUEST_STAGES) expect(wide).toContain(stage);
+		const compact = stripTerminalSequences(stageHud.render(60).join(""));
+		const blockedSnapshot = { ...snapshot, activeTurnId: null, requestRuntime: [{ ...request, status: "blocked" as const, stages: request.stages.map(stage => stage.id === "GROUND" ? { ...stage, status: "blocked" as const } : stage) }] };
+		const blockedHeading = stripTerminalSequences(new WwwExecutionHeading(() => blockedSnapshot).render(80).join("\n"));
+		for (const stage of REQUEST_STAGES) expect(blockedHeading).toContain(stage);
+		expect(blockedHeading).not.toContain("Stages 2/7");
+		const blockedHud = stripTerminalSequences(new WwwHud(() => blockedSnapshot, () => [], false).render(140).join("\n"));
+		expect(blockedHud).not.toContain("Request 2/7");
+		for (const stage of ["UND", "DEC", "GRD", "DCD", "EXE", "VER", "DLV"]) expect(compact).toContain(stage);
+		const tiny = stripTerminalSequences(stageHud.render(24).join(""));
+		for (const marker of ["✓U", "●D", "·G", "·E", "·V", "·L"]) expect(tiny).toContain(marker);
+		snapshot.phase = "ready";
+		snapshot.requestRuntime = [{ ...request, status: "blocked", stages: request.stages.map((stage, index) => ({ ...stage, status: index < 2 ? "completed" as const : index === 2 ? "blocked" as const : "pending" as const })) }];
+		expect(stageHud.isVisible()).toBe(true);
+		const blocked = stripTerminalSequences(stageHud.render(24).join(""));
+		for (const marker of ["✓U", "✓D", "×G", "·E", "·V", "·L"]) expect(blocked).toContain(marker);
+		snapshot.requestRuntime = [{ ...request, protocolVersion: 1 }];
+		expect(stageHud.isVisible()).toBe(false);
+		expect(stageHud.render(120)).toEqual([]);
+		snapshot.requestRuntime = [request];
+		snapshot.activeTurnId = "another-turn";
+		expect(stageHud.isVisible()).toBe(false);
+		expect(stageHud.render(120)).toEqual([]);
+	});
+	test("Chat request has a themed full-width surface without coloring the response", () => {
+		const level = chalk.level; chalk.level = 3;
+		try {
+			const rows = new WwwTranscriptView(wwwFixture("ready")).render(60);
+			const requestRow = rows.find(row => stripTerminalSequences(row).includes("INPUT 1"))!;
+			const responseRow = rows.find(row => stripTerminalSequences(row).includes("OUTPUT 1-1"))!;
+			expect(requestRow).toContain("\u001b[48;2;");
+			expect(responseRow).not.toContain("\u001b[48;2;");
+			expect(visibleWidth(requestRow)).toBe(60);
+		} finally { chalk.level = level; }
+	});
+	test("Chat rail separates the Native plan from interpreted progress", () => {
+		const snapshot = { ...wwwFixture("working"), planActivities: [{ id: "step-result", turnId: "preview-turn", stepId: "step-1", stepTitle: "세션과 이벤트 결합 지점 확인", summary: "중복되는 이벤트 결합 경로를 찾았습니다.", status: "completed" as const, sequence: 7 }] };
+		const rail = stripTerminalSequences(new WwwMonitorView(() => projectRuntimeMonitor(snapshot), Date.now, false, () => snapshot, true).render(40).join("\n"));
+		const progress = rail.slice(rail.indexOf("PROGRESS"));
+		expect(rail).toContain("세션과 이벤트 결합 지점 확인");
+		expect(progress).toContain("중복되는 이벤트 결합 경로");
+		expect(progress).not.toContain("세션과 이벤트 결합 지점 확인");
+		expect(rail).not.toContain("TEST");
+		expect(rail).not.toContain("bun test test/session-resume.test.ts");
+	});
+
+	test("Chat rail keeps the active Native plan when Monitor still points to an older request", () => {
+		const snapshot = wwwFixture("working");
+		const monitor = projectRuntimeMonitor(snapshot);
+		const stale = monitor.requestRuntime ? { ...monitor, requestRuntime: { ...monitor.requestRuntime, turnId: "older-turn" } } : monitor;
+		const output = stripTerminalSequences(new WwwMonitorView(() => stale, Date.now, false, () => snapshot, true).render(40).join("\n"));
+		expect(output).toContain("세션과 이벤트 결합 지점 확인");
+		expect(output).toContain("PLAN");
+	});
+
+	test("Chat rail wraps a long interpreted progress sentence without losing its ending", () => {
+		const snapshot = { ...wwwFixture("working"), planActivities: [{ id: "long-progress", turnId: "preview-turn", stepId: "step-1", stepTitle: "경계 확인", summary: "긴 검증 결과를 모두 읽고 마지막 결론까지 확인했습니다.", status: "completed" as const, sequence: 8 }] };
+		const output = stripTerminalSequences(new WwwMonitorView(() => projectRuntimeMonitor(snapshot), Date.now, false, () => snapshot, true).render(20).join("\n"));
+		expect(output.replace(/\s+/gu, "")).toContain("마지막결론까지확인했습니다.");
+	});
+	test("Chat uses public runtime summaries for tool rows and puts stage timing in the final report", () => {
+		const snapshot = wwwFixture("working");
+		const stage = {
+			id: "DECIDE" as const, status: "completed" as const, goal: "재개 경계 결정", input: [], owner: "orchestrator" as const,
+			model: null, agents: [], tools: [], output: "중복 결합 지점을 확인했습니다.", evidence: [],
+			decision: { decision: "병합 조건을 좁힙니다.", rationale: "PRIVATE_RATIONALE", selectedApproach: "merge", rejectedAlternatives: [], executionPlan: [] },
+			skipReason: null, startedAt: "2026-09-28T00:00:00Z", completedAt: "2026-09-28T00:00:03Z", next: "EXECUTE" as const,
+			evidenceAfterSequence: 0, tasks: [],
+		};
+		const thought = { ...snapshot.activities[4]!, id: "runtime-thought", sequence: 5, kind: "progress" as const, payload: { method: "runtime/stage-report", authority: "runtime", report: { requestId: "request-workstream", stage: "DECIDE", status: "completed", summary: "중복 결합 지점을 확인했습니다." } } };
+		snapshot.activities = [...snapshot.activities.slice(0, 4), thought, ...snapshot.activities.slice(4)];
+		snapshot.requestRuntime = [{
+			schemaVersion: 1, protocolVersion: 2, requestId: "request-workstream", threadId: snapshot.threadId, turnId: snapshot.activeTurnId,
+			objective: "재개 동작 확인", status: "running", attempt: 1, previousAttempts: [], deliveries: [], requiredDeliveries: [], events: [{ id: "stage-result", type: "stage.completed", requestId: "request-workstream", stage: "DECIDE", activityId: thought.id, at: thought.recordedAt, reason: null }],
+			startedAt: "2026-09-28T00:00:00Z", completedAt: null, issues: [], actions: [], stages: [stage],
+		}];
+		const view = new WwwTranscriptView(snapshot);
+		const output = stripTerminalSequences(view.render(80).join("\n"));
+		expect(output).not.toContain("Thought");
+		expect(output).toContain("중복 결합 지점을 확인했습니다.");
+		expect(output).toContain("1건");
+		expect(output.indexOf("중복 결합 지점을 확인했습니다.")).toBeLessThan(output.indexOf("OUTPUT 1-1"));
+		expect(output).not.toContain("CHAT / NATIVE WORKSTREAM");
+		expect(output).not.toContain("DECIDE  3s");
+		expect(output).not.toContain("PRIVATE_RATIONALE");
+		const completed = { ...snapshot.activities[1]!, id: "turn-complete", payload: { method: "turn/completed" }, phase: "completed" as const };
+		snapshot.activities = [...snapshot.activities, completed];
+		snapshot.requestRuntime = [{ ...snapshot.requestRuntime[0]!, status: "completed", completedAt: "2026-09-28T00:00:04Z" }];
+		view.update(snapshot);
+		const final = stripTerminalSequences(view.render(80).join("\n"));
+		expect(final).toContain("REPORT · 단계별 소요 시간");
+		expect(final).toContain("DECIDE  3s");
+		expect(final.indexOf("REPORT · 단계별 소요 시간")).toBeGreaterThan(final.indexOf("OUTPUT 1-1"));
+		view.dispose();
+	});
+
+	test("observe INTENT supplies the following tool summary without a Thought row", () => {
+		const snapshot = wwwFixture("working");
+		const thought = { ...snapshot.activities[4]!, id: "observe-intent", kind: "message" as const, payload: { role: "assistant", text: '[www-runtime]{"requestId":"observe-request","checkpoint":"INTENT","summary":"요청 범위를 이해했습니다.","goal":"PLAN 복구","plan":["원인 확인","화면 검증"]}' } };
+		snapshot.activities = [...snapshot.activities.slice(0, 4), thought, ...snapshot.activities.slice(4)];
+		snapshot.requestRuntime = [{
+			schemaVersion: 1, protocolVersion: 1, requestId: "observe-request", threadId: snapshot.threadId, turnId: snapshot.activeTurnId,
+			objective: "PLAN 복구", status: "running", attempt: 1, previousAttempts: [], deliveries: [], requiredDeliveries: [],
+			events: [{ id: "understood", type: "stage.completed", requestId: "observe-request", stage: "UNDERSTAND", activityId: thought.id, at: thought.recordedAt, reason: null }],
+			startedAt: thought.recordedAt, completedAt: null, issues: [], actions: [], stages: [],
+		}];
+		const view = new WwwTranscriptView(snapshot);
+		const output = stripTerminalSequences(view.render(80).join("\n"));
+		expect(output).not.toContain("Thought");
+		expect(output).toContain("1건");
+		expect(output).not.toContain("1. 원인 확인");
+		expect(output.indexOf("요청 범위를 이해했습니다.")).toBeLessThan(output.indexOf("OUTPUT 1-1"));
+		expect(output).not.toContain("DECOMPOSE");
+		snapshot.requestRuntime = [{ ...snapshot.requestRuntime[0]!, events: [] }];
+		view.update(snapshot);
+		expect(stripTerminalSequences(view.render(80).join("\n"))).not.toContain("요청 범위를 이해했습니다.");
+		view.dispose();
+	});
+	test("shrinks the composer beside the visible execution sidebar", () => {
+		const snapshot  = wwwFixture("ready") ;
+		let bodyRows    = 17                  ;
+		const workspace = new WwwWorkspace(
+			() => snapshot,
+			() => [],
+			() => bodyRows,
+			Date.now,
+			false,
+			null,
+			new HelpView(),
+			null,
+			undefined,
+			undefined,
+			undefined,
+			undefined,
+			() => ({}) as never,
+		);
+		const widths: number[] = [] ;
+		let workbenchMode      = true;
+		const composer = workspace.composeInput({
+			invalidate: () => undefined,
+			render: width => { widths.push(width); return ["INPUT"]; },
+		}, () => workbenchMode);
+
+		renderLayoutFrame(composer, 120, 4, () => undefined);
+		expect(widths.at(-1)).toBe(120);
+
+		bodyRows = 18;
+		renderLayoutFrame(composer, 120, 4, () => undefined);
+		expect(widths.at(-1)).toBe(65);
+
+		workbenchMode = false;
+		renderLayoutFrame(composer, 120, 4, () => undefined);
+		expect(widths.at(-1)).toBe(120);
+
+		workbenchMode = true;
+		workspace.toggleSidebar();
+		renderLayoutFrame(composer, 120, 4, () => undefined);
+		expect(widths.at(-1)).toBe(120);
+	});
+
+	test("keeps the latest tool input card visible without navigation hints", () => {
 		const s = wwwFixture("ready");
 		const workspace = new WwwWorkspace(() => s, () => [], () => 20, Date.now, false, null, new HelpView());
 		const root = new VStack([
@@ -74,8 +269,7 @@ describe("Www execution console", () => {
 			{ component: workspace.component, basis: 0, grow: 1, minSize: 1 },
 		]);
 		const lines        = renderLayoutFrame(root, 120, 24, () => undefined).lines.map(stripTerminalSequences) ;
-		const requestRow = lines.find(line => line.includes("REQ 1"));
-		expect(requestRow      )    .toMatch  (/^ ❯ REQ 1/u   ) ;
+		expect(lines.join("\n")).toContain("Git Bash");
 		expect(lines.join("\n")).not.toContain("Ctrl+G 화면"  ) ;
 		expect(lines.join("\n")).not.toContain("Ctrl+G 2 Plan") ;
 	});
@@ -87,7 +281,11 @@ describe("Www execution console", () => {
 			const withoutGoal = new WwwHeader(() => s, () => "Chat", "/repo/99_www", () => 0).render(100).join("\n");
 			expect(stripTerminalSequences(withoutGoal))    .toContain("WWW / 99_www / Chat"  ) ;
 			expect(stripTerminalSequences(withoutGoal))    .toContain("SYS_OK"               ) ;
-			expect(stripTerminalSequences(withoutGoal))    .toContain("SESSION: Active"      ) ;
+			expect(stripTerminalSequences(withoutGoal))    .toContain("세션: 활성"           ) ;
+			expect(stripTerminalSequences(withoutGoal))    .toContain("KOREA ENGLISH"     ) ;
+			expect(stripTerminalSequences(withoutGoal))    .not.toContain("F8"            ) ;
+			const englishHeader = stripTerminalSequences(new WwwHeader(() => s, () => "Chat", "/repo/99_www", () => 0, true, () => "en").render(100).join("\n"));
+			expect(englishHeader).toContain("SESSION: Active");
 			expect(stripTerminalSequences(withoutGoal)).not.toMatch  (/GOAL|이해 중/u        ) ;
 			expect(withoutGoal                        ).not.toContain("\u001B[48;2;"         ) ;
 			s.sessionGoal = { text: "사용자가 설정한 장기 목표", sourceActivityId: "goal", updatedAt: "2026-09-22" };
@@ -95,10 +293,12 @@ describe("Www execution console", () => {
 			expect(header).not.toMatch(/GOAL/u);
 			const goalBarEmpty = stripTerminalSequences(new WwwGoalBar(() => ({ ...s, sessionGoal: null })).render(100).join("\n"));
 			expect(goalBarEmpty.trim()).toBe("");
-			const goalBar = stripTerminalSequences(new WwwGoalBar(() => s).render(100).join("\n"));
+			const renderedGoalBar = new WwwGoalBar(() => s).render(100).join("\n");
+			const goalBar = stripTerminalSequences(renderedGoalBar);
 			expect(goalBar)    .toContain("GOAL"                       ) ;
 			expect(goalBar)    .toContain("사용자가 설정한 장기 목표"  ) ;
 			expect(goalBar).not.toContain("\u001B[48;2;"               ) ;
+			expect(new Set(renderedGoalBar.match(/\u001B\[38;2;\d+;\d+;\d+m/gu)).size).toBeGreaterThan(2);
 			const narrow = stripTerminalSequences(new WwwGoalBar(() => s).render(24).join("\n"));
 			expect(narrow).toContain("GOAL");
 			const side = stripTerminalSequences(new WwwPlanView(() => s).render(80).join("\n"));
@@ -117,7 +317,7 @@ describe("Www execution console", () => {
 		expect(output)    .toContain("██╗"                               ) ;
 		expect(output).not.toContain("ORBITING PAIR"                     ) ;
 		expect(output).not.toContain("GUARDIAN"                          ) ;
-		expect(output)    .toContain("🐙 Wooni · Native Project Workbench") ;
+		expect(output)    .toContain("Wooni · Native Project Workbench")    ;
 		expect(output).not.toContain("실행을 맡기고"                     ) ;
 		view.dispose();
 	});
@@ -138,14 +338,14 @@ describe("Www execution console", () => {
 		} finally { chalk.level = level; }
 	});
 	test("Now waits for interpreted activity instead of exposing a Native event", () => {
-		expect(wwwNowLabel(wwwFixture())).toBe("현재 단계의 작업 내용을 정리하는 중");
+		expect(wwwNowLabel(wwwFixture())).toBeNull();
 		expect(wwwNowLabel(wwwFixture("ready"))).toBeNull();
 	});
 	test("the Plan rail shows plan progress without individual tool activity", () => {
 		const output = stripTerminalSequences(new WwwPlanView(() => wwwFixture()).render(100).join("\n"));
 		const stage = output.indexOf("STAGE"), plan = output.indexOf("PLAN"), activity = output.indexOf("PROGRESS");
-		expect(stage   )    .toBeGreaterThanOrEqual(0         ) ;
-		expect(plan    )    .toBeGreaterThan       (stage     ) ;
+		expect(stage   )    .toBe(-1                        ) ;
+		expect(plan    )    .toBeGreaterThanOrEqual(0         ) ;
 		expect(activity)    .toBeGreaterThan       (plan      ) ;
 		expect(output  ).not.toContain             ("NEXT"    ) ;
 		expect(output  ).not.toContain             ("Todo"    ) ;
@@ -161,9 +361,11 @@ describe("Www execution console", () => {
 	test("an empty plan waits for plan events even while tools are active", () => {
 		const s = wwwFixture();
 		s.workFlow = { ...s.workFlow, steps: [], source: null, completedCount: 0, currentStepNumber: null };
-		const output = stripTerminalSequences(new WwwPlanView(() => s).render(100).join("\n"));
+		const snapshot = { ...s, planActivities: [{ id: "early-progress", turnId: s.activeTurnId!, stepId: "early", stepTitle: "조사", summary: "계획보다 먼저 도착한 경과", status: "running" as const, sequence: 1 }] };
+		const output = stripTerminalSequences(new WwwPlanView(() => snapshot).render(100).join("\n"));
 		expect(output)    .toContain("현재 요청에서 전달받은 계획이 없습니다."       ) ;
-		expect(output)    .toContain("정리된 세부 작업이 도착하면 이곳에 표시합니다.") ;
+		expect(output)    .toContain("계획이 도착하면 작업 경과를 표시합니다.") ;
+		expect(output).not.toContain("계획보다 먼저 도착한 경과");
 		expect(output).not.toContain("재개 시나리오를 테스트하는 중"                 ) ;
 	});
 	test("Plan cards show completion and failure while Progress waits for interpreted actions", () => {
@@ -216,7 +418,8 @@ describe("Www execution console", () => {
 		const s       = wwwFixture()                                                                               ;
 		const heading = new WwwExecutionHeading(() => s, () => null, () => Date.parse("2026-09-11T09:42:10.000Z")) ;
 		const rows    = heading.render(120).map(stripTerminalSequences)                                            ;
-		expect(rows.join("\n")).toContain("현재 단계의 작업 내용을 정리하는 중") ;
+		expect(rows.join("\n")).toContain("단계 상태 관측 중") ;
+		expect(rows.join("\n")).not.toContain("재개 시나리오를 테스트하는 중") ;
 		expect(rows[0]        ).toContain("Working"                            ) ;
 		expect(rows.join("\n")).toContain("⟦esc 중단⟧"                         ) ;
 	});
@@ -272,7 +475,7 @@ describe("Www execution console", () => {
 		const source = wwwFixture().activities.find(x => x.id === "tool-2")!;
 		const live = { ...source, payload: { params: { item: { command: "git status\nprintf test", aggregatedOutput: Array.from({ length: 20 }, (_, i) => `output-${i}`).join("\n") } } } };
 		const rows = wwwToolRows(live, 40, false), plain = stripTerminalSequences(rows.join("\n"));
-		expect(plain).toContain("▣ Terminal"); expect(plain).toContain("실행 중"); expect(plain).toContain("$ git status");
+		expect(plain).toContain("▣ Git Bash"); expect(plain).toContain("실행 중"); expect(plain).toContain("$ git status");
 		for (let index = 15; index < 20; index += 1) expect(plain).toContain(`output-${index}`);
 		expect(plain).not.toContain("output-14"); expect(plain).toContain("최신 5줄"); expect(plain).toContain("Ctrl+E 전체"); expect(rows.every(row => visibleWidth(row) <= 40)).toBe(true);
 		const finished = { ...live, phase: "completed" as const };
@@ -439,7 +642,7 @@ describe("Www execution console", () => {
 		expect(text       ).not.toMatch               (/구독 잔여|\bleft\b|\breset\b/u) ;
 		expect(text).toContain("Codex"); expect(text).toContain("62%");
 		expect(text).toContain("Claude"); expect(text).toContain("9%");
-		expect(text).toContain("Antigravity"); expect(text).toContain("login");
+		expect(text).toContain("Gemini"); expect(text).toContain("login");
 		for (const width of [20, 40, 80, 120, 200]) {
 			const rendered = hud.render(width);
 			expect(rendered.every(row => visibleWidth(row) <= width)).toBe(true);
@@ -456,7 +659,7 @@ describe("Www execution console", () => {
 		s.hud = { showUsage: false, showContext: true };
 		expect(stripTerminalSequences(hud.render(80)[0]!)).toBe("");
 	});
-	test("HUD uses a provider header and two compact quota rows with runtime on the final row", () => {
+	test("HUD keeps overall and session bars above runtime", () => {
 		const level = chalk.level;
 		chalk.level = 3;
 		try {
@@ -469,16 +672,13 @@ describe("Www execution console", () => {
 		];
 		const rows = wwwQuotaHudRows(usage, 120, now, false);
 		const plain = rows.map(stripTerminalSequences);
-		expect(rows).toHaveLength(3);
+		expect(rows).toHaveLength(2);
 		for (const provider of ["Codex", "Claude", "Antigravity", "Z.AI"]) expect(plain[0]).toContain(provider);
-		expect(plain[0]!.indexOf("Claude") - plain[0]!.indexOf("Codex")).toBe                  (18                ) ;
-		expect(plain[1]                                                ).toContain             ("7d overall"      ) ;
-		expect(plain[1]                                                ).toContain             ("[  88% 2h 00m  ]") ;
-		expect(plain[2]                                                ).toContain             ("5h session"      ) ;
-		expect(plain[2]                                                ).toContain             ("[  42% 1h 28m  ]") ;
+		expect(plain[0]).toContain("88% 2h 00m");
+		expect(plain[1]).toContain("42% 1h 28m");
+		expect(plain[0]).not.toMatch(/[\[\]]/u);
 		expect(rows.join("\n")                                         ).toContain             ("\x1b[48;2;"      ) ;
-		expect((rows[1]!.match(/\x1b\[48;2;/gu) ?? []).length          ).toBeGreaterThanOrEqual(4                 ) ;
-		expect((rows[2]!.match(/\x1b\[48;2;/gu) ?? []).length          ).toBeGreaterThanOrEqual(5                 ) ;
+		expect((rows[0]!.match(/\x1b\[48;2;/gu) ?? []).length          ).toBeGreaterThanOrEqual(4                 ) ;
 		expect(wwwPalette.codex                                        ).toBe                  (wwwPalette.text   ) ;
 		expect(wwwPalette.claude                                       ).toBe                  (wwwPalette.active ) ;
 
@@ -489,7 +689,7 @@ describe("Www execution console", () => {
 		expect(hudRows[2]).toMatch(/manual mode · Context 28k \/ 200k 14%\s*$/u);
 		} finally { chalk.level = level; }
 	});
-	test("HUD appends Monitor·Cache summary from the shared cache projection and drops it first when narrow", () => {
+	test("HUD appends Monitor·Cache summary from the shared cache projection when space permits", () => {
 		const snapshot = wwwFixture("ready");
 		const hud = new WwwHud(() => snapshot, () => [], false, () => composeCacheTelemetry({
 			collectedAt: "2026-09-12T09:00:00Z",
@@ -500,7 +700,7 @@ describe("Www execution console", () => {
 		expect(wide[2]).toContain   ("Cache 84% · 240"                           ) ;
 		expect(wide[2]).toMatch     (/manual mode · Context 28k \/ 200k 14%\s*$/u) ;
 		const narrow = hud.render(64).map(stripTerminalSequences);
-		expect(narrow[2]).not.toContain("Cache 84%");
+		expect(narrow[2]).toContain("Cache 84%");
 		expect(narrow[2]).toContain("Context 28k");
 	});
 	test("HUD cache summary distinguishes stale layers and stays silent while unobserved", () => {
@@ -513,18 +713,20 @@ describe("Www execution console", () => {
 		const silent = new WwwHud(() => snapshot, () => [], false, () => undefined);
 		expect(stripTerminalSequences(silent.render(140)[2]!)).not.toContain("Cache");
 	});
-	test("HUD shows observed Render p95 and stays silent without a completed frame", () => {
+	test("HUD omits Render telemetry while preserving the existing summary", () => {
 		const snapshot = wwwFixture("ready");
-		const observed = new WwwHud(() => snapshot, () => [], false, () => undefined, () => ({
+		const observedSnapshot = { ...snapshot, layerPerformance: {
 			current: null,
 			window: {
 				traceCount: 1, completeCount: 1, noRenderCount: 0, incompleteCount: 0, errorCount: 0,
 				render: { thresholdMs: 100, frameCount: 1, slowCount: 0, slowRate: 0, latency: { count: 1, p50: 48, p95: 48, p99: 48 }, worstMs: 48, worstFrameId: "frame-1" },
 				layers: {} as never,
 			},
-		})).render(140);
-		expect(stripTerminalSequences(observed.join("\n"))).toContain("Render p95 48ms");
-		const silent = new WwwHud(() => snapshot, () => [], false, () => undefined, () => undefined).render(140);
+		} };
+		const observed = new WwwHud(() => observedSnapshot, () => [], false, () => undefined).render(140);
+		expect(stripTerminalSequences(observed.join("\n"))).not.toContain("Render");
+		expect(stripTerminalSequences(observed.join("\n"))).toContain("manual mode");
+		const silent = new WwwHud(() => snapshot, () => [], false, () => undefined).render(140);
 		expect(stripTerminalSequences(silent.join("\n"))).not.toContain("Render");
 	});
 	test("the live Working status keeps its core intact at narrow widths by dropping tail segments", () => {
@@ -563,8 +765,8 @@ describe("Www execution console", () => {
 	test("Request and Response labels keep mirrored non-color markers", () => {
 		const s          = wwwFixture("ready")                                     ;
 		const transcript = stripTerminalSequences(new WwwTranscriptView(s).render(100).join("\n")) ;
-		expect(transcript).toContain("❯ REQ 1");
-		expect(transcript).toContain("❮ RES 1-1");
+		expect(transcript).toContain("❯ INPUT 1");
+		expect(transcript).toContain("❮ OUTPUT 1-1");
 	});
 	test("Claude와 Z.AI의 주간·5시간 한도를 넓은 HUD에서 모두 표시한다", () => {
 		const usage: UsageSnapshot[] = [
@@ -595,7 +797,7 @@ describe("Www execution console", () => {
 			s.activities = [...s.activities, { ...s.activities[0]!, id: "system-info", sequence: 102, payload: { role: "system", text: "시스템 안내" } }]      ;
 			s.chat       = [...s.chat, { id: "system-message", activityId: "system-info", role: "system", content: "시스템 안내", status: "completed" }]       ;
 			const transcript = new WwwTranscriptView(s).render(80).join("\n");
-		for (const label of ["REQ 1", "RES 1-1", "Notice", "질문 요약"]) expect(transcript).toContain(label);
+		for (const label of ["INPUT 1", "OUTPUT 1-1", "Notice", "질문 요약"]) expect(transcript).toContain(label);
 		expect(transcript).not.toContain("▰");
 		expect(new WwwPlanView(() => s).render(80).join("\n")).toContain("PLAN");
 		const answerRow = transcript.split("\n").find(row => stripTerminalSequences(row).includes("기존 이벤트와 재개 이벤트가 같은 경로로 합쳐집니다."));
@@ -624,9 +826,9 @@ describe("Www execution console", () => {
 			{ id: "m4", activityId: "request-2", role: "user", content: "두 번째 요청", status: "completed" },
 			{ id: "m5", activityId: "answer-2", role: "assistant", content: "두 번째 요청의 응답", status: "completed" },
 		];
-		expect([...wwwConversationLabels(s.chat).values()]).toEqual(["REQ 1", "RES 1-1", "RES 1-2", "REQ 2", "RES 2-1"]);
+		expect([...wwwConversationLabels(s.chat).values()]).toEqual(["INPUT 1", "OUTPUT 1-1", "OUTPUT 1-2", "INPUT 2", "OUTPUT 2-1"]);
 		const transcript = stripTerminalSequences(new WwwTranscriptView(s).render(100).join("\n"));
-		for (const label of ["REQ 1", "RES 1-1", "RES 1-2", "REQ 2", "RES 2-1"]) expect(transcript).toContain(label);
+		for (const label of ["INPUT 1", "OUTPUT 1-1", "OUTPUT 1-2", "INPUT 2", "OUTPUT 2-1"]) expect(transcript).toContain(label);
 	});
 	test("Plan shows Goal, Native steps, and Progress without a Next layer", () => {
 		const s = wwwFixture("ready");
@@ -701,7 +903,7 @@ describe("Www execution console", () => {
 	test("Runtime Plan 단계가 Native Plan보다 최신이면 완료 진행을 우선 표시한다", () => {
 		const s = wwwFixture("ready");
 		s.requestRuntime = [{
-			requestId: "request-4", turnId: "preview-turn", status: "completed", attempt: 1, previousAttempts: [], completedAt: null,
+			requestId: "request-4", protocolVersion: 2, turnId: "preview-turn", status: "completed", attempt: 1, previousAttempts: [], completedAt: null,
 			stages: ["understand", "decompose", "ground", "deliver"].map((id, index) => ({ id, status: index < 3 ? "completed" : "running", tasks: [], goal: "", output: null, skipReason: null })),
 			requiredDeliveries: [], deliveries: [], actions: [], issues: [],
 		}] as unknown as NonNullable<WorkbenchSnapshot["requestRuntime"]>;
@@ -715,7 +917,7 @@ describe("Www execution console", () => {
 		const chosen: string[] = [];
 		for (const [key, command] of WWW_VIEWS) { const menu = new WwwViewSwitcher(c => chosen.push(c), () => {}, () => {}); menu.handleInput(key); expect(chosen.at(-1)).toBe(command); }
 		let closed = false; const menu = new WwwViewSwitcher(c => chosen.push(c), () => { closed = true; }, () => {});
-		menu.handleInput("\x1b"); expect(closed).toBe(true); expect(chosen).toHaveLength(9);
+		menu.handleInput("\x1b"); expect(closed).toBe(true); expect(chosen).toHaveLength(WWW_VIEWS.length);
 	});
 	test("Workflow 화면은 실제 Request 단계와 Subagent 관측을 표시한다", () => {
 		const s = wwwFixture("ready");
@@ -826,13 +1028,13 @@ describe("Www execution console", () => {
 		}];
 		const rendered = new WwwTranscriptView(s).render(100)                                                                       ;
 		const rows     = rendered.map(stripTerminalSequences)                                                                       ;
-		const response = rows.findIndex(row => row.includes("RES 1-1"))                                                             ;
+		const response = rows.findIndex(row => row.includes("OUTPUT 1-1"))                                                             ;
 		const report   = rows.findIndex(row => row.includes("REPORT"))                                                              ;
 		const evidence = rows.findIndex(row => row.startsWith("│") && row.includes("Evidence 2") && row.includes("/source answer")) ;
 		const closing  = rows.findIndex((row, index) => index > report && row.trim() === "")                                        ;
 		expect([response < report, report < evidence, evidence < closing]     ).toEqual([true, true, true]) ;
 		expect(rows.some(row => row.includes("PROPOSAL"))                     ).toBe   (false             ) ;
-		expect(rows.some(row => row.startsWith("├─") || row.startsWith("└─ "))).toBe   (false             ) ;
+		expect(rows.slice(report, closing).some(row => row.startsWith("├─") || row.startsWith("└─ "))).toBe(false) ;
 		const coloredEvidence = rendered[evidence]!;
 		expect(coloredEvidence).toContain(a.secondary("Evidence 2"));
 		expect(coloredEvidence).toContain(a.active("/source answer"));
@@ -938,7 +1140,7 @@ describe("Www execution console", () => {
 		const plain = frame.lines.map(stripTerminalSequences).join("\n");
 		expect(frame.lines).toHaveLength(height);
 		expect(frame.lines.every(row => visibleWidth(row) <= width)).toBe(true);
-		expect(plain).toContain("실행 중"); expect(plain).not.toContain("Esc 중단"); expect(plain).not.toMatch(/구독 잔여|\bleft\b|\breset\b/u);
+		expect(plain).toContain("Working"); expect(plain).not.toContain("Esc 중단"); expect(plain).not.toMatch(/구독 잔여|\bleft\b|\breset\b/u);
 		if (width >= 112) expect(plain).toContain("세션과 이벤트 결합 지점 확인");
 		workspace.show("plan");
 		const plan = renderLayoutFrame(workspace.component, width, height, () => {}).lines.join("\n");
@@ -1017,13 +1219,142 @@ describe("Www execution console", () => {
 		expect(output).toContain("const seen = new Set();"); expect(output).toContain("bun test"); expect(output).toContain("새 이벤트 한 번만 표시");
 		expect(output).not.toContain("PRIVATE_REASONING_SENTINEL");
 	});
-	test("labels the public reasoning summary as Thought without exposing raw reasoning", () => {
+	test("summarizes consecutive tool calls and retains their source cards", () => {
+		const snapshot = wwwFixture("ready");
+		const tool = snapshot.activities.find(activity => activity.id === "tool-2")!;
+		const additional = ["rg -n narrator src", "sed -n '1,90p' src/core/narrator.ts"].map((command, index) => ({
+			...tool, id: `investigate-${index}`, sequence: tool.sequence + index + 1,
+			nativeRefs: { ...tool.nativeRefs, itemId: `investigate-${index}` },
+			payload: { method: "item/completed", params: { item: { type: "commandExecution", command, exitCode: 0 } } },
+		}));
+		snapshot.activities = [...snapshot.activities, ...additional];
+		const view = new WwwTranscriptView({ ...snapshot, toolActions: additional.map((item, index) => ({ id: `${item.nativeRefs.turnId}:${item.nativeRefs.itemId}`, turnId: item.nativeRefs.turnId!, stepId: "chat-tool-action", stepTitle: "Chat 도구 행동", summary: index === 0 ? "narrator 관련 정의를 확인합니다." : "narrator 구현의 앞부분을 읽습니다.", status: "completed" as const, sequence: item.sequence })) });
+		const folded = stripTerminalSequences(view.render(100).join("\n"));
+		expect(folded).toContain("sequence를 기준으로 중복을 확인하고, 연결 경계");
+		expect(folded).toContain("를 좁히겠습니다.");
+		expect(folded).toContain("3건");
+		expect(folded).toContain("✓ narrator 관련 정의를 확인합니다.");
+		expect(folded).toContain("✓ narrator 구현의 앞부분을 읽습니다.");
+		expect(folded).toContain("rg -n narrator src");
+		expect(folded).toContain("Git Bash");
+		expect(folded).toContain("sed -n '1,90p' src/core/narrator.ts");
+		expect(folded).toContain("경로 · src/core/narrator.ts");
+		expect(folded).not.toContain("exit 0");
+		view.expanded = true;
+		const open = stripTerminalSequences(view.render(100).join("\n"));
+		expect(open).toContain("rg -n narrator src");
+		expect(open).toContain("sed -n '1,90p' src/core/narrator.ts");
+		expect(open).not.toContain(`/source ${additional[0]!.id}`);
+	});
+
+	test("Git Bash 명령과 관측 출력은 한 카드 안에 보이고 source 행은 숨긴다", () => {
+		const level = chalk.level;
+		chalk.level = 3;
+		try {
+			const snapshot = wwwFixture("ready");
+			const source = snapshot.activities.find(activity => activity.id === "tool-2")!;
+			const completed = { ...source, id: "green-command", phase: "completed" as const,
+				payload: { method: "item/completed", params: { item: { type: "commandExecution", command: "git status", exitCode: 0, aggregatedOutput: "clean tree" } } } };
+			snapshot.activities = [...snapshot.activities, completed];
+			const rendered = new WwwTranscriptView(snapshot).render(100).join("\n");
+			const plain = stripTerminalSequences(rendered);
+			expect(plain).toContain("Git Bash");
+			expect(plain).toContain("$ git status");
+			expect(plain).toContain("├─── Output");
+			expect(plain).toContain("clean tree");
+			expect(plain).toMatch(/┌─── ▣ Git Bash[^\n]*\n(?:[^└]*\n)*?├─── Output[^\n]*\n│ clean tree[^\n]*\n└/u);
+			expect(plain).not.toContain("/source green-command");
+			expect(rendered).toContain(a.tool("┌─── ▣ Git Bash").replace(/\x1b\[39m$/u, ""));
+		} finally { chalk.level = level; }
+	});
+	test("does not invent a shell explanation while AI interpretation is unavailable", () => {
+		const snapshot = wwwFixture("ready");
+		const view = new WwwTranscriptView(snapshot);
+		const before = stripTerminalSequences(view.render(100).join("\n"));
+		expect(before).toContain("도구 작업");
+		expect(before).not.toContain("파일 내용 검색");
+		expect(before).toContain("Git Bash");
+		expect(before).not.toContain("파일 내용 검색");
+		const source = snapshot.activities.find(activity => activity.id === "tool-2")!;
+		view.update({ ...snapshot, toolActions: [{ id: `${source.nativeRefs.turnId}:${source.nativeRefs.itemId}`, turnId: source.nativeRefs.turnId!, stepId: "chat-tool-action", stepTitle: "Chat 도구 행동", summary: "AI가 테스트 명령의 대상을 설명합니다.", status: "completed", sequence: source.sequence }] });
+		expect(stripTerminalSequences(view.render(100).join("\n"))).toContain("AI가 테스트 명령의 대상을 설명합니다.");
+	});
+	test("keeps a failed call visible inside a collapsed tool group", () => {
+		const snapshot = wwwFixture("ready");
+		const source = snapshot.activities.find(activity => activity.id === "tool-2")!;
+		snapshot.activities = [...snapshot.activities, {
+			...source, id: "failed-check", phase: "failed", sequence: source.sequence + 1,
+			nativeRefs: { ...source.nativeRefs, itemId: "failed-check" },
+			payload: { method: "item/completed", params: { item: { type: "commandExecution", command: "bun test failing", exitCode: 1, aggregatedOutput: "BROKEN_CASE" } } },
+		}];
+		const withActions = { ...snapshot, toolActions: snapshot.activities.filter(activity => activity.kind === "tool").map(activity => ({ id: `${activity.nativeRefs.turnId}:${activity.nativeRefs.itemId}`, turnId: activity.nativeRefs.turnId!, stepId: "chat-tool-action", stepTitle: "Chat 도구 행동", summary: "입력 처리 테스트를 실행합니다.", status: activity.phase === "failed" ? "failed" as const : "completed" as const, sequence: activity.sequence })) };
+		const output = stripTerminalSequences(new WwwTranscriptView(withActions).render(100).join("\n"));
+		expect(output).toContain("2건 · 실패 1건");
+		expect(output).toContain("✓ 입력 처리 테스트를 실행합니다.");
+		expect(output).toContain("! 입력 처리 테스트를 실행합니다.");
+		expect(output).toContain("bun test failing");
+		expect(output).not.toContain("exit 0");
+		expect(output).toContain("BROKEN_CASE");
+		const expanded = new WwwTranscriptView(withActions); expanded.expanded = true;
+		expect(stripTerminalSequences(expanded.render(100).join("\n"))).toContain("BROKEN_CASE");
+	});
+
+	test("summarizes every zsh command while retaining completed Terminal cards", () => {
+		const snapshot = wwwFixture("ready");
+		const source = snapshot.activities.find(activity => activity.id === "tool-2")!;
+		const commands = [
+			{ command: '/bin/zsh -lcr "pwd"', exitCode: 0 },
+			{ command: '/bin/zsh -lcr "rg -n missing src"', exitCode: 1 },
+		];
+		snapshot.activities = [...snapshot.activities, ...commands.map((item, index) => ({
+			...source, id: `zsh-${index}`, sequence: source.sequence + index + 1,
+			nativeRefs: { ...source.nativeRefs, itemId: `zsh-${index}` },
+			payload: { method: "item/completed", params: { item: { type: "commandExecution", ...item } } },
+		}))];
+		const withActions = { ...snapshot, toolActions: commands.map((item, index) => ({ id: `${source.nativeRefs.turnId}:zsh-${index}`, turnId: source.nativeRefs.turnId!, stepId: "chat-tool-action", stepTitle: "Chat 도구 행동", summary: index === 0 ? "현재 디렉터리를 확인합니다." : "src에서 누락된 정의를 검색합니다.", status: item.exitCode === 0 ? "completed" as const : "failed" as const, sequence: source.sequence + index + 1 })) };
+		const output = stripTerminalSequences(new WwwTranscriptView(withActions).render(100).join("\n"));
+		expect(output).toContain("✓ 현재 디렉터리를 확인합니다.");
+		expect(output).toContain("! src에서 누락된 정의를 검색합니다.");
+		expect(output).toContain("rg -n missing src");
+		expect(output).toContain('/bin/zsh -lcr "pwd"');
+		expect(output).not.toContain("exit 0");
+	});
+
+	test("shows a file listing as one Korean tool summary", () => {
+		const snapshot = wwwFixture("ready");
+		const source = snapshot.activities.find(activity => activity.id === "tool-2")!;
+		snapshot.activities = [...snapshot.activities, {
+			...source, id: "file-list", sequence: source.sequence + 1,
+			nativeRefs: { ...source.nativeRefs, itemId: "file-list" },
+			payload: { method: "item/completed", params: { item: { type: "commandExecution", command: "rg --files .www/evidence/2026-09-28-slash-command-palette", exitCode: 0 } } },
+		}];
+		const withActions = { ...snapshot, toolActions: [{ id: `${source.nativeRefs.turnId}:file-list`, turnId: source.nativeRefs.turnId!, stepId: "chat-tool-action", stepTitle: "Chat 도구 행동", summary: "증거 폴더의 파일을 나열합니다.", status: "completed" as const, sequence: source.sequence + 1 }] };
+		const previous = chalk.level;
+		chalk.level = 3;
+		try {
+			const output = new WwwTranscriptView(withActions).render(100).join("\n");
+			expect(stripTerminalSequences(output)).toContain("✓ 증거 폴더의 파일을 나열합니다.");
+			expect(stripTerminalSequences(output)).toContain("rg --files");
+			expect(output).toMatch(/\x1b\[38;2;\d+;\d+;\d+m✓ 증거 폴더의 파일을 나열합니다/u);
+		} finally { chalk.level = previous; }
+	});
+
+	test("keeps tool summaries in durable order around the draft response", () => {
+		const snapshot = { ...wwwFixture("working"), draft: "지금 확인 중입니다.", draftAnchorSequence: 5 };
+		const output = stripTerminalSequences(new WwwTranscriptView(snapshot).render(100).join("\n"));
+		const draft = output.indexOf("OUTPUT 1-2 작성 중");
+		expect(draft).toBeGreaterThan(-1);
+		expect(output.indexOf("도구 작업")).toBeLessThan(draft);
+		expect(output.lastIndexOf("도구 작업")).toBeGreaterThan(draft);
+		expect(output.match(/도구 작업/gu)).toHaveLength(2);
+	});
+	test("does not add a separate Thought row for a public reasoning summary", () => {
 		const s      = { ...wwwFixture(), reasoningSummaryDraft: "공개 판단 요약", reasoningDraft: "PRIVATE_REASONING_SENTINEL", draft: "" } ;
 		const rows   = new WwwTranscriptView(s).render(80)                                                                                   ;
 		const output = stripTerminalSequences(rows.join("\n"))                                                                               ;
 
-		expect(output                                    )    .toContain("◉ Thought"                 ) ;
-		expect(output                                    )    .toContain("공개 판단 요약"            ) ;
+		expect(output                                    )    .not.toContain("◉ Thought"             ) ;
+		expect(output                                    ).not.toContain("공개 판단 요약"            ) ;
 		expect(output                                    ).not.toContain("PRIVATE_REASONING_SENTINEL") ;
 		expect(rows.every(row => visibleWidth(row) <= 80))    .toBe     (true                        ) ;
 	});
@@ -1056,12 +1387,13 @@ describe("Www execution console", () => {
 		const activity = wwwFixture().activities.find(x => x.id === "tool-1")!                                                                        ;
 		const failed   = { ...activity, payload: { params: { item: { command: "bun test", exitCode: 1, aggregatedOutput: "REGRESSION_FAILURE" } } } } ;
 		const output   = stripTerminalSequences(wwwToolRows(failed, 80, false).join("\n"))                                                            ;
-		expect(output).toContain("▣ Terminal"); expect(output).toContain("! bun test"); expect(output).toContain("exit 1"); expect(output).toContain("REGRESSION_FAILURE"); expect(output).toContain("/source tool-1");
+		expect(output).toContain("▣ Git Bash"); expect(output).toContain("! bun test"); expect(output).toContain("exit 1"); expect(output).toContain("REGRESSION_FAILURE"); expect(output).toContain("Output"); expect(output).not.toContain("/source tool-1");
 	});
 	test("searching commands does not execute them and includes retained workflows", () => {
-		for (const name of ["dashboard", "history", "cache", "usage"]) {
+		for (const name of ["dashboard", "history", "usage"]) {
 			expect(WWW_COMMANDS.some(command => command.name === name)).toBe(true);
 		}
+		expect(WWW_COMMANDS.some(command => command.name === "cache" || command.name === "context")).toBe(false);
 		const chosen: string[] = []; const palette = new WwwCommandPalette(c => chosen.push(c), () => {}, () => {});
 		palette.handleInput("promote"); expect(chosen).toHaveLength(0);
 		expect(palette.render(70).join("\n")).toContain("/promote");

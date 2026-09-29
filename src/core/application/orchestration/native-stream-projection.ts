@@ -28,6 +28,7 @@ export interface NativeTerminalProjectionScope {
 
 export interface NativeStreamSnapshot {
 	readonly draft                 : string                       ;
+	readonly draftAnchorSequence   : number | null                ;
 	readonly draftNativeRefs       : NativeRefs | null            ;
 	readonly reasoningDraft        : string                       ;
 	readonly reasoningSummaryDraft : string                       ;
@@ -37,6 +38,7 @@ export interface NativeStreamSnapshot {
 /** Owns volatile Native delta accumulation and terminal projection cleanup. */
 export class NativeStreamProjection {
 	private draft                 = "" ;
+	private draftAnchorSequence   : number | null = null ;
 	private reasoningDraft        = "" ;
 	private reasoningSummaryDraft = "" ;
 
@@ -60,6 +62,7 @@ export class NativeStreamProjection {
 	public get snapshot(): NativeStreamSnapshot {
 		return {
 			draft                 : this.draft,
+			draftAnchorSequence   : this.draftAnchorSequence,
 			draftNativeRefs       : this.draftNativeRefs,
 			reasoningDraft        : this.reasoningDraft,
 			reasoningSummaryDraft : this.reasoningSummaryDraft,
@@ -67,7 +70,7 @@ export class NativeStreamProjection {
 		};
 	}
 
-	public apply(event: NativeEventDeltaProjection): boolean {
+	public apply(event: NativeEventDeltaProjection, anchorSequence = 0): boolean {
 		const itemIdentity = nativeItemIdentity(event.refs);
 		if (!itemIdentity) return false;
 		if (event.channel === "reasoning-summary") {
@@ -99,7 +102,7 @@ export class NativeStreamProjection {
 			return true;
 		}
 		if (event.channel === "assistant") {
-			this.applyAssistantDelta(itemIdentity, event);
+			this.applyAssistantDelta(itemIdentity, event, anchorSequence);
 			return true;
 		}
 		this.applyActivityDelta(event);
@@ -109,6 +112,7 @@ export class NativeStreamProjection {
 	public clearTerminal(scope: NativeTerminalProjectionScope): void {
 		if (shouldClearTerminalProjection(this.draftIdentity, this.draftNativeRefs, scope)) {
 			this.draft                = ""                           ;
+			this.draftAnchorSequence = null                         ;
 			this.draftIdentity        = null                         ;
 			this.draftNativeRefs      = null                         ;
 			this.draftProjection      = emptyBoundedTextProjection() ;
@@ -133,11 +137,12 @@ export class NativeStreamProjection {
 		}
 	}
 
-	private applyAssistantDelta(itemIdentity: string, event: NativeEventDeltaProjection): void {
+	private applyAssistantDelta(itemIdentity: string, event: NativeEventDeltaProjection, anchorSequence: number): void {
 		if (this.draftIdentity && itemIdentity !== this.draftIdentity) {
 			this.draftProjection = emptyBoundedTextProjection();
 			this.draftEnvelopeClipped = false;
 		}
+		if (itemIdentity !== this.draftIdentity) this.draftAnchorSequence = anchorSequence;
 		this.draftIdentity = itemIdentity;
 		this.draftNativeRefs = event.refs;
 		const candidate = this.draftProjection.tail + event.text;

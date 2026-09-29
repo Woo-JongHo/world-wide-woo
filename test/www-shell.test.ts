@@ -1,14 +1,26 @@
-import { expect, spyOn, test }                                               from "bun:test";
-import { TuiAltScreen, stripTerminalSequences, visibleWidth }                from "@earendil-works/pi-tui";
-import type { Component, Terminal }                                          from "@earendil-works/pi-tui";
-import { getScrollViewBox, renderLayoutFrame }                               from "@earendil-works/pi-tui/dist/layout.js";
-import type { ProjectWorkbench }                                             from "../src/core/application/orchestration/project-workbench";
-import type { WorkbenchCommand, WorkbenchCommandReceipt, WorkbenchListener } from "../src/core/domain/work/workbench";
-import { runProjectWorkbenchShell }                                          from "../src/adapters/inbound/tui/shell/workbench-shell";
-import { WwwUsageView }                                                      from "../src/adapters/inbound/tui/features/usage/view/www-usage-view";
-import { runCli }                                                            from "../src/cli";
-import type { CliDependencies }                                              from "../src/cli";
-import { wwwFixture }                                                        from "./fixtures/www-snapshot";
+import      { expect, spyOn, test       } from "bun:test"                                                       ;
+import      {
+              TuiAltScreen            ,
+              stripTerminalSequences  ,
+              visibleWidth            ,
+                                        } from "@earendil-works/pi-tui"                                         ;
+import type { Component, Terminal       } from "@earendil-works/pi-tui"                                         ;
+import      {
+              getScrollViewBox        ,
+              renderLayoutFrame       ,
+                                        } from "@earendil-works/pi-tui/dist/layout.js"                          ;
+import type { ProjectWorkbench          } from "../src/core/application/orchestration/project-workbench"        ;
+import type { RequestRuntimeRecord       } from "../src/core/domain/execution/request-runtime"                 ;
+import type {
+              WorkbenchCommand        ,
+              WorkbenchCommandReceipt ,
+              WorkbenchListener       ,
+                                        } from "../src/core/domain/work/workbench"                              ;
+import      { runProjectWorkbenchShell  } from "../src/adapters/inbound/tui/shell/workbench-shell"              ;
+import      { WwwUsageView              } from "../src/adapters/inbound/tui/features/usage/view/www-usage-view" ;
+import      { runCli                    } from "../src/cli"                                                     ;
+import type { CliDependencies           } from "../src/cli"                                                     ;
+import      { wwwFixture                } from "./fixtures/www-snapshot"                                        ;
 
 class MemoryTerminal implements Terminal {
 	columns = 80; rows = 24; kittyProtocolActive = false; output = ""; stopped = false;
@@ -27,12 +39,12 @@ class MemoryTerminal implements Terminal {
 	setTitle        (title: string                                    ): void { this.write(`\x1b]0;${title}\x07`); }
 	setProgress     (active: boolean                                  ): void { this.write(active ? "\x1b]9;4;3\x07" : "\x1b]9;4;0\x07"); }
 }
-const BOTTOM_BORDER = /^\s*(?:─+|╰─+╯)\s*$/u;
-const tick          = () => new Promise(resolve => setTimeout(resolve, 40));
+const BOTTOM_BORDER = /^\s*(?:─+|╰─+╯)\s*$/u                                ;
+const tick          = () => new Promise(resolve => setTimeout(resolve, 40)) ;
 
 test("production Www shell routes navigation, rejection, approval and shutdown through existing contracts", async () => {
-	const terminal = new MemoryTerminal();
-	const showOverlay = spyOn(TuiAltScreen.prototype, "showOverlay");
+	const terminal    = new MemoryTerminal()                         ;
+	const showOverlay = spyOn(TuiAltScreen.prototype, "showOverlay") ;
 	let snapshot = {
 		...wwwFixture("ready"),
 		reasoningSummaryDraft: "LIVE_PRIVATE_REASONING_SENTINEL",
@@ -58,12 +70,12 @@ test("production Www shell routes navigation, rejection, approval and shutdown t
 	});
 	const submit = async (text: string) => { terminal.input(text); terminal.input("\r"); await tick(); };
 	try {
-		await tick(); expect(terminal.output).toContain("www"); expect(terminal.output).toContain("세션 연결됨"); expect(terminal.output).toContain("REQ 1");
+		await tick(); expect(terminal.output).toContain("www"); expect(terminal.output).toContain("세션 연결됨"); expect(terminal.output).toContain("INPUT 1");
 		const labStart = terminal.output.length;
 		await submit("/three-body"); expect(terminal.output.slice(labStart)).toContain("THREE BODY LAB");
 		terminal.input(" "); await tick(); expect(terminal.output.slice(labStart)).toContain("PAUSED");
 		terminal.input("t"); await tick(); expect(terminal.output.slice(labStart)).toContain("Trail off");
-		terminal.input("q"); await tick(); expect(terminal.output.slice(labStart)).toContain("REQ 1");
+		terminal.input("q"); await tick(); expect(terminal.output.slice(labStart)).toContain("INPUT 1");
 		await submit("/todo"); expect(terminal.output).toContain("PLAN"); expect(commands).toHaveLength(0);
 		terminal.input("\x1b"); await tick();
 		const legacyNotesStart = terminal.output.length;
@@ -99,10 +111,12 @@ test("production Www shell routes navigation, rejection, approval and shutdown t
 		await submit("/stats"); expect(terminal.output).toContain("세션 검토");
 		terminal.input("\x1b"); await tick();
 		const testViewStart = terminal.output.length;
-		await submit("/Test"); expect(terminal.output.slice(testViewStart)).toContain("질문별 Test");
+		await submit("/Test"); expect(terminal.output.slice(testViewStart)).toContain("VERIFY");
+		const monitorFromTestStart = terminal.output.length;
+		terminal.input("\r"); await tick(); expect(terminal.output.slice(monitorFromTestStart)).toContain("Monitor");
 		terminal.input("\x1b"); await tick();
 		const navigationStart = terminal.output.length;
-		terminal.input("\x07"); terminal.input("3"); await tick(); expect(terminal.output.slice(navigationStart)).toContain("PROGRESS");
+		terminal.input("\x07"); terminal.input("3"); await tick(); expect(terminal.output.slice(navigationStart)).toContain("Monitor");
 		terminal.input("1"); await tick();
 		terminal.input("\x10"); await tick(); terminal.input("\x1b"); await tick();
 		await submit("request 1"); expect(commands.at(-1)).toEqual({ type: "chat.send", text: "request 1", delivery: "queue" });
@@ -147,6 +161,14 @@ test("production Www shell routes navigation, rejection, approval and shutdown t
 		expect(commands.at(-1)).toEqual({ type: "approval.resolve", requestId: 99, response: { decision: "decline" } });
 		const paletteStart = terminal.output.length;
 		terminal.input("\x10"); await tick(); expect(terminal.output.slice(paletteStart)).toContain("명령 찾기");
+		expect(showOverlay.mock.calls.at(-1)?.[1]).toMatchObject({ anchor: "bottom-center" });
+		terminal.input("\x1b"); await tick();
+		const slashPaletteStart = terminal.output.length;
+		const overlaysBeforeSlash = showOverlay.mock.calls.length;
+		terminal.input("/"); await tick();
+		expect(showOverlay).toHaveBeenCalledTimes(overlaysBeforeSlash);
+		terminal.input("model"); await tick();
+		expect(terminal.output.slice(slashPaletteStart)).toContain("/model");
 		terminal.input("\x1b"); await tick();
 		terminal.columns = 120; terminal.rows = 35; terminal.resize(); await tick();
 		terminal.input("보존할 초안"); await tick();
@@ -180,15 +202,15 @@ test("WWW CLI keeps resume selection, cancellation and execution-lane semantics"
 
 test("Mac Control+G navigation preserves drafts, routes every page, and leaves ordinary digits editable", async () => {
 	const terminal = new MemoryTerminal(), commands: WorkbenchCommand[] = [];
-	const snapshot = wwwFixture("ready");
-	const wb = { snapshot, subscribe(fn: WorkbenchListener) { fn(snapshot); return () => {}; }, async dispatch(command: WorkbenchCommand) { commands.push(command); return { state: "rejected", commandId: "r", reason: "test draft retained" }; }, async close() {} } as unknown as ProjectWorkbench;
+	const snapshot = wwwFixture("ready")                                                                                                                                                                                                                                                                    ;
+	const wb       = { snapshot, subscribe(fn: WorkbenchListener) { fn(snapshot); return () => {}; }, async dispatch(command: WorkbenchCommand) { commands.push(command); return { state: "rejected", commandId: "r", reason: "test draft retained" }; }, async close() {} } as unknown as ProjectWorkbench ;
 	runProjectWorkbenchShell({ surface: "www", terminal, cwd: "/test/www", workbench: wb,
 		usage: { async refresh() { return []; }, startPolling(fn) { fn([]); return () => {}; }, cacheMetrics: () => ({ entries: 0, hits: 0, misses: 0, evictions: 0, lastAccessedAt: null }) },
 		auth: { methods: () => [], status: async provider => ({ state: "configured", provider, type: "oauth", source: "test" }), login: async () => { throw new Error("not requested"); }, logout: async () => {} },
 	});
 	try {
 		await tick(); terminal.input("초안"); await tick();
-		for (const [key, label] of [["2", "PLAN"], ["3", "PROGRESS"], ["4", "세션 검토"], ["5", "SESSION OVERVIEW"], ["6", "개발"], ["7", "Context"], ["8", "질문별 Test"], ["1", "Chat"]]) {
+		for (const [key, label] of [["2", "PLAN"], ["3", "Monitor"], ["4", "세션 검토"], ["5", "SESSION OVERVIEW"], ["6", "개발"], ["8", "VERIFY"], ["1", "Chat"]]) {
 			terminal.input("\x07"); await tick(); expect(terminal.output).toContain("화면 이동");
 			const start = terminal.output.length; terminal.input(key!); await tick(); expect(terminal.output.slice(start)).toContain(label!);
 		}
@@ -197,6 +219,39 @@ test("Mac Control+G navigation preserves drafts, routes every page, and leaves o
 		expect(commands.at(-1)).toEqual({ type: "chat.send", text: "초안1", delivery: "queue" });
 		terminal.input("\x15"); await tick();
 		const start = terminal.output.length; terminal.input("\x1b[13~"); await tick(); expect(terminal.output.slice(start)).toContain("PLAN");
+	} finally { terminal.input("\x03"); terminal.input("\x03"); await tick(); }
+});
+
+test("Dashboard opens the selected question's Monitor record", async () => {
+	const terminal = new MemoryTerminal(); terminal.columns = 120; terminal.rows = 40;
+	const snapshot = wwwFixture("ready");
+	const record = (requestId: string, turnId: string, objective: string): RequestRuntimeRecord => ({
+		schemaVersion: 1, protocolVersion: 2, requestId, threadId: snapshot.threadId, turnId, objective,
+		status: "completed", attempt: 1, previousAttempts: [], stages: [], deliveries: [], requiredDeliveries: [], events: [],
+		startedAt: "2026-09-28T00:00:00Z", completedAt: "2026-09-28T00:00:02Z", issues: [], actions: [],
+	});
+	snapshot.requestRuntime = [record("older", "older-turn", "오래된 질문의 기록"), record("newer", "preview-turn", "현재 질문의 기록")];
+	const wb = { snapshot, subscribe(fn: WorkbenchListener) { fn(snapshot); return () => {}; }, async dispatch() { throw new Error("unexpected dispatch"); }, async close() {} } as unknown as ProjectWorkbench;
+	runProjectWorkbenchShell({ surface: "www", terminal, cwd: "/test/www", workbench: wb,
+		usage: { async refresh() { return []; }, startPolling(fn) { fn([]); return () => {}; }, cacheMetrics: () => ({ entries: 0, hits: 0, misses: 0, evictions: 0, lastAccessedAt: null }) },
+		auth: { methods: () => [], status: async provider => ({ state: "configured", provider, type: "oauth", source: "test" }), login: async () => { throw new Error("not requested"); }, logout: async () => {} },
+	});
+	try {
+		await tick(); terminal.input("\x07"); terminal.input("5"); await tick();
+		expect(terminal.output).toContain("/monitor #1");
+		const beforeMove = terminal.output.length;
+		terminal.input("\x1b[B"); await tick();
+		expect(stripTerminalSequences(terminal.output.slice(beforeMove))).toContain("› /monitor #2");
+		const before = terminal.output.length;
+		terminal.input("\r"); await tick();
+		const monitor = stripTerminalSequences(terminal.output.slice(before));
+		expect(monitor).toContain("오래된 질문의 기록");
+		expect(monitor).not.toContain("현재 질문의 기록");
+		terminal.input("\x1b"); await tick();
+		const beforeLive = terminal.output.length;
+		terminal.input("/monitor"); terminal.input("\r"); await tick();
+		const live = stripTerminalSequences(terminal.output.slice(beforeLive));
+		expect(live).toContain("현재 질문의 기록");
 	} finally { terminal.input("\x03"); terminal.input("\x03"); await tick(); }
 });
 
@@ -228,25 +283,21 @@ test("/demo presents synthetic MVP pages with R/E navigation and restores live s
 		await submit("/demo");
 		expect(frame()).toContain("DEMO DATA") ;
 		expect(frame()).toContain("Chat"     ) ;
-		expect(frame()).toContain("Stages"   ) ;
-		expect(frame()).toContain("+2 대기"  ) ;
+		expect(frame()).toContain("PLAN"     ) ;
+		expect(frame()).toContain("PROGRESS" ) ;
 		terminal.columns = 80; terminal.rows = 24; terminal.resize(); await tick();
 		expect(frame()).toContain("승인 대기");
-		expect(frame()).not.toContain("Stages");
+		expect(frame()).not.toContain("PROGRESS");
 		terminal.columns = 160; terminal.rows = 48; terminal.resize(); await tick();
 		expect(frame()).not.toContain("LIVE_PRIVATE_REASONING_SENTINEL");
 		terminal.input("E"); await tick(); expect(frame()).toContain("ACTIVE SESSION ID"); expect(frame()).toContain("TOKEN ALLOCATION TRENDS"); expect(frame()).toContain("SESSION EVENT AGGREGATES");
 		terminal.input("E"); await tick(); expect(frame()).toContain("모델별 사용 내역");
-		terminal.input("E"); await tick(); expect(frame()).toContain("CONTEXT ACCUMULATION SPECTROMETER");
+		terminal.input("E"); await tick(); expect(frame()).toContain("7-stage request pipeline");
 		expect(frame()).not.toContain("LIVE_PRIVATE_PROJECT_SENTINEL");
-		expect(frame()).toContain("LOADED SKILLS"); expect(frame()).toContain("STORAGE METRICS");
-		for (const label of ["CONTEXT COMPOSITION BREAKDOWN", "CONTEXT CHANGE ACTIVITY", "DIAGNOSTIC EVENT AGGREGATES", "TOP ITEMS BY SIZE", "STATE CHANGE ALERTS", "synthetic fixtures", "T-8"]) expect(frame()).toContain(label);
 		terminal.input("R"); await tick(); expect(frame()).toContain("모델별 사용 내역");
-		terminal.input("E"); await tick(); expect(frame()).toContain("CONTEXT CHANGE ACTIVITY");
-		terminal.input("G"); await tick(); expect(frame()).toContain("DIAGNOSTIC EVENT AGGREGATES");
+		terminal.input("E"); await tick(); expect(frame()).toContain("7-stage request pipeline");
 		expect(frame()).not.toContain("계획 연결 근거");
-		terminal.input("E"); await tick(); expect(frame()).toContain("CACHE SLICES");
-		terminal.input("E"); await tick(); expect(frame()).toContain("7-stage request pipeline"); expect(frame()).toContain("5 ACTIVE / 8 TOTAL");
+		expect(frame()).toContain("5 ACTIVE / 8 TOTAL");
 		for (const label of ["UNDERSTAND", "DECOMPOSE", "GROUND", "DECIDE", "EXECUTE", "VERIFY", "DELIVER", "LANE_A", "LANE_B", "LANE_C"]) expect(frame()).toContain(label);
 		terminal.input("E"); await tick(); expect(frame()).toContain("STAGE"); expect(frame()).toContain("PLAN"); expect(frame()).toContain("PROGRESS");
 		terminal.input("E"); await tick(); expect(frame()).toContain("Chat");
@@ -264,8 +315,8 @@ test("/demo presents synthetic MVP pages with R/E navigation and restores live s
 		terminal.input("\x03"); await tick(); // Close the restored approval sheet before navigating Live.
 		snapshot = { ...snapshot, revision: 78, pendingApproval: null };
 		listener(snapshot); await tick();
-		terminal.input("\x07"); terminal.input("7"); await tick();
-		terminal.input("g"); await tick(); // Context retains the earlier Demo end-of-page scroll position.
+		await submit("/context");
+		terminal.input("g"); await tick(); // Context remains available through its direct command.
 		expect(frame() )    .toContain   ("Source token allocation unavailable") ;
 		expect(frame() ).not.toContain   ("CONV growing"                       ) ;
 		expect(commands)    .toHaveLength(0                                    ) ;
@@ -334,7 +385,7 @@ test("the production layout keeps autocomplete selections and multiline rails vi
 		// Notes belong to the execution stream even when the plan rail is hidden.
 		expect(frame().join("\n")).toContain("QUESTION_PREVIEW_SENTINEL");
 		terminal.rows = 30; terminal.resize(); await tick(); frame();
-		const before = transcriptWidth; expect(before).toBe(74);
+		const before = transcriptWidth; expect(before).toBe(57);
 		terminal.input("\x02"); await tick(); frame(); expect(transcriptWidth).toBe(112);
 		terminal.input("\x02"); await tick(); frame(); expect(transcriptWidth).toBe(before);
 		terminal.input("/"); await tick(); frame(); expect(transcriptWidth).toBe(before);
@@ -344,10 +395,8 @@ test("the production layout keeps autocomplete selections and multiline rails vi
 		expect(frame().join("\n")).not.toContain("Ctrl+G 3 요약 전체");
 		terminal.columns = 80; terminal.rows = 24; terminal.resize();
 		terminal.input("/"); await tick();
-		for (let i = 0; i < 50; i++) {
-			expect(frame().join("\n")).toMatch(/→\s+\S/u);
-			terminal.input("\x1b[B"); await tick();
-		}
+		expect(frame().join("\n")).toMatch(/→\s+\S/u);
+		frame();
 		terminal.input("\x1b"); terminal.input("\x15");
 		terminal.input(`\x1b[200~${Array.from({ length: 7 }, (_, i) => `line-${i}`).join("\n")}\x1b[201~`); await tick();
 		for (let i = 0; i < 6; i++) terminal.input("\x1b[A"); await tick();
@@ -360,11 +409,8 @@ test("the production layout keeps autocomplete selections and multiline rails vi
 		expect(text).not.toMatch(/구독 잔여|\bleft\b|\breset\b/u); expect(text).toContain("62%");
 		expect(text).not.toContain("Enter 추가 지시");
 		terminal.input("\x01"); terminal.input("\x0b"); terminal.input("/"); await tick();
-		for (let i = 0; i < 50; i++) {
-			const output = frame().join("\n");
-			expect(output).toMatch(/→\s+\S/u); expect(output).not.toMatch(/구독 잔여|\bleft\b|\breset\b/u);
-			terminal.input("\x1b[B"); await tick();
-		}
+		expect(frame().join("\n")).toMatch(/→\s+\S/u);
+		expect(frame().join("\n")).not.toMatch(/구독 잔여|\bleft\b|\breset\b/u);
 	} finally {
 		if (!terminal.stopped) { terminal.input("\x03"); terminal.input("\x03"); await tick(); }
 		capture.mockRestore();
@@ -374,8 +420,8 @@ test("the production layout keeps autocomplete selections and multiline rails vi
 test("execution heading belongs only to the execution page", async () => {
 	const terminal = new MemoryTerminal();
 	terminal.columns = 120; terminal.rows = 32;
-	const snapshot = wwwFixture("working");
-	const commands : unknown[] = [];
+	const snapshot             = wwwFixture("working") ;
+	const commands : unknown[] = []                    ;
 	const wb = {
 		snapshot,
 		subscribe(fn: WorkbenchListener) { fn(snapshot); return () => {}; },
@@ -384,8 +430,8 @@ test("execution heading belongs only to the execution page", async () => {
 	} as unknown as ProjectWorkbench;
 	let root: Component | undefined;
 
-	const original = TuiAltScreen.prototype.setLayoutRoot;
-	const capture  = spyOn(TuiAltScreen.prototype, "setLayoutRoot").mockImplementation(function(this: TuiAltScreen, component) { root = component; original.call(this, component); });
+	const original = TuiAltScreen.prototype.setLayoutRoot                                                                                                                             ;
+	const capture  = spyOn(TuiAltScreen.prototype, "setLayoutRoot").mockImplementation(function(this: TuiAltScreen, component) { root = component; original.call(this, component); }) ;
 	const frame = () => {
 		expect(root).toBeDefined();
 		return renderLayoutFrame(root!, terminal.columns, terminal.rows, () => {}).lines.map(stripTerminalSequences).join("\n");

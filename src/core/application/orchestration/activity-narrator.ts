@@ -1,4 +1,5 @@
 export interface ActivityNarrationRequest {
+	readonly kind?         : "plan-progress" | "tool-action" | "test-action" ;
 	readonly goal         : string            ;
 	readonly stepTitle    : string            ;
 	readonly inputSummary : readonly string[] ;

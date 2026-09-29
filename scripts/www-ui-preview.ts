@@ -1,9 +1,9 @@
 /** Interactive, offline Www UI showcase. No provider, credential, or project writes. */
-import type { ProjectWorkbench } from "../src/core/application/orchestration/project-workbench";
-import type { WorkbenchSnapshot } from "../src/core/domain/work/workbench";
-import type { UsageSnapshot } from "../src/core/ports";
+import type { ProjectWorkbench }    from "../src/core/application/orchestration/project-workbench";
+import type { WorkbenchSnapshot }   from "../src/core/domain/work/workbench";
+import type { UsageSnapshot }       from "../src/core/ports";
 import { runProjectWorkbenchShell } from "../src/adapters/inbound/tui/shell/workbench-shell";
-import { wwwFixture } from "../test/fixtures/www-snapshot";
+import { wwwFixture }               from "../test/fixtures/www-snapshot";
 
 const now = Date.now();
 const usageSnapshots: readonly UsageSnapshot[] = [
@@ -50,7 +50,7 @@ export const snapshot: WorkbenchSnapshot = {
 			{ id: "WOO-901", title: "Www monitoring surfaces", status: "In Progress", dueDate: null },
 			{ id: "WOO-902", title: "Cache telemetry contract", status: "Done", dueDate: null },
 		],
-		update: { body: "다섯 모니터링 화면 통합 검증", createdAt: new Date(now - 3_600_000).toISOString() },
+		update: { body: "다섯 모니터링 화면 통합 검증", version: null, createdAt: new Date(now - 3_600_000).toISOString() },
 		comments: [], milestones: [],
 	},
 };

@@ -7,6 +7,7 @@ import {
 } from "@/core/domain/execution/model-settings.js";
 import type { Effort, Provider }                        from "@/core/domain/execution/model-settings.js";
 import type { NativeApprovalPolicy, NativeSandboxMode } from "@/core/domain/execution/native-session.js";
+import type { OutputLanguage } from "@/core/domain/execution/output-language.js";
 
 /** Validated, immutable project configuration. Runtime state never belongs here. */
 export interface WorkbenchConfig {
@@ -28,6 +29,7 @@ export interface WorkbenchConfig {
 	/** Detached review lane; this is deliberately separate from interactive execution. */
 	readonly review: { readonly provider: "anthropic" | "google"; readonly model: string };
 	readonly display: {
+		readonly language             : OutputLanguage ;
 		readonly tnoteVisibleLimit    : number ;
 		readonly tnoteSummaryMaxChars : number ;
 		readonly tnoteSummaryMaxLines : number ;
@@ -39,6 +41,7 @@ export interface WorkbenchConfig {
 }
 
 export const DEFAULT_TNOTE_DISPLAY = Object.freeze({
+	language             : "ko" as const,
 	tnoteVisibleLimit    : 20,
 	tnoteSummaryMaxChars : 2_048,
 	tnoteSummaryMaxLines : 24,
@@ -98,6 +101,7 @@ export function normalizeWorkbenchConfig(value: unknown): WorkbenchConfig {
 			model: validReviewModel(review),
 		}),
 		display: Object.freeze({
+			language             : display?.language === "en" ? "en" : "ko",
 			tnoteVisibleLimit    : boundedInt(display?.tnoteVisibleLimit, DEFAULT_TNOTE_DISPLAY.tnoteVisibleLimit, 0, 100),
 			tnoteSummaryMaxChars : boundedInt(display?.tnoteSummaryMaxChars, DEFAULT_TNOTE_DISPLAY.tnoteSummaryMaxChars, 256, 8_192),
 			tnoteSummaryMaxLines : boundedInt(display?.tnoteSummaryMaxLines, DEFAULT_TNOTE_DISPLAY.tnoteSummaryMaxLines, 4, 80),

@@ -53,6 +53,17 @@ describe("NativeStreamProjection", () => {
 		expect(projection.snapshot.draftNativeRefs).toBeNull();
 	});
 
+	test("keeps the first delta position until the assistant item ends", () => {
+		const projection = new NativeStreamProjection();
+		projection.apply(delta("assistant", "첫 문장"), 5);
+		projection.apply(delta("assistant", " 이어쓰기"), 9);
+		expect(projection.snapshot.draftAnchorSequence).toBe(5);
+		projection.clearTerminal(terminalScope("turn-1"));
+		expect(projection.snapshot.draftAnchorSequence).toBeNull();
+		projection.apply(delta("assistant", "다음 문장", "turn-2", "item-2"), 12);
+		expect(projection.snapshot.draftAnchorSequence).toBe(12);
+	});
+
 	test("rejects an ownerless delta instead of creating volatile state", () => {
 		const projection = new NativeStreamProjection();
 		const event = { ...delta("assistant", "unowned"), refs: { threadId: "thread-1" } };

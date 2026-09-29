@@ -29,10 +29,17 @@ describe("interpreted Plan activity and cards", () => {
 		};
 
 		const output = stripTerminalSequences(new WwwPlanView(() => projection).render(80).join("\n"));
-		expect(output.indexOf("GOAL")).toBeLessThan(output.indexOf("PLAN"));
-		expect(output.indexOf("PLAN")).toBeLessThan(output.indexOf("PROGRESS"));
-		expect(output).toContain("현재 요청에서 전달받은 계획이 없습니다.");
-		expect(output).not.toContain("NEXT");
+		expect(output.indexOf("GOAL"))    .toBeLessThan(output.indexOf("PLAN")                   ) ;
+		expect(output.indexOf("PLAN"))    .toBeLessThan(output.indexOf("PROGRESS")               ) ;
+		expect(output                )    .toContain   ("현재 요청에서 전달받은 계획이 없습니다.") ;
+		expect(output                ).not.toContain   ("NEXT"                                   ) ;
+	});
+
+	test("renders empty Plan and Progress guidance in the selected language", () => {
+		const projection: PlanFeatureProjection = { activeTurnId: null, sessionGoal: null, workFlow: projectWorkFlow([]) };
+		const output = stripTerminalSequences(new WwwPlanView(() => projection, false, Date.now, false, null, () => "en").render(80).join("\n"));
+		expect(output).toContain("No plan has been supplied for this request.");
+		expect(output).toContain("Progress appears when the plan arrives.");
 	});
 
 	test("shows the newest five interpretations in chronological order, ignoring raw event noise", () => {
@@ -45,17 +52,30 @@ describe("interpreted Plan activity and cards", () => {
 			const view = new WwwPlanView(() => snapshot, compact)           ;
 			const text = stripTerminalSequences(view.render(80).join("\n")) ;
 			const feed = text.slice(text.indexOf("PROGRESS"))               ;
-			expect(feed).toContain("✓ 검사");
-			expect(feed).not.toContain("╭");
-			expect(feed).toContain("최근 5개");
-			expect(feed).not.toContain("검사 1의");
-			expect(feed).not.toContain("검사 2의");
-			expect(feed).not.toContain("검사 99의");
+			expect(feed)    .toContain("✓ 검사"   ) ;
+			expect(feed).not.toContain("╭"        ) ;
+			expect(feed)    .toContain("최근 5개" ) ;
+			expect(feed).not.toContain("검사 1의" ) ;
+			expect(feed).not.toContain("검사 2의" ) ;
+			expect(feed).not.toContain("검사 99의") ;
 			for (let index = 3; index < 7; index++) expect(feed.indexOf(`검사 ${index}의`)).toBeLessThan(feed.indexOf(`검사 ${index + 1}의`));
 			expect(feed).not.toContain("item/started");
 		}
 		expect(wwwNowLabel(snapshot)).toBe("검사 7의 표시 동작을 확인합니다.");
 		expect(executionHeading(snapshot).detail).not.toContain("item/started");
+	});
+
+	test("shows progress beneath its Plan step instead of listing shell actions", () => {
+		const snapshot: WorkbenchSnapshot = { ...wwwFixture(), planActivities: [
+			{ ...activity(1), stepId: "branch", stepTitle: "현재 브랜치와 표시 요약 경로 확인", summary: "브랜치와 요약 경로의 연결 상태를 확인했습니다." },
+			{ ...activity(2), stepId: "display", stepTitle: "표시 요약 수정", summary: "고정 문구가 표시되는 위치를 좁혔습니다." },
+		], planActivityStatus: "ready" };
+		const output = stripTerminalSequences(new WwwPlanView(() => snapshot).render(100).join("\n"));
+		expect(output).toContain("현재 브랜치와 표시 요약 경로 확인");
+		expect(output).toContain("브랜치와 요약 경로의 연결 상태를 확인했습니다.");
+		expect(output).toContain("표시 요약 수정");
+		expect(output).toContain("고정 문구가 표시되는 위치를 좁혔습니다.");
+		expect(output).not.toContain("/bin/zsh");
 	});
 
 	test("keeps PROGRESS on the retained Plan turn while a queued turn starts", () => {
@@ -85,18 +105,18 @@ describe("interpreted Plan activity and cards", () => {
 		const presentation = { motionActive: requestRuntimeMotionActive, rows: requestRuntimeRows }          ;
 		const rows         = new WwwPlanView(() => snapshot, true, Date.now, false, presentation).render(40) ;
 		const text         = stripTerminalSequences(rows.join("\n"))                                         ;
-		expect(text).not.toContain("진행 중");
-		expect(text).not.toMatch(/^GOAL(?:\s|$)/mu);
-		expect(text).not.toContain("표시 동작 확인");
-		expect(text).toContain("STAGE");
-		expect(text).toContain("4/7");
+		expect(text).not.toContain("진행 중"        ) ;
+		expect(text).not.toMatch  (/^GOAL(?:\s|$)/mu) ;
+		expect(text).not.toContain("표시 동작 확인" ) ;
+		expect(text)    .toContain("STAGE"          ) ;
+		expect(text)    .toContain("4/7"            ) ;
 		for (const stage of REQUEST_STAGES) expect(text).toContain(stage);
-		expect(text).toContain("회귀 테스트와 독립 검토");
-		expect(text).toContain("검사 1의 표시 동작을 확인합니다.");
-		expect(text).toContain("새 작업 내용을 정리하는 중");
-		expect(text).not.toContain("item/started");
-		expect(executionHeading(snapshot).detail).not.toContain("item/started");
-		expect(rows.every(row => visibleWidth(row) <= 40)).toBe(true);
+		expect(text                                      )    .toContain("회귀 테스트와 독립 검토"         ) ;
+		expect(text                                      )    .toContain("검사 1의 표시 동작을 확인합니다.") ;
+		expect(text                                      ).not.toContain("작업 내용을 정리하는 중"       ) ;
+		expect(text                                      ).not.toContain("item/started"                    ) ;
+		expect(executionHeading(snapshot).detail         ).not.toContain("item/started"                    ) ;
+		expect(rows.every(row => visibleWidth(row) <= 40))    .toBe     (true                              ) ;
 		const page = stripTerminalSequences(new WwwPlanView(() => snapshot, false, Date.now, false, presentation).render(80).join("\n"));
 		for (const stage of REQUEST_STAGES) expect(page).toContain(stage);
 		expect(page).toContain("✓ 검사 1의");
@@ -126,9 +146,9 @@ describe("interpreted Plan activity and cards", () => {
 		snapshot.workFlow = { ...snapshot.workFlow, steps: snapshot.workFlow.steps.map(step => ({ ...step, title: "다음 작업 확인", status: "pending" })) };
 		for (const compact of [false, true]) {
 			const output = stripTerminalSequences(new WwwPlanView(() => snapshot, compact).render(36).join("\n"));
-			expect(output).toContain("다음 작업 확인");
-			expect(output).not.toContain("대기");
-			expect(output).not.toContain("pending");
+			expect(output)    .toContain("다음 작업 확인") ;
+			expect(output).not.toContain("대기"          ) ;
+			expect(output).not.toContain("pending"       ) ;
 		}
 		for (const width of [5, 36]) {
 			const pending = stripTerminalSequences(statusCardRows("후속 검사", "pending", width).join("\n"));
@@ -154,6 +174,7 @@ describe("interpreted Plan activity and cards", () => {
 		const frame     = () => renderLayoutFrame(workspace.component, 120, 32, () => {})            ;
 		expect(stripTerminalSequences(frame().lines.join("\n"))).not.toContain("Three Body");
 		snapshot = { ...snapshot, chat: [{ id: "started", activityId: "request", role: "user", content: "작업 시작", status: "completed" }], planActivities: Array.from({ length: 5 }, (_, index) => ({ ...activity(index), summary: "카드의 세부 내용이 길어져도 끝까지 읽을 수 있어야 합니다. ".repeat(4) })) };
+		snapshot.workFlow = { ...snapshot.workFlow, steps: wwwFixture().workFlow.steps };
 		snapshot.sessionGoal = { text: "스크롤 끝에서도 유지되는 장기 목표", sourceActivityId: "goal", updatedAt: "2026-09-22T00:00:00Z" };
 		const crowded = frame();
 		expect(crowded.lines.join("\n")).not.toContain("Three Body");
@@ -169,16 +190,16 @@ describe("interpreted Plan activity and cards", () => {
 	test("waits without raw fallbacks and replaces one interpreted action on completion", () => {
 		let snapshot: WorkbenchSnapshot = { ...wwwFixture(), planActivityStatus: "pending" };
 		const view = new WwwPlanView(() => snapshot);
-		expect(stripTerminalSequences(view.render(100).join("\n"))).toContain("작업 내용을 정리하는 중");
+		expect(stripTerminalSequences(view.render(100).join("\n"))).not.toContain("작업 내용을 정리하는 중");
 		snapshot = { ...snapshot, planActivities: [{ ...activity(1), status: "running" }] };
 		const running = stripTerminalSequences(view.render(100).join("\n"));
 		expect(running.slice(running.indexOf("PROGRESS"))).not.toContain("진행 중");
 		expect(running).toContain("› 검사 1의");
 		snapshot = { ...snapshot, planActivities: [activity(1)], planActivityStatus: "ready" };
 		const complete = stripTerminalSequences(view.render(100).join("\n"));
-		expect(complete.slice(complete.indexOf("PROGRESS"))).not.toContain("완료");
-		expect(complete).toContain("✓ 검사 1의");
-		expect(complete.match(/검사 1의/gu)).toHaveLength(1);
+		expect(complete.slice(complete.indexOf("PROGRESS"))).not.toContain   ("완료"      ) ;
+		expect(complete                                    )    .toContain   ("✓ 검사 1의") ;
+		expect(complete.match(/검사 1의/gu)                )    .toHaveLength(1           ) ;
 		snapshot = { ...snapshot, planActivities: [], planActivityStatus: "unavailable" };
 		expect(stripTerminalSequences(view.render(100).join("\n"))).toContain("작업 내용을 아직 정리하지 못했습니다.");
 	});
@@ -215,9 +236,9 @@ describe("interpreted Plan activity and cards", () => {
 			const output        = new WwwPlanView(() => snapshot, compact).render(24).map(stripTerminalSequences) ;
 			const planStart     = output.findIndex(row => row.includes("Plan"))                                   ;
 			const progressStart = output.findIndex(row => row.includes("Progress"))                               ;
-			expect(itemRows(output.slice(planStart, progressStart))).toBeLessThanOrEqual(snapshot.workFlow.steps.length * 2);
-			expect(itemRows(output.slice(progressStart))).toBeGreaterThan(6);
-			expect(output.slice(progressStart).join("\n")).not.toContain("…");
+			expect(itemRows(output.slice(planStart, progressStart)))    .toBeLessThanOrEqual(snapshot.workFlow.steps.length * 2) ;
+			expect(itemRows(output.slice(progressStart))           )    .toBeGreaterThan    (6                                 ) ;
+			expect(output.slice(progressStart).join("\n")          ).not.toContain          ("…"                               ) ;
 		}
 	});
 });

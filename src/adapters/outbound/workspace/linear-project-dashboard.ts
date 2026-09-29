@@ -6,6 +6,7 @@ import type {
 	LinearProjectDashboard,
 } from "@/core/domain/work/linear-dashboard.js";
 import type { LinearProjectDashboardReader } from "@/core/ports/integration/linear-project-dashboard-port";
+import { PRODUCT_VERSION }                   from "@/product-version";
 
 export interface LinearMcpToolCaller {
 	callMcpTool(input: {
@@ -44,7 +45,7 @@ export class McpLinearProjectDashboard implements LinearProjectDashboardReader {
 			this.call("get_status_updates", {
 				project : this.config.projectId,
 				type    : "project",
-				limit   : 1,
+				limit   : 20,
 			}, threadId),
 			this.call("list_milestones", { project: this.config.projectId }, threadId),
 			this.call("list_comments", {
@@ -117,12 +118,15 @@ function projectIssues(value: unknown): readonly LinearDashboardIssue[] {
 }
 
 function projectUpdate(value: unknown): LinearDashboardUpdate | null {
-	const entry = list(value, "statusUpdates")[0] ?? list(value, "updates")[0];
-	if (!entry) return null;
-	const body = text(entry.body);
-	return body === ""
-		? null
-		: { body, createdAt: typeof entry.createdAt === "string" ? entry.createdAt : null };
+	const entries = [...list(value, "statusUpdates"), ...list(value, "updates")];
+	for (const entry of entries) {
+		const body    = text(entry.body)                                              ;
+		const version = body.match(/(?:^|[^\d])v?(0\.0\.\d+)\b/u)?.[1] ?? null ;
+		if (body && version === PRODUCT_VERSION) {
+			return { body, version, createdAt: typeof entry.createdAt === "string" ? entry.createdAt : null };
+		}
+	}
+	return null;
 }
 
 function projectComments(value: unknown): readonly LinearDashboardComment[] {

@@ -1,12 +1,13 @@
-import { ProcessTerminal, TUI, type Component, truncateToWidth, visibleWidth } from "@gajae-code/tui";
-import chalk from "chalk";
+import { ProcessTerminal, TUI, truncateToWidth, visibleWidth } from "@gajae-code/tui";
+import type { Component }                                      from "@gajae-code/tui";
+import chalk                                                   from "chalk";
 
 interface SessionEvent {
-	category: string;
-	title: string;
-	body: string;
-	status: string;
-	metadata?: Record<string, unknown>;
+	category  : string                  ;
+	title     : string                  ;
+	body      : string                  ;
+	status    : string                  ;
+	metadata? : Record<string, unknown> ;
 }
 
 const fixture = process.argv[2] ?? "../fixtures/session-events.jsonl";
@@ -15,10 +16,10 @@ const events = (await Bun.file(fixture).text())
 	.split("\n")
 	.map((line) => JSON.parse(line) as SessionEvent);
 
-const accent = chalk.cyanBright;
-const muted = chalk.gray;
-const green = chalk.greenBright;
-const yellow = chalk.yellowBright;
+const accent = chalk.cyanBright   ;
+const muted  = chalk.gray         ;
+const green  = chalk.greenBright  ;
+const yellow = chalk.yellowBright ;
 
 function fit(text: string, width: number): string {
 	const clipped = truncateToWidth(text, width);
@@ -53,10 +54,10 @@ class WesScreen implements Component {
 	}
 
 	render(width: number): string[] {
-		const w = Math.max(40, width);
-		const conversation: string[] = [];
-		const execution: string[] = [];
-		const results: string[] = [];
+		const w                       = Math.max(40, width) ;
+		const conversation : string[] = []                  ;
+		const execution    : string[] = []                  ;
+		const results      : string[] = []                  ;
 		for (const event of events) {
 			if (event.category === "user" || event.category === "assistant") {
 				conversation.push(`${accent(event.title)}  ${event.body}`, "");

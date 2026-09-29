@@ -1,6 +1,7 @@
 import type { Component }                               from "@earendil-works/pi-tui";
 import type { RequestRuntimeRecord }                    from "@/core/domain/execution/request-runtime";
 import type { PlanFeatureProjection }                   from "@/core/application/orchestration/workbench-feature-reads";
+import type { OutputLanguage }                           from "@/core/domain/execution/output-language";
 import { a, fit, joinedSections, prose, safe, section } from "@/adapters/inbound/tui/foundation/theme/www-theme";
 import { compactStatusRows }                            from "@/adapters/inbound/tui/foundation/components/status-card";
 
@@ -9,24 +10,20 @@ type PlanActivity = NonNullable<PlanFeatureProjection["planActivities"]>[number]
 
 export interface PlanRuntimePresentation {
 	readonly motionActive: (request: Pick<RequestRuntimeRecord, "status" | "completedAt">, now: number) => boolean;
-	readonly rows: (request: RequestRuntimeRecord, width: number, compact: boolean, motionFrame: number, goal?: string | null, activityRows?: readonly string[]) => string[];
+	readonly rows: (request: RequestRuntimeRecord, width: number, compact: boolean, motionFrame: number, goal?: string | null, activityRows?: readonly string[], nativePlanRows?: readonly string[]) => string[];
 }
 
-function stageRows(width: number): string[] {
-	return [...section("STAGE", width, "미관측", a.plan), ...prose(a.muted("요청 Runtime이 시작되면 단계 상태를 표시합니다."), width)];
-}
-
-function planRows(snapshot: PlanFeatureProjection, width: number, compact: boolean): string[] {
+function planRows(snapshot: PlanFeatureProjection, width: number, compact: boolean, language: OutputLanguage): string[] {
 	const steps = snapshot.workFlow.steps;
-	const rows = [...section("PLAN", width, steps.length ? `${steps.filter(x => x.status === "completed").length}/${steps.length}` : "미관측", a.plan)];
+	const rows = [...section("PLAN", width, steps.length ? `${steps.filter(x => x.status === "completed").length}/${steps.length}` : language === "en" ? "unobserved" : "미관측", a.plan)];
 	if (!steps.length) {
 		const message = snapshot.workFlow.rejections.length
-			? "전달받은 계획을 확인하지 못했습니다."
-			: "현재 요청에서 전달받은 계획이 없습니다.";
+			? language === "en" ? "The supplied plan could not be confirmed." : "전달받은 계획을 확인하지 못했습니다."
+			: language === "en" ? "No plan has been supplied for this request." : "현재 요청에서 전달받은 계획이 없습니다.";
 		return [...rows, ...prose(a.muted(message), width)];
 	}
 	if (rows.at(-1) === "") rows.pop();
-	for (const step of steps) rows.push(...compactStatusRows(step.title, step.status, width));
+	for (const step of steps) rows.push(...compactStatusRows(step.title, step.status, width, Number.MAX_SAFE_INTEGER));
 	return rows;
 }
 
@@ -42,18 +39,23 @@ function progressEntries(snapshot: PlanFeatureProjection): readonly PlanActivity
 	return merged;
 }
 
-function progressRows(snapshot: PlanFeatureProjection, width: number, compact = false): string[] {
-	const entries = progressEntries(snapshot)                                                                 ;
-	const rows    = [...section("PROGRESS", width, entries.length ? `최근 ${entries.length}개` : "", a.info)] ;
+function progressRows(snapshot: PlanFeatureProjection, width: number, compact = false, hasPlan = false, language: OutputLanguage = "ko"): string[] {
+	const entries = hasPlan ? progressEntries(snapshot) : []                                                ;
+	const rows    = [...section("PROGRESS", width, entries.length ? language === "en" ? `${entries.length} recent` : `최근 ${entries.length}개` : "", a.info)] ;
 	if (rows.at(-1) === "") rows.pop();
-	for (const item of entries) rows.push(...compactStatusRows(safe(item.summary, 3000), item.status, width, Number.MAX_SAFE_INTEGER));
+	let previousStepId: string | null = null;
+	for (const item of entries) {
+		if (item.stepId !== previousStepId) rows.push(...prose(a.plan(safe(item.stepTitle, 300)), width));
+		rows.push(...compactStatusRows(safe(item.summary, 3000), item.status, width, Number.MAX_SAFE_INTEGER));
+		previousStepId = item.stepId;
+	}
 	if (!entries.length) {
-		const message = snapshot.planActivityStatus === "pending" ? "현재 단계의 작업 내용을 정리하는 중입니다."
-			: snapshot.planActivityStatus === "unavailable" ? "작업 내용을 아직 정리하지 못했습니다."
-			: snapshot.planActivityStatus === "disabled" ? "작업 내용 요약이 꺼져 있습니다."
-			: "정리된 세부 작업이 도착하면 이곳에 표시합니다.";
+		const message = !hasPlan ? language === "en" ? "Progress appears when the plan arrives." : "계획이 도착하면 작업 경과를 표시합니다."
+			: snapshot.planActivityStatus === "unavailable" ? language === "en" ? "Work details are not available yet." : "작업 내용을 아직 정리하지 못했습니다."
+			: snapshot.planActivityStatus === "disabled" ? language === "en" ? "Work summaries are disabled." : "작업 내용 요약이 꺼져 있습니다."
+			: language === "en" ? "Detailed progress will appear here." : "정리된 세부 작업이 도착하면 이곳에 표시합니다.";
 		rows.push(...prose(a.muted(message), width));
-	} else if (snapshot.planActivityStatus === "pending") rows.push(...prose(a.caption("새 작업 내용을 정리하는 중…"), width));
+	}
 	return rows;
 }
 
@@ -64,22 +66,25 @@ export class WwwPlanView implements Component {
 		private readonly clock = Date.now,
 		private readonly motion = true,
 		private readonly runtimePresentation: PlanRuntimePresentation | null = null,
+		private readonly language: () => OutputLanguage = () => "ko",
 	) {}
 	invalidate(): void {}
 	render(width: number): string[] {
 		const s       = this.get()                                                                                                 ;
 		const turnId  = s.activeTurnId ?? s.workFlow.source?.turnId                                                                ;
 		const request = turnId ? [...(s.requestRuntime ?? [])].reverse().find(r => r.turnId === turnId) : s.requestRuntime?.at(-1) ;
-		if (request
+		if (request?.protocolVersion === 2
 			&& this.runtimePresentation
 			&& Array.isArray(request.stages)
 			&& request.stages.length > 0) {
 			const now   = this.clock()                                                                                                                  ;
 			const frame = this.motion && this.runtimePresentation.motionActive(request, now) ? Math.floor(now / 120) : 8                                ;
-			const rows  = this.runtimePresentation.rows(request, width, this.compact, frame, s.sessionGoal?.text, progressRows(s, width, this.compact)) ;
+			const hasPlan = request.stages.some(stage => stage.tasks.length > 0) || s.workFlow.source?.turnId === turnId && s.workFlow.steps.length > 0 ;
+			const nativePlanRows = s.workFlow.steps.length > 0 ? planRows(s, width, this.compact, this.language()) : undefined;
+			const rows  = this.runtimePresentation.rows(request, width, this.compact, frame, s.sessionGoal?.text, progressRows(s, width, this.compact, hasPlan, this.language()), nativePlanRows) ;
 			return (this.compact && rows[0] === "" ? rows.slice(1) : rows).map(row => fit(row, width));
 		}
-		const rows = joinedSections([stageRows(width), planRows(s, width, this.compact), progressRows(s, width, this.compact)]);
+		const rows = joinedSections([planRows(s, width, this.compact, this.language()), progressRows(s, width, this.compact, s.workFlow.steps.length > 0, this.language())]);
 		return (this.compact && rows[0] === "" ? rows.slice(1) : rows).map(row => fit(row, width));
 	}
 }

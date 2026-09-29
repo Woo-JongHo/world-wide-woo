@@ -23,16 +23,17 @@ beforeEach(() => { saved = getCapabilities(); setCapabilities({ ...saved, images
 afterEach(() => setCapabilities(saved));
 const transmissions = (text: string) => [...text.matchAll(/\x1b_G(a=T[^;]*);([^\x1b]*)\x1b\\/gu)];
 
-test("places all four downloaded PNG logos inside the bounded HUD", () => {
+test("places four distinct PNG logos on each quota row inside the bounded HUD", () => {
 	const hud    = new WwwHud(() => wwwFixture(), () => usage) ;
 	const rows   = hud.render(200)                             ;
 	const images = transmissions(rows.join("\n"))              ;
-	expect(images).toHaveLength(4);
+	expect(images).toHaveLength(8);
 	expect(new Set(images.map(image => image[2])).size).toBe(4);
+	expect(new Set(images.map(image => image[1]?.match(/i=(\d+)/u)?.[1])).size).toBe(8);
 	for (const image of images) {
-		expect(image[1]).toContain("C=1");
-		expect(image[1]).toContain("c=2,r=1");
-		expect(getPngDimensions(image[2]!)).toEqual({ widthPx: 32, heightPx: 32 });
+		expect(image[1]                   ).toContain("C=1"                        ) ;
+		expect(image[1]                   ).toContain("c=2,r=1"                    ) ;
+		expect(getPngDimensions(image[2]!)).toEqual  ({ widthPx: 32, heightPx: 32 }) ;
 	}
 	expect(stripTerminalSequences(rows[0]!)).not.toMatch(/Codex|Claude|Gemini|Z\.AI|[\uE001-\uE004]/u);
 	for (const width of [0, 1, 2, 10, 20, 40, 80, 120, 200]) {
@@ -75,7 +76,7 @@ test("fullscreen host emits all logos, clears placements on resize and image dat
 	]));
 	try {
 		tui.start(); await settle();
-		expect(transmissions(terminal.output)).toHaveLength(4);
+		expect(transmissions(terminal.output)).toHaveLength(8);
 		expect(terminal.output).toContain("Chat");
 		terminal.output = "";
 		terminal.columns = 100; terminal.resize(); await settle();

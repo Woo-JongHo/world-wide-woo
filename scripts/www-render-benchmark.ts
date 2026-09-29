@@ -1,15 +1,16 @@
 /** Actual Www body + production shell replay. No providers, real files, or PTY. */
-import { strict as assert } from "node:assert";
-import { writeFile } from "node:fs/promises";
-import chalk from "chalk";
-import { truncateToWidth, type Component, type Terminal } from "@earendil-works/pi-tui";
-import { renderLayoutFrame } from "@earendil-works/pi-tui/dist/layout.js";
-import { wwwFixture } from "../test/fixtures/www-snapshot";
-import { projectWorkFlow } from "../src/core/domain/work";
-import type { ProjectWorkbench } from "../src/core/application/orchestration/project-workbench";
-import { fit } from "../src/adapters/inbound/tui/foundation/theme/www-theme";
+import { strict as assert }                            from "node:assert";
+import { writeFile }                                   from "node:fs/promises";
+import chalk                                           from "chalk";
+import { truncateToWidth }                             from "@earendil-works/pi-tui";
+import type { Component, Terminal }                    from "@earendil-works/pi-tui";
+import { renderLayoutFrame }                           from "@earendil-works/pi-tui/dist/layout.js";
+import { wwwFixture }                                  from "../test/fixtures/www-snapshot";
+import { projectWorkFlow }                             from "../src/core/domain/work";
+import type { ProjectWorkbench }                       from "../src/core/application/orchestration/project-workbench";
+import { fit }                                         from "../src/adapters/inbound/tui/foundation/theme/www-theme";
 import { WwwExecutionHeading, WwwInset, WwwWorkspace } from "../src/adapters/inbound/tui/shell/www-surface";
-import { runProjectWorkbenchShell } from "../src/adapters/inbound/tui/shell/workbench-shell";
+import { runProjectWorkbenchShell }                    from "../src/adapters/inbound/tui/shell/workbench-shell";
 
 chalk.level = 3;
 const counts = (process.env.WWW_BENCH_COUNTS ?? "1000").split(",").map(Number);

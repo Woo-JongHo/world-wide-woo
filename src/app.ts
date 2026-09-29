@@ -8,6 +8,7 @@ import { ObservabilityHistorySource }      from "@/adapters/outbound/observabili
 import { createProjectWorkbenchSession }   from "@/adapters/outbound/workspace/project-workbench-session.js";
 import { loadRequestCapabilityConfig }     from "@/adapters/outbound/workspace/request-capability-config";
 import { saveWorkbenchExecutionSelection } from "@/adapters/outbound/workspace/workbench-config.js";
+import { saveOutputLanguagePreference }    from "@/adapters/outbound/workspace/output-language-preference.js";
 import { DEFAULT_SETTINGS }                from "@/core/domain/execution/model-settings.js";
 
 import type { ExecutionLane }        from "@/adapters/outbound/execution/factory.js";
@@ -16,6 +17,7 @@ import type {
 	ProjectWorkbenchSessionOptions,
 } from "@/adapters/outbound/workspace/project-workbench-session.js";
 import type { WwwSettings }          from "@/core/domain/execution/model-settings.js";
+import type { OutputLanguage }       from "@/core/domain/execution/output-language.js";
 import type { RecentSessionSummary } from "@/core/ports/persistence/session-repository";
 
 export      { listNativeThreads               } from "@/adapters/outbound/workspace/native-thread-discovery.js";
@@ -89,7 +91,7 @@ export async function runApp(
 export async function runWww(
 	options      : RunAppOptions      = {},
 	dependencies : RunAppDependencies = productionRunAppDependencies,
-): Promise<void> { await runApp({ ...options, surface: "www", requestRuntimeMode: "off" }, dependencies); }
+): Promise<void> { await runApp({ ...options, surface: "www", requestRuntimeMode: "observe" }, dependencies); }
 
 async function loadSettings(): Promise<WwwSettings> {
 	const { FileSettingsStore } = await import("@/adapters/outbound/persistence/settings-store");
@@ -101,6 +103,8 @@ async function openProjectWorkbench(project: ProjectWorkbenchSession, options: R
 	const { runProjectWorkbenchShell }    = await import("@/adapters/inbound/tui/shell/workbench-shell");
 	runProjectWorkbenchShell({
 		workbench : project.workbench,
+		...(project.outputLanguage ? { outputLanguage: project.outputLanguage } : {}),
+		saveOutputLanguage: (language: OutputLanguage) => saveOutputLanguagePreference(project.workspace.root, language),
 		cwd       : project.workspace.root,
 		usage     : project.usage,
 		auth      : createProjectAuthController(),

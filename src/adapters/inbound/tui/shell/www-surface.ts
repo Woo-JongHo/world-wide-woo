@@ -13,10 +13,12 @@ import type { Component, Editor, ScrollRowSource }                     from "@ea
 import { projectChatFeature, projectPlanFeature }                      from "@/core/application/orchestration/workbench-feature-reads";
 import type { ChatFeatureProjection }                                  from "@/core/application/orchestration/workbench-feature-reads";
 import type { ProjectActivity }                                        from "@/core/domain/execution/project-activity";
+import type { OutputLanguage }                                         from "@/core/domain/execution/output-language";
 import type { WorkbenchSnapshot }                                      from "@/core/domain/work/workbench";
 import type { UsageSnapshot, UsageSnapshotCacheMetrics }               from "@/core/ports/observability/usage-monitor-port";
 import type { CacheTelemetrySnapshot }                                 from "@/core/domain/observability/cache-telemetry";
 import type { RuntimeMonitorProjection }                               from "@/core/domain/observability/runtime-monitor";
+import { REQUEST_STAGES }                                              from "@/core/domain/execution/request-runtime";
 import { WwwMonitorView }                                              from "@/adapters/inbound/tui/features/monitoring/view/www-monitor-view";
 import { ChatScrollView }                                              from "@/adapters/inbound/tui/features/chat/view/chat-scroll.view";
 import {
@@ -44,6 +46,7 @@ import {
 	safe,
 	section,
 	wwwBadge,
+	wwwFlowText,
 	wwwPalette,
 } from "@/adapters/inbound/tui/foundation/theme/www-theme";
 import { wwwQuotaHudRows }                                             from "@/adapters/inbound/tui/features/usage/view/www-usage";
@@ -51,12 +54,7 @@ import { WwwUsageRail, WwwUsageView }                                  from "@/a
 import { runtimeModeLabel, workbenchEffortLabel, workbenchModelLabel } from "@/adapters/inbound/tui/foundation/labels";
 import { componentScrollRows }                                         from "@/adapters/inbound/tui/foundation/rendering/scroll-row-source";
 import { activityGradientFrame }                                       from "@/adapters/inbound/tui/foundation/theme/theme";
-import {
-	WWW_HELP_ACTIONS,
-	WWW_KEYMAP,
-	WWW_KEYS,
-	WWW_VIEWS,
-} from "@/adapters/inbound/tui/foundation/keyboard/www-keymap";
+import { WWW_HELP_ACTIONS, WWW_KEYMAP, WWW_VIEWS }                     from "@/adapters/inbound/tui/foundation/keyboard/www-keymap";
 
 export { WWW_DOC_EXTRA, WWW_HELP_ACTIONS, WWW_KEYMAP, WWW_KEYS, WWW_SCROLL_KEYS, WWW_VIEWS, matchesWwwAction, matchesWwwKey } from "@/adapters/inbound/tui/foundation/keyboard/www-keymap";
 
@@ -73,14 +71,14 @@ export const WWW_PAGE_LABELS: Readonly<Record<WwwPage, string>> = {
 	lab       : "Three Body Lab",
 };
 export function wwwPageLabel(page: WwwPage): string { return WWW_PAGE_LABELS[page]; }
-const WWW_DESCRIPTIONS: Record<string, string> = { chat: "실행·질문 요약 타임라인", output: "최종 Operation Report", todo: "Goal · Plan · Progress", workflow: "Request 단계·Subagent 위임 관측", test: "질문별 검증 목적·검사·근거", help: "WWW 명령과 키보드 이동", source: "선택한 Progress 항목의 Trace · Source", dashboard: "현재 Session Overview", usage: "Provider quota·세션 token 상세", monitor: "현재 Progress·Runtime 관측" };
-export const WWW_COMMANDS = [...WORKBENCH_SLASH_COMMANDS.filter(command => command.name !== "tnotes" && command.name !== "tnote").map(command => ({ ...command, description: WWW_DESCRIPTIONS[command.name] ?? command.description })),
-	{ name: "context", description: "세션·권한·사용량·MCP·위임 작업" },
+const WWW_DESCRIPTIONS: Record<string, string> = { chat: "실행·질문 요약 타임라인", output: "최종 Operation Report", todo: "Goal · Plan · Progress", workflow: "Request 단계·Subagent 위임 관측", test: "실행된 명령·테스트 결과·원문 실패", help: "WWW 명령과 키보드 이동", source: "선택한 Progress 항목의 Trace · Source", dashboard: "현재 Session Overview", usage: "Provider quota·세션 token 상세", monitor: "현재 Progress·Runtime 관측" };
+export const WWW_COMMANDS = [...WORKBENCH_SLASH_COMMANDS.filter(command => !["tnotes", "tnote", "cache", "context"].includes(command.name)).map(command => ({ ...command, description: WWW_DESCRIPTIONS[command.name] ?? command.description })),
 	{ name: "history", description: "이전 Session·Project 관측 이력" },
 	{ name: "usage", description: "Provider quota·세션 token 상세" },
 	{ name: "approval", description: "보류한 승인 요청 다시 읽기 · 결정하지 않음" },
 	{ name: "demo", description: "MVP 합성 데이터로 전체 화면 순회 · R/E 이동 · Esc 종료" },
 	{ name: "work", description: "Issue 연결·기록 상태·Obsidian checkpoint/open" },
+	{ name: "language", argumentHint: "ko|en", description: "한국어·English 출력 언어 선택" },
 ];
 // Per retained generation, not total heap/RSS: old and new maps may coexist
 // during render, and the child's full transcript/output arrays have separate lifetimes.
@@ -156,8 +154,7 @@ export class HelpView implements Component {
 		}
 		rows.push("Tab (입력 중)       파일·명령 자동완성", "", a.note("질문 요약은 별도 화면이 아니라 실행 타임라인에 쌓입니다."), "");
 		for (const [key, command, label] of WWW_VIEWS) rows.push(`${a.active(`Ctrl+G ${key}`)}  ${label}  ${a.muted(command)}`);
-		const functionKeys = WWW_KEYS.map(([key]) => key.toUpperCase());
-		rows.push("", a.muted(`Ctrl은 Mac의 Control 키입니다. ${functionKeys[0]}–${functionKeys[functionKeys.length - 1]}도 보조 키로 유지합니다.`));
+		rows.push("", a.muted("Ctrl은 Mac의 Control 키입니다. 화면 이동은 Ctrl+G 또는 /명령어를 사용합니다."));
 		rows.push(...section("Slash commands", width));
 		for (const c of WWW_COMMANDS) rows.push(a.text(`/${c.name}${"argumentHint" in c ? " " + c.argumentHint : ""}`), a.muted(`  ${c.description}`));
 		return rows.flatMap(row => prose(row, width));
@@ -170,9 +167,10 @@ export class WwwWorkspace {
 	readonly scrolls    : Record<WwwPage, ScrollView> ;
 	readonly component  : Component                   ;
 	/** The single cache projection shared by the Cache page and the HUD summary row. */
-	readonly cacheTelemetry : () => CacheTelemetrySnapshot ;
-	private readonly side   : Component                    ;
-	private sidebarEnabled          = true                 ;
+	readonly cacheTelemetry       : () => CacheTelemetrySnapshot                                            ;
+	private readonly side         : Component                                                               ;
+	private sidebarEnabled                                                                    = true        ;
+	private sidebarVisibleForPage : (page: WwwPage, width: number, height: number) => boolean = () => false ;
 	constructor(
 		get: () => WorkbenchSnapshot,
 		usage: () => readonly UsageSnapshot[],
@@ -187,9 +185,10 @@ export class WwwWorkspace {
 		usageCacheMetrics: () => UsageSnapshotCacheMetrics | undefined = () => undefined,
 		synthetic: () => boolean = () => false,
 		getRuntimeMonitor: (() => RuntimeMonitorProjection) | null = null,
+		language: () => OutputLanguage = () => "ko",
 	) {
 		const getChat = () => projectChatFeature(get());
-		this.transcript = new WwwTranscriptView(getChat());
+		this.transcript = new WwwTranscriptView(getChat(), language);
 		const getPlan = () => projectPlanFeature(get());
 		this.cacheTelemetry = () => {
 			const observations = get().cacheObservations;
@@ -205,7 +204,7 @@ export class WwwWorkspace {
 		this.scrolls = {
 			dashboard : scroll(dashboard),
 			execution : new ChatScrollView(new WwwInset(this.transcript, 1), { follow: "end", primary: true, overscroll: "contain", scrollbar: "auto", scrollbarStyle: a.rule }),
-			plan      : scroll(new WwwPlanView    (getPlan, false, clock, motion, runtimePresentation)),
+			plan      : scroll(new WwwPlanView    (getPlan, false, clock, motion, runtimePresentation, language)),
 			workflow  : scroll(new WwwWorkflowView(get, synthetic)),
 			context   : scroll(new WwwContextView (get, usage, false, synthetic)),
 			cache     : scroll(new WwwCacheView   (this.cacheTelemetry, synthetic)),
@@ -221,7 +220,12 @@ export class WwwWorkspace {
 			usage     : new WwwUsageRail    (get, usage, synthetic),
 			...sidebars,
 		};
-		const sidePlan   = new WwwInset(new WwwPlanView(getPlan, true, clock, motion, runtimePresentation), 1)                            ;
+		this.sidebarVisibleForPage = (page, width, height) => {
+			if (width < 112) return false;
+			if (page === "execution") return bodyHeight(height, width, true) >= (getRuntimeMonitor ? 18 : 14);
+			return Boolean(pageSidebars[page]) && bodyHeight(height, width, true) >= 18;
+		};
+		const sidePlan   = new WwwInset(new WwwPlanView(getPlan, true, clock, motion, runtimePresentation, language), 1)                  ;
 		const sideScroll = new ScrollView(sidePlan, { follow: "none", overscroll: "contain", scrollbar: "auto", scrollbarStyle: a.rule }) ;
 		this.side = sideScroll;
 		const executionTranscript = executionHeading
@@ -232,17 +236,20 @@ export class WwwWorkspace {
 			: this.scrolls.execution;
 		const execution = new HStack([
 			{ component: executionTranscript, basis: 0, grow: 1, minSize: 1 },
-			{ component: this.side, basis: 38, minSize: 34, maxSize: 44, visible: ({ width, height }) => {
-				return this.sidebarEnabled && width >= 112 && bodyHeight(height, width, true) >= 14;
-			} },
+			{ component: this.side, basis: 55, minSize: 44, maxSize: 64, visible: ({ width, height }) => this.sidebarVisible(width, height) },
 		]);
 		const pageComponent = (page: WwwPage): Component => {
 			// Figma Chat 화면(142:5): 대화 우측에 RUN·PIPELINE·CURRENT PLAN·ACTIVITY·INSPECT 패널을 둔다.
 			if (page === "execution" && getRuntimeMonitor) {
-				const observabilitySide = new ScrollView(new WwwInset(new WwwMonitorView(getRuntimeMonitor, clock, motion, get), 1), { follow: "none", overscroll: "contain", scrollbar: "auto", scrollbarStyle: a.rule });
+				const observabilityMain = new ScrollView(new WwwInset(new WwwMonitorView(getRuntimeMonitor, clock, motion, get, true, null, language), 1), { follow: "none", overscroll: "contain", scrollbar: "auto", scrollbarStyle: a.rule });
+				const observabilityReport = new WwwInset(new WwwMonitorView(getRuntimeMonitor, clock, motion, get, true, null, language, true), 1);
+				const observabilitySide = new VStack([
+					{ component: observabilityMain, basis: 0, grow: 1, minSize: 1 },
+					{ component: observabilityReport, basis: "auto", minSize: 1 },
+				]);
 				return new HStack([
 					{ component: this.scrolls.execution, basis: 0, grow: 1, minSize: 1 },
-					{ component: observabilitySide, basis: 38, minSize: 34, maxSize: 44, visible: ({ width, height }) => this.sidebarEnabled && width >= 112 && bodyHeight(height, width, true) >= 18 },
+					{ component: observabilitySide, basis: 55, minSize: 44, maxSize: 64, visible: ({ width, height }) => this.sidebarVisible(width, height) },
 				]);
 			}
 			if (page === "execution") return execution;
@@ -251,7 +258,7 @@ export class WwwWorkspace {
 			const sideScroll = new ScrollView(new WwwInset(sidebar, 1), { follow: "none", overscroll: "contain", scrollbar: "auto", scrollbarStyle: a.rule });
 			return new HStack([
 				{ component: this.scrolls[page], basis: 0, grow: 1, minSize: 1 },
-				{ component: sideScroll, basis: 38, minSize: 34, maxSize: 44, visible: ({ width, height }) => this.sidebarEnabled && width >= 112 && bodyHeight(height, width, true) >= 18 },
+				{ component: sideScroll, basis: 38, minSize: 34, maxSize: 44, visible: ({ width, height }) => this.sidebarVisible(width, height) },
 			]);
 		};
 		this.component = new VStack((Object.keys(this.scrolls) as WwwPage[]).map(page => ({ component: pageComponent(page), basis: 0, grow: 1, minSize: 1, visible: () => this.page === page })));
@@ -259,23 +266,87 @@ export class WwwWorkspace {
 	get currentScroll(): ScrollView { return this.scrolls[this.page]; }
 	show(page: WwwPage): void { this.page = page; }
 	toggleSidebar(): boolean { this.sidebarEnabled = !this.sidebarEnabled; return this.sidebarEnabled; }
+	composeInput(component: Component, enabled: () => boolean = () => true): Component {
+		const emptyRail: Component = { invalidate: () => undefined, render: () => [""] };
+		return new HStack([
+			{ component, basis: 0, grow: 1, minSize: 1 },
+			{ component: emptyRail, basis: 55, minSize: 44, maxSize: 64, visible: ({ width, height }) => enabled() && this.sidebarVisible(width, height) },
+		]);
+	}
+	private sidebarVisible(width: number, height: number): boolean {
+		return this.sidebarEnabled && this.sidebarVisibleForPage(this.page, width, height);
+	}
 }
 
-/** The Figma top-app-bar: `WWW / {project} / {view}` breadcrumb with system status on the right. */
-export class WwwHeader implements Component {
-	private readonly sessionStartedAt: number;
-	constructor(private readonly get: () => WorkbenchSnapshot, private readonly page: () => string, private readonly cwd: string, private readonly clock = Date.now, private readonly motion = true) {
-		this.sessionStartedAt = clock();
+/** A one-row execution locator, deliberately separate from the global quota HUD. */
+export class WwwStageHud implements Component {
+	constructor(private readonly get: () => WorkbenchSnapshot) {}
+	invalidate(): void {}
+	isVisible(): boolean {
+		const snapshot = this.get();
+		return snapshot.requestRuntime?.some(request => request.turnId === snapshot.activeTurnId && request.protocolVersion === 2 && (snapshot.phase === "working" || request.status === "blocked")) === true;
 	}
+	render(width: number): string[] {
+		const snapshot = this.get();
+		const request  = snapshot.requestRuntime?.findLast(candidate => candidate.turnId === snapshot.activeTurnId && candidate.protocolVersion === 2);
+		if (!request || !this.isVisible()) return [];
+		const labels = REQUEST_STAGES.map(id => {
+			const stage = request.stages.find(candidate => candidate.id === id)                                                                                           ;
+			const mark  = stage?.status === "completed" ? "✓" : stage?.status === "running" ? "●" : stage?.status === "failed" || stage?.status === "blocked" ? "×" : "·" ;
+			const label = `${mark} ${id}`                                                                                                                                 ;
+			return stage?.status === "running" ? a.active(label) : stage?.status === "completed" ? a.success(label) : a.muted(label);
+		});
+		const full = labels.join(a.muted("  "));
+		if (visibleWidth(full) <= width) return [full];
+		const compact = REQUEST_STAGES.map((id, index) => {
+			const stage = request.stages.find(candidate => candidate.id === id)                                                                                           ;
+			const mark  = stage?.status === "completed" ? "✓" : stage?.status === "running" ? "●" : stage?.status === "failed" || stage?.status === "blocked" ? "×" : "·" ;
+			const label = `${mark}${["UND", "DEC", "GRD", "DCD", "EXE", "VER", "DLV"][index]}`                                                                            ;
+			return stage?.status === "running" ? a.active(label) : stage?.status === "completed" ? a.success(label) : a.muted(label);
+		}).join(a.muted(" "));
+		if (visibleWidth(compact) <= width) return [compact];
+		const tiny = REQUEST_STAGES.map((id, index) => {
+			const status = request.stages.find(stage => stage.id === id)?.status;
+			const mark = status === "completed" ? "✓" : status === "running" ? "●" : status === "blocked" || status === "failed" ? "×" : "·";
+			return `${mark}${["U", "D", "G", "D", "E", "V", "L"][index]}`;
+		}).join(" ");
+		if (visibleWidth(tiny) <= width) return [tiny];
+		const current = request.stages.find(stage => stage.status === "running" || stage.status === "blocked" || stage.status === "failed");
+		return [fit(`STAGE ${current?.id ?? "—"} · ${request.status}`, width)];
+	}
+}
+
+function executionStageRows(stages: readonly { readonly id: string; readonly status: string }[], width: number, frame: number): string[] {
+	if (!stages.length) return [];
+	const rows: string[] = [];
+	let current = "";
+	for (const stage of stages) {
+		const marker = stage.status === "completed" ? a.success("✓") : stage.status === "running" ? activityGradientFrame("●", frame)
+			: stage.status === "failed" || stage.status === "blocked" ? a.failure("×") : a.muted("·");
+		const label = `${marker} ${stage.status === "running" ? activityGradientFrame(stage.id, frame) : a.muted(stage.id)}`;
+		const next = current ? `${current}  ${label}` : ` ${label}`;
+		if (current && visibleWidth(next) > width) {
+			rows.push(fit(current, width));
+			current = ` ${label}`;
+		} else current = next;
+	}
+	if (current) rows.push(fit(current, width));
+	return rows;
+}
+
+/** One top row: session goal on the left, output language and workspace path on the right. */
+export class WwwHeader implements Component {
+	constructor(private readonly get: () => WorkbenchSnapshot, _page: () => string, private readonly cwd: string, _clock = Date.now, _motion = true, private readonly language: () => OutputLanguage = () => "ko") {}
 	invalidate(): void {}
 	render(width: number): string[] {
-		const s        = this.get()                                                                                                 ;
-		const project  = this.cwd.split(/[\\/]/u).filter(Boolean).at(-1) ?? s.projectId                                             ;
-		const identity = `${a.plan("WWW")} ${a.muted("/")} ${a.secondary(oneLine(project))} ${a.muted("/")} ${a.text(this.page())}` ;
-		const minutes  = Math.max(0, Math.floor((this.clock() - this.sessionStartedAt) / 60_000))                                   ;
-		const session  = minutes >= 60 ? `${Math.floor(minutes / 60)}h ${minutes % 60}m` : `${minutes}m`                            ;
-		const status   = `${a.sysOk("SYS_OK")} ${a.muted("│")} ${a.muted(`SESSION: Active (${session})`)}`                          ;
-		return [pair(identity, status, width)];
+		if (width <= 0) return [];
+		const goal      = ` ${wwwBadge(" GOAL ")} ${wwwFlowText(oneLine(this.get().sessionGoal?.text) || "—")}` ;
+		const selection = `${a.muted("LANGUAGE")} ${a.active(this.language() === "en" ? "ENGLISH" : "KOREA")}` ;
+		const path      = a.muted(oneLine(this.cwd))                                                         ;
+		const right     = truncateToWidth(`${selection}  ${path}`, Math.max(0, Math.floor(width / 2)))        ;
+		const left      = truncateToWidth(goal, Math.max(0, width - visibleWidth(right) - 2))                 ;
+		const gap       = " ".repeat(Math.max(0, width - visibleWidth(left) - visibleWidth(right)))          ;
+		return [fit(`${left}${gap}${right}`, width)];
 	}
 }
 
@@ -286,40 +357,40 @@ export class WwwGoalBar implements Component {
 	render(width: number): string[] {
 		const goal = oneLine(this.get().sessionGoal?.text, Math.max(0, width - 10));
 		if (!goal) return [""];
-		return [fit(` ${wwwBadge(" GOAL ")} ${a.text(goal)}`, width)];
+		return [fit(` ${wwwBadge(" GOAL ")} ${wwwFlowText(goal)}`, width)];
 	}
 }
 
 export class WwwExecutionHeading implements Component {
 	private readonly immutableActivityNodes = new WeakSet<object>();
 	private activityCache: { activities: readonly ProjectActivity[]; threadId: string | null; activeTurnId: string | null; value: ExecutionActivitySummary } | null = null;
-	constructor(private readonly get: () => ChatFeatureProjection, private readonly actionHint?: () => string | null, private readonly clock = Date.now, private readonly motion = true) {}
+	constructor(private readonly get: () => ChatFeatureProjection, private readonly actionHint?: () => string | null, private readonly clock = Date.now, private readonly motion = true, private readonly language: () => OutputLanguage = () => "ko") {}
 	invalidate(): void { this.activityCache = null; }
 	render(width: number): string[] {
-		const s = this.get(), heading = executionHeading(s);
-		const live            = wwwExecutionIsLive(s)                                                                                                                                          ;
-		const ink             = heading.attention ? a.attention : live ? a.active : s.executionRun?.receipt || s.chat.length ? a.success : a.muted                                             ;
-		const hint            = s.pendingApproval ? "/approval 확인" : this.actionHint?.() ?? ""                                                                                               ;
-		const now             = this.clock()                                                                                                                                                   ;
-		const activitySummary = this.activitySummary(s)                                                                                                                                        ;
-		const failed          = activitySummary.terminalMethod === "turn/failed" || activitySummary.terminalPhase === "failed"                                                                 ;
-		const interrupted     = activitySummary.terminalMethod === "turn/interrupted" || activitySummary.terminalPhase === "cancelled"                                                         ;
-		const outcome         = failed ? { marker: a.failure("!"), label: "실패까지" } : interrupted ? { marker: a.muted("−"), label: "중단까지" } : { marker: a.success("✓"), label: "처리" } ;
+		const s = this.get(), heading = executionHeading(s, this.language());
+		const live            = wwwExecutionIsLive(s)                                                                                                                                                                                                                                                                                     ;
+		const ink             = heading.attention ? a.attention : live ? a.active : s.executionRun?.receipt || s.chat.length ? a.success : a.muted                                                                                                                                                                                        ;
+		const hint            = s.pendingApproval ? this.language() === "en" ? "Review /approval" : "/approval 확인" : this.actionHint?.() ?? ""                                                                                                                                                                                          ;
+		const now             = this.clock()                                                                                                                                                                                                                                                                                              ;
+		const activitySummary = this.activitySummary(s)                                                                                                                                                                                                                                                                                   ;
+		const failed          = activitySummary.terminalMethod === "turn/failed" || activitySummary.terminalPhase === "failed"                                                                                                                                                                                                            ;
+		const interrupted     = activitySummary.terminalMethod === "turn/interrupted" || activitySummary.terminalPhase === "cancelled"                                                                                                                                                                                                    ;
+		const outcome         = failed ? { marker: a.failure("!"), label: this.language() === "en" ? "until failure" : "실패까지" } : interrupted ? { marker: a.muted("−"), label: this.language() === "en" ? "until interruption" : "중단까지" } : { marker: a.success("✓"), label: this.language() === "en" ? "processed in" : "처리" } ;
 		const completedTiming = Number.isFinite(activitySummary.headingStartedAt) && Number.isFinite(activitySummary.endedAt) && activitySummary.endedAt >= activitySummary.headingStartedAt
-			? `${outcome.marker} ${outcome.label} ${duration(activitySummary.endedAt - activitySummary.headingStartedAt)}  ·  ${WWW_EXECUTION_TIME_FORMAT.format(activitySummary.endedAt)} 종료`
+			? `${outcome.marker} ${outcome.label} ${duration(activitySummary.endedAt - activitySummary.headingStartedAt)}  ·  ${WWW_EXECUTION_TIME_FORMAT[this.language()].format(activitySummary.endedAt)} ${this.language() === "en" ? "ended" : "종료"}`
 			: "";
 		const progress = live && !s.draft
-			? workingStatusLine(s, activitySummary, now, this.motion)
+			? workingStatusLine(s, activitySummary, now, this.motion, false, this.language())
 			: completedTiming ? a.caption(completedTiming) : "";
 		const request = activitySummary.headingTurnId ? [...(s.requestRuntime ?? [])].reverse().find(candidate => candidate.turnId === activitySummary.headingTurnId) : s.requestRuntime?.at(-1) ;
-		const stages  = request ? `Stages ${request.stages.filter(stage => stage.status === "completed" || stage.status === "skipped").length}/${request.stages.length}` : ""                    ;
-		const cancel  = live ? a.muted(`${hint ? `${hint}  ` : ""}⟦esc 중단⟧`) : hint ? a.muted(hint) : ""                                                                                       ;
-		const detail  = `${progress && !live ? ink(heading.state) : a.caption(heading.detail)}${stages ? `  ${a.plan(stages)}` : ""}`                                                            ;
-		const queue   = s.chatQueue.length ? a.active(`+${s.chatQueue.length} 대기`) : ""                                                                                                        ;
+		const cancel  = live ? a.muted(`${hint ? `${hint}  ` : ""}⟦esc ${this.language() === "en" ? "cancel" : "중단"}⟧`) : hint ? a.muted(hint) : ""                                            ;
+		const detail  = progress && !live ? ink(heading.state) : a.caption(heading.detail)                                                                                                       ;
+		const queue   = s.chatQueue.length ? a.active(`+${s.chatQueue.length} ${this.language() === "en" ? "queued" : "대기"}`) : ""                                                             ;
 		const core    = live && visibleWidth(progress) > width - 1 - (cancel ? visibleWidth(cancel) + 2 : 0)
-			? workingStatusLine(s, activitySummary, now, this.motion, true)
+			? workingStatusLine(s, activitySummary, now, this.motion, true, this.language())
 			: live ? progress : progress || `${ink(heading.state)}  ${a.strong(heading.title)}`                                                                                                            ;
-		return [fit(` ${boundedHeadingRow(width - 1, core, [{ text: queue, fill: false }, { text: detail, fill: true }], cancel)}`, width)];
+		const summary = fit(` ${boundedHeadingRow(width - 1, core, [{ text: queue, fill: false }, { text: detail, fill: true }], cancel)}`, width);
+		return [summary, ...executionStageRows(request?.stages ?? [], width, this.motion ? Math.floor(now / 120) : 0)];
 	}
 	private activitySummary(snapshot: ChatFeatureProjection): ExecutionActivitySummary {
 		const cache = this.activityCache;
@@ -346,7 +417,10 @@ export class WwwExecutionHeading implements Component {
 	}
 }
 
-const WWW_EXECUTION_TIME_FORMAT = new Intl.DateTimeFormat("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+const WWW_EXECUTION_TIME_FORMAT = {
+	ko: new Intl.DateTimeFormat("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }),
+	en: new Intl.DateTimeFormat("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }),
+};
 const TERMINAL_TURN_METHODS = new Set(["turn/completed", "turn/interrupted", "turn/failed"]);
 
 interface ExecutionActivitySummary {
@@ -388,15 +462,15 @@ function boundedHeadingRow(width: number, core: string, segments: readonly { tex
 	return parts.join(gap);
 }
 
-function workingStatusLine(snapshot: ChatFeatureProjection, summary: ExecutionActivitySummary, now: number, motion: boolean, brief = false): string {
-	const elapsed = Number.isFinite(summary.workingStartedAt) ? duration(Math.max(0, now - summary.workingStartedAt)) : "실행 경과 계산 중" ;
-	const frame   = motion ? Math.floor(now / 120) : 0                                                                                      ;
-	const spinner = WWW_ACTIVITY_SPINNER[motion ? frame % WWW_ACTIVITY_SPINNER.length : WWW_ACTIVITY_SPINNER.length - 1]                    ;
-	const working = activityGradientFrame(`${spinner} Working`, frame)                                                                      ;
+function workingStatusLine(snapshot: ChatFeatureProjection, summary: ExecutionActivitySummary, now: number, motion: boolean, brief = false, language: OutputLanguage = "ko"): string {
+	const elapsed = Number.isFinite(summary.workingStartedAt) ? duration(Math.max(0, now - summary.workingStartedAt)) : language === "en" ? "Calculating elapsed time" : "실행 경과 계산 중" ;
+	const frame   = motion ? Math.floor(now / 120) : 0                                                                                                                                       ;
+	const spinner = WWW_ACTIVITY_SPINNER[motion ? frame % WWW_ACTIVITY_SPINNER.length : WWW_ACTIVITY_SPINNER.length - 1]                                                                     ;
+	const working = activityGradientFrame(`${spinner} Working`, frame)                                                                                                                       ;
 	if (brief) return `${working} ${a.caption(elapsed)}`;
 	const terminals     = summary.observedActiveTerminals > 0 ? summary.observedActiveTerminals : snapshot.liveActivity?.kind === "tool" ? 1 : null ;
-	const terminalLabel = terminals === null ? "terminal 상태 확인 중" : `${terminals} terminal${terminals === 1 ? "" : "s"} running`               ;
-	return `${working} ${a.caption(`(${elapsed} · ${terminalLabel})`)}`;
+	const terminalLabel = terminals === null ? "" : ` · ${terminals} terminal${terminals === 1 ? "" : "s"} running`;
+	return `${working} ${a.caption(`(${elapsed}${terminalLabel})`)}`;
 }
 
 const WWW_ACTIVITY_SPINNER = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"] as const;
@@ -494,7 +568,7 @@ export class WwwComposer implements Component {
 	invalidate(): void { this.child.invalidate(); this.activityStatus?.invalidate(); }
 	rowCount(width: number): number {
 		const childWidth = this.decorateEditor() ? Math.max(1, width - 2) : width;
-		return this.child.render(childWidth).length + (this.decorateEditor() && this.showActivityStatus() && this.activityStatus ? 1 : 0);
+		return this.child.render(childWidth).length + (this.decorateEditor() && this.showActivityStatus() && this.activityStatus ? this.activityStatus.render(width).length : 0);
 	}
 	render(width: number): string[] {
 		const decorate = this.decorateEditor()                        ;
@@ -534,59 +608,39 @@ export class WwwHud implements Component {
 		private readonly usage: () => readonly UsageSnapshot[] = () => [],
 		private readonly showLogos = true,
 		private readonly cache: () => CacheTelemetrySnapshot | undefined = () => undefined,
-		private readonly performance: () => WorkbenchSnapshot["layerPerformance"] = () => undefined,
 	) {}
 	invalidate(): void {}
 	render(width: number): string[] {
 		const s = this.get();
 		if (s.hud?.showUsage === false) return [""];
-		const contentWidth = Math.max(1, width - 2)                                                                ;
-		const runtime      = wwwRuntimeStatus(s, contentWidth)                                                     ;
-		const sessionWidth = runtime ? Math.max(1, contentWidth - visibleWidth(runtime) - 2) : contentWidth        ;
-		const quota        = wwwQuotaHudRows(this.usage(), contentWidth, Date.now(), this.showLogos, sessionWidth) ;
-		// The quota grid pads its last row to sessionWidth; the padding is not content.
-		const third   = (quota[2] ?? "").replace(/\s+$/u, "")   ;
-		const render  = wwwHudRenderSegment(this.performance()) ;
-		const request = wwwHudRequestSegment(s)                 ;
-		const cache   = wwwHudCacheSegment(this.cache())        ;
+		const contentWidth = Math.max(1, width - 2)                                                  ;
+		const runtime      = wwwRuntimeStatus(s, contentWidth)                                       ;
+		const quota        = wwwQuotaHudRows(this.usage(), contentWidth, Date.now(), this.showLogos) ;
+		const request      = wwwHudRequestSegment(s)                                                 ;
+		const cache        = wwwHudCacheSegment(this.cache())                                        ;
 		return [
-			fit(`  ${quota[0] ?? ""}`, width),
-			fit(`  ${quota[1] ?? ""}`, width),
-			fit(`  ${wwwHudSummaryRow(third, render, request, cache, runtime, contentWidth)}`, width),
+			...quota.map(row => fit(`  ${row}`, width)),
+			fit(`  ${wwwHudSummaryRow("", request, cache, runtime, contentWidth)}`, width),
 		];
 	}
 }
 
-/** Render health is operationally critical; overflow drops cache, request, then the quota detail. */
-function wwwHudSummaryRow(third: string, render: string, request: string, cache: string, runtime: string, width: number): string {
-	const rows = [render, third, request, cache].filter(Boolean)                                                                          ;
+/** Runtime is fixed at the right edge; overflow drops cache, request, then quota detail. */
+function wwwHudSummaryRow(third: string, request: string, cache: string, runtime: string, width: number): string {
+	const rows = [third, request, cache].filter(Boolean)                                                                                  ;
 	const overflow = (): boolean => visibleWidth(rows.join("  ")) + (runtime ? visibleWidth(runtime) + 2 : 0) > width                     ;
 	while (rows.length > 1 && overflow()) rows.pop()                                                                                      ;
 	const gap = runtime ? " ".repeat(Math.max(2, width - visibleWidth(rows.join("  ")) - visibleWidth(runtime))) : ""                     ;
 	return `${rows.join("  ")}${runtime ? `${gap}${runtime}` : ""}`                                                                       ;
 }
 
-/** Render latency is silent until at least one completed terminal frame has been observed. */
-function wwwHudRenderSegment(performance: WorkbenchSnapshot["layerPerformance"]): string {
-	const p95 = performance?.window.render.latency.p95;
-	if (p95 === null || p95 === undefined) return "";
-	const displayed = Math.round(p95);
-	const ink = displayed <= 32 ? a.success : displayed <= 100 ? a.attention : a.failure;
-	return ink(`Render p95 ${displayed}ms`);
-}
-
-/** Monitor essence: the live tool/agent while working, the failed request after a failure. */
+/** Monitor essence: the live tool or agent while working. */
 function wwwHudRequestSegment(snapshot: WorkbenchSnapshot): string {
 	const chat    = projectChatFeature(snapshot)                                                                                          ;
-	const request = snapshot.requestRuntime?.at(-1)                                                                                       ;
 	if (wwwExecutionIsLive(chat)) {
 		const kind  = chat.liveActivity?.kind                                                                                             ;
 		const label = kind === "tool" ? "Bash" : kind === "file-change" ? "Edit" : oneLine(kind ?? "실행", 12)                             ;
 		return `${a.active("›")} ${a.tool(label)}`                                                                                        ;
-	}
-	if (request && ["failed", "blocked"].includes(request.status)) {
-		const done = request.stages.filter(stage => stage.status === "completed" || stage.status === "skipped").length                    ;
-		return a.failure(`! Request ${done}/${request.stages.length}`)                                                                    ;
 	}
 	return ""                                                                                                                             ;
 }

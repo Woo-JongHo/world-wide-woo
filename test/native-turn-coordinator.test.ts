@@ -50,17 +50,17 @@ describe("NativeTurnCoordinator", () => {
 
 	test("owns FIFO and uncertain-delivery transitions", () => {
 		const coordinator = new NativeTurnCoordinator();
-		expect(coordinator.enqueue({ id: "one", content: "첫째", queuedAt: "2026-09-24T00:00:00.000Z" })).toBe(1);
-		expect(coordinator.enqueue({ id: "two", content: "둘째", queuedAt: "2026-09-24T00:00:01.000Z" })).toBe(2);
-		expect(coordinator.head?.id).toBe("one");
-		expect(coordinator.shiftHeadIf("two")).toBe(false);
-		expect(coordinator.shiftHeadIf("one")).toBe(true);
-		expect(coordinator.head?.id).toBe("two");
+		expect(coordinator.enqueue({ id: "one", content: "첫째", queuedAt: "2026-09-24T00:00:00.000Z" })).toBe(1    ) ;
+		expect(coordinator.enqueue({ id: "two", content: "둘째", queuedAt: "2026-09-24T00:00:01.000Z" })).toBe(2    ) ;
+		expect(coordinator.head?.id                                                                     ).toBe("one") ;
+		expect(coordinator.shiftHeadIf("two")                                                           ).toBe(false) ;
+		expect(coordinator.shiftHeadIf("one")                                                           ).toBe(true ) ;
+		expect(coordinator.head?.id                                                                     ).toBe("two") ;
 
 		coordinator.markUncertain({ id: "two", content: "둘째" });
-		expect(coordinator.deliveryBlocked).toBe(true);
-		expect(coordinator.clearUncertain()).toEqual({ id: "two", content: "둘째" });
-		expect(coordinator.deliveryBlocked).toBe(false);
+		expect(coordinator.deliveryBlocked ).toBe   (true                          ) ;
+		expect(coordinator.clearUncertain()).toEqual({ id: "two", content: "둘째" }) ;
+		expect(coordinator.deliveryBlocked ).toBe   (false                         ) ;
 	});
 
 	test("instructs Native Plan generation to emit one concise sentence per item", () => {
@@ -70,6 +70,15 @@ describe("NativeTurnCoordinator", () => {
 			expect(instructions).toContain("각 항목은 80자 이내의 간결한 한 문장");
 			expect(instructions).toContain("여러 행동을 나열하지 마세요");
 		}
+	});
+
+	test("uses the selected language in per-turn developer instructions", () => {
+		const coordinator = new NativeTurnCoordinator();
+		const english = coordinator.collaboration("manual", "gpt-5", "high", false, "en").settings.developer_instructions;
+		expect(english).toContain("public commentary, plans, and final responses in English");
+		expect(english).not.toContain("한국어 목적");
+		const korean = coordinator.collaboration("manual", "gpt-5", "high", false, "ko").settings.developer_instructions;
+		expect(korean).toContain("최종 응답은 한국어");
 	});
 
 	test("reads idle, in-progress, and unknown delivery states", () => {

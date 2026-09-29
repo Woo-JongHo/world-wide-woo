@@ -209,9 +209,10 @@ export class WwwTranscriptCache<DurableRevision, VolatileRevision> {
 				previous.trustedImmutableRevision = input.durableRevisionTrusted ;
 				this.counters.durableGenerationNoopReuses += 1;
 			} else {
-				const widths = this.repairDurableWidths(previous, blocks);
-				this.pruneGenerationRows(previous.id);
-				this.durableGeneration = this.newDurableGeneration(input, blocks, widths);
+				const next = this.newDurableGeneration(input, blocks, new Map());
+				this.transferGenerationRows(previous, next);
+				this.repairDurableWidths(previous, next);
+				this.durableGeneration = next;
 			}
 		}
 		const durable          = this.durableGeneration               ;
@@ -249,6 +250,21 @@ export class WwwTranscriptCache<DurableRevision, VolatileRevision> {
 		}
 	}
 
+/** Move unchanged block rows without copying or growing the shared LRU budget. */
+	private transferGenerationRows(previous: TranscriptGeneration, next: TranscriptGeneration): void {
+		const prefix = `${previous.id}:`;
+		const nextIndexes = new Map(next.blocks.map((block, index) => [block, index]));
+		for (const [key, entry] of [...this.rowCache]) {
+			if (!key.startsWith(prefix)) continue;
+			const [, width, blockIndex] = key.split(":");
+			const block = previous.blocks[Number(blockIndex)];
+			const nextIndex = block ? nextIndexes.get(block) : undefined;
+			this.rowCache.delete(key);
+			if (nextIndex === undefined) this.rowCacheLogicalBytes -= entry.logicalBytes;
+			else this.rowCache.set(`${next.id}:${width}:${nextIndex}`, entry);
+		}
+	}
+
 	private retainWidthIndex(widths: Map<number, TranscriptWidthIndex>, state: TranscriptWidthIndex): void {
 		let retainedBytes = [...widths.values()].reduce((sum, value) => sum + value.logicalBytes, 0);
 		while (widths.size > 0 && (widths.size >= WIDTH_STATE_MAX_ENTRIES || retainedBytes + state.logicalBytes > WIDTH_METADATA_MAX_LOGICAL_BYTES)) {
@@ -262,36 +278,28 @@ export class WwwTranscriptCache<DurableRevision, VolatileRevision> {
 		if (state.logicalBytes <= WIDTH_METADATA_MAX_LOGICAL_BYTES) widths.set(state.width, state);
 	}
 
-	private durableCount(block: TranscriptBlock, width: number): number {
-		this.counters.renderedBlocks += 1;
-		this.counters.durableCountRenderedBlocks += 1;
-		return block.render(width).length;
-	}
-
-	private repairDurableWidths(previous: DurableTranscriptGeneration<DurableRevision>, blocks: readonly TranscriptBlock[]): Map<number, TranscriptWidthIndex> {
-		const widths = new Map<number, TranscriptWidthIndex>();
-		if (previous.widths.size === 0) return widths;
+	private repairDurableWidths(previous: DurableTranscriptGeneration<DurableRevision>, next: DurableTranscriptGeneration<DurableRevision>): void {
+		if (previous.widths.size === 0) return;
 		const startedAt = performance.now();
 		const previousIndex = new Map<TranscriptBlock, number>();
 		for (const [index, block] of previous.blocks.entries()) previousIndex.set(block, index);
 		for (const [width, prior] of previous.widths) {
-			const counts = blocks.map(block => {
+			const counts = next.blocks.map((block, blockIndex) => {
 				const index = previousIndex.get(block);
-				if (index === undefined) return this.durableCount(block, width);
+				if (index === undefined) return this.renderBlock(next, blockIndex, width, true, true).length;
 				const count = prior.counts[index];
-				if (count === undefined) return this.durableCount(block, width);
+				if (count === undefined) return this.renderBlock(next, blockIndex, width, true, true).length;
 				this.counters.durableCountReusedBlocks += 1;
 				return count;
 			});
 			const prefix = [0];
 			for (const count of counts) prefix.push((prefix.at(-1) ?? 0) + count);
-			this.retainWidthIndex(widths, {
+			this.retainWidthIndex(next.widths, {
 				width, counts, prefix, rowCount: prefix.at(-1) ?? 0,
 				logicalBytes: WIDTH_METADATA_ENTRY_OVERHEAD + (counts.length + prefix.length) * 8,
 			});
 		}
 		this.counters.exactCountBuildMs += performance.now() - startedAt;
-		return widths;
 	}
 
 	private reconcileDurableBlocks(previous: readonly TranscriptBlock[], candidate: readonly TranscriptBlock[], allowReuse: boolean): readonly TranscriptBlock[] {
@@ -344,7 +352,7 @@ export class WwwTranscriptCache<DurableRevision, VolatileRevision> {
 		return rows;
 	}
 
-	private widthIndex(generation: TranscriptGeneration, width: number, retainRows = false): TranscriptWidthIndex {
+	private widthIndex(generation: TranscriptGeneration, width: number, retainRows = true): TranscriptWidthIndex {
 		const cached = generation.widths.get(width);
 		if (cached) {
 			this.counters.widthCacheHits += 1;

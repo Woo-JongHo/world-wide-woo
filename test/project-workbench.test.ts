@@ -155,7 +155,7 @@ describe("ProjectWorkbench · Native bootstrap and planning", () => {
 		await workbench.close();
 		expect(native.handler).toBeNull();
 	});
-	test("starts Runtime without copying the first user request into the session GOAL", async () => {
+	test("shows a derived session GOAL only after the first request is understood", async () => {
 		const native = new FakeNativeHarness();
 		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
 			projectId          : "sample",
@@ -164,11 +164,15 @@ describe("ProjectWorkbench · Native bootstrap and planning", () => {
 		});
 		await ready(workbench);
 		await workbench.dispatch({ type: "chat.send", text: "구조를 파악해줘" });
-		expect(native.startTurnInputs[0]?.text).toBe("구조를 파악해줘");
-		expect(native.startTurnInputs[0]?.additionalContext?.www_request_runtime?.value).toContain("UNDERSTAND");
-		expect(workbench.snapshot.sessionGoal).toBeNull();
-		expect(workbench.snapshot.requestRuntime).toHaveLength(1);
-		expect(workbench.snapshot.todo?.items.map(item => item.content)).toEqual([...REQUEST_STAGES]);
+		expect(native.startTurnInputs[0]?.text                                         ).toBe         ("구조를 파악해줘"                                                ) ;
+		expect(native.startTurnInputs[0]?.additionalContext?.www_request_runtime?.value).toContain    ("INTENT"                                                         ) ;
+		expect(workbench.snapshot.sessionGoal                                          ).toBeNull    () ;
+		expect(workbench.snapshot.requestRuntime                                       ).toHaveLength (1                                                                ) ;
+		expect(workbench.snapshot.todo?.items.map(item => item.content)                ).toEqual      ([...REQUEST_STAGES]                                              ) ;
+		const request = workbench.snapshot.requestRuntime?.[0];
+		native.emit({ type: "notification", method: "item/completed", refs: { threadId: "thread-1", turnId: "turn-1", itemId: "intent" }, params: { item: { type: "agentMessage", phase: "commentary", text: `[www-runtime]${JSON.stringify({ requestId: request?.requestId, checkpoint: "INTENT", summary: "구조 조사 범위를 확인했다", goal: "구조의 현재 상태와 개선 지점을 파악한다" })}` } } });
+		await Bun.sleep(10);
+		expect(workbench.snapshot.sessionGoal                                          ).toMatchObject({ text: "구조의 현재 상태와 개선 지점을 파악한다", sourceActivityId: expect.any(String) }) ;
 		await workbench.close();
 	});
 	test("Www goal opts one request into the seven-stage Runtime protocol", async () => {
@@ -180,10 +184,10 @@ describe("ProjectWorkbench · Native bootstrap and planning", () => {
 		});
 		await ready(workbench);
 		await workbench.dispatch({ type: "goal.set", text: "구조를 리팩터링한다" });
-		expect(native.startTurnInputs[0]?.text).toBe("구조를 리팩터링한다");
-		expect(native.startTurnInputs[0]?.additionalContext?.www_request_runtime?.value).toContain("UNDERSTAND");
-		expect(workbench.snapshot.requestRuntime).toHaveLength(1);
-		expect(workbench.snapshot.todo?.items.map(item => item.content)).toEqual([...REQUEST_STAGES]);
+		expect(native.startTurnInputs[0]?.text                                         ).toBe        ("구조를 리팩터링한다") ;
+		expect(native.startTurnInputs[0]?.additionalContext?.www_request_runtime?.value).toContain   ("INTENT"             ) ;
+		expect(workbench.snapshot.requestRuntime                                       ).toHaveLength(1                    ) ;
+		expect(workbench.snapshot.todo?.items.map(item => item.content)                ).toEqual     ([...REQUEST_STAGES]  ) ;
 		await workbench.close();
 	});
 	test("accepts Native stage reports into seven-stage Todo and hides transport messages from Chat", async () => {
@@ -204,11 +208,11 @@ describe("ProjectWorkbench · Native bootstrap and planning", () => {
 		native.emit({ type: "notification", method: "turn/completed", refs: { threadId: "thread-1", turnId: "turn-1" }, params: {} });
 		await Bun.sleep(20);
 		await workbench.close();
-		expect(workbench.snapshot.requestRuntime?.[0]?.status).toBe("completed");
-		expect(workbench.snapshot.todo?.items).toHaveLength(7);
-		expect(workbench.snapshot.todo?.items[3]?.details[0]?.content).toBe("설계 선택");
-		expect(workbench.snapshot.chat.some(m => m.content.includes("[www-runtime]"))).toBe(false);
-		expect(captured.at(-1)?.status).toBe("completed");
+		expect(workbench.snapshot.requestRuntime?.[0]?.status                        ).toBe        ("completed") ;
+		expect(workbench.snapshot.todo?.items                                        ).toHaveLength(7          ) ;
+		expect(workbench.snapshot.todo?.items[3]?.details[0]?.content                ).toBe        ("설계 선택") ;
+		expect(workbench.snapshot.chat.some(m => m.content.includes("[www-runtime]"))).toBe        (false      ) ;
+		expect(captured.at(-1)?.status                                               ).toBe        ("completed") ;
 		const resumed = new ProjectWorkbench(new FakeNativeHarness(), journal, { projectId: "sample", cwd: "/sample", resumeThreadId: "thread-1" });
 		await ready(resumed);
 		expect(resumed.snapshot.requestRuntime).toEqual(workbench.snapshot.requestRuntime);
@@ -223,10 +227,10 @@ describe("ProjectWorkbench · Native bootstrap and planning", () => {
 		await ready(workbench);
 
 		const receipt = await workbench.dispatch({ type: "goal.set", text: "첫 공개 릴리스를 검증 가능한 상태로 완성한다" });
-		expect(receipt).toMatchObject({ state: "accepted", message: "Goal을 설정했습니다. Native Plan을 만들고 Todo에 연결합니다." });
-		expect(workbench.snapshot.sessionGoal).toMatchObject({ text: "첫 공개 릴리스를 검증 가능한 상태로 완성한다" });
-		expect(native.startTurnInputs[0]?.text).toBe("첫 공개 릴리스를 검증 가능한 상태로 완성한다");
-		expect(native.startTurnInputs[0]?.collaborationMode?.settings.developer_instructions).toContain("사용자가 정한 Goal");
+		expect(receipt                                                                      ).toMatchObject({ state: "accepted", message: "Goal을 설정했습니다. Native Plan을 만들고 Todo에 연결합니다." }) ;
+		expect(workbench.snapshot.sessionGoal                                               ).toMatchObject({ text: "첫 공개 릴리스를 검증 가능한 상태로 완성한다" }                                      ) ;
+		expect(native.startTurnInputs[0]?.text                                              ).toBe         ("첫 공개 릴리스를 검증 가능한 상태로 완성한다"                                                ) ;
+		expect(native.startTurnInputs[0]?.collaborationMode?.settings.developer_instructions).toContain    ("사용자가 정한 Goal"                                                                          ) ;
 		native.emit({
 			type   : "notification",
 			method : "turn/completed",
@@ -274,11 +278,11 @@ describe("ProjectWorkbench · Native bootstrap and planning", () => {
 		});
 
 		await workbench.waitUntilReady();
-		expect(native.startThreadCalls).toBe(1);
-		expect(refreshedThreadId).toBe("thread-1");
-		expect(workbench.snapshot.phase).toBe("ready");
-		expect(workbench.snapshot.linearDashboard?.state).toBe("loading");
-		expect(workbench.snapshot.cacheObservations?.some(layer => layer.id === "dashboard-data")).toBe(false);
+		expect(native.startThreadCalls                                                           ).toBe(1         ) ;
+		expect(refreshedThreadId                                                                 ).toBe("thread-1") ;
+		expect(workbench.snapshot.phase                                                          ).toBe("ready"   ) ;
+		expect(workbench.snapshot.linearDashboard?.state                                         ).toBe("loading" ) ;
+		expect(workbench.snapshot.cacheObservations?.some(layer => layer.id === "dashboard-data")).toBe(false     ) ;
 
 		resolveDashboard?.({
 			state       : "ready",
@@ -291,9 +295,9 @@ describe("ProjectWorkbench · Native bootstrap and planning", () => {
 			error       : null,
 		});
 		await Bun.sleep(0);
-		expect(workbench.snapshot.linearDashboard?.state).toBe("ready");
-		expect(workbench.snapshot.linearDashboard?.projectName).toBe("World Wide Woo");
-		expect(workbench.snapshot.cacheObservations?.find(layer => layer.id === "dashboard-data")).toMatchObject({ state: "ready", entries: 1 });
+		expect(workbench.snapshot.linearDashboard?.state                                         ).toBe         ("ready"                       ) ;
+		expect(workbench.snapshot.linearDashboard?.projectName                                   ).toBe         ("World Wide Woo"              ) ;
+		expect(workbench.snapshot.cacheObservations?.find(layer => layer.id === "dashboard-data")).toMatchObject({ state: "ready", entries: 1 }) ;
 		await workbench.close();
 	});
 
@@ -330,9 +334,9 @@ describe("ProjectWorkbench · Native bootstrap and planning", () => {
 
 		await workbench.dispatch({ type: "session.mode", mode: "plan" });
 		const after = workbench.snapshot.cacheObservations?.find(layer => layer.id === "dashboard-data");
-		expect(refreshCount).toBe(1);
-		expect(after?.hits).toBeGreaterThan(before?.hits ?? 0);
-		expect(after?.misses).toBe(before?.misses);
+		expect(refreshCount ).toBe           (1                ) ;
+		expect(after?.hits  ).toBeGreaterThan(before?.hits ?? 0) ;
+		expect(after?.misses).toBe           (before?.misses   ) ;
 		await workbench.close();
 	});
 
@@ -347,9 +351,9 @@ describe("ProjectWorkbench · Native bootstrap and planning", () => {
 
 		await workbench.dispatch({ type: "session.mode", mode: "plan" });
 		const after = workbench.snapshot.cacheObservations?.find(layer => layer.id === "context-projection");
-		expect(after?.hits).toBeGreaterThan(before?.hits ?? 0);
-		expect(after?.misses).toBe(before?.misses);
-		expect(after?.evictions).toBe(before?.evictions);
+		expect(after?.hits     ).toBeGreaterThan(before?.hits ?? 0) ;
+		expect(after?.misses   ).toBe           (before?.misses   ) ;
+		expect(after?.evictions).toBe           (before?.evictions) ;
 		await workbench.close();
 	});
 
@@ -371,10 +375,10 @@ describe("ProjectWorkbench · Native bootstrap and planning", () => {
 		const second = workbench.refreshModels();
 		await Promise.all([first, second]);
 		const after = workbench.snapshot.cacheObservations?.find(layer => layer.id === "model-catalog");
-		expect(native.listModelCalls).toBe(listModelCallsBefore + 1);
-		expect(after?.misses).toBe((before?.misses ?? 0) + 1);
-		expect(after?.hits).toBeGreaterThan(before?.hits ?? 0);
-		expect(after?.entries).toBe(2);
+		expect(native.listModelCalls).toBe           (listModelCallsBefore + 1 ) ;
+		expect(after?.misses        ).toBe           ((before?.misses ?? 0) + 1) ;
+		expect(after?.hits          ).toBeGreaterThan(before?.hits ?? 0        ) ;
+		expect(after?.entries       ).toBe           (2                        ) ;
 		await workbench.close();
 	});
 
@@ -449,9 +453,9 @@ describe("ProjectWorkbench · Native bootstrap and planning", () => {
 		});
 		native.emit({ type: "notification", method: "turn/completed", refs: { threadId: "thread-1", turnId: "turn-1" }, params: {} });
 		await Bun.sleep(10);
-		expect(workbench.snapshot.workFlow.source).toMatchObject({ authority: "public-plan-document" });
-		expect(workbench.snapshot.workFlow.steps.map(step => step.title)).toEqual(["계약을 확인한다", "회귀 테스트를 실행한다"]);
-		expect(workbench.snapshot.todo?.items.map(item => item.content)).toEqual([...REQUEST_STAGES]);
+		expect(workbench.snapshot.workFlow.source                       ).toMatchObject({ authority: "public-plan-document" }        ) ;
+		expect(workbench.snapshot.workFlow.steps.map(step => step.title)).toEqual      (["계약을 확인한다", "회귀 테스트를 실행한다"]) ;
+		expect(workbench.snapshot.todo?.items.map(item => item.content) ).toEqual      ([...REQUEST_STAGES]                          ) ;
 		await workbench.close();
 	});
 
@@ -464,10 +468,10 @@ describe("ProjectWorkbench · Native bootstrap and planning", () => {
   await ready(workbench);
   expect(observed).toEqual([]);
   const receipt = await workbench.dispatch({ type: "chat.send", text: "record this selected task" });
-  expect(receipt.state).toBe("accepted");
-  expect(native.startTurnCalls).toBe(1);
-  expect(observed.length).toBeGreaterThan(0);
-  expect(observed).not.toContain("activity-1");
+  expect(receipt.state        )    .toBe           ("accepted"  ) ;
+  expect(native.startTurnCalls)    .toBe           (1           ) ;
+  expect(observed.length      )    .toBeGreaterThan(0           ) ;
+  expect(observed             ).not.toContain      ("activity-1") ;
   expect(workbench.snapshot.error).toBeNull();
   expect(workbench.snapshot.developmentRecordingError).toBe("recording disk unavailable");
   await workbench.close();
@@ -484,9 +488,9 @@ describe("ProjectWorkbench · Native bootstrap and planning", () => {
 			name: "filesystem", enabled: true, status: "ready", tools: ["read_file"],
 		}]);
 
-		expect((await workbench.dispatch({ type: "mcp.disable", name: "filesystem" })).state).toBe("accepted");
-		expect((await workbench.dispatch({ type: "mcp.enable", name: "filesystem" })).state).toBe("accepted");
-		expect((await workbench.dispatch({ type: "mcp.reload" })).state).toBe("accepted");
+		expect((await workbench.dispatch({ type: "mcp.disable", name: "filesystem" })).state).toBe("accepted") ;
+		expect((await workbench.dispatch({ type: "mcp.enable", name: "filesystem" })).state ).toBe("accepted") ;
+		expect((await workbench.dispatch({ type: "mcp.reload" })).state                     ).toBe("accepted") ;
 
 		expect(native.mcpEnableInputs).toEqual([
 			{ name: "filesystem", enabled: false },
@@ -505,9 +509,9 @@ describe("ProjectWorkbench · Native bootstrap and planning", () => {
 		await Bun.sleep(10);
 		expect(workbench.snapshot.activities.length).toBeGreaterThan(0);
 		const compacted = await workbench.dispatch({ type: "thread.compact" });
-		expect(compacted).toMatchObject({ state: "accepted" });
-		expect(compacted).not.toHaveProperty("message");
-		expect(native.compactThreadIds).toEqual(["thread-1"]);
+		expect(compacted              )    .toMatchObject ({ state: "accepted" }) ;
+		expect(compacted              ).not.toHaveProperty("message"            ) ;
+		expect(native.compactThreadIds)    .toEqual       (["thread-1"]         ) ;
 		expect(workbench.snapshot.actionResult).toMatchObject({
 			kind  : "notice",
 			title : "Context",
@@ -609,11 +613,11 @@ describe("ProjectWorkbench · Native bootstrap and planning", () => {
 		const delegation = workbench.snapshot.delegation ?? [];
 		const owned = delegation.flatMap(entry => entry.tasks).find(task => task.id === "child-owned");
 		expect(owned).toBeDefined();
-		expect(delegation.flatMap(entry => entry.tasks).some(task => task.id === "child-foreign")).toBe(false);
-		expect(await workbench.dispatch({ type: "agent.select", agentRef: "child-foreign" })).toMatchObject({ state: "rejected" });
-		expect(await workbench.dispatch({ type: "agent.select", agentRef: owned!.ref })).toMatchObject({ state: "accepted" });
-		expect(workbench.snapshot.selectedAgentRef).toBe(owned!.ref);
-		expect(workbench.snapshot.selectedAgentDetail).toMatchObject({ ref: owned!.ref, id: "child-owned", task: "소유된 작업", status: "running" });
+		expect(delegation.flatMap(entry => entry.tasks).some(task => task.id === "child-foreign")).toBe         (false                                                                         ) ;
+		expect(await workbench.dispatch({ type: "agent.select", agentRef: "child-foreign" })     ).toMatchObject({ state: "rejected" }                                                         ) ;
+		expect(await workbench.dispatch({ type: "agent.select", agentRef: owned!.ref })          ).toMatchObject({ state: "accepted" }                                                         ) ;
+		expect(workbench.snapshot.selectedAgentRef                                               ).toBe         (owned!.ref                                                                    ) ;
+		expect(workbench.snapshot.selectedAgentDetail                                            ).toMatchObject({ ref: owned!.ref, id: "child-owned", task: "소유된 작업", status: "running" }) ;
 		await workbench.close();
 	});
 
@@ -645,9 +649,9 @@ describe("ProjectWorkbench · Native bootstrap and planning", () => {
 		await workbench.dispatch({ type: "chat.send", text: "첫 요청" });
 		await workbench.dispatch({ type: "chat.send", text: "대기 요청" });
 		const refresh = await workbench.dispatch({ type: "woo-entry.refresh" });
-		expect(refresh).toMatchObject({ state: "accepted" });
-		expect(collectionCount).toBe(2);
-		expect(native.startTurnCalls).toBe(1);
+		expect(refresh              ).toMatchObject({ state: "accepted" }) ;
+		expect(collectionCount      ).toBe         (2                    ) ;
+		expect(native.startTurnCalls).toBe         (1                    ) ;
 
 		native.emit({ type: "notification", method: "turn/completed", refs: { threadId: "thread-1", turnId: "turn-1" }, params: {} });
 		await Bun.sleep(10);
@@ -789,10 +793,10 @@ describe("ProjectWorkbench · Native bootstrap and planning", () => {
 		expect(execution).toBeDefined();
 		expect(workbench.snapshot.activities.find((activity) => activity.payload.method === "turn/plan/updated")?.nativeRefs)
 			.toMatchObject({ threadId: "thread-1", turnId: "turn-1" });
-		expect(workbench.snapshot.workFlow.source).toMatchObject({ turnId: "turn-1", algorithm: "dplan-v1" });
-		expect(workbench.snapshot.workFlow.steps.some(step => step.title === "계획 자동 동기화")).toBe(true);
-		expect(workbench.snapshot.workFlow.steps.some(step => step.title === "Foreign plan")).toBe(false);
-		expect(workbench.snapshot.todoSync).toMatchObject({ state: "syncing" });
+		expect(workbench.snapshot.workFlow.source                                               ).toMatchObject({ turnId: "turn-1", algorithm: "dplan-v1" }) ;
+		expect(workbench.snapshot.workFlow.steps.some(step => step.title === "계획 자동 동기화")).toBe         (true                                       ) ;
+		expect(workbench.snapshot.workFlow.steps.some(step => step.title === "Foreign plan")    ).toBe         (false                                      ) ;
+		expect(workbench.snapshot.todoSync                                                      ).toMatchObject({ state: "syncing" }                       ) ;
 		releasePlanSync();
 		await workbench.close();
 		expect(workbench.snapshot.todoSync).toEqual({
@@ -800,9 +804,9 @@ describe("ProjectWorkbench · Native bootstrap and planning", () => {
 			lastConfirmedAt : "2026-09-01T00:00:00.000Z",
 			message         : null,
 		});
-		expect(syncCalls.at(-1)).toMatchObject({ requestId: expect.any(String), threadId: "thread-1", turnId: "turn-1" });
-		expect(syncCalls.at(-1)?.stages[0]?.evidence.map(e => e.activityId)).toContain(execution!.id);
-		expect(workbench.snapshot.todo?.items.map(item => item.content)).toEqual([...REQUEST_STAGES]);
+		expect(syncCalls.at(-1)                                            ).toMatchObject({ requestId: expect.any(String), threadId: "thread-1", turnId: "turn-1" }) ;
+		expect(syncCalls.at(-1)?.stages[0]?.evidence.map(e => e.activityId)).toContain    (execution!.id                                                            ) ;
+		expect(workbench.snapshot.todo?.items.map(item => item.content)    ).toEqual      ([...REQUEST_STAGES]                                                      ) ;
 	});
 
 	test("keeps Chat usable while Todo sync is blocked and clears the warning after a later plan sync", async () => {
@@ -919,11 +923,11 @@ describe("ProjectWorkbench · Native bootstrap and planning", () => {
 		const firstChat = beforeDelta.chat[0];
 		if (!firstChat) throw new Error("제출한 사용자 Chat이 Snapshot에 없습니다.");
 
-		expect(beforeDelta).toBe(workbench.snapshot);
-		expect(beforeDelta.chat.map(message => message.content)).toEqual(["이전 Snapshot을 보존해줘"]);
-		expect(beforeDelta.modelCatalog?.models.map(model => model.model)).toEqual(["gpt-5.6-sol"]);
-		expect(Object.isFrozen(beforeDelta.chat)).toBe(true);
-		expect(Object.isFrozen(firstChat)).toBe(true);
+		expect(beforeDelta                                               ).toBe   (workbench.snapshot          ) ;
+		expect(beforeDelta.chat.map(message => message.content)          ).toEqual(["이전 Snapshot을 보존해줘"]) ;
+		expect(beforeDelta.modelCatalog?.models.map(model => model.model)).toEqual(["gpt-5.6-sol"]             ) ;
+		expect(Object.isFrozen(beforeDelta.chat)                         ).toBe   (true                        ) ;
+		expect(Object.isFrozen(firstChat)                                ).toBe   (true                        ) ;
 		expect(() => { firstChat.content = "외부 변조"; }).toThrow();
 
 		native.emit({
@@ -935,21 +939,21 @@ describe("ProjectWorkbench · Native bootstrap and planning", () => {
 		await Bun.sleep(10);
 		const afterDelta = latestSnapshot();
 
-		expect(afterDelta).toBe(workbench.snapshot);
-		expect(afterDelta.revision).toBeGreaterThan(beforeDelta.revision);
-		expect(afterDelta.draft).toBe("진행 중인 Native 출력");
-		expect(beforeDelta.draft).toBe("");
-		expect(beforeDelta.chat.map(message => message.content)).toEqual(["이전 Snapshot을 보존해줘"]);
+		expect(afterDelta                                      ).toBe           (workbench.snapshot          ) ;
+		expect(afterDelta.revision                             ).toBeGreaterThan(beforeDelta.revision        ) ;
+		expect(afterDelta.draft                                ).toBe           ("진행 중인 Native 출력"     ) ;
+		expect(beforeDelta.draft                               ).toBe           (""                          ) ;
+		expect(beforeDelta.chat.map(message => message.content)).toEqual        (["이전 Snapshot을 보존해줘"]) ;
 
 		catalogRevision = 1;
 		await workbench.refreshModels();
 		const afterCatalogRefresh = latestSnapshot();
 
-		expect(afterCatalogRefresh).toBe(workbench.snapshot);
-		expect(afterCatalogRefresh.revision).toBeGreaterThan(afterDelta.revision);
-		expect(afterCatalogRefresh.modelCatalog?.models.map(model => model.model)).toEqual(["gpt-5.6-terra"]);
-		expect(afterDelta.modelCatalog?.models.map(model => model.model)).toEqual(["gpt-5.6-sol"]);
-		expect(afterDelta.draft).toBe("진행 중인 Native 출력");
+		expect(afterCatalogRefresh                                               ).toBe           (workbench.snapshot     ) ;
+		expect(afterCatalogRefresh.revision                                      ).toBeGreaterThan(afterDelta.revision    ) ;
+		expect(afterCatalogRefresh.modelCatalog?.models.map(model => model.model)).toEqual        (["gpt-5.6-terra"]      ) ;
+		expect(afterDelta.modelCatalog?.models.map(model => model.model)         ).toEqual        (["gpt-5.6-sol"]        ) ;
+		expect(afterDelta.draft                                                  ).toBe           ("진행 중인 Native 출력") ;
 
 		native.emit({
 			type   : "notification",
@@ -960,24 +964,24 @@ describe("ProjectWorkbench · Native bootstrap and planning", () => {
 		await Bun.sleep(10);
 		const afterTodo = latestSnapshot();
 
-		expect(afterTodo).toBe(workbench.snapshot);
-		expect(afterTodo.revision).toBeGreaterThan(afterCatalogRefresh.revision);
-		expect(afterTodo.workFlow.steps.map(step => step.title)).toContain("기록");
-		expect(afterTodo.todo?.title).toBe("이전 Snapshot을 보존해줘");
+		expect(afterTodo                                       ).toBe           (workbench.snapshot          ) ;
+		expect(afterTodo.revision                              ).toBeGreaterThan(afterCatalogRefresh.revision) ;
+		expect(afterTodo.workFlow.steps.map(step => step.title)).toContain      ("기록"                      ) ;
+		expect(afterTodo.todo?.title                           ).toBe           ("이전 Snapshot을 보존해줘"  ) ;
 		expect(afterCatalogRefresh.actionResult).toBeNull();
 		expect(Object.isFrozen(afterTodo.todo)).toBe(true);
 
 		auxiliaryUsage.observe({ model: "gpt-5.6-terra", effort: "medium", totalTokens: 400 });
 		const afterUsage = latestSnapshot();
 
-		expect(afterUsage).toBe(workbench.snapshot);
-		expect(afterUsage.revision).toBeGreaterThan(afterTodo.revision);
-		expect(afterUsage.sessionUsage?.models).toContainEqual(expect.objectContaining({ model: "gpt-5.6-terra", totalTokens: 400 }));
-		expect(afterTodo.sessionUsage?.models).toEqual([]);
-		expect(afterTodo.workFlow.steps.map(step => step.title)).toContain("기록");
-		expect(beforeDelta.chat.map(message => message.content)).toEqual(["이전 Snapshot을 보존해줘"]);
-		expect(beforeDelta.modelCatalog?.models.map(model => model.model)).toEqual(["gpt-5.6-sol"]);
-		expect(beforeDelta.sessionUsage?.models).toEqual([]);
+		expect(afterUsage                                                ).toBe           (workbench.snapshot                                                   ) ;
+		expect(afterUsage.revision                                       ).toBeGreaterThan(afterTodo.revision                                                   ) ;
+		expect(afterUsage.sessionUsage?.models                           ).toContainEqual (expect.objectContaining({ model: "gpt-5.6-terra", totalTokens: 400 })) ;
+		expect(afterTodo.sessionUsage?.models                            ).toEqual        ([]                                                                   ) ;
+		expect(afterTodo.workFlow.steps.map(step => step.title)          ).toContain      ("기록"                                                               ) ;
+		expect(beforeDelta.chat.map(message => message.content)          ).toEqual        (["이전 Snapshot을 보존해줘"]                                         ) ;
+		expect(beforeDelta.modelCatalog?.models.map(model => model.model)).toEqual        (["gpt-5.6-sol"]                                                      ) ;
+		expect(beforeDelta.sessionUsage?.models                          ).toEqual        ([]                                                                   ) ;
 		expect(beforeDelta.actionResult).toBeNull();
 		unsubscribe();
 		await workbench.close();

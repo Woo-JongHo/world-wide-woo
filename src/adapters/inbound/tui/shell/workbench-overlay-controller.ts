@@ -269,7 +269,7 @@ export class WorkbenchOverlayController {
 
 	openWwwTransient(kind: Extract<OverlayKind, "commands" | "views">, content: Component): void {
 		const sheet = this.dependencies.sheet(content);
-		this.overlay = this.dependencies.tui.showOverlay(sheet, { width: "86%", minWidth: 36, maxHeight: "95%", anchor: "center", margin: 1 });
+		this.overlay = this.dependencies.tui.showOverlay(sheet, { width: "86%", minWidth: 36, maxHeight: "95%", anchor: kind === "commands" ? "bottom-center" : "center", margin: 1 });
 		this.overlayKind = kind;
 		this.dependencies.tui.setFocus(sheet);
 	}
