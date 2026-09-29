@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
-import { homedir } from "node:os";
-import { join, resolve } from "node:path";
-import { mkdirSync } from "node:fs";
+import { homedir }            from "node:os";
+import { join, resolve }      from "node:path";
+import { mkdirSync }          from "node:fs";
 import { CommitReceiptStore } from "../src/adapters/outbound/persistence/commit-receipt-store.js";
 
 const root = resolve(process.argv[3] ?? "."); const data = resolve(process.env.WWW_DATA_DIR ?? join(homedir(), ".local/share/www")); mkdirSync(join(data, "development"), { recursive: true });

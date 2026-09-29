@@ -105,9 +105,9 @@ describe("FileTodoStore", () => {
 		expect(await store.compareAndSwap(0, todo(1))).toBe("conflict");
 		expect(await readFile(path, "utf8")).toBe("not todo markdown");
 		await writeFile(path, renderTodoMarkdown(todo(0)));
-		expect(await store.compareAndSwap(0, todo(0, "Repeated revision"))).toBe("conflict");
-		expect(await store.compareAndSwap(1, todo(2))).toBe("conflict");
-		expect(await store.read()).toEqual(todo(0));
+		expect(await store.compareAndSwap(0, todo(0, "Repeated revision"))).toBe   ("conflict") ;
+		expect(await store.compareAndSwap(1, todo(2))                     ).toBe   ("conflict") ;
+		expect(await store.read()                                         ).toEqual(todo(0)   ) ;
 	});
 
 	test("preserves CRLF and unknown Markdown while patching managed Todo lines", async () => {
@@ -219,9 +219,9 @@ describe("FileTodoStore", () => {
 		const legacy = join(directory, "Todo.md");
 		const canonical = join(directory, "vault", "Todo.md");
 		await writeFile(legacy, renderTodoMarkdown(todo(0)));
-		expect(await importLegacyTodo(legacy, canonical)).toBe(canonical);
-		expect(await readFile(legacy, "utf8")).toBe(renderTodoMarkdown(todo(0)));
-		expect(await new FileTodoStore(canonical).read()).toEqual(todo(0));
+		expect(await importLegacyTodo(legacy, canonical)).toBe   (canonical                  ) ;
+		expect(await readFile(legacy, "utf8")           ).toBe   (renderTodoMarkdown(todo(0))) ;
+		expect(await new FileTodoStore(canonical).read()).toEqual(todo(0)                    ) ;
 	});
 
 	test("does not overwrite an existing canonical Todo during explicit import", async () => {

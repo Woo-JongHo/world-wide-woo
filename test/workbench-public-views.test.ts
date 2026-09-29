@@ -34,9 +34,9 @@ import {
 describe("workbench public projection and layout views", () => {
 	test("leaves the resting status line blank instead of advertising commands", () => {
 		const output = stripTerminalSequences(new StatusLine("").render(240).join("\n"));
-		expect(output.trim()).toBe("");
-		expect(output).not.toContain("/model");
-		expect(output).not.toContain("/woo-entry");
+		expect(output.trim())    .toBe     (""          ) ;
+		expect(output       ).not.toContain("/model"    ) ;
+		expect(output       ).not.toContain("/woo-entry") ;
 	});
 
 	test("keeps immutable action results out of completed-question notes", () => {
@@ -51,10 +51,10 @@ describe("workbench public projection and layout views", () => {
 			},
 		} as WorkbenchSnapshot;
 		const output = stripTerminalSequences(new TNotesSourceView(() => withAction).render(100).join("\n"));
-		expect(output).toContain("note-1");
-		expect(output).not.toContain("ACTION");
-		expect(output).not.toContain("Note promotion preview");
-		expect(output).not.toContain("currentSource");
+		expect(output)    .toContain("note-1"                ) ;
+		expect(output).not.toContain("ACTION"                ) ;
+		expect(output).not.toContain("Note promotion preview") ;
+		expect(output).not.toContain("currentSource"         ) ;
 	});
 
 	test("keeps selected activity payloads out of completed-question notes", () => {
@@ -89,15 +89,15 @@ describe("workbench public projection and layout views", () => {
 			chat: [],
 		};
 		const output = stripTerminalSequences(new TNotesSourceView(() => selected).render(100).join("\n"));
-		expect(output).not.toContain("activity-public-7");
-		expect(output).not.toContain("bun test");
-		expect(output).not.toContain("thread-secret");
-		expect(output).not.toContain("native-item-secret");
-		expect(output).not.toContain("rawEnvelope");
-		expect(output).not.toContain("hiddenReasoning");
-		expect(output).not.toContain("accessToken");
-		expect(output).not.toContain("source-token-secret");
-		expect(output).not.toContain("rpc-secret");
+		expect(output).not.toContain("activity-public-7"  ) ;
+		expect(output).not.toContain("bun test"           ) ;
+		expect(output).not.toContain("thread-secret"      ) ;
+		expect(output).not.toContain("native-item-secret" ) ;
+		expect(output).not.toContain("rawEnvelope"        ) ;
+		expect(output).not.toContain("hiddenReasoning"    ) ;
+		expect(output).not.toContain("accessToken"        ) ;
+		expect(output).not.toContain("source-token-secret") ;
+		expect(output).not.toContain("rpc-secret"         ) ;
 	});
 
 	test("bounds public Source strings and total projection before JSON rendering", () => {
@@ -118,18 +118,18 @@ describe("workbench public projection and layout views", () => {
 		const startedAt  = performance.now()                    ;
 		const projection = boundedPublicProjection(hugePayload) ;
 		const serialized = JSON.stringify(projection.value)     ;
-		expect(projection.omitted).toBe(true);
-		expect(serialized.length).toBeLessThan(20_000);
-		expect(serialized).toContain("output-start");
-		expect(serialized).toContain("output-end");
-		expect(serialized).not.toContain("source-token-secret");
-		expect(serialized).not.toContain("비공개 판단");
-		expect(serialized).not.toContain("very-secret-value");
-		expect(serialized).not.toContain("front-osc-secret");
-		expect(serialized).not.toContain("tail-osc-secret");
-		expect(serialized).not.toContain("tail-secret-value");
-		expect(serialized).not.toContain("user:password");
-		expect(serialized).not.toContain("AKIA1234567890ABCDEF");
+		expect(projection.omitted)    .toBe        (true                  ) ;
+		expect(serialized.length )    .toBeLessThan(20_000                ) ;
+		expect(serialized        )    .toContain   ("output-start"        ) ;
+		expect(serialized        )    .toContain   ("output-end"          ) ;
+		expect(serialized        ).not.toContain   ("source-token-secret" ) ;
+		expect(serialized        ).not.toContain   ("비공개 판단"         ) ;
+		expect(serialized        ).not.toContain   ("very-secret-value"   ) ;
+		expect(serialized        ).not.toContain   ("front-osc-secret"    ) ;
+		expect(serialized        ).not.toContain   ("tail-osc-secret"     ) ;
+		expect(serialized        ).not.toContain   ("tail-secret-value"   ) ;
+		expect(serialized        ).not.toContain   ("user:password"       ) ;
+		expect(serialized        ).not.toContain   ("AKIA1234567890ABCDEF") ;
 
 		const selected: WorkbenchSnapshot = {
 			...snapshot,
@@ -139,19 +139,19 @@ describe("workbench public projection and layout views", () => {
 		const sourceView = new TNotesSourceView(() => selected)                      ;
 		const output     = stripTerminalSequences(sourceView.render(100).join("\n")) ;
 		const repeated   = stripTerminalSequences(sourceView.render(100).join("\n")) ;
-		expect(performance.now() - startedAt).toBeLessThan(500);
-		expect(output).not.toContain("SOURCE");
-		expect(output).not.toContain("large-output-command");
-		expect(output).not.toContain("output-start");
-		expect(output).not.toContain("output-end");
-		expect(output).not.toContain("source-token-secret");
-		expect(output).not.toContain("비공개 판단");
-		expect(output).not.toContain("very-secret-value");
-		expect(output).not.toContain("front-osc-secret");
-		expect(output).not.toContain("tail-osc-secret");
-		expect(output).not.toContain("tail-secret-value");
-		expect(repeated).toBe(output);
-		expect(hugePayload.params.item.aggregatedOutput).toBe(hugeOutput);
+		expect(performance.now() - startedAt           )    .toBeLessThan(500                   ) ;
+		expect(output                                  ).not.toContain   ("SOURCE"              ) ;
+		expect(output                                  ).not.toContain   ("large-output-command") ;
+		expect(output                                  ).not.toContain   ("output-start"        ) ;
+		expect(output                                  ).not.toContain   ("output-end"          ) ;
+		expect(output                                  ).not.toContain   ("source-token-secret" ) ;
+		expect(output                                  ).not.toContain   ("비공개 판단"         ) ;
+		expect(output                                  ).not.toContain   ("very-secret-value"   ) ;
+		expect(output                                  ).not.toContain   ("front-osc-secret"    ) ;
+		expect(output                                  ).not.toContain   ("tail-osc-secret"     ) ;
+		expect(output                                  ).not.toContain   ("tail-secret-value"   ) ;
+		expect(repeated                                )    .toBe        (output                ) ;
+		expect(hugePayload.params.item.aggregatedOutput)    .toBe        (hugeOutput            ) ;
 	});
 
 	test("bounds large work-step output without leaking edge credentials", () => {
@@ -174,10 +174,10 @@ describe("workbench public projection and layout views", () => {
 			...command,
 			workFlow: fixtureWorkFlow(command.activities),
 		}).render(100).join("\n"));
-		expect(output).toContain("step-end");
-		expect(output).not.toContain("front-password");
-		expect(output).not.toContain("tail-token");
-		expect(output.length).toBeLessThan(8_000);
+		expect(output       )    .toContain   ("step-end"      ) ;
+		expect(output       ).not.toContain   ("front-password") ;
+		expect(output       ).not.toContain   ("tail-token"    ) ;
+		expect(output.length)    .toBeLessThan(8_000           ) ;
 	});
 
 	test("bounds action result body by characters and lines before rendering Source", () => {
@@ -198,9 +198,9 @@ describe("workbench public projection and layout views", () => {
 			},
 		};
 		const output = stripTerminalSequences(new TNotesSourceView(() => actionOnly).render(100).join("\n"));
-		expect(output).not.toContain("action-start");
-		expect(output).not.toContain("action-end");
-		expect(output).not.toContain("ACTION");
+		expect(output).not.toContain("action-start") ;
+		expect(output).not.toContain("action-end"  ) ;
+		expect(output).not.toContain("ACTION"      ) ;
 	});
 
 	test.each([[120, 30], [70, 24]])("keeps titleless Chat, Notes, and Todo content reachable at %ix%i", (width, height) => {
@@ -215,12 +215,12 @@ describe("workbench public projection and layout views", () => {
 			...frame.lines,
 			...allScrollContent(frame.root),
 		].join("\n"));
-		expect(output).not.toContain("Chat · Native");
-		expect(output).not.toContain("Notes · 질문별 요약");
-		expect(output).not.toContain("Notes · 세션 요약");
-		expect(output).not.toContain("Todo.md · 현재 작업");
-		expect(output).toContain("결정 요약");
-		expect(output).not.toContain("SOURCE");
+		expect(output).not.toContain("Chat · Native"      ) ;
+		expect(output).not.toContain("Notes · 질문별 요약") ;
+		expect(output).not.toContain("Notes · 세션 요약"  ) ;
+		expect(output).not.toContain("Todo.md · 현재 작업") ;
+		expect(output)    .toContain("결정 요약"          ) ;
+		expect(output).not.toContain("SOURCE"             ) ;
 	});
 
 	test.each([40, 80, 120])("keeps an incomplete answer reachable through the full TUI layout at %i columns", (width) => {
@@ -249,9 +249,9 @@ describe("workbench public projection and layout views", () => {
 			...allScrollContent(frame.root),
 		].join("\n"));
 
-		expect(output).toContain("레이아웃에 보존된 부분 답변");
-		expect(output).toContain("부분 응답 · 최종 본문 미수신");
-		expect(frame.lines.every((line) => visibleWidth(line) <= width)).toBe(true);
+		expect(output                                                  ).toContain("레이아웃에 보존된 부분 답변" ) ;
+		expect(output                                                  ).toContain("부분 응답 · 최종 본문 미수신") ;
+		expect(frame.lines.every((line) => visibleWidth(line) <= width)).toBe     (true                          ) ;
 	});
 
 	test("keeps following the newest user message when repeated delivery states extend Chat", () => {
@@ -295,9 +295,9 @@ describe("workbench public projection and layout views", () => {
 		const frame = renderLayoutFrame(layout.component, 120, 14, () => undefined);
 		const output = stripTerminalSequences(frame.lines.join("\n"));
 
-		expect(layout.leftScroll.isFollowingEnd).toBe(true);
-		expect(layout.leftScroll.scrollTop).toBeGreaterThan(previousScrollTop);
-		expect(output).toContain("반복 요청 7");
+		expect(layout.leftScroll.isFollowingEnd).toBe           (true             ) ;
+		expect(layout.leftScroll.scrollTop     ).toBeGreaterThan(previousScrollTop) ;
+		expect(output                          ).toContain      ("반복 요청 7"    ) ;
 	});
 
 	test("does not restore chat auto-follow while wheel scrolling concurrent streaming output", () => {
@@ -340,9 +340,9 @@ describe("workbench public projection and layout views", () => {
 			offsets.push(layout.leftScroll.scrollTop);
 		}
 
-		expect(offsets[1]).toBeLessThan(offsets[0]!);
-		expect(offsets[2]).toBeLessThan(offsets[1]!);
-		expect(layout.leftScroll.isFollowingEnd).toBe(false);
+		expect(offsets[1]                      ).toBeLessThan(offsets[0]!) ;
+		expect(offsets[2]                      ).toBeLessThan(offsets[1]!) ;
+		expect(layout.leftScroll.isFollowingEnd).toBe        (false      ) ;
 		layout.leftScroll.scrollToEnd();
 		expect(layout.leftScroll.isFollowingEnd).toBe(true);
 	});

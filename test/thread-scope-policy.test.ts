@@ -78,9 +78,9 @@ test("Native thread scope permits idempotent same-thread bind and rejects a diff
 	const policy = new NativeThreadScopePolicy(resolveScope);
 
 	const first = policy.bind("thread-a");
-	expect(first).toEqual({ threadId: "thread-a", journalId: "journal-thread-a", workId: "work-thread-a" });
-	expect(policy.bind("thread-a")).toBe(first);
-	expect(() => policy.bind("thread-b")).toThrow("이미 다른 Native thread");
+	expect(first                        ).toEqual({ threadId: "thread-a", journalId: "journal-thread-a", workId: "work-thread-a" }) ;
+	expect(policy.bind("thread-a")      ).toBe   (first                                                                           ) ;
+	expect(() => policy.bind("thread-b")).toThrow("이미 다른 Native thread"                                                       ) ;
 });
 
 test("pre-thread intake accepts only durable request intake methods", async () => {
@@ -142,9 +142,9 @@ test("concurrent same-thread Activity binds adopt intake and rebuild trace once"
 	releaseFirstAdoption();
 
 	await expect(Promise.all([firstBind, secondBind])).resolves.toEqual([undefined, undefined]);
-	expect(store.adoptionAppends).toBe(1);
-	expect(await store.readAll("journal-thread-a")).toHaveLength(1);
-	expect(traceReplacements).toBe(1);
+	expect(store.adoptionAppends                  ).toBe        (1) ;
+	expect(await store.readAll("journal-thread-a")).toHaveLength(1) ;
+	expect(traceReplacements                      ).toBe        (1) ;
 });
 
 test("Activity append waits for an in-flight trace rebuild and reaches the rebuilt trace", async () => {

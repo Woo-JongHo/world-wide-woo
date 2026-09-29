@@ -35,12 +35,12 @@ describe("repository overlays", () => {
 		await settle();
 		const lines = new OverlaySheet(panel).render(72);
 		const text = stripTerminalSequences(lines.join("\n"));
-		expect(text).toContain("Commit · 작업 트리");
-		expect(text).toContain("main");
-		expect(text).toContain("src/한글.ts");
-		expect(text).toContain("abc1234 fix: current");
-		expect(lines.every(line => visibleWidth(line) === 72)).toBe(true);
-		expect(updates).toBeGreaterThanOrEqual(2);
+		expect(text                                          ).toContain             ("Commit · 작업 트리"  ) ;
+		expect(text                                          ).toContain             ("main"                ) ;
+		expect(text                                          ).toContain             ("src/한글.ts"         ) ;
+		expect(text                                          ).toContain             ("abc1234 fix: current") ;
+		expect(lines.every(line => visibleWidth(line) === 72)).toBe                  (true                  ) ;
+		expect(updates                                       ).toBeGreaterThanOrEqual(2                     ) ;
 	});
 
 	test("renders open GitHub issues and closes with Escape", async () => {

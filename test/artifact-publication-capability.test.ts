@@ -19,9 +19,9 @@ function fixture() {
 	const calls: { method: string; body?: string | null }[] = []                                                                                                                             ;
 	let loseResponse                                        = false                                                                                                                          ;
 	const request = (async (url: string, options: RequestInit) => {
-		expect(url).toBe("https://api.github.com/repos/fixture/repo/issues/7");
-		expect(options.redirect).toBe("error");
-		expect(new Headers(options.headers).get("Authorization")).toBe("Bearer fixture-secret");
+		expect(url                                              ).toBe("https://api.github.com/repos/fixture/repo/issues/7") ;
+		expect(options.redirect                                 ).toBe("error"                                             ) ;
+		expect(new Headers(options.headers).get("Authorization")).toBe("Bearer fixture-secret"                             ) ;
 		calls.push({ method: options.method!, body: options.body as string });
 		if (options.method === "PATCH") {
 			const payload = JSON.parse(options.body as string);
@@ -41,11 +41,11 @@ test("approved Artifact uses GET/PATCH/GET and returns an identity-bound, secret
 	const f = fixture();
 	expect(await f.capability.authorize(f.intent)).toBe(true);
 	const result = await f.capability.execute(f.intent, new AbortController().signal);
-	expect(result.outcome).toBe("passed");
-	expect(result.delivery).toEqual({ target: "github", artifact: "https://github.com/fixture/repo/issues/7" });
-	expect(f.calls.map(c => c.method)).toEqual(["GET", "PATCH", "GET"]);
-	expect(JSON.parse(f.calls[1]!.body!).body).toBe(renderArtifactCandidate(f.candidate));
-	expect(JSON.stringify(result)).not.toContain("fixture-secret");
+	expect(result.outcome                    )    .toBe     ("passed"                                                                  ) ;
+	expect(result.delivery                   )    .toEqual  ({ target: "github", artifact: "https://github.com/fixture/repo/issues/7" }) ;
+	expect(f.calls.map(c => c.method)        )    .toEqual  (["GET", "PATCH", "GET"]                                                   ) ;
+	expect(JSON.parse(f.calls[1]!.body!).body)    .toBe     (renderArtifactCandidate(f.candidate)                                      ) ;
+	expect(JSON.stringify(result)            ).not.toContain("fixture-secret"                                                          ) ;
 });
 
 test("different permit, unsupported target and before-state drift cannot issue a PATCH", async () => {
@@ -54,10 +54,10 @@ test("different permit, unsupported target and before-state drift cannot issue a
 	await expect(f.capability.execute({ ...f.intent, expectedRevision: 8 }, signal)).rejects.toThrow("PUBLICATION_NOT_AUTHORIZED");
 	expect(f.calls).toHaveLength(0);
 	f.drift();
-	expect((await f.capability.execute(f.intent, signal)).outcome).toBe("failed");
-	expect(f.calls.map(c => c.method)).toEqual(["GET"]);
-	expect(() => f.port.identity({ ...f.candidate, target: { repository: "../repo", issue: 7 } })).toThrow("GITHUB_TARGET_DENIED");
-	expect(() => f.port.identity({ ...f.candidate, target: { repository: "fixture/repo", issue: null } })).toThrow("GITHUB_TARGET_DENIED");
+	expect((await f.capability.execute(f.intent, signal)).outcome                                        ).toBe   ("failed"              ) ;
+	expect(f.calls.map(c => c.method)                                                                    ).toEqual(["GET"]               ) ;
+	expect(() => f.port.identity({ ...f.candidate, target: { repository: "../repo", issue: 7 } })        ).toThrow("GITHUB_TARGET_DENIED") ;
+	expect(() => f.port.identity({ ...f.candidate, target: { repository: "fixture/repo", issue: null } })).toThrow("GITHUB_TARGET_DENIED") ;
 });
 
 test("lost publication response is recovered by GET only; candidate substitution is denied", async () => {
@@ -107,9 +107,9 @@ test("Obsidian publishes a complete canonical artifact with read-back and reject
 		const signal = new AbortController().signal                                                                   ;
 		const result = await cap.execute(intent, signal, { intent })                                                  ;
 		expect(result.outcome).toBe("passed"); expect(result.delivery?.artifact).toBe(path);
-		expect(await readFile(path, "utf8")).toBe(renderArtifactCandidate(candidate));
-		expect((await cap.reconciliation!.readBack(cap.reconciliation!.prepare(intent), signal)).confirmed).toBe(true);
-		expect(() => port.identity({ ...candidate, target: { relativePath: "../record.md" } })).toThrow("TARGET_DENIED");
+		expect(await readFile(path, "utf8")                                                               ).toBe   (renderArtifactCandidate(candidate)) ;
+		expect((await cap.reconciliation!.readBack(cap.reconciliation!.prepare(intent), signal)).confirmed).toBe   (true                              ) ;
+		expect(() => port.identity({ ...candidate, target: { relativePath: "../record.md" } })            ).toThrow("TARGET_DENIED"                   ) ;
 		await symlink(path, join(dir, "link.md"));
 		await expect(port.readBefore({ ...candidate, target: { relativePath: "link.md" } }, signal)).rejects.toThrow("SYMLINK_DENIED");
 		await writeFile(path, "external change");

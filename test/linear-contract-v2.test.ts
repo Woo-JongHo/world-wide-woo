@@ -33,9 +33,9 @@ function snapshot(): any[] {
 
 describe("Linear v2 contract", () => {
 	test("accepts the fixed hierarchy and Feynman-readable body order", () => {
-		expect(validate(snapshot(), undefined, contract, "Chat")).toEqual([]);
-		expect(validate(snapshot(), undefined, contract, "Traceability")).toEqual([]);
-		expect(validate(snapshot(), undefined, contract, "Skills")).toEqual([]);
+		expect(validate(snapshot(), undefined, contract, "Chat")        ).toEqual([]) ;
+		expect(validate(snapshot(), undefined, contract, "Traceability")).toEqual([]) ;
+		expect(validate(snapshot(), undefined, contract, "Skills")      ).toEqual([]) ;
 	});
 
 	test("validates Artifact Skill groups and their exact parents", () => {
@@ -89,9 +89,9 @@ describe("Linear v2 contract", () => {
 
 	test("requires a complete, unpaginated readback snapshot", () => {
 		const issue = { ...snapshot()[0], uuid: "11111111-1111-4111-8111-111111111111", projectMilestone: null };
-		expect(parseSnapshot({ issues: [issue], hasNextPage: false })).toHaveLength(1);
-		expect(() => parseSnapshot({ issues: [{ ...issue, uuid: undefined }], hasNextPage: false })).toThrow("snapshot missing uuid");
-		expect(() => parseSnapshot({ issues: [issue], hasNextPage: true })).toThrow("hasNextPage=false");
+		expect(parseSnapshot({ issues: [issue], hasNextPage: false })                              ).toHaveLength(1                      ) ;
+		expect(() => parseSnapshot({ issues: [{ ...issue, uuid: undefined }], hasNextPage: false })).toThrow     ("snapshot missing uuid") ;
+		expect(() => parseSnapshot({ issues: [issue], hasNextPage: true })                         ).toThrow     ("hasNextPage=false"    ) ;
 	});
 });
 

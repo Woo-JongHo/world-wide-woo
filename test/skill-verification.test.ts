@@ -12,9 +12,9 @@ test("다른 Run·검사 입력의 결과와 full 범위의 로컬 검증을 거
  const local    = {...beginSkillStep(startSkillRun(scenario, undefined, "local-preflight")), subjectDigest: "e".repeat(64)}                                                                                                                                                                                ;
  const evidence = ["fixture: 실제 검사 결과 대역"]                                                                                                                                                                                                                                                         ;
  const result   = {validator: "local-unit-references@1" as const, scope: "local-preflight" as const, runId: local.runId, skill: "rpa-reconcile", registryDigest: local.scenario.registryDigest, subjectDigest: "e".repeat(64), checkedAt: "2026-09-08T00:00:00.000Z", status: "passed" as const, evidence} ;
- expect(() => finishSkillStep(local, "succeeded", evidence, {...result, runId: "other"})).toThrow("SKILL_VERIFICATION_REQUIRED");
- expect(() => finishSkillStep(local, "succeeded", evidence, {...result, subjectDigest: "f".repeat(64)})).toThrow("SKILL_VERIFICATION_REQUIRED");
- expect(() => finishSkillStep({...local, scope: "full"}, "succeeded", evidence, result)).toThrow("SKILL_VERIFICATION_REQUIRED");
+ expect(() => finishSkillStep(local, "succeeded", evidence, {...result, runId: "other"})               ).toThrow("SKILL_VERIFICATION_REQUIRED") ;
+ expect(() => finishSkillStep(local, "succeeded", evidence, {...result, subjectDigest: "f".repeat(64)})).toThrow("SKILL_VERIFICATION_REQUIRED") ;
+ expect(() => finishSkillStep({...local, scope: "full"}, "succeeded", evidence, result)                ).toThrow("SKILL_VERIFICATION_REQUIRED") ;
 });
 
 test("검증 결과가 있어도 Run에 검사 입력이 고정되지 않았다면 성공을 거절한다", () => {

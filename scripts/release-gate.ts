@@ -1,9 +1,9 @@
 #!/usr/bin/env bun
 
-import { execFileSync } from "node:child_process";
+import { execFileSync }                                          from "node:child_process";
 import { mkdir, mkdtemp, open, readFile, rename, rm, writeFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
-import { tmpdir } from "node:os";
+import { join, resolve }                                         from "node:path";
+import { tmpdir }                                                from "node:os";
 
 const DEFAULT_STORIES = [
 	"ST-011-06",
@@ -17,26 +17,26 @@ const DEFAULT_STORIES = [
 ] as const;
 
 type Options = {
-	repo: string;
-	evidenceDir: string;
-	base: string | null;
-	stories: string[];
-	platformCheck: boolean;
+	repo          : string        ;
+	evidenceDir   : string        ;
+	base          : string | null ;
+	stories       : string[]      ;
+	platformCheck : boolean       ;
 };
 
 type ProductScope = {
-	scope: string;
-	base: string;
-	files: string[];
+	scope : string   ;
+	base  : string   ;
+	files : string[] ;
 };
 
 function parseArgs(argv: string[]): Options {
 	const options: Options = {
-		repo: process.cwd(),
-		evidenceDir: ".www/evidence",
-		base: null,
-		stories: [],
-		platformCheck: false,
+		repo          : process.cwd(),
+		evidenceDir   : ".www/evidence",
+		base          : null,
+		stories       : [],
+		platformCheck : false,
 	};
 
 	for (let index = 0; index < argv.length; index += 1) {
@@ -105,9 +105,9 @@ function gitRefExists(repo: string, ref: string): boolean {
 }
 
 function resolveProductScope(options: Options): ProductScope {
-	const defaultBase = "HEAD^";
-	const hasDefaultBase = gitRefExists(options.repo, defaultBase);
-	const base = options.base ?? (hasDefaultBase ? defaultBase : null);
+	const defaultBase    = "HEAD^"                                               ;
+	const hasDefaultBase = gitRefExists(options.repo, defaultBase)               ;
+	const base           = options.base ?? (hasDefaultBase ? defaultBase : null) ;
 	const tracked = base
 		? gitList(options.repo, ["diff", "--name-only", "--diff-filter=ACMRTUXB", base, "--"])
 		: gitList(options.repo, ["ls-files"]);
@@ -119,9 +119,9 @@ function resolveProductScope(options: Options): ProductScope {
 		return product && source && file !== "scripts/release-gate.ts";
 	});
 	return {
-		scope: base ? `${base}..worktree+untracked` : "all-tracked+untracked",
-		base: base ?? "<none:no-parent>",
-		files: productFiles,
+		scope : base ? `${base}..worktree+untracked` : "all-tracked+untracked",
+		base  : base ?? "<none:no-parent>",
+		files : productFiles,
 	};
 }
 

@@ -191,9 +191,9 @@ describe("TodoLedger", () => {
 
 		const replay = await fixture.ledger.syncNativePlan(flow);
 
-		expect(replay).toBe(first);
-		expect(replay.source).toEqual(first.source);
-		expect(fixture.store.compareAndSwapCalls).toBe(1);
+		expect(replay                           ).toBe   (first       ) ;
+		expect(replay.source                    ).toEqual(first.source) ;
+		expect(fixture.store.compareAndSwapCalls).toBe   (1           ) ;
 	});
 
 	test("keeps a manual item source-free when it is added to a Native-sourced Todo", async () => {
@@ -203,10 +203,10 @@ describe("TodoLedger", () => {
 
 		const mixed = await fixture.ledger.add("사용자가 추가한 후속 작업", "after");
 
-		expect(mixed.source).toEqual(native.source);
-		expect(mixed.items).toHaveLength(2);
-		expect(mixed.items[0]?.source?.identity).toBe("a".repeat(64));
-		expect(mixed.items[1]).toMatchObject({ id: "todo-1", content: "사용자가 추가한 후속 작업" });
+		expect(mixed.source                    ).toEqual      (native.source                                         ) ;
+		expect(mixed.items                     ).toHaveLength (2                                                     ) ;
+		expect(mixed.items[0]?.source?.identity).toBe         ("a".repeat(64)                                        ) ;
+		expect(mixed.items[1]                  ).toMatchObject({ id: "todo-1", content: "사용자가 추가한 후속 작업" }) ;
 		expect(mixed.items[1]?.source).toBeUndefined();
 	});
 
@@ -236,10 +236,10 @@ describe("TodoLedger", () => {
 
 		const durable = await fixture.ledger.syncNativePlan(newerFlow);
 		const writes = fixture.store.compareAndSwapCalls;
-		expect(await fixture.ledger.syncNativePlan(lateFlow)).toBe(durable);
-		expect(await fixture.ledger.syncNativePlan(foreignFlow)).toBe(durable);
-		expect(fixture.store.compareAndSwapCalls).toBe(writes);
-		expect(fixture.events.inputs).toHaveLength(1);
+		expect(await fixture.ledger.syncNativePlan(lateFlow)   ).toBe        (durable) ;
+		expect(await fixture.ledger.syncNativePlan(foreignFlow)).toBe        (durable) ;
+		expect(fixture.store.compareAndSwapCalls               ).toBe        (writes ) ;
+		expect(fixture.events.inputs                           ).toHaveLength(1      ) ;
 	});
 
 	test("enriches the same Plan revision when its observed input reference arrives later", async () => {
@@ -320,13 +320,13 @@ describe("TodoLedger", () => {
 		const edited = await fixture.ledger.syncNativePlan(editedFlow);
 		const replay = await fixture.ledger.syncNativePlan(editedFlow);
 
-		expect(first.items.map(item => item.id)).toEqual([`native-${alpha.slice(0, 48)}`, `native-${beta.slice(0, 48)}`]);
-		expect(inserted.items.map(item => item.id)).toEqual([`native-${gamma.slice(0, 48)}`, `native-${beta.slice(0, 48)}`, `native-${alpha.slice(0, 48)}`]);
-		expect(inserted.items.map(item => item.source?.identity)).toEqual([gamma, beta, alpha]);
-		expect(edited.items.map(item => item.id)).toEqual(inserted.items.map(item => item.id));
-		expect(edited.items.map(item => item.source?.identity)).toEqual(inserted.items.map(item => item.source?.identity));
-		expect(replay).toBe(edited);
-		expect(fixture.events.inputs).toHaveLength(3);
+		expect(first.items.map(item => item.id)                 ).toEqual     ([`native-${alpha.slice(0, 48)}`, `native-${beta.slice(0, 48)}`]                                ) ;
+		expect(inserted.items.map(item => item.id)              ).toEqual     ([`native-${gamma.slice(0, 48)}`, `native-${beta.slice(0, 48)}`, `native-${alpha.slice(0, 48)}`]) ;
+		expect(inserted.items.map(item => item.source?.identity)).toEqual     ([gamma, beta, alpha]                                                                           ) ;
+		expect(edited.items.map(item => item.id)                ).toEqual     (inserted.items.map(item => item.id)                                                            ) ;
+		expect(edited.items.map(item => item.source?.identity)  ).toEqual     (inserted.items.map(item => item.source?.identity)                                              ) ;
+		expect(replay                                           ).toBe        (edited                                                                                         ) ;
+		expect(fixture.events.inputs                            ).toHaveLength(3                                                                                              ) ;
 	});
 
 	test("rejects invalid identities and truncated-prefix collisions before writes or events", async () => {
@@ -346,10 +346,10 @@ describe("TodoLedger", () => {
 			name: "TodoIdentityCollisionError",
 			code: "invalid_identity",
 		} satisfies Partial<TodoIdentityCollisionError>));
-		expect(fixture.ledger.snapshot).toBe(baseline);
-		expect(fixture.store.document).toBe(baseline);
-		expect(fixture.store.compareAndSwapCalls).toBe(baselineCasCalls);
-		expect(fixture.events.inputs).toHaveLength(1);
+		expect(fixture.ledger.snapshot          ).toBe        (baseline        ) ;
+		expect(fixture.store.document           ).toBe        (baseline        ) ;
+		expect(fixture.store.compareAndSwapCalls).toBe        (baselineCasCalls) ;
+		expect(fixture.events.inputs            ).toHaveLength(1               ) ;
 	});
 
 	test("fails closed for missing or forged Native source authority before writes or events", async () => {
@@ -383,10 +383,10 @@ describe("TodoLedger", () => {
 				code: "invalid_source",
 			} satisfies Partial<TodoNativeSourceError>));
 		}
-		expect(fixture.ledger.snapshot).toBe(baseline);
-		expect(fixture.store.document).toBe(baseline);
-		expect(fixture.store.compareAndSwapCalls).toBe(baselineCasCalls);
-		expect(fixture.events.inputs).toHaveLength(1);
+		expect(fixture.ledger.snapshot          ).toBe        (baseline        ) ;
+		expect(fixture.store.document           ).toBe        (baseline        ) ;
+		expect(fixture.store.compareAndSwapCalls).toBe        (baselineCasCalls) ;
+		expect(fixture.events.inputs            ).toHaveLength(1               ) ;
 	});
 
 	test("creates stable IDs, refuses unfinished replacement, and shares project work across sessions", async () => {
@@ -582,8 +582,8 @@ describe("TodoLedger", () => {
 		fixture.ledger.subscribe(() => { throw new Error("broken listener"); });
 		await fixture.ledger.initialize();
 		const created = await fixture.ledger.create("Token: 'sk-secret-value'", ["one"]);
-		expect(fixture.events.inputs).toHaveLength(1);
-		expect(fixture.events.inputs[0]).toMatchObject({ type: "todo.updated", metadata: { todo: created } });
-		expect(fixture.events.inputs[0]?.metadata?.todo).toEqual(created);
+		expect(fixture.events.inputs                   ).toHaveLength (1                                                    ) ;
+		expect(fixture.events.inputs[0]                ).toMatchObject({ type: "todo.updated", metadata: { todo: created } }) ;
+		expect(fixture.events.inputs[0]?.metadata?.todo).toEqual      (created                                              ) ;
 	});
 });

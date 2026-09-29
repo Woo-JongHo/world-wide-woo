@@ -39,11 +39,11 @@ describe("WwwExecutionHeading activity projection", () => {
 		hint            = "second" ;
 		now += 240;
 		const second = heading.render(70);
-		expect(indexedReads).toBe(0);
-		expect(structuralScans).toBe(0);
-		expect(stripTerminalSequences(second.join("\n"))).toContain("second");
-		expect(second).not.toEqual(first);
-		expect(second.every(row => visibleWidth(row) <= 70)).toBe(true);
+		expect(indexedReads                                )    .toBe     (0       ) ;
+		expect(structuralScans                             )    .toBe     (0       ) ;
+		expect(stripTerminalSequences(second.join("\n"))   )    .toContain("second") ;
+		expect(second                                      ).not.toEqual  (first   ) ;
+		expect(second.every(row => visibleWidth(row) <= 70))    .toBe     (true    ) ;
 
 		heading.invalidate();
 		heading.render(70);

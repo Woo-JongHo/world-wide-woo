@@ -33,10 +33,10 @@ describe("TranscriptView Markdown", () => {
 			],
 		}));
 		const lines = view.render(80).map(line => stripTerminalSequences(line).trimEnd());
-		expect(lines[0]).toBe("👤 USER");
-		expect(lines[1]).toBe("지금 모델 뭔데?");
-		expect(lines[3]).toBe("🐙 Wooni");
-		expect(lines[4]).toBe("openai-codex/gpt-5.6-sol");
+		expect(lines[0]).toBe("👤 USER"                  ) ;
+		expect(lines[1]).toBe("지금 모델 뭔데?"         ) ;
+		expect(lines[3]).toBe("🐙 Wooni"                 ) ;
+		expect(lines[4]).toBe("openai-codex/gpt-5.6-sol") ;
 	});
 
 	test("syntax-highlights completed fenced code", () => {
@@ -45,9 +45,9 @@ describe("TranscriptView Markdown", () => {
 		}));
 		const lines = view.render(100);
 		const output = lines.join("\n");
-		expect(output).toContain("\u001b[38;2;");
-		expect(stripTerminalSequences(output)).toContain("def generate_lotto():");
-		expect(lines.every((line) => visibleWidth(line) <= 100)).toBe(true);
+		expect(output                                          ).toContain("\u001b[38;2;"         ) ;
+		expect(stripTerminalSequences(output)                  ).toContain("def generate_lotto():") ;
+		expect(lines.every((line) => visibleWidth(line) <= 100)).toBe     (true                   ) ;
 	});
 
 	test("keeps partial streaming code colored and width-safe", () => {
@@ -59,10 +59,10 @@ describe("TranscriptView Markdown", () => {
 		}));
 		const lines = view.render(40);
 		const output = lines.join("\n");
-		expect(output).toContain("\u001b[38;2;");
-		expect(stripTerminalSequences(output)).toContain("모델 추론 중");
-		expect(stripTerminalSequences(output)).toContain("return [3, 12, 41]");
-		expect(lines.every((line) => visibleWidth(line) <= 100)).toBe(true);
+		expect(output                                          ).toContain("\u001b[38;2;"      ) ;
+		expect(stripTerminalSequences(output)                  ).toContain("모델 추론 중"      ) ;
+		expect(stripTerminalSequences(output)                  ).toContain("return [3, 12, 41]") ;
+		expect(lines.every((line) => visibleWidth(line) <= 100)).toBe     (true                ) ;
 	});
 
 	test("labels a persisted partial assistant response as cancelled", () => {
@@ -93,10 +93,10 @@ describe("TranscriptView Markdown", () => {
 			}],
 		}));
 		const output = stripTerminalSequences(view.render(80).join("\n"));
-		expect(output).toContain("╭");
-		expect(output).toContain("read · PASSED");
-		expect(output).toContain("src/app.ts");
-		expect(output).toContain("╰");
+		expect(output).toContain("╭"            ) ;
+		expect(output).toContain("read · PASSED") ;
+		expect(output).toContain("src/app.ts"   ) ;
+		expect(output).toContain("╰"            ) ;
 	});
 
 	test("renders truthful work narration before the corresponding tool card", () => {
@@ -123,9 +123,9 @@ describe("TranscriptView Markdown", () => {
 			}],
 		}));
 		const output = stripTerminalSequences(view.render(80).join("\n"));
-		expect(output.indexOf("단계 1")).toBeLessThan(output.indexOf("read · PASSED"));
-		expect(output).toContain("동작: 파일 확인 · src/app.ts");
-		expect(output).toContain("이유: 필요한 파일 내용을 확인");
+		expect(output.indexOf("단계 1")).toBeLessThan(output.indexOf("read · PASSED")) ;
+		expect(output                  ).toContain   ("동작: 파일 확인 · src/app.ts" ) ;
+		expect(output                  ).toContain   ("이유: 필요한 파일 내용을 확인") ;
 	});
 
 	test("reuses stable transcript rows across scroll frames and invalidates on observation changes", () => {

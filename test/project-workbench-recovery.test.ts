@@ -85,9 +85,9 @@ describe("ProjectWorkbench · recovery, approvals, and durable commands", () => 
 			params : { delta: "진행 중" },
 		});
 		await Bun.sleep(10);
-		expect(journal.records).toHaveLength(0);
-		expect(workbench.snapshot.journalSequence).toBe(0);
-		expect(workbench.snapshot.draft).toBe("진행 중");
+		expect(journal.records                   ).toHaveLength(0        ) ;
+		expect(workbench.snapshot.journalSequence).toBe        (0        ) ;
+		expect(workbench.snapshot.draft          ).toBe        ("진행 중") ;
 		native.emit({
 			type   : "notification",
 			method : "item/completed",
@@ -95,13 +95,13 @@ describe("ProjectWorkbench · recovery, approvals, and durable commands", () => 
 			params : { item: { type: "agentMessage", text: "진행 완료" } },
 		});
 		await Bun.sleep(10);
-		expect(journal.records).toHaveLength(1);
-		expect(observedJournalSizes).toEqual([1]);
-		expect(workbench.snapshot.journalSequence).toBe(1);
-		expect(workbench.snapshot.chat[0]?.content).toBe("진행 완료");
-		expect(workbench.snapshot.draft).toBe("");
-		expect(Object.isFrozen(workbench.snapshot)).toBe(true);
-		expect(Object.isFrozen(workbench.snapshot.activities)).toBe(true);
+		expect(journal.records                               ).toHaveLength(1          ) ;
+		expect(observedJournalSizes                          ).toEqual     ([1]        ) ;
+		expect(workbench.snapshot.journalSequence            ).toBe        (1          ) ;
+		expect(workbench.snapshot.chat[0]?.content           ).toBe        ("진행 완료") ;
+		expect(workbench.snapshot.draft                      ).toBe        (""         ) ;
+		expect(Object.isFrozen(workbench.snapshot)           ).toBe        (true       ) ;
+		expect(Object.isFrozen(workbench.snapshot.activities)).toBe        (true       ) ;
 		expect(() => (workbench.snapshot.activities as ProjectActivity[]).push(journal.records[0]!)).toThrow();
 		unsubscribe();
 		await workbench.close();
@@ -155,21 +155,21 @@ describe("ProjectWorkbench · recovery, approvals, and durable commands", () => 
 		await Bun.sleep(10);
 		const afterSecondDelta = workbench.snapshot;
 
-		expect(afterFirstDelta.activities).toBe(before.activities);
-		expect(afterSecondDelta.activities).toBe(before.activities);
-		expect(afterSecondDelta.activities.find(activity => activity.id === largeActivity?.id)).toBe(largeActivity);
-		expect(afterFirstDelta.chat).toBe(before.chat);
-		expect(afterSecondDelta.chat).toBe(before.chat);
-		expect(afterSecondDelta.journalSequence).toBe(before.journalSequence);
-		expect(afterSecondDelta.revision).toBeGreaterThan(before.revision);
-		expect(afterFirstDelta.draft).toBe("첫 delta");
-		expect(afterSecondDelta.draft).toBe("첫 delta + 두 번째 delta");
-		expect(Object.isFrozen(afterSecondDelta)).toBe(true);
-		expect(Object.isFrozen(afterSecondDelta.activities)).toBe(true);
-		expect(Object.isFrozen(largeActivity)).toBe(true);
-		expect(Object.isFrozen(largeActivity?.payload)).toBe(true);
-		expect(Object.isFrozen(afterSecondDelta.chat)).toBe(true);
-		expect(Object.isFrozen(largeChat)).toBe(true);
+		expect(afterFirstDelta.activities                                                     ).toBe           (before.activities         ) ;
+		expect(afterSecondDelta.activities                                                    ).toBe           (before.activities         ) ;
+		expect(afterSecondDelta.activities.find(activity => activity.id === largeActivity?.id)).toBe           (largeActivity             ) ;
+		expect(afterFirstDelta.chat                                                           ).toBe           (before.chat               ) ;
+		expect(afterSecondDelta.chat                                                          ).toBe           (before.chat               ) ;
+		expect(afterSecondDelta.journalSequence                                               ).toBe           (before.journalSequence    ) ;
+		expect(afterSecondDelta.revision                                                      ).toBeGreaterThan(before.revision           ) ;
+		expect(afterFirstDelta.draft                                                          ).toBe           ("첫 delta"                ) ;
+		expect(afterSecondDelta.draft                                                         ).toBe           ("첫 delta + 두 번째 delta") ;
+		expect(Object.isFrozen(afterSecondDelta)                                              ).toBe           (true                      ) ;
+		expect(Object.isFrozen(afterSecondDelta.activities)                                   ).toBe           (true                      ) ;
+		expect(Object.isFrozen(largeActivity)                                                 ).toBe           (true                      ) ;
+		expect(Object.isFrozen(largeActivity?.payload)                                        ).toBe           (true                      ) ;
+		expect(Object.isFrozen(afterSecondDelta.chat)                                         ).toBe           (true                      ) ;
+		expect(Object.isFrozen(largeChat)                                                     ).toBe           (true                      ) ;
 		await workbench.close();
 	});
 
@@ -197,13 +197,13 @@ describe("ProjectWorkbench · recovery, approvals, and durable commands", () => 
 		}
 		await Bun.sleep(10);
 
-		expect(workbench.snapshot.draft.length).toBeLessThanOrEqual(32 * 1024);
-		expect(workbench.snapshot.draft).toMatch(/^… 이전 출력 \d+자 생략\n/);
-		expect(workbench.snapshot.draft).toEndWith(`79:${"a".repeat(1020)}`);
-		expect(workbench.snapshot.reasoningDraft.length).toBeLessThanOrEqual(20 * 1024);
-		expect(workbench.snapshot.reasoningDraft).toMatch(/^… 이전 출력 \d+자 생략\n/);
-		expect(workbench.snapshot.reasoningDraft).toEndWith(`79:${"r".repeat(1020)}`);
-		expect(journal.records).toHaveLength(0);
+		expect(workbench.snapshot.draft.length         ).toBeLessThanOrEqual(32 * 1024                  ) ;
+		expect(workbench.snapshot.draft                ).toMatch            (/^… 이전 출력 \d+자 생략\n/) ;
+		expect(workbench.snapshot.draft                ).toEndWith          (`79:${"a".repeat(1020)}`   ) ;
+		expect(workbench.snapshot.reasoningDraft.length).toBeLessThanOrEqual(20 * 1024                  ) ;
+		expect(workbench.snapshot.reasoningDraft       ).toMatch            (/^… 이전 출력 \d+자 생략\n/) ;
+		expect(workbench.snapshot.reasoningDraft       ).toEndWith          (`79:${"r".repeat(1020)}`   ) ;
+		expect(journal.records                         ).toHaveLength       (0                          ) ;
 
 		const completedMessage = `complete password=message-secret\n${"m".repeat(40_000)}\nhttps://user:tail-secret@example.com/end`;
 		const completedReasoning = `reasoning:${"q".repeat(30_000)}`;
@@ -223,22 +223,22 @@ describe("ProjectWorkbench · recovery, approvals, and durable commands", () => 
 
 		const storedMessage = ((journal.records[0]?.payload.params as { item?: { text?: string } })?.item?.text) ?? "";
 		const publicMessage = String(journal.records[0]?.payload.text ?? "");
-		expect(storedMessage.length).toBeLessThanOrEqual(32 * 1024);
-		expect(storedMessage).toStartWith("complete password=[redacted]");
-		expect(storedMessage).toContain("…[output truncated]");
-		expect(storedMessage).toEndWith("https://[redacted]@example.com/end");
-		expect(publicMessage.length).toBeGreaterThan(32 * 1024);
-		expect(publicMessage).toStartWith("complete password=[redacted]");
-		expect(publicMessage).not.toContain("…[output truncated]");
-		expect(publicMessage).toEndWith("https://[redacted]@example.com/end");
-		expect(journal.records[0]?.payload.observationTruncated).toBe(true);
-		expect(journal.records[0]?.sourceDigest).toMatch(/^sha256:[a-f0-9]{64}$/u);
-		expect(JSON.stringify(journal.records[0]?.payload)).not.toContain("message-secret");
-		expect(JSON.stringify(journal.records[0]?.payload)).not.toContain("tail-secret");
-		expect(journal.records[1]?.payload).toMatchObject({ classification: "reasoning", redacted: true });
-		expect(JSON.stringify(journal.records[1]?.payload)).not.toContain(completedReasoning);
-		expect(workbench.snapshot.draft).toBe("");
-		expect(workbench.snapshot.reasoningDraft).toBe("");
+		expect(storedMessage.length                            )    .toBeLessThanOrEqual(32 * 1024                                      ) ;
+		expect(storedMessage                                   )    .toStartWith        ("complete password=[redacted]"                 ) ;
+		expect(storedMessage                                   )    .toContain          ("…[output truncated]"                          ) ;
+		expect(storedMessage                                   )    .toEndWith          ("https://[redacted]@example.com/end"           ) ;
+		expect(publicMessage.length                            )    .toBeGreaterThan    (32 * 1024                                      ) ;
+		expect(publicMessage                                   )    .toStartWith        ("complete password=[redacted]"                 ) ;
+		expect(publicMessage                                   ).not.toContain          ("…[output truncated]"                          ) ;
+		expect(publicMessage                                   )    .toEndWith          ("https://[redacted]@example.com/end"           ) ;
+		expect(journal.records[0]?.payload.observationTruncated)    .toBe               (true                                           ) ;
+		expect(journal.records[0]?.sourceDigest                )    .toMatch            (/^sha256:[a-f0-9]{64}$/u                       ) ;
+		expect(JSON.stringify(journal.records[0]?.payload)     ).not.toContain          ("message-secret"                               ) ;
+		expect(JSON.stringify(journal.records[0]?.payload)     ).not.toContain          ("tail-secret"                                  ) ;
+		expect(journal.records[1]?.payload                     )    .toMatchObject      ({ classification: "reasoning", redacted: true }) ;
+		expect(JSON.stringify(journal.records[1]?.payload)     ).not.toContain          (completedReasoning                             ) ;
+		expect(workbench.snapshot.draft                        )    .toBe               (""                                             ) ;
+		expect(workbench.snapshot.reasoningDraft               )    .toBe               (""                                             ) ;
 		await workbench.close();
 	});
 
@@ -526,10 +526,10 @@ describe("ProjectWorkbench · recovery, approvals, and durable commands", () => 
 		await Bun.sleep(10);
 
 		const text = workbench.snapshot.liveActivity?.text ?? "";
-		expect(text.length).toBeLessThanOrEqual(32 * 1024);
-		expect(text).toStartWith("… 이전 출력 49200자 생략\n");
-		expect(text).toEndWith(`79:${"x".repeat(1020)}`);
-		expect(journal.records).toHaveLength(0);
+		expect(text.length    ).toBeLessThanOrEqual(32 * 1024                   ) ;
+		expect(text           ).toStartWith        ("… 이전 출력 49200자 생략\n") ;
+		expect(text           ).toEndWith          (`79:${"x".repeat(1020)}`    ) ;
+		expect(journal.records).toHaveLength       (0                           ) ;
 
 		const completedOutput = `complete token=tool-secret\n${"z".repeat(40_000)}\ncommand-tail`;
 		native.emit({
@@ -540,12 +540,12 @@ describe("ProjectWorkbench · recovery, approvals, and durable commands", () => 
 		});
 		await Bun.sleep(10);
 		const storedOutput = ((journal.records[0]?.payload.params as { item?: { text?: string } })?.item?.text) ?? "";
-		expect(storedOutput.length).toBeLessThanOrEqual(32 * 1024);
-		expect(storedOutput).toStartWith("complete token=[redacted]");
-		expect(storedOutput).toContain("…[output truncated]");
-		expect(storedOutput).toEndWith("command-tail");
-		expect(journal.records[0]?.payload.observationTruncated).toBe(true);
-		expect(JSON.stringify(journal.records[0]?.payload)).not.toContain("tool-secret");
+		expect(storedOutput.length                             )    .toBeLessThanOrEqual(32 * 1024                  ) ;
+		expect(storedOutput                                    )    .toStartWith        ("complete token=[redacted]") ;
+		expect(storedOutput                                    )    .toContain          ("…[output truncated]"      ) ;
+		expect(storedOutput                                    )    .toEndWith          ("command-tail"             ) ;
+		expect(journal.records[0]?.payload.observationTruncated)    .toBe               (true                       ) ;
+		expect(JSON.stringify(journal.records[0]?.payload)     ).not.toContain          ("tool-secret"              ) ;
 		expect(workbench.snapshot.liveActivity).toBeNull();
 		await workbench.close();
 	});
@@ -627,9 +627,9 @@ describe("ProjectWorkbench · recovery, approvals, and durable commands", () => 
 			resumeThreadId : "thread-1",
 		});
 		await ready(resumed);
-		expect(resumed.snapshot.threadId).toBe("thread-1");
-		expect(resumed.snapshot.activities.every(activity => activity.nativeRefs.threadId === "thread-1")).toBe(true);
-		expect(resumed.snapshot.chat.some(message => message.content === "이전 세션 메시지")).toBe(true);
+		expect(resumed.snapshot.threadId                                                                 ).toBe("thread-1") ;
+		expect(resumed.snapshot.activities.every(activity => activity.nativeRefs.threadId === "thread-1")).toBe(true      ) ;
+		expect(resumed.snapshot.chat.some(message => message.content === "이전 세션 메시지")             ).toBe(true      ) ;
 		expect(resumed.snapshot.pendingApproval).toBeNull();
 		await resumed.close();
 	});
@@ -643,10 +643,10 @@ describe("ProjectWorkbench · recovery, approvals, and durable commands", () => 
 		});
 		await ready(workbench);
 		const receipt = await workbench.dispatch({ type: "chat.send", text: "/skills" });
-		expect(receipt).toMatchObject({ state: "uncertain", resolution: "manual-reconcile" });
-		expect(native.startTurnCalls).toBe(1);
-		expect(workbench.snapshot.chat.at(-1)?.content).toBe("/skills");
-		expect(workbench.snapshot.chat.at(-1)?.status).toBe("failed");
+		expect(receipt                                ).toMatchObject({ state: "uncertain", resolution: "manual-reconcile" }) ;
+		expect(native.startTurnCalls                  ).toBe         (1                                                     ) ;
+		expect(workbench.snapshot.chat.at(-1)?.content).toBe         ("/skills"                                             ) ;
+		expect(workbench.snapshot.chat.at(-1)?.status ).toBe         ("failed"                                              ) ;
 		expect(await workbench.dispatch({ type: "chat.send", text: "불명확한 전송 뒤 요청" }))
 			.toMatchObject({ state: "queued", position: 1 });
 		expect(native.startTurnCalls).toBe(1);
@@ -836,15 +836,15 @@ describe("ProjectWorkbench · recovery, approvals, and durable commands", () => 
 		for (const action of ["start", "complete", "block", "reopen"] as const) await workbench.dispatch({ type: "todo.transition", action, itemId: "todo-1" });
 		await workbench.dispatch({ type: "todo.evidence", activityId: "evidence-1" });
 		await workbench.dispatch({ type: "todo.import-legacy" });
-		expect(calls).toEqual(["create", "add", "details", "start", "complete", "block", "reopen", "evidence", "import"]);
-		expect(workbench.snapshot.actionResult).toMatchObject({ kind: "todo", title: "Legacy Todo 가져오기" });
-		expect(Object.isFrozen(workbench.snapshot.actionResult)).toBe(true);
+		expect(calls                                           ).toEqual      (["create", "add", "details", "start", "complete", "block", "reopen", "evidence", "import"]) ;
+		expect(workbench.snapshot.actionResult                 ).toMatchObject({ kind: "todo", title: "Legacy Todo 가져오기" }                                           ) ;
+		expect(Object.isFrozen(workbench.snapshot.actionResult)).toBe         (true                                                                                      ) ;
 
 		const pending = todoDocument(1);
 		todos.create = async () => { throw new TodoWriteConflictError("# current", pending, snapshot); };
-		expect(await workbench.dispatch({ type: "todo.create", title: "충돌", items: ["대기"] })).toMatchObject({ state: "rejected" });
-		expect(workbench.snapshot.actionResult?.body).toContain("# current");
-		expect(workbench.snapshot.actionResult?.body).toContain('"revision":1');
+		expect(await workbench.dispatch({ type: "todo.create", title: "충돌", items: ["대기"] })).toMatchObject({ state: "rejected" }) ;
+		expect(workbench.snapshot.actionResult?.body                                            ).toContain    ("# current"          ) ;
+		expect(workbench.snapshot.actionResult?.body                                            ).toContain    ('"revision":1'       ) ;
 		await workbench.close();
 	});
 
@@ -876,21 +876,21 @@ describe("ProjectWorkbench · recovery, approvals, and durable commands", () => 
 		expect(canonicalBody).toBe("");
 		const token = workbench.snapshot.actionResult?.body.match(/확인 토큰: (\S+)/u)?.[1];
 		expect(token).toBeTruthy();
-		expect(await workbench.dispatch({ type: "promotion.confirm", token: token! })).toMatchObject({ state: "accepted" });
-		expect(canonicalBody).toContain("전체 Note 본문");
-		expect(await workbench.dispatch({ type: "promotion.confirm", token: token! })).toMatchObject({ state: "rejected" });
+		expect(await workbench.dispatch({ type: "promotion.confirm", token: token! })).toMatchObject({ state: "accepted" }) ;
+		expect(canonicalBody                                                         ).toContain    ("전체 Note 본문"     ) ;
+		expect(await workbench.dispatch({ type: "promotion.confirm", token: token! })).toMatchObject({ state: "rejected" }) ;
 
 		await workbench.dispatch({ type: "review.preview", provider: "anthropic", noteId: "note-1", request: "위험 검토", confirmedPublic: true });
 		const digest = workbench.snapshot.actionResult?.digest;
 		expect(digest).toMatch(/^[a-f0-9]{64}$/u);
 		expect(reviewCalls).toHaveLength(0);
 		const wrongDigest = `${digest?.startsWith("0") ? "1" : "0"}${digest?.slice(1)}`;
-		expect(await workbench.dispatch({ type: "review.send", digest: wrongDigest })).toMatchObject({ state: "rejected" });
-		expect(reviewCalls).toHaveLength(0);
-		expect(await workbench.dispatch({ type: "review.send", digest: digest! })).toMatchObject({ state: "accepted" });
-		expect(reviewCalls).toHaveLength(1);
-		expect(workbench.snapshot.actionResult).toMatchObject({ kind: "review", title: "anthropic/claude-opus-5 검토 결과" });
-		expect(workbench.snapshot.actionResult?.body).toContain("provenance");
+		expect(await workbench.dispatch({ type: "review.send", digest: wrongDigest })).toMatchObject({ state: "rejected" }                                         ) ;
+		expect(reviewCalls                                                           ).toHaveLength (0                                                             ) ;
+		expect(await workbench.dispatch({ type: "review.send", digest: digest! })    ).toMatchObject({ state: "accepted" }                                         ) ;
+		expect(reviewCalls                                                           ).toHaveLength (1                                                             ) ;
+		expect(workbench.snapshot.actionResult                                       ).toMatchObject({ kind: "review", title: "anthropic/claude-opus-5 검토 결과" }) ;
+		expect(workbench.snapshot.actionResult?.body                                 ).toContain    ("provenance"                                                  ) ;
 		await workbench.close();
 	});
 	test("keeps clipped private envelopes out of the live and preserved public response", async () => {
@@ -909,10 +909,10 @@ describe("ProjectWorkbench · recovery, approvals, and durable commands", () => 
 		native.emit({ type: "notification", method: "turn/interrupted", refs: { threadId: "thread-1", turnId: "turn-1" }, params: {} });
 		await Bun.sleep(10);
 		const partial = workbench.snapshot.chat.find(message => message.role === "assistant");
-		expect(partial?.status).toBe("cancelled");
-		expect(partial?.content).toContain("표시를 보류");
-		expect(JSON.stringify(journal.records)).not.toContain("PRIVATE-SECRET");
-		expect(JSON.stringify(journal.records)).not.toContain("MORE-PRIVATE");
+		expect(partial?.status                )    .toBe     ("cancelled"     ) ;
+		expect(partial?.content               )    .toContain("표시를 보류"   ) ;
+		expect(JSON.stringify(journal.records)).not.toContain("PRIVATE-SECRET") ;
+		expect(JSON.stringify(journal.records)).not.toContain("MORE-PRIVATE"  ) ;
 		await workbench.close();
 	});
 
@@ -928,9 +928,9 @@ describe("ProjectWorkbench · recovery, approvals, and durable commands", () => 
 			["valid", "thread-1", { type: "agentMessage", text: "정상 복구" }],
 		] as const) native.emit({ type: "notification", method: "item/completed", refs: { threadId, turnId: "turn-1", itemId }, params: { item } });
 		await Bun.sleep(10);
-		expect(workbench.snapshot.chat.some(message => message.role === "system" && message.content.includes("형식을 확인"))).toBe(true);
-		expect(workbench.snapshot.chat.some(message => message.content.includes("SECRET-PAYLOAD"))).toBe(false);
-		expect(workbench.snapshot.chat.some(message => message.content === "정상 복구")).toBe(true);
+		expect(workbench.snapshot.chat.some(message => message.role === "system" && message.content.includes("형식을 확인"))).toBe(true ) ;
+		expect(workbench.snapshot.chat.some(message => message.content.includes("SECRET-PAYLOAD"))                          ).toBe(false) ;
+		expect(workbench.snapshot.chat.some(message => message.content === "정상 복구")                                     ).toBe(true ) ;
 		const foreign = journal.records.find(activity => activity.nativeRefs.threadId === "other-thread")!;
 		expect(await workbench.dispatch({ type: "activity.select", activityId: foreign.id })).toMatchObject({ state: "rejected" });
 		expect(workbench.snapshot.selectedActivityId).toBeNull();
@@ -952,9 +952,9 @@ describe("ProjectWorkbench · recovery, approvals, and durable commands", () => 
 		native.emit(event);
 		native.emit(event);
 		await Bun.sleep(10);
-		expect(workbench.snapshot.executionRun?.phase).toBe("failed");
-		expect(workbench.snapshot.executionRun?.receipt?.status).toBe("failed");
-		expect(journal.records.filter(activity => activity.payload.method === "execution/completion-receipt")).toHaveLength(1);
+		expect(workbench.snapshot.executionRun?.phase                                                        ).toBe        ("failed") ;
+		expect(workbench.snapshot.executionRun?.receipt?.status                                              ).toBe        ("failed") ;
+		expect(journal.records.filter(activity => activity.payload.method === "execution/completion-receipt")).toHaveLength(1       ) ;
 		await workbench.close();
 	});
 
@@ -999,10 +999,10 @@ describe("ProjectWorkbench · recovery, approvals, and durable commands", () => 
 		};
 		await emit("turn/plan/updated", { plan: [{ step: "구현과 회귀 검증", status: "inProgress" }] });
 		await emit("item/completed", { item: { type: "commandExecution", command: "bun test", status: "completed", exitCode: 1, aggregatedOutput: "1 fail" } }, "test-fail");
-		expect(workbench.snapshot.todo?.items[0]?.status).toBe("in_progress");
-		expect(workbench.snapshot.workFlow.steps[0]?.status).toBe("running");
-		expect(workbench.snapshot.executionRun?.tasks[0]?.status).toBe("running");
-		expect(workbench.snapshot.executionRun?.phase).toBe("blocked");
+		expect(workbench.snapshot.todo?.items[0]?.status        ).toBe("in_progress") ;
+		expect(workbench.snapshot.workFlow.steps[0]?.status     ).toBe("running"    ) ;
+		expect(workbench.snapshot.executionRun?.tasks[0]?.status).toBe("running"    ) ;
+		expect(workbench.snapshot.executionRun?.phase           ).toBe("blocked"    ) ;
 		expect(workbench.snapshot.executionRun?.receipt).toBeNull();
 		await emit("item/started", { item: { type: "commandExecution", command: "bun test" } }, "test-retry");
 		expect(workbench.snapshot.executionRun?.phase).toBe("executing");
@@ -1050,9 +1050,9 @@ describe("ProjectWorkbench · recovery, approvals, and durable commands", () => 
 			},
 		});
 		await ready(workbench);
-		expect(await workbench.dispatch({ type: "workflow.check", processId: "RPA-001" })).toMatchObject({ state: "accepted" });
-		expect(workbench.snapshot.actionResult).toMatchObject({ kind: "workflow", body: summary });
-		expect(await workbench.dispatch({ type: "workflow.resume", runId: "run-1" })).toMatchObject({ state: "accepted" });
+		expect(await workbench.dispatch({ type: "workflow.check", processId: "RPA-001" })).toMatchObject({ state: "accepted" }              ) ;
+		expect(workbench.snapshot.actionResult                                           ).toMatchObject({ kind: "workflow", body: summary }) ;
+		expect(await workbench.dispatch({ type: "workflow.resume", runId: "run-1" })     ).toMatchObject({ state: "accepted" }              ) ;
 		await workbench.dispatch({ type: "chat.send", text: "구현" });
 		for (const command of [{ type: "workflow.check", processId: "RPA-001" }, { type: "workflow.resume", runId: "run-1" }] as const) {
 			expect(await workbench.dispatch(command)).toMatchObject({ state: "rejected" });
@@ -1067,9 +1067,9 @@ describe("ProjectWorkbench · recovery, approvals, and durable commands", () => 
 		journal.records.push(...JSON.parse(JSON.stringify(legacyJournal.activities)));
 		const workbench = new ProjectWorkbench(new FakeNativeHarness(), journal, { projectId: "legacy", cwd: "/sample", resumeThreadId: "thread" });
 		await ready(workbench);
-		expect(workbench.snapshot.phase).not.toBe("error");
-		expect(workbench.snapshot.executionRun?.receipt?.receiptDigest).toBe(legacyJournal.receipt.receiptDigest);
-		expect(journal.records.filter(record => record.payload.method === "execution/completion-receipt")).toHaveLength(1);
+		expect(workbench.snapshot.phase                                                                  ).not.toBe        ("error"                            ) ;
+		expect(workbench.snapshot.executionRun?.receipt?.receiptDigest                                   )    .toBe        (legacyJournal.receipt.receiptDigest) ;
+		expect(journal.records.filter(record => record.payload.method === "execution/completion-receipt"))    .toHaveLength(1                                  ) ;
 		await workbench.close();
 		const corruptedJournal = new MemoryJournal();
 		corruptedJournal.records.push(...JSON.parse(JSON.stringify(legacyJournal.activities)));
@@ -1077,10 +1077,10 @@ describe("ProjectWorkbench · recovery, approvals, and durable commands", () => 
 		storedReceipt.objective = "위조된 목적";
 		const corrupted = new ProjectWorkbench(new FakeNativeHarness(), corruptedJournal, { projectId: "legacy", cwd: "/sample", resumeThreadId: "thread" });
 		await ready(corrupted);
-		expect(corrupted.snapshot.phase).toBe("error");
-		expect(corrupted.snapshot.error).toContain("Receipt와 원본 관측이 일치하지 않습니다");
-		expect(corrupted.snapshot.recordingReadOnly).toBe(true);
-		expect(corrupted.snapshot.activities.some(activity => activity.payload.method === "execution/completion-receipt")).toBe(true);
+		expect(corrupted.snapshot.phase                                                                                  ).toBe     ("error"                                  ) ;
+		expect(corrupted.snapshot.error                                                                                  ).toContain("Receipt와 원본 관측이 일치하지 않습니다") ;
+		expect(corrupted.snapshot.recordingReadOnly                                                                      ).toBe     (true                                     ) ;
+		expect(corrupted.snapshot.activities.some(activity => activity.payload.method === "execution/completion-receipt")).toBe     (true                                     ) ;
 		expect(await corrupted.dispatch({ type: "chat.send", text: "위조 receipt 상태에서 실행" }))
 			.toMatchObject({ state: "rejected", reason: expect.stringContaining("읽기 전용") });
 		expect(await corrupted.dispatch({ type: "agent.select", agentRef: null })).toMatchObject({ state: "accepted" });

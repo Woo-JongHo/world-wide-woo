@@ -81,9 +81,9 @@ describe("pi-tui lazy scroll row source", () => {
 		expect(getScrollbarGeometry(getScrollViewBox(lazy, lazyScroll)!)).toEqual(
 			getScrollbarGeometry(getScrollViewBox(dense, denseScroll)!),
 		);
-		expect(lazyContent.renderCalls).toBe(0);
-		expect(lazyScroll.prepareCalls).toEqual([23]);
-		expect(lazyContent.requests).toEqual([{ start: 0, count: 8 }]);
+		expect(lazyContent.renderCalls).toBe   (0                       ) ;
+		expect(lazyScroll.prepareCalls).toEqual([23]                    ) ;
+		expect(lazyContent.requests   ).toEqual([{ start: 0, count: 8 }]) ;
 
 		denseScroll.scrollTo(40, { disableFollow: true });
 		lazyScroll.scrollTo(40, { disableFollow: true });
@@ -128,10 +128,10 @@ describe("pi-tui lazy scroll row source", () => {
 		lazyScroll.scrollTo(1, { disableFollow: true });
 		const dense = frameFor(denseContent, denseScroll, 20, 2);
 		const lazy = frameFor(lazyContent, lazyScroll, 20, 2);
-		expect(lazy.lines).toEqual(dense.lines);
-		expect(lazy.lines[0]).toContain("y=18");
-		expect(lazy.lines[0]).toContain("r=2");
-		expect(lazyContent.renderCalls).toBe(0);
+		expect(lazy.lines             ).toEqual  (dense.lines) ;
+		expect(lazy.lines[0]          ).toContain("y=18"     ) ;
+		expect(lazy.lines[0]          ).toContain("r=2"      ) ;
+		expect(lazyContent.renderCalls).toBe     (0          ) ;
 	});
 
 	test("normalizes invalid ranges and finds the same logical search matches in bounded chunks", () => {
@@ -147,13 +147,13 @@ describe("pi-tui lazy scroll row source", () => {
 		expect(findAltScreenSearchMatches(source, "alpha beta")).toEqual(
 			findAltScreenSearchMatches(rows, "alpha beta"),
 		);
-		expect(requests.length).toBeGreaterThan(1);
-		expect(Math.max(...requests.map(request => request.count))).toBeLessThanOrEqual(256);
-		expect(readScrollRows(source, -4, 3)).toEqual(rows.slice(0, 3));
-		expect(readScrollRows(source, 599.8, 20)).toEqual([rows[599]]);
-		expect(() => getScrollRowCount({ rowCount: Number.NaN, rows: () => ["bad"] } as ScrollRowSource)).toThrow("rowCount");
-		expect(() => readScrollRows({ rowCount: 4, rows: () => null } as unknown as ScrollRowSource, 0, 4)).toThrow("rows");
-		expect(() => readScrollRows({ rowCount: 4, rows: () => ["short"] } as ScrollRowSource, 0, 4)).toThrow("4 rows");
+		expect(requests.length                                                                            ).toBeGreaterThan    (1               ) ;
+		expect(Math.max(...requests.map(request => request.count))                                        ).toBeLessThanOrEqual(256             ) ;
+		expect(readScrollRows(source, -4, 3)                                                              ).toEqual            (rows.slice(0, 3)) ;
+		expect(readScrollRows(source, 599.8, 20)                                                          ).toEqual            ([rows[599]]     ) ;
+		expect(() => getScrollRowCount({ rowCount: Number.NaN, rows: () => ["bad"] } as ScrollRowSource)  ).toThrow            ("rowCount"      ) ;
+		expect(() => readScrollRows({ rowCount: 4, rows: () => null } as unknown as ScrollRowSource, 0, 4)).toThrow            ("rows"          ) ;
+		expect(() => readScrollRows({ rowCount: 4, rows: () => ["short"] } as ScrollRowSource, 0, 4)      ).toThrow            ("4 rows"        ) ;
 	});
 
 	test("preserves dense follow, disable-follow, append, and viewport-resize state", () => {
@@ -165,10 +165,10 @@ describe("pi-tui lazy scroll row source", () => {
 		const compare = (height: number) => {
 			const dense = frameFor(denseContent, denseScroll, 24, height);
 			const lazy = frameFor(lazyContent, lazyScroll, 24, height);
-			expect(lazy.lines).toEqual(dense.lines);
-			expect(lazyScroll.scrollTop).toBe(denseScroll.scrollTop);
-			expect(lazyScroll.viewportHeight).toBe(denseScroll.viewportHeight);
-			expect(lazyScroll.isFollowingEnd).toBe(denseScroll.isFollowingEnd);
+			expect(lazy.lines               ).toEqual(dense.lines               ) ;
+			expect(lazyScroll.scrollTop     ).toBe   (denseScroll.scrollTop     ) ;
+			expect(lazyScroll.viewportHeight).toBe   (denseScroll.viewportHeight) ;
+			expect(lazyScroll.isFollowingEnd).toBe   (denseScroll.isFollowingEnd) ;
 		};
 
 		compare(6);
@@ -189,9 +189,9 @@ describe("pi-tui lazy scroll row source", () => {
 		rows.push("suppressed-at-end-append");
 		const before = lazyScroll.scrollTop;
 		compare(8);
-		expect(lazyScroll.scrollTop).toBe(before);
-		expect(lazyScroll.isFollowingEnd).toBe(false);
-		expect(lazyContent.renderCalls).toBe(0);
+		expect(lazyScroll.scrollTop     ).toBe(before) ;
+		expect(lazyScroll.isFollowingEnd).toBe(false ) ;
+		expect(lazyContent.renderCalls  ).toBe(0     ) ;
 	});
 
 	test("keeps prompt navigation, full search, and selection-copy on the public alt-screen path", () => {
@@ -237,11 +237,11 @@ describe("pi-tui lazy scroll row source", () => {
 			terminal.input("\x1b[70;6u");
 			terminal.input("needle");
 			tui.renderNow();
-			expect(tui.viewportTop).toBe(508);
-			expect(tui.viewportTop).toBeLessThanOrEqual(510);
-			expect(tui.viewportTop + scroll.viewportHeight).toBeGreaterThan(510);
-			expect(content.requests.length).toBeGreaterThan(1);
-			expect(Math.max(...content.requests.map(request => request.count))).toBeLessThanOrEqual(256);
+			expect(tui.viewportTop                                            ).toBe               (508) ;
+			expect(tui.viewportTop                                            ).toBeLessThanOrEqual(510) ;
+			expect(tui.viewportTop + scroll.viewportHeight                    ).toBeGreaterThan    (510) ;
+			expect(content.requests.length                                    ).toBeGreaterThan    (1  ) ;
+			expect(Math.max(...content.requests.map(request => request.count))).toBeLessThanOrEqual(256) ;
 
 			terminal.input("\x1b");
 			tui.renderNow();

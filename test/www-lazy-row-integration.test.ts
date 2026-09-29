@@ -120,9 +120,9 @@ test("실제 WwwWorkspace frame은 dense oracle과 같고 viewport 범위만 요
 	const full          = readScrollRows(box.scrollContent!, 0, box.children[0]!.rect.height) ;
 	const dense         = denseOracle(snapshot, box.children[0]!.rect.width)                  ;
 
-	expect(full).toEqual(dense);
-	expect(frameRequests.length).toBeGreaterThan(0);
-	expect(frameRequests.every(request => request.count <= scroll.viewportHeight + 4)).toBe(true);
+	expect(full                                                                      ).toEqual        (dense) ;
+	expect(frameRequests.length                                                      ).toBeGreaterThan(0    ) ;
+	expect(frameRequests.every(request => request.count <= scroll.viewportHeight + 4)).toBe           (true ) ;
 });
 
 test("실제 WwwWorkspace frame은 새 volatile draft를 count와 paint 사이 재사용한다", () => {
@@ -141,10 +141,10 @@ test("실제 WwwWorkspace frame은 새 volatile draft를 count와 paint 사이 �
 	const full  = readScrollRows(box.scrollContent!, 0, getScrollRowCount(box.scrollContent!))         ;
 	const dense = new WwwInset(new WwwTranscriptView(snapshot), 1).render(box.children[0]!.rect.width) ;
 
-	expect(full).toEqual(dense);
-	expect(stripTerminalSequences(frame.lines.join("\n"))).toContain("긴 문단");
-	expect(after.exactCountBuilds - before.exactCountBuilds).toBe(1);
-	expect(after.renderedBlocks - before.renderedBlocks).toBe(1);
+	expect(full                                            ).toEqual  (dense    ) ;
+	expect(stripTerminalSequences(frame.lines.join("\n"))  ).toContain("긴 문단") ;
+	expect(after.exactCountBuilds - before.exactCountBuilds).toBe     (1        ) ;
+	expect(after.renderedBlocks - before.renderedBlocks    ).toBe     (1        ) ;
 });
 
 test("두 폭을 방문한 immutable large-body history의 durable append는 기존 block count를 다시 만들지 않는다", () => {
@@ -184,14 +184,14 @@ test("두 폭을 방문한 immutable large-body history의 durable append는 기
 	const freshPublicReference = new WwwInset(new WwwTranscriptView(snapshot), 1).render(box.children[0]!.rect.width) ;
 	const plain                = stripTerminalSequences(full.join("\n"))                                              ;
 
-	expect(full).toEqual(freshPublicReference);
-	expect(box.children[0]!.rect.height).toBe(rowCount);
-	expect(plain).toContain("large-body-marker-0");
-	expect(plain).toContain("large-body-marker-255");
-	expect(plain).toContain("large-body-append-marker");
-	expect(afterFirstFrame.durableCountReusedBlocks - before.durableCountReusedBlocks).toBe(256 * 2);
-	expect(afterFirstFrame.durableCountRenderedBlocks - before.durableCountRenderedBlocks).toBe(2);
-	expect(afterFirstFrame.renderedBlocks - before.renderedBlocks).toBe(4);
+	expect(full                                                                          ).toEqual  (freshPublicReference      ) ;
+	expect(box.children[0]!.rect.height                                                  ).toBe     (rowCount                  ) ;
+	expect(plain                                                                         ).toContain("large-body-marker-0"     ) ;
+	expect(plain                                                                         ).toContain("large-body-marker-255"   ) ;
+	expect(plain                                                                         ).toContain("large-body-append-marker") ;
+	expect(afterFirstFrame.durableCountReusedBlocks - before.durableCountReusedBlocks    ).toBe     (256 * 2                   ) ;
+	expect(afterFirstFrame.durableCountRenderedBlocks - before.durableCountRenderedBlocks).toBe     (2                         ) ;
+	expect(afterFirstFrame.renderedBlocks - before.renderedBlocks                        ).toBe     (4                         ) ;
 }, 30_000);
 
 test("100개 volatile draft revision은 이전 handoff rows를 남기지 않는다", () => {
@@ -208,10 +208,10 @@ test("100개 volatile draft revision은 이전 handoff rows를 남기지 않는�
 	}
 	const after = workspace.transcript.cacheMetrics();
 
-	expect(stripTerminalSequences(frame.lines.join("\n"))).toContain("const value = 99;");
-	expect(after.exactCountBuilds - before.exactCountBuilds).toBe(100);
-	expect(after.renderedBlocks - before.renderedBlocks).toBe(100);
-	expect(after.rowLogicalBytes).toBeLessThanOrEqual(8 * 1024 * 1024);
+	expect(stripTerminalSequences(frame.lines.join("\n"))  ).toContain          ("const value = 99;") ;
+	expect(after.exactCountBuilds - before.exactCountBuilds).toBe               (100                ) ;
+	expect(after.renderedBlocks - before.renderedBlocks    ).toBe               (100                ) ;
+	expect(after.rowLogicalBytes                           ).toBeLessThanOrEqual(8 * 1024 * 1024    ) ;
 });
 
 test("exact source는 expanded/thread/append/draft/error 세대에서도 full range와 chunk range가 같다", () => {
@@ -266,9 +266,9 @@ test("exact height는 follow-tail, disable-follow와 scrollbar geometry를 유�
 	frame = renderLayoutFrame(workspace.component, 80, 20, () => undefined);
 	box = getScrollViewBox(frame, scroll)!;
 	const geometry = getScrollbarGeometry(box)!;
-	expect(scroll.isFollowingEnd).toBe(false);
-	expect(scroll.scrollTop).toBe(readingTop);
-	expect(geometry.maxScrollTop).toBe(box.children[0]!.rect.height - box.rect.height);
+	expect(scroll.isFollowingEnd).toBe(false                                         ) ;
+	expect(scroll.scrollTop     ).toBe(readingTop                                    ) ;
+	expect(geometry.maxScrollTop).toBe(box.children[0]!.rect.height - box.rect.height) ;
 });
 
 test("실제 lazy WwwWorkspace는 폭 왕복 뒤 읽던 marker와 follow=false를 보존한다", () => {
@@ -317,10 +317,10 @@ test("중복 본문 anchor는 실제 dense와 lazy frame에서 같은 first-matc
 	for (const width of [120, 80, 40, 120]) {
 		const lazyFrame = renderLayoutFrame(lazyScroll, width, 20, () => undefined);
 		const denseFrame = renderLayoutFrame(denseScroll, width, 20, () => undefined);
-		expect(lazyFrame.lines).toEqual(denseFrame.lines);
-		expect(lazyScroll.scrollTop).toBe(denseScroll.scrollTop);
-		expect(lazyScroll.isFollowingEnd).toBe(false);
-		expect(denseScroll.isFollowingEnd).toBe(false);
+		expect(lazyFrame.lines           ).toEqual(denseFrame.lines     ) ;
+		expect(lazyScroll.scrollTop      ).toBe   (denseScroll.scrollTop) ;
+		expect(lazyScroll.isFollowingEnd ).toBe   (false                ) ;
+		expect(denseScroll.isFollowingEnd).toBe   (false                ) ;
 	}
 });
 
@@ -343,8 +343,8 @@ test("과거를 읽을 때 volatile draft handoff는 marker와 disable-follow를
 	const visible      = afterFrame.lines.map(stripTerminalSequences).join("\n")          ;
 
 	expect(marker).toBeDefined();
-	expect(visible).toContain(marker!);
-	expect(scroll.scrollTop).toBe(beforeTop);
-	expect(scroll.isFollowingEnd).toBe(false);
-	expect(afterMetrics.renderedBlocks - beforeMetrics.renderedBlocks).toBe(1);
+	expect(visible                                                   ).toContain(marker!  ) ;
+	expect(scroll.scrollTop                                          ).toBe     (beforeTop) ;
+	expect(scroll.isFollowingEnd                                     ).toBe     (false    ) ;
+	expect(afterMetrics.renderedBlocks - beforeMetrics.renderedBlocks).toBe     (1        ) ;
 });

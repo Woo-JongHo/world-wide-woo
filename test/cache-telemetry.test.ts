@@ -27,9 +27,9 @@ describe("Cache telemetry", () => {
 			"dashboard-data",
 			"session-read",
 		]);
-		expect(snapshot.layers.find(layer => layer.id === "render")).toMatchObject({ state: "ready", entries: 24, logicalBytes: 1_024 });
-		expect(snapshot.layers.find(layer => layer.id === "transcript")).toMatchObject({ state: "unobserved", entries: null, logicalBytes: null });
-		expect(snapshot.totals).toEqual({ entries: 24, logicalBytes: 1_024, hits: 9, misses: 1, evictions: 2 });
+		expect(snapshot.layers.find(layer => layer.id === "render")    ).toMatchObject({ state: "ready", entries: 24, logicalBytes: 1_024 }                  ) ;
+		expect(snapshot.layers.find(layer => layer.id === "transcript")).toMatchObject({ state: "unobserved", entries: null, logicalBytes: null }            ) ;
+		expect(snapshot.totals                                         ).toEqual      ({ entries: 24, logicalBytes: 1_024, hits: 9, misses: 1, evictions: 2 }) ;
 	});
 
 	test("projects only instrumented cache owners and leaves the other five layers unobserved", () => {
@@ -97,8 +97,8 @@ describe("Cache telemetry", () => {
 			usage: { entries: 5, hits: 3, misses: 2, evictions: 1, lastAccessedAt: "2026-09-22T00:00:00.000Z" },
 		});
 
-		expect(snapshot.layers).toHaveLength(7);
-		expect(snapshot.layers.every(layer => layer.state === "ready")).toBe(true);
-		expect(snapshot.layers.find(layer => layer.id === "usage-snapshot")).toMatchObject({ entries: 5, hits: 3, misses: 2, evictions: 1 });
+		expect(snapshot.layers                                             ).toHaveLength (7                                               ) ;
+		expect(snapshot.layers.every(layer => layer.state === "ready")     ).toBe         (true                                            ) ;
+		expect(snapshot.layers.find(layer => layer.id === "usage-snapshot")).toMatchObject({ entries: 5, hits: 3, misses: 2, evictions: 1 }) ;
 	});
 });

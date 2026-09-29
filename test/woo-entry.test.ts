@@ -14,11 +14,11 @@ describe("WooEntry", () => {
 		const entry = new WooEntry({ collect: async () => ({ source: { root: "/wes", runner: "hooks/wes_entry.py" }, payload }) });
 		await entry.refresh();
 		const turn = entry.prepareTurn({ threadId: "t", text: "hi", approvalPolicy: "on-request", additionalContext: { existing: { kind: "application", value: "keep" } } });
-		expect(turn.approvalPolicy).toBe("on-request");
-		expect(turn.additionalContext?.existing?.value).toBe("keep");
-		expect(turn.additionalContext?.woo_entry_policy?.kind).toBe("application");
-		expect(turn.additionalContext?.woo_entry_snapshot?.kind).toBe("untrusted");
-		expect(turn.additionalContext?.woo_entry_snapshot?.value).toContain("stale-revision");
+		expect(turn.approvalPolicy                              ).toBe     ("on-request"    ) ;
+		expect(turn.additionalContext?.existing?.value          ).toBe     ("keep"          ) ;
+		expect(turn.additionalContext?.woo_entry_policy?.kind   ).toBe     ("application"   ) ;
+		expect(turn.additionalContext?.woo_entry_snapshot?.kind ).toBe     ("untrusted"     ) ;
+		expect(turn.additionalContext?.woo_entry_snapshot?.value).toContain("stale-revision") ;
 	});
 	test("coalesces concurrent refresh and atomically replaces ready state with blocked", async () => {
 		let calls                          = 0                                                                                                                                                             ;

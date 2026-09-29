@@ -46,9 +46,9 @@ describe("repository insights", () => {
 			],
 			head: { id: commit, shortId: commit.slice(0, 7), subject: "latest", author: "Ada", authoredAt: "2026-08-31T00:00:00Z" },
 		});
-		expect(mock.calls.every(call => call.cwd === "/repo" || call.cwd === "/start")).toBe(true);
-		expect(mock.calls[2]!.args).toEqual(["-c", "core.quotepath=false", "status", "--porcelain=v1", "-z"]);
-		expect(mock.calls.every(call => call.timeoutMs === 1234)).toBe(true);
+		expect(mock.calls.every(call => call.cwd === "/repo" || call.cwd === "/start")).toBe   (true                                                            ) ;
+		expect(mock.calls[2]!.args                                                    ).toEqual(["-c", "core.quotepath=false", "status", "--porcelain=v1", "-z"]) ;
+		expect(mock.calls.every(call => call.timeoutMs === 1234)                      ).toBe   (true                                                            ) ;
 	});
 
 	test("supports clean repositories without an upstream", async () => {
@@ -69,9 +69,9 @@ describe("repository insights", () => {
 	test("reads open issue labels from the current repository", async () => {
 		const mock = runner({ stdout: JSON.stringify([{ number: 7, title: "Bug", state: "OPEN", labels: [{ name: "bug" }, { name: "priority" }], updatedAt: "2026-08-31T00:00:00Z", url: "https://github.com/acme/repo/issues/7" }]) });
 		const issues = await new GitHubRepositoryInsights("/repo", mock.run).issues("open", 3);
-		expect(issues).toEqual([{ number: 7, title: "Bug", state: "open", labels: ["bug", "priority"], updatedAt: "2026-08-31T00:00:00Z", url: "https://github.com/acme/repo/issues/7" }]);
-		expect(mock.calls[0]).toMatchObject({ command: "gh", cwd: "/repo" });
-		expect(mock.calls[0]!.args).toEqual(["issue", "list", "--state", "open", "--limit", "3", "--json", "number,title,state,labels,updatedAt,url"]);
+		expect(issues             ).toEqual      ([{ number: 7, title: "Bug", state: "open", labels: ["bug", "priority"], updatedAt: "2026-08-31T00:00:00Z", url: "https://github.com/acme/repo/issues/7" }]) ;
+		expect(mock.calls[0]      ).toMatchObject({ command: "gh", cwd: "/repo" }                                                                                                                           ) ;
+		expect(mock.calls[0]!.args).toEqual      (["issue", "list", "--state", "open", "--limit", "3", "--json", "number,title,state,labels,updatedAt,url"]                                                 ) ;
 	});
 
 	test("returns bounded, redacted command errors without raw output", async () => {

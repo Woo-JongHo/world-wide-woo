@@ -158,9 +158,9 @@ describe("WorkStepCard executor highlighting", () => {
 			activity: toolActivity(),
 		}).render(88).join("\n"));
 
-		expect(rendered).not.toContain("입력 요약");
-		expect(rendered).not.toContain("출력 요약");
-		expect(rendered).toContain("query: UX");
+		expect(rendered).not.toContain("입력 요약") ;
+		expect(rendered).not.toContain("출력 요약") ;
+		expect(rendered)    .toContain("query: UX") ;
 	});
 
 	test("labels an unplanned action as Bash, Edit, or Tool while keeping the Bash block", () => {
@@ -177,13 +177,13 @@ describe("WorkStepCard executor highlighting", () => {
 			mode: "action",
 		}).render(88).join("\n"));
 
-		expect(bash).toContain("✔ Bash · PASSED");
-		expect(bash).toContain("│ $ bun test --filter 'work step'");
-		expect(edit).toContain("✓ CHANGE  project-workbench.ts");
-		expect(edit).toContain("+2  -1");
-		expect(edit).toContain("✓ CHANGE  project-workbench-recording.test.ts");
-		expect(edit).not.toContain("공개 Source 일부 생략");
-		expect(tool).toContain("✔ Tool · PASSED");
+		expect(bash)    .toContain("✔ Bash · PASSED"                              ) ;
+		expect(bash)    .toContain("│ $ bun test --filter 'work step'"            ) ;
+		expect(edit)    .toContain("✓ CHANGE  project-workbench.ts"               ) ;
+		expect(edit)    .toContain("+2  -1"                                       ) ;
+		expect(edit)    .toContain("✓ CHANGE  project-workbench-recording.test.ts") ;
+		expect(edit).not.toContain("공개 Source 일부 생략"                        ) ;
+		expect(tool)    .toContain("✔ Tool · PASSED"                              ) ;
 	});
 
 	test("renders semantic unified diff rows below a CHANGE header", () => {
@@ -193,34 +193,34 @@ describe("WorkStepCard executor highlighting", () => {
 		}).render(88);
 		const text = rows.map(row => stripTerminalSequences(row));
 
-		expect(text[0]).toContain("✓ CHANGE  project-comment-candidate.json  +2  -1  done");
-		expect(text.some(row => row.includes("│ @@ -64,3 +64,4 @@"))).toBe(true);
-		expect(text.some(row => row.includes("│ -  \"candidateDigest\": \"000000000000\""))).toBe(true);
-		expect(text.some(row => row.includes("│ +  \"candidateDigest\": \"bf53a667ec99\""))).toBe(true);
-		expect(text.some(row => row.includes("│ +  \"reason\": \"기존 규칙 문서를 조사했다\""))).toBe(true);
-		expect(text.some(row => row.includes("│    \"expression\": \"A+B-C\""))).toBe(true);
-		expect(text.some(row => row.includes("│ … 54 diff lines omitted"))).toBe(true);
-		expect(text.every(row => visibleWidth(row) === 88)).toBe(true);
+		expect(text[0]                                                                         ).toContain("✓ CHANGE  project-comment-candidate.json  +2  -1  done") ;
+		expect(text.some(row => row.includes("│ @@ -64,3 +64,4 @@"))                           ).toBe     (true                                                    ) ;
+		expect(text.some(row => row.includes("│ -  \"candidateDigest\": \"000000000000\""))    ).toBe     (true                                                    ) ;
+		expect(text.some(row => row.includes("│ +  \"candidateDigest\": \"bf53a667ec99\""))    ).toBe     (true                                                    ) ;
+		expect(text.some(row => row.includes("│ +  \"reason\": \"기존 규칙 문서를 조사했다\""))).toBe     (true                                                    ) ;
+		expect(text.some(row => row.includes("│    \"expression\": \"A+B-C\""))                ).toBe     (true                                                    ) ;
+		expect(text.some(row => row.includes("│ … 54 diff lines omitted"))                     ).toBe     (true                                                    ) ;
+		expect(text.every(row => visibleWidth(row) === 88)                                     ).toBe     (true                                                    ) ;
 	});
 
 	test("classifies unified diff roles before rendering color", () => {
-		expect(classifyDiffLine("+++ b/test.ts").kind).toBe("meta");
-		expect(classifyDiffLine("--- a/test.ts").kind).toBe("meta");
-		expect(classifyDiffLine("@@ -1,2 +1,2 @@").kind).toBe("hunk");
-		expect(classifyDiffLine("+added").kind).toBe("addition");
-		expect(classifyDiffLine("-removed").kind).toBe("deletion");
-		expect(classifyDiffLine("  A+B-C").kind).toBe("context");
-		expect(classifyDiffLine("… 54 diff lines omitted").kind).toBe("omitted");
+		expect(classifyDiffLine("+++ b/test.ts").kind          ).toBe("meta"    ) ;
+		expect(classifyDiffLine("--- a/test.ts").kind          ).toBe("meta"    ) ;
+		expect(classifyDiffLine("@@ -1,2 +1,2 @@").kind        ).toBe("hunk"    ) ;
+		expect(classifyDiffLine("+added").kind                 ).toBe("addition") ;
+		expect(classifyDiffLine("-removed").kind               ).toBe("deletion") ;
+		expect(classifyDiffLine("  A+B-C").kind                ).toBe("context" ) ;
+		expect(classifyDiffLine("… 54 diff lines omitted").kind).toBe("omitted" ) ;
 	});
 
 	test("renders legacy transcript file changes as compact CHANGE rows", () => {
 		const output = stripTerminalSequences(wwwToolRows(fileChangeActivity(), 100, false).join("\n"));
 
-		expect(output).toContain("✓ ✎ Edit  project-workbench.ts");
-		expect(output).toContain("+2  -1");
-		expect(output).toContain("done");
-		expect(output).not.toContain("공개 Source 일부 생략");
-		expect(output).not.toContain("/Users/");
+		expect(output)    .toContain("✓ ✎ Edit  project-workbench.ts") ;
+		expect(output)    .toContain("+2  -1"                        ) ;
+		expect(output)    .toContain("done"                          ) ;
+		expect(output).not.toContain("공개 Source 일부 생략"         ) ;
+		expect(output).not.toContain("/Users/"                       ) ;
 	});
 
 	test("marks collapsed command executions with the Terminal icon", () => {
@@ -238,15 +238,15 @@ describe("WorkStepCard executor highlighting", () => {
 		}).render(88);
 		const text = rendered.map((line) => stripTerminalSequences(line));
 
-		expect(text[1]?.trimEnd()).toBe("명령 실행 · bun test --filter 'work step'");
-		expect(text[2]?.trimEnd()).toBe("왜 하는지: 명령 결과를 확인해 다음 작업을 안전하게 진행합니다.");
-		expect(text[3]).toStartWith("┌─── ✔ Bash ");
-		expect(text.some((line) => line.includes("│ $ bun test --filter 'work step'"))).toBe(true);
-		expect(text.some((line) => line.startsWith("├─── Output "))).toBe(true);
-		expect(text.some((line) => line.includes("… (11 earlier lines, showing 5 of 16)"))).toBe(true);
-		expect(text.some((line) => line.includes("⟦Exit: 0⟧"))).toBe(true);
-		expect(text.at(-1)).toStartWith("└───");
-		expect(rendered.every((line) => visibleWidth(line) === 88)).toBe(true);
+		expect(text[1]?.trimEnd()                                                         ).toBe       ("명령 실행 · bun test --filter 'work step'"                     ) ;
+		expect(text[2]?.trimEnd()                                                         ).toBe       ("왜 하는지: 명령 결과를 확인해 다음 작업을 안전하게 진행합니다.") ;
+		expect(text[3]                                                                    ).toStartWith("┌─── ✔ Bash "                                                  ) ;
+		expect(text.some((line) => line.includes("│ $ bun test --filter 'work step'"))    ).toBe       (true                                                            ) ;
+		expect(text.some((line) => line.startsWith("├─── Output "))                       ).toBe       (true                                                            ) ;
+		expect(text.some((line) => line.includes("… (11 earlier lines, showing 5 of 16)"))).toBe       (true                                                            ) ;
+		expect(text.some((line) => line.includes("⟦Exit: 0⟧"))                            ).toBe       (true                                                            ) ;
+		expect(text.at(-1)                                                                ).toStartWith("└───"                                                          ) ;
+		expect(rendered.every((line) => visibleWidth(line) === 88)                        ).toBe       (true                                                            ) ;
 	});
 
 	test("shortens repeated native paths at the presentation boundary without conflating external paths", () => {
@@ -269,13 +269,13 @@ describe("WorkStepCard executor highlighting", () => {
 			},
 		}).render(120).join("\n"));
 
-		expect(rendered).toContain("$PROJECT/src/app.ts");
-		expect(rendered).toContain("$PROJECT/test/work-step-card-highlight.test.ts");
-		expect(rendered).toContain("~/other-project/src/app.ts");
-		expect(rendered).not.toContain(project);
-		expect(item.command).toBe(`bun test ${project}/test/work-step-card-highlight.test.ts`);
-		expect(item.aggregatedOutput).toBe(`${project}/src/app.ts\n${outside}`);
-		expect(rendered.split("\n").every((line) => visibleWidth(line) === 120)).toBe(true);
+		expect(rendered                                                        )    .toContain("$PROJECT/src/app.ts"                                      ) ;
+		expect(rendered                                                        )    .toContain("$PROJECT/test/work-step-card-highlight.test.ts"           ) ;
+		expect(rendered                                                        )    .toContain("~/other-project/src/app.ts"                               ) ;
+		expect(rendered                                                        ).not.toContain(project                                                    ) ;
+		expect(item.command                                                    )    .toBe     (`bun test ${project}/test/work-step-card-highlight.test.ts`) ;
+		expect(item.aggregatedOutput                                           )    .toBe     (`${project}/src/app.ts\n${outside}`                        ) ;
+		expect(rendered.split("\n").every((line) => visibleWidth(line) === 120))    .toBe     (true                                                       ) ;
 	});
 
 	test("projects project, home, sibling, outside, false-prefix, and Windows paths on component boundaries", () => {
@@ -313,10 +313,10 @@ describe("WorkStepCard executor highlighting", () => {
 		};
 		const text = stripTerminalSequences(new BashResultCard(snapshot).render(120).join("\n"));
 
-		expect(text).toContain("$PROJECT/test/work-step-card-highlight.test.ts");
-		expect(text).toContain("$PROJECT/src/app.ts");
-		expect(snapshot.command).toBe(`bun test ${project}/test/work-step-card-highlight.test.ts`);
-		expect(snapshot.stdout).toBe(`${project}/src/app.ts`);
+		expect(text            ).toContain("$PROJECT/test/work-step-card-highlight.test.ts"           ) ;
+		expect(text            ).toContain("$PROJECT/src/app.ts"                                      ) ;
+		expect(snapshot.command).toBe     (`bun test ${project}/test/work-step-card-highlight.test.ts`) ;
+		expect(snapshot.stdout ).toBe     (`${project}/src/app.ts`                                    ) ;
 	});
 
 	test("projects file-change and read what paths without narration while preserving raw activities", () => {
@@ -336,10 +336,10 @@ describe("WorkStepCard executor highlighting", () => {
 		const fileText = stripTerminalSequences(new WorkStepCard({ stepNumber: 1, activity: fileChange }).render(120).join("\n"));
 		const readText = stripTerminalSequences(new WorkStepCard({ stepNumber: 2, activity: read }).render(120).join("\n"));
 
-		expect(fileText).toContain("파일 변경 · $PROJECT/src/app.ts");
-		expect(readText).toContain("파일 확인 · $PROJECT/src/app.ts");
-		expect(fileItem.path).toBe(file);
-		expect(readItem.path).toBe(file);
+		expect(fileText     ).toContain("파일 변경 · $PROJECT/src/app.ts") ;
+		expect(readText     ).toContain("파일 확인 · $PROJECT/src/app.ts") ;
+		expect(fileItem.path).toBe     (file                             ) ;
+		expect(readItem.path).toBe     (file                             ) ;
 	});
 
 	test("leaves short relative paths unchanged", () => {
@@ -368,12 +368,12 @@ describe("WorkStepCard executor highlighting", () => {
 			narration  : flow.steps[0]!.narration,
 		}).render(88).join("\n"));
 
-		expect(rendered).toContain("단계 7 · PASSED");
-		expect(rendered).toContain("검증 명령의 결과를 확인합니다.");
-		expect(rendered).not.toContain("무엇을 하고 있는지:");
-		expect(rendered).toContain("왜 하는지: 완료 상태를 신뢰할 수 있는지 판단하기 위해서입니다.");
-		expect(rendered).toContain("$ bun test --filter 'work step'");
-		expect(rendered).toContain("line 1");
+		expect(rendered)    .toContain("단계 7 · PASSED"                                               ) ;
+		expect(rendered)    .toContain("검증 명령의 결과를 확인합니다."                                ) ;
+		expect(rendered).not.toContain("무엇을 하고 있는지:"                                           ) ;
+		expect(rendered)    .toContain("왜 하는지: 완료 상태를 신뢰할 수 있는지 판단하기 위해서입니다.") ;
+		expect(rendered)    .toContain("$ bun test --filter 'work step'"                               ) ;
+		expect(rendered)    .toContain("line 1"                                                        ) ;
 		const lines = rendered.split("\n").map((line) => line.trimEnd())                              ;
 		const what  = lines.indexOf("검증 명령의 결과를 확인합니다.")                                 ;
 		const why   = lines.indexOf("왜 하는지: 완료 상태를 신뢰할 수 있는지 판단하기 위해서입니다.") ;
@@ -383,16 +383,16 @@ describe("WorkStepCard executor highlighting", () => {
 	});
 
 	test("classifies execution output by semantic meaning", () => {
-		expect(executionLineTone("12 pass", "output")).toBe("success");
-		expect(executionLineTone("1 fail", "output")).toBe("error");
-		expect(executionLineTone("stderr: permission denied", "output")).toBe("error");
-		expect(executionLineTone("+added line", "output")).toBe("diff-added");
-		expect(executionLineTone(" M src/app.ts", "output")).toBe("git-modified");
-		expect(executionLineTone("?? notes.md", "output")).toBe("git-untracked");
-		expect(executionLineTone("diff --git a/src/app.ts b/src/app.ts", "output")).toBe("diff-header");
-		expect(executionLineTone("@@ -1,2 +1,3 @@", "output")).toBe("diff-header");
-		expect(executionLineTone("+++ b/src/app.ts", "output")).toBe("diff-added");
-		expect(executionLineTone("command: bun test", "input")).toBe("command");
+		expect(executionLineTone("12 pass", "output")                             ).toBe("success"      ) ;
+		expect(executionLineTone("1 fail", "output")                              ).toBe("error"        ) ;
+		expect(executionLineTone("stderr: permission denied", "output")           ).toBe("error"        ) ;
+		expect(executionLineTone("+added line", "output")                         ).toBe("diff-added"   ) ;
+		expect(executionLineTone(" M src/app.ts", "output")                       ).toBe("git-modified" ) ;
+		expect(executionLineTone("?? notes.md", "output")                         ).toBe("git-untracked") ;
+		expect(executionLineTone("diff --git a/src/app.ts b/src/app.ts", "output")).toBe("diff-header"  ) ;
+		expect(executionLineTone("@@ -1,2 +1,3 @@", "output")                     ).toBe("diff-header"  ) ;
+		expect(executionLineTone("+++ b/src/app.ts", "output")                    ).toBe("diff-added"   ) ;
+		expect(executionLineTone("command: bun test", "input")                    ).toBe("command"      ) ;
 	});
 
 	test("connects native Bash highlighting without changing public text", () => {
@@ -401,9 +401,9 @@ describe("WorkStepCard executor highlighting", () => {
 			activity: commandActivity("12 pass\n1 fail"),
 		}).render(80).join("\n");
 
-		expect(rendered).toContain("\u001b[38;2;");
-		expect(stripTerminalSequences(rendered)).toContain("$ bun test --filter 'work step'");
-		expect(rendered.split("\n").every((line) => visibleWidth(line) === 80)).toBe(true);
+		expect(rendered                                                       ).toContain("\u001b[38;2;"                   ) ;
+		expect(stripTerminalSequences(rendered)                               ).toContain("$ bun test --filter 'work step'") ;
+		expect(rendered.split("\n").every((line) => visibleWidth(line) === 80)).toBe     (true                             ) ;
 	});
 
 	test("pretty prints and highlights native structured tool output like generic tools", () => {
@@ -446,12 +446,12 @@ describe("WorkStepCard executor highlighting", () => {
 
 		const rendered = new ObservationCard({ activity }).render(100).join("\n");
 		const text = stripTerminalSequences(rendered);
-		expect(rendered).toContain("\u001b[38;2;");
-		expect(text).toContain('args: {"path":"report.json"}');
-		expect(text).toContain('"answer": 42');
-		expect(text).not.toContain("structuredContent");
-		expect(text).not.toContain("fallback");
-		expect(text).not.toContain("secret-value");
+		expect(rendered)    .toContain("\u001b[38;2;"                ) ;
+		expect(text    )    .toContain('args: {"path":"report.json"}') ;
+		expect(text    )    .toContain('"answer": 42'                ) ;
+		expect(text    ).not.toContain("structuredContent"           ) ;
+		expect(text    ).not.toContain("fallback"                    ) ;
+		expect(text    ).not.toContain("secret-value"                ) ;
 	});
 
 	test("renders text from a Codex mcpToolCall result.content envelope", () => {
@@ -468,9 +468,9 @@ describe("WorkStepCard executor highlighting", () => {
 			activity,
 		}).render(100).join("\n");
 		const text = stripTerminalSequences(rendered);
-		expect(rendered).toContain("\u001b[38;2;");
-		expect(text).toContain("enabled: true");
-		expect(text).not.toContain('"content":');
+		expect(rendered)    .toContain("\u001b[38;2;" ) ;
+		expect(text    )    .toContain("enabled: true") ;
+		expect(text    ).not.toContain('"content":'   ) ;
 	});
 
 	test("keeps a semantic reason while narrator work is pending or has failed", () => {

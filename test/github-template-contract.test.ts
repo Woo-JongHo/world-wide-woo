@@ -9,17 +9,17 @@ const form = (name: string) => YAML.parse(readFileSync(join(root, ".github/ISSUE
 describe("GitHub templates mirror agent contracts", () => {
 	test("Bug form은 무접두어 제목과 문제·재현 최소 계약만 요구한다", () => {
 		const value = form("bug-report.yml");
-		expect(value.title).toBe("");
-		expect(value.labels).toEqual(["bug"]);
-		expect(value.body.filter(item => item.type !== "markdown").map(item => item.id)).toEqual(["observed", "reproduction"]);
+		expect(value.title                                                             ).toBe   (""                          ) ;
+		expect(value.labels                                                            ).toEqual(["bug"]                     ) ;
+		expect(value.body.filter(item => item.type !== "markdown").map(item => item.id)).toEqual(["observed", "reproduction"]) ;
 		expect(value.body.filter(item => item.type !== "markdown").every(item => item.validations?.required)).toBeTrue();
 	});
 
 	test("Enhancement form은 무접두어 제목과 요청·현재 불편만 요구한다", () => {
 		const value = form("feature-request.yml");
-		expect(value.title).toBe("");
-		expect(value.labels).toEqual(["enhancement"]);
-		expect(value.body.map(item => item.id)).toEqual(["problem", "inconvenience"]);
+		expect(value.title                    ).toBe   (""                          ) ;
+		expect(value.labels                   ).toEqual(["enhancement"]             ) ;
+		expect(value.body.map(item => item.id)).toEqual(["problem", "inconvenience"]) ;
 		expect(value.body.every(item => item.validations?.required)).toBeTrue();
 	});
 

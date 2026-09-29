@@ -43,13 +43,13 @@ describe("development map", () => {
 		});
 
 		const output = stripTerminalSequences(new DevelopmentMapView(() => snapshot).render(120).join("\n"));
-		expect(output).toContain("INIT-001");
-		expect(output).toContain("Esc 돌아가기");
-		expect(output).toContain("/dashboard");
-		expect(output).toContain("EP-010");
-		expect(output).toContain("ST-010-01");
-		expect(output).toContain("Evidence unknown · .www/evidence/ST-010-01.md");
-		expect(output).toContain("미연결 Epic");
+		expect(output).toContain("INIT-001"                                     ) ;
+		expect(output).toContain("Esc 돌아가기"                                 ) ;
+		expect(output).toContain("/dashboard"                                   ) ;
+		expect(output).toContain("EP-010"                                       ) ;
+		expect(output).toContain("ST-010-01"                                    ) ;
+		expect(output).toContain("Evidence unknown · .www/evidence/ST-010-01.md") ;
+		expect(output).toContain("미연결 Epic"                                  ) ;
 	});
 
 	test("surfaces unavailable and invalid sources instead of a normal empty snapshot", async () => {
@@ -146,10 +146,10 @@ describe("development map", () => {
 		const snapshot = await new FileDevelopmentMapSource(root).read();
 		expect(snapshot.sourceHealth.state).toBe("invalid");
 		const output = stripTerminalSequences(new DevelopmentMapView(() => snapshot).render(100).join("\n"));
-		expect(output).toContain("Initiative unknown");
-		expect(output).toContain("수락 unknown");
-		expect(output).not.toContain("Initiative 0");
-		expect(output).not.toContain("미수락 0");
+		expect(output)    .toContain("Initiative unknown") ;
+		expect(output)    .toContain("수락 unknown"      ) ;
+		expect(output).not.toContain("Initiative 0"      ) ;
+		expect(output).not.toContain("미수락 0"          ) ;
 	});
 
 	test("marks malformed Initiative identity and unknown Epic references invalid", async () => {

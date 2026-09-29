@@ -88,14 +88,14 @@ describe("todo domain", () => {
 
 	test("round trips strict markdown with visible status prefixes", () => {
 		const markdown = renderTodoMarkdown(document);
-		expect(markdown).toContain("- [x] Ship this");
-		expect(markdown).toContain("- [ ] 진행 중: Review this");
-		expect(markdown).toContain("  - [ ] 진행 중: Check release notes");
-		expect(markdown).toContain("- [ ] 막힘: Wait on input");
+		expect(markdown).toContain("- [x] Ship this"                     ) ;
+		expect(markdown).toContain("- [ ] 진행 중: Review this"          ) ;
+		expect(markdown).toContain("  - [ ] 진행 중: Check release notes") ;
+		expect(markdown).toContain("- [ ] 막힘: Wait on input"           ) ;
 		const parsed = parseTodoMarkdown(markdown);
-		expect(parsed).toEqual(document);
-		expect(Object.isFrozen(parsed.items)).toBe(true);
-		expect(Object.isFrozen(parsed.items[1]?.details)).toBe(true);
+		expect(parsed                                   ).toEqual(document) ;
+		expect(Object.isFrozen(parsed.items)            ).toBe   (true    ) ;
+		expect(Object.isFrozen(parsed.items[1]?.details)).toBe   (true    ) ;
 	});
 
 	test("patches managed CRLF ranges without changing unknown Markdown", () => {
@@ -109,10 +109,10 @@ describe("todo domain", () => {
 			items    : document.items.map(item => item.id === "three" ? { ...item, content: "Wait for approval" } : item),
 		});
 		const patched = patchTodoMarkdown(source, next);
-		expect(patched).toContain("> Obsidian note\r\n\r\n- [ ] human checkbox\r\n");
-		expect(patched).toContain("Wait for approval");
-		expect(patched.replaceAll("\r\n", "")).not.toContain("\n");
-		expect(parseTodoMarkdown(patched)).toEqual(next);
+		expect(patched                       )    .toContain("> Obsidian note\r\n\r\n- [ ] human checkbox\r\n") ;
+		expect(patched                       )    .toContain("Wait for approval"                              ) ;
+		expect(patched.replaceAll("\r\n", "")).not.toContain("\n"                                             ) ;
+		expect(parseTodoMarkdown(patched)    )    .toEqual  (next                                             ) ;
 	});
 
 	test("preserves each unowned Markdown line ending in a mixed LF and CRLF document", () => {
@@ -125,17 +125,17 @@ describe("todo domain", () => {
 			items    : document.items.map(item => item.id === "three" ? { ...item, content: "Wait for approval" } : item),
 		});
 		const patched = patchTodoMarkdown(source, next);
-		expect(source).toContain("> keep CRLF\n- [ ] human checkbox\r\n");
-		expect(patched).toContain("> keep CRLF\n- [ ] human checkbox\r\n");
-		expect(patched).toContain("Wait for approval");
-		expect(parseTodoMarkdown(patched)).toEqual(next);
+		expect(source                    ).toContain("> keep CRLF\n- [ ] human checkbox\r\n") ;
+		expect(patched                   ).toContain("> keep CRLF\n- [ ] human checkbox\r\n") ;
+		expect(patched                   ).toContain("Wait for approval"                    ) ;
+		expect(parseTodoMarkdown(patched)).toEqual  (next                                   ) ;
 	});
 
 	test("reports progress and rejects a second active item", () => {
 		const validated = validateTodoDocument(document);
-		expect(todoProgress(validated)).toEqual({ total: 3, completed: 1, active: 1, pending: 0, blocked: 1 });
-		expect(todoDetailProgress(validated)).toEqual({ total: 1, completed: 0, active: 1, pending: 0, blocked: 0 });
-		expect(() => validateTodoDocument({ ...document, items: [...document.items, { id: "four", content: "Also active", status: "in_progress", evidenceIds: [], details: [] }] })).toThrow("at most one");
+		expect(todoProgress(validated)                                                                                                                                             ).toEqual({ total: 3, completed: 1, active: 1, pending: 0, blocked: 1 }) ;
+		expect(todoDetailProgress(validated)                                                                                                                                       ).toEqual({ total: 1, completed: 0, active: 1, pending: 0, blocked: 0 }) ;
+		expect(() => validateTodoDocument({ ...document, items: [...document.items, { id: "four", content: "Also active", status: "in_progress", evidenceIds: [], details: [] }] })).toThrow("at most one"                                                ) ;
 	});
 
 	test("strips controls and redacts credential material before display", () => {
@@ -195,20 +195,20 @@ describe("todo domain", () => {
 				},
 			}],
 		};
-		expect(() => validateTodoDocument({ ...bound, items: [{ ...bound.items[0], id: "native-forged" }] })).toThrow("identity");
-		expect(() => validateTodoDocument({ ...bound, source: { ...nativeSource, turnId: "other-turn" } })).toThrow("execution");
-		expect(() => validateTodoDocument({ ...document, items: bound.items })).toThrow("document source");
+		expect(() => validateTodoDocument({ ...bound, items: [{ ...bound.items[0], id: "native-forged" }] })).toThrow("identity"       ) ;
+		expect(() => validateTodoDocument({ ...bound, source: { ...nativeSource, turnId: "other-turn" } })  ).toThrow("execution"      ) ;
+		expect(() => validateTodoDocument({ ...document, items: bound.items })                              ).toThrow("document source") ;
 	});
 
 	test("normalizes legacy flat documents and rejects orphan, nested, and invalid detail states", () => {
 		const legacy = validateTodoDocument({ ...document, items: [{ id: "one", content: "Legacy", status: "pending", evidenceIds: [] }] });
 		expect(legacy.items[0]?.details).toEqual([]);
 		const markdown = renderTodoMarkdown(document);
-		expect(() => parseTodoMarkdown(markdown.replace("  - [ ]", "   - [ ]"))).toThrow("indentation");
-		expect(() => parseTodoMarkdown(markdown.replace("- [x] Ship this", "  - [x] Ship this"))).toThrow("orphan");
-		expect(() => validateTodoDocument({ ...document, items: [{ id: "parent", content: "Done", status: "completed", evidenceIds: [], details: [{ id: "detail", content: "Not done", status: "pending", evidenceIds: [] }] }] })).toThrow("completed");
-		expect(() => validateTodoDocument({ ...document, items: [{ id: "parent", content: "Pending", status: "pending", evidenceIds: [], details: [{ id: "detail", content: "Active", status: "in_progress", evidenceIds: [] }] }] })).toThrow("active");
-		expect(() => validateTodoDocument({ ...document, items: [{ id: "parent", content: "Work", status: "in_progress", evidenceIds: [], details: [{ id: "parent", content: "Duplicate", status: "pending", evidenceIds: [] }] }] })).toThrow("duplicate");
-		expect(() => validateTodoDocument({ ...document, items: [{ id: "parent", content: "Work", status: "in_progress", evidenceIds: [], details: Array.from({ length: 9 }, (_, index) => ({ id: `detail_${index}`, content: "Detail", status: "pending" as const, evidenceIds: [] })) }] })).toThrow("detail count");
+		expect(() => parseTodoMarkdown(markdown.replace("  - [ ]", "   - [ ]"))                                                                                                                                                                                                              ).toThrow("indentation" ) ;
+		expect(() => parseTodoMarkdown(markdown.replace("- [x] Ship this", "  - [x] Ship this"))                                                                                                                                                                                             ).toThrow("orphan"      ) ;
+		expect(() => validateTodoDocument({ ...document, items: [{ id: "parent", content: "Done", status: "completed", evidenceIds: [], details: [{ id: "detail", content: "Not done", status: "pending", evidenceIds: [] }] }] })                                                           ).toThrow("completed"   ) ;
+		expect(() => validateTodoDocument({ ...document, items: [{ id: "parent", content: "Pending", status: "pending", evidenceIds: [], details: [{ id: "detail", content: "Active", status: "in_progress", evidenceIds: [] }] }] })                                                        ).toThrow("active"      ) ;
+		expect(() => validateTodoDocument({ ...document, items: [{ id: "parent", content: "Work", status: "in_progress", evidenceIds: [], details: [{ id: "parent", content: "Duplicate", status: "pending", evidenceIds: [] }] }] })                                                        ).toThrow("duplicate"   ) ;
+		expect(() => validateTodoDocument({ ...document, items: [{ id: "parent", content: "Work", status: "in_progress", evidenceIds: [], details: Array.from({ length: 9 }, (_, index) => ({ id: `detail_${index}`, content: "Detail", status: "pending" as const, evidenceIds: [] })) }] })).toThrow("detail count") ;
 	});
 });

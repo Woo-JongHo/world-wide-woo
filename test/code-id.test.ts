@@ -14,9 +14,9 @@ test("Code-ID는 문자열 예시를 선언으로 세지 않고 실제 선언·�
     writeFileSync(join(root, "src/chat.ts"), 'const example = `\n/** @codeId 9999 */\nclass Fake {}\n`;\n/** @codeId 0001 */\nexport class Chat {}\n');
     writeFileSync(join(root, "note.md"), '---\ncode_id: "0001"\n---\nChat');
     const code = { id: "0001", name: "Chat", locations: [{ path: "src/chat.ts", symbol: "Chat" }], linearIssueIds: ["WOO-679"], detail: "note.md" };
-    expect(validateCodeLinks([{ id: "WOO-679", description: "Code-ID: [0001](https://example.com/code)" }], [code])).toEqual([]);
-    expect(validateCodeLinks([{ id: "WOO-679", description: "Code-ID: 0002" }], [code])).toHaveLength(1);
-    expect(await validateCodeIds(root, [code])).toEqual([]);
+    expect(validateCodeLinks([{ id: "WOO-679", description: "Code-ID: [0001](https://example.com/code)" }], [code])).toEqual     ([]) ;
+    expect(validateCodeLinks([{ id: "WOO-679", description: "Code-ID: 0002" }], [code])                            ).toHaveLength(1 ) ;
+    expect(await validateCodeIds(root, [code])                                                                     ).toEqual     ([]) ;
     writeFileSync(join(root, "src/deleted-move.ts"), "export class DeletedMove {}\n");
     execFileSync("git", ["add", "src/deleted-move.ts"], { cwd: root });
     rmSync(join(root, "src/deleted-move.ts"));

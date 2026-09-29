@@ -40,10 +40,10 @@ describe("RPA Description Artifact 경로", () => {
 	test("공통 Candidate가 Project와 Task를 동일한 고정 엔진으로 렌더한다", () => {
 		const project = candidate("project");
 		const task = candidate("task");
-		expect(validateArtifactCandidate(project)).toEqual([]);
-		expect(validateArtifactCandidate(task)).toEqual([]);
-		expect(renderArtifactCandidate(project)).toBe(renderRpaProject(project.content.map as RpaDescriptionMap));
-		expect(renderArtifactCandidate(task)).toBe(renderRpaTask(task.content.map as RpaDescriptionMap, task.content.taskId as string));
+		expect(validateArtifactCandidate(project)).toEqual([]                                                                                 ) ;
+		expect(validateArtifactCandidate(task)   ).toEqual([]                                                                                 ) ;
+		expect(renderArtifactCandidate(project)  ).toBe   (renderRpaProject(project.content.map as RpaDescriptionMap)                         ) ;
+		expect(renderArtifactCandidate(task)     ).toBe   (renderRpaTask(task.content.map as RpaDescriptionMap, task.content.taskId as string)) ;
 	});
 
 	test("유효한 map이어도 다른 대상과 revision으로 게시할 수 없다", () => {

@@ -145,25 +145,25 @@ describe("Gajae-style delegation tree", () => {
 			ROOT_THREAD,
 			72,
 		);
-		expect(sections).toHaveLength(1);
-		expect(sections[0]!.anchorActivityId).toBe("irc-in");
-		expect(sections[0]!.activityIds).toHaveLength(7);
+		expect(sections                     ).toHaveLength(1       ) ;
+		expect(sections[0]!.anchorActivityId).toBe        ("irc-in") ;
+		expect(sections[0]!.activityIds     ).toHaveLength(7       ) ;
 
 		const output = stripTerminalSequences(sections[0]!.rows.join("\n"));
-		expect(output).toContain("Planning executor delegation structure");
-		expect(output).toContain("Task: executor");
-		expect(output).toContain("├─ Context");
-		expect(output).toContain("Resolve the consolidated verification blockers.");
-		expect(output).toContain("└─ Tasks: 2 agents");
-		expect(output.match(/CoreContracts · running/gu)).toHaveLength(1);
-		expect(output).toContain("TodoContract · completed");
-		expect(output).toContain("Model: openai-codex/gpt-5.6-terra · high");
-		expect(output).toContain("Description: SessionGoal and Note contracts");
-		expect(output).toContain("└─ apply_patch");
-		expect(output).toContain("ⓘ Subagent: awaiting 1 of 2");
-		expect(output).toContain("[IRC] you → CoreContracts");
-		expect(output).toContain("[IRC] TodoContract → you");
-		expect(sections[0]!.rows.every((line) => visibleWidth(line) <= 72)).toBe(true);
+		expect(output                                                     ).toContain   ("Planning executor delegation structure"         ) ;
+		expect(output                                                     ).toContain   ("Task: executor"                                 ) ;
+		expect(output                                                     ).toContain   ("├─ Context"                                     ) ;
+		expect(output                                                     ).toContain   ("Resolve the consolidated verification blockers.") ;
+		expect(output                                                     ).toContain   ("└─ Tasks: 2 agents"                             ) ;
+		expect(output.match(/CoreContracts · running/gu)                  ).toHaveLength(1                                                ) ;
+		expect(output                                                     ).toContain   ("TodoContract · completed"                       ) ;
+		expect(output                                                     ).toContain   ("Model: openai-codex/gpt-5.6-terra · high"       ) ;
+		expect(output                                                     ).toContain   ("Description: SessionGoal and Note contracts"    ) ;
+		expect(output                                                     ).toContain   ("└─ apply_patch"                                 ) ;
+		expect(output                                                     ).toContain   ("ⓘ Subagent: awaiting 1 of 2"                    ) ;
+		expect(output                                                     ).toContain   ("[IRC] you → CoreContracts"                      ) ;
+		expect(output                                                     ).toContain   ("[IRC] TodoContract → you"                       ) ;
+		expect(sections[0]!.rows.every((line) => visibleWidth(line) <= 72)).toBe        (true                                             ) ;
 	});
 
 	test("keeps agent names and states scoped to their native turn", () => {
@@ -191,10 +191,10 @@ describe("Gajae-style delegation tree", () => {
 		expect(sections).toHaveLength(2);
 		const oldOutput = stripTerminalSequences(sections[0]!.rows.join("\n"));
 		const newOutput = stripTerminalSequences(sections[1]!.rows.join("\n"));
-		expect(oldOutput).toContain("OldAgent · running");
-		expect(oldOutput).not.toContain("NewAgent");
-		expect(newOutput).toContain("NewAgent · completed");
-		expect(newOutput).not.toContain("OldAgent");
+		expect(oldOutput)    .toContain("OldAgent · running"  ) ;
+		expect(oldOutput).not.toContain("NewAgent"            ) ;
+		expect(newOutput)    .toContain("NewAgent · completed") ;
+		expect(newOutput).not.toContain("OldAgent"            ) ;
 	});
 
 	test("uses the latest reordered lifecycle state for queued, failed, and cancelled agents", () => {
@@ -226,10 +226,10 @@ describe("Gajae-style delegation tree", () => {
 		];
 		const sections = projectWorkbenchDelegationSections(activities, "goal", ROOT_THREAD, 72);
 		const output = stripTerminalSequences(sections[0]!.rows.join("\n"));
-		expect(output.match(/QueuedAgent · completed/gu)).toHaveLength(1);
-		expect(output).toContain("Agent 2 · errored");
-		expect(output).toContain("Agent 3 · interrupted");
-		expect(output).toContain("Model: gpt-5.6-terra · medium");
+		expect(output.match(/QueuedAgent · completed/gu)).toHaveLength(1                              ) ;
+		expect(output                                   ).toContain   ("Agent 2 · errored"            ) ;
+		expect(output                                   ).toContain   ("Agent 3 · interrupted"        ) ;
+		expect(output                                   ).toContain   ("Model: gpt-5.6-terra · medium") ;
 		const narrow = projectWorkbenchDelegationSections(activities, "goal", ROOT_THREAD, 42);
 		expect(narrow[0]!.rows.every((line) => visibleWidth(line) <= 42)).toBe(true);
 	});
@@ -255,10 +255,10 @@ describe("Gajae-style delegation tree", () => {
 		const output = stripTerminalSequences(
 			projectWorkbenchDelegationSections(activities, "goal", ROOT_THREAD, 100)[0]!.rows.join("\n"),
 		);
-		expect(output).toContain("NativeObserver · running");
-		expect(output).toContain("Model: gpt-5.6-terra · high");
-		expect(output).toContain("Found both lifecycle payloads");
-		expect(output).not.toContain("agent-unrelated");
+		expect(output)    .toContain("NativeObserver · running"     ) ;
+		expect(output)    .toContain("Model: gpt-5.6-terra · high"  ) ;
+		expect(output)    .toContain("Found both lifecycle payloads") ;
+		expect(output).not.toContain("agent-unrelated"              ) ;
 	});
 
 	test("projects native call and subagent payloads into one stable delegated task", () => {
@@ -299,10 +299,10 @@ describe("Gajae-style delegation tree", () => {
 			collabActivity(5, "spawn-b", { type: "collabAgentToolCall", id: "spawn-b", tool: "spawnAgent", status: "completed", senderThreadId: ROOT_THREAD, receiverThreadIds: ["child"], prompt: "Second assignment", agentsStates: { child: { status: "errored", message: "Second failed" } } }),
 		];
 		const tasks = projectNativeDelegation(activities, ROOT_THREAD)[0]!.tasks;
-		expect(tasks).toHaveLength(2);
-		expect(tasks[0]).toMatchObject({ attempt: 1, parentId: ROOT_THREAD, role: "Worker", task: "First assignment", status: "completed", result: "First result" });
-		expect(tasks[1]).toMatchObject({ attempt: 2, parentId: ROOT_THREAD, task: "Second assignment", status: "failed", result: null });
-		expect(tasks[0]!.ref).not.toBe(tasks[1]!.ref);
+		expect(tasks        )    .toHaveLength (2                                                                                                                           ) ;
+		expect(tasks[0]     )    .toMatchObject({ attempt: 1, parentId: ROOT_THREAD, role: "Worker", task: "First assignment", status: "completed", result: "First result" }) ;
+		expect(tasks[1]     )    .toMatchObject({ attempt: 2, parentId: ROOT_THREAD, task: "Second assignment", status: "failed", result: null }                            ) ;
+		expect(tasks[0]!.ref).not.toBe         (tasks[1]!.ref                                                                                                               ) ;
 	});
 
 	test("resolves nested ownership across turns and attaches only public child work", () => {
@@ -371,10 +371,10 @@ describe("Gajae-style delegation tree", () => {
 			childEvent(4, "old-delayed", "child-old-turn", "old delayed"),
 			childEvent(5, "ambiguous", "child-new-unknown-turn", "must not not attach"),
 		], ROOT_THREAD).flatMap((projection) => projection.tasks);
-		expect(tasks).toHaveLength(2);
-		expect(tasks[0]!.activities.map((activity) => activity.activityId)).toEqual(expect.arrayContaining(["old-first", "old-delayed"]));
-		expect(tasks[1]!.activities.map((activity) => activity.activityId)).not.toContain("old-delayed");
-		expect(JSON.stringify(tasks)).not.toContain("must not attach");
+		expect(tasks                                                      )    .toHaveLength(2                                                   ) ;
+		expect(tasks[0]!.activities.map((activity) => activity.activityId))    .toEqual     (expect.arrayContaining(["old-first", "old-delayed"])) ;
+		expect(tasks[1]!.activities.map((activity) => activity.activityId)).not.toContain   ("old-delayed"                                       ) ;
+		expect(JSON.stringify(tasks)                                      ).not.toContain   ("must not attach"                                   ) ;
 	});
 
 	test("renders an aggregate parentRef tree in DFS order with sanitized selectable refs", () => {
@@ -385,10 +385,10 @@ describe("Gajae-style delegation tree", () => {
 			{ ...base, ref: "child", id: "child", role: "Child\u001b[2J", parentId: "root", parentRef: "root\u001b[31m" },
 		];
 		const output = stripTerminalSequences(renderDelegationSummary(tasks, "goal", 120).join("\n"));
-		expect(output.indexOf("root · running")).toBeLessThan(output.indexOf("Child · running"));
-		expect(output.indexOf("Child · running")).toBeLessThan(output.indexOf("sibling · running"));
-		expect(output).toContain("Ref: root");
-		expect(output).toContain("│  └─");
+		expect(output.indexOf("root · running") ).toBeLessThan(output.indexOf("Child · running")  ) ;
+		expect(output.indexOf("Child · running")).toBeLessThan(output.indexOf("sibling · running")) ;
+		expect(output                           ).toContain   ("Ref: root"                        ) ;
+		expect(output                           ).toContain   ("│  └─"                            ) ;
 		const detail = stripTerminalSequences(renderDelegationDetail({ ...tasks[2]!, model: "bad\u001b[31m", activities: [{ activityId: "a", itemId: "i", kind: "tool\u001b[2J", message: "ok", senderId: null, receiverIds: [], attribution: "observed", source: { turnId: "t", itemId: "i" } }] }, 120).join("\n"));
 		expect(detail).not.toContain("\u001b");
 		expect(detail).toContain("Ref: child");
@@ -419,10 +419,10 @@ describe("Gajae-style delegation tree", () => {
 			error              : null,
 		};
 		const output = stripTerminalSequences(new WorkbenchChatView(snapshot).render(72).join("\n"));
-		expect(output).toContain("Task: executor");
-		expect(output).toContain("Tasks: 2 agents");
-		expect(output).toContain("[IRC] you → CoreContracts");
-		expect(output).not.toContain("작업 시작됨");
+		expect(output)    .toContain("Task: executor"           ) ;
+		expect(output)    .toContain("Tasks: 2 agents"          ) ;
+		expect(output)    .toContain("[IRC] you → CoreContracts") ;
+		expect(output).not.toContain("작업 시작됨"              ) ;
 	});
 
 	test("stays absent when the App Server has not emitted collaboration items", () => {

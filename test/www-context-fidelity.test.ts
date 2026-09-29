@@ -34,9 +34,9 @@ test("Demo spectrometer uses multiple source colors and proportional cells; Live
 		expect(composition).toContain("█");
 		expect(composition).toContain("░");
 		const live = stripTerminalSequences(new WwwContextView(() => snapshot).render(118).join("\n"));
-		expect(live).toContain("Source token allocation unavailable");
-		expect(live).not.toContain("CONV growing");
-		expect(live).not.toMatch(/MCP[^\n]*64%/u);
+		expect(live)    .toContain("Source token allocation unavailable") ;
+		expect(live).not.toContain("CONV growing"                       ) ;
+		expect(live).not.toMatch  (/MCP[^\n]*64%/u                      ) ;
 	} finally { chalk.level = before; }
 });
 
@@ -50,11 +50,11 @@ test.each([40, 60, 80, 118])("Demo Context remains bounded and scrollable at %i 
 test("Demo Context renders only the Figma catalog instead of appending the live ledger", () => {
 	const demo = createWwwDemoState(wwwFixture());
 	const text = stripTerminalSequences(new WwwContextView(() => demo.snapshot, () => demo.usage, false, () => true).render(160).join("\n"));
-	expect(text).toContain("CONTEXT ACCUMULATION SPECTROMETER");
-	expect(text).toContain("STATE CHANGE ALERTS");
-	expect(text).not.toContain("Context Ledger");
-	expect(text).not.toContain("Provider 사용량");
-	expect(text).not.toContain("계획 연결 근거");
+	expect(text)    .toContain("CONTEXT ACCUMULATION SPECTROMETER") ;
+	expect(text)    .toContain("STATE CHANGE ALERTS"              ) ;
+	expect(text).not.toContain("Context Ledger"                   ) ;
+	expect(text).not.toContain("Provider 사용량"                  ) ;
+	expect(text).not.toContain("계획 연결 근거"                   ) ;
 });
 
 test("Demo Context composition uses one shared table axis for every source", () => {

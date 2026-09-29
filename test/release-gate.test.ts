@@ -56,15 +56,15 @@ describe("release gate hygiene", () => {
 		git(root, ["-c", "user.name=fixture", "-c", "user.email=fixture@example.test", "commit", "-m", "violation"]);
 
 		const { exitCode, output } = await runGate(root);
-		expect(exitCode).toBe(1);
-		expect(output).toContain("release scope: scope=HEAD^..worktree+untracked, base=HEAD^, product files=1");
-		expect(output).toContain("src/committed.ts: TODO/FIXME marker");
+		expect(exitCode).toBe     (1                                                                            ) ;
+		expect(output  ).toContain("release scope: scope=HEAD^..worktree+untracked, base=HEAD^, product files=1") ;
+		expect(output  ).toContain("src/committed.ts: TODO/FIXME marker"                                        ) ;
 
 		const explicitHead = await runGate(root, ["--base", "HEAD"]);
-		expect(explicitHead.exitCode).toBe(0);
-		expect(explicitHead.output).toContain("release scope: scope=HEAD..worktree+untracked, base=HEAD, product files=0");
-		expect(explicitHead.output).toContain("WARNING: resolved scope contains 0 product files");
-		expect(explicitHead.output).toContain("RELEASE PASS");
+		expect(explicitHead.exitCode).toBe     (0                                                                          ) ;
+		expect(explicitHead.output  ).toContain("release scope: scope=HEAD..worktree+untracked, base=HEAD, product files=0") ;
+		expect(explicitHead.output  ).toContain("WARNING: resolved scope contains 0 product files"                         ) ;
+		expect(explicitHead.output  ).toContain("RELEASE PASS"                                                             ) ;
 	});
 
 	test("scans the initial commit when no parent is available", async () => {
@@ -80,9 +80,9 @@ describe("release gate hygiene", () => {
 		git(root, ["-c", "user.name=fixture", "-c", "user.email=fixture@example.test", "commit", "-m", "initial"]);
 
 		const { exitCode, output } = await runGate(root);
-		expect(exitCode).toBe(1);
-		expect(output).toContain("release scope: scope=all-tracked+untracked, base=<none:no-parent>, product files=1");
-		expect(output).toContain("test/committed.test.ts: skip/only test");
+		expect(exitCode).toBe     (1                                                                                   ) ;
+		expect(output  ).toContain("release scope: scope=all-tracked+untracked, base=<none:no-parent>, product files=1") ;
+		expect(output  ).toContain("test/committed.test.ts: skip/only test"                                            ) ;
 	});
 
 	test("scans tracked files at a shallow history boundary", async () => {
@@ -103,8 +103,8 @@ describe("release gate hygiene", () => {
 		await writeFile(join(shallow, ".www", "evidence", "ST-TEST.md"), "Status: PASS\n");
 
 		const { exitCode, output } = await runGate(shallow);
-		expect(exitCode).toBe(1);
-		expect(output).toContain("release scope: scope=all-tracked+untracked, base=<none:no-parent>, product files=1");
-		expect(output).toContain("src/committed.ts: TODO/FIXME marker");
+		expect(exitCode).toBe     (1                                                                                   ) ;
+		expect(output  ).toContain("release scope: scope=all-tracked+untracked, base=<none:no-parent>, product files=1") ;
+		expect(output  ).toContain("src/committed.ts: TODO/FIXME marker"                                               ) ;
 	});
 });

@@ -94,8 +94,8 @@ describe("chat scroll acceptance", () => {
 
 		chat.messages.push(`message-36 ${"newest ".repeat(18)}`);
 		const frame = render(layout, 120);
-		expect(layout.leftScroll.isFollowingEnd).toBe(true);
-		expect(layout.leftScroll.scrollTop).toBeGreaterThan(before);
-		expect(stripTerminalSequences(frame.lines.join("\n"))).toContain("message-36");
+		expect(layout.leftScroll.isFollowingEnd              ).toBe           (true        ) ;
+		expect(layout.leftScroll.scrollTop                   ).toBeGreaterThan(before      ) ;
+		expect(stripTerminalSequences(frame.lines.join("\n"))).toContain      ("message-36") ;
 	});
 });

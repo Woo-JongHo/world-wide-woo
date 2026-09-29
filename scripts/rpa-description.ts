@@ -1,12 +1,12 @@
 #!/usr/bin/env bun
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { readFileSync }           from "node:fs";
+import { resolve }                from "node:path";
 import {
 	renderRpaProject,
 	renderRpaTask,
 	validateRpaDescriptionMap,
-	type RpaDescriptionMap,
 } from "../src/core/domain/development/rpa-description.js";
+import type { RpaDescriptionMap } from "../src/core/domain/development/rpa-description.js";
 
 function option(name: string): string | undefined {
 	const index = process.argv.indexOf(name);

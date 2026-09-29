@@ -48,8 +48,8 @@ test('running cancellation, unavailable executable, changed inputs and start bin
     const missing = await runDevelopmentTest({ argv: ['/this/executable/does/not/exist'], projectRoot: repo, artifactRoot: join(root, 'artifacts') });
     expect(missing.status).toBe('not-run'); expect(missing.exitCode).toBeNull(); expect(missing.stderr.length).toBeGreaterThan(0);
     const changed = await runDevelopmentTest({ argv: [process.execPath, '-e', 'require("node:fs").writeFileSync("input.txt","after")'], projectRoot: repo, artifactRoot: join(root, 'artifacts') });
-    expect(changed.snapshot.before.id).not.toBe(changed.snapshot.after.id);
-    expect(readFileSync(changed.snapshot.before.files[0]!.blobPath!, 'utf8')).toBe('before');
-    expect(readFileSync(changed.snapshot.after.files[0]!.blobPath!, 'utf8')).toBe('after');
+    expect(changed.snapshot.before.id                                       ).not.toBe(changed.snapshot.after.id) ;
+    expect(readFileSync(changed.snapshot.before.files[0]!.blobPath!, 'utf8'))    .toBe('before'                 ) ;
+    expect(readFileSync(changed.snapshot.after.files[0]!.blobPath!, 'utf8') )    .toBe('after'                  ) ;
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

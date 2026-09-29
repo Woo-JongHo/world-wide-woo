@@ -1,14 +1,14 @@
 /** Explicit opt-in live test: one ephemeral Native turn, one side-effect-free host tool. */
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { randomUUID } from "node:crypto";
+import { mkdtemp, rm }    from "node:fs/promises";
+import { tmpdir }         from "node:os";
+import { join }           from "node:path";
+import { randomUUID }     from "node:crypto";
 import { CodexAppServer } from "../src/adapters/outbound/execution/codex-app-server";
 
 if (!process.argv.includes("--live")) throw new Error("This consumes one Native model turn. Run: bun scripts/runtime-tool-canary.ts --live");
-const cwd = await mkdtemp(join(tmpdir(), "www-runtime-canary-"));
-const nonce = randomUUID();
-let server: CodexAppServer | undefined;
+const cwd   = await mkdtemp(join(tmpdir(), "www-runtime-canary-")) ;
+const nonce = randomUUID()                                         ;
+let server: CodexAppServer | undefined                             ;
 let calls = 0, accepted = false, terminal = false;
 try {
 	server = await CodexAppServer.connect({ requestTimeoutMs: 15000 });

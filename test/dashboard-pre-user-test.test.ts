@@ -39,26 +39,26 @@ function dashboard(state: ObservabilityDashboard["coverage"]["state"] = "observe
 
 describe("dashboard before user testing", () => {
 	test("keeps the twelfth keyboard selection visible and identifies its Stats target", () => {
-		expect(dashboardSessionWindow(12, 9)).toEqual({ selectedIndex: 9, start: 0, end: 10 });
-		expect(dashboardSessionWindow(12, 10)).toEqual({ selectedIndex: 10, start: 1, end: 11 });
-		expect(dashboardSessionWindow(12, 11)).toEqual({ selectedIndex: 11, start: 2, end: 12 });
+		expect(dashboardSessionWindow(12, 9) ).toEqual({ selectedIndex: 9, start: 0, end: 10 } ) ;
+		expect(dashboardSessionWindow(12, 10)).toEqual({ selectedIndex: 10, start: 1, end: 11 }) ;
+		expect(dashboardSessionWindow(12, 11)).toEqual({ selectedIndex: 11, start: 2, end: 12 }) ;
 		const output = stripTerminalSequences(new ObservabilityDashboardView(() => dashboard(), () => 11).render(80).join("\n"));
-		expect(output).toContain("Selected 12/12 · session-11");
-		expect(output).toContain("Project project-11 · active · Model gpt-5.6-sol · medium");
-		expect(output).toContain("> session-11");
-		expect(output).toContain("Showing 3–12 of 12 · ↑↓ select · Enter Stats detail");
-		expect(output).not.toContain("session-00");
+		expect(output)    .toContain("Selected 12/12 · session-11"                             ) ;
+		expect(output)    .toContain("Project project-11 · active · Model gpt-5.6-sol · medium") ;
+		expect(output)    .toContain("> session-11"                                            ) ;
+		expect(output)    .toContain("Showing 3–12 of 12 · ↑↓ select · Enter Stats detail"     ) ;
+		expect(output).not.toContain("session-00"                                              ) ;
 	});
 
 	test("states unknown and partial local-journal coverage without declaring system health", () => {
 		const unknown = stripTerminalSequences(new ObservabilityDashboardView(() => ({ ...dashboard("unknown"), recentSessions: [], sessions: { active: null, completed: null, failures: null }, usage: { totalTokens: null, models: [] }, health: { completionPercent: null, retries: null, failures: null } })).render(80).join("\n"));
-		expect(unknown).toContain("NOT OBSERVED · event range — — —");
-		expect(unknown).toContain("Attention unavailable · no local journal sessions observed");
-		expect(unknown).not.toContain("No sessions need attention");
+		expect(unknown)    .toContain("NOT OBSERVED · event range — — —"                          ) ;
+		expect(unknown)    .toContain("Attention unavailable · no local journal sessions observed") ;
+		expect(unknown).not.toContain("No sessions need attention"                                ) ;
 		const partial = stripTerminalSequences(new ObservabilityDashboardView(() => dashboard("partial-local-journal")).render(80).join("\n"));
-		expect(partial).toContain("PARTIAL LOCAL JOURNAL");
-		expect(partial).toContain("12 streams read · 2 skipped · local journal only");
-		expect(partial).toContain("No flagged sessions in this partial local-journal range");
+		expect(partial).toContain("PARTIAL LOCAL JOURNAL"                                  ) ;
+		expect(partial).toContain("12 streams read · 2 skipped · local journal only"       ) ;
+		expect(partial).toContain("No flagged sessions in this partial local-journal range") ;
 	});
 
 	test("keeps dashboard rows bounded at user-test widths", () => {

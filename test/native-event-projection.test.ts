@@ -52,9 +52,9 @@ describe("native event projection", () => {
 		if (projection.type !== "durable") return;
 		expect(projection.observation.payload.observationTruncated).toBe(true);
 		const serialized = JSON.stringify(projection.observation.payload);
-		expect(serialized).not.toContain("native-secret");
-		expect(serialized).not.toContain("url-secret");
-		expect(serialized).toContain("[journal observation omitted]");
+		expect(serialized).not.toContain("native-secret"                ) ;
+		expect(serialized).not.toContain("url-secret"                   ) ;
+		expect(serialized)    .toContain("[journal observation omitted]") ;
 	});
 
 	test.each([

@@ -118,9 +118,9 @@ describe("project agent tools", () => {
 		expect(sessionRead.isError).toBe(true);
 		expect((await tool(tools, "read").execute({ path: ".www/vault/Todo.md" }, signal())).isError).toBe(true);
 		const search = await tool(tools, "search").execute({ pattern: "private planning instruction" }, signal());
-		expect(search.modelContent).toBe("No matches.");
-		expect((await tool(tools, "search").execute({ pattern: "session private instruction" }, signal())).modelContent).toBe("No matches.");
-		expect((await tool(tools, "search").execute({ pattern: "canonical private instruction" }, signal())).modelContent).toBe("No matches.");
+		expect(search.modelContent                                                                                       ).toBe("No matches.") ;
+		expect((await tool(tools, "search").execute({ pattern: "session private instruction" }, signal())).modelContent  ).toBe("No matches.") ;
+		expect((await tool(tools, "search").execute({ pattern: "canonical private instruction" }, signal())).modelContent).toBe("No matches.") ;
 		const rawWrite = await tool(tools, "bash").execute({
 			command: "printf",
 			args: ["overwrite", ".www/vault/Todo.md"],
@@ -137,9 +137,9 @@ describe("project agent tools", () => {
 		await writeFile(config, `Host review\n  HostName 127.0.0.1\n  User reviewer\nMatch host review exec \"touch ${marker}\"\n  Port 2200\n`);
 		const tools = createProjectAgentTools(root, { sshConfigPath: config });
 		const result = await tool(tools, "ssh_config").execute({ host: "review" }, signal());
-		expect(result.modelContent).toContain("hostname 127.0.0.1");
-		expect(result.modelContent).toContain("user reviewer");
-		expect(result.modelContent).not.toContain("port 2200");
+		expect(result.modelContent)    .toContain("hostname 127.0.0.1") ;
+		expect(result.modelContent)    .toContain("user reviewer"     ) ;
+		expect(result.modelContent).not.toContain("port 2200"         ) ;
 		await expect(access(marker)).rejects.toThrow();
 	});
 
@@ -196,11 +196,11 @@ describe("project agent tools", () => {
 		const result = await tool(tools, "todo_write").execute({
 			operation: "detail", itemId: "todo-1", details: ["first"], reason: "This is narration only.",
 		}, signal());
-		expect(result.isError).toBe(false);
-		expect(result.modelContent).not.toContain("narration");
-		expect(result.modelContent).toContain("todo-1 [pending] parent · details 0/1");
-		expect(result.modelContent).toContain("todo-1-detail-1 [pending] first");
-		expect(calls).toEqual([["todo-1", ["first"]]]);
-		expect(tool(tools, "todo_write").definition.description).toContain("exactly one nested level");
+		expect(result.isError                                  )    .toBe     (false                                  ) ;
+		expect(result.modelContent                             ).not.toContain("narration"                            ) ;
+		expect(result.modelContent                             )    .toContain("todo-1 [pending] parent · details 0/1") ;
+		expect(result.modelContent                             )    .toContain("todo-1-detail-1 [pending] first"      ) ;
+		expect(calls                                           )    .toEqual  ([["todo-1", ["first"]]]                ) ;
+		expect(tool(tools, "todo_write").definition.description)    .toContain("exactly one nested level"             ) ;
 	});
 });

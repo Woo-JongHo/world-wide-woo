@@ -66,19 +66,19 @@ describe("session stats view", () => {
 		expect(diagnostics).toContain("SESSION DIAGNOSTICS");
 		expect(diagnostics).toContain("Retries");
 		const detail = stripTerminalSequences(new SessionStatsView(() => stats, () => 1).render(100).join("\n"));
-		expect(detail).toContain("REQUEST INVESTIGATION");
-		expect(detail).toContain("Implement review dashboard with a very long raw prompt");
-		expect(detail).toContain("conversation transcript or occupy several dashboard rows");
-		expect(detail).toContain("/source activity-1");
-		expect(detail).not.toContain("SESSION STATS");
+		expect(detail)    .toContain("REQUEST INVESTIGATION"                                   ) ;
+		expect(detail)    .toContain("Implement review dashboard with a very long raw prompt"  ) ;
+		expect(detail)    .toContain("conversation transcript or occupy several dashboard rows") ;
+		expect(detail)    .toContain("/source activity-1"                                      ) ;
+		expect(detail).not.toContain("SESSION STATS"                                           ) ;
 	});
 	test("keeps empty sessions quiet", () => {
 		const empty = projectedStats([]);
 		const output = stripTerminalSequences(new SessionStatsView(() => empty).render(80).join("\n"));
-		expect(output).toContain("Waiting for the first request");
-		expect(output).toContain("EMPTY · coverage fresh");
-		expect(output).toContain("Token usage unobserved");
-		expect(output).not.toContain("COMPLETED");
+		expect(output)    .toContain("Waiting for the first request") ;
+		expect(output)    .toContain("EMPTY · coverage fresh"       ) ;
+		expect(output)    .toContain("Token usage unobserved"       ) ;
+		expect(output).not.toContain("COMPLETED"                    ) ;
 		for (const noise of ["PERFORMANCE", "MODEL USAGE", "REQUESTS", "Retries"]) expect(output).not.toContain(noise);
 	});
 
@@ -123,20 +123,20 @@ describe("session stats view", () => {
 	test("discloses partial coverage and excludes a terminal-only root turn from elapsed pairs", () => {
 		const partial = projectedStats(["turn/completed"], true);
 		const output = stripTerminalSequences(new SessionStatsView(() => partial).render(160).join("\n"));
-		expect(output).toContain("coverage partial local journal");
-		expect(output).toContain("0/1 completed pairs");
-		expect(output).toContain("Elapsed pairs use local journal start → terminal only");
+		expect(output).toContain("coverage partial local journal"                       ) ;
+		expect(output).toContain("0/1 completed pairs"                                  ) ;
+		expect(output).toContain("Elapsed pairs use local journal start → terminal only") ;
 		expect(partial.performance.averageCompletedRootTurnMs).toBeNull();
 	});
 
 	test("renders observed zero tokens differently from unobserved usage", () => {
 		const zero = stripTerminalSequences(new SessionStatsView(() => ({ ...stats, observedTotalTokens: 0, usageObservationCoverage: { interactive: true, detached: false }, modelUsage: [] })).render(120).join("\n"));
 		const unobserved = stripTerminalSequences(new SessionStatsView(() => ({ ...stats, observedTotalTokens: null, usageObservationCoverage: { interactive: false, detached: false }, performance: { ...stats.performance, interactiveTokensPerCompletedRootTurn: null }, modelUsage: [] })).render(120).join("\n"));
-		expect(zero).toContain("observed namespaces");
-		expect(zero).toContain("0 observed tokens");
-		expect(zero).toContain("interactive observed · detached unobserved");
-		expect(unobserved).toContain("usage unobserved");
-		expect(unobserved).toContain("Token usage unobserved");
+		expect(zero      ).toContain("observed namespaces"                       ) ;
+		expect(zero      ).toContain("0 observed tokens"                         ) ;
+		expect(zero      ).toContain("interactive observed · detached unobserved") ;
+		expect(unobserved).toContain("usage unobserved"                          ) ;
+		expect(unobserved).toContain("Token usage unobserved"                    ) ;
 	});
 	test("renders a conservatively bounded historical session drilldown", () => {
 		const historical = {
@@ -145,8 +145,8 @@ describe("session stats view", () => {
 			result: "completed" as const, failures: 0, retries: 0, usage: null,
 		};
 		const output = stripTerminalSequences(new SessionStatsView(() => stats, () => "session", () => historical).render(100).join("\n"));
-		expect(output).toContain("thread-history · COMPLETED");
-		expect(output).toContain("TOKENS       —");
-		expect(output).toContain("Request details and live execution are unavailable");
+		expect(output).toContain("thread-history · COMPLETED"                        ) ;
+		expect(output).toContain("TOKENS       —"                                    ) ;
+		expect(output).toContain("Request details and live execution are unavailable") ;
 	});
 });

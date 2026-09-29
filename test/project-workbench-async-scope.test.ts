@@ -30,10 +30,10 @@ describe("ProjectWorkbench · async scope", () => {
 		resolveRefresh?.([{ model: "gpt-5.6-terra", displayName: "GPT-5.6 Terra", efforts: ["medium", "high"], defaultEffort: "medium" }]);
 		const result = await refresh;
 
-		expect(result.models.map(model => model.model)).toEqual(["gpt-5.6-sol"]);
-		expect(workbench.snapshot).toBe(closedSnapshot);
-		expect(workbench.snapshot.phase).toBe("closed");
-		expect(workbench.snapshot.modelCatalog?.models.map(model => model.model)).toEqual(["gpt-5.6-sol"]);
+		expect(result.models.map(model => model.model)                          ).toEqual(["gpt-5.6-sol"]) ;
+		expect(workbench.snapshot                                               ).toBe   (closedSnapshot ) ;
+		expect(workbench.snapshot.phase                                         ).toBe   ("closed"       ) ;
+		expect(workbench.snapshot.modelCatalog?.models.map(model => model.model)).toEqual(["gpt-5.6-sol"]) ;
 	});
 
 	test("ignores a Linear Dashboard refresh that completes after close", async () => {
@@ -60,9 +60,9 @@ describe("ProjectWorkbench · async scope", () => {
 		});
 		await Bun.sleep(0);
 
-		expect(workbench.snapshot).toBe(closedSnapshot);
-		expect(workbench.snapshot.phase).toBe("closed");
-		expect(workbench.snapshot.linearDashboard?.state).toBe("loading");
+		expect(workbench.snapshot                       ).toBe(closedSnapshot) ;
+		expect(workbench.snapshot.phase                 ).toBe("closed"      ) ;
+		expect(workbench.snapshot.linearDashboard?.state).toBe("loading"     ) ;
 	});
 
 	test("keeps the latest turn Todo sync pending when an older turn finishes late", async () => {

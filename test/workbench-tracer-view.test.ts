@@ -55,10 +55,10 @@ function delegation(turnId: string, itemId: string, delegated: NativeDelegatedTa
 describe("WorkbenchTracerView execution surface", () => {
 	test("keeps a no-plan performance execution visible", () => {
 		const output = render(projection());
-		expect(output).toContain("독립 수행");
-		expect(output).toContain("현재 · 수행 중");
-		expect(output).toContain("계획 없이 성능을 점검해");
-		expect(output).toContain("최근 관측 · commandExecution · completed");
+		expect(output).toContain("독립 수행"                               ) ;
+		expect(output).toContain("현재 · 수행 중"                          ) ;
+		expect(output).toContain("계획 없이 성능을 점검해"                 ) ;
+		expect(output).toContain("최근 관측 · commandExecution · completed") ;
 	});
 
 	test("shows an explicit assigned goal beside its no-plan execution", () => {
@@ -80,9 +80,9 @@ describe("WorkbenchTracerView execution surface", () => {
 	test("labels retry and orphan health as unconfirmed when no performance projection exists", () => {
 		const { performance: _performance, ...value } = projection({ liveActivity: { method: "item/started", kind: "tool", text: "실행 중", nativeRefs: {} } });
 		const output = render(value);
-		expect(output).toContain("미연결 활동 0 · 재시도 관측 미확인");
-		expect(output).not.toContain("관측된 재시도 0");
-		expect(output).not.toContain("차단");
+		expect(output)    .toContain("미연결 활동 0 · 재시도 관측 미확인") ;
+		expect(output).not.toContain("관측된 재시도 0"                   ) ;
+		expect(output).not.toContain("차단"                              ) ;
 	});
 
 	test("states that completion evidence remains unverified", () => {
@@ -98,11 +98,11 @@ describe("WorkbenchTracerView execution surface", () => {
 			delegation          : [delegation("turn-1", "spawn-old", first), delegation("turn-2", "spawn-current", selected)],
 			selectedAgentDetail : selected,
 		}));
-		expect(output).toContain("agent-old · completed");
-		expect(output).toContain("agent-current · running");
-		expect(output).toContain("이전 turn 조사");
-		expect(output).toContain("현재 turn 검증");
-		expect(output).toContain("Attempt: 1");
-		expect(output).toContain("Result: 상세 관측 미지원/미수신");
+		expect(output).toContain("agent-old · completed"          ) ;
+		expect(output).toContain("agent-current · running"        ) ;
+		expect(output).toContain("이전 turn 조사"                 ) ;
+		expect(output).toContain("현재 turn 검증"                 ) ;
+		expect(output).toContain("Attempt: 1"                     ) ;
+		expect(output).toContain("Result: 상세 관측 미지원/미수신") ;
 	});
 });

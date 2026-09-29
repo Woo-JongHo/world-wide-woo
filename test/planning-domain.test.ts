@@ -8,13 +8,13 @@ describe("Planning domain", () => {
 	test("redacts credentials and removes terminal or Markdown injection", () => {
 		const raw = "\u001b[31m<!-- hide --> token=secret sk-abcdefgh12345678 ghp_abcdefgh12345678 AIzaabcdefghijklmnopqrstuvwxyz12345\nnext";
 		const safe = sanitizePlanningText(raw, 500);
-		expect(safe).not.toContain("\u001b");
-		expect(safe).not.toContain("<!--");
-		expect(safe).not.toContain("secret");
-		expect(safe).not.toContain("sk-");
-		expect(safe).not.toContain("ghp_");
-		expect(safe).not.toContain("AIza");
-		expect(safe).toContain("next");
+		expect(safe).not.toContain("\u001b") ;
+		expect(safe).not.toContain("<!--"  ) ;
+		expect(safe).not.toContain("secret") ;
+		expect(safe).not.toContain("sk-"   ) ;
+		expect(safe).not.toContain("ghp_"  ) ;
+		expect(safe).not.toContain("AIza"  ) ;
+		expect(safe)    .toContain("next"  ) ;
 	});
 
 	test("accepts backward same-Epic supersede and freezes the snapshot", () => {
@@ -22,10 +22,10 @@ describe("Planning domain", () => {
 			{ id: "ST-010-01", epicId: "EP-010", title: "Old", acceptance: "A", createdAt, supersedes: null },
 			{ id: "ST-010-02", epicId: "EP-010", title: "New", acceptance: "B", createdAt, supersedes: "ST-010-01" },
 		]);
-		expect(snapshot.stories[1]?.supersedes).toBe("ST-010-01");
-		expect(Object.isFrozen(snapshot)).toBe(true);
-		expect(Object.isFrozen(snapshot.stories)).toBe(true);
-		expect(Object.isFrozen(snapshot.stories[0]!)).toBe(true);
+		expect(snapshot.stories[1]?.supersedes      ).toBe("ST-010-01") ;
+		expect(Object.isFrozen(snapshot)            ).toBe(true       ) ;
+		expect(Object.isFrozen(snapshot.stories)    ).toBe(true       ) ;
+		expect(Object.isFrozen(snapshot.stories[0]!)).toBe(true       ) ;
 	});
 
 	test("rejects missing parents, forward supersedes, and mismatched IDs", () => {

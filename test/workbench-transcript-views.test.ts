@@ -63,12 +63,12 @@ describe("workbench transcript and animation views", () => {
 		const userLabel      = plain.findIndex((line) => line.trimEnd() === "👤 USER") ;
 		const assistantLabel = plain.findIndex((line) => line === "🐙 Wooni")          ;
 
-		expect(userLabel).toBeGreaterThanOrEqual(0);
-		expect(assistantLabel).toBeGreaterThan(userLabel);
-		expect(visibleWidth(rows[userLabel]!)).toBe(48);
-		expect(visibleWidth(rows[assistantLabel]!)).toBeLessThan(48);
-		expect(plain.join("\n")).toContain("배경을 가진 질문");
-		expect(plain.join("\n")).toContain("열린 답변");
+		expect(userLabel                          ).toBeGreaterThanOrEqual(0                 ) ;
+		expect(assistantLabel                     ).toBeGreaterThan       (userLabel         ) ;
+		expect(visibleWidth(rows[userLabel]!)     ).toBe                  (48                ) ;
+		expect(visibleWidth(rows[assistantLabel]!)).toBeLessThan          (48                ) ;
+		expect(plain.join("\n")                   ).toContain             ("배경을 가진 질문") ;
+		expect(plain.join("\n")                   ).toContain             ("열린 답변"       ) ;
 	});
 
 	test("renders only the public answer from a completed assistant envelope", () => {
@@ -92,13 +92,13 @@ describe("workbench transcript and animation views", () => {
 			}],
 		}).render(100).join("\n"));
 
-		expect(output).toContain("공개 답변");
-		expect(output).toContain("정상 Markdown과 <kbd>Esc</kbd>는 유지합니다.");
-		expect(output).toContain("<analysis>코드 예시 태그</analysis>");
-		expect(output).not.toContain("비공개 추론");
-		expect(output).not.toContain("내부 결과");
-		expect(output).not.toContain("내부 파일 목록");
-		expect(output).not.toContain("내부 다음 단계");
+		expect(output)    .toContain("공개 답변"                                   ) ;
+		expect(output)    .toContain("정상 Markdown과 <kbd>Esc</kbd>는 유지합니다.") ;
+		expect(output)    .toContain("<analysis>코드 예시 태그</analysis>"         ) ;
+		expect(output).not.toContain("비공개 추론"                                 ) ;
+		expect(output).not.toContain("내부 결과"                                   ) ;
+		expect(output).not.toContain("내부 파일 목록"                              ) ;
+		expect(output).not.toContain("내부 다음 단계"                              ) ;
 	});
 
 	test("reprojects unchanged envelope text when streaming becomes completed", () => {
@@ -149,10 +149,10 @@ describe("workbench transcript and animation views", () => {
 		}).render(width);
 		const output = stripTerminalSequences(rows.join("\n"));
 
-		expect(output).toContain("보존한 부분 답변");
-		expect(output).toContain("부분 응답 · 최종 본문 미수신");
-		expect(output).not.toContain("이번 요청에서 한 일");
-		expect(rows.every((row) => visibleWidth(row) <= width)).toBe(true);
+		expect(output                                         )    .toContain("보존한 부분 답변"            ) ;
+		expect(output                                         )    .toContain("부분 응답 · 최종 본문 미수신") ;
+		expect(output                                         ).not.toContain("이번 요청에서 한 일"         ) ;
+		expect(rows.every((row) => visibleWidth(row) <= width))    .toBe     (true                          ) ;
 	});
 
 	test("reprojects unchanged partial text when streaming becomes incomplete", () => {
@@ -166,9 +166,9 @@ describe("workbench transcript and animation views", () => {
 
 		view.update({ ...snapshot, chat: [{ ...message, status: "incomplete" as const, partial: true }] });
 		const incomplete = stripTerminalSequences(view.render(80).join("\n"));
-		expect(incomplete).toContain("보존된 공개 부분");
-		expect(incomplete).toContain("부분 응답 · 최종 본문 미수신");
-		expect(incomplete).not.toContain("내부");
+		expect(incomplete)    .toContain("보존된 공개 부분"            ) ;
+		expect(incomplete)    .toContain("부분 응답 · 최종 본문 미수신") ;
+		expect(incomplete).not.toContain("내부"                        ) ;
 	});
 
 	test("reprojects unchanged failed text when its observation becomes partial", () => {
@@ -197,9 +197,9 @@ describe("workbench transcript and animation views", () => {
 			}],
 		}).render(48).join("\n"));
 
-		expect(output).toContain("최종 본문 미수신");
-		expect(output).toContain("최종 답변 본문을 받지 못했습니다.");
-		expect(output).not.toContain("부분 응답");
+		expect(output)    .toContain("최종 본문 미수신"                 ) ;
+		expect(output)    .toContain("최종 답변 본문을 받지 못했습니다.") ;
+		expect(output).not.toContain("부분 응답"                        ) ;
 	});
 
 	test.each([
@@ -216,9 +216,9 @@ describe("workbench transcript and animation views", () => {
 			}],
 		}).render(48).join("\n"));
 
-		expect(output).toContain("종료 전에 받은 부분 답변");
-		expect(output).toContain(label);
-		expect(output).not.toContain("내부 추론");
+		expect(output)    .toContain("종료 전에 받은 부분 답변") ;
+		expect(output)    .toContain(label                     ) ;
+		expect(output).not.toContain("내부 추론"               ) ;
 	});
 
 	test.each([
@@ -236,9 +236,9 @@ describe("workbench transcript and animation views", () => {
 			}],
 		}).render(80).join("\n"));
 
-		expect(output).toContain(label);
-		expect(output).not.toContain("화면에 나오면 안 되는 중간 추론");
-		expect(output).not.toContain("<analysis>");
+		expect(output)    .toContain(label                            ) ;
+		expect(output).not.toContain("화면에 나오면 안 되는 중간 추론") ;
+		expect(output).not.toContain("<analysis>"                     ) ;
 	});
 
 	test("preserves partial tags, surrounding text, and fenced tag examples", () => {
@@ -270,9 +270,9 @@ describe("workbench transcript and animation views", () => {
 		view.dispose();
 		const activityRow = rows.findIndex((line) => line.includes("단계 2/3 · 입출력 UX 정리"));
 
-		expect(activityRow).toBeGreaterThanOrEqual(0);
-		expect(rows[activityRow]).not.toContain("Esc");
-		expect(rows.join("\n")).not.toContain("Esc 중단");
+		expect(activityRow      )    .toBeGreaterThanOrEqual(0         ) ;
+		expect(rows[activityRow]).not.toContain             ("Esc"     ) ;
+		expect(rows.join("\n")  ).not.toContain             ("Esc 중단") ;
 	});
 
 	test("keeps activity emphasis on every wrapped row at narrow widths", () => {
@@ -292,9 +292,9 @@ describe("workbench transcript and animation views", () => {
 			const end             = plain.findIndex((line, index) => index > first && line.trim() === "") ;
 			const wrappedActivity = rows.slice(first, end < 0 ? rows.length : end)                        ;
 
-			expect(wrappedActivity.length).toBeGreaterThan(1);
-			expect(wrappedActivity.every((line) => line.includes("\u001B[3m"))).toBe(true);
-			expect(wrappedActivity.every((line) => visibleWidth(line) <= 36)).toBe(true);
+			expect(wrappedActivity.length                                     ).toBeGreaterThan(1   ) ;
+			expect(wrappedActivity.every((line) => line.includes("\u001B[3m"))).toBe           (true) ;
+			expect(wrappedActivity.every((line) => visibleWidth(line) <= 36)  ).toBe           (true) ;
 		} finally {
 			view.dispose();
 			chalk.level = previousLevel;
@@ -326,13 +326,13 @@ describe("workbench transcript and animation views", () => {
 			const second = view.render(80).join("\n");
 			view.syncActivity({ message: "승인 대기", frames: ["⏸"], intervalMs: 1_000 }, () => undefined);
 
-			expect(scheduled.map(({ delay }) => delay)).toEqual([80]);
-			expect(cleared).toContain(scheduled[0]!.handle);
-			expect(stripTerminalSequences(first)).toContain("⠋ 분석");
-			expect(stripTerminalSequences(second)).toContain("⠙ 분석");
-			expect(second).not.toBe(first);
-			expect(renders).toBeGreaterThan(0);
-			expect(stripTerminalSequences(view.render(80).join("\n"))).toContain("승인 대기");
+			expect(scheduled.map(({ delay }) => delay)               )    .toEqual        ([80]                ) ;
+			expect(cleared                                           )    .toContain      (scheduled[0]!.handle) ;
+			expect(stripTerminalSequences(first)                     )    .toContain      ("⠋ 분석"            ) ;
+			expect(stripTerminalSequences(second)                    )    .toContain      ("⠙ 분석"            ) ;
+			expect(second                                            ).not.toBe           (first               ) ;
+			expect(renders                                           )    .toBeGreaterThan(0                   ) ;
+			expect(stripTerminalSequences(view.render(80).join("\n")))    .toContain      ("승인 대기"         ) ;
 		} finally {
 			view.dispose();
 			globalThis.setInterval = originalSetInterval;
@@ -365,10 +365,10 @@ describe("workbench transcript and animation views", () => {
 			callbacks[0]?.();
 			const second = view.render(80).join("\n");
 
-			expect(initialProjectionCalls).toBeGreaterThan(0);
-			expect(messageProjectionCalls).toBe(initialProjectionCalls);
-			expect(stripTerminalSequences(first)).toContain("⠋ 분석");
-			expect(stripTerminalSequences(second)).toContain("⠙ 분석");
+			expect(initialProjectionCalls        ).toBeGreaterThan(0                     ) ;
+			expect(messageProjectionCalls        ).toBe           (initialProjectionCalls) ;
+			expect(stripTerminalSequences(first) ).toContain      ("⠋ 분석"              ) ;
+			expect(stripTerminalSequences(second)).toContain      ("⠙ 분석"              ) ;
 		} finally {
 			view.dispose();
 			globalThis.setInterval = originalSetInterval;
@@ -416,9 +416,9 @@ describe("workbench transcript and animation views", () => {
 				},
 			},
 		}).render(72).join("\n"));
-		expect(output).toContain("실행이 중단되었습니다.");
-		expect(output).not.toContain("남은 작업");
-		expect(output).not.toContain("terminal-1");
+		expect(output)    .toContain("실행이 중단되었습니다.") ;
+		expect(output).not.toContain("남은 작업"             ) ;
+		expect(output).not.toContain("terminal-1"            ) ;
 	});
 
 	test("keeps command receipt details in Tracer instead of expanding them into Chat", () => {
@@ -440,10 +440,10 @@ describe("workbench transcript and animation views", () => {
 				},
 			},
 		}).render(72).join("\n"));
-		expect(output).toContain("세부 실행 근거는 Tracer에서 확인합니다.");
-		expect(output).not.toContain("명령 실행 결과");
-		expect(output).not.toContain("bun test");
-		expect(output).not.toContain("1 fail");
+		expect(output)    .toContain("세부 실행 근거는 Tracer에서 확인합니다.") ;
+		expect(output).not.toContain("명령 실행 결과"                         ) ;
+		expect(output).not.toContain("bun test"                               ) ;
+		expect(output).not.toContain("1 fail"                                 ) ;
 	});
 
 	test("explains the selected run waiting reason and operator action", () => {
@@ -456,9 +456,9 @@ describe("workbench transcript and animation views", () => {
 				receipt: null, rejectedEventIds: [],
 			},
 		}).render(72).join("\n"));
-		expect(output).toContain("실행 대기");
-		expect(output).toContain("승인을 기다리고 있습니다.");
-		expect(output).toContain("조치");
+		expect(output).toContain("실행 대기"                ) ;
+		expect(output).toContain("승인을 기다리고 있습니다.") ;
+		expect(output).toContain("조치"                     ) ;
 	});
 
 	test("keeps the native final answer without attaching a second plan recap", () => {
@@ -509,10 +509,10 @@ describe("workbench transcript and animation views", () => {
 			workFlow: projectWorkFlow([]),
 		}).render(72).join("\n"));
 
-		expect(output).toContain("요청한 UX 개선을 마쳤습니다.");
-		expect(output).not.toContain("이번 요청에서 한 일");
-		expect(output).not.toContain("#1 현재 UX 확인");
-		expect(output).not.toContain("Native Plan · 3/3 단계 완료");
+		expect(output)    .toContain("요청한 UX 개선을 마쳤습니다.") ;
+		expect(output).not.toContain("이번 요청에서 한 일"         ) ;
+		expect(output).not.toContain("#1 현재 UX 확인"             ) ;
+		expect(output).not.toContain("Native Plan · 3/3 단계 완료" ) ;
 	});
 
 	test("keeps the native final answer when Native Plan is absent", () => {
@@ -602,11 +602,11 @@ describe("workbench transcript and animation views", () => {
 			workFlow: projectWorkFlow([]),
 		}).render(72).join("\n"));
 		const afterAnswer = output.slice(output.indexOf("Plan 없이도 작업을 마쳤습니다."));
-		expect(output).toContain("Plan 없이도 작업을 마쳤습니다.");
-		expect(afterAnswer).not.toContain("이번 요청에서 한 일");
-		expect(afterAnswer).not.toContain("관련 코드와 설정을 검색");
-		expect(afterAnswer).not.toContain("bun test");
-		expect(afterAnswer).not.toContain("/Users/private");
+		expect(output     )    .toContain("Plan 없이도 작업을 마쳤습니다.") ;
+		expect(afterAnswer).not.toContain("이번 요청에서 한 일"           ) ;
+		expect(afterAnswer).not.toContain("관련 코드와 설정을 검색"       ) ;
+		expect(afterAnswer).not.toContain("bun test"                      ) ;
+		expect(afterAnswer).not.toContain("/Users/private"                ) ;
 	});
 
 	test("keeps an answer-only Native turn unchanged", () => {
@@ -643,9 +643,9 @@ describe("workbench transcript and animation views", () => {
 			workFlow: projectWorkFlow([]),
 		}).render(48).join("\n"));
 
-		expect(output).toContain("간단한 답변입니다.");
-		expect(output).not.toContain("이번 요청에서 한 일");
-		expect(output).not.toContain("Native Turn · 완료 확인");
+		expect(output)    .toContain("간단한 답변입니다."     ) ;
+		expect(output).not.toContain("이번 요청에서 한 일"    ) ;
+		expect(output).not.toContain("Native Turn · 완료 확인") ;
 	});
 
 	test("does not claim a completion recap before the same Native turn completes", () => {
@@ -791,10 +791,10 @@ describe("workbench transcript and animation views", () => {
 			workFlow,
 		}).render(72).join("\n"));
 
-		expect(workFlow.goal).toBe("현재 요청을 처리합니다.");
-		expect(workFlow.steps).toEqual([]);
-		expect(output).not.toContain("stale-old-turn");
-		expect(output).not.toContain("단계 1");
+		expect(workFlow.goal )    .toBe     ("현재 요청을 처리합니다.") ;
+		expect(workFlow.steps)    .toEqual  ([]                       ) ;
+		expect(output        ).not.toContain("stale-old-turn"         ) ;
+		expect(output        ).not.toContain("단계 1"                 ) ;
 	});
 
 	test("keeps plan-only steps out of Chat while showing compact observation work", () => {
@@ -849,16 +849,16 @@ describe("workbench transcript and animation views", () => {
 		const chat     = stripTerminalSequences(new WorkbenchChatView(live).render(72).join("\n"))      ;
 		const notes    = stripTerminalSequences(new TNotesSourceView(() => live).render(52).join("\n")) ;
 
-		expect(chat).not.toContain("단계 1");
-		expect(chat).not.toContain("단계 2");
-		expect(chat).toContain("Read");
-		expect(chat).toContain("sed -n");
-		expect(chat).toContain("application bootstrap");
-		expect(notes).not.toContain("T-NOTES · LIVE");
-		expect(notes).not.toContain("Executor 흐름과 Live Notes를 구현한다");
-		expect(notes).not.toContain("Live Notes 흐름 연결");
-		expect(notes).not.toContain("TRACE · SOURCE");
-		expect(notes).toContain("Native 응답을 정리했습니다.");
+		expect(chat ).not.toContain("단계 1"                               ) ;
+		expect(chat ).not.toContain("단계 2"                               ) ;
+		expect(chat )    .toContain("Read"                                 ) ;
+		expect(chat )    .toContain("sed -n"                               ) ;
+		expect(chat )    .toContain("application bootstrap"                ) ;
+		expect(notes).not.toContain("T-NOTES · LIVE"                       ) ;
+		expect(notes).not.toContain("Executor 흐름과 Live Notes를 구현한다") ;
+		expect(notes).not.toContain("Live Notes 흐름 연결"                 ) ;
+		expect(notes).not.toContain("TRACE · SOURCE"                       ) ;
+		expect(notes)    .toContain("Native 응답을 정리했습니다."          ) ;
 	});
 
 	test("shows the public Native plan while adding only its executing step card", () => {
@@ -901,9 +901,9 @@ describe("workbench transcript and animation views", () => {
 			workFlow,
 		}).render(72).join("\n"));
 
-		expect(output).toContain("단계 1 · RUNNING");
-		expect(output).toContain("현재 구현");
-		expect(output).not.toContain("단계 2");
-		expect(output).toContain("· 후속 검증");
+		expect(output)    .toContain("단계 1 · RUNNING") ;
+		expect(output)    .toContain("현재 구현"       ) ;
+		expect(output).not.toContain("단계 2"          ) ;
+		expect(output)    .toContain("· 후속 검증"     ) ;
 	});
 });

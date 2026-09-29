@@ -83,10 +83,10 @@ test("Native capabilities stay separate from compatibility effort settings and n
 	picker.start(); await Bun.sleep(0); picker.handleInput("\r");
 	const output = picker.render(80).join("\n");
 	expect(output).toContain("Ultra"); expect(output).not.toContain("xHigh"); expect(output).not.toContain("Max"); expect(output).not.toContain("자동 위임");
-	expect(normalizeSettings({ ...legacy, effort: "max" }).effort).toBe("ultra");
-	expect(parseShellCommand("/effort max", legacy)?.type).toBe("error");
-	expect(parseWorkbenchShellCommand("/model gpt-5.4 ultra")?.type).toBe("error");
-	expect(parseWorkbenchShellCommand("/model gpt-5.4 xhigh")?.type).toBe("model.set");
+	expect(normalizeSettings({ ...legacy, effort: "max" }).effort  ).toBe("ultra"    ) ;
+	expect(parseShellCommand("/effort max", legacy)?.type          ).toBe("error"    ) ;
+	expect(parseWorkbenchShellCommand("/model gpt-5.4 ultra")?.type).toBe("error"    ) ;
+	expect(parseWorkbenchShellCommand("/model gpt-5.4 xhigh")?.type).toBe("model.set") ;
 	for (const model of ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-6-astra"]) expect(workbenchModelSettings({ model, effort: null }).effort).toBe("medium");
 });
 
@@ -124,11 +124,11 @@ test.each(["xhigh", "max", "ultra"] as Effort[])("Workbench passes Www %s to Nat
 		if (workbench.snapshot.phase === "loading") await new Promise<void>(resolve => { const stop = workbench.subscribe(s => { if (s.phase !== "loading") { stop(); resolve(); } }); });
 		expect(workbench.snapshot.error).toBeNull(); expect(workbench.snapshot.phase).toBe("ready");
 		const selection = { model: "gpt-6-astra", effort };
-		expect((await workbench.dispatch({ type: "session.model", selection })).state).toBe("accepted");
-		expect(persisted).toEqual([selection]);
-		expect((await workbench.dispatch({ type: "chat.send", text: "fixture request" })).state).toBe("accepted");
-		expect(transport.sent.findLast(x => x.method === "thread/start")?.params).toMatchObject({ model: "gpt-6-astra", config: { model_reasoning_effort: effort } });
-		expect(transport.sent.findLast(x => x.method === "turn/start")?.params).toMatchObject({ model: "gpt-6-astra", effort });
-		expect((await workbench.dispatch({ type: "session.model", selection: { model: "gpt-5.6-sol", effort: "medium" } })).state).toBe("rejected");
+		expect((await workbench.dispatch({ type: "session.model", selection })).state                                            ).toBe         ("accepted"                                                          ) ;
+		expect(persisted                                                                                                         ).toEqual      ([selection]                                                         ) ;
+		expect((await workbench.dispatch({ type: "chat.send", text: "fixture request" })).state                                  ).toBe         ("accepted"                                                          ) ;
+		expect(transport.sent.findLast(x => x.method === "thread/start")?.params                                                 ).toMatchObject({ model: "gpt-6-astra", config: { model_reasoning_effort: effort } }) ;
+		expect(transport.sent.findLast(x => x.method === "turn/start")?.params                                                   ).toMatchObject({ model: "gpt-6-astra", effort }                                    ) ;
+		expect((await workbench.dispatch({ type: "session.model", selection: { model: "gpt-5.6-sol", effort: "medium" } })).state).toBe         ("rejected"                                                          ) ;
 	} finally { await workbench.close(); }
 });

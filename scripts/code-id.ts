@@ -1,10 +1,10 @@
 #!/usr/bin/env bun
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync }      from "node:fs";
 import { resolve, relative, isAbsolute } from "node:path";
-import { execFileSync } from "node:child_process";
-import * as ts from "typescript/unstable/ast";
-import { API } from "typescript/unstable/async";
-import YAML from "yaml";
+import { execFileSync }                  from "node:child_process";
+import * as ts                           from "typescript/unstable/ast";
+import { API }                           from "typescript/unstable/async";
+import YAML                              from "yaml";
 
 type Code = { id: string; name: string; locations: { path: string; symbol: string }[]; linearIssueIds: string[]; detail: string };
 type TraceabilityLedger = {
@@ -84,10 +84,10 @@ export async function validateCodeIds(root: string, codes: readonly Code[]): Pro
 }
 
 if (import.meta.main) {
-  const root = resolve(import.meta.dir, "..");
-  const registry = JSON.parse(readFileSync(resolve(root, ".www/control-ledger/code-ids.json"), "utf8"));
-  const errors = await validateCodeIds(root, registry.codes);
-  const issuesPath = process.argv[2];
+  const root       = resolve(import.meta.dir, "..")                                                       ;
+  const registry   = JSON.parse(readFileSync(resolve(root, ".www/control-ledger/code-ids.json"), "utf8")) ;
+  const errors     = await validateCodeIds(root, registry.codes)                                          ;
+  const issuesPath = process.argv[2]                                                                      ;
   if (issuesPath) errors.push(...validateCodeLinks(JSON.parse(readFileSync(resolve(issuesPath), "utf8")).issues, registry.codes));
   if (errors.length) { console.error(errors.join("\n")); process.exit(1); }
   console.log(`Code-ID ${registry.codes.length}개: 등록·대표 선언·파일·문서 연결 통과 (SQLite 연결 검사는 아님)`);

@@ -302,9 +302,9 @@ describe("UsageService", () => {
 		await ready;
 		stop();
 
-		expect(notifications.map(items => items[0]?.state)).toEqual(["loading", "ready"]);
-		expect(authAttempts).toBe(2);
-		expect(fetches).toBe(1);
+		expect(notifications.map(items => items[0]?.state)).toEqual(["loading", "ready"]) ;
+		expect(authAttempts                               ).toBe   (2                   ) ;
+		expect(fetches                                    ).toBe   (1                   ) ;
 	});
 
 	test("classifies Claude 429 responses and suppresses polling during backoff", async () => {

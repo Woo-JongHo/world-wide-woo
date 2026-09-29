@@ -50,14 +50,14 @@ describe("dispatchApprovalResponse", () => {
 		releasePreparation();
 		const result = await dispatch;
 
-		expect(transmissions).toEqual([{ requestId: 17, response: { permissions: { filesystem: { write: true } }, scope: "turn", strictAutoReview: false } }]);
-		expect(order).toEqual(["governance/decision-prepared", "send", "governance/decision-dispatched"]);
-		expect(result.state).toBe("delivered");
-		expect(observations[0]?.nativeRefs).toEqual({ threadId: "thread-1", turnId: "turn-1", approvalRequestId: 17, approvalCallbackId: "callback-17" });
-		expect(observations[0]?.payload).toMatchObject({ commandId: "command-1", responseEvidenceOmitted: true });
-		expect(observations[0]?.sourceDigest).not.toBe(result.responseDigest);
-		expect(observations[0]?.sourceDigest).toContain('"commandId":"command-1"');
-		expect(Object.isFrozen(observations[0])).toBe(true);
+		expect(transmissions                   )    .toEqual      ([{ requestId: 17, response: { permissions: { filesystem: { write: true } }, scope: "turn", strictAutoReview: false } }]) ;
+		expect(order                           )    .toEqual      (["governance/decision-prepared", "send", "governance/decision-dispatched"]                                             ) ;
+		expect(result.state                    )    .toBe         ("delivered"                                                                                                            ) ;
+		expect(observations[0]?.nativeRefs     )    .toEqual      ({ threadId: "thread-1", turnId: "turn-1", approvalRequestId: 17, approvalCallbackId: "callback-17" }                   ) ;
+		expect(observations[0]?.payload        )    .toMatchObject({ commandId: "command-1", responseEvidenceOmitted: true }                                                              ) ;
+		expect(observations[0]?.sourceDigest   ).not.toBe         (result.responseDigest                                                                                                  ) ;
+		expect(observations[0]?.sourceDigest   )    .toContain    ('"commandId":"command-1"'                                                                                              ) ;
+		expect(Object.isFrozen(observations[0]))    .toBe         (true                                                                                                                   ) ;
 	});
 
 	test("does not send when preparation persistence fails", async () => {
@@ -198,8 +198,8 @@ describe("dispatchApprovalResponse", () => {
 			record            : async (entry) => { observations.push(entry); },
 			respondToApproval : async () => { throw new Error("secret-token-and-a-very-long-transport-message"); },
 		});
-		expect(result).toMatchObject({ state: "uncertain", reason: "secret-t" });
-		expect(observations[1]?.payload.reason).toBe("secret-t");
-		expect(JSON.stringify(observations)).not.toContain("secret-token");
+		expect(result                         )    .toMatchObject({ state: "uncertain", reason: "secret-t" }) ;
+		expect(observations[1]?.payload.reason)    .toBe         ("secret-t"                                ) ;
+		expect(JSON.stringify(observations)   ).not.toContain    ("secret-token"                            ) ;
 	});
 });

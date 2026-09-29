@@ -47,10 +47,10 @@ test("같은 자식 배열의 내부 변경을 감지하고 반환 배열 변경
 
 	child.rows[1] = "\u001b[32m새 ANSI 행 e\u0301\u001b[39m";
 	const changed = inset.render(24);
-	expect(changed).toEqual(uncached(child.rows, 24));
-	expect(stripTerminalSequences(changed[0]!)).toContain("고정 행 👩🏽‍💻");
-	expect(stripTerminalSequences(changed[1]!)).toContain("새 ANSI 행 e\u0301");
-	expect(stripTerminalSequences(changed[1]!)).not.toContain("이전 ANSI 행");
+	expect(changed                            )    .toEqual  (uncached(child.rows, 24)) ;
+	expect(stripTerminalSequences(changed[0]!))    .toContain("고정 행 👩🏽‍💻"          ) ;
+	expect(stripTerminalSequences(changed[1]!))    .toContain("새 ANSI 행 e\u0301"    ) ;
+	expect(stripTerminalSequences(changed[1]!)).not.toContain("이전 ANSI 행"          ) ;
 });
 
 test("width와 padding 전환 및 invalidate 뒤에도 원본 바이트 출력을 유지한다", () => {

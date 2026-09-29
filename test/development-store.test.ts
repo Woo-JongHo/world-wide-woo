@@ -28,9 +28,9 @@ describe("development source ledger and shared SQLite (v3 traceability projectio
   expect(store.captureRecord(input)).toEqual(first);
   const second = store.captureRecord({ ...input, sourceEventId: "provider-turn-2" });
   expect(first.unitIds).toEqual([unit.id]); expect(second.unitIds).toEqual([]);
-  expect(first.bindingId).not.toBe(second.bindingId);
-  expect(() => store.captureRecord({ ...input, body: "different" })).toThrow("Source event conflict");
-  expect(store.getRunContext("run-a").records).toHaveLength(2);
+  expect(first.bindingId                                           ).not.toBe        (second.bindingId       ) ;
+  expect(() => store.captureRecord({ ...input, body: "different" }))    .toThrow     ("Source event conflict") ;
+  expect(store.getRunContext("run-a").records                      )    .toHaveLength(2                      ) ;
   expect(() => store.captureRecord({ ...input, runId: "unbound" })).toThrow("explicitly bound"); store.close();
  });
  test("rebuilds after DB loss and reports modified source rather than accepting it", () => {
@@ -53,9 +53,9 @@ describe("development source ledger and shared SQLite (v3 traceability projectio
   const code = { kind: "code", id: "src/message.ts" };
   const ref = { kind: "linear-issue" as const, ...issue };
   writeFileSync(join(options.projectRoot, ".www/control-ledger/traceability.json"), JSON.stringify({ schemaVersion: 1, references: [ref, code], links: [{ from: ref, relation: "implements", to: code }] }));
-  expect(store.getIssueContext(issue.id).legacyReferences).toContainEqual(ref);
-  expect(store.getIssueContext(issue.id).legacyLinks).toHaveLength(1);
-  expect(() => store.recordTest({ runId: "run-a", sourceEventId: "test-1", command: "bun test", cwd: options.projectRoot, status: "passed", exitCode: 1, output: "failed" })).toThrow("disagree");
+  expect(store.getIssueContext(issue.id).legacyReferences                                                                                                                   ).toContainEqual(ref       ) ;
+  expect(store.getIssueContext(issue.id).legacyLinks                                                                                                                        ).toHaveLength  (1         ) ;
+  expect(() => store.recordTest({ runId: "run-a", sourceEventId: "test-1", command: "bun test", cwd: options.projectRoot, status: "passed", exitCode: 1, output: "failed" })).toThrow       ("disagree") ;
   const result = store.recordTest({ runId: "run-a", sourceEventId: "test-1", command: "bun test", cwd: options.projectRoot, status: "failed", exitCode: 1, output: "failed" });
   expect(result.status).toBe("failed"); expect("accepted" in result).toBe(false); store.close();
  });

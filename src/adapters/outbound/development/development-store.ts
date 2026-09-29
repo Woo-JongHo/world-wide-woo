@@ -363,10 +363,10 @@ export class DevelopmentStore {
   });
   const rowDigest = hash(stableJson({ projectId: this.projectId, entities, edges, acceptanceCoverage, exceptionCoverage, freshness, notes }));
   const meta = [
-   { key : "logical_digest" , value     : logicalDigest  },
-   { key : "project_id"     ,     value : this.projectId },
-   { key : "row_digest"     ,     value : rowDigest      },
-   { key : "schema_version" , value     : "3"            },
+   { key : "logical_digest" , value : logicalDigest  },
+   { key : "project_id"     , value : this.projectId },
+   { key : "row_digest"     , value : rowDigest      },
+   { key : "schema_version" , value : "3"            },
   ];
   return { entities, edges, acceptanceCoverage, exceptionCoverage, freshness, notes, meta, logicalDigest, rowDigest };
  }
@@ -376,13 +376,13 @@ export class DevelopmentStore {
   const expected = this.expectedTraceability(ledger);
   this.db.run("BEGIN IMMEDIATE");
   try {
-   this.db.query("DELETE FROM traceability_edges WHERE project = ?").run(this.projectId);
-   this.db.query("DELETE FROM traceability_entities WHERE project = ?").run(this.projectId);
-   this.db.query("DELETE FROM traceability_meta WHERE project = ?").run(this.projectId);
-   this.db.query("DELETE FROM acceptance_coverage WHERE project = ?").run(this.projectId);
-   this.db.query("DELETE FROM exception_coverage WHERE project = ?").run(this.projectId);
-   this.db.query("DELETE FROM projection_freshness WHERE project = ?").run(this.projectId);
-   this.db.query("DELETE FROM obsidian_notes WHERE project = ?").run(this.projectId);
+   this.db.query("DELETE FROM traceability_edges WHERE project = ?"   ).run(this.projectId) ;
+   this.db.query("DELETE FROM traceability_entities WHERE project = ?").run(this.projectId) ;
+   this.db.query("DELETE FROM traceability_meta WHERE project = ?"    ).run(this.projectId) ;
+   this.db.query("DELETE FROM acceptance_coverage WHERE project = ?"  ).run(this.projectId) ;
+   this.db.query("DELETE FROM exception_coverage WHERE project = ?"   ).run(this.projectId) ;
+   this.db.query("DELETE FROM projection_freshness WHERE project = ?" ).run(this.projectId) ;
+   this.db.query("DELETE FROM obsidian_notes WHERE project = ?"       ).run(this.projectId) ;
    const insertEntity = this.db.query("INSERT INTO traceability_entities(project,ref,kind,external_id,payload,payload_digest) VALUES (?,?,?,?,?,?)");
    for (const row of expected.entities) insertEntity.run(this.projectId, row.ref, row.kind, row.externalId, row.payload, row.payloadDigest);
    const insertEdge = this.db.query("INSERT INTO traceability_edges(project,source,relation,target) VALUES (?,?,?,?)");

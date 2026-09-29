@@ -54,11 +54,11 @@ describe("RPA description map validation", () => {
 		unit.code.push({ ...unit.code[0], path: "src/demo/other.ts" });
 		unit.steps.push({ ...unit.steps[0], id: unit.steps[1].id, sequence: unit.steps[1].sequence });
 		const errors = validateRpaDescriptionMap(map).join("\n");
-		expect(errors).toContain("duplicate task id");
-		expect(errors).toContain("duplicate task sequence");
-		expect(errors).toContain("duplicate code symbol id");
-		expect(errors).toContain("duplicate step id");
-		expect(errors).toContain("duplicate step sequence");
+		expect(errors).toContain("duplicate task id"       ) ;
+		expect(errors).toContain("duplicate task sequence" ) ;
+		expect(errors).toContain("duplicate code symbol id") ;
+		expect(errors).toContain("duplicate step id"       ) ;
+		expect(errors).toContain("duplicate step sequence" ) ;
 	});
 
 	test("rejects broken Unit, Step, code, exception-test cross-references", () => {
@@ -69,11 +69,11 @@ describe("RPA description map validation", () => {
 		task.tests[1].stepId               = "STEP-MISSING"                     ;
 		task.exceptions[0].testIds         = ["TEST-DEMO-PASS", "TEST-MISSING"] ;
 		const errors = validateRpaDescriptionMap(map).join("\n");
-		expect(errors).toContain("unknown code symbol 'missingSymbol'");
-		expect(errors).toContain("unknown unit 'RPA-UNIT-MISSING'");
-		expect(errors).toContain("unknown step 'STEP-MISSING'");
-		expect(errors).toContain("must target unit 'RPA-UNIT-01'");
-		expect(errors).toContain("unknown test 'TEST-MISSING'");
+		expect(errors).toContain("unknown code symbol 'missingSymbol'") ;
+		expect(errors).toContain("unknown unit 'RPA-UNIT-MISSING'"    ) ;
+		expect(errors).toContain("unknown step 'STEP-MISSING'"        ) ;
+		expect(errors).toContain("must target unit 'RPA-UNIT-01'"     ) ;
+		expect(errors).toContain("unknown test 'TEST-MISSING'"        ) ;
 	});
 
 	test("requires evidence for completed test outcomes and permits explicit unknown safety text", () => {
@@ -102,37 +102,37 @@ describe("RPA Linear description rendering", () => {
 		const map     = fixture()             ;
 		const before  = JSON.stringify(map)   ;
 		const project = renderRpaProject(map) ;
-		expect(project.indexOf("RPA-TASK-01")).toBeLessThan(project.indexOf("RPA-TASK-02"));
-		expect(project).toContain("| Task 수 | 2 |");
-		expect(project).toContain("| 1 | 가상 정산 검증 | RPA-TASK-01 | 가상 입력의 합계와 형식을 검증한다. | 검증된 가상 정산 결과 | [Linear](<https://linear.example.invalid/issue/RPA-TASK-01>) | 1 | 2 | 1 | 2 |");
+		expect(project.indexOf("RPA-TASK-01")).toBeLessThan(project.indexOf("RPA-TASK-02")                                                                                                                                                     ) ;
+		expect(project                       ).toContain   ("| Task 수 | 2 |"                                                                                                                                                                  ) ;
+		expect(project                       ).toContain   ("| 1 | 가상 정산 검증 | RPA-TASK-01 | 가상 입력의 합계와 형식을 검증한다. | 검증된 가상 정산 결과 | [Linear](<https://linear.example.invalid/issue/RPA-TASK-01>) | 1 | 2 | 1 | 2 |") ;
 
 		const task = renderRpaTask(map, "RPA-TASK-01");
-		expect(task.indexOf("STEP-FORMAT")).toBeLessThan(task.indexOf("STEP-SUM"));
-		expect(task).toContain("| Unit 수 | 1 |");
-		expect(task).toContain("| Step 수 | 2 |");
-		expect(task).toContain("| 예외 수 | 1 |");
-		expect(task).toContain("| 테스트 수 | 2 |");
-		expect(JSON.stringify(map)).toBe(before);
+		expect(task.indexOf("STEP-FORMAT")).toBeLessThan(task.indexOf("STEP-SUM")) ;
+		expect(task                       ).toContain   ("| Unit 수 | 1 |"       ) ;
+		expect(task                       ).toContain   ("| Step 수 | 2 |"       ) ;
+		expect(task                       ).toContain   ("| 예외 수 | 1 |"       ) ;
+		expect(task                       ).toContain   ("| 테스트 수 | 2 |"     ) ;
+		expect(JSON.stringify(map)        ).toBe        (before                  ) ;
 	});
 
 	test("renders the exact fixed H2 surfaces and explicit empty collections", () => {
 		const project = renderRpaProject(fixture());
 		const projectHeadings = project.match(/^## .+$/gmu);
-		expect(projectHeadings).toEqual(["## 프로젝트 정보", "## WBS", "## Task 구성", "## 연결"]);
-		expect(project).not.toContain("확인사항");
-		expect(project).not.toContain("고객 결정 이력");
-		expect(project).not.toContain("진행 경과");
+		expect(projectHeadings)    .toEqual  (["## 프로젝트 정보", "## WBS", "## Task 구성", "## 연결"]) ;
+		expect(project        ).not.toContain("확인사항"                                               ) ;
+		expect(project        ).not.toContain("고객 결정 이력"                                         ) ;
+		expect(project        ).not.toContain("진행 경과"                                              ) ;
 		const task = renderRpaTask(fixture(), "RPA-TASK-02");
-		expect(task.match(/^## .+$/gmu)).toEqual(["## Task 정보", "## Unit 구성", "## 예외 케이스", "## 테스트 케이스", "## Unit 상세", "## 연결"]);
-		expect(task.indexOf("## 예외 케이스")).toBeLessThan(task.indexOf("## Unit 상세"));
-		expect(task.indexOf("## 테스트 케이스")).toBeLessThan(task.indexOf("## Unit 상세"));
-		expect(task).toContain("#### 사용 기술");
-		expect(task).toContain("#### 코드 설명");
-		expect(task).toContain("#### Step 구성");
-		expect(task).toContain("| rpa-map revision | demo-revision-001 |");
-		expect(task.match(/정의 없음/gu)?.length).toBeGreaterThanOrEqual(2);
-		expect(task).not.toContain("확인 이력");
-		expect(task).not.toContain("고객 결정 이력");
+		expect(task.match(/^## .+$/gmu)         )    .toEqual               (["## Task 정보", "## Unit 구성", "## 예외 케이스", "## 테스트 케이스", "## Unit 상세", "## 연결"]) ;
+		expect(task.indexOf("## 예외 케이스")   )    .toBeLessThan          (task.indexOf("## Unit 상세")                                                                     ) ;
+		expect(task.indexOf("## 테스트 케이스") )    .toBeLessThan          (task.indexOf("## Unit 상세")                                                                     ) ;
+		expect(task                             )    .toContain             ("#### 사용 기술"                                                                                 ) ;
+		expect(task                             )    .toContain             ("#### 코드 설명"                                                                                 ) ;
+		expect(task                             )    .toContain             ("#### Step 구성"                                                                                 ) ;
+		expect(task                             )    .toContain             ("| rpa-map revision | demo-revision-001 |"                                                       ) ;
+		expect(task.match(/정의 없음/gu)?.length)    .toBeGreaterThanOrEqual(2                                                                                                ) ;
+		expect(task                             ).not.toContain             ("확인 이력"                                                                                      ) ;
+		expect(task                             ).not.toContain             ("고객 결정 이력"                                                                                 ) ;
 	});
 
 	test("escapes dynamic markdown so input cannot add headings or table cells", () => {
@@ -140,9 +140,9 @@ describe("RPA Linear description rendering", () => {
 		map.tasks[1].purpose = "첫 줄\n## 임의 제목 | 새 셀";
 		map.tasks[1].units[0].name = "이름\n## 공격";
 		const output = renderRpaTask(map, "RPA-TASK-01");
-		expect(output.match(/^## .+$/gmu)).toEqual(["## Task 정보", "## Unit 구성", "## 예외 케이스", "## 테스트 케이스", "## Unit 상세", "## 연결"]);
-		expect(output).toContain("첫 줄<br>\\#\\# 임의 제목 \\| 새 셀");
-		expect(output).toContain("### 1. 이름 \\#\\# 공격 \\(RPA-UNIT-01\\)");
+		expect(output.match(/^## .+$/gmu)).toEqual  (["## Task 정보", "## Unit 구성", "## 예외 케이스", "## 테스트 케이스", "## Unit 상세", "## 연결"]) ;
+		expect(output                    ).toContain("첫 줄<br>\\#\\# 임의 제목 \\| 새 셀"                                                            ) ;
+		expect(output                    ).toContain("### 1. 이름 \\#\\# 공격 \\(RPA-UNIT-01\\)"                                                      ) ;
 		map.tasks[1].purpose = "<script>alert(1)</script>";
 		expect(renderRpaTask(map, "RPA-TASK-01")).not.toContain("<script>");
 	});

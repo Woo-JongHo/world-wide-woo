@@ -48,9 +48,9 @@ describe("workbench dashboard views", () => {
 				error       : null,
 			},
 		});
-		expect(output).toContain("DASHBOARD · World Wide Woo");
-		expect(output).toContain("연결 중");
-		expect(output).toContain("열린 이슈·최신 Update·Comment·마일스톤");
+		expect(output).toContain("DASHBOARD · World Wide Woo"            ) ;
+		expect(output).toContain("연결 중"                               ) ;
+		expect(output).toContain("열린 이슈·최신 Update·Comment·마일스톤") ;
 	});
 
 	test("projects linked Linear issues into the empty Chat dashboard", () => {
@@ -68,11 +68,11 @@ describe("workbench dashboard views", () => {
 				error       : null,
 			},
 		});
-		expect(output).toContain("DASHBOARD · World Wide Woo");
-		expect(output).toContain("NOW");
-		expect(output).toContain("WOO-999");
-		expect(output).toContain("Linear 대시보드");
-		expect(output).toContain("In Progress");
+		expect(output).toContain("DASHBOARD · World Wide Woo") ;
+		expect(output).toContain("NOW"                       ) ;
+		expect(output).toContain("WOO-999"                   ) ;
+		expect(output).toContain("Linear 대시보드"           ) ;
+		expect(output).toContain("In Progress"               ) ;
 	});
 
 	test("keeps a failed Linear entry Dashboard visible with a recovery action", () => {
@@ -92,11 +92,11 @@ describe("workbench dashboard views", () => {
 				error       : "Linear MCP 인증이 필요합니다.",
 			},
 		});
-		expect(output).toContain("DASHBOARD · World Wide Woo");
-		expect(output).toContain("Linear Dashboard unavailable");
-		expect(output).toContain("Linear MCP 인증이 필요합니다.");
-		expect(output).toContain("조치 · .www/workbench.yaml");
-		expect(output).not.toContain("프로젝트 Workbench");
+		expect(output)    .toContain("DASHBOARD · World Wide Woo"   ) ;
+		expect(output)    .toContain("Linear Dashboard unavailable" ) ;
+		expect(output)    .toContain("Linear MCP 인증이 필요합니다.") ;
+		expect(output)    .toContain("조치 · .www/workbench.yaml"   ) ;
+		expect(output).not.toContain("프로젝트 Workbench"           ) ;
 	});
 
 	test("replaces the entry Dashboard with ordinary Chat after the first user message", () => {
@@ -115,9 +115,9 @@ describe("workbench dashboard views", () => {
 			},
 		};
 		const output = stripTerminalSequences(new WorkbenchChatView(active).render(100).join("\n"));
-		expect(output).toContain("첫 요청");
-		expect(output).not.toContain("입장 Dashboard");
-		expect(output).not.toContain("WOO-999");
+		expect(output)    .toContain("첫 요청"       ) ;
+		expect(output).not.toContain("입장 Dashboard") ;
+		expect(output).not.toContain("WOO-999"       ) ;
 
 		const todo = stripTerminalSequences(new WorkspaceTodoView(
 			() => null,
@@ -179,20 +179,20 @@ describe("workbench dashboard views", () => {
 			},
 		};
 		const output = stripTerminalSequences(new WorkbenchChatView(failed).render(100).join("\n"));
-		expect(output).not.toMatch(/^🐙 Wooni\s+#1$/mu);
-		expect(output).toContain("부가 기록 실패 · 요청 실행 계속");
-		expect(output).not.toContain("질문 요약 자동 생성 보류");
-		expect(output).toContain("Note 저장에 실패했습니다.");
+		expect(output).not.toMatch  (/^🐙 Wooni\s+#1$/mu               ) ;
+		expect(output)    .toContain("부가 기록 실패 · 요청 실행 계속") ;
+		expect(output).not.toContain("질문 요약 자동 생성 보류"       ) ;
+		expect(output)    .toContain("Note 저장에 실패했습니다."      ) ;
 	});
 
 	test("keeps completed Notes in Dashboard and selected execution Source in Monitor", () => {
 		const notes = stripTerminalSequences(new TNotesSourceView(() => snapshot).render(100).join("\n"));
 		const monitor = stripTerminalSequences(new WorkbenchMonitorView(() => snapshot).render(100).join("\n"));
-		expect(notes).toContain("결정 요약");
-		 expect(notes).not.toContain("Trace·Source");
-		 expect(monitor).toContain("Trace·Source · activity-1");
-		 expect(monitor).not.toContain("thread-1");
-		 expect(monitor).not.toContain("결정 요약");
+		expect(notes   )    .toContain("결정 요약"                ) ;
+		 expect(notes  ).not.toContain("Trace·Source"             ) ;
+		 expect(monitor)    .toContain("Trace·Source · activity-1") ;
+		 expect(monitor).not.toContain("thread-1"                 ) ;
+		 expect(monitor).not.toContain("결정 요약"                ) ;
 	});
 
 	test("renders the dashboard Tracer from Plan-linked public activities rather than Note summaries", () => {
@@ -208,10 +208,10 @@ describe("workbench dashboard views", () => {
 			activities: [command],
 			workFlow: fixtureWorkFlow([command]),
 		})).render(100).join("\n"));
-		expect(output).toContain("FLOW");
-		expect(output).toContain("NOW");
-		expect(output).toContain("bun test");
-		expect(output).not.toContain("결정 요약");
+		expect(output)    .toContain("FLOW"     ) ;
+		expect(output)    .toContain("NOW"      ) ;
+		expect(output)    .toContain("bun test" ) ;
+		expect(output).not.toContain("결정 요약") ;
 	});
 
 	test("shows each inferred Plan activity with an exact Trace address and readable public Source", () => {
@@ -233,16 +233,16 @@ describe("workbench dashboard views", () => {
 		};
 		const output = stripTerminalSequences(new WorkbenchMonitorView(() => traced).render(100).join("\n"));
 
-		expect(output).toContain("Tracer · Native Plan과 관측 실행");
-		expect(output).not.toContain("1/1 단계를 완료했습니다.");
-		expect(output).toContain("Trace · inferred · 1개");
-		expect(output).toContain("├─ 도구 commandExecution · completed");
-		expect(output).toContain("trace-command · /trace trace-command");
-		expect(output).toContain("공개 내용 · 보존된 관측 projection");
-		expect(output).toContain('"command": "bun test"');
-		expect(output).toContain('"aggregatedOutput": "3 pass"');
-		expect(output).not.toContain("Native 참조");
-		expect(output).not.toContain("never-show");
+		expect(output)    .toContain("Tracer · Native Plan과 관측 실행"    ) ;
+		expect(output).not.toContain("1/1 단계를 완료했습니다."            ) ;
+		expect(output)    .toContain("Trace · inferred · 1개"              ) ;
+		expect(output)    .toContain("├─ 도구 commandExecution · completed") ;
+		expect(output)    .toContain("trace-command · /trace trace-command") ;
+		expect(output)    .toContain("공개 내용 · 보존된 관측 projection"  ) ;
+		expect(output)    .toContain('"command": "bun test"'               ) ;
+		expect(output)    .toContain('"aggregatedOutput": "3 pass"'        ) ;
+		expect(output).not.toContain("Native 참조"                         ) ;
+		expect(output).not.toContain("never-show"                          ) ;
 		for (const width of [40, 80, 120]) {
 			const rows = new WorkbenchMonitorView(() => traced).render(width);
 			expect(rows.every((row) => visibleWidth(row) <= width)).toBe(true);
@@ -262,10 +262,10 @@ describe("workbench dashboard views", () => {
 		};
 		const output = stripTerminalSequences(new WorkbenchMonitorView(() => resumed).render(80).join("\n"));
 
-		expect(output).toContain("현재 요청에서 공개 Plan Source가 관측되지 않았습니다.");
-		expect(output).toContain("선택한 Activity의 원본 부재");
-		expect(output).toContain("다른 실행으로 대신하지 않았습니다.");
-		expect(output).toContain("재개 뒤 이 프로세스가 수집한 Activity만 표시합니다.");
+		expect(output).toContain("현재 요청에서 공개 Plan Source가 관측되지 않았습니다.") ;
+		expect(output).toContain("선택한 Activity의 원본 부재"                          ) ;
+		expect(output).toContain("다른 실행으로 대신하지 않았습니다."                   ) ;
+		expect(output).toContain("재개 뒤 이 프로세스가 수집한 Activity만 표시합니다."  ) ;
 	});
 
 	test("keeps resumed assistant output free of the selected Note recap", () => {
@@ -304,9 +304,9 @@ describe("workbench dashboard views", () => {
 		};
 
 		const output = stripTerminalSequences(new WorkbenchChatView(indexed).render(100).join("\n"));
-		expect(output).toContain("두 번째 답변");
-		expect(output).not.toContain("Note · 두 번째 질문");
-		expect(output).not.toContain("sourceActivityIds · assistant-second, turn-second-completed");
+		expect(output)    .toContain("두 번째 답변"                                               ) ;
+		expect(output).not.toContain("Note · 두 번째 질문"                                        ) ;
+		expect(output).not.toContain("sourceActivityIds · assistant-second, turn-second-completed") ;
 	});
 
 	test("keeps the live chat, streaming projection, and Todo while switching to the monitor projection", () => {
@@ -365,11 +365,11 @@ describe("workbench dashboard views", () => {
 		const monitorOutput   = stripTerminalSequences(monitor.render(80).join("\n")) ;
 		const todoOutput      = stripTerminalSequences(todo.render(80).join("\n"))    ;
 
-		expect(dashboardOutput).toContain("streaming response");
-		expect(dashboardOutput).toContain("partial response");
-		expect(monitorOutput).toContain("Monitor · 실행 관측");
-		expect(monitorOutput).toContain("bun test");
-		expect(todoOutput).toContain("전환 상태 보존");
+		expect(dashboardOutput).toContain("streaming response" ) ;
+		expect(dashboardOutput).toContain("partial response"   ) ;
+		expect(monitorOutput  ).toContain("Monitor · 실행 관측") ;
+		expect(monitorOutput  ).toContain("bun test"           ) ;
+		expect(todoOutput     ).toContain("전환 상태 보존"     ) ;
 		chat.update(current);
 		expect(stripTerminalSequences(chat.render(80).join("\n"))).toContain("streaming response");
 	});
@@ -405,12 +405,12 @@ describe("workbench dashboard views", () => {
 			workFlow: fixtureWorkFlow(activities),
 		}).render(88).join("\n"));
 
-		expect(output).toContain("Plan updated");
-		expect(output).toContain("✓ 공용 컴포넌트 검증");
-		expect(output).toContain("▸ 화면 반영");
-		expect(output).toContain("컨텍스트가 자동으로 압축됨");
-		expect(output).toContain("Shared visual QA 작업 시작됨");
-		expect(output).toContain("판단 · Planning semantic color token adjustments");
-		expect(output.indexOf("Plan updated")).toBeLessThan(output.indexOf("컨텍스트가 자동으로 압축됨"));
+		expect(output                        ).toContain   ("Plan updated"                                    ) ;
+		expect(output                        ).toContain   ("✓ 공용 컴포넌트 검증"                            ) ;
+		expect(output                        ).toContain   ("▸ 화면 반영"                                     ) ;
+		expect(output                        ).toContain   ("컨텍스트가 자동으로 압축됨"                      ) ;
+		expect(output                        ).toContain   ("Shared visual QA 작업 시작됨"                    ) ;
+		expect(output                        ).toContain   ("판단 · Planning semantic color token adjustments") ;
+		expect(output.indexOf("Plan updated")).toBeLessThan(output.indexOf("컨텍스트가 자동으로 압축됨")      ) ;
 	});
 });

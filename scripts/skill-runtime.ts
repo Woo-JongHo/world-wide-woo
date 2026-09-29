@@ -1,10 +1,19 @@
 #!/usr/bin/env bun
-import { createLocalWorkflow } from "../src/adapters/outbound/development/local-workflow.js";
-import { resolve } from "node:path";
-import { FileSkillRegistry } from "../src/adapters/outbound/workspace/file-skill-registry.js";
-import { FileSkillRunStore } from "../src/adapters/outbound/persistence/skill-run-store.js";
-import { classifyRpaIntent, planRpaScenario, type RpaIntent } from "../src/core/agents/rpa-agent.js";
-import { authorizeSkillStep, beginSkillStep, finishSkillStep, requestSkillAuthorization, skillRunMonitor, startSkillRun, type WooReceiptStatus } from "../src/core/workflows/skill-run.js";
+import { createLocalWorkflow }                from "../src/adapters/outbound/development/local-workflow.js";
+import { resolve }                            from "node:path";
+import { FileSkillRegistry }                  from "../src/adapters/outbound/workspace/file-skill-registry.js";
+import { FileSkillRunStore }                  from "../src/adapters/outbound/persistence/skill-run-store.js";
+import { classifyRpaIntent, planRpaScenario } from "../src/core/agents/rpa-agent.js";
+import type { RpaIntent }                     from "../src/core/agents/rpa-agent.js";
+import {
+	authorizeSkillStep,
+	beginSkillStep,
+	finishSkillStep,
+	requestSkillAuthorization,
+	skillRunMonitor,
+	startSkillRun,
+} from "../src/core/workflows/skill-run.js";
+import type { WooReceiptStatus }              from "../src/core/workflows/skill-run.js";
 
 const args = process.argv.slice(2), command = args[0];
 const flag = (name: string) => { const index = args.indexOf(name); return index < 0 ? undefined : args[index + 1]; };

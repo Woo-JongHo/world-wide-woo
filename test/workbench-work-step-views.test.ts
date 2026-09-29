@@ -53,11 +53,11 @@ describe("workbench plan, Todo, and work-step views", () => {
 			workFlow,
 		}).render(76).join("\n"));
 
-		expect(output).toContain("변경 결과 검증");
-		expect(output).not.toContain("무엇을 하고 있는지:");
-		expect(output).not.toContain("왜 하는지:");
-		expect(output).not.toContain("의미 Step 집계 Module 추가");
-		expect(output).not.toContain("작업 입력 해석 중");
+		expect(output)    .toContain("변경 결과 검증"            ) ;
+		expect(output).not.toContain("무엇을 하고 있는지:"       ) ;
+		expect(output).not.toContain("왜 하는지:"                ) ;
+		expect(output).not.toContain("의미 Step 집계 Module 추가") ;
+		expect(output).not.toContain("작업 입력 해석 중"         ) ;
 	});
 
 	test("hides empty Todo and Note counters", () => {
@@ -65,10 +65,10 @@ describe("workbench plan, Todo, and work-step views", () => {
 		const tnotesOutput  = stripTerminalSequences(new TNotesSourceView(() => emptySnapshot).render(80).join("\n")) ;
 		const todoOutput    = stripTerminalSequences(new WorkspaceTodoView(() => null).render(80).join("\n"))         ;
 
-		expect(tnotesOutput).not.toContain("T-NOTES 0");
-		expect(todoOutput).not.toContain("TODO 0/0");
-		expect(tnotesOutput).toBe("");
-		expect(todoOutput).toBe("TODO · 현재 계획 없음");
+		expect(tnotesOutput).not.toContain("T-NOTES 0"            ) ;
+		expect(todoOutput  ).not.toContain("TODO 0/0"             ) ;
+		expect(tnotesOutput)    .toBe     (""                     ) ;
+		expect(todoOutput  )    .toBe     ("TODO · 현재 계획 없음") ;
 	});
 
 	test("keeps active goal, progress, queue, Todo, and source details out of Notes", () => {
@@ -88,12 +88,12 @@ describe("workbench plan, Todo, and work-step views", () => {
 			},
 		})).render(80).join("\n"));
 
-		expect(output).toBe("");
-		expect(output).not.toContain("SESSION GOAL");
-		expect(output).not.toContain("프로젝트별 WWW 작업 공간");
-		expect(output).not.toContain("현재 응답을 작성 중입니다.");
-		expect(output).not.toContain("다음 요청");
-		expect(output).not.toContain("현재 Todo");
+		expect(output)    .toBe     (""                          ) ;
+		expect(output).not.toContain("SESSION GOAL"              ) ;
+		expect(output).not.toContain("프로젝트별 WWW 작업 공간"  ) ;
+		expect(output).not.toContain("현재 응답을 작성 중입니다.") ;
+		expect(output).not.toContain("다음 요청"                 ) ;
+		expect(output).not.toContain("현재 Todo"                 ) ;
 	});
 
 	test("bounds append-only Notes while preserving omission and visible-count evidence", () => {
@@ -108,11 +108,11 @@ describe("workbench plan, Todo, and work-step views", () => {
 		}));
 		const output = stripTerminalSequences(new TNotesSourceView(() => ({ ...snapshot, tnotes })).render(80).join("\n"));
 
-		expect(output).toContain("이전 완료 질문 3개 생략 · 최근 20개 표시");
-		expect(output).not.toContain("질문 1 · note-1");
-		expect(output).toContain("질문 4 · note-4");
-		expect(output).toContain("질문 23 · note-23");
-		expect(output).toContain("긴 Report 일부 생략 · 최대 2,048자 · 24줄");
+		expect(output)    .toContain("이전 완료 질문 3개 생략 · 최근 20개 표시" ) ;
+		expect(output).not.toContain("질문 1 · note-1"                          ) ;
+		expect(output)    .toContain("질문 4 · note-4"                          ) ;
+		expect(output)    .toContain("질문 23 · note-23"                        ) ;
+		expect(output)    .toContain("긴 Report 일부 생략 · 최대 2,048자 · 24줄") ;
 
 		const customOutput = stripTerminalSequences(new TNotesSourceView(() => ({
 			...snapshot,
@@ -139,11 +139,11 @@ describe("workbench plan, Todo, and work-step views", () => {
 		const lines = view.render(48);
 		const output = stripTerminalSequences(lines.join("\n"));
 
-		expect(lines.every((line) => visibleWidth(line) <= 48)).toBe(true);
-		expect(output).toContain("✓");
-		expect(output).toContain("▶");
-		expect(output).not.toContain("[x]");
-		expect(lines.length).toBeGreaterThanOrEqual(4);
+		expect(lines.every((line) => visibleWidth(line) <= 48))    .toBe                  (true ) ;
+		expect(output                                         )    .toContain             ("✓"  ) ;
+		expect(output                                         )    .toContain             ("▶"  ) ;
+		expect(output                                         ).not.toContain             ("[x]") ;
+		expect(lines.length                                   )    .toBeGreaterThanOrEqual(4    ) ;
 	});
 
 	test("hides lifecycle progress payloads from Chat cards", () => {
@@ -159,9 +159,9 @@ describe("workbench plan, Todo, and work-step views", () => {
 			selectedActivityId: null,
 		};
 		const output = stripTerminalSequences(new WorkbenchChatView(startup).render(70).join("\n"));
-		expect(output).not.toContain("mcpServer");
-		expect(output).not.toContain("rawStartup");
-		expect(output).not.toContain("native-tool");
+		expect(output).not.toContain("mcpServer"  ) ;
+		expect(output).not.toContain("rawStartup" ) ;
+		expect(output).not.toContain("native-tool") ;
 	});
 
 	test("shows only a content-free state while native reasoning is streaming", () => {
@@ -170,9 +170,9 @@ describe("workbench plan, Todo, and work-step views", () => {
 			reasoningDraft: "비공개 추론 원문: 사용자의 의도를 분석한다",
 		};
 		const output = stripTerminalSequences(new WorkbenchChatView(reasoning).render(70).join("\n"));
-		expect(output).toContain("작업 계획을 정리하는 중");
-		expect(output).not.toContain("비공개 추론 원문");
-		expect(output).not.toContain("사용자의 의도를 분석한다");
+		expect(output)    .toContain("작업 계획을 정리하는 중" ) ;
+		expect(output).not.toContain("비공개 추론 원문"        ) ;
+		expect(output).not.toContain("사용자의 의도를 분석한다") ;
 	});
 
 	test("shows only the App Server public reasoning summary text", () => {
@@ -209,14 +209,14 @@ describe("workbench plan, Todo, and work-step views", () => {
 		};
 		const output = stripTerminalSequences(new WorkbenchChatView(pending, null, approvalPresentation).render(100).join("\n"));
 
-		expect(output).toContain("승인 필요 · 명령");
-		expect(output).toContain("명령 · bun test test/workbench-views.test.ts");
-		expect(output).toContain("이유 · 변경이 동작하는지 테스트해야 합니다.");
-		expect(output).toContain("경로 · /workspace/sample-project");
-		expect(output).toContain("승인 선택 화면 · ↑↓ 또는 숫자로 선택 · Enter 결정");
-		expect(output).toContain("승인할까요? 현재 턴은 Input 답변을 기다립니다.");
-		expect(output).toContain("백그라운드 작업 · unknown");
-		expect(output).toContain("대기 메시지 1개 · 승인 후 순서대로 전송");
+		expect(output).toContain("승인 필요 · 명령"                                 ) ;
+		expect(output).toContain("명령 · bun test test/workbench-views.test.ts"     ) ;
+		expect(output).toContain("이유 · 변경이 동작하는지 테스트해야 합니다."      ) ;
+		expect(output).toContain("경로 · /workspace/sample-project"                 ) ;
+		expect(output).toContain("승인 선택 화면 · ↑↓ 또는 숫자로 선택 · Enter 결정") ;
+		expect(output).toContain("승인할까요? 현재 턴은 Input 답변을 기다립니다."   ) ;
+		expect(output).toContain("백그라운드 작업 · unknown"                        ) ;
+		expect(output).toContain("대기 메시지 1개 · 승인 후 순서대로 전송"          ) ;
 	});
 
 	test("renders authoritative approval background states and compact queued delivery", () => {
@@ -272,9 +272,9 @@ describe("workbench plan, Todo, and work-step views", () => {
 			draft              : "실행 중인 다음 단계",
 		};
 		const activeOutput = stripTerminalSequences(new TNotesSourceView(() => active).render(80).join("\n"));
-		expect(activeOutput).not.toContain('"classification": "reasoning"');
-		expect(activeOutput).not.toContain("비공개 reasoning 원문");
-		expect(activeOutput).not.toContain("실행 중인 다음 단계");
+		expect(activeOutput).not.toContain('"classification": "reasoning"') ;
+		expect(activeOutput).not.toContain("비공개 reasoning 원문"        ) ;
+		expect(activeOutput).not.toContain("실행 중인 다음 단계"          ) ;
 
 		const completedOutput = stripTerminalSequences(new TNotesSourceView(() => ({
 			...active,
@@ -286,9 +286,9 @@ describe("workbench plan, Todo, and work-step views", () => {
 				updatedAt: "2026-09-01T00:00:02.000Z",
 			}],
 		})).render(80).join("\n"));
-		expect(completedOutput).toContain("완료된 질문 · resumed-note");
-		expect(completedOutput).toContain("질문: 완료된 질문");
-		expect(completedOutput).toContain("결과: 검증을 마쳤습니다.");
+		expect(completedOutput).toContain("완료된 질문 · resumed-note") ;
+		expect(completedOutput).toContain("질문: 완료된 질문"         ) ;
+		expect(completedOutput).toContain("결과: 검증을 마쳤습니다."  ) ;
 	});
 
 	test("renders a completed native command as a bounded public step card", () => {
@@ -325,21 +325,21 @@ describe("workbench plan, Todo, and work-step views", () => {
 			...command,
 			workFlow: fixtureWorkFlow(command.activities),
 		}).render(70).join("\n"));
-		expect(output).toContain("단계 1 · PASSED");
-		expect(output).toContain("변경 결과 검증");
-		expect(output).toContain("Trace source · activityId command-activity · /trace command-activity");
-		expect(output).toContain("$ bun test test/workbench-views.test.ts");
-		expect(output).not.toContain("왜 하는지:");
-		expect(output).toContain("┌─── ✔ Bash");
-		expect(output).not.toContain("/workspace/sample");
-		expect(output).toContain("├─── Output");
-		expect(output).toContain("result-20");
-		expect(output).toContain("earlier lines, showing 5 of 20");
-		expect(output).not.toContain("result-15");
-		expect(output).not.toContain("rawEnvelope");
-		expect(output).not.toContain("thread-secret");
-		expect(output).not.toContain("hiddenReasoning");
-		expect(output).not.toContain("사용자에게 보여서는 안 되는 추론");
+		expect(output)    .toContain("단계 1 · PASSED"                                                     ) ;
+		expect(output)    .toContain("변경 결과 검증"                                                      ) ;
+		expect(output)    .toContain("Trace source · activityId command-activity · /trace command-activity") ;
+		expect(output)    .toContain("$ bun test test/workbench-views.test.ts"                             ) ;
+		expect(output).not.toContain("왜 하는지:"                                                          ) ;
+		expect(output)    .toContain("┌─── ✔ Bash"                                                         ) ;
+		expect(output).not.toContain("/workspace/sample"                                                   ) ;
+		expect(output)    .toContain("├─── Output"                                                         ) ;
+		expect(output)    .toContain("result-20"                                                           ) ;
+		expect(output)    .toContain("earlier lines, showing 5 of 20"                                      ) ;
+		expect(output).not.toContain("result-15"                                                           ) ;
+		expect(output).not.toContain("rawEnvelope"                                                         ) ;
+		expect(output).not.toContain("thread-secret"                                                       ) ;
+		expect(output).not.toContain("hiddenReasoning"                                                     ) ;
+		expect(output).not.toContain("사용자에게 보여서는 안 되는 추론"                                    ) ;
 	});
 
 	test("keeps an unplanned command as a detailed Bash action instead of a generic sentence", () => {
@@ -381,13 +381,13 @@ describe("workbench plan, Todo, and work-step views", () => {
 			workFlow: projectWorkFlow([]),
 		}).render(72).join("\n"));
 
-		expect(output).toContain("✔ Bash · PASSED");
-		expect(output).toContain("┌─── ✔ Bash");
-		expect(output).toContain("$ git add src/app.ts");
-		expect(output).toContain("staged src/app.ts");
-		expect(output).toContain("⟦Exit: 0⟧");
-		expect(output).toContain("⟦Duration: 18ms⟧");
-		expect(output).not.toContain("명령을 실행했습니다");
+		expect(output)    .toContain("✔ Bash · PASSED"     ) ;
+		expect(output)    .toContain("┌─── ✔ Bash"         ) ;
+		expect(output)    .toContain("$ git add src/app.ts") ;
+		expect(output)    .toContain("staged src/app.ts"   ) ;
+		expect(output)    .toContain("⟦Exit: 0⟧"           ) ;
+		expect(output)    .toContain("⟦Duration: 18ms⟧"    ) ;
+		expect(output).not.toContain("명령을 실행했습니다" ) ;
 	});
 
 	test("keeps every planned action once and labels intermediate actions with their parent step", () => {
@@ -442,10 +442,10 @@ describe("workbench plan, Todo, and work-step views", () => {
 			workFlow: fixtureWorkFlow(activities),
 		}).render(72).join("\n"));
 
-		expect(output).toContain("✔ 단계 1 › Bash · PASSED");
-		expect(output).toContain("단계 1 · PASSED");
-		expect(output.match(/\$ git add src\/app\.ts/gu)).toHaveLength(1);
-		expect(output.match(/\+ changed/gu)).toHaveLength(1);
+		expect(output                                   ).toContain   ("✔ 단계 1 › Bash · PASSED") ;
+		expect(output                                   ).toContain   ("단계 1 · PASSED"         ) ;
+		expect(output.match(/\$ git add src\/app\.ts/gu)).toHaveLength(1                         ) ;
+		expect(output.match(/\+ changed/gu)             ).toHaveLength(1                         ) ;
 	});
 
 	test("keeps a native command output delta on the same running step", () => {
@@ -477,13 +477,13 @@ describe("workbench plan, Todo, and work-step views", () => {
 			...running,
 			workFlow: fixtureWorkFlow(running.activities),
 		}).render(62).join("\n"));
-		expect(output).toContain("단계 1 · RUNNING");
-		expect(output).toContain("변경 결과 검증");
-		expect(output).not.toContain("왜 하는지:");
-		expect(output).toContain("12 pass");
-		expect(output).toContain("1 fail");
-		expect(output).not.toContain("outputDelta");
-		expect(output.match(/단계 1/gu)).toHaveLength(1);
+		expect(output                  )    .toContain   ("단계 1 · RUNNING") ;
+		expect(output                  )    .toContain   ("변경 결과 검증"  ) ;
+		expect(output                  ).not.toContain   ("왜 하는지:"      ) ;
+		expect(output                  )    .toContain   ("12 pass"         ) ;
+		expect(output                  )    .toContain   ("1 fail"          ) ;
+		expect(output                  ).not.toContain   ("outputDelta"     ) ;
+		expect(output.match(/단계 1/gu))    .toHaveLength(1                 ) ;
 	});
 
 	test("keeps completed command observations out of Native-plan step numbering", () => {
@@ -526,11 +526,11 @@ describe("workbench plan, Todo, and work-step views", () => {
 			...steps,
 			workFlow: fixtureWorkFlow(steps.activities),
 		}).render(70).join("\n"));
-		expect(output).toContain("Observe · PASSED");
-		expect(output).toContain("단계 1 · PASSED");
-		expect(output).not.toContain("단계 2");
-		expect(output).not.toContain("단계 4");
-		expect(output).not.toContain("단계 9");
+		expect(output)    .toContain("Observe · PASSED") ;
+		expect(output)    .toContain("단계 1 · PASSED" ) ;
+		expect(output).not.toContain("단계 2"          ) ;
+		expect(output).not.toContain("단계 4"          ) ;
+		expect(output).not.toContain("단계 9"          ) ;
 	});
 
 	test("shows follow-up inputs immediately as ordinary user messages", () => {
@@ -542,13 +542,13 @@ describe("workbench plan, Todo, and work-step views", () => {
 			],
 		};
 		const output = stripTerminalSequences(new WorkbenchChatView(queued).render(62).join("\n"));
-		expect(output).not.toContain("대기 1");
-		expect(output).toContain("첫 번째 후속 요청");
-		expect(output).not.toContain("대기 2");
-		expect(output).toContain("두 번째 후속 요청");
-		expect(output.indexOf("첫 번째 후속 요청")).toBeLessThan(output.indexOf("두 번째 후속 요청"));
-		expect(output).not.toContain("queue-secret");
-		expect(output).not.toContain("2026-09-01T00:00");
+		expect(output                             ).not.toContain   ("대기 1"                           ) ;
+		expect(output                             )    .toContain   ("첫 번째 후속 요청"                ) ;
+		expect(output                             ).not.toContain   ("대기 2"                           ) ;
+		expect(output                             )    .toContain   ("두 번째 후속 요청"                ) ;
+		expect(output.indexOf("첫 번째 후속 요청"))    .toBeLessThan(output.indexOf("두 번째 후속 요청")) ;
+		expect(output                             ).not.toContain   ("queue-secret"                     ) ;
+		expect(output                             ).not.toContain   ("2026-09-01T00:00"                 ) ;
 	});
 
 	test("keeps an uncertain delivery warning and its recovery command visible", () => {
@@ -559,10 +559,10 @@ describe("workbench plan, Todo, and work-step views", () => {
 			error             : "Native turn/start 요청의 수신 여부가 불명확합니다. accessToken=source-token-secret",
 		};
 		const output = stripTerminalSequences(new WorkbenchChatView(uncertain).render(70).join("\n"));
-		expect(output).toContain("확인이 필요한 상태");
-		expect(output).toContain("수신 여부가 불명확합니다");
-		expect(output).toContain("/cancel로 서버 상태를 확인합니다");
-		expect(output).not.toContain("source-token-secret");
+		expect(output)    .toContain("확인이 필요한 상태"              ) ;
+		expect(output)    .toContain("수신 여부가 불명확합니다"        ) ;
+		expect(output)    .toContain("/cancel로 서버 상태를 확인합니다") ;
+		expect(output).not.toContain("source-token-secret"             ) ;
 	});
 
 	test("omits the /cancel recovery line for a failure it cannot reconcile", () => {
@@ -572,9 +572,9 @@ describe("workbench plan, Todo, and work-step views", () => {
 			error: "활동 기록은 Native thread에 묶인 뒤에만 추가할 수 있습니다.",
 		};
 		const output = stripTerminalSequences(new WorkbenchChatView(internal).render(70).join("\n"));
-		expect(output).toContain("확인이 필요한 상태");
-		expect(output).toContain("Native thread에 묶인 뒤에만");
-		expect(output).not.toContain("/cancel");
+		expect(output)    .toContain("확인이 필요한 상태"         ) ;
+		expect(output)    .toContain("Native thread에 묶인 뒤에만") ;
+		expect(output).not.toContain("/cancel"                    ) ;
 	});
 
 	test.each([
@@ -616,9 +616,9 @@ describe("workbench plan, Todo, and work-step views", () => {
 			}],
 		};
 		const output = stripTerminalSequences(new WorkbenchChatView(outbound).render(70).join("\n"));
-		expect(output).toContain("👤 USER · 전송 준비 중");
-		expect(output).toContain("Native Thread가 열리기 전에도 보여야 하는 요청");
-		expect(output).not.toContain("activity 순서가 없는 응답");
+		expect(output)    .toContain("👤 USER · 전송 준비 중"                         ) ;
+		expect(output)    .toContain("Native Thread가 열리기 전에도 보여야 하는 요청") ;
+		expect(output).not.toContain("activity 순서가 없는 응답"                     ) ;
 	});
 
 	test("uses the public MCP item status, arguments, and error without exposing reasoning", () => {
@@ -653,12 +653,12 @@ describe("workbench plan, Todo, and work-step views", () => {
 			...failedTool,
 			workFlow: fixtureWorkFlow(failedTool.activities),
 		}).render(70).join("\n"));
-		expect(output).toContain("단계 1 · FAILED");
-		expect(output).toContain("create_issue 입력 해석 중");
-		expect(output).toContain("args: {\"title\":\"native workbench\"}");
-		expect(output).toContain("error: {\"message\":\"rate limited\"}");
-		expect(output).not.toContain("hiddenReasoning");
-		expect(output).not.toContain("비공개 판단");
+		expect(output)    .toContain("단계 1 · FAILED"                       ) ;
+		expect(output)    .toContain("create_issue 입력 해석 중"             ) ;
+		expect(output)    .toContain("args: {\"title\":\"native workbench\"}") ;
+		expect(output)    .toContain("error: {\"message\":\"rate limited\"}" ) ;
+		expect(output).not.toContain("hiddenReasoning"                       ) ;
+		expect(output).not.toContain("비공개 판단"                           ) ;
 	});
 
 	test("preserves completed Markdown while bounding only the live draft", () => {
@@ -670,15 +670,15 @@ describe("workbench plan, Todo, and work-step views", () => {
 			draft,
 		};
 		const output = stripTerminalSequences(new WorkbenchChatView(large).render(100).join("\n"));
-		expect(output).toContain("completed-line-001");
-		expect(output).toContain("completed-line-200");
-		expect(output).toContain("completed-line-100");
-		expect(output).toContain("draft-line-001");
-		expect(output).toContain("draft-line-200");
-		expect(output).not.toContain("draft-line-100");
-		expect(output.match(/응답 일부 생략/gu)).toHaveLength(1);
-		expect(large.chat[0]?.content).toBe(completed);
-		expect(large.draft).toBe(draft);
+		expect(output                          )    .toContain   ("completed-line-001") ;
+		expect(output                          )    .toContain   ("completed-line-200") ;
+		expect(output                          )    .toContain   ("completed-line-100") ;
+		expect(output                          )    .toContain   ("draft-line-001"    ) ;
+		expect(output                          )    .toContain   ("draft-line-200"    ) ;
+		expect(output                          ).not.toContain   ("draft-line-100"    ) ;
+		expect(output.match(/응답 일부 생략/gu))    .toHaveLength(1                   ) ;
+		expect(large.chat[0]?.content          )    .toBe        (completed           ) ;
+		expect(large.draft                     )    .toBe        (draft               ) ;
 	});
 
 	test("keeps a structured native answer in its original Markdown order", () => {
@@ -744,16 +744,16 @@ describe("workbench plan, Todo, and work-step views", () => {
 
 		const view = new WorkbenchChatView(longSession);
 		const output = stripTerminalSequences(view.render(80).join("\n"));
-		expect(output).not.toContain("이전 활동");
-		expect(output).toContain("assistant-message-001");
-		expect(output).toContain("assistant-message-100");
-		expect(output).toContain("assistant-message-101");
-		expect(output).toContain("assistant-message-180");
+		expect(output).not.toContain("이전 활동"            ) ;
+		expect(output)    .toContain("assistant-message-001") ;
+		expect(output)    .toContain("assistant-message-100") ;
+		expect(output)    .toContain("assistant-message-101") ;
+		expect(output)    .toContain("assistant-message-180") ;
 
 		view.update({ ...longSession, draft: "새 응답" });
 		const updated = stripTerminalSequences(view.render(80).join("\n"));
-		expect(updated).toContain("assistant-message-001");
-		expect(updated).toContain("assistant-message-180");
-		expect(updated).toContain("새 응답");
+		expect(updated).toContain("assistant-message-001") ;
+		expect(updated).toContain("assistant-message-180") ;
+		expect(updated).toContain("새 응답"              ) ;
 	});
 });

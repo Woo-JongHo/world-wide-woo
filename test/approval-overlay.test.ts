@@ -39,13 +39,13 @@ describe("ApprovalOverlay", () => {
 
 	test("shows the command, the reason, the path, and every advertised decision", () => {
 		const lines = overlay().lines().join("\n");
-		expect(lines).toContain("승인 필요 · 명령");
-		expect(lines).toContain("rm -rf /tmp/probe-dir");
-		expect(lines).toContain("명령 실행에 승인이 필요합니다.");
-		expect(lines).toContain("/workspace/sample");
-		expect(lines).toContain("1. 승인");
-		expect(lines).toContain("2. 이번 세션 동안 승인");
-		expect(lines).toContain("3. 거절");
+		expect(lines).toContain("승인 필요 · 명령"              ) ;
+		expect(lines).toContain("rm -rf /tmp/probe-dir"         ) ;
+		expect(lines).toContain("명령 실행에 승인이 필요합니다.") ;
+		expect(lines).toContain("/workspace/sample"             ) ;
+		expect(lines).toContain("1. 승인"                       ) ;
+		expect(lines).toContain("2. 이번 세션 동안 승인"        ) ;
+		expect(lines).toContain("3. 거절"                       ) ;
 	});
 
 	test("pads every row to the requested width so the sheet border stays straight", () => {
@@ -96,9 +96,9 @@ describe("ApprovalOverlay", () => {
 
 	test("offers only what the request advertises", () => {
 		const lines = overlay({ availableDecisions: ["decline"] }).lines().join("\n");
-		expect(lines).toContain("1. 거절");
-		expect(lines).not.toContain("승인\n");
-		expect(lines).not.toContain("2.");
+		expect(lines)    .toContain("1. 거절") ;
+		expect(lines).not.toContain("승인\n" ) ;
+		expect(lines).not.toContain("2."     ) ;
 	});
 
 	test("keeps an advertised policy-amendment choice as a numbered option", () => {

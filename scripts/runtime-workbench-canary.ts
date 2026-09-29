@@ -1,22 +1,22 @@
 /** Explicit live acceptance check through the actual Workbench and durable journal. No external mutation. */
 import { mkdtemp, realpath, writeFile, readFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { CodexAppServer } from "../src/adapters/outbound/execution/codex-app-server";
-import { ProjectWorkbench } from "../src/core/application/orchestration/project-workbench";
-import { ActivityJournalStore } from "../src/adapters/outbound/persistence/activity-journal-store";
-import { ThreadBoundActivityJournal } from "../src/adapters/outbound/workspace/project-workbench-session";
-import { pinnedFileCapabilities } from "../src/adapters/outbound/workspace/pinned-file-capabilities";
+import { tmpdir }                                 from "node:os";
+import { join }                                   from "node:path";
+import { CodexAppServer }                         from "../src/adapters/outbound/execution/codex-app-server";
+import { ProjectWorkbench }                       from "../src/core/application/orchestration/project-workbench";
+import { ActivityJournalStore }                   from "../src/adapters/outbound/persistence/activity-journal-store";
+import { ThreadBoundActivityJournal }             from "../src/adapters/outbound/workspace/project-workbench-session";
+import { pinnedFileCapabilities }                 from "../src/adapters/outbound/workspace/pinned-file-capabilities";
 
 if (!process.argv.includes("--live")) throw new Error("Consumes a Native model turn. Run: bun scripts/runtime-workbench-canary.ts --live");
-const directory = await realpath(await mkdtemp(join(tmpdir(), "www-workbench-canary-")));
-const writeFixture = process.argv.includes("--write-fixture");
-const target = join(directory, "fixture.txt");
+const directory    = await realpath(await mkdtemp(join(tmpdir(), "www-workbench-canary-"))) ;
+const writeFixture = process.argv.includes("--write-fixture")                               ;
+const target       = join(directory, "fixture.txt")                                         ;
 if (writeFixture) await writeFile(target, "before");
-const native = await CodexAppServer.connect({ requestTimeoutMs: 15_000 });
-const journal = new ThreadBoundActivityJournal(new ActivityJournalStore(directory), undefined, "request-intake-canary");
-const workbench = new ProjectWorkbench(native, journal, { projectId: "canary", cwd: directory, sandbox: "read-only", approvalPolicy: "never", requestCapabilities: writeFixture ? pinnedFileCapabilities([target]) : [], acquireThreadLease: threadId => journal.bindThread(threadId) });
-let timer: ReturnType<typeof setTimeout> | undefined;
+const native    = await CodexAppServer.connect({ requestTimeoutMs: 15_000 })                                                                                                                                                                                                             ;
+const journal   = new ThreadBoundActivityJournal(new ActivityJournalStore(directory), undefined, "request-intake-canary")                                                                                                                                                                ;
+const workbench = new ProjectWorkbench(native, journal, { projectId: "canary", cwd: directory, sandbox: "read-only", approvalPolicy: "never", requestCapabilities: writeFixture ? pinnedFileCapabilities([target]) : [], acquireThreadLease: threadId => journal.bindThread(threadId) }) ;
+let timer: ReturnType<typeof setTimeout> | undefined                                                                                                                                                                                                                                     ;
 try {
 	const done = Promise.withResolvers<void>();
 	const approvalIds = new Set<string | number>();
@@ -36,10 +36,10 @@ try {
 	const sent = await workbench.dispatch({ type: "chat.send", text });
 	if (sent.state !== "accepted") throw new Error(`CANARY_INTAKE_${sent.state}`);
 	await Promise.race([done.promise, new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error("CANARY_TIMEOUT")), 120_000); })]);
-	const request = workbench.snapshot.requestRuntime!.find(r => r.requestId === sent.commandId)!;
-	const records = await journal.readAll("canary");
-	const fileMatches = writeFixture ? await readFile(target, "utf8") === "after" : null;
-	const result = { test: "runtime-workbench-acceptance", writeFixture, fileMatches, requestId: request.requestId, protocolVersion: request.protocolVersion, status: request.status, stages: request.stages.map(s => ({ id: s.id, status: s.status, skipReason: s.skipReason })), trustedReports: records.filter(a => a.payload.method === "runtime/stage-report").length, actionReceipts: records.filter(a => a.payload.method === "runtime/action-completed").map(a => ({ id: a.id, stage: a.payload.stage, capability: a.payload.capability, phase: a.phase })), approvals: approvalIds.size, deliveries: request.deliveries.map(d => d.target), issues: request.issues, journalDirectory: directory, strictIsolationProven: false };
+	const request     = workbench.snapshot.requestRuntime!.find(r => r.requestId === sent.commandId)!                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         ;
+	const records     = await journal.readAll("canary")                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       ;
+	const fileMatches = writeFixture ? await readFile(target, "utf8") === "after" : null                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      ;
+	const result      = { test: "runtime-workbench-acceptance", writeFixture, fileMatches, requestId: request.requestId, protocolVersion: request.protocolVersion, status: request.status, stages: request.stages.map(s => ({ id: s.id, status: s.status, skipReason: s.skipReason })), trustedReports: records.filter(a => a.payload.method === "runtime/stage-report").length, actionReceipts: records.filter(a => a.payload.method === "runtime/action-completed").map(a => ({ id: a.id, stage: a.payload.stage, capability: a.payload.capability, phase: a.phase })), approvals: approvalIds.size, deliveries: request.deliveries.map(d => d.target), issues: request.issues, journalDirectory: directory, strictIsolationProven: false } ;
 	console.log(JSON.stringify(result));
 	if (request.status !== "completed" || request.stages.length !== 7 || request.stages.some(s => !["completed", "skipped"].includes(s.status)) || writeFixture && !fileMatches) process.exitCode = 1;
 } finally {

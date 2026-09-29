@@ -23,11 +23,11 @@ const snapshot: SessionSnapshot = {
 describe("WWW left welcome", () => {
 	test.each([40, 100])("keeps product identity and live pills within %i columns", (width) => {
 		const output = new TranscriptView(snapshot).render(width);
-		expect(output.every((line) => visibleWidth(line) <= width)).toBe(true);
-		expect(output.join("\n")).toContain("WWW · World Wide Woo");
-		expect(output.join("\n")).toContain("openai-codex · gpt-5.4");
-		expect(output.join("\n")).toContain("추론 최고");
-		expect(output.join("\n")).toContain("인증됨 · OAuth");
+		expect(output.every((line) => visibleWidth(line) <= width)).toBe     (true                    ) ;
+		expect(output.join("\n")                                  ).toContain("WWW · World Wide Woo"  ) ;
+		expect(output.join("\n")                                  ).toContain("openai-codex · gpt-5.4") ;
+		expect(output.join("\n")                                  ).toContain("추론 최고"             ) ;
+		expect(output.join("\n")                                  ).toContain("인증됨 · OAuth"        ) ;
 	});
 
 	test("gradient styling preserves landmark cell width", () => {

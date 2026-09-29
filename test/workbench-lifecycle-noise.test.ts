@@ -50,10 +50,10 @@ describe("Workbench lifecycle noise filter", () => {
 			actionResult: null, error: null,
 		};
 		const output = stripTerminalSequences(new WorkbenchChatView(snapshot).render(72).join("\n"));
-		expect(output).not.toContain("도구 서버");
-		expect(output).not.toContain("google-drive");
-		expect(output).not.toContain("linear-woo");
-		expect(output).not.toContain("starting");
-		expect(output).not.toContain("failed");
+		expect(output).not.toContain("도구 서버"   ) ;
+		expect(output).not.toContain("google-drive") ;
+		expect(output).not.toContain("linear-woo"  ) ;
+		expect(output).not.toContain("starting"    ) ;
+		expect(output).not.toContain("failed"      ) ;
 	});
 });

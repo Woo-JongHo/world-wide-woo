@@ -6,13 +6,13 @@ import type {
 } from "@/core/application/orchestration/native-turn-coordinator.js";
 
 interface ThreadLifecycleOptions {
-	readonly cwd            : string                                               				 	 ;
+	readonly cwd            : string                                                                 ;
 	readonly model          : () 				 => NativeThreadStart["model"]                       ;
 	readonly effort         : () 				 => NativeThreadStart["effort"]                      ;
 	readonly approvalPolicy : () 			  	 => NonNullable<NativeThreadStart["approvalPolicy"]> ;
 	readonly sandbox        : ()				 => NonNullable<NativeThreadStart["sandbox"]>        ;
-	readonly acquireLease   : (threadId: string) => Promise<void>                   				 ;
-	readonly bindSources    : (threadId: string) => Promise<void>                   				 ;
+	readonly acquireLease   : (threadId: string) => Promise<void>                                    ;
+	readonly bindSources    : (threadId: string) => Promise<void>                                    ;
 	readonly closed         : () 				 => boolean                                          ;
 }
 

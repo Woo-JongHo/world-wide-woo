@@ -33,9 +33,9 @@ describe("ExecutionRun reducer", () => {
 		const waitingActivity = state.activeActivity;
 		for (const [index, method] of ["governance/decision-prepared", "governance/decision-uncertain", "governance/decision-dispatched"].entries()) {
 			state = reduce(state, activity(index + 2, method, method.endsWith("uncertain") ? "failed" : "completed")).state;
-			expect(state.phase).toBe("waiting");
-			expect(state.waitReason).toBe("approval");
-			expect(state.activeActivity).toEqual(waitingActivity);
+			expect(state.phase         ).toBe   ("waiting"      ) ;
+			expect(state.waitReason    ).toBe   ("approval"     ) ;
+			expect(state.activeActivity).toEqual(waitingActivity) ;
 		}
 		expect(state.activities).toHaveLength(4);
 		state = reduce(state, activity(5, "approval/resolved", "completed", "approval", undefined, { eventType: "approval-resolved" })).state;
@@ -50,20 +50,20 @@ describe("ExecutionRun reducer", () => {
 		].map(normalizeProjectActivity);
 		const live = events.reduce((state, event) => reduceExecutionRun(state, event, hash).state, initial());
 		const replayed = replayExecutionRun(initial(), events, hash);
-		expect(live).toEqual(replayed);
-		expect(live.receipt?.status).toBe("completed");
-		expect(live.receipt?.changed).toEqual([{ kind: "file-change", ref: "src/a.ts", summary: "Added receipt projection" }]);
-		expect(live.receipt?.verification).toEqual([{ command: "bun test", status: "passed", result: "passed", evidenceRefs: ["a-3"] }]);
-		expect(live.receipt?.checkpointDigest).toBe(executionCheckpointDigest({ ...live, receipt: null }));
+		expect(live                          ).toEqual(replayed                                                                            ) ;
+		expect(live.receipt?.status          ).toBe   ("completed"                                                                         ) ;
+		expect(live.receipt?.changed         ).toEqual([{ kind: "file-change", ref: "src/a.ts", summary: "Added receipt projection" }]     ) ;
+		expect(live.receipt?.verification    ).toEqual([{ command: "bun test", status: "passed", result: "passed", evidenceRefs: ["a-3"] }]) ;
+		expect(live.receipt?.checkpointDigest).toBe   (executionCheckpointDigest({ ...live, receipt: null })                               ) ;
 	});
 
 	test("creates failed, cancelled, and interrupted receipts only from terminal evidence", () => {
 		const failed      = reduce(initial(), activity(1, "turn/failed", "failed")).state         ;
 		const cancelled   = reduce(initial(), activity(1, "turn/cancelled", "cancelled")).state   ;
 		const interrupted = reduce(initial(), activity(1, "turn/interrupted", "cancelled")).state ;
-		expect(failed.receipt?.status).toBe("failed");
-		expect(cancelled.receipt?.status).toBe("cancelled");
-		expect(interrupted.receipt?.status).toBe("interrupted");
+		expect(failed.receipt?.status     ).toBe("failed"     ) ;
+		expect(cancelled.receipt?.status  ).toBe("cancelled"  ) ;
+		expect(interrupted.receipt?.status).toBe("interrupted") ;
 	});
 
 	test("keeps a failed tool as recoverable evidence until an authoritative turn terminal", () => {
@@ -152,11 +152,11 @@ describe("ExecutionRun reducer", () => {
 		const reordered = states[3]!                                     ;
 		const final     = states[5]!                                     ;
 		const a         = before.tasks.find(task => task.title === "A")! ;
-		expect(reordered.tasks.find(task => task.title === "A")?.id).toBe(a.id);
-		expect(reordered.tasks.find(task => task.title === "A")?.activityIds).toEqual(["a-3"]);
-		expect(reordered.tasks.find(task => task.title === "B")?.activityIds).toEqual([]);
-		expect(final.tasks.map(task => task.title)).toEqual(["C", "B"]);
-		expect(final.tasks.find(task => task.title === "B")?.activityIds).toEqual(["a-5"]);
+		expect(reordered.tasks.find(task => task.title === "A")?.id         ).toBe   (a.id      ) ;
+		expect(reordered.tasks.find(task => task.title === "A")?.activityIds).toEqual(["a-3"]   ) ;
+		expect(reordered.tasks.find(task => task.title === "B")?.activityIds).toEqual([]        ) ;
+		expect(final.tasks.map(task => task.title)                          ).toEqual(["C", "B"]) ;
+		expect(final.tasks.find(task => task.title === "B")?.activityIds    ).toEqual(["a-5"]   ) ;
 	});
 
 	test("keeps duplicate running Plan association unowned and requires complete journal context", () => {
@@ -198,8 +198,8 @@ describe("ExecutionRun reducer", () => {
 		const events = [activity(1, "turn/started", "started"), activity(2, "turn/completed")].map(normalizeProjectActivity)    ;
 		const v2     = replayV2ExecutionRunForVerification(initial(), events, hash)                                             ;
 		const live   = replayExecutionRun(initial(), events, hash, { journalActivities: events.map(event => event.activity!) }) ;
-		expect(v2.receipt?.algorithmVersion).toBe(2);
-		expect(live.receipt?.algorithmVersion).toBe(3);
-		expect(JSON.stringify(replayV2ExecutionRunForVerification(initial(), events, hash).receipt)).toBe(JSON.stringify(v2.receipt));
+		expect(v2.receipt?.algorithmVersion                                                        ).toBe(2                         ) ;
+		expect(live.receipt?.algorithmVersion                                                      ).toBe(3                         ) ;
+		expect(JSON.stringify(replayV2ExecutionRunForVerification(initial(), events, hash).receipt)).toBe(JSON.stringify(v2.receipt)) ;
 	});
 });

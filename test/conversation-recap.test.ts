@@ -40,13 +40,13 @@ describe("Conversation Recap", () => {
 			message(String(index), index % 2 === 0 ? "user" : "assistant", `${index}:${"가".repeat(500)}`));
 		const recap = projectConversationRecap(messages);
 
-		expect(recap.entries).toHaveLength(CONVERSATION_RECAP_MAX_ENTRIES);
-		expect(recap.entries[0]?.text).toStartWith("0:");
-		expect(recap.entries[1]?.text).toStartWith("7:");
-		expect(recap.omittedMessageCount).toBe(6);
-		expect(recap.truncated).toBe(true);
-		expect(recap.entries.every(entry => Array.from(entry.text).length <= CONVERSATION_RECAP_MAX_ENTRY_CODE_POINTS)).toBe(true);
-		expect(recap.entries.reduce((total, entry) => total + Array.from(entry.text).length, 0)).toBeLessThanOrEqual(CONVERSATION_RECAP_MAX_TOTAL_CODE_POINTS);
+		expect(recap.entries                                                                                          ).toHaveLength       (CONVERSATION_RECAP_MAX_ENTRIES          ) ;
+		expect(recap.entries[0]?.text                                                                                 ).toStartWith        ("0:"                                    ) ;
+		expect(recap.entries[1]?.text                                                                                 ).toStartWith        ("7:"                                    ) ;
+		expect(recap.omittedMessageCount                                                                              ).toBe               (6                                       ) ;
+		expect(recap.truncated                                                                                        ).toBe               (true                                    ) ;
+		expect(recap.entries.every(entry => Array.from(entry.text).length <= CONVERSATION_RECAP_MAX_ENTRY_CODE_POINTS)).toBe               (true                                    ) ;
+		expect(recap.entries.reduce((total, entry) => total + Array.from(entry.text).length, 0)                       ).toBeLessThanOrEqual(CONVERSATION_RECAP_MAX_TOTAL_CODE_POINTS) ;
 	});
 
 	test("renders the recap as bounded TUI rows and stays hidden until explicitly expanded", async () => {
@@ -54,10 +54,10 @@ describe("Conversation Recap", () => {
 		const rows     = conversationRecapRows({ chat: messages }, 40)                                                          ;
 		const plain    = stripTerminalSequences(rows.join("\n"))                                                                ;
 
-		expect(plain).toContain("Conversation Recap");
-		expect(plain).toContain("현재 기능을 확인해줘");
-		expect(plain).toContain("확인 결과는 안전합니다.");
-		expect(rows.every(row => visibleWidth(row) <= 40)).toBe(true);
+		expect(plain                                     ).toContain("Conversation Recap"     ) ;
+		expect(plain                                     ).toContain("현재 기능을 확인해줘"   ) ;
+		expect(plain                                     ).toContain("확인 결과는 안전합니다.") ;
+		expect(rows.every(row => visibleWidth(row) <= 40)).toBe     (true                     ) ;
 
 		const { WwwTranscriptView } = await import("../src/adapters/inbound/tui/features/chat/view/www-execution.js");
 		const { wwwFixture } = await import("./fixtures/www-snapshot.js");

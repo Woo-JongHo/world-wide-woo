@@ -42,10 +42,10 @@ test.each([true, false])("Usage labels partial route coverage as observed, inter
 	};
 	for (const width of [60, 120]) {
 		const text = new WwwUsageView(() => snapshot, () => []).render(width).map(stripTerminalSequences).join("\n");
-		expect(text).toContain("미관측");
-		expect(text).toContain("관측");
-		expect(text).toContain("0 tokens");
-		expect(text).not.toContain("TOTAL");
+		expect(text)    .toContain("미관측"  ) ;
+		expect(text)    .toContain("관측"    ) ;
+		expect(text)    .toContain("0 tokens") ;
+		expect(text).not.toContain("TOTAL"   ) ;
 	}
 });
 

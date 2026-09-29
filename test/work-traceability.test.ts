@@ -42,15 +42,15 @@ describe("work traceability", () => {
 			"test:test/work-traceability.test.ts",
 			"evidence:.www/evidence/work-traceability.json",
 		]);
-		expect(relatedWorkReferences(manifest, linear).map(referenceKey)).toEqual(["story:ST-999-01"]);
-		expect(referenceKey({ kind: "project-activity", id: "activity-123" })).toBe("project-activity:activity-123");
-		expect(referenceKey({ kind: "native", id: "codex:item-456" })).toBe("native:codex:item-456");
+		expect(relatedWorkReferences(manifest, linear).map(referenceKey)     ).toEqual(["story:ST-999-01"]            ) ;
+		expect(referenceKey({ kind: "project-activity", id: "activity-123" })).toBe   ("project-activity:activity-123") ;
+		expect(referenceKey({ kind: "native", id: "codex:item-456" })        ).toBe   ("native:codex:item-456"        ) ;
 	});
 
 	test("rejects duplicate, dangling, conflated, and malformed references", () => {
-		expect(() => referenceKey({ kind: "story", id: "WOO-123" })).toThrow("Invalid story reference");
-		expect(() => referenceKey({ ...linear, id: "ST-011-07" })).toThrow("Invalid linear-issue reference");
-		expect(() => parseWorkTraceabilityManifest({ schemaVersion: 1, references: [linear, linear], links: [] })).toThrow("Duplicate work reference");
+		expect(() => referenceKey({ kind: "story", id: "WOO-123" })                                              ).toThrow("Invalid story reference"       ) ;
+		expect(() => referenceKey({ ...linear, id: "ST-011-07" })                                                ).toThrow("Invalid linear-issue reference") ;
+		expect(() => parseWorkTraceabilityManifest({ schemaVersion: 1, references: [linear, linear], links: [] })).toThrow("Duplicate work reference"      ) ;
 		expect(() => parseWorkTraceabilityManifest({
 			schemaVersion : 1,
 			references    : [{ kind: "story", id: "ST-999-01" }],

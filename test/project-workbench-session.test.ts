@@ -73,9 +73,9 @@ test("pre-thread intake survives startup failure and is adopted once with proven
 		failed.startThread = async () => { throw new Error("fixture native start failure"); };
 		const first = new ProjectWorkbench(failed, journal, { projectId: "p", cwd: dir });
 		const response = await first.dispatch({ type: "chat.send", text: "첫 접수" });
-		expect(response.state).toBe("rejected");
-		expect(first.snapshot.requestRuntime?.[0]?.stages).toHaveLength(7);
-		expect(first.snapshot.requestRuntime?.[0]?.status).toBe("failed");
+		expect(response.state                            ).toBe        ("rejected") ;
+		expect(first.snapshot.requestRuntime?.[0]?.stages).toHaveLength(7         ) ;
+		expect(first.snapshot.requestRuntime?.[0]?.status).toBe        ("failed"  ) ;
 		await first.close();
 		const restored = new ThreadBoundActivityJournal(new ActivityJournalStore(dir), undefined, "request-intake-fixture");
 		const before = await restored.readAll("p");
@@ -331,9 +331,9 @@ describe("createProjectWorkbenchSession", () => {
 	});
 
 	test("uses the configured Codex model only and falls back when a legacy router selected another provider", () => {
-		expect(codexInteractiveModel({ provider: "openai-codex", model: "gpt-5.6-terra", effort: "high" })).toBe("gpt-5.6-terra");
-		expect(codexInteractiveModel({ provider: "anthropic", model: "claude-opus-4-6", effort: "ultra" })).toBe("gpt-5.6-sol");
-		expect(codexInteractiveModel({ provider: "google", model: "gemini-3.1-pro-preview", effort: "ultra" })).toBe("gpt-5.6-sol");
+		expect(codexInteractiveModel({ provider: "openai-codex", model: "gpt-5.6-terra", effort: "high" })    ).toBe("gpt-5.6-terra") ;
+		expect(codexInteractiveModel({ provider: "anthropic", model: "claude-opus-4-6", effort: "ultra" })    ).toBe("gpt-5.6-sol"  ) ;
+		expect(codexInteractiveModel({ provider: "google", model: "gemini-3.1-pro-preview", effort: "ultra" })).toBe("gpt-5.6-sol"  ) ;
 	});
 
 	test("uses the production composer factory with its static class receiver intact", async () => {
@@ -423,12 +423,12 @@ describe("createProjectWorkbenchSession", () => {
 		};
 		const first = await createProjectWorkbenchSession("/ignored", {}, factories);
 		const second = await createProjectWorkbenchSession("/ignored", { enableActivityNarrator: false }, factories);
-		expect(narratorCreations).toBe(1);
-		expect(second.workbench.snapshot.planActivityStatus).toBe("disabled");
-		expect(leaseIds).toHaveLength(2);
-		expect(new Set(leaseIds).size).toBe(2);
-		expect(new Set(journalPaths).size).toBe(1);
-		expect(reads).toBe(0);
+		expect(narratorCreations                           ).toBe        (1         ) ;
+		expect(second.workbench.snapshot.planActivityStatus).toBe        ("disabled") ;
+		expect(leaseIds                                    ).toHaveLength(2         ) ;
+		expect(new Set(leaseIds).size                      ).toBe        (2         ) ;
+		expect(new Set(journalPaths).size                  ).toBe        (1         ) ;
+		expect(reads                                       ).toBe        (0         ) ;
 		await first.close();
 		await second.close();
 	});
@@ -567,10 +567,10 @@ describe("createProjectWorkbenchSession", () => {
 			expect(store.writes).toBe(1);
 			expect(syncCalls.get(store)).toBe(1);
 			const reopened = await open(store);
-			expect(reopened.workbench.snapshot.todo?.items.map(item => [item.content, item.status])).toEqual(store.document?.items.map(item => [item.content, item.status]));
-			expect(reopened.workbench.snapshot.todo?.items.map(item => item.id)).toEqual(reopened.workbench.snapshot.workFlow.steps.map(step => step.id));
-			expect(store.writes).toBe(1);
-			expect(syncCalls.get(store)).toBe(2);
+			expect(reopened.workbench.snapshot.todo?.items.map(item => [item.content, item.status])).toEqual(store.document?.items.map(item => [item.content, item.status]) ) ;
+			expect(reopened.workbench.snapshot.todo?.items.map(item => item.id)                    ).toEqual(reopened.workbench.snapshot.workFlow.steps.map(step => step.id)) ;
+			expect(store.writes                                                                    ).toBe   (1                                                              ) ;
+			expect(syncCalls.get(store)                                                            ).toBe   (2                                                              ) ;
 			await reopened.close();
 		}
 
@@ -579,10 +579,10 @@ describe("createProjectWorkbenchSession", () => {
 			title: "보존할 기존 Todo", items: [{ id: "todo-1", content: "사용자 작업", status: "pending", evidenceIds: [], details: [] }],
 		});
 		const session = await open(existing);
-		expect(existing.document?.items[0]?.content).toBe("사용자 작업");
-		expect(session.workbench.snapshot.todo?.items[0]?.content).toBe("resumed root plan");
-		expect(existing.writes).toBe(0);
-		expect(syncCalls.get(existing) ?? 0).toBe(0);
+		expect(existing.document?.items[0]?.content              ).toBe("사용자 작업"      ) ;
+		expect(session.workbench.snapshot.todo?.items[0]?.content).toBe("resumed root plan") ;
+		expect(existing.writes                                   ).toBe(0                  ) ;
+		expect(syncCalls.get(existing) ?? 0                      ).toBe(0                  ) ;
 		await session.close();
 	});
 
@@ -836,14 +836,14 @@ describe("createProjectWorkbenchSession", () => {
 		await session.workbench.dispatch({ type: "session.mode", mode: "manual" });
 
 		expect(observed.workflowCreated).toBeUndefined();
-		expect(await session.workbench.dispatch({ type: "workflow.show", runId: "run-1" })).toMatchObject({ state: "accepted" });
-		expect(observed.workflowRoot).toBe(workspace.root);
-		expect(observed.workflowCreated).toBe(1);
-		expect(session.projectId).toBe(scopedProjectId(workspace.root));
-		expect(observed.todoPath).toBe(join(workspace.todosDirectory, scopedTodoSessionId("opaque-native-id"), "Todo.md"));
-		expect(observed.journalPath).toBe(join(workspace.runtimeDirectory, "activity"));
-		expect(observed.draftPath).toBe(workspace.draftsDirectory);
-		expect(observed.tnoteModel).toBe("gpt-5.6-luna");
+		expect(await session.workbench.dispatch({ type: "workflow.show", runId: "run-1" })).toMatchObject({ state: "accepted" }                                                             ) ;
+		expect(observed.workflowRoot                                                      ).toBe         (workspace.root                                                                    ) ;
+		expect(observed.workflowCreated                                                   ).toBe         (1                                                                                 ) ;
+		expect(session.projectId                                                          ).toBe         (scopedProjectId(workspace.root)                                                   ) ;
+		expect(observed.todoPath                                                          ).toBe         (join(workspace.todosDirectory, scopedTodoSessionId("opaque-native-id"), "Todo.md")) ;
+		expect(observed.journalPath                                                       ).toBe         (join(workspace.runtimeDirectory, "activity")                                      ) ;
+		expect(observed.draftPath                                                         ).toBe         (workspace.draftsDirectory                                                         ) ;
+		expect(observed.tnoteModel                                                        ).toBe         ("gpt-5.6-luna"                                                                    ) ;
 		expect(observed.options).toMatchObject({
 			provider       : "openai-codex",
 			cwd            : workspace.root,
@@ -875,9 +875,9 @@ describe("createProjectWorkbenchSession", () => {
 			occurredAt: new Date(0).toISOString(), kind: "message", title: "질문", body: "원문" };
 		await expect(observed.options!.tnotes!.create({ projectId: session.projectId,
 			range: { startSequence: 1, endSequence: 1 }, activities: [source], instruction: "요약", expectedQuestion: "질문" })).rejects.toThrow("captured note input");
-		expect(observed.noteInput?.projectId).toBe(scopedTodoSessionId("opaque-native-id"));
-		expect(observed.noteInput?.activities[0]).toEqual({ ...source, projectId: scopedTodoSessionId("opaque-native-id") });
-		expect(source.projectId).toBe("prior-process-run");
+		expect(observed.noteInput?.projectId    ).toBe   (scopedTodoSessionId("opaque-native-id")                          ) ;
+		expect(observed.noteInput?.activities[0]).toEqual({ ...source, projectId: scopedTodoSessionId("opaque-native-id") }) ;
+		expect(source.projectId                 ).toBe   ("prior-process-run"                                              ) ;
 		await session.close();
 		expect(order).toEqual(["native.close", "todo.dispose", "lease.release", "lease.release"]);
 	});

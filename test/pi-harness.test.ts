@@ -196,10 +196,10 @@ describe("PiHarness Phase A native compatibility", () => {
 
 	test("loads the pinned Pi SDK surface used by the production adapter", async () => {
 		const sdk = await import("@earendil-works/pi-coding-agent");
-		expect(typeof sdk.createAgentSession).toBe("function");
-		expect(typeof sdk.DefaultResourceLoader).toBe("function");
-		expect(typeof sdk.ModelRuntime).toBe("function");
-		expect(typeof sdk.SessionManager.inMemory).toBe("function");
+		expect(typeof sdk.createAgentSession     ).toBe("function") ;
+		expect(typeof sdk.DefaultResourceLoader  ).toBe("function") ;
+		expect(typeof sdk.ModelRuntime           ).toBe("function") ;
+		expect(typeof sdk.SessionManager.inMemory).toBe("function") ;
 	});
 
 	test("drives model resolution, restrictions, and public event mapping through the SDK seam", async () => {

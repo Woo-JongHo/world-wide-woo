@@ -124,9 +124,9 @@ describe("AuthFlowOverlay", () => {
 		overlay.start();
 		await Bun.sleep(0);
 		const output = overlay.render(80).join("\n");
-		expect(output).toContain("Gemini API 키 발급");
-		expect(output).toContain(GEMINI_API_KEY_URL);
-		expect(output).toContain("Ctrl+O 브라우저에서 열기");
+		expect(output).toContain("Gemini API 키 발급"      ) ;
+		expect(output).toContain(GEMINI_API_KEY_URL        ) ;
+		expect(output).toContain("Ctrl+O 브라우저에서 열기") ;
 		for (const width of [40, 80, 120]) {
 			expect(overlay.render(width).every((line) => visibleWidth(line) <= width)).toBe(true);
 		}

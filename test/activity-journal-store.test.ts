@@ -67,9 +67,9 @@ describe("ActivityJournalStore", () => {
 		};
 		const first = await store.append(terminal);
 		const duplicate = await store.append(terminal);
-		expect(first.appended).toBe(true);
-		expect(duplicate).toEqual({ activity: first.activity, appended: false });
-		expect((await store.readAll("project-1")).map((activity) => activity.sequence)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+		expect(first.appended                                                         ).toBe   (true                                         ) ;
+		expect(duplicate                                                              ).toEqual({ activity: first.activity, appended: false }) ;
+		expect((await store.readAll("project-1")).map((activity) => activity.sequence)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]                  ) ;
 		expect(first.activity).toMatchObject({
 			provider: "openai-codex",
 			nativeRefs: { threadId: "thread-1", turnId: "turn-1", itemId: "item-1" },

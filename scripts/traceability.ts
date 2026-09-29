@@ -1,19 +1,42 @@
 #!/usr/bin/env bun
 import { existsSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
-import { execFileSync } from "node:child_process";
-import { mkdtempSync } from "node:fs";
-import { homedir, tmpdir } from "node:os";
-import { dirname, isAbsolute, join, relative, resolve } from "node:path";
-import type { RegistryEnvelope, TraceabilityLedger, TraceabilityRef } from "../src/core/domain/development/development-traceability.js";
-import type { ProjectActivity } from "../src/core/domain/execution/project-activity.js";
-import { createExecutionRun, normalizeProjectActivity, replayExecutionRun, replayLegacyExecutionRunForVerification, replayV2ExecutionRunForVerification, type CompletionReceipt } from "../src/core/runtime/execution-run.js";
-import { parseWorkTraceabilityManifest } from "../src/core/domain/work/traceability.js";
-import { buildDevelopmentMap } from "../src/adapters/outbound/development/development-map-builder.js";
-import { DevelopmentStore } from "../src/adapters/outbound/development/development-store.js";
-import { canonicalDigest, migrateTraceabilityV2ToV3, requiredCoverageFromRegistries, sha256, validateVerificationReceipt, verificationReceiptFromCompletion, type VerificationReceiptCompletionContext } from "../src/adapters/outbound/development/development-traceability-contract.js";
-import { validateTraceability } from "../src/adapters/outbound/development/traceability-validator.js";
-import { applyObsidianLedgerMigrationPreview, createObsidianLedgerMigrationPreview, type ObsidianLedgerMigrationPreview } from "../src/adapters/outbound/development/obsidian-ledger-migration.js";
-import { inspectObsidianVault } from "../src/adapters/outbound/development/obsidian-contract.js";
+import { execFileSync }                                                                         from "node:child_process";
+import { mkdtempSync }                                                                          from "node:fs";
+import { homedir, tmpdir }                                                                      from "node:os";
+import { dirname, isAbsolute, join, relative, resolve }                                         from "node:path";
+import type {
+	RegistryEnvelope,
+	TraceabilityLedger,
+	TraceabilityRef,
+} from "../src/core/domain/development/development-traceability.js";
+import type { ProjectActivity }                                                                 from "../src/core/domain/execution/project-activity.js";
+import {
+	createExecutionRun,
+	normalizeProjectActivity,
+	replayExecutionRun,
+	replayLegacyExecutionRunForVerification,
+	replayV2ExecutionRunForVerification,
+} from "../src/core/runtime/execution-run.js";
+import type { CompletionReceipt }                                                               from "../src/core/runtime/execution-run.js";
+import { parseWorkTraceabilityManifest }                                                        from "../src/core/domain/work/traceability.js";
+import { buildDevelopmentMap }                                                                  from "../src/adapters/outbound/development/development-map-builder.js";
+import { DevelopmentStore }                                                                     from "../src/adapters/outbound/development/development-store.js";
+import {
+	canonicalDigest,
+	migrateTraceabilityV2ToV3,
+	requiredCoverageFromRegistries,
+	sha256,
+	validateVerificationReceipt,
+	verificationReceiptFromCompletion,
+} from "../src/adapters/outbound/development/development-traceability-contract.js";
+import type { VerificationReceiptCompletionContext }                                            from "../src/adapters/outbound/development/development-traceability-contract.js";
+import { validateTraceability }                                                                 from "../src/adapters/outbound/development/traceability-validator.js";
+import {
+	applyObsidianLedgerMigrationPreview,
+	createObsidianLedgerMigrationPreview,
+} from "../src/adapters/outbound/development/obsidian-ledger-migration.js";
+import type { ObsidianLedgerMigrationPreview }                                                  from "../src/adapters/outbound/development/obsidian-ledger-migration.js";
+import { inspectObsidianVault }                                                                 from "../src/adapters/outbound/development/obsidian-contract.js";
 
 export function resolveVaultRoot(projectRoot: string, _vaultId: string, explicit?: string): string {
 	return resolve(explicit ?? process.env.WWW_OBSIDIAN_VAULT_ROOT ?? join(projectRoot, ".www/vault"));
@@ -31,9 +54,9 @@ const ledgerPath = (root: string) => resolve(root, ".www/control-ledger/traceabi
 const loadLedger = (root: string) => JSON.parse(readFileSync(ledgerPath(root), "utf8")) as TraceabilityLedger;
 const containedPath = (root: string, value: string | undefined, name: string): string => {
 	if (!value) throw new Error(`${name.toUpperCase()}_REQUIRED`);
-	const canonicalRoot = realpathSync(root);
-	const path = resolve(canonicalRoot, value);
-	let existing = path;
+	const canonicalRoot = realpathSync(root)            ;
+	const path          = resolve(canonicalRoot, value) ;
+	let existing        = path                          ;
 	while (!existsSync(existing) && existing !== dirname(existing)) existing = dirname(existing);
 	const canonicalExisting = realpathSync(existing);
 	const boundary = relative(canonicalRoot, canonicalExisting);
@@ -162,9 +185,9 @@ const writeImmutableJson = (path: string, value: unknown): void => {
 };
 
 export async function runTraceability(argv = process.argv.slice(2)): Promise<string> {
-	const projectRoot = resolve(argument(argv, "--project-root") ?? resolve(import.meta.dir, ".."));
-	const command = argv[0] ?? "check";
-	const selectedVaultScope = vaultScope(argv);
+	const projectRoot        = resolve(argument(argv, "--project-root") ?? resolve(import.meta.dir, "..")) ;
+	const command            = argv[0] ?? "check"                                                          ;
+	const selectedVaultScope = vaultScope(argv)                                                            ;
 	if (command === "--help" || command === "help") return [
 		"Usage: bun scripts/traceability.ts <command> [options]",
 		"",
@@ -178,17 +201,17 @@ export async function runTraceability(argv = process.argv.slice(2)): Promise<str
 		"  --linear-ids <ids>     Comma-separated Linear issues required in the selected Vault scope",
 	].join("\n");
 	if (command === "note-migration-preview") {
-		const vaultRoot = resolveVaultRoot(projectRoot, "", argument(argv, "--vault-root"));
-		const bytes = readFileSync(ledgerPath(projectRoot), "utf8");
-		const preview = createObsidianLedgerMigrationPreview(bytes, vaultRoot, { ...selectedVaultScope, projectRoot });
-		const output = argument(argv, "--out");
+		const vaultRoot = resolveVaultRoot(projectRoot, "", argument(argv, "--vault-root"))                              ;
+		const bytes     = readFileSync(ledgerPath(projectRoot), "utf8")                                                  ;
+		const preview   = createObsidianLedgerMigrationPreview(bytes, vaultRoot, { ...selectedVaultScope, projectRoot }) ;
+		const output    = argument(argv, "--out")                                                                        ;
 		if (output) writeFileSync(containedPath(projectRoot, output, "migration-preview-output"), `${JSON.stringify(preview, null, 2)}\n`, { flag: "wx" });
 		return JSON.stringify(preview, null, 2);
 	}
 	if (command === "note-migration-apply") {
-		const vaultRoot = resolveVaultRoot(projectRoot, "", argument(argv, "--vault-root"));
-		const previewPath = containedPath(projectRoot, argument(argv, "--preview"), "migration-preview");
-		const digest = argument(argv, "--digest");
+		const vaultRoot   = resolveVaultRoot(projectRoot, "", argument(argv, "--vault-root"))            ;
+		const previewPath = containedPath(projectRoot, argument(argv, "--preview"), "migration-preview") ;
+		const digest      = argument(argv, "--digest")                                                   ;
 		if (!digest) throw new Error("MIGRATION_ACCEPTED_DIGEST_REQUIRED");
 		const result = applyObsidianLedgerMigrationPreview({ ledgerPath: ledgerPath(projectRoot), vaultRoot, preview: JSON.parse(readFileSync(previewPath, "utf8")) as ObsidianLedgerMigrationPreview, acceptedDigest: digest, inspect: selectedVaultScope });
 		return JSON.stringify({
@@ -198,12 +221,12 @@ export async function runTraceability(argv = process.argv.slice(2)): Promise<str
 		});
 	}
 	if (command === "receipt-from-runtime") {
-		const journal = containedPath(projectRoot, argument(argv, "--journal"), "journal");
-		const contextPath = containedPath(projectRoot, argument(argv, "--context"), "context");
-		const output = containedPath(projectRoot, argument(argv, "--output"), "output");
-		const completion = selectedCompletionReceipt(readFileSync(journal, "utf8"), argument(argv, "--runtime-receipt-id"));
-		const context = JSON.parse(readFileSync(contextPath, "utf8")) as VerificationReceiptCompletionContext;
-		const ledger = loadLedger(projectRoot);
+		const journal     = containedPath(projectRoot, argument(argv, "--journal"), "journal")                               ;
+		const contextPath = containedPath(projectRoot, argument(argv, "--context"), "context")                               ;
+		const output      = containedPath(projectRoot, argument(argv, "--output"), "output")                                 ;
+		const completion  = selectedCompletionReceipt(readFileSync(journal, "utf8"), argument(argv, "--runtime-receipt-id")) ;
+		const context     = JSON.parse(readFileSync(contextPath, "utf8")) as VerificationReceiptCompletionContext            ;
+		const ledger      = loadLedger(projectRoot)                                                                          ;
 		const required = requiredCoverageFromRegistries(projectRoot, ledger, {
 			acceptanceCoverage: context.acceptanceCoverage,
 			exceptionCoverage: context.exceptionStageCoverage,
@@ -230,9 +253,9 @@ export async function runTraceability(argv = process.argv.slice(2)): Promise<str
 			.map(edge => edge.to));
 		ledger.edges = ledger.edges.filter(edge => edge.from !== receiptEntity.ref || (edge.relation !== "produced" && edge.relation !== "evidenced-by"));
 		for (const evidence of receipt.evidence) {
-			const ref = `evidence:${evidence.id}` as TraceabilityRef;
-			const source = { path: evidence.path, digest: evidence.sha256 };
-			const index = ledger.entities.findIndex(entity => entity.ref === ref);
+			const ref    = `evidence:${evidence.id}` as TraceabilityRef            ;
+			const source = { path: evidence.path, digest: evidence.sha256 }        ;
+			const index  = ledger.entities.findIndex(entity => entity.ref === ref) ;
 			if (index < 0) ledger.entities.push({ ref, kind: "evidence", id: evidence.id, immutable: true, source });
 			else ledger.entities[index] = { ...ledger.entities[index]!, kind: "evidence", id: evidence.id, immutable: true, source };
 			ledger.edges.push({ from: receiptEntity.ref, relation: "produced", to: ref }, { from: receiptEntity.ref, relation: "evidenced-by", to: ref });
@@ -248,20 +271,20 @@ export async function runTraceability(argv = process.argv.slice(2)): Promise<str
 		return JSON.stringify({ id: receipt.id, payloadDigest: receipt.payloadDigest });
 	}
 	if (command === "migrate-v2") {
-		const input = resolve(projectRoot, argument(argv, "--input") ?? ".www/control-ledger/traceability-v2.json");
-		const output = resolve(projectRoot, argument(argv, "--output") ?? ".www/control-ledger/traceability-v3.json");
-		const migrated = migrateTraceabilityV2ToV3(JSON.parse(readFileSync(input, "utf8")));
-		const content = `${JSON.stringify(migrated, null, 2)}\n`;
+		const input    = resolve(projectRoot, argument(argv, "--input") ?? ".www/control-ledger/traceability-v2.json")  ;
+		const output   = resolve(projectRoot, argument(argv, "--output") ?? ".www/control-ledger/traceability-v3.json") ;
+		const migrated = migrateTraceabilityV2ToV3(JSON.parse(readFileSync(input, "utf8")))                             ;
+		const content  = `${JSON.stringify(migrated, null, 2)}\n`                                                       ;
 		if (existsSync(output) && readFileSync(output, "utf8") !== content) throw new Error("V3_MIGRATION_OUTPUT_DIFFERS");
 		if (!existsSync(output)) writeFileSync(output, content, { flag: "wx" });
 		return JSON.stringify({ inputDigest: canonicalDigest(JSON.parse(readFileSync(input, "utf8"))), outputDigest: migrated.payloadDigest });
 	}
 	const ledger = loadLedger(projectRoot);
 	if (command === "map:build" || command === "map:check") {
-		const mapPath = resolve(projectRoot, ".www/Development-Map.md");
-		const manifestPath = resolve(projectRoot, ".www/control-ledger/traceability.json");
-		const manifest = existsSync(manifestPath) ? parseWorkTraceabilityManifest(JSON.parse(readFileSync(manifestPath, "utf8"))) : undefined;
-		const rendered = buildDevelopmentMap(readFileSync(mapPath, "utf8"), ledger, manifest);
+		const mapPath      = resolve(projectRoot, ".www/Development-Map.md")                                                                      ;
+		const manifestPath = resolve(projectRoot, ".www/control-ledger/traceability.json")                                                        ;
+		const manifest     = existsSync(manifestPath) ? parseWorkTraceabilityManifest(JSON.parse(readFileSync(manifestPath, "utf8"))) : undefined ;
+		const rendered     = buildDevelopmentMap(readFileSync(mapPath, "utf8"), ledger, manifest)                                                 ;
 		if (command === "map:check") { if (rendered !== readFileSync(mapPath, "utf8")) throw new Error("Development Map is stale"); }
 		else writeFileSync(mapPath, rendered);
 		return `Development Map current: ${ledger.entities.filter(entity => entity.kind === "issue").length} issues`;
@@ -289,26 +312,26 @@ export async function runTraceability(argv = process.argv.slice(2)): Promise<str
 		const store = new DevelopmentStore(storeOptions);
 		try { return JSON.stringify(command === "drift" ? store.traceabilityDrift() : store.traceabilityOrphans(), null, 2); } finally { store.close(); }
 	}
-	const linearSnapshotPath = containedPath(projectRoot, argument(argv, "--linear-snapshot"), "linear-snapshot");
-	const linearReceiptPath = containedPath(projectRoot, argument(argv, "--linear-receipt"), "linear-receipt");
-	const vaultManifestPath = containedPath(projectRoot, argument(argv, "--vault-export-manifest"), "vault-export-manifest");
-	const linearSnapshot = JSON.parse(readFileSync(linearSnapshotPath, "utf8")) as { issues?: readonly unknown[] };
-	const linearReceipt = JSON.parse(readFileSync(linearReceiptPath, "utf8")) as { snapshotPath?: string; snapshotSha256?: string };
+	const linearSnapshotPath = containedPath(projectRoot, argument(argv, "--linear-snapshot"), "linear-snapshot")                        ;
+	const linearReceiptPath  = containedPath(projectRoot, argument(argv, "--linear-receipt"), "linear-receipt")                          ;
+	const vaultManifestPath  = containedPath(projectRoot, argument(argv, "--vault-export-manifest"), "vault-export-manifest")            ;
+	const linearSnapshot     = JSON.parse(readFileSync(linearSnapshotPath, "utf8")) as { issues?: readonly unknown[] }                   ;
+	const linearReceipt      = JSON.parse(readFileSync(linearReceiptPath, "utf8")) as { snapshotPath?: string; snapshotSha256?: string } ;
 	if (linearReceipt.snapshotPath !== relative(realpathSync(projectRoot), realpathSync(linearSnapshotPath))
 		|| linearReceipt.snapshotSha256 !== sha256(readFileSync(linearSnapshotPath))) {
 		throw new Error("LINEAR_READBACK_RECEIPT_MISMATCH");
 	}
 	const vaultManifest = JSON.parse(readFileSync(vaultManifestPath, "utf8")) as {
-		status?: string;
-		actualVaultRoot?: string;
-		sourceRevision?: string;
+		status?          : string ;
+		actualVaultRoot? : string ;
+		sourceRevision?  : string ;
 		files?: readonly {
-			noteId?: string;
-			actualPath?: string;
-			exportPath?: string;
-			byteIdentical?: boolean;
-			actualSha256?: string;
-			exportSha256?: string;
+			noteId?        : string  ;
+			actualPath?    : string  ;
+			exportPath?    : string  ;
+			byteIdentical? : boolean ;
+			actualSha256?  : string  ;
+			exportSha256?  : string  ;
 		}[];
 	};
 	if (vaultManifest.status !== "PASS" || !vaultManifest.files?.length

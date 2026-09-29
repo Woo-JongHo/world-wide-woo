@@ -46,9 +46,9 @@ describe("external review boundary", () => {
 		expect(preview.findings.map(finding => finding.kind)).toEqual(expect.arrayContaining(["secret", "customer-identifier", "local-path"]));
 		expect(Object.isFrozen(preview.packet)).toBe(true);
 		expect(() => { (preview.packet as { request: string }).request = "changed"; }).toThrow();
-		expect(redactForExternalReview("C:\\work\\client\\input.csv and src/client/input.csv").text).toContain("[redacted:local-path]");
-		expect(() => createReviewPacket({ purpose: publicText("review"), request: { value: "ACME", sensitivity: "customer" } }, sha256ReviewDigest)).toThrow("denied by sensitivity");
-		expect(() => createReviewPacket({ purpose: publicText("review"), request: { value: "unclassified", sensitivity: "unknown" } }, sha256ReviewDigest)).toThrow("denied by sensitivity");
+		expect(redactForExternalReview("C:\\work\\client\\input.csv and src/client/input.csv").text                                                       ).toContain("[redacted:local-path]") ;
+		expect(() => createReviewPacket({ purpose: publicText("review"), request: { value: "ACME", sensitivity: "customer" } }, sha256ReviewDigest)       ).toThrow  ("denied by sensitivity") ;
+		expect(() => createReviewPacket({ purpose: publicText("review"), request: { value: "unclassified", sensitivity: "unknown" } }, sha256ReviewDigest)).toThrow  ("denied by sensitivity") ;
 	});
 
 	test("keeps generic numbers but redacts separated and phone-labelled telephone numbers", () => {
@@ -86,11 +86,11 @@ describe("external review boundary", () => {
 			provider: "anthropic", model: CLAUDE_OPUS_REVIEW_MODEL, version: "2026-09-01", cwd: "", tools: [], readOnly: true,
 			networkAccess: "provider-api-only", packetDigest: preview.packet.digest,
 		})]);
-		expect(JSON.stringify(calls)).not.toContain("/private/client.txt");
-		expect(delivery.result).not.toContain("should-not-leak");
-		expect(delivery.resultDigest).toBe(sha256ReviewDigest(delivery.result));
-		expect(service.provenance()).toEqual([expect.objectContaining({ transport: "provider-api", packetDigest: preview.packet.digest, resultDigest: delivery.resultDigest, sentAt: "2026-09-01T01:00:00.000Z", receivedAt: "2026-09-01T01:00:02.000Z" })]);
-		expect(await new FileReviewProvenanceStore(join(root, "review-provenance.jsonl")).readAll()).toEqual(service.provenance());
+		expect(JSON.stringify(calls)                                                               ).not.toContain("/private/client.txt"                                                                                                                                                                                         ) ;
+		expect(delivery.result                                                                     ).not.toContain("should-not-leak"                                                                                                                                                                                             ) ;
+		expect(delivery.resultDigest                                                               )    .toBe     (sha256ReviewDigest(delivery.result)                                                                                                                                                                           ) ;
+		expect(service.provenance()                                                                )    .toEqual  ([expect.objectContaining({ transport: "provider-api", packetDigest: preview.packet.digest, resultDigest: delivery.resultDigest, sentAt: "2026-09-01T01:00:00.000Z", receivedAt: "2026-09-01T01:00:02.000Z" })]) ;
+		expect(await new FileReviewProvenanceStore(join(root, "review-provenance.jsonl")).readAll())    .toEqual  (service.provenance()                                                                                                                                                                                          ) ;
 	});
 
 	test("factory isolates anthropic and google review adapters from the chat router", async () => {
@@ -118,9 +118,9 @@ describe("external review boundary", () => {
 			},
 		}, observation => observedUsage.push(observation));
 		await expect(client.generate({ provider: "anthropic", model: CLAUDE_OPUS_REVIEW_MODEL, version: "opus-v", cwd: "", tools: [], readOnly: true, networkAccess: "provider-api-only", input: "packet only", packetDigest: "a".repeat(64) })).resolves.toBe("독립 검토");
-		expect(observed).toEqual(expect.objectContaining({ options: { toolChoice: "none" } }));
-		expect(observed?.context).toEqual(expect.objectContaining({ tools: [], messages: [expect.objectContaining({ role: "user", content: "packet only" })] }));
-		expect(observedUsage).toEqual([{ model: CLAUDE_OPUS_REVIEW_MODEL, effort: null, totalTokens: 4_321 }]);
+		expect(observed         ).toEqual(expect.objectContaining({ options: { toolChoice: "none" } })                                                         ) ;
+		expect(observed?.context).toEqual(expect.objectContaining({ tools: [], messages: [expect.objectContaining({ role: "user", content: "packet only" })] })) ;
+		expect(observedUsage    ).toEqual([{ model: CLAUDE_OPUS_REVIEW_MODEL, effort: null, totalTokens: 4_321 }]                                              ) ;
 		const toolClient = new PiReviewGenerationClient({
 			getModel: () => model,
 			streamSimple: () => ({ result: async () => ({ role: "assistant", content: [{ type: "toolCall" }], stopReason: "toolUse" } as AssistantMessage) }) as AssistantMessageEventStream,
@@ -152,10 +152,10 @@ describe("external review boundary", () => {
 			options : expect.objectContaining({ cwd: expect.stringContaining("www-empty-review-cwd-"), timeoutMs: 60_000, outputLimit: 64 * 1024 }),
 		})]);
 		const input = (calls[0] as { options: { input: string } }).options.input;
-		expect(Buffer.byteLength(input, "utf8")).toBeLessThanOrEqual(CLAUDE_CLI_REVIEW_INPUT_LIMIT);
-		expect(input).toContain(packet.digest);
-		expect(input).not.toContain("resume");
-		expect(removed).toHaveLength(1);
+		expect(Buffer.byteLength(input, "utf8"))    .toBeLessThanOrEqual(CLAUDE_CLI_REVIEW_INPUT_LIMIT) ;
+		expect(input                           )    .toContain          (packet.digest                ) ;
+		expect(input                           ).not.toContain          ("resume"                     ) ;
+		expect(removed                         )    .toHaveLength       (1                            ) ;
 		expect(delivery).toMatchObject({
 			transport: "claude-cli", model: CLAUDE_OPUS_REVIEW_MODEL, version: "2.1.3", packetDigest: packet.digest,
 			sentAt: "2026-09-01T01:00:00.000Z", receivedAt: "2026-09-01T01:00:02.000Z",

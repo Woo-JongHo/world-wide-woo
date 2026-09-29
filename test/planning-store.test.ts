@@ -79,9 +79,9 @@ describe("FilePlanningStore", () => {
 		await store.read();
 		expect(await readFile(artifact, "utf8")).toContain(`# ${epic.id}: Epic`);
 		const projection = await readFile(join(root, "Epics.md"), "utf8");
-		expect(projection).toContain("human prefix");
-		expect(projection).toContain("human suffix");
-		expect(projection).not.toContain("stale");
+		expect(projection)    .toContain("human prefix") ;
+		expect(projection)    .toContain("human suffix") ;
+		expect(projection).not.toContain("stale"       ) ;
 		await writeFile(artifact, "corrupted");
 		await expect(store.read()).rejects.toThrow("Immutable planning artifact differs");
 	});

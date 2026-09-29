@@ -31,9 +31,9 @@ test("Receipt projection 저장 실패에도 재시작 후 상태와 Receipt를 
  await writeFile(join(root, "receipts/skills"), "blocked projection");
  await store.commitStep(result.state, result.receipt, running.revision);
  const reopened = new FileSkillRunStore(root);
- expect(await reopened.read(running.runId)).toEqual(result.state);
- expect(await reopened.readReceipt(running.runId, result.receipt.receiptId)).toEqual(result.receipt);
- expect(await reopened.listReceipts(running.runId)).toEqual([result.receipt]);
+ expect(await reopened.read(running.runId)                                 ).toEqual(result.state    ) ;
+ expect(await reopened.readReceipt(running.runId, result.receipt.receiptId)).toEqual(result.receipt  ) ;
+ expect(await reopened.listReceipts(running.runId)                         ).toEqual([result.receipt]) ;
 });
 
 test("독립 프로세스 둘이 같은 revision에서 저장하면 하나만 수락한다", async () => {
@@ -56,9 +56,9 @@ test("독립 프로세스 둘이 같은 revision에서 저장하면 하나만 �
  expect(ready.every(value => new TextDecoder().decode(value.value).includes("ready"))).toBeTrue();
  children.forEach(child => { child.stdin.write("go\n"); child.stdin.end(); });
  const output = await Promise.all(readers.map(async reader => { let text = ""; for (;;) { const chunk = await reader.read(); if (chunk.done) return text; text += new TextDecoder().decode(chunk.value); } }));
- expect(output.filter(value => value.includes("accepted"))).toHaveLength(1);
- expect(output.filter(value => value.includes("SKILL_RUN_CONFLICT"))).toHaveLength(1);
- expect(await Promise.all(children.map(child => child.exited))).toEqual([0, 0]);
+ expect(output.filter(value => value.includes("accepted"))          ).toHaveLength(1     ) ;
+ expect(output.filter(value => value.includes("SKILL_RUN_CONFLICT"))).toHaveLength(1     ) ;
+ expect(await Promise.all(children.map(child => child.exited))      ).toEqual     ([0, 0]) ;
  const reopened = new FileSkillRunStore(root);
  const committed = await reopened.read(running.runId);
  expect(committed.revision).toBe(running.revision + 1);

@@ -28,13 +28,13 @@ describe("three-body Braille renderer", () => {
 		});
 		const plain = rows.map(stripTerminalSequences);
 
-		expect(rows).toHaveLength(12);
-		expect(rows.every(row => visibleWidth(row) <= 52)).toBe(true);
-		expect(plain.join("\n")).toMatch(/[⠀-⣿]/u);
-		expect(plain.join("\n")).toContain("A");
-		expect(plain.join("\n")).toContain("B");
-		expect(plain.join("\n")).toContain("C");
-		expect(plain.filter(row => row.trim()).length).toBeGreaterThanOrEqual(8);
+		expect(rows                                      ).toHaveLength          (12      ) ;
+		expect(rows.every(row => visibleWidth(row) <= 52)).toBe                  (true    ) ;
+		expect(plain.join("\n")                          ).toMatch               (/[⠀-⣿]/u) ;
+		expect(plain.join("\n")                          ).toContain             ("A"     ) ;
+		expect(plain.join("\n")                          ).toContain             ("B"     ) ;
+		expect(plain.join("\n")                          ).toContain             ("C"     ) ;
+		expect(plain.filter(row => row.trim()).length    ).toBeGreaterThanOrEqual(8       ) ;
 	});
 
 	test("keeps tiny terminal projections inside their requested dimensions", () => {

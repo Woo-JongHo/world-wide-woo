@@ -79,11 +79,11 @@ describe("traceability v3 contracts", () => {
 			limitations: ["No live environment."],
 		};
 		const adapted = verificationReceiptFromCompletion(completion, context);
-		expect(validateVerificationReceipt(adapted, "git:abc")).toEqual([]);
-		expect(Object.isFrozen(adapted)).toBe(true);
-		expect(() => verificationReceiptFromCompletion(completion, { ...context, evidenceArtifacts: [] })).toThrow("COMPLETION_CONTEXT_REVISION_EVIDENCE_EXECUTION_COVERAGE_LIMITATIONS_REQUIRED");
-		expect(() => verificationReceiptFromCompletion(completion, { ...context, observedSourceRevision: "" })).toThrow("COMPLETION_CONTEXT_REVISION_EVIDENCE_EXECUTION_COVERAGE_LIMITATIONS_REQUIRED");
-		expect(() => verificationReceiptFromCompletion(completion, { ...context, execution: { environment: "" } })).toThrow("COMPLETION_CONTEXT_REVISION_EVIDENCE_EXECUTION_COVERAGE_LIMITATIONS_REQUIRED");
+		expect(validateVerificationReceipt(adapted, "git:abc")                                                    ).toEqual([]                                                                            ) ;
+		expect(Object.isFrozen(adapted)                                                                           ).toBe   (true                                                                          ) ;
+		expect(() => verificationReceiptFromCompletion(completion, { ...context, evidenceArtifacts: [] })         ).toThrow("COMPLETION_CONTEXT_REVISION_EVIDENCE_EXECUTION_COVERAGE_LIMITATIONS_REQUIRED") ;
+		expect(() => verificationReceiptFromCompletion(completion, { ...context, observedSourceRevision: "" })    ).toThrow("COMPLETION_CONTEXT_REVISION_EVIDENCE_EXECUTION_COVERAGE_LIMITATIONS_REQUIRED") ;
+		expect(() => verificationReceiptFromCompletion(completion, { ...context, execution: { environment: "" } })).toThrow("COMPLETION_CONTEXT_REVISION_EVIDENCE_EXECUTION_COVERAGE_LIMITATIONS_REQUIRED") ;
 	});
 	test("preserves distinct exception test mappings by stage", () => {
 		const value = receipt();

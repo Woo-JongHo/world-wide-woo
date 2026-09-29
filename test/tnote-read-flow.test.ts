@@ -80,10 +80,10 @@ describe("completed-question Note read flow", () => {
 			receipt      : null,
 			verification : [],
 		});
-		expect(read.notes).toBe(snapshot.tnotes);
-		expect(read.notes[0]?.sourceRange).toEqual({ startSequence: 1, endSequence: 2 });
-		expect(read.notes[0]?.completion?.turnId).toBe("turn-1");
-		expect(read.notes[0]?.provenance?.model).toBe("gpt-5.6-luna");
+		expect(read.notes                       ).toBe   (snapshot.tnotes                     ) ;
+		expect(read.notes[0]?.sourceRange       ).toEqual({ startSequence: 1, endSequence: 2 }) ;
+		expect(read.notes[0]?.completion?.turnId).toBe   ("turn-1"                            ) ;
+		expect(read.notes[0]?.provenance?.model ).toBe   ("gpt-5.6-luna"                      ) ;
 	});
 
 	test("distinguishes empty, unavailable, and stale read states", () => {
@@ -123,11 +123,11 @@ describe("completed-question Note read flow", () => {
 		controller.handleInput("\r");
 		const output = stripTerminalSequences(controller.render(90).join("\n"));
 
-		expect(output).toContain("OUTPUT · OPERATION REPORT");
-		expect(output).toContain("01. 요청 목적 · 접근");
-		expect(output).toContain("12. Commit · Evidence");
-		expect(output).toContain("Turn thread-1 / turn-1");
-		expect(output).not.toContain('"eventType"');
+		expect(output)    .toContain("OUTPUT · OPERATION REPORT") ;
+		expect(output)    .toContain("01. 요청 목적 · 접근"     ) ;
+		expect(output)    .toContain("12. Commit · Evidence"    ) ;
+		expect(output)    .toContain("Turn thread-1 / turn-1"   ) ;
+		expect(output).not.toContain('"eventType"'              ) ;
 	});
 
 	test("keeps a durable Note read failure separate from Workbench execution errors", async () => {
@@ -173,9 +173,9 @@ describe("completed-question Note read flow", () => {
 
 		const sending = workbench.dispatch({ type: "chat.send", text: "질문", delivery: "queue" });
 		await started.promise;
-		expect(binds).toEqual(["thread-1"]);
-		expect(reads).toBe(1);
-		expect(workbench.snapshot.tnoteRead).toEqual({ status: "loading", error: null });
+		expect(binds                       ).toEqual(["thread-1"]                      ) ;
+		expect(reads                       ).toBe   (1                                 ) ;
+		expect(workbench.snapshot.tnoteRead).toEqual({ status: "loading", error: null }) ;
 		release.resolve();
 		await sending;
 		expect(workbench.snapshot.tnoteRead).toEqual({ status: "ready", error: null });
@@ -223,9 +223,9 @@ describe("completed-question Note read flow", () => {
 		});
 		await ready(failed);
 		const receipt = await failed.dispatch({ type: "chat.send", text: "질문", delivery: "queue" });
-		expect(receipt).toMatchObject({ state: "rejected", reason: "scope bind failed" });
-		expect(failedReads).toBe(0);
-		expect(failed.snapshot.tnoteRead).toEqual({ status: "stale", error: "scope bind failed" });
+		expect(receipt                  ).toMatchObject({ state: "rejected", reason: "scope bind failed" }) ;
+		expect(failedReads              ).toBe         (0                                                 ) ;
+		expect(failed.snapshot.tnoteRead).toEqual      ({ status: "stale", error: "scope bind failed" }   ) ;
 		await failed.close();
 	});
 

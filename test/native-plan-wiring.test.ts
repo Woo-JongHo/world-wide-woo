@@ -301,9 +301,9 @@ describe("Native Plan and Runtime Todo boundaries", () => {
 			});
 			await waitFor(() => expect(workbench.snapshot.executionRun?.receipt).not.toBeNull());
 			expectRuntimeTodo(ledger.snapshot, blockedRuntimeTodoStatuses);
-			expect(workbench.snapshot.workFlow.steps).toEqual([]);
-			expect(journal.records.some(activity => activity.payload.source === "public-user-request")).toBe(false);
-			expect(journal.records.some(activity => activity.nativeRefs.itemId === "observed-command")).toBe(true);
+			expect(workbench.snapshot.workFlow.steps                                                  ).toEqual([]   ) ;
+			expect(journal.records.some(activity => activity.payload.source === "public-user-request")).toBe   (false) ;
+			expect(journal.records.some(activity => activity.nativeRefs.itemId === "observed-command")).toBe   (true ) ;
 
 		} finally {
 			await workbench.close();
@@ -725,9 +725,9 @@ describe("Native Plan and Runtime Todo boundaries", () => {
 				expect.objectContaining({ kind: "revision", activityId: expect.any(String) }),
 			])));
 			await Bun.sleep(10);
-			expect(workbench.snapshot.workFlow.steps).toEqual(markdownSteps);
-			expect(ledger.snapshot).toEqual(markdownTodo);
-			expect(store.compareAndSwapCalls).toBe(writesBeforeMalformedPlan);
+			expect(workbench.snapshot.workFlow.steps).toEqual(markdownSteps            ) ;
+			expect(ledger.snapshot                  ).toEqual(markdownTodo             ) ;
+			expect(store.compareAndSwapCalls        ).toBe   (writesBeforeMalformedPlan) ;
 			const stableTodoWrites = store.compareAndSwapCalls;
 			transport.emit({
 				method: "item/completed",

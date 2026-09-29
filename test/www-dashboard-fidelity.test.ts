@@ -29,9 +29,9 @@ test.each([100, 118, 160, 200])("Dashboard Figma catalog keeps panels and fixed 
 	expect(rows.every(row => visibleWidth(row) === width)).toBe(true);
 	expect(rows.length).toBeLessThanOrEqual(30);
 	const meters = plain.filter(row => /^│(?:INPUT|OUTPUT|CACHED)\s/u.test(row) && row.includes("█"));
-	expect(meters).toHaveLength(3);
-	expect(new Set(meters.map(row => row.indexOf("█"))).size).toBe(1);
-	expect(new Set(meters.map(row => row.indexOf("%"))).size).toBe(1);
+	expect(meters                                           ).toHaveLength(3) ;
+	expect(new Set(meters.map(row => row.indexOf("█"))).size).toBe        (1) ;
+	expect(new Set(meters.map(row => row.indexOf("%"))).size).toBe        (1) ;
 });
 
 test.each([1, 20, 40, 60, 80])("Dashboard catalog and rail remain bounded at %i cells", width => {
@@ -43,9 +43,9 @@ test("Dashboard fixtures require explicit opt-in and never leak into live snapsh
 	const snapshot = wwwFixture();
 	snapshot.projectId = "DEMO DATA synthetic";
 	const live = stripTerminalSequences(new WwwDashboardView(() => snapshot).render(160).join("\n"));
-	expect(live).toContain("INPUT / OUTPUT / CACHE · unavailable");
-	expect(live).not.toContain("2,842");
-	expect(live).not.toContain("4,120");
+	expect(live)    .toContain("INPUT / OUTPUT / CACHE · unavailable") ;
+	expect(live).not.toContain("2,842"                               ) ;
+	expect(live).not.toContain("4,120"                               ) ;
 });
 
 test("Dashboard heatmap has distinct supplied intensity colors and rail shows bounded load meters", () => {

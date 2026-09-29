@@ -146,12 +146,12 @@ test("a newly discovered model crosses completion, command, picker, persistence,
 		expect(stripTerminalSequences(picker.render(76).join("\n"))).toContain("Native Future Fixture");
 		picker.handleInput("\r"); picker.handleInput("\x1b[B"); picker.handleInput("\r"); picker.handleInput("\r");
 		for (let i = 0; i < 100 && workbench.snapshot.model !== futureModel; i++) await Bun.sleep(1);
-		expect(applied).toEqual({ provider: "openai-codex", model: futureModel, effort: "ultra" });
-		expect((await loadWorkbenchConfig(root)).execution).toMatchObject(applied!);
-		expect(workbenchModelSettings(workbench.snapshot)).toEqual(applied!);
-		expect((await workbench.dispatch({ type: "chat.send", text: "fixture" })).state).toBe("accepted");
-		expect(transport.requests.findLast(request => request.method === "turn/start")?.params).toMatchObject({ model: futureModel, effort: "ultra" });
-		expect((await workbench.dispatch({ type: "session.model", selection: { model: "not-in-native", effort: "high" } })).state).toBe("rejected");
+		expect(applied                                                                                                           ).toEqual      ({ provider: "openai-codex", model: futureModel, effort: "ultra" }) ;
+		expect((await loadWorkbenchConfig(root)).execution                                                                       ).toMatchObject(applied!                                                         ) ;
+		expect(workbenchModelSettings(workbench.snapshot)                                                                        ).toEqual      (applied!                                                         ) ;
+		expect((await workbench.dispatch({ type: "chat.send", text: "fixture" })).state                                          ).toBe         ("accepted"                                                       ) ;
+		expect(transport.requests.findLast(request => request.method === "turn/start")?.params                                   ).toMatchObject({ model: futureModel, effort: "ultra" }                          ) ;
+		expect((await workbench.dispatch({ type: "session.model", selection: { model: "not-in-native", effort: "high" } })).state).toBe         ("rejected"                                                       ) ;
 	} finally { await workbench.close(); await rm(root, { recursive: true, force: true }); }
 });
 
@@ -171,9 +171,9 @@ test.each(["www", "workbench"])("%s bounds long option lists and wraps selection
 	const lines                        = picker.render(46)                                                                                                                                                                                                                                                                                                                                                    ;
 	const plain                        = stripTerminalSequences(lines.join("\n"))                                                                                                                                                                                                                                                                                                                             ;
 	// Includes room for wrapper borders inside a 70%-height overlay.
-		expect(lines.length + 2).toBeLessThanOrEqual(Math.floor(24 * 0.7));
-		expect(plain).toMatch(/›\s+Fixture 29/u);
-		expect(plain).toContain("30/30");
+		expect(lines.length + 2).toBeLessThanOrEqual(Math.floor(24 * 0.7)) ;
+		expect(plain           ).toMatch            (/›\s+Fixture 29/u   ) ;
+		expect(plain           ).toContain          ("30/30"             ) ;
 	picker.handleInput("\x1b[B");
 	expect(stripTerminalSequences(picker.render(46).join("\n"))).toMatch(/›\s+Fixture 0\b/u);
 });

@@ -147,9 +147,9 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 		});
 		await Bun.sleep(10);
 
-		expect(native.startTurnInputs.map((input) => input.text)).toEqual(["첫 요청", "두 번째 요청"]);
-		expect(workbench.snapshot.activeTurnId).toBe("turn-2");
-		expect(workbench.snapshot.chatQueue).toEqual([]);
+		expect(native.startTurnInputs.map((input) => input.text)).toEqual(["첫 요청", "두 번째 요청"]) ;
+		expect(workbench.snapshot.activeTurnId                  ).toBe   ("turn-2"                   ) ;
+		expect(workbench.snapshot.chatQueue                     ).toEqual([]                         ) ;
 		await workbench.close();
 	});
 
@@ -178,11 +178,11 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 		await Bun.sleep(10);
 
 		const followUp = await workbench.dispatch({ type: "chat.send", text: "진행 중 추가 요청" });
-		expect(followUp).toMatchObject({ state: "queued", position: 1 });
-		expect(workbench.snapshot.threadId).toBe("thread-1");
-		expect(workbench.snapshot.activeTurnId).toBe("turn-1");
-		expect(workbench.snapshot.chat.some(message => message.status === "failed")).toBe(false);
-		expect(native.startTurnInputs.map(input => input.threadId)).toEqual(["thread-1"]);
+		expect(followUp                                                            ).toMatchObject({ state: "queued", position: 1 }) ;
+		expect(workbench.snapshot.threadId                                         ).toBe         ("thread-1"                      ) ;
+		expect(workbench.snapshot.activeTurnId                                     ).toBe         ("turn-1"                        ) ;
+		expect(workbench.snapshot.chat.some(message => message.status === "failed")).toBe         (false                           ) ;
+		expect(native.startTurnInputs.map(input => input.threadId)                 ).toEqual      (["thread-1"]                    ) ;
 		await workbench.close();
 	});
 
@@ -381,9 +381,9 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 			await Bun.sleep(10);
 
 			const assistant = workbench.snapshot.chat.filter((message) => message.role === "assistant");
-			expect(assistant).toHaveLength(1);
-			expect(assistant[0]).toMatchObject({ content: "완성된 답변", status: "completed" });
-			expect(workbench.snapshot.draft).toBe("");
+			expect(assistant               ).toHaveLength (1                                              ) ;
+			expect(assistant[0]            ).toMatchObject({ content: "완성된 답변", status: "completed" }) ;
+			expect(workbench.snapshot.draft).toBe         (""                                             ) ;
 			expect(workbench.snapshot.activities.find((activity) => activity.id === assistant[0]?.activityId)?.nativeRefs)
 				.toEqual({ threadId: "thread-1", turnId: "turn-1", itemId: "stream-message" });
 			expect(snapshots.some((snapshot) => snapshot.draft.length > 0
@@ -541,10 +541,10 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 		});
 		const preserved = journal.records.find((activity) => activity.payload.finalObservation === "missing");
 		const terminal = journal.records.find((activity) => activity.payload.method === "turn/completed");
-		expect(preserved).toMatchObject({ phase: "cancelled", payload: { terminalMethod: "turn/completed" } });
-		expect(terminal).toMatchObject({ phase: "cancelled" });
-		expect(tnoteCreates).toBe(0);
-		expect(workbench.snapshot.draft).toBe("");
+		expect(preserved               ).toMatchObject({ phase: "cancelled", payload: { terminalMethod: "turn/completed" } }) ;
+		expect(terminal                ).toMatchObject({ phase: "cancelled" }                                               ) ;
+		expect(tnoteCreates            ).toBe         (0                                                                    ) ;
+		expect(workbench.snapshot.draft).toBe         (""                                                                   ) ;
 		await workbench.close();
 	});
 
@@ -731,10 +731,10 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 			params : { delta: "terminal 뒤 늦은 조각" },
 		});
 		await Bun.sleep(10);
-		expect(workbench.snapshot.chat.filter((message) => message.role === "assistant")).toHaveLength(1);
-		expect(workbench.snapshot.chat.find((message) => message.role === "assistant")?.content).toBe("받은 부분 답변");
-		expect(workbench.snapshot.draft).toBe("");
-		expect(journal.records.filter((activity) => activity.payload.finalObservation === "missing")).toHaveLength(1);
+		expect(workbench.snapshot.chat.filter((message) => message.role === "assistant")            ).toHaveLength(1               ) ;
+		expect(workbench.snapshot.chat.find((message) => message.role === "assistant")?.content     ).toBe        ("받은 부분 답변") ;
+		expect(workbench.snapshot.draft                                                             ).toBe        (""              ) ;
+		expect(journal.records.filter((activity) => activity.payload.finalObservation === "missing")).toHaveLength(1               ) ;
 		await workbench.close();
 
 		const resumed = new ProjectWorkbench(new FakeNativeHarness(), journal, {
@@ -934,9 +934,9 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 			content: message.content,
 			status: message.status,
 		}))).toEqual([{ content: "완전한 답변", status: "completed" }]);
-		expect(workbench.snapshot.draft).toBe("");
-		expect(journal.records.filter((activity) => activity.nativeRefs.itemId === "response-message")).toHaveLength(1);
-		expect(journal.records.filter((activity) => activity.payload.finalObservation === "missing")).toHaveLength(0);
+		expect(workbench.snapshot.draft                                                               ).toBe        ("") ;
+		expect(journal.records.filter((activity) => activity.nativeRefs.itemId === "response-message")).toHaveLength(1 ) ;
+		expect(journal.records.filter((activity) => activity.payload.finalObservation === "missing")  ).toHaveLength(0 ) ;
 		await workbench.close();
 	});
 
@@ -1108,9 +1108,9 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 
 		native.emit({ type: "notification", method: "turn/completed", refs: { threadId: "thread-1", turnId: "turn-2" }, params: {} });
 		await Bun.sleep(10);
-		expect(native.startTurnInputs.map((input) => input.text)).toEqual(["첫 요청", "두 번째 요청", "세 번째 요청"]);
-		expect(workbench.snapshot.activeTurnId).toBe("turn-3");
-		expect(workbench.snapshot.chatQueue).toEqual([]);
+		expect(native.startTurnInputs.map((input) => input.text)).toEqual(["첫 요청", "두 번째 요청", "세 번째 요청"]) ;
+		expect(workbench.snapshot.activeTurnId                  ).toBe   ("turn-3"                                   ) ;
+		expect(workbench.snapshot.chatQueue                     ).toEqual([]                                         ) ;
 		await workbench.close();
 	});
 
@@ -1120,9 +1120,9 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 		const journal = new MemoryJournal();
 		const workbench = new ProjectWorkbench(native, journal, { projectId: "sample-project", cwd: "/workspace/sample" });
 		await ready(workbench);
-		expect(await workbench.dispatch({ type: "chat.send", text: "실패할 요청" })).toMatchObject({ state: "rejected" });
-		expect(workbench.snapshot.chat).toHaveLength(1);
-		expect(workbench.snapshot.chat[0]).toMatchObject({ content: "실패할 요청", status: "failed" });
+		expect(await workbench.dispatch({ type: "chat.send", text: "실패할 요청" })).toMatchObject({ state: "rejected" }                       ) ;
+		expect(workbench.snapshot.chat                                             ).toHaveLength (1                                           ) ;
+		expect(workbench.snapshot.chat[0]                                          ).toMatchObject({ content: "실패할 요청", status: "failed" }) ;
 		const failedActivities = journal.records.filter(activity => activity.kind === "message");
 		expect(failedActivities.map(activity => activity.phase)).toEqual(["started", "failed"]);
 		expect(new Set(failedActivities.map(activity => activity.nativeRefs.itemId)).size).toBe(1);
@@ -1145,10 +1145,10 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 		native.emit({ type: "notification", method: "turn/completed", refs: { threadId: "thread-1", turnId: "turn-1" }, params: {} });
 		await Bun.sleep(10);
 
-		expect(native.startTurnInputs.map(input => input.text)).toEqual(["첫 요청", "실패할 큐 요청", "계속할 큐 요청"]);
-		expect(workbench.snapshot.chatQueue).toEqual([]);
-		expect(workbench.snapshot.chat.filter(message => message.content === "실패할 큐 요청")).toHaveLength(1);
-		expect(workbench.snapshot.chat.find(message => message.content === "실패할 큐 요청")?.status).toBe("failed");
+		expect(native.startTurnInputs.map(input => input.text)                                      ).toEqual     (["첫 요청", "실패할 큐 요청", "계속할 큐 요청"]) ;
+		expect(workbench.snapshot.chatQueue                                                         ).toEqual     ([]                                             ) ;
+		expect(workbench.snapshot.chat.filter(message => message.content === "실패할 큐 요청")      ).toHaveLength(1                                              ) ;
+		expect(workbench.snapshot.chat.find(message => message.content === "실패할 큐 요청")?.status).toBe        ("failed"                                       ) ;
 		await workbench.close();
 	});
 
@@ -1170,10 +1170,10 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 
 		native.emit({ type: "notification", method: "turn/completed", refs: { threadId: "thread-1", turnId: "turn-1" }, params: {} });
 		await Bun.sleep(10);
-		expect(native.startTurnCalls).toBe(2);
-		expect(workbench.snapshot.chatQueue.map(message => message.content)).toEqual(["마지막 요청"]);
-		expect(workbench.snapshot.chat.filter(message => message.content === "수신 불명 요청")).toHaveLength(1);
-		expect(workbench.snapshot.error).toContain("자동 재시도하지 않습니다");
+		expect(native.startTurnCalls                                                          ).toBe        (2                         ) ;
+		expect(workbench.snapshot.chatQueue.map(message => message.content)                   ).toEqual     (["마지막 요청"]           ) ;
+		expect(workbench.snapshot.chat.filter(message => message.content === "수신 불명 요청")).toHaveLength(1                         ) ;
+		expect(workbench.snapshot.error                                                       ).toContain   ("자동 재시도하지 않습니다") ;
 
 		native.emit({ type: "notification", method: "turn/started", refs: { threadId: "thread-1", turnId: "turn-2" }, params: {} });
 		await Bun.sleep(10);
@@ -1267,12 +1267,12 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 			state: "accepted",
 			message: "서버가 수신한 불확정 전송을 중단했습니다. 종료 확인 뒤 대기열을 재개합니다.",
 		});
-		expect(native.readInputs.at(-1)).toEqual({ threadId: "thread-1", includeTurns: true });
-		expect(native.interruptInputs).toEqual([{ threadId: "thread-1", turnId: "turn-2" }]);
-		expect(native.startTurnInputs.map(input => input.text)).toEqual(["첫 요청", "서버가 받은 불확정 요청"]);
-		expect(workbench.snapshot.activeTurnId).toBe("turn-2");
-		expect(workbench.snapshot.workFlow.goal).toBe("서버가 받은 불확정 요청");
-		expect(workbench.snapshot.chatQueue.map(message => message.content)).toEqual(["기다리는 요청"]);
+		expect(native.readInputs.at(-1)                                    ).toEqual({ threadId: "thread-1", includeTurns: true }) ;
+		expect(native.interruptInputs                                      ).toEqual([{ threadId: "thread-1", turnId: "turn-2" }]) ;
+		expect(native.startTurnInputs.map(input => input.text)             ).toEqual(["첫 요청", "서버가 받은 불확정 요청"]      ) ;
+		expect(workbench.snapshot.activeTurnId                             ).toBe   ("turn-2"                                    ) ;
+		expect(workbench.snapshot.workFlow.goal                            ).toBe   ("서버가 받은 불확정 요청"                   ) ;
+		expect(workbench.snapshot.chatQueue.map(message => message.content)).toEqual(["기다리는 요청"]                           ) ;
 		native.emit({
 			type   : "notification",
 			method : "item/started",
@@ -1312,11 +1312,11 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 		native.emit({ type: "notification", method: "turn/completed", refs: { threadId: "thread-1", turnId: "turn-1" }, params: {} });
 		await Bun.sleep(10);
 
-		expect(await workbench.dispatch({ type: "chat.cancel" })).toMatchObject({ state: "rejected" });
-		expect(native.startTurnInputs.map(input => input.text)).toEqual(["첫 요청", "불확정 요청"]);
-		expect(native.interruptInputs).toEqual([]);
-		expect(workbench.snapshot.chatQueue.map(message => message.content)).toEqual(["보존할 요청"]);
-		expect(workbench.snapshot.chat.filter(message => message.content === "불확정 요청")).toHaveLength(1);
+		expect(await workbench.dispatch({ type: "chat.cancel" })                           ).toMatchObject({ state: "rejected" }     ) ;
+		expect(native.startTurnInputs.map(input => input.text)                             ).toEqual      (["첫 요청", "불확정 요청"]) ;
+		expect(native.interruptInputs                                                      ).toEqual      ([]                        ) ;
+		expect(workbench.snapshot.chatQueue.map(message => message.content)                ).toEqual      (["보존할 요청"]           ) ;
+		expect(workbench.snapshot.chat.filter(message => message.content === "불확정 요청")).toHaveLength (1                         ) ;
 		await workbench.close();
 	});
 
@@ -1331,9 +1331,9 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 		native.emit({ type: "notification", method: "turn/completed", refs: { threadId: "thread-1", turnId: "turn-1" }, params: {} });
 		await Bun.sleep(10);
 
-		expect(native.startTurnCalls).toBe(1);
-		expect(workbench.snapshot.phase).toBe("closed");
-		expect(workbench.snapshot.chatQueue.map(message => message.content)).toEqual(["닫힌 뒤 요청"]);
+		expect(native.startTurnCalls                                       ).toBe   (1               ) ;
+		expect(workbench.snapshot.phase                                    ).toBe   ("closed"        ) ;
+		expect(workbench.snapshot.chatQueue.map(message => message.content)).toEqual(["닫힌 뒤 요청"]) ;
 	});
 
 	test("keeps an active turn through item and hook completion until the turn lifecycle terminates", async () => {
@@ -1384,9 +1384,9 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 		await journal.preparationReached;
 		expect(native.approvalResponses).toEqual([]);
 		journal.release();
-		expect(await dispatch).toMatchObject({ state: "accepted" });
-		expect(journal.records.filter(entry => entry.payload.operation === "approval/response-prepared")).toHaveLength(1);
-		expect(native.approvalResponses).toEqual([{ requestId: 47, response: { decision: "decline" } }]);
+		expect(await dispatch                                                                           ).toMatchObject({ state: "accepted" }                                 ) ;
+		expect(journal.records.filter(entry => entry.payload.operation === "approval/response-prepared")).toHaveLength (1                                                     ) ;
+		expect(native.approvalResponses                                                                 ).toEqual      ([{ requestId: 47, response: { decision: "decline" } }]) ;
 		await workbench.close();
 	});
 
@@ -1465,10 +1465,10 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 			requestId : 46,
 			response  : { decision: "accept" },
 		})).toMatchObject({ state: "rejected" });
-		expect(native.approvalResponses).toEqual([]);
-		expect(workbench.snapshot.threadId).toBe("thread-1");
-		expect(workbench.snapshot.activeTurnId).toBe("turn-1");
-		expect(native.startTurnInputs.map(input => input.threadId)).toEqual(["thread-1"]);
+		expect(native.approvalResponses                           ).toEqual([]          ) ;
+		expect(workbench.snapshot.threadId                        ).toBe   ("thread-1"  ) ;
+		expect(workbench.snapshot.activeTurnId                    ).toBe   ("turn-1"    ) ;
+		expect(native.startTurnInputs.map(input => input.threadId)).toEqual(["thread-1"]) ;
 		await workbench.close();
 	});
 

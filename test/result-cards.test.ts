@@ -53,11 +53,11 @@ describe("BashResultCard", () => {
 			durationMs : 320,
 		})).render(100);
 		const text = stripTerminalSequences(lines.join("\n"));
-		expect(text).toContain("stdout");
-		expect(text).toContain("normal output");
-		expect(text).toContain("stderr");
-		expect(text).toContain("failure output");
-		expect(text).toContain("exit 17 · 320ms");
+		expect(text).toContain("stdout"         ) ;
+		expect(text).toContain("normal output"  ) ;
+		expect(text).toContain("stderr"         ) ;
+		expect(text).toContain("failure output" ) ;
+		expect(text).toContain("exit 17 · 320ms") ;
 	});
 
 	test("limits output lines and removes terminal controls", () => {
@@ -68,11 +68,11 @@ describe("BashResultCard", () => {
 			stderr  : "four",
 		}), 2).render(100);
 		const text = stripTerminalSequences(lines.join("\n"));
-		expect(text).toContain("… 2 earlier lines omitted");
-		expect(text).toContain("three");
-		expect(text).toContain("four");
-		expect(text).not.toContain("\u001b");
-		expect(text).not.toContain("\u0007");
+		expect(text)    .toContain("… 2 earlier lines omitted") ;
+		expect(text)    .toContain("three"                    ) ;
+		expect(text)    .toContain("four"                     ) ;
+		expect(text).not.toContain("\u001b"                   ) ;
+		expect(text).not.toContain("\u0007"                   ) ;
 	});
 
 	test("preserves Korean visible width in a 40-column card", () => {
@@ -86,12 +86,12 @@ describe("BashResultCard", () => {
 		})).render(40);
 		const rendered = lines.join("\n");
 		const text = stripTerminalSequences(rendered);
-		expect(rendered).toContain("\u001b[");
-		expect(text).toContain("$ api_key=[REDACTED]");
-		expect(text).toContain("> printf");
-		expect(text).toContain("[REDACTED]");
-		expect(text).not.toContain("supersecret");
-		expect(lines.every((line) => visibleWidth(line) === 40)).toBe(true);
+		expect(rendered                                        )    .toContain("\u001b["             ) ;
+		expect(text                                            )    .toContain("$ api_key=[REDACTED]") ;
+		expect(text                                            )    .toContain("> printf"            ) ;
+		expect(text                                            )    .toContain("[REDACTED]"          ) ;
+		expect(text                                            ).not.toContain("supersecret"         ) ;
+		expect(lines.every((line) => visibleWidth(line) === 40))    .toBe     (true                  ) ;
 	});
 
 	test("applies semantic Git status and diff highlighting inside Bash output", () => {
@@ -100,11 +100,11 @@ describe("BashResultCard", () => {
 			stdout: " M src/app.ts\n?? notes.md\ndiff --git a/src/app.ts b/src/app.ts\n@@ -1 +1 @@\n-old\n+new",
 		})).render(100).join("\n");
 		const text = stripTerminalSequences(rendered);
-		expect(rendered).toContain("\u001b[38;2;");
-		expect(text).toContain(" M src/app.ts");
-		expect(text).toContain("?? notes.md");
-		expect(text).toContain("diff --git");
-		expect(text).toContain("@@ -1 +1 @@");
+		expect(rendered).toContain("\u001b[38;2;" ) ;
+		expect(text    ).toContain(" M src/app.ts") ;
+		expect(text    ).toContain("?? notes.md"  ) ;
+		expect(text    ).toContain("diff --git"   ) ;
+		expect(text    ).toContain("@@ -1 +1 @@"  ) ;
 	});
 });
 
@@ -130,10 +130,10 @@ describe("GenericToolResultCard", () => {
 			output   : "export const app = true;",
 		})).render(100).join("\n"));
 
-		expect(text).toContain("Read · PASSED");
-		expect(text).toContain("입력:");
-		expect(text).toContain("출력");
-		expect(text).not.toContain("왜 하는지:");
+		expect(text)    .toContain("Read · PASSED") ;
+		expect(text)    .toContain("입력:"        ) ;
+		expect(text)    .toContain("출력"         ) ;
+		expect(text).not.toContain("왜 하는지:"   ) ;
 	});
 
 	test("renders lifecycle labels and display-safe values", () => {
@@ -144,13 +144,13 @@ describe("GenericToolResultCard", () => {
 				output : "bad\u0007output sk-proj-abcdefghijklmnopqrstuvwxyz",
 				error  : status === "failed" ? "실패" : undefined,
 			})).render(100).join("\n"));
-			expect(text).toContain(status.toUpperCase());
-			expect(text).toContain("입력:");
-			expect(text).toContain("[REDACTED]");
-			expect(text).not.toContain("supersecretvalue");
-			expect(text).not.toContain("sk-proj-abcdefghijklmnopqrstuvwxyz");
-			expect(text).not.toContain("\u001b");
-			expect(text).not.toContain("\u0007");
+			expect(text)    .toContain(status.toUpperCase()                ) ;
+			expect(text)    .toContain("입력:"                             ) ;
+			expect(text)    .toContain("[REDACTED]"                        ) ;
+			expect(text).not.toContain("supersecretvalue"                  ) ;
+			expect(text).not.toContain("sk-proj-abcdefghijklmnopqrstuvwxyz") ;
+			expect(text).not.toContain("\u001b"                            ) ;
+			expect(text).not.toContain("\u0007"                            ) ;
 		}
 	});
 
@@ -171,10 +171,10 @@ describe("GenericToolResultCard", () => {
 		const before   = structuredClone(value)                                  ;
 		const rendered = new GenericToolResultCard(value).render(100).join("\n") ;
 		const text     = stripTerminalSequences(rendered)                        ;
-		expect(rendered).toContain("\u001b[");
-		expect(text).toContain('  "query": {');
-		expect(text).toContain('  "outer": {');
-		expect(value).toEqual(before);
+		expect(rendered).toContain("\u001b["     ) ;
+		expect(text    ).toContain('  "query": {') ;
+		expect(text    ).toContain('  "outer": {') ;
+		expect(value   ).toEqual  (before        ) ;
 	});
 
 	test("pretty prints path-grounded YAML but falls back for invalid, multi-document, aliased, and ungrounded YAML", () => {
@@ -223,9 +223,9 @@ describe("GenericToolResultCard", () => {
 			output,
 		}), 3).render(24);
 		const text = stripTerminalSequences(lines.join("\n"));
-		expect(text).toContain("… 21");
-		expect(text).toContain("line-19");
-		expect(lines.every((line) => visibleWidth(line) === 24)).toBe(true);
+		expect(text                                            ).toContain("… 21"   ) ;
+		expect(text                                            ).toContain("line-19") ;
+		expect(lines.every((line) => visibleWidth(line) === 24)).toBe     (true     ) ;
 	});
 
 	test("bounds huge valid structured output before highlighting without breaking ANSI or width", () => {
@@ -240,11 +240,11 @@ describe("GenericToolResultCard", () => {
 		const rendered = lines.join("\n");
 		const text = stripTerminalSequences(rendered);
 
-		expect(rendered).toContain("\u001b[");
-		expect(text).toContain("tail-marker");
-		expect(text).toContain("earlier lines omitted");
-		expect(text).not.toContain("\u001b");
-		expect(lines.every((line) => visibleWidth(line) === 32)).toBe(true);
+		expect(rendered                                        )    .toContain("\u001b["              ) ;
+		expect(text                                            )    .toContain("tail-marker"          ) ;
+		expect(text                                            )    .toContain("earlier lines omitted") ;
+		expect(text                                            ).not.toContain("\u001b"               ) ;
+		expect(lines.every((line) => visibleWidth(line) === 32))    .toBe     (true                   ) ;
 	});
 });
 
@@ -262,15 +262,15 @@ describe("DiffResultCard", () => {
 		for (const width of [40, 100]) {
 			const lines = new DiffResultCard(snapshot).render(width);
 			const text = stripTerminalSequences(lines.join("\n"));
-			expect(text).toContain("+ added");
-			expect(text).toContain("- removed");
-			expect(text).toContain("  context");
-			expect(text.match(/\+ added/gu)).toHaveLength(1);
-			expect(text.match(/- removed/gu)).toHaveLength(1);
-			expect(text.match(/  context/gu)).toHaveLength(1);
-			expect(text).not.toContain("\u001b");
-			expect(text).not.toContain("\u0007");
-			expect(lines.every((line) => visibleWidth(line) === width)).toBe(true);
+			expect(text                                               )    .toContain   ("+ added"  ) ;
+			expect(text                                               )    .toContain   ("- removed") ;
+			expect(text                                               )    .toContain   ("  context") ;
+			expect(text.match(/\+ added/gu)                           )    .toHaveLength(1          ) ;
+			expect(text.match(/- removed/gu)                          )    .toHaveLength(1          ) ;
+			expect(text.match(/  context/gu)                          )    .toHaveLength(1          ) ;
+			expect(text                                               ).not.toContain   ("\u001b"   ) ;
+			expect(text                                               ).not.toContain   ("\u0007"   ) ;
+			expect(lines.every((line) => visibleWidth(line) === width))    .toBe        (true       ) ;
 		}
 	});
 });

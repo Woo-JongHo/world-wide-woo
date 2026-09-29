@@ -222,9 +222,9 @@ export function projectActivityToTNoteSource(activity: ProjectActivity): TNoteAc
 
 function noteSafeActivityPayload(activity: ProjectActivity): unknown {
 	if (activity.kind !== "file-change") return activity.payload;
-	const payload = objectRecord(activity.payload)       ;
-	const params  = objectRecord(payload?.params)        ;
-	const item    = objectRecord(params?.item)           ;
+	const payload = objectRecord(activity.payload) ;
+	const params  = objectRecord(payload?.params)  ;
+	const item    = objectRecord(params?.item)     ;
 	if (!payload || !params || !item || !Array.isArray(item.changes)) return activity.payload;
 	const changes = item.changes.map(value => {
 		const change = objectRecord(value);

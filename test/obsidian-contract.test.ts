@@ -52,9 +52,9 @@ function put(root: string, path: string, value: string): void { const target = j
 describe("Obsidian detailed-canonical schema v2", () => {
 	test("accepts stable Properties, human-readable path, and the exact 14 sections plus Change Log", () => {
 		const result = validateObsidianDocument({ relativePath: "Workbench/Todo — AI 계획을 세션별로 확인한다.md", properties: properties(), body: body() });
-		expect(result.issues).toEqual([]);
-		expect(result.documentId).toBe("4d194c50-d2ba-4cee-a74a-b9fb1db10e18");
-		expect(result.targetPath).toBe("Workbench/Todo — AI 계획을 세션별로 확인한다.md");
+		expect(result.issues    ).toEqual([]                                               ) ;
+		expect(result.documentId).toBe   ("4d194c50-d2ba-4cee-a74a-b9fb1db10e18"           ) ;
+		expect(result.targetPath).toBe   ("Workbench/Todo — AI 계획을 세션별로 확인한다.md") ;
 	});
 
 	test("blocks invalid IDs, inline relationship text, section drift, and machine-oriented filenames", () => {
@@ -63,10 +63,10 @@ describe("Obsidian detailed-canonical schema v2", () => {
 			properties   : properties({ document_id: "WOO-682", parent: "Workbench parent", code_ids: ["011"] }),
 			body         : body("Message", "WOO-999 구현", OBSIDIAN_SECTIONS.slice(0, -1)),
 		});
-		expect(result.issues.map(item => item.code)).toContain("PROPERTY_INVALID");
-		expect(result.issues.map(item => item.code)).toContain("HEADING_INVALID");
-		expect(result.issues.map(item => item.code)).toContain("SECTION_ORDER_INVALID");
-		expect(result.issues.map(item => item.code)).toContain("PATH_DRIFT");
+		expect(result.issues.map(item => item.code)).toContain("PROPERTY_INVALID"     ) ;
+		expect(result.issues.map(item => item.code)).toContain("HEADING_INVALID"      ) ;
+		expect(result.issues.map(item => item.code)).toContain("SECTION_ORDER_INVALID") ;
+		expect(result.issues.map(item => item.code)).toContain("PATH_DRIFT"           ) ;
 	});
 
 	test("blocks every Linear identifier from the H1 even when it differs from the linked issue", () => {
@@ -85,10 +85,10 @@ describe("Obsidian detailed-canonical schema v2", () => {
 		const active = properties({ status: "active" });
 		for (const incomplete of ["<작성 필요>", "<domain>", "TODO: 계약 작성", "계약은 TODO다.", "    - TODO: 중첩 계약 작성", "| Acceptance | TODO |", "| Plan | |"])
 			expect(validateObsidianDocument({ relativePath: "Workbench/Todo — AI 계획을 세션별로 확인한다.md", properties: active, body: `${body()}\n${incomplete}\n` }).issues.map(item => item.code)).toContain("INCOMPLETE_MARKER");
-		expect(validateObsidianDocument({ relativePath: "Workbench/Todo — AI 계획을 세션별로 확인한다.md", properties: active, body: `${body()}\nTodo 기능은 세션 계획을 표시한다.\n` }).issues).toEqual([]);
-		expect(validateObsidianDocument({ relativePath: "Workbench/Todo — AI 계획을 세션별로 확인한다.md", properties: active, body: `${body()}\n- TODO-001\n- TEST-TODO-001\n` }).issues).toEqual([]);
-		expect(validateObsidianDocument({ relativePath: "Workbench/Todo — AI 계획을 세션별로 확인한다.md", properties: active, body: `${body()}\n\`<domain>\`과 \`\`<capability>\`\`는 예시 문법이다.\n\n\`\`\`text\nTODO: 코드 예시\n## 코드 안 제목\n| A | |\n\`\`\`\n` }).issues).toEqual([]);
-		expect(validateObsidianDocument({ relativePath: "Workbench/Todo — AI 계획을 세션별로 확인한다.md", properties: properties(), body: `${body()}\nTODO: 초안 작성 중\n` }).issues).toEqual([]);
+		expect(validateObsidianDocument({ relativePath: "Workbench/Todo — AI 계획을 세션별로 확인한다.md", properties: active, body: `${body()}\nTodo 기능은 세션 계획을 표시한다.\n` }).issues                                                                                    ).toEqual([]) ;
+		expect(validateObsidianDocument({ relativePath: "Workbench/Todo — AI 계획을 세션별로 확인한다.md", properties: active, body: `${body()}\n- TODO-001\n- TEST-TODO-001\n` }).issues                                                                                          ).toEqual([]) ;
+		expect(validateObsidianDocument({ relativePath: "Workbench/Todo — AI 계획을 세션별로 확인한다.md", properties: active, body: `${body()}\n\`<domain>\`과 \`\`<capability>\`\`는 예시 문법이다.\n\n\`\`\`text\nTODO: 코드 예시\n## 코드 안 제목\n| A | |\n\`\`\`\n` }).issues).toEqual([]) ;
+		expect(validateObsidianDocument({ relativePath: "Workbench/Todo — AI 계획을 세션별로 확인한다.md", properties: properties(), body: `${body()}\nTODO: 초안 작성 중\n` }).issues                                                                                             ).toEqual([]) ;
 	});
 });
 
@@ -99,9 +99,9 @@ describe("Obsidian vault drift and exact-digest sync", () => {
 		expect(preview.actions).toEqual([expect.objectContaining({ from: "Legacy/WOO-682.md", to: "Workbench/Todo — AI 계획을 세션별로 확인한다.md" })]);
 		expect(preview.issues.map(item => item.code)).toEqual(["PATH_DRIFT"]);
 		const snapshot = applyObsidianSyncPreview(root, preview, preview.digest);
-		expect(snapshot.documents[0]?.path).toBe("Workbench/Todo — AI 계획을 세션별로 확인한다.md");
-		expect(readFileSync(join(root, snapshot.documents[0]!.path), "utf8")).toContain("document_id:");
-		expect(inspectObsidianVault(root).issues).toEqual([]);
+		expect(snapshot.documents[0]?.path                                  ).toBe     ("Workbench/Todo — AI 계획을 세션별로 확인한다.md") ;
+		expect(readFileSync(join(root, snapshot.documents[0]!.path), "utf8")).toContain("document_id:"                                   ) ;
+		expect(inspectObsidianVault(root).issues                            ).toEqual  ([]                                               ) ;
 	});
 
 	test("rejects changed sources and an approval for a different preview", () => {
@@ -134,9 +134,9 @@ describe("Obsidian vault drift and exact-digest sync", () => {
 		const root = vault(); put(root, "Workbench/Todo — AI 계획을 세션별로 확인한다.md", markdown({ related: ["[[Missing — Contract]]"] }));
 		put(root, "Chat/Message — 대화를 읽는다.md", markdown({ linear: "WOO-683", domain: "Chat", capability: "Message" }, "대화를 읽는다"));
 		const result = inspectObsidianVault(root);
-		expect(result.issues.map(item => item.code)).toContain("DOCUMENT_ID_DUPLICATE");
-		expect(result.issues.map(item => item.code)).toContain("WIKILINK_BROKEN");
-		expect(() => applyObsidianSyncPreview(root, createObsidianSyncPreview(root), createObsidianSyncPreview(root).digest)).toThrow("OBSIDIAN_CONTRACT_BLOCKED");
+		expect(result.issues.map(item => item.code)                                                                         ).toContain("DOCUMENT_ID_DUPLICATE"    ) ;
+		expect(result.issues.map(item => item.code)                                                                         ).toContain("WIKILINK_BROKEN"          ) ;
+		expect(() => applyObsidianSyncPreview(root, createObsidianSyncPreview(root), createObsidianSyncPreview(root).digest)).toThrow  ("OBSIDIAN_CONTRACT_BLOCKED") ;
 	});
 
 	test("exposes fixture-safe check and preview CLI commands", () => {
@@ -153,10 +153,10 @@ describe("Obsidian vault drift and exact-digest sync", () => {
 		const checked     = JSON.parse(execFileSync("bun", ["run", "obsidian:check", "--", "--vault", root], { cwd, encoding: "utf8" }))                                                                       ;
 		const previewed   = JSON.parse(execFileSync("bun", ["run", "obsidian:sync", "--", "preview", "--vault", renameRoot, "--out", previewPath], { cwd, encoding: "utf8" }))                                 ;
 		const applied     = JSON.parse(execFileSync("bun", ["run", "obsidian:sync", "--", "apply", "--vault", renameRoot, "--preview", previewPath, "--digest", previewed.digest], { cwd, encoding: "utf8" })) ;
-		expect(checked.documents).toHaveLength(1);
-		expect(previewed.actions).toHaveLength(1);
-		expect(applied.documents[0]?.path).toBe("Workbench/Todo — AI 계획을 세션별로 확인한다.md");
-		expect(readFileSync(join(renameRoot, "Workbench/Todo — AI 계획을 세션별로 확인한다.md"), "utf8")).toContain("document_id:");
+		expect(checked.documents                                                                        ).toHaveLength(1                                                ) ;
+		expect(previewed.actions                                                                        ).toHaveLength(1                                                ) ;
+		expect(applied.documents[0]?.path                                                               ).toBe        ("Workbench/Todo — AI 계획을 세션별로 확인한다.md") ;
+		expect(readFileSync(join(renameRoot, "Workbench/Todo — AI 계획을 세션별로 확인한다.md"), "utf8")).toContain   ("document_id:"                                   ) ;
 	});
 
 	test("ignores ordinary vault notes under a configured root while validating every canonical marker candidate", () => {
@@ -174,9 +174,9 @@ describe("Obsidian vault drift and exact-digest sync", () => {
 
 	test("recognizes quoted YAML markers and rejects missing CLI option values", () => {
 		const root = vault(); put(root, "Workbench/Todo — AI 계획을 세션별로 확인한다.md", markdown().replace("record_type: detailed-canonical", 'record_type: "detailed-canonical"'));
-		expect(inspectObsidianVault(root).documents).toHaveLength(1);
-		expect(() => runObsidianContractCli(["check", "--vault", "--spec-root", "Workbench"])).toThrow("--vault 값이 필요합니다");
-		expect(() => runObsidianContractCli(["check", "--vault", root, "--spec-rot", "Workbench"])).toThrow("지원하지 않는 옵션");
+		expect(inspectObsidianVault(root).documents                                               ).toHaveLength(1                        ) ;
+		expect(() => runObsidianContractCli(["check", "--vault", "--spec-root", "Workbench"])     ).toThrow     ("--vault 값이 필요합니다") ;
+		expect(() => runObsidianContractCli(["check", "--vault", root, "--spec-rot", "Workbench"])).toThrow     ("지원하지 않는 옵션"     ) ;
 	});
 
 	test("requires explicit Linear identities whenever a CLI inspection is scoped", () => {

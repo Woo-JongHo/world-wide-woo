@@ -31,9 +31,9 @@ describe("local Code-ID registry", () => {
 		expect(result).toMatchObject({ units: 1, links: 1 });
 		const db = new Database(result.indexPath, { readonly: true });
 		try {
-			expect(db.query("SELECT code_id,path,symbol,members,obsidian FROM local_code_units").get()).toEqual({ code_id: "Code-001", path: "src/chat.ts", symbol: "ChatView", members: '["render"]', obsidian: "Chat.md" });
-			expect(db.query("SELECT code_id,issue_id FROM local_code_linear").get()).toEqual({ code_id: "Code-001", issue_id: "WOO-1" });
-			expect(db.query("SELECT manifest_digest FROM local_code_meta").get()).toEqual({ manifest_digest: result.digest });
+			expect(db.query("SELECT code_id,path,symbol,members,obsidian FROM local_code_units").get()).toEqual({ code_id: "Code-001", path: "src/chat.ts", symbol: "ChatView", members: '["render"]', obsidian: "Chat.md" }) ;
+			expect(db.query("SELECT code_id,issue_id FROM local_code_linear").get()                   ).toEqual({ code_id: "Code-001", issue_id: "WOO-1" }                                                                  ) ;
+			expect(db.query("SELECT manifest_digest FROM local_code_meta").get()                      ).toEqual({ manifest_digest: result.digest }                                                                          ) ;
 		} finally { db.close(); }
 	});
 

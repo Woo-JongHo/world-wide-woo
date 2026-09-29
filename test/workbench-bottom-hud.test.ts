@@ -10,13 +10,13 @@ test("HUD는 실행 모드와 provider 사용량을 한 줄에 표시한다", ()
 		{ provider: "anthropic", state: "ready", fetchedAt: 1, limits: [{ label: "Claude 7 Day", remainingPercent: 99, status: "ok" }] },
 	]);
 	const lines = new WorkbenchBottomHudView(usage).render(120).map(stripTerminalSequences);
-	expect(lines).toHaveLength(1);
-	expect(lines[0]).toContain("Codex 98%");
-	expect(lines[0]).toContain("Claude 99%");
-	expect(lines[0]).toContain("Antigravity —");
-	expect(lines[0]).not.toContain("⑂ main");
-	expect(lines[0]).toContain("● manual mode");
-	expect(lines[0]).toContain("Context —");
-	expect(lines[0]).not.toContain("WOONI");
-	expect(visibleWidth(lines[0]!)).toBe(120);
+	expect(lines                  )    .toHaveLength(1              ) ;
+	expect(lines[0]               )    .toContain   ("Codex 98%"    ) ;
+	expect(lines[0]               )    .toContain   ("Claude 99%"   ) ;
+	expect(lines[0]               )    .toContain   ("Antigravity —") ;
+	expect(lines[0]               ).not.toContain   ("⑂ main"       ) ;
+	expect(lines[0]               )    .toContain   ("● manual mode") ;
+	expect(lines[0]               )    .toContain   ("Context —"    ) ;
+	expect(lines[0]               ).not.toContain   ("WOONI"        ) ;
+	expect(visibleWidth(lines[0]!))    .toBe        (120            ) ;
 });

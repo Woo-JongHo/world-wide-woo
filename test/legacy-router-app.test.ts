@@ -47,9 +47,9 @@ describe("legacy Router composition", () => {
 			await expect(runLegacyRouter({}, dependencies)).rejects.toThrow("stop after composition");
 			expect(captured).toHaveLength(1);
 			const first = captured[0]!;
-			expect(first.runtime.snapshot.settings).toEqual(claude);
-			expect(await nativeSettings.load()).toEqual(codex);
-			expect(cleanupEvents).toEqual(["monitor.dispose", "runtime.close"]);
+			expect(first.runtime.snapshot.settings).toEqual(claude                              ) ;
+			expect(await nativeSettings.load()    ).toEqual(codex                               ) ;
+			expect(cleanupEvents                  ).toEqual(["monitor.dispose", "runtime.close"]) ;
 			const sessionId = first.runtime.id;
 
 			await expect(runLegacyRouter({ resumeSessionId: sessionId }, dependencies)).rejects.toThrow("stop after composition");

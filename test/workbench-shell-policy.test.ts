@@ -53,9 +53,9 @@ const workingSnapshot = {
 
 describe("native workbench shell receipt policy", () => {
 	test("keeps a bare slash in the command composer instead of sending chat", () => {
-		expect(isBareSlashCommandInput("/")).toBe(true);
-		expect(isBareSlashCommandInput("  /  ")).toBe(true);
-		expect(isBareSlashCommandInput("/help")).toBe(false);
+		expect(isBareSlashCommandInput("/")    ).toBe(true ) ;
+		expect(isBareSlashCommandInput("  /  ")).toBe(true ) ;
+		expect(isBareSlashCommandInput("/help")).toBe(false) ;
 	});
 
 	test("replaces the Composer slot without rebuilding it", () => {
@@ -69,13 +69,13 @@ describe("native workbench shell receipt policy", () => {
 		expect(slot.render(80)).toEqual(["composer"]);
 	});
 	test("cycles Shift+Tab runtime modes as Bypass, Manual, and Plan", () => {
-		expect(workbenchRuntimeMode({ permissionMode: "all", collaborationMode: "manual" })).toBe("bypass");
-		expect(nextWorkbenchRuntimeMode({ permissionMode: "all", collaborationMode: "manual" })).toBe("manual");
-		expect(nextWorkbenchRuntimeMode({ permissionMode: "manual", collaborationMode: "manual" })).toBe("plan");
-		expect(nextWorkbenchRuntimeMode({ permissionMode: "manual", collaborationMode: "plan" })).toBe("bypass");
-		expect(workbenchRuntimeConfiguration("bypass")).toEqual({ permission: "all", collaboration: "manual" });
-		expect(workbenchRuntimeConfiguration("manual")).toEqual({ permission: "manual", collaboration: "manual" });
-		expect(workbenchRuntimeConfiguration("plan")).toEqual({ permission: "manual", collaboration: "plan" });
+		expect(workbenchRuntimeMode({ permissionMode: "all", collaborationMode: "manual" })       ).toBe   ("bypass"                                         ) ;
+		expect(nextWorkbenchRuntimeMode({ permissionMode: "all", collaborationMode: "manual" })   ).toBe   ("manual"                                         ) ;
+		expect(nextWorkbenchRuntimeMode({ permissionMode: "manual", collaborationMode: "manual" })).toBe   ("plan"                                           ) ;
+		expect(nextWorkbenchRuntimeMode({ permissionMode: "manual", collaborationMode: "plan" })  ).toBe   ("bypass"                                         ) ;
+		expect(workbenchRuntimeConfiguration("bypass")                                            ).toEqual({ permission: "all", collaboration: "manual" }   ) ;
+		expect(workbenchRuntimeConfiguration("manual")                                            ).toEqual({ permission: "manual", collaboration: "manual" }) ;
+		expect(workbenchRuntimeConfiguration("plan")                                              ).toEqual({ permission: "manual", collaboration: "plan" }  ) ;
 	});
 
 	test("places the active model and effort on the composer edge", () => {
@@ -84,9 +84,9 @@ describe("native workbench shell receipt policy", () => {
 			activeModel : "gpt-5.6-sol",
 			effort      : "low",
 		}, 40));
-		expect(header).toContain("GPT-5.6-Sol · Low");
-		expect(header).toMatch(/^╭─ /u);
-		expect(header).toHaveLength(40);
+		expect(header).toContain   ("GPT-5.6-Sol · Low") ;
+		expect(header).toMatch     (/^╭─ /u            ) ;
+		expect(header).toHaveLength(40                 ) ;
 	});
 
 	test("cycles the focused Composer border through distinct shimmer frames", () => {
@@ -95,17 +95,17 @@ describe("native workbench shell receipt policy", () => {
 	});
 
 	test("resolves login Provider names from ordinary Chat input", () => {
-		expect(loginProviderFromInput("ChatGPT")).toBe("openai-codex");
-		expect(loginProviderFromInput("Claude")).toBe("anthropic");
-		expect(loginProviderFromInput("Gemini")).toBe("google");
+		expect(loginProviderFromInput("ChatGPT")).toBe("openai-codex") ;
+		expect(loginProviderFromInput("Claude") ).toBe("anthropic"   ) ;
+		expect(loginProviderFromInput("Gemini") ).toBe("google"      ) ;
 		expect(loginProviderFromInput("unknown")).toBeNull();
 	});
 
 	test("keeps completed Notes separate from selected execution Trace and current Todo", () => {
-		expect(workbenchPaneNotice("tnotes")).toContain("완료 질문 Report · Note");
-		expect(workbenchPaneNotice("tnotes")).not.toContain("Trace");
-		expect(workbenchPaneNotice("chat")).toContain("질문과 공개 응답");
-		expect(workbenchPaneNotice("todo")).toContain("현재 GOAL · PLAN · PROGRESS");
+		expect(workbenchPaneNotice("tnotes"))    .toContain("완료 질문 Report · Note"    ) ;
+		expect(workbenchPaneNotice("tnotes")).not.toContain("Trace"                      ) ;
+		expect(workbenchPaneNotice("chat")  )    .toContain("질문과 공개 응답"           ) ;
+		expect(workbenchPaneNotice("todo")  )    .toContain("현재 GOAL · PLAN · PROGRESS") ;
 	});
 
 	test("selects Trace only by exact activity id and rejects mutable legacy Todo commands", () => {
@@ -187,30 +187,30 @@ describe("native workbench shell receipt policy", () => {
 	});
 
 	test("routes dashboard, monitor, map, and stats to distinct local view modes", () => {
-		expect(workbenchViewModeCommand("/dashboard")).toBe("dashboard");
-		expect(workbenchViewModeCommand(" /monitor ")).toBe("monitor");
-		expect(workbenchViewModeCommand(" /map ")).toBe("map");
-		expect(workbenchViewModeCommand(" /stats ")).toBe("stats");
-		expect(workbenchViewModeCommand(" /Test ")).toBe("test");
+		expect(workbenchViewModeCommand("/dashboard")).toBe("dashboard") ;
+		expect(workbenchViewModeCommand(" /monitor ")).toBe("monitor"  ) ;
+		expect(workbenchViewModeCommand(" /map ")    ).toBe("map"      ) ;
+		expect(workbenchViewModeCommand(" /stats ")  ).toBe("stats"    ) ;
+		expect(workbenchViewModeCommand(" /Test ")   ).toBe("test"     ) ;
 		expect(workbenchViewModeCommand("/monitor details")).toBeNull();
-		expect(workbenchStatsTargetCommand("/stats")).toBe("session");
-		expect(workbenchStatsTargetCommand("/stats diagnostics")).toBe("diagnostics");
-		expect(workbenchStatsTargetCommand("/stats latest")).toBe("latest");
-		expect(workbenchStatsTargetCommand("/stats #7")).toBe(7);
-		expect(workbenchStatsTargetCommand("/stats nope")).toBe("invalid");
-		expect(WORKBENCH_SLASH_COMMANDS.find((command) => command.name === "stats")?.argumentHint).toBe("[diagnostics|latest|#n]");
-		expect(parseWorkbenchShellCommand("/source activity-1")).toEqual({ type: "activity.select", activityId: "activity-1" });
+		expect(workbenchStatsTargetCommand("/stats")                                             ).toBe   ("session"                                            ) ;
+		expect(workbenchStatsTargetCommand("/stats diagnostics")                                 ).toBe   ("diagnostics"                                        ) ;
+		expect(workbenchStatsTargetCommand("/stats latest")                                      ).toBe   ("latest"                                             ) ;
+		expect(workbenchStatsTargetCommand("/stats #7")                                          ).toBe   (7                                                    ) ;
+		expect(workbenchStatsTargetCommand("/stats nope")                                        ).toBe   ("invalid"                                            ) ;
+		expect(WORKBENCH_SLASH_COMMANDS.find((command) => command.name === "stats")?.argumentHint).toBe   ("[diagnostics|latest|#n]"                            ) ;
+		expect(parseWorkbenchShellCommand("/source activity-1")                                  ).toEqual({ type: "activity.select", activityId: "activity-1" }) ;
 	});
 
 	test("treats observability views as siblings with one workspace return target", () => {
 		for (const mode of ["map", "stats", "dashboard", "monitor", "source"] as const) expect(workbenchEscapeView(mode, "workbench")).toBe("workbench");
 		expect(workbenchEscapeView("workbench", "workbench")).toBeNull();
-		expect(rotateObservabilityView("stats", 1)).toBe("dashboard");
-		expect(rotateObservabilityView("dashboard", 1)).toBe("monitor");
-		expect(rotateObservabilityView("monitor", 1)).toBe("stats");
-		expect(rotateObservabilityView("stats", -1)).toBe("monitor");
-		expect(["1", "2", "3", "r"].map(directObservabilityView)).toEqual(["stats", "dashboard", "monitor", null]);
-		expect(shouldHandleObservabilityShortcut(true, false, "r")).toBe(true);
+		expect(rotateObservabilityView("stats", 1)                ).toBe   ("dashboard"                            ) ;
+		expect(rotateObservabilityView("dashboard", 1)            ).toBe   ("monitor"                              ) ;
+		expect(rotateObservabilityView("monitor", 1)              ).toBe   ("stats"                                ) ;
+		expect(rotateObservabilityView("stats", -1)               ).toBe   ("monitor"                              ) ;
+		expect(["1", "2", "3", "r"].map(directObservabilityView)  ).toEqual(["stats", "dashboard", "monitor", null]) ;
+		expect(shouldHandleObservabilityShortcut(true, false, "r")).toBe   (true                                   ) ;
 		for (const key of ["r", "R", "1", "2", "3"]) expect(shouldHandleObservabilityShortcut(true, true, key)).toBe(false);
 		let mode = rotateObservabilityView("stats", 1);
 		mode = rotateObservabilityView(mode, 1);
@@ -315,10 +315,10 @@ describe("native workbench shell receipt policy", () => {
 	test("does not repeat an assistant chat sentence in the current-activity rail", () => {
 		const indicator = workbenchActivityIndicator(workingSnapshot);
 
-		expect(indicator?.frames.length).toBeGreaterThan(1);
-		expect(indicator?.message).toBe("분석 · 실행 순서를 정리하는 중");
-		expect(indicator?.message).not.toContain("현재 디렉터리 구조를 직접 확인하겠습니다.");
-		expect(indicator?.hint).toBe("");
+		expect(indicator?.frames.length)    .toBeGreaterThan(1                                          ) ;
+		expect(indicator?.message      )    .toBe           ("분석 · 실행 순서를 정리하는 중"           ) ;
+		expect(indicator?.message      ).not.toContain      ("현재 디렉터리 구조를 직접 확인하겠습니다.") ;
+		expect(indicator?.hint         )    .toBe           (""                                         ) ;
 	});
 
 	test("shows the observed public action instead of a generic tool label", () => {
@@ -418,9 +418,9 @@ describe("native workbench shell receipt policy", () => {
 			},
 		});
 
-		expect(indicator?.message).toBe("단계 1/1 · 테마 조정 · 판단 · Planning semantic color token adjustments");
-		expect(indicator?.message).not.toContain("raw reasoning hidden");
-		expect(indicator?.message).not.toContain("⟦esc⟧");
+		expect(indicator?.message)    .toBe     ("단계 1/1 · 테마 조정 · 판단 · Planning semantic color token adjustments") ;
+		expect(indicator?.message).not.toContain("raw reasoning hidden"                                                   ) ;
+		expect(indicator?.message).not.toContain("⟦esc⟧"                                                                  ) ;
 	});
 
 	test("keeps a no-plan live action visible alongside its public reasoning summary", () => {
@@ -457,9 +457,9 @@ describe("native workbench shell receipt policy", () => {
 			chatQueue: [{ id: "queued-1" }, { id: "queued-2" }],
 		});
 
-		expect(indicator?.frames).toEqual(["⏸"]);
-		expect(indicator?.message).toBe("승인 대기 · 현재 턴 일시중지 · 대기 메시지 2개는 승인 후 전송");
-		expect(indicator?.hint).toBe("");
+		expect(indicator?.frames ).toEqual(["⏸"]                                                          ) ;
+		expect(indicator?.message).toBe   ("승인 대기 · 현재 턴 일시중지 · 대기 메시지 2개는 승인 후 전송") ;
+		expect(indicator?.hint   ).toBe   (""                                                             ) ;
 	});
 
 	test("marks an exact root tool as observation-stalled after its terminal event is overdue", () => {
@@ -480,9 +480,9 @@ describe("native workbench shell receipt policy", () => {
 			}],
 		}, Date.parse(startedAt) + 180_001);
 
-		expect(indicator?.message).toContain("관측 단절 가능");
-		expect(indicator?.message).not.toContain("승인 대기");
-		expect(indicator?.hint).toBe("");
+		expect(indicator?.message)    .toContain("관측 단절 가능") ;
+		expect(indicator?.message).not.toContain("승인 대기"     ) ;
+		expect(indicator?.hint   )    .toBe     (""              ) ;
 	});
 
 	test("starts animating while the first user message is still being delivered", () => {

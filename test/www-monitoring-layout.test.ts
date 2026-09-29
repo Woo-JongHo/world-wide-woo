@@ -24,11 +24,11 @@ describe("www monitoring layout", () => {
 			...monitoringDiagnostics([{ label: "Latency", value: "18 ms" }, { label: "Cache source", value: "native" }], width),
 		];
 		const output = stripTerminalSequences(rows.join("\n"));
-		expect(output).toContain("Provider availability");
-		expect(output).toContain("Performance chart");
-		expect(output).toContain("미관측");
-		expect(output).toContain("4 additional rows not shown");
-		expect(rows.every(row => visibleWidth(row) <= width)).toBe(true);
+		expect(output                                       ).toContain("Provider availability"      ) ;
+		expect(output                                       ).toContain("Performance chart"          ) ;
+		expect(output                                       ).toContain("미관측"                     ) ;
+		expect(output                                       ).toContain("4 additional rows not shown") ;
+		expect(rows.every(row => visibleWidth(row) <= width)).toBe     (true                         ) ;
 	});
 
 	test("does not decorate missing monitoring sources as empty telemetry", () => {
@@ -37,10 +37,10 @@ describe("www monitoring layout", () => {
 			...monitoringFlow([], 52),
 			...monitoringDiagnostics([], 52),
 		].join("\n"));
-		expect(output).toContain("matrix data 미관측");
-		expect(output).toContain("flow data 미관측");
-		expect(output).toContain("diagnostic data 미관측");
-		expect(stripTerminalSequences(monitoringQueue([], 52).join("\n"))).toContain("queue empty");
+		expect(output                                                    ).toContain("matrix data 미관측"    ) ;
+		expect(output                                                    ).toContain("flow data 미관측"      ) ;
+		expect(output                                                    ).toContain("diagnostic data 미관측") ;
+		expect(stripTerminalSequences(monitoringQueue([], 52).join("\n"))).toContain("queue empty"           ) ;
 	});
 
 	test("renders page-defined columns on stable shared axes", () => {
@@ -57,12 +57,12 @@ describe("www monitoring layout", () => {
 			],
 		}, 52);
 		const plain = rows.map(stripTerminalSequences);
-		expect(plain).toHaveLength(4);
-		expect(["SOURCE", "DISTRIBUTION", "SIZE", "SHARE"].map(label => plain[0]!.indexOf(label))).toEqual([0, 9, 40, 47]);
-		expect(plain[2]!.indexOf("MB")).toBe(42);
-		expect(plain[3]!.indexOf("MB")).toBe(42);
-		expect(plain[2]!.indexOf("%")).toBe(51);
-		expect(plain[3]!.indexOf("%")).toBe(51);
-		expect(rows.every(row => visibleWidth(row) === 52)).toBe(true);
+		expect(plain                                                                             ).toHaveLength(4             ) ;
+		expect(["SOURCE", "DISTRIBUTION", "SIZE", "SHARE"].map(label => plain[0]!.indexOf(label))).toEqual     ([0, 9, 40, 47]) ;
+		expect(plain[2]!.indexOf("MB")                                                           ).toBe        (42            ) ;
+		expect(plain[3]!.indexOf("MB")                                                           ).toBe        (42            ) ;
+		expect(plain[2]!.indexOf("%")                                                            ).toBe        (51            ) ;
+		expect(plain[3]!.indexOf("%")                                                            ).toBe        (51            ) ;
+		expect(rows.every(row => visibleWidth(row) === 52)                                       ).toBe        (true          ) ;
 	});
 });

@@ -46,15 +46,15 @@ describe("MonitoringOverlay", () => {
 		const overlay = new MonitoringOverlay(monitor, () => { updates += 1; }, () => {}) ;
 		overlay.start();
 		const output = stripTerminalSequences(overlay.render(70).join("\n"));
-		expect(output).toContain("Monitoring · Live snapshot");
-		expect(output).toContain("RUNNING");
-		expect(output).toContain("이전 이력은 부분적일 수 있음");
-		expect(output).toContain("user 2 · 🐙 Wooni 1 · 중단 0");
-		expect(output).toContain("성공 3 · 실패 1");
-		expect(output).toContain("1/3 · 세부 1/2");
-		expect(output).toContain("Monitor 구현");
-		expect(output).not.toContain("raw prompt");
-		expect(updates).toBe(1);
+		expect(output )    .toContain("Monitoring · Live snapshot"  ) ;
+		expect(output )    .toContain("RUNNING"                     ) ;
+		expect(output )    .toContain("이전 이력은 부분적일 수 있음") ;
+		expect(output )    .toContain("user 2 · 🐙 Wooni 1 · 중단 0" ) ;
+		expect(output )    .toContain("성공 3 · 실패 1"             ) ;
+		expect(output )    .toContain("1/3 · 세부 1/2"              ) ;
+		expect(output )    .toContain("Monitor 구현"                ) ;
+		expect(output ).not.toContain("raw prompt"                  ) ;
+		expect(updates)    .toBe     (1                             ) ;
 	});
 
 	test("keeps core status visible at narrow width and marks missing observations unknown", () => {

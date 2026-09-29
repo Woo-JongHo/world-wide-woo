@@ -1,20 +1,17 @@
 #!/usr/bin/env bun
-import { createHash } from "node:crypto";
-import { execFileSync } from "node:child_process";
+import { createHash }                                                                          from "node:crypto";
+import { execFileSync }                                                                        from "node:child_process";
 import { existsSync, lstatSync, readFileSync, readlinkSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
-import { dirname, isAbsolute, join, resolve } from "node:path";
-import {
-	evaluateWorkRecordingGate,
-	isWorkRecordingPath,
-	type WorkRecordingSnapshot,
-} from "../src/core/domain/development/work-recording-gate.js";
+import { dirname, isAbsolute, join, resolve }                                                  from "node:path";
+import { evaluateWorkRecordingGate, isWorkRecordingPath }                                      from "../src/core/domain/development/work-recording-gate.js";
+import type { WorkRecordingSnapshot }                                                          from "../src/core/domain/development/work-recording-gate.js";
 
 interface HookInput {
-	readonly cwd?: string;
-	readonly hook_event_name?: string;
-	readonly session_id?: string;
-	readonly turn_id?: string;
-	readonly stop_hook_active?: boolean;
+	readonly cwd?              : string  ;
+	readonly hook_event_name?  : string  ;
+	readonly session_id?       : string  ;
+	readonly turn_id?          : string  ;
+	readonly stop_hook_active? : boolean ;
 }
 
 export function captureWorktreeSnapshot(root: string): WorkRecordingSnapshot {

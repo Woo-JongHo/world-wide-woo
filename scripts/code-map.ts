@@ -1,40 +1,39 @@
 #!/usr/bin/env bun
 
-import { readdir, readFile, stat } from "node:fs/promises";
-import { relative, resolve, sep } from "node:path";
+import { readdir, readFile, stat }                      from "node:fs/promises";
+import { relative, resolve, sep }                       from "node:path";
 import {
 	findWorkReference,
 	parseWorkTraceabilityManifest,
 	referenceKey,
 	relatedWorkLinks,
-	type WorkReference,
-	type WorkTraceabilityManifest,
 } from "../src/core/domain/work/traceability.js";
+import type { WorkReference, WorkTraceabilityManifest } from "../src/core/domain/work/traceability.js";
 import {
 	extractLinearIssueIdsByPath,
 	validateLinearAnnotations,
 	validateWorkTraceabilityManifest,
-	type LinearAnnotation,
 } from "../src/core/domain/work/traceability-validator.js";
+import type { LinearAnnotation }                        from "../src/core/domain/work/traceability-validator.js";
 
 interface Options {
-	readonly check: boolean;
-	readonly json: boolean;
-	readonly manifestPath: string;
-	readonly query?: string;
+	readonly check        : boolean ;
+	readonly json         : boolean ;
+	readonly manifestPath : string  ;
+	readonly query?       : string  ;
 }
 
 interface Connection {
-	readonly direction: "from" | "to";
-	readonly relation: string;
-	readonly reference: WorkReference;
+	readonly direction : "from" | "to" ;
+	readonly relation  : string        ;
+	readonly reference : WorkReference ;
 }
 
 function parseArgs(argv: readonly string[], repoRoot: string): Options {
-	let check = false;
-	let json = false;
-	let manifestPath = resolve(repoRoot, ".www/control-ledger/traceability.json");
-	let query: string | undefined;
+	let check        = false                                                      ;
+	let json         = false                                                      ;
+	let manifestPath = resolve(repoRoot, ".www/control-ledger/traceability.json") ;
+	let query: string | undefined                                                 ;
 	for (let index = 0; index < argv.length; index += 1) {
 		const argument = argv[index]!;
 		if (argument === "--check") check = true;
@@ -128,11 +127,11 @@ export async function runCodeMap(argv: readonly string[], repoRoot = resolve(imp
 			.filter(reference => reference.kind === "linear-issue" && relatedWorkLinks(manifest, reference).length === 0)
 			.map(reference => reference.id);
 		const result = {
-			ok: true,
-			validation: "offline",
-			references: manifest.references.length,
-			links: manifest.links.length,
-			annotations: annotationSummary,
+			ok          : true,
+			validation  : "offline",
+			references  : manifest.references.length,
+			links       : manifest.links.length,
+			annotations : annotationSummary,
 			unlinkedIssues,
 		};
 		if (options.json) console.log(JSON.stringify(result, null, 2));

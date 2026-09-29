@@ -71,10 +71,10 @@ describe("SessionRuntime", () => {
 			{ role: "user", content: "진행돼?" },
 			{ role: "assistant", content: "진행됐습니다." },
 		]);
-		expect(phases).toContain("streaming");
-		expect(drafts.at(-1)).toBe("진행됐습니다.");
-		expect(activities).toContain("waiting");
-		expect(activities).toContain("responding");
+		expect(phases       ).toContain("streaming"    ) ;
+		expect(drafts.at(-1)).toBe     ("진행됐습니다.") ;
+		expect(activities   ).toContain("waiting"      ) ;
+		expect(activities   ).toContain("responding"   ) ;
 		const events = await store.readAll("session-test");
 		expect(events.map((event) => event.type)).toEqual([
 			"session.started",
@@ -129,14 +129,14 @@ describe("SessionRuntime", () => {
 		}]));
 		await runtime.submit("지금 경로 위치가 어디야?");
 
-		expect(systemPrompt).toContain('현재 작업 디렉토리는 "/workspace/world-wide-woo"');
-		expect(systemPrompt).toContain('활성 Router는 "openai", 모델 ID는 "gpt-5.4", 추론 강도는 "high"');
-		expect(systemPrompt).toContain("pwd 실행을 사용자에게 요구하지 마세요");
-		expect(systemPrompt).toContain("ChatGPT라고 뭉뚱그리거나 모델 ID를 볼 수 없다고 답하지 마세요");
-		expect(systemPrompt).toContain("물리적 위치나 GPS를 명시적으로 물은 경우에만");
-		expect(systemPrompt).toContain("Epic EP-010: Planning Package");
-		expect(systemPrompt).toContain("Story ST-010-01 (EP-010): Context projection");
-		expect(systemPrompt).not.toContain("private acceptance");
+		expect(systemPrompt)    .toContain('현재 작업 디렉토리는 "/workspace/world-wide-woo"'               ) ;
+		expect(systemPrompt)    .toContain('활성 Router는 "openai", 모델 ID는 "gpt-5.4", 추론 강도는 "high"') ;
+		expect(systemPrompt)    .toContain("pwd 실행을 사용자에게 요구하지 마세요"                          ) ;
+		expect(systemPrompt)    .toContain("ChatGPT라고 뭉뚱그리거나 모델 ID를 볼 수 없다고 답하지 마세요"  ) ;
+		expect(systemPrompt)    .toContain("물리적 위치나 GPS를 명시적으로 물은 경우에만"                   ) ;
+		expect(systemPrompt)    .toContain("Epic EP-010: Planning Package"                                  ) ;
+		expect(systemPrompt)    .toContain("Story ST-010-01 (EP-010): Context projection"                   ) ;
+		expect(systemPrompt).not.toContain("private acceptance"                                             ) ;
 		expect((await store.readAll("cwd-test"))[0]?.metadata).toMatchObject({
 			workspace: { cwd: "/workspace/world-wide-woo" },
 		});
@@ -271,9 +271,9 @@ describe("SessionRuntime", () => {
 		expect(runtime.snapshot.turns.at(-1)?.role).toBe("assistant");
 		expect(runtime.snapshot.turns.at(-1)?.content.length).toBeGreaterThan(0);
 		const events = await store.readAll("cancel-test");
-		expect(events.map(({ type }) => type)).toContain("message.assistant.cancelled");
-		expect(events.map(({ type }) => type)).not.toContain("message.assistant.failed");
-		expect(events.at(-1)).toMatchObject({ type: "turn.completed", status: "blocked", body: "cancelled" });
+		expect(events.map(({ type }) => type))    .toContain    ("message.assistant.cancelled"                                   ) ;
+		expect(events.map(({ type }) => type)).not.toContain    ("message.assistant.failed"                                      ) ;
+		expect(events.at(-1)                 )    .toMatchObject({ type: "turn.completed", status: "blocked", body: "cancelled" }) ;
 	});
 
 	test("executes a real tool call, returns its result to the model, and persists the card", async () => {
@@ -444,10 +444,10 @@ describe("SessionRuntime", () => {
 		await runtime.submit("확인");
 
 		const answer = runtime.snapshot.turns.at(-1)?.content ?? "";
-		expect(answer).toContain("관찰한 사실: 단계 1 파일 확인 · src/app.ts (필요한 파일 내용을 확인); 단계 2 코드 검색 · main (관련 구현 위치 탐색)");
-		expect(answer).toContain("판단과 이유: 실제 도구 상태는 passed");
-		expect(answer).toContain("남은 격차:");
-		expect(answer).toContain("검증:");
+		expect(answer).toContain("관찰한 사실: 단계 1 파일 확인 · src/app.ts (필요한 파일 내용을 확인); 단계 2 코드 검색 · main (관련 구현 위치 탐색)") ;
+		expect(answer).toContain("판단과 이유: 실제 도구 상태는 passed"                                                                               ) ;
+		expect(answer).toContain("남은 격차:"                                                                                                         ) ;
+		expect(answer).toContain("검증:"                                                                                                              ) ;
 		const saved = (await store.readAll("summary")).find(event => event.type === "message.assistant.completed" && event.body.includes("관찰한 사실"));
 		expect(saved?.body).toBe(answer);
 	});
@@ -479,9 +479,9 @@ describe("SessionRuntime", () => {
 
 	test("requires public tool reasons and evidence-scoped final summaries in the system prompt", () => {
 		const prompt = buildSessionSystemPrompt({ cwd: "/workspace/project" }, settings, ["read"]);
-		expect(prompt).toContain("모든 도구 호출에 optional reason");
-		expect(prompt).toContain("관찰한 사실, 판단과 이유, 남은 격차, 검증");
-		expect(prompt).toContain("hidden thinking");
+		expect(prompt).toContain("모든 도구 호출에 optional reason"         ) ;
+		expect(prompt).toContain("관찰한 사실, 판단과 이유, 남은 격차, 검증") ;
+		expect(prompt).toContain("hidden thinking"                          ) ;
 	});
 
 	test("retries a transient overloaded provider response before failing the turn", async () => {
@@ -505,9 +505,9 @@ describe("SessionRuntime", () => {
 		);
 		await runtime.initialize();
 		await runtime.submit("다시 시도해");
-		expect(faux.state.callCount).toBe(2);
-		expect(runtime.snapshot.phase).toBe("ready");
-		expect(runtime.snapshot.turns.at(-1)?.content).toBe("재시도 성공");
+		expect(faux.state.callCount                  ).toBe(2            ) ;
+		expect(runtime.snapshot.phase                ).toBe("ready"      ) ;
+		expect(runtime.snapshot.turns.at(-1)?.content).toBe("재시도 성공") ;
 	});
 
 	test("writes terminal tool results for every parallel call when aborted", async () => {

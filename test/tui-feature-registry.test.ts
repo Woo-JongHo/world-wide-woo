@@ -107,9 +107,9 @@ const EXPECTED_NON_ACTIVE_UNIT_STATUSES = {
 
 describe("TUI feature Unit catalog", () => {
 	test("contains the 18 features and exact 39 inventoried Units", () => {
-		expect(TUI_FEATURES).toHaveLength(18);
-		expect(TUI_FEATURE_UNITS).toHaveLength(39);
-		expect(Object.fromEntries(TUI_FEATURE_UNITS.map((unit) => [unit.id, unit.title]))).toEqual(EXPECTED_TITLES);
+		expect(TUI_FEATURES                                                              ).toHaveLength(18             ) ;
+		expect(TUI_FEATURE_UNITS                                                         ).toHaveLength(39             ) ;
+		expect(Object.fromEntries(TUI_FEATURE_UNITS.map((unit) => [unit.id, unit.title]))).toEqual     (EXPECTED_TITLES) ;
 	});
 
 	test("keeps product capability classification separate from page, embedded, and interaction kind", () => {
@@ -117,16 +117,16 @@ describe("TUI feature Unit catalog", () => {
 		for (const productGroup of ["core-work", "observability", "control", "integration"] as const) {
 			expect(tuiFeaturesByProductGroup(productGroup).every((feature) => feature.productGroup === productGroup)).toBe(true);
 		}
-		expect(tuiFeatureById("TUI-F004")?.kind).toBe("embedded");
-		expect(tuiFeatureById("TUI-F005")?.kind).toBe("page");
-		expect(tuiFeatureById("TUI-F007")?.kind).toBe("interaction");
+		expect(tuiFeatureById("TUI-F004")?.kind).toBe("embedded"   ) ;
+		expect(tuiFeatureById("TUI-F005")?.kind).toBe("page"       ) ;
+		expect(tuiFeatureById("TUI-F007")?.kind).toBe("interaction") ;
 	});
 
 	test("allows equal display order without treating it as Feature identity", () => {
 		const featuresAtOrder120 = TUI_FEATURES.filter((feature) => feature.order === 120);
-		expect(featuresAtOrder120.map((feature) => feature.id)).toEqual(["TUI-F018", "TUI-F012"]);
-		expect(featuresAtOrder120.map((feature) => feature.key)).toEqual(["cache", "test"]);
-		expect(new Set(featuresAtOrder120.map((feature) => feature.id)).size).toBe(2);
+		expect(featuresAtOrder120.map((feature) => feature.id)              ).toEqual(["TUI-F018", "TUI-F012"]) ;
+		expect(featuresAtOrder120.map((feature) => feature.key)             ).toEqual(["cache", "test"]       ) ;
+		expect(new Set(featuresAtOrder120.map((feature) => feature.id)).size).toBe   (2                       ) ;
 	});
 
 	test("keeps Unit IDs unique and attached to the declared parent feature", () => {

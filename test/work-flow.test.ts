@@ -108,10 +108,10 @@ describe("dplan-v1", () => {
 			completedPlan(2, `# 결과\n\n## ${count}단계\n\n${numbered}\n\n## 검증 및 전제\n\n- 후속 설명은 단계가 아니다.`),
 		], new Map(), input);
 
-		expect(result.steps).toHaveLength(count);
-		expect(result.steps[0]).toMatchObject({ title: "공개 단계 1", status: "running" });
-		expect(result.steps.at(-1)).toMatchObject({ title: `공개 단계 ${count}`, status: "pending" });
-		expect(result.steps.map((step) => step.title)).not.toContain(`${count}단계`);
+		expect(result.steps                          )    .toHaveLength (count                                             ) ;
+		expect(result.steps[0]                       )    .toMatchObject({ title: "공개 단계 1", status: "running" }       ) ;
+		expect(result.steps.at(-1)                   )    .toMatchObject({ title: `공개 단계 ${count}`, status: "pending" }) ;
+		expect(result.steps.map((step) => step.title)).not.toContain    (`${count}단계`                                    ) ;
 	});
 	test("accepts top-level numbered steps from an authoritative Native plan item", () => {
 		const result = projectWorkFlow([
@@ -207,9 +207,9 @@ describe("dplan-v1", () => {
 			plan(4, [{ step: "A", status: "inProgress" }, { step: "C", status: "pending" }]),
 		];
 		const result = projectWorkFlow(base, new Map(), input);
-		expect(result.steps.map((s) => s.title)).toEqual(["A", "C"]);
-		expect(result.steps[0]!.reconciliation.kind).toBe("retained");
-		expect(result.retirements).toHaveLength(1);
+		expect(result.steps.map((s) => s.title)    ).toEqual     (["A", "C"]) ;
+		expect(result.steps[0]!.reconciliation.kind).toBe        ("retained") ;
+		expect(result.retirements                  ).toHaveLength(1         ) ;
 	});
 	test("fails closed for duplicate/status and redaction collapse", () => {
 		const duplicate = projectWorkFlow(
@@ -363,9 +363,9 @@ describe("dplan-v1", () => {
 			new Map(),
 			input,
 		);
-		expect(foreign.rejections[0]).toMatchObject({ code: "source_turn_mismatch" });
-		expect(foreign.orphans[0]!.reason).toBe("source_mismatch");
-		expect(foreign.steps[0]!.title).toBe("A");
+		expect(foreign.rejections[0]     ).toMatchObject({ code: "source_turn_mismatch" }) ;
+		expect(foreign.orphans[0]!.reason).toBe         ("source_mismatch"               ) ;
+		expect(foreign.steps[0]!.title   ).toBe         ("A"                             ) ;
 	});
 	test("leaves malformed plans to Layer B instead of registering revision collisions", () => {
 		const collide: DplanHash = { sha256Hex: () => "0".repeat(64) };
@@ -584,8 +584,8 @@ describe("dplan-v1", () => {
 			new Map(),
 			input,
 		);
-		expect(result.source).toMatchObject({ turnId: "turn-1" });
-		expect(result.steps[0]).toMatchObject({ status: "running", activityIds: ["a-6"] });
-		expect(result.orphans).toEqual([]);
+		expect(result.source  ).toMatchObject({ turnId: "turn-1" }                       ) ;
+		expect(result.steps[0]).toMatchObject({ status: "running", activityIds: ["a-6"] }) ;
+		expect(result.orphans ).toEqual      ([]                                         ) ;
 	});
 });

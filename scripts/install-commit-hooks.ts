@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
-import { execFileSync } from "node:child_process";
-import { resolve } from "node:path";
+import { execFileSync }   from "node:child_process";
+import { resolve }        from "node:path";
 import { repositoryRoot } from "../src/adapters/outbound/git/git-commit-control.js";
 
 const root = repositoryRoot(resolve(process.argv[2] ?? "."));

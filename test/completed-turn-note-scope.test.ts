@@ -125,14 +125,14 @@ describe("completed turn note scope", () => {
 		const before = structuredClone(activities);
 		const sampled = boundCompletedTurnNoteActivities(activities, 100);
 
-		expect(sampled).toHaveLength(100);
-		expect(sampled.slice(0, 2).map((item) => item.id)).toEqual(["activity-1", "activity-2"]);
-		expect(sampled.at(-1)?.id).toBe("activity-205");
-		expect(sampled.map((item) => item.id)).toContain("activity-181");
-		expect(sampled.map((item) => item.sequence)).toEqual([...sampled.map((item) => item.sequence)].sort((left, right) => left - right));
-		expect(sampled.some((item) => item.sequence > 90 && item.sequence < 115)).toBe(true);
-		expect(activities).toEqual(before);
-		expect(Object.isFrozen(sampled)).toBe(true);
+		expect(sampled                                                          ).toHaveLength(100                                                                          ) ;
+		expect(sampled.slice(0, 2).map((item) => item.id)                       ).toEqual     (["activity-1", "activity-2"]                                                 ) ;
+		expect(sampled.at(-1)?.id                                               ).toBe        ("activity-205"                                                               ) ;
+		expect(sampled.map((item) => item.id)                                   ).toContain   ("activity-181"                                                               ) ;
+		expect(sampled.map((item) => item.sequence)                             ).toEqual     ([...sampled.map((item) => item.sequence)].sort((left, right) => left - right)) ;
+		expect(sampled.some((item) => item.sequence > 90 && item.sequence < 115)).toBe        (true                                                                         ) ;
+		expect(activities                                                       ).toEqual     (before                                                                       ) ;
+		expect(Object.isFrozen(sampled)                                         ).toBe        (true                                                                         ) ;
 	});
 
 	test("normalizes, redacts, and bounds the question without mutating its activity", () => {
@@ -141,10 +141,10 @@ describe("completed turn note scope", () => {
 		const before     = structuredClone(activities)                                                                     ;
 		const result     = questionForTurn(activities, "turn-1") ?? ""                                                     ;
 
-		expect(result.length).toBeLessThanOrEqual(800);
-		expect(result).not.toContain("scope-secret");
-		expect(result).not.toContain("url-secret");
-		expect(result).not.toMatch(/\s{2,}/u);
-		expect(activities).toEqual(before);
+		expect(result.length)    .toBeLessThanOrEqual(800           ) ;
+		expect(result       ).not.toContain          ("scope-secret") ;
+		expect(result       ).not.toContain          ("url-secret"  ) ;
+		expect(result       ).not.toMatch            (/\s{2,}/u     ) ;
+		expect(activities   )    .toEqual            (before        ) ;
 	});
 });

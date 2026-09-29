@@ -45,9 +45,9 @@ describe("ModelPickerOverlay hierarchy", () => {
 	test("starts at provider and contains no search field", () => {
 		const picker = overlay();
 		const output = text(picker);
-		expect(output).toContain("[공급자]  ›  모델  ›  추론  ›  확인");
-		expect(output).toContain("› openai-codex");
-		expect(output).not.toContain("검색");
+		expect(output)    .toContain("[공급자]  ›  모델  ›  추론  ›  확인") ;
+		expect(output)    .toContain("› openai-codex"                     ) ;
+		expect(output).not.toContain("검색"                               ) ;
 		picker.handleInput("gemini");
 		expect(text(picker)).toContain("› openai-codex");
 	});
@@ -65,11 +65,11 @@ describe("ModelPickerOverlay hierarchy", () => {
 		await Bun.sleep(0);
 
 		const output = text(picker);
-		expect(output).toContain("› openai-codex");
-		expect(output).toContain("  anthropic");
-		expect(output).not.toContain("openai  ");
-		expect(output).not.toContain("google  ");
-		expect(lookedUp.sort()).toEqual(["anthropic", "openai-codex"]);
+		expect(output         )    .toContain("› openai-codex"             ) ;
+		expect(output         )    .toContain("  anthropic"                ) ;
+		expect(output         ).not.toContain("openai  "                   ) ;
+		expect(output         ).not.toContain("google  "                   ) ;
+		expect(lookedUp.sort())    .toEqual  (["anthropic", "openai-codex"]) ;
 		picker.handleInput("\x1b[B");
 		picker.handleInput("\r");
 		expect(text(picker)).toContain("선택: anthropic / Claude Opus 4.6 / Ultra");
@@ -85,9 +85,9 @@ describe("ModelPickerOverlay hierarchy", () => {
 		await Bun.sleep(0);
 
 		const output = text(picker);
-		expect(output).toContain("[모델]  ›  추론  ›  확인");
-		expect(output).not.toContain("[공급자]");
-		expect(output).toContain("› GPT-5.6-Sol");
+		expect(output)    .toContain("[모델]  ›  추론  ›  확인") ;
+		expect(output).not.toContain("[공급자]"                ) ;
+		expect(output)    .toContain("› GPT-5.6-Sol"           ) ;
 		picker.handleInput("\r");
 		expect(text(picker)).toContain("[추론]");
 		picker.handleInput("\r");
@@ -173,9 +173,9 @@ describe("ModelPickerOverlay hierarchy", () => {
 		await Bun.sleep(0);
 		for (let step = 0; step < 4; step++) picker.handleInput("\r");
 		await Bun.sleep(0);
-		expect(closed).toBe(false);
-		expect(text(picker)).toContain("스트리밍 중에는 변경할 수 없습니다.");
-		expect(text(picker)).toContain("[확인]");
+		expect(closed      ).toBe     (false                                ) ;
+		expect(text(picker)).toContain("스트리밍 중에는 변경할 수 없습니다.") ;
+		expect(text(picker)).toContain("[확인]"                             ) ;
 	});
 
 	test("does not let Esc disguise an in-flight apply as cancellation", async () => {
@@ -202,18 +202,18 @@ describe("ModelPickerOverlay hierarchy", () => {
 		picker.start();
 		await Bun.sleep(0);
 		for (let step = 0; step < 4; step++) picker.handleInput("\r");
-		expect(applied).toBe(false);
-		expect(text(picker)).toContain("인증 상태를 확인하지 못했습니다");
-		expect(text(picker)).not.toContain("private provider error");
+		expect(applied     )    .toBe     (false                            ) ;
+		expect(text(picker))    .toContain("인증 상태를 확인하지 못했습니다") ;
+		expect(text(picker)).not.toContain("private provider error"         ) ;
 	});
 
 	test("restores a staged selection after auth without changing the current header", () => {
 		const initial: WwwSettings = { provider: "google", model: "gemini-3-flash-preview", effort: "low" } ;
 		const picker               = overlay({ initial, resumeAtConfirmation: true })                       ;
 		const output               = text(picker)                                                           ;
-		expect(output).toContain("현재: openai-codex / GPT-5.6-Sol / Ultra");
-		expect(output).toContain("선택: google / Gemini 3 Flash Preview / Low");
-		expect(output).toContain("[확인]");
+		expect(output).toContain("현재: openai-codex / GPT-5.6-Sol / Ultra"   ) ;
+		expect(output).toContain("선택: google / Gemini 3 Flash Preview / Low") ;
+		expect(output).toContain("[확인]"                                     ) ;
 	});
 
 	test("Esc discards every hierarchy level and all lines fit 40 columns", () => {

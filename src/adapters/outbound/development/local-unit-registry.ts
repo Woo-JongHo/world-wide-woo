@@ -248,9 +248,9 @@ export function syncLocalUnitRegistry(options: { projectRoot: string; dataRoot?:
 			db.run("CREATE TABLE IF NOT EXISTS local_code_linear (project TEXT NOT NULL, code_id TEXT NOT NULL, issue_id TEXT NOT NULL, PRIMARY KEY(project,code_id,issue_id), FOREIGN KEY(project,code_id) REFERENCES local_code_units(project,code_id) ON DELETE CASCADE)");
 			db.run("CREATE TABLE IF NOT EXISTS local_code_meta (project TEXT NOT NULL PRIMARY KEY, manifest_digest TEXT NOT NULL)");
 			db.run("BEGIN IMMEDIATE");
-			db.query("DELETE FROM local_code_linear WHERE project = ?").run(ledger.projectId);
-			db.query("DELETE FROM local_code_units WHERE project = ?").run(ledger.projectId);
-			db.query("DELETE FROM local_code_meta WHERE project = ?").run(ledger.projectId);
+			db.query("DELETE FROM local_code_linear WHERE project = ?").run(ledger.projectId) ;
+			db.query("DELETE FROM local_code_units WHERE project = ?" ).run(ledger.projectId) ;
+			db.query("DELETE FROM local_code_meta WHERE project = ?"  ).run(ledger.projectId) ;
 			const insertUnit = db.query("INSERT INTO local_code_units(project,code_id,name,path,symbol,members,obsidian,payload_digest) VALUES (?,?,?,?,?,?,?,?)");
 			const insertLink = db.query("INSERT INTO local_code_linear(project,code_id,issue_id) VALUES (?,?,?)");
 			for (const unit of units) {

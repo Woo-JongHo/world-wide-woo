@@ -37,9 +37,9 @@ describe("woo-commit contract", () => {
 	});
 	test("blocking 검증 실패와 모호한 결과를 차단한다", () => {
 		const control = new CommitControlPlane(policy);
-		expect(control.validate(candidate({ result: "수정" }), true)).toContain("result: 구체적인 완료 상태를 설명해야 합니다.");
-		expect(control.validate(candidate({ fixes: "" }), true)).toContain("fixes: 한 줄의 비어 있지 않은 값이어야 합니다.");
-		expect(control.validate(candidate({ verified: "" }), true)).toContain("verified: 한 줄의 비어 있지 않은 값이어야 합니다.");
+		expect(control.validate(candidate({ result: "수정" }), true)).toContain("result: 구체적인 완료 상태를 설명해야 합니다."    ) ;
+		expect(control.validate(candidate({ fixes: "" }), true)     ).toContain("fixes: 한 줄의 비어 있지 않은 값이어야 합니다."   ) ;
+		expect(control.validate(candidate({ verified: "" }), true)  ).toContain("verified: 한 줄의 비어 있지 않은 값이어야 합니다.") ;
 		const value = candidate(); value.validations[0]!.result = "not-run";
 		expect(control.validate(value, true).some(error => error.includes("blocking"))).toBeTrue();
 	});
@@ -107,9 +107,9 @@ describe("staged boundary", () => {
 		const head = execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
 		const value = candidate({ baseHead: head, contentDigest: candidateContentDigest(root, ["change.txt"]) });
 		const candidatePath = join(root, ".www/runtime/commit/candidate.json"); writeFileSync(candidatePath, JSON.stringify(value));
-		expect(() => executeCommit(root, candidatePath, authorize(root, value, "Woo Test"), policy)).toThrow("COMMIT_PROJECT_IDENTITY_MISSING");
-		expect(execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim()).toBe(head);
-		expect(stagedPaths(root)).toEqual([]);
+		expect(() => executeCommit(root, candidatePath, authorize(root, value, "Woo Test"), policy)).toThrow("COMMIT_PROJECT_IDENTITY_MISSING") ;
+		expect(execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim() ).toBe   (head                             ) ;
+		expect(stagedPaths(root)                                                                   ).toEqual([]                               ) ;
 	});
 	test("승인 뒤 후보 파일 내용이 바뀌면 stale로 차단한다", () => {
 		const root = mkdtempSync(join(tmpdir(), "woo-commit-stale-")); roots.push(root);

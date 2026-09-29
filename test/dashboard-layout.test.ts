@@ -48,22 +48,22 @@ describe("dashboard layout", () => {
 	test("keeps three regions in one wide frame with independent viewports", () => {
 		const layout = dashboard();
 		const frame = renderLayoutFrame(layout.component, 120, 30, () => undefined);
-		expect(frame.lines.every((line) => visibleWidth(line) === 0 || visibleWidth(line) === 120)).toBe(true);
-		expect(frame.lines.join("\n")).toContain("대화 · 작업");
-		expect(frame.lines.join("\n")).toContain("TODO");
-		expect(frame.lines.join("\n")).toContain("TRACER");
-		expect(frame.lines.filter((line) => line.includes("╭")).length).toBe(1);
-		expect(frame.lines.at(-1)).toContain("╰");
+		expect(frame.lines.every((line) => visibleWidth(line) === 0 || visibleWidth(line) === 120)).toBe     (true         ) ;
+		expect(frame.lines.join("\n")                                                             ).toContain("대화 · 작업") ;
+		expect(frame.lines.join("\n")                                                             ).toContain("TODO"       ) ;
+		expect(frame.lines.join("\n")                                                             ).toContain("TRACER"     ) ;
+		expect(frame.lines.filter((line) => line.includes("╭")).length                            ).toBe     (1            ) ;
+		expect(frame.lines.at(-1)                                                                 ).toContain("╰"          ) ;
 		for (const line of frame.lines.slice(1, -1)) {
 			const plain = stripTerminalSequences(line);
 			expect(plain.startsWith("│")).toBe(true);
 			expect(plain.endsWith("│")).toBe(true);
 		}
-		expect(layout.leftScroll).not.toBe(layout.usageScroll);
-		expect(layout.usageScroll).not.toBe(layout.routerScroll);
-		expect(layout.leftScroll.viewportHeight).toBeGreaterThan(0);
-		expect(layout.usageScroll.viewportHeight).toBeGreaterThan(0);
-		expect(layout.routerScroll.viewportHeight).toBeGreaterThan(0);
+		expect(layout.leftScroll                 ).not.toBe           (layout.usageScroll ) ;
+		expect(layout.usageScroll                ).not.toBe           (layout.routerScroll) ;
+		expect(layout.leftScroll.viewportHeight  )    .toBeGreaterThan(0                  ) ;
+		expect(layout.usageScroll.viewportHeight )    .toBeGreaterThan(0                  ) ;
+		expect(layout.routerScroll.viewportHeight)    .toBeGreaterThan(0                  ) ;
 		// Todo is intentionally lighter than Tracer: target the available 3:7 rail.
 		const totalRailHeight = layout.usageScroll.viewportHeight + layout.routerScroll.viewportHeight;
 		expect(layout.usageScroll.viewportHeight).toBeLessThan(layout.routerScroll.viewportHeight);
@@ -80,19 +80,19 @@ describe("dashboard layout", () => {
 
 	test("uses one ordered viewport inside the same frame when compact", () => {
 		const frame = renderLayoutFrame(dashboard().component, 70, 24, () => undefined);
-		expect(frame.lines.every((line) => visibleWidth(line) === 0 || visibleWidth(line) === 70)).toBe(true);
-		expect(frame.lines.join("\n")).toContain("대화 · 작업");
-		expect(frame.lines.join("\n")).toContain("TODO");
-		expect(frame.lines.join("\n")).toContain("TRACER");
-		expect(frame.lines.findIndex(line => line.includes("TODO"))).toBeLessThan(frame.lines.findIndex(line => line.includes("TRACER")));
+		expect(frame.lines.every((line) => visibleWidth(line) === 0 || visibleWidth(line) === 70)).toBe        (true                                                  ) ;
+		expect(frame.lines.join("\n")                                                            ).toContain   ("대화 · 작업"                                         ) ;
+		expect(frame.lines.join("\n")                                                            ).toContain   ("TODO"                                                ) ;
+		expect(frame.lines.join("\n")                                                            ).toContain   ("TRACER"                                              ) ;
+		expect(frame.lines.findIndex(line => line.includes("TODO"))                              ).toBeLessThan(frame.lines.findIndex(line => line.includes("TRACER"))) ;
 	});
 
 	test.each([10, 13])("keeps every section reachable at 120×%i", (height) => {
 		const frame = renderLayoutFrame(dashboard().component, 120, height, () => undefined);
 		const output = scrollContent(frame.root).join("\n");
-		expect(output).toContain("대화 · 작업");
-		expect(output).toContain("TODO");
-		expect(output).toContain("TRACER");
+		expect(output).toContain("대화 · 작업") ;
+		expect(output).toContain("TODO"       ) ;
+		expect(output).toContain("TRACER"     ) ;
 	});
 
 	test("reuses section rows when a child returns the same stable projection", () => {
@@ -115,9 +115,9 @@ describe("dashboard layout", () => {
 		const first = layout.leftScroll.render(80);
 		left.lines = ["stable one", "stable two", "tail two"];
 		const second = layout.leftScroll.render(80);
-		expect(second).not.toBe(first);
-		expect(second.join("\n")).toContain("tail two");
-		expect(second.join("\n")).not.toContain("tail one");
+		expect(second           ).not.toBe     (first     ) ;
+		expect(second.join("\n"))    .toContain("tail two") ;
+		expect(second.join("\n")).not.toContain("tail one") ;
 	});
 
 	test("keeps every wheel delta in its contained chat viewport while content renders", () => {
@@ -139,10 +139,10 @@ describe("dashboard layout", () => {
 			return layout.leftScroll.scrollTop;
 		});
 
-		expect(offsets).toEqual([start - 2, start - 4, start - 6]);
-		expect(layout.leftScroll.isFollowingEnd).toBe(false);
-		expect(layout.usageScroll.scrollTop).toBe(0);
-		expect(layout.routerScroll.scrollTop).toBe(0);
+		expect(offsets                         ).toEqual([start - 2, start - 4, start - 6]) ;
+		expect(layout.leftScroll.isFollowingEnd).toBe   (false                            ) ;
+		expect(layout.usageScroll.scrollTop    ).toBe   (0                                ) ;
+		expect(layout.routerScroll.scrollTop   ).toBe   (0                                ) ;
 
 		layout.leftScroll.scrollToEnd();
 		expect(layout.leftScroll.isFollowingEnd).toBe(true);

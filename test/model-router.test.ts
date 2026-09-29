@@ -53,9 +53,9 @@ describe("ModelRouter", () => {
 
 		const result = new ModelRouter(registry).stream(settings, { messages: [] } as Context, signal);
 
-		expect(result).toBe(stream);
-		expect(receivedOptions?.reasoning).toBe("xhigh");
-		expect(receivedOptions?.signal).toBe(signal);
+		expect(result                    ).toBe(stream ) ;
+		expect(receivedOptions?.reasoning).toBe("xhigh") ;
+		expect(receivedOptions?.signal   ).toBe(signal ) ;
 	});
 
 	test("fails before dispatch when the selected model is absent", () => {

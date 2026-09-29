@@ -78,9 +78,9 @@ describe("SessionMonitor", () => {
 		monitor.dispose();
 		runtimeState.emit(session({ phase: "error" }));
 		todoState.emit(todo([{ id: "one", content: "active", status: "in_progress", evidenceIds: [], details: [] }]));
-		expect(monitor.snapshot.phase).toBe("starting");
-		expect(monitor.snapshot.todo.total).toBe(0);
-		expect(runtimeState.listenerCount).toBe(0);
-		expect(todoState.listenerCount).toBe(0);
+		expect(monitor.snapshot.phase     ).toBe("starting") ;
+		expect(monitor.snapshot.todo.total).toBe(0         ) ;
+		expect(runtimeState.listenerCount ).toBe(0         ) ;
+		expect(todoState.listenerCount    ).toBe(0         ) ;
 	});
 });

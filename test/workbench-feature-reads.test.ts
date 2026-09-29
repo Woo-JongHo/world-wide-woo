@@ -18,14 +18,14 @@ describe("Workbench feature read projections", () => {
 			"selectedActivityId", "sessionGoal", "threadId", "tnotes", "workFlow",
 		];
 
-		expect(Object.keys(projection).every(key => allowedKeys.includes(key))).toBe(true);
-		expect(Object.isFrozen(projection)).toBe(true);
-		expect(projection.activities).toBe(snapshot.activities);
-		expect(projection.chat).toBe(snapshot.chat);
-		expect(projection.tnotes).toBe(snapshot.tnotes);
-		expect("todo" in projection).toBe(false);
-		expect("revision" in projection).toBe(false);
-		expect("modelCatalog" in projection).toBe(false);
+		expect(Object.keys(projection).every(key => allowedKeys.includes(key))).toBe(true               ) ;
+		expect(Object.isFrozen(projection)                                    ).toBe(true               ) ;
+		expect(projection.activities                                          ).toBe(snapshot.activities) ;
+		expect(projection.chat                                                ).toBe(snapshot.chat      ) ;
+		expect(projection.tnotes                                              ).toBe(snapshot.tnotes    ) ;
+		expect("todo" in projection                                           ).toBe(false              ) ;
+		expect("revision" in projection                                       ).toBe(false              ) ;
+		expect("modelCatalog" in projection                                   ).toBe(false              ) ;
 	});
 
 	test("Chat streaming state settles under the same message identity without retaining a duplicate draft", () => {
@@ -43,13 +43,13 @@ describe("Workbench feature read projections", () => {
 			draft : "",
 		});
 
-		expect(streaming.chat).toHaveLength(1);
-		expect(completed.chat).toHaveLength(1);
-		expect(completed.chat[0]?.id).toBe(streaming.chat[0]?.id);
-		expect(completed.chat[0]?.status).toBe("completed");
-		expect(completed.draft).toBe("");
-		expect(streaming.chat[0]?.status).toBe("streaming");
-		expect(streaming.draft).toBe("부분");
+		expect(streaming.chat           ).toHaveLength(1                    ) ;
+		expect(completed.chat           ).toHaveLength(1                    ) ;
+		expect(completed.chat[0]?.id    ).toBe        (streaming.chat[0]?.id) ;
+		expect(completed.chat[0]?.status).toBe        ("completed"          ) ;
+		expect(completed.draft          ).toBe        (""                   ) ;
+		expect(streaming.chat[0]?.status).toBe        ("streaming"          ) ;
+		expect(streaming.draft          ).toBe        ("부분"               ) ;
 	});
 
 	test("Plan receives only its semantic state and no terminal presentation details", () => {
@@ -63,11 +63,11 @@ describe("Workbench feature read projections", () => {
 			"sessionGoal",
 			"workFlow",
 		];
-		expect(Object.keys(projection).every(key => allowedKeys.includes(key))).toBe(true);
-		expect(Object.keys(projection)).toEqual(expect.arrayContaining(["activeTurnId", "sessionGoal", "workFlow"]));
-		expect(Object.isFrozen(projection)).toBe(true);
-		expect("draft" in projection).toBe(false);
-		expect("activities" in projection).toBe(false);
+		expect(Object.keys(projection).every(key => allowedKeys.includes(key))).toBe   (true                                                               ) ;
+		expect(Object.keys(projection)                                        ).toEqual(expect.arrayContaining(["activeTurnId", "sessionGoal", "workFlow"])) ;
+		expect(Object.isFrozen(projection)                                    ).toBe   (true                                                               ) ;
+		expect("draft" in projection                                          ).toBe   (false                                                              ) ;
+		expect("activities" in projection                                     ).toBe   (false                                                              ) ;
 	});
 
 	test("Tracer receives its narrow read contract without composer or terminal state", () => {
@@ -89,11 +89,11 @@ describe("Workbench feature read projections", () => {
 			"selectedAgentDetail",
 			"workFlow",
 		];
-		expect(Object.keys(projection).every(key => allowedKeys.includes(key))).toBe(true);
-		expect(Object.keys(projection)).toContain("workFlow");
-		expect(Object.isFrozen(projection)).toBe(true);
-		expect("draft" in projection).toBe(false);
-		expect("pendingApproval" in projection).toBe(false);
+		expect(Object.keys(projection).every(key => allowedKeys.includes(key))).toBe     (true      ) ;
+		expect(Object.keys(projection)                                        ).toContain("workFlow") ;
+		expect(Object.isFrozen(projection)                                    ).toBe     (true      ) ;
+		expect("draft" in projection                                          ).toBe     (false     ) ;
+		expect("pendingApproval" in projection                                ).toBe     (false     ) ;
 	});
 
 	test("a later Snapshot creates new projections without changing prior feature reads", () => {
@@ -116,11 +116,11 @@ describe("Workbench feature read projections", () => {
 		const nextTracer = projectTracerFeature(nextSnapshot) ;
 		const nextChat   = projectChatFeature(nextSnapshot)   ;
 
-		expect(nextChat.activities).toHaveLength(0);
-		expect(nextPlan.workFlow.steps).toHaveLength(0);
-		expect(nextTracer.activities).toHaveLength(0);
-		expect(firstPlan.workFlow.steps[0]?.title).toBe(firstTitle);
-		expect(firstChat.activities).toHaveLength(firstCount);
-		expect(firstTracer.activities).toHaveLength(firstCount);
+		expect(nextChat.activities               ).toHaveLength(0         ) ;
+		expect(nextPlan.workFlow.steps           ).toHaveLength(0         ) ;
+		expect(nextTracer.activities             ).toHaveLength(0         ) ;
+		expect(firstPlan.workFlow.steps[0]?.title).toBe        (firstTitle) ;
+		expect(firstChat.activities              ).toHaveLength(firstCount) ;
+		expect(firstTracer.activities            ).toHaveLength(firstCount) ;
 	});
 });

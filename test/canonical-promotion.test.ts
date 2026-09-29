@@ -45,9 +45,9 @@ describe("human-gated canonical promotion", () => {
 		const root     = await project()                                                     ;
 		const service  = new CanonicalPromotionService(new FileCanonicalDocumentStore(root)) ;
 		const accepted = await service.accept(draft(), "jongho")                             ;
-		expect(accepted.status).toBe("accepted");
-		expect(accepted.token).toContain(fingerprintCanonicalDocument(draft(), digestCanonicalDocument("")).digest);
-		expect(accepted.diff).toContain("+ # 오늘의 작업".replace("+ ", "+"));
+		expect(accepted.status).toBe     ("accepted"                                                               ) ;
+		expect(accepted.token ).toContain(fingerprintCanonicalDocument(draft(), digestCanonicalDocument("")).digest) ;
+		expect(accepted.diff  ).toContain("+ # 오늘의 작업".replace("+ ", "+")                                     ) ;
 		const promoted = await service.promote(draft(), accepted.token);
 		expect(promoted).toMatchObject({ status: "promoted", gitState: "uncommitted" });
 		expect(await readFile(join(root, ".www", "vault", "Todo.md"), "utf8")).toBe(draft().body);

@@ -11,9 +11,9 @@ describe("observability history source", () => {
 		const directory = await mkdtemp(join(tmpdir(), "observability-history-"));
 		await writeFile(join(directory, "native-stream.jsonl"), `${activity("one", 1)}\nnot-json\n${activity("partial", 2)}`);
 		const history = await new ObservabilityHistorySource(directory).read();
-		expect(history.streams).toHaveLength(1);
-		expect(history.streams[0]).toMatchObject({ streamId: "native-stream", activities: [{ id: "one" }] });
-		expect(history.coverage).toMatchObject({ state: "partial-local-journal", streamsRead: 1, observedFrom: "2026-09-01T00:00:00.000Z" });
+		expect(history.streams   ).toHaveLength (1                                                                                           ) ;
+		expect(history.streams[0]).toMatchObject({ streamId: "native-stream", activities: [{ id: "one" }] }                                  ) ;
+		expect(history.coverage  ).toMatchObject({ state: "partial-local-journal", streamsRead: 1, observedFrom: "2026-09-01T00:00:00.000Z" }) ;
 	});
 
 	test("bounds discovered streams and reports unknown for an absent directory", async () => {

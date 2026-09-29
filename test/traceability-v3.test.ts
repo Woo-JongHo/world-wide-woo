@@ -150,11 +150,11 @@ describe("runtime receipt journal authentication", () => {
 		const hash    = { sha256Hex: (input: Uint8Array) => sha256(Buffer.from(input)) }                                                                                                                                           ;
 		const receipt = replayExecutionRun(createExecutionRun({ runId: "thread:turn", threadId: "thread", turnId: "turn", hash }), activities.map(normalizeProjectActivity), hash).receipt!                                        ;
 		const journal = (value: unknown) => [...activities, runtimeActivity(3, "receipt", "thread", "turn", { method: "execution/completion-receipt", receipt: value }, "completed")].map(item => JSON.stringify(item)).join("\n") ;
-		expect(selectedCompletionReceipt(journal(receipt), receipt.receiptId)).toEqual(receipt);
-		expect(receipt.algorithmVersion).toBe(3);
-		expect(() => selectedCompletionReceipt(journal({ ...receipt, algorithmVersion: undefined }), receipt.receiptId)).toThrow("JOURNAL_COMPLETION_RECEIPT_VERSION_INVALID");
-		expect(selectedCompletionReceipt(journal(receipt), receipt.receiptId).algorithmVersion).toBe(3);
-		expect(() => selectedCompletionReceipt(journal({ ...receipt, commandResults: [{ ...receipt.commandResults![0], output: "1 pass" }] }), receipt.receiptId)).toThrow("JOURNAL_COMPLETION_RECEIPT_DIGEST_MISMATCH");
+		expect(selectedCompletionReceipt(journal(receipt), receipt.receiptId)                                                                                    ).toEqual(receipt                                     ) ;
+		expect(receipt.algorithmVersion                                                                                                                          ).toBe   (3                                           ) ;
+		expect(() => selectedCompletionReceipt(journal({ ...receipt, algorithmVersion: undefined }), receipt.receiptId)                                          ).toThrow("JOURNAL_COMPLETION_RECEIPT_VERSION_INVALID") ;
+		expect(selectedCompletionReceipt(journal(receipt), receipt.receiptId).algorithmVersion                                                                   ).toBe   (3                                           ) ;
+		expect(() => selectedCompletionReceipt(journal({ ...receipt, commandResults: [{ ...receipt.commandResults![0], output: "1 pass" }] }), receipt.receiptId)).toThrow("JOURNAL_COMPLETION_RECEIPT_DIGEST_MISMATCH") ;
 	});
 
 	test("rejects replay tampering, global sequence gaps, and receipt checkpoint tampering", () => {
@@ -201,9 +201,9 @@ describe("traceability v3 SQLite projection", () => {
 			expect.objectContaining({ acceptanceRef: "acceptance:CHAT-001/A-02@v1", status: "pass" }),
 			expect.objectContaining({ acceptanceRef: "acceptance:CHAT-001/A-03@v1", status: "unknown" }),
 		]);
-		expect(store.queryTraceability("exception", "EXC-014").entities.some(entity => entity.ref === "exception:EXC-014@v1")).toBe(true);
-		expect(store.traceabilityDrift().stale).not.toContainEqual({ ref: "receipt:VR-CHAT-001-001", status: "stale" });
-		expect(store.traceabilityOrphans()).toEqual({ logicalDigest: rebuilt.logicalDigest, entities: [] });
+		expect(store.queryTraceability("exception", "EXC-014").entities.some(entity => entity.ref === "exception:EXC-014@v1"))    .toBe          (true                                                  ) ;
+		expect(store.traceabilityDrift().stale                                                                               ).not.toContainEqual({ ref: "receipt:VR-CHAT-001-001", status: "stale" }   ) ;
+		expect(store.traceabilityOrphans()                                                                                   )    .toEqual       ({ logicalDigest: rebuilt.logicalDigest, entities: [] }) ;
 		store.close();
 	});
 

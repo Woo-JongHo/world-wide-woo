@@ -49,9 +49,9 @@ describe("Project Activity Artifact 경로", () => {
 
 	test("Update는 버전과 직전 Comment ID를 요구한다", () => {
 		const candidate = update();
-		expect(validateArtifactCandidate(candidate)).toEqual([]);
-		expect(renderArtifactCandidate(candidate)).toContain("# 0.0.17\n\n## 전달 기능");
-		expect(renderArtifactCandidate(candidate)).toContain("## 작업 Comment\n\n- comment-1");
+		expect(validateArtifactCandidate(candidate)).toEqual  ([]                              ) ;
+		expect(renderArtifactCandidate(candidate)  ).toContain("# 0.0.17\n\n## 전달 기능"      ) ;
+		expect(renderArtifactCandidate(candidate)  ).toContain("## 작업 Comment\n\n- comment-1") ;
 		candidate.content.sourceCommentIds = [];
 		const errors = validateArtifactCandidate({ ...candidate, candidateDigest: artifactCandidateDigest(candidate) });
 		expect(errors.some(error => error.startsWith("linear-project-update.content"))).toBeTrue();

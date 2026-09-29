@@ -43,10 +43,10 @@ describe("work recording gate", () => {
 		writeFileSync(join(root, "existing.ts"), "changed during turn\n");
 
 		const first = run(root, event("Stop"));
-		expect(first.status).toBe(0);
-		expect(JSON.parse(first.stdout)).toMatchObject({ decision: "block" });
-		expect(first.stdout).toContain("existing.ts");
-		expect(first.stdout).toContain("woo-linear-activity");
+		expect(first.status            ).toBe         (0                    ) ;
+		expect(JSON.parse(first.stdout)).toMatchObject({ decision: "block" }) ;
+		expect(first.stdout            ).toContain    ("existing.ts"        ) ;
+		expect(first.stdout            ).toContain    ("woo-linear-activity") ;
 
 		const continued = run(root, { ...event("Stop"), stop_hook_active: true });
 		expect(JSON.parse(continued.stdout)).toEqual({});
@@ -80,9 +80,9 @@ describe("work recording gate", () => {
 		const root = repository();
 		run(root, event("UserPromptSubmit"));
 		const stateRoot = join(root, ".git", "woo", "recording-hook");
-		expect(existsSync(stateRoot)).toBe(true);
-		expect(run(root, event("SessionEnd")).stdout).toBe("");
-		expect(existsSync(stateRoot) && readdirSync(stateRoot).length > 0).toBe(false);
+		expect(existsSync(stateRoot)                                     ).toBe(true ) ;
+		expect(run(root, event("SessionEnd")).stdout                     ).toBe(""   ) ;
+		expect(existsSync(stateRoot) && readdirSync(stateRoot).length > 0).toBe(false) ;
 	});
 
 	test("registers baseline, stop and cleanup hooks in the project layer", () => {

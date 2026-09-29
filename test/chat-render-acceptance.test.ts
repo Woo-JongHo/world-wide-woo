@@ -41,11 +41,11 @@ describe("Chat renderer completion", () => {
 		const snapshot = fixture({ chat: [{ id: "first", role: "assistant", content, activityId: "first", status: "completed" }] }) ;
 		const rows     = new WorkbenchChatView(snapshot).render(width)                                                              ;
 		const plain    = stripTerminalSequences(rows.join("\n"))                                                                    ;
-		expect(plain).toContain("제목");
-		expect(plain).toContain("항목 강조");
-		expect(plain).toContain("const value");
-		expect(plain).not.toContain("[31m");
-		expect(rows.every((row) => visibleWidth(row) <= width)).toBe(true);
+		expect(plain                                          )    .toContain("제목"       ) ;
+		expect(plain                                          )    .toContain("항목 강조"  ) ;
+		expect(plain                                          )    .toContain("const value") ;
+		expect(plain                                          ).not.toContain("[31m"       ) ;
+		expect(rows.every((row) => visibleWidth(row) <= width))    .toBe     (true         ) ;
 	});
 
 	// @linear WOO-687 WOO-691
@@ -60,12 +60,12 @@ describe("Chat renderer completion", () => {
 			] as unknown as WorkbenchSnapshot["chat"],
 		});
 		const output = stripTerminalSequences(new WorkbenchChatView(snapshot).render(80).join("\n"));
-		expect(output).toContain("알 수 없는 메시지 역할 · alien");
-		expect(output).toContain("역할 오류 본문");
-		expect(output).not.toContain("PRIVATE");
-		expect(output).toContain("알 수 없는 상태 · mystery");
-		expect(output).toContain("상태 오류 본문");
-		expect(output).toContain("다음 메시지 보존");
+		expect(output)    .toContain("알 수 없는 메시지 역할 · alien") ;
+		expect(output)    .toContain("역할 오류 본문"                ) ;
+		expect(output).not.toContain("PRIVATE"                       ) ;
+		expect(output)    .toContain("알 수 없는 상태 · mystery"     ) ;
+		expect(output)    .toContain("상태 오류 본문"                ) ;
+		expect(output)    .toContain("다음 메시지 보존"              ) ;
 	});
 
 	// @linear WOO-691
@@ -82,9 +82,9 @@ describe("Chat renderer completion", () => {
 		}).markdown;
 		markdown.set("broken", { render: () => { throw new Error("malformed markdown"); } });
 		const output = stripTerminalSequences(snapshot.chat.flatMap(message => renderer.render(message, 80)).join("\n"));
-		expect(output).toContain("안전한 원문");
-		expect(output).not.toContain("PRIVATE");
-		expect(output).toContain("뒤 메시지");
+		expect(output)    .toContain("안전한 원문") ;
+		expect(output).not.toContain("PRIVATE"    ) ;
+		expect(output)    .toContain("뒤 메시지"  ) ;
 	});
 
 	// @linear WOO-718
@@ -97,11 +97,11 @@ describe("Chat renderer completion", () => {
 			workFlow   : projectWorkFlow([]),
 		});
 		const output = stripTerminalSequences(new WorkbenchChatView(snapshot).render(80).join("\n"));
-		expect(output).toContain("first-command");
-		expect(output).toContain("second-command");
-		expect(output).toContain("/source tool-a");
-		expect(output).toContain("/source tool-b");
-		expect(output.indexOf("first-command")).toBeLessThan(output.indexOf("second-command"));
+		expect(output                         ).toContain   ("first-command"                 ) ;
+		expect(output                         ).toContain   ("second-command"                ) ;
+		expect(output                         ).toContain   ("/source tool-a"                ) ;
+		expect(output                         ).toContain   ("/source tool-b"                ) ;
+		expect(output.indexOf("first-command")).toBeLessThan(output.indexOf("second-command")) ;
 	});
 	// @linear WOO-691
 	test.each(["failed", "cancelled", "streaming"] as const)("sanitizes body-bearing %s messages without partial metadata", status => {

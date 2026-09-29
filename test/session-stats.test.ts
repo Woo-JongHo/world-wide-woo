@@ -13,9 +13,9 @@ function request(id: string, sequence: number, suffix: string, payload: Record<s
 describe("session review projection", () => {
 	test("A: projects an empty session without unavailable compatibility fields", () => {
 		const stats = projectSessionStats(snapshot([]));
-		expect(stats).toMatchObject({ state: "empty", coverage: "unknown", observedTotalTokens: null, lifecycle: { rootTurns: 0 } });
-		expect(stats).not.toHaveProperty("speed");
-		expect(stats).not.toHaveProperty("turns");
+		expect(stats)    .toMatchObject ({ state: "empty", coverage: "unknown", observedTotalTokens: null, lifecycle: { rootTurns: 0 } }) ;
+		expect(stats).not.toHaveProperty("speed"                                                                                        ) ;
+		expect(stats).not.toHaveProperty("turns"                                                                                        ) ;
 	});
 
 	test("distinguishes unobserved token usage from an observed zero", () => {
@@ -114,10 +114,10 @@ describe("session review projection", () => {
 	test("H: keeps details bounded and shortlists issues before slowest and recent requests", () => {
 		const activities = Array.from({ length: 51 }, (_, index) => [request(`r${index}`, index * 2 + 1, "submitted", { text: `request ${index}` }), request(`r${index}`, index * 2 + 2, index === 0 ? "failed" : "completed")]).flat();
 		const stats = projectSessionStats(snapshot(activities));
-		expect(stats.requests).toMatchObject({ submitted: 51, omittedCount: 0 });
-		expect(stats.requests.shortlist).toHaveLength(8);
-		expect(stats.requests.shortlist[0]).toMatchObject({ requestId: "r0", lifecycle: "failed" });
-		expect(stats.requests.shortlist.flatMap(row => row.sourceActivityIds).some(id => id.includes("omitted"))).toBe(false);
+		expect(stats.requests                                                                                   ).toMatchObject({ submitted: 51, omittedCount: 0 }      ) ;
+		expect(stats.requests.shortlist                                                                         ).toHaveLength (8                                       ) ;
+		expect(stats.requests.shortlist[0]                                                                      ).toMatchObject({ requestId: "r0", lifecycle: "failed" }) ;
+		expect(stats.requests.shortlist.flatMap(row => row.sourceActivityIds).some(id => id.includes("omitted"))).toBe         (false                                   ) ;
 	});
 
 	test("retains every shortlisted issue for drill-down beyond one thousand requests", () => {
@@ -165,9 +165,9 @@ describe("session review projection", () => {
 		const stats = projectSessionStats(snapshot(activities, {
 			sessionUsage: { totalTokens: 1_000, observedTotalTokens: 1_000, unattributedTokens: 0, models: [{ model: "gpt", effort: null, interactiveRootTurns: 2, interactiveTokens: 100, detachedInvocations: 3, detachedTokens: 900, totalTokens: 1_000 }], observationCoverage: { interactive: true, detached: true } },
 		}));
-		expect(stats.requests.submitted).toBe(1);
-		expect(stats.lifecycle.rootTurns).toBe(2);
-		expect(stats.observedTotalTokens).toBe(1_000);
+		expect(stats.requests.submitted ).toBe(1    ) ;
+		expect(stats.lifecycle.rootTurns).toBe(2    ) ;
+		expect(stats.observedTotalTokens).toBe(1_000) ;
 		expect(stats.performance).toMatchObject({
 			averageCompletedRootTurnMs            : 4_500,
 			completedRootTurnDurationObservations : 2,

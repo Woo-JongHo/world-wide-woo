@@ -19,9 +19,9 @@ test("Runtime config snapshots explicit files once, exposes their argument contr
 			properties: { path: { enum: [join(root, "file.txt")] } },
 		});
 		const intent = { requestId: "r", operationId: "read", stage: "GROUND" as const, capability: caps[0]!.id, expectedRevision: 1, arguments: { path: join(root, "file.txt") } };
-		expect((await caps[0]!.execute(intent, new AbortController().signal)).source.text).toBe("fixture");
-		expect(await caps[1]!.authorize(intent)).toBe(false);
-		expect(await caps[0]!.authorize({ ...intent, arguments: { path: join(root, "other.txt") } })).toBe(false);
+		expect((await caps[0]!.execute(intent, new AbortController().signal)).source.text           ).toBe("fixture") ;
+		expect(await caps[1]!.authorize(intent)                                                     ).toBe(false    ) ;
+		expect(await caps[0]!.authorize({ ...intent, arguments: { path: join(root, "other.txt") } })).toBe(false    ) ;
 		for (const bad of [{ schemaVersion: 2 }, { schemaVersion: 1, shell: true }, { schemaVersion: 1, files: [null] }, { schemaVersion: 1, linear: { server: "x" } }]) {
 			await writeFile(path, JSON.stringify(bad));
 			await expect(loadRequestCapabilityConfig(path)).rejects.toThrow();

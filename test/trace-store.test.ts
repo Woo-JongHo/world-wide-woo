@@ -17,11 +17,11 @@ function activity(sequence: number, kind: ProjectActivity["kind"], phase: Projec
 describe("session Tracer.md projection", () => {
 	test("projects the canonical journal in sequence order with exact Source addresses", () => {
 		const output = renderSessionTrace([activity(2, "tool", "completed"), activity(1, "message", "started")]);
-		expect(output.indexOf("activity-1")).toBeLessThan(output.indexOf("activity-2"));
-		expect(output).toContain("- [ ] 1. message · started · activity-1");
-		expect(output).toContain("- [x] 2. tool · completed · activity-2");
-		expect(output).toContain("Source: /trace activity-2");
-		expect(output).toContain("thread=thread-1 · turn=turn-1 · item=item-2");
+		expect(output.indexOf("activity-1")).toBeLessThan(output.indexOf("activity-2")                 ) ;
+		expect(output                      ).toContain   ("- [ ] 1. message · started · activity-1"    ) ;
+		expect(output                      ).toContain   ("- [x] 2. tool · completed · activity-2"     ) ;
+		expect(output                      ).toContain   ("Source: /trace activity-2"                  ) ;
+		expect(output                      ).toContain   ("thread=thread-1 · turn=turn-1 · item=item-2") ;
 	});
 
 	test("atomically replaces the session projection", async () => {

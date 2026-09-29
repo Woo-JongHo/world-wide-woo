@@ -49,9 +49,9 @@ describe("RPA Agent runtime", () => {
 		expect(() => authorizeSkillStep(state, "d".repeat(64), "user")).toThrow("SKILL_AUTH_STALE");
 		state = authorizeSkillStep(state, "c".repeat(64), "user");
 		const result = finishVerified(state);
-		expect(result.state.stage).toBe("completed");
-		expect(result.receipt).toMatchObject({ runId, status: "succeeded", candidateId: "ARTIFACT-CANDIDATE-1" });
-		expect(skillRunMonitor(result.state)).toMatchObject({ protocol: "www-skill-monitor", version: "0.1.0", stage: "completed", completed: 1, total: 1 });
+		expect(result.state.stage           ).toBe         ("completed"                                                                                    ) ;
+		expect(result.receipt               ).toMatchObject({ runId, status: "succeeded", candidateId: "ARTIFACT-CANDIDATE-1" }                            ) ;
+		expect(skillRunMonitor(result.state)).toMatchObject({ protocol: "www-skill-monitor", version: "0.1.0", stage: "completed", completed: 1, total: 1 }) ;
 	});
 
 	test("상태 CAS와 Receipt 저장·조회를 run 경계 안에서 수행한다", async () => {
@@ -66,9 +66,9 @@ describe("RPA Agent runtime", () => {
 		await expect(store.write(running, initial.revision)).rejects.toThrow("SKILL_RUN_CONFLICT");
 		const result = finishVerified(running);
 		const receiptPath = await store.writeReceipt(result.receipt);
-		expect(JSON.parse(readFileSync(receiptPath, "utf8"))).toMatchObject({ runId, receiptDigest: result.receipt.receiptDigest });
-		expect(await store.readReceipt(runId, result.receipt.receiptId)).toEqual(result.receipt);
-		expect(await store.listReceipts(runId)).toEqual([result.receipt]);
+		expect(JSON.parse(readFileSync(receiptPath, "utf8"))           ).toMatchObject({ runId, receiptDigest: result.receipt.receiptDigest }) ;
+		expect(await store.readReceipt(runId, result.receipt.receiptId)).toEqual      (result.receipt                                        ) ;
+		expect(await store.listReceipts(runId)                         ).toEqual      ([result.receipt]                                      ) ;
 	});
 });
 
@@ -79,8 +79,8 @@ describe("File Skill Registry", () => {
 		writeFileSync(join(root, ".agents/skills/rpa-intake/SKILL.md"), "---\nname: rpa-intake\ndescription: 사실을 수집한다.\n---\n\n# Intake\n");
 		execFileSync("git", ["init", "-q", root]); execFileSync("git", ["-C", root, "config", "user.name", "Test"]); execFileSync("git", ["-C", root, "config", "user.email", "test@example.invalid"]); execFileSync("git", ["-C", root, "add", "."]); execFileSync("git", ["-C", root, "commit", "-qm", "base"]);
 		const snapshot = await new FileSkillRegistry(root).load();
-		expect(snapshot.skills).toHaveLength(1);
-		expect(snapshot.skills[0]).toMatchObject({ name: "rpa-intake", path: ".agents/skills/rpa-intake/SKILL.md" });
-		expect(snapshot.sourceRevision).toMatch(/^git:[0-9a-f]{40}$/u);
+		expect(snapshot.skills        ).toHaveLength (1                                                                 ) ;
+		expect(snapshot.skills[0]     ).toMatchObject({ name: "rpa-intake", path: ".agents/skills/rpa-intake/SKILL.md" }) ;
+		expect(snapshot.sourceRevision).toMatch      (/^git:[0-9a-f]{40}$/u                                             ) ;
 	});
 });

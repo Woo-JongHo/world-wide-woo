@@ -21,17 +21,17 @@ test("Workflow 데모는 Figma 관계 트리와 두 열 실행 패널을 정렬�
 	expect(lanes).toHaveLength(4);
 	expect(new Set(lanes.map(row => row.indexOf("█"))).size).toBe(1);
 	const states = ["ACTIVE", "LOADED", "SYNC", "BLOCK"];
-	expect(new Set(lanes.map((row, index) => row.indexOf(states[index] ?? ""))).size).toBe(1);
-	expect(rows.join("\n")).toContain("RE-INDEX");
-	expect(rows.findIndex(row => row.includes("commit-git-artifacts"))).toBeLessThan(32);
+	expect(new Set(lanes.map((row, index) => row.indexOf(states[index] ?? ""))).size).toBe        (1         ) ;
+	expect(rows.join("\n")                                                          ).toContain   ("RE-INDEX") ;
+	expect(rows.findIndex(row => row.includes("commit-git-artifacts"))              ).toBeLessThan(32        ) ;
 	for (const width of [28, 60, 90, 130, 180]) {
 		expect(view.render(width).every(row => visibleWidth(row) <= width)).toBe(true);
 		expect(new WwwWorkflowRail(() => snapshot, () => true).render(width).every(row => visibleWidth(row) <= width)).toBe(true);
 	}
 	const live = stripTerminalSequences(new WwwWorkflowView(() => snapshot).render(130).join("\n"));
-	expect(live).not.toContain("02h 45m 12s");
-	expect(live).not.toContain("parse-user-payload");
-	expect(live).toContain("unavailable");
+	expect(live).not.toContain("02h 45m 12s"       ) ;
+	expect(live).not.toContain("parse-user-payload") ;
+	expect(live)    .toContain("unavailable"       ) ;
 });
 
 test("Workflow의 160열 첫 viewport에 7단계와 역할별 위임 상태가 함께 보인다", () => {
@@ -68,17 +68,17 @@ test("Workflow의 160열 첫 viewport에 7단계와 역할별 위임 상태가 �
 		expect(firstViewport).toContain(comparison);
 	for (const detail of ["gpt-5.6-sol", "high", "변경 검토", "조사 완료"])
 		expect(firstViewport).toContain(detail);
-	expect(firstViewport).toContain("unavailable");
-	expect(rows).toHaveLength(35);
-	expect(rows.every(row => visibleWidth(row) <= 160)).toBe(true);
+	expect(firstViewport                              ).toContain   ("unavailable") ;
+	expect(rows                                       ).toHaveLength(35           ) ;
+	expect(rows.every(row => visibleWidth(row) <= 160)).toBe        (true         ) ;
 
 	const level = chalk.level;
 	chalk.level = 3;
 	try {
 		const colored = new WwwWorkflowView(() => snapshot).render(120);
-		expect(colored.find(row => stripTerminalSequences(row).includes("7-stage pipeline"))).toContain(a.active("7-stage pipeline"));
-		expect(colored.find(row => stripTerminalSequences(row).includes("Role status comparison"))).toContain(a.active("Role status comparison"));
-		expect(colored.find(row => stripTerminalSequences(row).includes("researcher"))).toContain(a.success("researcher"));
+		expect(colored.find(row => stripTerminalSequences(row).includes("7-stage pipeline"))      ).toContain(a.active("7-stage pipeline")      ) ;
+		expect(colored.find(row => stripTerminalSequences(row).includes("Role status comparison"))).toContain(a.active("Role status comparison")) ;
+		expect(colored.find(row => stripTerminalSequences(row).includes("researcher"))            ).toContain(a.success("researcher")           ) ;
 	} finally { chalk.level = level; }
 
 	const projection = snapshot.delegation[0]!;

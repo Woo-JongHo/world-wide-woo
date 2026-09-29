@@ -22,11 +22,11 @@ describe("native thread resume picker", () => {
 		const selected: string[] = []                                                                             ;
 		const picker             = new NativeThreadPicker(threads, id => { selected.push(id); }, () => undefined) ;
 		const output             = stripTerminalSequences(picker.render(100).join("\n"))                          ;
-		expect(output).toContain("재개할 Codex 세션 선택");
-		expect(output).toContain("승인 화면 개선");
-		expect(output).toContain("큐 처리 구현");
-		expect(output).toContain("idle");
-		expect(output).toContain("active");
+		expect(output).toContain("재개할 Codex 세션 선택") ;
+		expect(output).toContain("승인 화면 개선"        ) ;
+		expect(output).toContain("큐 처리 구현"          ) ;
+		expect(output).toContain("idle"                  ) ;
+		expect(output).toContain("active"                ) ;
 
 		picker.handleInput("\x1b[B");
 		picker.handleInput("\r");

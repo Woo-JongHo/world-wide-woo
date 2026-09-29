@@ -37,9 +37,9 @@ describe("Artifact Candidate control", () => {
 
 	test("같은 Candidate를 결정적으로 렌더링한다", () => {
 		const candidate = signed();
-		expect(validateArtifactCandidate(candidate)).toEqual([]);
-		expect(renderArtifactCandidate(candidate)).toBe(renderArtifactCandidate(candidate));
-		expect(renderArtifactCandidate(candidate)).toContain("## 문제\n\n로그인 완료 뒤");
+		expect(validateArtifactCandidate(candidate)).toEqual  ([]                                ) ;
+		expect(renderArtifactCandidate(candidate)  ).toBe     (renderArtifactCandidate(candidate)) ;
+		expect(renderArtifactCandidate(candidate)  ).toContain("## 문제\n\n로그인 완료 뒤"       ) ;
 	});
 
 	test("기존 Linear Issue Candidate의 4절 렌더를 유지한다", () => {
@@ -80,9 +80,9 @@ describe("Artifact Candidate control", () => {
 		});
 		expect(validateArtifactCandidate(candidate)).toEqual([]);
 		const rendered = renderArtifactCandidate(candidate);
-		expect([...rendered.matchAll(/^## (.+)$/gmu)].map(match => match[1])).toEqual(["목적", "결과", "범위", "동작", "완료 조건", "연결"]);
-		expect(rendered).toContain("## 결과\n\n긴 응답 중에도 입력이 이어진다.");
-		expect(rendered).toContain("## 동작\n\n- 긴 draft 변경분만 계산한다\n- 기존 scroll anchor를 유지한다");
+		expect([...rendered.matchAll(/^## (.+)$/gmu)].map(match => match[1])).toEqual  (["목적", "결과", "범위", "동작", "완료 조건", "연결"]                     ) ;
+		expect(rendered                                                     ).toContain("## 결과\n\n긴 응답 중에도 입력이 이어진다."                              ) ;
+		expect(rendered                                                     ).toContain("## 동작\n\n- 긴 draft 변경분만 계산한다\n- 기존 scroll anchor를 유지한다") ;
 	});
 
 	test("Linear Issue의 result와 behavior 중 하나만 지정하면 거부한다", () => {

@@ -90,9 +90,9 @@ const tracerId = () => "22222222-2222-4222-8222-222222222222";
 describe("Obsidian authoring source traceability", () => {
 	test("documents the explicit Vault root required by rebuild and drift", async () => {
 		const help = await runTraceability(["--help"]);
-		expect(help).toContain("--vault-root <path>");
-		expect(help).toContain("Obsidian authoring-source root");
-		expect(help).toContain("--spec-root <path>");
+		expect(help).toContain("--vault-root <path>"           ) ;
+		expect(help).toContain("Obsidian authoring-source root") ;
+		expect(help).toContain("--spec-root <path>"            ) ;
 	});
 
 	test("previews legacy replacement and a missing WOO-674 note before digest-bound apply", async () => {
@@ -122,15 +122,15 @@ describe("Obsidian authoring source traceability", () => {
 		expect(preview.actions.map(action => [action.linearId, action.kind, action.createsIssue])).toEqual([
 			["WOO-674", "create", true], ["WOO-681", "replace", false], ["WOO-682", "replace", false],
 		]);
-		expect(preview.candidate.entities).toContainEqual({ ref: "issue:WOO-674", kind: "issue", id: "WOO-674" });
-		expect(preview.candidate.entities.map(entity => entity.ref)).toContain(`note:${workbenchId}`);
-		expect(preview.candidate.edges).toContainEqual({ from: "issue:WOO-674", relation: "detailed-by", to: `note:${workbenchId}` });
-		expect(preview.candidate.tombstones).toEqual(expect.arrayContaining(["note:WOO-681", "note:WOO-682"]));
-		expect(preview.candidate.migrations).toContainEqual(expect.objectContaining({ from: "note:WOO-681", to: `note:${tracerId()}` }));
+		expect(preview.candidate.entities                          ).toContainEqual({ ref: "issue:WOO-674", kind: "issue", id: "WOO-674" }                       ) ;
+		expect(preview.candidate.entities.map(entity => entity.ref)).toContain     (`note:${workbenchId}`                                                        ) ;
+		expect(preview.candidate.edges                             ).toContainEqual({ from: "issue:WOO-674", relation: "detailed-by", to: `note:${workbenchId}` }) ;
+		expect(preview.candidate.tombstones                        ).toEqual       (expect.arrayContaining(["note:WOO-681", "note:WOO-682"])                     ) ;
+		expect(preview.candidate.migrations                        ).toContainEqual(expect.objectContaining({ from: "note:WOO-681", to: `note:${tracerId()}` })  ) ;
 		const cliPreview = JSON.parse(await runTraceability(["note-migration-preview", "--project-root", value.projectRoot, "--vault-root", value.vaultRoot, "--out", ".www/note-migration-preview.json"]));
-		expect(cliPreview.digest).toBe(preview.digest);
-		expect(JSON.parse(readFileSync(join(value.projectRoot, ".www/note-migration-preview.json"), "utf8")).digest).toBe(preview.digest);
-		expect(() => applyObsidianLedgerMigrationPreview({ ledgerPath, vaultRoot: value.vaultRoot, preview, acceptedDigest: "wrong" })).toThrow("PREVIEW_DIGEST_MISMATCH");
+		expect(cliPreview.digest                                                                                                      ).toBe   (preview.digest           ) ;
+		expect(JSON.parse(readFileSync(join(value.projectRoot, ".www/note-migration-preview.json"), "utf8")).digest                   ).toBe   (preview.digest           ) ;
+		expect(() => applyObsidianLedgerMigrationPreview({ ledgerPath, vaultRoot: value.vaultRoot, preview, acceptedDigest: "wrong" })).toThrow("PREVIEW_DIGEST_MISMATCH") ;
 		const applied = JSON.parse(await runTraceability(["note-migration-apply", "--project-root", value.projectRoot, "--vault-root", value.vaultRoot, "--preview", ".www/note-migration-preview.json", "--digest", preview.digest]));
 		expect(applied).toEqual({ operation: "ledger-migration-apply", ledger: { status: "applied", payloadDigest: preview.candidate.payloadDigest }, vaultRename: { status: "unchanged-separate-operation" }, sqliteRebuild: { status: "pending" }, linearUriUpdate: { status: "pending-separate-draft-readback" } });
 		expect((JSON.parse(readFileSync(ledgerPath, "utf8")) as TraceabilityLedgerV3).entities.some(entity => entity.ref === "note:WOO-681")).toBe(false);
@@ -196,9 +196,9 @@ describe("Obsidian authoring source traceability", () => {
 
 	test("uses schema v2 document IDs for full and scoped Vault export coverage", () => {
 		const value = fixture();
-		expect(validateVaultExportCoverage(value.ledger, [todoId()], new Set([todoId()]))).toEqual([]);
-		expect(validateVaultExportCoverage(value.ledger, [todoId()], new Set(["WOO-682"]))).toEqual([`VAULT_EXPORT_NOTE_COVERAGE_MISMATCH:${todoId()}`]);
-		expect(validateVaultExportCoverage(value.ledger, ["33333333-3333-4333-8333-333333333333"], new Set(["33333333-3333-4333-8333-333333333333"]))).toEqual(["VAULT_EXPORT_LEDGER_NOTE_MISSING:33333333-3333-4333-8333-333333333333"]);
+		expect(validateVaultExportCoverage(value.ledger, [todoId()], new Set([todoId()]))                                                            ).toEqual([]                                                                       ) ;
+		expect(validateVaultExportCoverage(value.ledger, [todoId()], new Set(["WOO-682"]))                                                           ).toEqual([`VAULT_EXPORT_NOTE_COVERAGE_MISMATCH:${todoId()}`]                      ) ;
+		expect(validateVaultExportCoverage(value.ledger, ["33333333-3333-4333-8333-333333333333"], new Set(["33333333-3333-4333-8333-333333333333"]))).toEqual(["VAULT_EXPORT_LEDGER_NOTE_MISSING:33333333-3333-4333-8333-333333333333"]) ;
 	});
 
 	test("keeps every Pilot registry immutable and digest-valid, including body-grounded gaps", () => {
@@ -226,9 +226,9 @@ describe("Obsidian authoring source traceability", () => {
 				{ id: "WOO-681", description: `- Obsidian: [상세](obsidian://open?vault=www&file=${encodeURIComponent(value.tracer.path.replace(/\.md$/, ""))})` },
 			],
 		});
-		expect(result.notes.find(item => item.documentId === todoId())?.status).toBe("renamed-and-content-changed");
-		expect(result.errors).toContain(`LINEAR_OBSIDIAN_URI_STALE:WOO-682:${todoId()}`);
-		expect(result.errors.some(error => error.startsWith("LINEAR_OBSIDIAN_URI_STALE:WOO-681"))).toBe(false);
+		expect(result.notes.find(item => item.documentId === todoId())?.status                   ).toBe     ("renamed-and-content-changed"                  ) ;
+		expect(result.errors                                                                     ).toContain(`LINEAR_OBSIDIAN_URI_STALE:WOO-682:${todoId()}`) ;
+		expect(result.errors.some(error => error.startsWith("LINEAR_OBSIDIAN_URI_STALE:WOO-681"))).toBe     (false                                          ) ;
 	});
 
 	test("blocks duplicate document IDs and missing related wiki targets", () => {
