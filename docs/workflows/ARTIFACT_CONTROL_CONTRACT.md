@@ -9,7 +9,7 @@ Candidate → Validate → Render → Authorize → Apply → Read-back → Woo 
 ## 정본과 경계
 
 - 구조화된 Candidate가 입력 정본이다. Markdown은 `artifact:control render`가 만드는 결정적 투영이다.
-- Candidate 승인은 `candidateDigest` 한 값에만 결박된다. 승인 뒤 내용이나 `expectedBefore`가 달라지면 새 Candidate와 승인이 필요하다.
+- Issue·Update·Obsidian·GitHub 등 별도 승인이 필요한 artifact의 승인은 `candidateDigest` 한 값에만 결박된다. Project Comment는 사용자의 상시 사전 승인 범위이므로 별도 승인 질문 없이 게시할 수 있지만, 본문은 `candidateDigest`로 고정되고 게시 직전의 `expectedBefore`가 달라지면 새 Candidate가 필요하다.
 - `validate`와 `render`는 외부 상태를 바꾸지 않는다. Apply는 표면별 게시 스킬이 소유한다.
 - Apply 뒤 대상의 ID, URL, 본문 bytes와 관계를 재조회한다. 재조회가 불가능하거나 다르면 `uncertain`으로 끝낸다.
 - Receipt status는 `schemas/woo-receipt.schema.json`의 `succeeded | failed | blocked | canceled | uncertain`만 사용한다.
@@ -41,7 +41,7 @@ Candidate → Validate → Render → Authorize → Apply → Read-back → Woo 
 
 공통 필드는 `schemaVersion`, `candidateId`, `kind`, `sourceRevision`, `intent`, `target`, `content`, `links`, `expectedBefore`, `validation`, `candidateDigest`다. Shape는 `schemas/artifact-candidate.schema.json`, 의미 검증과 렌더링은 `src/core/domain/development/artifact-control.ts`가 소유한다.
 
-Project Activity Comment는 `linear-project-comment` Candidate schema `1.1`로 변경·영향·분류·검증·연결을 렌더한다. `expectedBefore.latestCommentId`는 게시 직전 Project Comment 목록의 마지막 ID와 같아야 한다. 기능 릴리스 Update는 `linear-project-update` Candidate로 직전 Update 뒤 Comment ID를 본문 `작업 Comment`에도 남기고 실제 연결을 수집한다. `expectedBefore.latestUpdateId`는 게시 직전 최신 Update ID와 같아야 한다. Comment와 Update 모두 `target.projectId`와 이 직전 identity를 고정해 승인 뒤 대상이 바뀌면 재작성한다. schema `1.0` Comment는 이미 게시된 기록의 검증·렌더 호환에만 사용한다.
+Project Activity Comment는 `linear-project-comment` Candidate schema `1.1`로 변경·영향·분류·검증·연결을 렌더한다. 상시 사전 승인은 Project Comment에만 적용한다. `expectedBefore.latestCommentId`는 게시 직전 Project Comment 목록의 마지막 ID와 같아야 하며, 연결 대상·본문 digest·최신 identity를 재검증한 뒤 한 번 게시하고 read-back한다. 기능 릴리스 Update는 `linear-project-update` Candidate로 직전 Update 뒤 Comment ID를 본문 `작업 Comment`에도 남기고 실제 연결을 수집한다. `expectedBefore.latestUpdateId`는 게시 직전 최신 Update ID와 같아야 한다. Comment와 Update 모두 `target.projectId`와 이 직전 identity를 고정해 게시 직전 대상이 바뀌면 재작성한다. schema `1.0` Comment는 이미 게시된 기록의 검증·렌더 호환에만 사용한다.
 
 RPA 고객 업무 Description은 [RPA Description 계약 v1](RPA_DESCRIPTION_CONTRACT.md)의 고정 프로필을 사용한다. Project는 `kind: linear-project`, Task는 `kind: linear-issue`의 `rpa-task-v1` 프로필이며, 구조화된 map에서 Description 본문을 생성한다. 이 경로는 CLI Candidate 검증·렌더와 게시 스킬에 적용되며 TUI의 자동 외부 실행 기능을 추가하지 않는다.
 

@@ -44,8 +44,10 @@ Feature · Improvement · Refactor · Fix · Validation · Operation
 
 1. 현재 Project Activity와 대상 이슈를 읽어 같은 작업 단위 Comment가 이미 있는지 확인한다.
 2. 실제 변경·검증·연결만 사용해 `linear-project-comment` Candidate를 만들고 `bun run artifact:control -- validate --candidate <candidate.json>`와 `render`를 실행한다. 완료: 현재 상태와 연결이 확인 가능하다.
-3. 게시 직전에 Activity를 다시 읽어 중복 여부를 확인하고, 승인된 Candidate 한 건만 Comment로 게시한다.
+3. 게시 직전에 Activity를 다시 읽어 중복 여부를 확인하고 Candidate의 `expectedBefore`와 대조한다. 사용자의 상시 지시에 따라 Project Comment 게시 권한은 이미 부여됐으므로 항목별 AskUserQuestion을 다시 요구하지 않고, 검증된 Candidate 한 건을 즉시 게시한다.
 4. 게시 뒤 Activity에서 작성자·시각·본문·연결을 read-back한다.
+
+Candidate를 준비한 것만으로 작업을 끝내지 않는다. 인증 오류나 latest identity 충돌처럼 게시할 수 없는 실제 blocker가 생기면 fresh 근거와 함께 `blocked`로 기록하고 보고한다. 이 상시 사전 승인은 Project Comment에만 적용하며 Issue·Update·Obsidian·GitHub·commit 쓰기는 별도 승인 경계를 유지한다.
 
 ## Update 종합
 
