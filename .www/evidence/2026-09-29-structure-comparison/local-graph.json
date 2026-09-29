@@ -1,0 +1,118 @@
+{
+  "scope": "Static import scan using existing resolver; not architecture test execution; includes type imports and regex resolver limitations",
+  "files": 331,
+  "violations": [],
+  "cycles": [],
+  "fanout": [
+    {
+      "path": "adapters/inbound/tui/shell/workbench-shell.ts",
+      "count": 55,
+      "lines": 778
+    },
+    {
+      "path": "core/application/orchestration/project-workbench.ts",
+      "count": 46,
+      "lines": 1635
+    },
+    {
+      "path": "adapters/outbound/workspace/project-workbench-session.ts",
+      "count": 45,
+      "lines": 475
+    },
+    {
+      "path": "adapters/inbound/tui/legacy/legacy-session-shell.ts",
+      "count": 26,
+      "lines": 603
+    },
+    {
+      "path": "adapters/inbound/tui/shell/www-surface.ts",
+      "count": 25,
+      "lines": 783
+    },
+    {
+      "path": "adapters/inbound/tui/features/feature-registry.ts",
+      "count": 19,
+      "lines": 123
+    },
+    {
+      "path": "core/ports/index.ts",
+      "count": 19,
+      "lines": 49
+    },
+    {
+      "path": "app.ts",
+      "count": 17,
+      "lines": 137
+    },
+    {
+      "path": "core/application/session/session-runtime.ts",
+      "count": 17,
+      "lines": 676
+    },
+    {
+      "path": "adapters/outbound/workspace/project-session.ts",
+      "count": 15,
+      "lines": 102
+    },
+    {
+      "path": "adapters/inbound/tui/features/chat/view/www-execution.ts",
+      "count": 15,
+      "lines": 740
+    },
+    {
+      "path": "core/domain/work/workbench.ts",
+      "count": 15,
+      "lines": 404
+    }
+  ],
+  "fanin": [
+    [
+      "core/domain/execution/project-activity.ts",
+      53
+    ],
+    [
+      "core/domain/work/workbench.ts",
+      52
+    ],
+    [
+      "adapters/inbound/tui/foundation/theme/theme.ts",
+      50
+    ],
+    [
+      "adapters/inbound/tui/features/feature.types.ts",
+      37
+    ],
+    [
+      "core/domain/execution/model-settings.ts",
+      32
+    ],
+    [
+      "core/domain/execution/terminal.ts",
+      30
+    ],
+    [
+      "adapters/inbound/tui/foundation/theme/www-theme.ts",
+      26
+    ],
+    [
+      "core/domain/execution/native-session.ts",
+      25
+    ],
+    [
+      "core/domain/execution/request-runtime.ts",
+      24
+    ],
+    [
+      "core/domain/execution/output-language.ts",
+      21
+    ],
+    [
+      "core/ports/observability/usage-monitor-port.ts",
+      18
+    ],
+    [
+      "core/domain/work/index.ts",
+      16
+    ]
+  ]
+}
