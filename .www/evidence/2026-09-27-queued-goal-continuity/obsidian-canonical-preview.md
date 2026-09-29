@@ -1,0 +1,88 @@
+---
+acceptance: partial
+capability: Native Plan projection
+code_ids:
+  - Code-002
+  - Code-011
+decision_ids: []
+document_id: 911c3fc2-5576-4651-9067-811a6238608e
+domain: Todo
+exception_ids: []
+linear: WOO-700
+parent: null
+record_type: detailed-canonical
+related: []
+schema_version: 2
+source_revision: worktree:495f61c0f3d5e3c9c6d58340d315c06b4ad70cc0:dirty
+spec_ids: []
+status: active
+tags:
+  - www/spec
+  - domain/todo
+  - capability/native-plan
+  - status/partial
+test_ids: []
+updated_at: 2026-09-27T00:00:00+09:00
+---
+
+# Native Plan projection — AI가 세운 계획을 세션별로 실시간 확인한다
+
+## 1. Intent
+
+사용자는 요청을 이해해 정리된 GOAL과 그 목표를 수행하는 STAGE·PLAN·PROGRESS를 구분해 읽어야 한다. 실행 중 ESC로 보낸 후속 요청이 같은 목표의 보충인데도 UNDERSTAND를 반복하거나 기존 Goal을 잃으면 안 된다.
+
+## 2. Scope
+
+In scope는 상단 GOAL과 identity, STAGE·PLAN·PROGRESS 계층, UNDERSTAND 결과의 Session Goal 투영, queued follow-up의 Goal 연속성 판정이다. 수동 Plan 편집, Runtime 7단계 의미 변경, 키워드 기반 의미 분류와 외부 게시는 제외한다.
+
+## 3. Desired Behavior
+
+Given 일반 새 요청이면 GOAL은 이해 중으로 보이고 UNDERSTAND 결과가 Goal이 된다. Given ESC로 대기한 후속 요청이면 Native stage 작업 전에 현재 Goal과 의미를 비교한다. 같은 Goal의 보충이면 UNDERSTAND를 구체적 이유와 함께 pass하고 기존 Goal을 보존한다. Goal이 없거나 목표·제약·성공 조건이 바뀌면 UNDERSTAND를 수행해 새 Goal을 설정한다.
+
+## 4. Domain Contract
+
+INV-001: GOAL은 요청 원문이 아니라 UNDERSTAND의 공개 결과다. INV-002: STAGE는 Runtime 상태, PLAN은 task와 의존성, PROGRESS는 해석된 활동을 소유한다. INV-003: GOAL은 헤더에 한 번 표시한다. INV-004: skipped와 failed를 구분한다. INV-005: queued 전달 방식 자체는 UNDERSTAND 재실행 근거가 아니며 의미 연속성 판정이 재실행 여부를 소유한다. INV-006: continuity pass는 goal을 currentGoal과 정확히 같게 기록해 objective를 보존한다.
+
+## 5. State Model
+
+일반 요청은 understanding에서 interpreted로 전이한다. queued follow-up은 continuity-decision 뒤 same-goal이면 UNDERSTAND skipped와 preserved objective로, changed-goal 또는 missing-goal이면 UNDERSTAND running 뒤 revised objective로 전이한다. Stage와 task 상태는 pending·running·completed·skipped·failed·blocked를 유지한다.
+
+## 6. Data & Runtime Flow
+
+ESC composer → chat.send(queue) → Native queue → 이전 turn 종료 → queued turn 시작 → requestProtocolContext(entry.kind=queued-follow-up, currentGoal) → continuity 판정 → UNDERSTAND pass와 preserved goal 또는 UNDERSTAND complete와 revised goal → Request objective → STAGE·PLAN·PROGRESS projection으로 흐른다.
+
+## 7. Identity & Persistence Contract
+
+Request ID·turn ID·stage task ID·dependsOn ID와 Session Goal source를 유지한다. queued follow-up은 새 Request ID를 가지되 entry.currentGoal로 직전 Session Goal을 참조한다. same-goal pass report의 goal은 entry.currentGoal과 동일해야 하며, 일반 outbound 원문은 Goal로 승격하지 않는다.
+
+## 8. Integration Contract
+
+Workbench input routing은 ESC를 queue delivery로만 결정한다. ProjectWorkbench는 queue drain 시 현재 Session Goal을 Runtime context에 결속한다. request-protocol은 의미 판정 계약을 Native에 전달하고 Request Runtime은 공개 report를 objective로 투영한다. 의미 판정은 TUI 키 처리나 문자열 키워드 휴리스틱이 소유하지 않는다.
+
+## 9. Failure & Recovery Contract
+
+currentGoal이 null이면 continuity pass를 허용하지 않고 UNDERSTAND를 수행한다. same-goal pass에서 goal이 누락되면 summary가 objective를 덮을 수 있으므로 프로토콜은 goal=currentGoal을 요구하고 회귀 테스트로 잠근다. queue 전달 실패·불확정 처리는 기존 FIFO와 reconciliation 계약을 유지한다.
+
+## 10. Acceptance Contract
+
+AC-PLAN-001: 사이드는 STAGE·PLAN·PROGRESS 순서다. AC-PLAN-002: task·의존성·상태가 보인다. AC-PLAN-003: 일반 입력은 원문을 Goal로 복사하지 않는다. AC-PLAN-004: Progress를 내부 절단하지 않는다. AC-PLAN-005: ESC queued follow-up은 currentGoal과 판정 규칙을 받는다. AC-PLAN-006: same-goal pass는 기존 objective를 보존하고 changed/missing goal은 UNDERSTAND를 수행한다. 자동 회귀는 PASS이며 실제 TUI 수락은 남아 acceptance는 partial이다.
+
+## 11. Verification Strategy
+
+project-workbench-recording.test.ts는 queued Runtime context의 entry와 currentGoal을 검증한다. request-runtime.test.ts는 skipped UNDERSTAND가 명시된 Goal objective를 보존하는지 검증한다. www-shell.test.ts는 ESC가 explicit Queue delivery로 전달되는 사용자 경계를 검증한다. TypeScript·가독성 게이트와 독립 리뷰로 배선·계약 누락을 확인한다.
+
+## 12. Implementation Map
+
+workbench-input-routing.ts와 workbench-shell.ts가 ESC queue 경계를, project-workbench.ts가 queue drain과 currentGoal 주입을, request-protocol.ts가 continuity 판정 계약을, request-runtime.ts가 stage report와 objective 투영을 소유한다. 헤더와 Plan·Progress 표시는 기존 view 소유권을 유지한다.
+
+## 13. Current State & Gaps
+
+queued follow-up continuity 계약과 회귀 테스트가 구현됐다. 분리 실행 58 pass, TypeScript와 가독성 게이트가 통과했고 독립 리뷰는 CLEAR·APPROVE다. 실제 모델이 다양한 자연어 후속 요청을 올바르게 분류하는 사용자 수락과 Vault·Linear 게시 read-back은 남아 있다.
+
+## 14. Decisions & Evidence
+
+DEC-PLAN-GOAL-001 approved: 일반 입력을 즉시 GOAL로 쓰지 않고 UNDERSTAND 결과로 설정한다. DEC-QUEUED-CONTINUITY-001 approved: ESC queued follow-up은 새 최상위 단계를 만들지 않고 고정 7단계 진입 전에 currentGoal과 의미 연속성을 판정한다. 같은 Goal이면 UNDERSTAND pass와 goal=currentGoal로 objective를 보존하고, changed/missing Goal이면 UNDERSTAND를 수행한다. 키워드 휴리스틱은 자연어 의미를 안정적으로 분류하지 못해 기각했고, 무조건 replan은 queued 전달 방식과 목표 변경을 혼동해 기각했다. 결정 권한은 2026-09-27 사용자 요청이며 Evidence는 .www/evidence/2026-09-27-queued-goal-continuity와 독립 리뷰 보고서다.
+
+## Change Log
+
+2026-09-26 queued Plan 유지·교체 계약을 반영했다. 2026-09-27 GOAL을 UNDERSTAND 결과로 정의하고 STAGE·PLAN·PROGRESS 계층을 반영했다. 2026-09-27 ESC queued follow-up의 Goal 연속성 판정과 same-goal objective 보존 계약을 추가했다.

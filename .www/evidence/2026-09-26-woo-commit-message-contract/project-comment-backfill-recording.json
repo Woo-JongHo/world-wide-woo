@@ -1,0 +1,10 @@
+{
+  "status": "recorded",
+  "sourceCandidateId": "ARTIFACT-CANDIDATE-WOO-COMMIT-MESSAGE-CONTRACT-EXECUTION",
+  "projectCommentId": "193de35a-57d7-4090-b5f2-345da2b31bd6",
+  "receipt": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/025.json",
+  "scope": "historical-project-comment",
+  "newIssueCreated": false,
+  "obsidianWritten": false,
+  "reason": "Historical local record published and exact readback recovered without retrying create."
+}

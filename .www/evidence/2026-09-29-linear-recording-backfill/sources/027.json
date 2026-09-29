@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-CHANGE-DIFF-AUTO-GOAL",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:216b9d9faa09bcb19151f0f188792e8ce7113bf6:dirty",
+  "intent": "CHANGE semantic diff, Operation Report 모델·토큰 표, 첫 요청 자동 Goal 구현과 검증을 기록한다",
+  "target": { "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db" },
+  "content": {
+    "changes": [
+      "CHANGE 출력에 semantic unified-diff 분류와 추가·삭제 배경 tint, hunk·meta·omitted 전용 색, header 증감 색을 적용했다.",
+      "Operation Report의 모델과 input·output·total token을 하나의 표로 합쳤다.",
+      "첫 일반 요청을 Session Goal과 seven-stage Runtime 입력으로 자동 승격하고 /goal만 Native Plan 강제 역할을 유지했다."
+    ],
+    "impacts": [
+      "사용자는 긴 코드 diff에서 추가·삭제 영역을 주변 시야로 구분하고, 모델별 토큰을 한 행에서 비교한다.",
+      "별도 /goal 없이 첫 작업부터 Goal·Runtime이 시작되며 기존 diff 생성·omission·폭 계산·NO_COLOR 구조는 유지된다."
+    ],
+    "categories": ["improvement", "verification"],
+    "verification": [
+      "관련 102 pass, 0 fail, 610 expect와 TypeScript·architecture 검사가 통과했다.",
+      "FORCE_COLOR=3에서 추가 rgb(29,56,40), 삭제 rgb(69,36,42) background와 neutral gutter를 확인했다.",
+      "NO_COLOR=1에서 ANSI 0개, 한글·marker·hunk 구조와 폭 정렬 유지를 확인했다.",
+      "전체 1595개 중 1590 pass; 범위 밖 기존 TUI demo 2건, async timeout 1건과 병렬 flake 1건이 남았고 Operation Report 번호 실패는 수정 후 단독 통과했다."
+    ],
+    "connections": [
+      "Linear: WOO-843 · UUID 62bbb891-5308-4113-8962-a47975c140e2",
+      "Linear: WOO-674 · UUID 4674a1dc-ba01-4007-9803-3346a1f83dcc",
+      "Obsidian: Chat/Operation Report — 완료 결과와 근거를 구조화해 보여준다.md",
+      "Evidence: .www/evidence/2026-09-27-change-diff-auto-goal"
+    ]
+  },
+  "links": {
+    "issue": "https://linear.app/woo-world/issue/WOO-843/완료-요약을-실제-결과와-최종-검증-상태로-압축한다",
+    "evidence": ".www/evidence/2026-09-27-change-diff-auto-goal"
+  },
+  "expectedBefore": { "latestCommentId": "e781ff90-faed-4c2b-b3bb-b17ecabb36fb" },
+  "validation": [
+    { "id": "issue-binding", "status": "pass", "evidence": "WOO-843은 Operation Report 표시, WOO-674는 Workbench 입력·Goal 통제를 소유해 새 이슈가 중복이다." },
+    { "id": "verification", "status": "pass", "evidence": "집중 회귀, 타입, architecture, 색상과 NO_COLOR 실출력을 확인했다." },
+    { "id": "publication-boundary", "status": "pass", "evidence": "Candidate만 준비하며 사용자 승인 전 Linear에 쓰지 않는다." }
+  ],
+  "candidateDigest": "b0500f2ce917520bf0d21fbf5ac5781c636c15d0fe9d641172bcc20c3c461dfc"
+}

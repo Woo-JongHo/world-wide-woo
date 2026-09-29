@@ -1,0 +1,6 @@
+{
+  "linearIssue": "기존 WOO-680을 primary, WOO-915를 related로 결속하며 새 이슈 Candidate는 만들지 않는다.",
+  "projectActivity": "Figma Chat composer 정렬과 HUD Render 제거 결과의 Project Comment Candidate를 준비한다.",
+  "obsidian": "WOO-915의 기존 HUD Render p95 표시 계약을 Monitor-only 계약으로 개정하는 Candidate를 준비한다. WOO-680은 기존 상세 정본 identity를 찾지 못했고 이번 변경은 되돌릴 수 있는 presentation 보정이므로 새 정본을 발급하지 않는다.",
+  "publication": "사용자 항목별 승인 전 외부 쓰기와 read-back 없음"
+}

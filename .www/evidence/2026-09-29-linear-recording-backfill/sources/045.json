@@ -1,0 +1,67 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-CHAT-RAIL-STAGE-TEST-EXPLANATION-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "worktree:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty",
+  "intent": "Chat 사이드바 너비·색상·PLAN·7단계·TEST 설명 보정 기록",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "Chat 사이드바 폭을 넓히고 RES 강조색을 분홍색에서 steel 색으로 바꿨다.",
+      "PLAN의 두 줄 제한과 FOCUS 접두어를 제거하고 완료·차단 헤더에 일곱 단계 이름을 모두 표시한다.",
+      "검증 명령 완료 시 관측된 명령·테스트 이름·종료 코드를 근거로 LLM 설명을 한 번 생성해 TEST 화면과 사이드바에 표시한다."
+    ],
+    "impacts": [
+      "계획과 단계가 잘리지 않고, TEST가 검증 목적과 관측 결과를 구분해 전달한다."
+    ],
+    "categories": [
+      "improvement",
+      "fix",
+      "verification"
+    ],
+    "verification": [
+      "bun test 관련 UI·TEST·narration 8개 파일: 144 pass, 0 fail.",
+      "bun test 추가 heading/cache 2개 파일: 19 pass, 0 fail.",
+      "bun test test/architecture.test.ts: 17 pass, 0 fail.",
+      "bun run check 및 git diff --check: 통과."
+    ],
+    "connections": [
+      "Primary Linear: WOO-700 (이전 로컬 read-back 기준), Related: WOO-680",
+      "Evidence: .www/evidence/2026-09-28-chat-rail-stage-test-explanation",
+      "Obsidian Candidate: obsidian-canonical-candidate.json"
+    ]
+  },
+  "links": {
+    "linear": "WOO-700",
+    "relatedLinear": "WOO-680",
+    "evidence": ".www/evidence/2026-09-28-chat-rail-stage-test-explanation"
+  },
+  "expectedBefore": {
+    "latestCommentId": null
+  },
+  "validation": [
+    {
+      "id": "local-binding",
+      "status": "pass",
+      "evidence": "기존 WOO-700의 Chat PLAN·TEST 계약을 이어받았다."
+    },
+    {
+      "id": "live-duplicate-check",
+      "status": "not-run",
+      "evidence": "WOO-700 조회는 현재 연결된 Linear 도구에서 issue not found, 목록은 별도 MINI_APP_PROJECT(MIN-*)를 반환했다. WWW Project Activity 중복은 확인할 수 없다."
+    },
+    {
+      "id": "verification",
+      "status": "pass",
+      "evidence": "관련 180개 테스트와 타입 검사, diff 형식 검사가 통과했다."
+    },
+    {
+      "id": "publication-boundary",
+      "status": "pass",
+      "evidence": "후보만 준비한다. 게시 전 현재 상태 대조와 항목별 사용자 승인이 필요하다."
+    }
+  ],
+  "candidateDigest": "4dd900c2654b3549f31a330f0bf933602ce4b3b251267246ef20718f7607ede5"
+}

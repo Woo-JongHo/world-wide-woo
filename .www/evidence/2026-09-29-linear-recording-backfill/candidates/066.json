@@ -1,0 +1,70 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-RECORDING-BACKFILL-066",
+  "kind": "linear-project-comment",
+  "sourceRevision": "evidence-sha256:bce31173776046784807716dcc05d4c669c00fc184e2ede6b4903049d6a55a74",
+  "intent": "과거 작업 기록 회수: Chat 도구 요약 줄의 원시 명령과 영어 내용을 숨기고 한국어로 표시한 수정 기록",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "과거 작업 기록 회수: Chat 도구 요약 줄의 원시 명령과 영어 내용을 숨기고 한국어로 표시한 수정 기록 (원문 Candidate: ARTIFACT-CANDIDATE-TOOL-SUMMARY-KOREAN-COMMENT)",
+      "당시 로컬 작업 기록: Chat 도구 요약 줄에서 원시 명령을 제거하고 한국어 설명 하나만 표시했다.",
+      "당시 로컬 작업 기록: 파일 목록 조회는 검색으로 오인하지 않고 '파일 목록 확인'으로 표시하며 성공 문구에 초록색 계열을 적용했다."
+    ],
+    "impacts": [
+      "당시 기록된 영향: 도구 작업의 의미를 한국어 한 줄로 읽을 수 있다.",
+      "미게시 로컬 기록을 Project Activity에서 추적할 수 있게 회수한다. 과거 진행·완료·차단 상태를 현재 구현 완료 또는 이슈 상태 변경으로 승격하지 않는다."
+    ],
+    "categories": [
+      "improvement",
+      "verification"
+    ],
+    "verification": [
+      "2026-09-29 회수 검증: 원문 파일 SHA-256 bce31173776046784807716dcc05d4c669c00fc184e2ede6b4903049d6a55a74; 연결 이슈의 현재 WWW 소속과 Project Activity 중복·latest identity를 확인했다.",
+      "아래는 원문 Candidate에 남은 당시 검증 기록이다. 이번 회수에서 테스트·원격 실행·현재 제품 동작을 재검증한 결과가 아니다.",
+      "당시 검증 기록: bun test test/www-ui.test.ts: 91 pass, 0 fail.",
+      "당시 검증 기록: bun test test/www-ui.test.ts --test-name-pattern 'shows a file listing': 1 pass, 0 fail; 녹색 ANSI 렌더 검증.",
+      "당시 검증 기록: bun run check: 통과.",
+      "당시 검증 기록: git diff --check -- src/adapters/inbound/tui/features/chat/view/www-execution.ts test/www-ui.test.ts: 통과."
+    ],
+    "connections": [
+      "이번 기록에서 참조하는 기존 이슈: [WOO-700](https://linear.app/woo-world/issue/WOO-700/01-내-입력에-대한-계획이-세워지는-과정을-세션-todo로-보여준다)",
+      "원문 Candidate: .www/evidence/2026-09-28-tool-summary-korean/project-comment-candidate.json",
+      "원문 Source Revision: git:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty",
+      "원문 Candidate Digest: bdd9069c382f3e1fa0e05918200a0948ebda9d15d812eb535bb9d97fec9c56cb",
+      "원문 연결: Primary Linear: WOO-700 (로컬 read-back 기준)",
+      "원문 연결: Evidence: .www/evidence/2026-09-28-tool-summary-korean",
+      "원문 연결: Code: src/adapters/inbound/tui/features/chat/view/www-execution.ts · test/www-ui.test.ts",
+      "회수 Evidence: .www/evidence/2026-09-29-linear-recording-backfill"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-700/01-내-입력에-대한-계획이-세워지는-과정을-세션-todo로-보여준다",
+    "evidence": ".www/evidence/2026-09-28-tool-summary-korean",
+    "sourceCandidate": ".www/evidence/2026-09-28-tool-summary-korean/project-comment-candidate.json",
+    "receipt": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/066.json"
+  },
+  "expectedBefore": {
+    "latestCommentId": "1005ac48-c1fb-4afd-b992-f1a179e591b1"
+  },
+  "validation": [
+    {
+      "id": "source-evidence",
+      "status": "pass",
+      "evidence": "Read original Candidate ARTIFACT-CANDIDATE-TOOL-SUMMARY-KOREAN-COMMENT; SHA-256 bce31173776046784807716dcc05d4c669c00fc184e2ede6b4903049d6a55a74; historical assertions are attributed to the source."
+    },
+    {
+      "id": "live-issue-binding",
+      "status": "pass",
+      "evidence": "Existing WWW issues verified: WOO-700; no issue creation or state mutation."
+    },
+    {
+      "id": "live-activity-before",
+      "status": "pass",
+      "evidence": "Project Activity source/evidence duplicate check and latest ID 1005ac48-c1fb-4afd-b992-f1a179e591b1 performed immediately before preparation."
+    }
+  ],
+  "candidateDigest": "d6065a18afd7a1fa32226cd693e5b9296d923781441bb2e530b5b3b2914914b9"
+}

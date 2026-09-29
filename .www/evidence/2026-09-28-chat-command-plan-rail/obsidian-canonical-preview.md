@@ -1,0 +1,88 @@
+---
+acceptance: partial
+capability: Native Plan projection
+code_ids:
+  - Code-002
+  - Code-011
+decision_ids: []
+document_id: 911c3fc2-5576-4651-9067-811a6238608e
+domain: Todo
+exception_ids: []
+linear: WOO-700
+parent: null
+record_type: detailed-canonical
+related: []
+schema_version: 2
+source_revision: worktree:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty
+spec_ids: []
+status: draft
+tags:
+  - www/spec
+  - domain/todo
+  - capability/native-plan
+  - status/partial
+test_ids: []
+updated_at: 2026-09-28T07:55:41.902Z
+---
+
+# Native Plan projection — AI가 세운 계획을 세션별로 실시간 확인한다
+
+## 1. Intent
+
+사용자는 질문에서 정리된 목표와 필요한 계획, 실제 진행 내용을 구분해 읽는다. 일반 요청의 7단계 강제 표시는 이 목적을 가리지 않아야 한다.
+
+## 2. Scope
+
+일반 observe 요청의 Chat·F3 표시와 WORK 검증 선택 경계를 개정한다. Broker의 승인형 단계 게이트, Native의 도구·테스트 판단, 전체 request-report-v3 템플릿은 유지한다.
+
+## 3. Desired Behavior
+
+접힌 명령 묶음에는 각 명령과 실행 목적을 한 번만 표시한다. zsh -lc·-lcr 래퍼와 완료 중복 문구는 요약에서 제거하며 원본 명령·출력은 확장 카드에 남긴다. PROGRESS 설명은 말줄임 없이 줄바꿈한다. Chat 사이드바는 넓은 화면에서 약 30% 폭을 사용한다. PLAN은 활성 turn의 Native 계획을 우선 표시하고 개별 도구 완료만으로 계획 항목을 완료 처리하지 않는다.
+
+## 4. Domain Contract
+
+INV-001: 접힌 도구 묶음은 명령당 하나의 의미 요약만 노출한다. INV-002: 원본 명령·출력의 접근 경로를 보존한다. INV-003: PROGRESS 설명은 패널 폭에 맞춰 여러 줄로 표시하고 끝을 자르지 않는다. INV-004: PLAN은 현재 활성 turn의 Native 상태를 권위로 사용하고 이전 turn의 Runtime 기록으로 대체하지 않는다. INV-005: PROGRESS의 도구 완료는 PLAN 항목 완료 증거가 아니다.
+
+## 5. State Model
+
+일반 observe의 내부 INTENT·WORK·RESULT는 기존 일곱 단계 기록으로 투영되지만 Chat·F3에는 단계 HUD와 시간 블록을 표시하지 않는다. Broker 요청에는 기존 단계 표시를 유지한다. PLAN은 없는 상태를 허용하며 PROGRESS는 planActivities가 오기 전까지 미보고로 표시한다.
+
+## 6. Data & Runtime Flow
+
+Native update_plan 이벤트가 WorkFlowProjection의 계획 항목과 상태를 갱신한다. 다단계 요청의 모델 지시는 계획 생성과 항목 완료 시 갱신을 요구한다. Chat rail은 활성 turn을 우선 선택하고 PLAN과 PROGRESS를 별도 출처에서 투영한다. 도구 묶음은 명령 내용을 해석한 짧은 의미를 표시하며 확장하면 원본 Terminal 카드를 읽는다.
+
+## 7. Identity & Persistence Contract
+
+Request ID·turn ID·Native Plan 항목 ID·기존 request-report-v3 identity를 바꾸지 않는다. Chat 질문 배경과 사이드바는 저장하지 않는 presentation이다. 이전 turn의 계획은 현재 진행으로 재귀속하지 않는다.
+
+## 8. Integration Contract
+
+Native가 계획과 검증 방법을 선택한다. WWW는 목표 정리와 읽기 투영을 담당한다. Observe WORK는 실행 evidence만으로도 수락하며 검증 evidence가 실제로 있을 때만 VERIFY를 완료한다. Broker의 별도 실행·검증 receipt 요구는 유지한다.
+
+## 9. Failure & Recovery Contract
+
+계획이 없으면 계획 미보고, 세부 활동이 없으면 세부 작업 보고 없음으로 표시한다. 검증을 실행하지 않았으면 완료로 꾸미지 않는다. 좁은 터미널에서는 폭을 넘기지 않고 질문 배경을 적용한다. 보고 실패는 기존 Runtime issue로 남긴다.
+
+## 10. Acceptance Contract
+
+AC-001: 접힌 명령 묶음은 명령별 의미만 한 번 표시하며 원본은 확장 경로에 남는다. AC-002: PROGRESS 긴 문장의 마지막까지 읽을 수 있다. AC-003: PLAN은 활성 turn의 Native 항목을 표시하고 갱신된 항목 상태를 따른다. AC-004: 이전 요청 계획과 도구 완료를 현재 PLAN 완료로 오인하지 않는다. 실제 TUI 사용자 수락은 미실행이다.
+
+## 11. Verification Strategy
+
+Chat 화면·Native Plan·Request Runtime·아키텍처 행동 테스트로 중복 제거, 줄바꿈, 활성 turn 선택, 항목 상태 권위를 확인한다. 실제 TUI 세션에서 접기·확장, 넓은 폭·좁은 폭, 연속 update_plan 상태 전환을 별도로 확인한다.
+
+## 12. Implementation Map
+
+request-protocol.ts와 request-runtime.ts가 observe 보고 계약을, www-plan-view.ts·www-monitor-view.ts·www-surface.ts가 표시 경계를, www-execution.ts가 질문 배경과 Chat 타임라인을 소유한다. 전체 REPORT는 workbench-artifacts.ts의 v3 템플릿이 소유한다.
+
+## 13. Current State & Gaps
+
+로컬 구현과 집중 테스트는 통과했다. 실제 TUI 사용자의 연속 계획 갱신, 전체 회귀, 최신 Linear Activity와 Vault bytes는 미확인이다. 명령 의미는 알려진 패턴은 구체적으로, 나머지는 일반 설명으로 표시한다.
+
+## 14. Decisions & Evidence
+
+2026-09-28 사용자 결정: 명령 요약은 중복 카드와 완료 접미사 없이 실행 의미를 말한다. PROGRESS는 여러 줄을 허용하고 Chat 사이드바 폭을 늘린다. PLAN은 PROGRESS와 연결하되 Native Plan 상태를 권위로 유지한다. 개별 도구 완료를 계획 완료로 추정하면 거짓 진행이 되므로 Native update_plan을 갱신하도록 모델 지시를 보강했다. 집중 테스트 161개 통과; 실제 TUI read-back은 남았다.
+
+## Change Log
+
+2026-09-28 Chat 명령 의미 요약, PROGRESS 줄바꿈, 활성 turn PLAN 선택과 Native Plan 갱신 지시를 개정했다.

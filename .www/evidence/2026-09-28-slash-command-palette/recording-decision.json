@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0",
+  "change": [
+    "src/adapters/inbound/tui/shell/workbench-input-routing.ts",
+    "test/www-shell.test.ts"
+  ],
+  "issueBinding": {
+    "primary": "WOO-674",
+    "source": ".www/evidence/v020-traceability/linear-consistency-final-readback.json",
+    "status": "local-readback-only",
+    "reason": "Workbench 입력·상태 통제를 소유하는 기존 이슈에 속하는 작은 동작 수정이다. WOO-694는 로컬 read-back에서 Canceled·archived 상태이므로 현재 소유자로 단정하지 않는다."
+  },
+  "linearIssueCandidateRequired": false,
+  "projectCommentCandidate": ".www/evidence/2026-09-28-slash-command-palette/project-comment-candidate.json",
+  "obsidianCandidateRequired": false,
+  "obsidianReason": "기존 명령 찾기 표면을 빈 입력란의 / 키에 연결한 되돌릴 수 있는 UI 동작 수정이며 WHY, 데이터 구조, 권위 경계, 저장 계약은 바꾸지 않았다.",
+  "publication": {
+    "state": "blocked-live-readback",
+    "reason": "정본 linear-woo MCP가 세션에 없어서 현재 WOO-674 상태와 Project Activity 중복을 조회하지 못했다. artifact:control validate와 render가 live-duplicate-check not-run을 게시 불가로 거부했다.",
+    "externalWrite": false
+  }
+}

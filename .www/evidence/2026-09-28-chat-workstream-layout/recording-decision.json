@@ -1,0 +1,13 @@
+{
+  "scope": "Chat 공개 workstream과 PLAN·PROGRESS·TEST",
+  "issue": {
+    "primary": "WOO-700",
+    "related": [
+      "WOO-674"
+    ],
+    "decision": "기존 로컬 결속을 유지한다. 최신 원격 상태는 미확인이다."
+  },
+  "projectComment": "project-comment-candidate.json",
+  "obsidian": "obsidian-canonical-candidate.json",
+  "publication": "Linear·Vault read-back과 항목별 사용자 승인 전에는 외부 게시하지 않는다."
+}

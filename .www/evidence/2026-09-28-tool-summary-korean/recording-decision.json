@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0",
+  "change": [
+    "src/adapters/inbound/tui/features/chat/view/www-execution.ts",
+    "test/www-ui.test.ts"
+  ],
+  "issueBinding": {
+    "primary": "WOO-700",
+    "source": ".www/evidence/2026-09-28-native-tool-group-summary/recording-decision.json",
+    "status": "local-readback-only",
+    "reason": "기존 Chat 도구 요약의 표시 문구와 색상 변경이다. 정본 linear-woo MCP가 세션에 없어 현재 이슈 상태는 확인하지 못했다."
+  },
+  "linearIssueCandidateRequired": false,
+  "projectCommentCandidate": ".www/evidence/2026-09-28-tool-summary-korean/project-comment-candidate.json",
+  "obsidianCandidateRequired": false,
+  "obsidianReason": "도구 요약 줄의 표현만 조정했으며 WHY, 데이터 구조, 권위 경계, 저장 계약은 바뀌지 않았다.",
+  "publication": {
+    "state": "blocked-live-readback",
+    "reason": "정본 linear-woo MCP가 세션에 없어 현재 WOO-700 상태와 Project Activity 중복을 조회하지 못했다. 후보만 준비하고 외부 쓰기는 하지 않는다.",
+    "externalWrite": false
+  }
+}

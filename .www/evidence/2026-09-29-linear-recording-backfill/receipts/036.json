@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.1",
+  "status": "published",
+  "surface": "linear-project-comment",
+  "candidateId": "ARTIFACT-CANDIDATE-RECORDING-BACKFILL-036",
+  "sourceCandidateId": "ARTIFACT-CANDIDATE-TERMINAL-STAGE-PROGRESS-COMMENT",
+  "sourceCandidatePath": ".www/evidence/2026-09-27-terminal-stage-progress/project-comment-candidate.json",
+  "sourceCandidateDigest": "bcc90053cf05942bd66bda0150045aca6dd018f63daf49efad6a1e517c2fa451",
+  "sourceFileSha256": "11f4594e388655e7ca2ed8c52dea3a07fc32330ed42a07e0b6c70ea3abb00b31",
+  "candidateDigest": "dc681b1284bba5e4679fab200e7a8de2eb05fd4c45fb27d9cea27ad2d81d53de",
+  "candidatePath": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/036.json",
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "expectedBefore": {
+    "latestCommentId": "058d20b9-1e03-4260-ae17-bf0cd5ac2cea"
+  },
+  "comment": {
+    "id": "5f355baa-2089-4879-accb-3792379c9dc7",
+    "body": "## 변경\n\n- 과거 작업 기록 회수: WOO-688의 중단 상태와 WOO-700의 STAGE 진행률 표시 수정을 기록한다 (원문 Candidate: ARTIFACT-CANDIDATE-TERMINAL-STAGE-PROGRESS-COMMENT)\n- 당시 로컬 작업 기록: STAGE 진행률을 completed·skipped 성공 수가 아니라 pending·running을 제외한 terminal 단계 수로 계산하도록 변경했다.\n- 당시 로컬 작업 기록: failed·blocked 단계는 일반 단계 목표 대신 Runtime에 기록된 실제 종료 output을 우선 표시하도록 변경했다.\n- 당시 로컬 작업 기록: Native 중단 회귀에 7/7 terminal 진행률과 사용자 가시 중단 사유 검증을 추가했다.\n\n## 영향\n\n- 당시 기록된 영향: VERIFY까지 끝나고 DELIVER에서 중단된 요청이 6/7 running처럼 오해되지 않고 7/7 BLOCKED로 보인다.\n- 당시 기록된 영향: 중단을 완료로 위장하지 않으면서 사용자가 실제 종료 사유를 화면에서 바로 확인할 수 있다.\n- 미게시 로컬 기록을 Project Activity에서 추적할 수 있게 회수한다. 과거 진행·완료·차단 상태를 현재 구현 완료 또는 이슈 상태 변경으로 승격하지 않는다.\n\n## 분류\n\nFix · Validation\n\n## 검증\n\n- 2026-09-29 회수 검증: 원문 파일 SHA-256 11f4594e388655e7ca2ed8c52dea3a07fc32330ed42a07e0b6c70ea3abb00b31; 연결 이슈의 현재 WWW 소속과 Project Activity 중복·latest identity를 확인했다.\n- 아래는 원문 Candidate에 남은 당시 검증 기록이다. 이번 회수에서 테스트·원격 실행·현재 제품 동작을 재검증한 결과가 아니다.\n- 당시 검증 기록: bun test test/request-runtime.test.ts test/www-ui.test.ts: 97 pass, 0 fail, 2494 assertions.\n- 당시 검증 기록: bun run check: exit 0.\n- 당시 검증 기록: 변경 TypeScript import normalization·table alignment와 git diff --check가 통과했다.\n\n## 연결\n\n- 이번 기록에서 참조하는 기존 이슈: [WOO-700](https://linear.app/woo-world/issue/WOO-700/01-내-입력에-대한-계획이-세워지는-과정을-세션-todo로-보여준다) · [WOO-688](https://linear.app/woo-world/issue/WOO-688/03-답변-생성완료중단-과정을-보여준다)\n- 원문 Candidate: .www/evidence/2026-09-27-terminal-stage-progress/project-comment-candidate.json\n- 원문 Source Revision: git:495f61c0f3d5e3c9c6d58340d315c06b4ad70cc0:dirty\n- 원문 Candidate Digest: bcc90053cf05942bd66bda0150045aca6dd018f63daf49efad6a1e517c2fa451\n- 원문 연결: Linear: WOO-688 · 답변 생성·완료·중단 과정을 보여준다\n- 원문 연결: Related Linear: WOO-700 · STAGE·PLAN·PROGRESS 표시\n- 원문 연결: Obsidian Candidate: .www/evidence/2026-09-27-terminal-stage-progress/obsidian-canonical-candidate.json\n- 원문 연결: Evidence: .www/evidence/2026-09-27-terminal-stage-progress\n- 원문 연결: Branch: dev · HEAD 495f61c0f3d5e3c9c6d58340d315c06b4ad70cc0 · uncommitted\n- 회수 Evidence: .www/evidence/2026-09-29-linear-recording-backfill",
+    "attachments": [],
+    "createdAt": "2026-09-28T22:08:06.772Z",
+    "updatedAt": "2026-09-28T22:08:06.612Z",
+    "parentId": null,
+    "resolvedAt": null,
+    "quotedText": null,
+    "author": {
+      "id": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "name": "우종호"
+    },
+    "onBehalfOf": null
+  },
+  "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-5f355baa-2089-4879-accb-3792379c9dc7",
+  "readBack": {
+    "exactBodyMatch": true,
+    "checkedAt": "2026-09-28T22:08:08.156Z"
+  },
+  "scope": "Historical local record recovery; not current implementation acceptance"
+}

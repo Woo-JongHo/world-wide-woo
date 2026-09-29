@@ -1,0 +1,6 @@
+{
+  "linearIssue": "기존 WOO-700과 WOO-907에 결속하며 새 이슈 Candidate는 만들지 않는다.",
+  "projectActivity": "기존 Project Comment Candidate에 첫 화면의 빈 GOAL 비노출과 RELEASE 상태 구분, 후속 회귀 91개를 반영했으며 외부 게시와 read-back은 수행하지 않았다.",
+  "obsidian": "WOO-700 기존 정본 개정 Candidate에 실제 Session Goal이 있을 때만 GOAL을 표시하는 계약을, WOO-907 신규 정본 Candidate에 RELEASE loading·unavailable·미게시 상태 구분을 반영했다. 현재 Vault bytes와 target 충돌은 게시 전 actual-before read-back으로 확인해야 한다.",
+  "publication": "사용자 항목별 승인 전 외부 쓰기 없음"
+}

@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "1.0",
+  "sourceRevision": "worktree:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty",
+  "checks": [
+    {
+      "command": "bun test relevant UI/TEST/narration suites",
+      "result": "144 pass, 0 fail"
+    },
+    {
+      "command": "bun test heading/cache suites",
+      "result": "19 pass, 0 fail"
+    },
+    {
+      "command": "bun test test/architecture.test.ts",
+      "result": "17 pass, 0 fail"
+    },
+    {
+      "command": "bun run check",
+      "result": "pass"
+    },
+    {
+      "command": "git diff --check -- affected files",
+      "result": "pass"
+    },
+    {
+      "command": "artifact:control validate/render -- both candidates",
+      "result": "blocked: live-duplicate-check and vault-readback not-run"
+    },
+    {
+      "command": "current Linear tool WOO-700 readback",
+      "result": "unavailable: issue not found; list_issues returned MINI_APP_PROJECT(MIN-*)"
+    }
+  ],
+  "limitations": [
+    "실제 TUI 화면의 시각적 사용자 수락은 미실행이다.",
+    "현재 Linear 도구는 다른 프로젝트를 반환했고 Vault 원문은 확인되지 않아 외부 게시를 진행하지 않았다.",
+    "독립 provider 검토 결과는 없다."
+  ]
+}

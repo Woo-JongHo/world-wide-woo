@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "1.0",
+  "issueBinding": {
+    "id": "WOO-912",
+    "uuid": "14a3c6f0-3055-4c44-80fc-52a002b96f20",
+    "source": "linear-woo MCP get_issue 2026-09-28",
+    "status": "live-readback-verified",
+    "observedStatus": "In Progress"
+  },
+  "linearIssueCandidateRequired": false,
+  "projectCommentCandidate": ".www/evidence/2026-09-28-provider-hud-two-window-repair/project-comment-candidate.json",
+  "projectCommentCandidateDigest": "706f2e1fdfa9a3ca5c527aa7cd1b05b8f24fa271aeb9cad942342e30ee9fdb8a",
+  "obsidianCandidateRequired": false,
+  "obsidianReason": "새 capability나 의미 계약은 만들지 않았다. 기존 7d overall·5h session 두 행과 잔여율·reset·stale 표시 계약을 유지하면서 아이콘을 바 안의 대비되는 칸으로 옮긴 시각적 회귀 수정이다. docs/TUI_CODE_MATRIX.md의 Compact quota HUD 계약과 일치한다.",
+  "publication": {
+    "state": "succeeded",
+    "reason": "linear-woo MCP 게시 후 Project Activity에서 작성자·시각·렌더 본문 일치를 read-back했다.",
+    "externalWrite": true,
+    "commentId": "82b109db-d6a0-447f-8ca3-da8d47901693"
+  },
+  "projectActivity": {
+    "candidateDigest": "706f2e1fdfa9a3ca5c527aa7cd1b05b8f24fa271aeb9cad942342e30ee9fdb8a",
+    "preview": ".www/evidence/2026-09-28-provider-hud-two-window-repair/project-comment-preview.md",
+    "state": "published-read-back",
+    "commentId": "82b109db-d6a0-447f-8ca3-da8d47901693",
+    "receipt": ".www/evidence/2026-09-28-provider-hud-two-window-repair/project-comment-publish-receipt.json"
+  }
+}

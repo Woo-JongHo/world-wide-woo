@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "1.0",
+  "issueBinding": {
+    "primary": "WOO-700",
+    "related": "WOO-680",
+    "source": ".www/evidence/2026-09-28-tool-input-render-lag/recording-decision.json",
+    "status": "local-readback-only"
+  },
+  "linearIssueCandidateRequired": false,
+  "projectCommentCandidate": ".www/evidence/2026-09-28-git-bash-card-restoration/project-comment-candidate.json",
+  "obsidianCandidateRequired": true,
+  "obsidianReason": "사용자 정정으로 기존 Input 전용·/source 유지 계약을 INPUT·OUTPUT 분리와 source 행 제거로 바꾸었다.",
+  "obsidianCandidate": ".www/evidence/2026-09-28-git-bash-card-restoration/obsidian-canonical-candidate.json",
+  "publication": {
+    "state": "blocked-live-readback",
+    "reason": "정본 linear-woo 도구와 현재 Vault 원문이 없어 최신 중복·digest 대조를 완료하지 못했다.",
+    "externalWrite": false
+  }
+}

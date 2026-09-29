@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-RECORDING-BACKFILL-022",
+  "kind": "linear-project-comment",
+  "sourceRevision": "evidence-sha256:7e976ae56c854538903195c21acec3ac6198408a9e7b72b2626d8c1dffef078f",
+  "intent": "과거 작업 기록 회수: Operation Report의 파일 통계 아래에 실제 줄 단위 diff를 표시한 결과를 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "과거 작업 기록 회수: Operation Report의 파일 통계 아래에 실제 줄 단위 diff를 표시한 결과를 기록한다 (원문 Candidate: ARTIFACT-CANDIDATE-OPERATION-REPORT-DIFF-COMMENT)",
+      "당시 로컬 작업 기록: file-change activity의 정제된 unified diff에서 파일 헤더를 제외한 변경 행을 완료 Note에 보존했다.",
+      "당시 로컬 작업 기록: Operation Report가 추가 행은 초록, 삭제 행은 빨강, hunk와 문맥은 muted 색으로 표시하도록 바꿨다.",
+      "당시 로컬 작업 기록: 파일별 preview를 12행으로 제한하고 긴 행이 감겨도 모든 시각 행에 diff gutter를 유지했다.",
+      "당시 로컬 작업 기록: OpenAI Codex CLI의 공개 diff renderer를 조사해 파일 블록, +/- gutter, bounded preview 원칙을 적용했다.",
+      "당시 로컬 작업 기록: 신규 파일의 raw content를 unified diff처럼 집계해 +0/-0으로 표시하던 오류를 수정하고, 실제 줄 수와 + preview로 정규화했다.",
+      "당시 로컬 작업 기록: Operation Report의 diff를 GitHub·VS Code처럼 OLD/NEW 행 번호, +/- gutter, hunk 위치가 분리된 코드 패널로 표시했다."
+    ],
+    "impacts": [
+      "당시 기록된 영향: 사용자는 +N/-N 집계만 보는 대신 실제로 어떤 코드가 제거되고 추가됐는지 완료 보고 안에서 확인할 수 있다.",
+      "당시 기록된 영향: Native가 제공한 immutable activity를 사용하므로 완료 시점에 Git 상태를 다시 조회하지 않는다.",
+      "미게시 로컬 기록을 Project Activity에서 추적할 수 있게 회수한다. 과거 진행·완료·차단 상태를 현재 구현 완료 또는 이슈 상태 변경으로 승격하지 않는다."
+    ],
+    "categories": [
+      "improvement",
+      "verification"
+    ],
+    "verification": [
+      "2026-09-29 회수 검증: 원문 파일 SHA-256 7e976ae56c854538903195c21acec3ac6198408a9e7b72b2626d8c1dffef078f; 연결 이슈의 현재 WWW 소속과 Project Activity 중복·latest identity를 확인했다.",
+      "아래는 원문 Candidate에 남은 당시 검증 기록이다. 이번 회수에서 테스트·원격 실행·현재 제품 동작을 재검증한 결과가 아니다.",
+      "당시 검증 기록: 최신 회귀 bun test test/t-notes.test.ts test/operation-report-view.test.ts: 35 pass, 0 fail, 161 expect.",
+      "당시 검증 기록: bun run check: 통과.",
+      "당시 검증 기록: git diff --check: 통과.",
+      "당시 검증 기록: 변경 TypeScript import normalization changed=0, table alignment misaligned=0.",
+      "당시 검증 기록: 독립 Readability 검사에서 감긴 diff의 gutter 누락을 발견해 보강 후 회귀 테스트로 고정했다."
+    ],
+    "connections": [
+      "이번 기록에서 참조하는 기존 이슈: [WOO-843](https://linear.app/woo-world/issue/WOO-843/완료-요약을-실제-결과와-최종-검증-상태로-압축한다)",
+      "원문 Candidate: .www/evidence/2026-09-26-operation-report-diff/project-comment-candidate.json",
+      "원문 Source Revision: git:216b9d9faa09bcb19151f0f188792e8ce7113bf6:dirty",
+      "원문 Candidate Digest: dd30adee8caf0eed4b58d41f80fdff6d96e7fb3a1274c106f3d45a82d3a33430",
+      "원문 연결: Linear: WOO-843 · UUID 62bbb891-5308-4113-8962-a47975c140e2",
+      "원문 연결: Research: docs/research/2026-09-26-terminal-diff-presentation.md",
+      "원문 연결: Evidence: .www/evidence/2026-09-26-operation-report-diff",
+      "원문 연결: Branch: dev · HEAD 216b9d9faa09bcb19151f0f188792e8ce7113bf6 · uncommitted",
+      "회수 Evidence: .www/evidence/2026-09-29-linear-recording-backfill"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-843/완료-요약을-실제-결과와-최종-검증-상태로-압축한다",
+    "evidence": ".www/evidence/2026-09-26-operation-report-diff",
+    "sourceCandidate": ".www/evidence/2026-09-26-operation-report-diff/project-comment-candidate.json",
+    "receipt": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/022.json"
+  },
+  "expectedBefore": {
+    "latestCommentId": "95ec4885-35ef-48bd-a6f6-9ad53cb22296"
+  },
+  "validation": [
+    {
+      "id": "source-evidence",
+      "status": "pass",
+      "evidence": "Read original Candidate ARTIFACT-CANDIDATE-OPERATION-REPORT-DIFF-COMMENT; SHA-256 7e976ae56c854538903195c21acec3ac6198408a9e7b72b2626d8c1dffef078f; historical assertions are attributed to the source."
+    },
+    {
+      "id": "live-issue-binding",
+      "status": "pass",
+      "evidence": "Existing WWW issues verified: WOO-843; no issue creation or state mutation."
+    },
+    {
+      "id": "live-activity-before",
+      "status": "pass",
+      "evidence": "Project Activity source/evidence duplicate check and latest ID 95ec4885-35ef-48bd-a6f6-9ad53cb22296 performed immediately before preparation."
+    }
+  ],
+  "candidateDigest": "1692bfecb95ee46c79c6fe88ddfb274338786d3862811c491de41bb0faa60606"
+}

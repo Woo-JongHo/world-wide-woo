@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-SHELL-IMMEDIATE-DESCRIPTION",
+  "kind": "linear-project-comment",
+  "sourceRevision": "worktree:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty",
+  "intent": "Shell 설명 대기를 줄이는 첫 구현을 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "단일 cat/head/tail/sed/rg/git/jq 명령은 모델 호출 없이 한국어·영어 설명을 즉시 만든다. 복합 Shell 구문은 기존 모델 해석을 유지한다.",
+      "Chat의 설명 준비 중 문구를 제거하고 해석 전에도 실제 명령 카드를 표시한다. 실행 중인 해석에는 완료 체크 대신 점을 표시한다. ACTION 위치는 Chat 본문이다."
+    ],
+    "impacts": [
+      "단순 명령 설명은 직렬 LLM 큐의 대기를 피한다. Chat 전체 렌더 병목과 Codex 동등 성능은 아직 해결·실측하지 않았다."
+    ],
+    "categories": [
+      "improvement",
+      "fix"
+    ],
+    "verification": [
+      "TypeScript check 통과. import 정규화와 표 정렬 적용, git diff --check 통과. 변경 파일에 TODO/test.skip/test.only 없음.",
+      "자동 행동 테스트와 실제 TUI 재시작·성능 실측은 실행하지 않았다."
+    ],
+    "connections": [
+      "Linear: WOO-913 (live read-back: World Wide Woo, parent WOO-674)",
+      "Source: plan-activity-narration.ts, workbench-note-narration.ts, www-execution.ts",
+      "Evidence: .www/evidence/2026-09-29-shell-immediate-description"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-913/workbench-monitoring-figma-5화면의-계측-의미와-정보-구조를-일치시킨다",
+    "evidence": ".www/evidence/2026-09-29-shell-immediate-description"
+  },
+  "expectedBefore": {
+    "latestCommentId": "cbfea0c0-212a-4564-896f-cd8f36043204"
+  },
+  "validation": [
+    {
+      "id": "scope",
+      "status": "pass",
+      "evidence": "첫 구현이며 전체 성능 완료를 주장하지 않는다."
+    }
+  ],
+  "candidateDigest": "2aa7f9dac1bc0b46e2973441b89533147a00d19bf1fb0d31bc7e10a9b5c7f23a"
+}

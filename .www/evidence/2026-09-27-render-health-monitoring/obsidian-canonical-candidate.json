@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-WOO-915-RENDER-HEALTH-MONITORING",
+  "kind": "obsidian-canonical",
+  "sourceRevision": "worktree:495f61c0f3d5e3c9c6d58340d315c06b4ad70cc0:dirty",
+  "intent": "WOO-915의 Chat 렌더 지연 관측과 slow-frame 사용자 계약을 상세 정본 후보로 만든다",
+  "target": { "relativePath": "Chat/Render Health monitoring — 느린 채팅 프레임을 지속 관측한다.md" },
+  "content": {
+    "properties": {
+      "document_id": "ba1d238c-6979-42bb-9fb1-c0de7e6a7c6a",
+      "linear": "WOO-915",
+      "record_type": "detailed-canonical",
+      "schema_version": 2,
+      "status": "active",
+      "acceptance": "partial",
+      "domain": "Chat",
+      "capability": "Render Health monitoring",
+      "parent": null,
+      "related": [],
+      "spec_ids": [],
+      "code_ids": ["Code-001", "Code-003"],
+      "test_ids": [],
+      "exception_ids": [],
+      "decision_ids": [],
+      "tags": ["www/spec", "domain/chat", "capability/render-health", "status/partial"],
+      "source_revision": "worktree:495f61c0f3d5e3c9c6d58340d315c06b4ad70cc0:dirty",
+      "updated_at": "2026-09-27T00:00:00+09:00"
+    },
+    "sections": {
+      "1. Intent": "Chat이 느릴 때 사용자는 체감만 보고 원인을 알 수 없었다. 실제 terminal frame까지의 지연과 병목 계층을 같은 화면에서 지속 관측해 재현 시점의 증거를 남긴다.",
+      "2. Scope": "In scope는 Native event에 연결된 render scheduling, layout materialization, synchronous terminal write 반환까지의 frame latency와 Monitoring 표시다. OS flush·terminal pixel 표시·외부 APM·자동 최적화는 제외한다.",
+      "3. Desired Behavior": "Given Chat 갱신이 terminal frame으로 표시되면 HUD는 성공 frame window의 p95 latency를 Render p95 Nms로 요약한다. p95가 32ms 이하면 초록, 33~100ms면 노랑, 100ms 초과면 빨강으로 표시한다. 관측 전에는 값을 만들지 않고, 극도로 좁은 폭에서는 Context를 보존하며 요약을 생략한다. Monitoring은 실제 frame 수, slow 수·비율, p50·p95·p99와 최악 frame을 보여준다. 같은 frame으로 합쳐진 여러 delta는 한 frame으로 계산하며 실패 frame은 latency 통계가 아니라 오류로 표시한다.",
+      "4. Domain Contract": "INV-RENDER-001: latency는 render-schedule queued부터 terminal-write completed까지다. INV-RENDER-002: frame identity가 같은 trace는 하나로 묶고 가장 긴 latency를 그 frame 값으로 사용한다. INV-RENDER-003: 100ms 초과만 slow다. INV-RENDER-004: terminal-write failed는 percentile·slow count에서 제외하고 errorCount에 남긴다. INV-RENDER-005: 표본은 최대 128 trace의 bounded window다.",
+      "5. State Model": "trace는 collecting·complete·partial·no-render 상태를 유지한다. Render Health 표본은 terminal-write completed가 있는 trace만 eligible이며 frame ID로 coalesced된다. eligible latency가 100ms를 초과하면 slow, 아니면 healthy다.",
+      "6. Data & Runtime Flow": "Native event → event queue → state projection → snapshot publish → render schedule queued → layout materialize → terminal write completed → trace projection → frame grouping → percentile·slow 집계 → WWW Monitoring Render Health로 흐른다.",
+      "7. Identity & Persistence Contract": "traceId는 Native event를, frameId는 실제 terminal frame을 식별한다. 여러 trace가 frameId를 공유할 수 있다. telemetry는 메모리 bounded window이며 journal 정본이나 장기 저장을 만들지 않는다. frameId가 없으면 traceId를 fallback identity로 사용한다.",
+      "8. Integration Contract": "Workbench shell과 patched TUI observer가 시간 경계를 기록하고 LayerPerformanceRecorder가 계산한다. WorkbenchSnapshot과 RuntimeMonitorProjection은 값을 전달하며 WwwHud는 p95 요약, WwwMonitorView는 상세 분포 표시만 소유한다. 기존 dashboard SLOWEST P95와 계층별 wait·work는 유지한다.",
+      "9. Failure & Recovery Contract": "layout 또는 terminal write 실패는 owning layer의 failed와 window errorCount로 남긴다. 실패 종료 시간을 성능 latency로 해석하지 않는다. 경계가 누락되면 값을 발명하지 않고 null·미관측으로 표시한다. recorder 용량 초과 시 가장 오래된 trace부터 제거한다.",
+      "10. Acceptance Contract": "AC-RENDER-001: coalesced trace 두 개가 같은 frame 하나로 집계된다. AC-RENDER-002: 150ms와 40ms frame은 slow 1/2, rate 50%, p95 150ms로 나타난다. AC-RENDER-003: 실패 frame은 latency 표본 0개와 errorCount 1로 남는다. AC-RENDER-004: Monitoring에서 threshold·percentiles·worst frame을 읽을 수 있다. AC-RENDER-005: HUD는 관측된 p95를 ms로 표시하고 미관측·극소 폭에서는 숨긴다. AC-RENDER-006: 32ms는 초록, 33ms와 100ms는 노랑, 101ms는 빨강으로 표시된다. 실제 사용자 지연 원인과 pixel latency는 미확정이라 acceptance는 partial이다.",
+      "11. Verification Strategy": "layer-performance.test.ts는 frame grouping·slow threshold·failure exclusion을 단위 검증한다. www-telemetry-duration.test.ts는 사용자 화면 read-back을 검증한다. tui-shell-characterization.test.ts는 실제 shell의 unique frame 수와 window frameCount 증가가 일치하는지 통합 검증한다. 타입·가독성·독립 리뷰를 함께 통과한다.",
+      "12. Implementation Map": "layer-performance.ts가 trace와 Render Health window를, project-workbench.ts가 snapshot을, workbench-shell.ts가 실제 경계와 frameId를, runtime-monitor.ts가 projection을, www-monitor-view.ts가 화면을 소유한다.",
+      "13. Current State & Gaps": "Render Health 수집·집계·Monitoring 상세와 HUD p95 요약, 자동 검증은 구현됐다. HUD 확장 범위의 UI·shell·domain 106 pass와 TypeScript·가독성 게이트를 확인했다. 실제 장시간 Chat에서 수집된 slow frame과 OS·CMux pixel 지연의 상관은 아직 확인하지 않았다.",
+      "14. Decisions & Evidence": "DEC-RENDER-HEALTH-001 approved: 별도 외부 APM 대신 기존 7계층 telemetry를 frame 단위로 확장한다. DEC-RENDER-HEALTH-002 approved: 사용자 체감 경고 기준은 100ms 초과로 두되 기존 32ms scheduler cadence 성능 gate를 대체하지 않는다. trace 수 직접 집계는 coalescing 중복 때문에 기각했고, 실패 종료 포함은 percentile 오염 때문에 독립 리뷰 후 기각했다. HUD freshness 독립 리뷰가 완료 측정 뒤 repaint 누락을 발견해 trace가 있던 WWW frame만 후속 repaint하도록 수정했고 재리뷰 CLEAR를 받았다. 결정 권한은 2026-09-27 사용자 요청이며 Evidence는 .www/evidence/2026-09-27-render-health-monitoring과 .www/evidence/hud-render-speed-code-review.md다.",
+      "Change Log": "2026-09-27 WOO-915의 frame 단위 Render Health, 100ms slow 판정, Monitoring 표시와 실패 표본 제외 계약을 최초 작성했다. 같은 날 HUD에 p95 latency 요약, 폭·미관측 표시, 32ms·100ms 경계의 초록·노랑·빨강 상태 계약을 추가했다."
+    }
+  },
+  "links": {
+    "linear": "WOO-915",
+    "parentLinear": "WOO-679",
+    "evidence": ".www/evidence/2026-09-27-render-health-monitoring"
+  },
+  "expectedBefore": null,
+  "validation": [
+    { "id": "canonical-identity", "status": "pass", "evidence": "WOO-915에 기존 schema v2 정본이 없어 새 document_id를 발급하고 issue read-back identity를 유지했다." },
+    { "id": "contract-change", "status": "pass", "evidence": "100ms threshold·frame grouping·failure exclusion·Monitoring 표시는 새 사용자 관측 계약이다." },
+    { "id": "design-triage", "status": "pass", "evidence": "기존 telemetry를 확장하는 되돌릴 수 있는 단일 capability이며 구현과 독립 리뷰로 blocking 질문을 닫아 active 후보로 작성한다." },
+    { "id": "independent-review", "status": "pass", "evidence": "별도 코드 리뷰가 실패 frame 오탐과 통합 검증 누락을 발견했고 수정 후 CLEAR·APPROVE로 재검토했다." },
+    { "id": "publication-boundary", "status": "pass", "evidence": "Candidate만 준비하며 사용자 승인 전 Vault와 ledger를 수정하지 않는다." }
+  ],
+  "candidateDigest": "e8ee5fc86569f2fdb8938ca4ab685c9f5f80eeccf9798a27f7cb30e67db554ab"
+}

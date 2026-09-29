@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-WOO-700-NATIVE-GOAL-PLAN-PROGRESS-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "worktree:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty",
+  "intent": "일반 요청을 GOAL·Native PLAN·관측된 PROGRESS 중심으로 표시하고 질문 배경을 구분한 변경을 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "일반 observe Chat과 F3에서 7단계 HUD·단계 시간 요약을 숨기고, GOAL·Native PLAN·해석된 PROGRESS를 구분해 표시했다.",
+      "PROGRESS의 PLAN task 중복을 제거하고 TEST 요약에는 명령 대신 검증 결과를 먼저 표시했다.",
+      "질문에 테마 userSurface 배경을 적용하고, observe WORK는 Native가 검증하지 않은 작업도 사실대로 기록할 수 있게 했다. Broker 단계 게이트는 유지했다."
+    ],
+    "impacts": [
+      "사용자는 계획 항목과 그 안에서 실제로 진행된 일을 혼동하지 않고, 자신의 질문을 채팅에서 빠르게 찾을 수 있다.",
+      "테스트·검증 실행 여부는 Native가 작업에 맞춰 정하고, 미실행 검증을 완료로 표시하지 않는다."
+    ],
+    "categories": [
+      "improvement",
+      "fix",
+      "verification"
+    ],
+    "verification": [
+      "bun test test/www-ui.test.ts test/plan-activity-view.test.ts test/request-runtime.test.ts: 121 pass, 0 fail.",
+      "bun run check 및 git diff --check: 통과.",
+      "Claude Sonnet 5 독립 검토: 세션 한도로 미실행. 실제 TUI 사용자 수락: 미실행."
+    ],
+    "connections": [
+      "Primary Linear: WOO-700 · Native Plan projection",
+      "Related Linear: WOO-680 · Layout",
+      "Evidence: .www/evidence/2026-09-28-native-goal-plan-progress",
+      "Branch: dev · HEAD 8486a759746ab2e0748beb1ab9fdd4d250fa6b27 · uncommitted"
+    ]
+  },
+  "links": {
+    "issue": "https://linear.app/woo-world/issue/WOO-700/01-내-입력에-대한-계획이-세워지는-과정을-세션-todo로-보여준다",
+    "relatedIssue": "https://linear.app/woo-world/issue/WOO-680/layout-화면-크기가-달라져도-읽던-위치와-입력-흐름을-유지한다",
+    "evidence": ".www/evidence/2026-09-28-native-goal-plan-progress"
+  },
+  "expectedBefore": {
+    "latestCommentId": "1c9c3c89-562a-4705-9c6e-3dac2e978948"
+  },
+  "validation": [
+    {
+      "id": "issue-binding",
+      "status": "pass",
+      "evidence": "기존 WOO-700 후보가 GOAL·PLAN·PROGRESS 소유권을 기록한다. 최신 Linear 이슈 조회는 미실행이다."
+    },
+    {
+      "id": "publication-boundary",
+      "status": "pass",
+      "evidence": "Candidate만 준비한다. linear-woo 미노출로 원격 최신 상태·중복 검사는 미실행이며 사용자 승인 전에도 게시하지 않는다."
+    }
+  ],
+  "candidateDigest": "0571df3de487ee91cc479ce094f419eeb97eae6466631e9a3dbcc84fcf3847fc"
+}

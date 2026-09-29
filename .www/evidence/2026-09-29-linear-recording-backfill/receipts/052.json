@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.1",
+  "status": "published",
+  "surface": "linear-project-comment",
+  "candidateId": "ARTIFACT-CANDIDATE-RECORDING-BACKFILL-052",
+  "sourceCandidateId": "ARTIFACT-CANDIDATE-COMPACT-REQUEST-RUNTIME-COMMENT",
+  "sourceCandidatePath": ".www/evidence/2026-09-28-compact-request-runtime/project-comment-candidate.json",
+  "sourceCandidateDigest": "b180d979590bbca5dfc30d383bf180f0b1f8adde3a12551b128fa96cf48e2108",
+  "sourceFileSha256": "176d1a52a6da1a11b26b6f465fc981aec10f401323e35bb30ccc48cd253f171d",
+  "candidateDigest": "6c83f6a2b8a7ec845c5efc0e69fe4b4a03dcca58d159e60d1d93dda25bfaee75",
+  "candidatePath": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/052.json",
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "expectedBefore": {
+    "latestCommentId": "c8faa2ca-00d7-4902-aa1d-02374038f191"
+  },
+  "comment": {
+    "id": "92ac779a-c625-4a36-bf65-8ce490ede637",
+    "body": "## 변경\n\n- 과거 작업 기록 회수: 기본 observe 요청의 공개 Runtime 오버헤드를 줄이고 broker의 엄격한 증거 게이트를 유지한 결과를 기록한다 (원문 Candidate: ARTIFACT-CANDIDATE-COMPACT-REQUEST-RUNTIME-COMMENT)\n- 당시 로컬 작업 기록: 기본 observe 프로토콜을 INTENT·WORK·RESULT 세 체크포인트로 줄이고 내부 저장 상태는 기존 7단계를 유지했다.\n- 당시 로컬 작업 기록: WORK 체크포인트를 GROUND·DECIDE·EXECUTE·VERIFY에 원자적으로 투영하고 실행 증거와 검증 증거의 재사용을 금지했다.\n- 당시 로컬 작업 기록: broker protocol v2는 기존 7단계 보고와 승인·증거 경계를 그대로 유지했다.\n\n## 영향\n\n- 당시 기록된 영향: 일반 요청에서 모델이 반복 출력해야 하는 제어 메시지와 protocol context가 줄어든다.\n- 당시 기록된 영향: 고위험 쓰기 요청은 가벼운 observe 경로로 우회할 수 없다.\n- 당시 기록된 영향: 잘못된 WORK 보고가 일부 Stage만 전진시킨 채 요청을 고착시키지 않는다.\n- 미게시 로컬 기록을 Project Activity에서 추적할 수 있게 회수한다. 과거 진행·완료·차단 상태를 현재 구현 완료 또는 이슈 상태 변경으로 승격하지 않는다.\n\n## 분류\n\nImprovement · Refactor · Validation\n\n## 검증\n\n- 2026-09-29 회수 검증: 원문 파일 SHA-256 176d1a52a6da1a11b26b6f465fc981aec10f401323e35bb30ccc48cd253f171d; 연결 이슈의 현재 WWW 소속과 Project Activity 중복·latest identity를 확인했다.\n- 아래는 원문 Candidate에 남은 당시 검증 기록이다. 이번 회수에서 테스트·원격 실행·현재 제품 동작을 재검증한 결과가 아니다.\n- 당시 검증 기록: tsc --noEmit이 통과했다.\n- 당시 검증 기록: Runtime·Workbench·아키텍처 관련 203개 테스트와 4499개 assertion이 통과했다.\n- 당시 검증 기록: git diff --check가 통과했고 변경 파일에서 TODO·skip·only 표식이 발견되지 않았다.\n- 당시 검증 기록: 독립 Claude Sonnet 5 리뷰의 원자성·증거 재사용 지적을 수정하고 집중 테스트 26개로 재검증했다.\n- 당시 검증 기록: 프로젝트가 요구하는 가독성 스크립트 두 개는 현재 경로에 존재하지 않아 실행하지 못했다.\n\n## 연결\n\n- 이번 기록에서 참조하는 기존 이슈: [WOO-700](https://linear.app/woo-world/issue/WOO-700/01-내-입력에-대한-계획이-세워지는-과정을-세션-todo로-보여준다)\n- 원문 Candidate: .www/evidence/2026-09-28-compact-request-runtime/project-comment-candidate.json\n- 원문 Source Revision: git:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty\n- 원문 Candidate Digest: b180d979590bbca5dfc30d383bf180f0b1f8adde3a12551b128fa96cf48e2108\n- 원문 연결: Linear: WOO-700\n- 원문 연결: Evidence: .www/evidence/2026-09-28-compact-request-runtime\n- 원문 연결: Review: .www/scratchpad/2026-09-28-compact-request-runtime-review.md\n- 원문 연결: Branch: dev · HEAD 8486a759746ab2e0748beb1ab9fdd4d250fa6b27 · uncommitted\n- 회수 Evidence: .www/evidence/2026-09-29-linear-recording-backfill",
+    "attachments": [],
+    "createdAt": "2026-09-28T22:09:23.538Z",
+    "updatedAt": "2026-09-28T22:09:23.454Z",
+    "parentId": null,
+    "resolvedAt": null,
+    "quotedText": null,
+    "author": {
+      "id": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "name": "우종호"
+    },
+    "onBehalfOf": null
+  },
+  "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-92ac779a-c625-4a36-bf65-8ce490ede637",
+  "readBack": {
+    "exactBodyMatch": true,
+    "checkedAt": "2026-09-28T22:09:24.570Z"
+  },
+  "scope": "Historical local record recovery; not current implementation acceptance"
+}

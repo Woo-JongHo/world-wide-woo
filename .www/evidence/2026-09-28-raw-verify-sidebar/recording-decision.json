@@ -1,0 +1,21 @@
+{
+  "scope": "Native RAW FIRST TEST/VERIFY right rail",
+  "issue": {
+    "decision": "현재 결속된 이슈 미확정. 기존 Workbench 부모와 중복을 linear-woo에서 확인해야 함.",
+    "candidate": "linear-issue-candidate.json",
+    "digest": "4a7be0e7239aa0a98f2ee3661c559c3cb74290d871f9e08714eb3b6f5c972a8d",
+    "state": "local-draft; remote-placement-and-duplicate-check-not-run"
+  },
+  "projectComment": {
+    "candidate": "project-comment-candidate.json",
+    "digest": "6d6c3f2674cae4e8ed6272922d2ade4e5ad45543ed143b0515981dc3e8117363",
+    "state": "local-draft; latest-activity-and-comment-not-run"
+  },
+  "obsidian": {
+    "decision": "테스트 이름·오류 원문의 권위가 러너로 바뀐 계약이므로 기존 상세 정본 개정 대상. 기존 identity 미확정.",
+    "candidate": "obsidian-canonical-candidate.json",
+    "digest": "9a9f5ebc46c5f111586c3d5bd032b46986e0d6e1dda7471c582a47cb97d40f34",
+    "state": "local-draft; vault-identity-and-bytes-not-run"
+  },
+  "publication": "세 Candidate 모두 artifact:control validate에서 not-run 검증으로 게시 불가. linear-woo·Obsidian 정본 연결이 이 세션에 없으므로 대상 확인, 항목별 승인, publish, read-back 미실행."
+}

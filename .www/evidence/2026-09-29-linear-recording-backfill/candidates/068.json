@@ -1,0 +1,75 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-RECORDING-BACKFILL-068",
+  "kind": "linear-project-comment",
+  "sourceRevision": "evidence-sha256:b1960c8633b35a81b3a03467447c68f93146ce1cb07563fb8f284198ae060826",
+  "intent": "과거 작업 기록 회수: WWW Welcome과 실행 전 우측 rail을 지속형 idle command center로 교정한 결과를 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "과거 작업 기록 회수: WWW Welcome과 실행 전 우측 rail을 지속형 idle command center로 교정한 결과를 기록한다 (원문 Candidate: ARTIFACT-CANDIDATE-WELCOME-IDLE-STATE-COMMENT)",
+      "당시 로컬 작업 기록: 시간 기반 gradient intro를 제거하고 cyan·neutral·amber의 고정 WWW 터미널 wordmark와 제품명·버전을 표시했다.",
+      "당시 로컬 작업 기록: 빈 Chat에는 What's New, Quick Start, 단일 Tip을 제한된 폭으로 표시하고 작은 terminal에서는 정보량을 단계적으로 줄였다.",
+      "당시 로컬 작업 기록: 실행이 없는 Monitor rail은 RUN #0과 빈 timeline 대신 SYSTEM, RUNTIME, SHORTCUTS의 idle inspector를 표시한다."
+    ],
+    "impacts": [
+      "당시 기록된 영향: 첫 화면이 로딩 splash가 아니라 사용자가 바로 입력할 수 있는 지속형 command center로 읽힌다.",
+      "당시 기록된 영향: 실행 전에는 관측되지 않은 run·failure·event를 대시보드처럼 나열하지 않고 실제 session·model·skill·MCP 상태와 단축키만 보여 준다.",
+      "미게시 로컬 기록을 Project Activity에서 추적할 수 있게 회수한다. 과거 진행·완료·차단 상태를 현재 구현 완료 또는 이슈 상태 변경으로 승격하지 않는다."
+    ],
+    "categories": [
+      "improvement",
+      "verification"
+    ],
+    "verification": [
+      "2026-09-29 회수 검증: 원문 파일 SHA-256 b1960c8633b35a81b3a03467447c68f93146ce1cb07563fb8f284198ae060826; 연결 이슈의 현재 WWW 소속과 Project Activity 중복·latest identity를 확인했다.",
+      "아래는 원문 Candidate에 남은 당시 검증 기록이다. 이번 회수에서 테스트·원격 실행·현재 제품 동작을 재검증한 결과가 아니다.",
+      "당시 검증 기록: bun test test/workbench-welcome.test.ts test/www-telemetry-duration.test.ts: 13 pass, 0 fail, 113 expect.",
+      "당시 검증 기록: bun run check: 통과.",
+      "당시 검증 기록: Welcome 타입 불확실성 검사 findings=0, git diff --check 통과.",
+      "당시 검증 기록: 변경 파일에서 TODO, test.skip, test.only 미완성 표식이 발견되지 않았다.",
+      "당시 검증 기록: 로고 폭은 80·120·160 columns 회귀에서 terminal visible width를 넘지 않았다."
+    ],
+    "connections": [
+      "이번 기록에서 참조하는 기존 이슈: [WOO-674](https://linear.app/woo-world/issue/WOO-674/workbench-대화와-계획을-읽고-입력과-상태를-통제한다) · [WOO-675](https://linear.app/woo-world/issue/WOO-675/monitor-현재-실행과-승인실패-상태를-같은-맥락에서-관찰한다)",
+      "원문 Candidate: .www/evidence/2026-09-28-welcome-idle-state/project-comment-candidate.json",
+      "원문 Source Revision: git:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty",
+      "원문 Candidate Digest: 80948ec51c02b2ce4abbd3d2757f9d93d0b1077ccf0a606aa5f32b5d01aaf8b2",
+      "원문 연결: Primary Linear: WOO-674 · Workbench 첫 화면과 입력 준비",
+      "원문 연결: Related Linear: WOO-675 · Monitor idle 상태",
+      "원문 연결: Figma: Q7kGUdqiaQRJI8CZlPMRX7 · node 159:2, sidebar reference 142:5",
+      "원문 연결: Evidence: .www/evidence/2026-09-28-welcome-idle-state",
+      "원문 연결: Code: workbench-welcome.ts · www-monitor-view.ts",
+      "회수 Evidence: .www/evidence/2026-09-29-linear-recording-backfill"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-674/workbench-대화와-계획을-읽고-입력과-상태를-통제한다",
+    "evidence": ".www/evidence/2026-09-28-welcome-idle-state",
+    "sourceCandidate": ".www/evidence/2026-09-28-welcome-idle-state/project-comment-candidate.json",
+    "receipt": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/068.json"
+  },
+  "expectedBefore": {
+    "latestCommentId": "f8982d28-e0ac-4624-9206-f10b7e7bbd14"
+  },
+  "validation": [
+    {
+      "id": "source-evidence",
+      "status": "pass",
+      "evidence": "Read original Candidate ARTIFACT-CANDIDATE-WELCOME-IDLE-STATE-COMMENT; SHA-256 b1960c8633b35a81b3a03467447c68f93146ce1cb07563fb8f284198ae060826; historical assertions are attributed to the source."
+    },
+    {
+      "id": "live-issue-binding",
+      "status": "pass",
+      "evidence": "Existing WWW issues verified: WOO-674, WOO-675; no issue creation or state mutation."
+    },
+    {
+      "id": "live-activity-before",
+      "status": "pass",
+      "evidence": "Project Activity source/evidence duplicate check and latest ID f8982d28-e0ac-4624-9206-f10b7e7bbd14 performed immediately before preparation."
+    }
+  ],
+  "candidateDigest": "9569f461ac8f7b1c63e27f2afcad4f553ecd5e9ae8cbe1f2e388c615fab09106"
+}

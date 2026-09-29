@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0",
+  "change": [
+    "src/adapters/inbound/tui/shell/workbench-overlay-controller.ts",
+    "test/www-shell.test.ts"
+  ],
+  "issueBinding": {
+    "primary": "WOO-674",
+    "source": ".www/evidence/2026-09-28-slash-command-palette/recording-decision.json",
+    "status": "local-readback-only",
+    "reason": "기존 명령 찾기 입력 기능의 표시 위치 조정이다. 정본 linear-woo MCP가 세션에 없어 현재 이슈 상태는 확인하지 못했다."
+  },
+  "linearIssueCandidateRequired": false,
+  "projectCommentCandidate": ".www/evidence/2026-09-28-command-palette-position/project-comment-candidate.json",
+  "obsidianCandidateRequired": false,
+  "obsidianReason": "명령 찾기 팝업의 앵커만 조정한 가역적 UI 수정으로 WHY, 데이터 구조, 권위 경계, 저장 계약은 바뀌지 않았다.",
+  "publication": {
+    "state": "blocked-live-readback",
+    "reason": "정본 linear-woo MCP가 세션에 없어서 현재 WOO-674 상태와 Project Activity 중복을 조회하지 못했다. 후보만 준비하고 외부 쓰기는 하지 않는다.",
+    "externalWrite": false
+  }
+}

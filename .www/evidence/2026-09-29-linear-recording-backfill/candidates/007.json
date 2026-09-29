@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-RECORDING-BACKFILL-007",
+  "kind": "linear-project-comment",
+  "sourceRevision": "evidence-sha256:b6c283541444fcddfeec9276d436d81b00940a13b0855d04397ffbd378d73950",
+  "intent": "과거 작업 기록 회수: WOO-689 lazy-row 구현의 Bun·pnpm 설치 재현성을 복구한 경과를 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "과거 작업 기록 회수: WOO-689 lazy-row 구현의 Bun·pnpm 설치 재현성을 복구한 경과를 기록한다 (원문 Candidate: ARTIFACT-CANDIDATE-PI-TUI-INSTALL-REPRODUCIBILITY)",
+      "당시 로컬 작업 기록: pi-tui lazy-row patch가 Bun 최상위 설치본에는 적용됐지만 pnpm 가상 저장소에는 적용되지 않아 TypeScript가 구버전 선언을 읽는 원인을 확인했다.",
+      "당시 로컬 작업 기록: pnpm workspace에 pi-tui patchedDependencies를 명시하고 불필요한 Google·protobuf 설치 스크립트를 false로 고정했다.",
+      "당시 로컬 작업 기록: pnpm lockfile에 patch hash를 결박해 Bun과 pnpm 설치 경로가 같은 lazy-row 구현과 타입 선언을 사용하게 했다."
+    ],
+    "impacts": [
+      "당시 기록된 영향: 새 설치나 혼합 package-manager 환경에서도 ScrollRowSource 타입과 실제 lazy viewport 구현이 어긋나지 않는다.",
+      "당시 기록된 영향: WOO-689의 긴 transcript 성능 회귀 검증을 의존성 설치 방식과 무관하게 재현할 수 있다.",
+      "미게시 로컬 기록을 Project Activity에서 추적할 수 있게 회수한다. 과거 진행·완료·차단 상태를 현재 구현 완료 또는 이슈 상태 변경으로 승격하지 않는다."
+    ],
+    "categories": [
+      "fix",
+      "verification"
+    ],
+    "verification": [
+      "2026-09-29 회수 검증: 원문 파일 SHA-256 b6c283541444fcddfeec9276d436d81b00940a13b0855d04397ffbd378d73950; 연결 이슈의 현재 WWW 소속과 Project Activity 중복·latest identity를 확인했다.",
+      "아래는 원문 Candidate에 남은 당시 검증 기록이다. 이번 회수에서 테스트·원격 실행·현재 제품 동작을 재검증한 결과가 아니다.",
+      "당시 검증 기록: bun run check: exit 0.",
+      "당시 검증 기록: bun test test/architecture.test.ts: 13 pass, 0 fail.",
+      "당시 검증 기록: bun test: 1442 pass, 0 fail, 18488 assertions, 162 files.",
+      "당시 검증 기록: lazy-row 집중 회귀 34 pass, 0 fail이며 실제 AstraWorkspace가 viewport 범위만 요청한다."
+    ],
+    "connections": [
+      "이번 기록에서 참조하는 기존 이슈: [WOO-689](https://linear.app/woo-world/issue/WOO-689/04-긴-결과를-안정적으로-탐색한다)",
+      "원문 Candidate: .www/evidence/2026-09-23-pi-tui-install-reproducibility/project-comment-candidate.json",
+      "원문 Source Revision: git:954f6b3721350447daa9708a87f102ee536896fb:dirty",
+      "원문 Candidate Digest: e34c51e45c90cbd0ec449843f452c8d19b943d2928bead61339237b47d44edbd",
+      "원문 연결: Linear issue: WOO-689 · UUID ae15b7ba-fd9d-4319-a186-201e6177c8a6",
+      "원문 연결: Code: pnpm-workspace.yaml · pnpm-lock.yaml · patches/@earendil-works%2Fpi-tui@0.84.4.patch",
+      "원문 연결: Performance contract: docs/WWW_PERFORMANCE.md",
+      "원문 연결: Evidence: .www/evidence/2026-09-23-pi-tui-install-reproducibility",
+      "원문 연결: Branch: dev · HEAD 954f6b3721350447daa9708a87f102ee536896fb · uncommitted",
+      "회수 Evidence: .www/evidence/2026-09-29-linear-recording-backfill"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-689/04-긴-결과를-안정적으로-탐색한다",
+    "evidence": ".www/evidence/2026-09-23-pi-tui-install-reproducibility",
+    "sourceCandidate": ".www/evidence/2026-09-23-pi-tui-install-reproducibility/project-comment-candidate.json",
+    "receipt": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/007.json"
+  },
+  "expectedBefore": {
+    "latestCommentId": "adb1a53f-cab6-49db-b53b-6ca4f475f474"
+  },
+  "validation": [
+    {
+      "id": "source-evidence",
+      "status": "pass",
+      "evidence": "Read original Candidate ARTIFACT-CANDIDATE-PI-TUI-INSTALL-REPRODUCIBILITY; SHA-256 b6c283541444fcddfeec9276d436d81b00940a13b0855d04397ffbd378d73950; historical assertions are attributed to the source."
+    },
+    {
+      "id": "live-issue-binding",
+      "status": "pass",
+      "evidence": "Existing WWW issues verified: WOO-689; no issue creation or state mutation."
+    },
+    {
+      "id": "live-activity-before",
+      "status": "pass",
+      "evidence": "Project Activity source/evidence duplicate check and latest ID adb1a53f-cab6-49db-b53b-6ca4f475f474 performed immediately before preparation."
+    }
+  ],
+  "candidateDigest": "0b4c5ede618793efad2ba26cc33047a8fe84095c2f78fcaf7d58151398b94ed8"
+}

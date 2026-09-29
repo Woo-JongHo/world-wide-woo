@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-WOO-700-STAGE-RUNTIME-RECOVERY",
+  "kind": "obsidian-canonical",
+  "sourceRevision": "worktree:495f61c0f3d5e3c9c6d58340d315c06b4ad70cc0:dirty",
+  "intent": "WOO-700의 Stage projection 계약에 기본 관측 Runtime과 공개 evidence 판정 경계를 반영한다",
+  "target": { "relativePath": "Todo/Native Plan projection — AI가 세운 계획을 세션별로 실시간 확인한다.md" },
+  "content": {
+    "properties": {
+      "document_id": "911c3fc2-5576-4651-9067-811a6238608e",
+      "linear": "WOO-700",
+      "record_type": "detailed-canonical",
+      "schema_version": 2,
+      "status": "active",
+      "acceptance": "partial",
+      "domain": "Todo",
+      "capability": "Native Plan projection",
+      "parent": null,
+      "related": [],
+      "spec_ids": [],
+      "code_ids": ["Code-002", "Code-011"],
+      "test_ids": [],
+      "exception_ids": [],
+      "decision_ids": [],
+      "tags": ["www/spec", "domain/todo", "capability/native-plan", "status/partial"],
+      "source_revision": "worktree:495f61c0f3d5e3c9c6d58340d315c06b4ad70cc0:dirty",
+      "updated_at": "2026-09-27T11:24:29+09:00"
+    },
+    "sections": {
+      "1. Intent": "사용자는 요청을 이해해 정리된 GOAL과 그 목표를 수행하는 7개 STAGE의 실제 진행을 구분해 읽어야 한다. 유효한 초기 보고가 형식 오해로 거절되어 0/7에 고정되면 안 된다.",
+      "2. Scope": "GOAL·STAGE·PLAN·PROGRESS projection, queued follow-up의 Goal 연속성, 기본 관측 Runtime, 공개 evidence 식별자 판정을 포함한다. 7단계 의미 변경과 검증 완료 evidence 완화는 제외한다.",
+      "3. Desired Behavior": "일반 실행과 queued follow-up 모두 Request Runtime 관측 대상이 된다. Session Goal이 아직 없으면 첫 화면 헤더는 GOAL이나 ‘이해 중’ 임시 문구를 표시하지 않고, UNDERSTAND 결과가 투영된 뒤에만 GOAL 배지를 표시한다. UNDERSTAND·DECOMPOSE·GROUND·DECIDE의 설명용 evidence가 Activity ID가 아니면 해당 문자열만 버리고 유효한 보고를 수용한다. EXECUTE·VERIFY·DELIVER 완료 보고는 실제 Activity ID가 없으면 계속 거절한다.",
+      "4. Domain Contract": "INV-001: GOAL은 UNDERSTAND 공개 결과다. INV-002: STAGE는 Runtime 상태를 소유한다. INV-003: 초기 계획 단계의 설명 문자열은 실행 증거가 아니다. INV-004: 완료를 주장하는 EXECUTE·VERIFY·DELIVER는 관측 가능한 Activity ID를 가져야 한다. INV-005: plain runWww도 기본 observe mode로 동작한다. INV-006: 헤더는 실제 Session Goal이 있을 때만 GOAL을 표시하며 부재 상태를 임시 목표 문구로 대체하지 않는다.",
+      "5. State Model": "요청은 pending에서 각 Stage running·completed·skipped·failed·blocked로 전이한다. 유효 보고의 미해결 설명 evidence는 Stage 전이를 막지 않는다. 실행·검증·전달 완료 보고의 미해결 evidence는 rejected로 남아 완료 전이를 만들지 않는다.",
+      "6. Data & Runtime Flow": "Native stage report → 공개 report shape 검사 → observed Activity ID 해석 → Stage별 evidence 엄격도 적용 → Request Runtime journal → Session Goal·Stage projection → HUD와 Workbench view로 흐른다.",
+      "7. Identity & Persistence Contract": "Request ID·turn ID·stage task ID·Activity ID와 Session Goal source를 유지한다. evidence에는 journal에서 해석 가능한 Activity ID만 저장한다. 문자열 설명은 식별자로 승격하거나 영속화하지 않는다.",
+      "8. Integration Contract": "app 진입점은 명시 설정이 없을 때 observe Runtime을 구성한다. request-protocol은 evidence가 식별자 전용임을 안내한다. request-runtime은 Stage별 수용 경계를 집행하고 Workbench projection은 journal 결과만 읽는다.",
+      "9. Failure & Recovery Contract": "공개 Stage shape가 잘못되면 해당 보고를 거절하고 사용자에게 이유를 남긴다. Session Goal 부재는 진행 중 목표가 아니므로 헤더에서 숨긴다. 초기 Stage의 미해결 설명 evidence는 제거 후 진행한다. 완료 Stage의 증거 누락은 거절해 가짜 완료를 막는다. 다음 유효 보고로 같은 Request가 회복될 수 있다.",
+      "10. Acceptance Contract": "AC-001: 일반 runWww 요청도 Stage 관측이 켜진다. AC-002: 설명형 evidence 때문에 초기 Stage 전체가 blocked 되지 않는다. AC-003: EXECUTE·VERIFY·DELIVER 완료 증거는 엄격하다. AC-004: queued follow-up의 Goal 연속성이 유지된다. AC-005: Session Goal 부재 시 첫 화면에 GOAL·‘이해 중’이 노출되지 않는다. 자동 회귀는 PASS이고 실제 재시작 TUI 수락은 남아 partial이다.",
+      "11. Verification Strategy": "app-runtime-mode.test.ts로 기본 observe 연결을, request-runtime.test.ts로 Stage별 evidence 경계를, project-workbench-recording.test.ts로 queued Goal 연속성을, www-ui.test.ts로 빈 Goal 비노출과 실제 Goal 배지를 검증한다. 관련 회귀·타입·가독성 검사와 독립 리뷰를 함께 적용한다.",
+      "12. Implementation Map": "src/app.ts가 기본 Runtime mode를, request-protocol.ts가 공개 보고 지침을, request-runtime.ts가 evidence 해석과 Stage 상태 전이를, project-workbench.ts가 queued Goal context를 소유한다.",
+      "13. Current State & Gaps": "기본 observe 연결과 Stage별 evidence 판정, 빈 Session Goal 비노출이 구현됐다. 집중 회귀 73개, 전체 관련 회귀 193개, 첫 화면 후속 보정 회귀 91개가 통과했다. 실제 사용자가 재시작한 TUI에서 0/7 회복을 확인하는 수락과 Vault·Linear 게시 read-back은 남아 있다.",
+      "14. Decisions & Evidence": "DEC-STAGE-001 approved: 계획 단계 설명 evidence는 식별자로 해석되지 않으면 버리되 보고는 수용한다. DEC-STAGE-002 approved: 실행·검증·전달 완료 evidence는 계속 엄격하게 강제한다. DEC-RUNTIME-001 approved: plain runWww 기본값을 off가 아닌 observe로 둔다. DEC-GOAL-001 approved: Session Goal 부재는 진행 상태가 아니므로 ‘GOAL 이해 중’으로 대체하지 않고 숨긴다. 근거는 2026-09-27 사용자 관측, request runtime·www-ui 회귀, .www/evidence/stage-dashboard-spec-review.md의 최종 CLEAR다.",
+      "Change Log": "2026-09-27 queued follow-up Goal 연속성 계약을 추가했다. 2026-09-27 기본 observe Runtime과 계획·완료 Stage의 evidence 판정 경계를 추가했다. 2026-09-27 실제 Session Goal이 없을 때 첫 화면 GOAL 임시 문구를 숨기는 계약을 추가했다."
+    }
+  },
+  "links": {
+    "linear": "WOO-700",
+    "parentLinear": "WOO-682",
+    "evidence": ".www/evidence/2026-09-27-stage-dashboard-completion"
+  },
+  "expectedBefore": { "digest": "a53387f5bf69b8688562d38edb1f0d54f539dd12e82be5133d26ade007e94bf5" },
+  "validation": [
+    { "id": "canonical-identity", "status": "pass", "evidence": "기존 WOO-700 Candidate의 document_id와 target path를 유지했다." },
+    { "id": "contract-change", "status": "pass", "evidence": "기본 Runtime과 Stage별 evidence 수용 경계가 behavior와 failure 계약을 바꾼다." },
+    { "id": "independent-review", "status": "pass", "evidence": "독립 Spec 재검토가 최종 CLEAR로 판정했다." },
+    { "id": "publication-boundary", "status": "pass", "evidence": "게시 전에 Vault actual-before를 다시 읽어야 하며 현재 Candidate만 준비한다." }
+  ],
+  "candidateDigest": "f928ca5726da73f18e3789fb512ee5280090dc7bfeb06005fdaf9242e9ffc5ab"
+}

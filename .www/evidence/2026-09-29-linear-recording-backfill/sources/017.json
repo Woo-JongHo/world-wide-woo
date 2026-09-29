@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-WWW-LAYER-MONITORING-PRINCIPLES-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:ca775998641d284738cd87c50d2593f689b6c86c:dirty",
+  "intent": "WOO-913의 Monitoring 계측 원칙과 7계층 진단 계약을 기록한다",
+  "target": { "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db" },
+  "content": {
+    "changes": [
+      "Google SRE Four Golden Signals를 WWW 실행 계층에 번역한 Layer Monitoring 원칙을 작성했다.",
+      "Native Receive부터 Terminal Write까지 7계층을 정의하고 각 계층의 waitMs와 workMs를 분리했다.",
+      "관측값만 표시하고 synthetic·unobserved·현재 snapshot·시간 추세를 구분하는 화면 계약을 고정했다.",
+      "Context 전체 점유율을 연속 bar에서 동일 크기 cell로 바꾸고 source별 token 비율을 만들지 않았다.",
+      "Figma Monitoring 섹션에 7계층·Golden Signals 기준 화면 06 MONITOR — Layer Performance를 생성했다.",
+      "Core에 bounded LayerPerformanceRecorder를 추가해 7계층 wait/work, partial, 실패, 역행 시계와 p50·p95·p99 window projection을 구현했다.",
+      "Native Receive부터 Terminal Write까지 실제 7개 경계를 이벤트별 trace로 연결하고 /monitor 현재 trace와 /dashboard window 요약에 투영했다.",
+      "새 turn에서는 이전 Context 점유값을 무효화하고 Native가 다시 보고하기 전까지 미관측으로 유지한다.",
+      "제품 TypeScript 305개를 STEP1·STEP2로 전수 검사하고 src 내부 module specifier 985개를 @ alias로 통일했다."
+    ],
+    "impacts": [
+      "/monitor는 현재 trace waterfall, /dashboard는 window별 Golden Signals, /cache는 기존 cache slice를 각각 독립적으로 소유한다.",
+      "Context bucket은 전체 Native context 점유율만 나타내며 source별 token 비율을 추정하지 않는다."
+    ],
+    "categories": ["feature", "improvement"],
+    "verification": [
+      "Google SRE 공식 Monitoring Distributed Systems, SRE Workbook Monitoring, Google Cloud Observability의 Golden Signals와 percentile·freshness 지침을 대조했다.",
+      "기존 WOO-913 publish Receipt와 Figma Monitoring audit를 대조해 같은 책임 범위임을 확인했다.",
+      "Context UI 대상 테스트 69건이 통과했고 Figma node 77:2의 1440×900 read-back을 확인했다.",
+      "layer-performance 대상 테스트 4건, 핵심 Workbench·Astra 회귀 67건과 TypeScript noEmit 검사가 통과했다.",
+      "제품 TypeScript 305/305 파일의 STEP1·STEP2 검사와 exactOptionalPropertyTypes 0건을 확인했다.",
+      "전체 회귀 1455건과 assertion 18768건이 모두 통과했다.",
+      "git diff --check와 Artifact Candidate validate/render를 수행한다."
+    ],
+    "connections": [
+      "Linear: WOO-913 · UUID 8367530b-1a29-4983-994b-c2bf61ac687e",
+      "Research: docs/research/2026-09-24-www-layer-monitoring-principles.md",
+      "Obsidian Candidate: .www/evidence/2026-09-24-www-layer-monitoring-principles/obsidian-canonical-candidate.json",
+      "Figma: Q7kGUdqiaQRJI8CZlPMRX7 · section 50:609 · monitor node 77:2"
+    ]
+  },
+  "links": {
+    "issue": "https://linear.app/woo-world/issue/WOO-913/workbench-monitoring-figma-5화면의-계측-의미와-정보-구조를-일치시킨다",
+    "research": "docs/research/2026-09-24-www-layer-monitoring-principles.md",
+    "evidence": ".www/evidence/2026-09-24-www-layer-monitoring-principles"
+  },
+  "expectedBefore": { "latestCommentId": "1c9c3c89-562a-4705-9c6e-3dac2e978948" },
+  "validation": [
+    { "id": "issue-binding", "status": "pass", "evidence": "WOO-913 publish Receipt가 UUID, parent WOO-674, Project ID와 Monitoring Figma 5화면 책임을 read-back했다." },
+    { "id": "contract-evidence", "status": "pass", "evidence": "원칙 문서가 외부 공식 근거와 WWW의 observed-only·synthetic-only 계약을 함께 기록한다." },
+    { "id": "publication-boundary", "status": "pass", "evidence": "Candidate만 준비하며 게시 전 최신 Activity를 재조회하고 별도 사용자 승인을 받는다." }
+  ],
+  "candidateDigest": "d9531f76efd65a419ab57f109c4d2799f97e24b290784b06b6c4ab2750e53120"
+}

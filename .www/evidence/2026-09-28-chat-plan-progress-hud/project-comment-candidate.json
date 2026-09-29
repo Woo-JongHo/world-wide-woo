@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-CHAT-PLAN-PROGRESS-HUD-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty",
+  "intent": "Chat 우측의 PLAN·PROGRESS 고정 구조와 입력창 위 STAGE HUD 구현 결과를 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "Chat 우측을 대기·실행 상태 모두 PLAN·PROGRESS 중심의 압축 rail로 고정하고 상세 trace는 Monitor에 남겼다.",
+      "7개 STAGE 상태를 입력창 위 한 줄 HUD로 옮기고 좁은 폭에서는 약어 또는 현재 단계만 표시한다.",
+      "실행 전에도 마지막 Native 계획을 같은 rail에 표시하고 계획이 없으면 '계획 미보고'로 표시한다."
+    ],
+    "impacts": [
+      "사용자가 현재 계획과 진행을 먼저 읽고, 전체 단계 위치는 HUD에서 가볍게 확인할 수 있다.",
+      "미관측 작업 비율과 단계별 소요시간을 추정하지 않는다."
+    ],
+    "categories": [
+      "improvement",
+      "verification"
+    ],
+    "verification": [
+      "bunx tsc --noEmit: 통과.",
+      "사이드바 수정 후 관련 선택 테스트 24개 통과, bun run check 및 git diff --check 통과.",
+      "전체 www-ui 테스트는 기존 Welcome 문구 기대값 불일치 1건으로 실패했다."
+    ],
+    "connections": [
+      "Primary Linear: WOO-700 · STAGE·PLAN·PROGRESS 표시",
+      "Related Linear: WOO-680 · Layout",
+      "Evidence: .www/evidence/2026-09-28-chat-plan-progress-hud",
+      "Branch: dev · HEAD 8486a759746ab2e0748beb1ab9fdd4d250fa6b27 · uncommitted"
+    ]
+  },
+  "links": {
+    "issue": "https://linear.app/woo-world/issue/WOO-700/01-내-입력에-대한-계획이-세워지는-과정을-세션-todo로-보여준다",
+    "relatedIssue": "https://linear.app/woo-world/issue/WOO-680/layout-화면-크기가-달라져도-읽던-위치와-입력-흐름을-유지한다",
+    "evidence": ".www/evidence/2026-09-28-chat-plan-progress-hud"
+  },
+  "expectedBefore": {
+    "latestCommentId": "1c9c3c89-562a-4705-9c6e-3dac2e978948"
+  },
+  "validation": [
+    {
+      "id": "issue-binding",
+      "status": "pass",
+      "evidence": "로컬 WOO-700 정본 후보와 기존 Project Comment에서 STAGE·PLAN·PROGRESS의 소유권을 확인했다. 최신 Linear 상태는 미확인이다."
+    },
+    {
+      "id": "duplicate-decision",
+      "status": "pass",
+      "evidence": "게시 전인 기존 Chat rail·HUD Candidate를 사용자 정정에 맞게 개정했다. 게시 전 최신 Activity 재조회가 필요하다."
+    },
+    {
+      "id": "publication-boundary",
+      "status": "pass",
+      "evidence": "Candidate만 준비하며 원격 최신 상태 확인과 사용자 승인 전에는 게시하지 않는다."
+    }
+  ],
+  "candidateDigest": "78a540cf6ae87a3fde0af85f3c9ba90ad2960983327f954702c36f2dd9acf810"
+}

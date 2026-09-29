@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.1",
+  "status": "published",
+  "surface": "linear-project-comment",
+  "candidateId": "ARTIFACT-CANDIDATE-RECORDING-BACKFILL-064",
+  "sourceCandidateId": "ARTIFACT-CANDIDATE-SLASH-COMMAND-PALETTE-COMMENT",
+  "sourceCandidatePath": ".www/evidence/2026-09-28-slash-command-palette/project-comment-candidate.json",
+  "sourceCandidateDigest": "454157284a911f06d33ae499db5b6024136d098a892bf1a9ed089a7be90310b5",
+  "sourceFileSha256": "3c62b64626e9b2e8e3d555f79942ef490b0b50947f996733cf462def290a8260",
+  "candidateDigest": "2947b9f7eb431147d41edd9da633d7336aedb0a5fa2736414af167a668f6751e",
+  "candidatePath": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/064.json",
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "expectedBefore": {
+    "latestCommentId": "f2220652-c031-43b4-a4d8-7f9f0f986f82"
+  },
+  "comment": {
+    "id": "4204d3ee-7d73-47b2-99c8-faa20620e752",
+    "body": "## 변경\n\n- 과거 작업 기록 회수: 빈 입력란에서 슬래시 명령 찾기가 열리지 않던 입력 흐름 수정 기록 (원문 Candidate: ARTIFACT-CANDIDATE-SLASH-COMMAND-PALETTE-COMMENT)\n- 당시 로컬 작업 기록: 빈 WWW 입력란에서 / 키를 누르면 기존 명령 찾기 팝업을 열도록 입력 라우터를 연결했다.\n- 당시 로컬 작업 기록: 명령 검색과 80x24 화면 흐름을 셸 테스트에서 확인했다.\n\n## 영향\n\n- 당시 기록된 영향: / 키가 입력란에 문자로만 남는 문제를 해소하고 명령을 찾아 선택할 수 있게 했다.\n- 미게시 로컬 기록을 Project Activity에서 추적할 수 있게 회수한다. 과거 진행·완료·차단 상태를 현재 구현 완료 또는 이슈 상태 변경으로 승격하지 않는다.\n\n## 분류\n\nFix · Validation\n\n## 검증\n\n- 2026-09-29 회수 검증: 원문 파일 SHA-256 3c62b64626e9b2e8e3d555f79942ef490b0b50947f996733cf462def290a8260; 연결 이슈의 현재 WWW 소속과 Project Activity 중복·latest identity를 확인했다.\n- 아래는 원문 Candidate에 남은 당시 검증 기록이다. 이번 회수에서 테스트·원격 실행·현재 제품 동작을 재검증한 결과가 아니다.\n- 당시 검증 기록: bun test test/www-shell.test.ts: 8 pass, 0 fail, 218 expect.\n- 당시 검증 기록: bun run check: 통과.\n- 당시 검증 기록: git diff --check -- src/adapters/inbound/tui/shell/workbench-input-routing.ts test/www-shell.test.ts: 통과.\n\n## 연결\n\n- 이번 기록에서 참조하는 기존 이슈: [WOO-674](https://linear.app/woo-world/issue/WOO-674/workbench-대화와-계획을-읽고-입력과-상태를-통제한다) · [WOO-694](https://linear.app/woo-world/issue/WOO-694/입력전송중단과-세션-설정을-예측-가능하게-조작한다)\n- 원문 Candidate: .www/evidence/2026-09-28-slash-command-palette/project-comment-candidate.json\n- 원문 Source Revision: git:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty\n- 원문 Candidate Digest: 454157284a911f06d33ae499db5b6024136d098a892bf1a9ed089a7be90310b5\n- 원문 연결: Primary Linear: WOO-674 · Workbench 대화와 계획을 읽고 입력과 상태를 통제한다 (로컬 read-back 기준)\n- 원문 연결: Evidence: .www/evidence/2026-09-28-slash-command-palette\n- 원문 연결: Code: src/adapters/inbound/tui/shell/workbench-input-routing.ts · test/www-shell.test.ts\n- 회수 Evidence: .www/evidence/2026-09-29-linear-recording-backfill",
+    "attachments": [],
+    "createdAt": "2026-09-28T22:11:35.560Z",
+    "updatedAt": "2026-09-28T22:11:35.516Z",
+    "parentId": null,
+    "resolvedAt": null,
+    "quotedText": null,
+    "author": {
+      "id": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "name": "우종호"
+    },
+    "onBehalfOf": null
+  },
+  "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-4204d3ee-7d73-47b2-99c8-faa20620e752",
+  "readBack": {
+    "exactBodyMatch": true,
+    "checkedAt": "2026-09-28T22:11:37.949Z"
+  },
+  "scope": "Historical local record recovery; not current implementation acceptance"
+}

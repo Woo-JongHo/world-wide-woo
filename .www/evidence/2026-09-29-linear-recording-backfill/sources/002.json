@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-CLI-READABILITY-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:ce7731454c09c4ca5df4413f9f223be3eaea960c:dirty",
+  "intent": "CLI 가독성 적용과 Native turn 정체 진단의 작업 경과를 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "사용자가 정본에 가깝다고 지정한 src/cli.ts의 광범위한 재구성을 철회하고 기존 import·콜론·화살표 축을 복구했다.",
+      "주 의존성 타입 이름을 CLIDependencies로 정리하되 기존 CliDependencies를 호환 alias로 보존하고, switch case를 한 줄 비교 행으로 정렬했다.",
+      "production dependency의 괄호 셀을 최장 인자 threads/options의 7자 폭으로 줄이고 짧은 인자만 가운데 정렬했으며 빈 인자는 붙은 ()로 유지했다.",
+      "Run·List·Select·Write를 독립 표로 계산해 Promise 타입 폭을 구획별 최장값으로 축소하고 최소 폭·가운데 정렬 검사기와 TypeScript 템플릿을 추가했다.",
+      "CLI 도움말 카탈로그를 실행 진입점에서 adapters/inbound/cli/www-help.ts로 이동하고 src/cli.ts에는 출력 조율만 남겼다.",
+      "인터페이스 우측 설명을 84열에 맞추고 production 마지막 호출 뒤 패딩을 제거해 세미콜론 뒤 한 칸으로 바로 닫게 했다.",
+      "비공개 로컬 타입 5개의 반복 JSDoc을 선언 옆 57열 설명 표로 묶고 공개 hover 계약과 로컬 탐색 설명 규칙을 분리했다.",
+      "src/**/*.ts 258개 전체의 실행 흐름·hotspot·개선 wave를 docs/audit/2026-09-21-code-readability-map.md와 정규화 Evidence로 만들었다.",
+      "ExecutorPort에 적용한 과도한 역할 구획과 Promise 내부 패딩을 사용자 피드백 뒤 철회하고 공개 Port·Domain 계약은 compact 표기를 유지하도록 규칙을 제한했다.",
+      "www-help.ts의 제목·빈 줄·명령 행 혼합 배열을 Usage·Astra·Router의 동질적인 명령 튜플 표와 공통 섹션 renderer로 분리했다.",
+      "실제 www 세션에서 Native turn 이벤트가 reasoning 뒤 끊기고 Working 상태가 장시간 유지된 증거를 회수해 GitHub #58로 등록하고 read-back했다."
+    ],
+    "impacts": [
+      "정본 파일을 재설계하지 않고 사용자가 지정한 타입 이름과 case 표현만 최소 변경하며, 수락된 문법 축을 다른 파일의 통일성 기준으로 사용한다.",
+      "후속 가독성 작업은 Native 실행 경로부터 한 파일씩 진행할 수 있는 전 저장소 기준선을 갖는다.",
+      "Native 정체는 새 Linear 기능으로 만들지 않고 기존 WOO-710의 장시간 terminal event 단절 책임에 결속한다.",
+      "코드 가독성 작업은 기존 WOO-842의 폴더·의존 경계 이관과 분리된 WOO-911에서 추적한다."
+    ],
+    "categories": ["improvement", "refactor", "fix", "verification"],
+    "verification": [
+      "bun test test/cli.test.ts test/astra-shell.test.ts test/development-cli.test.ts test/architecture.test.ts: 38 pass, 0 fail, 2290 assertions",
+      "bun run check, git diff --check, optional 기준선 93과 src/cli.ts 대상 오류 0건 통과",
+      "정규화 인벤토리 258개 unique path와 현재 src/**/*.ts 경로 집합의 누락·추가 0건 확인",
+      "사용자 피드백 뒤 import from=41, 인터페이스 :=24·=>=54, case :=24·return=99를 실측하고 가독성 계약의 정본 보존 규칙을 수정",
+      "measure-layout.ts --center-cell로 production 인자와 Run·List·Select의 Promise 내부 최소 폭·중앙 정렬 통과",
+      "measure-layout.ts --compact-before로 production 마지막 호출의 후행 패딩 부재를 확인하고 CLI·아키텍처 30개 테스트를 통과",
+      "로컬 타입 표의 type=1·등호=22·설명=57열을 실측하고 hover fixture의 공개 타입 설명 3건을 확인",
+      "가독성 검사기 회귀 테스트 25개·94 assertions와 ExecutorPort 관련 184개 테스트·2574 assertions, TypeScript 검사, 아키텍처 검사, diff 검사를 통과",
+      "도움말 구조 변경 전후 Bun hash 4b3fce28f3e4ca38 일치와 CLI·아키텍처 테스트 30개·1722 assertions 통과를 확인",
+      "세션 transcript에서 task_started 3건·task_complete 2건과 마지막 reasoning 이후 무관측을 반복 확인"
+    ],
+    "connections": [
+      "Linear: WOO-710",
+      "Linear: WOO-911",
+      "GitHub: Woo-JongHo/world-wide-woo#58",
+      "Git: ce7731454c09c4ca5df4413f9f223be3eaea960c dirty worktree",
+      "Evidence: .www/evidence/2026-09-21-native-turn-stall, .www/evidence/2026-09-21-cli-readability, .www/evidence/2026-09-21-code-readability-map",
+      "Docs: docs/audit/2026-09-21-code-readability-map.md"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-710/도구-실행-종료가-지연되어-입력이-멈추는-상태를-복구한다",
+    "evidence": ".www/evidence/2026-09-21-cli-readability"
+  },
+  "expectedBefore": {
+    "latestCommentId": "7c2cd97d-d51b-4cca-906c-cfec0c1a4e91"
+  },
+  "validation": [
+    {
+      "id": "project-comment-readback",
+      "status": "pass",
+      "evidence": "World Wide Woo Project Comment 목록을 조회해 최신 Comment ID와 동일 작업 단위의 기존 Comment 부재를 확인했다."
+    },
+    {
+      "id": "change-verification",
+      "status": "pass",
+      "evidence": "대상·아키텍처 테스트 38개·2290 assertions, TypeScript 검사, git diff --check, 258개 경로 정합을 실제 실행했다."
+    }
+  ],
+  "candidateDigest": "ee77bddba108a137784ab81592b1f62358bfceea9e4641780a9891bc86836fab"
+}

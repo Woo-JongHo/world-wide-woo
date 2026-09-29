@@ -1,0 +1,88 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-WOO-700-CHAT-PLAN-PROGRESS-HUD",
+  "kind": "obsidian-canonical",
+  "sourceRevision": "worktree:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty",
+  "intent": "WOO-700의 Chat PLAN·PROGRESS rail과 STAGE HUD 표시 책임을 기존 상세 정본에 반영한다",
+  "target": {
+    "relativePath": "Todo/Native Plan projection — AI가 세운 계획을 세션별로 실시간 확인한다.md"
+  },
+  "content": {
+    "properties": {
+      "document_id": "911c3fc2-5576-4651-9067-811a6238608e",
+      "linear": "WOO-700",
+      "record_type": "detailed-canonical",
+      "schema_version": 2,
+      "status": "active",
+      "acceptance": "partial",
+      "domain": "Todo",
+      "capability": "Native Plan projection",
+      "parent": null,
+      "related": [],
+      "spec_ids": [],
+      "code_ids": [
+        "Code-002",
+        "Code-011"
+      ],
+      "test_ids": [],
+      "exception_ids": [],
+      "decision_ids": [],
+      "tags": [
+        "www/spec",
+        "domain/todo",
+        "capability/native-plan",
+        "status/partial"
+      ],
+      "source_revision": "worktree:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty",
+      "updated_at": "2026-09-28T03:40:42Z"
+    },
+    "sections": {
+      "1. Intent": "사용자는 GOAL과 이를 수행하는 STAGE·PLAN·PROGRESS를 구분해 읽고, Chat에서는 대기·실행 상태 모두 계획과 진도를 우선 확인해야 한다.",
+      "2. Scope": "Chat rail은 현재 Native 계획 항목과 진행 상태를 간결하게 표시한다. 입력창 위 HUD는 7개 STAGE의 위치만 표시한다. Monitor의 trace·span·세부 계측, 추정 진행률, 새 Runtime 이벤트 생성은 제외한다.",
+      "3. Desired Behavior": "Given 현재 turn에 Native checklist가 있을 때 Chat rail은 PLAN·PROGRESS를 표시하고 STAGE HUD는 현재 단계를 강조한다. Given 실행 전이면 rail은 PLAN·PROGRESS 구조를 유지하고 마지막 계획이 있으면 '최근 요청 계획'으로 구분한다. Given 계획이 미보고이면 추정 항목 대신 '계획 미보고'를 표시한다. terminal 요청에서 blocked 상태는 완료로 위장하지 않는다.",
+      "4. Domain Contract": "INV-001: STAGE는 고정 Runtime 상태, PLAN은 Native checklist 또는 현재 request task, PROGRESS는 그 관측된 상태를 소유한다. INV-002: Chat rail의 작업 수는 실제 plan/task 항목만 센다. INV-003: 관측되지 않은 시간·비율은 표시하지 않는다. INV-004: 이전 turn의 계획은 최근 요청 계획으로 구분하고 현재 진행으로 표시하지 않는다. 기존 terminal 분자와 blocked 의미는 유지한다.",
+      "5. State Model": "Stage는 pending·running·completed·skipped·failed·blocked를 투영한다. Chat HUD는 7개 상태를 한 줄에 배치하고 폭이 부족하면 약어, 더 좁으면 현재 단계만 표시한다. Chat rail은 idle·working 모두 PLAN·PROGRESS를 유지한다. 실행 진단과 시스템 정보는 F4 Monitor 화면의 책임이다.",
+      "6. Data & Runtime Flow": "WorkbenchSnapshot의 activeTurnId가 있으면 현재 requestRuntime stage/task와 같은 turn의 Native checklist를 읽고, 없으면 workFlow source의 마지막 turn 계획을 최근 요청 계획으로 구분해 Chat rail에 투영한다. Stage HUD는 현재 요청만 읽는다. Monitor 원본 trace는 기존 화면에 남으며 새 이벤트를 만들지 않는다.",
+      "7. Identity & Persistence Contract": "Request ID·turn ID·stage ID·계획 항목 ID를 변경하지 않는다. rail과 HUD는 저장하지 않는 presentation이며 이전 turn을 현재 상태로 재귀속하지 않는다.",
+      "8. Integration Contract": "Request Runtime과 Native plan projection이 사실을 소유한다. Chat은 PLAN·PROGRESS 요약, HUD는 STAGE 위치, Monitor는 상세 실행 trace를 소유한다. WOO-680은 폭과 composer 배치 책임으로 연결한다.",
+      "9. Failure & Recovery Contract": "계획이 없으면 '계획 미보고', 작업 수가 없으면 비율 대신 대시를 표시한다. 좁은 terminal에서 7개 전체 이름이 맞지 않으면 약어 또는 현재 단계로 축소한다. 중단 상태는 failed·blocked 기호를 유지하며 재시도는 별도 Runtime 요청이 소유한다.",
+      "10. Acceptance Contract": "AC-CHAT-001: 대기·실행 중 Chat rail에서 PLAN·PROGRESS가 유지되고 Monitor trace section은 나타나지 않는다. AC-CHAT-002: active request가 있을 때 7개 STAGE가 HUD에 표시되며 좁은 폭에서 정렬이 유지된다. AC-CHAT-003: idle에서 마지막 계획은 최근 요청으로 표시하며 계획이 없으면 '계획 미보고'를 표시한다. AC-CHAT-004: 계획·duration이 미관측이면 값이나 진행률을 만들지 않는다. 실제 TUI 사용자 수락은 partial이다.",
+      "11. Verification Strategy": "www-telemetry-duration.test.ts의 working·idle Chat rail 회귀와 관련 선택 테스트 24개를 검증한다. bun run check와 git diff --check를 실행한다. 전체 www-ui의 기존 Welcome 문구 기대값 불일치 1건은 별도 잔여 실패로 유지한다.",
+      "12. Implementation Map": "www-monitor-view.ts의 compact runInspector가 Chat rail을, www-surface.ts의 WwwStageHud가 단계 한 줄을, workbench-shell.ts가 composer 위 배치를 소유한다. full WwwMonitorView는 상세 Monitor로 남긴다.",
+      "13. Current State & Gaps": "Chat PLAN·PROGRESS rail과 Stage HUD는 로컬 구현·관련 회귀를 통과했다. 전체 www-ui에는 기존 Welcome 문구 기대값 실패가 있고, 최신 Linear·Vault read-back과 실제 TUI 사용자 수락은 남아 있다.",
+      "14. Decisions & Evidence": "DEC-CHAT-HUD-001 approved by user: Chat rail은 PLAN·PROGRESS를 먼저 보여주고 STAGE는 composer 위 한 줄 HUD로 분리한다. 7단계 전체 pipeline을 rail과 Chat transcript에 중복하는 대안은 주의 분산으로 기각한다. DEC-CHAT-HUD-002 requested by user: idle에서도 Chat rail은 PLAN·PROGRESS를 유지한다. 이전 READY inspector 전환은 의도한 설계와 달라 폐기한다. 사용자의 2026-09-28 정정과 www-monitor-view.ts·www-telemetry-duration.test.ts가 근거다. 최신 Vault bytes와 독립 검토는 게시 전에 확인해야 한다.",
+      "Change Log": "2026-09-27 GOAL·STAGE·PLAN·PROGRESS와 terminal 진행률 계약을 반영했다. 2026-09-28 Chat rail의 PLAN·PROGRESS 우선 구조 및 Stage HUD 표시 책임을 반영했다. 같은 날 idle READY inspector 전환을 폐기하고 PLAN·PROGRESS 고정 구조로 정정했다."
+    }
+  },
+  "links": {
+    "linear": "WOO-700",
+    "relatedLinear": "WOO-680",
+    "evidence": ".www/evidence/2026-09-28-chat-plan-progress-hud"
+  },
+  "expectedBefore": {
+    "digest": "a53387f5bf69b8688562d38edb1f0d54f539dd12e82be5133d26ade007e94bf5"
+  },
+  "validation": [
+    {
+      "id": "canonical-identity",
+      "status": "pass",
+      "evidence": "로컬 기존 WOO-700 Candidate의 document_id·target 경로를 유지했다. 최신 Vault bytes는 아직 읽지 못했다."
+    },
+    {
+      "id": "contract-change",
+      "status": "pass",
+      "evidence": "Chat rail·HUD·Monitor 책임 분리가 사용자에게 보이는 표시 계약을 바꾸므로 기존 정본 개정 후보가 필요하다."
+    },
+    {
+      "id": "design-triage",
+      "status": "pass",
+      "evidence": "기존 capability의 되돌릴 수 있는 TUI presentation 보정이며 새 스키마·저장·신뢰 경계는 없다. 새 정본 발급은 필요하지 않다."
+    },
+    {
+      "id": "publication-boundary",
+      "status": "pass",
+      "evidence": "Candidate만 준비하며 최신 Vault digest·사용자 승인·독립 검토 전에는 게시하지 않는다."
+    }
+  ],
+  "candidateDigest": "da233d2f0069e43edfa577fe331717768e5bed68cd30fd8cfa0b0daa688799fc"
+}

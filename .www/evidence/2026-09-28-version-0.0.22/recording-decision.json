@@ -1,0 +1,11 @@
+{
+  "scope": "0.0.22 패키지 버전과 표시 테스트 기대값 갱신",
+  "issue": {
+    "primary": "WOO-912",
+    "decision": "기존 0.0.19 버전 표기 작업의 로컬 결속을 재사용한다. 최신 Linear read-back은 미실행이므로 새 이슈 발급과 외부 수정은 보류한다."
+  },
+  "projectComment": "project-comment-candidate.json",
+  "obsidian": null,
+  "obsidianDecision": "WHY·API·schema·권위 경계가 바뀌지 않은 버전 숫자와 테스트 기대값의 변경이라 새 상세 정본 Candidate는 만들지 않는다.",
+  "publication": "후보만 작성했다. 최신 Project Activity 중복 대조와 항목별 승인 전에는 게시하지 않는다."
+}

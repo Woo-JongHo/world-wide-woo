@@ -1,0 +1,26 @@
+{
+  "scope": "일반 observe 요청의 GOAL·Native PLAN·PROGRESS 표시와 질문 배경",
+  "issue": {
+    "decision": "기존 WOO-700에 결속하고 새 Linear 이슈 Candidate는 만들지 않는다.",
+    "primary": "WOO-700",
+    "related": "WOO-680",
+    "evidence": "기존 WOO-700 로컬 정본 후보와 Project Comment 후보가 요청 Runtime·Native Plan·Chat rail을 소유한다. 질문 배경과 폭 배치는 WOO-680의 관련 범위다. 현재 Linear 서버 read-back은 미실행이다."
+  },
+  "projectComment": {
+    "candidate": "project-comment-candidate.json",
+    "digest": "0571df3de487ee91cc479ce094f419eeb97eae6466631e9a3dbcc84fcf3847fc",
+    "state": "local-validated; current-project-activity-and-duplicate-check-pending"
+  },
+  "obsidian": {
+    "decision": "일반 Chat에 7단계 HUD를 표시한다는 기존 후보의 계약을 사용자 결정에 따라 개정한다. 동일 document_id를 유지하고 독립 검토 전이므로 draft Candidate로 둔다.",
+    "candidate": "obsidian-canonical-candidate.json",
+    "digest": "dd9b7a7c08b77a63622435a6655573567682ee61217bdfc7d",
+    "state": "local-validated; current-vault-bytes-and-independent-review-pending"
+  },
+  "verification": {
+    "tests": "verification-tests.txt: 121 pass, 0 fail",
+    "typecheck": "verification-typecheck.txt: bun run check exited 0",
+    "diffCheck": "git diff --check exited 0"
+  },
+  "publication": "등록된 linear-woo MCP와 Obsidian Vault read-back 도구가 이 세션에 노출되지 않았다. 다른 Linear 연결은 워크스페이스가 다를 수 있어 사용하지 않았다. 최신 원본 대조·항목별 사용자 승인·게시 read-back 전에는 외부 쓰기를 하지 않는다."
+}

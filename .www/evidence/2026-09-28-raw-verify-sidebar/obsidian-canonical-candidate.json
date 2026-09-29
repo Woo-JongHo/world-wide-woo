@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "1.1",
+  "sourceRevision": "git:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty",
+  "links": {
+    "evidence": ".www/evidence/2026-09-28-raw-verify-sidebar"
+  },
+  "candidateDigest": "9a9f5ebc46c5f111586c3d5bd032b46986e0d6e1dda7471c582a47cb97d40f34",
+  "candidateId": "ARTIFACT-CANDIDATE-RAW-VERIFY-OBSIDIAN-DRAFT",
+  "kind": "obsidian-canonical",
+  "intent": "TEST/VERIFY의 원문 권위와 Monitor 책임 경계를 기존 상세 정본에 반영한다",
+  "target": {
+    "proposedRelativePath": "Workbench/Test — Native가 실행한 검증을 원문으로 본다.md"
+  },
+  "content": {
+    "properties": {
+      "status": "draft",
+      "acceptance": "partial",
+      "domain": "Workbench",
+      "capability": "Test",
+      "source_revision": "git:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty"
+    },
+    "sections": {
+      "1. Intent": "사용자는 Native가 실제 실행한 검증 명령과 테스트 원문 결과를 2초 안에 읽어야 한다.",
+      "2. Scope": "VERIFY 레일은 commandExecution의 관측된 명령·Bun 파일/스위트·실패 테스트·건수·시간·exit code만 표시한다. 깊은 출력은 Monitor 책임이다.",
+      "3. Desired Behavior": "실패 그룹은 원문 테스트명과 원문 오류를 표시하고, 재실행은 이전 실패와 새 결과를 함께 보인다. 미관측 값은 —로 둔다.",
+      "4. Domain Contract": "러너 출력이 테스트 값의 권위자다. AI 분류·번역·목적 추론은 금지한다. 관측된 케이스 수의 결정적 합산만 허용한다.",
+      "5. State Model": "실행은 running/passed/failed/unknown, 표시에는 COMPLETE와 PASSED를 구분한다. 선택한 명령은 Monitor 상세로 연다.",
+      "6. Data & Runtime Flow": "ProjectActivity commandExecution의 aggregatedOutput을 Bun 문법으로 파싱하고, command/turn/item ID로 실행을 묶어 VERIFY에 투영한다.",
+      "7. Identity & Persistence Contract": "Native thread/turn/item ID를 실행 identity로 유지하며 새 저장 형식은 만들지 않는다.",
+      "8. Integration Contract": "Bun 출력은 파일/스위트와 케이스 원문을 파싱한다. 다른 러너는 명령·exit code·관측된 도구 시간만 표시한다.",
+      "9. Failure & Recovery Contract": "출력이 잘렸으면 전체 건수는 —로 둔다. Monitor에도 캡처 한계를 표시한다. 재실행은 이전 실패를 지우지 않는다.",
+      "10. Acceptance Contract": "원문 이름·오류를 보존하고 0건을 추정하지 않으며 실패 그룹을 먼저 표시한다. Enter/M은 선택한 실행의 기록된 출력으로 이동한다.",
+      "11. Verification Strategy": "request-test-workspace, architecture, keymap, shell navigation 및 Monitor 선택 테스트를 사용한다. 실제 Native 세션 수동 QA와 반대 provider 리뷰는 미완료다.",
+      "12. Implementation Map": "request-test-workspace.ts가 투영을, www-test-view.ts가 레일을, www-monitor-view.ts가 선택 실행 상세를 소유한다.",
+      "13. Current State & Gaps": "Bun 파싱과 선택 Monitor는 구현했다. 다른 러너의 스위트 파싱과 캡처 한도 밖 전체 stdout/stderr는 지원하지 않는다. /demo 기존 기대값 불일치와 독립 리뷰가 남았다.",
+      "14. Decisions & Evidence": "사용자 RAW FIRST 지시를 채택했다. 기존 질문/의미 분류 화면은 제거했다. 기존 Obsidian document_id·Linear binding은 원격 정본 미조회로 미결이며 게시를 막는다.",
+      "Change Log": "2026-09-28: RAW FIRST VERIFY 계약 후보 작성. 게시 전 기존 정본 identity와 이슈 연결 재조회 필요."
+    }
+  },
+  "expectedBefore": null,
+  "validation": [
+    {
+      "id": "canonical-identity-and-bytes",
+      "status": "not-run",
+      "evidence": "Obsidian 연결·기존 상세 정본 경로/document_id/Linear UUID를 조회하지 못함"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "scope": "Chat 도구 요약의 RES 초안 배치, 성공·실패 전체 요약, 원본 Terminal 카드 보존",
+  "issue": {
+    "primary": "WOO-700",
+    "related": [
+      "WOO-680"
+    ],
+    "decision": "기존 Chat 결속 사용. 원격 Linear read-back은 도구 부재로 미실행."
+  },
+  "projectComment": "project-comment-candidate.json",
+  "obsidian": "obsidian-canonical-candidate.json",
+  "revision": "사용자 정정에 따라 이전 실패만 표시·카드 치환 설명을 폐기하고 Project Comment와 Obsidian Candidate·preview를 최종 동작으로 갱신했다. 두 Candidate의 artifact:control validate·render가 통과했다.",
+  "publication": "정본 linear-woo와 Vault read-back 도구가 이 세션에 노출되지 않아 현재 원본·중복 대조와 외부 게시를 수행하지 않았다. 항목별 승인 전에도 외부 쓰기는 없다."
+}

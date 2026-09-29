@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "1.1",
+  "status": "published",
+  "surface": "linear-project-comment",
+  "candidateId": "ARTIFACT-CANDIDATE-RECORDING-BACKFILL-025",
+  "sourceCandidateId": "ARTIFACT-CANDIDATE-WOO-COMMIT-MESSAGE-CONTRACT-EXECUTION",
+  "sourceCandidatePath": ".www/evidence/2026-09-26-woo-commit-message-contract/project-comment-candidate.json",
+  "sourceCandidateDigest": "34f48a3aeb4b1215abefba54c235fe923a059c956bc56954a28047be11b6a689",
+  "sourceFileSha256": "73b4fe0380c92cd3ff63aa97e2014e7e83c777ebb246b347567ed5c343127401",
+  "candidateDigest": "47b3c3e383c2482c383ef76a4b7f6884e7d32e1fedd4cfb654c03138642d7b22",
+  "candidatePath": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/025.json",
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "expectedBefore": {
+    "latestCommentId": "6c249482-717a-40a7-a757-a1f033b6719b"
+  },
+  "comment": {
+    "id": "193de35a-57d7-4090-b5f2-345da2b31bd6",
+    "body": "## 변경\n\n- 과거 작업 기록 회수: woo-commit 메시지 계약을 Candidate schema와 실행기에 강제한 결과를 기록한다 (원문 Candidate: ARTIFACT-CANDIDATE-WOO-COMMIT-MESSAGE-CONTRACT-EXECUTION)\n- 당시 로컬 작업 기록: Commit Candidate에 Fixes와 Verified 값을 필수 필드로 추가했다.\n- 당시 로컬 작업 기록: validator가 두 값의 누락과 줄바꿈을 차단하고 renderer가 커밋 본문 마지막에 각각 정확히 한 번 출력하게 했다.\n- 당시 로컬 작업 기록: 메시지 위치와 빈 값 거부를 commit-governance 회귀 테스트로 고정했다.\n\n## 영향\n\n- 당시 기록된 영향: 스킬 문서와 실행기의 드리프트 때문에 승인된 커밋 메시지가 기록 계약을 위반할 수 있던 경로를 차단한다.\n- 당시 기록된 영향: 의미 단위 분할, 사용자 승인, 로컬 commit 전용이라는 기존 WOO-844 경계는 유지한다.\n- 미게시 로컬 기록을 Project Activity에서 추적할 수 있게 회수한다. 과거 진행·완료·차단 상태를 현재 구현 완료 또는 이슈 상태 변경으로 승격하지 않는다.\n\n## 분류\n\nFix · Validation\n\n## 검증\n\n- 2026-09-29 회수 검증: 원문 파일 SHA-256 73b4fe0380c92cd3ff63aa97e2014e7e83c777ebb246b347567ed5c343127401; 연결 이슈의 현재 WWW 소속과 Project Activity 중복·latest identity를 확인했다.\n- 아래는 원문 Candidate에 남은 당시 검증 기록이다. 이번 회수에서 테스트·원격 실행·현재 제품 동작을 재검증한 결과가 아니다.\n- 당시 검증 기록: bun test test/commit-governance.test.ts --reporter=dots: 10 pass, 0 fail.\n- 당시 검증 기록: bun run check의 tsc --noEmit 통과.\n- 당시 검증 기록: 대상 TypeScript import 정규화와 표 정렬 검사, 스킬 quick validation, 대상 diff check 통과.\n\n## 연결\n\n- 이번 기록에서 참조하는 기존 이슈: [WOO-844](https://linear.app/woo-world/issue/WOO-844/02-모든-commit을-승인된-후보와-검증-receipt로-실행한다)\n- 원문 Candidate: .www/evidence/2026-09-26-woo-commit-message-contract/project-comment-candidate.json\n- 원문 Source Revision: git:e17837f8a0a5cb226674f397b63b8c6011901670:dirty\n- 원문 Candidate Digest: 34f48a3aeb4b1215abefba54c235fe923a059c956bc56954a28047be11b6a689\n- 원문 연결: Linear: WOO-844\n- 원문 연결: Code: schemas/commit-candidate.schema.json · src/core/commit/commit-governance.ts · test/commit-governance.test.ts\n- 원문 연결: Evidence: .www/evidence/2026-09-26-woo-commit-message-contract\n- 원문 연결: Commit Candidate: COMMIT-CANDIDATE-WOO-COMMIT-MESSAGE-CONTRACT-20260926\n- 회수 Evidence: .www/evidence/2026-09-29-linear-recording-backfill",
+    "attachments": [],
+    "createdAt": "2026-09-28T22:06:31.255Z",
+    "updatedAt": "2026-09-28T22:06:31.196Z",
+    "parentId": null,
+    "resolvedAt": null,
+    "quotedText": null,
+    "author": {
+      "id": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "name": "우종호"
+    },
+    "onBehalfOf": null
+  },
+  "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-193de35a-57d7-4090-b5f2-345da2b31bd6",
+  "readBack": {
+    "exactBodyMatch": true,
+    "checkedAt": "2026-09-28T22:07:10.480Z",
+    "recoveredFromDelayedVisibility": true
+  },
+  "scope": "Historical local record recovery; not current implementation acceptance"
+}

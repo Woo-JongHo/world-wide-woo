@@ -1,0 +1,70 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-RECORDING-BACKFILL-015",
+  "kind": "linear-project-comment",
+  "sourceRevision": "evidence-sha256:11a00100f8786b7c40647d1ca4e7e768634bd3602f807d1e5a844053419b4bcb",
+  "intent": "과거 작업 기록 회수: woo-commit 메시지가 업무 맥락과 검증 근거를 복원하도록 계약을 보강한 경과를 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "과거 작업 기록 회수: woo-commit 메시지가 업무 맥락과 검증 근거를 복원하도록 계약을 보강한 경과를 기록한다 (원문 Candidate: ARTIFACT-CANDIDATE-WOO-COMMIT-MESSAGE-CONTRACT)",
+      "당시 로컬 작업 기록: woo-commit 제목이 실제 업무·모듈 소유자와 완성된 결과를 함께 말하도록 메시지 계약을 보강했다.",
+      "당시 로컬 작업 기록: 비자명한 변경 본문은 문제와 이전 동작, 이번 결정, 의도적으로 하지 않은 것의 이유를 서술하고 마지막에 Fixes와 Verified를 각각 한 번 기록하게 했다.",
+      "당시 로컬 작업 기록: 작은 기계적 변경은 제목만 허용해 형식 충족을 위한 의미 없는 본문을 만들지 않게 했다."
+    ],
+    "impacts": [
+      "당시 기록된 영향: 커밋만 읽어도 운영상 문제의 역사, 선택한 수신자·상태 범위, 실제 통과한 검증을 복원할 수 있다.",
+      "당시 기록된 영향: Conventional Commit 유형 접두어 금지는 유지하면서 14_HelixQAC 같은 실제 업무 소유자 접두어는 사용할 수 있다.",
+      "미게시 로컬 기록을 Project Activity에서 추적할 수 있게 회수한다. 과거 진행·완료·차단 상태를 현재 구현 완료 또는 이슈 상태 변경으로 승격하지 않는다."
+    ],
+    "categories": [
+      "improvement"
+    ],
+    "verification": [
+      "2026-09-29 회수 검증: 원문 파일 SHA-256 11a00100f8786b7c40647d1ca4e7e768634bd3602f807d1e5a844053419b4bcb; 연결 이슈의 현재 WWW 소속과 Project Activity 중복·latest identity를 확인했다.",
+      "아래는 원문 Candidate에 남은 당시 검증 기록이다. 이번 회수에서 테스트·원격 실행·현재 제품 동작을 재검증한 결과가 아니다.",
+      "당시 검증 기록: git diff --check -- .agents/skills/woo-commit/SKILL.md 통과.",
+      "당시 검증 기록: writing-for-agents의 pointer, 정보 계층, 완료 기준 규칙과 대조해 메시지 규칙을 한 절에 함께 배치했다.",
+      "당시 검증 기록: 게시 전 Project Activity 최신 Comment ID는 다시 조회해야 하며, 이 Candidate는 외부 게시하지 않았다."
+    ],
+    "connections": [
+      "이번 기록에서 참조하는 기존 이슈: [WOO-747](https://linear.app/woo-world/issue/WOO-747/skills-반복-가능한-개발검증-절차를-정형화한다) · [WOO-844](https://linear.app/woo-world/issue/WOO-844/02-모든-commit을-승인된-후보와-검증-receipt로-실행한다)",
+      "원문 Candidate: .www/evidence/2026-09-24-woo-commit-message-contract/project-comment-candidate.json",
+      "원문 Source Revision: git:ca775998641d284738cd87c50d2593f689b6c86c:dirty",
+      "원문 Candidate Digest: d3e084607255b0c135b32a90208abfe7d94c54900f23db677a4e821cfab4a840",
+      "원문 연결: Linear Candidate: .www/evidence/2026-09-24-woo-commit-message-contract/linear-issue-candidate.json",
+      "원문 연결: Code: .agents/skills/woo-commit/SKILL.md",
+      "원문 연결: Evidence: .www/evidence/2026-09-24-woo-commit-message-contract",
+      "회수 Evidence: .www/evidence/2026-09-29-linear-recording-backfill"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-747/skills-반복-가능한-개발검증-절차를-정형화한다",
+    "evidence": ".www/evidence/2026-09-24-woo-commit-message-contract",
+    "sourceCandidate": ".www/evidence/2026-09-24-woo-commit-message-contract/project-comment-candidate.json",
+    "receipt": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/015.json"
+  },
+  "expectedBefore": {
+    "latestCommentId": "c737df5f-4cf7-4fd2-834d-a6fb3dfd1ee3"
+  },
+  "validation": [
+    {
+      "id": "source-evidence",
+      "status": "pass",
+      "evidence": "Read original Candidate ARTIFACT-CANDIDATE-WOO-COMMIT-MESSAGE-CONTRACT; SHA-256 11a00100f8786b7c40647d1ca4e7e768634bd3602f807d1e5a844053419b4bcb; historical assertions are attributed to the source."
+    },
+    {
+      "id": "live-issue-binding",
+      "status": "pass",
+      "evidence": "Existing WWW issues verified: WOO-747, WOO-844; no issue creation or state mutation."
+    },
+    {
+      "id": "live-activity-before",
+      "status": "pass",
+      "evidence": "Project Activity source/evidence duplicate check and latest ID c737df5f-4cf7-4fd2-834d-a6fb3dfd1ee3 performed immediately before preparation."
+    }
+  ],
+  "candidateDigest": "1354f57a56ede3a8429bcb65480f696288689811f1d2ce471e5068287df97cdc"
+}

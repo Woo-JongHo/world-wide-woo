@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-WES-RECORDING-ORCHESTRATION-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:495f61c0f3d5e3c9c6d58340d315c06b4ad70cc0:dirty",
+  "intent": "WES 기록 오케스트레이션 현황 조사와 설계 결과를 Project Activity에 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "Linear Issue·Project Comment·Project Update, Obsidian, Git, Evidence, traceability ledger와 projection의 현재 소유권을 대조했다.",
+      "기록 작업을 observed부터 reconciled까지 이어지는 RecordingRun 상태기계로 설계했다.",
+      "WES는 새 정본이 아니라 후보·승인·게시·read-back·reconcile의 coordinator이고 WooEntry snapshot은 읽기 전용으로 유지하도록 경계를 정했다.",
+      "첫 구현 순서를 HUD 확장이 아니라 RecordingRun과 reconcile로 결정했다."
+    ],
+    "impacts": [
+      "후보 누락, 중복 게시, read-back 없는 성공 주장과 낡은 Obsidian 링크를 같은 drift 규칙으로 탐지할 수 있다.",
+      "외부 쓰기는 publication intent 승인 뒤에만 수행하고 재시작 시 receipt를 재생해 중복을 막는다.",
+      "일반 Chat은 WES 기록 상태가 차단되어도 계속 동작한다."
+    ],
+    "categories": ["feature", "refactor", "verification"],
+    "verification": [
+      "bun run development-map:check: 37 issues, 통과.",
+      "bun run traceability:check: VAULT_EXPORT_PROVENANCE_MISMATCH로 실패했으며 현존 drift 근거로 보존했다.",
+      "Claude Opus 읽기 전용 감사는 두 번 모두 max turns에 도달해 결과가 없으므로 검토 증거로 채택하지 않았다.",
+      "Linear connector는 재인증이 필요해 신규 이슈 후보의 부모·milestone·중복 판정은 position_unverified로 차단했다."
+    ],
+    "connections": [
+      "Linear Issue Candidate: .www/evidence/2026-09-27-wes-recording-orchestration/linear-issue-candidate.json",
+      "Planning: EP-004 WES Context · ST-004-06 Decision·Evidence projection",
+      "Related: WOO-910 7단계 Runtime 통제",
+      "Design: docs/planning/WES_RECORDING_ORCHESTRATION_DESIGN_2026-09-27.md",
+      "Obsidian Candidate: .www/evidence/2026-09-27-wes-recording-orchestration/obsidian-canonical-candidate.json"
+    ]
+  },
+  "links": {
+    "design": "docs/planning/WES_RECORDING_ORCHESTRATION_DESIGN_2026-09-27.md",
+    "evidence": ".www/evidence/2026-09-27-wes-recording-orchestration",
+    "issueCandidate": ".www/evidence/2026-09-27-wes-recording-orchestration/linear-issue-candidate.json"
+  },
+  "expectedBefore": {
+    "latestCommentId": "2fce5935"
+  },
+  "validation": [
+    {
+      "id": "latest-activity-readback",
+      "status": "pass",
+      "evidence": "Linear Project Activity 화면에서 최신 Comment short ID 2fce5935를 직접 확인했다."
+    },
+    {
+      "id": "design-evidence",
+      "status": "pass",
+      "evidence": "코드 경계, 현재 WES optional entry, 로컬 planning과 두 검사 결과를 설계 문서에 기록했다."
+    },
+    {
+      "id": "publication-boundary",
+      "status": "pass",
+      "evidence": "Candidate만 준비하며 게시 직전 Activity 재조회와 사용자 승인이 필요하다."
+    }
+  ],
+  "candidateDigest": "b1ec6d90dceb662b76351fceab2dd6276d9212253b6a27f65f4b0f98eced587a"
+}

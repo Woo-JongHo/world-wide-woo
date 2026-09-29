@@ -1,0 +1,20 @@
+{
+  "status": "blocked",
+  "scope": [
+    "src/adapters/inbound/tui/features/usage/view/www-usage.ts",
+    "src/adapters/inbound/tui/features/monitoring/view/www-monitor-view.ts",
+    "src/adapters/inbound/tui/shell/www-surface.ts"
+  ],
+  "existingIssueCandidates": ["WOO-912", "WOO-913"],
+  "priorProjectComments": [
+    "67aef294-6e5b-4c4f-b483-3b9eb4f2d5d7",
+    "07bebabe-b8c4-43f4-bde5-f362143d672d"
+  ],
+  "decision": "The prior comments cover logo row placement and compact REPORT content, but do not record the new bar-colored icon cell or bottom-pinned REPORT layout. A new candidate cannot be validated or published until the current issue and Activity are read back.",
+  "blocker": "Both available Linear app links returned UNAUTHORIZED with a reauthentication requirement for list_comments(projectId). The repository's recorded linear-woo MCP tool is not exposed in this session.",
+  "verification": [
+    "git diff --check passed",
+    "Earlier in this task, bun run check and seven focused tests passed; the broad www-shell suite had three screen-text expectation failures."
+  ],
+  "nextAction": "Reconnect the recorded Linear target, query WOO-912 and WOO-913 plus current Project Activity, then create and validate a fresh project-comment candidate with the current expectedBefore before publishing and read-back."
+}

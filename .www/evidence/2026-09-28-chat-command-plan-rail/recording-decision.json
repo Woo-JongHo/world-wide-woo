@@ -1,0 +1,11 @@
+{
+  "scope": "Chat 명령 의미 요약·PROGRESS 줄바꿈·PLAN 활성 turn 결속",
+  "issue": {
+    "primary": "WOO-700",
+    "related": "WOO-680",
+    "decision": "기존 로컬 정본과 Project Comment의 책임 경계를 재사용한다. 새 이슈 Candidate는 만들지 않는다."
+  },
+  "projectComment": "project-comment-candidate.json",
+  "obsidian": "obsidian-canonical-candidate.json",
+  "publication": "Linear·Vault 최신 상태와 게시 중복은 미확인이다. 후보만 작성하고 외부 게시는 보류한다."
+}

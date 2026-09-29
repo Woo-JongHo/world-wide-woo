@@ -1,0 +1,88 @@
+---
+acceptance: partial
+capability: Native Plan projection
+code_ids:
+  - Code-002
+  - Code-011
+decision_ids: []
+document_id: 911c3fc2-5576-4651-9067-811a6238608e
+domain: Todo
+exception_ids: []
+linear: WOO-700
+parent: null
+record_type: detailed-canonical
+related: []
+schema_version: 2
+source_revision: worktree:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty
+spec_ids: []
+status: draft
+tags:
+  - www/spec
+  - domain/todo
+  - capability/native-plan
+  - status/partial
+test_ids: []
+updated_at: 2026-09-28T12:34:20.888Z
+---
+
+# Native Plan projection — AI가 세운 계획을 세션별로 실시간 확인한다
+
+## 1. Intent
+
+사용자는 질문에서 정리된 목표와 필요한 계획, 실제 진행 내용을 구분해 읽는다. 일반 요청의 7단계 강제 표시는 이 목적을 가리지 않아야 한다.
+
+## 2. Scope
+
+일반 observe 요청의 Chat·F3 표시와 WORK 검증 선택 경계를 개정한다. Broker의 승인형 단계 게이트, Native의 도구·테스트 판단, 전체 request-report-v3 템플릿은 유지한다.
+
+## 3. Desired Behavior
+
+계획 항목이 도착하기 전에는 PROGRESS 내용을 화면에 먼저 노출하지 않는다. 계획이 오면 같은 turn의 해석된 작업 경과를 보여준다. TEST는 같은 turn에서 코드 변경이 완료된 뒤 실행한 검증 명령만 표시한다. 읽기·검색 명령의 경로 또는 인자에 test가 들어 있어도 검증으로 분류하지 않는다. Working 줄은 PROGRESS 문장을 반복하지 않고 현재 7단계의 단계명·상태·완료 수를 표시한다. 원본 실행 기록은 기존 Source에서 읽는다. 사이드바는 이전보다 약 5% 넓게 표시하고 RES 강조색은 화면의 steel 계열을 따른다. PLAN은 항목 전체를 줄바꿈해 보여주며 FOCUS 접두어를 붙이지 않는다. 완료·차단 헤더는 UNDERSTAND부터 마지막 단계까지 일곱 단계 이름을 빠짐없이 보여준다. TEST는 검증 명령이 끝난 뒤 명령과 실제 관측된 테스트 이름·종료 코드에 근거한 LLM 설명을 한 번 생성한다. 메시지는 INPUT·OUTPUT으로 표기한다. 완료·차단 헤더의 단계 수와 하단 HUD의 ! Request 수를 중복 표시하지 않는다. 사이드바는 최근 요청 계획·검증과 단계 기본 목표 문장을 반복하지 않으며 PLAN·PROGRESS·TEST 제목을 의미별 색으로 구별한다. 실제 터미널에서 보장되지 않는 F키는 안내하지 않고 Ctrl+G와 /명령어를 제시한다. HUD는 모델별 사용량 색상 바 한 줄과 실행·context 상태 한 줄로 구성한다. 아이콘 지원 터미널에서는 모델 이미지를 바 안에, 그 외에는 모델 이름을 넣는다. 대괄호 대신 바 배경으로 한도 비율을 표현한다. 실행 중인 7단계 이름에는 움직이는 그라데이션을 주고 완료 체크는 기존 성공색을 유지한다. 각 완료 도구 설명 아래 Git Bash · Input 카드에 실제 입력 명령과 관측된 저장소 상대 경로를 보여준다. 설명 생성 전에는 같은 위치에 준비 중 문구를 두고, 설명이 도착하면 해당 카드만 갱신한다. 사용자 2026-09-28 정정: Git Bash 명령은 초록 계열 INPUT 카드로, 관측된 출력이 있으면 별도 OUTPUT 카드로 표시한다. Git Bash 카드 안의 /source 행은 제거한다. 실패 명령은 붉은 상태 강조를 유지한다.
+
+## 4. Domain Contract
+
+INV-001: GOAL은 UNDERSTAND 완료 전 입력 원문을 provisional 목표로 노출하지 않는다. INV-002: PLAN은 현재 turn의 Native workFlow가 우선하며 비어 있으면 같은 요청 Runtime task를 사용한다. INV-003: PROGRESS는 같은 turn의 계획 항목이 관측된 뒤에만 해당 turn의 planActivities를 표시한다. INV-004: TEST는 같은 turn의 완료된 file-change 이후 실행한 명시적 검증 commandExecution만 표시한다. 읽기·검색 문자열은 검증으로 승격하지 않는다. INV-005: Working은 PROGRESS 요약을 중복하지 않고 현재 request stage의 이름·상태·완료 수를 보여준다. INV-006: 완료·차단 헤더는 일곱 단계 이름을 생략하지 않는다. INV-007: TEST 설명은 완료된 검증 명령당 한 번 생성하고 관측되지 않은 검증 범위나 결과를 추정하지 않는다. INV-008: 사용자 입력과 응답의 표시 라벨은 INPUT·OUTPUT으로 일관된다. INV-009: 단계 이름이 노출되는 화면에서 같은 완료 수를 헤더와 HUD에 중복 표시하지 않는다. INV-010: 도움말의 주요 이동·언어 변경 안내는 지원되는 Ctrl+G와 /명령어를 기준으로 한다. INV-011: HUD 모델별 사용량은 관측된 잔여 비율에 비례해 채우고 불명 값은 퍼센트로 꾸미지 않는다. INV-012: 현재 running 단계만 그라데이션으로 강조하며 reduced motion에서는 고정 프레임을 쓴다. INV-013: 도구 설명은 실제 입력 명령·소스 경로의 대체물이 아니며 Input 카드는 관측된 metadata만 표시한다. INV-014: 한 설명의 도착은 그 도구 카드의 렌더 캐시만 무효화한다. INV-GIT-BASH-001: 명령 입력과 관측된 출력은 서로 다른 카드다. 출력이 없으면 OUTPUT 카드를 꾸며내지 않는다. INV-GIT-BASH-002: Git Bash 카드에는 /source 명령을 노출하지 않는다. 비 Git Bash 활동의 source 경계는 유지한다.
+
+## 5. State Model
+
+일반 observe의 내부 INTENT·WORK·RESULT는 기존 일곱 단계 기록으로 투영된다. Chat의 PLAN은 미보고 상태를 허용한다. PROGRESS 기록이 PLAN보다 먼저 도착하면 계획 항목이 생길 때까지 표시를 대기한다. TEST는 코드 변경과 뒤따른 검증 명령이 함께 관측된 뒤 출현한다. Working은 현재 일곱 단계의 상태를 읽기 전용으로 투영한다.
+
+## 6. Data & Runtime Flow
+
+Native workFlow와 같은 요청의 Runtime task가 계획 항목을 제공한다. 별도 narrator의 planActivities가 작업 경과를 제공하며 화면은 계획 존재 여부로 표시를 게이트한다. request-test-workspace는 같은 turn의 완료된 파일 변경 sequence 이후 실행한 검증 commandExecution만 TEST 화면과 Chat rail에 투영한다. Working은 requestRuntime stage 상태와 완료 수를 읽는다. terminal test-action 관측이 narrator를 한 번 호출하며, 결과는 turn ID와 action ID로 TEST 읽기 투영에 연결한다. Chat transcript는 같은 Turn의 도구 묶음 제목과 도구별 카드를 별도 블록으로 보존한다. 도구별 블록은 설명 요약·상태·펼침 상태가 바뀔 때만 다시 센다.
+
+## 7. Identity & Persistence Contract
+
+Request ID·turn ID·Native Plan 항목 ID·기존 request-report-v3 identity를 바꾸지 않는다. Chat 질문 배경과 사이드바는 저장하지 않는 presentation이다. 이전 turn의 계획은 현재 진행으로 재귀속하지 않는다.
+
+## 8. Integration Contract
+
+Native가 계획과 검증 방법을 선택한다. WWW는 목표 정리와 읽기 투영을 담당한다. Observe WORK는 실행 evidence만으로도 수락하며 검증 evidence가 실제로 있을 때만 VERIFY를 완료한다. Broker의 별도 실행·검증 receipt 요구는 유지한다.
+
+## 9. Failure & Recovery Contract
+
+계획이 없으면 PLAN 미보고와 PROGRESS 대기 문구를 표시한다. 코드 변경 또는 검증 명령이 없으면 TEST 섹션을 숨기고 명시적으로 연 TEST 화면은 UNOBSERVED를 표시한다. 단계 정보가 없으면 Working에는 단계 상태 관측 중이라고 표시한다. 원본 저널은 숨김 여부와 관계없이 보존한다. 설명이 생성되지 않았거나 매칭되지 않으면 TEST는 설명 미관측을 표시하고 명령·결과 원본은 보존한다. 터미널에서 F키가 전달되지 않는 환경에서도 Ctrl+G 화면 선택과 /language 명령을 안내한다. Kitty 이미지 지원 또는 로컬 이미지가 없으면 모델 이름을 바 안에 표시한다. 좁은 폭에서는 리셋 시각, 기간, 이름 순으로 축약하고 /usage 상세를 유지한다.
+
+## 10. Acceptance Contract
+
+AC-001: PROGRESS 기록이 먼저 도착해도 PLAN 항목 전에는 그 내용이 표시되지 않고, 계획 후에 표시된다. AC-002: 읽기·검색 명령에 test 문자열이 있어도 TEST가 나타나지 않는다. 같은 요청의 코드 변경 뒤 검증 실행은 나타난다. AC-003: Working은 PROGRESS 문장을 복제하지 않고 현재 단계·상태와 7단계 완료 수를 표시한다. AC-004: 기존 일곱 단계 기록과 원본 Source는 유지한다. 실제 TUI 사용자 수락은 미실행이다. AC-005: PLAN 전체 항목과 일곱 단계 이름이 보이며 FOCUS 접두어가 없다. AC-006: TEST의 LLM 설명은 관측된 검증 명령에만 연결되고 미관측 설명을 꾸며내지 않는다. AC-007: Chat 메시지와 작성 중 응답은 INPUT·OUTPUT을 쓴다. AC-008: 실패·차단 시 ! Request N/7과 Stages N/7이 보이지 않는다. AC-009: Chat rail의 PLAN·PROGRESS·TEST가 서로 다른 의미색을 쓰고 중복 설명 문구가 없다. AC-010: 도움말과 화면에 F키 안내가 없다. AC-011: HUD는 사용량 바와 상태의 두 줄이며 provider 이름·아이콘은 바 안에 있다. AC-012: 바에 대괄호가 없고 잔여량만큼 채워진다. AC-013: running 단계의 색상은 시간에 따라 바뀌고 완료 체크는 고정 성공색이다. AC-GIT-BASH-001: 성공 명령의 INPUT·OUTPUT 카드가 초록 계열로 표시되고 실제 출력이 보인다. AC-GIT-BASH-002: Git Bash 카드에 /source 행이 없으며 실패 출력·exit는 계속 읽힌다.
+
+## 11. Verification Strategy
+
+PLAN 선행·TEST 오분류·코드 변경 후 검증·Working 중복 제거를 포함한 관련 테스트 107개가 통과했다. TypeScript 검사와 git diff --check가 통과했다. 실제 TUI 사용자 수락, 최신 Linear·Vault read-back, 독립 provider 검토는 미실행이다. 추가 UI·TEST·narration 144개, heading/cache 19개, architecture 17개 테스트와 타입 검사가 통과했다. 실제 TUI 사용자 수락은 미실행이다. 이 변경 묶음의 verification.json Receipt는 관련 7개 파일 테스트 143 pass, bun run check 및 git diff --check 통과를 기록한다. 단 Receipt 시각 21:01:22가 www-surface.ts 수정 시각 21:01:26보다 앞서 최종 소스 상태를 입증하지 않는다. 실제 TUI 사용자 수락과 F키 전달 여부 재현도 미실행이다. 관련 UI·사용량·헤더·셸·모니터링 테스트 123개, 타입 검사와 diff 형식 검사가 통과했다. 실제 Kitty 이미지 터미널 시각 수락은 미실행이다. 이번 변경의 집중 테스트 113개와 타입 검사, diff 형식 검사가 통과했다. 24개 명령 합성 벤치마크에서 80×24 repaint p95 5.90ms, 설명 한 건당 재렌더 블록 p95 1이다. 실제 PTY 픽셀 출력·모델 지연·사용자 터미널 체감은 아직 측정하지 않았다.
+
+## 12. Implementation Map
+
+www-plan-view.ts와 www-monitor-view.ts가 PLAN·PROGRESS 표시 순서를, request-test-workspace.ts와 www-test-view.ts가 TEST 분류와 표시를, www-execution.ts와 www-surface.ts가 Working의 현재 단계 표시를 소유한다. 전체 REPORT는 기존 request-report 템플릿이 소유한다. activity-narrator.ts, plan-activity-narration.ts, pi-activity-narrator.ts가 TEST 설명 생성을, www-test-view.ts와 www-monitor-view.ts가 표시를 소유한다. www-execution.ts가 도구별 안정 블록과 Input 카드를, www-tool-group-benchmark.ts가 24건 설명 도착 측정을 소유한다.
+
+## 13. Current State & Gaps
+
+로컬 구현과 집중 회귀는 통과했다. 최신 Linear Activity·Vault bytes와 실제 TUI 사용자 수락은 확인되지 않았다. 독립 provider 검토 호출은 실행 오류로 유효한 결과를 내지 못했다. file-change가 없는 명령 기반 코드 변경은 TEST 표시 조건에 포함되지 않는다. 실제 TUI에서 긴 계획과 좁은 터미널의 시각적 수락은 아직 받지 못했다. 모델 응답은 비동기이므로 생성 전에는 설명 미관측을 보인다. F키 바인딩은 호환용으로 남아 있지만 화면·문서는 해당 키의 동작을 보장하지 않는다. 실제 TUI 시각적 수락은 미실행이다. Kitty 이미지는 지원 터미널과 로컬 PNG가 있을 때만 표시한다. 다른 터미널의 fallback은 모델 이름이다. 실제 사용자 화면 수락은 미실행이다. 실제 모델 설명 도착 시간과 터미널 픽셀 출력까지 포함한 end-to-end 지연은 계측 범위 밖이다. 로컬 결과를 사용자 체감 전체 개선으로 단정하지 않는다. Git Bash 카드 보정 후 관련 133개 테스트와 TypeScript·diff 검사가 통과했다. 실제 터미널 시각적 수락은 미실행이다. 사용자가 겪은 렌더링 지연의 직접 원인은 미확정이다.
+
+## 14. Decisions & Evidence
+
+2026-09-28 사용자 정정: PLAN 항목이 PROGRESS보다 먼저 보여야 한다. TEST는 읽기·파악 중 표시되지 않고 코드 변경 후 검증에만 표시한다. Working 줄은 PROGRESS 내용을 반복하지 않고 현재 7단계 상태를 보여준다. 기존 WOO-700 초안 후보와 관련 테스트를 근거로 표시 계약을 개정했다. 최신 Vault 원문과 외부 게시 상태는 미확인이다. 2026-09-28 사용자 정정: 사이드바 확대, RES 색 변경, PLAN 전체 표시, FOCUS 제거, 일곱 단계 이름 전부 표시, TEST의 LLM 해석을 요구했다. 설명은 실제 검증 실행의 terminal 관측에만 결속한다. 2026-09-28 사용자 정정: ! Request 2/7 제거, REQ·RES를 INPUT·OUTPUT으로 변경, 동작하지 않는 F키 안내 제거, 최근 요청 계획·검증과 작업·의존성·병렬 가능성 문구 제거, PLAN·PROGRESS·TEST 색상 적용. 2026-09-28 사용자 정정: 도구 설명의 LLM 프롬프트 확인, 3줄 HUD를 모델 아이콘이 들어간 색상 바 중심으로 축약, 바의 대괄호 제거, 현재 7단계 그라데이션 강조. Activity Narrator는 openai-codex/gpt-5.6-luna에 goal·stepTitle·정제된 명령 metadata를 JSON으로 전달하며 명령 결과는 추정하지 않도록 지시한다. 2026-09-28 사용자 정정: 각 도구 설명 아래 실제 Input·소스 경로를 Git Bash 형태로 보이고, 결과가 갑자기 나타나는 렌더링 문제를 자세히 조사한다. .www/evidence/2026-09-28-tool-input-render-lag/tool-group-benchmark.json이 합성 로컬 측정이다. 2026-09-28 사용자 정정: 기존 초록 계열과 INPUT·OUTPUT 구분을 복구하고 Git Bash 카드의 /source를 제거한다. 원본 명령·출력은 화면에서 유지한다. 새 기능 설계가 아니라 기존 도구 카드 표시 계약의 수정이며, 최신 Vault bytes는 확인되지 않았다.
+
+## Change Log
+
+2026-09-28 PLAN 선행 표시, 코드 변경 후 TEST, Working 단계 전용 표시 계약을 추가했다. 이전 Chat PLAN·TEST·GOAL 초안의 identity를 유지한다. 2026-09-28 Chat rail 표시와 검증 명령별 TEST 설명 계약을 추가했다. 2026-09-28 Chat 라벨·HUD 중복·사이드바 색상·키 안내 계약을 추가했다. 2026-09-28 모델별 한 줄 HUD 바와 현재 단계 움직임 계약을 추가했다. 2026-09-28 도구별 Input·경로 카드와 비동기 설명 갱신·계측 계약을 추가했다. 2026-09-28 Git Bash INPUT·OUTPUT 카드와 색상 복구, 카드 내 /source 제거 계약을 추가했다.

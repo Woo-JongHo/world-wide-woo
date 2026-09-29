@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "recordedAt": "2026-09-28T10:43:38+09:00",
+  "sourceRevision": "git:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty",
+  "linear": {
+    "primary": {
+      "id": "WOO-675",
+      "uuid": "28bc3ec6-f98d-421e-9398-8721f5c50724",
+      "reason": "현재 요청의 stage waterfall을 표시하는 기존 Monitor 책임을 소유한다."
+    },
+    "newIssueCandidate": null,
+    "duplicateReason": "기존 capability의 국소 계산 결함 수정이므로 새 이슈는 중복이다.",
+    "remoteReadback": "Linear 연결 재인증 필요로 미실행"
+  },
+  "projectActivity": {
+    "candidateRequired": true,
+    "reason": "사용자가 실제로 겪은 Monitor OOM을 재현하고 제품 코드와 회귀 테스트를 수정했다."
+  },
+  "obsidian": {
+    "candidateRequired": false,
+    "reason": "새 capability·WHY·behavior contract·state ownership을 바꾸지 않고 기존 waterfall의 절대시각/offset 계산 오류와 메모리 안전 경계만 복구했다."
+  },
+  "publication": {
+    "status": "blocked-before-approval",
+    "reason": "Linear 재인증과 사용자 항목별 승인이 없으므로 외부 쓰기와 read-back을 수행하지 않는다."
+  }
+}

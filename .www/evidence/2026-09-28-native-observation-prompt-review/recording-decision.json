@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "1.0",
+  "issueBinding": {
+    "id": "WOO-913",
+    "status": "live-readback-verified"
+  },
+  "linearIssueCandidateRequired": false,
+  "obsidianCandidateRequired": false,
+  "obsidianReason": "Existing direction reviewed and clarified; proposed implementation choices remain explicitly unimplemented and no new active domain decision was adopted.",
+  "publication": {
+    "state": "succeeded",
+    "commentId": "cbfea0c0-212a-4564-896f-cd8f36043204",
+    "receipt": ".www/evidence/2026-09-28-native-observation-prompt-review/project-comment-publish-receipt.json"
+  }
+}

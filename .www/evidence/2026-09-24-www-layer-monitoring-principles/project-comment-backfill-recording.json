@@ -1,0 +1,12 @@
+{
+  "status": "recorded",
+  "sourceCandidateId": "ARTIFACT-CANDIDATE-WWW-LAYER-MONITORING-PRINCIPLES-COMMENT",
+  "projectCommentId": "1fbd98a5-7671-4fd1-bd21-13bd1996a714",
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "recordedAt": "2026-09-28T22:12:28.573Z",
+  "receipt": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/017.json",
+  "scope": "historical-project-comment",
+  "newIssueCreated": false,
+  "obsidianWritten": false,
+  "reason": "User authorized recovering all unrecorded local work history to Linear; original assertions are attributed to the historical Candidate."
+}

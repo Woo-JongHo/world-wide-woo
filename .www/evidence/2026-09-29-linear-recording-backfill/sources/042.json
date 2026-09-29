@@ -1,0 +1,67 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-CHAT-LABELS-HUD-RAIL-COLORS-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "worktree:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty",
+  "intent": "Chat INPUT·OUTPUT 명칭, HUD 중복 제거, PLAN·PROGRESS·TEST 색상 및 단축키 안내 보정 기록",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "Chat 메시지 REQ·RES를 INPUT·OUTPUT으로 바꾸고 작성 중인 응답에도 OUTPUT을 사용한다.",
+      "완료·차단 헤더의 Stages 수와 하단 HUD의 ! Request 수를 제거한다.",
+      "Chat 사이드바의 최근 요청 계획·검증 및 중복 단계 목표를 제거하고 PLAN·PROGRESS·TEST 제목에 의미별 색을 적용한다.",
+      "동작이 보장되지 않는 F키 안내를 헤더·도움말·시작 화면·문서에서 제거하고 Ctrl+G 또는 /명령어를 안내한다."
+    ],
+    "impacts": [
+      "화면 용어와 표시가 단순해지고, 사용 가능한 이동 경로를 안내한다."
+    ],
+    "categories": [
+      "improvement",
+      "fix",
+      "verification"
+    ],
+    "verification": [
+      "bun test 관련 UI·HUD·키맵·트랜스크립트 7개 파일: 142 pass, 0 fail.",
+      "bun test UI·색상 집중 2개 파일: 107 pass, 0 fail.",
+      "bun run check 및 git diff --check: 통과."
+    ],
+    "connections": [
+      "Primary Linear: WOO-700 (이전 로컬 read-back 기준), Related: WOO-680",
+      "Evidence: .www/evidence/2026-09-28-chat-labels-hud-rail-colors",
+      "Obsidian Candidate: obsidian-canonical-candidate.json"
+    ]
+  },
+  "links": {
+    "linear": "WOO-700",
+    "relatedLinear": "WOO-680",
+    "evidence": ".www/evidence/2026-09-28-chat-labels-hud-rail-colors"
+  },
+  "expectedBefore": {
+    "latestCommentId": null
+  },
+  "validation": [
+    {
+      "id": "local-binding",
+      "status": "pass",
+      "evidence": "기존 WOO-700의 Chat 표시 계약을 이어받았다."
+    },
+    {
+      "id": "live-duplicate-check",
+      "status": "not-run",
+      "evidence": "정본 linear-woo 도구가 세션에 없어 현재 WWW Project Activity 중복을 확인하지 못했다."
+    },
+    {
+      "id": "verification",
+      "status": "pass",
+      "evidence": "관련 142개 테스트와 타입 검사, diff 형식 검사가 통과했다."
+    },
+    {
+      "id": "publication-boundary",
+      "status": "pass",
+      "evidence": "후보만 준비한다. 게시 전 현재 상태 대조와 항목별 사용자 승인이 필요하다."
+    }
+  ],
+  "candidateDigest": "41221b07fa90a567712e4a70c49bfc8f2da3628d343782987630d33a3077cd22"
+}

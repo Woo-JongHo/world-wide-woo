@@ -1,0 +1,735 @@
+{
+  "count": 73,
+  "results": [
+    {
+      "index": 0,
+      "sourcePath": ".www/evidence/2026-09-20-gmbkorea-readability/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-PROJECT-COMMENT-20260920-GMBKOREA-READABILITY",
+      "status": "published",
+      "commentId": "59d6af4a-8d88-47d8-a0ba-6d50900a1ed1",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-59d6af4a-8d88-47d8-a0ba-6d50900a1ed1",
+      "candidateDigest": "1d63818f16647eddb031ba488471a2143ed06a5bc2bd63d9df46ba91c84ee6b6",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/001.json"
+    },
+    {
+      "index": 1,
+      "sourcePath": ".www/evidence/2026-09-21-cli-readability/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-CLI-READABILITY-COMMENT",
+      "status": "published",
+      "commentId": "8e1d4ea1-fe20-4959-b918-737cdbb4b246",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-8e1d4ea1-fe20-4959-b918-737cdbb4b246",
+      "candidateDigest": "af15b8f3f0a1b0a7ed15c791d26fee5f76a3f49881e292c1934ac9b994c6127f",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/002.json"
+    },
+    {
+      "index": 2,
+      "sourcePath": ".www/evidence/2026-09-21-gmbkorea-dashboard/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-PROJECT-COMMENT-20260921-GMBKOREA-DASHBOARD",
+      "status": "published",
+      "commentId": "2a575e38-5da6-4b94-a743-cacb7f06c8bb",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-2a575e38-5da6-4b94-a743-cacb7f06c8bb",
+      "candidateDigest": "523393f3acbc8215e4a238e85ea5b6442b3f80b01942c5f7ce2e3b7cee5e20e9",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/003.json"
+    },
+    {
+      "index": 3,
+      "sourcePath": ".www/evidence/2026-09-21-workbench-visual-polish/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-WORKBENCH-VISUAL-POLISH-COMMENT",
+      "status": "published",
+      "commentId": "14b5bf92-ef40-446b-907f-a49b13deaf81",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-14b5bf92-ef40-446b-907f-a49b13deaf81",
+      "candidateDigest": "8ef4f6c2500317565c11f386abb3da306d6f5c58da521d8adeec9aeaa51ee8e8",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/004.json"
+    },
+    {
+      "index": 4,
+      "sourcePath": ".www/evidence/2026-09-22-astra-context-fidelity/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-ASTRA-CONTEXT-FIDELITY-COMMENT",
+      "status": "published",
+      "commentId": "75925990-dff4-4dd7-9b23-c21f8d4c6934",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-75925990-dff4-4dd7-9b23-c21f8d4c6934",
+      "candidateDigest": "8bc6d8734bffc2dbe20241d8704803488d0ea522ec6f1aaa10946123b30e8af7",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/005.json"
+    },
+    {
+      "index": 5,
+      "sourcePath": ".www/evidence/2026-09-22-astra-demo-visual-density/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-ASTRA-DEMO-VISUAL-DENSITY-COMMENT",
+      "status": "published",
+      "commentId": "adb1a53f-cab6-49db-b53b-6ca4f475f474",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-adb1a53f-cab6-49db-b53b-6ca4f475f474",
+      "candidateDigest": "b053293eac45acf208f6586edc72901b46ea96303e8dc70dd1394b70c1d6a614",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/006.json"
+    },
+    {
+      "index": 6,
+      "sourcePath": ".www/evidence/2026-09-23-pi-tui-install-reproducibility/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-PI-TUI-INSTALL-REPRODUCIBILITY",
+      "status": "published",
+      "commentId": "89d92e05-2477-412c-9ea9-7725f8d62a10",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-89d92e05-2477-412c-9ea9-7725f8d62a10",
+      "candidateDigest": "0b4c5ede618793efad2ba26cc33047a8fe84095c2f78fcaf7d58151398b94ed8",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/007.json"
+    },
+    {
+      "index": 7,
+      "sourcePath": ".www/evidence/2026-09-23-project-workbench-readability/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-CODE-READABILITY-COMPLETION",
+      "status": "published",
+      "commentId": "37bf60f2-6bfd-4ba1-8fb1-deec0d2dd38f",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-37bf60f2-6bfd-4ba1-8fb1-deec0d2dd38f",
+      "candidateDigest": "5c88b9be641598bdc07a766ff803005bb67ac4d91fa42f6e47dde5a1a5b9e4ab",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/008.json"
+    },
+    {
+      "index": 8,
+      "sourcePath": ".www/evidence/2026-09-23-test-jsp-readability/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-TEST-JSP-READABILITY-COMMENT",
+      "status": "published",
+      "commentId": "48ad712b-efbc-4759-8e1d-861bcbe96106",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-48ad712b-efbc-4759-8e1d-861bcbe96106",
+      "candidateDigest": "088b1f858fc87f84075b58d661731e02d16c894a9b963a87f51318d4fc72f6b4",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/009.json"
+    },
+    {
+      "index": 9,
+      "sourcePath": ".www/evidence/2026-09-24-readability-import-columns/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-READABILITY-IMPORT-COLUMNS",
+      "status": "published",
+      "commentId": "5a34ff0f-0aef-49c5-b09b-70c82328f5f5",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-5a34ff0f-0aef-49c5-b09b-70c82328f5f5",
+      "candidateDigest": "799bf902f75569481bf67ca998c3acec950c93d0bd633df701fa0791feeb1fab",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/010.json"
+    },
+    {
+      "index": 10,
+      "sourcePath": ".www/evidence/2026-09-24-readability-import-declarations/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-READABILITY-IMPORT-DECLARATIONS",
+      "status": "published",
+      "commentId": "f924ff35-cb58-4b72-88de-34f02c82c471",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-f924ff35-cb58-4b72-88de-34f02c82c471",
+      "candidateDigest": "51e7db0079708ccf610bdf95ddfd8f2ea354799add402bd6749bff9f19cc3e33",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/011.json"
+    },
+    {
+      "index": 11,
+      "sourcePath": ".www/evidence/2026-09-24-report-request-summary/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-REPORT-REQUEST-SUMMARY-COMMENT",
+      "status": "published",
+      "commentId": "1bcba882-e06b-446b-859b-9c53bb0aa67b",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-1bcba882-e06b-446b-859b-9c53bb0aa67b",
+      "candidateDigest": "ca45c5f910b0941b7da45a55e152a9b8ad6a15ba4e0274f6bd8ebf778a73f6ea",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/012.json"
+    },
+    {
+      "index": 12,
+      "sourcePath": ".www/evidence/2026-09-24-woo-code-readability-maintain-registry/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-READABILITY-KIND-REGISTRY",
+      "status": "published",
+      "commentId": "cff5447a-d25f-4482-85f7-3ed165b1f22e",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-cff5447a-d25f-4482-85f7-3ed165b1f22e",
+      "candidateDigest": "42ea54211e95b5d371daf94016375115a3b1e48683efcc370d21905776d681b3",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/013.json"
+    },
+    {
+      "index": 13,
+      "sourcePath": ".www/evidence/2026-09-24-woo-code-readability-maintain/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-CODE-READABILITY-ROW-CONTAINERS",
+      "status": "published",
+      "commentId": "c737df5f-4cf7-4fd2-834d-a6fb3dfd1ee3",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-c737df5f-4cf7-4fd2-834d-a6fb3dfd1ee3",
+      "candidateDigest": "7dc087cdca8c9b8fdd3b544f2d94bb71404d660f3b57f4747f359f893fdc9d6e",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/014.json"
+    },
+    {
+      "index": 14,
+      "sourcePath": ".www/evidence/2026-09-24-woo-commit-message-contract/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-WOO-COMMIT-MESSAGE-CONTRACT",
+      "status": "published",
+      "commentId": "d6f811a2-0ed6-4aa1-8355-8ff91cd07951",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-d6f811a2-0ed6-4aa1-8355-8ff91cd07951",
+      "candidateDigest": "1354f57a56ede3a8429bcb65480f696288689811f1d2ce471e5068287df97cdc",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/015.json"
+    },
+    {
+      "index": 15,
+      "sourcePath": ".www/evidence/2026-09-24-workbench-integration/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-WORKBENCH-INTEGRATION-20260924",
+      "status": "published",
+      "commentId": "7e2e52fb-02de-4635-a807-79d064fff71b",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-7e2e52fb-02de-4635-a807-79d064fff71b",
+      "candidateDigest": "ffcf5985be2da6d3f43ade5d0562575aca252fc538745875b037429d95b12c70",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/016.json"
+    },
+    {
+      "index": 16,
+      "sourcePath": ".www/evidence/2026-09-24-www-layer-monitoring-principles/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-WWW-LAYER-MONITORING-PRINCIPLES-COMMENT",
+      "status": "published",
+      "commentId": "1fbd98a5-7671-4fd1-bd21-13bd1996a714",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-1fbd98a5-7671-4fd1-bd21-13bd1996a714",
+      "candidateDigest": "31befd3ad16ca85fc1012aa7ce216f10d9a09f81b72a2feee7841b142c23169a",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/017.json"
+    },
+    {
+      "index": 17,
+      "sourcePath": ".www/evidence/2026-09-24-zcode-readability-refactor/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-ZCODE-READABILITY-REFACTOR",
+      "status": "published",
+      "commentId": "6a5ecbef-daf9-4b7d-8931-6f4bd9a1d637",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-6a5ecbef-daf9-4b7d-8931-6f4bd9a1d637",
+      "candidateDigest": "42d6a77a119bf5e3a6b54970f60a6dd3112536318d7f0794bf4d99a2e448ee77",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/018.json"
+    },
+    {
+      "index": 18,
+      "sourcePath": ".www/evidence/2026-09-25-www-code-structure-review/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-WWW-STRUCTURE-REVIEW-COMMENT",
+      "status": "published",
+      "commentId": "48007784-a6eb-4943-8db1-73c39e521f0d",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-48007784-a6eb-4943-8db1-73c39e521f0d",
+      "candidateDigest": "17153dcf729a50e101cb1742aab971904e8225fda14d4ea4e730e5863fd4ef96",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/019.json"
+    },
+    {
+      "index": 19,
+      "sourcePath": ".www/evidence/2026-09-26-first-screen-startup/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-FIRST-SCREEN-STARTUP-COMMENT",
+      "status": "published",
+      "commentId": "77263e97-210e-4605-af77-69622fc0d2af",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-77263e97-210e-4605-af77-69622fc0d2af",
+      "candidateDigest": "1197d5a676196160bc5141d34403ab814073c2e2b96d4dc185fe25550c5e0e04",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/020.json"
+    },
+    {
+      "index": 20,
+      "sourcePath": ".www/evidence/2026-09-26-goal-working-input/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-GOAL-WORKING-INPUT-COMMENT",
+      "status": "published",
+      "commentId": "95ec4885-35ef-48bd-a6f6-9ad53cb22296",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-95ec4885-35ef-48bd-a6f6-9ad53cb22296",
+      "candidateDigest": "616425d5cffc644176fca4b1b93184902f24683d5f5e07f07d53ba39c991d504",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/021.json"
+    },
+    {
+      "index": 21,
+      "sourcePath": ".www/evidence/2026-09-26-operation-report-diff/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-OPERATION-REPORT-DIFF-COMMENT",
+      "status": "published",
+      "commentId": "67404a31-149c-40be-bdde-c4e4a2218dff",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-67404a31-149c-40be-bdde-c4e4a2218dff",
+      "candidateDigest": "1692bfecb95ee46c79c6fe88ddfb274338786d3862811c491de41bb0faa60606",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/022.json"
+    },
+    {
+      "index": 22,
+      "sourcePath": ".www/evidence/2026-09-26-three-body-sidebar-removal/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-THREE-BODY-SIDEBAR-REMOVAL",
+      "status": "published",
+      "commentId": "6c249482-717a-40a7-a757-a1f033b6719b",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-6c249482-717a-40a7-a757-a1f033b6719b",
+      "candidateDigest": "8a94471baff23c35185f763dfef7ff784dc0e123d3f3745dbcd0ea54d45d1e17",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/023.json"
+    },
+    {
+      "index": 23,
+      "sourcePath": ".www/evidence/2026-09-26-welcome-octopus-removal/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-WELCOME-OCTOPUS-REMOVAL-COMMENT",
+      "status": "published",
+      "commentId": "58591a4b-75a6-4263-b388-2b80477bc4b6",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-58591a4b-75a6-4263-b388-2b80477bc4b6",
+      "candidateDigest": "809f566046d13fdcb27e7989e294b9b9082ebfb1e3d43b15d2658eca0c23aa4b",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/024.json"
+    },
+    {
+      "index": 24,
+      "sourcePath": ".www/evidence/2026-09-26-woo-commit-message-contract/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-WOO-COMMIT-MESSAGE-CONTRACT-EXECUTION",
+      "status": "published",
+      "commentId": "193de35a-57d7-4090-b5f2-345da2b31bd6",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-193de35a-57d7-4090-b5f2-345da2b31bd6",
+      "candidateDigest": "47b3c3e383c2482c383ef76a4b7f6884e7d32e1fedd4cfb654c03138642d7b22",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/025.json"
+    },
+    {
+      "index": 25,
+      "sourcePath": ".www/evidence/2026-09-26-woo-readability-omp-distribution/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-WOO-READABILITY-OMP-DISTRIBUTION",
+      "status": "published",
+      "commentId": "dc9fe2cb-f688-4919-94b5-f7a9d97ab9b6",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-dc9fe2cb-f688-4919-94b5-f7a9d97ab9b6",
+      "candidateDigest": "df1d122bbf7a34388543b03d1813e414435ef2fe2430f91f185a0f9eb3d48466",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/026.json"
+    },
+    {
+      "index": 26,
+      "sourcePath": ".www/evidence/2026-09-27-change-diff-auto-goal/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-CHANGE-DIFF-AUTO-GOAL",
+      "status": "published",
+      "commentId": "b18feb86-01d9-4b65-873f-1e617448960f",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-b18feb86-01d9-4b65-873f-1e617448960f",
+      "candidateDigest": "858a6a32ccafa714dfefdd2af78d5fbfb1d01954e430a068b114f70ee96fc205",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/027.json"
+    },
+    {
+      "index": 27,
+      "sourcePath": ".www/evidence/2026-09-27-full-readability-pass/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-WOO-911-FULL-READABILITY-PASS-COMMENT",
+      "status": "published",
+      "commentId": "07aa829a-b8d2-4010-b904-92b9c65deaf9",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-07aa829a-b8d2-4010-b904-92b9c65deaf9",
+      "candidateDigest": "a412e3616a9ab8b3b56c83825b69f0067aa95a87d77aeaa8bbef59d79976cdfe",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/028.json"
+    },
+    {
+      "index": 28,
+      "sourcePath": ".www/evidence/2026-09-27-goal-background-motion/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-GOAL-BACKGROUND-MOTION-COMMENT",
+      "status": "published",
+      "commentId": "06e7d189-f4f1-49ab-a996-42cb307d564c",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-06e7d189-f4f1-49ab-a996-42cb307d564c",
+      "candidateDigest": "7abe9c858062fa65c630951e63f2b2b1d3058cde6340479e0154317222fb1a28",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/029.json"
+    },
+    {
+      "index": 29,
+      "sourcePath": ".www/evidence/2026-09-27-goal-render-hud-repair/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-GOAL-RENDER-HUD-REPAIR-COMMENT",
+      "status": "published",
+      "commentId": "5557f08e-1c8f-4bfe-864f-9ecfcffd8c1e",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-5557f08e-1c8f-4bfe-864f-9ecfcffd8c1e",
+      "candidateDigest": "cb4dd5d4462c85b7385cad5f7b61efc7c8a1aebbdd6a98c290458e7fccf10c8f",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/030.json"
+    },
+    {
+      "index": 30,
+      "sourcePath": ".www/evidence/2026-09-27-observability-design-diagnosis/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-OBSERVABILITY-DESIGN-DIAGNOSIS-COMMENT",
+      "status": "published",
+      "commentId": "47cf74cc-882e-4779-97ad-bf53a46968aa",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-47cf74cc-882e-4779-97ad-bf53a46968aa",
+      "candidateDigest": "43112cb603063bf837fa75736fe7fba8a11f1ea090ceeda5da6004d3be9b8cf5",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/031.json"
+    },
+    {
+      "index": 31,
+      "sourcePath": ".www/evidence/2026-09-27-queued-goal-continuity/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-QUEUED-GOAL-CONTINUITY-COMMENT",
+      "status": "published",
+      "commentId": "f063211b-a0fd-460a-b175-525419d70842",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-f063211b-a0fd-460a-b175-525419d70842",
+      "candidateDigest": "1d1847890ea29fdea3f31cf75d50cbf5ac770ee77cc1e567c92eb1a34e715f4f",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/032.json"
+    },
+    {
+      "index": 32,
+      "sourcePath": ".www/evidence/2026-09-27-render-health-monitoring/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-RENDER-HEALTH-MONITORING-COMMENT",
+      "status": "published",
+      "commentId": "ce7e4cc1-3649-4cdc-9846-8e88b478ac99",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-ce7e4cc1-3649-4cdc-9846-8e88b478ac99",
+      "candidateDigest": "2e748fd2c785b6d79b130d8de389ab7409ecdca32666d106832800a547ccad89",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/033.json"
+    },
+    {
+      "index": 33,
+      "sourcePath": ".www/evidence/2026-09-27-request-protocol-delivery-shape/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-REQUEST-PROTOCOL-DELIVERY-SHAPE-COMMENT",
+      "status": "published",
+      "commentId": "c9adf4e4-ce88-4392-ad38-5f633bb41618",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-c9adf4e4-ce88-4392-ad38-5f633bb41618",
+      "candidateDigest": "0a9f522427cef8e0ac15d1e2971d3ed8f839ea019e04b926becae27bd38885bd",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/034.json"
+    },
+    {
+      "index": 34,
+      "sourcePath": ".www/evidence/2026-09-27-stage-dashboard-completion/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-STAGE-DASHBOARD-COMPLETION-COMMENT",
+      "status": "published",
+      "commentId": "058d20b9-1e03-4260-ae17-bf0cd5ac2cea",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-058d20b9-1e03-4260-ae17-bf0cd5ac2cea",
+      "candidateDigest": "7d18834b67b9c1db7de4cf96bca06bb39422f2510b418c96b9f6e9ab08b7a83c",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/035.json"
+    },
+    {
+      "index": 35,
+      "sourcePath": ".www/evidence/2026-09-27-terminal-stage-progress/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-TERMINAL-STAGE-PROGRESS-COMMENT",
+      "status": "published",
+      "commentId": "5f355baa-2089-4879-accb-3792379c9dc7",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-5f355baa-2089-4879-accb-3792379c9dc7",
+      "candidateDigest": "dc681b1284bba5e4679fab200e7a8de2eb05fd4c45fb27d9cea27ad2d81d53de",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/036.json"
+    },
+    {
+      "index": 36,
+      "sourcePath": ".www/evidence/2026-09-27-transcript-semantic-icons/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-TRANSCRIPT-SEMANTIC-ICONS",
+      "status": "published",
+      "commentId": "cf8578fc-a344-45c6-95f5-6480517eb16f",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-cf8578fc-a344-45c6-95f5-6480517eb16f",
+      "candidateDigest": "6faca168a54ab6bc25a220167b3bf288507b6b63fc896d95f36d56a470f0a241",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/037.json"
+    },
+    {
+      "index": 37,
+      "sourcePath": ".www/evidence/2026-09-27-usage-routing-dashboard/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-USAGE-ROUTING-DASHBOARD-COMMENT",
+      "status": "published",
+      "commentId": "1275153c-d9d3-4cba-b03a-9a17fad46e95",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-1275153c-d9d3-4cba-b03a-9a17fad46e95",
+      "candidateDigest": "3dc6b0b1814e38e0e72e4adf8acd687d78488a8dc3f234187141076ea3a0ea41",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/038.json"
+    },
+    {
+      "index": 38,
+      "sourcePath": ".www/evidence/2026-09-27-wes-recording-orchestration/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-WES-RECORDING-ORCHESTRATION-COMMENT",
+      "status": "published",
+      "commentId": "ad4d471a-6b1a-48f5-a200-48e6ab3d7fa4",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-ad4d471a-6b1a-48f5-a200-48e6ab3d7fa4",
+      "candidateDigest": "1c9ecea005070dd332e9a135d40a0c6f9a92f59dd0127b33a692168920b1224d",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/039.json"
+    },
+    {
+      "index": 39,
+      "sourcePath": ".www/evidence/2026-09-27-woo-code-readability-migration/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-WOO-CODE-READABILITY-MIGRATION-COMMENT",
+      "status": "published",
+      "commentId": "65576eab-5969-4d4e-b468-39e518a58e9a",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-65576eab-5969-4d4e-b468-39e518a58e9a",
+      "candidateDigest": "8833827b14371fc14b636d331bf6d45c42bbf3af28d601f5cabf767a5d292565",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/040.json"
+    },
+    {
+      "index": 40,
+      "sourcePath": ".www/evidence/2026-09-28-chat-command-plan-rail/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-CHAT-COMMAND-PLAN-RAIL-COMMENT",
+      "status": "published",
+      "commentId": "c98ebdaf-55aa-4f73-bb47-efb31d89582d",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-c98ebdaf-55aa-4f73-bb47-efb31d89582d",
+      "candidateDigest": "e432a76aa5ba3259bec08c648978504e34e7ec932ece3f72931be04ad72e1824",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/041.json"
+    },
+    {
+      "index": 41,
+      "sourcePath": ".www/evidence/2026-09-28-chat-labels-hud-rail-colors/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-CHAT-LABELS-HUD-RAIL-COLORS-COMMENT",
+      "status": "published",
+      "commentId": "5b058257-fff5-4733-b4dd-bd893829ae66",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-5b058257-fff5-4733-b4dd-bd893829ae66",
+      "candidateDigest": "55a8c425e790434d1530cf806373945bee38d7a9755a48b7d8cec5b87f7baac2",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/042.json"
+    },
+    {
+      "index": 42,
+      "sourcePath": ".www/evidence/2026-09-28-chat-plan-progress-hud/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-CHAT-PLAN-PROGRESS-HUD-COMMENT",
+      "status": "published",
+      "commentId": "56d87d12-35cf-473c-89d4-1f5d37387ff7",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-56d87d12-35cf-473c-89d4-1f5d37387ff7",
+      "candidateDigest": "73cfbbcf8bcd478f2dcca32b9b1d945742f888fd92312f716b4232a2b9f6e48f",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/043.json"
+    },
+    {
+      "index": 43,
+      "sourcePath": ".www/evidence/2026-09-28-chat-plan-test-goal-fix/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-CHAT-PLAN-TEST-GOAL-FIX-COMMENT",
+      "status": "published",
+      "commentId": "94f2fc38-d23c-42e3-ab7d-eb7303b76f3a",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-94f2fc38-d23c-42e3-ab7d-eb7303b76f3a",
+      "candidateDigest": "bf30662f769cb96486eab5466de1316382a5484e3902bdf7185be662a8d2b902",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/044.json"
+    },
+    {
+      "index": 44,
+      "sourcePath": ".www/evidence/2026-09-28-chat-rail-stage-test-explanation/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-CHAT-RAIL-STAGE-TEST-EXPLANATION-COMMENT",
+      "status": "published",
+      "commentId": "73687786-f526-4e1a-9b28-087a278f1964",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-73687786-f526-4e1a-9b28-087a278f1964",
+      "candidateDigest": "b91755773ed7cf345369fcac81ddaee6817220cdcb082763a2afc105b01f7db7",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/045.json"
+    },
+    {
+      "index": 45,
+      "sourcePath": ".www/evidence/2026-09-28-chat-rail-verify-followup/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-CHAT-RAIL-VERIFY-FOLLOWUP-COMMENT",
+      "status": "published",
+      "commentId": "e8db5551-135c-4e6d-b10a-7b5c9a7c93af",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-e8db5551-135c-4e6d-b10a-7b5c9a7c93af",
+      "candidateDigest": "dd15664542b2dd937fb09d5ed19f2f76ab16426dd119e67e206021aa67896186",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/046.json"
+    },
+    {
+      "index": 46,
+      "sourcePath": ".www/evidence/2026-09-28-chat-thought-timeline/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-CHAT-THOUGHT-TIMELINE-COMMENT",
+      "status": "published",
+      "commentId": "01507187-c2d8-4668-a042-26007cf4a324",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-01507187-c2d8-4668-a042-26007cf4a324",
+      "candidateDigest": "83b0da15c195724d52a45bcb7ce162ade0b8835b8721d31595568e6aa719ba4b",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/047.json"
+    },
+    {
+      "index": 47,
+      "sourcePath": ".www/evidence/2026-09-28-chat-transcript-plan-order/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-CHAT-TRANSCRIPT-PLAN-ORDER-COMMENT",
+      "status": "published",
+      "commentId": "37f7f5c0-7e77-48eb-9f9f-34e67751e193",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-37f7f5c0-7e77-48eb-9f9f-34e67751e193",
+      "candidateDigest": "93a95ccae40cb73d7ee76ff9a2e2e8c9f9d758601e30832ea391aae3958c962d",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/048.json"
+    },
+    {
+      "index": 48,
+      "sourcePath": ".www/evidence/2026-09-28-chat-workstream-layout/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-CHAT-WORKSTREAM-LAYOUT-COMMENT",
+      "status": "published",
+      "commentId": "ed87f4d0-03c0-4910-885a-994677b2fb1b",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-ed87f4d0-03c0-4910-885a-994677b2fb1b",
+      "candidateDigest": "869fa05716ace3417234a0614799d63960ee618b1ddf8ca0466d0192c08409ab",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/049.json"
+    },
+    {
+      "index": 49,
+      "sourcePath": ".www/evidence/2026-09-28-command-palette-position/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-COMMAND-PALETTE-POSITION-COMMENT",
+      "status": "published",
+      "commentId": "b0b1f9af-93cf-4354-9fa9-6b1cd881db64",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-b0b1f9af-93cf-4354-9fa9-6b1cd881db64",
+      "candidateDigest": "a5c4dc0b7417f61bd5242401046832a5af8a21814ec502769c60e4dc1e13b773",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/050.json"
+    },
+    {
+      "index": 50,
+      "sourcePath": ".www/evidence/2026-09-28-compact-provider-hud-stage-gradient/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-COMPACT-PROVIDER-HUD-STAGE-GRADIENT-COMMENT",
+      "status": "published",
+      "commentId": "c8faa2ca-00d7-4902-aa1d-02374038f191",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-c8faa2ca-00d7-4902-aa1d-02374038f191",
+      "candidateDigest": "99c4acdb5a10d2a6910243d9fb9a6976f81d6957b3b8010e394f927aea4006c4",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/051.json"
+    },
+    {
+      "index": 51,
+      "sourcePath": ".www/evidence/2026-09-28-compact-request-runtime/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-COMPACT-REQUEST-RUNTIME-COMMENT",
+      "status": "published",
+      "commentId": "92ac779a-c625-4a36-bf65-8ce490ede637",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-92ac779a-c625-4a36-bf65-8ce490ede637",
+      "candidateDigest": "6c83f6a2b8a7ec845c5efc0e69fe4b4a03dcca58d159e60d1d93dda25bfaee75",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/052.json"
+    },
+    {
+      "index": 52,
+      "sourcePath": ".www/evidence/2026-09-28-figma-chat-input-hud/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-FIGMA-CHAT-INPUT-HUD-COMMENT",
+      "status": "published",
+      "commentId": "7392a238-1fc3-4c00-b229-828f4207f62c",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-7392a238-1fc3-4c00-b229-828f4207f62c",
+      "candidateDigest": "7fadf13865c77f4f07bea811c64db16707df37029f705913815c8b7f6a656f88",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/053.json"
+    },
+    {
+      "index": 53,
+      "sourcePath": ".www/evidence/2026-09-28-git-bash-card-restoration/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-GIT-BASH-CARD-RESTORATION-COMMENT",
+      "status": "published",
+      "commentId": "802a2089-8d90-438f-a077-524b6d7534c4",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-802a2089-8d90-438f-a077-524b6d7534c4",
+      "candidateDigest": "51da43a50f55eb49c62d058d27bcd0f6b062371c5a26ce5185ef656c8fc35818",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/054.json"
+    },
+    {
+      "index": 54,
+      "sourcePath": ".www/evidence/2026-09-28-goal-gradient-build/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-GOAL-GRADIENT-BUILD-COMMENT",
+      "status": "published",
+      "commentId": "305138a9-6b24-4150-90ef-6afa1a99ba5a",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-305138a9-6b24-4150-90ef-6afa1a99ba5a",
+      "candidateDigest": "3fbc1558cf50760ecd003a7796d708cf5e90ef849026ec05c62e2fba33e35b47",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/055.json"
+    },
+    {
+      "index": 55,
+      "sourcePath": ".www/evidence/2026-09-28-monitor-dashboard-history/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-MONITOR-DASHBOARD-HISTORY-COMMENT",
+      "status": "published",
+      "commentId": "1bda35f0-4cd8-4595-896e-eacec9da1f0b",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-1bda35f0-4cd8-4595-896e-eacec9da1f0b",
+      "candidateDigest": "11baf49b10773cc22fa89b9ca880183571fe771514d64a4c11a0f317fc986506",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/056.json"
+    },
+    {
+      "index": 56,
+      "sourcePath": ".www/evidence/2026-09-28-monitor-trace-view/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-MONITOR-TRACE-VIEW-COMMENT",
+      "status": "published",
+      "commentId": "e6a23b24-830e-4260-829b-00d916819e50",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-e6a23b24-830e-4260-829b-00d916819e50",
+      "candidateDigest": "7a30b02d947cf83665977759f88bd7c43f3cdb2be27e2648e446473a12290d33",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/057.json"
+    },
+    {
+      "index": 57,
+      "sourcePath": ".www/evidence/2026-09-28-monitor-waterfall-oom/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-MONITOR-WATERFALL-OOM-COMMENT",
+      "status": "published",
+      "commentId": "b3ddfdc6-4ef3-49ca-b9b0-0c29b1b162c3",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-b3ddfdc6-4ef3-49ca-b9b0-0c29b1b162c3",
+      "candidateDigest": "81508af65a277ba487e90d01aa995e1da2a7d172f6b097c13a7e270595a0955c",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/058.json"
+    },
+    {
+      "index": 58,
+      "sourcePath": ".www/evidence/2026-09-28-native-goal-plan-progress/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-WOO-700-NATIVE-GOAL-PLAN-PROGRESS-COMMENT",
+      "status": "published",
+      "commentId": "d30205cb-f661-4e87-87f5-14efbce97059",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-d30205cb-f661-4e87-87f5-14efbce97059",
+      "candidateDigest": "644a2a7942e3e66c40916248e9295b6ff056d74b269a9d958ed338239b3edacd",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/059.json"
+    },
+    {
+      "index": 59,
+      "sourcePath": ".www/evidence/2026-09-28-native-tool-group-summary/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-NATIVE-TOOL-GROUP-SUMMARY-COMMENT",
+      "status": "published",
+      "commentId": "802a44a1-21e6-4e5d-9a10-3146e6eb5521",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-802a44a1-21e6-4e5d-9a10-3146e6eb5521",
+      "candidateDigest": "e8aa4adf353d6434c1dcf8a13c699abb06c4fe1f033f3aefec3f0bfd071c7e49",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/060.json"
+    },
+    {
+      "index": 60,
+      "sourcePath": ".www/evidence/2026-09-28-output-language-selection/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-WWW-OUTPUT-LANGUAGE-COMMENT",
+      "status": "published",
+      "commentId": "1249c8fc-99fe-4b2e-9e3d-8954354c2411",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-1249c8fc-99fe-4b2e-9e3d-8954354c2411",
+      "candidateDigest": "0f4be37d68481b327b9b367b97c77a3f155aa9a33e184ba4b28167d1da3b2799",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/061.json"
+    },
+    {
+      "index": 61,
+      "sourcePath": ".www/evidence/2026-09-28-raw-verify-sidebar/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-RAW-VERIFY-COMMENT-DRAFT",
+      "status": "published",
+      "commentId": "d3e69866-159d-4688-9916-87641e1f87bc",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-d3e69866-159d-4688-9916-87641e1f87bc",
+      "candidateDigest": "6d4d9132d1ef7bdc0e770cff1772850adf17bcd0826dc0e9a3c94c7458dea787",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/062.json"
+    },
+    {
+      "index": 62,
+      "sourcePath": ".www/evidence/2026-09-28-slash-command-inline/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-SLASH-COMMAND-INLINE-COMMENT",
+      "status": "published",
+      "commentId": "f2220652-c031-43b4-a4d8-7f9f0f986f82",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-f2220652-c031-43b4-a4d8-7f9f0f986f82",
+      "candidateDigest": "1b6bc6b6744388a0e462860357b605449afb906478bffcad4e924b87227b6d66",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/063.json"
+    },
+    {
+      "index": 63,
+      "sourcePath": ".www/evidence/2026-09-28-slash-command-palette/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-SLASH-COMMAND-PALETTE-COMMENT",
+      "status": "published",
+      "commentId": "4204d3ee-7d73-47b2-99c8-faa20620e752",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-4204d3ee-7d73-47b2-99c8-faa20620e752",
+      "candidateDigest": "2947b9f7eb431147d41edd9da633d7336aedb0a5fa2736414af167a668f6751e",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/064.json"
+    },
+    {
+      "index": 64,
+      "sourcePath": ".www/evidence/2026-09-28-tool-input-render-lag/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-TOOL-INPUT-RENDER-LAG-COMMENT",
+      "status": "published",
+      "commentId": "1005ac48-c1fb-4afd-b992-f1a179e591b1",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-1005ac48-c1fb-4afd-b992-f1a179e591b1",
+      "candidateDigest": "af38da6bf7520b62a08dacd6515734902521698795031dfef32eb9148dae7389",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/065.json"
+    },
+    {
+      "index": 65,
+      "sourcePath": ".www/evidence/2026-09-28-tool-summary-korean/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-TOOL-SUMMARY-KOREAN-COMMENT",
+      "status": "published",
+      "commentId": "2333b6cd-fd8f-49d4-9644-1c2a0a4fa65e",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-2333b6cd-fd8f-49d4-9644-1c2a0a4fa65e",
+      "candidateDigest": "d6065a18afd7a1fa32226cd693e5b9296d923781441bb2e530b5b3b2914914b9",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/066.json"
+    },
+    {
+      "index": 66,
+      "sourcePath": ".www/evidence/2026-09-28-version-0.0.22/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-VERSION-0-0-22-COMMENT",
+      "status": "published",
+      "commentId": "f8982d28-e0ac-4624-9206-f10b7e7bbd14",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-f8982d28-e0ac-4624-9206-f10b7e7bbd14",
+      "candidateDigest": "f60ee46958caef76acd10ddf829b3b273a34817ff3d104a67e45599e3df72453",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/067.json"
+    },
+    {
+      "index": 67,
+      "sourcePath": ".www/evidence/2026-09-28-welcome-idle-state/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-WELCOME-IDLE-STATE-COMMENT",
+      "status": "published",
+      "commentId": "86f3b76e-f27b-48fe-b14d-9c05e93324d1",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-86f3b76e-f27b-48fe-b14d-9c05e93324d1",
+      "candidateDigest": "9569f461ac8f7b1c63e27f2afcad4f553ecd5e9ae8cbe1f2e388c615fab09106",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/068.json"
+    },
+    {
+      "index": 68,
+      "sourcePath": ".www/evidence/agent-resource-visibility-2026-09-22/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-AGENT-RESOURCE-VISIBILITY",
+      "status": "published",
+      "commentId": "75374707-6250-468e-8383-9ec552296c83",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-75374707-6250-468e-8383-9ec552296c83",
+      "candidateDigest": "27cc1322f27b0113f8cd3252d85a3f684bd3a0db43fb4134cc7955d0e3f1e50d",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/069.json"
+    },
+    {
+      "index": 69,
+      "sourcePath": ".www/evidence/astra-context-grid-2026-09-22/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-ASTRA-CONTEXT-GRID-COMMENT",
+      "status": "published",
+      "commentId": "0aecf2e5-c9c6-4b36-917d-5d05e7783542",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-0aecf2e5-c9c6-4b36-917d-5d05e7783542",
+      "candidateDigest": "19da9724d6af88d14d68faf6c48a7bfa215954d8b12401cba73a6fffcd88da13",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/070.json"
+    },
+    {
+      "index": 70,
+      "sourcePath": ".www/evidence/astra-figma-fidelity-2026-09-22/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-ASTRA-FIGMA-FIDELITY-REMOTE-COMMENT",
+      "status": "published",
+      "commentId": "7c5f9a6a-b1f8-41ce-8a65-d5fec68befaa",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-7c5f9a6a-b1f8-41ce-8a65-d5fec68befaa",
+      "candidateDigest": "c0fe2c957aa7b7ea84758fd2a37ff9e1d85c9e396f8f7dc4f1d4104e6c3934c4",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/071.json"
+    },
+    {
+      "index": 71,
+      "sourcePath": ".www/evidence/astra-readability-axes-2026-09-22/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-ASTRA-READABILITY-AXES",
+      "status": "published",
+      "commentId": "b786fa84-dba3-45d5-a3c7-d10250fb7efa",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-b786fa84-dba3-45d5-a3c7-d10250fb7efa",
+      "candidateDigest": "70fba40ec4707ec25abcc4aec54482b0dd0e0f1ea89e5e477315c5975bfb8d3a",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/072.json"
+    },
+    {
+      "index": 72,
+      "sourcePath": ".www/evidence/www-bootstrap-bar-2026-09-22/project-comment-candidate.json",
+      "sourceCandidateId": "ARTIFACT-CANDIDATE-WWW-BOOTSTRAP-BAR",
+      "status": "published",
+      "commentId": "a996f4a8-cd50-471b-9bbf-d0d77bdd31f3",
+      "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-a996f4a8-cd50-471b-9bbf-d0d77bdd31f3",
+      "candidateDigest": "f7442b1627dcb8549360382419fc647c63b1b322b47300fe8d666a8c3f4138b4",
+      "receipt": "/Users/jonghoPro/woo/00_project/99_www/.www/evidence/2026-09-29-linear-recording-backfill/receipts/073.json"
+    }
+  ]
+}

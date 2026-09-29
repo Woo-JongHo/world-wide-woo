@@ -1,0 +1,10 @@
+{
+  "candidateId": "ARTIFACT-CANDIDATE-2026-09-29-HUD-FULL-LOGO-COMMENT",
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "commentId": "ad1b892d-00eb-4ee7-ac86-afdc9e481395",
+  "expectedBeforeLatestCommentId": "4ba30c3e-fab8-4bdf-af96-e002ed4607bb",
+  "createdAt": "2026-09-29T03:17:43.006Z",
+  "author": "우종호",
+  "readBack": "pass",
+  "evidence": "linear-woo list_comments(projectId) returned the new top-level comment as latest with matching author and body."
+}

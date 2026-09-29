@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-ZCODE-READABILITY-REFACTOR",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:ca775998641d284738cd87c50d2593f689b6c86c:dirty",
+  "intent": "WOO-911의 전체 제품 TypeScript Readability 리팩터링과 독립 검증 결과를 기록한다",
+  "target": { "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db" },
+  "content": {
+    "changes": [
+      "ZCode GLM-5.3 Max가 제품 TypeScript 305개를 조사하고 후보 14개 파일을 파일별로 리팩터링했다.",
+      "반복 인라인 타입, 약한 반환 유니온, 평행 배열, 멤버십 캐스트와 불필요한 non-null 단언을 정리했다.",
+      "새 성능 테스트 2개를 포함한 현재 TypeScript 484개 import 선언을 STEP0 계약으로 정규화했다.",
+      "Codex가 결과를 인수해 전수 검증하고 Claude Opus 5가 읽기 전용 반박 감사를 수행했다."
+    ],
+    "impacts": [
+      "제품 14개 파일의 STEP2 불확실성 표식이 442건에서 318건으로 124건 감소했다.",
+      "경계 파싱과 도메인 불변식에 결속된 단언은 보존해 의미 변경을 피했다."
+    ],
+    "categories": ["refactor", "improvement", "verification"],
+    "verification": [
+      "Import 전수 검사: 484 files, changed 0, errors 0.",
+      "TypeScript noEmit, architecture 13/13, git diff --check 통과.",
+      "전체 회귀: 1473 pass, 0 fail, 19186 assertions, 173 files.",
+      "Claude Opus 5: APPROVE, blocking finding 0건."
+    ],
+    "connections": [
+      "Linear: WOO-911 · UUID b00b02eb-2d80-4b10-9c9a-a29db4f1a74d",
+      "Report: docs/audit/2026-09-24-zcode-readability-refactor.md",
+      "Evidence: .www/evidence/2026-09-24-zcode-readability-refactor",
+      "Branch: dev · HEAD ca775998641d284738cd87c50d2593f689b6c86c · uncommitted"
+    ]
+  },
+  "links": {
+    "issue": "https://linear.app/woo-world/issue/WOO-911/코드-실행-흐름을-역할별-최소-구조와-측정-가능한-열로-정리한다",
+    "candidateEvidence": ".www/evidence/2026-09-24-zcode-readability-refactor"
+  },
+  "expectedBefore": { "latestCommentId": "30f00db1-c05a-4d67-a730-a03f589c46e9" },
+  "validation": [
+    { "id": "issue-binding", "status": "pass", "evidence": "기존 WOO-911의 전체 TypeScript 역할별 최소 구조와 측정 가능한 열 범위에 결속했다." },
+    { "id": "local-verification", "status": "pass", "evidence": "484개 import 고정점, 타입, 아키텍처, 전체 1473개 테스트와 Opus 감사를 통과했다." },
+    { "id": "canonical-decision", "status": "pass", "evidence": "기존 Readability 계약 적용이므로 Obsidian Candidate는 필요하지 않다." }
+  ],
+  "candidateDigest": "4b44e68e029cd883fc187c9a234b9425897e432475dfbe60b5ff657f0e410814"
+}

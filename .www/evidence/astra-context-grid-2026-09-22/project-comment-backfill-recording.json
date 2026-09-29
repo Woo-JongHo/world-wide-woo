@@ -1,0 +1,12 @@
+{
+  "status": "recorded",
+  "sourceCandidateId": "ARTIFACT-CANDIDATE-ASTRA-CONTEXT-GRID-COMMENT",
+  "projectCommentId": "0aecf2e5-c9c6-4b36-917d-5d05e7783542",
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "recordedAt": "2026-09-28T22:12:02.206Z",
+  "receipt": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/070.json",
+  "scope": "historical-project-comment",
+  "newIssueCreated": false,
+  "obsidianWritten": false,
+  "reason": "User authorized recovering all unrecorded local work history to Linear; original assertions are attributed to the historical Candidate."
+}

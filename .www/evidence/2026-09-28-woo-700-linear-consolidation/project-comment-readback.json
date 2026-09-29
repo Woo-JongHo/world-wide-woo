@@ -1,0 +1,12 @@
+{
+  "candidateId": "ARTIFACT-CANDIDATE-WOO-700-PLAN-CONSOLIDATION-COMMENT",
+  "candidateDigest": "f04a604bb27deefa52b312674d04adf033c5bdcfe688fd63211ce4a79d7adc77",
+  "publishedVia": "Linear macOS app",
+  "commentId": "e0a4906d",
+  "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-e0a4906d",
+  "readBack": {
+    "author": "우종호",
+    "body": "Project Activity에서 통합 Comment의 변경·영향·검증·연결 항목을 다시 읽고 후보 미리보기와 일치함을 확인했다.",
+    "status": "pass"
+  }
+}

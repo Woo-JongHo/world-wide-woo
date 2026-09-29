@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0",
   "recordedAt": "2026-09-27T02:30:00+09:00",
-  "scope": "woo-code-readability standalone migration",
+  "scope": "woo-code-readability dual-repository synchronization",
   "issueBinding": {
     "decision": "reuse-existing",
     "identifier": "WOO-911",
@@ -20,7 +20,7 @@
   },
   "obsidian": {
     "required": true,
-    "reason": "규칙·검사기의 권위가 99_www 내부 폴더에서 독립 저장소로 이동하고 여러 에이전트가 그 원본을 공유하므로 되돌리기 비용이 있는 저장소·권위 경계 결정이다.",
+    "reason": "99_www 제품용 Skill과 98_Plugin 배포용 Skill을 별도 소유하면서 현재 내용을 동일하게 유지하므로 저장소·권위 경계 결정이다.",
     "candidate": ".www/evidence/2026-09-27-woo-code-readability-migration/obsidian-canonical-candidate.json",
     "preview": ".www/evidence/2026-09-27-woo-code-readability-migration/obsidian-canonical-preview.md",
     "state": "draft-candidate-prepared",

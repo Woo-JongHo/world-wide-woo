@@ -1,0 +1,83 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-WOO-700-CHAT-STAGE-ORDER-TEST-GATE",
+  "kind": "obsidian-canonical",
+  "sourceRevision": "worktree:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty",
+  "intent": "WOO-700의 PLAN·PROGRESS 순서, TEST 출현 조건과 Working 단계 표시 계약을 개정한다",
+  "target": {
+    "relativePath": "Todo/Native Plan projection — AI가 세운 계획을 세션별로 실시간 확인한다.md"
+  },
+  "content": {
+    "properties": {
+      "document_id": "911c3fc2-5576-4651-9067-811a6238608e",
+      "linear": "WOO-700",
+      "record_type": "detailed-canonical",
+      "schema_version": 2,
+      "status": "draft",
+      "acceptance": "partial",
+      "domain": "Todo",
+      "capability": "Native Plan projection",
+      "parent": null,
+      "related": [],
+      "spec_ids": [],
+      "code_ids": [
+        "Code-002",
+        "Code-011"
+      ],
+      "test_ids": [],
+      "exception_ids": [],
+      "decision_ids": [],
+      "tags": [
+        "www/spec",
+        "domain/todo",
+        "capability/native-plan",
+        "status/partial"
+      ],
+      "source_revision": "worktree:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty",
+      "updated_at": "2026-09-28T08:49:53.538Z"
+    },
+    "sections": {
+      "1. Intent": "사용자는 질문에서 정리된 목표와 필요한 계획, 실제 진행 내용을 구분해 읽는다. 일반 요청의 7단계 강제 표시는 이 목적을 가리지 않아야 한다.",
+      "2. Scope": "일반 observe 요청의 Chat·F3 표시와 WORK 검증 선택 경계를 개정한다. Broker의 승인형 단계 게이트, Native의 도구·테스트 판단, 전체 request-report-v3 템플릿은 유지한다.",
+      "3. Desired Behavior": "계획 항목이 도착하기 전에는 PROGRESS 내용을 화면에 먼저 노출하지 않는다. 계획이 오면 같은 turn의 해석된 작업 경과를 보여준다. TEST는 같은 turn에서 코드 변경이 완료된 뒤 실행한 검증 명령만 표시한다. 읽기·검색 명령의 경로 또는 인자에 test가 들어 있어도 검증으로 분류하지 않는다. Working 줄은 PROGRESS 문장을 반복하지 않고 현재 7단계의 단계명·상태·완료 수를 표시한다. 원본 실행 기록은 기존 Source에서 읽는다.",
+      "4. Domain Contract": "INV-001: GOAL은 UNDERSTAND 완료 전 입력 원문을 provisional 목표로 노출하지 않는다. INV-002: PLAN은 현재 turn의 Native workFlow가 우선하며 비어 있으면 같은 요청 Runtime task를 사용한다. INV-003: PROGRESS는 같은 turn의 계획 항목이 관측된 뒤에만 해당 turn의 planActivities를 표시한다. INV-004: TEST는 같은 turn의 완료된 file-change 이후 실행한 명시적 검증 commandExecution만 표시한다. 읽기·검색 문자열은 검증으로 승격하지 않는다. INV-005: Working은 PROGRESS 요약을 중복하지 않고 현재 request stage의 이름·상태·완료 수를 보여준다.",
+      "5. State Model": "일반 observe의 내부 INTENT·WORK·RESULT는 기존 일곱 단계 기록으로 투영된다. Chat의 PLAN은 미보고 상태를 허용한다. PROGRESS 기록이 PLAN보다 먼저 도착하면 계획 항목이 생길 때까지 표시를 대기한다. TEST는 코드 변경과 뒤따른 검증 명령이 함께 관측된 뒤 출현한다. Working은 현재 일곱 단계의 상태를 읽기 전용으로 투영한다.",
+      "6. Data & Runtime Flow": "Native workFlow와 같은 요청의 Runtime task가 계획 항목을 제공한다. 별도 narrator의 planActivities가 작업 경과를 제공하며 화면은 계획 존재 여부로 표시를 게이트한다. request-test-workspace는 같은 turn의 완료된 파일 변경 sequence 이후 실행한 검증 commandExecution만 TEST 화면과 Chat rail에 투영한다. Working은 requestRuntime stage 상태와 완료 수를 읽는다.",
+      "7. Identity & Persistence Contract": "Request ID·turn ID·Native Plan 항목 ID·기존 request-report-v3 identity를 바꾸지 않는다. Chat 질문 배경과 사이드바는 저장하지 않는 presentation이다. 이전 turn의 계획은 현재 진행으로 재귀속하지 않는다.",
+      "8. Integration Contract": "Native가 계획과 검증 방법을 선택한다. WWW는 목표 정리와 읽기 투영을 담당한다. Observe WORK는 실행 evidence만으로도 수락하며 검증 evidence가 실제로 있을 때만 VERIFY를 완료한다. Broker의 별도 실행·검증 receipt 요구는 유지한다.",
+      "9. Failure & Recovery Contract": "계획이 없으면 PLAN 미보고와 PROGRESS 대기 문구를 표시한다. 코드 변경 또는 검증 명령이 없으면 TEST 섹션을 숨기고 명시적으로 연 TEST 화면은 UNOBSERVED를 표시한다. 단계 정보가 없으면 Working에는 단계 상태 관측 중이라고 표시한다. 원본 저널은 숨김 여부와 관계없이 보존한다.",
+      "10. Acceptance Contract": "AC-001: PROGRESS 기록이 먼저 도착해도 PLAN 항목 전에는 그 내용이 표시되지 않고, 계획 후에 표시된다. AC-002: 읽기·검색 명령에 test 문자열이 있어도 TEST가 나타나지 않는다. 같은 요청의 코드 변경 뒤 검증 실행은 나타난다. AC-003: Working은 PROGRESS 문장을 복제하지 않고 현재 단계·상태와 7단계 완료 수를 표시한다. AC-004: 기존 일곱 단계 기록과 원본 Source는 유지한다. 실제 TUI 사용자 수락은 미실행이다.",
+      "11. Verification Strategy": "PLAN 선행·TEST 오분류·코드 변경 후 검증·Working 중복 제거를 포함한 관련 테스트 107개가 통과했다. TypeScript 검사와 git diff --check가 통과했다. 실제 TUI 사용자 수락, 최신 Linear·Vault read-back, 독립 provider 검토는 미실행이다.",
+      "12. Implementation Map": "www-plan-view.ts와 www-monitor-view.ts가 PLAN·PROGRESS 표시 순서를, request-test-workspace.ts와 www-test-view.ts가 TEST 분류와 표시를, www-execution.ts와 www-surface.ts가 Working의 현재 단계 표시를 소유한다. 전체 REPORT는 기존 request-report 템플릿이 소유한다.",
+      "13. Current State & Gaps": "로컬 구현과 집중 회귀는 통과했다. 최신 Linear Activity·Vault bytes와 실제 TUI 사용자 수락은 확인되지 않았다. 독립 provider 검토 호출은 실행 오류로 유효한 결과를 내지 못했다. file-change가 없는 명령 기반 코드 변경은 TEST 표시 조건에 포함되지 않는다.",
+      "14. Decisions & Evidence": "2026-09-28 사용자 정정: PLAN 항목이 PROGRESS보다 먼저 보여야 한다. TEST는 읽기·파악 중 표시되지 않고 코드 변경 후 검증에만 표시한다. Working 줄은 PROGRESS 내용을 반복하지 않고 현재 7단계 상태를 보여준다. 기존 WOO-700 초안 후보와 관련 테스트를 근거로 표시 계약을 개정했다. 최신 Vault 원문과 외부 게시 상태는 미확인이다.",
+      "Change Log": "2026-09-28 PLAN 선행 표시, 코드 변경 후 TEST, Working 단계 전용 표시 계약을 추가했다. 이전 Chat PLAN·TEST·GOAL 초안의 identity를 유지한다."
+    }
+  },
+  "links": {
+    "linear": "WOO-700",
+    "relatedLinear": "WOO-680",
+    "evidence": ".www/evidence/2026-09-28-chat-stage-order-test-gate"
+  },
+  "expectedBefore": {
+    "digest": "a53387f5bf69b8688562d38edb1f0d54f539dd12e82be5133d26ade007e94bf5"
+  },
+  "validation": [
+    {
+      "id": "canonical-identity",
+      "status": "pass",
+      "evidence": "이전 WOO-700 후보의 document_id와 target relativePath를 유지했다."
+    },
+    {
+      "id": "vault-readback",
+      "status": "not-run",
+      "evidence": "현재 Vault bytes와 digest를 이 세션에서 확인하지 못했다. 이전 로컬 후보를 기반으로 작성했다."
+    },
+    {
+      "id": "publication-boundary",
+      "status": "pass",
+      "evidence": "후보만 준비하고 최신 Vault 대조 및 항목별 승인 전에는 게시하지 않는다."
+    }
+  ],
+  "candidateDigest": "8247c532722fd271d9e3fd3c7ff634ad15b0b2de9e679764c899105b0f99bb38"
+}

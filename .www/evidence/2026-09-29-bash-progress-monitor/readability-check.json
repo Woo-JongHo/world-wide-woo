@@ -1,0 +1,114 @@
+[
+  {
+    "file": "src/core/domain/work/workbench.ts",
+    "script": "00_normalize-imports.ts",
+    "writeExit": 0,
+    "checkExit": 0,
+    "output": "import-declarations files=1 changed=0 errors=0\n",
+    "error": ""
+  },
+  {
+    "file": "src/core/domain/work/workbench.ts",
+    "script": "06_align-tables.ts",
+    "writeExit": 0,
+    "checkExit": 0,
+    "output": "= 3  colon=42 semicolon=78  edits=0\n    147-150  interface-members  rows= 4  colon=21 semicolon=41  edits=0\n    154-158  interface-members  rows= 5  colon=23 semicolon=91  edits=0\n    162-168  interface-members  rows= 7  colon=23 semicolon=74  edits=0\n    174-177  interface-members  rows= 4  colon=28 semicolon=48  edits=0\n    181-183  interface-members  rows= 3  colon=33 semicolon=84  edits=0\n    200-213  interface-members  rows=14  colon=23 semicolon=58  edits=0\n    217-228  interface-members  rows=12  colon=32 semicolon=112  edits=0\n    232-240  interface-members  rows= 9  colon=25 semicolon=61  edits=0\n    316-323  interface-members  rows= 8  colon=26 semicolon=62  edits=0\n    337-344  declaration-equals rows= 8  equals=27 semicolon=72  edits=0\n    360-364  registration       rows= 5  colon=19 value=21  edits=0\n    398-400  declaration-equals rows= 3  equals=17 semicolon=108  edits=0\n",
+    "error": ""
+  },
+  {
+    "file": "src/core/application/orchestration/plan-activity-narration.ts",
+    "script": "00_normalize-imports.ts",
+    "writeExit": 0,
+    "checkExit": 0,
+    "output": "import-declarations files=1 changed=0 errors=0\n",
+    "error": ""
+  },
+  {
+    "file": "src/core/application/orchestration/plan-activity-narration.ts",
+    "script": "06_align-tables.ts",
+    "writeExit": 0,
+    "checkExit": 0,
+    "output": "align-tables file=src/core/application/orchestration/plan-activity-narration.ts groups=9 misaligned=0 edits=0 compressed=0 compressed-members=0\n      10-13  interface-members  rows= 4  colon=14 semicolon=23  edits=0\n      17-21  interface-members  rows= 5  colon=13 semicolon=63  edits=0\n      28-32  class-members      rows= 5  equals=40 semicolon=69  edits=0\n      45-49  declaration-equals rows= 5  equals=25 semicolon=226  edits=0\n      82-84  declaration-equals rows= 3  equals=27 semicolon=117  edits=0\n    121-123  declaration-equals rows= 3  colon=20 semicolon=70  edits=0\n    146-148  declaration-equals rows= 3  equals=21 semicolon=83  edits=0\n    169-171  declaration-equals rows= 3  equals=18 semicolon=143  edits=0\n    201-207  registration       rows= 7  colon=13 value=15  edits=0\n",
+    "error": ""
+  },
+  {
+    "file": "src/core/application/orchestration/workbench-note-narration.ts",
+    "script": "00_normalize-imports.ts",
+    "writeExit": 0,
+    "checkExit": 0,
+    "output": "import-declarations files=1 changed=0 errors=0\n",
+    "error": ""
+  },
+  {
+    "file": "src/core/application/orchestration/workbench-note-narration.ts",
+    "script": "06_align-tables.ts",
+    "writeExit": 0,
+    "checkExit": 0,
+    "output": "align-tables file=src/core/application/orchestration/workbench-note-narration.ts groups=6 misaligned=0 edits=0 compressed=0 compressed-members=0\n      30-35  type-members       rows= 6  colon=25 semicolon=58  edits=0\n      40-59  interface-members  rows=20  colon=39 semicolon=133  edits=0\n      68-87  class-members      rows=20  colon=36 equals=135 semicolon=211  edits=0\n    102-105  class-method       rows= 4  open-paren=30 close-paren=47 colon=48  edits=0\n    294-297  declaration-equals rows= 4  equals=23 semicolon=55  edits=0\n    314-316  registration       rows= 3  colon=33 value=35  edits=0\n",
+    "error": ""
+  },
+  {
+    "file": "src/adapters/outbound/execution/pi-activity-narrator.ts",
+    "script": "00_normalize-imports.ts",
+    "writeExit": 0,
+    "checkExit": 0,
+    "output": "import-declarations files=1 changed=0 errors=0\n",
+    "error": ""
+  },
+  {
+    "file": "src/adapters/outbound/execution/pi-activity-narrator.ts",
+    "script": "06_align-tables.ts",
+    "writeExit": 0,
+    "checkExit": 0,
+    "output": "align-tables file=src/adapters/outbound/execution/pi-activity-narrator.ts groups=3 misaligned=0 edits=0 compressed=0 compressed-members=0\n      11-13  declaration-equals rows= 3  equals=24 semicolon=35  edits=0\n      65-67  registration       rows= 3  colon=23 value=25  edits=0\n      84-86  declaration-equals rows= 3  equals=23 semicolon=102  edits=0\n",
+    "error": ""
+  },
+  {
+    "file": "src/adapters/inbound/tui/features/chat/view/www-execution.ts",
+    "script": "00_normalize-imports.ts",
+    "writeExit": 0,
+    "checkExit": 0,
+    "output": "import-declarations files=1 changed=0 errors=0\n",
+    "error": ""
+  },
+  {
+    "file": "src/adapters/inbound/tui/features/chat/view/www-execution.ts",
+    "script": "06_align-tables.ts",
+    "writeExit": 0,
+    "checkExit": 0,
+    "output": "als rows= 3  equals=25 semicolon=79  edits=0\n    512-515  registration       rows= 4  colon=25 value=27  edits=0\n    547-550  registration       rows= 4  colon=25 value=27  edits=0\n    562-565  registration       rows= 4  colon=25 value=27  edits=0\n    570-572  registration       rows= 3  colon=29 value=31  edits=0\n    615-621  registration       rows= 7  colon=39 value=41  edits=0\n    649-652  declaration-equals rows= 4  equals=24 semicolon=119  edits=0\n    661-669  declaration-equals rows= 9  equals=18 semicolon=155  edits=0\n    671-681  declaration-equals rows=11  equals=25 semicolon=230  edits=0\n    700-703  declaration-equals rows= 4  equals=18 semicolon=92  edits=0\n    708-711  declaration-equals rows= 4  equals=17 semicolon=82  edits=0\n    727-729  declaration-equals rows= 3  equals=18 semicolon=68  edits=0\n    734-736  declaration-equals rows= 3  equals=22 semicolon=109  edits=0\n",
+    "error": ""
+  },
+  {
+    "file": "src/adapters/inbound/tui/features/monitoring/view/www-monitor-view.ts",
+    "script": "00_normalize-imports.ts",
+    "writeExit": 0,
+    "checkExit": 0,
+    "output": "import-declarations files=1 changed=0 errors=0\n",
+    "error": ""
+  },
+  {
+    "file": "src/adapters/inbound/tui/features/monitoring/view/www-monitor-view.ts",
+    "script": "06_align-tables.ts",
+    "writeExit": 0,
+    "checkExit": 0,
+    "output": "on=66  edits=0\n      93-95  declaration-equals rows= 3  equals=23 semicolon=60  edits=0\n    115-117  declaration-equals rows= 3  equals=21 semicolon=202  edits=0\n    127-134  declaration-equals rows= 8  equals=26 semicolon=116  edits=0\n    152-156  declaration-equals rows= 5  equals=28 semicolon=126  edits=0\n    186-188  declaration-equals rows= 3  equals=23 semicolon=117  edits=0\n    195-197  declaration-equals rows= 3  equals=25 semicolon=151  edits=0\n    206-209  declaration-equals rows= 4  equals=22 semicolon=145  edits=0\n    271-273  declaration-equals rows= 3  equals=22 semicolon=147  edits=0\n    298-303  declaration-equals rows= 6  equals=24 semicolon=144  edits=0\n    331-334  declaration-equals rows= 4  equals=26 semicolon=106  edits=0\n    357-360  declaration-equals rows= 4  equals=28 semicolon=98  edits=0\n    430-432  declaration-equals rows= 3  equals=29 semicolon=64  edits=0\n",
+    "error": ""
+  },
+  {
+    "file": "src/core/application/orchestration/native-turn-coordinator.ts",
+    "script": "00_normalize-imports.ts",
+    "writeExit": 0,
+    "checkExit": 0,
+    "output": "import-declarations files=1 changed=0 errors=0\n",
+    "error": ""
+  },
+  {
+    "file": "src/core/application/orchestration/native-turn-coordinator.ts",
+    "script": "06_align-tables.ts",
+    "writeExit": 0,
+    "checkExit": 0,
+    "output": "align-tables file=src/core/application/orchestration/native-turn-coordinator.ts groups=7 misaligned=0 edits=0 compressed=0 compressed-members=0\n      25-29  interface-members  rows= 5  colon=28 semicolon=58  edits=0\n      33-40  interface-members  rows= 8  colon=31 semicolon=61  edits=0\n      44-47  interface-members  rows= 4  colon=23 semicolon=32  edits=0\n    109-111  registration       rows= 3  colon=21 value=23  edits=0\n    114-116  registration       rows= 3  colon=30 value=32  edits=0\n    122-125  registration       rows= 4  colon=32 value=34  edits=0\n    140-144  registration       rows= 5  colon=32 value=34  edits=0\n",
+    "error": ""
+  }
+]

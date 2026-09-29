@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.1",
+  "status": "published",
+  "surface": "linear-project-comment",
+  "candidateId": "ARTIFACT-CANDIDATE-RECORDING-BACKFILL-001",
+  "sourceCandidateId": "ARTIFACT-CANDIDATE-PROJECT-COMMENT-20260920-GMBKOREA-READABILITY",
+  "sourceCandidatePath": ".www/evidence/2026-09-20-gmbkorea-readability/project-comment-candidate.json",
+  "sourceCandidateDigest": "8ae006ff67327e6231e4af9c45fc49b1b3883f1e13846b978916df80762a0c57",
+  "sourceFileSha256": "0e0ee0d98df6aba0119910f3c91872989bd01b8dc3f353f83cc7b6e1800f3361",
+  "candidateDigest": "1d63818f16647eddb031ba488471a2143ed06a5bc2bd63d9df46ba91c84ee6b6",
+  "candidatePath": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/001.json",
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "expectedBefore": {
+    "latestCommentId": "7012a7bf-2e36-4f23-bf5d-50c2ddd5b633"
+  },
+  "comment": {
+    "id": "59d6af4a-8d88-47d8-a0ba-6d50900a1ed1",
+    "body": "## 변경\n\n- 과거 작업 기록 회수: GMBKOREA RPA 코드의 행렬형 가독성 정제 착수와 첫 FTA 배선 슬라이스를 기록한다 (원문 Candidate: ARTIFACT-CANDIDATE-PROJECT-COMMENT-20260920-GMBKOREA-READABILITY)\n- 당시 로컬 작업 기록: chacada의 Helix QAC와 FTA 원산지 source revision, rpa-map, 테스트와 메일·외부 쓰기 경계를 읽기 전용으로 고정했다\n- 당시 로컬 작업 기록: 업무 ID와 실행 순서를 유지하면서 반복 선언을 행, 역할 필드를 열로 표현하는 가독성 설계 원칙을 Receipt로 확정했다\n- 당시 로컬 작업 기록: FTA run.py의 36개 Unit 주소와 실행 함수를 typed tuple 행렬로 정제하고 영향 테스트를 실행했다\n- 당시 로컬 작업 기록: FTA 신청개요의 신청세관·신청인 구분을 상태 키·항목명·CSS·입력값 4열 행렬로 통합하고 기존 Unit 진입점을 유지했다\n- 당시 로컬 작업 기록: Helix 실행 준비의 네 모드별 폴더·파일·쓰기 대상·선택 입력을 SetupSources 단일 행렬로 통합하고 기존 조회 함수 계약을 유지했다\n- 당시 로컬 작업 기록: Helix MISRA·Secure Coding의 그룹 통계를 count·total·elapsed·ok 네 열의 GroupStats 생산 패턴으로 통일했다\n- 당시 로컬 작업 기록: FTA 물품내역의 국가별 원산지 기준·중량 단위·선택 비율을 CountryItemRules 단일 행렬로 통합하고 화면 테스트의 재수출 monkeypatch 경계를 교정했다\n- 당시 로컬 작업 기록: FTA 공통사항의 선적일자·출항일자·선박명과 송품장번호·발행일을 항목명·CSS·값·누락 사유 TextInput 행으로 정제했다\n- 당시 로컬 작업 기록: FTA 수출물품 행의 FOB·총중량·중량 단위·선택 비율을 항목명·CSS·화면값 행렬로 정제했다\n- 당시 로컬 작업 기록: Helix Metric의 Excel 열 번호·원천 키·숫자 변환 규칙을 MetricColumn 행렬로 통합해 스타일·로그·셀 기입이 같은 표를 사용하게 했다\n- 당시 로컬 작업 기록: FTA 첨부 계획의 서류구분·경로·표시명을 AttachmentInput 불변 행으로 바꾸고 실행부와 테스트가 명명된 열을 사용하게 했다\n- 당시 로컬 작업 기록: FTA 수출물품의 항목명·CSS·화면값을 ItemTextInput 불변 행으로 바꾸어 위치 튜플의 열 의미를 이름으로 노출했다\n- 당시 로컬 작업 기록: Helix 고객 메일의 내부 키·표시명·선별 키워드를 MailSummarySection 불변 행으로 바꾸고 기존 파이프라인 순서를 유지했다\n- 당시 로컬 작업 기록: FTA 결과 메일의 항목·값·상태·흐림 여부를 core FieldRow 불변 행으로 통합해 Task 생산자와 HTML 렌더러가 같은 명명 열을 사용하게 했다\n- 당시 로컬 작업 기록: FTA C/NO 탐색 범위·정규식·판정 방법을 CnoCase 불변 행으로 바꾸고 비테스트 코드의 잔여 다열 위치 튜플 후보를 0건으로 정리했다\n- 당시 로컬 작업 기록: FTA 테스트의 재수출 monkeypatch 경계를 실제 구현·조회 표면으로 통일하고 rpa-map Unit 이름 기대를 정본과 맞췄다\n- 당시 로컬 작업 기록: Helix 결과표와 FTA 물품표에 식별·설명 왼쪽, 상태·순서 가운데, 수치·시간 오른쪽 정렬 계약을 명시하고 렌더링 테스트로 고정했다\n\n## 영향\n\n- 당시 기록된 영향: GMBKOREA RPA 코드를 업무 의미 변경 없이 같은 시각 패턴으로 비교·검토할 수 있는 첫 기준선이 생겼다\n- 당시 기록된 영향: UNI-PASS 입력, SMTP 발송, NAS·고객 데이터 쓰기를 수행하지 않고 후속 리팩터링의 안전 경계를 고정했다\n- 미게시 로컬 기록을 Project Activity에서 추적할 수 있게 회수한다. 과거 진행·완료·차단 상태를 현재 구현 완료 또는 이슈 상태 변경으로 승격하지 않는다.\n\n## 분류\n\nRefactor · Validation\n\n## 검증\n\n- 2026-09-29 회수 검증: 원문 파일 SHA-256 0e0ee0d98df6aba0119910f3c91872989bd01b8dc3f353f83cc7b6e1800f3361; 연결 이슈의 현재 WWW 소속과 Project Activity 중복·latest identity를 확인했다.\n- 아래는 원문 Candidate에 남은 당시 검증 기록이다. 이번 회수에서 테스트·원격 실행·현재 제품 동작을 재검증한 결과가 아니다.\n- 당시 검증 기록: FTA run.py 문법 검사 통과\n- 당시 검증 기록: FTA pipeline wiring·codemap 영향 테스트 34개 통과\n- 당시 검증 기록: FTA 신청개요·Unit 배선·임시저장 영향 테스트 33개 통과\n- 당시 검증 기록: Helix 각 변경 뒤 전체 단위 테스트 324개와 subtest 72개 통과\n- 당시 검증 기록: FTA 물품 화면·등록·계산·xlsx·중량 관련 테스트 89개 통과\n- 당시 검증 기록: FTA 공통사항·제조자·수입자·수출증빙·임시저장 관련 테스트 113개 통과\n- 당시 검증 기록: FTA 물품 화면 관련 테스트가 국가별 필드 행 검증 2개를 포함해 91개 통과\n- 당시 검증 기록: Helix 전체 단위 테스트 326개와 subtest 72개 통과, 임시 workbook 열 매핑 read-back 통과\n- 당시 검증 기록: FTA 첨부 행 변경 뒤 공통사항·제조자·수입자·수출증빙·임시저장 관련 테스트 113개 통과\n- 당시 검증 기록: FTA 수출물품 명명 행 변경 뒤 물품 화면·등록·계산·xlsx·중량 관련 테스트 91개 통과\n- 당시 검증 기록: Helix 메일 요약 집중 테스트 44개 및 전체 단위 테스트 326개와 subtest 72개 통과\n- 당시 검증 기록: FTA 메일 필드·본문·발송 경계·코드맵 테스트 74개 통과\n- 당시 검증 기록: FTA 인보이스·파이프라인·송품장 행 테스트 48개 통과\n- 당시 검증 기록: FTA 전체 테스트 442개 통과, 기존 _02_extract_co DeprecationWarning 5건\n- 당시 검증 기록: Helix 전체 단위 테스트 327개와 subtest 72개 통과, 결과표 정렬 렌더링 검증 포함\n- 당시 검증 기록: Claude Opus 읽기 전용 최종 감사는 주간 한도 도달로 미실행이며 낮은 모델로 대체하지 않음\n- 당시 검증 기록: Intake·Design·Build Receipt digest 재계산 일치\n\n## 연결\n\n- 이번 기록에서 참조하는 기존 이슈: [WOO-851](https://linear.app/woo-world/issue/WOO-851/03-fta-원산지-업무를-정형화한다) · [WOO-848](https://linear.app/woo-world/issue/WOO-848/01-helixqac-품질-분석-업무를-정형화한다) · [WOO-847](https://linear.app/woo-world/issue/WOO-847/rpa-agent-의도질문결정과-skill-실행을-조정한다)\n- 원문 Candidate: .www/evidence/2026-09-20-gmbkorea-readability/project-comment-candidate.json\n- 원문 Source Revision: 6972397929c6e27daa50aff18d6266223ab65513\n- 원문 Candidate Digest: 8ae006ff67327e6231e4af9c45fc49b1b3883f1e13846b978916df80762a0c57\n- 원문 연결: WOO-847\n- 원문 연결: WOO-848\n- 원문 연결: WOO-851\n- 원문 연결: .www/evidence/2026-09-20-gmbkorea-readability/rpa-intake-receipt.json\n- 원문 연결: .www/evidence/2026-09-20-gmbkorea-readability/rpa-design-receipt.json\n- 원문 연결: .www/evidence/2026-09-20-gmbkorea-readability/rpa-build-fta-pipeline-receipt.json\n- 원문 연결: .www/evidence/2026-09-20-gmbkorea-readability/rpa-build-fta-overview-matrix-receipt.json\n- 원문 연결: .www/evidence/2026-09-20-gmbkorea-readability/rpa-build-helix-setup-matrix-receipt.json\n- 원문 연결: .www/evidence/2026-09-20-gmbkorea-readability/rpa-build-helix-collection-stats-receipt.json\n- 원문 연결: .www/evidence/2026-09-20-gmbkorea-readability/rpa-build-fta-country-rules-receipt.json\n- 원문 연결: .www/evidence/2026-09-20-gmbkorea-readability/rpa-build-fta-common-fields-receipt.json\n- 원문 연결: .www/evidence/2026-09-20-gmbkorea-readability/rpa-build-fta-product-fields-receipt.json\n- 원문 연결: .www/evidence/2026-09-20-gmbkorea-readability/rpa-build-helix-metric-columns-receipt.json\n- 원문 연결: .www/evidence/2026-09-20-gmbkorea-readability/rpa-build-fta-attachment-rows-receipt.json\n- 원문 연결: .www/evidence/2026-09-20-gmbkorea-readability/rpa-build-fta-item-input-rows-receipt.json\n- 원문 연결: .www/evidence/2026-09-20-gmbkorea-readability/rpa-build-helix-mail-summary-rows-receipt.json\n- 원문 연결: .www/evidence/2026-09-20-gmbkorea-readability/rpa-build-fta-mail-field-rows-receipt.json\n- 원문 연결: .www/evidence/2026-09-20-gmbkorea-readability/rpa-build-fta-cno-and-suite-receipt.json\n- 원문 연결: .www/evidence/2026-09-20-gmbkorea-readability/independent-review-blocker.json\n- 원문 연결: .www/evidence/2026-09-20-gmbkorea-readability/rpa-build-output-alignment-receipt.json\n- 원문 연결: .www/evidence/2026-09-20-gmbkorea-readability/completion-audit.json\n- 회수 Evidence: .www/evidence/2026-09-29-linear-recording-backfill",
+    "attachments": [],
+    "createdAt": "2026-09-28T22:03:51.293Z",
+    "updatedAt": "2026-09-28T22:03:51.182Z",
+    "parentId": null,
+    "resolvedAt": null,
+    "quotedText": null,
+    "author": {
+      "id": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "name": "우종호"
+    },
+    "onBehalfOf": null
+  },
+  "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-59d6af4a-8d88-47d8-a0ba-6d50900a1ed1",
+  "readBack": {
+    "exactBodyMatch": true,
+    "checkedAt": "2026-09-28T22:03:53.124Z"
+  },
+  "scope": "Historical local record recovery; not current implementation acceptance"
+}

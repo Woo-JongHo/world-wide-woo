@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-MONITOR-TRACE-VIEW-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:5269ee3bf49ebf563e15cfcef5c5c595f33d2922:dirty",
+  "intent": "WOO-675 Monitor를 현재 요청의 실행 추적 화면으로 재구성한 변경과 남은 검증 경계를 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "Monitor 상단을 요청 상태·모델·도구·실패·재시도·토큰·컨텍스트를 함께 읽는 요약 스트립으로 재구성했다.",
+      "요청 시작 시각을 기준으로 7단계와 최근 도구 활동을 배치하는 RUN TRACE WATERFALL을 추가했다.",
+      "단계별 도구 활동을 묶는 TRACE TREE와 runtime이 공개한 decision.created 이벤트만 표시하는 DECISIONS TIMELINE을 추가했다.",
+      "실패·차단 이벤트를 시각·단계·관측된 사유로 표시하고 기존 Render Health·계층 성능·최근 이벤트를 유지했다.",
+      "미관측 값은 0이나 추정치로 만들지 않고 대시 또는 미관측 문구로 남겼다."
+    ],
+    "impacts": [
+      "사용자는 현재 요청의 상태뿐 아니라 단계별 시간 배치와 도구 활동, 공개 결정, 실패 지점을 한 화면에서 읽을 수 있다.",
+      "사적 추론이나 추정 원인을 표시하지 않고 runtime이 실제로 내보낸 공개 이벤트만 사용한다.",
+      "직접적인 새 화면 수락 테스트와 실제 TUI 검증은 아직 남아 있어 구현 완료와 사용자 수락을 구분한다."
+    ],
+    "categories": [
+      "feature",
+      "improvement",
+      "verification"
+    ],
+    "verification": [
+      "runtime-monitor·observability view·telemetry duration 관련 테스트 23개가 통과했다.",
+      "bunx tsc --noEmit과 대상 파일 git diff --check가 통과했다.",
+      "변경 파일과 관련 테스트에서 TODO, test.skip, test.only 자리표시를 찾지 못했다.",
+      "AGENTS.md가 지정한 가독성 스크립트는 로컬 symlink 대상에 필요한 파일이 없어 실행하지 못했다.",
+      "RUN TRACE WATERFALL·TRACE TREE·DECISIONS TIMELINE·ACTIVE FAILURES를 직접 고정하는 수락 테스트와 독립 리뷰는 아직 수행하지 않았다."
+    ],
+    "connections": [
+      "Linear: WOO-675 · UUID 28bc3ec6-f98d-421e-9398-8721f5c50724",
+      "Code: src/adapters/inbound/tui/features/monitoring/view/www-monitor-view.ts",
+      "Design input: docs/design/prompts/WWW_FIGMA_MONITOR_PROMPT.md",
+      "Evidence: .www/evidence/2026-09-28-monitor-trace-view",
+      "Branch: dev · HEAD 5269ee3bf49ebf563e15cfcef5c5c595f33d2922 · uncommitted"
+    ]
+  },
+  "links": {
+    "issue": "https://linear.app/woo-world/issue/WOO-675/monitor-현재-실행과-승인실패-상태를-같은-맥락에서-관찰한다",
+    "evidence": ".www/evidence/2026-09-28-monitor-trace-view"
+  },
+  "expectedBefore": {
+    "latestCommentId": null
+  },
+  "validation": [
+    {
+      "id": "issue-binding",
+      "status": "pass",
+      "evidence": "WOO-675의 UUID, 기존 목적·완료 조건, traceability 원장이 현재 실행 Monitor 책임과 변경 파일을 연결한다."
+    },
+    {
+      "id": "duplicate-decision",
+      "status": "pass",
+      "evidence": "같은 사용자 결과와 수락 단위가 기존 WOO-675에 있어 새 이슈를 만들지 않는다."
+    },
+    {
+      "id": "verification-boundary",
+      "status": "pass",
+      "evidence": "통과한 회귀와 미실행 가독성·직접 수락·독립 리뷰를 구분해 기록했다."
+    },
+    {
+      "id": "expected-before-boundary",
+      "status": "pass",
+      "evidence": "현재 세션에는 기록된 linear-woo MCP가 없어 최신 Activity ID는 게시 직전 재조회해야 한다."
+    },
+    {
+      "id": "publication-boundary",
+      "status": "pass",
+      "evidence": "Candidate만 준비하며 사용자 승인 전 Linear에 쓰지 않는다."
+    }
+  ],
+  "candidateDigest": "2849277bcfd9b1ada2b3e64d9c359431fc4435a17bfeba7164c8ec29357fbe58"
+}

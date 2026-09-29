@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "scenario": "24 grouped completed commands; one immutable narration appended per frame; 80x24 viewport",
+  "initialMs": 18.07412499999998,
+  "narrationRepaintMs": {
+    "count": 24,
+    "p50": 0.7144580000000076,
+    "p95": 5.9043749999999875,
+    "max": 15.468917000000005
+  },
+  "renderedBlocksPerNarration": {
+    "count": 24,
+    "p50": 1,
+    "p95": 1,
+    "max": 1
+  },
+  "limitations": "Synthetic local projection and viewport materialization only; no LLM latency, PTY flush, provider stream, or terminal pixels."
+}

@@ -1,0 +1,25 @@
+{
+  "scope": "Three isolated real narrator requests; not TUI latency or concurrent queue benchmark",
+  "model": "gpt-5.6-luna",
+  "timeoutMs": 8000,
+  "results": [
+    {
+      "trial": 1,
+      "modelMs": 2933,
+      "status": "success",
+      "summary": "텍스트 출력 명령이 정상 종료되어 `hello`가 출력되었습니다."
+    },
+    {
+      "trial": 2,
+      "modelMs": 3594,
+      "status": "success",
+      "summary": "텍스트 출력 명령이 실행되어 `hello`가 출력되었습니다."
+    },
+    {
+      "trial": 3,
+      "modelMs": 4551,
+      "status": "success",
+      "summary": "텍스트 출력 명령이 성공적으로 실행되어 `hello`가 출력되었습니다."
+    }
+  ]
+}

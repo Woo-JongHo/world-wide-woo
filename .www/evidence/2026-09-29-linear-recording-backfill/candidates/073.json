@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-RECORDING-BACKFILL-073",
+  "kind": "linear-project-comment",
+  "sourceRevision": "evidence-sha256:440eb4d7e2af0f7a330f8ff727211c43c1f906c1aacb0013a5648154f2f21edb",
+  "intent": "과거 작업 기록 회수: www 시작 문구를 비율 없는 움직이는 로딩바로 교체한 경과",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "과거 작업 기록 회수: www 시작 문구를 비율 없는 움직이는 로딩바로 교체한 경과 (원문 Candidate: ARTIFACT-CANDIDATE-WWW-BOOTSTRAP-BAR)",
+      "당시 로컬 작업 기록: src/cli.ts: astra 여는 중 문구를 www와 순환 로딩바로 교체했다.",
+      "당시 로컬 작업 기록: 모듈 import 성공·실패 모두 finally에서 timer와 출력 행을 정리하고 TUI 실행 전 로딩바를 종료한다.",
+      "당시 로컬 작업 기록: test/cli.test.ts: 초기 출력·프레임 변화·종료 후 출력 중단·비TTY 무출력을 검증한다."
+    ],
+    "impacts": [
+      "당시 기록된 영향: 측정되지 않은 진행률을 퍼센트로 만들지 않고 모듈 로딩 중임만 표시한다. Native 연결 전체 진행률을 뜻하지 않는다.",
+      "미게시 로컬 기록을 Project Activity에서 추적할 수 있게 회수한다. 과거 진행·완료·차단 상태를 현재 구현 완료 또는 이슈 상태 변경으로 승격하지 않는다."
+    ],
+    "categories": [
+      "improvement",
+      "verification"
+    ],
+    "verification": [
+      "2026-09-29 회수 검증: 원문 파일 SHA-256 440eb4d7e2af0f7a330f8ff727211c43c1f906c1aacb0013a5648154f2f21edb; 연결 이슈의 현재 WWW 소속과 Project Activity 중복·latest identity를 확인했다.",
+      "아래는 원문 Candidate에 남은 당시 검증 기록이다. 이번 회수에서 테스트·원격 실행·현재 제품 동작을 재검증한 결과가 아니다.",
+      "당시 검증 기록: bun test test/cli.test.ts: 17 pass, 0 fail, 64 assertions.",
+      "당시 검증 기록: bun run check 및 git diff --check 통과. src/cli.ts·test/cli.test.ts에서 TODO·test.skip·test.only 없음.",
+      "당시 검증 기록: 반복 등록행 콜론 24열·화살표 42열·구조분해 시작 82열·await 108열 유지 실측.",
+      "당시 검증 기록: 실제 터미널 시작 화면 육안 확인과 독립 리뷰는 미실행."
+    ],
+    "connections": [
+      "이번 기록에서 참조하는 기존 이슈: [WOO-913](https://linear.app/woo-world/issue/WOO-913/workbench-monitoring-figma-5화면의-계측-의미와-정보-구조를-일치시킨다)",
+      "원문 Candidate: .www/evidence/www-bootstrap-bar-2026-09-22/project-comment-candidate.json",
+      "원문 Source Revision: git:a953dc8aae13573f1c92772efe747008a31940a4:dirty",
+      "원문 Candidate Digest: 19dcf0429c5e4b67967db3b864eb68a1727326894ddfa77d05cac335654f4f24",
+      "원문 연결: WOO-913 · 기존 이슈 Receipt에 연결; 최신 원격 재조회 아님",
+      "원문 연결: src/cli.ts",
+      "원문 연결: test/cli.test.ts",
+      "회수 Evidence: .www/evidence/2026-09-29-linear-recording-backfill"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-913/workbench-monitoring-figma-5화면의-계측-의미와-정보-구조를-일치시킨다",
+    "evidence": ".www/evidence/www-bootstrap-bar-2026-09-22",
+    "sourceCandidate": ".www/evidence/www-bootstrap-bar-2026-09-22/project-comment-candidate.json",
+    "receipt": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/073.json"
+  },
+  "expectedBefore": {
+    "latestCommentId": "b786fa84-dba3-45d5-a3c7-d10250fb7efa"
+  },
+  "validation": [
+    {
+      "id": "source-evidence",
+      "status": "pass",
+      "evidence": "Read original Candidate ARTIFACT-CANDIDATE-WWW-BOOTSTRAP-BAR; SHA-256 440eb4d7e2af0f7a330f8ff727211c43c1f906c1aacb0013a5648154f2f21edb; historical assertions are attributed to the source."
+    },
+    {
+      "id": "live-issue-binding",
+      "status": "pass",
+      "evidence": "Existing WWW issues verified: WOO-913; no issue creation or state mutation."
+    },
+    {
+      "id": "live-activity-before",
+      "status": "pass",
+      "evidence": "Project Activity source/evidence duplicate check and latest ID b786fa84-dba3-45d5-a3c7-d10250fb7efa performed immediately before preparation."
+    }
+  ],
+  "candidateDigest": "f7442b1627dcb8549360382419fc647c63b1b322b47300fe8d666a8c3f4138b4"
+}

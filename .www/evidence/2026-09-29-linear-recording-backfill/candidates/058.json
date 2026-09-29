@@ -1,0 +1,75 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-RECORDING-BACKFILL-058",
+  "kind": "linear-project-comment",
+  "sourceRevision": "evidence-sha256:47414311992d5da7651c5fc08ad17232f6dfce74a06203d382959c14419c1ca9",
+  "intent": "과거 작업 기록 회수: WOO-675 Monitor waterfall의 시간 단위 혼용 OOM 수정과 검증 경계를 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "과거 작업 기록 회수: WOO-675 Monitor waterfall의 시간 단위 혼용 OOM 수정과 검증 경계를 기록한다 (원문 Candidate: ARTIFACT-CANDIDATE-MONITOR-WATERFALL-OOM-COMMENT)",
+      "당시 로컬 작업 기록: stage 종료 절대시각에서 요청 기준 offset을 빼던 단위 혼용을 절대시각끼리의 duration 계산으로 교정했다.",
+      "당시 로컬 작업 기록: 요청·stage·tool 시각의 비유한 값을 거르고 waterfall 좌표와 bar 길이를 viewport plot 폭으로 제한했다.",
+      "당시 로컬 작업 기록: 완료된 요청 안에 종료되지 않은 stage가 남아 현재 시각이 크게 벌어진 경우를 OOM 재현 회귀로 고정했다."
+    ],
+    "impacts": [
+      "당시 기록된 영향: Monitor 진입 시 String.repeat가 수천억 칸을 할당해 TUI가 종료되는 문제를 막는다.",
+      "당시 기록된 영향: 불일치하거나 창 밖인 관측 시각도 화면 폭 안에서 안전하게 표시된다.",
+      "미게시 로컬 기록을 Project Activity에서 추적할 수 있게 회수한다. 과거 진행·완료·차단 상태를 현재 구현 완료 또는 이슈 상태 변경으로 승격하지 않는다."
+    ],
+    "categories": [
+      "fix",
+      "verification"
+    ],
+    "verification": [
+      "2026-09-29 회수 검증: 원문 파일 SHA-256 47414311992d5da7651c5fc08ad17232f6dfce74a06203d382959c14419c1ca9; 연결 이슈의 현재 WWW 소속과 Project Activity 중복·latest identity를 확인했다.",
+      "아래는 원문 Candidate에 남은 당시 검증 기록이다. 이번 회수에서 테스트·원격 실행·현재 제품 동작을 재검증한 결과가 아니다.",
+      "당시 검증 기록: 수정 전 재현 테스트가 www-monitor-view.ts:131의 RangeError: Out of memory로 실패함을 확인했다.",
+      "당시 검증 기록: 수정 후 telemetry·UI·architecture 102개 테스트와 5796개 assertion이 통과했다.",
+      "당시 검증 기록: tsc --noEmit과 변경 파일의 TODO·test.skip·test.only 검사가 통과했다.",
+      "당시 검증 기록: Claude Sonnet 읽기 전용 리뷰는 두 차례 모두 출력 없이 Execution error로 끝나 미실행 blocker다.",
+      "당시 검증 기록: 프로젝트 woo-code-readability 스킬과 전용 검사 스크립트는 지정 경로에 없어 실행하지 못했다."
+    ],
+    "connections": [
+      "이번 기록에서 참조하는 기존 이슈: [WOO-675](https://linear.app/woo-world/issue/WOO-675/monitor-현재-실행과-승인실패-상태를-같은-맥락에서-관찰한다)",
+      "원문 Candidate: .www/evidence/2026-09-28-monitor-waterfall-oom/project-comment-candidate.json",
+      "원문 Source Revision: git:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty",
+      "원문 Candidate Digest: e14c1e9918bd6158d8fe814fb1b5ff2d0b85afe052a65ecb5c7b7e45618cc64f",
+      "원문 연결: Linear: WOO-675 · UUID 28bc3ec6-f98d-421e-9398-8721f5c50724",
+      "원문 연결: Code: src/adapters/inbound/tui/features/monitoring/view/www-monitor-view.ts",
+      "원문 연결: Test: test/www-telemetry-duration.test.ts",
+      "원문 연결: Evidence: .www/evidence/2026-09-28-monitor-waterfall-oom",
+      "원문 연결: Branch: dev · HEAD 8486a759746ab2e0748beb1ab9fdd4d250fa6b27 · uncommitted",
+      "회수 Evidence: .www/evidence/2026-09-29-linear-recording-backfill"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-675/monitor-현재-실행과-승인실패-상태를-같은-맥락에서-관찰한다",
+    "evidence": ".www/evidence/2026-09-28-monitor-waterfall-oom",
+    "sourceCandidate": ".www/evidence/2026-09-28-monitor-waterfall-oom/project-comment-candidate.json",
+    "receipt": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/058.json"
+  },
+  "expectedBefore": {
+    "latestCommentId": "e6a23b24-830e-4260-829b-00d916819e50"
+  },
+  "validation": [
+    {
+      "id": "source-evidence",
+      "status": "pass",
+      "evidence": "Read original Candidate ARTIFACT-CANDIDATE-MONITOR-WATERFALL-OOM-COMMENT; SHA-256 47414311992d5da7651c5fc08ad17232f6dfce74a06203d382959c14419c1ca9; historical assertions are attributed to the source."
+    },
+    {
+      "id": "live-issue-binding",
+      "status": "pass",
+      "evidence": "Existing WWW issues verified: WOO-675; no issue creation or state mutation."
+    },
+    {
+      "id": "live-activity-before",
+      "status": "pass",
+      "evidence": "Project Activity source/evidence duplicate check and latest ID e6a23b24-830e-4260-829b-00d916819e50 performed immediately before preparation."
+    }
+  ],
+  "candidateDigest": "81508af65a277ba487e90d01aa995e1da2a7d172f6b097c13a7e270595a0955c"
+}

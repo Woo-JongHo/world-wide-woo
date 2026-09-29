@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "1.0",
+  "candidateId": "ARTIFACT-CANDIDATE-CHAT-RENDER-LATENCY-DIAGNOSIS-COMMENT",
+  "candidateDigest": "b9556ead2029b453f9b2f79c695f7e010b7a664f9c136ae3a3911885d9a2d908",
+  "publishedVia": "linear-woo MCP",
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "commentId": "0c24c70e-cfd1-476d-b0ba-2e2613b75063",
+  "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-0c24c70e-cfd1-476d-b0ba-2e2613b75063",
+  "expectedBefore": {
+    "latestCommentId": "e0a4906d-c48d-46a6-b41d-414c17d7b691"
+  },
+  "readBack": {
+    "status": "pass",
+    "author": "우종호",
+    "authorId": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+    "createdAt": "2026-09-28T13:23:13.980Z",
+    "bodySha256": "7afc18510a78dc91e87332a3d78727df62fbd40cdb3145055cd527998356f126",
+    "renderedBodyMatches": true,
+    "projectActivityQueriedBy": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  }
+}

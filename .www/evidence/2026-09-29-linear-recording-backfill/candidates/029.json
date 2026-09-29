@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-RECORDING-BACKFILL-029",
+  "kind": "linear-project-comment",
+  "sourceRevision": "evidence-sha256:363c2bd6f53196ba36e0b62d787ada3b8b43f0d1fe5e1ce7292dda04b86240b3",
+  "intent": "과거 작업 기록 회수: WOO-700의 GOAL 표시에 움직이는 배경 강조를 추가한 구현과 검증을 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "과거 작업 기록 회수: WOO-700의 GOAL 표시에 움직이는 배경 강조를 추가한 구현과 검증을 기록한다 (원문 Candidate: ARTIFACT-CANDIDATE-GOAL-BACKGROUND-MOTION-COMMENT)",
+      "당시 로컬 작업 기록: GOAL 전체에 panel 배경을 두고 orange 중심 셀과 border 인접 셀이 120ms 프레임으로 글자 단위 순환하도록 변경했다.",
+      "당시 로컬 작업 기록: 목표가 아직 설정되지 않은 이해 중 상태에도 같은 배경 움직임을 적용했다.",
+      "당시 로컬 작업 기록: ANSI 배경 존재와 시간에 따른 프레임 변화, 오른쪽 identity 유지, 24열 축약 동작을 회귀 테스트로 고정했다."
+    ],
+    "impacts": [
+      "당시 기록된 영향: GOAL과 오른쪽 프로젝트·페이지 identity가 배경 면으로 구분되어 상단 정보의 혼동이 줄어든다.",
+      "당시 기록된 영향: 기존 반짝임 계약을 움직이는 글자 배경으로 구체화하면서 텍스트 가독성을 유지한다.",
+      "미게시 로컬 기록을 Project Activity에서 추적할 수 있게 회수한다. 과거 진행·완료·차단 상태를 현재 구현 완료 또는 이슈 상태 변경으로 승격하지 않는다."
+    ],
+    "categories": [
+      "improvement",
+      "verification"
+    ],
+    "verification": [
+      "2026-09-29 회수 검증: 원문 파일 SHA-256 363c2bd6f53196ba36e0b62d787ada3b8b43f0d1fe5e1ce7292dda04b86240b3; 연결 이슈의 현재 WWW 소속과 Project Activity 중복·latest identity를 확인했다.",
+      "아래는 원문 Candidate에 남은 당시 검증 기록이다. 이번 회수에서 테스트·원격 실행·현재 제품 동작을 재검증한 결과가 아니다.",
+      "당시 검증 기록: bun run check가 통과했다.",
+      "당시 검증 기록: test/www-ui.test.ts와 test/www-ui-preview.test.ts에서 78 pass, 0 fail을 확인했다.",
+      "당시 검증 기록: 변경 TypeScript의 import normalization은 changed=0, table alignment는 misaligned=0이었고 git diff --check가 통과했다.",
+      "당시 검증 기록: 변경 파일에서 TODO 자리표시와 test.skip·test.only가 없음을 확인했다."
+    ],
+    "connections": [
+      "이번 기록에서 참조하는 기존 이슈: [WOO-700](https://linear.app/woo-world/issue/WOO-700/01-내-입력에-대한-계획이-세워지는-과정을-세션-todo로-보여준다) · [WOO-682](https://linear.app/woo-world/issue/WOO-682/todo-ai가-세운-계획을-세션별로-실시간-확인한다)",
+      "원문 Candidate: .www/evidence/2026-09-27-goal-background-motion/project-comment-candidate.json",
+      "원문 Source Revision: git:495f61c0f3d5e3c9c6d58340d315c06b4ad70cc0:dirty",
+      "원문 Candidate Digest: 27a097d463ce383046b96793ee0fa01ea8fab2753c785432de3490c5fa71787d",
+      "원문 연결: Linear: WOO-700 · UUID 770ebed8-f030-4610-9668-dd2023b26a9a",
+      "원문 연결: Parent: WOO-682",
+      "원문 연결: Evidence: .www/evidence/2026-09-27-goal-background-motion",
+      "원문 연결: Code: src/adapters/inbound/tui/shell/www-surface.ts · test/www-ui.test.ts",
+      "원문 연결: Branch: dev · HEAD 495f61c0f3d5e3c9c6d58340d315c06b4ad70cc0 · uncommitted",
+      "회수 Evidence: .www/evidence/2026-09-29-linear-recording-backfill"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-700/01-내-입력에-대한-계획이-세워지는-과정을-세션-todo로-보여준다",
+    "evidence": ".www/evidence/2026-09-27-goal-background-motion",
+    "sourceCandidate": ".www/evidence/2026-09-27-goal-background-motion/project-comment-candidate.json",
+    "receipt": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/029.json"
+  },
+  "expectedBefore": {
+    "latestCommentId": "07aa829a-b8d2-4010-b904-92b9c65deaf9"
+  },
+  "validation": [
+    {
+      "id": "source-evidence",
+      "status": "pass",
+      "evidence": "Read original Candidate ARTIFACT-CANDIDATE-GOAL-BACKGROUND-MOTION-COMMENT; SHA-256 363c2bd6f53196ba36e0b62d787ada3b8b43f0d1fe5e1ce7292dda04b86240b3; historical assertions are attributed to the source."
+    },
+    {
+      "id": "live-issue-binding",
+      "status": "pass",
+      "evidence": "Existing WWW issues verified: WOO-700, WOO-682; no issue creation or state mutation."
+    },
+    {
+      "id": "live-activity-before",
+      "status": "pass",
+      "evidence": "Project Activity source/evidence duplicate check and latest ID 07aa829a-b8d2-4010-b904-92b9c65deaf9 performed immediately before preparation."
+    }
+  ],
+  "candidateDigest": "7abe9c858062fa65c630951e63f2b2b1d3058cde6340479e0154317222fb1a28"
+}

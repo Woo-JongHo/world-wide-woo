@@ -1,0 +1,19 @@
+{
+  "scope": "Chat PLAN·PROGRESS·VERIFY 후속 보정과 공개 Stage 목표·결정 표시",
+  "issue": {
+    "decision": "기존 WOO-700과 WOO-674에 결속한다. 새 이슈는 만들지 않는다.",
+    "primary": "WOO-700",
+    "related": ["WOO-674", "VERIFY 이슈 로컬 후보"],
+    "evidence": "기존 .www/evidence/2026-09-28-chat-plan-progress-hud/recording-decision.json 및 .www/evidence/2026-09-28-welcome-idle-state/recording-decision.json에서 로컬 결속을 확인했다. VERIFY 이슈는 .www/evidence/2026-09-28-raw-verify-sidebar/linear-issue-candidate.json 후보이며 최신 원격 위치는 미확인이다."
+  },
+  "projectComment": {
+    "candidate": "project-comment-candidate.json",
+    "state": "local-validated; remote-duplicate-check-pending"
+  },
+  "obsidian": {
+    "decision": "Chat rail에 VERIFY와 공개 Stage 목표·결정을 더해 표시 계약이 바뀌므로 기존 WOO-700 정본 개정 후보를 준비한다.",
+    "candidate": "obsidian-canonical-candidate.json",
+    "state": "local-validated; latest-vault-bytes-and-independent-review-pending"
+  },
+  "publication": "현재 세션에는 연결 정본 linear-woo와 Vault read-back이 없다. 항목별 사용자 승인·최신 대상 대조·중복 검사 전에는 외부 게시하지 않는다."
+}

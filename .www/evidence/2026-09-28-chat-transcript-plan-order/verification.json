@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "1.0",
+  "checks": [
+    {
+      "command": "bun test test/www-ui.test.ts test/www-plan-view.test.ts test/www-transcript-cache.test.ts test/native-stream-projection.test.ts test/native-plan-wiring.test.ts test/www-shell.test.ts",
+      "result": "139 pass, 0 fail, 7961 expect"
+    },
+    {
+      "command": "bun run check",
+      "result": "pass"
+    },
+    {
+      "command": "git diff --check -- <changed source and test files>",
+      "result": "pass"
+    },
+    {
+      "command": "bun run artifact:control -- validate --candidate .www/evidence/2026-09-28-chat-transcript-plan-order/project-comment-candidate.json",
+      "result": "blocked: live-duplicate-check not-run"
+    }
+  ],
+  "independentReview": {
+    "status": "not-run",
+    "reason": "Claude Sonnet CLI returned Not logged in",
+    "transcript": ".www/scratchpad/2026-09-28-chat-transcript-review/sonnet-review.txt"
+  }
+}

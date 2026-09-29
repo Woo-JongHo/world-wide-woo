@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.1",
+  "status": "published",
+  "surface": "linear-project-comment",
+  "candidateId": "ARTIFACT-CANDIDATE-RECORDING-BACKFILL-010",
+  "sourceCandidateId": "ARTIFACT-CANDIDATE-READABILITY-IMPORT-COLUMNS",
+  "sourceCandidatePath": ".www/evidence/2026-09-24-readability-import-columns/project-comment-candidate.json",
+  "sourceCandidateDigest": "0a1a6bb77c8dde9b63400bc3253e6b175e61b3365e921c82291c57cc91d291e1",
+  "sourceFileSha256": "f060481a06bebe2902d977de2738543a41bbfec23a73d0111ad8681bdb30613c",
+  "candidateDigest": "799bf902f75569481bf67ca998c3acec950c93d0bd633df701fa0791feeb1fab",
+  "candidatePath": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/010.json",
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "expectedBefore": {
+    "latestCommentId": "48ad712b-efbc-4759-8e1d-861bcbe96106"
+  },
+  "comment": {
+    "id": "5a34ff0f-0aef-49c5-b09b-70c82328f5f5",
+    "body": "## 변경\n\n- 과거 작업 기록 회수: WOO-911의 import 선언과 표형 열 정렬 후속 적용 및 독립 감사 결과를 기록한다 (원문 Candidate: ARTIFACT-CANDIDATE-READABILITY-IMPORT-COLUMNS)\n- 당시 로컬 작업 기록: 단일 named import는 항상 한 줄, 다중 import는 표시 폭 120 이하만 한 줄, 긴 import는 } from을 같은 행에 두도록 정규화기를 수정하고 484개 TypeScript에 적용했다.\n- 당시 로컬 작업 기록: 연속 한 줄 import의 from 열과 선언 표의 콜론·종결 세미콜론을 맞췄다.\n- 당시 로컬 작업 기록: AST-safe 표 정렬기와 주석·attributes·CRLF·혼합 종결자 fail-close 회귀 테스트를 추가했다.\n- 당시 로컬 작업 기록: Opus가 발견한 초기 출력의 누락 세미콜론 265개를 복구했다.\n- 당시 로컬 작업 기록: 제품 인터페이스 20개 파일의 압축 멤버를 한 행씩 풀고, 기존 연속 선언의 = 경계를 120열 이하 표에 적용했다.\n\n## 영향\n\n- 당시 기록된 영향: 단일 import가 불필요하게 여러 줄로 내려가거나 from이 별도 행으로 밀리는 선언 불일치를 제거했다.\n- 당시 기록된 영향: 조건식·for 헤더·실행 블록은 제외하고 같은 역할의 안전한 표만 정렬한다.\n- 미게시 로컬 기록을 Project Activity에서 추적할 수 있게 회수한다. 과거 진행·완료·차단 상태를 현재 구현 완료 또는 이슈 상태 변경으로 승격하지 않는다.\n\n## 분류\n\nRefactor · Fix · Validation\n\n## 검증\n\n- 2026-09-29 회수 검증: 원문 파일 SHA-256 f060481a06bebe2902d977de2738543a41bbfec23a73d0111ad8681bdb30613c; 연결 이슈의 현재 WWW 소속과 Project Activity 중복·latest identity를 확인했다.\n- 아래는 원문 Candidate에 남은 당시 검증 기록이다. 이번 회수에서 테스트·원격 실행·현재 제품 동작을 재검증한 결과가 아니다.\n- 당시 검증 기록: Import 전수 검사: 484 files, changed 0, errors 0; 세미콜론 없는 named from-import 0건.\n- 당시 검증 기록: Readability 도구: 23 pass, 0 fail, 121 assertions; 압축 인터페이스 게이트와 = 경계 fixture 통과.\n- 당시 검증 기록: TypeScript noEmit, architecture 13/13, git diff --check 통과.\n- 당시 검증 기록: 전체 회귀: 1487 pass, 0 fail, 19251 assertions, 173 files.\n- 당시 검증 기록: Claude Opus 재감사: 코드 항목 1–4 confirmed.\n\n## 연결\n\n- 이번 기록에서 참조하는 기존 이슈: [WOO-911](https://linear.app/woo-world/issue/WOO-911/코드-실행-흐름을-역할별-최소-구조와-측정-가능한-열로-정리한다)\n- 원문 Candidate: .www/evidence/2026-09-24-readability-import-columns/project-comment-candidate.json\n- 원문 Source Revision: git:868ce9bb15231d47650cb67f2704b2ce8507f313+remaining-product-dirty\n- 원문 Candidate Digest: 0a1a6bb77c8dde9b63400bc3253e6b175e61b3365e921c82291c57cc91d291e1\n- 원문 연결: Linear: WOO-911 · UUID b00b02eb-2d80-4b10-9c9a-a29db4f1a74d\n- 원문 연결: Report: docs/audit/2026-09-24-readability-import-columns.md\n- 원문 연결: Evidence: .www/evidence/2026-09-24-readability-import-columns\n- 원문 연결: Commit: 868ce9bb15231d47650cb67f2704b2ce8507f313 · Readability 도구 8개 경로 · origin/dev push 확인\n- 원문 연결: Branch: dev · 제품 코드 전체 적용분은 다른 기능 변경과 겹쳐 아직 uncommitted\n- 회수 Evidence: .www/evidence/2026-09-29-linear-recording-backfill",
+    "attachments": [],
+    "createdAt": "2026-09-28T22:04:45.467Z",
+    "updatedAt": "2026-09-28T22:04:45.429Z",
+    "parentId": null,
+    "resolvedAt": null,
+    "quotedText": null,
+    "author": {
+      "id": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "name": "우종호"
+    },
+    "onBehalfOf": null
+  },
+  "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-5a34ff0f-0aef-49c5-b09b-70c82328f5f5",
+  "readBack": {
+    "exactBodyMatch": true,
+    "checkedAt": "2026-09-28T22:04:46.727Z"
+  },
+  "scope": "Historical local record recovery; not current implementation acceptance"
+}

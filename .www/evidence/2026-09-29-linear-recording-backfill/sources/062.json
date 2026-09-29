@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "1.1",
+  "sourceRevision": "git:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty",
+  "links": {
+    "evidence": ".www/evidence/2026-09-28-raw-verify-sidebar"
+  },
+  "candidateDigest": "6d6c3f2674cae4e8ed6272922d2ade4e5ad45543ed143b0515981dc3e8117363",
+  "candidateId": "ARTIFACT-CANDIDATE-RAW-VERIFY-COMMENT-DRAFT",
+  "kind": "linear-project-comment",
+  "intent": "RAW FIRST VERIFY 구현·검증·남은 한계를 Project Activity에 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "질문별 의미 분류 TEST를 Native commandExecution과 Bun 러너 원문 기반 VERIFY 레일로 교체했다.",
+      "명령 선택·재실행·실패 원문·미관측 표시와 Enter/M Monitor 연결을 추가했다."
+    ],
+    "impacts": [
+      "테스트명·스위트명·오류 이유를 번역하거나 생성하지 않는다.",
+      "Bun 이외 러너의 개별 케이스 수치와 캡처 한도 밖 출력은 미관측으로 남는다."
+    ],
+    "categories": [
+      "improvement",
+      "verification"
+    ],
+    "verification": [
+      "bun run check 통과; TEST·아키텍처·키맵 28건 통과.",
+      "셸 이동 선택 3건과 Monitor/TEST 관련 15건 통과.",
+      "전체 셸 /demo 기대값 Stages 불일치 1건; 독립 Claude 검토 무응답.",
+      "import·table·git diff --check 통과."
+    ],
+    "connections": [
+      "Evidence: .www/evidence/2026-09-28-raw-verify-sidebar",
+      "Linear 이슈·최신 Project Comment ID는 현재 원격 미조회"
+    ]
+  },
+  "expectedBefore": {
+    "latestCommentId": null
+  },
+  "validation": [
+    {
+      "id": "activity-and-duplicate-readback",
+      "status": "not-run",
+      "evidence": "linear-woo MCP가 세션에 없어 최신 Activity와 이슈 연결을 조회하지 못함"
+    }
+  ]
+}

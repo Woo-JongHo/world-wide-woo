@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-WOO-COMMIT-MESSAGE-CONTRACT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:ca775998641d284738cd87c50d2593f689b6c86c:dirty",
+  "intent": "woo-commit 메시지가 업무 맥락과 검증 근거를 복원하도록 계약을 보강한 경과를 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "woo-commit 제목이 실제 업무·모듈 소유자와 완성된 결과를 함께 말하도록 메시지 계약을 보강했다.",
+      "비자명한 변경 본문은 문제와 이전 동작, 이번 결정, 의도적으로 하지 않은 것의 이유를 서술하고 마지막에 Fixes와 Verified를 각각 한 번 기록하게 했다.",
+      "작은 기계적 변경은 제목만 허용해 형식 충족을 위한 의미 없는 본문을 만들지 않게 했다."
+    ],
+    "impacts": [
+      "커밋만 읽어도 운영상 문제의 역사, 선택한 수신자·상태 범위, 실제 통과한 검증을 복원할 수 있다.",
+      "Conventional Commit 유형 접두어 금지는 유지하면서 14_HelixQAC 같은 실제 업무 소유자 접두어는 사용할 수 있다."
+    ],
+    "categories": [
+      "improvement"
+    ],
+    "verification": [
+      "git diff --check -- .agents/skills/woo-commit/SKILL.md 통과.",
+      "writing-for-agents의 pointer, 정보 계층, 완료 기준 규칙과 대조해 메시지 규칙을 한 절에 함께 배치했다.",
+      "게시 전 Project Activity 최신 Comment ID는 다시 조회해야 하며, 이 Candidate는 외부 게시하지 않았다."
+    ],
+    "connections": [
+      "Linear Candidate: .www/evidence/2026-09-24-woo-commit-message-contract/linear-issue-candidate.json",
+      "Code: .agents/skills/woo-commit/SKILL.md",
+      "Evidence: .www/evidence/2026-09-24-woo-commit-message-contract"
+    ]
+  },
+  "links": {
+    "issueCandidate": ".www/evidence/2026-09-24-woo-commit-message-contract/linear-issue-candidate.json",
+    "evidence": ".www/evidence/2026-09-24-woo-commit-message-contract"
+  },
+  "expectedBefore": {
+    "latestCommentId": "1c9c3c89-562a-4705-9c6e-3dac2e978948"
+  },
+  "validation": [
+    {
+      "id": "issue-candidate-binding",
+      "status": "pass",
+      "evidence": "과거 WOO-844 표기는 현재 연결에서 확인되지 않아 기존 WOO-747 계층 자료를 바탕으로 별도 Linear Issue Candidate를 준비했다. 게시 전 원격 계층 재조회가 필요하다."
+    },
+    {
+      "id": "local-contract",
+      "status": "pass",
+      "evidence": "수정한 SKILL.md의 diff check가 통과했고 메시지 규칙·예시·예외가 같은 절에 함께 있다."
+    },
+    {
+      "id": "design-triage",
+      "status": "pass",
+      "evidence": "기존 commit control의 WHY나 외부 제품 계약을 바꾸지 않고 커밋 메시지 표현 계약을 구체화했으므로 Obsidian Candidate는 만들지 않는다."
+    }
+  ],
+  "candidateDigest": "d3e084607255b0c135b32a90208abfe7d94c54900f23db677a4e821cfab4a840"
+}

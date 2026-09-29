@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.1",
+  "status": "published",
+  "surface": "linear-project-comment",
+  "candidateId": "ARTIFACT-CANDIDATE-RECORDING-BACKFILL-012",
+  "sourceCandidateId": "ARTIFACT-CANDIDATE-REPORT-REQUEST-SUMMARY-COMMENT",
+  "sourceCandidatePath": ".www/evidence/2026-09-24-report-request-summary/project-comment-candidate.json",
+  "sourceCandidateDigest": "9a13acc60ce74afe682ba18ed4ecd8e20c33b05bd0eaba7e15bebfdadc94d465",
+  "sourceFileSha256": "165226c718c27d34fdb0940ec4ccf5720d9e0150b71d883264ac7692e229110b",
+  "candidateDigest": "ca45c5f910b0941b7da45a55e152a9b8ad6a15ba4e0274f6bd8ebf778a73f6ea",
+  "candidatePath": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/012.json",
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "expectedBefore": {
+    "latestCommentId": "f924ff35-cb58-4b72-88de-34f02c82c471"
+  },
+  "comment": {
+    "id": "1bcba882-e06b-446b-859b-9c53bb0aa67b",
+    "body": "## 변경\n\n- 과거 작업 기록 회수: WOO-693의 완료 REPORT를 요청 전체의 질문·Plan·과정·결론 구조로 개선한 작업을 기록한다 (원문 Candidate: ARTIFACT-CANDIDATE-REPORT-REQUEST-SUMMARY-COMMENT)\n- 당시 로컬 작업 기록: 새 T-note 생성 계약을 질문·Plan·과정·결론의 네 필드로 변경했다.\n- 당시 로컬 작업 기록: Astra REPORT 화면도 같은 순서로 표시하고 시스템이 관측한 Test는 결론 뒤 보조 근거로 유지했다.\n- 당시 로컬 작업 기록: 기존 5필드와 3필드 기록은 재생 호환으로 읽되 새 생성 결과로는 수락하지 않도록 분리했다.\n- 당시 로컬 작업 기록: ASTRA_EXECUTION_CONSOLE 문서를 새 REPORT 계약과 동기화했다.\n\n## 영향\n\n- 당시 기록된 영향: 사용자는 완료 REPORT에서 자신의 질문, 세운 계획, 실제 과정, 도달한 결론을 한 흐름으로 읽는다.\n- 당시 기록된 영향: 과거 저장 기록은 깨지지 않으며 새 기록만 request-report-v2 계약을 따른다.\n- 미게시 로컬 기록을 Project Activity에서 추적할 수 있게 회수한다. 과거 진행·완료·차단 상태를 현재 구현 완료 또는 이슈 상태 변경으로 승격하지 않는다.\n- 이 원문은 request-report-v2의 질문·Plan·과정·결론 4필드 당시 기록이다. 이후 request-report-v3 10섹션의 기존 게시 기록과 구분하며 현재 계약을 v2로 되돌리거나 새 완료로 발표하지 않는다.\n\n## 분류\n\nImprovement\n\n## 검증\n\n- 2026-09-29 회수 검증: 원문 파일 SHA-256 165226c718c27d34fdb0940ec4ccf5720d9e0150b71d883264ac7692e229110b; 연결 이슈의 현재 WWW 소속과 Project Activity 중복·latest identity를 확인했다.\n- 아래는 원문 Candidate에 남은 당시 검증 기록이다. 이번 회수에서 테스트·원격 실행·현재 제품 동작을 재검증한 결과가 아니다.\n- 당시 검증 기록: REPORT 관련 집중 테스트 160건과 TypeScript noEmit, git diff --check가 통과했다.\n- 당시 검증 기록: 전체 회귀 1455건, assertion 18989건이 모두 통과했다.\n\n## 연결\n\n- 이번 기록에서 참조하는 기존 이슈: [WOO-693](https://linear.app/woo-world/issue/WOO-693/완료된-질문과-결과를-t-note에-보존하고-다시-찾는다)\n- 관련 기존 Project Activity: https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-2fce5935-9f6d-4874-bfd4-8731caaabafd\n- 원문 Candidate: .www/evidence/2026-09-24-report-request-summary/project-comment-candidate.json\n- 원문 Source Revision: git:ca775998641d284738cd87c50d2593f689b6c86c:dirty\n- 원문 Candidate Digest: 9a13acc60ce74afe682ba18ed4ecd8e20c33b05bd0eaba7e15bebfdadc94d465\n- 원문 연결: Linear: WOO-693 · UUID 559c8b06-e8dd-4061-8d10-d719be0524a8\n- 원문 연결: Code: src/core/application/work/t-note-service.ts, src/core/application/orchestration/workbench-artifacts.ts\n- 원문 연결: UI: src/adapters/inbound/tui/features/chat/astra-execution.ts\n- 원문 연결: Contract: docs/ASTRA_EXECUTION_CONSOLE.md\n- 원문 연결: Obsidian Candidate: .www/evidence/2026-09-24-report-request-summary/obsidian-canonical-candidate.json\n- 회수 Evidence: .www/evidence/2026-09-29-linear-recording-backfill",
+    "attachments": [],
+    "createdAt": "2026-09-28T22:04:56.708Z",
+    "updatedAt": "2026-09-28T22:04:55.986Z",
+    "parentId": null,
+    "resolvedAt": null,
+    "quotedText": null,
+    "author": {
+      "id": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "name": "우종호"
+    },
+    "onBehalfOf": null
+  },
+  "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-1bcba882-e06b-446b-859b-9c53bb0aa67b",
+  "readBack": {
+    "exactBodyMatch": true,
+    "checkedAt": "2026-09-28T22:04:59.805Z"
+  },
+  "scope": "Historical local record recovery; not current implementation acceptance"
+}

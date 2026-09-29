@@ -1,0 +1,40 @@
+## 변경
+
+- Chat·Usage·Context·Monitor 외부 디자인 초안을 현재 TUI layout, Workbench snapshot, request runtime, monitor projection과 대조했다.
+- 각 요구를 즉시 적용, 표시 계약 수정, telemetry 개발 선행, 현재 제외로 분류한 진단 문서를 작성했다.
+- Figma가 live 관측과 합성 demo를 혼동하지 않도록 OBSERVED·DERIVED·UNOBSERVED 상태와 화면별 baseline·future frame을 포함한 전달 프롬프트를 작성했다.
+- Chat·Usage·Context·Monitor를 각각 단독으로 전달할 수 있도록 제품 진실·시각 체계·상태·interaction·산출물·수락 기준을 자체 포함한 standalone Figma 프롬프트 네 개로 분리했다.
+- standalone 초안에서 축약됐던 Usage trend·outcome·placement, Context tool bloat·churn·capability, Monitor latency·saturation·critical path·span inspector 요구를 원본 수준의 예시와 함께 복원했다.
+- ContextContribution과 RunSpan은 구현 확정 schema가 아니라 후속 설계가 필요한 최소 telemetry 제안으로 분리했다.
+
+## 영향
+
+- Chat 72:28과 Usage matrix는 현재 구조를 재사용해 설계할 수 있고, Context profiler와 Monitor waterfall은 데이터 수집 없이 화면만 만들지 않게 된다.
+- Figma 결과가 미관측 값을 0·추세·원인·모델 품질로 꾸며내는 문제를 예방한다.
+- 전용 분석 화면은 full-width, Chat만 Run Inspector split이라는 정보 구조가 명확해졌다.
+- 향후 구현 순서가 Chat rail → Usage 정제 → Context contribution → Monitor span telemetry로 구분됐다.
+
+## 분류
+
+Improvement · Validation
+
+## 검증
+
+- 진단서 212줄과 Figma 프롬프트 303줄을 read-back했다.
+- 두 문서가 Chat·Usage·Context·Monitor와 OBSERVED·DERIVED·UNOBSERVED 계약을 모두 포함하는지 확인했다.
+- 화면별 프롬프트 4개가 각각 Primary job·Product truth·Visual system·Interaction prototype·Required states·Final acceptance를 포함하는지 확인했다.
+- Chat 비율, Usage matrix, Context live/future 분리, Monitor baseline/full trace 분리와 네 파일의 fence·whitespace 검사가 통과했다.
+- 완전판 분량 Chat 181줄·Usage 267줄·Context 289줄·Monitor 331줄, 합계 1,068줄을 read-back했다.
+- 원본 핵심 지표·예시·interaction 키워드 coverage와 FUTURE TELEMETRY CONTRACT·unobserved 경계를 다시 검사했다.
+- 인용한 제품·도메인·테스트 경로의 실재 여부를 확인했다.
+- Markdown fence 균형과 whitespace 검사가 통과했다.
+
+## 연결
+
+- Primary Linear: WOO-674
+- Related Linear: WOO-680 · WOO-675 · WOO-714 · WOO-712
+- Diagnosis: docs/design/WWW_OBSERVABILITY_VIEW_DESIGN_DIAGNOSIS_2026-09-27.md
+- Figma prompt: docs/design/WWW_FIGMA_OBSERVABILITY_PROMPT_2026-09-27.md
+- Standalone prompts: docs/design/prompts/WWW_FIGMA_CHAT_PROMPT.md · WWW_FIGMA_USAGE_PROMPT.md · WWW_FIGMA_CONTEXT_PROMPT.md · WWW_FIGMA_MONITOR_PROMPT.md
+- Evidence: .www/evidence/2026-09-27-observability-design-diagnosis
+- Branch: dev · HEAD 495f61c0f3d5e3c9c6d58340d315c06b4ad70cc0 · uncommitted

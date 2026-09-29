@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-2026-09-29-HUD-FULL-LOGO-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "worktree:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty",
+  "intent": "꽉 찬 사용량 막대에서 공급자 로고가 가려지는 수정 기록",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "구독 HUD의 로고 두 칸을 막대 채움색과 분리해 100% 상태에서도 고정된 중립 배경을 사용하게 했다.",
+      "100% 로고 칸과 막대 채움색이 다른지 회귀 테스트를 추가했다."
+    ],
+    "impacts": [
+      "잔여 비율이 100%여도 공급자 로고가 색상에 묻히지 않고 구분된다."
+    ],
+    "categories": [
+      "fix",
+      "verification"
+    ],
+    "verification": [
+      "bun test test/www-provider-meter-fidelity.test.ts test/www-provider-logos.test.ts: 6 pass, 0 fail.",
+      "npm run check와 git diff --check 통과. 실제 터미널 육안 검사는 미실행."
+    ],
+    "connections": [
+      "Linear: WOO-912 https://linear.app/woo-world/issue/WOO-912/workbench-ui-모드모델계획구독-잔여-표기를-정리한다",
+      "Code: src/adapters/inbound/tui/features/usage/view/www-usage.ts · test/www-provider-meter-fidelity.test.ts",
+      "Evidence: .www/evidence/2026-09-29-hud-full-logo"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-912/workbench-ui-모드모델계획구독-잔여-표기를-정리한다",
+    "evidence": ".www/evidence/2026-09-29-hud-full-logo"
+  },
+  "expectedBefore": {
+    "latestCommentId": "4ba30c3e-fab8-4bdf-af96-e002ed4607bb"
+  },
+  "validation": [
+    {
+      "id": "issue-binding",
+      "status": "pass",
+      "evidence": "Live WOO-912 is In Progress in World Wide Woo."
+    },
+    {
+      "id": "activity-duplicate-check",
+      "status": "pass",
+      "evidence": "Latest live Project Activity 4ba30c3e-fab8-4bdf-af96-e002ed4607bb; earlier row-placement comment 67aef294-6e5b-4c4f-b483-3b9eb4f2d5d7 does not cover 100% neutral logo cell."
+    }
+  ],
+  "candidateDigest": "aeeff4057522132886b771618913fe3fb1c8325489ec55eeab2980f118e3946e"
+}

@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-WWW-BOOTSTRAP-BAR",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:a953dc8aae13573f1c92772efe747008a31940a4:dirty",
+  "intent": "www 시작 문구를 비율 없는 움직이는 로딩바로 교체한 경과",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "src/cli.ts: astra 여는 중 문구를 www와 순환 로딩바로 교체했다.",
+      "모듈 import 성공·실패 모두 finally에서 timer와 출력 행을 정리하고 TUI 실행 전 로딩바를 종료한다.",
+      "test/cli.test.ts: 초기 출력·프레임 변화·종료 후 출력 중단·비TTY 무출력을 검증한다."
+    ],
+    "impacts": [
+      "측정되지 않은 진행률을 퍼센트로 만들지 않고 모듈 로딩 중임만 표시한다. Native 연결 전체 진행률을 뜻하지 않는다."
+    ],
+    "categories": [
+      "improvement",
+      "verification"
+    ],
+    "verification": [
+      "bun test test/cli.test.ts: 17 pass, 0 fail, 64 assertions.",
+      "bun run check 및 git diff --check 통과. src/cli.ts·test/cli.test.ts에서 TODO·test.skip·test.only 없음.",
+      "반복 등록행 콜론 24열·화살표 42열·구조분해 시작 82열·await 108열 유지 실측.",
+      "실제 터미널 시작 화면 육안 확인과 독립 리뷰는 미실행."
+    ],
+    "connections": [
+      "WOO-913 · 기존 이슈 Receipt에 연결; 최신 원격 재조회 아님",
+      "src/cli.ts",
+      "test/cli.test.ts"
+    ]
+  },
+  "links": {
+    "issue": "https://linear.app/woo-world/issue/WOO-913/workbench-monitoring-figma-5화면의-계측-의미와-정보-구조를-일치시킨다",
+    "figma": "https://www.figma.com/design/Q7kGUdqiaQRJI8CZlPMRX7?node-id=50-967",
+    "candidateEvidence": ".www/evidence/www-bootstrap-bar-2026-09-22",
+    "promptContract": "docs/design/figma-context-cache-dashboard-prompt.md"
+  },
+  "expectedBefore": null,
+  "validation": [
+    {
+      "id": "local-issue-binding",
+      "status": "pass",
+      "evidence": "기존 linear-issue-receipt.json의 WOO-913 UUID와 project UUID 확인"
+    },
+    {
+      "id": "remote-freshness",
+      "status": "not-run",
+      "evidence": "지정 linear-woo 도구 미노출. 최신 Activity 중복 확인과 게시 전 상태 대조 필요"
+    }
+  ],
+  "candidateDigest": "19dcf0429c5e4b67967db3b864eb68a1727326894ddfa77d05cac335654f4f24"
+}

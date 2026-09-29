@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-WORKBENCH-VISUAL-POLISH-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:ce7731454c09c4ca5df4413f9f223be3eaea960c:dirty",
+  "intent": "Workbench 시각·입력·구독 표시 개선과 병합 전 검증 경과를 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "Workbench의 모드·모델·계획·Tracer·구독 잔여 표기를 WOO-912 요구에 맞춰 정리했다.",
+      "HUD를 런타임 상태와 구독 잔여 행으로 분리하고 좁은 폭에서는 provider 정보를 여러 행에 안전하게 배치했다.",
+      "동시 작업 중 유입된 truecolor 팔레트와 다중 행 HUD에 맞춰 흰색 RGB·Kitty provider 로고 회귀 테스트를 실제 production layout 계약으로 갱신했다.",
+      "입력 전달의 queue·steer 선택, T-note 표시 한계, 화면·테마·모델 이름 표기를 관련 Core·Adapter·TUI 테스트와 함께 연결했다."
+    ],
+    "impacts": [
+      "좁은 터미널에서도 런타임 상태와 provider 사용량을 누락하지 않고 표시한다.",
+      "팔레트의 색상 의미를 ANSI 인코딩 종류와 분리하고, Kitty 로고 배치를 실제 HUD 높이 계약으로 검증한다.",
+      "병합 후보는 CLI 가독성 작업과 분리되어 Workbench UI 변경만 독립적으로 되돌릴 수 있다."
+    ],
+    "categories": ["improvement", "fix", "verification"],
+    "verification": [
+      "bun run check 통과",
+      "bun test: 1303 pass, 0 fail, 16743 assertions",
+      "test/entry-dashboard-view.test.ts와 test/astra-provider-logos.test.ts: 9 pass, 0 fail",
+      "git diff --check 통과",
+      "commit-control이 승인 뒤 동시 변경된 content digest를 차단했으며 최신 후보로 다시 fingerprint·검증했다."
+    ],
+    "connections": [
+      "Linear: WOO-912",
+      "Linear parent: WOO-674",
+      "Git branch: ui/workbench-visual-polish",
+      "Evidence: .www/evidence/2026-09-21-workbench-visual-polish",
+      "Docs: docs/research/2026-09-21-cli-hud-tui-comparison.md"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-912/workbench-ui-모드모델계획구독-잔여-표기를-정리한다",
+    "evidence": ".www/evidence/2026-09-21-workbench-visual-polish"
+  },
+  "expectedBefore": {
+    "latestCommentId": "7c2cd97d-d51b-4cca-906c-cfec0c1a4e91"
+  },
+  "validation": [
+    {
+      "id": "issue-readback",
+      "status": "pass",
+      "evidence": "WOO-912의 ID·상태·Project·부모 WOO-674·요구 절을 저장된 read-back에서 확인했다."
+    },
+    {
+      "id": "implementation-verification",
+      "status": "pass",
+      "evidence": "TypeScript 검사, 전체 1303개 테스트, 대상 회귀 테스트, diff 검사를 실제 실행했다."
+    }
+  ],
+  "candidateDigest": "eda5439aa110bee913024ff756bfa46dde77ae4c49f75198ee95603b5342f173"
+}

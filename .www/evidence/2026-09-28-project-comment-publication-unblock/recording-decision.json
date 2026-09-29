@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "1.0",
+  "changedFiles": [
+    "AGENTS.md",
+    ".agents/skills/woo-linear-activity/SKILL.md",
+    ".agents/skills/woo-linear-publish/SKILL.md",
+    "docs/workflows/ARTIFACT_CONTROL_CONTRACT.md",
+    "src/core/domain/development/work-recording-gate.ts"
+  ],
+  "issueBinding": {
+    "id": "WOO-902",
+    "uuid": "aa325bbb-6573-4eb2-8685-2bc5e1848750",
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "parentId": "WOO-894",
+    "observedStatus": "Backlog",
+    "status": "live-readback-verified",
+    "source": "linear-woo MCP get_issue 2026-09-28"
+  },
+  "linearIssueCandidateRequired": false,
+  "projectCommentCandidate": ".www/evidence/2026-09-28-project-comment-publication-unblock/project-comment-candidate.json",
+  "projectCommentCandidateDigest": "641ab37c0d08ae8e42601b265cb4311880e4c5c8194569ce0a00c37fe6241692",
+  "obsidianCandidateRequired": false,
+  "obsidianReason": "This change records and applies the user-granted Project Comment publication authorization in the workspace workflow instructions; it changes no product WHY, capability behavior, or user-facing domain contract, so no Obsidian canonical candidate is required.",
+  "projectActivity": {
+    "candidateDigest": "641ab37c0d08ae8e42601b265cb4311880e4c5c8194569ce0a00c37fe6241692",
+    "expectedBefore": {
+      "latestCommentId": "82b109db-d6a0-447f-8ca3-da8d47901693"
+    },
+    "preview": ".www/evidence/2026-09-28-project-comment-publication-unblock/project-comment-preview.md",
+    "state": "published-read-back"
+  },
+  "publication": {
+    "state": "succeeded",
+    "externalWrite": true,
+    "commentId": "e43beca2-8a58-4055-99f2-f8d6695d4f33",
+    "receipt": ".www/evidence/2026-09-28-project-comment-publication-unblock/project-comment-publish-receipt.json"
+  }
+}

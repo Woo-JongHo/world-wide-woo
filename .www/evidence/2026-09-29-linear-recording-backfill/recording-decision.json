@@ -1,0 +1,11 @@
+{
+  "status": "published-and-readback-verified",
+  "historicalComments": 73,
+  "summaryCommentId": "2cc6f3b7-9b8f-40ea-91cd-ff41dff83905",
+  "summaryUrl": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-2cc6f3b7-9b8f-40ea-91cd-ff41dff83905",
+  "manifest": "manifest.json",
+  "verification": "verification-final.json",
+  "issueDecision": "No new issue required; existing WOO-894 binding. Issue candidates are not applied.",
+  "obsidianDecision": "No new WHY or product contract decision in this historical record recovery. No Obsidian write.",
+  "authorization": "User explicitly requested all missing history on Linear; standing Project Comment authorization."
+}

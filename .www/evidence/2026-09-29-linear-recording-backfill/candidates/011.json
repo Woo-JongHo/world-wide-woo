@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-RECORDING-BACKFILL-011",
+  "kind": "linear-project-comment",
+  "sourceRevision": "evidence-sha256:64559f0cb73eda2fa298efa95e9bea45121f0e71d984989b947ea73204b12db5",
+  "intent": "과거 작업 기록 회수: WOO-911의 선언문 가독성 계약을 전체 TypeScript와 반복 가능한 검사기에 적용한 결과를 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "과거 작업 기록 회수: WOO-911의 선언문 가독성 계약을 전체 TypeScript와 반복 가능한 검사기에 적용한 결과를 기록한다 (원문 Candidate: ARTIFACT-CANDIDATE-READABILITY-IMPORT-DECLARATIONS)",
+      "당시 로컬 작업 기록: Readability 스킬에 STEP0 import 선언 정규화와 전용 검사기를 추가했다.",
+      "당시 로컬 작업 기록: 값과 type specifier가 섞인 import를 분리하고 120열 초과 named import와 선언부별 from 열을 통일했다.",
+      "당시 로컬 작업 기록: src와 test의 TypeScript 482개 파일을 기계적으로 정규화했다.",
+      "당시 로컬 작업 기록: Opus 반박 감사 세 차례에서 찾은 주석·side-effect·템플릿·UTF-16·숫자 식별자·CRLF·attributes 경계 결함을 수정하고 fixture로 고정했다."
+    ],
+    "impacts": [
+      "당시 기록된 영향: 선언문이 파일마다 달라지는 문제를 전수 검사에서 재현 가능하게 차단한다.",
+      "당시 기록된 영향: 지원하기 어려운 주석 포함 혼합 import는 손상시키지 않고 파일별 오류로 보고한다.",
+      "미게시 로컬 기록을 Project Activity에서 추적할 수 있게 회수한다. 과거 진행·완료·차단 상태를 현재 구현 완료 또는 이슈 상태 변경으로 승격하지 않는다."
+    ],
+    "categories": [
+      "improvement",
+      "refactor",
+      "verification"
+    ],
+    "verification": [
+      "2026-09-29 회수 검증: 원문 파일 SHA-256 64559f0cb73eda2fa298efa95e9bea45121f0e71d984989b947ea73204b12db5; 연결 이슈의 현재 WWW 소속과 Project Activity 중복·latest identity를 확인했다.",
+      "아래는 원문 Candidate에 남은 당시 검증 기록이다. 이번 회수에서 테스트·원격 실행·현재 제품 동작을 재검증한 결과가 아니다.",
+      "당시 검증 기록: Import 정규화 전수 검사: 482 files, changed 0, errors 0.",
+      "당시 검증 기록: Readability 도구 테스트: 15 pass, 0 fail, 69 assertions.",
+      "당시 검증 기록: TypeScript noEmit과 git diff --check 통과.",
+      "당시 검증 기록: 최종 전체 회귀: 1459 pass, 0 fail, 19122 assertions, 171 files.",
+      "당시 검증 기록: Claude Opus 5 최종 재게이트: APPROVE, blocking/high 잔여 0건."
+    ],
+    "connections": [
+      "이번 기록에서 참조하는 기존 이슈: [WOO-911](https://linear.app/woo-world/issue/WOO-911/코드-실행-흐름을-역할별-최소-구조와-측정-가능한-열로-정리한다)",
+      "원문 Candidate: .www/evidence/2026-09-24-readability-import-declarations/project-comment-candidate.json",
+      "원문 Source Revision: git:ca775998641d284738cd87c50d2593f689b6c86c:dirty",
+      "원문 Candidate Digest: 04570a49ccc4f1c9087c97719dc252eac53ad6e94cd06e2e8ca1ee4c7b19d664",
+      "원문 연결: Linear: WOO-911 · UUID b00b02eb-2d80-4b10-9c9a-a29db4f1a74d",
+      "원문 연결: Code: .agents/skills/woo-code-readability/scripts/typescript/00_normalize-imports.ts",
+      "원문 연결: Evidence: .www/evidence/2026-09-24-readability-import-declarations",
+      "원문 연결: Branch: dev · HEAD ca775998641d284738cd87c50d2593f689b6c86c · uncommitted",
+      "회수 Evidence: .www/evidence/2026-09-29-linear-recording-backfill"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-911/코드-실행-흐름을-역할별-최소-구조와-측정-가능한-열로-정리한다",
+    "evidence": ".www/evidence/2026-09-24-readability-import-declarations",
+    "sourceCandidate": ".www/evidence/2026-09-24-readability-import-declarations/project-comment-candidate.json",
+    "receipt": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/011.json"
+  },
+  "expectedBefore": {
+    "latestCommentId": "5a34ff0f-0aef-49c5-b09b-70c82328f5f5"
+  },
+  "validation": [
+    {
+      "id": "source-evidence",
+      "status": "pass",
+      "evidence": "Read original Candidate ARTIFACT-CANDIDATE-READABILITY-IMPORT-DECLARATIONS; SHA-256 64559f0cb73eda2fa298efa95e9bea45121f0e71d984989b947ea73204b12db5; historical assertions are attributed to the source."
+    },
+    {
+      "id": "live-issue-binding",
+      "status": "pass",
+      "evidence": "Existing WWW issues verified: WOO-911; no issue creation or state mutation."
+    },
+    {
+      "id": "live-activity-before",
+      "status": "pass",
+      "evidence": "Project Activity source/evidence duplicate check and latest ID 5a34ff0f-0aef-49c5-b09b-70c82328f5f5 performed immediately before preparation."
+    }
+  ],
+  "candidateDigest": "51e7db0079708ccf610bdf95ddfd8f2ea354799add402bd6749bff9f19cc3e33"
+}

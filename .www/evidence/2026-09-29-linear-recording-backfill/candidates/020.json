@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-RECORDING-BACKFILL-020",
+  "kind": "linear-project-comment",
+  "sourceRevision": "evidence-sha256:2e9288e756c63ec80a99d835031c3ec9509fbc256191f04cbcc6e6337f2b537d",
+  "intent": "과거 작업 기록 회수: WWW 새 세션의 첫 화면을 Native 준비 완료와 분리한 변경과 검증 결과를 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "과거 작업 기록 회수: WWW 새 세션의 첫 화면을 Native 준비 완료와 분리한 변경과 검증 결과를 기록한다 (원문 Candidate: ARTIFACT-CANDIDATE-FIRST-SCREEN-STARTUP-COMMENT)",
+      "당시 로컬 작업 기록: 새 Workbench 세션은 Native 모델·MCP·Dashboard 준비 완료를 기다리지 않고 loading snapshot과 함께 반환하도록 변경했다.",
+      "당시 로컬 작업 기록: 재개 세션은 기존 thread lease 충돌과 durable 기록 복원을 반환 전에 확정하도록 동기 준비 계약을 유지했다.",
+      "당시 로컬 작업 기록: 느린 Native startup이 끝나면 기존 Workbench snapshot 구독을 통해 loading 화면이 ready 상태로 전환된다."
+    ],
+    "impacts": [
+      "당시 기록된 영향: 실제 production 조립에서 첫 화면을 열 수 있는 시점이 10.98–12.53초에서 1.117초로 줄었다.",
+      "당시 기록된 영향: 모델·MCP·Dashboard 준비는 11.585초에 완료되지만 첫 화면을 막지 않으며, --resume 안전 계약은 바뀌지 않는다.",
+      "미게시 로컬 기록을 Project Activity에서 추적할 수 있게 회수한다. 과거 진행·완료·차단 상태를 현재 구현 완료 또는 이슈 상태 변경으로 승격하지 않는다."
+    ],
+    "categories": [
+      "fix",
+      "improvement",
+      "verification"
+    ],
+    "verification": [
+      "2026-09-29 회수 검증: 원문 파일 SHA-256 2e9288e756c63ec80a99d835031c3ec9509fbc256191f04cbcc6e6337f2b537d; 연결 이슈의 현재 WWW 소속과 Project Activity 중복·latest identity를 확인했다.",
+      "아래는 원문 Candidate에 남은 당시 검증 기록이다. 이번 회수에서 테스트·원격 실행·현재 제품 동작을 재검증한 결과가 아니다.",
+      "당시 검증 기록: production createProjectWorkbenchSession 실측: first-screen-ready 1117ms loading, background-ready 11585ms ready, MCP 12개.",
+      "당시 검증 기록: bun run check: 통과.",
+      "당시 검증 기록: bun test test/architecture.test.ts test/project-workbench-session.test.ts test/app-runtime-mode.test.ts: 44 pass, 0 fail, 3490 expect.",
+      "당시 검증 기록: 변경 TypeScript import normalization changed=0, table alignment misaligned=0, git diff --check 통과.",
+      "당시 검증 기록: 변경 파일의 TODO·test.skip·test.only 검사에서 미완료 표식이 발견되지 않았다."
+    ],
+    "connections": [
+      "이번 기록에서 참조하는 기존 이슈: [WOO-674](https://linear.app/woo-world/issue/WOO-674/workbench-대화와-계획을-읽고-입력과-상태를-통제한다) · [WOO-673](https://linear.app/woo-world/issue/WOO-673/tui에서-업무를-수행하고-실행과-근거를-확인한다)",
+      "원문 Candidate: .www/evidence/2026-09-26-first-screen-startup/project-comment-candidate.json",
+      "원문 Source Revision: git:216b9d9faa09bcb19151f0f188792e8ce7113bf6:dirty",
+      "원문 Candidate Digest: fc9064a7ea9f7c5f05d67b6260dcf43596f767e76ccb457c5d248a704eaaa824",
+      "원문 연결: Linear: WOO-674 · UUID 4674a1dc-ba01-4007-9803-3346a1f83dcc",
+      "원문 연결: Parent: WOO-673",
+      "원문 연결: Predecessor: .www/evidence/2026-09-26-welcome-octopus-removal/project-comment-candidate.json",
+      "원문 연결: Evidence: .www/evidence/2026-09-26-first-screen-startup",
+      "원문 연결: Code: src/adapters/outbound/workspace/project-workbench-session.ts · test/project-workbench-session.test.ts",
+      "원문 연결: Branch: dev · HEAD 216b9d9faa09bcb19151f0f188792e8ce7113bf6 · uncommitted",
+      "회수 Evidence: .www/evidence/2026-09-29-linear-recording-backfill"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-674/workbench-대화와-계획을-읽고-입력과-상태를-통제한다",
+    "evidence": ".www/evidence/2026-09-26-first-screen-startup",
+    "sourceCandidate": ".www/evidence/2026-09-26-first-screen-startup/project-comment-candidate.json",
+    "receipt": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/020.json"
+  },
+  "expectedBefore": {
+    "latestCommentId": "48007784-a6eb-4943-8db1-73c39e521f0d"
+  },
+  "validation": [
+    {
+      "id": "source-evidence",
+      "status": "pass",
+      "evidence": "Read original Candidate ARTIFACT-CANDIDATE-FIRST-SCREEN-STARTUP-COMMENT; SHA-256 2e9288e756c63ec80a99d835031c3ec9509fbc256191f04cbcc6e6337f2b537d; historical assertions are attributed to the source."
+    },
+    {
+      "id": "live-issue-binding",
+      "status": "pass",
+      "evidence": "Existing WWW issues verified: WOO-674, WOO-673; no issue creation or state mutation."
+    },
+    {
+      "id": "live-activity-before",
+      "status": "pass",
+      "evidence": "Project Activity source/evidence duplicate check and latest ID 48007784-a6eb-4943-8db1-73c39e521f0d performed immediately before preparation."
+    }
+  ],
+  "candidateDigest": "1197d5a676196160bc5141d34403ab814073c2e2b96d4dc185fe25550c5e0e04"
+}

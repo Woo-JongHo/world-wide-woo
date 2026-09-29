@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-WOO-907-ENTRY-DASHBOARD-CANONICAL",
+  "kind": "obsidian-canonical",
+  "sourceRevision": "worktree:495f61c0f3d5e3c9c6d58340d315c06b4ad70cc0:dirty",
+  "intent": "WOO-907의 입장 Dashboard를 RELEASE·PROJECT·NOW·ACTIVITY 제품 요약 계약으로 정본화한다",
+  "target": { "relativePath": "Dashboard/Entry Dashboard — 연결된 프로젝트의 릴리스와 현재 작업을 요약한다.md" },
+  "content": {
+    "properties": {
+      "document_id": "c95acfc9-aaee-4ccd-8fd3-687b0e955aa8",
+      "linear": "WOO-907",
+      "record_type": "detailed-canonical",
+      "schema_version": 2,
+      "status": "active",
+      "acceptance": "partial",
+      "domain": "Dashboard",
+      "capability": "Entry Dashboard",
+      "parent": null,
+      "related": [],
+      "spec_ids": [],
+      "code_ids": [],
+      "test_ids": [],
+      "exception_ids": [],
+      "decision_ids": [],
+      "tags": ["www/spec", "domain/dashboard", "capability/entry-dashboard", "status/partial"],
+      "source_revision": "worktree:495f61c0f3d5e3c9c6d58340d315c06b4ad70cc0:dirty",
+      "updated_at": "2026-09-27T11:24:29+09:00"
+    },
+    "sections": {
+      "1. Intent": "사용자는 WWW에 들어오자마자 내부 실행 단계가 아니라 현재 제품 버전, 그 버전의 릴리스 내용, 연결 프로젝트 현황과 최근 활동을 보고 다음 요청을 결정해야 한다.",
+      "2. Scope": "첫 대화 전 Entry Dashboard의 RELEASE·PROJECT·NOW·ACTIVITY 구조와 Linear read-only snapshot 해석을 포함한다. Dashboard에서 원격 데이터를 수정하거나 대화 이후 원격 요약을 계속 삽입하는 기능은 제외한다.",
+      "3. Desired Behavior": "첫 진입 시 네 섹션이 고정 순서로 보인다. RELEASE는 PRODUCT_VERSION과 정확히 일치하는 최근 버전 Update를, PROJECT는 연결 identity와 상태를, NOW는 현재 열린 작업을, ACTIVITY는 최근 변화와 조회 시각을 표시한다. 로딩 중에는 릴리스 노트를 불러오는 중임을, 연결 실패에는 확인할 수 없음을, ready지만 현재 버전 Update가 없으면 미게시 상태임을 구분한다.",
+      "4. Domain Contract": "INV-001: Entry Dashboard는 STAGE·PLAN·PROGRESS를 복제하지 않는다. INV-002: RELEASE는 현재 PRODUCT_VERSION과 일치하는 0.0.N 또는 v0.0.N Update만 사용한다. INV-003: 일반 최신 Update를 릴리스 노트로 오인하지 않는다. INV-004: 네 섹션 순서는 모든 상태에서 유지된다. INV-005: RELEASE는 loading·unavailable·미게시를 서로 다른 사용자 문구로 표시한다.",
+      "5. State Model": "Dashboard는 loading·ready·unavailable 상태를 가진다. ready는 같은 Linear snapshot의 release·project·now·activity를 표시한다. 첫 사용자 메시지가 전송되면 entry surface에서 일반 Chat surface로 전환된다.",
+      "6. Data & Runtime Flow": "PRODUCT_VERSION과 연결된 Linear project identity → 제한된 최근 Project Update 및 이슈 조회 → 현재 버전 release 선택 → LinearProjectDashboard snapshot → EntryDashboardView의 네 섹션으로 흐른다.",
+      "7. Identity & Persistence Contract": "제품 버전은 PRODUCT_VERSION이 소유하고 원격 project ID와 snapshot 조회 시각을 함께 유지한다. Entry Dashboard는 원격 데이터를 로컬 정본으로 복제하지 않으며 최근 20개 Update 범위에서 현재 버전을 찾는다.",
+      "8. Integration Contract": "linear-project-dashboard adapter가 원격 snapshot과 버전 Update 선택을 소유한다. entry-dashboard-view는 표시 구조만 소유한다. 첫 메시지 전환은 Workbench shell이 소유하며 Request Runtime Stage와 별도 표면으로 유지한다.",
+      "9. Failure & Recovery Contract": "연결이 없거나 조회가 실패하면 네 섹션을 제거하지 않고 unavailable 이유와 릴리스 확인 불가를 표시한다. 현재 버전 Update가 없으면 미게시로 표시하고 다른 버전이나 일반 Update를 대체 릴리스로 표시하지 않는다. loading은 미게시로 단정하지 않고 조회 중으로 표시하며 다음 조회 또는 재진입에서 회복할 수 있다.",
+      "10. Acceptance Contract": "AC-001: 첫 진입은 RELEASE→PROJECT→NOW→ACTIVITY다. AC-002: RELEASE에 현재 PRODUCT_VERSION과 일치하는 Update만 보인다. AC-003: 최신 일반 Update 뒤의 현재 버전 Update도 찾는다. AC-004: loading·unavailable도 네 섹션 구조를 유지한다. AC-005: loading·unavailable·미게시 문구가 구분된다. 자동 검증은 PASS이고 실제 TUI 시각 수락은 남아 partial이다.",
+      "11. Verification Strategy": "linear-project-dashboard.test.ts로 v 접두사·최근 일반 Update·현재 버전 선택을 검증한다. entry-dashboard-view.test.ts로 ready·loading·unavailable의 섹션 순서와 상태 문구를 검증한다. www-ui.test.ts를 포함한 UI 회귀와 독립 Spec 리뷰로 전환·표시 계약을 확인한다.",
+      "12. Implementation Map": "entry-dashboard-view.ts가 네 섹션 렌더링을, linear-project-dashboard.ts가 최근 Update 조회와 현재 버전 선택을, linear-dashboard.ts가 snapshot shape를, app.ts와 Workbench shell이 진입 배선을 소유한다.",
+      "13. Current State & Gaps": "네 섹션 Dashboard, 현재 버전 릴리스 선택, RELEASE 상태 구분이 구현됐다. 집중 회귀 73개, 전체 관련 회귀 193개, 첫 화면 후속 보정 회귀 91개와 타입·가독성 게이트가 통과했다. 실제 터미널 폭별 시각 수락과 Vault·Linear 게시 read-back은 남아 있다.",
+      "14. Decisions & Evidence": "DEC-DASH-001 approved: Entry Dashboard는 내부 실행 관측 대신 RELEASE·PROJECT·NOW·ACTIVITY를 우선한다. DEC-DASH-002 approved: 릴리스 노트는 최신 Update가 아니라 현재 PRODUCT_VERSION과 정확히 일치하는 Update를 최근 20건에서 찾는다. 근거는 2026-09-27 사용자 요청과 .www/evidence/stage-dashboard-spec-review.md의 수정 후 CLEAR다.",
+      "Change Log": "2026-09-27 WOO-907 Entry Dashboard 정본 Candidate를 생성하고 RELEASE·PROJECT·NOW·ACTIVITY 및 현재 버전 릴리스 선택 계약을 기록했다. 2026-09-27 RELEASE의 loading·unavailable·미게시 상태를 사용자 문구로 구분하는 계약을 추가했다."
+    }
+  },
+  "links": {
+    "linear": "WOO-907",
+    "parentLinear": "WOO-676",
+    "evidence": ".www/evidence/2026-09-27-stage-dashboard-completion"
+  },
+  "expectedBefore": null,
+  "validation": [
+    { "id": "new-canonical", "status": "pass", "evidence": "WOO-907 Linear issue는 존재하지만 기존 Obsidian 정본 identity는 확인되지 않아 새 document_id를 발급했다." },
+    { "id": "scope-fit", "status": "pass", "evidence": "입장 Dashboard와 Linear read-only 요약은 WOO-907의 단일 capability다." },
+    { "id": "independent-review", "status": "pass", "evidence": "독립 Spec 재검토가 현재 버전 선택 보정 후 최종 CLEAR로 판정했다." },
+    { "id": "publication-boundary", "status": "pass", "evidence": "게시 전에 target 충돌과 Vault actual-before를 조회하며 현재 Candidate만 준비한다." }
+  ],
+  "candidateDigest": "55cffa0faef190e6fcb1402fadd629a8ab2e04ceabc262e1083829fedf417cf5"
+}

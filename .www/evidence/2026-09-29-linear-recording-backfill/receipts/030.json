@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.1",
+  "status": "published",
+  "surface": "linear-project-comment",
+  "candidateId": "ARTIFACT-CANDIDATE-RECORDING-BACKFILL-030",
+  "sourceCandidateId": "ARTIFACT-CANDIDATE-GOAL-RENDER-HUD-REPAIR-COMMENT",
+  "sourceCandidatePath": ".www/evidence/2026-09-27-goal-render-hud-repair/project-comment-candidate.json",
+  "sourceCandidateDigest": "b47db9726af7c4ee60d61338cf30eb35ed22f236c7ab3dc3bba946aac0c10878",
+  "sourceFileSha256": "e4906231048acd1b2399df64a11ea2058a903bdc7dfc0a76e6152ea55e41da64",
+  "candidateDigest": "cb4dd5d4462c85b7385cad5f7b61efc7c8a1aebbdd6a98c290458e7fccf10c8f",
+  "candidatePath": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/030.json",
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "expectedBefore": {
+    "latestCommentId": "06e7d189-f4f1-49ab-a996-42cb307d564c"
+  },
+  "comment": {
+    "id": "5557f08e-1c8f-4bfe-864f-9ecfcffd8c1e",
+    "body": "## 변경\n\n- 과거 작업 기록 회수: WOO-700 Session Goal과 WOO-915 HUD Render p95의 실제 노출 복구를 기록한다 (원문 Candidate: ARTIFACT-CANDIDATE-GOAL-RENDER-HUD-REPAIR-COMMENT)\n- 당시 로컬 작업 기록: 요청 접수 직후 request objective를 provisional Session Goal로 투영하고 UNDERSTAND 완료 시 정제 결과로 교체한다.\n- 당시 로컬 작업 기록: queued follow-up이 provisional Goal을 포함한 현재 snapshot을 이어받게 했다.\n- 당시 로컬 작업 기록: HUD가 live layer performance의 관측된 Render p95를 표시하고 terminal-write 측정 직후 한 번만 후속 repaint한다.\n- 당시 로컬 작업 기록: WWW 저빈도 상태 시계를 120ms에서 1초로 낮춰 불필요한 전체 화면 깜빡임을 줄였다.\n\n## 영향\n\n- 당시 기록된 영향: 활성 요청에서 GOAL이 비어 보이는 구간을 없애고 이후 이해 결과의 정제를 유지한다.\n- 당시 기록된 영향: Render p95가 측정됐지만 다음 입력 전까지 HUD에 나타나지 않던 갱신 누락을 막는다.\n- 당시 기록된 영향: 빠른 Native activity 갱신은 유지하면서 정기적인 전체 repaint 빈도를 줄인다.\n- 미게시 로컬 기록을 Project Activity에서 추적할 수 있게 회수한다. 과거 진행·완료·차단 상태를 현재 구현 완료 또는 이슈 상태 변경으로 승격하지 않는다.\n\n## 분류\n\nFix · Improvement · Validation\n\n## 검증\n\n- 2026-09-29 회수 검증: 원문 파일 SHA-256 e4906231048acd1b2399df64a11ea2058a903bdc7dfc0a76e6152ea55e41da64; 연결 이슈의 현재 WWW 소속과 Project Activity 중복·latest identity를 확인했다.\n- 아래는 원문 Candidate에 남은 당시 검증 기록이다. 이번 회수에서 테스트·원격 실행·현재 제품 동작을 재검증한 결과가 아니다.\n- 당시 검증 기록: 관련 Workbench·HUD·shell 회귀 166개가 통과했다.\n- 당시 검증 기록: bun run check와 git diff --check가 통과했다.\n- 당시 검증 기록: 변경 TypeScript의 import normalization과 table alignment 검사가 통과했다.\n- 당시 검증 기록: 실제 shell 특성 테스트에서 Render p95 문자열의 후속 repaint 노출을 확인했다.\n- 당시 검증 기록: Claude Sonnet·Opus 독립 감사는 CLI max-turn 제한으로 판정문을 회수하지 못해 미완료다.\n\n## 연결\n\n- 이번 기록에서 참조하는 기존 이슈: [WOO-700](https://linear.app/woo-world/issue/WOO-700/01-내-입력에-대한-계획이-세워지는-과정을-세션-todo로-보여준다) · [WOO-915](https://linear.app/woo-world/issue/WOO-915/11-긴-채팅-draft의-반복-렌더-지연을-제거한다)\n- 원문 Candidate: .www/evidence/2026-09-27-goal-render-hud-repair/project-comment-candidate.json\n- 원문 Source Revision: git:495f61c0f3d5e3c9c6d58340d315c06b4ad70cc0:dirty\n- 원문 Candidate Digest: b47db9726af7c4ee60d61338cf30eb35ed22f236c7ab3dc3bba946aac0c10878\n- 원문 연결: Linear: WOO-700 · WOO-915\n- 원문 연결: Evidence: .www/evidence/2026-09-27-goal-render-hud-repair\n- 원문 연결: Prior evidence: .www/evidence/2026-09-27-stage-dashboard-completion · .www/evidence/2026-09-27-render-health-monitoring\n- 원문 연결: Branch: dev · HEAD 495f61c0f3d5e3c9c6d58340d315c06b4ad70cc0 · uncommitted\n- 회수 Evidence: .www/evidence/2026-09-29-linear-recording-backfill",
+    "attachments": [],
+    "createdAt": "2026-09-28T22:07:32.898Z",
+    "updatedAt": "2026-09-28T22:07:32.830Z",
+    "parentId": null,
+    "resolvedAt": null,
+    "quotedText": null,
+    "author": {
+      "id": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "name": "우종호"
+    },
+    "onBehalfOf": null
+  },
+  "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-5557f08e-1c8f-4bfe-864f-9ecfcffd8c1e",
+  "readBack": {
+    "exactBodyMatch": true,
+    "checkedAt": "2026-09-28T22:07:34.992Z"
+  },
+  "scope": "Historical local record recovery; not current implementation acceptance"
+}

@@ -1,14 +1,16 @@
 ## 변경
 
-- woo-code-readability의 범용 SKILL.md, references, scripts, fixtures와 30개 도구 테스트를 형제 standalone 저장소 woo-readability로 이관했다.
-- 99_www 프로젝트 경로와 Codex 전역 경로를 standalone 정본의 symlink로 전환하고, Codex 구본은 타임스탬프 백업으로 보존했다.
-- WWW 전용 Receipt·승인·검사자 흐름은 제품 저장소에 남기고, WWW의 기존 전체 도구 테스트는 standalone 테스트와 2개 연결 통합 테스트로 분리했다.
+- 99_www의 woo-code-readability symlink를 제거하고 70개 파일의 제품 로컬 Skill 디렉터리로 전환했다.
+- 98_Plugin은 배포용 Skill 저장소로 별도 유지하고 Codex 전역 설치는 그 플러그인을 계속 가리키게 했다.
+- WWW 통합 테스트가 서로 다른 realpath와 현재 디렉터리 내용 동일성을 함께 검증하도록 교정했다.
+- TypeScript 연속 호출문을 call-statements 표로 등록해 호출 대상·matcher 괄호, matcher 점, 종결 세미콜론과 우측 주석 열을 정렬한다.
+- TypeScript 객체 배열은 여는·닫는 중괄호, 위치별 속성·콜론·값·쉼표와 행 꼬리를 object-rows 축으로 정렬하며 마지막 속성 trailing comma도 보존한다.
 
 ## 영향
 
-- 동명 스킬 사본이 서로 다른 규칙과 존재하지 않는 스크립트 경로를 제공하던 drift가 제거됐다.
-- Codex와 99_www가 같은 실제 디렉터리와 같은 SKILL.md 해시를 읽으며, 다른 에이전트도 install.sh를 통해 같은 원본에 연결할 수 있다.
-- npm·GitHub·OMP marketplace 공개와 Claude·ZCode·Pi 전역 연결은 이번 작업에서 수행하지 않았다.
+- 제품 저장소와 배포 플러그인이 서로 다른 변경 주기와 책임으로 관리된다.
+- 현재 규칙·스크립트·fixtures는 두 저장소에서 byte 단위로 같고 이후 drift는 통합 테스트가 탐지한다.
+- 복사본의 자동 덮어쓰기는 하지 않으며 어느 쪽 변경을 반영할지는 각 저장소 관리자가 결정한다.
 
 ## 분류
 
@@ -16,15 +18,15 @@ Improvement · Refactor · Validation · Operation
 
 ## 검증
 
-- standalone 최종 위치에서 bun test: 30 pass, 0 fail, 255 expect() calls.
-- 99_www의 symlink 소비 경계에서 2 pass, 0 fail, 4 expect() calls; 변경 테스트 파일은 import changed=0, table misaligned=0.
-- quick_validate, install.sh 구문, git diff --check, 두 발견 경로 realpath·SHA-256 일치, Receipt digest 검증을 통과했다.
-- 현재 세션에 linear-woo 도구가 없어 최신 Activity 중복 조회와 게시 read-back은 수행하지 않았다. 게시 직전 재조회와 사용자 승인이 필요하다.
+- 98_Plugin에서 bun test: 106 pass, 0 fail, 386 expect() calls.
+- 99_www 통합 경계에서 2 pass, 0 fail, 8 expect() calls; 두 Skill의 diff -qr 출력은 비어 있다.
+- 99_www Skill quick_validate, 변경 테스트의 import changed=0 및 table misaligned=0을 확인했다.
+- 현재 세션에 linear-woo 도구가 없어 게시 직전 Activity 재조회와 사용자 승인이 필요하다.
 
 ## 연결
 
 - Linear: WOO-911 · UUID b00b02eb-2d80-4b10-9c9a-a29db4f1a74d
-- Standalone: /Users/jonghoPro/woo/00_project/woo-readability
+- Plugin: /Users/jonghoPro/woo/00_project/98_Plugin · Product Skill: .agents/skills/woo-code-readability
 - Evidence: .www/evidence/2026-09-27-woo-code-readability-migration
 - Research: docs/research/2026-09-26-woo-code-readability-omp-distribution.md
 - Branch: dev · HEAD 216b9d9faa09bcb19151f0f188792e8ce7113bf6 · uncommitted

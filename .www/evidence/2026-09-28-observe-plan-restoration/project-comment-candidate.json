@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-OBSERVE-PLAN-RESTORATION-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty",
+  "intent": "기본 observe 요청에서 UNDERSTAND 뒤 PLAN이 비던 문제의 수정 결과를 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "INTENT에 1~8개의 공개 작업 계획을 추가하고 DECOMPOSE와 PLAN 작업 목록에 투영한다.",
+      "WORK가 완료되면 해당 계획 작업도 완료 상태로 정리한다."
+    ],
+    "impacts": [
+      "새 요청에서 UNDERSTAND 직후 구체적인 PLAN을 볼 수 있다.",
+      "기존 plan 없는 기록은 재생 호환성을 위해 계속 읽는다."
+    ],
+    "categories": [
+      "fix",
+      "verification"
+    ],
+    "verification": [
+      "요청 Runtime·Controller·Native Plan 집중 회귀 56개 통과.",
+      "Workbench·UI·앱·아키텍처 회귀 130개 통과.",
+      "TypeScript 타입 검사와 git diff --check 통과.",
+      "실제 TUI 수락과 독립 Claude 리뷰는 미실행: Claude 세션 한도."
+    ],
+    "connections": [
+      "Linear: WOO-700",
+      "Evidence: .www/evidence/2026-09-28-observe-plan-restoration",
+      "Branch: dev · uncommitted"
+    ]
+  },
+  "links": {
+    "issue": "https://linear.app/woo-world/issue/WOO-700/01-내-입력에-대한-계획이-세워지는-과정을-세션-todo로-보여준다",
+    "evidence": ".www/evidence/2026-09-28-observe-plan-restoration"
+  },
+  "expectedBefore": {
+    "latestCommentId": null
+  },
+  "validation": [
+    {
+      "id": "issue-binding",
+      "status": "pass",
+      "evidence": "기존 WOO-700 Candidate가 Request Runtime과 PLAN 투영을 소유한다."
+    },
+    {
+      "id": "verification",
+      "status": "pass",
+      "evidence": "집중 회귀 56개와 화면·구조 회귀 130개 및 타입 검사 통과."
+    },
+    {
+      "id": "publication-boundary",
+      "status": "pass",
+      "evidence": "Candidate만 준비한다. 지정된 linear-woo 연결의 현재 read-back은 미확인이다."
+    }
+  ],
+  "candidateDigest": "b5a0fb49695ab2a3c3e33a59a1cb4278222438573de0a178711733e94082e785"
+}

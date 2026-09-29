@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-LINEAR-RECORDING-BACKFILL-SUMMARY",
+  "kind": "linear-project-comment",
+  "sourceRevision": "evidence:2026-09-29-linear-recording-backfill:73-verified",
+  "intent": "미기록 의심 과거 작업 73건의 Linear Activity 회수 결과",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "evidence 감사에서 미확정으로 분류한 Project Comment Candidate 73건을 과거 작업 기록으로 게시했다.",
+      "기존 감사 보고서에 후속 처리 완료를 표시하고 docs/audit/2026-09-29-linear-recording-backfill.md에 73개 직접 링크와 결과를 정리했다."
+    ],
+    "impacts": [
+      "원문 Candidate에서 끝났던 작업 흐름을 Linear Project Activity에서 추적할 수 있다.",
+      "당시 검증·실패·차단 상태를 원문에 귀속했다. 제품 테스트 재실행·현재 구현 완료 판정이 아니다. 새 이슈·기존 이슈 상태/본문·Project Update·Obsidian은 변경하지 않았다."
+    ],
+    "categories": [
+      "verification",
+      "improvement"
+    ],
+    "verification": [
+      "전체 Activity 106건, hasNextPage=false에서 회수 73건의 정확한 본문·원문 SHA-256·원문 내용 보존·고유 출처 표기를 확인했다. 오류 0건.",
+      "관련 통합 기록 3건은 기존 Comment를 연결해 과거 세부 내역으로 구분했다. 참조 경로만 존재하던 2건도 본문 기록을 추가했다. 조회 지연 1건은 재저장 없이 재조회로 확인했다."
+    ],
+    "connections": [
+      "관련 기존 이슈: [WOO-894](https://linear.app/woo-world/issue/WOO-894/linear-작업-candidate와-게시-검증을-정형화한다)",
+      "docs/audit/2026-09-29-linear-recording-status.md",
+      "docs/audit/2026-09-29-linear-recording-backfill.md",
+      ".www/evidence/2026-09-29-linear-recording-backfill/manifest.json",
+      ".www/evidence/2026-09-29-linear-recording-backfill/verification-final.json"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-894/linear-작업-candidate와-게시-검증을-정형화한다",
+    "evidence": ".www/evidence/2026-09-29-linear-recording-backfill"
+  },
+  "expectedBefore": {
+    "latestCommentId": "58591a4b-75a6-4263-b388-2b80477bc4b6"
+  },
+  "validation": [
+    {
+      "id": "global-readback",
+      "status": "pass",
+      "evidence": "73/73 exact body, source SHA, source content and unique marker; verification-final.json"
+    }
+  ],
+  "candidateDigest": "12ef120d12f67c83a9d43d7eae4004620cec1cb2ea4263dc24d7138ae33a6d8d"
+}

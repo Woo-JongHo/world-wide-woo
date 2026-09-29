@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-SLASH-COMMAND-PALETTE-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty",
+  "intent": "빈 입력란에서 슬래시 명령 찾기가 열리지 않던 입력 흐름 수정 기록",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "빈 WWW 입력란에서 / 키를 누르면 기존 명령 찾기 팝업을 열도록 입력 라우터를 연결했다.",
+      "명령 검색과 80x24 화면 흐름을 셸 테스트에서 확인했다."
+    ],
+    "impacts": [
+      "/ 키가 입력란에 문자로만 남는 문제를 해소하고 명령을 찾아 선택할 수 있게 했다."
+    ],
+    "categories": [
+      "fix",
+      "verification"
+    ],
+    "verification": [
+      "bun test test/www-shell.test.ts: 8 pass, 0 fail, 218 expect.",
+      "bun run check: 통과.",
+      "git diff --check -- src/adapters/inbound/tui/shell/workbench-input-routing.ts test/www-shell.test.ts: 통과."
+    ],
+    "connections": [
+      "Primary Linear: WOO-674 · Workbench 대화와 계획을 읽고 입력과 상태를 통제한다 (로컬 read-back 기준)",
+      "Evidence: .www/evidence/2026-09-28-slash-command-palette",
+      "Code: src/adapters/inbound/tui/shell/workbench-input-routing.ts · test/www-shell.test.ts"
+    ]
+  },
+  "links": {
+    "workbenchIssue": "https://linear.app/woo-world/issue/WOO-674/workbench-대화와-계획을-읽고-입력과-상태를-통제한다",
+    "evidence": ".www/evidence/2026-09-28-slash-command-palette"
+  },
+  "expectedBefore": {
+    "latestCommentId": null
+  },
+  "validation": [
+    {
+      "id": "issue-binding",
+      "status": "pass",
+      "evidence": "보존된 Linear read-back과 TUI 준비 계획에서 WOO-674의 Workbench 입력 통제 책임을 확인했다. 취소·보관된 WOO-694는 대상에서 제외했다."
+    },
+    {
+      "id": "live-duplicate-check",
+      "status": "not-run",
+      "evidence": "정본 linear-woo MCP가 이 세션에 노출되지 않아 현재 Project Activity와 이슈 상태를 재조회하지 못했다."
+    },
+    {
+      "id": "verification",
+      "status": "pass",
+      "evidence": "관련 셸 테스트 8개, TypeScript 검사, diff 형식 검사가 통과했다."
+    },
+    {
+      "id": "publication-boundary",
+      "status": "pass",
+      "evidence": "로컬 Candidate만 준비한다. 게시 전 현재 대상과 중복을 재조회하고 항목별 사용자 승인을 받는다."
+    }
+  ],
+  "candidateDigest": "454157284a911f06d33ae499db5b6024136d098a892bf1a9ed089a7be90310b5"
+}

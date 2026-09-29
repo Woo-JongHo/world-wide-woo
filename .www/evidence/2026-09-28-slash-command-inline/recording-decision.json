@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0",
+  "change": [
+    "src/adapters/inbound/tui/shell/workbench-input-routing.ts",
+    "test/www-shell.test.ts"
+  ],
+  "issueBinding": {
+    "primary": "WOO-674",
+    "source": ".www/evidence/2026-09-28-slash-command-palette/recording-decision.json",
+    "status": "local-readback-only",
+    "reason": "기존 Workbench 입력 통제 동작을 바꾸는 수정이다. 정본 linear-woo MCP가 이 세션에 없어 현재 이슈 상태는 확인하지 못했다."
+  },
+  "linearIssueCandidateRequired": false,
+  "projectCommentCandidate": ".www/evidence/2026-09-28-slash-command-inline/project-comment-candidate.json",
+  "obsidianCandidateRequired": false,
+  "obsidianReason": "기존 입력창 자동완성을 사용하는 가역적 UI 동작 변경이다. WHY, 데이터 구조, 권위 경계, 저장 계약은 바뀌지 않았다.",
+  "publication": {
+    "state": "blocked-live-readback",
+    "reason": "정본 linear-woo MCP가 세션에 없어 현재 Project Activity 중복과 대상 이슈를 재조회할 수 없다. 게시 전 확인이 필요하다.",
+    "externalWrite": false
+  }
+}

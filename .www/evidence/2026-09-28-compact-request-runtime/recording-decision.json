@@ -1,0 +1,6 @@
+{
+  "linearIssue": "기존 WOO-700에 결속하며 새 Linear 이슈 Candidate는 만들지 않는다.",
+  "projectActivity": "compact observe Runtime 구현과 검증을 Project Comment Candidate로 준비했다.",
+  "obsidian": "WOO-700 기존 상세 정본의 공개 Runtime 인터페이스와 증거 불변식이 바뀌므로 개정 Candidate를 준비한다.",
+  "publication": "사용자 항목별 승인 전 외부 쓰기와 read-back은 수행하지 않는다."
+}

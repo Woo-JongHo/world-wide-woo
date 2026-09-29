@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.1",
+  "status": "published",
+  "surface": "linear-project-comment",
+  "candidateId": "ARTIFACT-CANDIDATE-RECORDING-BACKFILL-053",
+  "sourceCandidateId": "ARTIFACT-CANDIDATE-FIGMA-CHAT-INPUT-HUD-COMMENT",
+  "sourceCandidatePath": ".www/evidence/2026-09-28-figma-chat-input-hud/project-comment-candidate.json",
+  "sourceCandidateDigest": "6c3bd20ca8fb16ff3f2e8d1587721679d39fa0829b25229c962cdc6145c92449",
+  "sourceFileSha256": "c5699945bb1cb400fe6623b0f0a89d63d983348c949aa7aec68eff46705f62ec",
+  "candidateDigest": "7fadf13865c77f4f07bea811c64db16707df37029f705913815c8b7f6a656f88",
+  "candidatePath": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/053.json",
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "expectedBefore": {
+    "latestCommentId": "92ac779a-c625-4a36-bf65-8ce490ede637"
+  },
+  "comment": {
+    "id": "7392a238-1fc3-4c00-b229-828f4207f62c",
+    "body": "## 변경\n\n- 과거 작업 기록 회수: Figma Chat 화면의 composer와 sidebar 정렬을 구현하고 HUD Render 표시 범위를 교정한 결과를 기록한다 (원문 Candidate: ARTIFACT-CANDIDATE-FIGMA-CHAT-INPUT-HUD-COMMENT)\n- 당시 로컬 작업 기록: Chat composer가 sidebar와 같은 visibility 조건을 사용해 sidebar가 보일 때 38열 줄어들도록 조립했다.\n- 당시 로컬 작업 기록: HUD의 provider quota·context·cache·runtime 구조는 유지하고 Render p95 조각만 제거했다.\n- 당시 로컬 작업 기록: 제품 경로의 18행 threshold, workbench 외 비활성 gate, sidebar toggle 복원을 회귀 테스트로 고정했다.\n\n## 영향\n\n- 당시 기록된 영향: 입력창이 우측 관측 sidebar 아래로 침범하지 않고 Figma의 좌측 작업영역 폭에 맞는다.\n- 당시 기록된 영향: Render Health 측정은 Monitor에 남되 하단 HUD의 상시 표시에서는 제외된다.\n- 미게시 로컬 기록을 Project Activity에서 추적할 수 있게 회수한다. 과거 진행·완료·차단 상태를 현재 구현 완료 또는 이슈 상태 변경으로 승격하지 않는다.\n\n## 분류\n\nImprovement · Fix · Validation\n\n## 검증\n\n- 2026-09-29 회수 검증: 원문 파일 SHA-256 c5699945bb1cb400fe6623b0f0a89d63d983348c949aa7aec68eff46705f62ec; 연결 이슈의 현재 WWW 소속과 Project Activity 중복·latest identity를 확인했다.\n- 아래는 원문 Candidate에 남은 당시 검증 기록이다. 이번 회수에서 테스트·원격 실행·현재 제품 동작을 재검증한 결과가 아니다.\n- 당시 검증 기록: Figma node 142:5의 고해상도 design context와 1536×960 screenshot을 대조했다.\n- 당시 검증 기록: 관련 UI·shell·HUD·architecture 회귀 166개와 6681개 assertion이 통과했다.\n- 당시 검증 기록: tsc --noEmit과 git diff --check가 통과했고 skip·only·TODO 표식이 발견되지 않았다.\n- 당시 검증 기록: 독립 Claude Sonnet 5 리뷰의 threshold·gate 테스트 지적을 반영해 재검증했다.\n- 당시 검증 기록: 프로젝트 가독성 스킬 경로는 파일이 없어 전용 스크립트를 실행하지 못했다.\n\n## 연결\n\n- 이번 기록에서 참조하는 기존 이슈: [WOO-680](https://linear.app/woo-world/issue/WOO-680/layout-화면-크기가-달라져도-읽던-위치와-입력-흐름을-유지한다) · [WOO-915](https://linear.app/woo-world/issue/WOO-915/11-긴-채팅-draft의-반복-렌더-지연을-제거한다)\n- 원문 Candidate: .www/evidence/2026-09-28-figma-chat-input-hud/project-comment-candidate.json\n- 원문 Source Revision: git:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty\n- 원문 Candidate Digest: 6c3bd20ca8fb16ff3f2e8d1587721679d39fa0829b25229c962cdc6145c92449\n- 원문 연결: Primary Linear: WOO-680 · Layout\n- 원문 연결: Related Linear: WOO-915 · Render Health monitoring\n- 원문 연결: Figma: Q7kGUdqiaQRJI8CZlPMRX7 · node 142:3890 / implementation reference 142:5\n- 원문 연결: Evidence: .www/evidence/2026-09-28-figma-chat-input-hud\n- 원문 연결: Review: .www/scratchpad/2026-09-28-figma-chat-layout-review.md\n- 회수 Evidence: .www/evidence/2026-09-29-linear-recording-backfill",
+    "attachments": [],
+    "createdAt": "2026-09-28T22:09:27.804Z",
+    "updatedAt": "2026-09-28T22:09:26.962Z",
+    "parentId": null,
+    "resolvedAt": null,
+    "quotedText": null,
+    "author": {
+      "id": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "name": "우종호"
+    },
+    "onBehalfOf": null
+  },
+  "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-7392a238-1fc3-4c00-b229-828f4207f62c",
+  "readBack": {
+    "exactBodyMatch": true,
+    "checkedAt": "2026-09-28T22:09:29.211Z"
+  },
+  "scope": "Historical local record recovery; not current implementation acceptance"
+}

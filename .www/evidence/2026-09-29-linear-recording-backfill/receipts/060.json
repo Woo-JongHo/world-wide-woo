@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.1",
+  "status": "published",
+  "surface": "linear-project-comment",
+  "candidateId": "ARTIFACT-CANDIDATE-RECORDING-BACKFILL-060",
+  "sourceCandidateId": "ARTIFACT-CANDIDATE-NATIVE-TOOL-GROUP-SUMMARY-COMMENT",
+  "sourceCandidatePath": ".www/evidence/2026-09-28-native-tool-group-summary/project-comment-candidate.json",
+  "sourceCandidateDigest": "4ba07036ddcba80fedbfdfb27810b9a847052d2fccd8776eaae6489329df9ea0",
+  "sourceFileSha256": "876d7b84c6226885b27f5ec6803e483e5a17d741eb893bf8f3bbec21d1f4a37f",
+  "candidateDigest": "e8aa4adf353d6434c1dcf8a13c699abb06c4fe1f033f3aefec3f0bfd071c7e49",
+  "candidatePath": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/060.json",
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "expectedBefore": {
+    "latestCommentId": "d30205cb-f661-4e87-87f5-14efbce97059"
+  },
+  "comment": {
+    "id": "802a44a1-21e6-4e5d-9a10-3146e6eb5521",
+    "body": "## 변경\n\n- 과거 작업 기록 회수: WOO-700 Chat의 도구 요약을 작성 중인 응답 안에 배치하고 전체 명령을 요약한 결과를 기록한다 (원문 Candidate: ARTIFACT-CANDIDATE-NATIVE-TOOL-GROUP-SUMMARY-COMMENT)\n- 당시 로컬 작업 기록: 작업 중인 응답의 도구 요약을 RES 작성 중 카드 안에만 표시하고 성공·실패 명령 모두의 이름과 상태를 나열했다.\n- 당시 로컬 작업 기록: 요약의 /bin/zsh -lc 래퍼를 생략했으며 각 명령의 기존 Terminal/Git Bash 카드, exit 상태, /source를 유지했다.\n\n## 영향\n\n- 당시 기록된 영향: 실패 명령만 보이던 요약에서도 실제 수행한 명령 전체를 확인할 수 있다.\n- 당시 기록된 영향: 도구 요약과 원본 실행 카드를 구분해 읽으며 추가 모델 호출 없이 관측된 명령만 사용한다.\n- 미게시 로컬 기록을 Project Activity에서 추적할 수 있게 회수한다. 과거 진행·완료·차단 상태를 현재 구현 완료 또는 이슈 상태 변경으로 승격하지 않는다.\n\n## 분류\n\nImprovement · Validation\n\n## 검증\n\n- 2026-09-29 회수 검증: 원문 파일 SHA-256 876d7b84c6226885b27f5ec6803e483e5a17d741eb893bf8f3bbec21d1f4a37f; 연결 이슈의 현재 WWW 소속과 Project Activity 중복·latest identity를 확인했다.\n- 아래는 원문 Candidate에 남은 당시 검증 기록이다. 이번 회수에서 테스트·원격 실행·현재 제품 동작을 재검증한 결과가 아니다.\n- 당시 검증 기록: bun test test/www-ui.test.ts test/www-transcript-cache.test.ts test/chat-render-acceptance.test.ts: 116 pass, 0 fail.\n- 당시 검증 기록: bun run check 통과.\n- 당시 검증 기록: git diff --check 통과.\n- 당시 검증 기록: woo-code-readability 링크 대상 부재로 지정 스크립트는 미실행.\n\n## 연결\n\n- 이번 기록에서 참조하는 기존 이슈: [WOO-700](https://linear.app/woo-world/issue/WOO-700/01-내-입력에-대한-계획이-세워지는-과정을-세션-todo로-보여준다) · [WOO-680](https://linear.app/woo-world/issue/WOO-680/layout-화면-크기가-달라져도-읽던-위치와-입력-흐름을-유지한다)\n- 원문 Candidate: .www/evidence/2026-09-28-native-tool-group-summary/project-comment-candidate.json\n- 원문 Source Revision: worktree:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty\n- 원문 Candidate Digest: 4ba07036ddcba80fedbfdfb27810b9a847052d2fccd8776eaae6489329df9ea0\n- 원문 연결: Linear: WOO-700 (기존 Chat Plan·Progress 결속), WOO-680 (Chat 표면)\n- 원문 연결: Code: src/adapters/inbound/tui/features/chat/view/www-execution.ts\n- 원문 연결: Evidence: .www/evidence/2026-09-28-native-tool-group-summary\n- 회수 Evidence: .www/evidence/2026-09-29-linear-recording-backfill",
+    "attachments": [],
+    "createdAt": "2026-09-28T22:11:17.764Z",
+    "updatedAt": "2026-09-28T22:11:17.714Z",
+    "parentId": null,
+    "resolvedAt": null,
+    "quotedText": null,
+    "author": {
+      "id": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "name": "우종호"
+    },
+    "onBehalfOf": null
+  },
+  "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-802a44a1-21e6-4e5d-9a10-3146e6eb5521",
+  "readBack": {
+    "exactBodyMatch": true,
+    "checkedAt": "2026-09-28T22:11:18.890Z"
+  },
+  "scope": "Historical local record recovery; not current implementation acceptance"
+}

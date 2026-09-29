@@ -1,0 +1,26 @@
+## 변경
+
+- 120ms Working/stage 프레임과 1초 자체 갱신 타이머의 불일치를 수정했다. 보이는 workbench에서 motion 켜짐은 120ms, reduced motion은 1초이며 overlay/shutdown에서는 갱신하지 않는다.
+- compact TEST 캐시가 Chat draft revision마다 같은 출력을 다시 파싱하던 경로를 수정했다. 전체 입력 트리 불변성 검증 뒤 동일 관측·turn은 재사용하고 mutable 입력의 revision 보호는 유지한다.
+- 실제 조회가 아닌 terminal 상태 확인 중 fallback을 제거했다. 도구 수는 관측된 경우만 표시한다.
+
+## 영향
+
+- TEST 패널의 동기 파싱은 Chat과 Working이 공유하는 UI 실행 흐름을 점유한다. 합성 테스트 관측 40건에서 패널 렌더 p95 14.90→1.65ms, p50 7.93→0.36ms.
+- 이 수치는 실제 세션 frame latency 또는 Codex parity가 아니다. 이전 Chat 캐시 수정 이후 시작된 현재 WWW에서도 사용자가 지연을 보고했으므로 이전 수정만으로 해결됐다고 주장하지 않는다.
+
+## 분류
+
+Fix · Validation
+
+## 검증
+
+- TypeScript/diff 검사, import 정규화·표 정렬 통과. 기존 production shell memory terminal 벤치마크 GREEN. 별도 테스트 스위트 실행 없음.
+- cmux 프로세스 시작 시각과 cwd를 읽었다. 이번 수정의 실제 세션 반영·Chat 도착 중 프레임 측정은 남아 있다.
+- Claude 독립 리뷰/Opus 최종 감사는 기존 로그인 오류로 미실행. TODO 탐색의 기존 패널 제목 문자열은 구현 placeholder가 아니다.
+
+## 연결
+
+- Linear: WOO-915 (기존 live read-back: In Progress, parent WOO-679)
+- Audit: docs/audit/2026-09-29-working-chat-stall.md
+- Evidence: .www/evidence/2026-09-29-working-chat-stall

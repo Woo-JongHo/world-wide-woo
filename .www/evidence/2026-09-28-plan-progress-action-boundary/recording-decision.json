@@ -1,0 +1,16 @@
+{
+  "scope": "WOO-700 PLAN별 PROGRESS, Chat AI 셸 행동과 TEST 전체 회귀 투영, 단계 슬롯과 사이드바 조정",
+  "issueBinding": {
+    "primary": "WOO-700",
+    "source": ".www/evidence/2026-09-28-native-tool-group-summary/recording-decision.json",
+    "status": "local-readback-only"
+  },
+  "linearIssueCandidateRequired": false,
+  "projectCommentCandidate": ".www/evidence/2026-09-28-plan-progress-action-boundary/project-comment-candidate.json",
+  "obsidianCandidate": ".www/evidence/2026-09-28-plan-progress-action-boundary/obsidian-canonical-candidate.json",
+  "publication": {
+    "state": "blocked-live-readback",
+    "reason": "정본 linear-woo와 Vault 조회가 없어 현재 원본·중복을 대조하지 못했다.",
+    "externalWrite": false
+  }
+}

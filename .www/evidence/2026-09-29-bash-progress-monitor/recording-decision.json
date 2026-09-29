@@ -1,0 +1,19 @@
+{
+  "status": "project-comment-published-readback-confirmed",
+  "existingIssue": "WOO-913",
+  "projectComment": {
+    "id": "4ba30c3e-fab8-4bdf-af96-e002ed4607bb",
+    "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-4ba30c3e-fab8-4bdf-af96-e002ed4607bb"
+  },
+  "newIssue": "not-required",
+  "obsidian": {
+    "status": "draft-validation-blocked",
+    "reason": "fresh Vault bytes/expectedBefore missing; canonical renderer rejected not-run validation. No Vault write."
+  },
+  "designDecision": "Native WORK.summary directly supplies PROGRESS; exploratory second-model interpretation queue withdrawn",
+  "acceptance": "local type/readability checks only; live Native/TUI and final independent review not run",
+  "review": {
+    "sonnet": "superseded queue reviewed; not final acceptance",
+    "opus": "not-run"
+  }
+}

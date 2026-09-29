@@ -1,0 +1,75 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-RECORDING-BACKFILL-018",
+  "kind": "linear-project-comment",
+  "sourceRevision": "evidence-sha256:637b5a3e7f1895fcba2b1fd824d09f8512522d244f0ac78a3fe80fda8ec6913e",
+  "intent": "과거 작업 기록 회수: WOO-911의 전체 제품 TypeScript Readability 리팩터링과 독립 검증 결과를 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "과거 작업 기록 회수: WOO-911의 전체 제품 TypeScript Readability 리팩터링과 독립 검증 결과를 기록한다 (원문 Candidate: ARTIFACT-CANDIDATE-ZCODE-READABILITY-REFACTOR)",
+      "당시 로컬 작업 기록: ZCode GLM-5.3 Max가 제품 TypeScript 305개를 조사하고 후보 14개 파일을 파일별로 리팩터링했다.",
+      "당시 로컬 작업 기록: 반복 인라인 타입, 약한 반환 유니온, 평행 배열, 멤버십 캐스트와 불필요한 non-null 단언을 정리했다.",
+      "당시 로컬 작업 기록: 새 성능 테스트 2개를 포함한 현재 TypeScript 484개 import 선언을 STEP0 계약으로 정규화했다.",
+      "당시 로컬 작업 기록: Codex가 결과를 인수해 전수 검증하고 Claude Opus 5가 읽기 전용 반박 감사를 수행했다."
+    ],
+    "impacts": [
+      "당시 기록된 영향: 제품 14개 파일의 STEP2 불확실성 표식이 442건에서 318건으로 124건 감소했다.",
+      "당시 기록된 영향: 경계 파싱과 도메인 불변식에 결속된 단언은 보존해 의미 변경을 피했다.",
+      "미게시 로컬 기록을 Project Activity에서 추적할 수 있게 회수한다. 과거 진행·완료·차단 상태를 현재 구현 완료 또는 이슈 상태 변경으로 승격하지 않는다."
+    ],
+    "categories": [
+      "refactor",
+      "improvement",
+      "verification"
+    ],
+    "verification": [
+      "2026-09-29 회수 검증: 원문 파일 SHA-256 637b5a3e7f1895fcba2b1fd824d09f8512522d244f0ac78a3fe80fda8ec6913e; 연결 이슈의 현재 WWW 소속과 Project Activity 중복·latest identity를 확인했다.",
+      "아래는 원문 Candidate에 남은 당시 검증 기록이다. 이번 회수에서 테스트·원격 실행·현재 제품 동작을 재검증한 결과가 아니다.",
+      "당시 검증 기록: Import 전수 검사: 484 files, changed 0, errors 0.",
+      "당시 검증 기록: TypeScript noEmit, architecture 13/13, git diff --check 통과.",
+      "당시 검증 기록: 전체 회귀: 1473 pass, 0 fail, 19186 assertions, 173 files.",
+      "당시 검증 기록: Claude Opus 5: APPROVE, blocking finding 0건."
+    ],
+    "connections": [
+      "이번 기록에서 참조하는 기존 이슈: [WOO-911](https://linear.app/woo-world/issue/WOO-911/코드-실행-흐름을-역할별-최소-구조와-측정-가능한-열로-정리한다)",
+      "원문 Candidate: .www/evidence/2026-09-24-zcode-readability-refactor/project-comment-candidate.json",
+      "원문 Source Revision: git:ca775998641d284738cd87c50d2593f689b6c86c:dirty",
+      "원문 Candidate Digest: 4b44e68e029cd883fc187c9a234b9425897e432475dfbe60b5ff657f0e410814",
+      "원문 연결: Linear: WOO-911 · UUID b00b02eb-2d80-4b10-9c9a-a29db4f1a74d",
+      "원문 연결: Report: docs/audit/2026-09-24-zcode-readability-refactor.md",
+      "원문 연결: Evidence: .www/evidence/2026-09-24-zcode-readability-refactor",
+      "원문 연결: Branch: dev · HEAD ca775998641d284738cd87c50d2593f689b6c86c · uncommitted",
+      "회수 Evidence: .www/evidence/2026-09-29-linear-recording-backfill"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-911/코드-실행-흐름을-역할별-최소-구조와-측정-가능한-열로-정리한다",
+    "evidence": ".www/evidence/2026-09-24-zcode-readability-refactor",
+    "sourceCandidate": ".www/evidence/2026-09-24-zcode-readability-refactor/project-comment-candidate.json",
+    "receipt": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/018.json"
+  },
+  "expectedBefore": {
+    "latestCommentId": "7e2e52fb-02de-4635-a807-79d064fff71b"
+  },
+  "validation": [
+    {
+      "id": "source-evidence",
+      "status": "pass",
+      "evidence": "Read original Candidate ARTIFACT-CANDIDATE-ZCODE-READABILITY-REFACTOR; SHA-256 637b5a3e7f1895fcba2b1fd824d09f8512522d244f0ac78a3fe80fda8ec6913e; historical assertions are attributed to the source."
+    },
+    {
+      "id": "live-issue-binding",
+      "status": "pass",
+      "evidence": "Existing WWW issues verified: WOO-911; no issue creation or state mutation."
+    },
+    {
+      "id": "live-activity-before",
+      "status": "pass",
+      "evidence": "Project Activity source/evidence duplicate check and latest ID 7e2e52fb-02de-4635-a807-79d064fff71b performed immediately before preparation."
+    }
+  ],
+  "candidateDigest": "42d6a77a119bf5e3a6b54970f60a6dd3112536318d7f0794bf4d99a2e448ee77"
+}

@@ -1,0 +1,65 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-CHAT-STAGE-ORDER-TEST-GATE-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "worktree:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty",
+  "intent": "Chat의 PLAN·PROGRESS 출현 순서와 TEST·Working 표시 조건 보정 기록",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "PLAN 항목이 아직 없으면 먼저 도착한 PROGRESS 내용을 대기시킨다.",
+      "TEST는 같은 요청의 코드 변경 뒤 실행된 검증 명령만 표시하고 파일 읽기·검색의 test 문자열은 검증으로 분류하지 않는다.",
+      "Working 줄에서 PROGRESS 문장을 제거하고 현재 7단계의 단계·상태·완료 수를 표시한다."
+    ],
+    "impacts": [
+      "Chat의 계획·경과·검증 영역이 실제 관측 순서와 작업 종류를 더 정확히 반영한다."
+    ],
+    "categories": [
+      "fix",
+      "verification"
+    ],
+    "verification": [
+      "bun test test/request-test-workspace.test.ts test/plan-activity-view.test.ts test/www-ui.test.ts: 107 pass, 0 fail.",
+      "bun run check: 통과.",
+      "git diff --check -- 관련 변경 파일: 통과."
+    ],
+    "connections": [
+      "Primary Linear: WOO-700 (로컬 read-back 기준), Related: WOO-680",
+      "Evidence: .www/evidence/2026-09-28-chat-stage-order-test-gate",
+      "Obsidian Candidate: obsidian-canonical-candidate.json"
+    ]
+  },
+  "links": {
+    "linear": "WOO-700",
+    "relatedLinear": "WOO-680",
+    "evidence": ".www/evidence/2026-09-28-chat-stage-order-test-gate"
+  },
+  "expectedBefore": {
+    "latestCommentId": null
+  },
+  "validation": [
+    {
+      "id": "local-binding",
+      "status": "pass",
+      "evidence": "기존 WOO-700 기록의 Chat PLAN·TEST 책임을 재사용했다."
+    },
+    {
+      "id": "live-duplicate-check",
+      "status": "not-run",
+      "evidence": "정본 linear-woo MCP가 세션에 없어 현재 Activity와 이슈 상태를 재조회하지 못했다."
+    },
+    {
+      "id": "verification",
+      "status": "pass",
+      "evidence": "관련 테스트 107개와 타입 검사, diff 형식 검사가 통과했다."
+    },
+    {
+      "id": "publication-boundary",
+      "status": "pass",
+      "evidence": "후보만 준비한다. 게시 전 현재 상태 대조와 항목별 사용자 승인이 필요하다."
+    }
+  ],
+  "candidateDigest": "cfb9a74a6410ffcc0c973a7d842bb728e68d97211b300273de3d005ba0aab771"
+}

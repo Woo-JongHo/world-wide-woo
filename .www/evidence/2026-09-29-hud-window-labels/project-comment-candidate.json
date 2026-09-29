@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-2026-09-29-HUD-WINDOW-LABELS-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "worktree:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty",
+  "intent": "구독 HUD의 7d·5h 라벨과 두 행 아이콘 표시 수정 기록",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "구독 HUD의 두 행 제목을 7d overall·5h session에서 7d·5h로 줄였다.",
+      "두 기간 행의 공급자 바 모두에 사용률 앞 아이콘을 표시한다."
+    ],
+    "impacts": [
+      "7d·5h 기간, 공급자 아이콘, 잔여 비율, 초기화까지 남은 시간이 각 행에서 같은 순서로 보인다."
+    ],
+    "categories": [
+      "fix",
+      "verification"
+    ],
+    "verification": [
+      "bun test test/www-provider-meter-fidelity.test.ts: 2 pass, 0 fail.",
+      "git diff --check 통과. 변경 파일의 TODO·test.skip·test.only 검색 결과 없음.",
+      "함께 실행한 test/www-ui.test.ts는 94 pass, 1 fail. 실패는 '설명 준비 중' 문구 기대값으로 HUD 변경과 별개다."
+    ],
+    "connections": [
+      "Linear: WOO-912 https://linear.app/woo-world/issue/WOO-912/workbench-ui-모드모델계획구독-잔여-표기를-정리한다 (live: In Progress, World Wide Woo)",
+      "Evidence: .www/evidence/2026-09-29-hud-window-labels"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-912/workbench-ui-모드모델계획구독-잔여-표기를-정리한다",
+    "evidence": ".www/evidence/2026-09-29-hud-window-labels"
+  },
+  "expectedBefore": {
+    "latestCommentId": "d2b9f810-5a62-47f6-8c65-f30f515ecc20"
+  },
+  "validation": [
+    {
+      "id": "issue-binding",
+      "status": "pass",
+      "evidence": "Live WOO-912 read-back: In Progress in World Wide Woo under WOO-674."
+    },
+    {
+      "id": "activity-duplicate-check",
+      "status": "pass",
+      "evidence": "Live Project Activity latest d2b9f810-5a62-47f6-8c65-f30f515ecc20; no comment for this 7d·5h label correction."
+    }
+  ],
+  "candidateDigest": "ed62ae93ffebc89b3b7cd5bf0348046207cabc9fa9f1ed86b462dd709ca0b0b9"
+}

@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "1.0",
+  "issueBinding": {
+    "primary": "WOO-700",
+    "related": "WOO-680",
+    "source": ".www/evidence/2026-09-28-chat-stage-order-test-gate/recording-decision.json",
+    "status": "local-readback-only",
+    "reason": "이전 WOO-700 로컬 기록을 재사용했다. 현재 연결된 Linear 도구는 다른 MINI_APP_PROJECT를 반환하고 WOO-700은 조회 실패하여 live binding은 미확인이다."
+  },
+  "linearIssueCandidateRequired": false,
+  "projectCommentCandidate": ".www/evidence/2026-09-28-chat-rail-stage-test-explanation/project-comment-candidate.json",
+  "obsidianCandidateRequired": true,
+  "obsidianCandidate": ".www/evidence/2026-09-28-chat-rail-stage-test-explanation/obsidian-canonical-candidate.json",
+  "publication": {
+    "state": "blocked-live-readback",
+    "reason": "현재 연결된 Linear 도구는 다른 MINI_APP_PROJECT를 반환하며 WOO-700 조회에 실패했다. Vault 원문도 확인하지 못해 중복·drift 검사를 마치지 못했다.",
+    "externalWrite": false
+  }
+}

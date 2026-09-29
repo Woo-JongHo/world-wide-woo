@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.1",
+  "status": "published",
+  "surface": "linear-project-comment",
+  "candidateId": "ARTIFACT-CANDIDATE-RECORDING-BACKFILL-072",
+  "sourceCandidateId": "ARTIFACT-CANDIDATE-ASTRA-READABILITY-AXES",
+  "sourceCandidatePath": ".www/evidence/astra-readability-axes-2026-09-22/project-comment-candidate.json",
+  "sourceCandidateDigest": "827a24facafb4ac24e32ce760a78969079c0aaaecb6a3fc95c872f85c8a402ce",
+  "sourceFileSha256": "ff51f29843e9ddbf920decb65026b270dc0eda184f2632497e00c146be3da172",
+  "candidateDigest": "70fba40ec4707ec25abcc4aec54482b0dd0e0f1ea89e5e477315c5975bfb8d3a",
+  "candidatePath": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/072.json",
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "expectedBefore": {
+    "latestCommentId": "7c5f9a6a-b1f8-41ce-8a65-d5fec68befaa"
+  },
+  "comment": {
+    "id": "b786fa84-dba3-45d5-a3c7-d10250fb7efa",
+    "body": "## 변경\n\n- 과거 작업 기록 회수: 등록 객체와 지역 계산의 열 기준점 누락을 교정한 경과 (원문 Candidate: ARTIFACT-CANDIDATE-ASTRA-READABILITY-AXES)\n- 당시 로컬 작업 기록: 페이지 등록 객체를 항목별 행으로 분리하고 콜론·new·생성자 인자 시작 열을 맞췄다.\n- 당시 로컬 작업 기록: Usage 너비 계산의 등호 열을 맞췄고 스킬 계약·템플릿에 등록 객체와 연속 선언의 구현 중 실측 규칙을 추가했다.\n\n## 영향\n\n- 당시 기록된 영향: 객체 배열만 정렬한 뒤 전체 가독성이 적용됐다고 판단하던 누락을 방지한다. 네 페이지 전체 검토는 미완료다.\n- 미게시 로컬 기록을 Project Activity에서 추적할 수 있게 회수한다. 과거 진행·완료·차단 상태를 현재 구현 완료 또는 이슈 상태 변경으로 승격하지 않는다.\n\n## 분류\n\nRefactor · Validation\n\n## 검증\n\n- 2026-09-29 회수 검증: 원문 파일 SHA-256 ff51f29843e9ddbf920decb65026b270dc0eda184f2632497e00c146be3da172; 연결 이슈의 현재 WWW 소속과 Project Activity 중복·latest identity를 확인했다.\n- 아래는 원문 Candidate에 남은 당시 검증 기록이다. 이번 회수에서 테스트·원격 실행·현재 제품 동작을 재검증한 결과가 아니다.\n- 당시 검증 기록: measure-layout: 등록 콜론 23열, rail new 25열·괄호 47열, 너비 계산 등호 18열.\n- 당시 검증 기록: bun run check 및 git diff --check 통과. Usage fidelity와 monitoring layout 테스트 11 pass, 0 fail.\n- 당시 검증 기록: 전체 shell /demo 테스트는 Cache Controller 기존 기대값 불일치로 실패가 남아 있다. 전체 완료를 주장하지 않는다.\n\n## 연결\n\n- 이번 기록에서 참조하는 기존 이슈: [WOO-913](https://linear.app/woo-world/issue/WOO-913/workbench-monitoring-figma-5화면의-계측-의미와-정보-구조를-일치시킨다)\n- 원문 Candidate: .www/evidence/astra-readability-axes-2026-09-22/project-comment-candidate.json\n- 원문 Source Revision: git:a953dc8aae13573f1c92772efe747008a31940a4:dirty\n- 원문 Candidate Digest: 827a24facafb4ac24e32ce760a78969079c0aaaecb6a3fc95c872f85c8a402ce\n- 원문 연결: WOO-913 · 8367530b-1a29-4983-994b-c2bf61ac687e\n- 원문 연결: .www/evidence/astra-readability-axes-2026-09-22/\n- 원문 연결: .agents/skills/woo-code-readability/references/readability-contract.md\n- 회수 Evidence: .www/evidence/2026-09-29-linear-recording-backfill",
+    "attachments": [],
+    "createdAt": "2026-09-28T22:12:11.268Z",
+    "updatedAt": "2026-09-28T22:12:11.134Z",
+    "parentId": null,
+    "resolvedAt": null,
+    "quotedText": null,
+    "author": {
+      "id": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "name": "우종호"
+    },
+    "onBehalfOf": null
+  },
+  "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-b786fa84-dba3-45d5-a3c7-d10250fb7efa",
+  "readBack": {
+    "exactBodyMatch": true,
+    "checkedAt": "2026-09-28T22:12:12.787Z"
+  },
+  "scope": "Historical local record recovery; not current implementation acceptance"
+}

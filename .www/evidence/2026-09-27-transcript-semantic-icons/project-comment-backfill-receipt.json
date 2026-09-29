@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.1",
+  "status": "published",
+  "surface": "linear-project-comment",
+  "candidateId": "ARTIFACT-CANDIDATE-RECORDING-BACKFILL-037",
+  "sourceCandidateId": "ARTIFACT-CANDIDATE-TRANSCRIPT-SEMANTIC-ICONS",
+  "sourceCandidatePath": ".www/evidence/2026-09-27-transcript-semantic-icons/project-comment-candidate.json",
+  "sourceCandidateDigest": "cdefe076455e6e93c0f3492fb7fafd11accd8cbeb3c9c2ac5eed7812f9dd0cfb",
+  "sourceFileSha256": "2cbce28c4876bbc31b2b170dd639542ef2266aa7f7b3738175ced794ad70bbce",
+  "candidateDigest": "6faca168a54ab6bc25a220167b3bf288507b6b63fc896d95f36d56a470f0a241",
+  "candidatePath": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/037.json",
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "expectedBefore": {
+    "latestCommentId": "5f355baa-2089-4879-accb-3792379c9dc7"
+  },
+  "comment": {
+    "id": "cf8578fc-a344-45c6-95f5-6480517eb16f",
+    "body": "## 변경\n\n- 과거 작업 기록 회수: Chat 실행 흐름의 Edit·Thought·Terminal 유형 표식 구현과 검증을 기록한다 (원문 Candidate: ARTIFACT-CANDIDATE-TRANSCRIPT-SEMANTIC-ICONS)\n- 당시 로컬 작업 기록: Chat transcript의 파일 변경, 공개 판단 요약, 명령 실행에 각각 ✎ Edit, ◉ Thought, ▣ Terminal 표식을 추가했다.\n- 당시 로컬 작업 기록: 실행 중이거나 펼친 명령 프레임의 Bash 제목을 ▣ Terminal로 바꾸고 완료된 접힌 명령에도 같은 유형 아이콘을 표시했다.\n- 당시 로컬 작업 기록: Thought는 공개 reasoningSummaryDraft만 표시하고 raw reasoningDraft는 계속 숨기는 회귀 계약을 고정했다.\n\n## 영향\n\n- 당시 기록된 영향: 사용자는 긴 실행 흐름에서 코드 변경, 판단 요약, 터미널 명령을 색상에 의존하지 않고 빠르게 구분할 수 있다.\n- 당시 기록된 영향: 기존 semantic diff, 명령 출력 접기, 실패 출력, 좁은 폭 제한과 비공개 reasoning 경계는 유지된다.\n- 미게시 로컬 기록을 Project Activity에서 추적할 수 있게 회수한다. 과거 진행·완료·차단 상태를 현재 구현 완료 또는 이슈 상태 변경으로 승격하지 않는다.\n\n## 분류\n\nImprovement · Validation\n\n## 검증\n\n- 2026-09-29 회수 검증: 원문 파일 SHA-256 2cbce28c4876bbc31b2b170dd639542ef2266aa7f7b3738175ced794ad70bbce; 연결 이슈의 현재 WWW 소속과 Project Activity 중복·latest identity를 확인했다.\n- 아래는 원문 Candidate에 남은 당시 검증 기록이다. 이번 회수에서 테스트·원격 실행·현재 제품 동작을 재검증한 결과가 아니다.\n- 당시 검증 기록: bun test test/work-step-card-highlight.test.ts test/www-ui.test.ts: 97 pass, 0 fail, 2491 expect.\n- 당시 검증 기록: bun run check: TypeScript 검사 통과.\n- 당시 검증 기록: woo-code-readability import normalization changed=0, 제품·테스트 표 정렬 misaligned=0.\n- 당시 검증 기록: 변경 파일의 TODO, test.skip, test.only 검색과 git diff --check가 통과했다.\n\n## 연결\n\n- 이번 기록에서 참조하는 기존 이슈: [WOO-679](https://linear.app/woo-world/issue/WOO-679/chat-대화실행결과를-읽기-좋은-하나의-흐름으로-보여준다) · [WOO-684](https://linear.app/woo-world/issue/WOO-684/chat-git-bash-입력출력상태를-읽기-좋게-표시한다)\n- 원문 Candidate: .www/evidence/2026-09-27-transcript-semantic-icons/project-comment-candidate.json\n- 원문 Source Revision: git:216b9d9faa09bcb19151f0f188792e8ce7113bf6:dirty\n- 원문 Candidate Digest: cdefe076455e6e93c0f3492fb7fafd11accd8cbeb3c9c2ac5eed7812f9dd0cfb\n- 원문 연결: Linear: WOO-679 · Chat 대화·실행·결과를 읽기 좋은 하나의 흐름으로 보여준다\n- 원문 연결: Linear: WOO-684 · Chat Git·Bash 입력·출력·상태를 읽기 좋게 표시한다\n- 원문 연결: Evidence: .www/evidence/2026-09-27-transcript-semantic-icons\n- 원문 연결: Branch: dev · HEAD 216b9d9faa09bcb19151f0f188792e8ce7113bf6 · uncommitted\n- 회수 Evidence: .www/evidence/2026-09-29-linear-recording-backfill",
+    "attachments": [],
+    "createdAt": "2026-09-28T22:08:11.308Z",
+    "updatedAt": "2026-09-28T22:08:11.238Z",
+    "parentId": null,
+    "resolvedAt": null,
+    "quotedText": null,
+    "author": {
+      "id": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "name": "우종호"
+    },
+    "onBehalfOf": null
+  },
+  "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-cf8578fc-a344-45c6-95f5-6480517eb16f",
+  "readBack": {
+    "exactBodyMatch": true,
+    "checkedAt": "2026-09-28T22:08:12.698Z"
+  },
+  "scope": "Historical local record recovery; not current implementation acceptance"
+}

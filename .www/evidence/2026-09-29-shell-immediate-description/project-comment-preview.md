@@ -1,0 +1,23 @@
+## 변경
+
+- 단일 cat/head/tail/sed/rg/git/jq 명령은 모델 호출 없이 한국어·영어 설명을 즉시 만든다. 복합 Shell 구문은 기존 모델 해석을 유지한다.
+- Chat의 설명 준비 중 문구를 제거하고 해석 전에도 실제 명령 카드를 표시한다. 실행 중인 해석에는 완료 체크 대신 점을 표시한다. ACTION 위치는 Chat 본문이다.
+
+## 영향
+
+- 단순 명령 설명은 직렬 LLM 큐의 대기를 피한다. Chat 전체 렌더 병목과 Codex 동등 성능은 아직 해결·실측하지 않았다.
+
+## 분류
+
+Improvement · Fix
+
+## 검증
+
+- TypeScript check 통과. import 정규화와 표 정렬 적용, git diff --check 통과. 변경 파일에 TODO/test.skip/test.only 없음.
+- 자동 행동 테스트와 실제 TUI 재시작·성능 실측은 실행하지 않았다.
+
+## 연결
+
+- Linear: WOO-913 (live read-back: World Wide Woo, parent WOO-674)
+- Source: plan-activity-narration.ts, workbench-note-narration.ts, www-execution.ts
+- Evidence: .www/evidence/2026-09-29-shell-immediate-description

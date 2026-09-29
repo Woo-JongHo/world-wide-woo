@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "1.0",
+  "candidateId": "ARTIFACT-CANDIDATE-PROVIDER-HUD-TWO-WINDOW-REPAIR-COMMENT",
+  "candidateDigest": "706f2e1fdfa9a3ca5c527aa7cd1b05b8f24fa271aeb9cad942342e30ee9fdb8a",
+  "publishedVia": "linear-woo MCP",
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "commentId": "82b109db-d6a0-447f-8ca3-da8d47901693",
+  "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-82b109db-d6a0-447f-8ca3-da8d47901693",
+  "expectedBefore": {
+    "latestCommentId": "0c24c70e-cfd1-476d-b0ba-2e2613b75063"
+  },
+  "readBack": {
+    "status": "pass",
+    "author": "우종호",
+    "authorId": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+    "createdAt": "2026-09-28T13:24:14.288Z",
+    "bodySha256": "aa53fde3e645ea469db449d64b8574e49787ef6954b9cbd32b2e0f02cf257ea5",
+    "renderedBodyMatches": true,
+    "projectActivityQueriedBy": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "status": "recorded",
+  "sourceCandidateId": "ARTIFACT-CANDIDATE-CHAT-PLAN-PROGRESS-HUD-COMMENT",
+  "projectCommentId": "56d87d12-35cf-473c-89d4-1f5d37387ff7",
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "recordedAt": "2026-09-28T22:08:48.777Z",
+  "receipt": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/043.json",
+  "scope": "historical-project-comment",
+  "newIssueCreated": false,
+  "obsidianWritten": false,
+  "reason": "User authorized recovering all unrecorded local work history to Linear; original assertions are attributed to the historical Candidate."
+}

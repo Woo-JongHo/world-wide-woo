@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-SLASH-COMMAND-INLINE-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty",
+  "intent": "슬래시 명령을 별도 팝업 대신 입력창에 표시하도록 바꾼 작업 기록",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "빈 WWW 입력란에서 / 키를 가로채 명령 찾기 팝업을 열던 처리를 제거했다.",
+      "기존 입력창 자동완성과 80x24 화면 흐름을 셸 테스트에서 확인했다."
+    ],
+    "impacts": [
+      "/ 명령이 Input란에 바로 입력되고 해당 위치에 명령 자동완성이 표시된다. Ctrl+P 명령 찾기는 유지된다."
+    ],
+    "categories": [
+      "improvement",
+      "verification"
+    ],
+    "verification": [
+      "bun test test/www-shell.test.ts: 8 pass, 0 fail, 225 expect.",
+      "git diff --check -- src/adapters/inbound/tui/shell/workbench-input-routing.ts test/www-shell.test.ts: 통과."
+    ],
+    "connections": [
+      "Primary Linear: WOO-674 · Workbench 대화와 계획을 읽고 입력과 상태를 통제한다 (로컬 read-back 기준)",
+      "Evidence: .www/evidence/2026-09-28-slash-command-inline",
+      "Code: src/adapters/inbound/tui/shell/workbench-input-routing.ts · test/www-shell.test.ts"
+    ]
+  },
+  "links": {
+    "workbenchIssue": "https://linear.app/woo-world/issue/WOO-674/workbench-대화와-계획을-읽고-입력과-상태를-통제한다",
+    "evidence": ".www/evidence/2026-09-28-slash-command-inline"
+  },
+  "expectedBefore": {
+    "latestCommentId": null
+  },
+  "validation": [
+    {
+      "id": "issue-binding",
+      "status": "pass",
+      "evidence": "기존 슬래시 명령 작업의 로컬 recording-decision이 WOO-674를 Workbench 입력 통제 책임 이슈로 묶었다."
+    },
+    {
+      "id": "live-duplicate-check",
+      "status": "not-run",
+      "evidence": "정본 linear-woo MCP가 이 세션에 노출되지 않아 현재 Project Activity와 이슈 상태를 재조회하지 못했다."
+    },
+    {
+      "id": "verification",
+      "status": "pass",
+      "evidence": "관련 셸 테스트 8개와 diff 형식 검사가 통과했다."
+    },
+    {
+      "id": "publication-boundary",
+      "status": "pass",
+      "evidence": "로컬 Candidate만 준비한다. 게시 전 현재 대상과 중복을 재조회하고 항목별 사용자 승인을 받는다."
+    }
+  ],
+  "candidateDigest": "53af36e3000c5ffc9e499402cf25ce85e11061435f2809ceb78cdc2554d807f9"
+}

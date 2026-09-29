@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.1",
+  "status": "published",
+  "surface": "linear-project-comment",
+  "candidateId": "ARTIFACT-CANDIDATE-RECORDING-BACKFILL-073",
+  "sourceCandidateId": "ARTIFACT-CANDIDATE-WWW-BOOTSTRAP-BAR",
+  "sourceCandidatePath": ".www/evidence/www-bootstrap-bar-2026-09-22/project-comment-candidate.json",
+  "sourceCandidateDigest": "19dcf0429c5e4b67967db3b864eb68a1727326894ddfa77d05cac335654f4f24",
+  "sourceFileSha256": "440eb4d7e2af0f7a330f8ff727211c43c1f906c1aacb0013a5648154f2f21edb",
+  "candidateDigest": "f7442b1627dcb8549360382419fc647c63b1b322b47300fe8d666a8c3f4138b4",
+  "candidatePath": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/073.json",
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "expectedBefore": {
+    "latestCommentId": "b786fa84-dba3-45d5-a3c7-d10250fb7efa"
+  },
+  "comment": {
+    "id": "a996f4a8-cd50-471b-9bbf-d0d77bdd31f3",
+    "body": "## 변경\n\n- 과거 작업 기록 회수: www 시작 문구를 비율 없는 움직이는 로딩바로 교체한 경과 (원문 Candidate: ARTIFACT-CANDIDATE-WWW-BOOTSTRAP-BAR)\n- 당시 로컬 작업 기록: src/cli.ts: astra 여는 중 문구를 www와 순환 로딩바로 교체했다.\n- 당시 로컬 작업 기록: 모듈 import 성공·실패 모두 finally에서 timer와 출력 행을 정리하고 TUI 실행 전 로딩바를 종료한다.\n- 당시 로컬 작업 기록: test/cli.test.ts: 초기 출력·프레임 변화·종료 후 출력 중단·비TTY 무출력을 검증한다.\n\n## 영향\n\n- 당시 기록된 영향: 측정되지 않은 진행률을 퍼센트로 만들지 않고 모듈 로딩 중임만 표시한다. Native 연결 전체 진행률을 뜻하지 않는다.\n- 미게시 로컬 기록을 Project Activity에서 추적할 수 있게 회수한다. 과거 진행·완료·차단 상태를 현재 구현 완료 또는 이슈 상태 변경으로 승격하지 않는다.\n\n## 분류\n\nImprovement · Validation\n\n## 검증\n\n- 2026-09-29 회수 검증: 원문 파일 SHA-256 440eb4d7e2af0f7a330f8ff727211c43c1f906c1aacb0013a5648154f2f21edb; 연결 이슈의 현재 WWW 소속과 Project Activity 중복·latest identity를 확인했다.\n- 아래는 원문 Candidate에 남은 당시 검증 기록이다. 이번 회수에서 테스트·원격 실행·현재 제품 동작을 재검증한 결과가 아니다.\n- 당시 검증 기록: bun test test/cli.test.ts: 17 pass, 0 fail, 64 assertions.\n- 당시 검증 기록: bun run check 및 git diff --check 통과. src/cli.ts·test/cli.test.ts에서 TODO·test.skip·test.only 없음.\n- 당시 검증 기록: 반복 등록행 콜론 24열·화살표 42열·구조분해 시작 82열·await 108열 유지 실측.\n- 당시 검증 기록: 실제 터미널 시작 화면 육안 확인과 독립 리뷰는 미실행.\n\n## 연결\n\n- 이번 기록에서 참조하는 기존 이슈: [WOO-913](https://linear.app/woo-world/issue/WOO-913/workbench-monitoring-figma-5화면의-계측-의미와-정보-구조를-일치시킨다)\n- 원문 Candidate: .www/evidence/www-bootstrap-bar-2026-09-22/project-comment-candidate.json\n- 원문 Source Revision: git:a953dc8aae13573f1c92772efe747008a31940a4:dirty\n- 원문 Candidate Digest: 19dcf0429c5e4b67967db3b864eb68a1727326894ddfa77d05cac335654f4f24\n- 원문 연결: WOO-913 · 기존 이슈 Receipt에 연결; 최신 원격 재조회 아님\n- 원문 연결: src/cli.ts\n- 원문 연결: test/cli.test.ts\n- 회수 Evidence: .www/evidence/2026-09-29-linear-recording-backfill",
+    "attachments": [],
+    "createdAt": "2026-09-28T22:12:15.227Z",
+    "updatedAt": "2026-09-28T22:12:15.198Z",
+    "parentId": null,
+    "resolvedAt": null,
+    "quotedText": null,
+    "author": {
+      "id": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "name": "우종호"
+    },
+    "onBehalfOf": null
+  },
+  "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-a996f4a8-cd50-471b-9bbf-d0d77bdd31f3",
+  "readBack": {
+    "exactBodyMatch": true,
+    "checkedAt": "2026-09-28T22:12:16.296Z"
+  },
+  "scope": "Historical local record recovery; not current implementation acceptance"
+}

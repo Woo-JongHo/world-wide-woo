@@ -1,0 +1,12 @@
+{
+  "status": "recorded",
+  "linearIssue": "WOO-915",
+  "projectCommentId": "307e121b-91fc-4d5e-8337-107b322f1772",
+  "newIssueRequired": false,
+  "obsidianRequired": false,
+  "reason": "기존 관측 상태 권위와 UI 캐시 계약을 보존하는 렌더 경로 수정이다. 새 WHY·도메인 계약은 없으며 실제 세션 수락은 미완료로 기록했다.",
+  "blockers": [
+    "Live Chat-arrival frame measurement remains unperformed",
+    "Claude independent review and Opus audit unavailable due authentication"
+  ]
+}

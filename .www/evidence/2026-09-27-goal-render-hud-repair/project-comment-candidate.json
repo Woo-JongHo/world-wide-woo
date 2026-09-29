@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-GOAL-RENDER-HUD-REPAIR-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:495f61c0f3d5e3c9c6d58340d315c06b4ad70cc0:dirty",
+  "intent": "WOO-700 Session Goal과 WOO-915 HUD Render p95의 실제 노출 복구를 기록한다",
+  "target": { "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db" },
+  "content": {
+    "changes": [
+      "요청 접수 직후 request objective를 provisional Session Goal로 투영하고 UNDERSTAND 완료 시 정제 결과로 교체한다.",
+      "queued follow-up이 provisional Goal을 포함한 현재 snapshot을 이어받게 했다.",
+      "HUD가 live layer performance의 관측된 Render p95를 표시하고 terminal-write 측정 직후 한 번만 후속 repaint한다.",
+      "WWW 저빈도 상태 시계를 120ms에서 1초로 낮춰 불필요한 전체 화면 깜빡임을 줄였다."
+    ],
+    "impacts": [
+      "활성 요청에서 GOAL이 비어 보이는 구간을 없애고 이후 이해 결과의 정제를 유지한다.",
+      "Render p95가 측정됐지만 다음 입력 전까지 HUD에 나타나지 않던 갱신 누락을 막는다.",
+      "빠른 Native activity 갱신은 유지하면서 정기적인 전체 repaint 빈도를 줄인다."
+    ],
+    "categories": ["fix", "improvement", "verification"],
+    "verification": [
+      "관련 Workbench·HUD·shell 회귀 166개가 통과했다.",
+      "bun run check와 git diff --check가 통과했다.",
+      "변경 TypeScript의 import normalization과 table alignment 검사가 통과했다.",
+      "실제 shell 특성 테스트에서 Render p95 문자열의 후속 repaint 노출을 확인했다.",
+      "Claude Sonnet·Opus 독립 감사는 CLI max-turn 제한으로 판정문을 회수하지 못해 미완료다."
+    ],
+    "connections": [
+      "Linear: WOO-700 · WOO-915",
+      "Evidence: .www/evidence/2026-09-27-goal-render-hud-repair",
+      "Prior evidence: .www/evidence/2026-09-27-stage-dashboard-completion · .www/evidence/2026-09-27-render-health-monitoring",
+      "Branch: dev · HEAD 495f61c0f3d5e3c9c6d58340d315c06b4ad70cc0 · uncommitted"
+    ]
+  },
+  "links": {
+    "goalIssue": "https://linear.app/woo-world/issue/WOO-700/01-내-입력에-대한-계획이-세워지는-과정을-세션-todo로-보여준다",
+    "renderIssue": "https://linear.app/woo-world/issue/WOO-915/11-긴-채팅-draft의-반복-렌더-지연을-제거한다",
+    "evidence": ".www/evidence/2026-09-27-goal-render-hud-repair"
+  },
+  "expectedBefore": { "latestCommentId": null },
+  "validation": [
+    { "id": "issue-binding", "status": "pass", "evidence": "기존 WOO-700과 WOO-915 Candidate·read-back 기록이 각각 Goal projection과 Render Health를 소유한다." },
+    { "id": "duplicate-decision", "status": "pass", "evidence": "두 기존 수락 계약의 실제 노출 결함 보정이므로 새 이슈를 만들지 않는다." },
+    { "id": "verification", "status": "pass", "evidence": "관련 회귀 166개, 타입·diff·가독성 검사를 통과했다." },
+    { "id": "review-boundary", "status": "pass", "evidence": "자동 검증은 통과했으나 독립 provider 감사 미회수 사실을 검증 항목에 명시했다." },
+    { "id": "publication-boundary", "status": "pass", "evidence": "게시 직전 최신 Activity를 재조회해야 하며 지금은 Candidate만 준비한다." }
+  ],
+  "candidateDigest": "b47db9726af7c4ee60d61338cf30eb35ed22f236c7ab3dc3bba946aac0c10878"
+}

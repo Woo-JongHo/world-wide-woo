@@ -38,7 +38,7 @@
     "evidence": ".www/evidence/2026-09-24-version-0.0.19"
   },
   "expectedBefore": {
-    "latestCommentId": "1196a23e-1f9f-4bff-b6c8-83f5a1a4e5ab"
+    "latestCommentId": "881b64cd"
   },
   "validation": [
     {
@@ -59,8 +59,8 @@
     {
       "id": "remote-freshness",
       "status": "pass",
-      "evidence": "2026-09-25 게시 전 재조회에서 WOO-912가 In Progress로 유지되고, World Wide Woo Project Activity 최신 Comment가 1196a23e-1f9f-4bff-b6c8-83f5a1a4e5ab, 최신 Project Update가 0.0.18(864ec8bd-eff1-47fe-81fb-4062b1f06681)임을 확인했다. 동일 0.0.19 Comment는 아직 없다."
+      "evidence": "2026-09-27 Linear 앱 재조회에서 WOO-912가 In Progress로 유지되고, 최신 Comment의 UI identity가 881b64cd, 최신 Project Update가 0.0.18(864ec8bd-eff1-47fe-81fb-4062b1f06681)임을 확인했다. 동일 0.0.19 Comment는 아직 없다."
     }
   ],
-  "candidateDigest": "66d72d303069ec18da968f8174ee18e47b7ca79f0b46f8b862a8b8ea3c3bbb11"
+  "candidateDigest": "3015da6c40a7fa5b7405fb7b6239b028db6ab3645ba0c3a18917e8c77cfe7e06"
 }

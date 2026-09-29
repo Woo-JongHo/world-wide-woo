@@ -1,0 +1,12 @@
+{
+  "status": "recorded",
+  "sourceCandidateId": "ARTIFACT-CANDIDATE-GOAL-GRADIENT-BUILD-COMMENT",
+  "projectCommentId": "305138a9-6b24-4150-90ef-6afa1a99ba5a",
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "recordedAt": "2026-09-28T22:09:36.752Z",
+  "receipt": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/055.json",
+  "scope": "historical-project-comment",
+  "newIssueCreated": false,
+  "obsidianWritten": false,
+  "reason": "User authorized recovering all unrecorded local work history to Linear; original assertions are attributed to the historical Candidate."
+}

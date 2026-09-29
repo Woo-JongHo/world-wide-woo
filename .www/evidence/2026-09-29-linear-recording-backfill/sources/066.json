@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-TOOL-SUMMARY-KOREAN-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty",
+  "intent": "Chat 도구 요약 줄의 원시 명령과 영어 내용을 숨기고 한국어로 표시한 수정 기록",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "Chat 도구 요약 줄에서 원시 명령을 제거하고 한국어 설명 하나만 표시했다.",
+      "파일 목록 조회는 검색으로 오인하지 않고 '파일 목록 확인'으로 표시하며 성공 문구에 초록색 계열을 적용했다."
+    ],
+    "impacts": [
+      "도구 작업의 의미를 한국어 한 줄로 읽을 수 있다."
+    ],
+    "categories": [
+      "improvement",
+      "verification"
+    ],
+    "verification": [
+      "bun test test/www-ui.test.ts: 91 pass, 0 fail.",
+      "bun test test/www-ui.test.ts --test-name-pattern 'shows a file listing': 1 pass, 0 fail; 녹색 ANSI 렌더 검증.",
+      "bun run check: 통과.",
+      "git diff --check -- src/adapters/inbound/tui/features/chat/view/www-execution.ts test/www-ui.test.ts: 통과."
+    ],
+    "connections": [
+      "Primary Linear: WOO-700 (로컬 read-back 기준)",
+      "Evidence: .www/evidence/2026-09-28-tool-summary-korean",
+      "Code: src/adapters/inbound/tui/features/chat/view/www-execution.ts · test/www-ui.test.ts"
+    ]
+  },
+  "links": {
+    "evidence": ".www/evidence/2026-09-28-tool-summary-korean"
+  },
+  "expectedBefore": {
+    "latestCommentId": null
+  },
+  "validation": [
+    {
+      "id": "issue-binding",
+      "status": "pass",
+      "evidence": "보존된 Chat 도구 요약 작업의 recording-decision이 WOO-700을 주 이슈로 묶었다."
+    },
+    {
+      "id": "live-duplicate-check",
+      "status": "not-run",
+      "evidence": "정본 linear-woo MCP가 세션에 노출되지 않아 현재 Project Activity와 이슈 상태를 재조회하지 못했다."
+    },
+    {
+      "id": "verification",
+      "status": "pass",
+      "evidence": "UI 테스트 91개, 타입 검사, diff 형식 검사가 통과했다."
+    },
+    {
+      "id": "publication-boundary",
+      "status": "pass",
+      "evidence": "로컬 Candidate만 준비한다. 게시 전 현재 대상과 중복을 재조회하고 항목별 사용자 승인을 받는다."
+    }
+  ],
+  "candidateDigest": "bdd9069c382f3e1fa0e05918200a0948ebda9d15d812eb535bb9d97fec9c56cb"
+}

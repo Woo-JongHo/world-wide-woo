@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.0",
+  "recordedAt": "2026-09-27T22:55:02+09:00",
+  "sourceRevision": "git:495f61c0f3d5e3c9c6d58340d315c06b4ad70cc0:dirty",
+  "decision": "record-project-activity",
+  "linear": {
+    "primary": {
+      "id": "WOO-674",
+      "uuid": "4674a1dc-ba01-4007-9803-3346a1f83dcc",
+      "reason": "네 화면을 관통하는 Workbench 상태·관측·전용 화면 책임 경계를 소유한다."
+    },
+    "related": [
+      "WOO-680",
+      "WOO-675",
+      "WOO-714",
+      "WOO-712"
+    ],
+    "newIssueCandidate": null,
+    "duplicateReason": "Chat layout, Monitor, 현재 세션 Usage, 여러 세션 Trend의 기존 수락 단위가 각각 존재해 새 통합 이슈를 만들면 책임을 중복한다."
+  },
+  "obsidian": {
+    "candidateRequired": false,
+    "reason": "이번 산출물은 Figma 검토 전 진단과 제안이며 채택된 WHY·불변식·데이터 schema가 아니다. Figma 결과와 telemetry 계약이 승인되면 WOO-674·675·680·712·714의 기존 상세 정본을 capability별로 개정한다."
+  },
+  "artifacts": [
+    "docs/design/WWW_OBSERVABILITY_VIEW_DESIGN_DIAGNOSIS_2026-09-27.md",
+    "docs/design/WWW_FIGMA_OBSERVABILITY_PROMPT_2026-09-27.md",
+    "docs/design/prompts/WWW_FIGMA_CHAT_PROMPT.md",
+    "docs/design/prompts/WWW_FIGMA_USAGE_PROMPT.md",
+    "docs/design/prompts/WWW_FIGMA_CONTEXT_PROMPT.md",
+    "docs/design/prompts/WWW_FIGMA_MONITOR_PROMPT.md"
+  ],
+  "publication": {
+    "status": "not-requested",
+    "reason": "Project Comment Candidate만 준비하며 사용자 항목별 승인 전 Linear에 쓰지 않는다."
+  }
+}

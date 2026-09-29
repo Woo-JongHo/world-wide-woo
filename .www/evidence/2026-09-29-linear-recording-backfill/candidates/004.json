@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-RECORDING-BACKFILL-004",
+  "kind": "linear-project-comment",
+  "sourceRevision": "evidence-sha256:89cafd64dd9d2f9c64efb464642f8f193e44b5c9e9fef833c9cd4fcac3bba0c3",
+  "intent": "과거 작업 기록 회수: Workbench 시각·입력·구독 표시 개선과 병합 전 검증 경과를 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "과거 작업 기록 회수: Workbench 시각·입력·구독 표시 개선과 병합 전 검증 경과를 기록한다 (원문 Candidate: ARTIFACT-CANDIDATE-WORKBENCH-VISUAL-POLISH-COMMENT)",
+      "당시 로컬 작업 기록: Workbench의 모드·모델·계획·Tracer·구독 잔여 표기를 WOO-912 요구에 맞춰 정리했다.",
+      "당시 로컬 작업 기록: HUD를 런타임 상태와 구독 잔여 행으로 분리하고 좁은 폭에서는 provider 정보를 여러 행에 안전하게 배치했다.",
+      "당시 로컬 작업 기록: 동시 작업 중 유입된 truecolor 팔레트와 다중 행 HUD에 맞춰 흰색 RGB·Kitty provider 로고 회귀 테스트를 실제 production layout 계약으로 갱신했다.",
+      "당시 로컬 작업 기록: 입력 전달의 queue·steer 선택, T-note 표시 한계, 화면·테마·모델 이름 표기를 관련 Core·Adapter·TUI 테스트와 함께 연결했다."
+    ],
+    "impacts": [
+      "당시 기록된 영향: 좁은 터미널에서도 런타임 상태와 provider 사용량을 누락하지 않고 표시한다.",
+      "당시 기록된 영향: 팔레트의 색상 의미를 ANSI 인코딩 종류와 분리하고, Kitty 로고 배치를 실제 HUD 높이 계약으로 검증한다.",
+      "당시 기록된 영향: 병합 후보는 CLI 가독성 작업과 분리되어 Workbench UI 변경만 독립적으로 되돌릴 수 있다.",
+      "미게시 로컬 기록을 Project Activity에서 추적할 수 있게 회수한다. 과거 진행·완료·차단 상태를 현재 구현 완료 또는 이슈 상태 변경으로 승격하지 않는다."
+    ],
+    "categories": [
+      "improvement",
+      "fix",
+      "verification"
+    ],
+    "verification": [
+      "2026-09-29 회수 검증: 원문 파일 SHA-256 89cafd64dd9d2f9c64efb464642f8f193e44b5c9e9fef833c9cd4fcac3bba0c3; 연결 이슈의 현재 WWW 소속과 Project Activity 중복·latest identity를 확인했다.",
+      "아래는 원문 Candidate에 남은 당시 검증 기록이다. 이번 회수에서 테스트·원격 실행·현재 제품 동작을 재검증한 결과가 아니다.",
+      "당시 검증 기록: bun run check 통과",
+      "당시 검증 기록: bun test: 1303 pass, 0 fail, 16743 assertions",
+      "당시 검증 기록: test/entry-dashboard-view.test.ts와 test/astra-provider-logos.test.ts: 9 pass, 0 fail",
+      "당시 검증 기록: git diff --check 통과",
+      "당시 검증 기록: commit-control이 승인 뒤 동시 변경된 content digest를 차단했으며 최신 후보로 다시 fingerprint·검증했다."
+    ],
+    "connections": [
+      "이번 기록에서 참조하는 기존 이슈: [WOO-674](https://linear.app/woo-world/issue/WOO-674/workbench-대화와-계획을-읽고-입력과-상태를-통제한다) · [WOO-912](https://linear.app/woo-world/issue/WOO-912/workbench-ui-모드모델계획구독-잔여-표기를-정리한다)",
+      "원문 Candidate: .www/evidence/2026-09-21-workbench-visual-polish/project-comment-candidate.json",
+      "원문 Source Revision: git:ce7731454c09c4ca5df4413f9f223be3eaea960c:dirty",
+      "원문 Candidate Digest: eda5439aa110bee913024ff756bfa46dde77ae4c49f75198ee95603b5342f173",
+      "원문 연결: Linear: WOO-912",
+      "원문 연결: Linear parent: WOO-674",
+      "원문 연결: Git branch: ui/workbench-visual-polish",
+      "원문 연결: Evidence: .www/evidence/2026-09-21-workbench-visual-polish",
+      "원문 연결: Docs: docs/research/2026-09-21-cli-hud-tui-comparison.md",
+      "회수 Evidence: .www/evidence/2026-09-29-linear-recording-backfill"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-674/workbench-대화와-계획을-읽고-입력과-상태를-통제한다",
+    "evidence": ".www/evidence/2026-09-21-workbench-visual-polish",
+    "sourceCandidate": ".www/evidence/2026-09-21-workbench-visual-polish/project-comment-candidate.json",
+    "receipt": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/004.json"
+  },
+  "expectedBefore": {
+    "latestCommentId": "2a575e38-5da6-4b94-a743-cacb7f06c8bb"
+  },
+  "validation": [
+    {
+      "id": "source-evidence",
+      "status": "pass",
+      "evidence": "Read original Candidate ARTIFACT-CANDIDATE-WORKBENCH-VISUAL-POLISH-COMMENT; SHA-256 89cafd64dd9d2f9c64efb464642f8f193e44b5c9e9fef833c9cd4fcac3bba0c3; historical assertions are attributed to the source."
+    },
+    {
+      "id": "live-issue-binding",
+      "status": "pass",
+      "evidence": "Existing WWW issues verified: WOO-674, WOO-912; no issue creation or state mutation."
+    },
+    {
+      "id": "live-activity-before",
+      "status": "pass",
+      "evidence": "Project Activity source/evidence duplicate check and latest ID 2a575e38-5da6-4b94-a743-cacb7f06c8bb performed immediately before preparation."
+    }
+  ],
+  "candidateDigest": "8ef4f6c2500317565c11f386abb3da306d6f5c58da521d8adeec9aeaa51ee8e8"
+}

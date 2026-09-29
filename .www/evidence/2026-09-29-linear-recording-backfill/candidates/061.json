@@ -1,0 +1,69 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-RECORDING-BACKFILL-061",
+  "kind": "linear-project-comment",
+  "sourceRevision": "evidence-sha256:d31de5ed5615294a6f69ab51246b806230b6dc6ac27ee94e461d577febe61e84",
+  "intent": "과거 작업 기록 회수: WWW의 한국어·영어 출력 선택 기능과 검증 상태를 Project Activity에 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "과거 작업 기록 회수: WWW의 한국어·영어 출력 선택 기능과 검증 상태를 Project Activity에 기록한다 (원문 Candidate: ARTIFACT-CANDIDATE-WWW-OUTPUT-LANGUAGE-COMMENT)",
+      "당시 로컬 작업 기록: 상단 KOREA/ENGLISH 표시와 F8·/language ko|en 전환을 추가하고 선택을 Git에서 제외된 런타임 환경설정에 저장했다.",
+      "당시 로컬 작업 기록: 새 Native 턴의 공개 응답 지침, 명령 행동 AI 요약, Note 본문과 주요 Chat·PLAN·PROGRESS·TEST·Monitor 고정 문구가 선택 언어를 따르도록 연결했다.",
+      "당시 로컬 작업 기록: 원본 명령·대화·활동 기록은 덮어쓰지 않고, 빠른 전환에서도 마지막 선택이 저장되도록 직렬화했다."
+    ],
+    "impacts": [
+      "당시 기록된 영향: 사용자는 작업 중 출력 언어를 바꾸고 다음 턴과 새 요약을 선택한 언어로 읽을 수 있다.",
+      "미게시 로컬 기록을 Project Activity에서 추적할 수 있게 회수한다. 과거 진행·완료·차단 상태를 현재 구현 완료 또는 이슈 상태 변경으로 승격하지 않는다."
+    ],
+    "categories": [
+      "feature",
+      "verification"
+    ],
+    "verification": [
+      "2026-09-29 회수 검증: 원문 파일 SHA-256 d31de5ed5615294a6f69ab51246b806230b6dc6ac27ee94e461d577febe61e84; 연결 이슈의 현재 WWW 소속과 Project Activity 중복·latest identity를 확인했다.",
+      "아래는 원문 Candidate에 남은 당시 검증 기록이다. 이번 회수에서 테스트·원격 실행·현재 제품 동작을 재검증한 결과가 아니다.",
+      "당시 검증 기록: 관련 13개 테스트 파일 204 pass, 0 fail. bun run check, bun run build, git diff --check 통과.",
+      "당시 검증 기록: 전체 회귀 1628 pass, 6 fail. 남은 실패는 설치된 가독성 스킬 경로 2건, Linear 대시보드 1건, Dashboard 표시 3건이다."
+    ],
+    "connections": [
+      "이번 기록에서 참조하는 기존 이슈: [WOO-689](https://linear.app/woo-world/issue/WOO-689/04-긴-결과를-안정적으로-탐색한다)",
+      "원문 Candidate: .www/evidence/2026-09-28-output-language-selection/project-comment-candidate.json",
+      "원문 Source Revision: worktree:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty",
+      "원문 Candidate Digest: 988d4ee82e3f98d47c0dd76e995c446c3c3486bfdc22be524b4d3f6e65308455",
+      "원문 연결: Linear: WOO-689는 로컬 Chat pilot의 다국어 수락 조건에 등장한다. 정본 linear-woo 원격 read-back은 미실행.",
+      "원문 연결: Code: src/core/domain/execution/output-language.ts, src/core/application/orchestration/output-language-controller.ts, src/adapters/outbound/workspace/output-language-preference.ts",
+      "원문 연결: Evidence: .www/evidence/2026-09-28-output-language-selection",
+      "회수 Evidence: .www/evidence/2026-09-29-linear-recording-backfill"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-689/04-긴-결과를-안정적으로-탐색한다",
+    "evidence": ".www/evidence/2026-09-28-output-language-selection",
+    "sourceCandidate": ".www/evidence/2026-09-28-output-language-selection/project-comment-candidate.json",
+    "receipt": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/061.json"
+  },
+  "expectedBefore": {
+    "latestCommentId": "802a44a1-21e6-4e5d-9a10-3146e6eb5521"
+  },
+  "validation": [
+    {
+      "id": "source-evidence",
+      "status": "pass",
+      "evidence": "Read original Candidate ARTIFACT-CANDIDATE-WWW-OUTPUT-LANGUAGE-COMMENT; SHA-256 d31de5ed5615294a6f69ab51246b806230b6dc6ac27ee94e461d577febe61e84; historical assertions are attributed to the source."
+    },
+    {
+      "id": "live-issue-binding",
+      "status": "pass",
+      "evidence": "Existing WWW issues verified: WOO-689; no issue creation or state mutation."
+    },
+    {
+      "id": "live-activity-before",
+      "status": "pass",
+      "evidence": "Project Activity source/evidence duplicate check and latest ID 802a44a1-21e6-4e5d-9a10-3146e6eb5521 performed immediately before preparation."
+    }
+  ],
+  "candidateDigest": "0f4be37d68481b327b9b367b97c77a3f155aa9a33e184ba4b28167d1da3b2799"
+}

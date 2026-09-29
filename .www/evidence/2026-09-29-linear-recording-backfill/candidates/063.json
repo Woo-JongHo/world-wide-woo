@@ -1,0 +1,68 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-RECORDING-BACKFILL-063",
+  "kind": "linear-project-comment",
+  "sourceRevision": "evidence-sha256:74bcafe2c84f8417b7c5527ed5791b75eed084561ac0ccf025000f1be9201928",
+  "intent": "과거 작업 기록 회수: 슬래시 명령을 별도 팝업 대신 입력창에 표시하도록 바꾼 작업 기록",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "과거 작업 기록 회수: 슬래시 명령을 별도 팝업 대신 입력창에 표시하도록 바꾼 작업 기록 (원문 Candidate: ARTIFACT-CANDIDATE-SLASH-COMMAND-INLINE-COMMENT)",
+      "당시 로컬 작업 기록: 빈 WWW 입력란에서 / 키를 가로채 명령 찾기 팝업을 열던 처리를 제거했다.",
+      "당시 로컬 작업 기록: 기존 입력창 자동완성과 80x24 화면 흐름을 셸 테스트에서 확인했다."
+    ],
+    "impacts": [
+      "당시 기록된 영향: / 명령이 Input란에 바로 입력되고 해당 위치에 명령 자동완성이 표시된다. Ctrl+P 명령 찾기는 유지된다.",
+      "미게시 로컬 기록을 Project Activity에서 추적할 수 있게 회수한다. 과거 진행·완료·차단 상태를 현재 구현 완료 또는 이슈 상태 변경으로 승격하지 않는다."
+    ],
+    "categories": [
+      "improvement",
+      "verification"
+    ],
+    "verification": [
+      "2026-09-29 회수 검증: 원문 파일 SHA-256 74bcafe2c84f8417b7c5527ed5791b75eed084561ac0ccf025000f1be9201928; 연결 이슈의 현재 WWW 소속과 Project Activity 중복·latest identity를 확인했다.",
+      "아래는 원문 Candidate에 남은 당시 검증 기록이다. 이번 회수에서 테스트·원격 실행·현재 제품 동작을 재검증한 결과가 아니다.",
+      "당시 검증 기록: bun test test/www-shell.test.ts: 8 pass, 0 fail, 225 expect.",
+      "당시 검증 기록: git diff --check -- src/adapters/inbound/tui/shell/workbench-input-routing.ts test/www-shell.test.ts: 통과."
+    ],
+    "connections": [
+      "이번 기록에서 참조하는 기존 이슈: [WOO-674](https://linear.app/woo-world/issue/WOO-674/workbench-대화와-계획을-읽고-입력과-상태를-통제한다)",
+      "원문 Candidate: .www/evidence/2026-09-28-slash-command-inline/project-comment-candidate.json",
+      "원문 Source Revision: git:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty",
+      "원문 Candidate Digest: 53af36e3000c5ffc9e499402cf25ce85e11061435f2809ceb78cdc2554d807f9",
+      "원문 연결: Primary Linear: WOO-674 · Workbench 대화와 계획을 읽고 입력과 상태를 통제한다 (로컬 read-back 기준)",
+      "원문 연결: Evidence: .www/evidence/2026-09-28-slash-command-inline",
+      "원문 연결: Code: src/adapters/inbound/tui/shell/workbench-input-routing.ts · test/www-shell.test.ts",
+      "회수 Evidence: .www/evidence/2026-09-29-linear-recording-backfill"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-674/workbench-대화와-계획을-읽고-입력과-상태를-통제한다",
+    "evidence": ".www/evidence/2026-09-28-slash-command-inline",
+    "sourceCandidate": ".www/evidence/2026-09-28-slash-command-inline/project-comment-candidate.json",
+    "receipt": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/063.json"
+  },
+  "expectedBefore": {
+    "latestCommentId": "d3e69866-159d-4688-9916-87641e1f87bc"
+  },
+  "validation": [
+    {
+      "id": "source-evidence",
+      "status": "pass",
+      "evidence": "Read original Candidate ARTIFACT-CANDIDATE-SLASH-COMMAND-INLINE-COMMENT; SHA-256 74bcafe2c84f8417b7c5527ed5791b75eed084561ac0ccf025000f1be9201928; historical assertions are attributed to the source."
+    },
+    {
+      "id": "live-issue-binding",
+      "status": "pass",
+      "evidence": "Existing WWW issues verified: WOO-674; no issue creation or state mutation."
+    },
+    {
+      "id": "live-activity-before",
+      "status": "pass",
+      "evidence": "Project Activity source/evidence duplicate check and latest ID d3e69866-159d-4688-9916-87641e1f87bc performed immediately before preparation."
+    }
+  ],
+  "candidateDigest": "1b6bc6b6744388a0e462860357b605449afb906478bffcad4e924b87227b6d66"
+}

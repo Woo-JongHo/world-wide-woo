@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-READABILITY-IMPORT-COLUMNS",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:868ce9bb15231d47650cb67f2704b2ce8507f313+remaining-product-dirty",
+  "intent": "WOO-911의 import 선언과 표형 열 정렬 후속 적용 및 독립 감사 결과를 기록한다",
+  "target": { "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db" },
+  "content": {
+    "changes": [
+      "단일 named import는 항상 한 줄, 다중 import는 표시 폭 120 이하만 한 줄, 긴 import는 } from을 같은 행에 두도록 정규화기를 수정하고 484개 TypeScript에 적용했다.",
+      "연속 한 줄 import의 from 열과 선언 표의 콜론·종결 세미콜론을 맞췄다.",
+      "AST-safe 표 정렬기와 주석·attributes·CRLF·혼합 종결자 fail-close 회귀 테스트를 추가했다.",
+      "Opus가 발견한 초기 출력의 누락 세미콜론 265개를 복구했다.",
+      "제품 인터페이스 20개 파일의 압축 멤버를 한 행씩 풀고, 기존 연속 선언의 = 경계를 120열 이하 표에 적용했다."
+    ],
+    "impacts": [
+      "단일 import가 불필요하게 여러 줄로 내려가거나 from이 별도 행으로 밀리는 선언 불일치를 제거했다.",
+      "조건식·for 헤더·실행 블록은 제외하고 같은 역할의 안전한 표만 정렬한다."
+    ],
+    "categories": ["refactor", "fix", "verification"],
+    "verification": [
+      "Import 전수 검사: 484 files, changed 0, errors 0; 세미콜론 없는 named from-import 0건.",
+      "Readability 도구: 23 pass, 0 fail, 121 assertions; 압축 인터페이스 게이트와 = 경계 fixture 통과.",
+      "TypeScript noEmit, architecture 13/13, git diff --check 통과.",
+      "전체 회귀: 1487 pass, 0 fail, 19251 assertions, 173 files.",
+      "Claude Opus 재감사: 코드 항목 1–4 confirmed."
+    ],
+    "connections": [
+      "Linear: WOO-911 · UUID b00b02eb-2d80-4b10-9c9a-a29db4f1a74d",
+      "Report: docs/audit/2026-09-24-readability-import-columns.md",
+      "Evidence: .www/evidence/2026-09-24-readability-import-columns",
+      "Commit: 868ce9bb15231d47650cb67f2704b2ce8507f313 · Readability 도구 8개 경로 · origin/dev push 확인",
+      "Branch: dev · 제품 코드 전체 적용분은 다른 기능 변경과 겹쳐 아직 uncommitted"
+    ]
+  },
+  "links": {
+    "issue": "https://linear.app/woo-world/issue/WOO-911/코드-실행-흐름을-역할별-최소-구조와-측정-가능한-열로-정리한다",
+    "candidateEvidence": ".www/evidence/2026-09-24-readability-import-columns"
+  },
+  "expectedBefore": { "latestCommentId": "30f00db1-c05a-4d67-a730-a03f589c46e9" },
+  "validation": [
+    { "id": "issue-binding", "status": "pass", "evidence": "기존 WOO-911의 선언 통일성과 측정 가능한 열 범위에 결속했다." },
+    { "id": "local-verification", "status": "pass", "evidence": "484개 import 고정점, 타입, 아키텍처, 전체 1487개 테스트와 Opus 감사를 통과했다." },
+    { "id": "canonical-decision", "status": "pass", "evidence": "기존 Readability 방법 계약 보완이므로 Obsidian Candidate는 필요하지 않다." }
+  ],
+  "candidateDigest": "0a1a6bb77c8dde9b63400bc3253e6b175e61b3365e921c82291c57cc91d291e1"
+}

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0",
+  "sourceRevision": "git:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty",
+  "linear": {
+    "primary": "WOO-674",
+    "related": [
+      "WOO-675",
+      "WOO-680"
+    ],
+    "newIssueCandidate": null,
+    "reason": "기존 WOO-674 관측 경계와 WOO-675 Monitor 책임에 결속한다. 현재 Linear read-back은 도구 부재로 미실행."
+  },
+  "obsidian": {
+    "candidateRequired": true,
+    "status": "draft",
+    "reason": "실시간과 기록 Monitor의 선택·격리·시간 계약을 개정했다."
+  },
+  "publication": {
+    "status": "not-published",
+    "reason": "linear-woo와 Obsidian Vault 도구가 현재 세션에 없고 항목별 외부 게시 승인도 없다."
+  }
+}

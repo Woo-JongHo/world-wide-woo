@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-FIGMA-CHAT-INPUT-HUD-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty",
+  "intent": "Figma Chat 화면의 composer와 sidebar 정렬을 구현하고 HUD Render 표시 범위를 교정한 결과를 기록한다",
+  "target": { "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db" },
+  "content": {
+    "changes": [
+      "Chat composer가 sidebar와 같은 visibility 조건을 사용해 sidebar가 보일 때 38열 줄어들도록 조립했다.",
+      "HUD의 provider quota·context·cache·runtime 구조는 유지하고 Render p95 조각만 제거했다.",
+      "제품 경로의 18행 threshold, workbench 외 비활성 gate, sidebar toggle 복원을 회귀 테스트로 고정했다."
+    ],
+    "impacts": [
+      "입력창이 우측 관측 sidebar 아래로 침범하지 않고 Figma의 좌측 작업영역 폭에 맞는다.",
+      "Render Health 측정은 Monitor에 남되 하단 HUD의 상시 표시에서는 제외된다."
+    ],
+    "categories": ["improvement", "fix", "verification"],
+    "verification": [
+      "Figma node 142:5의 고해상도 design context와 1536×960 screenshot을 대조했다.",
+      "관련 UI·shell·HUD·architecture 회귀 166개와 6681개 assertion이 통과했다.",
+      "tsc --noEmit과 git diff --check가 통과했고 skip·only·TODO 표식이 발견되지 않았다.",
+      "독립 Claude Sonnet 5 리뷰의 threshold·gate 테스트 지적을 반영해 재검증했다.",
+      "프로젝트 가독성 스킬 경로는 파일이 없어 전용 스크립트를 실행하지 못했다."
+    ],
+    "connections": [
+      "Primary Linear: WOO-680 · Layout",
+      "Related Linear: WOO-915 · Render Health monitoring",
+      "Figma: Q7kGUdqiaQRJI8CZlPMRX7 · node 142:3890 / implementation reference 142:5",
+      "Evidence: .www/evidence/2026-09-28-figma-chat-input-hud",
+      "Review: .www/scratchpad/2026-09-28-figma-chat-layout-review.md"
+    ]
+  },
+  "links": {
+    "layoutIssue": "https://linear.app/woo-world/issue/WOO-680/layout-화면-크기가-달라져도-읽던-위치와-입력-흐름을-유지한다",
+    "renderIssue": "https://linear.app/woo-world/issue/WOO-915/11-긴-채팅-draft의-반복-렌더-지연을-제거한다",
+    "figma": "https://www.figma.com/design/Q7kGUdqiaQRJI8CZlPMRX7/제목-없음?node-id=142-3890&m=dev",
+    "evidence": ".www/evidence/2026-09-28-figma-chat-input-hud"
+  },
+  "expectedBefore": { "latestCommentId": null },
+  "validation": [
+    { "id": "issue-binding", "status": "pass", "evidence": "WOO-680은 viewport·입력 흐름 Layout을, WOO-915는 Render Health 표시를 소유한다." },
+    { "id": "duplicate-decision", "status": "pass", "evidence": "두 기존 이슈의 수락 보정이므로 새 이슈를 만들지 않는다." },
+    { "id": "verification", "status": "pass", "evidence": "166개 관련 회귀, 타입·아키텍처·diff 검사와 독립 리뷰 후 재검증을 확인했다." },
+    { "id": "publication-boundary", "status": "pass", "evidence": "사용자 승인 전 외부 게시와 read-back을 수행하지 않는다." }
+  ],
+  "candidateDigest": "6c3bd20ca8fb16ff3f2e8d1587721679d39fa0829b25229c962cdc6145c92449"
+}

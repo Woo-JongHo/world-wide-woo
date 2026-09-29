@@ -1,0 +1,21 @@
+{
+  "scope": "Chat PLAN·PROGRESS rail and 7-stage HUD",
+  "issue": {
+    "decision": "기존 WOO-700에 결속하고 새 이슈 Candidate는 만들지 않는다.",
+    "primary": "WOO-700",
+    "related": "WOO-680",
+    "evidence": "로컬 WOO-700 상세 정본 후보가 STAGE·PLAN·PROGRESS를 소유하고, WOO-680은 composer와 폭 배치를 소유한다. 최신 Linear read-back은 미실행이다."
+  },
+  "projectComment": {
+    "candidate": "project-comment-candidate.json",
+    "digest": "78a540cf6ae87a3fde0af85f3c9ba90ad2960983327f954702c36f2dd9acf810",
+    "state": "local-validated; remote-duplicate-check-pending"
+  },
+  "obsidian": {
+    "decision": "사용자 정정에 따라 idle에서도 PLAN·PROGRESS를 유지하는 계약으로 기존 WOO-700 정본 개정 Candidate를 갱신한다.",
+    "candidate": "obsidian-canonical-candidate.json",
+    "digest": "da233d2f0069e43edfa577fe331717768e5bed68cd30fd8cfa0b0daa688799fc",
+    "state": "local-validated; current-vault-bytes-and-independent-review-pending"
+  },
+  "publication": "Linear 정본 서버 linear-woo가 현재 세션에 노출되지 않아 최신 Project Activity·이슈를 재조회하지 못했다. 사용자 항목별 승인, 실제 대상 read-back, 중복 검사 전에는 외부 게시하지 않는다."
+}

@@ -1,0 +1,23 @@
+{
+  "recordedAt": "2026-09-27T19:16:01+09:00",
+  "changedFiles": [
+    "docs/planning/WES_RECORDING_ORCHESTRATION_DESIGN_2026-09-27.md"
+  ],
+  "issueBinding": {
+    "id": null,
+    "decision": "Development Map의 EP-004 WES Context는 Linear 미연결이다. 원격 connector 재인증 전에는 중복·부모·milestone을 확정하지 않고 신규 이슈 Candidate를 position_unverified로 준비한다.",
+    "candidate": ".www/evidence/2026-09-27-wes-recording-orchestration/linear-issue-candidate.json"
+  },
+  "projectActivity": {
+    "candidate": ".www/evidence/2026-09-27-wes-recording-orchestration/project-comment-candidate.json",
+    "state": "prepared-not-published",
+    "publicationGuard": "게시 직전 Project Activity와 candidate target을 재조회하고 항목별 사용자 승인을 받아야 한다"
+  },
+  "obsidian": {
+    "required": true,
+    "reason": "WES의 역할, 기록 표면 소유권, 상태 전이와 게시 성공 조건이 새 장기 계약이다.",
+    "candidate": ".www/evidence/2026-09-27-wes-recording-orchestration/obsidian-canonical-candidate.json",
+    "identity": "position_unverified"
+  },
+  "externalWrites": "none"
+}

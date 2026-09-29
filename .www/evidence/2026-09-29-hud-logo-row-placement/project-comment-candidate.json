@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-2026-09-29-HUD-LOGO-ROW-PLACEMENT-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "worktree:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty",
+  "intent": "구독 HUD 두 행 로고 배치 충돌과 색상 경계 수정 기록",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "구독 HUD의 7d·5h 행에서 Kitty 로고가 서로 다른 이미지 ID를 사용하게 해 첫 행 로고가 두 번째 행에 덮이지 않도록 수정했다.",
+      "로고 칸과 잔여 비율 사이의 빈 배경 셀을 제거해 색칠된 수치 영역이 로고 바로 뒤에서 시작하게 했다."
+    ],
+    "impacts": [
+      "각 공급자의 두 기간 행 모두에서 로고와 잔여 비율·초기화 시간이 같은 순서로 보인다."
+    ],
+    "categories": [
+      "fix",
+      "verification"
+    ],
+    "verification": [
+      "bun test test/www-provider-meter-fidelity.test.ts test/www-provider-logos.test.ts: 5 pass, 0 fail. 두 행의 로고 8개가 고유 이미지 ID를 사용하는지 확인했다.",
+      "bun run check와 git diff --check 통과. 변경 파일에서 TODO·test.skip·test.only 검색 결과 없음."
+    ],
+    "connections": [
+      "Linear: WOO-912 https://linear.app/woo-world/issue/WOO-912/workbench-ui-모드모델계획구독-잔여-표기를-정리한다",
+      "Code: src/adapters/inbound/tui/features/usage/view/www-usage.ts · test/www-provider-logos.test.ts",
+      "Evidence: .www/evidence/2026-09-29-hud-logo-row-placement"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-912/workbench-ui-모드모델계획구독-잔여-표기를-정리한다",
+    "evidence": ".www/evidence/2026-09-29-hud-logo-row-placement"
+  },
+  "expectedBefore": {
+    "latestCommentId": "07bebabe-b8c4-43f4-bde5-f362143d672d"
+  },
+  "validation": [
+    {
+      "id": "issue-binding",
+      "status": "pass",
+      "evidence": "Live WOO-912: In Progress in World Wide Woo."
+    },
+    {
+      "id": "activity-duplicate-check",
+      "status": "pass",
+      "evidence": "Live Project Activity 108 comments, latest 07bebabe-b8c4-43f4-bde5-f362143d672d; no comment for the per-row Kitty image ID repair."
+    }
+  ],
+  "candidateDigest": "4bb5585035c844b6a24666da7d330accdf5c52c4e28f6e55a9524a0d06dfc541"
+}

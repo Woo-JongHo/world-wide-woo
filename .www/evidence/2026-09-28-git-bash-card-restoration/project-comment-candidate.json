@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-GIT-BASH-CARD-RESTORATION-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "worktree:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty",
+  "intent": "Git Bash 카드의 입력·출력 구분과 색상 복구를 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "완료된 Git Bash 명령에 초록 계열 INPUT 카드와 관측된 출력의 별도 OUTPUT 카드를 표시한다.",
+      "Git Bash 카드의 /source 행을 제거하고 실패 명령의 붉은 상태 강조는 유지한다."
+    ],
+    "impacts": [
+      "사용자가 명령 입력과 실제 출력을 구분해 읽고, 카드 안에서 불필요한 source 경로를 보지 않는다."
+    ],
+    "categories": [
+      "fix",
+      "verification"
+    ],
+    "verification": [
+      "bun test test/www-ui.test.ts test/chat-render-acceptance.test.ts test/workbench-transcript-views.test.ts: 133 pass, 0 fail.",
+      "bun run check 및 git diff --check: 통과.",
+      "렌더링 지연의 직접 원인은 이번 변경에서 실측하지 않았다. 기존 docs/WWW_PERFORMANCE.md에 잔여 병목이 기록돼 있다."
+    ],
+    "connections": [
+      "Primary Linear: WOO-700 (이전 로컬 read-back 기준), Related: WOO-680",
+      "Evidence: .www/evidence/2026-09-28-git-bash-card-restoration",
+      "Obsidian Candidate: obsidian-canonical-candidate.json"
+    ]
+  },
+  "links": {
+    "linear": "WOO-700",
+    "relatedLinear": "WOO-680",
+    "evidence": ".www/evidence/2026-09-28-git-bash-card-restoration"
+  },
+  "expectedBefore": {
+    "latestCommentId": null
+  },
+  "validation": [
+    {
+      "id": "local-binding",
+      "status": "pass",
+      "evidence": "기존 WOO-700 Chat 표시 계약과 도구 입력 카드 후보를 로컬 기록에서 확인했다."
+    },
+    {
+      "id": "publication-boundary",
+      "status": "pass",
+      "evidence": "정본 linear-woo 도구가 없어 최신 Activity 중복 검사는 미실행이다. 후보만 준비하고 게시하지 않는다."
+    }
+  ],
+  "candidateDigest": "5e64ccdfa08b2cf70c76406465ef49cb1408a33118e833cd51e3857637f46b24"
+}

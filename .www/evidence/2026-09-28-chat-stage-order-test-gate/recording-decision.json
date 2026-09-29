@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "1.0",
+  "change": [
+    "src/adapters/inbound/tui/features/chat/view/www-execution.ts",
+    "src/adapters/inbound/tui/features/plan/view/www-plan-view.ts",
+    "src/adapters/inbound/tui/features/monitoring/view/www-monitor-view.ts",
+    "src/adapters/inbound/tui/features/test/view/www-test-view.ts",
+    "src/core/domain/observability/request-test-workspace.ts",
+    "test/www-ui.test.ts",
+    "test/plan-activity-view.test.ts",
+    "test/request-test-workspace.test.ts"
+  ],
+  "issueBinding": {
+    "primary": "WOO-700",
+    "related": "WOO-680",
+    "source": ".www/evidence/2026-09-28-chat-plan-test-goal-fix/recording-decision.json",
+    "status": "local-readback-only",
+    "reason": "기존 Chat PLAN·PROGRESS·TEST 표시 계약의 보정이다. 현재 Linear 상태는 정본 linear-woo 도구 부재로 미확인이다."
+  },
+  "linearIssueCandidateRequired": false,
+  "projectCommentCandidate": ".www/evidence/2026-09-28-chat-stage-order-test-gate/project-comment-candidate.json",
+  "obsidianCandidateRequired": true,
+  "obsidianCandidate": ".www/evidence/2026-09-28-chat-stage-order-test-gate/obsidian-canonical-candidate.json",
+  "publication": {
+    "state": "blocked-live-readback",
+    "reason": "Linear Activity와 Vault 현재 bytes·digest를 확인할 정본 도구가 없어 게시 전 중복·drift 검사를 마치지 못했다. 외부 쓰기는 하지 않는다.",
+    "externalWrite": false
+  },
+  "independentReview": {
+    "status": "not-run",
+    "reason": "Claude Sonnet 5 읽기 전용 CLI 검토 호출이 Execution error로 종료되어 유효한 리뷰 산출물을 얻지 못했다."
+  }
+}

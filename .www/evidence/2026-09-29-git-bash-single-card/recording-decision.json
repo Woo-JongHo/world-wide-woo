@@ -1,0 +1,15 @@
+{
+  "work": "기존 Gajae식 Bash 카드와 같은 단일 프레임으로 Git Bash 명령과 Output을 표시",
+  "linearIssue": "WOO-684",
+  "issueEvidence": ".www/evidence/2026-09-06-tui-preparation/linear-after.json",
+  "classification": "Improvement",
+  "verification": [
+    "bun test test/www-ui.test.ts: 93 pass, 0 fail",
+    "bun test test/work-step-card-highlight.test.ts: 20 pass, 0 fail",
+    "bun run check: pass",
+    "git diff --check: pass"
+  ],
+  "projectComment": "blocked-before-candidate",
+  "reason": "연결 정본 .www/linear-project.json은 linear-woo MCP를 지정하지만 현재 세션에 해당 도구가 노출되지 않았다. 노출된 두 Linear 앱 연결의 project 조회는 모두 UNAUTHORIZED(reauthentication required)를 반환했다. live Activity의 중복 및 latestCommentId를 확인할 수 없어 expectedBefore를 추측하지 않았다.",
+  "obsidian": "기존 WOO-684의 단일 명령 카드 계약 안에서 입력·출력 배치를 되돌리는 표시 수정이므로 새 WHY 또는 외부 계약 결정이 없다. Candidate 불필요."
+}

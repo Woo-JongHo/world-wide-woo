@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "1.0",
+  "changedFiles": [
+    "docs/audit/2026-09-28-chat-render-latency-diagnosis.md"
+  ],
+  "issueBinding": {
+    "id": "WOO-915",
+    "uuid": "9eb3b7f7-7197-4215-b864-d04d403c310d",
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "observedStatus": "In Progress",
+    "status": "local-readback-only",
+    "source": ".www/evidence/2026-09-24-chat-render-fix/issue-readback.json",
+    "decision": "기존 긴 draft 렌더 지연 수락 범위의 후속 진단이다. 새 이슈·본문·상태 변경은 필요하지 않다."
+  },
+  "linearIssueCandidateRequired": false,
+  "projectCommentCandidate": ".www/evidence/2026-09-28-chat-render-latency-diagnosis/project-comment-candidate.json",
+  "projectActivity": {
+    "candidateDigest": "b9556ead2029b453f9b2f79c695f7e010b7a664f9c136ae3a3911885d9a2d908",
+    "preview": ".www/evidence/2026-09-28-chat-render-latency-diagnosis/project-comment-preview.md",
+    "state": "published-read-back",
+    "commentId": "0c24c70e-cfd1-476d-b0ba-2e2613b75063",
+    "receipt": ".www/evidence/2026-09-28-chat-render-latency-diagnosis/project-comment-publish-receipt.json"
+  },
+  "obsidianCandidateRequired": false,
+  "obsidianReason": "측정 결과와 미확인 범위만 기록했다. WHY·제품 계약·설계 결정을 변경하거나 채택하지 않았다.",
+  "publication": {
+    "state": "succeeded",
+    "reason": "linear-woo MCP 게시 후 Project Activity에서 작성자·시각·렌더 본문 일치를 read-back했다.",
+    "externalWrite": true,
+    "commentId": "0c24c70e-cfd1-476d-b0ba-2e2613b75063"
+  }
+}

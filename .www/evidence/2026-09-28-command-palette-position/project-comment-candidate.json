@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-COMMAND-PALETTE-POSITION-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty",
+  "intent": "명령 찾기 팝업을 입력창 가까이 배치한 수정 기록",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "명령 찾기 팝업의 앵커를 화면 중앙에서 하단 중앙으로 옮겼다.",
+      "Ctrl+P로 열린 팝업의 앵커를 셸 테스트에서 확인했다."
+    ],
+    "impacts": [
+      "명령 검색 결과가 입력창 가까이에 표시된다."
+    ],
+    "categories": [
+      "improvement",
+      "verification"
+    ],
+    "verification": [
+      "bun test test/www-shell.test.ts --test-name-pattern 'production Www shell routes navigation': 1 pass, 0 fail.",
+      "git diff --check -- src/adapters/inbound/tui/shell/workbench-overlay-controller.ts test/www-shell.test.ts: 통과.",
+      "bun test test/www-shell.test.ts: 7 pass, 1 fail. 별도 레이아웃 폭 기대값 74 대비 실제 66."
+    ],
+    "connections": [
+      "Primary Linear: WOO-674 · Workbench 대화와 계획을 읽고 입력과 상태를 통제한다 (로컬 read-back 기준)",
+      "Evidence: .www/evidence/2026-09-28-command-palette-position",
+      "Code: src/adapters/inbound/tui/shell/workbench-overlay-controller.ts · test/www-shell.test.ts"
+    ]
+  },
+  "links": {
+    "workbenchIssue": "https://linear.app/woo-world/issue/WOO-674/workbench-대화와-계획을-읽고-입력과-상태를-통제한다",
+    "evidence": ".www/evidence/2026-09-28-command-palette-position"
+  },
+  "expectedBefore": {
+    "latestCommentId": null
+  },
+  "validation": [
+    {
+      "id": "issue-binding",
+      "status": "pass",
+      "evidence": "보존된 슬래시 명령 작업의 recording-decision이 WOO-674를 Workbench 입력 통제 책임 이슈로 묶었다."
+    },
+    {
+      "id": "live-duplicate-check",
+      "status": "not-run",
+      "evidence": "정본 linear-woo MCP가 세션에 노출되지 않아 현재 Project Activity와 이슈 상태를 재조회하지 못했다."
+    },
+    {
+      "id": "verification",
+      "status": "pass",
+      "evidence": "대상 셸 테스트와 변경 파일 diff 형식 검사는 통과했다. 전체 셸 테스트의 별도 폭 기대값 불일치를 기록했다."
+    },
+    {
+      "id": "publication-boundary",
+      "status": "pass",
+      "evidence": "로컬 Candidate만 준비한다. 게시 전 현재 대상과 중복을 재조회하고 항목별 사용자 승인을 받는다."
+    }
+  ],
+  "candidateDigest": "d3c829bc4000f5c6497e7e4a0f5f3db0c1b54c4fec6cad2aaff5b03976ca239c"
+}

@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-CHAT-COMMAND-PLAN-RAIL-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "worktree:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty",
+  "intent": "Chat 명령 의미 요약과 PLAN·PROGRESS 연동 보정을 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "접힌 도구 묶음에서 중복 Terminal 카드를 제거하고 명령마다 실행 목적을 표시한다. zsh -lc·-lcr 래퍼는 요약에서 벗기고 원본은 확장 카드에 남긴다.",
+      "Chat 사이드바 폭을 넓히고 PROGRESS 문장을 여러 줄로 표시한다. PLAN은 활성 turn의 Native 계획을 우선 선택하며 Runtime 작업 진행과 별도 계수를 표시한다.",
+      "다단계 요청은 Native update_plan을 생성하고 항목 완료 때 갱신하도록 요청 프로토콜 지시를 보강했다."
+    ],
+    "impacts": [
+      "사용자는 같은 명령을 두 번 읽지 않고 무엇을 확인·실행했는지 볼 수 있다.",
+      "PROGRESS의 개별 도구 완료를 PLAN 항목 완료로 오인하지 않으며 이전 요청의 계획이 현재 요청을 가리지 않는다."
+    ],
+    "categories": [
+      "improvement",
+      "fix",
+      "verification"
+    ],
+    "verification": [
+      "Chat 화면 집중 테스트 102 pass, Native Plan·Request Runtime 42 pass, 아키텍처 17 pass.",
+      "npm run check 및 git diff --check 통과. 실제 TUI 사용자 조작과 전체 회귀 재실행은 미실행."
+    ],
+    "connections": [
+      "Primary Linear: WOO-700 · PLAN·PROGRESS",
+      "Related Linear: WOO-680 · Chat 배치",
+      "Obsidian Candidate: .www/evidence/2026-09-28-chat-command-plan-rail/obsidian-canonical-candidate.json",
+      "Evidence: .www/evidence/2026-09-28-chat-command-plan-rail"
+    ]
+  },
+  "links": {
+    "issue": "https://linear.app/woo-world/issue/WOO-700/01-내-입력에-대한-계획이-세워지는-과정을-세션-todo로-보여준다",
+    "relatedIssue": "https://linear.app/woo-world/issue/WOO-680/layout-화면-크기가-달라져도-읽던-위치와-입력-흐름을-유지한다",
+    "evidence": ".www/evidence/2026-09-28-chat-command-plan-rail"
+  },
+  "expectedBefore": {
+    "latestCommentId": null
+  },
+  "validation": [
+    {
+      "id": "issue-binding",
+      "status": "pass",
+      "evidence": "기존 WOO-700 로컬 정본·Project Comment가 Native PLAN·PROGRESS를, WOO-680이 배치를 소유함을 확인했다. 최신 Linear 조회는 미실행."
+    },
+    {
+      "id": "publication-boundary",
+      "status": "pass",
+      "evidence": "게시 전 최신 Project Activity 중복 대조, 항목별 사용자 승인, 게시 후 read-back이 필요하다."
+    }
+  ],
+  "candidateDigest": "a9789dc605eef737516b9335fe2e090a76ab6423a8454e926f2c73bbeecaddaa"
+}

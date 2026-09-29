@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.1",
+  "status": "published",
+  "surface": "linear-project-comment",
+  "candidateId": "ARTIFACT-CANDIDATE-RECORDING-BACKFILL-048",
+  "sourceCandidateId": "ARTIFACT-CANDIDATE-CHAT-TRANSCRIPT-PLAN-ORDER-COMMENT",
+  "sourceCandidatePath": ".www/evidence/2026-09-28-chat-transcript-plan-order/project-comment-candidate.json",
+  "sourceCandidateDigest": "bf6daad0f1de40b03feee5393e39daa422688c2333016bd1ebbf607646311ef0",
+  "sourceFileSha256": "695ec6b83225bb6e65550a921f001b6825e3a24caa57c689b3d5adc9f57139b2",
+  "candidateDigest": "93a95ccae40cb73d7ee76ff9a2e2e8c9f9d758601e30832ea391aae3958c962d",
+  "candidatePath": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/048.json",
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "expectedBefore": {
+    "latestCommentId": "01507187-c2d8-4668-a042-26007cf4a324"
+  },
+  "comment": {
+    "id": "37f7f5c0-7e77-48eb-9f9f-34e67751e193",
+    "body": "## 변경\n\n- 과거 작업 기록 회수: RES 중복과 작성 중 응답 순서 및 protocol v2 PLAN 누락 수정 기록 (원문 Candidate: ARTIFACT-CANDIDATE-CHAT-TRANSCRIPT-PLAN-ORDER-COMMENT)\n- 당시 로컬 작업 기록: 완료된 RES 문장을 도구 묶음 제목으로 다시 사용하지 않도록 했다.\n- 당시 로컬 작업 기록: 작성 중 응답을 첫 Native delta 당시 활동 순서에 고정하고 도구 묶음을 독립된 기록으로 유지했다.\n- 당시 로컬 작업 기록: protocol v2 화면에서 Native PLAN 단계가 존재하면 Runtime 작업 목록 대신 해당 PLAN을 표시했다.\n\n## 영향\n\n- 당시 기록된 영향: RES 문장 중복과 작성 중 응답이 도구 실행 뒤로 이동했다가 돌아오는 현상을 줄인다.\n- 당시 기록된 영향: 계획이 실제로 전달된 protocol v2 요청에서도 PLAN 단계를 볼 수 있다.\n- 미게시 로컬 기록을 Project Activity에서 추적할 수 있게 회수한다. 과거 진행·완료·차단 상태를 현재 구현 완료 또는 이슈 상태 변경으로 승격하지 않는다.\n\n## 분류\n\nFix · Validation\n\n## 검증\n\n- 2026-09-29 회수 검증: 원문 파일 SHA-256 695ec6b83225bb6e65550a921f001b6825e3a24caa57c689b3d5adc9f57139b2; 연결 이슈의 현재 WWW 소속과 Project Activity 중복·latest identity를 확인했다.\n- 아래는 원문 Candidate에 남은 당시 검증 기록이다. 이번 회수에서 테스트·원격 실행·현재 제품 동작을 재검증한 결과가 아니다.\n- 당시 검증 기록: bun test test/www-ui.test.ts test/www-plan-view.test.ts test/www-transcript-cache.test.ts test/native-stream-projection.test.ts test/native-plan-wiring.test.ts test/www-shell.test.ts: 139 pass, 0 fail.\n- 당시 검증 기록: bun run check: 통과.\n- 당시 검증 기록: 변경 파일 git diff --check: 통과.\n- 당시 검증 기록: Claude Sonnet 읽기 전용 교차검토: Not logged in으로 미실행.\n\n## 연결\n\n- 이번 기록에서 참조하는 기존 이슈: [WOO-674](https://linear.app/woo-world/issue/WOO-674/workbench-대화와-계획을-읽고-입력과-상태를-통제한다)\n- 원문 Candidate: .www/evidence/2026-09-28-chat-transcript-plan-order/project-comment-candidate.json\n- 원문 Source Revision: git:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty\n- 원문 Candidate Digest: bf6daad0f1de40b03feee5393e39daa422688c2333016bd1ebbf607646311ef0\n- 원문 연결: Primary Linear: WOO-674 · Workbench 대화와 계획을 읽고 입력과 상태를 통제한다 (로컬 read-back 기준)\n- 원문 연결: Evidence: .www/evidence/2026-09-28-chat-transcript-plan-order\n- 원문 연결: Code: WWW Chat transcript · Native Stream · PLAN view\n- 회수 Evidence: .www/evidence/2026-09-29-linear-recording-backfill",
+    "attachments": [],
+    "createdAt": "2026-09-28T22:09:08.586Z",
+    "updatedAt": "2026-09-28T22:09:08.542Z",
+    "parentId": null,
+    "resolvedAt": null,
+    "quotedText": null,
+    "author": {
+      "id": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "name": "우종호"
+    },
+    "onBehalfOf": null
+  },
+  "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-37f7f5c0-7e77-48eb-9f9f-34e67751e193",
+  "readBack": {
+    "exactBodyMatch": true,
+    "checkedAt": "2026-09-28T22:09:09.646Z"
+  },
+  "scope": "Historical local record recovery; not current implementation acceptance"
+}

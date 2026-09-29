@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.1",
+  "status": "published",
+  "surface": "linear-project-comment",
+  "candidateId": "ARTIFACT-CANDIDATE-RECORDING-BACKFILL-056",
+  "sourceCandidateId": "ARTIFACT-CANDIDATE-MONITOR-DASHBOARD-HISTORY-COMMENT",
+  "sourceCandidatePath": ".www/evidence/2026-09-28-monitor-dashboard-history/project-comment-candidate.json",
+  "sourceCandidateDigest": "3ed4e70a20e914178e5283a93c14435918d86933ffc49981c7f4988edfd506c4",
+  "sourceFileSha256": "ac70079b25587084c30a39954cfbf044fb19eaa99e0894b90cfac60fe5a14c60",
+  "candidateDigest": "11baf49b10773cc22fa89b9ca880183571fe771514d64a4c11a0f317fc986506",
+  "candidatePath": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/056.json",
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "expectedBefore": {
+    "latestCommentId": "305138a9-6b24-4150-90ef-6afa1a99ba5a"
+  },
+  "comment": {
+    "id": "1bda35f0-4cd8-4595-896e-eacec9da1f0b",
+    "body": "## 변경\n\n- 과거 작업 기록 회수: WOO-674 Dashboard 질문 기록과 WOO-675 Monitor 실시간·기록 연결을 기록한다 (원문 Candidate: ARTIFACT-CANDIDATE-MONITOR-DASHBOARD-HISTORY-COMMENT)\n- 당시 로컬 작업 기록: Dashboard에 현재 세션의 요청 기록을 최신순으로 표시하고 ↑↓·Enter 또는 /monitor #번호로 질문별 Monitor를 연다.\n- 당시 로컬 작업 기록: Monitor 기록 선택을 요청 ID로 유지하고 해당 turn의 활동·계획만 투영한다. Chat 우측 Monitor는 계속 현재 요청만 본다.\n- 당시 로컬 작업 기록: Cache·Context 화면의 기본 선택기·명령 목록·데모 진입을 숨기고 직접 명령은 보존한다.\n- 당시 로컬 작업 기록: 완료된 요청의 Monitor 경과 시간은 기록된 종료 시각으로 고정한다.\n\n## 영향\n\n- 당시 기록된 영향: 현재 질문의 실시간 관측과 과거 질문의 Monitor 기록 탐색이 한 흐름으로 연결된다.\n- 당시 기록된 영향: 지난 질문을 열어도 Chat 우측 패널에 과거 기록이 섞이지 않는다.\n- 당시 기록된 영향: Cache·Context 기능은 삭제하지 않고 기본 탐색에서 보류한다.\n- 미게시 로컬 기록을 Project Activity에서 추적할 수 있게 회수한다. 과거 진행·완료·차단 상태를 현재 구현 완료 또는 이슈 상태 변경으로 승격하지 않는다.\n\n## 분류\n\nFeature · Improvement · Validation\n\n## 검증\n\n- 2026-09-29 회수 검증: 원문 파일 SHA-256 ac70079b25587084c30a39954cfbf044fb19eaa99e0894b90cfac60fe5a14c60; 연결 이슈의 현재 WWW 소속과 Project Activity 중복·latest identity를 확인했다.\n- 아래는 원문 Candidate에 남은 당시 검증 기록이다. 이번 회수에서 테스트·원격 실행·현재 제품 동작을 재검증한 결과가 아니다.\n- 당시 검증 기록: bun run check 통과.\n- 당시 검증 기록: bun test test/www-keymap.test.ts test/www-ui.test.ts test/workbench-shell-policy.test.ts test/www-shell.test.ts test/architecture.test.ts: 150 pass, 0 fail. Dashboard ↑↓·Enter 기록 열기와 /monitor 실시간 복귀를 셸 입력 테스트로 확인했다.\n- 당시 검증 기록: git diff --check 통과.\n- 당시 검증 기록: 실제 터미널 수동 수락과 독립 리뷰는 미실행.\n- 당시 검증 기록: AGENTS.md의 woo-code-readability symlink 대상이 없어 지정 정렬 스크립트는 미실행.\n\n## 연결\n\n- 이번 기록에서 참조하는 기존 이슈: [WOO-680](https://linear.app/woo-world/issue/WOO-680/layout-화면-크기가-달라져도-읽던-위치와-입력-흐름을-유지한다) · [WOO-674](https://linear.app/woo-world/issue/WOO-674/workbench-대화와-계획을-읽고-입력과-상태를-통제한다) · [WOO-675](https://linear.app/woo-world/issue/WOO-675/monitor-현재-실행과-승인실패-상태를-같은-맥락에서-관찰한다)\n- 원문 Candidate: .www/evidence/2026-09-28-monitor-dashboard-history/project-comment-candidate.json\n- 원문 Source Revision: git:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty\n- 원문 Candidate Digest: 3ed4e70a20e914178e5283a93c14435918d86933ffc49981c7f4988edfd506c4\n- 원문 연결: Linear: WOO-674 (primary), WOO-675 (Monitor), WOO-680 (Chat 연결)\n- 원문 연결: Code: src/adapters/inbound/tui/features/dashboard/view/entry-dashboard-view.ts; src/adapters/inbound/tui/features/monitoring/view/www-monitor-view.ts; src/adapters/inbound/tui/shell/workbench-shell.ts\n- 원문 연결: Evidence: .www/evidence/2026-09-28-monitor-dashboard-history\n- 원문 연결: Branch: dev · HEAD 8486a759746ab2e0748beb1ab9fdd4d250fa6b27 · uncommitted\n- 회수 Evidence: .www/evidence/2026-09-29-linear-recording-backfill",
+    "attachments": [],
+    "createdAt": "2026-09-28T22:10:53.816Z",
+    "updatedAt": "2026-09-28T22:10:53.715Z",
+    "parentId": null,
+    "resolvedAt": null,
+    "quotedText": null,
+    "author": {
+      "id": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "name": "우종호"
+    },
+    "onBehalfOf": null
+  },
+  "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-1bda35f0-4cd8-4595-896e-eacec9da1f0b",
+  "readBack": {
+    "exactBodyMatch": true,
+    "checkedAt": "2026-09-28T22:10:54.943Z"
+  },
+  "scope": "Historical local record recovery; not current implementation acceptance"
+}

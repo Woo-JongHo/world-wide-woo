@@ -1,0 +1,13 @@
+{
+  "status": "recorded",
+  "linearIssue": "WOO-915",
+  "newIssueRequired": false,
+  "projectCommentId": "d2b9f810-5a62-47f6-8c65-f30f515ecc20",
+  "obsidianRequired": false,
+  "reason": "기존 exact height·순서·8MiB 캐시 상한 계약을 보존하는 내부 렌더 수정이다. 새로운 WHY·도메인 계약·결정은 추가하지 않았다.",
+  "acceptance": "implementation-and-memory-benchmark-only",
+  "blockers": [
+    "Claude authentication prevents Sonnet independent review and Opus final audit",
+    "Live CMux acceptance and Codex parity remain unmeasured"
+  ]
+}

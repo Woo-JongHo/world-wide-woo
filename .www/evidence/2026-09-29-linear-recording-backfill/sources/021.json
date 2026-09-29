@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-GOAL-WORKING-INPUT-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:216b9d9faa09bcb19151f0f188792e8ce7113bf6:dirty",
+  "intent": "Workbench의 Plan 구성을 GOAL·PLAN·PROGRESS로 정리하고 실행·입력 상태 표현을 개선한 결과를 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "Plan과 Runtime Plan의 NEXT 영역을 제거하고 GOAL·PLAN·PROGRESS 순서로 통일했다.",
+      "Plan projection이 Session Goal 부재 시에도 null을 전달하며, ready 복원과 recording 오류 경로에서도 저장된 Goal을 복원하도록 보강했다.",
+      "Working 표시에 시간 기반 회전 spinner와 색상 그라데이션을 적용했다.",
+      "Composer의 위·아래 선에 좌우 테두리를 연결해 닫힌 입력 상자로 표시했다."
+    ],
+    "impacts": [
+      "장기 Goal이 Plan의 첫 영역에 계속 표시되며, 아직 설정되지 않은 상태도 명시적으로 구분된다.",
+      "실행 중 상태가 반복 redraw에 맞춰 움직이고 입력 영역의 좌우 경계가 분명해진다."
+    ],
+    "categories": ["improvement", "verification"],
+    "verification": [
+      "bun test test/www-ui.test.ts test/plan-activity-view.test.ts test/workbench-shell-policy.test.ts test/workbench-feature-reads.test.ts test/request-runtime.test.ts test/project-workbench-recording.test.ts: 175 pass, 0 fail, 2975 expect.",
+      "bun run check: 통과.",
+      "git diff --check: 통과.",
+      "변경 TypeScript import normalization changed=0, table alignment misaligned=0."
+    ],
+    "connections": [
+      "Linear: WOO-674 · UUID 4674a1dc-ba01-4007-9803-3346a1f83dcc",
+      "Parent: WOO-673",
+      "Evidence: .www/evidence/2026-09-26-goal-working-input",
+      "Branch: dev · HEAD 216b9d9faa09bcb19151f0f188792e8ce7113bf6 · uncommitted"
+    ]
+  },
+  "links": {
+    "issue": "https://linear.app/woo-world/issue/WOO-674/workbench-대화와-계획을-읽고-입력과-상태를-통제한다",
+    "evidence": ".www/evidence/2026-09-26-goal-working-input"
+  },
+  "expectedBefore": {
+    "latestCommentId": "e781ff90-faed-4c2b-b3bb-b17ecabb36fb"
+  },
+  "validation": [
+    {
+      "id": "issue-binding",
+      "status": "pass",
+      "evidence": "WOO-674가 Workbench의 계획·상태·입력 통제 책임을 소유하므로 기존 이슈에 결속했다."
+    },
+    {
+      "id": "regression",
+      "status": "pass",
+      "evidence": "관련 회귀 175 pass·0 fail과 타입·diff·import·표 정렬 검사를 통과했다."
+    },
+    {
+      "id": "publication-boundary",
+      "status": "pass",
+      "evidence": "외부 게시하지 않은 로컬 Candidate이며 게시 전 실시간 Activity 재조회와 사용자 승인이 필요하다."
+    }
+  ],
+  "candidateDigest": "d9f8124bb72b59d042e6d59156602dd92498f70a4deab764f87085bb3a2a4c01"
+}

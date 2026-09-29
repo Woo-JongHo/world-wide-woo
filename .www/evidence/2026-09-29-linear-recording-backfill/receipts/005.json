@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.1",
+  "status": "published",
+  "surface": "linear-project-comment",
+  "candidateId": "ARTIFACT-CANDIDATE-RECORDING-BACKFILL-005",
+  "sourceCandidateId": "ARTIFACT-CANDIDATE-ASTRA-CONTEXT-FIDELITY-COMMENT",
+  "sourceCandidatePath": ".www/evidence/2026-09-22-astra-context-fidelity/project-comment-candidate.json",
+  "sourceCandidateDigest": "08fe218f1b7c19539c2fd2457479bddd7a084902e4d51b096fcda9802d018f2e",
+  "sourceFileSha256": "e9ca083db18382152a8bb6e648ee4aaf5226ed85daafd054d069d1c8db62adab",
+  "candidateDigest": "8bc6d8734bffc2dbe20241d8704803488d0ea522ec6f1aaa10946123b30e8af7",
+  "candidatePath": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/005.json",
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "expectedBefore": {
+    "latestCommentId": "14b5bf92-ef40-446b-907f-a49b13deaf81"
+  },
+  "comment": {
+    "id": "75925990-dff4-4dd7-9b23-c21f8d4c6934",
+    "body": "## 변경\n\n- 과거 작업 기록 회수: 사용자 Figma 대조 피드백에 따라 Provider 잔여 바와 Context 우측 레일의 시각·내용 계약을 보정한 경과를 기록한다 (원문 Candidate: ARTIFACT-CANDIDATE-ASTRA-CONTEXT-FIDELITY-COMMENT)\n- 당시 로컬 작업 기록: Provider 구독 HUD를 16칸의 괄호형 상태바로 축소하고 remainingPercent에 비례한 색상 채움과 reset countdown을 함께 표시했다.\n- 당시 로컬 작업 기록: Figma Context node 50:967을 다시 조회해 Gruvbox 색 역할, 7개 KPI, 분석 패널, 우측 레일의 정보 계층을 코드와 재대조했다.\n- 당시 로컬 작업 기록: Context 우측 레일을 LOADED SKILLS, MCP SERVERS, STORAGE METRICS 구조로 바꾸고 skill 활성 상태, MCP 연결·tool 수, 실제 context/cache/journal 기록을 연결했다.\n- 당시 로컬 작업 기록: Figma의 synthetic source별 MB 비율은 Native가 관측하지 않으므로 라이브 값으로 복제하지 않고 미관측 계약을 유지했다.\n\n## 영향\n\n- 당시 기록된 영향: 구독 잔여량은 과도한 full-color 막대 대신 짧은 숫자 중심 표시로 읽히며 사용량 증가에 따라 채움이 감소한다.\n- 당시 기록된 영향: Context 화면의 우측 영역이 Figma와 같은 기능 묶음과 시각 우선순위를 가지면서도 MCP 개수와 전체 Context 점유율을 혼동하지 않는다.\n- 미게시 로컬 기록을 Project Activity에서 추적할 수 있게 회수한다. 과거 진행·완료·차단 상태를 현재 구현 완료 또는 이슈 상태 변경으로 승격하지 않는다.\n\n## 분류\n\nImprovement · Fix · Validation\n\n## 검증\n\n- 2026-09-29 회수 검증: 원문 파일 SHA-256 e9ca083db18382152a8bb6e648ee4aaf5226ed85daafd054d069d1c8db62adab; 연결 이슈의 현재 WWW 소속과 Project Activity 중복·latest identity를 확인했다.\n- 아래는 원문 Candidate에 남은 당시 검증 기록이다. 이번 회수에서 테스트·원격 실행·현재 제품 동작을 재검증한 결과가 아니다.\n- 당시 검증 기록: Astra UI·shell·provider logo 대상 79 tests, 0 fail, 2,122 assertions를 확인했다.\n- 당시 검증 기록: HUD 테스트가 16칸 괄호형 문구와 42% 잔여량의 부분 채움 배경을 검증한다.\n- 당시 검증 기록: Context workspace 테스트가 Figma의 세 우측 레일 heading, skill ACTIVE, MCP ONLINE과 80열 main pane landmark를 검증한다.\n- 당시 검증 기록: bunx tsc --noEmit과 git diff --check가 통과했고 대상 파일에 test.skip·test.only·TODO가 없음을 확인했다.\n\n## 연결\n\n- 이번 기록에서 참조하는 기존 이슈: [WOO-913](https://linear.app/woo-world/issue/WOO-913/workbench-monitoring-figma-5화면의-계측-의미와-정보-구조를-일치시킨다)\n- 원문 Candidate: .www/evidence/2026-09-22-astra-context-fidelity/project-comment-candidate.json\n- 원문 Source Revision: git:9546aa46bf2646d393eb75c78c2f5b808edc063a:dirty\n- 원문 Candidate Digest: 08fe218f1b7c19539c2fd2457479bddd7a084902e4d51b096fcda9802d018f2e\n- 원문 연결: Linear issue: WOO-913\n- 원문 연결: Figma: Q7kGUdqiaQRJI8CZlPMRX7 node 50:967\n- 원문 연결: Evidence: .www/evidence/2026-09-22-astra-context-fidelity\n- 원문 연결: Branch: ui/workbench-visual-polish\n- 회수 Evidence: .www/evidence/2026-09-29-linear-recording-backfill",
+    "attachments": [],
+    "createdAt": "2026-09-28T22:04:21.277Z",
+    "updatedAt": "2026-09-28T22:04:21.216Z",
+    "parentId": null,
+    "resolvedAt": null,
+    "quotedText": null,
+    "author": {
+      "id": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "name": "우종호"
+    },
+    "onBehalfOf": null
+  },
+  "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-75925990-dff4-4dd7-9b23-c21f8d4c6934",
+  "readBack": {
+    "exactBodyMatch": true,
+    "checkedAt": "2026-09-28T22:04:23.660Z"
+  },
+  "scope": "Historical local record recovery; not current implementation acceptance"
+}

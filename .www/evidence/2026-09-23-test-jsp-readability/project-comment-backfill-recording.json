@@ -1,0 +1,12 @@
+{
+  "status": "recorded",
+  "sourceCandidateId": "ARTIFACT-CANDIDATE-TEST-JSP-READABILITY-COMMENT",
+  "projectCommentId": "48ad712b-efbc-4759-8e1d-861bcbe96106",
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "recordedAt": "2026-09-28T22:04:43.626Z",
+  "receipt": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/009.json",
+  "scope": "historical-project-comment",
+  "newIssueCreated": false,
+  "obsidianWritten": false,
+  "reason": "User authorized recovering all unrecorded local work history to Linear; original assertions are attributed to the historical Candidate."
+}

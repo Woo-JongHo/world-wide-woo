@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "1.0",
+  "sourceRevision": "worktree:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty",
+  "checks": [
+    {
+      "command": "bun test test/www-ui.test.ts test/www-shell.test.ts test/www-keymap.test.ts test/www-telemetry-duration.test.ts test/www-transcript-cache.test.ts test/workbench-bottom-hud.test.ts test/workbench-hud-system.test.ts",
+      "result": "143 pass, 0 fail"
+    },
+    {
+      "command": "bun run check",
+      "result": "pass"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    },
+    {
+      "command": "rg test.skip|test.only|TODO|XXX changed product/test files",
+      "result": "no matches"
+    },
+    {
+      "command": "artifact:control validate/render both candidates",
+      "result": "blocked: live-duplicate-check and vault-readback not-run"
+    }
+  ],
+  "limitations": [
+    "실제 사용자 터미널의 F키 전달 여부는 재현하지 않았다. 화면 안내에서는 제거했다.",
+    "정본 linear-woo 도구와 Vault 현재 원문을 확인하지 못해 외부 게시를 진행하지 않았다.",
+    "프로젝트 지시의 woo-code-readability 경로와 두 검사 스크립트는 현재 저장소에 존재하지 않아 실행할 수 없었다."
+  ]
+}

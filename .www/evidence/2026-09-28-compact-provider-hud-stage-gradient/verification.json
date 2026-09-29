@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "1.0",
+  "sourceRevision": "worktree:8486a759746ab2e0748beb1ab9fdd4d250fa6b27:dirty",
+  "checks": [
+    {
+      "command": "bun test test/www-ui.test.ts test/www-provider-meter-fidelity.test.ts test/www-usage-fidelity.test.ts test/www-shell.test.ts test/www-execution-heading-performance.test.ts test/www-monitoring-layout.test.ts",
+      "result": "123 pass, 0 fail"
+    },
+    {
+      "command": "bun run check",
+      "result": "pass"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    },
+    {
+      "command": "rg test.skip|test.only|TODO|XXX affected source/test files",
+      "result": "no matches"
+    },
+    {
+      "command": "artifact:control validate/render -- both candidates",
+      "result": "blocked: live-duplicate-check and vault-readback not-run"
+    }
+  ],
+  "limitations": [
+    "실제 Kitty 이미지 터미널과 좁은 사용자 화면의 시각 수락은 미실행이다.",
+    "현재 Linear Activity와 Vault 원문을 확인하지 못해 외부 게시를 진행하지 않았다."
+  ]
+}

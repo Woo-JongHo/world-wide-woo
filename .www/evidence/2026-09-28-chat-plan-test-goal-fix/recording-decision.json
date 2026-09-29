@@ -1,0 +1,11 @@
+{
+  "scope": "Chat 도구 요약·PLAN·TEST·초기 GOAL 수정",
+  "issue": {
+    "primary": "WOO-700",
+    "related": "WOO-680",
+    "decision": "기존 로컬 결속에 기록하고 새 이슈 Candidate는 만들지 않는다. 최신 Linear 조회는 연결 도구 부재로 보류한다."
+  },
+  "projectComment": "project-comment-candidate.json",
+  "obsidian": "obsidian-canonical-candidate.json",
+  "publication": "후보만 작성했다. Linear·Vault 최신 상태 대조와 항목별 승인 전에는 외부 게시하지 않는다."
+}

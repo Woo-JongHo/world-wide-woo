@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.1",
+  "status": "published",
+  "surface": "linear-project-comment",
+  "candidateId": "ARTIFACT-CANDIDATE-RECORDING-BACKFILL-009",
+  "sourceCandidateId": "ARTIFACT-CANDIDATE-TEST-JSP-READABILITY-COMMENT",
+  "sourceCandidatePath": ".www/evidence/2026-09-23-test-jsp-readability/project-comment-candidate.json",
+  "sourceCandidateDigest": "3c816413d9c9f74f1ccdb71b93dc318ed22fcb0d785e6d2cbfc51f0fae435ce7",
+  "sourceFileSha256": "be1a652d97158aa0d86360160d43240c10e7613307d15466310617714ac7762b",
+  "candidateDigest": "088b1f858fc87f84075b58d661731e02d16c894a9b963a87f51318d4fc72f6b4",
+  "candidatePath": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/009.json",
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "expectedBefore": {
+    "latestCommentId": "37bf60f2-6bfd-4ba1-8fb1-deec0d2dd38f"
+  },
+  "comment": {
+    "id": "48ad712b-efbc-4759-8e1d-861bcbe96106",
+    "body": "## 변경\n\n- 과거 작업 기록 회수: 함수 인자가 많은 한 줄 호출의 정렬 전후 가독성 비교 예시를 기록한다 (원문 Candidate: ARTIFACT-CANDIDATE-TEST-JSP-READABILITY-COMMENT)\n- 당시 로컬 작업 기록: src/test.jsp에 주문 더미 데이터를 받는 createOrderRow 함수와 동일 데이터 3건을 추가했다.\n- 당시 로컬 작업 기록: 각 함수 호출을 한 줄로 유지하면서 일반 공백 형태와 인자 열 정렬 형태를 함께 배치했다.\n\n## 영향\n\n- 당시 기록된 영향: 함수 인자가 많은 반복 호출에서 한 줄 compact 표현과 표형 열 정렬의 위아래 비교 효용을 같은 데이터로 확인할 수 있다.\n- 미게시 로컬 기록을 Project Activity에서 추적할 수 있게 회수한다. 과거 진행·완료·차단 상태를 현재 구현 완료 또는 이슈 상태 변경으로 승격하지 않는다.\n\n## 분류\n\nImprovement · Validation\n\n## 검증\n\n- 2026-09-29 회수 검증: 원문 파일 SHA-256 be1a652d97158aa0d86360160d43240c10e7613307d15466310617714ac7762b; 연결 이슈의 현재 WWW 소속과 Project Activity 중복·latest identity를 확인했다.\n- 아래는 원문 Candidate에 남은 당시 검증 기록이다. 이번 회수에서 테스트·원격 실행·현재 제품 동작을 재검증한 결과가 아니다.\n- 당시 검증 기록: node --check < src/test.jsp로 JavaScript 문법을 확인했다.\n- 당시 검증 기록: measure-layout.ts로 정렬된 세 호출의 닫는 괄호가 모두 119열인지 실측했다.\n- 당시 검증 기록: git diff --check를 통과했고 변경 파일에서 TODO·test.skip·test.only가 발견되지 않았다.\n\n## 연결\n\n- 이번 기록에서 참조하는 기존 이슈: [WOO-911](https://linear.app/woo-world/issue/WOO-911/코드-실행-흐름을-역할별-최소-구조와-측정-가능한-열로-정리한다)\n- 원문 Candidate: .www/evidence/2026-09-23-test-jsp-readability/project-comment-candidate.json\n- 원문 Source Revision: git:954f6b3721350447daa9708a87f102ee536896fb:dirty\n- 원문 Candidate Digest: 3c816413d9c9f74f1ccdb71b93dc318ed22fcb0d785e6d2cbfc51f0fae435ce7\n- 원문 연결: Linear issue: WOO-911 · UUID b00b02eb-2d80-4b10-9c9a-a29db4f1a74d\n- 원문 연결: Code: src/test.jsp\n- 원문 연결: Evidence: .www/evidence/2026-09-23-test-jsp-readability\n- 원문 연결: Branch: dev · HEAD 954f6b3721350447daa9708a87f102ee536896fb · uncommitted\n- 회수 Evidence: .www/evidence/2026-09-29-linear-recording-backfill",
+    "attachments": [],
+    "createdAt": "2026-09-28T22:04:42.243Z",
+    "updatedAt": "2026-09-28T22:04:42.199Z",
+    "parentId": null,
+    "resolvedAt": null,
+    "quotedText": null,
+    "author": {
+      "id": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "name": "우종호"
+    },
+    "onBehalfOf": null
+  },
+  "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-48ad712b-efbc-4759-8e1d-861bcbe96106",
+  "readBack": {
+    "exactBodyMatch": true,
+    "checkedAt": "2026-09-28T22:04:43.541Z"
+  },
+  "scope": "Historical local record recovery; not current implementation acceptance"
+}
