@@ -1,0 +1,8 @@
+{
+  "status": "recorded",
+  "issue": "WOO-894 existing verified",
+  "commentId": "d6422f1d-a300-4f5b-9a15-21a7a407c99a",
+  "obsidian": "not-required: product/canonical contract unchanged; repository tracking scope only",
+  "evidence": "manifest preserves path/hash/source revision; original223 files archived locally",
+  "history": "not-rewritten"
+}

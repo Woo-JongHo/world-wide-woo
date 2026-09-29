@@ -1,0 +1,20 @@
+{
+  "status": "verified",
+  "exactBodyMatch": true,
+  "comment": {
+    "id": "d6422f1d-a300-4f5b-9a15-21a7a407c99a",
+    "body": "## 변경\n\n- 사용자 요청에 따라 최근 회수 evidence695개 중223개를 로컬 scratchpad에 보존하고 Git 추적 제외 대상으로 정리했다. 유지472개에는 원본 Candidate, 중앙 게시 Receipt, recording-decision, 최종 검증 결과와 미게시 Obsidian draft가 포함된다.\n- 중복 backfill Receipt73개, 재생성 가능한 preview·중간 Candidate, 원격 조회 원문과 임시 측정 자료를 제외한다. 정확한 경로만 gitignore에 등록하고 원본 SHA·정본 경로·복구 revision을 manifest로 남겼다.\n\n## 영향\n\n- 현재 checkout에서223개 파일·1,393,363byte를 줄인다. 과거 Git 이력은 유지하므로 clone의 전체 object 크기는 줄어들지 않는다.\n- 제품 코드·제품 계약·외부 Obsidian 정본은 바꾸지 않는다. 과거 문서의 경로는 manifest 및 기존 revision으로 조회하며 게시 본문과 digest를 바꾸지 않는다.\n\n## 분류\n\nRefactor · Validation\n\n## 검증\n\n- 223개 로컬 복사본의 SHA-256 일치, 중복73건의 중앙 Receipt 게시 본문·candidateDigest 일치, manifest JSON 구문 및 git diff --check 통과.\n- Linear workspace/project 연결과 기존 WOO-894를 확인했고 최근 Activity에서 같은 정리 기록이 없음을 확인했다. 제품 테스트·성능 측정·Sonnet/Opus 감사는 미실행.\n\n## 연결\n\n- WOO-894 https://linear.app/woo-world/issue/WOO-894/linear-작업-candidate와-게시-검증을-정형화한다\n- docs/audit/2026-09-29-evidence-retention.md\n- .www/evidence/2026-09-29-evidence-retention/manifest.json\n- 복구 revision https://github.com/Woo-JongHo/world-wide-woo/commit/8ee4999c78d20ac188b74e6a4c74156ecaf5d81a",
+    "attachments": [],
+    "createdAt": "2026-09-29T04:32:19.340Z",
+    "updatedAt": "2026-09-29T04:32:19.303Z",
+    "parentId": null,
+    "resolvedAt": null,
+    "quotedText": null,
+    "author": {
+      "id": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+      "name": "우종호"
+    },
+    "onBehalfOf": null
+  },
+  "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-d6422f1d-a300-4f5b-9a15-21a7a407c99a"
+}

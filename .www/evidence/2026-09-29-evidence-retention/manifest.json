@@ -1,0 +1,1575 @@
+{
+  "schemaVersion": "1.0",
+  "sourceRevision": "8ee4999c78d20ac188b74e6a4c74156ecaf5d81a",
+  "scope": "2026-09-29 전체 회수 커밋의 evidence만 선별",
+  "removedFromTracking": 223,
+  "bytesRemovedFromCurrentTree": 1393363,
+  "originalEvidenceCount": 695,
+  "retainedOriginalEvidenceCount": 472,
+  "duplicateReceiptsCompared": 73,
+  "restore": "git show <sourceRevision>:<path>",
+  "localArchive": ".www/scratchpad/evidence-retention/2026-09-29/",
+  "items": [
+    {
+      "path": ".www/evidence/2026-09-20-gmbkorea-readability/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/001.json",
+      "sha256": "b53f8af4280e54121565e85916c2959235d0cb300a9921cf843ac5e5f0d50896",
+      "bytes": 10514
+    },
+    {
+      "path": ".www/evidence/2026-09-21-cli-readability/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/002.json",
+      "sha256": "c1a626b7331d8012fc458e78a9ceecd36dfa3e357e4cce523783155433eafc2b",
+      "bytes": 8105
+    },
+    {
+      "path": ".www/evidence/2026-09-21-gmbkorea-dashboard/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/003.json",
+      "sha256": "c8c8a4f94f1d1e1850652a092bcf2e6a91686ed4bb97367f4bef6c7b740d82eb",
+      "bytes": 4711
+    },
+    {
+      "path": ".www/evidence/2026-09-21-workbench-visual-polish/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/004.json",
+      "sha256": "e2fd8e2dd86820477684e525824d379848978116096564db7f75efa886b92ed3",
+      "bytes": 4966
+    },
+    {
+      "path": ".www/evidence/2026-09-22-astra-context-fidelity/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/005.json",
+      "sha256": "b355e5ecc0f8e71696d540f5739cc3b9e4afabdbb1343c807f3d8cfe947e4e49",
+      "bytes": 4962
+    },
+    {
+      "path": ".www/evidence/2026-09-22-astra-demo-visual-density/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/006.json",
+      "sha256": "ed6a447384852369ad37f9d75cf970c6c4703fdbf22ac72b1a007823adeac2a2",
+      "bytes": 5033
+    },
+    {
+      "path": ".www/evidence/2026-09-23-pi-tui-install-reproducibility/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/007.json",
+      "sha256": "e9623390f76a54ada8eb406c20a1c926584966abcc0ea926d1eb7a18a1b708ba",
+      "bytes": 4563
+    },
+    {
+      "path": ".www/evidence/2026-09-23-project-workbench-readability/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/008.json",
+      "sha256": "b6a4c68c7a58d3efea83732b85b0dcd9715b20f6b9312e44293629173a54ca13",
+      "bytes": 5040
+    },
+    {
+      "path": ".www/evidence/2026-09-23-test-jsp-readability/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/009.json",
+      "sha256": "dc6e93ba585920ca236138b2f96226e28840a55fe17591202c0810714a73cdb6",
+      "bytes": 4088
+    },
+    {
+      "path": ".www/evidence/2026-09-24-readability-import-columns/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/010.json",
+      "sha256": "52ab6064906fbaa5511891246956e5a3ccaa0187947e614e4364bd435983262e",
+      "bytes": 5084
+    },
+    {
+      "path": ".www/evidence/2026-09-24-readability-import-declarations/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/011.json",
+      "sha256": "0d5153093ee3730835ea5d700456f7c8185d7bc3fef8721ec4363c4fd9811f4e",
+      "bytes": 4695
+    },
+    {
+      "path": ".www/evidence/2026-09-24-report-request-summary/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/012.json",
+      "sha256": "0672946ed488e2e36c88600cc4dfbf0ce1b299e13fa16e048f6933ee8bafea92",
+      "bytes": 4861
+    },
+    {
+      "path": ".www/evidence/2026-09-24-woo-code-readability-maintain-registry/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/013.json",
+      "sha256": "c2f62974d0380eaefddb1bb0732d525a318717b8a18f6103fcb872a02a18e629",
+      "bytes": 5815
+    },
+    {
+      "path": ".www/evidence/2026-09-24-woo-code-readability-maintain/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/014.json",
+      "sha256": "76e2d60f7afeace2c99185628158c1b4722e09882701fb3359f61da5261519a9",
+      "bytes": 4845
+    },
+    {
+      "path": ".www/evidence/2026-09-24-woo-commit-message-contract/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/015.json",
+      "sha256": "19b42835062d101d071451601b31685a4df54f24784d3f83f7d997dfd47300d3",
+      "bytes": 4617
+    },
+    {
+      "path": ".www/evidence/2026-09-24-workbench-integration/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/016.json",
+      "sha256": "15b87fb6d4133ea53c0cdc44cf0d820729c3642e3602b1e3727d04ec2b663eae",
+      "bytes": 5761
+    },
+    {
+      "path": ".www/evidence/2026-09-24-www-layer-monitoring-principles/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/017.json",
+      "sha256": "e44b7c4df3b622059d9508cd1a8ba07c49dc13ee1ac5f20ce0d80f7186b88300",
+      "bytes": 6203
+    },
+    {
+      "path": ".www/evidence/2026-09-24-zcode-readability-refactor/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/018.json",
+      "sha256": "f985bf6791b066b16cc139fc033c7620e6e23e4ee2b54013346ce8fa70ee32b2",
+      "bytes": 4512
+    },
+    {
+      "path": ".www/evidence/2026-09-25-www-code-structure-review/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/019.json",
+      "sha256": "5bf85cf68a2327182618f547f22cc87e2e22a721554f2dc99abadd0b147a3f7e",
+      "bytes": 13442
+    },
+    {
+      "path": ".www/evidence/2026-09-26-first-screen-startup/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/020.json",
+      "sha256": "e2a50f674c46e96abb90ca94a2c5a428e037e2656dfdb009d767c30d5a07b0ee",
+      "bytes": 5047
+    },
+    {
+      "path": ".www/evidence/2026-09-26-goal-working-input/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/021.json",
+      "sha256": "fc6dabc52ca52b11ac017a2d81fdbdd0de3384343bdb7f041085fdd458630175",
+      "bytes": 4714
+    },
+    {
+      "path": ".www/evidence/2026-09-26-operation-report-diff/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/022.json",
+      "sha256": "3c4f0c0f2eb6884fe0ab922564bb7b4958759e3a8b361d98df9e6b162e919dc8",
+      "bytes": 5069
+    },
+    {
+      "path": ".www/evidence/2026-09-26-three-body-sidebar-removal/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/023.json",
+      "sha256": "ae0df1d3f341771208fce7435b29aaff7395124e7699bc7edfb0e5df644531b5",
+      "bytes": 4598
+    },
+    {
+      "path": ".www/evidence/2026-09-26-welcome-octopus-removal/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/024.json",
+      "sha256": "5e8285f5f014fbc138bc79a50e62a4a947a81535b1a7d0b3832a8d88afd5f612",
+      "bytes": 4699
+    },
+    {
+      "path": ".www/evidence/2026-09-26-woo-commit-message-contract/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/025.json",
+      "sha256": "77560bbe210abdf7f7b38b5eef3df7ba2dee3892211458d1a842b6e51b7f21a4",
+      "bytes": 4371
+    },
+    {
+      "path": ".www/evidence/2026-09-26-woo-readability-omp-distribution/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/026.json",
+      "sha256": "2a3e20827e43e0ff552bd8ce17cb969e02b4b866d256bb1db97d55122009f466",
+      "bytes": 5293
+    },
+    {
+      "path": ".www/evidence/2026-09-27-change-diff-auto-goal/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/027.json",
+      "sha256": "094080b78f0264af7cb2a8bf592bfa82b91b7d5908333551679c35a310d4376d",
+      "bytes": 4807
+    },
+    {
+      "path": ".www/evidence/2026-09-27-full-readability-pass/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/028.json",
+      "sha256": "3593c57bc45b101f16d49ad267300ef636ece3f05333ee2e3367253cd201655d",
+      "bytes": 5026
+    },
+    {
+      "path": ".www/evidence/2026-09-27-full-readability-pass/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "b71163bd827046ad5bd11dd5f9a5420cbfead0722d8c7be4f8ad3a0e3d491b48",
+      "bytes": 1800
+    },
+    {
+      "path": ".www/evidence/2026-09-27-goal-background-motion/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/029.json",
+      "sha256": "272c723cad9f94ddc6aafa75996515831de2269e43a91f53191e7be5e313b979",
+      "bytes": 4695
+    },
+    {
+      "path": ".www/evidence/2026-09-27-goal-background-motion/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "5255161cb34e66c160bb3d2b3add16477acdebae595f753d94de7b73390fa906",
+      "bytes": 1370
+    },
+    {
+      "path": ".www/evidence/2026-09-27-goal-render-hud-repair/obsidian-woo-700-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "2681ff20e10c3e88dd85ddcbbd912fc003c78b4aea0fca6dc803a1a2d05a8a61",
+      "bytes": 4725
+    },
+    {
+      "path": ".www/evidence/2026-09-27-goal-render-hud-repair/obsidian-woo-915-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "d4bb715bef5bed72bfc0f7bbd3cdc576a44bf0ec1626cfb807f6ae0e44577eaa",
+      "bytes": 4834
+    },
+    {
+      "path": ".www/evidence/2026-09-27-goal-render-hud-repair/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/030.json",
+      "sha256": "716b1a01f5035a8c493d858fe08f212d1d5b5a51ff0c30ff93cc0f40be06b655",
+      "bytes": 4970
+    },
+    {
+      "path": ".www/evidence/2026-09-27-goal-render-hud-repair/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "83ef7707b44a63027bf715608e4d76004932eaff472d5e4ae34b6320ebd2112f",
+      "bytes": 1598
+    },
+    {
+      "path": ".www/evidence/2026-09-27-observability-design-diagnosis/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/031.json",
+      "sha256": "2272e4e41c038558660c6afa23452ed4516b4952bb791f45f1a31910efa94079",
+      "bytes": 7190
+    },
+    {
+      "path": ".www/evidence/2026-09-27-observability-design-diagnosis/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "464c29e4bd47969db3c218e46b3e6088cbe78334b4f566cf6619190212c62504",
+      "bytes": 3133
+    },
+    {
+      "path": ".www/evidence/2026-09-27-queued-goal-continuity/obsidian-canonical-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "9f8b60265e6a3e289fd800d867443c39c161f3ff91cf1d4c11431b88687169c2",
+      "bytes": 6894
+    },
+    {
+      "path": ".www/evidence/2026-09-27-queued-goal-continuity/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/032.json",
+      "sha256": "419fce129be0b607e9afa124bf776f14773aa20d8ae67b56f104ce10f3bffbf0",
+      "bytes": 5242
+    },
+    {
+      "path": ".www/evidence/2026-09-27-queued-goal-continuity/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "e22cc2ff3117dfda82d09e0b995306328796652d8338673b7ccccdb2eaaa3a07",
+      "bytes": 1488
+    },
+    {
+      "path": ".www/evidence/2026-09-27-render-health-monitoring/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/033.json",
+      "sha256": "10c6acd3266ae02672c9422c9809578612dc4a84b411cb3f4b05fe97760c581a",
+      "bytes": 5589
+    },
+    {
+      "path": ".www/evidence/2026-09-27-request-protocol-delivery-shape/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/034.json",
+      "sha256": "7ecf81e73614bc0dca1e92e7483eb440757ed983ab1ff3ad5e481d6e534541f4",
+      "bytes": 4556
+    },
+    {
+      "path": ".www/evidence/2026-09-27-stage-dashboard-completion/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/035.json",
+      "sha256": "db9238fbc54b8c4d447f952935ddcf5e6c39c97791e48d50393cf066874dfe78",
+      "bytes": 5559
+    },
+    {
+      "path": ".www/evidence/2026-09-27-stage-dashboard-completion/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "29cb655ef558c9f9bdf9537fa36ee7d3116241e7d487afa85ae16fdf07bab933",
+      "bytes": 2051
+    },
+    {
+      "path": ".www/evidence/2026-09-27-terminal-stage-progress/obsidian-canonical-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "08ed33c29aa1296110294725681e64cf97ab5a45be3b2d7805c61d299a5c191b",
+      "bytes": 4649
+    },
+    {
+      "path": ".www/evidence/2026-09-27-terminal-stage-progress/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/036.json",
+      "sha256": "dc3690b1195e67b08b463d4fd51a6c53085a323b46e68a7c763e841d02d90329",
+      "bytes": 4590
+    },
+    {
+      "path": ".www/evidence/2026-09-27-terminal-stage-progress/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "9e437b159f70848fff8b9781209f84098247bf0e58d207cd132063221dd4de36",
+      "bytes": 1310
+    },
+    {
+      "path": ".www/evidence/2026-09-27-transcript-semantic-icons/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/037.json",
+      "sha256": "49d01c631cf2f780cc1b93880e0d135c6760b0fb73b549becf9c6ccfd89bf2bd",
+      "bytes": 4746
+    },
+    {
+      "path": ".www/evidence/2026-09-27-usage-routing-dashboard/obsidian-canonical-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "c852367a3982b543b27ef1df7624d33028a35f94358e862ba25007efac8c834e",
+      "bytes": 5757
+    },
+    {
+      "path": ".www/evidence/2026-09-27-usage-routing-dashboard/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/038.json",
+      "sha256": "9e3ebebf610760e24020ada5967b002c0c67c015a6ce6706ac0177bd656e0172",
+      "bytes": 5548
+    },
+    {
+      "path": ".www/evidence/2026-09-27-usage-routing-dashboard/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "dc9f0ef55b9c6ebde5bd85ce1834be9263f02cf52ef13bc62b7d36b3a6334761",
+      "bytes": 2044
+    },
+    {
+      "path": ".www/evidence/2026-09-27-wes-recording-orchestration/linear-issue-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "3caf60a3f745822e2e9f8516f617e8beda0f88c1541e03889ab5868cf7565ae6",
+      "bytes": 2783
+    },
+    {
+      "path": ".www/evidence/2026-09-27-wes-recording-orchestration/obsidian-canonical-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "6fef5f3410f1e205ff36ee75b104945ac489fcbc1e8967acbe694913e0a3b2e0",
+      "bytes": 6654
+    },
+    {
+      "path": ".www/evidence/2026-09-27-wes-recording-orchestration/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/039.json",
+      "sha256": "9dd4507089309af15942d2b0ee984ad8bb0763755f1152ae14dc562c79499ac8",
+      "bytes": 5272
+    },
+    {
+      "path": ".www/evidence/2026-09-27-wes-recording-orchestration/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "8622b03194c3cbc9e93060a503f521a018e82653119801e6d09ceb2919b338d3",
+      "bytes": 1809
+    },
+    {
+      "path": ".www/evidence/2026-09-27-woo-code-readability-migration/obsidian-canonical-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "8c3c1dd838a02e1386522a040532628a2b3cf2c2dbc921347fdd483129f58943",
+      "bytes": 5631
+    },
+    {
+      "path": ".www/evidence/2026-09-27-woo-code-readability-migration/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/040.json",
+      "sha256": "f6d7c6bb6a9893b5ebee452683b977541317e2aaed5cb5df663415aef37db309",
+      "bytes": 5378
+    },
+    {
+      "path": ".www/evidence/2026-09-27-woo-code-readability-migration/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "77e2f9ff103a7294aa47a7336e02bf71ccf674c277247e05bfdf9d87c6f3c947",
+      "bytes": 2025
+    },
+    {
+      "path": ".www/evidence/2026-09-28-chat-command-plan-rail/obsidian-canonical-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "8d39243cdebdd858586b5c709fd40d29115d4e22f5eaabfd3d88282cbf0fd766",
+      "bytes": 5844
+    },
+    {
+      "path": ".www/evidence/2026-09-28-chat-command-plan-rail/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/041.json",
+      "sha256": "e0a58e81e61341d8cb658edb30ac8a8203a8fdd7790e6f24d0b80b2794d469fa",
+      "bytes": 4603
+    },
+    {
+      "path": ".www/evidence/2026-09-28-chat-command-plan-rail/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "3f01e801b4d300692e10005a893e310b83bc369f62a7e1eacb6e593250c17c5c",
+      "bytes": 1340
+    },
+    {
+      "path": ".www/evidence/2026-09-28-chat-labels-hud-rail-colors/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/042.json",
+      "sha256": "b6dd876b8219e7673e5f42eeb250caa5aed9627da7a06ac5995b08e5838349d7",
+      "bytes": 4404
+    },
+    {
+      "path": ".www/evidence/2026-09-28-chat-plan-progress-hud/obsidian-canonical-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "c403023c8f92710c2cfd2990711f498db9739cdfde811481a90a3aab4224d6ac",
+      "bytes": 5906
+    },
+    {
+      "path": ".www/evidence/2026-09-28-chat-plan-progress-hud/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/043.json",
+      "sha256": "898c39d30240cdff876c43bf8cfa3576a020381718fa09dd0d06f87cb9b6dde1",
+      "bytes": 4453
+    },
+    {
+      "path": ".www/evidence/2026-09-28-chat-plan-progress-hud/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "dde15382b434de7783b4c8faa7cb71ca25497148a0284718963673a4a199cd38",
+      "bytes": 1145
+    },
+    {
+      "path": ".www/evidence/2026-09-28-chat-plan-test-goal-fix/obsidian-canonical-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "233fad3f1833fd76649fa15e424097ef2b2bd292344715615314036db0fcf98c",
+      "bytes": 5884
+    },
+    {
+      "path": ".www/evidence/2026-09-28-chat-plan-test-goal-fix/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/044.json",
+      "sha256": "833138d6cb2d59e99a2dfff8f3a63bf68e74691397716cdc19b6c19160e96992",
+      "bytes": 4508
+    },
+    {
+      "path": ".www/evidence/2026-09-28-chat-plan-test-goal-fix/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "2d4c0711256df54e9d976d6021326761b7ecb535700a01cc48840be8dae382b3",
+      "bytes": 1218
+    },
+    {
+      "path": ".www/evidence/2026-09-28-chat-rail-stage-test-explanation/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/045.json",
+      "sha256": "80e2e3bfa3f0e52d57652bbc74d4d0b4266e88a1546fa994a340afab4b73a104",
+      "bytes": 4335
+    },
+    {
+      "path": ".www/evidence/2026-09-28-chat-rail-verify-followup/obsidian-canonical-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "96d7b94e22ff1920e26a2738f050925ffb43819165eb16dd03b7d3ca210254fd",
+      "bytes": 7018
+    },
+    {
+      "path": ".www/evidence/2026-09-28-chat-rail-verify-followup/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/046.json",
+      "sha256": "8c7dbd08f01528ff0797002f6ea3775ea155379daba65476cca5250ba4759833",
+      "bytes": 4604
+    },
+    {
+      "path": ".www/evidence/2026-09-28-chat-rail-verify-followup/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "904e9ca6b2b1b483fe7fa9949db08a9146c9e7c2a1bf6a72f6c3b1975344fd66",
+      "bytes": 1300
+    },
+    {
+      "path": ".www/evidence/2026-09-28-chat-render-latency-diagnosis/project-comment-before.json",
+      "reason": "원격 조회 원문; 게시 Receipt와 최종 검증 요약 유지",
+      "canonical": null,
+      "sha256": "c2f79619753d1960bd382db55b752b720aefc59d85f2b32902bf2a7bf7f12cb2",
+      "bytes": 64
+    },
+    {
+      "path": ".www/evidence/2026-09-28-chat-render-latency-diagnosis/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "7afc18510a78dc91e87332a3d78727df62fbd40cdb3145055cd527998356f126",
+      "bytes": 1886
+    },
+    {
+      "path": ".www/evidence/2026-09-28-chat-thought-timeline/obsidian-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "e583d4543beb4c8583b151e22cd6c5f0d186d001cbc050c4ead0b85ad291360e",
+      "bytes": 7546
+    },
+    {
+      "path": ".www/evidence/2026-09-28-chat-thought-timeline/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/047.json",
+      "sha256": "9593fdabb2d668b30e22ac84dedaba96a6a03ab2c43ac36226501d92098c6824",
+      "bytes": 4011
+    },
+    {
+      "path": ".www/evidence/2026-09-28-chat-thought-timeline/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "83b12f831e06df8307890b82eb5759c16ff53e3d3de8bccf032c5abc2217a24f",
+      "bytes": 842
+    },
+    {
+      "path": ".www/evidence/2026-09-28-chat-transcript-plan-order/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/048.json",
+      "sha256": "9bc9c0d815af19125732faaa028e8f66d986d938c7ae21ca736f75f04a5e8612",
+      "bytes": 4373
+    },
+    {
+      "path": ".www/evidence/2026-09-28-chat-workstream-layout/obsidian-canonical-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "66c1d33e4f79bc6fd53b90a40822fee8a3c0c13ecc43c29bbe9b8f3582b71d9e",
+      "bytes": 7921
+    },
+    {
+      "path": ".www/evidence/2026-09-28-chat-workstream-layout/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/049.json",
+      "sha256": "ef4323ffc96e75ca21d8fcd3b4cf0972d2e8c98f24a03758a0ea2b32508530cb",
+      "bytes": 4254
+    },
+    {
+      "path": ".www/evidence/2026-09-28-chat-workstream-layout/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "b0702b1452211fd15a1a75c7ac03a1d9bce3898553b1c0570e636b178c770ef6",
+      "bytes": 1003
+    },
+    {
+      "path": ".www/evidence/2026-09-28-command-palette-position/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/050.json",
+      "sha256": "62a9cb59fa6cdf0d196bac955e501f7930d3841c2a1430f439ec2ade5c19b297",
+      "bytes": 3982
+    },
+    {
+      "path": ".www/evidence/2026-09-28-compact-provider-hud-stage-gradient/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/051.json",
+      "sha256": "bc07ba9f813948e5769968ad05e67b5871feeba450afaf1ddd944e774a2b5ce5",
+      "bytes": 4311
+    },
+    {
+      "path": ".www/evidence/2026-09-28-compact-request-runtime/obsidian-woo-700-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "7586f2698235b268251250e0ceff2b85c8b7faae4212c4a1b41586de70fe7760",
+      "bytes": 5770
+    },
+    {
+      "path": ".www/evidence/2026-09-28-compact-request-runtime/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/052.json",
+      "sha256": "1ab261aa32164e45567adb1d2b5bc28eba0cbc83038750bd5555512ec84e929b",
+      "bytes": 4777
+    },
+    {
+      "path": ".www/evidence/2026-09-28-compact-request-runtime/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "35ef1441f4bf3c8d8e859fb699b07ecb2f1708e9c0f8240e8d9b641f7ba0d39e",
+      "bytes": 1496
+    },
+    {
+      "path": ".www/evidence/2026-09-28-figma-chat-input-hud/obsidian-woo-915-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "68ac7f7472d5ea02ce58557bb36fd578915be6831c6adb52bacfd2b94d8f4985",
+      "bytes": 4054
+    },
+    {
+      "path": ".www/evidence/2026-09-28-figma-chat-input-hud/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/053.json",
+      "sha256": "15f3f88a58c316df167d20066431ee573ab626bbf0101dd9518ca0b6814d08d6",
+      "bytes": 4802
+    },
+    {
+      "path": ".www/evidence/2026-09-28-figma-chat-input-hud/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "5e4367633eed2ff1811e7c9fd878d63a90b5c85427ba1d47e3d2bd6b025ed559",
+      "bytes": 1441
+    },
+    {
+      "path": ".www/evidence/2026-09-28-git-bash-card-restoration/obsidian-canonical-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "fd42743aa2bb30b9421aef15d95bba272472989a333924fac1287a160e82fd76",
+      "bytes": 15607
+    },
+    {
+      "path": ".www/evidence/2026-09-28-git-bash-card-restoration/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/054.json",
+      "sha256": "b2017641b38e9c4e78ebcc699e116500a8baf020d0bbd058ba7657a83742884c",
+      "bytes": 4178
+    },
+    {
+      "path": ".www/evidence/2026-09-28-git-bash-card-restoration/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "3ede37d450a680c7253eb55ece872208c862e6ab0fb339bff10ff40dc05cf988",
+      "bytes": 952
+    },
+    {
+      "path": ".www/evidence/2026-09-28-goal-gradient-build/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/055.json",
+      "sha256": "92efbd7759578036df2e89083a5ebbd93717063cd8145c5b5550b42bef6954e0",
+      "bytes": 3989
+    },
+    {
+      "path": ".www/evidence/2026-09-28-goal-gradient-build/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "c0af516dc0f460090dc2805d9895593a84e4bb9f960bb43334a333527d9c48e5",
+      "bytes": 837
+    },
+    {
+      "path": ".www/evidence/2026-09-28-monitor-dashboard-history/obsidian-canonical-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "96a00cbfdfea73fe4d85b263925410934095f46575b813af64e0d6f8f3459cdc",
+      "bytes": 5910
+    },
+    {
+      "path": ".www/evidence/2026-09-28-monitor-dashboard-history/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/056.json",
+      "sha256": "62d2995c4e3f277680acd2ace1f6634826169ab0d3ee6da7b0e600adad6690d5",
+      "bytes": 5324
+    },
+    {
+      "path": ".www/evidence/2026-09-28-monitor-dashboard-history/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "98452e49cb1dcd16695c973667a7e1cf70de49d7b54d5c950febbe9188b21fc1",
+      "bytes": 1788
+    },
+    {
+      "path": ".www/evidence/2026-09-28-monitor-trace-view/obsidian-canonical-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "70a6a776fa9f46c1d6037881b29a4c87b8317a5be7ccebc51059c14b0646089d",
+      "bytes": 7147
+    },
+    {
+      "path": ".www/evidence/2026-09-28-monitor-trace-view/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/057.json",
+      "sha256": "533ab8a17208c8e14ba0db484fc7e717242aca7dae744ec83719056e24cfded7",
+      "bytes": 5412
+    },
+    {
+      "path": ".www/evidence/2026-09-28-monitor-trace-view/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "437722632c4c3b8b7a56a294ba9f821ccf4a699cdf45d4803f2142892e665e31",
+      "bytes": 2095
+    },
+    {
+      "path": ".www/evidence/2026-09-28-monitor-waterfall-oom/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/058.json",
+      "sha256": "ba545f4367482fdc3f9e98b1b8a45ae13e86da03b49b216cbd5b8b902cdf266d",
+      "bytes": 4770
+    },
+    {
+      "path": ".www/evidence/2026-09-28-monitor-waterfall-oom/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "ff08d5cd79139311dd147c49eb3c2fe366002bd334f41f56a39905e327ef427d",
+      "bytes": 1556
+    },
+    {
+      "path": ".www/evidence/2026-09-28-native-goal-plan-progress/obsidian-canonical-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "4dc44199754e50c6010467946fe61fbda753fabb3c21eeb8c462610ed6ab5e0b",
+      "bytes": 5639
+    },
+    {
+      "path": ".www/evidence/2026-09-28-native-goal-plan-progress/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/059.json",
+      "sha256": "24e05e6eb4c492d7224f851ea1e7bc9aaf8d183ad25657f81babfdb13336d1ae",
+      "bytes": 5094
+    },
+    {
+      "path": ".www/evidence/2026-09-28-native-goal-plan-progress/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "09eb7d98dcafd4f3573576256494c17e386ee98fde8db0ab8dfeeb53545a1489",
+      "bytes": 1322
+    },
+    {
+      "path": ".www/evidence/2026-09-28-native-observation-prompt-review/project-comment-before.json",
+      "reason": "원격 조회 원문; 게시 Receipt와 최종 검증 요약 유지",
+      "canonical": null,
+      "sha256": "97a9453b00644df0c3346d36a9a50aec7db431dfc7738e495bb7686765364059",
+      "bytes": 60
+    },
+    {
+      "path": ".www/evidence/2026-09-28-native-observation-prompt-review/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "c7ec4913887292dc488ae3b13e1f759ae2ced1e61b3fbaffdccba6ee31fd591a",
+      "bytes": 1646
+    },
+    {
+      "path": ".www/evidence/2026-09-28-native-tool-group-summary/obsidian-canonical-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "81dcb95e283852fb6650f4981cdfaf26be5bf6b4c2e59e24354a5a5a15346023",
+      "bytes": 10006
+    },
+    {
+      "path": ".www/evidence/2026-09-28-native-tool-group-summary/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/060.json",
+      "sha256": "968a1223ea5ac47ed62d548e7777d9ea6901281d8d9ccad156fa32199f025b43",
+      "bytes": 4387
+    },
+    {
+      "path": ".www/evidence/2026-09-28-native-tool-group-summary/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "72663818c141d8e27fce156f06ebbd10bd5720d9eba4b6fb8b62ea9902f7a439",
+      "bytes": 1062
+    },
+    {
+      "path": ".www/evidence/2026-09-28-observe-plan-restoration/obsidian-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "fcefcba2c8b06a4f0098606b24f863bc09a5b7413b03063f13f64eabcb29cdd7",
+      "bytes": 6297
+    },
+    {
+      "path": ".www/evidence/2026-09-28-observe-plan-restoration/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "4b432e5c1c87d2eccf06d834c40bd663a9e6d4db52b1212c06f60a0bf074249c",
+      "bytes": 784
+    },
+    {
+      "path": ".www/evidence/2026-09-28-output-language-selection/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/061.json",
+      "sha256": "6200a31dc5779aab2f580e8fd8e38e7cb515c3071cb735509f94228f5fe367a7",
+      "bytes": 4367
+    },
+    {
+      "path": ".www/evidence/2026-09-28-output-language-selection/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "f8436ada0a1c66b2e729034ab7efe256aefe263764bdffcc1d34ae1e643d3ce7",
+      "bytes": 1301
+    },
+    {
+      "path": ".www/evidence/2026-09-28-plan-progress-action-boundary/obsidian-canonical-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "cd37dc2c27d874d91d72cf03e3e45abd3d0b7cd14c966279d97f9907b629f493",
+      "bytes": 12750
+    },
+    {
+      "path": ".www/evidence/2026-09-28-plan-progress-action-boundary/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "e6739070f997c4e47b0bb5ba9ba3b456e3c4e765011ad6d34a8e84f86dafec24",
+      "bytes": 2027
+    },
+    {
+      "path": ".www/evidence/2026-09-28-project-comment-publication-unblock/project-comment-before.json",
+      "reason": "원격 조회 원문; 게시 Receipt와 최종 검증 요약 유지",
+      "canonical": null,
+      "sha256": "d18e933c9a95bfd088cdc93db19f65420112f241010fcb96dd63a72afe9d2e04",
+      "bytes": 64
+    },
+    {
+      "path": ".www/evidence/2026-09-28-project-comment-publication-unblock/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "299e0d9e7214727413a92ab0c559dc9f27df4c68a05b0d9e7942d14f129bf464",
+      "bytes": 2471
+    },
+    {
+      "path": ".www/evidence/2026-09-28-provider-hud-two-window-repair/project-comment-before.json",
+      "reason": "원격 조회 원문; 게시 Receipt와 최종 검증 요약 유지",
+      "canonical": null,
+      "sha256": "78fa5b8ccf75591df27a289288c728ea0b2579dbbf9549b9a5fa2fe48c77c6ff",
+      "bytes": 64
+    },
+    {
+      "path": ".www/evidence/2026-09-28-provider-hud-two-window-repair/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "aa53fde3e645ea469db449d64b8574e49787ef6954b9cbd32b2e0f02cf257ea5",
+      "bytes": 1197
+    },
+    {
+      "path": ".www/evidence/2026-09-28-raw-verify-sidebar/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/062.json",
+      "sha256": "b329a5ae1bbdef36176b2ad6ab9f188fa6f1914231fb531e8284c0eebe632a66",
+      "bytes": 4132
+    },
+    {
+      "path": ".www/evidence/2026-09-28-slash-command-inline/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/063.json",
+      "sha256": "54c9b57aef6e8960d8ff271ab40521b0e4c188eeac23142bdf503b5359ba5cfe",
+      "bytes": 3904
+    },
+    {
+      "path": ".www/evidence/2026-09-28-slash-command-palette/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/064.json",
+      "sha256": "c2c7f0da55787ad4774847d2828ea7666a352bcbd65a5b8b2c789b8f643b4647",
+      "bytes": 4058
+    },
+    {
+      "path": ".www/evidence/2026-09-28-tool-input-render-lag/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/065.json",
+      "sha256": "6b396eba1c02e8a2301e68162b5378950358d36866212105fed220bf6a7308ed",
+      "bytes": 4264
+    },
+    {
+      "path": ".www/evidence/2026-09-28-tool-summary-korean/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/066.json",
+      "sha256": "832b3eae141517eea8ba34658fe8ad01679626d60591e42422f97a91729f2c1d",
+      "bytes": 4025
+    },
+    {
+      "path": ".www/evidence/2026-09-28-version-0.0.22/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/067.json",
+      "sha256": "ba16b09feff76611c56877db47a52f09ef7e5f10012bca5a58ab274882a91569",
+      "bytes": 3994
+    },
+    {
+      "path": ".www/evidence/2026-09-28-version-0.0.22/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "cd38cf5cf281262b7b401bc5fbacd4b56577a927d66df91e042c9a8cb9e16f85",
+      "bytes": 977
+    },
+    {
+      "path": ".www/evidence/2026-09-28-welcome-idle-state/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/068.json",
+      "sha256": "d20d3bbb198644995d708481aab6f1860da1be256b55150c5cfef7974e312f6f",
+      "bytes": 4832
+    },
+    {
+      "path": ".www/evidence/2026-09-28-woo-700-linear-consolidation/linear-before.json",
+      "reason": "원격 조회 원문; 게시 Receipt와 최종 검증 요약 유지",
+      "canonical": null,
+      "sha256": "145fab6e01a981ca7ae300e85491032335da8720194eb98ab0ca210bd857a0c2",
+      "bytes": 1243
+    },
+    {
+      "path": ".www/evidence/2026-09-28-woo-700-linear-consolidation/project-comment-before.json",
+      "reason": "원격 조회 원문; 게시 Receipt와 최종 검증 요약 유지",
+      "canonical": null,
+      "sha256": "66f41e6640b8bdf9179d908813a4ca168b773db2b0464be8ff81819f1f572a8e",
+      "bytes": 36
+    },
+    {
+      "path": ".www/evidence/2026-09-28-woo-700-linear-consolidation/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "a260a2303d285651086ae49c6ed580ce9c7f9393c2400ee3d2cb18f4d2cf59a7",
+      "bytes": 2001
+    },
+    {
+      "path": ".www/evidence/2026-09-29-bash-progress-monitor/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "2332cde3e885b8174800e4241215b88f0ce873a5e34f1facbe6fbb603273524a",
+      "bytes": 3025
+    },
+    {
+      "path": ".www/evidence/2026-09-29-chat-render-repair/project-comment-before.json",
+      "reason": "원격 조회 원문; 게시 Receipt와 최종 검증 요약 유지",
+      "canonical": null,
+      "sha256": "c5afbab92fe447de645cead1cb8a30525125ab02106007291bc2c38280180b21",
+      "bytes": 59
+    },
+    {
+      "path": ".www/evidence/2026-09-29-chat-render-repair/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "193776168a28f5599d2ebabac2264d100e8c529fb7307bde4111935043d64dd6",
+      "bytes": 1423
+    },
+    {
+      "path": ".www/evidence/2026-09-29-chat-render-repair/review-input.md",
+      "reason": "임시 리뷰 입력 또는 측정 중간 산출물; 결과 요약 유지",
+      "canonical": null,
+      "sha256": "f872ae1c750912741099e124095afc46284fd737c2c9b39e08e69b1b893f1f01",
+      "bytes": 27230
+    },
+    {
+      "path": ".www/evidence/2026-09-29-hud-logo-row-placement/project-comment-before.json",
+      "reason": "원격 조회 원문; 게시 Receipt와 최종 검증 요약 유지",
+      "canonical": null,
+      "sha256": "9c362f52a733f3dfc1e80c786826699f642318a983a047e7af48f8f9b8021d52",
+      "bytes": 64
+    },
+    {
+      "path": ".www/evidence/2026-09-29-hud-logo-row-placement/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "1c51e07a620efff84c4b6b2700b3ceb4b37ee73e52f9642f49729d0365c4e8f1",
+      "bytes": 1086
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/001.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "917f5af230a19ab0e4cf635186f233adb6a3d26edce0b20a4da600ac2de674aa",
+      "bytes": 11189
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/002.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "04660bd393e11c981d166441cbd26c0a95d18a6f7899691de9412db68c1e4c9c",
+      "bytes": 8655
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/003.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "b53a71090fc97f0caae3be2d2925ea3f0d361ba6107b1a35129f71875f7c7304",
+      "bytes": 5096
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/004.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "6aafad75af295f0cfc6a1473903b31294fabf5ce42a330373fa38b753ec66d59",
+      "bytes": 5415
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/005.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "fe87ba2d288a13b2dd24d97d325619e8172af37b0c24a711a2db70fbcd33e16c",
+      "bytes": 5459
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/006.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "1cfde0ed05cfef5b04546cca98478c1a4a7c1f45e94771742ba1ccc07fd4139f",
+      "bytes": 5533
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/007.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "7f50dadb242a29efdde50e90394666c4804324263fd11e91aef7a38e71397e0d",
+      "bytes": 4961
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/008.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "7efe21f35beed4a4ba8e735239a1f59295831b520a00dbed6018e547e0528a48",
+      "bytes": 5660
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/009.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "396e9ef87aa78875c506031c15af40ab371fd2b2ea3981aa505173c2afe121db",
+      "bytes": 4500
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/010.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "05f448c5cf44839db34d1c4c9d6ff3f149133b63e316660da98048340319aad5",
+      "bytes": 5555
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/011.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "f0f0a385d0064793b7529493baaa6249ab49125c90671fb5a3e3175a272d6a54",
+      "bytes": 5183
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/012.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "9ebd8cdd9fff368e8ab356a1181d7e3caead10791b781b9aa5d6bff6396d9a4b",
+      "bytes": 5300
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/013.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "7345040fee9525f29a162e75c1b606fe10a3929756ef1ed73deed61fdf15a3fc",
+      "bytes": 6349
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/014.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "9920fa589ea098865357f64b1926b2bb5748c3efc491dc7b651d7a1beacea73c",
+      "bytes": 5328
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/015.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "ad867fc5c010b3bb32cc291e639ab31d17bba206a626dd9b8f77598b1a7dd7dc",
+      "bytes": 5039
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/016.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "1de3e59de96c2e502ac7252edb220ae3685573bbd09ebd6f3a1e17a34e5b2b99",
+      "bytes": 6236
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/017.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "3a0c1e32f68fb70660597a8ca2fda2633b6491b9669cb3ebc22929f83bae240a",
+      "bytes": 6686
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/018.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "f8e57a9e129e20cd633508c477f164f6dab5d86d140628e36115466d96085184",
+      "bytes": 4965
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/019.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "04605c8dd865b5852e5efe7446f9858a47295d4e000afef437998114e50f7aa6",
+      "bytes": 14228
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/020.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "8da7c2e86581ba0089d3da98b2710cbe5ef15f1263a786da1b3e614ac86d8d05",
+      "bytes": 5502
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/021.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "385e0bfb50ced8622a6c5edc801f1cba7ffb577f9dd7c9e7e61e6c131979198b",
+      "bytes": 5173
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/022.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "4ed8bac76bbbfe66549cdb16066f1e1a895284c2dcffc598237c941999efc408",
+      "bytes": 5514
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/023.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "9b05a8cc0ccaba113e16f9add1b4f9dcd428b6b84412f1addf42ed4963cc5996",
+      "bytes": 5032
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/024.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "c7736844853975ada5c6240899cd4ec47222d3d8c9eff20780025caf40ed4d30",
+      "bytes": 5157
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/025.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "f9d5a62c5304fe049872dde9682f4d354e0c0ec16d277ffc3a0a97ee7d6c13f8",
+      "bytes": 4742
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/026.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "e1735d8a370c0f302878499f3e3b258a1e2c7d7eefe366a78a9c618a40cd7909",
+      "bytes": 5757
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/027.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "6a33f59158fc3414abbfd9d39b43624ab5b26487832894066ae0afa9157f30f8",
+      "bytes": 5248
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/028.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "fe95da43a7590adadd1af349a35145ac49e502deace227e9b1dc452263bdfff9",
+      "bytes": 5469
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/029.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "0c3de907bbe5d37736296ede4f33a351361d4ff7e2b41bc418d07e48c4bc82c2",
+      "bytes": 5142
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/030.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "dab3d1b03c9b3a02789f3df881fc5b6d3625bc08a289b90da7ed4faf90abfe70",
+      "bytes": 5423
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/031.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "912f0a24d3740176083050d3c6815c871fe8cab25c3caa95849ad461b9759f10",
+      "bytes": 7759
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/032.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "d34d7ad336fd1b31149fb4783f3c25e43f6d6fc691803a9720d98170c112841c",
+      "bytes": 5717
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/033.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "1241bfb35aad6170662495d2895ef5241f75bb7975129055f9a44c8551a27a59",
+      "bytes": 6062
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/034.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "10ba6412c051659320758cd85ec10893bdf6222ba31ec2e01762e57834d3da91",
+      "bytes": 5008
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/035.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "32e9d82e04553b396270199329007befc6178c8cab1c13ee09eb7d7d2e742c46",
+      "bytes": 6065
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/036.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "a52c76a722cf379d9a31ff1eb47958153d0025e4c7d0add974b99769db657150",
+      "bytes": 5018
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/037.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "7fde559bc835458c23aa14003c0abaedfea7a657e1da0558f3abda9ff42e4943",
+      "bytes": 5176
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/038.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "6afd250ec7666dc8c63e689163a12f41f520184919d497af1edd36870b271398",
+      "bytes": 6057
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/039.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "0a2de2c0855ffa6b17440d826b5fcca71d913291b1905bc80cf56562d6372cf2",
+      "bytes": 5741
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/040.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "df6d09048ca29bec0caccce23bced001c72d5c7ed49dcecacb36cf3ecde182a5",
+      "bytes": 5886
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/041.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "54f5ea85ec4d7b15cb8dc1af45ce2613dcd39cfc3eea7ebefd3c9b231cba4730",
+      "bytes": 5013
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/042.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "4cc1f49c0de89f6b7167a48ea4d913ee20152adb1ad7cdaac3f5488cc338ce43",
+      "bytes": 4854
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/043.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "c3d9eaa69d6b58baf2a6f64319955a07c20a42260e9a3b57358c93683be1eada",
+      "bytes": 4890
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/044.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "5106cf57d925f5d2c8e6a0f3a7e212739a671a5a88a82d820a891fdde18c3aa3",
+      "bytes": 4939
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/045.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "adf4bff07711a42e76d3f5a1cc1271375fc801e1962cfe7965230771e5be2c23",
+      "bytes": 4756
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/046.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "516809b7ef3157df81ba7886bb2296973709e9329be2a9e96c5f6b9d6b5c5a07",
+      "bytes": 5050
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/047.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "0a1f1cd5eddefa3c9a6b7ce31df50fa319b3ae9fe6b585419dc0f287f5342027",
+      "bytes": 4460
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/048.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "ece72e84c0eee0d9f62a3c696e85468c5147e6738677e0bb7bef3aeb67f28f23",
+      "bytes": 4770
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/049.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "238b040de4154464fd1531b59fb82d69471f04383aa4e777ebdd3b128696b899",
+      "bytes": 4683
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/050.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "01513e5da7ee2587e5729cb477939fdeb786ef8114805e246402b1c89d04c4b1",
+      "bytes": 4346
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/051.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "3d82d0ae3544c0418be235b854349d2a914d0381fc0290042b3cf015571ecfee",
+      "bytes": 4725
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/052.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "3a7619540453bc141adcd4cdacca2b71d57012e4a2c6f68271d0a2084b6a4ed5",
+      "bytes": 5268
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/053.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "593ff652009071c675fd2c688278d654ca87a7b85df0d58133052dfebad07fd0",
+      "bytes": 5284
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/054.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "9e12571e4354932be8faf7ec61c2e98e97035ceb35772aaba8d02510283f2a45",
+      "bytes": 4573
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/055.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "0527c16090f38a8e218fa20027ffba916599e5d7f4b2f5e8abeff502e7d96f30",
+      "bytes": 4411
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/056.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "c80f991be4c3dfe41c34d0246304a90d512bbff1dc0a86d6dd5d83a0596efcfb",
+      "bytes": 5793
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/057.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "c16c833390a3302a9071bc9b1a3daa7bb4b97c17aa8931c4891f9b60d1f496d9",
+      "bytes": 5896
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/058.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "a82ac1df9a79e7bb9b0a24e00d039535c1707d0648ee7fc184b36ff558934d67",
+      "bytes": 5204
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/059.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "3e4efd7d1cf7091784d2d219d4ea2d41276fce627a5e53df3e8e0594ce794def",
+      "bytes": 5582
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/060.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "dc04991c64d2d5181bbee8d5b740d4cb58240dbad3f03af73b83b8d0a4f3fcb5",
+      "bytes": 4844
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/061.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "c8e23c6dd2b0e9a1aed4f397651441498a1f5dfa75fd4bac457a4fc3c6760f9a",
+      "bytes": 4739
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/062.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "9e0a9a7438cb054eaf15358ad4d2c67bee17f09c8d82707711b5dc341860b993",
+      "bytes": 4517
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/063.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "d9fdc5b05883599363d3c90a1a3150561e20fcf604a964fe499088b04bcf1f25",
+      "bytes": 4281
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/064.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "bde55521539b29a4a7f7b85ec40f3f6887551be4b1135933cf87a18c16b6c1e0",
+      "bytes": 4452
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/065.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "d5212b6c441b31c0460d948f5a3057008f6ad77c75b97a0cfbe38a699c054665",
+      "bytes": 4664
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/066.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "9a6d060aa98d54a291331ff93021942dae30a926d87b313d54727fd57ffe6594",
+      "bytes": 4444
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/067.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "1e1ad9f142defcc2c186f8f4484b526ac0f62389229674f2d692b1fb7235df3d",
+      "bytes": 4349
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/068.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "5ccfc9c5e6d9b06d534f0ca76778e9e97ba2b34a3c70a823651db49c04551448",
+      "bytes": 5274
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/069.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "0a1ac9bdcaa0098c8ac8a20864e854a13d960c3ca5aee9ae86adb75fae92a558",
+      "bytes": 5453
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/070.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "0ed1119156ccd56d041c33c8da19ee3b63656b963498e1c4351765c36c273ba3",
+      "bytes": 5660
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/071.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "7087cf9640a2aee618a6968bbbf89bb53dd2b623dbf6581dbc64b6fb47ba5c35",
+      "bytes": 5919
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/072.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "dfcf7ec4329ade8e9568be434a5723c684dffed4bf6bf93cf80c572fb498fddf",
+      "bytes": 4472
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/candidates/073.json",
+      "reason": "게시된 backfill 중간 Candidate; 원본 Candidate와 게시 Receipt 및 과거 Git revision 보존",
+      "canonical": null,
+      "sha256": "589b5d6a578e51d48cc279763280a5d514af177f95d8ed1d3a7a919a4fcd1fbc",
+      "bytes": 4525
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/live-final.json",
+      "reason": "원격 조회 원문; 게시 Receipt와 최종 검증 요약 유지",
+      "canonical": null,
+      "sha256": "f08ebef2d576056cb80cc965c9a2bc23e089a343bdb0420c16fdaba6bf17ee0f",
+      "bytes": 352268
+    },
+    {
+      "path": ".www/evidence/2026-09-29-linear-recording-backfill/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "459db6f130616477a0bd6f073a6aace1ebc2a406414e8d6f03f8fd1f71ec4564",
+      "bytes": 1505
+    },
+    {
+      "path": ".www/evidence/2026-09-29-shell-immediate-description/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "f94ea9d46a0c429c8029354def382a1a9de084784c4a6744ea57089541e79d53",
+      "bytes": 1069
+    },
+    {
+      "path": ".www/evidence/2026-09-29-sidebar-report/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "f75be27e0e0a0f080fee227df20ba826aa2a13a92d48b266400dada78cbfa230",
+      "bytes": 1993
+    },
+    {
+      "path": ".www/evidence/2026-09-29-working-chat-stall/frame.json",
+      "reason": "임시 리뷰 입력 또는 측정 중간 산출물; 결과 요약 유지",
+      "canonical": null,
+      "sha256": "51e1415211ba4a9034bc360483d7542898ab30664bf9160bb7d5d412d2d3926c",
+      "bytes": 23947
+    },
+    {
+      "path": ".www/evidence/2026-09-29-working-chat-stall/measure.ts",
+      "reason": "임시 리뷰 입력 또는 측정 중간 산출물; 결과 요약 유지",
+      "canonical": null,
+      "sha256": "7ab5fc710cda2f0c0de9e446f5029ac541d3caed606178f92c399eda4151c29f",
+      "bytes": 1949
+    },
+    {
+      "path": ".www/evidence/2026-09-29-working-chat-stall/project-comment-before.json",
+      "reason": "원격 조회 원문; 게시 Receipt와 최종 검증 요약 유지",
+      "canonical": null,
+      "sha256": "b8b6546df5f94dfed2d8602b535801506817c00254fe134f9aa2f5729f906db3",
+      "bytes": 59
+    },
+    {
+      "path": ".www/evidence/2026-09-29-working-chat-stall/project-comment-preview.md",
+      "reason": "Candidate/Receipt에서 재생성 가능한 미리보기",
+      "canonical": null,
+      "sha256": "ad736a367037b8901becf38976e1ecebc582660634953b4e2dbbfb183ff615eb",
+      "bytes": 1761
+    },
+    {
+      "path": ".www/evidence/agent-resource-visibility-2026-09-22/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/069.json",
+      "sha256": "9807eed4ec93bce34d99747fc2e2cd9867ba51fe49e7444b9118a93f3475a5f4",
+      "bytes": 5025
+    },
+    {
+      "path": ".www/evidence/astra-context-grid-2026-09-22/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/070.json",
+      "sha256": "b2e069f0209a5f6a377c879c8c904b1d022e965c7063a5787cb03fcba692e166",
+      "bytes": 5183
+    },
+    {
+      "path": ".www/evidence/astra-figma-fidelity-2026-09-22/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/071.json",
+      "sha256": "436637e694fbf9515506a77cf57d560f55b370dc685104c8c5a2ef150e32391b",
+      "bytes": 5434
+    },
+    {
+      "path": ".www/evidence/astra-readability-axes-2026-09-22/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/072.json",
+      "sha256": "b1c4e79cd6fc9c7a0f821f67ee3ab8938ec4c21a1e24f682f5e3fa56da349a34",
+      "bytes": 4085
+    },
+    {
+      "path": ".www/evidence/www-bootstrap-bar-2026-09-22/project-comment-backfill-receipt.json",
+      "reason": "동일 게시 본문·digest의 중복 Receipt; 중앙 Receipt 유지",
+      "canonical": ".www/evidence/2026-09-29-linear-recording-backfill/receipts/073.json",
+      "sha256": "d3d27a4960e66f9d815abc4e0870bd96664eb3a488c830c04557cb1415e1c8da",
+      "bytes": 4128
+    }
+  ]
+}
