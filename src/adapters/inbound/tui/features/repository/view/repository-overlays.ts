@@ -1,8 +1,12 @@
-import { Key, matchesKey, wrapTextWithAnsi }                    from "@earendil-works/pi-tui";
-import type { Component }                                       from "@earendil-works/pi-tui";
-import type { RepositoryInsights }                              from "@/core/ports/integration/repository-insights-port";
-import type { CommitSummary, IssueSummary, RepositorySnapshot } from "@/core/domain/development/repository";
-import { colors }                                               from "@/adapters/inbound/tui/foundation/theme/theme";
+import      { Key, matchesKey, wrapTextWithAnsi } from "@earendil-works/pi-tui"                            ;
+import type { Component                         } from "@earendil-works/pi-tui"                            ;
+import type { RepositoryInsights                } from "@/core/ports/integration/repository-insights-port" ;
+import type {
+              CommitSummary                   ,
+              IssueSummary                    ,
+              RepositorySnapshot              ,
+                                                } from "@/core/domain/development/repository"              ;
+import      { colors                            } from "@/adapters/inbound/tui/foundation/theme/theme"     ;
 
 type RepositoryPanelState =
 	| { status: "loading" }
@@ -13,26 +17,6 @@ type IssuePanelState =
 	| { status: "loading" }
 	| { status: "error"; message: string }
 	| { status: "ready"; issues: readonly IssueSummary[] };
-
-function message(error: unknown): string {
-	return error instanceof Error ? error.message : "조회에 실패했습니다.";
-}
-
-function shortDate(value: string): string {
-	const date = new Date(value);
-	return Number.isFinite(date.getTime()) ? date.toLocaleDateString("ko-KR") : value;
-}
-
-function wrapRows(rows: readonly string[], width: number): string[] {
-	return rows.flatMap(row => row ? wrapTextWithAnsi(row, Math.max(1, width)) : [""]);
-}
-
-function changeMarker(change: RepositorySnapshot["changedFiles"][number]): string {
-	if (change.untracked) return "?";
-	if (change.staged && change.unstaged) return "±";
-	if (change.staged) return "+";
-	return "~";
-}
 
 export class RepositoryActivityOverlay implements Component {
 	private state: RepositoryPanelState = { status: "loading" };
@@ -136,4 +120,24 @@ export class IssueListOverlay implements Component {
 		if (matchesKey(data, Key.escape)) return this.onClose();
 		if (data.toLowerCase() === "r") this.start();
 	}
+}
+
+function message(error: unknown): string {
+	return error instanceof Error ? error.message : "조회에 실패했습니다.";
+}
+
+function shortDate(value: string): string {
+	const date = new Date(value);
+	return Number.isFinite(date.getTime()) ? date.toLocaleDateString("ko-KR") : value;
+}
+
+function wrapRows(rows: readonly string[], width: number): string[] {
+	return rows.flatMap(row => row ? wrapTextWithAnsi(row, Math.max(1, width)) : [""]);
+}
+
+function changeMarker(change: RepositorySnapshot["changedFiles"][number]): string {
+	if (change.untracked) return "?";
+	if (change.staged && change.unstaged) return "±";
+	if (change.staged) return "+";
+	return "~";
 }

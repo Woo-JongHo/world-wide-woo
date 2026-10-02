@@ -1,12 +1,15 @@
-import { truncateToWidth }                                                              from "@earendil-works/pi-tui";
-import type { Component }                                                               from "@earendil-works/pi-tui";
-import type { ProjectActivity }                                                         from "@/core/domain/execution/project-activity";
-import { sanitizeTerminalTextExcerpt }                                                  from "@/core/domain/execution/terminal";
-import { projectNativeDelegation }                                                      from "@/core/domain/work";
-import type { NativeDelegatedTask, NativeDelegationProjection, NativeDelegationStatus } from "@/core/domain/work";
-import { colors }                                                                       from "@/adapters/inbound/tui/foundation/theme/theme";
+import      { truncateToWidth              } from "@earendil-works/pi-tui"                        ;
+import type { Component                    } from "@earendil-works/pi-tui"                        ;
+import type { ProjectActivity              } from "@/core/domain/execution/project-activity"      ;
+import      { sanitizeTerminalTextExcerpt  } from "@/core/domain/execution/terminal"              ;
+import      { projectNativeDelegation      } from "@/core/domain/work"                            ;
+import type {
+              NativeDelegatedTask        ,
+              NativeDelegationProjection ,
+              NativeDelegationStatus     ,
+                                           } from "@/core/domain/work"                            ;
+import      { colors                       } from "@/adapters/inbound/tui/foundation/theme/theme" ;
 
-const LIMIT = 360;
 export interface WorkbenchDelegationSection {
 	readonly anchorActivityId : string                                                           ;
 	readonly activityIds      : readonly string[]                                                ;
@@ -14,6 +17,8 @@ export interface WorkbenchDelegationSection {
 	readonly source           : { readonly turnId: string; readonly itemIds: readonly string[] } ;
 	readonly rows             : readonly string[]                                                ;
 }
+
+const LIMIT = 360;
 
 /** Compatibility adapter; snapshots should pass their already-computed projection to renderDelegationSections. */
 export function projectWorkbenchDelegationSections(activities: readonly ProjectActivity[], goal: string, rootThreadId: string | null, width: number): readonly WorkbenchDelegationSection[] {
@@ -30,8 +35,8 @@ export function renderDelegationSections(projections: readonly NativeDelegationP
 /** Selected-agent detail contains only observed public fields; raw reasoning is intentionally absent. */
 export function renderDelegationDetail(task: NativeDelegatedTask | null, width: number, activityLimit = 8): readonly string[] {
 	if (!task) return Object.freeze([clip(colors.muted("메인 수행 관찰 · 에이전트를 선택하면 맡긴 일 상세를 봅니다."), width)]);
-	const label = safe(task.role) ?? safe(task.id) ?? "상세 관측 미지원/미수신";
-	const rows = [`${present(task.status).glyph} ${label} · ${present(task.status).label}`, `Ref: ${safe(task.ref) ?? "상세 관측 미지원/미수신"}`, `Attempt: ${safe(String(task.attempt))}`];
+	const label = safe(task.role) ?? safe(task.id) ?? "상세 관측 미지원/미수신"                                                                                                               ;
+	const rows  = [`${present(task.status).glyph} ${label} · ${present(task.status).label}`, `Ref: ${safe(task.ref) ?? "상세 관측 미지원/미수신"}`, `Attempt: ${safe(String(task.attempt))}`] ;
 	rows.push(`Parent: ${safe(task.parentId) ?? "상세 관측 미지원/미수신"}`);
 	rows.push(`Task: ${safe(task.task) ?? "상세 관측 미지원/미수신"}`);
 	rows.push(`Model: ${[safe(task.model), safe(task.reasoningEffort)].filter(Boolean).join(" · ") || "상세 관측 미지원/미수신"}`);
@@ -66,12 +71,12 @@ function summaryRows(tasks: readonly NativeDelegatedTask[], goal: string, width:
 		if (task.task) rows.push(`   ${pad}Description: ${safe(task.task)}`);
 		const latest = [...task.activities].reverse().find((a) => a.message && a.message !== task.task && !["sendMessage", "followupTask", "sendInput"].includes(a.kind))?.message; if (latest) rows.push(`   ${pad}└─ ${safe(latest)}`);
 	}
-	const byId = new Map(tasks.map((task, index) => [task.id, task.role ?? `Agent ${index + 1}`]));
-	const messages = new Map<string, NativeDelegatedTask["activities"][number]>();
+	const byId     = new Map(tasks.map((task, index) => [task.id, task.role ?? `Agent ${index + 1}`])) ;
+	const messages = new Map<string, NativeDelegatedTask["activities"][number]>()                      ;
 	for (const task of tasks) for (const activity of task.activities) if (["sendMessage", "followupTask", "sendInput"].includes(activity.kind)) messages.set(activity.activityId, activity);
 	for (const activity of messages.values()) {
-		const sender = activity.senderId === tasks[0]?.parentId ? "you" : byId.get(activity.senderId ?? "") ?? "agent";
-		const receivers = activity.receiverIds.map((id) => id === tasks[0]?.parentId ? "you" : byId.get(id) ?? "agent").join(", ") || "team";
+		const sender    = activity.senderId === tasks[0]?.parentId ? "you" : byId.get(activity.senderId ?? "") ?? "agent"                    ;
+		const receivers = activity.receiverIds.map((id) => id === tasks[0]?.parentId ? "you" : byId.get(id) ?? "agent").join(", ") || "team" ;
 		rows.push(`[IRC] ${safe(sender)} → ${safe(receivers)}`); if (activity.message) rows.push(`  ${safe(activity.message)}`);
 	}
 	const active = tasks.filter((task) => task.status === "pending" || task.status === "running" || task.status === "unknown").length;
@@ -80,8 +85,8 @@ function summaryRows(tasks: readonly NativeDelegatedTask[], goal: string, width:
 }
 function present(status: NativeDelegationStatus): { glyph: string; label: string } { if (status === "completed") return { glyph: "✓", label: "completed" }; if (status === "failed") return { glyph: "✗", label: "errored" }; if (status === "cancelled") return { glyph: "■", label: "interrupted" }; if (status === "pending") return { glyph: "⏳", label: "pending" }; if (status === "unknown") return { glyph: "?", label: "unknown" }; return { glyph: "⣾", label: "running" }; }
 function depthFirstTasks(tasks: readonly NativeDelegatedTask[]): readonly { task: NativeDelegatedTask; prefix: string; last: boolean; ordinal: number }[] {
-	const refs = new Set(tasks.map((task) => task.ref));
-	const children = new Map<string, NativeDelegatedTask[]>();
+	const refs     = new Set(tasks.map((task) => task.ref))   ;
+	const children = new Map<string, NativeDelegatedTask[]>() ;
 	for (const task of tasks) if (task.parentRef && refs.has(task.parentRef)) { const list = children.get(task.parentRef) ?? []; list.push(task); children.set(task.parentRef, list); }
 	const roots = tasks.filter((task) => !task.parentRef || !refs.has(task.parentRef));
 	const rows: { task: NativeDelegatedTask; prefix: string; last: boolean; ordinal: number }[] = [], visited = new Set<string>();

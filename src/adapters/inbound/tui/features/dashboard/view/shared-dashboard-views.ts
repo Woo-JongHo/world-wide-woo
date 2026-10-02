@@ -1,22 +1,30 @@
-import { truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
-import type { Component }                                  from "@earendil-works/pi-tui";
+import      {
+              truncateToWidth        ,
+              visibleWidth           ,
+              wrapTextWithAnsi       ,
+                                       } from "@earendil-works/pi-tui"                                          ;
+import type { Component                } from "@earendil-works/pi-tui"                                          ;
 import chalk                                               from "chalk";
-import type { ProjectActivity }                            from "@/core/domain/execution/project-activity";
-import { todoProgress }                                    from "@/core/domain/work/todos";
-import type { TodoDocument, TodoItem }                     from "@/core/domain/work/todos";
-import type { WorkFlowProjection }                         from "@/core/domain/work";
-import type { WorkbenchTodoSyncState }                     from "@/core/domain/work/workbench";
-import type { LinearProjectDashboard }                     from "@/core/domain/work/linear-dashboard";
-import { colors }                                          from "@/adapters/inbound/tui/foundation/theme/theme";
-import {
-	DASHBOARD_PANEL_SYSTEM,
-	dashboardProgressCells,
-} from "@/adapters/inbound/tui/foundation/layout/dashboard-panel-system";
+import type { ProjectActivity          } from "@/core/domain/execution/project-activity"                        ;
+import      { todoProgress             } from "@/core/domain/work/todos"                                        ;
+import type { TodoDocument, TodoItem   } from "@/core/domain/work/todos"                                        ;
+import type { WorkFlowProjection       } from "@/core/domain/work"                                              ;
+import type { WorkbenchTodoSyncState   } from "@/core/domain/work/workbench"                                    ;
+import type { LinearProjectDashboard   } from "@/core/domain/work/linear-dashboard"                             ;
+import      { colors                   } from "@/adapters/inbound/tui/foundation/theme/theme"                   ;
+import      {
+              DASHBOARD_PANEL_SYSTEM ,
+              dashboardProgressCells ,
+                                       } from "@/adapters/inbound/tui/foundation/layout/dashboard-panel-system" ;
 
-function fit(text: string, width: number): string {
-	if (width <= 0) return "";
-	const clipped = truncateToWidth(text, width);
-	return clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)));
+export interface WorkspaceTodoLiveContext {
+	readonly activeTurnId     : string | null              ;
+	readonly activities       : readonly ProjectActivity[] ;
+	readonly workFlow         : WorkFlowProjection         ;
+	readonly hasConversation? : boolean                    ;
+	/** Session Goal is shown until a Native Plan becomes the Todo source. */
+	readonly goal?: string | null;
+	readonly sync?: WorkbenchTodoSyncState;
 }
 
 export class StatusLine implements Component {
@@ -34,16 +42,6 @@ export class StatusLine implements Component {
 	render(width: number): string[] {
 		return [colors.muted(fit(this.notice, width))];
 	}
-}
-
-export interface WorkspaceTodoLiveContext {
-	readonly activeTurnId     : string | null              ;
-	readonly activities       : readonly ProjectActivity[] ;
-	readonly workFlow         : WorkFlowProjection         ;
-	readonly hasConversation? : boolean                    ;
-	/** Session Goal is shown until a Native Plan becomes the Todo source. */
-	readonly goal?: string | null;
-	readonly sync?: WorkbenchTodoSyncState;
 }
 
 /** Human time for the Todo heading; malformed or absent revisions stay quiet. */
@@ -72,11 +70,11 @@ export class WorkspaceTodoView implements Component {
 	}
 
 	private renderTodo(width: number): string[] {
-		const document = this.todo();
-		const live = this.live();
+		const document = this.todo() ;
+		const live     = this.live() ;
 		if (!document || document.items.length === 0) {
-			const dashboard = this.linearDashboard();
-			const showEntryDashboard = !live.hasConversation && !live.activeTurnId && !live.workFlow.source;
+			const dashboard          = this.linearDashboard()                                               ;
+			const showEntryDashboard = !live.hasConversation && !live.activeTurnId && !live.workFlow.source ;
 			const goalRows = live.goal
 				? wrapTextWithAnsi(colors.highlight(`Goal · ${live.goal}`), width)
 				: [];
@@ -104,8 +102,8 @@ export class WorkspaceTodoView implements Component {
 			];
 		}
 
-		const progress = todoProgress(document);
-		const progressLabel = `${progress.completed} / ${progress.total}`;
+		const progress      = todoProgress(document)                      ;
+		const progressLabel = `${progress.completed} / ${progress.total}` ;
 		const items = width < 42
 			? [document.items.find(item => item.status === "in_progress")
 				?? document.items.find(item => item.status === "pending")
@@ -197,4 +195,10 @@ function todoProgressRail(completed: number, total: number, width: number): stri
 	const filled = total > 0 ? Math.round((completed / total) * cells) : 0 ;
 	const empty  = Math.max(0, cells - filled)                             ;
 	return chalk.bgHex("#11d6e8")(" ".repeat(filled)) + chalk.bgHex("#173039")(" ".repeat(empty));
+}
+
+function fit(text: string, width: number): string {
+	if (width <= 0) return "";
+	const clipped = truncateToWidth(text, width);
+	return clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)));
 }

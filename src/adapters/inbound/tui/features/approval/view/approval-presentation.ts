@@ -1,12 +1,10 @@
-import { wrapTextWithAnsi }                                from "@earendil-works/pi-tui";
-import { projectBackgroundWorkState }                      from "@/core/domain/execution/native-session";
-import type { BackgroundWorkState, NativeApprovalRequest } from "@/core/domain/execution/native-session";
-import { sanitizeTerminalTextExcerpt }                     from "@/core/domain/execution/terminal";
-import { workbenchApprovalDecisions }                      from "@/core/domain/work/workbench";
-import type { WorkbenchSnapshot }                          from "@/core/domain/work/workbench";
-import { colors }                                          from "@/adapters/inbound/tui/foundation/theme/theme";
-
-const APPROVAL_DETAIL_MAX_CHARS = 200;
+import      { wrapTextWithAnsi                           } from "@earendil-works/pi-tui"                        ;
+import      { projectBackgroundWorkState                 } from "@/core/domain/execution/native-session"        ;
+import type { BackgroundWorkState, NativeApprovalRequest } from "@/core/domain/execution/native-session"        ;
+import      { sanitizeTerminalTextExcerpt                } from "@/core/domain/execution/terminal"              ;
+import      { workbenchApprovalDecisions                 } from "@/core/domain/work/workbench"                  ;
+import type { WorkbenchSnapshot                          } from "@/core/domain/work/workbench"                  ;
+import      { colors                                     } from "@/adapters/inbound/tui/foundation/theme/theme" ;
 
 export interface ApprovalRequestPresentation {
 	readonly kind        : string        ;
@@ -15,6 +13,8 @@ export interface ApprovalRequestPresentation {
 	readonly reason      : string        ;
 	readonly cwd         : string | null ;
 }
+
+const APPROVAL_DETAIL_MAX_CHARS = 200;
 
 export function approvalKindLabel(kind: NativeApprovalRequest["kind"]): string {
 	if (kind === "command") return "명령";
@@ -54,12 +54,6 @@ export function projectApprovalRequest(request: NativeApprovalRequest): Approval
 	};
 }
 
-function approvalInstruction(request: NativeApprovalRequest): string {
-	return workbenchApprovalDecisions(request).length > 0
-		? "승인 선택 화면 · ↑↓ 또는 숫자로 선택 · Enter 결정"
-		: "이 요청은 결정 선택지를 제공하지 않습니다. /cancel 로 중단하세요.";
-}
-
 export function approvalCardRows(
 	request: NativeApprovalRequest,
 	queueDepth: number,
@@ -86,4 +80,10 @@ export function projectApprovalBackgroundState(activities: WorkbenchSnapshot["ac
 		const item = (params as Readonly<Record<string, unknown>>).item;
 		return item && typeof item === "object" && !Array.isArray(item) ? [item] : [];
 	}));
+}
+
+function approvalInstruction(request: NativeApprovalRequest): string {
+	return workbenchApprovalDecisions(request).length > 0
+		? "승인 선택 화면 · ↑↓ 또는 숫자로 선택 · Enter 결정"
+		: "이 요청은 결정 선택지를 제공하지 않습니다. /cancel 로 중단하세요.";
 }

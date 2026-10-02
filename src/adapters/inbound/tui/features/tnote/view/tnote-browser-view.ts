@@ -1,10 +1,31 @@
-import { truncateToWidth, visibleWidth, wrapTextWithAnsi }      from "@earendil-works/pi-tui";
-import { parseCanonicalTNoteReport, parseLegacyCanonicalTNote } from "@/core/application/work/t-note-service";
-import type { WorkbenchTNote }                                  from "@/core/domain/work/workbench";
-import { colors }                                               from "@/adapters/inbound/tui/foundation/theme/theme";
-import type { TNoteBrowserViewModel }                           from "@/adapters/inbound/tui/features/tnote/view-model/tnote-browser-view-model";
-import { projectOperationReport }                               from "@/adapters/inbound/tui/features/tnote/view-model/operation-report-view-model";
-import { renderOperationReport }                                from "@/adapters/inbound/tui/features/tnote/view/operation-report-view";
+import      {
+              truncateToWidth           ,
+              visibleWidth              ,
+              wrapTextWithAnsi          ,
+                                          } from "@earendil-works/pi-tui"                                                       ;
+import      {
+              parseCanonicalTNoteReport ,
+              parseLegacyCanonicalTNote ,
+                                          } from "@/core/application/work/t-note-service"                                       ;
+import type { WorkbenchTNote              } from "@/core/domain/work/workbench"                                                 ;
+import      { colors                      } from "@/adapters/inbound/tui/foundation/theme/theme"                                ;
+import type { TNoteBrowserViewModel       } from "@/adapters/inbound/tui/features/tnote/view-model/tnote-browser-view-model"    ;
+import      { projectOperationReport      } from "@/adapters/inbound/tui/features/tnote/view-model/operation-report-view-model" ;
+import      { renderOperationReport       } from "@/adapters/inbound/tui/features/tnote/view/operation-report-view"             ;
+
+/** Pure terminal rendering for the Note browser. Stored state and selection remain caller-owned. */
+export function renderTNoteBrowserView(
+	state: TNoteBrowserViewModel,
+	listRows: readonly string[],
+	width: number,
+): string[] {
+	const contentWidth = Math.max(1, width)                                                                               ;
+	const status       = state.status === "stale" ? colors.error(state.statusMessage) : colors.muted(state.statusMessage) ;
+	const rows = state.mode === "detail" && state.selected
+		? [...detailRows(state.selected, contentWidth, state), "", colors.muted("← 목록 · Esc 목록 · ↑↓ Note 이동")]
+		: [colors.highlight("완료 Note"), status, "", ...listRows, "", colors.muted("↑↓ 선택 · Enter 열기 · Esc 닫기")];
+	return rows.map(row => fit(row, contentWidth));
+}
 
 function fit(text: string, width: number): string {
 	const clipped = truncateToWidth(text, Math.max(0, width));
@@ -79,18 +100,4 @@ function previousComparableNote(state: TNoteBrowserViewModel, note: WorkbenchTNo
 		if (candidate?.title === note.title && candidate.format === "request-report-v3") return { previousNote: candidate };
 	}
 	return {};
-}
-
-/** Pure terminal rendering for the Note browser. Stored state and selection remain caller-owned. */
-export function renderTNoteBrowserView(
-	state: TNoteBrowserViewModel,
-	listRows: readonly string[],
-	width: number,
-): string[] {
-	const contentWidth = Math.max(1, width);
-	const status = state.status === "stale" ? colors.error(state.statusMessage) : colors.muted(state.statusMessage);
-	const rows = state.mode === "detail" && state.selected
-		? [...detailRows(state.selected, contentWidth, state), "", colors.muted("← 목록 · Esc 목록 · ↑↓ Note 이동")]
-		: [colors.highlight("완료 Note"), status, "", ...listRows, "", colors.muted("↑↓ 선택 · Enter 열기 · Esc 닫기")];
-	return rows.map(row => fit(row, contentWidth));
 }

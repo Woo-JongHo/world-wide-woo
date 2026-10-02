@@ -1,9 +1,13 @@
-import { truncateToWidth, wrapTextWithAnsi }       from "@earendil-works/pi-tui";
-import type { ChatFeatureProjection }              from "@/core/application/orchestration/workbench-feature-reads";
-import type { ProjectActivity }                    from "@/core/domain/execution/project-activity";
-import type { WorkbenchLiveActivity }              from "@/core/domain/work/workbench";
-import { activityGradientFrame, colors, semantic } from "@/adapters/inbound/tui/foundation/theme/theme";
-import { isVisibleWorkStep }                       from "@/adapters/inbound/tui/features/chat/view/work-step-card";
+import      { truncateToWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui"                                   ;
+import type { ChatFeatureProjection             } from "@/core/application/orchestration/workbench-feature-reads" ;
+import type { ProjectActivity                   } from "@/core/domain/execution/project-activity"                 ;
+import type { WorkbenchLiveActivity             } from "@/core/domain/work/workbench"                             ;
+import      {
+              activityGradientFrame           ,
+              colors                          ,
+              semantic                        ,
+                                                } from "@/adapters/inbound/tui/foundation/theme/theme"            ;
+import      { isVisibleWorkStep                 } from "@/adapters/inbound/tui/features/chat/view/work-step-card" ;
 
 export interface ChatActivityIndicator {
 	readonly message    : string            ;
@@ -15,16 +19,6 @@ export interface ChatActivityIndicator {
 interface ActivityRenderCallbacks {
 	readonly changed: () => void;
 	readonly frameAdvanced: () => void;
-}
-
-function activityOwnerKey(activity: ProjectActivity): string {
-	const { threadId, turnId, itemId } = activity.nativeRefs;
-	return itemId ? `${threadId ?? ""}\0${turnId ?? ""}\0${itemId}` : `activity\0${activity.id}`;
-}
-
-function liveActivityOwnerKey(activity: WorkbenchLiveActivity): string {
-	const { threadId, turnId, itemId } = activity.nativeRefs;
-	return itemId ? `${threadId ?? ""}\0${turnId ?? ""}\0${itemId}` : "activity\0live";
 }
 
 export function matchingLiveActivity(
@@ -103,4 +97,14 @@ export class ChatLiveActivity {
 		this.timer = null;
 		this.frame = 0;
 	}
+}
+
+function activityOwnerKey(activity: ProjectActivity): string {
+	const { threadId, turnId, itemId } = activity.nativeRefs;
+	return itemId ? `${threadId ?? ""}\0${turnId ?? ""}\0${itemId}` : `activity\0${activity.id}`;
+}
+
+function liveActivityOwnerKey(activity: WorkbenchLiveActivity): string {
+	const { threadId, turnId, itemId } = activity.nativeRefs;
+	return itemId ? `${threadId ?? ""}\0${turnId ?? ""}\0${itemId}` : "activity\0live";
 }

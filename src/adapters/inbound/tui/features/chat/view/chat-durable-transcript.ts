@@ -1,23 +1,36 @@
-import { truncateToWidth, visibleWidth, wrapTextWithAnsi }  from "@earendil-works/pi-tui";
-import type { ChatFeatureProjection }                       from "@/core/application/orchestration/workbench-feature-reads";
-import type { ProjectActivity }                             from "@/core/domain/execution/project-activity";
-import type { WorkbenchChatMessage, WorkbenchLiveActivity } from "@/core/domain/work/workbench";
-import { classifyWorkActivity }                             from "@/core/domain/work";
-import type { SemanticWorkStep, WorkStepStatus }            from "@/core/domain/work";
-import { boundedPublicProjection }                          from "@/adapters/inbound/tui/features/chat/view-model/bounded-public-projection";
-import { colors, semantic }                                 from "@/adapters/inbound/tui/foundation/theme/theme";
-import {
-	isVisibleWorkStep,
-	ObservationCard,
-	WorkStepCard,
-} from "@/adapters/inbound/tui/features/chat/view/work-step-card";
-import {
-	projectWorkbenchDelegationSections,
-	renderDelegationSections,
-} from "@/adapters/inbound/tui/features/chat/view/delegation-tree-view";
-import { matchingLiveActivity }                             from "@/adapters/inbound/tui/features/chat/view/chat-live-activity";
-import { boundedWorkbenchMarkdown }                         from "@/adapters/inbound/tui/features/chat/view/chat-message-renderer";
-import { publicTimelineActivityRows }                       from "@/adapters/inbound/tui/features/chat/view/chat-public-lifecycle";
+import      {
+              truncateToWidth                    ,
+              visibleWidth                       ,
+              wrapTextWithAnsi                   ,
+                                                   } from "@earendil-works/pi-tui"                                                    ;
+import type { ChatFeatureProjection                } from "@/core/application/orchestration/workbench-feature-reads"                  ;
+import type { ProjectActivity                      } from "@/core/domain/execution/project-activity"                                  ;
+import type {
+              WorkbenchChatMessage               ,
+              WorkbenchLiveActivity              ,
+                                                   } from "@/core/domain/work/workbench"                                              ;
+import      { classifyWorkActivity                 } from "@/core/domain/work"                                                        ;
+import type {
+              SemanticWorkStep                   ,
+              WorkStepStatus                     ,
+                                                   } from "@/core/domain/work"                                                        ;
+import      { boundedPublicProjection              } from "@/adapters/inbound/tui/features/chat/view-model/bounded-public-projection" ;
+import      {
+              colors                             ,
+              semantic                           ,
+                                                   } from "@/adapters/inbound/tui/foundation/theme/theme"                             ;
+import      {
+              isVisibleWorkStep                  ,
+              ObservationCard                    ,
+              WorkStepCard                       ,
+                                                   } from "@/adapters/inbound/tui/features/chat/view/work-step-card"                  ;
+import      {
+              projectWorkbenchDelegationSections ,
+              renderDelegationSections           ,
+                                                   } from "@/adapters/inbound/tui/features/chat/view/delegation-tree-view"            ;
+import      { matchingLiveActivity                 } from "@/adapters/inbound/tui/features/chat/view/chat-live-activity"              ;
+import      { boundedWorkbenchMarkdown             } from "@/adapters/inbound/tui/features/chat/view/chat-message-renderer"           ;
+import      { publicTimelineActivityRows           } from "@/adapters/inbound/tui/features/chat/view/chat-public-lifecycle"           ;
 
 export interface ChatApprovalPresentation {
 	readonly render: (snapshot: ChatFeatureProjection, width: number) => readonly string[];
@@ -31,34 +44,6 @@ export interface DurableMessagePresentation {
 }
 
 const WORKBENCH_STEP_CACHE_LIMIT = 512;
-
-function fit(text: string, width: number): string {
-	if (width <= 0) return "";
-	const clipped = truncateToWidth(text, width);
-	return clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)));
-}
-
-function surfaceRows(rows: readonly string[], width: number, surface: (text: string) => string): string[] {
-	return rows.map(row => surface(fit(row, width)));
-}
-
-function transcriptRows(rows: readonly string[], width: number): string[] {
-	return rows.map((row) => truncateToWidth(row, Math.max(1, width)));
-}
-
-function activityOwnerKey(activity: ProjectActivity): string {
-	const { threadId, turnId, itemId } = activity.nativeRefs;
-	return itemId ? `${threadId ?? ""}\0${turnId ?? ""}\0${itemId}` : `activity\0${activity.id}`;
-}
-
-function isActivityPayload(value: unknown): value is Readonly<Record<string, unknown>> {
-	return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
-function boundedActivity(activity: ProjectActivity): ProjectActivity {
-	const payload = boundedPublicProjection(activity.payload).value;
-	return { ...activity, payload: isActivityPayload(payload) ? payload : {} };
-}
 
 /** Assembles durable Chat messages, lifecycle events, execution cards, and notices in journal order. */
 export class ChatDurableTranscript {
@@ -96,8 +81,8 @@ export class ChatDurableTranscript {
 			const lastVisibleActivityId = [...step.activityIds].reverse().find((id) => activityById.has(id));
 			if (lastVisibleActivityId) stepByLastActivity.set(lastVisibleActivityId, step);
 		}
-		const observationByItem = new Map<string, string>();
-		const lastVisibleActivityByItem = new Map<string, string>();
+		const observationByItem         = new Map<string, string>() ;
+		const lastVisibleActivityByItem = new Map<string, string>() ;
 		for (const activity of activities) {
 			if (isVisibleWorkStep(activity.kind)) {
 				lastVisibleActivityByItem.set(activityOwnerKey(activity), activity.id);
@@ -105,8 +90,8 @@ export class ChatDurableTranscript {
 			if (classifyWorkActivity(activity) !== "observation") continue;
 			observationByItem.set(activityOwnerKey(activity), activity.id);
 		}
-		const observationActivityIds = new Set(observationByItem.values());
-		const delegationByActivity = new Map<string, readonly string[] | null>();
+		const observationActivityIds = new Set(observationByItem.values())         ;
+		const delegationByActivity   = new Map<string, readonly string[] | null>() ;
 		const selectedPlanItemId = this.snapshot.selectedActivityId
 			? activityById.get(this.snapshot.selectedActivityId)?.nativeRefs.itemId
 			: undefined;
@@ -136,8 +121,8 @@ export class ChatDurableTranscript {
 			for (const activityId of section.activityIds) delegationByActivity.set(activityId, null);
 			delegationByActivity.set(section.anchorActivityId, traceRows);
 		}
-		const rows: string[] = [];
-		const renderedMessageIds = new Set<string>();
+		const rows: string[]     = []                ;
+		const renderedMessageIds = new Set<string>() ;
 		for (const activity of activities) {
 			const message = messages.get(activity.id);
 			if (message) {
@@ -160,8 +145,8 @@ export class ChatDurableTranscript {
 				const live = matchingLiveActivity(this.snapshot.liveActivity, activity);
 				rows.push(...this.renderStepCard(step, contentWidth, activity, live), "");
 			} else if (observationActivityIds.has(activity.id)) {
-				const live = matchingLiveActivity(this.snapshot.liveActivity, activity);
-				const projectedActivity = boundedActivity(activity);
+				const live              = matchingLiveActivity(this.snapshot.liveActivity, activity) ;
+				const projectedActivity = boundedActivity(activity)                                  ;
 				rows.push(
 					...new ObservationCard({
 						activity: projectedActivity,
@@ -264,8 +249,8 @@ export class ChatDurableTranscript {
 			], contentWidth, semantic.userSurface), "");
 		}
 		if (this.snapshot.error) {
-			const projectedError = boundedPublicProjection(this.snapshot.error).value;
-			const publicError = typeof projectedError === "string" ? projectedError : "Native 상태를 확인할 수 없습니다.";
+			const projectedError = boundedPublicProjection(this.snapshot.error).value                                        ;
+			const publicError    = typeof projectedError === "string" ? projectedError : "Native 상태를 확인할 수 없습니다." ;
 			rows.push(...surfaceRows([
 				colors.error("확인이 필요한 상태"),
 				...wrapTextWithAnsi(boundedWorkbenchMarkdown(publicError), contentWidth),
@@ -324,4 +309,32 @@ export class ChatDurableTranscript {
 function commandStatus(status: WorkStepStatus): "pending" | "running" | "passed" | "failed" | "cancelled" {
 	if (status === "completed") return "passed";
 	return status;
+}
+
+function fit(text: string, width: number): string {
+	if (width <= 0) return "";
+	const clipped = truncateToWidth(text, width);
+	return clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)));
+}
+
+function surfaceRows(rows: readonly string[], width: number, surface: (text: string) => string): string[] {
+	return rows.map(row => surface(fit(row, width)));
+}
+
+function transcriptRows(rows: readonly string[], width: number): string[] {
+	return rows.map((row) => truncateToWidth(row, Math.max(1, width)));
+}
+
+function activityOwnerKey(activity: ProjectActivity): string {
+	const { threadId, turnId, itemId } = activity.nativeRefs;
+	return itemId ? `${threadId ?? ""}\0${turnId ?? ""}\0${itemId}` : `activity\0${activity.id}`;
+}
+
+function isActivityPayload(value: unknown): value is Readonly<Record<string, unknown>> {
+	return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function boundedActivity(activity: ProjectActivity): ProjectActivity {
+	const payload = boundedPublicProjection(activity.payload).value;
+	return { ...activity, payload: isActivityPayload(payload) ? payload : {} };
 }

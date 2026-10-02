@@ -1,196 +1,45 @@
-import { truncateToWidth, visibleWidth, wrapTextWithAnsi }             from "@earendil-works/pi-tui";
-import type { Component }                                              from "@earendil-works/pi-tui";
-import type { ProjectActivity }                                        from "@/core/domain/execution/project-activity";
+import      {
+              truncateToWidth        ,
+              visibleWidth           ,
+              wrapTextWithAnsi       ,
+                                       } from "@earendil-works/pi-tui"                                               ;
+import type { Component                } from "@earendil-works/pi-tui"                                               ;
+import type { ProjectActivity          } from "@/core/domain/execution/project-activity"                             ;
 import type {
-	LinearDashboardComment,
-	LinearDashboardIssue,
-	LinearProjectDashboard,
-} from "@/core/domain/work/linear-dashboard";
-import type { WorkbenchSnapshot }                                      from "@/core/domain/work/workbench";
-import { PRODUCT_VERSION }                                             from "@/product-version";
-import {
-	monitoringCard,
-	monitoringColumns,
-	monitoringMeter,
-	monitoringPanel,
-	monitoringWidths,
-} from "@/adapters/inbound/tui/foundation/layout/www-monitoring-layout";
-import {
-	a,
-	number,
-	pair,
-	prose,
-	railSection,
-	section as wwwSection,
-	telemetryDuration,
-} from "@/adapters/inbound/tui/foundation/theme/www-theme";
-import { runtimeModeLabel, workbenchEffortLabel, workbenchModelLabel } from "@/adapters/inbound/tui/foundation/labels";
-import { colors }                                                      from "@/adapters/inbound/tui/foundation/theme/theme";
-import {
-	syntheticDashboardRail,
-	syntheticDashboardRows,
-} from "@/adapters/inbound/tui/features/dashboard/view/www-dashboard-catalog";
-
-function fit(text: string, width: number): string {
-	if (width <= 0) return "";
-	const clipped = truncateToWidth(text, width);
-	return clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)));
-}
-
-function relativeAge(value: string | null | undefined, now: Date): string {
-	if (!value) return "—";
-	const timestamp = Date.parse(value);
-	if (!Number.isFinite(timestamp)) return "—";
-	const minutes = Math.max(0, Math.floor((now.getTime() - timestamp) / 60_000));
-	if (minutes < 60) return `${minutes}m ago`;
-	const hours = Math.floor(minutes / 60);
-	if (hours < 24) return `${hours}h ago`;
-	return `${Math.floor(hours / 24)}d ago`;
-}
-
-function clock(value: string | null | undefined): string {
-	if (!value) return "—";
-	const date = new Date(value);
-	if (Number.isNaN(date.getTime())) return "—";
-	return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
-}
-
-function isInProgress(issue: LinearDashboardIssue): boolean {
-	return issue.statusType === "started"
-		|| /(?:progress|started|running|doing|작업|진행)/iu.test(issue.status);
-}
-
-function section(title: string): string {
-	return colors.warm(title);
-}
-
-function issueRows(issue: LinearDashboardIssue, marker: string, width: number, now: Date): string[] {
-	const rows = [colors.accent(`${marker} ${issue.id}`)];
-	rows.push(...wrapTextWithAnsi(`  ${issue.title}`, width));
-	rows.push(colors.muted(`  ${issue.status} · ${relativeAge(issue.updatedAt, now)}`));
-	return rows;
-}
-
-function updateRows(dashboard: LinearProjectDashboard, width: number): string[] {
-	const update = dashboard.update;
-	if (!update || update.version !== PRODUCT_VERSION) return [colors.muted(`  게시된 v${PRODUCT_VERSION} 릴리스 노트가 없습니다.`)];
-	const body = update.body.split(/\r?\n/u).map(line => line.trim()).filter(Boolean).slice(0, 8);
-	const rows: string[] = [];
-	for (const line of body) {
-		const cleaned = line.replace(/^#{1,3}\s*/u, "");
-		rows.push(...wrapTextWithAnsi(`  ${cleaned}`, width));
-	}
-	if (update.createdAt) rows.push(colors.muted(`  ${clock(update.createdAt)}`));
-	return rows.length > 0 ? rows : [colors.muted("  Project Update가 없습니다.")];
-}
-
-function commentSummary(comment: LinearDashboardComment): string {
-	const line = comment.body.split(/\r?\n/u).map(value => value.trim()).filter(value => value && !/^#{1,6}\s*/u.test(value)).map(value => value.replace(/^[-*]\s*/u, "")).find(Boolean);
-	return line || "내용 없는 Comment";
-}
-
-function commentRows(dashboard: LinearProjectDashboard, width: number, now: Date): string[] {
-	const comments = dashboard.comments.slice(0, 3);
-	if (comments.length === 0) return [colors.muted("  최근 Comment가 없습니다.")];
-	return comments.flatMap(comment => [
-		colors.muted(`  ${comment.author ?? "Linear"} · ${relativeAge(comment.createdAt, now)}`),
-		...wrapTextWithAnsi(`  ${commentSummary(comment)}`, width),
-	]);
-}
-
-function snapshotText(value: string | null | undefined, fallback: string): string {
-	const text = (value ?? "").replace(/[\x00-\x1f\x7f-\x9f]/gu, " ").replace(/\s+/gu, " ").trim();
-	return text || fallback;
-}
-
-function snapshotPhase(phase: WorkbenchSnapshot["phase"]): string {
-	return ({ loading: "초기화 중", ready: "준비됨", working: "작업 진행 중", error: "오류", closed: "종료됨" })[phase];
-}
-
-function dashboardHealth(snapshot: WorkbenchSnapshot, blockedTodos: number): string {
-	if (snapshot.error) return "ERROR";
-	if (blockedTodos > 0) return "BLOCKED";
-	if (snapshot.phase === "loading") return "LOADING";
-	if (snapshot.phase === "closed") return "CLOSED";
-	return "NOMINAL";
-}
-
-function cacheSummary(snapshot: WorkbenchSnapshot): { readonly value: string; readonly detail: string } {
-	const layers = snapshot.cacheObservations ?? [];
-	const totals = layers.reduce((accumulator, layer) => ({
-		hits     : accumulator.hits + (layer.hits ?? 0),
-		misses   : accumulator.misses + (layer.misses ?? 0),
-		observed : accumulator.observed + (layer.hits !== null || layer.misses !== null ? 1 : 0),
-	}), { hits: 0, misses: 0, observed: 0 });
-	const requests = totals.hits + totals.misses;
-	if (totals.observed === 0 || requests === 0) return { value: "미관측", detail: totals.observed ? "accesses not observed" : "no observed layers" };
-	return { value: `${Math.round(totals.hits / requests * 100)}% hit`, detail: `${number(totals.hits)}/${number(requests)} accesses` };
-}
+              LinearDashboardComment ,
+              LinearDashboardIssue   ,
+              LinearProjectDashboard ,
+                                       } from "@/core/domain/work/linear-dashboard"                                  ;
+import type { WorkbenchSnapshot        } from "@/core/domain/work/workbench"                                         ;
+import      { PRODUCT_VERSION          } from "@/product-version"                                                    ;
+import      {
+              monitoringCard         ,
+              monitoringColumns      ,
+              monitoringMeter        ,
+              monitoringPanel        ,
+              monitoringWidths       ,
+                                       } from "@/adapters/inbound/tui/foundation/layout/www-monitoring-layout"       ;
+import      {
+              a                      ,
+              number                 ,
+              pair                   ,
+              prose                  ,
+              railSection            ,
+              section as wwwSection  ,
+              telemetryDuration      ,
+                                       } from "@/adapters/inbound/tui/foundation/theme/www-theme"                    ;
+import      {
+              runtimeModeLabel       ,
+              workbenchEffortLabel   ,
+              workbenchModelLabel    ,
+                                       } from "@/adapters/inbound/tui/foundation/labels"                             ;
+import      { colors                   } from "@/adapters/inbound/tui/foundation/theme/theme"                        ;
+import      {
+              syntheticDashboardRail ,
+              syntheticDashboardRows ,
+                                       } from "@/adapters/inbound/tui/features/dashboard/view/www-dashboard-catalog" ;
 
 type ActivityBucket = "message" | "tool" | "flow";
-
-function activityBucket(activity: ProjectActivity): ActivityBucket {
-	if (activity.kind === "message") return "message";
-	if (activity.kind === "tool") return "tool";
-	return "flow";
-}
-
-/** Twelve two-hour cells ending at the latest durable activity, never a synthetic timeline. */
-function observedActivityMatrix(activities: readonly ProjectActivity[]): Readonly<Record<ActivityBucket, readonly number[]>> | null {
-	const dated = activities.flatMap(activity => {
-		const timestamp = Date.parse(activity.recordedAt);
-		return Number.isFinite(timestamp) ? [{ activity, timestamp }] : [];
-	});
-	if (dated.length === 0) return null;
-	const columns    = 12                                               ;
-	const intervalMs = 2 * 60 * 60 * 1_000                              ;
-	const latest     = Math.max(...dated.map(entry => entry.timestamp)) ;
-	const start      = latest - columns * intervalMs                    ;
-	const matrix: Record<ActivityBucket, number[]> = {
-		message : Array.from({ length: columns }, () => 0),
-		tool    : Array.from({ length: columns }, () => 0),
-		flow    : Array.from({ length: columns }, () => 0),
-	};
-	for (const entry of dated) {
-		if (entry.timestamp < start || entry.timestamp > latest) continue;
-		const column = Math.min(columns - 1, Math.max(0, Math.floor((entry.timestamp - start) / intervalMs)));
-		matrix[activityBucket(entry.activity)][column] += 1;
-	}
-	return matrix;
-}
-
-function activityPanelRows(activities: readonly ProjectActivity[]): { readonly meta: string; readonly rows: readonly string[] } {
-	const matrix = observedActivityMatrix(activities);
-	if (!matrix) return { meta: "unavailable", rows: [a.muted("recordedAt unavailable"), a.muted("time distribution unavailable")] };
-	const cell = (value: number): string => value >= 3 ? a.active("■") : value === 2 ? a.attention("■") : value === 1 ? a.response("■") : a.rule("·");
-	return {
-		meta: "last 24h · observed",
-		rows: [
-		...(["message", "tool", "flow"] as const).map(kind => a.muted(`${kind.padEnd(7, " ")} `) + matrix[kind].map(cell).join("")),
-		a.muted("T-24h      T-12h        latest activity"),
-		],
-	};
-}
-
-function monitoringSplitWidths(width: number): readonly [number, number] {
-	const gap = 1;
-	const right = Math.max(24, Math.floor((width - gap) * 0.38));
-	return [Math.max(1, width - gap - right), right];
-}
-
-function layerPerformanceRows(snapshot: WorkbenchSnapshot, width: number): string[] {
-	const telemetry = snapshot.layerPerformance;
-	if (!telemetry || telemetry.window.traceCount === 0) return [pair("LAYER PERFORMANCE", "미관측", width)];
-	const observed = Object.entries(telemetry.window.layers).flatMap(([layerId, value]) => [
-		...(value.wait.p95 === null ? [] : [{ layerId, phase: "wait", p95: value.wait.p95 }]),
-		...(value.work.p95 === null ? [] : [{ layerId, phase: "work", p95: value.work.p95 }]),
-	]);
-	const slowest = observed.sort((left, right) => right.p95 - left.p95)[0];
-	return [
-		pair("OBSERVED TRACES", `${telemetry.window.traceCount} traces · ${telemetry.window.errorCount} trace failures`, width),
-		pair("SLOWEST P95", slowest ? `${slowest.layerId} ${slowest.phase} · ${telemetryDuration(slowest.p95)}` : "미관측", width),
-	];
-}
 
 /** First Www screen. Every operational value comes from the current Workbench snapshot. */
 export class WwwDashboardView implements Component {
@@ -225,8 +74,8 @@ export class WwwDashboardView implements Component {
 		] as const;
 		const requests = [...(snapshot.requestRuntime ?? [])].filter(request => request.threadId === snapshot.threadId).reverse();
 		const requestRows = requests.map((request, index) => {
-			const label = request.objective.trim() || request.requestId;
-			const marker = index === this.selectedRequestIndex() ? "›" : " ";
+			const label  = request.objective.trim() || request.requestId     ;
+			const marker = index === this.selectedRequestIndex() ? "›" : " " ;
 			return pair(`${marker} /monitor #${index + 1}`, `${request.status} · ${label}`, width);
 		});
 		if (width < 58) {
@@ -243,9 +92,9 @@ export class WwwDashboardView implements Component {
 			].flatMap(row => prose(row, width));
 		}
 
-		const summaryWidths = monitoringWidths(width, 5)                                                                         ;
-		const routerWidths  = monitoringWidths(width, 5)                                                                         ;
-		const usageValue    = sessionTokens == null ? "미관측" : number(sessionTokens)                                           ;
+		const summaryWidths = monitoringWidths(width, 5)                               ;
+		const routerWidths  = monitoringWidths(width, 5)                               ;
+		const usageValue    = sessionTokens == null ? "미관측" : number(sessionTokens) ;
 		const routerCards = [
 			monitoringCard({ title: "/output", value: `${snapshot.tnotes.length}`, detail: "operation reports" }, routerWidths[0]),
 			monitoringCard({ title: "/monitor", value: `${requests.length}`, detail: "question records" }, routerWidths[1]),
@@ -253,8 +102,8 @@ export class WwwDashboardView implements Component {
 			monitoringCard({ title: "/usage", value: usageValue, detail: "observed session tokens" }, routerWidths[3]),
 			monitoringCard({ title: "/workflow", value: `${workflow.completedCount}/${workflow.steps.length}`, detail: workflow.steps.length ? "tracked steps" : "no steps" }, routerWidths[4]),
 		];
-		const goal = snapshot.sessionGoal ? snapshotText(snapshot.sessionGoal.text, "목표 없음") : "Goal이 아직 없습니다.";
-		const liveSummary = live ? truncateToWidth(live, Math.max(16, width - 14)) : "현재 실행 중인 작업이 없습니다.";
+		const goal        = snapshot.sessionGoal ? snapshotText(snapshot.sessionGoal.text, "목표 없음") : "Goal이 아직 없습니다." ;
+		const liveSummary = live ? truncateToWidth(live, Math.max(16, width - 14)) : "현재 실행 중인 작업이 없습니다."            ;
 		const [tokenPanelWidth, activityPanelWidth] = monitoringSplitWidths(width);
 		const tokenInnerWidth = Math.max(1, tokenPanelWidth - 2)                                                           ;
 		const activity        = activityPanelRows(snapshot.activities)                                                     ;
@@ -307,8 +156,8 @@ export class WwwDashboardRail implements Component {
 	public render(width: number): string[] {
 		const snapshot = this.getSnapshot();
 		if (this.showSyntheticCatalog()) return syntheticDashboardRail(snapshot, width);
-		const context = snapshot.contextUsage;
-		const enabledMcp = snapshot.mcpServers.filter(server => server.enabled).length;
+		const context    = snapshot.contextUsage                                       ;
+		const enabledMcp = snapshot.mcpServers.filter(server => server.enabled).length ;
 		const rows = [
 			...railSection("Session context", width, snapshotPhase(snapshot.phase), a.response),
 			pair("Project", snapshot.projectId, width),
@@ -403,4 +252,163 @@ export class EntryDashboardView implements Component {
 		rows.push(colors.muted(`synced ${clock(dashboard.fetchedAt)}`));
 		return rows.flatMap(row => wrapTextWithAnsi(fit(row, contentWidth), contentWidth));
 	}
+}
+
+function fit(text: string, width: number): string {
+	if (width <= 0) return "";
+	const clipped = truncateToWidth(text, width);
+	return clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)));
+}
+
+function relativeAge(value: string | null | undefined, now: Date): string {
+	if (!value) return "—";
+	const timestamp = Date.parse(value);
+	if (!Number.isFinite(timestamp)) return "—";
+	const minutes = Math.max(0, Math.floor((now.getTime() - timestamp) / 60_000));
+	if (minutes < 60) return `${minutes}m ago`;
+	const hours = Math.floor(minutes / 60);
+	if (hours < 24) return `${hours}h ago`;
+	return `${Math.floor(hours / 24)}d ago`;
+}
+
+function clock(value: string | null | undefined): string {
+	if (!value) return "—";
+	const date = new Date(value);
+	if (Number.isNaN(date.getTime())) return "—";
+	return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+}
+
+function isInProgress(issue: LinearDashboardIssue): boolean {
+	return issue.statusType === "started"
+		|| /(?:progress|started|running|doing|작업|진행)/iu.test(issue.status);
+}
+
+function section(title: string): string {
+	return colors.warm(title);
+}
+
+function issueRows(issue: LinearDashboardIssue, marker: string, width: number, now: Date): string[] {
+	const rows = [colors.accent(`${marker} ${issue.id}`)];
+	rows.push(...wrapTextWithAnsi(`  ${issue.title}`, width));
+	rows.push(colors.muted(`  ${issue.status} · ${relativeAge(issue.updatedAt, now)}`));
+	return rows;
+}
+
+function updateRows(dashboard: LinearProjectDashboard, width: number): string[] {
+	const update = dashboard.update;
+	if (!update || update.version !== PRODUCT_VERSION) return [colors.muted(`  게시된 v${PRODUCT_VERSION} 릴리스 노트가 없습니다.`)];
+	const body           = update.body.split(/\r?\n/u).map(line => line.trim()).filter(Boolean).slice(0, 8) ;
+	const rows: string[] = []                                                                               ;
+	for (const line of body) {
+		const cleaned = line.replace(/^#{1,3}\s*/u, "");
+		rows.push(...wrapTextWithAnsi(`  ${cleaned}`, width));
+	}
+	if (update.createdAt) rows.push(colors.muted(`  ${clock(update.createdAt)}`));
+	return rows.length > 0 ? rows : [colors.muted("  Project Update가 없습니다.")];
+}
+
+function commentSummary(comment: LinearDashboardComment): string {
+	const line = comment.body.split(/\r?\n/u).map(value => value.trim()).filter(value => value && !/^#{1,6}\s*/u.test(value)).map(value => value.replace(/^[-*]\s*/u, "")).find(Boolean);
+	return line || "내용 없는 Comment";
+}
+
+function commentRows(dashboard: LinearProjectDashboard, width: number, now: Date): string[] {
+	const comments = dashboard.comments.slice(0, 3);
+	if (comments.length === 0) return [colors.muted("  최근 Comment가 없습니다.")];
+	return comments.flatMap(comment => [
+		colors.muted(`  ${comment.author ?? "Linear"} · ${relativeAge(comment.createdAt, now)}`),
+		...wrapTextWithAnsi(`  ${commentSummary(comment)}`, width),
+	]);
+}
+
+function snapshotText(value: string | null | undefined, fallback: string): string {
+	const text = (value ?? "").replace(/[\x00-\x1f\x7f-\x9f]/gu, " ").replace(/\s+/gu, " ").trim();
+	return text || fallback;
+}
+
+function snapshotPhase(phase: WorkbenchSnapshot["phase"]): string {
+	return ({ loading: "초기화 중", ready: "준비됨", working: "작업 진행 중", error: "오류", closed: "종료됨" })[phase];
+}
+
+function dashboardHealth(snapshot: WorkbenchSnapshot, blockedTodos: number): string {
+	if (snapshot.error) return "ERROR";
+	if (blockedTodos > 0) return "BLOCKED";
+	if (snapshot.phase === "loading") return "LOADING";
+	if (snapshot.phase === "closed") return "CLOSED";
+	return "NOMINAL";
+}
+
+function cacheSummary(snapshot: WorkbenchSnapshot): { readonly value: string; readonly detail: string } {
+	const layers = snapshot.cacheObservations ?? [];
+	const totals = layers.reduce((accumulator, layer) => ({
+		hits     : accumulator.hits + (layer.hits ?? 0),
+		misses   : accumulator.misses + (layer.misses ?? 0),
+		observed : accumulator.observed + (layer.hits !== null || layer.misses !== null ? 1 : 0),
+	}), { hits: 0, misses: 0, observed: 0 });
+	const requests = totals.hits + totals.misses;
+	if (totals.observed === 0 || requests === 0) return { value: "미관측", detail: totals.observed ? "accesses not observed" : "no observed layers" };
+	return { value: `${Math.round(totals.hits / requests * 100)}% hit`, detail: `${number(totals.hits)}/${number(requests)} accesses` };
+}
+
+function activityBucket(activity: ProjectActivity): ActivityBucket {
+	if (activity.kind === "message") return "message";
+	if (activity.kind === "tool") return "tool";
+	return "flow";
+}
+
+/** Twelve two-hour cells ending at the latest durable activity, never a synthetic timeline. */
+function observedActivityMatrix(activities: readonly ProjectActivity[]): Readonly<Record<ActivityBucket, readonly number[]>> | null {
+	const dated = activities.flatMap(activity => {
+		const timestamp = Date.parse(activity.recordedAt);
+		return Number.isFinite(timestamp) ? [{ activity, timestamp }] : [];
+	});
+	if (dated.length === 0) return null;
+	const columns    = 12                                               ;
+	const intervalMs = 2 * 60 * 60 * 1_000                              ;
+	const latest     = Math.max(...dated.map(entry => entry.timestamp)) ;
+	const start      = latest - columns * intervalMs                    ;
+	const matrix: Record<ActivityBucket, number[]> = {
+		message : Array.from({ length: columns }, () => 0),
+		tool    : Array.from({ length: columns }, () => 0),
+		flow    : Array.from({ length: columns }, () => 0),
+	};
+	for (const entry of dated) {
+		if (entry.timestamp < start || entry.timestamp > latest) continue;
+		const column = Math.min(columns - 1, Math.max(0, Math.floor((entry.timestamp - start) / intervalMs)));
+		matrix[activityBucket(entry.activity)][column] += 1;
+	}
+	return matrix;
+}
+
+function activityPanelRows(activities: readonly ProjectActivity[]): { readonly meta: string; readonly rows: readonly string[] } {
+	const matrix = observedActivityMatrix(activities);
+	if (!matrix) return { meta: "unavailable", rows: [a.muted("recordedAt unavailable"), a.muted("time distribution unavailable")] };
+	const cell = (value: number): string => value >= 3 ? a.active("■") : value === 2 ? a.attention("■") : value === 1 ? a.response("■") : a.rule("·");
+	return {
+		meta: "last 24h · observed",
+		rows: [
+		...(["message", "tool", "flow"] as const).map(kind => a.muted(`${kind.padEnd(7, " ")} `) + matrix[kind].map(cell).join("")),
+		a.muted("T-24h      T-12h        latest activity"),
+		],
+	};
+}
+
+function monitoringSplitWidths(width: number): readonly [number, number] {
+	const gap   = 1                                              ;
+	const right = Math.max(24, Math.floor((width - gap) * 0.38)) ;
+	return [Math.max(1, width - gap - right), right];
+}
+
+function layerPerformanceRows(snapshot: WorkbenchSnapshot, width: number): string[] {
+	const telemetry = snapshot.layerPerformance;
+	if (!telemetry || telemetry.window.traceCount === 0) return [pair("LAYER PERFORMANCE", "미관측", width)];
+	const observed = Object.entries(telemetry.window.layers).flatMap(([layerId, value]) => [
+		...(value.wait.p95 === null ? [] : [{ layerId, phase: "wait", p95: value.wait.p95 }]),
+		...(value.work.p95 === null ? [] : [{ layerId, phase: "work", p95: value.work.p95 }]),
+	]);
+	const slowest = observed.sort((left, right) => right.p95 - left.p95)[0];
+	return [
+		pair("OBSERVED TRACES", `${telemetry.window.traceCount} traces · ${telemetry.window.errorCount} trace failures`, width),
+		pair("SLOWEST P95", slowest ? `${slowest.layerId} ${slowest.phase} · ${telemetryDuration(slowest.p95)}` : "미관측", width),
+	];
 }

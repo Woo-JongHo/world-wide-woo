@@ -1,13 +1,13 @@
-import {
-	monitoringCard,
-	monitoringColumns,
-	monitoringCompactPanel,
-	monitoringMeter,
-	monitoringTable,
-	monitoringWidths,
-} from "@/adapters/inbound/tui/foundation/layout/www-monitoring-layout";
-import { a, fit, pair } from "@/adapters/inbound/tui/foundation/theme/www-theme";
-import type { WwwInk }  from "@/adapters/inbound/tui/foundation/theme/www-theme";
+import      {
+              monitoringCard         ,
+              monitoringColumns      ,
+              monitoringCompactPanel ,
+              monitoringMeter        ,
+              monitoringTable        ,
+              monitoringWidths       ,
+                                       } from "@/adapters/inbound/tui/foundation/layout/www-monitoring-layout" ;
+import      { a, fit, pair             } from "@/adapters/inbound/tui/foundation/theme/www-theme"              ;
+import type { WwwInk                   } from "@/adapters/inbound/tui/foundation/theme/www-theme"              ;
 
 /** Figma 50:1986. Synthetic display values are accessible only through the explicit demo path. */
 const demoLanes = [
@@ -16,6 +16,37 @@ const demoLanes = [
 	{ name : "LANE_C" , percent : 95 , state : "SYNC"   , ink : a.success },
 	{ name : "LANE_D" , percent : 11 , state : "BLOCK"  , ink : a.failure },
 ];
+
+export function workflowDemoRows(width: number): string[] {
+	const leftWidth  = Math.floor((width - 1) * 0.64) ;
+	const rightWidth = width - leftWidth - 1          ;
+	const workspace = width >= 90
+		? monitoringColumns([execution(leftWidth), stateMatrix(rightWidth)], [leftWidth, rightWidth])
+		: [...execution(width), ...stateMatrix(width)];
+	return [...summary(width), ...relationshipTree(width), ...workspace].map(row => fit(row, width));
+}
+
+export function workflowDemoRail(width: number): string[] {
+	const inner = Math.max(1, width - 2);
+	return [
+		...panel("Active processes", [
+			pair("eval-session", a.success("NOMINAL"), inner),
+			pair("stream-tokens", a.success("NOMINAL"), inner),
+			pair("index-cache", a.attention("LAGGING"), inner),
+		], width),
+		...panel("Pipeline throttles", [
+			pair("SUBAGENT ALLOC", a.tool("5/8 UNITS"), inner),
+			monitoringMeter(5, 8, inner, a.tool),
+			pair("PARALLEL CPU LOAD", a.active("42.8%"), inner),
+			monitoringMeter(42.8, 100, inner, a.active),
+		], width),
+		...panel("Shortcut system", [
+			a.muted("R / E  previous / next page"),
+			a.muted("↑ / ↓  scroll workspace"),
+			a.muted("Esc    exit demo"),
+		], width),
+	].map(row => fit(row, width));
+}
 
 function panel(title: string, rows: readonly string[], width: number): string[] {
 	return monitoringCompactPanel(title, rows, width);
@@ -31,8 +62,8 @@ function summary(width: number): string[] {
 	];
 	const count = width >= 100 ? 5 : width >= 60 ? 3 : 1;
 	return Array.from({ length: Math.ceil(cards.length / count) }, (_, index) => {
-		const group = cards.slice(index * count, (index + 1) * count);
-		const widths = monitoringWidths(width, group.length, 1);
+		const group  = cards.slice(index * count, (index + 1) * count) ;
+		const widths = monitoringWidths(width, group.length, 1)        ;
 		return monitoringColumns(group.map((card, column) => monitoringCard({
 			...card, value: card.ink(card.value),
 		}, widths[column] ?? 1)), widths);
@@ -62,8 +93,8 @@ function relationshipTree(width: number): string[] {
 		...node("· WAITING", "rpa-sync-runner", "Queue: #02", a.muted, nodeWidth),
 		...node("· WAITING", "cache-purge-trigger", "Queue: #03", a.muted, nodeWidth),
 	];
-	const parent = [...Array<string>(2).fill(""), ...node("■ PARENT", "WWW-CORE", "Claude 3.5 Sonnet", a.active, nodeWidth)];
-	const delegate = [...Array<string>(2).fill(""), ...node("» DELEGATE", "subagent-auth-eval", "Status: RUNNING", a.tool, nodeWidth)];
+	const parent   = [...Array<string>(2).fill(""), ...node("■ PARENT", "WWW-CORE", "Claude 3.5 Sonnet", a.active, nodeWidth)]         ;
+	const delegate = [...Array<string>(2).fill(""), ...node("» DELEGATE", "subagent-auth-eval", "Status: RUNNING", a.tool, nodeWidth)] ;
 	const rows = Array.from({ length: branch.length }, (_, index) => {
 		const parentLink = index === 3 ? a.active("───") : "   "                                                                                                            ;
 		const branchLink = index === 1 ? a.success("┌──") : index === 5 ? a.attention("└──") : index === 3 ? a.tool("┤  ") : index > 1 && index < 5 ? a.rule("│  ") : "   " ;
@@ -122,35 +153,4 @@ function stateMatrix(width: number): string[] {
 			a.attention("14:14:10  MCP-FILE lock-wait"),
 		], width),
 	];
-}
-
-export function workflowDemoRows(width: number): string[] {
-	const leftWidth = Math.floor((width - 1) * 0.64);
-	const rightWidth = width - leftWidth - 1;
-	const workspace = width >= 90
-		? monitoringColumns([execution(leftWidth), stateMatrix(rightWidth)], [leftWidth, rightWidth])
-		: [...execution(width), ...stateMatrix(width)];
-	return [...summary(width), ...relationshipTree(width), ...workspace].map(row => fit(row, width));
-}
-
-export function workflowDemoRail(width: number): string[] {
-	const inner = Math.max(1, width - 2);
-	return [
-		...panel("Active processes", [
-			pair("eval-session", a.success("NOMINAL"), inner),
-			pair("stream-tokens", a.success("NOMINAL"), inner),
-			pair("index-cache", a.attention("LAGGING"), inner),
-		], width),
-		...panel("Pipeline throttles", [
-			pair("SUBAGENT ALLOC", a.tool("5/8 UNITS"), inner),
-			monitoringMeter(5, 8, inner, a.tool),
-			pair("PARALLEL CPU LOAD", a.active("42.8%"), inner),
-			monitoringMeter(42.8, 100, inner, a.active),
-		], width),
-		...panel("Shortcut system", [
-			a.muted("R / E  previous / next page"),
-			a.muted("↑ / ↓  scroll workspace"),
-			a.muted("Esc    exit demo"),
-		], width),
-	].map(row => fit(row, width));
 }

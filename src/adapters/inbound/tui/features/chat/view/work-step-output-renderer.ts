@@ -1,28 +1,41 @@
-import { stripTerminalSequences, truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
-import { parseAllDocuments, stringify, visit }                                     from "yaml";
-import type { CommandStatus }                                                      from "@/core/domain/execution/output";
-import { sanitizeTerminalTextExcerpt }                                             from "@/core/domain/execution/terminal";
-import { colors, semantic, syntaxHighlightPlugin }                                 from "@/adapters/inbound/tui/foundation/theme/theme";
-import {
-	CHAT_PUBLIC_OUTPUT_MAX_CHARS,
-	CHAT_STRUCTURED_DISPLAY_MAX_BYTES,
-	CHAT_STRUCTURED_DISPLAY_MAX_LINES,
-	CHAT_TERMINAL_OUTPUT_CHUNK_LINES,
-	workStepStatusPresentation,
-	workStepStatusSymbol,
-} from "@/adapters/inbound/tui/features/chat/view/chat-output-policy";
-import type { WorkStepStatusPresentation }                                         from "@/adapters/inbound/tui/features/chat/view/chat-output-policy";
+import      {
+              stripTerminalSequences            ,
+              truncateToWidth                   ,
+              visibleWidth                      ,
+              wrapTextWithAnsi                  ,
+                                                  } from "@earendil-works/pi-tui"                                       ;
+import      {
+              parseAllDocuments                 ,
+              stringify                         ,
+              visit                             ,
+                                                  } from "yaml"                                                         ;
+import type { CommandStatus                       } from "@/core/domain/execution/output"                               ;
+import      { sanitizeTerminalTextExcerpt         } from "@/core/domain/execution/terminal"                             ;
+import      {
+              colors                            ,
+              semantic                          ,
+              syntaxHighlightPlugin             ,
+                                                  } from "@/adapters/inbound/tui/foundation/theme/theme"                ;
+import      {
+              CHAT_PUBLIC_OUTPUT_MAX_CHARS      ,
+              CHAT_STRUCTURED_DISPLAY_MAX_BYTES ,
+              CHAT_STRUCTURED_DISPLAY_MAX_LINES ,
+              CHAT_TERMINAL_OUTPUT_CHUNK_LINES  ,
+              workStepStatusPresentation        ,
+              workStepStatusSymbol              ,
+                                                  } from "@/adapters/inbound/tui/features/chat/view/chat-output-policy" ;
+import type { WorkStepStatusPresentation          } from "@/adapters/inbound/tui/features/chat/view/chat-output-policy" ;
 
 export { workStepStatusPresentation, type WorkStepStatusPresentation } from "@/adapters/inbound/tui/features/chat/view/chat-output-policy";
-
-const BASH_OUTPUT_MAX_LINES = CHAT_TERMINAL_OUTPUT_CHUNK_LINES;
-const BASH_SPINNER = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"] as const;
 
 export type ExecutionLineTone =
 	| "command" | "meta" | "output" | "success" | "warning" | "error"
 	| "diff-added" | "diff-removed" | "diff-header" | "git-modified" | "git-untracked";
 
 export type StructuredLanguage = "bash" | "json" | "yaml" | "markdown";
+
+const BASH_OUTPUT_MAX_LINES = CHAT_TERMINAL_OUTPUT_CHUNK_LINES                            ;
+const BASH_SPINNER          = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"] as const ;
 
 interface BashExecutionProjection {
 	what        : string            ;
@@ -31,10 +44,6 @@ interface BashExecutionProjection {
 	exitCode?   : number            ;
 	durationMs? : number            ;
 	output      : readonly string[] ;
-}
-
-function clean(value: string): string {
-	return sanitizeTerminalTextExcerpt(value, CHAT_PUBLIC_OUTPUT_MAX_CHARS, "head-tail").replace(/\t/gu, "    ");
 }
 
 export function fitExecutionText(text: string, width: number): string {
@@ -48,33 +57,6 @@ export function highlightStructured(source: string, language: StructuredLanguage
 		return stripTerminalSequences(lines.join("\n")) === source ? lines : source.split("\n");
 	} catch {
 		return source.split("\n");
-	}
-}
-
-function isWithinStructuredDisplayBudget(value: string): boolean {
-	return Buffer.byteLength(value, "utf8") <= CHAT_STRUCTURED_DISPLAY_MAX_BYTES
-		&& value.split("\n").length <= CHAT_STRUCTURED_DISPLAY_MAX_LINES;
-}
-
-function prettyJson(value: string): string | undefined {
-	if (!isWithinStructuredDisplayBudget(value)) return undefined;
-	try {
-		return JSON.stringify(JSON.parse(value), null, 2);
-	} catch {
-		return undefined;
-	}
-}
-
-function prettyYaml(value: string): string | undefined {
-	if (!isWithinStructuredDisplayBudget(value)) return undefined;
-	try {
-		const documents = parseAllDocuments(value);
-		if (documents.length !== 1 || documents[0].errors.length > 0) return undefined;
-		let hasAlias = false;
-		visit(documents[0], { Alias: () => { hasAlias = true; } });
-		return hasAlias ? undefined : stringify(documents[0].toJS());
-	} catch {
-		return undefined;
 	}
 }
 
@@ -126,10 +108,6 @@ export function executionLineTone(line: string, section: "input" | "output"): Ex
 	return "output";
 }
 
-function highlightedSource(source: string, language: "bash" | "json"): string {
-	return highlightStructured(source, language).join("\n");
-}
-
 export function renderExecutionLine(line: string, section: "input" | "output"): string {
 	if (line.startsWith("… ")) return line;
 	const tone = executionLineTone(line, section);
@@ -165,53 +143,22 @@ export function boundedExecutionRows(
 	preserveTail: boolean,
 	label: "입력" | "출력",
 ): string[] {
-	const raw = lines.join("\n");
-	const plain = stripTerminalSequences(raw);
+	const raw   = lines.join("\n")            ;
+	const plain = stripTerminalSequences(raw) ;
 	// Compare and truncate only plain text. Cutting highlighted bytes can leave an
 	// unterminated escape sequence in the terminal stream.
 	const clippedByChars = plain.length > maximumChars;
 	const clipped = clippedByChars
 		? preserveTail ? clean(plain).slice(-maximumChars) : clean(plain).slice(0, maximumChars)
 		: raw;
-	const wrapped = clipped.split(/\r?\n/gu).flatMap((line) => wrapTextWithAnsi(line, Math.max(1, width)));
-	const omittedLines = Math.max(0, wrapped.length - maximumLines + 1);
+	const wrapped      = clipped.split(/\r?\n/gu).flatMap((line) => wrapTextWithAnsi(line, Math.max(1, width))) ;
+	const omittedLines = Math.max(0, wrapped.length - maximumLines + 1)                                         ;
 	if (!clippedByChars && wrapped.length <= maximumLines) return wrapped;
 	const marker = colors.muted(`… ${preserveTail ? "이전 " : "나머지 "}${label} ${Math.max(1, omittedLines)}줄 생략`);
 	if (maximumLines <= 1) return [marker];
 	return preserveTail
 		? [marker, ...wrapped.slice(-(maximumLines - 1))]
 		: [...wrapped.slice(0, maximumLines - 1), marker];
-}
-
-function bashStatusSymbol(status: CommandStatus): string {
-	if (status === "running") return BASH_SPINNER[Math.floor(Date.now() / 80) % BASH_SPINNER.length] ?? "⠋";
-	return workStepStatusSymbol(status);
-}
-
-function bashBar(left: "┌" | "├", right: "┐" | "┤", label: string, width: number, border: (text: string) => string): string {
-	const leftPart      = border(`${left}───`)                                                                                ;
-	const rightPart     = border(right)                                                                                       ;
-	const available     = Math.max(0, width - visibleWidth(leftPart) - visibleWidth(rightPart))                               ;
-	const renderedLabel = truncateToWidth(` ${label} `, available)                                                            ;
-	const fill          = Math.max(0, width - visibleWidth(leftPart) - visibleWidth(renderedLabel) - visibleWidth(rightPart)) ;
-	return `${leftPart}${renderedLabel}${border("─".repeat(fill))}${rightPart}`;
-}
-
-function bashContent(line: string, width: number, border: (text: string) => string): string {
-	if (width < 4) return fitExecutionText(line, width);
-	return `${border("│")} ${fitExecutionText(line, width - 4)} ${border("│")}`;
-}
-
-function bashOutputLines(projected: BashExecutionProjection, width: number): string[] {
-	const contentWidth = Math.max(1, width - 4);
-	const logical = projected.output.flatMap((line) => {
-		if (/^(?:output|stdout|result)$/iu.test(line.trim()) || /^exit\s*:/iu.test(line.trim())) return [];
-		return [line.replace(/^(?:output|stdout|result)\s*:\s*/iu, "")];
-	});
-	const visual = logical.flatMap((line) => wrapTextWithAnsi(line, contentWidth));
-	if (visual.length <= BASH_OUTPUT_MAX_LINES) return visual;
-	const shown = visual.slice(-BASH_OUTPUT_MAX_LINES);
-	return [colors.muted(`… (${visual.length - shown.length} earlier lines, showing ${shown.length} of ${visual.length})`), ...shown];
 }
 
 /** Renders a bounded Bash command and its public output as one terminal frame. */
@@ -246,4 +193,70 @@ export function renderBashExecutionBlock(projected: BashExecutionProjection, sta
 		`${border("└───")}${border("─".repeat(Math.max(0, width - 5)))}${border("┘")}`,
 	];
 	return rows.map((row) => surface(fitExecutionText(row, width)));
+}
+
+function clean(value: string): string {
+	return sanitizeTerminalTextExcerpt(value, CHAT_PUBLIC_OUTPUT_MAX_CHARS, "head-tail").replace(/\t/gu, "    ");
+}
+
+function isWithinStructuredDisplayBudget(value: string): boolean {
+	return Buffer.byteLength(value, "utf8") <= CHAT_STRUCTURED_DISPLAY_MAX_BYTES
+		&& value.split("\n").length <= CHAT_STRUCTURED_DISPLAY_MAX_LINES;
+}
+
+function prettyJson(value: string): string | undefined {
+	if (!isWithinStructuredDisplayBudget(value)) return undefined;
+	try {
+		return JSON.stringify(JSON.parse(value), null, 2);
+	} catch {
+		return undefined;
+	}
+}
+
+function prettyYaml(value: string): string | undefined {
+	if (!isWithinStructuredDisplayBudget(value)) return undefined;
+	try {
+		const documents = parseAllDocuments(value);
+		if (documents.length !== 1 || documents[0].errors.length > 0) return undefined;
+		let hasAlias = false;
+		visit(documents[0], { Alias: () => { hasAlias = true; } });
+		return hasAlias ? undefined : stringify(documents[0].toJS());
+	} catch {
+		return undefined;
+	}
+}
+
+function highlightedSource(source: string, language: "bash" | "json"): string {
+	return highlightStructured(source, language).join("\n");
+}
+
+function bashStatusSymbol(status: CommandStatus): string {
+	if (status === "running") return BASH_SPINNER[Math.floor(Date.now() / 80) % BASH_SPINNER.length] ?? "⠋";
+	return workStepStatusSymbol(status);
+}
+
+function bashBar(left: "┌" | "├", right: "┐" | "┤", label: string, width: number, border: (text: string) => string): string {
+	const leftPart      = border(`${left}───`)                                                                                ;
+	const rightPart     = border(right)                                                                                       ;
+	const available     = Math.max(0, width - visibleWidth(leftPart) - visibleWidth(rightPart))                               ;
+	const renderedLabel = truncateToWidth(` ${label} `, available)                                                            ;
+	const fill          = Math.max(0, width - visibleWidth(leftPart) - visibleWidth(renderedLabel) - visibleWidth(rightPart)) ;
+	return `${leftPart}${renderedLabel}${border("─".repeat(fill))}${rightPart}`;
+}
+
+function bashContent(line: string, width: number, border: (text: string) => string): string {
+	if (width < 4) return fitExecutionText(line, width);
+	return `${border("│")} ${fitExecutionText(line, width - 4)} ${border("│")}`;
+}
+
+function bashOutputLines(projected: BashExecutionProjection, width: number): string[] {
+	const contentWidth = Math.max(1, width - 4);
+	const logical = projected.output.flatMap((line) => {
+		if (/^(?:output|stdout|result)$/iu.test(line.trim()) || /^exit\s*:/iu.test(line.trim())) return [];
+		return [line.replace(/^(?:output|stdout|result)\s*:\s*/iu, "")];
+	});
+	const visual = logical.flatMap((line) => wrapTextWithAnsi(line, contentWidth));
+	if (visual.length <= BASH_OUTPUT_MAX_LINES) return visual;
+	const shown = visual.slice(-BASH_OUTPUT_MAX_LINES);
+	return [colors.muted(`… (${visual.length - shown.length} earlier lines, showing ${shown.length} of ${visual.length})`), ...shown];
 }

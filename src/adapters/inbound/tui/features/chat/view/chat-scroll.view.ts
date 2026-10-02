@@ -1,18 +1,21 @@
-import { ScrollView, stripTerminalSequences }                 from "@earendil-works/pi-tui";
-import type { Component, ScrollRowSource, ScrollViewOptions } from "@earendil-works/pi-tui";
+import      {
+              ScrollView                    ,
+              stripTerminalSequences        ,
+                                              } from "@earendil-works/pi-tui"                                        ;
 import type {
-	DashboardPrimaryScrollFactory,
-	DashboardScrollOptions,
-} from "@/adapters/inbound/tui/foundation/layout/dashboard-layout";
-import { componentScrollRows }                                from "@/adapters/inbound/tui/foundation/rendering/scroll-row-source";
+              Component                     ,
+              ScrollRowSource               ,
+              ScrollViewOptions             ,
+                                              } from "@earendil-works/pi-tui"                                        ;
+import type {
+              DashboardPrimaryScrollFactory ,
+              DashboardScrollOptions        ,
+                                              } from "@/adapters/inbound/tui/foundation/layout/dashboard-layout"     ;
+import      { componentScrollRows             } from "@/adapters/inbound/tui/foundation/rendering/scroll-row-source" ;
 
 type ReadingPosition =
 	| { follow: true }
 	| { follow: false; fraction: number; anchor: string };
-
-function normalizedRow(row: string): string {
-	return stripTerminalSequences(row).replace(/\s/gu, "");
-}
 
 /** Preserves the reader's chat anchor across wrapping and layout-mode changes. */
 /** @Unit Code-003 */
@@ -29,8 +32,8 @@ export class ChatScrollView extends ScrollView {
 
 	readingPosition(): ReadingPosition {
 		if (this.isFollowingEnd) return { follow: true };
-		const available = Math.max(0, Math.min(4, (this.logicalRows?.rowCount ?? this.renderedRows.length) - this.scrollTop));
-		const rows = this.logicalRows ? this.logicalRows.rows(this.scrollTop, available) : this.renderedRows.slice(this.scrollTop, this.scrollTop + 4);
+		const available = Math.max(0, Math.min(4, (this.logicalRows?.rowCount ?? this.renderedRows.length) - this.scrollTop))                               ;
+		const rows      = this.logicalRows ? this.logicalRows.rows(this.scrollTop, available) : this.renderedRows.slice(this.scrollTop, this.scrollTop + 4) ;
 		return {
 			follow   : false,
 			anchor   : rows.map(normalizedRow).join("").slice(0, 80),
@@ -74,23 +77,23 @@ export class ChatScrollView extends ScrollView {
 		for (let length = pending.anchor.length; length >= 16; length -= 8) {
 			const needle = pending.anchor.slice(0, length);
 			if (this.logicalRows) {
-				const chunkSize = 256;
-				let found = false;
+				const chunkSize = 256   ;
+				let found       = false ;
 				for (let start = 0; start < this.logicalRows.rowCount; start += chunkSize) {
 					const rows       = this.logicalRows.rows(start, Math.min(chunkSize + 3, this.logicalRows.rowCount - start)) ;
 					const normalized = rows.map(normalizedRow)                                                                  ;
 					const offset     = normalized.join("").indexOf(needle)                                                      ;
 					if (offset < 0) continue;
-					let consumed = 0;
-					const local = normalized.findIndex(row => { consumed += row.length; return consumed > offset; });
+					let consumed = 0                                                                                  ;
+					const local  = normalized.findIndex(row => { consumed += row.length; return consumed > offset; }) ;
 					target = start + Math.max(0, local);
 					found = true;
 					break;
 				}
 				if (found) break;
 			} else {
-				const normalized = this.renderedRows.map(normalizedRow);
-				const offset = normalized.join("").indexOf(needle);
+				const normalized = this.renderedRows.map(normalizedRow) ;
+				const offset     = normalized.join("").indexOf(needle)  ;
 				if (offset < 0) continue;
 				let consumed = 0;
 				target = normalized.findIndex(row => { consumed += row.length; return consumed > offset; });
@@ -105,3 +108,7 @@ export const createChatScrollView: DashboardPrimaryScrollFactory = (
 	component: Component,
 	options: DashboardScrollOptions,
 ) => new ChatScrollView(component, options);
+
+function normalizedRow(row: string): string {
+	return stripTerminalSequences(row).replace(/\s/gu, "");
+}

@@ -1,5 +1,10 @@
-import { sanitizeTerminalTextExcerpt } from "@/core/domain/execution/terminal";
-import { isReasoningActivityPayload }  from "@/core/domain/execution/project-activity";
+import      { sanitizeTerminalTextExcerpt } from "@/core/domain/execution/terminal"         ;
+import      { isReasoningActivityPayload  } from "@/core/domain/execution/project-activity" ;
+
+export interface BoundedPublicProjection {
+	value: unknown;
+	omitted: boolean;
+}
 
 const MAX_TOTAL_TEXT_CHARS = 10_000 ;
 const MAX_STRING_CHARS     = 2_400  ;
@@ -9,15 +14,23 @@ const MAX_TOTAL_ITEMS      = 100    ;
 
 export const PUBLIC_SOURCE_OMISSION = "… 공개 Source 일부 생략 …";
 
-export interface BoundedPublicProjection {
-	value: unknown;
-	omitted: boolean;
-}
-
 interface ProjectionState {
 	remainingChars : number  ;
 	remainingItems : number  ;
 	omitted        : boolean ;
+}
+
+/**
+ * Produces a secret-filtered, size-bounded UI projection before JSON serialization.
+ * The input object is never mutated; durable journal payloads remain intact.
+ */
+export function boundedPublicProjection(value: unknown): BoundedPublicProjection {
+	const state: ProjectionState = {
+		remainingChars : MAX_TOTAL_TEXT_CHARS,
+		remainingItems : MAX_TOTAL_ITEMS,
+		omitted        : false,
+	};
+	return { value: project(value, state, 0), omitted: state.omitted };
 }
 
 function hiddenKey(key: string): boolean {
@@ -137,17 +150,4 @@ function project(value: unknown, state: ProjectionState, depth: number): unknown
 	}
 	if (!visitedAll) state.omitted = true;
 	return result;
-}
-
-/**
- * Produces a secret-filtered, size-bounded UI projection before JSON serialization.
- * The input object is never mutated; durable journal payloads remain intact.
- */
-export function boundedPublicProjection(value: unknown): BoundedPublicProjection {
-	const state: ProjectionState = {
-		remainingChars : MAX_TOTAL_TEXT_CHARS,
-		remainingItems : MAX_TOTAL_ITEMS,
-		omitted        : false,
-	};
-	return { value: project(value, state, 0), omitted: state.omitted };
 }

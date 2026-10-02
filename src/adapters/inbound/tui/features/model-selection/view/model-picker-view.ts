@@ -1,7 +1,11 @@
-import { stripTerminalSequences, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
-import type { WwwSettings }                                      from "@/core/domain/execution/model-settings";
-import type { TuiColors }                                        from "@/adapters/inbound/tui/foundation/theme/theme";
-import { workbenchEffortLabel, workbenchModelLabel }             from "@/adapters/inbound/tui/foundation/labels";
+import      {
+              stripTerminalSequences                  ,
+              truncateToWidth                         ,
+              visibleWidth                            ,
+                                                        } from "@earendil-works/pi-tui"                        ;
+import type { WwwSettings                               } from "@/core/domain/execution/model-settings"        ;
+import type { TuiColors                                 } from "@/adapters/inbound/tui/foundation/theme/theme" ;
+import      { workbenchEffortLabel, workbenchModelLabel } from "@/adapters/inbound/tui/foundation/labels"      ;
 
 export interface ModelPickerViewState {
 	readonly appearance?   : "www"             ;
@@ -14,11 +18,6 @@ export interface ModelPickerViewState {
 	readonly error         : string | null     ;
 	readonly applying      : boolean           ;
 	readonly confirmation  : boolean           ;
-}
-
-function fit(text: string, width: number): string {
-	const clipped = truncateToWidth(text, Math.max(0, width));
-	return clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)));
 }
 
 export function renderModelPickerView(state: ModelPickerViewState, width: number, ui: TuiColors): string[] {
@@ -48,4 +47,9 @@ export function renderModelPickerView(state: ModelPickerViewState, width: number
 		: "↑↓ 선택 · Enter 다음 · ← 이전 · Esc 닫기";
 	result.push(fit(ui.muted(state.applying ? "적용하는 중…" : hint), contentWidth));
 	return result;
+}
+
+function fit(text: string, width: number): string {
+	const clipped = truncateToWidth(text, Math.max(0, width));
+	return clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)));
 }

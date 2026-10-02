@@ -2,16 +2,51 @@
  * Temporary compatibility home for Monitoring while the execution UI is split
  * into feature-owned modules. The Monitoring feature integrator moves this file.
  */
-import { wrapTextWithAnsi }                      from "@earendil-works/pi-tui";
-import type { Component }                        from "@earendil-works/pi-tui";
-import type { ProjectActivity }                  from "@/core/domain/execution/project-activity";
-import { sanitizeTerminalTextExcerpt }           from "@/core/domain/execution/terminal";
-import { projectNativeDelegation }               from "@/core/domain/work";
-import type { SemanticWorkStep, WorkStepStatus } from "@/core/domain/work";
-import type { WorkbenchSnapshot }                from "@/core/domain/work/workbench";
-import { colors }                                from "@/adapters/inbound/tui/foundation/theme/theme";
+import      { wrapTextWithAnsi                 } from "@earendil-works/pi-tui"                        ;
+import type { Component                        } from "@earendil-works/pi-tui"                        ;
+import type { ProjectActivity                  } from "@/core/domain/execution/project-activity"      ;
+import      { sanitizeTerminalTextExcerpt      } from "@/core/domain/execution/terminal"              ;
+import      { projectNativeDelegation          } from "@/core/domain/work"                            ;
+import type { SemanticWorkStep, WorkStepStatus } from "@/core/domain/work"                            ;
+import type { WorkbenchSnapshot                } from "@/core/domain/work/workbench"                  ;
+import      { colors                           } from "@/adapters/inbound/tui/foundation/theme/theme" ;
 
 const PUBLIC_SOURCE_OMISSION = "… 공개 Source 일부 생략 …";
+
+/** Read-only execution projection; it deliberately does not own a session or transcript. */
+export class WorkbenchMonitorView implements Component {
+	constructor(private readonly getSnapshot: () => WorkbenchSnapshot) {}
+	invalidate(): void {}
+	render(width: number): string[] {
+		const snapshot     = this.getSnapshot() ;
+		const contentWidth = Math.max(1, width) ;
+		const currentStep = snapshot.workFlow.currentStepNumber === null
+			? null
+			: snapshot.workFlow.steps.find(step => step.number === snapshot.workFlow.currentStepNumber);
+		const run = snapshot.executionRun;
+		const live = run?.activeActivity
+			? `${run.activeActivity.kind} · ${sanitizeTerminalTextExcerpt(run.activeActivity.text || run.activeActivity.method, 180, "head-tail")}`
+			: snapshot.liveActivity
+				? `${snapshot.liveActivity.kind} · ${sanitizeTerminalTextExcerpt(snapshot.liveActivity.text || snapshot.liveActivity.method, 180, "head-tail")}`
+				: "대기 중인 실행 없음";
+		const rows = [
+			colors.accent("Monitor · 실행 관측"),
+			colors.muted("읽기 전용 · Chat과 Todo는 같은 Workbench 상태를 사용합니다."), "",
+			`${colors.secondary("Activity")} · ${snapshot.activityCount ?? snapshot.activities.length}개 · journal ${snapshot.journalSequence}`,
+			`${colors.secondary("Turn")} · ${currentStep ? `${currentStep.number}/${snapshot.workFlow.steps.length} · ${currentStep.title}` : "진행 단계 없음"}`,
+			`${colors.secondary("Live")} · ${live}`,
+			...(run ? [`${colors.secondary("Run")} · ${run.runId} · ${run.phase}${run.receipt ? ` · receipt ${run.receipt.receiptDigest}` : ` · checkpoint ${run.checkpoint.digest}`}`] : []),
+			`${colors.secondary("Queue")} · ${snapshot.chatQueue.length}개${snapshot.pendingApproval ? " · 승인 대기" : ""}`,
+			`${colors.secondary("MCP")} · ${snapshot.mcpServers.length === 0 ? "서버 없음" : snapshot.mcpServers.map(server => `${server.name} ${server.enabled ? "활성" : "비활성"} · ${server.status} · 도구 ${server.tools.length}개`).join(" | ")}`,
+			`${colors.secondary("Delegation")} · ${projectNativeDelegation(snapshot.activities, snapshot.threadId).length}개 실행 그룹`,
+			"", ...monitorTraceRows(snapshot, contentWidth), "", ...selectedSourceRows(snapshot, contentWidth),
+			...(snapshot.resumeCoverage?.mode === "partial-local-journal"
+				? [colors.warning("관측 범위 · 재개 뒤 이 프로세스가 수집한 Activity만 표시합니다.")]
+				: []),
+		];
+		return rows.flatMap(row => wrapTextWithAnsi(row, contentWidth));
+	}
+}
 
 function hiddenKey(key: string): boolean {
 	const normalized = key.replace(/[-_]/gu, "").toLowerCase();
@@ -22,8 +57,8 @@ function hiddenKey(key: string): boolean {
 }
 
 function boundedPublicProjection(value: unknown): { readonly value: unknown; readonly omitted: boolean } {
-	let omitted = false;
-	let items = 0;
+	let omitted = false ;
+	let items   = 0     ;
 	const project = (candidate: unknown, depth: number): unknown => {
 		if (typeof candidate === "string") {
 			if (candidate.length <= 2_400) return sanitizeTerminalTextExcerpt(candidate, 2_400, "head-tail");
@@ -121,8 +156,8 @@ function selectedSourceRows(snapshot: WorkbenchSnapshot, width: number): string[
 		colors.warning("Trace·Source · 선택한 Activity의 원본 부재"),
 		colors.muted(`activityId ${snapshot.selectedActivityId} · 다른 실행으로 대신하지 않았습니다.`),
 	];
-	const projection = boundedPublicProjection(selected.payload);
-	const serialized = JSON.stringify(projection.value, null, 2);
+	const projection = boundedPublicProjection(selected.payload) ;
+	const serialized = JSON.stringify(projection.value, null, 2) ;
 	const publicRows = serialized
 		? serialized.split(/\r?\n/u).flatMap(line => wrapTextWithAnsi(line, width))
 		: [colors.muted("보존된 공개 내용 없음")];
@@ -134,39 +169,4 @@ function selectedSourceRows(snapshot: WorkbenchSnapshot, width: number): string[
 		colors.muted(`관측 ID · activity ${selected.id}`),
 		colors.muted("이 화면은 provider 원본 전체가 아니라 보존된 공개 관측만 보여줍니다."),
 	].flatMap(row => wrapTextWithAnsi(row, width));
-}
-
-/** Read-only execution projection; it deliberately does not own a session or transcript. */
-export class WorkbenchMonitorView implements Component {
-	constructor(private readonly getSnapshot: () => WorkbenchSnapshot) {}
-	invalidate(): void {}
-	render(width: number): string[] {
-		const snapshot = this.getSnapshot();
-		const contentWidth = Math.max(1, width);
-		const currentStep = snapshot.workFlow.currentStepNumber === null
-			? null
-			: snapshot.workFlow.steps.find(step => step.number === snapshot.workFlow.currentStepNumber);
-		const run = snapshot.executionRun;
-		const live = run?.activeActivity
-			? `${run.activeActivity.kind} · ${sanitizeTerminalTextExcerpt(run.activeActivity.text || run.activeActivity.method, 180, "head-tail")}`
-			: snapshot.liveActivity
-				? `${snapshot.liveActivity.kind} · ${sanitizeTerminalTextExcerpt(snapshot.liveActivity.text || snapshot.liveActivity.method, 180, "head-tail")}`
-				: "대기 중인 실행 없음";
-		const rows = [
-			colors.accent("Monitor · 실행 관측"),
-			colors.muted("읽기 전용 · Chat과 Todo는 같은 Workbench 상태를 사용합니다."), "",
-			`${colors.secondary("Activity")} · ${snapshot.activityCount ?? snapshot.activities.length}개 · journal ${snapshot.journalSequence}`,
-			`${colors.secondary("Turn")} · ${currentStep ? `${currentStep.number}/${snapshot.workFlow.steps.length} · ${currentStep.title}` : "진행 단계 없음"}`,
-			`${colors.secondary("Live")} · ${live}`,
-			...(run ? [`${colors.secondary("Run")} · ${run.runId} · ${run.phase}${run.receipt ? ` · receipt ${run.receipt.receiptDigest}` : ` · checkpoint ${run.checkpoint.digest}`}`] : []),
-			`${colors.secondary("Queue")} · ${snapshot.chatQueue.length}개${snapshot.pendingApproval ? " · 승인 대기" : ""}`,
-			`${colors.secondary("MCP")} · ${snapshot.mcpServers.length === 0 ? "서버 없음" : snapshot.mcpServers.map(server => `${server.name} ${server.enabled ? "활성" : "비활성"} · ${server.status} · 도구 ${server.tools.length}개`).join(" | ")}`,
-			`${colors.secondary("Delegation")} · ${projectNativeDelegation(snapshot.activities, snapshot.threadId).length}개 실행 그룹`,
-			"", ...monitorTraceRows(snapshot, contentWidth), "", ...selectedSourceRows(snapshot, contentWidth),
-			...(snapshot.resumeCoverage?.mode === "partial-local-journal"
-				? [colors.warning("관측 범위 · 재개 뒤 이 프로세스가 수집한 Activity만 표시합니다.")]
-				: []),
-		];
-		return rows.flatMap(row => wrapTextWithAnsi(row, contentWidth));
-	}
 }

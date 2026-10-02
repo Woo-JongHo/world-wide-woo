@@ -1,10 +1,34 @@
-import { composeCacheTelemetry }          from "@/core/domain/observability/cache-telemetry";
+import      { composeCacheTelemetry     } from "@/core/domain/observability/cache-telemetry"   ;
 import type {
-	CacheLayerObservation,
-	CacheTelemetrySnapshot,
-	TranscriptCacheMetrics,
-} from "@/core/domain/observability/cache-telemetry";
-import type { UsageSnapshotCacheMetrics } from "@/core/ports/observability/usage-monitor-port";
+              CacheLayerObservation   ,
+              CacheTelemetrySnapshot  ,
+              TranscriptCacheMetrics  ,
+                                        } from "@/core/domain/observability/cache-telemetry"   ;
+import type { UsageSnapshotCacheMetrics } from "@/core/ports/observability/usage-monitor-port" ;
+
+export function projectWorkbenchCacheTelemetry(input: {
+	readonly transcript    : TranscriptCacheMetrics           ;
+	readonly observations? : readonly CacheLayerObservation[] ;
+	readonly usage?        : UsageSnapshotCacheMetrics        ;
+	readonly collectedAt   : string                           ;
+}): CacheTelemetrySnapshot {
+	const observations: CacheLayerObservation[] = [
+		transcriptObservation(input.transcript),
+		renderObservation(input.transcript),
+		...(input.observations ?? []),
+	];
+	if (input.usage && (input.usage.entries > 0 || input.usage.hits > 0 || input.usage.misses > 0 || input.usage.evictions > 0 || input.usage.lastAccessedAt !== null)) observations.push({
+		id             : "usage-snapshot",
+		entries        : input.usage.entries,
+		logicalBytes   : null,
+		hits           : input.usage.hits,
+		misses         : input.usage.misses,
+		evictions      : input.usage.evictions,
+		latencyMs      : null,
+		lastAccessedAt : input.usage.lastAccessedAt,
+	});
+	return composeCacheTelemetry({ collectedAt: input.collectedAt, observations });
+}
 
 function average(total: number, count: number): number | null {
 	return count > 0 ? total / count : null;
@@ -34,28 +58,4 @@ function renderObservation(metrics: TranscriptCacheMetrics): CacheLayerObservati
 		latencyMs      : average(metrics.requestedMaterializationMs, metrics.requestedRows),
 		lastAccessedAt : null,
 	};
-}
-
-export function projectWorkbenchCacheTelemetry(input: {
-	readonly transcript    : TranscriptCacheMetrics           ;
-	readonly observations? : readonly CacheLayerObservation[] ;
-	readonly usage?        : UsageSnapshotCacheMetrics        ;
-	readonly collectedAt   : string                           ;
-}): CacheTelemetrySnapshot {
-	const observations: CacheLayerObservation[] = [
-		transcriptObservation(input.transcript),
-		renderObservation(input.transcript),
-		...(input.observations ?? []),
-	];
-	if (input.usage && (input.usage.entries > 0 || input.usage.hits > 0 || input.usage.misses > 0 || input.usage.evictions > 0 || input.usage.lastAccessedAt !== null)) observations.push({
-		id             : "usage-snapshot",
-		entries        : input.usage.entries,
-		logicalBytes   : null,
-		hits           : input.usage.hits,
-		misses         : input.usage.misses,
-		evictions      : input.usage.evictions,
-		latencyMs      : null,
-		lastAccessedAt : input.usage.lastAccessedAt,
-	});
-	return composeCacheTelemetry({ collectedAt: input.collectedAt, observations });
 }

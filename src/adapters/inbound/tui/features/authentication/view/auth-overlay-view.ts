@@ -1,10 +1,12 @@
-import { stripTerminalSequences, truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
-import type { AuthPrompt }                                                         from "@earendil-works/pi-ai";
-import type { Provider }                                                           from "@/core/domain/execution/model-settings";
-import type { TuiColors }                                                          from "@/adapters/inbound/tui/foundation/theme/theme";
-
-export const GEMINI_API_KEY_URL = "https://aistudio.google.com/app/apikey";
-export const ZAI_API_KEY_URL = "https://z.ai/manage-apikey/apikey-list";
+import      {
+              stripTerminalSequences ,
+              truncateToWidth        ,
+              visibleWidth           ,
+              wrapTextWithAnsi       ,
+                                       } from "@earendil-works/pi-tui"                        ;
+import type { AuthPrompt               } from "@earendil-works/pi-ai"                         ;
+import type { Provider                 } from "@/core/domain/execution/model-settings"        ;
+import type { TuiColors                } from "@/adapters/inbound/tui/foundation/theme/theme" ;
 
 export interface AuthPromptViewState {
 	readonly prompt   : AuthPrompt ;
@@ -25,10 +27,8 @@ export interface AuthFlowOverlayViewState {
 	readonly done     : boolean                    ;
 }
 
-function fit(text: string, width: number): string {
-	const clipped = truncateToWidth(text, Math.max(1, width));
-	return clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)));
-}
+export const GEMINI_API_KEY_URL = "https://aistudio.google.com/app/apikey" ;
+export const ZAI_API_KEY_URL    = "https://z.ai/manage-apikey/apikey-list" ;
 
 export function renderLoginOverlayView(state: LoginOverlayViewState, width: number, ui: TuiColors): string[] {
 	const contentWidth = Math.max(1, width);
@@ -46,8 +46,8 @@ export function renderLoginOverlayView(state: LoginOverlayViewState, width: numb
 }
 
 export function renderAuthFlowOverlayView(state: AuthFlowOverlayViewState, width: number, ui: TuiColors): string[] {
-	const contentWidth = Math.max(1, width - 2);
-	const rows = [ui.accent(`◈ 모델 연결 · ${state.provider} 로그인`), ""];
+	const contentWidth = Math.max(1, width - 2)                                    ;
+	const rows         = [ui.accent(`◈ 모델 연결 · ${state.provider} 로그인`), ""] ;
 	for (const line of state.lines.slice(-8)) rows.push(...wrapTextWithAnsi(line, contentWidth));
 	if (state.pending) {
 		rows.push("", ui.highlight(stripTerminalSequences(state.pending.prompt.message)));
@@ -94,4 +94,9 @@ function providerLabel(provider: Provider): string {
 		google         : "Antigravity (로컬 Google 구독)",
 		zai            : "Z.AI GLM Coding Plan (구독 API 키)",
 	})[provider];
+}
+
+function fit(text: string, width: number): string {
+	const clipped = truncateToWidth(text, Math.max(1, width));
+	return clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)));
 }

@@ -1,101 +1,33 @@
-import { stripTerminalSequences, truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
-import type { Component }                                                          from "@earendil-works/pi-tui";
+import      {
+              stripTerminalSequences       ,
+              truncateToWidth              ,
+              visibleWidth                 ,
+              wrapTextWithAnsi             ,
+                                             } from "@earendil-works/pi-tui"                                       ;
+import type { Component                      } from "@earendil-works/pi-tui"                                       ;
 import type {
-	CommandResultSnapshot,
-	CommandStatus,
-	CompletionReport,
-	DiffResultSnapshot,
-	GenericToolResultSnapshot,
-} from "@/core/domain/execution/output";
-import { sanitizeTerminalTextExcerpt }                                             from "@/core/domain/execution/terminal";
-import { colors, semantic }                                                        from "@/adapters/inbound/tui/foundation/theme/theme";
-import {
-	highlightStructured,
-	projectNativePathText,
-	renderExecutionLine,
-	structuredOutput,
-} from "@/adapters/inbound/tui/features/chat/view/work-step-card";
-import {
-	CHAT_PUBLIC_OUTPUT_MAX_CHARS,
-	workStepStatusPresentation,
-} from "@/adapters/inbound/tui/features/chat/view/chat-output-policy";
-
-function clean(value: string): string {
-	return stripTerminalSequences(value)
-		.replace(/[\u0000-\u0008\u000B-\u001F\u007F-\u009F]/gu, "")
-		.replace(/\bsk-[A-Za-z0-9_-]{16,}\b/gu, "[REDACTED]")
-		.replace(/\b(?:ghp_|gho_|github_pat_)[A-Za-z0-9_]{16,}\b/gu, "[REDACTED]")
-		.replace(
-			/(("?(?:authorization|api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret|password)"?\s*[:=]\s*"?(?:bearer\s+)?))[^"\s,}\]]+/giu,
-			"$1[REDACTED]",
-		)
-		.replace(/\t/gu, "    ");
-}
-
-function fit(text: string, width: number): string {
-	const clipped = truncateToWidth(text, Math.max(0, width));
-	return clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)));
-}
-
-function wrapped(text: string, width: number): string[] {
-	return clean(text).split("\n").flatMap((line) => wrapTextWithAnsi(line, Math.max(1, width)));
-}
-
-function wrappedHighlighted(text: string, width: number): string[] {
-	return text.split("\n").flatMap((line) => wrapTextWithAnsi(line, Math.max(1, width)));
-}
-
-function card(width: number, rows: readonly string[]): string[] {
-	if (width < 4) return rows.map((row) => fit(row, width));
-	const contentWidth = width - 4;
-	return [
-		colors.border(`╭${"─".repeat(width - 2)}╮`),
-		...rows.map((row) => `${colors.border("│")} ${fit(row, contentWidth)} ${colors.border("│")}`),
-		colors.border(`╰${"─".repeat(width - 2)}╯`),
-	];
-}
+              CommandResultSnapshot        ,
+              CommandStatus                ,
+              CompletionReport             ,
+              DiffResultSnapshot           ,
+              GenericToolResultSnapshot    ,
+                                             } from "@/core/domain/execution/output"                               ;
+import      { sanitizeTerminalTextExcerpt    } from "@/core/domain/execution/terminal"                             ;
+import      { colors, semantic               } from "@/adapters/inbound/tui/foundation/theme/theme"                ;
+import      {
+              highlightStructured          ,
+              projectNativePathText        ,
+              renderExecutionLine          ,
+              structuredOutput             ,
+                                             } from "@/adapters/inbound/tui/features/chat/view/work-step-card"     ;
+import      {
+              CHAT_PUBLIC_OUTPUT_MAX_CHARS ,
+              workStepStatusPresentation   ,
+                                             } from "@/adapters/inbound/tui/features/chat/view/chat-output-policy" ;
 
 interface OutputLine {
 	stream: "stdout" | "stderr";
 	text: string;
-}
-
-function outputLines(snapshot: CommandResultSnapshot, maximum: number): { lines: OutputLine[]; omitted: number } {
-	const lines: OutputLine[] = [];
-	for (const [stream, output] of [["stdout", snapshot.stdout], ["stderr", snapshot.stderr]] as const) {
-		for (const text of projectNativePathText(clean(output), snapshot.cwd).split("\n")) {
-			if (text || output.length > 0) lines.push({ stream, text });
-		}
-	}
-	return { lines: maximum > 0 ? lines.slice(-maximum) : [], omitted: Math.max(0, lines.length - maximum) };
-}
-
-function boundedLines(output: string, maximum: number): { lines: string[]; omitted: number } {
-	const lines = clean(output).split("\n");
-	return { lines: maximum > 0 ? lines.slice(-maximum) : [], omitted: Math.max(0, lines.length - maximum) };
-}
-
-function boundedDisplayLines(output: string, language: string | undefined, maximum: number): { lines: string[]; omitted: number } {
-	const plain    = clean(output)                                          ;
-	const allLines = plain.split("\n")                                      ;
-	const selected = maximum > 0 ? allLines.slice(-maximum).join("\n") : "" ;
-	// Bound unstyled text first: highlighter ANSI bytes must never consume the display budget.
-	const bounded = clean(sanitizeTerminalTextExcerpt(selected, CHAT_PUBLIC_OUTPUT_MAX_CHARS, "tail"));
-	const lines = language
-		? highlightStructured(bounded, language as "json" | "yaml" | "markdown")
-		: bounded.split("\n");
-	return { lines, omitted: Math.max(0, allLines.length - maximum) };
-}
-
-function statusLabel(status: CommandStatus): string {
-	return workStepStatusPresentation(status).text;
-}
-
-function resultDetails(durationMs: number | undefined, error: string | undefined): string[] {
-	const details: string[] = [];
-	if (durationMs !== undefined) details.push(`${durationMs}ms`);
-	if (error !== undefined) details.push(`오류: ${clean(error)}`);
-	return details;
 }
 
 /** Terminal presentation of an observed bash result; it never executes the command. */
@@ -108,8 +40,8 @@ export class BashResultCard implements Component {
 	invalidate(): void {}
 
 	render(width: number): string[] {
-		const contentWidth = Math.max(1, width - 4);
-		const command = highlightStructured(projectNativePathText(clean(this.snapshot.command), this.snapshot.cwd), "bash");
+		const contentWidth = Math.max(1, width - 4)                                                                              ;
+		const command      = highlightStructured(projectNativePathText(clean(this.snapshot.command), this.snapshot.cwd), "bash") ;
 		const rows = [
 			`${semantic.assistantLabel("Bash")} · ${statusLabel(this.snapshot.status)}`,
 			...command.flatMap((line, index) => wrappedHighlighted(`${colors.muted(index === 0 ? "$" : ">")} ${line}`, contentWidth)),
@@ -156,8 +88,8 @@ export class GenericToolResultCard implements Component {
 			semantic.userLabel("입력:"),
 			...inputLines.flatMap((line) => wrappedHighlighted(`  ${line}`, contentWidth)),
 		];
-		const display = structuredOutput(clean(this.snapshot.input), clean(this.snapshot.output));
-		const output = boundedDisplayLines(display.value, display.language, Math.max(0, this.maxOutputLines));
+		const display = structuredOutput(clean(this.snapshot.input), clean(this.snapshot.output))              ;
+		const output  = boundedDisplayLines(display.value, display.language, Math.max(0, this.maxOutputLines)) ;
 		if (output.omitted > 0) rows.push(colors.muted(`… ${output.omitted} earlier lines omitted`));
 		if (output.lines.length > 0) {
 			rows.push(semantic.assistantLabel("출력"));
@@ -206,8 +138,8 @@ export class CompletionSummaryCard implements Component {
 	invalidate(): void {}
 
 	render(width: number): string[] {
-		const contentWidth = Math.max(1, width - 4);
-		const rows = wrapped(this.report.title, contentWidth);
+		const contentWidth = Math.max(1, width - 4)                   ;
+		const rows         = wrapped(this.report.title, contentWidth) ;
 		for (const [index, section] of this.report.sections.entries()) {
 			rows.push("");
 			rows.push(...wrapped(`#${index + 1} ${section.title}`, contentWidth).map((line) => colors.secondary(line)));
@@ -219,4 +151,77 @@ export class CompletionSummaryCard implements Component {
 		}
 		return card(width, rows);
 	}
+}
+
+function clean(value: string): string {
+	return stripTerminalSequences(value)
+		.replace(/[\u0000-\u0008\u000B-\u001F\u007F-\u009F]/gu, "")
+		.replace(/\bsk-[A-Za-z0-9_-]{16,}\b/gu, "[REDACTED]")
+		.replace(/\b(?:ghp_|gho_|github_pat_)[A-Za-z0-9_]{16,}\b/gu, "[REDACTED]")
+		.replace(
+			/(("?(?:authorization|api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret|password)"?\s*[:=]\s*"?(?:bearer\s+)?))[^"\s,}\]]+/giu,
+			"$1[REDACTED]",
+		)
+		.replace(/\t/gu, "    ");
+}
+
+function fit(text: string, width: number): string {
+	const clipped = truncateToWidth(text, Math.max(0, width));
+	return clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)));
+}
+
+function wrapped(text: string, width: number): string[] {
+	return clean(text).split("\n").flatMap((line) => wrapTextWithAnsi(line, Math.max(1, width)));
+}
+
+function wrappedHighlighted(text: string, width: number): string[] {
+	return text.split("\n").flatMap((line) => wrapTextWithAnsi(line, Math.max(1, width)));
+}
+
+function card(width: number, rows: readonly string[]): string[] {
+	if (width < 4) return rows.map((row) => fit(row, width));
+	const contentWidth = width - 4;
+	return [
+		colors.border(`╭${"─".repeat(width - 2)}╮`),
+		...rows.map((row) => `${colors.border("│")} ${fit(row, contentWidth)} ${colors.border("│")}`),
+		colors.border(`╰${"─".repeat(width - 2)}╯`),
+	];
+}
+
+function outputLines(snapshot: CommandResultSnapshot, maximum: number): { lines: OutputLine[]; omitted: number } {
+	const lines: OutputLine[] = [];
+	for (const [stream, output] of [["stdout", snapshot.stdout], ["stderr", snapshot.stderr]] as const) {
+		for (const text of projectNativePathText(clean(output), snapshot.cwd).split("\n")) {
+			if (text || output.length > 0) lines.push({ stream, text });
+		}
+	}
+	return { lines: maximum > 0 ? lines.slice(-maximum) : [], omitted: Math.max(0, lines.length - maximum) };
+}
+
+function boundedLines(output: string, maximum: number): { lines: string[]; omitted: number } {
+	const lines = clean(output).split("\n");
+	return { lines: maximum > 0 ? lines.slice(-maximum) : [], omitted: Math.max(0, lines.length - maximum) };
+}
+
+function boundedDisplayLines(output: string, language: string | undefined, maximum: number): { lines: string[]; omitted: number } {
+	const plain    = clean(output)                                          ;
+	const allLines = plain.split("\n")                                      ;
+	const selected = maximum > 0 ? allLines.slice(-maximum).join("\n") : "" ;
+	// Bound unstyled text first: highlighter ANSI bytes must never consume the display budget.
+	const bounded = clean(sanitizeTerminalTextExcerpt(selected, CHAT_PUBLIC_OUTPUT_MAX_CHARS, "tail"));
+	const lines = language
+		? highlightStructured(bounded, language as "json" | "yaml" | "markdown")
+		: bounded.split("\n");
+	return { lines, omitted: Math.max(0, allLines.length - maximum) };
+}
+
+function statusLabel(status: CommandStatus): string {
+	return workStepStatusPresentation(status).text;
+}
+
+function resultDetails(durationMs: number | undefined, error: string | undefined): string[] {
+	const details: string[] = [];
+	if (durationMs !== undefined) details.push(`${durationMs}ms`);
+	if (error !== undefined) details.push(`오류: ${clean(error)}`);
+	return details;
 }

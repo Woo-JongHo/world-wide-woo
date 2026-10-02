@@ -1,32 +1,18 @@
-import type { Component }                   from "@earendil-works/pi-tui";
-import type { ObservabilitySessionSummary } from "@/core/domain/observability/observability-dashboard";
-import type { SessionStatsSnapshot }        from "@/core/domain/observability/session-stats";
-import {
-	a,
-	duration,
-	fit,
-	mark,
-	number,
-	oneLine,
-	pair,
-	prose,
-	safe,
-	section,
-} from "@/adapters/inbound/tui/foundation/theme/www-theme";
-
-function document(rows: string[], width: number): string[] { return rows.flatMap(row => prose(row, width)); }
-function kv(label: string, value: unknown): string { return `${a.muted(fit(label, 20))} ${a.text(safe(value ?? "—"))}`; }
-function hiddenKey(key: string): boolean {
-	const normalized = key.replace(/[-_]/gu, "").toLowerCase();
-	return normalized.includes("reasoning") || normalized.includes("thought") || normalized.includes("analysis")
-		|| normalized.startsWith("raw") || normalized.endsWith("token") || normalized.endsWith("secret")
-		|| normalized.endsWith("password") || normalized.endsWith("credential")
-		|| normalized.endsWith("authorization") || normalized.endsWith("apikey");
-}
-function json(value: unknown, width: number): string[] {
-	const text = JSON.stringify(value, (key, item) => hiddenKey(key) ? undefined : item, 2);
-	return prose(a.muted(safe(text, 10_000)), width);
-}
+import type { Component                   } from "@earendil-works/pi-tui"                              ;
+import type { ObservabilitySessionSummary } from "@/core/domain/observability/observability-dashboard" ;
+import type { SessionStatsSnapshot        } from "@/core/domain/observability/session-stats"           ;
+import      {
+              a                         ,
+              duration                  ,
+              fit                       ,
+              mark                      ,
+              number                    ,
+              oneLine                   ,
+              pair                      ,
+              prose                     ,
+              safe                      ,
+              section                   ,
+                                          } from "@/adapters/inbound/tui/foundation/theme/www-theme"   ;
 
 export class WwwStatsView implements Component {
 	constructor(private readonly get: () => SessionStatsSnapshot, private readonly target: () => "session" | "diagnostics" | "latest" | number, private readonly historical: () => ObservabilitySessionSummary | null) {}
@@ -57,4 +43,20 @@ export class WwwStatsView implements Component {
 		rows.push(...section("결과", width), safe(s.claims.result.text), a.muted(`근거 ${s.claims.result.authority} / 독립 검증 ${s.claims.result.independentlyVerified ? "확인" : "미확인"}`), "", a.muted("/stats diagnostics 측정 근거 / /stats latest 최근 요청"));
 		return document(rows, width);
 	}
+}
+
+function document(rows: string[], width: number): string[] { return rows.flatMap(row => prose(row, width)); }
+function kv(label: string, value: unknown): string { return `${a.muted(fit(label, 20))} ${a.text(safe(value ?? "—"))}`; }
+
+function hiddenKey(key: string): boolean {
+	const normalized = key.replace(/[-_]/gu, "").toLowerCase();
+	return normalized.includes("reasoning") || normalized.includes("thought") || normalized.includes("analysis")
+		|| normalized.startsWith("raw") || normalized.endsWith("token") || normalized.endsWith("secret")
+		|| normalized.endsWith("password") || normalized.endsWith("credential")
+		|| normalized.endsWith("authorization") || normalized.endsWith("apikey");
+}
+
+function json(value: unknown, width: number): string[] {
+	const text = JSON.stringify(value, (key, item) => hiddenKey(key) ? undefined : item, 2);
+	return prose(a.muted(safe(text, 10_000)), width);
 }

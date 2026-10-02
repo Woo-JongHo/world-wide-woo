@@ -1,6 +1,10 @@
-import type { ThreeBodyInitialBody, ThreeBodySnapshot, Vector2 } from "@/core/domain/work/three-body-simulation";
+import type {
+              ThreeBodyInitialBody ,
+              ThreeBodySnapshot    ,
+              Vector2              ,
+                                     } from "@/core/domain/work/three-body-simulation"      ;
 import chalk                                                     from "chalk";
-import { colors }                                                from "@/adapters/inbound/tui/foundation/theme/theme";
+import      { colors                 } from "@/adapters/inbound/tui/foundation/theme/theme" ;
 
 export interface ThreeBodyTrail {
 	readonly bodyId       : ThreeBodyInitialBody["id"] ;
@@ -37,28 +41,6 @@ const BODY_COLORS: Readonly<Record<ThreeBodyInitialBody["id"], Rgb>> = {
 	C : [255, 184, 92],
 };
 
-function bodyInk(id: ThreeBodyInitialBody["id"], intensity = 1): Ink {
-	return text => chalk.rgb(...mix([9, 10, 18], BODY_COLORS[id], intensity))(text);
-}
-
-function mix(from: Rgb, to: Rgb, amount: number): Rgb {
-	const value = Math.max(0, Math.min(1, amount));
-	return [
-		Math.round(from[0] + (to[0] - from[0]) * value),
-		Math.round(from[1] + (to[1] - from[1]) * value),
-		Math.round(from[2] + (to[2] - from[2]) * value),
-	];
-}
-
-function orbitInk(position: number, intensity = 1): Ink {
-	const wrapped = ((position % 1) + 1) % 1                                        ;
-	const scaled  = wrapped * (ORBIT_STOPS.length - 1)                              ;
-	const index   = Math.min(ORBIT_STOPS.length - 2, Math.floor(scaled))            ;
-	const color   = mix(ORBIT_STOPS[index], ORBIT_STOPS[index + 1], scaled - index) ;
-	const shaded  = mix([9, 10, 18], color, intensity)                              ;
-	return text => chalk.rgb(...shaded)(text);
-}
-
 const BRAILLE_BITS = [
 	[0x01, 0x08],
 	[0x02, 0x10],
@@ -94,8 +76,8 @@ class BrailleCanvas {
 
 	rows(labels: readonly { x: number; y: number; text: string; ink: Ink }[], depthTexture = false): string[] {
 		const rows = Array.from({ length: this.height }, (_, y) => Array.from({ length: this.width }, (_, x) => {
-			const index = y * this.width + x;
-			const bits = this.bits[index] ?? 0;
+			const index = y * this.width + x    ;
+			const bits  = this.bits[index] ?? 0 ;
 			if (!bits) return " ";
 			const density = bits.toString(2).replaceAll("0", "").length;
 			const character = depthTexture && this.priority[index] === 4
@@ -109,14 +91,80 @@ class BrailleCanvas {
 				|| label.y < 0
 				|| label.x >= this.width
 				|| label.y >= this.height) continue;
-			const candidates = [label.x, label.x - 1, label.x + 1, label.x - 2, label.x + 2];
-			const x = candidates.find(candidate => candidate >= 0 && candidate < this.width && !occupied.has(`${candidate}:${label.y}`));
+			const candidates = [label.x, label.x - 1, label.x + 1, label.x - 2, label.x + 2]                                                      ;
+			const x          = candidates.find(candidate => candidate >= 0 && candidate < this.width && !occupied.has(`${candidate}:${label.y}`)) ;
 			if (x === undefined) continue;
 			rows[label.y][x] = label.ink(label.text);
 			occupied.add(`${x}:${label.y}`);
 		}
 		return rows.map(row => row.join(""));
 	}
+}
+
+/** Render a physics snapshot and supplied world-space trails into a 2×4 Braille framebuffer. */
+export function renderThreeBodyBrailleFrame(snapshot: ThreeBodySnapshot, options: ThreeBodyBrailleOptions): string[] {
+	const width         = Math.max(1, Math.floor(options.width))                               ;
+	const height        = Math.max(1, Math.floor(options.height))                              ;
+	const visibleTrails = options.showTrail && !options.trailOnlyHistory ? options.trails : [] ;
+	const project       = projector(snapshot, options.trails, width * 2, height * 4)           ;
+	const canvas        = new BrailleCanvas(width, height)                                     ;
+
+	for (const trail of visibleTrails) {
+		for (let index = 1; index < trail.points.length; index += 1) {
+			const position = index / Math.max(1, trail.points.length - 1) ;
+			const from     = project(trail.points[index - 1])             ;
+			const to       = project(trail.points[index])                 ;
+			const depth    = viewDepth(trail.points[index])               ;
+			line(canvas, from, to, orbitInk(position, depth < 0 ? 0.42 : 0.2), 2);
+		}
+	}
+	if (options.showTrail) for (const trail of options.recentTrails ?? []) {
+		for (let index = 1; index < trail.points.length; index += 1) {
+			const ageIntensity   = trail.intensities?.[index] ?? (0.25 + 0.75 * index / Math.max(1, trail.points.length - 1)) ;
+			const depthIntensity = viewDepth(trail.points[index]) < 0 ? 1 : 0.55                                              ;
+			line(canvas, project(trail.points[index - 1]), project(trail.points[index]), bodyInk(trail.bodyId, ageIntensity * depthIntensity), 3);
+		}
+	}
+
+	const labels = snapshot.bodies.map(body => {
+		const [pixelX, pixelY] = project(body.position);
+		const radius = viewDepth(body.position) < 0 ? 3 : 2;
+		for (let dy = -radius; dy <= radius; dy += 1) {
+			for (let dx = -radius; dx <= radius; dx += 1) {
+				const distance = Math.hypot(dx, dy);
+				if (distance <= radius) canvas.plot(pixelX + dx, pixelY + dy, bodyInk(body.id, 1 - distance / (radius + 1) * 0.6), 4);
+			}
+		}
+		return {
+			x    : Math.max(0, Math.min(width - 1, Math.floor(pixelX / 2))),
+			y    : Math.max(0, Math.min(height - 1, Math.floor(pixelY / 4))),
+			text : options.bodyLabel ?? body.id,
+			ink  : (text: string) => chalk.bold.rgb(...BODY_COLORS[body.id])(text),
+		};
+	});
+	return canvas.rows(labels, options.depthTexture);
+}
+
+function bodyInk(id: ThreeBodyInitialBody["id"], intensity = 1): Ink {
+	return text => chalk.rgb(...mix([9, 10, 18], BODY_COLORS[id], intensity))(text);
+}
+
+function mix(from: Rgb, to: Rgb, amount: number): Rgb {
+	const value = Math.max(0, Math.min(1, amount));
+	return [
+		Math.round(from[0] + (to[0] - from[0]) * value),
+		Math.round(from[1] + (to[1] - from[1]) * value),
+		Math.round(from[2] + (to[2] - from[2]) * value),
+	];
+}
+
+function orbitInk(position: number, intensity = 1): Ink {
+	const wrapped = ((position % 1) + 1) % 1                                        ;
+	const scaled  = wrapped * (ORBIT_STOPS.length - 1)                              ;
+	const index   = Math.min(ORBIT_STOPS.length - 2, Math.floor(scaled))            ;
+	const color   = mix(ORBIT_STOPS[index], ORBIT_STOPS[index + 1], scaled - index) ;
+	const shaded  = mix([9, 10, 18], color, intensity)                              ;
+	return text => chalk.rgb(...shaded)(text);
 }
 
 function bounds(snapshot: ThreeBodySnapshot, trails: readonly ThreeBodyTrail[]): { center: Vector2; rangeX: number; rangeY: number } {
@@ -151,8 +199,8 @@ function projector(snapshot: ThreeBodySnapshot, trails: readonly ThreeBodyTrail[
 		const perspective = 1 / Math.max(0.65, Math.min(1.35, 1 + depth * 0.035)) ;
 		return { x: x * perspective, y: depth * 0.62 * perspective };
 	};
-	const world = bounds({ ...snapshot, bodies: snapshot.bodies.map(body => ({ ...body, position: tilt(body.position) })) }, trails.map(trail => ({ ...trail, points: trail.points.map(tilt) })));
-	const scale = Math.min((pixelWidth - 1) / world.rangeX, (pixelHeight - 1) / world.rangeY);
+	const world = bounds({ ...snapshot, bodies: snapshot.bodies.map(body => ({ ...body, position: tilt(body.position) })) }, trails.map(trail => ({ ...trail, points: trail.points.map(tilt) }))) ;
+	const scale = Math.min((pixelWidth - 1) / world.rangeX, (pixelHeight - 1) / world.rangeY)                                                                                                     ;
 	return point => {
 		const projected = tilt(point);
 		return [
@@ -177,48 +225,4 @@ function line(canvas: BrailleCanvas, from: Pixel, to: Pixel, ink: Ink, priority:
 		if (doubled >= dy) { error += dy; x += sx; }
 		if (doubled <= dx) { error += dx; y += sy; }
 	}
-}
-
-/** Render a physics snapshot and supplied world-space trails into a 2×4 Braille framebuffer. */
-export function renderThreeBodyBrailleFrame(snapshot: ThreeBodySnapshot, options: ThreeBodyBrailleOptions): string[] {
-	const width         = Math.max(1, Math.floor(options.width))                               ;
-	const height        = Math.max(1, Math.floor(options.height))                              ;
-	const visibleTrails = options.showTrail && !options.trailOnlyHistory ? options.trails : [] ;
-	const project       = projector(snapshot, options.trails, width * 2, height * 4)           ;
-	const canvas        = new BrailleCanvas(width, height)                                     ;
-
-	for (const trail of visibleTrails) {
-		for (let index = 1; index < trail.points.length; index += 1) {
-			const position = index / Math.max(1, trail.points.length - 1) ;
-			const from     = project(trail.points[index - 1])             ;
-			const to       = project(trail.points[index])                 ;
-			const depth    = viewDepth(trail.points[index])               ;
-			line(canvas, from, to, orbitInk(position, depth < 0 ? 0.42 : 0.2), 2);
-		}
-	}
-	if (options.showTrail) for (const trail of options.recentTrails ?? []) {
-		for (let index = 1; index < trail.points.length; index += 1) {
-			const ageIntensity = trail.intensities?.[index] ?? (0.25 + 0.75 * index / Math.max(1, trail.points.length - 1));
-			const depthIntensity = viewDepth(trail.points[index]) < 0 ? 1 : 0.55;
-			line(canvas, project(trail.points[index - 1]), project(trail.points[index]), bodyInk(trail.bodyId, ageIntensity * depthIntensity), 3);
-		}
-	}
-
-	const labels = snapshot.bodies.map(body => {
-		const [pixelX, pixelY] = project(body.position);
-		const radius = viewDepth(body.position) < 0 ? 3 : 2;
-		for (let dy = -radius; dy <= radius; dy += 1) {
-			for (let dx = -radius; dx <= radius; dx += 1) {
-				const distance = Math.hypot(dx, dy);
-				if (distance <= radius) canvas.plot(pixelX + dx, pixelY + dy, bodyInk(body.id, 1 - distance / (radius + 1) * 0.6), 4);
-			}
-		}
-		return {
-			x    : Math.max(0, Math.min(width - 1, Math.floor(pixelX / 2))),
-			y    : Math.max(0, Math.min(height - 1, Math.floor(pixelY / 4))),
-			text : options.bodyLabel ?? body.id,
-			ink  : (text: string) => chalk.bold.rgb(...BODY_COLORS[body.id])(text),
-		};
-	});
-	return canvas.rows(labels, options.depthTexture);
 }

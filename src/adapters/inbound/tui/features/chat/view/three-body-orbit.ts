@@ -1,29 +1,16 @@
-import { HIERARCHICAL_TRIPLE_PRESET, ThreeBodySimulation } from "@/core/domain/work/three-body-simulation";
-import type { ThreeBodySnapshot, Vector2 }                 from "@/core/domain/work/three-body-simulation";
-import { renderThreeBodyBrailleFrame }                     from "@/adapters/inbound/tui/features/chat/view/three-body-braille";
-import type { ThreeBodyTrail }                             from "@/adapters/inbound/tui/features/chat/view/three-body-braille";
+import      {
+              HIERARCHICAL_TRIPLE_PRESET ,
+              ThreeBodySimulation        ,
+                                           } from "@/core/domain/work/three-body-simulation"                     ;
+import type { ThreeBodySnapshot, Vector2   } from "@/core/domain/work/three-body-simulation"                     ;
+import      { renderThreeBodyBrailleFrame  } from "@/adapters/inbound/tui/features/chat/view/three-body-braille" ;
+import type { ThreeBodyTrail               } from "@/adapters/inbound/tui/features/chat/view/three-body-braille" ;
 
 const CANVAS_HEIGHT                          = 21   ;
 export const MAX_ORBIT_WIDTH                 = 126  ;
 const PLAYBACK_SPEED                         = 6    ;
 const REFERENCE_SAMPLE_STEP                  = 0.02 ;
 const REFERENCE_FRAMES : ThreeBodySnapshot[] = []   ;
-
-function referenceTrail(): readonly ThreeBodyTrail[] {
-	const simulation = ThreeBodySimulation.fromPreset(HIERARCHICAL_TRIPLE_PRESET);
-	const points = new Map<string, Vector2[]>(HIERARCHICAL_TRIPLE_PRESET.bodies.map(body => [body.id, []]));
-	for (let elapsed = 0; elapsed <= HIERARCHICAL_TRIPLE_PRESET.referenceDuration; elapsed += REFERENCE_SAMPLE_STEP) {
-		const snapshot = simulation.snapshot();
-		REFERENCE_FRAMES.push(snapshot);
-		for (const body of snapshot.bodies) {
-			const trail = points.get(body.id);
-			if (!trail) throw new Error(`Unknown simulation body: ${body.id}`);
-			trail.push(body.position);
-		}
-		simulation.advance(Math.min(REFERENCE_SAMPLE_STEP, Math.max(0, HIERARCHICAL_TRIPLE_PRESET.referenceDuration - elapsed)));
-	}
-	return HIERARCHICAL_TRIPLE_PRESET.bodies.map(body => ({ bodyId: body.id, points: points.get(body.id) ?? [] }));
-}
 
 const HIERARCHICAL_REFERENCE_TRAIL = referenceTrail();
 
@@ -38,8 +25,8 @@ export function threeBodyOrbitFrame(elapsedMs: number, requestedWidth: number, r
 	const recentTrails : ThreeBodyTrail[] = []                                                                                      ;
 	const cycle                           = Math.floor(elapsedSeconds / duration)                                                   ;
 	for (let pass = Math.max(0, cycle - 2); pass <= cycle; pass += 1) {
-		const start = Math.max(0, Math.ceil((elapsedSeconds - lifetime - pass * duration) / REFERENCE_SAMPLE_STEP));
-		const end = pass === cycle ? frameIndex + 1 : REFERENCE_FRAMES.length;
+		const start = Math.max(0, Math.ceil((elapsedSeconds - lifetime - pass * duration) / REFERENCE_SAMPLE_STEP)) ;
+		const end   = pass === cycle ? frameIndex + 1 : REFERENCE_FRAMES.length                                     ;
 		if (start >= end) continue;
 		for (const trail of HIERARCHICAL_REFERENCE_TRAIL) recentTrails.push({
 			bodyId: trail.bodyId,
@@ -64,4 +51,20 @@ export function threeBodyOrbitFrame(elapsedMs: number, requestedWidth: number, r
 
 export function threeBodyOrbitLabel(_width: number): string {
 	return "";
+}
+
+function referenceTrail(): readonly ThreeBodyTrail[] {
+	const simulation = ThreeBodySimulation.fromPreset(HIERARCHICAL_TRIPLE_PRESET)                               ;
+	const points     = new Map<string, Vector2[]>(HIERARCHICAL_TRIPLE_PRESET.bodies.map(body => [body.id, []])) ;
+	for (let elapsed = 0; elapsed <= HIERARCHICAL_TRIPLE_PRESET.referenceDuration; elapsed += REFERENCE_SAMPLE_STEP) {
+		const snapshot = simulation.snapshot();
+		REFERENCE_FRAMES.push(snapshot);
+		for (const body of snapshot.bodies) {
+			const trail = points.get(body.id);
+			if (!trail) throw new Error(`Unknown simulation body: ${body.id}`);
+			trail.push(body.position);
+		}
+		simulation.advance(Math.min(REFERENCE_SAMPLE_STEP, Math.max(0, HIERARCHICAL_TRIPLE_PRESET.referenceDuration - elapsed)));
+	}
+	return HIERARCHICAL_TRIPLE_PRESET.bodies.map(body => ({ bodyId: body.id, points: points.get(body.id) ?? [] }));
 }

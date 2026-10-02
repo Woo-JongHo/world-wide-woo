@@ -1,10 +1,10 @@
-export const DASHBOARD_SESSION_WINDOW_SIZE = 10;
-
 export interface DashboardSessionWindow {
 	readonly selectedIndex : number ;
 	readonly start         : number ;
 	readonly end           : number ;
 }
+
+export const DASHBOARD_SESSION_WINDOW_SIZE = 10;
 
 /** Keeps the keyboard-selected session inside the rows rendered by Dashboard. */
 export function dashboardSessionWindow(

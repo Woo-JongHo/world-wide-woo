@@ -16,6 +16,56 @@ interface Point {
 	grain?: number
 }
 
+const POINTS = octopusPoints();
+
+/** Three full turns with a moving light plane, settling front-on. */
+export function octopusScanFrame(elapsedMs: number, requestedWidth: number, requestedHeight: number): string[] {
+	const width    = Math.max(1, Math.min(80, Math.floor(requestedWidth)))           ;
+	const height   = Math.max(1, Math.min(29, Math.floor(requestedHeight)))          ;
+	const progress = Math.min(1, Math.max(0, elapsedMs / OCTOPUS_INTRO_DURATION_MS)) ;
+	const angle    = (progress < 1 ? progress * OCTOPUS_INTRO_TURNS : 0) * TAU       ;
+	const cosine = Math.cos(angle), sine = Math.sin(angle);
+	const scale = Math.min((width * 2 - 4) / 3.45, (height * 4 - 4) / 2.8) ;
+	const bits  = new Uint8Array(width * height)                           ;
+	const light = new Float32Array(width * height)                         ;
+	const face  = new Uint8Array(width * height)                           ;
+	const scanY = -1.5 + progress * 3                                      ;
+	for (const point of POINTS) {
+		const rotatedZ = -point.x * sine + point.z * cosine;
+		if (point.face && cosine < 0.2) continue;
+		// Only the front-facing silhouette is visible; facial arcs are separate points.
+		if (point.mantle) {
+			const normalZ = -point.x / (MANTLE_RADIUS_X ** 2) * sine + point.z / (0.64 ** 2) * cosine;
+			if (normalZ < 0) continue;
+			const rim   = normalZ < 0.32   ;
+			const grain = point.grain ?? 0 ;
+			if (!rim && grain > 0.12 + Math.min(1, normalZ / 1.56) * 0.36) continue;
+		}
+		const perspective = 1 + rotatedZ * 0.08                                                                 ;
+		const x           = Math.round((point.x * cosine + point.z * sine) * scale * perspective + width - 0.5) ;
+		const y           = Math.round((point.y + 0.12) * scale * perspective + height * 2 - 0.5)               ;
+		const outOfX      = x < 0 || x >= width * 2                                                             ;
+		const outOfY      = y < 0 || y >= height * 4                                                            ;
+		if (outOfX || outOfY) continue;
+		const cell = Math.floor(y / 4) * width + Math.floor(x / 2);
+		bits[cell] = bits[cell] | DOTS[y % 4][x % 2];
+		if (point.face) face[cell] = 1;
+		const scan     = progress < 1 ? Math.max(0, 1 - Math.abs(point.y - scanY) / 0.2) : 0 ;
+		const rotatedX = point.x * cosine + point.z * sine                                   ;
+		light[cell] = Math.max(light[cell], surfaceLight(point, rotatedZ, rotatedX, scan));
+	}
+	return Array.from({ length: height }, (_, row) => Array.from({ length: width }, (_, column) => {
+		const cell = row * width + column ;
+		const dot  = bits[cell]           ;
+		if (!dot) return " "                 ;
+		const character = String.fromCodePoint(0x2800 + dot);
+		if (process.env.NO_COLOR !== undefined) return character;
+		const intensity = Math.min(1, light[cell]);
+		if (face[cell]) return chalk.rgb(255, 190, 158)(character);
+		return chalk.rgb(Math.round(255 * intensity), Math.round(106 * intensity), Math.round(94 * intensity))(character);
+	}).join(""));
+}
+
 function facePoint(x: number, y: number): Point {
 	const z = Math.sqrt(Math.max(0, 1 - (x / MANTLE_RADIUS_X) ** 2 - ((y + 0.35) / 1.04) ** 2)) * 0.64;
 	return { x, y, z: z + 0.035, face: true };
@@ -79,53 +129,4 @@ function octopusPoints(): readonly Point[] {
 		points.push(facePoint(x, 0.22 + 0.13 * (1 - (x / 0.23) ** 2)));
 	}
 	return points;
-}
-const POINTS = octopusPoints();
-
-/** Three full turns with a moving light plane, settling front-on. */
-export function octopusScanFrame(elapsedMs: number, requestedWidth: number, requestedHeight: number): string[] {
-	const width    = Math.max(1, Math.min(80, Math.floor(requestedWidth)))           ;
-	const height   = Math.max(1, Math.min(29, Math.floor(requestedHeight)))          ;
-	const progress = Math.min(1, Math.max(0, elapsedMs / OCTOPUS_INTRO_DURATION_MS)) ;
-	const angle    = (progress < 1 ? progress * OCTOPUS_INTRO_TURNS : 0) * TAU       ;
-	const cosine = Math.cos(angle), sine = Math.sin(angle);
-	const scale = Math.min((width * 2 - 4) / 3.45, (height * 4 - 4) / 2.8) ;
-	const bits  = new Uint8Array(width * height)                           ;
-	const light = new Float32Array(width * height)                         ;
-	const face  = new Uint8Array(width * height)                           ;
-	const scanY = -1.5 + progress * 3                                      ;
-	for (const point of POINTS) {
-		const rotatedZ = -point.x * sine + point.z * cosine;
-		if (point.face && cosine < 0.2) continue;
-		// Only the front-facing silhouette is visible; facial arcs are separate points.
-		if (point.mantle) {
-			const normalZ = -point.x / (MANTLE_RADIUS_X ** 2) * sine + point.z / (0.64 ** 2) * cosine;
-			if (normalZ < 0) continue;
-			const rim   = normalZ < 0.32       ;
-			const grain = point.grain ?? 0     ;
-			if (!rim && grain > 0.12 + Math.min(1, normalZ / 1.56) * 0.36) continue;
-		}
-		const perspective = 1 + rotatedZ * 0.08                                                                 ;
-		const x           = Math.round((point.x * cosine + point.z * sine) * scale * perspective + width - 0.5) ;
-		const y           = Math.round((point.y + 0.12) * scale * perspective + height * 2 - 0.5)               ;
-		const outOfX      = x < 0 || x >= width * 2                                                             ;
-		const outOfY      = y < 0 || y >= height * 4                                                            ;
-		if (outOfX || outOfY) continue;
-		const cell = Math.floor(y / 4) * width + Math.floor(x / 2);
-		bits[cell] = bits[cell] | DOTS[y % 4][x % 2];
-		if (point.face) face[cell] = 1;
-		const scan      = progress < 1 ? Math.max(0, 1 - Math.abs(point.y - scanY) / 0.2) : 0;
-		const rotatedX  = point.x * cosine + point.z * sine                                  ;
-		light[cell] = Math.max(light[cell], surfaceLight(point, rotatedZ, rotatedX, scan));
-	}
-	return Array.from({ length: height }, (_, row) => Array.from({ length: width }, (_, column) => {
-		const cell = row * width + column;
-		const dot  = bits[cell]              ;
-		if (!dot) return " "                 ;
-		const character = String.fromCodePoint(0x2800 + dot);
-		if (process.env.NO_COLOR !== undefined) return character;
-		const intensity = Math.min(1, light[cell]);
-		if (face[cell]) return chalk.rgb(255, 190, 158)(character);
-		return chalk.rgb(Math.round(255 * intensity), Math.round(106 * intensity), Math.round(94 * intensity))(character);
-	}).join(""));
 }

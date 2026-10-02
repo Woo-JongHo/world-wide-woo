@@ -1,15 +1,13 @@
-import type { Component }                                  from "@earendil-works/pi-tui";
-import type { DevelopmentMapEpic, DevelopmentMapSnapshot } from "@/core/domain/development/development-map";
-import { a, mark, prose, safe, section }                   from "@/adapters/inbound/tui/foundation/theme/www-theme";
-
-function document(rows: string[], width: number): string[] { return rows.flatMap(row => prose(row, width)); }
+import type { Component                                  } from "@earendil-works/pi-tui"                            ;
+import type { DevelopmentMapEpic, DevelopmentMapSnapshot } from "@/core/domain/development/development-map"         ;
+import      { a, mark, prose, safe, section              } from "@/adapters/inbound/tui/foundation/theme/www-theme" ;
 
 export class WwwMapView implements Component {
 	constructor(private readonly get: () => DevelopmentMapSnapshot) {}
 	invalidate(): void {}
 	render(width: number): string[] {
-		const s = this.get();
-		const rows = section("개발 지도", width, `rev ${s.revision} / ${s.sourceHealth.state}`);
+		const s    = this.get()                                                                 ;
+		const rows = section("개발 지도", width, `rev ${s.revision} / ${s.sourceHealth.state}`) ;
 		if (s.sourceHealth.error) rows.push(a.attention(safe(s.sourceHealth.error)));
 		if (!["available", "stale"].includes(s.sourceHealth.state)) return document([...rows, "계획 원본을 확인할 수 없습니다."], width);
 		const epic = (e: DevelopmentMapEpic) => {
@@ -25,3 +23,5 @@ export class WwwMapView implements Component {
 		return document(rows, width);
 	}
 }
+
+function document(rows: string[], width: number): string[] { return rows.flatMap(row => prose(row, width)); }

@@ -1,17 +1,8 @@
-import { ProcessTerminal, SelectList, TuiAltScreen } from "@earendil-works/pi-tui";
-import type { Component }                            from "@earendil-works/pi-tui";
-import type { NativeThreadSummary }                  from "@/core/domain/execution/native-session";
-import { colors, selectListTheme }                   from "@/adapters/inbound/tui/foundation/theme/theme";
-import { a, wwwEditorTheme, fit, safe }              from "@/adapters/inbound/tui/foundation/theme/www-theme";
-
-function threadPreview(thread: NativeThreadSummary): string {
-	return thread.preview.replace(/\s+/gu, " ").trim() || "(미리보기 없음)";
-}
-
-function threadDescription(thread: NativeThreadSummary): string {
-	const updatedAt = new Date(thread.updatedAt * 1_000).toLocaleString("ko-KR");
-	return `${thread.status} · ${updatedAt} · ${thread.id}`;
-}
+import      { ProcessTerminal, SelectList, TuiAltScreen } from "@earendil-works/pi-tui"                            ;
+import type { Component                                 } from "@earendil-works/pi-tui"                            ;
+import type { NativeThreadSummary                       } from "@/core/domain/execution/native-session"            ;
+import      { colors, selectListTheme                   } from "@/adapters/inbound/tui/foundation/theme/theme"     ;
+import      { a, wwwEditorTheme, fit, safe              } from "@/adapters/inbound/tui/foundation/theme/www-theme" ;
 
 export class NativeThreadPicker implements Component {
 	private readonly list: SelectList;
@@ -83,4 +74,13 @@ export function selectNativeThread(threads: readonly NativeThreadSummary[], surf
 			}
 		}
 	});
+}
+
+function threadPreview(thread: NativeThreadSummary): string {
+	return thread.preview.replace(/\s+/gu, " ").trim() || "(미리보기 없음)";
+}
+
+function threadDescription(thread: NativeThreadSummary): string {
+	const updatedAt = new Date(thread.updatedAt * 1_000).toLocaleString("ko-KR");
+	return `${thread.status} · ${updatedAt} · ${thread.id}`;
 }

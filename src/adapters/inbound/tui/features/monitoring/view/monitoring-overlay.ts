@@ -1,49 +1,15 @@
-import { Key, matchesKey, truncateToWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
-import type { Component }                                     from "@earendil-works/pi-tui";
-import type { MonitoringSource }                              from "@/core/application/session/session-monitor";
-import type { MonitoringSnapshot, MonitoringTool }            from "@/core/domain/observability/monitoring";
-import { colors, semantic }                                   from "@/adapters/inbound/tui/foundation/theme/theme";
+import      {
+              Key                              ,
+              matchesKey                       ,
+              truncateToWidth                  ,
+              wrapTextWithAnsi                 ,
+                                                 } from "@earendil-works/pi-tui"                        ;
+import type { Component                          } from "@earendil-works/pi-tui"                        ;
+import type { MonitoringSource                   } from "@/core/application/session/session-monitor"    ;
+import type { MonitoringSnapshot, MonitoringTool } from "@/core/domain/observability/monitoring"        ;
+import      { colors, semantic                   } from "@/adapters/inbound/tui/foundation/theme/theme" ;
 
 type ObservedStatus = "RUNNING" | "COMPLETED" | "FAILED" | "CANCELLED" | "UNKNOWN";
-
-function elapsed(milliseconds: number): string {
-	const seconds = Math.max(0, Math.floor(milliseconds / 1_000));
-	const minutes = Math.floor(seconds / 60);
-	return minutes > 0 ? `${minutes}m ${seconds % 60}s` : `${seconds}s`;
-}
-
-function rowsWrapped(rows: readonly string[], width: number): string[] {
-	return rows.flatMap(row => row ? wrapTextWithAnsi(row, Math.max(1, width)) : [""]);
-}
-
-function sessionStatus(snapshot: MonitoringSnapshot): ObservedStatus {
-	if (snapshot.phase === "error") return "FAILED";
-	if (snapshot.phase === "streaming" || snapshot.tools.running > 0) return "RUNNING";
-	if (snapshot.phase === "ready" && (snapshot.turns.user > 0 || snapshot.turns.assistant > 0)) return "COMPLETED";
-	return "UNKNOWN";
-}
-
-function toolStatus(tool: MonitoringTool | null): ObservedStatus {
-	if (!tool) return "UNKNOWN";
-	if (tool.status === "running") return "RUNNING";
-	if (tool.status === "passed") return "COMPLETED";
-	if (tool.status === "failed") return "FAILED";
-	return "CANCELLED";
-}
-
-function todoStatus(snapshot: MonitoringSnapshot): ObservedStatus {
-	if (snapshot.todo.activeContent) return "RUNNING";
-	if (snapshot.todo.total > 0 && snapshot.todo.completed >= snapshot.todo.total) return "COMPLETED";
-	return "UNKNOWN";
-}
-
-function statusText(status: ObservedStatus): string {
-	if (status === "RUNNING") return semantic.toolRunning(status);
-	if (status === "COMPLETED") return semantic.toolPassed(status);
-	if (status === "FAILED") return semantic.toolFailed(status);
-	if (status === "CANCELLED") return semantic.toolCancelled(status);
-	return colors.warning(status);
-}
 
 export class MonitoringOverlay implements Component {
 	private snapshot: MonitoringSnapshot;
@@ -118,4 +84,43 @@ export class MonitoringOverlay implements Component {
 		this.stop();
 		this.onClose();
 	}
+}
+
+function elapsed(milliseconds: number): string {
+	const seconds = Math.max(0, Math.floor(milliseconds / 1_000)) ;
+	const minutes = Math.floor(seconds / 60)                      ;
+	return minutes > 0 ? `${minutes}m ${seconds % 60}s` : `${seconds}s`;
+}
+
+function rowsWrapped(rows: readonly string[], width: number): string[] {
+	return rows.flatMap(row => row ? wrapTextWithAnsi(row, Math.max(1, width)) : [""]);
+}
+
+function sessionStatus(snapshot: MonitoringSnapshot): ObservedStatus {
+	if (snapshot.phase === "error") return "FAILED";
+	if (snapshot.phase === "streaming" || snapshot.tools.running > 0) return "RUNNING";
+	if (snapshot.phase === "ready" && (snapshot.turns.user > 0 || snapshot.turns.assistant > 0)) return "COMPLETED";
+	return "UNKNOWN";
+}
+
+function toolStatus(tool: MonitoringTool | null): ObservedStatus {
+	if (!tool) return "UNKNOWN";
+	if (tool.status === "running") return "RUNNING";
+	if (tool.status === "passed") return "COMPLETED";
+	if (tool.status === "failed") return "FAILED";
+	return "CANCELLED";
+}
+
+function todoStatus(snapshot: MonitoringSnapshot): ObservedStatus {
+	if (snapshot.todo.activeContent) return "RUNNING";
+	if (snapshot.todo.total > 0 && snapshot.todo.completed >= snapshot.todo.total) return "COMPLETED";
+	return "UNKNOWN";
+}
+
+function statusText(status: ObservedStatus): string {
+	if (status === "RUNNING") return semantic.toolRunning(status);
+	if (status === "COMPLETED") return semantic.toolPassed(status);
+	if (status === "FAILED") return semantic.toolFailed(status);
+	if (status === "CANCELLED") return semantic.toolCancelled(status);
+	return colors.warning(status);
 }

@@ -1,13 +1,13 @@
-import type { UsageSnapshot } from "@/core/ports/observability/usage-monitor-port";
-import {
-	monitoringBars,
-	monitoringColumns,
-	monitoringCompactPanel,
-	monitoringMeter,
-	monitoringTable,
-	monitoringWidths,
-} from "@/adapters/inbound/tui/foundation/layout/www-monitoring-layout";
-import { a, fit, pair }       from "@/adapters/inbound/tui/foundation/theme/www-theme";
+import type { UsageSnapshot            } from "@/core/ports/observability/usage-monitor-port"                  ;
+import      {
+              monitoringBars         ,
+              monitoringColumns      ,
+              monitoringCompactPanel ,
+              monitoringMeter        ,
+              monitoringTable        ,
+              monitoringWidths       ,
+                                       } from "@/adapters/inbound/tui/foundation/layout/www-monitoring-layout" ;
+import      { a, fit, pair             } from "@/adapters/inbound/tui/foundation/theme/www-theme"              ;
 
 // Presentation fixtures only: enabled by the shell's explicit Demo state.
 const providers = [
@@ -16,61 +16,6 @@ const providers = [
 	{ id : "google"       , label : "Antigravity" , ink : a.gemini },
 	{ id : "zai"          , label : "Z.AI"        , ink : a.zai    },
 ] as const;
-
-function heading(title: string, width: number): string[] {
-	return [fit(a.active("■ " + title), width), a.rule("─".repeat(width))];
-}
-
-function providerStrip(usage: readonly UsageSnapshot[], width: number): string[] {
-	const widths = monitoringWidths(width, width >= 96 ? 4 : 1);
-	const cards = providers.map((provider, index) => {
-		const size      = widths[index] ?? width                                   ;
-		const quota     = usage.find(item => item.provider === provider.id)        ;
-		const remaining = quota?.limits[0]?.remainingPercent                       ;
-		const label     = remaining == null ? "미관측" : `${remaining}% remaining` ;
-		const rows = [
-			provider.ink(label),
-			remaining == null ? a.muted("quota unavailable") : monitoringMeter(remaining, 100, Math.max(4, size - 2), provider.ink),
-			pair("TTL", quota?.stale ? "STALE" : quota?.state ?? "미관측", size - 2),
-		];
-		return monitoringCompactPanel(provider.label, rows, size);
-	});
-	return width >= 96 ? monitoringColumns(cards, widths) : cards.flat();
-}
-
-function modelTable(width: number): string[] {
-	const columns = [
-		{ heading : "MODEL"        , minWidth : 19 , weight : 1 , align : "left"  },
-		{ heading : "EFFORT"       , minWidth : 6  , weight : 0 , align : "left"  },
-		{ heading : "CALLS"        , minWidth : 5  , weight : 0 , align : "right" },
-		{ heading : "IN/OUT/CACHE" , minWidth : 17 , weight : 1 , align : "right" },
-		{ heading : "TIME"         , minWidth : 5  , weight : 0 , align : "right" },
-		{ heading : "RECENT"       , minWidth : 6  , weight : 0 , align : "right" },
-	] as const;
-	const rows = [
-		[ "Codex-Instruct-v4"  , a.active("Middle"), "1420", "14.2M/8.1M/4.1M", "0.24s", "3s"  ],
-		[ "Claude-3.5-Sonnet"  , a.active("xHigh") , "844" , "42.8M/18.2M/24M", "1.12s", "12s" ],
-		[ "Antigravity-Base"   , a.active("Low")   , "310" , "1.2M/0.8M/0.1M", "0.08s", "4m"  ],
-		[ "Z.AI-Refiner-Core"  , a.active("High")  , "98"  , "8.4M/4.2M/1.5M", "0.45s", "12m" ],
-	];
-	if (width < 72) return rows.flatMap(row => [
-		fit(`${row[0]} · ${row[1]}`, width),
-		fit(`Calls ${row[2]} · ${row[3]}`, width),
-		fit(`Time ${row[4]} · Recent ${row[5]}`, width),
-	]);
-	return monitoringTable({ columns, rows }, width);
-}
-
-function availability(usage: readonly UsageSnapshot[], width: number): string[] {
-	return providers.flatMap(provider => {
-		const limits = usage.find(item => item.provider === provider.id)?.limits.slice(0, 2) ?? [];
-		return [provider.ink(provider.label), ...limits.map(limit => {
-			const value = limit.remainingPercent;
-			if (value == null) return a.muted("미관측");
-			return monitoringMeter(value, 100, Math.max(4, width - 6), provider.ink) + ` ${String(value).padStart(3)}%`;
-		})];
-	});
-}
 
 export function syntheticUsageRows(usage: readonly UsageSnapshot[], width: number): string[] {
 	const widths = monitoringWidths(width, width >= 96 ? 3 : 1) ;
@@ -127,4 +72,59 @@ export function syntheticUsageRail(width: number): string[] {
 		a.muted("R previous · E next"), a.muted("Esc return to live"),
 		a.attention("DEMO · synthetic metrics"),
 	].map(row => fit(row, width));
+}
+
+function heading(title: string, width: number): string[] {
+	return [fit(a.active("■ " + title), width), a.rule("─".repeat(width))];
+}
+
+function providerStrip(usage: readonly UsageSnapshot[], width: number): string[] {
+	const widths = monitoringWidths(width, width >= 96 ? 4 : 1);
+	const cards = providers.map((provider, index) => {
+		const size      = widths[index] ?? width                                   ;
+		const quota     = usage.find(item => item.provider === provider.id)        ;
+		const remaining = quota?.limits[0]?.remainingPercent                       ;
+		const label     = remaining == null ? "미관측" : `${remaining}% remaining` ;
+		const rows = [
+			provider.ink(label),
+			remaining == null ? a.muted("quota unavailable") : monitoringMeter(remaining, 100, Math.max(4, size - 2), provider.ink),
+			pair("TTL", quota?.stale ? "STALE" : quota?.state ?? "미관측", size - 2),
+		];
+		return monitoringCompactPanel(provider.label, rows, size);
+	});
+	return width >= 96 ? monitoringColumns(cards, widths) : cards.flat();
+}
+
+function modelTable(width: number): string[] {
+	const columns = [
+		{ heading : "MODEL"        , minWidth : 19 , weight : 1 , align : "left"  },
+		{ heading : "EFFORT"       , minWidth : 6  , weight : 0 , align : "left"  },
+		{ heading : "CALLS"        , minWidth : 5  , weight : 0 , align : "right" },
+		{ heading : "IN/OUT/CACHE" , minWidth : 17 , weight : 1 , align : "right" },
+		{ heading : "TIME"         , minWidth : 5  , weight : 0 , align : "right" },
+		{ heading : "RECENT"       , minWidth : 6  , weight : 0 , align : "right" },
+	] as const;
+	const rows = [
+		[ "Codex-Instruct-v4"  , a.active("Middle"), "1420", "14.2M/8.1M/4.1M", "0.24s", "3s"  ],
+		[ "Claude-3.5-Sonnet"  , a.active("xHigh") , "844" , "42.8M/18.2M/24M", "1.12s", "12s" ],
+		[ "Antigravity-Base"   , a.active("Low")   , "310" , "1.2M/0.8M/0.1M", "0.08s", "4m"  ],
+		[ "Z.AI-Refiner-Core"  , a.active("High")  , "98"  , "8.4M/4.2M/1.5M", "0.45s", "12m" ],
+	];
+	if (width < 72) return rows.flatMap(row => [
+		fit(`${row[0]} · ${row[1]}`, width),
+		fit(`Calls ${row[2]} · ${row[3]}`, width),
+		fit(`Time ${row[4]} · Recent ${row[5]}`, width),
+	]);
+	return monitoringTable({ columns, rows }, width);
+}
+
+function availability(usage: readonly UsageSnapshot[], width: number): string[] {
+	return providers.flatMap(provider => {
+		const limits = usage.find(item => item.provider === provider.id)?.limits.slice(0, 2) ?? [];
+		return [provider.ink(provider.label), ...limits.map(limit => {
+			const value = limit.remainingPercent;
+			if (value == null) return a.muted("미관측");
+			return monitoringMeter(value, 100, Math.max(4, width - 6), provider.ink) + ` ${String(value).padStart(3)}%`;
+		})];
+	});
 }

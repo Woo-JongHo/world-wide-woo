@@ -1,9 +1,20 @@
-import { Markdown, truncateToWidth, visibleWidth, wrapTextWithAnsi }            from "@earendil-works/pi-tui";
-import type { ChatFeatureProjection }                                           from "@/core/application/orchestration/workbench-feature-reads";
-import { sanitizeTerminalTextExcerpt, sanitizeTerminalTextUnbounded }           from "@/core/domain/execution/terminal";
-import { sanitizeCompletedAssistantResponse, sanitizePartialAssistantResponse } from "@/core/domain/review/redaction";
-import type { WorkbenchChatMessage }                                            from "@/core/domain/work/workbench";
-import { colors, markdownTheme, semantic }                                      from "@/adapters/inbound/tui/foundation/theme/theme";
+import      {
+              Markdown                           ,
+              truncateToWidth                    ,
+              visibleWidth                       ,
+              wrapTextWithAnsi                   ,
+                                                   } from "@earendil-works/pi-tui"                                   ;
+import type { ChatFeatureProjection                } from "@/core/application/orchestration/workbench-feature-reads" ;
+import      {
+              sanitizeTerminalTextExcerpt        ,
+              sanitizeTerminalTextUnbounded      ,
+                                                   } from "@/core/domain/execution/terminal"                         ;
+import      {
+              sanitizeCompletedAssistantResponse ,
+              sanitizePartialAssistantResponse   ,
+                                                   } from "@/core/domain/review/redaction"                           ;
+import type { WorkbenchChatMessage                 } from "@/core/domain/work/workbench"                             ;
+import      { colors, markdownTheme, semantic      } from "@/adapters/inbound/tui/foundation/theme/theme"            ;
 
 const WORKBENCH_MARKDOWN_MAX_CHARS = 16 * 1024            ;
 const WORKBENCH_MARKDOWN_MAX_LINES = 120                  ;
@@ -12,8 +23,8 @@ const WORKBENCH_MARKDOWN_OMISSION  = "… 응답 일부 생략 …" ;
 export function boundedWorkbenchMarkdown(text: string): string {
 	let candidate = text;
 	if (candidate.length > WORKBENCH_MARKDOWN_MAX_CHARS) {
-		const contentBudget = WORKBENCH_MARKDOWN_MAX_CHARS - WORKBENCH_MARKDOWN_OMISSION.length - 2;
-		const headBudget = Math.floor(contentBudget / 2);
+		const contentBudget = WORKBENCH_MARKDOWN_MAX_CHARS - WORKBENCH_MARKDOWN_OMISSION.length - 2 ;
+		const headBudget    = Math.floor(contentBudget / 2)                                         ;
 		candidate = `${candidate.slice(0, headBudget)}\n${WORKBENCH_MARKDOWN_OMISSION}\n${candidate.slice(-(contentBudget - headBudget))}`;
 	}
 	const lines = candidate.split(/\r?\n/u);
@@ -31,17 +42,6 @@ export function boundedWorkbenchMarkdown(text: string): string {
 	return `${head}\n${WORKBENCH_MARKDOWN_OMISSION}\n${tail}`;
 }
 
-function fit(text: string, width: number): string {
-	if (width <= 0) return "";
-	const clipped = truncateToWidth(text, width);
-	return clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)));
-}
-
-function publicText(value: unknown, limit = 160): string | null {
-	if (typeof value !== "string" || !value.trim()) return null;
-	return sanitizeTerminalTextExcerpt(value, limit, "head-tail").trim();
-}
-
 /** Projects durable user/assistant messages and streaming assistant drafts to terminal rows. */
 export class ChatMessageRenderer {
 	private readonly markdown       = new Map<string, Markdown>()           ;
@@ -56,8 +56,8 @@ export class ChatMessageRenderer {
 		for (const message of snapshot.chat) {
 			if (message.role !== "assistant") continue;
 			visibleAssistantIds.add(message.id);
-			const runtimeContent = typeof message.content === "string" ? message.content : "[잘못된 메시지 본문]";
-			const inputKey = `${message.status}\0${message.partial === true ? "partial" : "whole"}\0${runtimeContent}`;
+			const runtimeContent = typeof message.content === "string" ? message.content : "[잘못된 메시지 본문]"            ;
+			const inputKey       = `${message.status}\0${message.partial === true ? "partial" : "whole"}\0${runtimeContent}` ;
 			if (this.markdownInput.get(message.id) === inputKey) continue;
 			let content: string;
 			try {
@@ -138,8 +138,8 @@ export class ChatMessageRenderer {
 		} catch {
 			bodyRows = wrapTextWithAnsi(safeContent, contentWidth);
 		}
-		const roleHeader = runtimeRole === "system" ? colors.warning("system") : semantic.assistantLabel("🐙 Wooni");
-		const header = `${roleHeader}${label ? `  ${label}` : ""}`;
+		const roleHeader = runtimeRole === "system" ? colors.warning("system") : semantic.assistantLabel("🐙 Wooni") ;
+		const header     = `${roleHeader}${label ? `  ${label}` : ""}`                                              ;
 		const headerRows = label && visibleWidth(header) > contentWidth
 			? [roleHeader, ...wrapTextWithAnsi(label, contentWidth)]
 			: [header];
@@ -150,4 +150,15 @@ export class ChatMessageRenderer {
 		try { return this.draftMarkdown.render(width); }
 		catch { return wrapTextWithAnsi(sanitizeTerminalTextUnbounded(this.draftSource), width); }
 	}
+}
+
+function fit(text: string, width: number): string {
+	if (width <= 0) return "";
+	const clipped = truncateToWidth(text, width);
+	return clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)));
+}
+
+function publicText(value: unknown, limit = 160): string | null {
+	if (typeof value !== "string" || !value.trim()) return null;
+	return sanitizeTerminalTextExcerpt(value, limit, "head-tail").trim();
 }

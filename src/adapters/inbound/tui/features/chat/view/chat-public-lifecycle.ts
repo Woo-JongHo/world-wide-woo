@@ -1,18 +1,7 @@
-import { wrapTextWithAnsi }            from "@earendil-works/pi-tui";
-import type { ProjectActivity }        from "@/core/domain/execution/project-activity";
-import { sanitizeTerminalTextExcerpt } from "@/core/domain/execution/terminal";
-import { colors, semantic }            from "@/adapters/inbound/tui/foundation/theme/theme";
-
-function publicRecord(value: unknown): Readonly<Record<string, unknown>> | null {
-	return value && typeof value === "object" && !Array.isArray(value)
-		? value as Readonly<Record<string, unknown>>
-		: null;
-}
-
-function publicText(value: unknown, limit = 160): string | null {
-	if (typeof value !== "string" || !value.trim()) return null;
-	return sanitizeTerminalTextExcerpt(value, limit, "head-tail").trim();
-}
+import      { wrapTextWithAnsi            } from "@earendil-works/pi-tui"                        ;
+import type { ProjectActivity             } from "@/core/domain/execution/project-activity"      ;
+import      { sanitizeTerminalTextExcerpt } from "@/core/domain/execution/terminal"              ;
+import      { colors, semantic            } from "@/adapters/inbound/tui/foundation/theme/theme" ;
 
 /** Projects durable Native lifecycle events into compact public transcript rows. */
 export function publicTimelineActivityRows(
@@ -26,8 +15,8 @@ export function publicTimelineActivityRows(
 	if (method === "turn/plan/updated") {
 		const plan = Array.isArray(params?.plan) ? params.plan : [];
 		const entries = plan.flatMap((value) => {
-			const entry = publicRecord(value);
-			const step = publicText(entry?.step, 240);
+			const entry = publicRecord(value)          ;
+			const step  = publicText(entry?.step, 240) ;
 			if (!step) return [];
 			const status = publicText(entry?.status)?.toLowerCase();
 			const symbol = status === "completed" ? colors.success("✓")
@@ -48,8 +37,8 @@ export function publicTimelineActivityRows(
 		const interrupted  = activity.phase === "cancelled" || nativeStatus === "interrupted"                       ;
 		const running = activity.phase === "started" || activity.phase === "updated"
 			|| nativeStatus === "inprogress" || nativeStatus === "running";
-		const state = failed ? "작업 실패" : interrupted ? "작업 중단됨" : running ? "작업 시작됨" : "작업 완료됨";
-		const color = failed ? colors.error : interrupted ? colors.warning : running ? colors.accent : colors.success;
+		const state = failed ? "작업 실패" : interrupted ? "작업 중단됨" : running ? "작업 시작됨" : "작업 완료됨"    ;
+		const color = failed ? colors.error : interrupted ? colors.warning : running ? colors.accent : colors.success ;
 		return wrapTextWithAnsi(color(`${label} ${state}`), Math.max(1, width));
 	}
 	if (itemType === "websearch") {
@@ -66,4 +55,15 @@ export function publicTimelineActivityRows(
 	// MCP startup/retry telemetry belongs in Source, not the user conversation.
 	if (method === "mcpserver/startupstatus/updated") return null;
 	return null;
+}
+
+function publicRecord(value: unknown): Readonly<Record<string, unknown>> | null {
+	return value && typeof value === "object" && !Array.isArray(value)
+		? value as Readonly<Record<string, unknown>>
+		: null;
+}
+
+function publicText(value: unknown, limit = 160): string | null {
+	if (typeof value !== "string" || !value.trim()) return null;
+	return sanitizeTerminalTextExcerpt(value, limit, "head-tail").trim();
 }

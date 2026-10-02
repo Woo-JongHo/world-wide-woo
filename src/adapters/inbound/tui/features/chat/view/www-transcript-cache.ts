@@ -69,24 +69,6 @@ const WIDTH_STATE_MAX_ENTRIES          = 4               ;
 const WIDTH_METADATA_MAX_LOGICAL_BYTES = 2 * 1024 * 1024 ;
 const WIDTH_METADATA_ENTRY_OVERHEAD    = 64              ;
 
-function sameReuseInputs(left: readonly unknown[], right: readonly unknown[]): boolean {
-	if (left.length !== right.length) return false;
-	for (let index = 0; index < left.length; index += 1) if (left[index] !== right[index]) return false;
-	return true;
-}
-
-function canReuseDurableBlock(left: TranscriptBlock, right: TranscriptBlock): boolean {
-	if (left.key !== right.key || left.reuse.kind !== right.reuse.kind) return false;
-	if (left.reuse.kind === "never" || right.reuse.kind === "never") return false;
-	if (!left.reuse.immutable || !right.reuse.immutable) return false;
-	if (left.reuse.kind === "activity" && right.reuse.kind === "activity") {
-		return left.reuse.source === right.reuse.source && left.reuse.expanded === right.reuse.expanded;
-	}
-	if (left.reuse.kind === "message" && right.reuse.kind === "message") return sameReuseInputs(left.reuse.inputs, right.reuse.inputs);
-	if (left.reuse.kind === "tnote" && right.reuse.kind === "tnote") return sameReuseInputs(left.reuse.inputs, right.reuse.inputs);
-	return false;
-}
-
 /** Owns generation reconciliation, exact width indexes, and the shared bounded row LRU. */
 export class WwwTranscriptCache<DurableRevision, VolatileRevision> {
 	private nextGenerationId                                                           = 1                                          ;
@@ -173,8 +155,8 @@ export class WwwTranscriptCache<DurableRevision, VolatileRevision> {
 		const rows : string[] = []                                                          ;
 		const durableCount    = Math.max(0, Math.min(count, durableIndex.rowCount - start)) ;
 		if (durableCount > 0) rows.push(...this.rowsFrom(durable, durableIndex, start, durableCount));
-		const volatileStart = Math.max(0, start - durableIndex.rowCount);
-		const remaining = count - rows.length;
+		const volatileStart = Math.max(0, start - durableIndex.rowCount) ;
+		const remaining     = count - rows.length                        ;
 		if (remaining > 0) rows.push(...this.rowsFrom(volatile, volatileIndex, volatileStart, remaining));
 		if (rows.length !== count) throw new Error(`WWW transcript row source returned ${rows.length} rows; expected ${count}`);
 		this.counters.requestedMaterializationMs += performance.now() - startedAt;
@@ -252,13 +234,13 @@ export class WwwTranscriptCache<DurableRevision, VolatileRevision> {
 
 /** Move unchanged block rows without copying or growing the shared LRU budget. */
 	private transferGenerationRows(previous: TranscriptGeneration, next: TranscriptGeneration): void {
-		const prefix = `${previous.id}:`;
-		const nextIndexes = new Map(next.blocks.map((block, index) => [block, index]));
+		const prefix      = `${previous.id}:`                                          ;
+		const nextIndexes = new Map(next.blocks.map((block, index) => [block, index])) ;
 		for (const [key, entry] of [...this.rowCache]) {
 			if (!key.startsWith(prefix)) continue;
 			const [, width, blockIndex] = key.split(":");
-			const block = previous.blocks[Number(blockIndex)];
-			const nextIndex = block ? nextIndexes.get(block) : undefined;
+			const block     = previous.blocks[Number(blockIndex)]        ;
+			const nextIndex = block ? nextIndexes.get(block) : undefined ;
 			this.rowCache.delete(key);
 			if (nextIndex === undefined) this.rowCacheLogicalBytes -= entry.logicalBytes;
 			else this.rowCache.set(`${next.id}:${width}:${nextIndex}`, entry);
@@ -280,8 +262,8 @@ export class WwwTranscriptCache<DurableRevision, VolatileRevision> {
 
 	private repairDurableWidths(previous: DurableTranscriptGeneration<DurableRevision>, next: DurableTranscriptGeneration<DurableRevision>): void {
 		if (previous.widths.size === 0) return;
-		const startedAt = performance.now();
-		const previousIndex = new Map<TranscriptBlock, number>();
+		const startedAt     = performance.now()                  ;
+		const previousIndex = new Map<TranscriptBlock, number>() ;
 		for (const [index, block] of previous.blocks.entries()) previousIndex.set(block, index);
 		for (const [width, prior] of previous.widths) {
 			const counts = next.blocks.map((block, blockIndex) => {
@@ -311,15 +293,15 @@ export class WwwTranscriptCache<DurableRevision, VolatileRevision> {
 			buckets.set(block.key, bucket);
 		}
 		return candidate.map(block => {
-			const bucket = buckets.get(block.key);
-			const prior = bucket ? bucket.blocks[bucket.cursor++] : undefined;
+			const bucket = buckets.get(block.key)                              ;
+			const prior  = bucket ? bucket.blocks[bucket.cursor++] : undefined ;
 			return prior && canReuseDurableBlock(prior, block) ? prior : block;
 		});
 	}
 
 	private renderBlock(generation: TranscriptGeneration, blockIndex: number, width: number, retain: boolean, countBuild = false): readonly string[] {
-		const key = `${generation.id}:${width}:${blockIndex}`;
-		const cached = this.rowCache.get(key);
+		const key    = `${generation.id}:${width}:${blockIndex}` ;
+		const cached = this.rowCache.get(key)                    ;
 		if (cached) {
 			this.counters.rowCacheHits += 1;
 			this.rowCache.delete(key);
@@ -397,4 +379,22 @@ export class WwwTranscriptCache<DurableRevision, VolatileRevision> {
 		if (rows.length !== end - start) throw new Error(`WWW transcript row source returned ${rows.length} rows; expected ${end - start}`);
 		return rows;
 	}
+}
+
+function sameReuseInputs(left: readonly unknown[], right: readonly unknown[]): boolean {
+	if (left.length !== right.length) return false;
+	for (let index = 0; index < left.length; index += 1) if (left[index] !== right[index]) return false;
+	return true;
+}
+
+function canReuseDurableBlock(left: TranscriptBlock, right: TranscriptBlock): boolean {
+	if (left.key !== right.key || left.reuse.kind !== right.reuse.kind) return false;
+	if (left.reuse.kind === "never" || right.reuse.kind === "never") return false;
+	if (!left.reuse.immutable || !right.reuse.immutable) return false;
+	if (left.reuse.kind === "activity" && right.reuse.kind === "activity") {
+		return left.reuse.source === right.reuse.source && left.reuse.expanded === right.reuse.expanded;
+	}
+	if (left.reuse.kind === "message" && right.reuse.kind === "message") return sameReuseInputs(left.reuse.inputs, right.reuse.inputs);
+	if (left.reuse.kind === "tnote" && right.reuse.kind === "tnote") return sameReuseInputs(left.reuse.inputs, right.reuse.inputs);
+	return false;
 }
