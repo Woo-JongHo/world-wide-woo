@@ -1,11 +1,11 @@
-import { describe, expect, test }  from "bun:test";
-import { lstatSync, realpathSync } from "node:fs";
-import { resolve }                 from "node:path";
+import      { describe, expect, test  } from "bun:test"  ;
+import      { lstatSync, realpathSync } from "node:fs"   ;
+import      { resolve                 } from "node:path" ;
 
-const root          = resolve(import.meta.dir, "..")                            ;
-const skill         = resolve(root, ".agents/skills/woo-code-readability")      ;
-const pluginSkill   = resolve(root, "../98_Plugin/skills/woo-code-readability") ;
-const regionsScript = resolve(skill, "scripts/typescript/01_group-regions.ts")  ;
+const root          = resolve(import.meta.dir, ".."                                    ) ;
+const skill         = resolve(root           , ".agents/skills/woo-code-readability"   ) ;
+const pluginSkill   = resolve(root           , "../98_Plugin/skills/xxx"               ) ;
+const regionsScript = resolve(skill          , "scripts/typescript/01_group-regions.ts") ;
 
 describe("dual-repository code readability integration", () => {
 	test("projects the standalone skill as the single source through a symlink", () => {

@@ -5,7 +5,7 @@ description: 99_www Linear 이슈를 생성·분할·이동하거나 본문을 �
 
 # WWW Linear Issue Intake
 
-**요청 → 기존 내용·가이드 확인 → 넣을 위치와 처리 방식 결정 → Candidate 작성 → 검증·렌더** 순서로 진행한다. GitHub Issue에는 별도 `woo-issue-intake`를 사용한다. 외부 반영과 재조회는 `woo-linear-publish`가 소유한다.
+**요청 → 기존 내용·가이드 확인 → 넣을 위치와 처리 방식 결정 → Candidate 작성 → 검증·렌더** 순서로 진행한다. GitHub Issue에는 별도 `woo-github-issue-intake`를 사용한다. 외부 반영과 재조회는 `woo-linear-publish`가 소유한다.
 
 이 스킬은 99_www 프로젝트의 Linear 분류 절차를 소유한다. 상위 방법론 정본은 `~/.codex/woo.yaml`의 workspace_root를 통해 읽는다. 상위 계약을 이 파일에 복제하지 않는다.
 

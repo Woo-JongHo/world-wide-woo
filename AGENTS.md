@@ -7,6 +7,7 @@
 ## 코드 구조
 
 - 모듈을 생성·이동하거나 의존 경계를 수정할 때는 [LAYERS.md](LAYERS.md)를 읽고 `core / adapters` 정본과 아키텍처 게이트를 적용한다.
+- TUI 기능을 새로 만들거나 기존 기능을 같은 형식으로 정리할 때는 [woo-feature-template](.agents/skills/woo-feature-template/SKILL.md)로 [Feature Implementation Contract](docs/workflows/FEATURE_IMPLEMENTATION_CONTRACT.md)의 장·절 순서를 적용하고, 단계마다 Codex Astra 독립 검토를 받는다.
 - 제품·테스트 TypeScript를 작성하거나 반복 블록을 고칠 때는 [woo-code-readability](.agents/skills/woo-code-readability/SKILL.md)의 작성 시 축 계약([readability-contract.md](.agents/skills/woo-code-readability/references/readability-contract.md))대로 쓴다. 완료 전에 `00_normalize-imports.ts` 검사와 `06_align-tables.ts --file <대상 파일>` 검사를 통과해 증명한다.
 
 ## 산출물 위치
@@ -31,12 +32,12 @@
 
 ## Obsidian 정본
 
-- Obsidian 상세 정본을 작성·검증·게시할 때는 각각 [woo-obsidian-canonical](.agents/skills/woo-obsidian-canonical/SKILL.md), [woo-obsidian-contract](.agents/skills/woo-obsidian-contract/SKILL.md), [woo-obsidian-publish](.agents/skills/woo-obsidian-publish/SKILL.md)를 적용한다.
+- Obsidian 상세 정본을 작성할 때는 [woo-obsidian-canonical](.agents/skills/woo-obsidian-canonical/SKILL.md), 계약을 검증하거나 게시할 때는 [woo-obsidian-publish](.agents/skills/woo-obsidian-publish/SKILL.md)를 적용한다.
 - 새 capability나 되돌리기 어려운 계약 변경은 [Design Document Contract](docs/workflows/DESIGN_DOCUMENT_CONTRACT.md)로 설계 문서 필요성과 깊이를 판정한다. 별도 경쟁 정본을 만들지 않고 Obsidian 상세 정본의 `draft`에서 설계한다.
 
 ## Git 기록
 
 - 커밋을 준비하거나 실행할 때는 프로젝트 로컬 `$woo-commit`을 사용한다.
-- GitHub Issue를 생성하거나 수정할 때는 프로젝트 로컬 `$woo-issue-intake`를 사용한다.
-- GitHub PR을 생성·수정하거나 Linear 연결을 검증할 때는 각각 `$woo-github-pr`, `$woo-github-pr-verify`를 사용한다. Push·Merge·Release는 별도 권한이다.
+- GitHub Issue를 생성하거나 수정할 때는 프로젝트 로컬 `$woo-github-issue-intake`를 사용한다.
+- GitHub PR을 생성·수정하거나 Linear 연결을 검증할 때는 `$woo-github-pr`을 사용한다. Push·Merge·Release는 별도 권한이다.
 - 제목은 한국어 문제·요청·결과 문장으로 쓴다. `feat:`, `fix(scope):` 같은 Conventional Commits 유형·범위 접두어는 사용하지 않으며, Issue 유형은 `bug` 또는 `enhancement` 라벨이 소유한다.

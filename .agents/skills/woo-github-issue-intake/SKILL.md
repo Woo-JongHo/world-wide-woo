@@ -1,5 +1,5 @@
 ---
-name: woo-issue-intake
+name: woo-github-issue-intake
 description: 99_www GitHub Issue를 생성하거나 수정할 때 관찰된 문제 또는 요청을 구조화하고, 중복 검사·미리보기·사용자 승인·등록 후 검증을 적용한다.
 ---
 
