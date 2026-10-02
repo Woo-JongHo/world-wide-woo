@@ -1,21 +1,22 @@
-import { randomUUID } from "node:crypto";
+import      { randomUUID                                  } from "node:crypto"                                 ;
 
-import { chmod, mkdir, open, readFile, readdir, stat } from "node:fs/promises";
+import      { chmod, mkdir, open, readFile, readdir, stat } from "node:fs/promises"                            ;
 
-import { homedir }       from "node:os";
-import { dirname, join } from "node:path";
+import      { homedir                                     } from "node:os"                                     ;
+import      { dirname, join                               } from "node:path"                                   ;
 
-import {
-	SESSION_EVENT_CATEGORIES,
-	SESSION_EVENT_STATUSES,
-	SESSION_EVENT_TYPES,
-} from "@/core/domain/execution/session-events.js";
+import      {
+              SESSION_EVENT_CATEGORIES                  ,
+              SESSION_EVENT_STATUSES                    ,
+              SESSION_EVENT_TYPES                       ,
+                                                          } from "@/core/domain/execution/session-events.js"   ;
 
-import type { SessionEvent, SessionEventInput } from "@/core/domain/execution/session-events.js";
-import type { RecentSessionSummary }            from "@/core/ports/persistence/session-repository";
+import type { SessionEvent, SessionEventInput             } from "@/core/domain/execution/session-events.js"   ;
+import type { RecentSessionSummary                        } from "@/core/ports/persistence/session-repository" ;
+import      { isRecord                                    } from "@/core/domain/value/record.js"               ;
 
-const DEFAULT_SESSION_DIRECTORY = join(homedir(), ".local", "share", "www", "sessions");
-const sessionIdPattern          = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
+const DEFAULT_SESSION_DIRECTORY = join(homedir(), ".local", "share", "www", "sessions") ;
+const sessionIdPattern          = /^[A-Za-z0-9][A-Za-z0-9_-]*$/                         ;
 
 /** Legacy SessionRuntime 이벤트를 세션별 추가 전용 JSONL로 저장한다. */
 export class SessionEventStore {
@@ -86,8 +87,8 @@ export class SessionEventStore {
 		operation : () => Promise< T >,
 	) : Promise< T > {
 		this.assertSessionId(sessionId);
-		const previous = this.queues.get(sessionId) ?? Promise.resolve();
-		const current  = previous.catch(() => undefined).then(operation);
+		const previous = this.queues.get(sessionId) ?? Promise.resolve() ;
+		const current  = previous.catch(() => undefined).then(operation) ;
 		const cleanup  = () : void => {
 			if (this.queues.get(sessionId) === current) this.queues.delete(sessionId);
 		};
@@ -188,7 +189,6 @@ function isSessionEvent( value : unknown ) : value is SessionEvent {
 	);
 }
 
-function isRecord    ( value : unknown ) : value is Record< string, unknown > { return typeof value === "object" && value !== null && !Array.isArray(value); }
 function errorMessage( error : unknown ) : string                             { return error instanceof Error ? error.message : String(error); }
 
 function hasStringMember( values : readonly string[], value : unknown ) : boolean { return typeof value === "string" && values.includes(value); }

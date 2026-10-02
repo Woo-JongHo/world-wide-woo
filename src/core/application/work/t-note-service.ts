@@ -1,18 +1,23 @@
-import { createHash, randomUUID }                                          from "node:crypto";
-import type { OutputLanguage }                                             from "@/core/domain/execution/output-language.js";
-import { createTNotePacket, sanitizeTNoteText, tNoteSourceIdempotencyKey } from "@/core/domain/work/t-notes.js";
+import      { createHash, randomUUID      } from "node:crypto"                                                 ;
+import type { OutputLanguage              } from "@/core/domain/execution/output-language.js"                  ;
+import      {
+              createTNotePacket         ,
+              sanitizeTNoteText         ,
+              tNoteSourceIdempotencyKey ,
+                                          } from "@/core/domain/work/t-notes.js"                               ;
 import type {
-	TNoteActivitySource,
-	TNoteDraft,
-	TNoteDraftInput,
-	TNoteSourceActivity,
-	TNoteSourceRange,
-} from "@/core/domain/work/t-notes.js";
-import { assertDetachedPolicy }                                            from "@/core/application/orchestration/detached-text-generator.js";
+              TNoteActivitySource       ,
+              TNoteDraft                ,
+              TNoteDraftInput           ,
+              TNoteSourceActivity       ,
+              TNoteSourceRange          ,
+                                          } from "@/core/domain/work/t-notes.js"                               ;
+import      { assertDetachedPolicy        } from "@/core/application/orchestration/detached-text-generator.js" ;
 import type {
-	DetachedGenerationPolicy,
-	DetachedTextGenerator,
-} from "@/core/application/orchestration/detached-text-generator.js";
+              DetachedGenerationPolicy  ,
+              DetachedTextGenerator     ,
+                                          } from "@/core/application/orchestration/detached-text-generator.js" ;
+import      { asRecord                    } from "@/core/domain/value/record.js"                               ;
 
 /**
  * provenance 보유 Summary 산출물의 append-only 내구 경계다.
@@ -29,11 +34,11 @@ export interface TNoteDraftStore {
 }
 
 export interface CreateTNoteInput {
-	readonly outputLanguage?: OutputLanguage ;
-	readonly projectId   : string                         ;
-	readonly range       : TNoteSourceRange               ;
-	readonly activities  : readonly TNoteActivitySource[] ;
-	readonly instruction : string                         ;
+	readonly outputLanguage? : OutputLanguage                 ;
+	readonly projectId       : string                         ;
+	readonly range           : TNoteSourceRange               ;
+	readonly activities      : readonly TNoteActivitySource[] ;
+	readonly instruction     : string                         ;
 	/** Completed request identity supplied to the detached narrator. */
 	readonly expectedQuestion: string;
 }
@@ -91,8 +96,8 @@ export class TNoteService {
 			if (signal?.aborted) throw error;
 			throw operationError("generation", error);
 		}
-		const text          = result.text                                                 ;
-		const operationText = appendObservedOperationRows(text, packet.activities)        ;
+		const text          = result.text                                                                                          ;
+		const operationText = appendObservedOperationRows(text, packet.activities)                                                 ;
 		const persistedText = appendObservedTestSummary(operationText, packet.activities, input.outputLanguage ?? this.language()) ;
 		return this.appendOrRecover(Object.freeze({
 			id: this.idFactory(),
@@ -203,8 +208,8 @@ const REQUEST_REPORT_V3_FIELDS = [
 
 function parseRequestReportV3(text: string): Omit<CanonicalTNoteReport, "test"> | null {
 	if (!text.startsWith("REPORT: request-report-v3\n")) return null;
-	let remainder = text.slice("REPORT: request-report-v3\n".length);
-	const fields: Record<string, string> = {};
+	let remainder                        = text.slice("REPORT: request-report-v3\n".length) ;
+	const fields: Record<string, string> = {}                                               ;
 	for (const [index, [label, key]] of REQUEST_REPORT_V3_FIELDS.entries()) {
 		const prefix = `${label}:\n`;
 		if (!remainder.startsWith(prefix)) return null;
@@ -239,8 +244,8 @@ export function validateCanonicalTNote(
 	expectedQuestion: string,
 	options: { readonly allowLegacy?: boolean; readonly allowRuntimeTestSummary?: boolean } = {},
 ): CanonicalTNoteValidation {
-	const report = parseCanonicalTNoteReport(text);
-	const legacy = options.allowLegacy ? parseLegacyCanonicalTNote(text) : null;
+	const report = parseCanonicalTNoteReport(text)                              ;
+	const legacy = options.allowLegacy ? parseLegacyCanonicalTNote(text) : null ;
 	if (!report && !legacy) return { valid: false, reason: "Detached generator returned malformed Note text" };
 	if (report?.version !== "request-report-v3" && !options.allowLegacy) return { valid: false, reason: "Detached generator returned legacy Note text" };
 	if (report?.test && !options.allowRuntimeTestSummary) return { valid: false, reason: "Detached generator must not generate the runtime Test summary" };
@@ -313,15 +318,15 @@ function fileChangeObservations(activity: TNoteSourceActivity): readonly FileCha
 	if (!activity.kind.startsWith("file-change.")) return [];
 	let payload: unknown;
 	try { payload = JSON.parse(activity.body); } catch { return []; }
-	const root    = record(payload)                                  ;
-	const params  = record(root?.params)                             ;
-	const item    = record(params?.item)                             ;
+	const root    = asRecord(payload)                                ;
+	const params  = asRecord(root?.params)                           ;
+	const item    = asRecord(params?.item)                           ;
 	const changes = Array.isArray(item?.changes) ? item.changes : [] ;
 	return changes.flatMap(value => {
-		const change = record(value);
-		const path   = typeof change?.path === "string" ? change.path.replace(/\\/gu, "/") : "";
+		const change = asRecord(value)                                                          ;
+		const path   = typeof change?.path === "string" ? change.path.replace(/\\/gu, "/") : "" ;
 		if (!path || /\[redacted:/u.test(path)) return [];
-		const kind     = record(change?.kind)                                                  ;
+		const kind     = asRecord(change?.kind)                                                ;
 		const diff     = typeof change?.diff === "string" ? change.diff.split(/\r?\n/u) : null ;
 		const rawLines = diff?.at(-1) === "" ? diff.slice(0, -1) : diff                        ;
 		const added    = kind?.type === "add" ? rawLines?.length ?? null
@@ -363,8 +368,8 @@ function testObservation(activity: TNoteSourceActivity): TestObservation | null 
 	if (!item) return null;
 	const command = oneLine(item.command ?? item.cmd);
 	if (!command || !isTestCommand(command)) return null;
-	const exitCode = numberValue(item.exitCode);
-	const status = testStatus(item.status, exitCode);
+	const exitCode = numberValue(item.exitCode)        ;
+	const status   = testStatus(item.status, exitCode) ;
 	return Object.freeze({
 		command: sanitizeTNoteText(command, 400),
 		durationMs: numberValue(item.durationMs),
@@ -373,9 +378,9 @@ function testObservation(activity: TNoteSourceActivity): TestObservation | null 
 }
 
 function commandResult(payload: unknown): Readonly<Record<string, unknown>> | null {
-	const root = record(payload);
-	const params = record(root?.params);
-	for (const candidate of [record(params?.item), params, record(root?.item), root]) {
+	const root   = asRecord(payload     ) ;
+	const params = asRecord(root?.params) ;
+	for (const candidate of [asRecord(params?.item), params, asRecord(root?.item), root]) {
 		if (candidate && typeof (candidate.command ?? candidate.cmd) === "string") return candidate;
 	}
 	return null;
@@ -406,10 +411,6 @@ function oneLine(value: unknown): string {
 
 function numberValue(value: unknown): number | null {
 	return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
-}
-
-function record(value: unknown): Readonly<Record<string, unknown>> | null {
-	return value && typeof value === "object" && !Array.isArray(value) ? value as Readonly<Record<string, unknown>> : null;
 }
 
 function hasRawEvidence(field: string): boolean {

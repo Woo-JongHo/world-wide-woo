@@ -1,9 +1,10 @@
-import type { ProjectActivity }                     from "@/core/domain/execution/project-activity.js";
-import type { WorkbenchSnapshot }                   from "@/core/domain/work/workbench.js";
-import type { PerformanceTrace, PerformanceWindow } from "@/core/domain/observability/layer-performance.js";
+import type { ProjectActivity                     } from "@/core/domain/execution/project-activity.js"      ;
+import type { WorkbenchSnapshot                   } from "@/core/domain/work/workbench.js"                  ;
+import type { PerformanceTrace, PerformanceWindow } from "@/core/domain/observability/layer-performance.js" ;
+import      { asRecord, isRecord                  } from "@/core/domain/value/record.js"                    ;
 
-const EVENT_LIMIT = 12;
-const LABEL_LIMIT = 160;
+const EVENT_LIMIT = 12  ;
+const LABEL_LIMIT = 160 ;
 
 export type RuntimeMonitorState = "idle" | "running" | "waiting" | "blocked" | "failed" | "completed";
 export type RuntimeMonitorEventKind = "REQUEST" | "MODEL" | "AGENT" | "SKILL" | "TOOL" | "OUTPUT" | "APPROVAL" | "WAIT" | "RETRY" | "FAILURE" | "COMPACTION";
@@ -67,7 +68,7 @@ export function projectRuntimeMonitor(snapshot: WorkbenchSnapshot, activities: r
 		request?.id, tool?.id, agent?.id, execution?.id, waitActivity?.id, approvalActivity?.id, lastFailure?.id, lastCompleted?.id,
 	]);
 	const skillRun       = latest(ordered.filter(isSkillRun))                                                                                                                   ;
-	const skillPayload   = skillRun ? record(skillRun.payload.skillRun) ?? skillRun.payload : null                                                                              ;
+	const skillPayload   = skillRun ? asRecord(skillRun.payload.skillRun) ?? skillRun.payload : null                                                                            ;
 	const requestRuntime = [...(snapshot.requestRuntime ?? [])].reverse().find(r => r.turnId === snapshot.activeTurnId && r.turnId !== null) ?? snapshot.requestRuntime?.at(-1) ;
 	return Object.freeze({
 		...(layerPerformance ? { layerPerformance } : {}),
@@ -109,7 +110,7 @@ function eventLabel(kind: RuntimeMonitorEventKind, activity: ProjectActivity): s
 	if (kind === "TOOL") return toolLabel(activity);
 	if (kind === "MODEL") return line(stringValue(activity.payload.model) ?? "Model execution");
 	if (kind === "AGENT") return line(stringValue(item(activity)?.agent) ?? "Agent execution");
-	if (kind === "SKILL") return line(stringValue(record(activity.payload.skillRun)?.skill) ?? stringValue(activity.payload.skill) ?? "Skill execution");
+	if (kind === "SKILL") return line(stringValue(asRecord(activity.payload.skillRun)?.skill) ?? stringValue(activity.payload.skill) ?? "Skill execution");
 	return ({ OUTPUT: "Public output observed", APPROVAL: "Approval requested", WAIT: "Waiting", RETRY: "Retry observed", FAILURE: "Failure observed", COMPACTION: "Context compacted" } as const)[kind] ?? "Observed";
 }
 function latestActive(activities: readonly ProjectActivity[], start: (a: ProjectActivity) => boolean, terminal: (a: ProjectActivity) => boolean, identity: (a: ProjectActivity) => string): ProjectActivity | undefined {
@@ -124,8 +125,7 @@ function latestActive(activities: readonly ProjectActivity[], start: (a: Project
 function latest<T extends ProjectActivity>(activities: readonly T[]): T | undefined { return activities.at(-1); }
 function later(left: ProjectActivity, right: ProjectActivity): boolean { return left.sequence > right.sequence || (left.sequence === right.sequence && left.id > right.id); }
 function method(activity: ProjectActivity): string { return stringValue(activity.payload.method) ?? ""; }
-function item(activity: ProjectActivity): Readonly<Record<string, unknown>> | null { return record(record(activity.payload.params)?.item); }
-function record(value: unknown): Readonly<Record<string, unknown>> | null { return value !== null && typeof value === "object" && !Array.isArray(value) ? value as Readonly<Record<string, unknown>> : null; }
+function item(activity: ProjectActivity): Readonly<Record<string, unknown>> | undefined { return asRecord(asRecord(activity.payload.params)?.item); }
 function stringValue(value: unknown): string | null { return typeof value === "string" && value.trim() ? value : null; }
 function itemIdentity(activity: ProjectActivity): string { return activity.nativeRefs.itemId ?? stringValue(item(activity)?.id) ?? activity.id; }
 function requestIdentity(activity: ProjectActivity): string { return stringValue(activity.payload.requestId) ?? activity.nativeRefs.itemId ?? activity.nativeRefs.turnId ?? activity.id; }
@@ -151,12 +151,12 @@ function isApproval(activity: ProjectActivity): boolean { return (
 function isWait(activity: ProjectActivity): boolean { return stringValue(item(activity)?.tool)?.toLowerCase() === "wait" || /(?:^|\/)wait(?:\/|$)/u.test(method(activity)); }
 function isWaitStart(activity: ProjectActivity): boolean { return isWait(activity) && activity.phase === "started"; }
 function isWaitTerminal(activity: ProjectActivity): boolean { return isWait(activity) && (activity.phase === "completed" || activity.phase === "failed" || activity.phase === "cancelled"); }
-function isRetry(activity: ProjectActivity): boolean { return /retry/u.test(method(activity)) || record(activity.payload.params)?.retryOf !== undefined; }
+function isRetry(activity: ProjectActivity): boolean { return /retry/u.test(method(activity)) || asRecord(activity.payload.params)?.retryOf !== undefined; }
 function isCompaction(activity: ProjectActivity): boolean { return /compact/u.test(method(activity)); }
 function isOutput(activity: ProjectActivity): boolean { return method(activity) === "turn/first-output-observed" || (activity.kind === "message" && activity.payload.role === "assistant"); }
-function isSkillRun(activity: ProjectActivity): boolean { return method(activity).startsWith("skill/") || record(activity.payload.skillRun) !== null; }
+function isSkillRun(activity: ProjectActivity): boolean { return method(activity).startsWith("skill/") || isRecord(activity.payload.skillRun); }
 function isFailure(activity: ProjectActivity): boolean {
-	const params   = record(activity.payload.params)                                                                            ;
+	const params   = asRecord(activity.payload.params)                                                                          ;
 	const status   = stringValue(activity.payload.status) ?? stringValue(params?.status) ?? stringValue(item(activity)?.status) ;
 	const exitCode = activity.payload.exitCode ?? params?.exitCode ?? item(activity)?.exitCode                                  ;
 

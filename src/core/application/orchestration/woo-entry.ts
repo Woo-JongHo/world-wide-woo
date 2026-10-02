@@ -1,4 +1,5 @@
-import type { NativeTurnStart } from "@/core/domain/execution/native-session.js";
+import type { NativeTurnStart } from "@/core/domain/execution/native-session.js" ;
+import      { isRecord        } from "@/core/domain/value/record.js"             ;
 
 const CONTEXT_LIMIT        = 3_500                ;
 const POLICY_CONTEXT_KEY   = "woo_entry_policy"   ;
@@ -91,8 +92,8 @@ export class WooEntry {
 	}
 
 	private async refreshNow(): Promise<WooEntrySnapshot> {
-		const revision = this.current.revision + 1;
-		const collectedAt = this.clock().toISOString();
+		const revision    = this.current.revision + 1  ;
+		const collectedAt = this.clock().toISOString() ;
 		try {
 			const collection = validateCollection(await this.collector.collect());
 			this.current = Object.freeze({ state: "ready", revision, collectedAt, source: collection.source, payload: collection.payload });
@@ -210,10 +211,6 @@ function normalizeJson(value: unknown, label: string, depth: number): WooEntryJs
 	}
 	if (isRecord(value)) return freezeRecord(value, label, depth + 1);
 	throw new Error(`WES entry ${label} contains a non-JSON value.`);
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 function safeReason(error: unknown): string {

@@ -1,15 +1,16 @@
-import { readdir, readFile }                from "node:fs/promises";
-import type { Dirent }                      from "node:fs";
-import { join }                             from "node:path";
-import type { ObservabilityActivityStream } from "@/core/domain/observability/observability-dashboard.js";
-import type { ProjectActivity }             from "@/core/domain/execution/project-activity.js";
+import      { readdir, readFile            } from "node:fs/promises"                                       ;
+import type { Dirent                       } from "node:fs"                                                ;
+import      { join                         } from "node:path"                                              ;
+import type { ObservabilityActivityStream  } from "@/core/domain/observability/observability-dashboard.js" ;
+import type { ProjectActivity              } from "@/core/domain/execution/project-activity.js"            ;
 import type {
-	ObservabilityHistory,
-	ObservabilityHistoryReader,
-} from "@/core/ports/observability/observability-history-port";
+              ObservabilityHistory       ,
+              ObservabilityHistoryReader ,
+                                           } from "@/core/ports/observability/observability-history-port"  ;
+import      { isRecord                     } from "@/core/domain/value/record.js"                          ;
 
-export const OBSERVABILITY_HISTORY_STREAM_LIMIT = 64;
-export const OBSERVABILITY_HISTORY_ACTIVITY_LIMIT = 5_000;
+export const OBSERVABILITY_HISTORY_STREAM_LIMIT   = 64    ;
+export const OBSERVABILITY_HISTORY_ACTIVITY_LIMIT = 5_000 ;
 
 /** Read-only, bounded discovery of existing ActivityJournalStore JSONL streams. */
 export class ObservabilityHistorySource implements ObservabilityHistoryReader {
@@ -61,8 +62,8 @@ function emptyHistory(): ObservabilityHistory {
 	return Object.freeze({ coverage: Object.freeze({ state: "unknown", observedFrom: null, observedUntil: null, streamsRead: 0, skippedStreams: 0 }), streams: Object.freeze([]) });
 }
 async function listJsonl(directory: string, prefix = ""): Promise<string[]> {
-	const entries: Dirent<string>[] = await readdir(directory, { encoding: "utf8", withFileTypes: true });
-	const files: string[] = [];
+	const entries : Dirent<string>[] = await readdir(directory, { encoding: "utf8", withFileTypes: true }) ;
+	const files   : string[]         = []                                                                  ;
 	for (const entry of entries) {
 		const relative = prefix ? join(prefix, entry.name) : entry.name;
 		if (entry.isDirectory()) files.push(...await listJsonl(join(directory, entry.name), relative));
@@ -88,9 +89,8 @@ function isProjectActivity(value: unknown): value is ProjectActivity {
 		typeof activity.kind === "string" &&
 		typeof activity.phase === "string" &&
 		typeof activity.provider === "string" &&
-		record(activity.nativeRefs) &&
+		isRecord(activity.nativeRefs) &&
 		typeof activity.sourceDigest === "string" &&
-		record(activity.payload)
+		isRecord(activity.payload)
 	);
 }
-function record(value: unknown): value is Record<string, unknown> { return !!value && typeof value === "object" && !Array.isArray(value); }

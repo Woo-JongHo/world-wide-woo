@@ -1,4 +1,9 @@
-import type { UsageCredential, UsageLimit, UsageWindow } from "@gajae-code/ai/core";
+import type {
+              UsageCredential ,
+              UsageLimit      ,
+              UsageWindow     ,
+                                } from "@gajae-code/ai/core"           ;
+import      { isRecord          } from "@/core/domain/value/record.js" ;
 
 const HOUR_MS = 60 * 60 * 1_000 ;
 const DAY_MS  = 24 * HOUR_MS    ;
@@ -40,8 +45,8 @@ function status(used: number | undefined): "ok" | "warning" | "exhausted" | unde
 }
 
 function quotaWindow(item: QuotaLimit): UsageWindow {
-	const quantity = number(item.number);
-	const count = quantity !== undefined && quantity > 0 ? quantity : 1;
+	const quantity = number(item.number)                                   ;
+	const count    = quantity !== undefined && quantity > 0 ? quantity : 1 ;
 	if (item.unit === 3) return { id: `${count}h`, label: `${count} Hour${count === 1 ? "" : "s"}`, durationMs: count * HOUR_MS };
 	if (item.unit === 4) return { id: `${count}d`, label: `${count} Day${count === 1 ? "" : "s"}`, durationMs: count * DAY_MS };
 	if (item.unit === 6) return { id: "1w", label: "Weekly", durationMs: WEEK_MS };
@@ -98,8 +103,4 @@ export async function fetchZaiCodingPlanUsage(credential: UsageCredential, fetch
 	) return null;
 	const limits = payload.data.limits.map(parseLimit).filter((limit): limit is UsageLimit => limit !== undefined);
 	return limits.length > 0 ? limits : null;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return value !== null && typeof value === "object";
 }

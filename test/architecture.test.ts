@@ -1,7 +1,12 @@
-import { describe, expect, test }                                   from "bun:test";
-import { readFile }                                                 from "node:fs/promises";
-import { stat }                                                     from "node:fs/promises";
-import { layer, loadSourceGraph, reachableSources, relativeCycles } from "./architecture/import-graph";
+import      { describe, expect, test } from "bun:test"                    ;
+import      { readFile               } from "node:fs/promises"            ;
+import      { stat                   } from "node:fs/promises"            ;
+import      {
+              layer                ,
+              loadSourceGraph      ,
+              reachableSources     ,
+              relativeCycles       ,
+                                     } from "./architecture/import-graph" ;
 
 describe("source architecture", () => {
 	test("resolves @ source aliases before evaluating architecture boundaries", async () => {
@@ -13,7 +18,7 @@ describe("source architecture", () => {
 	test("keeps flattened layers grouped by their canonical responsibility", async () => {
 		const graph = await loadSourceGraph();
 		const groups: ReadonlyArray<readonly [string, ReadonlySet<string>]> = [
-			["core/domain/", new Set(["development", "execution", "observability", "review", "work"])],
+			["core/domain/", new Set(["development", "execution", "observability", "review", "value", "work"])],
 			["core/application/", new Set(["development", "orchestration", "review", "routing", "session", "work"])],
 			["core/ports/", new Set(["execution", "persistence", "integration", "observability"])],
 			["adapters/outbound/", new Set(["authentication", "development", "execution", "git", "observability", "persistence", "review", "workspace"])],
@@ -99,8 +104,8 @@ describe("source architecture", () => {
 	});
 
 	test("keeps TUI feature implementations independent from sibling features", async () => {
-		const graph = await loadSourceGraph();
-		const prefix = "adapters/inbound/tui/features/";
+		const graph  = await loadSourceGraph()          ;
+		const prefix = "adapters/inbound/tui/features/" ;
 		for (const source of graph.values()) {
 			if (!source.path.startsWith(prefix) || source.path === `${prefix}feature-registry.ts`) continue;
 			const feature = featureImplementation(source.path, prefix);
@@ -170,8 +175,8 @@ describe("source architecture", () => {
 	});
 
 	test("keeps Chat, Plan, and Tracer views on their feature read projections", async () => {
-		const graph = await loadSourceGraph();
-		const contract = await readFile("src/core/application/orchestration/workbench-feature-reads.ts", "utf8");
+		const graph    = await loadSourceGraph()                                                                 ;
+		const contract = await readFile("src/core/application/orchestration/workbench-feature-reads.ts", "utf8") ;
 		expect(contract).not.toContain("Pick<WorkbenchSnapshot");
 		for (const path of [
 			"adapters/inbound/tui/features/plan/view/www-plan-view.ts",
@@ -206,8 +211,8 @@ describe("source architecture", () => {
 	});
 
 	test("keeps the Work capability entry independent from TUI and Runtime implementations", async () => {
-		const graph = await loadSourceGraph();
-		const entry = "core/domain/work/index.ts";
+		const graph = await loadSourceGraph()     ;
+		const entry = "core/domain/work/index.ts" ;
 		expect(graph.has(entry)).toBe(true);
 		expect(graph.has("core/domain/work-steps.ts")).toBe(false);
 		for (const source of graph.values()) {
@@ -221,8 +226,8 @@ describe("source architecture", () => {
 	});
 
 	test("keeps the native workbench shell independent from the legacy session runtime", async () => {
-		const graph = await loadSourceGraph();
-		const entry = [...graph.keys()].find(path => path.endsWith("workbench-shell.ts"));
+		const graph = await loadSourceGraph()                                             ;
+		const entry = [...graph.keys()].find(path => path.endsWith("workbench-shell.ts")) ;
 		expect(entry).toBeDefined();
 		for (const source of reachableSources(graph, entry!)) {
 			expect(source.path).not.toMatch(/legacy|session-runtime/u);

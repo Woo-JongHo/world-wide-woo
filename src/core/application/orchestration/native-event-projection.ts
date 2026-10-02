@@ -1,7 +1,11 @@
-import type { NativeHarnessEvent, NativeRefs }                        from "@/core/domain/execution/native-session.js";
-import { isReasoningActivityPayload }                                 from "@/core/domain/execution/project-activity.js";
-import type { ProjectActivityKind, ProjectActivityPhase }             from "@/core/domain/execution/project-activity.js";
-import { sanitizeTerminalTextExcerpt, sanitizeTerminalTextUnbounded } from "@/core/domain/execution/terminal.js";
+import type { NativeHarnessEvent, NativeRefs            } from "@/core/domain/execution/native-session.js"   ;
+import      { isReasoningActivityPayload                } from "@/core/domain/execution/project-activity.js" ;
+import type { ProjectActivityKind, ProjectActivityPhase } from "@/core/domain/execution/project-activity.js" ;
+import      {
+              sanitizeTerminalTextExcerpt             ,
+              sanitizeTerminalTextUnbounded           ,
+                                                        } from "@/core/domain/execution/terminal.js"         ;
+import      { asRecord                                  } from "@/core/domain/value/record.js"               ;
 
 const JOURNAL_NATIVE_TEXT_CHARACTER_LIMIT = 32 * 1024                       ;
 const JOURNAL_NATIVE_MAX_DEPTH            = 8                               ;
@@ -136,7 +140,7 @@ function nativeObservation(event: NativeHarnessEvent): Extract<NativeEventProjec
 }
 
 function nativeReasoningSummary(params: Readonly<Record<string, unknown>>): string {
-	const item = record(params.item);
+	const item = asRecord(params.item);
 	if (String(item?.type ?? "").toLowerCase() !== "reasoning") return "";
 	const summary = item?.summary;
 	const text = typeof summary === "string"
@@ -160,9 +164,9 @@ function nativeDeltaChannel(
 }
 
 function nativeActivityKind(method: string, params: Readonly<Record<string, unknown>>): ProjectActivityKind {
-	const normalized = method.toLowerCase()                                  ;
-	const itemType   = String(record(params.item)?.type ?? "").toLowerCase() ;
-	const itemScoped = normalized.startsWith("item/")                        ;
+	const normalized = method.toLowerCase()                                    ;
+	const itemType   = String(asRecord(params.item)?.type ?? "").toLowerCase() ;
+	const itemScoped = normalized.startsWith("item/")                          ;
 	if (itemType.includes("message") || itemScoped && normalized.includes("message")) return "message";
 	if (itemType.includes("command") || itemType.includes("tool") || itemType.includes("mcp") ||
 		itemScoped && (normalized.includes("command") || normalized.includes("tool") || normalized.includes("mcp"))) return "tool";
@@ -174,15 +178,15 @@ function nativeActivityKind(method: string, params: Readonly<Record<string, unkn
 function nativeActivityPhase(method: string, params?: Readonly<Record<string, unknown>>): ProjectActivityPhase {
 	const normalized = method.toLowerCase();
 	if (normalized === "turn/completed") {
-		const turn         = record(params?.turn)                                                         ;
-		const status       = typeof turn?.status === "string" ? turn.status : record(turn?.status)?.type  ;
-		const nativeStatus = typeof status === "string" ? status.replace(/[-_]/gu, "").toLowerCase() : "" ;
+		const turn         = asRecord(params?.turn)                                                        ;
+		const status       = typeof turn?.status === "string" ? turn.status : asRecord(turn?.status)?.type ;
+		const nativeStatus = typeof status === "string" ? status.replace(/[-_]/gu, "").toLowerCase() : ""  ;
 		if (nativeStatus === "failed" || nativeStatus === "errored" || nativeStatus === "error") return "failed";
 		if (nativeStatus === "cancelled" || nativeStatus === "canceled" || nativeStatus === "interrupted") return "cancelled";
 	}
 	if (normalized === "item/completed") {
-		const item = record(params?.item);
-		const status = String(item?.status ?? "").toLowerCase();
+		const item   = asRecord(params?.item)                   ;
+		const status = String(item?.status ?? "").toLowerCase() ;
 		if (["failed", "error", "errored"].includes(status)
 			|| item?.type === "commandExecution" && typeof item.exitCode === "number" && item.exitCode !== 0) return "failed";
 		if (["cancelled", "canceled", "interrupted"].includes(status)) return "cancelled";
@@ -199,12 +203,12 @@ function isAssistantMessageObservation(
 	kind: ProjectActivityKind,
 ): boolean {
 	if (kind !== "message") return false;
-	const itemType = String(record(event.params.item)?.type ?? "").replace(/[-_]/gu, "").toLowerCase();
+	const itemType = String(asRecord(event.params.item)?.type ?? "").replace(/[-_]/gu, "").toLowerCase();
 	return itemType === "agentmessage" || event.method.toLowerCase().startsWith("item/agentmessage/");
 }
 
 function nativeEventText(params: Readonly<Record<string, unknown>>): string {
-	const item = record(params.item);
+	const item = asRecord(params.item);
 	for (const candidate of [params.text, params.message, params.delta, item?.text, item?.content]) {
 		if (typeof candidate === "string") return candidate;
 	}
@@ -238,12 +242,12 @@ function projectJournalNativeValue(value: unknown, state: JournalNativeProjectio
 		if (projected.length < value.length) state.omitted = true;
 		return projected;
 	}
-	const source = record(value);
+	const source = asRecord(value);
 	if (!source) return sanitizeTerminalTextExcerpt(String(value), Math.max(0, state.remainingCharacters), "head-tail");
 	const entries = Object.entries(source)
 		.sort(([left], [right]) => journalNativeFieldPriority(left) - journalNativeFieldPriority(right));
-	const projected: Record<string, unknown> = {};
-	let accepted = 0;
+	const projected: Record<string, unknown> = {} ;
+	let accepted                             = 0  ;
 	for (const [key, item] of entries) {
 		if (key.length > 200) {
 			state.omitted = true;
@@ -265,8 +269,4 @@ function journalNativeFieldPriority(key: string): number {
 	const normalized = key.replace(/[-_]/gu, "").toLowerCase();
 	return ["text", "content", "output", "aggregatedoutput", "stdout", "stderr", "result", "diff", "delta", "message"]
 		.includes(normalized) ? 1 : 0;
-}
-
-function record(value: unknown): Record<string, unknown> | null {
-	return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
 }

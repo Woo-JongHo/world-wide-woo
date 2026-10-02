@@ -1,12 +1,13 @@
 import type {
-	LinearDashboardComment,
-	LinearDashboardIssue,
-	LinearDashboardMilestone,
-	LinearDashboardUpdate,
-	LinearProjectDashboard,
-} from "@/core/domain/work/linear-dashboard.js";
-import type { LinearProjectDashboardReader } from "@/core/ports/integration/linear-project-dashboard-port";
-import { PRODUCT_VERSION }                   from "@/product-version";
+              LinearDashboardComment     ,
+              LinearDashboardIssue       ,
+              LinearDashboardMilestone   ,
+              LinearDashboardUpdate      ,
+              LinearProjectDashboard     ,
+                                           } from "@/core/domain/work/linear-dashboard.js"                 ;
+import type { LinearProjectDashboardReader } from "@/core/ports/integration/linear-project-dashboard-port" ;
+import      { PRODUCT_VERSION              } from "@/product-version"                                      ;
+import      { asRecord                     } from "@/core/domain/value/record.js"                          ;
 
 export interface LinearMcpToolCaller {
 	callMcpTool(input: {
@@ -80,15 +81,9 @@ export class McpLinearProjectDashboard implements LinearProjectDashboardReader {
 	}
 }
 
-function record(value: unknown): Record<string, unknown> {
-	return value && typeof value === "object" && !Array.isArray(value)
-		? value as Record<string, unknown>
-		: {};
-}
-
 function list(value: unknown, key: string): readonly Record<string, unknown>[] {
-	const candidate = record(value)[key];
-	return Array.isArray(candidate) ? candidate.map(record) : [];
+	const candidate = asRecord(value)?.[key];
+	return Array.isArray(candidate) ? candidate.map((entry) => asRecord(entry) ?? {}) : [];
 }
 
 function text(value: unknown): string {
@@ -96,7 +91,7 @@ function text(value: unknown): string {
 }
 
 function textContent(value: unknown): string | null {
-	const candidate = record(value).text;
+	const candidate = asRecord(value)?.text;
 	return typeof candidate === "string" ? candidate : null;
 }
 
@@ -120,7 +115,7 @@ function projectIssues(value: unknown): readonly LinearDashboardIssue[] {
 function projectUpdate(value: unknown): LinearDashboardUpdate | null {
 	const entries = [...list(value, "statusUpdates"), ...list(value, "updates")];
 	for (const entry of entries) {
-		const body    = text(entry.body)                                              ;
+		const body    = text(entry.body)                                       ;
 		const version = body.match(/(?:^|[^\d])v?(0\.0\.\d+)\b/u)?.[1] ?? null ;
 		if (body && version === PRODUCT_VERSION) {
 			return { body, version, createdAt: typeof entry.createdAt === "string" ? entry.createdAt : null };
@@ -132,7 +127,7 @@ function projectUpdate(value: unknown): LinearDashboardUpdate | null {
 function projectComments(value: unknown): readonly LinearDashboardComment[] {
 	return list(value, "comments")
 		.map(comment => {
-			const author = record(comment.author);
+			const author = asRecord(comment.author) ?? {};
 			return {
 				id        : text(comment.id),
 				body      : text(comment.body),

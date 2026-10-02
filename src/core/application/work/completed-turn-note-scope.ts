@@ -1,6 +1,7 @@
-import type { ProjectActivity }        from "@/core/domain/execution/project-activity.js";
-import { sanitizeTerminalTextExcerpt } from "@/core/domain/execution/terminal.js";
-import { sanitizeTNoteText }           from "@/core/domain/work/t-notes.js";
+import type { ProjectActivity             } from "@/core/domain/execution/project-activity.js" ;
+import      { sanitizeTerminalTextExcerpt } from "@/core/domain/execution/terminal.js"         ;
+import      { sanitizeTNoteText           } from "@/core/domain/work/t-notes.js"               ;
+import      { asRecord                    } from "@/core/domain/value/record.js"               ;
 
 export type CompletedTurnSelector =
 	| { readonly type: "turn"; readonly turnId: string }
@@ -61,8 +62,8 @@ function completedTurnNoteScope(
 	activities: readonly ProjectActivity[],
 	turnId: string,
 ): CompletedTurnNoteScope | null {
-	let terminalIndex = -1;
-	let startIndex = -1;
+	let terminalIndex = -1 ;
+	let startIndex    = -1 ;
 	for (const [index, activity] of activities.entries()) {
 		if (activity.nativeRefs.turnId !== turnId) continue;
 		if (activity.payload.method === "turn/start" || activity.payload.method === "turn/started") startIndex = index;
@@ -131,24 +132,20 @@ function activityText(payload: Readonly<Record<string, unknown>>): string {
 	for (const candidate of [payload.text, payload.message, payload.delta]) {
 		if (typeof candidate === "string") return candidate;
 	}
-	const params = record(payload.params);
-	const item = record(params?.item);
+	const params = asRecord(payload.params) ;
+	const item   = asRecord(params?.item  ) ;
 	for (const candidate of [params?.text, params?.message, params?.delta, item?.text, item?.content]) {
 		if (typeof candidate === "string") return candidate;
 	}
 	return "";
 }
 
-function record(value: unknown): Record<string, unknown> | null {
-	return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
-}
-
 function isCompletedAssistantActivity(activity: ProjectActivity): boolean {
 	if (activity.kind !== "message" || activity.phase !== "completed") return false;
 	if (activity.payload.role === "assistant") return true;
 	if (activity.payload.role === "user" || activity.payload.direction === "outbound") return false;
-	const params   = record(activity.payload.params)                                                          ;
-	const itemType = String(record(params?.item)?.type ?? "").replace(/[-_]/gu, "").toLowerCase()             ;
+	const params   = asRecord(activity.payload.params)                                                        ;
+	const itemType = String(asRecord(params?.item)?.type ?? "").replace(/[-_]/gu, "").toLowerCase()           ;
 	const method   = typeof activity.payload.method === "string" ? activity.payload.method.toLowerCase() : "" ;
 	return itemType === "agentmessage" || method.startsWith("item/agentmessage/");
 }

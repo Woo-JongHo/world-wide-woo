@@ -1,18 +1,19 @@
 import type {
-	NativeApprovalDecision,
-	NativeApprovalKind,
-	NativeApprovalRequest,
-	NativeApprovalResponse,
-	NativeApprovalResolution,
-	NativeRefs,
-	NativeRequestId,
-	NativeThreadSnapshot,
-	NativeThreadStatus,
-	NativeThreadSummary,
-	NativeTurnSnapshot,
-} from "@/core/domain/execution/native-session.js";
-import { sanitizeTerminalText }    from "@/core/domain/execution/terminal.js";
-import type { UsageLimitSnapshot } from "@/core/ports/observability/usage-monitor-port";
+              NativeApprovalDecision   ,
+              NativeApprovalKind       ,
+              NativeApprovalRequest    ,
+              NativeApprovalResponse   ,
+              NativeApprovalResolution ,
+              NativeRefs               ,
+              NativeRequestId          ,
+              NativeThreadSnapshot     ,
+              NativeThreadStatus       ,
+              NativeThreadSummary      ,
+              NativeTurnSnapshot       ,
+                                         } from "@/core/domain/execution/native-session.js"     ;
+import      { sanitizeTerminalText       } from "@/core/domain/execution/terminal.js"           ;
+import type { UsageLimitSnapshot         } from "@/core/ports/observability/usage-monitor-port" ;
+import      { isRecord                   } from "@/core/domain/value/record.js"                 ;
 
 export interface JsonRecord {
 	[key: string]: unknown;
@@ -112,8 +113,8 @@ export function escapeConfigKeySegment(value: string): string {
 }
 
 export function refsFrom(params: JsonRecord, approvalRequestId?: NativeRequestId, approvalCallbackId?: string | null): NativeRefs {
-	const thread = isRecord(params.thread) ? params.thread : undefined;
-	const turn   = isRecord(params.turn)   ? params.turn   : undefined;
+	const thread = isRecord(params.thread) ? params.thread : undefined ;
+	const turn   = isRecord(params.turn)   ? params.turn   : undefined ;
 	const item = isRecord(params.item)
 		? params.item
 		: params.type === "collabAgentToolCall" || params.type === "subAgentActivity"
@@ -174,18 +175,14 @@ export function isRequestId(value: unknown): value is NativeRequestId {
 	return typeof value === "string" || typeof value === "number";
 }
 
-export function isRecord(value: unknown): value is JsonRecord {
-	return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-
 function codexRateWindow(value: unknown, label: string): UsageLimitSnapshot | undefined {
 	if (!isRecord(value) || typeof value.usedPercent !== "number" || !Number.isFinite(value.usedPercent)) return undefined;
 	const usedPercent = Math.max(0, Math.min(100, value.usedPercent));
 	const duration = typeof value.windowDurationMins === "number" && Number.isFinite(value.windowDurationMins)
 		? value.windowDurationMins
 		: undefined;
-	const window           = duration === 300 ? "5 Hours" : duration === 10_080 ? "7 Days" : duration ? `${duration} Minutes` : label;
-	const remainingPercent = Math.max(0, 100 - usedPercent);
+	const window           = duration === 300 ? "5 Hours" : duration === 10_080 ? "7 Days" : duration ? `${duration} Minutes` : label ;
+	const remainingPercent = Math.max(0, 100 - usedPercent)                                                                           ;
 	return {
 		label: `${label} ${window}`,
 		usedPercent,

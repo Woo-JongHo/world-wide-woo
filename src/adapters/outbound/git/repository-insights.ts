@@ -1,12 +1,13 @@
-import type { RepositoryInsights } from "@/core/ports/integration/repository-insights-port";
+import type { RepositoryInsights   } from "@/core/ports/integration/repository-insights-port" ;
 import type {
-	ChangedFile,
-	ChangedFileKind,
-	CommitSummary,
-	IssueState,
-	IssueSummary,
-	RepositorySnapshot,
-} from "@/core/domain/development/repository";
+              ChangedFile        ,
+              ChangedFileKind    ,
+              CommitSummary      ,
+              IssueState         ,
+              IssueSummary       ,
+              RepositorySnapshot ,
+                                   } from "@/core/domain/development/repository"              ;
+import      { isRecord             } from "@/core/domain/value/record.js"                     ;
 
 const DEFAULT_LIMIT = 20  ;
 const MAX_LIMIT     = 100 ;
@@ -89,13 +90,13 @@ function fileKind(index: string, worktree: string): ChangedFileKind {
 
 /** Parses porcelain v1 -z output, where rename records are path followed by old path. */
 export function parseChangedFiles(output: string): ChangedFile[] {
-	const fields = output.split("\0");
-	const files: ChangedFile[] = [];
+	const fields               = output.split("\0") ;
+	const files: ChangedFile[] = []                 ;
 	for (let index = 0; index < fields.length - 1; index += 1) {
 		const entry = fields[index];
 		if (entry.length < 4 || entry[2] !== " ") continue;
-		const indexStatus    = entry[0]                                                                                       ;
-		const worktreeStatus = entry[1]                                                                                       ;
+		const indexStatus    = entry[0] ;
+		const worktreeStatus = entry[1] ;
 		const renamed        = (
 			indexStatus === "R"
 			|| worktreeStatus === "R"
@@ -126,10 +127,6 @@ function parseCommits(output: string): CommitSummary[] {
 			|| !authoredAt) return [];
 		return [{ id, shortId, subject, author, authoredAt }];
 	});
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === "object" && value !== null;
 }
 
 function labelName(label: unknown): string | undefined {

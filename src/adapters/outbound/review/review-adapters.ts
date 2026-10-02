@@ -1,20 +1,25 @@
-import { createHash }                                        from "node:crypto";
-import { mkdtemp, rm }                                       from "node:fs/promises";
-import { tmpdir }                                            from "node:os";
-import { join }                                              from "node:path";
-import type { Context, Models, ModelsSimpleStreamOptions }   from "@earendil-works/pi-ai";
-import { reviewPacketInput, stableJson, verifyReviewPacket } from "@/core/domain/review/review";
+import      { createHash                                 } from "node:crypto"                                       ;
+import      { mkdtemp, rm                                } from "node:fs/promises"                                  ;
+import      { tmpdir                                     } from "node:os"                                           ;
+import      { join                                       } from "node:path"                                         ;
+import type { Context, Models, ModelsSimpleStreamOptions } from "@earendil-works/pi-ai"                             ;
+import      {
+              reviewPacketInput                        ,
+              stableJson                               ,
+              verifyReviewPacket                       ,
+                                                         } from "@/core/domain/review/review"                       ;
 import type {
-	ReviewAdapter,
-	ReviewDelivery,
-	ReviewDigester,
-	ReviewGenerationClient,
-	ReviewPacket,
-	ReviewProvider,
-	ReviewUsage,
-} from "@/core/domain/review/review";
-import { redactForExternalReview }                           from "@/core/domain/review/redaction";
-import type { SessionModelUsageObservation }                 from "@/core/application/session/session-model-usage.js";
+              ReviewAdapter                            ,
+              ReviewDelivery                           ,
+              ReviewDigester                           ,
+              ReviewGenerationClient                   ,
+              ReviewPacket                             ,
+              ReviewProvider                           ,
+              ReviewUsage                              ,
+                                                         } from "@/core/domain/review/review"                       ;
+import      { redactForExternalReview                    } from "@/core/domain/review/redaction"                    ;
+import type { SessionModelUsageObservation               } from "@/core/application/session/session-model-usage.js" ;
+import      { isRecord                                   } from "@/core/domain/value/record.js"                     ;
 
 export const CLAUDE_OPUS_REVIEW_MODEL       = "claude-opus-5"          ;
 export const GEMINI_REVIEW_MODEL            = "gemini-3.1-pro-preview" ;
@@ -124,8 +129,8 @@ export class ProviderReviewAdapter implements ReviewAdapter {
 			packetDigest: packet.digest,
 		}));
 		if (typeof result !== "string") throw new Error("Review provider returned a non-text result");
-		const safeResult = redactForExternalReview(result).text;
-		const receivedAt = this.clock().toISOString();
+		const safeResult = redactForExternalReview(result).text ;
+		const receivedAt = this.clock().toISOString()           ;
 		return Object.freeze({
 			provider     : this.provider,
 			model        : this.model,
@@ -279,10 +284,10 @@ function parseClaudeCliResult(stdout: string): { result: string; usage?: ReviewU
 
 function observedUsage(value: unknown): ReviewUsage | undefined {
 	if (!isRecord(value)) return undefined;
-	const inputTokens              = token(value.input_tokens)                ;
-	const outputTokens             = token(value.output_tokens)               ;
+	const inputTokens              = token(value.input_tokens               ) ;
+	const outputTokens             = token(value.output_tokens              ) ;
 	const cacheCreationInputTokens = token(value.cache_creation_input_tokens) ;
-	const cacheReadInputTokens     = token(value.cache_read_input_tokens)     ;
+	const cacheReadInputTokens     = token(value.cache_read_input_tokens    ) ;
 	if ([inputTokens, outputTokens, cacheCreationInputTokens, cacheReadInputTokens].every(count => count === undefined)) return undefined;
 	return {
 		...(inputTokens === undefined ? {} : { inputTokens }),
@@ -294,10 +299,6 @@ function observedUsage(value: unknown): ReviewUsage | undefined {
 
 function token(value: unknown): number | undefined {
 	return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? value : undefined;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return value !== null && typeof value === "object";
 }
 
 function classifyClaudeCliFailure(output: string): ClaudeCliReviewError {
@@ -328,15 +329,15 @@ export function createSystemClaudeCliRunner(
 		const child = dependencies.spawn(command, args, options.cwd);
 		child.stdin.write(options.input);
 		child.stdin.end();
-		let timedOut = false;
-		let terminating = false;
+		let timedOut    = false ;
+		let terminating = false ;
 		const terminate = (signal: NodeJS.Signals) => {
 			if (terminating) return;
 			terminating = true;
 			try { dependencies.killProcessGroup(child.pid, signal); } catch { child.kill(signal); }
 		};
-		const stdout = readCappedClaudeCliStream(child.stdout, options.outputLimit, () => terminate("SIGTERM"));
-		const stderr = readCappedClaudeCliStream(child.stderr, options.outputLimit, () => terminate("SIGTERM"));
+		const stdout = readCappedClaudeCliStream(child.stdout, options.outputLimit, () => terminate("SIGTERM")) ;
+		const stderr = readCappedClaudeCliStream(child.stderr, options.outputLimit, () => terminate("SIGTERM")) ;
 		const timer = dependencies.setTimer(() => {
 			timedOut = true;
 			terminate("SIGTERM");
@@ -407,8 +408,8 @@ function concatClaudeCliChunks(chunks: readonly Uint8Array[]): Uint8Array {
 export const systemClaudeCliRunner = createSystemClaudeCliRunner();
 
 export function createReviewAdapters(client: ReviewGenerationClient, options: ReviewAdapterOptions = {}, digest: ReviewDigester = sha256ReviewDigest): ReadonlyMap<ReviewProvider, ReviewAdapter> {
-	const anthropic = createAdapter("anthropic", options.anthropic, client, digest);
-	const google = createAdapter("google", options.google, client, digest);
+	const anthropic = createAdapter("anthropic", options.anthropic, client, digest) ;
+	const google    = createAdapter("google"   , options.google   , client, digest) ;
 	return new Map<ReviewProvider, ReviewAdapter>([[anthropic.provider, anthropic], [google.provider, google]]);
 }
 
@@ -419,8 +420,8 @@ export function createProductionReviewAdapters(
 	options: ProductionReviewAdapterOptions,
 	digest: ReviewDigester = sha256ReviewDigest,
 ): ReadonlyMap<ReviewProvider, ReviewAdapter> {
-	const anthropicModel = resolveModel("anthropic", options.anthropic?.model ?? CLAUDE_OPUS_REVIEW_MODEL);
-	const google = createAdapter("google", options.google, client, digest);
+	const anthropicModel = resolveModel("anthropic", options.anthropic?.model ?? CLAUDE_OPUS_REVIEW_MODEL) ;
+	const google         = createAdapter("google", options.google, client, digest)                         ;
 	const anthropic = new ClaudeCliReviewAdapter(
 		anthropicModel,
 		options.claudeCliVersion,

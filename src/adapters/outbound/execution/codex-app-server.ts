@@ -1,59 +1,59 @@
-import type { ExecutorPort }              from "@/core/ports/execution/executor-port.js";
+import type { ExecutorPort                  } from "@/core/ports/execution/executor-port.js"                     ;
 import type {
-	RuntimeToolDefinition,
-	RuntimeToolHandler,
-	RuntimeToolResult,
-} from "@/core/ports/execution/runtime-tool-port";
+              RuntimeToolDefinition       ,
+              RuntimeToolHandler          ,
+              RuntimeToolResult           ,
+                                            } from "@/core/ports/execution/runtime-tool-port"                    ;
 import type {
-	NativeApprovalKind,
-	NativeApprovalRequest,
-	NativeApprovalResolution,
-	NativeHarnessEvent,
-	NativeRefs,
-	NativeRequestId,
-	NativeThreadRead,
-	NativeThreadList,
-	NativeThreadCompact,
-	NativeThreadResume,
-	NativeThreadSnapshot,
-	NativeThreadStart,
-	NativeThreadSummary,
-	NativeTurnInterrupt,
-	NativeTurnSnapshot,
-	NativeTurnStart,
-	NativeTurnSteer,
-	NativeTurnSteerResult,
-	NativeUncertainOperation,
-} from "@/core/domain/execution/native-session.js";
-import { PRODUCT_VERSION }                from "@/product-version.js";
-import { CODEX_EFFORTS }                  from "@/core/domain/execution/model-settings";
-import type { Effort, NativeModelOption } from "@/core/domain/execution/model-settings";
-import type { UsageSnapshot }             from "@/core/ports/observability/usage-monitor-port";
-import {
-	approvalDecisions,
-	approvalKind,
-	approvalResolutionRequestId,
-	codexRateLimits,
-	codexThreadConfig,
-	compact,
-	errorText,
-	escapeConfigKeySegment,
-	isRecord,
-	isRequestId,
-	mcpServer,
-	nativeApprovalResponse,
-	refsFrom,
-	threadSnapshot,
-	threadSummary,
-	turnSnapshot,
-} from "@/adapters/outbound/execution/codex-app-server-protocol.js";
+              NativeApprovalKind          ,
+              NativeApprovalRequest       ,
+              NativeApprovalResolution    ,
+              NativeHarnessEvent          ,
+              NativeRefs                  ,
+              NativeRequestId             ,
+              NativeThreadRead            ,
+              NativeThreadList            ,
+              NativeThreadCompact         ,
+              NativeThreadResume          ,
+              NativeThreadSnapshot        ,
+              NativeThreadStart           ,
+              NativeThreadSummary         ,
+              NativeTurnInterrupt         ,
+              NativeTurnSnapshot          ,
+              NativeTurnStart             ,
+              NativeTurnSteer             ,
+              NativeTurnSteerResult       ,
+              NativeUncertainOperation    ,
+                                            } from "@/core/domain/execution/native-session.js"                   ;
+import      { PRODUCT_VERSION               } from "@/product-version.js"                                        ;
+import      { CODEX_EFFORTS                 } from "@/core/domain/execution/model-settings"                      ;
+import type { Effort, NativeModelOption     } from "@/core/domain/execution/model-settings"                      ;
+import type { UsageSnapshot                 } from "@/core/ports/observability/usage-monitor-port"               ;
+import      {
+              approvalDecisions           ,
+              approvalKind                ,
+              approvalResolutionRequestId ,
+              codexRateLimits             ,
+              codexThreadConfig           ,
+              compact                     ,
+              errorText                   ,
+              escapeConfigKeySegment      ,
+              isRequestId                 ,
+              mcpServer                   ,
+              nativeApprovalResponse      ,
+              refsFrom                    ,
+              threadSnapshot              ,
+              threadSummary               ,
+              turnSnapshot                ,
+                                            } from "@/adapters/outbound/execution/codex-app-server-protocol.js"  ;
+import      { isRecord                      } from "@/core/domain/value/record.js"                               ;
 import type {
-	JsonRecord,
-	NativeMcpServer,
-	NativeMcpToolResult,
-} from "@/adapters/outbound/execution/codex-app-server-protocol.js";
-import { StdioJsonLineTransport }         from "@/adapters/outbound/execution/codex-app-server-transport.js";
-import type { JsonLineTransport }         from "@/adapters/outbound/execution/codex-app-server-transport.js";
+              JsonRecord                  ,
+              NativeMcpServer             ,
+              NativeMcpToolResult         ,
+                                            } from "@/adapters/outbound/execution/codex-app-server-protocol.js"  ;
+import      { StdioJsonLineTransport        } from "@/adapters/outbound/execution/codex-app-server-transport.js" ;
+import type { JsonLineTransport             } from "@/adapters/outbound/execution/codex-app-server-transport.js" ;
 
 export { StdioJsonLineTransport } from "@/adapters/outbound/execution/codex-app-server-transport.js";
 export type { JsonLineTransport } from "@/adapters/outbound/execution/codex-app-server-transport.js";
@@ -179,8 +179,8 @@ export class CodexAppServer implements ExecutorPort {
 
 	/** Uses the same native ChatGPT account as the running Codex session. */
 	public async readAccountUsage(): Promise<UsageSnapshot> {
-		const fetchedAt = Date.now();
-		const result = await this.request("account/read", { refreshToken: false }, false);
+		const fetchedAt = Date.now()                                                         ;
+		const result    = await this.request("account/read", { refreshToken: false }, false) ;
 		if (!isRecord(result) || !("account" in result)) throw new Error("Codex App Server returned an invalid account/read result");
 		if (result.account === null) {
 			return {
@@ -274,8 +274,8 @@ export class CodexAppServer implements ExecutorPort {
 	}
 
 	public async readThread(input: NativeThreadRead): Promise<NativeThreadSnapshot> {
-		const result = await this.request("thread/read", compact({ ...input }), false);
-		const snapshot = threadSnapshot(result, "thread/read");
+		const result   = await this.request("thread/read", compact({ ...input }), false) ;
+		const snapshot = threadSnapshot(result, "thread/read")                           ;
 		this.registerThreadTurns(snapshot);
 		return snapshot;
 	}
@@ -408,8 +408,8 @@ export class CodexAppServer implements ExecutorPort {
 	}
 
 	public respondToApproval(input: NativeApprovalResolution): Promise<void> {
-		const requestId = approvalResolutionRequestId(input);
-		const approval = this.approvals.get(requestId);
+		const requestId = approvalResolutionRequestId(input) ;
+		const approval  = this.approvals.get(requestId)      ;
 		if (!approval) {
 			return Promise.reject(new Error(`Unknown native approval: ${String(requestId)}`));
 		}

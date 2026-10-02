@@ -1,16 +1,24 @@
-import { createHash, randomUUID }                       from "node:crypto";
-import { chmod, mkdir, open, readFile, stat, truncate } from "node:fs/promises";
-import { join }                                         from "node:path";
-import {
-	PROJECT_ACTIVITY_KINDS,
-	PROJECT_ACTIVITY_PHASES,
-	isTerminalActivityPhase,
-} from "@/core/domain/execution/project-activity.js";
+import      { createHash, randomUUID        } from "node:crypto"                                 ;
+import      {
+              chmod                       ,
+              mkdir                       ,
+              open                        ,
+              readFile                    ,
+              stat                        ,
+              truncate                    ,
+                                            } from "node:fs/promises"                            ;
+import      { join                          } from "node:path"                                   ;
+import      {
+              PROJECT_ACTIVITY_KINDS      ,
+              PROJECT_ACTIVITY_PHASES     ,
+              isTerminalActivityPhase     ,
+                                            } from "@/core/domain/execution/project-activity.js" ;
 import type {
-	ProjectActivity,
-	ProjectActivityAppendResult,
-	ProjectActivityInput,
-} from "@/core/domain/execution/project-activity.js";
+              ProjectActivity             ,
+              ProjectActivityAppendResult ,
+              ProjectActivityInput        ,
+                                            } from "@/core/domain/execution/project-activity.js" ;
+import      { isRecord                      } from "@/core/domain/value/record.js"               ;
 
 const projectIdPattern        = /^[A-Za-z0-9][A-Za-z0-9_-]*$/ ;
 const sha256Pattern           = /^sha256:[a-f0-9]{64}$/       ;
@@ -149,8 +157,8 @@ export class ActivityJournalStore {
 	}
 
 	private async resolveCachedState(projectId: string, discardCrashResidue: boolean): Promise<JournalState> {
-		const path = this.projectPath(projectId);
-		const cached = journalStates.get(path);
+		const path   = this.projectPath(projectId) ;
+		const cached = journalStates.get(path)     ;
 		const fileSize = await stat(path).then((value) => value.size).catch((error: NodeJS.ErrnoException) => {
 			if (error.code === "ENOENT") return 0;
 			throw error;
@@ -230,8 +238,8 @@ export class ActivityJournalStore {
 	private async appendLine(projectId: string, line: string, exists: boolean): Promise<void> {
 		await mkdir(this.directory, { recursive: true, mode: 0o700 });
 		await chmod(this.directory, 0o700);
-		const path = this.projectPath(projectId);
-		const handle = await open(path, "a", 0o600);
+		const path   = this.projectPath(projectId)  ;
+		const handle = await open(path, "a", 0o600) ;
 		try {
 			if (!exists) await chmod(path, 0o600);
 			await handle.write(`${line}\n`);
@@ -338,8 +346,4 @@ function isProjectActivity(value: unknown): value is ProjectActivity {
 		sha256Pattern.test(activity.sourceDigest) &&
 		isRecord(activity.payload)
 	);
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return !!value && typeof value === "object" && !Array.isArray(value);
 }

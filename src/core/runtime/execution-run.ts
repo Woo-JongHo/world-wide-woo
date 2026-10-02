@@ -1,26 +1,27 @@
-import type { ProjectActivity } from "@/core/domain/execution/project-activity.js";
-import type { TodoItem }        from "@/core/domain/work/todos.js";
-import { projectWorkFlow }      from "@/core/domain/work/workflow-projection.js";
+import type { ProjectActivity           } from "@/core/domain/execution/project-activity.js"       ;
+import type { TodoItem                  } from "@/core/domain/work/todos.js"                       ;
+import      { projectWorkFlow           } from "@/core/domain/work/workflow-projection.js"         ;
 import type {
-	ExecutionRunId,
-	RuntimeEventKind,
-	RuntimeEventDurability,
-	ExecutionRunPhase,
-	CompletionReceiptStatus,
-	WaitReason,
-	ExecutionHash,
-	RuntimeEvent,
-	ExecutionEvidence,
-	ExecutionTask,
-	ExecutionActivity,
-	CompletionReceipt,
-	CompletionChange,
-	CompletionVerification,
-	CompletionRemaining,
-	ExecutionCheckpoint,
-	ExecutionRunState,
-	ExecutionRunReduction,
-} from "@/core/domain/execution/execution-run-contract.js";
+              ExecutionRunId          ,
+              RuntimeEventKind        ,
+              RuntimeEventDurability  ,
+              ExecutionRunPhase       ,
+              CompletionReceiptStatus ,
+              WaitReason              ,
+              ExecutionHash           ,
+              RuntimeEvent            ,
+              ExecutionEvidence       ,
+              ExecutionTask           ,
+              ExecutionActivity       ,
+              CompletionReceipt       ,
+              CompletionChange        ,
+              CompletionVerification  ,
+              CompletionRemaining     ,
+              ExecutionCheckpoint     ,
+              ExecutionRunState       ,
+              ExecutionRunReduction   ,
+                                        } from "@/core/domain/execution/execution-run-contract.js" ;
+import      { asRecord                  } from "@/core/domain/value/record.js"                     ;
 export type {
 	ExecutionRunId,
 	RuntimeEventKind,
@@ -201,11 +202,11 @@ function projectPlanTasks(state: ExecutionRunState, activity: ProjectActivity | 
 }
 
 function reduceTask(tasks: readonly ExecutionTask[], event: RuntimeEvent, activity: ProjectActivity | undefined, method: string, hash: ExecutionHash, version: 1 | 2 | 3): readonly ExecutionTask[] {
-	const plan = record(event.payload?.params ?? activity?.payload.params)?.plan;
+	const plan = asRecord(event.payload?.params ?? activity?.payload.params)?.plan;
 	if (Array.isArray(plan)) {
 		return plan.flatMap((entry, index) => {
-			const value = record(entry);
-			const title = stringValue(value?.step ?? value?.title).trim();
+			const value = asRecord(entry)                                 ;
+			const title = stringValue(value?.step ?? value?.title).trim() ;
 			if (!title) return [];
 			const rawStatus = stringValue(value?.status).toLowerCase();
 			const status = rawStatus === "completed" || rawStatus === "complete" ? "completed"
@@ -213,8 +214,8 @@ function reduceTask(tasks: readonly ExecutionTask[], event: RuntimeEvent, activi
 					: rawStatus === "cancelled" || rawStatus === "canceled" ? "cancelled"
 						: rawStatus === "inprogress" || rawStatus === "in_progress" || rawStatus === "running" ? "running"
 							: "pending";
-			const id = `plan:${index + 1}`;
-			const prior = tasks.find(task => task.id === id);
+			const id    = `plan:${index + 1}`                ;
+			const prior = tasks.find(task => task.id === id) ;
 			return [{ id, title, status, activityIds: activity ? [...(prior?.activityIds ?? []), activity.id] : prior?.activityIds ?? [] }];
 		});
 	}
@@ -235,8 +236,8 @@ function reduceTask(tasks: readonly ExecutionTask[], event: RuntimeEvent, activi
 	return tasks.map(task => task.id === itemId ? { ...task, status, activityIds: activity ? [...task.activityIds, activity.id] : task.activityIds } : task);
 }
 function evidenceFor(activity: ProjectActivity, method: string): ExecutionEvidence {
-	const kind = activity.kind === "file-change" ? "change" : method.includes("verif") ? "verification" : activity.kind === "tool" ? "tool" : activity.kind === "message" ? "message" : "terminal";
-	const status = activity.phase === "failed" ? "failed" : activity.phase === "cancelled" ? "interrupted" : "observed";
+	const kind   = activity.kind === "file-change" ? "change" : method.includes("verif") ? "verification" : activity.kind === "tool" ? "tool" : activity.kind === "message" ? "message" : "terminal" ;
+	const status = activity.phase === "failed" ? "failed" : activity.phase === "cancelled" ? "interrupted" : "observed"                                                                              ;
 	return { activityId: activity.id, sequence: activity.sequence, sourceDigest: activity.sourceDigest, kind, status, summary: stringValue(activity.payload.text ?? activity.payload.title ?? activity.payload.method) };
 }
 function projectActivity(activity: ProjectActivity, method: string): ExecutionActivity | null {
@@ -255,8 +256,8 @@ function terminalStatus(event: RuntimeEvent, activity: ProjectActivity | undefin
 	return "completed";
 }
 function receiptFor(run: ExecutionRunState, activity: ProjectActivity, status: CompletionReceiptStatus, hash: ExecutionHash, version: 1 | 2 | 3): CompletionReceipt {
-	const evidenceRefs = run.evidence.slice().sort((a, b) => a.sequence - b.sequence);
-	const activities = new Map(run.activities.map(observation => [observation.id, observation]));
+	const evidenceRefs = run.evidence.slice().sort((a, b) => a.sequence - b.sequence)              ;
+	const activities   = new Map(run.activities.map(observation => [observation.id, observation])) ;
 	const changed = evidenceRefs.flatMap((evidence) => {
 		if (evidence.kind !== "change") return [];
 		const payload = receiptFields(activities.get(evidence.activityId)?.payload)   ;
@@ -275,8 +276,8 @@ function receiptFor(run: ExecutionRunState, activity: ProjectActivity, status: C
 	});
 	// Command outcomes are observations, not independent acceptance verification.
 	const commandResults = evidenceRefs.flatMap((evidence) => {
-		const observation = activities.get(evidence.activityId);
-		const payload = receiptFields(observation?.payload);
+		const observation = activities.get(evidence.activityId) ;
+		const payload     = receiptFields(observation?.payload) ;
 		if (payload.type !== "commandExecution" || !observation || !["completed", "failed", "cancelled"].includes(observation.phase)) return [];
 		const command = stringValue(payload.command);
 		if (!command) return [];
@@ -294,14 +295,9 @@ function receiptFor(run: ExecutionRunState, activity: ProjectActivity, status: C
 	return { ...bare, receiptDigest: digest(hash, bare) };
 }
 function stringValue(value: unknown): string { return typeof value === "string" ? value : ""; }
-function record(value: unknown): Readonly<Record<string, unknown>> | null {
-	return value !== null && typeof value === "object" && !Array.isArray(value)
-		? value as Readonly<Record<string, unknown>>
-		: null;
-}
 function receiptFields(payload: Readonly<Record<string, unknown>> | undefined): Readonly<Record<string, unknown>> {
-	const params = record(payload?.params);
-	const item = record(params?.item);
+	const params = asRecord(payload?.params) ;
+	const item   = asRecord(params?.item   ) ;
 	return { ...payload, ...params, ...item };
 }
 function verificationStatus(

@@ -1,3 +1,5 @@
+import { isRecord } from "@/core/domain/value/record.js";
+
 export const WORK_REFERENCE_KINDS = [
 	"initiative",
 	"epic",
@@ -71,15 +73,15 @@ export function parseWorkTraceabilityManifest(value: unknown): WorkTraceabilityM
 		|| !Array.isArray(value.links)) {
 		throw new Error("Invalid work traceability manifest");
 	}
-	const references = value.references.map(parseReference);
-	const known = new Map<string, WorkReference>();
+	const references = value.references.map(parseReference) ;
+	const known      = new Map<string, WorkReference>()     ;
 	for (const reference of references) {
 		const key = referenceKey(reference);
 		if (known.has(key)) throw new Error(`Duplicate work reference: ${key}`);
 		known.set(key, reference);
 	}
-	const links = value.links.map(parseLink);
-	const identities = new Set<string>();
+	const links      = value.links.map(parseLink) ;
+	const identities = new Set<string>()          ;
 	for (const link of links) {
 		for (const endpoint of [link.from, link.to]) {
 			const declared = known.get(referenceKey(endpoint));
@@ -96,8 +98,8 @@ export function parseWorkTraceabilityManifest(value: unknown): WorkTraceabilityM
 
 export function relatedWorkReferences(manifest: WorkTraceabilityManifest, reference: WorkReference): readonly WorkReference[] {
 	assertReference(reference);
-	const key = referenceKey(reference);
-	const related = new Map<string, WorkReference>();
+	const key     = referenceKey(reference)          ;
+	const related = new Map<string, WorkReference>() ;
 	for (const link of manifest.links) {
 		if (referenceKey(link.from) === key) related.set(referenceKey(link.to), link.to);
 		if (referenceKey(link.to) === key) related.set(referenceKey(link.from), link.from);
@@ -160,8 +162,4 @@ function isLinearIssueUrl(value: string, issueId: string): boolean {
 	} catch {
 		return false;
 	}
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return !!value && typeof value === "object" && !Array.isArray(value);
 }

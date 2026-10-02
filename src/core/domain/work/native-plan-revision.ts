@@ -1,4 +1,5 @@
-import type { ProjectActivity } from "@/core/domain/execution/project-activity.js";
+import type { ProjectActivity } from "@/core/domain/execution/project-activity.js" ;
+import      { asRecord        } from "@/core/domain/value/record.js"               ;
 
 export type WorkStepStatus =
 	| "pending"
@@ -69,14 +70,14 @@ function isPlanRevision(activity: ProjectActivity): boolean {
 		activity.payload.method === "turn/plan/public-fallback"
 	) return true;
 	if (activity.payload.method !== "item/completed") return false;
-	const item = record(record(activity.payload.params)?.item);
+	const item = asRecord(asRecord(activity.payload.params)?.item);
 	return typeof item?.type === "string" && item.type.toLowerCase() === "plan";
 }
 
 function rawPlanEntries(
 	activity: ProjectActivity,
 ): RawPlanRead {
-	const params = record(activity.payload.params);
+	const params = asRecord(activity.payload.params);
 	if (
 		activity.payload.method === "turn/plan/updated" ||
 		activity.payload.method === "turn/plan/public-fallback"
@@ -84,7 +85,7 @@ function rawPlanEntries(
 		if (!params || !Array.isArray(params.plan) || params.plan.length > 256) {
 			return { error: "non_string_entry" };
 		}
-		const values = params.plan.map(record);
+		const values = params.plan.map(asRecord);
 		if (values.some((entry) => typeof entry?.step !== "string")) {
 			return { error: "non_string_entry" };
 		}
@@ -95,12 +96,12 @@ function rawPlanEntries(
 			})),
 		};
 	}
-	const item = record(params?.item);
+	const item = asRecord(params?.item);
 	if (!item || typeof item.text !== "string") {
 		return { error: "non_string_entry" };
 	}
-	const numberedHeadings: RawPlanEntry[] = [];
-	let headingNumber = 0;
+	const numberedHeadings: RawPlanEntry[] = [] ;
+	let headingNumber                      = 0  ;
 	for (const line of item.text.replace(/\r\n?/gu, "\n").split("\n")) {
 		const heading = /^\s*#{2,6}\s+(\d+)[.)]\s+(.+?)\s*$/u.exec(line);
 		if (!heading) continue;
@@ -136,8 +137,8 @@ function rawPlanEntries(
 			if (number !== numberedCount + 1) return { error: "non_string_entry" };
 			numberedCount = number;
 		}
-		const value = numbered?.[2] ?? bullet![1];
-		const explicit = markdownPlanEntry(value);
+		const value    = numbered?.[2] ?? bullet![1] ;
+		const explicit = markdownPlanEntry(value)    ;
 		if (!explicit) return { error: "non_string_entry" };
 		const status = markdownPlanStatus(explicit.status);
 		if (!status) return { error: "non_string_entry" };
@@ -149,8 +150,8 @@ function rawPlanEntries(
 }
 
 function nativePlainNumberedPlanBlock(text: string): RawPlanEntry[] | undefined {
-	const entries: RawPlanEntry[] = [];
-	let started = false;
+	const entries: RawPlanEntry[] = []    ;
+	let started                   = false ;
 	for (const line of text.replace(/\r\n?/gu, "\n").split("\n")) {
 		if (/^\s*#{1,6}\s+.+?\s*$/u.test(line)) {
 			if (started) break;
@@ -165,8 +166,8 @@ function nativePlainNumberedPlanBlock(text: string): RawPlanEntry[] | undefined 
 		if (!numbered) return undefined;
 		const number = Number(numbered[1]);
 		if (number !== entries.length + 1 || number > 12) return undefined;
-		const value = numbered[2];
-		const explicit = markdownPlanEntry(value);
+		const value    = numbered[2]              ;
+		const explicit = markdownPlanEntry(value) ;
 		if (explicit && markdownPlanStatus(explicit.status)) return undefined;
 		entries.push({
 			step: markdownPlanTitle(value),
@@ -237,12 +238,4 @@ function canonicalIdentityText(value: string): string {
 		/\s+/gu,
 		" ",
 	);
-}
-
-function record(
-	value: unknown,
-): Readonly<Record<string, unknown>> | undefined {
-	return value && typeof value === "object" && !Array.isArray(value)
-		? value as Readonly<Record<string, unknown>>
-		: undefined;
 }

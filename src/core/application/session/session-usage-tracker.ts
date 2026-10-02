@@ -1,10 +1,11 @@
-import type { NativeHarnessEvent }      from "@/core/domain/execution/native-session.js";
+import type { NativeHarnessEvent      } from "@/core/domain/execution/native-session.js"         ;
 import type {
-	WorkbenchContextUsage,
-	WorkbenchModelUsage,
-	WorkbenchSessionUsage,
-} from "@/core/domain/work/workbench.js";
-import type { SessionModelUsageSource } from "@/core/application/session/session-model-usage.js";
+              WorkbenchContextUsage ,
+              WorkbenchModelUsage   ,
+              WorkbenchSessionUsage ,
+                                      } from "@/core/domain/work/workbench.js"                   ;
+import type { SessionModelUsageSource } from "@/core/application/session/session-model-usage.js" ;
+import      { asRecord                } from "@/core/domain/value/record.js"                     ;
 
 /** Session-local accounting for executor and detached model usage observations. */
 export class SessionUsageTracker {
@@ -51,8 +52,8 @@ export class SessionUsageTracker {
 	public snapshot(auxiliary?: SessionModelUsageSource): WorkbenchSessionUsage {
 		const merged = new Map<string, WorkbenchModelUsage>();
 		for (const usage of [...this.modelUsage.values(), ...(auxiliary?.snapshot ?? [])]) {
-			const key = `${usage.model}\u0000${usage.effort ?? ""}`;
-			const current = merged.get(key);
+			const key     = `${usage.model}\u0000${usage.effort ?? ""}` ;
+			const current = merged.get(key)                             ;
 			merged.set(key, {
 				model: usage.model, effort: usage.effort,
 				interactiveRootTurns : (current?.interactiveRootTurns ?? 0) + usage.interactiveRootTurns,
@@ -94,8 +95,8 @@ export class SessionUsageTracker {
 }
 
 function projectContextUsage(params: Readonly<Record<string, unknown>>): WorkbenchContextUsage | null {
-	const tokenUsage    = record(params.tokenUsage)      ;
-	const last          = record(tokenUsage?.last)       ;
+	const tokenUsage    = asRecord(params.tokenUsage)    ;
+	const last          = asRecord(tokenUsage?.last)     ;
 	const usedTokens    = last?.totalTokens              ;
 	const contextWindow = tokenUsage?.modelContextWindow ;
 	if (typeof usedTokens !== "number"
@@ -107,5 +108,4 @@ function projectContextUsage(params: Readonly<Record<string, unknown>>): Workben
 	// Occupancy includes every reported token, using the same window as the UI meter.
 	return Object.freeze({ usedTokens, contextWindow, percent: Math.min(100, Math.round((usedTokens / contextWindow) * 1_000) / 10) });
 }
-function projectThreadTotalTokens(params: Readonly<Record<string, unknown>>): number | null { const value = record(record(params.tokenUsage)?.total)?.totalTokens; return typeof value === "number" && Number.isFinite(value) && value >= 0 ? Math.floor(value) : null; }
-function record(value: unknown): Record<string, unknown> | null { return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null; }
+function projectThreadTotalTokens(params: Readonly<Record<string, unknown>>): number | null { const value = asRecord(asRecord(params.tokenUsage)?.total)?.totalTokens; return typeof value === "number" && Number.isFinite(value) && value >= 0 ? Math.floor(value) : null; }

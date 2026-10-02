@@ -1,4 +1,5 @@
-import type { ProjectActivity } from "@/core/domain/execution/project-activity.js";
+import type { ProjectActivity } from "@/core/domain/execution/project-activity.js" ;
+import      { asRecord        } from "@/core/domain/value/record.js"               ;
 
 export type WorkActivityClass = "observation" | "action" | "control";
 
@@ -7,8 +8,8 @@ export function classifyWorkActivity(
 ): WorkActivityClass {
 	if (activity.kind === "file-change") return "action";
 	if (activity.kind !== "tool") return "control";
-	const item = record(record(activity.payload.params)?.item) ??
-		record(activity.payload.params) ?? activity.payload;
+	const item = asRecord(asRecord(activity.payload.params)?.item) ??
+		asRecord(activity.payload.params) ?? activity.payload;
 	const command = typeof (item.command ?? item.cmd) === "string" ? String(item.command ?? item.cmd) : "";
 	if (command) return isReadOnlyShell(command) ? "observation" : "action";
 	const tool = typeof (item.tool ?? item.toolName ?? item.name) === "string"
@@ -54,10 +55,4 @@ function isReadOnlyShell(command: string): boolean {
 					).trim(),
 				)
 		);
-}
-
-function record(value: unknown): Readonly<Record<string, unknown>> | undefined {
-	return value && typeof value === "object" && !Array.isArray(value)
-		? value as Readonly<Record<string, unknown>>
-		: undefined;
 }

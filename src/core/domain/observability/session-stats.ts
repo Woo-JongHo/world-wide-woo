@@ -1,12 +1,13 @@
-import type { ProjectActivity }   from "@/core/domain/execution/project-activity.js";
-import type { WorkbenchSnapshot } from "@/core/domain/work/workbench.js";
-import {
-	observedCompletionPercent,
-	observedElapsedMs as elapsed,
-} from "@/core/domain/observability/observability-metrics.js";
+import type { ProjectActivity                } from "@/core/domain/execution/project-activity.js"          ;
+import type { WorkbenchSnapshot              } from "@/core/domain/work/workbench.js"                      ;
+import      {
+              observedCompletionPercent    ,
+              observedElapsedMs as elapsed ,
+                                             } from "@/core/domain/observability/observability-metrics.js" ;
+import      { asRecord                       } from "@/core/domain/value/record.js"                        ;
 
-const DETAIL_LIMIT = 1000;
-const SHORTLIST_LIMIT = 8;
+const DETAIL_LIMIT    = 1000 ;
+const SHORTLIST_LIMIT = 8    ;
 
 export type SessionReviewState  = "empty" | "active" | "failed" | "cancelled" | "completed" | "observed"                  ;
 export type ObservationCoverage = "fresh" | "partial-local-journal" | "unknown"                                           ;
@@ -125,8 +126,8 @@ export function projectSessionStats(snapshot: WorkbenchSnapshot): SessionStatsSn
 	const rootActivities = snapshot.threadId === null
 		? []
 		: activities.filter(activity => activity.nativeRefs.threadId === snapshot.threadId);
-	const rootTurns = projectRootTurns(rootActivities);
-	const requests = projectRequests(activities, rootTurns);
+	const rootTurns = projectRootTurns(rootActivities)       ;
+	const requests  = projectRequests(activities, rootTurns) ;
 	const failureIssues = activities
 		.filter(activity => !method(activity).startsWith("request/") && isFailure(activity))
 		.map(activity => projectIssue(activity, activities));
@@ -310,8 +311,8 @@ function projectRequests(activities: readonly ProjectActivity[], turns: readonly
 				activity.kind === "message"
 				&& activity.nativeRefs.itemId === requestId
 				&& activity.payload.direction === "outbound");
-			const excerpt = outbound ? textValue(outbound.payload) : "";
-			const model = typeof started?.payload.model === "string" ? started.payload.model : null;
+			const excerpt = outbound ? textValue(outbound.payload) : ""                               ;
+			const model   = typeof started?.payload.model === "string" ? started.payload.model : null ;
 			return Object.freeze({
 				ordinal: index + 1,
 				requestId,
@@ -400,8 +401,8 @@ function observationCoverage(snapshot: WorkbenchSnapshot): SessionStatsSnapshot[
 }
 
 function pairedDurations(activities: readonly ProjectActivity[], predicate: (activity: ProjectActivity) => boolean): number[] {
-	const started = new Map<string, string>();
-	const durations: number[] = [];
+	const started             = new Map<string, string>() ;
+	const durations: number[] = []                        ;
 	for (const activity of activities.filter(predicate)) {
 		const id = activity.nativeRefs.itemId;
 		if (!id) continue;
@@ -417,10 +418,10 @@ function pairedDurations(activities: readonly ProjectActivity[], predicate: (act
 }
 
 function pairedApprovalDurations(activities: readonly ProjectActivity[]): number[] {
-	const started = new Map<string | number, string>();
-	const durations: number[] = [];
+	const started             = new Map<string | number, string>() ;
+	const durations: number[] = []                                 ;
 	for (const activity of activities) {
-		const id = activity.nativeRefs.approvalRequestId ?? record(activity.payload.approval)?.requestId;
+		const id = activity.nativeRefs.approvalRequestId ?? asRecord(activity.payload.approval)?.requestId;
 		if (activity.payload.eventType === "approval-requested" && (typeof id === "string" || typeof id === "number")) started.set(id, activity.recordedAt);
 		const startedAt = typeof id === "string" || typeof id === "number" ? started.get(id) : undefined;
 		if (activity.payload.eventType === "approval-resolved" && startedAt !== undefined) {
@@ -453,10 +454,10 @@ function rootTurnTerminalStatus(activity: ProjectActivity): "completed" | "faile
 	if (activity.phase === "failed") return "failed";
 	if (activity.phase === "cancelled") return "cancelled";
 
-	const params      = record(activity.payload.params)                                                            ;
-	const turn        = record(params?.turn)                                                                       ;
-	const statusValue = turn?.status                                                                               ;
-	const status      = normalizeStatus(typeof statusValue === "string" ? statusValue : record(statusValue)?.type) ;
+	const params      = asRecord(activity.payload.params)                                                            ;
+	const turn        = asRecord(params?.turn)                                                                       ;
+	const statusValue = turn?.status                                                                                 ;
+	const status      = normalizeStatus(typeof statusValue === "string" ? statusValue : asRecord(statusValue)?.type) ;
 	if (["failed", "errored", "error"].includes(status)) return "failed";
 	if (["interrupted", "cancelled", "canceled", "shutdown"].includes(status)) return "cancelled";
 	if (turn?.error !== undefined && turn.error !== null) return "failed";
@@ -477,17 +478,17 @@ function requestLifecycle(value: string): RequestLifecycle {
 }
 
 function isTool(activity: ProjectActivity): boolean {
-	const item = record(record(activity.payload.params)?.item);
-	const type = String(item?.type ?? "").toLowerCase();
+	const item = asRecord(asRecord(activity.payload.params)?.item) ;
+	const type = String(item?.type ?? "").toLowerCase()            ;
 	return activity.kind === "tool" && !type.includes("collabagent") && !method(activity).toLowerCase().includes("subagent");
 }
 
 function isRetry(activity: ProjectActivity): boolean {
-	return /retry/u.test(method(activity)) || record(activity.payload.params)?.retryOf !== undefined;
+	return /retry/u.test(method(activity)) || asRecord(activity.payload.params)?.retryOf !== undefined;
 }
 
 function isWait(activity: ProjectActivity): boolean {
-	const item = record(record(activity.payload.params)?.item);
+	const item = asRecord(asRecord(activity.payload.params)?.item);
 	return String(item?.tool ?? "").toLowerCase() === "wait" || /(?:^|\/)wait(?:\/|$)/u.test(method(activity));
 }
 
@@ -495,26 +496,25 @@ function isCompaction(activity: ProjectActivity): boolean {
 	return /compact/u.test(method(activity));
 }
 function isFailure(activity: ProjectActivity): boolean {
-	const params          = record(activity.payload.params)                                                                        ;
-	const item            = record(params?.item)                                                                                   ;
-	const turn            = record(params?.turn)                                                                                   ;
-	const turnStatusValue = turn?.status                                                                                           ;
-	const turnStatus      = normalizeStatus(typeof turnStatusValue === "string" ? turnStatusValue : record(turnStatusValue)?.type) ;
-	const status          = normalizeStatus(activity.payload.status ?? params?.status ?? item?.status)                             ;
-	const error           = activity.payload.error ?? params?.error ?? item?.error ?? turn?.error                                  ;
-	const exitCode        = activity.payload.exitCode ?? params?.exitCode ?? item?.exitCode                                        ;
+	const params          = asRecord(activity.payload.params)                                                                        ;
+	const item            = asRecord(params?.item)                                                                                   ;
+	const turn            = asRecord(params?.turn)                                                                                   ;
+	const turnStatusValue = turn?.status                                                                                             ;
+	const turnStatus      = normalizeStatus(typeof turnStatusValue === "string" ? turnStatusValue : asRecord(turnStatusValue)?.type) ;
+	const status          = normalizeStatus(activity.payload.status ?? params?.status ?? item?.status)                               ;
+	const error           = activity.payload.error ?? params?.error ?? item?.error ?? turn?.error                                    ;
+	const exitCode        = activity.payload.exitCode ?? params?.exitCode ?? item?.exitCode                                          ;
 	return activity.phase === "failed"
 		|| status === "failed" || status === "error" || status === "errored"
 		|| turnStatus === "failed" || turnStatus === "error" || turnStatus === "errored"
 		|| (error !== undefined && error !== null)
 		|| (typeof exitCode === "number" && exitCode !== 0);
 }
-function textValue(payload: Readonly<Record<string, unknown>>): string { const params = record(payload.params); const item = record(params?.item); for (const value of [payload.text, payload.content, params?.text, item?.text, item?.content]) if (typeof value === "string") return value; return ""; }
+function textValue(payload: Readonly<Record<string, unknown>>): string { const params = asRecord(payload.params); const item = asRecord(params?.item); for (const value of [payload.text, payload.content, params?.text, item?.text, item?.content]) if (typeof value === "string") return value; return ""; }
 function failureSummary(activity: ProjectActivity): string { return textValue(activity.payload) || `${method(activity)} failed`; }
 function noteResult(title: string, summary: string): string { return summary.split(/\r?\n/u).find(line => /^\s*결과\s*:/u.test(line))?.replace(/^\s*결과\s*:\s*/u, "") || title; }
 function claim(text: string, authority: ClaimAuthority, sourceActivityIds: readonly string[]): Claim { return Object.freeze({ text: bound(text, 480), authority, sourceActivityIds: Object.freeze([...new Set(sourceActivityIds)]), independentlyVerified: false }); }
 function bound(value: string, limit: number): string { return value.length > limit ? `${value.slice(0, limit)}…` : value; }
-function record(value: unknown): Readonly<Record<string, unknown>> | null { return value !== null && typeof value === "object" && !Array.isArray(value) ? value as Readonly<Record<string, unknown>> : null; }
 function normalizeStatus(value: unknown): string { return typeof value === "string" ? value.replace(/[^a-z]/giu, "").toLowerCase() : ""; }
 function average(values: readonly number[]): number | null { return values.length === 0 ? null : Math.round(values.reduce((total, value) => total + value, 0) / values.length); }
 function sum(values: readonly number[]): number | null { return values.length === 0 ? null : values.reduce((total, value) => total + value, 0); }

@@ -1,8 +1,14 @@
-import { chmod, mkdir, readFile, rename, rm, writeFile }                          from "node:fs/promises";
-import { homedir }                                                                from "node:os";
-import { dirname, join }                                                          from "node:path";
-import { randomUUID }                                                             from "node:crypto";
-import type { AuthOperationOptions, Credential, CredentialInfo, CredentialStore } from "@earendil-works/pi-ai";
+import      { chmod, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises"              ;
+import      { homedir                                       } from "node:os"                       ;
+import      { dirname, join                                 } from "node:path"                     ;
+import      { randomUUID                                    } from "node:crypto"                   ;
+import type {
+              AuthOperationOptions                        ,
+              Credential                                  ,
+              CredentialInfo                              ,
+              CredentialStore                             ,
+                                                            } from "@earendil-works/pi-ai"         ;
+import      { isRecord                                      } from "@/core/domain/value/record.js" ;
 
 const DEFAULT_CREDENTIAL_PATH = join(homedir(), ".config", "www", "auth.json");
 
@@ -16,10 +22,6 @@ function abortError(): Error {
 
 function throwIfAborted(signal: AbortSignal | undefined): void {
 	if (signal?.aborted) throw abortError();
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function isCredential(value: unknown): value is Credential {
