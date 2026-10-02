@@ -250,3 +250,10 @@ coverage/
 /.www/evidence/astra-figma-fidelity-2026-09-22/project-comment-backfill-receipt.json
 /.www/evidence/astra-readability-axes-2026-09-22/project-comment-backfill-receipt.json
 /.www/evidence/www-bootstrap-bar-2026-09-22/project-comment-backfill-receipt.json
+
+# 2026-10-03: feature-template 중간 자료 (work.diff·digest·status·요약·검토 요청은 추적, 원본 사본과 전체 테스트 목록은 로컬 보존)
+/.www/evidence/2026-10-03-feature-template*/*/before/
+/.www/evidence/2026-10-03-feature-template*/*/tsc.txt
+/.www/evidence/2026-10-03-feature-template*/*/test-baseline.txt
+/.www/evidence/2026-10-03-feature-template*/*/test-after.txt
+/.www/evidence/2026-10-03-feature-template*/*-run1/

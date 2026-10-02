@@ -1,0 +1,1 @@
+ M src/adapters/inbound/tui/features/trace/view/workbench-tracer-view.ts

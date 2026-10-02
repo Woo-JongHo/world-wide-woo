@@ -1,0 +1,188 @@
+--- .www/evidence/2026-10-03-feature-template-types/chat/before/src/adapters/inbound/tui/features/chat/view-model/bounded-public-projection.ts	2026-10-03 06:57:18
++++ src/adapters/inbound/tui/features/chat/view-model/bounded-public-projection.ts	2026-10-03 06:57:43
+@@ -1,6 +1,11 @@
+ import      { sanitizeTerminalTextExcerpt } from "@/core/domain/execution/terminal"         ;
+ import      { isReasoningActivityPayload  } from "@/core/domain/execution/project-activity" ;
+ 
++export interface BoundedPublicProjection {
++	value: unknown;
++	omitted: boolean;
++}
++
+ const MAX_TOTAL_TEXT_CHARS = 10_000 ;
+ const MAX_STRING_CHARS     = 2_400  ;
+ const MAX_DEPTH            = 5      ;
+@@ -9,11 +14,6 @@
+ 
+ export const PUBLIC_SOURCE_OMISSION = "… 공개 Source 일부 생략 …";
+ 
+-export interface BoundedPublicProjection {
+-	value: unknown;
+-	omitted: boolean;
+-}
+-
+ interface ProjectionState {
+ 	remainingChars : number  ;
+ 	remainingItems : number  ;
+--- .www/evidence/2026-10-03-feature-template-types/chat/before/src/adapters/inbound/tui/features/chat/view/chat-output-policy.ts	2026-10-03 06:57:18
++++ src/adapters/inbound/tui/features/chat/view/chat-output-policy.ts	2026-10-03 06:57:43
+@@ -1,6 +1,14 @@
+ import type { CommandStatus } from "@/core/domain/execution/output"                ;
+ import      { semantic      } from "@/adapters/inbound/tui/foundation/theme/theme" ;
+ 
++export interface WorkStepStatusPresentation {
++	label   : string                   ;
++	text    : string                   ;
++	symbol  : string                   ;
++	border  : (text: string) => string ;
++	surface : (text: string) => string ;
++}
++
+ /** Character budget shared by public native-tool projection and its Chat renderers. */
+ export const CHAT_PUBLIC_OUTPUT_MAX_CHARS = 2_400;
+ 
+@@ -46,14 +54,6 @@
+ 	cancelled : semantic.executionSurfaceCancelled,
+ };
+ 
+-export interface WorkStepStatusPresentation {
+-	label   : string                   ;
+-	text    : string                   ;
+-	symbol  : string                   ;
+-	border  : (text: string) => string ;
+-	surface : (text: string) => string ;
+-}
+-
+ export function workStepStatusPresentation(status: CommandStatus): WorkStepStatusPresentation {
+ 	return {
+ 		label   : STATUS_LABEL[status],
+--- .www/evidence/2026-10-03-feature-template-types/chat/before/src/adapters/inbound/tui/features/chat/view/delegation-tree-view.ts	2026-10-03 06:57:18
++++ src/adapters/inbound/tui/features/chat/view/delegation-tree-view.ts	2026-10-03 06:57:45
+@@ -1,12 +1,15 @@
+-import { truncateToWidth }                                                              from "@earendil-works/pi-tui";
+-import type { Component }                                                               from "@earendil-works/pi-tui";
+-import type { ProjectActivity }                                                         from "@/core/domain/execution/project-activity";
+-import { sanitizeTerminalTextExcerpt }                                                  from "@/core/domain/execution/terminal";
+-import { projectNativeDelegation }                                                      from "@/core/domain/work";
+-import type { NativeDelegatedTask, NativeDelegationProjection, NativeDelegationStatus } from "@/core/domain/work";
+-import { colors }                                                                       from "@/adapters/inbound/tui/foundation/theme/theme";
++import      { truncateToWidth              } from "@earendil-works/pi-tui"                        ;
++import type { Component                    } from "@earendil-works/pi-tui"                        ;
++import type { ProjectActivity              } from "@/core/domain/execution/project-activity"      ;
++import      { sanitizeTerminalTextExcerpt  } from "@/core/domain/execution/terminal"              ;
++import      { projectNativeDelegation      } from "@/core/domain/work"                            ;
++import type {
++              NativeDelegatedTask        ,
++              NativeDelegationProjection ,
++              NativeDelegationStatus     ,
++                                           } from "@/core/domain/work"                            ;
++import      { colors                       } from "@/adapters/inbound/tui/foundation/theme/theme" ;
+ 
+-const LIMIT = 360;
+ export interface WorkbenchDelegationSection {
+ 	readonly anchorActivityId : string                                                           ;
+ 	readonly activityIds      : readonly string[]                                                ;
+@@ -15,6 +18,8 @@
+ 	readonly rows             : readonly string[]                                                ;
+ }
+ 
++const LIMIT = 360;
++
+ /** Compatibility adapter; snapshots should pass their already-computed projection to renderDelegationSections. */
+ export function projectWorkbenchDelegationSections(activities: readonly ProjectActivity[], goal: string, rootThreadId: string | null, width: number): readonly WorkbenchDelegationSection[] {
+ 	return renderDelegationSections(projectNativeDelegation(activities, rootThreadId), goal, width);
+@@ -30,8 +35,8 @@
+ /** Selected-agent detail contains only observed public fields; raw reasoning is intentionally absent. */
+ export function renderDelegationDetail(task: NativeDelegatedTask | null, width: number, activityLimit = 8): readonly string[] {
+ 	if (!task) return Object.freeze([clip(colors.muted("메인 수행 관찰 · 에이전트를 선택하면 맡긴 일 상세를 봅니다."), width)]);
+-	const label = safe(task.role) ?? safe(task.id) ?? "상세 관측 미지원/미수신";
+-	const rows = [`${present(task.status).glyph} ${label} · ${present(task.status).label}`, `Ref: ${safe(task.ref) ?? "상세 관측 미지원/미수신"}`, `Attempt: ${safe(String(task.attempt))}`];
++	const label = safe(task.role) ?? safe(task.id) ?? "상세 관측 미지원/미수신"                                                                                                               ;
++	const rows  = [`${present(task.status).glyph} ${label} · ${present(task.status).label}`, `Ref: ${safe(task.ref) ?? "상세 관측 미지원/미수신"}`, `Attempt: ${safe(String(task.attempt))}`] ;
+ 	rows.push(`Parent: ${safe(task.parentId) ?? "상세 관측 미지원/미수신"}`);
+ 	rows.push(`Task: ${safe(task.task) ?? "상세 관측 미지원/미수신"}`);
+ 	rows.push(`Model: ${[safe(task.model), safe(task.reasoningEffort)].filter(Boolean).join(" · ") || "상세 관측 미지원/미수신"}`);
+@@ -66,12 +71,12 @@
+ 		if (task.task) rows.push(`   ${pad}Description: ${safe(task.task)}`);
+ 		const latest = [...task.activities].reverse().find((a) => a.message && a.message !== task.task && !["sendMessage", "followupTask", "sendInput"].includes(a.kind))?.message; if (latest) rows.push(`   ${pad}└─ ${safe(latest)}`);
+ 	}
+-	const byId = new Map(tasks.map((task, index) => [task.id, task.role ?? `Agent ${index + 1}`]));
+-	const messages = new Map<string, NativeDelegatedTask["activities"][number]>();
++	const byId     = new Map(tasks.map((task, index) => [task.id, task.role ?? `Agent ${index + 1}`])) ;
++	const messages = new Map<string, NativeDelegatedTask["activities"][number]>()                      ;
+ 	for (const task of tasks) for (const activity of task.activities) if (["sendMessage", "followupTask", "sendInput"].includes(activity.kind)) messages.set(activity.activityId, activity);
+ 	for (const activity of messages.values()) {
+-		const sender = activity.senderId === tasks[0]?.parentId ? "you" : byId.get(activity.senderId ?? "") ?? "agent";
+-		const receivers = activity.receiverIds.map((id) => id === tasks[0]?.parentId ? "you" : byId.get(id) ?? "agent").join(", ") || "team";
++		const sender    = activity.senderId === tasks[0]?.parentId ? "you" : byId.get(activity.senderId ?? "") ?? "agent"                    ;
++		const receivers = activity.receiverIds.map((id) => id === tasks[0]?.parentId ? "you" : byId.get(id) ?? "agent").join(", ") || "team" ;
+ 		rows.push(`[IRC] ${safe(sender)} → ${safe(receivers)}`); if (activity.message) rows.push(`  ${safe(activity.message)}`);
+ 	}
+ 	const active = tasks.filter((task) => task.status === "pending" || task.status === "running" || task.status === "unknown").length;
+@@ -80,8 +85,8 @@
+ }
+ function present(status: NativeDelegationStatus): { glyph: string; label: string } { if (status === "completed") return { glyph: "✓", label: "completed" }; if (status === "failed") return { glyph: "✗", label: "errored" }; if (status === "cancelled") return { glyph: "■", label: "interrupted" }; if (status === "pending") return { glyph: "⏳", label: "pending" }; if (status === "unknown") return { glyph: "?", label: "unknown" }; return { glyph: "⣾", label: "running" }; }
+ function depthFirstTasks(tasks: readonly NativeDelegatedTask[]): readonly { task: NativeDelegatedTask; prefix: string; last: boolean; ordinal: number }[] {
+-	const refs = new Set(tasks.map((task) => task.ref));
+-	const children = new Map<string, NativeDelegatedTask[]>();
++	const refs     = new Set(tasks.map((task) => task.ref))   ;
++	const children = new Map<string, NativeDelegatedTask[]>() ;
+ 	for (const task of tasks) if (task.parentRef && refs.has(task.parentRef)) { const list = children.get(task.parentRef) ?? []; list.push(task); children.set(task.parentRef, list); }
+ 	const roots = tasks.filter((task) => !task.parentRef || !refs.has(task.parentRef));
+ 	const rows: { task: NativeDelegatedTask; prefix: string; last: boolean; ordinal: number }[] = [], visited = new Set<string>();
+--- .www/evidence/2026-10-03-feature-template-types/chat/before/src/adapters/inbound/tui/features/chat/view/work-step-components.ts	2026-10-03 06:57:18
++++ src/adapters/inbound/tui/features/chat/view/work-step-components.ts	2026-10-03 06:57:43
+@@ -27,6 +27,15 @@
+ import type { WorkStepProjectionOptions    } from "@/adapters/inbound/tui/features/chat/view/work-step-public-projection" ;
+ import      { renderUnifiedDiff            } from "@/adapters/inbound/tui/foundation/rendering/unified-diff-view"         ;
+ 
++export interface ObservationCardOptions {
++	activity?: ProjectActivity;
++	liveActivity?: WorkbenchLiveActivity;
++	/** Labels a native action as executable/editing work instead of a read-only observation. */
++	mode?: "observation" | "action";
++	/** Preserves plan context when this is an intermediate action within a larger step. */
++	parentStepNumber?: number;
++}
++
+ const INPUT_MAX_LINES  = 4     ;
+ const INPUT_MAX_CHARS  = 1_200 ;
+ const OUTPUT_MAX_LINES = 10    ;
+@@ -39,15 +48,6 @@
+ 	narration?    : WorkStepNarration     ;
+ }
+ 
+-export interface ObservationCardOptions {
+-	activity?: ProjectActivity;
+-	liveActivity?: WorkbenchLiveActivity;
+-	/** Labels a native action as executable/editing work instead of a read-only observation. */
+-	mode?: "observation" | "action";
+-	/** Preserves plan context when this is an intermediate action within a larger step. */
+-	parentStepNumber?: number;
+-}
+-
+ /** Compact, public projection of one native work item; it never renders the raw envelope. */
+ export class WorkStepCard implements Component {
+ 	constructor(private readonly options: WorkStepCardOptions) {}
+--- .www/evidence/2026-10-03-feature-template-types/chat/before/src/adapters/inbound/tui/features/chat/view/work-step-output-renderer.ts	2026-10-03 06:57:18
++++ src/adapters/inbound/tui/features/chat/view/work-step-output-renderer.ts	2026-10-03 06:57:43
+@@ -27,9 +27,6 @@
+ import type { WorkStepStatusPresentation          } from "@/adapters/inbound/tui/features/chat/view/chat-output-policy" ;
+ 
+ export { workStepStatusPresentation, type WorkStepStatusPresentation } from "@/adapters/inbound/tui/features/chat/view/chat-output-policy";
+-
+-const BASH_OUTPUT_MAX_LINES = CHAT_TERMINAL_OUTPUT_CHUNK_LINES                            ;
+-const BASH_SPINNER          = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"] as const ;
+ 
+ export type ExecutionLineTone =
+ 	| "command" | "meta" | "output" | "success" | "warning" | "error"
+@@ -37,6 +34,9 @@
+ 
+ export type StructuredLanguage = "bash" | "json" | "yaml" | "markdown";
+ 
++const BASH_OUTPUT_MAX_LINES = CHAT_TERMINAL_OUTPUT_CHUNK_LINES                            ;
++const BASH_SPINNER          = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"] as const ;
++
+ interface BashExecutionProjection {
+ 	what        : string            ;
+ 	why         : string            ;

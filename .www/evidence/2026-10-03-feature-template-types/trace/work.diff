@@ -1,0 +1,18 @@
+--- .www/evidence/2026-10-03-feature-template-types/trace/before/src/adapters/inbound/tui/features/trace/view/workbench-tracer-view.ts	2026-10-03 07:00:48
++++ src/adapters/inbound/tui/features/trace/view/workbench-tracer-view.ts	2026-10-03 07:01:13
+@@ -10,13 +10,13 @@
+ import type { NativeDelegatedTask     } from "@/core/domain/work"                                       ;
+ import      { colors                  } from "@/adapters/inbound/tui/foundation/theme/theme"            ;
+ 
+-const TRACER_LABELS = { flow: "FLOW", now: "NOW", health: "HEALTH" } as const;
+-
+ export interface TracerDelegationPresentation {
+ 	readonly renderSummary: (tasks: readonly NativeDelegatedTask[], goal: string, width: number) => readonly string[];
+ 	readonly renderDetail: (task: NativeDelegatedTask | null, width: number, activityLimit?: number) => readonly string[];
+ }
+ 
++const TRACER_LABELS = { flow: "FLOW", now: "NOW", health: "HEALTH" } as const;
++
+ /**
+  * Current execution instrument. FLOW reports Plan state, NOW one public
+  * source, and HEALTH only observed failures or unresolved associations.

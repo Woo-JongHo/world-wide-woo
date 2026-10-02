@@ -1,0 +1,2 @@
+unchanged before edit: src/adapters/inbound/tui/features/session/view/native-thread-picker.ts da86230886d402e0a44c7e42c21fc91a5661b403e6989eed5b931a3ba2dbaa6c  -
+unchanged before edit: src/adapters/inbound/tui/features/session/view/www-history-view.ts 57d71341ba059ccb16de33fc7ad68157bae2dbdb9997833f7a2bb03ab703c5df  -

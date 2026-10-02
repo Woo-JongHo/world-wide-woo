@@ -1,0 +1,103 @@
+# HEAD 0e7d421b5da741d39b34895a6d2d1fbdb3ff14be
+# worktree-diff a8ddc4d3efbb2d880773a08b4cfb2d40562b2adb9a39c14339e01a0b378bfe8d
+# untracked 9b199da20c312e1abaf6320ae7dccc2ee3900d5b2a0f10ad4543172d4c20b352
+# command: bun test test
+(fail) /demo presents synthetic MVP pages with R/E navigation and restores live state on Escape
+(fail) 24개 도구 설명 중 한 건이 도착하면 유지 중인 두 폭에서 해당 입력 카드만 다시 센다
+(fail) accessor와 frozen Date/Map wrapper는 immutable identity 증거가 되지 않는다
+(fail) anchor 없는 Note는 public rows에 정확히 한 번만 나타난다
+(fail) createProjectWorkbenchSession > binds a fresh workbench Todo before seven-stage Runtime sync
+(fail) createProjectWorkbenchSession > bootstraps a missing or empty resumed Todo once without replacing an existing Todo
+(fail) EntryDashboardView > does not present an unrelated Project Update as the current release note
+(fail) EntryDashboardView > keeps the dashboard rail snapshot-backed and bounded in wide and compact panes
+(fail) EntryDashboardView > uses only observed cache access counts and keeps compact dashboard rows bounded
+(fail) execution heading belongs only to the execution page
+(fail) HUD는 실행 모드와 provider 사용량을 한 줄에 표시한다
+(fail) interpreted Plan activity and cards > keeps PROGRESS on the retained Plan turn while a queued turn starts
+(fail) interpreted Plan activity and cards > renders empty Plan and Progress guidance in the selected language
+(fail) interpreted Plan activity and cards > renders the interpreted feed through the real runtime presentation too
+(fail) Mac Control+G navigation preserves drafts, routes every page, and leaves ordinary digits editable
+(fail) McpLinearProjectDashboard > returns one ready snapshot from the Linear project reads and recent comments
+(fail) Native Plan and Runtime Todo boundaries > accepts only the known root turn's completed plan item without replacing the Runtime Todo
+(fail) Native Plan and Runtime Todo boundaries > does not infer a Native Plan for failed Plan turn
+(fail) Native Plan and Runtime Todo boundaries > does not infer a Native Plan for manual mode
+(fail) Native Plan and Runtime Todo boundaries > does not infer a Native Plan for Plan turn without observed work
+(fail) Native Plan and Runtime Todo boundaries > does not manufacture a Native Plan when a Plan turn supplies no plan body
+(fail) Native Plan and Runtime Todo boundaries > does not project 불연속 번호 계획
+(fail) Native Plan and Runtime Todo boundaries > does not project 실패한 계획 turn
+(fail) Native Plan and Runtime Todo boundaries > does not project 일반 번호 목록
+(fail) Native Plan and Runtime Todo boundaries > does not project 중단된 계획 turn
+(fail) Native Plan and Runtime Todo boundaries > keeps a structured Native plan authoritative over a public numbered reply
+(fail) Native Plan and Runtime Todo boundaries > projects the Test2 numbered list beneath a step-count heading without treating the heading as a step
+(fail) Native Plan and Runtime Todo boundaries > projects the Test2 numbered-heading Native plan and associates the earlier Bash activity
+(fail) Native Plan and Runtime Todo boundaries > projects the Test2 top-level numbered Native plan and associates the earlier Bash activity
+(fail) Note 한 개 변경은 tool count를 재사용하고 두 retained 폭의 note만 다시 count한다
+(fail) OUTPUT 문장은 도구 제목에 반복되지 않고 작성 중 문장은 시작 위치를 유지한다
+(fail) pre-thread intake survives startup failure and is adopted once with provenance into the Native journal
+(fail) production Www shell routes navigation, rejection, approval and shutdown through existing contracts
+(fail) ProjectWorkbench · delivery lifecycle and chat identity > uses nested completed turn status as a success Note checkpoint
+(fail) ProjectWorkbench · Native bootstrap and planning > accepts Native stage reports into seven-stage Todo and hides transport messages from Chat
+(fail) ProjectWorkbench · Native bootstrap and planning > does not project ordinary execution items as Todo before a Native Plan is observed
+(fail) ProjectWorkbench · Native bootstrap and planning > keeps a public plan document visible without promoting it to the Native Todo checklist
+(fail) ProjectWorkbench · Native bootstrap and planning > keeps Chat usable while Todo sync is blocked and clears the warning after a later plan sync
+(fail) ProjectWorkbench · Native bootstrap and planning > keeps each published Snapshot stable across Native, catalog, Todo, and usage updates
+(fail) ProjectWorkbench · Native bootstrap and planning > mirrors seven-stage Runtime to Todo without delaying Native activity projection
+(fail) ProjectWorkbench · Native bootstrap and planning > observe mode exposes current-turn Activity IDs through a read-only Runtime tool
+(fail) ProjectWorkbench · Native bootstrap and planning > shows a derived session GOAL only after the first request is understood
+(fail) ProjectWorkbench · Native bootstrap and planning > Www goal opts one request into the seven-stage Runtime protocol
+(fail) ProjectWorkbench · recovery, approvals, and durable commands > native command failure preserves the public plan and records recovery without accepting work
+(fail) ProjectWorkbench · recovery, approvals, and durable commands > Native replacement plans remain in Trace without replacing the seven Todo parents
+(fail) ProjectWorkbench · Todo, narration, and Notes > asks a queued observe Runtime to preserve Goal continuity in INTENT
+(fail) ProjectWorkbench · Todo, narration, and Notes > narrates a selected plan with sanitized goal and bounded action evidence
+(fail) ProjectWorkbench · Todo, narration, and Notes > narrates reading and tests inside the runtime stage without inventing a Native plan
+(fail) ProjectWorkbench · Todo, narration, and Notes > preserves rewritten root-plan Trace while seven-stage Todo survives resume
+(fail) ProjectWorkbench · Todo, narration, and Notes > steers a follow-up into the active Codex turn without creating a queued turn
+(fail) RequestRuntimePolicy > resumed v1 sessions are not silently upgraded to protocol v2
+(fail) runApp request Runtime composition > runtime config with WWW surface selects broker mode and capability factory
+(fail) runApp request Runtime composition > runWww with runtime config keeps WWW surface while broker capability wins
+(fail) runApp request Runtime composition > WWW surface and runtime policy are independently selectable
+(fail) seven-stage request runtime > does not expose queued input as a fourth Plan layer
+(fail) seven-stage request runtime > does not stall planning stages when descriptive evidence is not an Activity reference
+(fail) seven-stage request runtime > keeps an interrupted Native turn distinct from a failed request
+(fail) seven-stage request runtime > Native authors stage tasks; parallel work and stable dependency IDs survive projection
+(fail) seven-stage request runtime > Progress does not repeat Native stage tasks while waiting for interpreted content
+(fail) seven-stage request runtime > renders Stage, planned work, and Progress as separate layers
+(fail) seven-stage request runtime > settled stage rail distinguishes skipped stages from completed stages
+(fail) seven-stage request runtime > shows an observe plan after UNDERSTAND and settles it with WORK
+(fail) seven-stage request runtime > stage rail preserves concurrent running and failed stages at compact widths
+(fail) shallow-frozen tool의 mutable grandchild는 identity count hit를 허용하지 않는다
+(fail) telemetry duration formatting > Chat rail separates the native plan from observed stage work
+(fail) telemetry duration formatting > Chat rail shows a decision without repeating the stage goal
+(fail) telemetry duration formatting > Chat rail shows native plan and progress without Monitor trace sections
+(fail) telemetry duration formatting > Chat TEST explains the planned verification and observed type-check command
+(fail) the production layout keeps autocomplete selections and multiline rails visible at 80x24
+(fail) tool action projection keeps AI interpretations distinct from Plan progress
+(fail) Usage explains resource use in the first 160 x 36 workspace
+(fail) Usage explains resource use in the first 200 x 36 workspace
+(fail) Workbench feature read projections > Chat receives only semantic transcript state and preserves producer identities
+(fail) Workflow의 160열 첫 viewport에 7단계와 역할별 위임 상태가 함께 보인다
+(fail) WWW CLI session entry > documents the compatibility Router command and its Native feature boundary
+(fail) Www execution console > Cache keeps lower analysis landmarks in the actual 120-column workspace and hides its rail compactly
+(fail) Www execution console > Chat uses public runtime summaries for tool rows and puts stage timing in the final report
+(fail) Www execution console > does not invent a shell explanation while AI interpretation is unavailable
+(fail) Www execution console > keeps a failed call visible inside a collapsed tool group
+(fail) Www execution console > keeps tool summaries in durable order around the draft response
+(fail) Www execution console > question summaries live inside ZChat rather than a separate slash screen
+(fail) Www execution console > Report keeps semantic state, long fields, and full source commands readable at every width
+(fail) Www execution console > Report remains one Note group after its source Response
+(fail) Www execution console > Report stays in the execution transcript and an old proposal does not become live Plan
+(fail) Www execution console > role headings and every provider have stable, distinct visual identities
+(fail) Www execution console > shows a file listing as one Korean tool summary
+(fail) Www execution console > stage HUD shows seven stages only for the active request
+(fail) Www execution console > summarizes consecutive tool calls and retains their source cards
+(fail) Www execution console > summarizes every zsh command while retaining completed Terminal cards
+(fail) Www execution console > Workflow 화면은 실제 Request 단계와 Subagent 관측을 표시한다
+(fail) Www execution console > Workflow는 넓은 카드와 좁은 행에서 현재 Turn의 7단계와 실제 위임만 투영한다
+(fail) WwwUsageView routing dashboard > projects observed model, stage, role, effort, and recent routing without inventing history
+(fail) 두 폭을 방문한 immutable large-body history의 durable append는 기존 block count를 다시 만들지 않는다
+(error) apps/project-view/tests/data.spec.ts: error: Playwright Test did not expect test() to be called here.
+(error) apps/project-view/tests/navigation.spec.ts: error: Playwright Test did not expect test() to be called here.
+#  1583 pass
+#  95 fail
+#  2 errors
+# Ran 1678 tests across 188 files. [25.53s]

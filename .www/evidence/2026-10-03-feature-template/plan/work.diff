@@ -1,0 +1,110 @@
+--- .www/evidence/2026-10-03-feature-template/plan/before/src/adapters/inbound/tui/features/plan/view/www-plan-view.ts	2026-10-03 02:04:26
++++ src/adapters/inbound/tui/features/plan/view/www-plan-view.ts	2026-10-03 02:04:51
+@@ -1,9 +1,16 @@
+-import type { Component }                               from "@earendil-works/pi-tui";
+-import type { RequestRuntimeRecord }                    from "@/core/domain/execution/request-runtime";
+-import type { PlanFeatureProjection }                   from "@/core/application/orchestration/workbench-feature-reads";
+-import type { OutputLanguage }                           from "@/core/domain/execution/output-language";
+-import { a, fit, joinedSections, prose, safe, section } from "@/adapters/inbound/tui/foundation/theme/www-theme";
+-import { compactStatusRows }                            from "@/adapters/inbound/tui/foundation/components/status-card";
++import type { Component             } from "@earendil-works/pi-tui"                                   ;
++import type { RequestRuntimeRecord  } from "@/core/domain/execution/request-runtime"                  ;
++import type { PlanFeatureProjection } from "@/core/application/orchestration/workbench-feature-reads" ;
++import type { OutputLanguage        } from "@/core/domain/execution/output-language"                  ;
++import      {
++              a                   ,
++              fit                 ,
++              joinedSections      ,
++              prose               ,
++              safe                ,
++              section             ,
++                                    } from "@/adapters/inbound/tui/foundation/theme/www-theme"        ;
++import      { compactStatusRows     } from "@/adapters/inbound/tui/foundation/components/status-card" ;
+ 
+ /** The journal record shape arrives through the feature read projection, not the domain module. */
+ type PlanActivity = NonNullable<PlanFeatureProjection["planActivities"]>[number];
+@@ -13,9 +20,39 @@
+ 	readonly rows: (request: RequestRuntimeRecord, width: number, compact: boolean, motionFrame: number, goal?: string | null, activityRows?: readonly string[], nativePlanRows?: readonly string[]) => string[];
+ }
+ 
++export class WwwPlanView implements Component {
++	constructor(
++		private readonly get: () => PlanFeatureProjection,
++		private readonly compact = false,
++		private readonly clock = Date.now,
++		private readonly motion = true,
++		private readonly runtimePresentation: PlanRuntimePresentation | null = null,
++		private readonly language: () => OutputLanguage = () => "ko",
++	) {}
++	invalidate(): void {}
++	render(width: number): string[] {
++		const s       = this.get()                                                                                                 ;
++		const turnId  = s.activeTurnId ?? s.workFlow.source?.turnId                                                                ;
++		const request = turnId ? [...(s.requestRuntime ?? [])].reverse().find(r => r.turnId === turnId) : s.requestRuntime?.at(-1) ;
++		if (request?.protocolVersion === 2
++			&& this.runtimePresentation
++			&& Array.isArray(request.stages)
++			&& request.stages.length > 0) {
++			const now            = this.clock()                                                                                                                                                            ;
++			const frame          = this.motion && this.runtimePresentation.motionActive(request, now) ? Math.floor(now / 120) : 8                                                                          ;
++			const hasPlan        = request.stages.some(stage => stage.tasks.length > 0) || s.workFlow.source?.turnId === turnId && s.workFlow.steps.length > 0                                             ;
++			const nativePlanRows = s.workFlow.steps.length > 0 ? planRows(s, width, this.compact, this.language()) : undefined                                                                             ;
++			const rows           = this.runtimePresentation.rows(request, width, this.compact, frame, s.sessionGoal?.text, progressRows(s, width, this.compact, hasPlan, this.language()), nativePlanRows) ;
++			return (this.compact && rows[0] === "" ? rows.slice(1) : rows).map(row => fit(row, width));
++		}
++		const rows = joinedSections([planRows(s, width, this.compact, this.language()), progressRows(s, width, this.compact, s.workFlow.steps.length > 0, this.language())]);
++		return (this.compact && rows[0] === "" ? rows.slice(1) : rows).map(row => fit(row, width));
++	}
++}
++
+ function planRows(snapshot: PlanFeatureProjection, width: number, compact: boolean, language: OutputLanguage): string[] {
+-	const steps = snapshot.workFlow.steps;
+-	const rows = [...section("PLAN", width, steps.length ? `${steps.filter(x => x.status === "completed").length}/${steps.length}` : language === "en" ? "unobserved" : "미관측", a.plan)];
++	const steps = snapshot.workFlow.steps                                                                                                                                                   ;
++	const rows  = [...section("PLAN", width, steps.length ? `${steps.filter(x => x.status === "completed").length}/${steps.length}` : language === "en" ? "unobserved" : "미관측", a.plan)] ;
+ 	if (!steps.length) {
+ 		const message = snapshot.workFlow.rejections.length
+ 			? language === "en" ? "The supplied plan could not be confirmed." : "전달받은 계획을 확인하지 못했습니다."
+@@ -40,7 +77,7 @@
+ }
+ 
+ function progressRows(snapshot: PlanFeatureProjection, width: number, compact = false, hasPlan = false, language: OutputLanguage = "ko"): string[] {
+-	const entries = progressEntries(snapshot)                                                                 ;
++	const entries = progressEntries(snapshot)                                                                                                                  ;
+ 	const rows    = [...section("PROGRESS", width, entries.length ? language === "en" ? `${entries.length} recent` : `최근 ${entries.length}개` : "", a.info)] ;
+ 	if (rows.at(-1) === "") rows.pop();
+ 	let previousStepId: string | null = null;
+@@ -58,33 +95,3 @@
+ 	}
+ 	return rows;
+ }
+-
+-export class WwwPlanView implements Component {
+-	constructor(
+-		private readonly get: () => PlanFeatureProjection,
+-		private readonly compact = false,
+-		private readonly clock = Date.now,
+-		private readonly motion = true,
+-		private readonly runtimePresentation: PlanRuntimePresentation | null = null,
+-		private readonly language: () => OutputLanguage = () => "ko",
+-	) {}
+-	invalidate(): void {}
+-	render(width: number): string[] {
+-		const s       = this.get()                                                                                                 ;
+-		const turnId  = s.activeTurnId ?? s.workFlow.source?.turnId                                                                ;
+-		const request = turnId ? [...(s.requestRuntime ?? [])].reverse().find(r => r.turnId === turnId) : s.requestRuntime?.at(-1) ;
+-		if (request?.protocolVersion === 2
+-			&& this.runtimePresentation
+-			&& Array.isArray(request.stages)
+-			&& request.stages.length > 0) {
+-			const now   = this.clock()                                                                                                                  ;
+-			const frame = this.motion && this.runtimePresentation.motionActive(request, now) ? Math.floor(now / 120) : 8                                ;
+-			const hasPlan = request.stages.some(stage => stage.tasks.length > 0) || s.workFlow.source?.turnId === turnId && s.workFlow.steps.length > 0 ;
+-			const nativePlanRows = s.workFlow.steps.length > 0 ? planRows(s, width, this.compact, this.language()) : undefined;
+-			const rows  = this.runtimePresentation.rows(request, width, this.compact, frame, s.sessionGoal?.text, progressRows(s, width, this.compact, hasPlan, this.language()), nativePlanRows) ;
+-			return (this.compact && rows[0] === "" ? rows.slice(1) : rows).map(row => fit(row, width));
+-		}
+-		const rows = joinedSections([planRows(s, width, this.compact, this.language()), progressRows(s, width, this.compact, s.workFlow.steps.length > 0, this.language())]);
+-		return (this.compact && rows[0] === "" ? rows.slice(1) : rows).map(row => fit(row, width));
+-	}
+-}

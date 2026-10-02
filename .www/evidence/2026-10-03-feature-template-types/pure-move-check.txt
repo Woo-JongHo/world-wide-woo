@@ -1,0 +1,11 @@
+approval	approval-presentation.ts	added={}	removed={}
+authentication	auth-overlay-view.ts	added={}	removed={}
+chat	chat-output-policy.ts	added={}	removed={}
+chat	delegation-tree-view.ts	added={',': 1}	removed={}
+chat	work-step-components.ts	added={}	removed={}
+chat	work-step-output-renderer.ts	added={}	removed={}
+chat	bounded-public-projection.ts	added={}	removed={}
+dashboard	shared-dashboard-views.ts	added={}	removed={}
+demo	www-demo.ts	added={}	removed={}
+session	dashboard-session-window.ts	added={}	removed={}
+trace	workbench-tracer-view.ts	added={}	removed={}

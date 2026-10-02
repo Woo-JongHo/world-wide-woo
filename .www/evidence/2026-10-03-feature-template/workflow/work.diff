@@ -1,0 +1,370 @@
+--- .www/evidence/2026-10-03-feature-template/workflow/before/src/adapters/inbound/tui/features/workflow/view/www-workflow-catalog.ts	2026-10-03 02:28:39
++++ src/adapters/inbound/tui/features/workflow/view/www-workflow-catalog.ts	2026-10-03 02:29:05
+@@ -1,13 +1,13 @@
+-import {
+-	monitoringCard,
+-	monitoringColumns,
+-	monitoringCompactPanel,
+-	monitoringMeter,
+-	monitoringTable,
+-	monitoringWidths,
+-} from "@/adapters/inbound/tui/foundation/layout/www-monitoring-layout";
+-import { a, fit, pair } from "@/adapters/inbound/tui/foundation/theme/www-theme";
+-import type { WwwInk }  from "@/adapters/inbound/tui/foundation/theme/www-theme";
++import      {
++              monitoringCard         ,
++              monitoringColumns      ,
++              monitoringCompactPanel ,
++              monitoringMeter        ,
++              monitoringTable        ,
++              monitoringWidths       ,
++                                       } from "@/adapters/inbound/tui/foundation/layout/www-monitoring-layout" ;
++import      { a, fit, pair             } from "@/adapters/inbound/tui/foundation/theme/www-theme"              ;
++import type { WwwInk                   } from "@/adapters/inbound/tui/foundation/theme/www-theme"              ;
+ 
+ /** Figma 50:1986. Synthetic display values are accessible only through the explicit demo path. */
+ const demoLanes = [
+@@ -17,6 +17,37 @@
+ 	{ name : "LANE_D" , percent : 11 , state : "BLOCK"  , ink : a.failure },
+ ];
+ 
++export function workflowDemoRows(width: number): string[] {
++	const leftWidth  = Math.floor((width - 1) * 0.64) ;
++	const rightWidth = width - leftWidth - 1          ;
++	const workspace = width >= 90
++		? monitoringColumns([execution(leftWidth), stateMatrix(rightWidth)], [leftWidth, rightWidth])
++		: [...execution(width), ...stateMatrix(width)];
++	return [...summary(width), ...relationshipTree(width), ...workspace].map(row => fit(row, width));
++}
++
++export function workflowDemoRail(width: number): string[] {
++	const inner = Math.max(1, width - 2);
++	return [
++		...panel("Active processes", [
++			pair("eval-session", a.success("NOMINAL"), inner),
++			pair("stream-tokens", a.success("NOMINAL"), inner),
++			pair("index-cache", a.attention("LAGGING"), inner),
++		], width),
++		...panel("Pipeline throttles", [
++			pair("SUBAGENT ALLOC", a.tool("5/8 UNITS"), inner),
++			monitoringMeter(5, 8, inner, a.tool),
++			pair("PARALLEL CPU LOAD", a.active("42.8%"), inner),
++			monitoringMeter(42.8, 100, inner, a.active),
++		], width),
++		...panel("Shortcut system", [
++			a.muted("R / E  previous / next page"),
++			a.muted("↑ / ↓  scroll workspace"),
++			a.muted("Esc    exit demo"),
++		], width),
++	].map(row => fit(row, width));
++}
++
+ function panel(title: string, rows: readonly string[], width: number): string[] {
+ 	return monitoringCompactPanel(title, rows, width);
+ }
+@@ -31,8 +62,8 @@
+ 	];
+ 	const count = width >= 100 ? 5 : width >= 60 ? 3 : 1;
+ 	return Array.from({ length: Math.ceil(cards.length / count) }, (_, index) => {
+-		const group = cards.slice(index * count, (index + 1) * count);
+-		const widths = monitoringWidths(width, group.length, 1);
++		const group  = cards.slice(index * count, (index + 1) * count) ;
++		const widths = monitoringWidths(width, group.length, 1)        ;
+ 		return monitoringColumns(group.map((card, column) => monitoringCard({
+ 			...card, value: card.ink(card.value),
+ 		}, widths[column] ?? 1)), widths);
+@@ -62,8 +93,8 @@
+ 		...node("· WAITING", "rpa-sync-runner", "Queue: #02", a.muted, nodeWidth),
+ 		...node("· WAITING", "cache-purge-trigger", "Queue: #03", a.muted, nodeWidth),
+ 	];
+-	const parent = [...Array<string>(2).fill(""), ...node("■ PARENT", "WWW-CORE", "Claude 3.5 Sonnet", a.active, nodeWidth)];
+-	const delegate = [...Array<string>(2).fill(""), ...node("» DELEGATE", "subagent-auth-eval", "Status: RUNNING", a.tool, nodeWidth)];
++	const parent   = [...Array<string>(2).fill(""), ...node("■ PARENT", "WWW-CORE", "Claude 3.5 Sonnet", a.active, nodeWidth)]         ;
++	const delegate = [...Array<string>(2).fill(""), ...node("» DELEGATE", "subagent-auth-eval", "Status: RUNNING", a.tool, nodeWidth)] ;
+ 	const rows = Array.from({ length: branch.length }, (_, index) => {
+ 		const parentLink = index === 3 ? a.active("───") : "   "                                                                                                            ;
+ 		const branchLink = index === 1 ? a.success("┌──") : index === 5 ? a.attention("└──") : index === 3 ? a.tool("┤  ") : index > 1 && index < 5 ? a.rule("│  ") : "   " ;
+@@ -123,34 +154,3 @@
+ 		], width),
+ 	];
+ }
+-
+-export function workflowDemoRows(width: number): string[] {
+-	const leftWidth = Math.floor((width - 1) * 0.64);
+-	const rightWidth = width - leftWidth - 1;
+-	const workspace = width >= 90
+-		? monitoringColumns([execution(leftWidth), stateMatrix(rightWidth)], [leftWidth, rightWidth])
+-		: [...execution(width), ...stateMatrix(width)];
+-	return [...summary(width), ...relationshipTree(width), ...workspace].map(row => fit(row, width));
+-}
+-
+-export function workflowDemoRail(width: number): string[] {
+-	const inner = Math.max(1, width - 2);
+-	return [
+-		...panel("Active processes", [
+-			pair("eval-session", a.success("NOMINAL"), inner),
+-			pair("stream-tokens", a.success("NOMINAL"), inner),
+-			pair("index-cache", a.attention("LAGGING"), inner),
+-		], width),
+-		...panel("Pipeline throttles", [
+-			pair("SUBAGENT ALLOC", a.tool("5/8 UNITS"), inner),
+-			monitoringMeter(5, 8, inner, a.tool),
+-			pair("PARALLEL CPU LOAD", a.active("42.8%"), inner),
+-			monitoringMeter(42.8, 100, inner, a.active),
+-		], width),
+-		...panel("Shortcut system", [
+-			a.muted("R / E  previous / next page"),
+-			a.muted("↑ / ↓  scroll workspace"),
+-			a.muted("Esc    exit demo"),
+-		], width),
+-	].map(row => fit(row, width));
+-}
+--- .www/evidence/2026-10-03-feature-template/workflow/before/src/adapters/inbound/tui/features/workflow/view/www-workflow-view.ts	2026-10-03 02:28:39
++++ src/adapters/inbound/tui/features/workflow/view/www-workflow-view.ts	2026-10-03 02:29:06
+@@ -1,30 +1,91 @@
+-import type { Component }                                       from "@earendil-works/pi-tui";
+-import type { RequestRuntimeRecord }                             from "@/core/domain/execution/request-runtime";
+-import type { NativeDelegatedTask, NativeDelegationProjection } from "@/core/domain/work";
+-import type { WorkbenchSnapshot }                               from "@/core/domain/work/workbench";
+-import {
+-	monitoringCard,
+-	monitoringColumns,
+-	monitoringPanel,
+-	monitoringUnavailablePanel,
+-	monitoringWidths,
+-} from "@/adapters/inbound/tui/foundation/layout/www-monitoring-layout";
+-import {
+-	a,
+-	fit,
+-	mark,
+-	number,
+-	oneLine,
+-	pair,
+-	prose,
+-	railSection,
+-	safe,
+-	section,
+-} from "@/adapters/inbound/tui/foundation/theme/www-theme";
+-import { workflowDemoRail, workflowDemoRows }                   from "@/adapters/inbound/tui/features/workflow/view/www-workflow-catalog";
++import type { Component                    } from "@earendil-works/pi-tui"                                             ;
++import type { RequestRuntimeRecord         } from "@/core/domain/execution/request-runtime"                            ;
++import type {
++              NativeDelegatedTask        ,
++              NativeDelegationProjection ,
++                                           } from "@/core/domain/work"                                                 ;
++import type { WorkbenchSnapshot            } from "@/core/domain/work/workbench"                                       ;
++import      {
++              monitoringCard             ,
++              monitoringColumns          ,
++              monitoringPanel            ,
++              monitoringUnavailablePanel ,
++              monitoringWidths           ,
++                                           } from "@/adapters/inbound/tui/foundation/layout/www-monitoring-layout"     ;
++import      {
++              a                          ,
++              fit                        ,
++              mark                       ,
++              number                     ,
++              oneLine                    ,
++              pair                       ,
++              prose                      ,
++              railSection                ,
++              safe                       ,
++              section                    ,
++                                           } from "@/adapters/inbound/tui/foundation/theme/www-theme"                  ;
++import      {
++              workflowDemoRail           ,
++              workflowDemoRows           ,
++                                           } from "@/adapters/inbound/tui/features/workflow/view/www-workflow-catalog" ;
+ 
+ type ObservedStatus = NativeDelegatedTask["status"];
+ 
++/** Read-only projection of request checkpoints and observed Native delegation. */
++export class WwwWorkflowView implements Component {
++	constructor(private readonly get: () => WorkbenchSnapshot, private readonly isDemo: () => boolean = () => false) {}
++	invalidate(): void {}
++	render(width: number): string[] {
++		const snapshot    = this.get()                            ;
++		const request     = currentRequest(snapshot)              ;
++		const projections = currentDelegations(snapshot, request) ;
++		if (this.isDemo()) {
++			return workflowDemoRows(width);
++		}
++		return [
++			...summaryRows(request, projections, width),
++			...compactWorkflowRows(request, projections, width),
++			...nodeGraphRows(projections, width),
++			...requestPipelineRows(request, width),
++			...laneRows(projections, width),
++			...queueRows(width),
++			...stateRows(projections, width),
++		].map(row => fit(row, width));
++	}
++}
++
++export class WwwWorkflowRail implements Component {
++	constructor(private readonly get: () => WorkbenchSnapshot, private readonly isDemo: () => boolean = () => false) {}
++	invalidate(): void {}
++	render(width: number): string[] {
++		if (this.isDemo()) return workflowDemoRail(width);
++		const snapshot    = this.get()                                          ;
++		const requests    = snapshot.requestRuntime ?? []                       ;
++		const current     = currentRequest(snapshot)                            ;
++		const projections = currentDelegations(snapshot, current)               ;
++		const totals      = taskTotals(projections)                             ;
++		const tasks       = projections.flatMap(projection => projection.tasks) ;
++		const rows = [
++			...railSection("Active process", width, current?.status ?? "미관측", a.active),
++			pair("Requests", number(requests.length), width),
++			pair("Checkpoints", current?.checkpoints ? `${current.checkpoints.filter(item => item.status === "observed").length}/3 observed` : "미관측", width),
++			pair("Agents", totals.total ? number(totals.total) : "미관측", width),
++			pair("Active", totals.total ? a.active(number(totals.active)) : a.muted("미관측"), width),
++			pair("Failed", totals.total ? totals.failed ? a.failure(number(totals.failed)) : a.success("0") : a.muted("미관측"), width),
++			...(current?.checkpoints?.map(item => pair(item.status === "observed" ? a.success("✓") : item.status === "running" ? a.active("●") : a.muted("·"), `${item.id} · ${safe(item.summary ?? "미관측", 28)}`, width)) ?? [a.muted("요청 체크포인트 미관측")]),
++			...railSection("Agents", width, totals.total ? `${totals.active} active` : "unavailable", a.active),
++			...tasks.slice(0, 3).map(task => pair(statusInk(task.status)(safe(task.role ?? task.id, 22)), statusInk(task.status)(task.status), width)),
++			...railSection("Goal", width, "", a.active),
++			snapshot.sessionGoal ? safe(snapshot.sessionGoal.text, 600) : a.muted("Goal이 아직 없습니다."),
++			...railSection("Navigate", width, "", a.active),
++			a.muted("/todo      Plan"),
++			a.muted("/context   실행 근거"),
++			a.muted("/dashboard 세션 개요"),
++		];
++		return rows.flatMap(row => prose(fit(row, width), width));
++	}
++}
++
+ function statusInk(status: ObservedStatus): (text: string) => string {
+ 	if (status === "failed") return a.failure;
+ 	if (status === "running") return a.active;
+@@ -60,8 +121,8 @@
+ }
+ 
+ function summaryRows(request: RequestRuntimeRecord | undefined, projections: readonly NativeDelegationProjection[], width: number): string[] {
+-	const totals = taskTotals(projections);
+-	const observed = request?.checkpoints?.filter(item => item.status === "observed").length ?? 0;
++	const totals   = taskTotals(projections)                                                      ;
++	const observed = request?.checkpoints?.filter(item => item.status === "observed").length ?? 0 ;
+ 	if (width < 72) return [
+ 		...railSection("Workflow overview", width, request?.status ?? "미관측", a.active),
+ 		pair("Goal", request ? oneLine(request.objective, 320) : "미관측", width),
+@@ -70,10 +131,10 @@
+ 		pair("Failed", totals.total ? number(totals.failed) : "미관측", width),
+ 	];
+ 	const cards = [
+-		{ title : "Active goal"      , value : request ? oneLine(request.objective, 90) : "미관측"                   , detail : request ? `${mark(request.status)} ${request.status}` : "request 없음" },
+-		{ title : "Request checkpoints" , value : request?.checkpoints ? `${observed}/3 observed` : "미관측"             , detail : request ? `${mark(request.status)} ${request.status}` : "관측 없음"    },
+-		{ title : "Delegated agents" , value : totals.total ? `${totals.active} active / ${totals.total}` : "미관측" , detail : totals.total ? `${totals.failed} failed` : "위임 없음"                 },
+-		{ title : "Attempt"          , value : request ? `#${request.attempt}` : "미관측"                            , detail : request?.requestId ? safe(request.requestId, 56) : "request 없음"      },
++		{ title : "Active goal"         , value : request ? oneLine(request.objective, 90) : "미관측"                   , detail : request ? `${mark(request.status)} ${request.status}` : "request 없음" },
++		{ title : "Request checkpoints" , value : request?.checkpoints ? `${observed}/3 observed` : "미관측"            , detail : request ? `${mark(request.status)} ${request.status}` : "관측 없음"    },
++		{ title : "Delegated agents"    , value : totals.total ? `${totals.active} active / ${totals.total}` : "미관측" , detail : totals.total ? `${totals.failed} failed` : "위임 없음"                 },
++		{ title : "Attempt"             , value : request ? `#${request.attempt}` : "미관측"                            , detail : request?.requestId ? safe(request.requestId, 56) : "request 없음"      },
+ 	];
+ 	const widths = monitoringWidths(width, cards.length, 1);
+ 	return [
+@@ -95,15 +156,15 @@
+ 
+ function compactWorkflowRows(request: RequestRuntimeRecord | undefined, projections: readonly NativeDelegationProjection[], width: number): string[] {
+ 	if (width < 96) return [];
+-	const widths        = monitoringWidths(width, 2, 1) ;
+-	const pipelineWidth = widths[0]!                    ;
+-	const agentsWidth   = widths[1]!                    ;
+-	const pipeline = workflowPanel("Request checkpoints", request?.status ?? "미관측", a.active, requestPipelineRows(request, Math.max(1, pipelineWidth - 2)), pipelineWidth);
+-	const tasks = projections.flatMap(projection => projection.tasks);
+-	const visibleTasks = tasks.slice(0, 7);
++	const widths        = monitoringWidths(width, 2, 1)                                                                                                                            ;
++	const pipelineWidth = widths[0]!                                                                                                                                               ;
++	const agentsWidth   = widths[1]!                                                                                                                                               ;
++	const pipeline      = workflowPanel("Request checkpoints", request?.status ?? "미관측", a.active, requestPipelineRows(request, Math.max(1, pipelineWidth - 2)), pipelineWidth) ;
++	const tasks         = projections.flatMap(projection => projection.tasks)                                                                                                      ;
++	const visibleTasks  = tasks.slice(0, 7)                                                                                                                                        ;
+ 	const agentRows = visibleTasks.flatMap(task => {
+-		const latest = [...task.activities].reverse().find(activity => activity.message)?.message ?? task.result;
+-		const detail = [task.model, task.reasoningEffort, task.task, latest].filter(Boolean).join(" · ");
++		const latest = [...task.activities].reverse().find(activity => activity.message)?.message ?? task.result ;
++		const detail = [task.model, task.reasoningEffort, task.task, latest].filter(Boolean).join(" · ")         ;
+ 		return [
+ 			pair(statusInk(task.status)(safe(task.role ?? task.id, 28)), statusInk(task.status)(`${mark(task.status)} ${task.status}`), Math.max(1, agentsWidth - 2)),
+ 			a.muted(fit(oneLine(detail || "detail unavailable", 1200), Math.max(1, agentsWidth - 4))),
+@@ -131,8 +192,8 @@
+ }
+ 
+ function nodeGraphRows(projections: readonly NativeDelegationProjection[], width: number): string[] {
+-	const totals = taskTotals(projections);
+-	const rows: string[] = [];
++	const totals         = taskTotals(projections) ;
++	const rows: string[] = []                      ;
+ 	if (!totals.total) return workflowPanel("Subagents · delegation relationship tree", "미관측", a.tool, [a.muted("현재 Request에 연결된 Subagent 위임이 없습니다.")], width);
+ 	for (const projection of projections) {
+ 		rows.push(...prose(a.tool(`■ COORDINATOR  ${oneLine(projection.sourceThreadId, 72)}`), width));
+@@ -153,8 +214,8 @@
+ 	const rows : string[] = []                                                  ;
+ 	if (!tasks.length) return monitoringUnavailablePanel("Parallel execution pipeline", "관측된 Native Subagent lane이 없습니다.", width);
+ 	for (const [index, task] of tasks.entries()) {
+-		const lane = `LANE_${String(index + 1).padStart(2, "0")}`;
+-		const title = safe(task.role ?? task.id, 220);
++		const lane  = `LANE_${String(index + 1).padStart(2, "0")}` ;
++		const title = safe(task.role ?? task.id, 220)              ;
+ 		rows.push(pair(`${lane}  ${title}`, statusInk(task.status)(`${mark(task.status)} ${task.status}`), width));
+ 		const detail = [task.model, task.reasoningEffort].filter(Boolean).join(" · ");
+ 		if (detail) rows.push(...prose(a.caption(detail), width, 2));
+@@ -176,58 +237,3 @@
+ 		: [a.muted("관측된 Subagent state-change event가 없습니다.")];
+ 	return [...matrix, ...workflowPanel("State change event log", activities.length ? `${activities.length} observed` : "unavailable", a.tool, log, width)];
+ }
+-
+-/** Read-only projection of request checkpoints and observed Native delegation. */
+-export class WwwWorkflowView implements Component {
+-	constructor(private readonly get: () => WorkbenchSnapshot, private readonly isDemo: () => boolean = () => false) {}
+-	invalidate(): void {}
+-	render(width: number): string[] {
+-		const snapshot    = this.get()                            ;
+-		const request     = currentRequest(snapshot)              ;
+-		const projections = currentDelegations(snapshot, request) ;
+-		if (this.isDemo()) {
+-			return workflowDemoRows(width);
+-		}
+-		return [
+-			...summaryRows(request, projections, width),
+-			...compactWorkflowRows(request, projections, width),
+-			...nodeGraphRows(projections, width),
+-			...requestPipelineRows(request, width),
+-			...laneRows(projections, width),
+-			...queueRows(width),
+-			...stateRows(projections, width),
+-		].map(row => fit(row, width));
+-	}
+-}
+-
+-export class WwwWorkflowRail implements Component {
+-	constructor(private readonly get: () => WorkbenchSnapshot, private readonly isDemo: () => boolean = () => false) {}
+-	invalidate(): void {}
+-	render(width: number): string[] {
+-		if (this.isDemo()) return workflowDemoRail(width);
+-		const snapshot    = this.get()                                          ;
+-		const requests    = snapshot.requestRuntime ?? []                       ;
+-		const current     = currentRequest(snapshot)                            ;
+-		const projections = currentDelegations(snapshot, current)               ;
+-		const totals      = taskTotals(projections)                             ;
+-		const tasks       = projections.flatMap(projection => projection.tasks) ;
+-		const rows = [
+-			...railSection("Active process", width, current?.status ?? "미관측", a.active),
+-			pair("Requests", number(requests.length), width),
+-			pair("Checkpoints", current?.checkpoints ? `${current.checkpoints.filter(item => item.status === "observed").length}/3 observed` : "미관측", width),
+-			pair("Agents", totals.total ? number(totals.total) : "미관측", width),
+-			pair("Active", totals.total ? a.active(number(totals.active)) : a.muted("미관측"), width),
+-			pair("Failed", totals.total ? totals.failed ? a.failure(number(totals.failed)) : a.success("0") : a.muted("미관측"), width),
+-			...(current?.checkpoints?.map(item => pair(item.status === "observed" ? a.success("✓") : item.status === "running" ? a.active("●") : a.muted("·"), `${item.id} · ${safe(item.summary ?? "미관측", 28)}`, width)) ?? [a.muted("요청 체크포인트 미관측")]),
+-			...railSection("Agents", width, totals.total ? `${totals.active} active` : "unavailable", a.active),
+-			...tasks.slice(0, 3).map(task => pair(statusInk(task.status)(safe(task.role ?? task.id, 22)), statusInk(task.status)(task.status), width)),
+-			...railSection("Goal", width, "", a.active),
+-			snapshot.sessionGoal ? safe(snapshot.sessionGoal.text, 600) : a.muted("Goal이 아직 없습니다."),
+-			...railSection("Navigate", width, "", a.active),
+-			a.muted("/todo      Plan"),
+-			a.muted("/context   실행 근거"),
+-			a.muted("/dashboard 세션 개요"),
+-		];
+-		return rows.flatMap(row => prose(fit(row, width), width));
+-	}
+-}

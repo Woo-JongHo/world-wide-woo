@@ -1,0 +1,2 @@
+unchanged before edit: src/adapters/inbound/tui/features/workflow/view/www-workflow-catalog.ts 140ec9c1c5df9fbef1346eec81408241928761eb6906687ba6cfbd6c799ba906  -
+unchanged before edit: src/adapters/inbound/tui/features/workflow/view/www-workflow-view.ts 0d19cae2a33ac707f8a78bed70d8cc0c8d1d5801c207c85a885d1e598cf160b6  -

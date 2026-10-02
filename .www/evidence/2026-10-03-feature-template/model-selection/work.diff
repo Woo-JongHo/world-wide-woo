@@ -1,0 +1,39 @@
+--- .www/evidence/2026-10-03-feature-template/model-selection/before/src/adapters/inbound/tui/features/model-selection/view/model-picker-view.ts	2026-10-03 02:08:07
++++ src/adapters/inbound/tui/features/model-selection/view/model-picker-view.ts	2026-10-03 02:08:32
+@@ -1,7 +1,11 @@
+-import { stripTerminalSequences, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
+-import type { WwwSettings }                                      from "@/core/domain/execution/model-settings";
+-import type { TuiColors }                                        from "@/adapters/inbound/tui/foundation/theme/theme";
+-import { workbenchEffortLabel, workbenchModelLabel }             from "@/adapters/inbound/tui/foundation/labels";
++import      {
++              stripTerminalSequences                  ,
++              truncateToWidth                         ,
++              visibleWidth                            ,
++                                                        } from "@earendil-works/pi-tui"                        ;
++import type { WwwSettings                               } from "@/core/domain/execution/model-settings"        ;
++import type { TuiColors                                 } from "@/adapters/inbound/tui/foundation/theme/theme" ;
++import      { workbenchEffortLabel, workbenchModelLabel } from "@/adapters/inbound/tui/foundation/labels"      ;
+ 
+ export interface ModelPickerViewState {
+ 	readonly appearance?   : "www"             ;
+@@ -16,11 +20,6 @@
+ 	readonly confirmation  : boolean           ;
+ }
+ 
+-function fit(text: string, width: number): string {
+-	const clipped = truncateToWidth(text, Math.max(0, width));
+-	return clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)));
+-}
+-
+ export function renderModelPickerView(state: ModelPickerViewState, width: number, ui: TuiColors): string[] {
+ 	const contentWidth = Math.max(1, width);
+ 	if (state.appearance === "www") return [
+@@ -49,3 +48,8 @@
+ 	result.push(fit(ui.muted(state.applying ? "적용하는 중…" : hint), contentWidth));
+ 	return result;
+ }
++
++function fit(text: string, width: number): string {
++	const clipped = truncateToWidth(text, Math.max(0, width));
++	return clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)));
++}

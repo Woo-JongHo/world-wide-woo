@@ -1,0 +1,36 @@
+--- .www/evidence/2026-10-03-feature-template-types/dashboard/before/src/adapters/inbound/tui/features/dashboard/view/shared-dashboard-views.ts	2026-10-03 06:58:14
++++ src/adapters/inbound/tui/features/dashboard/view/shared-dashboard-views.ts	2026-10-03 06:58:39
+@@ -17,6 +17,16 @@
+               dashboardProgressCells ,
+                                        } from "@/adapters/inbound/tui/foundation/layout/dashboard-panel-system" ;
+ 
++export interface WorkspaceTodoLiveContext {
++	readonly activeTurnId     : string | null              ;
++	readonly activities       : readonly ProjectActivity[] ;
++	readonly workFlow         : WorkFlowProjection         ;
++	readonly hasConversation? : boolean                    ;
++	/** Session Goal is shown until a Native Plan becomes the Todo source. */
++	readonly goal?: string | null;
++	readonly sync?: WorkbenchTodoSyncState;
++}
++
+ export class StatusLine implements Component {
+ 	private notice: string;
+ 	constructor(initialNotice: string) {
+@@ -34,16 +44,6 @@
+ 	}
+ }
+ 
+-export interface WorkspaceTodoLiveContext {
+-	readonly activeTurnId     : string | null              ;
+-	readonly activities       : readonly ProjectActivity[] ;
+-	readonly workFlow         : WorkFlowProjection         ;
+-	readonly hasConversation? : boolean                    ;
+-	/** Session Goal is shown until a Native Plan becomes the Todo source. */
+-	readonly goal?: string | null;
+-	readonly sync?: WorkbenchTodoSyncState;
+-}
+-
+ /** Human time for the Todo heading; malformed or absent revisions stay quiet. */
+ export function todoPanelTimestamp(updatedAt: string | undefined): string {
+ 	if (!updatedAt) return "";

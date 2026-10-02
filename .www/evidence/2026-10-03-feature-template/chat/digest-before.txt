@@ -1,0 +1,17 @@
+de16f3462def5dcc33af892e9746f377439a5daf314dfe081412767a27df554a  ./src/adapters/inbound/tui/features/chat/view-model/bounded-public-projection.ts
+9778cc7975622f8e0e3f2ff414a0b28d2417716ab046e9b83cd9e118889e311f  ./src/adapters/inbound/tui/features/chat/view/chat-durable-transcript.ts
+4356cc868a592d9b06a81ff597420dabcd24cb7b99f8bfb1d43cf4a41726c448  ./src/adapters/inbound/tui/features/chat/view/chat-live-activity.ts
+31351bf5bd2e3c53fc45c3019c5b47475b5af0c4e7a9bfaa225b2aafcf37409c  ./src/adapters/inbound/tui/features/chat/view/chat-message-renderer.ts
+7fe9fcb905ee3c7c6315df9820e585bf9b6dbae6431122a2c6a89d6e90711073  ./src/adapters/inbound/tui/features/chat/view/chat-public-lifecycle.ts
+245430c61c63383e4b7d4f2e0e2791b49801c18abbdf9b157f485f3c231871dc  ./src/adapters/inbound/tui/features/chat/view/chat-scroll.view.ts
+4052b0d7a384c021369b21663f88d5c84509062b946d0bdafa66e0c06c88896c  ./src/adapters/inbound/tui/features/chat/view/octopus-scan.ts
+7380af38213fbbd5c83de3fdb691e489d99c328562829078a31f48977a0b6d78  ./src/adapters/inbound/tui/features/chat/view/result-cards.ts
+6278c070c75543f6319be27e6202afafb921851668148050a64d2d83d4aff36d  ./src/adapters/inbound/tui/features/chat/view/three-body-braille.ts
+b6eca0722a61506cbbc65d092960df787893819529e00f83be7da9335388eb6f  ./src/adapters/inbound/tui/features/chat/view/three-body-lab.ts
+50cb8222b5513564523d277d50cd367d1890a41ab9d0f03a5fef809f119e2df3  ./src/adapters/inbound/tui/features/chat/view/three-body-orbit.ts
+4d181326059e4d7aaf856259eddba0a51f1082823066a6dd0a08b771a748b2e7  ./src/adapters/inbound/tui/features/chat/view/work-step-components.ts
+fb573e50246d3211cf058bba0c2a20a3a66df716ee1b2bb89f2ac3c7368999c6  ./src/adapters/inbound/tui/features/chat/view/work-step-output-renderer.ts
+150db390284af8ea67687670019f2696de620009dab3e3d03eac1ddc6bf175a5  ./src/adapters/inbound/tui/features/chat/view/work-step-public-projection.ts
+6ce431080c9feb668d264d0bb015f3c158edd8ea5f74463c41bff13310e84eee  ./src/adapters/inbound/tui/features/chat/view/workbench-welcome.ts
+f71ea84913c1284e2ea4e823741320db24f4a7b6de51c90a879e21b7ef6184fd  ./src/adapters/inbound/tui/features/chat/view/www-execution.ts
+1bbcd169e5f273dc148431d321d44c907f93edf852a0b3bcb3dc6dd2a9ec7f60  ./src/adapters/inbound/tui/features/chat/view/www-transcript-cache.ts

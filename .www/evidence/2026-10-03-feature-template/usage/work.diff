@@ -1,0 +1,824 @@
+--- .www/evidence/2026-10-03-feature-template/usage/before/src/adapters/inbound/tui/features/usage/view/usage-strip-view.ts	2026-10-03 02:37:39
++++ src/adapters/inbound/tui/features/usage/view/usage-strip-view.ts	2026-10-03 02:38:06
+@@ -1,14 +1,23 @@
+-import { truncateToWidth, visibleWidth }                   from "@earendil-works/pi-tui";
+-import type { Component }                                  from "@earendil-works/pi-tui";
+-import type { UsageLimitSnapshot, UsageSnapshot }          from "@/core/ports/observability/usage-monitor-port";
+-import type { WorkbenchContextUsage, WorkbenchModelUsage } from "@/core/domain/work/workbench";
++import      {
++              truncateToWidth       ,
++              visibleWidth          ,
++                                      } from "@earendil-works/pi-tui"                                                ;
++import type { Component               } from "@earendil-works/pi-tui"                                                ;
++import type {
++              UsageLimitSnapshot    ,
++              UsageSnapshot         ,
++                                      } from "@/core/ports/observability/usage-monitor-port"                         ;
++import type {
++              WorkbenchContextUsage ,
++              WorkbenchModelUsage   ,
++                                      } from "@/core/domain/work/workbench"                                          ;
+ import chalk                                               from "chalk";
+-import {
+-	WORKBENCH_HUD_SYSTEM,
+-	compactTokenCount,
+-} from "@/adapters/inbound/tui/features/usage/view-model/workbench-hud-system";
+-import { runtimeModeLabel }                                from "@/adapters/inbound/tui/foundation/labels";
+-import { colors, palette }                                 from "@/adapters/inbound/tui/foundation/theme/theme";
++import      {
++              WORKBENCH_HUD_SYSTEM  ,
++              compactTokenCount     ,
++                                      } from "@/adapters/inbound/tui/features/usage/view-model/workbench-hud-system" ;
++import      { runtimeModeLabel        } from "@/adapters/inbound/tui/foundation/labels"                              ;
++import      { colors, palette         } from "@/adapters/inbound/tui/foundation/theme/theme"                         ;
+ 
+ type ProviderLabel = "Codex" | "Claude" | "Antigravity" | "Z.AI";
+ 
+@@ -23,6 +32,43 @@
+ 	readonly showContext?       : boolean                        ;
+ }
+ 
++const METER_EMPTY = "#1d2a30";
++
++/** A single measured-telemetry row below the composer. */
++export class UsageStripView implements Component {
++	private snapshots: readonly UsageSnapshot[] = [
++		{ provider : "openai-codex" , state : "loading" , fetchedAt : Date.now() , limits : [] },
++		{ provider : "anthropic"    , state : "loading" , fetchedAt : Date.now() , limits : [] },
++		{ provider : "google"       , state : "loading" , fetchedAt : Date.now() , limits : [] },
++	];
++
++	public constructor(private readonly session?: () => UsageStripSession | null | undefined) {}
++
++	public update(snapshots: readonly UsageSnapshot[]): void { this.snapshots = snapshots; }
++	public invalidate(): void {}
++
++	public render(width: number): string[] {
++		if (width <= 0) return [];
++		const session = this.session?.()                                                                                   ;
++		const codex   = this.snapshots.find((snapshot) => snapshot.provider === "openai-codex")                            ;
++		const claude  = this.snapshots.find((snapshot) => snapshot.provider === "anthropic")                               ;
++		const gemini  = this.snapshots.find((snapshot) => snapshot.provider === "google")                                  ;
++		const zai     = this.snapshots.find((snapshot) => snapshot.provider === "zai")                                     ;
++		const showZai = (zai !== undefined && zai.state !== "auth-required") || /^glm-/iu.test(session?.activeModel ?? "") ;
++		const line = [
++			runtimeMode(session),
++			...(session?.showUsage === false ? [] : [
++				providerSegment("Codex", codex),
++				providerSegment("Claude", claude),
++				providerSegment("Antigravity", gemini),
++				...(showZai ? [providerSegment("Z.AI", zai)] : []),
++			]),
++			...(session?.showContext === false ? [] : [contextSegment(session?.contextUsage)]),
++		].join(WORKBENCH_HUD_SYSTEM.strip.separator);
++		return [fit(line, width)];
++	}
++}
++
+ function fit(text: string, width: number): string {
+ 	if (width <= 0) return "";
+ 	const clipped = truncateToWidth(text, width, "");
+@@ -31,10 +77,10 @@
+ 
+ function resetIn(timestamp: number | undefined, now = Date.now()): string {
+ 	if (!timestamp || !Number.isFinite(timestamp)) return "";
+-	const totalMinutes = Math.max(0, Math.ceil((timestamp - now) / 60_000));
+-	const days         = Math.floor(totalMinutes / 1_440);
+-	const hours        = Math.floor((totalMinutes % 1_440) / 60);
+-	const minutes      = totalMinutes % 60;
++	const totalMinutes = Math.max(0, Math.ceil((timestamp - now) / 60_000)) ;
++	const days         = Math.floor(totalMinutes / 1_440)                   ;
++	const hours        = Math.floor((totalMinutes % 1_440) / 60)            ;
++	const minutes      = totalMinutes % 60                                  ;
+ 	if (days > 0) return `${days}d ${hours}h`;
+ 	if (hours > 0) return `${hours}h ${String(minutes).padStart(2, "0")}m`;
+ 	return `${minutes}m`;
+@@ -54,8 +100,6 @@
+ 		: undefined;
+ }
+ 
+-const METER_EMPTY = "#1d2a30";
+-
+ function meter(percent: number, color: string): string {
+ 	const filled = Math.round(Math.max(0, Math.min(100, percent)) / 100 * WORKBENCH_HUD_SYSTEM.strip.meterCells);
+ 	return chalk.bgHex(color)(" ".repeat(filled)) + chalk.bgHex(METER_EMPTY)(" ".repeat(WORKBENCH_HUD_SYSTEM.strip.meterCells - filled));
+@@ -92,8 +136,8 @@
+ 				? providerText(label, `${label} 연결됨`)
+ 			: providerText(label, `${label} ${unavailable(snapshot)}`);
+ 	}
+-	const percent = Math.round(Math.max(0, Math.min(100, limit.remainingPercent!)));
+-	const reset   = resetIn(limit.resetsAt);
++	const percent = Math.round(Math.max(0, Math.min(100, limit.remainingPercent!))) ;
++	const reset   = resetIn(limit.resetsAt)                                         ;
+ 	return `${providerText(label, `${label} ${percent}%${reset ? ` · ${reset}` : ""}`)} ${meter(percent, providerColor(label))}`;
+ }
+ 
+@@ -106,38 +150,3 @@
+ function runtimeMode(session: UsageStripSession | null | undefined): string {
+ 	return colors.success(`${WORKBENCH_HUD_SYSTEM.strip.modeMarker} ${runtimeModeLabel(session?.permissionMode, session?.collaborationMode)}`);
+ }
+-
+-/** A single measured-telemetry row below the composer. */
+-export class UsageStripView implements Component {
+-	private snapshots: readonly UsageSnapshot[] = [
+-		{ provider : "openai-codex" , state : "loading" , fetchedAt : Date.now() , limits : [] },
+-		{ provider : "anthropic"    , state : "loading" , fetchedAt : Date.now() , limits : [] },
+-		{ provider : "google"       , state : "loading" , fetchedAt : Date.now() , limits : [] },
+-	];
+-
+-	public constructor(private readonly session?: () => UsageStripSession | null | undefined) {}
+-
+-	public update(snapshots: readonly UsageSnapshot[]): void { this.snapshots = snapshots; }
+-	public invalidate(): void {}
+-
+-	public render(width: number): string[] {
+-		if (width <= 0) return [];
+-		const session = this.session?.()                                                                                   ;
+-		const codex   = this.snapshots.find((snapshot) => snapshot.provider === "openai-codex")                            ;
+-		const claude  = this.snapshots.find((snapshot) => snapshot.provider === "anthropic")                               ;
+-		const gemini  = this.snapshots.find((snapshot) => snapshot.provider === "google")                                  ;
+-		const zai     = this.snapshots.find((snapshot) => snapshot.provider === "zai")                                     ;
+-		const showZai = (zai !== undefined && zai.state !== "auth-required") || /^glm-/iu.test(session?.activeModel ?? "") ;
+-		const line = [
+-			runtimeMode(session),
+-			...(session?.showUsage === false ? [] : [
+-				providerSegment("Codex", codex),
+-				providerSegment("Claude", claude),
+-				providerSegment("Antigravity", gemini),
+-				...(showZai ? [providerSegment("Z.AI", zai)] : []),
+-			]),
+-			...(session?.showContext === false ? [] : [contextSegment(session?.contextUsage)]),
+-		].join(WORKBENCH_HUD_SYSTEM.strip.separator);
+-		return [fit(line, width)];
+-	}
+-}
+--- .www/evidence/2026-10-03-feature-template/usage/before/src/adapters/inbound/tui/features/usage/view/www-usage-catalog.ts	2026-10-03 02:37:39
++++ src/adapters/inbound/tui/features/usage/view/www-usage-catalog.ts	2026-10-03 02:38:07
+@@ -1,13 +1,13 @@
+-import type { UsageSnapshot } from "@/core/ports/observability/usage-monitor-port";
+-import {
+-	monitoringBars,
+-	monitoringColumns,
+-	monitoringCompactPanel,
+-	monitoringMeter,
+-	monitoringTable,
+-	monitoringWidths,
+-} from "@/adapters/inbound/tui/foundation/layout/www-monitoring-layout";
+-import { a, fit, pair }       from "@/adapters/inbound/tui/foundation/theme/www-theme";
++import type { UsageSnapshot            } from "@/core/ports/observability/usage-monitor-port"                  ;
++import      {
++              monitoringBars         ,
++              monitoringColumns      ,
++              monitoringCompactPanel ,
++              monitoringMeter        ,
++              monitoringTable        ,
++              monitoringWidths       ,
++                                       } from "@/adapters/inbound/tui/foundation/layout/www-monitoring-layout" ;
++import      { a, fit, pair             } from "@/adapters/inbound/tui/foundation/theme/www-theme"              ;
+ 
+ // Presentation fixtures only: enabled by the shell's explicit Demo state.
+ const providers = [
+@@ -17,61 +17,6 @@
+ 	{ id : "zai"          , label : "Z.AI"        , ink : a.zai    },
+ ] as const;
+ 
+-function heading(title: string, width: number): string[] {
+-	return [fit(a.active("■ " + title), width), a.rule("─".repeat(width))];
+-}
+-
+-function providerStrip(usage: readonly UsageSnapshot[], width: number): string[] {
+-	const widths = monitoringWidths(width, width >= 96 ? 4 : 1);
+-	const cards = providers.map((provider, index) => {
+-		const size      = widths[index] ?? width                                   ;
+-		const quota     = usage.find(item => item.provider === provider.id)        ;
+-		const remaining = quota?.limits[0]?.remainingPercent                       ;
+-		const label     = remaining == null ? "미관측" : `${remaining}% remaining` ;
+-		const rows = [
+-			provider.ink(label),
+-			remaining == null ? a.muted("quota unavailable") : monitoringMeter(remaining, 100, Math.max(4, size - 2), provider.ink),
+-			pair("TTL", quota?.stale ? "STALE" : quota?.state ?? "미관측", size - 2),
+-		];
+-		return monitoringCompactPanel(provider.label, rows, size);
+-	});
+-	return width >= 96 ? monitoringColumns(cards, widths) : cards.flat();
+-}
+-
+-function modelTable(width: number): string[] {
+-	const columns = [
+-		{ heading : "MODEL"        , minWidth : 19 , weight : 1 , align : "left"  },
+-		{ heading : "EFFORT"       , minWidth : 6  , weight : 0 , align : "left"  },
+-		{ heading : "CALLS"        , minWidth : 5  , weight : 0 , align : "right" },
+-		{ heading : "IN/OUT/CACHE" , minWidth : 17 , weight : 1 , align : "right" },
+-		{ heading : "TIME"         , minWidth : 5  , weight : 0 , align : "right" },
+-		{ heading : "RECENT"       , minWidth : 6  , weight : 0 , align : "right" },
+-	] as const;
+-	const rows = [
+-		[ "Codex-Instruct-v4"  , a.active("Middle"), "1420", "14.2M/8.1M/4.1M", "0.24s", "3s"  ],
+-		[ "Claude-3.5-Sonnet"  , a.active("xHigh") , "844" , "42.8M/18.2M/24M", "1.12s", "12s" ],
+-		[ "Antigravity-Base"   , a.active("Low")   , "310" , "1.2M/0.8M/0.1M", "0.08s", "4m"  ],
+-		[ "Z.AI-Refiner-Core"  , a.active("High")  , "98"  , "8.4M/4.2M/1.5M", "0.45s", "12m" ],
+-	];
+-	if (width < 72) return rows.flatMap(row => [
+-		fit(`${row[0]} · ${row[1]}`, width),
+-		fit(`Calls ${row[2]} · ${row[3]}`, width),
+-		fit(`Time ${row[4]} · Recent ${row[5]}`, width),
+-	]);
+-	return monitoringTable({ columns, rows }, width);
+-}
+-
+-function availability(usage: readonly UsageSnapshot[], width: number): string[] {
+-	return providers.flatMap(provider => {
+-		const limits = usage.find(item => item.provider === provider.id)?.limits.slice(0, 2) ?? [];
+-		return [provider.ink(provider.label), ...limits.map(limit => {
+-			const value = limit.remainingPercent;
+-			if (value == null) return a.muted("미관측");
+-			return monitoringMeter(value, 100, Math.max(4, width - 6), provider.ink) + ` ${String(value).padStart(3)}%`;
+-		})];
+-	});
+-}
+-
+ export function syntheticUsageRows(usage: readonly UsageSnapshot[], width: number): string[] {
+ 	const widths = monitoringWidths(width, width >= 96 ? 3 : 1) ;
+ 	const left   = (widths[0] ?? width) - 2                     ;
+@@ -128,3 +73,58 @@
+ 		a.attention("DEMO · synthetic metrics"),
+ 	].map(row => fit(row, width));
+ }
++
++function heading(title: string, width: number): string[] {
++	return [fit(a.active("■ " + title), width), a.rule("─".repeat(width))];
++}
++
++function providerStrip(usage: readonly UsageSnapshot[], width: number): string[] {
++	const widths = monitoringWidths(width, width >= 96 ? 4 : 1);
++	const cards = providers.map((provider, index) => {
++		const size      = widths[index] ?? width                                   ;
++		const quota     = usage.find(item => item.provider === provider.id)        ;
++		const remaining = quota?.limits[0]?.remainingPercent                       ;
++		const label     = remaining == null ? "미관측" : `${remaining}% remaining` ;
++		const rows = [
++			provider.ink(label),
++			remaining == null ? a.muted("quota unavailable") : monitoringMeter(remaining, 100, Math.max(4, size - 2), provider.ink),
++			pair("TTL", quota?.stale ? "STALE" : quota?.state ?? "미관측", size - 2),
++		];
++		return monitoringCompactPanel(provider.label, rows, size);
++	});
++	return width >= 96 ? monitoringColumns(cards, widths) : cards.flat();
++}
++
++function modelTable(width: number): string[] {
++	const columns = [
++		{ heading : "MODEL"        , minWidth : 19 , weight : 1 , align : "left"  },
++		{ heading : "EFFORT"       , minWidth : 6  , weight : 0 , align : "left"  },
++		{ heading : "CALLS"        , minWidth : 5  , weight : 0 , align : "right" },
++		{ heading : "IN/OUT/CACHE" , minWidth : 17 , weight : 1 , align : "right" },
++		{ heading : "TIME"         , minWidth : 5  , weight : 0 , align : "right" },
++		{ heading : "RECENT"       , minWidth : 6  , weight : 0 , align : "right" },
++	] as const;
++	const rows = [
++		[ "Codex-Instruct-v4"  , a.active("Middle"), "1420", "14.2M/8.1M/4.1M", "0.24s", "3s"  ],
++		[ "Claude-3.5-Sonnet"  , a.active("xHigh") , "844" , "42.8M/18.2M/24M", "1.12s", "12s" ],
++		[ "Antigravity-Base"   , a.active("Low")   , "310" , "1.2M/0.8M/0.1M", "0.08s", "4m"  ],
++		[ "Z.AI-Refiner-Core"  , a.active("High")  , "98"  , "8.4M/4.2M/1.5M", "0.45s", "12m" ],
++	];
++	if (width < 72) return rows.flatMap(row => [
++		fit(`${row[0]} · ${row[1]}`, width),
++		fit(`Calls ${row[2]} · ${row[3]}`, width),
++		fit(`Time ${row[4]} · Recent ${row[5]}`, width),
++	]);
++	return monitoringTable({ columns, rows }, width);
++}
++
++function availability(usage: readonly UsageSnapshot[], width: number): string[] {
++	return providers.flatMap(provider => {
++		const limits = usage.find(item => item.provider === provider.id)?.limits.slice(0, 2) ?? [];
++		return [provider.ink(provider.label), ...limits.map(limit => {
++			const value = limit.remainingPercent;
++			if (value == null) return a.muted("미관측");
++			return monitoringMeter(value, 100, Math.max(4, width - 6), provider.ink) + ` ${String(value).padStart(3)}%`;
++		})];
++	});
++}
+--- .www/evidence/2026-10-03-feature-template/usage/before/src/adapters/inbound/tui/features/usage/view/www-usage-view.ts	2026-10-03 02:37:39
++++ src/adapters/inbound/tui/features/usage/view/www-usage-view.ts	2026-10-03 02:38:08
+@@ -1,25 +1,28 @@
+-import type { Component }                         from "@earendil-works/pi-tui";
+-import type { WorkbenchSnapshot }                 from "@/core/domain/work/workbench";
+-import type { UsageLimitSnapshot, UsageSnapshot } from "@/core/ports/observability/usage-monitor-port";
+-import {
+-	monitoringCard,
+-	monitoringColumns,
+-	monitoringPanel,
+-	monitoringTable,
+-	monitoringUnavailablePanel,
+-	monitoringWidths,
+-} from "@/adapters/inbound/tui/foundation/layout/www-monitoring-layout";
+-import type { MonitoringCard }                    from "@/adapters/inbound/tui/foundation/layout/www-monitoring-layout";
+-import {
+-	a,
+-	fit,
+-	number,
+-	pair,
+-	prose,
+-	railSection,
+-	safe,
+-	section,
+-} from "@/adapters/inbound/tui/foundation/theme/www-theme";
++import type { Component                    } from "@earendil-works/pi-tui"                                         ;
++import type { WorkbenchSnapshot            } from "@/core/domain/work/workbench"                                   ;
++import type {
++              UsageLimitSnapshot         ,
++              UsageSnapshot              ,
++                                           } from "@/core/ports/observability/usage-monitor-port"                  ;
++import      {
++              monitoringCard             ,
++              monitoringColumns          ,
++              monitoringPanel            ,
++              monitoringTable            ,
++              monitoringUnavailablePanel ,
++              monitoringWidths           ,
++                                           } from "@/adapters/inbound/tui/foundation/layout/www-monitoring-layout" ;
++import type { MonitoringCard               } from "@/adapters/inbound/tui/foundation/layout/www-monitoring-layout" ;
++import      {
++              a                          ,
++              fit                        ,
++              number                     ,
++              pair                       ,
++              prose                      ,
++              railSection                ,
++              safe                       ,
++              section                    ,
++                                           } from "@/adapters/inbound/tui/foundation/theme/www-theme"              ;
+ 
+ const PROVIDERS = ["openai-codex", "anthropic", "google", "zai"] as const;
+ const PROVIDER_LABELS: Readonly<Record<UsageSnapshot["provider"], string>> = {
+@@ -28,6 +31,70 @@
+ 	google         : "Antigravity",
+ 	zai            : "Z.AI",
+ };
++
++export class WwwUsageView implements Component {
++	constructor(
++		private readonly get       : () => WorkbenchSnapshot,
++		private readonly usage     : () => readonly UsageSnapshot[],
++		private readonly synthetic : () => boolean = () => false,
++	) {}
++	invalidate(): void {}
++	render(width: number): string[] {
++		const snapshot   = this.get()             ;
++		const providers  = this.usage()           ;
++		const innerWidth = Math.max(1, width - 2) ;
++		const rows = [
++			...(this.synthetic() ? [a.attention("DEMO DATA · 합성 예시 · 실제 사용 기록 아님")] : []),
++			...section("구독 잔여 한도", width, "토큰 사용량과 별도 지표", a.active),
++			...providerCards(providers, width),
++			...PROVIDERS.flatMap(provider => {
++				const current = providers.find(candidate => candidate.provider === provider);
++				return (current?.limits ?? []).map(limit => {
++					const remaining = observedPercent(limit);
++					return pair(
++						`${PROVIDER_LABELS[provider]} · ${safe(limit.label, 24)}`,
++						`${remaining === null ? "잔여량 미관측" : `${Math.round(remaining)}% 남음`} · ${resetIn(limit.resetsAt)}`,
++						width,
++					);
++				});
++			}),
++			...usageDashboard(snapshot, width),
++			...section("모델별 사용 내역", width, width >= 66 ? "현재 프로세스 관측 범위" : "", a.active),
++			a.muted("단위: tokens · 직접 대화와 분리 실행은 실행 경로이며 업무 분류가 아닙니다."),
++			a.muted("OBSERVED = 관측 합계 · 미관측 경로의 사용량은 포함하지 않습니다."),
++			...modelRows(snapshot, width),
++			...monitoringPanel({ title: "어디에 사용했나", ink: a.info }, attributionRows(snapshot, innerWidth), width),
++		];
++		return rows.flatMap(row => prose(fit(row, width), width));
++	}
++}
++
++export class WwwUsageRail implements Component {
++	constructor(
++		private readonly get       : () => WorkbenchSnapshot,
++		private readonly usage     : () => readonly UsageSnapshot[],
++		private readonly synthetic : () => boolean = () => false,
++	) {}
++	invalidate(): void {}
++	render(width: number): string[] {
++		const session = this.get().sessionUsage                         ;
++		const stale   = this.usage().filter(provider => provider.stale) ;
++		const rows = [
++			...railSection("관측 범위", width),
++			...(this.synthetic() ? [a.attention("DEMO DATA · 합성 예시")] : []),
++			pair("직접 대화", session?.observationCoverage.interactive ? "관측됨" : "미관측", width),
++			pair("분리 실행", session?.observationCoverage.detached ? "관측됨" : "미관측", width),
++			a.muted("프로세스 연결 이후의 사용량입니다."),
++			a.muted("과거 전체 대화·하루 합계가 아닙니다."),
++			...railSection("아직 알 수 없는 것", width),
++			a.muted("작업별 귀속 · 조사/구현/검증 목적"),
++			...railSection("확인이 필요한 상태", width),
++			...stale.map(provider => a.attention(`${PROVIDER_LABELS[provider.provider]} · 오래된 한도 정보`)),
++			a.muted("/usage · 구독 한도 조회"),
++		];
++		return rows.flatMap(row => prose(fit(row, width), width));
++	}
++}
+ 
+ function observedPercent(limit: UsageLimitSnapshot): number | null {
+ 	if (typeof limit.remainingPercent === "number" && Number.isFinite(limit.remainingPercent)) return Math.max(0, Math.min(100, limit.remainingPercent));
+@@ -37,9 +104,9 @@
+ 
+ function resetIn(timestamp: number | undefined, now = Date.now()): string {
+ 	if (typeof timestamp !== "number" || !Number.isFinite(timestamp)) return "리셋 시각 미관측";
+-	const minutes = Math.max(0, Math.ceil((timestamp - now) / 60_000));
+-	const days = Math.floor(minutes / 1_440);
+-	const hours = Math.floor((minutes % 1_440) / 60);
++	const minutes = Math.max(0, Math.ceil((timestamp - now) / 60_000)) ;
++	const days    = Math.floor(minutes / 1_440)                        ;
++	const hours   = Math.floor((minutes % 1_440) / 60)                 ;
+ 	if (days > 0) return `${days}일 ${hours}시간 후 리셋`;
+ 	if (hours > 0) return `${hours}시간 ${minutes % 60}분 후 리셋`;
+ 	return `${minutes}분 후 리셋`;
+@@ -127,6 +194,7 @@
+ }
+ 
+ function percentage(value: number, total: number): number { return total > 0 ? Math.round(value / total * 100) : 0; }
++
+ function usageBar(percent: number, width = 20): string {
+ 	const filled = Math.round(Math.max(0, Math.min(100, percent)) * width / 100);
+ 	return `${a.active("█".repeat(filled))}${a.rule("░".repeat(width - filled))}`;
+@@ -149,11 +217,11 @@
+ }
+ 
+ function modelShareRows(snapshot: WorkbenchSnapshot, width: number): string[] {
+-	const models = snapshot.sessionUsage?.models ?? [];
+-	const total  = models.reduce((sum, model) => sum + model.totalTokens, 0);
++	const models = snapshot.sessionUsage?.models ?? []                       ;
++	const total  = models.reduce((sum, model) => sum + model.totalTokens, 0) ;
+ 	if (!models.length || total <= 0) return [a.muted("모델별 token 귀속 미관측")];
+-	const labelWidth = Math.max(8, Math.min(16, Math.floor(width * 0.22)));
+-	const barWidth   = Math.max(5, Math.min(22, width - labelWidth - 8));
++	const labelWidth = Math.max(8, Math.min(16, Math.floor(width * 0.22))) ;
++	const barWidth   = Math.max(5, Math.min(22, width - labelWidth - 8)  ) ;
+ 	return [...models].sort((left, right) => right.totalTokens - left.totalTokens).slice(0, 7).map(model => {
+ 		const share = percentage(model.totalTokens, total);
+ 		return fit(`${modelLabel(model.model).padEnd(labelWidth)} ${usageBar(share, barWidth)}  ${String(share).padStart(3)}%`, width);
+@@ -183,81 +251,17 @@
+ }
+ 
+ function usageDashboard(snapshot: WorkbenchSnapshot, width: number): string[] {
+-	const split        = width >= 100                                                                                                                                                                                    ;
+-	const widths       = monitoringWidths(width, 2)                                                                                                                                                                      ;
+-	const leftWidth    = split ? widths[0] ?? width : width                                                                                                                                                              ;
+-	const rightWidth   = split ? widths[1] ?? width : width                                                                                                                                                              ;
+-	const share        = monitoringPanel({ title: "MODEL SHARE", ink: a.active }, modelShareRows(snapshot, Math.max(1, leftWidth - 2)), leftWidth)                                                                       ;
+-	const trend        = monitoringUnavailablePanel("USAGE TREND", "일별 token history 저장 계약이 아직 없습니다.", leftWidth)                                                                                           ;
+-	const selectedName = selectedModelName(snapshot)                                                                                                                                                                     ;
+-	const selected     = monitoringPanel({ title: `OBSERVED MODEL · ${modelLabel(selectedName ?? "미관측")}`, ink: a.info }, selectedModelRows(snapshot, selectedName, Math.max(1, rightWidth - 2)), rightWidth)     ;
++	const split        = width >= 100                                                                                                                                                                            ;
++	const widths       = monitoringWidths(width, 2)                                                                                                                                                              ;
++	const leftWidth    = split ? widths[0] ?? width : width                                                                                                                                                      ;
++	const rightWidth   = split ? widths[1] ?? width : width                                                                                                                                                      ;
++	const share        = monitoringPanel({ title: "MODEL SHARE", ink: a.active }, modelShareRows(snapshot, Math.max(1, leftWidth - 2)), leftWidth)                                                               ;
++	const trend        = monitoringUnavailablePanel("USAGE TREND", "일별 token history 저장 계약이 아직 없습니다.", leftWidth)                                                                                   ;
++	const selectedName = selectedModelName(snapshot)                                                                                                                                                             ;
++	const selected     = monitoringPanel({ title: `OBSERVED MODEL · ${modelLabel(selectedName ?? "미관측")}`, ink: a.info }, selectedModelRows(snapshot, selectedName, Math.max(1, rightWidth - 2)), rightWidth) ;
+ 	return [
+ 		...summaryCards(snapshot, width),
+ 		...share,
+ 		...(split ? monitoringColumns([trend, selected], widths) : [...trend, ...selected]),
+ 	];
+ }
+-
+-export class WwwUsageView implements Component {
+-	constructor(
+-		private readonly get       : () => WorkbenchSnapshot,
+-		private readonly usage     : () => readonly UsageSnapshot[],
+-		private readonly synthetic : () => boolean = () => false,
+-	) {}
+-	invalidate(): void {}
+-	render(width: number): string[] {
+-		const snapshot   = this.get()             ;
+-		const providers  = this.usage()           ;
+-		const innerWidth = Math.max(1, width - 2) ;
+-		const rows = [
+-			...(this.synthetic() ? [a.attention("DEMO DATA · 합성 예시 · 실제 사용 기록 아님")] : []),
+-			...section("구독 잔여 한도", width, "토큰 사용량과 별도 지표", a.active),
+-			...providerCards(providers, width),
+-			...PROVIDERS.flatMap(provider => {
+-				const current = providers.find(candidate => candidate.provider === provider);
+-				return (current?.limits ?? []).map(limit => {
+-					const remaining = observedPercent(limit);
+-					return pair(
+-						`${PROVIDER_LABELS[provider]} · ${safe(limit.label, 24)}`,
+-						`${remaining === null ? "잔여량 미관측" : `${Math.round(remaining)}% 남음`} · ${resetIn(limit.resetsAt)}`,
+-						width,
+-					);
+-				});
+-			}),
+-			...usageDashboard(snapshot, width),
+-			...section("모델별 사용 내역", width, width >= 66 ? "현재 프로세스 관측 범위" : "", a.active),
+-			a.muted("단위: tokens · 직접 대화와 분리 실행은 실행 경로이며 업무 분류가 아닙니다."),
+-			a.muted("OBSERVED = 관측 합계 · 미관측 경로의 사용량은 포함하지 않습니다."),
+-			...modelRows(snapshot, width),
+-			...monitoringPanel({ title: "어디에 사용했나", ink: a.info }, attributionRows(snapshot, innerWidth), width),
+-		];
+-		return rows.flatMap(row => prose(fit(row, width), width));
+-	}
+-}
+-
+-export class WwwUsageRail implements Component {
+-	constructor(
+-		private readonly get       : () => WorkbenchSnapshot,
+-		private readonly usage     : () => readonly UsageSnapshot[],
+-		private readonly synthetic : () => boolean = () => false,
+-	) {}
+-	invalidate(): void {}
+-	render(width: number): string[] {
+-		const session = this.get().sessionUsage;
+-		const stale = this.usage().filter(provider => provider.stale);
+-		const rows = [
+-			...railSection("관측 범위", width),
+-			...(this.synthetic() ? [a.attention("DEMO DATA · 합성 예시")] : []),
+-			pair("직접 대화", session?.observationCoverage.interactive ? "관측됨" : "미관측", width),
+-			pair("분리 실행", session?.observationCoverage.detached ? "관측됨" : "미관측", width),
+-			a.muted("프로세스 연결 이후의 사용량입니다."),
+-			a.muted("과거 전체 대화·하루 합계가 아닙니다."),
+-			...railSection("아직 알 수 없는 것", width),
+-			a.muted("작업별 귀속 · 조사/구현/검증 목적"),
+-			...railSection("확인이 필요한 상태", width),
+-			...stale.map(provider => a.attention(`${PROVIDER_LABELS[provider.provider]} · 오래된 한도 정보`)),
+-			a.muted("/usage · 구독 한도 조회"),
+-		];
+-		return rows.flatMap(row => prose(fit(row, width), width));
+-	}
+-}
+--- .www/evidence/2026-10-03-feature-template/usage/before/src/adapters/inbound/tui/features/usage/view/www-usage.ts	2026-10-03 02:37:39
++++ src/adapters/inbound/tui/features/usage/view/www-usage.ts	2026-10-03 02:38:09
+@@ -1,104 +1,34 @@
+-import { readFileSync }                                                from "node:fs";
+-import { allocateImageId, encodeKitty, getCapabilities, visibleWidth } from "@earendil-works/pi-tui";
+-import type { UsageLimitSnapshot, UsageSnapshot }                      from "@/core/ports/observability/usage-monitor-port";
++import      { readFileSync                      } from "node:fs"                                           ;
++import      {
++              allocateImageId                 ,
++              encodeKitty                     ,
++              getCapabilities                 ,
++              visibleWidth                    ,
++                                                } from "@earendil-works/pi-tui"                            ;
++import type { UsageLimitSnapshot, UsageSnapshot } from "@/core/ports/observability/usage-monitor-port"     ;
+ import chalk                                                           from "chalk";
+-import { a, wwwPalette, fit }                                          from "@/adapters/inbound/tui/foundation/theme/www-theme";
++import      { a, wwwPalette, fit                } from "@/adapters/inbound/tui/foundation/theme/www-theme" ;
+ 
+ const logoAssets    = ["openai", "claude", "gemini", "zai"] as const        ;
+ const logoTokens    = ["\uE001 ", "\uE002 ", "\uE003 ", "\uE004 "] as const ;
+ const logoSequences = new Map<number, string | null>()                      ;
+ 
+-/** A fixed two-cell, one-row placement; files and encoding are cached locally.
+- * Raw Kitty commands intentionally bypass pi-tui's single-image-per-line cache.
+- * The host clears placements on redraw and all image data at shutdown.
+- */
+-function logoSequence(index: number, row = 0): string | null {
+-	const key = row * logoAssets.length + index;
+-	const cached = logoSequences.get(key);
+-	if (cached !== undefined) return cached;
+-	try {
+-		const data = readFileSync(new URL(`../assets/${logoAssets[index]}.png`, import.meta.url));
+-		const sequence = encodeKitty(data.toString("base64"), { columns: 2, rows: 1, imageId: allocateImageId(), moveCursor: false });
+-		logoSequences.set(key, sequence);
+-		return sequence;
+-	} catch {
+-		logoSequences.set(key, null);
+-		return null;
+-	}
+-}
+-
+-function limitText(limit: UsageLimitSnapshot): string {
+-	const percent = limit.remainingPercent;
+-	const value = typeof percent === "number" && Number.isFinite(percent) ? Math.round(Math.max(0, Math.min(100, percent))) : null;
+-	if (value === null) return a.muted("—");
+-	return (value >= 50 ? a.success : value >= 20 ? a.attention : a.failure)(`${value}%`);
+-}
+-
+-function resetIn(timestamp: number | undefined, now: number): string {
+-	if (!timestamp || !Number.isFinite(timestamp)) return "";
+-	const totalMinutes = Math.max(0, Math.ceil((timestamp - now) / 60_000)) ;
+-	const days         = Math.floor(totalMinutes / 1_440)                   ;
+-	const hours        = Math.floor((totalMinutes % 1_440) / 60)            ;
+-	const minutes      = totalMinutes % 60                                  ;
+-	if (days > 0) return `${days}d ${hours}h`;
+-	if (hours > 0) return `${hours}h ${String(minutes).padStart(2, "0")}m`;
+-	return `${minutes}m`;
+-}
+-
+-function remainingText(limit: UsageLimitSnapshot, now: number): string {
+-	const remaining = resetIn(limit.resetsAt, now);
+-	return `${limitText(limit)}${remaining ? a.muted(` · ${remaining}`) : ""}`;
+-}
+-
+ const quotaProviders = [["openai-codex", "Codex", "codex"], ["anthropic", "Claude", "claude"], ["google", "Antigravity", "gemini"], ["zai", "Z.AI", "zai"]] as const;
+ 
+-function isWeeklyLimit(limit: UsageLimitSnapshot): boolean {
+-	return /(?:7\s*(?:days?|d)\b|1\s*week\b|weekly|week|주간|주일)/iu.test(limit.label);
+-}
+-
+-function quotaLimit(snapshot: UsageSnapshot | undefined, window: "overall" | "session"): UsageLimitSnapshot | undefined {
+-	if (!snapshot || (snapshot.state !== "ready" && !snapshot.stale)) return undefined;
+-	const finite = snapshot.limits.filter(limit => typeof limit.remainingPercent === "number" && Number.isFinite(limit.remainingPercent));
+-	const tier = (limit: UsageLimitSnapshot) => /spark|opus|sonnet/iu.test(limit.label);
+-	if (window === "session") return finite.find(limit => /(?:5\s*(?:hours?|h)\b|5시간)/iu.test(limit.label) && !tier(limit));
+-	return finite.find(limit => isWeeklyLimit(limit) && !tier(limit)) ?? finite.find(limit => !tier(limit));
+-}
+-
+-function quotaState(snapshot: UsageSnapshot | undefined): string {
+-	if (!snapshot || snapshot.state === "loading") return "…";
+-	if (snapshot.state === "auth-required") return "login";
+-	if (snapshot.state === "unsupported") return snapshot.provider === "google" ? "linked" : "off";
+-	return snapshot.state === "ready" ? "—" : "!";
+-}
+-
+-function quotaBar(limit: UsageLimitSnapshot | undefined, state: string, width: number, color: string, label: string, image: boolean): string {
+-	const percent = typeof limit?.remainingPercent === "number" && Number.isFinite(limit.remainingPercent)
+-		? Math.round(Math.max(0, Math.min(100, limit.remainingPercent))) : null;
+-	const value = percent === null ? state : "";
+-	const iconWidth = image ? 2 : Math.min(label.length, Math.max(1, width - 2));
+-	const cells = fit(value.padEnd(width - iconWidth), width - iconWidth);
+-	const filled = percent === null ? 0 : Math.round(cells.length * percent / 100);
+-	const active = chalk.bgHex(color).hex("#101419").bold;
+-	const empty = chalk.bgHex(wwwPalette.rule).hex(wwwPalette.text);
+-	const iconColor = image || percent === null || percent === 0 ? wwwPalette.rule : color;
+-	const icon = chalk.bgHex(iconColor).hex("#101419").bold(fit(label, iconWidth));
+-	return `${icon}${active(cells.slice(0, filled))}${empty(cells.slice(filled))}`;
+-}
+-
+ /** 공급자별 잔여 막대와 관측된 잔여율·리셋까지 남은 시간을 함께 표시한다. */
+ export function wwwQuotaHudRows(snapshots: readonly UsageSnapshot[], width: number, _now = Date.now(), showLogos = false): string[] {
+ 	if (width <= 0) return [];
+-	const logoEnabled = showLogos && getCapabilities().images === "kitty";
+-	const logos = quotaProviders.map((_, index) => logoEnabled ? logoSequence(index, 0) : null);
+-	const segmentWidth = Math.min(20, Math.max(3, Math.floor((width - 6) / quotaProviders.length)));
++	const logoEnabled  = showLogos && getCapabilities().images === "kitty"                             ;
++	const logos        = quotaProviders.map((_, index) => logoEnabled ? logoSequence(index, 0) : null) ;
++	const segmentWidth = Math.min(20, Math.max(3, Math.floor((width - 6) / quotaProviders.length)))    ;
+ 	const segments = quotaProviders.map(([id, name, ink], index) => {
+-			const snapshot = snapshots.find(candidate => candidate.provider === id);
+-			const limit = quotaLimit(snapshot, "overall");
+-			const image = Boolean(logos[index]);
+-			const label = image ? logoTokens[index]! : segmentWidth >= 20 ? name : name === "Antigravity" ? "Gemini" : name;
+-			const bar = quotaBar(limit, quotaState(snapshot), segmentWidth, wwwPalette[ink], label, image);
+-			const remaining = limit ? resetIn(limit.resetsAt, _now) : "";
+-			const detail = limit ? `${Math.round(limit.remainingPercent!)}% · ${remaining || "기간 —"}` : quotaState(snapshot);
++			const snapshot  = snapshots.find(candidate => candidate.provider === id)                                              ;
++			const limit     = quotaLimit(snapshot, "overall")                                                                     ;
++			const image     = Boolean(logos[index])                                                                               ;
++			const label     = image ? logoTokens[index]! : segmentWidth >= 20 ? name : name === "Antigravity" ? "Gemini" : name   ;
++			const bar       = quotaBar(limit, quotaState(snapshot), segmentWidth, wwwPalette[ink], label, image)                  ;
++			const remaining = limit ? resetIn(limit.resetsAt, _now) : ""                                                          ;
++			const detail    = limit ? `${Math.round(limit.remainingPercent!)}% · ${remaining || "기간 —"}` : quotaState(snapshot) ;
+ 			return { bar: `${bar}${snapshot?.stale ? a.attention("*") : ""}`, detail: fit(detail, segmentWidth) };
+ 		});
+ 	let output = fit(segments.map(segment => segment.bar).join("  "), width);
+@@ -112,22 +42,22 @@
+ /** HUD 한 줄에는 Codex·Claude 주간 잔여량과 현재 Context만 둔다. */
+ export function wwwQuotaHudLine(snapshots: readonly UsageSnapshot[], context: string, compactContext: string, width: number, now = Date.now(), showLogos = false): string {
+ 	if (width <= 0) return "";
+-	const logos = [0, 1].map(index => showLogos && getCapabilities().images === "kitty" ? logoSequence(index) : null);
+-	const providers = quotaProviders.slice(0, 2);
++	const logos     = [0, 1].map(index => showLogos && getCapabilities().images === "kitty" ? logoSequence(index) : null) ;
++	const providers = quotaProviders.slice(0, 2)                                                                          ;
+ 	const segment = ([id, name, ink]: typeof quotaProviders[number], index: number, showReset: boolean, compact: boolean): string => {
+-		const snapshot = snapshots.find(candidate => candidate.provider === id);
+-		const selected = quotaLimit(snapshot, "overall");
+-		const limit = selected && isWeeklyLimit(selected) && (selected.resetsAt === undefined || selected.resetsAt > now) ? selected : undefined;
+-		const label = logos[index] ? logoTokens[index]! : compact ? index === 0 ? "Cx" : "Cl" : name;
+-		const value = limit ? limitText(limit) : a.muted(quotaState(snapshot));
+-		const reset = showReset && limit ? resetIn(limit.resetsAt, now) : "";
+-		const resetText = compact ? reset.replaceAll(" ", "") : reset;
+-		const content = `${a[ink](label)}${logos[index] || compact ? "" : " "}${value}${resetText ? a.muted(`${compact ? "" : " "}${resetText}`) : ""}${snapshot?.stale ? a.attention("*") : ""}`;
++		const snapshot  = snapshots.find(candidate => candidate.provider === id)                                                                                                                    ;
++		const selected  = quotaLimit(snapshot, "overall")                                                                                                                                           ;
++		const limit     = selected && isWeeklyLimit(selected) && (selected.resetsAt === undefined || selected.resetsAt > now) ? selected : undefined                                                ;
++		const label     = logos[index] ? logoTokens[index]! : compact ? index === 0 ? "Cx" : "Cl" : name                                                                                            ;
++		const value     = limit ? limitText(limit) : a.muted(quotaState(snapshot))                                                                                                                  ;
++		const reset     = showReset && limit ? resetIn(limit.resetsAt, now) : ""                                                                                                                    ;
++		const resetText = compact ? reset.replaceAll(" ", "") : reset                                                                                                                               ;
++		const content   = `${a[ink](label)}${logos[index] || compact ? "" : " "}${value}${resetText ? a.muted(`${compact ? "" : " "}${resetText}`) : ""}${snapshot?.stale ? a.attention("*") : ""}` ;
+ 		return compact ? content : `${a.rule("[ ")}${content}${a.rule(" ]")}`;
+ 	};
+-	const build = (showReset: boolean, compact = false) => [...providers.map((provider, index) => segment(provider, index, showReset, compact)), compact ? compactContext : context].filter(Boolean).join("  ");
+-	const candidates = [build(true), build(true, true), build(false), build(false, true), context, compactContext];
+-	let output = fit(candidates.find(candidate => visibleWidth(candidate) <= width) ?? context, width);
++	const build      = (showReset: boolean, compact = false) => [...providers.map((provider, index) => segment(provider, index, showReset, compact)), compact ? compactContext : context].filter(Boolean).join("  ") ;
++	const candidates = [build(true), build(true, true), build(false), build(false, true), context, compactContext]                                                                                                   ;
++	let output       = fit(candidates.find(candidate => visibleWidth(candidate) <= width) ?? context, width)                                                                                                         ;
+ 	for (const [index, token] of logoTokens.entries()) {
+ 		const logo = logos[index];
+ 		if (logo) output = output.replaceAll(token, `${logo}  `).replaceAll(token.trim(), " ");
+@@ -149,8 +79,8 @@
+ 		}
+ 		return output;
+ 	};
+-	const providerInk = { "openai-codex": a.codex, anthropic: a.claude, google: a.gemini, zai: a.zai } as const;
+-	const active = /^claude/u.test(model) ? "anthropic" : /^gemini/u.test(model) ? "google" : /^glm-/u.test(model) ? "zai" : "openai-codex";
++	const providerInk = { "openai-codex": a.codex, anthropic: a.claude, google: a.gemini, zai: a.zai } as const                                  ;
++	const active      = /^claude/u.test(model) ? "anthropic" : /^gemini/u.test(model) ? "google" : /^glm-/u.test(model) ? "zai" : "openai-codex" ;
+ 	const segment = ([id, name]: typeof providers[number], compact = false): string => {
+ 		const s              = snapshots.find(s => s.provider === id)                                                                                                                                                              ;
+ 		const state          = !s || s.state === "loading" ? "확인 중" : s.state === "auth-required" ? "로그인 필요" : s.state === "unsupported" ? id === "google" ? "연결됨" : "미지원" : s.state === "ready" ? "—" : "조회 실패" ;
+@@ -183,15 +113,15 @@
+ 		const provider = providerInk[id](id === active ? `▸${label}` : label)                                                                                                                         ;
+ 		return `${provider} ${value}${s?.stale ? a.attention("*") : ""}`;
+ 	};
+-	const prefix = "";
+-	const line = providers.map(p => segment(p)).join("  ");
++	const prefix = ""                                        ;
++	const line   = providers.map(p => segment(p)).join("  ") ;
+ 	if (visibleWidth(line) <= width) return [finish(line)];
+ 	const compact = (preservePrefix ? prefix : "") + providers.map(p => segment(p, true)).join("  ");
+ 	if (visibleWidth(compact) <= width) return [finish(compact)];
+ 	const minimal = (preservePrefix ? prefix : "") + providers.map(minimalSegment).join("  ");
+ 	if (visibleWidth(minimal) <= width) return [finish(minimal)];
+-	const rows: string[] = [];
+-	let current = preservePrefix ? prefix : "";
++	const rows: string[] = []                           ;
++	let current          = preservePrefix ? prefix : "" ;
+ 	for (const item of providers.map(minimalSegment)) {
+ 		const candidate = current ? `${current}${current.endsWith("  ") ? "" : "  "}${item}` : item;
+ 		if (current && visibleWidth(candidate) > width) {
+@@ -209,3 +139,78 @@
+ export function wwwUsageLine(snapshots: readonly UsageSnapshot[], width: number, model = "", now = Date.now(), showLogos = false, preservePrefix = false): string {
+ 	return wwwUsageLines(snapshots, width, model, now, showLogos, preservePrefix)[0] ?? "";
+ }
++
++/** A fixed two-cell, one-row placement; files and encoding are cached locally.
++ * Raw Kitty commands intentionally bypass pi-tui's single-image-per-line cache.
++ * The host clears placements on redraw and all image data at shutdown.
++ */
++function logoSequence(index: number, row = 0): string | null {
++	const key    = row * logoAssets.length + index ;
++	const cached = logoSequences.get(key)          ;
++	if (cached !== undefined) return cached;
++	try {
++		const data     = readFileSync(new URL(`../assets/${logoAssets[index]}.png`, import.meta.url))                                 ;
++		const sequence = encodeKitty(data.toString("base64"), { columns: 2, rows: 1, imageId: allocateImageId(), moveCursor: false }) ;
++		logoSequences.set(key, sequence);
++		return sequence;
++	} catch {
++		logoSequences.set(key, null);
++		return null;
++	}
++}
++
++function limitText(limit: UsageLimitSnapshot): string {
++	const percent = limit.remainingPercent                                                                                           ;
++	const value   = typeof percent === "number" && Number.isFinite(percent) ? Math.round(Math.max(0, Math.min(100, percent))) : null ;
++	if (value === null) return a.muted("—");
++	return (value >= 50 ? a.success : value >= 20 ? a.attention : a.failure)(`${value}%`);
++}
++
++function resetIn(timestamp: number | undefined, now: number): string {
++	if (!timestamp || !Number.isFinite(timestamp)) return "";
++	const totalMinutes = Math.max(0, Math.ceil((timestamp - now) / 60_000)) ;
++	const days         = Math.floor(totalMinutes / 1_440)                   ;
++	const hours        = Math.floor((totalMinutes % 1_440) / 60)            ;
++	const minutes      = totalMinutes % 60                                  ;
++	if (days > 0) return `${days}d ${hours}h`;
++	if (hours > 0) return `${hours}h ${String(minutes).padStart(2, "0")}m`;
++	return `${minutes}m`;
++}
++
++function remainingText(limit: UsageLimitSnapshot, now: number): string {
++	const remaining = resetIn(limit.resetsAt, now);
++	return `${limitText(limit)}${remaining ? a.muted(` · ${remaining}`) : ""}`;
++}
++
++function isWeeklyLimit(limit: UsageLimitSnapshot): boolean {
++	return /(?:7\s*(?:days?|d)\b|1\s*week\b|weekly|week|주간|주일)/iu.test(limit.label);
++}
++
++function quotaLimit(snapshot: UsageSnapshot | undefined, window: "overall" | "session"): UsageLimitSnapshot | undefined {
++	if (!snapshot || (snapshot.state !== "ready" && !snapshot.stale)) return undefined;
++	const finite = snapshot.limits.filter(limit => typeof limit.remainingPercent === "number" && Number.isFinite(limit.remainingPercent)) ;
++	const tier   = (limit: UsageLimitSnapshot) => /spark|opus|sonnet/iu.test(limit.label)                                                 ;
++	if (window === "session") return finite.find(limit => /(?:5\s*(?:hours?|h)\b|5시간)/iu.test(limit.label) && !tier(limit));
++	return finite.find(limit => isWeeklyLimit(limit) && !tier(limit)) ?? finite.find(limit => !tier(limit));
++}
++
++function quotaState(snapshot: UsageSnapshot | undefined): string {
++	if (!snapshot || snapshot.state === "loading") return "…";
++	if (snapshot.state === "auth-required") return "login";
++	if (snapshot.state === "unsupported") return snapshot.provider === "google" ? "linked" : "off";
++	return snapshot.state === "ready" ? "—" : "!";
++}
++
++function quotaBar(limit: UsageLimitSnapshot | undefined, state: string, width: number, color: string, label: string, image: boolean): string {
++	const percent = typeof limit?.remainingPercent === "number" && Number.isFinite(limit.remainingPercent)
++		? Math.round(Math.max(0, Math.min(100, limit.remainingPercent))) : null;
++	const value     = percent === null ? state : ""                                        ;
++	const iconWidth = image ? 2 : Math.min(label.length, Math.max(1, width - 2))           ;
++	const cells     = fit(value.padEnd(width - iconWidth), width - iconWidth)              ;
++	const filled    = percent === null ? 0 : Math.round(cells.length * percent / 100)      ;
++	const active    = chalk.bgHex(color).hex("#101419").bold                               ;
++	const empty     = chalk.bgHex(wwwPalette.rule).hex(wwwPalette.text)                    ;
++	const iconColor = image || percent === null || percent === 0 ? wwwPalette.rule : color ;
++	const icon      = chalk.bgHex(iconColor).hex("#101419").bold(fit(label, iconWidth))    ;
++	return `${icon}${active(cells.slice(0, filled))}${empty(cells.slice(filled))}`;
++}

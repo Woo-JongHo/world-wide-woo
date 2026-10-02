@@ -1,0 +1,134 @@
+--- .www/evidence/2026-10-03-feature-template/approval/before/src/adapters/inbound/tui/features/approval/view/approval-overlay.ts	2026-10-03 02:20:55
++++ src/adapters/inbound/tui/features/approval/view/approval-overlay.ts	2026-10-03 02:21:21
+@@ -1,27 +1,24 @@
+-import { Key, matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
+-import type { Component }                                                   from "@earendil-works/pi-tui";
+-import type { NativeApprovalRequest }                                       from "@/core/domain/execution/native-session";
+-import { workbenchApprovalDecisions, workbenchExternalMutationCandidates }  from "@/core/domain/work/workbench";
+-import type { WorkbenchApprovalDecision, WorkbenchExternalMutationKind }    from "@/core/domain/work/workbench";
+-import { colors }                                                           from "@/adapters/inbound/tui/foundation/theme/theme";
+-import type { TuiColors }                                                   from "@/adapters/inbound/tui/foundation/theme/theme";
+-import { projectApprovalRequest }                                           from "@/adapters/inbound/tui/features/approval/view/approval-presentation";
++import      {
++              Key                                 ,
++              matchesKey                          ,
++              truncateToWidth                     ,
++              visibleWidth                        ,
++              wrapTextWithAnsi                    ,
++                                                    } from "@earendil-works/pi-tui"                                              ;
++import type { Component                             } from "@earendil-works/pi-tui"                                              ;
++import type { NativeApprovalRequest                 } from "@/core/domain/execution/native-session"                              ;
++import      {
++              workbenchApprovalDecisions          ,
++              workbenchExternalMutationCandidates ,
++                                                    } from "@/core/domain/work/workbench"                                        ;
++import type {
++              WorkbenchApprovalDecision           ,
++              WorkbenchExternalMutationKind       ,
++                                                    } from "@/core/domain/work/workbench"                                        ;
++import      { colors                                } from "@/adapters/inbound/tui/foundation/theme/theme"                       ;
++import type { TuiColors                             } from "@/adapters/inbound/tui/foundation/theme/theme"                       ;
++import      { projectApprovalRequest                } from "@/adapters/inbound/tui/features/approval/view/approval-presentation" ;
+ 
+-function decisionLabel(decision: WorkbenchApprovalDecision): string {
+-	if (decision === "accept") return "승인";
+-	if (decision === "acceptForSession") return "이번 세션 동안 승인";
+-	if (decision === "decline") return "거절";
+-	if (decision === "cancel") return "중단";
+-	if ("acceptWithExecpolicyAmendment" in decision) return "향후 같은 명령도 허용";
+-	if ("applyNetworkPolicyAmendment" in decision) return "네트워크 정책을 저장하고 허용";
+-	return "서버가 제안한 정책 변경";
+-}
+-
+-function fit(text: string, width: number): string {
+-	const clipped = truncateToWidth(text, Math.max(0, width), "");
+-	return clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)));
+-}
+-
+ /**
+  * Modal decision surface for a pending Native approval.  The decision is a discrete
+  * selection, never parsed from chat text: a sentence that merely mentions approval must
+@@ -51,8 +48,8 @@
+ 	}
+ 
+ 	public render(width: number): string[] {
+-		const inner = Math.max(1, width);
+-		const presentation = projectApprovalRequest(this.request);
++		const inner        = Math.max(1, width)                   ;
++		const presentation = projectApprovalRequest(this.request) ;
+ 		const detail: string[] = [
+ 			this.ui.warning(`승인 필요 · ${presentation.kind}`),
+ 			"",
+@@ -77,8 +74,8 @@
+ 		const inner = Math.max(1, width);
+ 		const options = this.decisions.length > 0
+ 			? this.decisions.map((decision, index) => {
+-				const marker = index === this.selected ? this.ui.accent("▸") : " ";
+-				const label = `${index + 1}. ${decisionLabel(decision)}`;
++				const marker = index === this.selected ? this.ui.accent("▸") : " " ;
++				const label  = `${index + 1}. ${decisionLabel(decision)}`          ;
+ 				return `${marker} ${index === this.selected ? this.ui.text(label) : this.ui.muted(label)}`;
+ 			})
+ 			: [this.ui.muted("이 요청은 결정 선택지를 제공하지 않습니다. /cancel 로 중단하세요.")];
+@@ -128,3 +125,18 @@
+ function mutationKindLabel(kind: WorkbenchExternalMutationKind): string {
+ 	return ({ commit: "커밋", push: "Push", issue: "GitHub Issue", "linear-issue": "Linear Issue", "linear-project-comment": "Linear Project Comment", "linear-project-update": "Linear Project Update", "obsidian-canonical": "Obsidian 정본", "github-pr": "GitHub PR" })[kind];
+ }
++
++function decisionLabel(decision: WorkbenchApprovalDecision): string {
++	if (decision === "accept") return "승인";
++	if (decision === "acceptForSession") return "이번 세션 동안 승인";
++	if (decision === "decline") return "거절";
++	if (decision === "cancel") return "중단";
++	if ("acceptWithExecpolicyAmendment" in decision) return "향후 같은 명령도 허용";
++	if ("applyNetworkPolicyAmendment" in decision) return "네트워크 정책을 저장하고 허용";
++	return "서버가 제안한 정책 변경";
++}
++
++function fit(text: string, width: number): string {
++	const clipped = truncateToWidth(text, Math.max(0, width), "");
++	return clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)));
++}
+--- .www/evidence/2026-10-03-feature-template/approval/before/src/adapters/inbound/tui/features/approval/view/approval-presentation.ts	2026-10-03 02:20:55
++++ src/adapters/inbound/tui/features/approval/view/approval-presentation.ts	2026-10-03 02:21:22
+@@ -1,10 +1,10 @@
+-import { wrapTextWithAnsi }                                from "@earendil-works/pi-tui";
+-import { projectBackgroundWorkState }                      from "@/core/domain/execution/native-session";
+-import type { BackgroundWorkState, NativeApprovalRequest } from "@/core/domain/execution/native-session";
+-import { sanitizeTerminalTextExcerpt }                     from "@/core/domain/execution/terminal";
+-import { workbenchApprovalDecisions }                      from "@/core/domain/work/workbench";
+-import type { WorkbenchSnapshot }                          from "@/core/domain/work/workbench";
+-import { colors }                                          from "@/adapters/inbound/tui/foundation/theme/theme";
++import      { wrapTextWithAnsi                           } from "@earendil-works/pi-tui"                        ;
++import      { projectBackgroundWorkState                 } from "@/core/domain/execution/native-session"        ;
++import type { BackgroundWorkState, NativeApprovalRequest } from "@/core/domain/execution/native-session"        ;
++import      { sanitizeTerminalTextExcerpt                } from "@/core/domain/execution/terminal"              ;
++import      { workbenchApprovalDecisions                 } from "@/core/domain/work/workbench"                  ;
++import type { WorkbenchSnapshot                          } from "@/core/domain/work/workbench"                  ;
++import      { colors                                     } from "@/adapters/inbound/tui/foundation/theme/theme" ;
+ 
+ const APPROVAL_DETAIL_MAX_CHARS = 200;
+ 
+@@ -54,12 +54,6 @@
+ 	};
+ }
+ 
+-function approvalInstruction(request: NativeApprovalRequest): string {
+-	return workbenchApprovalDecisions(request).length > 0
+-		? "승인 선택 화면 · ↑↓ 또는 숫자로 선택 · Enter 결정"
+-		: "이 요청은 결정 선택지를 제공하지 않습니다. /cancel 로 중단하세요.";
+-}
+-
+ export function approvalCardRows(
+ 	request: NativeApprovalRequest,
+ 	queueDepth: number,
+@@ -87,3 +81,9 @@
+ 		return item && typeof item === "object" && !Array.isArray(item) ? [item] : [];
+ 	}));
+ }
++
++function approvalInstruction(request: NativeApprovalRequest): string {
++	return workbenchApprovalDecisions(request).length > 0
++		? "승인 선택 화면 · ↑↓ 또는 숫자로 선택 · Enter 결정"
++		: "이 요청은 결정 선택지를 제공하지 않습니다. /cancel 로 중단하세요.";
++}

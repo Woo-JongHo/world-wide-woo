@@ -1,0 +1,1 @@
+c97ada6d677d8b352be809e12552f6a003364941873f2f12681fa87b875cc020  ./src/adapters/inbound/tui/features/trace/view/workbench-tracer-view.ts

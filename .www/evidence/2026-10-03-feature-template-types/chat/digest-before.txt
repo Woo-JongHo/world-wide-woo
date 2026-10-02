@@ -1,0 +1,5 @@
+02fb9efd6b22152365373afc9510291ef65e0a7b9fc38def129a707fac402245  ./src/adapters/inbound/tui/features/chat/view-model/bounded-public-projection.ts
+56cc541515031b6841b470653ad9856cbaf8a5a1e050ea580fe0a63ce3d996ba  ./src/adapters/inbound/tui/features/chat/view/chat-output-policy.ts
+9ad51daed80b632fbe312cd545c72d143b2a664e3ad46d81bbe37edec136684e  ./src/adapters/inbound/tui/features/chat/view/delegation-tree-view.ts
+8b6898438ae9272a48fe9909dc907cca347c72d44acd2117a8f7aaa998f6858e  ./src/adapters/inbound/tui/features/chat/view/work-step-components.ts
+27c811439b3d41d317ad0259e30f2843b54a8221ff26840c6f3a4558a40df39d  ./src/adapters/inbound/tui/features/chat/view/work-step-output-renderer.ts

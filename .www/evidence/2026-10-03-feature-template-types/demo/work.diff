@@ -1,0 +1,20 @@
+--- .www/evidence/2026-10-03-feature-template-types/demo/before/src/adapters/inbound/tui/features/demo/view-model/www-demo.ts	2026-10-03 06:59:05
++++ src/adapters/inbound/tui/features/demo/view-model/www-demo.ts	2026-10-03 06:59:30
+@@ -5,14 +5,14 @@
+ import type { WorkbenchSnapshot    } from "@/core/domain/work/workbench"                  ;
+ import type { UsageSnapshot        } from "@/core/ports/observability/usage-monitor-port" ;
+ 
+-export const WWW_DEMO_PAGES = ["execution", "dashboard", "usage", "workflow", "plan"] as const;
+-export type WwwDemoPage = typeof WWW_DEMO_PAGES[number];
+-
+ export interface WwwDemoState {
+ 	readonly snapshot: WorkbenchSnapshot;
+ 	readonly usage: readonly UsageSnapshot[];
+ }
+ 
++export const WWW_DEMO_PAGES = ["execution", "dashboard", "usage", "workflow", "plan"] as const;
++export type WwwDemoPage = typeof WWW_DEMO_PAGES[number];
++
+ export function createWwwDemoState(_base: WorkbenchSnapshot, clock = Date.now): WwwDemoState {
+ 	const now = clock(), activities = demoActivities();
+ 	const snapshot: WorkbenchSnapshot = {

@@ -1,0 +1,16 @@
+--- .www/evidence/2026-10-03-feature-template-types/session/before/src/adapters/inbound/tui/features/session/view-model/dashboard-session-window.ts	2026-10-03 06:59:56
++++ src/adapters/inbound/tui/features/session/view-model/dashboard-session-window.ts	2026-10-03 07:00:21
+@@ -1,11 +1,11 @@
+-export const DASHBOARD_SESSION_WINDOW_SIZE = 10;
+-
+ export interface DashboardSessionWindow {
+ 	readonly selectedIndex : number ;
+ 	readonly start         : number ;
+ 	readonly end           : number ;
+ }
+ 
++export const DASHBOARD_SESSION_WINDOW_SIZE = 10;
++
+ /** Keeps the keyboard-selected session inside the rows rendered by Dashboard. */
+ export function dashboardSessionWindow(
+ 	total: number,

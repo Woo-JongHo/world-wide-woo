@@ -1,0 +1,28 @@
+--- .www/evidence/2026-10-03-feature-template/test/before/src/adapters/inbound/tui/features/test/view/www-test-view.ts	2026-10-03 02:24:26
++++ src/adapters/inbound/tui/features/test/view/www-test-view.ts	2026-10-03 02:24:52
+@@ -7,18 +7,18 @@
+                                            } from "@/core/domain/observability/request-test-workspace" ;
+ import type { WorkbenchSnapshot            } from "@/core/domain/work/workbench"                       ;
+ import type { PlanActivity                 } from "@/core/domain/work/workbench"                       ;
+-import type { OutputLanguage                } from "@/core/domain/execution/output-language"            ;
++import type { OutputLanguage               } from "@/core/domain/execution/output-language"            ;
+ import      { a, fit, oneLine, prose, safe } from "@/adapters/inbound/tui/foundation/theme/www-theme"  ;
+ 
+-const count       = (value: number | null): string => value === null ? "—" : String(value)                                                                                                                                          ;
+-const elapsed     = (value: number | null): string => value === null ? "—" : value < 1000 ? `${value}ms` : value < 60_000 ? `${(value / 1000).toFixed(1)}s` : `${Math.floor(value / 60_000)}m${Math.floor(value % 60_000 / 1000)}s` ;
+-const symbol      = (status: ObservedTestRun["status"]): string => status === "passed" ? "✓" : status === "failed" ? "!" : status === "running" ? "●" : "○"                                                                         ;
++const count   = (value: number | null): string => value === null ? "—" : String(value)                                                                                                                                          ;
++const elapsed = (value: number | null): string => value === null ? "—" : value < 1000 ? `${value}ms` : value < 60_000 ? `${(value / 1000).toFixed(1)}s` : `${Math.floor(value / 60_000)}m${Math.floor(value % 60_000 / 1000)}s` ;
++const symbol  = (status: ObservedTestRun["status"]): string => status === "passed" ? "✓" : status === "failed" ? "!" : status === "running" ? "●" : "○"                                                                         ;
+ const statusLabel = (run: ObservedTestRun, language: OutputLanguage): string => language === "en"
+ 	? run.status === "passed" && (run.pass === null || run.fail === null) ? "COMPLETED" : run.status.toUpperCase()
+ 	: run.status === "passed" && (run.pass === null || run.fail === null) ? "완료" : ({ running: "진행 중", passed: "통과", failed: "실패", unknown: "미확정" } as const)[run.status] ;
+-const colorStatus = (line: string): string => line.replace(/^[✓!●○]/u, glyph => glyph === "✓" ? a.success(glyph) : glyph === "!" ? a.failure(glyph) : glyph === "●" ? a.active(glyph) : a.muted(glyph))                             ;
+-const result      = (run: ObservedTestRun): string => run.pass === null || run.fail === null || run.skip === null ? "—" : `${run.pass} / ${run.pass + run.fail + run.skip}`                                                         ;
+-const suiteResult = (suite: ObservedTestSuite): string => `${suite.pass} / ${suite.pass + suite.fail + suite.skip}${suite.fail ? " !" : ""}`                                                                                        ;
++const colorStatus = (line: string): string => line.replace(/^[✓!●○]/u, glyph => glyph === "✓" ? a.success(glyph) : glyph === "!" ? a.failure(glyph) : glyph === "●" ? a.active(glyph) : a.muted(glyph)) ;
++const result      = (run: ObservedTestRun): string => run.pass === null || run.fail === null || run.skip === null ? "—" : `${run.pass} / ${run.pass + run.fail + run.skip}`                             ;
++const suiteResult = (suite: ObservedTestSuite): string => `${suite.pass} / ${suite.pass + suite.fail + suite.skip}${suite.fail ? " !" : ""}`                                                            ;
+ const row = (name: string, value: string, time: string, width: number): string => {
+ 	const timeWidth  = 7                                               ;
+ 	const valueWidth = 12                                              ;

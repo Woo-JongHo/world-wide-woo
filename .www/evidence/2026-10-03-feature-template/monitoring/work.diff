@@ -1,0 +1,596 @@
+--- .www/evidence/2026-10-03-feature-template/monitoring/before/src/adapters/inbound/tui/features/monitoring/view/monitoring-overlay.ts	2026-10-03 02:30:58
++++ src/adapters/inbound/tui/features/monitoring/view/monitoring-overlay.ts	2026-10-03 02:31:23
+@@ -1,50 +1,16 @@
+-import { Key, matchesKey, truncateToWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
+-import type { Component }                                     from "@earendil-works/pi-tui";
+-import type { MonitoringSource }                              from "@/core/application/session/session-monitor";
+-import type { MonitoringSnapshot, MonitoringTool }            from "@/core/domain/observability/monitoring";
+-import { colors, semantic }                                   from "@/adapters/inbound/tui/foundation/theme/theme";
++import      {
++              Key                              ,
++              matchesKey                       ,
++              truncateToWidth                  ,
++              wrapTextWithAnsi                 ,
++                                                 } from "@earendil-works/pi-tui"                        ;
++import type { Component                          } from "@earendil-works/pi-tui"                        ;
++import type { MonitoringSource                   } from "@/core/application/session/session-monitor"    ;
++import type { MonitoringSnapshot, MonitoringTool } from "@/core/domain/observability/monitoring"        ;
++import      { colors, semantic                   } from "@/adapters/inbound/tui/foundation/theme/theme" ;
+ 
+ type ObservedStatus = "RUNNING" | "COMPLETED" | "FAILED" | "CANCELLED" | "UNKNOWN";
+ 
+-function elapsed(milliseconds: number): string {
+-	const seconds = Math.max(0, Math.floor(milliseconds / 1_000));
+-	const minutes = Math.floor(seconds / 60);
+-	return minutes > 0 ? `${minutes}m ${seconds % 60}s` : `${seconds}s`;
+-}
+-
+-function rowsWrapped(rows: readonly string[], width: number): string[] {
+-	return rows.flatMap(row => row ? wrapTextWithAnsi(row, Math.max(1, width)) : [""]);
+-}
+-
+-function sessionStatus(snapshot: MonitoringSnapshot): ObservedStatus {
+-	if (snapshot.phase === "error") return "FAILED";
+-	if (snapshot.phase === "streaming" || snapshot.tools.running > 0) return "RUNNING";
+-	if (snapshot.phase === "ready" && (snapshot.turns.user > 0 || snapshot.turns.assistant > 0)) return "COMPLETED";
+-	return "UNKNOWN";
+-}
+-
+-function toolStatus(tool: MonitoringTool | null): ObservedStatus {
+-	if (!tool) return "UNKNOWN";
+-	if (tool.status === "running") return "RUNNING";
+-	if (tool.status === "passed") return "COMPLETED";
+-	if (tool.status === "failed") return "FAILED";
+-	return "CANCELLED";
+-}
+-
+-function todoStatus(snapshot: MonitoringSnapshot): ObservedStatus {
+-	if (snapshot.todo.activeContent) return "RUNNING";
+-	if (snapshot.todo.total > 0 && snapshot.todo.completed >= snapshot.todo.total) return "COMPLETED";
+-	return "UNKNOWN";
+-}
+-
+-function statusText(status: ObservedStatus): string {
+-	if (status === "RUNNING") return semantic.toolRunning(status);
+-	if (status === "COMPLETED") return semantic.toolPassed(status);
+-	if (status === "FAILED") return semantic.toolFailed(status);
+-	if (status === "CANCELLED") return semantic.toolCancelled(status);
+-	return colors.warning(status);
+-}
+-
+ export class MonitoringOverlay implements Component {
+ 	private snapshot: MonitoringSnapshot;
+ 	private unsubscribe: (() => void) | null = null;
+@@ -119,3 +85,42 @@
+ 		this.onClose();
+ 	}
+ }
++
++function elapsed(milliseconds: number): string {
++	const seconds = Math.max(0, Math.floor(milliseconds / 1_000)) ;
++	const minutes = Math.floor(seconds / 60)                      ;
++	return minutes > 0 ? `${minutes}m ${seconds % 60}s` : `${seconds}s`;
++}
++
++function rowsWrapped(rows: readonly string[], width: number): string[] {
++	return rows.flatMap(row => row ? wrapTextWithAnsi(row, Math.max(1, width)) : [""]);
++}
++
++function sessionStatus(snapshot: MonitoringSnapshot): ObservedStatus {
++	if (snapshot.phase === "error") return "FAILED";
++	if (snapshot.phase === "streaming" || snapshot.tools.running > 0) return "RUNNING";
++	if (snapshot.phase === "ready" && (snapshot.turns.user > 0 || snapshot.turns.assistant > 0)) return "COMPLETED";
++	return "UNKNOWN";
++}
++
++function toolStatus(tool: MonitoringTool | null): ObservedStatus {
++	if (!tool) return "UNKNOWN";
++	if (tool.status === "running") return "RUNNING";
++	if (tool.status === "passed") return "COMPLETED";
++	if (tool.status === "failed") return "FAILED";
++	return "CANCELLED";
++}
++
++function todoStatus(snapshot: MonitoringSnapshot): ObservedStatus {
++	if (snapshot.todo.activeContent) return "RUNNING";
++	if (snapshot.todo.total > 0 && snapshot.todo.completed >= snapshot.todo.total) return "COMPLETED";
++	return "UNKNOWN";
++}
++
++function statusText(status: ObservedStatus): string {
++	if (status === "RUNNING") return semantic.toolRunning(status);
++	if (status === "COMPLETED") return semantic.toolPassed(status);
++	if (status === "FAILED") return semantic.toolFailed(status);
++	if (status === "CANCELLED") return semantic.toolCancelled(status);
++	return colors.warning(status);
++}
+--- .www/evidence/2026-10-03-feature-template/monitoring/before/src/adapters/inbound/tui/features/monitoring/view/request-runtime-view.ts	2026-10-03 02:30:58
++++ src/adapters/inbound/tui/features/monitoring/view/request-runtime-view.ts	2026-10-03 02:31:25
+@@ -1,6 +1,13 @@
+ import chalk                                            from "chalk";
+-import type { RequestRuntimeRecord }                    from "@/core/domain/execution/request-runtime";
+-import { a, fit, joinedSections, prose, safe, section } from "@/adapters/inbound/tui/foundation/theme/www-theme";
++import type { RequestRuntimeRecord } from "@/core/domain/execution/request-runtime"           ;
++import      {
++              a                  ,
++              fit                ,
++              joinedSections     ,
++              prose              ,
++              safe               ,
++              section            ,
++                                   } from "@/adapters/inbound/tui/foundation/theme/www-theme" ;
+ 
+ type StatusGradient = { readonly base: readonly [number, number, number]; readonly peak: readonly [number, number, number] };
+ const statusGradient: Partial<Record<RequestRuntimeRecord["status"], StatusGradient>> = {
+@@ -14,8 +21,8 @@
+ 	if (!palette) return (status === "failed" ? a.failure : status === "blocked" ? a.attention : a.muted)(text);
+ 	const characters = Array.from(text);
+ 	return characters.map((character, column) => {
+-		const light = Math.max(0, 1 - Math.abs(column - frame % (characters.length + 6) + 3) / 4);
+-		const rgb = palette.base.map((channel, index) => Math.round(channel + (palette.peak[index] - channel) * light));
++		const light = Math.max(0, 1 - Math.abs(column - frame % (characters.length + 6) + 3) / 4)                         ;
++		const rgb   = palette.base.map((channel, index) => Math.round(channel + (palette.peak[index] - channel) * light)) ;
+ 		return chalk.rgb(rgb[0], rgb[1], rgb[2])(character);
+ 	}).join("");
+ }
+@@ -44,27 +51,6 @@
+ 	return "○";
+ }
+ 
+-function observedCheckpoints(request: RequestRuntimeRecord) {
+-	if (request.checkpoints?.length) return request.checkpoints;
+-	const stages = request.stages;
+-	const understand = stages.find(stage => stage.id === "UNDERSTAND");
+-	const work = stages.filter(stage => ["DECOMPOSE", "GROUND", "DECIDE", "EXECUTE", "VERIFY"].includes(stage.id));
+-	const result = stages.find(stage => stage.id === "DELIVER");
+-	const legacy = (id: "UNDERSTAND" | "WORK" | "RESULT", status: string | undefined, summary: string | null) => ({
+-		id,
+-		status: status === "completed" ? "observed" as const : status === "running" ? "running" as const : status === "failed" ? "failed" as const : status === "blocked" ? "failed" as const : "unobserved" as const,
+-		summary,
+-		activityIds: [],
+-		observedAt: null,
+-	});
+-	const workStage = work.find(stage => stage.status === "running" || stage.status === "failed" || stage.status === "blocked") ?? work.findLast(stage => stage.status === "completed");
+-	return [
+-		legacy("UNDERSTAND", understand?.status, understand?.output || understand?.goal || "과거 기록에서 요청 요약 확인"),
+-		legacy("WORK", workStage?.status, workStage?.output || workStage?.goal || "과거 단계 기록을 세 구간으로 요약"),
+-		legacy("RESULT", result?.status, result?.output || result?.goal || "과거 결과 기록 미관측"),
+-	];
+-}
+-
+ export function requestRuntimeRows(
+ 	request: RequestRuntimeRecord,
+ 	width: number,
+@@ -74,18 +60,39 @@
+ 	activityRows?: readonly string[],
+ 	nativePlanRows?: readonly string[],
+ ): string[] {
+-	const checkpoints = observedCheckpoints(request);
+-	const stages = [...section("UNDERSTAND · WORK · RESULT", width, request.status, a.plan)];
++	const checkpoints = observedCheckpoints(request)                                              ;
++	const stages      = [...section("UNDERSTAND · WORK · RESULT", width, request.status, a.plan)] ;
+ 	for (const item of checkpoints) {
+-		const status = item.status === "observed" ? "completed" : item.status === "failed" ? "failed" : item.status === "running" ? "running" : "pending";
+-		const summary = item.summary || (item.status === "pending" ? "미관측" : "관측 내용 없음");
++		const status  = item.status === "observed" ? "completed" : item.status === "failed" ? "failed" : item.status === "running" ? "running" : "pending" ;
++		const summary = item.summary || (item.status === "pending" ? "미관측" : "관측 내용 없음")                                                          ;
+ 		stages.push(...prose(`${stageInk(status)(stageMark(status))} ${a.strong(item.id)}  ${safe(summary)}`, width));
+ 	}
+ 	const decision = request.planDecision;
+ 	const plan = nativePlanRows ?? (decision
+ 		? [...section("PLAN", width, decision.required ? "Native Plan 대기" : "Plan 불필요", a.plan), ...prose(a.muted(decision.reason), width)]
+ 		: [...section("PLAN", width, request.protocolVersion === 4 ? "판단 대기" : "Native Plan 미관측", a.plan)]);
+-	const progress  = activityRows ?? [...section("PROGRESS", width, "", a.info), ...prose(a.muted("Native 활동 미관측"), width)] ;
+-	const issues = (compact ? request.issues.slice(-1) : request.issues).flatMap(issue => prose(a.attention(safe(issue)), width)) ;
++	const progress = activityRows ?? [...section("PROGRESS", width, "", a.info), ...prose(a.muted("Native 활동 미관측"), width)]    ;
++	const issues   = (compact ? request.issues.slice(-1) : request.issues).flatMap(issue => prose(a.attention(safe(issue)), width)) ;
+ 	return joinedSections([stages, plan, progress, issues]).map(row => fit(row, width));
+ }
++
++function observedCheckpoints(request: RequestRuntimeRecord) {
++	if (request.checkpoints?.length) return request.checkpoints;
++	const stages     = request.stages                                                                                    ;
++	const understand = stages.find(stage => stage.id === "UNDERSTAND")                                                   ;
++	const work       = stages.filter(stage => ["DECOMPOSE", "GROUND", "DECIDE", "EXECUTE", "VERIFY"].includes(stage.id)) ;
++	const result     = stages.find(stage => stage.id === "DELIVER")                                                      ;
++	const legacy = (id: "UNDERSTAND" | "WORK" | "RESULT", status: string | undefined, summary: string | null) => ({
++		id,
++		status: status === "completed" ? "observed" as const : status === "running" ? "running" as const : status === "failed" ? "failed" as const : status === "blocked" ? "failed" as const : "unobserved" as const,
++		summary,
++		activityIds: [],
++		observedAt: null,
++	});
++	const workStage = work.find(stage => stage.status === "running" || stage.status === "failed" || stage.status === "blocked") ?? work.findLast(stage => stage.status === "completed");
++	return [
++		legacy("UNDERSTAND", understand?.status, understand?.output || understand?.goal || "과거 기록에서 요청 요약 확인"),
++		legacy("WORK", workStage?.status, workStage?.output || workStage?.goal || "과거 단계 기록을 세 구간으로 요약"),
++		legacy("RESULT", result?.status, result?.output || result?.goal || "과거 결과 기록 미관측"),
++	];
++}
+--- .www/evidence/2026-10-03-feature-template/monitoring/before/src/adapters/inbound/tui/features/monitoring/view/workbench-monitor-view.ts	2026-10-03 02:30:58
++++ src/adapters/inbound/tui/features/monitoring/view/workbench-monitor-view.ts	2026-10-03 02:31:26
+@@ -2,17 +2,52 @@
+  * Temporary compatibility home for Monitoring while the execution UI is split
+  * into feature-owned modules. The Monitoring feature integrator moves this file.
+  */
+-import { wrapTextWithAnsi }                      from "@earendil-works/pi-tui";
+-import type { Component }                        from "@earendil-works/pi-tui";
+-import type { ProjectActivity }                  from "@/core/domain/execution/project-activity";
+-import { sanitizeTerminalTextExcerpt }           from "@/core/domain/execution/terminal";
+-import { projectNativeDelegation }               from "@/core/domain/work";
+-import type { SemanticWorkStep, WorkStepStatus } from "@/core/domain/work";
+-import type { WorkbenchSnapshot }                from "@/core/domain/work/workbench";
+-import { colors }                                from "@/adapters/inbound/tui/foundation/theme/theme";
++import      { wrapTextWithAnsi                 } from "@earendil-works/pi-tui"                        ;
++import type { Component                        } from "@earendil-works/pi-tui"                        ;
++import type { ProjectActivity                  } from "@/core/domain/execution/project-activity"      ;
++import      { sanitizeTerminalTextExcerpt      } from "@/core/domain/execution/terminal"              ;
++import      { projectNativeDelegation          } from "@/core/domain/work"                            ;
++import type { SemanticWorkStep, WorkStepStatus } from "@/core/domain/work"                            ;
++import type { WorkbenchSnapshot                } from "@/core/domain/work/workbench"                  ;
++import      { colors                           } from "@/adapters/inbound/tui/foundation/theme/theme" ;
+ 
+ const PUBLIC_SOURCE_OMISSION = "… 공개 Source 일부 생략 …";
+ 
++/** Read-only execution projection; it deliberately does not own a session or transcript. */
++export class WorkbenchMonitorView implements Component {
++	constructor(private readonly getSnapshot: () => WorkbenchSnapshot) {}
++	invalidate(): void {}
++	render(width: number): string[] {
++		const snapshot     = this.getSnapshot() ;
++		const contentWidth = Math.max(1, width) ;
++		const currentStep = snapshot.workFlow.currentStepNumber === null
++			? null
++			: snapshot.workFlow.steps.find(step => step.number === snapshot.workFlow.currentStepNumber);
++		const run = snapshot.executionRun;
++		const live = run?.activeActivity
++			? `${run.activeActivity.kind} · ${sanitizeTerminalTextExcerpt(run.activeActivity.text || run.activeActivity.method, 180, "head-tail")}`
++			: snapshot.liveActivity
++				? `${snapshot.liveActivity.kind} · ${sanitizeTerminalTextExcerpt(snapshot.liveActivity.text || snapshot.liveActivity.method, 180, "head-tail")}`
++				: "대기 중인 실행 없음";
++		const rows = [
++			colors.accent("Monitor · 실행 관측"),
++			colors.muted("읽기 전용 · Chat과 Todo는 같은 Workbench 상태를 사용합니다."), "",
++			`${colors.secondary("Activity")} · ${snapshot.activityCount ?? snapshot.activities.length}개 · journal ${snapshot.journalSequence}`,
++			`${colors.secondary("Turn")} · ${currentStep ? `${currentStep.number}/${snapshot.workFlow.steps.length} · ${currentStep.title}` : "진행 단계 없음"}`,
++			`${colors.secondary("Live")} · ${live}`,
++			...(run ? [`${colors.secondary("Run")} · ${run.runId} · ${run.phase}${run.receipt ? ` · receipt ${run.receipt.receiptDigest}` : ` · checkpoint ${run.checkpoint.digest}`}`] : []),
++			`${colors.secondary("Queue")} · ${snapshot.chatQueue.length}개${snapshot.pendingApproval ? " · 승인 대기" : ""}`,
++			`${colors.secondary("MCP")} · ${snapshot.mcpServers.length === 0 ? "서버 없음" : snapshot.mcpServers.map(server => `${server.name} ${server.enabled ? "활성" : "비활성"} · ${server.status} · 도구 ${server.tools.length}개`).join(" | ")}`,
++			`${colors.secondary("Delegation")} · ${projectNativeDelegation(snapshot.activities, snapshot.threadId).length}개 실행 그룹`,
++			"", ...monitorTraceRows(snapshot, contentWidth), "", ...selectedSourceRows(snapshot, contentWidth),
++			...(snapshot.resumeCoverage?.mode === "partial-local-journal"
++				? [colors.warning("관측 범위 · 재개 뒤 이 프로세스가 수집한 Activity만 표시합니다.")]
++				: []),
++		];
++		return rows.flatMap(row => wrapTextWithAnsi(row, contentWidth));
++	}
++}
++
+ function hiddenKey(key: string): boolean {
+ 	const normalized = key.replace(/[-_]/gu, "").toLowerCase();
+ 	return normalized.includes("reasoning") || normalized.includes("thought") || normalized.includes("analysis")
+@@ -22,8 +57,8 @@
+ }
+ 
+ function boundedPublicProjection(value: unknown): { readonly value: unknown; readonly omitted: boolean } {
+-	let omitted = false;
+-	let items = 0;
++	let omitted = false ;
++	let items   = 0     ;
+ 	const project = (candidate: unknown, depth: number): unknown => {
+ 		if (typeof candidate === "string") {
+ 			if (candidate.length <= 2_400) return sanitizeTerminalTextExcerpt(candidate, 2_400, "head-tail");
+@@ -121,8 +156,8 @@
+ 		colors.warning("Trace·Source · 선택한 Activity의 원본 부재"),
+ 		colors.muted(`activityId ${snapshot.selectedActivityId} · 다른 실행으로 대신하지 않았습니다.`),
+ 	];
+-	const projection = boundedPublicProjection(selected.payload);
+-	const serialized = JSON.stringify(projection.value, null, 2);
++	const projection = boundedPublicProjection(selected.payload) ;
++	const serialized = JSON.stringify(projection.value, null, 2) ;
+ 	const publicRows = serialized
+ 		? serialized.split(/\r?\n/u).flatMap(line => wrapTextWithAnsi(line, width))
+ 		: [colors.muted("보존된 공개 내용 없음")];
+@@ -135,38 +170,3 @@
+ 		colors.muted("이 화면은 provider 원본 전체가 아니라 보존된 공개 관측만 보여줍니다."),
+ 	].flatMap(row => wrapTextWithAnsi(row, width));
+ }
+-
+-/** Read-only execution projection; it deliberately does not own a session or transcript. */
+-export class WorkbenchMonitorView implements Component {
+-	constructor(private readonly getSnapshot: () => WorkbenchSnapshot) {}
+-	invalidate(): void {}
+-	render(width: number): string[] {
+-		const snapshot = this.getSnapshot();
+-		const contentWidth = Math.max(1, width);
+-		const currentStep = snapshot.workFlow.currentStepNumber === null
+-			? null
+-			: snapshot.workFlow.steps.find(step => step.number === snapshot.workFlow.currentStepNumber);
+-		const run = snapshot.executionRun;
+-		const live = run?.activeActivity
+-			? `${run.activeActivity.kind} · ${sanitizeTerminalTextExcerpt(run.activeActivity.text || run.activeActivity.method, 180, "head-tail")}`
+-			: snapshot.liveActivity
+-				? `${snapshot.liveActivity.kind} · ${sanitizeTerminalTextExcerpt(snapshot.liveActivity.text || snapshot.liveActivity.method, 180, "head-tail")}`
+-				: "대기 중인 실행 없음";
+-		const rows = [
+-			colors.accent("Monitor · 실행 관측"),
+-			colors.muted("읽기 전용 · Chat과 Todo는 같은 Workbench 상태를 사용합니다."), "",
+-			`${colors.secondary("Activity")} · ${snapshot.activityCount ?? snapshot.activities.length}개 · journal ${snapshot.journalSequence}`,
+-			`${colors.secondary("Turn")} · ${currentStep ? `${currentStep.number}/${snapshot.workFlow.steps.length} · ${currentStep.title}` : "진행 단계 없음"}`,
+-			`${colors.secondary("Live")} · ${live}`,
+-			...(run ? [`${colors.secondary("Run")} · ${run.runId} · ${run.phase}${run.receipt ? ` · receipt ${run.receipt.receiptDigest}` : ` · checkpoint ${run.checkpoint.digest}`}`] : []),
+-			`${colors.secondary("Queue")} · ${snapshot.chatQueue.length}개${snapshot.pendingApproval ? " · 승인 대기" : ""}`,
+-			`${colors.secondary("MCP")} · ${snapshot.mcpServers.length === 0 ? "서버 없음" : snapshot.mcpServers.map(server => `${server.name} ${server.enabled ? "활성" : "비활성"} · ${server.status} · 도구 ${server.tools.length}개`).join(" | ")}`,
+-			`${colors.secondary("Delegation")} · ${projectNativeDelegation(snapshot.activities, snapshot.threadId).length}개 실행 그룹`,
+-			"", ...monitorTraceRows(snapshot, contentWidth), "", ...selectedSourceRows(snapshot, contentWidth),
+-			...(snapshot.resumeCoverage?.mode === "partial-local-journal"
+-				? [colors.warning("관측 범위 · 재개 뒤 이 프로세스가 수집한 Activity만 표시합니다.")]
+-				: []),
+-		];
+-		return rows.flatMap(row => wrapTextWithAnsi(row, contentWidth));
+-	}
+-}
+--- .www/evidence/2026-10-03-feature-template/monitoring/before/src/adapters/inbound/tui/features/monitoring/view/workbench-telemetry.ts	2026-10-03 02:30:58
++++ src/adapters/inbound/tui/features/monitoring/view/workbench-telemetry.ts	2026-10-03 02:31:27
+@@ -1,10 +1,13 @@
+-import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
+-import type { Component }                from "@earendil-works/pi-tui";
++import      {
++              truncateToWidth             ,
++              visibleWidth                ,
++                                            } from "@earendil-works/pi-tui"                                  ;
++import type { Component                     } from "@earendil-works/pi-tui"                                  ;
+ import type {
+-	WorkbenchGitTelemetry,
+-	WorkbenchGitTelemetryReader,
+-} from "@/core/ports/observability/workbench-git-telemetry-port";
+-import { colors }                        from "@/adapters/inbound/tui/foundation/theme/theme";
++              WorkbenchGitTelemetry       ,
++              WorkbenchGitTelemetryReader ,
++                                            } from "@/core/ports/observability/workbench-git-telemetry-port" ;
++import      { colors                        } from "@/adapters/inbound/tui/foundation/theme/theme"           ;
+ 
+ export { workbenchModelLabel } from "@/adapters/inbound/tui/foundation/labels";
+ import { workbenchModelLabel } from "@/adapters/inbound/tui/foundation/labels";
+@@ -15,22 +18,6 @@
+ 	readonly home : string                       ;
+ }
+ 
+-function projectPath(cwd: string, home: string): string {
+-	if (cwd === home) return "~";
+-	if (cwd.startsWith(`${home}/`) || cwd.startsWith(`${home}\\`)) return `~${cwd.slice(home.length)}`;
+-	return cwd;
+-}
+-
+-function gitLabel(git: WorkbenchGitTelemetry | null): string {
+-	if (!git) return "–";
+-	const changes = [
+-		git.staged > 0 ? `+${git.staged}` : "",
+-		git.unstaged > 0 ? `*${git.unstaged}` : "",
+-		git.untracked > 0 ? `?${git.untracked}` : "",
+-	].filter(Boolean).join(" ");
+-	return `${git.branch ?? "HEAD"}${changes ? ` ${changes}` : ""}`;
+-}
+-
+ /** One-line operational telemetry. Unknown Native values are never guessed. */
+ export function formatWorkbenchTelemetry(source: WorkbenchTelemetrySource, width: number): string {
+ 	const output = [
+@@ -79,3 +66,19 @@
+ 		return [line + " ".repeat(Math.max(0, width - visibleWidth(line)))];
+ 	}
+ }
++
++function projectPath(cwd: string, home: string): string {
++	if (cwd === home) return "~";
++	if (cwd.startsWith(`${home}/`) || cwd.startsWith(`${home}\\`)) return `~${cwd.slice(home.length)}`;
++	return cwd;
++}
++
++function gitLabel(git: WorkbenchGitTelemetry | null): string {
++	if (!git) return "–";
++	const changes = [
++		git.staged > 0 ? `+${git.staged}` : "",
++		git.unstaged > 0 ? `*${git.unstaged}` : "",
++		git.untracked > 0 ? `?${git.untracked}` : "",
++	].filter(Boolean).join(" ");
++	return `${git.branch ?? "HEAD"}${changes ? ` ${changes}` : ""}`;
++}
+--- .www/evidence/2026-10-03-feature-template/monitoring/before/src/adapters/inbound/tui/features/monitoring/view/www-monitor-view.ts	2026-10-03 02:30:58
++++ src/adapters/inbound/tui/features/monitoring/view/www-monitor-view.ts	2026-10-03 02:31:28
+@@ -1,75 +1,28 @@
+-import      { visibleWidth } from "@earendil-works/pi-tui"                         ;
+-import type { Component                } from "@earendil-works/pi-tui"                            ;
+-import type { RuntimeMonitorProjection } from "@/core/domain/observability/runtime-monitor"       ;
+-import type { RequestRuntimeRecord     } from "@/core/domain/execution/request-runtime"           ;
+-import type { OutputLanguage           } from "@/core/domain/execution/output-language"            ;
+-import type { ProjectActivity          } from "@/core/domain/execution/project-activity"          ;
+-import type { WorkbenchSnapshot        } from "@/core/domain/work/workbench"                      ;
++import      { visibleWidth                } from "@earendil-works/pi-tui"                             ;
++import type { Component                   } from "@earendil-works/pi-tui"                             ;
++import type { RuntimeMonitorProjection    } from "@/core/domain/observability/runtime-monitor"        ;
++import type { RequestRuntimeRecord        } from "@/core/domain/execution/request-runtime"            ;
++import type { OutputLanguage              } from "@/core/domain/execution/output-language"            ;
++import type { ProjectActivity             } from "@/core/domain/execution/project-activity"           ;
++import type { WorkbenchSnapshot           } from "@/core/domain/work/workbench"                       ;
+ import      { projectRequestTestWorkspace } from "@/core/domain/observability/request-test-workspace" ;
+-import type { ObservedTestRun           } from "@/core/domain/observability/request-test-workspace" ;
++import type { ObservedTestRun             } from "@/core/domain/observability/request-test-workspace" ;
+ import      {
+-              runtimeModeLabel       ,
+-              workbenchEffortLabel   ,
+-              workbenchModelLabel    ,
+-                                       } from "@/adapters/inbound/tui/foundation/labels"          ;
++              runtimeModeLabel          ,
++              workbenchEffortLabel      ,
++              workbenchModelLabel       ,
++                                          } from "@/adapters/inbound/tui/foundation/labels"           ;
+ import      {
+-              a                      ,
+-              duration               ,
+-              fit                    ,
+-              pair                   ,
+-              prose                  ,
+-              safe                   ,
+-              section                ,
+-              telemetryDuration      ,
+-              wwwTitle               ,
+-                                       } from "@/adapters/inbound/tui/foundation/theme/www-theme" ;
+-
+-function document(rows: string[], width: number): string[] { return rows.flatMap(row => prose(row, width)); }
+-function kv(label: string, value: unknown): string { return `${a.muted(fit(label, 20))} ${a.text(safe(value ?? "—"))}`; }
+-function idleHeader(label: string, width: number, ink = a.muted): string {
+-	const title = ink(label);
+-	return `${title} ${a.rule("─".repeat(Math.max(0, width - visibleWidth(title) - 1)))}`;
+-}
+-function idleRow(label: string, value: unknown, width: number): string {
+-	const labelWidth = Math.min(12, Math.max(8, Math.floor(width * 0.36)));
+-	return `${a.muted(fit(label, labelWidth))}${a.text(fit(safe(value ?? "—"), Math.max(0, width - labelWidth)))}`;
+-}
+-function testRow(label: string, time: string, pass: string, fail: string, width: number, passWidth = 3, failWidth = 3): string {
+-	const columns   = `${fit(time, 6).padStart(6)} ${fit(pass, passWidth).padStart(passWidth)} ${fit(fail, failWidth).padStart(failWidth)}` ;
+-	const nameWidth = Math.max(6, width - visibleWidth(columns) - 1)                                                                        ;
+-	const name      = fit(safe(label), nameWidth)                                                                                           ;
+-	return `${name}${" ".repeat(Math.max(0, nameWidth - visibleWidth(name)))} ${columns}`;
+-}
+-function testCommand(command: string): string {
+-	return /^\/bin\/(?:zsh|bash)\s+-lcr?\s+(["'])([\s\S]*)\1$/u.exec(command.trim())?.[2] ?? command;
+-}
+-function observedSum(values: readonly (number | null)[]): number | null {
+-	return values.every(value => value !== null) ? values.reduce<number>((total, value) => total + value!, 0) : null;
+-}
+-function monitorAge(value: { readonly startedAt: string; readonly elapsedMs: number | null } | null | undefined): string {
+-	if (!value) return "미관측";
+-	return value.elapsedMs === null ? `${duration(Math.max(0, Date.now() - Date.parse(value.startedAt)))} / 종료 미관측` : duration(value.elapsedMs);
+-}
+-function stageMark(status: string): string {
+-	if (status === "completed" || status === "skipped") return "✓";
+-	if (status === "running") return "●";
+-	if (status === "failed") return "×";
+-	if (status === "blocked") return "Ⅱ";
+-	return "○";
+-}
+-function stageInk(status: string): (text: string) => string {
+-	if (status === "completed") return a.success;
+-	if (status === "running") return a.active;
+-	if (status === "failed" || status === "blocked") return a.failure;
+-	return a.muted;
+-}
+-function elapsedSince(startedAtMs: number, now: number): string { return duration(Math.max(0, now - startedAtMs)); }
+-function offsetClock(offsetMs: number): string {
+-	const totalSeconds = Math.max(0, Math.floor(offsetMs / 1000)) ;
+-	const minutes      = Math.floor(totalSeconds / 60)            ;
+-	const seconds      = totalSeconds % 60                        ;
+-	return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+-}
++              a                         ,
++              duration                  ,
++              fit                       ,
++              pair                      ,
++              prose                     ,
++              safe                      ,
++              section                   ,
++              telemetryDuration         ,
++              wwwTitle                  ,
++                                          } from "@/adapters/inbound/tui/foundation/theme/www-theme"  ;
+ 
+ /** Figma Monitor(142:3891): 요청 요약 스트립, 워터폴, 트레이스 트리, 결정 타임라인, 실패 테이블.
+  *  모든 행은 실측 데이터(requestRuntime 이벤트·스테이지 시각·활동 저널)에서만 만들고,
+@@ -127,14 +80,14 @@
+ 	}
+ 
+ 	private runInspector(m: RuntimeMonitorProjection, snapshot: WorkbenchSnapshot | null, width: number): string[] {
+-		const planTurnId  = snapshot?.activeTurnId ?? snapshot?.workFlow.source?.turnId ?? m.requestRuntime?.turnId ;
+-		const currentPlan = snapshot !== null && snapshot.workFlow.source?.turnId === planTurnId                    ;
+-		const planTasks   = currentPlan ? snapshot.workFlow.steps : []                                               ;
+-		const request     = snapshot?.requestRuntime?.findLast(item => item.turnId === planTurnId && item.protocolVersion === 4);
+-		const progress    = this.nativeProgress(snapshot, planTurnId)                                               ;
+-		const planProgress = (snapshot?.planActivities ?? []).filter(item => item.turnId === planTurnId).slice(-5) ;
+-		const done        = planTasks.filter(task => task.status === "completed").length                            ;
+-		const rows        = [idleHeader("PLAN", width, a.plan)]                                                     ;
++		const planTurnId   = snapshot?.activeTurnId ?? snapshot?.workFlow.source?.turnId ?? m.requestRuntime?.turnId              ;
++		const currentPlan  = snapshot !== null && snapshot.workFlow.source?.turnId === planTurnId                                 ;
++		const planTasks    = currentPlan ? snapshot.workFlow.steps : []                                                           ;
++		const request      = snapshot?.requestRuntime?.findLast(item => item.turnId === planTurnId && item.protocolVersion === 4) ;
++		const progress     = this.nativeProgress(snapshot, planTurnId)                                                            ;
++		const planProgress = (snapshot?.planActivities ?? []).filter(item => item.turnId === planTurnId).slice(-5)                ;
++		const done         = planTasks.filter(task => task.status === "completed").length                                         ;
++		const rows         = [idleHeader("PLAN", width, a.plan)]                                                                  ;
+ 		if (planTasks.length === 0) rows.push(a.muted(request?.planDecision
+ 			? request.planDecision.required ? this.label("필요 결정 · Native Plan 대기", "Required · awaiting Native Plan") : `${this.label("불필요", "Not required")} · ${safe(request.planDecision.reason)}`
+ 			: request ? this.label("Plan 판단 대기", "Awaiting Plan decision") : this.label("계획 미보고", "No plan reported")));
+@@ -362,9 +315,9 @@
+ 			if (!item.observedAt) continue;
+ 			const checkpointStart = Date.parse(item.observedAt);
+ 			if (!Number.isFinite(checkpointStart)) continue;
+-			const next = checkpoints.slice(index + 1).find(candidate => candidate.observedAt);
+-			const checkpointEnd = next?.observedAt ? Date.parse(next.observedAt) : item.status === "running" ? this.clock() : checkpointStart + 1000;
+-			const ink = item.status === "observed" ? a.success : item.status === "running" ? a.active : item.status === "failed" ? a.failure : a.muted;
++			const next          = checkpoints.slice(index + 1).find(candidate => candidate.observedAt)                                                           ;
++			const checkpointEnd = next?.observedAt ? Date.parse(next.observedAt) : item.status === "running" ? this.clock() : checkpointStart + 1000             ;
++			const ink           = item.status === "observed" ? a.success : item.status === "running" ? a.active : item.status === "failed" ? a.failure : a.muted ;
+ 			rows.push(span(item.id, Math.max(0, checkpointStart - start), Number.isFinite(checkpointEnd) ? Math.max(1000, checkpointEnd - checkpointStart) : null, ink));
+ 		}
+ 		for (const tool of toolRows.slice(0, 8)) {
+@@ -455,4 +408,61 @@
+ 	if (typeof text === "string" && text.trim()) return text;
+ 	const method = payload.method;
+ 	return typeof method === "string" ? method : "tool";
++}
++
++function document(rows: string[], width: number): string[] { return rows.flatMap(row => prose(row, width)); }
++function kv(label: string, value: unknown): string { return `${a.muted(fit(label, 20))} ${a.text(safe(value ?? "—"))}`; }
++
++function idleHeader(label: string, width: number, ink = a.muted): string {
++	const title = ink(label);
++	return `${title} ${a.rule("─".repeat(Math.max(0, width - visibleWidth(title) - 1)))}`;
++}
++
++function idleRow(label: string, value: unknown, width: number): string {
++	const labelWidth = Math.min(12, Math.max(8, Math.floor(width * 0.36)));
++	return `${a.muted(fit(label, labelWidth))}${a.text(fit(safe(value ?? "—"), Math.max(0, width - labelWidth)))}`;
++}
++
++function testRow(label: string, time: string, pass: string, fail: string, width: number, passWidth = 3, failWidth = 3): string {
++	const columns   = `${fit(time, 6).padStart(6)} ${fit(pass, passWidth).padStart(passWidth)} ${fit(fail, failWidth).padStart(failWidth)}` ;
++	const nameWidth = Math.max(6, width - visibleWidth(columns) - 1)                                                                        ;
++	const name      = fit(safe(label), nameWidth)                                                                                           ;
++	return `${name}${" ".repeat(Math.max(0, nameWidth - visibleWidth(name)))} ${columns}`;
+ }
++
++function testCommand(command: string): string {
++	return /^\/bin\/(?:zsh|bash)\s+-lcr?\s+(["'])([\s\S]*)\1$/u.exec(command.trim())?.[2] ?? command;
++}
++
++function observedSum(values: readonly (number | null)[]): number | null {
++	return values.every(value => value !== null) ? values.reduce<number>((total, value) => total + value!, 0) : null;
++}
++
++function monitorAge(value: { readonly startedAt: string; readonly elapsedMs: number | null } | null | undefined): string {
++	if (!value) return "미관측";
++	return value.elapsedMs === null ? `${duration(Math.max(0, Date.now() - Date.parse(value.startedAt)))} / 종료 미관측` : duration(value.elapsedMs);
++}
++
++function stageMark(status: string): string {
++	if (status === "completed" || status === "skipped") return "✓";
++	if (status === "running") return "●";
++	if (status === "failed") return "×";
++	if (status === "blocked") return "Ⅱ";
++	return "○";
++}
++
++function stageInk(status: string): (text: string) => string {
++	if (status === "completed") return a.success;
++	if (status === "running") return a.active;
++	if (status === "failed" || status === "blocked") return a.failure;
++	return a.muted;
++}
++
++function elapsedSince(startedAtMs: number, now: number): string { return duration(Math.max(0, now - startedAtMs)); }
++
++function offsetClock(offsetMs: number): string {
++	const totalSeconds = Math.max(0, Math.floor(offsetMs / 1000)) ;
++	const minutes      = Math.floor(totalSeconds / 60)            ;
++	const seconds      = totalSeconds % 60                        ;
++	return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
++}

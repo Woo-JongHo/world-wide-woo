@@ -1,0 +1,2 @@
+8c33b480a00a8e26c61192da1f2fc6091ecec482e40f28c09f7252dcc22517ca  ./src/adapters/inbound/tui/features/dashboard/view/entry-dashboard-view.ts
+3411769f035111a3df6efd71e45831c65499c07d241a6f1d00f86dc8fb3e71a2  ./src/adapters/inbound/tui/features/dashboard/view/shared-dashboard-views.ts

@@ -1,0 +1,2394 @@
+--- .www/evidence/2026-10-03-feature-template/chat/before/src/adapters/inbound/tui/features/chat/view-model/bounded-public-projection.ts	2026-10-03 02:43:39
++++ src/adapters/inbound/tui/features/chat/view-model/bounded-public-projection.ts	2026-10-03 02:44:06
+@@ -1,5 +1,5 @@
+-import { sanitizeTerminalTextExcerpt } from "@/core/domain/execution/terminal";
+-import { isReasoningActivityPayload }  from "@/core/domain/execution/project-activity";
++import      { sanitizeTerminalTextExcerpt } from "@/core/domain/execution/terminal"         ;
++import      { isReasoningActivityPayload  } from "@/core/domain/execution/project-activity" ;
+ 
+ const MAX_TOTAL_TEXT_CHARS = 10_000 ;
+ const MAX_STRING_CHARS     = 2_400  ;
+@@ -20,6 +20,19 @@
+ 	omitted        : boolean ;
+ }
+ 
++/**
++ * Produces a secret-filtered, size-bounded UI projection before JSON serialization.
++ * The input object is never mutated; durable journal payloads remain intact.
++ */
++export function boundedPublicProjection(value: unknown): BoundedPublicProjection {
++	const state: ProjectionState = {
++		remainingChars : MAX_TOTAL_TEXT_CHARS,
++		remainingItems : MAX_TOTAL_ITEMS,
++		omitted        : false,
++	};
++	return { value: project(value, state, 0), omitted: state.omitted };
++}
++
+ function hiddenKey(key: string): boolean {
+ 	const normalized = key.replace(/[-_]/gu, "").toLowerCase();
+ 	return normalized.includes("reasoning")
+@@ -138,16 +151,3 @@
+ 	if (!visitedAll) state.omitted = true;
+ 	return result;
+ }
+-
+-/**
+- * Produces a secret-filtered, size-bounded UI projection before JSON serialization.
+- * The input object is never mutated; durable journal payloads remain intact.
+- */
+-export function boundedPublicProjection(value: unknown): BoundedPublicProjection {
+-	const state: ProjectionState = {
+-		remainingChars : MAX_TOTAL_TEXT_CHARS,
+-		remainingItems : MAX_TOTAL_ITEMS,
+-		omitted        : false,
+-	};
+-	return { value: project(value, state, 0), omitted: state.omitted };
+-}
+--- .www/evidence/2026-10-03-feature-template/chat/before/src/adapters/inbound/tui/features/chat/view/chat-durable-transcript.ts	2026-10-03 02:43:39
++++ src/adapters/inbound/tui/features/chat/view/chat-durable-transcript.ts	2026-10-03 02:44:07
+@@ -1,23 +1,36 @@
+-import { truncateToWidth, visibleWidth, wrapTextWithAnsi }  from "@earendil-works/pi-tui";
+-import type { ChatFeatureProjection }                       from "@/core/application/orchestration/workbench-feature-reads";
+-import type { ProjectActivity }                             from "@/core/domain/execution/project-activity";
+-import type { WorkbenchChatMessage, WorkbenchLiveActivity } from "@/core/domain/work/workbench";
+-import { classifyWorkActivity }                             from "@/core/domain/work";
+-import type { SemanticWorkStep, WorkStepStatus }            from "@/core/domain/work";
+-import { boundedPublicProjection }                          from "@/adapters/inbound/tui/features/chat/view-model/bounded-public-projection";
+-import { colors, semantic }                                 from "@/adapters/inbound/tui/foundation/theme/theme";
+-import {
+-	isVisibleWorkStep,
+-	ObservationCard,
+-	WorkStepCard,
+-} from "@/adapters/inbound/tui/features/chat/view/work-step-card";
+-import {
+-	projectWorkbenchDelegationSections,
+-	renderDelegationSections,
+-} from "@/adapters/inbound/tui/features/chat/view/delegation-tree-view";
+-import { matchingLiveActivity }                             from "@/adapters/inbound/tui/features/chat/view/chat-live-activity";
+-import { boundedWorkbenchMarkdown }                         from "@/adapters/inbound/tui/features/chat/view/chat-message-renderer";
+-import { publicTimelineActivityRows }                       from "@/adapters/inbound/tui/features/chat/view/chat-public-lifecycle";
++import      {
++              truncateToWidth                    ,
++              visibleWidth                       ,
++              wrapTextWithAnsi                   ,
++                                                   } from "@earendil-works/pi-tui"                                                    ;
++import type { ChatFeatureProjection                } from "@/core/application/orchestration/workbench-feature-reads"                  ;
++import type { ProjectActivity                      } from "@/core/domain/execution/project-activity"                                  ;
++import type {
++              WorkbenchChatMessage               ,
++              WorkbenchLiveActivity              ,
++                                                   } from "@/core/domain/work/workbench"                                              ;
++import      { classifyWorkActivity                 } from "@/core/domain/work"                                                        ;
++import type {
++              SemanticWorkStep                   ,
++              WorkStepStatus                     ,
++                                                   } from "@/core/domain/work"                                                        ;
++import      { boundedPublicProjection              } from "@/adapters/inbound/tui/features/chat/view-model/bounded-public-projection" ;
++import      {
++              colors                             ,
++              semantic                           ,
++                                                   } from "@/adapters/inbound/tui/foundation/theme/theme"                             ;
++import      {
++              isVisibleWorkStep                  ,
++              ObservationCard                    ,
++              WorkStepCard                       ,
++                                                   } from "@/adapters/inbound/tui/features/chat/view/work-step-card"                  ;
++import      {
++              projectWorkbenchDelegationSections ,
++              renderDelegationSections           ,
++                                                   } from "@/adapters/inbound/tui/features/chat/view/delegation-tree-view"            ;
++import      { matchingLiveActivity                 } from "@/adapters/inbound/tui/features/chat/view/chat-live-activity"              ;
++import      { boundedWorkbenchMarkdown             } from "@/adapters/inbound/tui/features/chat/view/chat-message-renderer"           ;
++import      { publicTimelineActivityRows           } from "@/adapters/inbound/tui/features/chat/view/chat-public-lifecycle"           ;
+ 
+ export interface ChatApprovalPresentation {
+ 	readonly render: (snapshot: ChatFeatureProjection, width: number) => readonly string[];
+@@ -32,34 +45,6 @@
+ 
+ const WORKBENCH_STEP_CACHE_LIMIT = 512;
+ 
+-function fit(text: string, width: number): string {
+-	if (width <= 0) return "";
+-	const clipped = truncateToWidth(text, width);
+-	return clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)));
+-}
+-
+-function surfaceRows(rows: readonly string[], width: number, surface: (text: string) => string): string[] {
+-	return rows.map(row => surface(fit(row, width)));
+-}
+-
+-function transcriptRows(rows: readonly string[], width: number): string[] {
+-	return rows.map((row) => truncateToWidth(row, Math.max(1, width)));
+-}
+-
+-function activityOwnerKey(activity: ProjectActivity): string {
+-	const { threadId, turnId, itemId } = activity.nativeRefs;
+-	return itemId ? `${threadId ?? ""}\0${turnId ?? ""}\0${itemId}` : `activity\0${activity.id}`;
+-}
+-
+-function isActivityPayload(value: unknown): value is Readonly<Record<string, unknown>> {
+-	return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+-}
+-
+-function boundedActivity(activity: ProjectActivity): ProjectActivity {
+-	const payload = boundedPublicProjection(activity.payload).value;
+-	return { ...activity, payload: isActivityPayload(payload) ? payload : {} };
+-}
+-
+ /** Assembles durable Chat messages, lifecycle events, execution cards, and notices in journal order. */
+ export class ChatDurableTranscript {
+ 	private snapshot: ChatFeatureProjection;
+@@ -96,8 +81,8 @@
+ 			const lastVisibleActivityId = [...step.activityIds].reverse().find((id) => activityById.has(id));
+ 			if (lastVisibleActivityId) stepByLastActivity.set(lastVisibleActivityId, step);
+ 		}
+-		const observationByItem = new Map<string, string>();
+-		const lastVisibleActivityByItem = new Map<string, string>();
++		const observationByItem         = new Map<string, string>() ;
++		const lastVisibleActivityByItem = new Map<string, string>() ;
+ 		for (const activity of activities) {
+ 			if (isVisibleWorkStep(activity.kind)) {
+ 				lastVisibleActivityByItem.set(activityOwnerKey(activity), activity.id);
+@@ -105,8 +90,8 @@
+ 			if (classifyWorkActivity(activity) !== "observation") continue;
+ 			observationByItem.set(activityOwnerKey(activity), activity.id);
+ 		}
+-		const observationActivityIds = new Set(observationByItem.values());
+-		const delegationByActivity = new Map<string, readonly string[] | null>();
++		const observationActivityIds = new Set(observationByItem.values())         ;
++		const delegationByActivity   = new Map<string, readonly string[] | null>() ;
+ 		const selectedPlanItemId = this.snapshot.selectedActivityId
+ 			? activityById.get(this.snapshot.selectedActivityId)?.nativeRefs.itemId
+ 			: undefined;
+@@ -136,8 +121,8 @@
+ 			for (const activityId of section.activityIds) delegationByActivity.set(activityId, null);
+ 			delegationByActivity.set(section.anchorActivityId, traceRows);
+ 		}
+-		const rows: string[] = [];
+-		const renderedMessageIds = new Set<string>();
++		const rows: string[]     = []                ;
++		const renderedMessageIds = new Set<string>() ;
+ 		for (const activity of activities) {
+ 			const message = messages.get(activity.id);
+ 			if (message) {
+@@ -160,8 +145,8 @@
+ 				const live = matchingLiveActivity(this.snapshot.liveActivity, activity);
+ 				rows.push(...this.renderStepCard(step, contentWidth, activity, live), "");
+ 			} else if (observationActivityIds.has(activity.id)) {
+-				const live = matchingLiveActivity(this.snapshot.liveActivity, activity);
+-				const projectedActivity = boundedActivity(activity);
++				const live              = matchingLiveActivity(this.snapshot.liveActivity, activity) ;
++				const projectedActivity = boundedActivity(activity)                                  ;
+ 				rows.push(
+ 					...new ObservationCard({
+ 						activity: projectedActivity,
+@@ -264,8 +249,8 @@
+ 			], contentWidth, semantic.userSurface), "");
+ 		}
+ 		if (this.snapshot.error) {
+-			const projectedError = boundedPublicProjection(this.snapshot.error).value;
+-			const publicError = typeof projectedError === "string" ? projectedError : "Native 상태를 확인할 수 없습니다.";
++			const projectedError = boundedPublicProjection(this.snapshot.error).value                                        ;
++			const publicError    = typeof projectedError === "string" ? projectedError : "Native 상태를 확인할 수 없습니다." ;
+ 			rows.push(...surfaceRows([
+ 				colors.error("확인이 필요한 상태"),
+ 				...wrapTextWithAnsi(boundedWorkbenchMarkdown(publicError), contentWidth),
+@@ -325,3 +310,31 @@
+ 	if (status === "completed") return "passed";
+ 	return status;
+ }
++
++function fit(text: string, width: number): string {
++	if (width <= 0) return "";
++	const clipped = truncateToWidth(text, width);
++	return clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)));
++}
++
++function surfaceRows(rows: readonly string[], width: number, surface: (text: string) => string): string[] {
++	return rows.map(row => surface(fit(row, width)));
++}
++
++function transcriptRows(rows: readonly string[], width: number): string[] {
++	return rows.map((row) => truncateToWidth(row, Math.max(1, width)));
++}
++
++function activityOwnerKey(activity: ProjectActivity): string {
++	const { threadId, turnId, itemId } = activity.nativeRefs;
++	return itemId ? `${threadId ?? ""}\0${turnId ?? ""}\0${itemId}` : `activity\0${activity.id}`;
++}
++
++function isActivityPayload(value: unknown): value is Readonly<Record<string, unknown>> {
++	return Boolean(value) && typeof value === "object" && !Array.isArray(value);
++}
++
++function boundedActivity(activity: ProjectActivity): ProjectActivity {
++	const payload = boundedPublicProjection(activity.payload).value;
++	return { ...activity, payload: isActivityPayload(payload) ? payload : {} };
++}
+--- .www/evidence/2026-10-03-feature-template/chat/before/src/adapters/inbound/tui/features/chat/view/chat-live-activity.ts	2026-10-03 02:43:39
++++ src/adapters/inbound/tui/features/chat/view/chat-live-activity.ts	2026-10-03 02:44:08
+@@ -1,9 +1,13 @@
+-import { truncateToWidth, wrapTextWithAnsi }       from "@earendil-works/pi-tui";
+-import type { ChatFeatureProjection }              from "@/core/application/orchestration/workbench-feature-reads";
+-import type { ProjectActivity }                    from "@/core/domain/execution/project-activity";
+-import type { WorkbenchLiveActivity }              from "@/core/domain/work/workbench";
+-import { activityGradientFrame, colors, semantic } from "@/adapters/inbound/tui/foundation/theme/theme";
+-import { isVisibleWorkStep }                       from "@/adapters/inbound/tui/features/chat/view/work-step-card";
++import      { truncateToWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui"                                   ;
++import type { ChatFeatureProjection             } from "@/core/application/orchestration/workbench-feature-reads" ;
++import type { ProjectActivity                   } from "@/core/domain/execution/project-activity"                 ;
++import type { WorkbenchLiveActivity             } from "@/core/domain/work/workbench"                             ;
++import      {
++              activityGradientFrame           ,
++              colors                          ,
++              semantic                        ,
++                                                } from "@/adapters/inbound/tui/foundation/theme/theme"            ;
++import      { isVisibleWorkStep                 } from "@/adapters/inbound/tui/features/chat/view/work-step-card" ;
+ 
+ export interface ChatActivityIndicator {
+ 	readonly message    : string            ;
+@@ -17,16 +21,6 @@
+ 	readonly frameAdvanced: () => void;
+ }
+ 
+-function activityOwnerKey(activity: ProjectActivity): string {
+-	const { threadId, turnId, itemId } = activity.nativeRefs;
+-	return itemId ? `${threadId ?? ""}\0${turnId ?? ""}\0${itemId}` : `activity\0${activity.id}`;
+-}
+-
+-function liveActivityOwnerKey(activity: WorkbenchLiveActivity): string {
+-	const { threadId, turnId, itemId } = activity.nativeRefs;
+-	return itemId ? `${threadId ?? ""}\0${turnId ?? ""}\0${itemId}` : "activity\0live";
+-}
+-
+ export function matchingLiveActivity(
+ 	liveActivity: WorkbenchLiveActivity | null,
+ 	activity: ProjectActivity,
+@@ -104,3 +98,13 @@
+ 		this.frame = 0;
+ 	}
+ }
++
++function activityOwnerKey(activity: ProjectActivity): string {
++	const { threadId, turnId, itemId } = activity.nativeRefs;
++	return itemId ? `${threadId ?? ""}\0${turnId ?? ""}\0${itemId}` : `activity\0${activity.id}`;
++}
++
++function liveActivityOwnerKey(activity: WorkbenchLiveActivity): string {
++	const { threadId, turnId, itemId } = activity.nativeRefs;
++	return itemId ? `${threadId ?? ""}\0${turnId ?? ""}\0${itemId}` : "activity\0live";
++}
+--- .www/evidence/2026-10-03-feature-template/chat/before/src/adapters/inbound/tui/features/chat/view/chat-message-renderer.ts	2026-10-03 02:43:39
++++ src/adapters/inbound/tui/features/chat/view/chat-message-renderer.ts	2026-10-03 02:44:09
+@@ -1,9 +1,20 @@
+-import { Markdown, truncateToWidth, visibleWidth, wrapTextWithAnsi }            from "@earendil-works/pi-tui";
+-import type { ChatFeatureProjection }                                           from "@/core/application/orchestration/workbench-feature-reads";
+-import { sanitizeTerminalTextExcerpt, sanitizeTerminalTextUnbounded }           from "@/core/domain/execution/terminal";
+-import { sanitizeCompletedAssistantResponse, sanitizePartialAssistantResponse } from "@/core/domain/review/redaction";
+-import type { WorkbenchChatMessage }                                            from "@/core/domain/work/workbench";
+-import { colors, markdownTheme, semantic }                                      from "@/adapters/inbound/tui/foundation/theme/theme";
++import      {
++              Markdown                           ,
++              truncateToWidth                    ,
++              visibleWidth                       ,
++              wrapTextWithAnsi                   ,
++                                                   } from "@earendil-works/pi-tui"                                   ;
++import type { ChatFeatureProjection                } from "@/core/application/orchestration/workbench-feature-reads" ;
++import      {
++              sanitizeTerminalTextExcerpt        ,
++              sanitizeTerminalTextUnbounded      ,
++                                                   } from "@/core/domain/execution/terminal"                         ;
++import      {
++              sanitizeCompletedAssistantResponse ,
++              sanitizePartialAssistantResponse   ,
++                                                   } from "@/core/domain/review/redaction"                           ;
++import type { WorkbenchChatMessage                 } from "@/core/domain/work/workbench"                             ;
++import      { colors, markdownTheme, semantic      } from "@/adapters/inbound/tui/foundation/theme/theme"            ;
+ 
+ const WORKBENCH_MARKDOWN_MAX_CHARS = 16 * 1024            ;
+ const WORKBENCH_MARKDOWN_MAX_LINES = 120                  ;
+@@ -12,8 +23,8 @@
+ export function boundedWorkbenchMarkdown(text: string): string {
+ 	let candidate = text;
+ 	if (candidate.length > WORKBENCH_MARKDOWN_MAX_CHARS) {
+-		const contentBudget = WORKBENCH_MARKDOWN_MAX_CHARS - WORKBENCH_MARKDOWN_OMISSION.length - 2;
+-		const headBudget = Math.floor(contentBudget / 2);
++		const contentBudget = WORKBENCH_MARKDOWN_MAX_CHARS - WORKBENCH_MARKDOWN_OMISSION.length - 2 ;
++		const headBudget    = Math.floor(contentBudget / 2)                                         ;
+ 		candidate = `${candidate.slice(0, headBudget)}\n${WORKBENCH_MARKDOWN_OMISSION}\n${candidate.slice(-(contentBudget - headBudget))}`;
+ 	}
+ 	const lines = candidate.split(/\r?\n/u);
+@@ -31,17 +42,6 @@
+ 	return `${head}\n${WORKBENCH_MARKDOWN_OMISSION}\n${tail}`;
+ }
+ 
+-function fit(text: string, width: number): string {
+-	if (width <= 0) return "";
+-	const clipped = truncateToWidth(text, width);
+-	return clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)));
+-}
+-
+-function publicText(value: unknown, limit = 160): string | null {
+-	if (typeof value !== "string" || !value.trim()) return null;
+-	return sanitizeTerminalTextExcerpt(value, limit, "head-tail").trim();
+-}
+-
+ /** Projects durable user/assistant messages and streaming assistant drafts to terminal rows. */
+ export class ChatMessageRenderer {
+ 	private readonly markdown       = new Map<string, Markdown>()           ;
+@@ -56,8 +56,8 @@
+ 		for (const message of snapshot.chat) {
+ 			if (message.role !== "assistant") continue;
+ 			visibleAssistantIds.add(message.id);
+-			const runtimeContent = typeof message.content === "string" ? message.content : "[잘못된 메시지 본문]";
+-			const inputKey = `${message.status}\0${message.partial === true ? "partial" : "whole"}\0${runtimeContent}`;
++			const runtimeContent = typeof message.content === "string" ? message.content : "[잘못된 메시지 본문]"            ;
++			const inputKey       = `${message.status}\0${message.partial === true ? "partial" : "whole"}\0${runtimeContent}` ;
+ 			if (this.markdownInput.get(message.id) === inputKey) continue;
+ 			let content: string;
+ 			try {
+@@ -138,8 +138,8 @@
+ 		} catch {
+ 			bodyRows = wrapTextWithAnsi(safeContent, contentWidth);
+ 		}
+-		const roleHeader = runtimeRole === "system" ? colors.warning("system") : semantic.assistantLabel("🐙 Wooni");
+-		const header = `${roleHeader}${label ? `  ${label}` : ""}`;
++		const roleHeader = runtimeRole === "system" ? colors.warning("system") : semantic.assistantLabel("🐙 Wooni") ;
++		const header     = `${roleHeader}${label ? `  ${label}` : ""}`                                              ;
+ 		const headerRows = label && visibleWidth(header) > contentWidth
+ 			? [roleHeader, ...wrapTextWithAnsi(label, contentWidth)]
+ 			: [header];
+@@ -151,3 +151,14 @@
+ 		catch { return wrapTextWithAnsi(sanitizeTerminalTextUnbounded(this.draftSource), width); }
+ 	}
+ }
++
++function fit(text: string, width: number): string {
++	if (width <= 0) return "";
++	const clipped = truncateToWidth(text, width);
++	return clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)));
++}
++
++function publicText(value: unknown, limit = 160): string | null {
++	if (typeof value !== "string" || !value.trim()) return null;
++	return sanitizeTerminalTextExcerpt(value, limit, "head-tail").trim();
++}
+--- .www/evidence/2026-10-03-feature-template/chat/before/src/adapters/inbound/tui/features/chat/view/chat-public-lifecycle.ts	2026-10-03 02:43:39
++++ src/adapters/inbound/tui/features/chat/view/chat-public-lifecycle.ts	2026-10-03 02:44:11
+@@ -1,19 +1,8 @@
+-import { wrapTextWithAnsi }            from "@earendil-works/pi-tui";
+-import type { ProjectActivity }        from "@/core/domain/execution/project-activity";
+-import { sanitizeTerminalTextExcerpt } from "@/core/domain/execution/terminal";
+-import { colors, semantic }            from "@/adapters/inbound/tui/foundation/theme/theme";
++import      { wrapTextWithAnsi            } from "@earendil-works/pi-tui"                        ;
++import type { ProjectActivity             } from "@/core/domain/execution/project-activity"      ;
++import      { sanitizeTerminalTextExcerpt } from "@/core/domain/execution/terminal"              ;
++import      { colors, semantic            } from "@/adapters/inbound/tui/foundation/theme/theme" ;
+ 
+-function publicRecord(value: unknown): Readonly<Record<string, unknown>> | null {
+-	return value && typeof value === "object" && !Array.isArray(value)
+-		? value as Readonly<Record<string, unknown>>
+-		: null;
+-}
+-
+-function publicText(value: unknown, limit = 160): string | null {
+-	if (typeof value !== "string" || !value.trim()) return null;
+-	return sanitizeTerminalTextExcerpt(value, limit, "head-tail").trim();
+-}
+-
+ /** Projects durable Native lifecycle events into compact public transcript rows. */
+ export function publicTimelineActivityRows(
+ 	activity: ProjectActivity,
+@@ -26,8 +15,8 @@
+ 	if (method === "turn/plan/updated") {
+ 		const plan = Array.isArray(params?.plan) ? params.plan : [];
+ 		const entries = plan.flatMap((value) => {
+-			const entry = publicRecord(value);
+-			const step = publicText(entry?.step, 240);
++			const entry = publicRecord(value)          ;
++			const step  = publicText(entry?.step, 240) ;
+ 			if (!step) return [];
+ 			const status = publicText(entry?.status)?.toLowerCase();
+ 			const symbol = status === "completed" ? colors.success("✓")
+@@ -48,8 +37,8 @@
+ 		const interrupted  = activity.phase === "cancelled" || nativeStatus === "interrupted"                       ;
+ 		const running = activity.phase === "started" || activity.phase === "updated"
+ 			|| nativeStatus === "inprogress" || nativeStatus === "running";
+-		const state = failed ? "작업 실패" : interrupted ? "작업 중단됨" : running ? "작업 시작됨" : "작업 완료됨";
+-		const color = failed ? colors.error : interrupted ? colors.warning : running ? colors.accent : colors.success;
++		const state = failed ? "작업 실패" : interrupted ? "작업 중단됨" : running ? "작업 시작됨" : "작업 완료됨"    ;
++		const color = failed ? colors.error : interrupted ? colors.warning : running ? colors.accent : colors.success ;
+ 		return wrapTextWithAnsi(color(`${label} ${state}`), Math.max(1, width));
+ 	}
+ 	if (itemType === "websearch") {
+@@ -67,3 +56,14 @@
+ 	if (method === "mcpserver/startupstatus/updated") return null;
+ 	return null;
+ }
++
++function publicRecord(value: unknown): Readonly<Record<string, unknown>> | null {
++	return value && typeof value === "object" && !Array.isArray(value)
++		? value as Readonly<Record<string, unknown>>
++		: null;
++}
++
++function publicText(value: unknown, limit = 160): string | null {
++	if (typeof value !== "string" || !value.trim()) return null;
++	return sanitizeTerminalTextExcerpt(value, limit, "head-tail").trim();
++}
+--- .www/evidence/2026-10-03-feature-template/chat/before/src/adapters/inbound/tui/features/chat/view/chat-scroll.view.ts	2026-10-03 02:43:39
++++ src/adapters/inbound/tui/features/chat/view/chat-scroll.view.ts	2026-10-03 02:44:12
+@@ -1,19 +1,22 @@
+-import { ScrollView, stripTerminalSequences }                 from "@earendil-works/pi-tui";
+-import type { Component, ScrollRowSource, ScrollViewOptions } from "@earendil-works/pi-tui";
++import      {
++              ScrollView                    ,
++              stripTerminalSequences        ,
++                                              } from "@earendil-works/pi-tui"                                        ;
+ import type {
+-	DashboardPrimaryScrollFactory,
+-	DashboardScrollOptions,
+-} from "@/adapters/inbound/tui/foundation/layout/dashboard-layout";
+-import { componentScrollRows }                                from "@/adapters/inbound/tui/foundation/rendering/scroll-row-source";
++              Component                     ,
++              ScrollRowSource               ,
++              ScrollViewOptions             ,
++                                              } from "@earendil-works/pi-tui"                                        ;
++import type {
++              DashboardPrimaryScrollFactory ,
++              DashboardScrollOptions        ,
++                                              } from "@/adapters/inbound/tui/foundation/layout/dashboard-layout"     ;
++import      { componentScrollRows             } from "@/adapters/inbound/tui/foundation/rendering/scroll-row-source" ;
+ 
+ type ReadingPosition =
+ 	| { follow: true }
+ 	| { follow: false; fraction: number; anchor: string };
+ 
+-function normalizedRow(row: string): string {
+-	return stripTerminalSequences(row).replace(/\s/gu, "");
+-}
+-
+ /** Preserves the reader's chat anchor across wrapping and layout-mode changes. */
+ /** @Unit Code-003 */
+ /** @codeId 0003 */
+@@ -29,8 +32,8 @@
+ 
+ 	readingPosition(): ReadingPosition {
+ 		if (this.isFollowingEnd) return { follow: true };
+-		const available = Math.max(0, Math.min(4, (this.logicalRows?.rowCount ?? this.renderedRows.length) - this.scrollTop));
+-		const rows = this.logicalRows ? this.logicalRows.rows(this.scrollTop, available) : this.renderedRows.slice(this.scrollTop, this.scrollTop + 4);
++		const available = Math.max(0, Math.min(4, (this.logicalRows?.rowCount ?? this.renderedRows.length) - this.scrollTop))                               ;
++		const rows      = this.logicalRows ? this.logicalRows.rows(this.scrollTop, available) : this.renderedRows.slice(this.scrollTop, this.scrollTop + 4) ;
+ 		return {
+ 			follow   : false,
+ 			anchor   : rows.map(normalizedRow).join("").slice(0, 80),
+@@ -74,23 +77,23 @@
+ 		for (let length = pending.anchor.length; length >= 16; length -= 8) {
+ 			const needle = pending.anchor.slice(0, length);
+ 			if (this.logicalRows) {
+-				const chunkSize = 256;
+-				let found = false;
++				const chunkSize = 256   ;
++				let found       = false ;
+ 				for (let start = 0; start < this.logicalRows.rowCount; start += chunkSize) {
+ 					const rows       = this.logicalRows.rows(start, Math.min(chunkSize + 3, this.logicalRows.rowCount - start)) ;
+ 					const normalized = rows.map(normalizedRow)                                                                  ;
+ 					const offset     = normalized.join("").indexOf(needle)                                                      ;
+ 					if (offset < 0) continue;
+-					let consumed = 0;
+-					const local = normalized.findIndex(row => { consumed += row.length; return consumed > offset; });
++					let consumed = 0                                                                                  ;
++					const local  = normalized.findIndex(row => { consumed += row.length; return consumed > offset; }) ;
+ 					target = start + Math.max(0, local);
+ 					found = true;
+ 					break;
+ 				}
+ 				if (found) break;
+ 			} else {
+-				const normalized = this.renderedRows.map(normalizedRow);
+-				const offset = normalized.join("").indexOf(needle);
++				const normalized = this.renderedRows.map(normalizedRow) ;
++				const offset     = normalized.join("").indexOf(needle)  ;
+ 				if (offset < 0) continue;
+ 				let consumed = 0;
+ 				target = normalized.findIndex(row => { consumed += row.length; return consumed > offset; });
+@@ -105,3 +108,7 @@
+ 	component: Component,
+ 	options: DashboardScrollOptions,
+ ) => new ChatScrollView(component, options);
++
++function normalizedRow(row: string): string {
++	return stripTerminalSequences(row).replace(/\s/gu, "");
++}
+--- .www/evidence/2026-10-03-feature-template/chat/before/src/adapters/inbound/tui/features/chat/view/octopus-scan.ts	2026-10-03 02:43:39
++++ src/adapters/inbound/tui/features/chat/view/octopus-scan.ts	2026-10-03 02:44:13
+@@ -16,6 +16,56 @@
+ 	grain?: number
+ }
+ 
++const POINTS = octopusPoints();
++
++/** Three full turns with a moving light plane, settling front-on. */
++export function octopusScanFrame(elapsedMs: number, requestedWidth: number, requestedHeight: number): string[] {
++	const width    = Math.max(1, Math.min(80, Math.floor(requestedWidth)))           ;
++	const height   = Math.max(1, Math.min(29, Math.floor(requestedHeight)))          ;
++	const progress = Math.min(1, Math.max(0, elapsedMs / OCTOPUS_INTRO_DURATION_MS)) ;
++	const angle    = (progress < 1 ? progress * OCTOPUS_INTRO_TURNS : 0) * TAU       ;
++	const cosine = Math.cos(angle), sine = Math.sin(angle);
++	const scale = Math.min((width * 2 - 4) / 3.45, (height * 4 - 4) / 2.8) ;
++	const bits  = new Uint8Array(width * height)                           ;
++	const light = new Float32Array(width * height)                         ;
++	const face  = new Uint8Array(width * height)                           ;
++	const scanY = -1.5 + progress * 3                                      ;
++	for (const point of POINTS) {
++		const rotatedZ = -point.x * sine + point.z * cosine;
++		if (point.face && cosine < 0.2) continue;
++		// Only the front-facing silhouette is visible; facial arcs are separate points.
++		if (point.mantle) {
++			const normalZ = -point.x / (MANTLE_RADIUS_X ** 2) * sine + point.z / (0.64 ** 2) * cosine;
++			if (normalZ < 0) continue;
++			const rim   = normalZ < 0.32   ;
++			const grain = point.grain ?? 0 ;
++			if (!rim && grain > 0.12 + Math.min(1, normalZ / 1.56) * 0.36) continue;
++		}
++		const perspective = 1 + rotatedZ * 0.08                                                                 ;
++		const x           = Math.round((point.x * cosine + point.z * sine) * scale * perspective + width - 0.5) ;
++		const y           = Math.round((point.y + 0.12) * scale * perspective + height * 2 - 0.5)               ;
++		const outOfX      = x < 0 || x >= width * 2                                                             ;
++		const outOfY      = y < 0 || y >= height * 4                                                            ;
++		if (outOfX || outOfY) continue;
++		const cell = Math.floor(y / 4) * width + Math.floor(x / 2);
++		bits[cell] = bits[cell] | DOTS[y % 4][x % 2];
++		if (point.face) face[cell] = 1;
++		const scan     = progress < 1 ? Math.max(0, 1 - Math.abs(point.y - scanY) / 0.2) : 0 ;
++		const rotatedX = point.x * cosine + point.z * sine                                   ;
++		light[cell] = Math.max(light[cell], surfaceLight(point, rotatedZ, rotatedX, scan));
++	}
++	return Array.from({ length: height }, (_, row) => Array.from({ length: width }, (_, column) => {
++		const cell = row * width + column ;
++		const dot  = bits[cell]           ;
++		if (!dot) return " "                 ;
++		const character = String.fromCodePoint(0x2800 + dot);
++		if (process.env.NO_COLOR !== undefined) return character;
++		const intensity = Math.min(1, light[cell]);
++		if (face[cell]) return chalk.rgb(255, 190, 158)(character);
++		return chalk.rgb(Math.round(255 * intensity), Math.round(106 * intensity), Math.round(94 * intensity))(character);
++	}).join(""));
++}
++
+ function facePoint(x: number, y: number): Point {
+ 	const z = Math.sqrt(Math.max(0, 1 - (x / MANTLE_RADIUS_X) ** 2 - ((y + 0.35) / 1.04) ** 2)) * 0.64;
+ 	return { x, y, z: z + 0.035, face: true };
+@@ -80,52 +130,3 @@
+ 	}
+ 	return points;
+ }
+-const POINTS = octopusPoints();
+-
+-/** Three full turns with a moving light plane, settling front-on. */
+-export function octopusScanFrame(elapsedMs: number, requestedWidth: number, requestedHeight: number): string[] {
+-	const width    = Math.max(1, Math.min(80, Math.floor(requestedWidth)))           ;
+-	const height   = Math.max(1, Math.min(29, Math.floor(requestedHeight)))          ;
+-	const progress = Math.min(1, Math.max(0, elapsedMs / OCTOPUS_INTRO_DURATION_MS)) ;
+-	const angle    = (progress < 1 ? progress * OCTOPUS_INTRO_TURNS : 0) * TAU       ;
+-	const cosine = Math.cos(angle), sine = Math.sin(angle);
+-	const scale = Math.min((width * 2 - 4) / 3.45, (height * 4 - 4) / 2.8) ;
+-	const bits  = new Uint8Array(width * height)                           ;
+-	const light = new Float32Array(width * height)                         ;
+-	const face  = new Uint8Array(width * height)                           ;
+-	const scanY = -1.5 + progress * 3                                      ;
+-	for (const point of POINTS) {
+-		const rotatedZ = -point.x * sine + point.z * cosine;
+-		if (point.face && cosine < 0.2) continue;
+-		// Only the front-facing silhouette is visible; facial arcs are separate points.
+-		if (point.mantle) {
+-			const normalZ = -point.x / (MANTLE_RADIUS_X ** 2) * sine + point.z / (0.64 ** 2) * cosine;
+-			if (normalZ < 0) continue;
+-			const rim   = normalZ < 0.32       ;
+-			const grain = point.grain ?? 0     ;
+-			if (!rim && grain > 0.12 + Math.min(1, normalZ / 1.56) * 0.36) continue;
+-		}
+-		const perspective = 1 + rotatedZ * 0.08                                                                 ;
+-		const x           = Math.round((point.x * cosine + point.z * sine) * scale * perspective + width - 0.5) ;
+-		const y           = Math.round((point.y + 0.12) * scale * perspective + height * 2 - 0.5)               ;
+-		const outOfX      = x < 0 || x >= width * 2                                                             ;
+-		const outOfY      = y < 0 || y >= height * 4                                                            ;
+-		if (outOfX || outOfY) continue;
+-		const cell = Math.floor(y / 4) * width + Math.floor(x / 2);
+-		bits[cell] = bits[cell] | DOTS[y % 4][x % 2];
+-		if (point.face) face[cell] = 1;
+-		const scan      = progress < 1 ? Math.max(0, 1 - Math.abs(point.y - scanY) / 0.2) : 0;
+-		const rotatedX  = point.x * cosine + point.z * sine                                  ;
+-		light[cell] = Math.max(light[cell], surfaceLight(point, rotatedZ, rotatedX, scan));
+-	}
+-	return Array.from({ length: height }, (_, row) => Array.from({ length: width }, (_, column) => {
+-		const cell = row * width + column;
+-		const dot  = bits[cell]              ;
+-		if (!dot) return " "                 ;
+-		const character = String.fromCodePoint(0x2800 + dot);
+-		if (process.env.NO_COLOR !== undefined) return character;
+-		const intensity = Math.min(1, light[cell]);
+-		if (face[cell]) return chalk.rgb(255, 190, 158)(character);
+-		return chalk.rgb(Math.round(255 * intensity), Math.round(106 * intensity), Math.round(94 * intensity))(character);
+-	}).join(""));
+-}
+--- .www/evidence/2026-10-03-feature-template/chat/before/src/adapters/inbound/tui/features/chat/view/result-cards.ts	2026-10-03 02:43:39
++++ src/adapters/inbound/tui/features/chat/view/result-cards.ts	2026-10-03 02:44:15
+@@ -1,103 +1,35 @@
+-import { stripTerminalSequences, truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
+-import type { Component }                                                          from "@earendil-works/pi-tui";
++import      {
++              stripTerminalSequences       ,
++              truncateToWidth              ,
++              visibleWidth                 ,
++              wrapTextWithAnsi             ,
++                                             } from "@earendil-works/pi-tui"                                       ;
++import type { Component                      } from "@earendil-works/pi-tui"                                       ;
+ import type {
+-	CommandResultSnapshot,
+-	CommandStatus,
+-	CompletionReport,
+-	DiffResultSnapshot,
+-	GenericToolResultSnapshot,
+-} from "@/core/domain/execution/output";
+-import { sanitizeTerminalTextExcerpt }                                             from "@/core/domain/execution/terminal";
+-import { colors, semantic }                                                        from "@/adapters/inbound/tui/foundation/theme/theme";
+-import {
+-	highlightStructured,
+-	projectNativePathText,
+-	renderExecutionLine,
+-	structuredOutput,
+-} from "@/adapters/inbound/tui/features/chat/view/work-step-card";
+-import {
+-	CHAT_PUBLIC_OUTPUT_MAX_CHARS,
+-	workStepStatusPresentation,
+-} from "@/adapters/inbound/tui/features/chat/view/chat-output-policy";
++              CommandResultSnapshot        ,
++              CommandStatus                ,
++              CompletionReport             ,
++              DiffResultSnapshot           ,
++              GenericToolResultSnapshot    ,
++                                             } from "@/core/domain/execution/output"                               ;
++import      { sanitizeTerminalTextExcerpt    } from "@/core/domain/execution/terminal"                             ;
++import      { colors, semantic               } from "@/adapters/inbound/tui/foundation/theme/theme"                ;
++import      {
++              highlightStructured          ,
++              projectNativePathText        ,
++              renderExecutionLine          ,
++              structuredOutput             ,
++                                             } from "@/adapters/inbound/tui/features/chat/view/work-step-card"     ;
++import      {
++              CHAT_PUBLIC_OUTPUT_MAX_CHARS ,
++              workStepStatusPresentation   ,
++                                             } from "@/adapters/inbound/tui/features/chat/view/chat-output-policy" ;
+ 
+-function clean(value: string): string {
+-	return stripTerminalSequences(value)
+-		.replace(/[\u0000-\u0008\u000B-\u001F\u007F-\u009F]/gu, "")
+-		.replace(/\bsk-[A-Za-z0-9_-]{16,}\b/gu, "[REDACTED]")
+-		.replace(/\b(?:ghp_|gho_|github_pat_)[A-Za-z0-9_]{16,}\b/gu, "[REDACTED]")
+-		.replace(
+-			/(("?(?:authorization|api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret|password)"?\s*[:=]\s*"?(?:bearer\s+)?))[^"\s,}\]]+/giu,
+-			"$1[REDACTED]",
+-		)
+-		.replace(/\t/gu, "    ");
+-}
+-
+-function fit(text: string, width: number): string {
+-	const clipped = truncateToWidth(text, Math.max(0, width));
+-	return clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)));
+-}
+-
+-function wrapped(text: string, width: number): string[] {
+-	return clean(text).split("\n").flatMap((line) => wrapTextWithAnsi(line, Math.max(1, width)));
+-}
+-
+-function wrappedHighlighted(text: string, width: number): string[] {
+-	return text.split("\n").flatMap((line) => wrapTextWithAnsi(line, Math.max(1, width)));
+-}
+-
+-function card(width: number, rows: readonly string[]): string[] {
+-	if (width < 4) return rows.map((row) => fit(row, width));
+-	const contentWidth = width - 4;
+-	return [
+-		colors.border(`╭${"─".repeat(width - 2)}╮`),
+-		...rows.map((row) => `${colors.border("│")} ${fit(row, contentWidth)} ${colors.border("│")}`),
+-		colors.border(`╰${"─".repeat(width - 2)}╯`),
+-	];
+-}
+-
+ interface OutputLine {
+ 	stream: "stdout" | "stderr";
+ 	text: string;
+ }
+ 
+-function outputLines(snapshot: CommandResultSnapshot, maximum: number): { lines: OutputLine[]; omitted: number } {
+-	const lines: OutputLine[] = [];
+-	for (const [stream, output] of [["stdout", snapshot.stdout], ["stderr", snapshot.stderr]] as const) {
+-		for (const text of projectNativePathText(clean(output), snapshot.cwd).split("\n")) {
+-			if (text || output.length > 0) lines.push({ stream, text });
+-		}
+-	}
+-	return { lines: maximum > 0 ? lines.slice(-maximum) : [], omitted: Math.max(0, lines.length - maximum) };
+-}
+-
+-function boundedLines(output: string, maximum: number): { lines: string[]; omitted: number } {
+-	const lines = clean(output).split("\n");
+-	return { lines: maximum > 0 ? lines.slice(-maximum) : [], omitted: Math.max(0, lines.length - maximum) };
+-}
+-
+-function boundedDisplayLines(output: string, language: string | undefined, maximum: number): { lines: string[]; omitted: number } {
+-	const plain    = clean(output)                                          ;
+-	const allLines = plain.split("\n")                                      ;
+-	const selected = maximum > 0 ? allLines.slice(-maximum).join("\n") : "" ;
+-	// Bound unstyled text first: highlighter ANSI bytes must never consume the display budget.
+-	const bounded = clean(sanitizeTerminalTextExcerpt(selected, CHAT_PUBLIC_OUTPUT_MAX_CHARS, "tail"));
+-	const lines = language
+-		? highlightStructured(bounded, language as "json" | "yaml" | "markdown")
+-		: bounded.split("\n");
+-	return { lines, omitted: Math.max(0, allLines.length - maximum) };
+-}
+-
+-function statusLabel(status: CommandStatus): string {
+-	return workStepStatusPresentation(status).text;
+-}
+-
+-function resultDetails(durationMs: number | undefined, error: string | undefined): string[] {
+-	const details: string[] = [];
+-	if (durationMs !== undefined) details.push(`${durationMs}ms`);
+-	if (error !== undefined) details.push(`오류: ${clean(error)}`);
+-	return details;
+-}
+-
+ /** Terminal presentation of an observed bash result; it never executes the command. */
+ export class BashResultCard implements Component {
+ 	constructor(
+@@ -108,8 +40,8 @@
+ 	invalidate(): void {}
+ 
+ 	render(width: number): string[] {
+-		const contentWidth = Math.max(1, width - 4);
+-		const command = highlightStructured(projectNativePathText(clean(this.snapshot.command), this.snapshot.cwd), "bash");
++		const contentWidth = Math.max(1, width - 4)                                                                              ;
++		const command      = highlightStructured(projectNativePathText(clean(this.snapshot.command), this.snapshot.cwd), "bash") ;
+ 		const rows = [
+ 			`${semantic.assistantLabel("Bash")} · ${statusLabel(this.snapshot.status)}`,
+ 			...command.flatMap((line, index) => wrappedHighlighted(`${colors.muted(index === 0 ? "$" : ">")} ${line}`, contentWidth)),
+@@ -156,8 +88,8 @@
+ 			semantic.userLabel("입력:"),
+ 			...inputLines.flatMap((line) => wrappedHighlighted(`  ${line}`, contentWidth)),
+ 		];
+-		const display = structuredOutput(clean(this.snapshot.input), clean(this.snapshot.output));
+-		const output = boundedDisplayLines(display.value, display.language, Math.max(0, this.maxOutputLines));
++		const display = structuredOutput(clean(this.snapshot.input), clean(this.snapshot.output))              ;
++		const output  = boundedDisplayLines(display.value, display.language, Math.max(0, this.maxOutputLines)) ;
+ 		if (output.omitted > 0) rows.push(colors.muted(`… ${output.omitted} earlier lines omitted`));
+ 		if (output.lines.length > 0) {
+ 			rows.push(semantic.assistantLabel("출력"));
+@@ -206,8 +138,8 @@
+ 	invalidate(): void {}
+ 
+ 	render(width: number): string[] {
+-		const contentWidth = Math.max(1, width - 4);
+-		const rows = wrapped(this.report.title, contentWidth);
++		const contentWidth = Math.max(1, width - 4)                   ;
++		const rows         = wrapped(this.report.title, contentWidth) ;
+ 		for (const [index, section] of this.report.sections.entries()) {
+ 			rows.push("");
+ 			rows.push(...wrapped(`#${index + 1} ${section.title}`, contentWidth).map((line) => colors.secondary(line)));
+@@ -220,3 +152,76 @@
+ 		return card(width, rows);
+ 	}
+ }
++
++function clean(value: string): string {
++	return stripTerminalSequences(value)
++		.replace(/[\u0000-\u0008\u000B-\u001F\u007F-\u009F]/gu, "")
++		.replace(/\bsk-[A-Za-z0-9_-]{16,}\b/gu, "[REDACTED]")
++		.replace(/\b(?:ghp_|gho_|github_pat_)[A-Za-z0-9_]{16,}\b/gu, "[REDACTED]")
++		.replace(
++			/(("?(?:authorization|api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret|password)"?\s*[:=]\s*"?(?:bearer\s+)?))[^"\s,}\]]+/giu,
++			"$1[REDACTED]",
++		)
++		.replace(/\t/gu, "    ");
++}
++
++function fit(text: string, width: number): string {
++	const clipped = truncateToWidth(text, Math.max(0, width));
++	return clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)));
++}
++
++function wrapped(text: string, width: number): string[] {
++	return clean(text).split("\n").flatMap((line) => wrapTextWithAnsi(line, Math.max(1, width)));
++}
++
++function wrappedHighlighted(text: string, width: number): string[] {
++	return text.split("\n").flatMap((line) => wrapTextWithAnsi(line, Math.max(1, width)));
++}
++
++function card(width: number, rows: readonly string[]): string[] {
++	if (width < 4) return rows.map((row) => fit(row, width));
++	const contentWidth = width - 4;
++	return [
++		colors.border(`╭${"─".repeat(width - 2)}╮`),
++		...rows.map((row) => `${colors.border("│")} ${fit(row, contentWidth)} ${colors.border("│")}`),
++		colors.border(`╰${"─".repeat(width - 2)}╯`),
++	];
++}
++
++function outputLines(snapshot: CommandResultSnapshot, maximum: number): { lines: OutputLine[]; omitted: number } {
++	const lines: OutputLine[] = [];
++	for (const [stream, output] of [["stdout", snapshot.stdout], ["stderr", snapshot.stderr]] as const) {
++		for (const text of projectNativePathText(clean(output), snapshot.cwd).split("\n")) {
++			if (text || output.length > 0) lines.push({ stream, text });
++		}
++	}
++	return { lines: maximum > 0 ? lines.slice(-maximum) : [], omitted: Math.max(0, lines.length - maximum) };
++}
++
++function boundedLines(output: string, maximum: number): { lines: string[]; omitted: number } {
++	const lines = clean(output).split("\n");
++	return { lines: maximum > 0 ? lines.slice(-maximum) : [], omitted: Math.max(0, lines.length - maximum) };
++}
++
++function boundedDisplayLines(output: string, language: string | undefined, maximum: number): { lines: string[]; omitted: number } {
++	const plain    = clean(output)                                          ;
++	const allLines = plain.split("\n")                                      ;
++	const selected = maximum > 0 ? allLines.slice(-maximum).join("\n") : "" ;
++	// Bound unstyled text first: highlighter ANSI bytes must never consume the display budget.
++	const bounded = clean(sanitizeTerminalTextExcerpt(selected, CHAT_PUBLIC_OUTPUT_MAX_CHARS, "tail"));
++	const lines = language
++		? highlightStructured(bounded, language as "json" | "yaml" | "markdown")
++		: bounded.split("\n");
++	return { lines, omitted: Math.max(0, allLines.length - maximum) };
++}
++
++function statusLabel(status: CommandStatus): string {
++	return workStepStatusPresentation(status).text;
++}
++
++function resultDetails(durationMs: number | undefined, error: string | undefined): string[] {
++	const details: string[] = [];
++	if (durationMs !== undefined) details.push(`${durationMs}ms`);
++	if (error !== undefined) details.push(`오류: ${clean(error)}`);
++	return details;
++}
+--- .www/evidence/2026-10-03-feature-template/chat/before/src/adapters/inbound/tui/features/chat/view/three-body-braille.ts	2026-10-03 02:43:39
++++ src/adapters/inbound/tui/features/chat/view/three-body-braille.ts	2026-10-03 02:44:17
+@@ -1,6 +1,10 @@
+-import type { ThreeBodyInitialBody, ThreeBodySnapshot, Vector2 } from "@/core/domain/work/three-body-simulation";
++import type {
++              ThreeBodyInitialBody ,
++              ThreeBodySnapshot    ,
++              Vector2              ,
++                                     } from "@/core/domain/work/three-body-simulation"      ;
+ import chalk                                                     from "chalk";
+-import { colors }                                                from "@/adapters/inbound/tui/foundation/theme/theme";
++import      { colors                 } from "@/adapters/inbound/tui/foundation/theme/theme" ;
+ 
+ export interface ThreeBodyTrail {
+ 	readonly bodyId       : ThreeBodyInitialBody["id"] ;
+@@ -37,28 +41,6 @@
+ 	C : [255, 184, 92],
+ };
+ 
+-function bodyInk(id: ThreeBodyInitialBody["id"], intensity = 1): Ink {
+-	return text => chalk.rgb(...mix([9, 10, 18], BODY_COLORS[id], intensity))(text);
+-}
+-
+-function mix(from: Rgb, to: Rgb, amount: number): Rgb {
+-	const value = Math.max(0, Math.min(1, amount));
+-	return [
+-		Math.round(from[0] + (to[0] - from[0]) * value),
+-		Math.round(from[1] + (to[1] - from[1]) * value),
+-		Math.round(from[2] + (to[2] - from[2]) * value),
+-	];
+-}
+-
+-function orbitInk(position: number, intensity = 1): Ink {
+-	const wrapped = ((position % 1) + 1) % 1                                        ;
+-	const scaled  = wrapped * (ORBIT_STOPS.length - 1)                              ;
+-	const index   = Math.min(ORBIT_STOPS.length - 2, Math.floor(scaled))            ;
+-	const color   = mix(ORBIT_STOPS[index], ORBIT_STOPS[index + 1], scaled - index) ;
+-	const shaded  = mix([9, 10, 18], color, intensity)                              ;
+-	return text => chalk.rgb(...shaded)(text);
+-}
+-
+ const BRAILLE_BITS = [
+ 	[0x01, 0x08],
+ 	[0x02, 0x10],
+@@ -94,8 +76,8 @@
+ 
+ 	rows(labels: readonly { x: number; y: number; text: string; ink: Ink }[], depthTexture = false): string[] {
+ 		const rows = Array.from({ length: this.height }, (_, y) => Array.from({ length: this.width }, (_, x) => {
+-			const index = y * this.width + x;
+-			const bits = this.bits[index] ?? 0;
++			const index = y * this.width + x    ;
++			const bits  = this.bits[index] ?? 0 ;
+ 			if (!bits) return " ";
+ 			const density = bits.toString(2).replaceAll("0", "").length;
+ 			const character = depthTexture && this.priority[index] === 4
+@@ -109,8 +91,8 @@
+ 				|| label.y < 0
+ 				|| label.x >= this.width
+ 				|| label.y >= this.height) continue;
+-			const candidates = [label.x, label.x - 1, label.x + 1, label.x - 2, label.x + 2];
+-			const x = candidates.find(candidate => candidate >= 0 && candidate < this.width && !occupied.has(`${candidate}:${label.y}`));
++			const candidates = [label.x, label.x - 1, label.x + 1, label.x - 2, label.x + 2]                                                      ;
++			const x          = candidates.find(candidate => candidate >= 0 && candidate < this.width && !occupied.has(`${candidate}:${label.y}`)) ;
+ 			if (x === undefined) continue;
+ 			rows[label.y][x] = label.ink(label.text);
+ 			occupied.add(`${x}:${label.y}`);
+@@ -119,6 +101,72 @@
+ 	}
+ }
+ 
++/** Render a physics snapshot and supplied world-space trails into a 2×4 Braille framebuffer. */
++export function renderThreeBodyBrailleFrame(snapshot: ThreeBodySnapshot, options: ThreeBodyBrailleOptions): string[] {
++	const width         = Math.max(1, Math.floor(options.width))                               ;
++	const height        = Math.max(1, Math.floor(options.height))                              ;
++	const visibleTrails = options.showTrail && !options.trailOnlyHistory ? options.trails : [] ;
++	const project       = projector(snapshot, options.trails, width * 2, height * 4)           ;
++	const canvas        = new BrailleCanvas(width, height)                                     ;
++
++	for (const trail of visibleTrails) {
++		for (let index = 1; index < trail.points.length; index += 1) {
++			const position = index / Math.max(1, trail.points.length - 1) ;
++			const from     = project(trail.points[index - 1])             ;
++			const to       = project(trail.points[index])                 ;
++			const depth    = viewDepth(trail.points[index])               ;
++			line(canvas, from, to, orbitInk(position, depth < 0 ? 0.42 : 0.2), 2);
++		}
++	}
++	if (options.showTrail) for (const trail of options.recentTrails ?? []) {
++		for (let index = 1; index < trail.points.length; index += 1) {
++			const ageIntensity   = trail.intensities?.[index] ?? (0.25 + 0.75 * index / Math.max(1, trail.points.length - 1)) ;
++			const depthIntensity = viewDepth(trail.points[index]) < 0 ? 1 : 0.55                                              ;
++			line(canvas, project(trail.points[index - 1]), project(trail.points[index]), bodyInk(trail.bodyId, ageIntensity * depthIntensity), 3);
++		}
++	}
++
++	const labels = snapshot.bodies.map(body => {
++		const [pixelX, pixelY] = project(body.position);
++		const radius = viewDepth(body.position) < 0 ? 3 : 2;
++		for (let dy = -radius; dy <= radius; dy += 1) {
++			for (let dx = -radius; dx <= radius; dx += 1) {
++				const distance = Math.hypot(dx, dy);
++				if (distance <= radius) canvas.plot(pixelX + dx, pixelY + dy, bodyInk(body.id, 1 - distance / (radius + 1) * 0.6), 4);
++			}
++		}
++		return {
++			x    : Math.max(0, Math.min(width - 1, Math.floor(pixelX / 2))),
++			y    : Math.max(0, Math.min(height - 1, Math.floor(pixelY / 4))),
++			text : options.bodyLabel ?? body.id,
++			ink  : (text: string) => chalk.bold.rgb(...BODY_COLORS[body.id])(text),
++		};
++	});
++	return canvas.rows(labels, options.depthTexture);
++}
++
++function bodyInk(id: ThreeBodyInitialBody["id"], intensity = 1): Ink {
++	return text => chalk.rgb(...mix([9, 10, 18], BODY_COLORS[id], intensity))(text);
++}
++
++function mix(from: Rgb, to: Rgb, amount: number): Rgb {
++	const value = Math.max(0, Math.min(1, amount));
++	return [
++		Math.round(from[0] + (to[0] - from[0]) * value),
++		Math.round(from[1] + (to[1] - from[1]) * value),
++		Math.round(from[2] + (to[2] - from[2]) * value),
++	];
++}
++
++function orbitInk(position: number, intensity = 1): Ink {
++	const wrapped = ((position % 1) + 1) % 1                                        ;
++	const scaled  = wrapped * (ORBIT_STOPS.length - 1)                              ;
++	const index   = Math.min(ORBIT_STOPS.length - 2, Math.floor(scaled))            ;
++	const color   = mix(ORBIT_STOPS[index], ORBIT_STOPS[index + 1], scaled - index) ;
++	const shaded  = mix([9, 10, 18], color, intensity)                              ;
++	return text => chalk.rgb(...shaded)(text);
++}
++
+ function bounds(snapshot: ThreeBodySnapshot, trails: readonly ThreeBodyTrail[]): { center: Vector2; rangeX: number; rangeY: number } {
+ 	const points = [
+ 		...snapshot.bodies.map(body => body.position),
+@@ -151,8 +199,8 @@
+ 		const perspective = 1 / Math.max(0.65, Math.min(1.35, 1 + depth * 0.035)) ;
+ 		return { x: x * perspective, y: depth * 0.62 * perspective };
+ 	};
+-	const world = bounds({ ...snapshot, bodies: snapshot.bodies.map(body => ({ ...body, position: tilt(body.position) })) }, trails.map(trail => ({ ...trail, points: trail.points.map(tilt) })));
+-	const scale = Math.min((pixelWidth - 1) / world.rangeX, (pixelHeight - 1) / world.rangeY);
++	const world = bounds({ ...snapshot, bodies: snapshot.bodies.map(body => ({ ...body, position: tilt(body.position) })) }, trails.map(trail => ({ ...trail, points: trail.points.map(tilt) }))) ;
++	const scale = Math.min((pixelWidth - 1) / world.rangeX, (pixelHeight - 1) / world.rangeY)                                                                                                     ;
+ 	return point => {
+ 		const projected = tilt(point);
+ 		return [
+@@ -178,47 +226,3 @@
+ 		if (doubled <= dx) { error += dx; y += sy; }
+ 	}
+ }
+-
+-/** Render a physics snapshot and supplied world-space trails into a 2×4 Braille framebuffer. */
+-export function renderThreeBodyBrailleFrame(snapshot: ThreeBodySnapshot, options: ThreeBodyBrailleOptions): string[] {
+-	const width         = Math.max(1, Math.floor(options.width))                               ;
+-	const height        = Math.max(1, Math.floor(options.height))                              ;
+-	const visibleTrails = options.showTrail && !options.trailOnlyHistory ? options.trails : [] ;
+-	const project       = projector(snapshot, options.trails, width * 2, height * 4)           ;
+-	const canvas        = new BrailleCanvas(width, height)                                     ;
+-
+-	for (const trail of visibleTrails) {
+-		for (let index = 1; index < trail.points.length; index += 1) {
+-			const position = index / Math.max(1, trail.points.length - 1) ;
+-			const from     = project(trail.points[index - 1])             ;
+-			const to       = project(trail.points[index])                 ;
+-			const depth    = viewDepth(trail.points[index])               ;
+-			line(canvas, from, to, orbitInk(position, depth < 0 ? 0.42 : 0.2), 2);
+-		}
+-	}
+-	if (options.showTrail) for (const trail of options.recentTrails ?? []) {
+-		for (let index = 1; index < trail.points.length; index += 1) {
+-			const ageIntensity = trail.intensities?.[index] ?? (0.25 + 0.75 * index / Math.max(1, trail.points.length - 1));
+-			const depthIntensity = viewDepth(trail.points[index]) < 0 ? 1 : 0.55;
+-			line(canvas, project(trail.points[index - 1]), project(trail.points[index]), bodyInk(trail.bodyId, ageIntensity * depthIntensity), 3);
+-		}
+-	}
+-
+-	const labels = snapshot.bodies.map(body => {
+-		const [pixelX, pixelY] = project(body.position);
+-		const radius = viewDepth(body.position) < 0 ? 3 : 2;
+-		for (let dy = -radius; dy <= radius; dy += 1) {
+-			for (let dx = -radius; dx <= radius; dx += 1) {
+-				const distance = Math.hypot(dx, dy);
+-				if (distance <= radius) canvas.plot(pixelX + dx, pixelY + dy, bodyInk(body.id, 1 - distance / (radius + 1) * 0.6), 4);
+-			}
+-		}
+-		return {
+-			x    : Math.max(0, Math.min(width - 1, Math.floor(pixelX / 2))),
+-			y    : Math.max(0, Math.min(height - 1, Math.floor(pixelY / 4))),
+-			text : options.bodyLabel ?? body.id,
+-			ink  : (text: string) => chalk.bold.rgb(...BODY_COLORS[body.id])(text),
+-		};
+-	});
+-	return canvas.rows(labels, options.depthTexture);
+-}
+--- .www/evidence/2026-10-03-feature-template/chat/before/src/adapters/inbound/tui/features/chat/view/three-body-lab.ts	2026-10-03 02:43:39
++++ src/adapters/inbound/tui/features/chat/view/three-body-lab.ts	2026-10-03 02:44:18
+@@ -1,72 +1,24 @@
+-import { truncateToWidth, visibleWidth }                   from "@earendil-works/pi-tui";
+-import type { Component }                                  from "@earendil-works/pi-tui";
+-import { HIERARCHICAL_TRIPLE_PRESET, ThreeBodySimulation } from "@/core/domain/work/three-body-simulation";
+-import type { ThreeBodySnapshot, Vector2 }                 from "@/core/domain/work/three-body-simulation";
+-import { colors }                                          from "@/adapters/inbound/tui/foundation/theme/theme";
+-import { renderThreeBodyBrailleFrame }                     from "@/adapters/inbound/tui/features/chat/view/three-body-braille";
+-import type { ThreeBodyTrail }                             from "@/adapters/inbound/tui/features/chat/view/three-body-braille";
++import      { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui"                                       ;
++import type { Component                     } from "@earendil-works/pi-tui"                                       ;
++import      {
++              HIERARCHICAL_TRIPLE_PRESET  ,
++              ThreeBodySimulation         ,
++                                            } from "@/core/domain/work/three-body-simulation"                     ;
++import type { ThreeBodySnapshot, Vector2    } from "@/core/domain/work/three-body-simulation"                     ;
++import      { colors                        } from "@/adapters/inbound/tui/foundation/theme/theme"                ;
++import      { renderThreeBodyBrailleFrame   } from "@/adapters/inbound/tui/features/chat/view/three-body-braille" ;
++import type { ThreeBodyTrail                } from "@/adapters/inbound/tui/features/chat/view/three-body-braille" ;
+ 
+ export interface ThreeBodyLabOptions {
+ 	readonly viewportHeight?: () => number;
+ 	readonly onClose?: () => void;
+ }
+ 
+-const FRAME_INTERVAL_MS = 40;
+-const SPEEDS = [0.25, 0.5, 1, 2, 4, 8] as const;
++const FRAME_INTERVAL_MS = 40                               ;
++const SPEEDS            = [0.25, 0.5, 1, 2, 4, 8] as const ;
+ 
+-function fit(text: string, width: number): string {
+-	const safeWidth = Math.max(0, width);
+-	const clipped = truncateToWidth(text, safeWidth);
+-	return clipped + " ".repeat(Math.max(0, safeWidth - visibleWidth(clipped)));
+-}
+-
+-function referenceTrail(): readonly ThreeBodyTrail[] {
+-	const simulation = ThreeBodySimulation.fromPreset(HIERARCHICAL_TRIPLE_PRESET)                               ;
+-	const points     = new Map<string, Vector2[]>(HIERARCHICAL_TRIPLE_PRESET.bodies.map(body => [body.id, []])) ;
+-	const sampleStep = 0.02                                                                                     ;
+-	for (let elapsed = 0; elapsed <= HIERARCHICAL_TRIPLE_PRESET.referenceDuration; elapsed += sampleStep) {
+-		const snapshot = simulation.snapshot();
+-		for (const body of snapshot.bodies) {
+-			const trail = points.get(body.id);
+-			if (!trail) throw new Error(`Unknown simulation body: ${body.id}`);
+-			trail.push(body.position);
+-		}
+-		simulation.advance(Math.min(sampleStep, Math.max(0, HIERARCHICAL_TRIPLE_PRESET.referenceDuration - elapsed)));
+-	}
+-	return HIERARCHICAL_TRIPLE_PRESET.bodies.map(body => ({ bodyId: body.id, points: points.get(body.id) ?? [] }));
+-}
+-
+ const HIERARCHICAL_REFERENCE_TRAIL = referenceTrail();
+ 
+-function topRule(width: number): string {
+-	if (width <= 1) return colors.border("─".repeat(width));
+-	const prefix = "┌─ ORBIT ";
+-	return colors.border(prefix + "─".repeat(Math.max(0, width - visibleWidth(prefix) - 1)) + "┐");
+-}
+-
+-function bottomRule(width: number): string {
+-	return width <= 1 ? colors.border("─".repeat(width)) : colors.border("└" + "─".repeat(Math.max(0, width - 2)) + "┘");
+-}
+-
+-function metricRows(snapshot: ThreeBodySnapshot, speed: number, width: number): string[] {
+-	const momentum = Math.hypot(snapshot.momentum.x, snapshot.momentum.y);
+-	const driftPercent = snapshot.relativeEnergyDrift * 100;
+-	return [
+-		fit(` TIME ${snapshot.time.toFixed(3)}   DT ${HIERARCHICAL_TRIPLE_PRESET.timeStep.toFixed(3)}   SPEED ${speed.toFixed(2)}×   ENERGY ${snapshot.energy.total.toFixed(6)}`, width),
+-		fit(` ΔE ${driftPercent >= 0 ? "+" : ""}${driftPercent.toExponential(3)}%   MOMENTUM ${momentum.toExponential(3)}   ANGULAR ${snapshot.angularMomentum.toExponential(3)}`, width),
+-	];
+-}
+-
+-function bodyRows(snapshot: ThreeBodySnapshot, width: number): string[] {
+-	return [
+-		fit(" BODY   MASS          X          Y         VX         VY", width),
+-		...snapshot.bodies.map(body => fit(
+-			` ${body.id}      ${body.mass.toFixed(3).padStart(5)}  ${body.position.x.toFixed(6).padStart(10)} ${body.position.y.toFixed(6).padStart(10)} ${body.velocity.x.toFixed(6).padStart(10)} ${body.velocity.y.toFixed(6).padStart(10)}`,
+-			width,
+-		)),
+-	];
+-}
+-
+ /** Interactive TUI surface backed by the actual nonlinear three-body ODE. */
+ export class ThreeBodyLabView implements Component {
+ 	private simulation                                                      = ThreeBodySimulation.fromPreset(HIERARCHICAL_TRIPLE_PRESET) ;
+@@ -89,8 +41,8 @@
+ 		if (this.timer) return;
+ 		this.previousFrameAt = performance.now();
+ 		this.timer = setInterval(() => {
+-			const now = performance.now();
+-			const elapsed = Math.min(200, Math.max(0, now - this.previousFrameAt));
++			const now     = performance.now()                                      ;
++			const elapsed = Math.min(200, Math.max(0, now - this.previousFrameAt)) ;
+ 			this.previousFrameAt = now;
+ 			this.advanceElapsed(elapsed);
+ 			this.requestRender?.();
+@@ -160,3 +112,54 @@
+ 		return rows.slice(0, height);
+ 	}
+ }
++
++function fit(text: string, width: number): string {
++	const safeWidth = Math.max(0, width)               ;
++	const clipped   = truncateToWidth(text, safeWidth) ;
++	return clipped + " ".repeat(Math.max(0, safeWidth - visibleWidth(clipped)));
++}
++
++function referenceTrail(): readonly ThreeBodyTrail[] {
++	const simulation = ThreeBodySimulation.fromPreset(HIERARCHICAL_TRIPLE_PRESET)                               ;
++	const points     = new Map<string, Vector2[]>(HIERARCHICAL_TRIPLE_PRESET.bodies.map(body => [body.id, []])) ;
++	const sampleStep = 0.02                                                                                     ;
++	for (let elapsed = 0; elapsed <= HIERARCHICAL_TRIPLE_PRESET.referenceDuration; elapsed += sampleStep) {
++		const snapshot = simulation.snapshot();
++		for (const body of snapshot.bodies) {
++			const trail = points.get(body.id);
++			if (!trail) throw new Error(`Unknown simulation body: ${body.id}`);
++			trail.push(body.position);
++		}
++		simulation.advance(Math.min(sampleStep, Math.max(0, HIERARCHICAL_TRIPLE_PRESET.referenceDuration - elapsed)));
++	}
++	return HIERARCHICAL_TRIPLE_PRESET.bodies.map(body => ({ bodyId: body.id, points: points.get(body.id) ?? [] }));
++}
++
++function topRule(width: number): string {
++	if (width <= 1) return colors.border("─".repeat(width));
++	const prefix = "┌─ ORBIT ";
++	return colors.border(prefix + "─".repeat(Math.max(0, width - visibleWidth(prefix) - 1)) + "┐");
++}
++
++function bottomRule(width: number): string {
++	return width <= 1 ? colors.border("─".repeat(width)) : colors.border("└" + "─".repeat(Math.max(0, width - 2)) + "┘");
++}
++
++function metricRows(snapshot: ThreeBodySnapshot, speed: number, width: number): string[] {
++	const momentum     = Math.hypot(snapshot.momentum.x, snapshot.momentum.y) ;
++	const driftPercent = snapshot.relativeEnergyDrift * 100                   ;
++	return [
++		fit(` TIME ${snapshot.time.toFixed(3)}   DT ${HIERARCHICAL_TRIPLE_PRESET.timeStep.toFixed(3)}   SPEED ${speed.toFixed(2)}×   ENERGY ${snapshot.energy.total.toFixed(6)}`, width),
++		fit(` ΔE ${driftPercent >= 0 ? "+" : ""}${driftPercent.toExponential(3)}%   MOMENTUM ${momentum.toExponential(3)}   ANGULAR ${snapshot.angularMomentum.toExponential(3)}`, width),
++	];
++}
++
++function bodyRows(snapshot: ThreeBodySnapshot, width: number): string[] {
++	return [
++		fit(" BODY   MASS          X          Y         VX         VY", width),
++		...snapshot.bodies.map(body => fit(
++			` ${body.id}      ${body.mass.toFixed(3).padStart(5)}  ${body.position.x.toFixed(6).padStart(10)} ${body.position.y.toFixed(6).padStart(10)} ${body.velocity.x.toFixed(6).padStart(10)} ${body.velocity.y.toFixed(6).padStart(10)}`,
++			width,
++		)),
++	];
++}
+--- .www/evidence/2026-10-03-feature-template/chat/before/src/adapters/inbound/tui/features/chat/view/three-body-orbit.ts	2026-10-03 02:43:39
++++ src/adapters/inbound/tui/features/chat/view/three-body-orbit.ts	2026-10-03 02:44:20
+@@ -1,7 +1,10 @@
+-import { HIERARCHICAL_TRIPLE_PRESET, ThreeBodySimulation } from "@/core/domain/work/three-body-simulation";
+-import type { ThreeBodySnapshot, Vector2 }                 from "@/core/domain/work/three-body-simulation";
+-import { renderThreeBodyBrailleFrame }                     from "@/adapters/inbound/tui/features/chat/view/three-body-braille";
+-import type { ThreeBodyTrail }                             from "@/adapters/inbound/tui/features/chat/view/three-body-braille";
++import      {
++              HIERARCHICAL_TRIPLE_PRESET ,
++              ThreeBodySimulation        ,
++                                           } from "@/core/domain/work/three-body-simulation"                     ;
++import type { ThreeBodySnapshot, Vector2   } from "@/core/domain/work/three-body-simulation"                     ;
++import      { renderThreeBodyBrailleFrame  } from "@/adapters/inbound/tui/features/chat/view/three-body-braille" ;
++import type { ThreeBodyTrail               } from "@/adapters/inbound/tui/features/chat/view/three-body-braille" ;
+ 
+ const CANVAS_HEIGHT                          = 21   ;
+ export const MAX_ORBIT_WIDTH                 = 126  ;
+@@ -9,22 +12,6 @@
+ const REFERENCE_SAMPLE_STEP                  = 0.02 ;
+ const REFERENCE_FRAMES : ThreeBodySnapshot[] = []   ;
+ 
+-function referenceTrail(): readonly ThreeBodyTrail[] {
+-	const simulation = ThreeBodySimulation.fromPreset(HIERARCHICAL_TRIPLE_PRESET);
+-	const points = new Map<string, Vector2[]>(HIERARCHICAL_TRIPLE_PRESET.bodies.map(body => [body.id, []]));
+-	for (let elapsed = 0; elapsed <= HIERARCHICAL_TRIPLE_PRESET.referenceDuration; elapsed += REFERENCE_SAMPLE_STEP) {
+-		const snapshot = simulation.snapshot();
+-		REFERENCE_FRAMES.push(snapshot);
+-		for (const body of snapshot.bodies) {
+-			const trail = points.get(body.id);
+-			if (!trail) throw new Error(`Unknown simulation body: ${body.id}`);
+-			trail.push(body.position);
+-		}
+-		simulation.advance(Math.min(REFERENCE_SAMPLE_STEP, Math.max(0, HIERARCHICAL_TRIPLE_PRESET.referenceDuration - elapsed)));
+-	}
+-	return HIERARCHICAL_TRIPLE_PRESET.bodies.map(body => ({ bodyId: body.id, points: points.get(body.id) ?? [] }));
+-}
+-
+ const HIERARCHICAL_REFERENCE_TRAIL = referenceTrail();
+ 
+ /** Cached physics samples keep accelerated welcome playback independent of render cost. */
+@@ -38,8 +25,8 @@
+ 	const recentTrails : ThreeBodyTrail[] = []                                                                                      ;
+ 	const cycle                           = Math.floor(elapsedSeconds / duration)                                                   ;
+ 	for (let pass = Math.max(0, cycle - 2); pass <= cycle; pass += 1) {
+-		const start = Math.max(0, Math.ceil((elapsedSeconds - lifetime - pass * duration) / REFERENCE_SAMPLE_STEP));
+-		const end = pass === cycle ? frameIndex + 1 : REFERENCE_FRAMES.length;
++		const start = Math.max(0, Math.ceil((elapsedSeconds - lifetime - pass * duration) / REFERENCE_SAMPLE_STEP)) ;
++		const end   = pass === cycle ? frameIndex + 1 : REFERENCE_FRAMES.length                                     ;
+ 		if (start >= end) continue;
+ 		for (const trail of HIERARCHICAL_REFERENCE_TRAIL) recentTrails.push({
+ 			bodyId: trail.bodyId,
+@@ -65,3 +52,19 @@
+ export function threeBodyOrbitLabel(_width: number): string {
+ 	return "";
+ }
++
++function referenceTrail(): readonly ThreeBodyTrail[] {
++	const simulation = ThreeBodySimulation.fromPreset(HIERARCHICAL_TRIPLE_PRESET)                               ;
++	const points     = new Map<string, Vector2[]>(HIERARCHICAL_TRIPLE_PRESET.bodies.map(body => [body.id, []])) ;
++	for (let elapsed = 0; elapsed <= HIERARCHICAL_TRIPLE_PRESET.referenceDuration; elapsed += REFERENCE_SAMPLE_STEP) {
++		const snapshot = simulation.snapshot();
++		REFERENCE_FRAMES.push(snapshot);
++		for (const body of snapshot.bodies) {
++			const trail = points.get(body.id);
++			if (!trail) throw new Error(`Unknown simulation body: ${body.id}`);
++			trail.push(body.position);
++		}
++		simulation.advance(Math.min(REFERENCE_SAMPLE_STEP, Math.max(0, HIERARCHICAL_TRIPLE_PRESET.referenceDuration - elapsed)));
++	}
++	return HIERARCHICAL_TRIPLE_PRESET.bodies.map(body => ({ bodyId: body.id, points: points.get(body.id) ?? [] }));
++}
+--- .www/evidence/2026-10-03-feature-template/chat/before/src/adapters/inbound/tui/features/chat/view/work-step-components.ts	2026-10-03 02:43:39
++++ src/adapters/inbound/tui/features/chat/view/work-step-components.ts	2026-10-03 02:44:06
+@@ -113,6 +113,10 @@
+ 	}
+ }
+ 
++export function isVisibleWorkStep(kind: ProjectActivityKind | WorkbenchLiveActivity["kind"]): boolean {
++	return kind === "tool" || kind === "file-change";
++}
++
+ function fileChangeRows(activity: ProjectActivity | undefined, status: CommandStatus, width: number): string[] | null {
+ 	const changes = projectFileChanges(activity);
+ 	if (!changes.length) return null;
+@@ -165,7 +169,3 @@
+ 	if (output.length > 0) return output;
+ 	return status === "running" || status === "pending" ? ["Running…"] : [];
+ }
+-
+-export function isVisibleWorkStep(kind: ProjectActivityKind | WorkbenchLiveActivity["kind"]): boolean {
+-	return kind === "tool" || kind === "file-change";
+-}
+--- .www/evidence/2026-10-03-feature-template/chat/before/src/adapters/inbound/tui/features/chat/view/work-step-output-renderer.ts	2026-10-03 02:43:39
++++ src/adapters/inbound/tui/features/chat/view/work-step-output-renderer.ts	2026-10-03 02:44:22
+@@ -1,22 +1,35 @@
+-import { stripTerminalSequences, truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
+-import { parseAllDocuments, stringify, visit }                                     from "yaml";
+-import type { CommandStatus }                                                      from "@/core/domain/execution/output";
+-import { sanitizeTerminalTextExcerpt }                                             from "@/core/domain/execution/terminal";
+-import { colors, semantic, syntaxHighlightPlugin }                                 from "@/adapters/inbound/tui/foundation/theme/theme";
+-import {
+-	CHAT_PUBLIC_OUTPUT_MAX_CHARS,
+-	CHAT_STRUCTURED_DISPLAY_MAX_BYTES,
+-	CHAT_STRUCTURED_DISPLAY_MAX_LINES,
+-	CHAT_TERMINAL_OUTPUT_CHUNK_LINES,
+-	workStepStatusPresentation,
+-	workStepStatusSymbol,
+-} from "@/adapters/inbound/tui/features/chat/view/chat-output-policy";
+-import type { WorkStepStatusPresentation }                                         from "@/adapters/inbound/tui/features/chat/view/chat-output-policy";
++import      {
++              stripTerminalSequences            ,
++              truncateToWidth                   ,
++              visibleWidth                      ,
++              wrapTextWithAnsi                  ,
++                                                  } from "@earendil-works/pi-tui"                                       ;
++import      {
++              parseAllDocuments                 ,
++              stringify                         ,
++              visit                             ,
++                                                  } from "yaml"                                                         ;
++import type { CommandStatus                       } from "@/core/domain/execution/output"                               ;
++import      { sanitizeTerminalTextExcerpt         } from "@/core/domain/execution/terminal"                             ;
++import      {
++              colors                            ,
++              semantic                          ,
++              syntaxHighlightPlugin             ,
++                                                  } from "@/adapters/inbound/tui/foundation/theme/theme"                ;
++import      {
++              CHAT_PUBLIC_OUTPUT_MAX_CHARS      ,
++              CHAT_STRUCTURED_DISPLAY_MAX_BYTES ,
++              CHAT_STRUCTURED_DISPLAY_MAX_LINES ,
++              CHAT_TERMINAL_OUTPUT_CHUNK_LINES  ,
++              workStepStatusPresentation        ,
++              workStepStatusSymbol              ,
++                                                  } from "@/adapters/inbound/tui/features/chat/view/chat-output-policy" ;
++import type { WorkStepStatusPresentation          } from "@/adapters/inbound/tui/features/chat/view/chat-output-policy" ;
+ 
+ export { workStepStatusPresentation, type WorkStepStatusPresentation } from "@/adapters/inbound/tui/features/chat/view/chat-output-policy";
+ 
+-const BASH_OUTPUT_MAX_LINES = CHAT_TERMINAL_OUTPUT_CHUNK_LINES;
+-const BASH_SPINNER = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"] as const;
++const BASH_OUTPUT_MAX_LINES = CHAT_TERMINAL_OUTPUT_CHUNK_LINES                            ;
++const BASH_SPINNER          = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"] as const ;
+ 
+ export type ExecutionLineTone =
+ 	| "command" | "meta" | "output" | "success" | "warning" | "error"
+@@ -33,10 +46,6 @@
+ 	output      : readonly string[] ;
+ }
+ 
+-function clean(value: string): string {
+-	return sanitizeTerminalTextExcerpt(value, CHAT_PUBLIC_OUTPUT_MAX_CHARS, "head-tail").replace(/\t/gu, "    ");
+-}
+-
+ export function fitExecutionText(text: string, width: number): string {
+ 	const clipped = truncateToWidth(text, Math.max(0, width));
+ 	return clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)));
+@@ -51,33 +60,6 @@
+ 	}
+ }
+ 
+-function isWithinStructuredDisplayBudget(value: string): boolean {
+-	return Buffer.byteLength(value, "utf8") <= CHAT_STRUCTURED_DISPLAY_MAX_BYTES
+-		&& value.split("\n").length <= CHAT_STRUCTURED_DISPLAY_MAX_LINES;
+-}
+-
+-function prettyJson(value: string): string | undefined {
+-	if (!isWithinStructuredDisplayBudget(value)) return undefined;
+-	try {
+-		return JSON.stringify(JSON.parse(value), null, 2);
+-	} catch {
+-		return undefined;
+-	}
+-}
+-
+-function prettyYaml(value: string): string | undefined {
+-	if (!isWithinStructuredDisplayBudget(value)) return undefined;
+-	try {
+-		const documents = parseAllDocuments(value);
+-		if (documents.length !== 1 || documents[0].errors.length > 0) return undefined;
+-		let hasAlias = false;
+-		visit(documents[0], { Alias: () => { hasAlias = true; } });
+-		return hasAlias ? undefined : stringify(documents[0].toJS());
+-	} catch {
+-		return undefined;
+-	}
+-}
+-
+ /** Prettifies safe structured tool output within a bounded parsing budget. */
+ export function structuredOutput(input: string, output: string): { value: string; language?: StructuredLanguage } {
+ 	let path: unknown;
+@@ -126,10 +108,6 @@
+ 	return "output";
+ }
+ 
+-function highlightedSource(source: string, language: "bash" | "json"): string {
+-	return highlightStructured(source, language).join("\n");
+-}
+-
+ export function renderExecutionLine(line: string, section: "input" | "output"): string {
+ 	if (line.startsWith("… ")) return line;
+ 	const tone = executionLineTone(line, section);
+@@ -165,16 +143,16 @@
+ 	preserveTail: boolean,
+ 	label: "입력" | "출력",
+ ): string[] {
+-	const raw = lines.join("\n");
+-	const plain = stripTerminalSequences(raw);
++	const raw   = lines.join("\n")            ;
++	const plain = stripTerminalSequences(raw) ;
+ 	// Compare and truncate only plain text. Cutting highlighted bytes can leave an
+ 	// unterminated escape sequence in the terminal stream.
+ 	const clippedByChars = plain.length > maximumChars;
+ 	const clipped = clippedByChars
+ 		? preserveTail ? clean(plain).slice(-maximumChars) : clean(plain).slice(0, maximumChars)
+ 		: raw;
+-	const wrapped = clipped.split(/\r?\n/gu).flatMap((line) => wrapTextWithAnsi(line, Math.max(1, width)));
+-	const omittedLines = Math.max(0, wrapped.length - maximumLines + 1);
++	const wrapped      = clipped.split(/\r?\n/gu).flatMap((line) => wrapTextWithAnsi(line, Math.max(1, width))) ;
++	const omittedLines = Math.max(0, wrapped.length - maximumLines + 1)                                         ;
+ 	if (!clippedByChars && wrapped.length <= maximumLines) return wrapped;
+ 	const marker = colors.muted(`… ${preserveTail ? "이전 " : "나머지 "}${label} ${Math.max(1, omittedLines)}줄 생략`);
+ 	if (maximumLines <= 1) return [marker];
+@@ -183,37 +161,6 @@
+ 		: [...wrapped.slice(0, maximumLines - 1), marker];
+ }
+ 
+-function bashStatusSymbol(status: CommandStatus): string {
+-	if (status === "running") return BASH_SPINNER[Math.floor(Date.now() / 80) % BASH_SPINNER.length] ?? "⠋";
+-	return workStepStatusSymbol(status);
+-}
+-
+-function bashBar(left: "┌" | "├", right: "┐" | "┤", label: string, width: number, border: (text: string) => string): string {
+-	const leftPart      = border(`${left}───`)                                                                                ;
+-	const rightPart     = border(right)                                                                                       ;
+-	const available     = Math.max(0, width - visibleWidth(leftPart) - visibleWidth(rightPart))                               ;
+-	const renderedLabel = truncateToWidth(` ${label} `, available)                                                            ;
+-	const fill          = Math.max(0, width - visibleWidth(leftPart) - visibleWidth(renderedLabel) - visibleWidth(rightPart)) ;
+-	return `${leftPart}${renderedLabel}${border("─".repeat(fill))}${rightPart}`;
+-}
+-
+-function bashContent(line: string, width: number, border: (text: string) => string): string {
+-	if (width < 4) return fitExecutionText(line, width);
+-	return `${border("│")} ${fitExecutionText(line, width - 4)} ${border("│")}`;
+-}
+-
+-function bashOutputLines(projected: BashExecutionProjection, width: number): string[] {
+-	const contentWidth = Math.max(1, width - 4);
+-	const logical = projected.output.flatMap((line) => {
+-		if (/^(?:output|stdout|result)$/iu.test(line.trim()) || /^exit\s*:/iu.test(line.trim())) return [];
+-		return [line.replace(/^(?:output|stdout|result)\s*:\s*/iu, "")];
+-	});
+-	const visual = logical.flatMap((line) => wrapTextWithAnsi(line, contentWidth));
+-	if (visual.length <= BASH_OUTPUT_MAX_LINES) return visual;
+-	const shown = visual.slice(-BASH_OUTPUT_MAX_LINES);
+-	return [colors.muted(`… (${visual.length - shown.length} earlier lines, showing ${shown.length} of ${visual.length})`), ...shown];
+-}
+-
+ /** Renders a bounded Bash command and its public output as one terminal frame. */
+ export function renderBashExecutionBlock(projected: BashExecutionProjection, status: CommandStatus, width: number): string[] {
+ 	if (!projected.command || width < 12) {
+@@ -247,3 +194,69 @@
+ 	];
+ 	return rows.map((row) => surface(fitExecutionText(row, width)));
+ }
++
++function clean(value: string): string {
++	return sanitizeTerminalTextExcerpt(value, CHAT_PUBLIC_OUTPUT_MAX_CHARS, "head-tail").replace(/\t/gu, "    ");
++}
++
++function isWithinStructuredDisplayBudget(value: string): boolean {
++	return Buffer.byteLength(value, "utf8") <= CHAT_STRUCTURED_DISPLAY_MAX_BYTES
++		&& value.split("\n").length <= CHAT_STRUCTURED_DISPLAY_MAX_LINES;
++}
++
++function prettyJson(value: string): string | undefined {
++	if (!isWithinStructuredDisplayBudget(value)) return undefined;
++	try {
++		return JSON.stringify(JSON.parse(value), null, 2);
++	} catch {
++		return undefined;
++	}
++}
++
++function prettyYaml(value: string): string | undefined {
++	if (!isWithinStructuredDisplayBudget(value)) return undefined;
++	try {
++		const documents = parseAllDocuments(value);
++		if (documents.length !== 1 || documents[0].errors.length > 0) return undefined;
++		let hasAlias = false;
++		visit(documents[0], { Alias: () => { hasAlias = true; } });
++		return hasAlias ? undefined : stringify(documents[0].toJS());
++	} catch {
++		return undefined;
++	}
++}
++
++function highlightedSource(source: string, language: "bash" | "json"): string {
++	return highlightStructured(source, language).join("\n");
++}
++
++function bashStatusSymbol(status: CommandStatus): string {
++	if (status === "running") return BASH_SPINNER[Math.floor(Date.now() / 80) % BASH_SPINNER.length] ?? "⠋";
++	return workStepStatusSymbol(status);
++}
++
++function bashBar(left: "┌" | "├", right: "┐" | "┤", label: string, width: number, border: (text: string) => string): string {
++	const leftPart      = border(`${left}───`)                                                                                ;
++	const rightPart     = border(right)                                                                                       ;
++	const available     = Math.max(0, width - visibleWidth(leftPart) - visibleWidth(rightPart))                               ;
++	const renderedLabel = truncateToWidth(` ${label} `, available)                                                            ;
++	const fill          = Math.max(0, width - visibleWidth(leftPart) - visibleWidth(renderedLabel) - visibleWidth(rightPart)) ;
++	return `${leftPart}${renderedLabel}${border("─".repeat(fill))}${rightPart}`;
++}
++
++function bashContent(line: string, width: number, border: (text: string) => string): string {
++	if (width < 4) return fitExecutionText(line, width);
++	return `${border("│")} ${fitExecutionText(line, width - 4)} ${border("│")}`;
++}
++
++function bashOutputLines(projected: BashExecutionProjection, width: number): string[] {
++	const contentWidth = Math.max(1, width - 4);
++	const logical = projected.output.flatMap((line) => {
++		if (/^(?:output|stdout|result)$/iu.test(line.trim()) || /^exit\s*:/iu.test(line.trim())) return [];
++		return [line.replace(/^(?:output|stdout|result)\s*:\s*/iu, "")];
++	});
++	const visual = logical.flatMap((line) => wrapTextWithAnsi(line, contentWidth));
++	if (visual.length <= BASH_OUTPUT_MAX_LINES) return visual;
++	const shown = visual.slice(-BASH_OUTPUT_MAX_LINES);
++	return [colors.muted(`… (${visual.length - shown.length} earlier lines, showing ${shown.length} of ${visual.length})`), ...shown];
++}
+--- .www/evidence/2026-10-03-feature-template/chat/before/src/adapters/inbound/tui/features/chat/view/work-step-public-projection.ts	2026-10-03 02:43:39
++++ src/adapters/inbound/tui/features/chat/view/work-step-public-projection.ts	2026-10-03 02:44:06
+@@ -37,18 +37,6 @@
+ 	value: unknown;
+ }
+ 
+-function clean(value: string): string {
+-	return sanitizeTerminalTextExcerpt(value, CHAT_PUBLIC_OUTPUT_MAX_CHARS, "head-tail").replace(/\t/gu, "    ");
+-}
+-
+-function replacePathPrefix(value: string, path: string, replacement: string): string {
+-	const normalizedPath = path.replace(/[\\/]+$/gu, "");
+-	if (!normalizedPath) return value;
+-	const escaped  = normalizedPath.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&") ;
+-	const boundary = "[\\s/\\\\\"':,;=()\\[\\]{}]"                          ;
+-	return value.replace(new RegExp(`(^|${boundary})${escaped}(?=$|${boundary})`, "gu"), `$1${replacement}`);
+-}
+-
+ /** Shortens local paths only in terminal projections; persisted native activity remains raw. */
+ export function projectNativePathText(value: string, projectCwd?: string, home = homedir()): string {
+ 	const project     = projectCwd?.replace(/[\\/]+$/gu, "")                            ;
+@@ -56,83 +44,11 @@
+ 	return replacePathPrefix(withProject, home, "~");
+ }
+ 
+-function firstValue(sources: readonly (Readonly<Record<string, unknown>> | undefined)[], keys: readonly string[]): unknown {
+-	for (const source of sources) {
+-		if (!source) continue;
+-		for (const key of keys) {
+-			const value = source[key];
+-			if (value !== undefined && value !== null && value !== "") return value;
+-		}
+-	}
+-	return undefined;
+-}
+-
+-function stringValue(value: unknown): string | undefined {
+-	if (typeof value === "string") return clean(value);
+-	if (Array.isArray(value) && value.every((part) => typeof part === "string")) return clean(value.join(" "));
+-	return undefined;
+-}
+-
+-function mcpContent(value: unknown): string | undefined {
+-	if (typeof value === "string") return value;
+-	if (!Array.isArray(value)) return undefined;
+-	const text = value.flatMap((part) => {
+-		if (typeof part === "string") return [part];
+-		const source = asRecord(part);
+-		return typeof source?.text === "string" ? [source.text] : [];
+-	}).join("\n");
+-	return text || undefined;
+-}
+-
+-function numberValue(value: unknown): number | undefined {
+-	return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+-}
+-
+-function hiddenKey(key: string): boolean {
+-	const normalized = key.replace(/[-_]/gu, "").toLowerCase();
+-	return normalized.includes("reasoning")
+-		|| normalized.includes("thought")
+-		|| normalized.includes("analysis")
+-		|| normalized.startsWith("raw")
+-		|| normalized === "nativerefs"
+-		|| [
+-			"id", "threadid", "turnid", "itemid", "requestid", "approvalid", "callbackid",
+-			"processid", "commandid", "sessionid", "pluginid",
+-		].includes(normalized)
+-		|| normalized === "sourcedigest"
+-		|| normalized.endsWith("token")
+-		|| normalized.endsWith("secret")
+-		|| normalized.endsWith("password")
+-		|| normalized.endsWith("credential")
+-		|| normalized.endsWith("authorization")
+-		|| normalized.endsWith("apikey");
+-}
+-
+-function publicValue(value: unknown, depth = 0): unknown {
+-	if (value === null || typeof value === "boolean" || typeof value === "number") return value;
+-	if (typeof value === "string") return clean(value);
+-	if (isReasoningActivityPayload(value)) return { classification: "reasoning", content: "[비공개 내용 생략]" };
+-	if (depth >= 4) return "[공개 결과 일부 생략]";
+-	if (Array.isArray(value)) return value.slice(0, 20).map((item) => publicValue(item, depth + 1));
+-	const source = asRecord(value);
+-	if (!source) return String(value);
+-	return Object.fromEntries(Object.entries(source)
+-		.filter(([key]) => !hiddenKey(key))
+-		.slice(0, 30)
+-		.map(([key, item]) => [key, publicValue(item, depth + 1)]));
+-}
+-
+ /** Removes native identifiers, hidden reasoning, raw envelopes, and secret-bearing fields for UI projections. */
+ export function publicPayloadProjection(value: unknown): unknown {
+ 	return publicValue(value);
+ }
+ 
+-function displayValue(value: unknown, projectCwd?: string): string {
+-	const safe = publicValue(value);
+-	if (typeof safe === "string") return projectNativePathText(safe, projectCwd);
+-	return projectNativePathText(clean(JSON.stringify(safe)), projectCwd);
+-}
+-
+ export function resolveWorkStepStatus(options: WorkStepProjectionOptions): CommandStatus {
+ 	if (options.status) return options.status;
+ 	const { activity, liveActivity: live } = options;
+@@ -146,18 +62,6 @@
+ 	if (publicStatus?.includes("cancel") || publicStatus?.includes("declin")) return "cancelled";
+ 	if (activity.phase === "started" || activity.phase === "updated") return "running";
+ 	return "passed";
+-}
+-
+-function methodLabel(method: string): string {
+-	const parts = clean(method).split("/").filter(Boolean);
+-	return parts.at(-1)?.replace(/(?:started|completed|updated)$/iu, "").replace(/[_-]+/gu, " ").trim() || "도구";
+-}
+-
+-function toolLabel(sources: readonly (Readonly<Record<string, unknown>> | undefined)[], method: string): string {
+-	const direct = stringValue(firstValue(sources, ["toolName", "tool", "name"])) ;
+-	const server = stringValue(firstValue(sources, ["server", "serverName"])    ) ;
+-	if (server && direct) return `${server}.${direct}`;
+-	return direct || methodLabel(method);
+ }
+ 
+ export function projectWorkStep(options: WorkStepProjectionOptions): PublicStepProjection {
+@@ -280,3 +184,99 @@
+ 	if (/command|bash|shell/iu.test(`${nativeType} ${method}`)) return "Bash";
+ 	return "Tool";
+ }
++
++function clean(value: string): string {
++	return sanitizeTerminalTextExcerpt(value, CHAT_PUBLIC_OUTPUT_MAX_CHARS, "head-tail").replace(/\t/gu, "    ");
++}
++
++function replacePathPrefix(value: string, path: string, replacement: string): string {
++	const normalizedPath = path.replace(/[\\/]+$/gu, "");
++	if (!normalizedPath) return value;
++	const escaped  = normalizedPath.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&") ;
++	const boundary = "[\\s/\\\\\"':,;=()\\[\\]{}]"                          ;
++	return value.replace(new RegExp(`(^|${boundary})${escaped}(?=$|${boundary})`, "gu"), `$1${replacement}`);
++}
++
++function firstValue(sources: readonly (Readonly<Record<string, unknown>> | undefined)[], keys: readonly string[]): unknown {
++	for (const source of sources) {
++		if (!source) continue;
++		for (const key of keys) {
++			const value = source[key];
++			if (value !== undefined && value !== null && value !== "") return value;
++		}
++	}
++	return undefined;
++}
++
++function stringValue(value: unknown): string | undefined {
++	if (typeof value === "string") return clean(value);
++	if (Array.isArray(value) && value.every((part) => typeof part === "string")) return clean(value.join(" "));
++	return undefined;
++}
++
++function mcpContent(value: unknown): string | undefined {
++	if (typeof value === "string") return value;
++	if (!Array.isArray(value)) return undefined;
++	const text = value.flatMap((part) => {
++		if (typeof part === "string") return [part];
++		const source = asRecord(part);
++		return typeof source?.text === "string" ? [source.text] : [];
++	}).join("\n");
++	return text || undefined;
++}
++
++function numberValue(value: unknown): number | undefined {
++	return typeof value === "number" && Number.isFinite(value) ? value : undefined;
++}
++
++function hiddenKey(key: string): boolean {
++	const normalized = key.replace(/[-_]/gu, "").toLowerCase();
++	return normalized.includes("reasoning")
++		|| normalized.includes("thought")
++		|| normalized.includes("analysis")
++		|| normalized.startsWith("raw")
++		|| normalized === "nativerefs"
++		|| [
++			"id", "threadid", "turnid", "itemid", "requestid", "approvalid", "callbackid",
++			"processid", "commandid", "sessionid", "pluginid",
++		].includes(normalized)
++		|| normalized === "sourcedigest"
++		|| normalized.endsWith("token")
++		|| normalized.endsWith("secret")
++		|| normalized.endsWith("password")
++		|| normalized.endsWith("credential")
++		|| normalized.endsWith("authorization")
++		|| normalized.endsWith("apikey");
++}
++
++function publicValue(value: unknown, depth = 0): unknown {
++	if (value === null || typeof value === "boolean" || typeof value === "number") return value;
++	if (typeof value === "string") return clean(value);
++	if (isReasoningActivityPayload(value)) return { classification: "reasoning", content: "[비공개 내용 생략]" };
++	if (depth >= 4) return "[공개 결과 일부 생략]";
++	if (Array.isArray(value)) return value.slice(0, 20).map((item) => publicValue(item, depth + 1));
++	const source = asRecord(value);
++	if (!source) return String(value);
++	return Object.fromEntries(Object.entries(source)
++		.filter(([key]) => !hiddenKey(key))
++		.slice(0, 30)
++		.map(([key, item]) => [key, publicValue(item, depth + 1)]));
++}
++
++function displayValue(value: unknown, projectCwd?: string): string {
++	const safe = publicValue(value);
++	if (typeof safe === "string") return projectNativePathText(safe, projectCwd);
++	return projectNativePathText(clean(JSON.stringify(safe)), projectCwd);
++}
++
++function methodLabel(method: string): string {
++	const parts = clean(method).split("/").filter(Boolean);
++	return parts.at(-1)?.replace(/(?:started|completed|updated)$/iu, "").replace(/[_-]+/gu, " ").trim() || "도구";
++}
++
++function toolLabel(sources: readonly (Readonly<Record<string, unknown>> | undefined)[], method: string): string {
++	const direct = stringValue(firstValue(sources, ["toolName", "tool", "name"])) ;
++	const server = stringValue(firstValue(sources, ["server", "serverName"])    ) ;
++	if (server && direct) return `${server}.${direct}`;
++	return direct || methodLabel(method);
++}
+--- .www/evidence/2026-10-03-feature-template/chat/before/src/adapters/inbound/tui/features/chat/view/workbench-welcome.ts	2026-10-03 02:43:39
++++ src/adapters/inbound/tui/features/chat/view/workbench-welcome.ts	2026-10-03 02:44:24
+@@ -1,8 +1,12 @@
+-import { stripTerminalSequences, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
+-import type { Component }                from "@earendil-works/pi-tui";
+-import { colors }                        from "@/adapters/inbound/tui/foundation/theme/theme";
+-import { PRODUCT_VERSION }               from "@/product-version";
+-import type { OutputLanguage }           from "@/core/domain/execution/output-language";
++import      {
++              stripTerminalSequences ,
++              truncateToWidth        ,
++              visibleWidth           ,
++                                       } from "@earendil-works/pi-tui"                        ;
++import type { Component                } from "@earendil-works/pi-tui"                        ;
++import      { colors                   } from "@/adapters/inbound/tui/foundation/theme/theme" ;
++import      { PRODUCT_VERSION          } from "@/product-version"                             ;
++import type { OutputLanguage           } from "@/core/domain/execution/output-language"       ;
+ 
+ const W_GLYPH = Object.freeze([
+ 	"██╗    ██╗",
+@@ -27,6 +31,46 @@
+ ]);
+ const DETAIL_WIDTH = 56;
+ 
++/** 시간과 무관한 고정 로고 프레임. Welcome은 로딩 화면이 아니라 지속형 홈 화면이다. */
++export function workbenchWelcomeLogoFrame(_elapsedMs: number): string[] {
++	return W_GLYPH.map(wordmarkRow);
++}
++
++export class WorkbenchWelcomeView implements Component {
++	private played = false;
++	constructor(
++		private readonly language: () => OutputLanguage = () => "ko",
++	) {}
++
++	playIntro(requestRender: () => void): void {
++		if (this.played) return;
++		this.played = true;
++		requestRender();
++	}
++
++	dispose(): void {}
++	invalidate(): void {}
++
++	render(width: number, availableHeight = Math.max(4, (process.stdout.rows || 40) - 8)): string[] {
++		if (width <= 0 || availableHeight <= 0) return [];
++		const columnWidth = width >= 52 ? width : Math.min(DETAIL_WIDTH, width);
++		const details     = columns([
++			releaseRows(Math.max(24, Math.floor(width / 2) - 1), this.language()),
++			quickStartRows(Math.max(24, Math.floor(width / 2) - 1), this.language()),
++		], width);
++		const rows        = [
++			...workbenchWelcomeLogoFrame(0),
++			"",
++			colors.text("Wooni · Native Project Workbench"),
++			colors.muted(`v${PRODUCT_VERSION}`),
++			...(availableHeight >= 22 ? ["", ...details, "", colors.muted(this.language() === "en" ? "TIP  Press Space to expand execution details." : "TIP  Space로 선택한 실행의 세부 정보를 펼칠 수 있습니다.")] : []),
++		];
++		return rows
++			.map(row => centered(truncateToWidth(process.env.NO_COLOR ? stripTerminalSequences(row) : row, columnWidth), width))
++			.slice(0, Math.floor(availableHeight));
++	}
++}
++
+ function centered(text: string, width: number): string {
+ 	const clipped = truncateToWidth(text, Math.max(0, width));
+ 	return " ".repeat(Math.max(0, Math.floor((width - visibleWidth(clipped)) / 2))) + clipped;
+@@ -38,8 +82,8 @@
+ }
+ 
+ function sectionHeader(label: string, width: number): string {
+-	const title = colors.muted(label);
+-	const rule  = "─".repeat(Math.max(0, width - visibleWidth(title) - 1));
++	const title = colors.muted(label)                                      ;
++	const rule  = "─".repeat(Math.max(0, width - visibleWidth(title) - 1)) ;
+ 	return `${title} ${colors.border(rule)}`;
+ }
+ 
+@@ -71,53 +115,13 @@
+ }
+ 
+ function columns(groups: readonly string[][], width: number): string[] {
+-	const gap = 2;
+-	const columnWidth = Math.floor((width - gap * (groups.length - 1)) / groups.length);
++	const gap         = 2                                                               ;
++	const columnWidth = Math.floor((width - gap * (groups.length - 1)) / groups.length) ;
+ 	if (columnWidth < 24) return groups.flatMap((group, index) => index ? ["", ...group] : group);
+ 	const height = Math.max(...groups.map(group => group.length));
+ 	return Array.from({ length: height }, (_, row) => groups.map(group => {
+-		const source = process.env.NO_COLOR ? stripTerminalSequences(group[row] ?? "") : group[row] ?? "";
+-		const cell = truncateToWidth(source, columnWidth);
++		const source = process.env.NO_COLOR ? stripTerminalSequences(group[row] ?? "") : group[row] ?? "" ;
++		const cell   = truncateToWidth(source, columnWidth)                                               ;
+ 		return cell + " ".repeat(Math.max(0, columnWidth - visibleWidth(cell)));
+ 	}).join(" ".repeat(gap)));
+ }
+-
+-/** 시간과 무관한 고정 로고 프레임. Welcome은 로딩 화면이 아니라 지속형 홈 화면이다. */
+-export function workbenchWelcomeLogoFrame(_elapsedMs: number): string[] {
+-	return W_GLYPH.map(wordmarkRow);
+-}
+-
+-export class WorkbenchWelcomeView implements Component {
+-	private played = false;
+-	constructor(
+-		private readonly language: () => OutputLanguage = () => "ko",
+-	) {}
+-
+-	playIntro(requestRender: () => void): void {
+-		if (this.played) return;
+-		this.played = true;
+-		requestRender();
+-	}
+-
+-	dispose(): void {}
+-	invalidate(): void {}
+-
+-	render(width: number, availableHeight = Math.max(4, (process.stdout.rows || 40) - 8)): string[] {
+-		if (width <= 0 || availableHeight <= 0) return [];
+-		const columnWidth = width >= 52 ? width : Math.min(DETAIL_WIDTH, width);
+-		const details     = columns([
+-			releaseRows(Math.max(24, Math.floor(width / 2) - 1), this.language()),
+-			quickStartRows(Math.max(24, Math.floor(width / 2) - 1), this.language()),
+-		], width);
+-		const rows        = [
+-			...workbenchWelcomeLogoFrame(0),
+-			"",
+-			colors.text("Wooni · Native Project Workbench"),
+-			colors.muted(`v${PRODUCT_VERSION}`),
+-			...(availableHeight >= 22 ? ["", ...details, "", colors.muted(this.language() === "en" ? "TIP  Press Space to expand execution details." : "TIP  Space로 선택한 실행의 세부 정보를 펼칠 수 있습니다.")] : []),
+-		];
+-		return rows
+-			.map(row => centered(truncateToWidth(process.env.NO_COLOR ? stripTerminalSequences(row) : row, columnWidth), width))
+-			.slice(0, Math.floor(availableHeight));
+-	}
+-}
+--- .www/evidence/2026-10-03-feature-template/chat/before/src/adapters/inbound/tui/features/chat/view/www-execution.ts	2026-10-03 02:43:39
++++ src/adapters/inbound/tui/features/chat/view/www-execution.ts	2026-10-03 02:44:06
+@@ -85,18 +85,6 @@
+ 	return labels;
+ }
+ 
+-function verificationLabel(value: ChatFeatureProjection["performance"], language: OutputLanguage): string {
+-	const labels = language === "en" ? {
+-		"not-verified": "not verified", passed: "verified", failed: "verification failed", uncertain: "verification uncertain",
+-	} : {
+-		"not-verified" : "검증 미실행",
+-		passed         : "검증 통과",
+-		failed         : "검증 실패",
+-		uncertain      : "검증 결과 미확정",
+-	};
+-	return labels[value?.verification ?? "not-verified"];
+-}
+-
+ export function executionHeading(s: ChatFeatureProjection, language: OutputLanguage = "ko"): { state: string; title: string; detail: string; attention: boolean } {
+ 	const label       = (ko: string, en: string): string => language === "en" ? en : ko ;
+ 	const lastRequest = [...s.chat].reverse().find(m => m.role === "user")              ;
+@@ -186,21 +174,6 @@
+ 	return `## ${title}\n\n${safe(item.summary, 8000)}`;
+ }
+ 
+-function narratorMarkdown(item: WorkbenchTNote): string {
+-	const provenance = item.provenance;
+-	return provenance ? `\n\nDetached narrator: ${safe(`${provenance.provider} / ${provenance.model} / ${provenance.version}`, 4000)}` : "";
+-}
+-
+-function responseFrameRows(label: string, status: string, bodyRows: readonly string[], width: number): string[] {
+-	// The mirrored glyph pairs with the `❯` request marker so roles stay distinct without color.
+-	const title = `${a.response("❮")} ${wwwTitle(label, a.response)}`;
+-	if (width < 5) return ["", pair(title, a.muted(status), width), ...bodyRows, ""].map(row => fit(row, width));
+-	const inside  = width - 2                                                                            ;
+-	const heading = truncateToWidth(` ${title}${status ? `  ${a.muted(status)}` : ""} `, width - 2, "…") ;
+-	const body    = bodyRows.map(row => `${a.rule("│")} ${fit(row, inside)}`)                            ;
+-	return ["", fit(heading, width), ...body, ""].map(row => fit(row, width));
+-}
+-
+ type DurableTranscriptRevision = Pick<ChatFeatureProjection, "projectId" | "threadId" | "journalSequence" | "activities" | "chat" | "tnotes" | "draft" | "draftAnchorSequence">;
+ 
+ interface VolatileTranscriptRevision {
+@@ -229,150 +202,7 @@
+ 
+ /** Weak proof cache only: it cannot retain a historical payload or authorize a mutable value. */
+ const deeplyImmutablePlainData = new WeakSet<object>();
+-
+-function isArrayIndex(key: string, length: number): boolean {
+-	if (!/^(?:0|[1-9]\d*)$/u.test(key)) return false;
+-	const index = Number(key);
+-	return Number.isSafeInteger(index) && index >= 0 && index < length;
+-}
+-
+-/** Proves the complete reachable value is frozen plain data without invoking accessors.
+- * Shallow-frozen wrappers, getters, symbols, cycles, Date/Map/Set/typed arrays and class
+- * instances conservatively miss. The proof never freezes or clones a producer value. */
+-function isDeeplyImmutablePlainData(value: unknown, visiting = new Set<object>()): boolean {
+-	if (value === null
+-		|| value === undefined
+-		|| typeof value === "string"
+-		|| typeof value === "boolean"
+-		|| typeof value === "number") return true;
+-	if (typeof value !== "object") return false;
+-	if (deeplyImmutablePlainData.has(value)) return true;
+-	if (visiting.has(value)) return false;
+-	try {
+-		const prototype = Object.getPrototypeOf(value);
+-		if (prototype !== Object.prototype && prototype !== null && prototype !== Array.prototype) return false;
+-		if (!Object.isFrozen(value)) return false;
+-		const keys       = Reflect.ownKeys(value)                                       ;
+-		const stringKeys = keys.filter((key): key is string => typeof key === "string") ;
+-		if (stringKeys.length !== keys.length) return false;
+-		if (Array.isArray(value) && stringKeys.some(key => key !== "length" && !isArrayIndex(key, value.length))) return false;
+-		visiting.add(value);
+-		for (const key of keys) {
+-			const descriptor = Object.getOwnPropertyDescriptor(value, key);
+-			if (!descriptor || !("value" in descriptor) || !isDeeplyImmutablePlainData(descriptor.value, visiting)) return false;
+-		}
+-		deeplyImmutablePlainData.add(value);
+-		return true;
+-	} catch {
+-		return false;
+-	} finally {
+-		visiting.delete(value);
+-	}
+-}
+-
+-function activityIdentity(activity: ProjectActivity): string {
+-	return [
+-		activity.nativeRefs.threadId,
+-		activity.nativeRefs.turnId,
+-		activity.nativeRefs.itemId ?? activity.id,
+-	].join("\0");
+-}
+-
+-function latestSourceActivity(note: TNote, activitiesById: ReadonlyMap<string, ProjectActivity>): ProjectActivity | undefined {
+-	let latest: ProjectActivity | undefined;
+-	for (const activityId of note.sourceActivityIds) {
+-		const activity = activitiesById.get(activityId);
+-		if (activity && (!latest || activity.sequence > latest.sequence)) latest = activity;
+-	}
+-	return latest;
+-}
+-
+-function durableTimelineIndex(snapshot: ChatFeatureProjection): DurableTimelineIndex {
+-	const activitiesById            = new Map(snapshot.activities.map(activity => [activity.id, activity])) ;
+-	const notesByAnchor             = new Map<string, TNote[]>()                                            ;
+-	const unanchoredNotes : TNote[] = []                                                                    ;
+-	for (const note of snapshot.tnotes) {
+-		const anchor = latestSourceActivity(note, activitiesById);
+-		if (!anchor) {
+-			unanchoredNotes.push(note);
+-			continue;
+-		}
+-		const anchoredNotes = notesByAnchor.get(anchor.id) ?? [];
+-		anchoredNotes.push(note);
+-		notesByAnchor.set(anchor.id, anchoredNotes);
+-	}
+-	const toolByIdentity = new Map<string, ProjectActivity>();
+-	for (const activity of snapshot.activities) {
+-		if (["tool", "file-change"].includes(activity.kind)) toolByIdentity.set(activityIdentity(activity), activity);
+-	}
+-	return {
+-		messageByActivity: new Map(snapshot.chat.map(message => [message.activityId, message])),
+-		notesByAnchor,
+-		toolByIdentity,
+-		unanchoredNotes,
+-	};
+-}
+ 
+-function durableTranscriptRevision(snapshot: ChatFeatureProjection): DurableTranscriptRevision {
+-	return {
+-		projectId           : snapshot.projectId,
+-		threadId            : snapshot.threadId,
+-		journalSequence     : snapshot.journalSequence,
+-		draft               : snapshot.draft,
+-		draftAnchorSequence : snapshot.draftAnchorSequence ?? null,
+-		activities          : snapshot.activities,
+-		chat                : snapshot.chat,
+-		tnotes              : snapshot.tnotes,
+-	};
+-}
+-
+-function trustedDurableRevision(revision: DurableTranscriptRevision): boolean {
+-	return isDeeplyImmutablePlainData(revision.activities)
+-		&& isDeeplyImmutablePlainData(revision.chat)
+-		&& isDeeplyImmutablePlainData(revision.tnotes);
+-}
+-
+-function sameTrustedDurableReferences(left: DurableTranscriptRevision, right: DurableTranscriptRevision): boolean {
+-	return left.projectId === right.projectId && left.threadId === right.threadId
+-		&& left.activities === right.activities && left.chat === right.chat && left.tnotes === right.tnotes
+-		&& left.draft === right.draft && left.draftAnchorSequence === right.draftAnchorSequence;
+-}
+-
+-function volatileTranscriptRevision(snapshot: ChatFeatureProjection, expanded: boolean, durableEmpty: boolean): VolatileTranscriptRevision {
+-	let request = 0, response = 0;
+-	if (snapshot.draft) for (const message of snapshot.chat) {
+-		if (message.role === "user") { request += 1; response = 0; }
+-		else if (message.role === "assistant" && request > 0) response += 1;
+-	}
+-	return {
+-		durableEmpty,
+-		draftLabel                : snapshot.draft ? `${Math.max(1, request)}:${response + 1}` : null,
+-		snapshot                  : expanded ? snapshot : null,
+-		draft                     : snapshot.draft,
+-		reasoningSummaryDraft     : snapshot.reasoningSummaryDraft,
+-		actionResult              : snapshot.actionResult,
+-		error                     : snapshot.error,
+-		developmentRecordingError : snapshot.developmentRecordingError,
+-		linearDashboard           : snapshot.linearDashboard,
+-		requestRuntime            : snapshot.requestRuntime,
+-		activeTurnId              : snapshot.activeTurnId,
+-	};
+-}
+-
+-function sameVolatileTranscriptRevision(left: VolatileTranscriptRevision, right: VolatileTranscriptRevision): boolean {
+-	return left.durableEmpty === right.durableEmpty
+-		&& left.draftLabel === right.draftLabel
+-		&& left.snapshot === right.snapshot
+-		&& left.draft === right.draft
+-		&& left.reasoningSummaryDraft === right.reasoningSummaryDraft
+-		&& left.actionResult === right.actionResult
+-		&& left.error === right.error
+-		&& left.developmentRecordingError === right.developmentRecordingError
+-		&& left.linearDashboard === right.linearDashboard
+-		&& left.requestRuntime === right.requestRuntime
+-		&& left.activeTurnId === right.activeTurnId;
+-}
+-
+ export function hasVisibleWwwContent(snapshot: ChatFeatureProjection): boolean {
+ 	return snapshot.actionResult?.kind === "workflow" || snapshot.chat.length > 0
+ 		|| snapshot.workFlow.steps.length > 0
+@@ -742,3 +572,172 @@
+ 	return rows;
+ }
+ 
++function verificationLabel(value: ChatFeatureProjection["performance"], language: OutputLanguage): string {
++	const labels = language === "en" ? {
++		"not-verified": "not verified", passed: "verified", failed: "verification failed", uncertain: "verification uncertain",
++	} : {
++		"not-verified" : "검증 미실행",
++		passed         : "검증 통과",
++		failed         : "검증 실패",
++		uncertain      : "검증 결과 미확정",
++	};
++	return labels[value?.verification ?? "not-verified"];
++}
++
++function narratorMarkdown(item: WorkbenchTNote): string {
++	const provenance = item.provenance;
++	return provenance ? `\n\nDetached narrator: ${safe(`${provenance.provider} / ${provenance.model} / ${provenance.version}`, 4000)}` : "";
++}
++
++function responseFrameRows(label: string, status: string, bodyRows: readonly string[], width: number): string[] {
++	// The mirrored glyph pairs with the `❯` request marker so roles stay distinct without color.
++	const title = `${a.response("❮")} ${wwwTitle(label, a.response)}`;
++	if (width < 5) return ["", pair(title, a.muted(status), width), ...bodyRows, ""].map(row => fit(row, width));
++	const inside  = width - 2                                                                            ;
++	const heading = truncateToWidth(` ${title}${status ? `  ${a.muted(status)}` : ""} `, width - 2, "…") ;
++	const body    = bodyRows.map(row => `${a.rule("│")} ${fit(row, inside)}`)                            ;
++	return ["", fit(heading, width), ...body, ""].map(row => fit(row, width));
++}
++
++function isArrayIndex(key: string, length: number): boolean {
++	if (!/^(?:0|[1-9]\d*)$/u.test(key)) return false;
++	const index = Number(key);
++	return Number.isSafeInteger(index) && index >= 0 && index < length;
++}
++
++/** Proves the complete reachable value is frozen plain data without invoking accessors.
++ * Shallow-frozen wrappers, getters, symbols, cycles, Date/Map/Set/typed arrays and class
++ * instances conservatively miss. The proof never freezes or clones a producer value. */
++function isDeeplyImmutablePlainData(value: unknown, visiting = new Set<object>()): boolean {
++	if (value === null
++		|| value === undefined
++		|| typeof value === "string"
++		|| typeof value === "boolean"
++		|| typeof value === "number") return true;
++	if (typeof value !== "object") return false;
++	if (deeplyImmutablePlainData.has(value)) return true;
++	if (visiting.has(value)) return false;
++	try {
++		const prototype = Object.getPrototypeOf(value);
++		if (prototype !== Object.prototype && prototype !== null && prototype !== Array.prototype) return false;
++		if (!Object.isFrozen(value)) return false;
++		const keys       = Reflect.ownKeys(value)                                       ;
++		const stringKeys = keys.filter((key): key is string => typeof key === "string") ;
++		if (stringKeys.length !== keys.length) return false;
++		if (Array.isArray(value) && stringKeys.some(key => key !== "length" && !isArrayIndex(key, value.length))) return false;
++		visiting.add(value);
++		for (const key of keys) {
++			const descriptor = Object.getOwnPropertyDescriptor(value, key);
++			if (!descriptor || !("value" in descriptor) || !isDeeplyImmutablePlainData(descriptor.value, visiting)) return false;
++		}
++		deeplyImmutablePlainData.add(value);
++		return true;
++	} catch {
++		return false;
++	} finally {
++		visiting.delete(value);
++	}
++}
++
++function activityIdentity(activity: ProjectActivity): string {
++	return [
++		activity.nativeRefs.threadId,
++		activity.nativeRefs.turnId,
++		activity.nativeRefs.itemId ?? activity.id,
++	].join("\0");
++}
++
++function latestSourceActivity(note: TNote, activitiesById: ReadonlyMap<string, ProjectActivity>): ProjectActivity | undefined {
++	let latest: ProjectActivity | undefined;
++	for (const activityId of note.sourceActivityIds) {
++		const activity = activitiesById.get(activityId);
++		if (activity && (!latest || activity.sequence > latest.sequence)) latest = activity;
++	}
++	return latest;
++}
++
++function durableTimelineIndex(snapshot: ChatFeatureProjection): DurableTimelineIndex {
++	const activitiesById            = new Map(snapshot.activities.map(activity => [activity.id, activity])) ;
++	const notesByAnchor             = new Map<string, TNote[]>()                                            ;
++	const unanchoredNotes : TNote[] = []                                                                    ;
++	for (const note of snapshot.tnotes) {
++		const anchor = latestSourceActivity(note, activitiesById);
++		if (!anchor) {
++			unanchoredNotes.push(note);
++			continue;
++		}
++		const anchoredNotes = notesByAnchor.get(anchor.id) ?? [];
++		anchoredNotes.push(note);
++		notesByAnchor.set(anchor.id, anchoredNotes);
++	}
++	const toolByIdentity = new Map<string, ProjectActivity>();
++	for (const activity of snapshot.activities) {
++		if (["tool", "file-change"].includes(activity.kind)) toolByIdentity.set(activityIdentity(activity), activity);
++	}
++	return {
++		messageByActivity: new Map(snapshot.chat.map(message => [message.activityId, message])),
++		notesByAnchor,
++		toolByIdentity,
++		unanchoredNotes,
++	};
++}
++
++function durableTranscriptRevision(snapshot: ChatFeatureProjection): DurableTranscriptRevision {
++	return {
++		projectId           : snapshot.projectId,
++		threadId            : snapshot.threadId,
++		journalSequence     : snapshot.journalSequence,
++		draft               : snapshot.draft,
++		draftAnchorSequence : snapshot.draftAnchorSequence ?? null,
++		activities          : snapshot.activities,
++		chat                : snapshot.chat,
++		tnotes              : snapshot.tnotes,
++	};
++}
++
++function trustedDurableRevision(revision: DurableTranscriptRevision): boolean {
++	return isDeeplyImmutablePlainData(revision.activities)
++		&& isDeeplyImmutablePlainData(revision.chat)
++		&& isDeeplyImmutablePlainData(revision.tnotes);
++}
++
++function sameTrustedDurableReferences(left: DurableTranscriptRevision, right: DurableTranscriptRevision): boolean {
++	return left.projectId === right.projectId && left.threadId === right.threadId
++		&& left.activities === right.activities && left.chat === right.chat && left.tnotes === right.tnotes
++		&& left.draft === right.draft && left.draftAnchorSequence === right.draftAnchorSequence;
++}
++
++function volatileTranscriptRevision(snapshot: ChatFeatureProjection, expanded: boolean, durableEmpty: boolean): VolatileTranscriptRevision {
++	let request = 0, response = 0;
++	if (snapshot.draft) for (const message of snapshot.chat) {
++		if (message.role === "user") { request += 1; response = 0; }
++		else if (message.role === "assistant" && request > 0) response += 1;
++	}
++	return {
++		durableEmpty,
++		draftLabel                : snapshot.draft ? `${Math.max(1, request)}:${response + 1}` : null,
++		snapshot                  : expanded ? snapshot : null,
++		draft                     : snapshot.draft,
++		reasoningSummaryDraft     : snapshot.reasoningSummaryDraft,
++		actionResult              : snapshot.actionResult,
++		error                     : snapshot.error,
++		developmentRecordingError : snapshot.developmentRecordingError,
++		linearDashboard           : snapshot.linearDashboard,
++		requestRuntime            : snapshot.requestRuntime,
++		activeTurnId              : snapshot.activeTurnId,
++	};
++}
++
++function sameVolatileTranscriptRevision(left: VolatileTranscriptRevision, right: VolatileTranscriptRevision): boolean {
++	return left.durableEmpty === right.durableEmpty
++		&& left.draftLabel === right.draftLabel
++		&& left.snapshot === right.snapshot
++		&& left.draft === right.draft
++		&& left.reasoningSummaryDraft === right.reasoningSummaryDraft
++		&& left.actionResult === right.actionResult
++		&& left.error === right.error
++		&& left.developmentRecordingError === right.developmentRecordingError
++		&& left.linearDashboard === right.linearDashboard
++		&& left.requestRuntime === right.requestRuntime
++		&& left.activeTurnId === right.activeTurnId;
++}
+--- .www/evidence/2026-10-03-feature-template/chat/before/src/adapters/inbound/tui/features/chat/view/www-transcript-cache.ts	2026-10-03 02:43:39
++++ src/adapters/inbound/tui/features/chat/view/www-transcript-cache.ts	2026-10-03 02:44:26
+@@ -69,24 +69,6 @@
+ const WIDTH_METADATA_MAX_LOGICAL_BYTES = 2 * 1024 * 1024 ;
+ const WIDTH_METADATA_ENTRY_OVERHEAD    = 64              ;
+ 
+-function sameReuseInputs(left: readonly unknown[], right: readonly unknown[]): boolean {
+-	if (left.length !== right.length) return false;
+-	for (let index = 0; index < left.length; index += 1) if (left[index] !== right[index]) return false;
+-	return true;
+-}
+-
+-function canReuseDurableBlock(left: TranscriptBlock, right: TranscriptBlock): boolean {
+-	if (left.key !== right.key || left.reuse.kind !== right.reuse.kind) return false;
+-	if (left.reuse.kind === "never" || right.reuse.kind === "never") return false;
+-	if (!left.reuse.immutable || !right.reuse.immutable) return false;
+-	if (left.reuse.kind === "activity" && right.reuse.kind === "activity") {
+-		return left.reuse.source === right.reuse.source && left.reuse.expanded === right.reuse.expanded;
+-	}
+-	if (left.reuse.kind === "message" && right.reuse.kind === "message") return sameReuseInputs(left.reuse.inputs, right.reuse.inputs);
+-	if (left.reuse.kind === "tnote" && right.reuse.kind === "tnote") return sameReuseInputs(left.reuse.inputs, right.reuse.inputs);
+-	return false;
+-}
+-
+ /** Owns generation reconciliation, exact width indexes, and the shared bounded row LRU. */
+ export class WwwTranscriptCache<DurableRevision, VolatileRevision> {
+ 	private nextGenerationId                                                           = 1                                          ;
+@@ -173,8 +155,8 @@
+ 		const rows : string[] = []                                                          ;
+ 		const durableCount    = Math.max(0, Math.min(count, durableIndex.rowCount - start)) ;
+ 		if (durableCount > 0) rows.push(...this.rowsFrom(durable, durableIndex, start, durableCount));
+-		const volatileStart = Math.max(0, start - durableIndex.rowCount);
+-		const remaining = count - rows.length;
++		const volatileStart = Math.max(0, start - durableIndex.rowCount) ;
++		const remaining     = count - rows.length                        ;
+ 		if (remaining > 0) rows.push(...this.rowsFrom(volatile, volatileIndex, volatileStart, remaining));
+ 		if (rows.length !== count) throw new Error(`WWW transcript row source returned ${rows.length} rows; expected ${count}`);
+ 		this.counters.requestedMaterializationMs += performance.now() - startedAt;
+@@ -252,13 +234,13 @@
+ 
+ /** Move unchanged block rows without copying or growing the shared LRU budget. */
+ 	private transferGenerationRows(previous: TranscriptGeneration, next: TranscriptGeneration): void {
+-		const prefix = `${previous.id}:`;
+-		const nextIndexes = new Map(next.blocks.map((block, index) => [block, index]));
++		const prefix      = `${previous.id}:`                                          ;
++		const nextIndexes = new Map(next.blocks.map((block, index) => [block, index])) ;
+ 		for (const [key, entry] of [...this.rowCache]) {
+ 			if (!key.startsWith(prefix)) continue;
+ 			const [, width, blockIndex] = key.split(":");
+-			const block = previous.blocks[Number(blockIndex)];
+-			const nextIndex = block ? nextIndexes.get(block) : undefined;
++			const block     = previous.blocks[Number(blockIndex)]        ;
++			const nextIndex = block ? nextIndexes.get(block) : undefined ;
+ 			this.rowCache.delete(key);
+ 			if (nextIndex === undefined) this.rowCacheLogicalBytes -= entry.logicalBytes;
+ 			else this.rowCache.set(`${next.id}:${width}:${nextIndex}`, entry);
+@@ -280,8 +262,8 @@
+ 
+ 	private repairDurableWidths(previous: DurableTranscriptGeneration<DurableRevision>, next: DurableTranscriptGeneration<DurableRevision>): void {
+ 		if (previous.widths.size === 0) return;
+-		const startedAt = performance.now();
+-		const previousIndex = new Map<TranscriptBlock, number>();
++		const startedAt     = performance.now()                  ;
++		const previousIndex = new Map<TranscriptBlock, number>() ;
+ 		for (const [index, block] of previous.blocks.entries()) previousIndex.set(block, index);
+ 		for (const [width, prior] of previous.widths) {
+ 			const counts = next.blocks.map((block, blockIndex) => {
+@@ -311,15 +293,15 @@
+ 			buckets.set(block.key, bucket);
+ 		}
+ 		return candidate.map(block => {
+-			const bucket = buckets.get(block.key);
+-			const prior = bucket ? bucket.blocks[bucket.cursor++] : undefined;
++			const bucket = buckets.get(block.key)                              ;
++			const prior  = bucket ? bucket.blocks[bucket.cursor++] : undefined ;
+ 			return prior && canReuseDurableBlock(prior, block) ? prior : block;
+ 		});
+ 	}
+ 
+ 	private renderBlock(generation: TranscriptGeneration, blockIndex: number, width: number, retain: boolean, countBuild = false): readonly string[] {
+-		const key = `${generation.id}:${width}:${blockIndex}`;
+-		const cached = this.rowCache.get(key);
++		const key    = `${generation.id}:${width}:${blockIndex}` ;
++		const cached = this.rowCache.get(key)                    ;
+ 		if (cached) {
+ 			this.counters.rowCacheHits += 1;
+ 			this.rowCache.delete(key);
+@@ -398,3 +380,21 @@
+ 		return rows;
+ 	}
+ }
++
++function sameReuseInputs(left: readonly unknown[], right: readonly unknown[]): boolean {
++	if (left.length !== right.length) return false;
++	for (let index = 0; index < left.length; index += 1) if (left[index] !== right[index]) return false;
++	return true;
++}
++
++function canReuseDurableBlock(left: TranscriptBlock, right: TranscriptBlock): boolean {
++	if (left.key !== right.key || left.reuse.kind !== right.reuse.kind) return false;
++	if (left.reuse.kind === "never" || right.reuse.kind === "never") return false;
++	if (!left.reuse.immutable || !right.reuse.immutable) return false;
++	if (left.reuse.kind === "activity" && right.reuse.kind === "activity") {
++		return left.reuse.source === right.reuse.source && left.reuse.expanded === right.reuse.expanded;
++	}
++	if (left.reuse.kind === "message" && right.reuse.kind === "message") return sameReuseInputs(left.reuse.inputs, right.reuse.inputs);
++	if (left.reuse.kind === "tnote" && right.reuse.kind === "tnote") return sameReuseInputs(left.reuse.inputs, right.reuse.inputs);
++	return false;
++}

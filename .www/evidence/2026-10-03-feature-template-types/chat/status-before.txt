@@ -1,0 +1,4 @@
+ M src/adapters/inbound/tui/features/chat/view-model/bounded-public-projection.ts
+ M src/adapters/inbound/tui/features/chat/view/chat-output-policy.ts
+ M src/adapters/inbound/tui/features/chat/view/work-step-components.ts
+ M src/adapters/inbound/tui/features/chat/view/work-step-output-renderer.ts

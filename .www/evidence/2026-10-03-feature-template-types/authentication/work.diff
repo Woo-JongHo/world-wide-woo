@@ -1,0 +1,22 @@
+--- .www/evidence/2026-10-03-feature-template-types/authentication/before/src/adapters/inbound/tui/features/authentication/view/auth-overlay-view.ts	2026-10-03 06:56:28
++++ src/adapters/inbound/tui/features/authentication/view/auth-overlay-view.ts	2026-10-03 06:56:52
+@@ -8,9 +8,6 @@
+ import type { Provider                 } from "@/core/domain/execution/model-settings"        ;
+ import type { TuiColors                } from "@/adapters/inbound/tui/foundation/theme/theme" ;
+ 
+-export const GEMINI_API_KEY_URL = "https://aistudio.google.com/app/apikey" ;
+-export const ZAI_API_KEY_URL    = "https://z.ai/manage-apikey/apikey-list" ;
+-
+ export interface AuthPromptViewState {
+ 	readonly prompt   : AuthPrompt ;
+ 	readonly value    : string     ;
+@@ -30,6 +27,9 @@
+ 	readonly done     : boolean                    ;
+ }
+ 
++export const GEMINI_API_KEY_URL = "https://aistudio.google.com/app/apikey" ;
++export const ZAI_API_KEY_URL    = "https://z.ai/manage-apikey/apikey-list" ;
++
+ export function renderLoginOverlayView(state: LoginOverlayViewState, width: number, ui: TuiColors): string[] {
+ 	const contentWidth = Math.max(1, width);
+ 	const rows = [

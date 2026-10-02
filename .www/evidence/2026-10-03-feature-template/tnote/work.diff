@@ -1,0 +1,60 @@
+--- .www/evidence/2026-10-03-feature-template/tnote/before/src/adapters/inbound/tui/features/tnote/view/tnote-browser-view.ts	2026-10-03 02:06:21
++++ src/adapters/inbound/tui/features/tnote/view/tnote-browser-view.ts	2026-10-03 02:06:47
+@@ -1,11 +1,32 @@
+-import { truncateToWidth, visibleWidth, wrapTextWithAnsi }      from "@earendil-works/pi-tui";
+-import { parseCanonicalTNoteReport, parseLegacyCanonicalTNote } from "@/core/application/work/t-note-service";
+-import type { WorkbenchTNote }                                  from "@/core/domain/work/workbench";
+-import { colors }                                               from "@/adapters/inbound/tui/foundation/theme/theme";
+-import type { TNoteBrowserViewModel }                           from "@/adapters/inbound/tui/features/tnote/view-model/tnote-browser-view-model";
+-import { projectOperationReport }                               from "@/adapters/inbound/tui/features/tnote/view-model/operation-report-view-model";
+-import { renderOperationReport }                                from "@/adapters/inbound/tui/features/tnote/view/operation-report-view";
++import      {
++              truncateToWidth           ,
++              visibleWidth              ,
++              wrapTextWithAnsi          ,
++                                          } from "@earendil-works/pi-tui"                                                       ;
++import      {
++              parseCanonicalTNoteReport ,
++              parseLegacyCanonicalTNote ,
++                                          } from "@/core/application/work/t-note-service"                                       ;
++import type { WorkbenchTNote              } from "@/core/domain/work/workbench"                                                 ;
++import      { colors                      } from "@/adapters/inbound/tui/foundation/theme/theme"                                ;
++import type { TNoteBrowserViewModel       } from "@/adapters/inbound/tui/features/tnote/view-model/tnote-browser-view-model"    ;
++import      { projectOperationReport      } from "@/adapters/inbound/tui/features/tnote/view-model/operation-report-view-model" ;
++import      { renderOperationReport       } from "@/adapters/inbound/tui/features/tnote/view/operation-report-view"             ;
+ 
++/** Pure terminal rendering for the Note browser. Stored state and selection remain caller-owned. */
++export function renderTNoteBrowserView(
++	state: TNoteBrowserViewModel,
++	listRows: readonly string[],
++	width: number,
++): string[] {
++	const contentWidth = Math.max(1, width)                                                                               ;
++	const status       = state.status === "stale" ? colors.error(state.statusMessage) : colors.muted(state.statusMessage) ;
++	const rows = state.mode === "detail" && state.selected
++		? [...detailRows(state.selected, contentWidth, state), "", colors.muted("← 목록 · Esc 목록 · ↑↓ Note 이동")]
++		: [colors.highlight("완료 Note"), status, "", ...listRows, "", colors.muted("↑↓ 선택 · Enter 열기 · Esc 닫기")];
++	return rows.map(row => fit(row, contentWidth));
++}
++
+ function fit(text: string, width: number): string {
+ 	const clipped = truncateToWidth(text, Math.max(0, width));
+ 	return clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)));
+@@ -80,17 +101,3 @@
+ 	}
+ 	return {};
+ }
+-
+-/** Pure terminal rendering for the Note browser. Stored state and selection remain caller-owned. */
+-export function renderTNoteBrowserView(
+-	state: TNoteBrowserViewModel,
+-	listRows: readonly string[],
+-	width: number,
+-): string[] {
+-	const contentWidth = Math.max(1, width);
+-	const status = state.status === "stale" ? colors.error(state.statusMessage) : colors.muted(state.statusMessage);
+-	const rows = state.mode === "detail" && state.selected
+-		? [...detailRows(state.selected, contentWidth, state), "", colors.muted("← 목록 · Esc 목록 · ↑↓ Note 이동")]
+-		: [colors.highlight("완료 Note"), status, "", ...listRows, "", colors.muted("↑↓ 선택 · Enter 열기 · Esc 닫기")];
+-	return rows.map(row => fit(row, contentWidth));
+-}

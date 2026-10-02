@@ -1,0 +1,5 @@
+27245b6c2c02ba3c854d7e61441aff9deb676c118ffb0e92b08aa6c57db324b5  ./src/adapters/inbound/tui/features/monitoring/view/monitoring-overlay.ts
+d4d59d6abc9af7d1c50651d1a0bdeea0834f6f442b749e7129c9a11192d55e61  ./src/adapters/inbound/tui/features/monitoring/view/request-runtime-view.ts
+e0b5a4b0ab16252065dcb14033ae7f71078e275a5cbe5bdeffb7fd5182c7ffd2  ./src/adapters/inbound/tui/features/monitoring/view/workbench-monitor-view.ts
+66467f4e22307b8d0a1597c9023f800fd9a6c237b702d8a1bc8e6ce13282b4aa  ./src/adapters/inbound/tui/features/monitoring/view/workbench-telemetry.ts
+b96d3c069db5aa78f334e7bfcb21f4fb3d4ffdd6e4e6bd711472bc6bdcc6372d  ./src/adapters/inbound/tui/features/monitoring/view/www-monitor-view.ts

@@ -1,0 +1,49 @@
+# 공백 제거 후 문자 multiset 비교: before/ 사본 → 현재 파일. 추가된 문자는 검사기의 세로 import 끝 쉼표뿐이어야 한다.
+approval	src/adapters/inbound/tui/features/approval/view/approval-overlay.ts	added={',': 3}	removed={}
+approval	src/adapters/inbound/tui/features/approval/view/approval-presentation.ts	added={}	removed={}
+authentication	src/adapters/inbound/tui/features/authentication/view/auth-overlay-view.ts	added={',': 1}	removed={}
+cache	src/adapters/inbound/tui/features/cache/view/www-cache-view.ts	added={',': 2}	removed={}
+cache	src/adapters/inbound/tui/features/cache/view-model/cache-telemetry-projection.ts	added={}	removed={}
+context	src/adapters/inbound/tui/features/context/view/www-context-catalog.ts	added={',': 1}	removed={}
+context	src/adapters/inbound/tui/features/context/view/www-context-view.ts	added={',': 1}	removed={}
+dashboard	src/adapters/inbound/tui/features/dashboard/view/entry-dashboard-view.ts	added={',': 2}	removed={}
+dashboard	src/adapters/inbound/tui/features/dashboard/view/shared-dashboard-views.ts	added={',': 1}	removed={}
+demo	src/adapters/inbound/tui/features/demo/view-model/www-demo.ts	added={}	removed={}
+model-selection	src/adapters/inbound/tui/features/model-selection/view/model-picker-view.ts	added={',': 1}	removed={}
+monitoring	src/adapters/inbound/tui/features/monitoring/view/monitoring-overlay.ts	added={',': 1}	removed={}
+monitoring	src/adapters/inbound/tui/features/monitoring/view/request-runtime-view.ts	added={',': 1}	removed={}
+monitoring	src/adapters/inbound/tui/features/monitoring/view/workbench-monitor-view.ts	added={}	removed={}
+monitoring	src/adapters/inbound/tui/features/monitoring/view/workbench-telemetry.ts	added={',': 1}	removed={}
+monitoring	src/adapters/inbound/tui/features/monitoring/view/www-monitor-view.ts	added={}	removed={}
+plan	src/adapters/inbound/tui/features/plan/view/www-plan-view.ts	added={',': 1}	removed={}
+project-map	src/adapters/inbound/tui/features/project-map/view/www-map-view.ts	added={}	removed={}
+repository	src/adapters/inbound/tui/features/repository/view/repository-overlays.ts	added={',': 1}	removed={}
+session	src/adapters/inbound/tui/features/session/view/native-thread-picker.ts	added={}	removed={}
+session	src/adapters/inbound/tui/features/session/view/www-history-view.ts	added={',': 1}	removed={}
+stats	src/adapters/inbound/tui/features/stats/view/www-stats-view.ts	added={}	removed={}
+test	src/adapters/inbound/tui/features/test/view/www-test-view.ts	added={}	removed={}
+tnote	src/adapters/inbound/tui/features/tnote/view/tnote-browser-view.ts	added={',': 2}	removed={}
+trace	src/adapters/inbound/tui/features/trace/view/workbench-tracer-view.ts	added={',': 1}	removed={}
+workflow	src/adapters/inbound/tui/features/workflow/view/www-workflow-catalog.ts	added={}	removed={}
+workflow	src/adapters/inbound/tui/features/workflow/view/www-workflow-view.ts	added={',': 2}	removed={}
+usage	src/adapters/inbound/tui/features/usage/view/usage-strip-view.ts	added={',': 3}	removed={}
+usage	src/adapters/inbound/tui/features/usage/view/www-usage-catalog.ts	added={}	removed={}
+usage	src/adapters/inbound/tui/features/usage/view/www-usage-view.ts	added={',': 1}	removed={}
+usage	src/adapters/inbound/tui/features/usage/view/www-usage.ts	added={',': 1}	removed={}
+chat	src/adapters/inbound/tui/features/chat/view/chat-durable-transcript.ts	added={',': 4}	removed={}
+chat	src/adapters/inbound/tui/features/chat/view/chat-live-activity.ts	added={',': 1}	removed={}
+chat	src/adapters/inbound/tui/features/chat/view/chat-message-renderer.ts	added={',': 3}	removed={}
+chat	src/adapters/inbound/tui/features/chat/view/chat-public-lifecycle.ts	added={}	removed={}
+chat	src/adapters/inbound/tui/features/chat/view/chat-scroll.view.ts	added={',': 2}	removed={}
+chat	src/adapters/inbound/tui/features/chat/view/octopus-scan.ts	added={}	removed={}
+chat	src/adapters/inbound/tui/features/chat/view/result-cards.ts	added={',': 1}	removed={}
+chat	src/adapters/inbound/tui/features/chat/view/three-body-braille.ts	added={',': 1}	removed={}
+chat	src/adapters/inbound/tui/features/chat/view/three-body-lab.ts	added={',': 1}	removed={}
+chat	src/adapters/inbound/tui/features/chat/view/three-body-orbit.ts	added={',': 1}	removed={}
+chat	src/adapters/inbound/tui/features/chat/view/work-step-components.ts	added={}	removed={}
+chat	src/adapters/inbound/tui/features/chat/view/work-step-output-renderer.ts	added={',': 3}	removed={}
+chat	src/adapters/inbound/tui/features/chat/view/work-step-public-projection.ts	added={}	removed={}
+chat	src/adapters/inbound/tui/features/chat/view/workbench-welcome.ts	added={',': 1}	removed={}
+chat	src/adapters/inbound/tui/features/chat/view/www-execution.ts	added={}	removed={}
+chat	src/adapters/inbound/tui/features/chat/view/www-transcript-cache.ts	added={}	removed={}
+chat	src/adapters/inbound/tui/features/chat/view-model/bounded-public-projection.ts	added={}	removed={}

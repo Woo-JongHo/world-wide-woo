@@ -1,0 +1,4 @@
+ M src/adapters/inbound/tui/features/chat/view/work-step-components.ts
+ M src/adapters/inbound/tui/features/chat/view/work-step-public-projection.ts
+ M src/adapters/inbound/tui/features/chat/view/workbench-welcome.ts
+ M src/adapters/inbound/tui/features/chat/view/www-execution.ts
