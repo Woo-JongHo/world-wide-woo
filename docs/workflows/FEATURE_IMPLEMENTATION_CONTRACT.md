@@ -65,6 +65,37 @@
 
 함수 지도(`GROUP | FUNCTION | …`)는 탐색 보조 자료다. 필요하면 `08_function-map.ts --scaffold`로 만든다. 현재 검사기는 RETURN 의미와 실제 호출 관계를 검증하지 않으므로 설계 정확성의 게이트로 쓰지 않는다.
 
+## 함수 단위: 문단 순서
+
+함수 본문의 직계 문장은 네 문단으로 읽힌다. 중첩 블록의 문장은 그 블록을 연 문장에 속한다.
+
+| 문단 | 문장 | 규칙 |
+|---|---|---|
+| F1 가드 | `else` 없는 `if`가 return·throw·continue·break 하나만 가진 문장, 단독 throw | 입력 검증과 조기 종료. 준비 값이 있어야 판단할 수 있는 가드는 F2 사이에 둘 수 있다(단계별 가드) |
+| F2 준비 | 변수 선언 | `const`가 기본이고 의존 순서대로 쓴다. `let`은 누산기나 상태 추적처럼 실제로 바뀌는 값에만 쓰고 쓰는 곳 바로 위에서 선언한다 |
+| F3 처리 | 그 밖의 문장 | 첫 처리 문장 뒤에는 새 선언을 두지 않는다. 선언이 필요하면 그 구간을 이름 있는 단계 함수로 뽑는다 |
+| F4 결과 | 마지막 `return` | 결과 조립은 한 번에 한다 |
+
+화면 함수가 누적 배열에 구역별로 push하는 모양(`const rows = …; rows.push(…); const output = …; rows.push(…)`)은 구역마다 배열을 돌려주는 단계 함수로 나누고 결과에서 펼친다.
+
+```ts
+render(width: number): string[] {
+	const contentWidth = Math.max(1, width - 4);              // F2
+	return card(width, [                                      // F4 — F3 단계는 펼침 순서대로 평가된다
+		...bashHeaderRows(this.snapshot, contentWidth),
+		...bashOutputRows(outputLines(this.snapshot, max), contentWidth),
+		...detailRows(bashDetails(this.snapshot)),
+	]);
+}
+```
+
+- 단계 함수는 원래 순서대로 호출되도록 배치하고, 원래 문장이 계산하던 값은 그 단계 안에서 계산한다. getter·외부 호출·상태 변경·예외가 날 수 있는 평가의 상대 순서는 바꾸지 않는다. 불변 snapshot 필드 읽기, 순수 계산, 지역 배열에 줄을 쓰는 일처럼 서로 관측할 수 없는 평가의 순서는 바꿀 수 있다.
+- 여러 단계에 같은 모양이 반복되면(예: 생략 표시, 세부 정보 줄) 하나의 단계 함수로 모은다.
+- 탐지: `bun scripts/function-paragraphs.ts <파일…>`이 처리 뒤 선언이 있는 함수를 보고한다. 장 지도의 `문단 후보` 열과 같은 기준이며 보고만 한다. 지역 `type`·`interface`는 분류하지 않고, 지역 `function`·`class`는 준비(F2)로 센다. 중첩 블록 안의 순서는 검사하지 않는다.
+- 후보는 고칠 대상이 아니라 검토 대상이다. 다음은 그대로 두고 이유를 기록한다: 앞선 처리 결과에 의존해 새로 생기는 값(예: `try`로 정한 경로를 정규화), 사용 직전에 선언하는 누산기·상태 추적 `let`, `using`·`try/finally`·`await`·generator·`this` 상태 변경·공유 가변 상태가 얽힌 함수, 의미 있는 단계 이름을 붙일 수 없는 구간.
+- 고치는 대상은 화면 구역처럼 이름 있는 단계로 나눌 수 있는 순수 render·투영 함수다.
+- 검증: 바꾼 함수는 기존 테스트에 더해, 변경 전 버전과 같은 입력으로 출력을 비교하는 골든 비교를 둔다.
+
 ## 작성 절차 (권장)
 
 구현 순서는 강제하지 않는다. 다음은 권장 흐름이다.
@@ -127,6 +158,6 @@ Edit 카드 아래에 줄 번호, `+`/`-` 배경색, 10줄 접기를 붙인 기�
 ## 미결
 
 - §3·§4 절 순서 정리는 2026-10-03 19개 기능에 적용했다([묶음 1](../audit/2026-10-03-feature-template-batch1.md), [묶음 2](../audit/2026-10-03-feature-template-batch2.md), [usage](../audit/2026-10-03-feature-template-usage.md), [chat](../audit/2026-10-03-feature-template-chat.md)). 남은 후보는 `const` 화살표 helper(test 3건)와 내부 클래스(chat 1건)이며 원칙 6에 따라 유지했다.
-- §1·§2(공개 타입·상수 순서) 정리는 별도 작업 종류로 아직 진행하지 않았다.
+- §1·§2(공개 타입·상수 순서) 정리는 2026-10-03 7개 기능에 적용했다([타입 순서](../audit/2026-10-03-feature-template-types.md)).
 - 파일 절 순서 검사를 98_Plugin의 AST 기반 검사기로 옮길지 여부. 그 전까지는 `feature-map`이 후보만 보고한다.
 - `diff --git` 없이 여러 파일을 담은 범위 없는 diff는 지원하지 않는다(파일 하나의 diff가 입력 계약). 실제 공급자 유입은 미확인.
