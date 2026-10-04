@@ -4,16 +4,19 @@ import      { loadSourceGraph             } from "../test/architecture/import-gr
 import type { SourceNode                  } from "../test/architecture/import-graph" ;
 import      { parseFiles, plan            } from "./reorder-sections"                ;
 import type { Statement                   } from "./reorder-sections"                ;
+import      { scanFunctionParagraphs      } from "./function-paragraphs"             ;
+import type { FunctionParagraph           } from "./function-paragraphs"             ;
 
 // Generated projection of docs/workflows/FEATURE_IMPLEMENTATION_CONTRACT.md: every TUI feature read in chapter order.
 
 type Graph = ReadonlyMap<string, SourceNode>;
 
 interface FeatureChapters {
-	readonly feature  : string                        ;
-	readonly chapters : ReadonlyMap<string, string[]> ;
-	readonly findings : readonly string[]             ;
-	readonly types    : readonly string[]             ;
+	readonly feature    : string                        ;
+	readonly chapters   : ReadonlyMap<string, string[]> ;
+	readonly findings   : readonly string[]             ;
+	readonly types      : readonly string[]             ;
+	readonly paragraphs : readonly string[]             ;
 }
 
 const FEATURE_ROOT = "adapters/inbound/tui/features/"                            ;
@@ -33,10 +36,11 @@ const CHAPTERS     = [
 
 async function main(args: readonly string[]): Promise<void> {
 	const [command, feature] = args;
-	const source   = await loadSourceGraph(resolve(import.meta.dir, "../src"))                                                              ;
-	const tests    = await loadSourceGraph(resolve(import.meta.dir, "../test"))                                                             ;
-	const parsed   = await parseFiles(resolve(import.meta.dir, "../src"), [...source.keys()].filter(path => path.startsWith(FEATURE_ROOT))) ;
-	const features = featureNames(source).map(name => projectFeature(name, source, tests, parsed))                                          ;
+	const source   = await loadSourceGraph(resolve(import.meta.dir, "../src"))                                                                          ;
+	const tests    = await loadSourceGraph(resolve(import.meta.dir, "../test"))                                                                         ;
+	const parsed   = await parseFiles(resolve(import.meta.dir, "../src"), [...source.keys()].filter(path => path.startsWith(FEATURE_ROOT)))             ;
+	const scanned  = await scanFunctionParagraphs(resolve(import.meta.dir, "../src"), [...source.keys()].filter(path => path.startsWith(FEATURE_ROOT))) ;
+	const features = featureNames(source).map(name => projectFeature(name, source, tests, parsed, scanned))                                             ;
 	if (command === "report" && feature) return void process.stdout.write(renderFeature(requireFeature(features, feature)));
 	const rendered = renderMap(features);
 	if (command === "build") return void writeFileSync(MAP_PATH, rendered);
@@ -53,7 +57,7 @@ function featureNames(source: Graph): string[] {
 	return [...new Set(names.map(path => path.slice(FEATURE_ROOT.length).split("/")[0]!))].sort();
 }
 
-function projectFeature(feature: string, source: Graph, tests: Graph, parsed: ReadonlyMap<string, { readonly statements: readonly Statement[] }>): FeatureChapters {
+function projectFeature(feature: string, source: Graph, tests: Graph, parsed: ReadonlyMap<string, { readonly statements: readonly Statement[] }>, scanned: readonly FunctionParagraph[]): FeatureChapters {
 	const prefix   = `${FEATURE_ROOT}${feature}/`                                      ;
 	const own      = [...source.keys()].filter(path => path.startsWith(prefix)).sort() ;
 	const imported = unique(own.flatMap(path => source.get(path)?.imports ?? []))      ;
@@ -71,7 +75,7 @@ function projectFeature(feature: string, source: Graph, tests: Graph, parsed: Re
 		["9. 검증",      testsCovering(own, tests)],
 	]);
 	const text = (path: string) => source.get(path)?.text ?? "";
-	return { feature, chapters, findings: own.flatMap(path => sectionOrderFindings(path, text(path))), types: own.flatMap(path => typeOrderFindings(path, parsed.get(path)?.statements ?? [])) };
+	return { feature, chapters, findings: own.flatMap(path => sectionOrderFindings(path, text(path))), types: own.flatMap(path => typeOrderFindings(path, parsed.get(path)?.statements ?? [])), paragraphs: paragraphFindings(own, scanned) };
 }
 
 /** Outbound classes that import a port the feature uses and declare `implements`; type-only consumers are excluded. */
@@ -144,11 +148,11 @@ function renderMap(features: readonly FeatureChapters[]): string {
 		"> 형식: [Feature Implementation Contract](../workflows/FEATURE_IMPLEMENTATION_CONTRACT.md)",
 		"> 장은 기능 폴더 파일의 **직접 import**에서 추정한 후보다. `미발견`은 책임이 없다는 뜻이 아니다. 전이 의존·주입 경로·파일 안의 책임은 추적하지 않는다.",
 		"> 외부 효과는 기능이 쓰는 Port를 import하고 `implements`를 선언한 outbound 파일만 센다. 검증은 기능 폴더를 직접 import하는 테스트만 센다.",
-		"> 절 순서 열은 최상위 선언 줄 패턴의 후보 수다(§3·§4). 타입 순서 열은 첫 실행 선언 뒤에 있는 공개 타입 수다(§1·§2). 0은 전체 절 순서 준수의 증거가 아니다.",
+		"> 절 순서 열은 최상위 선언 줄 패턴의 후보 수다(§3·§4). 타입 순서 열은 첫 실행 선언 뒤에 있는 공개 타입 수다(§1·§2). 문단 열은 첫 처리 문장 뒤에 선언이 있는 함수 수다(F3). 0은 전체 순서 준수의 증거가 아니다.",
 		"",
-		"| 기능 | " + CHAPTERS.join(" | ") + " | 절 순서 후보 | 타입 순서 후보 |",
-		"|---|" + CHAPTERS.map(() => "---:").join("|") + "|---:|---:|",
-		...features.map(entry => `| ${entry.feature} | ${CHAPTERS.map(name => entry.chapters.get(name)?.length || "·").join(" | ")} | ${entry.findings.length || "·"} | ${entry.types.length || "·"} |`),
+		"| 기능 | " + CHAPTERS.join(" | ") + " | 절 순서 후보 | 타입 순서 후보 | 문단 후보 |",
+		"|---|" + CHAPTERS.map(() => "---:").join("|") + "|---:|---:|---:|",
+		...features.map(entry => `| ${entry.feature} | ${CHAPTERS.map(name => entry.chapters.get(name)?.length || "·").join(" | ")} | ${entry.findings.length || "·"} | ${entry.types.length || "·"} | ${entry.paragraphs.length || "·"} |`),
 		"",
 	];
 	return [...head, ...features.map(renderFeature)].join("\n");
@@ -159,9 +163,15 @@ function renderFeature(entry: FeatureChapters): string {
 		const paths = entry.chapters.get(name) ?? [];
 		return `- **${name}** ${paths.length ? paths.map(path => `\`${path}\``).join(", ") : "미발견"}`;
 	});
-	const findings = entry.findings.length ? ["", "절 순서 후보:", ...entry.findings.map(finding => `- ${finding}`)] : [] ;
-	const types    = entry.types.length ? ["", "타입 순서 후보:", ...entry.types.map(finding => `- ${finding}`)] : []     ;
-	return [`## ${entry.feature}`, "", ...chapters, ...findings, ...types, ""].join("\n");
+	const findings   = entry.findings.length ? ["", "절 순서 후보:", ...entry.findings.map(finding => `- ${finding}`)] : []  ;
+	const types      = entry.types.length ? ["", "타입 순서 후보:", ...entry.types.map(finding => `- ${finding}`)] : []      ;
+	const paragraphs = entry.paragraphs.length ? ["", "문단 후보:", ...entry.paragraphs.map(finding => `- ${finding}`)] : [] ;
+	return [`## ${entry.feature}`, "", ...chapters, ...findings, ...types, ...paragraphs, ""].join("\n");
+}
+
+/** F3 candidates: functions in the feature that declare a value after their first step (same rule as `function-paragraphs.ts`). */
+function paragraphFindings(own: readonly string[], scanned: readonly FunctionParagraph[]): string[] {
+	return scanned.filter(paragraph => paragraph.interleaved && own.includes(paragraph.path)).map(paragraph => `${paragraph.path}:${paragraph.line} ${paragraph.name} ${paragraph.shape}`);
 }
 
 function requireFeature(features: readonly FeatureChapters[], feature: string): FeatureChapters {

@@ -18,7 +18,7 @@ describe("Workbench YAML configuration", () => {
 		expect(config.limits.contextCharacters      ).toBe   (9000                                           ) ;
 		expect(config.retry.maxRetries              ).toBe   (2                                              ) ;
 		expect(config.delegation.detailActivities   ).toBe   (8                                              ) ;
-		expect(config.evaluation.requireVerification).toBe   (true                                           ) ;
+		expect(config.evaluation.requireVerification).toBe   (false                                          ) ;
 		expect(config.orchestration.maxAgentRounds  ).toBe   (24                                             ) ;
 		expect(config.review                        ).toEqual({ provider: "anthropic", model: "claude-opus" }) ;
 		expect(config.hud                           ).toEqual({ showUsage: true, showContext: true }         ) ;

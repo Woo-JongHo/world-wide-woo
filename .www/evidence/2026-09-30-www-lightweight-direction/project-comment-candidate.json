@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-WWW-LIGHTWEIGHT-DIRECTION-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "worktree:dev:dirty",
+  "intent": "WWW의 경량 다중 모델 관찰 목적과 현재 구현 차이를 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "README, 제품 방향, 기존 도구와의 경계 문서를 주 모델 선택·선택적 교차검토·전환 사유 관찰 중심으로 교체했다.",
+      "기본 검증 요구의 기본값과 프로젝트 YAML을 false로 바꾸고 CLI 도움말에서 7단계 기본 실행 설명을 제거했다."
+    ],
+    "impacts": [
+      "간단한 요청에 일곱 단계와 검증 절차를 기본 강제로 부과하지 않는 방향을 문서와 설정에 반영했다.",
+      "현재 기본 www는 Codex 경로, 다중 모델은 별도 router 경로임을 명시해 아직 완료하지 않은 통합을 홍보하지 않는다."
+    ],
+    "categories": [
+      "improvement"
+    ],
+    "verification": [
+      "git diff --check 통과. 제품 테스트와 실제 TUI 확인은 이번 변경에서 실행하지 않았다.",
+      "WES 스킬 이전, provider 통합, 공개 배포는 미완료이며 구현 상태를 제품 방향 문서에 분리해 기록했다."
+    ],
+    "connections": [
+      "README.md · docs/WWW_PRODUCT_DIRECTION.md · docs/OSS_POSITIONING.md",
+      "src/core/domain/execution/workbench-config.ts · .www/workbench.yaml · src/adapters/inbound/cli/www-help.ts",
+      "[WOO-910](https://linear.app/woo-world/issue/WOO-910/astra에서-요청계획현재-실행을-하나의-7단계-runtime으로-통제한다)",
+      "[WOO-727](https://linear.app/woo-world/issue/WOO-727/login-provider-계정을-연결하고-현재-인증-상태를-이해한다)",
+      "[WOO-912](https://linear.app/woo-world/issue/WOO-912/workbench-ui-모드모델계획구독-잔여-표기를-정리한다)"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-910/astra에서-요청계획현재-실행을-하나의-7단계-runtime으로-통제한다",
+    "evidence": ".www/evidence/2026-09-30-www-lightweight-direction"
+  },
+  "expectedBefore": {
+    "latestCommentId": "3b8875fc-7d13-432e-91c0-a4d1bf2ed6ab"
+  },
+  "validation": [
+    {
+      "id": "existing-issues",
+      "status": "pass",
+      "evidence": "기존 WOO-910, WOO-727, WOO-912를 live 조회했고 이 단계의 새 이슈 생성은 필요하지 않다."
+    },
+    {
+      "id": "local-diff",
+      "status": "pass",
+      "evidence": "변경 파일과 기존 dirty worktree를 구분해 검토했고 git diff --check가 통과했다."
+    }
+  ],
+  "candidateDigest": "14cf85d690eb3e83d9dbc13b11c56f7970e48c8ccafc90e18bf59df2011031b9"
+}

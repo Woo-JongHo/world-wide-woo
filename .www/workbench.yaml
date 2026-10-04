@@ -20,7 +20,7 @@ retry:
 delegation:
   detailActivities: 8
 evaluation:
-  requireVerification: true
+  requireVerification: false
 review:
   provider: anthropic
   model: claude-opus

@@ -1,0 +1,15 @@
+{
+  "candidateId": "ARTIFACT-CANDIDATE-WWW-LIGHTWEIGHT-DIRECTION-COMMENT",
+  "candidateDigest": "14cf85d690eb3e83d9dbc13b11c56f7970e48c8ccafc90e18bf59df2011031b9",
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "expectedBeforeCommentId": "3b8875fc-7d13-432e-91c0-a4d1bf2ed6ab",
+  "commentId": "aacd5a30-e1d6-48df-99da-40388169704c",
+  "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-aacd5a30-e1d6-48df-99da-40388169704c",
+  "createdAt": "2026-09-30T03:07:09.406Z",
+  "readBack": {
+    "idMatches": true,
+    "bodyMatchesRenderedCandidate": true,
+    "authorId": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+    "latestProjectCommentId": "aacd5a30-e1d6-48df-99da-40388169704c"
+  }
+}

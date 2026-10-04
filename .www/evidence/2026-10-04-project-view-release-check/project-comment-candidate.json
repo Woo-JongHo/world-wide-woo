@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-PROJECT-VIEW-024-RELEASE-CHECK",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:ebb36c2280d5ea8c51bf5cbaf7217942bb539354:dirty",
+  "intent": "Project View 탐색 회귀와 기능 지도 검증 경과를 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "Project View의 새 구조 맵·근거 맵 탐색 이름에 맞춰 최상위 탐색 Playwright 테스트를 고쳤다.",
+      "현재 TUI 소스에서 기능 지도를 재생성하고 19개 기능의 지도 정합을 확인했다."
+    ],
+    "impacts": [
+      "Project View의 구조·근거·Database 세 최상위 화면이 실제 탐색과 현재 페이지 표시로 검증된다.",
+      "Project View 독립 검증은 통과했지만 루트 전체 테스트 실패는 별도 미완료 상태로 유지한다."
+    ],
+    "categories": [
+      "fix",
+      "verification"
+    ],
+    "verification": [
+      "bun run project-view:check와 project-view:build 통과, project-view:test 21 pass.",
+      "bun run feature-map:build 후 feature-map:check에서 19개 기능 current 확인, npm run check와 git diff --check 통과.",
+      "루트 전체 bun test는 직전 실행에서 1607 pass, 90 fail, 2 errors였으며 이 Project View 수정 뒤 재실행하지 않았다."
+    ],
+    "connections": [
+      "apps/project-view/tests/navigation.spec.ts · docs/features/FEATURE_MAP.md",
+      ".www/evidence/2026-10-04-project-view-release-check",
+      "Project View의 독립 브라우저 capability에 일치하는 기존 WOO 이슈는 현재 프로젝트 조회에서 확인되지 않았다."
+    ]
+  },
+  "links": {
+    "evidence": ".www/evidence/2026-10-04-project-view-release-check"
+  },
+  "expectedBefore": {
+    "latestCommentId": "a964f3de-e4b7-41e8-b7cd-bb52a5d9b1a6"
+  },
+  "validation": [
+    {
+      "id": "target",
+      "status": "pass",
+      "evidence": "live WWW Project UUID와 최신 Project Comment ID 확인, Project View 관련 기존 이슈 검색 수행"
+    },
+    {
+      "id": "checks",
+      "status": "pass",
+      "evidence": "Project View 독립 테스트 21 pass 및 기능 지도 검사 19개 current 확인"
+    }
+  ],
+  "candidateDigest": "3b2ea45ef559c9721ff6e589d5584d13c493cfb58622ed9b798cb7a2f5e9a861"
+}
