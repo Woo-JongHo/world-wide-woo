@@ -251,6 +251,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 	const wwwMotion                                   = process.env.WWW_REDUCED_MOTION !== "1" && process.env.NO_COLOR === undefined                 ;
 	// pi-tui visibility callbacks receive the whole terminal, even in nested
 	// stacks. Reserve the real composer/HUD chrome before showing side content.
+	let www: WwwWorkspace | null = null;
 	function wwwBodyHeight(rows: number, columns: number, stable = false): number {
 		// Keep the transcript's width stable while typing. Only the scrollable
 		// plan keeps its column; the optional note still uses the real row budget.
@@ -297,7 +298,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		const current = getMonitorSnapshot();
 		return projectRuntimeMonitor(current, current.activities);
 	};
-	const www = dependencies.surface === "www" ? new WwwWorkspace(
+	www = dependencies.surface === "www" ? new WwwWorkspace(
 		() => snapshot,
 		() => usageSnapshots,
 		wwwBodyHeight,
@@ -312,6 +313,7 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 		() => demoMode,
 		getLiveRuntimeMonitor,
 		() => outputLanguage.get(),
+		() => ({ width: terminal.columns, height: terminal.rows }),
 	) : null;
 	www?.show(dependencies.initialWwwPage ?? "execution");
 	const status         = www ? new WwwNotice() : new StatusLine(WORKBENCH_STATUS_NOTICE) ;
@@ -427,14 +429,13 @@ export function runProjectWorkbenchShell(dependencies: ProjectWorkbenchShellDepe
 			{ component: new WwwHeader(() => snapshot, () => navigation.mode === "workbench" ? wwwPageLabel(www.page) : navigation.mode === "monitor" ? "Monitor" : navigation.mode, cwd, Date.now, wwwMotion, () => outputLanguage.get()), basis: 1, minSize: 1, maxSize: 1, visible: ({ height }: { height: number }) => height >= 12 },
 		] : []),
 		{ component: activeView, basis: 0, grow: 1, shrink: 1, minSize: 1 },
-		{ component: www ? www.composeInput(composerFrame, () => navigation.mode === "workbench") : composerFrame, basis: "auto", shrink: 1, minSize: 3 },
+		{ component: www ? www.composeInput(composerFrame, () => navigation.mode === "workbench", width => composerFrame instanceof WwwComposer ? composerFrame.rowCount(width) : composerFrame.render(width).length) : composerFrame, basis: "auto", shrink: 1, minSize: 3 },
 		{ component: status, basis: 1, minSize: 1, maxSize: 1, visible: ({ height }) => height >= 5 && status.hasNotice },
 		{ component: www ? new WwwHud(
 			() => snapshot,
 			() => usageSnapshots,
 			true,
-			() => www.cacheTelemetry(),
-		) : bottomHud, basis: www ? "auto" : 1, minSize: 1, maxSize: www ? 6 : 1, visible: ({ height }) => height >= 7 },
+		) : bottomHud, basis: www ? "auto" : 1, minSize: 1, maxSize: 1, visible: ({ height }) => height >= 7 },
 	]);
 	let lastAutoApprovalId : NonNullable<WorkbenchSnapshot["pendingApproval"]>["requestId"] | null = null                ;
 	const exitKeys                                                                                 = new ExitKeyPolicy() ;

@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-SIDEBAR-FOUR-PANEL-CONTRACT",
+  "kind": "obsidian-canonical",
+  "sourceRevision": "git:0e7d421b5da741d39b34895a6d2d1fbdb3ff14be:dirty",
+  "intent": "Chat 실행 레일의 PLAN·PROGRESS·TEST·STATUS 고정 비율 결정과 검증 경계를 기존 Native Plan draft에 반영한다",
+  "target": {
+    "relativePath": "Todo/Native Plan projection — AI가 세운 계획을 세션별로 실시간 확인한다.md"
+  },
+  "content": {
+    "properties": {
+      "document_id": "911c3fc2-5576-4651-9067-811a6238608e",
+      "linear": "WOO-700",
+      "record_type": "detailed-canonical",
+      "schema_version": 2,
+      "status": "draft",
+      "acceptance": "not-tested",
+      "domain": "Todo",
+      "capability": "Native Plan projection",
+      "parent": null,
+      "related": [],
+      "spec_ids": [],
+      "code_ids": [
+        "Code-002",
+        "Code-011"
+      ],
+      "test_ids": [],
+      "exception_ids": [],
+      "decision_ids": [],
+      "tags": [
+        "www/spec",
+        "domain/todo",
+        "capability/native-plan",
+        "status/partial"
+      ],
+      "source_revision": "git:0e7d421b5da741d39b34895a6d2d1fbdb3ff14be:dirty",
+      "updated_at": "2026-09-29T08:57:22Z"
+    },
+    "sections": {
+      "1. Intent": "사용자는 질문에서 정리된 목표와 필요한 계획, 실제 진행 내용을 구분해 읽는다. 일반 요청의 7단계 강제 표시는 이 목적을 가리지 않아야 한다.",
+      "2. Scope": "일반 observe 요청의 Chat·F3 표시와 WORK 검증 선택 경계를 개정한다. Broker의 승인형 단계 게이트, Native의 도구·테스트 판단, 전체 request-report-v3 템플릿은 유지한다.",
+      "3. Desired Behavior": "입력 뒤 WWW는 간결한 GOAL을 표시한다. 여러 단계가 필요한 경우 Native PLAN을 표시하고, PROGRESS에는 그 계획 문장의 복사가 아니라 관측된 세부 작업 결과를 표시한다. 단순 질문에서는 계획을 강요하지 않는다. 사용자 질문은 userSurface 배경으로 응답과 구분한다. Chat 오른쪽은 PLAN, 최신 PROGRESS 최대 5개, 관측된 경우만 TEST, REPORT 순서다. TOP 한 줄은 GOAL 왼쪽, LANGUAGE·경로 오른쪽이다. REPORT는 결과·작업/변경/차단·잔여/근거 4필드를 각 최대 2줄로 표시하고 상세는 /output에서 읽는다. 2026-09-29 사용자 결정: Chat 오른쪽 네 구역 PLAN·PROGRESS·TEST·STATUS를 각각 세로 높이 20%·40%·20%·20%로 유지한다. TEST는 실행 관측 전에도 대기 구역을 표시한다.",
+      "4. Domain Contract": "INV-001: 일반 observe의 PLAN은 현재 Native workFlow가 소유하고 PROGRESS는 같은 turn의 해석된 planActivities가 소유한다. INV-002: 검증하지 않은 작업은 검증 완료로 표시하지 않는다. INV-003: 계획·진행·검증의 미관측 값은 추정하지 않는다. INV-004: Broker 단계 게이트는 observe 표시 간소화와 분리한다. INV-005: 네 구역의 공간은 내용 길이가 아닌 사용자가 정한 높이 비율로 배분한다. 테스트 결과를 관측하지 못한 상태는 빈 결과로 꾸미지 않고 대기로 표시한다.",
+      "5. State Model": "일반 observe의 내부 INTENT·WORK·RESULT는 기존 일곱 단계 기록으로 투영되지만 Chat·F3에는 단계 HUD와 시간 블록을 표시하지 않는다. Broker 요청에는 기존 단계 표시를 유지한다. PLAN은 없는 상태를 허용하며 PROGRESS는 planActivities가 오기 전까지 미보고로 표시한다.",
+      "6. Data & Runtime Flow": "WWW는 요청 프로토콜을 additionalContext로 주입해 목표를 받는다. Native가 필요한 경우 update_plan을 작성·갱신하며 workFlow가 이를 투영한다. 별도 narrator의 planActivities가 실제 세부 작업 요약을 제공한다. 실행된 검증만 request-test-workspace에서 요약해 TEST에 표시한다.",
+      "7. Identity & Persistence Contract": "Request ID·turn ID·Native Plan 항목 ID·기존 request-report-v3 identity를 바꾸지 않는다. Chat 질문 배경과 사이드바는 저장하지 않는 presentation이다. 이전 turn의 계획은 현재 진행으로 재귀속하지 않는다. 저장된 request-report-v3 10필드 및 Test 문법은 유지한다. 4필드는 별도 저장 형식이 아니라 표시 축약이다.",
+      "8. Integration Contract": "Native가 계획과 검증 방법을 선택한다. WWW는 목표 정리와 읽기 투영을 담당한다. Observe WORK는 실행 evidence만으로도 수락하며 검증 evidence가 실제로 있을 때만 VERIFY를 완료한다. Broker의 별도 실행·검증 receipt 요구는 유지한다.",
+      "9. Failure & Recovery Contract": "계획이 없으면 계획 미보고, 세부 활동이 없으면 세부 작업 보고 없음으로 표시한다. 검증을 실행하지 않았으면 완료로 꾸미지 않는다. 좁은 터미널에서는 폭을 넘기지 않고 질문 배경을 적용한다. 보고 실패는 기존 Runtime issue로 남긴다.",
+      "10. Acceptance Contract": "AC-001: observe Chat·F3에 GOAL·PLAN·PROGRESS가 중복 없이 표시되고 7단계 HUD·시간 블록은 없다. AC-002: Broker 단계 표시는 남는다. AC-003: 질문 배경은 응답과 구분되며 표시 폭을 넘지 않는다. AC-004: 검증 여부는 Native 관측에 따르고 실행하지 않은 검증은 skipped로 남는다. 실제 TUI 사용자 수락은 미실행이다. 이번 변경: Chat에 전체 완료 보고서와 단계 시간 블록이 중복되지 않는다. REPORT는 현재 turn의 완료 Note만 선택하고 없는 경우 대기로 표시한다. PROGRESS 대체 작업도 최근 5개로 제한한다. 좁은 창에서 sidebar가 숨으면 /output으로 원문 접근한다. AC-005: 32행과 52행에서 PLAN·PROGRESS·TEST·STATUS 순서와 20:40:20:20 배분이 유지되며 입력창 높이 변경 뒤 STATUS 제목 위치가 유지된다.",
+      "11. Verification Strategy": "2026-09-29 이번 변경: bun run check, git diff --check 통과. 행동 테스트·실제 TUI·독립 Claude 검토 미실행. 필수 00_normalize-imports.ts 및 06_align-tables.ts 경로 미발견. 이전 후보 테스트 결과는 이번 변경 검증으로 재사용하지 않는다. 2026-09-29 선택 www-ui 2 pass, TypeScript와 diff check 통과. 전체 www-ui 16 fail, 실제 TUI와 독립 검토 미완료.",
+      "12. Implementation Map": "request-protocol.ts와 request-runtime.ts가 observe 보고 계약을, www-plan-view.ts·www-monitor-view.ts·www-surface.ts가 표시 경계를, www-execution.ts가 질문 배경과 Chat 타임라인을 소유한다. 전체 REPORT는 workbench-artifacts.ts의 v3 템플릿이 소유한다. compact WwwMonitorView가 PLAN·PROGRESS·TEST 내용을 분리하고 WwwWorkspace가 네 구역 높이를 계산한다.",
+      "13. Current State & Gaps": "이번 표시 구현은 로컬 반영 및 타입 검사만 완료했다. 실제 화면 수락, Claude Sonnet/Opus 독립 검토, 필수 가독성 검사, 최신 Vault bytes 대조는 미실행. 이 후보는 기존 로컬 draft를 개정한 것이며 Vault 최신 정본과 동등성을 주장하지 않는다. 게시 전 expectedBefore를 fresh Vault digest로 다시 결박해야 한다. 네 구역 배치는 로컬 반영했으나 전체 테스트와 실제 TUI 수락은 보류한다. 이 후보는 이전 로컬 draft 기반이며 fresh Vault bytes와 digest를 확인하지 못했다.",
+      "14. Decisions & Evidence": "2026-09-28 사용자 결정: Native를 최대한 건드리지 않고 GOAL·필요할 때의 PLAN·실제 PROGRESS를 표시하며 테스트·검증 선택은 Native에 맡긴다. 사용자 질문에는 테마 배경을 준다. 이 결정은 앞선 일반 Chat 7단계 HUD 결정을 대체하되 Broker의 승인형 제어 계약은 변경하지 않는다. 근거는 이번 대화와 관련 코드·테스트다. 독립 검토는 세션 한도로 미실행이며 게시 전 최신 Vault와 Linear read-back이 필요하다. 2026-09-29 사용자 요청: 완료보고서 사이드바 이동, PLAN/PROGRESS 최대5/TEST 조건부/REPORT 구성, TOP 한 줄 GOAL LANGUAGE 경로. REPORT 필드 수 질문에는 답이 없어 권장 4필드 표시안을 잠정 적용했다. 기존 7단계 Runtime 로직과 저장 템플릿은 변경하지 않는다. 2026-09-29 사용자 결정: PLAN 20%, PROGRESS 40%, TEST 20%, STATUS 20%. 앞선 30:50:20 세 구역 결정을 대체한다. Git Bash별 설계·해석을 Runtime 초기에 보내 키를 받는 흐름은 현재 미구현이며 이 레이아웃 결정으로 완료 처리하지 않는다.",
+      "Change Log": "2026-09-28 일반 observe 표시를 GOAL·Native PLAN·해석된 PROGRESS 중심으로 개정하고 질문 배경과 검증 선택 경계를 기록했다. 기존 Chat 7단계 HUD 일반 표시 결정은 이 결정으로 대체한다.\n2026-09-29 사이드바 REPORT 4필드 투영과 최신 PROGRESS 5개·한 줄 TOP 표시를 draft에 추가했다.\n2026-09-29 네 구역 20:40:20:20 사용자 결정을 로컬 draft에 추가했다. Vault read-back과 게시 승인은 남아 있다."
+    }
+  },
+  "links": {
+    "linear": "WOO-700",
+    "relatedLinear": "WOO-680",
+    "evidence": ".www/evidence/2026-09-29-sidebar-four-panel"
+  },
+  "expectedBefore": {
+    "digest": "a53387f5bf69b8688562d38edb1f0d54f539dd12e82be5133d26ade007e94bf5"
+  },
+  "validation": [
+    {
+      "id": "identity",
+      "status": "pass",
+      "evidence": "기존 로컬 draft의 document_id와 relativePath 유지"
+    },
+    {
+      "id": "fresh-vault",
+      "status": "not-run",
+      "evidence": "Vault 현재 bytes·digest 조회 불가; 게시 전 재조회 필요"
+    }
+  ],
+  "candidateDigest": "9176f0e2010d0b736b64176bef7314f749039747fdb633abc0c3905c88de3173"
+}

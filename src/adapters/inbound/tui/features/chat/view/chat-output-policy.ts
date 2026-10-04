@@ -1,5 +1,13 @@
-import type { CommandStatus } from "@/core/domain/execution/output";
-import { semantic }           from "@/adapters/inbound/tui/foundation/theme/theme";
+import type { CommandStatus } from "@/core/domain/execution/output"                ;
+import      { semantic      } from "@/adapters/inbound/tui/foundation/theme/theme" ;
+
+export interface WorkStepStatusPresentation {
+	label   : string                   ;
+	text    : string                   ;
+	symbol  : string                   ;
+	border  : (text: string) => string ;
+	surface : (text: string) => string ;
+}
 
 /** Character budget shared by public native-tool projection and its Chat renderers. */
 export const CHAT_PUBLIC_OUTPUT_MAX_CHARS = 2_400;
@@ -7,9 +15,12 @@ export const CHAT_PUBLIC_OUTPUT_MAX_CHARS = 2_400;
 /** Default number of terminal output lines that follow a live command. */
 export const CHAT_TERMINAL_OUTPUT_CHUNK_LINES = 5;
 
+/** Diff rows shown under a collapsed file change before the rest is summarized. */
+export const CHAT_DIFF_PREVIEW_ROWS = 10;
+
 /** Parsing budget for syntax-aware structured output. */
-export const CHAT_STRUCTURED_DISPLAY_MAX_BYTES = 64 * 1024;
-export const CHAT_STRUCTURED_DISPLAY_MAX_LINES = 2_000;
+export const CHAT_STRUCTURED_DISPLAY_MAX_BYTES = 64 * 1024 ;
+export const CHAT_STRUCTURED_DISPLAY_MAX_LINES = 2_000     ;
 
 const STATUS_LABEL: Record<CommandStatus, string> = {
 	pending   : "PENDING",
@@ -42,14 +53,6 @@ const STATUS_SURFACE: Record<CommandStatus, (text: string) => string> = {
 	failed    : semantic.executionSurfaceFailed,
 	cancelled : semantic.executionSurfaceCancelled,
 };
-
-export interface WorkStepStatusPresentation {
-	label   : string                   ;
-	text    : string                   ;
-	symbol  : string                   ;
-	border  : (text: string) => string ;
-	surface : (text: string) => string ;
-}
 
 export function workStepStatusPresentation(status: CommandStatus): WorkStepStatusPresentation {
 	return {

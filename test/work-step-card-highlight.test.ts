@@ -1,21 +1,29 @@
-import { describe, expect, test }               from "bun:test";
-import { homedir }                              from "node:os";
-import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import type { ProjectActivity }                 from "../src/core/domain/execution/project-activity";
-import { projectWorkFlow }                      from "../src/core/domain/work";
-import type { DplanHash }                       from "../src/core/domain/work";
-import {
-	executionLineTone,
-	ObservationCard,
-	projectNativePathText,
-	WorkStepCard,
-} from "../src/adapters/inbound/tui/features/chat/view/work-step-card";
-import { BashResultCard }                       from "../src/adapters/inbound/tui/features/chat/view/result-cards";
-import { wwwToolRows }                          from "../src/adapters/inbound/tui/features/chat/view/www-execution";
-import { classifyDiffLine }                     from "../src/adapters/inbound/tui/foundation/rendering/unified-diff-view";
+import      { describe, expect, test   } from "bun:test"                                                           ;
+import      { homedir                  } from "node:os"                                                            ;
+import      {
+              stripTerminalSequences ,
+              visibleWidth           ,
+                                       } from "@earendil-works/pi-tui"                                             ;
+import type { ProjectActivity          } from "../src/core/domain/execution/project-activity"                      ;
+import      { projectWorkFlow          } from "../src/core/domain/work"                                            ;
+import type { DplanHash                } from "../src/core/domain/work"                                            ;
+import      {
+              executionLineTone      ,
+              ObservationCard        ,
+              projectNativePathText  ,
+              WorkStepCard           ,
+                                       } from "../src/adapters/inbound/tui/features/chat/view/work-step-card"      ;
+import      { BashResultCard           } from "../src/adapters/inbound/tui/features/chat/view/result-cards"        ;
+import      { wwwToolRows              } from "../src/adapters/inbound/tui/features/chat/view/www-execution"       ;
+import      { renderUnifiedDiff        } from "../src/adapters/inbound/tui/foundation/rendering/unified-diff-view" ;
+import      {
+              classifyDiffLine       ,
+              diffStats              ,
+              parseUnifiedDiff       ,
+                                       } from "../src/core/domain/execution/file-diff"                             ;
 
-const THREAD = "thread-highlight";
-const TURN = "turn-highlight";
+const THREAD = "thread-highlight" ;
+const TURN   = "turn-highlight"   ;
 const hash: DplanHash = {
 	sha256Hex: (input) => new Bun.CryptoHasher("sha256").update(input).digest("hex"),
 };
@@ -75,8 +83,8 @@ function fileChangeActivity(): ProjectActivity {
 }
 
 function semanticFileChangeActivity(): ProjectActivity {
-	const activity = fileChangeActivity();
-	const item = (activity.payload.params as { item: Record<string, unknown> }).item;
+	const activity = fileChangeActivity()                                                ;
+	const item     = (activity.payload.params as { item: Record<string, unknown> }).item ;
 	item.changes = [{
 		path : "project-comment-candidate.json",
 		kind : "update",
@@ -193,14 +201,88 @@ describe("WorkStepCard executor highlighting", () => {
 		}).render(88);
 		const text = rows.map(row => stripTerminalSequences(row));
 
-		expect(text[0]                                                                         ).toContain("✓ CHANGE  project-comment-candidate.json  +2  -1  done") ;
-		expect(text.some(row => row.includes("│ @@ -64,3 +64,4 @@"))                           ).toBe     (true                                                    ) ;
-		expect(text.some(row => row.includes("│ -  \"candidateDigest\": \"000000000000\""))    ).toBe     (true                                                    ) ;
-		expect(text.some(row => row.includes("│ +  \"candidateDigest\": \"bf53a667ec99\""))    ).toBe     (true                                                    ) ;
-		expect(text.some(row => row.includes("│ +  \"reason\": \"기존 규칙 문서를 조사했다\""))).toBe     (true                                                    ) ;
-		expect(text.some(row => row.includes("│    \"expression\": \"A+B-C\""))                ).toBe     (true                                                    ) ;
-		expect(text.some(row => row.includes("│ … 54 diff lines omitted"))                     ).toBe     (true                                                    ) ;
-		expect(text.every(row => visibleWidth(row) === 88)                                     ).toBe     (true                                                    ) ;
+		expect(text[0]                                                                            ).toContain("✓ CHANGE  project-comment-candidate.json  +2  -1  done") ;
+		expect(text.some(row => row.includes("@@"))                                               ).toBe     (false                                                   ) ;
+		expect(text.some(row => row.includes("│ 64    \"expression\": \"A+B-C\""))                ).toBe     (true                                                    ) ;
+		expect(text.some(row => row.includes("│ 65 -  \"candidateDigest\": \"000000000000\""))    ).toBe     (true                                                    ) ;
+		expect(text.some(row => row.includes("│ 65 +  \"candidateDigest\": \"bf53a667ec99\""))    ).toBe     (true                                                    ) ;
+		expect(text.some(row => row.includes("│ 66 +  \"reason\": \"기존 규칙 문서를 조사했다\""))).toBe     (true                                                    ) ;
+		expect(text.some(row => row.includes("│ … 54 diff lines omitted"))                        ).toBe     (true                                                    ) ;
+		expect(text.every(row => visibleWidth(row) === 88)                                        ).toBe     (true                                                    ) ;
+	});
+
+	test("numbers diff rows from hunk anchors and folds the rest after ten rows", () => {
+		const diff     = ["@@ -150,12 +150,12 @@", ...Array.from({ length: 12 }, (_, index) => index === 6 ? "-old line" : index === 7 ? "+new line" : ` ctx ${index}`)].join("\n") ;
+		const folded   = renderUnifiedDiff(diff, 60, { maxRows: 10, expandHint: "Ctrl+E 펼치기" }).map(row => stripTerminalSequences(row))                                          ;
+		const expanded = renderUnifiedDiff(diff, 60).map(row => stripTerminalSequences(row))                                                                                        ;
+
+		expect(folded[0]      ).toContain   ("│ 150  ctx 0"                  ) ;
+		expect(folded[6]      ).toContain   ("│ 156 -old line"               ) ;
+		expect(folded[7]      ).toContain   ("│ 156 +new line"               ) ;
+		expect(folded         ).toHaveLength(11                              ) ;
+		expect(folded[10]     ).toContain   ("… +2 lines (Ctrl+E 펼치기)"    ) ;
+		expect(expanded       ).toHaveLength(12                              ) ;
+		expect(diffStats(diff)).toEqual     ({ added: 1, removed: 1 }        ) ;
+	});
+
+	test("keeps hunk body lines that look like file headers", () => {
+		const rows = parseUnifiedDiff(["--- a/doc.md", "+++ b/doc.md", "@@ -3,2 +3,2 @@", "--- title", "+++ title", " tail"].join("\n"));
+
+		expect(rows.map(row => [row.kind, row.lineNumber, row.text])).toEqual([["deletion", 3, "-- title"], ["addition", 3, "++ title"], ["context", 4, "tail"]]) ;
+	});
+
+	test("does not number the no-newline marker or rows after an omission", () => {
+		const eof     = parseUnifiedDiff(["@@ -1 +1 @@", "-old", "\\ No newline at end of file", "+new"].join("\n")  ) ;
+		const omitted = parseUnifiedDiff(["@@ -10,9 +10,9 @@", " ten", "… 5 diff lines omitted", " later"].join("\n")) ;
+
+		expect(eof.map(row => [row.kind, row.lineNumber])    ).toEqual([["deletion", 1], ["addition", 1]])                      ;
+		expect(omitted.map(row => [row.kind, row.lineNumber])).toEqual([["context", 10], ["omitted", null], ["context", null]]) ;
+	});
+
+	test("keeps a context row that quotes the omission marker", () => {
+		const rows = parseUnifiedDiff(["@@ -10,3 +10,3 @@", " start", " … 5 diff lines omitted", " end"].join("\n"));
+
+		expect(rows.map(row => [row.kind, row.lineNumber])).toEqual([["context", 10], ["context", 11], ["context", 12]]) ;
+	});
+
+	test("counts only hidden content rows and keeps every row inside narrow widths", () => {
+		const diff   = ["@@ -1,10 +1,10 @@", ...Array.from({ length: 10 }, (_, index) => ` line ${index}`), "@@ -1000,1 +1000,1 @@", " far"].join("\n") ;
+		const folded = renderUnifiedDiff(diff, 60, { maxRows: 10 }).map(row => stripTerminalSequences(row))                                             ;
+
+		expect(folded.at(-1)                                                                                                       ).toContain("… +1 lines") ;
+		expect(folded.some(row => row.includes("⋮"))                                                                               ).toBe     (false       ) ;
+		expect([1, 2, 3, 8].every(width => renderUnifiedDiff(diff, width, { maxRows: 1 }).every(row => visibleWidth(row) <= width))).toBe     (true        ) ;
+	});
+
+	test("shows the whole diff in observation cards that cannot expand", () => {
+		const activity = fileChangeActivity()                                                ;
+		const item     = (activity.payload.params as { item: Record<string, unknown> }).item ;
+		item.changes   = [{ path: "src/app.ts", kind: "update", diff: ["@@ -1,12 +1,13 @@", ...Array.from({ length: 13 }, (_, index) => `+line ${index}`)].join("\n") }] ;
+		const text     = new ObservationCard({ activity, mode: "action" }).render(80).map(row => stripTerminalSequences(row)).join("\n")                ;
+
+		expect(text)    .toContain("│ 13 +line 12") ;
+		expect(text).not.toContain("… +")          ;
+	});
+
+	test("numbers raw added file content without reading list markers as a diff", () => {
+		const rows = parseUnifiedDiff("- item one\n+ item two\n", "add");
+
+		expect(rows.map(row => [row.kind, row.lineNumber, row.text])).toEqual([["addition", 1, "- item one"], ["addition", 2, "+ item two"]]) ;
+		expect(diffStats("- item one\n+ item two\n", "add")          ).toEqual({ added: 2, removed: 0 })                                       ;
+	});
+
+	test("folds collapsed Chat file changes and expands them with the card", () => {
+		const activity = fileChangeActivity()                                                ;
+		const item     = (activity.payload.params as { item: Record<string, unknown> }).item ;
+		item.changes   = [{ path: "src/app.ts", kind: "update", diff: ["@@ -1,12 +1,13 @@", ...Array.from({ length: 13 }, (_, index) => `+line ${index}`)].join("\n") }] ;
+		const folded   = stripTerminalSequences(wwwToolRows(activity, 80, false).join("\n")) ;
+		const expanded = stripTerminalSequences(wwwToolRows(activity, 80, true).join("\n") ) ;
+
+		expect(folded  )      .toContain("│ 10 +line 9"                   ) ;
+		expect(folded  )  .not.toContain("+line 10"                       ) ;
+		expect(folded  )      .toContain("… +3 lines (Ctrl+E 펼치기)"     ) ;
+		expect(expanded)      .toContain("│ 13 +line 12"                  ) ;
+		expect(expanded).not  .toContain("Ctrl+E 펼치기"                  ) ;
 	});
 
 	test("classifies unified diff roles before rendering color", () => {
@@ -250,8 +332,8 @@ describe("WorkStepCard executor highlighting", () => {
 	});
 
 	test("shortens repeated native paths at the presentation boundary without conflating external paths", () => {
-		const project = `${homedir()}/very-long-project`;
-		const outside = `${homedir()}/other-project/src/app.ts`;
+		const project = `${homedir()}/very-long-project`        ;
+		const outside = `${homedir()}/other-project/src/app.ts` ;
 		const activity = commandActivity(
 			`${project}/src/app.ts\n${outside}`,
 		);
@@ -326,15 +408,15 @@ describe("WorkStepCard executor highlighting", () => {
 		const fileItem   = (fileChange.payload.params as { item: Record<string, unknown> }).item ;
 		fileItem.cwd = project;
 		fileItem.path = file;
-		const read = toolActivity();
-		const readItem = (read.payload.params as { item: Record<string, unknown> }).item;
+		const read     = toolActivity()                                                  ;
+		const readItem = (read.payload.params as { item: Record<string, unknown> }).item ;
 		readItem.type = "readFile";
 		delete readItem.query;
 		readItem.cwd = project;
 		readItem.path = file;
 
-		const fileText = stripTerminalSequences(new WorkStepCard({ stepNumber: 1, activity: fileChange }).render(120).join("\n"));
-		const readText = stripTerminalSequences(new WorkStepCard({ stepNumber: 2, activity: read }).render(120).join("\n"));
+		const fileText = stripTerminalSequences(new WorkStepCard({ stepNumber: 1, activity: fileChange }).render(120).join("\n")) ;
+		const readText = stripTerminalSequences(new WorkStepCard({ stepNumber: 2, activity: read }).render(120).join("\n")      ) ;
 
 		expect(fileText     ).toContain("파일 변경 · $PROJECT/src/app.ts") ;
 		expect(readText     ).toContain("파일 확인 · $PROJECT/src/app.ts") ;
@@ -383,16 +465,16 @@ describe("WorkStepCard executor highlighting", () => {
 	});
 
 	test("classifies execution output by semantic meaning", () => {
-		expect(executionLineTone("12 pass", "output")                             ).toBe("success"      ) ;
-		expect(executionLineTone("1 fail", "output")                              ).toBe("error"        ) ;
-		expect(executionLineTone("stderr: permission denied", "output")           ).toBe("error"        ) ;
-		expect(executionLineTone("+added line", "output")                         ).toBe("diff-added"   ) ;
-		expect(executionLineTone(" M src/app.ts", "output")                       ).toBe("git-modified" ) ;
-		expect(executionLineTone("?? notes.md", "output")                         ).toBe("git-untracked") ;
+		expect(executionLineTone("12 pass"                             , "output")).toBe("success"      ) ;
+		expect(executionLineTone("1 fail"                              , "output")).toBe("error"        ) ;
+		expect(executionLineTone("stderr: permission denied"           , "output")).toBe("error"        ) ;
+		expect(executionLineTone("+added line"                         , "output")).toBe("diff-added"   ) ;
+		expect(executionLineTone(" M src/app.ts"                       , "output")).toBe("git-modified" ) ;
+		expect(executionLineTone("?? notes.md"                         , "output")).toBe("git-untracked") ;
 		expect(executionLineTone("diff --git a/src/app.ts b/src/app.ts", "output")).toBe("diff-header"  ) ;
-		expect(executionLineTone("@@ -1,2 +1,3 @@", "output")                     ).toBe("diff-header"  ) ;
-		expect(executionLineTone("+++ b/src/app.ts", "output")                    ).toBe("diff-added"   ) ;
-		expect(executionLineTone("command: bun test", "input")                    ).toBe("command"      ) ;
+		expect(executionLineTone("@@ -1,2 +1,3 @@"                     , "output")).toBe("diff-header"  ) ;
+		expect(executionLineTone("+++ b/src/app.ts"                    , "output")).toBe("diff-added"   ) ;
+		expect(executionLineTone("command: bun test"                   , "input" )).toBe("command"      ) ;
 	});
 
 	test("connects native Bash highlighting without changing public text", () => {
@@ -444,8 +526,8 @@ describe("WorkStepCard executor highlighting", () => {
 			},
 		} } };
 
-		const rendered = new ObservationCard({ activity }).render(100).join("\n");
-		const text = stripTerminalSequences(rendered);
+		const rendered = new ObservationCard({ activity }).render(100).join("\n") ;
+		const text     = stripTerminalSequences(rendered)                         ;
 		expect(rendered)    .toContain("\u001b[38;2;"                ) ;
 		expect(text    )    .toContain('args: {"path":"report.json"}') ;
 		expect(text    )    .toContain('"answer": 42'                ) ;

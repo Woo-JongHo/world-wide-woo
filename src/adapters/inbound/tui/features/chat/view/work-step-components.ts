@@ -1,24 +1,40 @@
-import type { Component }                            from "@earendil-works/pi-tui";
-import type { CommandStatus }                        from "@/core/domain/execution/output";
-import type { ProjectActivity, ProjectActivityKind } from "@/core/domain/execution/project-activity";
-import type { WorkbenchLiveActivity }                from "@/core/domain/work/workbench";
-import type { WorkStepNarration }                    from "@/core/domain/work";
-import { colors, semantic }                          from "@/adapters/inbound/tui/foundation/theme/theme";
-import { CHAT_PUBLIC_OUTPUT_MAX_CHARS }              from "@/adapters/inbound/tui/features/chat/view/chat-output-policy";
-import {
-	boundedExecutionRows,
-	fitExecutionText,
-	renderBashExecutionBlock,
-	renderExecutionLine,
-	workStepStatusPresentation,
-} from "@/adapters/inbound/tui/features/chat/view/work-step-output-renderer";
-import {
-	projectWorkStep,
-	resolveWorkStepStatus,
-	workStepActionLabel,
-} from "@/adapters/inbound/tui/features/chat/view/work-step-public-projection";
-import type { WorkStepProjectionOptions }            from "@/adapters/inbound/tui/features/chat/view/work-step-public-projection";
-import { renderUnifiedDiff }                         from "@/adapters/inbound/tui/foundation/rendering/unified-diff-view";
+import type { Component                    } from "@earendil-works/pi-tui"                                                ;
+import type { CommandStatus                } from "@/core/domain/execution/output"                                        ;
+import type {
+              ProjectActivity            ,
+              ProjectActivityKind        ,
+                                           } from "@/core/domain/execution/project-activity"                              ;
+import type { WorkbenchLiveActivity        } from "@/core/domain/work/workbench"                                          ;
+import type { WorkStepNarration            } from "@/core/domain/work"                                                    ;
+import      {
+              colors                     ,
+              semantic                   ,
+                                           } from "@/adapters/inbound/tui/foundation/theme/theme"                         ;
+import      { CHAT_PUBLIC_OUTPUT_MAX_CHARS } from "@/adapters/inbound/tui/features/chat/view/chat-output-policy"          ;
+import      { projectFileChanges           } from "@/adapters/inbound/tui/features/chat/view-model/file-change"           ;
+import      {
+              boundedExecutionRows       ,
+              fitExecutionText           ,
+              renderBashExecutionBlock   ,
+              renderExecutionLine        ,
+              workStepStatusPresentation ,
+                                           } from "@/adapters/inbound/tui/features/chat/view/work-step-output-renderer"   ;
+import      {
+              projectWorkStep            ,
+              resolveWorkStepStatus      ,
+              workStepActionLabel        ,
+                                           } from "@/adapters/inbound/tui/features/chat/view/work-step-public-projection" ;
+import type { WorkStepProjectionOptions    } from "@/adapters/inbound/tui/features/chat/view/work-step-public-projection" ;
+import      { renderUnifiedDiff            } from "@/adapters/inbound/tui/foundation/rendering/unified-diff-view"         ;
+
+export interface ObservationCardOptions {
+	activity?: ProjectActivity;
+	liveActivity?: WorkbenchLiveActivity;
+	/** Labels a native action as executable/editing work instead of a read-only observation. */
+	mode?: "observation" | "action";
+	/** Preserves plan context when this is an intermediate action within a larger step. */
+	parentStepNumber?: number;
+}
 
 const INPUT_MAX_LINES  = 4     ;
 const INPUT_MAX_CHARS  = 1_200 ;
@@ -30,15 +46,6 @@ interface WorkStepCardOptions extends WorkStepProjectionOptions {
 	liveActivity? : WorkbenchLiveActivity ;
 	status?       : CommandStatus         ;
 	narration?    : WorkStepNarration     ;
-}
-
-export interface ObservationCardOptions {
-	activity?: ProjectActivity;
-	liveActivity?: WorkbenchLiveActivity;
-	/** Labels a native action as executable/editing work instead of a read-only observation. */
-	mode?: "observation" | "action";
-	/** Preserves plan context when this is an intermediate action within a larger step. */
-	parentStepNumber?: number;
 }
 
 /** Compact, public projection of one native work item; it never renders the raw envelope. */
@@ -92,8 +99,8 @@ export class ObservationCard implements Component {
 		const presentation                      = workStepStatusPresentation(status)                   ;
 		const changes                           = fileChangeRows(this.options.activity, status, width) ;
 		if (changes) return changes;
-		const label                             = activityLabel(this.options, projected.command, stepOptions)                               ;
-		const header                            = `${presentation.symbol} ${colors.text(label)} ${colors.muted(`· ${presentation.label}`)}` ;
+		const label  = activityLabel(this.options, projected.command, stepOptions)                               ;
+		const header = `${presentation.symbol} ${colors.text(label)} ${colors.muted(`· ${presentation.label}`)}` ;
 		if (projected.command) {
 			return [presentation.surface(fitExecutionText(` ${header}`, width)), ...renderBashExecutionBlock(projected, status, width)];
 		}
@@ -106,14 +113,15 @@ export class ObservationCard implements Component {
 	}
 }
 
+export function isVisibleWorkStep(kind: ProjectActivityKind | WorkbenchLiveActivity["kind"]): boolean {
+	return kind === "tool" || kind === "file-change";
+}
+
 function fileChangeRows(activity: ProjectActivity | undefined, status: CommandStatus, width: number): string[] | null {
-	if (activity?.kind !== "file-change") return null;
-	const params  = object(activity.payload.params)                                                               ;
-	const item    = object(params?.item)                                                                          ;
-	const changes = Array.isArray(item?.changes) ? item.changes.flatMap(change => projectFileChange(change)) : [] ;
+	const changes = projectFileChanges(activity);
 	if (!changes.length) return null;
-	const presentation = workStepStatusPresentation(status);
-	const nameWidth    = Math.max(...changes.map(change => change.name.length));
+	const presentation = workStepStatusPresentation(status)                     ;
+	const nameWidth    = Math.max(...changes.map(change => change.name.length)) ;
 	return changes.flatMap(change => {
 		const counts = [
 			change.added === null ? "" : colors.success(`+${change.added}`),
@@ -122,18 +130,8 @@ function fileChangeRows(activity: ProjectActivity | undefined, status: CommandSt
 		const state  = status === "passed" ? colors.success("done") : status === "failed" ? colors.error("failed") : colors.muted(status)                            ;
 		const row    = `${fileChangeSymbol(status)} ${colors.text("CHANGE")}  ${colors.text(change.name.padEnd(nameWidth))}${counts ? `  ${counts}` : ""}  ${state}` ;
 		const header = presentation.surface(fitExecutionText(` ${row}`, width))                                                                                      ;
-		return [header, ...renderUnifiedDiff(change.diff ?? "", width)];
+		return [header, ...renderUnifiedDiff(change.diff ?? "", width, { fileKind: change.fileKind })];
 	});
-}
-
-function projectFileChange(value: unknown): { name: string; added: number | null; removed: number | null; diff: string | null }[] {
-	const change = object(value);
-	const path   = typeof change?.path === "string" ? change.path.replace(/\\/gu, "/") : "";
-	if (!path) return [];
-	const diff    = typeof change?.diff === "string" ? change.diff.split(/\r?\n/u) : null                ;
-	const added   = diff?.filter(line => line.startsWith("+") && !line.startsWith("+++")).length ?? null ;
-	const removed = diff?.filter(line => line.startsWith("-") && !line.startsWith("---")).length ?? null ;
-	return [{ name: path.split("/").at(-1) ?? path, added, removed, diff: typeof change?.diff === "string" ? change.diff : null }];
 }
 
 function fileChangeSymbol(status: CommandStatus): string {
@@ -141,10 +139,6 @@ function fileChangeSymbol(status: CommandStatus): string {
 	if (status === "failed") return colors.error("✕");
 	if (status === "cancelled") return colors.warning("−");
 	return colors.warning("•");
-}
-
-function object(value: unknown): Record<string, unknown> | null {
-	return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
 }
 
 function activityLabel(
@@ -174,8 +168,4 @@ function compactObservationOutput(lines: readonly string[], status: CommandStatu
 	});
 	if (output.length > 0) return output;
 	return status === "running" || status === "pending" ? ["Running…"] : [];
-}
-
-export function isVisibleWorkStep(kind: ProjectActivityKind | WorkbenchLiveActivity["kind"]): boolean {
-	return kind === "tool" || kind === "file-change";
 }

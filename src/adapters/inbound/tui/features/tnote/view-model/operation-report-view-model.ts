@@ -1,6 +1,6 @@
-import type { NoteFeatureProjection } from "@/core/application/orchestration/workbench-feature-reads.js";
-import { parseCanonicalTNoteReport }  from "@/core/application/work/t-note-service.js";
-import type { WorkbenchTNote }        from "@/core/domain/work/workbench.js";
+import type { NoteFeatureProjection     } from "@/core/application/orchestration/workbench-feature-reads.js" ;
+import      { parseCanonicalTNoteReport } from "@/core/application/work/t-note-service.js"                   ;
+import type { WorkbenchTNote            } from "@/core/domain/work/workbench.js"                             ;
 
 export type OperationStatus = "success" | "partial" | "failed" | "none" | "not-run" | "not-observed" | "unknown";
 
@@ -109,32 +109,27 @@ type OperationProjection = Pick<NoteFeatureProjection, "runtime"> & {
 
 /** Converts one stored report and observed runtime facts into presentation-neutral report cells. */
 export function projectOperationReport(note: WorkbenchTNote, projection: OperationProjection): OperationReport {
-	const report = parseCanonicalTNoteReport(note.summary);
-	const runtime = projection.runtime?.turnId === note.completion?.turnId ? projection.runtime : undefined;
+	const report  = parseCanonicalTNoteReport(note.summary)                                                 ;
+	const runtime = projection.runtime?.turnId === note.completion?.turnId ? projection.runtime : undefined ;
 	const models: OperationReportModelUsage[] = [{
 		role     : "Primary Agent",
 		provider : null,
 		model    : runtime?.primaryModel ?? null,
 		effort   : runtime?.effort ?? null,
-	}];
-	if (note.provenance) models.push({
+	}, ...(note.provenance ? [{
 		role     : "Detached Narrator",
 		provider : note.provenance.provider,
 		model    : note.provenance.model,
 		effort   : null,
-	});
+	}] : [])];
 	const selfAssessment = report?.selfAssessment ?? note.summary                                                      ;
 	const changes        = changeRows(report?.changeStatus ?? "")                                                      ;
-	const evidence       = lines(report?.commitAndEvidence ?? "").map(evidenceRow)                                     ;
+	const evidence       = [...lines(report?.commitAndEvidence ?? "").map(evidenceRow), ...receiptEvidence(runtime)]   ;
 	const activities     = lines(report?.keyWork ?? "").filter(isOperationReportLine).map(activityRow)                 ;
 	const files          = fileRows(activities, runtime?.files ?? [])                                                  ;
 	const tokens         = tokenUsage(report?.modelAndTokens ?? "", runtime?.totalTokens ?? null)                      ;
 	const previousReport = projection.previousNote ? parseCanonicalTNoteReport(projection.previousNote.summary) : null ;
 	const previousTokens = previousReport ? tokenUsage(previousReport.modelAndTokens, null) : null                     ;
-	if (runtime?.receipt) {
-		evidence.push({ type: "Receipt", value: runtime.receipt.id });
-		evidence.push({ type: "Receipt Digest", value: runtime.receipt.digest });
-	}
 	return Object.freeze({
 		title              : report?.title ?? note.title,
 		status             : operationStatus(selfAssessment),
@@ -308,14 +303,7 @@ function testSummary(
 	verification: readonly { readonly command: string; readonly status: "passed" | "failed" | "skipped" | "unknown" }[],
 ): OperationReportTestSummary {
 	if (!value && verification.length === 0) return { status: "not-observed", total: null, passed: null, failed: null, skipped: null, durationMs: null, checks: [] };
-	if (!value) {
-		const passed  = verification.filter(item => item.status === "passed").length                                                                      ;
-		const failed  = verification.filter(item => item.status === "failed").length                                                                      ;
-		const skipped = verification.filter(item => item.status === "skipped").length                                                                     ;
-		const status  = failed > 0 ? "failed" : verification.every(item => item.status === "passed" || item.status === "skipped") ? "success" : "unknown" ;
-		const checks  = verification.map(item => ({ command: item.command, status: verificationStatus(item.status), durationMs: null }))                  ;
-		return { status, total: verification.length, passed, failed, skipped, durationMs: null, checks };
-	}
+	if (!value) return verificationSummary(verification);
 	const total = /Total\s+(\d+)\/(\d+)/iu.exec(value);
 	if (!total) return { status: /not run|미실행/iu.test(value) ? "not-run" : "not-observed", total: null, passed: null, failed: null, skipped: null, durationMs: null, checks: [] };
 	const passed = [...value.matchAll(/·\s*passed\s*$/gimu)].length                                                ;
@@ -345,4 +333,19 @@ function verificationStatus(value: string): OperationStatus {
 
 function lines(value: string): readonly string[] {
 	return Object.freeze(value.split(/\r?\n/u).map(line => line.trim()).filter(Boolean));
+}
+
+/** Receipt identity observed for the completed turn, shown after the report's own evidence lines. */
+function receiptEvidence(runtime: OperationRuntime | undefined): OperationReportEvidence[] {
+	return runtime?.receipt ? [{ type: "Receipt", value: runtime.receipt.id }, { type: "Receipt Digest", value: runtime.receipt.digest }] : [];
+}
+
+/** Test summary from observed verification commands when the report has no Test section. */
+function verificationSummary(verification: readonly { readonly command: string; readonly status: "passed" | "failed" | "skipped" | "unknown" }[]): OperationReportTestSummary {
+	const passed  = verification.filter(item => item.status === "passed").length                                                                      ;
+	const failed  = verification.filter(item => item.status === "failed").length                                                                      ;
+	const skipped = verification.filter(item => item.status === "skipped").length                                                                     ;
+	const status  = failed > 0 ? "failed" : verification.every(item => item.status === "passed" || item.status === "skipped") ? "success" : "unknown" ;
+	const checks  = verification.map(item => ({ command: item.command, status: verificationStatus(item.status), durationMs: null }))                  ;
+	return { status, total: verification.length, passed, failed, skipped, durationMs: null, checks };
 }

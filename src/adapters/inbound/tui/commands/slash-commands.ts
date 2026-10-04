@@ -175,6 +175,7 @@ export const WORKBENCH_SLASH_COMMANDS: SlashCommand[] = [
 	{ name : "output"     , description : "완료된 작업의 최종 Operation Report 열기"                                               },
 	{ name : "tnotes"     , description : "저장된 질문별 완료 Note 읽기"                                                           },
 	{ name : "todo"       , description : "레거시 Todo.md 읽기 전용 migration view"                                                },
+	{ name : "plan"       , description : "Native Plan 모드로 전환"                                                             },
 	{
 		name: "permission",
 		description: "Native 권한 범위 전환",
@@ -260,6 +261,9 @@ export function parseWorkbenchShellCommand(text: string, catalog?: NativeModelCa
 			? { type: "session.mode", mode: args[0] }
 			: { type: "error", message: "사용법: /mode <manual|plan>" };
 	}
+	if (name === "plan") return args.length === 0
+		? { type: "session.mode", mode: "plan" }
+		: { type: "error", message: "사용법: /plan" };
 	if (name === "goal") {
 		const goal = trimmed.slice("/goal".length).trim();
 		return goal ? { type: "goal.set", text: goal } : { type: "goal.view" };

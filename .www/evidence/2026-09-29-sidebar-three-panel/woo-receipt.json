@@ -1,0 +1,89 @@
+{
+  "schemaVersion": "1.0",
+  "receiptId": "64f08ab3-c7f0-4d53-924f-823cdcc64f2b",
+  "runId": "c272c5d9-a568-49d9-9952-ff9d401d870d",
+  "candidateId": "ARTIFACT-CANDIDATE-SIDEBAR-THREE-PANEL-COMMENT",
+  "skill": {
+    "name": "woo-linear-publish",
+    "version": "unversioned"
+  },
+  "capability": "LINEAR_PROJECT_COMMENT_PUBLISH",
+  "status": "succeeded",
+  "stage": "verify",
+  "actor": {
+    "type": "Codex",
+    "role": "primary executor"
+  },
+  "context": {
+    "repository": "99_www",
+    "branch": "dev",
+    "sourceRevision": "worktree:0e7d421b5da741d39b34895a6d2d1fbdb3ff14be:dirty",
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "projectName": "World Wide Woo",
+    "projectUrl": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff"
+  },
+  "input": {
+    "candidateId": "ARTIFACT-CANDIDATE-SIDEBAR-THREE-PANEL-COMMENT",
+    "candidateDigest": "4cea2f42b5da0ede4d4961a4da7998dad76e445a6e5976d879483122a7e0b220",
+    "expectedBefore": {
+      "latestCommentId": "21f69f21-7787-4408-ae4c-873d1e73b0a8"
+    }
+  },
+  "decision": {
+    "projectComment": "pre-approved",
+    "basis": "99_www AGENTS.md standing Project Comment authorization"
+  },
+  "validation": [
+    {
+      "id": "candidate",
+      "status": "pass",
+      "evidence": "artifact:control validate and render succeeded; expectedBefore matched the live latest comment before publish."
+    },
+    {
+      "id": "read-back",
+      "status": "pass",
+      "evidence": "Project Activity returned the new comment as latest; ID, author, timestamp, and rendered body matched."
+    },
+    {
+      "id": "application-checks",
+      "status": "partial",
+      "evidence": "Focused tests and static checks passed; actual TUI manual inspection was not run."
+    }
+  ],
+  "authorization": {
+    "source": "99_www AGENTS.md",
+    "scope": "Project Comment only"
+  },
+  "execution": {
+    "tool": "mcp__linear_woo__save_comment",
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "commentId": "3b8875fc-7d13-432e-91c0-a4d1bf2ed6ab",
+    "createdAt": "2026-09-29T14:48:47.358Z",
+    "attemptCount": 1
+  },
+  "result": {
+    "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-3b8875fc-7d13-432e-91c0-a4d1bf2ed6ab",
+    "commentId": "3b8875fc-7d13-432e-91c0-a4d1bf2ed6ab",
+    "author": "우종호",
+    "readBack": {
+      "idMatches": true,
+      "bodyMatchesRenderedCandidate": true,
+      "author": "우종호",
+      "latestProjectCommentId": "3b8875fc-7d13-432e-91c0-a4d1bf2ed6ab",
+      "createdAt": "2026-09-29T14:48:47.358Z"
+    }
+  },
+  "failure": null,
+  "evidence": [
+    ".www/evidence/2026-09-29-sidebar-three-panel/project-comment-candidate.json",
+    ".www/evidence/2026-09-29-sidebar-three-panel/project-activity-before.json",
+    ".www/evidence/2026-09-29-sidebar-three-panel/rendered-comment.md",
+    ".www/evidence/2026-09-29-sidebar-three-panel/project-activity-after.json",
+    "bun run check",
+    "bun test test/www-ui.test.ts --test-name-pattern=\"execution sidebar shows PLAN PROGRESS TEST|detailed monitor retains its STATUS\"",
+    "00_normalize-imports.ts · 06_align-tables.ts",
+    "git diff --check"
+  ],
+  "nextCapabilities": [],
+  "receiptDigest": "49847944c73b9dc096c7e42cd9fd90d32dc65b2fa8d9e0c1376e392f58b6fe21"
+}

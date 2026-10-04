@@ -23,13 +23,14 @@ beforeEach(() => { saved = getCapabilities(); setCapabilities({ ...saved, images
 afterEach(() => setCapabilities(saved));
 const transmissions = (text: string) => [...text.matchAll(/\x1b_G(a=T[^;]*);([^\x1b]*)\x1b\\/gu)];
 
-test("places four distinct PNG logos on each quota row inside the bounded HUD", () => {
+test("단일 HUD 행에 Codex·Claude PNG 로고를 한 번씩 표시한다", () => {
 	const hud    = new WwwHud(() => wwwFixture(), () => usage) ;
 	const rows   = hud.render(200)                             ;
 	const images = transmissions(rows.join("\n"))              ;
-	expect(images).toHaveLength(8);
-	expect(new Set(images.map(image => image[2])).size).toBe(4);
-	expect(new Set(images.map(image => image[1]?.match(/i=(\d+)/u)?.[1])).size).toBe(8);
+	expect(rows).toHaveLength(1);
+	expect(images).toHaveLength(2);
+	expect(new Set(images.map(image => image[2])).size).toBe(2);
+	expect(new Set(images.map(image => image[1]?.match(/i=(\d+)/u)?.[1])).size).toBe(2);
 	for (const image of images) {
 		expect(image[1]                   ).toContain("C=1"                        ) ;
 		expect(image[1]                   ).toContain("c=2,r=1"                    ) ;
@@ -65,7 +66,7 @@ class CaptureTerminal implements Terminal {
 }
 const settle = () => new Promise(resolve => setTimeout(resolve, 30));
 
-test("fullscreen host emits all logos, clears placements on resize and image data on stop", async () => {
+test("fullscreen host emits two HUD logos, clears placements on resize and image data on stop", async () => {
 	const terminal = new CaptureTerminal()                                                                       ;
 	const tui      = new TuiAltScreen(terminal)                                                                  ;
 	let showUsage  = true                                                                                        ;
@@ -76,7 +77,7 @@ test("fullscreen host emits all logos, clears placements on resize and image dat
 	]));
 	try {
 		tui.start(); await settle();
-		expect(transmissions(terminal.output)).toHaveLength(8);
+		expect(transmissions(terminal.output)).toHaveLength(2);
 		expect(terminal.output).toContain("Chat");
 		terminal.output = "";
 		terminal.columns = 100; terminal.resize(); await settle();

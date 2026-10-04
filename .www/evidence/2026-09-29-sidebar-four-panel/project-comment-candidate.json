@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-SIDEBAR-FOUR-PANEL-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:0e7d421b5da741d39b34895a6d2d1fbdb3ff14be:dirty",
+  "intent": "Chat 오른쪽 실행 레일을 PLAN·PROGRESS·TEST·STATUS의 고정 높이 비율로 배치한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "Chat 실행 레일을 PLAN 20%·PROGRESS 40%·TEST 20%·STATUS 20% 네 구역으로 분리했다.",
+      "PLAN·PROGRESS·TEST는 각각 독립 스크롤 영역으로 표시하고, 관측된 테스트가 없을 때 TEST 대기 상태를 표시한다.",
+      "터미널 높이 변경 시 배분을 다시 계산하고 입력창 높이가 달라져도 STATUS 제목 위치를 유지한다."
+    ],
+    "impacts": [
+      "계획·진행·검증·상태가 내용 길이에 따라 서로 밀리지 않고 같은 위치에서 읽힌다.",
+      "Git Bash 명령별 설계·해석을 Runtime 초반에 보내 키를 돌려받는 흐름은 이번 변경에 포함되지 않았으며 현재 미구현이다."
+    ],
+    "categories": [
+      "improvement",
+      "verification"
+    ],
+    "verification": [
+      "bun run check와 git diff --check 통과.",
+      "bun test test/www-ui.test.ts --test-name-pattern 'STATUS stays in place|sidebar report is labeled STATUS': 2 pass, 0 fail. 32행·52행 비율과 입력창 높이 변경을 검증했다.",
+      "전체 bun test test/www-ui.test.ts: 79 pass, 16 fail. Chat/Report 관련 미커밋 변경과 함께 실패했으므로 전체 수락은 보류한다.",
+      "Claude Sonnet 읽기 전용 교차검토는 응답을 받지 못해 미완료이며 실제 TUI 육안 검사는 미실행이다."
+    ],
+    "connections": [
+      "[WOO-700](https://linear.app/woo-world/issue/WOO-700/01-내-입력에-대한-계획이-세워지는-과정을-세션-todo로-보여준다)",
+      "[WOO-680](https://linear.app/woo-world/issue/WOO-680/layout-화면-크기가-달라져도-읽던-위치와-입력-흐름을-유지한다)",
+      "src/adapters/inbound/tui/features/monitoring/view/www-monitor-view.ts",
+      "src/adapters/inbound/tui/shell/www-surface.ts",
+      "test/www-ui.test.ts",
+      ".www/evidence/2026-09-29-sidebar-four-panel"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-700/01-내-입력에-대한-계획이-세워지는-과정을-세션-todo로-보여준다",
+    "evidence": ".www/evidence/2026-09-29-sidebar-four-panel"
+  },
+  "expectedBefore": {
+    "latestCommentId": "fbe874c7-c0c6-4821-adef-12f3417c6fb2"
+  },
+  "validation": [
+    {
+      "id": "target",
+      "status": "pass",
+      "evidence": "WOO-700·WOO-680과 WWW Project Activity 확인"
+    },
+    {
+      "id": "checks",
+      "status": "pass",
+      "evidence": "비율·위치 대상 테스트 2 pass, TypeScript noEmit 및 diff check pass"
+    }
+  ],
+  "candidateDigest": "ef2fef06b5a07973369cb1ce112b16969ba73c59f51d094ef8cf28fa96c40f9e"
+}

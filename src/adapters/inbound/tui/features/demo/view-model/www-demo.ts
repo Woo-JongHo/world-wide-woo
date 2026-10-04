@@ -1,52 +1,17 @@
-import type { ProjectActivity }      from "@/core/domain/execution/project-activity";
-import { REQUEST_STAGES }            from "@/core/domain/execution/request-runtime";
-import type { RequestRuntimeRecord } from "@/core/domain/execution/request-runtime";
-import { projectWorkFlow }           from "@/core/domain/work";
-import type { WorkbenchSnapshot }    from "@/core/domain/work/workbench";
-import type { UsageSnapshot }        from "@/core/ports/observability/usage-monitor-port";
-
-export const WWW_DEMO_PAGES = ["execution", "dashboard", "usage", "workflow", "plan"] as const;
-export type WwwDemoPage = typeof WWW_DEMO_PAGES[number];
+import type { ProjectActivity      } from "@/core/domain/execution/project-activity"      ;
+import      { REQUEST_CHECKPOINTS  } from "@/core/domain/execution/request-runtime"       ;
+import type { RequestRuntimeRecord } from "@/core/domain/execution/request-runtime"       ;
+import      { projectWorkFlow      } from "@/core/domain/work"                            ;
+import type { WorkbenchSnapshot    } from "@/core/domain/work/workbench"                  ;
+import type { UsageSnapshot        } from "@/core/ports/observability/usage-monitor-port" ;
 
 export interface WwwDemoState {
 	readonly snapshot: WorkbenchSnapshot;
 	readonly usage: readonly UsageSnapshot[];
 }
 
-function demoActivities(): ProjectActivity[] {
-	const threadId = "demo-thread", turnId = "demo-turn";
-	const activity = (id: string, sequence: number, kind: ProjectActivity["kind"], phase: ProjectActivity["phase"], payload: ProjectActivity["payload"]): ProjectActivity => ({
-		schemaVersion: 1, id, projectId: "www-demo", sequence, recordedAt: `2026-09-22T09:00:0${sequence}.000Z`, kind, phase,
-		provider: "openai-codex", nativeRefs: { threadId, turnId, itemId: id }, sourceDigest: `sha256:${"d".repeat(64)}`, payload,
-	});
-	return [
-		activity("demo-request", 1, "message", "completed", { role: "user", text: "Figma 기준으로 Workbench Monitoring MVP를 보여줘." }),
-		activity("demo-plan", 2, "progress", "updated", { method: "turn/plan/updated", params: { plan: [
-			{ step : "관측 가능한 값과 미관측 값을 분리한다" , status : "completed"  },
-			{ step : "다섯 Monitoring 화면을 구현한다"       , status : "inProgress" },
-			{ step : "실제 viewport를 비교 검증한다"         , status : "pending"    },
-		] } }),
-		activity("demo-tool", 3, "tool", "completed", { method: "item/completed", params: { item: { type: "commandExecution", command: "bun test test/www-ui.test.ts", aggregatedOutput: "96 pass · 0 fail", exitCode: 0 } } }),
-		activity("demo-response", 4, "message", "completed", { role: "assistant", text: "MVP 화면을 실제 데이터 계약에 맞춰 구성했습니다. R/E로 화면을 이동할 수 있습니다." }),
-		activity("demo-file", 5, "file-change", "completed", { method: "item/completed", params: { item: { type: "fileChange", path: "src/adapters/inbound/tui/features/demo/view-model/www-demo.ts", changes: 3 } } }),
-		activity("demo-warning", 6, "tool", "failed", { method: "item/completed", params: { item: { type: "commandExecution", command: "visual viewport audit", aggregatedOutput: "1 visual mismatch retained for review", exitCode: 1 } } }),
-	];
-}
-
-function demoRequest(): RequestRuntimeRecord {
-	const statuses = ["completed", "completed", "completed", "completed", "running", "pending", "pending"] as const;
-	return {
-		schemaVersion: 1, protocolVersion: 2, requestId: "demo-request", threadId: "demo-thread", turnId: "demo-turn",
-		objective: "Figma 기준 Monitoring MVP를 구현하고 검증한다", status: "running", attempt: 1, previousAttempts: [], deliveries: [], requiredDeliveries: [], events: [],
-		startedAt: "2026-09-22T09:00:00.000Z", completedAt: null, issues: [], actions: [],
-		stages: REQUEST_STAGES.map((id, index) => ({
-			id, status: statuses[index], goal: `${id} 단계의 공개 근거`, input: [], owner: "orchestrator", model: index === 4 ? "gpt-6-astra" : null,
-			agents: index === 4 ? ["demo-reviewer"] : [], tools: [], output: index < 4 ? "완료" : null, evidence: [], decision: null, skipReason: null,
-			startedAt: index <= 4 ? "2026-09-22T09:00:00.000Z" : null, completedAt: index < 4 ? "2026-09-22T09:00:04.000Z" : null,
-			next: REQUEST_STAGES[index + 1] ?? null, evidenceAfterSequence: 0, tasks: [],
-		})),
-	};
-}
+export const WWW_DEMO_PAGES = ["execution", "dashboard", "usage", "workflow", "plan"] as const;
+export type WwwDemoPage = typeof WWW_DEMO_PAGES[number];
 
 export function createWwwDemoState(_base: WorkbenchSnapshot, clock = Date.now): WwwDemoState {
 	const now = clock(), activities = demoActivities();
@@ -115,4 +80,40 @@ export function createWwwDemoState(_base: WorkbenchSnapshot, clock = Date.now): 
 		{ provider : "zai"          , state : "ready" , fetchedAt : now , limits : [{ label: "weekly", remainingPercent: 57, resetsAt: now + 259_200_000, status: "ok" }, { label: "5 hours", remainingPercent: 29, resetsAt: now + 10_800_000, status: "warning" }] },
 	];
 	return { snapshot, usage };
+}
+
+function demoActivities(): ProjectActivity[] {
+	const threadId = "demo-thread", turnId = "demo-turn";
+	const activity = (id: string, sequence: number, kind: ProjectActivity["kind"], phase: ProjectActivity["phase"], payload: ProjectActivity["payload"]): ProjectActivity => ({
+		schemaVersion: 1, id, projectId: "www-demo", sequence, recordedAt: `2026-09-22T09:00:0${sequence}.000Z`, kind, phase,
+		provider: "openai-codex", nativeRefs: { threadId, turnId, itemId: id }, sourceDigest: `sha256:${"d".repeat(64)}`, payload,
+	});
+	return [
+		activity("demo-request", 1, "message", "completed", { role: "user", text: "Figma 기준으로 Workbench Monitoring MVP를 보여줘." }),
+		activity("demo-plan", 2, "progress", "updated", { method: "turn/plan/updated", params: { plan: [
+			{ step : "관측 가능한 값과 미관측 값을 분리한다" , status : "completed"  },
+			{ step : "다섯 Monitoring 화면을 구현한다"       , status : "inProgress" },
+			{ step : "실제 viewport를 비교 검증한다"         , status : "pending"    },
+		] } }),
+		activity("demo-tool", 3, "tool", "completed", { method: "item/completed", params: { item: { type: "commandExecution", command: "bun test test/www-ui.test.ts", aggregatedOutput: "96 pass · 0 fail", exitCode: 0 } } }),
+		activity("demo-response", 4, "message", "completed", { role: "assistant", text: "MVP 화면을 실제 데이터 계약에 맞춰 구성했습니다. R/E로 화면을 이동할 수 있습니다." }),
+		activity("demo-file", 5, "file-change", "completed", { method: "item/completed", params: { item: { type: "fileChange", path: "src/adapters/inbound/tui/features/demo/view-model/www-demo.ts", changes: 3 } } }),
+		activity("demo-warning", 6, "tool", "failed", { method: "item/completed", params: { item: { type: "commandExecution", command: "visual viewport audit", aggregatedOutput: "1 visual mismatch retained for review", exitCode: 1 } } }),
+	];
+}
+
+function demoRequest(): RequestRuntimeRecord {
+	return {
+		schemaVersion: 1, protocolVersion: 3, requestId: "demo-request", threadId: "demo-thread", turnId: "demo-turn",
+		objective: "Figma 기준 Monitoring MVP를 구현하고 검증한다", status: "running", attempt: 1, previousAttempts: [], deliveries: [], requiredDeliveries: [], events: [],
+		startedAt: "2026-09-22T09:00:00.000Z", completedAt: null, issues: [], actions: [],
+		stages: [],
+		checkpoints: REQUEST_CHECKPOINTS.map(id => ({
+			id,
+			status      : id === "UNDERSTAND" ? "observed" as const : id === "WORK" ? "running" as const : "pending" as const,
+			summary     : id === "UNDERSTAND" ? "요청 접수 관측" : id === "WORK" ? "3개 Native 활동 관측" : null,
+			activityIds : id === "UNDERSTAND" ? ["demo-request"] : id === "WORK" ? ["demo-plan", "demo-tool", "demo-file"] : [],
+			observedAt  : id === "UNDERSTAND" ? "2026-09-22T09:00:01.000Z" : id === "WORK" ? "2026-09-22T09:00:06.000Z" : null,
+		})),
+	};
 }

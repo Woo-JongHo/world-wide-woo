@@ -1,76 +1,28 @@
-import      { visibleWidth } from "@earendil-works/pi-tui"                         ;
-import type { Component                } from "@earendil-works/pi-tui"                            ;
-import type { RuntimeMonitorProjection } from "@/core/domain/observability/runtime-monitor"       ;
-import { parseRequestCheckpointReport, parseRequestStageReport } from "@/core/domain/execution/request-runtime";
-import type { RequestRuntimeRecord     } from "@/core/domain/execution/request-runtime"           ;
-import type { OutputLanguage           } from "@/core/domain/execution/output-language"            ;
-import type { ProjectActivity          } from "@/core/domain/execution/project-activity"          ;
-import type { WorkbenchSnapshot        } from "@/core/domain/work/workbench"                      ;
+import      { visibleWidth                } from "@earendil-works/pi-tui"                             ;
+import type { Component                   } from "@earendil-works/pi-tui"                             ;
+import type { RuntimeMonitorProjection    } from "@/core/domain/observability/runtime-monitor"        ;
+import type { RequestRuntimeRecord        } from "@/core/domain/execution/request-runtime"            ;
+import type { OutputLanguage              } from "@/core/domain/execution/output-language"            ;
+import type { ProjectActivity             } from "@/core/domain/execution/project-activity"           ;
+import type { WorkbenchSnapshot           } from "@/core/domain/work/workbench"                       ;
 import      { projectRequestTestWorkspace } from "@/core/domain/observability/request-test-workspace" ;
-import type { ObservedTestRun           } from "@/core/domain/observability/request-test-workspace" ;
+import type { ObservedTestRun             } from "@/core/domain/observability/request-test-workspace" ;
 import      {
-              runtimeModeLabel       ,
-              workbenchEffortLabel   ,
-              workbenchModelLabel    ,
-                                       } from "@/adapters/inbound/tui/foundation/labels"          ;
+              runtimeModeLabel          ,
+              workbenchEffortLabel      ,
+              workbenchModelLabel       ,
+                                          } from "@/adapters/inbound/tui/foundation/labels"           ;
 import      {
-              a                      ,
-              duration               ,
-              fit                    ,
-              pair                   ,
-              prose                  ,
-              safe                   ,
-              section                ,
-              telemetryDuration      ,
-              wwwTitle               ,
-                                       } from "@/adapters/inbound/tui/foundation/theme/www-theme" ;
-
-function document(rows: string[], width: number): string[] { return rows.flatMap(row => prose(row, width)); }
-function kv(label: string, value: unknown): string { return `${a.muted(fit(label, 20))} ${a.text(safe(value ?? "—"))}`; }
-function idleHeader(label: string, width: number, ink = a.muted): string {
-	const title = ink(label);
-	return `${title} ${a.rule("─".repeat(Math.max(0, width - visibleWidth(title) - 1)))}`;
-}
-function idleRow(label: string, value: unknown, width: number): string {
-	const labelWidth = Math.min(12, Math.max(8, Math.floor(width * 0.36)));
-	return `${a.muted(fit(label, labelWidth))}${a.text(fit(safe(value ?? "—"), Math.max(0, width - labelWidth)))}`;
-}
-function testRow(label: string, time: string, pass: string, fail: string, width: number, passWidth = 3, failWidth = 3): string {
-	const columns   = `${fit(time, 6).padStart(6)} ${fit(pass, passWidth).padStart(passWidth)} ${fit(fail, failWidth).padStart(failWidth)}` ;
-	const nameWidth = Math.max(6, width - visibleWidth(columns) - 1)                                                                        ;
-	const name      = fit(safe(label), nameWidth)                                                                                           ;
-	return `${name}${" ".repeat(Math.max(0, nameWidth - visibleWidth(name)))} ${columns}`;
-}
-function testCommand(command: string): string {
-	return /^\/bin\/(?:zsh|bash)\s+-lcr?\s+(["'])([\s\S]*)\1$/u.exec(command.trim())?.[2] ?? command;
-}
-function observedSum(values: readonly (number | null)[]): number | null {
-	return values.every(value => value !== null) ? values.reduce<number>((total, value) => total + value!, 0) : null;
-}
-function monitorAge(value: { readonly startedAt: string; readonly elapsedMs: number | null } | null | undefined): string {
-	if (!value) return "미관측";
-	return value.elapsedMs === null ? `${duration(Math.max(0, Date.now() - Date.parse(value.startedAt)))} / 종료 미관측` : duration(value.elapsedMs);
-}
-function stageMark(status: string): string {
-	if (status === "completed" || status === "skipped") return "✓";
-	if (status === "running") return "●";
-	if (status === "failed") return "×";
-	if (status === "blocked") return "Ⅱ";
-	return "○";
-}
-function stageInk(status: string): (text: string) => string {
-	if (status === "completed") return a.success;
-	if (status === "running") return a.active;
-	if (status === "failed" || status === "blocked") return a.failure;
-	return a.muted;
-}
-function elapsedSince(startedAtMs: number, now: number): string { return duration(Math.max(0, now - startedAtMs)); }
-function offsetClock(offsetMs: number): string {
-	const totalSeconds = Math.max(0, Math.floor(offsetMs / 1000)) ;
-	const minutes      = Math.floor(totalSeconds / 60)            ;
-	const seconds      = totalSeconds % 60                        ;
-	return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-}
+              a                         ,
+              duration                  ,
+              fit                       ,
+              pair                      ,
+              prose                     ,
+              safe                      ,
+              section                   ,
+              telemetryDuration         ,
+              wwwTitle                  ,
+                                          } from "@/adapters/inbound/tui/foundation/theme/www-theme"  ;
 
 /** Figma Monitor(142:3891): 요청 요약 스트립, 워터폴, 트레이스 트리, 결정 타임라인, 실패 테이블.
  *  모든 행은 실측 데이터(requestRuntime 이벤트·스테이지 시각·활동 저널)에서만 만들고,
@@ -87,6 +39,7 @@ export class WwwMonitorView implements Component {
 		private readonly selectedTestRunId: (() => string | null) | null = null,
 		private readonly language: () => OutputLanguage = () => "ko",
 		private readonly compactReportOnly = false,
+		private readonly compactSection: "all" | "plan" | "progress" | "test" = "all",
 	) {}
 	invalidate(): void {}
 	private label(ko: string, en: string): string { return this.language() === "en" ? en : ko; }
@@ -127,39 +80,39 @@ export class WwwMonitorView implements Component {
 	}
 
 	private runInspector(m: RuntimeMonitorProjection, snapshot: WorkbenchSnapshot | null, width: number): string[] {
-		const planTurnId  = snapshot?.activeTurnId ?? snapshot?.workFlow.source?.turnId ?? m.requestRuntime?.turnId ;
-		const request     = planTurnId && m.requestRuntime?.turnId === planTurnId ? m.requestRuntime : null         ;
-		const currentPlan = snapshot !== null && snapshot.workFlow.source?.turnId === planTurnId                    ;
-		const nativeTasks = currentPlan ? snapshot.workFlow.steps : []                                              ;
-		const planTasks   = nativeTasks.length ? nativeTasks : request?.stages.flatMap(stage => stage.tasks) ?? []  ;
-		const progress    = this.nativeProgress(snapshot, planTurnId)                                               ;
-		const done        = planTasks.filter(task => task.status === "completed").length                            ;
-		const rows        = [idleHeader("PLAN", width, a.plan)]                                                     ;
-		if (planTasks.length === 0) rows.push(a.muted(this.label("계획 미보고", "No plan reported")));
+		const planTurnId   = snapshot?.activeTurnId ?? snapshot?.workFlow.source?.turnId ?? m.requestRuntime?.turnId              ;
+		const currentPlan  = snapshot !== null && snapshot.workFlow.source?.turnId === planTurnId                                 ;
+		const planTasks    = currentPlan ? snapshot.workFlow.steps : []                                                           ;
+		const request      = snapshot?.requestRuntime?.findLast(item => item.turnId === planTurnId && item.protocolVersion === 4) ;
+		const progress     = this.nativeProgress(snapshot, planTurnId)                                                            ;
+		const planProgress = (snapshot?.planActivities ?? []).filter(item => item.turnId === planTurnId).slice(-5)                ;
+		const done         = planTasks.filter(task => task.status === "completed").length                                         ;
+		const rows         = [idleHeader("PLAN", width, a.plan)]                                                                  ;
+		if (planTasks.length === 0) rows.push(a.muted(request?.planDecision
+			? request.planDecision.required ? this.label("필요 결정 · Native Plan 대기", "Required · awaiting Native Plan") : `${this.label("불필요", "Not required")} · ${safe(request.planDecision.reason)}`
+			: request ? this.label("Plan 판단 대기", "Awaiting Plan decision") : this.label("계획 미보고", "No plan reported")));
 		else for (const task of planTasks) rows.push(...prose(stageInk(task.status)(`${stageMark(task.status)} ${safe(task.title)}`), width));
 		rows.push("", pair(planTasks.length ? `${done} / ${planTasks.length}` : "—", "", width));
+		if (this.compactSection === "plan") return rows;
+		const progressStart = rows.length;
 		rows.push("", idleHeader("PROGRESS", width, a.info));
-		if (!progress.length) rows.push(a.muted(this.label("Native 진행 보고 대기 · Chat에서 실행 내용 확인", "Awaiting Native progress · see Chat for execution")));
-		else for (const item of progress) rows.push(...prose(stageInk(item.status)(`${stageMark(item.status)} ${safe(item.summary)}`), width));
+		if (planProgress.length) for (const item of planProgress) rows.push(...prose(stageInk(item.status)(`${stageMark(item.status)} ${safe(item.summary)}`), width));
+		else if (progress.length) for (const item of progress) rows.push(...prose(stageInk(item.status)(`${stageMark(item.status)} ${safe(item.summary)}`), width));
+		else rows.push(a.muted(this.label("Native 진행 보고 대기 · Chat에서 실행 내용 확인", "Awaiting Native progress · see Chat for execution")));
+		if (this.compactSection === "progress") return rows.slice(progressStart + 1);
+		const testStart = rows.length;
+		rows.push("", idleHeader("TEST", width, a.tool));
 		const testRuns = snapshot ? this.testRunsFor(snapshot, planTurnId) : [];
+		if (!testRuns.length) rows.push(a.muted(this.label("검증 실행 관측 대기", "Awaiting observed test runs")));
 		if (testRuns.length) {
-			rows.push("", idleHeader("TEST", width, a.tool));
-			const verificationTasks = request?.stages.find(stage => stage.id === "VERIFY")?.tasks.filter(task => task.verification) ?? [];
-			for (const task of verificationTasks) {
-				rows.push(...prose(`${safe(task.verification!.kind)} → ${safe(task.title)}`, width));
-				rows.push(...prose(`  ${this.label("목표", "Purpose")}: ${safe(task.verification!.purpose)}`, width));
-			}
-			if (verificationTasks.length) rows.push("");
 			const latestNarration = testRuns.at(-1)?.turnId ? snapshot?.toolActions?.find(item => item.id === `${testRuns.at(-1)!.turnId}:${testRuns.at(-1)!.id}`) : undefined;
 			rows.push(...prose(a.info(`${this.label("테스트 설명", "Test purpose")} · ${safe(latestNarration?.summary || this.label("미관측", "Unobserved"))}`), width));
 			const pass      = observedSum(testRuns.map(run => run.pass))                                                      ;
 			const fail      = observedSum(testRuns.map(run => run.fail))                                                      ;
-			const time      = observedSum(testRuns.map(run => run.durationMs))                                                ;
 			const passWidth = Math.max(3, String(pass ?? "—").length, ...testRuns.map(run => String(run.pass ?? "—").length)) ;
 			const failWidth = Math.max(3, String(fail ?? "—").length, ...testRuns.map(run => String(run.fail ?? "—").length)) ;
 			rows.push(testRow("RESULT", "TIME", "P", "F", width, passWidth, failWidth), a.rule("─".repeat(Math.max(1, width))));
 			for (const run of testRuns.slice(-4)) rows.push(testRow(`${run.status === "passed" ? "✓" : run.status === "failed" ? "×" : "·"} ${testCommand(run.command)}`, telemetryDuration(run.durationMs), String(run.pass ?? "—"), String(run.fail ?? "—"), width, passWidth, failWidth));
-			rows.push(a.rule("─".repeat(Math.max(1, width))), testRow("TOTAL", telemetryDuration(time), String(pass ?? "—"), String(fail ?? "—"), width, passWidth, failWidth));
 			const latest = testRuns.at(-1)!;
 			rows.push("", ...prose(safe(testCommand(latest.command)), width));
 			if (latest.executedCommand && latest.executedCommand !== testCommand(latest.command)) rows.push(...prose(`  ${this.label("실행", "Executed")}: ${safe(latest.executedCommand)}`, width));
@@ -172,29 +125,12 @@ export class WwwMonitorView implements Component {
 			if (failed) rows.push(...this.failedTestRows(failed, width));
 		}
 		if (testRuns.length > 4) rows.push(a.muted(`+${testRuns.length - 4} more · /test`));
-		return rows;
+		return this.compactSection === "test" ? rows.slice(testStart + 1) : rows;
 	}
 
 	private nativeProgress(snapshot: WorkbenchSnapshot | null, turnId: string | null | undefined): NonNullable<WorkbenchSnapshot["toolActions"]> {
 		if (!snapshot || !turnId) return [];
-		const request = snapshot.requestRuntime?.findLast(item => item.turnId === turnId && item.threadId === snapshot.threadId);
-		if (!request) return [];
-		const entries: NonNullable<WorkbenchSnapshot["toolActions"]>[number][] = [];
-		for (const activity of snapshot.activities) {
-			if (activity.nativeRefs.turnId !== turnId || activity.nativeRefs.threadId !== request.threadId || activity.phase !== "completed") continue;
-			const source = activity.payload.method === "runtime/stage-report" && activity.payload.authority === "runtime"
-				? `[www-runtime]${JSON.stringify(activity.payload.report)}`
-				: activity.kind === "message" && typeof activity.payload.text === "string" ? activity.payload.text : "";
-			const checkpoint = parseRequestCheckpointReport(source)                ;
-			const stage      = checkpoint ? null : parseRequestStageReport(source) ;
-			const report     = checkpoint ?? stage                                 ;
-			if (!report || report.requestId !== request.requestId || checkpoint && checkpoint.checkpoint !== "WORK" || stage && ["UNDERSTAND", "DECOMPOSE", "DECIDE", "DELIVER"].includes(stage.stage)) continue;
-			if (!request.events.some(event => event.activityId === activity.id && event.type !== "protocol.rejected")) continue;
-			if (stage?.status === "skipped") continue;
-			const status = stage?.status === "failed" || stage?.status === "blocked" ? "failed" : stage?.status === "running" ? "running" : "completed";
-			entries.push({ id: activity.id, turnId, stepId: "native-progress", stepTitle: "Native", summary: report.summary, status, sequence: activity.sequence });
-		}
-		return entries.sort((left, right) => left.sequence - right.sequence).slice(-5);
+		return (snapshot.toolActions ?? []).filter(item => item.turnId === turnId).slice(-5);
 	}
 
 	private activityItem(activity: ProjectActivity): Readonly<Record<string, unknown>> {
@@ -205,7 +141,7 @@ export class WwwMonitorView implements Component {
 	}
 
 	private reportRows(m: RuntimeMonitorProjection, snapshot: WorkbenchSnapshot | null, turnId: string | null | undefined, width: number): string[] {
-		const rows = ["", idleHeader("REPORT", width, a.response)];
+		const rows = ["", idleHeader("STATUS", width, a.response)];
 		if (!snapshot || !turnId) return [...rows, a.muted(this.label("현재 질문 관측 대기", "Awaiting current request observations"))];
 		const activities = snapshot.activities.filter(activity => activity.nativeRefs.turnId === turnId)                                               ;
 		const toolIds    = new Set(activities.filter(activity => activity.kind === "tool").map(activity => activity.nativeRefs.itemId ?? activity.id)) ;
@@ -223,16 +159,16 @@ export class WwwMonitorView implements Component {
 		const end     = request?.completedAt ? Date.parse(request.completedAt) : this.clock()                                                    ;
 		const elapsed = Number.isFinite(start) && Number.isFinite(end) ? duration(Math.max(0, end - start)) : this.label("미관측", "Unobserved") ;
 		const fields = [
-			[this.label("단계 보고 모델", "Stage-reported models"), request ? [...new Set(request.stages.flatMap(stage => stage.model ? [stage.model] : []))].join(" · ") || this.label("미관측", "Unobserved") : this.label("미관측", "Unobserved")],
+			[this.label("모델", "Model"), snapshot?.model ?? m.model ?? this.label("미관측", "Unobserved")],
 			[this.label("토큰", "Tokens"), this.label("질문 단위 미관측", "Unobserved for this request")],
 			[this.label("질문 상태", "Request state"), request?.status ?? this.label("미관측", "Unobserved")],
 			[this.label("경과", "Elapsed"), `${elapsed}${request && !request.completedAt ? this.label(" · 진행 중", " · running") : ""}`],
 			[this.label("도구 관측", "Tools observed"), toolIds.size ? String(toolIds.size) : this.label("미관측", "Unobserved")],
 			[this.label("변경 파일 관측", "Changed files observed"), paths.size ? String(paths.size) : this.label("미관측", "Unobserved")],
-			[this.label("완료 작업", "Completed tasks"), request ? `${request.stages.flatMap(stage => stage.tasks).filter(task => task.status === "completed").length} / ${request.stages.flatMap(stage => stage.tasks).length}` : this.label("미관측", "Unobserved")],
+			[this.label("Native 계획", "Native plan"), snapshot?.workFlow.source?.turnId === turnId && snapshot.workFlow.steps.length ? `${snapshot.workFlow.steps.filter(step => step.status === "completed").length} / ${snapshot.workFlow.steps.length}` : this.label("미관측", "Unobserved")],
 		];
 		for (const [label, value] of fields) rows.push(...prose(`${label}: ${safe(value)}`, width));
-		rows.push(a.muted(this.label("진행 설명: Native 직접 보고", "Progress: Native report")));
+		rows.push(a.muted(this.label("진행 설명: 관측된 Native 활동", "Progress: observed Native activity")));
 		rows.push(a.muted(this.label("현재 질문의 로컬 관측 · /monitor", "Current request local observations · /monitor")));
 		return rows;
 	}
@@ -335,7 +271,7 @@ export class WwwMonitorView implements Component {
 		];
 	}
 
-	/** RUN TRACE WATERFALL: 요청 시작 기준 오프셋에 스테이지·도구 활동을 누적 배치한다. */
+	/** RUN TRACE WATERFALL: 요청 시작 기준 오프셋에 체크포인트·도구 활동을 배치한다. */
 	private waterfall(request: RequestRuntimeRecord, snapshot: WorkbenchSnapshot | null, width: number): string[] {
 		const rows  = [pair(wwwTitle("RUN TRACE WATERFALL", a.plan), a.muted(`attempt ${request.attempt}`), width)] ;
 		const start = request.startedAt ? Date.parse(request.startedAt) : Number.NaN                                ;
@@ -374,12 +310,15 @@ export class WwwMonitorView implements Component {
 		};
 
 		rows.push(span("REQUEST", 0, windowMs, a.muted));
-		for (const stage of request.stages) {
-			const stageStartedAt = stage.startedAt ? Date.parse(stage.startedAt) : Number.NaN;
-			if (!Number.isFinite(stageStartedAt)) continue;
-			const stageEnd      = stage.completedAt ? Date.parse(stage.completedAt) : this.clock()             ;
-			const stageDuration = Number.isFinite(stageEnd) ? Math.max(1000, stageEnd - stageStartedAt) : null ;
-			rows.push(span(stage.id, Math.max(0, stageStartedAt - start), stageDuration, stageInk(stage.status)));
+		const checkpoints = request.checkpoints ?? [];
+		for (const [index, item] of checkpoints.entries()) {
+			if (!item.observedAt) continue;
+			const checkpointStart = Date.parse(item.observedAt);
+			if (!Number.isFinite(checkpointStart)) continue;
+			const next          = checkpoints.slice(index + 1).find(candidate => candidate.observedAt)                                                           ;
+			const checkpointEnd = next?.observedAt ? Date.parse(next.observedAt) : item.status === "running" ? this.clock() : checkpointStart + 1000             ;
+			const ink           = item.status === "observed" ? a.success : item.status === "running" ? a.active : item.status === "failed" ? a.failure : a.muted ;
+			rows.push(span(item.id, Math.max(0, checkpointStart - start), Number.isFinite(checkpointEnd) ? Math.max(1000, checkpointEnd - checkpointStart) : null, ink));
 		}
 		for (const tool of toolRows.slice(0, 8)) {
 			rows.push(`${a.muted("  ↳ ".padEnd(18))}${" ".repeat(Math.max(0, toCell(tool.offset)))}${tool.failed ? a.failure("✕") : a.success("◆")} ${a.muted(fit(tool.label, Math.max(4, plotWidth - toCell(tool.offset) - 4)))}`);
@@ -387,22 +326,18 @@ export class WwwMonitorView implements Component {
 		return rows;
 	}
 
-	/** TRACE TREE: 스테이지와 그 시간 창에 속한 도구 활동을 트리 행으로 나열한다. */
+	/** TRACE TREE: 세 체크포인트와 관측된 Native 도구 활동을 나열한다. */
 	private traceTree(request: RequestRuntimeRecord, snapshot: WorkbenchSnapshot | null, width: number): string[] {
 		const rows = [pair(`${a.active(`● ${request.objective || `RUN #${snapshot?.journalSequence ?? 0}`}`)}`, a.muted(snapshot?.model ?? this.label("모델 미관측", "Model unobserved")), width)];
 		const tools = (snapshot?.activities ?? [])
 			.filter(activity => activity.kind === "tool")
 			.slice(-6)
 			.reverse();
-		for (const stage of request.stages) {
-			rows.push(fit(`${stageInk(stage.status)(stageMark(stage.status))} ${stageInk(stage.status)(stage.id)}${stage.completedAt && stage.startedAt ? a.muted(` ${duration(Math.max(0, Date.parse(stage.completedAt) - Date.parse(stage.startedAt)))}`) : ""}`, width));
-			const stageTools = tools.filter(tool => stage.startedAt && stage.completedAt
-				? tool.recordedAt >= stage.startedAt && tool.recordedAt <= stage.completedAt
-				: false);
-			for (const tool of stageTools) {
-				rows.push(fit(`  ${stageInk(stage.status)(stageMark(stage.status))} ${a.text(safe(toolLabel(tool.payload)))}`, width));
-			}
+		for (const item of request.checkpoints ?? []) {
+			const marker = item.status === "observed" ? a.success("✓") : item.status === "running" ? a.active("●") : item.status === "failed" ? a.failure("×") : a.muted("·");
+			rows.push(fit(`${marker} ${safe(item.id)}${item.summary ? a.muted(` · ${safe(item.summary, 240)}`) : ""}`, width));
 		}
+		for (const tool of tools) rows.push(fit(`  ${a.tool("◆")} ${a.text(safe(toolLabel(tool.payload)))}`, width));
 		if (rows.length === 1) rows.push(a.muted(this.label("관측된 활동이 없습니다.", "No activity observed.")));
 		return rows;
 	}
@@ -473,4 +408,61 @@ function toolLabel(payload: Readonly<Record<string, unknown>>): string {
 	if (typeof text === "string" && text.trim()) return text;
 	const method = payload.method;
 	return typeof method === "string" ? method : "tool";
+}
+
+function document(rows: string[], width: number): string[] { return rows.flatMap(row => prose(row, width)); }
+function kv(label: string, value: unknown): string { return `${a.muted(fit(label, 20))} ${a.text(safe(value ?? "—"))}`; }
+
+function idleHeader(label: string, width: number, ink = a.muted): string {
+	const title = ink(label);
+	return `${title} ${a.rule("─".repeat(Math.max(0, width - visibleWidth(title) - 1)))}`;
+}
+
+function idleRow(label: string, value: unknown, width: number): string {
+	const labelWidth = Math.min(12, Math.max(8, Math.floor(width * 0.36)));
+	return `${a.muted(fit(label, labelWidth))}${a.text(fit(safe(value ?? "—"), Math.max(0, width - labelWidth)))}`;
+}
+
+function testRow(label: string, time: string, pass: string, fail: string, width: number, passWidth = 3, failWidth = 3): string {
+	const columns   = `${fit(time, 6).padStart(6)} ${fit(pass, passWidth).padStart(passWidth)} ${fit(fail, failWidth).padStart(failWidth)}` ;
+	const nameWidth = Math.max(6, width - visibleWidth(columns) - 1)                                                                        ;
+	const name      = fit(safe(label), nameWidth)                                                                                           ;
+	return `${name}${" ".repeat(Math.max(0, nameWidth - visibleWidth(name)))} ${columns}`;
+}
+
+function testCommand(command: string): string {
+	return /^\/bin\/(?:zsh|bash)\s+-lcr?\s+(["'])([\s\S]*)\1$/u.exec(command.trim())?.[2] ?? command;
+}
+
+function observedSum(values: readonly (number | null)[]): number | null {
+	return values.every(value => value !== null) ? values.reduce<number>((total, value) => total + value!, 0) : null;
+}
+
+function monitorAge(value: { readonly startedAt: string; readonly elapsedMs: number | null } | null | undefined): string {
+	if (!value) return "미관측";
+	return value.elapsedMs === null ? `${duration(Math.max(0, Date.now() - Date.parse(value.startedAt)))} / 종료 미관측` : duration(value.elapsedMs);
+}
+
+function stageMark(status: string): string {
+	if (status === "completed" || status === "skipped") return "✓";
+	if (status === "running") return "●";
+	if (status === "failed") return "×";
+	if (status === "blocked") return "Ⅱ";
+	return "○";
+}
+
+function stageInk(status: string): (text: string) => string {
+	if (status === "completed") return a.success;
+	if (status === "running") return a.active;
+	if (status === "failed" || status === "blocked") return a.failure;
+	return a.muted;
+}
+
+function elapsedSince(startedAtMs: number, now: number): string { return duration(Math.max(0, now - startedAtMs)); }
+
+function offsetClock(offsetMs: number): string {
+	const totalSeconds = Math.max(0, Math.floor(offsetMs / 1000)) ;
+	const minutes      = Math.floor(totalSeconds / 60)            ;
+	const seconds      = totalSeconds % 60                        ;
+	return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }

@@ -1,15 +1,19 @@
-import { homedir }                      from "node:os";
-import type { CommandStatus }           from "@/core/domain/execution/output";
-import { isReasoningActivityPayload }   from "@/core/domain/execution/project-activity";
-import type { ProjectActivity }         from "@/core/domain/execution/project-activity";
-import { sanitizeTerminalTextExcerpt }  from "@/core/domain/execution/terminal";
-import type { WorkbenchLiveActivity }   from "@/core/domain/work/workbench";
-import type { WorkStepNarration }       from "@/core/domain/work";
-import {
-	highlightStructured,
-	structuredOutput,
-} from "@/adapters/inbound/tui/features/chat/view/work-step-output-renderer";
-import { CHAT_PUBLIC_OUTPUT_MAX_CHARS } from "@/adapters/inbound/tui/features/chat/view/chat-output-policy";
+import      { homedir                      } from "node:os"                                                             ;
+import type { CommandStatus                } from "@/core/domain/execution/output"                                      ;
+import      { isReasoningActivityPayload   } from "@/core/domain/execution/project-activity"                            ;
+import type { ProjectActivity              } from "@/core/domain/execution/project-activity"                            ;
+import      { sanitizeTerminalTextExcerpt  } from "@/core/domain/execution/terminal"                                    ;
+import type { WorkbenchLiveActivity        } from "@/core/domain/work/workbench"                                        ;
+import type { WorkStepNarration            } from "@/core/domain/work"                                                  ;
+import      {
+              highlightStructured        ,
+              structuredOutput           ,
+                                           } from "@/adapters/inbound/tui/features/chat/view/work-step-output-renderer" ;
+import      { CHAT_PUBLIC_OUTPUT_MAX_CHARS } from "@/adapters/inbound/tui/features/chat/view/chat-output-policy"        ;
+import      {
+              asRecord                   ,
+              isRecord                   ,
+                                           } from "@/core/domain/value/record.js"                                       ;
 
 export interface WorkStepProjectionOptions {
 	activity?     : ProjectActivity       ;
@@ -33,108 +37,16 @@ interface Field {
 	value: unknown;
 }
 
-function clean(value: string): string {
-	return sanitizeTerminalTextExcerpt(value, CHAT_PUBLIC_OUTPUT_MAX_CHARS, "head-tail").replace(/\t/gu, "    ");
-}
-
-function replacePathPrefix(value: string, path: string, replacement: string): string {
-	const normalizedPath = path.replace(/[\\/]+$/gu, "");
-	if (!normalizedPath) return value;
-	const escaped = normalizedPath.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
-	const boundary = "[\\s/\\\\\"':,;=()\\[\\]{}]";
-	return value.replace(new RegExp(`(^|${boundary})${escaped}(?=$|${boundary})`, "gu"), `$1${replacement}`);
-}
-
 /** Shortens local paths only in terminal projections; persisted native activity remains raw. */
 export function projectNativePathText(value: string, projectCwd?: string, home = homedir()): string {
-	const project = projectCwd?.replace(/[\\/]+$/gu, "");
-	const withProject = project ? replacePathPrefix(value, project, "$PROJECT") : value;
+	const project     = projectCwd?.replace(/[\\/]+$/gu, "")                            ;
+	const withProject = project ? replacePathPrefix(value, project, "$PROJECT") : value ;
 	return replacePathPrefix(withProject, home, "~");
-}
-
-function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
-	return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
-function record(value: unknown): Readonly<Record<string, unknown>> | undefined {
-	return isRecord(value) ? value : undefined;
-}
-
-function firstValue(sources: readonly (Readonly<Record<string, unknown>> | undefined)[], keys: readonly string[]): unknown {
-	for (const source of sources) {
-		if (!source) continue;
-		for (const key of keys) {
-			const value = source[key];
-			if (value !== undefined && value !== null && value !== "") return value;
-		}
-	}
-	return undefined;
-}
-
-function stringValue(value: unknown): string | undefined {
-	if (typeof value === "string") return clean(value);
-	if (Array.isArray(value) && value.every((part) => typeof part === "string")) return clean(value.join(" "));
-	return undefined;
-}
-
-function mcpContent(value: unknown): string | undefined {
-	if (typeof value === "string") return value;
-	if (!Array.isArray(value)) return undefined;
-	const text = value.flatMap((part) => {
-		if (typeof part === "string") return [part];
-		const source = record(part);
-		return typeof source?.text === "string" ? [source.text] : [];
-	}).join("\n");
-	return text || undefined;
-}
-
-function numberValue(value: unknown): number | undefined {
-	return typeof value === "number" && Number.isFinite(value) ? value : undefined;
-}
-
-function hiddenKey(key: string): boolean {
-	const normalized = key.replace(/[-_]/gu, "").toLowerCase();
-	return normalized.includes("reasoning")
-		|| normalized.includes("thought")
-		|| normalized.includes("analysis")
-		|| normalized.startsWith("raw")
-		|| normalized === "nativerefs"
-		|| [
-			"id", "threadid", "turnid", "itemid", "requestid", "approvalid", "callbackid",
-			"processid", "commandid", "sessionid", "pluginid",
-		].includes(normalized)
-		|| normalized === "sourcedigest"
-		|| normalized.endsWith("token")
-		|| normalized.endsWith("secret")
-		|| normalized.endsWith("password")
-		|| normalized.endsWith("credential")
-		|| normalized.endsWith("authorization")
-		|| normalized.endsWith("apikey");
-}
-
-function publicValue(value: unknown, depth = 0): unknown {
-	if (value === null || typeof value === "boolean" || typeof value === "number") return value;
-	if (typeof value === "string") return clean(value);
-	if (isReasoningActivityPayload(value)) return { classification: "reasoning", content: "[비공개 내용 생략]" };
-	if (depth >= 4) return "[공개 결과 일부 생략]";
-	if (Array.isArray(value)) return value.slice(0, 20).map((item) => publicValue(item, depth + 1));
-	const source = record(value);
-	if (!source) return String(value);
-	return Object.fromEntries(Object.entries(source)
-		.filter(([key]) => !hiddenKey(key))
-		.slice(0, 30)
-		.map(([key, item]) => [key, publicValue(item, depth + 1)]));
 }
 
 /** Removes native identifiers, hidden reasoning, raw envelopes, and secret-bearing fields for UI projections. */
 export function publicPayloadProjection(value: unknown): unknown {
 	return publicValue(value);
-}
-
-function displayValue(value: unknown, projectCwd?: string): string {
-	const safe = publicValue(value);
-	if (typeof safe === "string") return projectNativePathText(safe, projectCwd);
-	return projectNativePathText(clean(JSON.stringify(safe)), projectCwd);
 }
 
 export function resolveWorkStepStatus(options: WorkStepProjectionOptions): CommandStatus {
@@ -144,30 +56,18 @@ export function resolveWorkStepStatus(options: WorkStepProjectionOptions): Comma
 	if (!activity) return "running";
 	if (activity.phase === "failed") return "failed";
 	if (activity.phase === "cancelled") return "cancelled";
-	const item = record(record(activity.payload.params)?.item);
-	const publicStatus = stringValue(item?.status)?.toLowerCase();
+	const item         = asRecord(asRecord(activity.payload.params)?.item) ;
+	const publicStatus = stringValue(item?.status)?.toLowerCase()          ;
 	if (publicStatus?.includes("fail") || publicStatus?.includes("error")) return "failed";
 	if (publicStatus?.includes("cancel") || publicStatus?.includes("declin")) return "cancelled";
 	if (activity.phase === "started" || activity.phase === "updated") return "running";
 	return "passed";
 }
 
-function methodLabel(method: string): string {
-	const parts = clean(method).split("/").filter(Boolean);
-	return parts.at(-1)?.replace(/(?:started|completed|updated)$/iu, "").replace(/[_-]+/gu, " ").trim() || "도구";
-}
-
-function toolLabel(sources: readonly (Readonly<Record<string, unknown>> | undefined)[], method: string): string {
-	const direct = stringValue(firstValue(sources, ["toolName", "tool", "name"]));
-	const server = stringValue(firstValue(sources, ["server", "serverName"]));
-	if (server && direct) return `${server}.${direct}`;
-	return direct || methodLabel(method);
-}
-
 export function projectWorkStep(options: WorkStepProjectionOptions): PublicStepProjection {
 	const payload        = options.activity?.payload                                                                 ;
-	const params         = record(payload?.params)                                                                   ;
-	const item           = record(params?.item)                                                                      ;
+	const params         = asRecord(payload?.params)                                                                 ;
+	const item           = asRecord(params?.item)                                                                    ;
 	const sources        = [item, params, payload]                                                                   ;
 	const method         = options.liveActivity?.method ?? stringValue(payload?.method) ?? "native-tool"             ;
 	const normalized     = `${method} ${stringValue(item?.type) ?? ""}`.toLowerCase()                                ;
@@ -175,8 +75,8 @@ export function projectWorkStep(options: WorkStepProjectionOptions): PublicStepP
 	const cwd            = stringValue(firstValue(sources, ["cwd", "workingDirectory"]))                             ;
 	const command        = rawCommand && projectNativePathText(rawCommand, cwd)                                      ;
 	const args           = firstValue(sources, ["arguments", "args", "input"])                                       ;
-	const argumentRecord = record(args)                                                                              ;
-	const mcpResult      = normalized.includes("mcptoolcall") ? record(item?.result) : undefined                     ;
+	const argumentRecord = asRecord(args)                                                                            ;
+	const mcpResult      = normalized.includes("mcptoolcall") ? asRecord(item?.result) : undefined                   ;
 	const mcpOutput      = mcpResult?.structuredContent ?? mcpContent(mcpResult?.content)                            ;
 	const exitCode       = numberValue(firstValue(sources, ["exitCode"]))                                            ;
 	const durationMs     = numberValue(firstValue(sources, ["durationMs"]))                                          ;
@@ -277,10 +177,106 @@ export function projectWorkStep(options: WorkStepProjectionOptions): PublicStepP
 export function workStepActionLabel(options: WorkStepProjectionOptions): "Bash" | "Edit" | "Tool" {
 	if (options.activity?.kind === "file-change" || options.liveActivity?.kind === "file-change") return "Edit";
 	const payload    = options.activity?.payload                                          ;
-	const params     = record(payload?.params)                                            ;
-	const item       = record(params?.item)                                               ;
+	const params     = asRecord(payload?.params)                                          ;
+	const item       = asRecord(params?.item)                                             ;
 	const nativeType = stringValue(item?.type) ?? ""                                      ;
 	const method     = options.liveActivity?.method ?? stringValue(payload?.method) ?? "" ;
 	if (/command|bash|shell/iu.test(`${nativeType} ${method}`)) return "Bash";
 	return "Tool";
+}
+
+function clean(value: string): string {
+	return sanitizeTerminalTextExcerpt(value, CHAT_PUBLIC_OUTPUT_MAX_CHARS, "head-tail").replace(/\t/gu, "    ");
+}
+
+function replacePathPrefix(value: string, path: string, replacement: string): string {
+	const normalizedPath = path.replace(/[\\/]+$/gu, "");
+	if (!normalizedPath) return value;
+	const escaped  = normalizedPath.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&") ;
+	const boundary = "[\\s/\\\\\"':,;=()\\[\\]{}]"                          ;
+	return value.replace(new RegExp(`(^|${boundary})${escaped}(?=$|${boundary})`, "gu"), `$1${replacement}`);
+}
+
+function firstValue(sources: readonly (Readonly<Record<string, unknown>> | undefined)[], keys: readonly string[]): unknown {
+	for (const source of sources) {
+		if (!source) continue;
+		for (const key of keys) {
+			const value = source[key];
+			if (value !== undefined && value !== null && value !== "") return value;
+		}
+	}
+	return undefined;
+}
+
+function stringValue(value: unknown): string | undefined {
+	if (typeof value === "string") return clean(value);
+	if (Array.isArray(value) && value.every((part) => typeof part === "string")) return clean(value.join(" "));
+	return undefined;
+}
+
+function mcpContent(value: unknown): string | undefined {
+	if (typeof value === "string") return value;
+	if (!Array.isArray(value)) return undefined;
+	const text = value.flatMap((part) => {
+		if (typeof part === "string") return [part];
+		const source = asRecord(part);
+		return typeof source?.text === "string" ? [source.text] : [];
+	}).join("\n");
+	return text || undefined;
+}
+
+function numberValue(value: unknown): number | undefined {
+	return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function hiddenKey(key: string): boolean {
+	const normalized = key.replace(/[-_]/gu, "").toLowerCase();
+	return normalized.includes("reasoning")
+		|| normalized.includes("thought")
+		|| normalized.includes("analysis")
+		|| normalized.startsWith("raw")
+		|| normalized === "nativerefs"
+		|| [
+			"id", "threadid", "turnid", "itemid", "requestid", "approvalid", "callbackid",
+			"processid", "commandid", "sessionid", "pluginid",
+		].includes(normalized)
+		|| normalized === "sourcedigest"
+		|| normalized.endsWith("token")
+		|| normalized.endsWith("secret")
+		|| normalized.endsWith("password")
+		|| normalized.endsWith("credential")
+		|| normalized.endsWith("authorization")
+		|| normalized.endsWith("apikey");
+}
+
+function publicValue(value: unknown, depth = 0): unknown {
+	if (value === null || typeof value === "boolean" || typeof value === "number") return value;
+	if (typeof value === "string") return clean(value);
+	if (isReasoningActivityPayload(value)) return { classification: "reasoning", content: "[비공개 내용 생략]" };
+	if (depth >= 4) return "[공개 결과 일부 생략]";
+	if (Array.isArray(value)) return value.slice(0, 20).map((item) => publicValue(item, depth + 1));
+	const source = asRecord(value);
+	if (!source) return String(value);
+	return Object.fromEntries(Object.entries(source)
+		.filter(([key]) => !hiddenKey(key))
+		.slice(0, 30)
+		.map(([key, item]) => [key, publicValue(item, depth + 1)]));
+}
+
+function displayValue(value: unknown, projectCwd?: string): string {
+	const safe = publicValue(value);
+	if (typeof safe === "string") return projectNativePathText(safe, projectCwd);
+	return projectNativePathText(clean(JSON.stringify(safe)), projectCwd);
+}
+
+function methodLabel(method: string): string {
+	const parts = clean(method).split("/").filter(Boolean);
+	return parts.at(-1)?.replace(/(?:started|completed|updated)$/iu, "").replace(/[_-]+/gu, " ").trim() || "도구";
+}
+
+function toolLabel(sources: readonly (Readonly<Record<string, unknown>> | undefined)[], method: string): string {
+	const direct = stringValue(firstValue(sources, ["toolName", "tool", "name"])) ;
+	const server = stringValue(firstValue(sources, ["server", "serverName"])    ) ;
+	if (server && direct) return `${server}.${direct}`;
+	return direct || methodLabel(method);
 }

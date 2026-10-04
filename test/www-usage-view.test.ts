@@ -26,10 +26,25 @@ describe("WwwUsageView", () => {
 		for (const provider of ["CODEX", "CLAUDE", "ANTIGRAVITY", "Z.AI"]) expect(output).toContain(provider);
 		expect(output).toContain("gpt-5.6-sol");
 		expect(output).toContain("62% 남음");
+		expect(output.indexOf("구독 잔여 한도")).toBeLessThan(output.indexOf("모델별 사용 내역"));
 		for (const heading of ["MODEL", "EFFORT", "DIRECT", "DETACHED", "OBSERVED"]) expect(output).toContain(heading);
 		for (const value of ["1.2K", "300", "1.5K"]) expect(output).toContain(value);
 		expect(output).toContain("작업별 귀속 미확인");
 		expect(output).not.toContain("Token Trend");
+	});
+
+	test("구독 한도별 잔여량과 리셋까지 남은 기간을 첫 영역에 표시한다", () => {
+		const now = Date.now();
+		const usage: UsageSnapshot[] = [{ provider: "openai-codex", state: "ready", fetchedAt: now, limits: [
+			{ label: "Codex 7 Days", remainingPercent: 62, resetsAt: now + 2 * 60 * 60_000, status: "ok" },
+			{ label: "Codex 5 Hours", remainingPercent: 31, resetsAt: now + 35 * 60_000, status: "ok" },
+		] }];
+		const rows = new WwwUsageView(() => wwwFixture(), () => usage).render(120);
+		const first = stripTerminalSequences(rows.slice(0, 15).join("\n"));
+		expect(first).toContain("62% 남음");
+		expect(first).toContain("31% 남음");
+		expect(first).toMatch(/2시간 \d+분 후 리셋/u);
+		expect(first).toMatch(/35분 후 리셋/u);
 	});
 
 	test("keeps unobserved state explicit and every row within the pane", () => {

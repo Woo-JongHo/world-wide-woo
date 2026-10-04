@@ -9,7 +9,6 @@ import {
 	OCTOPUS_INTRO_TURNS,
 	octopusScanFrame,
 } from "../src/adapters/inbound/tui/features/chat/view/octopus-scan";
-import type { LinearProjectDashboard } from "../src/core/domain/work/linear-dashboard";
 
 describe("workbench welcome intro", () => {
 	let noColor: string | undefined, reducedMotion: string | undefined;
@@ -43,7 +42,7 @@ describe("workbench welcome intro", () => {
 		expect(output                    ).not.toContain          ("?             모든 명령 보기"         ) ;
 		expect(output                    )    .toContain          ("TIP"                               ) ;
 		expect(output                    )    .toContain          ("Wooni · Native Project Workbench"  ) ;
-		expect(output                    )    .toContain          ("v0.0.22"                           ) ;
+		expect(output                    )    .toContain          ("v0.0.23"                           ) ;
 		expect(output                    ).not.toContain          ("WOONI"                             ) ;
 		expect(output                    ).not.toContain          ("wooni@worldwide:~$"                ) ;
 		expect(output                    ).not.toContain          ("Three Body"                        ) ;
@@ -52,21 +51,13 @@ describe("workbench welcome intro", () => {
 		expect(view.render(80, 14).length)    .toBeLessThanOrEqual(14                                  ) ;
 	});
 
-	test("shows new, quick start, and open Linear issues across the intro", () => {
-		const dashboard: LinearProjectDashboard = {
-			state: "ready", projectName: "World Wide Woo", fetchedAt: "2026-09-29T00:00:00Z",
-			issues: [{ id: "WOO-907", title: "Intro 화면을 정리한다", status: "In Progress", statusType: "started", dueDate: null, updatedAt: "2026-09-29T00:00:00Z" }],
-			update: null, comments: [], milestones: [], error: null,
-		};
-		const rows = new WorkbenchWelcomeView(() => "ko", () => dashboard).render(120, 40).map(stripTerminalSequences);
+	test("shows new and quick start without Linear issues across the intro", () => {
+		const rows = new WorkbenchWelcomeView(() => "ko").render(120, 40).map(stripTerminalSequences);
 		const output = rows.join("\n");
 		expect(output).toContain("WHAT'S NEW");
 		expect(output).toContain("QUICK START");
-		expect(output).toContain("열린 LINEAR 이슈");
-		expect(output).toContain("WOO-907");
-		expect(output).toContain("In Progress · 2026-09-29");
+		expect(output).not.toContain("열린 LINEAR 이슈");
 		expect(rows.find(row => row.includes("WHAT'S NEW"))).toContain("QUICK START");
-		expect(rows.find(row => row.includes("WHAT'S NEW"))).toContain("열린 LINEAR 이슈");
 	});
 
 		test("turns in depth three times and settles front-on with bounded rows at every terminal size", () => {

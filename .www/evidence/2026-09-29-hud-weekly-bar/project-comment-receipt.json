@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "candidateId": "ARTIFACT-CANDIDATE-HUD-WEEKLY-BAR-COMMENT",
+  "candidateDigest": "ee1745f1cfbbfe7e6a43cd61505e339cda0de3d976eba0ee056ea5c170eb6e93",
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "expectedBeforeCommentId": "d6422f1d-a300-4f5b-9a15-21a7a407c99a",
+  "commentId": "191d9fea-0a00-45ba-a4f6-b52b79a99086",
+  "authorId": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+  "createdAt": "2026-09-29T07:05:37.770Z",
+  "readBack": "list_comments(projectId, limit=1, orderBy=createdAt): ID, author, body matched rendered Candidate"
+}

@@ -1,38 +1,60 @@
-import { Markdown, truncateToWidth, visibleWidth }                              from "@earendil-works/pi-tui";
-import type { Component, ScrollRowSource }                                      from "@earendil-works/pi-tui";
-import type { ChatFeatureProjection }                                           from "@/core/application/orchestration/workbench-feature-reads";
-import type { ProjectActivity }                                                 from "@/core/domain/execution/project-activity";
-import type { OutputLanguage }                                                  from "@/core/domain/execution/output-language";
-import { parseRequestCheckpointReport, parseRequestStageReport }                from "@/core/domain/execution/request-runtime";
-import type { WorkbenchChatMessage, WorkbenchTNote }                            from "@/core/domain/work/workbench";
-import { sanitizeCompletedAssistantResponse, sanitizePartialAssistantResponse } from "@/core/domain/review/redaction";
-import { boundedPublicProjection }                                              from "@/adapters/inbound/tui/features/chat/view-model/bounded-public-projection";
-import { conversationRecapRows }                                                from "@/adapters/inbound/tui/features/chat/view/conversation-recap-view";
-import {
-	a,
-	wwwMarkdownTheme,
-	wwwTitle,
-	duration,
-	fit,
-	mark,
-	oneLine,
-	pair,
-	prose,
-	safe,
-	section,
-} from "@/adapters/inbound/tui/foundation/theme/www-theme";
-import { parseCanonicalTNoteReport, parseLegacyCanonicalTNote }                 from "@/core/application/work/t-note-service";
-import { WorkbenchWelcomeView }                                                 from "@/adapters/inbound/tui/features/chat/view/workbench-welcome";
-import { semantic }                                                             from "@/adapters/inbound/tui/foundation/theme/theme";
-import { CHAT_TERMINAL_OUTPUT_CHUNK_LINES }                                     from "@/adapters/inbound/tui/features/chat/view/chat-output-policy";
-import { getActiveTuiTheme }                                                    from "@/adapters/inbound/tui/foundation/theme/theme";
-import { renderUnifiedDiff }                                                    from "@/adapters/inbound/tui/foundation/rendering/unified-diff-view";
-import { WwwTranscriptCache }                                                   from "@/adapters/inbound/tui/features/chat/view/www-transcript-cache";
+import      {
+              Markdown                           ,
+              truncateToWidth                    ,
+              visibleWidth                       ,
+                                                   } from "@earendil-works/pi-tui"                                                    ;
 import type {
-	WwwTranscriptCacheInput,
-	WwwTranscriptCacheMetrics,
-	TranscriptBlock,
-} from "@/adapters/inbound/tui/features/chat/view/www-transcript-cache";
+              Component                          ,
+              ScrollRowSource                    ,
+                                                   } from "@earendil-works/pi-tui"                                                    ;
+import type { ChatFeatureProjection                } from "@/core/application/orchestration/workbench-feature-reads"                  ;
+import type { ProjectActivity                      } from "@/core/domain/execution/project-activity"                                  ;
+import type { OutputLanguage                       } from "@/core/domain/execution/output-language"                                   ;
+import      {
+              parseRequestCheckpointReport       ,
+              parseRequestStageReport            ,
+                                                   } from "@/core/domain/execution/request-runtime"                                   ;
+import type {
+              WorkbenchChatMessage               ,
+              WorkbenchTNote                     ,
+                                                   } from "@/core/domain/work/workbench"                                              ;
+import      {
+              sanitizeCompletedAssistantResponse ,
+              sanitizePartialAssistantResponse   ,
+                                                   } from "@/core/domain/review/redaction"                                            ;
+import      { boundedPublicProjection              } from "@/adapters/inbound/tui/features/chat/view-model/bounded-public-projection" ;
+import      { conversationRecapRows                } from "@/adapters/inbound/tui/features/chat/view/conversation-recap-view"         ;
+import      {
+              a                                  ,
+              wwwMarkdownTheme                   ,
+              wwwTitle                           ,
+              duration                           ,
+              fit                                ,
+              mark                               ,
+              oneLine                            ,
+              pair                               ,
+              prose                              ,
+              safe                               ,
+              section                            ,
+                                                   } from "@/adapters/inbound/tui/foundation/theme/www-theme"                         ;
+import      {
+              parseCanonicalTNoteReport          ,
+              parseLegacyCanonicalTNote          ,
+                                                   } from "@/core/application/work/t-note-service"                                    ;
+import      { WorkbenchWelcomeView                 } from "@/adapters/inbound/tui/features/chat/view/workbench-welcome"               ;
+import      { semantic                             } from "@/adapters/inbound/tui/foundation/theme/theme"                             ;
+import      { CHAT_TERMINAL_OUTPUT_CHUNK_LINES     } from "@/adapters/inbound/tui/features/chat/view/chat-output-policy"              ;
+import      { CHAT_DIFF_PREVIEW_ROWS               } from "@/adapters/inbound/tui/features/chat/view/chat-output-policy"              ;
+import      { projectFileChanges                   } from "@/adapters/inbound/tui/features/chat/view-model/file-change"               ;
+import      { getActiveTuiTheme                    } from "@/adapters/inbound/tui/foundation/theme/theme"                             ;
+import      { renderUnifiedDiff                    } from "@/adapters/inbound/tui/foundation/rendering/unified-diff-view"             ;
+import      { WwwTranscriptCache                   } from "@/adapters/inbound/tui/features/chat/view/www-transcript-cache"            ;
+import type {
+              WwwTranscriptCacheInput            ,
+              WwwTranscriptCacheMetrics          ,
+              TranscriptBlock                    ,
+                                                   } from "@/adapters/inbound/tui/features/chat/view/www-transcript-cache"            ;
+import      { asRecord                             } from "@/core/domain/value/record.js"                                             ;
 
 export type { WwwTranscriptCacheMetrics } from "@/adapters/inbound/tui/features/chat/view/www-transcript-cache";
 
@@ -45,10 +67,6 @@ const TRANSCRIPT_ICON = {
 	edit     : "✎",
 	terminal : "▣",
 } as const;
-
-export function record(value: unknown): Record<string, unknown> {
-	return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
-}
 
 export function wwwConversationLabels(messages: readonly WorkbenchChatMessage[]): ReadonlyMap<string, string> {
 	const labels = new Map<string, string>() ;
@@ -65,18 +83,6 @@ export function wwwConversationLabels(messages: readonly WorkbenchChatMessage[])
 		} else labels.set(message.id, "Notice");
 	}
 	return labels;
-}
-
-function verificationLabel(value: ChatFeatureProjection["performance"], language: OutputLanguage): string {
-	const labels = language === "en" ? {
-		"not-verified": "not verified", passed: "verified", failed: "verification failed", uncertain: "verification uncertain",
-	} : {
-		"not-verified" : "검증 미실행",
-		passed         : "검증 통과",
-		failed         : "검증 실패",
-		uncertain      : "검증 결과 미확정",
-	};
-	return labels[value?.verification ?? "not-verified"];
 }
 
 export function executionHeading(s: ChatFeatureProjection, language: OutputLanguage = "ko"): { state: string; title: string; detail: string; attention: boolean } {
@@ -108,24 +114,24 @@ export function executionHeading(s: ChatFeatureProjection, language: OutputLangu
 		detail    : label("Native session 연결", "Connecting native session"),
 		attention : false,
 	};
-	const turnId = s.activeTurnId ?? s.workFlow.source?.turnId;
-	const request = turnId ? [...(s.requestRuntime ?? [])].reverse().find(r => r.turnId === turnId) : s.requestRuntime?.at(-1);
+	const turnId  = s.activeTurnId ?? s.workFlow.source?.turnId                                                                ;
+	const request = turnId ? [...(s.requestRuntime ?? [])].reverse().find(r => r.turnId === turnId) : s.requestRuntime?.at(-1) ;
 	if (request) {
-		const stage = request.stages.find(x => ["running", "failed", "blocked"].includes(x.status));
+		const checkpoint = request.checkpoints?.find(item => item.status === "running" || item.status === "failed");
 		return {
-			state     : stage ? `${stage.id} · ${stage.status}` : request.status,
-			title     : oneLine(stage?.tasks.find(task => task.status === "running")?.title ?? request.objective),
-			detail    : stage ? `${stage.id} · ${stage.status}` : label("단계 상태 관측 중", "Observing stage status"),
+			state     : checkpoint ? `${checkpoint.id} · ${checkpoint.status}` : request.status,
+			title     : oneLine(request.objective),
+			detail    : request.protocolVersion >= 3 ? "" : label("요청 상태 관측 중", "Observing request status"),
 			attention : ["failed", "blocked"].includes(request.status),
 		};
 	}
 	if (s.phase === "working") {
-		const phase = s.executionRun?.phase;
-		const waiting = ["waiting", "blocked", "reconciling", "unknown"].includes(phase ?? "");
+		const phase   = s.executionRun?.phase                                                  ;
+		const waiting = ["waiting", "blocked", "reconciling", "unknown"].includes(phase ?? "") ;
 		return {
 			state     : waiting ? label("대기", "Waiting") : s.draft ? label("결과 작성", "Writing result") : label("실행 중", "Running"),
 			title     : oneLine(current?.title || lastRequest?.content || s.sessionGoal?.text || label("요청을 확인하는 중", "Reviewing the request")),
-			detail    : waiting ? label("단계 상태 대기 중", "Waiting for stage status") : label("단계 상태 관측 중", "Observing stage status"),
+			detail    : waiting ? label("Native 상태 대기 중", "Waiting for Native state") : label("Native 활동 관측 중", "Observing Native activity"),
 			attention : waiting,
 		};
 	}
@@ -149,8 +155,8 @@ export function wwwExecutionIsLive(s: ChatFeatureProjection): boolean {
 export function wwwNowLabel(s: ChatFeatureProjection): string | null {
 	if (s.pendingApproval) return "사용자 확인을 기다리는 중";
 	if (s.phase !== "working") return null;
-	const turnId = s.activeTurnId ?? s.workFlow.source?.turnId;
-	const latest = [...(s.planActivities ?? [])].filter(item => item.turnId === turnId).sort((left, right) => left.sequence - right.sequence).at(-1);
+	const turnId = s.activeTurnId ?? s.workFlow.source?.turnId                                                                                       ;
+	const latest = [...(s.planActivities ?? [])].filter(item => item.turnId === turnId).sort((left, right) => left.sequence - right.sequence).at(-1) ;
 	if (latest) return oneLine(latest.summary);
 	if (s.draft) return "최종 응답 작성 중";
 	return null;
@@ -166,21 +172,6 @@ export function wwwTNoteMarkdown(item: WorkbenchTNote): string {
 	].join("\n\n");
 	if (legacy) return `## ${title}\n\n## 원인\n\n${safe(legacy.why, 4000)}\n\n## 결과\n\n${safe(legacy.result, 4000)}`;
 	return `## ${title}\n\n${safe(item.summary, 8000)}`;
-}
-
-function narratorMarkdown(item: WorkbenchTNote): string {
-	const provenance = item.provenance;
-	return provenance ? `\n\nDetached narrator: ${safe(`${provenance.provider} / ${provenance.model} / ${provenance.version}`, 4000)}` : "";
-}
-
-function responseFrameRows(label: string, status: string, bodyRows: readonly string[], width: number): string[] {
-	// The mirrored glyph pairs with the `❯` request marker so roles stay distinct without color.
-	const title = `${a.response("❮")} ${wwwTitle(label, a.response)}`;
-	if (width < 5) return ["", pair(title, a.muted(status), width), ...bodyRows, ""].map(row => fit(row, width));
-	const inside  = width - 2                                                                            ;
-	const heading = truncateToWidth(` ${title}${status ? `  ${a.muted(status)}` : ""} `, width - 2, "…") ;
-	const body    = bodyRows.map(row => `${a.rule("│")} ${fit(row, inside)}`)                            ;
-	return ["", fit(heading, width), ...body, ""].map(row => fit(row, width));
 }
 
 type DurableTranscriptRevision = Pick<ChatFeatureProjection, "projectId" | "threadId" | "journalSequence" | "activities" | "chat" | "tnotes" | "draft" | "draftAnchorSequence">;
@@ -212,149 +203,6 @@ interface DurableTimelineIndex {
 /** Weak proof cache only: it cannot retain a historical payload or authorize a mutable value. */
 const deeplyImmutablePlainData = new WeakSet<object>();
 
-function isArrayIndex(key: string, length: number): boolean {
-	if (!/^(?:0|[1-9]\d*)$/u.test(key)) return false;
-	const index = Number(key);
-	return Number.isSafeInteger(index) && index >= 0 && index < length;
-}
-
-/** Proves the complete reachable value is frozen plain data without invoking accessors.
- * Shallow-frozen wrappers, getters, symbols, cycles, Date/Map/Set/typed arrays and class
- * instances conservatively miss. The proof never freezes or clones a producer value. */
-function isDeeplyImmutablePlainData(value: unknown, visiting = new Set<object>()): boolean {
-	if (value === null
-		|| value === undefined
-		|| typeof value === "string"
-		|| typeof value === "boolean"
-		|| typeof value === "number") return true;
-	if (typeof value !== "object") return false;
-	if (deeplyImmutablePlainData.has(value)) return true;
-	if (visiting.has(value)) return false;
-	try {
-		const prototype = Object.getPrototypeOf(value);
-		if (prototype !== Object.prototype && prototype !== null && prototype !== Array.prototype) return false;
-		if (!Object.isFrozen(value)) return false;
-		const keys = Reflect.ownKeys(value);
-		const stringKeys = keys.filter((key): key is string => typeof key === "string");
-		if (stringKeys.length !== keys.length) return false;
-		if (Array.isArray(value) && stringKeys.some(key => key !== "length" && !isArrayIndex(key, value.length))) return false;
-		visiting.add(value);
-		for (const key of keys) {
-			const descriptor = Object.getOwnPropertyDescriptor(value, key);
-			if (!descriptor || !("value" in descriptor) || !isDeeplyImmutablePlainData(descriptor.value, visiting)) return false;
-		}
-		deeplyImmutablePlainData.add(value);
-		return true;
-	} catch {
-		return false;
-	} finally {
-		visiting.delete(value);
-	}
-}
-
-function activityIdentity(activity: ProjectActivity): string {
-	return [
-		activity.nativeRefs.threadId,
-		activity.nativeRefs.turnId,
-		activity.nativeRefs.itemId ?? activity.id,
-	].join("\0");
-}
-
-function latestSourceActivity(note: TNote, activitiesById: ReadonlyMap<string, ProjectActivity>): ProjectActivity | undefined {
-	let latest: ProjectActivity | undefined;
-	for (const activityId of note.sourceActivityIds) {
-		const activity = activitiesById.get(activityId);
-		if (activity && (!latest || activity.sequence > latest.sequence)) latest = activity;
-	}
-	return latest;
-}
-
-function durableTimelineIndex(snapshot: ChatFeatureProjection): DurableTimelineIndex {
-	const activitiesById            = new Map(snapshot.activities.map(activity => [activity.id, activity])) ;
-	const notesByAnchor             = new Map<string, TNote[]>()                                            ;
-	const unanchoredNotes : TNote[] = []                                                                    ;
-	for (const note of snapshot.tnotes) {
-		const anchor = latestSourceActivity(note, activitiesById);
-		if (!anchor) {
-			unanchoredNotes.push(note);
-			continue;
-		}
-		const anchoredNotes = notesByAnchor.get(anchor.id) ?? [];
-		anchoredNotes.push(note);
-		notesByAnchor.set(anchor.id, anchoredNotes);
-	}
-	const toolByIdentity = new Map<string, ProjectActivity>();
-	for (const activity of snapshot.activities) {
-		if (["tool", "file-change"].includes(activity.kind)) toolByIdentity.set(activityIdentity(activity), activity);
-	}
-	return {
-		messageByActivity: new Map(snapshot.chat.map(message => [message.activityId, message])),
-		notesByAnchor,
-		toolByIdentity,
-		unanchoredNotes,
-	};
-}
-
-function durableTranscriptRevision(snapshot: ChatFeatureProjection): DurableTranscriptRevision {
-	return {
-		projectId           : snapshot.projectId,
-		threadId            : snapshot.threadId,
-		journalSequence     : snapshot.journalSequence,
-		draft               : snapshot.draft,
-		draftAnchorSequence : snapshot.draftAnchorSequence ?? null,
-		activities          : snapshot.activities,
-		chat                : snapshot.chat,
-		tnotes              : snapshot.tnotes,
-	};
-}
-
-function trustedDurableRevision(revision: DurableTranscriptRevision): boolean {
-	return isDeeplyImmutablePlainData(revision.activities)
-		&& isDeeplyImmutablePlainData(revision.chat)
-		&& isDeeplyImmutablePlainData(revision.tnotes);
-}
-
-function sameTrustedDurableReferences(left: DurableTranscriptRevision, right: DurableTranscriptRevision): boolean {
-	return left.projectId === right.projectId && left.threadId === right.threadId
-		&& left.activities === right.activities && left.chat === right.chat && left.tnotes === right.tnotes
-		&& left.draft === right.draft && left.draftAnchorSequence === right.draftAnchorSequence;
-}
-
-function volatileTranscriptRevision(snapshot: ChatFeatureProjection, expanded: boolean, durableEmpty: boolean): VolatileTranscriptRevision {
-	let request = 0, response = 0;
-	if (snapshot.draft) for (const message of snapshot.chat) {
-		if (message.role === "user") { request += 1; response = 0; }
-		else if (message.role === "assistant" && request > 0) response += 1;
-	}
-	return {
-		durableEmpty,
-		draftLabel                : snapshot.draft ? `${Math.max(1, request)}:${response + 1}` : null,
-		snapshot                  : expanded ? snapshot : null,
-		draft                     : snapshot.draft,
-		reasoningSummaryDraft     : snapshot.reasoningSummaryDraft,
-		actionResult              : snapshot.actionResult,
-		error                     : snapshot.error,
-		developmentRecordingError : snapshot.developmentRecordingError,
-		linearDashboard           : snapshot.linearDashboard,
-		requestRuntime            : snapshot.requestRuntime,
-		activeTurnId              : snapshot.activeTurnId,
-	};
-}
-
-function sameVolatileTranscriptRevision(left: VolatileTranscriptRevision, right: VolatileTranscriptRevision): boolean {
-	return left.durableEmpty === right.durableEmpty
-		&& left.draftLabel === right.draftLabel
-		&& left.snapshot === right.snapshot
-		&& left.draft === right.draft
-		&& left.reasoningSummaryDraft === right.reasoningSummaryDraft
-		&& left.actionResult === right.actionResult
-		&& left.error === right.error
-		&& left.developmentRecordingError === right.developmentRecordingError
-		&& left.linearDashboard === right.linearDashboard
-		&& left.requestRuntime === right.requestRuntime
-		&& left.activeTurnId === right.activeTurnId;
-}
-
 export function hasVisibleWwwContent(snapshot: ChatFeatureProjection): boolean {
 	return snapshot.actionResult?.kind === "workflow" || snapshot.chat.length > 0
 		|| snapshot.workFlow.steps.length > 0
@@ -372,7 +220,7 @@ export class WwwTranscriptView implements Component {
 	private renderedTheme   = getActiveTuiTheme()                                                             ;
 	public expanded         = false                                                                           ;
 	constructor(private snapshot: ChatFeatureProjection, private readonly language: () => OutputLanguage = () => "ko") {
-		this.welcome = new WorkbenchWelcomeView(language, () => this.snapshot.linearDashboard);
+		this.welcome = new WorkbenchWelcomeView(language);
 	}
 	update(snapshot: ChatFeatureProjection): void {
 		if (hasVisibleWwwContent(snapshot)) {
@@ -531,8 +379,8 @@ export class WwwTranscriptView implements Component {
 			const contentWidth = Math.max(1, width >= 5 ? width - 4 : width);
 			return responseFrameRows(labelText, status === "completed" ? "" : status, this.md(id, safe(content, 24000), contentWidth, a.answer), width);
 		}
-		const ink = role === "user" ? a.request : a.info;
-		const label = role === "user" ? `${a.request("❯")} ${wwwTitle(labelText, ink)}` : wwwTitle(labelText, ink);
+		const ink   = role === "user" ? a.request : a.info                                                         ;
+		const label = role === "user" ? `${a.request("❯")} ${wwwTitle(labelText, ink)}` : wwwTitle(labelText, ink) ;
 		const rows = [
 			"",
 			pair(label, a.muted(status === "completed" ? "" : status), width),
@@ -553,12 +401,12 @@ export class WwwTranscriptView implements Component {
 	private appendToolGroupBlock(blocks: TranscriptBlock[], activities: readonly ProjectActivity[], purpose: string | null): void {
 		const group = [...activities];
 		const failed = group.filter(activity => {
-			const item = record(record(activity.payload.params).item);
+			const item = asRecord(asRecord(activity.payload.params)?.item) ?? {};
 			return activity.phase === "failed" || item.status === "failed" || typeof item.exitCode === "number" && item.exitCode !== 0;
 		});
-		const title = purpose || (this.language() === "en" ? "Tool actions" : "도구 작업");
-		const state = this.language() === "en" ? `${group.length} actions${failed.length ? ` · ${failed.length} failed` : ""}` : `${group.length}건${failed.length ? ` · 실패 ${failed.length}건` : ""}`;
-		blocks.push({
+		const title = purpose || (this.language() === "en" ? "Tool actions" : "도구 작업")                                                                                                               ;
+		const state = this.language() === "en" ? `${group.length} actions${failed.length ? ` · ${failed.length} failed` : ""}` : `${group.length}건${failed.length ? ` · 실패 ${failed.length}건` : ""}` ;
+		if (purpose || failed.length) blocks.push({
 			key          : `tool-group:${group[0]!.id}`,
 			markdownKeys : [],
 			reuse        : { kind: "message", immutable: group.every(activity => isDeeplyImmutablePlainData(activity)), inputs: [...group, title, state] },
@@ -578,12 +426,12 @@ export class WwwTranscriptView implements Component {
 		}
 	}
 	private volatileBlocks(s: ChatFeatureProjection): TranscriptBlock[] {
-		const blocks: TranscriptBlock[] = [];
-		const actionResult = s.actionResult;
+		const blocks: TranscriptBlock[] = []             ;
+		const actionResult              = s.actionResult ;
 		if (actionResult) {
 			blocks.push({ key: "volatile:action-result", markdownKeys: [], reuse: { kind: "never" }, render: width => {
-				const ink = actionResult.kind === "tnote" ? a.secondary : actionResult.kind === "todo" ? a.plan : a.response;
-				const rows = [...section(safe(actionResult.title), width, actionResult.kind, ink), ...prose(safe(actionResult.body, 16000), width)];
+				const ink  = actionResult.kind === "tnote" ? a.secondary : actionResult.kind === "todo" ? a.plan : a.response                       ;
+				const rows = [...section(safe(actionResult.title), width, actionResult.kind, ink), ...prose(safe(actionResult.body, 16000), width)] ;
 				if (actionResult.digest) rows.push(...prose(a.muted(`digest ${safe(actionResult.digest)}`), width));
 				return rows.map(row => fit(row, width));
 			} });
@@ -606,8 +454,8 @@ export class WwwTranscriptView implements Component {
 		} };
 	}
 	private cacheInput(): WwwTranscriptCacheInput<DurableTranscriptRevision, VolatileTranscriptRevision> {
-		const snapshot = this.snapshot;
-		const durableRevision = durableTranscriptRevision(snapshot);
+		const snapshot        = this.snapshot                       ;
+		const durableRevision = durableTranscriptRevision(snapshot) ;
 		return {
 			snapshotVersion: this.snapshotVersion,
 			expanded: this.expanded,
@@ -644,29 +492,31 @@ export class WwwTranscriptView implements Component {
 }
 
 export function wwwToolRows(activity: ProjectActivity, width: number, expanded: boolean, language: OutputLanguage = "ko"): string[] {
-	const observedChanges = projectObservedFileChanges(activity);
+	const observedChanges = projectFileChanges(activity);
 	if (observedChanges.length > 0) {
-		const failed    = activity.phase === "failed"                                                                  ;
-		const symbol    = failed ? a.failure("✕") : activity.phase === "completed" ? a.success("✓") : a.attention("•") ;
-		const state     = failed ? "failed" : activity.phase === "completed" ? "done" : activity.phase                 ;
-		const nameWidth = Math.max(...observedChanges.map(change => change.name.length))                               ;
+		const failed     = activity.phase === "failed"                                                                  ;
+		const symbol     = failed ? a.failure("✕") : activity.phase === "completed" ? a.success("✓") : a.attention("•") ;
+		const state      = failed ? "failed" : activity.phase === "completed" ? "done" : activity.phase                 ;
+		const nameWidth  = Math.max(...observedChanges.map(change => change.name.length))                               ;
+		const expandHint = language === "en" ? "Ctrl+E to expand" : "Ctrl+E 펼치기"                                     ;
 		return observedChanges.flatMap(change => {
-			const stats = change.added === null || change.deleted === null
+			const stats = change.added === null || change.removed === null
 				? "changed"
-				: `${a.success(`+${change.added}`)}  ${a.failure(`-${change.deleted}`)}`;
-			const header = fit(`${symbol} ${a.tool(`${TRANSCRIPT_ICON.edit} Edit`)}  ${a.text(change.name.padEnd(nameWidth))}  ${stats}  ${state}`, width);
-			return [header, ...renderUnifiedDiff(change.diff ?? "", width)];
+				: `${a.success(`+${change.added}`)}  ${a.failure(`-${change.removed}`)}`;
+			const header = fit(`${symbol} ${a.tool(`${TRANSCRIPT_ICON.edit} Edit`)}  ${a.text(change.name.padEnd(nameWidth))}  ${stats}  ${state}`, width)                  ;
+			const diff   = renderUnifiedDiff(change.diff ?? "", width, { fileKind: change.fileKind, expandHint, ...(expanded ? {} : { maxRows: CHAT_DIFF_PREVIEW_ROWS }) }) ;
+			return [header, ...diff];
 		});
 	}
-	const payload = record(boundedPublicProjection(activity.payload).value)                                                                                ;
-	const item    = record(record(payload.params).item)                                                                                                    ;
+	const payload = asRecord(boundedPublicProjection(activity.payload).value) ?? {}                                                                        ;
+	const item    = asRecord(asRecord(payload.params)?.item) ?? {}                                                                                         ;
 	const kind    = oneLine(item.type || activity.kind)                                                                                                    ;
 	const title   = oneLine(item.command || item.tool || item.name || item.path || kind, 600)                                                              ;
-	const output  = safe(item.aggregatedOutput || item.output || payload.output || record(item.error).message || "", 8000)                                 ;
+	const output  = safe(item.aggregatedOutput || item.output || payload.output || asRecord(item.error)?.message || "", 8000)                              ;
 	const result  = item.result ? safe(typeof item.result === "string" ? item.result : JSON.stringify(item.result, null, 2)) : ""                          ;
 	const failed  = activity.phase === "failed" || item.status === "failed" || typeof item.exitCode === "number" && item.exitCode !== 0                    ;
 	const running = !failed && ["started", "updated"].includes(activity.phase) && !["completed", "cancelled", "interrupted"].includes(String(item.status)) ;
-	const changes = Array.isArray(item.changes) ? item.changes.map(record) : []                                                                            ;
+	const changes = Array.isArray(item.changes) ? item.changes.map((change) => asRecord(change) ?? {}) : []                                                ;
 	if (typeof item.command === "string" && (running || failed || expanded) && width >= 20) {
 		const ink        = failed ? a.failure : a.tool                                                                                                                                                                                ;
 		const inside     = width - 4                                                                                                                                                                                                  ;
@@ -685,10 +535,10 @@ export function wwwToolRows(activity: ProjectActivity, width: number, expanded: 
 			...shown.map(row => body((failed ? a.failure : a.muted)(row))),
 			body(a.muted(meta)), ink(`└${"─".repeat(width - 2)}┘`), ""];
 	}
-	const activityIcon = typeof item.command === "string" ? `${a.tool(TRANSCRIPT_ICON.terminal)} ` : "";
-	const rows = [pair(`${mark(failed ? "failed" : activity.phase)} ${activityIcon}${a.tool(title)}`, (failed ? a.failure : a.muted)(typeof item.exitCode === "number" ? `exit ${item.exitCode}` : activity.phase), width)];
+	const activityIcon = typeof item.command === "string" ? `${a.tool(TRANSCRIPT_ICON.terminal)} ` : ""                                                                                                                             ;
+	const rows         = [pair(`${mark(failed ? "failed" : activity.phase)} ${activityIcon}${a.tool(title)}`, (failed ? a.failure : a.muted)(typeof item.exitCode === "number" ? `exit ${item.exitCode}` : activity.phase), width)] ;
 	for (const change of changes) {
-		rows.push(...prose(a.text(`  ${oneLine(record(change.kind).type || change.kind || "edit")}  ${safe(change.path)}`), width));
+		rows.push(...prose(a.text(`  ${oneLine(asRecord(change.kind)?.type || change.kind || "edit")}  ${safe(change.path)}`), width));
 		if (expanded && typeof change.diff === "string") rows.push(...prose(safe(change.diff), width, 4));
 	}
 	if ((expanded || failed) && (output || result)) rows.push(...prose(failed ? a.failure(output || result) : a.muted(output || result), width, 2));
@@ -697,13 +547,13 @@ export function wwwToolRows(activity: ProjectActivity, width: number, expanded: 
 }
 
 function wwwToolInputRows(activity: ProjectActivity, width: number, language: OutputLanguage): string[] {
-	const payload = record(boundedPublicProjection(activity.payload).value)                 ;
-	const item    = record(record(payload.params).item)                                     ;
-	const args    = record(item.arguments)                                                  ;
+	const payload = asRecord(boundedPublicProjection(activity.payload).value) ?? {}         ;
+	const item    = asRecord(asRecord(payload.params)?.item) ?? {}                          ;
+	const args    = asRecord(item.arguments) ?? {}                                          ;
 	const command = safe(item.command || args.command || item.name || item.tool || "", 600) ;
 	if (!command) return wwwToolRows(activity, width, false, language);
-	const explicitPath = typeof item.path === "string" ? item.path : typeof args.path === "string" ? args.path : "";
-	const observedPath = explicitPath || /(?:^|[\s'"(])((?:\.{1,2}\/)?(?:src|test|docs|scripts|\.agents)\/[^\s'"|;&)]+)/u.exec(command)?.[1] || "";
+	const explicitPath = typeof item.path === "string" ? item.path : typeof args.path === "string" ? args.path : ""                                ;
+	const observedPath = explicitPath || /(?:^|[\s'"(])((?:\.{1,2}\/)?(?:src|test|docs|scripts|\.agents)\/[^\s'"|;&)]+)/u.exec(command)?.[1] || "" ;
 	if (width < 20) return [...prose(a.tool(`${language === "en" ? "Input" : "입력"}: ${command}`), width), ...(observedPath ? prose(a.muted(`${language === "en" ? "Path" : "경로"}: ${safe(observedPath)}`), width) : [])];
 	const ink    = a.tool                                                         ;
 	const inside = width - 4                                                      ;
@@ -722,18 +572,172 @@ function wwwToolInputRows(activity: ProjectActivity, width: number, language: Ou
 	return rows;
 }
 
-function projectObservedFileChanges(activity: ProjectActivity): readonly { readonly name: string; readonly added: number | null; readonly deleted: number | null; readonly diff: string | null }[] {
-	if (activity.kind !== "file-change") return [];
-	const payload = record(activity.payload)                        ;
-	const item    = record(record(payload.params).item)             ;
-	const changes = Array.isArray(item.changes) ? item.changes : [] ;
-	return changes.flatMap(value => {
-		const change = record(value);
-		const path   = typeof change.path === "string" ? change.path.replace(/\\/gu, "/") : "";
-		if (!path) return [];
-		const diff    = typeof change.diff === "string" ? change.diff.split(/\r?\n/u) : null                 ;
-		const added   = diff?.filter(line => line.startsWith("+") && !line.startsWith("+++")).length ?? null ;
-		const deleted = diff?.filter(line => line.startsWith("-") && !line.startsWith("---")).length ?? null ;
-		return [{ name: path.split("/").at(-1) ?? path, added, deleted, diff: typeof change.diff === "string" ? change.diff : null }];
-	});
+function verificationLabel(value: ChatFeatureProjection["performance"], language: OutputLanguage): string {
+	const labels = language === "en" ? {
+		"not-verified": "not verified", passed: "verified", failed: "verification failed", uncertain: "verification uncertain",
+	} : {
+		"not-verified" : "검증 미실행",
+		passed         : "검증 통과",
+		failed         : "검증 실패",
+		uncertain      : "검증 결과 미확정",
+	};
+	return labels[value?.verification ?? "not-verified"];
+}
+
+function narratorMarkdown(item: WorkbenchTNote): string {
+	const provenance = item.provenance;
+	return provenance ? `\n\nDetached narrator: ${safe(`${provenance.provider} / ${provenance.model} / ${provenance.version}`, 4000)}` : "";
+}
+
+function responseFrameRows(label: string, status: string, bodyRows: readonly string[], width: number): string[] {
+	// The mirrored glyph pairs with the `❯` request marker so roles stay distinct without color.
+	const title = `${a.response("❮")} ${wwwTitle(label, a.response)}`;
+	if (width < 5) return ["", pair(title, a.muted(status), width), ...bodyRows, ""].map(row => fit(row, width));
+	const inside  = width - 2                                                                            ;
+	const heading = truncateToWidth(` ${title}${status ? `  ${a.muted(status)}` : ""} `, width - 2, "…") ;
+	const body    = bodyRows.map(row => `${a.rule("│")} ${fit(row, inside)}`)                            ;
+	return ["", fit(heading, width), ...body, ""].map(row => fit(row, width));
+}
+
+function isArrayIndex(key: string, length: number): boolean {
+	if (!/^(?:0|[1-9]\d*)$/u.test(key)) return false;
+	const index = Number(key);
+	return Number.isSafeInteger(index) && index >= 0 && index < length;
+}
+
+/** Proves the complete reachable value is frozen plain data without invoking accessors.
+ * Shallow-frozen wrappers, getters, symbols, cycles, Date/Map/Set/typed arrays and class
+ * instances conservatively miss. The proof never freezes or clones a producer value. */
+function isDeeplyImmutablePlainData(value: unknown, visiting = new Set<object>()): boolean {
+	if (value === null
+		|| value === undefined
+		|| typeof value === "string"
+		|| typeof value === "boolean"
+		|| typeof value === "number") return true;
+	if (typeof value !== "object") return false;
+	if (deeplyImmutablePlainData.has(value)) return true;
+	if (visiting.has(value)) return false;
+	try {
+		const prototype = Object.getPrototypeOf(value);
+		if (prototype !== Object.prototype && prototype !== null && prototype !== Array.prototype) return false;
+		if (!Object.isFrozen(value)) return false;
+		const keys       = Reflect.ownKeys(value)                                       ;
+		const stringKeys = keys.filter((key): key is string => typeof key === "string") ;
+		if (stringKeys.length !== keys.length) return false;
+		if (Array.isArray(value) && stringKeys.some(key => key !== "length" && !isArrayIndex(key, value.length))) return false;
+		visiting.add(value);
+		for (const key of keys) {
+			const descriptor = Object.getOwnPropertyDescriptor(value, key);
+			if (!descriptor || !("value" in descriptor) || !isDeeplyImmutablePlainData(descriptor.value, visiting)) return false;
+		}
+		deeplyImmutablePlainData.add(value);
+		return true;
+	} catch {
+		return false;
+	} finally {
+		visiting.delete(value);
+	}
+}
+
+function activityIdentity(activity: ProjectActivity): string {
+	return [
+		activity.nativeRefs.threadId,
+		activity.nativeRefs.turnId,
+		activity.nativeRefs.itemId ?? activity.id,
+	].join("\0");
+}
+
+function latestSourceActivity(note: TNote, activitiesById: ReadonlyMap<string, ProjectActivity>): ProjectActivity | undefined {
+	let latest: ProjectActivity | undefined;
+	for (const activityId of note.sourceActivityIds) {
+		const activity = activitiesById.get(activityId);
+		if (activity && (!latest || activity.sequence > latest.sequence)) latest = activity;
+	}
+	return latest;
+}
+
+function durableTimelineIndex(snapshot: ChatFeatureProjection): DurableTimelineIndex {
+	const activitiesById            = new Map(snapshot.activities.map(activity => [activity.id, activity])) ;
+	const notesByAnchor             = new Map<string, TNote[]>()                                            ;
+	const unanchoredNotes : TNote[] = []                                                                    ;
+	for (const note of snapshot.tnotes) {
+		const anchor = latestSourceActivity(note, activitiesById);
+		if (!anchor) {
+			unanchoredNotes.push(note);
+			continue;
+		}
+		const anchoredNotes = notesByAnchor.get(anchor.id) ?? [];
+		anchoredNotes.push(note);
+		notesByAnchor.set(anchor.id, anchoredNotes);
+	}
+	const toolByIdentity = new Map<string, ProjectActivity>();
+	for (const activity of snapshot.activities) {
+		if (["tool", "file-change"].includes(activity.kind)) toolByIdentity.set(activityIdentity(activity), activity);
+	}
+	return {
+		messageByActivity: new Map(snapshot.chat.map(message => [message.activityId, message])),
+		notesByAnchor,
+		toolByIdentity,
+		unanchoredNotes,
+	};
+}
+
+function durableTranscriptRevision(snapshot: ChatFeatureProjection): DurableTranscriptRevision {
+	return {
+		projectId           : snapshot.projectId,
+		threadId            : snapshot.threadId,
+		journalSequence     : snapshot.journalSequence,
+		draft               : snapshot.draft,
+		draftAnchorSequence : snapshot.draftAnchorSequence ?? null,
+		activities          : snapshot.activities,
+		chat                : snapshot.chat,
+		tnotes              : snapshot.tnotes,
+	};
+}
+
+function trustedDurableRevision(revision: DurableTranscriptRevision): boolean {
+	return isDeeplyImmutablePlainData(revision.activities)
+		&& isDeeplyImmutablePlainData(revision.chat)
+		&& isDeeplyImmutablePlainData(revision.tnotes);
+}
+
+function sameTrustedDurableReferences(left: DurableTranscriptRevision, right: DurableTranscriptRevision): boolean {
+	return left.projectId === right.projectId && left.threadId === right.threadId
+		&& left.activities === right.activities && left.chat === right.chat && left.tnotes === right.tnotes
+		&& left.draft === right.draft && left.draftAnchorSequence === right.draftAnchorSequence;
+}
+
+function volatileTranscriptRevision(snapshot: ChatFeatureProjection, expanded: boolean, durableEmpty: boolean): VolatileTranscriptRevision {
+	let request = 0, response = 0;
+	if (snapshot.draft) for (const message of snapshot.chat) {
+		if (message.role === "user") { request += 1; response = 0; }
+		else if (message.role === "assistant" && request > 0) response += 1;
+	}
+	return {
+		durableEmpty,
+		draftLabel                : snapshot.draft ? `${Math.max(1, request)}:${response + 1}` : null,
+		snapshot                  : expanded ? snapshot : null,
+		draft                     : snapshot.draft,
+		reasoningSummaryDraft     : snapshot.reasoningSummaryDraft,
+		actionResult              : snapshot.actionResult,
+		error                     : snapshot.error,
+		developmentRecordingError : snapshot.developmentRecordingError,
+		linearDashboard           : snapshot.linearDashboard,
+		requestRuntime            : snapshot.requestRuntime,
+		activeTurnId              : snapshot.activeTurnId,
+	};
+}
+
+function sameVolatileTranscriptRevision(left: VolatileTranscriptRevision, right: VolatileTranscriptRevision): boolean {
+	return left.durableEmpty === right.durableEmpty
+		&& left.draftLabel === right.draftLabel
+		&& left.snapshot === right.snapshot
+		&& left.draft === right.draft
+		&& left.reasoningSummaryDraft === right.reasoningSummaryDraft
+		&& left.actionResult === right.actionResult
+		&& left.error === right.error
+		&& left.developmentRecordingError === right.developmentRecordingError
+		&& left.linearDashboard === right.linearDashboard
+		&& left.requestRuntime === right.requestRuntime
+		&& left.activeTurnId === right.activeTurnId;
 }

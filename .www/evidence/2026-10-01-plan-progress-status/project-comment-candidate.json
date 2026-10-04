@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-PLAN-PROGRESS-STATUS-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "worktree:0e7d421b5da741d39b34895a6d2d1fbdb3ff14be:dirty",
+  "intent": "실행 상태 문구와 현재 요청의 계획·진행 표시 보정을 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "실행 상태줄을 관측된 요청 체크포인트에 따라 UNDERSTANDING·WORKING·REPORTING으로 표시하고 esc 중단 및 중복 관측 문구를 제거했다.",
+      "현재 turn의 Plan Activity를 계획 존재 여부와 독립적으로 PROGRESS에 표시하고 실행 사이드바도 해당 진행 기록을 우선 사용한다."
+    ],
+    "impacts": [
+      "계획이 아직 도착하지 않았어도 실제로 관측된 진행을 읽을 수 있다. 관측되지 않은 계획 항목은 만들지 않는다."
+    ],
+    "categories": [
+      "fix",
+      "improvement",
+      "verification"
+    ],
+    "verification": [
+      "bun run check와 git diff --check 통과.",
+      "관련 www-ui 테스트 7개 통과. 전체 www-ui 및 www-shell 묶음에는 기존 워크트리와 기대값이 맞지 않는 실패가 남아 있어 전체 수락은 보류한다.",
+      "실제 TUI 수동 확인은 미실행."
+    ],
+    "connections": [
+      "[WOO-700](https://linear.app/woo-world/issue/WOO-700/01-내-입력에-대한-계획이-세워지는-과정을-세션-todo로-보여준다)",
+      "src/adapters/inbound/tui/features/plan/view/www-plan-view.ts · src/adapters/inbound/tui/features/monitoring/view/www-monitor-view.ts · src/adapters/inbound/tui/shell/www-surface.ts · test/www-ui.test.ts",
+      ".www/evidence/2026-10-01-plan-progress-status"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-700/01-내-입력에-대한-계획이-세워지는-과정을-세션-todo로-보여준다",
+    "evidence": ".www/evidence/2026-10-01-plan-progress-status"
+  },
+  "expectedBefore": {
+    "latestCommentId": "37bd3812-ca0a-45cc-9b81-fcdec13110b7"
+  },
+  "validation": [
+    {
+      "id": "issue-mapping",
+      "status": "pass",
+      "evidence": "Live WOO-700 read-back confirms current request Plan and progress responsibility."
+    },
+    {
+      "id": "local-verification",
+      "status": "pass",
+      "evidence": "TypeScript check, focused UI tests, and diff whitespace check passed."
+    }
+  ],
+  "candidateDigest": "f64b26aee38f6a998edb965224d302a74b51839d9feaf78c92208ce6676bc2b6"
+}

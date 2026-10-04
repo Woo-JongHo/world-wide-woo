@@ -1,9 +1,12 @@
-import { stripTerminalSequences, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
-import type { Component }                from "@earendil-works/pi-tui";
-import { colors }                        from "@/adapters/inbound/tui/foundation/theme/theme";
-import { PRODUCT_VERSION }               from "@/product-version";
-import type { OutputLanguage }           from "@/core/domain/execution/output-language";
-import type { LinearProjectDashboard }   from "@/core/domain/work/linear-dashboard";
+import      {
+              stripTerminalSequences ,
+              truncateToWidth        ,
+              visibleWidth           ,
+                                       } from "@earendil-works/pi-tui"                        ;
+import type { Component                } from "@earendil-works/pi-tui"                        ;
+import      { colors                   } from "@/adapters/inbound/tui/foundation/theme/theme" ;
+import      { PRODUCT_VERSION          } from "@/product-version"                             ;
+import type { OutputLanguage           } from "@/core/domain/execution/output-language"       ;
 
 const W_GLYPH = Object.freeze([
 	"██╗    ██╗",
@@ -28,6 +31,46 @@ const QUICK_START: readonly (readonly [string, string])[] = Object.freeze([
 ]);
 const DETAIL_WIDTH = 56;
 
+/** 시간과 무관한 고정 로고 프레임. Welcome은 로딩 화면이 아니라 지속형 홈 화면이다. */
+export function workbenchWelcomeLogoFrame(_elapsedMs: number): string[] {
+	return W_GLYPH.map(wordmarkRow);
+}
+
+export class WorkbenchWelcomeView implements Component {
+	private played = false;
+	constructor(
+		private readonly language: () => OutputLanguage = () => "ko",
+	) {}
+
+	playIntro(requestRender: () => void): void {
+		if (this.played) return;
+		this.played = true;
+		requestRender();
+	}
+
+	dispose(): void {}
+	invalidate(): void {}
+
+	render(width: number, availableHeight = Math.max(4, (process.stdout.rows || 40) - 8)): string[] {
+		if (width <= 0 || availableHeight <= 0) return [];
+		const columnWidth = width >= 52 ? width : Math.min(DETAIL_WIDTH, width);
+		const details     = columns([
+			releaseRows(Math.max(24, Math.floor(width / 2) - 1), this.language()),
+			quickStartRows(Math.max(24, Math.floor(width / 2) - 1), this.language()),
+		], width);
+		const rows        = [
+			...workbenchWelcomeLogoFrame(0),
+			"",
+			colors.text("Wooni · Native Project Workbench"),
+			colors.muted(`v${PRODUCT_VERSION}`),
+			...(availableHeight >= 22 ? ["", ...details, "", colors.muted(this.language() === "en" ? "TIP  Press Space to expand execution details." : "TIP  Space로 선택한 실행의 세부 정보를 펼칠 수 있습니다.")] : []),
+		];
+		return rows
+			.map(row => centered(truncateToWidth(process.env.NO_COLOR ? stripTerminalSequences(row) : row, columnWidth), width))
+			.slice(0, Math.floor(availableHeight));
+	}
+}
+
 function centered(text: string, width: number): string {
 	const clipped = truncateToWidth(text, Math.max(0, width));
 	return " ".repeat(Math.max(0, Math.floor((width - visibleWidth(clipped)) / 2))) + clipped;
@@ -39,8 +82,8 @@ function wordmarkRow(row: string): string {
 }
 
 function sectionHeader(label: string, width: number): string {
-	const title = colors.muted(label);
-	const rule  = "─".repeat(Math.max(0, width - visibleWidth(title) - 1));
+	const title = colors.muted(label)                                      ;
+	const rule  = "─".repeat(Math.max(0, width - visibleWidth(title) - 1)) ;
 	return `${title} ${colors.border(rule)}`;
 }
 
@@ -71,69 +114,14 @@ function quickStartRows(width: number, language: OutputLanguage): string[] {
 	];
 }
 
-function linearRows(dashboard: LinearProjectDashboard | undefined, language: OutputLanguage): string[] {
-	const rows = [colors.muted(language === "en" ? "OPEN LINEAR ISSUES" : "열린 LINEAR 이슈")];
-	if (!dashboard || dashboard.state === "loading") return [...rows, colors.muted("연결 중")];
-	if (dashboard.state === "unavailable") return [...rows, colors.muted("Linear 정보를 불러오지 못했습니다.")];
-	if (dashboard.state === "stale") rows.push(colors.warning("마지막 성공 값 · 갱신 실패"));
-	const issues = dashboard.issues.slice(0, 5);
-	if (issues.length === 0) return [...rows, colors.muted("열린 이슈가 없습니다.")];
-	return [...rows, ...issues.flatMap(issue => [
-		`${colors.accent(issue.id)} ${colors.text(issue.title)}`,
-		colors.muted(`  ${issue.status}${issue.updatedAt ? ` · ${issue.updatedAt.slice(0, 10)}` : ""}`),
-	])];
-}
-
 function columns(groups: readonly string[][], width: number): string[] {
-	const gap = 2;
-	const columnWidth = Math.floor((width - gap * 2) / 3);
+	const gap         = 2                                                               ;
+	const columnWidth = Math.floor((width - gap * (groups.length - 1)) / groups.length) ;
 	if (columnWidth < 24) return groups.flatMap((group, index) => index ? ["", ...group] : group);
 	const height = Math.max(...groups.map(group => group.length));
 	return Array.from({ length: height }, (_, row) => groups.map(group => {
-		const source = process.env.NO_COLOR ? stripTerminalSequences(group[row] ?? "") : group[row] ?? "";
-		const cell = truncateToWidth(source, columnWidth);
+		const source = process.env.NO_COLOR ? stripTerminalSequences(group[row] ?? "") : group[row] ?? "" ;
+		const cell   = truncateToWidth(source, columnWidth)                                               ;
 		return cell + " ".repeat(Math.max(0, columnWidth - visibleWidth(cell)));
 	}).join(" ".repeat(gap)));
-}
-
-/** 시간과 무관한 고정 로고 프레임. Welcome은 로딩 화면이 아니라 지속형 홈 화면이다. */
-export function workbenchWelcomeLogoFrame(_elapsedMs: number): string[] {
-	return W_GLYPH.map(wordmarkRow);
-}
-
-export class WorkbenchWelcomeView implements Component {
-	private played = false;
-	constructor(
-		private readonly language: () => OutputLanguage = () => "ko",
-		private readonly dashboard: () => LinearProjectDashboard | undefined = () => undefined,
-	) {}
-
-	playIntro(requestRender: () => void): void {
-		if (this.played) return;
-		this.played = true;
-		requestRender();
-	}
-
-	dispose(): void {}
-	invalidate(): void {}
-
-	render(width: number, availableHeight = Math.max(4, (process.stdout.rows || 40) - 8)): string[] {
-		if (width <= 0 || availableHeight <= 0) return [];
-		const columnWidth = width >= 76 ? width : Math.min(DETAIL_WIDTH, width);
-		const details     = columns([
-			releaseRows(Math.max(24, Math.floor(width / 3) - 2), this.language()),
-			quickStartRows(Math.max(24, Math.floor(width / 3) - 2), this.language()),
-			linearRows(this.dashboard(), this.language()),
-		], width);
-		const rows        = [
-			...workbenchWelcomeLogoFrame(0),
-			"",
-			colors.text("Wooni · Native Project Workbench"),
-			colors.muted(`v${PRODUCT_VERSION}`),
-			...(availableHeight >= 22 ? ["", ...details, "", colors.muted(this.language() === "en" ? "TIP  Press Space to expand execution details." : "TIP  Space로 선택한 실행의 세부 정보를 펼칠 수 있습니다.")] : []),
-		];
-		return rows
-			.map(row => centered(truncateToWidth(process.env.NO_COLOR ? stripTerminalSequences(row) : row, columnWidth), width))
-			.slice(0, Math.floor(availableHeight));
-	}
 }

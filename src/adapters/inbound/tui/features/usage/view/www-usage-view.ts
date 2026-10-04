@@ -1,57 +1,30 @@
-import type { Component }                         from "@earendil-works/pi-tui";
-import type { RequestStage, RequestStageId }      from "@/core/domain/execution/request-runtime";
-import type { WorkbenchSnapshot }                 from "@/core/domain/work/workbench";
-import type { UsageLimitSnapshot, UsageSnapshot } from "@/core/ports/observability/usage-monitor-port";
-import {
-	monitoringCard,
-	monitoringColumns,
-	monitoringPanel,
-	monitoringTable,
-	monitoringUnavailablePanel,
-	monitoringWidths,
-} from "@/adapters/inbound/tui/foundation/layout/www-monitoring-layout";
-import type { MonitoringCard }                    from "@/adapters/inbound/tui/foundation/layout/www-monitoring-layout";
-import {
-	a,
-	duration,
-	fit,
-	number,
-	pair,
-	prose,
-	railSection,
-	safe,
-	section,
-} from "@/adapters/inbound/tui/foundation/theme/www-theme";
+import type { Component                    } from "@earendil-works/pi-tui"                                         ;
+import type { WorkbenchSnapshot            } from "@/core/domain/work/workbench"                                   ;
+import type {
+              UsageLimitSnapshot         ,
+              UsageSnapshot              ,
+                                           } from "@/core/ports/observability/usage-monitor-port"                  ;
+import      {
+              monitoringCard             ,
+              monitoringColumns          ,
+              monitoringPanel            ,
+              monitoringTable            ,
+              monitoringUnavailablePanel ,
+              monitoringWidths           ,
+                                           } from "@/adapters/inbound/tui/foundation/layout/www-monitoring-layout" ;
+import type { MonitoringCard               } from "@/adapters/inbound/tui/foundation/layout/www-monitoring-layout" ;
+import      {
+              a                          ,
+              fit                        ,
+              number                     ,
+              pair                       ,
+              prose                      ,
+              railSection                ,
+              safe                       ,
+              section                    ,
+                                           } from "@/adapters/inbound/tui/foundation/theme/www-theme"              ;
 
 const PROVIDERS = ["openai-codex", "anthropic", "google", "zai"] as const;
-const STAGE_LABELS: Readonly<Record<RequestStageId, string>> = {
-	UNDERSTAND : "UND",
-	DECOMPOSE  : "DEC",
-	GROUND     : "GND",
-	DECIDE     : "DCD",
-	EXECUTE    : "EXE",
-	VERIFY     : "VER",
-	DELIVER    : "DLV",
-};
-const USAGE_ROLES = ["BUILD", "THINK", "GROUND", "REVIEW", "FAST"] as const;
-type UsageRole = typeof USAGE_ROLES[number];
-const STAGE_ROLES: Readonly<Record<RequestStageId, UsageRole>> = {
-	UNDERSTAND : "THINK",
-	DECOMPOSE  : "THINK",
-	GROUND     : "GROUND",
-	DECIDE     : "THINK",
-	EXECUTE    : "BUILD",
-	VERIFY     : "REVIEW",
-	DELIVER    : "FAST",
-};
-interface RoutingObservation {
-	readonly model       : string                 ;
-	readonly stage       : RequestStageId         ;
-	readonly role        : UsageRole              ;
-	readonly status      : RequestStage["status"] ;
-	readonly startedAt   : string | null          ;
-	readonly completedAt : string | null          ;
-}
 const PROVIDER_LABELS: Readonly<Record<UsageSnapshot["provider"], string>> = {
 	"openai-codex" : "Codex",
 	anthropic      : "Claude",
@@ -59,15 +32,84 @@ const PROVIDER_LABELS: Readonly<Record<UsageSnapshot["provider"], string>> = {
 	zai            : "Z.AI",
 };
 
+export class WwwUsageView implements Component {
+	constructor(
+		private readonly get       : () => WorkbenchSnapshot,
+		private readonly usage     : () => readonly UsageSnapshot[],
+		private readonly synthetic : () => boolean = () => false,
+	) {}
+	invalidate(): void {}
+	render(width: number): string[] {
+		const snapshot   = this.get()             ;
+		const providers  = this.usage()           ;
+		const innerWidth = Math.max(1, width - 2) ;
+		const rows = [
+			...(this.synthetic() ? [a.attention("DEMO DATA · 합성 예시 · 실제 사용 기록 아님")] : []),
+			...section("구독 잔여 한도", width, "토큰 사용량과 별도 지표", a.active),
+			...providerCards(providers, width),
+			...PROVIDERS.flatMap(provider => {
+				const current = providers.find(candidate => candidate.provider === provider);
+				return (current?.limits ?? []).map(limit => {
+					const remaining = observedPercent(limit);
+					return pair(
+						`${PROVIDER_LABELS[provider]} · ${safe(limit.label, 24)}`,
+						`${remaining === null ? "잔여량 미관측" : `${Math.round(remaining)}% 남음`} · ${resetIn(limit.resetsAt)}`,
+						width,
+					);
+				});
+			}),
+			...usageDashboard(snapshot, width),
+			...section("모델별 사용 내역", width, width >= 66 ? "현재 프로세스 관측 범위" : "", a.active),
+			a.muted("단위: tokens · 직접 대화와 분리 실행은 실행 경로이며 업무 분류가 아닙니다."),
+			a.muted("OBSERVED = 관측 합계 · 미관측 경로의 사용량은 포함하지 않습니다."),
+			...modelRows(snapshot, width),
+			...monitoringPanel({ title: "어디에 사용했나", ink: a.info }, attributionRows(snapshot, innerWidth), width),
+		];
+		return rows.flatMap(row => prose(fit(row, width), width));
+	}
+}
+
+export class WwwUsageRail implements Component {
+	constructor(
+		private readonly get       : () => WorkbenchSnapshot,
+		private readonly usage     : () => readonly UsageSnapshot[],
+		private readonly synthetic : () => boolean = () => false,
+	) {}
+	invalidate(): void {}
+	render(width: number): string[] {
+		const session = this.get().sessionUsage                         ;
+		const stale   = this.usage().filter(provider => provider.stale) ;
+		const rows = [
+			...railSection("관측 범위", width),
+			...(this.synthetic() ? [a.attention("DEMO DATA · 합성 예시")] : []),
+			pair("직접 대화", session?.observationCoverage.interactive ? "관측됨" : "미관측", width),
+			pair("분리 실행", session?.observationCoverage.detached ? "관측됨" : "미관측", width),
+			a.muted("프로세스 연결 이후의 사용량입니다."),
+			a.muted("과거 전체 대화·하루 합계가 아닙니다."),
+			...railSection("아직 알 수 없는 것", width),
+			a.muted("작업별 귀속 · 조사/구현/검증 목적"),
+			...railSection("확인이 필요한 상태", width),
+			...stale.map(provider => a.attention(`${PROVIDER_LABELS[provider.provider]} · 오래된 한도 정보`)),
+			a.muted("/usage · 구독 한도 조회"),
+		];
+		return rows.flatMap(row => prose(fit(row, width), width));
+	}
+}
+
 function observedPercent(limit: UsageLimitSnapshot): number | null {
 	if (typeof limit.remainingPercent === "number" && Number.isFinite(limit.remainingPercent)) return Math.max(0, Math.min(100, limit.remainingPercent));
 	if (typeof limit.usedPercent === "number" && Number.isFinite(limit.usedPercent)) return 100 - Math.max(0, Math.min(100, limit.usedPercent));
 	return null;
 }
 
-function resetLabel(timestamp: number | undefined): string {
-	if (typeof timestamp !== "number" || !Number.isFinite(timestamp)) return "미관측";
-	return new Date(timestamp).toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false });
+function resetIn(timestamp: number | undefined, now = Date.now()): string {
+	if (typeof timestamp !== "number" || !Number.isFinite(timestamp)) return "리셋 시각 미관측";
+	const minutes = Math.max(0, Math.ceil((timestamp - now) / 60_000)) ;
+	const days    = Math.floor(minutes / 1_440)                        ;
+	const hours   = Math.floor((minutes % 1_440) / 60)                 ;
+	if (days > 0) return `${days}일 ${hours}시간 후 리셋`;
+	if (hours > 0) return `${hours}시간 ${minutes % 60}분 후 리셋`;
+	return `${minutes}분 후 리셋`;
 }
 
 function providerCard(provider: UsageSnapshot["provider"], snapshot: UsageSnapshot | undefined): MonitoringCard {
@@ -151,23 +193,8 @@ function modelLabel(model: string): string {
 	return normalized.charAt(0).toLocaleUpperCase("en-US") + normalized.slice(1);
 }
 
-function routingObservations(snapshot: WorkbenchSnapshot): RoutingObservation[] {
-	return (snapshot.requestRuntime ?? []).flatMap(request => request.stages.flatMap(stage => stage.model ? [{
-		model       : stage.model,
-		stage       : stage.id,
-		role        : STAGE_ROLES[stage.id],
-		status      : stage.status,
-		startedAt   : stage.startedAt,
-		completedAt : stage.completedAt,
-	}] : []));
-}
-
 function percentage(value: number, total: number): number { return total > 0 ? Math.round(value / total * 100) : 0; }
-function routedModels(observations: readonly RoutingObservation[]): string[] {
-	const counts = new Map<string, number>();
-	for (const observation of observations) counts.set(observation.model, (counts.get(observation.model) ?? 0) + 1);
-	return [...counts].sort(([leftModel, leftCount], [rightModel, rightCount]) => rightCount - leftCount || leftModel.localeCompare(rightModel)).map(([model]) => model);
-}
+
 function usageBar(percent: number, width = 20): string {
 	const filled = Math.round(Math.max(0, Math.min(100, percent)) * width / 100);
 	return `${a.active("█".repeat(filled))}${a.rule("░".repeat(width - filled))}`;
@@ -190,52 +217,19 @@ function summaryCards(snapshot: WorkbenchSnapshot, width: number): string[] {
 }
 
 function modelShareRows(snapshot: WorkbenchSnapshot, width: number): string[] {
-	const models = snapshot.sessionUsage?.models ?? [];
-	const total  = models.reduce((sum, model) => sum + model.totalTokens, 0);
+	const models = snapshot.sessionUsage?.models ?? []                       ;
+	const total  = models.reduce((sum, model) => sum + model.totalTokens, 0) ;
 	if (!models.length || total <= 0) return [a.muted("모델별 token 귀속 미관측")];
-	const labelWidth = Math.max(8, Math.min(16, Math.floor(width * 0.22)));
-	const barWidth   = Math.max(5, Math.min(22, width - labelWidth - 8));
+	const labelWidth = Math.max(8, Math.min(16, Math.floor(width * 0.22))) ;
+	const barWidth   = Math.max(5, Math.min(22, width - labelWidth - 8)  ) ;
 	return [...models].sort((left, right) => right.totalTokens - left.totalTokens).slice(0, 7).map(model => {
 		const share = percentage(model.totalTokens, total);
 		return fit(`${modelLabel(model.model).padEnd(labelWidth)} ${usageBar(share, barWidth)}  ${String(share).padStart(3)}%`, width);
 	});
 }
 
-function stageDistributionRows(observations: readonly RoutingObservation[], width: number): string[] {
-	if (!observations.length) return [a.muted("stage별 model routing 미관측")];
-	const models = routedModels(observations);
-	const header = `MODEL`.padEnd(10) + Object.values(STAGE_LABELS).map(label => label.padEnd(4)).join("");
-	return [fit(a.muted(header), width), ...models.slice(0, 7).map(model => {
-		const cells = (Object.keys(STAGE_LABELS) as RequestStageId[]).map(stage => {
-			const count = observations.filter(observation => observation.model === model && observation.stage === stage).length;
-			return ` ${count ? a.active(intensity(count)) : a.rule("·")}  `;
-		});
-		return fit(`${modelLabel(model).padEnd(10)}${cells.join("")}`, width);
-	})];
-}
-
-function intensity(count: number): string { return count >= 6 ? "█" : count >= 3 ? "▓" : count >= 2 ? "▒" : "░"; }
-
-function roleRows(observations: readonly RoutingObservation[], width: number): string[] {
-	if (!observations.length) return [a.muted("model × role routing 미관측")];
-	const models = routedModels(observations);
-	const columns = [
-		{ heading: "MODEL", minWidth: 10, weight: 1, align: "left" as const },
-		...USAGE_ROLES.map(role => ({ heading: role, minWidth: 7, weight: 0, align: "right" as const })),
-	];
-	const rows = models.slice(0, 7).map(model => [
-		modelLabel(model),
-		...USAGE_ROLES.map(role => {
-			const count = observations.filter(observation => observation.model === model && observation.role === role).length;
-			return count ? intensity(count) : "·";
-		}),
-	]);
-	return monitoringTable({ columns, rows }, width);
-}
-
-function selectedModelRows(snapshot: WorkbenchSnapshot, observations: readonly RoutingObservation[], model: string | undefined, width: number): string[] {
+function selectedModelRows(snapshot: WorkbenchSnapshot, model: string | undefined, width: number): string[] {
 	if (!model) return [a.muted("선택할 model 관측 없음")];
-	const routes    = observations.filter(observation => observation.model === model)                        ;
 	const modelRows = (snapshot.sessionUsage?.models ?? []).filter(row => row.model === model)               ;
 	const tokens    = modelRows.length ? modelRows.reduce((total, row) => total + row.totalTokens, 0) : null ;
 	const efforts   = modelRows.reduce<Record<string, number>>((counts, row) => {
@@ -245,110 +239,29 @@ function selectedModelRows(snapshot: WorkbenchSnapshot, observations: readonly R
 	}, {});
 	return [
 		pair(modelLabel(model), safe(model, 44), width),
-		pair("routes", number(routes.length), width),
 		pair("tokens", compactNumber(tokens), width),
 		...Object.entries(efforts).map(([effort, effortTokens]) => pair(effort, `${percentage(effortTokens, tokens ?? 0)}%`, width)),
 	];
 }
 
-function selectedModelName(snapshot: WorkbenchSnapshot, observations: readonly RoutingObservation[]): string | undefined {
+function selectedModelName(snapshot: WorkbenchSnapshot): string | undefined {
 	const totals = new Map<string, number>();
 	for (const row of snapshot.sessionUsage?.models ?? []) totals.set(row.model, (totals.get(row.model) ?? 0) + row.totalTokens);
 	return [...totals].sort(([leftModel, leftTokens], [rightModel, rightTokens]) => rightTokens - leftTokens || leftModel.localeCompare(rightModel))[0]?.[0]
-		?? routedModels(observations)[0];
-}
-
-function recentRoutingRows(observations: readonly RoutingObservation[], width: number): string[] {
-	const rows = [...observations].filter(observation => observation.startedAt).sort((left, right) => String(right.startedAt).localeCompare(String(left.startedAt))).slice(0, 5);
-	if (!rows.length) return [a.muted("recent model routing 미관측")];
-	return rows.map(observation => {
-		const started = observation.startedAt ? Date.parse(observation.startedAt) : Number.NaN                                                                                                                                       ;
-		const ended   = observation.completedAt ? Date.parse(observation.completedAt) : Number.NaN                                                                                                                                   ;
-		const elapsed = Number.isFinite(started) && Number.isFinite(ended) && ended >= started ? duration(ended - started) : "—"                                                                                                     ;
-		const mark    = observation.status === "completed" ? a.success("✓") : observation.status === "skipped" ? a.muted("−") : observation.status === "failed" || observation.status === "blocked" ? a.failure("×") : a.active("●") ;
-		return fit(`${mark} ${modelLabel(observation.model).padEnd(10)} ${STAGE_LABELS[observation.stage].padEnd(5)} ${observation.role.padEnd(7)} ${elapsed}`, width);
-	});
 }
 
 function usageDashboard(snapshot: WorkbenchSnapshot, width: number): string[] {
-	const inner        = Math.max(1, width - 2)                                                                                                                                                                          ;
-	const observations = routingObservations(snapshot)                                                                                                                                                                   ;
-	const split        = width >= 100                                                                                                                                                                                    ;
-	const widths       = monitoringWidths(width, 2)                                                                                                                                                                      ;
-	const leftWidth    = split ? widths[0] ?? width : width                                                                                                                                                              ;
-	const rightWidth   = split ? widths[1] ?? width : width                                                                                                                                                              ;
-	const share        = monitoringPanel({ title: "MODEL SHARE", ink: a.active }, modelShareRows(snapshot, Math.max(1, leftWidth - 2)), leftWidth)                                                                       ;
-	const stages       = monitoringPanel({ title: "STAGE DISTRIBUTION", ink: a.active }, stageDistributionRows(observations, Math.max(1, rightWidth - 2)), rightWidth)                                                   ;
-	const trend        = monitoringUnavailablePanel("USAGE TREND", "일별 token history 저장 계약이 아직 없습니다.", leftWidth)                                                                                           ;
-	const selectedName = selectedModelName(snapshot, observations)                                                                                                                                                       ;
-	const selected     = monitoringPanel({ title: `SELECTED · ${modelLabel(selectedName ?? "미관측")}`, ink: a.info }, selectedModelRows(snapshot, observations, selectedName, Math.max(1, rightWidth - 2)), rightWidth) ;
+	const split        = width >= 100                                                                                                                                                                            ;
+	const widths       = monitoringWidths(width, 2)                                                                                                                                                              ;
+	const leftWidth    = split ? widths[0] ?? width : width                                                                                                                                                      ;
+	const rightWidth   = split ? widths[1] ?? width : width                                                                                                                                                      ;
+	const share        = monitoringPanel({ title: "MODEL SHARE", ink: a.active }, modelShareRows(snapshot, Math.max(1, leftWidth - 2)), leftWidth)                                                               ;
+	const trend        = monitoringUnavailablePanel("USAGE TREND", "일별 token history 저장 계약이 아직 없습니다.", leftWidth)                                                                                   ;
+	const selectedName = selectedModelName(snapshot)                                                                                                                                                             ;
+	const selected     = monitoringPanel({ title: `OBSERVED MODEL · ${modelLabel(selectedName ?? "미관측")}`, ink: a.info }, selectedModelRows(snapshot, selectedName, Math.max(1, rightWidth - 2)), rightWidth) ;
 	return [
 		...summaryCards(snapshot, width),
-		...(split ? monitoringColumns([share, stages], widths) : [...share, ...stages]),
-		...monitoringPanel({ title: "MODEL × ROLE", meta: "stage semantic routing", ink: a.active }, roleRows(observations, inner), width),
+		...share,
 		...(split ? monitoringColumns([trend, selected], widths) : [...trend, ...selected]),
-		...monitoringPanel({ title: "RECENT ROUTING", ink: a.active }, recentRoutingRows(observations, inner), width),
 	];
-}
-
-export class WwwUsageView implements Component {
-	constructor(
-		private readonly get       : () => WorkbenchSnapshot,
-		private readonly usage     : () => readonly UsageSnapshot[],
-		private readonly synthetic : () => boolean = () => false,
-	) {}
-	invalidate(): void {}
-	render(width: number): string[] {
-		const snapshot   = this.get()             ;
-		const providers  = this.usage()           ;
-		const innerWidth = Math.max(1, width - 2) ;
-		const rows = [
-			...(this.synthetic() ? [a.attention("DEMO DATA · 합성 예시 · 실제 사용 기록 아님")] : []),
-			...usageDashboard(snapshot, width),
-			...section("모델별 사용 내역", width, width >= 66 ? "현재 프로세스 관측 범위" : "", a.active),
-			a.muted("단위: tokens · 직접 대화와 분리 실행은 실행 경로이며 업무 분류가 아닙니다."),
-			a.muted("OBSERVED = 관측 합계 · 미관측 경로의 사용량은 포함하지 않습니다."),
-			...modelRows(snapshot, width),
-			...monitoringPanel({ title: "어디에 사용했나", ink: a.info }, attributionRows(snapshot, innerWidth), width),
-			...section("구독 잔여 한도", width, "토큰 사용량과 별도 지표", a.active),
-			...providerCards(providers, width),
-			...PROVIDERS.flatMap(provider => {
-				const current = providers.find(candidate => candidate.provider === provider);
-				return (current?.limits ?? []).map(limit => pair(
-					`${PROVIDER_LABELS[provider]} · ${safe(limit.label, 24)}`,
-					`리셋 ${resetLabel(limit.resetsAt)}`,
-					width,
-				));
-			}),
-		];
-		return rows.flatMap(row => prose(fit(row, width), width));
-	}
-}
-
-export class WwwUsageRail implements Component {
-	constructor(
-		private readonly get       : () => WorkbenchSnapshot,
-		private readonly usage     : () => readonly UsageSnapshot[],
-		private readonly synthetic : () => boolean = () => false,
-	) {}
-	invalidate(): void {}
-	render(width: number): string[] {
-		const session = this.get().sessionUsage;
-		const stale = this.usage().filter(provider => provider.stale);
-		const rows = [
-			...railSection("관측 범위", width),
-			...(this.synthetic() ? [a.attention("DEMO DATA · 합성 예시")] : []),
-			pair("직접 대화", session?.observationCoverage.interactive ? "관측됨" : "미관측", width),
-			pair("분리 실행", session?.observationCoverage.detached ? "관측됨" : "미관측", width),
-			a.muted("프로세스 연결 이후의 사용량입니다."),
-			a.muted("과거 전체 대화·하루 합계가 아닙니다."),
-			...railSection("아직 알 수 없는 것", width),
-			a.muted("작업별 귀속 · 조사/구현/검증 목적"),
-			a.muted("입력/출력/캐시 토큰 상세"),
-			...railSection("확인이 필요한 상태", width),
-			...stale.map(provider => a.attention(`${PROVIDER_LABELS[provider.provider]} · 오래된 한도 정보`)),
-			a.muted("/usage · 구독 한도 조회"),
-		];
-		return rows.flatMap(row => prose(fit(row, width), width));
-	}
 }

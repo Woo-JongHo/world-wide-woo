@@ -113,7 +113,7 @@ describe("telemetry duration formatting", () => {
 		const output = new WwwMonitorView(() => projectRuntimeMonitor(observed), Date.now, false, () => observed, true).render(38).map(stripTerminalSequences).join("\n");
 		expect(output).toContain("TEST");
 		expect(output).toContain("49ms");
-		expect(output).toContain("TOTAL");
+		expect(output).not.toContain("TOTAL");
 		expect(output).toContain("실패 1건");
 		expect(output).toContain("duplicate on resume");
 		expect(output).toContain("resume.test.ts");

@@ -6,7 +6,7 @@
  */
 export const WORKBENCH_HUD_SYSTEM = Object.freeze({
 	composer  : Object.freeze({ leftCap: "╭─", divider: "─" }),
-	strip     : Object.freeze({ separator: " │ ", modeMarker: "●", meterCells: 12 }),
+	strip     : Object.freeze({ separator: " │ ", modeMarker: "●", meterCells: 10 }),
 	providers : Object.freeze(["Codex", "Claude", "Antigravity", "Z.AI"] as const),
 });
 

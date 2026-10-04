@@ -1,244 +1,42 @@
-import { Markdown }                                                    from "@earendil-works/pi-tui";
-import type { Component }                                              from "@earendil-works/pi-tui";
-import type { RequestRuntimeRecord }                                   from "@/core/domain/execution/request-runtime";
-import type { WorkbenchSnapshot }                                      from "@/core/domain/work/workbench";
-import type { UsageSnapshot }                                          from "@/core/ports/observability/usage-monitor-port";
-import {
-	monitoringCard,
-	monitoringColumns,
-	monitoringWidths,
-} from "@/adapters/inbound/tui/foundation/layout/www-monitoring-layout";
-import {
-	a,
-	wwwMarkdownTheme,
-	wwwMeter,
-	fit,
-	mark,
-	number,
-	pair,
-	prose,
-	railSection,
-	safe,
-	section,
-} from "@/adapters/inbound/tui/foundation/theme/www-theme";
-import { runtimeModeLabel, workbenchEffortLabel, workbenchModelLabel } from "@/adapters/inbound/tui/foundation/labels";
-import {
-	syntheticContextRows,
-	syntheticStorageRows,
-} from "@/adapters/inbound/tui/features/context/view/www-context-catalog";
-
-function document(rows: string[], width: number): string[] { return rows.flatMap(row => prose(row, width)); }
-function kv(label: string, value: unknown): string { return `${a.muted(fit(label, 20))} ${a.text(safe(value ?? "—"))}`; }
-function hiddenKey(key: string): boolean {
-	const normalized = key.replace(/[-_]/gu, "").toLowerCase();
-	return normalized.includes("reasoning") || normalized.includes("thought") || normalized.includes("analysis")
-		|| normalized.startsWith("raw") || normalized.endsWith("token") || normalized.endsWith("secret")
-		|| normalized.endsWith("password") || normalized.endsWith("credential")
-		|| normalized.endsWith("authorization") || normalized.endsWith("apikey");
-}
-function json(value: unknown, width: number): string[] {
-	const text = JSON.stringify(value, (key, item) => hiddenKey(key) ? undefined : item, 2);
-	return prose(a.muted(safe(text, 10_000)), width);
-}
-function usagePercent(percent: number | undefined): string {
-	if (typeof percent !== "number" || !Number.isFinite(percent)) return " –";
-	const value = Math.round(Math.max(0, Math.min(100, percent)));
-	return `${String(value).padStart(2, " ")}%`;
-}
-
-function contextMetrics(snapshot: WorkbenchSnapshot): {
-	readonly used    : number | null ;
-	readonly total   : number | null ;
-	readonly free    : number | null ;
-	readonly percent : number | null ;
-} {
-	const usage = snapshot.contextUsage;
-	if (!usage
-		|| !Number.isFinite(usage.usedTokens)
-		|| !Number.isFinite(usage.contextWindow)
-		|| usage.usedTokens < 0
-		|| usage.contextWindow <= 0) {
-		return { used: null, total: null, free: null, percent: null };
-	}
-	const used = Math.min(usage.usedTokens, usage.contextWindow);
-	const percent = Math.round(used / usage.contextWindow * 100);
-	return {
-		used,
-		total: usage.contextWindow,
-		free: Math.max(0, usage.contextWindow - used),
-		percent,
-	};
-}
-
-function contextInputRows(snapshot: WorkbenchSnapshot, width: number): string[] {
-	const skills        = snapshot.skillInventory                                     ;
-	const enabledMcp    = snapshot.mcpServers.filter(server => server.enabled).length ;
-	const workflowSteps = snapshot.workFlow.steps.length                              ;
-	const runtime       = snapshot.liveActivity ? "1 observed" : "미관측"             ;
-	const inputs: readonly [string, string, string][] = [
-		["SYS", "System", "token allocation 미관측"],
-		["CONV", "Conversation", `${snapshot.chat.length} messages`],
-		["SKILL", "Skills", skills ? `${skills.count} loaded` : "미관측"],
-		["MCP", "MCP", `${enabledMcp}/${snapshot.mcpServers.length} enabled`],
-		["MEM", "Notes", `${snapshot.tnotes.length} notes`],
-		["WORK", "Workflow", `${workflowSteps} steps`],
-		["RUNT", "Runtime", runtime],
-	];
-	return inputs.map(([code, label, detail], index) => {
-		const ink = [a.info, a.text, a.success, a.response, a.attention, a.request, a.active][index];
-		return pair(`${ink("■")} ${a.strong(code)}  ${label}`, a.muted(detail), width);
-	});
-}
-
-function contextSummaryRows(snapshot: WorkbenchSnapshot, width: number): string[] {
-	const metrics = contextMetrics(snapshot);
-	const model = workbenchModelLabel(snapshot.activeModel ?? snapshot.model);
-	const cards = [
-		{ title : "Total Capacity" , value : metrics.total == null ? "미관측" : `${number(metrics.total)} tokens` , detail : metrics.total == null ? "native telemetry" : "context window"                   },
-		{ title : "Used Tokens"    , value : metrics.used == null ? "미관측" : `${number(metrics.used)} tokens`   , detail : metrics.percent == null ? "– occupancy" : `${metrics.percent}% occupied`        },
-		{ title : "Free Space"     , value : metrics.free == null ? "미관측" : `${number(metrics.free)} tokens`   , detail : metrics.percent == null ? "– available" : `${100 - metrics.percent}% available` },
-		{ title : "Compression"    , value : "미관측"                                                             , detail : "no native metric"                                                              },
-		{ title : "Last Retrieval" , value : "미관측"                                                             , detail : "timestamp unavailable"                                                         },
-		{ title : "Active Model"   , value : model                                                                , detail : snapshot.activeModel ? "in-flight turn" : "selected model"                      },
-		{ title : "Effort Config"  , value : workbenchEffortLabel(snapshot.effort)                                , detail : snapshot.effort ? "session setting" : "미관측"                                  },
-	] as const;
-	if (width >= 108) {
-		const widths = monitoringWidths(width, cards.length);
-		return monitoringColumns(cards.map((card, index) => monitoringCard(card, widths[index])), widths);
-	}
-	return cards.map(card => pair(card.title, `${card.value} · ${card.detail}`, width));
-}
-
-function contextSpectrometerRows(snapshot: WorkbenchSnapshot, width: number): string[] {
-	const metrics = contextMetrics(snapshot);
-	const status = metrics.used == null || metrics.total == null
-		? "Context token telemetry unavailable"
-		: `Total Used: ${number(metrics.used)} / ${number(metrics.total)} tokens`;
-	return [
-		...section("CONTEXT ACCUMULATION SPECTROMETER", width, status, a.response),
-		contextOccupancyCells(metrics.percent, width),
-		pair("OVERALL CONTEXT OCCUPANCY", metrics.percent == null ? "unavailable" : `${metrics.percent}%`, width),
-		a.caption("Whole native context window · includes system tokens"),
-		"",
-		...section("LOADED CAPABILITIES & SESSION INPUTS", width, "counts only · token allocation unobserved", a.info),
-		a.caption("Enabled MCP servers and loaded Skills are counts, not token shares."),
-		...contextInputRows(snapshot, width),
-	];
-}
-
-/** Equal cells visualize only whole-window occupancy; they never imply source attribution. */
-function contextOccupancyCells(percent: number | null, width: number): string {
-	const count = Math.max(3, Math.min(20, Math.floor((width + 1) / 4)));
-	if (percent === null) return Array.from({ length: count }, () => a.rule("[ ]")).join(" ");
-	const filled = Math.round(count * percent / 100);
-	return Array.from({ length: count }, (_, index) => index < filled ? `[${a.active("■")}]` : a.rule("[ ]")).join(" ");
-}
-
-/** The Figma composition panel has no Native per-source token telemetry yet. */
-function contextCompositionRows(snapshot: WorkbenchSnapshot, width: number): string[] {
-	const metrics = contextMetrics(snapshot);
-	const status = metrics.used == null ? "unavailable" : "overall observed · sources unobserved";
-	return [
-		...section("CONTEXT COMPOSITION BREAKDOWN", width, status, a.response),
-		a.strong("Source token allocation unavailable"),
-		metrics.used == null
-			? a.muted("Native context token telemetry is unavailable.")
-			: a.muted("Native reports overall context occupancy only; source token shares are not reported."),
-		a.caption("SOURCE TOKEN ALLOCATION · unavailable does not mean zero"),
-	];
-}
-
-function contextActivityRows(snapshot: WorkbenchSnapshot, width: number): string[] {
-	const activities = snapshot.activities.slice(-8).reverse();
-	const rows = section("CONTEXT CHANGE ACTIVITY", width, activities.length ? `last ${activities.length} observed` : "unavailable", a.tool);
-	if (!activities.length) return [...rows, a.muted("No durable activity records are available for this session.")];
-	for (const activity of activities) {
-		const identity = `#${activity.sequence}  ${safe(activity.kind)}`;
-		const detail = `${safe(activity.phase)} · ${safe(activity.recordedAt)}`;
-		rows.push(pair(identity, detail, width));
-	}
-	return rows;
-}
-
-function contextDiagnosticsRows(snapshot: WorkbenchSnapshot, width: number): string[] {
-	const metrics    = contextMetrics(snapshot)                                    ;
-	const tasks      = (snapshot.delegation ?? []).flatMap(group => group.tasks)   ;
-	const enabledMcp = snapshot.mcpServers.filter(server => server.enabled).length ;
-	const cards = [
-		{ title : "Context"      , value : metrics.used == null ? "UNAVAILABLE" : "OBSERVED"                            , detail : metrics.used == null || metrics.total == null ? "native telemetry" : `${number(metrics.used)}/${number(metrics.total)}` },
-		{ title : "Activities"   , value : `${snapshot.activities.length}`                                              , detail : "durable observed"                                                                                                      },
-		{ title : "Skills"       , value : snapshot.skillInventory ? `${snapshot.skillInventory.count}` : "UNAVAILABLE" , detail : snapshot.skillInventory ? "inventory loaded" : "inventory absent"                                                       },
-		{ title : "MCP / Agents" , value : `${enabledMcp}/${snapshot.mcpServers.length}`                                , detail : `${tasks.length} agent tasks`                                                                                           },
-	] as const;
-	const rows = section("CONTEXT DIAGNOSTICS EVENT GRID", width, "current snapshot", a.attention);
-	if (width >= 72) {
-		const widths = monitoringWidths(width, cards.length);
-		rows.push(...monitoringColumns(cards.map((card, index) => monitoringCard(card, widths[index])), widths));
-		return rows;
-	}
-	for (const card of cards) rows.push(pair(card.title, `${card.value} · ${card.detail}`, width));
-	return rows;
-}
-
-function contextDependencyRows(snapshot: WorkbenchSnapshot, width: number): string[] {
-	const skills  = snapshot.skillInventory                                           ;
-	const tasks   = (snapshot.delegation ?? []).flatMap(group => group.tasks)         ;
-	const metrics = contextMetrics(snapshot)                                          ;
-	const rows    = section("SYSTEM DEPENDENCY MAP", width, "observed graph", a.info) ;
-	rows.push(a.strong("WWW CORE"));
-	rows.push(pair("├─ Skills", skills ? `${skills.count} loaded` : "unavailable", width));
-	if (skills?.names.length) for (const name of skills.names.slice(0, 4)) rows.push(a.muted(`│  • ${safe(name)}`));
-	if (skills && skills.names.length > 4) rows.push(a.muted(`│  +${skills.names.length - 4} more`));
-	rows.push(pair("├─ Subagents", snapshot.delegation ? `${tasks.length} observed` : "unavailable", width));
-	for (const task of tasks.slice(0, 3)) rows.push(a.muted(`│  • ${safe(task.role ?? task.id)} · ${safe(task.status)}`));
-	if (tasks.length > 3) rows.push(a.muted(`│  +${tasks.length - 3} more`));
-	rows.push(pair("├─ MCP servers", `${snapshot.mcpServers.length} configured`, width));
-	for (const server of snapshot.mcpServers.slice(0, 3)) rows.push(a.muted(`│  • ${safe(server.name)} · ${server.enabled ? "ON" : "OFF"} · ${safe(server.status)}`));
-	if (snapshot.mcpServers.length > 3) rows.push(a.muted(`│  +${snapshot.mcpServers.length - 3} more`));
-	rows.push(pair("└─ Context occupancy", metrics.percent == null ? "unavailable" : `${metrics.percent}%`, width));
-	return rows;
-}
-
-function contextInsightRows(snapshot: WorkbenchSnapshot, width: number): string[] {
-	const metrics = contextMetrics(snapshot);
-	const latest = snapshot.activities.at(-1);
-	return [
-		...section("CONTEXT INSIGHTS", width, "current snapshot", a.attention),
-		pair("Free context", metrics.free == null ? "unavailable" : `${number(metrics.free)} tokens`, width),
-		pair("Latest activity", latest ? `#${latest.sequence} ${safe(latest.kind)} · ${safe(latest.phase)}` : "unavailable", width),
-		...section("TOP ITEMS BY SIZE", width, "unavailable"),
-		a.muted("Native does not expose per-item context byte sizes for ranking."),
-		...section("STATE CHANGE ALERTS", width, "unavailable"),
-		a.muted("No Native context-change event feed is available; no alert is inferred."),
-	];
-}
-
-function contextAnalysisRows(snapshot: WorkbenchSnapshot, width: number): string[] {
-	return [
-		...contextCompositionRows(snapshot, width),
-		...contextActivityRows(snapshot, width),
-		...contextDiagnosticsRows(snapshot, width),
-		...contextDependencyRows(snapshot, width),
-		...contextInsightRows(snapshot, width),
-	];
-}
-function compactList(values: readonly string[], limit = 8): string {
-	if (!values.length) return "미적재";
-	const visible = values.slice(0, limit).join("  ·  ");
-	return values.length > limit ? `${visible}  +${values.length - limit}` : visible;
-}
-function requestRuntimeRows(request: RequestRuntimeRecord, width: number): string[] {
-	const rows = [...section(`Request · ${safe(request.objective)}`, width, request.status)];
-	for (const stage of request.stages) rows.push(`${mark(stage.status)} ${safe(stage.id)}  ${safe(stage.output || stage.goal || stage.skipReason || "미관측")}`);
-	return document(rows, width);
-}
+import      { Markdown               } from "@earendil-works/pi-tui"                                           ;
+import type { Component              } from "@earendil-works/pi-tui"                                           ;
+import type { RequestRuntimeRecord   } from "@/core/domain/execution/request-runtime"                          ;
+import type { WorkbenchSnapshot      } from "@/core/domain/work/workbench"                                     ;
+import type { UsageSnapshot          } from "@/core/ports/observability/usage-monitor-port"                    ;
+import      {
+              monitoringCard       ,
+              monitoringColumns    ,
+              monitoringWidths     ,
+                                     } from "@/adapters/inbound/tui/foundation/layout/www-monitoring-layout"   ;
+import      {
+              a                    ,
+              wwwMarkdownTheme     ,
+              wwwMeter             ,
+              fit                  ,
+              mark                 ,
+              number               ,
+              pair                 ,
+              prose                ,
+              railSection          ,
+              safe                 ,
+              section              ,
+                                     } from "@/adapters/inbound/tui/foundation/theme/www-theme"                ;
+import      {
+              runtimeModeLabel     ,
+              workbenchEffortLabel ,
+              workbenchModelLabel  ,
+                                     } from "@/adapters/inbound/tui/foundation/labels"                         ;
+import      {
+              syntheticContextRows ,
+              syntheticStorageRows ,
+                                     } from "@/adapters/inbound/tui/features/context/view/www-context-catalog" ;
 
 export class WwwContextView implements Component {
 	constructor(private readonly get: () => WorkbenchSnapshot, private readonly usage: () => readonly UsageSnapshot[] = () => [], private readonly source = false, private readonly synthetic: () => boolean = () => false) {}
 	invalidate(): void {}
 	render(width: number): string[] {
-		const s = this.get();
-		const selected = s.activities.find(x => x.id === s.selectedActivityId);
+		const s        = this.get()                                            ;
+		const selected = s.activities.find(x => x.id === s.selectedActivityId) ;
 		if (this.source) {
 			const rows = section("실행 근거", width, selected?.kind ?? (s.selectedActivityId ? "기록 미포함" : "미선택"));
 			if (selected) rows.push(kv("Journal", selected.id), kv("Sequence", selected.sequence), kv("Thread", selected.nativeRefs.threadId), kv("Turn", selected.nativeRefs.turnId), kv("Item", selected.nativeRefs.itemId), kv("상태", selected.phase), kv("시각", selected.recordedAt), ...section("공개 원본", width), ...json(selected.payload, width), ...section("연결된 단계", width), ...s.workFlow.steps.filter(step => step.activityIds.includes(selected.id)).map(step => `${step.number}. ${safe(step.title)}`));
@@ -285,8 +83,8 @@ export class WwwContextView implements Component {
 			for (const u of this.usage()) {
 				rows.push(kv(u.provider, `${u.state}${u.stale ? " / stale" : ""}`));
 				for (const l of u.limits) {
-					const reset = l.resetsAt ? new Date(l.resetsAt) : null;
-					const percent = typeof l.remainingPercent === "number" && Number.isFinite(l.remainingPercent) ? `${Math.round(Math.max(0, Math.min(100, l.remainingPercent)))}% 남음` : "—";
+					const reset   = l.resetsAt ? new Date(l.resetsAt) : null                                                                                                                    ;
+					const percent = typeof l.remainingPercent === "number" && Number.isFinite(l.remainingPercent) ? `${Math.round(Math.max(0, Math.min(100, l.remainingPercent)))}% 남음` : "—" ;
 					rows.push(a.muted(`  ${safe(l.label)}  ${percent}${reset && Number.isFinite(reset.getTime()) ? ` / reset ${reset.toISOString()}` : ""}`));
 				}
 			}
@@ -332,4 +130,223 @@ export class WwwContextRail implements Component {
 		rows.push(pair("RECORDING", snapshot.recordingReadOnly ? "READ-ONLY" : "WRITABLE", width));
 		return document(rows, width);
 	}
+}
+
+function document(rows: string[], width: number): string[] { return rows.flatMap(row => prose(row, width)); }
+function kv(label: string, value: unknown): string { return `${a.muted(fit(label, 20))} ${a.text(safe(value ?? "—"))}`; }
+
+function hiddenKey(key: string): boolean {
+	const normalized = key.replace(/[-_]/gu, "").toLowerCase();
+	return normalized.includes("reasoning") || normalized.includes("thought") || normalized.includes("analysis")
+		|| normalized.startsWith("raw") || normalized.endsWith("token") || normalized.endsWith("secret")
+		|| normalized.endsWith("password") || normalized.endsWith("credential")
+		|| normalized.endsWith("authorization") || normalized.endsWith("apikey");
+}
+
+function json(value: unknown, width: number): string[] {
+	const text = JSON.stringify(value, (key, item) => hiddenKey(key) ? undefined : item, 2);
+	return prose(a.muted(safe(text, 10_000)), width);
+}
+
+function usagePercent(percent: number | undefined): string {
+	if (typeof percent !== "number" || !Number.isFinite(percent)) return " –";
+	const value = Math.round(Math.max(0, Math.min(100, percent)));
+	return `${String(value).padStart(2, " ")}%`;
+}
+
+function contextMetrics(snapshot: WorkbenchSnapshot): {
+	readonly used    : number | null ;
+	readonly total   : number | null ;
+	readonly free    : number | null ;
+	readonly percent : number | null ;
+} {
+	const usage = snapshot.contextUsage;
+	if (!usage
+		|| !Number.isFinite(usage.usedTokens)
+		|| !Number.isFinite(usage.contextWindow)
+		|| usage.usedTokens < 0
+		|| usage.contextWindow <= 0) {
+		return { used: null, total: null, free: null, percent: null };
+	}
+	const used    = Math.min(usage.usedTokens, usage.contextWindow) ;
+	const percent = Math.round(used / usage.contextWindow * 100)    ;
+	return {
+		used,
+		total: usage.contextWindow,
+		free: Math.max(0, usage.contextWindow - used),
+		percent,
+	};
+}
+
+function contextInputRows(snapshot: WorkbenchSnapshot, width: number): string[] {
+	const skills        = snapshot.skillInventory                                     ;
+	const enabledMcp    = snapshot.mcpServers.filter(server => server.enabled).length ;
+	const workflowSteps = snapshot.workFlow.steps.length                              ;
+	const runtime       = snapshot.liveActivity ? "1 observed" : "미관측"             ;
+	const inputs: readonly [string, string, string][] = [
+		["SYS", "System", "token allocation 미관측"],
+		["CONV", "Conversation", `${snapshot.chat.length} messages`],
+		["SKILL", "Skills", skills ? `${skills.count} loaded` : "미관측"],
+		["MCP", "MCP", `${enabledMcp}/${snapshot.mcpServers.length} enabled`],
+		["MEM", "Notes", `${snapshot.tnotes.length} notes`],
+		["WORK", "Workflow", `${workflowSteps} steps`],
+		["RUNT", "Runtime", runtime],
+	];
+	return inputs.map(([code, label, detail], index) => {
+		const ink = [a.info, a.text, a.success, a.response, a.attention, a.request, a.active][index];
+		return pair(`${ink("■")} ${a.strong(code)}  ${label}`, a.muted(detail), width);
+	});
+}
+
+function contextSummaryRows(snapshot: WorkbenchSnapshot, width: number): string[] {
+	const metrics = contextMetrics(snapshot)                                    ;
+	const model   = workbenchModelLabel(snapshot.activeModel ?? snapshot.model) ;
+	const cards = [
+		{ title : "Total Capacity" , value : metrics.total == null ? "미관측" : `${number(metrics.total)} tokens` , detail : metrics.total == null ? "native telemetry" : "context window"                   },
+		{ title : "Used Tokens"    , value : metrics.used == null ? "미관측" : `${number(metrics.used)} tokens`   , detail : metrics.percent == null ? "– occupancy" : `${metrics.percent}% occupied`        },
+		{ title : "Free Space"     , value : metrics.free == null ? "미관측" : `${number(metrics.free)} tokens`   , detail : metrics.percent == null ? "– available" : `${100 - metrics.percent}% available` },
+		{ title : "Compression"    , value : "미관측"                                                             , detail : "no native metric"                                                              },
+		{ title : "Last Retrieval" , value : "미관측"                                                             , detail : "timestamp unavailable"                                                         },
+		{ title : "Active Model"   , value : model                                                                , detail : snapshot.activeModel ? "in-flight turn" : "selected model"                      },
+		{ title : "Effort Config"  , value : workbenchEffortLabel(snapshot.effort)                                , detail : snapshot.effort ? "session setting" : "미관측"                                  },
+	] as const;
+	if (width >= 108) {
+		const widths = monitoringWidths(width, cards.length);
+		return monitoringColumns(cards.map((card, index) => monitoringCard(card, widths[index])), widths);
+	}
+	return cards.map(card => pair(card.title, `${card.value} · ${card.detail}`, width));
+}
+
+function contextSpectrometerRows(snapshot: WorkbenchSnapshot, width: number): string[] {
+	const metrics = contextMetrics(snapshot);
+	const status = metrics.used == null || metrics.total == null
+		? "Context token telemetry unavailable"
+		: `Total Used: ${number(metrics.used)} / ${number(metrics.total)} tokens`;
+	return [
+		...section("CONTEXT ACCUMULATION SPECTROMETER", width, status, a.response),
+		contextOccupancyCells(metrics.percent, width),
+		pair("OVERALL CONTEXT OCCUPANCY", metrics.percent == null ? "unavailable" : `${metrics.percent}%`, width),
+		a.caption("Whole native context window · includes system tokens"),
+		"",
+		...section("LOADED CAPABILITIES & SESSION INPUTS", width, "counts only · token allocation unobserved", a.info),
+		a.caption("Enabled MCP servers and loaded Skills are counts, not token shares."),
+		...contextInputRows(snapshot, width),
+	];
+}
+
+/** Equal cells visualize only whole-window occupancy; they never imply source attribution. */
+function contextOccupancyCells(percent: number | null, width: number): string {
+	const count = Math.max(3, Math.min(20, Math.floor((width + 1) / 4)));
+	if (percent === null) return Array.from({ length: count }, () => a.rule("[ ]")).join(" ");
+	const filled = Math.round(count * percent / 100);
+	return Array.from({ length: count }, (_, index) => index < filled ? `[${a.active("■")}]` : a.rule("[ ]")).join(" ");
+}
+
+/** The Figma composition panel has no Native per-source token telemetry yet. */
+function contextCompositionRows(snapshot: WorkbenchSnapshot, width: number): string[] {
+	const metrics = contextMetrics(snapshot)                                                       ;
+	const status  = metrics.used == null ? "unavailable" : "overall observed · sources unobserved" ;
+	return [
+		...section("CONTEXT COMPOSITION BREAKDOWN", width, status, a.response),
+		a.strong("Source token allocation unavailable"),
+		metrics.used == null
+			? a.muted("Native context token telemetry is unavailable.")
+			: a.muted("Native reports overall context occupancy only; source token shares are not reported."),
+		a.caption("SOURCE TOKEN ALLOCATION · unavailable does not mean zero"),
+	];
+}
+
+function contextActivityRows(snapshot: WorkbenchSnapshot, width: number): string[] {
+	const activities = snapshot.activities.slice(-8).reverse()                                                                                     ;
+	const rows       = section("CONTEXT CHANGE ACTIVITY", width, activities.length ? `last ${activities.length} observed` : "unavailable", a.tool) ;
+	if (!activities.length) return [...rows, a.muted("No durable activity records are available for this session.")];
+	for (const activity of activities) {
+		const identity = `#${activity.sequence}  ${safe(activity.kind)}`          ;
+		const detail   = `${safe(activity.phase)} · ${safe(activity.recordedAt)}` ;
+		rows.push(pair(identity, detail, width));
+	}
+	return rows;
+}
+
+function contextDiagnosticsRows(snapshot: WorkbenchSnapshot, width: number): string[] {
+	const metrics    = contextMetrics(snapshot)                                    ;
+	const tasks      = (snapshot.delegation ?? []).flatMap(group => group.tasks)   ;
+	const enabledMcp = snapshot.mcpServers.filter(server => server.enabled).length ;
+	const cards = [
+		{ title : "Context"      , value : metrics.used == null ? "UNAVAILABLE" : "OBSERVED"                            , detail : metrics.used == null || metrics.total == null ? "native telemetry" : `${number(metrics.used)}/${number(metrics.total)}` },
+		{ title : "Activities"   , value : `${snapshot.activities.length}`                                              , detail : "durable observed"                                                                                                      },
+		{ title : "Skills"       , value : snapshot.skillInventory ? `${snapshot.skillInventory.count}` : "UNAVAILABLE" , detail : snapshot.skillInventory ? "inventory loaded" : "inventory absent"                                                       },
+		{ title : "MCP / Agents" , value : `${enabledMcp}/${snapshot.mcpServers.length}`                                , detail : `${tasks.length} agent tasks`                                                                                           },
+	] as const;
+	const rows = section("CONTEXT DIAGNOSTICS EVENT GRID", width, "current snapshot", a.attention);
+	if (width >= 72) {
+		const widths = monitoringWidths(width, cards.length);
+		rows.push(...monitoringColumns(cards.map((card, index) => monitoringCard(card, widths[index])), widths));
+		return rows;
+	}
+	for (const card of cards) rows.push(pair(card.title, `${card.value} · ${card.detail}`, width));
+	return rows;
+}
+
+function contextDependencyRows(snapshot: WorkbenchSnapshot, width: number): string[] {
+	const skills  = snapshot.skillInventory                                           ;
+	const tasks   = (snapshot.delegation ?? []).flatMap(group => group.tasks)         ;
+	const metrics = contextMetrics(snapshot)                                          ;
+	const rows    = section("SYSTEM DEPENDENCY MAP", width, "observed graph", a.info) ;
+	rows.push(a.strong("WWW CORE"));
+	rows.push(pair("├─ Skills", skills ? `${skills.count} loaded` : "unavailable", width));
+	if (skills?.names.length) for (const name of skills.names.slice(0, 4)) rows.push(a.muted(`│  • ${safe(name)}`));
+	if (skills && skills.names.length > 4) rows.push(a.muted(`│  +${skills.names.length - 4} more`));
+	rows.push(pair("├─ Subagents", snapshot.delegation ? `${tasks.length} observed` : "unavailable", width));
+	for (const task of tasks.slice(0, 3)) rows.push(a.muted(`│  • ${safe(task.role ?? task.id)} · ${safe(task.status)}`));
+	if (tasks.length > 3) rows.push(a.muted(`│  +${tasks.length - 3} more`));
+	rows.push(pair("├─ MCP servers", `${snapshot.mcpServers.length} configured`, width));
+	for (const server of snapshot.mcpServers.slice(0, 3)) rows.push(a.muted(`│  • ${safe(server.name)} · ${server.enabled ? "ON" : "OFF"} · ${safe(server.status)}`));
+	if (snapshot.mcpServers.length > 3) rows.push(a.muted(`│  +${snapshot.mcpServers.length - 3} more`));
+	rows.push(pair("└─ Context occupancy", metrics.percent == null ? "unavailable" : `${metrics.percent}%`, width));
+	return rows;
+}
+
+function contextInsightRows(snapshot: WorkbenchSnapshot, width: number): string[] {
+	const metrics = contextMetrics(snapshot)   ;
+	const latest  = snapshot.activities.at(-1) ;
+	return [
+		...section("CONTEXT INSIGHTS", width, "current snapshot", a.attention),
+		pair("Free context", metrics.free == null ? "unavailable" : `${number(metrics.free)} tokens`, width),
+		pair("Latest activity", latest ? `#${latest.sequence} ${safe(latest.kind)} · ${safe(latest.phase)}` : "unavailable", width),
+		...section("TOP ITEMS BY SIZE", width, "unavailable"),
+		a.muted("Native does not expose per-item context byte sizes for ranking."),
+		...section("STATE CHANGE ALERTS", width, "unavailable"),
+		a.muted("No Native context-change event feed is available; no alert is inferred."),
+	];
+}
+
+function contextAnalysisRows(snapshot: WorkbenchSnapshot, width: number): string[] {
+	return [
+		...contextCompositionRows(snapshot, width),
+		...contextActivityRows(snapshot, width),
+		...contextDiagnosticsRows(snapshot, width),
+		...contextDependencyRows(snapshot, width),
+		...contextInsightRows(snapshot, width),
+	];
+}
+
+function compactList(values: readonly string[], limit = 8): string {
+	if (!values.length) return "미적재";
+	const visible = values.slice(0, limit).join("  ·  ");
+	return values.length > limit ? `${visible}  +${values.length - limit}` : visible;
+}
+
+function requestRuntimeRows(request: RequestRuntimeRecord, width: number): string[] {
+	const rows = [...section(`Request · ${safe(request.objective)}`, width, request.status)];
+	const checkpoints = request.checkpoints ?? [
+		{ id : "UNDERSTAND" , status : request.stages.some(stage => stage.id === "UNDERSTAND" && stage.status === "completed") ? "observed" : "unobserved"                                              , summary : "과거 요청 기록" , activityIds : [] , observedAt : null },
+		{ id : "WORK"       , status : request.stages.some(stage => ["running", "completed"].includes(stage.status) && stage.id !== "UNDERSTAND" && stage.id !== "DELIVER") ? "observed" : "unobserved" , summary : "과거 작업 기록" , activityIds : [] , observedAt : null },
+		{ id : "RESULT"     , status : request.stages.some(stage => stage.id === "DELIVER" && stage.status === "completed") ? "observed" : "unobserved"                                                 , summary : "과거 결과 기록" , activityIds : [] , observedAt : null },
+	];
+	for (const item of checkpoints) {
+		const marker = item.status === "observed" ? "✓" : item.status === "running" ? "●" : item.status === "failed" ? "×" : "·";
+		rows.push(`${marker} ${safe(item.id)}  ${safe(item.summary || "미관측")}`);
+	}
+	return document(rows, width);
 }

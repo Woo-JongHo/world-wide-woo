@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-STAGE-SIDEBAR-STATUS-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:0e7d421b5da741d39b34895a6d2d1fbdb3ff14be:dirty",
+  "intent": "7단계 진행과 미사용 상태를 표시하고 사이드 STATUS를 입력창 옆까지 이어진 패널로 고정한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "observe INTENT 뒤 GROUND를 running으로 시작하고 잘못된 WORK는 blocked로 표시하며 수정된 WORK 재시도를 허용했다.",
+      "7단계 HUD와 모니터에서 skipped를 어두운 − 표식으로 구분하고 사이드 REPORT 제목을 STATUS로 바꿨다.",
+      "실행 화면의 본문과 입력창을 관통하는 세로 경계를 그리고 STATUS의 절대 위치를 입력창 높이 변화와 무관하게 유지했다."
+    ],
+    "impacts": [
+      "UNDERSTAND 이후 단계가 멈춘 것처럼 보이지 않으며 생략 단계와 대기 단계를 구분할 수 있다.",
+      "입력창이 늘어나도 STATUS가 위로 뛰지 않고 같은 오른쪽 패널 안에 남는다."
+    ],
+    "categories": [
+      "fix",
+      "improvement"
+    ],
+    "verification": [
+      "bun test test/request-runtime.test.ts test/www-ui.test.ts -t 'STATUS stays|sidebar report|shrinks the composer|stage HUD|WORK': 9 pass, 0 fail.",
+      "bun run check와 git diff --check 통과. 전체 www-ui 테스트에는 기존 Chat/Report 관련 실패 14건이 남아 있다.",
+      "Claude Opus 읽기 전용 감사 결과를 반영해 사이드바 가시성 기준을 통일했다. 짧은 터미널에서의 실제 TUI 육안 검사는 미실행."
+    ],
+    "connections": [
+      "[WOO-910](https://linear.app/woo-world/issue/WOO-910/astra에서-요청계획현재-실행을-하나의-7단계-runtime으로-통제한다)",
+      "WOO-912 · WOO-913",
+      "src/core/runtime/request-runtime.ts",
+      "src/adapters/inbound/tui/shell/www-surface.ts",
+      ".www/evidence/2026-09-29-stage-sidebar-status"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-910/astra에서-요청계획현재-실행을-하나의-7단계-runtime으로-통제한다",
+    "evidence": ".www/evidence/2026-09-29-stage-sidebar-status"
+  },
+  "expectedBefore": {
+    "latestCommentId": "191d9fea-0a00-45ba-a4f6-b52b79a99086"
+  },
+  "validation": [
+    {
+      "id": "target",
+      "status": "pass",
+      "evidence": "기존 WOO-910 · WOO-912 · WOO-913과 WWW Project Activity 확인"
+    },
+    {
+      "id": "checks",
+      "status": "pass",
+      "evidence": "관련 테스트 9 pass, TypeScript noEmit 및 diff check pass"
+    }
+  ],
+  "candidateDigest": "b64f1a479364680a6113cd403fab43808340569c3a2a1e6d38545507331db3ec"
+}

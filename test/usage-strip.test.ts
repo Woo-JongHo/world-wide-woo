@@ -22,19 +22,20 @@ function readyUsage() {
 	return view;
 }
 
-test("runtime mode, 공급자 잔여 시간, Context 토큰을 한 줄에 표시한다", () => {
+test("runtime mode, 주간 사용량 바, Context 토큰을 한 줄에 표시한다", () => {
 	const line = stripTerminalSequences(readyUsage().render(240)[0]!);
 	expect(line).toContain("● manual mode"                          ) ;
-	expect(line).toMatch  (/Codex 80% · (?:7d 0h|6d 23h)/u          ) ;
-	expect(line).toContain("80%"                                    ) ;
-	expect(line).toMatch  (/Claude 84% · (?:7d 0h|6d 23h)/u         ) ;
-	expect(line).toMatch  (/5h 12% · 2h \d{2}m/u                    ) ;
-	expect(line).toMatch  (/Antigravity 63% · (?:1d 0h|23h \d{2}m)/u) ;
+	expect(line).toContain("Codex "                                ) ;
+	expect(line).toContain("Claude "                               ) ;
+	expect(line).toContain("Antigravity —"                         ) ;
+	expect(line).toContain   ("Codex 80% · 7d"                    ) ;
+	expect(line).toContain   ("Claude 84% · 7d"                   ) ;
+	expect(line).not.toContain("5h"                                ) ;
 	expect(line).toContain("Context 92k / 200k 46%"                 ) ;
 	expect(line).toContain(" │ "                                    ) ;
 });
 
-test("Claude와 Z.AI는 주간 한도와 5시간 세션을 함께 표시한다", () => {
+test("Claude와 Z.AI는 주간 사용량 바만 표시한다", () => {
 	const view = new UsageStripView();
 	view.update([
 		{ provider: "anthropic", state: "ready", fetchedAt: now, limits: [
@@ -48,12 +49,12 @@ test("Claude와 Z.AI는 주간 한도와 5시간 세션을 함께 표시한다",
 	]);
 	const line = stripTerminalSequences(view.render(240)[0]!);
 	expect(line).toContain("Claude") ;
-	expect(line).toContain("5h"    ) ;
-	expect(line).toContain("12%"   ) ;
-	expect(line).toContain("84%"   ) ;
+	expect(line).not.toContain("5h" ) ;
+	expect(line).not.toContain("12%") ;
+	expect(line).toContain("84%") ;
 	expect(line).toContain("Z.AI"  ) ;
-	expect(line).toContain("98%"   ) ;
-	expect(line).toContain("76%"   ) ;
+	expect(line).not.toContain("98%") ;
+	expect(line).toContain("76%") ;
 });
 
 test("값 없음과 좁은 폭에서도 한 줄 경계를 지킨다", () => {

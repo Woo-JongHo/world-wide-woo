@@ -1,0 +1,12 @@
+{
+  "candidateId": "ARTIFACT-CANDIDATE-STAGE-SIDEBAR-STATUS-COMMENT",
+  "candidateDigest": "b64f1a479364680a6113cd403fab43808340569c3a2a1e6d38545507331db3ec",
+  "expectedBefore": "191d9fea-0a00-45ba-a4f6-b52b79a99086",
+  "commentId": "bb8949a5-c103-4d01-8ab8-fc05d6ba88d0",
+  "createdAt": "2026-09-29T07:33:14.894Z",
+  "readBack": {
+    "latest": true,
+    "author": "우종호",
+    "bodyMatches": true
+  }
+}

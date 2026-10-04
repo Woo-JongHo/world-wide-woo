@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-SUBSCRIPTION-BAR-WIDTH-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:0e7d421b5da741d39b34895a6d2d1fbdb3ff14be:dirty",
+  "intent": "구독 잔여 바 폭을 조금 줄인다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "Workbench 하단 HUD의 주간 사용량 바를 12칸에서 10칸으로 줄였다.",
+      "구독 HUD의 공급자별 주간 바 최대 폭을 24칸에서 20칸으로 줄였다."
+    ],
+    "impacts": [
+      "좁은 화면에서 구독 바가 차지하는 가로 공간이 줄고 공급자명·잔여 비율 기반 채움은 유지된다."
+    ],
+    "categories": [
+      "improvement"
+    ],
+    "verification": [
+      "bun test test/www-provider-meter-fidelity.test.ts test/usage-strip.test.ts test/workbench-bottom-hud.test.ts: 11 pass, 0 fail.",
+      "bun run check와 git diff --check 통과. 변경 파일에서 TODO·test.skip·.only 자리표시 검색 결과 없음."
+    ],
+    "connections": [
+      "[WOO-912](https://linear.app/woo-world/issue/WOO-912/workbench-ui-모드모델계획구독-잔여-표기를-정리한다)",
+      ".www/evidence/2026-09-29-subscription-bar-width"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-912/workbench-ui-모드모델계획구독-잔여-표기를-정리한다",
+    "evidence": ".www/evidence/2026-09-29-subscription-bar-width"
+  },
+  "expectedBefore": {
+    "latestCommentId": "bb8949a5-c103-4d01-8ab8-fc05d6ba88d0"
+  },
+  "validation": [
+    {
+      "id": "target",
+      "status": "pass",
+      "evidence": "live WWW Project 및 기존 WOO-912 확인"
+    },
+    {
+      "id": "checks",
+      "status": "pass",
+      "evidence": "관련 테스트 11 pass, TypeScript noEmit 및 diff check pass"
+    }
+  ],
+  "candidateDigest": "de260a199b56b4530eb352bcf0d70250763c23ced0b820311f27039da11d25b2"
+}

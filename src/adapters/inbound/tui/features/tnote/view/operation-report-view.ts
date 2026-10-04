@@ -1,12 +1,16 @@
-import { truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
-import { colors, semantic }                                from "@/adapters/inbound/tui/foundation/theme/theme";
+import      {
+              truncateToWidth  ,
+              visibleWidth     ,
+              wrapTextWithAnsi ,
+                                 } from "@earendil-works/pi-tui"                                                       ;
+import      { colors, semantic   } from "@/adapters/inbound/tui/foundation/theme/theme"                                ;
 import type {
-	OperationReport,
-	OperationStatus,
-} from "@/adapters/inbound/tui/features/tnote/view-model/operation-report-view-model";
+              OperationReport  ,
+              OperationStatus  ,
+                                 } from "@/adapters/inbound/tui/features/tnote/view-model/operation-report-view-model" ;
 
-const NARROW_WIDTH = 60;
-const WIDE_WIDTH   = 90;
+const NARROW_WIDTH = 60 ;
+const WIDE_WIDTH   = 90 ;
 
 /** Renders a completed request as a scan-first operation report at any terminal width. */
 export function renderOperationReport(report: OperationReport, width: number): string[] {
@@ -51,22 +55,12 @@ function snapshotRows(report: OperationReport, width: number): string[] {
 }
 
 function resultSection(report: OperationReport, width: number): string[] {
-	const rows = [...heading("03. 결과", width)];
-	if (width < NARROW_WIDTH) {
-		for (const result of report.results) rows.push(result.target, `  ${result.action}`, `  ${statusText(result.status)}`);
-		rows.push("전체 판정", `  ${statusText(report.status)}`, "");
-		return rows;
-	}
-	const widths = [12, Math.max(18, width - 31), 16];
-	rows.push(row(["TARGET", "ACTION", "RESULT"], widths));
-	for (const result of report.results) rows.push(row([result.target, result.action, statusText(result.status)], widths));
-	rows.push(row(["", "전체 판정", statusText(report.status)], widths), "");
-	return rows;
+	return [...heading("03. 결과", width), ...(width < NARROW_WIDTH ? narrowResultRows(report) : wideResultRows(report, width))];
 }
 
 function activitySection(report: OperationReport, width: number): string[] {
-	const rows = [...heading("02. 주요 작업", width)];
-	const cursor = { oldLine: 1, newLine: 1 };
+	const rows   = [...heading("02. 주요 작업", width)] ;
+	const cursor = { oldLine: 1, newLine: 1 }           ;
 	report.activities.forEach((activity, index) => {
 		if (/^(?:[✓△✕—]\s*)?(?:CHANGE|CHECK)\b/iu.test(activity.description)) {
 			rows.push(...wrapped(activity.description, width));
@@ -89,8 +83,8 @@ function activitySection(report: OperationReport, width: number): string[] {
 }
 
 function diffRows(value: string, width: number, cursor: { oldLine: number; newLine: number }): string[] {
-	const content = value.slice(2);
-	const hunk = /^@@\s+-(\d+)(?:,\d+)?\s+\+(\d+)(?:,\d+)?\s+@@/u.exec(content);
+	const content = value.slice(2)                                                 ;
+	const hunk    = /^@@\s+-(\d+)(?:,\d+)?\s+\+(\d+)(?:,\d+)?\s+@@/u.exec(content) ;
 	if (hunk) {
 		cursor.oldLine = Number.parseInt(hunk[1] ?? "1", 10);
 		cursor.newLine = Number.parseInt(hunk[2] ?? "1", 10);
@@ -112,25 +106,7 @@ function diffRows(value: string, width: number, cursor: { oldLine: number; newLi
 }
 
 function modelSection(report: OperationReport, width: number): string[] {
-	const rows = [...heading("05. 모델 · 토큰 · Runtime", width)];
-	if (width < WIDE_WIDTH) {
-		for (const [index, model] of report.models.entries()) rows.push(model.role, `  Provider  ${model.provider ?? "—"}`, `  Model     ${model.model ?? "UNKNOWN"}`, `  Effort    ${model.effort ?? "—"}`, `  Input     ${index === 0 ? metric(report.tokens.input) : "—"}`, `  Output    ${index === 0 ? metric(report.tokens.output) : "—"}`, `  Total     ${index === 0 ? metric(report.tokens.total) : "—"}`, "");
-		rows.push(...tokenComparisonRows(report));
-		return rows;
-	}
-	const widths = [18, 12, Math.max(12, width - 76), 8, 10, 10, 12];
-	rows.push(row(["ROLE", "PROVIDER", "MODEL", "EFFORT", "INPUT", "OUTPUT", "TOTAL"], widths));
-	for (const [index, model] of report.models.entries()) rows.push(row([
-		model.role,
-		model.provider ?? "—",
-		model.model ?? "UNKNOWN",
-		model.effort ?? "—",
-		index === 0 ? metric(report.tokens.input) : "—",
-		index === 0 ? metric(report.tokens.output) : "—",
-		index === 0 ? metric(report.tokens.total) : "—",
-	], widths, true));
-	rows.push("", ...tokenComparisonRows(report));
-	return rows;
+	return [...heading("05. 모델 · 토큰 · Runtime", width), ...(width < WIDE_WIDTH ? narrowModelRows(report) : wideModelRows(report, width))];
 }
 
 function tokenComparisonRows(report: OperationReport): string[] {
@@ -174,35 +150,12 @@ function metricsSection(report: OperationReport, width: number): string[] {
 }
 
 function changeSection(report: OperationReport, width: number): string[] {
-	const rows = [...heading("10. 변경 상태", width)];
-	if (width < NARROW_WIDTH) {
-		for (const change of report.changes) rows.push(change.area, `  ${statusText(change.status)}`, ...wrapped(change.detail, width, "  "));
-		rows.push("");
-		return rows;
-	}
-	const widths = [12, 16, Math.max(18, width - 31)];
-	rows.push(row(["AREA", "STATUS", "DETAIL"], widths));
-	for (const change of report.changes) rows.push(row([change.area, statusText(change.status), change.detail], widths));
-	rows.push("");
-	return rows;
+	return [...heading("10. 변경 상태", width), ...(width < NARROW_WIDTH ? narrowChangeRows(report, width) : wideChangeRows(report, width))];
 }
 
 function fileSection(report: OperationReport, width: number): string[] {
 	if (report.files.length === 0) return [];
-	const rows = [...heading("11. 변경 파일", width)];
-	if (width < NARROW_WIDTH) {
-		for (const file of report.files) rows.push(...wrapped(file.path, width), `  ${statusText(file.status)}`, `  ADD  ${signed(file.added, "+")}`, `  DEL  ${signed(file.deleted, "-")}`);
-		rows.push("");
-		return rows;
-	}
-	const widths = [Math.max(18, width - 31), 10, 8, 8];
-	rows.push(row(["FILE", "STATUS", "ADD", "DEL"], widths));
-	for (const file of report.files) {
-		rows.push(row([file.path, statusText(file.status), signed(file.added, "+"), signed(file.deleted, "-")], widths, true));
-		if (file.added === null && file.deleted === null && file.summary) rows.push(...wrapped(file.summary, width, "  "));
-	}
-	rows.push(row([`${report.files.length} files`, "", signed(sumObserved(report.files.map(file => file.added)), "+"), signed(sumObserved(report.files.map(file => file.deleted)), "-")], widths, true), "");
-	return rows;
+	return [...heading("11. 변경 파일", width), ...(width < NARROW_WIDTH ? narrowFileRows(report, width) : wideFileRows(report, width))];
 }
 
 function blockingSection(report: OperationReport, width: number): string[] {
@@ -217,8 +170,8 @@ function evaluationSection(report: OperationReport, width: number): string[] {
 }
 
 function evidenceSection(report: OperationReport, width: number): string[] {
-	const commit = report.evidence.find(item => item.type === "Commit")?.value ?? "—";
-	const rows = [...heading("12. Commit · Evidence", width), "COMMIT", pair("Branch", "— UNKNOWN", "Commit", commit, width), pair("Working tree", "— UNKNOWN", "", "", width), "", "EVIDENCE"];
+	const commit = report.evidence.find(item => item.type === "Commit")?.value ?? "—"                                                                                                             ;
+	const rows   = [...heading("12. Commit · Evidence", width), "COMMIT", pair("Branch", "— UNKNOWN", "Commit", commit, width), pair("Working tree", "— UNKNOWN", "", "", width), "", "EVIDENCE"] ;
 	if (report.evidence.length === 0) rows.push("— NONE");
 	else if (width < NARROW_WIDTH) for (const evidence of report.evidence) rows.push(evidence.type, ...wrapped(evidence.value, width, "  "));
 	else {
@@ -233,14 +186,88 @@ function evidenceSection(report: OperationReport, width: number): string[] {
 }
 
 function testSection(report: OperationReport, width: number): string[] {
-	const tests = report.tests;
-	const rows = [...heading("13. Test", width), `Status       ${statusText(tests.status)}`, "", `Total        ${metric(tests.total)}`, `Passed       ${metric(tests.passed)}`, `Failed       ${metric(tests.failed)}`, `Skipped      ${metric(tests.skipped)}`, `Duration     ${duration(tests.durationMs)}`];
+	const tests = report.tests                                                                                                                                                                                                                                                                                  ;
+	const rows  = [...heading("13. Test", width), `Status       ${statusText(tests.status)}`, "", `Total        ${metric(tests.total)}`, `Passed       ${metric(tests.passed)}`, `Failed       ${metric(tests.failed)}`, `Skipped      ${metric(tests.skipped)}`, `Duration     ${duration(tests.durationMs)}`] ;
 	if (tests.checks.length > 0) {
 		rows.push("");
 		for (const check of tests.checks) rows.push(...wrapped(`${statusText(check.status)}  ${check.command}  ${duration(check.durationMs)}`, width));
 	}
 	rows.push("");
 	return rows;
+}
+
+function narrowResultRows(report: OperationReport): string[] {
+	return [...report.results.flatMap(result => [result.target, `  ${result.action}`, `  ${statusText(result.status)}`]), "전체 판정", `  ${statusText(report.status)}`, ""];
+}
+
+function wideResultRows(report: OperationReport, width: number): string[] {
+	const widths = [12, Math.max(18, width - 31), 16];
+	return [
+		row(["TARGET", "ACTION", "RESULT"], widths),
+		...report.results.map(result => row([result.target, result.action, statusText(result.status)], widths)),
+		row(["", "전체 판정", statusText(report.status)], widths),
+		"",
+	];
+}
+
+function narrowModelRows(report: OperationReport): string[] {
+	return [
+		...report.models.flatMap((model, index) => [
+			model.role,
+			`  Provider  ${model.provider ?? "—"}`,
+			`  Model     ${model.model ?? "UNKNOWN"}`,
+			`  Effort    ${model.effort ?? "—"}`,
+			`  Input     ${index === 0 ? metric(report.tokens.input) : "—"}`,
+			`  Output    ${index === 0 ? metric(report.tokens.output) : "—"}`,
+			`  Total     ${index === 0 ? metric(report.tokens.total) : "—"}`,
+			"",
+		]),
+		...tokenComparisonRows(report),
+	];
+}
+
+function wideModelRows(report: OperationReport, width: number): string[] {
+	const widths = [18, 12, Math.max(12, width - 76), 8, 10, 10, 12];
+	return [
+		row(["ROLE", "PROVIDER", "MODEL", "EFFORT", "INPUT", "OUTPUT", "TOTAL"], widths),
+		...report.models.map((model, index) => row([
+			model.role,
+			model.provider ?? "—",
+			model.model ?? "UNKNOWN",
+			model.effort ?? "—",
+			index === 0 ? metric(report.tokens.input) : "—",
+			index === 0 ? metric(report.tokens.output) : "—",
+			index === 0 ? metric(report.tokens.total) : "—",
+		], widths, true)),
+		"",
+		...tokenComparisonRows(report),
+	];
+}
+
+function narrowChangeRows(report: OperationReport, width: number): string[] {
+	return [...report.changes.flatMap(change => [change.area, `  ${statusText(change.status)}`, ...wrapped(change.detail, width, "  ")]), ""];
+}
+
+function wideChangeRows(report: OperationReport, width: number): string[] {
+	const widths = [12, 16, Math.max(18, width - 31)];
+	return [row(["AREA", "STATUS", "DETAIL"], widths), ...report.changes.map(change => row([change.area, statusText(change.status), change.detail], widths)), ""];
+}
+
+function narrowFileRows(report: OperationReport, width: number): string[] {
+	return [...report.files.flatMap(file => [...wrapped(file.path, width), `  ${statusText(file.status)}`, `  ADD  ${signed(file.added, "+")}`, `  DEL  ${signed(file.deleted, "-")}`]), ""];
+}
+
+function wideFileRows(report: OperationReport, width: number): string[] {
+	const widths = [Math.max(18, width - 31), 10, 8, 8];
+	return [
+		row(["FILE", "STATUS", "ADD", "DEL"], widths),
+		...report.files.flatMap(file => [
+			row([file.path, statusText(file.status), signed(file.added, "+"), signed(file.deleted, "-")], widths, true),
+			...(file.added === null && file.deleted === null && file.summary ? wrapped(file.summary, width, "  ") : []),
+		]),
+		row([`${report.files.length} files`, "", signed(sumObserved(report.files.map(file => file.added)), "+"), signed(sumObserved(report.files.map(file => file.deleted)), "-")], widths, true),
+		"",
+	];
 }
 
 function narrativeSection(title: string, value: string, width: number): string[] { return [...heading(title, width), ...wrapped(value, width), ""]; }

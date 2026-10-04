@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-HUD-WEEKLY-BAR-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:0e7d421b5da741d39b34895a6d2d1fbdb3ff14be:dirty",
+  "intent": "HUD에서 주간 사용량 바만 남기고 기간·수치 표기를 제거한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "Workbench 하단 사용량 행에서 공급자별 주간 한도 바만 표시하고 5시간 세션·퍼센트·초기화 시간 문구를 제거했다.",
+      "구독 HUD의 7d·5h 두 행을 주간 한도 바 한 행으로 줄이고 7d 접두어와 바 내부 수치·시간 문구를 제거했다."
+    ],
+    "impacts": [
+      "공급자 이름과 바 색상은 유지한다. 주간 값이 없는 공급자는 확인 상태를 표시하며 모드·Context 표시는 유지한다.",
+      "사용자 후속 요청이 WOO-912의 기존 잔여 시간 표시 조건보다 최신이다. 이슈 본문 개정과 Obsidian 게시에는 별도 승인이 필요하다."
+    ],
+    "categories": [
+      "improvement"
+    ],
+    "verification": [
+      "bun test test/www-provider-meter-fidelity.test.ts test/usage-strip.test.ts test/workbench-bottom-hud.test.ts: 11 pass, 0 fail.",
+      "bun test test/www-ui.test.ts -t HUD: 6 pass; -t quota: 2 pass. bun run check와 git diff --check 통과.",
+      "전체 www-ui 테스트는 기존 Chat/Report 기대값 등 17건 실패로 통과하지 못했다. 실제 TUI 육안 검사는 미실행."
+    ],
+    "connections": [
+      "[WOO-912](https://linear.app/woo-world/issue/WOO-912/workbench-ui-모드모델계획구독-잔여-표기를-정리한다)",
+      "src/adapters/inbound/tui/features/usage/view/usage-strip-view.ts",
+      "src/adapters/inbound/tui/features/usage/view/www-usage.ts",
+      ".www/evidence/2026-09-29-hud-weekly-bar"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-912/workbench-ui-모드모델계획구독-잔여-표기를-정리한다",
+    "evidence": ".www/evidence/2026-09-29-hud-weekly-bar"
+  },
+  "expectedBefore": {
+    "latestCommentId": "d6422f1d-a300-4f5b-9a15-21a7a407c99a"
+  },
+  "validation": [
+    {
+      "id": "target",
+      "status": "pass",
+      "evidence": "linear-woo get_workspace/get_project/get_issue WOO-912 확인"
+    },
+    {
+      "id": "checks",
+      "status": "pass",
+      "evidence": "관련 테스트 19 pass, TypeScript noEmit 및 diff check pass"
+    }
+  ],
+  "candidateDigest": "ee1745f1cfbbfe7e6a43cd61505e339cda0de3d976eba0ee056ea5c170eb6e93"
+}

@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-WWW-STARTUP-TDZ-FIX-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:0e7d421b5da741d39b34895a6d2d1fbdb3ff14be:dirty",
+  "intent": "WwwWorkspace 생성 중의 초기화 순환 예외를 수정해 WWW 시작을 복구한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "WwwWorkspace 생성 중 wwwBodyHeight가 아직 만들어지지 않은 www.page를 읽어 ReferenceError를 내던 경로를 수정했다. www를 먼저 null로 선언하고 Workspace 생성 후 할당한다."
+    ],
+    "impacts": [
+      "초기 화면 조립이 예외로 중단되지 않고 WWW TUI가 첫 화면을 표시한다."
+    ],
+    "categories": [
+      "fix",
+      "verification"
+    ],
+    "verification": [
+      "수정 전 bun run www:preview는 Cannot access 'www' before initialization으로 종료했다. 수정 후 같은 명령에서 SESSION OVERVIEW 대시보드가 렌더됐다.",
+      "bun test test/www-shell.test.ts --test-name-pattern 'production Www shell routes'는 TDZ 오류를 넘겼으나 이후 INPUT 1 문자열 기대값에서 실패했다. 전체 셸 테스트 통과로 주장하지 않는다.",
+      "bun run check, git diff --check, 00_normalize-imports.ts, 06_align-tables.ts --file src/adapters/inbound/tui/shell/workbench-shell.ts 통과."
+    ],
+    "connections": [
+      "[WOO-680](https://linear.app/woo-world/issue/WOO-680/layout-화면-크기가-달라져도-읽던-위치와-입력-흐름을-유지한다)",
+      "[WOO-674](https://linear.app/woo-world/issue/WOO-674/workbench-대화와-계획을-읽고-입력과-상태를-통제한다)",
+      "src/adapters/inbound/tui/shell/workbench-shell.ts",
+      ".www/evidence/2026-09-29-www-startup-fix"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-680/layout-화면-크기가-달라져도-읽던-위치와-입력-흐름을-유지한다",
+    "evidence": ".www/evidence/2026-09-29-www-startup-fix"
+  },
+  "expectedBefore": {
+    "latestCommentId": "5cca1d0c-e81b-4f7e-999e-22bb36350072"
+  },
+  "validation": [
+    {
+      "id": "existing-work-item-and-duplicate-check",
+      "status": "pass",
+      "evidence": "WOO-680 viewport·입력 책임과 WOO-674 Workbench 범위를 확인했다. 최신 50개 Project Comment에 같은 TDZ 시작 실패 기록이 없다."
+    },
+    {
+      "id": "startup-preview",
+      "status": "pass",
+      "evidence": "수정 후 bun run www:preview에서 SESSION OVERVIEW가 렌더됐다."
+    },
+    {
+      "id": "static-checks",
+      "status": "pass",
+      "evidence": "bun run check, git diff --check, import normalization 및 workbench-shell.ts table alignment 검사 통과."
+    }
+  ],
+  "candidateDigest": "08b5e587ea7218d7e6f5389a1deef8153000ddceb607119c9837af0fb2819502"
+}

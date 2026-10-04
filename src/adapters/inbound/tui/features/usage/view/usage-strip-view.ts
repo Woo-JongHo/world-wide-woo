@@ -1,14 +1,23 @@
-import { truncateToWidth, visibleWidth }                   from "@earendil-works/pi-tui";
-import type { Component }                                  from "@earendil-works/pi-tui";
-import type { UsageLimitSnapshot, UsageSnapshot }          from "@/core/ports/observability/usage-monitor-port";
-import type { WorkbenchContextUsage, WorkbenchModelUsage } from "@/core/domain/work/workbench";
+import      {
+              truncateToWidth       ,
+              visibleWidth          ,
+                                      } from "@earendil-works/pi-tui"                                                ;
+import type { Component               } from "@earendil-works/pi-tui"                                                ;
+import type {
+              UsageLimitSnapshot    ,
+              UsageSnapshot         ,
+                                      } from "@/core/ports/observability/usage-monitor-port"                         ;
+import type {
+              WorkbenchContextUsage ,
+              WorkbenchModelUsage   ,
+                                      } from "@/core/domain/work/workbench"                                          ;
 import chalk                                               from "chalk";
-import {
-	WORKBENCH_HUD_SYSTEM,
-	compactTokenCount,
-} from "@/adapters/inbound/tui/features/usage/view-model/workbench-hud-system";
-import { runtimeModeLabel }                                from "@/adapters/inbound/tui/foundation/labels";
-import { colors, palette }                                 from "@/adapters/inbound/tui/foundation/theme/theme";
+import      {
+              WORKBENCH_HUD_SYSTEM  ,
+              compactTokenCount     ,
+                                      } from "@/adapters/inbound/tui/features/usage/view-model/workbench-hud-system" ;
+import      { runtimeModeLabel        } from "@/adapters/inbound/tui/foundation/labels"                              ;
+import      { colors, palette         } from "@/adapters/inbound/tui/foundation/theme/theme"                         ;
 
 type ProviderLabel = "Codex" | "Claude" | "Antigravity" | "Z.AI";
 
@@ -21,6 +30,43 @@ export interface UsageStripSession {
 	readonly permissionMode?    : "manual" | "all"               ;
 	readonly showUsage?         : boolean                        ;
 	readonly showContext?       : boolean                        ;
+}
+
+const METER_EMPTY = "#1d2a30";
+
+/** A single measured-telemetry row below the composer. */
+export class UsageStripView implements Component {
+	private snapshots: readonly UsageSnapshot[] = [
+		{ provider : "openai-codex" , state : "loading" , fetchedAt : Date.now() , limits : [] },
+		{ provider : "anthropic"    , state : "loading" , fetchedAt : Date.now() , limits : [] },
+		{ provider : "google"       , state : "loading" , fetchedAt : Date.now() , limits : [] },
+	];
+
+	public constructor(private readonly session?: () => UsageStripSession | null | undefined) {}
+
+	public update(snapshots: readonly UsageSnapshot[]): void { this.snapshots = snapshots; }
+	public invalidate(): void {}
+
+	public render(width: number): string[] {
+		if (width <= 0) return [];
+		const session = this.session?.()                                                                                   ;
+		const codex   = this.snapshots.find((snapshot) => snapshot.provider === "openai-codex")                            ;
+		const claude  = this.snapshots.find((snapshot) => snapshot.provider === "anthropic")                               ;
+		const gemini  = this.snapshots.find((snapshot) => snapshot.provider === "google")                                  ;
+		const zai     = this.snapshots.find((snapshot) => snapshot.provider === "zai")                                     ;
+		const showZai = (zai !== undefined && zai.state !== "auth-required") || /^glm-/iu.test(session?.activeModel ?? "") ;
+		const line = [
+			runtimeMode(session),
+			...(session?.showUsage === false ? [] : [
+				providerSegment("Codex", codex),
+				providerSegment("Claude", claude),
+				providerSegment("Antigravity", gemini),
+				...(showZai ? [providerSegment("Z.AI", zai)] : []),
+			]),
+			...(session?.showContext === false ? [] : [contextSegment(session?.contextUsage)]),
+		].join(WORKBENCH_HUD_SYSTEM.strip.separator);
+		return [fit(line, width)];
+	}
 }
 
 function fit(text: string, width: number): string {
@@ -54,14 +100,6 @@ function weeklyLimit(snapshot: UsageSnapshot | undefined): UsageLimitSnapshot | 
 		: undefined;
 }
 
-function fiveHourLimit(snapshot: UsageSnapshot | undefined): UsageLimitSnapshot | undefined {
-	return snapshot?.state === "ready"
-		? snapshot.limits.find((limit) => /(?:5\s*(?:hours?|h)\b|5시간)/iu.test(limit.label) && !isTier(limit))
-		: undefined;
-}
-
-const METER_EMPTY = "#1d2a30";
-
 function meter(percent: number, color: string): string {
 	const filled = Math.round(Math.max(0, Math.min(100, percent)) / 100 * WORKBENCH_HUD_SYSTEM.strip.meterCells);
 	return chalk.bgHex(color)(" ".repeat(filled)) + chalk.bgHex(METER_EMPTY)(" ".repeat(WORKBENCH_HUD_SYSTEM.strip.meterCells - filled));
@@ -88,20 +126,9 @@ function unavailable(snapshot: UsageSnapshot | undefined): string {
 	return "조회 실패";
 }
 
-function remaining(limit: UsageLimitSnapshot | undefined, now?: number): string {
-	if (!limit || !Number.isFinite(limit.remainingPercent)) return "";
-	const percent = Math.round(Math.max(0, Math.min(100, limit.remainingPercent!)));
-	const reset = resetIn(limit.resetsAt, now);
-	return `${percent}%${reset ? ` · ${reset}` : ""} ${meter(percent, palette.orange)}`;
-}
-
-function providerSegment(label: ProviderLabel, snapshot: UsageSnapshot | undefined, now: number): string {
+function providerSegment(label: ProviderLabel, snapshot: UsageSnapshot | undefined): string {
 	if (!snapshot) return colors.muted(`${label} —`);
-	const limit = weeklyLimit(snapshot) ?? (
-		label === "Antigravity" || label === "Z.AI"
-			? snapshot.limits.find((item) => Number.isFinite(item.remainingPercent))
-			: undefined
-	);
+	const limit = weeklyLimit(snapshot);
 	if (!limit || !Number.isFinite(limit.remainingPercent)) {
 		return snapshot.state === "ready"
 			? colors.muted(`${label} —`)
@@ -109,21 +136,9 @@ function providerSegment(label: ProviderLabel, snapshot: UsageSnapshot | undefin
 				? providerText(label, `${label} 연결됨`)
 			: providerText(label, `${label} ${unavailable(snapshot)}`);
 	}
-	const percent = Math.round(Math.max(0, Math.min(100, limit.remainingPercent!)));
-	const reset = resetIn(limit.resetsAt, now);
+	const percent = Math.round(Math.max(0, Math.min(100, limit.remainingPercent!))) ;
+	const reset   = resetIn(limit.resetsAt)                                         ;
 	return `${providerText(label, `${label} ${percent}%${reset ? ` · ${reset}` : ""}`)} ${meter(percent, providerColor(label))}`;
-}
-
-function claudeSegment(snapshot: UsageSnapshot | undefined, now: number): string {
-	const weekly = providerSegment("Claude", snapshot, now);
-	const session = remaining(fiveHourLimit(snapshot), now);
-	return session ? `${weekly}${WORKBENCH_HUD_SYSTEM.strip.separator}${colors.error(`5h ${session}`)}` : weekly;
-}
-
-function zaiSegment(snapshot: UsageSnapshot | undefined, now: number): string {
-	const weekly = providerSegment("Z.AI", snapshot, now);
-	const session = remaining(fiveHourLimit(snapshot), now);
-	return session ? `${weekly}${WORKBENCH_HUD_SYSTEM.strip.separator}${providerText("Z.AI", `5h ${session}`)}` : weekly;
 }
 
 function contextSegment(context: WorkbenchContextUsage | null | undefined): string {
@@ -134,40 +149,4 @@ function contextSegment(context: WorkbenchContextUsage | null | undefined): stri
 
 function runtimeMode(session: UsageStripSession | null | undefined): string {
 	return colors.success(`${WORKBENCH_HUD_SYSTEM.strip.modeMarker} ${runtimeModeLabel(session?.permissionMode, session?.collaborationMode)}`);
-}
-
-/** A single measured-telemetry row below the composer. */
-export class UsageStripView implements Component {
-	private snapshots: readonly UsageSnapshot[] = [
-		{ provider : "openai-codex" , state : "loading" , fetchedAt : Date.now() , limits : [] },
-		{ provider : "anthropic"    , state : "loading" , fetchedAt : Date.now() , limits : [] },
-		{ provider : "google"       , state : "loading" , fetchedAt : Date.now() , limits : [] },
-	];
-
-	public constructor(private readonly session?: () => UsageStripSession | null | undefined) {}
-
-	public update(snapshots: readonly UsageSnapshot[]): void { this.snapshots = snapshots; }
-	public invalidate(): void {}
-
-	public render(width: number): string[] {
-		if (width <= 0) return [];
-		const session = this.session?.()                                                                                   ;
-		const now     = Date.now()                                                                                         ;
-		const codex   = this.snapshots.find((snapshot) => snapshot.provider === "openai-codex")                            ;
-		const claude  = this.snapshots.find((snapshot) => snapshot.provider === "anthropic")                               ;
-		const gemini  = this.snapshots.find((snapshot) => snapshot.provider === "google")                                  ;
-		const zai     = this.snapshots.find((snapshot) => snapshot.provider === "zai")                                     ;
-		const showZai = (zai !== undefined && zai.state !== "auth-required") || /^glm-/iu.test(session?.activeModel ?? "") ;
-		const line = [
-			runtimeMode(session),
-			...(session?.showUsage === false ? [] : [
-				providerSegment("Codex", codex, now),
-				claudeSegment(claude, now),
-				providerSegment("Antigravity", gemini, now),
-				...(showZai ? [zaiSegment(zai, now)] : []),
-			]),
-			...(session?.showContext === false ? [] : [contextSegment(session?.contextUsage)]),
-		].join(WORKBENCH_HUD_SYSTEM.strip.separator);
-		return [fit(line, width)];
-	}
 }

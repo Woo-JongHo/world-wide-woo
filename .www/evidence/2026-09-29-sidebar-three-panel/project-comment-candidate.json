@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-SIDEBAR-THREE-PANEL-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "worktree:0e7d421b5da741d39b34895a6d2d1fbdb3ff14be:dirty",
+  "intent": "사용자 수정에 따라 실행 사이드바를 PLAN·PROGRESS·TEST 세 섹션으로 정리한 결과를 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "실행 사이드바를 PLAN·PROGRESS·TEST 세 영역으로 바꾸고, 별도 STATUS 패널 및 입력창 옆 STATUS 이어붙이기를 제거했다.",
+      "PLAN은 20%, PROGRESS는 40%를 쓰고 TEST는 남은 높이를 사용한다. /monitor 상세 화면의 STATUS는 유지한다."
+    ],
+    "impacts": [
+      "계획·진행·검증만 남겨 실행 화면의 정보량을 줄이고 검증 패널에 더 많은 공간을 준다.",
+      "완료·상태 상세는 기존 /monitor 조회 경로에 남는다."
+    ],
+    "categories": [
+      "improvement",
+      "verification"
+    ],
+    "verification": [
+      "bun run check 통과.",
+      "bun test test/www-ui.test.ts --test-name-pattern 'execution sidebar shows PLAN PROGRESS TEST|detailed monitor retains its STATUS': 2 pass, 0 fail.",
+      "00_normalize-imports.ts 및 두 변경 TypeScript 파일의 06_align-tables.ts 통과. git diff --check 통과. 실제 TUI 수동 확인은 미실행."
+    ],
+    "connections": [
+      "[WOO-700](https://linear.app/woo-world/issue/WOO-700/01-내-입력에-대한-계획이-세워지는-과정-세션-todo)",
+      "[WOO-680](https://linear.app/woo-world/issue/WOO-680/layout-화면-크기가-달라져도-읽던-위치와-입력-흐름을-유지한다)",
+      "[WOO-674](https://linear.app/woo-world/issue/WOO-674/workbench-대화와-계획을-읽고-입력과-상태를-통제한다)",
+      "src/adapters/inbound/tui/shell/www-surface.ts · test/www-ui.test.ts",
+      ".www/evidence/2026-09-29-sidebar-three-panel"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-700/01-내-입력에-대한-계획이-세워지는-과정-세션-todo",
+    "relatedLinear": "https://linear.app/woo-world/issue/WOO-680/layout-화면-크기가-달라져도-읽던-위치와-입력-흐름을-유지한다",
+    "evidence": ".www/evidence/2026-09-29-sidebar-three-panel"
+  },
+  "expectedBefore": {
+    "latestCommentId": "21f69f21-7787-4408-ae4c-873d1e73b0a8"
+  },
+  "validation": [
+    {
+      "id": "issue-mapping",
+      "status": "pass",
+      "evidence": "Live WOO-700 and WOO-680 readbacks confirm plan projection and layout responsibilities; no new issue is needed."
+    },
+    {
+      "id": "implementation-checks",
+      "status": "pass",
+      "evidence": "Focused sidebar tests, TypeScript check, readability checks, and git diff --check passed."
+    }
+  ],
+  "candidateDigest": "4cea2f42b5da0ede4d4961a4da7998dad76e445a6e5976d879483122a7e0b220"
+}

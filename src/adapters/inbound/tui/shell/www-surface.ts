@@ -1,60 +1,90 @@
-import {
-	CURSOR_MARKER,
-	HStack,
-	VStack,
-	ScrollView,
-	Key,
-	matchesKey,
-	stripTerminalSequences,
-	truncateToWidth,
-	visibleWidth,
-} from "@earendil-works/pi-tui";
-import type { Component, Editor, ScrollRowSource }                     from "@earendil-works/pi-tui";
-import { projectChatFeature, projectPlanFeature }                      from "@/core/application/orchestration/workbench-feature-reads";
-import type { ChatFeatureProjection }                                  from "@/core/application/orchestration/workbench-feature-reads";
-import type { ProjectActivity }                                        from "@/core/domain/execution/project-activity";
-import type { OutputLanguage }                                         from "@/core/domain/execution/output-language";
-import type { WorkbenchSnapshot }                                      from "@/core/domain/work/workbench";
-import type { UsageSnapshot, UsageSnapshotCacheMetrics }               from "@/core/ports/observability/usage-monitor-port";
-import type { CacheTelemetrySnapshot }                                 from "@/core/domain/observability/cache-telemetry";
-import type { RuntimeMonitorProjection }                               from "@/core/domain/observability/runtime-monitor";
-import { REQUEST_STAGES }                                              from "@/core/domain/execution/request-runtime";
-import { WwwMonitorView }                                              from "@/adapters/inbound/tui/features/monitoring/view/www-monitor-view";
-import { ChatScrollView }                                              from "@/adapters/inbound/tui/features/chat/view/chat-scroll.view";
-import {
-	WwwTranscriptView,
-	executionHeading,
-	wwwExecutionIsLive,
-	wwwNowLabel,
-	hasVisibleWwwContent,
-} from "@/adapters/inbound/tui/features/chat/view/www-execution";
-import { WwwContextRail, WwwContextView }                              from "@/adapters/inbound/tui/features/context/view/www-context-view";
-import { WwwCacheRail, WwwCacheView }                                  from "@/adapters/inbound/tui/features/cache/view/www-cache-view";
-import { projectWorkbenchCacheTelemetry }                              from "@/adapters/inbound/tui/features/cache/view-model/cache-telemetry-projection";
-import { WwwDashboardRail }                                            from "@/adapters/inbound/tui/features/dashboard/view/entry-dashboard-view";
-import { WwwPlanView }                                                 from "@/adapters/inbound/tui/features/plan/view/www-plan-view";
-import type { PlanRuntimePresentation }                                from "@/adapters/inbound/tui/features/plan/view/www-plan-view";
-import { WwwWorkflowRail, WwwWorkflowView }                            from "@/adapters/inbound/tui/features/workflow/view/www-workflow-view";
-import { WORKBENCH_SLASH_COMMANDS }                                    from "@/adapters/inbound/tui/commands/slash-commands";
-import {
-	a,
-	duration,
-	fit,
-	oneLine,
-	pair,
-	prose,
-	safe,
-	section,
-	wwwBadge,
-	wwwFlowText,
-	wwwPalette,
-} from "@/adapters/inbound/tui/foundation/theme/www-theme";
-import { wwwQuotaHudRows }                                             from "@/adapters/inbound/tui/features/usage/view/www-usage";
-import { WwwUsageRail, WwwUsageView }                                  from "@/adapters/inbound/tui/features/usage/view/www-usage-view";
-import { runtimeModeLabel, workbenchEffortLabel, workbenchModelLabel } from "@/adapters/inbound/tui/foundation/labels";
-import { componentScrollRows }                                         from "@/adapters/inbound/tui/foundation/rendering/scroll-row-source";
-import { activityGradientFrame }                                       from "@/adapters/inbound/tui/foundation/theme/theme";
-import { WWW_HELP_ACTIONS, WWW_KEYMAP, WWW_VIEWS }                     from "@/adapters/inbound/tui/foundation/keyboard/www-keymap";
+import      {
+              CURSOR_MARKER                ,
+              HStack                       ,
+              VStack                       ,
+              ScrollView                   ,
+              Key                          ,
+              matchesKey                   ,
+              stripTerminalSequences       ,
+              truncateToWidth              ,
+              visibleWidth                 ,
+                                             } from "@earendil-works/pi-tui"                                                      ;
+import type {
+              Component                    ,
+              Editor                       ,
+              ScrollRowSource              ,
+                                             } from "@earendil-works/pi-tui"                                                      ;
+import      {
+              projectChatFeature           ,
+              projectPlanFeature           ,
+                                             } from "@/core/application/orchestration/workbench-feature-reads"                    ;
+import type { ChatFeatureProjection          } from "@/core/application/orchestration/workbench-feature-reads"                    ;
+import type { ProjectActivity                } from "@/core/domain/execution/project-activity"                                    ;
+import type { OutputLanguage                 } from "@/core/domain/execution/output-language"                                     ;
+import type { WorkbenchSnapshot              } from "@/core/domain/work/workbench"                                                ;
+import type {
+              UsageSnapshot                ,
+              UsageSnapshotCacheMetrics    ,
+                                             } from "@/core/ports/observability/usage-monitor-port"                               ;
+import type { CacheTelemetrySnapshot         } from "@/core/domain/observability/cache-telemetry"                                 ;
+import type { RuntimeMonitorProjection       } from "@/core/domain/observability/runtime-monitor"                                 ;
+import      { WwwMonitorView                 } from "@/adapters/inbound/tui/features/monitoring/view/www-monitor-view"            ;
+import      { ChatScrollView                 } from "@/adapters/inbound/tui/features/chat/view/chat-scroll.view"                  ;
+import      {
+              WwwTranscriptView            ,
+              executionHeading             ,
+              wwwExecutionIsLive           ,
+              wwwNowLabel                  ,
+              hasVisibleWwwContent         ,
+                                             } from "@/adapters/inbound/tui/features/chat/view/www-execution"                     ;
+import      {
+              WwwContextRail               ,
+              WwwContextView               ,
+                                             } from "@/adapters/inbound/tui/features/context/view/www-context-view"               ;
+import      {
+              WwwCacheRail                 ,
+              WwwCacheView                 ,
+                                             } from "@/adapters/inbound/tui/features/cache/view/www-cache-view"                   ;
+import      { projectWorkbenchCacheTelemetry } from "@/adapters/inbound/tui/features/cache/view-model/cache-telemetry-projection" ;
+import      { WwwDashboardRail               } from "@/adapters/inbound/tui/features/dashboard/view/entry-dashboard-view"         ;
+import      { WwwPlanView                    } from "@/adapters/inbound/tui/features/plan/view/www-plan-view"                     ;
+import type { PlanRuntimePresentation        } from "@/adapters/inbound/tui/features/plan/view/www-plan-view"                     ;
+import      {
+              WwwWorkflowRail              ,
+              WwwWorkflowView              ,
+                                             } from "@/adapters/inbound/tui/features/workflow/view/www-workflow-view"             ;
+import      { WORKBENCH_SLASH_COMMANDS       } from "@/adapters/inbound/tui/commands/slash-commands"                              ;
+import      {
+              a                            ,
+              duration                     ,
+              fit                          ,
+              oneLine                      ,
+              pair                         ,
+              prose                        ,
+              safe                         ,
+              section                      ,
+              wwwBadge                     ,
+              wwwFlowText                  ,
+              wwwPalette                   ,
+                                             } from "@/adapters/inbound/tui/foundation/theme/www-theme"                           ;
+import      { wwwQuotaHudLine                } from "@/adapters/inbound/tui/features/usage/view/www-usage"                        ;
+import      {
+              WwwUsageRail                 ,
+              WwwUsageView                 ,
+                                             } from "@/adapters/inbound/tui/features/usage/view/www-usage-view"                   ;
+import      {
+              runtimeModeLabel             ,
+              workbenchEffortLabel         ,
+              workbenchModelLabel          ,
+                                             } from "@/adapters/inbound/tui/foundation/labels"                                    ;
+import      { componentScrollRows            } from "@/adapters/inbound/tui/foundation/rendering/scroll-row-source"               ;
+import      { activityGradientFrame          } from "@/adapters/inbound/tui/foundation/theme/theme"                               ;
+import      {
+              WWW_HELP_ACTIONS             ,
+              WWW_KEYMAP                   ,
+              WWW_VIEWS                    ,
+                                             } from "@/adapters/inbound/tui/foundation/keyboard/www-keymap"                       ;
+import      { isRecord                       } from "@/core/domain/value/record.js"                                               ;
 
 export { WWW_DOC_EXTRA, WWW_HELP_ACTIONS, WWW_KEYMAP, WWW_KEYS, WWW_SCROLL_KEYS, WWW_VIEWS, matchesWwwAction, matchesWwwKey } from "@/adapters/inbound/tui/foundation/keyboard/www-keymap";
 
@@ -148,8 +178,8 @@ export class HelpView implements Component {
 	render(width: number): string[] {
 		const rows = [...section("명령과 이동", width)];
 		for (const action of WWW_HELP_ACTIONS) {
-			const binding = WWW_KEYMAP[action];
-			const docText = binding.doc.join(" · ");
+			const binding = WWW_KEYMAP[action]      ;
+			const docText = binding.doc.join(" · ") ;
 			rows.push(`${docText.padEnd(18)}${binding.label}`);
 		}
 		rows.push("Tab (입력 중)       파일·명령 자동완성", "", a.note("질문 요약은 별도 화면이 아니라 실행 타임라인에 쌓입니다."), "");
@@ -158,6 +188,13 @@ export class HelpView implements Component {
 		rows.push(...section("Slash commands", width));
 		for (const c of WWW_COMMANDS) rows.push(a.text(`/${c.name}${"argumentHint" in c ? " " + c.argumentHint : ""}`), a.muted(`  ${c.description}`));
 		return rows.flatMap(row => prose(row, width));
+	}
+}
+
+class FixedRatioSidebar extends VStack {
+	resize(planRows: number, progressRows: number): void {
+		this.entries[0]!.basis = planRows;
+		this.entries[1]!.basis = progressRows;
 	}
 }
 
@@ -186,13 +223,14 @@ export class WwwWorkspace {
 		synthetic: () => boolean = () => false,
 		getRuntimeMonitor: (() => RuntimeMonitorProjection) | null = null,
 		language: () => OutputLanguage = () => "ko",
+		private readonly viewport: () => { width: number; height: number } = () => ({ width: 120, height: 80 }),
 	) {
 		const getChat = () => projectChatFeature(get());
 		this.transcript = new WwwTranscriptView(getChat(), language);
 		const getPlan = () => projectPlanFeature(get());
 		this.cacheTelemetry = () => {
-			const observations = get().cacheObservations;
-			const usage = usageCacheMetrics();
+			const observations = get().cacheObservations ;
+			const usage        = usageCacheMetrics()     ;
 			return projectWorkbenchCacheTelemetry({
 				transcript: this.transcript.cacheMetrics(),
 				...(observations ? { observations } : {}),
@@ -227,6 +265,11 @@ export class WwwWorkspace {
 		};
 		const sidePlan   = new WwwInset(new WwwPlanView(getPlan, true, clock, motion, runtimePresentation, language), 1)                  ;
 		const sideScroll = new ScrollView(sidePlan, { follow: "none", overscroll: "contain", scrollbar: "auto", scrollbarStyle: a.rule }) ;
+		const divider = (rows: () => number): Component => ({
+			invalidate: () => undefined,
+			render: () => Array.from({ length: Math.max(1, rows()) }, () => a.rule("│")),
+		});
+		const bodyDivider = divider(() => viewport().height);
 		this.side = sideScroll;
 		const executionTranscript = executionHeading
 			? new VStack([
@@ -235,21 +278,35 @@ export class WwwWorkspace {
 			])
 			: this.scrolls.execution;
 		const execution = new HStack([
-			{ component: executionTranscript, basis: 0, grow: 1, minSize: 1 },
-			{ component: this.side, basis: 55, minSize: 44, maxSize: 64, visible: ({ width, height }) => this.sidebarVisible(width, height) },
+			{ component : executionTranscript , basis : 0  , grow    : 1  , minSize : 1                                          },
+			{ component : bodyDivider         , basis : 1  , minSize : 1  , maxSize : 1  , visible : () => this.sidebarVisible() },
+			{ component : this.side           , basis : 54 , minSize : 43 , maxSize : 63 , visible : () => this.sidebarVisible() },
 		]);
 		const pageComponent = (page: WwwPage): Component => {
 			// Figma Chat 화면(142:5): 대화 우측에 RUN·PIPELINE·CURRENT PLAN·ACTIVITY·INSPECT 패널을 둔다.
 			if (page === "execution" && getRuntimeMonitor) {
-				const observabilityMain = new ScrollView(new WwwInset(new WwwMonitorView(getRuntimeMonitor, clock, motion, get, true, null, language), 1), { follow: "none", overscroll: "contain", scrollbar: "auto", scrollbarStyle: a.rule });
-				const observabilityReport = new WwwInset(new WwwMonitorView(getRuntimeMonitor, clock, motion, get, true, null, language, true), 1);
-				const observabilitySide = new VStack([
-					{ component: observabilityMain, basis: 0, grow: 1, minSize: 1 },
-					{ component: observabilityReport, basis: "auto", minSize: 1 },
+				const railRows     = () => bodyHeight(this.viewport().height, this.viewport().width, true) + 3 ;
+				const planRows     = () => Math.max(1, Math.round(railRows() * 0.2))                           ;
+				const progressRows = () => Math.max(1, Math.round(railRows() * 0.4))                           ;
+				const inspector = (section: "plan" | "progress" | "test") => new ScrollView(
+					new WwwInset(new WwwMonitorView(getRuntimeMonitor, clock, motion, get, true, null, language, false, section), 1),
+					{ follow: "none", overscroll: "contain", scrollbar: "auto", scrollbarStyle: a.rule },
+				);
+				const plan     = inspector("plan"    ) ;
+				const progress = inspector("progress") ;
+				const test     = inspector("test"    ) ;
+				const observabilitySide = new FixedRatioSidebar([
+					{ component : plan     , basis : planRows()     , minSize : 1             },
+					{ component : progress , basis : progressRows() , minSize : 1             },
+					{ component : test     , basis : 0              , grow    : 1, minSize: 1 },
 				]);
 				return new HStack([
 					{ component: this.scrolls.execution, basis: 0, grow: 1, minSize: 1 },
-					{ component: observabilitySide, basis: 55, minSize: 44, maxSize: 64, visible: ({ width, height }) => this.sidebarVisible(width, height) },
+					{ component: bodyDivider, basis: 1, minSize: 1, maxSize: 1, visible: () => this.sidebarVisible() },
+					{ component: observabilitySide, basis: 54, minSize: 43, maxSize: 63, visible: () => {
+						observabilitySide.resize(planRows(), progressRows());
+						return this.sidebarVisible();
+					} },
 				]);
 			}
 			if (page === "execution") return execution;
@@ -258,7 +315,7 @@ export class WwwWorkspace {
 			const sideScroll = new ScrollView(new WwwInset(sidebar, 1), { follow: "none", overscroll: "contain", scrollbar: "auto", scrollbarStyle: a.rule });
 			return new HStack([
 				{ component: this.scrolls[page], basis: 0, grow: 1, minSize: 1 },
-				{ component: sideScroll, basis: 38, minSize: 34, maxSize: 44, visible: ({ width, height }) => this.sidebarVisible(width, height) },
+				{ component: sideScroll, basis: 38, minSize: 34, maxSize: 44, visible: () => this.sidebarVisible() },
 			]);
 		};
 		this.component = new VStack((Object.keys(this.scrolls) as WwwPage[]).map(page => ({ component: pageComponent(page), basis: 0, grow: 1, minSize: 1, visible: () => this.page === page })));
@@ -266,72 +323,59 @@ export class WwwWorkspace {
 	get currentScroll(): ScrollView { return this.scrolls[this.page]; }
 	show(page: WwwPage): void { this.page = page; }
 	toggleSidebar(): boolean { this.sidebarEnabled = !this.sidebarEnabled; return this.sidebarEnabled; }
-	composeInput(component: Component, enabled: () => boolean = () => true): Component {
-		const emptyRail: Component = { invalidate: () => undefined, render: () => [""] };
+	composeInput(component: Component, enabled: () => boolean = () => true, measureRows?: (width: number) => number): Component {
+		const inputRows = () => {
+			const width = Math.max(1, this.viewport().width - 55);
+			return Math.max(1, measureRows ? measureRows(width) : component.render(width).length);
+		};
+		const inputDivider: Component = {
+			invalidate: () => undefined,
+			render: () => Array.from({ length: inputRows() }, () => a.rule("│")),
+		};
+		const emptyRail: Component = { invalidate: () => undefined, render: () => Array.from({ length: inputRows() }, () => "") };
 		return new HStack([
 			{ component, basis: 0, grow: 1, minSize: 1 },
-			{ component: emptyRail, basis: 55, minSize: 44, maxSize: 64, visible: ({ width, height }) => enabled() && this.sidebarVisible(width, height) },
+			{ component: inputDivider, basis: 1, minSize: 1, maxSize: 1, visible: () => enabled() && this.page === "execution" && this.sidebarVisible() },
+			{ component: emptyRail, basis: 54, minSize: 43, maxSize: 63, visible: () => enabled() && this.page === "execution" && this.sidebarVisible() },
 		]);
 	}
-	private sidebarVisible(width: number, height: number): boolean {
+	private sidebarVisible(): boolean {
+		const { width, height } = this.viewport();
 		return this.sidebarEnabled && this.sidebarVisibleForPage(this.page, width, height);
 	}
 }
 
 /** A one-row execution locator, deliberately separate from the global quota HUD. */
-export class WwwStageHud implements Component {
+export class WwwCheckpointHud implements Component {
 	constructor(private readonly get: () => WorkbenchSnapshot) {}
 	invalidate(): void {}
 	isVisible(): boolean {
 		const snapshot = this.get();
-		return snapshot.requestRuntime?.some(request => request.turnId === snapshot.activeTurnId && request.protocolVersion === 2 && (snapshot.phase === "working" || request.status === "blocked")) === true;
+		return snapshot.requestRuntime?.some(request => request.turnId === snapshot.activeTurnId && request.protocolVersion >= 3 && (snapshot.phase === "working" || request.status === "failed" || request.status === "blocked")) === true;
 	}
 	render(width: number): string[] {
-		const snapshot = this.get();
-		const request  = snapshot.requestRuntime?.findLast(candidate => candidate.turnId === snapshot.activeTurnId && candidate.protocolVersion === 2);
+		const snapshot = this.get()                                                                                                                   ;
+		const request  = snapshot.requestRuntime?.findLast(candidate => candidate.turnId === snapshot.activeTurnId && candidate.protocolVersion >= 3) ;
 		if (!request || !this.isVisible()) return [];
-		const labels = REQUEST_STAGES.map(id => {
-			const stage = request.stages.find(candidate => candidate.id === id)                                                                                           ;
-			const mark  = stage?.status === "completed" ? "✓" : stage?.status === "running" ? "●" : stage?.status === "failed" || stage?.status === "blocked" ? "×" : "·" ;
-			const label = `${mark} ${id}`                                                                                                                                 ;
-			return stage?.status === "running" ? a.active(label) : stage?.status === "completed" ? a.success(label) : a.muted(label);
-		});
-		const full = labels.join(a.muted("  "));
+		const labels = checkpointLabels(request.checkpoints ?? []) ;
+		const full   = labels.join(a.muted("  "))                  ;
 		if (visibleWidth(full) <= width) return [full];
-		const compact = REQUEST_STAGES.map((id, index) => {
-			const stage = request.stages.find(candidate => candidate.id === id)                                                                                           ;
-			const mark  = stage?.status === "completed" ? "✓" : stage?.status === "running" ? "●" : stage?.status === "failed" || stage?.status === "blocked" ? "×" : "·" ;
-			const label = `${mark}${["UND", "DEC", "GRD", "DCD", "EXE", "VER", "DLV"][index]}`                                                                            ;
-			return stage?.status === "running" ? a.active(label) : stage?.status === "completed" ? a.success(label) : a.muted(label);
-		}).join(a.muted(" "));
+		const compact = checkpointLabels(request.checkpoints ?? [], true).join(a.muted(" "));
 		if (visibleWidth(compact) <= width) return [compact];
-		const tiny = REQUEST_STAGES.map((id, index) => {
-			const status = request.stages.find(stage => stage.id === id)?.status;
-			const mark = status === "completed" ? "✓" : status === "running" ? "●" : status === "blocked" || status === "failed" ? "×" : "·";
-			return `${mark}${["U", "D", "G", "D", "E", "V", "L"][index]}`;
-		}).join(" ");
-		if (visibleWidth(tiny) <= width) return [tiny];
-		const current = request.stages.find(stage => stage.status === "running" || stage.status === "blocked" || stage.status === "failed");
-		return [fit(`STAGE ${current?.id ?? "—"} · ${request.status}`, width)];
+		return [fit(`WORK · ${request.status}`, width)];
 	}
 }
 
-function executionStageRows(stages: readonly { readonly id: string; readonly status: string }[], width: number, frame: number): string[] {
-	if (!stages.length) return [];
-	const rows: string[] = [];
-	let current = "";
-	for (const stage of stages) {
-		const marker = stage.status === "completed" ? a.success("✓") : stage.status === "running" ? activityGradientFrame("●", frame)
-			: stage.status === "failed" || stage.status === "blocked" ? a.failure("×") : a.muted("·");
-		const label = `${marker} ${stage.status === "running" ? activityGradientFrame(stage.id, frame) : a.muted(stage.id)}`;
-		const next = current ? `${current}  ${label}` : ` ${label}`;
-		if (current && visibleWidth(next) > width) {
-			rows.push(fit(current, width));
-			current = ` ${label}`;
-		} else current = next;
-	}
-	if (current) rows.push(fit(current, width));
-	return rows;
+/** @deprecated Retained as an import alias for older shell callers; it renders three checkpoints. */
+export const WwwStageHud = WwwCheckpointHud;
+
+function checkpointLabels(checkpoints: NonNullable<WorkbenchSnapshot["requestRuntime"]>[number]["checkpoints"], compact = false): string[] {
+	return ["UNDERSTAND", "WORK", "RESULT"].map(id => {
+		const item   = checkpoints?.find(candidate => candidate.id === id)                                                          ;
+		const marker = item?.status === "observed" ? "✓" : item?.status === "running" ? "●" : item?.status === "failed" ? "×" : "·" ;
+		const label  = `${marker}${compact ? "" : " "}${compact ? id.slice(0, 3) : id}`                                             ;
+		return item?.status === "running" ? a.active(label) : item?.status === "observed" ? a.success(label) : item?.status === "failed" ? a.failure(label) : a.muted(label);
+	});
 }
 
 /** One top row: session goal on the left, output language and workspace path on the right. */
@@ -340,12 +384,12 @@ export class WwwHeader implements Component {
 	invalidate(): void {}
 	render(width: number): string[] {
 		if (width <= 0) return [];
-		const goal      = ` ${wwwBadge(" GOAL ")} ${wwwFlowText(oneLine(this.get().sessionGoal?.text) || "—")}` ;
-		const selection = `${a.muted("LANGUAGE")} ${a.active(this.language() === "en" ? "ENGLISH" : "KOREA")}` ;
-		const path      = a.muted(oneLine(this.cwd))                                                         ;
-		const right     = truncateToWidth(`${selection}  ${path}`, Math.max(0, Math.floor(width / 2)))        ;
-		const left      = truncateToWidth(goal, Math.max(0, width - visibleWidth(right) - 2))                 ;
-		const gap       = " ".repeat(Math.max(0, width - visibleWidth(left) - visibleWidth(right)))          ;
+		const goal      = ` ${wwwBadge(" GOAL ")} ${wwwFlowText(oneLine(this.get().sessionGoal?.text) || "목표 확인 중")}` ;
+		const selection = `${a.muted("LANGUAGE")} ${a.active(this.language() === "en" ? "ENGLISH" : "KOREA")}`             ;
+		const path      = a.muted(oneLine(this.cwd))                                                                       ;
+		const right     = truncateToWidth(`${selection}  ${path}`, Math.max(0, Math.floor(width / 2)))                     ;
+		const left      = truncateToWidth(goal, Math.max(0, width - visibleWidth(right) - 2))                              ;
+		const gap       = " ".repeat(Math.max(0, width - visibleWidth(left) - visibleWidth(right)))                        ;
 		return [fit(`${left}${gap}${right}`, width)];
 	}
 }
@@ -355,8 +399,7 @@ export class WwwGoalBar implements Component {
 	constructor(private readonly get: () => WorkbenchSnapshot) {}
 	invalidate(): void {}
 	render(width: number): string[] {
-		const goal = oneLine(this.get().sessionGoal?.text, Math.max(0, width - 10));
-		if (!goal) return [""];
+		const goal = oneLine(this.get().sessionGoal?.text, Math.max(0, width - 10)) || "목표 확인 중";
 		return [fit(` ${wwwBadge(" GOAL ")} ${wwwFlowText(goal)}`, width)];
 	}
 }
@@ -379,18 +422,17 @@ export class WwwExecutionHeading implements Component {
 		const completedTiming = Number.isFinite(activitySummary.headingStartedAt) && Number.isFinite(activitySummary.endedAt) && activitySummary.endedAt >= activitySummary.headingStartedAt
 			? `${outcome.marker} ${outcome.label} ${duration(activitySummary.endedAt - activitySummary.headingStartedAt)}  ·  ${WWW_EXECUTION_TIME_FORMAT[this.language()].format(activitySummary.endedAt)} ${this.language() === "en" ? "ended" : "종료"}`
 			: "";
-		const progress = live && !s.draft
+		const progress = live
 			? workingStatusLine(s, activitySummary, now, this.motion, false, this.language())
 			: completedTiming ? a.caption(completedTiming) : "";
-		const request = activitySummary.headingTurnId ? [...(s.requestRuntime ?? [])].reverse().find(candidate => candidate.turnId === activitySummary.headingTurnId) : s.requestRuntime?.at(-1) ;
-		const cancel  = live ? a.muted(`${hint ? `${hint}  ` : ""}⟦esc ${this.language() === "en" ? "cancel" : "중단"}⟧`) : hint ? a.muted(hint) : ""                                            ;
-		const detail  = progress && !live ? ink(heading.state) : a.caption(heading.detail)                                                                                                       ;
-		const queue   = s.chatQueue.length ? a.active(`+${s.chatQueue.length} ${this.language() === "en" ? "queued" : "대기"}`) : ""                                                             ;
+		const cancel = hint ? a.muted(hint) : ""                                                                                    ;
+		const detail = progress && !live ? ink(heading.state) : live ? "" : a.caption(heading.detail)                               ;
+		const queue  = s.chatQueue.length ? a.active(`+${s.chatQueue.length} ${this.language() === "en" ? "queued" : "대기"}`) : "" ;
 		const core    = live && visibleWidth(progress) > width - 1 - (cancel ? visibleWidth(cancel) + 2 : 0)
 			? workingStatusLine(s, activitySummary, now, this.motion, true, this.language())
 			: live ? progress : progress || `${ink(heading.state)}  ${a.strong(heading.title)}`                                                                                                            ;
 		const summary = fit(` ${boundedHeadingRow(width - 1, core, [{ text: queue, fill: false }, { text: detail, fill: true }], cancel)}`, width);
-		return [summary, ...executionStageRows(request?.stages ?? [], width, this.motion ? Math.floor(now / 120) : 0)];
+		return [summary];
 	}
 	private activitySummary(snapshot: ChatFeatureProjection): ExecutionActivitySummary {
 		const cache = this.activityCache;
@@ -433,10 +475,6 @@ interface ExecutionActivitySummary {
 	readonly observedActiveTerminals : number                               ;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
 /** Priority-bounded status row: the core never breaks mid-word; whole segments drop before the filler shrinks. */
 function boundedHeadingRow(width: number, core: string, segments: readonly { text: string; fill: boolean }[], reserved: string): string {
 	const gap          = "  "                                                                                                                         ;
@@ -466,10 +504,17 @@ function workingStatusLine(snapshot: ChatFeatureProjection, summary: ExecutionAc
 	const elapsed = Number.isFinite(summary.workingStartedAt) ? duration(Math.max(0, now - summary.workingStartedAt)) : language === "en" ? "Calculating elapsed time" : "실행 경과 계산 중" ;
 	const frame   = motion ? Math.floor(now / 120) : 0                                                                                                                                       ;
 	const spinner = WWW_ACTIVITY_SPINNER[motion ? frame % WWW_ACTIVITY_SPINNER.length : WWW_ACTIVITY_SPINNER.length - 1]                                                                     ;
-	const working = activityGradientFrame(`${spinner} Working`, frame)                                                                                                                       ;
+	const turnId  = snapshot.activeTurnId ?? snapshot.workFlow.source?.turnId                                                                                                                ;
+	const request = turnId ? [...(snapshot.requestRuntime ?? [])].reverse().find(item => item.turnId === turnId) : snapshot.requestRuntime?.at(-1)                                           ;
+	const current = request?.checkpoints?.find(item => item.status === "running")                                                                                                            ;
+	const reached = (id: "WORK" | "RESULT") => request?.checkpoints?.some(item => item.id === id && (item.status === "running" || item.status === "observed"))                               ;
+	const phase = request?.protocolVersion === 4
+		? reached("RESULT") ? "REPORTING" : reached("WORK") ? "WORKING" : "UNDERSTANDING"
+		: snapshot.draft || current?.id === "RESULT" ? "REPORTING" : current?.id === "WORK" || snapshot.workFlow.steps.length > 0 ? "WORKING" : "UNDERSTANDING";
+	const working = activityGradientFrame(`${spinner} ${phase}`, frame);
 	if (brief) return `${working} ${a.caption(elapsed)}`;
 	const terminals     = summary.observedActiveTerminals > 0 ? summary.observedActiveTerminals : snapshot.liveActivity?.kind === "tool" ? 1 : null ;
-	const terminalLabel = terminals === null ? "" : ` · ${terminals} terminal${terminals === 1 ? "" : "s"} running`;
+	const terminalLabel = terminals === null ? "" : ` · ${terminals} terminal${terminals === 1 ? "" : "s"} running`                                 ;
 	return `${working} ${a.caption(`(${elapsed}${terminalLabel})`)}`;
 }
 
@@ -577,22 +622,29 @@ export class WwwComposer implements Component {
 		if (!decorate) return rows;
 		// Editor rails may contain a scroll indicator. Match only rails (editable
 		// rows have padding), leaving text, cursor markers and autocomplete intact.
-		const rail = (row: string): string | null => /^─+(?: ([↑↓] \d+ more) )?─*$/u.exec(stripTerminalSequences(row))?.[1] ?? (/^─+$/u.test(stripTerminalSequences(row)) ? "" : null);
-		const above = rows[0] ? rail(rows[0]) : null;
+		const rail  = (row: string): string | null => /^─+(?: ([↑↓] \d+ more) )?─*$/u.exec(stripTerminalSequences(row))?.[1] ?? (/^─+$/u.test(stripTerminalSequences(row)) ? "" : null) ;
+		const above = rows[0] ? rail(rows[0]) : null                                                                                                                                    ;
 		if (above === null) return rows;
-		const s        = this.get()                                                                            ;
-		const ink      = !this.editor.focused ? a.rule : s.pendingApproval ? a.attention : a.active            ;
-		const model    = oneLine(workbenchModelLabel(s.activeModel ?? s.model), 48)                            ;
-		const effort   = oneLine(workbenchEffortLabel(s.effort), 16)                                           ;
-		const rawLabel = `${this.editor.focused ? "›" : "·"} ${model} · ${effort}${above ? `  ${above}` : ""}` ;
-		const label    = truncateToWidth(rawLabel, Math.max(0, inside - 3), "")                                ;
+		const s          = this.get()                                                                                   ;
+		const ink        = !this.editor.focused ? a.rule : s.pendingApproval ? a.attention : a.active                   ;
+		const effort     = oneLine(workbenchEffortLabel(s.effort), 16)                                                  ;
+		const mode       = runtimeModeLabel(s.permissionMode, s.collaborationMode)                                      ;
+		const prefix     = `${this.editor.focused ? "›" : "·"} `                                                        ;
+		const modeSuffix = ` · ${effort} · ${mode}`                                                                     ;
+		const scroll     = above ? `  ${above}` : ""                                                                    ;
+		const labelWidth = Math.max(0, inside - 3)                                                                      ;
+		const scrollPart = visibleWidth(`${prefix}…${modeSuffix}${scroll}`) <= labelWidth ? scroll : ""                 ;
+		const modelWidth = Math.max(0, labelWidth - visibleWidth(`${prefix}${modeSuffix}${scrollPart}`))                ;
+		const model      = truncateToWidth(oneLine(workbenchModelLabel(s.activeModel ?? s.model), 48), modelWidth, "…") ;
+		const rawLabel   = `${prefix}${model}${modeSuffix}${scrollPart}`                                                ;
+		const label      = truncateToWidth(rawLabel, labelWidth, "")                                                    ;
 		rows[0] = `${ink("╭─")} ${ink(label)} ${ink("─".repeat(Math.max(0, inside - visibleWidth(label) - 3)))}${ink("╮")}`;
 		if (!this.editor.getText() && s.phase === "working" && rows[1] !== undefined) {
 			rows[1] = fit(`${this.editor.focused ? CURSOR_MARKER : ""}${a.muted("Queue · Esc 전송")}`, inside);
 		}
 		// Preserve the Editor's row/column coordinates and its autocomplete rows.
-		const bottom = rows.findIndex((row, index) => index > 0 && rail(row) !== null);
-		const below = bottom > 0 ? rail(rows[bottom]) : null;
+		const bottom = rows.findIndex((row, index) => index > 0 && rail(row) !== null) ;
+		const below  = bottom > 0 ? rail(rows[bottom]) : null                          ;
 		if (below !== null) {
 			const label = below ? `${below} ` : "";
 			rows[bottom] = `${ink("╰")}${ink(label + "─".repeat(Math.max(0, inside - visibleWidth(label))))}${ink("╯")}`;
@@ -607,68 +659,30 @@ export class WwwHud implements Component {
 		private readonly get: () => WorkbenchSnapshot,
 		private readonly usage: () => readonly UsageSnapshot[] = () => [],
 		private readonly showLogos = true,
-		private readonly cache: () => CacheTelemetrySnapshot | undefined = () => undefined,
 	) {}
 	invalidate(): void {}
 	render(width: number): string[] {
-		const s = this.get();
-		if (s.hud?.showUsage === false) return [""];
-		const contentWidth = Math.max(1, width - 2)                                                  ;
-		const runtime      = wwwRuntimeStatus(s, contentWidth)                                       ;
-		const quota        = wwwQuotaHudRows(this.usage(), contentWidth, Date.now(), this.showLogos) ;
-		const request      = wwwHudRequestSegment(s)                                                 ;
-		const cache        = wwwHudCacheSegment(this.cache())                                        ;
-		return [
-			...quota.map(row => fit(`  ${row}`, width)),
-			fit(`  ${wwwHudSummaryRow("", request, cache, runtime, contentWidth)}`, width),
-		];
+		if (width <= 0) return [];
+		const snapshot    = this.get()                          ;
+		const showUsage   = snapshot.hud?.showUsage !== false   ;
+		const showContext = snapshot.hud?.showContext !== false ;
+		if (!showUsage && !showContext) return [""];
+		const context        = showContext ? wwwHudContextSegment(snapshot) : ""       ;
+		const compactContext = showContext ? wwwHudContextSegment(snapshot, true) : "" ;
+		const content = showUsage
+			? wwwQuotaHudLine(this.usage(), context, compactContext, Math.max(1, width - 2), Date.now(), this.showLogos)
+			: context;
+		return [fit(`  ${content}`, width)];
 	}
 }
 
-/** Runtime is fixed at the right edge; overflow drops cache, request, then quota detail. */
-function wwwHudSummaryRow(third: string, request: string, cache: string, runtime: string, width: number): string {
-	const rows = [third, request, cache].filter(Boolean)                                                                                  ;
-	const overflow = (): boolean => visibleWidth(rows.join("  ")) + (runtime ? visibleWidth(runtime) + 2 : 0) > width                     ;
-	while (rows.length > 1 && overflow()) rows.pop()                                                                                      ;
-	const gap = runtime ? " ".repeat(Math.max(2, width - visibleWidth(rows.join("  ")) - visibleWidth(runtime))) : ""                     ;
-	return `${rows.join("  ")}${runtime ? `${gap}${runtime}` : ""}`                                                                       ;
-}
-
-/** Monitor essence: the live tool or agent while working. */
-function wwwHudRequestSegment(snapshot: WorkbenchSnapshot): string {
-	const chat    = projectChatFeature(snapshot)                                                                                          ;
-	if (wwwExecutionIsLive(chat)) {
-		const kind  = chat.liveActivity?.kind                                                                                             ;
-		const label = kind === "tool" ? "Bash" : kind === "file-change" ? "Edit" : oneLine(kind ?? "실행", 12)                             ;
-		return `${a.active("›")} ${a.tool(label)}`                                                                                        ;
-	}
-	return ""                                                                                                                             ;
-}
-
-/** Cache essence from the same projection as the Cache page; unobserved stays silent. */
-function wwwHudCacheSegment(cache: CacheTelemetrySnapshot | undefined): string {
-	if (!cache) return ""                                                                                                                 ;
-	const stale = cache.layers.filter(layer => layer.state === "stale").length                                                            ;
-	if (stale) return a.attention(`Cache ${stale} stale`)                                                                                 ;
-	const hits     = cache.totals.hits ?? 0   ;
-	const misses   = cache.totals.misses ?? 0 ;
-	const accessed = hits + misses > 0        ;
-	if (!accessed && cache.totals.entries === null) return ""                                                                             ;
-	const hitRate = accessed ? `${Math.round(hits / (hits + misses) * 100)}% · ` : ""                                                     ;
-	return a.muted(`Cache ${hitRate}${compactTokens(cache.totals.entries ?? 0)}`)                                                         ;
-}
-
-function wwwRuntimeStatus(snapshot: WorkbenchSnapshot, maximumWidth: number): string {
-	const label = runtimeModeLabel(snapshot.permissionMode, snapshot.collaborationMode);
-	const mode = label === "bypass mode" ? a.attention(label) : label === "plan mode" ? a.plan(label) : a.success(label);
-	const context = snapshot.contextUsage && Number.isFinite(snapshot.contextUsage.percent)
-		? a.muted(`Context ${compactTokens(snapshot.contextUsage.usedTokens)} / ${compactTokens(snapshot.contextUsage.contextWindow)} ${Math.round(Math.max(0, Math.min(100, snapshot.contextUsage.percent)))}%`)
-		: a.muted("Context —");
-	const join = (parts: readonly string[]) => parts.join(a.rule(" · "));
-	for (const candidate of [join([mode, context]), mode, context]) {
-		if (visibleWidth(candidate) <= maximumWidth) return candidate;
-	}
-	return "";
+function wwwHudContextSegment(snapshot: WorkbenchSnapshot, compact = false): string {
+	const context = snapshot.contextUsage;
+	if (!context || !Number.isFinite(context.usedTokens) || !Number.isFinite(context.contextWindow) || context.contextWindow <= 0) return a.muted(compact ? "—" : "[ — ]");
+	const percent = Math.round(Math.max(0, Math.min(100, context.usedTokens / context.contextWindow * 100))) ;
+	const used    = compactTokens(context.usedTokens)                                                        ;
+	const window  = compactTokens(context.contextWindow)                                                     ;
+	return a.muted(compact ? `${percent}%${used}/${window}` : `[ ${percent}% ${used} / ${window} ]`);
 }
 
 function compactTokens(value: number): string {
@@ -708,8 +722,8 @@ export class WwwCommandPalette implements Component {
 	private matches() { const q = this.query.replace(/^\//u, "").toLowerCase(); return WWW_COMMANDS.filter(c => `${c.name} ${c.description}`.toLowerCase().includes(q)); }
 	invalidate(): void {}
 	render(width: number): string[] {
-		const matches = this.matches();
-		const offset = Math.max(0, this.selected - 5);
+		const matches = this.matches()                 ;
+		const offset  = Math.max(0, this.selected - 5) ;
 		return [a.strong("명령 찾기"), "", fit(a.active(`검색  ${this.query || "명령 이름 입력"}`), width), "", ...matches.slice(offset, offset + 7).map((c, i) => {
 			const text = fit(`${i + offset === this.selected ? "›" : " "} /${c.name}  ${c.description}`, width);
 			return i + offset === this.selected ? a.selected(text) : a.muted(text);
@@ -744,18 +758,21 @@ export class WwwSheet implements Component {
 		let pinned        = allPinned                                 ;
 		const pinnedLimit = Math.max(1, this.height() - 5)            ;
 		if (pinned.length > pinnedLimit) {
-			const selected = Math.max(0, pinned.findIndex(row => /^\s*▸/u.test(stripTerminalSequences(row))));
+			const selected = Math.max(
+				0                                                                  ,
+				pinned.findIndex(row => /^\s*▸/u.test(stripTerminalSequences(row)))
+			);
 			const start = Math.max(0, selected - pinnedLimit + 1);
 			pinned = pinned.slice(start, start + pinnedLimit);
 		}
 		const lines = allPinned.length ? allLines.slice(0, -allPinned.length) : allLines;
 		this.rowCount = lines.length;
-		const height = Math.max(1, this.height() - 4 - pinned.length);
-		const resized = this.viewportHeight !== height;
+		const height  = Math.max(1, this.height() - 4 - pinned.length) ;
+		const resized = this.viewportHeight !== height                 ;
 		this.viewportHeight = height;
 		if (this.options.followSelection) {
-			const selected = lines.findIndex(row => /^\s*[▸›]/u.test(stripTerminalSequences(row)));
-			const key = `${selected}:${selected >= 0 ? stripTerminalSequences(lines[selected]) : ""}`;
+			const selected = lines.findIndex(row => /^\s*[▸›]/u.test(stripTerminalSequences(row)))         ;
+			const key      = `${selected}:${selected >= 0 ? stripTerminalSequences(lines[selected]) : ""}` ;
 			if (key !== this.selectionKey || resized) this.revealSelection = true;
 			this.selectionKey = key;
 		}
@@ -763,8 +780,8 @@ export class WwwSheet implements Component {
 		if (prompt >= 0 && prompt !== this.promptLine) this.revealSelection = true;
 		this.promptLine = prompt;
 		if (this.revealSelection) {
-			const selectedBackground = lines.findIndex(row => /\x1b\[48;2;/u.test(row));
-			const selected = prompt >= 0 ? prompt : selectedBackground >= 0 ? selectedBackground : lines.findIndex(row => /^\s*[▸›]/u.test(stripTerminalSequences(row)));
+			const selectedBackground = lines.findIndex(row => /\x1b\[48;2;/u.test(row))                                                                                            ;
+			const selected           = prompt >= 0 ? prompt : selectedBackground >= 0 ? selectedBackground : lines.findIndex(row => /^\s*[▸›]/u.test(stripTerminalSequences(row))) ;
 			if (selected >= 0 && (selected < this.offset || selected >= this.offset + height)) this.offset = Math.max(0, selected - height + 2);
 			this.revealSelection = false;
 		}

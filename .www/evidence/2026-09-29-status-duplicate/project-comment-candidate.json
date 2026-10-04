@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-STATUS-DUPLICATE-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:0e7d421b5da741d39b34895a6d2d1fbdb3ff14be:dirty",
+  "intent": "입력창 옆 STATUS 중복 표시의 행 겹침을 수정한 경과를 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "STATUS 상단과 입력창 옆 렌더링이 같은 행을 다시 표시하던 경계를 분리하고 중복 헤더 검사를 추가했다."
+    ],
+    "impacts": [
+      "대기 화면에서 STATUS 헤더가 두 번 표시되는 현상을 막는다. 입력 높이 변경 시 위치 고정 실패는 남아 있다."
+    ],
+    "categories": [
+      "fix",
+      "verification"
+    ],
+    "verification": [
+      "bun run check와 git diff --check 통과.",
+      "bun test test/www-ui.test.ts: 78 pass, 17 fail. 대상 테스트에서 STATUS 개수 검사는 통과했으나 위치 고정 기대값은 실패했다. 실제 TUI 육안 검사는 미실행."
+    ],
+    "connections": [
+      "WOO-680 https://linear.app/woo-world/issue/WOO-680/layout-화면-크기가-달라져도-읽던-위치와-입력-흐름을-유지한다",
+      "src/adapters/inbound/tui/shell/www-surface.ts",
+      "test/www-ui.test.ts",
+      ".www/evidence/2026-09-29-status-duplicate"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-680/layout-화면-크기가-달라져도-읽던-위치와-입력-흐름을-유지한다",
+    "evidence": ".www/evidence/2026-09-29-status-duplicate"
+  },
+  "expectedBefore": {
+    "latestCommentId": "c12ec45a-21d1-450f-a147-b2bfb6912b60"
+  },
+  "validation": [
+    {
+      "id": "target",
+      "status": "pass",
+      "evidence": "기존 WOO-680과 Project Activity 확인; 같은 수정 기록 없음"
+    },
+    {
+      "id": "checks",
+      "status": "pass",
+      "evidence": "타입 검사와 diff 검사 통과, UI 실패 17건 명시"
+    }
+  ],
+  "candidateDigest": "6c03bc56b5f790894d3b7820f40321764912c49390974bef603fcc5857808158"
+}

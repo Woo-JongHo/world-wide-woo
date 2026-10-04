@@ -1,0 +1,10 @@
+{
+  "candidateId": "ARTIFACT-CANDIDATE-STATUS-DUPLICATE-COMMENT",
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "expectedBeforeCommentId": "c12ec45a-21d1-450f-a147-b2bfb6912b60",
+  "publishedCommentId": "21f69f21-7787-4408-ae4c-873d1e73b0a8",
+  "author": "우종호",
+  "createdAt": "2026-09-29T14:24:25.545Z",
+  "readBack": "latest project comment ID, author and body matched",
+  "status": "verified"
+}

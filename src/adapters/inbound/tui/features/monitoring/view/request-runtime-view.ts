@@ -1,8 +1,15 @@
 import chalk                                            from "chalk";
 import { visibleWidth }                                 from "@earendil-works/pi-tui";
-import type { RequestRuntimeRecord }                    from "@/core/domain/execution/request-runtime";
-import { a, fit, joinedSections, prose, safe, section } from "@/adapters/inbound/tui/foundation/theme/www-theme";
-import { compactStatusRows }                            from "@/adapters/inbound/tui/foundation/components/status-card";
+import type { RequestRuntimeRecord } from "@/core/domain/execution/request-runtime"           ;
+import      {
+              a                  ,
+              fit                ,
+              joinedSections     ,
+              prose              ,
+              safe               ,
+              section            ,
+                                   } from "@/adapters/inbound/tui/foundation/theme/www-theme" ;
+import      { compactStatusRows }                       from "@/adapters/inbound/tui/foundation/components/status-card";
 
 type StatusGradient = { readonly base: readonly [number, number, number]; readonly peak: readonly [number, number, number] };
 const statusGradient: Partial<Record<RequestRuntimeRecord["status"], StatusGradient>> = {
@@ -16,8 +23,8 @@ export function requestStatusGradient(status: RequestRuntimeRecord["status"], te
 	if (!palette) return (status === "failed" ? a.failure : status === "blocked" ? a.attention : a.muted)(text);
 	const characters = Array.from(text);
 	return characters.map((character, column) => {
-		const light = Math.max(0, 1 - Math.abs(column - frame % (characters.length + 6) + 3) / 4);
-		const rgb = palette.base.map((channel, index) => Math.round(channel + (palette.peak[index] - channel) * light));
+		const light = Math.max(0, 1 - Math.abs(column - frame % (characters.length + 6) + 3) / 4)                         ;
+		const rgb   = palette.base.map((channel, index) => Math.round(channel + (palette.peak[index] - channel) * light)) ;
 		return chalk.rgb(rgb[0], rgb[1], rgb[2])(character);
 	}).join("");
 }
@@ -33,15 +40,53 @@ export function stageInk(status: RequestRuntimeRecord["stages"][number]["status"
 	if (status === "completed") return a.success;
 	if (status === "running") return a.active;
 	if (status === "failed" || status === "blocked") return a.failure;
+	if (status === "skipped") return a.rule;
 	return a.muted;
 }
 
 export function stageMark(status: RequestRuntimeRecord["stages"][number]["status"]): string {
-	if (status === "completed" || status === "skipped") return "✓";
+	if (status === "completed") return "✓";
+	if (status === "skipped") return "−";
 	if (status === "running") return "●";
 	if (status === "failed") return "×";
 	if (status === "blocked") return "Ⅱ";
 	return "○";
+}
+
+export function requestRuntimeRows(
+	request: RequestRuntimeRecord,
+	width: number,
+	compact = false,
+	_motionFrame = 8,
+	_goal: string | null = null,
+	activityRows?: readonly string[],
+	nativePlanRows?: readonly string[],
+): string[] {
+	const plan     = nativePlanRows ?? planTaskRows(request, width)                                              ;
+	const stages   = stageRows(request, width, compact)                                                           ;
+	const progress = activityRows ?? [...section("PROGRESS", width, "", a.info), ...prose(a.muted("정리된 세부 작업이 도착하면 이곳에 표시합니다."), width)] ;
+	const issues   = (compact ? request.issues.slice(-1) : request.issues).flatMap(issue => prose(a.attention(safe(issue)), width))                       ;
+	return joinedSections([stages, plan, progress, issues]).map(row => fit(row, width));
+}
+
+function stageRows(request: RequestRuntimeRecord, width: number, compact: boolean): string[] {
+	const rows = stageBaseRows(request, width);
+	const activeStage = request.stages.find(stage => stage.status === "running")
+		?? request.stages.find(stage => stage.status === "failed" || stage.status === "blocked")
+		?? request.stages.find(stage => stage.status === "pending")
+		?? request.stages.at(-1);
+	const activeSummary = activeStage && ["failed", "blocked"].includes(activeStage.status) ? activeStage.output ?? activeStage.goal : activeStage?.goal;
+	if (activeStage && activeSummary) rows.push(...compactStatusRows(activeSummary, activeStage.status, width, compact ? 1 : 2));
+	for (const stage of request.stages.filter(stage => stage.skipReason)) rows.push(...prose(a.muted(`${stage.id} · ${safe(stage.skipReason)}`), width, 2));
+	return rows;
+}
+
+function stageBaseRows(request: RequestRuntimeRecord, width: number): string[] {
+	const settled = request.stages.filter(stage => !["pending", "running"].includes(stage.status)).length;
+	const rows = section("STAGE", width, `${settled}/${request.stages.length}`, a.plan);
+	rows.push(...stageRailRows(request, width));
+	if (request.attempt > 1) rows.push(...prose(a.muted(`시도 ${request.attempt} · 이전 ${request.previousAttempts.length}회 기록 보존`), width));
+	return rows;
 }
 
 function stageRailRows(request: RequestRuntimeRecord, width: number): string[] {
@@ -72,32 +117,4 @@ function planTaskRows(request: RequestRuntimeRecord, width: number): string[] {
 		rows.push(...prose(`${stageInk(task.status)(stageMark(task.status))} ${a.text(safe(task.title))}  ${a.muted(`· ${task.stage} · ${meta}`)}`, width));
 	}
 	return rows;
-}
-
-export function requestRuntimeRows(
-	request: RequestRuntimeRecord,
-	width: number,
-	compact = false,
-	_motionFrame = 8,
-	_goal: string | null = null,
-	activityRows?: readonly string[],
-	nativePlanRows?: readonly string[],
-): string[] {
-	const settled = request.stages.filter(stage => !["pending", "running"].includes(stage.status)).length ;
-	const plan    = nativePlanRows ?? planTaskRows(request, width)                                        ;
-	const stages  = section("STAGE", width, `${settled}/${request.stages.length}`, a.plan)                ;
-	stages.push(...stageRailRows(request, width));
-	if (request.attempt > 1) stages.push(...prose(a.muted(`시도 ${request.attempt} · 이전 ${request.previousAttempts.length}회 기록 보존`), width));
-	const activeStage = request.stages.find(stage => stage.status === "running")
-		?? request.stages.find(stage => stage.status === "failed" || stage.status === "blocked")
-		?? request.stages.find(stage => stage.status === "pending")
-		?? request.stages.at(-1);
-	const activeSummary = activeStage && ["failed", "blocked"].includes(activeStage.status) ? activeStage.output ?? activeStage.goal : activeStage?.goal;
-	if (activeStage && activeSummary) stages.push(...compactStatusRows(activeSummary, activeStage.status, width, compact ? 1 : 2));
-	for (const stage of request.stages.filter(stage => stage.skipReason)) {
-		stages.push(...prose(a.muted(`${stage.id} · ${safe(stage.skipReason)}`), width, 2));
-	}
-	const progress  = activityRows ?? [...section("PROGRESS", width, "", a.info), ...prose(a.muted("정리된 세부 작업이 도착하면 이곳에 표시합니다."), width)] ;
-	const issues = (compact ? request.issues.slice(-1) : request.issues).flatMap(issue => prose(a.attention(safe(issue)), width)) ;
-	return joinedSections([stages, plan, progress, issues]).map(row => fit(row, width));
 }

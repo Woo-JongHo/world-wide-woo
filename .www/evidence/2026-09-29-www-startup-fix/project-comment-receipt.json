@@ -1,0 +1,85 @@
+{
+  "schemaVersion": "1.0",
+  "receiptId": "b4c8f75b-04ac-445a-b7fc-542a3997878b",
+  "runId": "9ef770ef-3679-4afc-a6d8-1e8867cfee6e",
+  "candidateId": "ARTIFACT-CANDIDATE-WWW-STARTUP-TDZ-FIX-COMMENT",
+  "skill": {
+    "name": "woo-linear-publish",
+    "version": "unversioned"
+  },
+  "capability": "LINEAR_PROJECT_COMMENT_PUBLISH",
+  "status": "succeeded",
+  "stage": "verify",
+  "actor": {
+    "type": "Codex",
+    "role": "primary executor"
+  },
+  "context": {
+    "repository": "99_www",
+    "branch": "dev",
+    "sourceRevision": "git:0e7d421b5da741d39b34895a6d2d1fbdb3ff14be:dirty",
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "projectName": "World Wide Woo",
+    "projectUrl": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff"
+  },
+  "input": {
+    "candidateId": "ARTIFACT-CANDIDATE-WWW-STARTUP-TDZ-FIX-COMMENT",
+    "candidateDigest": "08b5e587ea7218d7e6f5389a1deef8153000ddceb607119c9837af0fb2819502",
+    "expectedBefore": {
+      "latestCommentId": "5cca1d0c-e81b-4f7e-999e-22bb36350072"
+    }
+  },
+  "decision": {
+    "projectComment": "pre-approved",
+    "basis": "99_www AGENTS.md standing Project Comment authorization"
+  },
+  "validation": [
+    {
+      "id": "candidate",
+      "status": "pass",
+      "evidence": "artifact:control validate and render succeeded; expectedBefore matched the live latest comment before publish."
+    },
+    {
+      "id": "read-back",
+      "status": "pass",
+      "evidence": "Comment c12ec45a-21d1-450f-a147-b2bfb6912b60 was returned by Project Activity; author and rendered body matched, and it is the latest comment."
+    },
+    {
+      "id": "application-checks",
+      "status": "partial",
+      "evidence": "www:preview rendered the dashboard; bun run check passed. The focused shell test proceeds past the TDZ error but exits on a later INPUT 1 assertion."
+    }
+  ],
+  "authorization": {
+    "source": "99_www AGENTS.md",
+    "scope": "Project Comment only"
+  },
+  "execution": {
+    "tool": "mcp__linear_woo__save_comment",
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+    "commentId": "c12ec45a-21d1-450f-a147-b2bfb6912b60",
+    "createdAt": "2026-09-29T14:02:27.123Z",
+    "attemptCount": 1
+  },
+  "result": {
+    "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-c12ec45a-21d1-450f-a147-b2bfb6912b60",
+    "commentId": "c12ec45a-21d1-450f-a147-b2bfb6912b60",
+    "author": "우종호",
+    "readBack": {
+      "idMatches": true,
+      "bodyMatchesRenderedCandidate": true,
+      "latestProjectCommentId": "c12ec45a-21d1-450f-a147-b2bfb6912b60"
+    }
+  },
+  "failure": null,
+  "evidence": [
+    ".www/evidence/2026-09-29-www-startup-fix/project-comment-candidate.json",
+    ".www/evidence/2026-09-29-www-startup-fix/actual-before.json",
+    ".www/evidence/2026-09-29-www-startup-fix/rendered-comment.md",
+    "bun run www:preview",
+    "bun run check",
+    "bun test test/www-shell.test.ts --test-name-pattern 'production Www shell routes'"
+  ],
+  "nextCapabilities": [],
+  "receiptDigest": "bb9bb49f15fe283d5bba088c6d861386ba214d6ef21c46edfe6e7bd27f9b0815"
+}

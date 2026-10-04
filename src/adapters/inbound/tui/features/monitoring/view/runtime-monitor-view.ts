@@ -14,57 +14,76 @@ export class RuntimeMonitorView implements Component {
 	public invalidate(): void {}
 
 	public render(width: number): string[] {
-		const size            = Math.max(1, Math.min(MAX_VIEW_WIDTH, width))                                  ;
-		const data            = this.getMonitor()                                                             ;
-		const rows : string[] = [colors.accent("WORLD WIDE WOO · LIVE MONITOR"), stateLine(data), rule(size)] ;
-		if (data.requestRuntime) {
-			rows.push(`REQUEST ${data.requestRuntime.requestId}`);
-			for (const stage of data.requestRuntime.stages) rows.push(`${stage.id.padEnd(11)} ${stage.status}${stage.skipReason ? ` · ${stage.skipReason}` : ""}`);
-		}
-
-		if (hasNoObservation(data)) {
-			rows.push(colors.warning("Observation unknown · no runtime event is available."));
-		} else if (data.state === "idle") {
-			rows.push(colors.muted("No active execution observed."));
-		} else {
-			section(rows, "CURRENT", size);
-			rows.push(`Request  ${data.activeRequest?.label ?? "not observed"}`);
-			if (data.activeRequest) rows.push(`Elapsed  ${elapsedAt(data.activeRequest.elapsed, this.now())}`);
-			rows.push(`Model    ${data.model ?? "unknown"}`);
-			rows.push(`Agent    ${data.agent ?? "unknown"}`);
-			if (data.currentTool) {
-				rows.push(`Tool     ${data.currentTool.label}`);
-				rows.push(`Tool age ${elapsedAt(data.currentTool.elapsed, this.now())}`);
-			}
-			if (data.approval?.pending) {
-				rows.push(colors.warning(`Approval WAITING · ${data.approval.elapsed ? elapsedAt(data.approval.elapsed, this.now()) : "time unknown"}`));
-			}
-			if (data.skillRun) {
-				section(rows, "SKILL RUN", size);
-				rows.push(`Run      ${data.skillRun.runId}`);
-				rows.push(`Skill    ${data.skillRun.skill ?? "none"} · ${data.skillRun.stage}`);
-				rows.push(`Work     ${[data.skillRun.processId, data.skillRun.taskId].filter(Boolean).join(" / ") || "unbound"}`);
-				if (data.skillRun.candidateId) rows.push(`Candidate ${data.skillRun.candidateId}`);
-				if (data.skillRun.receiptId) rows.push(`Receipt   ${data.skillRun.receiptId}`);
-			}
-		}
-
-		section(rows, "STATUS", size);
-		rows.push(`Retry ${data.retryCount} · Failure ${data.failureCount} · Approval ${data.approval?.pending ? "waiting" : "none observed"}`);
-		rows.push(colors.muted(`Coverage journal projection · ${data.recentEvents.length} recent event(s), up to 12`));
-
-		if (size >= 56) {
-			section(rows, "ACTIVITY", size);
-			for (const event of data.recentEvents) {
-				rows.push(`${event.recordedAt.slice(11, 19)}  ${pad(event.kind, 10)}  ${truncateToWidth(event.label, Math.max(1, size - 22))}`);
-			}
-			if (!data.recentEvents.length) rows.push(colors.muted("No recent activity observed."));
-		}
-
-		rows.push(rule(size), colors.muted(size < 56 ? "[3 Monitor] · Esc back" : "r next · R prev · 1 Stats · 2 Dashboard · [3 Monitor] · Esc back"));
+		const size = Math.max(1, Math.min(MAX_VIEW_WIDTH, width));
+		const data = this.getMonitor();
+		const rows = [
+			colors.accent("WORLD WIDE WOO · LIVE MONITOR"),
+			stateLine(data),
+			rule(size),
+			...requestRows(data),
+			...currentRows(data, size, () => this.now()),
+			...statusRows(data, size),
+			...activityRows(data, size),
+			rule(size),
+			colors.muted(size < 56 ? "[3 Monitor] · Esc back" : "r next · R prev · 1 Stats · 2 Dashboard · [3 Monitor] · Esc back"),
+		];
 		const offset = Math.max(0, Math.floor((width - size) / 2));
 		return rows.map(row => `${" ".repeat(offset)}${truncateToWidth(row, size)}`);
 	}
+}
+
+function requestRows(data: RuntimeMonitorProjection): string[] {
+	if (!data.requestRuntime) return [];
+	return [
+		`REQUEST ${data.requestRuntime.requestId}`,
+		...(data.requestRuntime.checkpoints ?? []).map(checkpoint => `${checkpoint.id.padEnd(11)} ${checkpoint.status} · ${checkpoint.summary ?? "unobserved"}`),
+	];
+}
+
+function currentRows(data: RuntimeMonitorProjection, width: number, now: () => number): string[] {
+	if (hasNoObservation(data)) return [colors.warning("Observation unknown · no runtime event is available.")];
+	if (data.state === "idle") return [colors.muted("No active execution observed.")];
+	const rows = [
+		sectionLine("CURRENT", width),
+		`Request  ${data.activeRequest?.label ?? "not observed"}`,
+		...(data.activeRequest ? [`Elapsed  ${elapsedAt(data.activeRequest.elapsed, now())}`] : []),
+		`Model    ${data.model ?? "unknown"}`,
+		`Agent    ${data.agent ?? "unknown"}`,
+		...(data.currentTool ? [`Tool     ${data.currentTool.label}`, `Tool age ${elapsedAt(data.currentTool.elapsed, now())}`] : []),
+		...(data.approval?.pending ? [colors.warning(`Approval WAITING · ${data.approval.elapsed ? elapsedAt(data.approval.elapsed, now()) : "time unknown"}`)] : []),
+		...skillRows(data, width),
+	];
+	return rows;
+}
+
+function skillRows(data: RuntimeMonitorProjection, width: number): string[] {
+	if (!data.skillRun) return [];
+	return [
+		sectionLine("SKILL RUN", width),
+		`Run      ${data.skillRun.runId}`,
+		`Skill    ${data.skillRun.skill ?? "none"} · ${data.skillRun.stage}`,
+		`Work     ${[data.skillRun.processId, data.skillRun.taskId].filter(Boolean).join(" / ") || "unbound"}`,
+		...(data.skillRun.candidateId ? [`Candidate ${data.skillRun.candidateId}`] : []),
+		...(data.skillRun.receiptId ? [`Receipt   ${data.skillRun.receiptId}`] : []),
+	];
+}
+
+function statusRows(data: RuntimeMonitorProjection, width: number): string[] {
+	return [
+		sectionLine("STATUS", width),
+		`Retry ${data.retryCount} · Failure ${data.failureCount} · Approval ${data.approval?.pending ? "waiting" : "none observed"}`,
+		colors.muted(`Coverage journal projection · ${data.recentEvents.length} recent event(s), up to 12`),
+	];
+}
+
+function activityRows(data: RuntimeMonitorProjection, width: number): string[] {
+	if (width < 56) return [];
+	return [
+		sectionLine("ACTIVITY", width),
+		...(data.recentEvents.length
+			? data.recentEvents.map(event => `${event.recordedAt.slice(11, 19)}  ${pad(event.kind, 10)}  ${truncateToWidth(event.label, Math.max(1, width - 22))}`)
+			: [colors.muted("No recent activity observed.")]),
+	];
 }
 
 function hasNoObservation(data: RuntimeMonitorProjection): boolean {
@@ -90,9 +109,9 @@ function renderState(state: RuntimeMonitorState): string {
 	return colors.muted("○ IDLE");
 }
 
-function section(rows: string[], title: string, width: number): void {
+function sectionLine(title: string, width: number): string {
 	const label = ` ${title} `;
-	rows.push(colors.border(`${label}${"─".repeat(Math.max(0, width - visibleWidth(label)))}`));
+	return colors.border(`${label}${"─".repeat(Math.max(0, width - visibleWidth(label)))}`);
 }
 
 function rule(width: number): string {

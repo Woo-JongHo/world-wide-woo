@@ -11,8 +11,10 @@ test("HUD는 실행 모드와 provider 사용량을 한 줄에 표시한다", ()
 	]);
 	const lines = new WorkbenchBottomHudView(usage).render(120).map(stripTerminalSequences);
 	expect(lines                  )    .toHaveLength(1              ) ;
-	expect(lines[0]               )    .toContain   ("Codex 98%"    ) ;
-	expect(lines[0]               )    .toContain   ("Claude 99%"   ) ;
+	expect(lines[0]               )    .toContain   ("Codex "       ) ;
+	expect(lines[0]               )    .toContain   ("Claude "      ) ;
+	expect(lines[0]               ).not.toContain   ("98%"          ) ;
+	expect(lines[0]               ).not.toContain   ("99%"          ) ;
 	expect(lines[0]               )    .toContain   ("Antigravity —") ;
 	expect(lines[0]               ).not.toContain   ("⑂ main"       ) ;
 	expect(lines[0]               )    .toContain   ("● manual mode") ;

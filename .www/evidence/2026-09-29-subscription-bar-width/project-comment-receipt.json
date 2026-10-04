@@ -1,0 +1,12 @@
+{
+  "candidateId": "ARTIFACT-CANDIDATE-SUBSCRIPTION-BAR-WIDTH-COMMENT",
+  "candidateDigest": "de260a199b56b4530eb352bcf0d70250763c23ced0b820311f27039da11d25b2",
+  "expectedBefore": "bb8949a5-c103-4d01-8ab8-fc05d6ba88d0",
+  "commentId": "fbe874c7-c0c6-4821-adef-12f3417c6fb2",
+  "createdAt": "2026-09-29T07:38:33.843Z",
+  "readBack": {
+    "latest": true,
+    "author": "우종호",
+    "bodyMatches": true
+  }
+}

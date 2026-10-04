@@ -30,52 +30,71 @@ export class WorkbenchTracerView implements Component {
 	public invalidate(): void {}
 
 	public render(width: number): string[] {
-		const snapshot     = this.getSnapshot() ;
-		const contentWidth = Math.max(1, width) ;
-		const workflow     = snapshot.workFlow  ;
+		const snapshot = this.getSnapshot();
+		const contentWidth = Math.max(1, width);
+		const workflow = snapshot.workFlow;
 		const showEntryDashboard = snapshot.chat.length === 0 && snapshot.activities.length === 0
 			&& !snapshot.activeTurnId && !snapshot.actionResult && !workflow.source;
-		if (showEntryDashboard && snapshot.linearDashboard?.state === "loading") return [
-			...wrapTextWithAnsi(colors.secondary(`일정 · ${snapshot.linearDashboard.projectName}`), contentWidth),
-			...wrapTextWithAnsi(colors.muted("Linear 마일스톤과 기한을 가져오는 중입니다."), contentWidth),
-		];
-		if (showEntryDashboard && (snapshot.linearDashboard?.state === "ready" || snapshot.linearDashboard?.state === "stale")) {
-			const dashboard = snapshot.linearDashboard;
-			return [
-				...wrapTextWithAnsi(colors.secondary(`일정 · ${dashboard.projectName}`), contentWidth),
-				...(dashboard.state === "stale" ? wrapTextWithAnsi(colors.warning("갱신 실패 · 마지막 성공 값"), contentWidth) : []),
-				...(dashboard.milestones.length ? dashboard.milestones.flatMap(item => wrapTextWithAnsi(`• ${item.targetDate ?? "일정 미정"} · ${item.name}`, contentWidth)) : wrapTextWithAnsi("관측 가능한 마일스톤·기한이 없습니다.", contentWidth)),
-			];
-		}
-		if (showEntryDashboard && snapshot.linearDashboard?.state === "unavailable") return [
-			...wrapTextWithAnsi(colors.secondary(`일정 · ${snapshot.linearDashboard.projectName}`), contentWidth),
-			...wrapTextWithAnsi(colors.warning("Linear 일정 정보를 불러오지 못했습니다."), contentWidth),
-		];
-		const performance = snapshot.performance;
-		if (!workflow.source) {
-			if (!performance?.execution && !snapshot.liveActivity) return [];
-			const state                          = performance?.state ?? "executing"                                                                                                                                                                                                                                                                           ;
-			const labels: Record<string, string> = { idle: "대기", requested: "요청됨", understanding: "확인 중", planning: "계획 중", executing: "수행 중", verifying: "검증 중", completing: "마무리 중", waiting: "대기", blocked: "차단", reconciling: "상태 대조 중", completed: "수행 종료", failed: "실패", interrupted: "중단", unknown: "확인 불가" } ;
-			const rows = [colors.warm(performance?.workContext ? `맡긴 일 · ${performance.workContext.goal}` : "독립 수행"),
-				colors.accent(`현재 · ${labels[state] ?? state}`)];
-			if (performance?.request) rows.push(colors.secondary(performance.request.text));
-			if (snapshot.liveActivity) rows.push(colors.muted(snapshot.liveActivity.text || snapshot.liveActivity.method));
-			else if (performance?.lastObservation) rows.push(colors.muted(`최근 관측 · ${performance.lastObservation.label}`));
-			rows.push(colors.muted("실행 계획 없음 · 수행 관찰은 계속됩니다."));
-			rows.push(...performanceHealthRows(snapshot));
-			return [...rows.flatMap(row => wrapTextWithAnsi(row, contentWidth)), ...delegationRows(snapshot, contentWidth, this.delegationPresentation)];
-		}
+		const entryRows = entryDashboardRows(snapshot, contentWidth, showEntryDashboard);
+		if (entryRows) return entryRows;
+		if (!workflow.source) return noPlanRows(snapshot, contentWidth, this.delegationPresentation);
+		return workflowRows(snapshot, workflow, contentWidth, this.delegationPresentation);
+	}
+}
 
-		const activities = new Map(snapshot.activities.map(activity => [activity.id, activity])) ;
-		const active     = workflow.steps.find(step => step.status === "running") ?? null        ;
-		const focus      = active ?? workflow.steps.at(-1) ?? null                               ;
-		const rows: string[] = [
-			...(performance ? [colors.secondary(performance.workContext ? `맡긴 일 · ${performance.workContext.goal}` : "독립 수행")] : []),
-			colors.warm(`${TRACER_LABELS.flow} · ${(active?.title ?? workflow.goal) || "공개 실행"}`),
-			...workflow.steps.map(step => alignedStep(step, stepElapsed(step, activities), contentWidth)),
-			colors.border("─".repeat(contentWidth)),
-			colors.accent(TRACER_LABELS.now),
+function entryDashboardRows(snapshot: TracerFeatureProjection, width: number, visible: boolean): string[] | null {
+	if (!visible) return null;
+	if (snapshot.linearDashboard?.state === "loading") return [
+		...wrapTextWithAnsi(colors.secondary(`일정 · ${snapshot.linearDashboard.projectName}`), width),
+		...wrapTextWithAnsi(colors.muted("Linear 마일스톤과 기한을 가져오는 중입니다."), width),
+	];
+	if (snapshot.linearDashboard?.state === "ready" || snapshot.linearDashboard?.state === "stale") {
+		const dashboard = snapshot.linearDashboard;
+		return [
+			...wrapTextWithAnsi(colors.secondary(`일정 · ${dashboard.projectName}`), width),
+			...(dashboard.state === "stale" ? wrapTextWithAnsi(colors.warning("갱신 실패 · 마지막 성공 값"), width) : []),
+			...(dashboard.milestones.length
+				? dashboard.milestones.flatMap(item => wrapTextWithAnsi(`• ${item.targetDate ?? "일정 미정"} · ${item.name}`, width))
+				: wrapTextWithAnsi("관측 가능한 마일스톤·기한이 없습니다.", width)),
 		];
+	}
+	if (snapshot.linearDashboard?.state === "unavailable") return [
+		...wrapTextWithAnsi(colors.secondary(`일정 · ${snapshot.linearDashboard.projectName}`), width),
+		...wrapTextWithAnsi(colors.warning("Linear 일정 정보를 불러오지 못했습니다."), width),
+	];
+	return null;
+}
+
+function noPlanRows(snapshot: TracerFeatureProjection, width: number, presentation: TracerDelegationPresentation | null): string[] {
+	const performance = snapshot.performance;
+	if (!performance?.execution && !snapshot.liveActivity) return [];
+	const state = performance?.state ?? "executing";
+	const labels: Record<string, string> = { idle: "대기", requested: "요청됨", understanding: "확인 중", planning: "계획 중", executing: "수행 중", verifying: "검증 중", completing: "마무리 중", waiting: "대기", blocked: "차단", reconciling: "상태 대조 중", completed: "수행 종료", failed: "실패", interrupted: "중단", unknown: "확인 불가" };
+	const rows = [
+		colors.warm(performance?.workContext ? `맡긴 일 · ${performance.workContext.goal}` : "독립 수행"),
+		colors.accent(`현재 · ${labels[state] ?? state}`),
+		...(performance?.request ? [colors.secondary(performance.request.text)] : []),
+		...(snapshot.liveActivity
+			? [colors.muted(snapshot.liveActivity.text || snapshot.liveActivity.method)]
+			: performance?.lastObservation ? [colors.muted(`최근 관측 · ${performance.lastObservation.label}`)] : []),
+		colors.muted("실행 계획 없음 · 수행 관찰은 계속됩니다."),
+		...performanceHealthRows(snapshot),
+	];
+	return [...rows.flatMap(row => wrapTextWithAnsi(row, width)), ...delegationRows(snapshot, width, presentation)];
+}
+
+function workflowRows(snapshot: TracerFeatureProjection, workflow: TracerFeatureProjection["workFlow"], width: number, presentation: TracerDelegationPresentation | null): string[] {
+	const performance = snapshot.performance;
+	const activities = new Map(snapshot.activities.map(activity => [activity.id, activity]));
+	const active = workflow.steps.find(step => step.status === "running") ?? null;
+	const focus = active ?? workflow.steps.at(-1) ?? null;
+	const rows: string[] = [
+		...(performance ? [colors.secondary(performance.workContext ? `맡긴 일 · ${performance.workContext.goal}` : "독립 수행")] : []),
+		colors.warm(`${TRACER_LABELS.flow} · ${(active?.title ?? workflow.goal) || "공개 실행"}`),
+		...workflow.steps.map(step => alignedStep(step, stepElapsed(step, activities), width)),
+		colors.border("─".repeat(width)),
+		colors.accent(TRACER_LABELS.now),
+	];
 	if (focus) {
 		rows.push(colors.highlight(`${focus.status === "completed" ? "✓" : "▶"} ${focus.title}`));
 		if (focus.narration.what.trim() && focus.narration.what.trim() !== focus.title.trim()) rows.push(colors.secondary(`  무엇 · ${focus.narration.what}`));
@@ -84,12 +103,9 @@ export class WorkbenchTracerView implements Component {
 		const source = [...focus.activityIds].reverse().map(id => activitySummary(activities.get(id))).find((value): value is string => value !== null);
 		if (source) rows.push(colors.muted(`  공개 실행 · ${source}`));
 		rows.push(colors.muted(`  관측 ${focus.observationCount} · 수행 활동 ${focus.activityIds.length}`));
-		} else rows.push(colors.muted("대기 중인 실행이 없습니다."));
-		rows.push(colors.border("─".repeat(contentWidth)));
-		rows.push(colors.muted(TRACER_LABELS.health));
-		rows.push(...performanceHealthRows(snapshot));
-		return [...rows.flatMap(row => wrapTextWithAnsi(row, contentWidth)), ...delegationRows(snapshot, contentWidth, this.delegationPresentation)];
-	}
+	} else rows.push(colors.muted("대기 중인 실행이 없습니다."));
+	rows.push(colors.border("─".repeat(width)), colors.muted(TRACER_LABELS.health), ...performanceHealthRows(snapshot));
+	return [...rows.flatMap(row => wrapTextWithAnsi(row, width)), ...delegationRows(snapshot, width, presentation)];
 }
 
 function delegationRows(snapshot: TracerFeatureProjection, width: number, presentation: TracerDelegationPresentation | null): string[] {
