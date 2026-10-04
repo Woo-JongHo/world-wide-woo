@@ -1,0 +1,61 @@
+<testsuites id="" name="" tests="21" failures="0" skipped="0" errors="1" time="620.2996929999999">
+<testsuite name="data.spec.ts" timestamp="2026-10-02T11:21:13.793Z" hostname="" tests="7" failures="0" skipped="0" time="0.013" errors="0">
+<testcase name="mock snapshot has complete navigable evidence and meaningful table coverage" classname="data.spec.ts" time="0.006">
+</testcase>
+<testcase name="an adopted decision and a commit never imply a passed verification" classname="data.spec.ts" time="0.001">
+</testcase>
+<testcase name="PRN-003 evidence categories come from stored relations" classname="data.spec.ts" time="0.001">
+</testcase>
+<testcase name="view annotations and preview content share one view record" classname="data.spec.ts" time="0.001">
+</testcase>
+<testcase name="integrity checker rejects duplicated identity, missing foreign identity and replacement cycles" classname="data.spec.ts" time="0.003">
+</testcase>
+<testcase name="raw transcript preserves approval and unknown timestamps without inventing chronology" classname="data.spec.ts" time="0.001">
+</testcase>
+<testcase name="database value rendering distinguishes absence, emptiness, zero and false" classname="data.spec.ts" time="0">
+</testcase>
+</testsuite>
+<testsuite name="navigation.spec.ts" timestamp="2026-10-02T11:21:13.793Z" hostname="" tests="14" failures="0" skipped="0" time="617.667" errors="1">
+<testcase name="top-level workspaces remain peers and identify the current page" classname="navigation.spec.ts" time="2.532">
+</testcase>
+<testcase name="module detail routes open directly and preserve browser history" classname="navigation.spec.ts" time="1.17">
+</testcase>
+<testcase name="every module has its own working preview" classname="navigation.spec.ts" time="1.722">
+</testcase>
+<testcase name="a broken deep link preserves its identity and explains the missing record" classname="navigation.spec.ts" time="0.616">
+</testcase>
+<testcase name="database controls, row selection, and detail tabs survive browser history" classname="navigation.spec.ts" time="1.791">
+</testcase>
+<testcase name="database schema uses declared nullable types and nested references navigate" classname="navigation.spec.ts" time="1.176">
+</testcase>
+<testcase name="raw transcript preserves newlines and copies the complete text" classname="navigation.spec.ts" time="0.674">
+</testcase>
+<testcase name="narrow database detail traps focus, closes with Escape, and restores the row trigger" classname="navigation.spec.ts" time="1.008">
+</testcase>
+<testcase name="a selected database row is revealed inside the grid without moving the document" classname="navigation.spec.ts" time="0.667">
+</testcase>
+<testcase name="important reading surfaces stay within 1920px viewport" classname="navigation.spec.ts" time="1.313">
+</testcase>
+<testcase name="important reading surfaces stay within 1440px viewport" classname="navigation.spec.ts" time="1.261">
+</testcase>
+<testcase name="important reading surfaces stay within 1024px viewport" classname="navigation.spec.ts" time="0.766">
+</testcase>
+<testcase name="important reading surfaces stay within 720px viewport" classname="navigation.spec.ts" time="600.733">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|full-stable/navigation-important-readi-fb15a--stay-within-720px-viewport/error-context.md]]
+]]>
+</system-out>
+<error message="Tearing down &quot;context&quot; exceeded the test timeout of 120000ms." type="Error">
+<![CDATA[  navigation.spec.ts:134:3 › important reading surfaces stay within 720px viewport ─────────────────
+
+    Tearing down "context" exceeded the test timeout of 120000ms.
+
+    Error Context: ../../../.www/evidence/2026-10-02-project-view-mvp/navigation/full-stable/navigation-important-readi-fb15a--stay-within-720px-viewport/error-context.md
+]]>
+</error>
+</testcase>
+<testcase name="important reading surfaces stay within 390px viewport" classname="navigation.spec.ts" time="2.238">
+</testcase>
+</testsuite>
+</testsuites>

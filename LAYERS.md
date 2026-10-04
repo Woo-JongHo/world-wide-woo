@@ -7,11 +7,14 @@
 ```text
 src/
 ├── core/
-│   ├── domain/       # development·execution·observability·review·work
+│   ├── domain/       # development·execution·observability·review·value·work
 │   ├── application/  # development·orchestration·review·routing·session·work
 │   ├── ports/        # execution·persistence·integration·observability 계약
 │   ├── runtime/      # 실행 상태와 receipt
-│   └── commit/       # commit control 계약
+│   ├── commit/       # commit control 계약
+│   ├── agents/       # RPA Agent의 Skill 선택(WHEN)
+│   ├── skills/       # Skill registry 계약(HOW)
+│   └── workflows/    # Skill 실행 순서
 ├── adapters/
 │   ├── inbound/      # cli와 tui/{foundation,features,commands,shell,legacy}
 │   └── outbound/     # authentication·development·execution·git·observability·persistence·review·workspace
@@ -22,6 +25,18 @@ src/
 
 ## 의존 방향
 
+### Project View 브라우저 패키지
+
+`apps/project-view`는 독립적으로 빌드하는 읽기 전용 브라우저 Inbound Adapter다.
+패키지 내부의 `src`는 웹 화면·목업 데이터·조회 selector를 소유하며, TUI 실행 코어를
+직접 가져오거나 Native 프로세스를 실행하지 않는다. 목업 데이터 모델은 화면 검증용이며
+운영 DB 스키마가 아니다. 후속 API 연결은 패키지의 데이터 조회 경계에서 교체한다.
+브라우저 의존성과 JSX 설정은 이 패키지에 한정하며 루트 TUI 빌드와 분리한다.
+검사는 `bun run project-view:check`, `bun run project-view:build`,
+`bun run project-view:test`로 실행한다.
+
+### 기존 실행 코어
+
 ```text
 Inbound Adapter ──→ Core ←── Outbound Adapter
                          ↑
@@ -31,7 +46,7 @@ Inbound Adapter ──→ Core ←── Outbound Adapter
 - `core/domain`은 같은 `core/domain` 안의 규칙만 참조한다. `core/application`, `core/ports`, `core/runtime`, `core/commit`, `adapters`를 참조하지 않는다.
 - `core`는 `adapters`를 참조하지 않는다.
 - `adapters/inbound`는 `adapters/outbound`를 직접 참조하지 않는다.
-- 내부 모듈은 상대 경로로 참조한다. `tsconfig` path alias나 `src/` 절대 import를 추가할 때는 경계 검사도 함께 확장한다.
+- `src` 내부 모듈은 `tsconfig`의 `@/` alias로 참조하고 상대 경로 import를 쓰지 않는다. 새 alias를 추가할 때는 경계 검사도 함께 확장한다.
 - `app.ts`가 Core 계약과 Adapter 구현을 조립한다.
 - 외부 SDK, 파일, 프로세스, 네트워크, 터미널 구현은 Adapter가 소유한다.
 
@@ -61,6 +76,7 @@ Inbound Adapter ──→ Core ←── Outbound Adapter
 - `tui/legacy`는 명시적인 호환 진입점만 소유한다.
 - Outbound Adapter는 연결하는 외부 기능의 종류로 분류한다.
 - `shared`, `common`, `utils` 폴더는 만들지 않는다. 소유 책임을 하나 선택한다.
+- 외부 입력(`unknown`)의 구조 판별처럼 모든 계층이 같은 계약으로 쓰는 값 판별은 `core/domain/value`가 소유한다. 같은 판별 함수를 파일마다 다시 정의하지 않는다.
 - `core/agents`, `core/intents`, `core/skills`, `core/workflows`는 각각 WHEN·분류·HOW·실행 순서의 예약 경계다. 실제 코드가 생길 때만 만든다.
 
 제품 Feature와 Native 관측 계층은 다른 축이다. Feature registry는 18개 Feature·39개 Unit을 `core-work | observability | control | integration`으로 분류한다. Native 사건의 성능·완료 관측은 모든 Feature를 가로질러 다음 7경계를 유지한다.

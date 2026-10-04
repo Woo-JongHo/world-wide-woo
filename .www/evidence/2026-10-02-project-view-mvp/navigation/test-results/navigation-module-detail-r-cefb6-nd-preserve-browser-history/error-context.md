@@ -1,0 +1,325 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: navigation.spec.ts >> module detail routes open directly and preserve browser history
+- Location: tests/navigation.spec.ts:20:1
+
+# Error details
+
+```
+Tearing down "context" exceeded the test timeout of 30000ms.
+```
+
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]: W
+      - generic [ref=e7]:
+        - strong [ref=e8]: WWW
+        - generic [ref=e9]: Project View
+    - generic [ref=e10]:
+      - generic [ref=e11]: MOCK
+      - generic [ref=e12]: READ ONLY
+      - code [ref=e13]: main / 4f2c9a1
+  - navigation "Primary navigation" [ref=e14]:
+    - link "01 Service" [ref=e15] [cursor=pointer]:
+      - /url: /projects/www/service
+      - generic [ref=e16]: "01"
+      - strong [ref=e17]: Service
+    - link "02 Assurance" [ref=e18] [cursor=pointer]:
+      - /url: /projects/www/assurance
+      - generic [ref=e19]: "02"
+      - strong [ref=e20]: Assurance
+    - link "03 Database" [ref=e21] [cursor=pointer]:
+      - /url: /projects/www/database
+      - generic [ref=e22]: "03"
+      - strong [ref=e23]: Database
+  - main [ref=e24]:
+    - generic [ref=e25]:
+      - navigation "Breadcrumb" [ref=e26]:
+        - generic [ref=e27]: WWW /
+        - generic [ref=e28]: Database
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - paragraph [ref=e31]: Common data entry · 11 mock tables
+          - heading "Database" [level=1] [ref=e32]
+          - paragraph [ref=e33]: Service와 Assurance가 함께 사용하는 구조화 데이터와 보존된 RAW를 읽습니다.
+        - generic [ref=e34]:
+          - generic [ref=e35]: READ ONLY
+          - generic [ref=e36]: Mock metadata · no SQL
+      - generic [ref=e37]:
+        - complementary [ref=e38]:
+          - heading "Tables" [level=2] [ref=e39]
+          - generic [ref=e40]:
+            - heading "Structure" [level=3] [ref=e41]
+            - link "project_nodes 15" [ref=e42] [cursor=pointer]:
+              - /url: /projects/www/database?table=project_nodes
+              - generic [ref=e43]: project_nodes
+              - generic [ref=e44]: "15"
+            - link "relations 22" [ref=e45] [cursor=pointer]:
+              - /url: /projects/www/database?table=relations
+              - generic [ref=e46]: relations
+              - generic [ref=e47]: "22"
+            - link "views 3" [ref=e48] [cursor=pointer]:
+              - /url: /projects/www/database?table=views
+              - generic [ref=e49]: views
+              - generic [ref=e50]: "3"
+          - generic [ref=e51]:
+            - heading "Rules & Decisions" [level=3] [ref=e52]
+            - link "documents 3" [ref=e53] [cursor=pointer]:
+              - /url: /projects/www/database?table=documents
+              - generic [ref=e54]: documents
+              - generic [ref=e55]: "3"
+            - link "principles 4" [ref=e56] [cursor=pointer]:
+              - /url: /projects/www/database?table=principles
+              - generic [ref=e57]: principles
+              - generic [ref=e58]: "4"
+            - link "decisions 5" [ref=e59] [cursor=pointer]:
+              - /url: /projects/www/database?table=decisions
+              - generic [ref=e60]: decisions
+              - generic [ref=e61]: "5"
+          - generic [ref=e62]:
+            - heading "Evidence" [level=3] [ref=e63]
+            - link "commits 2" [ref=e64] [cursor=pointer]:
+              - /url: /projects/www/database?table=commits
+              - generic [ref=e65]: commits
+              - generic [ref=e66]: "2"
+            - link "implementation_links 2" [ref=e67] [cursor=pointer]:
+              - /url: /projects/www/database?table=implementation_links
+              - generic [ref=e68]: implementation_links
+              - generic [ref=e69]: "2"
+            - link "verification_runs 5" [ref=e70] [cursor=pointer]:
+              - /url: /projects/www/database?table=verification_runs
+              - generic [ref=e71]: verification_runs
+              - generic [ref=e72]: "5"
+          - generic [ref=e73]:
+            - heading "RAW" [level=3] [ref=e74]
+            - link "raw_sessions 2" [ref=e75] [cursor=pointer]:
+              - /url: /projects/www/database?table=raw_sessions
+              - generic [ref=e76]: raw_sessions
+              - generic [ref=e77]: "2"
+            - link "raw_events 19" [ref=e78] [cursor=pointer]:
+              - /url: /projects/www/database?table=raw_events
+              - generic [ref=e79]: raw_events
+              - generic [ref=e80]: "19"
+        - generic [ref=e81]:
+          - generic [ref=e82]:
+            - generic [ref=e83]:
+              - paragraph [ref=e84]: Records / project_nodes
+              - heading "project_nodes" [level=2] [ref=e85]
+              - paragraph [ref=e86]: 서비스와 구성요소의 논리 구조
+            - button "Schema" [ref=e87] [cursor=pointer]
+          - generic [ref=e88]:
+            - generic [ref=e89]:
+              - text: Search
+              - searchbox "Search" [ref=e90]
+            - generic [ref=e91]:
+              - text: Sort
+              - combobox "Sort" [ref=e92]:
+                - option "id" [selected]
+                - option "kind"
+                - option "name"
+                - option "parentId"
+                - option "axis"
+            - button "정렬 방향 오름차순" [ref=e93] [cursor=pointer]: ↑
+            - generic [ref=e94]: 15 / 15 records
+          - table [ref=e96]:
+            - rowgroup [ref=e97]:
+              - row [ref=e98]:
+                - columnheader "id" [ref=e99]
+                - columnheader "kind" [ref=e100]
+                - columnheader "name" [ref=e101]
+                - columnheader "parentId" [ref=e102]
+                - columnheader "axis" [ref=e103]
+            - rowgroup [ref=e104]:
+              - row [ref=e105]:
+                - cell [ref=e106]:
+                  - link "CMP-CHAT-ADAPTER 행 선택" [ref=e107] [cursor=pointer]:
+                    - /url: /projects/www/database?table=project_nodes&row=CMP-CHAT-ADAPTER&sort=id&dir=asc
+                    - text: CMP-CHAT-ADAPTER
+                - cell "component" [ref=e108]
+                - cell "Chat Event Adapter" [ref=e109]
+                - cell [ref=e110]:
+                  - link "MOD-CHAT Database 레코드로 이동" [ref=e111] [cursor=pointer]:
+                    - /url: /projects/www/database?table=project_nodes&row=MOD-CHAT
+                    - text: MOD-CHAT
+                - cell "service" [ref=e112]
+              - row [ref=e113]:
+                - cell [ref=e114]:
+                  - link "CMP-CHAT-INPUT 행 선택" [ref=e115] [cursor=pointer]:
+                    - /url: /projects/www/database?table=project_nodes&row=CMP-CHAT-INPUT&sort=id&dir=asc
+                    - text: CMP-CHAT-INPUT
+                - cell "component" [ref=e116]
+                - cell "Input Composer" [ref=e117]
+                - cell [ref=e118]:
+                  - link "MOD-CHAT Database 레코드로 이동" [ref=e119] [cursor=pointer]:
+                    - /url: /projects/www/database?table=project_nodes&row=MOD-CHAT
+                    - text: MOD-CHAT
+                - cell "service" [ref=e120]
+              - row [ref=e121]:
+                - cell [ref=e122]:
+                  - link "CMP-CHAT-RAIL 행 선택" [ref=e123] [cursor=pointer]:
+                    - /url: /projects/www/database?table=project_nodes&row=CMP-CHAT-RAIL&sort=id&dir=asc
+                    - text: CMP-CHAT-RAIL
+                - cell "component" [ref=e124]
+                - cell "Plan / Progress / Test Rail" [ref=e125]
+                - cell [ref=e126]:
+                  - link "MOD-CHAT Database 레코드로 이동" [ref=e127] [cursor=pointer]:
+                    - /url: /projects/www/database?table=project_nodes&row=MOD-CHAT
+                    - text: MOD-CHAT
+                - cell "service" [ref=e128]
+              - row [ref=e129]:
+                - cell [ref=e130]:
+                  - link "CMP-CHAT-STREAM 행 선택" [ref=e131] [cursor=pointer]:
+                    - /url: /projects/www/database?table=project_nodes&row=CMP-CHAT-STREAM&sort=id&dir=asc
+                    - text: CMP-CHAT-STREAM
+                - cell "component" [ref=e132]
+                - cell "Conversation Stream" [ref=e133]
+                - cell [ref=e134]:
+                  - link "MOD-CHAT Database 레코드로 이동" [ref=e135] [cursor=pointer]:
+                    - /url: /projects/www/database?table=project_nodes&row=MOD-CHAT
+                    - text: MOD-CHAT
+                - cell "service" [ref=e136]
+              - row [ref=e137]:
+                - cell [ref=e138]:
+                  - link "CMP-CHAT-TOOLS 행 선택" [ref=e139] [cursor=pointer]:
+                    - /url: /projects/www/database?table=project_nodes&row=CMP-CHAT-TOOLS&sort=id&dir=asc
+                    - text: CMP-CHAT-TOOLS
+                - cell "component" [ref=e140]
+                - cell "Tool Activity" [ref=e141]
+                - cell [ref=e142]:
+                  - link "MOD-CHAT Database 레코드로 이동" [ref=e143] [cursor=pointer]:
+                    - /url: /projects/www/database?table=project_nodes&row=MOD-CHAT
+                    - text: MOD-CHAT
+                - cell "service" [ref=e144]
+              - row [ref=e145]:
+                - cell [ref=e146]:
+                  - link "CMP-DASH-PROJECTS 행 선택" [ref=e147] [cursor=pointer]:
+                    - /url: /projects/www/database?table=project_nodes&row=CMP-DASH-PROJECTS&sort=id&dir=asc
+                    - text: CMP-DASH-PROJECTS
+                - cell "component" [ref=e148]
+                - cell "Project Index" [ref=e149]
+                - cell [ref=e150]:
+                  - link "MOD-DASH Database 레코드로 이동" [ref=e151] [cursor=pointer]:
+                    - /url: /projects/www/database?table=project_nodes&row=MOD-DASH
+                    - text: MOD-DASH
+                - cell "service" [ref=e152]
+              - row [ref=e153]:
+                - cell [ref=e154]:
+                  - link "CMP-DASH-SUMMARY 행 선택" [ref=e155] [cursor=pointer]:
+                    - /url: /projects/www/database?table=project_nodes&row=CMP-DASH-SUMMARY&sort=id&dir=asc
+                    - text: CMP-DASH-SUMMARY
+                - cell "component" [ref=e156]
+                - cell "Evidence Summary" [ref=e157]
+                - cell [ref=e158]:
+                  - link "MOD-DASH Database 레코드로 이동" [ref=e159] [cursor=pointer]:
+                    - /url: /projects/www/database?table=project_nodes&row=MOD-DASH
+                    - text: MOD-DASH
+                - cell "service" [ref=e160]
+              - row [ref=e161]:
+                - cell [ref=e162]:
+                  - link "CMP-DASH-TODAY 행 선택" [ref=e163] [cursor=pointer]:
+                    - /url: /projects/www/database?table=project_nodes&row=CMP-DASH-TODAY&sort=id&dir=asc
+                    - text: CMP-DASH-TODAY
+                - cell "component" [ref=e164]
+                - cell "Today Ledger" [ref=e165]
+                - cell [ref=e166]:
+                  - link "MOD-DASH Database 레코드로 이동" [ref=e167] [cursor=pointer]:
+                    - /url: /projects/www/database?table=project_nodes&row=MOD-DASH
+                    - text: MOD-DASH
+                - cell "service" [ref=e168]
+              - row [ref=e169]:
+                - cell [ref=e170]:
+                  - link "CMP-MON-RUNS 행 선택" [ref=e171] [cursor=pointer]:
+                    - /url: /projects/www/database?table=project_nodes&row=CMP-MON-RUNS&sort=id&dir=asc
+                    - text: CMP-MON-RUNS
+                - cell "component" [ref=e172]
+                - cell "Run List" [ref=e173]
+                - cell [ref=e174]:
+                  - link "MOD-MON Database 레코드로 이동" [ref=e175] [cursor=pointer]:
+                    - /url: /projects/www/database?table=project_nodes&row=MOD-MON
+                    - text: MOD-MON
+                - cell "service" [ref=e176]
+              - row [ref=e177]:
+                - cell [ref=e178]:
+                  - link "CMP-MON-STATUS 행 선택" [ref=e179] [cursor=pointer]:
+                    - /url: /projects/www/database?table=project_nodes&row=CMP-MON-STATUS&sort=id&dir=asc
+                    - text: CMP-MON-STATUS
+                - cell "component" [ref=e180]
+                - cell "Status Strip" [ref=e181]
+                - cell [ref=e182]:
+                  - link "MOD-MON Database 레코드로 이동" [ref=e183] [cursor=pointer]:
+                    - /url: /projects/www/database?table=project_nodes&row=MOD-MON
+                    - text: MOD-MON
+                - cell "service" [ref=e184]
+              - row [ref=e185]:
+                - cell [ref=e186]:
+                  - link "CMP-MON-USAGE 행 선택" [ref=e187] [cursor=pointer]:
+                    - /url: /projects/www/database?table=project_nodes&row=CMP-MON-USAGE&sort=id&dir=asc
+                    - text: CMP-MON-USAGE
+                - cell "component" [ref=e188]
+                - cell "Usage Meter" [ref=e189]
+                - cell [ref=e190]:
+                  - link "MOD-MON Database 레코드로 이동" [ref=e191] [cursor=pointer]:
+                    - /url: /projects/www/database?table=project_nodes&row=MOD-MON
+                    - text: MOD-MON
+                - cell "service" [ref=e192]
+              - row [ref=e193]:
+                - cell [ref=e194]:
+                  - link "MOD-CHAT 행 선택" [ref=e195] [cursor=pointer]:
+                    - /url: /projects/www/database?table=project_nodes&row=MOD-CHAT&sort=id&dir=asc
+                    - text: MOD-CHAT
+                - cell "module" [ref=e196]
+                - cell "Chat" [ref=e197]
+                - cell [ref=e198]:
+                  - link "PRJ-WWW Database 레코드로 이동" [ref=e199] [cursor=pointer]:
+                    - /url: /projects/www/database?table=project_nodes&row=PRJ-WWW
+                    - text: PRJ-WWW
+                - cell "service" [ref=e200]
+              - row [ref=e201]:
+                - cell [ref=e202]:
+                  - link "MOD-DASH 행 선택" [ref=e203] [cursor=pointer]:
+                    - /url: /projects/www/database?table=project_nodes&row=MOD-DASH&sort=id&dir=asc
+                    - text: MOD-DASH
+                - cell "module" [ref=e204]
+                - cell "Dashboard" [ref=e205]
+                - cell [ref=e206]:
+                  - link "PRJ-WWW Database 레코드로 이동" [ref=e207] [cursor=pointer]:
+                    - /url: /projects/www/database?table=project_nodes&row=PRJ-WWW
+                    - text: PRJ-WWW
+                - cell "service" [ref=e208]
+              - row [ref=e209]:
+                - cell [ref=e210]:
+                  - link "MOD-MON 행 선택" [ref=e211] [cursor=pointer]:
+                    - /url: /projects/www/database?table=project_nodes&row=MOD-MON&sort=id&dir=asc
+                    - text: MOD-MON
+                - cell "module" [ref=e212]
+                - cell "Monitor" [ref=e213]
+                - cell [ref=e214]:
+                  - link "PRJ-WWW Database 레코드로 이동" [ref=e215] [cursor=pointer]:
+                    - /url: /projects/www/database?table=project_nodes&row=PRJ-WWW
+                    - text: PRJ-WWW
+                - cell "service" [ref=e216]
+              - row [ref=e217]:
+                - cell [ref=e218]:
+                  - link "PRJ-WWW 행 선택" [ref=e219] [cursor=pointer]:
+                    - /url: /projects/www/database?table=project_nodes&row=PRJ-WWW&sort=id&dir=asc
+                    - text: PRJ-WWW
+                - cell "project" [ref=e220]
+                - cell "WWW" [ref=e221]
+                - cell "null" [ref=e222]
+                - cell "service" [ref=e223]
+  - contentinfo [ref=e224]:
+    - generic [ref=e225]: Mock snapshot · 2026-09-28·
+    - generic [ref=e226]: Revision 4f2c9a1·
+    - generic [ref=e227]: Times shown in Asia/Seoul·
+    - generic [ref=e228]: 82 records
+```

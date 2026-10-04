@@ -1,0 +1,18 @@
+<testsuites id="" name="" tests="7" failures="0" skipped="0" errors="0" time="0.390321">
+<testsuite name="data.spec.ts" timestamp="2026-10-02T11:32:00.546Z" hostname="" tests="7" failures="0" skipped="0" time="0.015" errors="0">
+<testcase name="mock snapshot has complete navigable evidence and meaningful table coverage" classname="data.spec.ts" time="0.006">
+</testcase>
+<testcase name="an adopted decision and a commit never imply a passed verification" classname="data.spec.ts" time="0.001">
+</testcase>
+<testcase name="PRN-003 evidence categories come from stored relations" classname="data.spec.ts" time="0.001">
+</testcase>
+<testcase name="view annotations and preview content share one view record" classname="data.spec.ts" time="0.002">
+</testcase>
+<testcase name="integrity checker rejects duplicated identity, missing foreign identity and replacement cycles" classname="data.spec.ts" time="0.004">
+</testcase>
+<testcase name="raw transcript preserves approval and unknown timestamps without inventing chronology" classname="data.spec.ts" time="0.001">
+</testcase>
+<testcase name="database value rendering distinguishes absence, emptiness, zero and false" classname="data.spec.ts" time="0">
+</testcase>
+</testsuite>
+</testsuites>

@@ -1,0 +1,107 @@
+[
+  {
+    "name": "service",
+    "heading": "Service",
+    "height": 1080,
+    "scrollWidth": 1920,
+    "width": 1920
+  },
+  {
+    "name": "chat-view",
+    "heading": "Chat",
+    "height": 1080,
+    "scrollWidth": 1920,
+    "width": 1920
+  },
+  {
+    "name": "principles",
+    "heading": "Chat",
+    "height": 1080,
+    "scrollWidth": 1920,
+    "width": 1920
+  },
+  {
+    "name": "assurance",
+    "heading": "Assurance",
+    "height": 1080,
+    "scrollWidth": 1920,
+    "width": 1920
+  },
+  {
+    "name": "database-raw",
+    "heading": "Database",
+    "height": 1080,
+    "scrollWidth": 1920,
+    "width": 1920
+  },
+  {
+    "name": "service",
+    "heading": "Service",
+    "height": 900,
+    "scrollWidth": 1024,
+    "width": 1024
+  },
+  {
+    "name": "chat-view",
+    "heading": "Chat",
+    "height": 900,
+    "scrollWidth": 1024,
+    "width": 1024
+  },
+  {
+    "name": "principles",
+    "heading": "Chat",
+    "height": 900,
+    "scrollWidth": 1024,
+    "width": 1024
+  },
+  {
+    "name": "assurance",
+    "heading": "Assurance",
+    "height": 900,
+    "scrollWidth": 1024,
+    "width": 1024
+  },
+  {
+    "name": "database-raw",
+    "heading": "Database",
+    "height": 900,
+    "scrollWidth": 1024,
+    "width": 1024
+  },
+  {
+    "name": "service",
+    "heading": "Service",
+    "height": 900,
+    "scrollWidth": 1440,
+    "width": 1440
+  },
+  {
+    "name": "chat-view",
+    "heading": "Chat",
+    "height": 900,
+    "scrollWidth": 1440,
+    "width": 1440
+  },
+  {
+    "name": "principles",
+    "heading": "Chat",
+    "height": 900,
+    "scrollWidth": 1440,
+    "width": 1440
+  },
+  {
+    "name": "assurance",
+    "heading": "Assurance",
+    "height": 900,
+    "scrollWidth": 1440,
+    "width": 1440
+  },
+  {
+    "name": "database-raw",
+    "heading": "Database",
+    "height": 900,
+    "scrollWidth": 1440,
+    "width": 1440
+  }
+]

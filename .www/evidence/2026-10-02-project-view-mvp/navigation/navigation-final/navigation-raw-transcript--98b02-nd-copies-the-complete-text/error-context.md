@@ -1,0 +1,399 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: navigation.spec.ts >> raw transcript preserves newlines and copies the complete text
+- Location: tests/navigation.spec.ts:95:1
+
+# Error details
+
+```
+Test timeout of 30000ms exceeded.
+```
+
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]: W
+      - generic [ref=e7]:
+        - strong [ref=e8]: WWW
+        - generic [ref=e9]: Project View
+    - generic [ref=e10]:
+      - generic [ref=e11]: MOCK
+      - generic [ref=e12]: READ ONLY
+      - code [ref=e13]: main / 4f2c9a1
+  - navigation "Primary navigation" [ref=e14]:
+    - link "01 Service" [ref=e15] [cursor=pointer]:
+      - /url: /projects/www/service
+      - generic [ref=e16]: "01"
+      - strong [ref=e17]: Service
+    - link "02 Assurance" [ref=e18] [cursor=pointer]:
+      - /url: /projects/www/assurance
+      - generic [ref=e19]: "02"
+      - strong [ref=e20]: Assurance
+    - link "03 Database" [ref=e21] [cursor=pointer]:
+      - /url: /projects/www/database
+      - generic [ref=e22]: "03"
+      - strong [ref=e23]: Database
+  - main [ref=e24]:
+    - generic [ref=e25]:
+      - navigation "Breadcrumb" [ref=e26]:
+        - generic [ref=e27]: WWW /
+        - generic [ref=e28]: Database
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - paragraph [ref=e31]: Common data entry · 11 mock tables
+          - heading "Database" [level=1] [ref=e32]
+          - paragraph [ref=e33]: Service와 Assurance가 함께 사용하는 구조화 데이터와 보존된 RAW를 읽습니다.
+        - generic [ref=e34]:
+          - generic [ref=e35]: READ ONLY
+          - generic [ref=e36]: Mock metadata · no SQL
+      - generic [ref=e37]:
+        - complementary [ref=e38]:
+          - heading "Tables" [level=2] [ref=e39]
+          - generic [ref=e40]:
+            - heading "Structure" [level=3] [ref=e41]
+            - link "project_nodes 15" [ref=e42] [cursor=pointer]:
+              - /url: /projects/www/database?table=project_nodes
+              - generic [ref=e43]: project_nodes
+              - generic [ref=e44]: "15"
+            - link "relations 22" [ref=e45] [cursor=pointer]:
+              - /url: /projects/www/database?table=relations
+              - generic [ref=e46]: relations
+              - generic [ref=e47]: "22"
+            - link "views 3" [ref=e48] [cursor=pointer]:
+              - /url: /projects/www/database?table=views
+              - generic [ref=e49]: views
+              - generic [ref=e50]: "3"
+          - generic [ref=e51]:
+            - heading "Rules & Decisions" [level=3] [ref=e52]
+            - link "documents 3" [ref=e53] [cursor=pointer]:
+              - /url: /projects/www/database?table=documents
+              - generic [ref=e54]: documents
+              - generic [ref=e55]: "3"
+            - link "principles 4" [ref=e56] [cursor=pointer]:
+              - /url: /projects/www/database?table=principles
+              - generic [ref=e57]: principles
+              - generic [ref=e58]: "4"
+            - link "decisions 5" [ref=e59] [cursor=pointer]:
+              - /url: /projects/www/database?table=decisions
+              - generic [ref=e60]: decisions
+              - generic [ref=e61]: "5"
+          - generic [ref=e62]:
+            - heading "Evidence" [level=3] [ref=e63]
+            - link "commits 2" [ref=e64] [cursor=pointer]:
+              - /url: /projects/www/database?table=commits
+              - generic [ref=e65]: commits
+              - generic [ref=e66]: "2"
+            - link "implementation_links 2" [ref=e67] [cursor=pointer]:
+              - /url: /projects/www/database?table=implementation_links
+              - generic [ref=e68]: implementation_links
+              - generic [ref=e69]: "2"
+            - link "verification_runs 5" [ref=e70] [cursor=pointer]:
+              - /url: /projects/www/database?table=verification_runs
+              - generic [ref=e71]: verification_runs
+              - generic [ref=e72]: "5"
+          - generic [ref=e73]:
+            - heading "RAW" [level=3] [ref=e74]
+            - link "raw_sessions 2" [ref=e75] [cursor=pointer]:
+              - /url: /projects/www/database?table=raw_sessions
+              - generic [ref=e76]: raw_sessions
+              - generic [ref=e77]: "2"
+            - link "raw_events 19" [ref=e78] [cursor=pointer]:
+              - /url: /projects/www/database?table=raw_events
+              - generic [ref=e79]: raw_events
+              - generic [ref=e80]: "19"
+        - generic [ref=e81]:
+          - generic [ref=e82]:
+            - generic [ref=e83]:
+              - paragraph [ref=e84]: Records / raw_events
+              - heading "raw_events" [level=2] [ref=e85]
+              - paragraph [ref=e86]: 순서와 전문을 보존한 원본 이벤트
+            - button "Schema" [ref=e87] [cursor=pointer]
+          - generic [ref=e88]:
+            - generic [ref=e89]:
+              - text: Search
+              - searchbox "Search" [ref=e90]
+            - generic [ref=e91]:
+              - text: Sort
+              - combobox "Sort" [ref=e92]:
+                - option "id" [selected]
+                - option "eventKind"
+                - option "sessionId"
+                - option "order"
+                - option "occurredAt"
+            - button "정렬 방향 오름차순" [ref=e93] [cursor=pointer]: ↑
+            - generic [ref=e94]: 19 / 19 records
+          - table [ref=e96]:
+            - rowgroup [ref=e97]:
+              - row [ref=e98]:
+                - columnheader "id" [ref=e99]
+                - columnheader "eventKind" [ref=e100]
+                - columnheader "sessionId" [ref=e101]
+                - columnheader "order" [ref=e102]
+                - columnheader "occurredAt" [ref=e103]
+            - rowgroup [ref=e104]:
+              - row [ref=e105]:
+                - cell [ref=e106]:
+                  - link "RAW-001 행 선택" [ref=e107] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_events&row=RAW-001&sort=id&dir=asc
+                    - text: RAW-001
+                - cell "user" [ref=e108]
+                - cell [ref=e109]:
+                  - link "SES-001 Database 레코드로 이동" [ref=e110] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_sessions&row=SES-001
+                    - text: SES-001
+                - cell "1" [ref=e111]
+                - cell "2026-09-28T14:20:04+09:00" [ref=e112]
+              - row [ref=e113]:
+                - cell [ref=e114]:
+                  - link "RAW-002 행 선택" [ref=e115] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_events&row=RAW-002&sort=id&dir=asc
+                    - text: RAW-002
+                - cell "assistant" [ref=e116]
+                - cell [ref=e117]:
+                  - link "SES-001 Database 레코드로 이동" [ref=e118] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_sessions&row=SES-001
+                    - text: SES-001
+                - cell "2" [ref=e119]
+                - cell "2026-09-28T14:20:08+09:00" [ref=e120]
+              - row [ref=e121]:
+                - cell [ref=e122]:
+                  - link "RAW-003 행 선택" [ref=e123] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_events&row=RAW-003&sort=id&dir=asc
+                    - text: RAW-003
+                - cell "tool" [ref=e124]
+                - cell [ref=e125]:
+                  - link "SES-001 Database 레코드로 이동" [ref=e126] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_sessions&row=SES-001
+                    - text: SES-001
+                - cell "3" [ref=e127]
+                - cell "2026-09-28T14:20:10+09:00" [ref=e128]
+              - row [ref=e129]:
+                - cell [ref=e130]:
+                  - link "RAW-004 행 선택" [ref=e131] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_events&row=RAW-004&sort=id&dir=asc
+                    - text: RAW-004
+                - cell "tool-result" [ref=e132]
+                - cell [ref=e133]:
+                  - link "SES-001 Database 레코드로 이동" [ref=e134] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_sessions&row=SES-001
+                    - text: SES-001
+                - cell "4" [ref=e135]
+                - cell "2026-09-28T14:20:12+09:00" [ref=e136]
+              - row [ref=e137]:
+                - cell [ref=e138]:
+                  - link "RAW-005 행 선택" [ref=e139] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_events&row=RAW-005&sort=id&dir=asc
+                    - text: RAW-005
+                - cell "context" [ref=e140]
+                - cell [ref=e141]:
+                  - link "SES-001 Database 레코드로 이동" [ref=e142] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_sessions&row=SES-001
+                    - text: SES-001
+                - cell "5" [ref=e143]
+                - cell "2026-09-28T14:22:00+09:00" [ref=e144]
+              - row [ref=e145]:
+                - cell [ref=e146]:
+                  - link "RAW-006 행 선택" [ref=e147] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_events&row=RAW-006&sort=id&dir=asc
+                    - text: RAW-006
+                - cell "assistant" [ref=e148]
+                - cell [ref=e149]:
+                  - link "SES-001 Database 레코드로 이동" [ref=e150] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_sessions&row=SES-001
+                    - text: SES-001
+                - cell "6" [ref=e151]
+                - cell "2026-09-28T14:23:00+09:00" [ref=e152]
+              - row [ref=e153]:
+                - cell [ref=e154]:
+                  - link "RAW-007 행 선택" [ref=e155] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_events&row=RAW-007&sort=id&dir=asc
+                    - text: RAW-007
+                - cell "user" [ref=e156]
+                - cell [ref=e157]:
+                  - link "SES-001 Database 레코드로 이동" [ref=e158] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_sessions&row=SES-001
+                    - text: SES-001
+                - cell "7" [ref=e159]
+                - cell "2026-09-28T14:24:00+09:00" [ref=e160]
+              - row [ref=e161]:
+                - cell [ref=e162]:
+                  - link "RAW-008 행 선택" [ref=e163] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_events&row=RAW-008&sort=id&dir=asc
+                    - text: RAW-008
+                - cell "assistant" [ref=e164]
+                - cell [ref=e165]:
+                  - link "SES-001 Database 레코드로 이동" [ref=e166] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_sessions&row=SES-001
+                    - text: SES-001
+                - cell "8" [ref=e167]
+                - cell "2026-09-28T14:25:00+09:00" [ref=e168]
+              - row [ref=e169]:
+                - cell [ref=e170]:
+                  - link "RAW-009 행 선택" [ref=e171] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_events&row=RAW-009&sort=id&dir=asc
+                    - text: RAW-009
+                - cell "tool" [ref=e172]
+                - cell [ref=e173]:
+                  - link "SES-001 Database 레코드로 이동" [ref=e174] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_sessions&row=SES-001
+                    - text: SES-001
+                - cell "9" [ref=e175]
+                - cell "2026-09-28T14:26:00+09:00" [ref=e176]
+              - row [ref=e177]:
+                - cell [ref=e178]:
+                  - link "RAW-010 행 선택" [ref=e179] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_events&row=RAW-010&sort=id&dir=asc
+                    - text: RAW-010
+                - cell "tool-result" [ref=e180]
+                - cell [ref=e181]:
+                  - link "SES-001 Database 레코드로 이동" [ref=e182] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_sessions&row=SES-001
+                    - text: SES-001
+                - cell "10" [ref=e183]
+                - cell "2026-09-28T14:26:01+09:00" [ref=e184]
+              - row [ref=e185]:
+                - cell [ref=e186]:
+                  - link "RAW-011 행 선택" [ref=e187] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_events&row=RAW-011&sort=id&dir=asc
+                    - text: RAW-011
+                - cell "fixture" [ref=e188]
+                - cell [ref=e189]:
+                  - link "SES-001 Database 레코드로 이동" [ref=e190] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_sessions&row=SES-001
+                    - text: SES-001
+                - cell "11" [ref=e191]
+                - cell "2026-09-28T14:27:00+09:00" [ref=e192]
+              - row [ref=e193]:
+                - cell [ref=e194]:
+                  - link "RAW-012 행 선택" [ref=e195] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_events&row=RAW-012&sort=id&dir=asc
+                    - text: RAW-012
+                - cell "assistant" [ref=e196]
+                - cell [ref=e197]:
+                  - link "SES-001 Database 레코드로 이동" [ref=e198] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_sessions&row=SES-001
+                    - text: SES-001
+                - cell "12" [ref=e199]
+                - cell "2026-09-28T14:28:00+09:00" [ref=e200]
+              - row [ref=e201]:
+                - cell [ref=e202]:
+                  - link "RAW-013 행 선택" [ref=e203] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_events&row=RAW-013&sort=id&dir=asc
+                    - text: RAW-013
+                - cell "assistant" [ref=e204]
+                - cell [ref=e205]:
+                  - link "SES-001 Database 레코드로 이동" [ref=e206] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_sessions&row=SES-001
+                    - text: SES-001
+                - cell "13" [ref=e207]
+                - cell "2026-09-28T14:31:00+09:00" [ref=e208]
+              - row [ref=e209]:
+                - cell [ref=e210]:
+                  - link "RAW-014 행 선택" [ref=e211] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_events&row=RAW-014&sort=id&dir=asc
+                    - text: RAW-014
+                - cell "user" [ref=e212]
+                - cell [ref=e213]:
+                  - link "SES-001 Database 레코드로 이동" [ref=e214] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_sessions&row=SES-001
+                    - text: SES-001
+                - cell "14" [ref=e215]
+                - cell "2026-09-28T14:33:00+09:00" [ref=e216]
+              - row [ref=e217]:
+                - cell [ref=e218]:
+                  - link "RAW-015 행 선택" [ref=e219] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_events&row=RAW-015&sort=id&dir=asc
+                    - text: RAW-015
+                - cell "commit-observed" [ref=e220]
+                - cell [ref=e221]:
+                  - link "SES-002 Database 레코드로 이동" [ref=e222] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_sessions&row=SES-002
+                    - text: SES-002
+                - cell "1" [ref=e223]
+                - cell "null" [ref=e224]
+              - row [ref=e225]:
+                - cell [ref=e226]:
+                  - link "RAW-016 행 선택" [ref=e227] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_events&row=RAW-016&sort=id&dir=asc
+                    - text: RAW-016
+                - cell "check-output" [ref=e228]
+                - cell [ref=e229]:
+                  - link "SES-002 Database 레코드로 이동" [ref=e230] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_sessions&row=SES-002
+                    - text: SES-002
+                - cell "2" [ref=e231]
+                - cell "null" [ref=e232]
+              - row [ref=e233]:
+                - cell [ref=e234]:
+                  - link "RAW-017 행 선택" [ref=e235] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_events&row=RAW-017&sort=id&dir=asc
+                    - text: RAW-017
+                - cell "review-note" [ref=e236]
+                - cell [ref=e237]:
+                  - link "SES-002 Database 레코드로 이동" [ref=e238] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_sessions&row=SES-002
+                    - text: SES-002
+                - cell "3" [ref=e239]
+                - cell "null" [ref=e240]
+              - row [ref=e241]:
+                - cell [ref=e242]:
+                  - link "RAW-018 행 선택" [ref=e243] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_events&row=RAW-018&sort=id&dir=asc
+                    - text: RAW-018
+                - cell "proposal" [ref=e244]
+                - cell [ref=e245]:
+                  - link "SES-002 Database 레코드로 이동" [ref=e246] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_sessions&row=SES-002
+                    - text: SES-002
+                - cell "4" [ref=e247]
+                - cell "null" [ref=e248]
+              - row [ref=e249]:
+                - cell [ref=e250]:
+                  - link "RAW-019 행 선택" [ref=e251] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_events&row=RAW-019&sort=id&dir=asc
+                    - text: RAW-019
+                - cell "decision" [ref=e252]
+                - cell [ref=e253]:
+                  - link "SES-002 Database 레코드로 이동" [ref=e254] [cursor=pointer]:
+                    - /url: /projects/www/database?table=raw_sessions&row=SES-002
+                    - text: SES-002
+                - cell "5" [ref=e255]
+                - cell "null" [ref=e256]
+        - complementary "RAW-016 record detail" [ref=e257]:
+          - generic [ref=e258]:
+            - generic [ref=e259]:
+              - paragraph [ref=e260]: raw_events
+              - heading "RAW-016" [level=2] [ref=e261]
+            - button "레코드 상세 닫기" [ref=e262] [cursor=pointer]: ×
+          - navigation "Record detail views" [ref=e263]:
+            - link "Fields" [ref=e264] [cursor=pointer]:
+              - /url: /projects/www/database?table=raw_events&row=RAW-016&sort=id&dir=asc&detail=fields
+            - link "Json" [ref=e265] [cursor=pointer]:
+              - /url: /projects/www/database?table=raw_events&row=RAW-016&sort=id&dir=asc&detail=json
+            - link "Relations" [ref=e266] [cursor=pointer]:
+              - /url: /projects/www/database?table=raw_events&row=RAW-016&sort=id&dir=asc&detail=relations
+            - link "Transcript" [ref=e267] [cursor=pointer]:
+              - /url: /projects/www/database?table=raw_events&row=RAW-016&sort=id&dir=asc&detail=transcript
+          - generic [ref=e268]:
+            - generic [ref=e269]:
+              - generic [ref=e270]: Source order 2
+              - generic [ref=e271]: 원본 시각 없음
+            - generic [ref=e272]:
+              - button "줄바꿈 켜짐" [pressed] [ref=e273] [cursor=pointer]
+              - button "복사됨" [active] [ref=e274] [cursor=pointer]
+            - generic [ref=e275]: "FAILED CHK-014 ChatMessageView.tsx:118 View still reads event.nativePayload.tool_result directly. Criterion: PRN-003 / Adapter owns Native event parsing."
+  - contentinfo [ref=e276]:
+    - generic [ref=e277]: Mock snapshot · 2026-09-28·
+    - generic [ref=e278]: Revision 4f2c9a1·
+    - generic [ref=e279]: Times shown in Asia/Seoul·
+    - generic [ref=e280]: 82 records
+```

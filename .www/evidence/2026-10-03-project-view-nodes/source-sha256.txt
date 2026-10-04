@@ -1,0 +1,5 @@
+0789e7e5da48633f010020d20f85122ebeb1f4513c9a558fec6cc4ff45e5f841  apps/project-view/src/graph-model.ts
+6e3f79535f5b3d93ef7ad447e3931167ed4008400454cb9aa21c962216a171e4  apps/project-view/src/node-canvas.tsx
+40c9de72a59bb6d3239167b5e684b12dd91d97c57ec8cf6f76821404715051d1  apps/project-view/src/graph-page.tsx
+ef216044fad0e65cb780a7aa7e927ca309692de20cfe1cf06dc02f7fa81a750f  apps/project-view/src/graph.css
+71a3da26520dc510fdb325c5d5a272c87db5bb0215835b2a5d924064f07cfa12  apps/project-view/src/App.tsx

@@ -1,0 +1,32 @@
+<testsuites id="" name="" tests="14" failures="0" skipped="0" errors="0" time="20.328034">
+<testsuite name="navigation.spec.ts" timestamp="2026-10-02T11:20:49.305Z" hostname="" tests="14" failures="0" skipped="0" time="18.78" errors="0">
+<testcase name="top-level workspaces remain peers and identify the current page" classname="navigation.spec.ts" time="3.501">
+</testcase>
+<testcase name="module detail routes open directly and preserve browser history" classname="navigation.spec.ts" time="1.003">
+</testcase>
+<testcase name="every module has its own working preview" classname="navigation.spec.ts" time="1.588">
+</testcase>
+<testcase name="a broken deep link preserves its identity and explains the missing record" classname="navigation.spec.ts" time="0.64">
+</testcase>
+<testcase name="database controls, row selection, and detail tabs survive browser history" classname="navigation.spec.ts" time="1.826">
+</testcase>
+<testcase name="database schema uses declared nullable types and nested references navigate" classname="navigation.spec.ts" time="1.238">
+</testcase>
+<testcase name="raw transcript preserves newlines and copies the complete text" classname="navigation.spec.ts" time="0.691">
+</testcase>
+<testcase name="narrow database detail traps focus, closes with Escape, and restores the row trigger" classname="navigation.spec.ts" time="1.036">
+</testcase>
+<testcase name="a selected database row is revealed inside the grid without moving the document" classname="navigation.spec.ts" time="0.663">
+</testcase>
+<testcase name="important reading surfaces stay within 1920px viewport" classname="navigation.spec.ts" time="1.279">
+</testcase>
+<testcase name="important reading surfaces stay within 1440px viewport" classname="navigation.spec.ts" time="1.432">
+</testcase>
+<testcase name="important reading surfaces stay within 1024px viewport" classname="navigation.spec.ts" time="1.34">
+</testcase>
+<testcase name="important reading surfaces stay within 720px viewport" classname="navigation.spec.ts" time="1.274">
+</testcase>
+<testcase name="important reading surfaces stay within 390px viewport" classname="navigation.spec.ts" time="1.269">
+</testcase>
+</testsuite>
+</testsuites>
